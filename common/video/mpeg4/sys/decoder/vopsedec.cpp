@@ -64,7 +64,7 @@ Revision History:
 
 #include "typeapi.h"
 #include "codehead.h"
-#include "entropy/bytestrm.hpp"
+#include "entropy/bytestrm_file.hpp"
 #include "entropy/bitstrm.hpp"
 #include "entropy/entropy.hpp"
 #include "entropy/huffman.hpp"
@@ -2105,6 +2105,10 @@ void CVideoObjectDecoder::setClockRateScale ( CVideoObjectDecoder *pvopdec )
 	m_iClockRateScale = pvopdec->m_volmd.iClockRate / m_volmd.iClockRate;
 }
 	// end: added by Sharp (98/6/26)
+void CVideoObjectDecoder::set_byte_stream(CInByteStreamBase *p)
+{ m_pbytestrmIn = p;
+ m_pbitstrmIn->attach(p);
+}
 
 
 /******************************************
