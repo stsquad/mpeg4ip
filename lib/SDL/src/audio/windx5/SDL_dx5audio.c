@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5audio.c,v 1.3 2001/11/13 00:38:55 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5audio.c,v 1.4 2001/11/13 19:15:23 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -369,7 +369,6 @@ static Uint8 *DX5_GetAudioBuf(_THIS)
 	playing = cursor;
 	cursor = (cursor+1)%NUM_BUFFERS;
 	cursor *= mixlen;
-
 	/* Lock the audio buffer */
 	result = IDirectSoundBuffer_Lock(mixbuf, cursor, mixlen,
 				(LPVOID *)&locked_buf, &rawlen, NULL, &junk, 0);
@@ -706,8 +705,10 @@ static int DX5_AudioDelayMsec (_THIS)
 	/* char buffer[80]; */
 
 	result = IDirectSoundBuffer_GetCurrentPosition(mixbuf, &cursor, &write);
-	/*sprintf(buffer, "cur %d write %d\n", cursor, write);
-	OutputDebugString(buffer); */
+	write = cursor / mixlen;
+	write = (write+1)%NUM_BUFFERS;
+	write *= mixlen;	
+	
 	if (result == DS_OK) {
 	/*
 	 * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)
