@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 		begin = GetTickCount();
 		#endif
 		aac_decode_init_filestream(FileNames[i]);
-		aac_decode_init(&fInfo, 1);
+		aac_decode_init(&fInfo);
 
 		if(!writeToStdio)
 			printf("Busy decoding %s\n", FileNames[i]);
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
 
 		do
 		{
-			bits = aac_decode_frame(sample_buffer, 0);
+			bits = aac_decode_frame(sample_buffer);
 
 			if (bits > 0)
 			{
