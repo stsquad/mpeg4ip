@@ -23,7 +23,7 @@ static int http_recv (int server_socket,
   FD_ZERO(&read_set);
   FD_SET(server_socket, &read_set);
   timeout.tv_sec = 2;
-  timeout.tx_usec = 0;
+  timeout.tv_usec = 0;
   ret = select(server_socket + 1, &read_set, NULL, NULL, &timeout);
 #endif
   if (ret <= 0) {
