@@ -1,0 +1,532 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 39;
+	objects = {
+		9B082BCA05E4287700EC158C = {
+			buildPhases = (
+			);
+			buildSettings = {
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = aggregate;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
+			};
+			dependencies = (
+				9B082BCC05E4289600EC158C,
+				9B082BD005E4289F00EC158C,
+				9BA8864805E42B5900AB407A,
+			);
+			isa = PBXAggregateTarget;
+			name = aggregate;
+			productName = aggregate;
+		};
+		9B082BCB05E4289600EC158C = {
+			containerPortal = 9BEFA45005E41E7A0007123C;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = 9BEFA45705E41F290007123C;
+			remoteInfo = mp4info;
+		};
+		9B082BCC05E4289600EC158C = {
+			isa = PBXTargetDependency;
+			target = 9BEFA45705E41F290007123C;
+			targetProxy = 9B082BCB05E4289600EC158C;
+		};
+		9B082BCF05E4289F00EC158C = {
+			containerPortal = 9BEFA45005E41E7A0007123C;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = 9BEFA48005E421D80007123C;
+			remoteInfo = mp4dump;
+		};
+		9B082BD005E4289F00EC158C = {
+			isa = PBXTargetDependency;
+			target = 9BEFA48005E421D80007123C;
+			targetProxy = 9B082BCF05E4289F00EC158C;
+		};
+		9B1BB06805EC101400830C27 = {
+			isa = PBXFileReference;
+			lastKnownFileType = "wrapper.pb-project";
+			name = gnu.xcode;
+			path = ../../gnu/gnu.xcode;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		9B1BB06B05EC101400830C27 = {
+			children = (
+				9B1BB06C05EC101400830C27,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		9B1BB06C05EC101400830C27 = {
+			fileType = archive.ar;
+			isa = PBXReferenceProxy;
+			path = libgnu.a;
+			refType = 3;
+			remoteRef = 9B1BB07505EC104F00830C27;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		9B1BB06E05EC101E00830C27 = {
+			fileRef = 9B1BB06C05EC101400830C27;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9B1BB07005EC102600830C27 = {
+			fileRef = 9B1BB06C05EC101400830C27;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9B1BB07105EC102E00830C27 = {
+			fileRef = 9B1BB06C05EC101400830C27;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9B1BB07305EC103400830C27 = {
+			buildActionMask = 2147483647;
+			dstPath = /usr/local/bin;
+			dstSubfolderSpec = 0;
+			files = (
+				9B1BB07405EC104300830C27,
+			);
+			isa = PBXCopyFilesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B1BB07405EC104300830C27 = {
+			fileRef = 9BA8864505E42B4E00AB407A;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9B1BB07505EC104F00830C27 = {
+			containerPortal = 9B1BB06805EC101400830C27;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = D2AAC046055464E500DB518D;
+			remoteInfo = gnu;
+		};
+		9B4A6BB705E53BD4004C9D52 = {
+			buildActionMask = 2147483647;
+			files = (
+				9B1BB07005EC102600830C27,
+				9B4A6BBA05E53BDB004C9D52,
+			);
+			isa = PBXFrameworksBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B4A6BBA05E53BDB004C9D52 = {
+			fileRef = 9BEE15DC05E4367D00620849;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9B4A6BC105E53BF8004C9D52 = {
+			fileRef = 9BEE15DC05E4367D00620849;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BA8864205E42B4E00AB407A = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			isa = PBXHeadersBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BA8864305E42B4E00AB407A = {
+			buildActionMask = 2147483647;
+			files = (
+				9BA8864A05E42B7100AB407A,
+			);
+			isa = PBXSourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BA8864405E42B4E00AB407A = {
+			buildPhases = (
+				9BA8864205E42B4E00AB407A,
+				9BA8864305E42B4E00AB407A,
+				9BA8865005E42BBF00AB407A,
+				9B1BB07305EC103400830C27,
+			);
+			buildRules = (
+			);
+			buildSettings = {
+				GCC_WARN_FOUR_CHARACTER_CONSTANTS = NO;
+				GCC_WARN_UNKNOWN_PRAGMAS = NO;
+				HEADER_SEARCH_PATHS = ".. ../../.. ../../../include";
+				INSTALL_PATH = /usr/local/bin;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = mp4trackdump;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost";
+			};
+			dependencies = (
+			);
+			isa = PBXNativeTarget;
+			name = mp4trackdump;
+			productName = mp4trackdump;
+			productReference = 9BA8864505E42B4E00AB407A;
+			productType = "com.apple.product-type.tool";
+		};
+		9BA8864505E42B4E00AB407A = {
+			explicitFileType = "compiled.mach-o.executable";
+			includeInIndex = 0;
+			isa = PBXFileReference;
+			path = mp4trackdump;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		9BA8864705E42B5900AB407A = {
+			containerPortal = 9BEFA45005E41E7A0007123C;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = 9BA8864405E42B4E00AB407A;
+			remoteInfo = mp4trackdump;
+		};
+		9BA8864805E42B5900AB407A = {
+			isa = PBXTargetDependency;
+			target = 9BA8864405E42B4E00AB407A;
+			targetProxy = 9BA8864705E42B5900AB407A;
+		};
+		9BA8864905E42B7100AB407A = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = mp4trackdump.cpp;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		9BA8864A05E42B7100AB407A = {
+			fileRef = 9BA8864905E42B7100AB407A;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BA8865005E42BBF00AB407A = {
+			buildActionMask = 2147483647;
+			files = (
+				9B1BB07105EC102E00830C27,
+				9B4A6BC105E53BF8004C9D52,
+			);
+			isa = PBXFrameworksBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BEE15D805E4367D00620849 = {
+			isa = PBXFileReference;
+			lastKnownFileType = "wrapper.pb-project";
+			name = libmp4v2.xcode;
+			path = ../../libmp4v2.xcode;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		9BEE15DB05E4367D00620849 = {
+			children = (
+				9BEE15DC05E4367D00620849,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		9BEE15DC05E4367D00620849 = {
+			fileType = "compiled.mach-o.dylib";
+			isa = PBXReferenceProxy;
+			path = libmp4v2.dylib;
+			refType = 3;
+			remoteRef = 9BEE15E105E4369B00620849;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		9BEE15DD05E4368400620849 = {
+			fileRef = 9BEE15DC05E4367D00620849;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BEE15E105E4369B00620849 = {
+			containerPortal = 9BEE15D805E4367D00620849;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = D2AAC0630554660B00DB518D;
+			remoteInfo = libmp4v2;
+		};
+		9BEFA44C05E41E7A0007123C = {
+			children = (
+				9B1BB06805EC101400830C27,
+				9BEE15D805E4367D00620849,
+				9BA8864905E42B7100AB407A,
+				9BEFA48305E422000007123C,
+				9BEFA45B05E41F500007123C,
+				9BEFA45905E41F290007123C,
+			);
+			isa = PBXGroup;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		9BEFA44E05E41E7A0007123C = {
+			buildRules = (
+			);
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				HEADER_SEARCH_PATHS = ".. ../../.. ../../../include";
+				LIBRARY_SEARCH_PATHS = ../../gnu/build;
+			};
+			isa = PBXBuildStyle;
+			name = Development;
+		};
+		9BEFA44F05E41E7A0007123C = {
+			buildRules = (
+			);
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_CHECK_SWITCH_STATEMENTS = YES;
+				GCC_WARN_INITIALIZER_NOT_FULLY_BRACKETED = YES;
+				GCC_WARN_MISSING_PARENTHESES = YES;
+				GCC_WARN_NON_VIRTUAL_DESTRUCTOR = NO;
+				GCC_WARN_SHADOW = YES;
+				GCC_WARN_SIGN_COMPARE = YES;
+				GCC_WARN_TYPECHECK_CALLS_TO_PRINTF = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNKNOWN_PRAGMAS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_LABEL = YES;
+				GCC_WARN_UNUSED_PARAMETER = NO;
+				GCC_WARN_UNUSED_VALUE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = ".. ../../.. ../../../include";
+				LIBRARY_SEARCH_PATHS = ../../gnu/build;
+			};
+			isa = PBXBuildStyle;
+			name = Deployment;
+		};
+		9BEFA45005E41E7A0007123C = {
+			buildSettings = {
+			};
+			buildStyles = (
+				9BEFA44E05E41E7A0007123C,
+				9BEFA44F05E41E7A0007123C,
+			);
+			hasScannedForEncodings = 1;
+			isa = PBXProject;
+			mainGroup = 9BEFA44C05E41E7A0007123C;
+			productRefGroup = 9BEFA45905E41F290007123C;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 9BEE15DB05E4367D00620849;
+					ProjectRef = 9BEE15D805E4367D00620849;
+				},
+				{
+					ProductGroup = 9B1BB06B05EC101400830C27;
+					ProjectRef = 9B1BB06805EC101400830C27;
+				},
+			);
+			targets = (
+				9BEFA48005E421D80007123C,
+				9BEFA45705E41F290007123C,
+				9B082BCA05E4287700EC158C,
+				9BA8864405E42B4E00AB407A,
+			);
+		};
+		9BEFA45505E41F290007123C = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			isa = PBXHeadersBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BEFA45605E41F290007123C = {
+			buildActionMask = 2147483647;
+			files = (
+				9BEFA45C05E41F500007123C,
+			);
+			isa = PBXSourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BEFA45705E41F290007123C = {
+			buildPhases = (
+				9BEFA45505E41F290007123C,
+				9BEFA45605E41F290007123C,
+				9B4A6BB705E53BD4004C9D52,
+				9BEFA47B05E421500007123C,
+			);
+			buildRules = (
+			);
+			buildSettings = {
+				GCC_WARN_FOUR_CHARACTER_CONSTANTS = NO;
+				GCC_WARN_UNKNOWN_PRAGMAS = NO;
+				HEADER_SEARCH_PATHS = ".. ../../.. ../../../include";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "/tmp/libmp4v2.dst/usr/local/lib /Users/wmay/mpeg4ip/lib/gnu/build";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = mp4info;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost";
+			};
+			dependencies = (
+			);
+			isa = PBXNativeTarget;
+			name = mp4info;
+			productName = mp4info;
+			productReference = 9BEFA45805E41F290007123C;
+			productType = "com.apple.product-type.tool";
+		};
+		9BEFA45805E41F290007123C = {
+			explicitFileType = "compiled.mach-o.executable";
+			includeInIndex = 0;
+			isa = PBXFileReference;
+			path = mp4info;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		9BEFA45905E41F290007123C = {
+			children = (
+				9BEFA45805E41F290007123C,
+				9BEFA48105E421D80007123C,
+				9BA8864505E42B4E00AB407A,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		9BEFA45B05E41F500007123C = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = mp4info.cpp;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		9BEFA45C05E41F500007123C = {
+			fileRef = 9BEFA45B05E41F500007123C;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BEFA47B05E421500007123C = {
+			buildActionMask = 2147483647;
+			dstPath = /usr/local/bin;
+			dstSubfolderSpec = 0;
+			files = (
+				9BEFA47D05E4216F0007123C,
+			);
+			isa = PBXCopyFilesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BEFA47D05E4216F0007123C = {
+			fileRef = 9BEFA45805E41F290007123C;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BEFA47E05E421D80007123C = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			isa = PBXHeadersBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BEFA47F05E421D80007123C = {
+			buildActionMask = 2147483647;
+			files = (
+				9BEFA48405E422000007123C,
+			);
+			isa = PBXSourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BEFA48005E421D80007123C = {
+			buildPhases = (
+				9BEFA47E05E421D80007123C,
+				9BEFA47F05E421D80007123C,
+				9BEFA48A05E422240007123C,
+				9BEFA48E05E422380007123C,
+			);
+			buildRules = (
+			);
+			buildSettings = {
+				GCC_WARN_FOUR_CHARACTER_CONSTANTS = NO;
+				GCC_WARN_UNKNOWN_PRAGMAS = NO;
+				HEADER_SEARCH_PATHS = ".. ../../.. ../../../include";
+				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = "/tmp/libmp4v2.dst/usr/local/lib /Users/wmay/mpeg4ip/lib/gnu/build";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = mp4dump;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost";
+			};
+			dependencies = (
+			);
+			isa = PBXNativeTarget;
+			name = mp4dump;
+			productName = mp4dump;
+			productReference = 9BEFA48105E421D80007123C;
+			productType = "com.apple.product-type.tool";
+		};
+		9BEFA48105E421D80007123C = {
+			explicitFileType = "compiled.mach-o.executable";
+			includeInIndex = 0;
+			isa = PBXFileReference;
+			path = mp4dump;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		9BEFA48305E422000007123C = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			path = mp4dump.cpp;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		9BEFA48405E422000007123C = {
+			fileRef = 9BEFA48305E422000007123C;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9BEFA48A05E422240007123C = {
+			buildActionMask = 2147483647;
+			files = (
+				9B1BB06E05EC101E00830C27,
+				9BEE15DD05E4368400620849,
+			);
+			isa = PBXFrameworksBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BEFA48E05E422380007123C = {
+			buildActionMask = 2147483647;
+			dstPath = /usr/local/bin;
+			dstSubfolderSpec = 0;
+			files = (
+				9BEFA49005E422480007123C,
+			);
+			isa = PBXCopyFilesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9BEFA49005E422480007123C = {
+			fileRef = 9BEFA48105E421D80007123C;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+	};
+	rootObject = 9BEFA45005E41E7A0007123C;
+}
