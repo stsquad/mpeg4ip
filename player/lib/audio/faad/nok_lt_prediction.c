@@ -24,14 +24,8 @@ Copyright (c)1997.
 
 ***************************************************************************/
 /*
- * $Id: nok_lt_prediction.c,v 1.8 2003/01/23 22:33:51 wmaycisco Exp $
+ * $Id: nok_lt_prediction.c,v 1.9 2003/02/18 18:51:31 wmaycisco Exp $
  */
-
-#ifdef _WIN32
-#define WIN32_MEAN_AND_LEAN
-#include <windows.h>
-#endif
-#include <stdio.h>
 
 #include "all.h"
 #include "tns.h"

@@ -40,7 +40,9 @@
 #ifdef WIN32
 
 #define _WIN32_WINNT 0x0400
+#include <winsock2.h>
 #include <windows.h>
+
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -60,7 +62,7 @@ typedef __int32 int32_t;
 typedef __int16 int16_t;
 typedef __int8  int8_t;
 typedef unsigned short in_port_t;
-typedef unsigned int socklen_t;
+typedef int socklen_t;
 typedef int ssize_t;
 #define snprintf _snprintf
 #define strncasecmp _strnicmp

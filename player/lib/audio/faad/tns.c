@@ -22,13 +22,9 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: tns.c,v 1.7 2003/01/23 22:33:51 wmaycisco Exp $
+ * $Id: tns.c,v 1.8 2003/02/18 18:51:31 wmaycisco Exp $
  */
 
-#ifdef _WIN32
-#define WIN32_MEAN_AND_LEAN
-#include <windows.h>
-#endif
 #include "all.h"
 #include "util.h"
 

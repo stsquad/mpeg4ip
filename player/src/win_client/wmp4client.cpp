@@ -72,7 +72,7 @@ int main (int argc, char **argv)
 		int ret = -1;
 		errmsg[0] = '\0';
 		if (psptr != NULL) {
-			ret = parse_name_for_session(psptr, *argv, errmsg, *errmsg, NULL);
+			ret = parse_name_for_session(psptr, *argv, errmsg, sizeof(errmsg), NULL);
 			if (ret < 0) {
 				//player_debug_message("%s %s", errmsg, name);
 				delete psptr;

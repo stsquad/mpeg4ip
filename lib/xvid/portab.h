@@ -3,7 +3,7 @@
 
 #if defined(WIN32)
 
-#include <windows.h>
+#include "systems.h"
 
 #define DEBUGCBR(A,B,C) { char tmp[100]; wsprintf(tmp, "CBR: frame: %i, quant: %i, deviation: %i\n", (A), (B), (C)); OutputDebugString(tmp); }
 
@@ -21,7 +21,6 @@
 #define DEBUG8(X,A,B,C,D,E,F,G,H)
 #endif
 
-#include "systems.h"
 
 #define EMMS() __asm {emms}
 

@@ -25,10 +25,6 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 
-#ifdef _WIN32
-#define WIN32_MEAN_AND_LEAN
-#include <windows.h>
-#endif
 #include "all.h"
 #include "block.h"
 #include "nok_lt_prediction.h"

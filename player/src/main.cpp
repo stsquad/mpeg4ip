@@ -237,12 +237,12 @@ static int start_session (const char *name, int max_loop)
     session_paused = 0;
     int keep_going = 0;
     int paused = 0;
-#ifdef NEED_SDL_VIDEO_IN_MAIN_WINDOW
+#ifdef NEED_SDL_VIDEO_IN_MAIN_THREAD
     int state = 0;
 #endif
     do {
       CMsg *msg;
-#ifdef NEED_SDL_VIDEO_IN_MAIN_WINDOW
+#ifdef NEED_SDL_VIDEO_IN_MAIN_THREAD
       state = psptr->sync_thread(state);
 #else
       SDL_SemWaitTimeout(master_sem, 10000);

@@ -846,14 +846,22 @@ static void change_video_size (int newsize)
   if (newsize == 50) index = 0;
   else if (newsize == 100) index = 1;
   else index = 2;
+#ifdef HAVE_GTK_2_0
   if (!gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(videoradio[index])))
+#else
+    if (!(GTK_CHECK_MENU_ITEM(videoradio[index])->active)) 
+#endif
     gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(videoradio[index]), TRUE);
 
 }
 
 static void on_video_radio (GtkWidget *window, gpointer data)
 {
+#ifdef HAVE_GTK_2_0
   if (!gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(window)))
+#else
+    if (!(GTK_CHECK_MENU_ITEM(window)->active)) 
+#endif
     return;
 
   int newsize = GPOINTER_TO_INT(data);
@@ -864,7 +872,11 @@ static void on_video_radio (GtkWidget *window, gpointer data)
 
 static void on_aspect_ratio (GtkWidget *window, gpointer data)
 {
+#ifdef HAVE_GTK_2_0
   if (!gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(window)))
+#else
+    if (!(GTK_CHECK_MENU_ITEM(window)->active)) 
+#endif
     return;
   int newaspect = GPOINTER_TO_INT(data);
   if (psptr != NULL) set_aspect_ratio(newaspect);

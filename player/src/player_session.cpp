@@ -86,7 +86,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
 CPlayerSession::~CPlayerSession ()
 {
   int hadthread = 0;
-#ifndef NEED_SDL_VIDEO_IN_MAIN_WINDOW
+#ifndef NEED_SDL_VIDEO_IN_MAIN_THREAD
   if (m_sync_thread) {
     send_sync_thread_a_message(MSG_STOP_THREAD);
     SDL_WaitThread(m_sync_thread, NULL);
@@ -337,7 +337,7 @@ void CPlayerSession::set_up_sync_thread(void)
     media= media->get_next();
   }
   m_sync_sem = SDL_CreateSemaphore(0);
-#ifndef NEED_SDL_VIDEO_IN_MAIN_WINDOW
+#ifndef NEED_SDL_VIDEO_IN_MAIN_THREAD
   m_sync_thread = SDL_CreateThread(c_sync_thread, this);
 #endif
 }
@@ -469,11 +469,11 @@ int CPlayerSession::pause_all_media (void)
   }
   m_sync_pause_done = 0;
   send_sync_thread_a_message(MSG_PAUSE_SESSION);
-#ifndef NEED_SDL_VIDEO_IN_MAIN_WINDOW
+#ifndef NEED_SDL_VIDEO_IN_MAIN_THREAD
   do {
 #endif
     SDL_Delay(100);
-#ifndef NEED_SDL_VIDEO_IN_MAIN_WINDOW
+#ifndef NEED_SDL_VIDEO_IN_MAIN_THREAD
   } while (m_sync_pause_done == 0);
 #endif
   m_paused = 1;

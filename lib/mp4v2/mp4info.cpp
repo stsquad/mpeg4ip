@@ -63,7 +63,7 @@ static char* PrintAudioInfo(
 		"MPEG-2 (MP3)",
 		"MPEG-1 (MP3)",
 		"PCM16 (little endian)",
-		"OGG VORBIS",
+		"Vorbis",
 		"G.711 aLaw",
 		"G.711 uLaw",
 		"G.723.1",

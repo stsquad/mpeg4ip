@@ -22,14 +22,9 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: block.c,v 1.6 2003/01/23 22:33:50 wmaycisco Exp $
+ * $Id: block.c,v 1.7 2003/02/18 18:51:30 wmaycisco Exp $
  */
 
-#ifdef _WIN32
-#define WIN32_MEAN_AND_LEAN
-#include <windows.h>
-#endif
-#include <math.h>
 #include "all.h"
 #include "block.h"
 #include "kbd_win.h"
