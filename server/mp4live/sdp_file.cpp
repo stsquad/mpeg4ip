@@ -261,6 +261,7 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 	sdpTime->repeat = NULL;
 	sdp->time_desc = sdpTime;
 
+	bool added_iod = false;
 	if (createIod) {
 	  char* iod =
 	    MP4MakeIsmaSdpIod(
@@ -276,6 +277,7 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 			      MP4_DETAILS_ISMA : 0);
 
 	  if (iod) {
+	    added_iod = true;
 	    sdp_add_string_to_list(&sdp->unparsed_a_lines, iod);
 	    free(iod);
 	  }
@@ -285,7 +287,7 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 	  free(pAudioConfig);
 	}
 
-	if (audioIsIsma && videoIsIsma) {
+	if (audioIsIsma && videoIsIsma && added_iod) {
 	  sdp_add_string_to_list(&sdp->unparsed_a_lines,
 				 "a=isma-compliance:1,1.0,1");
 	}

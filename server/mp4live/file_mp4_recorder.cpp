@@ -445,9 +445,21 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
       pDataStart = (uint8_t *)pFrame->GetData();
       if (pFrame->GetType() == MPEG4VIDEOFRAME) {
 	pData = MP4AV_Mpeg4FindVop(pDataStart, dataLen);
-	if (pData == NULL ||
-	    MP4AV_Mpeg4GetVopType(pDataStart,
-				  dataLen - (pData - pDataStart)) != 'I') {
+	if (pData == NULL) {
+	  error_message("Couldn't find vop header");
+	  if (pFrame->RemoveReference()) delete pFrame;
+	  return;
+	}
+	char voptype =
+	    MP4AV_Mpeg4GetVopType(pData,
+				  dataLen - (pData - pDataStart));
+	if (voptype != 'I') {
+	  debug_message("wrong vop type %c %02x %02x %02x %02x %02x", voptype,
+			pData[0],
+			pData[1],
+			pData[2],
+			pData[3],
+			pData[4]);
 	  if (pFrame->RemoveReference()) delete pFrame;
 	  return;
 	}

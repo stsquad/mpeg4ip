@@ -62,7 +62,11 @@ const video_encoder_table_t video_encoder_table[] = {
 #ifdef HAVE_XVID_H
     "Mpeg4 - xvid release",
 #else
+#ifdef HAVE_XVID10
+    "Mpeg4 - xvid 1.0 release",
+#else
     "Mpeg4 - xvid mpeg4ip",
+#endif
 #endif
     VIDEO_ENCODING_MPEG4,
     VIDEO_ENCODER_XVID,

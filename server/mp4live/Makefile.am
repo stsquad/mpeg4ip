@@ -29,20 +29,18 @@ else
   ed1= video_v4l2_source.cpp video_v4l2_source.h
 endif
 
-if USE_MPEG4IP_XVID
-  XVID_LIB=$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la
-  XVID_INC=-I$(top_srcdir)/lib/xvid
-else
 if HAVE_XVID_1_0
-  XVID_LIB=$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la
-  XVID_INC=-I$(top_srcdir)/lib/xvid
+  XVID_SRC=video_xvid10.h video_xvid10.cpp
 else
-  XVID_LIB=-lxvidcore
-  XVID_INC=
-endif
+  XVID_SRC=video_xvid.h video_xvid.cpp
 endif
 
-libmp4live_la_LDFLAGS = -static
+if USE_MPEG4IP_XVID
+  XVID_LIB=$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la
+else
+  XVID_LIB=-lxvidcore
+endif
+
 libmp4live_la_SOURCES = \
 	audio_encoder_base.cpp \
 	audio_encoder.h \
@@ -90,9 +88,7 @@ libmp4live_la_SOURCES = \
 	video_encoder_base.h \
 	video_encoder_base.cpp \
 	video_ffmpeg.cpp \
-	video_ffmpeg.h \
-	video_xvid.h \
-	video_xvid.cpp 
+	video_ffmpeg.h $(XVID_SRC)
 
 mp4live_SOURCES = \
 	audio_encoder.cpp \
@@ -115,7 +111,6 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib/utils \
 	-I$(top_srcdir)/lib \
-	$(XVID_INC) \
 	-I$(top_srcdir)/common/video/libmpeg32 \
 	-I$(top_srcdir)/player/lib \
 	-I$(top_srcdir)/player/src \

@@ -391,7 +391,7 @@ public:
 	u_int32_t	m_uvSize;
 	u_int32_t	m_yuvSize;
 	bool		m_videoNeedRgbToYuv;
-	u_int16_t	m_videoMpeg4ConfigLength;
+	u_int32_t	m_videoMpeg4ConfigLength;
 	u_int8_t*	m_videoMpeg4Config;
 	u_int32_t	m_videoMaxVopSize;
 	u_int8_t	m_videoTimeIncrBits;

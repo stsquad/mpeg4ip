@@ -47,6 +47,10 @@ public:
 	virtual bool GetReconstructedImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
 	virtual media_free_f GetMediaFreeFunction(void) { return NULL; };
+
+	virtual bool CanGetEsConfig (void) { return false; };
+	virtual bool GetEsConfig(CLiveConfig *pConfig, uint8_t **ppEsConfig,
+				 uint32_t *pEsConfigLen) { return false; };
 };
 
 CVideoEncoder* VideoEncoderCreate(CLiveConfig *pConfig);

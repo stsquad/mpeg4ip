@@ -21,10 +21,30 @@
 
 #include "mp4live.h"
 #include <mp4av.h>
+#include "video_encoder.h"
 
 void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 {
-	u_int8_t* pMpeg4Config = (u_int8_t*)Malloc(256);
+	
+  CVideoEncoder *pVidEncoder = VideoEncoderCreate(pConfig);
+  CHECK_AND_FREE(pConfig->m_videoMpeg4Config);
+  if (pVidEncoder) {
+    if (pVidEncoder->CanGetEsConfig()) {
+      if (pVidEncoder->Init(pConfig, false) == false) {
+	error_message("Couldn't init encoder for VOL setting");
+	delete pVidEncoder;
+	return;
+      }
+      if (pVidEncoder->GetEsConfig(pConfig, 
+				   &pConfig->m_videoMpeg4Config,
+				   &pConfig->m_videoMpeg4ConfigLength)) {
+	delete pVidEncoder;
+	return;
+      }
+    }
+    delete pVidEncoder;
+  }
+  u_int8_t* pMpeg4Config = (u_int8_t*)Malloc(256);
 	u_int32_t mpeg4ConfigLength = 0;
 
 	MP4AV_Mpeg4CreateVosh(

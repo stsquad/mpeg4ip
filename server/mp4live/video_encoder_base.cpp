@@ -25,7 +25,11 @@
 #include "mp4av.h"
 
 #ifdef ADD_XVID_ENCODER
+#ifdef HAVE_XVID10
+#include "video_xvid10.h"
+#else
 #include "video_xvid.h"
+#endif
 #endif
 
 #ifdef ADD_H26L_ENCODER
@@ -49,7 +53,11 @@ CVideoEncoder* VideoEncoderCreateBase(CLiveConfig *pConfig)
 #endif
 	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_XVID)) {
 #ifdef ADD_XVID_ENCODER
+#ifdef HAVE_XVID10
+	  return new CXvid10VideoEncoder();
+#else
 		return new CXvidVideoEncoder();
+#endif
 #else
 		error_message("xvid encoder not available in this build");
 #endif
@@ -148,8 +156,11 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
     sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, 
 			   "a=mpeg4-esid:20");
+#ifndef HAVE_XVID10
+    // it's more complex than this, but tough.
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines,
 			   "a=x-mpeg4-simple-profile-decoder");
+#endif
     sdpMediaVideoFormat->fmt = strdup("96");
 	
     sdpVideoRtpMap->encode_name = strdup("MP4V-ES");
