@@ -125,7 +125,7 @@ void CAviVideoByteStream::set_start_time (uint64_t start)
 {
   m_play_start_time = start;
 
-  double time = (double)time;
+  double time = (double)start;
   time *= m_frame_rate;
   time /= 1000;
 #if 0
@@ -176,6 +176,9 @@ uint64_t CAviAudioByteStream::start_next_frame (unsigned char **buffer,
   //player_debug_message("return from avi read %d", ret);
   m_this_frame_size += ret;
   m_file_pos += ret;
+  if (m_file_pos >= AVI_audio_bytes(m_parent->get_file())) {
+    m_eof = 1;
+  }
 
   *buffer = m_buffer;
   *buflen = m_this_frame_size;

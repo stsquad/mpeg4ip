@@ -1,4 +1,6 @@
 
+INCLUDES= -I $(top_srcdir)/include
+
 noinst_LTLIBRARIES = libmpeg3audio.la
 libmpeg3audio_la_LDFLAGS = -static
 

@@ -572,7 +572,7 @@ static inline void recac(unsigned char *s, unsigned char *d, int lx2, int h)
 	}
 }
 
-static inline void recv(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
+static inline void reconstruct_recv(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
 {
 	unsigned char *dp,*sp,*sp2;
 	int j;
@@ -971,7 +971,7 @@ void recon_comp(mpeg3video_t *video,
 			case 0x0:	recc(s, d, lx2, h);       break;
 			case 0x7:   recva(s, d, lx, lx2, h);  break;
 			case 0x6:   recvac(s, d, lx, lx2, h); break;
-			case 0x5:	recv(s, d, lx, lx2, h);   break;
+			case 0x5:	reconstruct_recv(s, d, lx, lx2, h);   break;
 			case 0x4:	recvc(s, d, lx, lx2, h);  break;
 			case 0x9:	rech(s, d, lx2, h);       break;
 			case 0x8:   rechc(s, d, lx2, h);      break;

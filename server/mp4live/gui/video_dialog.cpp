@@ -32,6 +32,7 @@ static GtkWidget *source_combo;
 static GtkWidget *source_entry;
 static GtkWidget *browse_button;
 static bool source_modified;
+static bool default_file_audio_dialog = false;
 static int32_t default_file_audio_source = -1;
 static GtkWidget *input_label;
 static GtkWidget *input_menu;
@@ -249,14 +250,25 @@ static void SourceV4LDevice()
 	ChangeInput(inputIndex);
 }
 
-static void on_default_file_audio_source (GtkWidget *widget, gpointer *data)
+static void on_yes_default_file_audio_source (GtkWidget *widget, gpointer *data)
 {
 	default_file_audio_source = 
 		FileDefaultAudio(gtk_entry_get_text(GTK_ENTRY(source_entry)));
+
+	default_file_audio_dialog = false;
+}
+
+static void on_no_default_file_audio_source (GtkWidget *widget, gpointer *data)
+{
+	default_file_audio_dialog = false;
 }
 
 static void ChangeSource()
 {
+	if (!dialog) {
+		return;
+	}
+
 	default_file_audio_source = -1;
 
 	// decide what type of source we have
@@ -285,13 +297,14 @@ static void ChangeSource()
 			source_type = FILE_SOURCE_MPEG2;
 		}
 
-		if (FileDefaultAudio(source_name) >= 0) {
+		if (!default_file_audio_dialog
+		  && FileDefaultAudio(source_name) >= 0) {
 			YesOrNo(
 				"Change Video Source",
 				"Do you want to use this file for the audio source also?",
 				true,
-				GTK_SIGNAL_FUNC(on_default_file_audio_source),
-				GTK_SIGNAL_FUNC(NULL));
+				GTK_SIGNAL_FUNC(on_yes_default_file_audio_source),
+				GTK_SIGNAL_FUNC(on_no_default_file_audio_source));
 		}
 	}
 
@@ -737,8 +750,8 @@ void CreateVideoDialog (void)
 	source_entry = GTK_COMBO(source_combo)->entry;
 
 	GtkWidget* source_list = GTK_COMBO(source_combo)->list;
-	gtk_signal_connect(GTK_OBJECT(source_list), "selection_changed",
-		GTK_SIGNAL_FUNC(ChangeSource), NULL);
+	// TBD gtk_signal_connect(GTK_OBJECT(source_list), "selection_changed",
+	//	GTK_SIGNAL_FUNC(ChangeSource), NULL);
 
 	SetEntryValidator(GTK_OBJECT(source_entry),
 		GTK_SIGNAL_FUNC(on_source_changed), 

@@ -63,8 +63,12 @@ static int divx_reset_buffer (divx_codec_t *divx)
 	       divx->m_buffer_size_max - diff,
 	       divx->m_ifile);
   divx->m_buffer_on = 0;
-  if (read <= 0) return -1;
+  if (read <= 0) {
+    if (divx->m_buffer_size < 4) divx->m_buffer_size = 0;
+    return -1;
+  }
   divx->m_buffer_size += read;
+  if (divx->m_buffer_size < 4) divx->m_buffer_size = 0;
   return diff;
 }
 

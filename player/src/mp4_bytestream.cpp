@@ -129,8 +129,12 @@ uint64_t CMp4ByteStream::start_next_frame (unsigned char **buffer,
   read_frame(m_frame_on);
 
 #ifdef DEBUG_MP4_FRAME 
-  mp4f_message(LOG_DEBUG, "%s - Reading frame %d - len %u", 
-	       m_name, m_frame_on, m_this_frame_size);
+  mp4f_message(LOG_DEBUG, "%s - Reading frame %d ts %llu - len %u %02x %02x %02x %02x", 
+	       m_name, m_frame_on, m_frame_on_ts, m_this_frame_size,
+	       m_buffer[m_byte_on],
+	       m_buffer[m_byte_on + 1],
+	       m_buffer[m_byte_on + 2],
+	       m_buffer[m_byte_on + 3]);
 #endif
 
   m_frame_on++;

@@ -21,8 +21,9 @@
 #include "rawa.h"
 #include <mp4v2/mp4.h>
 #include <SDL.h>
+#define LOGIT rawa->m_vft->log_msg
 /*
- * Create CAACodec class
+ * Create raw audio structure
  */
 static codec_data_t *rawa_codec_create (format_list_t *media_fmt,
 					audio_info_t *audio,
@@ -34,8 +35,6 @@ static codec_data_t *rawa_codec_create (format_list_t *media_fmt,
 {
   rawa_codec_t *rawa;
 
-  if (audio == NULL) return NULL;
-
   rawa = (rawa_codec_t *)malloc(sizeof(rawa_codec_t));
   memset(rawa, 0, sizeof(rawa_codec_t));
 
@@ -43,9 +42,36 @@ static codec_data_t *rawa_codec_create (format_list_t *media_fmt,
   rawa->m_ifptr = ifptr;
   rawa->m_initialized = 0;
   rawa->m_temp_buff = NULL;
-  rawa->m_freq = audio->freq;
-  rawa->m_chans = audio->chans;
-  rawa->m_bitsperchan = audio->bitspersample;
+  if (media_fmt != NULL) {
+    /*
+     * Raw pcm - L8 or L16
+     */
+    rawa->m_freq = media_fmt->rtpmap->clock_rate;
+    rawa->m_chans = media_fmt->rtpmap->encode_param != 0 ?
+      media_fmt->rtpmap->encode_param : 1;
+    if (strcasecmp(media_fmt->rtpmap->encode_name, "L16") == 0) {
+      rawa->m_bitsperchan = 16;
+      rawa->m_convert_bytes = 1;
+    } else if ((*media_fmt->rtpmap->encode_name == '1') &&
+	       (media_fmt->rtpmap->encode_name[1] == '0') ||
+	       (media_fmt->rtpmap->encode_name[1] == '1')) {
+      rawa->m_bitsperchan = 16;
+      rawa->m_convert_bytes = 1;
+      rawa->m_freq = 44100;
+      rawa->m_chans = media_fmt->rtpmap->encode_name[1] == '0' ? 2 : 1;
+    } else
+      rawa->m_bitsperchan = 8;
+  } else {
+    rawa->m_freq = audio->freq;
+    rawa->m_chans = audio->chans;
+    rawa->m_bitsperchan = audio->bitspersample;
+  }
+
+  LOGIT(LOG_DEBUG, "rawa", 
+	"setting freq %d chans %d bitsper %d", 
+	rawa->m_freq,
+	rawa->m_chans, 
+	rawa->m_bitsperchan);
 
   return (codec_data_t *)rawa;
 }
@@ -77,101 +103,93 @@ static int rawa_decode (codec_data_t *ptr,
 		       uint32_t buflen)
 {
   rawa_codec_t *rawa = (rawa_codec_t *)ptr;
-  int samples;
-  
-  
+  uint32_t ix;
+  unsigned short *b;
 
+  //LOGIT(LOG_DEBUG, "rawa", "ts %llu buffer len %d", ts, buflen);
   if (rawa->m_initialized == 0) {
-    if (rawa->m_temp_buff == NULL) {
-      rawa->m_temp_buff = (unsigned char *)malloc(buflen);
-      memcpy(rawa->m_temp_buff, buffer, buflen);
-      rawa->m_temp_buffsize = buflen;
-      rawa->m_vft->log_msg(LOG_DEBUG, "rawaudio", "setting %d bufsize", 
-			   rawa->m_temp_buffsize);
-      return (buflen);
-    } else {
-      //
-      if (buflen != rawa->m_temp_buffsize) {
-	rawa->m_vft->log_msg(LOG_ERR, "rawaudio", "Inconsistent raw audio buffer size %d should be %d", buflen, rawa->m_temp_buffsize);
-	return buflen;
-      }
+    if (rawa->m_chans == 0) {
+      // Special mp4 case - we don't know how many channels, but we
+      // do know that we've got 1 seconds worth of data...
+      if (rawa->m_temp_buff == NULL) {
+	rawa->m_temp_buff = (unsigned char *)malloc(buflen);
+	memcpy(rawa->m_temp_buff, buffer, buflen);
+	rawa->m_temp_buffsize = buflen;
+	LOGIT(LOG_DEBUG, "rawaudio", "setting %d bufsize", 
+	      rawa->m_temp_buffsize);
+	return (buflen);
+      } else {
+	//
+	if (buflen != rawa->m_temp_buffsize) {
+	  LOGIT(LOG_ERR, "rawaudio", "Inconsistent raw audio buffer size %d should be %d", buflen, rawa->m_temp_buffsize);
+	  return buflen;
+	}
 
-      uint64_t calc;
+	uint64_t calc;
 
-      if (rawa->m_chans == 0) {
-	rawa->m_vft->log_msg(LOG_DEBUG, "rawaudio",
-			     "freq %d ts "LLU" buffsize %d",
-			     rawa->m_freq, ts, rawa->m_temp_buffsize);
-
-	calc = ts * rawa->m_temp_buffsize;
-	calc /= 2000;
+	LOGIT(LOG_DEBUG, "rawaudio",
+	      "freq %d ts "LLU" buffsize %d",
+	      rawa->m_freq, ts, rawa->m_temp_buffsize);
+	
+	calc = 1000 *  rawa->m_temp_buffsize;
 	calc /= rawa->m_freq;
-	rawa->m_vft->log_msg(LOG_DEBUG, "rawaudio", "Channels is %d", calc);
+	calc /= ts;
+	calc /= 2;
+	LOGIT(LOG_DEBUG, "rawaudio", "Channels is %d", calc);
 	rawa->m_chans = calc;
 	rawa->m_bitsperchan = 16;
       } 
-#if 0
-      samples = rawa->m_temp_buffsize;
-      samples /= rawa->m_chans;
-      if (rawa->m_bitsperchan == 16) samples /= 2;
-#else
-      samples = 0;
-#endif
-      rawa->m_vft->audio_configure(rawa->m_ifptr,
-				   rawa->m_freq, 
-				   rawa->m_chans, 
-				   rawa->m_bitsperchan == 16 ? AUDIO_S16SYS :
-				   AUDIO_U8, 
-				   samples);
-#if 0
-      unsigned char *temp = rawa->m_vft->audio_get_buffer(rawa->m_ifptr);
-      memcpy(temp, rawa->m_temp_buff, rawa->m_temp_buffsize);
-      rawa->m_vft->audio_filled_buffer(rawa->m_ifptr,
-				       0,
-				       1);
-#endif
+    }
+    rawa->m_vft->audio_configure(rawa->m_ifptr,
+				 rawa->m_freq, 
+				 rawa->m_chans, 
+				 rawa->m_bitsperchan == 16 ? AUDIO_S16SYS :
+				 AUDIO_U8, 
+				 0);
+    if (rawa->m_temp_buff != NULL) {
       rawa->m_vft->audio_load_buffer(rawa->m_ifptr,
 				     rawa->m_temp_buff, 
 				     rawa->m_temp_buffsize,
 				     0, 
 				     1);
 
-      if (ts == 0) rawa->m_frames = 1;
+      if (ts == 0) rawa->m_bytes = rawa->m_temp_buffsize;
       free(rawa->m_temp_buff);
       rawa->m_temp_buff = NULL;
-      rawa->m_initialized = 1;
     }
-  } else {
-    samples = rawa->m_temp_buffsize;
-    samples /= rawa->m_chans;
-    if (rawa->m_bitsperchan == 16) samples /= 2;
-  }
+    rawa->m_initialized = 1;
+  } 
 
   if (ts == rawa->m_ts) {
     uint64_t calc;
-    calc = rawa->m_frames * samples * M_LLU;
+    calc = rawa->m_bytes * M_LLU;
+    calc /= rawa->m_chans;
+    if (rawa->m_bitsperchan == 16) calc /= 2;
     calc /= rawa->m_freq;
     ts += calc;
-    rawa->m_frames++;
+    rawa->m_bytes += buflen;
   } else {
-    rawa->m_frames = 0;
+    rawa->m_bytes = 0;
     rawa->m_ts = ts;
   }
-#if 0
-  unsigned char *now = rawa->m_vft->audio_get_buffer(rawa->m_ifptr);
-  if (now != NULL) {
-    memcpy(now, buffer, buflen);
-    rawa->m_vft->audio_filled_buffer(rawa->m_ifptr,
-				     ts,
-				     rawa->m_resync);
-    rawa->m_resync = 0;
+
+  /*
+   * if we're over RTP, we've got the buffer reversed...
+   */
+  if (rawa->m_convert_bytes) {
+    for (ix = 0, b = (unsigned short *)buffer; 
+	 ix < buflen; 
+	 ix += 2, b++) {
+      *b = ntohs(*b);
+    }
   }
-#endif
+
   rawa->m_vft->audio_load_buffer(rawa->m_ifptr, 
 				 buffer, 
 				 buflen,
 				 ts, 
 				 rawa->m_resync);
+  rawa->m_resync = 0;
 
   return (buflen);
 }
@@ -196,6 +214,16 @@ static int rawa_codec_check (lib_message_func_t message,
       type == 1) {
     return 1;
   }
+  if (fptr != NULL) {
+    if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
+      if (strcasecmp(fptr->rtpmap->encode_name, "L16") == 0) {
+	return 1;
+      }
+      if (strcasecmp(fptr->rtpmap->encode_name, "L8") == 0) {
+	return 1;
+      }
+    }
+  }
   return -1;
 }
 
@@ -204,13 +232,7 @@ AUDIO_CODEC_PLUGIN("rawa",
 		   rawa_do_pause,
 		   rawa_decode,
 		   rawa_close,
-		   rawa_codec_check,
-		   NULL,
-		   NULL,
-		   NULL,
-		   NULL,
-		   NULL,
-		   NULL);
+		   rawa_codec_check);
 /* end file rawa.cpp */
 
 

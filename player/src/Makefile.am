@@ -44,6 +44,7 @@ libmp4player_la_SOURCES = \
 	playlist.cpp \
 	qtime_bytestream.cpp \
 	qtime_file.cpp \
+	rfc3119_bytestream.cpp \
 	rtp_bytestream.cpp \
 	sync.cpp \
 	video.cpp 
@@ -80,6 +81,7 @@ mp4player_LDADD = \
 	$(top_builddir)/player/src/libmp4player.la \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/player/src/codec/mp3/libmp3.la \
+	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/player/lib/mp4util/libmp4util.la \
 	$(top_builddir)/player/lib/libhttp/libhttp.la \

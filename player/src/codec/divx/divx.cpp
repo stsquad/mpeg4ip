@@ -349,15 +349,15 @@ static int divx_codec_check (lib_message_func_t message,
   return -1;
 }
 
-VIDEO_CODEC_PLUGIN("divx", 
-		   divx_create,
-		   divx_do_pause,
-		   divx_decode,
-		   divx_close,
-		   divx_codec_check,
-		   divx_file_check,
-		   divx_file_next_frame,
-		   divx_file_used_for_frame,
-		   divx_file_seek_to,
-		   divx_skip_frame,
-		   divx_file_eof);
+VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("divx", 
+				 divx_create,
+				 divx_do_pause,
+				 divx_decode,
+				 divx_close,
+				 divx_codec_check,
+				 divx_file_check,
+				 divx_file_next_frame,
+				 divx_file_used_for_frame,
+				 divx_file_seek_to,
+				 divx_skip_frame,
+				 divx_file_eof);

@@ -657,41 +657,6 @@ void CIsmaAudioRtpByteStream::reset (void)
   CRtpByteStreamBase::reset();
 }
 
-uint64_t CIsmaAudioRtpByteStream::rtp_ts_to_msec (uint32_t ts,
-						  uint64_t &wrap_offset)
-{
-  uint64_t timetick;
-
-  if (m_stream_ondemand) {
-    int neg = 0;
-    
-    if (ts >= m_rtp_rtptime) {
-      timetick = ts;
-      timetick -= m_rtp_rtptime;
-    } else {
-      timetick = m_rtp_rtptime - ts;
-      neg = 1;
-    }
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    if (neg == 1) {
-      if (timetick > m_play_start_time) return (0);
-      return (m_play_start_time - timetick);
-    }
-    timetick += m_play_start_time;
-  } else {
-
-    if (((m_ts & 0x80000000) == 0x80000000) &&
-	((ts & 0x80000000) == 0)) {
-      wrap_offset += (I_LLU << 32);
-    }
-    timetick = ts + m_wrap_offset;
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    timetick += m_wallclock_offset;
-  }
-  return (timetick);
-}
 
 int CIsmaAudioRtpByteStream::have_no_data (void)
 {

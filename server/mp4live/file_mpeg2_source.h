@@ -27,6 +27,7 @@
 #include "audio_encoder.h"
 
 #include <libmpeg3.h>
+#include "video_util_resize.h"
 
 class CMpeg2FileSource : public CMediaSource {
 public:
@@ -36,6 +37,12 @@ public:
 
 		m_sourceVideo = false;
 		m_videoStream = 0;
+		m_videoSrcYImage = NULL;
+		m_videoDstYImage = NULL;
+		m_videoYResizer = NULL;
+		m_videoSrcUVImage = NULL;
+		m_videoDstUVImage = NULL;
+		m_videoUVResizer = NULL;
 		m_videoEncoder = NULL;
 		m_wantKeyFrame = false;
 		m_videoFrameNumber = 0;
@@ -78,7 +85,21 @@ protected:
 	mpeg3_t*			m_mpeg2File;
 
 	bool				m_sourceVideo;
+
 	int					m_videoStream;
+	image_t*			m_videoSrcYImage;
+	image_t*			m_videoDstYImage;
+	scaler_t*			m_videoYResizer;
+	image_t*			m_videoSrcUVImage;
+	image_t*			m_videoDstUVImage;
+	scaler_t*			m_videoUVResizer;
+
+	u_int16_t			m_videoSrcWidth;
+	u_int16_t			m_videoSrcHeight;
+	u_int32_t			m_videoSrcYUVSize;
+	u_int32_t			m_videoSrcYSize;
+	u_int32_t			m_videoSrcUVSize;
+
 	CVideoEncoder*		m_videoEncoder;
 	u_int32_t			m_videoFrameNumber;
 	Duration			m_videoFrameDuration;

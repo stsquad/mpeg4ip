@@ -77,31 +77,23 @@ void scale_setup_image(image_t *img, int w, int h, int depth, pixel_t *data)
     img->data = data;
 }
 
-image_t *scale_new_image(int w, int h, int depth )  /* create a blank image */
+image_t *scale_new_image(int w, int h, int depth)  /* create a blank image */
 {
     image_t *image;
 
     if((image = (image_t *)malloc(sizeof(image_t))))
     {
-        if((image->data = (pixel_t *)calloc(h, w)))
-        {
-            image->xsize = h;
-            image->ysize = w;
-            image->span = w * depth;
+		image->xsize = h;
+		image->ysize = w;
+		image->span = w * depth;
 	    image->pixspan = depth;
-        }
-        else
-        {
-            free(image);
-            image = NULL;
-        }
+		image->data = NULL;
     }
     return image;
 }
 
-void free_image(image_t *image)
+void scale_free_image(image_t *image)
 {
-    free(image->data);
     free(image);
 }
 
@@ -470,44 +462,48 @@ void scale_image_process(scaler_t *scaler)
     prgXa = scaler->programX;
     
     for(x = scaler->dst->xsize; x; --x) {
-	/* Apply horz filter to make dst column in tmp. */
-	for(in = scaler->src->data, tmpOut = scaler->tmp, 
-	    k = scaler->src->ysize; k; --k, in++)
-	{
-	    prgX = prgXa;
-	    weight = 0;
-	    bPelDelta = false;
-	    pel = in[(prgX++)->index];
-	    for(j = (prgX++)->count; j; --j)
-	    {
-		pel2 = in[(prgX++)->index];
-		if(pel2 != pel)
-		    bPelDelta = true;
-		weight += pel2 * (prgX++)->weight;
-	    }
-	    *(tmpOut++) = bPelDelta ? (pixel_t)CLAMP(fixdouble2int(weight)) : pel;
-	} /* next row in temp column */
-	prgXa = prgX;
 
-	/* The temp column has been built. Now stretch it 
-	 vertically into dst column. */
-	prgY = scaler->programY;
-	for(i = scaler->dst->ysize; i; --i)
-	{
-	    weight = 0;
-	    bPelDelta = false;
-	    pel = *((prgY++)->pixel);
+		/* Apply horz filter to make dst column in tmp. */
+		for(in = scaler->src->data, tmpOut = scaler->tmp, 
+		  k = scaler->src->ysize; k; --k, in++) {
+			prgX = prgXa;
+			weight = 0;
+			bPelDelta = false;
+			pel = in[(prgX++)->index];
+			for(j = (prgX++)->count; j; --j) {
+				pel2 = in[(prgX++)->index];
+				if(pel2 != pel) {
+					bPelDelta = true;
+				}
+				weight += pel2 * (prgX++)->weight;
+			}
+			*(tmpOut++) = 
+				bPelDelta ? (pixel_t)CLAMP(fixdouble2int(weight)) : pel;
+		} /* next row in temp column */
 
-	    for(j = (prgY++)->count; j; --j)
-	    {
-		pel2 = *((prgY++)->pixel);
-		if(pel2 != pel)
-		    bPelDelta = true;
-		weight += pel2 * (prgY++)->weight;
-	    }
-	    *(out++) = bPelDelta ? 
-		       (pixel_t)CLAMP(fixdouble2int(weight)) : pel;
-	} /* next dst row */
+		prgXa = prgX;
+
+		/*
+		 * The temp column has been built. 
+		 * Now stretch it vertically into dst column. 
+		 */
+		prgY = scaler->programY;
+		for(i = scaler->dst->ysize; i; --i) {
+			weight = 0;
+			bPelDelta = false;
+			pel = *((prgY++)->pixel);
+
+			for(j = (prgY++)->count; j; --j) {
+				pel2 = *((prgY++)->pixel);
+				if(pel2 != pel) {
+					bPelDelta = true;
+				}
+				weight += pel2 * (prgY++)->weight;
+			}
+			*(out++) = 
+				bPelDelta ? (pixel_t)CLAMP(fixdouble2int(weight)) : pel;
+		} /* next dst row */
+
     } /* next dst column */
 }
 

@@ -149,6 +149,31 @@ void CMpeg2FileSource::DoStopSource(void)
 		return;
 	}
 
+	if (m_videoSrcYImage) {
+		scale_free_image(m_videoSrcYImage);
+		m_videoSrcYImage = NULL;
+	}
+	if (m_videoDstYImage) {
+		scale_free_image(m_videoDstYImage);
+		m_videoDstYImage = NULL;
+	}
+	if (m_videoYResizer) {
+		scale_image_done(m_videoYResizer);
+		m_videoYResizer = NULL;
+	}
+	if (m_videoSrcUVImage) {
+		scale_free_image(m_videoSrcUVImage);
+		m_videoSrcUVImage = NULL;
+	}
+	if (m_videoDstUVImage) {
+		scale_free_image(m_videoDstUVImage);
+		m_videoDstUVImage = NULL;
+	}
+	if (m_videoUVResizer) {
+		scale_image_done(m_videoUVResizer);
+		m_videoUVResizer = NULL;
+	}
+
 	if (m_videoEncoder) {
 		m_videoEncoder->Stop();
 		delete m_videoEncoder;
@@ -200,17 +225,40 @@ bool CMpeg2FileSource::InitVideo(void)
 		return false;
 	}
 
-	// Force our config to use these for now
-	// LATER will resample if input format != output format
-	m_pConfig->m_videoWidth =
+	m_videoSrcWidth =
 		mpeg3_video_width(m_mpeg2File, m_videoStream);
-	m_pConfig->m_videoHeight =
+	m_videoSrcHeight =
 		mpeg3_video_height(m_mpeg2File, m_videoStream);
 
-	m_pConfig->m_ySize = m_pConfig->m_videoWidth * m_pConfig->m_videoHeight;
-	m_pConfig->m_uvSize = m_pConfig->m_ySize / 4;
-	m_pConfig->m_yuvSize = (m_pConfig->m_ySize * 3) / 2;
+	m_videoSrcYSize = m_videoSrcWidth * m_videoSrcHeight;
+	m_videoSrcUVSize = m_videoSrcYSize / 4;
+	m_videoSrcYUVSize = (m_videoSrcYSize * 3) / 2;
 
+	u_int16_t mpeg4Width =
+		m_pConfig->m_videoWidth;
+	u_int16_t mpeg4Height =
+		m_pConfig->m_videoHeight;
+
+	// TBD which filter?
+	if (m_videoSrcWidth != mpeg4Width || m_videoSrcHeight != mpeg4Height) {
+		m_videoSrcYImage = 
+			scale_new_image(m_videoSrcWidth, m_videoSrcHeight, 1);
+		m_videoDstYImage = 
+			scale_new_image(mpeg4Width, mpeg4Height, 1);
+		m_videoYResizer = 
+			scale_image_init(m_videoDstYImage, m_videoSrcYImage, 
+				Bell_filter, Bell_support);
+
+		m_videoSrcUVImage = 
+			scale_new_image(m_videoSrcWidth / 2, m_videoSrcHeight / 2, 1);
+		m_videoDstUVImage = 
+			scale_new_image(mpeg4Width / 2, mpeg4Height / 2, 1);
+		m_videoUVResizer = 
+			scale_image_init(m_videoDstUVImage, m_videoSrcUVImage, 
+				Bell_filter, Bell_support);
+	}
+
+// TEMP
 	float fps = mpeg3_frame_rate(m_mpeg2File, m_videoStream);
 
 	m_pConfig->SetFloatValue(CONFIG_VIDEO_FRAME_RATE, fps);
@@ -218,8 +266,7 @@ bool CMpeg2FileSource::InitVideo(void)
 	m_videoFrameDuration = (Duration)(((float)TimestampTicks / fps) + 0.5);
 
 	GenerateMpeg4VideoConfig(m_pConfig);
-
-	// END LATER block
+// END TEMP
 
 	m_videoEncoder = VideoEncoderCreate(
 		m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
@@ -257,16 +304,10 @@ bool CMpeg2FileSource::InitAudio(void)
 
 	if (!strcmp(afmt, "MPEG")) {
 		m_audioSrcEncoding = AUDIO_ENCODING_MP3;
-		// TEMP
-		m_audioSrcSamplesPerFrame = 1152;
 	} else if (!strcmp(afmt, "AAC")) {
 		m_audioSrcEncoding = AUDIO_ENCODING_AAC;
-		// TEMP
-		m_audioSrcSamplesPerFrame = 1024;
 	} else if (!strcmp(afmt, "AC3")) {
 		m_audioSrcEncoding = AUDIO_ENCODING_AC3;
-		// TEMP
-		m_audioSrcSamplesPerFrame = 1024;
 	} else {
 		debug_message("mpeg2 unsupported audio format %s", afmt);
 		return false;
@@ -279,22 +320,24 @@ bool CMpeg2FileSource::InitAudio(void)
 	m_pConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE,
 		m_audioSrcSampleRate);
 
-// TBD case where we just want PCM
 	char* dstEncoding =
 		m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+
+	if (!strcasecmp(dstEncoding, AUDIO_ENCODING_MP3)) {
+		m_audioDstFrameType = CMediaFrame::Mp3AudioFrame;
+		m_audioSrcSamplesPerFrame = 1152;
+	} else if (!strcasecmp(dstEncoding, AUDIO_ENCODING_AAC)) {
+		m_audioDstFrameType = CMediaFrame::AacAudioFrame;
+		m_audioSrcSamplesPerFrame = 1024;
+	} else {
+		m_audioDstFrameType = CMediaFrame::UndefinedFrame;
+		m_audioSrcSamplesPerFrame = 1024;
+	}
 
 	if (!strcasecmp(dstEncoding, m_audioSrcEncoding)) {
 		m_audioEncode = false;
 	} else {
 		m_audioEncode = true;
-	}
-
-	if (!strcasecmp(dstEncoding, AUDIO_ENCODING_AAC)) {
-		m_audioDstFrameType = CMediaFrame::AacAudioFrame;
-	} else if (!strcasecmp(dstEncoding, AUDIO_ENCODING_MP3)) {
-		m_audioDstFrameType = CMediaFrame::Mp3AudioFrame;
-	} else {
-		m_audioDstFrameType = CMediaFrame::UndefinedFrame;
 	}
 
 	if (m_audioEncode) {
@@ -373,11 +416,11 @@ void CMpeg2FileSource::ProcessVideo(void)
 {
 	int rc = 0;
 
-	u_int8_t* yuvImage = (u_int8_t*)Malloc(m_pConfig->m_yuvSize);
+	u_int8_t* yuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
 	
 	u_int8_t* yImage = yuvImage;
-	u_int8_t* uImage = yuvImage + m_pConfig->m_ySize;
-	u_int8_t* vImage = yuvImage + m_pConfig->m_ySize + m_pConfig->m_uvSize;
+	u_int8_t* uImage = yuvImage + m_videoSrcYSize;
+	u_int8_t* vImage = yuvImage + m_videoSrcYSize + m_videoSrcUVSize;
 
 	// read mpeg2 frame
 	rc = mpeg3_read_yuvframe(
@@ -387,13 +430,46 @@ void CMpeg2FileSource::ProcessVideo(void)
 		(char*)vImage, 
 		0, 
 		0,
-		m_pConfig->m_videoWidth, 
-		m_pConfig->m_videoHeight,
+		m_videoSrcWidth, 
+		m_videoSrcHeight,
 		m_videoStream);
 
 	if (rc != 0) {
 		debug_message("error reading mpeg2 video");
 		return;
+	}
+
+	// resize if necessary
+	if (m_videoYResizer) {
+		u_int8_t* resizedYUV = (u_int8_t*)Malloc(m_pConfig->m_yuvSize);
+		
+		u_int8_t* resizedY = 
+			resizedYUV;
+		u_int8_t* resizedU = 
+			resizedYUV + m_pConfig->m_ySize;
+		u_int8_t* resizedV = 
+			resizedYUV + m_pConfig->m_ySize + m_pConfig->m_uvSize;
+
+		m_videoSrcYImage->data = yImage;
+		m_videoDstYImage->data = resizedY;
+		scale_image_process(m_videoYResizer);
+
+		m_videoSrcUVImage->data = uImage;
+		m_videoDstUVImage->data = resizedU;
+		scale_image_process(m_videoUVResizer);
+
+		m_videoSrcUVImage->data = vImage;
+		m_videoDstUVImage->data = resizedV;
+		scale_image_process(m_videoUVResizer);
+
+		// done with the original source image
+		free(yuvImage);
+
+		// switch over to resized version
+		yuvImage = resizedYUV;
+		yImage = resizedY;
+		uImage = resizedU;
+		vImage = resizedV;
 	}
 
 	// encode video frame
@@ -474,14 +550,13 @@ void CMpeg2FileSource::ProcessVideo(void)
 void CMpeg2FileSource::ProcessAudio(void)
 {
 	int rc = 0;
+	u_int32_t startSample =
+		mpeg3_get_sample(m_mpeg2File, m_audioStream);
 	u_int16_t* pcmLeftSamples = NULL;
 	u_int16_t* pcmRightSamples = NULL;
 
 	if (m_audioEncode
 	  || m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
-
-		u_int32_t startSample =
-			mpeg3_get_sample(m_mpeg2File, m_audioStream);
 
 		pcmLeftSamples = (u_int16_t*)
 			Malloc(m_audioSrcSamplesPerFrame * sizeof(u_int16_t));
@@ -529,7 +604,7 @@ void CMpeg2FileSource::ProcessAudio(void)
 		rc = m_audioEncoder->EncodeSamples(
 			pcmLeftSamples, 
 			pcmRightSamples,
-			m_audioSrcSamplesPerFrame);
+			m_audioSrcSamplesPerFrame * sizeof(u_int16_t));
 
 		if (!rc) {
 			debug_message("error encoding mpeg2 audio");
@@ -568,6 +643,9 @@ void CMpeg2FileSource::ProcessAudio(void)
 			debug_message("error reading mpeg2 audio");
 			goto cleanup;
 		}
+
+		mpeg3_set_sample(m_mpeg2File, 
+			startSample + m_audioSrcSamplesPerFrame, m_audioStream);
 
 		// and forward it to sinks
 		CMediaFrame* pFrame =

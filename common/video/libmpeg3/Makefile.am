@@ -1,9 +1,10 @@
 SUBDIRS = audio video
 
-lib_LTLIBRARIES = libmpeg3.la
+noinst_LTLIBRARIES = libmpeg3.la
 
+INCLUDES= -I$(top_srcdir)/include
 AM_CFLAGS= -DHAVE_CSS
-
+libmpeg3_la_LDFLAGS = -static 
 libmpeg3_la_SOURCES = \
 	bitstream.c \
 	bitstream.h \

@@ -1,11 +1,16 @@
 #include "mpeg3private.h"
 #include "mpeg3protos.h"
 
+#include <mpeg4ip.h>
+#ifdef HAVE_LINUX_CDROM_H
 #include <mntent.h>
+#endif
+#if 0
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#endif
 
 mpeg3_fs_t* mpeg3_new_fs(char *path)
 {
@@ -138,6 +143,7 @@ void mpeg3io_complete_path(char *complete_path, char *path)
 		strcpy(complete_path, path);
 }
 
+#ifdef HAVE_LINUX_CDROM_H
 int mpeg3io_device(char *path, char *device)
 {
 	struct stat file_st, device_st;
@@ -164,7 +170,7 @@ int mpeg3io_device(char *path, char *device)
 
 	return 0;
 }
-
+#endif
 void mpeg3io_get_directory(char *directory, char *path)
 {
 	char *ptr = strrchr(path, '/');

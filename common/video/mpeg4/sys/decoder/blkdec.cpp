@@ -293,10 +293,10 @@ Void CVideoObjectDecoder::decodeEscape (Int& iLevel, Int& iRun, Int& bIsLastRun,
 		assert (iRun < BLOCK_SQUARE_SIZE);\
 		Int iLevelBits = 12; // = m_volmd.nBits;
 		Int iMarker = m_pbitstrmIn->getBits (1);
-		assert(iMarker == 1);
+		assert(iMarker== 1);
 		iLevel = (Int) m_pbitstrmIn->getBits (iLevelBits);
 		iMarker = m_pbitstrmIn->getBits (1);
-		assert(iMarker == 1);
+		assert(iMarker ==1);
 		Int iMaxAC = (1<<(iLevelBits-1)) - 1;
 		assert(iLevel!=iMaxAC+1);
 		if (iLevel > iMaxAC)

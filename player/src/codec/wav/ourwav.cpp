@@ -124,18 +124,17 @@ static int wav_codec_check (lib_message_func_t message,
   return -1;
 }
 
-AUDIO_CODEC_PLUGIN("wav", 
-		   wav_codec_create,
-		   wav_do_pause,
-		   wav_decode,
-		   wav_close,
-		   wav_codec_check,
-		   wav_file_check,
-		   wav_file_next_frame,
-		   wav_file_used_for_frame,
-		   wav_raw_file_seek_to,
-		   NULL,
-		   wav_file_eof);
+AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("wav", 
+				 wav_codec_create,
+				 wav_do_pause,
+				 wav_decode,
+				 wav_close,
+				 wav_codec_check,
+				 wav_file_check,
+				 wav_file_next_frame,
+				 wav_file_used_for_frame,
+				 NULL,
+				 wav_file_eof);
 
 /* end file ourwav.cpp */
 

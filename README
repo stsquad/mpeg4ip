@@ -388,6 +388,7 @@ mpeg4ip - top level project directory
 	    win_common - common windows code
             win_client - windows client
             win_gui - windows gui code.
+        plugin - player plug in modules
 
     server - server specific code
         DSS4 - Darwin QuickTime Streaming Server

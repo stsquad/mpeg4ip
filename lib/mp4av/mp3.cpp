@@ -51,7 +51,7 @@ bool MP4AV_Mp3GetNextFrame(
 	u_int32_t srcLength,
 	u_int8_t** ppFrame, 
 	u_int32_t* pFrameSize, 
-	bool allowLayer4 = false)
+	bool allowLayer4)
 {
 	u_int state = 0;
 	u_int dropped = 0;

@@ -275,6 +275,9 @@ int CMp4File::create_audio (CPlayerSession *psptr,
   memset(ainfo, 0, sizeof(*ainfo));
 
   ainfo->freq = MP4GetTrackTimeScale(m_mp4file, trackId);
+  if (audio_type == MP4_PCM16_AUDIO_TYPE) {
+    ainfo->bitspersample = 16;
+  }
 
   int ret;
   ret = mptr->create_audio_plugin(plugin,

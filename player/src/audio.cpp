@@ -113,10 +113,15 @@ void CAudioSync::set_config (int freq,
     m_bytes_per_sample = 2;
 
   if (sample_size == 0) {
-    sample_size = freq * m_bytes_per_sample * channels / 4;
-  }
+    int temp;
+    temp = freq;
+    while ((temp & 0x1) == 0) temp >>= 1;
 
+    sample_size = temp;
+  } 
+  
   m_buffer_size = channels * sample_size * m_bytes_per_sample;
+
   for (int ix = 0; ix < DECODE_BUFFERS_MAX; ix++) {
     m_buffer_filled[ix] = 0;
     // I'm not sure where the 2 * comes in... Check this out
@@ -364,12 +369,11 @@ int CAudioSync::initialize_audio (int have_video)
       wanted.userdata = this;
 #if DEBUG_SYNC
        audio_message(LOG_INFO, 
-		     "requested f %d chan %d format %x samples %d size %u",
+		     "requested f %d chan %d format %x samples %d",
 		     wanted.freq,
 		     wanted.channels,
 		     wanted.format,
-		     wanted.samples,
-		     wanted.size);
+		     wanted.samples);
 #endif
       int ret = SDL_OpenAudio(&wanted, &m_obtained);
       if (ret < 0) {

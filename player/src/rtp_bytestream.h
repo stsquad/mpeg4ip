@@ -77,6 +77,7 @@ class CRtpByteStreamBase : public COurInByteStream
   void remove_packet_rtp_queue(rtp_packet *pak, int free);
  protected:
   void init(void);
+  uint64_t rtp_ts_to_msec(uint32_t ts, uint64_t &wrap_offset);
   rtp_packet *m_head, *m_tail;
   int m_offset_in_pak;
   uint32_t m_skip_on_advance_bytes;
@@ -125,13 +126,34 @@ class CRtpByteStream : public CRtpByteStreamBase
   void used_bytes_for_frame(uint32_t bytes);
   int have_no_data(void);
   void flush_rtp_packets(void);
- private:
+ protected:
   unsigned char *m_buffer;
   uint32_t m_buffer_len;
   uint32_t m_buffer_len_max;
   uint32_t m_bytes_used;
 };
 
+class CAudioRtpByteStream : public CRtpByteStream
+{
+ public:
+  CAudioRtpByteStream(unsigned int rtp_proto,
+		      int ondemand,
+		      uint64_t tickpersec,
+		      rtp_packet **head, 
+		      rtp_packet **tail,
+		      int rtpinfo_received,
+		      uint32_t rtp_rtptime,
+		      int rtcp_received,
+		      uint32_t ntp_frac,
+		      uint32_t ntp_sec,
+		      uint32_t rtp_ts);
+  ~CAudioRtpByteStream();
+  int have_no_data(void);
+  int check_rtp_frame_complete_for_proto(void);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+ private:
+  rtp_packet *m_working_pak;
+};
 int add_rtp_packet_to_queue(rtp_packet *pak,
 			    rtp_packet **head,
 			    rtp_packet **tail);

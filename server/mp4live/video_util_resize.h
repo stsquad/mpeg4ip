@@ -64,6 +64,8 @@ extern void scale_image_process(scaler_t *scaler);
 /* Shuts down scaler, deallocates memory. */
 extern void scale_image_done(scaler_t *scaler);
 
+extern void scale_free_image(image_t *image);
+
 /* These are filter functions and their respective fwidth values
    that you can use when filtering. The higher fwidth is, the
    longer processing takes. Filter function's cost is much less

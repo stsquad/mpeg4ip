@@ -210,13 +210,16 @@ void free_session_desc (session_desc_t *sptr)
  *    TRUE - have a new line.
  *    FALSE - all done.
  */
-static int get_next_line (char *lptr,
+static int get_next_line (char *olptr,
 			  sdp_decode_info_t *decode,
 			  uint32_t buflen)
 {
+  char *lptr;
   char tempchar;
   char *fret;
-  
+  int extra;
+
+  lptr = olptr;
   if (decode->isMem) {
     /*
      * reading from memory - copy up to next \n\r or \0
@@ -225,17 +228,21 @@ static int get_next_line (char *lptr,
     if (*decode->memptr == '\0')
       return FALSE;
     do {
+      extra = 0;
       tempchar = *decode->memptr;
       decode->memptr++;
       if (tempchar == '\n' || tempchar == '\r') {
 	tempchar = '\0';
-	while (*decode->memptr == '\n' || *decode->memptr == '\r')
+	while (*decode->memptr == '\n' || *decode->memptr == '\r') {
+	  extra++;
 	  decode->memptr++;
+	}
       }
       if (buflen > 0) {
 	*lptr++ = tempchar;
 	buflen--;
       } else {
+	sdp_debug(LOG_WARNING, "Empty line in SDP");
 	*lptr = '\0';
       }
     } while (tempchar != '\0');
@@ -245,15 +252,25 @@ static int get_next_line (char *lptr,
       return FALSE;
     // Read file until we hit the end, or a non-blank line read
     do {
+      extra = 0;
       fret = fgets(lptr, buflen, decode->ifile);
       if (fret == NULL)
 	return (FALSE);
       while (*fret != '\0') {
-	if (*fret == '\n' || *fret == '\r')
+	if (*fret == '\n' || *fret == '\r') {
+	  extra++;
 	  *fret = '\0';
+	}
 	else fret++;
       }
+      if (*lptr == '\0') {
+	sdp_debug(LOG_WARNING, "Empty line in SDP");
+      }
     } while (*lptr == '\0');
+  }
+
+  if (extra > 1) {
+    sdp_debug(LOG_WARNING, "Extra cr or lf at end of %s", olptr);
   }
 
   return TRUE;
@@ -331,6 +348,7 @@ static int str_to_time_offset (const char *str, uint32_t *retval)
 	value += accum;
 	accum = 0;
       } else {
+	sdp_debug(LOG_ERR, "Illegal character %c in time offset", temp);
 	return (FALSE);
       }
     }
@@ -362,6 +380,7 @@ static time_adj_desc_t *time_adj_order_in_list (time_adj_desc_t *start,
   q = NULL;
   while (p != NULL) {
     if (new->adj_time == p->adj_time) {
+      sdp_debug(LOG_NOTICE, "Duplicate time %ld in adj description", p->adj_time);
       free(new);
       return (start);
     }
@@ -495,8 +514,10 @@ static int sdp_decode_parse_a_rtpmap (int arg,
   // enc points to encode name
   ADV_SPACE(slash);
   temp = strsep(&slash, " \t/");
-  if (temp == NULL)
+  if (temp == NULL) {
+    sdp_debug(LOG_ERR, "Can't find seperator after encode name in rtpmap");
     return (-1);
+  }
 
   if (sscanf(temp, "%u", &a) == 0) {
     sdp_debug(LOG_ERR, "Couldn't decode rtp clockrate %s", temp);
@@ -595,7 +616,10 @@ static int sdp_decode_parse_a_frame (int arg,
   mptr->framerate = strtod(lptr, &endptr);
   if (endptr == lptr || endptr == NULL) return (-1);
   ADV_SPACE(endptr);
-  if (*endptr != '\0') return (-1);
+  if (*endptr != '\0') {
+    sdp_debug(LOG_ERR, "Garbage at end of frame rate `%s\'", endptr);
+    return (-1);
+  }
   mptr->framerate_present = TRUE;
   return (0);
 }
@@ -627,6 +651,7 @@ static int convert_npt (char *from, char *to, double *ret)
       decimal = TRUE;
       mult = .1;
     } else {
+      sdp_debug(LOG_ERR, "Illegal character in NPT string %c", *from);
       return (FALSE);
     }
     from++;
@@ -670,6 +695,7 @@ static int convert_smpte (char *from, char *to, uint16_t fps, double *ret)
       decimal = TRUE;
       mult = .1;
     } else {
+      sdp_debug(LOG_ERR, "Illegal character in SMPTE decode %c", *from);
       return (FALSE);
     }
     from++;
@@ -787,6 +813,7 @@ static int sdp_decode_parse_a_int (int arg,
   }
   ADV_SPACE(orig_line);
   if (*orig_line != '\0') {
+    sdp_debug(LOG_ERR, "Garbage at end of integer %s", orig_line);
     return(-1);
   }
 
@@ -1533,6 +1560,7 @@ static int sdp_decode_parse_time_adj (char *lptr,
   int err;
   
   if (!isdigit(*lptr)) {
+    sdp_debug(LOG_ERR, "Illegal character for z= field %s", lptr);
     return (ESDP_TIME_ADJ);
   }
 
@@ -1636,21 +1664,26 @@ static int sdp_decode_parse_time_repeat (char *lptr,
   char *sep;
   uint32_t interval, duration;
   
-  if (current_time == NULL)
+  if (current_time == NULL) {
+    sdp_debug(LOG_ERR, "r= before or without time");
     return (ESDP_REPEAT_NOTIME);
+  }
 
   sep = strsep(&lptr, SPACES);
   if (sep == NULL || lptr == NULL) {
+    sdp_debug(LOG_ERR, "Interval not found in repeat statment");
     return (ESDP_REPEAT);
   }
 
   if (str_to_time_offset(sep, &interval) == FALSE) {
+    sdp_debug(LOG_ERR, "Illegal string conversion in repeat");
     return (ESDP_REPEAT);
   }
   
   ADV_SPACE(lptr);
   sep = strsep(&lptr, SPACES);
   if (sep == NULL || lptr == NULL) {
+    sdp_debug(LOG_ERR, "No duration in repeat statement");
     return (ESDP_REPEAT);
   }
 
@@ -1659,6 +1692,7 @@ static int sdp_decode_parse_time_repeat (char *lptr,
   }
   
   if (duration == 0 || interval == 0) {
+    sdp_debug(LOG_ERR, "duration or interval are 0 in repeat");
     return (ESDP_REPEAT);
   }
 
@@ -1677,6 +1711,7 @@ static int sdp_decode_parse_time_repeat (char *lptr,
   while ((sep = strsep(&lptr, SPACES)) &&
 	 rptr->offset_cnt < MAX_REPEAT_OFFSETS) {
     if (str_to_time_offset(sep, &rptr->offsets[rptr->offset_cnt]) == FALSE) {
+      sdp_debug(LOG_ERR, "Illegal repeat offset - number %d", rptr->offset_cnt);
       free(rptr);
       return (ESDP_REPEAT);
     }
@@ -1687,6 +1722,7 @@ static int sdp_decode_parse_time_repeat (char *lptr,
   }
 
   if (rptr->offset_cnt == 0 || sep != NULL) {
+    sdp_debug(LOG_ERR, "No listed offset in repeat");
     free(rptr);
     return (ESDP_REPEAT);
   }

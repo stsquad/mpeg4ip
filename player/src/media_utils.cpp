@@ -36,6 +36,7 @@
 #include "ip_port.h"
 #include "codec_plugin_private.h"
 #include <gnu/strcasestr.h>
+#include "rfc3119_bytestream.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -53,6 +54,8 @@ enum {
   AUDIO_MP3,
   AUDIO_WAV,
   AUDIO_MPEG4_GENERIC,
+  AUDIO_MP3_ROBUST,
+  AUDIO_GENERIC,
 };
 /*
  * these are lists of supported audio and video codecs
@@ -74,6 +77,9 @@ static struct codec_list_t {
   audio_codecs[] = {
     {"MPEG4-GENERIC", AUDIO_MPEG4_GENERIC},
     {"MPA", AUDIO_MP3 },
+    {"mpa-robust", AUDIO_MP3_ROBUST}, 
+    {"L16", AUDIO_GENERIC },
+    {"L8", AUDIO_GENERIC },
     {NULL, -1},
   };
 
@@ -565,6 +571,25 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 	return (rtp_byte_stream);
       }
       break;
+    case AUDIO_MP3_ROBUST:
+      rtp_byte_stream = 
+	new CRfc3119RtpByteStream(rtp_proto, ondemand, tps, head, tail, 
+				  rtpinfo_received, rtp_rtptime, 
+				  rtcp_received, ntp_frac, ntp_sec, rtp_ts);
+      if (rtp_byte_stream != NULL) {
+	player_debug_message("Starting mpa robust byte stream");
+	return (rtp_byte_stream);
+      }
+      break;
+    case AUDIO_GENERIC:
+      rtp_byte_stream = 
+	new CAudioRtpByteStream(rtp_proto, ondemand, tps, head, tail, 
+				rtpinfo_received, rtp_rtptime, 
+				rtcp_received, ntp_frac, ntp_sec, rtp_ts);
+      if (rtp_byte_stream != NULL) {
+	player_debug_message("Starting generic audio byte stream");
+	return (rtp_byte_stream);
+      }
     default:
       break;
     }

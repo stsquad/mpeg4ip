@@ -31,6 +31,7 @@
 #include "tools/entropy/bitstrm.hpp"
 #include "sys/decoder/vopsedec.hpp"
 
+#define logit divx->m_vft->log_msg
 /*
  * divx_find_header
  * Search buffer to find the next start code
@@ -69,8 +70,15 @@ static int divx_reset_buffer (iso_decode_t *divx)
 	       divx->m_buffer_size_max - diff,
 	       divx->m_ifile);
   divx->m_buffer_on = 0;
-  if (read <= 0) return -1;
+  if (read <= 0) {
+    if (divx->m_buffer_size < 4) divx->m_buffer_size = 0;
+    return -1;
+  }
   divx->m_buffer_size += read;
+  if (divx->m_buffer_size < 4) {
+    divx->m_buffer_size = 0;
+    return -1;
+  }
   return diff;
 }
 
@@ -225,9 +233,10 @@ codec_data_t *mpeg4_iso_file_check (lib_message_func_t message,
       try {
 	iso->m_pvodec->decodeVOLHead();
 	havevol = 1;
-	message(LOG_DEBUG, "mp4iso", "Found vol in mpeg4 file");
 	iso->m_buffer_on = nextframe;
 	iso->m_framerate = iso->m_pvodec->getClockRate();
+	message(LOG_DEBUG, "mp4iso", "Found vol in mpeg4 file clock rate %d",
+		iso->m_framerate);
       } catch (...) {
 	iso->m_buffer_on += iso->m_pvodec->get_used_bytes();
 	//iso->m_buffer_on = iso->m_buffer_size - 3;
@@ -278,9 +287,13 @@ int divx_file_next_frame (codec_data_t *your_data,
   next_hdr = divx_find_header(divx, divx->m_buffer_on);
   if (next_hdr < 0) {
     next_hdr = divx_reset_buffer(divx);
-    if (next_hdr < 0) return 0;
+    if (next_hdr < 0) {
+      return 0;
+    }
     next_hdr = divx_find_header(divx, next_hdr);
-    if (next_hdr < 0) return 0;
+    if (next_hdr < 0) {
+      return 0;
+    }
   }
   divx->m_buffer_on = next_hdr;
 

@@ -167,18 +167,8 @@ static codec_data_t *iso_create (format_list_t *media_fmt,
     if (parse_vovod(iso, (const char *)userdata, 0, ud_size) == 1) {
       iso->m_decodeState = DECODE_STATE_WAIT_I;
     }
-  } else if (vinfo != NULL) {
-    iso->m_pvodec->FakeOutVOVOLHead(vinfo->height,
-			       vinfo->width,
-			       30,
-			       &iso->m_bSpatialScalability);
-    iso->m_vft->video_configure(iso->m_ifptr, 
-				vinfo->width,
-				vinfo->height,
-				VIDEO_FORMAT_YUV);
-
-    iso->m_decodeState = DECODE_STATE_NORMAL;
-  } 
+  }
+  iso->m_vinfo = vinfo;
 
   iso->m_num_wait_i = 0;
   iso->m_num_wait_i_frames = 0;
@@ -248,24 +238,46 @@ static int iso_decode (codec_data_t *ptr,
   iso->m_pvodec->SetUpBitstreamBuffer(buffer, buflen);
 
   switch (iso->m_decodeState) {
-  case DECODE_STATE_VOL_SEARCH:
-    try {
-      iso->m_pvodec->decodeVOLHead();
-      iso->m_pvodec->postVO_VOLHeadInit(iso->m_pvodec->getWidth(),
-				   iso->m_pvodec->getHeight(),
-				   &iso->m_bSpatialScalability);
-      iso_message(LOG_INFO, mp4iso, "Found VOL");
+  case DECODE_STATE_VOL_SEARCH: {
+    uint32_t used = 0;
+    while (used < buflen && iso->m_decodeState == DECODE_STATE_VOL_SEARCH) {
+      try {
+	iso->m_pvodec->SetUpBitstreamBuffer(buffer + used, buflen - used);
+	iso->m_pvodec->decodeVOLHead();
+	iso->m_pvodec->postVO_VOLHeadInit(iso->m_pvodec->getWidth(),
+					  iso->m_pvodec->getHeight(),
+					  &iso->m_bSpatialScalability);
+	iso_message(LOG_INFO, mp4iso, "Found VOL");
 	
-      iso->m_vft->video_configure(iso->m_ifptr, 
-				  iso->m_pvodec->getWidth(),
-				  iso->m_pvodec->getHeight(),
-				  VIDEO_FORMAT_YUV);
-
-      iso->m_decodeState = DECODE_STATE_WAIT_I;
-    } catch (int err) {
-      iso_message(LOG_DEBUG, mp4iso, "Caught exception in VOL search %d", err);
+	iso->m_vft->video_configure(iso->m_ifptr, 
+				    iso->m_pvodec->getWidth(),
+				    iso->m_pvodec->getHeight(),
+				    VIDEO_FORMAT_YUV);
+	
+	iso->m_decodeState = DECODE_STATE_WAIT_I;
+      } catch (int err) {
+	iso_message(LOG_DEBUG, mp4iso, "Caught exception in VOL search %d", err);
+      }
+      used += iso->m_pvodec->get_used_bytes();
     }
-    return (iso->m_pvodec->get_used_bytes());
+    if (used >= buflen) {
+      if (iso->m_vinfo != NULL) {
+	iso->m_pvodec->FakeOutVOVOLHead(iso->m_vinfo->height,
+					iso->m_vinfo->width,
+					30,
+					&iso->m_bSpatialScalability);
+	iso->m_vft->video_configure(iso->m_ifptr, 
+				    iso->m_vinfo->width,
+				    iso->m_vinfo->height,
+				    VIDEO_FORMAT_YUV);
+
+	iso->m_decodeState = DECODE_STATE_NORMAL;
+      } 
+
+      return used;
+    }
+    // else fall through
+  }
   case DECODE_STATE_WAIT_I:
     try {
       iEof = iso->m_pvodec->decode(NULL, TRUE);
@@ -454,15 +466,15 @@ static int iso_codec_check (lib_message_func_t message,
   return -1;
 }
 
-VIDEO_CODEC_PLUGIN("MPEG4 ISO", 
-		   iso_create,
-		   iso_do_pause,
-		   iso_decode,
-		   iso_close,
-		   iso_codec_check,
-		   mpeg4_iso_file_check,
-		   divx_file_next_frame,
-		   divx_file_used_for_frame,
-		   divx_file_seek_to,
-		   iso_skip_frame,
-		   divx_file_eof);
+VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("MPEG4 ISO", 
+				 iso_create,
+				 iso_do_pause,
+				 iso_decode,
+				 iso_close,
+				 iso_codec_check,
+				 mpeg4_iso_file_check,
+				 divx_file_next_frame,
+				 divx_file_used_for_frame,
+				 divx_file_seek_to,
+				 iso_skip_frame,
+				 divx_file_eof);

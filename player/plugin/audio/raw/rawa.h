@@ -40,7 +40,8 @@ typedef struct rawa_codec_t {
   unsigned char *m_temp_buff;
   uint32_t m_temp_buffsize;
   uint64_t m_ts;
-  uint32_t m_frames;
+  uint64_t m_bytes;
+  int m_convert_bytes;
 } rawa_codec_t;
 
 #endif

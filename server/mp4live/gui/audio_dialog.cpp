@@ -548,12 +548,12 @@ void CreateAudioDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
-	label = gtk_label_new("   Channels:");
+	label = gtk_label_new("   Encoding :");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
-	label = gtk_label_new("   Encoding :");
+	label = gtk_label_new("   Channels:");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
@@ -655,6 +655,19 @@ void CreateAudioDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
+	if (!strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+	  AUDIO_ENCODING_AAC)) {
+		encodingIndex = 1;
+	} else {
+		encodingIndex = 0;
+	}
+	encoding_menu = CreateOptionMenu (NULL,
+		encodingNames, 
+		sizeof(encodingNames) / sizeof(char*),
+		encodingIndex,
+		GTK_SIGNAL_FUNC(on_encoding_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), encoding_menu, TRUE, TRUE, 0);
+
 	// channel menu
 	channelIndex = 0;
 	for (u_int8_t i = 0; i < sizeof(channelValues) / sizeof(u_int8_t); i++) {
@@ -670,19 +683,6 @@ void CreateAudioDialog (void)
 		channelIndex,
 		GTK_SIGNAL_FUNC(on_channel_menu_activate));
 	gtk_box_pack_start(GTK_BOX(vbox), channel_menu, TRUE, TRUE, 0);
-
-	if (!strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
-	  AUDIO_ENCODING_AAC)) {
-		encodingIndex = 1;
-	} else {
-		encodingIndex = 0;
-	}
-	encoding_menu = CreateOptionMenu (NULL,
-		encodingNames, 
-		sizeof(encodingNames) / sizeof(char*),
-		encodingIndex,
-		GTK_SIGNAL_FUNC(on_encoding_menu_activate));
-	gtk_box_pack_start(GTK_BOX(vbox), encoding_menu, TRUE, TRUE, 0);
 
 	sampling_rate_menu = NULL;
 	CreateSamplingRateMenu(pAudioCaps);

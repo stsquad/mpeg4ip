@@ -114,6 +114,7 @@ int CAviFile::create_video (CPlayerSession *psptr,
   codec_plugin_t *plugin;
 
   const char *codec_name = AVI_video_compressor(m_file);
+  player_debug_message("Trying avi video codec %s", codec_name);
   plugin = check_for_video_codec(codec_name, 
 				 NULL,
 				 -1,
@@ -188,6 +189,8 @@ int CAviFile::create_audio (CPlayerSession *psptr,
 
   codec_plugin_t *plugin = NULL;
 
+  player_debug_message("Trying for avi audio codec %d", 
+		       AVI_audio_format(m_file));
   plugin = check_for_audio_codec("AVI FILE",
 				 NULL,
 				 AVI_audio_format(m_file), 

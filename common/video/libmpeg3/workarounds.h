@@ -3,7 +3,6 @@
 
 #include "mpeg3io.h"
 #include "mpeg3title.h"
-#include <stdint.h>
 
 int64_t mpeg3io_tell_gcc(mpeg3_fs_t *fs);
 double mpeg3_add_double_gcc(double x, double y);

@@ -355,18 +355,42 @@ typedef struct codec_plugin_t {
 
 #define PLUGIN_VERSION "0.2"
 
+/*
+ * Use this for an audio plugin without raw file support
+ */
 #define AUDIO_CODEC_PLUGIN(name, \
                            create, \
 			   do_pause, \
                            decode, \
 			   close,\
-			   compress_check, \
-			   raw_file_check, \
-			   raw_file_next_frame, \
-                           raw_file_used_for_frame, \
-			   raw_file_seek_to, \
-			   raw_file_skip_frame, \
-			   raw_file_has_eof)\
+			   compress_check) \
+extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
+   name, \
+   "audio", \
+   PLUGIN_VERSION, \
+   create, \
+   NULL, \
+   do_pause, \
+   decode, \
+   close,\
+   compress_check, \
+   NULL, NULL, NULL, NULL, NULL, NULL, \
+}; }
+
+/*
+ * Use this for audio plugin that has raw file support
+ */
+#define AUDIO_CODEC_WITH_RAW_FILE_PLUGIN(name, \
+                                         create, \
+			                 do_pause, \
+                                         decode, \
+			                 close,\
+			                 compress_check, \
+			                 raw_file_check, \
+			                 raw_file_next_frame, \
+                                         raw_file_used_for_frame, \
+			                 raw_file_seek_to, \
+			                 raw_file_has_eof)\
 extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    name, \
    "audio", \
@@ -381,22 +405,47 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    raw_file_next_frame, \
    raw_file_used_for_frame, \
    raw_file_seek_to, \
-   raw_file_skip_frame,\
+   NULL, \
    raw_file_has_eof, \
 }; }
 
+/*
+ * Use this for a video codec without raw file support
+ */
 #define VIDEO_CODEC_PLUGIN(name, \
                            create, \
 			   do_pause, \
                            decode, \
 			   close,\
-			   compress_check, \
-			   raw_file_check, \
-			   raw_file_next_frame, \
-                           raw_file_used_for_frame, \
-			   raw_file_seek_to, \
-			   raw_file_skip_frame, \
-                           raw_file_has_eof) \
+			   compress_check) \
+extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
+   name, \
+   "video", \
+   PLUGIN_VERSION, \
+   NULL, \
+   create, \
+   do_pause, \
+   decode, \
+   close,\
+   compress_check, \
+   NULL, NULL, NULL, NULL, NULL, NULL,\
+}; }
+
+/*
+ * Use this for video codec with raw file support
+ */
+#define VIDEO_CODEC_WITH_RAW_FILE_PLUGIN(name, \
+                                         create, \
+			                 do_pause, \
+                                         decode, \
+			                 close,\
+			                 compress_check, \
+			                 raw_file_check, \
+			                 raw_file_next_frame, \
+                                         raw_file_used_for_frame, \
+			                 raw_file_seek_to, \
+			                 raw_file_skip_frame, \
+                                         raw_file_has_eof) \
 extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    name, \
    "video", \

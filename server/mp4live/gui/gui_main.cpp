@@ -479,7 +479,7 @@ static gint status_timer (gpointer raw)
 		u_int32_t totalFrames = encodedFrames - StartEncodedFrameNumber;
 
 		snprintf(buffer, sizeof(buffer), " %.2f", 
-			((float)totalFrames / (float)now) * TimestampTicks);
+			((float)totalFrames / (float)(now - StartTime)) * TimestampTicks);
 		gtk_label_set_text(GTK_LABEL(actual_fps), buffer);
 		gtk_widget_show(actual_fps);
 

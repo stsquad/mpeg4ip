@@ -19,6 +19,7 @@
  *              Bill May        wmay@cisco.com
  */
 #include "mp3if.h"
+#include <mp3util/mp3util.h>
 #include <mp4v2/mp4.h>
 
 #define mp3_message mp3->m_vft->log_msg
@@ -129,6 +130,10 @@ static int mp3_decode (codec_data_t *ptr,
 
     mp3->m_chans = mp3->m_mp3_info->isstereo() ? 2 : 1;
     mp3->m_freq = mp3->m_mp3_info->getfrequency();
+    mp3->m_samplesperframe = 
+      mp3_get_samples_per_frame(mp3->m_mp3_info->getlayer(),
+				mp3->m_mp3_info->getversion());
+#if 0
     int samplesperframe;
     samplesperframe = 32;
     if (mp3->m_mp3_info->getlayer() == 3) {
@@ -143,13 +148,14 @@ static int mp3_decode (codec_data_t *ptr,
       }
     }
     mp3->m_samplesperframe = samplesperframe;
+#endif
     mp3_message(LOG_DEBUG, "libmp3", "chans %d freq %d samples %d", 
-		mp3->m_chans, mp3->m_freq, samplesperframe);
+		mp3->m_chans, mp3->m_freq, mp3->m_samplesperframe);
     mp3->m_vft->audio_configure(mp3->m_ifptr,
 				mp3->m_freq, 
 				mp3->m_chans, 
 				AUDIO_S16SYS, 
-				samplesperframe);
+				mp3->m_samplesperframe);
     mp3->m_audio_inited = 1;
     mp3->m_last_rtp_ts = ts - 1; // so we meet the critera below
   }
@@ -201,24 +207,6 @@ static int mp3_decode (codec_data_t *ptr,
   return (bits);
 }
 
-static int mp3_skip_frame (codec_data_t *ifptr)
-{
-#if 0
-  uint32_t bytes;
-  uint32_t framesize;
-  mp3_codec_t *mp3 = (mp3_codec_t *)ifptr;
-
-  bytes = mp3->m_mp3_info->findheader(buffer, buflen, &framesize);
-  if (bytes < 0) {
-    mp3_message(LOG_DEBUG, "libmp3", "Couldn't load mp3 header");
-    return (-1);
-  }
-      
-  return (bytes + framesize);
-#endif
-  return 0;
-}
-
 static const char *mp3_compressors[] = {
   "mp3 ",
   "mp3", 
@@ -259,6 +247,9 @@ static int mp3_codec_check (lib_message_func_t message,
       if (strcasecmp(fptr->rtpmap->encode_name, "MPA") == 0) {
 	return 1;
       }
+      if (strcasecmp(fptr->rtpmap->encode_name, "mpa-robust") == 0) {
+	return 1;
+      }
     }
     return -1;
   }
@@ -281,18 +272,17 @@ static int mp3_file_eof (codec_data_t *ifptr)
   return mp3->m_buffer_on == mp3->m_buffer_size && feof(mp3->m_ifile);
 }
 
-AUDIO_CODEC_PLUGIN("mp3", 
-		   mp3_codec_create,
-		   mp3_do_pause,
-		   mp3_decode,
-		   mp3_close,
-		   mp3_codec_check,
-		   mp3_file_check,
-		   mp3_file_next_frame,
-		   NULL,
-		   mp3_raw_file_seek_to,
-		   mp3_skip_frame,
-		   mp3_file_eof);
+AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("mp3", 
+				 mp3_codec_create,
+				 mp3_do_pause,
+				 mp3_decode,
+				 mp3_close,
+				 mp3_codec_check,
+				 mp3_file_check,
+				 mp3_file_next_frame,
+				 NULL,
+				 mp3_raw_file_seek_to,
+				 mp3_file_eof);
 
 /* end file mp3.cpp */
 

@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = librtsp.la
+noinst_LTLIBRARIES = librtsp.la
 librtsp_la_LDFLAGS = -static
 librtsp_la_SOURCES = \
 	rtsp.c \

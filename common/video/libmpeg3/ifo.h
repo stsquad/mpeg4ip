@@ -193,7 +193,7 @@ typedef struct {
 	u_char *data[10];
 	
 	int fd;		// file descriptor
-	__off64_t pos;	// offset of ifo file on device 
+	int64_t pos;	// offset of ifo file on device 
 } ifo_t;
 
 
@@ -221,7 +221,7 @@ typedef struct {
  * Prototypes
  */
 
-ifo_t *ifoOpen (int fd, __off64_t pos);
+ifo_t *ifoOpen (int fd, int64_t pos);
 int ifoClose (ifo_t *ifo);
 
 u_int ifoGetVOBStart	(ifo_t *ifo);

@@ -9,6 +9,7 @@ mp3_plugin_la_SOURCES = \
 mp3_plugin_la_LIBADD = \
 	-lm \
 	$(top_builddir)/player/lib/audio/mp3/libourmp3.la \
+	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
 	$(top_builddir)/lib/fposrec/libfposrec.la
 
 

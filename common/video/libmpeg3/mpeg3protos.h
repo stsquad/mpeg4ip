@@ -1,7 +1,6 @@
 #ifndef MPEG3PROTOS_H
 #define MPEG3PROTOS_H
 
-#include <stdint.h>
 
 /* CSS */
 

@@ -29,9 +29,9 @@
 #define WARNING(expr)
 #else
 #define ASSERT(expr) \
-	if (!expr) { \
+	if (!(expr)) { \
 		fflush(stdout); \
-		assert(expr); \
+		assert((expr)); \
 	}
 #define WARNING(expr) \
 	if (expr) { \

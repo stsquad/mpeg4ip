@@ -32,11 +32,11 @@
  */
 
 
-#ifdef HAVE_CSS
+#if defined(HAVE_CSS) && defined(HAVE_LINUX_CDROM_H)
 
 #include "mpeg3css.h"
 #include "mpeg3private.h"
-
+#include <config.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>

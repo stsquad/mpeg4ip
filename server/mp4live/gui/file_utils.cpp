@@ -386,18 +386,18 @@ static GtkWidget* CreateMpeg2TrackMenu(
 			char buf[64];
 			if (type == 'V') {
 				snprintf(buf, sizeof(buf), 
-					"%u - %u x %u %.2f fps", 
+					"%u - %u x %u @ %.2f fps", 
 					i + 1,
 					mpeg3_video_width(mpeg2File, i),
 					mpeg3_video_height(mpeg2File, i),
 					mpeg3_frame_rate(mpeg2File, i));
 			} else {
 				snprintf(buf, sizeof(buf), 
-					"%u - %s %u Hz %u channels", 
+					"%u - %s  %u channels @ %u Hz", 
 					i + 1,
 					mpeg3_audio_format(mpeg2File, i),
-					mpeg3_sample_rate(mpeg2File, i),
-					mpeg3_audio_channels(mpeg2File, i));
+					mpeg3_audio_channels(mpeg2File, i),
+					mpeg3_sample_rate(mpeg2File, i));
 			}
 			newTrackNames[i] = stralloc(buf);
 		}

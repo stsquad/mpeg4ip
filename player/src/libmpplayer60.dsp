@@ -292,5 +292,13 @@ SOURCE=.\codec\mp3\mp3_rtp_bytestream.cpp
 SOURCE=.\codec\mp3\mp3_rtp_bytestream.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\rfc3119_bytestream.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\rfc3119_bytestream.h
+# End Source File
 # End Target
 # End Project

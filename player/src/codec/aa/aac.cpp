@@ -344,18 +344,17 @@ static int aac_codec_check (lib_message_func_t message,
   return -1;
 }
 
-AUDIO_CODEC_PLUGIN("aac",
-		   aac_codec_create,
-		   aac_do_pause,
-		   aac_decode,
-		   aac_close,
-		   aac_codec_check,
-		   aac_file_check,
-		   aac_file_next_frame,
-		   aac_file_used_for_frame,
-		   aac_raw_file_seek_to,
-		   NULL, 
-		   aac_file_eof);
+AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("aac",
+				 aac_codec_create,
+				 aac_do_pause,
+				 aac_decode,
+				 aac_close,
+				 aac_codec_check,
+				 aac_file_check,
+				 aac_file_next_frame,
+				 aac_file_used_for_frame,
+				 aac_raw_file_seek_to,
+				 aac_file_eof);
 /* end file aa.cpp */
 
 

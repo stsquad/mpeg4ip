@@ -284,13 +284,13 @@ int main(int argc, char** argv)
 
 					if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
 						allMpeg4Streams &=
-							MP4GetTrackAudioType(mp4File, *pTrackId) 
-							== MP4_MPEG4_AUDIO_TYPE;
+							(MP4GetTrackAudioType(mp4File, *pTrackId) 
+							== MP4_MPEG4_AUDIO_TYPE);
 
 					} else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
 						allMpeg4Streams &=
-							MP4GetTrackVideoType(mp4File, *pTrackId)
-							== MP4_MPEG4_VIDEO_TYPE;
+							(MP4GetTrackVideoType(mp4File, *pTrackId)
+							== MP4_MPEG4_VIDEO_TYPE);
 					}
 					pTrackId++;
 				}

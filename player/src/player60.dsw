@@ -183,6 +183,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libmp3util60"=..\LIB\AUDIO\MP3UTIL\libmp3util60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libmp4"=..\..\lib\mp4\libmp460.dsp - Package Owner=<4>
 
 Package=<5>
@@ -259,6 +271,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp4util
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp3util60
     End Project Dependency
 }}}
 
@@ -337,6 +352,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp3
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp3util60
     End Project Dependency
 }}}
 

@@ -23,7 +23,8 @@ LDADD = $(top_builddir)/server/video/divx/libdivxencore.la -lm \
 
 AM_CFLAGS = -DMPEG4IP -D_REENTRANT -O3 -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
-lib_LTLIBRARIES = libdivxencore.la
+noinst_LTLIBRARIES = libdivxencore.la
+libdivxencore_la_LDFLAGS = -static
 
 if USE_MMX
 EXTRA_libdivxencore_la_SOURCES = \

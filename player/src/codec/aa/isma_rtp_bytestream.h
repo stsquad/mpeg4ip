@@ -98,7 +98,6 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
     return (pak);
   }
   CBitstream m_header_bitstream;
-  uint64_t rtp_ts_to_msec (uint32_t ts, uint64_t &wrap_offset);
   fmtp_parse_t m_fmtp;
   int m_min_first_header_bits;
   int m_min_header_bits;

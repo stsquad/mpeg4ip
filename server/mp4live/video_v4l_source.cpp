@@ -547,14 +547,6 @@ void CV4LVideoSource::ProcessVideo(void)
 				prevFrameAdjustment = 
 					(lag / m_targetFrameDuration) * m_targetFrameDuration;
 
-#ifdef NOTDEF
-if (prevFrameAdjustment) {
-	printf("elapsedTime %llu targetElapsedDuration %llu\n",
-		elapsedTime, m_targetElapsedDuration);
-	printf("lag adjustment %llu\n", prevFrameAdjustment);
-}
-#endif
-
 				prevFrameDuration += prevFrameAdjustment;
 				m_targetElapsedDuration += prevFrameAdjustment;
 			}

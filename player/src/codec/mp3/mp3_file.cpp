@@ -159,10 +159,16 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
 	       diff);
       }
       mp3->m_buffer_size = diff;
-      mp3->m_buffer_size += fread(mp3->m_buffer,
-				  1,  
-				  mp3->m_buffer_size_max - diff,
-				  mp3->m_ifile);
+      int value = fread(mp3->m_buffer,
+			1,  
+			mp3->m_buffer_size_max - diff,
+			mp3->m_ifile);
+      if (value <= 0) {
+	message(LOG_DEBUG, "mp3file", "fread returned %d %d", value, diff);
+	continue;
+      }
+
+      mp3->m_buffer_size += value;
       mp3->m_buffer_on = 0;
     }
     
@@ -180,9 +186,14 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
       if (mp3->m_buffer_on + framesize > mp3->m_buffer_size) {
 	int extra = mp3->m_buffer_on + framesize - mp3->m_buffer_size;
 
-	fseek(mp3->m_ifile, extra, SEEK_CUR);
+	
+	int val = fseek(mp3->m_ifile, extra, SEEK_CUR);
 	mp3->m_buffer_on = 0;
 	mp3->m_buffer_size = 0;
+	if (val < 0) {
+	  message(LOG_DEBUG, "mp3", "fseek returned %d errno %d", val, errno);
+	  continue;
+	}
       } else {
 	mp3->m_buffer_on += framesize;
       }
@@ -247,19 +258,29 @@ int mp3_file_next_frame (codec_data_t *your_data,
 
   while (1) {
     if (mp3->m_buffer_on + 3 >= mp3->m_buffer_size) {
-      uint32_t diff = mp3->m_buffer_size - mp3->m_buffer_on;
+      int32_t diff = mp3->m_buffer_size - mp3->m_buffer_on;
+      if (diff < 0) {
+	mp3->m_buffer_size = 0;
+	mp3->m_buffer_on = 0;
+	return 0;
+      }
       if (diff > 0) {
 	memcpy(mp3->m_buffer,
 	       &mp3->m_buffer[mp3->m_buffer_on],
 	       diff);
-      }
+      } 
       mp3->m_buffer_size = diff;
-      mp3->m_buffer_size += fread(mp3->m_buffer, 
-				  1, 
-				  mp3->m_buffer_size_max - diff,
-				  mp3->m_ifile);
+      int readbytes = fread(mp3->m_buffer, 
+			    1, 
+			    mp3->m_buffer_size_max - diff,
+			    mp3->m_ifile);
+
       mp3->m_buffer_on = 0;
-      if (mp3->m_buffer_size == diff) return 0;
+      if (readbytes <= 0) {
+	mp3->m_buffer_size = 0;
+	return 0;
+      }
+      mp3->m_buffer_size += readbytes;
     }
       
     bytes_skipped = 

@@ -3,7 +3,7 @@ AC_INIT()
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.7)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.6)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -11,6 +11,7 @@ AC_CANONICAL_TARGET
 
 
 dnl Checks for programs.
+AC_PROG_AS
 AC_PROG_CC
 AC_PROG_CXX(c++)
 AC_LIBTOOL_DLOPEN
@@ -18,8 +19,6 @@ AM_PROG_LIBTOOL
 AC_PROG_LIBTOOL
 AC_PATH_XTRA
 
-AS=gcc
-AC_SUBST(AS)
 ASFLAGS="$ASFLAGS"
 AC_SUBST(ASFLAGS)
 CFLAGS="$CFLAGS -DMPEG4IP"
@@ -30,7 +29,7 @@ dnl Checks for libraries.
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
-AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h)
+
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
@@ -284,7 +283,6 @@ AC_OUTPUT( \
 	player/lib/audio/Makefile \
 	player/lib/audio/faad/Makefile \
 	player/lib/audio/mp3/Makefile \
-	player/lib/audio/mp3util/Makefile \
 	player/lib/mp4util/Makefile \
 	player/lib/video/Makefile \
 	player/lib/video/divx/Makefile \

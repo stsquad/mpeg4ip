@@ -14,8 +14,19 @@ SUFFIXES = .asm
 noinst_LTLIBRARIES = libmpeg3video.la
 libmpeg3video_la_LDFLAGS = -static
 
+INCLUDES=-I $(top_srcdir)/include
 if USE_MMX
 AM_CFLAGS = -DHAVE_MMX -fomit-frame-pointer -malign-loops=2 -malign-jumps=2 -malign-functions=2
+
+EXTRA_libmpeg3video_la_SOURCES = \
+     reconmmx.asm 
+libmpeg3video_la_LIBADD = \
+     reconmmx.lo 
+else
+AM_CFLAGS = -fomit-frame-pointer -malign-loops=2 -malign-jumps=2 -malign-functions=2
+EXTRA_libmpeg3video_la_SOURCES = 
+libmpeg3video_la_LIBADD = 
+
 endif
 
 libmpeg3video_la_SOURCES = \
@@ -32,7 +43,6 @@ libmpeg3video_la_SOURCES = \
 	mpeg3video.h \
 	mpeg3videoprotos.h \
 	output.c \
-	reconmmx.asm \
 	reconstruct.c \
 	seek.c \
 	slice.c \

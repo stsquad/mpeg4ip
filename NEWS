@@ -3,6 +3,8 @@ xx/xx/02 Version 0.9.x
     Show play time in GUI
     Enhance message box errors when starting player session
     .avi file audio for PCM and mp3. (no seek).
+    Added L8 and L16 rtp support
+    Added RFC 3119 support to mp4player.
 
 02/26/02 Version 0.9.3
     Added RFC 3119, MP3 robust RTP payload, support to mp4creator.

@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.10 $ 
- * $Date: 2002/03/20 22:45:33 $
+ * $Revision: 1.11 $ 
+ * $Date: 2002/04/05 00:49:57 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -562,6 +562,9 @@ static void check_database(struct rtp *session)
 	/* Check that the number of entries in the hash table  */
 	/* matches session->ssrc_count                         */
 	ASSERT(source_count == session->ssrc_count);
+	if (source_count != session->ssrc_count) {
+	  rtp_message(LOG_DEBUG, "source count %d does not equal session count %d", source_count, session->ssrc_count);
+	}
 #endif
 }
 

@@ -397,6 +397,43 @@ int CRtpByteStreamBase::check_rtp_frame_complete_for_proto (void)
   return (m_head && m_tail->rtp_pak_m == 1);
 }
 
+uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t ts,
+					     uint64_t &wrap_offset)
+{
+  uint64_t timetick;
+
+  if (m_stream_ondemand) {
+    int neg = 0;
+    
+    if (ts >= m_rtp_rtptime) {
+      timetick = ts;
+      timetick -= m_rtp_rtptime;
+    } else {
+      timetick = m_rtp_rtptime - ts;
+      neg = 1;
+    }
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    if (neg == 1) {
+      if (timetick > m_play_start_time) return (0);
+      return (m_play_start_time - timetick);
+    }
+    timetick += m_play_start_time;
+  } else {
+
+    if (((m_ts & 0x80000000) == 0x80000000) &&
+	((ts & 0x80000000) == 0)) {
+      wrap_offset += (I_LLU << 32);
+    }
+    timetick = ts + m_wrap_offset;
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    timetick += m_wallclock_offset;
+  }
+  return (timetick);
+}
+
+
 CRtpByteStream::CRtpByteStream(const char *name,
 			       unsigned int rtp_proto,
 			       int ondemand,
@@ -493,43 +530,8 @@ uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer,
 #endif
   }
 
-
+  timetick = rtp_ts_to_msec(ts, m_wrap_offset);
   
-  // We're going to have to handle wrap better...
-  if (m_stream_ondemand) {
-    int neg = 0;
-    m_ts = ts;
-    if (m_ts >= m_rtp_rtptime) {
-      timetick = m_ts;
-      timetick -= m_rtp_rtptime;
-    } else {
-      timetick = m_rtp_rtptime - m_ts;
-      neg = 1;
-    }
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    if (neg == 1) {
-      if (timetick > m_play_start_time) return (0);
-      return (m_play_start_time - timetick);
-    }
-    timetick += m_play_start_time;
-  } else {
-    if (((m_ts & 0x80000000) == 0x80000000) &&
-	((ts & 0x80000000) == 0)) {
-      m_wrap_offset += (I_LLU << 32);
-    }
-    m_ts = ts;
-    timetick = m_ts + m_wrap_offset;
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    timetick += m_wallclock_offset;
-#if 0
-    rtp_message(LOG_DEBUG, "time %x "LLU" "LLU" "LLU" "LLU "offset %d",
-		m_ts, m_wrap_offset, m_rtptime_tickpersec, m_wallclock_offset,
-		timetick, m_offset_in_pak);
-#endif
-  }
-
   return (timetick);
 }
 
@@ -579,4 +581,120 @@ void CRtpByteStream::flush_rtp_packets (void)
   CRtpByteStreamBase::flush_rtp_packets();
 
   m_bytes_used = m_buffer_len = 0;
+}
+
+CAudioRtpByteStream::CAudioRtpByteStream (unsigned int rtp_proto,
+					  int ondemand,
+					  uint64_t tps,
+					  rtp_packet **head, 
+					  rtp_packet **tail,
+					  int rtpinfo_received,
+					  uint32_t rtp_rtptime,
+					  int rtcp_received,
+					  uint32_t ntp_frac,
+					  uint32_t ntp_sec,
+					  uint32_t rtp_ts) :
+  CRtpByteStream("audio", 
+		 rtp_proto,
+		 ondemand,
+		 tps,
+		 head, 
+		 tail,
+		 rtpinfo_received,
+		 rtp_rtptime,
+		 rtcp_received,
+		 ntp_frac,
+		 ntp_sec,
+		 rtp_ts)
+{
+  init();
+  m_working_pak = NULL;
+}
+
+CAudioRtpByteStream::~CAudioRtpByteStream(void)
+{
+}
+
+int CAudioRtpByteStream::have_no_data (void)
+{
+  if (m_head == NULL) return TRUE;
+  return FALSE;
+}
+
+int CAudioRtpByteStream::check_rtp_frame_complete_for_proto (void)
+{
+  return m_head != NULL;
+}
+
+uint64_t CAudioRtpByteStream::start_next_frame (unsigned char **buffer, 
+						uint32_t *buflen)
+{
+  uint32_t ts;
+  uint64_t timetick;
+  int32_t diff;
+
+  if (m_working_pak != NULL) {
+    diff = m_working_pak->rtp_data_len - m_bytes_used;
+  } else diff = 0;
+
+  m_doing_add = 0;
+  if (diff > 2) {
+    // Still bytes in the buffer...
+    *buffer = (unsigned char *)m_working_pak->rtp_data + m_bytes_used;
+    *buflen = diff;
+    ts = m_ts;
+#ifdef DEBUG_RTP_PAKS
+    rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
+#endif
+  } else {
+    if (m_working_pak) xfree(m_working_pak);
+    m_buffer_len = 0;
+    m_working_pak = m_head;
+    remove_packet_rtp_queue(m_working_pak, 0);
+    *buffer = (unsigned char *)m_working_pak->rtp_data;
+    *buflen = m_working_pak->rtp_data_len;
+    ts = m_working_pak->rtp_pak_ts;
+#ifdef DEBUG_RTP_PAKS
+    rtp_message(LOG_DEBUG, "%s buffer seq %d ts %x len %d", m_name, 
+		m_working_pak->rtp_pak_seq, 
+		m_working_pak->rtp_pak_ts, m_buffer_len);
+#endif
+  }
+
+  // We're going to have to handle wrap better...
+  if (m_stream_ondemand) {
+    int neg = 0;
+    m_ts = ts;
+    if (m_ts >= m_rtp_rtptime) {
+      timetick = m_ts;
+      timetick -= m_rtp_rtptime;
+    } else {
+      timetick = m_rtp_rtptime - m_ts;
+      neg = 1;
+    }
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    if (neg == 1) {
+      if (timetick > m_play_start_time) return (0);
+      return (m_play_start_time - timetick);
+    }
+    timetick += m_play_start_time;
+  } else {
+    if (((m_ts & 0x80000000) == 0x80000000) &&
+	((ts & 0x80000000) == 0)) {
+      m_wrap_offset += (I_LLU << 32);
+    }
+    m_ts = ts;
+    timetick = m_ts + m_wrap_offset;
+    timetick *= 1000;
+    timetick /= m_rtptime_tickpersec;
+    timetick += m_wallclock_offset;
+#if 0
+    rtp_message(LOG_DEBUG, "time %x "LLU" "LLU" "LLU" "LLU "offset %d",
+		m_ts, m_wrap_offset, m_rtptime_tickpersec, m_wallclock_offset,
+		timetick, m_offset_in_pak);
+#endif
+  }
+
+  return (timetick);
 }

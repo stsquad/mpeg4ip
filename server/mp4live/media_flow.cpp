@@ -166,12 +166,20 @@ void CAVMediaFlow::Stop(void)
 		m_audioSource = NULL;
 	}
 
-	if (m_videoSource && m_pConfig->IsFileVideoSource()) {
-		if (!oneSource) {
+	if (m_pConfig->IsFileVideoSource()) {
+		if (m_videoSource && !oneSource) {
 			m_videoSource->StopThread();
 			delete m_videoSource;
 		}
 		m_videoSource = NULL;
+
+#ifndef NOGUI
+		if (m_videoPreview) {
+			m_videoPreview->StopThread();
+			delete m_videoPreview;
+			m_videoPreview = NULL;
+		}
+#endif
 	}
 
 	m_started = false;
@@ -227,6 +235,10 @@ void CAVMediaFlow::StartVideoPreview(void)
 
 void CAVMediaFlow::StopVideoPreview(void)
 {
+	if (m_pConfig->IsFileVideoSource()) {
+		return;
+	}
+
 	if (m_videoSource) {
 		if (!m_started) {
 			m_videoSource->StopThread();
