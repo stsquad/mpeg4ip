@@ -254,7 +254,8 @@ typedef int (*c_decode_frame_f)(codec_data_t *ptr,
 				int from_rtp,
 				int *sync_frame,
 				unsigned char *buffer,
-				uint32_t buflen);
+				uint32_t buflen, 
+				void *userdata);
 
 /*
  * c_compress_check_f - see if a plugin can decode the bit stream
@@ -353,7 +354,7 @@ typedef struct codec_plugin_t {
 #endif
 
 
-#define PLUGIN_VERSION "0.2"
+#define PLUGIN_VERSION "0.3"
 
 /*
  * Use this for an audio plugin without raw file support

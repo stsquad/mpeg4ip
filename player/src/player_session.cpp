@@ -50,7 +50,6 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_audio_sync = NULL;
   m_sync_thread = NULL;
   m_sync_sem = NULL;
-  m_range = NULL;
   m_content_base = NULL;
   m_master_msg_queue = master_mq;
   m_master_msg_queue_sem = master_sem;
@@ -167,7 +166,6 @@ int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
 {
   session_set_seekable(0);
   m_sdp_info = sdp;
-  m_range = get_range_from_sdp(m_sdp_info);
   m_streaming = 1;
   return (0);
 }
@@ -254,7 +252,6 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
     return (-1);
   }
 
-  m_range = get_range_from_sdp(m_sdp_info);
   if (m_sdp_info->control_string != NULL) {
     set_session_control(1);
   }
@@ -332,17 +329,18 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
 {
   int ret;
   CPlayerMedia *p;
+  range_desc_t *range;
 
   if (m_sdp_info && m_sdp_info->session_range.have_range != FALSE) {
-    m_range = &m_sdp_info->session_range;
+    range = &m_sdp_info->session_range;
   } else {
-    m_range = NULL;
+    range = NULL;
     p = m_my_media;
-    while (m_range == NULL && p != NULL) {
+    while (range == NULL && p != NULL) {
       media_desc_t *media;
       media = p->get_sdp_media_desc();
       if (media && media->media_range.have_range) {
-	m_range = &media->media_range;
+	range = &media->media_range;
       }
       p = p->get_next();
     }
@@ -379,8 +377,8 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
     rtsp_decode_t *decode;
 
     memset(&cmd, 0, sizeof(rtsp_command_t));
-    if (m_range != NULL) {
-      sprintf(buffer, "npt=%g-%g", start_time, m_range->range_end);
+    if (range != NULL) {
+      sprintf(buffer, "npt=%g-%g", start_time, range->range_end);
       cmd.range = buffer;
     }
     if (rtsp_send_aggregate_play(m_rtsp_client,
@@ -521,9 +519,6 @@ void CPlayerSession::set_screen_size (int scaletimes2, int fullscreen)
 }
 double CPlayerSession::get_max_time (void)
 {
-  if (m_range != NULL) {
-    return m_range->range_end;
-  }
   CPlayerMedia *p;
   double max = 0.0;
   p = m_my_media;

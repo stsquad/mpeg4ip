@@ -372,21 +372,7 @@ int CPlayerSession::sync_thread_playing (void)
       }
       //player_debug_message("sw %d", delay);
 
-      int ret = SDL_SemWaitTimeout(m_sync_sem, delay);
-      if (ret == SDL_MUTEX_TIMEDOUT) {
-	if (m_range != NULL) {
-	  uint64_t range_end;
-	  range_end = (uint64_t)(m_range->range_end * 1000.0);
-	  if (m_current_time > range_end) {
-	    if (m_audio_sync) {
-	      m_audio_sync->set_eof();
-	    }
-	    if (m_video_sync)
-	      m_video_sync->set_eof();
-	    return (SYNC_STATE_DONE);
-	  }
-	} 
-      }
+      SDL_SemWaitTimeout(m_sync_sem, delay);
     }
   }
   return (state);

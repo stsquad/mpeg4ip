@@ -199,9 +199,11 @@ int CPlayerMedia::decode_thread (void)
       // the time.
       unsigned char *frame_buffer;
       uint32_t frame_len;
+      void *ud = NULL;
       frame_buffer = NULL;
       ourtime = m_byte_stream->start_next_frame(&frame_buffer, 
-						&frame_len);
+						&frame_len,
+						&ud);
       /*
        * If we're decoding video, see if we're playing - if so, check
        * if we've fallen significantly behind the audio
@@ -276,7 +278,8 @@ int CPlayerMedia::decode_thread (void)
 				       m_streaming != 0,
 				       &sync_frame,
 				       frame_buffer, 
-				       frame_len);
+				       frame_len,
+				       ud);
 #ifdef DEBUG_DECODE
 	media_message(LOG_DEBUG, "Decoding %c frame return %d", 
 		      m_is_video ? 'v' : 'a', ret);

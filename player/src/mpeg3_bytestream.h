@@ -40,8 +40,9 @@ class CMpeg3VideoByteStream : public COurInByteStream
   ~CMpeg3VideoByteStream();
   int eof(void);
   void reset(void);
-  uint64_t start_next_frame(unsigned char **buffer = NULL,
-			    uint32_t *buflen = NULL);
+  uint64_t start_next_frame(unsigned char **buffer,
+			    uint32_t *buflen,
+			    void **ud);
   void used_bytes_for_frame(uint32_t bytes);
   int can_skip_frame(void) { return 1; };
   int skip_next_frame(uint64_t *ts, int *hasSyncFrame, unsigned char **buffer,
@@ -76,8 +77,9 @@ class CMpeg3AudioByteStream : public COurInByteStream
   ~CMpeg3AudioByteStream();
   int eof(void);
   void reset(void);
-  uint64_t start_next_frame(unsigned char **buffer = NULL,
-			    uint32_t *buflen = NULL);
+  uint64_t start_next_frame(unsigned char **buffer,
+			    uint32_t *buflen,
+			    void **ud);
   void used_bytes_for_frame(uint32_t bytes);
   int can_skip_frame(void) { return 1; };
   int skip_next_frame(uint64_t *ts, int *hasSyncFrame, unsigned char **buffer,

@@ -69,7 +69,8 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   ~CIsmaAudioRtpByteStream();
   void reset(void);
   int have_no_data(void);
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+			    void **userdata);
   void used_bytes_for_frame(uint32_t byte);
   void flush_rtp_packets(void);
  private:

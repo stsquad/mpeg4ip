@@ -66,4 +66,11 @@ static inline void funcname (int loglevel, const char *fmt, ...) \
 #define DEFINE_MESSAGE_MACRO(funcname, libname) 
 #endif
 
+static  __inline uint64_t get_time_of_day (void) {
+  struct timeval t;
+  gettimeofday(&t, NULL);
+  return ((((uint64_t)t.tv_sec) * M_LLU) +
+	  (((uint64_t)t.tv_usec) / M_LLU));
+}
+
 #endif

@@ -342,12 +342,8 @@ void MP4Track::WriteSample(
 		printf("WriteSample: track %u id %u size %u (0x%x) ",
 			m_trackId, m_writeSampleId, numBytes, numBytes));
 
-	if (pBytes == NULL) {
+	if (pBytes == NULL && numBytes > 0) {
 		throw new MP4Error("no sample data", "MP4WriteSample");
-	}
-
-	if (numBytes == 0) {
-		throw new MP4Error("sample size is zero", "MP4WriteSample");
 	}
 
 	if (duration == MP4_INVALID_DURATION) {

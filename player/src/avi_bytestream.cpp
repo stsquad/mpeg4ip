@@ -67,7 +67,8 @@ void CAviVideoByteStream::reset (void)
 }
 
 uint64_t CAviVideoByteStream::start_next_frame (unsigned char **buffer, 
-						uint32_t *buflen)
+						uint32_t *buflen,
+						void **ud)
 {
   uint64_t ret;
   double ftime;
@@ -154,7 +155,8 @@ void CAviAudioByteStream::reset (void)
 }
 
 uint64_t CAviAudioByteStream::start_next_frame (unsigned char **buffer, 
-						uint32_t *buflen)
+						uint32_t *buflen,
+						void **ud)
 {
   int value;
   if (m_buffer_on < m_this_frame_size) {

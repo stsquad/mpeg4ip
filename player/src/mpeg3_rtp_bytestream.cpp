@@ -33,6 +33,7 @@ DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 #endif
 
 CMpeg3RtpByteStream::CMpeg3RtpByteStream(unsigned int rtp_pt,
+					 format_list_t *fmt,
 					 int ondemand,
 					 uint64_t tickpersec,
 					 rtp_packet **head, 
@@ -43,14 +44,15 @@ CMpeg3RtpByteStream::CMpeg3RtpByteStream(unsigned int rtp_pt,
 					 uint32_t ntp_frac,
 					 uint32_t ntp_sec,
 					 uint32_t rtp_ts) :
-  CRtpByteStream("mpeg3", rtp_pt, ondemand, tickpersec, head, tail,
+  CRtpByteStream("mpeg3", fmt, rtp_pt, ondemand, tickpersec, head, tail,
 		 rtpinfo_received, rtp_rtptime, rtcp_received,
 		 ntp_frac, ntp_sec, rtp_ts)
 {
 }
 
 uint64_t CMpeg3RtpByteStream::start_next_frame (unsigned char **buffer, 
-						uint32_t *buflen)
+						uint32_t *buflen,
+						void **ud)
 {
   uint16_t seq = 0;
   uint32_t ts = 0;
@@ -149,7 +151,7 @@ int CMpeg3RtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
   if (m_head == NULL) return 0;
   init();
   m_buffer_len = m_bytes_used = 0;
-  ts = start_next_frame(buffer, buflen);
+  ts = start_next_frame(buffer, buflen, NULL);
   *pts = ts;
   return (1);
 }

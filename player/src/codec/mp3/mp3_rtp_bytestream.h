@@ -31,6 +31,7 @@ class CMP3RtpByteStream : public CRtpByteStream
 {
  public:
   CMP3RtpByteStream(unsigned int rtp_pt,
+		    format_list_t *fmt,
 		    int ondemand,
 		    uint64_t tickpersec,
 		    rtp_packet **head, 
@@ -44,7 +45,8 @@ class CMP3RtpByteStream : public CRtpByteStream
   ~CMP3RtpByteStream();
   int have_no_data(void);
   int check_rtp_frame_complete_for_payload_type(void);
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+			    void **userdata);
  private:
   rtp_packet *m_pak_on;
   unsigned char *m_mp3_frame;

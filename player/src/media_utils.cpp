@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <sdp/sdp.h>
 #include <libhttp/http.h>
+#include "media_utils.h"
 #include "player_session.h"
 #include "player_media.h"
 #include "codec/mp3/mp3_rtp_bytestream.h"
@@ -38,6 +39,7 @@
 #include "rfc3119_bytestream.h"
 #include "mpeg3_rtp_bytestream.h"
 #include "mpeg3_file.h"
+#include "audio.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -83,17 +85,6 @@ static struct codec_list_t {
     {NULL, -1},
   };
 
-static int do_we_have_audio (void) 
-{
-  char buffer[80];
-  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_NOPARACHUTE) < 0) {
-    return (0);
-  } 
-  if (SDL_AudioDriverName(buffer, sizeof(buffer)) == NULL) {
-    return (0);
-  }
-  return (1);
-}
 
 
 static int lookup_codec_by_name (const char *name,
@@ -425,7 +416,8 @@ static int create_media_for_http (CPlayerSession *psptr,
 int parse_name_for_session (CPlayerSession *psptr,
 			    const char *name,
 			    char *errmsg,
-			    uint32_t errlen)
+			    uint32_t errlen,
+			    control_callback_vft_t *cc_vft)
 {
   int err;
   ADV_SPACE(name);
@@ -538,6 +530,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
     if (rtp_pt == 32) {
       codec = VIDEO_MPEG12;
       rtp_byte_stream = new CMpeg3RtpByteStream(rtp_pt,
+						fmt, 
 						ondemand,
 						tps,
 						head,
@@ -600,7 +593,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       break;
     case MPEG4IP_AUDIO_MP3:
       rtp_byte_stream = 
-	new CMP3RtpByteStream(rtp_pt, ondemand, tps, head, tail, 
+	new CMP3RtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
 			      rtpinfo_received, rtp_rtptime, 
 			      rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
@@ -610,7 +603,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       break;
     case MPEG4IP_AUDIO_MP3_ROBUST:
       rtp_byte_stream = 
-	new CRfc3119RtpByteStream(rtp_pt, ondemand, tps, head, tail, 
+	new CRfc3119RtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
 				  rtpinfo_received, rtp_rtptime, 
 				  rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
@@ -620,7 +613,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       break;
     case MPEG4IP_AUDIO_GENERIC:
       rtp_byte_stream = 
-	new CAudioRtpByteStream(rtp_pt, ondemand, tps, head, tail, 
+	new CAudioRtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
 				rtpinfo_received, rtp_rtptime, 
 				rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
@@ -632,6 +625,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
     }
   }
   rtp_byte_stream = new CRtpByteStream(fmt->media->media,
+				       fmt, 
 				       rtp_pt,
 				       ondemand,
 				       tps,

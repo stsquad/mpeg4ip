@@ -164,7 +164,7 @@ static int start_session (const char *name, int max_loop)
   }
   
   char errmsg[512];
-  int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg));
+  int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg), NULL);
   if (ret < 0) {
     player_debug_message("%s %s", errmsg, name);
     delete psptr;

@@ -61,14 +61,6 @@ CVideoSync::~CVideoSync (void)
 }
 
 /*
- * CVideoSync::config - routine for the codec to call to set up the
- * width, height and frame_rate of the video
- */
-void CVideoSync::config (int w, int h)
-{
-}
-
-/*
  * CVideoSync::initialize_video - Called from sync task to initialize
  * the video window
  */  
@@ -96,38 +88,6 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
   return (10);
 }
 
-int CVideoSync::get_video_buffer(unsigned char **y,
-				 unsigned char **u,
-				 unsigned char **v)
-{
-  return (0);
-}
-
-int CVideoSync::filled_video_buffers (uint64_t time)
-{
-  return 0;
-}
-
-/*
- * CVideoSync::set_video_frame - called from codec to indicate a new
- * frame is ready.
- * Inputs - y - pointer to y buffer - should point to first byte to copy
- *          u - pointer to u buffer
- *          v - pointer to v buffer
- *          pixelw_y - width of row in y buffer (may be larger than width
- *                   set up above.
- *          pixelw_uv - width of row in u or v buffer.
- *          time - time to display
- */
-int CVideoSync::set_video_frame(const Uint8 *y, 
-				const Uint8 *u, 
-				const Uint8 *v,
-				int pixelw_y, 
-				int pixelw_uv, 
-				uint64_t time)
-{
-  return (-1);
-}
 
 // called from sync thread.  Don't call on play, or m_dont_fill race
 // condition may occur.

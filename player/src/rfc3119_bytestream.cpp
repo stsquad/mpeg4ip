@@ -37,6 +37,7 @@ DEFINE_MESSAGE_MACRO(mpa_message, "mparobust")
 #endif
 
 CRfc3119RtpByteStream::CRfc3119RtpByteStream (unsigned int rtp_pt,
+					      format_list_t *fmt,
 					      int ondemand,
 					      uint64_t tps,
 					      rtp_packet **head, 
@@ -47,7 +48,7 @@ CRfc3119RtpByteStream::CRfc3119RtpByteStream (unsigned int rtp_pt,
 					      uint32_t ntp_frac,
 					      uint32_t ntp_sec,
 					      uint32_t rtp_ts) :
-  CRtpByteStreamBase("mparobust", rtp_pt, ondemand, tps, head, tail, 
+  CRtpByteStreamBase("mparobust", fmt, rtp_pt, ondemand, tps, head, tail, 
 		     rtpinfo_received, rtp_rtptime, rtcp_received,
 		     ntp_frac, ntp_sec, rtp_ts)
 {
@@ -630,7 +631,8 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 }
 
 uint64_t CRfc3119RtpByteStream::start_next_frame (unsigned char **buffer, 
-						  uint32_t *buflen)
+						  uint32_t *buflen,
+						  void **ud)
 {
   adu_data_t *p;
 

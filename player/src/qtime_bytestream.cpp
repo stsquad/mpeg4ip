@@ -103,7 +103,8 @@ void CQTVideoByteStream::reset (void)
 }
 
 uint64_t CQTVideoByteStream::start_next_frame (unsigned char **buffer, 
-					       uint32_t *buflen)
+					       uint32_t *buflen,
+					       void **ud)
 {
   uint64_t ret;
   long start;
@@ -159,7 +160,7 @@ int CQTVideoByteStream::skip_next_frame (uint64_t *ptr, int *hasSync,
 					 uint32_t *buflen)
 {
   *hasSync = 0;
-  *ptr = start_next_frame(buffer, buflen);
+  *ptr = start_next_frame(buffer, buflen, NULL);
   return 1;
 }
 /*
@@ -303,7 +304,8 @@ void CQTAudioByteStream::reset (void)
 }
 
 uint64_t CQTAudioByteStream::start_next_frame (unsigned char **buffer, 
-					       uint32_t *buflen)
+					       uint32_t *buflen,
+					       void **ud)
 {
   uint64_t ret;
   if (m_frame_on >= m_frames_max) {

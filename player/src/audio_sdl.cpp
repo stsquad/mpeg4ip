@@ -828,5 +828,17 @@ audio_vft_t *get_audio_vft (void)
   return &audio_vft;
 }
 
+int do_we_have_audio (void) 
+{
+  char buffer[80];
+  if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_NOPARACHUTE) < 0) {
+    return (0);
+  } 
+  if (SDL_AudioDriverName(buffer, sizeof(buffer)) == NULL) {
+    return (0);
+  }
+  return (1);
+}
+
 /* end audio.cpp */
 

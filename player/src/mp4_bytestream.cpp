@@ -119,7 +119,8 @@ void CMp4ByteStream::reset (void)
 }
 
 uint64_t CMp4ByteStream::start_next_frame (unsigned char **buffer, 
-					   uint32_t *buflen)
+					   uint32_t *buflen,
+					   void **ud)
 {
 
   if (m_frame_on >= m_frames_max) {
@@ -158,7 +159,7 @@ int CMp4ByteStream::skip_next_frame (uint64_t *pts,
 				     uint32_t *buflen)
 {
   uint64_t ts;
-  ts = start_next_frame(buffer, buflen);
+  ts = start_next_frame(buffer, buflen, NULL);
   *pts = ts;
   *pSync = m_frame_on_has_sync;
   return (1);

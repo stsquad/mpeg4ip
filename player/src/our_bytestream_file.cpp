@@ -43,7 +43,8 @@ void COurInByteStreamFile::set_start_time (uint64_t start)
 }
 
 uint64_t COurInByteStreamFile::start_next_frame (unsigned char **buffer, 
-						 uint32_t *buflen) 
+						 uint32_t *buflen,
+						 void **userdata) 
 {
   uint64_t ts;
   *buflen = m_plugin->c_raw_file_next_frame(m_plugin_data,

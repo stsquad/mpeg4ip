@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.13 $ 
- * $Date: 2002/05/23 21:41:56 $
+ * $Revision: 1.14 $ 
+ * $Date: 2002/05/29 00:21:51 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -1368,8 +1368,6 @@ int rtp_process_recv_data (struct rtp *session,
   packet->pd.rtp_pd_buflen = buflen;
 
   if (buflen > 0) {
-    //nori
-    printf("Nori session->encryption_enabled = %d\n", session->encryption_enabled);
     if (session->encryption_enabled)
       {
 	(session->decrypt_func)(session, buffer, buflen);

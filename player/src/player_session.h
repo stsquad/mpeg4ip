@@ -194,12 +194,6 @@ class CPlayerSession {
   int m_hardware_error;
   #define SESSION_DESC_COUNT 4
   const char *m_session_desc[SESSION_DESC_COUNT];
-  __inline uint64_t get_time_of_day (void) {
-    struct timeval t;
-    gettimeofday(&t, NULL);
-    return ((((uint64_t)t.tv_sec) * M_LLU) +
-	    (((uint64_t)t.tv_usec) / M_LLU));
-  }
   media_close_callback_f m_media_close_callback;
   int m_streaming_media_set_up;
   CIpPort *m_unused_ports;

@@ -24,52 +24,44 @@
  * syncronization
  */
 
-#ifndef __AUDIO_H__
-#define __AUDIO_H__ 1
+#ifndef __AUDIO_DUMMY_H__
+#define __AUDIO_DUMMY_H__ 1
 
 #include "systems.h"
 #include <SDL.h>
 #include "codec_plugin.h"
+#include "audio.h"
 
 #define DECODE_BUFFERS_MAX 32
 
 class CPlayerSession;
 // states
-class CAudioSync {
+class CDummyAudioSync : public CAudioSync {
  public:
-  CAudioSync(CPlayerSession *psptr) { 
-    m_psptr = psptr;
-    m_eof = 0;
+  CDummyAudioSync(CPlayerSession *psptr) : CAudioSync(psptr) { 
+    m_configed = 0;
   } ;
-  virtual ~CAudioSync(void) {};
-  // APIs from  codec
-  void clear_eof(void);
-  void set_eof(void);
-  int get_eof(void) { return m_eof; };
-  // APIs from sync task
-  virtual int initialize_audio(int have_video);
-  virtual int is_audio_ready(uint64_t &disptime);
-  virtual uint64_t check_audio_sync(uint64_t current_time, int &have_eof);
-  virtual void play_audio(void);
 
-  virtual void flush_sync_buffers(void);
-  virtual void flush_decode_buffers(void);
+  unsigned char *get_audio_buffer(void);
+  void filled_audio_buffer(uint64_t ts, int resync);
+  void set_config(int freq, int channels, int format, uint32_t max_buffer_size);
+  uint32_t load_audio_buffer(unsigned char *from, 
+			     uint32_t bytes, 
+			     uint64_t ts, 
+			     int resync);
 
-  // Initialization, other APIs
-  virtual void set_wait_sem(SDL_sem *p) {m_audio_waiting = p; } ;
-  virtual void set_volume(int volume);
  protected:
-  SDL_sem *m_audio_waiting;
-  CPlayerSession *m_psptr;
-  int m_eof;
+  int m_freq;
+  int m_chans;
+  int m_format;
+  uint32_t m_max_sample_size;
+  uint8_t *m_buffer;
+  int m_configed;
 };
 
 CAudioSync *create_audio_sync(CPlayerSession *, int volume);
 
 audio_vft_t *get_audio_vft(void);
-
-int do_we_have_audio(void);
-
 #endif
 
 

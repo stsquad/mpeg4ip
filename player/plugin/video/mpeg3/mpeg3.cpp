@@ -78,7 +78,8 @@ static int mpeg3_decode (codec_data_t *ptr,
 			int from_rtp,
 			int *sync_frame,
 			unsigned char *buffer, 
-			uint32_t buflen)
+			uint32_t buflen,
+			 void *ud)
 {
   int ret;
   int render = 1;

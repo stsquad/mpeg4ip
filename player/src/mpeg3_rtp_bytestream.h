@@ -32,6 +32,7 @@ class CMpeg3RtpByteStream : public CRtpByteStream
 {
  public:
   CMpeg3RtpByteStream(unsigned int rtp_pt,
+		      format_list_t *fmt, 
 		      int ondemand,
 		      uint64_t tickpersec,
 		      rtp_packet **head, 
@@ -43,7 +44,8 @@ class CMpeg3RtpByteStream : public CRtpByteStream
 		      uint32_t ntp_sec,
 		      uint32_t rtp_ts);
   int have_no_data(void);
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+			    void **ud);
   int skip_next_frame(uint64_t *ptr, int *hasSyncFrame,
 		      unsigned char **buffer, uint32_t *buflen);
 };

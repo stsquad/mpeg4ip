@@ -52,7 +52,7 @@ CIsmaAudioRtpByteStream::CIsmaAudioRtpByteStream (format_list_t *media_fmt,
 						  uint32_t ntp_frac,
 						  uint32_t ntp_sec,
 						  uint32_t rtp_ts) :
-  CRtpByteStreamBase("ismaaac", rtp_pt, ondemand, tps, head, tail, 
+  CRtpByteStreamBase("ismaaac", media_fmt, rtp_pt, ondemand, tps, head, tail, 
 		     rtpinfo_received, rtp_rtptime, rtcp_received,
 		     ntp_frac, ntp_sec, rtp_ts)
 {
@@ -472,7 +472,8 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
 }
 
 uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer, 
-						    uint32_t *buflen)
+						    uint32_t *buflen,
+						    void **userdata)
 {
   uint64_t timetick;
 

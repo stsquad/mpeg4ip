@@ -31,6 +31,7 @@ DEFINE_MESSAGE_MACRO(mp3_rtp_message, "mp3rtpbyst")
 #define mp3_rtp_message(loglevel, fmt...) message(loglevel, "mp3rtpbyst", fmt)
 #endif
 CMP3RtpByteStream::CMP3RtpByteStream (unsigned int rtp_pt,
+				      format_list_t *fmt,
 				      int ondemand,
 				      uint64_t tps,
 				      rtp_packet **head, 
@@ -42,17 +43,18 @@ CMP3RtpByteStream::CMP3RtpByteStream (unsigned int rtp_pt,
 				      uint32_t ntp_sec,
 				      uint32_t rtp_ts) :
   CRtpByteStream("mp3", 
+		 fmt,
 		 rtp_pt,
-		     ondemand,
-		     tps,
-		     head, 
-		     tail,
-		     rtpinfo_received,
-		     rtp_rtptime,
-		     rtcp_received,
-		     ntp_frac,
-		     ntp_sec,
-		     rtp_ts)
+		 ondemand,
+		 tps,
+		 head, 
+		 tail,
+		 rtpinfo_received,
+		 rtp_rtptime,
+		 rtcp_received,
+		 ntp_frac,
+		 ntp_sec,
+		 rtp_ts)
 {
   m_pak_on = NULL;
   set_skip_on_advance(4);
@@ -75,7 +77,8 @@ int CMP3RtpByteStream::check_rtp_frame_complete_for_payload_type (void)
 }
 
 uint64_t CMP3RtpByteStream::start_next_frame (unsigned char **buffer, 
-					      uint32_t *buflen)
+					      uint32_t *buflen,
+					      void **userdata)
 {
   uint64_t timetick;
   int32_t diff;

@@ -227,7 +227,8 @@ static int iso_decode (codec_data_t *ptr,
 		       int from_rtp, 
 		       int *sync_frame,
 		       unsigned char *buffer,
-		       uint32_t buflen)
+		       uint32_t buflen,
+		       void *userdata)
 {
   Int iEof = 1;
   iso_decode_t *iso = (iso_decode_t *)ptr;

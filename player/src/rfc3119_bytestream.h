@@ -55,6 +55,7 @@ class CRfc3119RtpByteStream : public CRtpByteStreamBase
 {
  public:
   CRfc3119RtpByteStream(unsigned int rtp_pt,
+			format_list_t *fmt,
 			int ondemand,
 			uint64_t tickpersec,
 			rtp_packet **head, 
@@ -68,7 +69,9 @@ class CRfc3119RtpByteStream : public CRtpByteStreamBase
   ~CRfc3119RtpByteStream();
   void reset(void);
   int have_no_data(void);
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  uint64_t start_next_frame(unsigned char **buffer, 
+			    uint32_t *buflen, 
+			    void **ud);
   void used_bytes_for_frame(uint32_t byte);
   void flush_rtp_packets(void);
  protected:

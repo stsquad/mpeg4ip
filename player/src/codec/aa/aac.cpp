@@ -153,7 +153,8 @@ static int aac_decode (codec_data_t *ptr,
 		       int from_rtp,
 		       int *sync_frame,
 		       unsigned char *buffer,
-		       uint32_t buflen)
+		       uint32_t buflen, 
+		       void *userdata)
 {
   aac_codec_t *aac = (aac_codec_t *)ptr;
   unsigned long bytes_consummed;

@@ -70,7 +70,8 @@ static int wav_decode (codec_data_t *ifptr,
 		       int from_rtp,
 		       int *sync_frame,
 		       unsigned char *buffer, 
-		       uint32_t buflen)
+		       uint32_t buflen,
+		       void *userdata)
 {
   unsigned char *buff;
   wav_codec_t *wav = (wav_codec_t *)ifptr;

@@ -148,6 +148,7 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
 }
 
 CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
+				       format_list_t *fmt,
 				       unsigned int rtp_pt,
 				       int ondemand,
 				       uint64_t tps,
@@ -161,6 +162,7 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
 				       uint32_t rtp_ts) :
   COurInByteStream(name)
 {
+  m_fmt = fmt;
   m_head = *head;
   *head = NULL;
   m_tail = *tail;
@@ -193,6 +195,7 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   m_wallclock_offset_set = 0;
   m_rtp_packet_mutex = SDL_CreateMutex();
   m_buffering = 0;
+  m_eof = 0;
 }
 
 CRtpByteStreamBase::~CRtpByteStreamBase (void)
@@ -207,6 +210,7 @@ CRtpByteStreamBase::~CRtpByteStreamBase (void)
 void CRtpByteStreamBase::init (void)
 {
   m_offset_in_pak = m_skip_on_advance_bytes;
+  m_eof = 0;
 }
 
 /*
@@ -223,8 +227,12 @@ CRtpByteStreamBase::calculate_wallclock_offset_from_rtcp (uint32_t ntp_frac,
   wclock = ntp_frac;
   wclock *= M_LLU;
   wclock /= (I_LLU << 32);
-  wclock += (ntp_sec - NTP_TO_UNIX_TIME) * 1000;
   uint64_t offset;
+  offset = ntp_sec;
+  offset -= NTP_TO_UNIX_TIME;
+  offset *= M_LLU;
+  wclock += offset;
+
   offset = rtp_ts;
   offset *= M_LLU;
   offset /= m_rtptime_tickpersec;
@@ -261,6 +269,7 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
 	rtp_message(LOG_CRIT, "SDL Lock mutex failure in rtp bytestream recv");
 	return;
       }
+      m_recvd_pak = 1;
     }
     break;
   case RX_SR:
@@ -376,14 +385,51 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
       }
     }
 
-  } else if (decode_thread_waiting != 0) {
-    /*
-   * We're good with buffering - but the decode thread might have
-   * caught up, and will be waiting.  Post a message to kickstart
-   * it
-   */
-    if (check_rtp_frame_complete_for_payload_type()) {
-      return (1);
+  } else {
+    if (decode_thread_waiting != 0) {
+      /*
+       * We're good with buffering - but the decode thread might have
+       * caught up, and will be waiting.  Post a message to kickstart
+       * it
+       */
+      if (check_rtp_frame_complete_for_payload_type()) {
+	return (1);
+      }
+    }
+    if (m_recvd_pak == 0) {
+      if (m_recvd_pak_timeout == 0) {
+	m_recvd_pak_timeout_time = get_time_of_day();
+      } else {
+	uint64_t timeout;
+	timeout = get_time_of_day() - m_recvd_pak_timeout_time;
+	if (m_stream_ondemand) {
+	  uint64_t range_end = (uint64_t)(get_max_playtime() * 1000.0);
+	  if (m_last_realtime + timeout >= range_end) {
+	    rtp_message(LOG_DEBUG, "%s Timedout at range end", m_name);
+	    m_eof = 1;
+	  }
+	} else {
+	  // broadcast - perhaps if we time out for a second or 2, we
+	  // should re-init rtp ?  We definately need to put some timing
+	  // checks here.
+	  session_desc_t *sptr = m_fmt->media->parent;
+	  if (sptr->time_desc != NULL &&
+	      sptr->time_desc->end_time != 0) {
+	    time_t this_time;
+	    this_time = time(NULL);
+	    if (this_time > sptr->time_desc->end_time && 
+		timeout >= M_LLU) {
+	      m_eof = 1;
+	    }
+	  }
+	  
+	}
+	
+      }
+      m_recvd_pak_timeout++;
+    } else {
+      m_recvd_pak = 0;
+      m_recvd_pak_timeout = 0;
     }
   }
   return (m_buffering);
@@ -427,11 +473,14 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t ts,
     timetick /= m_rtptime_tickpersec;
     timetick += m_wallclock_offset;
   }
+  // record time
+  m_last_realtime = timetick;
   return (timetick);
 }
 
 
 CRtpByteStream::CRtpByteStream(const char *name,
+			       format_list_t *fmt,
 			       unsigned int rtp_pt,
 			       int ondemand,
 			       uint64_t tickpersec,
@@ -443,7 +492,7 @@ CRtpByteStream::CRtpByteStream(const char *name,
 			       uint32_t ntp_frac,
 			       uint32_t ntp_sec,
 			       uint32_t rtp_ts) :
-  CRtpByteStreamBase(name, rtp_pt, ondemand, tickpersec, head, tail,
+  CRtpByteStreamBase(name, fmt, rtp_pt, ondemand, tickpersec, head, tail,
 		     rtpinfo_received, rtp_rtptime, rtcp_received,
 		     ntp_frac, ntp_sec, rtp_ts)
 {
@@ -459,7 +508,8 @@ CRtpByteStream::~CRtpByteStream (void)
 }
 
 uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer, 
-					   uint32_t *buflen)
+					   uint32_t *buflen,
+					   void **ud)
 {
   uint16_t seq = 0;
   uint32_t ts = 0;
@@ -552,7 +602,7 @@ int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
   if (m_head == NULL) return 0;
   init();
   m_buffer_len = m_bytes_used = 0;
-  ts = start_next_frame(buffer, buflen);
+  ts = start_next_frame(buffer, buflen, NULL);
   *pts = ts;
   return (1);
 }
@@ -585,6 +635,7 @@ void CRtpByteStream::flush_rtp_packets (void)
 }
 
 CAudioRtpByteStream::CAudioRtpByteStream (unsigned int rtp_pt,
+					  format_list_t *fmt,
 					  int ondemand,
 					  uint64_t tps,
 					  rtp_packet **head, 
@@ -596,6 +647,7 @@ CAudioRtpByteStream::CAudioRtpByteStream (unsigned int rtp_pt,
 					  uint32_t ntp_sec,
 					  uint32_t rtp_ts) :
   CRtpByteStream("audio", 
+		 fmt,
 		 rtp_pt,
 		 ondemand,
 		 tps,
@@ -628,7 +680,8 @@ int CAudioRtpByteStream::check_rtp_frame_complete_for_payload_type (void)
 }
 
 uint64_t CAudioRtpByteStream::start_next_frame (unsigned char **buffer, 
-						uint32_t *buflen)
+						uint32_t *buflen,
+						void **ud)
 {
   uint32_t ts;
   int32_t diff;

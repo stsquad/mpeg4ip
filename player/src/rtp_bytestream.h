@@ -30,11 +30,13 @@
 #include "rtp/rtp.h"
 #include <SDL.h>
 #include <SDL_thread.h>
+#include <sdp/sdp.h>
 
 class CRtpByteStreamBase : public COurInByteStream
 {
  public:
   CRtpByteStreamBase(const char *name,
+		     format_list_t *fmt,
 		     unsigned int rtp_pt,
 		     int ondemand,
 		     uint64_t tickpersec,
@@ -48,16 +50,24 @@ class CRtpByteStreamBase : public COurInByteStream
 		     uint32_t rtp_ts);
 
   ~CRtpByteStreamBase();
-  int eof (void) { return 0; };
+  int eof (void) { return m_eof; };
   virtual void reset(void) {
     player_debug_message("rtp bytestream reset");
     init();
     m_buffering = 0;
+
   };
   void set_skip_on_advance (uint32_t bytes_to_skip) {
     m_skip_on_advance_bytes = bytes_to_skip;
   };
-  double get_max_playtime (void) { return 0.0; };
+  double get_max_playtime (void) { 
+    if (m_fmt->media->media_range.have_range) {
+      return m_fmt->media->media_range.range_end;
+    } else if (m_fmt->media->parent->session_range.have_range) {
+      return m_fmt->media->parent->session_range.range_end;
+    }
+    return 0.0; 
+  };
 
   // various routines for RTP interface.
   void set_rtp_rtptime(uint32_t t) { m_rtp_rtptime = t;};
@@ -77,6 +87,7 @@ class CRtpByteStreamBase : public COurInByteStream
   void remove_packet_rtp_queue(rtp_packet *pak, int free);
  protected:
   void init(void);
+  // Make sure all classes call this to calculate real time.
   uint64_t rtp_ts_to_msec(uint32_t ts, uint64_t &wrap_offset);
   rtp_packet *m_head, *m_tail;
   int m_offset_in_pak;
@@ -101,12 +112,19 @@ class CRtpByteStreamBase : public COurInByteStream
   uint32_t m_rtptime_last;
   int m_doing_add;
   uint32_t m_add;
+  int m_recvd_pak;
+  int m_recvd_pak_timeout;
+  uint64_t m_recvd_pak_timeout_time;
+  uint64_t m_last_realtime;
+  format_list_t *m_fmt;
+  int m_eof;
 };
 
 class CRtpByteStream : public CRtpByteStreamBase
 {
  public:
   CRtpByteStream(const char *name,
+		 format_list_t *fmt,
 		 unsigned int rtp_pt,
 		 int ondemand,
 		 uint64_t tickpersec,
@@ -119,7 +137,8 @@ class CRtpByteStream : public CRtpByteStreamBase
 		 uint32_t ntp_sec,
 		 uint32_t rtp_ts);
   ~CRtpByteStream();
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+			    void **userdata);
   int can_skip_frame (void) { return 1; } ;
   int skip_next_frame(uint64_t *ts, int *havesync, unsigned char **buffer,
 		      uint32_t *buflen);
@@ -137,6 +156,7 @@ class CAudioRtpByteStream : public CRtpByteStream
 {
  public:
   CAudioRtpByteStream(unsigned int rtp_pt,
+		      format_list_t *fmt,
 		      int ondemand,
 		      uint64_t tickpersec,
 		      rtp_packet **head, 
@@ -150,7 +170,8 @@ class CAudioRtpByteStream : public CRtpByteStream
   ~CAudioRtpByteStream();
   int have_no_data(void);
   int check_rtp_frame_complete_for_payload_type(void);
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+			    void **userdata);
  private:
   rtp_packet *m_working_pak;
 };

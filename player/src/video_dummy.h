@@ -1,4 +1,4 @@
- /*
+/*
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of
@@ -19,36 +19,43 @@
  *              Bill May        wmay@cisco.com
  */
 /*
- * our_bytestream_file.h - provides a raw file access as a bytestream
+ * video.h - contains the interface class between the codec and the video
+ * display hardware.
  */
-#ifndef __OUR_BYTESTREAM_FILE_H__
-#define __OUR_BYTESTREAM_FILE_H__ 1
+#ifndef __VIDEO_DUMMY_H__
+#define __VIDEO_DUMMY_H__ 1
 
 #include "systems.h"
-#include "our_bytestream.h"
+//#include <type/typeapi.h>
+#include <SDL.h>
 #include "codec_plugin.h"
+#include "video.h"
 
-class COurInByteStreamFile : public COurInByteStream
-{
+#define MAX_VIDEO_BUFFERS 16
+
+class CPlayerSession;
+
+class CDummyVideoSync : public CVideoSync {
  public:
-  COurInByteStreamFile(codec_plugin_t *plugin,
-		       codec_data_t *plugin_data,
-		       double max_time);
-  ~COurInByteStreamFile();
-  int eof(void);
-  void reset(void);
-  int have_no_data(void) {
-    return m_plugin->c_raw_file_has_eof(m_plugin_data);
+  CDummyVideoSync(CPlayerSession *ptptr) : CVideoSync(ptptr) {
+    m_y = m_u = m_v = NULL;
   };
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
-			    void **userdata);
-  void used_bytes_for_frame(uint32_t bytes);
-  double get_max_playtime (void) { return m_max_play_time; };
-  void set_start_time(uint64_t start);
- private:
-  codec_plugin_t *m_plugin;
-  codec_data_t *m_plugin_data;
-  double m_max_play_time;
+  int get_video_buffer(unsigned char **y,
+		       unsigned char **u,
+		       unsigned char **v);
+  int filled_video_buffers(uint64_t time);
+  int set_video_frame(const Uint8 *y,      // from codec
+		      const Uint8 *u,
+		      const Uint8 *v,
+		      int m_pixelw_y,
+		      int m_pixelw_uv,
+		      uint64_t time);
+  void config (int w, int h); // from codec
+ protected:
+  int m_width;
+  int m_height;
+  uint8_t *m_y, *m_u, *m_v;
+  int m_config_set;
 };
 
 #endif

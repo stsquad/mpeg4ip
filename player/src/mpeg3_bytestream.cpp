@@ -88,7 +88,8 @@ void CMpeg3VideoByteStream::reset (void)
 }
 
 uint64_t CMpeg3VideoByteStream::start_next_frame (unsigned char **buffer, 
-					   uint32_t *buflen)
+						  uint32_t *buflen,
+						  void **ud)
 {
   double ts;
   uint64_t time;
@@ -145,7 +146,7 @@ int CMpeg3VideoByteStream::skip_next_frame (uint64_t *pts,
 				     uint32_t *buflen)
 {
   uint64_t ts;
-  ts = start_next_frame(buffer, buflen);
+  ts = start_next_frame(buffer, buflen, NULL);
   *pts = ts;
   *pSync = 0;
   //*pSync = m_frame_on_has_sync;
@@ -232,7 +233,8 @@ void CMpeg3AudioByteStream::reset (void)
 }
 
 uint64_t CMpeg3AudioByteStream::start_next_frame (unsigned char **buffer, 
-						  uint32_t *buflen)
+						  uint32_t *buflen,
+						  void **ud)
 {
   uint64_t ts;
   if (m_eof) {
@@ -279,7 +281,7 @@ int CMpeg3AudioByteStream::skip_next_frame (uint64_t *pts,
 				     uint32_t *buflen)
 {
   uint64_t ts;
-  ts = start_next_frame(buffer, buflen);
+  ts = start_next_frame(buffer, buflen, NULL);
   *pts = ts;
   *pSync = 0;
   //*pSync = m_frame_on_has_sync;

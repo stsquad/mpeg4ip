@@ -160,7 +160,8 @@ static void create_session_from_name (const char *name)
     char errmsg[512];
     errmsg[0] = '\0';
     // See if we can create media for this session
-    int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg));
+    int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg),
+				     NULL);
     if (ret >= 0) {
       // Yup - valid session.  Set volume, set up sync thread, and
       // start the session

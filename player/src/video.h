@@ -40,17 +40,7 @@ class CVideoSync {
   virtual ~CVideoSync(void);
 
   void set_wait_sem (SDL_sem *p) { m_decode_sem = p; };  // from set up
-  virtual int get_video_buffer(unsigned char **y,
-			       unsigned char **u,
-			       unsigned char **v);
-  virtual int filled_video_buffers(uint64_t time);
-  virtual int set_video_frame(const Uint8 *y,      // from codec
-			      const Uint8 *u,
-			      const Uint8 *v,
-			      int m_pixelw_y,
-			      int m_pixelw_uv,
-			      uint64_t time);
-  virtual void config (int w, int h); // from codec
+
   virtual void flush_decode_buffers(void);    
                               // from decoder task in response to stop
   void set_eof(void) { m_eof_found = 1; };

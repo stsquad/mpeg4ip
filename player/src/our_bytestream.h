@@ -48,7 +48,8 @@ class COurInByteStream
    * start_next_frame - return ts offset, pointer to buffer start, length
    * in buffer
    */
-  virtual uint64_t start_next_frame (unsigned char **buffer, uint32_t *buflen) = 0;
+  virtual uint64_t start_next_frame (unsigned char **buffer, uint32_t *buflen,
+				     void **userdata) = 0;
   /*
    * used_bytes_for_frame - called after we process a frame with the number
    * of bytes used during decoding

@@ -100,7 +100,8 @@ static int rawa_decode (codec_data_t *ptr,
 		       int from_rtp,
 		       int *sync_frame,
 		       unsigned char *buffer,
-		       uint32_t buflen)
+		       uint32_t buflen,
+			void *ud)
 {
   rawa_codec_t *rawa = (rawa_codec_t *)ptr;
   uint32_t ix;

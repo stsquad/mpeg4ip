@@ -19,10 +19,8 @@ libmp4player_la_LDFLAGS = -static
 
 if USE_MMX
 EXTRA_libmp4player_la_SOURCES = frame_doubler_mmx.asm
-libmp4player_la_LIBADD = frame_doubler_mmx.lo
 else
 EXTRA_libmp4player_la_SOURCES = frame_doubler.cpp
-libmp4player_la_LIBADD = frame_doubler.lo
 endif
 
 libmp4playerutils_la_LDFLAGS = -static
@@ -91,11 +89,7 @@ AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_D
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
 
-mp4player_LDADD = \
-	-lm \
-	libmp4player.la \
-	libmp4syncsdl.la \
-	libmp4syncbase.la \
+libmp4player_la_LIBADD = \
 	codec/aa/libaa.la \
 	codec/mp3/libmp3.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
@@ -112,7 +106,14 @@ mp4player_LDADD = \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/avi/libavi.la \
-	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
+
+mp4player_LDADD = \
+	-lm \
+	libmp4player.la \
+	libmp4syncbase.la \
+	libmp4syncsdl.la \
+	libmp4syncbase.la \
 	libmp4playerutils.la \
 	@SDL_LIBS@ \
 	$(top_builddir)/lib/SDL/src/main/libSDLmain.a
