@@ -209,7 +209,7 @@ winsock_versions_setsockopt(SOCKET s, int level, int optname, const char FAR * o
 }
 #endif
 
-#ifdef NEED_INET_ATON
+#if defined(NEED_INET_ATON) || !defined(HAVE_INET_ATON)
 #ifdef NEED_INET_ATON_STATIC
 static 
 #endif

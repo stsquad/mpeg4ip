@@ -105,7 +105,7 @@ AC_REPLACE_FUNCS(vsnprintf)
 # AC_CHECK_FUNC succeeds on our IRIX 6.2 boxes, but it is not 
 # declared anywhere, use egrep header to check (ugh lame, but works)
 
-AC_CHECK_FUNCS(inet_pton inet_ntop)
+AC_CHECK_FUNCS(inet_pton inet_ntop inet_aton)
 dnl AC_REPLACE_FUNCS(inet_pton inet_ntop)
 
 AC_SEARCH_LIBS(socket, socket)
