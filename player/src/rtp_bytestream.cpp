@@ -28,6 +28,7 @@
 //#define DEBUG_RTP_PAKS 1
 //#define DEBUG_RTP_BCAST 1
 //#define DEBUG_RTP_WCLOCK 1
+//#define DEBUG_RTP_TS 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 #else
@@ -40,14 +41,15 @@ DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
  */
 int add_rtp_packet_to_queue (rtp_packet *pak, 
 			     rtp_packet **head,
-			     rtp_packet **tail)
+			     rtp_packet **tail,
+			     const char *name)
 {
   rtp_packet *q;
   int inserted = TRUE;
   int16_t diff;
 #ifdef DEBUG_RTP_PAKS
-  rtp_message(LOG_DEBUG, "CBThread %u - m %u pt %u seq %u ts %u len %d", 
-	      SDL_ThreadID(),
+  rtp_message(LOG_DEBUG, "%s - m %u pt %u seq %u ts %u len %d", 
+	      name,
 	      pak->rtp_pak_m, pak->rtp_pak_pt, pak->rtp_pak_seq, 
 	      pak->rtp_pak_ts, pak->rtp_data_len);
 #endif
@@ -171,6 +173,7 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   *head = NULL;
   m_tail = *tail;
   *tail = NULL;
+
   if (rtp_ts_set) {
     set_rtp_base_ts(rtp_base_ts);
   } else {
@@ -358,7 +361,7 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
 	rtp_message(LOG_CRIT, "SDL Lock mutex failure in rtp bytestream recv");
 	return;
       }
-      add_rtp_packet_to_queue(rpak, &m_head, &m_tail);
+      add_rtp_packet_to_queue(rpak, &m_head, &m_tail, m_name);
       if (SDL_mutexV(m_rtp_packet_mutex) == -1) {
 	rtp_message(LOG_CRIT, "SDL Lock mutex failure in rtp bytestream recv");
 	return;
@@ -697,6 +700,9 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
       timetick /= m_timescale;
       timetick += m_play_start_time;
     }
+#ifdef DEBUG_RTP_TS
+    rtp_message(LOG_DEBUG,"%s time "LLU, m_name, timetick);
+#endif
   } else {
     // We've got a broadcast scenario here...
     if (m_have_first_pak_ts == false) {

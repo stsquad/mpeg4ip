@@ -210,5 +210,6 @@ class CAudioRtpByteStream : public CRtpByteStream
 };
 int add_rtp_packet_to_queue(rtp_packet *pak,
 			    rtp_packet **head,
-			    rtp_packet **tail);
+			    rtp_packet **tail,
+			    const char *name);
 #endif

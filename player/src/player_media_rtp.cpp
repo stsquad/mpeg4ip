@@ -281,7 +281,7 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
     } else {
       rpak->pd.rtp_pd_timestamp = get_time_of_day();
       rpak->pd.rtp_pd_have_timestamp = true;
-      add_rtp_packet_to_queue(rpak, &m_head, &m_tail);
+      add_rtp_packet_to_queue(rpak, &m_head, &m_tail, m_is_video ? "video" : "audio");
       m_rtp_queue_len++;
     }
     break;

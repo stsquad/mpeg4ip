@@ -37,7 +37,8 @@
 
 #include "h261/encoder-h261.h"
 
-CVideoEncoder* VideoEncoderCreate(const char* encoderName)
+CVideoEncoder* VideoEncoderCreate(const char* encoderName,
+				  CLiveConfig *pConfig)
 {
 	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
 #ifdef ADD_FFMPEG_ENCODER
@@ -58,8 +59,13 @@ CVideoEncoder* VideoEncoderCreate(const char* encoderName)
 		error_message("H.26L encoder not available in this build");
 #endif
 	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_H261)) {
-
-	  return new CH261PixelEncoder();
+	  
+	  CH261PixelEncoder *ret;
+	  ret = new CH261PixelEncoder();
+	  if (pConfig != NULL) {
+	    ret->setq(pConfig->GetIntegerValue(CONFIG_VIDEO_H261_QUALITY));
+	  }
+	  return ret;
 
 	} else {
 		error_message("unknown encoder specified");

@@ -94,6 +94,7 @@ for	dir \
 in	$pwd/lib/SDL 
 do	cd $dir
 	./configure $allargs || exit 1
+	chmod +x sdl-config
 done
 
 cd $pwd

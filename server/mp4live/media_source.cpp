@@ -213,7 +213,8 @@ bool CMediaSource::InitVideo(
 
   // intialize encoder
   m_videoEncoder = 
-    VideoEncoderCreate(m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
+    VideoEncoderCreate(m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER),
+		       m_pConfig);
   m_videoDstType = m_videoEncoder->GetFrameType();
 
   if (!m_videoEncoder) {
@@ -523,7 +524,7 @@ void CMediaSource::ProcessVideoYUVFrame(
 
     if (lag >= m_videoDstFrameDuration) {
       // adjust by integral number of target duration units
-#if 1
+#if 0
       debug_message("video Lag dst %llu src %llu frames %llu", 
 		    m_videoDstElapsedDuration,
 		    m_videoSrcElapsedDuration,

@@ -44,7 +44,7 @@ public:
 	virtual media_free_f GetMediaFreeFunction(void) { return NULL; };
 };
 
-CVideoEncoder* VideoEncoderCreate(const char* encoderName);
+CVideoEncoder* VideoEncoderCreate(const char* encoderName, CLiveConfig *pConfig = NULL);
 
 MediaType get_video_mp4_fileinfo(CLiveConfig *pConfig,
 				 bool *createIod,

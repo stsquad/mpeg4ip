@@ -419,9 +419,11 @@ bool CV4LVideoSource::ReleaseFrame(int8_t frameNumber)
   Timestamp calc = GetTimestamp();
 
   if (calc > m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded) {
+#ifdef DEBUG_TIMESTAMPS
     debug_message("video frame delay past end of buffer - time is %llu should be %llu",
 		  calc,
 		  m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded);
+#endif
     m_videoCaptureStartTimestamp = calc;
     m_videoFrameMapFrame[frameNumber] = 0;
     m_videoFrameMapTimestamp[frameNumber] = calc;
