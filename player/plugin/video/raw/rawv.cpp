@@ -99,6 +99,7 @@ static int rawv_decode (codec_data_t *ptr,
 
 
 static const char *rawv_compressors[] = {
+  "i420", 
   NULL,
 };
 

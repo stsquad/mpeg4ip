@@ -25,9 +25,7 @@
 #include "mp4live_gui.h"
 #include "video_v4l_source.h"
 #include <mp4.h>
-#ifdef NOTDEF
 #include <libmpeg3.h>
-#endif
 
 static GtkWidget *dialog;
 
@@ -415,14 +413,12 @@ static void CreateMpeg2TrackMenu()
 
 	u_int32_t newTrackNumber = 1;
 
-#ifdef NOTDEF
 	mpeg3_t* mpeg2File =
 		mpeg3_open(gtk_entry_get_text(GTK_ENTRY(source_entry)));
 
 	if (mpeg2File) {
 		newTrackNumber = mpeg3_total_vstreams(mpeg2File);
 	}
-#endif
 
 	u_int32_t* newTrackValues = 
 		(u_int32_t*)malloc(sizeof(u_int32_t) * newTrackNumber);
@@ -430,9 +426,6 @@ static void CreateMpeg2TrackMenu()
 	char** newTrackNames = 
 		(char**)malloc(sizeof(char*) * newTrackNumber);
 
-	newTrackValues[0] = 0;
-	newTrackNames[0] = stralloc("");
-#ifdef NOTDEF
 	if (!mpeg2File) {
 		newTrackValues[0] = 0;
 		newTrackNames[0] = stralloc("");
@@ -446,7 +439,6 @@ static void CreateMpeg2TrackMenu()
 		}
 		mpeg3_close(mpeg2File);
 	}
-#endif
 
 	// (re)create the menu
 	track_menu = CreateOptionMenu(

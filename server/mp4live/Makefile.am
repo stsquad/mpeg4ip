@@ -39,6 +39,8 @@ mp4live_SOURCES = \
 	video_util_rgb.cpp \
 	video_util_tv.h \
 	video_util_tv.cpp \
+	file_mpeg2_source.h \
+	file_mpeg2_source.cpp \
 	file_mp4_recorder.h \
 	file_mp4_recorder.cpp \
 	rtp_transmitter.cpp \
@@ -74,6 +76,7 @@ INCLUDES=\
 	-I$(top_srcdir)/server/video/ffmpeg \
 	-I$(top_srcdir)/common/video/xvid \
 	-I$(top_srcdir)/server/video/H26L \
+	-I$(top_srcdir)/common/video/libmpeg3 \
 	-I$(top_srcdir)/player/lib
 
 AM_CXXFLAGS = -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER \
@@ -92,6 +95,7 @@ LDADD = \
 	$(top_builddir)/server/video/ffmpeg/libffmpeg.la \
 	$(top_builddir)/common/video/xvid/libxvid.la \
 	$(top_builddir)/server/video/H26L/libh26lenc.la \
+	$(top_builddir)/common/video/libmpeg3/libmpeg3.la \
 	-lpthread \
 	$(top_builddir)/lib/SDL/src/libSDL.la \
 	@GTK_LIBS@ @GLIB_LIBS@

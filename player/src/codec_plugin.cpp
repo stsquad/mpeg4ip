@@ -23,6 +23,7 @@
  */
 
 #ifndef _WIN32
+#include <sys/types.h>
 #include <dlfcn.h>
 #include <dirent.h>
 #endif

@@ -3,7 +3,7 @@ AC_INIT()
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.2)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.3)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -247,6 +247,9 @@ AC_OUTPUT( \
 	common/video/xvid/encoder/intel_mmx/Makefile \
 	common/video/xvid/decoder/Makefile \
 	common/video/xvid/decoder/intel_mmx/Makefile \
+	common/video/libmpeg3/Makefile \
+	common/video/libmpeg3/audio/Makefile \
+	common/video/libmpeg3/video/Makefile \
 	server/Makefile \
 	server/audio/Makefile \
 	server/audio/faac/Makefile \

@@ -26,6 +26,7 @@ INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/server/video/divx \
 	-I$(top_srcdir)/server/video/ffmpeg \
+	-I$(top_srcdir)/common/video/libmpeg3 \
 	-I$(top_srcdir)/player/lib
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
