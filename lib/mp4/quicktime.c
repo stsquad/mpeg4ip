@@ -256,7 +256,7 @@ int quicktime_set_audio(quicktime_t *file,
 		quicktime_init_audio_map(&(file->atracks[0]), trak);
 		file->atracks[file->total_atracks].track = trak;
 		file->atracks[file->total_atracks].channels = channels;
-		file->atracks[file->total_atracks].current_position = 1;
+		file->atracks[file->total_atracks].current_position = 0;
 		file->atracks[file->total_atracks].current_chunk = 1;
 		file->total_atracks++;
 	}
@@ -1325,7 +1325,7 @@ int quicktime_read_frame_end(quicktime_t *file, int track)
 int quicktime_init_video_map(quicktime_video_map_t *vtrack, quicktime_trak_t *trak)
 {
 	vtrack->track = trak;
-	vtrack->current_position = 1;
+	vtrack->current_position = 0;
 	vtrack->current_chunk = 1;
 	vtrack->frame_cache = 0;
 	vtrack->frames_cached = 0;
@@ -1351,7 +1351,7 @@ int quicktime_init_audio_map(quicktime_audio_map_t *atrack, quicktime_trak_t *tr
 {
 	atrack->track = trak;
 	atrack->channels = trak->mdia.minf.stbl.stsd.table[0].channels;
-	atrack->current_position = 1;
+	atrack->current_position = 0;
 	atrack->current_chunk = 1;
 	return 0;
 }
