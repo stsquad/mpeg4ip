@@ -4,7 +4,11 @@ xx/xx/02 Version 0.9.7
     Removed lame from package - version 3.92 required if mp4live is
       desired.
     Added mp4trackdump
-    SDL 1.2.5
+    SDL 1.2.5 (also added ALSA buffer delay)
+    Added error message from player when play command fails
+    Add method of reading programs from IP/TV content manager, then
+      starting them with special iptv url
+    Xvid check for SSE2 instructions from Steve Schultz
 
 09/25/02 Version 0.9.6
     RTP plugins for player.

@@ -13,6 +13,15 @@ Please use the MPEG4IP SourceForge site to report problems, suggest
 enhancements, ask questions, etc. The URL is 
 http://www.sourceforge.net/projects/mpeg4ip
 
+Changes in Version 0.9.7
+========================
+
+Split out encoder specific information from the base architecture
+(rtp transmitter, file recorder).  This enables easy addition of 
+codecs.
+
+Reworked configuration variables.
+
 Changes in Version 0.9.5
 ========================
 

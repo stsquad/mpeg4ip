@@ -639,6 +639,18 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
     m_buffer_len = 0;
     while (finished == 0) {
       rpak = m_head;
+      if (rpak == NULL) { 
+	// incomplete frame - bail on this
+	player_error_message("%s - This should never happen - rtp bytestream"
+			     "is incomplete and active", m_name);
+	player_error_message("Please report to mpeg4ip");
+	player_error_message("first %d seq %u ts %x blen %d",
+			     first, seq, ts, m_buffer_len);
+	m_buffer_len = 0;
+	m_bytes_used = 0;
+	return 0;
+      }
+	
       remove_packet_rtp_queue(rpak, 0);
       
       if (first == 0) {

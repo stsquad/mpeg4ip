@@ -80,11 +80,11 @@ typedef void (*audio_filled_buffer_f)(void *ifptr,
  *    ts - timestamp of start of buffer
  *    resync - resync required
  */
-typedef uint32_t (*audio_load_buffer_f)(void *ifptr,
-					uint8_t *from,
-					uint32_t bytes,
-					uint64_t ts,
-					int resync);
+typedef void (*audio_load_buffer_f)(void *ifptr,
+				    uint8_t *from,
+				    uint32_t bytes,
+				    uint64_t ts,
+				    int resync);
 /*
  * audio_vft_t - virtual function table for audio events
  */
@@ -133,8 +133,8 @@ typedef int (*video_get_buffer_f)(void *ifptr,
  * Inputs - ifptr - handle
  *          display_time - timestamp to display
  */
-typedef int (*video_filled_buffer_f)(void *ifptr,
-				     uint64_t display_time);
+typedef void (*video_filled_buffer_f)(void *ifptr,
+				      uint64_t display_time);
 /*
  * video_have_frame_f - instead of using video_get_buffer and
  *   video_filled_buffer, can use this instead if buffer is stored locally
@@ -146,13 +146,13 @@ typedef int (*video_filled_buffer_f)(void *ifptr,
  *         m_pixelw_uv - width of each row in u and v
  *         time - render time
  */
-typedef int (*video_have_frame_f)(void *ifptr,
-				  const uint8_t *y,
-				  const uint8_t *u,
-				  const uint8_t *v,
-				  int m_pixelw_y,
-				  int m_pixelw_uv,
-				  uint64_t time);
+typedef void (*video_have_frame_f)(void *ifptr,
+				   const uint8_t *y,
+				   const uint8_t *u,
+				   const uint8_t *v,
+				   int m_pixelw_y,
+				   int m_pixelw_uv,
+				   uint64_t time);
 
 /*
  * video_vft_t - video virtual function table
@@ -370,7 +370,7 @@ typedef struct codec_plugin_t {
 #endif
 
 
-#define PLUGIN_VERSION "0.5"
+#define PLUGIN_VERSION "0.6"
 
 /*
  * Use this for an audio plugin without raw file support

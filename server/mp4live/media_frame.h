@@ -29,10 +29,25 @@
 
 typedef u_int16_t MediaType;
 
+#define UNDEFINEDFRAME 		0
+
+#define PCMAUDIOFRAME		1
+#define MP3AUDIOFRAME 		2
+#define AACAUDIOFRAME 		3
+#define VORBISAUDIOFRAME	5
+
+#define YUVVIDEOFRAME		11
+#define RGBVIDEOFRAME		12
+#define MPEG4VIDEOFRAME		14
+#define H26LVIDEOFRAME          13
+#define RECONSTRUCTYUVVIDEOFRAME 	15
+
+
+
 class CMediaFrame {
 public:
 	CMediaFrame(
-		MediaType type = 0, 
+		MediaType type = UNDEFINEDFRAME, 
 		void* pData = NULL, 
 		u_int32_t dataLength = 0, 
 		Timestamp timestamp = 0, 
@@ -52,6 +67,12 @@ public:
 		m_durationScale = durationScale;
 	}
 
+	~CMediaFrame() {
+	  if (m_refcnt != 0) abort();
+	  free(m_pData);
+	  SDL_DestroyMutex(m_pMutex);
+	}
+
 	void AddReference(void) {
 		if (SDL_LockMutex(m_pMutex) == -1) {
 			debug_message("AddReference LockMutex error");
@@ -62,50 +83,21 @@ public:
 		}
 	}
 
-	void RemoveReference(void) {
+	bool RemoveReference(void) {
+	  u_int16_t ref;
 		if (SDL_LockMutex(m_pMutex) == -1) {
 			debug_message("RemoveReference LockMutex error");
 		}
 		m_refcnt--;
+		ref = m_refcnt;
 		if (SDL_UnlockMutex(m_pMutex) == -1) {
 			debug_message("RemoveReference UnlockMutex error");
 		}
+		return ref == 0;
 	}
 
-	void operator delete(void* p) {
-		CMediaFrame* me = (CMediaFrame*)p;
-		if (SDL_LockMutex(me->m_pMutex) == -1) {
-			debug_message("CMediaFrame delete LockMutex error");
-		}
-		if (me->m_refcnt > 0) {
-			me->m_refcnt--;
-		}
-		if (me->m_refcnt > 0) {
-			if (SDL_UnlockMutex(me->m_pMutex) == -1) {
-				debug_message("CMediaFrame delete UnlockMutex error");
-			}
-			return;
-		}
-		free(me->m_pData);
-		SDL_DestroyMutex(me->m_pMutex);
-		free(me);
-	}
 
 	// predefined types of frames
-	static const MediaType UndefinedFrame 	=	0;
-
-	static const MediaType PcmAudioFrame	=	1;
-	static const MediaType Mp3AudioFrame 	=	2;
-	static const MediaType AacAudioFrame 	=	3;
-	static const MediaType Ac3AudioFrame	=	4;
-	static const MediaType VorbisAudioFrame	=	5;
-
-	static const MediaType YuvVideoFrame	=	11;
-	static const MediaType RgbVideoFrame	=	12;
-	static const MediaType Mpeg2VideoFrame	=	13;
-	static const MediaType Mpeg4VideoFrame	=	14;
-	static const MediaType ReconstructYuvVideoFrame 	=	15;
-
 	// get methods for properties
 
 	MediaType GetType(void) {

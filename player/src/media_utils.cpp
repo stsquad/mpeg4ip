@@ -59,6 +59,7 @@ enum {
   MPEG4IP_AUDIO_WAV,
   MPEG4IP_AUDIO_MP3_ROBUST,
   MPEG4IP_AUDIO_GENERIC,
+  MPEG4IP_AUDIO_NONE,
 };
 /*
  * these are lists of supported audio and video codecs
@@ -116,6 +117,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 				  uint32_t errlen,
 				  int have_audio_driver,
 				  int broadcast,
+				  int only_check_first,
 				  control_callback_vft_t *cc_vft)
 {
   int err;
@@ -195,7 +197,12 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 				      -1,
 				      NULL,
 				      0);
-	if (codec == NULL) fmt = fmt->next;
+	if (codec == NULL) {
+	  if (only_check_first != 0)
+	    fmt = NULL;
+	  else
+	    fmt = fmt->next;
+	}
       }
       if (codec == NULL) {
 	invalid_count++;
@@ -223,7 +230,12 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 					-1,
 					NULL,
 					0);
-	  if (codec == NULL) fmt = fmt->next;
+	  if (codec == NULL) {
+	    if (only_check_first != 0)
+	      fmt = NULL;
+	    else
+	      fmt = fmt->next;
+	  }
 	}
 	if (codec == NULL) {
 	  invalid_count++;
@@ -334,6 +346,7 @@ static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
 				errlen,
 				have_audio_driver, 
 				0,
+				1,
 				cc_vft));
 }
 /*
@@ -367,6 +380,7 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
 				errlen,
 				have_audio_driver, 
 				1,
+				0,
 				cc_vft));
 }
 
@@ -483,6 +497,118 @@ static int create_media_for_http (CPlayerSession *psptr,
 
   return (ret);
 }
+#ifndef _WIN32
+static session_desc_t *find_sdp_for_program (const char *cm, 
+					     const char *loc,
+					     char *errmsg, 
+					     uint32_t errlen,
+					     uint64_t prog)
+{
+  char buffer[1024];
+  http_client_t *http_client;
+  http_resp_t *http_resp;
+  sdp_decode_info_t *sdp_info;
+  session_desc_t *sdp, *ptr, *sdp_ret;
+  int translated;
+  int ret, ix;
+
+  snprintf(buffer, sizeof(buffer), "http://%s/%s", cm, loc);
+    http_resp = NULL;
+  http_client = http_init_connection(buffer);
+
+  if (http_client == NULL) {
+    snprintf(errmsg, errlen, "Cannot create http client with %s\n", 
+	     cm);
+    return NULL;
+  }
+  ret = http_get(http_client, NULL, &http_resp);
+  
+  sdp_ret = NULL;
+  if (ret > 0) {
+    sdp_info = set_sdp_decode_from_memory(http_resp->body);
+    if ((sdp_decode(sdp_info, &sdp, &translated) == 0) &&
+	(translated > 0)) {
+      for (ix = 0; ix < translated && sdp_ret == NULL; ix++) {
+	if (sdp->session_id == prog) {
+	  sdp_ret = sdp;
+	  sdp = sdp->next;
+	  sdp_ret->next = NULL;
+	} else {
+	  ptr = sdp->next;
+	  sdp->next = NULL;
+	  sdp_free_session_desc(sdp);
+	  sdp = ptr;
+	}
+      }
+      sdp_decode_info_free(sdp_info);
+      if (sdp != NULL) sdp_free_session_desc(sdp);
+      
+    } 
+  }
+  http_resp_free(http_resp);
+  http_free_connection(http_client);
+  return sdp_ret;
+}
+
+static int create_media_for_iptv (CPlayerSession *psptr,
+				  const char *name,
+				  char *errmsg,
+				  uint32_t errlen,
+				  int have_audio_driver,
+				  control_callback_vft_t *cc_vft)
+{
+  char *slash, *cm;
+  uint64_t prog;
+  session_desc_t *sdp;
+
+  name += strlen("iptv://");
+  slash = strchr(name, '/');
+  if (slash == NULL || slash == name) {
+    snprintf(errmsg, errlen, "Invalid iptv content manager");
+    return -1;
+  }
+  cm = (char *)malloc(slash - name + 1);
+  memcpy(cm, name, slash - name);
+  cm[slash - name] = '\0';
+  slash++;
+  if (sscanf(slash, "%llu", &prog) != 1) {
+    snprintf(errmsg, errlen, "Invalid iptv program");
+    return -1;
+  }
+  
+  // check on-demand first
+  sdp = find_sdp_for_program(cm, "iptvfiles/guide.sdf",
+			     errmsg, errlen, prog);
+  if (sdp == NULL) {
+    sdp = find_sdp_for_program(cm, "servlet/OdPublish", 
+			       errmsg, errlen, prog);
+  }
+  free(cm);
+
+  if (sdp == NULL) {
+    return -1;
+  }
+  int err;
+  if (sdp->control_string != NULL) {
+    // An on demand file... Just use the URL...
+    err = create_media_for_streaming_ondemand(psptr,
+					      sdp->control_string,
+					      errmsg,
+					      errlen,
+					      cc_vft);
+    sdp_free_session_desc(sdp);
+    return (err);
+  }
+  return (create_media_for_streaming_broadcast(psptr,
+					       name, 
+					       sdp,
+					       errmsg,
+					       errlen,
+					       have_audio_driver,
+					       cc_vft));
+}  
+#endif
+
 /*
  * parse_name_for_session - look at the name, determine what routine to 
  * call to set up the session.  This should be redone with plugins at
@@ -514,6 +640,17 @@ int parse_name_for_session (CPlayerSession *psptr,
   int have_audio_driver;
 
   have_audio_driver = do_we_have_audio();
+#ifndef _WIN32
+  if (strncmp(name, "iptv://", strlen("iptv://")) == 0) {
+    err = create_media_for_iptv(psptr, 
+				name, 
+				errmsg, 
+				errlen, 
+				have_audio_driver, 
+				cc_vft);
+    return err;
+  }
+#endif
 #ifndef _WIN32
   if (strncmp(name, "mpeg2t://", strlen("mpeg2t://")) == 0) {
     err = create_mpeg2t_session(psptr, name, NULL, errmsg, errlen, 
@@ -615,6 +752,10 @@ int check_name_for_network (const char *name,
   isRtpOverRtsp = 0;
   sdp_info = NULL;
   if (strncmp(name, "mpeg2t://", strlen("mpeg2t://")) == 0) {
+    return 1;
+  }
+  if (strncmp(name, "iptv://", strlen("iptv://")) == 0) {
+    // more later to handle the on demand/streaming case
     return 1;
   }
   if (strncmp(name, "rtsp://", strlen("rtsp://")) == 0) {
@@ -753,7 +894,10 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       if (rtp_byte_stream != NULL) {
 	return (rtp_byte_stream);
       }
-    } else {
+    } 
+#if 0
+    // got this far - fall through to generic bytestream
+    else {
       if (fmt->rtpmap != NULL) {
 	codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
 				     video_codecs);
@@ -762,6 +906,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 	return (NULL);
       }
     }
+#endif
   } else {
     if (rtp_pt == 14) {
       codec = MPEG4IP_AUDIO_MP3;
@@ -773,7 +918,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
 				   audio_codecs);
       if (codec < 0) {
-	return (NULL);
+	codec = MPEG4IP_AUDIO_NONE; // fall through everything to generic
       }
     }
     switch (codec) {

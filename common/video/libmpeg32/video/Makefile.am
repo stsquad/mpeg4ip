@@ -15,9 +15,24 @@ noinst_LTLIBRARIES = libmpeg3video.la
 libmpeg3video_la_LDFLAGS = -static
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib/SDL/include
+if HAVE_ALIGN_LOOPS
+   OUR_ALIGN_LOOPS=@ALIGN_LOOPS@=2
+else
+   OUR_ALIGN_LOOPS=
+endif 
+if HAVE_ALIGN_JUMPS
+   OUR_ALIGN_JUMPS=@ALIGN_JUMPS@=2
+else
+   OUR_ALIGN_JUMPS=
+endif 
+if HAVE_ALIGN_FUNCS
+   OUR_ALIGN_FUNCS=@ALIGN_FUNCS@=2
+else
+   OUR_ALIGN_FUNCS=
+endif 
 
 if USE_MMX
-AM_CFLAGS = -DHAVE_MMX -fomit-frame-pointer -malign-loops=2 -malign-jumps=2 -malign-functions=2
+AM_CFLAGS = -DHAVE_MMX -fomit-frame-pointer $(OUR_ALIGN_LOOPS) $(OUR_ALIGN_JUMPS) $(OUR_ALIGN_FUNCS)
 
 EXTRA_libmpeg3video_la_SOURCES = \
      mmxidct.S \
@@ -26,7 +41,7 @@ libmpeg3video_la_LIBADD = \
 	mmxidct.lo \
      reconmmx.lo 
 else
-AM_CFLAGS = -fomit-frame-pointer -malign-loops=2 -malign-jumps=2 -malign-functions=2
+AM_CFLAGS = -fomit-frame-pointer $(OUR_ALIGN_LOOPS) $(OUR_ALIGN_JUMPS) $(OUR_ALIGN_FUNCS)
 EXTRA_libmpeg3video_la_SOURCES = 
 libmpeg3video_la_LIBADD = 
 

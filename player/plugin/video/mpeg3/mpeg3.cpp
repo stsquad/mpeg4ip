@@ -207,12 +207,12 @@ static int mpeg3_decode (codec_data_t *ptr,
     mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu decoded", 
 			  ts);
 #endif
-    ret = mpeg3->m_vft->video_have_frame(mpeg3->m_ifptr,
-					 (const uint8_t *)y, 
-					 (const uint8_t *)u, 
-					 (const uint8_t *)v, 
-					 mpeg3->m_w, mpeg3->m_w / 2, 
-					 mpeg3->cached_ts);
+    mpeg3->m_vft->video_have_frame(mpeg3->m_ifptr,
+				   (const uint8_t *)y, 
+				   (const uint8_t *)u, 
+				   (const uint8_t *)v, 
+				   mpeg3->m_w, mpeg3->m_w / 2, 
+				   mpeg3->cached_ts);
     mpeg3->cached_ts = ts;
   } else {
 #ifdef DEBUG_MPEG3_FRAME

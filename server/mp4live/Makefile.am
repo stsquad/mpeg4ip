@@ -1,40 +1,62 @@
-SUBDIRS = gui
+if NO_GLIB_GTK
+SUBD = 
+GUILIBS = 
+else
+SUBD = gui
+GUILIBS = libmp4livepreview.la
+GUIADD = gui/libmp4livegui.la
+endif
+
+SUBDIRS = $(SUBD)
 
 bin_PROGRAMS = mp4live
 
-mp4live_SOURCES = \
-	mp4live.cpp \
-	mp4live.h \
+noinst_LTLIBRARIES = \
+	libmp4live.la \
+	$(GUILIBS)
+
+libmp4livepreview_la_LDFLAGS = -static
+libmp4livepreview_la_SOURCES = \
+	preview_flow.cpp \
+	preview_flow.h \
+	video_sdl_preview.h \
+	video_sdl_preview.cpp
+
+libmp4live_la_LDFLAGS = -static
+libmp4live_la_SOURCES = \
+	audio_encoder_base.cpp \
+	audio_encoder.h \
+	audio_faac.cpp \
+	audio_faac.h \
+	audio_lame.cpp \
+	audio_lame.h \
+	audio_oss_source.cpp \
+	audio_oss_source.h \
 	config_set.h \
-	mp4live_config.h \
-	mp4live_config.cpp \
+	file_mp4_recorder.cpp \
+	file_mp4_recorder.h \
+	file_raw_sink.cpp \
+	file_raw_sink.h \
 	media_codec.h \
-	media_flow.h \
 	media_flow.cpp \
+	media_flow.h \
 	media_frame.h \
 	media_node.h \
 	media_sink.h \
-	media_source.h \
 	media_source.cpp \
+	media_source.h \
 	media_time.h \
-	audio_encoder.h \
-	audio_encoder.cpp \
-	audio_faac.h \
-	audio_faac.cpp \
-	audio_lame.h \
-	audio_lame.cpp \
-	audio_oss_source.cpp \
-	audio_oss_source.h \
-	video_encoder.h \
-	video_encoder.cpp \
+	mp4live_common.cpp \
+	mp4live_common.h \
+	mp4live_config.cpp \
+	mp4live_config.h \
+	rtp_transmitter.cpp \
+	rtp_transmitter.h \
+	sdp_file.cpp \
+	util.cpp \
+	util.h \
 	video_h26l.h \
 	video_h26l.cpp \
-	video_xvid.h \
-	video_xvid.cpp \
-	video_v4l_source.h \
-	video_v4l_source.cpp \
-	video_sdl_preview.h \
-	video_sdl_preview.cpp \
 	video_util_mpeg4.cpp \
 	video_util_resize.h \
 	video_util_resize.cpp \
@@ -42,16 +64,17 @@ mp4live_SOURCES = \
 	video_util_rgb.cpp \
 	video_util_tv.h \
 	video_util_tv.cpp \
-	file_mp4_recorder.h \
-	file_mp4_recorder.cpp \
-	file_raw_sink.h \
-	file_raw_sink.cpp \
-	rtp_transmitter.cpp \
-	rtp_transmitter.h \
-	sdp_file.cpp \
-	util.h \
-	util.cpp
+	video_v4l_source.cpp \
+	video_v4l_source.h \
+	video_encoder.h \
+	video_encoder.cpp \
+	video_xvid.h \
+	video_xvid.cpp 
 
+mp4live_SOURCES = \
+	audio_encoder.cpp \
+	mp4live.cpp \
+	mp4live.h 
 # LATER
 # video_1394_source
 # video_dv
@@ -75,11 +98,12 @@ INCLUDES=\
 
 AM_CXXFLAGS = -DADD_XVID_ENCODER \
 	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER \
-	-D_REENTRANT -DNOCONTROLS -fexceptions -Wall
+	-D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
-LDADD = \
+mp4live_LDADD = \
 	@GTK_LIBS@ @GLIB_LIBS@ \
-	$(top_builddir)/server/mp4live/gui/libmp4livegui.la \
+	$(GUIADD) \
+	libmp4live.la \
 	$(top_builddir)/server/audio/faac/libfaac.la \
 	-lmp3lame \
 	$(top_builddir)/lib/xvid/libxvid.la \
@@ -93,6 +117,7 @@ LDADD = \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	-lpthread \
 	@SDL_LIBS@ \
-	$(top_builddir)/lib/SDL/src/main/libSDLmain.a 
+	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
+	$(GUILIBS)
 
 EXTRA_DIST = INTERNALS

@@ -307,6 +307,7 @@ format_list_t *sdp_find_format_in_line(format_list_t *head, char *lptr);
 void sdp_smpte_to_str(double value, uint16_t fps, char *buffer);
 
 media_desc_t *sdp_find_media_type(session_desc_t *sptr, const char *name);
+const char *find_unparsed_a_value(string_list_t *lptr, const char *value);
 #ifdef __cplusplus
 }
 #endif

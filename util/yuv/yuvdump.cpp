@@ -1,3 +1,23 @@
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ *
+ * The Original Code is MPEG4IP.
+ *
+ * The Initial Developer of the Original Code is Cisco Systems Inc.
+ * Portions created by Cisco Systems Inc. are
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
+ *
+ * Contributor(s):
+ *              Bill May                wmay@cisco.com
+ */
 #include "systems.h"
 #include <SDL.h>
 
@@ -5,15 +25,15 @@ int main (int argc, char **argv)
 {
   FILE *yuvfile;
   uint8_t *ybuf, *ubuf, *vbuf;
-  uint32_t height = 240, width = 320, ysize, uvsize, readbytes;
+  uint32_t height = 240, width = 320, ysize, uvsize, readbytes, rate = 30*100;
   char buf[32];
 
   printf("%s - %s version %s\n", *argv, PACKAGE, VERSION);
 
   argc--;
   argv++;
-  if (argc == 0) {
-    printf("Usage - yuvdump -h <height> -w <width> filename\n");
+  if (argc <= 1) {
+    printf("usage: yuvdump -h [height] -w [width] -r [frameRate/(perSecond/100)] fileName\n");
     return 0;
   }
 
@@ -33,6 +53,13 @@ int main (int argc, char **argv)
       argv++;
       argc--;
       break;
+    case 'r':
+      argv++;
+      argc--;
+      rate = atoi(*argv);
+      argv++;
+      argc--;
+      break;
     default:
       printf("Unknown option %s", *argv);
       exit(-1);
@@ -43,11 +70,12 @@ int main (int argc, char **argv)
     printf("Could not init SDL video: %s\n", SDL_GetError());
   }
 
-  if (*argv == NULL) 
-    return(0);
+  if (*argv == NULL) return(0);
+
   const SDL_VideoInfo *video_info;
   int video_bpp;
   video_info = SDL_GetVideoInfo();
+
   switch (video_info->vfmt->BitsPerPixel) {
   case 16:
   case 32:
@@ -91,6 +119,9 @@ int main (int argc, char **argv)
     }
     readbytes = fread(ybuf, ysize,  sizeof(uint8_t), yuvfile);
     if (readbytes != 1) {
+      if (feof(yuvfile)) {
+	continue;
+      }
       printf("frame %u - y buf read error\n", fcount);
       continue;
     }
@@ -111,10 +142,11 @@ int main (int argc, char **argv)
 
     SDL_DisplayYUVOverlay(m_image, &m_dstrect);
     SDL_UnlockYUVOverlay(m_image);
-    if (fcount == 0) SDL_Delay(1000);
+
+    SDL_Delay( 1000 * 100 / rate );
+
     fcount++;
-    //SDL_Delay(33);
-    //printf("%u\n", fcount);
+
   } while (qevent == 0 && !feof(yuvfile));
 
   SDL_Delay(2000);

@@ -168,6 +168,8 @@ If your CPU doesn't support MMX instructions you will want to disable
 this feature.  The configure script will also check for the minimum
 version of nasm supported; we require 0.98.19 or greater.
 
+To build with IPv6 support, use the --enable-ipv6 command option.
+
 Darwin Quicktime Streaming Server
 =================================
 
@@ -435,6 +437,7 @@ mpeg4ip - top level project directory
 			H26L - ITU H.26L TML 9.4 reference video encoder (EXPERIMENTAL)
 
     util - generally useful utilities
+	iptv - read Cisco IP/TV programs from a content manager
         yuv - simple tools for examining raw video
 
 
@@ -492,6 +495,24 @@ which seeks to standardize the protocols and formats used for streaming.
 We believe MPEG4IP is interoperable with that organization's 1.0 Technical 
 Specification. For more information see http://www.isma.tv
 
+Player URLS
+===========
+
+We have 2 special type URLs for the player to play content.  The first
+one is for mpeg2 transport streams.  To play an mpeg2 transport stream
+over UDP, use the following url:
+
+mpeg2t://<multicast address>:<multicast port>
+
+The 2nd special URL is to play a stream from a Cisco IP/TV server, either
+broadcast or on demand.  To do this, use the following url:
+
+iptv://<iptv content manager>/<program id>
+
+Where iptv content manager is the address of the IP/TV content manager, and
+program id is the session id that is created. You can find this out by
+looking at the program on the content manager, or get the session id by
+running the iptv_prog utility with the content manager as a parameter.
 
 Player Plugins
 ==============

@@ -44,6 +44,7 @@ inline void imgcpy(
 	}
 }
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -60,14 +61,22 @@ void debug_message(const char *fmt, ...)
 #endif
 	   ;
 
-void lib_message(int loglevel, const char* lib, const char *fmt, ...)
-#ifndef _WINDOWS
+void lib_message(int loglevel,
+		 const char *lib,
+		 const char *fmt,
+		 va_list ap);
+
+void message(int loglevel, const char *lib, const char *fmt, ...)
+#ifndef _WIN32
        __attribute__((format(__printf__, 3, 4)))
 #endif
 	   ;
+
+char *get_host_ip_address(void);
 
 #ifdef __cplusplus
 }
 #endif
 
+extern bool PrintDebugMessages;
 #endif

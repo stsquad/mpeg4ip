@@ -136,10 +136,14 @@ static int mp3_decode (codec_data_t *ptr,
     mp3->m_chans = mp3->m_mp3_info->isstereo() ? 2 : 1;
     mp3->m_freq = mp3->m_mp3_info->getfrequency();
     
+    MP4AV_Mp3Header hdr = MP4AV_Mp3HeaderFromBytes(buffer);
     mp3->m_samplesperframe = 
-      MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3HeaderFromBytes(buffer));
-    mp3_message(LOG_DEBUG, "libmp3", "chans %d freq %d samples %d", 
-		mp3->m_chans, mp3->m_freq, mp3->m_samplesperframe);
+      MP4AV_Mp3GetHdrSamplingWindow(hdr);
+    mp3_message(LOG_DEBUG, "libmp3", "chans %d layer %d freq %d samples %d bitrate %u", 
+		mp3->m_chans, 
+		MP4AV_Mp3GetHdrLayer(hdr),
+		mp3->m_freq, mp3->m_samplesperframe,
+		MP4AV_Mp3GetBitRate(hdr));
     mp3->m_vft->audio_configure(mp3->m_ifptr,
 				mp3->m_freq, 
 				mp3->m_chans, 

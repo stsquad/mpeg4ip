@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.6.1)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.6.2)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -87,6 +87,51 @@ MY_CHECK_TYPEDEF_FROM_INCLUDE([struct addrinfo foo;],
 	[#include <netdb.h>],
 	[HAVE_ST_ADDRINFO])
 
+dnl borrowed from ac-archive.sourceforge.net
+dnl @author  Guido Draheim <guidod@gmx.de>
+dnl heavilly modified
+AC_DEFUN(MY_CHECK_CC_OPT,
+[
+   AC_MSG_CHECKING([whether ${CC-cc} accepts $1])
+   echo 'void f(){}' > conftest.c
+   if test -z "`${CC-cc} -c $1 conftest.c 2>&1`"; then
+      $2=yes
+      AC_MSG_RESULT([yes])
+   else
+      $2=no
+      AC_MSG_RESULT([no])
+   fi
+   rm -f conftest*
+])
+
+AC_DEFUN(MY_CHECK_CC_OPT_F_OR_M,
+[
+  temp_val=-m$1
+  MY_CHECK_CC_OPT($temp_val,mpeg4ip_ok)
+  if test $mpeg4ip_ok = yes; then
+     AC_SUBST($2, $temp_val)
+     AM_CONDITIONAL(HAVE_$2, true)
+  else
+     temp_val=-f$1
+     MY_CHECK_CC_OPT($temp_val, mpeg4ip_ok)
+     if test $mpeg4ip_ok = yes; then
+        AC_SUBST($2, $temp_val)
+     AM_CONDITIONAL(HAVE_$2, true)
+     else
+        temp_val=
+        AC_SUBST($2, $temp_val)
+     AM_CONDITIONAL(HAVE_$2, false)
+     fi
+  fi
+])
+
+AM_CONDITIONAL(HAVE_ALIGN_LOOPS, false)
+MY_CHECK_CC_OPT_F_OR_M(align-loops, ALIGN_LOOPS)
+AM_CONDITIONAL(HAVE_ALIGN_FUNCS, false)
+MY_CHECK_CC_OPT_F_OR_M(align-functions, ALIGN_FUNCS)
+AM_CONDITIONAL(HAVE_ALIGN_JUMPS, false)
+MY_CHECK_CC_OPT_F_OR_M(align-jumps, ALIGN_JUMPS)
+
 dnl Allow server build to be disabled
 AC_ARG_ENABLE(server, 
 [  --enable-server        enable server build],
@@ -160,6 +205,10 @@ fi
 case $target in
 *powerpc*) 
 	AC_DEFINE(ARCH_PPC)
+        AM_CONDITIONAL(USE_PPC, true)
+	;;
+*)
+	AM_CONDITIONAL(USE_PPC, false)
 	;;
 esac
 
@@ -315,6 +364,7 @@ AC_OUTPUT( \
 	lib/xvid/dct/Makefile \
 	lib/xvid/dct/x86_asm/Makefile \
 	lib/xvid/bitstream/Makefile \
+	lib/xvid/bitstream/ppc_asm/Makefile \
 	lib/xvid/bitstream/x86_asm/Makefile \
 	lib/xvid/image/Makefile \
 	lib/xvid/image/x86_asm/Makefile \
@@ -383,5 +433,6 @@ AC_OUTPUT( \
 	player/src/win_gui/hlp/Makefile \
 	player/src/win_gui/res/Makefile \
 	util/Makefile \
+	util/iptv/Makefile \
 	util/yuv/Makefile \
 )

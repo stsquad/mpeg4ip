@@ -59,7 +59,7 @@ class CPlayerMedia {
 	     uint32_t errlen = 0, 
 	     int streaming = 0);
   /* API routine - play, pause */
-  int do_play(double start_time_offset = 0.0);
+  int do_play(double start_time_offset, char *errmsg, uint32_t errlen);
   int do_pause(void);
   int is_video(void) { return (m_is_video); };
   double get_max_playtime(void);

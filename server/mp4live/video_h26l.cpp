@@ -110,11 +110,17 @@ bool CH26LVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 }
 
 bool CH26LVideoEncoder::EncodeImage(
-	u_int8_t* pY, u_int8_t* pU, u_int8_t* pV, bool wantKeyFrame)
+	u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
+	u_int32_t yStride, u_int32_t uvStride, bool wantKeyFrame)
 {
 	m_vopBuffer = (u_int8_t*)malloc(m_pConfig->m_videoMaxVopSize);
 	if (m_vopBuffer == NULL) {
 		return false;
+	}
+
+	if (yStride != m_pConfig->m_videoHeight) {
+	  error_message("Y stride is not video height for h26l");
+	  return false;
 	}
 
 	H26L_Encode(pY, pU, pV, m_vopBuffer, (int*)&m_vopBufferLength);

@@ -23,6 +23,9 @@
 #define __VIDEO_ENCODER_H__
 
 #include "media_codec.h"
+#include "media_frame.h"
+#include <sdp.h>
+#include <mp4.h>
 
 class CVideoEncoder : public CMediaCodec {
 public:
@@ -42,5 +45,23 @@ public:
 
 CVideoEncoder* VideoEncoderCreate(const char* encoderName);
 
+MediaType get_video_mp4_fileinfo(CLiveConfig *pConfig,
+				 bool *createIod,
+				 bool *isma_compliant,
+				 uint8_t *videoProfile,
+				 uint8_t **videoConfig,
+				 uint32_t *videoConfigLen,
+				 uint8_t *mp4_video_type);
+
+media_desc_t *create_video_sdp(CLiveConfig *pConfig,
+			       bool *createIod,
+			       bool *isma_compliant,
+			       uint8_t *audioProfile,
+			       uint8_t **audioConfig,
+			       uint32_t *audioConfigLen);
+
+void create_mp4_video_hint_track(CLiveConfig *pConfig,
+				  MP4FileHandle mp4file,
+				  MP4TrackId trackId);
 #endif /* __VIDEO_ENCODER_H__ */
 

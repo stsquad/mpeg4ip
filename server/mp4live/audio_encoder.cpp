@@ -13,106 +13,80 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *	Bill May wmay@cisco.com	
  */
 
 #include "mp4live.h"
 #include "audio_encoder.h"
+#include "mp4av.h"
 
-#ifdef ADD_LAME_ENCODER
-#include "audio_lame.h"
-#endif
-
-#ifdef ADD_FAAC_ENCODER
-#include "audio_faac.h"
-#endif
-
+/*
+ * This looks like a fairly bogus set of routines; however, the
+ * code makes it really easy to add your own codecs here, include
+ * the mp4live library, write your own main, and go.
+ * Just add the codecs you want before the call to the base routines
+ */
 
 CAudioEncoder* AudioEncoderCreate(const char* encoderName)
 {
-	if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
-#ifdef ADD_FAAC_ENCODER
-		return new CFaacAudioEncoder();
-#else
-		error_message("faac encoder not available in this build");
-		return false;
-#endif
-	} else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
-#ifdef ADD_LAME_ENCODER
-		return new CLameAudioEncoder();
-#else
-		error_message("lame encoder not available in this build");
-#endif
-	} else {
-		error_message("unknown encoder specified");
-	}
-	return NULL;
+  // add codecs here
+  return AudioEncoderBaseCreate(encoderName);
 }
 
-bool CAudioEncoder::InterleaveStereoSamples(
-	u_int16_t* pLeftBuffer, 
-	u_int16_t* pRightBuffer, 
-	u_int32_t srcNumSamples,
-	u_int16_t** ppDstBuffer)
+MediaType get_audio_mp4_fileinfo (CLiveConfig *pConfig,
+				  bool *mpeg4,
+				  bool *isma_compliant,
+				  uint8_t *audioProfile,
+				  uint8_t **audioConfig,
+				  uint32_t *audioConfigLen,
+				  uint8_t *mp4_audio_type)
 {
-	if (*ppDstBuffer == NULL) {
-		*ppDstBuffer = 
-			(u_int16_t*)malloc(srcNumSamples * 2 * sizeof(u_int16_t));
-
-		if (*ppDstBuffer == NULL) {
-			return false;
-		}
-	}
-
-	for (u_int32_t i = 0; i < srcNumSamples; i++) {
-		(*ppDstBuffer)[(i << 1)] = pLeftBuffer[i]; 
-		(*ppDstBuffer)[(i << 1) + 1] = pRightBuffer[i];
-	}
-
-	return true;
+  return get_base_audio_mp4_fileinfo(pConfig, mpeg4, isma_compliant, 
+				     audioProfile, audioConfig, 
+				     audioConfigLen, mp4_audio_type);
 }
 
-bool CAudioEncoder::DeinterleaveStereoSamples(
-	u_int16_t* pSrcBuffer, 
-	u_int32_t srcNumSamples,
-	u_int16_t** ppLeftBuffer, 
-	u_int16_t** ppRightBuffer)
+media_desc_t *create_audio_sdp (CLiveConfig *pConfig,
+				bool *mpeg4,
+				bool *isma_compliant,
+				uint8_t *audioProfile,
+				uint8_t **audioConfig,
+				uint32_t *audioConfigLen)
 {
-	bool mallocedLeft = false;
+  return create_base_audio_sdp(pConfig, mpeg4, isma_compliant,
+			       audioProfile, audioConfig, audioConfigLen);
+}
+				
+void create_mp4_audio_hint_track (CLiveConfig *pConfig, 
+				  MP4FileHandle mp4file,
+				  MP4TrackId trackId)
+{
+  create_base_mp4_audio_hint_track(pConfig, mp4file, trackId);
+}
 
-	if (ppLeftBuffer && *ppLeftBuffer == NULL) {
-		*ppLeftBuffer = 
-			(u_int16_t*)malloc((srcNumSamples >> 1) * sizeof(u_int16_t));
-		if (*ppLeftBuffer == NULL) {
-			return false;
-		}
-		mallocedLeft = true;
-	}
-
-	if (ppRightBuffer && *ppRightBuffer == NULL) {
-		*ppRightBuffer = 
-			(u_int16_t*)malloc((srcNumSamples >> 1) * sizeof(u_int16_t));
-		if (*ppRightBuffer == NULL) {
-			if (mallocedLeft) {
-				free(*ppLeftBuffer);
-				*ppLeftBuffer = NULL;
-			}
-			return false;
-		}
-	}
-
-	for (u_int32_t i = 0; i < (srcNumSamples >> 1); i++) {
-		if (ppLeftBuffer) {
-			(*ppLeftBuffer)[i] = pSrcBuffer[(i << 1)];
-		}
-		if (ppRightBuffer) {
-			(*ppRightBuffer)[i] = pSrcBuffer[(i << 1) + 1];
-		}
-	}
-
-	return true;
+bool get_audio_rtp_info (CLiveConfig *pConfig,
+			 MediaType *audioFrameType,
+			 uint32_t *audioTimeScale,
+			 uint8_t *audioPayloadNumber,
+			 uint8_t *audioPayloadBytesPerPacket,
+			 uint8_t *audioPayloadBytesPerFrame,
+			 uint8_t *audioQueueMaxCount,
+			 audio_set_rtp_header_f *audio_set_header,
+			 audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
+			 void **ud)
+{
+  return get_base_audio_rtp_info(pConfig, 
+				 audioFrameType, 
+				 audioTimeScale,
+				 audioPayloadNumber, 
+				 audioPayloadBytesPerPacket,
+				 audioPayloadBytesPerFrame, 
+				 audioQueueMaxCount,
+				 audio_set_header, 
+				 audio_set_jumbo, 
+				 ud);
 }
 

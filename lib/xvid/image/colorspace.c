@@ -63,8 +63,10 @@ color_outputFuncPtr yv12_to_yuv;
 color_outputFuncPtr yv12_to_yuyv;
 color_outputFuncPtr yv12_to_uyvy;
 
+#ifndef MIN
 #define MIN(A,B)	((A)<(B)?(A):(B))
 #define MAX(A,B)	((A)>(B)?(A):(B))
+#endif
 
 /*	rgb -> yuv def's
 

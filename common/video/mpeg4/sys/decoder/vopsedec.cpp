@@ -96,10 +96,8 @@ CVideoObjectDecoder::~CVideoObjectDecoder ()
 	delete m_pvopcRightMB;
 }
 
-
 Int CVideoObjectDecoder::h263_decode (bool read_header)
 {
-
 	if (read_header != FALSE) 
 	{
 		while ( m_pbitstrmIn -> peekBits(NUMBITS_SHORT_HEADER_START_CODE) != SHORT_VIDEO_START_MARKER)
@@ -204,37 +202,49 @@ Int CVideoObjectDecoder::h263_decode (bool read_header)
 Void CVideoObjectDecoder::video_plane_with_short_header()
 {
   short_video_header = 1;
+
   m_pbitstrmIn -> getBits(22);  // read header
+
   /* UInt uiTemporalReference = wmay */ m_pbitstrmIn -> getBits (8);
 	m_pbitstrmIn -> getBits(5);
 	UInt uiSourceFormat = m_pbitstrmIn -> getBits (3);
 
 	if (uiSourceFormat==1) {
-		//fprintf(stderr,"Sub-QCIF, 128x96, 8 macroblocks/gob, 6 gobs in vop\n");
+#ifdef DEBUG_FW
+		fprintf(stderr,"Sub-QCIF, 128x96, 8 macroblocks/gob, 6 gobs in vop\n");
+#endif	/* DEBUG_FW */
 		uiNumGobsInVop=6;
 		uiNumMacroblocksInGob=8;
 		m_ivolWidth=128;
 		m_ivolHeight=96;
 	} else if (uiSourceFormat==2) {
-		//fprintf(stderr,"QCIF, 176x144, 11 macroblocks/gob, 9 gobs in vop\n");
+#ifdef	DEBUG_FW
+		fprintf(stderr,"QCIF, 176x144, 11 macroblocks/gob, 9 gobs in vop\n");
+#endif	/* DEBUG_FW */
 		uiNumGobsInVop=9;
 		uiNumMacroblocksInGob=11;
 		m_ivolWidth=176;
 		m_ivolHeight=144;
 	} else if (uiSourceFormat==3) {
-		//fprintf(stderr,"CIF, 352x288, 22 macroblocks/gob, 18 gobs in vop\n");
+#ifdef	DEBUG_FW
+		fprintf(stderr,"CIF, 352x288, 22 macroblocks/gob, 18 gobs in vop\n");
+#endif
 		uiNumGobsInVop=18;
 		uiNumMacroblocksInGob=22;
 		m_ivolWidth=352;
 		m_ivolHeight=288;
 	} else if (uiSourceFormat==4) {
-		//fprintf(stderr,"4CIF, 704x576, 88 macroblocks/gob, 18 gobs in vop\n");
+#ifdef	DEBUG_FW
+		fprintf(stderr,"4CIF, 704x576, 88 macroblocks/gob, 18 gobs in vop\n");
+#endif	/* DEBUG_FW */
 		uiNumGobsInVop=18;
 		uiNumMacroblocksInGob=88;
 		m_ivolWidth=704;
 		m_ivolHeight=576;
 	} else if (uiSourceFormat==5) {
-		//fprintf(stderr,"16CIF, 1408x1152, 352 macroblocks/gob, 18 gobs in vop\n");
+#ifdef	DEBUG_FW
+		fprintf(stderr,"16CIF, 1408x1152, 352 macroblocks/gob, 18 gobs in vop\n");
+#endif	/* DEBUG_FW */
 		uiNumGobsInVop=18;
 		uiNumMacroblocksInGob=352;
 		m_ivolWidth=1408;
@@ -244,14 +254,18 @@ Void CVideoObjectDecoder::video_plane_with_short_header()
 		exit (0);
 	}
 	UInt uiPictureCodingType = m_pbitstrmIn -> getBits(1);
-	if (uiPictureCodingType==0) 
+	if (uiPictureCodingType==0)
 		m_vopmd.vopPredType=IVOP;
 	else
 		m_vopmd.vopPredType=PVOP;
 
 	m_pbitstrmIn -> getBits(4);
 	UInt uiVopQuant = m_pbitstrmIn -> getBits(5);
-	//fprintf(stderr,"vop_quant (0..31)             %d\n",uiVopQuant);
+
+#ifdef	DEBUG_FW
+	fprintf(stderr,"PictureCodingType: %d, vop_quant (0..31) %d\n", uiPictureCodingType, uiVopQuant);
+#endif	/* DEBUG_FW */
+
 	m_vopmd.intStepI=uiVopQuant; 
 	m_vopmd.intStep=uiVopQuant; // idem
 	m_pbitstrmIn -> getBits(1);

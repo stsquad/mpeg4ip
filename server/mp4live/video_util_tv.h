@@ -1,6 +1,8 @@
 #ifndef __VIDEO_UTIL_TV__
 #define __VIDEO_UTIL_TV__
-
+/*
+ * This file taken from xawtv, version 3.76, common/frequencies.h
+ */
 /*
  * Worldwide channel/frequency list
  *
@@ -74,7 +76,7 @@
    (D) SECAM used in:
 	Afghanistan, Armenia, Azerbaijan, Belarus, Bulgaria,
 	Estonia, Georgia, Hungary, Zazakhstan, Lithuania, Mongolia, Moldova,
-	Poland, Russia, Slovak Republic, Ukraine, Vietnam
+	Russia, Slovak Republic, Ukraine, Vietnam
    (G) SECAM used in:
 	Greecem Iran, Iraq, Mali, Mauritus, Morocco, Saudi Arabia
    (K) SECAM used in:
@@ -91,25 +93,26 @@
 
 /* --------------------------------------------------------------------- */
 
-struct CHANNEL {
+struct CHANLIST {
     char *name;
     int   freq;
 };
 
-struct CHANNEL_LIST {
+struct CHANLISTS {
     char             *name;
-    struct CHANNEL  *list;
+    struct CHANLIST  *list;
     int               count;
 };
 
-#define CHAN_COUNT(x) (sizeof(x)/sizeof(struct CHANNEL))
+#define CHAN_COUNT(x) (sizeof(x)/sizeof(struct CHANLIST))
 
 /* --------------------------------------------------------------------- */
 
-extern struct CHANNEL_LIST   NtscChannelLists[];
-extern struct CHANNEL_LIST   PalChannelLists[];
-extern struct CHANNEL_LIST   SecamChannelLists[];
+extern struct CHANLISTS   chanlists[];
+extern struct STRTAB chanlist_names[];
 
-extern struct CHANNEL_LIST* ListOfChannelLists[];
+extern int                chantab;
+extern struct CHANLIST   *chanlist;
+extern int                chancount;
 
 #endif /* __VIDEO_UTIL_TV__ */

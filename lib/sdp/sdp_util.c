@@ -297,5 +297,19 @@ media_desc_t *sdp_find_media_type (session_desc_t *sptr, const char *name)
   return NULL;
 }
 
+const char *find_unparsed_a_value (string_list_t *lptr, 
+				   const char *value)
+{
+  size_t len = strlen(value);
+
+  while (lptr != NULL) {
+    if (strncasecmp(lptr->string_val, value, len) == 0) {
+      return lptr->string_val;
+    }
+    lptr = lptr->next;
+  }
+  return NULL;
+}
+
 /* end file sdp_util.c */
 

@@ -531,7 +531,9 @@ int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
 /*
  * CPlayerMedia::do_play - get play command
  */
-int CPlayerMedia::do_play (double start_time_offset)
+int CPlayerMedia::do_play (double start_time_offset,
+			   char *errmsg, 
+			   uint32_t errlen)
 {
 
   if (m_streaming != 0) {
@@ -549,6 +551,9 @@ int CPlayerMedia::do_play (double start_time_offset)
 	// only do range if we're not paused
 	range = get_range_from_media(m_media_info);
 	if (range == NULL) {
+	  if (errmsg != NULL) {
+	    snprintf(errmsg, errlen, "Can't find range in media play");
+	  }
 	  return (-1);
 	}
 	if (start_time_offset < range->range_start || 
@@ -560,6 +565,11 @@ int CPlayerMedia::do_play (double start_time_offset)
 
 	if (rtsp_send_play(m_rtsp_session, &cmd, &decode) != 0) {
 	  media_message(LOG_ERR, "RTSP play command failed");
+	  if (errmsg != NULL) {
+	    snprintf(errmsg, errlen, "RTSP Play Error %s-%s", 
+		     decode->retcode,
+		     decode->retresp != NULL ? decode->retresp : "");
+	  }
 	  free_decode_response(decode);
 	  return (-1);
 	}
@@ -571,6 +581,9 @@ int CPlayerMedia::do_play (double start_time_offset)
 	if (ret < 0) {
 	  media_message(LOG_ERR, "rtsp rtpinfo failed");
 	  free_decode_response(decode);
+	  if (errmsg != NULL) {
+	    snprintf(errmsg, errlen, "RTSP aggregate RtpInfo response failure");
+	  }
 	  return (-1);
 	}
 	free_decode_response(decode);
@@ -1409,7 +1422,8 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
 	  // are 8000
 	  // all video (above 25) are 90000
 	  tickpersec = 90000;
-	  if (payload_type >= 0 && payload_type <= 23) {
+	  // this will handle the >= 0 case as well.
+	  if (payload_type <= 23) {
 	    tickpersec = 8000;
 	    if (payload_type == 6) {
 	      tickpersec = 16000;

@@ -89,13 +89,6 @@ CConfig::~CConfig(void)
   m_values = NULL;
 }
 
-int CConfig::get_config_type (uint32_t index)
-{
-  if (index < 0 || index >= m_config_max)
-    return (-1);
-  return (m_types[index]);
-}
-
 int CConfig::get_config_value (int ix)
 {
   uint32_t index = ix;

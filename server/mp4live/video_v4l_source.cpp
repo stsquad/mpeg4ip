@@ -119,8 +119,8 @@ bool CV4LVideoSource::Init(void)
 
 	InitVideo(
 		(m_pConfig->m_videoNeedRgbToYuv ?
-			CMediaFrame::RgbVideoFrame :
-			CMediaFrame::YuvVideoFrame),
+			RGBVIDEOFRAME :
+			YUVVIDEOFRAME),
 		true);
 
 	SetVideoSrcSize(
@@ -211,9 +211,8 @@ bool CV4LVideoSource::InitDevice(void)
 		}
 
 		// tune in the desired frequency (channel)
-		struct CHANNEL_LIST* pChannelList = ListOfChannelLists[
-			m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL)];
-		struct CHANNEL* pChannel = pChannelList[
+		struct CHANLISTS* pChannelList = chanlists;
+		struct CHANLIST* pChannel = pChannelList[
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX)].list;
 		unsigned long videoFrequencyKHz = pChannel[
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX)].freq;
@@ -416,7 +415,7 @@ void CV4LVideoSource::ProcessVideo(void)
 		u_int8_t* pV;
 
 		// perform colorspace conversion if necessary
-		if (m_videoSrcType == CMediaFrame::RgbVideoFrame) {
+		if (m_videoSrcType == RGBVIDEOFRAME) {
 			mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
 
 			pY = mallocedYuvImage;

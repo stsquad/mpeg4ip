@@ -30,6 +30,8 @@ class CXvidVideoEncoder : public CVideoEncoder {
 public:
 	CXvidVideoEncoder();
 
+	MediaType GetFrameType(void) { return MPEG4VIDEOFRAME; };
+
 	bool Init(
 		CLiveConfig* pConfig, bool realTime = true);
 

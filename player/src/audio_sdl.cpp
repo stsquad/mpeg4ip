@@ -193,10 +193,10 @@ uint8_t *CSDLAudioSync::get_audio_buffer (void)
   return (m_sample_buffer[m_fill_index]);
 }
 
-uint32_t CSDLAudioSync::load_audio_buffer (uint8_t *from, 
-					   uint32_t bytes, 
-					   uint64_t ts, 
-					   int resync)
+void CSDLAudioSync::load_audio_buffer (uint8_t *from, 
+				       uint32_t bytes, 
+				       uint64_t ts, 
+				       int resync)
 {
   uint8_t *to;
   uint32_t copied;
@@ -236,7 +236,7 @@ uint32_t CSDLAudioSync::load_audio_buffer (uint8_t *from,
   while ( bytes > 0) {
     to = get_audio_buffer();
     if (to == NULL) {
-      return copied;
+      return;
     }
     int copy;
     uint32_t left;
@@ -258,7 +258,7 @@ uint32_t CSDLAudioSync::load_audio_buffer (uint8_t *from,
       m_load_audio_do_next_resync = 0;
     }
   }
-  return (copied);
+  return;
 }
 
     
@@ -901,16 +901,16 @@ static void c_filled_audio_buffer (void *ifptr,
 					     resync_req);
 }
 
-static uint32_t c_load_audio_buffer (void *ifptr, 
+static void c_load_audio_buffer (void *ifptr, 
 				     uint8_t *from, 
 				     uint32_t bytes, 
 				     uint64_t ts, 
 				     int resync)
 {
-  return ((CSDLAudioSync *)ifptr)->load_audio_buffer(from,
-						  bytes,
-						  ts, 
-						  resync);
+  ((CSDLAudioSync *)ifptr)->load_audio_buffer(from,
+					      bytes,
+					      ts, 
+					      resync);
 }
   
 static audio_vft_t audio_vft = {

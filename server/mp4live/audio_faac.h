@@ -24,6 +24,33 @@
 
 #include "audio_encoder.h"
 #include <faac.h>
+#include <sdp.h>
+
+media_desc_t *faac_create_audio_sdp(CLiveConfig *pConfig,
+				    bool *mpeg4,
+				    bool *isma_compliant,
+				    uint8_t *audioProfile,
+				    uint8_t **audioConfig,
+				    uint32_t *audioConfigLen);
+
+MediaType faac_mp4_fileinfo(CLiveConfig *pConfig,
+			    bool *mpeg4,
+			    bool *isma_compliant,
+			    uint8_t *audioProfile,
+			    uint8_t **audioConfig,
+			    uint32_t *audioConfigLen,
+			    uint8_t *mp4AudioType);
+
+bool faac_get_audio_rtp_info(CLiveConfig *pConfig,
+			     MediaType *audioFrameType,
+			     uint32_t *audioTimeScale,
+			     uint8_t *audioPayloadNumber,
+			     uint8_t *audioPayloadBytesPerPacket,
+			     uint8_t *audioPayloadBytesPerFrame,
+			     uint8_t *audioQueueMaxCount,
+			     audio_set_rtp_header_f *audio_set_header,
+			     audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
+			     void **ud);
 
 class CFaacAudioEncoder : public CAudioEncoder {
 public:
@@ -32,26 +59,21 @@ public:
 	bool Init(
 		CLiveConfig* pConfig, bool realTime = true);
 
-	MediaType GetFrameType() {
-		return CMediaFrame::AacAudioFrame;
+	MediaType GetFrameType(void) {
+		return AACAUDIOFRAME;
 	}
 
 	u_int32_t GetSamplesPerFrame();
 
 	bool EncodeSamples(
-		u_int16_t* pBuffer, 
-		u_int32_t bufferLength,
+		int16_t* pSamples, 
+		u_int32_t numSamplesPerChannel,
 		u_int8_t numChannels);
 
-	bool EncodeSamples(
-		u_int16_t* pLeftBuffer,
-		u_int16_t* pRightBuffer, 
-		u_int32_t bufferLength);
-
-	bool GetEncodedSamples(
+	bool GetEncodedFrame(
 		u_int8_t** ppBuffer, 
 		u_int32_t* pBufferLength,
-		u_int32_t* pNumSamples);
+		u_int32_t* pNumSamplesPerChannel);
 
 	void Stop();
 

@@ -27,6 +27,7 @@
 #include <mp4av.h>
 #include "mpeg4ip_byteswap.h"
 
+//#define DEBUG_AUDIO_RESAMPLER 1
 CMediaSource::CMediaSource() 
 {
 	m_pSinksMutex = SDL_CreateMutex();
@@ -124,49 +125,6 @@ void CMediaSource::RemoveAllSinks(void)
 	}
 }
 
-void CMediaSource::ProcessMedia()
-{
-	Duration start = GetElapsedDuration();
-
-	// process ~1 second before returning to check for commands
-	while (GetElapsedDuration() - start < (Duration)TimestampTicks) {
-
-		if (m_sourceVideo && m_sourceAudio) {
-			bool endOfVideo = IsEndOfVideo();
-			bool endOfAudio = IsEndOfAudio();
-
-			if (!endOfVideo && !endOfAudio) {
-				if (m_videoSrcElapsedDuration <= m_audioSrcElapsedDuration) {
-					ProcessVideo();
-				} else {
-					ProcessAudio();
-				}
-			} else if (endOfVideo && endOfAudio) {
-				DoStopSource();
-				break;
-			} else if (endOfVideo) {
-				ProcessAudio();
-			} else { // endOfAudio
-				ProcessVideo();
-			}
-
-		} else if (m_sourceVideo) {
-			if (IsEndOfVideo()) {
-				DoStopSource();
-				break;
-			}
-			ProcessVideo();
-
-		} else if (m_sourceAudio) {
-			if (IsEndOfAudio()) {
-				DoStopSource();
-				break;
-			}
-			ProcessAudio();
-		}
-	}
-}
-
 Duration CMediaSource::GetElapsedDuration()
 {
 	if (m_sourceVideo && m_sourceAudio) {
@@ -196,7 +154,7 @@ void CMediaSource::ForwardFrame(CMediaFrame* pFrame)
 	if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
 		debug_message("UnlockMutex error");
 	}
-
+	if (pFrame->RemoveReference()) delete pFrame;
 	return;
 }
 
@@ -224,7 +182,6 @@ bool CMediaSource::InitVideo(
 	m_videoSrcFrameNumber = 0;
 	m_audioSrcFrameNumber = 0;	// ensure audio is also at zero
 
-	m_videoDstType = CMediaFrame::Mpeg4VideoFrame;
 	m_videoDstFrameRate =
 		m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
 	m_videoDstFrameDuration = 
@@ -241,8 +198,10 @@ bool CMediaSource::InitVideo(
 	m_videoDstYUVSize = (m_videoDstYSize * 3) / 2;
 
 	// intialize encoder
-	m_videoEncoder = VideoEncoderCreate(
-		m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
+	m_videoEncoder = 
+	  VideoEncoderCreate(m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
+	m_videoDstType = m_videoEncoder->GetFrameType();
+	m_videoDstType = MPEG4VIDEOFRAME;
 
 	if (!m_videoEncoder) {
 		return false;
@@ -252,6 +211,11 @@ bool CMediaSource::InitVideo(
 		m_videoEncoder = NULL;
 		return false;
 	}
+
+#ifdef DEBUG_VCODEC_SHADOW
+	m_videoEncoderShadow = VideoEncoderCreate("ffmpeg");
+	m_videoEncoderShadow->Init(m_pConfig, realTime);
+#endif
 
 	m_videoWantKeyFrame = true;
 	m_videoSkippedFrames = 0;
@@ -467,6 +431,13 @@ void CMediaSource::ProcessVideoYUVFrame(
 			free(mallocedYuvImage);
 			return;
 		}
+#ifdef DEBUG_VCODEC_SHADOW
+		m_videoEncoderShadow->EncodeImage(
+			yImage, uImage, vImage, 
+			yStride, uvStride,
+			m_videoWantKeyFrame);
+		// Note: we don't retrieve encoded frame from shadow
+#endif
 
 		// clear want key frame flag
 		m_videoWantKeyFrame = false;
@@ -505,13 +476,12 @@ void CMediaSource::ProcessVideoYUVFrame(
 	if (m_pConfig->m_videoEncode) {
 		if (m_videoDstPrevFrame) {
 			CMediaFrame* pFrame = new CMediaFrame(
-				CMediaFrame::Mpeg4VideoFrame, 
+				MPEG4VIDEOFRAME, 
 				m_videoDstPrevFrame, 
 				m_videoDstPrevFrameLength,
 				dstPrevFrameTimestamp, 
 				dstPrevFrameDuration);
 			ForwardFrame(pFrame);
-			delete pFrame;
 		}
 
 		// hold onto this encoded vop until next one is ready
@@ -525,13 +495,12 @@ void CMediaSource::ProcessVideoYUVFrame(
 		if (m_videoDstPrevImage) {
 			CMediaFrame* pFrame =
 				new CMediaFrame(
-					CMediaFrame::YuvVideoFrame, 
+					YUVVIDEOFRAME, 
 					m_videoDstPrevImage, 
 					m_videoDstYUVSize,
 					dstPrevFrameTimestamp, 
 					dstPrevFrameDuration);
 			ForwardFrame(pFrame);
-			delete pFrame;
 		}
 
 		m_videoDstPrevImage = (u_int8_t*)Malloc(m_videoDstYUVSize);
@@ -559,13 +528,12 @@ void CMediaSource::ProcessVideoYUVFrame(
 
 		if (m_videoDstPrevReconstructImage) {
 			CMediaFrame* pFrame =
-				new CMediaFrame(CMediaFrame::ReconstructYuvVideoFrame, 
+				new CMediaFrame(RECONSTRUCTYUVVIDEOFRAME, 
 					m_videoDstPrevReconstructImage, 
 					m_videoDstYUVSize,
 					dstPrevFrameTimestamp, 
 					dstPrevFrameDuration);
 			ForwardFrame(pFrame);
-			delete pFrame;
 		}
 
 		m_videoDstPrevReconstructImage = 
@@ -651,17 +619,6 @@ bool CMediaSource::InitAudio(
 	m_videoSrcFrameNumber = 0;	// ensure video is also at zero
 
 	// audio destination info
-	char* dstEncoding =
-		m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
-
-	if (!strcasecmp(dstEncoding, AUDIO_ENCODING_MP3)) {
-		m_audioDstType = CMediaFrame::Mp3AudioFrame;
-	} else if (!strcasecmp(dstEncoding, AUDIO_ENCODING_AAC)) {
-		m_audioDstType = CMediaFrame::AacAudioFrame;
-	} else {
-		debug_message("unknown dest audio encoding");
-		return false;
-	}
 	m_audioDstChannels =
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
 	m_audioDstSampleRate =
@@ -692,7 +649,8 @@ bool CMediaSource::SetAudioSrc(
 	delete m_audioEncoder;
 
 	m_audioEncoder = AudioEncoderCreate(
-		m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODER));
+					    m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODER));
+	m_audioDstType = m_audioEncoder->GetFrameType();
 
 	if (m_audioEncoder == NULL) {
 		return false;
@@ -727,6 +685,10 @@ bool CMediaSource::SetAudioSrc(
 		m_audioResampleInputBuffer =
 			(int16_t*)calloc(16 * m_audioSrcChannels, 2);
 	}
+
+	// this calculation doesn't take into consideration the resampling
+	// size of the src.  4 times might not be enough - we need most likely
+	// 2 times the max of the src samples and the dest samples
 
 	m_audioPreEncodingBufferLength = 0;
 	m_audioPreEncodingBufferMaxLength =
@@ -827,8 +789,8 @@ pcmBufferCheck:
 		Timestamp encodingStartTimestamp = GetTimestamp();
 
 		bool rc = m_audioEncoder->EncodeSamples(
-			(u_int16_t*)pcmData, 
-			pcmDataLength,
+			(int16_t*)pcmData, 
+			m_audioDstSamplesPerFrame,
 			m_audioSrcChannels);
 
 		if (!rc) {
@@ -887,7 +849,7 @@ pcmBufferCheck:
 
 		CMediaFrame* pFrame =
 			new CMediaFrame(
-				CMediaFrame::PcmAudioFrame, 
+				PCMAUDIOFRAME, 
 				pcmForwardedData, 
 				pcmDataLength,
 				m_audioStartTimestamp 
@@ -895,7 +857,6 @@ pcmBufferCheck:
 				DstBytesToSamples(pcmDataLength),
 				m_audioDstSampleRate);
 		ForwardFrame(pFrame);
-		delete pFrame;
 
 		m_audioDstRawSampleNumber += DstBytesToSamples(pcmDataLength);
 		m_audioDstRawFrameNumber++;
@@ -907,7 +868,6 @@ pcmBufferCheck:
 
 	if (pcmBuffered) {
 		m_audioPreEncodingBufferLength -= pcmDataLength;
-
 		memcpy(
 			&m_audioPreEncodingBuffer[0],
 			&m_audioPreEncodingBuffer[pcmDataLength],
@@ -921,10 +881,16 @@ void CMediaSource::ResampleAudio(
 	u_int8_t* frameData,
 	u_int32_t frameDataLength)
 {
+	int32_t inIndex;
+	u_int32_t outIndex;
+	float x0, x1, x2, x3;
+	u_int8_t ch;
+	int16_t y0, y1, y2, y3;
+	int32_t outValue;
+	int32_t i;
+	float outTime0;
 	int16_t* pIn =
 		(int16_t*)frameData;
-	int16_t* pOut = 
-		(int16_t*)&m_audioPreEncodingBuffer[m_audioPreEncodingBufferLength];
 
 	// compute how many input samples are available
 	u_int32_t numIn =
@@ -935,23 +901,38 @@ void CMediaSource::ResampleAudio(
 	u_int32_t numOut =
 		(numIn * m_audioDstSampleRate) / m_audioSrcSampleRate;
 
-	float inTime0 = 
-		(float)(m_audioResampleInputNumber * m_audioSrcSampleRate)
-		/ (float)m_audioDstSampleRate;
+	uint32_t numOutMax = SrcSamplesToBytes(numOut) + m_audioPreEncodingBufferLength;
+	if (numOutMax >= m_audioPreEncodingBufferMaxLength) {
+	  m_audioPreEncodingBufferMaxLength = numOutMax;
+	  m_audioPreEncodingBuffer = (u_int8_t*)realloc(
+							m_audioPreEncodingBuffer,
+							m_audioPreEncodingBufferMaxLength);
+	}
 
-	int32_t inIndex;
-	u_int32_t outIndex;
+	int16_t* pOut = 
+		(int16_t*)&m_audioPreEncodingBuffer[m_audioPreEncodingBufferLength];
+	float inTime0 = 
+		(float)(m_audioResampleInputNumber * m_audioDstSampleRate)
+		/ (float)m_audioSrcSampleRate;
+
+#ifdef DEBUG_AUDIO_RESAMPLER
+	printf("resample numIn %u numOut %u inTime0 %f buffer at %d\n",
+	       numIn, numOut, inTime0, m_audioPreEncodingBufferLength);
+#endif
+
 
 	// for all output samples
 	for (outIndex = 0; true; outIndex++) {
 
-		float outTime0 = 
+		outTime0 = 
 			(outIndex * m_audioSrcSampleRate) / (float)m_audioDstSampleRate;
 
 		inIndex = (int32_t)(outTime0 - inTime0 + 0.5);
 
-		// DEBUG printf("resample out %d %f in %d %f\n",
-		// DEBUG outIndex, outTime0, inIndex, inTime0);
+#ifdef DEBUG_AUDIO_RESAMPLER
+		printf("resample out %d %f in %d\n",
+		       outIndex, outTime0, inIndex);
+#endif
 
 		// the unusual location of the loop exit condition
 		// is because we need the initial inIndex for the next call
@@ -960,13 +941,12 @@ void CMediaSource::ResampleAudio(
 			break;
 		}
 
-		float x1 = outTime0 - (inTime0 + inIndex);
-		float x0 = x1 + 1;
-		float x2 = x1 - 1;
-		float x3 = x1 - 2;
+		x1 = outTime0 - (inTime0 + inIndex);
+		x0 = x1 + 1;
+		x2 = x1 - 1;
+		x3 = x1 - 2;
 
-		for (u_int8_t ch = 0; ch < m_audioSrcChannels; ch++) {
-			int16_t y0, y1, y2, y3;
+		for (ch = 0; ch < m_audioSrcChannels; ch++) {
 
 			if (inIndex < 0) {
 				y1 = m_audioResampleInputBuffer
@@ -999,7 +979,7 @@ void CMediaSource::ResampleAudio(
 					y3 = pIn[(inIndex + 2) * m_audioSrcChannels + ch];
 				}
 
-				int32_t outValue = (int32_t)(
+				outValue = (int32_t)(
 					- (y0 * x1 * x2 * x3 / 6) 
 					+ (y1 * x0 * x2 * x3 / 2) 
 					- (y2 * x0 * x1 * x3 / 2) 
@@ -1024,7 +1004,13 @@ void CMediaSource::ResampleAudio(
 	// since resampling inputs can span input frame boundaries
 	// we may need to save up to 3 samples for the next call
 	m_audioResampleInputNumber = 0;
-	for (int32_t i = SrcBytesToSamples(frameDataLength) - 1; 
+
+#ifdef DEBUG_AUDIO_RESAMPLER
+	printf("resample save from %d to %d\n",
+	       SrcBytesToSamples(frameDataLength) - 1, inIndex);
+#endif
+
+	for (i = SrcBytesToSamples(frameDataLength) - 1; 
 	  i >= inIndex; i--) {
 
 		// DEBUG printf("resample save [%d] <- [%d]\n",
@@ -1056,7 +1042,7 @@ void CMediaSource::ForwardEncodedAudioFrames(
 	(*pNumSamples) = 0;
 	(*pNumFrames) = 0;
 
-	while (m_audioEncoder->GetEncodedSamples(
+	while (m_audioEncoder->GetEncodedFrame(
 	  &pFrame, &frameLength, &frameNumSamples)) {
 
 		// sanity check
@@ -1078,7 +1064,6 @@ void CMediaSource::ForwardEncodedAudioFrames(
 				frameNumSamples,
 				m_audioDstSampleRate);
 		ForwardFrame(pMediaFrame);
-		delete pMediaFrame;
 	}
 }
 

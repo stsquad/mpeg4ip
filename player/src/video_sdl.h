@@ -40,13 +40,13 @@ class CSDLVideoSync : public CVideoSync {
   int get_video_buffer(uint8_t **y,
 		       uint8_t **u,
 		       uint8_t **v);
-  int filled_video_buffers(uint64_t time);
-  int set_video_frame(const uint8_t *y,      // from codec
-		      const uint8_t *u,
-		      const uint8_t *v,
-		      int m_pixelw_y,
-		      int m_pixelw_uv,
-		      uint64_t time);
+  void filled_video_buffers(uint64_t time);
+  void set_video_frame(const uint8_t *y,      // from codec
+		       const uint8_t *u,
+		       const uint8_t *v,
+		       int m_pixelw_y,
+		       int m_pixelw_uv,
+		       uint64_t time);
   void config (int w, int h); // from codec
   void set_wait_sem (SDL_sem *p) { m_decode_sem = p; };  // from set up
   void flush_decode_buffers(void);    // from decoder task in response to stop

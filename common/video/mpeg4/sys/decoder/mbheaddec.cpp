@@ -305,7 +305,7 @@ Void CVideoObjectDecoder::decodeMBTextureHeadOfPVOP (CMBMode* pmbmd, Int& iCurre
 				assert (FALSE);
 			}
 		}
-		assert (iCBPY >= 0 && iCBPY <= 15);			
+		assert (iCBPY >= 0 && iCBPY <= 15);
 	}
 	else	{									//skipped
 		pmbmd->m_dctMd = INTER;

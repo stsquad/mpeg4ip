@@ -106,7 +106,7 @@ static __inline int64_t read_counter() {
 
 
 // needed for bitstream.h
-#ifdef ARCH_PPC
+#if defined(ARCH_PPC) || defined(ARCH_PPC_ALTIVEC)
 	#define BSWAP(a) __asm__ __volatile__ ( "lwbrx %0,0,%1; eieio" : "=r" (a) : \
 		"r" (&(a)), "m" (a));
 	#define EMMS()

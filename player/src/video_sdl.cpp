@@ -470,11 +470,11 @@ int CSDLVideoSync::get_video_buffer(uint8_t **y,
   return (1);
 }
 
-int CSDLVideoSync::filled_video_buffers (uint64_t time)
+void CSDLVideoSync::filled_video_buffers (uint64_t time)
 {
   int ix;
   if (m_dont_fill == 1)
-    return 0;
+    return;
   m_play_this_at[m_fill_index] = time;
   m_buffer_filled[m_fill_index] = 1;
   ix = m_fill_index;
@@ -489,7 +489,6 @@ int CSDLVideoSync::filled_video_buffers (uint64_t time)
 #ifdef VIDEO_SYNC_FILL
   video_message(LOG_DEBUG, "Filled %llu %d", time, ix);
 #endif
-  return (1);
 }
 
 /*
@@ -505,12 +504,12 @@ int CSDLVideoSync::filled_video_buffers (uint64_t time)
  *          current_time - current time we're displaying - this allows the
  *            codec to intelligently drop frames if it's falling behind.
  */
-int CSDLVideoSync::set_video_frame(const uint8_t *y, 
-				const uint8_t*u, 
-				const uint8_t *v,
-				int pixelw_y, 
-				int pixelw_uv, 
-				uint64_t time)
+void CSDLVideoSync::set_video_frame(const uint8_t *y, 
+				    const uint8_t*u, 
+				    const uint8_t *v,
+				    int pixelw_y, 
+				    int pixelw_uv, 
+				    uint64_t time)
 {
   uint8_t *dst;
   const uint8_t *src;
@@ -520,7 +519,7 @@ int CSDLVideoSync::set_video_frame(const uint8_t *y,
 #ifdef VIDEO_SYNC_FILL
     video_message(LOG_DEBUG, "Don't fill in video sync");
 #endif
-    return (m_paused);
+    return;
   }
 
   /*
@@ -533,7 +532,7 @@ int CSDLVideoSync::set_video_frame(const uint8_t *y,
 #ifdef VIDEO_SYNC_FILL
       video_message(LOG_DEBUG, "Wait but filled %d", m_fill_index);
 #endif
-      return m_paused;
+      return;
     }
   }  
 
@@ -582,7 +581,7 @@ int CSDLVideoSync::set_video_frame(const uint8_t *y,
 #ifdef VIDEO_SYNC_FILL
   video_message(LOG_DEBUG, "filled %llu %d", time, ix);
 #endif
-  return (m_paused);
+  return;
 }
 
 // called from sync thread.  Don't call on play, or m_dont_fill race
@@ -704,12 +703,12 @@ static int c_video_get_buffer (void *ifptr,
   return (((CSDLVideoSync *)ifptr)->get_video_buffer(y, u, v));
 }
 
-static int c_video_filled_buffer(void *ifptr, uint64_t time)
+static void c_video_filled_buffer(void *ifptr, uint64_t time)
 {
-  return (((CSDLVideoSync *)ifptr)->filled_video_buffers(time));
+  ((CSDLVideoSync *)ifptr)->filled_video_buffers(time);
 }
 
-static int c_video_have_frame (void *ifptr,
+static void c_video_have_frame (void *ifptr,
 			       const uint8_t *y,
 			       const uint8_t *u,
 			       const uint8_t *v,
@@ -719,12 +718,12 @@ static int c_video_have_frame (void *ifptr,
 {
   CSDLVideoSync *foo = (CSDLVideoSync *)ifptr;
 
-  return (foo->set_video_frame(y, 
-			       u, 
-			       v, 
-			       m_pixelw_y,
-			       m_pixelw_uv,
-			       time));
+  foo->set_video_frame(y, 
+		       u, 
+		       v, 
+		       m_pixelw_y,
+		       m_pixelw_uv,
+		       time);
 }
 
 static video_vft_t video_vft = 

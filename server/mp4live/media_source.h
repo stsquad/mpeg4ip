@@ -28,6 +28,8 @@
 
 #include "video_util_resize.h"
 
+// DEBUG #define DEBUG_VCODEC_SHADOW
+
 // forward declarations
 class CAudioEncoder;
 class CVideoEncoder;
@@ -94,11 +96,6 @@ public:
 
 protected:
 	// Video & Audio support
-	virtual void ProcessMedia();
-	virtual void ProcessVideo() {
-	};
-	virtual void ProcessAudio() {
-	};
 	virtual bool IsEndOfVideo() { 
 		return true;
 	}
@@ -263,6 +260,9 @@ protected:
 
 	// video encoding info
 	CVideoEncoder*	m_videoEncoder;
+#ifdef DEBUG_VCODEC_SHADOW
+	CVideoEncoder*	m_videoEncoderShadow;
+#endif
 	bool			m_videoWantKeyFrame;
 
 	// video timing info

@@ -3,7 +3,9 @@
 
 #include <stdlib.h> /* free, malloc */
 
+#ifndef MAX
 #define MAX(a,b)      (((a) > (b)) ? (a) : (b))
+#endif
 #define RDIFF(a,b)    ((int)(a+0.5)-(int)(b+0.5))
 
 int normalize_quantizer_field(float *in, int *out, int num, int min_quant, int max_quant)

@@ -74,7 +74,8 @@ class CPlayerSession {
    * API routine - play at time.  If start_from_begin is FALSE, start_time
    * and we're paused, it will continue from where it left off.
    */
-  int play_all_media(int start_from_begin = FALSE, double start_time = 0.0);
+  int play_all_media(int start_from_begin = FALSE, double start_time = 0.0,
+		     char *errmsg = NULL, uint32_t errlen = 0);
   /*
    * API routine - pause
    */

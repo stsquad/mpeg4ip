@@ -11,13 +11,11 @@ SUFFIXES = .asm
 
 ###########################################################################
 
-if USE_MMX
-noinst_LTLIBRARIES = libxvidbitstreamx86.la
-libxvidbitstreamx86_la_LDFLAGS = -static
+if USE_PPC
+noinst_LTLIBRARIES = libxvidbitstreamppc.la
+libxvidbitstreamppc_la_LDFLAGS = -static
 
-libxvidbitstreamx86_la_SOURCES = \
-	cbp_mmx.asm
+libxvidbitstreamppc_la_SOURCES = \
+	cbp_ppc.s
 
-am_libxvidbitstreamx86_la_OBJECTS = \
-	cbp_mmx.lo
 endif

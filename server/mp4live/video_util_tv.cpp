@@ -1,10 +1,20 @@
-
+#include "systems.h"
 #include "video_util_tv.h"
+
+/* The below is taken from xawtv, version 3.76, common/frequencies.c */
+#if 0
+#include <stdlib.h>
+#include <sys/time.h>
+#include <pthread.h>
+
+#include "frequencies.h"
+#include "grab-ng.h"
+#endif
 
 /* --------------------------------------------------------------------- */
 
 /* US broadcast */
-static struct CHANNEL ntsc_bcast[] = {
+static struct CHANLIST ntsc_bcast[] = {
     { "2",	 55250 },
     { "3",	 61250 },
     { "4",	 67250 },
@@ -91,13 +101,13 @@ static struct CHANNEL ntsc_bcast[] = {
 };
 
 /* US cable */
-static struct CHANNEL ntsc_cable[] = {
+static struct CHANLIST ntsc_cable[] = {
     { "1",	 73250 },
     { "2",	 55250 },
     { "3",	 61250 },
     { "4",	 67250 },
-    { "5",	 79250 },
-    { "6",	 85250 },
+    { "5",	 77250 },
+    { "6",	 83250 },
     { "7",	175250 },
     { "8",	181250 },
     { "9",	187250 },
@@ -232,7 +242,7 @@ static struct CHANNEL ntsc_cable[] = {
 };
 
 /* US HRC */
-static struct CHANNEL ntsc_hrc[] = {
+static struct CHANLIST ntsc_hrc[] = {
     { "1",	  72000 },
     { "2",	  54000 }, 
     { "3",	  60000 }, 
@@ -374,8 +384,141 @@ static struct CHANNEL ntsc_hrc[] = {
 
 /* --------------------------------------------------------------------- */
 
+/* Canada cable */
+static struct CHANLIST ntsc_cable_ca[] = {
+    { "2",	 61750 },
+    { "3",	 67750 },
+    { "4",	 73750 },
+    { "5",	 83750 },
+    { "6",	 89750 },
+    { "7",	181750 },
+    { "8",	187750 },
+    { "9",	193750 },
+    { "10",	199750 },
+    { "11",	205750 },
+    { "12",	211750 },
+
+    { "13",	217750 },
+    { "14",	127750 },
+    { "15",	133750 },
+    { "16",	139750 },
+    { "17",	145750 },
+    { "18",	151750 },
+    { "19",	157750 },
+    { "20",	163750 },
+ 
+    { "21",	169750 },
+    { "22",	175750 },
+    { "23",	223750 },
+    { "24",	229750 },
+    { "25",	235750 },
+    { "26",	241750 },
+    { "27",	247750 },
+    { "28",	253750 },
+    { "29",	259750 },
+    { "30",	265750 },
+    { "31",	271750 },
+    { "32",	277750 },
+    { "33",	283750 },
+    { "34",	289750 },
+    { "35",	295750 },
+    { "36",	301750 },
+    { "37",	307750 },
+    { "38",	313750 },
+    { "39",	319750 },
+    { "40",	325750 },
+    { "41",	331750 },
+    { "42",	337750 },
+    { "43",	343750 },
+    { "44",	349750 },
+    { "45",	355750 },
+    { "46",	361750 },
+    { "47",	367750 },
+    { "48",	373750 },
+    { "49",	379750 },
+    { "50",	385750 },
+    { "51",	391750 },
+    { "52",	397750 },
+    { "53",	403750 },
+    { "54",	409750 },
+    { "55",	415750 },
+    { "56",	421750 },
+    { "57",	427750 },
+    { "58",	433750 },
+    { "59",	439750 },
+    { "60",	445750 },
+    { "61",	451750 },
+    { "62",	457750 },
+    { "63",	463750 },
+    { "64",	469750 },
+    { "65",	475750 },
+    { "66",	481750 },
+    { "67",	487750 },
+    { "68",	493750 },
+    { "69",	499750 },
+ 
+    { "70",	505750 },
+    { "71",	511750 },
+    { "72",	517750 },
+    { "73",	523750 },
+    { "74",	529750 },
+    { "75",	535750 },
+    { "76",	541750 },
+    { "77",	547750 },
+    { "78",	553750 },
+    { "79",	559750 },
+    { "80",	565750 },
+    { "81",	571750 },
+    { "82",	577750 },
+    { "83",	583750 },
+    { "84",	589750 },
+    { "85",	595750 },
+    { "86",	601750 },
+    { "87",	607750 },
+    { "88",	613750 },
+    { "89",	619750 },
+    { "90",	625750 },
+    { "91",	631750 },
+    { "92",	637750 },
+    { "93",	643750 },
+    { "94",	649750 },
+    { "95",	 97750 },
+    { "96",	103750 },
+    { "97",	109750 },
+    { "98",	115750 },
+    { "99",	121750 },
+    { "100",	655750 },
+    { "101",	661750 },
+    { "102",	667750 },
+    { "103",	673750 },
+    { "104",	679750 },
+    { "105",	685750 },
+    { "106",	691750 },
+    { "107",	697750 },
+    { "108",	703750 },
+    { "109",	709750 },
+    { "110",	715750 },
+    { "111",	721750 },
+    { "112",	727750 },
+    { "113",	733750 },
+    { "114",	739750 },
+    { "115",	745750 },
+    { "116",	751750 },
+    { "117",	757750 },
+    { "118",	763750 },
+    { "119",	769750 },
+    { "120",	775750 },
+    { "121",	781750 },
+    { "122",	787750 },
+    { "123",	793750 },
+    { "124",	799750 },
+    { "125",	805750 }
+};
+
+/* --------------------------------------------------------------------- */
+
 /* JP broadcast */
-static struct CHANNEL ntsc_bcast_jp[] = {
+static struct CHANLIST ntsc_bcast_jp[] = {
     { "1",   91250 },
     { "2",   97250 },
     { "3",  103250 },
@@ -443,7 +586,7 @@ static struct CHANNEL ntsc_bcast_jp[] = {
 };
 
 /* JP cable */
-static struct CHANNEL ntsc_cable_jp[] = {
+static struct CHANLIST ntsc_cable_jp[] = {
     { "13",	109250 },
     { "14",	115250 },
     { "15",	121250 },
@@ -501,7 +644,7 @@ static struct CHANNEL ntsc_cable_jp[] = {
 /* --------------------------------------------------------------------- */
 
 /* australia */
-static struct CHANNEL pal_australia[] = {
+static struct CHANLIST pal_australia[] = {
     { "0",	 46250 },
     { "1",	 57250 },
     { "2",	 64250 },
@@ -556,6 +699,57 @@ static struct CHANNEL pal_australia[] = {
     { "68",	807250 },
     { "69",	814250 },
 };
+
+static struct CHANLIST pal_australia_optus[] = {
+   { "1",  138250 },
+   { "2",  147250 },
+   { "3",  154250 },
+   { "4",  161250 },
+   { "5",  168250 },
+   { "6",  175250 },
+   { "7",  182250 },
+   { "8",  189250 },
+   { "9",  196250 },
+   { "10", 209250 },
+   { "11", 216250 },
+   { "12", 224250 },
+   { "13", 231250 },
+   { "14", 238250 },
+   { "15", 245250 },
+   { "16", 252250 },
+   { "17", 259250 },
+   { "18", 266250 },
+   { "19", 273250 },
+   { "20", 280250 },
+   { "21", 287250 },
+   { "22", 294250 },
+   { "23", 303250 },
+   { "24", 310250 },
+   { "25", 317250 },
+   { "26", 324250 },
+   { "27", 338250 },
+   { "28", 345250 },
+   { "29", 352250 },
+   { "30", 359250 },
+   { "31", 366250 },
+   { "32", 373250 },
+   { "33", 380250 },
+   { "34", 387250 },
+   { "35", 394250 },
+   { "36", 401250 },
+   { "37", 408250 },
+   { "38", 415250 },
+   { "39", 422250 },
+   { "40", 429250 },
+   { "41", 436250 },
+   { "42", 443250 },
+   { "43", 450250 },
+   { "44", 457250 },
+   { "45", 464250 },
+   { "46", 471250 },
+   { "47", 478250 },
+   { "48", 485250 },
+ };
 
 /* --------------------------------------------------------------------- */
 /* europe                                                                */
@@ -715,14 +909,14 @@ static struct CHANNEL pal_australia[] = {
     { "68",  847250 },	\
     { "69",  855250 }
 
-static struct CHANNEL europe_west[] = {
+static struct CHANLIST europe_west[] = {
     FREQ_CCIR_I_III,
     FREQ_CCIR_SL_SH,
     FREQ_CCIR_H,
     FREQ_UHF
 };
 
-static struct CHANNEL europe_east[] = {
+static struct CHANLIST europe_east[] = {
     FREQ_OIRT_I_III,
     FREQ_OIRT_SL_SH,
     FREQ_CCIR_I_III,
@@ -731,35 +925,62 @@ static struct CHANNEL europe_east[] = {
     FREQ_UHF
 };
 
-static struct CHANNEL pal_italy[] = {
-    { "2",	 53750 },
-    { "3",	 62250 },
-    { "4",	 82250 },
-    { "5",	175250 },
-    { "6",	183750 },
-    { "7",	192250 },
-    { "8",	201250 },
-    { "9",	210250 },
-    { "10",	210250 },
-    { "11",	217250 },
-    { "12",	224250 },
+static struct CHANLIST pal_italy[] = {
+    { "A",	 53750 },
+    { "B",	 62250 },
+    { "C",	 82250 },
+    { "D",	175250 },
+    { "E",	183750 },
+    { "F",	192250 },
+    { "G",	201250 },
+    { "H",	210250 },
+    { "H1",	217250 },
+    { "H2",	224250 },
     FREQ_UHF
 };
 
-static struct CHANNEL pal_ireland[] = {
-    { "0",    45750 },
-    { "1",    53750 },
-    { "2",    61750 },
-    { "3",   175250 },
-    { "4",   183250 },
-    { "5",   191250 },
-    { "6",   199250 },
-    { "7",   207250 },
-    { "8",   215250 },
+static struct CHANLIST pal_ireland[] = {
+    { "A0",    45750 },
+    { "A1",    48000 },
+    { "A2",    53750 },
+    { "A3",    56000 },
+    { "A4",    61750 },
+    { "A5",    64000 },
+    { "A6",   175250 },
+    { "A7",   176000 },
+    { "A8",   183250 },
+    { "A9",   184000 },
+    { "A10",   191250 },
+    { "A11",   192000 },
+    { "A12",   199250 },
+    { "A13",   200000 },
+    { "A14",   207250 },
+    { "A15",   208000 },
+    { "A16",   215250 },
+    { "A17",   216000 },
+    { "A18",   224000 },
+    { "A19",   232000 },
+    { "A20",   248000 },
+    { "A21",   256000 },
+    { "A22",   264000 },
+    { "A23",   272000 },
+    { "A24",   280000 },
+    { "A25",   288000 },
+    { "A26",   296000 },
+    { "A27",   304000 },
+    { "A28",   312000 },
+    { "A29",   320000 },
+    { "A30",   344000 },
+    { "A31",   352000 },
+    { "A32",   408000 },
+    { "A33",   416000 },
+    { "A34",   448000 },
+    { "A35",   480000 },
+    { "A36",   520000 },
     FREQ_UHF,
 };
 
-static struct CHANNEL secam_france[] = {
+static struct CHANLIST secam_france[] = {
     { "K01",    47750 },
     { "K02",    55750 },
     { "K03",    60500 },
@@ -810,7 +1031,7 @@ static struct CHANNEL secam_france[] = {
 
 /* --------------------------------------------------------------------- */
 
-static struct CHANNEL pal_newzealand[] = {
+static struct CHANLIST pal_newzealand[] = {
     { "1", 	  45250 }, 
     { "2",	  55250 }, 
     { "3",	  62250 },
@@ -828,7 +1049,7 @@ static struct CHANNEL pal_newzealand[] = {
 /* --------------------------------------------------------------------- */
 
 /* China broadcast */
-static struct CHANNEL pal_bcast_cn[] = {
+static struct CHANLIST pal_bcast_cn[] = {
     { "1",	49750 },
     { "2",	57750 },
     { "3",	65750 },
@@ -928,7 +1149,7 @@ static struct CHANNEL pal_bcast_cn[] = {
 /* --------------------------------------------------------------------- */
 /* South Africa Broadcast */
 
-static struct CHANNEL pal_bcast_za[] ={
+static struct CHANLIST pal_bcast_za[] ={
     { "1", 175250 },
     { "2", 183250 },
     { "3", 191250 },
@@ -942,37 +1163,147 @@ static struct CHANNEL pal_bcast_za[] ={
 
 /* --------------------------------------------------------------------- */
 
-struct CHANNEL_LIST NtscChannelLists[] = {
-    { "US Broadcast",     ntsc_bcast,        CHAN_COUNT(ntsc_bcast)        },
-    { "US Cable",         ntsc_cable,        CHAN_COUNT(ntsc_cable)        },
-    { "US Cable HRC",     ntsc_hrc,          CHAN_COUNT(ntsc_hrc)          },
-    { "Japan Broadcast",  ntsc_bcast_jp,     CHAN_COUNT(ntsc_bcast_jp)     },
-    { "Japan Cable",      ntsc_cable_jp,     CHAN_COUNT(ntsc_cable_jp)     },
-    { 0, 0, 0 } /* EOF */
+static struct CHANLIST argentina[] = {
+    { "001",   56250 },
+    { "002",   62250 },
+    { "003",   68250 },
+    { "004",   78250 },
+    { "005",   84250 },
+    { "006",  176250 },
+    { "007",  182250 },
+    { "008",  188250 },
+    { "009",  194250 },
+    { "010",  200250 },
+    { "011",  206250 },
+    { "012",  212250 },
+    { "013",  122250 },
+    { "014",  128250 },
+    { "015",  134250 },
+    { "016",  140250 },
+    { "017",  146250 },
+    { "018",  152250 },
+    { "019",  158250 },
+    { "020",  164250 },
+    { "021",  170250 },
+    { "022",  218250 },
+    { "023",  224250 },
+    { "024",  230250 },
+    { "025",  236250 },
+    { "026",  242250 },
+    { "027",  248250 },
+    { "028",  254250 },
+    { "029",  260250 },
+    { "030",  266250 },
+    { "031",  272250 },
+    { "032",  278250 },
+    { "033",  284250 },
+    { "034",  290250 },
+    { "035",  296250 },
+    { "036",  302250 },
+    { "037",  308250 },
+    { "038",  314250 },
+    { "039",  320250 },
+    { "040",  326250 },
+    { "041",  332250 },
+    { "042",  338250 },
+    { "043",  344250 },
+    { "044",  350250 },
+    { "045",  356250 },
+    { "046",  362250 },
+    { "047",  368250 },
+    { "048",  374250 },
+    { "049",  380250 },
+    { "050",  386250 },
+    { "051",  392250 },
+    { "052",  398250 },
+    { "053",  404250 },
+    { "054",  410250 },
+    { "055",  416250 },
+    { "056",  422250 },
+    { "057",  428250 },
+    { "058",  434250 },
+    { "059",  440250 },
+    { "060",  446250 },
+    { "061",  452250 },
+    { "062",  458250 },
+    { "063",  464250 },
+    { "064",  470250 },
+    { "065",  476250 },
+    { "066",  482250 },
+    { "067",  488250 },
+    { "068",  494250 },
+    { "069",  500250 },
+    { "070",  506250 },
+    { "071",  512250 },
+    { "072",  518250 },
+    { "073",  524250 },
+    { "074",  530250 },
+    { "075",  536250 },
+    { "076",  542250 },
+    { "077",  548250 },
+    { "078",  554250 },
+    { "079",  560250 },
+    { "080",  566250 },
+    { "081",  572250 },
+    { "082",  578250 },
+    { "083",  584250 },
+    { "084",  590250 },
+    { "085",  596250 },
+    { "086",  602250 },
+    { "087",  608250 },
+    { "088",  614250 },
+    { "089",  620250 },
+    { "090",  626250 },
+    { "091",  632250 },
+    { "092",  638250 },
+    { "093",  644250 },
 };
 
-struct CHANNEL_LIST PalChannelLists[] = {
-    { "Western Europe",   europe_west,       CHAN_COUNT(europe_west)       },
-    { "Eastern Europe",   europe_east,       CHAN_COUNT(europe_east)       },
-    { "Ireland",          pal_ireland,       CHAN_COUNT(pal_ireland)       },
-    { "Italy",	          pal_italy,         CHAN_COUNT(pal_italy)         },
-    { "China Broadcast",  pal_bcast_cn,      CHAN_COUNT(pal_bcast_cn)      },
-    { "Australia",        pal_australia,     CHAN_COUNT(pal_australia)     },
-    { "New Zealand",      pal_newzealand,    CHAN_COUNT(pal_newzealand)    },
-    { "South Africa",     pal_bcast_za,      CHAN_COUNT(pal_bcast_za)      },
-    { 0, 0, 0 } /* EOF */
-};
+/* --------------------------------------------------------------------- */
 
-struct CHANNEL_LIST SecamChannelLists[] = {
-    { "France",           secam_france,      CHAN_COUNT(secam_france)      },
-    { 0, 0, 0 } /* EOF */
+struct CHANLISTS chanlists[] = {
+    { "us-bcast",         ntsc_bcast,        CHAN_COUNT(ntsc_bcast)        },
+    { "us-cable",         ntsc_cable,        CHAN_COUNT(ntsc_cable)        },
+    { "us-cable-hrc",     ntsc_hrc,          CHAN_COUNT(ntsc_hrc)          },
+    { "japan-bcast",      ntsc_bcast_jp,     CHAN_COUNT(ntsc_bcast_jp)     },
+    { "japan-cable",      ntsc_cable_jp,     CHAN_COUNT(ntsc_cable_jp)     },
+    { "europe-west",      europe_west,       CHAN_COUNT(europe_west)       },
+    { "europe-east",      europe_east,       CHAN_COUNT(europe_east)       },
+    { "italy",	          pal_italy,         CHAN_COUNT(pal_italy)         },
+    { "newzealand",       pal_newzealand,    CHAN_COUNT(pal_newzealand)    },
+    { "australia",        pal_australia,     CHAN_COUNT(pal_australia)     },
+    { "ireland",          pal_ireland,       CHAN_COUNT(pal_ireland)       },
+    { "france",           secam_france,      CHAN_COUNT(secam_france)      },
+    { "china-bcast",      pal_bcast_cn,      CHAN_COUNT(pal_bcast_cn)      },
+    { "southafrica",      pal_bcast_za,      CHAN_COUNT(pal_bcast_za)      },
+    { "argentina",        argentina,         CHAN_COUNT(argentina)         },
+    { "canada-cable",     ntsc_cable_ca,     CHAN_COUNT(ntsc_cable_ca)     },
+    { "australia-optus",        pal_australia_optus,     CHAN_COUNT(pal_australia_optus)     },
+    { NULL, NULL, 0 } /* EOF */
 };
-
-/* indexed by VIDEO_MODE_XXX */
-struct CHANNEL_LIST* ListOfChannelLists[] = {
-	/* VIDEO_MODE_PAL == 0 */ PalChannelLists,
-	/* VIDEO_MODE_NTSC == 1 */ NtscChannelLists,
-	/* VIDEO_MODE_SECAM == 2 */ SecamChannelLists,
-	0
+#if 0
+struct STRTAB chanlist_names[18] = {
+    {  0, "us-bcast" },
+    {  1, "us-cable" },
+    {  2, "us-cable-hrc" },
+    {  3, "japan-bcast" },
+    {  4, "japan-cable" },
+    {  5, "europe-west" },
+    {  6, "europe-east" },
+    {  7, "italy" },
+    {  8, "newzealand" },
+    {  9, "australia" },
+    { 10, "ireland" },
+    { 11, "france" },
+    { 12, "china-bcast" },	
+    { 13, "southafrica" },
+    { 14, "argentina" },
+    { 15, "canada-cable" },
+    {  16, "australia-optus" },
+    { -1, NULL }
 };
+#endif
+int                chantab   = 5;
+struct CHANLIST   *chanlist  = europe_west;
+int                chancount = CHAN_COUNT(europe_west);
 

@@ -24,10 +24,10 @@
 #include "media_flow.h"
 #include "audio_oss_source.h"
 #include "video_v4l_source.h"
-#include "video_sdl_preview.h"
 #include "file_mp4_recorder.h"
 #include "rtp_transmitter.h"
 #include "file_raw_sink.h"
+#include "mp4live_common.h"
 
 // Generic Flow
 
@@ -40,6 +40,12 @@ bool CMediaFlow::GetStatus(u_int32_t valueName, void* pValue)
 	return true;
 }
 
+void CAVMediaFlow::CreateRtpTransmitter (void)
+{
+  debug_message("Creating Rtp transmitter");
+  m_rtpTransmitter = new CRtpTransmitter(m_pConfig);
+  m_rtpTransmitter->StartThread();	
+}
 
 void CAVMediaFlow::Start(void)
 {
@@ -49,38 +55,11 @@ void CAVMediaFlow::Start(void)
 
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) 
 	  && m_videoSource == NULL) {
-		const char* sourceType = 
-			m_pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
-
-		if (!strcasecmp(sourceType, VIDEO_SOURCE_V4L)) {
-			m_videoSource = new CV4LVideoSource();
-		} else {
-			error_message("unknown video source type %s", sourceType);
-			return;
-		}
-		m_videoSource->SetConfig(m_pConfig);
-		m_videoSource->StartThread();
+	  m_videoSource = CreateVideoSource(m_pConfig);
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
-		if (m_pConfig->IsOneSource() && m_videoSource) {
-			m_audioSource = m_videoSource;
-		} else {
-			const char* sourceType = 
-				m_pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
-
-			if (!strcasecmp(sourceType, AUDIO_SOURCE_OSS)) {
-				SetAudioInput();
-				m_audioSource = new COSSAudioSource();
-			} else {
-				error_message("unknown audio source type %s", sourceType);
-				return;
-			}
-			m_audioSource->SetConfig(m_pConfig);
-			m_audioSource->StartThread();
-		}
-
-		m_audioSource->SetVideoSource(m_videoSource);
+	  m_audioSource = CreateAudioSource(m_pConfig, m_videoSource);
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
@@ -91,10 +70,19 @@ void CAVMediaFlow::Start(void)
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
-		m_rtpTransmitter = new CRtpTransmitter();
-		m_rtpTransmitter->SetConfig(m_pConfig);	
-		m_rtpTransmitter->StartThread();	
-		AddSink(m_rtpTransmitter);
+	  CreateRtpTransmitter();
+	  if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+	    m_rtpTransmitter->CreateAudioRtpDestination(0,
+							m_pConfig->GetStringValue(CONFIG_RTP_AUDIO_DEST_ADDRESS),
+							m_pConfig->GetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT),
+							0);
+	  }
+	  if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+	    m_rtpTransmitter->CreateVideoRtpDestination(0,
+							m_pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS),
+							m_pConfig->GetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT),
+							0);
+	  }
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_RAW_ENABLE)) {
@@ -103,18 +91,6 @@ void CAVMediaFlow::Start(void)
 		m_rawSink->StartThread();	
 		AddSink(m_rawSink);
 	}
-
-#ifndef NOGUI
-	if (m_videoPreview == NULL) {
-		m_videoPreview = new CSDLVideoPreview();
-		m_videoPreview->SetConfig(m_pConfig);
-		m_videoPreview->StartThread();
-		m_videoPreview->Start();
-		if (m_videoSource) {
-			m_videoSource->AddSink(m_videoPreview);
-		}
-	}
-#endif
 
 	if (m_videoSource && m_videoSource == m_audioSource) {
 		m_videoSource->Start();
@@ -130,7 +106,8 @@ void CAVMediaFlow::Start(void)
 		m_mp4Recorder->Start();
 	}
 	if (m_rtpTransmitter) {
-		m_rtpTransmitter->Start();
+	  AddSink(m_rtpTransmitter);
+	  m_rtpTransmitter->Start();
 	}
 	if (m_rawSink) {
 		m_rawSink->Start();
@@ -185,13 +162,6 @@ void CAVMediaFlow::Stop(void)
 		}
 		m_videoSource = NULL;
 
-#ifndef NOGUI
-		if (m_videoPreview) {
-			m_videoPreview->StopThread();
-			delete m_videoPreview;
-			m_videoPreview = NULL;
-		}
-#endif
 	}
 
 	m_started = false;
@@ -217,60 +187,6 @@ void CAVMediaFlow::RemoveSink(CMediaSink* pSink)
 	}
 }
 
-void CAVMediaFlow::StartVideoPreview(void)
-{
-	if (m_pConfig == NULL) {
-		return;
-	}
-
-	if (!m_pConfig->IsCaptureVideoSource()) {
-		return;
-	}
-
-	if (m_videoSource == NULL) {
-		m_videoSource = new CV4LVideoSource();
-		m_videoSource->SetConfig(m_pConfig);
-		m_videoSource->StartThread();
-	}
-
-	if (m_videoPreview == NULL) {
-		m_videoPreview = new CSDLVideoPreview();
-		m_videoPreview->SetConfig(m_pConfig);
-		m_videoPreview->StartThread();
-
-		m_videoSource->AddSink(m_videoPreview);
-	}
-
-	m_videoSource->StartVideo();
-	m_videoPreview->Start();
-}
-
-void CAVMediaFlow::StopVideoPreview(void)
-{
-	if (!m_pConfig->IsCaptureVideoSource()) {
-		return;
-	}
-
-	if (m_videoSource) {
-		if (!m_started) {
-			m_videoSource->StopThread();
-			delete m_videoSource;
-			m_videoSource = NULL;
-		} else {
-			m_videoSource->Stop();
-		}
-	}
-
-	if (m_videoPreview) {
-		if (!m_started) {
-			m_videoPreview->StopThread();
-			delete m_videoPreview;
-			m_videoPreview = NULL;
-		} else {
-			m_videoPreview->Stop();
-		}
-	}
-}
 
 void CAVMediaFlow::SetPictureControls(void)
 {
@@ -279,45 +195,6 @@ void CAVMediaFlow::SetPictureControls(void)
 	}
 }
 
-void CAVMediaFlow::SetAudioInput(void)
-{
-	// if mixer is specified, then user takes responsibility for
-	// configuring mixer to set the appropriate input sources
-	// this allows multiple inputs to be used, for example
-
-	if (!strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
-	  "mix")) {
-		return;
-	}
-
-	// else set the mixer input source to the one specified
-
-	static char* inputNames[] = SOUND_DEVICE_NAMES;
-
-	char* mixerName = 
-		m_pConfig->GetStringValue(CONFIG_AUDIO_MIXER_NAME);
-
-	int mixer = open(mixerName, O_RDONLY);
-
-	if (mixer < 0) {
-		error_message("Couldn't open mixer %s", mixerName);
-		return;
-	}
-
-	u_int8_t i;
-	int recmask = 0;
-
-	for (i = 0; i < sizeof(inputNames) / sizeof(char*); i++) {
-		if (!strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
-		  inputNames[i])) {
-			recmask |= (1 << i);
-			ioctl(mixer, SOUND_MIXER_WRITE_RECSRC, &recmask);
-			break;
-		}
-	}
-
-	close(mixer);
-}
 
 void CAVMediaFlow::SetAudioOutput(bool mute)
 {

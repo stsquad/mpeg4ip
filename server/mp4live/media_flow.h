@@ -27,6 +27,8 @@
 #include "media_source.h"
 #include "media_sink.h"
 
+class CRtpTransmitter;
+
 // abstract parent class
 class CMediaFlow {
 public:
@@ -63,7 +65,6 @@ public:
 		: CMediaFlow(pConfig) {
 		m_videoSource = NULL;
 		m_audioSource = NULL;
-		m_videoPreview = NULL;
 		m_mp4Recorder = NULL;
 		m_rtpTransmitter = NULL;
 		m_rawSink = NULL;
@@ -76,12 +77,8 @@ public:
 	void Start(void);
 	void Stop(void);
 
-	void StartVideoPreview(void);
-	void StopVideoPreview(void);
-
 	void SetPictureControls(void);
 
-	void SetAudioInput(void);
 	void SetAudioOutput(bool mute);
 
 	bool GetStatus(u_int32_t valueName, void* pValue);
@@ -91,12 +88,12 @@ protected:
 	void RemoveSink(CMediaSink* pSink);
 
 protected:
+	void CreateRtpTransmitter(void);
 	CMediaSource* 	m_videoSource;
 	CMediaSource*	m_audioSource;
 
-	CMediaSink*		m_videoPreview;
 	CMediaSink*		m_mp4Recorder;
-	CMediaSink*		m_rtpTransmitter;
+	CRtpTransmitter*	m_rtpTransmitter;
 	CMediaSink*		m_rawSink;
 };
 

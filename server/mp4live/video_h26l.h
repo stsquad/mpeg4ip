@@ -30,11 +30,13 @@ class CH26LVideoEncoder : public CVideoEncoder {
 public:
 	CH26LVideoEncoder();
 
+	MediaType GetFrameType(void) { return H26LVIDEOFRAME; };
 	bool Init(
 		CLiveConfig* pConfig, bool realTime = true);
 
 	bool EncodeImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
+		u_int32_t yStride = 0, u_int32_t uvStride = 0,
 		bool wantKeyFrame = false);
 
 	bool GetEncodedImage(

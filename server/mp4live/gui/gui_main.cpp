@@ -26,10 +26,11 @@
 #define __STDC_LIMIT_MACROS
 #include "mp4live.h"
 #include "mp4live_gui.h"
+#include "preview_flow.h"
 #include "gdk/gdkx.h"
 
 CLiveConfig* MyConfig;
-CAVMediaFlow* AVFlow;
+CPreviewAVMediaFlow* AVFlow;
 
 /* Local variables */
 static bool started = false;
@@ -182,8 +183,9 @@ void DisplayVideoSettings(void)
 		MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)
 		&& MyConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW));
 
-	snprintf(buffer, sizeof(buffer), " MPEG-4 at %u kbps",
-		MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE));
+	snprintf(buffer, sizeof(buffer), " %s at %u kbps",
+		 MyConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
+		 MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE));
 	gtk_label_set_text(GTK_LABEL(video_settings_label1), buffer);
 	gtk_widget_show(video_settings_label1);
 
@@ -202,16 +204,8 @@ void DisplayAudioSettings(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(audio_enabled_button),
 		MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE));
   
-	char* encoding;
-	if (!strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
-	  AUDIO_ENCODING_AAC)) {
-		encoding = "AAC";
-	} else {
-		encoding = "MP3";
-	}
-
-	snprintf(buffer, sizeof(buffer), " %s at %u kbps",
-		encoding,
+	snprintf(buffer, sizeof(buffer), " %s at %u bps",
+		 MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
 		MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE));
 	gtk_label_set_text(GTK_LABEL(audio_settings_label1), buffer);
 	gtk_widget_show(audio_settings_label1);
@@ -683,6 +677,8 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 
 static void on_duration_changed(GtkWidget* widget, gpointer* data)
 {
+  gtk_spin_button_update(GTK_SPIN_BUTTON(duration_spinner));
+
 	MyConfig->SetIntegerValue(CONFIG_APP_DURATION,
 		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner)));
 	MyConfig->UpdateRecord();
@@ -700,7 +696,7 @@ static void LoadConfig()
 {
 	AVFlow->StopVideoPreview();
 
-	const gchar* configFileName =
+	const char* configFileName =
 		gtk_entry_get_text(GTK_ENTRY(config_file_entry));
 
 	MyConfig->ReadFromFile(configFileName);
@@ -724,7 +720,7 @@ static void on_load_config_button (GtkWidget *widget, gpointer *data)
 
 static void on_save_config_button (GtkWidget *widget, gpointer *data)
 {
-	const gchar* configFileName =
+	const char* configFileName =
 		gtk_entry_get_text(GTK_ENTRY(config_file_entry));
 
 	MyConfig->WriteToFile(configFileName);
@@ -1082,7 +1078,7 @@ void LayoutControlFrame(GtkWidget* box)
 		1, 24 * 60 * 60, 1, 0, 0);
 	duration_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 1, 0);
 	gtk_signal_connect(GTK_OBJECT(duration_spinner),
-		"changed",
+		"value-changed",
 		GTK_SIGNAL_FUNC(on_duration_changed),
 		GTK_OBJECT(duration_spinner));
 	gtk_widget_show(duration_spinner);
@@ -1366,7 +1362,7 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 {
 	MyConfig = pConfig;
 
-	AVFlow = new CAVMediaFlow(pConfig);
+	AVFlow = new CPreviewAVMediaFlow(pConfig);
 
 	gtk_init(&argc, &argv);
 

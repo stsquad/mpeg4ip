@@ -19,13 +19,79 @@
  *		Dave Mackie		dmackie@cisco.com
  *		Bill May 		wmay@cisco.com
  */
-
 #define DECLARE_CONFIG_VARIABLES 1
 #include "mp4live.h"
 #include "media_flow.h"
 #include "video_v4l_source.h"
 #include "audio_oss_source.h"
+#include "mp4live_common.h"
 #include <getopt.h>
+
+// InitializeConfigVariables - if you want to add configuration 
+// variables, you most likely want to add them here, before you
+// return the new CLiveConfig.  Use the AddConfigVariables function
+// of the CLiveConfig class to do that.
+
+CLiveConfig *InitializeConfigVariables (void)
+{
+  char userFileName[MAXPATHLEN];
+  char* home;
+
+  home = getenv("HOME");
+  if (home) {
+    strcpy(userFileName, home);
+    strcat(userFileName, "/.mp4live_rc");
+  }
+  return new CLiveConfig(MyConfigVariables,
+			 sizeof(MyConfigVariables) / sizeof(SConfigVariable),
+			 home ? userFileName : NULL);
+}
+
+// CreateVideoSource - if you've got more sources to add, this is
+// where you can do that.
+CMediaSource *CreateVideoSource (CLiveConfig *pConfig)
+{
+  CMediaSource *vs;
+  const char* sourceType = 
+    pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
+
+  if (!strcasecmp(sourceType, VIDEO_SOURCE_V4L)) {
+    vs = new CV4LVideoSource();
+  } else {
+    error_message("unknown video source type %s", sourceType);
+    return NULL;
+  }
+  vs->SetConfig(pConfig);
+  vs->StartThread();
+  return vs;
+}
+
+// CreateAudioSource - if you've got more sources to add, this is
+// where you can do that.
+CMediaSource *CreateAudioSource (CLiveConfig *pConfig,
+				 CMediaSource *videoSource)
+{
+  CMediaSource *audioSource;
+
+  if (pConfig->IsOneSource() && videoSource) {
+    audioSource = videoSource;
+  } else {
+    const char* sourceType = 
+      pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
+
+    if (!strcasecmp(sourceType, AUDIO_SOURCE_OSS)) {
+      audioSource = new COSSAudioSource(pConfig);
+    } else {
+      error_message("unknown audio source type %s", sourceType);
+      return NULL;
+    }
+    audioSource->StartThread();
+  }
+  
+  audioSource->SetVideoSource(videoSource);
+
+  return audioSource;
+}
 
 int main(int argc, char** argv)
 {
@@ -75,54 +141,18 @@ int main(int argc, char** argv)
 		case '?':
 		default:
 			fprintf(stderr, 
-				"Usage: %s [-f config_file] [--automatic] [--headless]\n",
+				"Usage: %s [-f config_file] [--automatic] [--headless] [--sdp]\n",
 				argv[0]);
 			exit(-1);
 		}
 	}
 
-	char userFileName[MAXPATHLEN];
-	char* home = getenv("HOME");
-	if (home) {
-		strcpy(userFileName, home);
-		strcat(userFileName, "/.mp4live_rc");
+	CLiveConfig* pConfig = InitializeConfigVariables();
+
+	if (ReadConfigFile(configFileName, pConfig) < 0) {
 	}
 
-	CLiveConfig* pConfig = NULL;
-	try {
-		pConfig = new CLiveConfig(MyConfigVariables,
-			sizeof(MyConfigVariables) / sizeof(SConfigVariable),
-			home ? userFileName : NULL);
-
-		if (configFileName) {
-			pConfig->ReadFromFile(configFileName);
-		} else {
-			// read user config file if present
-			pConfig->ReadDefaultFile();
-		}
-
-		pConfig->m_appAutomatic = automatic;
-
-		extern bool PrintDebugMessages;
-		PrintDebugMessages =
-			pConfig->GetIntegerValue(CONFIG_APP_DEBUG);
-	} 
-	catch (CConfigException* e) {
-		delete e;
-	}
-
-	// probe for capture cards
-	if (!strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE),
-	  VIDEO_SOURCE_V4L)) {
-		CV4LVideoSource::InitialVideoProbe(pConfig);
-	}
-
-	// probe for sound card capabilities
-	if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE),
-	  AUDIO_SOURCE_OSS)) {
-		pConfig->m_audioCapabilities = new CAudioCapabilities(
-			pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
-	}
+	ProbeVideoAudioCapabilities(pConfig);
 
 	pConfig->Update();
 
@@ -137,36 +167,9 @@ int main(int argc, char** argv)
 
 	// other cases:
 
-	// attempt to exploit any real time features of the OS
-	// will probably only succeed if user has root privileges
-	if (pConfig->GetBoolValue(CONFIG_APP_REAL_TIME_SCHEDULER)) {
-#ifdef _POSIX_PRIORITY_SCHEDULING
-		// put us into the lowest real-time scheduling queue
-		struct sched_param sp;
-		sp.sched_priority = 1;
-		if (sched_setscheduler(0, SCHED_RR, &sp) < 0) {
-# ifdef DEBUG
-			debug_message("Unable to set scheduling priority: %s",
-				strerror(errno));
-# endif
-		}
-#endif /* _POSIX_PRIORITY_SCHEDULING */
-#ifdef _POSIX_MEMLOCK
-		// recommendation is to reserve some stack pages
-		u_int8_t huge[1024 * 1024];
-		memset(huge, 1, sizeof(huge));
+	SetupRealTimeFeatures(pConfig);
 
-		// and then lock memory
-		if (mlockall(MCL_CURRENT|MCL_FUTURE) < 0) {
-# ifdef DEBUG
-			debug_message("Unable to lock memory: %s", 
-				strerror(errno));
-# endif
-		}
-#endif /* _POSIX_MEMLOCK */
-	}
-
-#ifdef NOGUI
+#ifndef HAVE_GTK
 	rc = nogui_main(pConfig);
 #else
 	if (headless) {

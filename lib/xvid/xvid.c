@@ -55,6 +55,21 @@
 #include "utils/timer.h"
 #include "bitstream/mbcoding.h"
 
+#ifdef MPEG4IP
+#ifndef _WIN32
+#include <signal.h>
+#include <setjmp.h>
+
+static jmp_buf env;
+static int i_illegal;
+static void IllegalSignalHandler(int i_signal)
+{
+  i_illegal = 1;
+  longjmp(env, 1);
+}
+#endif
+#endif
+
 int xvid_init(void *handle, int opt, void *param1, void *param2)
 {
 	int cpu_flags;
@@ -194,13 +209,27 @@ int xvid_init(void *handle, int opt, void *param1, void *param2)
 	}
 
 #ifdef MPEG4IP
+#ifndef _WIN32
+	// Thanks to Steve Schultz
+	signal(SIGILL, IllegalSignalHandler);
+	i_illegal = 0;
+	if (setjmp(env) == 0) {
+	  __asm__ __volatile__ ( "xorps %%xmm0,%%xmm0\n" : :);
+	}
+	signal(SIGILL, NULL);
+	if (i_illegal != 0) {
+	  cpu_flags &= ~XVID_CPU_SSE2;
+	  printf("Disabling SSE2\n");
+	}
+#endif
 	if((cpu_flags & XVID_CPU_SSE2) > 0) {
 		sad16 = sad16_sse2;
 	}
 #endif
 
 #endif
-#ifdef ARCH_PPC
+#if 0
+	// should be defined(ARCH_PPC) || defined(ARCH_PPC_ALTIVEC)
 #ifdef ARCH_PPC_ALTIVEC
 	calc_cbp = calc_cbp_altivec;
 	fdct = fdct_altivec;

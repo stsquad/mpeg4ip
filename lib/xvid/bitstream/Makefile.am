@@ -1,6 +1,4 @@
-if USE_MMX
-SUBDIRS = x86_asm
-endif
+SUBDIRS = x86_asm ppc_asm
 
 noinst_LTLIBRARIES = libxvidbitstream.la
 libxvidbitstream_la_LDFLAGS = -static
@@ -21,5 +19,12 @@ libxvidbitstream_la_SOURCES = \
 	zigzag.h
 
 if USE_MMX
-libxvidbitstream_la_LIBADD = x86_asm/libxvidbitstreamx86.la
+XVIDlibs = x86_asm/libxvidbitstreamx86.la
+else
+if USE_PPC
+XVIDlibs = ppc_asm/libxvidbitstreamppc.la
+else
+XVIDlibs = 
 endif
+endif
+libxvidbitstream_la_LIBADD = $(XVIDlibs)

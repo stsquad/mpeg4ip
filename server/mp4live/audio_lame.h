@@ -17,7 +17,6 @@
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
- *		Peter Maersk-Moller	peter@maersk-moller.net (Lame 3.92 support)
  */
 
 #ifndef __AUDIO_LAME_H__
@@ -25,7 +24,32 @@
 
 #include "audio_encoder.h"
 #include <lame/lame.h>
-//#include <lame_global_flags.h>
+#include <sdp.h>
+
+media_desc_t *lame_create_audio_sdp(CLiveConfig *pConfig,
+				    bool *mpeg4,
+				    bool *isma_compliant,
+				    uint8_t *audioProfile,
+				    uint8_t **audioConfig,
+				    uint32_t *audioConfigLen);
+MediaType lame_mp4_fileinfo(CLiveConfig *pConfig,
+			    bool *mpeg4,
+			    bool *isma_compliant,
+			    uint8_t *audioProfile,
+			    uint8_t **audioConfig,
+			    uint32_t *audioConfigLen,
+			    uint8_t *mp4AudioType);
+
+bool lame_get_audio_rtp_info (CLiveConfig *pConfig,
+			      MediaType *audioFrameType,
+			      uint32_t *audioTimeScale,
+			      uint8_t *audioPayloadNumber,
+			      uint8_t *audioPayloadBytesPerPacket,
+			      uint8_t *audioPayloadBytesPerFrame,
+			      uint8_t *audioQueueMaxCount,
+			      audio_set_rtp_header_f *audio_set_header,
+			      audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
+			      void **ud);
 
 class CLameAudioEncoder : public CAudioEncoder {
 public:
@@ -35,35 +59,26 @@ public:
 		CLiveConfig* pConfig, 
 		bool realTime = true);
 
-	MediaType GetFrameType() {
-		return CMediaFrame::Mp3AudioFrame;
+	MediaType GetFrameType(void) {
+		return MP3AUDIOFRAME;
 	}
 
 	u_int32_t GetSamplesPerFrame();
 
 	bool EncodeSamples(
-		u_int16_t* pBuffer, 
-		u_int32_t bufferLength,
+		int16_t* pSamples, 
+		u_int32_t numSamplesPerChannel,
 		u_int8_t numChannels);
 
-	bool EncodeSamples(
-		u_int16_t* pLeftBuffer,
-		u_int16_t* pRightBuffer, 
-		u_int32_t bufferLength);
-
-	bool GetEncodedSamples(
+	bool GetEncodedFrame(
 		u_int8_t** ppBuffer, 
 		u_int32_t* pBufferLength,
-		u_int32_t* pNumSamples);
+		u_int32_t* pNumSamplesPerChannel);
 
 	void Stop();
 
 protected:
-#ifdef OLD_LAME
-	lame_global_flags	m_lameParams;
-#else
-	lame_global_flags*	m_lameParams;
-#endif
+	lame_global_flags	*m_lameParams;
 	u_int32_t			m_samplesPerFrame;
 	u_int8_t*			m_mp3FrameBuffer;
 	u_int32_t			m_mp3FrameBufferLength;

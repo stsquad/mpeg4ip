@@ -86,7 +86,6 @@ static int rawv_decode (codec_data_t *ptr,
 			uint32_t buflen,
 			void *ud)
 {
-  int ret;
   rawv_codec_t *rawv = (rawv_codec_t *)ptr;
 
   uint32_t len;
@@ -103,8 +102,8 @@ static int rawv_decode (codec_data_t *ptr,
      return -1;
   }
                        
-  ret = rawv->m_vft->video_have_frame(rawv->m_ifptr,
-				      y, u, v, rawv->m_w, rawv->m_w / 2, ts);
+  rawv->m_vft->video_have_frame(rawv->m_ifptr,
+				y, u, v, rawv->m_w, rawv->m_w / 2, ts);
 
   return (buflen);
 }

@@ -43,7 +43,8 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		&mpeg4ConfigLength,
 		pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID),
 		pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE),
-		true,	// shortTime
+		pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS) == 0, 
+		// short time - true if we haven't set the # of bits
 		true,	// variableRate
 		pConfig->m_videoWidth,
 		pConfig->m_videoHeight,

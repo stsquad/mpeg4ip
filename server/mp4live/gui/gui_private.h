@@ -25,11 +25,12 @@
 #define __GUI_PRIVATE_H__ 1
 
 #include "mp4live_config.h"
-#include "media_flow.h" 
+#include "media_flow.h"
+#include "preview_flow.h" 
 
 // From gui_main.cpp
 extern CLiveConfig* MyConfig;
-extern CAVMediaFlow* AVFlow;
+extern CPreviewAVMediaFlow* AVFlow;
 
 void NewVideoWindow(void);
 void DisplayVideoSettings(void);

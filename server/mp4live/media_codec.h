@@ -22,6 +22,8 @@
 #ifndef __MEDIA_CODEC_H__
 #define __MEDIA_CODEC_H__
 
+#include "media_frame.h"
+
 // forward declarations
 class CLiveConfig;
 
@@ -30,6 +32,8 @@ public:
 	CMediaCodec() { 
 		m_pConfig = NULL;
 	}
+
+	virtual MediaType GetFrameType(void) = NULL;
 
 	virtual bool Init(CLiveConfig* pConfig, bool realTime = true) = NULL;
 

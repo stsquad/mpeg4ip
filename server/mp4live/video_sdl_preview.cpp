@@ -24,8 +24,9 @@
 
 int CSDLVideoPreview::ThreadMain(void) 
 {
+  CMsg *pMsg;
 	while (SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
-		CMsg* pMsg = m_myMsgQueue.get_message();
+		pMsg = m_myMsgQueue.get_message();
 		
 		if (pMsg != NULL) {
 			switch (pMsg->get_value()) {
@@ -121,9 +122,9 @@ void CSDLVideoPreview::DoPreviewFrame(CMediaFrame* pFrame)
 	}
 
 	if (m_sink) {
-		if ((pFrame->GetType() == CMediaFrame::YuvVideoFrame 
+		if ((pFrame->GetType() == YUVVIDEOFRAME 
 		    && m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW))
-		  || (pFrame->GetType() == CMediaFrame::ReconstructYuvVideoFrame 
+		  || (pFrame->GetType() == RECONSTRUCTYUVVIDEOFRAME 
 		    && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW))) {
 
 			SDL_LockYUVOverlay(m_sdlImage);
@@ -149,7 +150,7 @@ void CSDLVideoPreview::DoPreviewFrame(CMediaFrame* pFrame)
 			// TBD SDL_Delay(pFrame->GetDuration() / 1000);
 		}
 	}
-	
-	delete pFrame;
+	if (pFrame->RemoveReference())
+	  delete pFrame;
 }
 

@@ -23,6 +23,51 @@
 #include "mp4live.h"
 #include "audio_oss_source.h"
 
+COSSAudioSource::COSSAudioSource(CLiveConfig *pConfig) : CMediaSource() 
+{
+  SetConfig(pConfig);
+
+  m_audioDevice = -1;
+  m_pcmFrameBuffer = NULL;
+
+  // NOTE: This used to be CAVMediaFlow::SetAudioInput();
+  // if mixer is specified, then user takes responsibility for
+  // configuring mixer to set the appropriate input sources
+  // this allows multiple inputs to be used, for example
+
+  if (!strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
+		  "mix")) {
+    return;
+  }
+
+  // else set the mixer input source to the one specified
+
+  static char* inputNames[] = SOUND_DEVICE_NAMES;
+
+  char* mixerName = 
+    m_pConfig->GetStringValue(CONFIG_AUDIO_MIXER_NAME);
+
+  int mixer = open(mixerName, O_RDONLY);
+
+  if (mixer < 0) {
+    error_message("Couldn't open mixer %s", mixerName);
+    return;
+  }
+
+  u_int8_t i;
+  int recmask = 0;
+
+  for (i = 0; i < sizeof(inputNames) / sizeof(char*); i++) {
+    if (!strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
+		    inputNames[i])) {
+      recmask |= (1 << i);
+      ioctl(mixer, SOUND_MIXER_WRITE_RECSRC, &recmask);
+      break;
+    }
+  }
+
+  close(mixer);
+}
 
 int COSSAudioSource::ThreadMain(void) 
 {
@@ -117,7 +162,7 @@ bool COSSAudioSource::Init(void)
 	}
 
 	rc = SetAudioSrc(
-		CMediaFrame::PcmAudioFrame,
+		PCMAUDIOFRAME,
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
 

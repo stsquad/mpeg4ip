@@ -48,10 +48,11 @@ CMsg::CMsg (uint32_t value, unsigned char *msg, uint32_t msg_len)
 
 CMsg::CMsg (uint32_t value, uint32_t param)
 {
-	m_value = value;
-	m_msg_len = 0;
-	m_has_param = 1;
-	m_param = param;
+  m_value = value;
+  m_msg_len = 0;
+  m_has_param = 1;
+  m_param = param;
+  m_next = NULL;
 }
 
 CMsg::~CMsg (void) 

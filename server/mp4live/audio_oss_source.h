@@ -32,10 +32,8 @@
 
 class COSSAudioSource : public CMediaSource {
 public:
-	COSSAudioSource() : CMediaSource() {
-		m_audioDevice = -1;
-		m_pcmFrameBuffer = NULL;
-	}
+        COSSAudioSource(CLiveConfig *pConfig);
+
 	~COSSAudioSource() {
 		free(m_pcmFrameBuffer);
 	}

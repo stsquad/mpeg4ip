@@ -435,7 +435,7 @@ int http_get_response (http_client_t *cptr,
     while (te_size != 0) {
       http_debug(LOG_DEBUG, "Chunk size %d", te_size);
       cptr->m_resp->body = (char *)realloc(cptr->m_resp->body,
-					   cptr->m_resp->body_len + te_size);
+					   cptr->m_resp->body_len + te_size + 1);
       len = MIN(te_size, cptr->m_buffer_len - cptr->m_offset_on);
       memcpy(cptr->m_resp->body + cptr->m_resp->body_len,
 	     &cptr->m_resp_buffer[cptr->m_offset_on],
@@ -467,6 +467,7 @@ int http_get_response (http_client_t *cptr,
       }
       te_size = to_hex(&p);
     }
+    cptr->m_resp->body[cptr->m_resp->body_len] = '\0'; // null terminate
 	
   } else {
     // No termination - just keep reading, I guess...

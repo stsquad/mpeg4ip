@@ -28,6 +28,8 @@
 #define HAVE_SOCKLEN_T
 #include <win32_ver.h>
 #else
+#undef PACKAGE
+#undef VERSION
 #include <config.h>
 #endif
 

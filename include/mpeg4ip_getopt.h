@@ -2,6 +2,8 @@
 #define HAVE_IN_PORT_T
 #define HAVE_SOCKLEN_T
 #else
+#undef PACKAGE
+#undef VERSION
 #include "../config.h"
 #endif
 #ifdef HAVE_UNISTD_H

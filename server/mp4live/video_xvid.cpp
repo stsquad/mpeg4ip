@@ -48,15 +48,26 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 
 	xvidEncParams.width = m_pConfig->m_videoWidth;
 	xvidEncParams.height = m_pConfig->m_videoHeight;
-	xvidEncParams.fincr = 1;
-	xvidEncParams.fbase = 
-		(int)(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
+	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS) == 0) {
+	  xvidEncParams.fincr = 1;
+	  xvidEncParams.fbase = 
+	    (int)(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
+	  xvidEncParams.dont_simplify_fincr = 0;
+	} else {
+	  xvidEncParams.fincr = 
+	    (int)(((double)m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS)) /
+		  m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE));
+	  xvidEncParams.fbase = 
+	    m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS);
+	  xvidEncParams.dont_simplify_fincr = 1;
+	}
+
 	xvidEncParams.bitrate = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
 	xvidEncParams.rc_buffersize = 16;
 	xvidEncParams.min_quantizer = 1;
 	xvidEncParams.max_quantizer = 31;
-	xvidEncParams.max_key_interval = (int) 
+	xvidEncParams.max_key_interval = (int)
 		(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) 
 		 * m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
 	if (xvidEncParams.max_key_interval == 0) {
@@ -75,13 +86,15 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 
 	m_xvidFrame.general = XVID_HALFPEL | XVID_H263QUANT;
 	if (!realTime) {
-		m_xvidFrame.general |= XVID_INTER4V;
 		m_xvidFrame.motion = 
 			PMV_EARLYSTOP16 | PMV_HALFPELREFINE16 
 			| PMV_EARLYSTOP8 | PMV_HALFPELDIAMOND8;
 	} else {
 		m_xvidFrame.motion = PMV_QUICKSTOP16;
 	}
+		if (!realTime) {
+			m_xvidFrame.general |= XVID_INTER4V;
+		}
 	m_xvidFrame.colorspace = XVID_CSP_I420;
 	m_xvidFrame.quant = 0;
 

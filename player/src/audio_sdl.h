@@ -40,10 +40,10 @@ class CSDLAudioSync : public CAudioSync {
   void filled_audio_buffer(uint64_t ts, int resync);
   void set_config(int freq, int channels, int format, uint32_t max_buffer_size);
   void set_eof(void);
-  uint32_t load_audio_buffer(uint8_t *from, 
-			     uint32_t bytes, 
-			     uint64_t ts, 
-			     int resync);
+  void load_audio_buffer(uint8_t *from, 
+			 uint32_t bytes, 
+			 uint64_t ts, 
+			 int resync);
   
   // APIs from sync task
   int initialize_audio(int have_video);

@@ -17,12 +17,139 @@
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
- *		Peter Maersk-Moller	peter@maersk-moller.net (Lame 3.92 support)
  */
 
 #include "mp4live.h"
 #include "audio_lame.h"
 #include <mp4av.h>
+
+MediaType lame_mp4_fileinfo (CLiveConfig *pConfig,
+			     bool *mpeg4,
+			     bool *isma_compliant,
+			     uint8_t *audioProfile,
+			     uint8_t **audioConfig,
+			     uint32_t *audioConfigLen,
+			     uint8_t *mp4AudioType)
+{
+  *mpeg4 = true; // legal in an mp4 - create an iod
+  *isma_compliant = false;
+  *audioProfile = 0xfe;
+  *audioConfig = NULL;
+  *audioConfigLen = 0;
+  if (mp4AudioType != NULL) {
+    *mp4AudioType = MP4_MP3_AUDIO_TYPE;
+  }
+  return MP3AUDIOFRAME;
+}
+
+media_desc_t *lame_create_audio_sdp (CLiveConfig *pConfig,
+				     bool *mpeg4,
+				     bool *isma_compliant,
+				     uint8_t *audioProfile,
+				     uint8_t **audioConfig,
+				     uint32_t *audioConfigLen)
+{
+  media_desc_t *sdpMediaAudio;
+  format_list_t *sdpMediaAudioFormat;
+  rtpmap_desc_t *sdpAudioRtpMap;
+
+  lame_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile,
+		    audioConfig, audioConfigLen, NULL);
+
+  sdpMediaAudio = MALLOC_STRUCTURE(media_desc_t);
+  memset(sdpMediaAudio, 0, sizeof(*sdpMediaAudio));
+  sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
+			 strdup("a=mpeg4-esid:10"));
+
+  sdpMediaAudioFormat = MALLOC_STRUCTURE(format_list_t);
+  memset(sdpMediaAudioFormat, 0, sizeof(*sdpMediaAudioFormat));
+  sdpMediaAudio->fmt = sdpMediaAudioFormat;
+  sdpMediaAudioFormat->media = sdpMediaAudio;
+
+  sdpAudioRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
+  memset(sdpAudioRtpMap, 0, sizeof(*sdpAudioRtpMap));
+  sdpAudioRtpMap->clock_rate = 
+    pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+		
+  if (pConfig->GetBoolValue(CONFIG_RTP_USE_MP3_PAYLOAD_14)) {
+    sdpMediaAudioFormat->fmt = strdup("14");
+    sdpAudioRtpMap->clock_rate = 90000;
+  } else {
+    sdpMediaAudioFormat->fmt = strdup("97");
+  }
+	    
+  sdpAudioRtpMap->encode_name = strdup("MPA");
+  
+  sdpMediaAudioFormat->rtpmap = sdpAudioRtpMap;
+	
+  return sdpMediaAudio;
+
+}
+
+static bool lame_set_rtp_header (struct iovec *iov,
+				 int queue_cnt,
+				 void *ud)
+{
+  *(uint32_t *)ud = 0;
+  iov[0].iov_base = ud;
+  iov[0].iov_len = 4;
+  return true;
+}
+
+static bool lame_set_rtp_jumbo (struct iovec *iov,
+				uint32_t dataOffset,
+				uint32_t bufferLen,
+				uint32_t rtpPacketMax,
+				bool &mbit,
+				void *ud)
+{
+  uint8_t *payloadHeader = (uint8_t *)ud;
+  uint32_t send;
+
+  payloadHeader[0] = 0;
+  payloadHeader[1] = 0;
+  payloadHeader[2] = (dataOffset >> 8);
+  payloadHeader[3] = (dataOffset & 0xff);
+
+  send = MIN(bufferLen - dataOffset, rtpPacketMax - 4);
+
+  iov[0].iov_base = payloadHeader;
+  iov[0].iov_len = 4;
+  iov[1].iov_len = send;
+
+  mbit = (dataOffset == 0);
+  return true;
+}
+
+bool lame_get_audio_rtp_info (CLiveConfig *pConfig,
+			      MediaType *audioFrameType,
+			      uint32_t *audioTimeScale,
+			      uint8_t *audioPayloadNumber,
+			      uint8_t *audioPayloadBytesPerPacket,
+			      uint8_t *audioPayloadBytesPerFrame,
+			      uint8_t *audioQueueMaxCount,
+			      audio_set_rtp_header_f *audio_set_header,
+			      audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
+			      void **ud)
+{
+  *audioFrameType = MP3AUDIOFRAME;
+  if (pConfig->GetBoolValue(CONFIG_RTP_USE_MP3_PAYLOAD_14)) {
+    *audioPayloadNumber = 14;
+    *audioTimeScale = 90000;
+  } else {
+    *audioPayloadNumber = 97;
+    *audioTimeScale = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+  }
+  *audioPayloadBytesPerPacket = 4;
+  *audioPayloadBytesPerFrame = 0;
+  *audioQueueMaxCount = 8;
+  *audio_set_header = lame_set_rtp_header;
+  *audio_set_jumbo = lame_set_rtp_jumbo;
+  *ud = malloc(4);
+  memset(*ud, 0, 4);
+  return true;
+}
+
 
 CLameAudioEncoder::CLameAudioEncoder()
 {
@@ -32,40 +159,18 @@ CLameAudioEncoder::CLameAudioEncoder()
 bool CLameAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 {
 	m_pConfig = pConfig;
-
-#ifdef OLD_LAME
-	lame_init(&m_lameParams);
-	m_lameParams.num_channels = 
-		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
-	m_lameParams.in_samplerate = 
-		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
-	m_lameParams.brate = 
-		m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE);
-	m_lameParams.mode = 0;
-	m_lameParams.quality = 2;
-	m_lameParams.silent = 1;
-	m_lameParams.gtkflag = 0;
-
-	lame_init_params(&m_lameParams);
-
-	if (m_lameParams.in_samplerate != m_lameParams.out_samplerate) {
-		error_message("warning: lame audio sample rate mismatch");	
-
-		m_pConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE, 
-			m_lameParams.out_samplerate);
-	}
-#else
 	if ((m_lameParams = lame_init()) == NULL) {
 		error_message("error: failed to get lame_global_flags");
 		return false;
 	} 
 	lame_set_num_channels(m_lameParams,
-		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
+			      m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
 	lame_set_in_samplerate(m_lameParams,
-		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+			       m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
 	lame_set_brate(m_lameParams,
-		m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE));
-	lame_set_mode(m_lameParams,(m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 1 ? MONO : STEREO));		
+		       m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE) / 1000);
+	lame_set_mode(m_lameParams,
+		      (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 1 ? MONO : STEREO));		
 	lame_set_quality(m_lameParams,2);
 
 	// no match for silent flag
@@ -80,11 +185,12 @@ bool CLameAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 		return false;
 	}
 	if (lame_get_in_samplerate(m_lameParams) != lame_get_out_samplerate(m_lameParams)) {
-		error_message("warning: lame audio sample rate mismatch");
+		error_message("warning: lame audio sample rate mismatch - wanted %d got %d",
+			      lame_get_in_samplerate(m_lameParams), 
+			      lame_get_out_samplerate(m_lameParams));
 		m_pConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE,
 			lame_get_out_samplerate(m_lameParams));
 	}
-#endif
 
 	m_samplesPerFrame = MP4AV_Mp3GetSamplingWindow(
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
@@ -110,83 +216,65 @@ u_int32_t CLameAudioEncoder::GetSamplesPerFrame()
 }
 
 bool CLameAudioEncoder::EncodeSamples(
-	u_int16_t* pBuffer, 
-	u_int32_t bufferLength,
+	int16_t* pSamples, 
+	u_int32_t numSamplesPerChannel,
 	u_int8_t numChannels)
 {
-	if (numChannels == 1) {
-		return EncodeSamples(pBuffer, pBuffer, bufferLength);
+	if (numChannels != 1 && numChannels != 2) {
+		return false;	// invalid numChannels
+	}
 
-	} else if (numChannels == 2) {
-		bool rc;
-		u_int16_t* leftBuffer = NULL;
-		u_int16_t* rightBuffer = NULL;
-
-		DeinterleaveStereoSamples(
-			pBuffer, 
-			bufferLength / 2, 
-			&leftBuffer, 
-			&rightBuffer);
-
-		rc = EncodeSamples(leftBuffer, rightBuffer, bufferLength / 2);
-		
-		free(leftBuffer);
-		free(rightBuffer);
-
-		return rc; 
-	} 
-	// invalid numChannels
-	return false;	
-}
-
-bool CLameAudioEncoder::EncodeSamples(
-	u_int16_t* pLeftBuffer, 
-	u_int16_t* pRightBuffer, 
-	u_int32_t bufferLength)
-{
 	u_int32_t mp3DataLength = 0;
 
-	if (pLeftBuffer) {
-#ifdef OLD_LAME
-		if (m_lameParams.num_channels == 1)
-		{
-			pRightBuffer = NULL;
-		}
-#else
-		//LAME doesn't seem to like one channel input but like to downsample stereo to mono.
-		if (lame_get_num_channels(m_lameParams) == 1)
-		{
-			pRightBuffer = pLeftBuffer;
-		}
-#endif
+	if (pSamples != NULL) { 
+		int16_t* pLeftBuffer = NULL;
+		bool mallocedLeft = false;
+		int16_t* pRightBuffer = NULL;
+		bool mallocedRight = false;
+
+		if (numChannels == 1) {
+		  pLeftBuffer = pSamples;
+
+		  // both right and left need to be the same - can't 
+		  // pass NULL as pRightBuffer
+		  pRightBuffer = pSamples;
+
+		} else { // numChannels == 2
+		  // let lame handle stereo to mono conversion
+			DeinterleaveStereoSamples(
+				pSamples, 
+				numSamplesPerChannel,
+				&pLeftBuffer, 
+				&pRightBuffer);
+
+			mallocedLeft = true;
+			mallocedRight = true;
+		} 
 
 		// call lame encoder
 		mp3DataLength = lame_encode_buffer(
-#ifdef OLD_LAME
-			&m_lameParams,
-#else
 			m_lameParams,
-#endif
-			(short*)pLeftBuffer, 
-			(short*)pRightBuffer, 
+			pLeftBuffer, 
+			pRightBuffer, 
 			m_samplesPerFrame,
-#ifdef OLD_LAME
-			(char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
-#else
 			(unsigned char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
-#endif
 			m_mp3FrameBufferSize - m_mp3FrameBufferLength);
 
-	} else { // pLeftBuffer == NULL, signal to stop encoding
-		mp3DataLength = lame_encode_finish(
-#ifdef OLD_LAME
-			&m_lameParams,
-			(char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
-#else
-			m_lameParams,
-			(unsigned char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
-#endif
-			m_mp3FrameBufferSize - m_mp3FrameBufferLength);
+		if (mallocedLeft) {
+			free(pLeftBuffer);
+			pLeftBuffer = NULL;
+		}
+		if (mallocedRight) {
+			free(pRightBuffer);
+			pRightBuffer = NULL;
+		}
+
+	} else { // pSamples == NULL
+		// signal to stop encoding
+	  mp3DataLength = 
+	    lame_encode_flush( m_lameParams,
+			       (unsigned char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
+			       m_mp3FrameBufferSize - m_mp3FrameBufferLength);
 	}
 
 	m_mp3FrameBufferLength += mp3DataLength;
@@ -194,10 +282,10 @@ bool CLameAudioEncoder::EncodeSamples(
 	return (mp3DataLength > 0);
 }
 
-bool CLameAudioEncoder::GetEncodedSamples(
+bool CLameAudioEncoder::GetEncodedFrame(
 	u_int8_t** ppBuffer, 
 	u_int32_t* pBufferLength,
-	u_int32_t* pNumSamples)
+	u_int32_t* pNumSamplesPerChannel)
 {
 	const u_int8_t* mp3Frame;
 	u_int32_t mp3FrameLength;
@@ -229,7 +317,7 @@ bool CLameAudioEncoder::GetEncodedSamples(
 
 	m_mp3FrameBufferLength -= mp3FrameLength;
 
-	*pNumSamples = m_samplesPerFrame;
+	*pNumSamplesPerChannel = m_samplesPerFrame;
 
 	return true;
 }
@@ -238,5 +326,7 @@ void CLameAudioEncoder::Stop()
 {
 	free(m_mp3FrameBuffer);
 	m_mp3FrameBuffer = NULL;
+	lame_close(m_lameParams);
+	m_lameParams = NULL;
 }
 

@@ -49,6 +49,7 @@ CLiveConfig::~CLiveConfig()
 {
 	delete m_videoCapabilities;
 	delete m_audioCapabilities;
+	CHECK_AND_FREE(m_videoMpeg4Config);
 }
 
 // recalculate derived values
@@ -164,7 +165,7 @@ void CLiveConfig::UpdateRecord()
 		}
 		if (GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
 			audioBytesPerSec +=
-				(GetIntegerValue(CONFIG_AUDIO_BIT_RATE) * 1000) / 8;
+				(GetIntegerValue(CONFIG_AUDIO_BIT_RATE)) / 8;
 		}
 	}
 

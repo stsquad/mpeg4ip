@@ -224,7 +224,14 @@ Void CVideoObjectDecoder::decodeIntraTCOEF (Int* rgiCoefQ, Int iCoefStart, Int* 
 	// Added for short headers by KPN (1998-02-07, DS)
 		if (short_video_header) 
 		{ // H.263
-			lIndex = m_pentrdecSet->m_pentrdecDCT->decodeSymbol();															
+#ifdef	DEBUG_FW
+		    printf("iso h263 INTRA pos %d ", 
+			   m_pentrdecSet->m_pentrdecDCT->bitstream()->get_used_bits());
+#endif
+                        lIndex = m_pentrdecSet->m_pentrdecDCT->decodeSymbol();
+#ifdef	DEBUG_FW
+		    printf("lIndex %ld\n", lIndex);
+#endif
 		}
 		else
 		{	// MPEG-4
@@ -312,7 +319,9 @@ Void CVideoObjectDecoder::decodeEscape (Int& iLevel, Int& iRun, Int& bIsLastRun,
 		if (iLevelIndex==0||iLevelIndex==128) 
 		{
 			fprintf(stderr,"Short header mode. Levels 0 and 128 are not allowed\n");
+#if 0		    
 			exit(2);
+#endif
 		}
 		if (iLevelIndex >=0 && iLevelIndex <128) 
 		{
@@ -331,6 +340,9 @@ Void CVideoObjectDecoder::decodeInterTCOEF (Int* rgiCoefQ, Int iCoefStart, Int* 
 	Int	 iLevel = 0;
 	Int  iCoef = iCoefStart;
 	Long lIndex;
+#ifdef	DEBUG_FW
+    printf("iso h263 INTER coeff pos %d\n", m_pentrdecSet->m_pentrdecDCT->bitstream()->get_used_bits());
+#endif
 	while (!bIsLastRun) {
 		lIndex = m_pentrdecSet->m_pentrdecDCT->decodeSymbol();
 		if (lIndex != TCOEF_ESCAPE)	{							// if Huffman

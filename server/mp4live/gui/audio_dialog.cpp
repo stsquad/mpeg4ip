@@ -67,7 +67,8 @@ static char* channelNames[] = {
 static u_int8_t channelIndex;
 
 static char* encodingNames[] = {
-	"MP3", "AAC"
+  AUDIO_ENCODING_MP3,
+  AUDIO_ENCODING_AAC,
 };
 static u_int8_t encodingIndex;
 
@@ -83,15 +84,15 @@ static const u_int32_t samplingRateAllValues[] = {
 };
 
 // union of valid bit rates for MP3 and AAC
-static const u_int16_t bitRateAllValues[] = {
-	8, 16, 24, 32, 40, 48, 
-	56, 64, 80, 96, 112, 128, 
-	144, 160, 192, 224, 256, 320
+static const u_int32_t bitRateAllValues[] = {
+	8000, 16000, 24000, 32000, 40000, 48000, 
+	56000, 64000, 80000, 96000, 112000, 128000, 
+	144000, 160000, 192000, 224000, 256000, 320000
 };
 static const u_int8_t bitRateAllNumber =
-	sizeof(bitRateAllValues) / sizeof(u_int16_t);
+	sizeof(bitRateAllValues) / sizeof(bitRateAllValues[0]);
 
-static u_int16_t bitRateValues[bitRateAllNumber];
+static u_int32_t bitRateValues[bitRateAllNumber];
 static char* bitRateNames[bitRateAllNumber];
 static u_int8_t bitRateIndex;
 static u_int8_t bitRateNumber = 0; // how many bit rates
@@ -101,6 +102,8 @@ static void CreateSamplingRateMenu(CAudioCapabilities* pNewAudioCaps);
 static void CreateBitRateMenu();
 static void SetSamplingRate(u_int32_t samplingRate);
 
+#define ENCODING_IDX_MP3 0
+#define ENCODING_IDX_AAC 1
 
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
@@ -228,11 +231,12 @@ static void on_source_entry_changed(GtkWidget *widget, gpointer *data)
 	}
 }
 
-static void on_source_leave(GtkWidget *widget, gpointer *data)
+static int on_source_leave(GtkWidget *widget, gpointer *data)
 {
 	if (source_modified) {
 		ChangeSource();
 	}
+	return FALSE;
 }
 
 static void on_source_list_changed(GtkWidget *widget, gpointer *data)
@@ -306,14 +310,16 @@ void CreateSamplingRateMenu(CAudioCapabilities* pNewAudioCaps)
 
 	for (i = 0; i < maxSamplingRateNumber; i++) {
 
+	  switch (encodingIndex) {
+	  case ENCODING_IDX_MP3:
 		// MP3 can't use all the possible sampling rates
-		if (encodingIndex == 0) {
 			// skip the ones it can't handle
 			// MP3 can't handle anything less than 8000
 			// LAME MP3 encoder has additional lower bound at 16000
 			if (samplingRates[i] < 16000 || samplingRates[i] > 48000) {
 				continue;
 			}
+			break;
 		}
 
 		char buf[64];
@@ -391,18 +397,19 @@ void CreateBitRateMenu()
 
 		// MP3 can't use all the possible bit rates
 		// LAME imposes additional constraints
-		if (encodingIndex == 0) {
+	  switch (encodingIndex) {
+	  case ENCODING_IDX_MP3:
 			if (samplingRate >= 32000) {
 				// MPEG-1
 
-				if (bitRateAllValues[i] < 40
-				  || bitRateAllValues[i] == 144) {
+				if (bitRateAllValues[i] < 40000
+				  || bitRateAllValues[i] == 144000) {
 					continue;
 				}
-				if (samplingRate >= 44100 && bitRateAllValues[i] < 56) {
+				if (samplingRate >= 44100 && bitRateAllValues[i] < 56000) {
 					continue;
 				}
-				if (samplingRate >= 48000 && bitRateAllValues[i] < 64) {
+				if (samplingRate >= 48000 && bitRateAllValues[i] < 64000) {
 					continue;
 				}
 
@@ -410,15 +417,20 @@ void CreateBitRateMenu()
 				// MPEG-2 or MPEG-2.5
 
 				if (samplingRate > 16000) {
-					if (bitRateAllValues[i] < 32) {
+					if (bitRateAllValues[i] >= 8000 && bitRateAllValues[i] < 32000) {
 						continue;
 					}
 				}
 
-				if (bitRateAllValues[i] > 160) {
+				if (bitRateAllValues[i] > 160000) {
 					continue;
 				}
 			}
+			break;
+	  case ENCODING_IDX_AAC:
+	    if (bitRateAllValues[i] < 8000) continue;
+	    break;
+
 		}
 
 		char buf[64];
@@ -487,12 +499,15 @@ static bool ValidateAndSave(void)
 	MyConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS, 
 		channelValues[channelIndex]);
 
-	if (encodingIndex == 1) {
-		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODING, AUDIO_ENCODING_AAC);
-		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODER, AUDIO_ENCODER_FAAC);
-	} else {
+	switch (encodingIndex) {
+	case ENCODING_IDX_MP3:
 		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODING, AUDIO_ENCODING_MP3);
 		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODER, AUDIO_ENCODER_LAME);
+		break;
+	case ENCODING_IDX_AAC:
+		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODING, AUDIO_ENCODING_AAC);
+		MyConfig->SetStringValue(CONFIG_AUDIO_ENCODER, AUDIO_ENCODER_FAAC);
+		break;
 	}
 
 	MyConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE, 
@@ -530,6 +545,7 @@ void CreateAudioDialog (void)
 	GtkWidget* hbox2;
 	GtkWidget* label;
 	GtkWidget* button;
+	const char *audioEncoding;
 
 	pAudioCaps = MyConfig->m_audioCapabilities;
 
@@ -583,7 +599,7 @@ void CreateAudioDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
-	label = gtk_label_new("   Bit Rate (kbps):");
+	label = gtk_label_new("   Bit Rate (bps):");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
@@ -672,11 +688,14 @@ void CreateAudioDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
-	if (!strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
-	  AUDIO_ENCODING_AAC)) {
-		encodingIndex = 1;
+	audioEncoding = 
+	  MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+	if (strcasecmp(audioEncoding, AUDIO_ENCODING_MP3) == 0) {
+	  encodingIndex = ENCODING_IDX_MP3;
+	} else if (strcasecmp(audioEncoding, AUDIO_ENCODING_AAC) == 0) {
+	  encodingIndex = ENCODING_IDX_AAC;
 	} else {
-		encodingIndex = 0;
+	  encodingIndex = ENCODING_IDX_MP3;
 	}
 	encoding_menu = CreateOptionMenu (NULL,
 		encodingNames, 

@@ -60,6 +60,7 @@ class CMsgQueue {
 	  uint32_t param, 
 	  SDL_sem *sem = NULL);
   CMsg *get_message(void);
+  void *show_message(void) { return m_msg_queue; };
  private:
   int send_message(CMsg *msg, SDL_sem *sem);
   CMsg *m_msg_queue;

@@ -73,7 +73,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
       psptr->pause_all_media();
       session_paused = 1;
     } else {
-      psptr->play_all_media(FALSE);
+      if (psptr->play_all_media(FALSE) < 0) return -1;
       session_paused = 0;
     }
     break;
@@ -82,7 +82,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
     return 0;
   case SDLK_HOME:
     psptr->pause_all_media();
-    psptr->play_all_media(TRUE, 0.0);
+    if (psptr->play_all_media(TRUE, 0.0) < 0) return -1;
     break;
   case SDLK_RIGHT:
     if (psptr->session_is_seekable()) {
@@ -98,7 +98,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
       maxtime = psptr->get_max_time();
       if (ptime < maxtime) {
 	psptr->pause_all_media();
-	psptr->play_all_media(FALSE, ptime);
+	if (psptr->play_all_media(FALSE, ptime) < 0) return -1;
       }
     }
     break;
@@ -115,7 +115,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
 		play_time;
 	ptime /= 1000.0;
 	psptr->pause_all_media();
-	psptr->play_all_media(FALSE, ptime);
+	if (psptr->play_all_media(FALSE, ptime) < 0) return -1;
       }
     }
     break;
@@ -261,9 +261,8 @@ int main (int argc, char **argv)
     argv++;
   }
   if (*argv == NULL) {
-    //name = "rtsp://171.71.233.210/bond_new.mov";
-    //name = "rtsp://171.71.233.210/batman_a.mov";
-    name = "/home/wmay/content/bond.mov";
+    player_error_message("usage - mp4player [-l] <content>");
+    exit(-1);
   } else {
     name = *argv;
   }

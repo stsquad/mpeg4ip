@@ -62,17 +62,19 @@ int encoder_create(XVID_ENC_PARAM * pParam)
 	// simplify the "fincr/fbase" fraction
 	// (neccessary, since windows supplies us with huge numbers)
 
-	i = pParam->fincr;
-	while (i > 1)
-	{
-		if (pParam->fincr % i == 0 && pParam->fbase % i == 0)
+	if (pParam->dont_simplify_fincr == 0) {
+	  i = pParam->fincr;
+	  while (i > 1)
+	    {
+	      if (pParam->fincr % i == 0 && pParam->fbase % i == 0)
 		{
-			pParam->fincr /= i;
-			pParam->fbase /= i;
-			i = pParam->fincr;
-			continue;
+		  pParam->fincr /= i;
+		  pParam->fbase /= i;
+		  i = pParam->fincr;
+		  continue;
 		}
-		i--;
+	      i--;
+	    }
 	}
 
 	if (pParam->fbase > 65535)

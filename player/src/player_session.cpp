@@ -340,7 +340,10 @@ void CPlayerSession::set_up_sync_thread(void)
 /*
  * play_all_media - get all media to play
  */
-int CPlayerSession::play_all_media (int start_from_begin, double start_time)
+int CPlayerSession::play_all_media (int start_from_begin, 
+				    double start_time,
+				    char *errmsg, 
+				    uint32_t errlen)
 {
   int ret;
   CPlayerMedia *p;
@@ -400,6 +403,11 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
 				 m_sdp_info->control_string,
 				 &cmd,
 				 &decode) != 0) {
+      if (errmsg != NULL) {
+	snprintf(errmsg, errlen, "RTSP Aggregate Play Error %s-%s", 
+		 decode->retcode,
+		 decode->retresp != NULL ? decode->retresp : "");
+      }
       player_debug_message("RTSP aggregate play command failed");
       free_decode_response(decode);
       return (-1);
@@ -412,13 +420,16 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
     int ret = process_rtsp_rtpinfo(decode->rtp_info, this, NULL);
     free_decode_response(decode);
     if (ret < 0) {
+      if (errmsg != NULL) {
+	snprintf(errmsg, errlen, "RTSP aggregate RtpInfo response failure");
+      }
       player_debug_message("rtsp aggregate rtpinfo failed");
       return (-1);
     }
   }
 
   while (p != NULL) {
-    ret = p->do_play(start_time);
+    ret = p->do_play(start_time, errmsg, errlen);
     if (ret != 0) return (ret);
     p = p->get_next();
   }

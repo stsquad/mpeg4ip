@@ -166,7 +166,6 @@ EXTRA_DIST = \
 	audio_dummy.h \
 	libmpplayer60.dsp \
 	mp4player60.dsp \
-	mp4player60.dsw \
 	player60.dsw \
 	wmp4player60.dsp
 

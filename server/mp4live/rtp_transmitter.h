@@ -25,22 +25,47 @@
 
 #include <rtp/rtp.h>
 #include "media_sink.h"
+#include "audio_encoder.h"
 
+class CRtpDestination
+{
+ public:
+  CRtpDestination(uint32_t refNum,
+		  char *destAddr, 
+		  in_port_t destPort,
+		  in_port_t srcPort,
+		  uint8_t payloadNumber,
+		  int mcast_ttl, 
+		  float rtcp_bandwidth);
+  ~CRtpDestination();
+  void start(void);
+  void send_rtcp(u_int32_t rtpTimestamp,
+		 u_int64_t ntpTimestamp);
+  int send_iov(struct iovec *piov,
+	       int iovCount,
+	       u_int32_t rtpTimestamp,
+	       int mbit);
+  CRtpDestination *get_next(void) { return m_next;};
+  void set_next (CRtpDestination *p) { m_next = p; };
+  uint32_t get_ref_num (void) { return m_refNum; } ;
+ protected:
+  uint32_t m_refNum;
+  CRtpDestination *m_next;
+  char *m_destAddr;
+  in_port_t m_destPort;
+  in_port_t m_srcPort;
+  uint32_t m_timeScale;
+  uint8_t m_payloadNumber;
+  int m_mcast_ttl;
+  float m_rtcp_bandwidth;
+  struct rtp *m_rtpSession;
+};
+
+#define DEFAULT_RTCP_BW (100.0)
 class CRtpTransmitter : public CMediaSink {
 public:
-	CRtpTransmitter() {
-		m_rtcpBandwidth = 100.0;
-
-		m_audioDestAddress = NULL;
-		m_audioRtpSession = NULL;
-		m_audioPayloadNumber = 97;
-
-		m_videoDestAddress = NULL;
-		m_videoRtpSession = NULL;
-		m_videoPayloadNumber = 96;
-		m_videoTimeScale = 90000;
-	}
-
+        CRtpTransmitter(CLiveConfig *pConfig);
+	~CRtpTransmitter();
 	static void SeedRandom(void) {
 		static bool once = false;
 		if (!once) {
@@ -85,7 +110,28 @@ public:
 		return (u_int16_t)(20000 + ((random() >> 18) << 2));
 
 	}
+	void CreateVideoRtpDestination (uint32_t ref,
+					char *destAddress,
+					in_port_t destPort,
+					in_port_t srcPort);
+	void CreateAudioRtpDestination (uint32_t ref,
+					char *destAddress,
+					in_port_t destPort,
+					in_port_t srcPort);
+	
+	static const uint32_t MSG_RTP_DEST_START = 8192;
+	static const uint32_t MSG_RTP_DEST_STOP  = MSG_RTP_DEST_START + 1;
 
+	void StartRtpDestination (uint32_t RtpDestinationHandle) {
+	  m_myMsgQueue.send_message(MSG_RTP_DEST_START, 
+				    RtpDestinationHandle,
+				    m_myMsgQueueSemaphore);
+	};
+	void StopRtpDestination (uint32_t RtpDestinationHandle) {
+	  m_myMsgQueue.send_message(MSG_RTP_DEST_STOP, 
+				    RtpDestinationHandle,
+				    m_myMsgQueueSemaphore);
+	};
 protected:
 	int ThreadMain(void);
 
@@ -98,17 +144,29 @@ protected:
 	void SendQueuedAudioFrames(void);
 
 	void SendMpeg4VideoWith3016(CMediaFrame* pFrame);
+	void DoStartRtpDestination(uint32_t handle);
+	void DoStopRtpDestination(uint32_t handle);
 
 	u_int32_t AudioTimestampToRtp(Timestamp t) {
-		return (u_int32_t)(((t - m_startTimestamp) 
-			* m_audioTimeScale) / TimestampTicks)
-			+ m_audioRtpTimestampOffset;
+	  if (m_haveAudioStartTimestamp) {
+	    return (u_int32_t)(((t - m_audioStartTimestamp) 
+				* m_audioTimeScale) / TimestampTicks)
+	      + m_audioRtpTimestampOffset;
+	  } 
+	  m_audioStartTimestamp = t;
+	  m_haveAudioStartTimestamp = true;
+	  return m_audioRtpTimestampOffset;  
 	}
 
 	u_int32_t VideoTimestampToRtp(Timestamp t) {
-		return (u_int32_t)(((t - m_startTimestamp) 
-			* m_videoTimeScale) / TimestampTicks)
-			+ m_videoRtpTimestampOffset;
+	  if (m_haveVideoStartTimestamp) {
+	    return (u_int32_t)(((t - m_videoStartTimestamp) 
+				* m_videoTimeScale) / TimestampTicks)
+	      + m_videoRtpTimestampOffset;
+	  }
+	  m_videoStartTimestamp = t;
+	  m_haveVideoStartTimestamp = true;
+	  return m_videoRtpTimestampOffset;
 	}
 
 	static const u_int32_t SECS_BETWEEN_1900_1970 = 2208988800U;
@@ -129,33 +187,35 @@ protected:
 	}
 
 protected:
-	Timestamp		m_startTimestamp;
-	float			m_rtcpBandwidth;
+	bool m_haveAudioStartTimestamp;
+	bool m_haveVideoStartTimestamp;
+	Timestamp		m_audioStartTimestamp;
+	Timestamp		m_videoStartTimestamp;
 
-	char*			m_videoDestAddress;
-	struct rtp*		m_videoRtpSession;
+	SDL_mutex *m_destListMutex;
+	CRtpDestination  *m_videoRtpDestination;
+	CRtpDestination  *m_audioRtpDestination;
+
 	u_int8_t		m_videoPayloadNumber;
 	u_int32_t		m_videoTimeScale;
 	u_int32_t		m_videoRtpTimestampOffset;
 	u_int16_t		m_videoSrcPort;
 
 	MediaType		m_audioFrameType;
-	char*			m_audioDestAddress;
-	struct rtp*		m_audioRtpSession;
 	u_int8_t		m_audioPayloadNumber;
 	u_int32_t		m_audioTimeScale;
 	u_int32_t		m_audioRtpTimestampOffset;
 	u_int16_t		m_audioSrcPort;
 	u_int8_t		m_audioPayloadBytesPerPacket;
 	u_int8_t		m_audioPayloadBytesPerFrame;
-
-	// this value chosen to keep queuing latency reasonable
-	// i.e. on the order of 100's of ms
-	static const u_int8_t audioQueueMaxCount = 8;
-
-	CMediaFrame*	m_audioQueue[audioQueueMaxCount];
-	u_int8_t		m_audioQueueCount;
-	u_int16_t		m_audioQueueSize;
+	audio_set_rtp_header_f  m_audio_set_rtp_header;
+	audio_set_rtp_jumbo_frame_f m_audio_set_rtp_jumbo_frame;
+	void *m_audio_rtp_userdata;
+	CMediaFrame**	m_audioQueue;
+	u_int8_t		m_audioQueueCount;	// number of frames
+	u_int8_t		m_audioQueueMaxCount;	// max number of frames
+	u_int16_t		m_audioQueueSize;	// bytes for RTP packet payload
 };
 
+  
 #endif /* __RTP_TRANSMITTER_H__ */

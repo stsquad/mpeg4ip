@@ -79,6 +79,10 @@ Each supported media codec derives a class from the appropriate abstract
 class, and provides code to map the generic interface to that provided by
 the codec library.
 
+Each encoder type also has a number of calls to set various variables for
+rtp transmission or saving to an mp4 file.  These are also defined in
+audio_encoder.h and video_encoder.h
+
 Media Frames
 ============
 
@@ -131,7 +135,7 @@ OSS - audio_oss_source.cpp
 
 List of Codecs
 ==============
-Lame -> MP3 - audio_lame.cpp, mpeg4ip/server/audio/lame
+Lame -> MP3 - audio_lame.cpp, installed from lame version 3.92 or later
 
 FAAC -> AAC - audio_facc.cpp, mpeg4ip/server/audio/faac
 

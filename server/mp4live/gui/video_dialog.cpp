@@ -73,15 +73,15 @@ static u_int32_t trackIndex;
 static u_int32_t trackNumber;	// how many tracks total
 static u_int32_t* trackValues = NULL;
 
-static u_int16_t sizeWidthValues[] = {
+static u_int16_t mpeg4SizeWidthValues[] = {
 	128, 176, 320, 352, 352,
 	640, 704, 704, 720, 720, 768
 };
-static u_int16_t sizeHeightValues[] = {
+static u_int16_t mpeg4SizeHeightValues[] = {
 	96, 144, 240, 288, 480,
 	480, 480, 576, 480, 576, 576
 };
-static char* sizeNames[] = {
+static char* mpeg4SizeNames[] = {
 	"128 x 96 SQCIF", 
 	"176 x 144 QCIF",
 	"320 x 240 SIF",
@@ -93,7 +93,9 @@ static char* sizeNames[] = {
 	"720 x 480 NTSC CCIR601",
 	"720 x 576 PAL CCIR601",
 	"768 x 576 PAL SQ Pixel"
-};
+}; 
+static u_int16_t* sizeWidthValues = mpeg4SizeWidthValues;
+static u_int16_t* sizeHeightValues = mpeg4SizeHeightValues;
 static u_int8_t sizeIndex;
 static u_int8_t sizeMaxIndex;
 
@@ -216,7 +218,7 @@ void CreateInputMenu(CVideoCapabilities* pNewVideoCaps)
 
 static void SourceV4LDevice()
 {
-	const gchar *newSourceName =
+	const char *newSourceName =
 		gtk_entry_get_text(GTK_ENTRY(source_entry));
 
 	// don't probe the already open device!
@@ -268,7 +270,7 @@ static void on_no_default_file_audio_source (GtkWidget *widget, gpointer *data)
 
 static void ChangeSource()
 {
-	const gchar* new_source_name =
+	const char* new_source_name =
 		gtk_entry_get_text(GTK_ENTRY(source_entry));
 
 	if (!strcmp(new_source_name, source_name)) {
@@ -338,11 +340,12 @@ static void on_source_entry_changed(GtkWidget *widget, gpointer *data)
 	}
 }
 
-static void on_source_leave(GtkWidget *widget, gpointer *data)
+static int on_source_leave(GtkWidget *widget, gpointer *data)
 {
 	if (source_modified) {
 		ChangeSource();
 	}
+	return FALSE;
 }
 
 static void on_source_list_changed(GtkWidget *widget, gpointer *data)
@@ -355,13 +358,12 @@ static void on_source_list_changed(GtkWidget *widget, gpointer *data)
 
 char* GetChannelName(size_t index, void* pUserData)
 {
-	return ((struct CHANNEL*)pUserData)[index].name;
+	return ((struct CHANLIST*)pUserData)[index].name;
 }
 
 static void CreateChannelCombo()
 {
-	struct CHANNEL_LIST* pChannelList =
-		ListOfChannelLists[signalIndex];
+  struct CHANLISTS* pChannelList = chanlists;
 
 	GList* list = NULL;
 	for (int i = 0; i < pChannelList[channelListIndex].count; i++) {
@@ -369,7 +371,6 @@ static void CreateChannelCombo()
 			pChannelList[channelListIndex].list[i].name);
 	}
 
-	channel_combo = gtk_combo_new();
 	gtk_combo_set_popdown_strings(GTK_COMBO(channel_combo), list);
 	// although we do want to limit the combo choices to the ones we provide
 	// this call results is some odd UI behaviors
@@ -401,13 +402,12 @@ static void on_channel_list_menu_activate(GtkWidget *widget, gpointer data)
 
 char* GetChannelListName(size_t index, void* pUserData)
 {
-	return ((struct CHANNEL_LIST*)pUserData)[index].name;
+	return ((struct CHANLISTS*)pUserData)[index].name;
 }
 
 static void CreateChannelListMenu()
 {
-	struct CHANNEL_LIST* pChannelList =
-		ListOfChannelLists[signalIndex];
+  struct CHANLISTS* pChannelList = chanlists;
 
 	channel_list_menu = CreateOptionMenu(
 		channel_list_menu,
@@ -425,10 +425,27 @@ static void on_size_menu_activate(GtkWidget *widget, gpointer data)
 
 static void CreateSizeMenu()
 {
-	sizeMaxIndex = sizeof(sizeNames) / sizeof(char*);
-	if (signalIndex == 1) {
-		// NTSC can't support the two largest sizes
-		sizeMaxIndex -= 2;
+  char **names = mpeg4SizeNames;
+  
+  u_int16_t width = sizeWidthValues[sizeIndex];
+
+  names = mpeg4SizeNames;
+  sizeWidthValues = mpeg4SizeWidthValues;
+  sizeHeightValues = mpeg4SizeHeightValues;
+  sizeMaxIndex = sizeof(mpeg4SizeWidthValues) / sizeof(u_int16_t);
+  if (signalIndex == 1) {
+    // NTSC can't support the two largest sizes
+    sizeMaxIndex -= 2;
+  }
+	u_int8_t i;
+	for (i = 0; i < sizeMaxIndex; i++) {
+		if (sizeWidthValues[i] >= width) {
+			sizeIndex = i;
+			break;
+		}
+	}
+	if (i == sizeMaxIndex) {
+		sizeIndex = sizeMaxIndex - 1;
 	}
 
 	if (sizeIndex >= sizeMaxIndex) {
@@ -437,7 +454,7 @@ static void CreateSizeMenu()
 
 	size_menu = CreateOptionMenu(
 		size_menu,
-		sizeNames, 
+		names, 
 		sizeMaxIndex,
 		sizeIndex,
 		GTK_SIGNAL_FUNC(on_size_menu_activate));
@@ -592,9 +609,8 @@ static bool ValidateAndSave(void)
 
 	// extract channel index out of combo (not so simple)
 	GtkWidget* entry = GTK_COMBO(channel_combo)->entry;
-	const gchar* channelName = gtk_entry_get_text(GTK_ENTRY(entry));
-	struct CHANNEL_LIST* pChannelList =
-		ListOfChannelLists[signalIndex];
+	const char* channelName = gtk_entry_get_text(GTK_ENTRY(entry));
+	struct CHANLISTS* pChannelList = chanlists;
 	for (int i = 0; i < pChannelList[channelListIndex].count; i++) {
 		if (!strcmp(channelName, 
 		  pChannelList[channelListIndex].list[i].name)) {
@@ -677,7 +693,9 @@ void CreateVideoDialog (void)
 
 	gtk_window_set_title(GTK_WINDOW(dialog), "Video Settings");
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+#ifndef HAVE_GTK_2_0
 	gtk_container_set_resize_mode(GTK_CONTAINER(dialog), GTK_RESIZE_IMMEDIATE);
+#endif
 
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
@@ -794,6 +812,7 @@ void CreateVideoDialog (void)
 		MyConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
 
 	channel_combo = NULL;
+	channel_combo = gtk_combo_new();
 	CreateChannelCombo();
 
 	channel_list_menu = NULL;

@@ -100,12 +100,13 @@ bool ValidateAddress(GtkWidget* widget)
 	return false;
 }
 
-static void on_address_leave(GtkWidget *widget, gpointer *data)
+static int on_address_leave(GtkWidget *widget, gpointer *data)
 {
 	if (!address_modified) {
-		return;
+		return FALSE;
 	}
 	ValidateAddress(widget);
+	return FALSE;
 }
 
 bool ValidatePort(GtkWidget* entry, u_int16_t* port)
@@ -124,19 +125,20 @@ bool ValidatePort(GtkWidget* entry, u_int16_t* port)
 	return true;
 }
 
-static void on_port_leave(GtkWidget *widget, gpointer *data)
+static int on_port_leave(GtkWidget *widget, gpointer *data)
 {
 	if (widget == video_port_entry) {
 		if (!video_port_modified) {
-			return;
+			return FALSE;
 		}
 	} else { // widget == audio_port_entry
 		if (!audio_port_modified) {
-			return;
+			return FALSE;
 		}
 	}
 	
 	ValidatePort(widget, NULL);
+	return FALSE;
 }
 
 static void on_ttl_menu_activate (GtkWidget *widget, gpointer data)

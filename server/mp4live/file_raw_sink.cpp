@@ -144,16 +144,17 @@ void CRawFileSink::DoWriteFrame(CMediaFrame* pFrame)
 	}
 
 	if (m_sink) {
-		if (pFrame->GetType() == CMediaFrame::PcmAudioFrame 
+		if (pFrame->GetType() == PCMAUDIOFRAME 
 		  && m_pcmFile != -1) {
 			write(m_pcmFile, pFrame->GetData(), pFrame->GetDataLength());
 
-		} else if (pFrame->GetType() == CMediaFrame::YuvVideoFrame 
+		} else if (pFrame->GetType() == YUVVIDEOFRAME 
 		  && m_yuvFile != -1) {
 			write(m_yuvFile, pFrame->GetData(), pFrame->GetDataLength());
 		}
 	}
 	
-	delete pFrame;
+	if (pFrame->RemoveReference())
+	  delete pFrame;
 }
 

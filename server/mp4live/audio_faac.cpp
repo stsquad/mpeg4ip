@@ -21,6 +21,148 @@
 
 #include "mp4live.h"
 #include "audio_faac.h"
+#include "mp4.h"
+#include "mp4av.h"
+
+MediaType faac_mp4_fileinfo (CLiveConfig *pConfig,
+			     bool *mpeg4,
+			     bool *isma_compliant,
+			     uint8_t *audioProfile,
+			     uint8_t **audioConfig,
+			     uint32_t *audioConfigLen,
+			     uint8_t *mp4AudioType)
+{
+  *mpeg4 = true;
+  *isma_compliant = true;
+  *audioProfile = 0x0f;
+  if (mp4AudioType) *mp4AudioType = MP4_MPEG4_AUDIO_TYPE;
+
+  MP4AV_AacGetConfiguration(audioConfig,
+			    audioConfigLen,
+			    MP4AV_AAC_LC_PROFILE,
+			    pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
+			    pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
+  return AACAUDIOFRAME;
+}
+
+media_desc_t *faac_create_audio_sdp (CLiveConfig *pConfig,
+				     bool *mpeg4,
+				     bool *isma_compliant,
+				     uint8_t *audioProfile,
+				     uint8_t **audioConfig,
+				     uint32_t *audioConfigLen)
+{
+  media_desc_t *sdpMediaAudio;
+  format_list_t *sdpMediaAudioFormat;
+  rtpmap_desc_t *sdpAudioRtpMap;
+  char audioFmtpBuf[512];
+
+  faac_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile, audioConfig,
+		    audioConfigLen, NULL);
+
+  sdpMediaAudio = MALLOC_STRUCTURE(media_desc_t);
+  memset(sdpMediaAudio, 0, sizeof(*sdpMediaAudio));
+
+  sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
+			 strdup("a=mpeg4-esid:10"));
+  sdpMediaAudioFormat = MALLOC_STRUCTURE(format_list_t);
+  memset(sdpMediaAudioFormat, 0, sizeof(*sdpMediaAudioFormat));
+
+  sdpMediaAudioFormat->media = sdpMediaAudio;
+  sdpMediaAudioFormat->fmt = strdup("97");
+
+  sdpAudioRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
+  memset(sdpAudioRtpMap, 0, sizeof(*sdpAudioRtpMap));
+  sdpAudioRtpMap->clock_rate = 
+    pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+  sdpAudioRtpMap->encode_name = strdup("mpeg4-generic");
+	      
+  char* sConfig = 
+    MP4BinaryToBase16(*audioConfig, *audioConfigLen);
+	      
+  sprintf(audioFmtpBuf,
+	  "streamtype=5; profile-level-id=15; mode=AAC-hbr; config=%s; "
+	  "SizeLength=13; IndexLength=3; IndexDeltaLength=3; Profile=1;",
+	  sConfig); 
+  free(sConfig);
+	      
+  sdpMediaAudioFormat->fmt_param = strdup(audioFmtpBuf);
+  sdpMediaAudioFormat->rtpmap = sdpAudioRtpMap;
+
+  sdpMediaAudio->fmt = sdpMediaAudioFormat;
+  
+  return sdpMediaAudio;
+}
+
+#define AAC_MAX_FRAME_IN_RTP_PAK 8
+static bool faac_add_rtp_header (struct iovec *iov,
+				 int queue_cnt,
+				 void *ud)
+{
+  uint16_t numHdrBits = 16 * queue_cnt;
+  int ix;
+  uint8_t *aacHeader = (uint8_t *)ud;
+  aacHeader[0] = numHdrBits >> 8;
+  aacHeader[1] = numHdrBits & 0xff;
+
+  for (ix = 1; ix <= queue_cnt; ix++) {
+    aacHeader[2 + ((ix - 1) * 2)] = 
+      iov[ix].iov_len >> 5;
+    aacHeader[3 + ((ix - 1) * 2)] = 
+      (iov[ix].iov_len & 0x1f) << 3;
+  }
+  iov[0].iov_base = aacHeader;
+  iov[0].iov_len = 2 + (queue_cnt * 2);
+  return true;
+}
+
+static bool faac_set_rtp_jumbo_frame (struct iovec *iov,
+				      uint32_t dataOffset,
+				      uint32_t bufferLen,
+				      uint32_t rtpPayloadMax,
+				      bool &mbit, 
+				      void *ud)
+{
+  uint8_t *payloadHeader = (uint8_t *)ud;
+  if (dataOffset == 0) {
+    // first packet
+    mbit = false;
+    payloadHeader[0] = 0;
+    payloadHeader[1] = 16;
+    payloadHeader[2] = bufferLen >> 5;
+    payloadHeader[3] = (bufferLen & 0x1f) << 3;
+    iov[0].iov_base = payloadHeader;
+    iov[0].iov_len = 4;
+    iov[1].iov_len = MIN(rtpPayloadMax - 4, bufferLen);
+    return true;
+  } 
+  mbit = false;
+  iov[1].iov_len = MIN(bufferLen - dataOffset, rtpPayloadMax);
+  return false;
+}
+
+bool faac_get_audio_rtp_info (CLiveConfig *pConfig,
+			      MediaType *audioFrameType,
+			      uint32_t *audioTimeScale,
+			      uint8_t *audioPayloadNumber,
+			      uint8_t *audioPayloadBytesPerPacket,
+			      uint8_t *audioPayloadBytesPerFrame,
+			      uint8_t *audioQueueMaxCount,
+			      audio_set_rtp_header_f *audio_set_header,
+			      audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
+			      void **ud)
+{
+  *audioFrameType = AACAUDIOFRAME;
+  *audioTimeScale = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+  *audioPayloadNumber = 97;
+  *audioPayloadBytesPerPacket = 2;
+  *audioPayloadBytesPerFrame = 2;
+  *audioQueueMaxCount = AAC_MAX_FRAME_IN_RTP_PAK;
+  *audio_set_header = faac_add_rtp_header;
+  *audio_set_jumbo = faac_set_rtp_jumbo_frame;
+  *ud = malloc(2 + (2 * AAC_MAX_FRAME_IN_RTP_PAK));
+  return true;
+}
 
 CFaacAudioEncoder::CFaacAudioEncoder()
 {
@@ -54,7 +196,7 @@ bool CFaacAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	m_faacConfig->useAdts = false;
 
 	m_faacConfig->bitRate = 
-		(m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE) * 1000)
+	  m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE)
 		/ m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
 
 	faacEncSetConfiguration(m_faacHandle, m_faacConfig);
@@ -68,30 +210,28 @@ u_int32_t CFaacAudioEncoder::GetSamplesPerFrame()
 }
 
 bool CFaacAudioEncoder::EncodeSamples(
-	u_int16_t* pBuffer, 
-	u_int32_t bufferLength,
+	int16_t* pSamples, 
+	u_int32_t numSamplesPerChannel,
 	u_int8_t numChannels)
 {
-	u_int16_t* pInputBuffer = pBuffer;
-	bool inputBufferMalloced = false;
-	u_int32_t numInputSamples = bufferLength / sizeof(u_int16_t);
-	int rc = 0;
+	if (numChannels != 1 && numChannels != 2) {
+		return false;	// invalid numChannels
+	}
 
 	// check for signal to end encoding
-	if (pInputBuffer == NULL) {
+	if (pSamples == NULL) {
 		// unlike lame, faac doesn't need to finish up anything
 		return false;
 	}
+
+	int16_t* pInputBuffer = pSamples;
+	bool inputBufferMalloced = false;
 
 	// free old AAC buffer, just in case, should already be NULL
 	free(m_aacFrameBuffer);
 
 	// allocate the AAC buffer
-	m_aacFrameBuffer = (u_int8_t*)malloc(m_aacFrameMaxSize);
-
-	if (m_aacFrameBuffer == NULL) {
-		return false;
-	}
+	m_aacFrameBuffer = (u_int8_t*)Malloc(m_aacFrameMaxSize);
 
 	// check for channel mismatch between src and dst
 	if (numChannels != m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)) {
@@ -101,36 +241,29 @@ bool CFaacAudioEncoder::EncodeSamples(
 			inputBufferMalloced = true;
 
 			InterleaveStereoSamples(
-				pBuffer, 
-				pBuffer,
-				numInputSamples,
+				pSamples, 
+				pSamples,
+				numSamplesPerChannel,
 				&pInputBuffer);
 
-			numInputSamples *= 2;
-
-		} else if (numChannels == 2) {
+		} else { // numChannels == 2
 			// convert stereo to mono
 			pInputBuffer = NULL;
 			inputBufferMalloced = true;
 
 			DeinterleaveStereoSamples(
-				pBuffer, 
-				numInputSamples,
+				pSamples, 
+				numSamplesPerChannel,
 				&pInputBuffer, 
 				NULL);
-
-			numInputSamples /= 2;
-
-		} else {
-			// invalid numChannels
-			return false;
 		}
 	}
 
-	rc = faacEncEncode(
+	int rc = faacEncEncode(
 		m_faacHandle,
-		(short*)pInputBuffer,
-		numInputSamples,
+		pInputBuffer,
+		numSamplesPerChannel
+			* m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
 		m_aacFrameBuffer,
 		m_aacFrameMaxSize);
 
@@ -148,39 +281,14 @@ bool CFaacAudioEncoder::EncodeSamples(
 	return true;
 }
 
-bool CFaacAudioEncoder::EncodeSamples(
-	u_int16_t* pLeftBuffer, 
-	u_int16_t* pRightBuffer, 
-	u_int32_t bufferLength)
-{
-	if (pRightBuffer 
-	  && m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 2) {
-		u_int16_t* pPcmBuffer = NULL;
-
-		InterleaveStereoSamples(
-			pLeftBuffer, 
-			pRightBuffer,
-			bufferLength / sizeof(u_int16_t),
-			&pPcmBuffer);
-
-		bool rc = EncodeSamples(pPcmBuffer, bufferLength * 2, 2);
-
-		free(pPcmBuffer);
-
-		return rc;
-	}
-
-	return EncodeSamples(pLeftBuffer, bufferLength, 1);
-}
-
-bool CFaacAudioEncoder::GetEncodedSamples(
+bool CFaacAudioEncoder::GetEncodedFrame(
 	u_int8_t** ppBuffer, 
 	u_int32_t* pBufferLength,
-	u_int32_t* pNumSamples)
+	u_int32_t* pNumSamplesPerChannel)
 {
 	*ppBuffer = m_aacFrameBuffer;
 	*pBufferLength = m_aacFrameBufferLength;
-	*pNumSamples = m_samplesPerFrame;
+	*pNumSamplesPerChannel = m_samplesPerFrame;
 
 	m_aacFrameBuffer = NULL;
 	m_aacFrameBufferLength = 0;
