@@ -1392,8 +1392,10 @@ uint32_t mpeg2ps_get_audio_stream_bitrate (mpeg2ps_t *ps, uint streamno)
 mpeg2ps_t *mpeg2ps_init (const char *filename)
 {
   mpeg2ps_t *ps = MALLOC_STRUCTURE(mpeg2ps_t);
+#if 0
   uint8_t local[4];
   uint32_t hdr;
+#endif
   if (ps == NULL) {
     return NULL;
   }
@@ -1404,6 +1406,7 @@ mpeg2ps_t *mpeg2ps_init (const char *filename)
     return NULL;
   }
   
+#if 0
   file_read_bytes(ps->fd, local, 4);
   hdr = convert32(local);
   // this should accept all pes headers with 0xba or greater - so, 
@@ -1413,8 +1416,13 @@ mpeg2ps_t *mpeg2ps_init (const char *filename)
     free(ps);
     return NULL;
   }
+#endif
   ps->filename = strdup(filename);
   mpeg2ps_scan_file(ps);
+  if (ps->video_cnt == 0 && ps->audio_cnt == 0) {
+    mpeg2ps_close(ps);
+    return NULL;
+  }
   return ps;
 }
 

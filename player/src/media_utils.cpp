@@ -611,6 +611,18 @@ int parse_name_for_session (CPlayerSession *psptr,
 			    control_callback_vft_t *cc_vft)
 {
   int err;
+#ifdef HAVE_IGMP_V3
+  //  gross, but here for multiple files
+  const char *mcast_src = config.get_config_string(CONFIG_MULTICAST_SRC);
+  if (mcast_src != NULL) {
+    udp_set_multicast_src(mcast_src);
+  } else {
+    char *ourip = get_host_ip_address();
+    udp_set_multicast_src(ourip);
+    free(ourip);
+  }
+#endif
+
   ADV_SPACE(name);
   if (strncmp(name, "rtsp://", strlen("rtsp://")) == 0) {    
     err = create_media_for_streaming_ondemand(psptr, 

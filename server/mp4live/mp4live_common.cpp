@@ -3,10 +3,15 @@
 #include "mp4live_common.h"
 #include "audio_oss_source.h"
 #include "signal.h"
+#include "net_udp.h"
 
 int ReadConfigFile (const char *configFileName, 
 		    CLiveConfig *pConfig)
 {
+
+  char *addr = get_host_ip_address();
+  udp_set_multicast_src(addr);
+  free(addr);
 
   try {
     if (configFileName) {

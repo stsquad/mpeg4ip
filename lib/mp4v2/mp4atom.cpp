@@ -366,6 +366,7 @@ static const char alb[5]={0251,'a', 'l', 'b', '\0'};
 static const char day[5]={0251,'d', 'a', 'y', '\0'};
 static const char too[5]={0251,'t', 'o', 'o', '\0'};
 static const char cmt[5]={0251,'c', 'm', 't', '\0'};
+static const char gen[5]={0251,'g', 'e', 'n', '\0'};
       if (ATOMID(type) == ATOMID(name)) {
  	pAtom = new MP4NamAtom();
       } else if (ATOMID(type) == ATOMID(art)) { /* Apple iTunes */
@@ -380,6 +381,8 @@ static const char cmt[5]={0251,'c', 'm', 't', '\0'};
  	pAtom = new MP4TooAtom();
       } else if (ATOMID(type) == ATOMID(cmt)) { /* Apple iTunes */
  	pAtom = new MP4CmtAtom();
+      } else if (ATOMID(type) == ATOMID(gen)) { /* Apple iTunes */
+	pAtom = new MP4GenAtom();
       }
       break;
     }

@@ -220,10 +220,6 @@ static int mpeg2t_thread_start_cmd (mpeg2t_client_t *info)
 #else
   ret = 0;
 #endif
-#ifdef HAVE_IGMP_V3
-    const char *mcast_src = config.get_config_string(CONFIG_MULTICAST_SRC);
-    udp_set_multicast_src(mcast_src);
-#endif
   if (info->useRTP == FALSE) {
     if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
       struct in_addr if_addr;

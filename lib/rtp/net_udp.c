@@ -371,6 +371,8 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 #else 
 		rtp_message(LOG_DEBUG,"IGMPV3 src:%s\n", G_Multicast_Src);
              /* Join Multicast group with source filter */
+		if (G_IGMP_V3 != 0 &&
+		    strcmp(G_Multicast_Src, "0.0.0.0") != 0) {
              struct ip_mreq_source imr;
 	     imr.imr_multiaddr.s_addr = s->addr4.s_addr;
 	     imr.imr_interface.s_addr = s->iface4_addr.s_addr;
@@ -389,6 +391,7 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 		free(s);
 		return NULL;
              }
+		}
 #endif
         
 #ifndef WIN32
