@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.1.5)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.1.6)
 
 dnl Checks for programs. 
 
@@ -129,8 +129,6 @@ AC_SEARCH_LIBS(dlopen, dl libc)
 dnl check for this for mp3lame
 saved_LIBS="$LIBS"
 LIBS="$LIBS -lm"
-AC_CHECK_LIB(vorbis, vorbis_bitrate_init, [LIBVORBIS_LIB="-lvorbis -lvorbisenc"])
-AC_CHECK_LIB(faad, faacDecOpen, [LIBVORBIS_LIB="$LIBVORBIS_LIB -lfaad"])
 have_a52=true
 AC_CHECK_LIB(a52, 
              a52_syncinfo, 
@@ -174,7 +172,6 @@ if test $have_mpeg2 = true; then
    AC_DEFINE(HAVE_LIBMPEG2, [1], [have libmpeg2 decoder library])
 fi
 LIBS=$saved_LIBS
-AC_SUBST(LIBVORBIS_LIB)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
@@ -366,6 +363,15 @@ fi
 
 AM_CONDITIONAL(MP4LIVE, [test x$have_mp4live = xtrue])
 AM_CONDITIONAL(HAVE_V4L2, [test x$have_v4l2 = xtrue])
+LIBVORBIS_LIB=
+if test x$have_mp4live = xtrue; then
+   AC_CHECK_LIB(vorbis, vorbis_bitrate_init, [have_vorbis=true], [have_vorbis=false])
+   if test x$have_vorbis = xtrue; then
+      LIBVORBIS_LIB="-lvorbis -lvorbisenc"
+      AC_CHECK_HEADER([faad.h], [LIBVORBIS_LIB="$LIBVORBIS_LIB -lfaad"])
+   fi
+fi
+AC_SUBST(LIBVORBIS_LIB)
 
 if test x$have_v4l2 = xtrue; then
   AC_DEFINE(HAVE_LINUX_VIDEODEV2_H, 1, [Define to 1 if you have the <linux/videodev2.h> header file.])

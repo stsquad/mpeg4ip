@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad2.cpp,v 1.4 2004/03/15 23:56:29 wmaycisco Exp $
+** $Id: faad2.cpp,v 1.5 2004/08/19 16:57:47 wmaycisco Exp $
 **/
 #include "faad2.h"
 #include <mpeg4_audio_config.h>
@@ -35,15 +35,16 @@ const char *aaclib="faad2";
 /*
  * Create CAACodec class
  */
-static codec_data_t *aac_codec_create (const char *compressor,
-                       int type,
-                       int profile,
-                       format_list_t *media_fmt,
-                       audio_info_t *audio,
-                       const uint8_t *userdata,
-                       uint32_t userdata_size,
-                       audio_vft_t *vft,
-                       void *ifptr)
+static codec_data_t *aac_codec_create (const char *stream_type,
+				       const char *compressor,
+				       int type,
+				       int profile,
+				       format_list_t *media_fmt,
+				       audio_info_t *audio,
+				       const uint8_t *userdata,
+				       uint32_t userdata_size,
+				       audio_vft_t *vft,
+				       void *ifptr)
 
 {
   aac_codec_t *aac;
@@ -106,7 +107,8 @@ static codec_data_t *aac_codec_create (const char *compressor,
 
   //  faad_init_bytestream(&m_info->ld, c_read_byte, c_bookmark, m_bytestream);
 
-  aa_message(LOG_INFO, aaclib, "Setting freq to %d", aac->m_freq);
+  aa_message(LOG_INFO, aaclib, "Setting freq to %d chans %d", aac->m_freq,
+	     aac->m_chans);
 #if DUMP_OUTPUT_TO_FILE
   aac->m_outfile = fopen("temp.raw", "w");
 #endif
@@ -124,11 +126,6 @@ void aac_close (codec_data_t *ptr)
   aac_codec_t *aac = (aac_codec_t *)ptr;
   faacDecClose(aac->m_info);
   aac->m_info = NULL;
-  CHECK_AND_FREE(aac->m_buffer);
-  if (aac->m_ifile != NULL) {
-     fclose(aac->m_ifile);
-     aac->m_ifile = NULL;
-  }
 
 #if DUMP_OUTPUT_TO_FILE
   fclose(aac->m_outfile);
@@ -224,8 +221,8 @@ static int aac_decode (codec_data_t *ptr,
     if (aac->m_audio_inited != 0) {
       int tempchans = frame_info.channels;
       if (tempchans != aac->m_chans) {
-    aa_message(LOG_NOTICE, aaclib, "chupdate - chans from data is %d",
-           tempchans);
+	aa_message(LOG_NOTICE, aaclib, "chupdate - chans from data is %d",
+		   tempchans);
       }
     } else {
       int tempchans = frame_info.channels;
@@ -245,15 +242,11 @@ static int aac_decode (codec_data_t *ptr,
       aac->m_freq = frame_info.samplerate;
 
       aac->m_vft->audio_configure(aac->m_ifptr,
-                  aac->m_freq,
-                  aac->m_chans,
-#ifdef HAVE_PLUGIN_VERSION_0_9
+				  aac->m_freq,
+				  aac->m_chans,
 				  AUDIO_FMT_S16,
-#else
-                  AUDIO_S16SYS,
-#endif
-                  aac->m_output_frame_size);
-
+				  aac->m_output_frame_size);
+      uint8_t *now = aac->m_vft->audio_get_buffer(aac->m_ifptr);
       aac->m_audio_inited = 1;
     }
     /*
@@ -266,7 +259,7 @@ static int aac_decode (codec_data_t *ptr,
       if (aac->m_chans <= 2) {
 	aac->m_vft->audio_load_buffer(aac->m_ifptr,
 				      buff,
-				      frame_info.samples * sizeof(int16_t),
+				      frame_info.samples * 2,
 				      aac->m_last_ts,
 				      aac->m_resync_with_header);
       } else {
@@ -308,8 +301,7 @@ static int aac_decode (codec_data_t *ptr,
 	aac->m_vft->audio_filled_buffer(aac->m_ifptr,
 					aac->m_last_ts,
 					aac->m_resync_with_header);
-      } 
-	      
+      }
       if (aac->m_resync_with_header == 1) {
     aac->m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
@@ -318,7 +310,8 @@ static int aac_decode (codec_data_t *ptr,
       }
     }
   } else {
-    aa_message(LOG_ERR, aaclib, "error return is %d", frame_info.error);
+    aa_message(LOG_ERR, aaclib, "error return is %d %s", frame_info.error,
+	       faacDecGetErrorMessage(frame_info.error));
     aac->m_resync_with_header = 1;
 #ifdef DEBUG_SYNC
     aa_message(LOG_ERR, aaclib, "Audio decode problem - at "LLU,
@@ -329,28 +322,19 @@ static int aac_decode (codec_data_t *ptr,
   return (bytes_consummed);
 }
 
-static const char *aac_compressors[] = {
-  "aac ",
-  "mp4a",
-  "enca",
-  NULL
-};
-
 static int aac_codec_check (lib_message_func_t message,
-                const char *compressor,
-                int type,
-                int profile,
-                format_list_t *fptr,
-                const uint8_t *userdata,
-                uint32_t userdata_size
-#ifdef HAVE_PLUGIN_VERSION_0_8
-              ,CConfigSet *pConfig
-#endif
-              )
+			    const char *stream_type,
+			    const char *compressor,
+			    int type,
+			    int profile,
+			    format_list_t *fptr, 
+			    const uint8_t *userdata,
+			    uint32_t userdata_size,
+			    CConfigSet *pConfig)
 {
   fmtp_parse_t *fmtp = NULL;
-  if (compressor != NULL &&
-      strcasecmp(compressor, "MP4 FILE") == 0 &&
+  if (compressor != NULL && 
+      strcasecmp(stream_type, "MP4 FILE") == 0 &&
       type != -1) {
     switch (type) {
     case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
@@ -362,67 +346,43 @@ static int aac_codec_check (lib_message_func_t message,
       return -1;
     }
   }
-  if (fptr != NULL &&
+  if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
+      fptr != NULL && 
       fptr->rtpmap != NULL &&
       fptr->rtpmap->encode_name != NULL) {
-    if (strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) {
+    if ((strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) &&
+        (strcasecmp(fptr->rtpmap->encode_name, "enc-mpeg4-generic") != 0)) {
       return -1;
     }
     if (userdata == NULL) {
       fmtp = parse_fmtp_for_mpeg4(fptr->fmt_param, message);
       if (fmtp != NULL) {
-    userdata = fmtp->config_binary;
-    userdata_size = fmtp->config_binary_len;
+	userdata = fmtp->config_binary;
+	userdata_size = fmtp->config_binary_len;
       }
     }
   }
   if (userdata != NULL) {
     mpeg4_audio_config_t audio_config;
     decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
-    message(LOG_DEBUG, "aac", "audio type is %d", audio_config.audio_object_type);
+    //    message(LOG_DEBUG, "aac", "audio type is %d", audio_config.audio_object_type);
     if (fmtp != NULL) free_fmtp_parse(fmtp);
-
+    
     if (audio_object_type_is_aac(&audio_config) == 0) {
       return -1;
     }
 #if 0
+    // we're going to go ahead with ERR_AAC for now
     if (audio_config.audio_object_type == 17) {
       message(LOG_INFO, "aac", "audio type is legal ISMA, but not supported");
       return -1;
     }
 #endif
-    return 2;
+    return 1;
   }
-#if 0
-  // I'm not sure I want to be here if we don't have an audio config
-  if (compressor != NULL) {
-    const char **lptr = aac_compressors;
-    while (*lptr != NULL) {
-      if (strcasecmp(*lptr, compressor) == 0) {
-    return 2;
-      }
-      lptr++;
-    }
-  }
-#endif
   return -1;
 }
 
-#ifndef HAVE_PLUGIN_VERSION_0_8
-AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("faad2",
-                 aac_codec_create,
-                 aac_do_pause,
-                 aac_decode,
-                 NULL,
-                 aac_close,
-                 aac_codec_check,
-                 aac_file_check,
-                 aac_file_next_frame,
-                 aac_file_used_for_frame,
-                 aac_raw_file_seek_to,
-               aac_file_eof
-               );
-#else
 AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("faad2",
                aac_codec_create,
                aac_do_pause,
@@ -438,7 +398,6 @@ AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("faad2",
                NULL,
                0
                );
-#endif
 /* end file aa.cpp */
 
 

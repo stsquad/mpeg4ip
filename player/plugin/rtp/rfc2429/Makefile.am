@@ -8,13 +8,13 @@ rfc2429_rtp_plugin_la_SOURCES = \
 rfc2429_rtp_plugin_la_LIBADD = \
 	-lm 
 
-INCLUDES = -I$(top_srcdir)/../mpeg4ip/player/src \
-	   -I$(top_srcdir)/../mpeg4ip/player/lib \
-	   -I$(top_srcdir)/../mpeg4ip/lib/SDL/include \
-	   -I$(top_srcdir)/../mpeg4ip/include \
-           -I$(top_srcdir)/../mpeg4ip/lib \
-           -I$(top_srcdir)/../mpeg4ip/lib/rtp \
-           -I$(top_srcdir)/../mpeg4ip/lib/sdp
+INCLUDES = -I$(top_srcdir)/player/src \
+	   -I$(top_srcdir)/player/lib \
+	   -I$(top_srcdir)/lib/SDL/include \
+	   -I$(top_srcdir)/include \
+           -I$(top_srcdir)/lib \
+           -I$(top_srcdir)/lib/rtp \
+           -I$(top_srcdir)/lib/sdp
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

@@ -486,7 +486,9 @@ int CMp4File::create_media (CPlayerSession *psptr,
 	aq[audio_offset].fptr = NULL;
 	aq[audio_offset].sampling_freq = 
 	  MP4GetTrackTimeScale(m_mp4file, trackId);
+	MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
 	aq[audio_offset].chans = MP4GetTrackAudioChannels(m_mp4file, trackId);
+	MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
 	aq[audio_offset].enabled = 0;
 	aq[audio_offset].reference = NULL;
 	audio_offset++;

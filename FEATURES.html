@@ -24,20 +24,23 @@ The mpeg4ip player supports the following:
 <p>
 File formats:
 <br> avi, mp4, limited .mov, .mpg (transport and program streams), 
-.wav, raw aac, raw mp3, raw mp4v
+.wav, raw aac, raw mp3, raw mp4v, raw .h264
 <p>
 Video codecs: 
 <br>mpeg-4 (xvid, xvid-1.0, ISO reference), mpeg1/2 (libmpeg3, 
 mpeg2dec), H.261, YUV (i420 raw)
+<br>Through ffmpeg: h.263, Sorenson, some MJPEG, simple H.264
 <p>
 Audio Codecs: 
 <br>aac (faad, faad2 with seperate download), mp3, celp, 
   ac3 (with seperate download), raw PCM 
+<br>Through ffmpeg: AMR NB, AMR WB
 <p>
 Streaming capability: 
 <br>RTSP, SDP, RTP (rfc 1890 for raw audio, 2250 for mpeg1/2 
-audio and video, 3016 for mpeg4 video, 3119 for mp3, 3640 for aac/celp audio), mpeg2
-transport streams (mpeg2 video, mp3 and ac3 audio), both multicast and streaming.
+audio and video, 3016 for mpeg4 video, 3119 for mp3, 3640 for aac/celp audio, 
+3267 for AMR octet-aligned only), mpeg2 transport streams (mpeg2 video, mp3 
+and ac3 audio), both multicast and streaming.
 <p>
 Supports http fetch of sdp files.
 <p>
@@ -62,6 +65,7 @@ H.261, mpeg2 (with ffmpeg download)
 <p>
 Audio Encoders:
 <br>AAC (faac, with required download), MP3 (lame, with required download)
+Mpeg2, layer 2 (with ffmpeg)
 <p>
 Video Filters:
 <br>de-interlace (Y only), decimate
