@@ -38,7 +38,7 @@ fi
 
 # Create our own configure script and run it
 aclocal
-automake --add-missing
+automake --add-missing --foreign
 autoconf
 # Pass our args to configure
 ./configure $*
