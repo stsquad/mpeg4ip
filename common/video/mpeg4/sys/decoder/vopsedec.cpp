@@ -1336,6 +1336,7 @@ Bool CVideoObjectDecoder::decodeVOPHead ()
 	assert(uiMarker== 1);
 	//	End Toshiba(1997-11-14)
 	Time tVopIncr = m_pbitstrmIn -> getBits (m_iNumBitsTimeIncr);
+        printf("time bits is supposed to be %d\n", m_iNumBitsTimeIncr);
 	uiMarker = m_pbitstrmIn->getBits (1); // marker bit
 	assert(uiMarker ==1);
 	m_tOldModuloBaseDecd = m_tModuloBaseDecd;

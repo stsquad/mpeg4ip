@@ -14,11 +14,17 @@ SUFFIXES = .asm
 noinst_LTLIBRARIES = libxvidutilsx86.la
 libxvidutilsx86_la_LDFLAGS = -static
 
-libxvidutilsx86_la_SOURCES = \
+ASMFILES = \
 	cpuid.asm \
 	mem_transfer_mmx.asm
 
-am_libxvidutilsx86_la_OBJECTS = \
+libxvidutilsx86_la_SOURCES = dummy.c
+
+if USE_MMX
+EXTRA_libxvidutilsx86_la_SOURCES = $(ASMFILES)
+
+libxvidutilsx86_la_LIBADD = \
 	cpuid.lo \
 	mem_transfer_mmx.lo
+endif
 

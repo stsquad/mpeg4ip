@@ -1,6 +1,4 @@
-if USE_MMX
 SUBDIRS = x86_asm
-endif
 
 noinst_LTLIBRARIES = libxvidquant.la
 libxvidquant_la_LDFLAGS = -static

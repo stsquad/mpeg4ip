@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.6.6)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.6.7)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -202,6 +202,12 @@ ifelse([$3], , , [$3])
 fi
 ])
 
+AC_ARG_ENABLE(ppc,
+              [  --enable-ppc           use PPC assembly on ppc [default=yes]],
+              , 
+	      enable_ppc=yes)
+
+if test x$enable_ppc = xyes; then
 case $target in
 *powerpc*) 
 	AC_DEFINE(ARCH_PPC)
@@ -211,6 +217,9 @@ case $target in
 	AM_CONDITIONAL(USE_PPC, false)
 	;;
 esac
+else
+   AM_CONDITIONAL(USE_PPC, false)
+fi
 
 dnl read out glib and gtk paths and flags.  Will need to dummy this
 dnl out for a glibless system
@@ -361,6 +370,7 @@ AC_OUTPUT( \
 	lib/mp4av/Makefile \
 	lib/mpeg2t/Makefile \
 	lib/msg_queue/Makefile \
+	lib/SDL_VisualC/Makefile \
 	lib/sdp/Makefile \
 	lib/xvid/Makefile \
 	lib/xvid/dct/Makefile \

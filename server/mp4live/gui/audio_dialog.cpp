@@ -316,7 +316,7 @@ void CreateSamplingRateMenu(CAudioCapabilities* pNewAudioCaps)
 			// skip the ones it can't handle
 			// MP3 can't handle anything less than 8000
 			// LAME MP3 encoder has additional lower bound at 16000
-			if (samplingRates[i] < 16000 || samplingRates[i] > 48000) {
+			if (samplingRates[i] < 11025 || samplingRates[i] > 48000) {
 				continue;
 			}
 			break;

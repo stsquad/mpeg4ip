@@ -14,7 +14,9 @@ SUFFIXES = .asm
 noinst_LTLIBRARIES = libxvidimagex86.la
 libxvidimagex86_la_LDFLAGS = -static
 
-libxvidimagex86_la_SOURCES = \
+libxvidimagex86_la_SOURCES = dummy.c
+
+ASMFILES = \
 	interpolate8x8_mmx.asm \
 	rgb_to_yv12_mmx.asm \
 	yuv_to_yv12_mmx.asm \
@@ -23,7 +25,10 @@ libxvidimagex86_la_SOURCES = \
 	yv12_to_rgb32_mmx.asm \
 	yv12_to_yuyv_mmx.asm
 
-am_libxvidimagex86_la_OBJECTS = \
+if USE_MMX
+EXTRA_libxvidimagex86_la_SOURCES = $(ASMFILES)
+
+libxvidimagex86_la_LIBADD = \
 	interpolate8x8_mmx.lo \
 	rgb_to_yv12_mmx.lo \
 	yuv_to_yv12_mmx.lo \
@@ -31,4 +36,6 @@ am_libxvidimagex86_la_OBJECTS = \
 	yv12_to_rgb24_mmx.lo \
 	yv12_to_rgb32_mmx.lo \
 	yv12_to_yuyv_mmx.lo
+endif
 
+EXTRA_DIST = $(ASMFILES)

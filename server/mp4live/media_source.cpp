@@ -57,6 +57,7 @@ CMediaSource::CMediaSource()
 
 	m_audioPreEncodingBuffer = NULL;
 	m_audioEncoder = NULL;
+	m_audioResample = NULL;
 }
 
 CMediaSource::~CMediaSource() 
@@ -934,6 +935,12 @@ void CMediaSource::ResampleAudio(
       outBufferSamplesWritten = outBufferSamplesLeft;
 
       chan_offset = chan_ix * (DstSamplesToBytes(1));
+#ifdef DEBUG_AUDIO_RESAMPLER
+      error_message("resample - chans %d %d, samples %d left %d", 
+		    m_audioDstChannels, chan_ix,
+		    samplesIn, outBufferSamplesLeft);
+#endif
+
       if (st_resample_flow(m_audioResample[chan_ix],
 			   (int16_t *)(frameData + chan_offset),
 			   (int16_t *)(&m_audioPreEncodingBuffer[m_audioPreEncodingBufferLength + chan_offset]),

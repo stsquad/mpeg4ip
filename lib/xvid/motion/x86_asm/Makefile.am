@@ -14,9 +14,14 @@ SUFFIXES = .asm
 noinst_LTLIBRARIES = libxvidmotionx86.la
 libxvidmotionx86_la_LDFLAGS = -static
 
-libxvidmotionx86_la_SOURCES = \
-	sad_mmx.asm
+libxvidmotionx86_la_SOURCES = dummy.c
 
-am_libxvidmotionx86_la_OBJECTS = \
+ASMFILES = sad_mmx.asm
+if USE_MMX
+EXTRA_libxvidmotionx86_la_SOURCES = $(ASMFILES)
+
+libxvidmotionx86_la_LIBADD = \
 	sad_mmx.lo
+endif
 
+EXTRA_DIST = $(ASMFILES)

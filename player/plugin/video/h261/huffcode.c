@@ -1,8 +1,9 @@
 /************ Change log
  *
  * $Log: huffcode.c,v $
- * Revision 1.1  2002/11/14 19:46:40  wmaycisco
- * Version 0.9.6.6
+ * Revision 1.2  2002/11/15 00:41:19  wmaycisco
+ * 0.9.6.7 - automake 1.6, some other changes to get SDL back to it's
+ * basic form and let the configuration stand
  *
  * Revision 1.1  2002/11/07 18:31:30  wmay
  * Add h261 decoder, code for sending immediate RTCP in mp4live

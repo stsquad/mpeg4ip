@@ -93,10 +93,6 @@ pwd=`pwd`
 for	dir \
 in	$pwd/lib/SDL 
 do	cd $dir
-	aclocal || aclocal $ACLOCAL_FLAGS || exit 3
-	libtoolize --force
-	automake --add-missing --foreign || exit 1
-	autoconf || exit 1
 	./configure $allargs || exit 1
 done
 

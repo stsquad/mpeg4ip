@@ -14,11 +14,18 @@ SUFFIXES = .asm
 noinst_LTLIBRARIES = libxvidquantx86.la
 libxvidquantx86_la_LDFLAGS = -static
 
-libxvidquantx86_la_SOURCES = \
+ASMFILES = \
 	quantize_mmx.asm \
 	quantize4_mmx.asm
 
-am_libxvidquantx86_la_OBJECTS = \
+libxvidquantx86_la_SOURCES = dummy.c
+
+if USE_MMX
+EXTRA_libxvidquantx86_la_SOURCES = $(ASMFILES)
+
+libxvidquantx86_la_LIBADD = \
 	quantize_mmx.lo \
 	quantize4_mmx.lo
+endif
+EXTRA_DIST = $(ASMFILES)
 

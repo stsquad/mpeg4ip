@@ -11,13 +11,15 @@ SUFFIXES = .asm
 
 ###########################################################################
 
-if USE_MMX
 noinst_LTLIBRARIES = libxvidbitstreamx86.la
+
+libxvidbitstreamx86_la_SOURCES = dummy.c 
+
+if USE_MMX
+EXTRA_libxvidbitstreamx86_la_SOURCES = cbp_mmx.asm
+libxvidbitstreamx86_la_LIBADD = cbp_mmx.lo
+endif
+
 libxvidbitstreamx86_la_LDFLAGS = -static
 
-libxvidbitstreamx86_la_SOURCES = \
-	cbp_mmx.asm
-
-am_libxvidbitstreamx86_la_OBJECTS = \
-	cbp_mmx.lo
-endif
+EXTRA_DIST=cbp_mmx.asm

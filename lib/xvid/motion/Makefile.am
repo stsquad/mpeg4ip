@@ -1,6 +1,4 @@
-if USE_MMX
 SUBDIRS = x86_asm
-endif
 
 noinst_LTLIBRARIES = libxvidmotion.la
 libxvidmotion_la_LDFLAGS = -static
