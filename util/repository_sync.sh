@@ -5,6 +5,17 @@ repository=mpeg4ip
 export CVS_RSH=cvsssh
 CVS_N=
 
+release=0
+startfrombase=0
+skipversion=0
+while getopts "rbs" opt; do
+    case $opt in
+       r ) release=1 ;;
+       b ) startfrombase=1 ;;
+       s ) skipversion=1 ;;
+    esac
+done
+
 #
 # original repository information.
 # origin_dir is local directory where to store
@@ -71,8 +82,8 @@ exec 5>$temp_dir/repository_updater.log
 exec 6>&1
 
 echo "Repository Updater log `date`" >&5
-echo Checking for origin repository existance $1 >&5
-echo Checking for origin repository existance $1 >&6
+echo Checking for origin repository existance  >&5
+echo Checking for origin repository existance  >&6
 
 #
 # create or update the origin repository. At this time, update
@@ -99,6 +110,38 @@ else
     origin_rep=`pwd`
     echo Updating origin cvs repository $origin_rep >&6
     cvs update -kk -d 1>&5 2>&5
+fi
+
+#
+# Do version number update
+#
+if [ $skipversion = 0 ]; then
+   if [ $release = 1 ]; then
+      newver=`cat RELEASE_VERSION | tr '.' ' '`
+      sh util/version.sh $newver > RELEASE_VERSION
+      cp RELEASE_VERSION VERSION
+   else
+      if [ $startfrombase = 1 ]; then
+         newver=`cat RELEASE_VERSION`
+         newver=$newver.1
+         echo $newver > VERSION
+      else
+         newver=`cat VERSION | tr '.' ' '`
+         sh util/version.sh $newver > VERSION
+      fi
+   fi
+   #
+   # Update version file for windows
+   #
+   echo \#define PACKAGE \"mpeg4ip\" > include/win32_ver.h
+   echo \#define VERSION \"`cat VERSION`\" >> include/win32_ver.h
+   #
+   # Update configure.in version
+   #
+   awk -v VERSION=`cat VERSION` -f util/replaceversion configure.in > temp
+   mv temp configure.in
+
+   cvs $CVS_N commit -m 'Version bump for sync' VERSION RELEASE_VERSION include/win32_ver.h configure.in 1>&5 2>&5
 fi
 
 cd $start_dir
@@ -223,6 +266,7 @@ do
 
    if test ! -d $origin_dir/$dest_dir_on; then
       echo $origin_dir/$dest_dir_on no longer exists >&5
+      echo $origin_dir/$dest_dir_on no longer exists >&6
       rm * 1>&5 2>&5
       cd ..
       base=`basename $dest_dir_on`

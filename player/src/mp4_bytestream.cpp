@@ -209,12 +209,13 @@ void CMp4ByteStream::get_more_bytes (unsigned char **buffer,
 void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 {
 #ifdef DEBUG_MP4_FRAME 
-  mp4f_message(LOG_DEBUG, "Reading frame %d", frame_to_read);
+  mp4f_message(LOG_DEBUG, "%s - Reading frame %d", m_name, frame_to_read);
 #endif
   if (m_frame_in_buffer == frame_to_read) {
 #ifdef DEBUG_MP4_FRAME
     mp4f_message(LOG_DEBUG, 
-		 "frame in buffer %u %u", m_byte_on, m_this_frame_size);
+		 "%s - frame in buffer %u %u", m_name, 
+		 m_byte_on, m_this_frame_size);
 #endif
     m_byte_on = 0;
     m_frame_on_ts = m_frame_in_buffer_ts;
@@ -254,12 +255,12 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 #ifdef OUTPUT_TO_FILE
   fwrite(m_buffer, m_this_frame_size, 1, m_output_file);
 #endif
-#ifdef DEBUG_MP4_FRAME
-    mp4f_message(LOG_DEBUG, "reading into buffer %u %u", 
-		 frame_to_read, m_this_frame_size);
-    mp4f_message(LOG_DEBUG, "%s Sample time "LLU, m_name, sampleTime);
-    mp4f_message(LOG_DEBUG, "%s values %x %x %x %x", m_name, m_buffer[0], 
-		 m_buffer[1], m_buffer[2], m_buffer[3]);
+#if 0
+  //    mp4f_message(LOG_DEBUG, "reading into buffer %u %u", 
+  //		 frame_to_read, m_this_frame_size);
+    //mp4f_message(LOG_DEBUG, "%s Sample time "LLU, m_name, sampleTime);
+    //    mp4f_message(LOG_DEBUG, "%s values %x %x %x %x", m_name, m_buffer[0], 
+    //	 m_buffer[1], m_buffer[2], m_buffer[3]);
 #endif
 
   uint64_t ts;
@@ -270,7 +271,8 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 				    MP4_MSECS_TIME_SCALE);
   //if (isSyncSample == TRUE && m_has_video != 0 ) player_debug_message("%s has sync sample %llu", m_name, ts);
 #ifdef DEBUG_MP4_FRAME
-  mp4f_message(LOG_DEBUG, "Converts to time "LLU, ts);
+  mp4f_message(LOG_DEBUG, "%s frame %u sample time "LLU " converts to time "LLU, 
+	       m_name, frame_to_read, sampleTime, ts);
 #endif
   m_frame_in_buffer_ts = ts;
   m_frame_on_ts = ts;
@@ -296,10 +298,22 @@ void CMp4ByteStream::set_start_time (uint64_t start)
 					m_track,
 					mp4_ts, 
 					TRUE);
+  uint64_t ts;
+  MP4Timestamp sampleTime;
+
+  sampleTime = MP4GetSampleTime(m_parent->get_file(),
+				m_track,
+				mp4_sampleId);
+  ts = MP4ConvertFromTrackTimestamp(m_parent->get_file(),
+				    m_track,
+				    sampleTime,
+				    MP4_MSECS_TIME_SCALE);
   m_parent->unlock_file_mutex();
 #ifdef DEBUG_MP4_FRAME
-  mp4f_message(LOG_DEBUG, "Timestamp "LLU" converts to "LLU" sample %d", 
-		       start, mp4_ts, mp4_sampleId);
+  mp4f_message(LOG_DEBUG, "%s searching timestamp "LLU" gives "LLU,
+	       m_name, start, mp4_ts);
+  mp4f_message(LOG_DEBUG, "%s values are sample time "LLU" ts "LLU,
+	       m_name, sampleTime, ts);
 #endif
   set_timebase(mp4_sampleId);
 }

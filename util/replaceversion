@@ -1,0 +1,7 @@
+BEGIN { FS = "[().,][ \t]*|[ \t]+" }
+
+/^AM_INIT_AUTOMAKE*/ { 
+	printf("AM_INIT_AUTOMAKE(mpeg4ip, %s)\n", VERSION);
+}
+
+$1 !~ /AM_INIT_AUTOMAKE/ { print $0 }
