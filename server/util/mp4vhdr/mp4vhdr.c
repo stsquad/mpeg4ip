@@ -290,7 +290,7 @@ int main(int argc, char** argv)
 			u_int8_t vo[9] = { 
 				0x00, 0x00, 0x01, 0xB5,	/* VO */ 
 				0x08,					/* no verid, priority or signal type */
-				0x00, 0x00, 0x01, 0x01	/* video object 1 */ 
+				0x00, 0x00, 0x01, 0x00	/* video object 1 */ 
 			};
 
 			if (want_binary) {
@@ -348,8 +348,9 @@ int main(int argc, char** argv)
 				u_int8_t rangeBits = 0;
 
 				putbits(&vol, 1, 1);
+
 				/* 1-16 bits - fixed vop time increment in ticks */
-				while (frameDuration >= (1 << rangeBits)) {
+				while (ticks >= (1 << rangeBits)) {
 					rangeBits++;
 				}
 				putbits(&vol, frameDuration, rangeBits);
