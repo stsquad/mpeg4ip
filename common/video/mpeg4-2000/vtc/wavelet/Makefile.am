@@ -12,7 +12,6 @@ libobj_vtc_wavelet_la_SOURCES = \
 	dwt_aux.cpp \
 	dwt.cpp \
 	dwt.h \
-	dwt.hpp \
 	dwtmask.cpp \
 	idwt_aux.cpp \
 	idwt.cpp \

@@ -894,7 +894,7 @@ void CreateVideoDialog (void)
 			 video_encoder_table[i].encoding) == 0) {
 	    encoderIndex = i;
 	  }
-	  encoderNames[i] = video_encoder_table[i].encoding;
+	  encoderNames[i] = video_encoder_table[i].encoding_name;
 	}
 
 	encoder_menu = CreateOptionMenu(NULL, 

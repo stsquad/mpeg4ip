@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.12 $ 
- * $Date: 2003/05/05 21:24:27 $
+ * $Revision: 1.13 $ 
+ * $Date: 2003/05/23 18:55:16 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -38,9 +38,11 @@
 
 #ifndef __RTP_H__
 #define __RTP_H__
+#if 0
 #include "config_unix.h"
 #include "config_win32.h"
 #include "net_udp.h"
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -49,9 +51,6 @@ extern "C" {
 #define RTP_VERSION 2
 #define RTP_MAX_PACKET_LEN 1500
 
-#if !defined(WORDS_BIGENDIAN) && !defined(WORDS_SMALLENDIAN)
-#error RTP library requires WORDS_BIGENDIAN or WORDS_SMALLENDIAN to be defined.
-#endif
 
   // moved here by nori
 typedef int (*rtp_encrypt_func)(void *, uint8_t *, unsigned int *);
@@ -308,8 +307,10 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen);
 int rtp_set_encryption(struct rtp *session, rtp_encrypt_func efunc, rtp_decrypt_func, void *userdata, unsigned int);
 int rtp_get_encryption_enabled(struct rtp *session);
 
-  socket_udp *get_rtp_data_socket(struct rtp *session);
-  socket_udp *get_rtp_rtcp_socket(struct rtp *session);
+typedef struct socket_udp_ socket_udp; 
+
+socket_udp *get_rtp_data_socket(struct rtp *session);
+socket_udp *get_rtp_rtcp_socket(struct rtp *session);
   
 #ifdef __cplusplus
 }

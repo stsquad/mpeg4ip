@@ -22,6 +22,7 @@ libobj_sys_encoder_la_SOURCES = \
 	newpenc.cpp \
 	padenc.cpp \
 	paramset.cpp \
+	paramset.h \
 	sesenc.cpp \
 	sesenc.hpp \
 	shpenc.cpp \

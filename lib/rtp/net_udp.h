@@ -35,12 +35,12 @@
 
 #ifndef _NET_UDP
 #define _NET_UDP
-
-typedef struct _socket_udp socket_udp; 
+#include "rtp.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
 
 int         udp_addr_valid(const char *addr);
 socket_udp *udp_init(const char *addr, uint16_t rx_port, uint16_t tx_port, int ttl);

@@ -11,7 +11,7 @@ check_PROGRAMS = mp4venc
 
 mp4venc_SOURCES = encoder.cpp
 
-EXTRA_DIST = encoder60.dsp example.par
+EXTRA_DIST = encoder60.dsp
 
 mp4venc_LDADD= \
   ../../tools/entropy/libobj_tools_entropy.la \

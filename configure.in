@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.8.4)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.8.5)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -46,8 +46,9 @@ AC_CHECK_LIB(sndfile, sf_open_read,
 	     [AM_CONDITIONAL(HAVE_LIBSNDFILE, false)])
 dnl Checks for header files.
 AC_HEADER_STDC
+AC_HEADER_TIME
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
-AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h)
+AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
@@ -353,25 +354,6 @@ AC_OUTPUT( \
 	common/video/mpeg4-2000/vtc/wavelet/Makefile \
 	common/video/mpeg4-2000/vtc/zte/Makefile \
 	common/video/mpeg4-2000/vtc/ztq/Makefile \
-	common/video/mpeg4-2000/Makefile \
-	common/video/mpeg4/Makefile \
-	common/video/mpeg4/app/Makefile \
-	common/video/mpeg4/app/convertpar/Makefile \
-	common/video/mpeg4/app/decoder/Makefile \
-	common/video/mpeg4/app/encoder/Makefile \
-	common/video/mpeg4/sys/Makefile \
-	common/video/mpeg4/sys/decoder/Makefile \
-	common/video/mpeg4/sys/encoder/Makefile \
-	common/video/mpeg4/tools/Makefile \
-	common/video/mpeg4/tools/entropy/Makefile \
-	common/video/mpeg4/type/Makefile \
-	common/video/mpeg4/vtc/Makefile \
-	common/video/mpeg4/vtc/include/Makefile \
-	common/video/mpeg4/vtc/main/Makefile \
-	common/video/mpeg4/vtc/pezw/Makefile \
-	common/video/mpeg4/vtc/wavelet/Makefile \
-	common/video/mpeg4/vtc/zte/Makefile \
-	common/video/mpeg4/vtc/ztq/Makefile \
 	doc/Makefile \
 	doc/encoding/Makefile \
 	doc/ietf/Makefile \

@@ -34,7 +34,6 @@ Copyright(c)1996.
 #include "nok_ltp_common.h"
 #include "monopred.h"
 #include "bits.h"
-
 #ifndef _POSIX_SOURCE
 #define                 _POSIX_SOURCE   /* stops repeat typdef of ulong */
 #endif
@@ -304,6 +303,19 @@ typedef struct faacDecConfiguration
   unsigned int defObjectType;
   unsigned int defSampleRate;
 } faacDecConfiguration, *faacDecConfigurationPtr;
+typedef enum {
+    WS_FHG, WS_DOLBY, N_WINDOW_SHAPES
+}
+Window_shape;
+
+typedef enum {
+    WT_LONG,
+    WT_SHORT,
+    WT_FLAT,
+    WT_ADV,         /* Advanced flat window */
+    N_WINDOW_TYPES
+}
+WINDOW_TYPE;
 
 typedef struct {
 	int isMpeg4;
@@ -377,6 +389,19 @@ typedef struct {
 	/* FFT data */
 	int *unscambled64;
 	int *unscambled512;
+  // block.c data
+  Float *sin_long;
+  Float *sin_short;
+#ifndef WIN_TABLE
+  Float *kbd_long;
+  Float *kbd_short;
+#endif
+  Float *sin_edler;
+  Float *kbd_edler;
+  Float *sin_adv;
+  Float *kbd_adv;
+
+Float *windowPtr[N_WINDOW_TYPES][N_WINDOW_SHAPES];
 
 } faacDecStruct, *faacDecHandle;
 

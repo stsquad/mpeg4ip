@@ -22,7 +22,7 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: block.c,v 1.7 2003/02/18 18:51:30 wmaycisco Exp $
+ * $Id: block.c,v 1.8 2003/05/23 18:55:19 wmaycisco Exp $
  */
 
 #include "all.h"
@@ -35,18 +35,6 @@ Copyright(c)1996.
 #define PI 3.14159265359f
 #endif
 
-Float *sin_long;
-Float *sin_short;
-#ifndef WIN_TABLE
-Float *kbd_long;
-Float *kbd_short;
-#endif
-Float *sin_edler;
-Float *kbd_edler;
-Float *sin_adv;
-Float *kbd_adv;
-
-Float *windowPtr[N_WINDOW_TYPES][N_WINDOW_SHAPES];
 
 
 const int windowLeng[N_WINDOW_TYPES] = {
@@ -117,23 +105,23 @@ static void CalculateKBDWindow(float* win, float alpha, int length)
 *   globals: shortWindow[], longWindow[]
 *
 *****************************************************************************/
-void InitBlock (void)
+void InitBlock (faacDecHandle hDecoder)
 {
 
     /* calc half-window data */
     int     i, j;
     float   phaseInc;
 
-    sin_long = AllocMemory(NWINLONG*sizeof(Float));
-    sin_short = AllocMemory(NWINSHORT*sizeof(Float));
+    hDecoder->sin_long = AllocMemory(NWINLONG*sizeof(Float));
+    hDecoder->sin_short = AllocMemory(NWINSHORT*sizeof(Float));
 #ifndef WIN_TABLE
-    kbd_long = AllocMemory(NWINLONG*sizeof(Float));
-    kbd_short = AllocMemory(NWINSHORT*sizeof(Float));
+    hDecoder->kbd_long = AllocMemory(NWINLONG*sizeof(Float));
+    hDecoder->kbd_short = AllocMemory(NWINSHORT*sizeof(Float));
 #endif
-    sin_edler = AllocMemory(NWINLONG*sizeof(Float));
-    kbd_edler = AllocMemory(NWINLONG*sizeof(Float));
-    sin_adv = AllocMemory(NWINADV*sizeof(Float));
-    kbd_adv = AllocMemory(NWINADV*sizeof(Float));
+    hDecoder->sin_edler = AllocMemory(NWINLONG*sizeof(Float));
+    hDecoder->kbd_edler = AllocMemory(NWINLONG*sizeof(Float));
+    hDecoder->sin_adv = AllocMemory(NWINADV*sizeof(Float));
+    hDecoder->kbd_adv = AllocMemory(NWINADV*sizeof(Float));
 
 /*
 Float *windowPtr[N_WINDOW_TYPES][N_WINDOW_SHAPES] = {
@@ -143,75 +131,75 @@ Float *windowPtr[N_WINDOW_TYPES][N_WINDOW_SHAPES] = {
     {sin_adv,   kbd_adv}
 };
 */
-    windowPtr[0][0] = sin_long;
-    windowPtr[0][1] = kbd_long;
-    windowPtr[1][0] = sin_short;
-    windowPtr[1][1] = kbd_short;
-    windowPtr[2][0] = sin_edler;
-    windowPtr[2][1] = kbd_edler;
-    windowPtr[3][0] = sin_adv;
-    windowPtr[3][1] = kbd_adv;
+    hDecoder->windowPtr[0][0] = hDecoder->sin_long;
+    hDecoder->windowPtr[0][1] = hDecoder->kbd_long;
+    hDecoder->windowPtr[1][0] = hDecoder->sin_short;
+    hDecoder->windowPtr[1][1] = hDecoder->kbd_short;
+    hDecoder->windowPtr[2][0] = hDecoder->sin_edler;
+    hDecoder->windowPtr[2][1] = hDecoder->kbd_edler;
+    hDecoder->windowPtr[3][0] = hDecoder->sin_adv;
+    hDecoder->windowPtr[3][1] = hDecoder->kbd_adv;
 
     /* init half-windows */
 
     /* sin long window */
     phaseInc = PI / (2.0f * NWINLONG);
     for (i = 0; i < NWINLONG; i++) {
-        sin_long [i]  = (float)sin(phaseInc * (i + 0.5));
+        hDecoder->sin_long [i]  = (float)sin(phaseInc * (i + 0.5));
     }
 
     /* sin short window */
     phaseInc = PI / (2.0f * NWINSHORT);
     for (i = 0; i < NWINSHORT; i++) {
-        sin_short [i] = (float)sin(phaseInc * (i + 0.5));
+        hDecoder->sin_short [i] = (float)sin(phaseInc * (i + 0.5));
     }
 
 #ifndef WIN_TABLE
-    CalculateKBDWindow(kbd_long, 4.f, NWINLONG*2);
-    CalculateKBDWindow(kbd_short, 6.f, NWINSHORT*2);
+    CalculateKBDWindow(hDecoder->kbd_long, 4.f, NWINLONG*2);
+    CalculateKBDWindow(hDecoder->kbd_short, 6.f, NWINSHORT*2);
 #endif
 
     /* Edler windows */
     for (i = 0, j = 0; i < NFLAT; i++, j++) {
-        sin_edler[j] = 0.0;
-        kbd_edler[j] = 0.0;
+        hDecoder->sin_edler[j] = 0.0;
+        hDecoder->kbd_edler[j] = 0.0;
     }
     for (i = 0; i < NWINSHORT; i++, j++) {
-        sin_edler [j] = sin_short [i];
-        kbd_edler [j] = kbd_short [i];
+        hDecoder->sin_edler [j] = hDecoder->sin_short [i];
+        hDecoder->kbd_edler [j] = hDecoder->kbd_short [i];
     }
     for ( ; j < NWINFLAT; j++) {
-        sin_edler [j] = 1.0;
-        kbd_edler [j] = 1.0;
+        hDecoder->sin_edler [j] = 1.0;
+        hDecoder->kbd_edler [j] = 1.0;
     }
 
     /* Advanced Edler windows */
     for (i = 0, j = 0; i < NADV0; i++, j++) {
-        sin_adv [j] = 0.0;
-        kbd_adv [j] = 0.0;
+        hDecoder->sin_adv [j] = 0.0;
+        hDecoder->kbd_adv [j] = 0.0;
     }
     for (i = 0; i < NWINSHORT; i++, j++) {
-        sin_adv[j] = sin_short[i];
-        kbd_adv[j] = kbd_short[i];
+        hDecoder->sin_adv[j] = hDecoder->sin_short[i];
+        hDecoder->kbd_adv[j] = hDecoder->kbd_short[i];
     }
     for ( ; j < NWINADV; j++) {
-        sin_adv[j] = 1.0;
-        kbd_adv[j] = 1.0;
+        hDecoder->sin_adv[j] = 1.0;
+        hDecoder->kbd_adv[j] = 1.0;
     }
 }
 
-void EndBlock(void)
+void EndBlock(faacDecHandle hDecoder)
 {
-    FreeMemory(sin_long);
-    FreeMemory(sin_short);
+    FreeMemory(hDecoder->sin_long);
+    FreeMemory(hDecoder->sin_short);
 #ifndef WIN_TABLE
-    FreeMemory(kbd_long);
-    FreeMemory(kbd_short);
+    FreeMemory(hDecoder->kbd_long);
+    FreeMemory(hDecoder->kbd_short);
 #endif
-    FreeMemory(sin_edler);
-    FreeMemory(kbd_edler);
-    FreeMemory(sin_adv);
-    FreeMemory(kbd_adv);
+    FreeMemory(hDecoder->sin_edler);
+    FreeMemory(hDecoder->kbd_edler);
+    FreeMemory(hDecoder->sin_adv);
+    FreeMemory(hDecoder->kbd_adv);
 }
 
 /*****************************************************************************
@@ -262,7 +250,7 @@ void ITransformBlock (faacDecHandle hDecoder,
 
     /*  first half of window */
     /*     windPtr = windowPtr [0] [0];  */
-    windPtr = windowPtr [beginWT] [wnd_shape->prev_bk];
+    windPtr = hDecoder->windowPtr [beginWT] [wnd_shape->prev_bk];
 
   /* idimkovic: should be optimized with SSE memcpy() */
     for (i = windowLeng [beginWT]/16 - 1; i>=0; --i)  {
@@ -278,7 +266,7 @@ void ITransformBlock (faacDecHandle hDecoder,
 
     /*  second half of window */
     leng = windowLeng [endWT];
-    windPtr = windowPtr [endWT] [wnd_shape->this_bk] + leng - 1;
+    windPtr = hDecoder->windowPtr [endWT] [wnd_shape->this_bk] + leng - 1;
   for (i = leng/16-1; i>=0; --i) {
     *dataPtr++ *= *windPtr--; *dataPtr++ *= *windPtr--;
     *dataPtr++ *= *windPtr--; *dataPtr++ *= *windPtr--;
@@ -348,7 +336,7 @@ void TransformBlock(faacDecHandle hDecoder,
 
 /*  first half of window */
 /*     windPtr = windowPtr [0] [0];  */
-     windPtr = windowPtr [beginWT] [wnd_shape->prev_bk];
+     windPtr = hDecoder->windowPtr [beginWT] [wnd_shape->prev_bk];
 
     for (i = windowLeng [beginWT]/16 - 1; i>=0; --i)  {
     *dataPtr++ *= *windPtr++;  *dataPtr++ *= *windPtr++;
@@ -364,7 +352,7 @@ void TransformBlock(faacDecHandle hDecoder,
 
 /*  second half of window */
     leng = windowLeng[endWT];
-    windPtr = windowPtr[endWT][wnd_shape->this_bk] + leng - 1;
+    windPtr = hDecoder->windowPtr[endWT][wnd_shape->this_bk] + leng - 1;
 
     for (i = leng/16-1; i>=0; --i) {
       *dataPtr++ *= *windPtr--; *dataPtr++ *= *windPtr--;

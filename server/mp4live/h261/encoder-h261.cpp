@@ -43,7 +43,7 @@
 #include "encoder-h261.h"
 #include "mp4live_config.h"
 
-#define DEBUG_QUALITY_ADJUSTMENT 1
+//#define DEBUG_QUALITY_ADJUSTMENT 1
 
 #define HLEN (4)
 #define	CIF_WIDTH	352
@@ -937,9 +937,10 @@ bool CH261PixelEncoder::GetReconstructedImage(uint8_t *pY,
 					     uint8_t *pU, 
 					     uint8_t *pV)
 {
-  pY = frame_data_;
-  pU = frame_data_ + framesize_;
-  pV = frame_data_ + framesize_ + framesize_ / 4;
+  uint32_t uvsize = framesize_ / 4;
+  memcpy(pY,frame_data_, framesize_);
+  memcpy(pU, frame_data_ + framesize_, uvsize);
+  memcpy(pV, frame_data_ + framesize_ + uvsize, uvsize);
   return true;
 }
 

@@ -47,7 +47,8 @@ public:
 	virtual media_free_f GetMediaFreeFunction(void) { return NULL; };
 };
 
-CVideoEncoder* VideoEncoderCreate(const char* encoderName);
+CVideoEncoder* VideoEncoderCreate(CLiveConfig *pConfig);
+
 
 MediaType get_video_mp4_fileinfo(CLiveConfig *pConfig,
 				 bool *createIod,
@@ -67,6 +68,16 @@ media_desc_t *create_video_sdp(CLiveConfig *pConfig,
 void create_mp4_video_hint_track(CLiveConfig *pConfig,
 				  MP4FileHandle mp4file,
 				  MP4TrackId trackId);
+
+class CRtpDestination;
+
+typedef void (*video_rtp_transmitter_f)(CMediaFrame *pak, CRtpDestination *list,
+					uint32_t rtpTimestamp, uint16_t mtu);
+
+video_rtp_transmitter_f GetVideoRtpTransmitRoutine(CLiveConfig *pConfig,
+						   MediaType *pType,
+						   uint8_t *pPayload);
+
 
 typedef struct video_encoder_table_t {
   char *encoding_name;

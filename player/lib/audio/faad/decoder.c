@@ -105,7 +105,7 @@ int FAADAPI faacDecInit2(faacDecHandle hDecoder,
     nok_init_lt_pred(hDecoder->nok_lt_status, Chans);
     init_pred(hDecoder, hDecoder->sp_status, Chans);
     MakeFFTOrder(hDecoder);
-    InitBlock();  /* calculate windows */
+    InitBlock(hDecoder);  /* calculate windows */
 
     hDecoder->winmap[0] = hDecoder->win_seq_info[ONLY_LONG_WINDOW];
     hDecoder->winmap[1] = hDecoder->win_seq_info[ONLY_LONG_WINDOW];
@@ -299,7 +299,7 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder,
     nok_init_lt_pred(hDecoder->nok_lt_status, Chans);
     init_pred(hDecoder, hDecoder->sp_status, Chans);
     MakeFFTOrder(hDecoder);
-    InitBlock();  /* calculate windows */
+    InitBlock(hDecoder);  /* calculate windows */
 
     hDecoder->winmap[0] = hDecoder->win_seq_info[ONLY_LONG_WINDOW];
     hDecoder->winmap[1] = hDecoder->win_seq_info[ONLY_LONG_WINDOW];
@@ -317,7 +317,7 @@ void FAADAPI faacDecClose(faacDecHandle hDecoder)
 {
     int i;
 
-    EndBlock();
+    EndBlock(hDecoder);
     nok_end_lt_pred(hDecoder->nok_lt_status, Chans);
 
     for(i=0; i < Chans; i++)

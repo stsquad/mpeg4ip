@@ -84,25 +84,28 @@ CIpPort::~CIpPort (void)
  * C2ConsecIpPort::C2ConsecIpPort() - get 2 consecutive, even-odd, ip
  * port numbers
  */
-C2ConsecIpPort::C2ConsecIpPort (CIpPort **global)
+C2ConsecIpPort::C2ConsecIpPort (CIpPort **global, in_port_t start_port)
 {
   CIpPort *newone;
   m_first = m_second = NULL;
   in_port_t firstport, maxport;
 
-  firstport = 1024;
   maxport = ~0;
-
-  if (config.get_config_value(CONFIG_IPPORT_MIN) != -1) {
-    firstport = config.get_config_value(CONFIG_IPPORT_MIN);
-    if (config.get_config_value(CONFIG_IPPORT_MAX) != -1) {
-      maxport = config.get_config_value(CONFIG_IPPORT_MAX);
-      if (maxport <= firstport) {
-	player_error_message("IP port configuration error - %u %u - using 65535 as max port value", 
-			     firstport, maxport);
-	maxport = ~0;
+  if (start_port == 0) {
+    firstport = 1024;
+    if (config.get_config_value(CONFIG_IPPORT_MIN) != -1) {
+      firstport = config.get_config_value(CONFIG_IPPORT_MIN);
+      if (config.get_config_value(CONFIG_IPPORT_MAX) != -1) {
+	maxport = config.get_config_value(CONFIG_IPPORT_MAX);
+	if (maxport <= firstport) {
+	  player_error_message("IP port configuration error - %u %u - using 65535 as max port value", 
+			       firstport, maxport);
+	  maxport = ~0;
+	}
       }
     }
+  } else {
+    firstport = start_port;
   }
   while (1) {
     // first, get an even port number.  If not even, save it in the

@@ -37,6 +37,7 @@ libobj_sys_la_SOURCES = \
 	newpred.cpp \
 	newpred.hpp \
 	rrv.cpp \
+	rrv.hpp \
 	gmc_util.cpp \
 	gmc_motion.cpp
 

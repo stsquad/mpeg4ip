@@ -520,6 +520,11 @@ static int iso_codec_check (lib_message_func_t message,
   if (fptr != NULL) {
     // find format. If matches, call parse_fmtp_for_mpeg4, look at
     // profile level.
+#if 1
+    if (strcmp(fptr->fmt, "34") == 0) {
+      return 1;
+    }
+#endif
     if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
       if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0) {
 	return 1;

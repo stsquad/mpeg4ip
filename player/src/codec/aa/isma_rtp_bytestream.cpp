@@ -582,7 +582,7 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (uint8_t **buffer,
       ptr = m_frame_data_on->frag_data;
       while (ptr != NULL) {
 	if (m_frag_reass_size + ptr->frag_len > m_frag_reass_size_max) {
-	  m_frag_reass_size_max += max(4096, ptr->frag_len);
+	  m_frag_reass_size_max += MAX(4096, ptr->frag_len);
 	  m_frag_reass_buffer = (uint8_t *)realloc(m_frag_reass_buffer, 
 							 m_frag_reass_size_max);
 	}

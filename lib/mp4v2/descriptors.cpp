@@ -372,6 +372,7 @@ void MP4SLConfigDescriptor::Mutate()
 	  for (i = 1; i <= 18; i++) {
 	    m_pProperties[i]->SetImplicit(false);
 	  }
+	((MP4BitfieldProperty*)m_pProperties[18])->SetValue(3);
 #endif
 	}
 

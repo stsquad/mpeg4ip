@@ -1,9 +1,7 @@
 #ifndef _XVID_H_
 #define _XVID_H_
 
-#ifndef _WIN32
 #include <systems.h>
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -193,7 +191,7 @@ typedef struct
 	int hintlength;			// length of buffer (bytes)
 } HINTINFO;
 
-typedef struct
+typedef struct XVID_ENC_FRAME
 {
 	int general;			// [in] general options
     int motion;				// [in] ME options
@@ -205,9 +203,9 @@ typedef struct
 
 #ifdef MPEG4IP
 	// [in] image ptr YUV planes
-	const uint8_t* image_y;
-	const uint8_t* image_u;
-	const uint8_t* image_v;
+	const uint8_t *image_y;
+	const uint8_t *image_u;
+	const uint8_t *image_v;
 	int stride;				// [in] byte length of y scanline
 #endif
 

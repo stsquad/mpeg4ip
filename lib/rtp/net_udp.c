@@ -94,7 +94,7 @@ struct ip_mreq {
 #define INADDR_NONE 0xffffffff
 #endif
 
-struct _socket_udp {
+struct socket_udp_ {
 	int	 	 mode;	/* IPv4 or IPv6 */
         char	        *addr;
 	uint16_t	 rx_port;

@@ -27,6 +27,7 @@
 #include <rtp/rtp.h>
 #include "media_sink.h"
 #include "audio_encoder.h"
+#include "video_encoder.h"
 
 // *****************************************************************************
 // Flags set by audio_queue_frame()
@@ -164,8 +165,6 @@ protected:
 	void SendAudioJumboFrame(CMediaFrame* pFrame);
 	void SendQueuedAudioFrames(void);
 
-	void SendH261Video(CMediaFrame *pFrame);
-	void SendMpeg4VideoWith3016(CMediaFrame* pFrame);
 	void DoStartRtpDestination(uint32_t handle);
 	void DoStopRtpDestination(uint32_t handle);
 
@@ -222,6 +221,8 @@ protected:
 	CRtpDestination  *m_videoRtpDestination;
 	CRtpDestination  *m_audioRtpDestination;
 
+	MediaType               m_videoFrameType;
+	video_rtp_transmitter_f m_videoSendFunc;
 	u_int8_t		m_videoPayloadNumber;
 	u_int32_t		m_videoTimeScale;
 	u_int32_t		m_videoRtpTimestampOffset;

@@ -31,7 +31,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * @(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/crdef.h,v 1.2 2003/04/17 23:54:26 wmaycisco Exp $
+ * @(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/crdef.h,v 1.3 2003/05/23 18:55:44 wmaycisco Exp $
  */
 
 /*
@@ -79,6 +79,7 @@
  */
 #define CR_AGETHRESH	15
 
+#ifdef __cplusplus
 
 class ConditionalReplenisher {
 public:
@@ -103,5 +104,5 @@ private:
 	int idle_high_;
 
 };
-
+#endif
 #endif /* mash_crdef_h */

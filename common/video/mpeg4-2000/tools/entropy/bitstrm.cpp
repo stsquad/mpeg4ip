@@ -89,11 +89,11 @@ unsigned int bit_msk[33] =
 };
 
 
-COutBitStream::COutBitStream (Char* pchBuffer, Int iBitPosition, ostream* pstrmTrace) : 
-	m_pstrmTrace (pstrmTrace),
-	m_chEncBuffer (0),
-	m_uEncNumEmptyBits (8)
+COutBitStream::COutBitStream (Char* pchBuffer, Int iBitPosition, ostream* pstrmTrace) : CIOBitStream()
 {
+  m_pstrmTrace = pstrmTrace;
+  m_chEncBuffer = 0;
+  m_uEncNumEmptyBits = 8;
 	assert (iBitPosition < 8);
 	assert (iBitPosition >= 0);
 	m_iBitPosition = iBitPosition;

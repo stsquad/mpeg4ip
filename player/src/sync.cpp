@@ -341,7 +341,7 @@ int CPlayerSession::sync_thread_playing (void)
       if (video_status > 0 || audio_resync_time != 0) {
 	if (audio_resync_time != 0) {
 	  int64_t diff = audio_resync_time - m_current_time;
-	  delay = (int)min(diff, video_status);
+	  delay = (int)MIN(diff, video_status);
 	} else {
 	  if (video_status < 9) {
 	    delay = 0;

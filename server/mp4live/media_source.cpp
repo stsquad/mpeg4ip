@@ -68,7 +68,7 @@ CMediaSource::~CMediaSource()
 {
   SDL_DestroyMutex(m_pSinksMutex);
   m_pSinksMutex = NULL;
-	
+
   if (m_audioResample != NULL) {
     for (int ix = 0; ix < m_audioDstChannels; ix++) {
       free(m_audioResample[ix]);
@@ -212,9 +212,7 @@ bool CMediaSource::InitVideo(
   m_videoDstYUVSize = (m_videoDstYSize * 3) / 2;
 
   // intialize encoder
-  m_videoEncoder = 
-    VideoEncoderCreate(m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
-  m_videoDstType = m_videoEncoder->GetFrameType();
+  m_videoEncoder = VideoEncoderCreate(m_pConfig);
 
   if (!m_videoEncoder) {
     return false;
@@ -224,6 +222,7 @@ bool CMediaSource::InitVideo(
     m_videoEncoder = NULL;
     return false;
   }
+  m_videoDstType = m_videoEncoder->GetFrameType();
 
 #ifdef DEBUG_VCODEC_SHADOW
   m_videoEncoderShadow = VideoEncoderCreate("ffmpeg");
@@ -648,6 +647,17 @@ void CMediaSource::DoStopVideo()
 {
   DestroyVideoResizer();
 
+  if (m_videoDstPrevFrame != NULL) {
+    media_free_f func = m_videoEncoder->GetMediaFreeFunction();
+    if (func != NULL) {
+      func(m_videoDstPrevFrame);
+    } else {
+      free(m_videoDstPrevFrame);
+    }
+    m_videoDstPrevFrame = NULL;
+  }
+  CHECK_AND_FREE(m_videoDstPrevImage);
+
   if (m_videoEncoder) {
     m_videoEncoder->Stop();
     delete m_videoEncoder;
@@ -726,7 +736,6 @@ bool CMediaSource::SetAudioSrc(
 
   m_audioEncoder = AudioEncoderCreate(
 				      m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODER));
-  m_audioDstType = m_audioEncoder->GetFrameType();
 
   if (m_audioEncoder == NULL) {
     return false;
@@ -737,6 +746,8 @@ bool CMediaSource::SetAudioSrc(
     m_audioEncoder = NULL;
     return false;
   }
+
+  m_audioDstType = m_audioEncoder->GetFrameType();
 
   m_audioDstSamplesPerFrame = 
     m_audioEncoder->GetSamplesPerFrame();

@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "ISOencoder"=.\common\video\mpeg4\app\encoder\encoder60.dsp - Package Owner=<4>
+Project: "ISOencoder"=".\common\video\mpeg4-2000\app\encoder\encoder60.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

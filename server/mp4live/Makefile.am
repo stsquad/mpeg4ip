@@ -69,15 +69,16 @@ libmp4live_la_SOURCES = \
 	video_v4l_source.cpp \
 	video_v4l_source.h \
 	video_encoder.h \
-	video_encoder.cpp \
+	video_encoder_base.h \
+	video_encoder_base.cpp \
 	video_xvid.h \
 	video_xvid.cpp 
 
 mp4live_SOURCES = \
 	audio_encoder.cpp \
 	audio_encoder_tables.cpp \
+	video_encoder.cpp \
 	video_encoder_tables.cpp \
-	video_encoder_tables.h \
 	mp4live.cpp \
 	mp4live.h 
 # LATER

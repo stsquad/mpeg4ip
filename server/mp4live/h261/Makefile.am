@@ -2,12 +2,14 @@ noinst_LTLIBRARIES = libmp4live_h261.la
 
 libmp4live_h261_la_LDFLAGS = -static
 libmp4live_h261_la_SOURCES = encoder-h261.cpp \
-	encoder-h261.h \
+	bsd-endian.h \
 	crdef.cpp \
 	crdef.h \
 	dct.cpp \
 	dct.h \
-	huffcode.c 
+	encoder-h261.h \
+	huffcode.c \
+	p64-huff.h
 
 INCLUDES = -I.. \
 	-I$(top_srcdir)/include \

@@ -476,8 +476,8 @@ Void CVideoObjectEncoder::encodeSpritePiece (Time t)
 
 			m_vopmd.SpriteXmitMode = UPDATE;
 			m_rctUpdateQ = CRct ( rct.left, rct.top, rct.left, rct.bottom);
-			CRct rct1 = encPiece (rct);
-			rct1 = encPiece (CRct ( rct.left, m_rctPieceQ.top, rct.right, rct.top));
+			CRct tmp;// = encPiece (rct);
+			tmp = encPiece (CRct ( rct.left, m_rctPieceQ.top, rct.right, rct.top));
 			m_vopmd.SpriteXmitMode = PIECE;
 			m_tPiece = 	uiF;
 

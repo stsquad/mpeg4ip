@@ -111,7 +111,7 @@ class COutBitStream : public CIOBitStream
 public:
 	// Constructors
 	COutBitStream (){m_chEncBuffer = 0; m_uEncNumEmptyBits = 8;}//create unattached bitstream
-	COutBitStream (Char* pchBuffer, Int iBitPosition = 0, ostream * pstrmTrace = NULL); //create bitstream and attach to outStream
+	COutBitStream (Char* pchBuffer, Int iBitPosition, ostream * pstrmTrace); //create bitstream and attach to outStream
 
 	// attributes
 	Char* str () const {return m_pchBuffer;}

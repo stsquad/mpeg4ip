@@ -381,7 +381,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libobj"=..\..\common\video\mpeg4\libobj60.dsp - Package Owner=<4>
+Project: "libobj"="..\..\common\video\mpeg4-2000\libobj60.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -528,9 +528,6 @@ Package=<4>
     Project_Dep_Name libfileposrec
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libobj
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name need_for_win
     End Project Dependency
     Begin Project Dependency
@@ -538,6 +535,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp4av
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libobj
     End Project Dependency
 }}}
 

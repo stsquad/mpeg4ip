@@ -47,13 +47,14 @@ class CIpPort {
 // invalid ip ports.  This is to keep sockets open for those ports.
 class C2ConsecIpPort {
  public:
-  C2ConsecIpPort(CIpPort **global);
+  C2ConsecIpPort(CIpPort **global, in_port_t start_port = 0);
   ~C2ConsecIpPort(void);
   int valid (void) { return m_first != NULL && m_second != NULL; };
   in_port_t first_port (void) { return m_first->get_port_num(); };
   in_port_t second_port (void) { return m_second->get_port_num(); };
  private:
   CIpPort *m_first, *m_second;
+  in_port_t m_start_port;
 };
 
 #endif

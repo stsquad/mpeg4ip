@@ -103,6 +103,7 @@ public:
 		return false;
 	}
 
+	virtual bool CanShareSource(void) { return true; };
 protected:
 	// Video & Audio support
 	virtual bool IsEndOfVideo() { 
@@ -215,7 +216,7 @@ protected:
 	};
 
 	void AddGapToAudio(Timestamp startTimestamp, Duration silenceDuration);
-	  
+
 protected:
 	static const int MSG_SOURCE	= 2048;
 	static const int MSG_SOURCE_START_VIDEO	= MSG_SOURCE + 1;

@@ -86,12 +86,9 @@ CRtpTransmitter::CRtpTransmitter (CLiveConfig *pConfig) : CMediaSink()
   // Initialize Video portion of transmitter
   m_videoRtpDestination = NULL;
 
-  const char *encodingName = pConfig->GetStringValue(CONFIG_VIDEO_ENCODING);
-  if (strcasecmp(encodingName, VIDEO_ENCODING_H261) == 0) {
-    m_videoPayloadNumber = 31;
-  } else {
-    m_videoPayloadNumber = 96;
-  }
+  m_videoSendFunc = GetVideoRtpTransmitRoutine(pConfig, 
+					       &m_videoFrameType, 
+					       &m_videoPayloadNumber);
   m_videoTimeScale = 90000;
   m_haveVideoStartTimestamp = false;
   if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
@@ -287,12 +284,22 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 	if (pFrame->GetType() == m_audioFrameType && m_audioRtpDestination) {
 		SendAudioFrame(pFrame);
 
-	} else if (pFrame->GetType() == MPEG4VIDEOFRAME 
-	  && m_videoRtpDestination) {
-		SendMpeg4VideoWith3016(pFrame);
-
-	} else if (pFrame->GetType() == H261VIDEOFRAME && m_videoRtpDestination) {
-	  SendH261Video(pFrame);
+	} else if (pFrame->GetType() == m_videoFrameType 
+		   && m_videoRtpDestination) {
+	  u_int32_t rtpTimestamp =
+	    VideoTimestampToRtp(pFrame->GetTimestamp());
+	  u_int64_t ntpTimestamp = 
+	    TimestampToNtp(pFrame->GetTimestamp());
+	  
+	  CRtpDestination *rdptr;
+	  
+	  rdptr = m_videoRtpDestination;
+	  while (rdptr != NULL) {
+	    rdptr->send_rtcp(rtpTimestamp, ntpTimestamp);
+	    rdptr = rdptr->get_next();
+	  }
+	  (m_videoSendFunc)(pFrame, m_videoRtpDestination, rtpTimestamp, 
+			    m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
 	} else {
 	  if (pFrame->RemoveReference())
 		delete pFrame;
@@ -575,102 +582,8 @@ void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
     delete pFrame;
 }
 
-void CRtpTransmitter::SendH261Video(CMediaFrame *pFrame)
-{
-  u_int32_t rtpTimestamp =
-    VideoTimestampToRtp(pFrame->GetTimestamp());
-  u_int64_t ntpTimestamp = 
-    TimestampToNtp(pFrame->GetTimestamp());
-
-  CRtpDestination *rdptr;
-  
-  rdptr = m_videoRtpDestination;
-  while (rdptr != NULL) {
-    rdptr->send_rtcp(rtpTimestamp, ntpTimestamp);
-    rdptr = rdptr->get_next();
-  }
-
-  pktbuf_t *pData = (pktbuf_t*)pFrame->GetData();
-  struct iovec iov[2];
-  while (pData != NULL) {
-    iov[0].iov_base = &pData->h261_rtp_hdr;
-    iov[0].iov_len = sizeof(uint32_t);
-    iov[1].iov_base = pData->data;
-    iov[1].iov_len = pData->len;
-    
-    rdptr = m_videoRtpDestination;
-    while (rdptr != NULL) {
-      rdptr->send_iov(iov, 2, rtpTimestamp, pData->next == NULL);
-      rdptr = rdptr->get_next();
-    }
-   
-    pktbuf_t *n = pData->next;
-#if 0
-    free(pData->data);
-    free(pData);
-#endif
-    pData = n;
-  }
-  if (pFrame->RemoveReference())
-    delete pFrame;
-}
 
 
-void CRtpTransmitter::SendMpeg4VideoWith3016(CMediaFrame* pFrame)
-{
-  u_int32_t rtpTimestamp =
-    VideoTimestampToRtp(pFrame->GetTimestamp());
-  u_int64_t ntpTimestamp =
-    TimestampToNtp(pFrame->GetTimestamp());
-  CRtpDestination *rdptr;
-#if RTP_DEBUG
-  debug_message("V ts %llu rtp %u ntp %u.%u",
-		pFrame->GetTimestamp(),
-		rtpTimestamp,
-		(u_int32_t)(ntpTimestamp >> 32),
-		(u_int32_t)ntpTimestamp);
-#endif
-
-  // check if RTCP SR needs to be sent
-  rdptr = m_videoRtpDestination;
-  while (rdptr != NULL) {
-    rdptr->send_rtcp(rtpTimestamp, ntpTimestamp);
-    rdptr = rdptr->get_next();
-  }
-
-  u_int8_t* pData = (u_int8_t*)pFrame->GetData();
-  u_int32_t bytesToSend = pFrame->GetDataLength();
-  struct iovec iov;
-
-  while (bytesToSend) {
-    u_int32_t payloadLength;
-    bool lastPacket;
-
-    if (bytesToSend 
-	<= m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
-      payloadLength = bytesToSend;
-      lastPacket = true;
-    } else {
-      payloadLength = 
-	m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
-      lastPacket = false;
-    }
-
-    iov.iov_base = pData;
-    iov.iov_len = payloadLength;
-
-    rdptr = m_videoRtpDestination;
-    while (rdptr != NULL) {
-      rdptr->send_iov(&iov, 1, rtpTimestamp, lastPacket);
-      rdptr = rdptr->get_next();
-    }
-
-    pData += payloadLength;
-    bytesToSend -= payloadLength;
-  }
-  if (pFrame->RemoveReference())
-    delete pFrame;
-}
 
 void CRtpTransmitter::DoStartRtpDestination (uint32_t handle)
 {

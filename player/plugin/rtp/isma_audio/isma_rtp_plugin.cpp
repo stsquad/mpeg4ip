@@ -626,7 +626,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
       ptr = iptr->m_frame_data_on->frag_data;
       while (ptr != NULL) {
 	if (iptr->m_frag_reass_size + ptr->frag_len > iptr->m_frag_reass_size_max) {
-	  iptr->m_frag_reass_size_max += max(4096, ptr->frag_len);
+	  iptr->m_frag_reass_size_max += MAX(4096, ptr->frag_len);
 	  iptr->m_frag_reass_buffer = 
 	    (uint8_t *)realloc(iptr->m_frag_reass_buffer, 
 			       iptr->m_frag_reass_size_max);

@@ -22,7 +22,7 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: block.h,v 1.5 2002/01/11 00:55:17 wmaycisco Exp $
+ * $Id: block.h,v 1.6 2003/05/23 18:55:19 wmaycisco Exp $
  */
 
 #ifndef BLOCK_H
@@ -56,19 +56,6 @@ Copyright(c)1996.
 #define WEAVE_STOP  1       /* type paremeter for stop blocks */
 
 
-typedef enum {
-    WS_FHG, WS_DOLBY, N_WINDOW_SHAPES
-}
-Window_shape;
-
-typedef enum {
-    WT_LONG,
-    WT_SHORT,
-    WT_FLAT,
-    WT_ADV,         /* Advanced flat window */
-    N_WINDOW_TYPES
-}
-WINDOW_TYPE;
 
 typedef enum {                  /* ADVanced transform types */
     LONG_BLOCK,
@@ -85,8 +72,8 @@ BLOCK_TYPE;
 
 
 void unfold (Float *data_in, Float *data_out, int inLeng);
-void InitBlock(void);
-void EndBlock(void);
+void InitBlock(faacDecHandle hDecoder);
+void EndBlock(faacDecHandle hDecoder);
 void ITransformBlock(faacDecHandle hDecoder,Float* dataPtr, BLOCK_TYPE wT, Wnd_Shape *ws, Float *state);
 void TransformBlock(faacDecHandle hDecoder,Float* dataPtr, BLOCK_TYPE bT, Wnd_Shape *wnd_shape);
 
