@@ -1,6 +1,8 @@
-xx/xx/xx Version 0.9.9
+07/03/03 Version 0.9.9
     Added H.261 encoding for mp4live
     Fixes from April ISMA plugfest
+    Minor fixes to mp4live
+    Build fixes for Solaris
 
 03/05/03 Version 0.9.8
     Several changes from ISMA plugfest in IOD and RTSP.

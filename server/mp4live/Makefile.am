@@ -128,4 +128,4 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
 	$(GUILIBS)
 
-EXTRA_DIST = INTERNALS
+EXTRA_DIST = README.html INTERNALS.html

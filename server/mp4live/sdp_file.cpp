@@ -287,7 +287,7 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 			 pConfig->GetStringValue(CONFIG_RTP_AUDIO_DEST_ADDRESS),
 			 sDestAddr, 
 			 pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL),
-			 false,
+			 pConfig->GetBoolValue(CONFIG_RTP_NO_B_RR_0),
 			 pConfig->GetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT),
 			 pConfig->GetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT));
   rc = (sdp_encode_one_to_file(sdp, 

@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.8.8)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.9)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 

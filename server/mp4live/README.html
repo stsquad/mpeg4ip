@@ -53,6 +53,7 @@ enhancements, ask questions, etc. The URL is
 <P>
 Added H.261 video encoding (no recording).<br>
 Fixes to audio driver from rca.<br>
+Added flag to remove b=RR:0 for playing through DSS with gmp4player<br>
 <P>
 <a name="0.9.8">
 <b><font color="#0000FF">Changes in Version 0.9.8</font></b>
@@ -338,6 +339,11 @@ as a relay between mp4live and the player.
 <P>
 For example:
 <P><samp> gmp4player rtsp://DSS/mymovie.sdp</samp>
+<P>
+If you're having problems where gmp4player is stopping after 2 minutes when 
+relaying through a Darwin Streaming Server, add the line <code>rtpNoBRR0=1</code>
+to your .mp4live_rc.  Darwin is expecting RTCP messages from gmp4player, and the b=RR:0 statement
+in the SDP stops gmp4player from sending them.
 
 <P>
 <a href="#top">Back to top</a>
@@ -457,7 +463,6 @@ doesn't work with your capture card, then I can't help you. Something is
 wrong with your capture card/system/bttv driver/kernel combination. I don't
 have the capability or inclination to debug that for you! 
 
-<P>
 <a href="#top">Back to top</a>
 <P>
 <a name="links">
@@ -495,6 +500,7 @@ have the capability or inclination to debug that for you!
 
 <b>
 Dave Mackie<br>
+Bill May<br>
 <a href="http://www.cisco.com">Cisco Systems, Inc.</a>
 </b>
 </font>
