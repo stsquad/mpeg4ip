@@ -471,26 +471,25 @@ int main(int argc, char** argv)
 			 */
 			if (bFrameFrequency) {
 				if (vopCodingType == 'I') {
-					frameRenderingOffset = 0;
+					/* 
+					 * I frame presentation times are delayed
+					 * by 1 frame duration so that they can fill
+					 * the holes created by the P frames
+					 */
+					frameRenderingOffset = 1 * (timeScale / frameRate);
 
 				} else if (vopCodingType == 'P') {
 					/* 
 					 * P frame presentation times are early 
-					 * by bFrameFrequency * frame duration
+					 * by (bFrameFrequency + 1) * frame duration
 					 * due to their being pulled forward in the encoded
 					 * bitstream, so adjust for that here
 					 */
 					frameRenderingOffset = 
-						bFrameFrequency * (timeScale / frameRate);
+						(bFrameFrequency + 1) * (timeScale / frameRate);
 
 				} else if (vopCodingType == 'B') {
-					/* 
-					 * B frame presentation times are late 
-					 * by 1 frame duration
-					 * due to the insertion of the forward P frame
-					 * so adjust for that here
-					 */
-					frameRenderingOffset = -(timeScale / frameRate);
+					frameRenderingOffset = 0;
 				}
 			} else {
 				frameRenderingOffset = 0;
@@ -582,7 +581,8 @@ int main(int argc, char** argv)
 				 * Adjust RTP timestamps when B frames are used so that they
 				 * correctly reflect the sampling/rendering time of the frame
 				 *
-				 * TBD do we do this for MP4 files?
+				 * TBD do we do this for MP4 files? They should be using the
+				 * ctts atom to achieve the same thing. 
 				 */
 				if (bFrameFrequency) {
 					quicktime_set_rtp_hint_timestamp_offset(
