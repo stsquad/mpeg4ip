@@ -59,8 +59,8 @@ int quicktime_read_iods(quicktime_t *file, quicktime_iods_t *iods)
 {
 	iods->version = quicktime_read_char(file);
 	iods->flags = quicktime_read_int24(file);
-	/* skip 5 bytes */
-	quicktime_set_position(file, quicktime_position(file) + 5);
+	/* skip 6 bytes */
+	quicktime_set_position(file, quicktime_position(file) + 6);
 	iods->audioProfileId = quicktime_read_char(file);
 	iods->videoProfileId = quicktime_read_char(file);
 	/* will skip the remainder of the atom */
@@ -81,6 +81,7 @@ int quicktime_write_iods(quicktime_t *file, quicktime_iods_t *iods)
 	quicktime_write_int24(file, iods->flags);
 
 	quicktime_write_char(file, 0x10);	/* MP4_IOD_Tag */
+	quicktime_write_char(file, 7 + (file->moov.total_tracks * 4));	/* length */
 	quicktime_write_int16(file, 0x004F); /* ObjectDescriptorID = 1 */
 	quicktime_write_char(file, 0xFF);	/* ODProfileLevel */
 	quicktime_write_char(file, 0xFF);	/* sceneProfileLevel */
