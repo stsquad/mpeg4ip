@@ -61,15 +61,11 @@ LDADD = \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/player/lib/audio/faad/libfaad.la \
 	$(top_builddir)/player/src/codec/mpeg4/libmpeg4.la \
-	$(top_builddir)/player/lib/video/divx/libourdivx.la \
-	$(top_builddir)/player/src/codec/divx/libdivx.la \
-	$(top_builddir)/player/lib/video/divx/libourdivx.la \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
 	$(top_builddir)/player/lib/SDL/src/libSDL.la \
 	$(top_builddir)/common/mp4/libmp4.la \
 	-lpthread \
 	-lm \
-	$(top_builddir)/player/lib/video/divx/libourdivx.la \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
 	-L/usr/lib -L/usr/X11R6/lib -lgtk -lgdk \
