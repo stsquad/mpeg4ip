@@ -44,7 +44,7 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
   int inserted = TRUE;
   int16_t diff;
 #ifdef DEBUG_RTP_PAKS
-  rtp_message(LOG_DEBUG, "CBThread %u - m %u pt %u seq %d ts %x len %d", 
+  rtp_message(LOG_DEBUG, "CBThread %u - m %u pt %u seq %d ts %d len %d", 
 	      SDL_ThreadID(),
 	      pak->rtp_pak_m, pak->rtp_pak_pt, pak->rtp_pak_seq, 
 	      pak->rtp_pak_ts, pak->rtp_data_len);
@@ -529,7 +529,7 @@ uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer,
     rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif
   }
-
+  m_ts = ts;
   timetick = rtp_ts_to_msec(ts, m_wrap_offset);
   
   return (timetick);
@@ -630,7 +630,6 @@ uint64_t CAudioRtpByteStream::start_next_frame (unsigned char **buffer,
 						uint32_t *buflen)
 {
   uint32_t ts;
-  uint64_t timetick;
   int32_t diff;
 
   if (m_working_pak != NULL) {
@@ -662,39 +661,7 @@ uint64_t CAudioRtpByteStream::start_next_frame (unsigned char **buffer,
   }
 
   // We're going to have to handle wrap better...
-  if (m_stream_ondemand) {
-    int neg = 0;
-    m_ts = ts;
-    if (m_ts >= m_rtp_rtptime) {
-      timetick = m_ts;
-      timetick -= m_rtp_rtptime;
-    } else {
-      timetick = m_rtp_rtptime - m_ts;
-      neg = 1;
-    }
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    if (neg == 1) {
-      if (timetick > m_play_start_time) return (0);
-      return (m_play_start_time - timetick);
-    }
-    timetick += m_play_start_time;
-  } else {
-    if (((m_ts & 0x80000000) == 0x80000000) &&
-	((ts & 0x80000000) == 0)) {
-      m_wrap_offset += (I_LLU << 32);
-    }
-    m_ts = ts;
-    timetick = m_ts + m_wrap_offset;
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    timetick += m_wallclock_offset;
-#if 0
-    rtp_message(LOG_DEBUG, "time %x "LLU" "LLU" "LLU" "LLU "offset %d",
-		m_ts, m_wrap_offset, m_rtptime_tickpersec, m_wallclock_offset,
-		timetick, m_offset_in_pak);
-#endif
-  }
+  m_ts = ts;
+  return rtp_ts_to_msec(ts, m_wrap_offset);
 
-  return (timetick);
 }

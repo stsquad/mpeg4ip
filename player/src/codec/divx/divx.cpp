@@ -138,33 +138,8 @@ static codec_data_t *divx_create (format_list_t *media_fmt,
     if (parse_vovod(divx, (const char *)userdata, 0, ud_size) == 1) {
       divx->m_decodeState = DIVX_STATE_WAIT_I;
     }
-  } else if (vinfo != NULL) {
-    mp4_hdr.width = vinfo->width;
-    mp4_hdr.height = vinfo->height;
-    
-    // defaults from mp4_decoder.c routine dec_init...
-    mp4_hdr.quant_precision = 5;
-    mp4_hdr.bits_per_pixel = 8;
-
-    mp4_hdr.quant_type = 0;
-
-    mp4_hdr.time_increment_resolution = 15;
-    mp4_hdr.time_increment_bits = 0;
-    while (mp4_hdr.time_increment_resolution > 
-	   (1 << mp4_hdr.time_increment_bits)) {
-      mp4_hdr.time_increment_bits++;
-    }
-    mp4_hdr.fps = 30;
-
-    mp4_hdr.complexity_estimation_disable = 1;
-
-    divx->m_vft->video_configure(divx->m_ifptr, 
-				 vinfo->width,
-				 vinfo->height,
-				 VIDEO_FORMAT_YUV);
-    post_volprocessing();
-    divx->m_decodeState = DIVX_STATE_NORMAL;
   } 
+  divx->m_vinfo = vinfo;
 
   divx->m_dropped_b_frames = 0;
   divx->m_num_wait_i = 0;
@@ -231,6 +206,7 @@ static int divx_decode (codec_data_t *ptr,
   
   switch (divx->m_decodeState) {
   case DIVX_STATE_VO_SEARCH:
+    ret = -1;
     try {
       ret = newdec_read_volvop(buffer, buflen);
       if (ret != 0) {
@@ -240,14 +216,38 @@ static int divx_decode (codec_data_t *ptr,
 				     VIDEO_FORMAT_YUV);
 	post_volprocessing();
 	divx->m_decodeState = DIVX_STATE_WAIT_I;
-      } else {
-	return (-1);
       }
     } catch (int err) {
       divx_message(LOG_INFO, "divxif", "Caught exception in VO search %d", 
 		   err);
-      return (-1);
     }
+    if (ret <= 0) {
+      mp4_hdr.width = divx->m_vinfo->width;
+      mp4_hdr.height = divx->m_vinfo->height;
+    
+      // defaults from mp4_decoder.c routine dec_init...
+      mp4_hdr.quant_precision = 5;
+      mp4_hdr.bits_per_pixel = 8;
+
+      mp4_hdr.quant_type = 0;
+
+      mp4_hdr.time_increment_resolution = 15;
+      mp4_hdr.time_increment_bits = 0;
+      while (mp4_hdr.time_increment_resolution > 
+	     (1 << mp4_hdr.time_increment_bits)) {
+	mp4_hdr.time_increment_bits++;
+      }
+      mp4_hdr.fps = 30;
+
+      mp4_hdr.complexity_estimation_disable = 1;
+
+      divx->m_vft->video_configure(divx->m_ifptr, 
+				   divx->m_vinfo->width,
+				   divx->m_vinfo->height,
+				   VIDEO_FORMAT_YUV);
+      post_volprocessing();
+      divx->m_decodeState = DIVX_STATE_NORMAL;
+    } 
     //      return(0);
   case DIVX_STATE_WAIT_I:
     do_wait_i = 1;

@@ -58,6 +58,7 @@ int MPEGaudio::decodeFrame (unsigned char *tobuffer,
     printf("Couldn't load mp3 header - orig %d buflen %d\n", 
 	   fromlen, _buflen);
 #endif
+#if 0
     for (uint32_t ix = 0; ix < fromlen; ix += 8) {
       printf("%4d %02x %02x %02x %02x  %02x %02x %02x %02x\n",
 	     ix, 
@@ -70,6 +71,7 @@ int MPEGaudio::decodeFrame (unsigned char *tobuffer,
 	     frombuffer[ix + 6],
 	     frombuffer[ix + 7]);
     }
+#endif
     return fromlen - _buflen;
   }
 

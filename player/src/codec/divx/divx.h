@@ -51,6 +51,7 @@ typedef struct divx_codec_t {
   uint32_t m_framecount;
   uint32_t m_frame_on;
   CFilePosRecorder *m_fpos;
+  video_info_t *m_vinfo;
 } divx_codec_t;
 
 #define m_vft c.v.video_vft

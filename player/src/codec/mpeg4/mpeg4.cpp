@@ -255,12 +255,14 @@ static int iso_decode (codec_data_t *ptr,
 				    VIDEO_FORMAT_YUV);
 	
 	iso->m_decodeState = DECODE_STATE_WAIT_I;
+	used += iso->m_pvodec->get_used_bytes();
       } catch (int err) {
 	iso_message(LOG_DEBUG, mp4iso, "Caught exception in VOL search %d", err);
+	if (err == 1) used = buflen;
+	else used += iso->m_pvodec->get_used_bytes();
       }
-      used += iso->m_pvodec->get_used_bytes();
     }
-    if (used >= buflen) {
+    if (iso->m_decodeState != DECODE_STATE_WAIT_I) {
       if (iso->m_vinfo != NULL) {
 	iso->m_pvodec->FakeOutVOVOLHead(iso->m_vinfo->height,
 					iso->m_vinfo->width,

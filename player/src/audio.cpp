@@ -497,7 +497,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
     delay = SDL_AudioDelayMsec();
     if (delay < 0) delay = 0;
 #ifdef DEBUG_DELAY
-    audio_message(LOG_DEBUG, "Audio delay is %d", delay);
+    audio_message(LOG_DEBUG, "Audio delay is %d %llu", delay, m_play_time);
 #endif
   }
 

@@ -64,6 +64,8 @@ int main(int argc, char** argv)
 		"  -list                   List tracks in mp4 file\n"
 		"  -mtu=<size>             MTU for hint track\n"
 		"  -optimize               Optimize mp4 file layout\n"
+	        "  -payload=<payload>      Rtp payload type \n"
+                "                          (use 3119 or mpa-robust for mp3 rfc 3119 support)\n"
 		"  -rate=<fps>             Video frame rate, e.g. 30 or 29.97\n"
 		"  -verbose[=[1-5]]        Enable debug messages\n"
         "  -version                Display version information\n"

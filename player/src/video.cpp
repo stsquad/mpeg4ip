@@ -30,6 +30,8 @@
 //#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
 //#define SHORT_VIDEO 1
+//#define SWAP_UV 1
+
 #ifdef _WIN32
 // new hwsurface method doesn't work on windows.
 // If you have pre-directX 8.1 - you'll want to define OLD_SURFACE
@@ -360,29 +362,36 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
 	bufsize /= 4;
 	width /= 2;
 	height /= 2;
-	if (width != m_image->pitches[1]) {
-	    to = m_image->pixels[1];
+#ifdef SWAP_UV
+#define V 2
+#define U 1
+#else
+#define V 1
+#define U 2
+#endif
+	if (width != m_image->pitches[V]) {
+	    to = m_image->pixels[V];
 	    from = m_v_buffer[m_play_index];
 	  for (ix = 0; ix < height; ix++) {
 	    memcpy(to, from, width);
-	    to += m_image->pitches[1];
+	    to += m_image->pitches[V];
 	    from += width;
 	  }
 	} else {
-	  memcpy(m_image->pixels[1], 
+	  memcpy(m_image->pixels[V], 
 		 m_v_buffer[m_play_index], 
 		 bufsize);
 	}
-	if (width != m_image->pitches[2]) {
-	    to = m_image->pixels[2];
+	if (width != m_image->pitches[U]) {
+	    to = m_image->pixels[U];
 	    from = m_u_buffer[m_play_index];
 	  for (ix = 0; ix < height; ix++) {
 	    memcpy(to, from, width);
-	    to += m_image->pitches[2];
+	    to += m_image->pitches[U];
 	    from += width;
 	  }
 	} else {
-	  memcpy(m_image->pixels[2], 
+	  memcpy(m_image->pixels[U], 
 		 m_u_buffer[m_play_index], 
 		 bufsize);
 	}

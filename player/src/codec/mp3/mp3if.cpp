@@ -133,22 +133,6 @@ static int mp3_decode (codec_data_t *ptr,
     mp3->m_samplesperframe = 
       mp3_get_samples_per_frame(mp3->m_mp3_info->getlayer(),
 				mp3->m_mp3_info->getversion());
-#if 0
-    int samplesperframe;
-    samplesperframe = 32;
-    if (mp3->m_mp3_info->getlayer() == 3) {
-      samplesperframe *= 18;
-      if (mp3->m_mp3_info->getversion() == 0) {
-	samplesperframe *= 2;
-      }
-    } else {
-      samplesperframe *= SCALEBLOCK;
-      if (mp3->m_mp3_info->getlayer() == 2) {
-	samplesperframe *= 3;
-      }
-    }
-    mp3->m_samplesperframe = samplesperframe;
-#endif
     mp3_message(LOG_DEBUG, "libmp3", "chans %d freq %d samples %d", 
 		mp3->m_chans, mp3->m_freq, mp3->m_samplesperframe);
     mp3->m_vft->audio_configure(mp3->m_ifptr,
@@ -175,6 +159,12 @@ static int mp3_decode (codec_data_t *ptr,
 
   if (bits > 4) {
     if (mp3->m_last_rtp_ts == ts) {
+#if 0
+      mp3_message(LOG_DEBUG, "mp3",
+		  "ts %llu current time %llu spf %d freq %d", 
+		  ts, mp3->m_current_time, mp3->m_samplesperframe, 
+		  mp3->m_freq);
+#endif
       mp3->m_current_time += ((mp3->m_samplesperframe * 1000) / mp3->m_freq);
     } else {
       mp3->m_last_rtp_ts = ts;

@@ -29,16 +29,17 @@ char* Mp4FileName;
 // forward declaration
 void PrintTrackList(MP4FileHandle mp4File);
 void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, 
-	bool sampleMode, char* dstFileName = NULL);
+	bool sampleMode, MP4SampleId sampleId, char* dstFileName = NULL);
 
 
 int main(int argc, char** argv)
 {
 	char* usageString = 
-		"usage: %s [-l] [-t <track-id>] [-v [<level>]] <file-name>\n";
+		"usage: %s [-l] [-t <track-id>] [-s <sample-id>] [-v [<level>]] <file-name>\n";
 	bool doList = false;
 	bool doSamples = false;
-	MP4TrackId trackId = 0;
+	MP4TrackId trackId = MP4_INVALID_TRACK_ID;
+	MP4SampleId sampleId = MP4_INVALID_SAMPLE_ID;
 	char* dstFileName = NULL;
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
 
@@ -50,13 +51,13 @@ int main(int argc, char** argv)
 		static struct option long_options[] = {
 			{ "list", 0, 0, 'l' },
 			{ "track", 1, 0, 't' },
-			{ "samples", 0, 0, 's' },
+			{ "sample", 2, 0, 's' },
 			{ "verbose", 2, 0, 'v' },
 			{ "version", 0, 0, 'V' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "lt:sv::V",
+		c = getopt_long_only(argc, argv, "lt:s::v::V",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -68,6 +69,13 @@ int main(int argc, char** argv)
 			break;
 		case 's':
 			doSamples = true;
+			if (optarg) {
+				if (sscanf(optarg, "%u", &sampleId) != 1) {
+					fprintf(stderr, 
+						"%s: bad sample-id specified: %s\n",
+						 ProgName, optarg);
+				}
+			}
 			break;
 		case 't':
 			if (sscanf(optarg, "%u", &trackId) != 1) {
@@ -160,10 +168,10 @@ int main(int argc, char** argv)
 
 		for (u_int32_t i = 0; i < numTracks; i++) {
 			trackId = MP4FindTrackId(mp4File, i);
-			ExtractTrack(mp4File, trackId, doSamples);
+			ExtractTrack(mp4File, trackId, doSamples, sampleId);
 		}
 	} else {
-		ExtractTrack(mp4File, trackId, doSamples, dstFileName);
+		ExtractTrack(mp4File, trackId, doSamples, sampleId, dstFileName);
 	}
 
 	MP4Close(mp4File);
@@ -184,7 +192,7 @@ void PrintTrackList(MP4FileHandle mp4File)
 }
 
 void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, 
-	bool sampleMode, char* dstFileName)
+	bool sampleMode, MP4SampleId sampleId, char* dstFileName)
 {
 	char outFileName[PATH_MAX];
 	int outFd = -1;
@@ -207,13 +215,19 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId,
 		}
 	}
 
-	MP4SampleId numSamples = 
-		MP4GetTrackNumberOfSamples(mp4File, trackId);
+	MP4SampleId numSamples;
+
+	if (sampleMode && sampleId != MP4_INVALID_SAMPLE_ID) {
+		numSamples = sampleId;
+	} else {
+		sampleId = 1;
+		numSamples = MP4GetTrackNumberOfSamples(mp4File, trackId);
+	}
 
 	u_int8_t* pSample;
 	u_int32_t sampleSize;
 
-	for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
+	for ( ; sampleId <= numSamples; sampleId++) {
 		int rc;
 
 		// signals to ReadSample() that it should malloc a buffer for us
