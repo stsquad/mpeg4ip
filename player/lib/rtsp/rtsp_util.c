@@ -24,6 +24,7 @@
 
 #include "rtsp_private.h"
 
+
 static int rtsp_debug_level = LOG_ALERT;
 static error_msg_func_t rtsp_error_msg = NULL;
 /*
@@ -383,11 +384,15 @@ struct in_addr rtsp_get_server_ip_address (rtsp_session_t *session)
 }
 
 //  dan works for IPv6 servers
-char  *rtsp_get_server_ip_address_string(rtsp_session_t *session)
+char  *rtsp_get_server_ip_address_string (rtsp_session_t *session)
 { 
   char *str = NULL;
+  
+#if 1
+	char *ret = inet_ntoa(session->parent->server_addr);
+	str = strdup(ret);
+#else
   str = (char *)malloc(INET6_ADDRSTRLEN +1);
-
   if ( inet_ntop(session->parent->addr_info->ai_family, 
 		 &(((struct sockaddr_in6 *)session->parent->addr_info->ai_addr))->sin6_addr, 
 		 str, 
@@ -395,5 +400,6 @@ char  *rtsp_get_server_ip_address_string(rtsp_session_t *session)
     return str; 
   } 
   strcpy(str, "oops");
+#endif
   return str; 
 }

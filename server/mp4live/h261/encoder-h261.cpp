@@ -407,6 +407,8 @@ CH261PixelEncoder::encode_mb(u_int mba, const u_char* frm,
 			for (s = 1; cmax >= (128 << s); ++s) {
 			}
 			q <<= s;
+			if (q > 31) q = 31;
+			if (q < 1) q = 1;
 			register short* bp = blk;
 			for (register int i = 6; --i >= 0; ) {
 				++bp;	// ignore dc coef

@@ -72,7 +72,6 @@ void CMp4Recorder::DoStartRecord()
   m_makeIsmaCompliant = true;
 
   m_canRecordRawVideo = false;
-  m_canRecordEncodedVideo = false;
 
   m_prevRawVideoFrame = NULL;
   m_prevEncodedVideoFrame = NULL;
@@ -83,7 +82,6 @@ void CMp4Recorder::DoStartRecord()
   m_encodedVideoTrackId = MP4_INVALID_TRACK_ID;
   m_rawAudioTrackId = MP4_INVALID_TRACK_ID;
   m_encodedAudioTrackId = MP4_INVALID_TRACK_ID;
-
   m_audioTimeScale =
     m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 
@@ -198,10 +196,12 @@ void CMp4Recorder::DoStartRecord()
   m_rawAudioFrameNumber = 1;
   m_encodedAudioFrameNumber = 1;
 
+  m_canRecordEncodedVideo = true;
   if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
 
     if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
 
+      m_canRecordEncodedVideo = false;
       m_rawAudioTrackId = MP4AddAudioTrack(
                                            m_mp4File, 
                                            m_audioTimeScale, 
@@ -224,6 +224,7 @@ void CMp4Recorder::DoStartRecord()
       uint8_t audioProfile;
       uint8_t *pAudioConfig;
       uint32_t audioConfigLen;
+      m_canRecordEncodedVideo = false;
       m_encodedAudioFrameType = 
         get_audio_mp4_fileinfo(m_pConfig,
                                &createIod,
@@ -265,6 +266,171 @@ void CMp4Recorder::DoStartRecord()
   MP4Close(m_mp4File);
   m_mp4File = NULL;
   return;
+}
+
+void CMp4Recorder::ProcessEncodedAudioFrame (CMediaFrame *pFrame)
+{
+    if (m_encodedAudioFrameNumber == 1) {
+      m_encodedAudioStartTimestamp = pFrame->GetTimestamp();
+      m_canRecordEncodedVideo = true;
+      m_prevEncodedAudioFrame = pFrame;
+      m_encodedAudioSamples = 0;
+      m_encodedAudioDiffTicks = 0;
+      m_encodedAudioDiffTicksTotal = 0;
+      m_encodedAudioFrameNumber++;
+      return; // wait until the next audio frame
+    }
+
+    Duration thisFrameDurationInTicks = 
+      pFrame->GetTimestamp() - m_prevEncodedAudioFrame->GetTimestamp();
+
+    Duration thisFrameDurationInSamples =
+      GetTimescaleFromTicks(thisFrameDurationInTicks, m_audioTimeScale);
+
+    Duration elapsedTimeFromSamples;
+    Duration elapsedTimeFromTimestamp;
+    elapsedTimeFromTimestamp = pFrame->GetTimestamp() - m_encodedAudioStartTimestamp;
+
+    if (thisFrameDurationInSamples > pFrame->GetDuration()) {
+      // we have a gap frame
+      // add the number of extra samples
+      m_encodedAudioSamples += 
+	(thisFrameDurationInSamples - pFrame->GetDuration());
+      debug_message("adding encoded %lld samples", 
+		    thisFrameDurationInSamples - pFrame->GetDuration());
+    }
+    // we have a consecutive frame
+    // Timestamp of pFrame should reflect encoded audio samples
+    // take difference
+    m_encodedAudioSamples += pFrame->GetDuration();
+    elapsedTimeFromSamples = 
+      GetTicksFromTimescale(m_encodedAudioSamples, 0, 0, m_audioTimeScale);
+
+    Duration diffTimeTicks;
+
+    diffTimeTicks = elapsedTimeFromSamples - elapsedTimeFromTimestamp;
+
+    // we need to adjust this by the amount of time we've already changed
+    diffTimeTicks += m_encodedAudioDiffTicksTotal;
+
+    if (diffTimeTicks != 0) {
+      debug_message("elfts %lld samples %lld elfs %lld diff %lld",
+		    elapsedTimeFromTimestamp,
+		    m_encodedAudioSamples,
+		    elapsedTimeFromSamples,
+		    diffTimeTicks);
+      
+      debug_message("adj %lld diff %lld",
+		    m_encodedAudioDiffTicksTotal, diffTimeTicks);
+    }
+
+    // diffTimeTicks is now the amount we need to add to the video frame
+    m_encodedAudioDiffTicks = diffTimeTicks;
+
+    m_encodedAudioDiffTicksTotal += diffTimeTicks;
+
+    /*
+     * we don't convert the audio duration any more
+     *  m_prevEncodedAudioFrame->SetDuration(audioDurationInSamples);
+     * Instead, we'll convert the video duration
+     */
+    MP4WriteSample(
+                   m_mp4File,
+                   m_encodedAudioTrackId,
+                   (u_int8_t*)m_prevEncodedAudioFrame->GetData(), 
+                   m_prevEncodedAudioFrame->GetDataLength(),
+                   m_prevEncodedAudioFrame->ConvertDuration(m_audioTimeScale));
+
+    m_encodedAudioFrameNumber++;
+    if (m_prevEncodedAudioFrame->RemoveReference()) {
+      delete m_prevEncodedAudioFrame;
+    }
+    m_prevEncodedAudioFrame = pFrame;
+}
+
+/******************************************************************************
+ * Process encoded video frame
+ ******************************************************************************/
+void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
+{
+    // we drop encoded video frames until we get the first encoded audio frame
+    // after that we drop encoded video frames until we get the first I frame.
+    // we then stretch this I frame to the start of the first encoded audio
+    // frame and write it to the encoded video track
+
+    if (m_encodedVideoFrameNumber == 1) {
+      // wait until first audio frame before looking for the next I frame
+      if (!m_canRecordEncodedVideo) {
+        if (pFrame->RemoveReference()) delete pFrame;
+        return;
+      }
+
+      // make sure this frame was captured after the first audio frame
+      if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO) &&
+	  pFrame->GetTimestamp() < m_encodedAudioStartTimestamp) {
+        if (pFrame->RemoveReference()) delete pFrame;
+        return;
+      }
+
+      if (! MP4AV_Mpeg4GetVopType((u_int8_t*)pFrame->GetData(),
+                                  pFrame->GetDataLength()) == 'I') {
+        if (pFrame->RemoveReference()) delete pFrame;
+        return;
+      }
+
+      if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) &&
+	  m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
+	// reset this timestamp to video's beginning
+	pFrame->SetTimestamp(m_encodedAudioStartTimestamp);
+      } 
+      m_encodedVideoStartTimestamp = pFrame->GetTimestamp();
+      m_prevEncodedVideoFrame = pFrame;
+      m_encodedVideoFrameNumber++;
+      m_encodedVideoDurationTimescale = 0;
+      return; // wait until the next video frame
+    }
+
+    Duration videoDurationInTicks;
+
+    videoDurationInTicks = 
+      pFrame->GetTimestamp() - m_encodedVideoStartTimestamp;
+
+    // at this point, we'll probably want to add in the audio drift values, 
+    // if there are any
+    Duration videoDurationInTimescaleTotal;
+    videoDurationInTimescaleTotal = 
+      GetTimescaleFromTicks(videoDurationInTicks, m_videoTimeScale);
+
+    Duration videoDurationInTimescaleFrame;
+    videoDurationInTimescaleFrame = 
+      videoDurationInTimescaleTotal - m_encodedVideoDurationTimescale;
+
+    m_encodedVideoDurationTimescale += videoDurationInTimescaleFrame;
+#if 0
+    debug_message("vdit %lld vdits %lld frame %lld total %lld %lld",
+		  videoDurationInTicks, videoDurationInTimescaleTotal,
+		  videoDurationInTimescaleFrame, m_encodedVideoDurationTimescale,
+		  GetTicksFromTimescale(m_encodedVideoDurationTimescale, 0, 0, m_videoTimeScale));
+#endif
+    bool isIFrame =
+      (MP4AV_Mpeg4GetVopType(
+                             (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
+                             m_prevEncodedVideoFrame->GetDataLength()) == 'I');
+
+    MP4WriteSample(
+                   m_mp4File,
+                   m_encodedVideoTrackId,
+                   (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
+                   m_prevEncodedVideoFrame->GetDataLength(),
+		   videoDurationInTimescaleFrame,
+                   0,
+                   isIFrame);
+		
+    m_encodedVideoFrameNumber++;
+    if (m_prevEncodedVideoFrame->RemoveReference()) {
+      delete m_prevEncodedVideoFrame;
+    }
+    m_prevEncodedVideoFrame = pFrame;
 }
 
 void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
@@ -320,36 +486,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
   } else if (pFrame->GetType() == m_encodedAudioFrameType
              && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
 
-    if (m_encodedAudioFrameNumber == 1) {
-      m_encodedAudioStartTimestamp = pFrame->GetTimestamp();
-      m_canRecordEncodedVideo = true;
-      m_prevEncodedAudioFrame = pFrame;
-      m_encodedAudioFrameNumber++;
-      return; // wait until the next audio frame
-    }
-
-    Duration audioDurationInTicks = 
-      pFrame->GetTimestamp() - m_prevEncodedAudioFrame->GetTimestamp();
-
-    MP4Duration audioDurationInSamples =
-      MP4ConvertToTrackDuration(m_mp4File, m_encodedAudioTrackId,
-                                audioDurationInTicks, TimestampTicks);
-
-    m_prevEncodedAudioFrame->SetDuration(audioDurationInSamples);
-
-    MP4WriteSample(
-                   m_mp4File,
-                   m_encodedAudioTrackId,
-                   (u_int8_t*)m_prevEncodedAudioFrame->GetData(), 
-                   m_prevEncodedAudioFrame->GetDataLength(),
-                   m_prevEncodedAudioFrame->ConvertDuration(m_audioTimeScale));
-
-    m_encodedAudioFrameNumber++;
-    if (m_prevEncodedAudioFrame->RemoveReference()) {
-      delete m_prevEncodedAudioFrame;
-    }
-    m_prevEncodedAudioFrame = pFrame;
-
+    ProcessEncodedAudioFrame(pFrame);
     // RAW VIDEO
   } else if (pFrame->GetType() == YUVVIDEOFRAME
              && m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
@@ -425,70 +562,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
   } else if (pFrame->GetType() == MPEG4VIDEOFRAME
              && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
 
-    // we drop encoded video frames until we get the first encoded audio frame
-    // after that we drop encoded video frames until we get the first I frame.
-    // we then stretch this I frame to the start of the first encoded audio
-    // frame and write it to the encoded video track
-
-    if (m_encodedVideoFrameNumber == 1) {
-      // wait until first audio frame before looking for the next I frame
-      if (!m_canRecordEncodedVideo) {
-        if (pFrame->RemoveReference()) delete pFrame;
-        return;
-      }
-
-      // make sure this frame was captured after the first audio frame
-      if (pFrame->GetTimestamp() < m_encodedAudioStartTimestamp) {
-        if (pFrame->RemoveReference()) delete pFrame;
-        return;
-      }
-
-      if (! MP4AV_Mpeg4GetVopType((u_int8_t*)pFrame->GetData(),
-                                  pFrame->GetDataLength()) == 'I') {
-        if (pFrame->RemoveReference()) delete pFrame;
-        return;
-      }
-
-      m_encodedVideoStartTimestamp = pFrame->GetTimestamp();
-      m_prevEncodedVideoFrame = pFrame;
-      m_encodedVideoFrameNumber++;
-      return; // wait until the next video frame
-    }
-
-    Duration videoDurationInTicks;
-
-    // the first encoded video frame is stretched to the begining
-    // of the first encoded audio frame
-    if (m_encodedVideoFrameNumber == 2) {
-      videoDurationInTicks =
-        pFrame->GetTimestamp() - m_encodedAudioStartTimestamp;
-    } else {
-      videoDurationInTicks =
-        pFrame->GetTimestamp() - m_prevEncodedVideoFrame->GetTimestamp();
-    }
-                
-    m_prevEncodedVideoFrame->SetDuration(videoDurationInTicks);
-
-    bool isIFrame =
-      (MP4AV_Mpeg4GetVopType(
-                             (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
-                             m_prevEncodedVideoFrame->GetDataLength()) == 'I');
-
-    MP4WriteSample(
-                   m_mp4File,
-                   m_encodedVideoTrackId,
-                   (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
-                   m_prevEncodedVideoFrame->GetDataLength(),
-                   m_prevEncodedVideoFrame->ConvertDuration(m_videoTimeScale),
-                   0,
-                   isIFrame);
-		
-    m_encodedVideoFrameNumber++;
-    if (m_prevEncodedVideoFrame->RemoveReference()) {
-      delete m_prevEncodedVideoFrame;
-    }
-    m_prevEncodedVideoFrame = pFrame;
-
+    ProcessEncodedVideoFrame(pFrame);
   } else {
     // degenerate case
     if (pFrame->RemoveReference()) delete pFrame;

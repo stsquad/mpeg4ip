@@ -195,6 +195,8 @@ codec_data_t *mpeg4_iso_file_check (lib_message_func_t message,
       (strcasecmp(name + len - 5, ".mp4v") != 0) &&
       (strcasecmp(name + len - 4, ".m4v") != 0) &&
       (strcasecmp(name + len - 4, ".cmp") != 0)) {
+    
+    message(LOG_DEBUG, "mp4iso", "suffix not correct %s", name);
     return NULL;
   }
 

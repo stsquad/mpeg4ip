@@ -122,6 +122,9 @@ public:
 	Timestamp GetTimestamp(void) {
 		return m_timestamp;
 	}
+	void SetTimestamp(Timestamp t) {
+	  m_timestamp = t;
+	}
 	Duration GetDuration(void) {
 		return m_duration;
 	}

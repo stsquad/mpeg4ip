@@ -61,6 +61,13 @@ inline Timestamp GetTimestampFromNtp(uint32_t ntp_sec, uint32_t ntp_frac)
   return ret;
 }
 
+inline Duration GetTimescaleFromTicks (Duration toconvert,
+				       uint32_t timescale)
+{
+  toconvert *= (Duration)timescale;
+  toconvert /= TimestampTicks;
+  return toconvert;
+}
 inline Timestamp GetTicksFromTimescale (Timestamp toconvert,
 					Timestamp base_on_scale,
 					Timestamp base_in_ticks,

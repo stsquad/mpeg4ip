@@ -79,6 +79,7 @@ protected:
   MP4TrackId		m_encodedVideoTrackId;
   u_int32_t		m_encodedVideoFrameNumber;
   Timestamp		m_encodedVideoStartTimestamp;
+  Duration              m_encodedVideoDurationTimescale;
   MediaType               m_encodedVideoFrameType;
 
   MP4TrackId		m_rawAudioTrackId;
@@ -89,12 +90,17 @@ protected:
   u_int32_t		m_encodedAudioFrameNumber;
   Timestamp		m_encodedAudioStartTimestamp;
   MediaType             m_encodedAudioFrameType;
-	
+  uint64_t              m_encodedAudioSamples;
+  Duration              m_encodedAudioDiffTicks;
+  Duration              m_encodedAudioDiffTicksTotal;
   bool                  m_makeIod;
   bool                  m_makeIsmaCompliant;
 
   bool                  m_canRecordRawVideo;
   bool                  m_canRecordEncodedVideo;
+ 
+  void ProcessEncodedAudioFrame(CMediaFrame *pFrame);
+  void ProcessEncodedVideoFrame(CMediaFrame *pFrame);
 };
 
 #endif /* __FILE_MP4_RECORDER_H__ */
