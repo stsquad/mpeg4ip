@@ -193,6 +193,7 @@ codec_data_t *mpeg4_iso_file_check (lib_message_func_t message,
   len = strlen(name);
   if ((strcasecmp(name + len - 5, ".divx") != 0) &&
       (strcasecmp(name + len - 5, ".mp4v") != 0) &&
+      (strcasecmp(name + len - 4, ".m4v") != 0) &&
       (strcasecmp(name + len - 4, ".cmp") != 0)) {
     return NULL;
   }

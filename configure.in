@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.8.6)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.8.7)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -257,7 +257,7 @@ save_CFLAG="$CFLAGS"
 save_CPPFLAG="$CPPFLAGS"
 CFLAGS="$CFLAGS $GLIB_CFLAGS"
 CPPFLAGS="$CPPFLAGS $GLIB_CFLAGS"
-AC_CHECK_HEADER(glib.h)
+AC_CHECK_HEADERS(glib.h)
 CFLAGS="$save_CFLAG"
 CPPFLAGS="$save_CPPFLAG"
 

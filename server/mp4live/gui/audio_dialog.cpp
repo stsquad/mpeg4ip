@@ -653,7 +653,7 @@ void CreateAudioDialog (void)
 
 	// channel menu
 	channel_menu = NULL;
-	CreateChannelMenu(MyConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) - 1);
+	CreateChannelMenu(MyConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
 	gtk_box_pack_start(GTK_BOX(vbox), channel_menu, TRUE, TRUE, 0);
 
 	sampling_rate_menu = NULL;

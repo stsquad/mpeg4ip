@@ -13,7 +13,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: inbits.h,v 1.1 2003/05/05 21:22:18 wmaycisco Exp $
+ * $Id: inbits.h,v 1.2 2003/06/27 18:36:55 wmaycisco Exp $
  */
 
 #ifndef __BITS_H__
@@ -46,7 +46,8 @@ class CInBitStream
       uint32_t rbit;
       uint32_t b;
       uint32_t ret_value;
-  
+
+      if (numBits == 0) return 0;
       check_buffer(numBits);
   
       rbit = 32 - m_bitcnt;

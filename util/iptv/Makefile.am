@@ -1,4 +1,4 @@
-bin_PROGRAMS = iptv_prog
+check_PROGRAMS = iptv_prog
 
 iptv_prog_SOURCES = iptv_prog.cpp
 

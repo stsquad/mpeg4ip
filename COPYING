@@ -1,4 +1,4 @@
-April 26, 2002
+June, 2003
 
 MPEG4IP contains original code, and copies of other open source packages.
 
@@ -12,7 +12,7 @@ packages, and their location within the mpeg4ip directory structure.
 Like most, if not all, modern audio/video codecs, the codecs used by MPEG4IP 
 are subject to patent royalities depending on usage and jurisdiction. 
 Information about licenses for products that use these codecs can be found at:
-For MPEG-4, www.mpeg-la.org
+For MPEG-4, www.mpegla.com
 For MP3, www.mp3licensing.com
 For AAC, www.aac-audio.com
 
@@ -62,17 +62,6 @@ Directory:  mpeg4ip/common/video/mpeg4
 License:    Other, see COPYRIGHT file 
 Notes:      Use may require payment of patent royalties
             This code is being used for evaluation and experimentation.
-
-Name:       LAME
-Version:    3.70
-Origin:     http://www.mp3dev.org/mp3/
-Authors:    Mike Cheng, Mark Taylor     
-Directory:  mpeg4ip/server/audio/lame
-License:    GNU Library General Public License (LGPL), version 2 1991 
-            for modifications
-            ISO MPEG-2 reference software license for orignial base code
-Notes:      Use may require payment of patent royalties
-            Many contributors are listed in the individual source files.
 
 Name:       libdv
 Version:    0.9.5

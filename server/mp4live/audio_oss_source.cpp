@@ -252,6 +252,29 @@ bool COSSAudioSource::InitDevice(void)
 		return false;
 	}
 
+	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_OSS_USE_SMALL_FRAGS)) {
+	  // from rca.  set OSS audio fragment size to a small value.
+	  // value is 0xMMMMSSSS where MMMM is number of buffers 
+	  // (configuration value CONFIG_AUDIO_OSS_FRAGMENTS) and SSSS is
+	  // power of 2 sized fragment value
+	  // 
+	  // Reason for this is OSS will block on read until a complete
+	  // fragment is read - even if correct number of bytes is in buffers
+	  int bufcfg = m_pConfig->GetIntegerValue(CONFIG_AUDIO_OSS_FRAGMENTS);
+	  bufcfg <<= 16; // shift over
+	  bufcfg |= m_pConfig->GetIntegerValue(CONFIG_AUDIO_OSS_FRAG_SIZE);
+	  rc = ioctl(m_audioDevice, SNDCTL_DSP_SETFRAGMENT, &bufcfg);
+	  if (rc) {
+	    error_message("Error - could not set OSS Input fragment size %d", rc);
+	    return false;
+	  }
+	  int frag_size;
+	  if (ioctl(m_audioDevice, SNDCTL_DSP_GETBLKSIZE, &frag_size) == -1) {
+	    error_message("Couldn't read OSS dsp frag size");
+	  } else {
+	    debug_message("OSS fragment size for input is %d", frag_size);
+	  }
+	}
 	return true;
 }
 

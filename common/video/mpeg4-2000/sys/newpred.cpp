@@ -284,7 +284,7 @@ void CNewPred::ChangeRefOfSliceYUV(const PixelC*	ppxlcRef, const PixelC* Refbuf0
 {
 	Int i=0;
 	Int	MBA;
-	Int magnification;
+	Int magnification = 0;
 	Int flag = 0;         // check whether padding in horizontal direction
 	Int	head_x, length_x;
 	PixelC  *left_pix, *right_pix, *point;

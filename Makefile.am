@@ -12,4 +12,4 @@ SUBDIRS = include lib util doc
 endif
 endif
 
-EXTRA_DIST = bootstrap cvs_bootstrap encoding60.dsw README_FIRST strip_fPIC.sh depcomp
+EXTRA_DIST = bootstrap cvs_bootstrap encoding60.dsw README_FIRST strip_fPIC.sh depcomp README.html

@@ -130,11 +130,23 @@ SOURCE=.\atom_elst.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\atom_enca.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_encv.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_esds.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\atom_free.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_frma.cpp
 # End Source File
 # Begin Source File
 
@@ -158,7 +170,15 @@ SOURCE=.\atom_hnti.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\atom_iKMS.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_iods.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_iSFM.cpp
 # End Source File
 # Begin Source File
 
@@ -238,7 +258,19 @@ SOURCE=.\atom_rtp.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\atom_schi.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_schm.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_sdp.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_sinf.cpp
 # End Source File
 # Begin Source File
 

@@ -139,8 +139,10 @@ int gettimeofday(struct timeval *t, void *);
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
 #else
+#ifndef sun
 #if _FILE_OFFSET_BITS < 64
-#error File offset bits is already set to non-64 value
+ #error File offset bits is already set to non-64 value
+#endif
 #endif
 #endif
 

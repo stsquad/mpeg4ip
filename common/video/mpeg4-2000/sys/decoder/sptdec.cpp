@@ -111,7 +111,7 @@ Void CVideoObjectDecoder::decodeWarpPoints ()
 	for (j = 0; j < m_iNumOfPnts; j++) { 
 		for (iXorY = 0; iXorY < 2; iXorY++)	{
 			lSz = m_pentrdecSet->m_pentrdecWrpPnt->decodeSymbol();
-			if (lSz > 0) { // wmay - no size, no check
+			//			if (lSz > 0) { // wmay - no size, no check
 			  iSign = pibstrmWrpPt0->peekBits (1);	//get the sign
 			  if (iSign == 1)	
 			    rgiWrpPnt0Del[iXorY] = pibstrmWrpPt0->getBits (lSz);
@@ -121,7 +121,7 @@ Void CVideoObjectDecoder::decodeWarpPoints ()
 			    rgiWrpPnt0Del[iXorY] = -1 * (iAbsWrpPnt0Del & iMask); //masking and signing
 			  }
 			  assert (rgiWrpPnt0Del[iXorY] >= -16383 && rgiWrpPnt0Del[iXorY] <= 16383);
-			} 
+			  //} 
 			  
 			Int iMarker = pibstrmWrpPt0->getBits(1);
 			assert(iMarker==1);

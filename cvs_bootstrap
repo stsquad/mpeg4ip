@@ -81,7 +81,9 @@ set -x
 # if src tree is checked out directly via cvs, this is a no-op
 mkdir -p ./config || exit 1
 
-for dir in /usr/local /usr/contrib /opt/gnome /usr
+#
+# This tries to find all the aclocal files that we need
+for dir in /usr/local /usr/contrib /opt/gnome /usr /opt/local
 do
    if test -d $dir/share/aclocal -a `which aclocal` != $dir/bin/aclocal
    then
@@ -104,7 +106,6 @@ libtoolize --force
 autoheader
 automake --add-missing --foreign || exit 1
 autoconf || exit 1
-./configure $allargs || exit 1
 
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  

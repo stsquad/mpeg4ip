@@ -169,5 +169,7 @@ EXTRA_DIST = \
 	mp4player60.dsp \
 	player60.dsw \
 	wmp4player60.dsp \
-	frame_doubler.cpp 
+	frame_doubler.cpp \
+	README.html \
+	INTERNALS.html
 

@@ -87,14 +87,14 @@ a local file. E.g<br>
     &nbsp;&nbsp;&nbsp;&nbsp;<code>$ gmp4player mycontent.mp4</code>
 <P>
 That's not all! The player is not limited to local playback of MP4 files.
-It can also read AVI, CMP, DIVX, AAC, MP3, and WAV. This is useful for 
+It can also read AVI, CMP, DIVX, AAC, MP3, MPEG 1/2 and WAV. This is useful for 
 debugging since the encoded data can be check independently of the MP4 
 file container, and known good content, such as your favorite MP3, can be 
 used to verify that the player is working correctly with your hardware. E.g.<br>
         &nbsp;&nbsp;&nbsp;&nbsp;<code>$ gmp4player mymusic.mp3</code>
 <P>
 And that's still not all... You can set up your player to run a playlist
-by creating a simple text file with the extension .mp4plist, with
+by creating a simple text file with the extension .mp4plist or .mxu, with
 each item (file or stream) on it's own line.
 <P>
 Note: If you prefer a no UI version of the player, or your system does not
@@ -129,7 +129,7 @@ lame version 3.92 or later for mp4live.  This may change at some point,
 but for now, it is required.  If you wish to make without mp4live, you 
 can give the <code>--disable-mp4live</code> or <code>--disable-server</code> arguments.  Neither
 the bootstrap or cvs_bootstrap scripts will allow you to build without
-lame installed.
+lame installed or one of the above arguments.
 <P>
 If you don't have root privileges, but still wish to install the 
 distribution to a directory to which you do have write permission,
@@ -175,7 +175,7 @@ In order to compile mpeg4ip from CVS, we require the following tools:<br>
 <a href="http://www.gnu.org/software/automake/automake.html">automake 1.6</a><br>
 <P>
 If you don't have these tools and are trying to compile from CVS, don't
-complain.
+complain - update to these tools, then let us know.
 <P>
 Be sure to read the OS specific section later before continuing here.
 <P>
@@ -200,6 +200,16 @@ the included packages that have them, and then our own top level configure
 script is generated and run. At the end of this process all the Makefile's
 are ready, and setup in the correct hierarchy. If this doesn't work for you,
 you're free to hack as needed ;-)  
+<P>
+If you are using cvs_bootstrap and are running into problems where your
+GTK configurations are not found, you will need to find the aclocal files
+associated with gtk and glib (in particular glib-2.0.m4, glib.m4, gtk-2.0.m4, 
+gtk.m4).  These are usually in a share/aclocal directory somewhere on your
+system.
+<P>
+We currently search /usr/local, /usr/contrib, /opt/gnome /usr /opt/local.  If these
+do not work for you, find the above files (<samp>find . -name glib-2.0.m4 -print</samp>), and add the path (without the
+share/aclocal) to cvs_bootstrap.
 <P>
 <a href="#top">Back to top</a>
 <P>
@@ -226,7 +236,7 @@ To build with IPv6 support, use the <code>--enable-ipv6</code> command option.
 <b><font color="#0000FF">Darwin Quicktime Streaming Server</font></b>
 <P>
 Please note that the Apple Darwin Quicktime Streaming Server is NOT distributed
-with mpeg4ip. It can be downloaded from Apple, <a href="http://www.apple.com/">http://www.apple.com/</a> as either
+with mpeg4ip. It can be downloaded from <a href="http://www.apple.com/">Apple</a>, as either
 source or pre-built binaries. For those who choose the source option, below is
 the express version of the build and install process for the Darwin Streaming
 Server:
@@ -254,10 +264,11 @@ To install the Darwin Streaming Server from the build:
 See the documentation that accompanies the server on how to configure it
 for your environment. 
 <P>
-Note the default content directory is /usr/local/movies.
+Note the default content directory is /usr/local/movies and that you can
+configure the darwin server by pointing your browser at port 1220. (ie: localhost:1220)
 <P>
 There are some sample mp4 files available on the mpeg4ip SourceForge 
-download area. Also Envivio, <a href="http://www.envivio.com/">http://www.envivio.com/</a>, has some sample mp4 
+download area. Also <a href="http://www.envivio.com/">Envivio</a>, has some sample mp4 
 files. We suggest first downloading one of these samples and try opening 
 the file with gmp4player. If that works, then try copying the file to the 
 streaming server's content directory (e.g. /usr/local/movies), and enter 
@@ -273,7 +284,8 @@ linux, freeBSD, BSD/OS, Solaris and windows.  For all varieties
 of *nux, X11 is required.
 <P>
 To date we've built on Red Hat Linux 6.1, 6.2, 7.0, 7.1, and 7.2 with
-the native compilers, on 7.1 and 7.2 with gcc 3.0, and on 7.3 with gcc 3.1.  
+the native compilers, on 7.1 and 7.2 with gcc 3.0, and on 7.3 with gcc 3.1.
+We also support 9.0 with the native compiler (gcc 3.2).  
 <P>
 <b>Windows</b>
 <P>
@@ -281,6 +293,9 @@ For windows, Visual Studio 6.0 projects are included.  You will need
 to install nasm in the VC98/bin directory before compiling.  You should
 get nasm-0.98.22-win32.zip from the nasm web site.  You will need to 
 rename nasmw.exe to nasm.exe.  We recommend getting Service Pack 5.
+<P>
+<b>NOTE:</b> We don't usually support the Windows code in CVS.  So, 
+unless you're explicitly told to use CVS, don't.
 <P>
 Use the encoding60.dsw project for encoding tools, and the 
 player/src/player60.dsw for the player.
@@ -390,10 +405,6 @@ For encoding tools, you get:<br>
   <td align="left" colspan=2>Integrated, live encoding to file or network - Linux only</td>
 </tr>
 <tr>
-  <td align="left" rowspan=7 valign="top">mp4encode</td>   
-  <td align="left" colspan=2 valign="top">Front-end script to the following encoding tools:</td>
-</tr>
-<tr>
   <td align="left">avi2raw</td>     
   <td align="left">Extracts raw audio/video tracks from an AVI file</td>
 </tr>
@@ -411,11 +422,15 @@ For encoding tools, you get:<br>
 </tr>
 <tr>
   <td align="left">mp4creator</td>  
-  <td align="left">Creates and hints audio/video tracks to an mp4 file</td>
+  <td align="left">Creates and hints audio/video tracks to an mp4 file.  Can also be used to extract tracks and reconstruct AAC headers</td>
 </tr>
 <tr>
   <td align="left">xvidenc</td>     
   <td align="left">Encodes raw video into MPEG-4 encoded video using the Xvid codec</td>
+</tr>
+<tr>
+  <td align="left">mp4encode</td>   
+  <td align="left">Front-end script to the above encoding tools</td>
 </tr>
 </table>
 <P>
@@ -425,11 +440,15 @@ A few debugging tools are also included:<br>
 <table>
 <tr>
   <td align="left">mp4extract</td>
-  <td align="left">Utility to extract tracks from an MP4 file</td>
+  <td align="left">Utility to extract tracks from an MP4 file (deprecated)</td>
 </tr>
 <tr>
   <td align="left">mp4dump</td>
   <td align="left">Utility to dump MP4 file meta-information in text form</td>
+</tr>
+<tr>
+  <td align="left">mp4trackdump</td>
+  <td align="left">Utility to dump MP4 file track information in text form</td>
 </tr>
 <tr>
   <td align="left">mp4info</td>
@@ -678,12 +697,11 @@ The IETF RFCs can be found in <a href="doc/ietf">mpeg4ip/doc/ietf</a>
 <P>
 
 Note the MP4 file format is derived from Apple's QuickTime file format.
-That specification is:
+That specification is Apple Computer QuickTime File Format, June 28 2000 
+and is available <a href="http://developer.apple.com/techpubs/quicktime/qtdevdocs/PDF/QTFileFormat.pdf"> here</a>, or through the 
+<a href="http://developer.apple.com/quicktime/">QT developer site</a>.
 <P>
-Apple Computer QuickTime File Format, June 28 2000
-<a href="http://developer.apple.com/quicktime/">http://developer.apple.com/quicktime/</a>
-<P>
-We're also involved in the Internet Streaming Media Alliance (ISMA) 
+We're also involved in the <a href = "http://www.isma.tv">Internet Streaming Media Alliance</a> (ISMA) 
 which seeks to standardize the protocols and formats used for streaming.
 We believe MPEG4IP is interoperable with that organization's 1.0 Technical 
 Specification. For more information see <a href="http://www.isma.tv">http://www.isma.tv</a>
@@ -744,10 +762,9 @@ See the new <a href="player/src/README.html">README.html</a> in player/src.
   latest version of the MPEG4 specification.  This renders previous
   .aac files pretty much obsolete.  We have made this change to 
   mpeg4ip as of the 0.9.9 version.  If you need to use older aac files, 
-  you can use the --aac-old-file-format parameter to mp4creator.
-  If you need to generate new aac files, you can use the mp4creator with
-  the --aac-old-file-format, then extract the track with the mp4creator 
-  --extract command.
+  you can use the <code>--aac-old-file-format</code> parameter to mp4creator.
+  If you need to generate new aac files, you can use the <code>mp4creator --aac-old-file-format</code>, then extract the track with the <code>mp4creator 
+  --extract</code> command.
 <P>
   <li> If you're playing through a NAT box, you may have to specify the
   default client IP ports.  Use the command 
@@ -777,14 +794,13 @@ See the new <a href="player/src/README.html">README.html</a> in player/src.
   cause the player to skip rendering many frames.  If you have this
   problem update to the latest version of FreeBSD - the problem still
   can occur, but is reduced. 
-<P>
-  <li>
+  <P>
   This is due to an error in the thread scheduling code that causes a problem
   with a delay of less than the thread scheduler quantum (200 msec in
   some versions, 20 in others).  Since the average delay used is 9
   to 10 msec (less as we get closer to the video rendering time), this
   can have a great effect on video playback.
- <P> 
+  <P>  
   You can get around this error by rebuilding your libc, after changing the
   <code>THREAD_SCHED_USECS</code> to 20000 (or lower) from 200000 in thread_private.h.
 <P>
