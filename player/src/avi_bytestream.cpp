@@ -145,7 +145,7 @@ const char *CAviByteStreamBase::get_throw_error (int error)
 
 int CAviByteStreamBase::throw_error_minor (int error)
 {
-  return 0;
+  return 1;
 }
 
 /**************************************************************************

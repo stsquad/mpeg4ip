@@ -86,7 +86,7 @@ void MP4Descriptor::ReadProperties(MP4File* pFile,
 			((MP4DescriptorProperty*)m_pProperties[i])->SetSizeLimit(remaining);
 			m_pProperties[i]->Read(pFile);
 
-		} else if (remaining > 0) {
+		} else if (remaining >= 0) {
 			m_pProperties[i]->Read(pFile);
 
 		} else {
@@ -130,6 +130,9 @@ void MP4Descriptor::Write(MP4File* pFile)
 
 void MP4Descriptor::Dump(FILE* pFile)
 {
+	// call virtual function to adapt properties before dumping
+	Mutate();
+
 	u_int32_t numProperties = m_pProperties.Size();
 
 	if (numProperties == 0) {

@@ -26,7 +26,7 @@
 
 /* file operations */
 
-extern "C" MP4FileHandle MP4Read(char* fileName, u_int32_t verbosity)
+extern "C" MP4FileHandle MP4Read(const char* fileName, u_int32_t verbosity)
 {
 	MP4File* pFile = NULL;
 	try {
@@ -38,11 +38,11 @@ extern "C" MP4FileHandle MP4Read(char* fileName, u_int32_t verbosity)
 		VERBOSE_ERROR(verbosity, e->Print());
 		delete e;
 		delete pFile;
-		return (MP4FileHandle)NULL;
+		return MP4_INVALID_FILE_HANDLE;
 	}
 }
 
-extern "C" MP4FileHandle MP4Create(char* fileName, 
+extern "C" MP4FileHandle MP4Create(const char* fileName, 
 	u_int32_t verbosity, bool use64bits)
 {
 	MP4File* pFile = NULL;
@@ -55,12 +55,12 @@ extern "C" MP4FileHandle MP4Create(char* fileName,
 		VERBOSE_ERROR(verbosity, e->Print());
 		delete e;
 		delete pFile;
-		return (MP4FileHandle)NULL;
+		return MP4_INVALID_FILE_HANDLE;
 	}
 }
 
-extern "C" MP4FileHandle MP4Clone(char* existingFileName, 
-	char* newFileName, u_int32_t verbosity)
+extern "C" MP4FileHandle MP4Clone(const char* existingFileName, 
+	const char* newFileName, u_int32_t verbosity)
 {
 	MP4File* pFile = NULL;
 	try {
@@ -72,7 +72,7 @@ extern "C" MP4FileHandle MP4Clone(char* existingFileName,
 		VERBOSE_ERROR(verbosity, e->Print());
 		delete e;
 		delete pFile;
-		return (MP4FileHandle)NULL;
+		return MP4_INVALID_FILE_HANDLE;
 	}
 }
 
@@ -139,7 +139,7 @@ extern "C" MP4Duration MP4GetDuration(MP4FileHandle hFile)
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_DURATION;
 	}
 }
 
@@ -416,7 +416,7 @@ extern "C" MP4TrackId MP4AddTrack(
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_TRACK_ID;
 	}
 }
 
@@ -429,35 +429,60 @@ extern "C" MP4TrackId MP4AddSystemsTrack(
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_TRACK_ID;
 	}
 }
 
-extern "C" MP4TrackId MP4AddAudioTrack(
-	MP4FileHandle hFile, u_int32_t timeScale, u_int32_t sampleDuration)
+extern "C" MP4TrackId MP4AddObjectDescriptionTrack(MP4FileHandle hFile)
 {
 	try {
-		return ((MP4File*)hFile)->AddAudioTrack(timeScale, sampleDuration);
+		return ((MP4File*)hFile)->AddObjectDescriptionTrack();
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_TRACK_ID;
 	}
 }
 
-extern "C" MP4TrackId MP4AddVideoTrack(
-	MP4FileHandle hFile, u_int32_t timeScale, u_int32_t sampleDuration,
-	u_int16_t width, u_int16_t height)
+extern "C" MP4TrackId MP4AddSceneDescriptionTrack(MP4FileHandle hFile)
+{
+	try {
+		return ((MP4File*)hFile)->AddSceneDescriptionTrack();
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return MP4_INVALID_TRACK_ID;
+	}
+}
+
+extern "C" MP4TrackId MP4AddAudioTrack(MP4FileHandle hFile, 
+	u_int32_t timeScale, u_int32_t sampleDuration, u_int8_t audioType)
+{
+	try {
+		return ((MP4File*)hFile)->
+			AddAudioTrack(timeScale, sampleDuration, audioType);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return MP4_INVALID_TRACK_ID;
+	}
+}
+
+extern "C" MP4TrackId MP4AddVideoTrack(MP4FileHandle hFile, 
+	u_int32_t timeScale, u_int32_t sampleDuration,
+	u_int16_t width, u_int16_t height, u_int8_t videoType)
 {
 	try {
 		return ((MP4File*)hFile)->AddVideoTrack(
-			timeScale, sampleDuration, width, height);
+			timeScale, sampleDuration, width, height, videoType);
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_TRACK_ID;
 	}
 }
 
@@ -470,7 +495,7 @@ extern "C" MP4TrackId MP4AddHintTrack(
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_TRACK_ID;
 	}
 }
 
@@ -510,7 +535,7 @@ extern "C" MP4TrackId MP4FindTrackId(
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_TRACK_ID;
 	}
 }
 
@@ -551,7 +576,7 @@ extern "C" MP4Duration MP4GetTrackDuration(
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_DURATION;
 	}
 }
 
@@ -582,6 +607,32 @@ extern "C" bool MP4SetTrackTimeScale(
 	}
 }
 
+extern "C" u_int8_t MP4GetTrackAudioType(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+	try {
+		return ((MP4File*)hFile)->GetTrackAudioType(trackId);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return MP4_INVALID_AUDIO_TYPE;
+	}
+}
+
+extern "C" u_int8_t MP4GetTrackVideoType(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+	try {
+		return ((MP4File*)hFile)->GetTrackVideoType(trackId);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return MP4_INVALID_VIDEO_TYPE;
+	}
+}
+
 extern "C" MP4Duration MP4GetTrackFixedSampleDuration(
 	MP4FileHandle hFile, MP4TrackId trackId)
 {
@@ -591,7 +642,7 @@ extern "C" MP4Duration MP4GetTrackFixedSampleDuration(
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_DURATION;
 	}
 }
 
@@ -795,11 +846,14 @@ extern "C" bool MP4WriteSample(
 	MP4TrackId trackId,
 	u_int8_t* pBytes, 
 	u_int32_t numBytes,
-	MP4Duration duration DEFAULT(0),
-	MP4Duration renderingOffset DEFAULT(0), 
-	bool isSyncSample DEFAULT(true))
+	MP4Duration duration,
+	MP4Duration renderingOffset, 
+	bool isSyncSample)
 {
 	try {
+		if (pBytes == NULL) {
+			throw new MP4Error("no sample data", "MP4WriteSample");
+		}
 		((MP4File*)hFile)->WriteSample(trackId, pBytes, numBytes, 
 			duration, renderingOffset, isSyncSample);
 		return true;
@@ -808,6 +862,36 @@ extern "C" bool MP4WriteSample(
 		PRINT_ERROR(e);
 		delete e;
 		return false;
+	}
+}
+
+extern "C" u_int32_t MP4GetSampleSize(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId)
+{
+	try {
+		return ((MP4File*)hFile)->GetSampleSize(
+			trackId, sampleId);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return 0;
+	}
+}
+
+extern "C" u_int32_t MP4GetMaxSampleSize(
+	MP4FileHandle hFile,
+	MP4TrackId trackId)
+{
+	try {
+		return ((MP4File*)hFile)->GetMaxSampleSize(trackId);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return 0;
 	}
 }
 
@@ -824,6 +908,91 @@ extern "C" MP4SampleId MP4GetSampleIdFromTime(
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
 		delete e;
-		return 0;
+		return MP4_INVALID_SAMPLE_ID;
 	}
 }
+
+extern "C" u_int64_t MP4ConvertFromMovieDuration(
+	MP4FileHandle hFile,
+	MP4Duration duration,
+	u_int32_t timeScale)
+{
+	try {
+		return ((MP4File*)hFile)->ConvertFromMovieDuration(
+			duration, timeScale);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return (u_int64_t)MP4_INVALID_DURATION;
+	}
+}
+
+extern "C" u_int64_t MP4ConvertFromTrackTimestamp(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Timestamp timeStamp,
+	u_int32_t timeScale)
+{
+	try {
+		return ((MP4File*)hFile)->ConvertFromTrackTimestamp(
+			trackId, timeStamp, timeScale);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return (u_int64_t)MP4_INVALID_TIMESTAMP;
+	}
+}
+
+extern "C" MP4Timestamp MP4ConvertToTrackTimestamp(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	u_int64_t timeStamp,
+	u_int32_t timeScale)
+{
+	try {
+		return ((MP4File*)hFile)->ConvertToTrackTimestamp(
+			trackId, timeStamp, timeScale);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return MP4_INVALID_TIMESTAMP;
+	}
+}
+
+extern "C" u_int64_t MP4ConvertFromTrackDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Duration duration,
+	u_int32_t timeScale)
+{
+	try {
+		return ((MP4File*)hFile)->ConvertFromTrackDuration(
+			trackId, duration, timeScale);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return (u_int64_t)MP4_INVALID_DURATION;
+	}
+}
+
+extern "C" MP4Duration MP4ConvertToTrackDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	u_int64_t duration,
+	u_int32_t timeScale)
+{
+	try {
+		return ((MP4File*)hFile)->ConvertToTrackDuration(
+			trackId, duration, timeScale);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return MP4_INVALID_DURATION;
+	}
+}
+

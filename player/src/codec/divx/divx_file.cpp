@@ -53,23 +53,22 @@ int create_media_for_divx_file (CPlayerSession *psptr,
   int ret;
   juice_flag = 0;
   video_info_t *vid = NULL;
+  uint32_t frame_cnt;
 
   fbyte = new COurInByteStreamFile(name);
   newdec_init(c_get, c_bookmark, fbyte);
-#if 0
-  ret = newdec_read_volvop();
-#else
+  frame_cnt = 0;
   do {
     try {
       ret = getvolhdr();
       if (ret == 1) {
 	player_debug_message("Found vol in divx file");
       }
+      frame_cnt++;
     } catch (int err) {
       ret = -1;
     }
-  } while (ret == 0);
-#endif
+  } while (ret == 0 && frame_cnt < 25); // try first 25 frames
   delete fbyte;
   fbyte = NULL;
   if (ret <= 0) {
@@ -94,9 +93,9 @@ int create_media_for_divx_file (CPlayerSession *psptr,
     return (-1);
   }
 
-  fbyte->config_for_file(ret == 0 ? vid->frame_rate : mp4_hdr.fps);
+  fbyte->config_for_file(ret <= 0 ? vid->frame_rate : mp4_hdr.fps);
   player_debug_message("Configuring for frame rate %d", 
-		       ret == 0 ? vid->frame_rate : mp4_hdr.fps);
+		       ret <= 0 ? vid->frame_rate : mp4_hdr.fps);
   *errmsg = "Couldn't create task";
   mptr->set_codec_type("divx");
   mptr->set_video_info(vid);

@@ -57,6 +57,9 @@
 #define VERBOSE_WRITE(verbosity, expr)		\
 	VERBOSE(MP4_DETAILS_WRITE, verbosity, expr)
 
+#define VERBOSE_WRITE_TABLE(verbosity, expr)	\
+	VERBOSE((MP4_DETAILS_WRITE | MP4_DETAILS_TABLE), verbosity, expr)
+
 #define VERBOSE_WRITE_SAMPLE(verbosity, expr)	\
 	VERBOSE((MP4_DETAILS_WRITE | MP4_DETAILS_SAMPLE), verbosity, expr)
 
@@ -135,7 +138,7 @@ inline void* MP4Calloc(size_t size) {
 	return memset(MP4Malloc(size), 0, size);
 }
 
-inline char* MP4Stralloc(char* s1) {
+inline char* MP4Stralloc(const char* s1) {
 	char* s2 = (char*)MP4Malloc(strlen(s1) + 1);
 	strcpy(s2, s1);
 	return s2;
@@ -171,6 +174,9 @@ inline MP4Timestamp MP4GetAbsTimestamp() {
 	gettimeofday(&tv, NULL);
 	return tv.tv_sec + 209606400;	// MP4 start date is 1/1/1904
 }
+
+u_int64_t MP4ConvertTime(u_int64_t t, 
+	u_int32_t oldTimeScale, u_int32_t newTimeScale);
 
 bool MP4NameFirstMatches(const char* s1, const char* s2);
 

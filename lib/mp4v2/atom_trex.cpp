@@ -21,11 +21,19 @@
 
 #include "mp4common.h"
 
-MP4IodsAtom::MP4IodsAtom() 
-	: MP4Atom("iods") 
+MP4TrexAtom::MP4TrexAtom() 
+	: MP4Atom("trex")
 {
-	AddVersionAndFlags();
-	AddProperty(
-		new MP4DescriptorProperty(NULL, 
-			MP4IODescrTag, MP4ODescrTag, Required, OnlyOne));
+	AddVersionAndFlags();	/* 0, 1 */
+	AddProperty( /* 2 */
+		new MP4Integer32Property("trackId"));
+	AddProperty( /* 3 */
+		new MP4Integer32Property("defaultSampleDesriptionIndex"));
+	AddProperty( /* 4 */
+		new MP4Integer32Property("defaultSampleDuration"));
+	AddProperty( /* 5 */
+		new MP4Integer32Property("defaultSampleSize"));
+	AddProperty( /* 6 */
+		new MP4Integer32Property("defaultSampleFlags"));
 }
+

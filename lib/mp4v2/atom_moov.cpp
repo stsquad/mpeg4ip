@@ -28,4 +28,6 @@ MP4MoovAtom::MP4MoovAtom()
 	ExpectChildAtom("iods", Required, OnlyOne);
 	ExpectChildAtom("trak", Required, Many);
 	ExpectChildAtom("udta", Optional, Many);
+	ExpectChildAtom("mvex", Optional, OnlyOne);
 }
+

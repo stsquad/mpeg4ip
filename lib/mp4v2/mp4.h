@@ -38,26 +38,86 @@
 #endif
 
 /* MP4 API types */
-
 typedef void*		MP4FileHandle;
 typedef u_int32_t	MP4TrackId;
 typedef u_int32_t	MP4SampleId;
 typedef u_int64_t	MP4Timestamp;
-typedef int64_t		MP4Duration;
+typedef u_int64_t	MP4Duration;
 
-/* MP4 verbosity levels, used as input to MP4Open() and MP4SetVerbosity() */
-#define MP4_DETAILS_ALL				0xFFFF
-#define MP4_DETAILS_ERROR			0x0001
-#define MP4_DETAILS_WARNING			0x0002
-#define MP4_DETAILS_READ			0x0004
-#define MP4_DETAILS_WRITE			0x0008
-#define MP4_DETAILS_FIND			0x0010
-#define MP4_DETAILS_TABLE			0x0020
-#define MP4_DETAILS_SAMPLE			0x0040
+/* Invalid values for API types */
+#define MP4_INVALID_FILE_HANDLE	((MP4FileHandle)NULL)
+#define MP4_INVALID_TRACK_ID	((MP4TrackId)0)
+#define MP4_INVALID_SAMPLE_ID	((MP4SampleId)0)
+#define MP4_INVALID_TIMESTAMP	((MP4Timestamp)-1)
+#define MP4_INVALID_DURATION	((MP4Duration)-1)
+
+/* For Bill - Macros to test for API type validity */
+#define MP4_IS_VALID_FILE_HANDLE(x)	((x) != MP4_INVALID_FILE_HANDLE) 
+#define MP4_IS_VALID_TRACK_ID(x)	((x) != MP4_INVALID_TRACK_ID) 
+#define MP4_IS_VALID_SAMPLE_ID(x)	((x) != MP4_INVALID_SAMPLE_ID) 
+#define MP4_IS_VALID_TIMESTAMP(x)	((x) != MP4_INVALID_TIMESTAMP) 
+#define MP4_IS_VALID_DURATION(x)	((x) != MP4_INVALID_DURATION) 
+
+/* MP4 verbosity levels - e.g. MP4SetVerbosity() */
+#define MP4_DETAILS_ALL				0xFFFFFFFF
+#define MP4_DETAILS_ERROR			0x00000001
+#define MP4_DETAILS_WARNING			0x00000002
+#define MP4_DETAILS_READ			0x00000004
+#define MP4_DETAILS_WRITE			0x00000008
+#define MP4_DETAILS_FIND			0x00000010
+#define MP4_DETAILS_TABLE			0x00000020
+#define MP4_DETAILS_SAMPLE			0x00000040
 #define MP4_DETAILS_READ_ALL		\
 	(MP4_DETAILS_READ | MP4_DETAILS_TABLE | MP4_DETAILS_SAMPLE)
 #define MP4_DETAILS_WRITE_ALL		\
 	(MP4_DETAILS_WRITE | MP4_DETAILS_TABLE | MP4_DETAILS_SAMPLE)
+
+/*
+ * MP4 Known track type names - e.g. MP4GetNumberOfTracks(type) 
+ *
+ * Note this first group of track types should be created 
+ * via the MP4Add<Type>Track() functions, and not MP4AddTrack(type)
+ */
+#define MP4_OD_TRACK_TYPE		"odsm"
+#define MP4_SCENE_TRACK_TYPE	"sdsm"
+#define MP4_AUDIO_TRACK_TYPE	"soun"
+#define MP4_VIDEO_TRACK_TYPE	"vide"
+#define MP4_HINT_TRACK_TYPE		"hint"
+/*
+ * This second set of track types can be created 
+ * via MP4AddTrack(type) or MP4AddSystemsTrack(type)
+ */
+#define MP4_CLOCK_TRACK_TYPE	"crsm"
+#define MP4_MPEG7_TRACK_TYPE	"m7sm"
+#define MP4_OCI_TRACK_TYPE		"ocsm"
+#define MP4_IPMP_TRACK_TYPE		"ipsm"
+#define MP4_MPEGJ_TRACK_TYPE	"mjsm"
+
+/* MP4 Audio track types - see MP4AddAudioTrack()*/
+#define MP4_INVALID_AUDIO_TYPE			0x00
+#define MP4_MPEG1_AUDIO_TYPE			0x6B
+#define MP4_MPEG2_AUDIO_TYPE			0x69
+#define MP4_MP3_AUDIO_TYPE				MP4_MPEG2_AUDIO_TYPE
+#define MP4_MPEG2_AAC_MAIN_AUDIO_TYPE	0x66
+#define MP4_MPEG2_AAC_LC_AUDIO_TYPE		0x67
+#define MP4_MPEG2_AAC_SSR_AUDIO_TYPE	0x68
+#define MP4_MPEG2_AAC_AUDIO_TYPE		MP4_MPEG2_AAC_MAIN_AUDIO_TYPE
+#define MP4_MPEG4_AUDIO_TYPE			0x40
+#define MP4_PRIVATE_AUDIO_TYPE			0xC0
+
+/* MP4 Video track types - see MP4AddVideoTrack() */
+#define MP4_INVALID_VIDEO_TYPE			0x00
+#define MP4_MPEG1_VIDEO_TYPE			0x6A
+#define MP4_MPEG2_SIMPLE_VIDEO_TYPE		0x60
+#define MP4_MPEG2_MAIN_VIDEO_TYPE		0x61
+#define MP4_MPEG2_SNR_VIDEO_TYPE		0x62
+#define MP4_MPEG2_SPATIAL_VIDEO_TYPE	0x63
+#define MP4_MPEG2_HIGH_VIDEO_TYPE		0x64
+#define MP4_MPEG2_442_VIDEO_TYPE		0x65
+#define MP4_MPEG2_VIDEO_TYPE			MP4_MPEG2_MAIN_VIDEO_TYPE
+#define MP4_MPEG4_VIDEO_TYPE			0x20
+#define MP4_JPEG_VIDEO_TYPE				0x6C
+#define MP4_PRIVATE_VIDEO_TYPE			0xC1
 
 
 /* MP4 API declarations */
@@ -68,14 +128,15 @@ extern "C" {
 
 /* file operations */
 
-MP4FileHandle MP4Read(char* fileName, 
+MP4FileHandle MP4Read(const char* fileName, 
 	u_int32_t verbosity DEFAULT(0));
 
-MP4FileHandle MP4Create(char* fileName, 
+MP4FileHandle MP4Create(const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
 	bool use64bits DEFAULT(0));
 
-MP4FileHandle MP4Clone(char* existingFileName, char* newFileName, 
+MP4FileHandle MP4Clone(const char* existingFileName, 
+	const char* newFileName, 
 	u_int32_t verbosity DEFAULT(0));
 
 int MP4Close(MP4FileHandle hFile);
@@ -151,12 +212,20 @@ MP4TrackId MP4AddTrack(
 MP4TrackId MP4AddSystemsTrack(
 	MP4FileHandle hFile, char* type);
 
+MP4TrackId MP4AddObjectDescriptionTrack(
+	MP4FileHandle hFile);
+
+MP4TrackId MP4AddSceneDescriptionTrack(
+	MP4FileHandle hFile);
+
 MP4TrackId MP4AddAudioTrack(
-	MP4FileHandle hFile, u_int32_t timeScale, u_int32_t sampleDuration);
+	MP4FileHandle hFile, u_int32_t timeScale, u_int32_t sampleDuration,
+	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
 
 MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, u_int32_t timeScale, u_int32_t sampleDuration,
-	u_int16_t width, u_int16_t height);
+	u_int16_t width, u_int16_t height,
+	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
 
 MP4TrackId MP4AddHintTrack(
 	MP4FileHandle hFile, MP4TrackId refTrackId);
@@ -189,7 +258,13 @@ u_int32_t MP4GetTrackTimeScale(
 bool MP4SetTrackTimeScale(
 	MP4FileHandle hFile, MP4TrackId trackId, u_int32_t value);
 
-/* returns zero if track samples do not have a fixed duration */
+u_int8_t MP4GetTrackAudioType(
+	MP4FileHandle hFile, MP4TrackId trackId);
+
+u_int8_t MP4GetTrackVideoType(
+	MP4FileHandle hFile, MP4TrackId trackId);
+
+/* returns MP4_INVALID_DURATION if track samples do not have a fixed duration */
 MP4Duration MP4GetTrackFixedSampleDuration(
 	MP4FileHandle hFile, MP4TrackId trackId);
 
@@ -245,9 +320,10 @@ bool MP4ReadSample(
 	MP4FileHandle hFile,
 	MP4TrackId trackId, 
 	MP4SampleId sampleId,
-	/* output parameters */
+	/* input/output parameters */
 	u_int8_t** ppBytes, 
 	u_int32_t* pNumBytes, 
+	/* output parameters */
 	MP4Timestamp* pStartTime DEFAULT(NULL), 
 	MP4Duration* pDuration DEFAULT(NULL),
 	MP4Duration* pRenderingOffset DEFAULT(NULL), 
@@ -258,15 +334,67 @@ bool MP4WriteSample(
 	MP4TrackId trackId,
 	u_int8_t* pBytes, 
 	u_int32_t numBytes,
-	MP4Duration duration DEFAULT(0),
+	MP4Duration duration DEFAULT(MP4_INVALID_DURATION),
 	MP4Duration renderingOffset DEFAULT(0), 
 	bool isSyncSample DEFAULT(true));
+
+u_int32_t MP4GetSampleSize(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId);
+
+u_int32_t MP4GetMaxSampleSize(
+	MP4FileHandle hFile,
+	MP4TrackId trackId); 
 
 MP4SampleId MP4GetSampleIdFromTime(
 	MP4FileHandle hFile,
 	MP4TrackId trackId, 
 	MP4Timestamp when, 
 	bool wantSyncSample DEFAULT(false));
+
+/* time conversion utilties */
+
+/* predefined values for timeScale parameter below */
+#define MP4_SECONDS_TIME_SCALE		1
+#define MP4_MILLISECONDS_TIME_SCALE 1000
+#define MP4_MICROSECONDS_TIME_SCALE 1000000
+#define MP4_NANOSECONDS_TIME_SCALE 	1000000000
+
+#define MP4_SECS_TIME_SCALE 	MP4_SECONDS_TIME_SCALE
+#define MP4_MSECS_TIME_SCALE	MP4_MILLISECONDS_TIME_SCALE
+#define MP4_USECS_TIME_SCALE	MP4_MICROSECONDS_TIME_SCALE
+#define MP4_NSECS_TIME_SCALE	MP4_NANOSECONDS_TIME_SCALE
+
+u_int64_t MP4ConvertFromMovieDuration(
+	MP4FileHandle hFile,
+	MP4Duration duration,
+	u_int32_t timeScale);
+
+u_int64_t MP4ConvertFromTrackTimestamp(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Timestamp timeStamp,
+	u_int32_t timeScale);
+
+MP4Timestamp MP4ConvertToTrackTimestamp(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	u_int64_t timeStamp,
+	u_int32_t timeScale);
+
+u_int64_t MP4ConvertFromTrackDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Duration duration,
+	u_int32_t timeScale);
+
+MP4Duration MP4ConvertToTrackDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	u_int64_t duration,
+	u_int32_t timeScale);
+
 
 #ifdef __cplusplus
 }

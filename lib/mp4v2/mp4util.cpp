@@ -83,3 +83,33 @@ char* MP4NameAfterFirst(char *s)
 	return NULL;
 }
 
+// log2 of value, rounded up
+static u_int8_t ilog2(u_int64_t value)
+{
+	u_int64_t powerOf2 = 1;
+	for (u_int8_t i = 0; i < 64; i++) {
+		if (value <= powerOf2) {
+			return i;
+		}
+		powerOf2 <<= 1;
+	} 
+	return 64;
+}
+
+u_int64_t MP4ConvertTime(u_int64_t t, 
+	u_int32_t oldTimeScale, u_int32_t newTimeScale)
+{
+	// avoid float point exception
+	if (oldTimeScale == 0) {
+		throw new MP4Error("division by zero", "MP4ConvertTime");
+	}
+
+	// check if we can safely use integer operations
+	if (ilog2(t) + ilog2(newTimeScale) <= 64) {
+		return (t * newTimeScale) / oldTimeScale;
+	}
+
+	// final resort is to use floating point
+	return (u_int64_t)(t * ((float)newTimeScale / (float)oldTimeScale));
+}
+

@@ -28,122 +28,166 @@ MP4Atom* MP4Atom::CreateAtom(char* type)
 
 	if (type == NULL) {
 		pAtom = new MP4RootAtom();
-	} else if (ATOMID(type) == ATOMID("ftyp")) {
-		pAtom = new MP4FtypAtom();
-	} else if (ATOMID(type) == ATOMID("mdat")) {
-		pAtom = new MP4MdatAtom();
-	} else if (ATOMID(type) == ATOMID("moov")) {
-		pAtom = new MP4MoovAtom();
-	} else if (ATOMID(type) == ATOMID("mvhd")) {
-		pAtom = new MP4MvhdAtom();
-	} else if (ATOMID(type) == ATOMID("iods")) {
-		pAtom = new MP4IodsAtom();
-	} else if (ATOMID(type) == ATOMID("trak")) {
-		pAtom = new MP4TrakAtom();
-	} else if (ATOMID(type) == ATOMID("tkhd")) {
-		pAtom = new MP4TkhdAtom();
-	} else if (ATOMID(type) == ATOMID("tref")) {
-		pAtom = new MP4TrefAtom();
-	} else if (ATOMID(type) == ATOMID("edts")) {
-		pAtom = new MP4EdtsAtom();
-	} else if (ATOMID(type) == ATOMID("elst")) {
-		pAtom = new MP4ElstAtom();
-	} else if (ATOMID(type) == ATOMID("mdia")) {
-		pAtom = new MP4MdiaAtom();
-	} else if (ATOMID(type) == ATOMID("mdhd")) {
-		pAtom = new MP4MdhdAtom();
-	} else if (ATOMID(type) == ATOMID("hdlr")) {
-		pAtom = new MP4HdlrAtom();
-	} else if (ATOMID(type) == ATOMID("minf")) {
-		pAtom = new MP4MinfAtom();
-	} else if (ATOMID(type) == ATOMID("vmhd")) {
-		pAtom = new MP4VmhdAtom();
-	} else if (ATOMID(type) == ATOMID("smhd")) {
-		pAtom = new MP4SmhdAtom();
-	} else if (ATOMID(type) == ATOMID("hmhd")) {
-		pAtom = new MP4HmhdAtom();
-	} else if (ATOMID(type) == ATOMID("nmhd")) {
-		pAtom = new MP4NmhdAtom();
-	} else if (ATOMID(type) == ATOMID("dinf")) {
-		pAtom = new MP4DinfAtom();
-	} else if (ATOMID(type) == ATOMID("dref")) {
-		pAtom = new MP4DrefAtom();
-	} else if (ATOMID(type) == ATOMID("url ")) {
-		pAtom = new MP4UrlAtom();
-	} else if (ATOMID(type) == ATOMID("urn ")) {
-		pAtom = new MP4UrnAtom();
-	} else if (ATOMID(type) == ATOMID("stbl")) {
-		pAtom = new MP4StblAtom();
-	} else if (ATOMID(type) == ATOMID("stsd")) {
-		pAtom = new MP4StsdAtom();
-	} else if (ATOMID(type) == ATOMID("mp4a")) {
-		pAtom = new MP4Mp4aAtom();
-	} else if (ATOMID(type) == ATOMID("mp4s")) {
-		pAtom = new MP4Mp4sAtom();
-	} else if (ATOMID(type) == ATOMID("mp4v")) {
-		pAtom = new MP4Mp4vAtom();
-	} else if (ATOMID(type) == ATOMID("esds")) {
-		pAtom = new MP4EsdsAtom();
-	} else if (ATOMID(type) == ATOMID("stts")) {
-		pAtom = new MP4SttsAtom();
-	} else if (ATOMID(type) == ATOMID("ctts")) {
-		pAtom = new MP4CttsAtom();
-	} else if (ATOMID(type) == ATOMID("stsz")) {
-		pAtom = new MP4StszAtom();
-	} else if (ATOMID(type) == ATOMID("stsc")) {
-		pAtom = new MP4StscAtom();
-	} else if (ATOMID(type) == ATOMID("stco")) {
-		pAtom = new MP4StcoAtom();
-	} else if (ATOMID(type) == ATOMID("co64")) {
-		pAtom = new MP4Co64Atom();
-	} else if (ATOMID(type) == ATOMID("stss")) {
-		pAtom = new MP4StssAtom();
-	} else if (ATOMID(type) == ATOMID("stsh")) {
-		pAtom = new MP4StshAtom();
-	} else if (ATOMID(type) == ATOMID("stdp")) {
-		pAtom = new MP4StdpAtom();
-	} else if (ATOMID(type) == ATOMID("udta")) {
-		pAtom = new MP4UdtaAtom();
-	} else if (ATOMID(type) == ATOMID("cprt")) {
-		pAtom = new MP4CprtAtom();
-	} else if (ATOMID(type) == ATOMID("hnti")) {
-		pAtom = new MP4HntiAtom();
-	} else if (ATOMID(type) == ATOMID("rtp ")) {
-		pAtom = new MP4RtpAtom();
-	} else if (ATOMID(type) == ATOMID("sdp ")) {
-		pAtom = new MP4SdpAtom();
-	} else if (ATOMID(type) == ATOMID("hinf")) {
-		pAtom = new MP4HinfAtom();
-	} else if (ATOMID(type) == ATOMID("trpy")) {
-		pAtom = new MP4TrpyAtom();
-	} else if (ATOMID(type) == ATOMID("nump")) {
-		pAtom = new MP4NumpAtom();
-	} else if (ATOMID(type) == ATOMID("tpyl")) {
-		pAtom = new MP4TpylAtom();
-	} else if (ATOMID(type) == ATOMID("maxr")) {
-		pAtom = new MP4MaxrAtom();
-	} else if (ATOMID(type) == ATOMID("dmed")) {
-		pAtom = new MP4DmedAtom();
-	} else if (ATOMID(type) == ATOMID("dimm")) {
-		pAtom = new MP4DimmAtom();
-	} else if (ATOMID(type) == ATOMID("drep")) {
-		pAtom = new MP4DrepAtom();
-	} else if (ATOMID(type) == ATOMID("tmin")) {
-		pAtom = new MP4TminAtom();
-	} else if (ATOMID(type) == ATOMID("tmax")) {
-		pAtom = new MP4TmaxAtom();
-	} else if (ATOMID(type) == ATOMID("pmax")) {
-		pAtom = new MP4PmaxAtom();
-	} else if (ATOMID(type) == ATOMID("dmax")) {
-		pAtom = new MP4DmaxAtom();
-	} else if (ATOMID(type) == ATOMID("payt")) {
-		pAtom = new MP4PaytAtom();
-	} else if (ATOMID(type) == ATOMID("free")) {
-		pAtom = new MP4FreeAtom();
-	} else if (ATOMID(type) == ATOMID("skip")) {
-		pAtom = new MP4FreeAtom();
-		pAtom->SetType("skip");
+	} else if (type[0] == 'c') {
+		if (ATOMID(type) == ATOMID("ctts")) {
+			pAtom = new MP4CttsAtom();
+		} else if (ATOMID(type) == ATOMID("co64")) {
+			pAtom = new MP4Co64Atom();
+		} else if (ATOMID(type) == ATOMID("cprt")) {
+			pAtom = new MP4CprtAtom();
+		}
+	} else if (type[0] == 'd') {
+		if (ATOMID(type) == ATOMID("dinf")) {
+			pAtom = new MP4DinfAtom();
+		} else if (ATOMID(type) == ATOMID("dref")) {
+			pAtom = new MP4DrefAtom();
+		} else if (ATOMID(type) == ATOMID("dpnd")) {
+			pAtom = new MP4TrefTypeAtom(type);
+		} else if (ATOMID(type) == ATOMID("dmed")) {
+			pAtom = new MP4DmedAtom();
+		} else if (ATOMID(type) == ATOMID("dimm")) {
+			pAtom = new MP4DimmAtom();
+		} else if (ATOMID(type) == ATOMID("drep")) {
+			pAtom = new MP4DrepAtom();
+		} else if (ATOMID(type) == ATOMID("dmax")) {
+			pAtom = new MP4DmaxAtom();
+		}
+	} else if (type[0] == 'e') {
+		if (ATOMID(type) == ATOMID("esds")) {
+			pAtom = new MP4EsdsAtom();
+		} else if (ATOMID(type) == ATOMID("edts")) {
+			pAtom = new MP4EdtsAtom();
+		} else if (ATOMID(type) == ATOMID("elst")) {
+			pAtom = new MP4ElstAtom();
+		}
+	} else if (type[0] == 'h') {
+		if (ATOMID(type) == ATOMID("hdlr")) {
+			pAtom = new MP4HdlrAtom();
+		} else if (ATOMID(type) == ATOMID("hmhd")) {
+			pAtom = new MP4HmhdAtom();
+		} else if (ATOMID(type) == ATOMID("hint")) {
+			pAtom = new MP4TrefTypeAtom(type);
+		} else if (ATOMID(type) == ATOMID("hnti")) {
+			pAtom = new MP4HntiAtom();
+		} else if (ATOMID(type) == ATOMID("hinf")) {
+			pAtom = new MP4HinfAtom();
+		}
+	} else if (type[0] == 'm') {
+		if (ATOMID(type) == ATOMID("mdia")) {
+			pAtom = new MP4MdiaAtom();
+		} else if (ATOMID(type) == ATOMID("minf")) {
+			pAtom = new MP4MinfAtom();
+		} else if (ATOMID(type) == ATOMID("mdhd")) {
+			pAtom = new MP4MdhdAtom();
+		} else if (ATOMID(type) == ATOMID("mdat")) {
+			pAtom = new MP4MdatAtom();
+		} else if (ATOMID(type) == ATOMID("moov")) {
+			pAtom = new MP4MoovAtom();
+		} else if (ATOMID(type) == ATOMID("mvhd")) {
+			pAtom = new MP4MvhdAtom();
+		} else if (ATOMID(type) == ATOMID("mpod")) {
+			pAtom = new MP4TrefTypeAtom(type);
+		} else if (ATOMID(type) == ATOMID("mp4a")) {
+			pAtom = new MP4Mp4aAtom();
+		} else if (ATOMID(type) == ATOMID("mp4s")) {
+			pAtom = new MP4Mp4sAtom();
+		} else if (ATOMID(type) == ATOMID("mp4v")) {
+			pAtom = new MP4Mp4vAtom();
+		} else if (ATOMID(type) == ATOMID("moof")) {
+			pAtom = new MP4MoofAtom();
+		} else if (ATOMID(type) == ATOMID("mfhd")) {
+			pAtom = new MP4MfhdAtom();
+		} else if (ATOMID(type) == ATOMID("mvex")) {
+			pAtom = new MP4MvexAtom();
+		} else if (ATOMID(type) == ATOMID("maxr")) {
+			pAtom = new MP4MaxrAtom();
+		}
+	} else if (type[0] == 's') {
+		if (ATOMID(type) == ATOMID("stbl")) {
+			pAtom = new MP4StblAtom();
+		} else if (ATOMID(type) == ATOMID("stsd")) {
+			pAtom = new MP4StsdAtom();
+		} else if (ATOMID(type) == ATOMID("stts")) {
+			pAtom = new MP4SttsAtom();
+		} else if (ATOMID(type) == ATOMID("stsz")) {
+			pAtom = new MP4StszAtom();
+		} else if (ATOMID(type) == ATOMID("stsc")) {
+			pAtom = new MP4StscAtom();
+		} else if (ATOMID(type) == ATOMID("stco")) {
+			pAtom = new MP4StcoAtom();
+		} else if (ATOMID(type) == ATOMID("stss")) {
+			pAtom = new MP4StssAtom();
+		} else if (ATOMID(type) == ATOMID("stsh")) {
+			pAtom = new MP4StshAtom();
+		} else if (ATOMID(type) == ATOMID("stdp")) {
+			pAtom = new MP4StdpAtom();
+		} else if (ATOMID(type) == ATOMID("smhd")) {
+			pAtom = new MP4SmhdAtom();
+		} else if (ATOMID(type) == ATOMID("sdp ")) {
+			pAtom = new MP4SdpAtom();
+		} else if (ATOMID(type) == ATOMID("sync")) {
+			pAtom = new MP4TrefTypeAtom(type);
+		} else if (ATOMID(type) == ATOMID("skip")) {
+			pAtom = new MP4FreeAtom();
+			pAtom->SetType("skip");
+		}
+	} else if (type[0] == 't') {
+		if (ATOMID(type) == ATOMID("trak")) {
+			pAtom = new MP4TrakAtom();
+		} else if (ATOMID(type) == ATOMID("tkhd")) {
+			pAtom = new MP4TkhdAtom();
+		} else if (ATOMID(type) == ATOMID("tref")) {
+			pAtom = new MP4TrefAtom();
+		} else if (ATOMID(type) == ATOMID("traf")) {
+			pAtom = new MP4TrafAtom();
+		} else if (ATOMID(type) == ATOMID("tfhd")) {
+			pAtom = new MP4TfhdAtom();
+		} else if (ATOMID(type) == ATOMID("trex")) {
+			pAtom = new MP4TrexAtom();
+		} else if (ATOMID(type) == ATOMID("trun")) {
+			pAtom = new MP4TrunAtom();
+		} else if (ATOMID(type) == ATOMID("tmin")) {
+			pAtom = new MP4TminAtom();
+		} else if (ATOMID(type) == ATOMID("tmax")) {
+			pAtom = new MP4TmaxAtom();
+		} else if (ATOMID(type) == ATOMID("trpy")) {
+			pAtom = new MP4TrpyAtom();
+		} else if (ATOMID(type) == ATOMID("tpyl")) {
+			pAtom = new MP4TpylAtom();
+		}
+	} else if (type[0] == 'u') {
+		if (ATOMID(type) == ATOMID("udta")) {
+			pAtom = new MP4UdtaAtom();
+		} else if (ATOMID(type) == ATOMID("url ")) {
+			pAtom = new MP4UrlAtom();
+		} else if (ATOMID(type) == ATOMID("urn ")) {
+			pAtom = new MP4UrnAtom();
+		}
 	} else {
+		if (ATOMID(type) == ATOMID("free")) {
+			pAtom = new MP4FreeAtom();
+		} else if (ATOMID(type) == ATOMID("ftyp")) {
+			pAtom = new MP4FtypAtom();
+		} else if (ATOMID(type) == ATOMID("iods")) {
+			pAtom = new MP4IodsAtom();
+		} else if (ATOMID(type) == ATOMID("ipir")) {
+			pAtom = new MP4TrefTypeAtom(type);
+		} else if (ATOMID(type) == ATOMID("nmhd")) {
+			pAtom = new MP4NmhdAtom();
+		} else if (ATOMID(type) == ATOMID("nump")) {
+			pAtom = new MP4NumpAtom();
+		} else if (ATOMID(type) == ATOMID("pmax")) {
+			pAtom = new MP4PmaxAtom();
+		} else if (ATOMID(type) == ATOMID("payt")) {
+			pAtom = new MP4PaytAtom();
+		} else if (ATOMID(type) == ATOMID("rtp ")) {
+			pAtom = new MP4RtpAtom();
+		} else if (ATOMID(type) == ATOMID("vmhd")) {
+			pAtom = new MP4VmhdAtom();
+		}
+	}
+
+	if (pAtom == NULL) {
 		pAtom = new MP4Atom(type);
 		pAtom->SetUnknownType(true);
 	}
@@ -560,8 +604,19 @@ void MP4Atom::WriteProperties(u_int32_t startIndex, u_int32_t count)
 {
 	u_int32_t numProperties = MIN(count, m_pProperties.Size() - startIndex);
 
+	VERBOSE_WRITE(GetVerbosity(), 
+		printf("Write: type %s\n", m_type));
+
 	for (u_int32_t i = startIndex; i < startIndex + numProperties; i++) {
 		m_pProperties[i]->Write(m_pFile);
+
+		if (m_pProperties[i]->GetType() == TableProperty) {
+			VERBOSE_WRITE_TABLE(GetVerbosity(), 
+				printf("Write: "); m_pProperties[i]->Dump(stdout));
+		} else {
+			VERBOSE_WRITE(GetVerbosity(), 
+				printf("Write: "); m_pProperties[i]->Dump(stdout));
+		}
 	}
 }
 
@@ -571,6 +626,9 @@ void MP4Atom::WriteChildAtoms()
 	for (u_int32_t i = 0; i < size; i++) {
 		m_pChildAtoms[i]->Write();
 	}
+
+	VERBOSE_WRITE(GetVerbosity(), 
+		printf("Write: finished %s\n", m_type));
 }
 
 u_int8_t MP4Atom::GetVersion()

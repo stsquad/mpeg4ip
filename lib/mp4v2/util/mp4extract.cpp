@@ -172,9 +172,20 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId)
 	u_int32_t sampleSize;
 
 	for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
-		MP4ReadSample(mp4File, trackId, sampleId, &pSample, &sampleSize);
+		int rc;
 
-		int rc = write(trackFd, pSample, sampleSize);
+		// signals to ReadSample() that it should malloc a buffer for us
+		pSample = NULL;
+		sampleSize = 0;
+
+		rc = MP4ReadSample(mp4File, trackId, sampleId, &pSample, &sampleSize);
+		if (rc == 0) {
+			fprintf(stderr, "%s: read sample %u for %s failed\n",
+				progName, sampleId, trackFileName);
+			break;
+		}
+
+		rc = write(trackFd, pSample, sampleSize);
 		if (rc == -1 || (u_int32_t)rc != sampleSize) {
 			fprintf(stderr, "%s: write to %s failed: %s\n",
 				progName, trackFileName, strerror(errno));

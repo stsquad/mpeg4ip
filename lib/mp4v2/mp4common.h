@@ -34,5 +34,6 @@
 #include "mp4atom.h"
 
 #include "atoms.h"
+#include "descriptors.h"
 
 #endif /* __MP4_COMMON_INCLUDED__ */

@@ -55,8 +55,7 @@ public:
 	void Generate();
 	void Read();
 protected:
-	void AddVersion0Properties();
-	void AddVersion1Properties();
+	void AddProperties(u_int8_t version);
 };
 
 class MP4IodsAtom : public MP4Atom {
@@ -83,9 +82,9 @@ public:
 	MP4TrefAtom();
 };
 
-class MP4HintAtom : public MP4Atom {
+class MP4TrefTypeAtom : public MP4Atom {
 public:
-	MP4HintAtom();
+	MP4TrefTypeAtom(char* type);
 	void Read();
 };
 
@@ -100,8 +99,7 @@ public:
 	void Generate();
 	void Read();
 protected:
-	void AddVersion0Properties();
-	void AddVersion1Properties();
+	void AddProperties(u_int8_t version);
 };
 
 class MP4HdlrAtom : public MP4Atom {
@@ -118,6 +116,7 @@ public:
 class MP4VmhdAtom : public MP4Atom {
 public:
 	MP4VmhdAtom();
+	void Generate();
 };
 
 class MP4SmhdAtom : public MP4Atom {
@@ -174,6 +173,7 @@ public:
 class MP4Mp4aAtom : public MP4Atom {
 public:
 	MP4Mp4aAtom();
+	void Generate();
 };
 
 class MP4Mp4sAtom : public MP4Atom {
@@ -184,6 +184,7 @@ public:
 class MP4Mp4vAtom : public MP4Atom {
 public:
 	MP4Mp4vAtom();
+	void Generate();
 };
 
 class MP4EsdsAtom : public MP4Atom {
@@ -251,8 +252,7 @@ public:
 	void Generate();
 	void Read();
 protected:
-	void AddVersion0Properties();
-	void AddVersion1Properties();
+	void AddProperties(u_int8_t version);
 };
 
 class MP4UdtaAtom : public MP4Atom {
@@ -347,6 +347,47 @@ public:
 class MP4PaytAtom : public MP4Atom {
 public:
 	MP4PaytAtom();
+};
+
+class MP4MvexAtom : public MP4Atom {
+public:
+	MP4MvexAtom();
+};
+
+class MP4TrexAtom : public MP4Atom {
+public:
+	MP4TrexAtom();
+};
+
+class MP4MoofAtom : public MP4Atom {
+public:
+	MP4MoofAtom();
+};
+
+class MP4MfhdAtom : public MP4Atom {
+public:
+	MP4MfhdAtom();
+};
+
+class MP4TrafAtom : public MP4Atom {
+public:
+	MP4TrafAtom();
+};
+
+class MP4TfhdAtom : public MP4Atom {
+public:
+	MP4TfhdAtom();
+	void Read();
+protected:
+	void AddProperties(u_int32_t flags);
+};
+
+class MP4TrunAtom : public MP4Atom {
+public:
+	MP4TrunAtom();
+	void Read();
+protected:
+	void AddProperties(u_int32_t flags);
 };
 
 class MP4FreeAtom : public MP4Atom {

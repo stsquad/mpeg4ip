@@ -24,8 +24,11 @@
 MP4RtpAtom::MP4RtpAtom() 
 	: MP4Atom("rtp ")
 {
-	AddProperty(
-		new MP4Integer32Property("descriptionFormat"));
+	MP4StringProperty* pProp =
+		new MP4StringProperty("descriptionFormat");
+	pProp->SetFixedLength(4);
+	AddProperty(pProp);
+
 	AddProperty(
 		new MP4StringProperty("sdpText"));
 }
@@ -35,7 +38,7 @@ void MP4RtpAtom::Read()
 	ReadProperties(0, 1);
 
 	/* read sdp string, length is implicit in size of atom */
-	u_int64_t size = m_end - m_pFile->GetPosition();
+	u_int64_t size = GetEnd() - m_pFile->GetPosition();
 	char* data = (char*)MP4Malloc(size + 1);
 	m_pFile->ReadBytes((u_int8_t*)data, size);
 	data[size] = '\0';

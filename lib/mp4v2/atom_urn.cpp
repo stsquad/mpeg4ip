@@ -35,7 +35,7 @@ void MP4UrnAtom::Read()
 	ReadProperties(0, 3);
 
 	// check if location is present
-	if (m_pFile->GetPosition() < m_end) {
+	if (m_pFile->GetPosition() < GetEnd()) {
 		// read it
 		ReadProperties(3);
 	}

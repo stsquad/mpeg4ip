@@ -98,11 +98,24 @@ protected:
 
 MP4ARRAY_DECL(MP4Property, MP4Property*);
 
+class MP4IntegerProperty : public MP4Property {
+protected:
+	MP4IntegerProperty(char* name)
+		: MP4Property(name) { };
+
+public:
+	u_int64_t GetValue(u_int32_t index = 0);
+
+	void SetValue(u_int64_t value, u_int32_t index = 0);
+
+	void IncrementValue(u_int32_t index = 0);
+};
+
 #define MP4INTEGER_PROPERTY_DECL2(isize, xsize) \
-	class MP4Integer##xsize##Property : public MP4Property { \
+	class MP4Integer##xsize##Property : public MP4IntegerProperty { \
 	public: \
 		MP4Integer##xsize##Property(char* name) \
-			: MP4Property(name) { \
+			: MP4IntegerProperty(name) { \
 			SetCount(1); \
 			m_values[0] = 0; \
 		} \
@@ -169,6 +182,8 @@ class MP4BitfieldProperty : public MP4Integer64Property {
 public:
 	MP4BitfieldProperty(char* name, u_int8_t numBits)
 		: MP4Integer64Property(name) {
+		ASSERT(numBits != 0);
+		ASSERT(numBits <= 64);
 		m_numBits = numBits;
 	}
 
@@ -261,6 +276,7 @@ public:
 		m_useCountedFormat = useCountedFormat;
 		m_useExpandedCount = false;
 		m_useUnicode = useUnicode;
+		m_fixedLength = 0;	// length not fixed
 	}
 	~MP4StringProperty() {
 		u_int32_t count = GetCount();
@@ -285,13 +301,18 @@ public:
 		return m_values[index];
 	}
 
-	void SetValue(char* value, u_int32_t index = 0) {
+	void SetValue(const char* value, u_int32_t index = 0) {
 		if (m_readOnly) {
 			throw new MP4Error(EACCES, "property is read-only", m_name);
 		}
 		MP4Free(m_values[index]);
 		if (value) {
-			m_values[index] = MP4Stralloc(value);
+			if (m_fixedLength) {
+				m_values[index] = (char*)MP4Calloc(m_fixedLength + 1);
+				strncpy(m_values[index], value, m_fixedLength);
+			} else {
+				m_values[index] = MP4Stralloc(value);
+			}
 		} else {
 			m_values[index] = NULL;
 		}
@@ -327,6 +348,14 @@ public:
 		m_useUnicode = useUnicode;
 	}
 
+	u_int32_t GetFixedLength() {
+		return m_fixedLength;
+	}
+
+	void SetFixedLength(u_int32_t fixedLength) {
+		m_fixedLength = fixedLength;
+	}
+
 	void Read(MP4File* pFile, u_int32_t index = 0);
 	void Write(MP4File* pFile, u_int32_t index = 0);
 	void Dump(FILE* pFile, u_int32_t index = 0);
@@ -335,6 +364,8 @@ protected:
 	bool m_useCountedFormat;
 	bool m_useExpandedCount;
 	bool m_useUnicode;
+	u_int32_t m_fixedLength;
+
 	MP4StringArray m_values;
 };
 
@@ -441,6 +472,7 @@ public:
 		ASSERT(pProperty->GetType() != DescriptorProperty);
 		m_pProperties.Add(pProperty);
 		pProperty->SetParentAtom(m_pParentAtom);
+		pProperty->SetCount(0);
 	}
 
 	MP4Property* GetProperty(u_int32_t index) {
@@ -510,6 +542,8 @@ public:
 	void SetCount(u_int32_t count) {
 		return m_pDescriptors.Resize(count);
 	}
+
+	MP4Descriptor* AddDescriptor(u_int8_t tag);
 
 	void Generate();
 	void Read(MP4File* pFile, u_int32_t index = 0);

@@ -30,12 +30,12 @@
 #include <sdp/sdp.h>
 #include <rtsp/rtsp_client.h>
 #include "our_msg_queue.h"
-#include "ip_port.h"
 #include "rtp_bytestream.h"
 
 class CPlayerSession;
 class CAudioSync;
 class CVideoSync;
+class C2ConsecIpPort;
 
 typedef struct video_info_t {
   int height;

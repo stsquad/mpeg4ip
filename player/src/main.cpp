@@ -106,6 +106,7 @@ int main (int argc, char **argv)
   char *name;
 
   rtsp_set_loglevel(LOG_DEBUG);
+  rtsp_set_error_func(player_library_message);
   argv++;
   argc--;
   if (argc && strcmp(*argv, "-l") == 0) {

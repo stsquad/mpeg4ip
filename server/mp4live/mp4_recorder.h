@@ -85,14 +85,22 @@ protected:
 	char*			m_mp4FileName;
 #ifdef MP4V2
 	MP4FileHandle	m_mp4File;
+	MP4TrackId		m_odTrack;
+	MP4TrackId		m_bifsTrack;
+	MP4TrackId		m_audioTrack;
+	MP4TrackId		m_audioHintTrack;
+	MP4TrackId		m_videoTrack;
+	MP4TrackId		m_videoHintTrack;
 #else
 	quicktime_t*	m_mp4File;
+	int				m_audioTrack;
+	int				m_audioHintTrack;
+	int				m_videoTrack;
+	int				m_videoHintTrack;
 #endif
 
-	int				m_audioTrack;
 	u_int32_t		m_audioFrameNum;
 	u_int16_t		m_audioFrameRate;
-	int				m_audioHintTrack;
 	u_int8_t		m_audioHintBuf[4*1024];
 	u_int32_t 		m_audioHintBufLength;
 	u_int32_t		m_audioRtpPktNum;
@@ -102,9 +110,7 @@ protected:
 	u_int32_t		m_audioFirstRtpPktThisSec;
 	u_int32_t		m_audioMaxRtpBytesPerSec;
 
-	int				m_videoTrack;
 	u_int32_t		m_videoFrameNum;
-	int				m_videoHintTrack;
 	u_int8_t		m_videoHintBuf[4*1024];
 	u_int32_t 		m_videoHintBufLength;
 	u_int32_t		m_videoRtpPktNum;

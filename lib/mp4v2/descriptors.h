@@ -34,7 +34,9 @@ const u_int8_t MP4IPMPDescrTag			 	= 0x0B;
 const u_int8_t MP4QosDescrTag			 	= 0x0C; 
 const u_int8_t MP4RegistrationDescrTag	 	= 0x0D; 
 const u_int8_t MP4ESIDIncDescrTag			= 0x0E; 
+const u_int8_t MP4ESIDRefDescrTag			= 0x0F; 
 const u_int8_t MP4IODescrTag				= 0x10; 
+const u_int8_t MP4ODescrTag					= 0x11; 
 const u_int8_t MP4ExtProfileLevelDescrTag 	= 0x13; 
 const u_int8_t MP4OCIDescrTagsStart	 		= 0x40; 
 const u_int8_t MP4ContentClassDescrTag 		= 0x40; 
@@ -54,15 +56,21 @@ const u_int8_t MP4ExtDescrTagsEnd			= 0xFE;
 
 class MP4IODescriptor : public MP4Descriptor {
 public:
-	MP4IODescriptor();
+	MP4IODescriptor(u_int8_t tag);
+	void Generate();
 	void Read(MP4File* pFile);
 protected:
 	void Mutate();
 };
 
-class MP4ESIDDescriptor : public MP4Descriptor {
+class MP4ESIDIncDescriptor : public MP4Descriptor {
 public:
-	MP4ESIDDescriptor();
+	MP4ESIDIncDescriptor();
+};
+
+class MP4ESIDRefDescriptor : public MP4Descriptor {
+public:
+	MP4ESIDRefDescriptor();
 };
 
 class MP4ESDescriptor : public MP4Descriptor {
@@ -87,6 +95,7 @@ public:
 class MP4SLConfigDescriptor : public MP4Descriptor {
 public:
 	MP4SLConfigDescriptor();
+	void Generate();
 	void Read(MP4File* pFile);
 protected:
 	void Mutate();
@@ -257,6 +266,33 @@ public:
 	MP4ExtensionDescriptor();
 	void Read(MP4File* pFile);
 };
+
+// associated values in descriptors
+
+// ES objectTypeId
+const u_int8_t MP4SystemsObjectType				= 0x01; 
+
+// ES streamType
+const u_int8_t MP4ObjectDescriptionStreamType	= 0x01; 
+const u_int8_t MP4ClockReferenceStreamType		= 0x02; 
+const u_int8_t MP4SceneDescriptionStreamType	= 0x03; 
+const u_int8_t MP4VisualStreamType				= 0x04; 
+const u_int8_t MP4AudioStreamType				= 0x05; 
+const u_int8_t MP4Mpeg7StreamType				= 0x06; 
+const u_int8_t MP4IPMPStreamType				= 0x07; 
+const u_int8_t MP4OCIStreamType					= 0x08; 
+const u_int8_t MP4MPEGJStreamType				= 0x09; 
+const u_int8_t MP4UserPrivateStreamType			= 0x20; 
+
+
+// OD stream command descriptors
+const u_int8_t MP4ODUpdateODCommandTag			= 0x01; 
+const u_int8_t MP4ODRemoveODCommandTag			= 0x02; 
+const u_int8_t MP4ESUpdateODCommandTag			= 0x03; 
+const u_int8_t MP4ESRemoveODCommandTag			= 0x04; 
+const u_int8_t MP4IPMPUpdateODCommandTag		= 0x05; 
+const u_int8_t MP4IPMPRemoveODCommandTag		= 0x06; 
+const u_int8_t MP4ESRemoveRefODCommandTag		= 0x07; 
 
 #endif /* __DESCRIPTORS_INCLUDED__ */
 

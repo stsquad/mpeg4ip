@@ -1,13 +1,25 @@
 
-Generate appropriate default values esp. for reserved fields
+mp4file.cpp TBD's
 
-AddHintTrack
+Finish testing mp4live writing
 
-Set movie and track duration fields on WriteSample()
+OD Track samples
+
+Static version of library only
+
+---
+
+dump - don't print out implicits?
+
+FinishWrite
+	esds - maxBitrate, avgBitrate
+	hmhd
 
 MP4Clone 
 	Interleaving of existing and new samples on writing
 	Rewriting of chunk offset atom to reflect moves
+
+Unclear if stsd.mp4?.esds.ESID should be set in file - email singer
 
 Option to use dref to separate meta info file from media data file
 
@@ -15,13 +27,43 @@ Effects of edit lists on reading samples
 
 Wrap printf's for verbosity - see example is player/lib/http/http_util.c
 
+Better linkage between tables and their count properties
 
-Adapt mp4player to new library
+MP4 v2 new atom types traf, etc.
 
-Add isma od and bifs helpers
+Add isma bifs 
 
 Add rtp hint helpers
 
-Finish adapting mp4live to new library
+Finish adapting mp4live to new library - hinting
 
-Write mp4broadcaster & mp4creator
+Write mp4creator
+
+Write mp4broadcaster
+
+---
+
+	As part of xxx() do 
+
+	MP4Descriptor* pDescriptor = CreateODCommand(MP4ESUpdateODCommandTag);
+	pDescriptor->Generate();
+
+	MP4BitfieldProperty* pOdIdProperty = NULL;
+	pDescriptor->FindProperty("objectDescriptorId", &pOdIdProperty);
+	ASSERT(pOdIdProperty);
+	pOdIdProperty->SetValue(
+		GetIntegerProperty("moov.iods.objectDescriptorId"));
+
+	MP4Integer16Property* pRefIndexProperty = NULL;
+	pDescriptor->FindProperty("xxx.refIndex", &pProperty);
+	ASSERT(pRefIndexProperty);
+	pRefIndexProperty->SetValue(x, y);
+		Ref to ESIDS's - last tref.mpod index
+
+	u_int64_t start = GetPosition();
+	pDescriptor->Write(this);
+	u_int64_t end = GetPosition();
+	u_int32_t descrSize = (u_int32_t)(end - start);
+
+	WriteSample(m_odTrackId, NULL, descrSize, 0);
+

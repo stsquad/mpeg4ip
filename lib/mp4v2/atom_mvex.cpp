@@ -21,11 +21,8 @@
 
 #include "mp4common.h"
 
-MP4IodsAtom::MP4IodsAtom() 
-	: MP4Atom("iods") 
+MP4MvexAtom::MP4MvexAtom() 
+	: MP4Atom("mvex")
 {
-	AddVersionAndFlags();
-	AddProperty(
-		new MP4DescriptorProperty(NULL, 
-			MP4IODescrTag, MP4ODescrTag, Required, OnlyOne));
+	ExpectChildAtom("trex", Required, Many);
 }

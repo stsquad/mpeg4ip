@@ -30,6 +30,7 @@ MP4RootAtom::MP4RootAtom()
 	ExpectChildAtom("free", Optional, Many);
 	ExpectChildAtom("skip", Optional, Many);
 	ExpectChildAtom("udta", Optional, Many);
+	ExpectChildAtom("moof", Optional, Many);
 }
 
 void MP4RootAtom::BeginWrite(bool use64) 

@@ -34,28 +34,22 @@ MP4ElstAtom::MP4ElstAtom()
 	AddProperty(pTable);
 }
 
-void MP4ElstAtom::AddVersion0Properties() 
+void MP4ElstAtom::AddProperties(u_int8_t version) 
 {
 	MP4TableProperty* pTable = (MP4TableProperty*)m_pProperties[3];
 
-	pTable->AddProperty(
-		new MP4Integer32Property("segmentDuration"));
-	pTable->AddProperty(
-		new MP4Integer32Property("mediaTime"));
-	pTable->AddProperty(
-		new MP4Integer16Property("mediaRate"));
-	pTable->AddProperty(
-		new MP4Integer16Property("reserved"));
-}
+	if (version == 1) {
+		pTable->AddProperty(
+			new MP4Integer64Property("segmentDuration"));
+		pTable->AddProperty(
+			new MP4Integer64Property("mediaTime"));
+	} else {
+		pTable->AddProperty(
+			new MP4Integer32Property("segmentDuration"));
+		pTable->AddProperty(
+			new MP4Integer32Property("mediaTime"));
+	}
 
-void MP4ElstAtom::AddVersion1Properties() 
-{
-	MP4TableProperty* pTable = (MP4TableProperty*)m_pProperties[3];
-
-	pTable->AddProperty(
-		new MP4Integer64Property("segmentDuration"));
-	pTable->AddProperty(
-		new MP4Integer64Property("mediaTime"));
 	pTable->AddProperty(
 		new MP4Integer16Property("mediaRate"));
 	pTable->AddProperty(
@@ -65,7 +59,9 @@ void MP4ElstAtom::AddVersion1Properties()
 void MP4ElstAtom::Generate() 
 {
 	SetVersion(0);
-	AddVersion0Properties();
+	AddProperties(GetVersion());
+
+	MP4Atom::Generate();
 }
 
 void MP4ElstAtom::Read() 
@@ -74,14 +70,11 @@ void MP4ElstAtom::Read()
 	ReadProperties(0, 1);
 
 	/* need to create the properties based on the atom version */
-	if (GetVersion() == 1) {
-		AddVersion1Properties();
-	} else {
-		AddVersion0Properties();
-	}
+	AddProperties(GetVersion());
 
 	/* now we can read the remaining properties */
 	ReadProperties(1);
 
 	Skip();	// to end of atom
 }
+

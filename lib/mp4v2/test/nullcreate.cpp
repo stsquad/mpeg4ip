@@ -32,6 +32,13 @@ main(int argc, char** argv)
 
 	MP4FileHandle mp4File = MP4Create(argv[1], verbosity);
 
+	if (!mp4File) {
+		exit(1);
+	}
+
+	printf("Created skeleton\n");
+	MP4Dump(mp4File);
+
 	MP4SetODProfileLevel(mp4File, 1);
 	MP4SetSceneProfileLevel(mp4File, 1);
 	MP4SetVideoProfileLevel(mp4File, 1);
@@ -39,16 +46,19 @@ main(int argc, char** argv)
 	MP4SetGraphicsProfileLevel(mp4File, 1);
 
 	MP4TrackId odTrackId = 
-		MP4AddSystemsTrack(mp4File, "od");
+		MP4AddObjectDescriptionTrack(mp4File);
 
 	MP4TrackId bifsTrackId = 
-		MP4AddSystemsTrack(mp4File, "bifs");
+		MP4AddSceneDescriptionTrack(mp4File);
 
 	MP4TrackId videoTrackId = 
 		MP4AddVideoTrack(mp4File, 90000, 3000, 320, 240);
 
 	MP4TrackId audioTrackId = 
 		MP4AddAudioTrack(mp4File, 44100, 1152);
+
+	printf("Added tracks\n");
+	MP4Dump(mp4File);
 
 	MP4Close(mp4File);
 

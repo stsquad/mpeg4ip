@@ -1,4 +1,4 @@
-August 1, 2001
+September 18, 2001
 
 MPEG4IP Project
 ===============
@@ -62,8 +62,13 @@ file container, and known good content, such as your favorite MP3, can be
 used to verify that the player is working correctly with your hardware. E.g.
     $ gmp4player mymusic.mp3
 
-Note: If you prefer a no UI version of the player, just the bare video 
-window, 'mp4player' is available to fit that need.
+And that's still not all... You can set up your player to run a playlist
+by creating a simple text file with the extension .gmp4_playlist, with
+each item (file or stream) on it's own line.
+
+Note: If you prefer a no UI version of the player, or your system does not
+include GTK or GLIB, just the bare video window, 'mp4player' is available 
+to fit that need.
 
 
 Legal
@@ -121,11 +126,11 @@ Name:       ffmpeg
 Version:    0.3.4
 Origin:     http://www.sourceforge.net/projects/ffmpeg
 Author:     Gerard Lantau
-Directory:	mpeg4ip/server/video/ffmpeg
+Directory:  mpeg4ip/server/video/ffmpeg
 License:    GNU General Public License (GPL), version 2 1991
-Notes:		Code redistributed with MPEG4IP is the video encoder library
-			portion of the ffmpeg project. See the ffmpeg site to obtain
-			the complete distribution.
+Notes:      Code redistributed with MPEG4IP is the video encoder library
+            portion of the ffmpeg project. See the ffmpeg site to obtain
+            the complete distribution.
 
 Name:       Freeware Advanced Audio Coder (FAAC) / Decoder (FAAD)
 Version:    1.1
@@ -178,7 +183,7 @@ License:    Other, see README_ORIGINAL
 Notes:      This directory also contains original MPEG4IP code.
 
 Name:       Simple DirectMedia Layer
-Version:    1.2
+Version:    1.2.2
 Origin:     http://www.libsdl.org/
 Author:     Sam Lantinga
 Directory:  mpeg4ip/lib/SDL
@@ -227,6 +232,14 @@ already using the GNU tools, we left things alone. Where the package was
 using it's own Makefile, we left things alone if it was a complicated 
 Makefile. If it was straightforward we replaced it with an equivalent 
 automake file.
+
+If you have to install any of these tools (for example, automake is
+not included with Mac OS X), find out where the others are installed
+(which autoconf). If the path does not start with /usr/local, use the
+"configure --prefix=<path before /bin on other packages>"
+
+For example, if autoconf is in /usr/bin, use the "configure --prefix=/usr"
+command when installing automake or libtools.
 
 Note: libtool is frequently not installed on Linux systems (autoconf, 
 and automake generally are). You can download libtool from a GNU mirror
@@ -309,6 +322,14 @@ freeBSD 4.3, and BSD/OS.
 For BSD/OS, you may need a semaphore shim.  Contact Steven Schultz
 for help on that (contact information in Authors).
 
+When building on Mac OSX, you may get an error that libtoolize is
+not installed correctly.  Mac OSX comes with libtool installed as
+glibtool.  Automake (which doesn't come included with OSX) does not
+correct its scripts.
+
+To fix this problem, do a link of libtoolize to glibtoolize (ie:
+ln -s libtoolize glibtoolize where ever glibtoolize is installed).
+
 Executables
 ===========
 
@@ -317,7 +338,7 @@ will end up in /usr/local/bin.
 
 For encoding tools, you get:
 
-mp4live		Integrated, live encoding to file or network - Linux only
+mp4live     Integrated, live encoding to file or network - Linux only
 
 mp4encode   Front-end script to the following encoding tools:
 
@@ -376,20 +397,25 @@ mpeg4ip - top level project directory
             mpeg4 - MPEG-4 video encoder/decoder
 
     lib - project wide libraries
-	SDL - Simple DirectMedia Layer
-	avi - AVI file format
-	bitstream - MPEG style low level bitstream utlity
-	config_file - Configuration file utility
+        SDL - Simple DirectMedia Layer
+        avi - AVI file format
+        bitstream - MPEG style low level bitstream utlity
+        config_file - Configuration file utility
+        gnu
+            getopt - gnu getopt routines
         mp4 - MP4 (aka MOV/Quicktime) file format library
-	msg_queue - SDL based Inter-thread messages utlity
-	rtp - UCL RTP 
-	sdp - Our own SDP
+        mp4v2 - MP4 library written from scratch, UNDER DEVELOPMENT!
+        msg_queue - SDL based Inter-thread messages utlity
+        rtp - UCL RTP 
+        sdp - Our own SDP
+        win32 - libary files need for MS Windows
 
     player - player specific code
         lib - libraries specifically for the player
             audio
                 faad - FAAD AAC decoder
                 mp3 - MP3 decoder
+            libhttp - Our own http client
             rtsp - Our own RTSP client 
             video
                 divx - OpenDivx decoder
@@ -399,7 +425,8 @@ mpeg4ip - top level project directory
                 divx - wrapper around OpenDivx
                 mp3 - wrapper around MP3
                 mpeg4 - wrapper around mpeg4v
-		wav - wrapper around PCM wav
+                wav - wrapper around PCM wav
+            osx - Mac OS X UI
 
     server - server specific code
         DSS - Darwin QuickTime Streaming Server
@@ -409,18 +436,21 @@ mpeg4ip - top level project directory
             lame - MP3 encoder program
         lib - libraries specifically for the server tools
             sndfile - sound file formats, used by faac
+        mp4live - mp4 live encoding interface
+            gui - gtk gui for mp4 live.
         util
             avi2raw - extract raw A/V data from AVI files
             lboxcrop - vertically crop raw video 
             mp4apkt - MP4 audio packetizer
+            mp4dump - dump MP4 file meta-info contents
             mp4encode - front-end script to simplify encoding process
             mp4extract - extract A/V data from MP4 files
             mp4vpkt - MP4 video packetizer
             mp4vhdr - MPEG-4 video header generator
-            mp4dump - dump MP4 file meta-info contents
+            rgb2yuv - rgb to yuv converter
         video
             divx - OpenDivx encoder library and program
-			ffmpeg - ffmpeg video encoder library
+            ffmpeg - ffmpeg video encoder library
 
     util - generally useful utilities
         yuv - simple tools for examining raw video
@@ -452,7 +482,7 @@ IETF RFC 2326 RTSP
 IETF RFC 2327 SDP
 
 IETF RFC 2250 RTP Payload for MPEG-1/2
-	Note: we're just using the audio part for MP3.
+    Note: we're just using the audio part for MP3.
 
 IETF RFC 3016 RTP Payload for MPEG-4 Audio/Visual
     Note: we're implementing the MPEG-4 video part
@@ -471,23 +501,27 @@ This document can be found at http://developer.apple.com/quicktime/
 Known Problems
 ==============
 
+* If you're playing through a NAT box, you may have to specify the
+  default client IP ports.  Use the command RtpIpPortMin=<port> and
+  RtpIpPortMax=<port> in the .gmp4player_rc file created in your home
+  directory.  The IETF recommends a range of 6970 to 6999.
+
 * The ISO MPEG-4 video codec bitrate control feature is broken. We've
-heard that a fix is available, so we're trying to track that down.
-Note that the OpenDivx encoder has bitrate control that works.
+  heard that a fix is available, so we're trying to track that down.
+  Note that the OpenDivx encoder has bitrate control that works.
 
 * On slower machines (~500MHz), doubling the video size via the gmp4player 
-menu consumes enough CPU to adversely effect playback, resulting in audio
-and video falling out of sync. When we get a chance we'll implement an MMX
-version of the smoothing stretcher to fix this (on PC's at least).
+  menu consumes enough CPU to adversely effect playback, resulting in audio
+  and video falling out of sync. When we get a chance we'll implement an MMX
+  version of the smoothing stretcher to fix this (on PC's at least).
 
 * The player for windows is sketchy at best.  We have included project
-files that should build.  We have noticed the following problems:
-  - only debug version seems to work.  When receiving streaming content, 
-    it will lose packets very regularly
- -  release version seems to have problems with exceptions.  Our bytestream
-   class will throw an exception when it has a problem - missing sequence
-   numbers because of dropped packets, for example.  The release version,
-   even though all projects have exception processing enabled, seems to
-   crash when they occur.
+  files that should build.  We have noticed the following problems:
+  - Only debug version seems to work.  
+  - Release version seems to have problems with exceptions.  Our bytestream
+    class will throw an exception when it has a problem - missing sequence
+    numbers because of dropped packets, for example.  The release version,
+    even though all projects have exception processing enabled, seems to
+    crash when they occur.
 
 === END OF README ===

@@ -25,4 +25,5 @@ MP4TrefAtom::MP4TrefAtom()
 	: MP4Atom("tref")
 {
 	ExpectChildAtom("hint", Optional, OnlyOne);
+	ExpectChildAtom("mpod", Optional, OnlyOne);
 }

@@ -518,6 +518,15 @@ static void on_debug_mpeg4isoonly (GtkWidget *window, gpointer data)
   config.set_config_value(CONFIG_USE_MPEG4_ISO_ONLY,
 			  checkmenu->active == FALSE ? 0 : 1);
 }
+static void on_debug_use_old_mp4_lib (GtkWidget *window, gpointer data)
+{
+  GtkCheckMenuItem *checkmenu;
+
+  checkmenu = GTK_CHECK_MENU_ITEM(window);
+
+  config.set_config_value(CONFIG_USE_OLD_MP4_LIB,
+			  checkmenu->active == FALSE ? 0 : 1);
+}
 
 static void on_debug_http (GtkWidget *window, gpointer data)
 {
@@ -854,6 +863,12 @@ int main (int argc, char **argv)
 			     GTK_SIGNAL_FUNC(on_debug_mpeg4isoonly),
 			     NULL,
 			     config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) == 0 ? FALSE : TRUE);
+
+  menuitem = CreateMenuCheck(debugsub, 
+			     "Use Old mp4 library",
+			     GTK_SIGNAL_FUNC(on_debug_use_old_mp4_lib),
+			     NULL,
+			     config.get_config_value(CONFIG_USE_OLD_MP4_LIB) == 0 ? FALSE : TRUE);
 
   CreateLogLevelSubmenu(debugsub, 
 			"HTTP library", 

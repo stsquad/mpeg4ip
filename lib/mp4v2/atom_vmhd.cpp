@@ -27,3 +27,11 @@ MP4VmhdAtom::MP4VmhdAtom()
 	AddVersionAndFlags();
 	AddReserved("reserved", 8);
 }
+
+void MP4VmhdAtom::Generate()
+{
+	MP4Atom::Generate();
+
+	SetFlags(1);
+}
+

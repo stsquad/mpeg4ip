@@ -20,7 +20,6 @@
  */
 
 #include "mp4common.h"
-#include "descriptors.h"
 
 MP4EsdsAtom::MP4EsdsAtom() 
 	: MP4Atom("esds") 

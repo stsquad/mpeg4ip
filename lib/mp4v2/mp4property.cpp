@@ -39,6 +39,54 @@ bool MP4Property::FindProperty(char* name,
 	return false;
 }
 
+// Integer Property
+
+u_int64_t MP4IntegerProperty::GetValue(u_int32_t index)
+{
+	switch (this->GetType()) {
+	case Integer8Property:
+		return ((MP4Integer8Property*)this)->GetValue(index);
+	case Integer16Property:
+		return ((MP4Integer16Property*)this)->GetValue(index);
+	case Integer24Property:
+		return ((MP4Integer24Property*)this)->GetValue(index);
+	case Integer32Property:
+		return ((MP4Integer32Property*)this)->GetValue(index);
+	case Integer64Property:
+		return ((MP4Integer64Property*)this)->GetValue(index);
+	default:
+		ASSERT(FALSE);
+	}
+}
+
+void MP4IntegerProperty::SetValue(u_int64_t value, u_int32_t index)
+{
+	switch (this->GetType()) {
+	case Integer8Property:
+		((MP4Integer8Property*)this)->SetValue(value, index);
+		break;
+	case Integer16Property:
+		((MP4Integer16Property*)this)->SetValue(value, index);
+		break;
+	case Integer24Property:
+		((MP4Integer24Property*)this)->SetValue(value, index);
+		break;
+	case Integer32Property:
+		((MP4Integer32Property*)this)->SetValue(value, index);
+		break;
+	case Integer64Property:
+		((MP4Integer64Property*)this)->SetValue(value, index);
+		break;
+	default:
+		ASSERT(FALSE);
+	}
+}
+
+void MP4IntegerProperty::IncrementValue(u_int32_t index)
+{
+	SetValue(GetValue() + 1);
+}
+
 void MP4Integer8Property::Dump(FILE* pFile, u_int32_t index)
 {
 	ASSERT(m_pParentAtom);
@@ -168,6 +216,10 @@ void MP4StringProperty::Read(MP4File* pFile, u_int32_t index)
 	if (m_useCountedFormat) {
 		m_values[index] = pFile->ReadCountedString(
 			(m_useUnicode ? 2 : 1), m_useExpandedCount);
+	} else if (m_fixedLength) {
+		MP4Free(m_values[index]);
+		m_values[index] = (char*)MP4Calloc(m_fixedLength + 1);
+		pFile->ReadBytes((u_int8_t*)m_values[index], m_fixedLength);
 	} else {
 		m_values[index] = pFile->ReadString();
 	}
@@ -181,6 +233,8 @@ void MP4StringProperty::Write(MP4File* pFile, u_int32_t index)
 	if (m_useCountedFormat) {
 		pFile->WriteCountedString(m_values[index],
 			(m_useUnicode ? 2 : 1), m_useExpandedCount);
+	} else if (m_fixedLength) {
+		pFile->WriteBytes((u_int8_t*)m_values[index], m_fixedLength);
 	} else {
 		pFile->WriteString(m_values[index]);
 	}
@@ -249,7 +303,8 @@ bool MP4TableProperty::FindProperty(char *name,
 
 	// check if the specified table entry exists
 	u_int32_t index;
-	if (MP4NameFirstIndex(name, &index)) {
+	bool haveIndex = MP4NameFirstIndex(name, &index);
+	if (haveIndex) {
 		if (index >= GetCount()) {
 			return false;
 		}
@@ -264,6 +319,10 @@ bool MP4TableProperty::FindProperty(char *name,
 	// get name of table property
 	char *tablePropName = MP4NameAfterFirst(name);
 	if (tablePropName == NULL) {
+		if (!haveIndex) {
+			*ppProperty = this;
+			return true;
+		}
 		return false;
 	}
 
@@ -333,17 +392,13 @@ void MP4TableProperty::Write(MP4File* pFile, u_int32_t index)
 		return;
 	}
 
-#ifdef BUGGY
 	u_int32_t numEntries = GetCount();
 
-printf("atom %s table %s\n", m_pParentAtom->GetType(), m_name);
-printf("numEntries %u, property count %u\n", m_pProperties[0]->GetCount());
 	ASSERT(m_pProperties[0]->GetCount() == numEntries);
 
 	for (u_int32_t i = 0; i < numEntries; i++) {
 		WriteEntry(pFile, i);
 	}
-#endif
 }
 
 void MP4TableProperty::WriteEntry(MP4File* pFile, u_int32_t index)
@@ -384,15 +439,22 @@ void MP4DescriptorProperty::SetParentAtom(MP4Atom* pParentAtom) {
 	}
 }
 
+MP4Descriptor* MP4DescriptorProperty::AddDescriptor(u_int8_t tag)
+{
+	MP4Descriptor* pDescriptor = CreateDescriptor(tag);
+	ASSERT(pDescriptor);
+	m_pDescriptors.Add(pDescriptor);
+	pDescriptor->SetParentAtom(m_pParentAtom);
+	return pDescriptor;
+}
+
 void MP4DescriptorProperty::Generate()
 {
 	// generate a default descriptor
-	// if it is mandatory, single, and the tag is fixed
-	if (m_mandatory && m_onlyOne && m_tagsEnd == 0) {
-		MP4Descriptor* pDescriptor = CreateDescriptor(m_tagsStart);
-		ASSERT(pDescriptor);
-		m_pDescriptors.Add(pDescriptor);
-		pDescriptor->SetParentAtom(m_pParentAtom);
+	// if it is mandatory, and single
+	if (m_mandatory && m_onlyOne) {
+		MP4Descriptor* pDescriptor = 
+			AddDescriptor(m_tagsStart);
 		pDescriptor->Generate();
 	}
 }
@@ -424,6 +486,10 @@ bool MP4DescriptorProperty::FindProperty(char *name,
 	// get name of descriptor property
 	name = MP4NameAfterFirst(name);
 	if (name == NULL) {
+		if (!haveDescrIndex) {
+			*ppProperty = this;
+			return true;
+		}
 		return false;
 	}
 
@@ -483,10 +549,9 @@ void MP4DescriptorProperty::Read(MP4File* pFile, u_int32_t index)
 			break;
 		}
 
-		MP4Descriptor* pDescriptor = CreateDescriptor(tag);
-		ASSERT(pDescriptor);
-		m_pDescriptors.Add(pDescriptor);
-		pDescriptor->SetParentAtom(m_pParentAtom);
+		MP4Descriptor* pDescriptor = 
+			AddDescriptor(tag);
+
 		pDescriptor->Read(pFile);
 	}
 

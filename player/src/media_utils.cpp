@@ -37,11 +37,13 @@
 #include "codec/wav/ourwav.h"
 #include "codec/wav/wav_file.h"
 #include "avi_file.h"
+#include "mp4_file.h"
 #include "qtime_file.h"
 #include "our_config_file.h"
 #include "rtp_bytestream.h"
 #include "codec/aa/aac_rtp_bytestream.h"
 #include "codec/aa/isma_rtp_bytestream.h"
+#include "ip_port.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -73,6 +75,7 @@ static struct codec_list_t {
   {"MPEG4-GENERIC", VIDEO_DIVX},
   {"divx", VIDEO_DIVX},
   {"dvx1", VIDEO_DIVX},
+  {"div4", VIDEO_DIVX},
   {NULL, -1},
 },
   audio_codecs[] = {
@@ -87,6 +90,7 @@ static struct codec_list_t {
     {"mp3 ", AUDIO_MP3 },
     {"MPA", AUDIO_MP3 },
     {"wav ", AUDIO_WAV },
+    {"ms", AUDIO_MP3 },	// apples mp3
     {NULL, -1},
   };
 
@@ -434,8 +438,11 @@ int parse_name_for_session (CPlayerSession *psptr,
     if (strcasestr(name, ".sdp") != NULL) {
       err = create_media_from_sdp_file(psptr, name, errmsg, have_audio_driver);
     } else if ((strcasestr(name, ".mov") != NULL) ||
-	       (strcasestr(name, ".mp4") != NULL)) {
+	       ((config.get_config_value(CONFIG_USE_OLD_MP4_LIB) != 0) &&
+		(strcasestr(name, ".mp4") != NULL))){
       err = create_media_for_qtime_file(psptr, name, errmsg, have_audio_driver);
+    } else if (strcasestr(name, ".mp4") != NULL) {
+      err = create_media_for_mp4_file(psptr, name, errmsg, have_audio_driver);
     } else if (strcasestr(name, ".avi") != NULL) {
       err = create_media_for_avi_file(psptr, name, errmsg, have_audio_driver);
     } else {

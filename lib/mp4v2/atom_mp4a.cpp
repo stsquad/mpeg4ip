@@ -24,11 +24,34 @@
 MP4Mp4aAtom::MP4Mp4aAtom() 
 	: MP4Atom("mp4a") 
 {
-	AddReserved("reserved1", 6);
-	AddProperty(
+	AddReserved("reserved1", 6); /* 0 */
+
+	AddProperty( /* 1 */
 		new MP4Integer16Property("dataReferenceIndex"));
-	AddReserved("reserved2", 20);
+
+	AddReserved("reserved2", 16); /* 2 */
+
+	AddProperty( /* 3 */
+		new MP4Integer16Property("timeScale"));
+
+	AddReserved("reserved3", 2); /* 4 */
 
 	ExpectChildAtom("esds", Required, OnlyOne);
 }
 
+void MP4Mp4aAtom::Generate()
+{
+	MP4Atom::Generate();
+
+	// property reserved2 has non-zero fixed values
+	static u_int8_t reserved2[16] = {
+		0x00, 0x00, 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 
+		0x00, 0x02, 0x00, 0x10,
+		0x00, 0x00, 0x00, 0x00, 
+	};
+	m_pProperties[2]->SetReadOnly(false);
+	((MP4BytesProperty*)m_pProperties[2])->
+		SetValue(reserved2, sizeof(reserved2));
+	m_pProperties[2]->SetReadOnly(true);
+}

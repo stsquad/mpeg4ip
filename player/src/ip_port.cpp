@@ -23,35 +23,37 @@
  */
 #include "systems.h"
 #include "ip_port.h"
+#include "player_util.h"
+#include "our_config_file.h"
 
 /*
  * CIpPort::CIpPort() - create ip socket, bind it to the local address
  * (which assigns it a port number), and figure out what the port number
  * is.
  */
-CIpPort::CIpPort (void)
+CIpPort::CIpPort (in_port_t startport, in_port_t maxport)
 {
   struct sockaddr_in sin;
   
-  m_sock = -1;
-  m_port_num = 0;
   m_next = NULL;
 
-  m_sock = socket(AF_INET, SOCK_DGRAM, 0);
-  if (m_sock < 0) {
-    return;
-  }
+  for (m_sock = -1; m_sock == -1 && startport <= maxport; startport++) {
+    // Start with min, go to max
+    m_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (m_sock < 0) {
+      return;
+    }
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = INADDR_ANY;
+    sin.sin_port = htons(startport);
+    if (bind(m_sock, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
 
-  sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
-  sin.sin_port = 0;
-
-  if (bind(m_sock, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
-    closesocket(m_sock);
-    m_sock = -1;
-    return;
-  }
-
+      startport++;
+      closesocket(m_sock);
+      m_sock = -1;
+    }
+  } 
+      
 #if !defined(HAVE_SOCKLEN_T) || defined _WIN32
   int socklen;
 #else
@@ -86,31 +88,51 @@ C2ConsecIpPort::C2ConsecIpPort (CIpPort **global)
 {
   CIpPort *newone;
   m_first = m_second = NULL;
+  in_port_t firstport, maxport;
 
+  firstport = 0;
+  maxport = ~0;
+
+  if (config.get_config_value(CONFIG_IPPORT_MIN) != -1) {
+    firstport = config.get_config_value(CONFIG_IPPORT_MIN);
+    if (config.get_config_value(CONFIG_IPPORT_MAX) != -1) {
+      maxport = config.get_config_value(CONFIG_IPPORT_MAX);
+      if (maxport <= firstport) {
+	player_error_message("IP port configuration error - %u %u - using 65535 as max port value", 
+			     firstport, maxport);
+	maxport = ~0;
+      }
+    }
+  }
   while (1) {
     // first, get an even port number.  If not even, save it in the
     // global queue.
     do {
-      newone = new CIpPort();
+      newone = new CIpPort(firstport, maxport);
       if (newone->valid() == 0)
 	return;
       if ((newone->get_port_num() & 0x1) == 0x1) {
 	newone->set_next(*global);
 	*global = newone;
+	firstport++;
       }
     } while ((newone->get_port_num() & 0x1) == 0x1);
 
     // Okay, save the first, get the 2nd.  If okay, just return
     m_first = newone;
-    m_second = new CIpPort();
+    in_port_t next;
+    next = m_first->get_port_num() + 1;
+    m_second = new CIpPort(next, next);
     if ((m_second->valid() == 1) &&
-	(m_second->get_port_num() == (m_first->get_port_num() + 1))) {
+	(m_second->get_port_num() == next)) {
+      player_debug_message("Ip ports are %u %u", next - 1, next);
       return;
     }
     // Not okay - save both off in the global queue, and try again...
     m_first->set_next(*global);
     *global = m_first;
     m_first = NULL;
+    firstport = m_second->get_port_num() + 1;
     m_second->set_next(*global);
     *global = m_second;
     m_second = NULL;

@@ -1,38 +1,56 @@
+9/17/01 Version 0.8
+    Port to FreeBSD, BSD/OS, Mac OS X (including Cocoa UI for Mac OS X)
+    Conversion of ISO codec to use automake
+    Update to SDL 1.2.2, including BSD/OS CD-ROM enhancements.
+    Fix various interoperability bugs.
+    Added SDP decode debugging.
+    Added HTTP fetch capability of SDP files for player,
+        including HTTP redirect.
+    Fix player for non-44100Hz AAC streams.
+    Added setting of debug level for messages 
+        from HTTP, RTSP and SDP libraries from player UI.
+    Changed player bytestream to throw ints instead of chars 
+        when error occurs.
+    Added frame fragmentation to ISMA audio RTP bytestream.
+    Added search for MP3 files.
+    Added config variables for receive RTP ports for player.
+    Added better player support for systems with no audio.
+    
 8/1/01 Version 0.7
-	Added live encoding program, mp4live
-	Improved player synchronization of audio and video for OSS 
+    Added live encoding program, mp4live
+    Improved player synchronization of audio and video for OSS 
         supported platforms.
-	Improved OpenDivX encoder performance
-	Added interleaved audio RTP payload format support
-	Fixed a number of bugs with mp4 file library
-	Fixed compiling on windows platforms
+    Improved OpenDivX encoder performance
+    Added interleaved audio RTP payload format support
+    Fixed a number of bugs with mp4 file library
+    Fixed compiling on windows platforms
 
 5/7/01 Version 0.6.2
-	Fixes so that package now builds on RedHat 6.1, 6.2, 7.0, and 7.1
-	LAME MP3 encoder is now included
-	Fixes to play Philips MP4 files correctly
-	Enabled MMX routines for OpenDivX encoder (x86 architectures only)
-	Extended Darwin PlaylistBroadcaster to control multicast IP TTL.
-	Faac now handles UNIX paths correctly
-	Fixed several bugs in mp4encode script
+    Fixes so that package now builds on RedHat 6.1, 6.2, 7.0, and 7.1
+    LAME MP3 encoder is now included
+    Fixes to play Philips MP4 files correctly
+    Enabled MMX routines for OpenDivX encoder (x86 architectures only)
+    Extended Darwin PlaylistBroadcaster to control multicast IP TTL.
+    Faac now handles UNIX paths correctly
+    Fixed several bugs in mp4encode script
 
 4/23/01 Version 0.6.1
-	Fixed interoperability between OpenDivX and ISO MPEG-4 video codecs
-	Fixed RTSP interoperability problem with Darwin Streaming Server 2.0
-	Updated mp4encode script to simplify the encoding process
-	Player now keeps history list
-	Enabled some post-processing of video in the player
-	Added mp4extract utility
-	Fixed avi2raw to handle zero length video frames in AVI file
+    Fixed interoperability between OpenDivX and ISO MPEG-4 video codecs
+    Fixed RTSP interoperability problem with Darwin Streaming Server 2.0
+    Updated mp4encode script to simplify the encoding process
+    Player now keeps history list
+    Enabled some post-processing of video in the player
+    Added mp4extract utility
+    Fixed avi2raw to handle zero length video frames in AVI file
 
 3/30/01 Version 0.6
-	Inclusion of the OpenDivx MPEG-4 video encoder/decoder
-	Inclusion of MP3 audio in addition to AAC audio
-	Inclusion of the Apple Darwin Quicktime Server
-	Support for the MP4 file format
-	Support for multicast streaming
-	Added fullscreen mode to player
-	Windows port of the player
+    Inclusion of the OpenDivx MPEG-4 video encoder/decoder
+    Inclusion of MP3 audio in addition to AAC audio
+    Inclusion of the Apple Darwin Quicktime Server
+    Support for the MP4 file format
+    Support for multicast streaming
+    Added fullscreen mode to player
+    Windows port of the player
 
 2/5/01 Version 0.5
-	Initial public release
+    Initial public release

@@ -5,6 +5,360 @@
 	};
 	objectVersion = 32;
 	objects = {
+		F50A16AA0152C08701927C4D = {
+			children = (
+				F50A16AB0152C08701927C4D,
+				F50A177E0152C08701927C4D,
+				F50A1AB50152C1AA01927C4D,
+			);
+			isa = PBXGroup;
+			path = sys;
+			refType = 4;
+		};
+		F50A16AB0152C08701927C4D = {
+			children = (
+				F50A16E60152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = decoder;
+			refType = 4;
+		};
+		F50A16E60152C08701927C4D = {
+			children = (
+				F50A16E70152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A16E70152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_sys_decoder.a;
+			refType = 4;
+		};
+		F50A177E0152C08701927C4D = {
+			children = (
+				F50A177F0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A177F0152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_sys.a;
+			refType = 4;
+		};
+		F50A17820152C08701927C4D = {
+			children = (
+				F50A17830152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = tools;
+			refType = 4;
+		};
+		F50A17830152C08701927C4D = {
+			children = (
+				F50A17960152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = entropy;
+			refType = 4;
+		};
+		F50A17960152C08701927C4D = {
+			children = (
+				F50A17970152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A17970152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_tools_entropy.a;
+			refType = 4;
+		};
+		F50A179D0152C08701927C4D = {
+			children = (
+				F50A17DB0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = type;
+			refType = 4;
+		};
+		F50A17DB0152C08701927C4D = {
+			children = (
+				F50A17DC0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A17DC0152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_type.a;
+			refType = 4;
+		};
+		F50A17DF0152C08701927C4D = {
+			children = (
+				F50A17E40152C08701927C4D,
+				F50A180F0152C08701927C4D,
+				F50A18420152C08701927C4D,
+				F50A186C0152C08701927C4D,
+				F50A188E0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = vtc;
+			refType = 4;
+		};
+		F50A17E40152C08701927C4D = {
+			children = (
+				F50A18010152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = main;
+			refType = 4;
+		};
+		F50A18010152C08701927C4D = {
+			children = (
+				F50A18020152C08701927C4D,
+				F50A18040152C08701927C4D,
+				F50A18060152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A18020152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_vtc_main.a;
+			refType = 4;
+		};
+		F50A18040152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_vtc_main_dec.a;
+			refType = 4;
+		};
+		F50A18060152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_vtc_main_enc.a;
+			refType = 4;
+		};
+		F50A180F0152C08701927C4D = {
+			children = (
+				F50A183E0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = pezw;
+			refType = 4;
+		};
+		F50A183E0152C08701927C4D = {
+			children = (
+				F50A183F0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A183F0152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_vtc_pezw.a;
+			refType = 4;
+		};
+		F50A18420152C08701927C4D = {
+			children = (
+				F50A18680152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = wavelet;
+			refType = 4;
+		};
+		F50A18680152C08701927C4D = {
+			children = (
+				F50A18690152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A18690152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_vtc_wavelet.a;
+			refType = 4;
+		};
+		F50A186C0152C08701927C4D = {
+			children = (
+				F50A188A0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = zte;
+			refType = 4;
+		};
+		F50A188A0152C08701927C4D = {
+			children = (
+				F50A188B0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A188B0152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_vtc_zte.a;
+			refType = 4;
+		};
+		F50A188E0152C08701927C4D = {
+			children = (
+				F50A18BA0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = ztq;
+			refType = 4;
+		};
+		F50A18BA0152C08701927C4D = {
+			children = (
+				F50A18BB0152C08701927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A18BB0152C08701927C4D = {
+			isa = PBXFileReference;
+			path = libobj_vtc_ztq.a;
+			refType = 4;
+		};
+		F50A1A5B0152C08701927C4D = {
+			fileRef = F50A16E70152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1A7A0152C08701927C4D = {
+			fileRef = F50A177F0152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1A7D0152C08701927C4D = {
+			fileRef = F50A17970152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1A890152C08701927C4D = {
+			fileRef = F50A17DC0152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1A8F0152C08701927C4D = {
+			fileRef = F50A18020152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1A900152C08701927C4D = {
+			fileRef = F50A18040152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1A910152C08701927C4D = {
+			fileRef = F50A18060152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1A9D0152C08701927C4D = {
+			fileRef = F50A183F0152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1AA50152C08701927C4D = {
+			fileRef = F50A18690152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1AAB0152C08701927C4D = {
+			fileRef = F50A188B0152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1AB40152C08701927C4D = {
+			fileRef = F50A18BB0152C08701927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1AB50152C1AA01927C4D = {
+			children = (
+				F50A1AB60152C1AA01927C4D,
+			);
+			isa = PBXGroup;
+			path = encoder;
+			refType = 4;
+		};
+		F50A1AB60152C1AA01927C4D = {
+			children = (
+				F50A1AB70152C1AA01927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A1AB70152C1AA01927C4D = {
+			isa = PBXFileReference;
+			path = libobj_sys_encoder.a;
+			refType = 4;
+		};
+		F50A1AB80152C1AA01927C4D = {
+			fileRef = F50A1AB70152C1AA01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1ABF0152CA5D01927C4D = {
+			isa = PBXFileReference;
+			path = libmp4playerutils.a;
+			refType = 4;
+		};
+		F50A1AC00152CA5D01927C4D = {
+			children = (
+				F50A1AC10152CA5D01927C4D,
+			);
+			isa = PBXGroup;
+			path = libhttp;
+			refType = 4;
+		};
+		F50A1AC10152CA5D01927C4D = {
+			children = (
+				F50A1AC20152CA5D01927C4D,
+			);
+			isa = PBXGroup;
+			path = .libs;
+			refType = 4;
+		};
+		F50A1AC20152CA5D01927C4D = {
+			isa = PBXFileReference;
+			path = libhttp.a;
+			refType = 4;
+		};
+		F50A1AC30152CA5D01927C4D = {
+			fileRef = F50A1ABF0152CA5D01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F50A1AC40152CA5D01927C4D = {
+			fileRef = F50A1AC20152CA5D01927C4D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
 		F5E8C8A601459D8901927C4D = {
 			buildStyles = (
 				F5E8C8B201459E3201927C4D,
@@ -55,8 +409,8 @@
 				F5E8C8AF01459DCE01927C4D,
 			);
 			buildSettings = {
-				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/player/src\" \"$(SRCROOT)/common/video/mpeg4\" \"$(SRCROOT)/player/src/codec\" \"$(SRCROOT)/player/src/codec/mpeg4\" \"$(SRCROOT)/player/lib\" \"$(SRCROOT)/player/lib/audio\" \"$(SRCROOT)/lib/SDL/include\" \"$(SRCROOT)/lib/mp4\" \"$(SRCROOT)/include\" \"$(SRCROOT)/lib/avi\" \"$(SRCROOT)/lib\"";
-				LIBRARY_SEARCH_PATHS = "lib/SDL/src/.libs /Users/sergent/mpeg4ip/player/src/.libs /Users/sergent/mpeg4ip/player/src/codec/aa/.libs /Users/sergent/mpeg4ip/player/src/codec/mp3/.libs /Users/sergent/mpeg4ip/player/src/codec/divx/.libs /Users/sergent/mpeg4ip/player/src/codec/mpeg4/.libs /Users/sergent/mpeg4ip/player/src/codec/wav/.libs /Users/sergent/mpeg4ip/common/video/mpeg4/obj /Users/sergent/mpeg4ip/player/lib/audio/faad/.libs /Users/sergent/mpeg4ip/player/lib/audio/mp3/.libs /Users/sergent/mpeg4ip/player/lib/http/.libs /Users/sergent/mpeg4ip/player/lib/rtsp/.libs /Users/sergent/mpeg4ip/player/lib/video/divx/.libs /Users/sergent/mpeg4ip/lib/bitstream/.libs /Users/sergent/mpeg4ip/lib/config_file/.libs /Users/sergent/mpeg4ip/lib/mp4/.libs /Users/sergent/mpeg4ip/lib/msg_queue/.libs /Users/sergent/mpeg4ip/lib/rtp /Users/sergent/mpeg4ip/lib/sdp/.libs /usr/lib/gcc/darwin/2.95.2 /Users/sergent/mpeg4ip/lib/avi/.libs /Users/sergent/mpeg4ip/lib/SDL/src/.libs";
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/player/src\" \"$(SRCROOT)/common/video/mpeg4\" \"$(SRCROOT)/player/src/codec\" \"$(SRCROOT)/player/src/codec/mpeg4\" \"$(SRCROOT)/player/lib\" \"$(SRCROOT)/player/lib/audio\" \"$(SRCROOT)/lib/SDL/include\" \"$(SRCROOT)/lib/mp4\" \"$(SRCROOT)/include\" \"$(SRCROOT)/lib/avi\" \"$(SRCROOT)/lib\" \"$(SRCROOT)\"";
+				LIBRARY_SEARCH_PATHS = "lib/SDL/src/.libs player/src/.libs player/src/codec/aa/.libs player/src/codec/mp3/.libs player/src/codec/divx/.libs player/src/codec/mpeg4/.libs player/src/codec/wav/.libs player/lib/audio/faad/.libs player/lib/audio/mp3/.libs player/lib/rtsp/.libs player/lib/video/divx/.libs lib/bitstream/.libs lib/config_file/.libs lib/mp4/.libs lib/msg_queue/.libs lib/rtp lib/sdp/.libs /usr/lib/gcc/darwin/2.95.2 lib/avi/.libs lib/SDL/src/.libs common/video/mpeg4/sys/decoder/.libs common/video/mpeg4/sys/encoder/.libs common/video/mpeg4/sys/.libs common/video/mpeg4/tools/entropy/.libs common/video/mpeg4/type/.libs common/video/mpeg4/vtc/main/.libs common/video/mpeg4/vtc/pezw/.libs common/video/mpeg4/vtc/wavelet/.libs common/video/mpeg4/vtc/zte/.libs common/video/mpeg4/vtc/ztq/.libs player/lib/libhttp/.libs";
 				OPTIMIZATION_CFLAGS = "";
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
@@ -66,7 +420,10 @@
 				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
 				WRAPPER_EXTENSION = app;
 			};
+			conditionalBuildSettings = {
+			};
 			dependencies = (
+				F5EF51B50152B7EE01927C4D,
 			);
 			isa = PBXApplicationTarget;
 			name = player;
@@ -148,10 +505,8 @@
 				F5E8D3D30145AEE601927C4D,
 				F5E8D3D60145AEE601927C4D,
 				F5E8D3D90145AEE601927C4D,
-				F5E8D43D0145AF7101927C4D,
 				F5E8D6D70145B04301927C4D,
 				F5E8D6EA0145B04301927C4D,
-				F5E8D6F60145B04301927C4D,
 				F5E8D6F80145B04301927C4D,
 				F5E8D6FD0145B04301927C4D,
 				F5E8D7200145B22F01927C4D,
@@ -163,6 +518,20 @@
 				F5E8D7280145B2C001927C4D,
 				F5E8D72B0145B41101927C4D,
 				F5E8D30F0145AE0B01927C4D,
+				F50A1A5B0152C08701927C4D,
+				F50A1A7A0152C08701927C4D,
+				F50A1A7D0152C08701927C4D,
+				F50A1A890152C08701927C4D,
+				F50A1A8F0152C08701927C4D,
+				F50A1A900152C08701927C4D,
+				F50A1A910152C08701927C4D,
+				F50A1A9D0152C08701927C4D,
+				F50A1AA50152C08701927C4D,
+				F50A1AAB0152C08701927C4D,
+				F50A1AB40152C08701927C4D,
+				F50A1AB80152C1AA01927C4D,
+				F50A1AC30152CA5D01927C4D,
+				F50A1AC40152CA5D01927C4D,
 			);
 			isa = PBXFrameworksBuildPhase;
 			name = "Frameworks & Libraries";
@@ -369,6 +738,7 @@
 		F5E8D3150145AE7401927C4D = {
 			children = (
 				F5E8D3160145AE7401927C4D,
+				F50A1ABF0152CA5D01927C4D,
 			);
 			isa = PBXGroup;
 			path = .libs;
@@ -551,7 +921,10 @@
 		F5E8D3DE0145AF7101927C4D = {
 			children = (
 				F5E8D3DF0145AF7101927C4D,
-				F5E8D3E00145AF7101927C4D,
+				F50A16AA0152C08701927C4D,
+				F50A17820152C08701927C4D,
+				F50A179D0152C08701927C4D,
+				F50A17DF0152C08701927C4D,
 			);
 			isa = PBXGroup;
 			path = mpeg4;
@@ -562,31 +935,12 @@
 			path = cpptocc.sh;
 			refType = 4;
 		};
-		F5E8D3E00145AF7101927C4D = {
-			children = (
-				F5E8D3E20145AF7101927C4D,
-			);
-			isa = PBXGroup;
-			path = obj;
-			refType = 4;
-		};
-		F5E8D3E20145AF7101927C4D = {
-			isa = PBXFileReference;
-			path = libobj.a;
-			refType = 4;
-		};
-		F5E8D43D0145AF7101927C4D = {
-			fileRef = F5E8D3E20145AF7101927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		F5E8D4970145B04301927C4D = {
 			children = (
 				F5E8D4980145B04301927C4D,
-				F5E8D5420145B04301927C4D,
 				F5E8D5610145B04301927C4D,
 				F5E8D5800145B04301927C4D,
+				F50A1AC00152CA5D01927C4D,
 			);
 			isa = PBXGroup;
 			path = lib;
@@ -641,27 +995,6 @@
 		F5E8D5270145B04301927C4D = {
 			isa = PBXFileReference;
 			path = libourmp3.a;
-			refType = 4;
-		};
-		F5E8D5420145B04301927C4D = {
-			children = (
-				F5E8D5520145B04301927C4D,
-			);
-			isa = PBXGroup;
-			path = http;
-			refType = 4;
-		};
-		F5E8D5520145B04301927C4D = {
-			children = (
-				F5E8D5530145B04301927C4D,
-			);
-			isa = PBXGroup;
-			path = .libs;
-			refType = 4;
-		};
-		F5E8D5530145B04301927C4D = {
-			isa = PBXFileReference;
-			path = libhttp.a;
 			refType = 4;
 		};
 		F5E8D5610145B04301927C4D = {
@@ -722,12 +1055,6 @@
 		};
 		F5E8D6EA0145B04301927C4D = {
 			fileRef = F5E8D5270145B04301927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D6F60145B04301927C4D = {
-			fileRef = F5E8D5530145B04301927C4D;
 			isa = PBXBuildFile;
 			settings = {
 			};
@@ -1017,6 +1344,8 @@
 			};
 			buildToolPath = /usr/bin/gnumake;
 			buildWorkingDirectory = "";
+			conditionalBuildSettings = {
+			};
 			dependencies = (
 				F5E8D73D0145D63801927C4D,
 			);
@@ -1046,6 +1375,8 @@
 				SECTORDER_FLAGS = "";
 				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
 			};
+			conditionalBuildSettings = {
+			};
 			dependencies = (
 			);
 			isa = PBXToolTarget;
@@ -1066,7 +1397,11 @@
 			neededFileNames = (
 			);
 			shellPath = /bin/sh;
-			shellScript = "[ -f .bootstrapped ] || ./bootstrap || exit 1";
+			shellScript = "PATH=/sw/bin:$PATH\nexport PATH\n\n[ -f .bootstrapped ] || ./bootstrap || exit 1\ntouch .bootstrapped";
+		};
+		F5EF51B50152B7EE01927C4D = {
+			isa = PBXTargetDependency;
+			target = F5E8D73C0145D63801927C4D;
 		};
 	};
 	rootObject = F5E8C8A601459D8901927C4D;

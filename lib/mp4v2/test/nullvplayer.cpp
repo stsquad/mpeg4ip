@@ -31,7 +31,7 @@ main(int argc, char** argv)
 	u_int32_t verbosity = MP4_DETAILS_ALL;
 	char* fileName = argv[1];
 
-	// open the mp4 file
+	// open the mp4 file, and read meta-info
 	MP4FileHandle mp4File = MP4Read(fileName, verbosity);
 
 	u_int8_t profileLevel = MP4GetVideoProfileLevel(mp4File);
@@ -50,10 +50,13 @@ main(int argc, char** argv)
 
 	MP4SampleId numSamples = MP4GetNumberOfTrackSamples(mp4File, trackId);
 
+	u_int32_t maxSampleSize = MP4GetMaxSampleSize(mp4File, trackId);
+
 	u_int8_t* pConfig;
-	u_int32_t configSize;
+	u_int32_t configSize = 0;
 
 	MP4GetTrackESConfiguration(mp4File, trackId, &pConfig, &configSize);
+printf("ES config size %u\n", configSize);
 
 	// initialize decoder with Elementary Stream (ES) configuration
 
@@ -63,7 +66,7 @@ main(int argc, char** argv)
 
 	// now consecutively read and display the track samples
 
-	u_int8_t* pSample;
+	u_int8_t* pSample = (u_int8_t*)malloc(maxSampleSize);
 	u_int32_t sampleSize;
 	MP4Timestamp sampleTime;
 	MP4Duration sampleDuration;
@@ -72,16 +75,23 @@ main(int argc, char** argv)
 
 	for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
 
+		// give ReadSample our own buffer, and let it know how big it is
+		sampleSize = maxSampleSize;
+
 		// read next sample from video track
 		MP4ReadSample(mp4File, trackId, sampleId, 
 			&pSample, &sampleSize,
 			&sampleTime, &sampleDuration, &sampleRenderingOffset, 
 			&isSyncSample);
 
-		// decode frame and display it
+		// convert timestamp and duration from track time to milliseconds
+		u_int64_t myTime = MP4ConvertFromTrackTimestamp(mp4File, trackId, 
+			sampleTime, MP4_MSECS_TIME_SCALE);
 
-		// free sample buffer
-		free(pSample);
+		u_int64_t myDuration = MP4ConvertFromTrackDuration(mp4File, trackId,
+			sampleDuration, MP4_MSECS_TIME_SCALE);
+
+		// decode frame and display it
 	}
 
 	// close mp4 file
@@ -93,7 +103,9 @@ main(int argc, char** argv)
 	//		MP4Timestamp when, bool wantSyncSample)
 	// 'wantSyncSample' determines if a sync sample is desired or not
 	// e.g.
-	// MP4SampleId newSampleId = MP4GetSampleIdFromTime(mp4File, when, true); 
+	// MP4Timestamp when = 
+	//	MP4ConvertToTrackTimestamp(mp4File, trackId, 30, MP4_SECS_TIME_SCALE);
+	// MP4SampleId newSampleId = MP4GetSampleIdFromTime(mp4File, when, true);
 	// MP4ReadSample(mp4File, trackId, newSampleId, ...);
 	// 
 	// Note that start time for sample may be later than 'when'

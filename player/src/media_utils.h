@@ -24,6 +24,8 @@
 #include "video.h"
 #include "our_bytestream.h"
 #include "codec/codec.h"
+class CIpPort;
+
 extern CIpPort *global_invalid_ports;
 
 int parse_name_for_session(CPlayerSession *psptr,

@@ -7,7 +7,16 @@
 # Check that we can find libtool
 # Frequently it hasn't been installed
 if glibtool --version > /dev/null
-then libtool=glibtool
+then 
+    libtool=glibtool
+    if libtoolize --version > /dev/null
+    then
+	echo "Found link for libtoolize"
+    else 
+	echo "Need a link for libtoolize to glibtoolize"
+	echo "Please see readme for how to make on OS X"
+	exit 1
+    fi
 elif libtool --version >/dev/null
 then libtool=libtool
 else echo "libtool does not appear to be installed."

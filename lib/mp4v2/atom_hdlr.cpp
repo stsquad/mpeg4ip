@@ -24,12 +24,13 @@
 MP4HdlrAtom::MP4HdlrAtom() 
 	: MP4Atom("hdlr")
 {
-	AddVersionAndFlags();
-	AddReserved("reserved1", 4);
-	AddProperty(
-		new MP4Integer32Property("handlerType"));
-	AddReserved("reserved2", 12);
-	AddProperty(
+	AddVersionAndFlags(); /* 0, 1 */
+	AddReserved("reserved1", 4); /* 2 */
+	MP4StringProperty* pProp = new MP4StringProperty("handlerType");
+	pProp->SetFixedLength(4);
+	AddProperty(pProp); /* 3 */
+	AddReserved("reserved2", 12); /* 4 */
+	AddProperty( /* 5 */
 		new MP4StringProperty("name"));
 }
 
@@ -39,26 +40,24 @@ MP4HdlrAtom::MP4HdlrAtom()
 // Here we attempt to make all things work
 void MP4HdlrAtom::Read() 
 {
-	u_int32_t numProps = m_pProperties.Size();
-
 	// read all the properties but the "name" field
-	ReadProperties(0, numProps - 1);
+	ReadProperties(0, 5);
 
 	// take a peek at the next byte
 	u_int8_t strLength;
 	m_pFile->PeekBytes(&strLength, 1);
 
 	// if the value matches the remaining atom length
-	if (strLength + 1 == m_end - m_pFile->GetPosition()) {
+	if (m_pFile->GetPosition() + strLength + 1 == GetEnd()) {
 		// read a counted string
 		MP4StringProperty* pNameProp = 
-			(MP4StringProperty*)m_pProperties[numProps - 1];
+			(MP4StringProperty*)m_pProperties[5];
 		pNameProp->SetCountedFormat(true);
-		ReadProperties(numProps - 1, 1);
+		ReadProperties(5);
 		pNameProp->SetCountedFormat(false);
 	} else {
 		// read a null terminated string
-		ReadProperties(numProps - 1, 1);
+		ReadProperties(5);
 	}
 
 	Skip();	// to end of atom

@@ -79,7 +79,7 @@ protected:
 				m_elements = (type*)MP4Realloc(m_elements, \
 					m_maxNumElements * sizeof(type)); \
 			} \
-			memcpy(&m_elements[newIndex + 1], &m_elements[newIndex], \
+			memmove(&m_elements[newIndex + 1], &m_elements[newIndex], \
 				(m_numElements - newIndex) * sizeof(type)); \
 			m_elements[newIndex] = newElement; \
 			m_numElements++; \
@@ -89,7 +89,7 @@ protected:
 			if (!ValidIndex(index)) { \
 				throw new MP4Error(ERANGE, "MP4Array::Delete"); \
 			} \
-			memcpy(&m_elements[index], &m_elements[index + 1], \
+			memmove(&m_elements[index], &m_elements[index + 1], \
 				(m_numElements - index) * sizeof(type)); \
 			m_numElements--; \
 		} \

@@ -34,6 +34,8 @@ libmp4player_la_SOURCES = \
 	media_utils.cpp \
 	our_config_file.cpp \
 	mpeg4_audio_config.cpp \
+	mp4_file.cpp \
+	mp4_bytestream.cpp \
 	player_sdp.c \
 	player_media.cpp \
 	player_media_decode.cpp \
@@ -67,7 +69,7 @@ gmp4player_SOURCES = \
 movplayer_SOURCES = player_util.c \
 	movplayer.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@ @X_CFLAGS@
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@ @X_CFLAGS@
 
 AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wmissing-prototypes 
 
@@ -105,6 +107,7 @@ mp4player_LDADD = \
 	$(top_builddir)/common/video/mpeg4/vtc/ztq/libobj_vtc_ztq.la \
 	$(top_builddir)/common/video/mpeg4/tools/entropy/libobj_tools_entropy.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
+	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/avi/libavi.la \
 	libmp4playerutils.la \
 	@SDL_LIBS@ \

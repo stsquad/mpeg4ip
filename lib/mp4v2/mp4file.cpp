@@ -25,10 +25,17 @@ MP4File::MP4File(u_int32_t verbosity)
 {
 	m_fileName = NULL;
 	m_pFile = NULL;
+	m_fileSize = 0;
 	m_pRootAtom = NULL;
+	m_odTrackId = MP4_INVALID_TRACK_ID;
+
 	m_verbosity = verbosity;
 	m_mode = 0;
 	m_use64bits = false;
+
+	m_pModificationProperty = NULL;
+	m_pTimeScaleProperty = NULL;
+	m_pDurationProperty = NULL;
 
 	m_numReadBits = 0;
 	m_bufReadBits = 0;
@@ -38,20 +45,26 @@ MP4File::MP4File(u_int32_t verbosity)
 
 MP4File::~MP4File()
 {
-	Close();
 	MP4Free(m_fileName);
+	delete m_pRootAtom;
+	for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
+		delete m_pTracks[i];
+	}
 }
 
-void MP4File::Read(char* fileName)
+void MP4File::Read(const char* fileName)
 {
 	m_fileName = MP4Stralloc(fileName);
 	m_mode = 'r';
 
 	Open();
+
 	ReadFromFile();
+
+	CacheProperties();
 }
 
-void MP4File::Create(char* fileName, bool use64bits)
+void MP4File::Create(const char* fileName, bool use64bits)
 {
 	m_fileName = MP4Stralloc(fileName);
 	m_mode = 'w';
@@ -64,13 +77,16 @@ void MP4File::Create(char* fileName, bool use64bits)
 	m_pRootAtom->SetFile(this);
 	m_pRootAtom->Generate();
 
-	// create mdat, write it's header
-	AddAtom("", "mdat");
+	CacheProperties();
 
+	// create mdat
+	AddAtom(m_pRootAtom, "mdat");
+
+	// write mdat's header
 	BeginWrite();
 }
 
-void MP4File::Clone(char* existingFileName, char* newFileName)
+void MP4File::Clone(const char* existingFileName, const char* newFileName)
 {
 	m_fileName = MP4Stralloc(existingFileName);
 	m_mode = 'r';
@@ -88,7 +104,12 @@ void MP4File::Clone(char* existingFileName, char* newFileName)
 
 	Open();
 
-	// TBD create a moov and mdat atoms if there isn't one already
+	CacheProperties();
+
+	// create an mdat if one doesn't already exist
+	if (m_pRootAtom->FindAtom("mdat") == NULL) {
+		AddAtom(m_pRootAtom, "mdat");
+	}
 
 	BeginWrite();
 }
@@ -100,21 +121,25 @@ void MP4File::Open()
 	if (m_pFile == NULL) {
 		throw new MP4Error(errno, "failed", "MP4Open");
 	}
+
+	if (m_mode == 'r') {
+		struct stat s;
+		if (fstat(fileno(m_pFile), &s) < 0) {
+			throw new MP4Error(errno, "stat failed", "MP4Open");
+		}
+		m_fileSize = s.st_size;
+	} else {
+		m_fileSize = 0;
+	}
 }
 
 void MP4File::ReadFromFile()
 {
-	// destroy any old information
-	delete m_pRootAtom;
-	for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
-		delete m_pTracks[i];
-	}
-	m_pTracks.Resize(0);
-
-	// start at beginning of file
+	// ensure we start at beginning of file
 	SetPosition(0);
 
 	// create a new root atom
+	ASSERT(m_pRootAtom == NULL);
 	m_pRootAtom = MP4Atom::CreateAtom(NULL);
 
 	u_int64_t fileSize = GetSize();
@@ -137,22 +162,64 @@ void MP4File::ReadFromFile()
 			break;
 		}
 
-		MP4Track* pTrack;
-		try {
-			pTrack = new MP4Track(this, pTrakAtom);
-			m_pTracks.Add(pTrack);
+		MP4Integer32Property* pTrackIdProperty;
+		if (pTrakAtom->FindProperty("trak.tkhd.trackId",
+		  (MP4Property**)&pTrackIdProperty)) {
+
+			m_trakIds.Add(pTrackIdProperty->GetValue());
+
+			MP4Track* pTrack = NULL;
+			try {
+				pTrack = new MP4Track(this, pTrakAtom);
+				m_pTracks.Add(pTrack);
+			}
+			catch (MP4Error* e) {
+				VERBOSE_ERROR(m_verbosity, e->Print());
+				delete e;
+			}
+
+			// remember when we encounter the OD track
+			if (pTrack && !strcmp(pTrack->GetType(), MP4_OD_TRACK_TYPE)) {
+				if (m_odTrackId == MP4_INVALID_TRACK_ID) {
+					m_odTrackId = pTrackIdProperty->GetValue();
+				} else {
+					VERBOSE_READ(GetVerbosity(),
+						printf("Warning: multiple OD tracks present\n"));
+				}
+			}
+		} else {
+			m_trakIds.Add(0);
 		}
-		catch (MP4Error* e) {
-			VERBOSE_ERROR(m_verbosity, e->Print());
-			delete e;
-		}
+
 		trackIndex++;
 	}
+}
+
+void MP4File::CacheProperties()
+{
+	FindIntegerProperty("moov.mvhd.modificationTime", 
+		(MP4Property**)&m_pModificationProperty);
+
+	FindIntegerProperty("moov.mvhd.timeScale", 
+		(MP4Property**)&m_pTimeScaleProperty);
+
+	FindIntegerProperty("moov.mvhd.duration", 
+		(MP4Property**)&m_pDurationProperty);
 }
 
 void MP4File::BeginWrite()
 {
 	m_pRootAtom->BeginWrite();
+}
+
+MP4Duration MP4File::UpdateDuration(MP4Duration duration)
+{
+	MP4Duration currentDuration = GetDuration();
+	if (duration > currentDuration) {
+		SetDuration(duration);
+		return duration;
+	}
+	return currentDuration;
 }
 
 void MP4File::FinishWrite()
@@ -162,6 +229,8 @@ void MP4File::FinishWrite()
 		ASSERT(m_pTracks[i]);
 		m_pTracks[i]->FinishWrite();
 	}
+
+	// TBD for hint tracks, set values of hmhd
 
 	// ask root atom to write
 	m_pRootAtom->Write();
@@ -180,6 +249,9 @@ void MP4File::Dump(FILE* pDumpFile)
 void MP4File::Close()
 {
 	if (m_mode == 'w') {
+		SetIntegerProperty("moov.mvhd.modificationTime", 
+			MP4GetAbsTimestamp());
+
 		FinishWrite();
 	}
 
@@ -187,447 +259,41 @@ void MP4File::Close()
 	m_pFile = NULL;
 }
 
-u_int64_t MP4File::GetPosition()
+MP4Atom* MP4File::FindAtom(char* name)
 {
-	fpos_t fpos;
-	if (fgetpos(m_pFile, &fpos) < 0) {
-		throw new MP4Error(errno, "MP4GetPosition");
-	}
-	return fpos.__pos;
-}
-
-void MP4File::SetPosition(u_int64_t pos)
-{
-	fpos_t fpos;
-	fpos.__pos = pos;
-	if (fsetpos(m_pFile, &fpos) < 0) {
-		throw new MP4Error(errno, "MP4SetPosition");
-	}
-}
-
-u_int64_t MP4File::GetSize()
-{
-	struct stat s;
-	if (fstat(fileno(m_pFile), &s) < 0) {
-		throw new MP4Error(errno, "MP4GetSize");
-	}
-	return s.st_size;
-}
-
-
-u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
-{
-	ASSERT(pBytes);
-	ASSERT(numBytes > 0);
-	WARNING(m_numReadBits > 0);
-
-	if (pFile == NULL) {
-		pFile = m_pFile;
-	}
-	ASSERT(pFile);
-
-	u_int32_t rc;
-	rc = fread(pBytes, 1, numBytes, pFile);
-	if (rc != numBytes) {
-		if (feof(pFile)) {
-			throw new MP4Error(
-				"not enough bytes, reached end-of-file",
-				"MP4ReadBytes");
-		} else {
-			throw new MP4Error(errno, "MP4ReadBytes");
-		}
-	}
-	return rc;
-}
-
-u_int32_t MP4File::PeekBytes(u_int8_t* pBytes, u_int32_t numBytes)
-{
-	u_int64_t pos = GetPosition();
-	ReadBytes(pBytes, numBytes);
-	SetPosition(pos);
-	return numBytes;
-}
-
-void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes)
-{
-	ASSERT(m_pFile);
-	WARNING(pBytes == NULL);
-	WARNING(numBytes == 0);
-	WARNING(m_numWriteBits > 0 && m_numWriteBits < 8);
-
-	if (pBytes == NULL || numBytes == 0) {
-		return;
-	}
-
-	u_int32_t rc;
-	rc = fwrite(pBytes, 1, numBytes, m_pFile);
-	if (rc != numBytes) {
-		throw new MP4Error(errno, "MP4WriteBytes");
-	}
-}
-
-u_int64_t MP4File::ReadUInt(u_int8_t size)
-{
-	switch (size) {
-	case 1:
-		return ReadUInt8();
-	case 2:
-		return ReadUInt16();
-	case 3:
-		return ReadUInt24();
-	case 4:
-		return ReadUInt32();
-	case 8:
-		return ReadUInt64();
-	default:
-		ASSERT(false);
-		return 0;
-	}
-}
-
-void MP4File::WriteUInt(u_int64_t value, u_int8_t size)
-{
-	switch (size) {
-	case 1:
-		WriteUInt8(value);
-	case 2:
-		WriteUInt16(value);
-	case 3:
-		WriteUInt24(value);
-	case 4:
-		WriteUInt32(value);
-	case 8:
-		WriteUInt64(value);
-	default:
-		ASSERT(false);
-	}
-}
-
-u_int8_t MP4File::ReadUInt8()
-{
-	u_int8_t data;
-	ReadBytes(&data, 1);
-	return data;
-}
-
-void MP4File::WriteUInt8(u_int8_t value)
-{
-	WriteBytes(&value, 1);
-}
-
-u_int16_t MP4File::ReadUInt16()
-{
-	u_int8_t data[2];
-	ReadBytes(&data[0], 2);
-	return ((data[0] << 8) | data[1]);
-}
-
-void MP4File::WriteUInt16(u_int16_t value)
-{
-	u_int8_t data[2];
-	data[0] = (value >> 8) & 0xFF;
-	data[1] = value & 0xFF;
-	WriteBytes(data, 2);
-}
-
-u_int32_t MP4File::ReadUInt24()
-{
-	u_int8_t data[3];
-	ReadBytes(&data[0], 3);
-	return ((data[0] << 16) | (data[1] << 8) | data[2]);
-}
-
-void MP4File::WriteUInt24(u_int32_t value)
-{
-	u_int8_t data[3];
-	data[0] = (value >> 16) & 0xFF;
-	data[1] = (value >> 8) & 0xFF;
-	data[2] = value & 0xFF;
-	WriteBytes(data, 3);
-}
-
-u_int32_t MP4File::ReadUInt32()
-{
-	u_int8_t data[4];
-	ReadBytes(&data[0], 4);
-	return ((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]);
-}
-
-void MP4File::WriteUInt32(u_int32_t value)
-{
-	u_int8_t data[4];
-	data[0] = (value >> 24) & 0xFF;
-	data[1] = (value >> 16) & 0xFF;
-	data[2] = (value >> 8) & 0xFF;
-	data[3] = value & 0xFF;
-	WriteBytes(data, 4);
-}
-
-u_int64_t MP4File::ReadUInt64()
-{
-	u_int8_t data[8];
-	u_int64_t result = 0;
-	u_int64_t temp;
-
-	ReadBytes(&data[0], 8);
-	
-	for (int i = 0; i < 8; i++) {
-		temp = data[i];
-		result |= temp << ((7 - i) * 8);
-	}
-	return result;
-}
-
-void MP4File::WriteUInt64(u_int64_t value)
-{
-	u_int8_t data[8];
-
-	for (int i = 7; i >= 0; i--) {
-		data[i] = value & 0xFF;
-		value >>= 8;
-	}
-	WriteBytes(data, 8);
-}
-
-float MP4File::ReadFixed16()
-{
-	u_int8_t iPart = ReadUInt8();
-	u_int8_t fPart = ReadUInt8();
-
-	return iPart + (((float)fPart) / 0x100);
-}
-
-void MP4File::WriteFixed16(float value)
-{
-	if (value >= 0x100) {
-		throw new MP4Error(ERANGE, "MP4WriteFixed16");
-	}
-
-	u_int8_t iPart = (u_int8_t)value;
-	u_int8_t fPart = (u_int8_t)((value - iPart) * 0x100);
-
-	WriteUInt8(iPart);
-	WriteUInt8(fPart);
-}
-
-float MP4File::ReadFixed32()
-{
-	u_int16_t iPart = ReadUInt16();
-	u_int16_t fPart = ReadUInt16();
-
-	return iPart + (((float)fPart) / 0x10000);
-}
-
-void MP4File::WriteFixed32(float value)
-{
-	if (value >= 0x10000) {
-		throw new MP4Error(ERANGE, "MP4WriteFixed32");
-	}
-
-	u_int16_t iPart = (u_int16_t)value;
-	u_int16_t fPart = (u_int16_t)((value - iPart) * 0x10000);
-
-	WriteUInt16(iPart);
-	WriteUInt16(fPart);
-}
-
-float MP4File::ReadFloat()
-{
-	union {
-		float f;
-		u_int32_t i;
-	} u;
-
-	u.i = ReadUInt32();
-	return u.f;
-}
-
-void MP4File::WriteFloat(float value)
-{
-	union {
-		float f;
-		u_int32_t i;
-	} u;
-
-	u.f = value;
-	WriteUInt32(u.i);
-}
-
-char* MP4File::ReadString()
-{
-	u_int32_t length = 0;
-	u_int32_t alloced = 64;
-	char* data = (char*)MP4Malloc(alloced);
-
-	do {
-		if (length == alloced) {
-			data = (char*)MP4Realloc(data, alloced * 2);
-		}
-		ReadBytes((u_int8_t*)&data[length], 1);
-		length++;
-	} while (data[length - 1] != 0);
-
-	data = (char*)MP4Realloc(data, length);
-	return data;
-}
-
-void MP4File::WriteString(char* string)
-{
-	if (string == NULL) {
-		u_int8_t zero = 0;
-		WriteBytes(&zero, 1);
+	MP4Atom* pAtom;
+	if (!name || !strcmp(name, "")) {
+		pAtom = m_pRootAtom;
 	} else {
-		WriteBytes((u_int8_t*)string, strlen(string) + 1);
+		pAtom = m_pRootAtom->FindAtom(name);
 	}
-}
-
-char* MP4File::ReadCountedString(u_int8_t charSize, bool allowExpandedCount)
-{
-	u_int32_t charLength;
-	if (allowExpandedCount) {
-		u_int8_t b;
-		charLength = 0;
-		do {
-			b = ReadUInt8();
-			charLength += b;
-		} while (b == 255);
-	} else {
-		charLength = ReadUInt8();
-	}
-
-	u_int32_t byteLength = charLength * charSize;
-	char* data = (char*)MP4Malloc(byteLength + 1);
-	if (byteLength > 0) {
-		ReadBytes((u_int8_t*)data, byteLength);
-	}
-	data[byteLength] = '\0';
-	return data;
-}
-
-void MP4File::WriteCountedString(char* string, 
-	u_int8_t charSize, bool allowExpandedCount)
-{
-	u_int32_t byteLength = strlen(string);
-	u_int32_t charLength = byteLength / charSize;
-
-	if (allowExpandedCount) {
-		do {
-			u_int8_t b = MIN(charLength, 255);
-			WriteUInt8(b);
-			charLength -= b;
-		} while (charLength);
-	} else {
-		if (charLength > 255) {
-			throw new MP4Error(ERANGE, "MP4WriteCountedString");
-		}
-		WriteUInt8(charLength);
-	}
-
-	if (byteLength > 0) {
-		WriteBytes((u_int8_t*)string, byteLength);
-	}
-}
-
-u_int64_t MP4File::ReadBits(u_int8_t numBits)
-{
-	ASSERT(numBits > 0);
-	ASSERT(numBits <= 64);
-
-	u_int64_t bits = 0;
-
-	for (u_int8_t i = numBits; i > 0; i--) {
-		if (m_numReadBits == 0) {
-			ReadBytes(&m_bufReadBits, 1);
-			m_numReadBits = 8;
-		}
-		bits = (bits << 1) | ((m_bufReadBits >> (--m_numReadBits)) & 1);
-	}
-
-	return bits;
-}
-
-void MP4File::WriteBits(u_int64_t bits, u_int8_t numBits)
-{
-	ASSERT(numBits <= 64);
-
-	for (u_int8_t i = numBits; i > 0; i--) {
-		m_bufWriteBits |= ((bits >> (i - 1)) & 1) << (8 - m_numWriteBits++);
-		if (m_numWriteBits == 8) {
-			FlushWriteBits();
-		}
-	}
-}
-
-void MP4File::FlushWriteBits()
-{
-	if (m_numWriteBits > 0) {
-		WriteBytes(&m_bufWriteBits, 1);
-		m_numWriteBits = 0;
-		m_bufWriteBits = 0;
-	}
-}
-
-u_int32_t MP4File::ReadMpegLength()
-{
-	u_int32_t length = 0;
-	u_int8_t numBytes = 0;
-	u_int8_t b;
-
-	do {
-		b = ReadUInt8();
-		length = (length << 7) | (b & 0x7F);
-		numBytes++;
-	} while ((b & 0x80) && numBytes < 4);
-
-	return length;
-}
-
-void MP4File::WriteMpegLength(u_int32_t value, bool compact)
-{
-	if (value > 0x0FFFFFFF) {
-		throw new MP4Error(ERANGE, "MP4WriteMpegLength");
-	}
-
-	int8_t numBytes;
-
-	if (compact) {
-		if (value <= 0x7F) {
-			numBytes = 1;
-		} else if (value <= 0x3FFF) {
-			numBytes = 2;
-		} else if (value <= 0x1FFFFF) {
-			numBytes = 3;
-		} else {
-			numBytes = 4;
-		}
-	} else {
-		numBytes = 4;
-	}
-
-	int8_t i = numBytes;
-	do {
-		i--;
-		u_int8_t b = (value >> (i * 7)) & 0x7F;
-		if (i > 0) {
-			b |= 0x80;
-		}
-		WriteUInt8(b);
-	} while (i > 0);
+	ASSERT(pAtom);
+	return pAtom;
 }
 
 MP4Atom* MP4File::AddAtom(char* parentName, char* childName)
 {
-	MP4Atom* pParentAtom;
-	if (!parentName || !strcmp(parentName, "")) {
-		pParentAtom = m_pRootAtom;
-	} else {
-		pParentAtom = m_pRootAtom->FindAtom(parentName);
-	}
-	ASSERT(pParentAtom);
+	return AddAtom(FindAtom(parentName), childName);
+}
 
+MP4Atom* MP4File::AddAtom(MP4Atom* pParentAtom, char* childName)
+{
+	return InsertAtom(pParentAtom, childName, 
+		pParentAtom->GetNumberOfChildAtoms());
+}
+
+MP4Atom* MP4File::InsertAtom(char* parentName, char* childName, 
+	u_int32_t index)
+{
+	return InsertAtom(FindAtom(parentName), childName, index); 
+}
+
+MP4Atom* MP4File::InsertAtom(MP4Atom* pParentAtom, char* childName, 
+	u_int32_t index)
+{
 	MP4Atom* pChildAtom = MP4Atom::CreateAtom(childName);
 
-	pParentAtom->AddChildAtom(pChildAtom);
+	pParentAtom->InsertChildAtom(pChildAtom, index);
 
 	pChildAtom->Generate();
 
@@ -670,47 +336,17 @@ u_int64_t MP4File::GetIntegerProperty(char* name)
 
 	FindIntegerProperty(name, &pProperty, &index);
 
-	switch (pProperty->GetType()) {
-	case Integer8Property:
-		return ((MP4Integer8Property*)pProperty)->GetValue(index);
-	case Integer16Property:
-		return ((MP4Integer16Property*)pProperty)->GetValue(index);
-	case Integer24Property:
-		return ((MP4Integer24Property*)pProperty)->GetValue(index);
-	case Integer32Property:
-		return ((MP4Integer32Property*)pProperty)->GetValue(index);
-	case Integer64Property:
-		return ((MP4Integer64Property*)pProperty)->GetValue(index);
-	}
-	ASSERT(FALSE);
+	return ((MP4IntegerProperty*)pProperty)->GetValue(index);
 }
 
 void MP4File::SetIntegerProperty(char* name, u_int64_t value)
 {
-	MP4Property* pProperty;
-	u_int32_t index;
+	MP4Property* pProperty = NULL;
+	u_int32_t index = 0;
 
 	FindIntegerProperty(name, &pProperty, &index);
 
-	switch (pProperty->GetType()) {
-	case Integer8Property:
-		((MP4Integer8Property*)pProperty)->SetValue(value, index);
-		break;
-	case Integer16Property:
-		((MP4Integer16Property*)pProperty)->SetValue(value, index);
-		break;
-	case Integer24Property:
-		((MP4Integer24Property*)pProperty)->SetValue(value, index);
-		break;
-	case Integer32Property:
-		((MP4Integer32Property*)pProperty)->SetValue(value, index);
-		break;
-	case Integer64Property:
-		((MP4Integer64Property*)pProperty)->SetValue(value, index);
-		break;
-	default:
-		ASSERT(FALSE);
-	}
+	((MP4IntegerProperty*)pProperty)->SetValue(value, index);
 }
 
 void MP4File::FindFloatProperty(char* name, 
@@ -819,26 +455,28 @@ MP4TrackId MP4File::AddTrack(char* type, u_int32_t timeScale)
 	// allocate a new track id
 	MP4TrackId trackId = AllocTrackId();
 
+	m_trakIds.Add(trackId);
+
 	// set track id
-	MP4Integer32Property* pProperty = NULL;
+	MP4Integer32Property* pInteger32Property = NULL;
 	pTrakAtom->FindProperty(
-		"trak.tkhd.trackId", (MP4Property**)&pProperty);
-	ASSERT(pProperty);
-	pProperty->SetValue(trackId);
+		"trak.tkhd.trackId", (MP4Property**)&pInteger32Property);
+	ASSERT(pInteger32Property);
+	pInteger32Property->SetValue(trackId);
 
 	// set track type
-	pProperty = NULL;
+	MP4StringProperty* pStringProperty = NULL;
 	pTrakAtom->FindProperty(
-		"trak.hdlr.handlerType", (MP4Property**)&pProperty);
-	ASSERT(pProperty);
-	pProperty->SetValue(STRTOINT32(MP4Track::NormalizeTrackType(type)));
+		"trak.mdia.hdlr.handlerType", (MP4Property**)&pStringProperty);
+	ASSERT(pStringProperty);
+	pStringProperty->SetValue(MP4Track::NormalizeTrackType(type));
 
 	// set track time scale
-	pProperty = NULL;
+	pInteger32Property = NULL;
 	pTrakAtom->FindProperty(
-		"trak.mdia.mdhd.timeScale", (MP4Property**)&pProperty);
-	ASSERT(pProperty);
-	pProperty->SetValue(timeScale);
+		"trak.mdia.mdhd.timeScale", (MP4Property**)&pInteger32Property);
+	ASSERT(pInteger32Property);
+	pInteger32Property->SetValue(timeScale ? timeScale : 1);
 
 	// now have enough to create MP4Track object
 	MP4Track* pTrack = new MP4Track(this, pTrakAtom);
@@ -853,27 +491,136 @@ MP4TrackId MP4File::AddTrack(char* type, u_int32_t timeScale)
 	return trackId;
 }
 
+void MP4File::AddTrackToIod(MP4TrackId trackId)
+{
+	MP4DescriptorProperty* pDescriptorProperty = NULL;
+	m_pRootAtom->FindProperty("moov.iods.esIds", 
+		(MP4Property**)&pDescriptorProperty);
+	ASSERT(pDescriptorProperty);
+
+	MP4Descriptor* pDescriptor = 
+		pDescriptorProperty->AddDescriptor(MP4ESIDIncDescrTag);
+	ASSERT(pDescriptor);
+
+	MP4Integer32Property* pProperty = NULL;
+	pDescriptor->FindProperty("id", 
+		(MP4Property**)&pProperty);
+	ASSERT(pProperty);
+
+	pProperty->SetValue(trackId);
+}
+
+void MP4File::AddTrackToOd(MP4TrackId trackId)
+{
+	if (!m_odTrackId) {
+		return;
+	}
+
+	AddTrackReference(MakeTrackName(m_odTrackId, "tref.mpod"), trackId);
+}
+
+void MP4File::AddTrackReference(char* trefName, MP4TrackId refTrackId)
+{
+	char propName[1024];
+
+	snprintf(propName, sizeof(propName), "%s.%s", trefName, "entryCount");
+	MP4Integer32Property* pCountProperty = NULL;
+	m_pRootAtom->FindProperty(propName,
+		(MP4Property**)&pCountProperty);
+	ASSERT(pCountProperty);
+
+	snprintf(propName, sizeof(propName), "%s.%s", trefName, "entries.trackId");
+	MP4Integer32Property* pTrackIdProperty = NULL;
+	m_pRootAtom->FindProperty(propName,
+		(MP4Property**)&pTrackIdProperty);
+	ASSERT(pTrackIdProperty);
+
+	pTrackIdProperty->AddValue(refTrackId);
+	pCountProperty->IncrementValue();
+}
+
 MP4TrackId MP4File::AddSystemsTrack(char* type)
 {
+	const char* normType = MP4Track::NormalizeTrackType(type); 
+
 	MP4TrackId trackId = AddTrack(type);
 
-	AddAtom(MakeTrackName(trackId, "mdia.minf"), "nmhd");
+	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "nmhd", 0);
 
 	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4s");
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4s.esds.ESID", trackId);
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4s.esds.decConfigDescr.objectTypeId", 
+		MP4SystemsObjectType);
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4s.esds.decConfigDescr.streamType", 
+		ConvertTrackTypeToStreamType(normType));
+
+	return trackId;
+}
+
+MP4TrackId MP4File::AddObjectDescriptionTrack()
+{
+	// until a demonstrated need emerges
+	// we limit ourselves to one object description track
+	if (m_odTrackId != MP4_INVALID_TRACK_ID) {
+		throw new MP4Error("object description track already exists",
+			"AddObjectDescriptionTrack");
+	}
+
+	m_odTrackId = AddSystemsTrack(MP4_OD_TRACK_TYPE);
+
+	AddTrackToIod(m_odTrackId);
+
+	MP4Atom* pTrefAtom = 
+		AddAtom(MakeTrackName(m_odTrackId, NULL), "tref");
+
+	AddAtom(pTrefAtom, "mpod");
+	
+	return m_odTrackId;
+}
+
+MP4TrackId MP4File::AddSceneDescriptionTrack()
+{
+	MP4TrackId trackId = AddSystemsTrack(MP4_SCENE_TRACK_TYPE);
+
+	AddTrackToIod(trackId);
+	AddTrackToOd(trackId);
 
 	return trackId;
 }
 
 MP4TrackId MP4File::AddAudioTrack(u_int32_t timeScale, 
-	u_int32_t sampleDuration)
+	u_int32_t sampleDuration, u_int8_t audioType)
 {
-	MP4TrackId trackId = AddTrack("audio", timeScale);
+	MP4TrackId trackId = AddTrack(MP4_AUDIO_TRACK_TYPE, timeScale);
+
+	AddTrackToIod(trackId);
+	AddTrackToOd(trackId);
 
 	SetTrackFloatProperty(trackId, "tkhd.volume", 1.0);
 
-	AddAtom(MakeTrackName(trackId, "mdia.minf"), "smhd");
+	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "smhd", 0);
 
 	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4a");
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4a.timeScale", timeScale);
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4a.esds.ESID", trackId);
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.objectTypeId", 
+		audioType);
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.streamType", 
+		MP4AudioStreamType);
 
 	m_pTracks[FindTrackIndex(trackId)]->
 		SetFixedSampleDuration(sampleDuration);
@@ -881,22 +628,39 @@ MP4TrackId MP4File::AddAudioTrack(u_int32_t timeScale,
 	return trackId;
 }
 
-MP4TrackId MP4File::AddVideoTrack(u_int32_t timeScale, 
-	u_int32_t sampleDuration, u_int16_t width, u_int16_t height)
+MP4TrackId MP4File::AddVideoTrack(
+	u_int32_t timeScale, u_int32_t sampleDuration, 
+	u_int16_t width, u_int16_t height, u_int8_t videoType)
 {
-	MP4TrackId trackId = AddTrack("video", timeScale);
+	MP4TrackId trackId = AddTrack(MP4_VIDEO_TRACK_TYPE, timeScale);
+
+	AddTrackToIod(trackId);
+	AddTrackToOd(trackId);
 
 	SetTrackFloatProperty(trackId, "tkhd.width", width);
 	SetTrackFloatProperty(trackId, "tkhd.height", height);
 
-	AddAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd");
+	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd", 0);
 
 	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4v");
+	// TBD need to increment mdia.minf.stbl.stsd.entryCount
+	// for this and other track types
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4v.width", width);
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4v.height", height);
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4v.esds.ESID", trackId);
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4v.esds.decConfigDescr.objectTypeId", 
+		videoType);
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4v.esds.decConfigDescr.streamType", 
+		MP4VisualStreamType);
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsz.sampleSize", sampleDuration);
@@ -909,47 +673,47 @@ MP4TrackId MP4File::AddVideoTrack(u_int32_t timeScale,
 
 MP4TrackId MP4File::AddHintTrack(MP4TrackId refTrackId)
 {
-	u_int32_t timeScale = 1;	// TBD timeScale of reference track
+	// validate reference track id
+	FindTrackIndex(refTrackId);
 
-	MP4TrackId trackId = AddTrack("hint", timeScale);
+	MP4TrackId trackId = 
+		AddTrack(MP4_HINT_TRACK_TYPE, GetTrackTimeScale(refTrackId));
 
 	// mark track as disabled
 	SetTrackIntegerProperty(trackId, "tkhd.flags", 0);
 
-	AddAtom(MakeTrackName(trackId, "mdia.minf"), "hmhd");
+	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "hmhd", 0);
 
-#ifdef NOTDEF
-	// TBD set refTrackId
+	MP4Atom* pTrefAtom = 
+		AddAtom(MakeTrackName(trackId, NULL), "tref");
 
-	// TBD on hint track FinishWrite, set values of hmhd
+	AddAtom(pTrefAtom, "hint");
 
-		MP4Atom* pChildAtom = MP4Atom::CreateAtom("tref");
-
-		pTrakAtom->AddChildAtom(pChildAtom);
-
-		pChildAtom->Generate();
-
-		CreateAtom("hint");
-
-		// ditto
-
-		hint->AddEntry(refTrackId)
-#endif
+	AddTrackReference(MakeTrackName(trackId, "tref.hint"), refTrackId);
 
 	return trackId;
 }
 
 void MP4File::DeleteTrack(MP4TrackId trackId)
 {
+	u_int32_t trakIndex = FindTrakAtomIndex(trackId);
 	u_int16_t trackIndex = FindTrackIndex(trackId);
 	MP4Track* pTrack = m_pTracks[trackIndex];
 
 	MP4Atom* pTrakAtom = pTrack->GetTrakAtom();
 	ASSERT(pTrakAtom);
 
-	MP4Atom* pMoovAtom = m_pRootAtom->FindAtom("moov");
-	ASSERT(pMoovAtom);
+	MP4Atom* pMoovAtom = FindAtom("moov");
+
+	// TBD DeleteTrack - remove track from iod and od?
+
+	if (trackId == m_odTrackId) {
+		m_odTrackId = 0;
+	}
+
 	pMoovAtom->DeleteChildAtom(pTrakAtom);
+
+	m_trakIds.Delete(trakIndex);
 
 	m_pTracks.Delete(trackIndex);
 
@@ -1000,23 +764,23 @@ MP4TrackId MP4File::AllocTrackId()
 	return trackId;
 }
 
-MP4TrackId MP4File::FindTrackId(u_int16_t index, char* type)
+MP4TrackId MP4File::FindTrackId(u_int16_t trackIndex, char* type)
 {
 	if (type == NULL) {
-		return m_pTracks[index]->GetId();
+		return m_pTracks[trackIndex]->GetId();
 	} else {
 		u_int16_t typeSeen = 0;
 		const char* normType = MP4Track::NormalizeTrackType(type);
 
 		for (u_int16_t i = 0; i < m_pTracks.Size(); i++) {
 			if (!strcmp(normType, m_pTracks[i]->GetType())) {
-				if (index == typeSeen) {
+				if (trackIndex == typeSeen) {
 					return m_pTracks[i]->GetId();
 				}
 				typeSeen++;
 			}
 		}
-		throw MP4Error("Track index doesn't exist", "FindTrackId"); 
+		throw new MP4Error("Track index doesn't exist", "FindTrackId"); 
 	}
 }
 
@@ -1028,7 +792,30 @@ u_int16_t MP4File::FindTrackIndex(MP4TrackId trackId)
 		}
 	}
 	
-	throw MP4Error("Track id doesn't exist", "FindTrackIndex"); 
+	throw new MP4Error("Track id doesn't exist", "FindTrackIndex"); 
+}
+
+u_int16_t MP4File::FindTrakAtomIndex(MP4TrackId trackId)
+{
+	if (trackId) {
+		for (u_int32_t i = 0; i < m_trakIds.Size(); i++) {
+			if (m_trakIds[i] == trackId) {
+				return i;
+			}
+		}
+	}
+
+	throw new MP4Error("Track id doesn't exist", "FindTrakAtomIndex"); 
+}
+
+u_int32_t MP4File::GetSampleSize(MP4TrackId trackId, MP4SampleId sampleId)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->GetSampleSize(sampleId);
+}
+
+u_int32_t MP4File::GetMaxSampleSize(MP4TrackId trackId)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->GetMaxSampleSize();
 }
 
 MP4SampleId MP4File::GetSampleIdFromTime(MP4TrackId trackId, 
@@ -1043,7 +830,7 @@ void MP4File::ReadSample(MP4TrackId trackId, MP4SampleId sampleId,
 		MP4Timestamp* pStartTime, MP4Duration* pDuration,
 		MP4Duration* pRenderingOffset, bool* pIsSyncSample)
 {
-	return m_pTracks[FindTrackIndex(trackId)]->
+	m_pTracks[FindTrackIndex(trackId)]->
 		ReadSample(sampleId, ppBytes, pNumBytes, 
 			pStartTime, pDuration, pRenderingOffset, pIsSyncSample);
 }
@@ -1052,21 +839,25 @@ void MP4File::WriteSample(MP4TrackId trackId,
 		u_int8_t* pBytes, u_int32_t numBytes,
 		MP4Duration duration, MP4Duration renderingOffset, bool isSyncSample)
 {
-	return m_pTracks[FindTrackIndex(trackId)]->
+	m_pTracks[FindTrackIndex(trackId)]->
 		WriteSample(pBytes, numBytes, duration, renderingOffset, isSyncSample);
+
+	m_pModificationProperty->SetValue(MP4GetAbsTimestamp());
 }
 
 char* MP4File::MakeTrackName(MP4TrackId trackId, char* name)
 {
-// TBD BUG, if we keep going over bad tracks
-// then FindTrackIndex yields index for m_pTracks
-// which isn't necessarily the same as moov.trak[]
+	u_int16_t trakIndex = FindTrakAtomIndex(trackId);
 
-	u_int16_t trackIndex = FindTrackIndex(trackId);
-	static char trackName[1024];
-	snprintf(trackName, sizeof(trackName), 
-		"moov.trak[%u].%s", trackIndex, name);
-	return trackName;
+	static char trakName[1024];
+	if (name == NULL || name[0] == '\0') {
+		snprintf(trakName, sizeof(trakName), 
+			"moov.trak[%u]", trakIndex);
+	} else {
+		snprintf(trakName, sizeof(trakName), 
+			"moov.trak[%u].%s", trakIndex, name);
+	}
+	return trakName;
 }
 
 u_int64_t MP4File::GetTrackIntegerProperty(MP4TrackId trackId, char* name)
@@ -1119,17 +910,25 @@ void MP4File::SetTrackBytesProperty(MP4TrackId trackId, char* name,
 
 MP4Duration MP4File::GetDuration()
 {
-	return GetIntegerProperty("moov.mvhd.duration");
+	return m_pDurationProperty->GetValue();
+}
+
+void MP4File::SetDuration(MP4Duration value)
+{
+	m_pDurationProperty->SetValue(value);
 }
 
 u_int32_t MP4File::GetTimeScale()
 {
-	return GetIntegerProperty("moov.mvhd.timeScale");
+	return m_pTimeScaleProperty->GetValue();
 }
 
 void MP4File::SetTimeScale(u_int32_t value)
 {
-	SetIntegerProperty("moov.mvhd.timeScale", value);
+	if (value == 0) {
+		throw new MP4Error("invalid value", "SetTimeScale");
+	}
+	m_pTimeScaleProperty->SetValue(value);
 }
 
 u_int8_t MP4File::GetODProfileLevel()
@@ -1197,17 +996,32 @@ const char* MP4File::GetTrackType(MP4TrackId trackId)
 
 u_int32_t MP4File::GetTrackTimeScale(MP4TrackId trackId)
 {
-	return GetTrackIntegerProperty(trackId, "mdia.mdhd.timeScale");
+	return m_pTracks[FindTrackIndex(trackId)]->GetTimeScale();
 }
 
 void MP4File::SetTrackTimeScale(MP4TrackId trackId, u_int32_t value)
 {
+	if (value == 0) {
+		throw new MP4Error("invalid value", "SetTrackTimeScale");
+	}
 	SetTrackIntegerProperty(trackId, "mdia.mdhd.timeScale", value);
 }
 
 MP4Duration MP4File::GetTrackDuration(MP4TrackId trackId)
 {
 	return GetTrackIntegerProperty(trackId, "mdia.mdhd.duration");
+}
+
+u_int8_t MP4File::GetTrackAudioType(MP4TrackId trackId)
+{
+	return GetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.objectTypeId");
+}
+
+u_int8_t MP4File::GetTrackVideoType(MP4TrackId trackId)
+{
+	return GetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4v.esds.decConfigDescr.objectTypeId");
 }
 
 MP4Duration MP4File::GetTrackFixedSampleDuration(MP4TrackId trackId)
@@ -1231,3 +1045,71 @@ void MP4File::SetTrackESConfiguration(MP4TrackId trackId,
 		pConfig, configSize);
 }
 
+u_int64_t MP4File::ConvertFromMovieDuration(
+	MP4Duration duration,
+	u_int32_t timeScale)
+{
+	return MP4ConvertTime((u_int64_t)duration, 
+		GetTimeScale(), timeScale);
+}
+
+u_int64_t MP4File::ConvertFromTrackTimestamp(
+	MP4TrackId trackId, 
+	MP4Timestamp timeStamp,
+	u_int32_t timeScale)
+{
+	return MP4ConvertTime((u_int64_t)timeStamp, 
+		GetTrackTimeScale(trackId), timeScale);
+}
+
+MP4Timestamp MP4File::ConvertToTrackTimestamp(
+	MP4TrackId trackId, 
+	u_int64_t timeStamp,
+	u_int32_t timeScale)
+{
+	return (MP4Timestamp)MP4ConvertTime(timeStamp, 
+		timeScale, GetTrackTimeScale(trackId));
+}
+
+u_int64_t MP4File::ConvertFromTrackDuration(
+	MP4TrackId trackId, 
+	MP4Duration duration,
+	u_int32_t timeScale)
+{
+	return MP4ConvertTime((u_int64_t)duration, 
+		GetTrackTimeScale(trackId), timeScale);
+}
+
+MP4Duration MP4File::ConvertToTrackDuration(
+	MP4TrackId trackId, 
+	u_int64_t duration,
+	u_int32_t timeScale)
+{
+	return (MP4Duration)MP4ConvertTime(duration, 
+		timeScale, GetTrackTimeScale(trackId));
+}
+
+u_int8_t MP4File::ConvertTrackTypeToStreamType(const char* trackType)
+{
+	u_int8_t streamType;
+
+	if (!strcmp(trackType, MP4_OD_TRACK_TYPE)) {
+		streamType = MP4ObjectDescriptionStreamType;
+	} else if (!strcmp(trackType, MP4_SCENE_TRACK_TYPE)) {
+		streamType = MP4SceneDescriptionStreamType;
+	} else if (!strcmp(trackType, MP4_CLOCK_TRACK_TYPE)) {
+		streamType = MP4ClockReferenceStreamType;
+	} else if (!strcmp(trackType, MP4_MPEG7_TRACK_TYPE)) {
+		streamType = MP4Mpeg7StreamType;
+	} else if (!strcmp(trackType, MP4_OCI_TRACK_TYPE)) {
+		streamType = MP4OCIStreamType;
+	} else if (!strcmp(trackType, MP4_IPMP_TRACK_TYPE)) {
+		streamType = MP4IPMPStreamType;
+	} else if (!strcmp(trackType, MP4_MPEGJ_TRACK_TYPE)) {
+		streamType = MP4MPEGJStreamType;
+	} else {
+		streamType = MP4UserPrivateStreamType;
+	}
+
+	return streamType;
+}

@@ -21,11 +21,29 @@
 
 #include "mp4common.h"
 
-MP4IodsAtom::MP4IodsAtom() 
-	: MP4Atom("iods") 
+MP4TrunAtom::MP4TrunAtom() 
+	: MP4Atom("trun")
 {
-	AddVersionAndFlags();
-	AddProperty(
-		new MP4DescriptorProperty(NULL, 
-			MP4IODescrTag, MP4ODescrTag, Required, OnlyOne));
+	AddVersionAndFlags();	/* 0, 1 */
+	AddProperty( /* 2 */
+		new MP4Integer32Property("sampleCount"));
+}
+
+void MP4TrunAtom::AddProperties(u_int32_t flags)
+{
+	// TBD trun flags
+}
+
+void MP4TrunAtom::Read()
+{
+	/* read atom version, flags, and sampleCount */
+	ReadProperties(0, 3);
+
+	/* need to create the properties based on the atom flags */
+	AddProperties(GetFlags());
+
+	/* now we can read the remaining properties */
+	ReadProperties(3);
+
+	Skip();	// to end of atom
 }

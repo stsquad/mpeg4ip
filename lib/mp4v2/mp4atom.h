@@ -142,6 +142,12 @@ public:
 		m_pChildAtoms.Add(pChildAtom);
 	}
 
+	void InsertChildAtom(MP4Atom* pChildAtom, u_int32_t index) {
+		pChildAtom->SetFile(m_pFile);
+		pChildAtom->SetParentAtom(this);
+		m_pChildAtoms.Insert(pChildAtom, index);
+	}
+
 	void DeleteChildAtom(MP4Atom* pChildAtom) {
 		for (MP4ArrayIndex i = 0; i < m_pChildAtoms.Size(); i++) {
 			if (m_pChildAtoms[i] == pChildAtom) {
@@ -149,6 +155,10 @@ public:
 				return;
 			}
 		}
+	}
+
+	u_int32_t GetNumberOfChildAtoms() {
+		return m_pChildAtoms.Size();
 	}
 
 	MP4Atom* FindAtom(char* name);

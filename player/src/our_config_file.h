@@ -35,7 +35,10 @@
 #define CONFIG_HTTP_DEBUG 9
 #define CONFIG_RTSP_DEBUG 10
 #define CONFIG_SDP_DEBUG 11
-#define CONFIG_MAX 12
+#define CONFIG_IPPORT_MIN 12
+#define CONFIG_IPPORT_MAX 13
+#define CONFIG_USE_OLD_MP4_LIB 14
+#define CONFIG_MAX 15
 
 extern CConfig config;
 

@@ -26,8 +26,10 @@
 class MP4File;
 class MP4Atom;
 class MP4Property;
+class MP4IntegerProperty;
 class MP4Integer32Property;
 class MP4Integer64Property;
+class MP4StringProperty;
 
 class MP4Track {
 public:
@@ -37,13 +39,9 @@ public:
 		return m_trackId;
 	}
 
-	const char* GetType() {
-		return m_type;
-	}
-	void SetType(const char* type) {
-		strncpy(m_type, NormalizeTrackType(type), 4);
-		m_type[4] = '\0';
-	}
+	const char* GetType();
+
+	void SetType(const char* type);
 
 	MP4Atom* GetTrakAtom() {
 		return m_pTrakAtom;
@@ -69,6 +67,10 @@ public:
 
 	void FinishWrite();
 
+	u_int32_t	GetTimeScale();
+	u_int32_t	GetSampleSize(MP4SampleId sampleId);
+	u_int32_t	GetMaxSampleSize();
+
 	MP4Duration GetFixedSampleDuration();
 	bool SetFixedSampleDuration(MP4Duration duration);
 
@@ -78,7 +80,6 @@ public:
 	static const char* NormalizeTrackType(const char* type);
 
 protected:
-	u_int32_t	GetSampleSize(MP4SampleId sampleId);
 	u_int64_t	GetSampleFileOffset(MP4SampleId sampleId);
 	void		GetSampleTimes(MP4SampleId sampleId,
 					MP4Timestamp* pStartTime, MP4Duration* pDuration);
@@ -100,13 +101,18 @@ protected:
 
 	MP4Atom* AddAtom(char* parentName, char* childName);
 
+	void UpdateDurations(MP4Duration duration);
+	MP4Duration ToMovieDuration(MP4Duration trackDuration);
+
+	void UpdateModificationTimes();
+
 	void WriteChunk();
 
 protected:
 	MP4File*	m_pFile;
 	MP4Atom* 	m_pTrakAtom;		// moov.trak[]
 	MP4TrackId	m_trackId;			// moov.trak[].tkhd.trackId
-	char		m_type[5];			// moov.trak[].mdia.hdlr.handlerType
+	MP4StringProperty* m_pTypeProperty;	// moov.trak[].mdia.hdlr.handlerType
 
 	// for writing
 	MP4SampleId m_writeSampleId;
@@ -120,6 +126,12 @@ protected:
 	u_int32_t 	m_samplesPerChunk;
 	MP4Duration m_durationPerChunk;
 
+	MP4Integer32Property* m_pTimeScaleProperty;
+	MP4IntegerProperty* m_pTrackDurationProperty;		// 32 or 64 bits
+	MP4IntegerProperty* m_pMediaDurationProperty;		// 32 or 64 bits
+	MP4IntegerProperty* m_pTrackModificationProperty;	// 32 or 64 bits
+	MP4IntegerProperty* m_pMediaModificationProperty;	// 32 or 64 bits
+
 	MP4Integer32Property* m_pStszFixedSampleSizeProperty;
 	MP4Integer32Property* m_pStszSampleCountProperty;
 	MP4Integer32Property* m_pStszSampleSizeProperty;
@@ -131,7 +143,7 @@ protected:
 	MP4Integer32Property* m_pStscFirstSampleProperty;
 
 	MP4Integer32Property* m_pChunkCountProperty;
-	MP4Property* m_pChunkOffsetProperty;	// Integer32 or Integer64
+	MP4IntegerProperty* m_pChunkOffsetProperty;			// 32 or 64 bits
 
 	MP4Integer32Property* m_pSttsCountProperty;
 	MP4Integer32Property* m_pSttsSampleCountProperty;

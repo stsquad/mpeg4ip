@@ -66,7 +66,8 @@ void CMp4Recorder::DoStartRecord()
 
 #ifdef MP4V2
 	m_mp4File = MP4Create(
-		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME));
+		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
+		MP4_DETAILS_WRITE_ALL);
 #else
 	m_mp4File = quicktime_open(
 		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), 0, 1, 0);
@@ -75,6 +76,18 @@ void CMp4Recorder::DoStartRecord()
 	if (!m_mp4File) {
 		return;
 	}
+
+#ifdef MP4V2
+	m_odTrack = MP4AddObjectDescriptionTrack(m_mp4File);
+	if (m_odTrack == MP4InvalidTrackId) {
+		// TBD error
+	}
+
+	m_bifsTrack = MP4AddSceneDescriptionTrack(m_mp4File);
+	if (m_bifsTrack == MP4InvalidTrackId) {
+		// TBD error
+	}
+#endif
 
 	m_audioTimeScale = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 	m_audioFrameDuration = MP3_SAMPLES_PER_FRAME;
@@ -96,11 +109,12 @@ void CMp4Recorder::DoStartRecord()
 #ifdef MP4V2
 		m_videoTrack = MP4AddVideoTrack(m_mp4File,
 			m_videoTimeScale,
-			0,
+			MP4InvalidDuration,
 			m_pConfig->m_videoWidth, 
-			m_pConfig->m_videoHeight);
+			m_pConfig->m_videoHeight,
+			MP4_MPEG4_VIDEO_TYPE);
 
-		if (!m_videoTrack) {
+		if (m_videoTrack == MP4InvalidTrackId) {
 			// TBD error
 		}
 
@@ -132,6 +146,10 @@ void CMp4Recorder::DoStartRecord()
 
 #ifdef MP4V2
 			m_videoHintTrack = MP4AddHintTrack(m_mp4File, m_videoTrack);
+
+			if (m_videoHintTrack == MP4InvalidTrackId) {
+				// TBD error
+			}
 
 			// TBD MP4SetHintTrackRtpPayload(m_mp4File, m_videoHintTrack,
 			// 	"MP4V-ES", &m_videoPayloadNumber,  
@@ -180,9 +198,11 @@ void CMp4Recorder::DoStartRecord()
 	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
 #ifdef MP4V2
 		m_audioTrack = MP4AddAudioTrack(m_mp4File, 
-			m_audioTimeScale, m_audioFrameDuration);
+			m_audioTimeScale, 
+			m_audioFrameDuration,
+			MP4_MP3_AUDIO_TYPE);
 
-		if (!m_audioTrack) {
+		if (m_audioTrack == MP4InvalidTrackId) {
 			// TBD error
 		}
 
@@ -206,6 +226,10 @@ void CMp4Recorder::DoStartRecord()
 
 #ifdef MP4V2
 			m_audioHintTrack = MP4AddHintTrack(m_mp4File, m_audioTrack);
+
+			if (m_audioHintTrack == MP4InvalidTrackId) {
+				// TBD error
+			}
 
 			// TBD MP4SetHintTrackRtpPayload(m_mp4File, m_audioHintTrack,
 			// 	"MPA", &m_audioPayloadNumber,  

@@ -24,10 +24,55 @@
 MP4Mp4vAtom::MP4Mp4vAtom() 
 	: MP4Atom("mp4v")
 {
-	AddReserved("reserved1", 6);
-	AddProperty(
+	AddReserved("reserved1", 6); /* 0 */
+
+	AddProperty( /* 1 */
 		new MP4Integer16Property("dataReferenceIndex"));
-	AddReserved("reserved2", 70);
+
+	AddReserved("reserved2", 16); /* 2 */
+
+	AddProperty( /* 3 */
+		new MP4Integer16Property("width"));
+	AddProperty( /* 4 */
+		new MP4Integer16Property("height"));
+
+	AddReserved("reserved3", 14); /* 5 */
+
+	MP4StringProperty* pProp = 
+		new MP4StringProperty("compressorName");
+	pProp->SetFixedLength(32);
+	AddProperty(pProp); /* 6 */
+
+	AddReserved("reserved4", 4); /* 7 */
 
 	ExpectChildAtom("esds", Required, OnlyOne);
 }
+
+void MP4Mp4vAtom::Generate()
+{
+	MP4Atom::Generate();
+
+	// property reserved3 has non-zero fixed values
+	static u_int8_t reserved3[14] = {
+		0x00, 0x48, 0x00, 0x00, 
+		0x00, 0x48, 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 
+		0x00, 0x01,
+	};
+	m_pProperties[5]->SetReadOnly(false);
+	((MP4BytesProperty*)m_pProperties[5])->
+		SetValue(reserved3, sizeof(reserved3));
+	m_pProperties[5]->SetReadOnly(true);
+
+	((MP4StringProperty*)m_pProperties[6])->SetValue("mp4v");
+
+	// property reserved4 has non-zero fixed values
+	static u_int8_t reserved4[4] = {
+		0x00, 0x18, 0xFF, 0xFF, 
+	};
+	m_pProperties[7]->SetReadOnly(false);
+	((MP4BytesProperty*)m_pProperties[7])->
+		SetValue(reserved4, sizeof(reserved4));
+	m_pProperties[7]->SetReadOnly(true);
+}
+

@@ -19,6 +19,7 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
+#include <math.h>
 #include <mpeg4ip.h>
 #include <mpeg4ip_getopt.h>
 #include <avilib.h>
@@ -165,7 +166,7 @@ int main(int argc, char** argv)
 		u_char* buf = (u_char*)malloc(768 * 576 * 4);
 
 		if (duration) {
-			numDesiredVideoFrames = floor(duration * videoFrameRate);
+			numDesiredVideoFrames = duration * videoFrameRate;
 		} else {
 			numDesiredVideoFrames = numVideoFrames;
 		}
@@ -191,7 +192,7 @@ int main(int argc, char** argv)
 				progName, AVI_strerror());
 			exit(8);
 		}
-		if (AVI_set_video_position(aviFile, ROUND(start * videoFrameRate), NULL)) {
+		if (AVI_set_video_position(aviFile, (long) ROUND(start * videoFrameRate), NULL)) {
 			fprintf(stderr,
 				"%s: bad seek: %s\n",
 				progName, AVI_strerror());
@@ -255,13 +256,17 @@ int main(int argc, char** argv)
 
 	} else {
 		/* extract audio */
-		u_int32_t numAudioBytes = AVI_audio_bytes(aviFile);
-		u_int32_t audioBytesPerSec = AVI_audio_rate(aviFile) * 	
-			((AVI_audio_bits(aviFile) + 7) / 8) * AVI_audio_channels(aviFile);
-		u_int32_t fileDuration = ceil(numAudioBytes / audioBytesPerSec);
-		u_int32_t numDesiredAudioBytes = duration * audioBytesPerSec;
-		u_int32_t audioBytesRead = 0;
-		u_char buf[8*1024];
+	  u_int32_t audioBytesRead = 0;
+	  u_char *buf = (u_char*) malloc(8*1024);
+	  u_int32_t numDesiredAudioBytes = AVI_audio_bytes(aviFile);
+	  u_int32_t audioBytesPerSec = 0;
+	  if (start != 0) {
+		u_int32_t numAudioBytes = numDesiredAudioBytes;
+		u_int32_t fileDuration;
+		audioBytesPerSec = AVI_audio_rate(aviFile) * 	
+		  ((AVI_audio_bits(aviFile) + 7) / 8) * AVI_audio_channels(aviFile);
+		fileDuration = ceil(numAudioBytes / audioBytesPerSec);
+		numDesiredAudioBytes = duration * audioBytesPerSec;
 
 		/* check that start offset is valid */
 		if (start > fileDuration) {
@@ -270,7 +275,6 @@ int main(int argc, char** argv)
 				progName);
 			exit(7);
 		}
-
 		if (AVI_seek_start(aviFile)) {
 			fprintf(stderr,
 				"%s: bad seek: %s\n",
@@ -283,6 +287,20 @@ int main(int argc, char** argv)
 				progName, AVI_strerror());
 			exit(9);
 		}
+	  } else {
+		if (AVI_seek_start(aviFile)) {
+			fprintf(stderr,
+				"%s: bad seek: %s\n",
+				progName, AVI_strerror());
+			exit(8);
+		}
+		if (AVI_set_audio_position(aviFile, 0)) {
+			fprintf(stderr,
+				"%s: bad seek: %s\n",
+				progName, AVI_strerror());
+			exit(9);
+		}
+	  }
 
 		while ((numBytes = AVI_read_audio(aviFile, buf, sizeof(buf))) > 0) {
 			if (fwrite(buf, 1, numBytes, rawFile) != numBytes) {
@@ -302,10 +320,10 @@ int main(int argc, char** argv)
 		if (duration && audioBytesRead < numDesiredAudioBytes) {
 			fprintf(stderr,
 				"%s: warning: could only extract %u seconds of audio\n",
-				progName, audioBytesRead / audioBytesPerSec);
+				progName, audioBytesPerSec == 0 ? audioBytesRead : audioBytesRead / audioBytesPerSec);
 		}
 
-		if (!quiet) {
+		if (!quiet && AVI_audio_bits(aviFile) != 0) {
 			printf("%u audio samples written\n", 
 				audioBytesRead / ((AVI_audio_bits(aviFile) + 7) / 8)); 
 		}

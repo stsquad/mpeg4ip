@@ -21,27 +21,11 @@
 
 #include "mp4common.h"
 
-MP4HintAtom::MP4HintAtom() 
-	: MP4Atom("hint") 
+MP4MfhdAtom::MP4MfhdAtom() 
+	: MP4Atom("mfhd")
 {
-	MP4Integer32Property* pCount = 
-		new MP4Integer32Property("entryCount"); 
-	pCount->SetImplicit();
-	AddProperty(pCount);
-
-	MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
-	AddProperty(pTable);
-
-	pTable->AddProperty(
-		new MP4Integer32Property("trackId"));
+	AddVersionAndFlags();	/* 0, 1 */
+	AddProperty( /* 2 */
+		new MP4Integer32Property("sequenceNumber"));
 }
 
-void MP4HintAtom::Read() 
-{
-	// table entry count computed from atom size
-	((MP4Integer32Property*)m_pProperties[0])->SetReadOnly(false);
-	((MP4Integer32Property*)m_pProperties[0])->SetValue(m_size / 4);
-	((MP4Integer32Property*)m_pProperties[0])->SetReadOnly(true);
-
-	MP4Atom::Read();
-}

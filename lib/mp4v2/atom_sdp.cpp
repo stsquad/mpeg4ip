@@ -30,7 +30,7 @@ MP4SdpAtom::MP4SdpAtom() : MP4Atom("sdp ")
 void MP4SdpAtom::Read() 
 {
 	/* read sdp string, length is implicit in size of atom */
-	u_int64_t size = m_end - m_pFile->GetPosition();
+	u_int64_t size = GetEnd() - m_pFile->GetPosition();
 	char* data = (char*)MP4Malloc(size + 1);
 	m_pFile->ReadBytes((u_int8_t*)data, size);
 	data[size] = '\0';

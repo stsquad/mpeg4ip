@@ -17,6 +17,7 @@ libmp4v2_la_SOURCES = \
 	mp4descriptor.cpp \
 	mp4file.h \
 	mp4file.cpp \
+	mp4file_io.cpp \
 	mp4property.h \
 	mp4property.cpp \
 	mp4track.h \
@@ -40,7 +41,6 @@ libmp4v2_la_SOURCES = \
 	atom_ftyp.cpp \
 	atom_hdlr.cpp \
 	atom_hinf.cpp \
-	atom_hint.cpp \
 	atom_hmhd.cpp \
 	atom_hnti.cpp \
 	atom_iods.cpp \
@@ -48,11 +48,14 @@ libmp4v2_la_SOURCES = \
 	atom_mdat.cpp \
 	atom_mdhd.cpp \
 	atom_mdia.cpp \
+	atom_mfhd.cpp \
 	atom_minf.cpp \
+	atom_moof.cpp \
 	atom_moov.cpp \
 	atom_mp4a.cpp \
 	atom_mp4s.cpp \
 	atom_mp4v.cpp \
+	atom_mvex.cpp \
 	atom_mvhd.cpp \
 	atom_nmhd.cpp \
 	atom_nump.cpp \
@@ -71,13 +74,18 @@ libmp4v2_la_SOURCES = \
 	atom_stss.cpp \
 	atom_stsz.cpp \
 	atom_stts.cpp \
+	atom_tfhd.cpp \
 	atom_tkhd.cpp \
 	atom_tmax.cpp \
 	atom_tmin.cpp \
 	atom_tpyl.cpp \
+	atom_traf.cpp \
 	atom_trak.cpp \
 	atom_tref.cpp \
+	atom_treftype.cpp \
+	atom_trex.cpp \
 	atom_trpy.cpp \
+	atom_trun.cpp \
 	atom_udta.cpp \
 	atom_url.cpp \
 	atom_urn.cpp \

@@ -48,6 +48,9 @@ static config_variable_t configs[] = {
   { CONFIG_HTTP_DEBUG, "HttpDebug", CONFIG_INT, LOG_ALERT, NULL},
   { CONFIG_RTSP_DEBUG, "RtspDebug", CONFIG_INT, LOG_ALERT, NULL},
   { CONFIG_SDP_DEBUG, "SdpDebug", CONFIG_INT, LOG_ALERT, NULL},
+  { CONFIG_IPPORT_MIN, "RtpIpPortMin", CONFIG_INT, -1, NULL},
+  { CONFIG_IPPORT_MAX, "RtpIpPortMax", CONFIG_INT, -1, NULL},
+  { CONFIG_USE_OLD_MP4_LIB, "UseOldMp4Lib", CONFIG_INT, 0, NULL},
 };
 
 CConfig config(configs, CONFIG_MAX);

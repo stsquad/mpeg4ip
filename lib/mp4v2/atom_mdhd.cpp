@@ -27,31 +27,31 @@ MP4MdhdAtom::MP4MdhdAtom()
 	AddVersionAndFlags();
 }
 
-void MP4MdhdAtom::AddVersion0Properties() 
+void MP4MdhdAtom::AddProperties(u_int8_t version) 
 {
-	AddProperty(
-		new MP4Integer32Property("creationTime"));
-	AddProperty(
-		new MP4Integer32Property("modificationTime"));
-	AddProperty(
-		new MP4Integer32Property("timeScale"));
-	AddProperty(
-		new MP4Integer32Property("duration"));
-	AddProperty(
-		new MP4Integer16Property("language"));
-	AddReserved("reserved", 2);
-}
+	if (version == 1) {
+		AddProperty(
+			new MP4Integer64Property("creationTime"));
+		AddProperty(
+			new MP4Integer64Property("modificationTime"));
+	} else {
+		AddProperty(
+			new MP4Integer32Property("creationTime"));
+		AddProperty(
+			new MP4Integer32Property("modificationTime"));
+	}
 
-void MP4MdhdAtom::AddVersion1Properties() 
-{
-	AddProperty(
-		new MP4Integer64Property("creationTime"));
-	AddProperty(
-		new MP4Integer64Property("modificationTime"));
 	AddProperty(
 		new MP4Integer32Property("timeScale"));
-	AddProperty(
-		new MP4Integer64Property("duration"));
+
+	if (version == 1) {
+		AddProperty(
+			new MP4Integer64Property("duration"));
+	} else {
+		AddProperty(
+			new MP4Integer32Property("duration"));
+	}
+
 	AddProperty(
 		new MP4Integer16Property("language"));
 	AddReserved("reserved", 2);
@@ -59,13 +59,21 @@ void MP4MdhdAtom::AddVersion1Properties()
 
 void MP4MdhdAtom::Generate() 
 {
-	SetVersion(1);
-	AddVersion1Properties();
+	u_int8_t version = m_pFile->Use64Bits() ? 1 : 0;
+	SetVersion(version);
+	AddProperties(version);
+
+	MP4Atom::Generate();
 
 	// set creation and modification times
 	MP4Timestamp now = MP4GetAbsTimestamp();
-	((MP4Integer64Property*)m_pProperties[2])->SetValue(now);
-	((MP4Integer64Property*)m_pProperties[3])->SetValue(now);
+	if (version == 1) {
+		((MP4Integer64Property*)m_pProperties[2])->SetValue(now);
+		((MP4Integer64Property*)m_pProperties[3])->SetValue(now);
+	} else {
+		((MP4Integer32Property*)m_pProperties[2])->SetValue(now);
+		((MP4Integer32Property*)m_pProperties[3])->SetValue(now);
+	}
 }
 
 void MP4MdhdAtom::Read() 
@@ -74,13 +82,9 @@ void MP4MdhdAtom::Read()
 	ReadProperties(0, 1);
 
 	/* need to create the properties based on the atom version */
-	if (GetVersion() == 1) {
-		AddVersion1Properties();
-	} else {
-		AddVersion0Properties();
-	}
+	AddProperties(GetVersion());
 
-	/* now we can read the properties */
+	/* now we can read the remaining properties */
 	ReadProperties(1);
 
 	Skip();	// to end of atom

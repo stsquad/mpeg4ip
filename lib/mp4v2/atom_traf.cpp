@@ -21,11 +21,10 @@
 
 #include "mp4common.h"
 
-MP4IodsAtom::MP4IodsAtom() 
-	: MP4Atom("iods") 
+MP4TrafAtom::MP4TrafAtom() 
+	: MP4Atom("traf")
 {
-	AddVersionAndFlags();
-	AddProperty(
-		new MP4DescriptorProperty(NULL, 
-			MP4IODescrTag, MP4ODescrTag, Required, OnlyOne));
+	ExpectChildAtom("tfhd", Required, OnlyOne);
+	ExpectChildAtom("trun", Optional, Many);
 }
+

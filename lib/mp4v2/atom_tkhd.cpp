@@ -74,13 +74,21 @@ void MP4TkhdAtom::AddProperties(u_int8_t version)
 
 void MP4TkhdAtom::Generate() 
 {
-	SetVersion(1);
-	AddProperties(GetVersion());
+	u_int8_t version = m_pFile->Use64Bits() ? 1 : 0;
+	SetVersion(version);
+	AddProperties(version);
+
+	MP4Atom::Generate();
 
 	// set creation and modification times
 	MP4Timestamp now = MP4GetAbsTimestamp();
-	((MP4Integer64Property*)m_pProperties[2])->SetValue(now);
-	((MP4Integer64Property*)m_pProperties[3])->SetValue(now);
+	if (version == 1) {
+		((MP4Integer64Property*)m_pProperties[2])->SetValue(now);
+		((MP4Integer64Property*)m_pProperties[3])->SetValue(now);
+	} else {
+		((MP4Integer32Property*)m_pProperties[2])->SetValue(now);
+		((MP4Integer32Property*)m_pProperties[3])->SetValue(now);
+	}
 
 	// property reserved3 has non-zero fixed values
 	static u_int8_t reserved3[38] = {
@@ -95,8 +103,10 @@ void MP4TkhdAtom::Generate()
 		0x00, 0x00, 0x00, 0x00, 
 		0x40, 0x00, 0x00, 0x00, 
 	};
+	m_pProperties[9]->SetReadOnly(false);
 	((MP4BytesProperty*)m_pProperties[9])->
 		SetValue(reserved3, sizeof(reserved3));
+	m_pProperties[9]->SetReadOnly(true);
 }
 
 void MP4TkhdAtom::Read() 

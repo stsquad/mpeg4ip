@@ -57,7 +57,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   int video;
   video = Avifile1->create_video(psptr);
   if (video < 0) {
-    *errmsg = "Internal quicktime error";
+    *errmsg = "Internal AVI error";
     return (-1);
   }
   int audio;

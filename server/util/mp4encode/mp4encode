@@ -1,46 +1,46 @@
-#!/bin/bash
+#!/bin/sh
 # mp4encode <avi-file>
 
 # Initialize default values for options
-let convertRgb=0
-let videoWidth=320
-let videoHeight=240
-let fps=24
+convertRgb=0
+videoWidth=320
+videoHeight=240
+fps=24
 aspectRatio=1.33	# 4:3 standard definition TV aspect ratio
-let use_iso=0
-let vbitRate=500
+use_iso=0
+vbitRate=500
 
-let use_mp3=0
-let abitRate=96
+use_mp3=0
+abitRate=96
 
-let debug=0
+debug=0
 
 # Process command line options
 while getopts "A:IMRV:a:dh:r:w:" opt; do
 	case $opt in
-		A ) let abitRate=$OPTARG ;;
-		I ) let use_iso=1 ;;
-		M ) let use_mp3=1 ;;
-		R ) let convertRgb=1 ;;
-		V ) let vbitRate=$OPTARG ;;
+		A ) abitRate=$OPTARG ;;
+		I ) use_iso=1 ;;
+		M ) use_mp3=1 ;;
+		R ) convertRgb=1 ;;
+		V ) vbitRate=$OPTARG ;;
 		a ) aspectRatio=$OPTARG ;;
-		d ) let debug=1 ;;
-		h ) let videoHeight=$OPTARG ;;
-		r ) let fps=$OPTARG ;;
-		w ) let videoWidth=$OPTARG ;;
+		d ) debug=1 ;;
+		h ) videoHeight=$OPTARG ;;
+		r ) fps=$OPTARG ;;
+		w ) videoWidth=$OPTARG ;;
 		\? ) echo "usage: $0 [-w width] [-h height] [-r fps] [-a ratio] [-I] [-V kbps] [-M] [-A kbps] [-d] avifile [mp4file]"
 			exit 1 ;;
 	esac
 done
-shift $(($OPTIND - 1))
+shift `expr $OPTIND - 1`
 
 if [ $debug = 1 ]; then
-	set -o xtrace
+	set -x
 fi
 
 # The name of the AVI input file
 avifile=$1
-prefix=${avifile%.avi}
+prefix=`expr $avifile : '\(.*\)\.avi'`
 
 # The name of the MP4 output file
 if [ -n "$2" ] ; then
@@ -56,17 +56,17 @@ if [ ! -f "$avifile" ] ; then
 fi
 
 # A few more initializations
-let rawframesize=(${videoWidth}*${videoHeight}*3)/2
+rawframesize=`expr ${videoWidth} \* ${videoHeight} \* 3 / 2`
 here=`pwd`
 
 # For Divx encoder, this generates 1 I frame every two seconds
-let ifrequency=$(($fps * 2))
+ifrequency=`expr $fps \* 2`
 
 if [ $use_iso = 1 ]; then 
 	# For ISO encoder, these default values 
 	# yield I P B B P B B ... for every 1 second period
-	let bfrequency=2
-	let pfrequency=$((($fps / ($bfrequency + 1)) - 1))
+	bfrequency=2
+	pfrequency=`expr \( $fps / \( $bfrequency + 1 \) \) - 1`
 fi
 
 # Create output directories for ISO video encoder if necessary
@@ -95,11 +95,10 @@ if [ ! -f $prefix.yuv ] || [ $prefix.avi -nt $prefix.yuv ]; then
 	fi
 
 	# Perform simple check that we do indeed have raw YUV12 video
-	let numframes=`awk '{print $1}' $tmpfile`
-	let targetbytes=$((${numframes}*${rawframesize}))
-	wc -c ${prefix}.yuv > $tmpfile
-	let numbytes=`awk '{print $1}' $tmpfile`
-	rm -f $tmpfile
+	numframes=`awk '{print $1}' $tmpfile`
+	targetbytes=`expr ${numframes} \* ${rawframesize}`
+	numbytes=`wc -c < ${prefix}.yuv`
+	rm -f ${tmpfile}
 
 	if [ $targetbytes != $numbytes ]; then
 		echo "Extracted video isn't correct size for YUV12 ${videoWidth}x${videoHeight}"
@@ -123,10 +122,9 @@ if [ $aspectRatio != 1.33 ] ; then
 	fi
 fi
 
-numbytes=`wc -c ${prefix}.yuv`
-numbytes=${numbytes%${prefix}.yuv}
-let numframes=$((${numbytes}/${rawframesize}))
-let lastframe=${numframes}-1
+numbytes=`wc -c < ${prefix}.yuv`
+numframes=`expr ${numbytes} / ${rawframesize}`
+lastframe=`expr ${numframes} - 1`
 
 echo "Encoding ${numframes} frames of video"
 
@@ -136,7 +134,7 @@ if [ $use_iso = 0 ]; then
 
 else
 	# Create video encoder parameters file from template
-	let isoBitRate="${vbitRate} * 100000"
+	isoBitRate=`expr ${vbitRate} * 100000`
 	sed -e "s?BASEDIR?${here}?" -e "s/FILEPREFIX/${prefix}/" -e "s/LASTFRAME/${lastframe}/" -e "s/FRAMEWIDTH/${videoWidth}/" -e "s/FRAMEHEIGHT/${videoHeight}/" -e "s/FRAMERATE/${fps}/" -e "s/BFREQUENCY/${bfrequency}/" -e "s/PFREQUENCY/${pfrequency}/" -e "s/BITRATE/${isoBitRate}/" /usr/local/share/mp4venc_template.par > ${prefix}.par 
 
 	mp4venc ${prefix}.par

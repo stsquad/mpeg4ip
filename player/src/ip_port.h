@@ -35,7 +35,7 @@
 // It will hold on to the port until deleted.
 class CIpPort {
  public:
-  CIpPort();
+  CIpPort(in_port_t startport, in_port_t endport);
   ~CIpPort();
   CIpPort *get_next (void) { return m_next;};
   void set_next (CIpPort *p) { m_next = p;};

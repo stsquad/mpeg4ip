@@ -24,27 +24,38 @@
 MP4FtypAtom::MP4FtypAtom() 
 	: MP4Atom("ftyp")
 {
-	AddProperty(
-		new MP4Integer32Property("majorBrand"));
-	AddProperty(
+	MP4StringProperty* pProp = new MP4StringProperty("majorBrand");
+	pProp->SetFixedLength(4);
+	AddProperty(pProp); /* 0 */
+
+	AddProperty( /* 1 */
 		new MP4Integer32Property("minorVersion"));
 
 	MP4Integer32Property* pCount = 
 		new MP4Integer32Property("compatibleBrandsCount"); 
 	pCount->SetImplicit();
-	AddProperty(pCount);
+	AddProperty(pCount); /* 2 */
 
 	MP4TableProperty* pTable = 
 		new MP4TableProperty("compatibleBrands", pCount);
-	AddProperty(pTable);
+	AddProperty(pTable); /* 3 */
 
-	pTable->AddProperty(
-		new MP4Integer32Property("brand"));
+	pProp = new MP4StringProperty("brand");
+	pProp->SetFixedLength(4);
+	pTable->AddProperty(pProp);
 }
 
 void MP4FtypAtom::Generate() 
 {
-	((MP4Integer32Property*)m_pProperties[0])->SetValue(STRTOINT32("isom"));
+	MP4Atom::Generate();
+
+	((MP4StringProperty*)m_pProperties[0])->SetValue("isom");
+
+	MP4StringProperty* pBrandProperty = (MP4StringProperty*)
+		((MP4TableProperty*)m_pProperties[3])->GetProperty(0);
+	ASSERT(pBrandProperty);
+	pBrandProperty->AddValue("mp41");
+	((MP4Integer32Property*)m_pProperties[2])->IncrementValue();
 }
 
 void MP4FtypAtom::Read() 
