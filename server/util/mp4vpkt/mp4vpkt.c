@@ -64,6 +64,8 @@ static u_int nextResyncMark(u_char* pBuf, u_int startPos, u_int bufSize);
 static bool isConfigObject(u_int objCode);
 static u_char getVOPCodingType(u_char* vopBuf, u_int vopSize);
 static char* strObjCode(u_int objCode);
+static u_int getIodProfileLevel(char* s);
+static u_int getVideoProfileLevel(char* s);
 static char* binaryToAscii(u_char* pBuf, u_int bufSize);
 
 /*
@@ -77,9 +79,10 @@ int main(int argc, char** argv)
 	u_int frameWidth = 320;			/* --width=<uint> */
 	u_int frameHeight = 240;		/* --height=<uint> */
 	float frameRate = 30.0;			/* --rate=<float> */
-	u_int profileId = 3;			/* --profile=<uint> */
+	char* profileLevel = "Simple@L3";	/* --profile=<string> */
 	u_int maxPayloadSize = 1460;  	/* --payloadsize=<uint> */
 	u_int bFrameFrequency = 0;		/* --bfrequency=<uint> */
+	bool configInband = FALSE;		/* --config-inband */
 	bool force = FALSE;				/* --force */
 	bool merge = FALSE;				/* --merge */
 	bool trace = FALSE;				/* --trace */
@@ -96,6 +99,7 @@ int main(int argc, char** argv)
 	u_int payloadNumber = 0;
 	int timeScale = 90000;
 	u_int maxBytesPerSec = 0;
+	u_int iodProfileLevel = 0;
 
 	/* begin process command line */
 	progName = argv[0];
@@ -104,6 +108,7 @@ int main(int argc, char** argv)
 		int option_index = 0;
 		static struct option long_options[] = {
 			{ "bfrequency", 1, 0, 'b' },
+			{ "configInband", 0, 0, 'c' },
 			{ "dump", 2, 0, 'd' },
 			{ "force", 0, 0, 'f' },
 			{ "height", 1, 0, 'h' },
@@ -118,7 +123,7 @@ int main(int argc, char** argv)
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "b:dfh:mo:p:r:s:tvw:",
+		c = getopt_long_only(argc, argv, "b:cdfh:mo:p:r:s:tvw:",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -136,6 +141,10 @@ int main(int argc, char** argv)
 			} else {
 				bFrameFrequency = i;
 			}
+			break;
+		}
+		case 'c': {
+			configInband = TRUE;
 			break;
 		}
 		case 'd': {
@@ -173,24 +182,14 @@ int main(int argc, char** argv)
 			break;
 		}
 		case 'p': {
-			/* -profile <id> */
+			/* -profile=<string> */
 			u_int i;
-			if (sscanf(optarg, "%u", &i) < 1) {
+			if (!getVideoProfileLevel(optarg)) {
 				fprintf(stderr, 
-					"%s: bad profile specified: %s\n",
+					"%s: unknown profile specified: %s\n",
 					 progName, optarg);
-			} else if (i > 255) {
-				fprintf(stderr,
-					"%s: profile must be less than 256\n",
-					progName);
-			} else {
-				/*
-				 * currently we do not validate 
-				 * that the given profile id is defined by MPEG
-				 * since this is constantly evolving
-				 */ 
-				profileId = i;
 			}
+			profileLevel = optarg;
 			break;
 		}
 		case 'r': {
@@ -334,6 +333,13 @@ int main(int argc, char** argv)
 		frameWidth, frameHeight, frameRate, timeScale, "mp4v");
 	videoTrack = 0;
 
+	/* set profile-level id in initial object descriptor */
+	iodProfileLevel = getIodProfileLevel(profileLevel);
+	if (iodProfileLevel == 0) {
+		iodProfileLevel = 0xFE;
+	}
+	quicktime_set_iod_video_profile_level(qtFile, iodProfileLevel);
+
 	/* create video hint track */
 	hintTrack = quicktime_set_video_hint(qtFile, videoTrack, 
 		"MP4V-ES", &payloadNumber, maxPayloadSize); 
@@ -402,40 +408,57 @@ int main(int argc, char** argv)
 				memcpy(&configObjBuf[configObjBufSize], objBuf, objBufSize);
 				configObjBufSize += objBufSize;
 
-			} else if (objCode == VOP_START) {
-				char 	sdpBuf[1024];
-				char*	sConfig;
+				/* TBD if we see VOSH, what checks do we want to perform? */
 
+			} else if (objCode == VOP_START) {
 				/* 
 				 * we've found the first VOP
 				 * so we don't expect any more configuration objects
 				 */
 				starting = FALSE;
 
-				/* convert all the configuration objects to ASCII form */
-				sConfig = binaryToAscii(configObjBuf, configObjBufSize);
-
-				if (sConfig == NULL) {
+				if (configObjBufSize == 0) {
 					/* print warning */
 					fprintf(stderr,
 						"%s: Warning, no decoder config information present\n",
 						progName);
 				} else {
+					char 	sdpBuf[1024];
+					char*	sConfig;
+
+					/* create the appropriate MP4 decoder config */
+					quicktime_set_mp4_video_decoder_config(qtFile,
+						videoTrack, configObjBuf, configObjBufSize); 
+
+					/* convert all the configuration objects to ASCII form */
+					sConfig = binaryToAscii(configObjBuf, configObjBufSize);
+
 					/* create the appropriate SDP attribute */
-					sprintf(sdpBuf,
-						"a=fmtp:%u profile-level-id=%u; config=%s\015\012",
-						payloadNumber, profileId, sConfig); 
+					if (sConfig) {
+						sprintf(sdpBuf,
+							"a=fmtp:%u profile-level-id=%u; config=%s\015\012",
+							payloadNumber,
+							getVideoProfileLevel(profileLevel),
+							sConfig); 
 
-					/* add this to the QT file's sdp atom */
-					quicktime_add_video_sdp(qtFile, sdpBuf, 
-						videoTrack, hintTrack);
+						/* add this to the QT file's sdp atom */
+						quicktime_add_video_sdp(qtFile, sdpBuf, 
+							videoTrack, hintTrack);
 
-					/* cleanup, don't want to leak memory */
-					free(sConfig);
+						/* cleanup, don't want to leak memory */
+						free(sConfig);
+					}
 				}
 			}
 		} /* end starting */
 
+		/* 
+		 * don't put config objects into the video stream
+		 * unless specifically told to do so.
+		 */
+		if (isConfigObject(objCode) && !configInband) {
+			continue;
+		}
 
 		/* if the object is a VOP, aka a frame */ 
 		if (objCode == VOP_START) {
@@ -934,6 +957,103 @@ static char* strObjCode(u_int objCode)
 	default:
 		return "???";
 	}
+}
+
+static u_int getLevel(char *s)
+{
+	u_int level = 1; /* default is level 1 */
+	char* pos;
+
+	/* look for @ as separator */
+	pos = strstr(s, "@");
+	if (!pos) {
+		/* nope, try / as separator instead */
+		pos = strstr(s, "/");
+	}
+	if (pos) {
+		while (*pos) {
+			if (isdigit(*pos)) {
+				/* levels are currently always 1 digit */
+				level = *pos - '0';
+				break;
+			}
+			pos++;
+		}
+	}
+
+	return level;
+}
+
+static u_int getIodProfileLevel(char* s)
+{
+	/* values from ISO/IEC 14496-1 section 8.6.3.2 */
+	static struct {
+		char* name;		/* profile name */
+		u_int baseId;	/* value for level 1 */
+	} map[] = {
+		{ "basic animated texture", 0x0F },
+		{ "scalable texture", 0x12 },
+		{ "simple face animation", 0x14 },
+		{ "simple scalable", 0x05 },
+		{ "core", 0x07 },
+		{ "hybrid", 0x0D },
+		{ "main", 0x0B },
+		{ "n-bit", 0x0C },
+		{ "simple", 0x03 },
+		{ NULL, 0 }
+	};
+	u_int level = getLevel(s);
+	int i;
+
+	for (i = 0; map[i].name != NULL; i++) {
+		if (!strncasecmp(s, map[i].name, strlen(map[i].name))) {
+			return map[i].baseId - (level - 1);
+		}
+	}
+	return 0;
+}
+
+static u_int getVideoProfileLevel(char* s)
+{
+	/* values from ISO/IEC 14496-2 Annex G */
+	static struct {
+		char* name;		/* profile name */
+		u_int baseId;	/* value for level 1 */
+	} map[] = {
+		/* be careful of order */
+		{ "advanced coding efficiency", 0xB1 },
+		{ "advanced core", 0xC1 },
+		{ "advanced real time simple", 0x91 },
+		{ "advanced scalable texture", 0xD1 },
+		{ "advanced simple", 0xF2 },
+		{ "basic animated texture", 0x71 },
+		{ "core scalable", 0xA1 },
+		{ "core studio", 0xE5 },
+		{ "fine granularity scalable", 0xF6 },
+		{ "scalable texture", 0x51 },
+		{ "simple face animation", 0x61 },
+		{ "simple fba", 0x63 },
+		{ "simple scalable", 0x11 },
+		{ "simple studio", 0xE1 },
+		{ "arts", 0x91 },
+		{ "ace", 0xB1 },
+		{ "core", 0x21 },
+		{ "fgs", 0xF6 },
+		{ "hybrid", 0x81 },
+		{ "main", 0x31 },
+		{ "n-bit", 0x41 },
+		{ "simple", 0x01 },
+		{ NULL, 0 }
+	};
+	u_int level = getLevel(s);
+	int i;
+
+	for (i = 0; map[i].name != NULL; i++) {
+		if (!strncasecmp(s, map[i].name, strlen(map[i].name))) {
+			return map[i].baseId + level - 1;
+		}
+	}
+	return 0;
 }
 
 static char* binaryToAscii(u_char* pBuf, u_int bufSize)
