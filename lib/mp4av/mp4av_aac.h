@@ -27,32 +27,44 @@
 #define MP4AV_AAC_SSR_PROFILE	2
 #define MP4AV_AAC_LTP_PROFILE	3
 
-u_int16_t MP4AV_AacGetFrameSize(
+u_int16_t MP4AV_AacAdtsGetFrameSize(
 	u_int8_t* pHdr);
 
-u_int16_t MP4AV_AacGetHeaderBitSize(
+u_int16_t MP4AV_AacAdtsGetHeaderBitSize(
 	u_int8_t* pHdr);
 
-u_int16_t MP4AV_AacGetHeaderByteSize(
+u_int16_t MP4AV_AacAdtsGetHeaderByteSize(
 	u_int8_t* pHdr);
 
-u_int8_t MP4AV_AacGetVersion(
+u_int8_t MP4AV_AacAdtsGetVersion(
 	u_int8_t* pHdr);
 
-u_int8_t MP4AV_AacGetProfile(
+u_int8_t MP4AV_AacAdtsGetProfile(
 	u_int8_t* pHdr);
 
-u_int8_t MP4AV_AacGetSamplingRateIndex(
+u_int8_t MP4AV_AacAdtsGetSamplingRateIndex(
 	u_int8_t* pHdr);
 
 u_int8_t MP4AV_AacGetSamplingRateIndex(
 	u_int32_t samplingRate);
 
-u_int32_t MP4AV_AacGetSamplingRate(
+u_int32_t MP4AV_AacAdtsGetSamplingRate(
 	u_int8_t* pHdr);
 
-u_int8_t MP4AV_AacGetChannelConfig(
+u_int8_t MP4AV_AacAdtsGetChannels(
 	u_int8_t* pHdr);
+
+u_int8_t MP4AV_AacConfigGetSamplingRateIndex(
+	u_int8_t* pConfig);
+
+u_int32_t MP4AV_AacConfigGetSamplingRate(
+	u_int8_t* pConfig);
+
+u_int16_t MP4AV_AacConfigGetSamplingWindow(
+	u_int8_t* pConfig);
+
+u_int8_t MP4AV_AacConfigGetChannels(
+	u_int8_t* pConfig);
 
 bool MP4AV_AacGetConfiguration(
 	u_int8_t** ppConfig,

@@ -75,30 +75,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "divx_plugin"=.\codec\divx\divx_plugin60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libfileposrec
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libourdivx
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name need_for_win
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmp4util
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "libavi"=..\..\lib\avi\libavi60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -303,18 +279,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libourdivx"=..\lib\video\divx\libourdivx60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "librtsp"=..\lib\rtsp\librtsp60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -328,6 +292,18 @@ Package=<4>
 ###############################################################################
 
 Project: "libsdp"=..\..\lib\sdp\libsdp60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libxvid"=..\..\lib\xvid\libxvid.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -480,9 +456,6 @@ Package=<4>
     Project_Dep_Name aac_plugin
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name divx_plugin
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name mp3_plugin
     End Project Dependency
     Begin Project Dependency
@@ -490,6 +463,30 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name wav_plugin
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "xvid_plugin"=..\plugin\video\xvid\xvid_plugin.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libxvid
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libfileposrec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4util
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name need_for_win
     End Project Dependency
 }}}
 

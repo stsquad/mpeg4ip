@@ -37,6 +37,7 @@
 #include "codec_plugin_private.h"
 #include <gnu/strcasestr.h>
 #include "rfc3119_bytestream.h"
+#include "mpeg3_rtp_bytestream.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -47,6 +48,7 @@ enum {
   VIDEO_MPEG4_ISO,
   VIDEO_DIVX,
   VIDEO_MPEG4_ISO_OR_DIVX,
+  VIDEO_MPEG12,
 };
 
 enum {
@@ -131,6 +133,15 @@ static int sdp_lookup_codec (media_desc_t *media,
   }
   return (-1);
 }
+static int sdp_lookup_video_defaults (media_desc_t *media) 
+{
+  for (format_list_t *fptr = media->fmt; fptr != NULL; fptr = fptr->next) {
+    if (strcmp(fptr->fmt, "32") == 0) {
+      return (VIDEO_MPEG12);
+    }
+  }
+  return (-1);
+}
 
 static int sdp_lookup_audio_defaults (media_desc_t *media)
 {
@@ -146,11 +157,14 @@ static int sdp_lookup_audio_defaults (media_desc_t *media)
  */
 static int sdp_is_valid_codec (media_desc_t *media)
 {
+  int ret;
   if (strcmp(media->media, "video") == 0) {
+    ret = sdp_lookup_video_defaults(media);
+    if (ret > 0) return ret;
+
     return (sdp_lookup_codec(media, video_codecs));
   }
   if (strcmp(media->media, "audio") == 0) {
-    int ret;
 
     ret = sdp_lookup_audio_defaults(media);
     if (ret > 0) {
@@ -502,7 +516,7 @@ int parse_name_for_session (CPlayerSession *psptr,
 
   
 CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
-						       unsigned int rtp_proto,
+						       unsigned int rtp_pt,
 						       int ondemand,
 						       uint64_t tps,
 						       rtp_packet **head, 
@@ -518,13 +532,32 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 
   int codec;
   if (strcmp("video", fmt->media->media) == 0) {
-    codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
-				 video_codecs);
-    if (codec < 0) {
-      return (NULL);
+    if (rtp_pt == 32) {
+      codec = VIDEO_MPEG12;
+      rtp_byte_stream = new CMpeg3RtpByteStream(rtp_pt,
+						ondemand,
+						tps,
+						head,
+						tail,
+						rtpinfo_received,
+						rtp_rtptime,
+						rtcp_received,
+						ntp_frac,
+						ntp_sec,
+						rtp_ts);
+      if (rtp_byte_stream != NULL) {
+	return (rtp_byte_stream);
+      }
+
+    } else {
+      codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
+				   video_codecs);
+      if (codec < 0) {
+	return (NULL);
+      }
     }
   } else {
-    if (rtp_proto == 14) {
+    if (rtp_pt == 14) {
       codec = AUDIO_MP3;
     } else {
       codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
@@ -546,7 +579,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       }
       rtp_byte_stream = new CIsmaAudioRtpByteStream(fmt,
 						    fmtp,
-						    rtp_proto,
+						    rtp_pt,
 						    ondemand,
 						    tps,
 						    head,
@@ -564,7 +597,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       break;
     case AUDIO_MP3:
       rtp_byte_stream = 
-	new CMP3RtpByteStream(rtp_proto, ondemand, tps, head, tail, 
+	new CMP3RtpByteStream(rtp_pt, ondemand, tps, head, tail, 
 			      rtpinfo_received, rtp_rtptime, 
 			      rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
@@ -574,7 +607,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       break;
     case AUDIO_MP3_ROBUST:
       rtp_byte_stream = 
-	new CRfc3119RtpByteStream(rtp_proto, ondemand, tps, head, tail, 
+	new CRfc3119RtpByteStream(rtp_pt, ondemand, tps, head, tail, 
 				  rtpinfo_received, rtp_rtptime, 
 				  rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
@@ -584,7 +617,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       break;
     case AUDIO_GENERIC:
       rtp_byte_stream = 
-	new CAudioRtpByteStream(rtp_proto, ondemand, tps, head, tail, 
+	new CAudioRtpByteStream(rtp_pt, ondemand, tps, head, tail, 
 				rtpinfo_received, rtp_rtptime, 
 				rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
@@ -596,7 +629,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
     }
   }
   rtp_byte_stream = new CRtpByteStream(fmt->media->media,
-				       rtp_proto,
+				       rtp_pt,
 				       ondemand,
 				       tps,
 				       head,

@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syscdrom.c,v 1.3 2001/11/13 00:38:56 wmaycisco Exp $";
+ "@(#) $Id: SDL_syscdrom.c,v 1.4 2002/05/01 17:40:44 wmaycisco Exp $";
 #endif
 
 /*

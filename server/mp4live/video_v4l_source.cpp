@@ -33,7 +33,7 @@ int CV4LVideoSource::ThreadMain(void)
 	while (true) {
 		int rc;
 
-		if (m_capture) {
+		if (m_source) {
 			rc = SDL_SemTryWait(m_myMsgQueueSemaphore);
 		} else {
 			rc = SDL_SemWait(m_myMsgQueueSemaphore);
@@ -70,7 +70,7 @@ int CV4LVideoSource::ThreadMain(void)
 			}
 		}
 
-		if (m_capture) {
+		if (m_source) {
 			try {
 				ProcessVideo();
 			}
@@ -86,27 +86,27 @@ int CV4LVideoSource::ThreadMain(void)
 
 void CV4LVideoSource::DoStartCapture(void)
 {
-	if (m_capture) {
+	if (m_source) {
 		return;
 	}
 	if (!Init()) {
 		return;
 	}
 
-	m_capture = true;
+	m_source = true;
 }
 
 void CV4LVideoSource::DoStopCapture(void)
 {
-	if (!m_capture) {
+	if (!m_source) {
 		return;
 	}
 
-	ShutdownVideo();
+	DoStopVideo();
 
 	ReleaseDevice();
 
-	m_capture = false;
+	m_source = false;
 }
 
 bool CV4LVideoSource::Init(void)
@@ -118,13 +118,18 @@ bool CV4LVideoSource::Init(void)
 	CalculateVideoFrameSize(m_pConfig);
 
 	InitVideo(
-		m_rawFrameRate,
+		(m_pConfig->m_videoNeedRgbToYuv ?
+			CMediaFrame::RgbVideoFrame :
+			CMediaFrame::YuvVideoFrame),
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT),
 		true,
 		true);
 
-	m_maxPasses = (u_int8_t)(m_rawFrameRate + 0.5);
+	m_maxPasses = 
+		(u_int8_t)(m_videoSrcFrameRate + 0.5);
+	m_videoSrcFrameDuration =
+		(Duration)(((float)TimestampTicks / m_videoSrcFrameRate) + 0.5);
 
 	return true;
 }
@@ -177,9 +182,9 @@ bool CV4LVideoSource::InitDevice(void)
 		goto failure;
 	}
 	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) == VIDEO_MODE_NTSC) {
-		m_rawFrameRate = VIDEO_NTSC_FRAME_RATE;
+		m_videoSrcFrameRate = VIDEO_NTSC_FRAME_RATE;
 	} else {
-		m_rawFrameRate = VIDEO_PAL_FRAME_RATE;
+		m_videoSrcFrameRate = VIDEO_PAL_FRAME_RATE;
 	}
 
 	// input source has a TV tuner
@@ -403,12 +408,11 @@ void CV4LVideoSource::ProcessVideo(void)
 			continue;
 		}
 
-		Timestamp frameTimestamp = GetTimestamp();
-
 		ProcessVideoFrame(
 			(u_int8_t*)m_videoMap 
 				+ m_videoMbuf.offsets[m_encodeHead],
-			frameTimestamp);
+			m_videoSrcYUVSize,
+			m_videoSrcFrameDuration);
 
 		// release video frame buffer back to video capture device
 		if (ReleaseFrame(m_encodeHead)) {

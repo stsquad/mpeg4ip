@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5events.c,v 1.3 2001/11/13 00:39:01 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5events.c,v 1.4 2002/05/01 17:41:29 wmaycisco Exp $";
 #endif
 
 /* CAUTION!!!!  If you modify this file, check ../windib/SDL_sysevents.c */
@@ -298,7 +298,8 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 	Uint8 button;
 
 	/* If we are in windowed mode, Windows is taking care of the mouse */
-	if ( ! (SDL_PublicSurface->flags & SDL_FULLSCREEN) ) {
+	if (  (SDL_PublicSurface->flags & SDL_OPENGL) ||
+	     !(SDL_PublicSurface->flags & SDL_FULLSCREEN) ) {
 		return;
 	}
 
@@ -391,11 +392,13 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 					yrel = 0;
 				}
 				if((int)ptrbuf[i].dwData > 0)
+					button = 4;
+				else
+					button = 5;
 					posted = SDL_PrivateMouseButton(
-							SDL_PRESSED, 4, 0, 0);
-				else if((int)ptrbuf[i].dwData < 0)
-					posted = SDL_PrivateMouseButton(
-							SDL_PRESSED, 5, 0, 0);
+						SDL_PRESSED, button, 0, 0);
+				posted |= SDL_PrivateMouseButton(
+						SDL_RELEASED, button, 0, 0);
 				break;
 			case DIMOFS_BUTTON0:
 			case DIMOFS_BUTTON1:
@@ -621,6 +624,12 @@ void DX5_PumpEvents(_THIS)
 
 void DX5_InitOSKeymap(_THIS)
 {
+#ifndef DIK_PAUSE
+#define DIK_PAUSE	0xC5
+#endif
+#ifndef DIK_OEM_102
+#define DIK_OEM_102	0x56	/* < > | on UK/Germany keyboards */
+#endif
 	int i;
 
 	/* Map the DIK scancodes to SDL keysyms */
@@ -671,6 +680,7 @@ void DX5_InitOSKeymap(_THIS)
 	DIK_keymap[DIK_GRAVE] = SDLK_BACKQUOTE;
 	DIK_keymap[DIK_LSHIFT] = SDLK_LSHIFT;
 	DIK_keymap[DIK_BACKSLASH] = SDLK_BACKSLASH;
+	DIK_keymap[DIK_OEM_102] = SDLK_BACKSLASH;
 	DIK_keymap[DIK_Z] = SDLK_z;
 	DIK_keymap[DIK_X] = SDLK_x;
 	DIK_keymap[DIK_C] = SDLK_c;
@@ -724,6 +734,7 @@ void DX5_InitOSKeymap(_THIS)
 	DIK_keymap[DIK_DIVIDE] = SDLK_KP_DIVIDE;
 	DIK_keymap[DIK_SYSRQ] = SDLK_SYSREQ;
 	DIK_keymap[DIK_RMENU] = SDLK_RALT;
+	DIK_keymap[DIK_PAUSE] = SDLK_PAUSE;
 	DIK_keymap[DIK_HOME] = SDLK_HOME;
 	DIK_keymap[DIK_UP] = SDLK_UP;
 	DIK_keymap[DIK_PRIOR] = SDLK_PAGEUP;

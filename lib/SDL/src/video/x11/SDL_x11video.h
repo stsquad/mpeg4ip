@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11video.h,v 1.2 2001/11/13 00:39:02 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11video.h,v 1.3 2002/05/01 17:41:30 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_x11video_h
@@ -37,16 +37,14 @@ static char rcsid =
 #include <X11/extensions/XShm.h>
 #endif
 #ifdef XFREE86_DGAMOUSE
-#include <X11/extensions/xf86dga.h>
+#include <XFree86/extensions/xf86dga.h>
 #endif
 #ifdef XFREE86_VM
-#include <X11/extensions/xf86vmode.h>
-#ifdef XFREE86_VM_DYNAMIC_HACK
-#define XVidMode(func, args)	XF40VidMode##func args
-#else
-#define XVidMode(func, args)	XF86VidMode##func args
+#include <XFree86/extensions/xf86vmode.h>
 #endif
-#endif /* XFREE86_VM */
+#ifdef HAVE_XIGXME
+#include <X11/extensions/xme.h>
+#endif
 
 #include <string.h>
 
@@ -82,7 +80,6 @@ struct SDL_PrivateVideoData {
     /* The variables used for displaying graphics */
     XImage *Ximage;		/* The X image for our window */
     GC	gc;			/* The graphic context for drawing */
-    int swap_pixels;		/* Flag: true if display is swapped endian */
 
     /* The current width and height of the fullscreen mode */
     int current_w;
@@ -116,11 +113,16 @@ struct SDL_PrivateVideoData {
 
     /* Variables used by the X11 video mode code */
 #ifdef XFREE86_VM
-    XF86VidModeModeInfo saved_mode;
+    SDL_NAME(XF86VidModeModeInfo) saved_mode;
     struct {
         int x, y;
     } saved_view;
 #endif
+#ifdef HAVE_XIGXME /* XiG XME fullscreen */
+    int use_xme;
+    XiGMiscResolutionInfo saved_res;
+#endif
+
     int xinerama_x;
     int xinerama_y;
     int use_vidmode;
@@ -163,7 +165,6 @@ struct SDL_PrivateVideoData {
 #define shminfo			(this->hidden->shminfo)
 #define SDL_Ximage		(this->hidden->Ximage)
 #define SDL_GC			(this->hidden->gc)
-#define swap_pixels		(this->hidden->swap_pixels)
 #define current_w		(this->hidden->current_w)
 #define current_h		(this->hidden->current_h)
 #define mouse_last		(this->hidden->mouse_last)
@@ -172,6 +173,8 @@ struct SDL_PrivateVideoData {
 #define SDL_modelist		(this->hidden->modelist)
 #define saved_mode		(this->hidden->saved_mode)
 #define saved_view		(this->hidden->saved_view)
+#define use_xme			(this->hidden->use_xme)
+#define saved_res		(this->hidden->saved_res)
 #define xinerama_x		(this->hidden->xinerama_x)
 #define xinerama_y		(this->hidden->xinerama_y)
 #define use_vidmode		(this->hidden->use_vidmode)

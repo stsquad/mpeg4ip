@@ -294,6 +294,14 @@ SOURCE=.\codec\mp3\mp3_rtp_bytestream.h
 # End Group
 # Begin Source File
 
+SOURCE=.\mpeg3_rtp_bytestream.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg3_rtp_bytestream.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\rfc3119_bytestream.cpp
 # End Source File
 # Begin Source File

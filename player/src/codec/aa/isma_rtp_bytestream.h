@@ -55,7 +55,7 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
  public:
   CIsmaAudioRtpByteStream(format_list_t *media_fmt,
 						  fmtp_parse_t *fmtp,
-						  unsigned int rtp_proto,
+						  unsigned int rtp_pt,
 						  int ondemand,
 						  uint64_t tickpersec,
 						  rtp_packet **head, 

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_error.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_error.h,v 1.2 2002/05/01 17:40:32 wmaycisco Exp $";
 #endif
 
 /* Simple error message routines for SDL */
@@ -37,9 +37,9 @@ extern "C" {
 #endif
 
 /* Public functions */
-extern DECLSPEC void SDL_SetError(const char *fmt, ...);
-extern DECLSPEC char * SDL_GetError(void);
-extern DECLSPEC void SDL_ClearError(void);
+extern DECLSPEC void SDLCALL SDL_SetError(const char *fmt, ...);
+extern DECLSPEC char * SDLCALL SDL_GetError(void);
+extern DECLSPEC void SDLCALL SDL_ClearError(void);
 
 /* Private error message function - used internally */
 #define SDL_OutOfMemory()	SDL_Error(SDL_ENOMEM)

@@ -121,6 +121,12 @@ int main(int argc, char** argv)
 				PrintVideoInfo(mp4File, trackId);
 			} else if (!strcmp(trackType, MP4_HINT_TRACK_TYPE)) {
 				PrintHintInfo(mp4File, trackId);
+			} else if (!strcmp(trackType, MP4_OD_TRACK_TYPE)) {
+				printf("%u\tod\tObject Descriptors\n", 
+					trackId);
+			} else if (!strcmp(trackType, MP4_SCENE_TRACK_TYPE)) {
+				printf("%u\tscene\tBIFS\n", 
+					trackId);
 			} else {
 				printf("%u\t%s\n", 
 					trackId, trackType);

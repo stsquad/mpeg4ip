@@ -35,7 +35,6 @@ void CalculateVideoFrameSize(CLiveConfig* pConfig);
 class CV4LVideoSource : public CMediaSource {
 public:
 	CV4LVideoSource() : CMediaSource() {
-		m_capture = false;
 		m_videoDevice = -1;
 		m_videoMap = NULL;
 		m_videoFrameMap = NULL;
@@ -45,10 +44,6 @@ public:
 
 	bool IsDone() {
 		return false;	// live capture is inexhaustible
-	}
-
-	Duration GetElapsedDuration() {
-		return m_videoSrcFrameNumber * m_videoSrcFrameDuration;
 	}
 
 	float GetProgress() {
@@ -78,7 +73,6 @@ protected:
 	void SetVideoAudioMute(bool mute);
 
 protected:
-	bool				m_capture;
 	u_int8_t			m_maxPasses;
 
 	int					m_videoDevice;
@@ -87,7 +81,9 @@ protected:
 	struct video_mmap*	m_videoFrameMap;
 	int8_t				m_captureHead;
 	int8_t				m_encodeHead;
-	float				m_rawFrameRate;
+
+	float				m_videoSrcFrameRate;
+	Duration			m_videoSrcFrameDuration;
 };
 
 class CVideoCapabilities {

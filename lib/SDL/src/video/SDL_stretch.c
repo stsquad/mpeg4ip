@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_stretch.c,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_stretch.c,v 1.2 2002/05/01 17:41:06 wmaycisco Exp $";
 #endif
 
 /* This a stretch blit implementation based on ideas given to me by
@@ -39,8 +39,9 @@ static char rcsid =
    into the general blitting mechanism.
 */
 
-#if (defined(WIN32) && !defined(_M_ALPHA) && !defined(_WIN32_WCE)) || \
-    defined(i386) && defined(__GNUC__) && defined(USE_ASMBLIT)
+#if (defined(WIN32) && !defined(_M_ALPHA) && !defined(_WIN32_WCE) && \
+     !defined(__WATCOMC__) && !defined(__LCC__) && !defined(__FREEBCC__)) || \
+    (defined(i386) && defined(__GNUC__) && defined(USE_ASMBLIT))
 #define USE_ASM_STRETCH
 #endif
 

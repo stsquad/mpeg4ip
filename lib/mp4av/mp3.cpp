@@ -121,6 +121,27 @@ bool MP4AV_Mp3GetNextFrame(
 	}
 }
 
+MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(u_int8_t* pBytes)
+{
+	return (pBytes[0] << 24) | (pBytes[1] << 16)
+		| (pBytes[2] << 8) | pBytes[3];
+}
+
+// MP3 Header
+// 	syncword		11 bits
+// 	version		 	2 bits
+// 	layer		 	2 bits
+//	protection		1 bit
+//	bitrate_index	4 bits
+//	sampling_rate	2 bits
+//	padding			1 bit
+//	private			1 bit
+//	mode			2 bits
+//	mode_ext		2 bits
+//	copyright		1 bit
+//	original		1 bit
+//	emphasis		2 bits
+
 u_int8_t MP4AV_Mp3GetHdrVersion(MP4AV_Mp3Header hdr)
 {
 	/* extract the necessary field from the MP3 header */
@@ -131,6 +152,14 @@ u_int8_t MP4AV_Mp3GetHdrLayer(MP4AV_Mp3Header hdr)
 {
 	/* extract the necessary field from the MP3 header */
 	return ((hdr >> 17) & 0x3); 
+}
+
+u_int8_t MP4AV_Mp3GetChannels(MP4AV_Mp3Header hdr)
+{
+	if (((hdr >> 6) & 0x3) == 3) {
+		return 1;
+	}
+	return 2;
 }
 
 u_int16_t MP4AV_Mp3GetHdrSamplingRate(MP4AV_Mp3Header hdr)
@@ -161,6 +190,15 @@ u_int16_t MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3Header hdr)
 	}
 
 	return samplingWindow;
+}
+
+u_int16_t MP4AV_Mp3GetSamplingWindow(u_int16_t samplingRate)
+{
+	// assumes MP3 usage
+	if (samplingRate > 24000) {
+		return 1152;
+	}
+	return 576;
 }
 
 /*

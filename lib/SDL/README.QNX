@@ -1,0 +1,41 @@
+README by Mike Gorchak <mike@malva.ua>
+
+    OpenGL in window mode  works well  and  stable, in fullscreen
+mode too, but fullscreen mode has not been heavily tested.
+    If you have QNX RtP 6.1.0 w/ or w/o Patch A you must download
+new Photon3D runtime from http://developers.qnx.com. The versions
+of OS before 6.1.0 are not supported.
+
+Problems:
+1. While  creating  OpenGL  context  software  renderer  mode  is
+   artificially selected (QSSL made acceleration only for  Voodoo
+   boards in fullscreen mode, sorry but I don't have  this board,
+   if you want acceleration - you may remove some line  in source
+   code).
+2. Photon has some errors in detecting  how  much bits  per pixel
+   videomode has.
+3. No  shared  libraries  yet.  We  need  manually  set  flag  to
+   'configure' --disable-shared.
+
+Some building issues:
+
+    Run configure script without x11 support, e.g.:
+
+    a) for OpenGL support:
+    ./configure --prefix=/usr/local \
+                --disable-video-x11 \
+                --disable-shared
+
+    b) without OpenGL support:
+    ./configure --prefix=/usr/local \
+                --disable-video-x11 \
+                --disable-shared    \
+                --disable-video-opengl
+
+    In test directory  also run  ./configure  script  without x11
+support, e.g.:
+
+    ./configure  --with-sdl-prefix=/usr/local      \
+                 --with-sdl-exec-prefix=/usr/local \
+                 --prefix=/usr/local --without-x
+

@@ -26,6 +26,7 @@
 #include "mp4av_aac.h"
 #include "mp4av_mp3.h"
 #include "mp4av_mpeg4.h"
+#include "mp4av_audio.h"
 #include "mp4av_hinters.h"
 
 #endif /* __MP4AV_INCLUDED__ */ 

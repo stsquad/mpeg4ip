@@ -9,9 +9,9 @@ touch $directory/configure.in
 
 # Regenerate configuration files
 aclocal
-automake --foreign --include-deps
+automake --foreign --include-deps --add-missing --copy
 autoconf
-(cd test; aclocal; automake --foreign --include-deps; autoconf)
+(cd test; aclocal; automake --foreign --include-deps --add-missing --copy; autoconf)
 
 # Run configure for this platform
 #./configure $*

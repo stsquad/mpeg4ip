@@ -33,7 +33,7 @@ public:
 		CLiveConfig* pConfig, 
 		bool realTime = true);
 
-	u_int16_t GetFrameType() {
+	MediaType GetFrameType() {
 		return CMediaFrame::Mp3AudioFrame;
 	}
 

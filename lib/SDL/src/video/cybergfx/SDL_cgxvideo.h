@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_cgxvideo.h,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
+ "@(#) $Id: SDL_cgxvideo.h,v 1.3 2002/05/01 17:41:19 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_cgxvideo_h
@@ -38,7 +38,7 @@ static char rcsid =
 #include <graphics/scale.h>
 #include <graphics/gfx.h>
 #include <intuition/intuition.h>
-#ifdef __SASC
+#if defined(__SASC) || defined(STORMC4_WOS)
 #include <proto/exec.h>
 #include <proto/cybergraphics.h>
 #include <proto/graphics.h>
@@ -177,6 +177,7 @@ struct private_hwdata
 	APTR lock;
 	struct SDL_VideoDevice *videodata;
 	APTR mask;
+	int allocated;
 };
 
 int CGX_CheckHWBlit(_THIS,SDL_Surface *src,SDL_Surface *dst);

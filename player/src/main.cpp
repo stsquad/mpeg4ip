@@ -272,6 +272,7 @@ int main (int argc, char **argv)
 
   if ((suffix != NULL) && 
 	  ((strcasecmp(suffix, ".mp4plist") == 0) ||
+	   (strcasecmp(suffix, ".mxu") == 0) ||
        (strcasecmp(suffix, ".gmp4_playlist") == 0))) {
     const char *errmsg = NULL;
     CPlaylist *list = new CPlaylist(name, &errmsg);

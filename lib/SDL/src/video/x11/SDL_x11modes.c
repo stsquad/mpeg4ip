@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11modes.c,v 1.3 2001/11/13 00:39:02 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11modes.c,v 1.4 2002/05/01 17:41:30 wmaycisco Exp $";
 #endif
 
 /* Utilities for getting and setting the X display mode */
@@ -40,16 +40,16 @@ static char rcsid =
 #include "SDL_x11image_c.h"
 
 #ifdef HAVE_XINERAMA
-#include <X11/extensions/Xinerama.h>
+#include <XFree86/extensions/Xinerama.h>
 #endif 
 
 #define MAX(a, b)	(a > b ? a : b)
 
 #ifdef XFREE86_VM
-Bool XVidMode(GetModeInfo, (Display *dpy, int scr, XF86VidModeModeInfo *info))
+Bool SDL_NAME(XF86VidModeGetModeInfo)(Display *dpy, int scr, SDL_NAME(XF86VidModeModeInfo) *info)
 {
-    XF86VidModeModeLine *l = (XF86VidModeModeLine*)((char*)info + sizeof info->dotclock);
-    return XVidMode(GetModeLine, (dpy, scr, &info->dotclock, l));
+    SDL_NAME(XF86VidModeModeLine) *l = (SDL_NAME(XF86VidModeModeLine)*)((char*)info + sizeof info->dotclock);
+    return SDL_NAME(XF86VidModeGetModeLine)(dpy, scr, &info->dotclock, l);
 }
 #endif /* XFREE86_VM */
 
@@ -57,25 +57,25 @@ Bool XVidMode(GetModeInfo, (Display *dpy, int scr, XF86VidModeModeInfo *info))
 static void save_mode(_THIS)
 {
     memset(&saved_mode, 0, sizeof(saved_mode));
-    XVidMode(GetModeInfo, (SDL_Display,SDL_Screen,&saved_mode));
-    XVidMode(GetViewPort, (SDL_Display,SDL_Screen,&saved_view.x,&saved_view.y));
+    SDL_NAME(XF86VidModeGetModeInfo)(SDL_Display,SDL_Screen,&saved_mode);
+    SDL_NAME(XF86VidModeGetViewPort)(SDL_Display,SDL_Screen,&saved_view.x,&saved_view.y);
 }
 #endif
 
 #ifdef XFREE86_VM
 static void restore_mode(_THIS)
 {
-    XF86VidModeModeLine mode;
+    SDL_NAME(XF86VidModeModeLine) mode;
     int unused;
 
-    if ( XVidMode(GetModeLine, (SDL_Display, SDL_Screen, &unused, &mode)) ) {
+    if ( SDL_NAME(XF86VidModeGetModeLine)(SDL_Display, SDL_Screen, &unused, &mode) ) {
         if ( (saved_mode.hdisplay != mode.hdisplay) ||
              (saved_mode.vdisplay != mode.vdisplay) ) {
-            XVidMode(SwitchToMode, (SDL_Display, SDL_Screen, &saved_mode));
+            SDL_NAME(XF86VidModeSwitchToMode)(SDL_Display, SDL_Screen, &saved_mode);
         }
     }
     if ( (saved_view.x != 0) || (saved_view.y != 0) ) {
-        XVidMode(SetViewPort, (SDL_Display, SDL_Screen, saved_view.x, saved_view.y));
+        SDL_NAME(XF86VidModeSetViewPort)(SDL_Display, SDL_Screen, saved_view.x, saved_view.y);
     }
 }
 #endif
@@ -83,25 +83,27 @@ static void restore_mode(_THIS)
 #ifdef XFREE86_VM
 static int cmpmodes(const void *va, const void *vb)
 {
-    const XF86VidModeModeInfo *a = *(const XF86VidModeModeInfo**)va;
-    const XF86VidModeModeInfo *b = *(const XF86VidModeModeInfo**)vb;
+    const SDL_NAME(XF86VidModeModeInfo) *a = *(const SDL_NAME(XF86VidModeModeInfo)**)va;
+    const SDL_NAME(XF86VidModeModeInfo) *b = *(const SDL_NAME(XF86VidModeModeInfo)**)vb;
     if(a->hdisplay > b->hdisplay)
         return -1;
     return b->vdisplay - a->vdisplay;
 }
 #endif
 
+static void get_real_resolution(_THIS, int* w, int* h);
+
 static void set_best_resolution(_THIS, int width, int height)
 {
 #ifdef XFREE86_VM
     if ( use_vidmode ) {
-        XF86VidModeModeLine mode;
-        XF86VidModeModeInfo **modes;
+        SDL_NAME(XF86VidModeModeLine) mode;
+        SDL_NAME(XF86VidModeModeInfo) **modes;
         int i;
         int nmodes;
 
-        if ( XVidMode(GetModeLine, (SDL_Display, SDL_Screen, &i, &mode)) &&
-             XVidMode(GetAllModeLines, (SDL_Display,SDL_Screen,&nmodes,&modes))){
+        if ( SDL_NAME(XF86VidModeGetModeLine)(SDL_Display, SDL_Screen, &i, &mode) &&
+             SDL_NAME(XF86VidModeGetAllModeLines)(SDL_Display,SDL_Screen,&nmodes,&modes)){
             qsort(modes, nmodes, sizeof *modes, cmpmodes);
 #ifdef XFREE86_DEBUG
             printf("Available modes:\n");
@@ -117,28 +119,88 @@ static void set_best_resolution(_THIS, int width, int height)
             }
             if ( (modes[i]->hdisplay != mode.hdisplay) ||
                  (modes[i]->vdisplay != mode.vdisplay) ) {
-                XVidMode(SwitchToMode, (SDL_Display, SDL_Screen, modes[i]));
+                SDL_NAME(XF86VidModeSwitchToMode)(SDL_Display, SDL_Screen, modes[i]);
             }
             XFree(modes);
         }
     }
 #endif /* XFREE86_VM */
+
+				/* XiG */
+#ifdef HAVE_XIGXME
+#ifdef XIG_DEBUG
+    fprintf(stderr, "XME: set_best_resolution(): w = %d, h = %d\n",
+	    width, height);
+#endif
+    if ( SDL_modelist ) {
+	int i;
+
+        for ( i=0; SDL_modelist[i]; ++i ) {
+	    if ( (SDL_modelist[i]->w >= width) &&
+                 (SDL_modelist[i]->h >= height) ) {
+		break;
+	    }
+        }
+	
+	if ( SDL_modelist[i] ) { /* found one, lets try it */
+	    int w, h;	
+
+            /* check current mode so we can avoid uneccessary mode changes */
+	    get_real_resolution(this, &w, &h);
+
+	    if ( (SDL_modelist[i]->w != w) || (SDL_modelist[i]->h != h) ) {
+# ifdef XIG_DEBUG
+		fprintf(stderr, "XME: set_best_resolution: "
+			"XiGMiscChangeResolution: %d %d\n",
+			SDL_modelist[s]->w, SDL_modelist[s]->h);
+# endif
+		XiGMiscChangeResolution(SDL_Display, 
+					SDL_Screen,
+					0, /* view */
+					SDL_modelist[i]->w, 
+					SDL_modelist[i]->h, 
+					0);
+		XSync(SDL_Display, False);
+            }
+        }
+    }
+#endif /* HAVE_XIGXME */
+
 }
 
 static void get_real_resolution(_THIS, int* w, int* h)
 {
 #ifdef XFREE86_VM
     if ( use_vidmode ) {
-        XF86VidModeModeLine mode;
+        SDL_NAME(XF86VidModeModeLine) mode;
         int unused;
 
-        if ( XVidMode(GetModeLine, (SDL_Display, SDL_Screen, &unused, &mode)) ) {
+        if ( SDL_NAME(XF86VidModeGetModeLine)(SDL_Display, SDL_Screen, &unused, &mode) ) {
             *w = mode.hdisplay;
             *h = mode.vdisplay;
             return;
         }
     }
 #endif
+
+#ifdef HAVE_XIGXME
+    if ( use_xme ) {
+        int ractive;
+        XiGMiscResolutionInfo *modelist;
+
+        XiGMiscQueryResolutions(SDL_Display, SDL_Screen,
+			        0, /* view */
+			        &ractive, &modelist);
+        *w = modelist[ractive].width;
+        *h = modelist[ractive].height;
+#ifdef XIG_DEBUG
+        fprintf(stderr, "XME: get_real_resolution: w = %d h = %d\n", *w, *h);
+#endif
+        XFree(modelist);
+        return;
+    }
+#endif /* XIG_XME */
+
     *w = DisplayWidth(SDL_Display, SDL_Screen);
     *h = DisplayHeight(SDL_Display, SDL_Screen);
 }
@@ -206,7 +268,12 @@ int X11_GetVideoModes(_THIS)
     int buggy_X11;
     int vm_major, vm_minor;
     int nmodes;
-    XF86VidModeModeInfo **modes;
+    SDL_NAME(XF86VidModeModeInfo) **modes;
+#endif
+#ifdef HAVE_XIGXME
+    int xme_major, xme_minor;
+    int ractive, nummodes;
+    XiGMiscResolutionInfo *modelist;
 #endif
     int i, n;
     int screen_w;
@@ -243,8 +310,8 @@ int X11_GetVideoModes(_THIS)
 #endif
     /* Enumerate the available fullscreen modes */
     if ( ! buggy_X11 ) {
-        if ( XVidMode(QueryExtension, (SDL_Display, &vm_event, &vm_error)) &&
-              XVidMode(QueryVersion, (SDL_Display, &vm_major, &vm_minor)) ) {
+        if ( SDL_NAME(XF86VidModeQueryExtension)(SDL_Display, &vm_event, &vm_error) &&
+              SDL_NAME(XF86VidModeQueryVersion)(SDL_Display, &vm_major, &vm_minor) ) {
 #ifdef BROKEN_XFREE86_4001
 #ifdef X_XF86VidModeGetDotClocks  /* Compiled under XFree86 4.0 */
                 /* Earlier X servers hang when doing vidmode */
@@ -263,7 +330,7 @@ int X11_GetVideoModes(_THIS)
         }
     }
     if ( ! buggy_X11 &&
-         XVidMode(GetAllModeLines, (SDL_Display, SDL_Screen,&nmodes,&modes)) ) {
+         SDL_NAME(XF86VidModeGetAllModeLines)(SDL_Display, SDL_Screen,&nmodes,&modes) ) {
 
         qsort(modes, nmodes, sizeof *modes, cmpmodes);
         SDL_modelist = (SDL_Rect **)malloc((nmodes+2)*sizeof(SDL_Rect *));
@@ -309,6 +376,77 @@ int X11_GetVideoModes(_THIS)
         save_mode(this);
     }
 #endif /* XFREE86_VM */
+
+				/* XiG */
+#ifdef HAVE_XIGXME
+    /* first lets make sure we have the extension, and it's at least v2.0 */
+    if (XiGMiscQueryVersion(SDL_Display, &xme_major, &xme_minor)) {
+#ifdef XIG_DEBUG
+	fprintf(stderr, "XME: XiGMiscQueryVersion: V%d.%d\n",
+		xme_major, xme_minor);
+#endif
+	/* work around a XiGMisc bogosity in our version of libXext */
+	if (xme_major == 0 && xme_major == 0) {
+	    /* Ideally libxme would spit this out, but the problem is that
+	       the right Query func will never be called if using the bogus
+	       libXext version.
+	     */
+	    fprintf(stderr, 
+"XME: If you are using Xi Graphics CDE and a Summit server, you need to\n"
+"XME: get the libXext update from our ftp site before fullscreen switching\n"
+"XME: will work.  Fullscreen switching is only supported on Summit Servers\n");
+	  }
+    } else {
+        /* not there. Bummer. */
+	xme_major = xme_minor = 0;
+    }
+
+    modelist = NULL;
+    if (xme_major >= 2 && (nummodes = XiGMiscQueryResolutions(SDL_Display, 
+					    SDL_Screen,
+					    0, /* view */
+					    &ractive, 
+					    &modelist)) > 1)
+    {				/* then we actually have some */
+	int j;
+
+#ifdef XIG_DEBUG
+	fprintf(stderr, "XME: nummodes = %d, active mode = %d\n",
+		nummodes, ractive);
+#endif
+
+	SDL_modelist = (SDL_Rect **)malloc((nummodes+1)*sizeof(SDL_Rect *));
+
+				/* we get the list already sorted in */
+				/* descending order.  We'll copy it in */
+				/* reverse order so SDL is happy */
+	if (SDL_modelist) {
+	    for ( i=0, j=nummodes-1; j>=0; i++, j-- ) {
+		if ((SDL_modelist[i] = 
+		     (SDL_Rect *)malloc(sizeof(SDL_Rect))) == NULL)
+		  break;
+#ifdef XIG_DEBUG
+		fprintf(stderr, "XME: mode = %4d, w = %4d, h = %4d\n",
+		       i, modelist[i].width, modelist[i].height);
+#endif
+		
+		SDL_modelist[i]->x = 0;
+		SDL_modelist[i]->y = 0;
+		SDL_modelist[i]->w = modelist[j].width;
+		SDL_modelist[i]->h = modelist[j].height;
+		
+	    }
+            SDL_modelist[i] = NULL; /* terminator */
+	}
+	use_xme = 1;
+	saved_res = modelist[ractive]; /* save the current resolution */
+    } else {
+        use_xme = 0;
+    }
+    if ( modelist ) {
+        XFree(modelist);
+    }
+#endif /* HAVE_XIGXME */
 
     {
 	static int depth_list[] = { 32, 24, 16, 15, 8 };
@@ -369,17 +507,25 @@ int X11_GetVideoModes(_THIS)
         }
     }
 
-#ifdef XFREE86_DEBUG
+#if defined(XFREE86_DEBUG) || defined(XIG_DEBUG)
     if ( use_vidmode ) {
         printf("XFree86 VidMode is enabled\n");
     }
+
+#ifdef HAVE_XIGXME
+    if ( use_xme )
+      printf("Xi Graphics XME fullscreen is enabled\n");
+    else
+      printf("Xi Graphics XME fullscreen is not available\n");
+#endif 
+
     if ( SDL_modelist ) {
         printf("X11 video mode list:\n");
         for ( i=0; SDL_modelist[i]; ++i ) {
             printf("\t%dx%d\n", SDL_modelist[i]->w, SDL_modelist[i]->h);
         }
     }
-#endif /* XFREE86_DEBUG */
+#endif /* XFREE86_DEBUG || XIG_DEBUG */
 
     /* The default X/Y fullscreen offset is 0/0 */
     xinerama_x = 0;
@@ -387,16 +533,16 @@ int X11_GetVideoModes(_THIS)
 
 #ifdef HAVE_XINERAMA
     /* Query Xinerama extention */
-    if ( XineramaQueryExtension(SDL_Display, &i, &i) &&
-         XineramaIsActive(SDL_Display) ) {
+    if ( SDL_NAME(XineramaQueryExtension)(SDL_Display, &i, &i) &&
+         SDL_NAME(XineramaIsActive)(SDL_Display) ) {
         /* Find out which screen is the zero'th one */
         int screens;
-        XineramaScreenInfo *xinerama;
+        SDL_NAME(XineramaScreenInfo) *xinerama;
 
 #ifdef XINERAMA_DEBUG
         printf("X11 detected Xinerama:\n");
 #endif
-        xinerama = XineramaQueryScreens(SDL_Display, &screens);
+        xinerama = SDL_NAME(XineramaQueryScreens)(SDL_Display, &screens);
         for ( i = 0; i < screens; i++ ) {
 #ifdef XINERAMA_DEBUG
             printf("xinerama %d: %dx%d+%d+%d\n",
@@ -557,7 +703,7 @@ int X11_EnterFullScreen(_THIS)
 #ifdef XFREE86_VM
     /* Save the current video mode */
     if ( use_vidmode ) {
-        XVidMode(LockModeSwitch, (SDL_Display, SDL_Screen, True));
+        SDL_NAME(XF86VidModeLockModeSwitch)(SDL_Display, SDL_Screen, True);
     }
 #endif
     currently_fullscreen = 1;
@@ -594,9 +740,29 @@ int X11_LeaveFullScreen(_THIS)
 #ifdef XFREE86_VM
         if ( use_vidmode ) {
             restore_mode(this);
-            XVidMode(LockModeSwitch, (SDL_Display, SDL_Screen, False));
+            SDL_NAME(XF86VidModeLockModeSwitch)(SDL_Display, SDL_Screen, False);
         }
 #endif
+
+#ifdef HAVE_XIGXME
+	if ( use_xme ) {
+	    int rw, rh;	
+	    
+            /* check current mode so we can avoid uneccessary mode changes */
+	    get_real_resolution(this, &rw, &rh);
+
+	    if (rw != saved_res.width || rh != saved_res.height) {
+		XiGMiscChangeResolution(SDL_Display, 
+					SDL_Screen,
+					0, /* view */
+					saved_res.width, 
+					saved_res.height,
+					0);
+		XSync(SDL_Display, False);
+	    }
+	}
+#endif
+
         XUnmapWindow(SDL_Display, FSwindow);
         X11_WaitUnmapped(this, FSwindow);
         XSync(SDL_Display, True);   /* Flush spurious mode change events */

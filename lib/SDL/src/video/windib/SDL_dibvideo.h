@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dibvideo.h,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_dibvideo.h,v 1.2 2002/05/01 17:41:28 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_dibvideo_h
@@ -38,14 +38,11 @@ struct SDL_PrivateVideoData {
 #define NUM_MODELISTS	4		/* 8, 16, 24, and 32 bits-per-pixel */
     int SDL_nummodes[NUM_MODELISTS];
     SDL_Rect **SDL_modelist[NUM_MODELISTS];
-
-    WORD *gamma_saved;
 };
 /* Old variable names */
 #define screen_bmp		(this->hidden->screen_bmp)
 #define screen_pal		(this->hidden->screen_pal)
 #define SDL_nummodes		(this->hidden->SDL_nummodes)
 #define SDL_modelist		(this->hidden->SDL_modelist)
-#define gamma_saved		(this->hidden->gamma_saved)
 
 #endif /* _SDL_dibvideo_h */

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_vkeys.h,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_vkeys.h,v 1.2 2002/05/01 17:41:28 wmaycisco Exp $";
 #endif
 
 #ifndef VK_0
@@ -66,13 +66,14 @@ static char rcsid =
 
 /* These keys haven't been defined, but were experimentally determined */
 #define VK_SEMICOLON	0xBA
-#define VK_EQUALS		0xBB
-#define VK_COMMA		0xBC
-#define VK_MINUS		0xBD
-#define VK_PERIOD		0xBE
-#define VK_SLASH		0xBF
-#define VK_GRAVE		0xC0
-#define VK_LBRACKET		0xDB
+#define VK_EQUALS	0xBB
+#define VK_COMMA	0xBC
+#define VK_MINUS	0xBD
+#define VK_PERIOD	0xBE
+#define VK_SLASH	0xBF
+#define VK_GRAVE	0xC0
+#define VK_LBRACKET	0xDB
 #define VK_BACKSLASH	0xDC
-#define VK_RBRACKET		0xDD
+#define VK_RBRACKET	0xDD
 #define VK_APOSTROPHE	0xDE
+#define VK_BACKTICK	0xDF

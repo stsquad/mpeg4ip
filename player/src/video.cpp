@@ -422,6 +422,10 @@ else {
    * Advance the buffer
    */
   m_buffer_filled[m_play_index] = 0;
+#ifdef VIDEO_SYNC_FILL
+  uint32_t temp;
+  temp = m_play_index;
+#endif
   m_play_index++;
   m_play_index %= MAX_VIDEO_BUFFERS;
   m_total_frames++;
@@ -430,6 +434,9 @@ else {
   if (m_decode_waiting) {
     m_decode_waiting = 0;
     SDL_SemPost(m_decode_sem);
+#ifdef VIDEO_SYNC_FILL
+    video_message(LOG_DEBUG, "wait posting %d", temp);
+#endif
   }
 
   if (m_buffer_filled[m_play_index] == 1) {
@@ -516,8 +523,12 @@ int CVideoSync::set_video_frame(const Uint8 *y,
   const Uint8 *src;
   unsigned int ix;
 
-  if (m_dont_fill != 0) 
+  if (m_dont_fill != 0) {
+#ifdef VIDEO_SYNC_FILL
+    video_message(LOG_DEBUG, "Don't fill in video sync");
+#endif
     return (m_paused);
+  }
 
   /*
    * Do we have a buffer ?  If not, indicate that we're waiting, and wait
@@ -525,8 +536,12 @@ int CVideoSync::set_video_frame(const Uint8 *y,
   if (m_buffer_filled[m_fill_index] != 0) {
     m_decode_waiting = 1;
     SDL_SemWait(m_decode_sem);
-    if (m_buffer_filled[m_fill_index] == 0)
+    if (m_buffer_filled[m_fill_index] != 0) {
+#ifdef VIDEO_SYNC_FILL
+      video_message(LOG_DEBUG, "Wait but filled %d", m_fill_index);
+#endif
       return m_paused;
+    }
   }  
 
   /*

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5audio.c,v 1.4 2001/11/13 19:15:23 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5audio.c,v 1.5 2002/05/01 17:40:42 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -369,6 +369,7 @@ static Uint8 *DX5_GetAudioBuf(_THIS)
 	playing = cursor;
 	cursor = (cursor+1)%NUM_BUFFERS;
 	cursor *= mixlen;
+
 	/* Lock the audio buffer */
 	result = IDirectSoundBuffer_Lock(mixbuf, cursor, mixlen,
 				(LPVOID *)&locked_buf, &rawlen, NULL, &junk, 0);
@@ -699,29 +700,28 @@ static int DX5_OpenAudio(_THIS, SDL_AudioSpec *spec)
 
 static int DX5_AudioDelayMsec (_THIS)
 {
-	DWORD cursor, write;
-	HRESULT result;
-	int odelay;
-	/* char buffer[80]; */
+      DWORD cursor, write;
+      HRESULT result;
+      int odelay;
+      /* char buffer[80]; */
 
-	result = IDirectSoundBuffer_GetCurrentPosition(mixbuf, &cursor, &write);
-	write = cursor / mixlen;
-	write = (write+1)%NUM_BUFFERS;
-	write *= mixlen;	
-	
-	if (result == DS_OK) {
-	/*
-	 * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)
-	 */
-		odelay = (write - cursor);
-		odelay *= 1000;
-		odelay /= this->spec.channels;
-		if (!(this->spec.format == AUDIO_U8 || 
-			this->spec.format == AUDIO_S8)) {
-			odelay /= 2; // 2 bytes per sample
-		}
-		odelay /= this->spec.freq;
-		return odelay;
-	} 
-	return -1;
+      result = IDirectSoundBuffer_GetCurrentPosition(mixbuf, &cursor, &write);+       write = cursor / mixlen;
+      write = (write+1)%NUM_BUFFERS;
+      write *= mixlen;
+
+      if (result == DS_OK) {
+      /* 
+       * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)+        */
+              odelay = (write - cursor);
+              odelay *= 1000;
+              odelay /= this->spec.channels;
+              if (!(this->spec.format == AUDIO_U8 ||  
+                      this->spec.format == AUDIO_S8)) {
+                      odelay /= 2; // 2 bytes per sample
+              }
+              odelay /= this->spec.freq;
+              return odelay;
+      } 
+      return -1;
 }
+

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syscond.c,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_syscond.c,v 1.2 2002/05/01 17:40:57 wmaycisco Exp $";
 #endif
 
 #ifdef linux
@@ -137,10 +137,10 @@ int SDL_CondWaitTimeout(SDL_cond *cond, SDL_mutex *mutex, Uint32 ms)
 	gettimeofday(&delta, NULL);
 
 	abstime.tv_sec = delta.tv_sec + (ms/1000);
-	abstime.tv_nsec = (delta.tv_usec+(ms%1000)) * 1000;
-        if ( abstime.tv_nsec > 1000000 ) {
+	abstime.tv_nsec = (delta.tv_usec + (ms%1000) * 1000) * 1000;
+        if ( abstime.tv_nsec > 1000000000 ) {
           abstime.tv_sec += 1;
-          abstime.tv_nsec -= 1000000;
+          abstime.tv_nsec -= 1000000000;
         }
 
   tryagain:

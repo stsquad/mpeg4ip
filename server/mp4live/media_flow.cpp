@@ -25,6 +25,7 @@
 #include "audio_oss_source.h"
 #include "video_v4l_source.h"
 #include "file_mpeg2_source.h"
+#include "file_mp4_source.h"
 #include "video_sdl_preview.h"
 #include "file_mp4_recorder.h"
 #include "rtp_transmitter.h"
@@ -34,12 +35,6 @@
 bool CMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
 {
 	switch (valueName) {
-#ifdef TBD
-	case FLOW_STATUS_STARTED:
-		// TBD reflect stopped if all sources have stopped
-		*(u_int32_t*)pValue = m_started;
-		break;
-#endif
 	default:
 		return false;
 	}
@@ -62,7 +57,7 @@ void CAVMediaFlow::Start(void)
 			m_videoSource = new CV4LVideoSource();
 
 		} else if (!strcasecmp(sourceType, FILE_SOURCE_MP4)) {
-			// TBD m_videoSource = new CMp4FileSource();
+			m_videoSource = new CMp4FileSource();
 
 		} else if (!strcasecmp(sourceType, FILE_SOURCE_MPEG2)) {
 			m_videoSource = new CMpeg2FileSource();
@@ -83,7 +78,7 @@ void CAVMediaFlow::Start(void)
 				m_audioSource = new COSSAudioSource();
 
 			} else if (!strcasecmp(sourceType, FILE_SOURCE_MP4)) {
-				// TBD m_audioSource = new CMp4FileSource();
+				m_audioSource = new CMp4FileSource();
 
 			} else if (!strcasecmp(sourceType, FILE_SOURCE_MPEG2)) {
 				m_audioSource = new CMpeg2FileSource();

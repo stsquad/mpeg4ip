@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syswm.h,v 1.2 2001/08/23 00:09:12 wmaycisco Exp $";
+ "@(#) $Id: SDL_syswm.h,v 1.3 2002/05/01 17:40:32 wmaycisco Exp $";
 #endif
 
 /* Include file for SDL custom system window manager hooks */
@@ -153,7 +153,7 @@ typedef struct {
  * returns 1 if the function is implemented.  If it's not implemented, or
  * the version member of the 'info' structure is invalid, it returns 0. 
  */
-extern DECLSPEC int SDL_GetWMInfo(SDL_SysWMinfo *info);
+extern DECLSPEC int SDLCALL SDL_GetWMInfo(SDL_SysWMinfo *info);
 
 
 /* Ends C function definitions when using C++ */

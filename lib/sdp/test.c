@@ -22,6 +22,7 @@
  * test.c - test utility for sdp library
  */
 #include "systems.h"
+#include <time.h>
 #include "sdp.h"
 
 #define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
@@ -96,7 +97,7 @@ int main (int argc, char **argv)
     } else {
       printf("Error formating session %d\n", err);
     }
-    free_session_desc(session);
+    sdp_free_session_desc(session);
   }
   return (0);
 }

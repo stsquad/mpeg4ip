@@ -5,6 +5,11 @@ xx/xx/02 Version 0.9.x
     .avi file audio for PCM and mp3. (no seek).
     Added L8 and L16 rtp support
     Added RFC 3119 support to mp4player.
+    Generate IOD in mp4live's SDP files (Envivio interoperability)
+    Updated to Xvid 4/12/02 snapshot, replaces divx and ffmpeg codecs
+    Added xvid to player, replaces OpenDivx.
+    Sndfile, DSS4 removed from repository. FAAC modified to work without
+    sndfile.
 
 02/26/02 Version 0.9.3
     Added RFC 3119, MP3 robust RTP payload, support to mp4creator.

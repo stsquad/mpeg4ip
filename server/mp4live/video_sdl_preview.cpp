@@ -121,7 +121,7 @@ void CSDLVideoPreview::DoPreviewFrame(CMediaFrame* pFrame)
 	}
 
 	if (m_preview) {
-		if ((pFrame->GetType() == CMediaFrame::RawYuvVideoFrame 
+		if ((pFrame->GetType() == CMediaFrame::YuvVideoFrame 
 		    && m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW))
 		  || (pFrame->GetType() == CMediaFrame::ReconstructYuvVideoFrame 
 		    && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW))) {

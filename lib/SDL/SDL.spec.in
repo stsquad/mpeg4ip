@@ -12,6 +12,7 @@ Copyright: LGPL
 Group: System Environment/Libraries
 BuildRoot: /var/tmp/%{name}-buildroot
 Prefix: %{_prefix}
+Provides: libSDL-1.1.so.0
 
 %description
 This is the Simple DirectMedia Layer, a generic API that provides low
@@ -38,7 +39,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %setup -q 
 
 %build
-CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} --disable-video-svga --disable-video-ggi --disable-video-aalib --disable-debug --enable-xfree86-glidehack
+CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{prefix} --disable-video-svga --disable-video-ggi --disable-video-aalib --disable-debug --enable-dlopen --enable-esd-shared --enable-arts-shared
 make
 
 %install

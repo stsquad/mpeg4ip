@@ -1,1 +1,1 @@
-SUBDIRS = aa divx mp3 mpeg4 wav
+SUBDIRS = aa mp3 mpeg4 wav

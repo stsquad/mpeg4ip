@@ -41,7 +41,7 @@ DEFINE_MESSAGE_MACRO(isma_message, "ismartp")
  */
 CIsmaAudioRtpByteStream::CIsmaAudioRtpByteStream (format_list_t *media_fmt,
 						  fmtp_parse_t *fmtp,
-						  unsigned int rtp_proto,
+						  unsigned int rtp_pt,
 						  int ondemand,
 						  uint64_t tps,
 						  rtp_packet **head, 
@@ -52,7 +52,7 @@ CIsmaAudioRtpByteStream::CIsmaAudioRtpByteStream (format_list_t *media_fmt,
 						  uint32_t ntp_frac,
 						  uint32_t ntp_sec,
 						  uint32_t rtp_ts) :
-  CRtpByteStreamBase("ismaaac", rtp_proto, ondemand, tps, head, tail, 
+  CRtpByteStreamBase("ismaaac", rtp_pt, ondemand, tps, head, tail, 
 		     rtpinfo_received, rtp_rtptime, rtcp_received,
 		     ntp_frac, ntp_sec, rtp_ts)
 {

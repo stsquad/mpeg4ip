@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sunaudio.c,v 1.3 2002/02/15 23:19:19 wmaycisco Exp $";
+ "@(#) $Id: SDL_sunaudio.c,v 1.4 2002/05/01 17:40:42 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -443,16 +443,17 @@ static Uint8 snd2au(int sample)
 static int DSP_AudioDelayMsec (_THIS)
 {
 #ifdef AUDIO_GETINFO
-#define SLEEP_FUDGE	10		/* 10 ms scheduling fudge factor */
-	audio_info_t info;
-	Sint32 left;
+#define SLEEP_FUDGE   10              /* 10 ms scheduling fudge factor */
+      audio_info_t info;
+      Sint32 left;
 
-	ioctl(audio_fd, AUDIO_GETINFO, &info);
-	left = (written - info.play.samples);
-	left *= 1000;
-	left /= this->spec.freq;
-	return left;
+      ioctl(audio_fd, AUDIO_GETINFO, &info);
+      left = (written - info.play.samples);
+      left *= 1000;
+      left /= this->spec.freq;
+      return left;
 #else
   return 10;
 #endif
 }
+

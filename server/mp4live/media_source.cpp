@@ -24,7 +24,43 @@
 #include "audio_encoder.h"
 #include "video_encoder.h"
 #include "video_util_rgb.h"
+#include <mp4av.h>
 
+
+CMediaSource::CMediaSource() 
+{
+	m_pSinksMutex = SDL_CreateMutex();
+	if (m_pSinksMutex == NULL) {
+		debug_message("CreateMutex error");
+	}
+	for (int i = 0; i < MAX_SINKS; i++) {
+		m_sinks[i] = NULL;
+	}
+
+	m_source = false;
+	m_sourceVideo = false;
+	m_sourceAudio = false;
+	m_maxAheadDuration = TimestampTicks / 2 ;	// 500 msec
+
+	m_videoSrcYImage = NULL;
+	m_videoDstYImage = NULL;
+	m_videoYResizer = NULL;
+	m_videoSrcUVImage = NULL;
+	m_videoDstUVImage = NULL;
+	m_videoUVResizer = NULL;
+	m_videoEncoder = NULL;
+	m_videoDstPrevImage = NULL;
+	m_videoDstPrevReconstructImage = NULL;
+	m_videoDstPrevFrame = NULL;
+
+	m_audioEncoder = NULL;
+}
+
+CMediaSource::~CMediaSource() 
+{
+	SDL_DestroyMutex(m_pSinksMutex);
+	m_pSinksMutex = NULL;
+}
 
 bool CMediaSource::AddSink(CMediaSink* pSink) 
 {
@@ -85,55 +121,128 @@ void CMediaSource::RemoveAllSinks(void)
 	}
 }
 
-void CMediaSource::ForwardEncodedAudioFrames(
-	CAudioEncoder* encoder,
-	Timestamp baseTimestamp,
-	u_int32_t* pNumSamples,
-	u_int32_t* pNumFrames)
+void CMediaSource::ProcessMedia()
 {
-	u_int8_t* pFrame;
-	u_int32_t frameLength;
-	u_int32_t frameNumSamples;
+	Duration start = GetElapsedDuration();
 
-	(*pNumSamples) = 0;
-	(*pNumFrames) = 0;
+	// process ~1 second before returning to check for commands
+	while (GetElapsedDuration() - start < (Duration)TimestampTicks) {
 
-	while (encoder->GetEncodedSamples(
-	  &pFrame, &frameLength, &frameNumSamples)) {
+		if (m_sourceVideo && m_sourceAudio) {
+			bool endOfVideo = IsEndOfVideo();
+			bool endOfAudio = IsEndOfAudio();
 
-		// sanity check
-		if (pFrame == NULL || frameLength == 0) {
-			break;
+			if (!endOfVideo && !endOfAudio) {
+				if (m_videoSrcElapsedDuration <= m_audioSrcElapsedDuration) {
+					ProcessVideo();
+				} else {
+					ProcessAudio();
+				}
+			} else if (endOfVideo && endOfAudio) {
+				DoStopSource();
+				break;
+			} else if (endOfVideo) {
+				ProcessAudio();
+			} else { // endOfAudio
+				ProcessVideo();
+			}
+
+		} else if (m_sourceVideo) {
+			if (IsEndOfVideo()) {
+				DoStopSource();
+				break;
+			}
+			ProcessVideo();
+
+		} else if (m_sourceAudio) {
+			if (IsEndOfAudio()) {
+				DoStopSource();
+				break;
+			}
+			ProcessAudio();
 		}
-
-		// forward the encoded frame to sinks
-		CMediaFrame* pMediaFrame =
-			new CMediaFrame(
-				encoder->GetFrameType(),
-				pFrame, 
-				frameLength,
-				baseTimestamp + SamplesToTicks(frameNumSamples),
-				frameNumSamples,
-				m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
-		ForwardFrame(pMediaFrame);
-		delete pMediaFrame;
-
-		(*pNumSamples) += frameNumSamples;
-		(*pNumFrames)++;
 	}
 }
 
+Duration CMediaSource::GetElapsedDuration()
+{
+	if (m_sourceVideo && m_sourceAudio) {
+		return MIN(m_videoSrcElapsedDuration, m_audioSrcElapsedDuration);
+	} else if (m_sourceVideo) {
+		return m_videoSrcElapsedDuration;
+	} else if (m_sourceAudio) {
+		return m_audioSrcElapsedDuration;
+	}
+	return 0;
+}
+
+// used to pace (slow down) file sources when feeding sinks
+// that want data in real time (e.g. RTP transmitter)
+// capture cards are inherently paced by the driver
+
+void CMediaSource::PaceSource()
+{
+	if (!m_sourceRealTime) {
+		return;
+	}
+
+	Duration realDuration =
+		GetTimestamp() - m_startTimestamp;
+
+	Duration aheadDuration =
+		GetElapsedDuration() - realDuration;
+
+	if (aheadDuration >= m_maxAheadDuration) {
+		SDL_Delay((aheadDuration - (m_maxAheadDuration / 2)) / 1000);
+	}
+}
+
+void CMediaSource::ForwardFrame(CMediaFrame* pFrame)
+{
+	if (SDL_LockMutex(m_pSinksMutex) == -1) {
+		debug_message("ForwardFrame LockMutex error");
+		return;
+	}
+
+	for (int i = 0; i < MAX_SINKS; i++) {
+		if (m_sinks[i] == NULL) {
+			break;
+		}
+		m_sinks[i]->EnqueueFrame(pFrame);
+	}
+
+	if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
+		debug_message("UnlockMutex error");
+	}
+
+	return;
+}
+
+void CMediaSource::DoStopSource()
+{
+	if (!m_source) {
+		return;
+	}
+
+	DoStopVideo();
+
+	DoStopAudio();
+
+	m_source = false;
+}
+
 bool CMediaSource::InitVideo(
-	float srcFrameRate, 
+	MediaType srcType,
 	u_int16_t srcWidth,
 	u_int16_t srcHeight,
 	bool matchAspectRatios,
 	bool realTime)
 {
-	m_videoSrcFrameRate = srcFrameRate;
-	m_videoSrcFrameDuration = 
-		(Duration)(((float)TimestampTicks / m_videoSrcFrameRate) + 0.5);
+	m_sourceRealTime = realTime;
+
+	m_videoSrcType = srcType;
 	m_videoSrcFrameNumber = 0;
+	m_audioSrcFrameNumber = 0;	// ensure audio is also at zero
 	m_videoSrcWidth = srcWidth;
 	m_videoSrcHeight = srcHeight;
 	m_videoSrcAspectRatio = (float)srcWidth / (float)srcHeight;
@@ -142,6 +251,7 @@ bool CMediaSource::InitVideo(
 	m_videoSrcYCrop = 0;
 	m_videoSrcUVCrop = 0;
 
+	m_videoDstType = CMediaFrame::Mpeg4VideoFrame;
 	m_videoDstFrameRate =
 		m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
 	m_videoDstFrameDuration = 
@@ -187,7 +297,9 @@ bool CMediaSource::InitVideo(
 	if (!m_videoEncoder) {
 		return false;
 	}
-	if (!m_videoEncoder->Init(m_pConfig)) {
+	if (!m_videoEncoder->Init(m_pConfig, realTime)) {
+		delete m_videoEncoder;
+		m_videoEncoder = NULL;
 		return false;
 	}
 
@@ -217,11 +329,10 @@ bool CMediaSource::InitVideo(
 	}
 
 	m_videoWantKeyFrame = true;
-	m_realTime = realTime;
-	m_videoStartTimestamp = GetTimestamp();
 	m_videoSkippedFrames = 0;
 	m_videoEncodingDrift = 0;
 	m_videoEncodingMaxDrift = m_videoDstFrameDuration;
+	m_videoSrcElapsedDuration = 0;
 	m_videoDstElapsedDuration = 0;
 
 	m_videoDstPrevImage = NULL;
@@ -232,29 +343,33 @@ bool CMediaSource::InitVideo(
 	return true;
 }
 
-bool CMediaSource::WillUseVideoFrame()
+// TEMP, goes away once mpeg2 file reader and codec are seperate
+bool CMediaSource::WillUseVideoFrame(Duration frameDuration)
 {
 	return m_videoDstElapsedDuration
-		< (m_videoSrcFrameNumber + 1) * m_videoSrcFrameDuration;
+		< m_videoSrcElapsedDuration + frameDuration;
 }
 
 void CMediaSource::ProcessVideoFrame(
-	u_int8_t* image,
-	Timestamp frameTimestamp)
+	u_int8_t* frameData,
+	u_int32_t frameDataLength,
+	Duration frameDuration)
 {
-	m_videoSrcFrameNumber++;
+	if (m_videoSrcFrameNumber == 0 && m_audioSrcFrameNumber == 0) {
+		m_startTimestamp = GetTimestamp();
+	}
 
-	Duration elapsedTime = 
-		frameTimestamp - m_videoStartTimestamp;
+	m_videoSrcFrameNumber++;
+	m_videoSrcElapsedDuration += frameDuration;
 
 	// drop src frames as needed to match target frame rate
-	if (m_videoDstElapsedDuration >= elapsedTime + m_videoSrcFrameDuration) {
+	if (m_videoDstElapsedDuration >= m_videoSrcElapsedDuration) {
 		return;
 	}
 
 	// if we're running in real-time mode
 	// check if we are falling behind due to encoding speed
-	if (m_realTime && m_videoEncodingDrift >= m_videoEncodingMaxDrift) {
+	if (m_sourceRealTime && m_videoEncodingDrift >= m_videoEncodingMaxDrift) {
 		if (m_videoEncodingDrift <= m_videoDstFrameDuration) {
 			m_videoEncodingDrift = 0;
 		} else {
@@ -266,26 +381,32 @@ void CMediaSource::ProcessVideoFrame(
 		return;
 	}
 
+	if (m_videoSrcType != CMediaFrame::YuvVideoFrame
+	  && m_videoSrcType != CMediaFrame::RgbVideoFrame) {
+		debug_message("TBD implement video decoding");
+		return;
+	}
+
 	u_int8_t* yuvImage;
 	bool mallocedYuvImage;
 
 	Duration encodingStartTimestamp = GetTimestamp();
 
 	// perform colorspace conversion if necessary
-	if (m_pConfig->m_videoNeedRgbToYuv) {
+	if (m_videoSrcType == CMediaFrame::RgbVideoFrame) {
 		yuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
 		mallocedYuvImage = true;
 
 		RGB2YUV(
 			m_videoSrcWidth,
 			m_videoSrcHeight,
-			image,
+			frameData,
 			yuvImage,
 			yuvImage + m_videoSrcYSize,
 			yuvImage + m_videoSrcYSize + m_videoSrcUVSize,
 			1);
 	} else {
-		yuvImage = image;
+		yuvImage = frameData;
 		mallocedYuvImage = false;
 	}
 
@@ -352,13 +473,13 @@ void CMediaSource::ProcessVideoFrame(
 	}
 
 	Timestamp dstPrevFrameTimestamp =
-		m_videoStartTimestamp + m_videoDstElapsedDuration;
+		m_startTimestamp + m_videoDstElapsedDuration;
 
 	// calculate previous frame duration
 	Duration dstPrevFrameDuration = m_videoDstFrameDuration;
 	m_videoDstElapsedDuration += m_videoDstFrameDuration;
 
-	if (m_realTime && m_videoSrcFrameNumber > 0) {
+	if (m_sourceRealTime && m_videoSrcFrameNumber > 0) {
 
 		// first adjust due to skipped frames
 		Duration dstPrevFrameAdjustment = 
@@ -368,7 +489,9 @@ void CMediaSource::ProcessVideoFrame(
 		m_videoDstElapsedDuration += dstPrevFrameAdjustment;
 
 		// check our duration against real elasped time
-		Duration lag = elapsedTime - m_videoDstElapsedDuration;
+		Duration realElapsedTime =
+			encodingStartTimestamp - m_startTimestamp;
+		Duration lag = realElapsedTime - m_videoDstElapsedDuration;
 
 		if (lag > 0) {
 			// adjust by integral number of target duration units
@@ -405,7 +528,7 @@ void CMediaSource::ProcessVideoFrame(
 		if (m_videoDstPrevImage) {
 			CMediaFrame* pFrame =
 				new CMediaFrame(
-					CMediaFrame::RawYuvVideoFrame, 
+					CMediaFrame::YuvVideoFrame, 
 					m_videoDstPrevImage, 
 					m_videoDstYUVSize,
 					dstPrevFrameTimestamp, 
@@ -457,11 +580,10 @@ void CMediaSource::ProcessVideoFrame(
 
 	// calculate how we're doing versus target frame rate
 	// this is used to decide if we need to drop frames
-	if (m_realTime) {
+	if (m_sourceRealTime) {
 		// reset skipped frames
 		m_videoSkippedFrames = 0;
 
-		// TBD 
 		Duration drift =
 			(GetTimestamp() - encodingStartTimestamp) 
 			- m_videoDstFrameDuration;
@@ -478,7 +600,7 @@ void CMediaSource::ProcessVideoFrame(
 	return;
 }
 
-void CMediaSource::ShutdownVideo()
+void CMediaSource::DoStopVideo()
 {
 	if (m_videoSrcYImage) {
 		scale_free_image(m_videoSrcYImage);
@@ -510,5 +632,218 @@ void CMediaSource::ShutdownVideo()
 		delete m_videoEncoder;
 		m_videoEncoder = NULL;
 	}
+
+	m_sourceVideo = false;
 }
 
+bool CMediaSource::InitAudio(
+	MediaType srcType,
+	u_int8_t srcChannels,
+	u_int32_t srcSampleRate,
+	bool realTime)
+{
+	m_sourceRealTime = realTime;
+
+	// audio source info 
+	m_audioSrcType = srcType;
+	m_audioSrcChannels = srcChannels;
+	m_audioSrcSampleRate = srcSampleRate;
+	if (srcType == CMediaFrame::Mp3AudioFrame) {
+		m_audioSrcSamplesPerFrame = 
+			MP4AV_Mp3GetSamplingWindow(srcSampleRate);
+	} else {
+		m_audioSrcSamplesPerFrame = 1024;
+	}
+	m_audioSrcSampleNumber = 0;
+	m_audioSrcFrameNumber = 0;
+	m_videoSrcFrameNumber = 0;	// ensure video is also at zero
+
+	// audio destination info
+	char* dstEncoding =
+		m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+
+	if (!strcasecmp(dstEncoding, AUDIO_ENCODING_MP3)) {
+		m_audioDstType = CMediaFrame::Mp3AudioFrame;
+	} else if (!strcasecmp(dstEncoding, AUDIO_ENCODING_AAC)) {
+		m_audioDstType = CMediaFrame::AacAudioFrame;
+	} else {
+		debug_message("unknown dest audio encoding");
+		return false;
+	}
+	m_audioDstChannels =
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
+	m_audioDstSampleRate =
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+	m_audioDstSampleNumber = 0;
+	m_audioDstFrameNumber = 0;
+	m_audioDstRawSampleNumber = 0;
+	m_audioDstRawFrameNumber = 0;
+
+	m_audioSrcElapsedDuration = 0;
+	m_audioDstElapsedDuration = 0;
+
+	// init audio encoder
+	m_audioEncoder = AudioEncoderCreate(
+		m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODER));
+
+	if (m_audioEncoder == NULL) {
+		return false;
+	}
+
+	if (!m_audioEncoder->Init(m_pConfig, realTime)) {
+		delete m_audioEncoder;
+		m_audioEncoder = NULL;
+		return false;
+	}
+
+	m_audioDstSamplesPerFrame = 
+		m_audioEncoder->GetSamplesPerFrame();
+
+	return true;
+}
+
+void CMediaSource::ProcessAudioFrame(
+	u_int8_t* frameData,
+	u_int32_t frameDataLength,
+	u_int32_t frameDuration)	// in samples
+{
+	if (m_videoSrcFrameNumber == 0 && m_audioSrcFrameNumber == 0) {
+		m_startTimestamp = GetTimestamp();
+	}
+
+	m_audioSrcFrameNumber++;
+	m_audioSrcElapsedDuration += SamplesToTicks(frameDuration);
+
+	if (m_audioSrcType != CMediaFrame::PcmAudioFrame) {
+		debug_message("TBD implement audio decoding");
+		return;
+	}
+
+	bool pcmMalloced = false;
+	u_int8_t* pcmData = frameData;
+	u_int32_t pcmDataLength = frameDataLength;
+
+	// TBD audio resampling
+
+	// encode audio frame
+	if (m_pConfig->m_audioEncode) {
+
+		bool rc = m_audioEncoder->EncodeSamples(
+			(u_int16_t*)pcmData, pcmDataLength);
+
+		if (!rc) {
+			debug_message("failed to encode audio");
+			return;
+		}
+
+		u_int32_t forwardedSamples;
+		u_int32_t forwardedFrames;
+
+		ForwardEncodedAudioFrames(
+			m_startTimestamp 
+				+ SamplesToTicks(m_audioDstSampleNumber),
+			&forwardedSamples,
+			&forwardedFrames);
+
+		m_audioDstSampleNumber += forwardedSamples;
+		m_audioDstFrameNumber += forwardedFrames;
+	}
+
+	// if desired, forward raw audio to sinks
+	if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
+
+		// make a copy of the pcm data if needed
+		u_int8_t* pcmForwardedData;
+
+		if (!pcmMalloced) {
+			pcmForwardedData = (u_int8_t*)Malloc(pcmDataLength);
+			memcpy(pcmForwardedData, pcmData, pcmDataLength);
+		} else {
+			pcmForwardedData = pcmData;
+			pcmMalloced = false;
+		}
+
+		CMediaFrame* pFrame =
+			new CMediaFrame(
+				CMediaFrame::PcmAudioFrame, 
+				pcmForwardedData, 
+				pcmDataLength,
+				m_startTimestamp + SamplesToTicks(m_audioDstRawSampleNumber),
+				frameDuration,
+				m_audioSrcSampleRate);
+		ForwardFrame(pFrame);
+		delete pFrame;
+
+		m_audioDstRawSampleNumber += m_audioSrcSamplesPerFrame;
+		m_audioDstRawFrameNumber++;
+	}
+
+	if (pcmMalloced) {
+		free(pcmData);
+	}
+}
+
+void CMediaSource::ForwardEncodedAudioFrames(
+	Timestamp baseTimestamp,
+	u_int32_t* pNumSamples,
+	u_int32_t* pNumFrames)
+{
+	u_int8_t* pFrame;
+	u_int32_t frameLength;
+	u_int32_t frameNumSamples;
+
+	(*pNumSamples) = 0;
+	(*pNumFrames) = 0;
+
+	while (m_audioEncoder->GetEncodedSamples(
+	  &pFrame, &frameLength, &frameNumSamples)) {
+
+		// sanity check
+		if (pFrame == NULL || frameLength == 0) {
+			break;
+		}
+
+		// forward the encoded frame to sinks
+		CMediaFrame* pMediaFrame =
+			new CMediaFrame(
+				m_audioEncoder->GetFrameType(),
+				pFrame, 
+				frameLength,
+				baseTimestamp + SamplesToTicks(frameNumSamples),
+				frameNumSamples,
+				m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+		ForwardFrame(pMediaFrame);
+		delete pMediaFrame;
+
+		(*pNumSamples) += frameNumSamples;
+		(*pNumFrames)++;
+	}
+}
+
+void CMediaSource::DoStopAudio()
+{
+	if (m_audioEncoder) {
+		// flush remaining output from audio encoder
+		// and forward it to sinks
+
+		m_audioEncoder->EncodeSamples(NULL, 0);
+
+		u_int32_t forwardedSamples;
+		u_int32_t forwardedFrames;
+
+		ForwardEncodedAudioFrames(
+			m_startTimestamp
+				+ SamplesToTicks(m_audioDstSampleNumber),
+			&forwardedSamples,
+			&forwardedFrames);
+
+		m_audioDstSampleNumber += forwardedSamples;
+		m_audioDstFrameNumber += forwardedFrames;
+
+		m_audioEncoder->Stop();
+		delete m_audioEncoder;
+		m_audioEncoder = NULL;
+	}
+
+	m_sourceAudio = false;
+}

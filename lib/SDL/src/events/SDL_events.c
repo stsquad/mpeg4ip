@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_events.c,v 1.1 2001/08/01 00:33:56 wmaycisco Exp $";
+ "@(#) $Id: SDL_events.c,v 1.2 2002/05/01 17:40:48 wmaycisco Exp $";
 #endif
 
 /* General event handling code for SDL */
@@ -301,7 +301,7 @@ int SDL_PeepEvents(SDL_Event *events, int numevents, SDL_eventaction action,
 
 	/* Don't look after we've quit */
 	if ( ! SDL_EventQ.active ) {
-		return(0);
+		return(-1);
 	}
 	/* Lock the event queue */
 	used = 0;

@@ -27,9 +27,12 @@
 #include <SDL.h>
 #include "media_time.h"
 
+typedef u_int16_t MediaType;
+
 class CMediaFrame {
 public:
-	CMediaFrame(u_int16_t type = 0, 
+	CMediaFrame(
+		MediaType type = 0, 
 		void* pData = NULL, 
 		u_int32_t dataLength = 0, 
 		Timestamp timestamp = 0, 
@@ -89,20 +92,23 @@ public:
 	}
 
 	// predefined types of frames
-	static const u_int16_t UndefinedFrame 	=	0;
+	static const MediaType UndefinedFrame 	=	0;
 
-	static const u_int16_t PcmAudioFrame	=	1;
-	static const u_int16_t Mp3AudioFrame 	=	2;
-	static const u_int16_t AacAudioFrame 	=	3;
-	static const u_int16_t VorbisAudioFrame	=	4;
+	static const MediaType PcmAudioFrame	=	1;
+	static const MediaType Mp3AudioFrame 	=	2;
+	static const MediaType AacAudioFrame 	=	3;
+	static const MediaType Ac3AudioFrame	=	4;
+	static const MediaType VorbisAudioFrame	=	5;
 
-	static const u_int16_t RawYuvVideoFrame	=	11;
-	static const u_int16_t Mpeg4VideoFrame	=	12;
-	static const u_int16_t ReconstructYuvVideoFrame 	=	13;
+	static const MediaType YuvVideoFrame	=	11;
+	static const MediaType RgbVideoFrame	=	12;
+	static const MediaType Mpeg2VideoFrame	=	13;
+	static const MediaType Mpeg4VideoFrame	=	14;
+	static const MediaType ReconstructYuvVideoFrame 	=	15;
 
 	// get methods for properties
 
-	u_int16_t GetType(void) {
+	MediaType GetType(void) {
 		return m_type;
 	}
 	void* GetData(void) {
@@ -132,7 +138,7 @@ public:
 protected:
 	SDL_mutex*	m_pMutex;
 	u_int16_t	m_refcnt;
-	u_int16_t	m_type;
+	MediaType	m_type;
 	void* 		m_pData;
 	u_int32_t 	m_dataLength;
 	Timestamp	m_timestamp;

@@ -111,6 +111,15 @@ typedef u_int64_t	MP4Duration;
 #define MP4_VORBIS_AUDIO_TYPE			0xE1	/* a private definition */
 #define MP4_AC3_AUDIO_TYPE				0xE2	/* a private definition */
 
+// MP4 Audio type utilities following common usage
+#define MP4_IS_MP3_AUDIO_TYPE(type) \
+	((type) == MP4_MPEG1_AUDIO_TYPE || (type) == MP4_MPEG2_AUDIO_TYPE) 
+
+#define MP4_IS_AAC_AUDIO_TYPE(type) \
+	(((type) >= MP4_MPEG2_AAC_MAIN_AUDIO_TYPE \
+		&& (type) <= MP4_MPEG2_AAC_SSR_AUDIO_TYPE) \
+	  || (type) == MP4_MPEG4_AUDIO_TYPE)
+
 /* MP4 Video track types - see MP4AddVideoTrack() */
 #define MP4_INVALID_VIDEO_TYPE			0x00
 #define MP4_MPEG1_VIDEO_TYPE			0x6A
@@ -127,6 +136,18 @@ typedef u_int64_t	MP4Duration;
 #define MP4_YUV12_VIDEO_TYPE			0xF0	/* a private definition */
 #define MP4_H26L_VIDEO_TYPE				0xF1	/* a private definition */
 #define MP4_H263_VIDEO_TYPE				0xF2	/* a private definition */
+
+// MP4 Video type utilities
+#define MP4_IS_MPEG1_VIDEO_TYPE(type) \
+	((type) == MP4_MPEG1_VIDEO_TYPE)
+
+#define MP4_IS_MPEG2_VIDEO_TYPE(type) \
+	(((type) >= MP4_MPEG2_SIMPLE_VIDEO_TYPE \
+		&& (type) <= MP4_MPEG2_442_VIDEO_TYPE) \
+	  || MP4_IS_MPEG1_VIDEO_TYPE(type))
+
+#define MP4_IS_MPEG4_VIDEO_TYPE(type) \
+	((type) == MP4_MPEG4_VIDEO_TYPE)
 
 
 /* MP4 API declarations */

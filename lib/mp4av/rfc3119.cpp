@@ -66,8 +66,8 @@ static void GetFrameInfo(
 			&sampleSize);
 
 		// extract the MP3 frame header
-		MP4AV_Mp3Header mp3hdr = (pSample[0] << 24) | (pSample[1] << 16)
-			| (pSample[2] << 8) | pSample[3];
+		MP4AV_Mp3Header mp3hdr = 
+			MP4AV_Mp3HeaderFromBytes(pSample);
 
 		// store what we need
 		(*ppFrameHeaders)[sampleId] = mp3hdr;

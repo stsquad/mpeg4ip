@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,15 +17,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systhread.c,v 1.1 2001/11/13 00:38:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_systhread.c,v 1.2 2002/05/01 17:40:57 wmaycisco Exp $";
 #endif
 
-/* Pth thread management routines for SDL */
+/*
+ *	GNU pth threads
+ *
+ *	Patrice Mandin
+ */
 
 #include "SDL_error.h"
 #include "SDL_thread.h"
@@ -51,15 +55,16 @@ int SDL_SYS_CreateThread(SDL_Thread *thread, void *args)
 {
 	pth_attr_t type;
 
-	/* Set the thread attributes */
-	if ( pth_attr_init(&type) != 0 ) {
+	/* Create a new attribute */
+	type = pth_attr_new();
+	if ( type == NULL ) {
 		SDL_SetError("Couldn't initialize pth attributes");
 		return(-1);
 	}
-	pth_attr_set(&type, PTH_ATTR_JOINABLE, TRUE);
+	pth_attr_set(type, PTH_ATTR_JOINABLE, TRUE);
 
 	/* Create the thread and go! */
-	if ( pth_spawn( &type, RunThread, args) != 0 ) {
+	if ( pth_spawn(type, RunThread, args) == NULL ) {
 		SDL_SetError("Not enough resources to create thread");
 		return(-1);
 	}
@@ -70,6 +75,7 @@ void SDL_SYS_SetupThread(void)
 {
 	int i;
 	sigset_t mask;
+	int oldstate;
 
 	/* Mask asynchronous signals for this thread */
 	sigemptyset(&mask);
@@ -79,9 +85,7 @@ void SDL_SYS_SetupThread(void)
 	pth_sigmask(SIG_BLOCK, &mask, 0);
 
 	/* Allow ourselves to be asynchronously cancelled */
-	{ int oldstate;
-		pth_cancel_state(PTH_CANCEL_ASYNCHRONOUS, &oldstate);
-	}
+	pth_cancel_state(PTH_CANCEL_ASYNCHRONOUS, &oldstate);
 }
 
 /* WARNING:  This may not work for systems with 64-bit pid_t */

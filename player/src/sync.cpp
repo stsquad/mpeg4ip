@@ -115,7 +115,7 @@ void CPlayerSession::process_sdl_events (void)
 {
   SDL_Event event;
 
-  while (SDL_PollEvent(&event)) {
+  while (SDL_PollEvent(&event) == 1) {
     switch (event.type) {
     case SDL_QUIT:
       m_master_msg_queue->send_message(MSG_RECEIVED_QUIT,

@@ -36,7 +36,7 @@ DEFINE_MESSAGE_MACRO(mpa_message, "mparobust")
 #define mpa_message(loglevel, fmt...) message(loglevel, "mparobust", fmt)
 #endif
 
-CRfc3119RtpByteStream::CRfc3119RtpByteStream (unsigned int rtp_proto,
+CRfc3119RtpByteStream::CRfc3119RtpByteStream (unsigned int rtp_pt,
 					      int ondemand,
 					      uint64_t tps,
 					      rtp_packet **head, 
@@ -47,7 +47,7 @@ CRfc3119RtpByteStream::CRfc3119RtpByteStream (unsigned int rtp_proto,
 					      uint32_t ntp_frac,
 					      uint32_t ntp_sec,
 					      uint32_t rtp_ts) :
-  CRtpByteStreamBase("mparobust", rtp_proto, ondemand, tps, head, tail, 
+  CRtpByteStreamBase("mparobust", rtp_pt, ondemand, tps, head, tail, 
 		     rtpinfo_received, rtp_rtptime, rtcp_received,
 		     ntp_frac, ntp_sec, rtp_ts)
 {

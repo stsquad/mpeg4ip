@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syscdrom.c,v 1.2 2001/11/13 00:38:56 wmaycisco Exp $";
+ "@(#) $Id: SDL_syscdrom.c,v 1.3 2002/05/01 17:40:45 wmaycisco Exp $";
 #endif
 
 /* Functions for system-level CD-ROM audio control */
@@ -203,18 +203,24 @@ static void CheckMounts(const char *mtab)
 			if ( strcmp(mnt_type, MNTTYPE_SUPER) == 0 ) {
 				tmp = strstr(mntent->mnt_opts, "fs=");
 				if ( tmp ) {
-					strcpy(mnt_type, tmp+strlen("fs="));
-					tmp = strchr(mnt_type, ',');
-					if ( tmp ) {
-						*tmp = '\0';
+					free(mnt_type);
+					mnt_type = strdup(tmp + strlen("fs="));
+					if ( mnt_type ) {
+						tmp = strchr(mnt_type, ',');
+						if ( tmp ) {
+							*tmp = '\0';
+						}
 					}
 				}
 				tmp = strstr(mntent->mnt_opts, "dev=");
 				if ( tmp ) {
-					strcpy(mnt_dev, tmp+strlen("dev="));
-					tmp = strchr(mnt_dev, ',');
-					if ( tmp ) {
-						*tmp = '\0';
+					free(mnt_dev);
+					mnt_dev = strdup(tmp + strlen("dev="));
+					if ( mnt_dev ) {
+						tmp = strchr(mnt_dev, ',');
+						if ( tmp ) {
+							*tmp = '\0';
+						}
 					}
 				}
 			}

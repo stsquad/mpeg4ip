@@ -29,7 +29,7 @@ int COSSAudioSource::ThreadMain(void)
 	while (true) {
 		int rc;
 
-		if (m_capture) {
+		if (m_source) {
 			rc = SDL_SemTryWait(m_myMsgQueueSemaphore);
 		} else {
 			rc = SDL_SemWait(m_myMsgQueueSemaphore);
@@ -63,7 +63,7 @@ int COSSAudioSource::ThreadMain(void)
 			}
 		}
 
-		if (m_capture) {
+		if (m_source) {
 			try {
 				ProcessAudio();
 			}
@@ -79,7 +79,7 @@ int COSSAudioSource::ThreadMain(void)
 
 void COSSAudioSource::DoStartCapture()
 {
-	if (m_capture) {
+	if (m_source) {
 		return;
 	}
 
@@ -87,99 +87,66 @@ void COSSAudioSource::DoStartCapture()
 		return;
 	}
 
-	m_capture = true;
+	m_source = true;
 }
 
 void COSSAudioSource::DoStopCapture()
 {
-	if (!m_capture) {
+	if (!m_source) {
 		return;
 	}
 
-	if (m_encoder) {
-		// flush remaining output from encoders
-		// and forward it to sinks
-
-		m_encoder->EncodeSamples(NULL, 0);
-
-		u_int32_t forwardedSamples;
-		u_int32_t forwardedFrames;
-
-		ForwardEncodedAudioFrames(
-			m_encoder, 
-			m_startTimestamp 
-				+ SamplesToTicks(m_encodedForwardedSamples),
-			&forwardedSamples,
-			&forwardedFrames);
-
-		m_encodedForwardedSamples += forwardedSamples;
-		m_encodedForwardedFrames += forwardedFrames;
-
-		m_encoder->Stop();
-		delete m_encoder;
-		m_encoder = NULL;
-	}
+	CMediaSource::DoStopAudio();
 
 	close(m_audioDevice);
 	m_audioDevice = -1;
 
-	free(m_rawFrameBuffer);
-	m_rawFrameBuffer = NULL;
+	free(m_pcmFrameBuffer);
+	m_pcmFrameBuffer = NULL;
 
-	m_capture = false;
+	m_source = false;
 }
 
 bool COSSAudioSource::Init(void)
 {
-	m_realTime = true;
-	m_startTimestamp = 0;
+	bool rc =
+		InitAudio(
+			CMediaFrame::PcmAudioFrame,
+			m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
+			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
+			true);
 
-	if (m_pConfig->m_audioEncode) {
-		if (!InitEncoder()) {
-			goto init_failure;
-		}
-
-		m_rawSamplesPerFrame = 
-			m_encoder->GetSamplesPerFrame();
-	} else {
-		m_rawSamplesPerFrame = 
-			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+	if (!rc) {
+		return false;
 	}
 
 	if (!InitDevice()) {
 		return false;
 	}
 
-	m_rawFrameSize = m_rawSamplesPerFrame
-		* m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) 
-		* sizeof(u_int16_t);
+	// for live capture we can match the source to the destination
+	m_audioSrcSamplesPerFrame = m_audioDstSamplesPerFrame;
 
-	m_rawFrameBuffer = (u_int16_t*)malloc(m_rawFrameSize);
+	m_pcmFrameSize = 
+		m_audioSrcSamplesPerFrame * m_audioSrcChannels * sizeof(u_int16_t);
 
-	if (!m_rawFrameBuffer) {
+	m_pcmFrameBuffer = (u_int8_t*)malloc(m_pcmFrameSize);
+
+	if (!m_pcmFrameBuffer) {
 		goto init_failure;
 	}
 
-	m_rawForwardedSamples = 0;
-	m_rawForwardedFrames = 0;
-	m_encodedForwardedSamples = 0;
-	m_encodedForwardedFrames = 0;
-
 	// maximum number of passes in ProcessAudio, approx 1 sec.
 	m_maxPasses = 
-		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) 
-		/ m_rawSamplesPerFrame;
+		m_audioSrcSampleRate / m_audioSrcSamplesPerFrame;
 
 	return true;
 
 init_failure:
 	debug_message("audio initialization failed");
 
-	free(m_rawFrameBuffer);
-	m_rawFrameBuffer = NULL;
-
-	delete m_encoder;
-	m_encoder = NULL;
+	free(m_pcmFrameBuffer);
+	m_pcmFrameBuffer = NULL;
 
 	close(m_audioDevice);
 	m_audioDevice = -1;
@@ -228,99 +195,24 @@ bool COSSAudioSource::InitDevice(void)
 	return true;
 }
 
-bool COSSAudioSource::InitEncoder()
-{
-	char* encoderName = 
-		m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODER);
-
-	m_encoder = AudioEncoderCreate(encoderName);
-
-	if (m_encoder == NULL) {
-		return false;
-	}
-
-	return m_encoder->Init(m_pConfig);
-}
-
 void COSSAudioSource::ProcessAudio(void)
 {
-	bool rc;
-
 	// for efficiency, process 1 second before returning to check for commands
 	for (int pass = 0; pass < m_maxPasses; pass++) {
 
-		// get a new buffer, if we've handed off the old one
-		// currently only happens when we're doing a raw record
-		if (m_rawFrameBuffer == NULL) {
-			m_rawFrameBuffer = (u_int16_t*)Malloc(m_rawFrameSize);
-		}
-
 		// read a frame's worth of raw PCM data
 		u_int32_t bytesRead = 
-			read(m_audioDevice, m_rawFrameBuffer, m_rawFrameSize); 
+			read(m_audioDevice, m_pcmFrameBuffer, m_pcmFrameSize); 
 
-		if (bytesRead < m_rawFrameSize) {
+		if (bytesRead < m_pcmFrameSize) {
+			debug_message("bad audio read");
 			continue;
 		}
 
-		Timestamp now = GetTimestamp();
-
-		if (m_startTimestamp == 0) {
-			m_startTimestamp = now - SamplesToTicks(m_rawSamplesPerFrame);
-		}
-
-		// encode audio frame
-		if (m_pConfig->m_audioEncode) {
-
-			rc = m_encoder->EncodeSamples(m_rawFrameBuffer, bytesRead);
-
-			if (!rc) {
-				debug_message("oss audio failed to encode");
-			}
-
-			u_int32_t forwardedSamples;
-			u_int32_t forwardedFrames;
-
-			ForwardEncodedAudioFrames(
-				m_encoder, 
-				m_startTimestamp 
-					+ SamplesToTicks(m_encodedForwardedSamples),
-				&forwardedSamples,
-				&forwardedFrames);
-
-			m_encodedForwardedSamples += forwardedSamples;
-			m_encodedForwardedFrames += forwardedFrames;
-		}
-
-		// if desired, forward raw audio to sinks
-		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
-
-			CMediaFrame* pFrame =
-				new CMediaFrame(
-					CMediaFrame::PcmAudioFrame, 
-					m_rawFrameBuffer, 
-					m_rawFrameSize,
-					m_startTimestamp + SamplesToTicks(m_rawForwardedSamples),
-					m_rawSamplesPerFrame,
-					m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
-			ForwardFrame(pFrame);
-			delete pFrame;
-
-			m_rawForwardedSamples += m_rawSamplesPerFrame;
-			m_rawForwardedFrames++;
-
-			// we'll get a new buffer on the next pass
-			m_rawFrameBuffer = NULL;
-		}
-	}
-}
-
-Duration COSSAudioSource::GetElapsedDuration()
-{
-	if (m_pConfig->m_audioEncode) {
-		return SamplesToTicks(m_encodedForwardedSamples);
-	} else {
-		return SamplesToTicks(m_rawForwardedSamples);
+		ProcessAudioFrame(
+			m_pcmFrameBuffer,
+			m_pcmFrameSize,
+			m_audioSrcSamplesPerFrame);
 	}
 }
 
@@ -352,7 +244,7 @@ bool CAudioCapabilities::ProbeDevice()
 		// attempt to set sound card to this sampling rate
 		rc = ioctl(audioDevice, SNDCTL_DSP_SPEED, &samplingRate);
 
-		// invalid sampling rate, allow deviation of up to 1 sample/sec
+		// invalid sampling rate, allow deviation of 1 sample/sec
 		if (rc < 0 || abs(samplingRate - targetRate) > 1) {
 			debug_message("audio device %s doesn't support sampling rate %u",
 				m_deviceName, targetRate);

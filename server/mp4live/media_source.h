@@ -32,22 +32,14 @@
 class CAudioEncoder;
 class CVideoEncoder;
 
+// virtual parent class for audio and/or video sources
+// contains all the common media processing code
+
 class CMediaSource : public CMediaNode {
 public:
-	CMediaSource() : CMediaNode() {
-		m_pSinksMutex = SDL_CreateMutex();
-		if (m_pSinksMutex == NULL) {
-			debug_message("CreateMutex error");
-		}
-		for (int i = 0; i < MAX_SINKS; i++) {
-			m_sinks[i] = NULL;
-		}
-	}
+	CMediaSource();
 
-	~CMediaSource() {
-		SDL_DestroyMutex(m_pSinksMutex);
-		m_pSinksMutex = NULL;
-	}
+	~CMediaSource();
 	
 	bool AddSink(CMediaSink* pSink);
 
@@ -72,7 +64,7 @@ public:
 
 	virtual bool IsDone() = NULL;
 
-	virtual Duration GetElapsedDuration() = NULL;
+	virtual Duration GetElapsedDuration();
 
 	virtual float GetProgress() = NULL;
 
@@ -81,28 +73,66 @@ public:
 	}
 
 	virtual u_int32_t GetNumEncodedAudioFrames() {
-		return 0;
+		return m_audioDstFrameNumber;
 	}
 
 protected:
-	void ForwardFrame(CMediaFrame* pFrame) {
-		if (SDL_LockMutex(m_pSinksMutex) == -1) {
-			debug_message("ForwardFrame LockMutex error");
-			return;
-		}
-		for (int i = 0; i < MAX_SINKS; i++) {
-			if (m_sinks[i] == NULL) {
-				break;
-			}
-			m_sinks[i]->EnqueueFrame(pFrame);
-		}
-		if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
-			debug_message("UnlockMutex error");
-		}
+	// Video & Audio support
+	virtual void ProcessMedia();
+	virtual void ProcessVideo() {
+	};
+	virtual void ProcessAudio() {
+	};
+	virtual bool IsEndOfVideo() { 
+		return true;
+	}
+	virtual bool IsEndOfAudio() {
+		return true;
 	}
 
+	void PaceSource();
+
+	void ForwardFrame(CMediaFrame* pFrame);
+
+	void DoStopSource();
+
+
+	// Video
+
+	bool InitVideo(
+		MediaType srcType,
+		u_int16_t srcWidth,
+		u_int16_t srcHeight,
+		bool matchAspectRatios = true,
+		bool realTime = true);
+
+	void ProcessVideoFrame(
+		u_int8_t* frameData,
+		u_int32_t frameDataLength,
+		Duration frameDuration);
+
+	bool WillUseVideoFrame(Duration frameDuration);
+
+	void DoGenerateKeyFrame() {
+		m_videoWantKeyFrame = true;
+	}
+
+	void DoStopVideo();
+
+	// Audio
+
+	bool InitAudio(
+		MediaType srcType,
+		u_int8_t srcChannels,
+		u_int32_t srcSampleRate,
+		bool realTime);
+
+	void ProcessAudioFrame(
+		u_int8_t* frameData,
+		u_int32_t frameDataLength,
+		u_int32_t frameDuration);
+
 	void ForwardEncodedAudioFrames(
-		CAudioEncoder* encoder,
 		Timestamp baseTimestamp,
 		u_int32_t* pNumSamples,
 		u_int32_t* pNumFrames);
@@ -112,24 +142,7 @@ protected:
 			/ m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 	}
 
-	bool InitVideo(
-		float srcFrameRate, 
-		u_int16_t srcWidth,
-		u_int16_t srcHeight,
-		bool matchAspectRatios = true,
-		bool realTime = true);
-
-	void ProcessVideoFrame(
-		u_int8_t* image,
-		Timestamp frameTimestamp);
-
-	bool WillUseVideoFrame();
-
-	void DoGenerateKeyFrame() {
-		m_videoWantKeyFrame = true;
-	}
-
-	void ShutdownVideo();
+	void DoStopAudio();
 
 protected:
 	static const int MSG_SOURCE_START_VIDEO	= 1;
@@ -141,11 +154,16 @@ protected:
 	CMediaSink* m_sinks[MAX_SINKS];
 	SDL_mutex*	m_pSinksMutex;
 
-	bool			m_realTime;
+	// generic media info
+	bool			m_source;
+	bool			m_sourceVideo;
+	bool			m_sourceAudio;
+	bool			m_sourceRealTime;
+	Timestamp		m_startTimestamp;
+	Duration		m_maxAheadDuration;
 
 	// video source info
-	float			m_videoSrcFrameRate;
-	Duration		m_videoSrcFrameDuration;
+	MediaType		m_videoSrcType;
 	u_int32_t		m_videoSrcFrameNumber;
 	u_int16_t		m_videoSrcWidth;
 	u_int16_t		m_videoSrcHeight;
@@ -158,6 +176,7 @@ protected:
 	u_int32_t		m_videoSrcUVCrop;
 
 	// video destination info
+	MediaType		m_videoDstType;
 	float			m_videoDstFrameRate;
 	Duration		m_videoDstFrameDuration;
 	u_int32_t		m_videoDstFrameNumber;
@@ -181,10 +200,10 @@ protected:
 	bool			m_videoWantKeyFrame;
 
 	// video timing info
-	Timestamp		m_videoStartTimestamp;
 	u_int32_t		m_videoSkippedFrames;
 	Duration		m_videoEncodingDrift;
 	Duration		m_videoEncodingMaxDrift;
+	Duration		m_videoSrcElapsedDuration;
 	Duration		m_videoDstElapsedDuration;
 
 	// video previous frame info
@@ -192,6 +211,32 @@ protected:
 	u_int8_t*		m_videoDstPrevReconstructImage;
 	u_int8_t*		m_videoDstPrevFrame;
 	u_int32_t		m_videoDstPrevFrameLength;
+
+
+	// audio source info 
+	MediaType		m_audioSrcType;
+	u_int8_t		m_audioSrcChannels;
+	u_int32_t		m_audioSrcSampleRate;
+	u_int16_t		m_audioSrcSamplesPerFrame;
+	u_int64_t		m_audioSrcSampleNumber;
+	u_int32_t		m_audioSrcFrameNumber;
+
+	// audio destination info
+	MediaType		m_audioDstType;
+	u_int8_t		m_audioDstChannels;
+	u_int32_t		m_audioDstSampleRate;
+	u_int16_t		m_audioDstSamplesPerFrame;
+	u_int64_t		m_audioDstSampleNumber;
+	u_int32_t		m_audioDstFrameNumber;
+	u_int64_t		m_audioDstRawSampleNumber;
+	u_int32_t		m_audioDstRawFrameNumber;
+
+	// audio encoding info
+	CAudioEncoder*	m_audioEncoder;
+
+	// audio timing info
+	Duration		m_audioSrcElapsedDuration;
+	Duration		m_audioDstElapsedDuration;
 };
 
 #endif /* __MEDIA_SOURCE_H__ */

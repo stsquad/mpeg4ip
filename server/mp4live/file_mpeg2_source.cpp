@@ -21,6 +21,7 @@
 
 #include "mp4live.h"
 #include "file_mpeg2_source.h"
+#include "audio_encoder.h"
 
 
 int CMpeg2FileSource::ThreadMain(void) 
@@ -135,54 +136,37 @@ void CMpeg2FileSource::DoStartAudio(void)
 		return;
 	}
 
-	m_audioStartTimestamp = GetTimestamp();
-
 	m_sourceAudio = true;
 	m_source = true;
 }
 
 void CMpeg2FileSource::DoStopSource(void)
 {
-	if (!m_source) {
-		return;
-	}
+	CMediaSource::DoStopSource();
 
-	ShutdownVideo();
-
+#ifdef MPEG2_RAW_ONLY
 	free(m_videoYUVImage);
 	m_videoYUVImage = NULL;
 	m_videoYImage = NULL;
 	m_videoUImage = NULL;
 	m_videoVImage = NULL;
 
-	if (m_audioEncoder) {
-		// flush remaining output from audio encoder
-		// and forward it to sinks
+	free(m_audioPcmLeftSamples);
+	m_audioPcmLeftSamples = NULL;
+	free(m_audioPcmRightSamples);
+	m_audioPcmRightSamples = NULL;
+	free(m_audioPcmSamples);
+	m_audioPcmSamples = NULL;
+#else
+	free(m_videoMpeg2Frame);
+	m_videoMpeg2Frame = NULL;
 
-		m_audioEncoder->EncodeSamples(NULL, 0);
-
-		u_int32_t forwardedSamples;
-		u_int32_t forwardedFrames;
-
-		ForwardEncodedAudioFrames(
-			m_audioEncoder, 
-			m_audioStartTimestamp
-				+ SamplesToTicks(m_audioEncodedForwardedSamples),
-			&forwardedSamples,
-			&forwardedFrames);
-
-		m_audioEncodedForwardedSamples += forwardedSamples;
-		m_audioEncodedForwardedFrames += forwardedFrames;
-
-		m_audioEncoder->Stop();
-		delete m_audioEncoder;
-		m_audioEncoder = NULL;
-	}
+	free(m_audioFrameData);
+	m_audioFrameData = NULL;
+#endif
 
 	mpeg3_close(m_mpeg2File);
 	m_mpeg2File = NULL;
-
-	m_source = false;
 }
 
 bool CMpeg2FileSource::InitVideo(void)
@@ -200,21 +184,32 @@ bool CMpeg2FileSource::InitVideo(void)
 		return false;
 	}
 
+	float srcFrameRate =
+		mpeg3_frame_rate(m_mpeg2File, m_videoStream);
+
+	m_videoSrcFrameDuration =
+		(Duration)(((float)TimestampTicks / srcFrameRate) + 0.5);
+
 	bool realTime =
 		m_pConfig->GetBoolValue(CONFIG_RTP_ENABLE);
 
 	CMediaSource::InitVideo(
-		mpeg3_frame_rate(m_mpeg2File, m_videoStream),
+		CMediaFrame::YuvVideoFrame,
 		mpeg3_video_width(m_mpeg2File, m_videoStream),
 		mpeg3_video_height(m_mpeg2File, m_videoStream),
 		false, 
 		realTime);
 
+#ifdef MPEG2_RAW_ONLY
 	m_videoYUVImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
 
 	m_videoYImage = m_videoYUVImage;
 	m_videoUImage = m_videoYUVImage + m_videoSrcYSize;
 	m_videoVImage = m_videoYUVImage + m_videoSrcYSize + m_videoSrcUVSize;
+#else
+	m_videoSrcMaxFrameLength = 128 * 1024;
+	m_videoMpeg2Frame = (u_int8_t*)Malloc(m_videoSrcMaxFrameLength);
+#endif
 
 	return true;
 }
@@ -235,138 +230,80 @@ bool CMpeg2FileSource::InitAudio(void)
 		return false;
 	}
 
-	char* afmt = mpeg3_audio_format(m_mpeg2File, m_audioStream);
+	char* afmt = 
+		mpeg3_audio_format(m_mpeg2File, m_audioStream);
+	MediaType srcType;
 
+#ifdef MPEG2_RAW_ONLY
+	srcType = CMediaFrame::PcmAudioFrame;
+#else
 	if (!strcmp(afmt, "MPEG")) {
-		m_audioSrcEncoding = AUDIO_ENCODING_MP3;
+		srcType = CMediaFrame::Mp3AudioFrame;
 	} else if (!strcmp(afmt, "AAC")) {
-		m_audioSrcEncoding = AUDIO_ENCODING_AAC;
+		srcType = CMediaFrame::AacAudioFrame;
 	} else if (!strcmp(afmt, "AC3")) {
-		m_audioSrcEncoding = AUDIO_ENCODING_AC3;
+		srcType = CMediaFrame::Ac3AudioFrame;
+	} else if (!strcmp(afmt, "PCM")) {
+		srcType = CMediaFrame::PcmAudioFrame;
+	} else if (!strcmp(afmt, "Vorbis")) {
+		srcType = CMediaFrame::VorbisAudioFrame;
 	} else {
 		debug_message("mpeg2 unsupported audio format %s", afmt);
 		return false;
 	}
+#endif
 
-	m_audioSrcChannels = mpeg3_audio_channels(m_mpeg2File, m_audioStream);
-	m_audioSrcSampleRate = mpeg3_sample_rate(m_mpeg2File, m_audioStream);
+	bool realTime =
+		m_pConfig->GetBoolValue(CONFIG_RTP_ENABLE);
 
-	// LATER allow audio resampling
-	m_pConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE,
-		m_audioSrcSampleRate);
+	CMediaSource::InitAudio(
+		srcType,
+		mpeg3_audio_channels(m_mpeg2File, m_audioStream),
+		mpeg3_sample_rate(m_mpeg2File, m_audioStream),
+		realTime);
 
-	char* dstEncoding =
-		m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+#ifdef MPEG2_RAW_ONLY
+	m_audioPcmLeftSamples = (u_int16_t*)
+		Malloc(m_audioSrcSamplesPerFrame * sizeof(u_int16_t));
 
-	if (!strcasecmp(dstEncoding, AUDIO_ENCODING_MP3)) {
-		m_audioDstFrameType = CMediaFrame::Mp3AudioFrame;
-		m_audioSrcSamplesPerFrame = 1152;
-	} else if (!strcasecmp(dstEncoding, AUDIO_ENCODING_AAC)) {
-		m_audioDstFrameType = CMediaFrame::AacAudioFrame;
-		m_audioSrcSamplesPerFrame = 1024;
+	if (m_audioSrcChannels > 1) {
+		m_audioPcmRightSamples = (u_int16_t*)
+			Malloc(m_audioSrcSamplesPerFrame * sizeof(u_int16_t));
+		m_audioPcmSamples = (u_int16_t*)
+			Malloc(2 * m_audioSrcSamplesPerFrame * sizeof(u_int16_t));
 	} else {
-		m_audioDstFrameType = CMediaFrame::UndefinedFrame;
-		m_audioSrcSamplesPerFrame = 1024;
+		m_audioPcmRightSamples = NULL;
+		m_audioPcmSamples = NULL;
 	}
 
-	if (!strcasecmp(dstEncoding, m_audioSrcEncoding)) {
-		m_audioEncode = false;
-	} else {
-		m_audioEncode = true;
-	}
-
-	if (m_audioEncode) {
-		m_audioEncoder = AudioEncoderCreate(
-			m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODER));
-
-		if (!m_audioEncoder) {
-			return false;
-		}
-		if (!m_audioEncoder->Init(m_pConfig)) {
-			return false;
-		}
-	}
-
-	m_audioMaxFrameLength = 4 * 1024;
-
-	m_audioSrcSamples = 0;
-	m_audioSrcFrames = 0;
-	m_audioRawForwardedSamples = 0;
-	m_audioRawForwardedFrames = 0;
-	m_audioEncodedForwardedSamples = 0;
-	m_audioEncodedForwardedFrames = 0;
-	m_audioElapsedDuration = 0;
+#else
+	m_audioSrcMaxFrameLength = 4 * 1024;
+	m_audioFrameData = (u_int8_t*)Malloc(m_audioSrcMaxFrameLength);
+#endif
 
 	return true;
 }
 
-void CMpeg2FileSource::ProcessMedia(void)
+void CMpeg2FileSource::ProcessVideo()
 {
-	Duration start = GetElapsedDuration();
-
-	// process ~1 second before returning to check for commands
-	while (GetElapsedDuration() - start < (Duration)TimestampTicks) {
-
-		if (m_sourceVideo && m_sourceAudio) {
-			bool endOfVideo =
-				mpeg3_end_of_video(m_mpeg2File, m_videoStream);
-			bool endOfAudio =
-				mpeg3_end_of_audio(m_mpeg2File, m_audioStream);
-
-			if (endOfVideo && endOfAudio) {
-				DoStopSource();
-				break;
-			}
-			if (!endOfVideo && 
-			  (m_videoElapsedDuration <= m_audioElapsedDuration 
-				|| endOfAudio)) {
-				ProcessVideo();
-			} else {
-				ProcessAudio();
-			}
-
-		} else if (m_sourceVideo) {
-			if (mpeg3_end_of_video(m_mpeg2File, m_videoStream)) {
-				DoStopSource();
-				break;
-			}
-			ProcessVideo();
-
-		} else if (m_sourceAudio) {
-			if (mpeg3_end_of_audio(m_mpeg2File, m_audioStream)) {
-				DoStopSource();
-				break;
-			}
-			ProcessAudio();
-		}
-	}
-}
-
-void CMpeg2FileSource::ProcessVideo(void)
-{
-	// check if we'll encode this frame
-	if (!WillUseVideoFrame()) {
+	// check if we'll use this frame
+	if (!WillUseVideoFrame(m_videoSrcFrameDuration)) {
 		// if not, just skip frame, don't bother decoding it
 		m_videoSrcFrameNumber++;
+		m_videoSrcElapsedDuration += m_videoSrcFrameDuration;
 		mpeg3_set_frame(m_mpeg2File, m_videoSrcFrameNumber, m_videoStream);
 		return;
 	}
 
-	if (m_realTime) {
-		// TBD PaceFileSource();
-		Duration realDuration =
-			GetTimestamp() - m_videoStartTimestamp;
-		Duration aheadDuration =
-			m_videoElapsedDuration - realDuration; 
+	PaceSource();
 
-		if (aheadDuration >= m_maxAheadDuration) {
-			SDL_Delay((aheadDuration - (m_maxAheadDuration / 2)) / 1000);
-		}
-	}
+	int rc;
+	u_int8_t* frameData;
+	u_int32_t frameDataLength;
 
-	int rc = 0;
+#ifdef MPEG2_RAW_ONLY
 
-	// read mpeg2 frame
+	// read and decode video frame to YUV
 	rc = mpeg3_read_yuvframe(
 		m_mpeg2File, 
 		(char*)m_videoYImage, 
@@ -378,197 +315,115 @@ void CMpeg2FileSource::ProcessVideo(void)
 		m_videoSrcHeight,
 		m_videoStream);
 
+	frameData = m_videoYUVImage;
+	frameDataLength = m_videoSrcYUVSize;
+
+#else
+
+	// read encoded MPEG frame
+	rc = mpeg3_read_video_chunk(
+		m_mpeg2File,
+		m_videoMpeg2Frame,
+		(long*)&frameDataLength,
+		m_videoSrcMaxFrameLength,
+		m_videoStream);
+
+	frameData = m_videoMpeg2Frame;
+
+	// TBD may need to set frame
+
+#endif
+
 	if (rc != 0) {
 		debug_message("error reading mpeg2 video");
 		return;
 	}
 
 	ProcessVideoFrame(
-		m_videoYUVImage,
-		m_videoStartTimestamp 
-			+ (m_videoSrcFrameNumber * m_videoSrcFrameDuration));
+		frameData,
+		frameDataLength,
+		m_videoSrcFrameDuration);
 
 	return;
 }
 
 void CMpeg2FileSource::ProcessAudio(void)
 {
-	int rc = 0;
-	u_int32_t startSample =
-		mpeg3_get_sample(m_mpeg2File, m_audioStream);
-	u_int16_t* pcmLeftSamples = NULL;
-	u_int16_t* pcmRightSamples = NULL;
+	PaceSource();
 
-	if (m_realTime) {
-		// TBD PaceFileSource();
-		Duration realDuration =
-			GetTimestamp() - m_audioStartTimestamp;
-		Duration aheadDuration =
-			m_audioElapsedDuration - realDuration; 
+	int rc;
+	u_int8_t* frameData;
+	u_int32_t frameDataLength;
 
-		if (aheadDuration >= m_maxAheadDuration) {
-			SDL_Delay((aheadDuration - (m_maxAheadDuration / 2)) / 1000);
-		}
+#ifdef MPEG2_RAW_ONLY
+	rc = mpeg3_read_audio(
+		m_mpeg2File,
+		NULL,
+		(int16_t*)m_audioPcmLeftSamples,
+		0,
+		m_audioSrcSamplesPerFrame,
+		m_audioStream);
+
+	if (rc != 0) {
+		debug_message("error reading mpeg2 audio");
+		return;
 	}
 
-	if (m_audioEncode
-	  || m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
-
-		pcmLeftSamples = (u_int16_t*)
-			Malloc(m_audioSrcSamplesPerFrame * sizeof(u_int16_t));
-
-		rc = mpeg3_read_audio(
+	if (m_audioPcmRightSamples) {
+		rc = mpeg3_reread_audio(
 			m_mpeg2File,
 			NULL,
-			(int16_t*)pcmLeftSamples,
-			0,
+			(int16_t*)m_audioPcmRightSamples,
+			1,
 			m_audioSrcSamplesPerFrame,
 			m_audioStream);
 
 		if (rc != 0) {
 			debug_message("error reading mpeg2 audio");
-			goto cleanup;
+			return;
 		}
 
-		if (m_audioSrcChannels > 1) {
-			pcmRightSamples = (u_int16_t*)
-				Malloc(m_audioSrcSamplesPerFrame * sizeof(u_int16_t));
+		CAudioEncoder::InterleaveStereoSamples(
+			m_audioPcmLeftSamples,
+			m_audioPcmRightSamples,
+			m_audioSrcSamplesPerFrame,
+			&m_audioPcmSamples);
 
-			rc = mpeg3_reread_audio(
-				m_mpeg2File,
-				NULL,
-				(int16_t*)pcmRightSamples,
-				1,
-				m_audioSrcSamplesPerFrame,
-				m_audioStream);
-
-			if (rc != 0) {
-				debug_message("error reading mpeg2 audio");
-				goto cleanup;
-			}
-		}
-
-		// if we're going to want the encoded frame from the file
-		// then we need to backup so we can reread the frame
-		if (!m_audioEncode) {
-			mpeg3_set_sample(m_mpeg2File, startSample, m_audioStream);
-		}
-	}
-			
-	// encode audio frame
-	if (m_audioEncode) {
-		rc = m_audioEncoder->EncodeSamples(
-			pcmLeftSamples, 
-			pcmRightSamples,
-			m_audioSrcSamplesPerFrame * sizeof(u_int16_t));
-
-		if (!rc) {
-			debug_message("error encoding mpeg2 audio");
-			goto cleanup;
-		}
-
-		u_int32_t forwardedSamples;
-		u_int32_t forwardedFrames;
-
-		ForwardEncodedAudioFrames(
-			m_audioEncoder, 
-			m_audioStartTimestamp 
-				+ SamplesToTicks(m_audioEncodedForwardedSamples),
-			&forwardedSamples,
-			&forwardedFrames);
-
-		m_audioEncodedForwardedSamples += forwardedSamples;
-		m_audioEncodedForwardedFrames += forwardedFrames;
-
+		frameData = (u_int8_t*)m_audioPcmSamples;
+		frameDataLength = 2 * m_audioSrcSamplesPerFrame * sizeof(u_int16_t);
 	} else {
-		// else it's already encoded MP3 or AAC
-
-		u_int8_t* frameData =
-			(u_int8_t*)Malloc(m_audioMaxFrameLength);
-		u_int32_t frameLength;
-
-		// just read the encoded data
-		rc = mpeg3_read_audio_chunk(
-			m_mpeg2File,
-			frameData,
-			(long int*)&frameLength,
-			m_audioMaxFrameLength,
-			m_audioStream);
-
-		if (rc != 0) {
-			debug_message("error reading mpeg2 audio");
-			goto cleanup;
-		}
-
-		mpeg3_set_sample(m_mpeg2File, 
-			startSample + m_audioSrcSamplesPerFrame, m_audioStream);
-
-		// and forward it to sinks
-		CMediaFrame* pFrame =
-			new CMediaFrame(
-				m_audioDstFrameType,
-				frameData, 
-				frameLength,
-				m_audioStartTimestamp 
-					+ SamplesToTicks(m_audioEncodedForwardedSamples),
-				m_audioSrcSamplesPerFrame,
-				m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
-		ForwardFrame(pFrame);
-		delete pFrame;
+		frameData = (u_int8_t*)m_audioPcmLeftSamples;
+		frameDataLength = m_audioSrcSamplesPerFrame * sizeof(u_int16_t);
 	}
 
-	// if desired, forward raw audio to sinks
-	if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
-		u_int16_t* pcmSamples = NULL;
+#else
+	u_int32_t startSample =
+		mpeg3_get_sample(m_mpeg2File, m_audioStream);
 
-		// if necessary, interleave left and right channels
-		if (pcmRightSamples) {
-			CAudioEncoder::InterleaveStereoSamples(
-				pcmLeftSamples,
-				pcmRightSamples,
-				m_audioSrcSamplesPerFrame,
-				&pcmSamples);
-		} else {
-			pcmSamples = pcmLeftSamples;
-			pcmLeftSamples = NULL;	// avoid free during cleanup
-		}
+	// read the audio data
+	rc = mpeg3_read_audio_chunk(
+		m_mpeg2File,
+		m_audioFrameData,
+		(long*)&frameDataLength,
+		m_audioSrcMaxFrameLength,
+		m_audioStream);
 
-		CMediaFrame* pFrame =
-			new CMediaFrame(
-				CMediaFrame::PcmAudioFrame, 
-				pcmSamples, 
-				m_audioSrcSamplesPerFrame * sizeof(u_int16_t)
-					* m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
-				m_audioStartTimestamp + SamplesToTicks(m_audioSrcSamples),
-				m_audioSrcSamplesPerFrame,
-				m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
-		ForwardFrame(pFrame);
-		delete pFrame;
+	if (rc != 0) {
+		debug_message("error reading mpeg2 audio");
+		return;
 	}
 
-	m_audioSrcSamples += m_audioSrcSamplesPerFrame;
-	m_audioSrcFrames++;
+	mpeg3_set_sample(
+		m_mpeg2File, 
+		startSample + m_audioSrcSamplesPerFrame, 
+		m_audioStream);
 
-cleanup:
-	free(pcmLeftSamples);
-	free(pcmRightSamples);
-}
+	frameData = m_audioFrameData;
+#endif 
 
-Duration CMpeg2FileSource::GetElapsedDuration()
-{
-	m_videoElapsedDuration =
-		m_videoSrcFrameNumber * m_videoSrcFrameDuration;
-
-	m_audioElapsedDuration =
-		SamplesToTicks(m_audioSrcSamples);
-
-	if (m_sourceVideo && m_sourceAudio) {
-		return MIN(m_videoElapsedDuration, m_audioElapsedDuration);
-	} else if (m_sourceVideo) {
-		return m_videoElapsedDuration;
-	} else if (m_sourceAudio) {
-		return m_audioElapsedDuration;
-	}
-	return 0;
+	ProcessAudioFrame(
+		frameData,
+		frameDataLength,
+		m_audioSrcSamplesPerFrame);
 }
 

@@ -21,7 +21,6 @@
 #endif
 #endif
 
-
 /* Do we really not want stdio redirection with Windows CE? */
 #ifdef _WIN32_WCE
 #define NO_STDIO_REDIRECT

@@ -53,7 +53,7 @@ typedef struct adu_data_t {
 class CRfc3119RtpByteStream : public CRtpByteStreamBase
 {
  public:
-  CRfc3119RtpByteStream(unsigned int rtp_proto,
+  CRfc3119RtpByteStream(unsigned int rtp_pt,
 			int ondemand,
 			uint64_t tickpersec,
 			rtp_packet **head, 
@@ -71,7 +71,9 @@ class CRfc3119RtpByteStream : public CRtpByteStreamBase
   void used_bytes_for_frame(uint32_t byte);
   void flush_rtp_packets(void);
  protected:
-  int check_rtp_frame_complete_for_proto(void) { return m_head != NULL; };
+  int check_rtp_frame_complete_for_payload_type(void) {
+    return m_head != NULL;
+  };
 
  private:
 #ifdef ISMA_RTP_DUMP_OUTPUT_TO_FILE

@@ -174,4 +174,5 @@
 	SDL_WM_IconifyWindow
 	SDL_WM_ToggleFullScreen
 	SDL_WM_GrabInput
+	SDL_SoftStretch
 	SDL_InitQuickDraw

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_endian.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_endian.h,v 1.2 2002/05/01 17:40:32 wmaycisco Exp $";
 #endif
 
 /* Functions for reading and writing endian-specific values */
@@ -124,20 +124,20 @@ static __inline__ Uint64 SDL_Swap64(Uint64 val) {
 #endif
 
 /* Read an item of the specified endianness and return in native format */
-extern DECLSPEC Uint16 SDL_ReadLE16(SDL_RWops *src);
-extern DECLSPEC Uint16 SDL_ReadBE16(SDL_RWops *src);
-extern DECLSPEC Uint32 SDL_ReadLE32(SDL_RWops *src);
-extern DECLSPEC Uint32 SDL_ReadBE32(SDL_RWops *src);
-extern DECLSPEC Uint64 SDL_ReadLE64(SDL_RWops *src);
-extern DECLSPEC Uint64 SDL_ReadBE64(SDL_RWops *src);
+extern DECLSPEC Uint16 SDLCALL SDL_ReadLE16(SDL_RWops *src);
+extern DECLSPEC Uint16 SDLCALL SDL_ReadBE16(SDL_RWops *src);
+extern DECLSPEC Uint32 SDLCALL SDL_ReadLE32(SDL_RWops *src);
+extern DECLSPEC Uint32 SDLCALL SDL_ReadBE32(SDL_RWops *src);
+extern DECLSPEC Uint64 SDLCALL SDL_ReadLE64(SDL_RWops *src);
+extern DECLSPEC Uint64 SDLCALL SDL_ReadBE64(SDL_RWops *src);
 
 /* Write an item of native format to the specified endianness */
-extern DECLSPEC int SDL_WriteLE16(SDL_RWops *dst, Uint16 value);
-extern DECLSPEC int SDL_WriteBE16(SDL_RWops *dst, Uint16 value);
-extern DECLSPEC int SDL_WriteLE32(SDL_RWops *dst, Uint32 value);
-extern DECLSPEC int SDL_WriteBE32(SDL_RWops *dst, Uint32 value);
-extern DECLSPEC int SDL_WriteLE64(SDL_RWops *dst, Uint64 value);
-extern DECLSPEC int SDL_WriteBE64(SDL_RWops *dst, Uint64 value);
+extern DECLSPEC int SDLCALL SDL_WriteLE16(SDL_RWops *dst, Uint16 value);
+extern DECLSPEC int SDLCALL SDL_WriteBE16(SDL_RWops *dst, Uint16 value);
+extern DECLSPEC int SDLCALL SDL_WriteLE32(SDL_RWops *dst, Uint32 value);
+extern DECLSPEC int SDLCALL SDL_WriteBE32(SDL_RWops *dst, Uint32 value);
+extern DECLSPEC int SDLCALL SDL_WriteLE64(SDL_RWops *dst, Uint64 value);
+extern DECLSPEC int SDLCALL SDL_WriteBE64(SDL_RWops *dst, Uint64 value);
 
 
 /* Ends C function definitions when using C++ */

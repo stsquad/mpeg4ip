@@ -19,12 +19,12 @@
     Sam Lantinga
     5635-34 Springhouse Dr.
     Pleasanton, CA 94588 (USA)
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_timer_c.h,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_timer_c.h,v 1.2 2002/05/01 17:40:58 wmaycisco Exp $";
 #endif
 
 /* Useful functions and variables from SDL_timer.c */

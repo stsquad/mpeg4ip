@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syssem.c,v 1.2 2001/11/14 00:17:30 wmaycisco Exp $";
+ "@(#) $Id: SDL_syssem.c,v 1.3 2002/05/01 17:40:56 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -266,7 +266,6 @@ int SDL_SemPost(SDL_sem *sem)
  */
 
 #include <errno.h>
-#include <semaphore.h>
 #include <pthread.h>
 
 /* Begin thread_private.h kluge */
@@ -503,4 +502,6 @@ sem_getvalue(sem_t *sem, int *sval)
   RETURN:
 	return retval;
 }
-#endif
+
+/* END of inlined uthread_sem.c */
+#endif /* SDL_USE_PTHREADS */

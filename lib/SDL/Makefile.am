@@ -22,20 +22,30 @@ EXTRA_DIST =		\
         COPYING		\
         CREDITS		\
         INSTALL		\
-        README		\
-        README-SDL.txt	\
-        README.Win32	\
-        README.WinCE	\
-        README.MacOS	\
-        README.MacOSX	\
+	README		\
+	README.AmigaOS	\
+	README.CVS	\
+	README.Epoc	\
+	README.MacOS	\
+	README.MacOSX	\
+	README.MiNT	\
+	README.NanoX	\
+	README.OpenBSD	\
+	README.QNX	\
+	README.Win32	\
+	README.WinCE	\
+	README-SDL.txt	\
+	BorlandC.html	\
+	Borland.zip	\
         VisualC.html	\
         VisualC.zip	\
         MPWmake.sea.bin	\
 	CWprojects.sea.bin \
 	PBProjects.tar.gz \
+	EpocBuildFiles.zip \
         WhatsNew	\
         docs.html	\
-        sdl.m4		\
+	sdl.m4		\
         SDL.spec	\
         autogen.sh	\
         strip_fPIC.sh

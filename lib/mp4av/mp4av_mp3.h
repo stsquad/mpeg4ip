@@ -31,13 +31,19 @@ bool MP4AV_Mp3GetNextFrame(
 	u_int32_t* pFrameSize, 
 	bool allowLayer4 = false);
 
+MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(u_int8_t* pBytes);
+
 u_int8_t MP4AV_Mp3GetHdrVersion(MP4AV_Mp3Header hdr);
 
 u_int8_t MP4AV_Mp3GetHdrLayer(MP4AV_Mp3Header hdr);
 
+u_int8_t MP4AV_Mp3GetChannels(MP4AV_Mp3Header hdr);
+
 u_int16_t MP4AV_Mp3GetHdrSamplingRate(MP4AV_Mp3Header hdr);
 
 u_int16_t MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3Header hdr);
+
+u_int16_t MP4AV_Mp3GetSamplingWindow(u_int16_t samplingRate);
 
 u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr);
 

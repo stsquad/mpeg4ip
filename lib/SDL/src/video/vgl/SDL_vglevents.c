@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_vglevents.c,v 1.1 2001/08/23 00:09:18 wmaycisco Exp $";
+ "@(#) $Id: SDL_vglevents.c,v 1.2 2002/05/01 17:41:27 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting X11 events into SDL events */

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systimer.c,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
+ "@(#) $Id: SDL_systimer.c,v 1.3 2002/05/01 17:41:00 wmaycisco Exp $";
 #endif
 
 #include <windows.h>
@@ -57,12 +57,14 @@ void SDL_StartTicks(void)
 #ifdef USE_GETTICKCOUNT
 	start = GetTickCount();
 #else
+#if 0 /* Apparently there are problems with QPC on Win2K */
 	if (QueryPerformanceFrequency(&hires_ticks_per_second) == TRUE)
 	{
 		hires_timer_available = TRUE;
 		QueryPerformanceCounter(&hires_start_ticks);
 	}
 	else
+#endif
 	{
 		hires_timer_available = FALSE;
 		timeBeginPeriod(1);		/* use 1 ms timer precision */

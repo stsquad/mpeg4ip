@@ -230,6 +230,7 @@ static void start_session_from_name (const char *name)
   const char *suffix = strrchr(name, '.');
   if ((suffix != NULL) && 
       ((strcasecmp(suffix, ".mp4plist") == 0) ||
+       (strcasecmp(suffix, ".mxu") == 0) ||
        (strcasecmp(suffix, ".gmp4_playlist") == 0))) {
     const char *errmsg = NULL;
     master_playlist = new CPlaylist(name, &errmsg);

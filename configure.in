@@ -3,19 +3,26 @@ AC_INIT()
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.9)
-
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
 
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.10)
+
+
+
 dnl Checks for programs.
-AC_PROG_CC
-AC_PROG_CXX(c++)
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
-AC_PROG_LIBTOOL
+AC_PROG_MAKE_SET
+AC_PROG_CC
+OBJC="???"
+AC_SUBST(OBJC)
+AC_PROG_CXX(c++)
+AC_C_INLINE
+AC_C_CONST
+AC_PROG_INSTALL
 AC_PATH_XTRA
 
 AC_C_BIGENDIAN
@@ -24,11 +31,19 @@ AS=gcc
 AC_SUBST(AS)
 ASFLAGS="$ASFLAGS"
 AC_SUBST(ASFLAGS)
+CCAS=gcc
+AC_SUBST(CCAS)
+CCASFLAGS="$ASFLAGS"
+AC_SUBST(CCASFLAGS)
 CFLAGS="$CFLAGS -DMPEG4IP"
 CXXFLAGS="$CXXFLAGS -DMPEG4IP"
 
 dnl Checks for libraries.
 
+AC_CHECK_LIB(sndfile, sf_open_read)
+AC_CHECK_LIB(sndfile, sf_open_read,
+	     [AM_CONDITIONAL(HAVE_LIBSNDFILE, true)],
+	     [AM_CONDITIONAL(HAVE_LIBSNDFILE, false)])
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
@@ -36,7 +51,6 @@ AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h glib.h)
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
-
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
@@ -244,29 +258,34 @@ AC_OUTPUT( \
 	lib/mp4av/Makefile \
 	lib/msg_queue/Makefile \
 	lib/sdp/Makefile \
+	lib/xvid/Makefile \
+	lib/xvid/dct/Makefile \
+	lib/xvid/dct/x86_asm/Makefile \
+	lib/xvid/bitstream/Makefile \
+	lib/xvid/bitstream/x86_asm/Makefile \
+	lib/xvid/image/Makefile \
+	lib/xvid/image/x86_asm/Makefile \
+	lib/xvid/motion/Makefile \
+	lib/xvid/motion/x86_asm/Makefile \
+	lib/xvid/prediction/Makefile \
+	lib/xvid/quant/Makefile \
+	lib/xvid/quant/x86_asm/Makefile \
+	lib/xvid/utils/Makefile \
+	lib/xvid/utils/x86_asm/Makefile \
 	common/Makefile \
 	common/video/Makefile \
-	common/video/xvid/Makefile \
-	common/video/xvid/common/Makefile \
-	common/video/xvid/common/intel_mmx/Makefile \
-	common/video/xvid/image/Makefile \
-	common/video/xvid/image/intel_mmx/Makefile \
-	common/video/xvid/encoder/Makefile \
-	common/video/xvid/encoder/intel_mmx/Makefile \
-	common/video/xvid/decoder/Makefile \
-	common/video/xvid/decoder/intel_mmx/Makefile \
 	common/video/libmpeg3/Makefile \
 	common/video/libmpeg3/audio/Makefile \
 	common/video/libmpeg3/video/Makefile \
+	common/video/libmpeg32/Makefile \
+	common/video/libmpeg32/audio/Makefile \
+	common/video/libmpeg32/video/Makefile \
 	common/video/libdv/Makefile \
 	server/Makefile \
 	server/audio/Makefile \
 	server/audio/faac/Makefile \
 	server/video/Makefile \
-	server/video/divx/Makefile \
-	server/video/ffmpeg/Makefile \
 	server/video/H26L/Makefile \
-	server/lib/Makefile \
 	server/mp4live/Makefile \
 	server/mp4live/gui/Makefile \
 	server/mp4creator/Makefile \
@@ -276,12 +295,7 @@ AC_OUTPUT( \
 	server/util/avidump/Makefile \
 	server/util/rgb2yuv/Makefile \
 	server/util/lboxcrop/Makefile \
-	server/util/mp4apkt/Makefile \
-	server/util/mp4vpkt/Makefile \
-	server/util/mp4vhdr/Makefile \
-	server/util/mp4dump/Makefile \
-	server/util/mp4extract/Makefile \
-	server/util/mp4regenerate/Makefile \
+	server/util/xvidenc/Makefile \
 	player/Makefile \
 	player/lib/Makefile \
 	player/lib/libhttp/Makefile \
@@ -291,17 +305,16 @@ AC_OUTPUT( \
 	player/lib/audio/mp3/Makefile \
 	player/lib/audio/mp3util/Makefile \
 	player/lib/mp4util/Makefile \
-	player/lib/video/Makefile \
-	player/lib/video/divx/Makefile \
 	player/plugin/Makefile \
 	player/plugin/audio/Makefile \
 	player/plugin/audio/raw/Makefile \
 	player/plugin/video/Makefile \
+	player/plugin/video/mpeg3/Makefile \
 	player/plugin/video/raw/Makefile \
+	player/plugin/video/xvid/Makefile \
 	player/src/Makefile \
 	player/src/codec/Makefile \
 	player/src/codec/aa/Makefile \
-	player/src/codec/divx/Makefile \
 	player/src/codec/mp3/Makefile \
 	player/src/codec/mpeg4/Makefile \
 	player/src/codec/wav/Makefile \

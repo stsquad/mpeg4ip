@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_rwops.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_rwops.h,v 1.2 2002/05/01 17:40:32 wmaycisco Exp $";
 #endif
 
 /* This file provides a general interface for SDL to read and write
@@ -87,14 +87,14 @@ typedef struct SDL_RWops {
 
 /* Functions to create SDL_RWops structures from various data sources */
 
-extern DECLSPEC SDL_RWops * SDL_RWFromFile(const char *file, const char *mode);
+extern DECLSPEC SDL_RWops * SDLCALL SDL_RWFromFile(const char *file, const char *mode);
 
-extern DECLSPEC SDL_RWops * SDL_RWFromFP(FILE *fp, int autoclose);
+extern DECLSPEC SDL_RWops * SDLCALL SDL_RWFromFP(FILE *fp, int autoclose);
 
-extern DECLSPEC SDL_RWops * SDL_RWFromMem(void *mem, int size);
+extern DECLSPEC SDL_RWops * SDLCALL SDL_RWFromMem(void *mem, int size);
 
-extern DECLSPEC SDL_RWops * SDL_AllocRW(void);
-extern DECLSPEC void SDL_FreeRW(SDL_RWops *area);
+extern DECLSPEC SDL_RWops * SDLCALL SDL_AllocRW(void);
+extern DECLSPEC void SDLCALL SDL_FreeRW(SDL_RWops *area);
 
 /* Macros to easily read and write from an SDL_RWops structure */
 #define SDL_RWseek(ctx, offset, whence)	(ctx)->seek(ctx, offset, whence)

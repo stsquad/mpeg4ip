@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_romaudio.c,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
+ "@(#) $Id: SDL_romaudio.c,v 1.3 2002/05/01 17:40:38 wmaycisco Exp $";
 #endif
 
 #if TARGET_API_MAC_CARBON
@@ -30,6 +30,7 @@ static char rcsid =
 #else
 #  include <Sound.h> /* SoundManager interface */
 #  include <Gestalt.h>
+#  include <DriverServices.h>
 #endif
 
 #include <stdlib.h>
@@ -46,6 +47,8 @@ static char rcsid =
 
 static void Mac_CloseAudio(_THIS);
 static int Mac_OpenAudio(_THIS, SDL_AudioSpec *spec);
+static void Mac_LockAudio(_THIS);
+static void Mac_UnlockAudio(_THIS);
 
 /* Audio driver bootstrap functions */
 
@@ -84,8 +87,14 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
     /* Set the function pointers */
     this->OpenAudio   = Mac_OpenAudio;
     this->CloseAudio  = Mac_CloseAudio;
+    this->LockAudio   = Mac_LockAudio;
+    this->UnlockAudio = Mac_UnlockAudio;
     this->free        = Audio_DeleteDevice;
 
+#ifdef MACOSX	/* MacOS X uses threaded audio, so normal thread code is okay */
+    this->LockAudio   = NULL;
+    this->UnlockAudio = NULL;
+#endif
     return this;
 }
 
@@ -94,18 +103,75 @@ AudioBootStrap SNDMGR_bootstrap = {
 	Audio_Available, Audio_CreateDevice
 };
 
-#if TARGET_API_MAC_CARBON
+#if defined(TARGET_API_MAC_CARBON) || defined(USE_RYANS_SOUNDCODE)
+/* This works correctly on MacOS X */
+
+#pragma options align=power
+
+static volatile SInt32 audio_is_locked = 0;
+static volatile SInt32 need_to_mix = 0;
 
 static UInt8  *buffer[2];
 static volatile UInt32 running = 0;
 static CmpSoundHeader header;
+static volatile Uint32 fill_me = 0;
+
+static void mix_buffer(SDL_AudioDevice *audio, UInt8 *buffer)
+{
+   if ( ! audio->paused ) {
+#ifdef MACOSX
+        SDL_mutexP(audio->mixer_lock);
+#endif
+        if ( audio->convert.needed ) {
+            audio->spec.callback(audio->spec.userdata,
+                    (Uint8 *)audio->convert.buf,audio->convert.len);
+            SDL_ConvertAudio(&audio->convert);
+            if ( audio->convert.len_cvt != audio->spec.size ) {
+                /* Uh oh... probably crashes here */;
+            }
+            memcpy(buffer, audio->convert.buf, audio->convert.len_cvt);
+        } else {
+            audio->spec.callback(audio->spec.userdata, buffer, audio->spec.size);
+        }
+#ifdef MACOSX
+        SDL_mutexV(audio->mixer_lock);
+#endif
+    }
+
+    DecrementAtomic((SInt32 *) &need_to_mix);
+}
+
+static void Mac_LockAudio(_THIS)
+{
+    IncrementAtomic((SInt32 *) &audio_is_locked);
+}
+
+static void Mac_UnlockAudio(_THIS)
+{
+    SInt32 oldval;
+         
+    oldval = DecrementAtomic((SInt32 *) &audio_is_locked);
+    if ( oldval != 1 )  /* != 1 means audio is still locked. */
+        return;
+
+    /* Did we miss the chance to mix in an interrupt? Do it now. */
+    if ( BitAndAtomic (0xFFFFFFFF, (UInt32 *) &need_to_mix) ) {
+        /*
+         * Note that this could be a problem if you missed an interrupt
+         *  while the audio was locked, and get preempted by a second
+         *  interrupt here, but that means you locked for way too long anyhow.
+         */
+        mix_buffer (this, buffer[fill_me]);
+    }
+}
 
 static void callBackProc (SndChannel *chan, SndCommand *cmd_passed ) {
-   
-   UInt32 fill_me, play_me;
+   UInt32 play_me;
    SndCommand cmd; 
    SDL_AudioDevice *audio = (SDL_AudioDevice *)chan->userInfo;
-   
+
+   IncrementAtomic((SInt32 *) &need_to_mix);
+
    fill_me = cmd_passed->param2;  /* buffer that has just finished playing, so fill it */      
    play_me = ! fill_me;           /* filled buffer to play _now_ */
 
@@ -113,55 +179,31 @@ static void callBackProc (SndChannel *chan, SndCommand *cmd_passed ) {
       return;
    }
    
+   /* queue previously mixed buffer for playback. */
    header.samplePtr = (Ptr)buffer[play_me];
-   
    cmd.cmd = bufferCmd;
    cmd.param1 = 0; 
    cmd.param2 = (long)&header;
-
    SndDoCommand (chan, &cmd, 0);
-   
-   memset (buffer[fill_me], 0, audio->spec.size);
-   
-   if ( ! audio->paused ) {
-        if ( audio->convert.needed ) {
-            #if MACOSX
-                SDL_mutexP(audio->mixer_lock);
-            #endif
-                audio->spec.callback(audio->spec.userdata,
-                    (Uint8 *)audio->convert.buf,audio->convert.len);
-            #if MACOSX
-                SDL_mutexV(audio->mixer_lock);
-            #endif 
-               SDL_ConvertAudio(&audio->convert);
-#if 0
-            if ( audio->convert.len_cvt != audio->spec.size ) {
-                /* Uh oh... probably crashes here; */
-            }
-#endif
-            memcpy(buffer[fill_me], audio->convert.buf,
-                            audio->convert.len_cvt);
-        } else {
-            #if MACOSX
-                SDL_mutexP(audio->mixer_lock);
-            #endif
-            audio->spec.callback(audio->spec.userdata,
-                (Uint8 *)buffer[fill_me], audio->spec.size);
-            #if MACOSX
-                SDL_mutexV(audio->mixer_lock);
-            #endif
-        }
-    }
 
-    if ( running ) {
-         
+   memset (buffer[fill_me], 0, audio->spec.size);
+
+   /*
+    * if audio device isn't locked, mix the next buffer to be queued in
+    *  the memory block that just finished playing.
+    */
+   if ( ! BitAndAtomic(0xFFFFFFFF, (UInt32 *) &audio_is_locked) ) {
+      mix_buffer (audio, buffer[fill_me]);
+   } 
+
+   /* set this callback to run again when current buffer drains. */
+   if ( running ) {
       cmd.cmd = callBackCmd;
       cmd.param1 = 0;
       cmd.param2 = play_me;
    
       SndDoCommand (chan, &cmd, 0);
    }
-
 }
 
 static int Mac_OpenAudio(_THIS, SDL_AudioSpec *spec) {
@@ -170,7 +212,7 @@ static int Mac_OpenAudio(_THIS, SDL_AudioSpec *spec) {
    int sample_bits;
    int i;
    long initOptions;
-   
+      
    /* Very few conversions are required, but... */
     switch (spec->format) {
         case AUDIO_S8:
@@ -231,8 +273,7 @@ static int Mac_OpenAudio(_THIS, SDL_AudioSpec *spec) {
     }
     channel->userInfo = (long)this;
     channel->qLength = 128;
-    if ( SndNewChannel(&channel, sampledSynth, initOptions, callback) !=
-noErr ) {
+    if ( SndNewChannel(&channel, sampledSynth, initOptions, callback) != noErr ) {
         SDL_SetError("Unable to create audio channel");
         free(channel);
         channel = NULL;
@@ -270,7 +311,18 @@ static void Mac_CloseAudio(_THIS) {
     }
 }
 
-#else /* !TARGET_API_MAC_CARBON */
+#else /* !TARGET_API_MAC_CARBON && !USE_RYANS_SOUNDCODE */
+
+static void Mac_LockAudio(_THIS)
+{
+    /* no-op. */
+}
+
+static void Mac_UnlockAudio(_THIS)
+{
+    /* no-op. */
+}
+
 
 /* This function is called by Sound Manager when it has exhausted one of
    the buffers, so we'll zero it to silence and fill it with audio if
@@ -336,14 +388,6 @@ static void Mac_CloseAudio(_THIS)
     int i;
 
     if ( channel != NULL ) {
-#if 0
-        SCStatus status;
-
-        /* Wait for audio to complete */
-        do {
-            SndChannelStatus(channel, sizeof(status), &status);
-        } while ( status.scChannelBusy );
-#endif
         /* Clean up the audio channel */
         SndDisposeChannel(channel, true);
         channel = NULL;
@@ -446,6 +490,5 @@ static int Mac_OpenAudio(_THIS, SDL_AudioSpec *spec)
     return 1;
 }
 
-#endif /* TARGET_API_MAC_CARBON */
-
+#endif /* TARGET_API_MAC_CARBON || USE_RYANS_SOUNDCODE */
 

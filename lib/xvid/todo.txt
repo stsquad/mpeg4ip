@@ -1,0 +1,105 @@
+todo
+
+
+*** build environment ***
+- portable makefile [DONE]
+	more testing needed
+
+
+*** api ***
+- decore/encore2 wrappers; [DONE]
+
+- xvid_init() [DONE]
+	handle cpu detection, yuv/dct lookup table init
+	return api version number
+	return core build number [build number should be incremented automatically, how?]
+
+
+*** common ***
+
+- mpeg-4 quantizer (quant4) testing [DONE]
+- consder moving a modified mbprediction/mbdeprediction here [DONE]
+
+- add [-2048,2048] to mmx dequant [DONE]
+
+
+- mmx quant4 [DONE]
+- sse2: convert intel's idct/sad/comp apnotes to nasm [IN PROGRESS]
+- mlib
+	
+
+*** image ***
+
+- sort out in/out & conversion func naming issues [DONE]
+maybe,	in_yuv, in_yuyv, in_uyuv, in_rgbXX
+		out_yuv, out_yuyv, out_uyuv, out_rgbXX
+
+- input flipping support
+output flipping support is not 'perfect'.
+using negative height is bad, best to have seperate vflip parameter
+
+- rgb24/32_mmx cause yellow dots to appear on left hand size [DONE]
+(only visibile with high contrast colors)
+
+- rgb16. [DONE]
+can be done generically using r,g,b masks
+or just code for the popular 16bit formats 555, 565
+
+- diff between basic-yuv and iso-yuv
+
+
+*** decoder ***
+
+- quant=1 encoder material appears "soft" [FIXED]
+- block based interpolation [DONE]
+
+- msmpeg-4 support... dont hold your breath [IN PROGRESS]
+	best to write an entirely new 'decoder' than bolt stuff onto
+	the existing one.
+
+- post processing
+
+- add basic mpeg4 stuff:
+	- custom mpeg quant matrixes [DONE]
+	- intra_dc_vlc_threshold [DONE]
+	- quarterpel  [in progress]
+	- resync?
+
+- b-vops [IN PROGRESS]
+- figure out what todo with time codes, and fatal error
+
+
+
+*** encoder ***
+
+- purple mb block (rare) [FIXED]
+- coeff range checks need to be verified against mpeg-4 spec [DONE/PARTIAL]
+	- dequants now clamp to [-2048,2047]. [DONE]
+	- fdct_mmx clamps to [-2048,2047], it doesnt have to (but prevents overflows in mmx quantization)
+	- quants _should_ clamp to [-127,127], but this introduces errors at low quant levels so we ignore it
+	- idct _should_ clamp [-256,255], but its really unnessary overhead.
+	
+- pmvfast bug fixing [DONE]
+
+- quater pixel motion search
+
+- 'smearing bug' when motion occurs in straight vertical direction (
+http://www.videocoding.de/forum/viewtopic.php?topic=71&forum=2&6 )
+coefficient thresholding problems? [FIXED/REMOVED]
+
+- better luminance masking [DONE]
+
+- use N_VOP when a interframe is entirely composed of ublks
+	& frame dropping. eg. simple ublk threshold
+
+
+
+*** gpl conversion ***
+
+mbdecoding.c
+
+encoder.c	[REPLACED]
+mbmotionestcomp.c	[REPLACED]
+mbcoding [REPLACED]
+putvlc.c [REPLACED]
+ratecontol.c

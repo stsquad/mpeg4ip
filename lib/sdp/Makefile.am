@@ -10,7 +10,7 @@ INCLUDES = -I$(top_srcdir)/include
 
 AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 
-check_PROGRAMS = test
-test_SOURCES = test.c
-test_LDADD = libsdp.la
+check_PROGRAMS = test_sdp
+test_sdp_SOURCES = test.c
+test_sdp_LDADD = libsdp.la
 

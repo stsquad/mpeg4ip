@@ -42,19 +42,6 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 	bool want_variable_rate = true;
 	u_int8_t quant_type = 0; // H.263
 
-	if (!strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODER), 
-	  VIDEO_ENCODER_FFMPEG)) {
-		want_short_time = true;
-
-	} else if (!strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODER), 
-	  VIDEO_ENCODER_XVID)) {
-		want_short_time = true;
-		want_variable_rate = false;
-		// N.B. this needs to match video_xvid.cpp
-		// OPTION later might want this as a config variable
-		quant_type = 0;
-	}
-
 	BitBuffer config;
 	init_putbits(&config, (5 + 9 + 20) * 8);
 

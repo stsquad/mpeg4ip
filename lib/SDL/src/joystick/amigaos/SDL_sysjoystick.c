@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,13 +17,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysjoystick.c,v 1.1 2001/08/23 00:09:15 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysjoystick.c,v 1.2 2002/05/01 17:40:49 wmaycisco Exp $";
 #endif
 
 /* This is the system specific header for the SDL joystick API */
@@ -31,7 +31,7 @@ static char rcsid =
 #include <stdio.h>		/* For the definition of NULL */
 
 #include <libraries/lowlevel.h>
-#ifdef __SASC
+#if defined(__SASC) || defined(STORMC4_WOS)
 #include <proto/exec.h>
 #include <proto/lowlevel.h>
 #include <proto/graphics.h>
@@ -72,7 +72,7 @@ ULONG joybut[]=
 	JPF_BUTTON_REVERSE,
 };
 
-struct joystick_hwdata 
+struct joystick_hwdata
 {
 	ULONG joystate;
 };
@@ -128,7 +128,7 @@ int SDL_SYS_JoystickOpen(SDL_Joystick *joystick)
 
 	for(i=0;i<20;i++)
 	{
-		temp=ReadJoyPort(joystick->index);
+		temp=ReadJoyPort(joystick->index^1); // fix to invert amiga joyports
 		WaitTOF();
 	}
 
@@ -152,7 +152,7 @@ int SDL_SYS_JoystickOpen(SDL_Joystick *joystick)
  */
 void SDL_SYS_JoystickUpdate(SDL_Joystick *joystick)
 {
-	ULONG data;	
+	ULONG data;
 	int i;
 
 	if(joystick->index<2)

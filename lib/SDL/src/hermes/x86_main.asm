@@ -104,12 +104,13 @@ _Hermes_X86_CPU:
 	pop eax
 	xor eax,ecx
 	je .L1
-	push ebx		; ebx is callee-saves
+	
+	push ebx	; ebx is callee-saves
 	mov eax,1
 	cpuid
 
 	pop ebx
-	mov eax, edx
-	
+	mov eax,edx
+
 .L1:	
 	ret

@@ -19,12 +19,12 @@
     Sam Lantinga
     5635-34 Springhouse Dr.
     Pleasanton, CA 94588 (USA)
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_irixaudio.c,v 1.2 2001/11/13 00:38:55 wmaycisco Exp $";
+ "@(#) $Id: SDL_irixaudio.c,v 1.3 2002/05/01 17:40:37 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer (For IRIX 6.5 and higher) */

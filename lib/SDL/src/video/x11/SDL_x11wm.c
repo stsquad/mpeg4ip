@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11wm.c,v 1.3 2001/11/13 00:39:02 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11wm.c,v 1.4 2002/05/01 17:41:30 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -203,6 +203,8 @@ void X11_SetIcon(_THIS, SDL_Surface *icon, Uint8 *mask)
 				  ZPixmap, 0, sicon->pixels,
 				  sicon->w, sicon->h,
 				  32, 0);
+	icon_image->byte_order = (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+		                 ? MSBFirst : LSBFirst;
 	icon_pixmap = XCreatePixmap(SDL_Display, SDL_Root, sicon->w, sicon->h,
 				    DefaultDepth(SDL_Display, SDL_Screen));
 	gc = XCreateGC(SDL_Display, icon_pixmap, 0, &GCvalues);

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,19 +17,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dgaevents.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
+ "@(#) $Id: SDL_dgaevents.c,v 1.3 2002/05/01 17:41:19 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting DGA events into SDL events */
 
 #include <stdio.h>
 #include <X11/Xlib.h>
-#include <X11/extensions/xf86dga.h>
+#include <XFree86/extensions/xf86dga.h>
 
 #include "SDL_sysvideo.h"
 #include "SDL_events_c.h"
@@ -45,7 +45,7 @@ extern SDL_keysym *X11_TranslateKey(Display *display, XKeyEvent *xkey,
 static int DGA_DispatchEvent(_THIS)
 {
 	int posted;
-	XDGAEvent xevent;
+	SDL_NAME(XDGAEvent) xevent;
 
 	XNextEvent(DGA_Display, (XEvent *)&xevent);
 
@@ -82,7 +82,7 @@ static int DGA_DispatchEvent(_THIS)
 		SDL_keysym keysym;
 		XKeyEvent xkey;
 
-		XDGAKeyEventToXKeyEvent(&xevent.xkey, &xkey);
+		SDL_NAME(XDGAKeyEventToXKeyEvent)(&xevent.xkey, &xkey);
 		posted = SDL_PrivateKeyboard((xevent.type == KeyPress), 
 					X11_TranslateKey(DGA_Display,
 							 &xkey, xkey.keycode,

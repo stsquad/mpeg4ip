@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11dga.c,v 1.1 2001/08/01 00:34:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11dga.c,v 1.2 2002/05/01 17:41:29 wmaycisco Exp $";
 #endif
 
 /* This is currently only used to enable DGA mouse.
@@ -61,9 +61,9 @@ void X11_EnableDGAMouse(_THIS)
     }
     /* Only use DGA mouse if the cursor is not showing (in relative mode) */
     if ( use_dgamouse && local_X11 && !(using_dga & DGA_MOUSE) &&
-         XF86DGAQueryExtension(SDL_Display, &dga_event, &dga_error) &&
-         XF86DGAQueryVersion(SDL_Display, &dga_major, &dga_minor) ) {
-	if ( XF86DGADirectVideo(SDL_Display, SDL_Screen, XF86DGADirectMouse) ) {
+         SDL_NAME(XF86DGAQueryExtension)(SDL_Display, &dga_event, &dga_error) &&
+         SDL_NAME(XF86DGAQueryVersion)(SDL_Display, &dga_major, &dga_minor) ) {
+	if ( SDL_NAME(XF86DGADirectVideo)(SDL_Display, SDL_Screen, XF86DGADirectMouse) ) {
             using_dga |= DGA_MOUSE;
         }
     }
@@ -77,9 +77,9 @@ void X11_CheckDGAMouse(_THIS)
     int flags;
 
     if ( using_dga & DGA_MOUSE ) {
-        XF86DGAQueryDirectVideo(SDL_Display, SDL_Screen, &flags);
+        SDL_NAME(XF86DGAQueryDirectVideo)(SDL_Display, SDL_Screen, &flags);
         if ( ! (flags & XF86DGADirectMouse) ) {
-                XF86DGADirectVideo(SDL_Display,SDL_Screen,XF86DGADirectMouse);
+                SDL_NAME(XF86DGADirectVideo)(SDL_Display,SDL_Screen,XF86DGADirectMouse);
         }
     }
 #endif
@@ -89,7 +89,7 @@ void X11_DisableDGAMouse(_THIS)
 {
 #ifdef XFREE86_DGAMOUSE
     if ( using_dga & DGA_MOUSE ) {
-	XF86DGADirectVideo(SDL_Display, SDL_Screen, 0);
+	SDL_NAME(XF86DGADirectVideo)(SDL_Display, SDL_Screen, 0);
         using_dga &= ~DGA_MOUSE;
     }
 #endif /* XFREE86_DGAMOUSE */

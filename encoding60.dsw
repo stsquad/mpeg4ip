@@ -96,24 +96,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "divxenc"=.\server\video\divx\divxenc60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name gnugetopt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmissing60
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "faac"=.\server\audio\faac\faac60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -122,9 +104,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name libsndfile
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -219,18 +198,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libsndfile"=.\server\lib\sndfile\Win32\libsndfile60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "mp4creator"=.\server\mp4creator\mp4creator60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -309,60 +276,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "mp4v1extract"=.\server\util\mp4extract\mp4v1extract60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name gnugetopt
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmp4_st
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmissing60
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "mp4v1getatype"=.\server\util\mp4regenerate\mp4v1getatype60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libmp4_st
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "mp4v1getfps"=.\server\util\mp4regenerate\mp4v1getfps60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libmp4_st
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmissing60
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "need_for_win_st"=.\lib\win32\need_for_win_st60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -371,6 +284,36 @@ Package=<5>
 
 Package=<4>
 {{{
+}}}
+
+###############################################################################
+
+Project: "xvid_st"=.\lib\xvid\xvid_st.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "xvidenc"=.\SERVER\UTIL\XVIDENC\xvidenc.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libmissing60
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name xvid_st
+    End Project Dependency
 }}}
 
 ###############################################################################

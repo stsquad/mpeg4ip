@@ -123,6 +123,9 @@ static int LoadNextObject(FILE* inFile,
 		case 3:
 			if (b == 1) {
 				state = 4;
+			} else if (b == 0) {
+				pBuf[(*pBufSize)++] = 0;
+				// state remains 3
 			} else {
 				pBuf[(*pBufSize)++] = 0;
 				pBuf[(*pBufSize)++] = 0;

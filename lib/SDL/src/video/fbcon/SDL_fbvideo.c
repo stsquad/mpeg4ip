@@ -1,6 +1,6 @@
 /*
 	SDL - Simple DirectMedia Layer
-	Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+	Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
 	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 	Sam Lantinga
-	slouken@devolution.com
+	slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbvideo.c,v 1.3 2001/11/13 00:39:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_fbvideo.c,v 1.4 2002/05/01 17:41:22 wmaycisco Exp $";
 #endif
 
 /* Framebuffer console based SDL video driver implementation.
@@ -73,6 +73,8 @@ static const SDL_Rect checkres[] = {
 	{  0, 0,  960,  720 },		/* 16 bpp: 0x18A, or 394 */
 	{  0, 0,  800,  600 },		/* 16 bpp: 0x114, or 276 */
 	{  0, 0,  768,  576 },		/* 16 bpp: 0x182, or 386 */
+	{  0, 0,  720,  576 },		/* PAL */
+	{  0, 0,  720,  480 },		/* NTSC */
 	{  0, 0,  640,  480 },		/* 16 bpp: 0x111, or 273 */
 	{  0, 0,  640,  400 },		/*  8 bpp: 0x100, or 256 */
 	{  0, 0,  512,  384 },

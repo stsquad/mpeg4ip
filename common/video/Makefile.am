@@ -1,1 +1,1 @@
-SUBDIRS = mpeg4 xvid libmpeg3 
+SUBDIRS = mpeg4 libmpeg3 libmpeg32

@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_gsyuv.c,v 1.2 2001/11/13 00:39:01 wmaycisco Exp $";
+ "@(#) $Id: SDL_gsyuv.c,v 1.3 2002/05/01 17:41:26 wmaycisco Exp $";
 #endif
 
 /* This is the Playstation 2 implementation of YUV video overlays */

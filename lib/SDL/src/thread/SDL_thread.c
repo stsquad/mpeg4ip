@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_thread.c,v 1.1 2001/08/01 00:33:57 wmaycisco Exp $";
+ "@(#) $Id: SDL_thread.c,v 1.2 2002/05/01 17:40:54 wmaycisco Exp $";
 #endif
 
 /* System independent thread management routines for SDL */
@@ -52,6 +52,12 @@ int SDL_ThreadsInit(void)
 {
 	int retval;
 
+#ifdef ENABLE_PTH
+	if (!pth_init()) {
+		return -1;
+	}
+#endif
+
 	retval = 0;
 	/* Set the thread lock creation flag so that we can reuse an
 	   existing lock on the system - since this mutex never gets
@@ -80,6 +86,10 @@ void SDL_ThreadsQuit()
 	if ( mutex != NULL ) {
 		SDL_DestroyMutex(mutex);
 	}
+
+#ifdef ENABLE_PTH
+	pth_kill();
+#endif
 }
 
 /* Routines for manipulating the thread list */
@@ -136,10 +146,15 @@ static void SDL_DelThread(SDL_Thread *thread)
 			}
 		}
 		if ( i < SDL_numthreads ) {
-			--SDL_numthreads;
-			while ( i < SDL_numthreads ) {
-				SDL_Threads[i] = SDL_Threads[i+1];
-				++i;
+			if ( --SDL_numthreads > 0 ) {
+				while ( i < SDL_numthreads ) {
+					SDL_Threads[i] = SDL_Threads[i+1];
+					++i;
+				}
+			} else {
+				SDL_maxthreads = 0;
+				free(SDL_Threads);
+				SDL_Threads = NULL;
 			}
 #ifdef DEBUG_THREADS
 			printf("Deleting thread (%d left - %d max)\n",

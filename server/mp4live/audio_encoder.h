@@ -29,7 +29,7 @@ class CAudioEncoder : public CMediaCodec {
 public:
 	CAudioEncoder() { };
 
-	virtual u_int16_t GetFrameType() = NULL;
+	virtual MediaType GetFrameType() = NULL;
 
 	virtual u_int32_t GetSamplesPerFrame() = NULL;
 

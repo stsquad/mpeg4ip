@@ -392,10 +392,18 @@ static GtkWidget* CreateMpeg2TrackMenu(
 					mpeg3_video_height(mpeg2File, i),
 					mpeg3_frame_rate(mpeg2File, i));
 			} else {
+				char* afmt =
+					mpeg3_audio_format(mpeg2File, i);
+
+				// use more familar though less accurate name
+				if (!strcasecmp(afmt, "MPEG")) {
+					afmt = "MP3";
+				}
+
 				snprintf(buf, sizeof(buf), 
 					"%u - %s  %u channels @ %u Hz", 
 					i + 1,
-					mpeg3_audio_format(mpeg2File, i),
+					afmt,
 					mpeg3_audio_channels(mpeg2File, i),
 					mpeg3_sample_rate(mpeg2File, i));
 			}

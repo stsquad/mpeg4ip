@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysjoystick.c,v 1.2 2001/11/13 00:38:57 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysjoystick.c,v 1.3 2002/05/01 17:40:50 wmaycisco Exp $";
 #endif
 
 /* This is the system specific header for the SDL joystick API */
@@ -140,10 +140,10 @@ static int EV_IsJoystick(int fd)
 int SDL_SYS_JoystickInit(void)
 {
 	/* The base path of the joystick devices */
-	const char *joydev_pattern[2] = {
+	const char *joydev_pattern[] = {
 		"/dev/js%d",
 #ifdef USE_INPUT_EVENTS
-		"/dev/input/event%d"
+		"/dev/input/event%d",
 #endif
 		"/dev/input/js%d"
 	};

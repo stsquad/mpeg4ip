@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_cgxyuv.c,v 1.1 2001/08/23 00:09:17 wmaycisco Exp $";
+ "@(#) $Id: SDL_cgxyuv.c,v 1.2 2002/05/01 17:41:19 wmaycisco Exp $";
 #endif
 
 /* This is the XFree86 Xv extension implementation of YUV video overlays */

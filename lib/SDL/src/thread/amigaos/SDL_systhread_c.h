@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,18 +17,18 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systhread_c.h,v 1.1 2001/08/01 00:33:57 wmaycisco Exp $";
+ "@(#) $Id: SDL_systhread_c.h,v 1.2 2002/05/01 17:40:55 wmaycisco Exp $";
 #endif
 
 #include <exec/exec.h>
 #include <dos/dos.h>
 #include <dos/dostags.h>
-#ifdef __SASC
+#if defined (__SASC) || defined(STORMC4_WOS)
 #include <proto/dos.h>
 #include <proto/exec.h>
 #else
@@ -44,5 +44,25 @@ static char rcsid =
 extern struct ExecBase *SysBase;
 extern struct DosLibrary *DOSBase;
 
+#ifdef STORMC4_WOS
+#include <proto/powerpc.h>
+
+/* use powerpc.library functions instead og exec */
+#define SYS_ThreadHandle struct TaskPPC *
+#define Signal SignalPPC
+#define Wait WaitPPC
+#define Task TaskPPC
+#define FindTask FindTaskPPC
+#define SetSignal SetSignalPPC
+
+#define InitSemaphore InitSemaphorePPC
+#define ObtainSemaphore ObtainSemaphorePPC
+#define AttemptSemaphore AttemptSemaphorePPC
+#define ReleaseSemaphore ReleaseSemaphorePPC
+#define SignalSemaphore SignalSemaphorePPC
+
+#else
+
 #define SYS_ThreadHandle struct Task *
+#endif /*STORMC4_WOS*/
 

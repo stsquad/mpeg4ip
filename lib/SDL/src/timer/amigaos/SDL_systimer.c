@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systimer.c,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
+ "@(#) $Id: SDL_systimer.c,v 1.3 2002/05/01 17:40:58 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -38,6 +38,10 @@ static char rcsid =
 #include <pragmas/graphics.h>
 #include <clib/exec_protos.h>
 #include <pragmas/exec.h>
+#elif defined(STORMC4_WOS)
+#include <proto/dos.h>
+#include <proto/exec.h>
+#include <proto/graphics.h>
 #else
 #include <inline/dos.h>
 #include <inline/exec.h>
@@ -59,7 +63,7 @@ static struct GfxBase *GfxBase;
 
 /* The first ticks value of the application */
 
-#ifndef __PPC__
+#if !defined(__PPC__) || defined(STORMC4_WOS) || defined(MORPHOS)
 static clock_t start;
 
 void SDL_StartTicks(void)
@@ -120,7 +124,7 @@ void SDL_StartTicks(void)
 	/* Set first ticks value */
 	if(!MyTimer)
 		PPC_TimerInit();
-	
+
 	PPCGetTimerObject(MyTimer,PPCTIMERTAG_CURRENTTICKS,start);
 	start[1]>>=10;
 	start[1]|=((result[0]&0x3ff)<<22);
@@ -134,7 +138,7 @@ Uint32 SDL_GetTicks (void)
 
 //	PPCAsr64p(result,10);
 // Non va, la emulo:
-	
+
 	result[1]>>=10;
 	result[1]|=((result[0]&0x3ff)<<22);
 
@@ -200,7 +204,7 @@ void PPC_TimerInit(void)
 	else
 	{
 		D(bug("Errore nell'inizializzazione del timer!\n"));
-	}	
+	}
 }
 
 #endif
@@ -234,7 +238,7 @@ static int RunTimer(void *unused)
 /* This is only called if the event thread is not running */
 int SDL_SYS_TimerInit(void)
 {
-	D(bug("Creo il thread per il timer (NOITMER)...\n"));
+	D(bug("Creating thread for the timer (NOITIMER)...\n"));
 
 	timer_alive = 1;
 	timer_thread = SDL_CreateThread(RunTimer, NULL);

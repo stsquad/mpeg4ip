@@ -30,7 +30,7 @@ DEFINE_MESSAGE_MACRO(mp3_rtp_message, "mp3rtpbyst")
 #else
 #define mp3_rtp_message(loglevel, fmt...) message(loglevel, "mp3rtpbyst", fmt)
 #endif
-CMP3RtpByteStream::CMP3RtpByteStream (unsigned int rtp_proto,
+CMP3RtpByteStream::CMP3RtpByteStream (unsigned int rtp_pt,
 				      int ondemand,
 				      uint64_t tps,
 				      rtp_packet **head, 
@@ -42,7 +42,7 @@ CMP3RtpByteStream::CMP3RtpByteStream (unsigned int rtp_proto,
 				      uint32_t ntp_sec,
 				      uint32_t rtp_ts) :
   CRtpByteStream("mp3", 
-		 rtp_proto,
+		 rtp_pt,
 		     ondemand,
 		     tps,
 		     head, 
@@ -69,7 +69,7 @@ int CMP3RtpByteStream::have_no_data (void)
   return FALSE;
 }
 
-int CMP3RtpByteStream::check_rtp_frame_complete_for_proto (void)
+int CMP3RtpByteStream::check_rtp_frame_complete_for_payload_type (void)
 {
   return m_head != NULL;
 }

@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_beaudio.cc,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
+ "@(#) $Id: SDL_beaudio.cc,v 1.3 2002/05/01 17:40:34 wmaycisco Exp $";
 #endif
 
 /* Allow access to the audio stream on BeOS */

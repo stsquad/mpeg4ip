@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysevents.cc,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysevents.cc,v 1.3 2002/05/01 17:41:17 wmaycisco Exp $";
 #endif
 
 #include <support/UTF8.h>
@@ -288,9 +288,12 @@ void BE_InitOSKeymap(_THIS)
 {
 	unsigned int i;
 
-	/* Initialize all the key states as "up" */
+	/* Initialize the keyboard state */
 	key_flip = 0;
-	memset(keyinfo[key_flip].key_states, 0, 16);
+	get_key_info(&keyinfo[key_flip]);
+	memcpy(keyinfo[!key_flip].key_states,
+	       keyinfo[key_flip].key_states,
+	       SDL_TABLESIZE(keyinfo[key_flip].key_states));
 
 	/* Initialize the BeOS key translation table */
 	/* Source: <be/interface/InterfaceDefs.h> and BeOS keyboard info */

@@ -34,7 +34,7 @@ DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 /*
  * add_rtp_packet_to_queue() - adds rtp packet to doubly linked lists - 
  * this is used both by the bytestream, and by the player_media when trying
- * to determine which rtp protocol is being used.
+ * to determine which rtp payload type is being used.
  */
 int add_rtp_packet_to_queue (rtp_packet *pak, 
 			     rtp_packet **head,
@@ -148,7 +148,7 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
 }
 
 CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
-				       unsigned int rtp_proto,
+				       unsigned int rtp_pt,
 				       int ondemand,
 				       uint64_t tps,
 				       rtp_packet **head, 
@@ -168,7 +168,7 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   m_rtp_rtpinfo_received = rtpinfo_received;
   m_rtp_rtptime = rtp_rtptime;
   
-  m_rtp_proto = rtp_proto;
+  m_rtp_pt = rtp_pt;
   uint64_t temp;
   temp = config.get_config_value(CONFIG_RTP_BUFFER_TIME);
   if (temp > 0) {
@@ -328,15 +328,12 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
     uint32_t head_ts, tail_ts;
     if (m_head != NULL) {
       /*
-       * Make sure that the proto is the same
-       */
-      /*
-       * Protocol the same.  Make sure we have at least 2 seconds of
+       * Payload type the same.  Make sure we have at least 2 seconds of
        * good data
        */
       if (rtp_ready() == 0) {
 	rtp_message(LOG_DEBUG, 
-		    "Determined proto, but rtp bytestream is not ready");
+		    "Determined payload type, but rtp bytestream is not ready");
 	uint64_t calc;
 	do {
 	  head_ts = m_head->rtp_pak_ts;
@@ -354,7 +351,7 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	} while (calc > m_rtp_buffer_time);
 	return 0;
       }
-      if (check_rtp_frame_complete_for_proto()) {
+      if (check_rtp_frame_complete_for_payload_type()) {
 	head_ts = m_head->rtp_pak_ts;
 	tail_ts = m_tail->rtp_pak_ts;
 	uint64_t calc;
@@ -385,14 +382,14 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
    * caught up, and will be waiting.  Post a message to kickstart
    * it
    */
-    if (check_rtp_frame_complete_for_proto()) {
+    if (check_rtp_frame_complete_for_payload_type()) {
       return (1);
     }
   }
   return (m_buffering);
 }
 
-int CRtpByteStreamBase::check_rtp_frame_complete_for_proto (void)
+int CRtpByteStreamBase::check_rtp_frame_complete_for_payload_type (void)
 {
   return (m_head && m_tail->rtp_pak_m == 1);
 }
@@ -435,7 +432,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t ts,
 
 
 CRtpByteStream::CRtpByteStream(const char *name,
-			       unsigned int rtp_proto,
+			       unsigned int rtp_pt,
 			       int ondemand,
 			       uint64_t tickpersec,
 			       rtp_packet **head, 
@@ -446,7 +443,7 @@ CRtpByteStream::CRtpByteStream(const char *name,
 			       uint32_t ntp_frac,
 			       uint32_t ntp_sec,
 			       uint32_t rtp_ts) :
-  CRtpByteStreamBase(name, rtp_proto, ondemand, tickpersec, head, tail,
+  CRtpByteStreamBase(name, rtp_pt, ondemand, tickpersec, head, tail,
 		     rtpinfo_received, rtp_rtptime, rtcp_received,
 		     ntp_frac, ntp_sec, rtp_ts)
 {
@@ -508,21 +505,25 @@ uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer,
 	}
 	seq = rpak->rtp_pak_seq + 1;
       }
-      if ((m_buffer_len + rpak->rtp_data_len) > m_buffer_len_max) {
+      unsigned char *from;
+      uint32_t len;
+      from = (unsigned char *)rpak->rtp_data + m_skip_on_advance_bytes;
+      len = rpak->rtp_data_len - m_skip_on_advance_bytes;
+      if ((m_buffer_len + len) > m_buffer_len_max) {
 	// realloc
-	m_buffer_len_max = m_buffer_len + rpak->rtp_data_len + 1024;
+	m_buffer_len_max = m_buffer_len + len + 1024;
 	m_buffer = (unsigned char *)realloc(m_buffer, m_buffer_len_max);
       }
       memcpy(m_buffer + m_buffer_len, 
-	     rpak->rtp_data,
-	     rpak->rtp_data_len);
-      m_buffer_len += rpak->rtp_data_len;
+	     from,
+	     len);
+      m_buffer_len += len;
       if (rpak->rtp_pak_m == 1) {
 	finished = 1;
       }
       xfree(rpak);
     }
-    m_bytes_used = m_skip_on_advance_bytes;
+    m_bytes_used = 0;
     *buffer = m_buffer + m_bytes_used;
     *buflen = m_buffer_len - m_bytes_used;
 #ifdef DEBUG_RTP_PAKS
@@ -583,7 +584,7 @@ void CRtpByteStream::flush_rtp_packets (void)
   m_bytes_used = m_buffer_len = 0;
 }
 
-CAudioRtpByteStream::CAudioRtpByteStream (unsigned int rtp_proto,
+CAudioRtpByteStream::CAudioRtpByteStream (unsigned int rtp_pt,
 					  int ondemand,
 					  uint64_t tps,
 					  rtp_packet **head, 
@@ -595,7 +596,7 @@ CAudioRtpByteStream::CAudioRtpByteStream (unsigned int rtp_proto,
 					  uint32_t ntp_sec,
 					  uint32_t rtp_ts) :
   CRtpByteStream("audio", 
-		 rtp_proto,
+		 rtp_pt,
 		 ondemand,
 		 tps,
 		 head, 
@@ -621,7 +622,7 @@ int CAudioRtpByteStream::have_no_data (void)
   return FALSE;
 }
 
-int CAudioRtpByteStream::check_rtp_frame_complete_for_proto (void)
+int CAudioRtpByteStream::check_rtp_frame_complete_for_payload_type (void)
 {
   return m_head != NULL;
 }

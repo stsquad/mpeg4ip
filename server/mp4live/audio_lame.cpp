@@ -54,11 +54,8 @@ bool CLameAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 			m_lameParams.out_samplerate);
 	}
 
-	if (m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) > 24000) {
-		m_samplesPerFrame = MP3_MPEG1_SAMPLES_PER_FRAME;
-	} else {
-		m_samplesPerFrame = MP3_MPEG2_SAMPLES_PER_FRAME;
-	}
+	m_samplesPerFrame = MP4AV_Mp3GetSamplingWindow(
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
 
 	m_mp3FrameMaxSize = (u_int)(1.25 * m_samplesPerFrame) + 7200;
 

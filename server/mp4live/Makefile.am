@@ -27,8 +27,6 @@ mp4live_SOURCES = \
 	audio_oss_source.h \
 	video_encoder.h \
 	video_encoder.cpp \
-	video_ffmpeg.h \
-	video_ffmpeg.cpp \
 	video_h26l.h \
 	video_h26l.cpp \
 	video_xvid.h \
@@ -46,6 +44,8 @@ mp4live_SOURCES = \
 	video_util_tv.cpp \
 	file_mpeg2_source.h \
 	file_mpeg2_source.cpp \
+	file_mp4_source.h \
+	file_mp4_source.cpp \
 	file_mp4_recorder.h \
 	file_mp4_recorder.cpp \
 	rtp_transmitter.cpp \
@@ -55,7 +55,6 @@ mp4live_SOURCES = \
 	util.cpp
 
 # LATER
-# file_mp4_source
 # video_1394_source
 # video_dv
 # rtp_receiver
@@ -76,14 +75,14 @@ INCLUDES=\
 	-I$(top_srcdir)/lib \
 	-I$(top_srcdir)/server/audio/faac \
 	-I$(top_srcdir)/server/audio/lame \
-	-I$(top_srcdir)/server/video/ffmpeg \
-	-I$(top_srcdir)/common/video/xvid \
+	-I$(top_srcdir)/lib/xvid \
 	-I$(top_srcdir)/server/video/H26L \
 	-I$(top_srcdir)/common/video/libmpeg3 \
 	-I$(top_srcdir)/player/lib
 
-AM_CXXFLAGS = -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER \
-	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER -DADD_H26L_ENCODER \
+AM_CXXFLAGS = -DADD_XVID_ENCODER \
+	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER \
+	-DMPEG2_RAW_ONLY \
 	-D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
 LDADD = \
@@ -95,8 +94,7 @@ LDADD = \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/server/audio/faac/libfaac.la \
 	$(top_builddir)/server/audio/lame/libmp3lame.a \
-	$(top_builddir)/server/video/ffmpeg/libffmpeg.la \
-	$(top_builddir)/common/video/xvid/libxvid.la \
+	$(top_builddir)/lib/xvid/libxvid.la \
 	$(top_builddir)/server/video/H26L/libh26lenc.la \
 	$(top_builddir)/common/video/libmpeg3/libmpeg3.la \
 	-lpthread \

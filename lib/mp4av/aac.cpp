@@ -38,7 +38,7 @@ static u_int32_t AacSamplingRates[NUM_AAC_SAMPLING_RATES] = {
 /*
  * compute ADTS frame size
  */
-u_int16_t MP4AV_AacGetFrameSize(u_int8_t* pHdr)
+u_int16_t MP4AV_AacAdtsGetFrameSize(u_int8_t* pHdr)
 {
 	/* extract the necessary fields from the header */
 	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
@@ -56,7 +56,7 @@ u_int16_t MP4AV_AacGetFrameSize(u_int8_t* pHdr)
 /*
  * Compute length of ADTS header in bits
  */
-u_int16_t MP4AV_AacGetHeaderBitSize(u_int8_t* pHdr)
+u_int16_t MP4AV_AacAdtsGetHeaderBitSize(u_int8_t* pHdr)
 {
 	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
 	u_int8_t hasCrc = !(pHdr[1] & 0x01);
@@ -73,9 +73,9 @@ u_int16_t MP4AV_AacGetHeaderBitSize(u_int8_t* pHdr)
 	return hdrSize;
 }
 
-u_int16_t MP4AV_AacGetHeaderByteSize(u_int8_t* pHdr)
+u_int16_t MP4AV_AacAdtsGetHeaderByteSize(u_int8_t* pHdr)
 {
-	u_int16_t hdrBitSize = MP4AV_AacGetHeaderBitSize(pHdr);
+	u_int16_t hdrBitSize = MP4AV_AacAdtsGetHeaderBitSize(pHdr);
 	
 	if ((hdrBitSize % 8) == 0) {
 		return (hdrBitSize / 8);
@@ -84,17 +84,17 @@ u_int16_t MP4AV_AacGetHeaderByteSize(u_int8_t* pHdr)
 	}
 }
 
-u_int8_t MP4AV_AacGetVersion(u_int8_t* pHdr)
+u_int8_t MP4AV_AacAdtsGetVersion(u_int8_t* pHdr)
 {
 	return (pHdr[1] & 0x08) >> 3;
 }
 
-u_int8_t MP4AV_AacGetProfile(u_int8_t* pHdr)
+u_int8_t MP4AV_AacAdtsGetProfile(u_int8_t* pHdr)
 {
 	return (pHdr[2] & 0xc0) >> 6;
 }
 
-u_int8_t MP4AV_AacGetSamplingRateIndex(u_int8_t* pHdr)
+u_int8_t MP4AV_AacAdtsGetSamplingRateIndex(u_int8_t* pHdr)
 {
 	return (pHdr[2] & 0x3c) >> 2;
 }
@@ -109,14 +109,71 @@ u_int8_t MP4AV_AacGetSamplingRateIndex(u_int32_t samplingRate)
 	return NUM_AAC_SAMPLING_RATES - 1;
 }
 
-u_int32_t MP4AV_AacGetSamplingRate(u_int8_t* pHdr)
+u_int32_t MP4AV_AacAdtsGetSamplingRate(u_int8_t* pHdr)
 {
-	return AacSamplingRates[MP4AV_AacGetSamplingRateIndex(pHdr)];
+	return AacSamplingRates[MP4AV_AacAdtsGetSamplingRateIndex(pHdr)];
 }
 
-u_int8_t MP4AV_AacGetChannelConfig(u_int8_t* pHdr)
+u_int8_t MP4AV_AacAdtsGetChannels(u_int8_t* pHdr)
 {
 	return ((pHdr[2] & 0x1) << 2) | ((pHdr[3] & 0xc0) >> 6);
+}
+
+/*
+ * AAC Config in ES:
+ *
+ * AudioObjectType 			5 bits
+ * samplingFrequencyIndex 	4 bits
+ * if (samplingFrequencyIndex == 0xF)
+ *	samplingFrequency	24 bits 
+ * channelConfiguration 	4 bits
+ * GA_SpecificConfig
+ * 	FrameLengthFlag 		1 bit 1024 or 960
+ * 	DependsOnCoreCoder		1 bit (always 0)
+ * 	ExtensionFlag 			1 bit (always 0)
+ */
+
+u_int8_t MP4AV_AacConfigGetSamplingRateIndex(u_int8_t* pConfig)
+{
+	return ((pConfig[0] << 1) | (pConfig[1] >> 7)) & 0xF;
+}
+
+u_int32_t MP4AV_AacConfigGetSamplingRate(u_int8_t* pConfig)
+{
+	u_int8_t index =
+		MP4AV_AacConfigGetSamplingRateIndex(pConfig);
+
+	if (index == 0xF) {
+		return (pConfig[1] & 0x7F) << 17
+			| pConfig[2] << 9
+			| pConfig[3] << 1
+			| (pConfig[4] >> 7);
+	}
+	return AacSamplingRates[index];
+}
+
+u_int16_t MP4AV_AacConfigGetSamplingWindow(u_int8_t* pConfig)
+{
+	u_int8_t adjust = 0;
+
+	if (MP4AV_AacConfigGetSamplingRateIndex(pConfig) == 0xF) {
+		adjust = 3;
+	}
+
+	if ((pConfig[1 + adjust] >> 2) & 0x1) {
+		return 960;
+	}
+	return 1024;
+}
+
+u_int8_t MP4AV_AacConfigGetChannels(u_int8_t* pConfig)
+{
+	u_int8_t adjust = 0;
+
+	if (MP4AV_AacConfigGetSamplingRateIndex(pConfig) == 0xF) {
+		adjust = 3;
+	}
+	return (pConfig[1 + adjust] >> 3) & 0xF;
 }
 
 bool MP4AV_AacGetConfiguration(
@@ -127,9 +184,9 @@ bool MP4AV_AacGetConfiguration(
 	return MP4AV_AacGetConfiguration(
 		ppConfig,
 		pConfigLength,
-		MP4AV_AacGetProfile(pHdr),
-		MP4AV_AacGetSamplingRate(pHdr),
-		MP4AV_AacGetChannelConfig(pHdr));
+		MP4AV_AacAdtsGetProfile(pHdr),
+		MP4AV_AacAdtsGetSamplingRate(pHdr),
+		MP4AV_AacAdtsGetChannels(pHdr));
 }
 
 bool MP4AV_AacGetConfiguration(
@@ -140,17 +197,6 @@ bool MP4AV_AacGetConfiguration(
 	u_int8_t channels)
 {
 	/* create the appropriate decoder config */
-
-	/*
-	 * Currently all we need is:
-	 * AudioObjectType 			5 bits
-	 * samplingFrequencyIndex 	4 bits
-	 * channelConfiguration 	4 bits
-	 * GA_SpecificConfig
-	 * 	FrameLengthFlag 		1 bit 1024 or 960
-	 * 	DependsOnCoreCoder		1 bit always 0
-	 * 	ExtensionFlag 			1 bit always 0
-	 */
 
 	u_int8_t* pConfig = (u_int8_t*)malloc(2);
 

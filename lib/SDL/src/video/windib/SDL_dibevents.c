@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dibevents.c,v 1.3 2001/11/13 00:39:01 wmaycisco Exp $";
+ "@(#) $Id: SDL_dibevents.c,v 1.4 2002/05/01 17:41:28 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -215,6 +215,7 @@ void DIB_InitOSKeymap(_THIS)
 	VK_keymap[VK_BACKSLASH] = SDLK_BACKSLASH;
 	VK_keymap[VK_RBRACKET] = SDLK_RIGHTBRACKET;
 	VK_keymap[VK_GRAVE] = SDLK_BACKQUOTE;
+	VK_keymap[VK_BACKTICK] = SDLK_BACKQUOTE;
 	VK_keymap[VK_A] = SDLK_a;
 	VK_keymap[VK_B] = SDLK_b;
 	VK_keymap[VK_C] = SDLK_c;

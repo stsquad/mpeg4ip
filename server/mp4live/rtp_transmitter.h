@@ -142,7 +142,7 @@ protected:
 	u_int32_t		m_videoRtpTimestampOffset;
 	u_int16_t		m_videoSrcPort;
 
-	u_int16_t		m_audioFrameType;
+	MediaType		m_audioFrameType;
 	char*			m_audioDestAddress;
 	struct rtp*		m_audioRtpSession;
 	u_int8_t		m_audioPayloadNumber;

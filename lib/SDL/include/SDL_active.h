@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_active.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_active.h,v 1.2 2002/05/01 17:40:32 wmaycisco Exp $";
 #endif
 
 /* Include file for SDL application focus event handling */
@@ -48,7 +48,7 @@ extern "C" {
  * SDL_APPACTIVE.  If SDL_APPACTIVE is set, then the user is able to
  * see your application, otherwise it has been iconified or disabled.
  */
-extern DECLSPEC Uint8 SDL_GetAppState(void);
+extern DECLSPEC Uint8 SDLCALL SDL_GetAppState(void);
 
 
 /* Ends C function definitions when using C++ */

@@ -24,7 +24,7 @@ LIBTERMCAP =
 RM = rm -f
 #CPP_OPTS = -DHAVEMPGLIB -DLAMEPARSE
 CPP_OPTS = -DLAMEPARSE
-INSTALL = install
+INSTALL = ./install.sh
 INSTALLBINDIR = /usr/local/bin
 RANLIB = :
 
@@ -314,7 +314,7 @@ install: install-exec
 
 install-exec:
 	$(INSTALL) $(PGM) $(INSTALLBINDIR)
-	@echo Installed $(PGM) in $(INSTALLBINDIR)
+#	@echo Installed $(PGM) in $(INSTALLBINDIR)
 
 maintainer-clean distclean clean mostlyclean:
 	-$(RM) $(OBJ) $(DEP) $(PGM) main.o rtp.o mp3rtp mp3rtp.o \

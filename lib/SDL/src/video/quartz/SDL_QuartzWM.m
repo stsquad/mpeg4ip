@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 struct WMcursor {
@@ -87,40 +87,114 @@ static int QZ_ShowWMCursor (_THIS, WMcursor *cursor) {
     return 1;
 }
 
-static void  QZ_PrivateWarpCursor (_THIS, int fullscreen, int h, int x, int y) {
+/**
+ * Coordinate conversion functions, for convenience
+ * Cocoa sets the origin at the lower left corner of the window/screen
+ * SDL, CoreGraphics/WindowServer, and QuickDraw use the origin at the upper left corner
+ * The routines were written so they could be called before SetVideoMode() has finished;
+ * this might have limited usefulness at the moment, but the extra cost is trivial.
+ **/
 
-    CGPoint p;
+/* Convert Cocoa screen coordinate to Cocoa window coordinate */
+static void QZ_PrivateGlobalToLocal (_THIS, NSPoint *p) {
+
+    *p = [ qz_window convertScreenToBase:*p ];
+}
+
+
+/* Convert Cocoa window coordinate to Cocoa screen coordinate */
+static void QZ_PrivateLocalToGlobal (_THIS, NSPoint *p) {
+
+    *p = [ qz_window convertBaseToScreen:*p ];
+}
+
+/* Convert SDL coordinate to Cocoa coordinate */
+static void QZ_PrivateSDLToCocoa (_THIS, NSPoint *p) {
+
+    int height;
     
-    /* We require absolute screen coordiates for our warp */
-    p.x = x;
-    p.y = h - y;
-        
-    if ( fullscreen )
-        /* Already absolute coordinates */
-        CGDisplayMoveCursorToPoint(display_id, p);
+    if ( CGDisplayIsCaptured (display_id) ) { /* capture signals fullscreen */
+    
+        height = CGDisplayPixelsHigh (display_id);
+    }
     else {
-        /* Convert to absolute screen coordinates */
-        NSPoint base, screen;
-        base = NSMakePoint (p.x, p.y);
-        screen = [ qz_window convertBaseToScreen:base ];
-        p.x = screen.x;
-        p.y = device_height - screen.y;
-        CGDisplayMoveCursorToPoint (display_id, p);
+        
+        height = NSHeight ( [ qz_window frame ] );
+        if ( [ qz_window styleMask ] & NSTitledWindowMask ) {
+        
+            height -= 22;
+        }
+    }
+    
+    p->y = height - p->y;
+}
+
+/* Convert Cocoa coordinate to SDL coordinate */
+static void QZ_PrivateCocoaToSDL (_THIS, NSPoint *p) {
+
+    QZ_PrivateSDLToCocoa (this, p);
+}
+
+/* Convert SDL coordinate to window server (CoreGraphics) coordinate */
+static CGPoint QZ_PrivateSDLToCG (_THIS, NSPoint *p) {
+    
+    CGPoint cgp;
+    
+    if ( ! CGDisplayIsCaptured (display_id) ) { /* not captured => not fullscreen => local coord */
+    
+        int height;
+        
+        QZ_PrivateSDLToCocoa (this, p);
+        QZ_PrivateLocalToGlobal (this, p);
+        
+        height = CGDisplayPixelsHigh (display_id);
+        p->y = height - p->y;
+    }
+    
+    cgp.x = p->x;
+    cgp.y = p->y;
+    
+    return cgp;
+}
+
+/* Convert window server (CoreGraphics) coordinate to SDL coordinate */
+static void QZ_PrivateCGToSDL (_THIS, NSPoint *p) {
+            
+    if ( ! CGDisplayIsCaptured (display_id) ) { /* not captured => not fullscreen => local coord */
+    
+        int height;
+
+        /* Convert CG Global to Cocoa Global */
+        height = CGDisplayPixelsHigh (display_id);
+        p->y = height - p->y;
+
+        QZ_PrivateGlobalToLocal (this, p);
+        QZ_PrivateCocoaToSDL (this, p);
     }
 }
 
-static void QZ_WarpWMCursor     (_THIS, Uint16 x, Uint16 y) {
+static void  QZ_PrivateWarpCursor (_THIS, int x, int y) {
     
+    NSPoint p;
+    CGPoint cgp;
+    
+    p = NSMakePoint (x, y);
+    cgp = QZ_PrivateSDLToCG (this, &p);   
+    CGDisplayMoveCursorToPoint (display_id, cgp);
+    warp_ticks = SDL_GetTicks();
+    warp_flag = 1;
+
+    SDL_PrivateMouseMotion(0, 0, x, y);
+}
+
+static void QZ_WarpWMCursor (_THIS, Uint16 x, Uint16 y) {
+
     /* Only allow warping when in foreground */
     if ( ! inForeground )
         return;
             
     /* Do the actual warp */
-    QZ_PrivateWarpCursor (this, SDL_VideoSurface->flags & SDL_FULLSCREEN, 
-        SDL_VideoSurface->h, x, y);
-    
-    /* Generate mouse moved event */
-    SDL_PrivateMouseMotion (SDL_RELEASED, 0, x, y);
+    QZ_PrivateWarpCursor (this, x, y);
 }
 
 static void QZ_MoveWMCursor     (_THIS, int x, int y) { }
@@ -143,8 +217,50 @@ static void QZ_SetCaption    (_THIS, const char *title, const char *icon) {
     }
 }
 
-static void QZ_SetIcon       (_THIS, SDL_Surface *icon, Uint8 *mask) {
-/* Convert icon/mask to NSImage, assign with NSWindow's setMiniwindowImage method */
+static void QZ_SetIcon       (_THIS, SDL_Surface *icon, Uint8 *mask)
+{
+     NSBitmapImageRep *imgrep;
+     NSImage *img;
+     SDL_Surface *mergedSurface;
+     Uint8 *surfPtr;
+     int i,j,masksize;
+     NSAutoreleasePool *pool;
+     SDL_Rect rrect;
+     NSSize imgSize = {icon->w, icon->h};
+     pool = [ [ NSAutoreleasePool alloc ] init ];
+     SDL_GetClipRect(icon, &rrect);
+     /* create a big endian RGBA surface */
+     mergedSurface = SDL_CreateRGBSurface(SDL_SWSURFACE|SDL_SRCALPHA, 
+                        icon->w, icon->h, 32, 0xff<<24, 0xff<<16, 0xff<<8, 0xff<<0);
+     if (mergedSurface==NULL) {
+        NSLog(@"Error creating surface for merge");
+        goto freePool;
+    }
+     if (SDL_BlitSurface(icon,&rrect,mergedSurface,&rrect)) {
+         NSLog(@"Error blitting to mergedSurface");
+         goto freePool;
+     }
+     if (mask) {
+     masksize=icon->w*icon->h;
+     surfPtr = (Uint8 *)mergedSurface->pixels;
+     #define ALPHASHIFT 3
+     for (i=0;i<masksize;i+=8)
+         for (j=0;j<8;j++) 
+surfPtr[ALPHASHIFT+((i+j)<<2)]=(mask[i>>3]&(1<<(7-j)))?0xFF:0x00;
+     }
+     imgrep = [[NSBitmapImageRep alloc] 
+initWithBitmapDataPlanes:(unsigned char **)&mergedSurface->pixels 
+pixelsWide:icon->w pixelsHigh:icon->h bitsPerSample:8 samplesPerPixel:4 
+hasAlpha:YES isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace 
+bytesPerRow:icon->w<<2 bitsPerPixel:32];
+     img = [[NSImage alloc] initWithSize:imgSize];
+     [img addRepresentation: imgrep];
+     [NSApp setApplicationIconImage:img];
+     [img release];
+     [imgrep release];
+     SDL_FreeSurface(mergedSurface);
+freePool:
+     [pool release];
 }
 
 static int  QZ_IconifyWindow (_THIS) { 
@@ -181,6 +297,7 @@ static SDL_GrabMode QZ_GrabInput (_THIS, SDL_GrabMode grab_mode) {
             currentGrabMode = SDL_GRAB_ON;
             break;
         case SDL_GRAB_FULLSCREEN:
+            
             break;
     }
         

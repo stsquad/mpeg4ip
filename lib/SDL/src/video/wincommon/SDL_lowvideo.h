@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_lowvideo.h,v 1.3 2001/11/13 00:39:01 wmaycisco Exp $";
+ "@(#) $Id: SDL_lowvideo.h,v 1.4 2002/05/01 17:41:28 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_lowvideo_h
@@ -35,18 +35,22 @@ static char rcsid =
 /* Hidden "this" pointer for the video functions */
 #define _THIS	SDL_VideoDevice *this
 
+#define WINDIB_FULLSCREEN()						\
+(									\
+	SDL_VideoSurface &&						\
+	((SDL_VideoSurface->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN) && \
+	(((SDL_VideoSurface->flags & SDL_OPENGL   ) == SDL_OPENGL    ) || \
+	 (strcmp(this->name, "windib") == 0))				\
+)
 #define DDRAW_FULLSCREEN() 						\
 (									\
+	SDL_VideoSurface &&						\
 	((SDL_VideoSurface->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN) && \
 	((SDL_VideoSurface->flags & SDL_OPENGL    ) != SDL_OPENGL    ) && \
 	(strcmp(this->name, "directx") == 0)				\
 )
 
-#define DINPUT_FULLSCREEN() 						\
-(									\
-	((SDL_VideoSurface->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN) && \
-	(strcmp(this->name, "directx") == 0)				\
-)
+#define DINPUT_FULLSCREEN()	DDRAW_FULLSCREEN()
 
 /* The main window -- and a function to set it for the audio */
 extern const char *SDL_Appname;
@@ -62,9 +66,6 @@ extern void (*WIN_RealizePalette)(_THIS);
 
 /* Called by windows message loop when the system palette changes */
 extern void (*WIN_PaletteChanged)(_THIS, HWND window);
-
-/* Called by windows message loop when losing or gaining gamma focus */
-extern void (*WIN_SwapGamma)(_THIS);
 
 /* Called by windows message loop when a portion of the screen needs update */
 extern void (*WIN_WinPAINT)(_THIS, HDC hdc);
@@ -83,6 +84,14 @@ extern int SDL_resizing;
 
 /* Flag -- the mouse is in relative motion mode */
 extern int mouse_relative;
+
+/* The GDI fullscreen mode currently active */
+#ifndef NO_CHANGEDISPLAYSETTINGS
+extern DEVMODE SDL_fullscreen_mode;
+#endif
+
+/* The system gamma ramp for GDI modes */
+extern WORD *gamma_saved;
 
 /* This is really from SDL_dx5audio.c */
 extern void DX5_SoundFocus(HWND window);

@@ -52,17 +52,19 @@ done
 
 pwd=`pwd`
 for	dir \
-in	$pwd/server/lib/sndfile $pwd/lib/SDL 
+in	$pwd/lib/SDL 
 do	cd $dir
-	[ ! -f Makefile.am ] || aclocal || aclocal $ACLOCAL_FLAGS || exit 3
-	[ ! -f Makefile.am ] || automake --add-missing --foreign || exit 1
-	[ ! -f configure.in ] || autoconf || exit 1
-	[ ! -x configure ] || ./configure "$@" || exit 1
+	aclocal || aclocal $ACLOCAL_FLAGS || exit 3
+	libtoolize --force
+	automake --add-missing --foreign || exit 1
+	autoconf || exit 1
+	./configure "$@" || exit 1
 done
 
 cd $pwd
 cd lib/rtp
 aclocal || aclocal $ACLOCAL_FLAGS || exit 3
+libtoolize --force
 autoheader
 automake --add-missing --foreign || exit 1
 autoconf || exit 1
@@ -71,6 +73,7 @@ autoconf || exit 1
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  
 aclocal || aclocal $ACLOCAL_FLAGS || aclocal -I util || aclocal -I util $ACLOCAL_FLAGS || exit 3
+libtoolize --force
 autoheader || exit 1
 automake --add-missing --foreign || exit 1
 autoconf || exit 1

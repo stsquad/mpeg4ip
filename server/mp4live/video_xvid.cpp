@@ -50,15 +50,13 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	xvidEncParams.height = m_pConfig->m_videoHeight;
 	xvidEncParams.raw_height = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
-	xvidEncParams.time_incr_bits = m_pConfig->m_videoTimeIncrBits;
+	xvidEncParams.time_inc_bits = m_pConfig->m_videoTimeIncrBits;
 	xvidEncParams.fincr = 1001;
 	xvidEncParams.fbase = 
 		(int)(1001 * m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
 	xvidEncParams.bitrate = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
-	xvidEncParams.rc_period = 2000;
-	xvidEncParams.rc_reaction_period = 10;
-	xvidEncParams.rc_reaction_ratio = 20;
+	xvidEncParams.rc_buffersize = 16;
 	xvidEncParams.min_quantizer = 1;
 	xvidEncParams.max_quantizer = 31;
 	xvidEncParams.max_key_interval = (int) 
@@ -67,9 +65,6 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	if (xvidEncParams.max_key_interval == 0) {
 		xvidEncParams.max_key_interval = 1;
 	} 
-	xvidEncParams.motion_search = (realTime ? 1 : 5);
-	xvidEncParams.quant_type = 0;	// 0 = H.263, 1 = MPEG-4
-	xvidEncParams.lum_masking = 0;
 
 	if (xvid_encore(NULL, XVID_ENC_CREATE, &xvidEncParams, NULL) 
 	  != XVID_ERR_OK) {
@@ -83,6 +78,20 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 		(xvidEncParams.raw_height - xvidEncParams.height) / 2 
 		* xvidEncParams.width;
 
+	memset(&m_xvidFrame, 0, sizeof(m_xvidFrame));
+
+	m_xvidFrame.general = XVID_HALFPEL | XVID_H263QUANT;
+	if (!realTime) {
+		m_xvidFrame.general |= XVID_INTER4V;
+		m_xvidFrame.motion = 
+			PMV_EARLYSTOP16 | PMV_HALFPELREFINE16 
+			| PMV_EARLYSTOP8 | PMV_HALFPELDIAMOND8;
+	} else {
+		m_xvidFrame.motion = PMV_QUICKSTOP16;
+	}
+	m_xvidFrame.colorspace = XVID_CSP_I420;
+	m_xvidFrame.quant = 0;
+
 	return true;
 }
 
@@ -94,24 +103,20 @@ bool CXvidVideoEncoder::EncodeImage(
 		return false;
 	}
 
-	XVID_ENC_FRAME xvidFrame;
-
 	// So long as images planes are consecutive in memory
 	// perhaps separated by a crop area, then we can just
 	// give xvid the start of the raw Y plane
-	xvidFrame.image = pY - m_inputOffset;
-	xvidFrame.bitstream = m_vopBuffer;
-	xvidFrame.colorspace = XVID_CSP_I420;
-	xvidFrame.quant = 0;
-	xvidFrame.intra = (wantKeyFrame ? 1 : -1);
+	m_xvidFrame.image = pY - m_inputOffset;
+	m_xvidFrame.bitstream = m_vopBuffer;
+	m_xvidFrame.intra = (wantKeyFrame ? 1 : -1);
 
-	if (xvid_encore(m_xvidHandle, XVID_ENC_ENCODE, &xvidFrame, 
+	if (xvid_encore(m_xvidHandle, XVID_ENC_ENCODE, &m_xvidFrame, 
 	  &m_xvidResult) != XVID_ERR_OK) {
 		debug_message("Xvid can't encode frame!");
 		return false;
 	}
 
-	m_vopBufferLength = xvidFrame.length;
+	m_vopBufferLength = m_xvidFrame.length;
 
 	return true;
 }

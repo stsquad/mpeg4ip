@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: faac.c,v 1.9 2002/02/27 20:05:25 wmaycisco Exp $
+ * $Id: faac.c,v 1.10 2002/05/01 17:41:56 wmaycisco Exp $
  */
 #include "systems.h"
 
@@ -24,7 +24,9 @@
 #include <sys/resource.h>
 #endif
 
+#ifdef HAVE_LIBSNDFILE
 #include <sndfile.h>
+#endif
 
 #include "faac.h"
 #include "util.h"
@@ -33,14 +35,21 @@ int main(int argc, char *argv[])
 {
 	int i, frames, currentFrame;
 	faacEncHandle hEncoder;
+
+#ifdef HAVE_LIBSNDFILE
 	SNDFILE *infile;
 	SF_INFO sfinfo;
+#else
+	FILE *infile;
+#endif
 	faacEncConfiguration myFormat;
 
 	unsigned long totalDesiredBitRate = 0;
 	int rawInput = 0;
 	unsigned long rawSampleRate = 44100;
 	int swapRawBytes = 0;
+	int channels;
+	long samples;
 
 	unsigned long samplesInput, maxBytesOutput;
 
@@ -161,6 +170,7 @@ int main(int argc, char *argv[])
 
 	/* handle raw audio input */
     if (rawInput) {
+#ifdef HAVE_LIBSNDFILE
 		sfinfo.format =  SF_FORMAT_RAW;
 		if (swapRawBytes) {
 			if (IsBigEndian()) {
@@ -178,10 +188,29 @@ int main(int argc, char *argv[])
 		sfinfo.pcmbitwidth = 16;
 		sfinfo.channels = 2;
 		sfinfo.samplerate = rawSampleRate;
+#else
+		channels = 2;
+#endif
     }
+#ifndef HAVE_LIBSNDFILE
+    else {
+      printf("Without libsndfile, only raw format is allowed\n");
+      return 1;
+    }
+#endif
 
 	/* open the audio input file */
+#ifdef HAVE_LIBSNDFILE
 	infile = sf_open_read(argv[argc-2], &sfinfo);
+	rawSampleRate = sfinfo.samplerate;
+	channels = sfinfo.channels;
+	samples = sfinfo.samples;
+#else
+	infile = fopen(argv[argc-2], FOPEN_READ_BINARY);
+	fseek(infile, 0, SEEK_END);
+	samples = ftell(infile) / 2;
+	fseek(infile, 0, SEEK_SET);
+#endif
 	if (infile == NULL)
 	{
 		printf("couldn't open input file %s\n", argv [argc-2]);
@@ -189,7 +218,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* open the aac output file */
-	outfile = fopen(argv[argc-1], "wb");
+	outfile = fopen(argv[argc-1], FOPEN_WRITE_BINARY);
 	if (!outfile)
 	{
 		printf("couldn't create output file %s\n", argv [argc-1]);
@@ -197,11 +226,11 @@ int main(int argc, char *argv[])
 	}
 
 	/* open the encoder library */
-	hEncoder = faacEncOpen(sfinfo.samplerate, sfinfo.channels, 
+	hEncoder = faacEncOpen(rawSampleRate, channels,
 		&samplesInput, &maxBytesOutput);
 
 	if (totalDesiredBitRate) {
-		myFormat.bitRate = totalDesiredBitRate / sfinfo.channels;
+		myFormat.bitRate = totalDesiredBitRate / channels;
 	} 
 
 	if (!faacEncSetConfiguration(hEncoder, &myFormat))
@@ -215,7 +244,7 @@ int main(int argc, char *argv[])
 #ifndef HAVE_GETRUSAGE
 		begin = GetTickCount();
 #endif
-		frames = (int)(sfinfo.samples/1024+0.5);
+		frames = (int)(samples/1024+0.5);
 		currentFrame = 0;
 
 		/* encoding loop */
@@ -225,7 +254,19 @@ int main(int argc, char *argv[])
 
 			currentFrame++;
 
+#ifdef HAVE_LIBSNDFILE
 			bytesInput = sf_read_short(infile, pcmbuf, samplesInput) * sizeof(short);
+#else
+			bytesInput = fread(pcmbuf, 1, sizeof(short)* samplesInput, infile);
+			if (swapRawBytes) {
+			  unsigned long ix;
+			  for (ix = 0; ix < samplesInput; ix++) {
+			    unsigned short temp;
+			    temp = pcmbuf[ix];
+			    pcmbuf[ix] = ((temp >> 8) & 0xff) | (temp << 8);
+			  }
+			}
+#endif
 
 			/* call the actual encoding routine */
 			bytesWritten = faacEncEncode(hEncoder,
@@ -282,7 +323,11 @@ int main(int argc, char *argv[])
 
 	faacEncClose(hEncoder);
 
+#ifdef HAVE_SNDFILE
 	sf_close(infile);
+#else
+	fclose(infile);
+#endif
 
 	if (pcmbuf) free(pcmbuf);
 	if (bitbuf) free(bitbuf);

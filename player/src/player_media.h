@@ -154,7 +154,7 @@ class CPlayerMedia {
   CRtpByteStreamBase *m_rtp_byte_stream;
   CMsgQueue m_rtp_msg_queue;
 
-  rtp_packet *m_head, *m_tail; // used when determining rtp protocol
+  rtp_packet *m_head, *m_tail; 
   uint32_t m_rtp_queue_len;
   
   // from rtsp...
@@ -163,11 +163,11 @@ class CPlayerMedia {
   int m_rtp_rtpinfo_received;
   uint32_t m_rtp_rtptime;
 
-  int determine_proto_from_rtp(void);
+  int determine_payload_type_from_rtp(void);
   void clear_rtp_packets(void);
 
   // from rtcp, for broadcast, in case we get an RTCP before we determine
-  // the protocol
+  // the payload type
   uint32_t m_rtcp_ntp_frac;
   uint32_t m_rtcp_ntp_sec;
   uint32_t m_rtcp_rtp_ts;

@@ -503,9 +503,6 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
       return -1;
     }
   }
-  /*
-   * create the rtp bytestream
-   */
   if (m_rtp_session == NULL) {
     snprintf(errmsg, errlen, "Couldn't create RTP session for media %s",
 	     m_media_info->media);
@@ -1176,7 +1173,10 @@ int CPlayerMedia::rtp_receive_packet (unsigned char interleaved,
       xfree(pak);
     }
   } else {
-    rtp_process_ctrl(m_rtp_session, ((uint8_t *)(&pak->rtp_extn_type)) + sizeof(pak->rtp_extn_type), len);
+    uint8_t *pakbuf = (uint8_t *)pak;
+    pakbuf += sizeof(rtp_packet_data);
+	    
+    rtp_process_ctrl(m_rtp_session, pakbuf, len);
     xfree(pak);
     ret = 0;
   }
@@ -1208,11 +1208,11 @@ void CPlayerMedia::rtp_periodic (void)
   }
   if (m_head != NULL) {
     /*
-     * Make sure that the proto is the same
+     * Make sure that the payload type is the same
      */
     if (m_head->rtp_pak_pt == m_tail->rtp_pak_pt) {
       if (m_rtp_queue_len > 10) { // 10 packets consecutive proto same
-	if (determine_proto_from_rtp() == FALSE) {
+	if (determine_payload_type_from_rtp() == FALSE) {
 	  clear_rtp_packets(); 
 	}
       }
@@ -1230,6 +1230,7 @@ void CPlayerMedia::rtp_start (void)
     // For now - we'll set up not to wait for RTCP validation 
     // before indicating if rtp library should accept.
     rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
+    rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
   }
   if (m_rtp_byte_stream != NULL) {
     m_rtp_byte_stream->reset();
@@ -1431,26 +1432,26 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
 }
 
 /*
- * determine_proto_from_rtp - determine with protocol we're dealing with
+ * determine_payload_type_from_rtp - determine with protocol we're dealing with
  * in the rtp session.  Set various calculations for the sync task, as well...
  */
-int CPlayerMedia::determine_proto_from_rtp(void)
+int CPlayerMedia::determine_payload_type_from_rtp(void)
 {
-  char proto = (char)m_head->rtp_pak_pt, temp;
+  char payload_type = (char)m_head->rtp_pak_pt, temp;
   format_list_t *fmt;
   uint64_t tickpersec;
 
   fmt = m_media_info->fmt;
   while (fmt != NULL) {
     temp = atoi(fmt->fmt);
-    if (temp == proto) {
+    if (temp == payload_type) {
       m_media_fmt = fmt;
       if (fmt->rtpmap != NULL) {
 	tickpersec = fmt->rtpmap->clock_rate;
       } else {
-	if (proto >= 96) {
-	  media_message(LOG_ERR, "Media %s, rtp proto of %u, no rtp map",
-			m_media_info->media, proto);
+	if (payload_type >= 96) {
+	  media_message(LOG_ERR, "Media %s, rtp payload type of %u, no rtp map",
+			m_media_info->media, payload_type);
 	  return (FALSE);
 	}
 	tickpersec = 90000;
@@ -1458,7 +1459,7 @@ int CPlayerMedia::determine_proto_from_rtp(void)
 
       m_rtp_byte_stream = 
 	create_rtp_byte_stream_for_format(m_media_fmt,
-					  proto,
+					  payload_type,
 					  m_stream_ondemand,
 					  tickpersec,
 					  &m_head,
@@ -1509,6 +1510,7 @@ void CPlayerMedia::rtp_init_tcp (void)
 				      c_rtcp_send_packet,
 				      (uint8_t *)this);
   rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
+  rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
   m_rtp_inited = 1;
 
 }

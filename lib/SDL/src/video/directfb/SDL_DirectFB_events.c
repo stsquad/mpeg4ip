@@ -1,6 +1,6 @@
 /*
 	SDL - Simple DirectMedia Layer
-	Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+	Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
 	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 	Sam Lantinga
-	slouken@devolution.com
+	slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_DirectFB_events.c,v 1.1 2001/11/13 00:39:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_DirectFB_events.c,v 1.2 2002/05/01 17:41:20 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting DirectFB input events into SDL events */
@@ -56,7 +56,8 @@ void DirectFB_PumpEvents (_THIS)
 {
   DFBInputEvent evt;
 
-  while (HIDDEN->inputbuffer->GetEvent (HIDDEN->inputbuffer, &evt) == DFB_OK)
+  while (HIDDEN->eventbuffer->GetEvent (HIDDEN->eventbuffer,
+                                        DFB_EVENT (&evt)) == DFB_OK)
     {
       SDL_keysym keysym;
 

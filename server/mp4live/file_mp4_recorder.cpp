@@ -266,7 +266,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 			m_encodedAudioFrameNum++;
 		}
 
-	} else if (pFrame->GetType() == CMediaFrame::RawYuvVideoFrame
+	} else if (pFrame->GetType() == CMediaFrame::YuvVideoFrame
 	  && m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
 
 		// let audio record if raw is the only video being recorded

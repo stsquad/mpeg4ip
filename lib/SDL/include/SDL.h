@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL.h,v 1.2 2002/05/01 17:40:32 wmaycisco Exp $";
 #endif
 
 /* Main include header for the SDL library */
@@ -69,24 +69,24 @@ extern "C" {
  * Unless the SDL_INIT_NOPARACHUTE flag is set, it will install cleanup
  * signal handlers for some commonly ignored fatal signals (like SIGSEGV)
  */
-extern DECLSPEC int SDL_Init(Uint32 flags);
+extern DECLSPEC int SDLCALL SDL_Init(Uint32 flags);
 
 /* This function initializes specific SDL subsystems */
-extern DECLSPEC int SDL_InitSubSystem(Uint32 flags);
+extern DECLSPEC int SDLCALL SDL_InitSubSystem(Uint32 flags);
 
 /* This function cleans up specific SDL subsystems */
-extern DECLSPEC void SDL_QuitSubSystem(Uint32 flags);
+extern DECLSPEC void SDLCALL SDL_QuitSubSystem(Uint32 flags);
 
 /* This function returns mask of the specified subsystems which have
    been initialized.
    If 'flags' is 0, it returns a mask of all initialized subsystems.
 */
-extern DECLSPEC Uint32 SDL_WasInit(Uint32 flags);
+extern DECLSPEC Uint32 SDLCALL SDL_WasInit(Uint32 flags);
 
 /* This function cleans up all initialized subsystems and unloads the
  * dynamically linked library.  You should call it upon all exit conditions.
  */
-extern DECLSPEC void SDL_Quit(void);
+extern DECLSPEC void SDLCALL SDL_Quit(void);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

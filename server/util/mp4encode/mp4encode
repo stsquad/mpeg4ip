@@ -130,7 +130,7 @@ echo "Encoding ${numframes} frames of video"
 
 if [ $use_iso = 0 ]; then 
 	vfile=${prefix}.divx
-	divxenc -b ${vbitRate} -h ${videoHeight} -w ${videoWidth} -r ${fps} -i ${ifrequency} ${prefix}.yuv ${vfile}
+	xvidenc -b ${vbitRate} -h ${videoHeight} -w ${videoWidth} -r ${fps} -i ${ifrequency} ${prefix}.yuv ${vfile}
 
 else
 	# Create video encoder parameters file from template

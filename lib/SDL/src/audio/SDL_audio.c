@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.3 2001/11/13 00:38:55 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.4 2002/05/01 17:40:33 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -230,6 +230,22 @@ int SDL_RunAudio(void *audiop)
 	return(0);
 }
 
+static void SDL_LockAudio_Default(SDL_AudioDevice *audio)
+{
+	if ( audio->thread && (SDL_ThreadID() == audio->threadid) ) {
+		return;
+	}
+	SDL_mutexP(audio->mixer_lock);
+}
+
+static void SDL_UnlockAudio_Default(SDL_AudioDevice *audio)
+{
+	if ( audio->thread && (SDL_ThreadID() == audio->threadid) ) {
+		return;
+	}
+	SDL_mutexV(audio->mixer_lock);
+}
+
 int SDL_AudioInit(const char *driver_name)
 {
 	SDL_AudioDevice *audio;
@@ -309,6 +325,10 @@ int SDL_AudioInit(const char *driver_name)
 	current_audio = audio;
 	if ( current_audio ) {
 		current_audio->name = bootstrap[i]->name;
+		if ( !current_audio->LockAudio && !current_audio->UnlockAudio ) {
+			current_audio->LockAudio = SDL_LockAudio_Default;
+			current_audio->UnlockAudio = SDL_UnlockAudio_Default;
+		}
 	}
 	return(0);
 }
@@ -335,6 +355,11 @@ int SDL_OpenAudio(SDL_AudioSpec *desired, SDL_AudioSpec *obtained)
 		}
 	}
 	audio = current_audio;
+
+	if (audio->opened) {
+		SDL_SetError("Audio device is already opened");
+		return(-1);
+	}
 
 	/* Verify some parameters */
 	if ( desired->callback == NULL ) {
@@ -501,11 +526,8 @@ void SDL_LockAudio (void)
 	SDL_AudioDevice *audio = current_audio;
 
 	/* Obtain a lock on the mixing buffers */
-	if ( audio ) {
-		if ( audio->thread && (SDL_ThreadID() == audio->threadid) ) {
-			return;
-		}
-		SDL_mutexP(audio->mixer_lock);
+	if ( audio && audio->LockAudio ) {
+		audio->LockAudio(audio);
 	}
 }
 
@@ -514,12 +536,14 @@ void SDL_UnlockAudio (void)
 	SDL_AudioDevice *audio = current_audio;
 
 	/* Release lock on the mixing buffers */
-	if ( audio ) {
-		if ( audio->thread && (SDL_ThreadID() == audio->threadid) ) {
-			return;
-		}
-		SDL_mutexV(audio->mixer_lock);
+	if ( audio && audio->UnlockAudio ) {
+		audio->UnlockAudio(audio);
 	}
+}
+
+void SDL_CloseAudio (void)
+{
+	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
 int SDL_HasAudioDelayMsec (void)
@@ -539,13 +563,9 @@ int SDL_AudioDelayMsec (void)
     return (audio->AudioDelayMsec(audio));
   } else {
     return (-1);
-  }
+   }
 }
 
-void SDL_CloseAudio (void)
-{
-	SDL_QuitSubSystem(SDL_INIT_AUDIO);
-}
 
 void SDL_AudioQuit(void)
 {

@@ -35,6 +35,7 @@ libmp4player_la_SOURCES = \
 	ip_port.cpp \
 	media_utils.cpp \
 	our_config_file.cpp \
+	mpeg3_rtp_bytestream.cpp \
 	mp4_file.cpp \
 	mp4_bytestream.cpp \
 	player_sdp.c \
@@ -67,7 +68,7 @@ gmp4player_SOURCES = \
 	gui_showmsg.c \
 	gui_utils.c 
 
-movplayer_SOURCES = player_util.c \
+movplayer_SOURCES = \
 	movplayer.cpp
 
 INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@ @X_CFLAGS@

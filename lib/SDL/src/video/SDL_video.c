@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.c,v 1.3 2001/11/13 00:39:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_video.c,v 1.4 2002/05/01 17:41:06 wmaycisco Exp $";
 #endif
 
 /* The high-level video driver subsystem */
@@ -104,6 +104,12 @@ static VideoBootStrap *bootstrap[] = {
 #endif
 #ifdef ENABLE_DUMMYVIDEO
 	&DUMMY_bootstrap,
+#endif
+#ifdef ENABLE_XBIOS
+	&XBIOS_bootstrap,
+#endif
+#ifdef ENABLE_GEM
+	&GEM_bootstrap,
 #endif
 	NULL
 };
@@ -722,11 +728,9 @@ do { \
 		   support the GL_UNSIGNED_SHORT_5_6_5 texture format.
 		 */
 		if ( (bpp == 16) &&
-		     (strstr((const char *)video->glGetString(GL_EXTENSIONS),
-		                           "GL_EXT_packed_pixels") ||
-		     (strncmp((const char *)video->glGetString(GL_VERSION),
-		              "1.2", 3) == 0)) )
-		{
+		     (strstr((const char *)video->glGetString(GL_EXTENSIONS), "GL_EXT_packed_pixels") ||
+		     (atof((const char *)video->glGetString(GL_VERSION)) >= 1.2f))
+		   ) {
 			video->is_32bit = 0;
 			SDL_VideoSurface = SDL_CreateRGBSurface(
 				flags, 
@@ -840,7 +844,10 @@ SDL_Surface * SDL_DisplayFormat (SDL_Surface *surface)
 		return(NULL);
 	}
 	/* Set the flags appropriate for copying to display surface */
-	flags  = (SDL_PublicSurface->flags&SDL_HWSURFACE);
+	if (((SDL_PublicSurface->flags&SDL_HWSURFACE) == SDL_HWSURFACE) && current_video->info.blit_hw)
+		flags = SDL_HWSURFACE;
+	else 
+		flags = SDL_SWSURFACE;
 #ifdef AUTORLE_DISPLAYFORMAT
 	flags |= (surface->flags & (SDL_SRCCOLORKEY|SDL_SRCALPHA));
 	flags |= SDL_RLEACCELOK;
@@ -1391,7 +1398,9 @@ void SDL_GL_SwapBuffers(void)
 	SDL_VideoDevice *this = current_video;
 
 	if ( video->screen->flags & SDL_OPENGL ) {
-		video->GL_SwapBuffers( this );
+		video->GL_SwapBuffers(this);
+	} else {
+		SDL_SetError("OpenGL video mode has not been set");
 	}
 }
 

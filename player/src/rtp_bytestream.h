@@ -35,7 +35,7 @@ class CRtpByteStreamBase : public COurInByteStream
 {
  public:
   CRtpByteStreamBase(const char *name,
-		     unsigned int rtp_proto,
+		     unsigned int rtp_pt,
 		     int ondemand,
 		     uint64_t tickpersec,
 		     rtp_packet **head, 
@@ -95,8 +95,8 @@ class CRtpByteStreamBase : public COurInByteStream
   SDL_mutex *m_rtp_packet_mutex;
   int m_buffering;
   uint64_t m_rtp_buffer_time;
-  unsigned int m_rtp_proto;
-  virtual int check_rtp_frame_complete_for_proto(void);
+  unsigned int m_rtp_pt;
+  virtual int check_rtp_frame_complete_for_payload_type(void);
   int m_rtp_rtpinfo_received;
   uint32_t m_rtptime_last;
   int m_doing_add;
@@ -107,7 +107,7 @@ class CRtpByteStream : public CRtpByteStreamBase
 {
  public:
   CRtpByteStream(const char *name,
-		 unsigned int rtp_proto,
+		 unsigned int rtp_pt,
 		 int ondemand,
 		 uint64_t tickpersec,
 		 rtp_packet **head, 
@@ -136,7 +136,7 @@ class CRtpByteStream : public CRtpByteStreamBase
 class CAudioRtpByteStream : public CRtpByteStream
 {
  public:
-  CAudioRtpByteStream(unsigned int rtp_proto,
+  CAudioRtpByteStream(unsigned int rtp_pt,
 		      int ondemand,
 		      uint64_t tickpersec,
 		      rtp_packet **head, 
@@ -149,7 +149,7 @@ class CAudioRtpByteStream : public CRtpByteStream
 		      uint32_t rtp_ts);
   ~CAudioRtpByteStream();
   int have_no_data(void);
-  int check_rtp_frame_complete_for_proto(void);
+  int check_rtp_frame_complete_for_payload_type(void);
   uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
  private:
   rtp_packet *m_working_pak;

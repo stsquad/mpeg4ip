@@ -2,11 +2,17 @@ bin_PROGRAMS = faac
 
 faac_SOURCES = faac.c
 
-INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/server/lib/sndfile/src
+INCLUDES = -I$(top_srcdir)/include 
 
 AM_CFLAGS = -O2
 
-LDADD = $(top_builddir)/server/lib/sndfile/src/libsndfile.la \
+if HAVE_LIBSNDFILE
+LD_E1 = -lsndfile
+else
+LD_E1 = 
+endif 
+
+LDADD = $(LD_E1) \
 	libfaac.la -lm
 
 lib_LTLIBRARIES = libfaac.la

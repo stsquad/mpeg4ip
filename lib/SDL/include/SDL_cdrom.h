@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,12 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
     Sam Lantinga
-    slouken@devolution.com
+    slouken@libsdl.org
 */
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_cdrom.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_cdrom.h,v 1.2 2002/05/01 17:40:32 wmaycisco Exp $";
 #endif
 
 /* This is the CD-audio control API for Simple DirectMedia Layer */
@@ -99,7 +99,7 @@ typedef struct SDL_CD {
 /* Returns the number of CD-ROM drives on the system, or -1 if
    SDL_Init() has not been called with the SDL_INIT_CDROM flag.
  */
-extern DECLSPEC int SDL_CDNumDrives(void);
+extern DECLSPEC int SDLCALL SDL_CDNumDrives(void);
 
 /* Returns a human-readable, system-dependent identifier for the CD-ROM.
    Example:
@@ -107,7 +107,7 @@ extern DECLSPEC int SDL_CDNumDrives(void);
 	"E:"
 	"/dev/disk/ide/1/master"
 */
-extern DECLSPEC const char * SDL_CDName(int drive);
+extern DECLSPEC const char * SDLCALL SDL_CDName(int drive);
 
 /* Opens a CD-ROM drive for access.  It returns a drive handle on success,
    or NULL if the drive was invalid or busy.  This newly opened CD-ROM
@@ -115,13 +115,13 @@ extern DECLSPEC const char * SDL_CDName(int drive);
    CD-ROM handle.
    Drives are numbered starting with 0.  Drive 0 is the system default CD-ROM.
 */
-extern DECLSPEC SDL_CD * SDL_CDOpen(int drive);
+extern DECLSPEC SDL_CD * SDLCALL SDL_CDOpen(int drive);
 
 /* This function returns the current status of the given drive.
    If the drive has a CD in it, the table of contents of the CD and current
    play position of the CD will be stored in the SDL_CD structure.
 */
-extern DECLSPEC CDstatus SDL_CDStatus(SDL_CD *cdrom);
+extern DECLSPEC CDstatus SDLCALL SDL_CDStatus(SDL_CD *cdrom);
 
 /* Play the given CD starting at 'start_track' and 'start_frame' for 'ntracks'
    tracks and 'nframes' frames.  If both 'ntrack' and 'nframe' are 0, play 
@@ -142,28 +142,28 @@ extern DECLSPEC CDstatus SDL_CDStatus(SDL_CD *cdrom);
 
    This function returns 0, or -1 if there was an error.
 */
-extern DECLSPEC int SDL_CDPlayTracks(SDL_CD *cdrom,
+extern DECLSPEC int SDLCALL SDL_CDPlayTracks(SDL_CD *cdrom,
 		int start_track, int start_frame, int ntracks, int nframes);
 
 /* Play the given CD starting at 'start' frame for 'length' frames.
    It returns 0, or -1 if there was an error.
 */
-extern DECLSPEC int SDL_CDPlay(SDL_CD *cdrom, int start, int length);
+extern DECLSPEC int SDLCALL SDL_CDPlay(SDL_CD *cdrom, int start, int length);
 
 /* Pause play -- returns 0, or -1 on error */
-extern DECLSPEC int SDL_CDPause(SDL_CD *cdrom);
+extern DECLSPEC int SDLCALL SDL_CDPause(SDL_CD *cdrom);
 
 /* Resume play -- returns 0, or -1 on error */
-extern DECLSPEC int SDL_CDResume(SDL_CD *cdrom);
+extern DECLSPEC int SDLCALL SDL_CDResume(SDL_CD *cdrom);
 
 /* Stop play -- returns 0, or -1 on error */
-extern DECLSPEC int SDL_CDStop(SDL_CD *cdrom);
+extern DECLSPEC int SDLCALL SDL_CDStop(SDL_CD *cdrom);
 
 /* Eject CD-ROM -- returns 0, or -1 on error */
-extern DECLSPEC int SDL_CDEject(SDL_CD *cdrom);
+extern DECLSPEC int SDLCALL SDL_CDEject(SDL_CD *cdrom);
 
 /* Closes the handle for the CD-ROM drive */
-extern DECLSPEC void SDL_CDClose(SDL_CD *cdrom);
+extern DECLSPEC void SDLCALL SDL_CDClose(SDL_CD *cdrom);
 
 
 /* Ends C function definitions when using C++ */

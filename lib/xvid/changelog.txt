@@ -1,0 +1,15 @@
+08.03.2002
+- added support for custom MPEG4 quant matrices
+
+08.03.2002
+
+- new core structure
+- mbcoding/mbdecoding rewrite
+- API change, introduced feature flags
+- Bitreader/Bitwriter merge
+- putbits speedup
+- ratecontrol rewrite (it's total crap, just a 5 minute hack...)
+- split motion estimation and motion compensation into different files
+- encoder.c cleanup
+- NOTE: DivX4 API compatibility is partly broken right now
+- NOTE: custom MPEG quant matrices are currently ignored

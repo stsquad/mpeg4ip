@@ -33,53 +33,37 @@
 class COSSAudioSource : public CMediaSource {
 public:
 	COSSAudioSource() : CMediaSource() {
-		m_capture = false;
 		m_audioDevice = -1;
-		m_encoder = NULL;
-		m_rawFrameBuffer = NULL;
+		m_pcmFrameBuffer = NULL;
 	}
 	~COSSAudioSource() {
-		delete m_encoder;
-		free(m_rawFrameBuffer);
+		free(m_pcmFrameBuffer);
 	}
 
 	bool IsDone() {
 		return false;	// live capture device is inexhaustible
 	}
 
-	Duration GetElapsedDuration();
-
 	float GetProgress() {
 		return 0.0;		// live capture device is inexhaustible
 	}
 
 protected:
-	int ThreadMain(void);
+	int ThreadMain();
 
-	void DoStartCapture(void);
-	void DoStopCapture(void);
+	void DoStartCapture();
+	void DoStopCapture();
 
-	bool Init(void);
-	bool InitDevice(void);
-	bool InitEncoder(void);
+	bool Init();
+	bool InitDevice();
 
-	void ProcessAudio(void);
+	void ProcessAudio();
 
 protected:
-	bool				m_capture;
 	int					m_audioDevice;
-	CAudioEncoder*		m_encoder;
-	Timestamp			m_startTimestamp;
 	u_int16_t			m_maxPasses;
-
-	u_int16_t			m_rawSamplesPerFrame;
-	u_int16_t*			m_rawFrameBuffer;
-	u_int32_t			m_rawFrameSize;
-	u_int64_t			m_rawForwardedSamples;
-	u_int32_t			m_rawForwardedFrames;
-
-	u_int64_t			m_encodedForwardedSamples;
-	u_int32_t			m_encodedForwardedFrames;
+	u_int8_t*			m_pcmFrameBuffer;
+	u_int32_t			m_pcmFrameSize;
 };
 
 class CAudioCapabilities {
