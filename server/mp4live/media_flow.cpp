@@ -42,6 +42,8 @@
 #include "profile_video.h"
 #include "profile_audio.h"
 #include "profile_text.h"
+#include "text_source.h"
+
 // Generic Flow
 
 bool CMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
@@ -104,7 +106,7 @@ void CAVMediaFlow::Stop(void)
 	if (!m_started) {
 		return;
 	}
-	debug_message("media flow - stop");
+	//debug_message("media flow - stop");
 	bool oneSource = (m_audioSource == m_videoSource);
 
 	// Stop the sources
@@ -257,6 +259,8 @@ bool CAVMediaFlow::GetStatus(u_int32_t valueName, void* pValue)
 		source = m_videoSource;
 	} else if (m_audioSource) {
 		source = m_audioSource;
+	} else if (m_textSource) {
+	  source = m_textSource;
 	}
 
 	switch (valueName) {
@@ -268,6 +272,9 @@ bool CAVMediaFlow::GetStatus(u_int32_t valueName, void* pValue)
 		}
 		if (m_audioSource) {
 			done = (done && m_audioSource->IsDone());
+		}
+		if (m_textSource) {
+		  done = (done && m_textSource->IsDone());
 		}
 		*(bool*)pValue = done;
 		}

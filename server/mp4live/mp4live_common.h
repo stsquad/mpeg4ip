@@ -12,11 +12,12 @@ void ProbeVideoAudioCapabilities(CLiveConfig *pConfig);
 void SetupRealTimeFeatures(CLiveConfig *pConfig);
 
 class CMediaSource;
+class CTextSource;
 
 CMediaSource *CreateVideoSource(CLiveConfig *pConfig);
 
 CMediaSource *CreateAudioSource(CLiveConfig *pConfig, CMediaSource *videoSource);
-CMediaSource *CreateTextSource(CLiveConfig *pConfig);
+CTextSource *CreateTextSource(CLiveConfig *pConfig);
 
 void InitialVideoProbe(CLiveConfig *pConfig);
 

@@ -34,6 +34,7 @@ class CVideoProfileList;
 class CAudioProfileList;
 class CVideoEncoder;
 class CAudioEncoder;
+class CTextSource;
 
 // abstract parent class
 class CMediaFlow {
@@ -92,7 +93,7 @@ public:
 	{
 		return m_videoSource;
 	}
-	CMediaSource* GetTextSource() {
+	CTextSource* GetTextSource() {
 	  return m_textSource;
 	}
 	  
@@ -107,7 +108,7 @@ protected:
 protected:
 	CMediaSource* 	m_videoSource;
 	CMediaSource*	m_audioSource;
-	CMediaSource*   m_textSource;
+	CTextSource*   m_textSource;
 	uint32_t m_maxAudioSamplesPerFrame;
  public:
 	CVideoProfileList *m_video_profile_list;

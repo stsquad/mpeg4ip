@@ -115,9 +115,9 @@ CMediaSource *CreateAudioSource (CLiveConfig *pConfig,
   return audioSource;
 }
 
-CMediaSource *CreateTextSource (CLiveConfig *pConfig) 
+CTextSource *CreateTextSource (CLiveConfig *pConfig) 
 {
-  CMediaSource *textSource = NULL;
+  CTextSource *textSource = NULL;
   textSource = new CFileTextSource(pConfig);
   textSource->StartThread();
   return textSource;

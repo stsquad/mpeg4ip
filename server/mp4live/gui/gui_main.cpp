@@ -36,7 +36,7 @@
 #include "rtp_transmitter.h"
 #include "text_source.h"
 
-//#define HAVE_TEXT 1
+#define HAVE_TEXT 1
 //#define HAVE_TEXT_ENTRY 1
 CLiveConfig* MyConfig;
 CPreviewAVMediaFlow* AVFlow = NULL;

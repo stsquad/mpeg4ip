@@ -22,6 +22,7 @@
 #include "mp4live.h"
 #include "text_encoder.h"
 
+//y#define DEBUG_TEXT
 text_encoder_table_t text_encoder_table[] = {
   { "Plain Text",
     TEXT_ENCODING_PLAIN,
@@ -56,7 +57,9 @@ class CPlainTextEncoder : public CTextEncoder {
 		       uint32_t *pBufferLength) {
     if (m_encodedFrame == NULL) return false;
     *pBufferLength = strlen(m_encodedFrame) + 1;
+#ifdef DEBUG_TEXT
     debug_message("encode len %u", *pBufferLength);
+#endif
     *ppBuffer = strdup(m_encodedFrame);
     return true;
   };
@@ -244,7 +247,9 @@ void CTextEncoder::SendFrame (Timestamp t)
 		       buf, 
 		       buflen,
 		       t);
+#ifdef DEBUG_TEXT
   debug_message("frame len %u", buflen);
+#endif
   ForwardFrame(mf);
 }
 void CTextEncoder::DoStopText (void)
