@@ -31,7 +31,7 @@
 # include <config.h>
 #endif
 #include <mpeg4ip_getopt.h>
-
+#ifndef HAVE_GETOPT_LONG
 #if !defined __STDC__ || !__STDC__
 /* This is a separate conditional since some stdc systems
    reject `defined (const)'.  */
@@ -1039,3 +1039,4 @@ main (argc, argv)
 }
 
 #endif /* TEST */
+#endif

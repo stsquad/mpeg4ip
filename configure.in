@@ -28,9 +28,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 dnl Checks for library functions.
 AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getrusage socketpair strsep)
 
-dnl Add getopt libraries if we don't have them
-AM_CONDITIONAL(PROVIDE_GETOPTLONG, test x$ac_cv_func_getopt_long != xyes)
-
 dnl MY_CHECK_TYPEDEF_FROM_INCLUDE(typedef, include files, define)
 dnl checks if typedef is in include files.  add define in acconfig.h
 AC_DEFUN(MY_CHECK_TYPEDEF_FROM_INCLUDE,
@@ -205,6 +202,7 @@ AC_OUTPUT( \
 	lib/config_file/Makefile \
 	lib/gnu/Makefile \
 	lib/gnu/getopt/Makefile \
+	lib/gnu/strsep/Makefile \
 	lib/mp4/Makefile \
 	lib/mp4v2/Makefile \
 	lib/mp4v2/test/Makefile \

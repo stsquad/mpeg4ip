@@ -78,6 +78,7 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
 mp4player_LDADD = \
 	-lm \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/player/src/libmp4player.la \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/player/src/codec/wav/libourwav.la \

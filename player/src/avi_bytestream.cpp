@@ -28,25 +28,24 @@
 /**************************************************************************
  * Quicktime stream base class functions
  **************************************************************************/
-CAviByteStreamBase::CAviByteStreamBase (CAviFile *parent)
-  : COurInByteStream()
+CAviByteStreamBase::CAviByteStreamBase (CAviFile *parent, const char *which)
+  : COurInByteStream(which)
 {
   m_frame_on = 0;
   m_frame_in_buffer = 0xffffffff;
-  m_bookmark = 0;
   m_parent = parent;
   m_eof = 0;
   m_max_frame_size = 16 * 1024;
   m_buffer = (unsigned char *) malloc(m_max_frame_size * sizeof(char));
-  m_bookmark_buffer = (unsigned char *)malloc(m_max_frame_size * sizeof(char));
   m_buffer_on = m_buffer;
-  m_bookmark_read_frame = 0;
 }
 
 CAviByteStreamBase::~CAviByteStreamBase()
 {
-  free(m_buffer);
-  free(m_bookmark_buffer);
+  if (m_buffer) {
+    free(m_buffer);
+    m_buffer = NULL;
+  }
 }
 
 int CAviByteStreamBase::eof(void)
@@ -55,84 +54,6 @@ int CAviByteStreamBase::eof(void)
 }
 
 
-void CAviByteStreamBase::check_for_end_of_frame (void)
-{
-  if (m_byte_on >= m_this_frame_size) {
-    m_frame_on++;
-    if (m_frame_on >= m_frames_max) {
-      if (m_bookmark == 0)
-	m_eof = 1;
-    } else {
-#if 0
-      if (m_bookmark == 0)
-      player_debug_message("Reading frame %u - bookmark %d", 
-			   m_frame_on,
-			   m_bookmark);
-#endif
-      read_frame(0);
-    }
-  }
-}
-unsigned char CAviByteStreamBase::get (void)
-{
-  unsigned char ret;
-#if 0
-  player_debug_message("Getting byte %u frame %u %u bookmark %d", 
-		       m_byte_on, m_frame_on, m_this_frame_size, m_bookmark);
-#endif
-  if ((m_eof != 0) || 
-      (m_byte_on >= m_this_frame_size)) {
-    throw THROW_AVI_BUFFER_OVERFLOW; 
-  }
-  ret = m_buffer_on[m_byte_on];
-  m_byte_on++;
-  m_total++;
-  check_for_end_of_frame();
-  return (ret);
-}
-
-unsigned char CAviByteStreamBase::peek (void) 
-{
-  return (m_buffer_on[m_byte_on]);
-}
-
-void CAviByteStreamBase::bookmark (int bSet)
-{
-  if (bSet) {
-    m_bookmark = 1;
-    m_bookmark_byte_on = m_byte_on;
-    m_bookmark_frame_on = m_frame_on;
-    m_total_bookmark = m_total;
-    m_bookmark_this_frame_size = m_this_frame_size;
-  } else {
-    m_bookmark = 0;
-    m_byte_on = m_bookmark_byte_on;
-    m_buffer_on = m_buffer;
-    m_frame_on = m_bookmark_frame_on;
-    m_total = m_total_bookmark;
-    m_this_frame_size = m_bookmark_this_frame_size;
-  }
-}
-
-ssize_t CAviByteStreamBase::read (unsigned char *buffer, size_t bytestoread)
-{
-  size_t inbuffer;
-  ssize_t readbytes = 0;
-  do {
-    inbuffer = m_this_frame_size - m_byte_on;
-    if (inbuffer > bytestoread) {
-      inbuffer = bytestoread;
-    }
-    memcpy(buffer, &m_buffer_on[m_byte_on], inbuffer);
-    buffer += inbuffer;
-    bytestoread -= inbuffer;
-    m_byte_on += inbuffer;
-    m_total += inbuffer;
-    readbytes += inbuffer;
-    check_for_end_of_frame();
-  } while (bytestoread > 0 && m_eof == 0);
-  return (readbytes);
-}
 
 const char *CAviByteStreamBase::get_throw_error (int error)
 {
@@ -154,9 +75,7 @@ int CAviByteStreamBase::throw_error_minor (int error)
 void CAviVideoByteStream::video_set_timebase (long frame)
 {
   m_eof = 0;
-  m_bookmark_read_frame = 0;
   m_frame_on = frame;
-  m_bookmark = 0;
   read_frame(frame);
 }
 void CAviVideoByteStream::reset (void) 
@@ -264,9 +183,7 @@ void CAviVideoByteStream::set_start_time (uint64_t start)
 void CAviAudioByteStream::audio_set_timebase (long frame)
 {
   m_eof = 0;
-  m_bookmark_read_frame = 0;
   m_frame_on = frame;
-  m_bookmark = 0;
   read_frame(frame);
 }
 
@@ -326,28 +243,9 @@ void CAviAudioByteStream::get_more_bytes (unsigned char **buffer,
 
 void CAviAudioByteStream::read_frame (uint32_t frame_to_read)
 {
-  if (m_bookmark_read_frame != 0) {
-    if (m_bookmark == 0) {
-      m_bookmark_read_frame = 0;
-      unsigned char *temp = m_buffer;
-      m_buffer = m_bookmark_buffer;
-      m_bookmark_buffer = temp;
-      m_buffer_on = m_buffer;
-    } else {
-      m_buffer_on = m_bookmark_buffer;
-    }
-    m_this_frame_size = m_bookmark_read_frame_size;
-    m_byte_on = 0;
-    return;
-  }
   m_parent->lock_file_mutex();
 
-  if (m_bookmark == 0) {
-    m_buffer_on = m_buffer;
-  } else {
-    m_buffer_on = m_bookmark_buffer;
-    m_bookmark_read_frame = 1;
-  }
+  m_buffer_on = m_buffer;
   unsigned char *buff = (unsigned char *)m_buffer_on;
   if (m_add_len_to_stream) {
     buff += 2;
@@ -361,15 +259,8 @@ void CAviAudioByteStream::read_frame (uint32_t frame_to_read)
   if (m_this_frame_size > m_max_frame_size) {
     m_max_frame_size = m_this_frame_size;
     m_buffer = (unsigned char *)realloc(m_buffer, m_max_frame_size * sizeof(char));
-    m_bookmark_buffer = (unsigned char *)realloc(m_bookmark_buffer,
-						 m_max_frame_size * sizeof(char));
     // Okay - I could have used a goto, but it really grates...
-    if (m_bookmark == 0) {
-      m_buffer_on = m_buffer;
-    } else {
-      m_buffer_on = m_bookmark_buffer;
-      m_bookmark_read_frame = 1;
-    }
+    m_buffer_on = m_buffer;
     buff = (unsigned char *)m_buffer_on;
     if (m_add_len_to_stream) {
       buff += 2;
@@ -387,33 +278,6 @@ void CAviAudioByteStream::read_frame (uint32_t frame_to_read)
 #if 0
   player_debug_message("qta frame size %u", m_this_frame_size);
 #endif
-  if (m_bookmark == 0) {
-    // Why not read 2 frames for the price of 1 ?
-    AVI_set_audio_frame(m_parent->get_file(), 
-			m_frame_on, 
-			&temp);
-
-    m_this_frame_size = temp;
-    if (m_this_frame_size < m_max_frame_size) {
-      m_bookmark_read_frame = 1;
-      buff = (unsigned char *)m_bookmark_buffer;
-      if (m_add_len_to_stream) buff += 2;
-     
-      AVI_read_audio(m_parent->get_file(), 
-		     (char *)buff, 
-		     m_this_frame_size);
-      if (m_add_len_to_stream) {
-	m_bookmark_buffer[0] = m_bookmark_read_frame_size >> 8;
-	m_bookmark_buffer[1] = m_bookmark_read_frame_size & 0xff;
-	m_bookmark_read_frame_size += 2;
-#if 0
-	player_debug_message("qta bframe size %u", m_bookmark_read_frame_size);
-#endif
-      }
-    }
-  } else {
-    m_bookmark_read_frame_size = m_this_frame_size;
-  }
   m_parent->unlock_file_mutex();
   m_byte_on = 0;
 }

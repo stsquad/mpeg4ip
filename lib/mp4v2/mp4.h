@@ -572,4 +572,7 @@ char* MP4BinaryToBase64(
 }
 #endif
 
+/* undefined our utlity macro to avoid conflicts */
+#undef DEFAULT
+
 #endif /* __MP4_INCLUDED__ */

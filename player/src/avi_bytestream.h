@@ -37,13 +37,10 @@
 class CAviByteStreamBase : public COurInByteStream
 {
  public:
-  CAviByteStreamBase(CAviFile *parent);
+  CAviByteStreamBase(CAviFile *parent, const char *which);
   ~CAviByteStreamBase();
   
   int eof(void);
-  unsigned char get(void);
-  unsigned char peek(void);
-  void bookmark(int bSet);
   virtual void reset(void) = 0;
   virtual uint64_t start_next_frame (unsigned char **buf,
 				     uint32_t *buflen) = 0;
@@ -52,13 +49,8 @@ class CAviByteStreamBase : public COurInByteStream
 			       uint32_t *buflen,
 			       uint32_t used,
 			       int get) = 0;
-  ssize_t read(unsigned char *buffer, size_t bytes);
-  ssize_t read (char *buffer, size_t bytes) {
-    return (read((unsigned char *)buffer, bytes));
-  };
   const char *get_throw_error(int error);
   int throw_error_minor(int error);
-  void check_for_end_of_frame(void);
  protected:
   virtual void read_frame(uint32_t frame_to_read) = 0;
   CAviFile *m_parent;
@@ -69,15 +61,10 @@ class CAviByteStreamBase : public COurInByteStream
   uint32_t m_frame_rate;
   uint32_t m_max_frame_size;
   unsigned char *m_buffer;
-  int m_bookmark;
-  unsigned char *m_bookmark_buffer;
   unsigned char *m_buffer_on;
-  uint32_t m_byte_on, m_bookmark_byte_on;
-  uint32_t m_bookmark_frame_on;
-  uint32_t m_this_frame_size, m_bookmark_this_frame_size;
-  uint64_t m_total, m_total_bookmark;
-  int m_bookmark_read_frame;
-  int m_bookmark_read_frame_size;
+  uint32_t m_byte_on;
+  uint32_t m_this_frame_size;
+  uint64_t m_total;
 };
 
 /*
@@ -88,7 +75,7 @@ class CAviVideoByteStream : public CAviByteStreamBase
 {
  public:
   CAviVideoByteStream(CAviFile *parent) : 
-    CAviByteStreamBase(parent)
+    CAviByteStreamBase(parent, "video")
     {
     read_frame(0);
     };
@@ -125,7 +112,7 @@ class CAviAudioByteStream : public CAviByteStreamBase
  public:
   CAviAudioByteStream(CAviFile *parent,
 		     int add_len_to_frame = 0) :
-    CAviByteStreamBase(parent)
+    CAviByteStreamBase(parent, "audio")
     {
       m_add_len_to_stream = add_len_to_frame;
       read_frame(0);

@@ -16,13 +16,8 @@ divxenc_SOURCES = divxenc.c
 
 INCLUDES = -I$(top_srcdir)/include
 
-if PROVIDE_GETOPTLONG
-LDADD_E1 = $(top_builddir)/lib/gnu/getopt/libgetopt_long.la
-else
-LDADD_E1 = 
-endif
-
-LDADD = $(top_builddir)/server/video/divx/libdivxencore.la $(LDADD_E1) -lm
+LDADD = $(top_builddir)/server/video/divx/libdivxencore.la -lm \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
 
 
 

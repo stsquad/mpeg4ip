@@ -31,7 +31,6 @@ void COurInByteStreamMem::init (const unsigned char *membuf,
   m_len = len;
   m_offset = 0;
   m_total = 0;
-  m_bookmark_set = 0;
 }
 
 COurInByteStreamMem::~COurInByteStreamMem(void)
@@ -65,53 +64,10 @@ void COurInByteStreamMem::used_bytes_for_frame (uint32_t bytes)
   m_offset += bytes;
 }
 
-unsigned char COurInByteStreamMem::get (void) 
-{
-  if ((m_offset >= m_len) && m_bookmark_set == 0) {
-    throw THROW_MEM_PAST_END;
-  }
-    
-  unsigned char ret = m_memptr[m_offset];
-  m_offset++;
-  m_total++;
-  return (ret);
-}
-
-unsigned char COurInByteStreamMem::peek (void)
-{
-  return (m_memptr[m_offset]);
-}
-
-void COurInByteStreamMem::bookmark (int bSet)
-{
-  if (bSet) {
-    m_bookmark_set = 1;
-    m_bookmark_offset = m_offset;
-    m_bookmark_total = m_total;
-  } else {
-    m_bookmark_set = 0;
-    m_offset = m_bookmark_offset;
-    m_total = m_bookmark_total;
-  }
-}
-
-ssize_t COurInByteStreamMem::read (unsigned char *buffer, size_t bytes)
-{
-  uint32_t diff = m_len - m_offset;
-  if (diff < bytes) {
-    bytes = diff;
-  }
-  memcpy(buffer, m_memptr, bytes);
-  m_offset += bytes;
-  m_total++;
-  return (bytes);
-}
-
 void COurInByteStreamMem::reset (void)
 {
   m_total = 0;
   m_offset = 0;
-  m_bookmark_set = 0;
   m_frames = 0;
 }
 

@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: nok_ltp_common_internal.h,v 1.3 2001/06/28 23:54:22 wmaycisco Exp $
+ * $Id: nok_ltp_common_internal.h,v 1.4 2001/12/14 22:17:45 wmaycisco Exp $
  */
 
 #ifndef _NOK_LTP_COMMON_INTERNAL_H
@@ -29,7 +29,7 @@
 
 /*
   Purpose:      Maximum LTP lag.  */
-#define DELAY 2048
+#define MAX_LTP_DELAY 2048
 
 /*
   Purpose:	Length of the bitstream element ltp_data_present.  */

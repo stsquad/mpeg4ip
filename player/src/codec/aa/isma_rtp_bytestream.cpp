@@ -56,11 +56,6 @@ CIsmaAudioRtpByteStream::CIsmaAudioRtpByteStream (format_list_t *media_fmt,
 		     rtpinfo_received, rtp_rtptime, rtcp_received,
 		     ntp_frac, ntp_sec, rtp_ts)
 {
-  m_frame_ptr = NULL;
-  m_offset_in_frame = 0;
-  m_frame_len = 0;
-  m_is_fragment = 0;
-  m_frag_data = NULL;
 #ifdef ISMA_RTP_DUMP_OUTPUT_TO_FILE
   m_outfile = fopen("isma.aac", "w");
 #endif
@@ -133,159 +128,6 @@ CIsmaAudioRtpByteStream::~CIsmaAudioRtpByteStream (void)
     m_frame_data_head = p->frame_data_next;
     free(p);
   }
-}
-
-
-// given an offset, find out which fragment it is in
-// return ptr to the fragment
-isma_frag_data_t *CIsmaAudioRtpByteStream::go_to_frag (void)
-{
-  isma_frag_data_t *p = m_frag_data;
-  uint32_t offset = m_offset_in_frame;
-  while (p != NULL) {
-    if (offset < p->frag_len) {
-      return (p);
-    }
-    offset -= p->frag_len;
-    p = p->frag_data_next;
-  }
-  if (m_bookmark_set != 1) {
-    throw THROW_ISMA_RTP_FRAGMENT_PAST_END;
-  }
-  return (NULL);
-}
-
-// given an offset, find out which fragment it is in
-// return ptr to that location in the fragment
-char *CIsmaAudioRtpByteStream::go_to_offset (void)
-{
-  char *frag_ptr = NULL;
-  isma_frag_data_t *p = m_frag_data;
-  size_t offset = m_offset_in_frame;
-  while (p != NULL) {
-    if (offset < p->frag_len) {
-      frag_ptr = p->frag_ptr + offset;
-      break;
-    }
-    offset -= p->frag_len;
-    p = p->frag_data_next;
-  }
-  if (frag_ptr == NULL && m_bookmark_set != 1) {
-    throw THROW_ISMA_RTP_FRAGMENT_PAST_END;
-  }
-  return (frag_ptr);
-}
-
-// get one char
-unsigned char CIsmaAudioRtpByteStream::get (void)
-{
-  unsigned char ret;
-
-  if (m_frame_ptr == NULL) {
-    if (m_bookmark_set == 1) {
-      return (0);
-    }
-    init();
-    throw THROW_RTP_NULL_WHEN_START;
-  }
-
-  if (m_offset_in_frame >= m_frame_len) {
-    if (m_bookmark_set == 1) {
-      return (0);
-    }
-    throw THROW_ISMA_RTP_DECODE_PAST_EOF;
-  }
-
-  // check if frame is fragmented
-  if (m_is_fragment == 1) {
-    char *offset_ptr = go_to_offset();	
-    ret = (offset_ptr != NULL) ? *offset_ptr : 0;
-  } else {
-    ret = m_frame_ptr[m_offset_in_frame];
-  }
-  m_offset_in_frame++;
-  m_total++;
-  //check_for_end_of_pak();
-  return (ret);
-}
-
-unsigned char CIsmaAudioRtpByteStream::peek (void) 
-{
-  if (m_is_fragment == 1) {
-    if (m_frame_ptr == NULL)
-      return 0;
-    char *offset_ptr = go_to_offset();	
-    return ((offset_ptr != NULL) ? *offset_ptr : 0);
-  } else 
-    return (m_frame_ptr ? m_frame_ptr[m_offset_in_frame] : 0);
-}
-
-void CIsmaAudioRtpByteStream::bookmark (int bSet)
-{
-  if (bSet == TRUE) {
-    m_bookmark_set = 1;
-    m_bookmark_offset_in_frame = m_offset_in_frame;
-    m_total_book = m_total;
-    //player_debug_message("bookmark on");
-  } else {
-    m_bookmark_set = 0;
-    m_offset_in_frame = m_bookmark_offset_in_frame;
-    m_total = m_total_book;
-    //player_debug_message("book restore %d", m_offset_in_pak);
-  }
-}
-
-
-
-void CIsmaAudioRtpByteStream::read_frag (unsigned char *buffer, 
-					 size_t bytes_to_read)
-{
-  unsigned char *cur = buffer;
-  isma_frag_data_t *frag_data = go_to_frag(); 
-  char *offset = go_to_offset();
-  //int len = frag_data->frag_len - (offset - frag_data->frag_ptr);
-  int len = min(bytes_to_read, 
-		frag_data->frag_len - (offset - frag_data->frag_ptr));
-  while (bytes_to_read > 0) {
-    if (frag_data == NULL) {
-      // error 
-      init();
-      throw THROW_RTP_NULL_WHEN_START;
-    }
-    memcpy(cur, &offset, len);
-    cur += len;
-    frag_data = frag_data->frag_data_next;
-    bytes_to_read -= len;
-    len = frag_data->frag_len;
-    offset = frag_data->frag_ptr;
-  } 
-  return;
-}
-
-ssize_t CIsmaAudioRtpByteStream::read (unsigned char *buffer, 
-				       size_t bytes_to_read)
-{
-  size_t inbuffer;
-
-  if (m_frame_ptr == NULL) {
-    if (m_bookmark_set == 1) {
-      return (0);
-    }
-    init();
-    throw THROW_RTP_NULL_WHEN_START;
-  }
-
-  inbuffer = m_frame_len - m_offset_in_frame;
-  if (inbuffer < bytes_to_read) {
-    bytes_to_read = inbuffer;
-  }
-  if (m_is_fragment == 1) 
-    read_frag(buffer, bytes_to_read);
-  else
-    memcpy(buffer, &m_frame_ptr[m_offset_in_frame], bytes_to_read);
-  m_offset_in_frame += bytes_to_read;
-  m_total += bytes_to_read;
-  return (bytes_to_read);
 }
 
 int CIsmaAudioRtpByteStream::insert_frame_data (isma_frame_data_t *frame_data)
@@ -713,15 +555,12 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
   /*
    * Init up the offsets
    */
-  m_offset_in_frame = 0;
   if (m_frame_data_head != NULL) {
-    m_is_fragment =  m_frame_data_head->is_fragment;
-    if (m_is_fragment == 1) {	  
-      m_frag_data = m_frame_data_head->frag_data;
+    if (m_frame_data_head->is_fragment == 1) {	  
 
       m_frag_reass_size = 0;
       isma_frag_data_t *ptr;
-      ptr = m_frag_data;
+      ptr = m_frame_data_head->frag_data;
       while (ptr != NULL) {
 	if (m_frag_reass_size + ptr->frag_len > m_frag_reass_size_max) {
 	  m_frag_reass_size_max += max(4096, ptr->frag_len);
@@ -737,29 +576,15 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
       *buffer = m_frag_reass_buffer;
       *buflen = m_frag_reass_size;
     } else { 
-      m_frag_data = NULL;
-      m_frame_ptr = m_frame_data_head->frame_ptr;
-      m_frame_len = m_frame_data_head->frame_len;
-      *buffer = (unsigned char *)m_frame_ptr;
-      *buflen = m_frame_len;
+      *buffer = (unsigned char *)m_frame_data_head->frame_ptr;
+      *buflen = m_frame_data_head->frame_len;
     }
   } else {
-    m_frame_ptr = NULL;
-    m_frame_len = 0;
-    m_is_fragment = 0;
-    m_frag_data = NULL;
+    *buffer = NULL;
   }
 #ifdef ISMA_RTP_DUMP_OUTPUT_TO_FILE
-  if (m_frame_ptr != NULL) {
-    if (m_is_fragment == 0)
-      fwrite(m_frame_ptr, m_frame_len, 1, m_outfile);
-    else {
-      isma_frag_data_t *p = m_frag_data; 
-      while (p!= NULL) {
-	fwrite(p->frag_ptr, p->frag_len, 1, m_outfile);
-	p = p->frag_data_next;
-      }
-    }
+  if (*buffer != NULL) {
+    fwrite(*buffer, *buflen,  1, m_outfile);
   }
 #endif
   timetick = rtp_ts_to_msec(m_frame_data_head != NULL ? 
@@ -770,7 +595,7 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
   // We're going to have to handle wrap better...
 #ifdef DEBUG_ISMA_AAC
   isma_message(LOG_DEBUG, "start next frame %p %d ts %x "LLU, 
-	       m_frame_ptr, m_frame_len, m_ts, timetick);
+	       *buffer, *buflen, m_ts, timetick);
 #endif
   return (timetick);
 }
@@ -821,11 +646,6 @@ void CIsmaAudioRtpByteStream::flush_rtp_packets (void)
 void CIsmaAudioRtpByteStream::reset (void)
 {
   isma_message(LOG_INFO, "Hit isma rtp reset");
-  m_frame_ptr = NULL;
-  m_offset_in_frame = 0;
-  m_frame_len = 0;
-  m_is_fragment = 0;
-  m_frag_data = NULL;
   CRtpByteStreamBase::reset();
 }
 
@@ -876,12 +696,8 @@ const char *CIsmaAudioRtpByteStream::get_throw_error (int error)
     return (CRtpByteStreamBase::get_throw_error(error));
   }
   switch (error) {
-  case THROW_ISMA_RTP_FRAGMENT_PAST_END:
-    return "Read past end of fragment";
   case THROW_ISMA_RTP_DECODE_PAST_EOF:
     return "Read past end of frame";
-  case THROW_ISMA_INCONSISTENT:
-    return "Inconsistent data - we can't recover";
   default:
     break;
   }

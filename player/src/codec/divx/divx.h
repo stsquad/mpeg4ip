@@ -43,8 +43,6 @@ class CDivxCodec: public CVideoCodecBase {
   int decode(uint64_t ts, int fromrtp, unsigned char *buffer, uint32_t buflen);
   int skip_frame(uint64_t ts, unsigned char *buffer, uint32_t buflen);
   void do_pause(void);
-  unsigned char get(void);
-  void bookmark(int val);
  private:
   int parse_vovod(const char *config, int ascii, uint32_t len);
   int m_nFrames;

@@ -29,7 +29,7 @@
 #include "qtime_file.h"
 
 #define THROW_QTIME_END_OF_DATA ((int) 1)
-#define THROW_QTIME_END_OF_FRAME ((int) 1)
+#define THROW_QTIME_END_OF_FRAME ((int) 2)
 /*
  * CQTByteStreamBase provides base class access to quicktime files.
  * Most functions are shared between audio and video.
@@ -39,21 +39,14 @@ class CQTByteStreamBase : public COurInByteStream
  public:
   CQTByteStreamBase(CQtimeFile *parent,
 		    int track,
-		    const char *type);
+		    const char *name);
   ~CQTByteStreamBase();
   int eof(void);
-  unsigned char get(void);
-  unsigned char peek(void);
-  void bookmark(int bSet);
   virtual void reset(void) = 0;
   virtual uint64_t start_next_frame (unsigned char **buffer = NULL,
 				     uint32_t *buflen = NULL) = 0;
   void used_bytes_for_frame(uint32_t bytes);
   void get_more_bytes(unsigned char **buffer, uint32_t *buflen, uint32_t used, int nothrow);
-  ssize_t read(unsigned char *buffer, size_t bytes);
-  ssize_t read (char *buffer, size_t bytes) {
-    return (read((unsigned char *)buffer, bytes));
-  };
   const char *get_throw_error(int error);
   int throw_error_minor(int error);
   void check_for_end_of_frame(void);
@@ -67,17 +60,10 @@ class CQTByteStreamBase : public COurInByteStream
   uint32_t m_frame_rate;
   uint32_t m_max_frame_size;
   uint32_t m_frame_in_buffer;
-  uint32_t m_frame_in_bookmark;
   unsigned char *m_buffer;
-  int m_bookmark;
-  unsigned char *m_bookmark_buffer;
-  unsigned char *m_buffer_on;
-  uint32_t m_byte_on, m_bookmark_byte_on;
-  uint32_t m_this_frame_size, m_bookmark_this_frame_size;
-  uint64_t m_total, m_total_bookmark;
-  int m_bookmark_read_frame;
-  int m_bookmark_read_frame_size;
-  const char *m_type;
+  uint32_t m_byte_on;
+  uint32_t m_this_frame_size;
+  uint64_t m_total;
 };
 
 /*

@@ -22,19 +22,17 @@
 #include "our_bytestream_file.h"
 #include "player_util.h"
 //#define FILE_DEBUG
+
 COurInByteStreamFile::COurInByteStreamFile (const char *filename) :
-  COurInByteStream()
+  COurInByteStream("File")
 {
   m_filename = strdup(filename);
   m_file = fopen(m_filename, FOPEN_READ_BINARY);
   m_frames = 0;
   m_total = 0;
-  m_bookmark_loaded = 0;
-  m_bookmark = 0;
   m_buffer_size_max = 4096;
   m_buffer_size = 1;
   m_orig_buffer = (unsigned char *)malloc(m_buffer_size_max);
-  m_bookmark_buffer = (unsigned char *)malloc(m_buffer_size_max);
   m_file_pos_head = m_file_pos_tail = NULL;
   read_frame();
 }
@@ -56,6 +54,10 @@ COurInByteStreamFile::~COurInByteStreamFile(void)
     free(p);
   }
   m_file_pos_tail = NULL;
+  m_buffer_on = NULL;
+  if (m_orig_buffer) {
+    free(m_orig_buffer);
+  }
 }
 
 void COurInByteStreamFile::set_start_time (uint64_t start) 
@@ -70,8 +72,6 @@ void COurInByteStreamFile::set_start_time (uint64_t start)
     long pos_to_set = 0;
     uint64_t frames = 0;
     uint64_t start_time;
-    m_bookmark_loaded = 0;
-    m_bookmark = 0;
     start_time = 0;
     if (m_file_pos_tail != NULL) {
       // find closest
@@ -226,35 +226,6 @@ void COurInByteStreamFile::get_more_bytes (unsigned char **buffer,
 
 void COurInByteStreamFile::read_frame (int from_index)
 {
-  if (m_bookmark) {
-    if (m_bookmark_loaded) {
-      m_buffer_on = m_bookmark_buffer;
-      m_buffer_size = m_bookmark_loaded_size;
-      m_buffer_position = m_bookmark_loaded_position;
-      m_index = 0;
-      return;
-    }
-	
-    m_bookmark_loaded_position = ftell(m_file);
-    m_bookmark_loaded_size = m_buffer_size = 
-		fread(m_bookmark_buffer, 1, m_buffer_size_max, m_file);
-    if (m_bookmark_loaded_size > 0) {
-      m_index = 0;
-      m_bookmark_loaded = 1;
-      m_buffer_on = m_bookmark_buffer;
-    }
-    return;
-  }
-  if (m_bookmark_loaded) {
-    m_bookmark_loaded = 0;
-    m_buffer_on = m_bookmark_buffer;
-    m_bookmark_buffer = m_orig_buffer;
-    m_orig_buffer = m_buffer_on;
-    m_buffer_size = m_bookmark_loaded_size;
-    m_buffer_position = m_bookmark_loaded_position;
-    m_index = 0;
-    return;
-  }
   if (from_index == 0) {
     m_buffer_size = fread(m_orig_buffer, 1, m_buffer_size_max, m_file);
 #ifdef FILE_DEBUG
@@ -285,80 +256,11 @@ int COurInByteStreamFile::eof (void)
   return (m_buffer_size == 0);
 }
 
-unsigned char COurInByteStreamFile::get (void) 
-{
-  unsigned char ret = m_buffer_on[m_index];
-  if (m_buffer_size == 0) {
-    throw THROW_PAST_EOF;
-  }
-  m_index++;
-  m_total++;
-  if (m_index >= m_buffer_size) {
-    read_frame();
-  }
-  return (ret);
-}
-
-unsigned char COurInByteStreamFile::peek (void)
-{
-  return (m_buffer_on[m_index]);
-}
-
-void COurInByteStreamFile::bookmark (int bSet)
-{
-  if (bSet) {
-    m_bookmark = 1;
-    m_bookmark_buffer_size = m_buffer_size;
-    m_bookmark_index = m_index;
-    m_bookmark_total = m_total;
-  } else {
-    m_bookmark = 0;
-    m_buffer_size = m_bookmark_buffer_size;
-    m_index = m_bookmark_index;
-    m_buffer_on = m_orig_buffer;
-    m_total = m_bookmark_total;
-  }
-}
-
 void COurInByteStreamFile::reset (void)
 {
   fseek(m_file, 0, SEEK_SET); 
-  m_bookmark_loaded = 0;
-  m_bookmark = 0;
   m_frames = 0;
   read_frame();
-}
-
-ssize_t COurInByteStreamFile::read (unsigned char *buffer, size_t bytestoread) 
-{
-  if (m_bookmark && bytestoread > m_buffer_size_max) {
-    // Can't do this...
-    return 0;
-  }
-  size_t inbuffer;
-  ssize_t readbytes = 0;
-  if (m_buffer_size == 0) {
-    throw THROW_PAST_EOF;
-  }
-  do {
-    inbuffer = m_buffer_size - m_index;
-    if (bytestoread < inbuffer)
-      inbuffer = bytestoread;
-    memcpy(buffer, &m_buffer_on[m_index], inbuffer);
-    readbytes += inbuffer;
-    buffer += inbuffer;
-    bytestoread -= inbuffer;
-    m_index += inbuffer;
-    if (m_index >= m_buffer_size) {
-      read_frame();
-      if (m_buffer_size == 0) {
-	throw THROW_PAST_EOF;
-      }
-    }
-    m_total += inbuffer;
-  } while (bytestoread > 0 && m_buffer_size > 0);
-
-  return (readbytes);
 }
 
 const char *COurInByteStreamFile::get_throw_error (int error)

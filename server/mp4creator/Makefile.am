@@ -6,12 +6,6 @@ INCLUDES = \
 
 AM_CXXFLAGS = -DMPEG4IP -fexceptions -Wall
 
-if PROVIDE_GETOPTLONG
-LDADD_E1 = $(top_builddir)/lib/gnu/getopt/libgetopt_long.la
-else
-LDADD_E1 = 
-endif
-
 bin_PROGRAMS = mp4creator
 
 mp4creator_SOURCES = \
@@ -33,5 +27,5 @@ mp4creator_SOURCES = \
 mp4creator_LDADD = \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/avi/libavi.la \
-	$(LDADD_E1)
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
 

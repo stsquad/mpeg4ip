@@ -44,19 +44,14 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
 #endif
   m_track = track;
   m_frame_on = 1;
-  m_bookmark = 0;
   m_parent = parent;
   m_eof = 0;
   MP4FileHandle fh = parent->get_file();
   m_frames_max = MP4GetTrackNumberOfSamples(fh, m_track);
   m_max_frame_size = MP4GetTrackMaxSampleSize(fh, m_track) + 4;
   m_buffer = (u_int8_t *) malloc(m_max_frame_size * sizeof(u_int8_t));
-  m_bookmark_buffer = (u_int8_t *)malloc(m_max_frame_size * sizeof(char));
-  m_buffer_on = m_buffer;
-  m_type = type;
   m_has_video = has_video;
   m_frame_in_buffer = 0xffffffff;
-  m_frame_in_bookmark = 0xffffffff;
   MP4Duration trackDuration;
   trackDuration = MP4GetTrackDuration(fh, m_track);
   uint64_t max_ts;
@@ -77,8 +72,10 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
 
 CMp4ByteStream::~CMp4ByteStream()
 {
-  free(m_buffer);
-  free(m_bookmark_buffer);
+  if (m_buffer) {
+    free(m_buffer);
+    m_buffer = NULL;
+  }
 #ifdef OUTPUT_TO_FILE
   fclose(m_output_file);
 #endif
@@ -96,84 +93,16 @@ void CMp4ByteStream::check_for_end_of_frame (void)
     uint32_t next_frame;
     next_frame = m_frame_in_buffer + 1;
 #if 0
-    mp4f_message(LOG_DEBUG, "%s - next frame %d %d", 
-		 m_type, 
-		 next_frame, 
-		 m_bookmark);
+    mp4f_message(LOG_DEBUG, "%s - next frame %d", 
+		 m_name, 
+		 next_frame); 
 #endif
     if (next_frame >= m_frames_max) {
-      if (m_bookmark == 0)
 	m_eof = 1;
     } else {
-#if 0
-      if (m_bookmark == 0)
-      mp4f_message(LOG_DEBUG, "Reading frame %u - bookmark %d", 
-			   next_frame,
-			   m_bookmark);
-#endif
       read_frame(next_frame);
     }
   }
-}
-unsigned char CMp4ByteStream::get (void)
-{
-  unsigned char ret;
-#if 0
-  player_debug_message("Getting byte %u frame %u %u bookmark %d", 
-		       m_byte_on, m_frame_on, m_this_frame_size, m_bookmark);
-#endif
-  if (m_eof) {
-    throw THROW_MP4_END_OF_DATA;
-  }
-  ret = m_buffer_on[m_byte_on];
-  m_byte_on++;
-  m_total++;
-  check_for_end_of_frame();
-  return (ret);
-}
-
-unsigned char CMp4ByteStream::peek (void) 
-{
-  return (m_buffer_on[m_byte_on]);
-}
-
-void CMp4ByteStream::bookmark (int bSet)
-{
-  if (bSet) {
-    m_bookmark = 1;
-    m_bookmark_byte_on = m_byte_on;
-    m_total_bookmark = m_total;
-    m_bookmark_this_frame_size = m_this_frame_size;
-  } else {
-    m_bookmark = 0;
-    m_byte_on = m_bookmark_byte_on;
-    m_buffer_on = m_buffer;
-    m_total = m_total_bookmark;
-    m_this_frame_size = m_bookmark_this_frame_size;
-  }
-}
-
-ssize_t CMp4ByteStream::read (unsigned char *buffer, size_t bytestoread)
-{
-  size_t inbuffer;
-  ssize_t readbytes = 0;
-  do {
-    if (m_eof) {
-      throw THROW_MP4_END_OF_DATA;
-    }
-    inbuffer = m_this_frame_size - m_byte_on;
-    if (inbuffer > bytestoread) {
-      inbuffer = bytestoread;
-    }
-    memcpy(buffer, &m_buffer_on[m_byte_on], inbuffer);
-    buffer += inbuffer;
-    bytestoread -= inbuffer;
-    m_byte_on += inbuffer;
-    m_total += inbuffer;
-    readbytes += inbuffer;
-    check_for_end_of_frame();
-  } while (bytestoread > 0 && m_eof == 0);
-  return (readbytes);
 }
 
 const char *CMp4ByteStream::get_throw_error (int error)
@@ -195,10 +124,8 @@ int CMp4ByteStream::throw_error_minor (int error)
 void CMp4ByteStream::set_timebase (MP4SampleId frame)
 {
   m_eof = 0;
-  m_bookmark_read_frame = 0;
   if (frame == 0) frame = 1;
   m_frame_on = frame;
-  m_bookmark = 0;
   read_frame(m_frame_on);
 }
 
@@ -219,7 +146,7 @@ uint64_t CMp4ByteStream::start_next_frame (unsigned char **buffer,
 
   m_frame_on++;
   if (buffer != NULL) {
-    *buffer = m_buffer_on + m_byte_on;
+    *buffer = m_buffer + m_byte_on;
     *buflen = m_this_frame_size;
   }
   return (m_frame_on_ts);
@@ -264,14 +191,14 @@ void CMp4ByteStream::get_more_bytes (unsigned char **buffer,
   diff = m_this_frame_size - used;
   m_total += used;
   if (diff > 0) {
-    memmove(m_buffer_on,
-	    m_buffer_on + used, 
+    memmove(m_buffer,
+	    m_buffer + used, 
 	    diff);
   }
-  memset(m_buffer_on + diff, 8, 0);
+  memset(m_buffer + diff, 8, 0);
   m_byte_on = 0;
   m_this_frame_size = diff;
-  *buffer = m_buffer_on;
+  *buffer = m_buffer;
   *buflen = 8 + diff;
 }
 /*
@@ -294,55 +221,19 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
     m_frame_on_has_sync = m_frame_in_buffer_has_sync;
     return;
   }
-  if (m_bookmark_read_frame != 0 && 
-      m_frame_in_bookmark == frame_to_read) {
-#ifdef DEBUG_MP4_FRAME
-    mp4f_message(LOG_DEBUG, "frame in bookmark");
-#endif
-    // Had we already read it ?
-    if (m_bookmark == 0) {
-      // Yup - looks like it - just adjust the buffers and return
-      m_bookmark_read_frame = 0;
-      u_int8_t *temp = m_buffer;
-      m_buffer = m_bookmark_buffer;
-      m_bookmark_buffer = temp;
-      m_buffer_on = m_buffer;
-      m_frame_in_buffer = m_frame_in_bookmark;
-      m_frame_in_buffer_ts = m_frame_in_bookmark_ts;
-      m_frame_on_ts = m_frame_in_buffer_ts;
-      m_frame_on_has_sync = m_frame_in_buffer_has_sync;
-      m_frame_in_bookmark = 0xfffffff;
-    } else {
-      // Bookmarking, and had already read it.
-      m_buffer_on = m_bookmark_buffer;
-    }
-    m_this_frame_size = m_bookmark_read_frame_size;
-    m_byte_on = 0;
-    return;
-  }
   // Haven't already read the next frame,  so - get the size, see if
   // it fits, then read it into the appropriate buffer
   m_parent->lock_file_mutex();
 
-  if (m_bookmark == 0) {
-    m_buffer_on = m_buffer;
-    m_frame_in_buffer = frame_to_read;
-  } else {
-    // bookmark...
-    m_buffer_on = m_bookmark_buffer;
-    m_bookmark_read_frame = 1;
-    m_frame_in_bookmark = frame_to_read;
-#ifdef DEBUG_QTIME_VIDEO_FRAME
-    mp4f_message(LOG_DEBUG, "Reading into bookmark %u", m_this_frame_size);
-#endif
-  }
+  m_frame_in_buffer = frame_to_read;
+
   MP4Timestamp sampleTime;
   MP4Duration sampleDuration, sampleRenderingOffset;
   bool isSyncSample = FALSE;
   bool ret;
   u_int8_t *temp;
   m_this_frame_size = m_max_frame_size;
-  temp = m_buffer_on;
+  temp = m_buffer;
   ret = MP4ReadSample(m_parent->get_file(),
 		      m_track,
 		      frame_to_read,
@@ -359,16 +250,16 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
     m_parent->unlock_file_mutex();
     return;
   }
-  *(uint32_t *)(m_buffer_on + m_this_frame_size) = 0; // add some 0's
+  *(uint32_t *)(m_buffer + m_this_frame_size) = 0; // add some 0's
 #ifdef OUTPUT_TO_FILE
-  fwrite(m_buffer_on, m_this_frame_size, 1, m_output_file);
+  fwrite(m_buffer, m_this_frame_size, 1, m_output_file);
 #endif
 #ifdef DEBUG_MP4_FRAME
     mp4f_message(LOG_DEBUG, "reading into buffer %u %u", 
 		 frame_to_read, m_this_frame_size);
     mp4f_message(LOG_DEBUG, "%s Sample time "LLU, m_name, sampleTime);
-    mp4f_message(LOG_DEBUG, "%s values %x %x %x %x", m_name, m_buffer_on[0], 
-		 m_buffer_on[1], m_buffer_on[2], m_buffer_on[3]);
+    mp4f_message(LOG_DEBUG, "%s values %x %x %x %x", m_name, m_buffer[0], 
+		 m_buffer[1], m_buffer[2], m_buffer[3]);
 #endif
 
   uint64_t ts;
@@ -377,19 +268,13 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 				    m_track,
 				    sampleTime,
 				    MP4_MSECS_TIME_SCALE);
-  //if (isSyncSample == TRUE && m_has_video != 0 ) player_debug_message("%s has sync sample %llu", m_type, ts);
+  //if (isSyncSample == TRUE && m_has_video != 0 ) player_debug_message("%s has sync sample %llu", m_name, ts);
 #ifdef DEBUG_MP4_FRAME
   mp4f_message(LOG_DEBUG, "Converts to time "LLU, ts);
 #endif
-  if (m_bookmark == 0) {
-    m_frame_in_buffer_ts = ts;
-    m_frame_on_ts = ts;
-    m_frame_in_buffer_has_sync = m_frame_on_has_sync = isSyncSample;
-  } else {
-    m_bookmark_read_frame_size = m_this_frame_size;
-    m_frame_in_bookmark_ts = ts;
-    m_frame_in_bookmark_has_sync = isSyncSample;
-  }
+  m_frame_in_buffer_ts = ts;
+  m_frame_on_ts = ts;
+  m_frame_in_buffer_has_sync = m_frame_on_has_sync = isSyncSample;
 		
   m_parent->unlock_file_mutex();
   m_byte_on = 0;

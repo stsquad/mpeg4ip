@@ -44,7 +44,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 {
   MP4FileHandle fh;
 
-  fh = MP4Read(name, 0);
+  fh = MP4Read(name, MP4_DETAILS_ERROR);
   if (!MP4_IS_VALID_FILE_HANDLE(fh)) {
     *errmsg = "Cannot open mp4 file";
     return -1;

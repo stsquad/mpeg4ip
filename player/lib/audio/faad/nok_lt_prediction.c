@@ -92,7 +92,7 @@ void nok_lt_predict(faacDecHandle hDecoder, Info *info, WINDOW_TYPE win_type, Wn
 		{
 			/* Prediction for time domain signal */
 			num_samples =  2 * block_size_long;
-			j = NOK_LT_BLEN - 2 * block_size_long - (delay[0] - DELAY / 2);
+			j = NOK_LT_BLEN - 2 * block_size_long - (delay[0] - MAX_LTP_DELAY / 2);
 			if(NOK_LT_BLEN - j <  2 * block_size_long)
 				num_samples = NOK_LT_BLEN - j;
 

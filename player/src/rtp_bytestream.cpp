@@ -206,156 +206,7 @@ void CRtpByteStreamBase::init (void)
 {
   m_pak = NULL;
   m_offset_in_pak = m_skip_on_advance_bytes;
-  m_bookmark_set = 0;
 }
-
-void CRtpByteStreamBase::check_for_end_of_pak (int nothrow)
-{
-  rtp_packet *p;
-  uint16_t nextseq;
-  int err;
-
-  // See if we're at the end of the packet - if not, return...
-  if (m_offset_in_pak < m_pak->rtp_data_len) {
-    return;
-  }
-
-  // End of packet - move to next one
-  m_offset_in_pak = m_skip_on_advance_bytes;
-
-  if (m_bookmark_set == 1) {
-    /* 
-     * If we're doing bookmark - make sure we keep the previous packets
-     * around
-     */
-    if (SDL_mutexP(m_rtp_packet_mutex) == -1) {
-      rtp_message(LOG_CRIT, "SDL Lock mutex failure in decode thread");
-      return;
-    }
-    if (m_head == NULL || m_head == m_head->rtp_next || m_head->rtp_next == NULL) {
-      SDL_mutexV(m_rtp_packet_mutex);
-      m_pak = NULL;
-      return;
-    }
-    p = m_head->rtp_next;
-    nextseq = m_head->rtp_pak_seq + 1;
-    if (nextseq != p->rtp_pak_seq) {
-      //player_debug_message("bookmark seq number");
-      m_pak = NULL;
-    }
-    SDL_mutexV(m_rtp_packet_mutex);
-    return;
-  }
-
-  nextseq = m_head->rtp_pak_seq + 1;
-  remove_packet_rtp_queue(m_head, 1);
-  /*
-   * Check the sequence number...
-   */
-  m_pak = NULL;
-  if (m_head) {
-    if (m_head->rtp_pak_seq == nextseq) {
-      m_pak = m_head;
-      return;
-    }
-    if (m_bookmark_set == 0)
-      err = THROW_RTP_SEQ_NUM_VIOLATION;
-    else 
-      err = THROW_RTP_BOOKMARK_SEQ_NUM_VIOLATION;
-    rtp_message(LOG_INFO, "seq # violation - should %d is %d", 
-		nextseq, m_head->rtp_pak_seq);
-    if (nothrow == 0) {
-      throw ((int)err);
-    }
-  }
-  init();
-}
-
-unsigned char CRtpByteStreamBase::get (void)
-{
-  unsigned char ret;
-
-  if (m_pak == NULL) {
-    if (m_bookmark_set == 1) {
-      return (0);
-    }
-    init();
-    throw THROW_RTP_NULL_WHEN_START;
-  }
-
-  if ((m_offset_in_pak == 0) &&
-      (m_ts != m_pak->rtp_pak_ts)) {
-    if (m_bookmark_set == 1) {
-      return (0);
-    }
-    throw THROW_RTP_DECODE_ACROSS_TS;
-  }
-  ret = m_pak->rtp_data[m_offset_in_pak];
-  m_offset_in_pak++;
-  m_total++;
-  check_for_end_of_pak();
-  return (ret);
-}
-
-unsigned char CRtpByteStreamBase::peek (void) 
-{
-  return (m_pak ? m_pak->rtp_data[m_offset_in_pak] : 0);
-}
-
-ssize_t CRtpByteStreamBase::read (unsigned char *buffer, size_t bytes_to_read)
-{
-  size_t inbuffer;
-  ssize_t readbytes = 0;
-
-  if (m_pak == NULL) {
-    if (m_bookmark_set == 1) {
-      return (0);
-    }
-    init();
-    throw THROW_RTP_NULL_WHEN_START;
-  }
-
-  do {
-    if ((m_offset_in_pak == 0) &&
-	(m_ts != m_pak->rtp_pak_ts)) {
-      if (m_bookmark_set == 1) {
-	return (0);
-      }
-      throw THROW_RTP_DECODE_ACROSS_TS;
-    }
-    inbuffer = m_pak->rtp_data_len - m_offset_in_pak;
-    if (bytes_to_read < inbuffer) {
-      inbuffer = bytes_to_read;
-    }
-    memcpy(buffer, &m_pak->rtp_data[m_offset_in_pak], inbuffer);
-    buffer += inbuffer;
-    bytes_to_read -= inbuffer;
-    m_offset_in_pak += inbuffer;
-    m_total += inbuffer;
-    readbytes += inbuffer;
-    check_for_end_of_pak();
-  } while (bytes_to_read > 0 && m_pak != NULL);
-  return (readbytes);
-}
-
-void CRtpByteStreamBase::bookmark (int bSet)
-{
-  if (bSet == TRUE) {
-    m_bookmark_set = 1;
-    m_bookmark_pak = m_pak;
-    m_bookmark_offset_in_pak = m_offset_in_pak;
-    m_total_book = m_total;
-    //player_debug_message("bookmark on");
-  } else {
-    m_bookmark_set = 0;
-    m_pak= m_bookmark_pak;
-    m_offset_in_pak = m_bookmark_offset_in_pak;
-    m_total = m_total_book;
-    //player_debug_message("book restore %d", m_offset_in_pak);
-  }
-}
-
-  
 
 /*
  * calculate_wallclock_offset_from_rtcp
@@ -553,16 +404,6 @@ int CRtpByteStreamBase::check_rtp_frame_complete_for_proto (void)
 const char *CRtpByteStreamBase::get_throw_error (int error)
 {
   switch (error) {
-  case THROW_RTP_SEQ_NUM_VIOLATION:
-    return "RTP sequence number violation";
-  case THROW_RTP_BOOKMARK_SEQ_NUM_VIOLATION:
-    return "RTP bookmark sequence number violation";
-  case THROW_RTP_NO_MORE_DATA:
-    return "RTP no more data";
-  case THROW_RTP_BOOKMARK_NO_MORE_DATA:
-    return "RTP bookmark no more data";
-  case THROW_RTP_NULL_WHEN_START:
-    return "RTP null when start";
   case THROW_RTP_DECODE_ACROSS_TS:
     return "Rtp decode across timestamp";
   default:
@@ -575,8 +416,7 @@ const char *CRtpByteStreamBase::get_throw_error (int error)
 
 int CRtpByteStreamBase::throw_error_minor (int error)
 {
-  if ((error == THROW_RTP_DECODE_ACROSS_TS) ||
-      (error == THROW_RTP_NULL_WHEN_START)) {
+  if (error == THROW_RTP_DECODE_ACROSS_TS) {
     return 1;
   }
   return 0;

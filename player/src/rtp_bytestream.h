@@ -31,13 +31,8 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 
-#define THROW_RTP_SEQ_NUM_VIOLATION ((int)1)
-#define THROW_RTP_BOOKMARK_SEQ_NUM_VIOLATION ((int)2)
-#define THROW_RTP_NO_MORE_DATA ((int) 3)
-#define THROW_RTP_BOOKMARK_NO_MORE_DATA ((int) 4)
-#define THROW_RTP_NULL_WHEN_START ((int) 5)
-#define THROW_RTP_DECODE_ACROSS_TS ((int) 6)
-#define THROW_RTP_BASE_MAX 6
+#define THROW_RTP_DECODE_ACROSS_TS ((int) 1)
+#define THROW_RTP_BASE_MAX 1
 class CRtpByteStreamBase : public COurInByteStream
 {
  public:
@@ -56,9 +51,6 @@ class CRtpByteStreamBase : public COurInByteStream
 
   ~CRtpByteStreamBase();
   int eof (void) { return 0; };
-  unsigned char get(void);
-  unsigned char peek(void);
-  void bookmark(int Bset);
   virtual void reset(void) {
     player_debug_message("rtp bytestream reset");
     init();
@@ -68,10 +60,6 @@ class CRtpByteStreamBase : public COurInByteStream
     m_skip_on_advance_bytes = bytes_to_skip;
   };
   double get_max_playtime (void) { return 0.0; };
-  ssize_t read(unsigned char *buffer, size_t bytes);
-  ssize_t read(char *buffer, size_t bytes) {
-    return (read((unsigned char *)buffer, bytes));
-  };
   const char *get_throw_error(int error);
   int throw_error_minor(int error);
 
@@ -86,7 +74,6 @@ class CRtpByteStreamBase : public COurInByteStream
   int rtp_ready (void) {
     return (m_stream_ondemand | m_wallclock_offset_set);
   };
-  void check_for_end_of_pak(int nothrow = 0); // used by read and get
   void recv_callback(struct rtp *session, rtp_event *e);
   virtual void flush_rtp_packets(void);
   int recv_task(int waiting);
@@ -96,13 +83,9 @@ class CRtpByteStreamBase : public COurInByteStream
   void init(void);
   rtp_packet *m_pak, *m_head, *m_tail;
   int m_offset_in_pak;
-  rtp_packet *m_bookmark_pak;
-  int m_bookmark_offset_in_pak;
-  int m_bookmark_set;
   uint32_t m_skip_on_advance_bytes;
   uint32_t m_ts;
   uint64_t m_total;
-  uint64_t m_total_book;
   uint32_t m_rtp_rtptime;
   uint64_t m_rtptime_tickpersec;
   int m_stream_ondemand;

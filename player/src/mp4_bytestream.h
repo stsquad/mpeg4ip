@@ -45,9 +45,6 @@ class CMp4ByteStream : public COurInByteStream
 		 int has_video);
   ~CMp4ByteStream();
   int eof(void);
-  unsigned char get(void);
-  unsigned char peek(void);
-  void bookmark(int bSet);
   void reset(void);
   uint64_t start_next_frame(unsigned char **buffer = NULL,
 			    uint32_t *buflen = NULL);
@@ -57,10 +54,6 @@ class CMp4ByteStream : public COurInByteStream
   int can_skip_frame(void) { return 1; };
   int skip_next_frame(uint64_t *ts, int *hasSyncFrame, unsigned char **buffer,
 		      uint32_t *buflen);
-  ssize_t read(unsigned char *buffer, size_t bytes);
-  ssize_t read (char *buffer, size_t bytes) {
-    return (read((unsigned char *)buffer, bytes));
-  };
   const char *get_throw_error(int error);
   int throw_error_minor(int error);
   void check_for_end_of_frame(void);
@@ -77,7 +70,6 @@ class CMp4ByteStream : public COurInByteStream
   MP4TrackId m_track;
   MP4SampleId m_frames_max;
 
-  u_int8_t *m_buffer_on;
   MP4SampleId m_frame_on;
   uint64_t m_frame_on_ts;
   int m_frame_on_has_sync;
@@ -86,20 +78,11 @@ class CMp4ByteStream : public COurInByteStream
   uint64_t m_frame_in_buffer_ts;
   int m_frame_in_buffer_has_sync;
 
-  MP4SampleId m_frame_in_bookmark;
-  uint64_t m_frame_in_bookmark_ts;
-  int m_frame_in_bookmark_has_sync;
-
   u_int32_t m_max_frame_size;
   u_int8_t *m_buffer;
-  int m_bookmark;
-  u_int8_t *m_bookmark_buffer;
-  uint32_t m_byte_on, m_bookmark_byte_on;
-  uint32_t m_this_frame_size, m_bookmark_this_frame_size;
-  uint64_t m_total, m_total_bookmark;
-  int m_bookmark_read_frame;
-  int m_bookmark_read_frame_size;
-  const char *m_type;
+  uint32_t m_byte_on;
+  uint32_t m_this_frame_size;
+  uint64_t m_total;
   void set_timebase(MP4SampleId frame);
   double m_max_time;
   int m_has_video;

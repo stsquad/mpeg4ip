@@ -32,18 +32,15 @@ class COurInByteStreamMem : public COurInByteStream
 {
  public:
   COurInByteStreamMem(const unsigned char *membuf, uint32_t len) :
-    COurInByteStream() {
+    COurInByteStream("memory") {
     init(membuf, len);
   };
   COurInByteStreamMem(const char *membuf, uint32_t len) :
-    COurInByteStream() {
+    COurInByteStream("memory") {
     init((const unsigned char *)membuf, len);
   };
   ~COurInByteStreamMem();
   int eof(void);
-  unsigned char get(void);
-  unsigned char peek(void);
-  void bookmark(int bSet); 
   void reset(void);
   int have_no_data(void) { return eof(); };
   void config_frame_per_sec (uint64_t sample_per_buffersize) {
@@ -59,10 +56,6 @@ class COurInByteStreamMem : public COurInByteStream
     throw THROW_MEM_PAST_END;
   };
   double get_max_playtime (void) { return 0.0; };
-  ssize_t read(unsigned char *buffer, size_t read);
-  ssize_t read(char *buffer, size_t readbytes) {
-    return (read((unsigned char *)buffer, readbytes));
-  }
   const char *get_throw_error(int error);
   // A minor error is one where in video, you don't need to skip to the
   // next I frame.
@@ -71,11 +64,9 @@ class COurInByteStreamMem : public COurInByteStream
   const unsigned char *m_memptr;
  private:
   void init(const unsigned char *membuf, uint32_t len);
-  uint32_t m_offset, m_len, m_total, m_bookmark_total, m_bookmark_offset;
+  uint32_t m_offset, m_len, m_total;
   uint64_t m_frames;
   uint64_t m_frame_per_sec;
-  int m_bookmark_set;
-
 };
 
 class COurInByteStreamWav : public COurInByteStreamMem

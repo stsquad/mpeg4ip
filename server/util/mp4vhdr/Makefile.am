@@ -1,10 +1,6 @@
 bin_PROGRAMS = mp4vhdr
 
 INCLUDES = -I$(top_srcdir)/include 
-if PROVIDE_GETOPTLONG
-LDADD_E1 = $(top_builddir)/lib/gnu/getopt/libgetopt_long.la
-else
-LDADD_E1 = 
-endif
 
-LDADD = $(LDADD_E1) -lm
+LDADD = -lm \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la

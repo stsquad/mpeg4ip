@@ -34,29 +34,45 @@
 class COurInByteStream
 {
  public:
-  COurInByteStream() {};
+  // name should be name for displays - not freed at close
   COurInByteStream(const char *name) {
     m_name = name;
   };
   virtual ~COurInByteStream() {};
+  // eof - True if we're got end of file
   virtual int eof(void) = 0;
-  virtual unsigned char get(void) = 0;
-  virtual unsigned char peek(void) = 0;
-  virtual void bookmark(int bSet) = 0;
+  // reset vector
   virtual void reset(void) = 0;
+  // have no data - return TRUE if we don't have a frame ready
   virtual int have_no_data (void) {return 0; };
+  /*
+   * start_next_frame - return ts offset, pointer to buffer start, length
+   * in buffer
+   */
   virtual uint64_t start_next_frame (unsigned char **buffer, uint32_t *buflen) = 0;
-  virtual void used_bytes_for_frame(uint32_t bytes) { };
+  /*
+   * used_bytes_for_frame - called after we process a frame with the number
+   * of bytes used during decoding
+   */
+  virtual void used_bytes_for_frame(uint32_t bytes) = 0;
+  /*
+   * get_more_bytes - if we don't have enough bytes in the buffer, try
+   * and get more... For frame based systems, this may just throw an exception
+   */
   virtual void get_more_bytes (unsigned char **buffer,
 			       uint32_t *buflen,
 			       uint32_t used,
 			       int get) = 0;
+  /*
+   * can_skip_frame - return 1 if bytestream can skip a frame
+   */
   virtual int can_skip_frame (void) { return 0; };
+  /*
+   * skip_next_frame - actually do it...
+   */
   virtual int skip_next_frame (uint64_t *ts, int *hasSyncFrame, unsigned char **buffer, uint32_t *buflen) { assert(FALSE);return 0; };
   virtual double get_max_playtime (void) = 0;
-  virtual void set_start_time(uint64_t start) { m_play_start_time = start; };
-  virtual ssize_t read(unsigned char *buffer, size_t bytes) = 0;
-  virtual ssize_t read(char *buffer, size_t bytes) = 0;
+  virtual void set_start_time (uint64_t start) { m_play_start_time = start; };
   virtual void set_codec (CCodecBase *codec) { m_codec = codec; };
   virtual const char *get_throw_error(int error) = 0;
   // A minor error is one where in video, you don't need to skip to the
