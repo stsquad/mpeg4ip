@@ -475,6 +475,12 @@ int CPlayerMedia::do_play (double start_time_offset)
 	  return (-1);
 	}
 	free_decode_response(decode);
+#if 0
+	if (m_source_addr == NULL) {
+	  // get the ip address of the server from the rtsp stack
+	  m_source_addr = strdup(inet_ntoa(get_server_ip_address(m_rtsp_session)));
+	}
+#endif
       }
       // ASDF - probably need to do some stuff here for no rtpinfo...
       /*

@@ -70,6 +70,7 @@ class CPlayerMedia {
       if (m_source_addr) free(m_source_addr);
       m_source_addr = s;
     }
+  const char *get_source_addr(void);
   CPlayerMedia *get_next (void) { return m_next; };
   void set_next (CPlayerMedia *newone) { m_next = newone; };
   int decode_thread(void);

@@ -351,3 +351,7 @@ int rtsp_is_url_my_stream (rtsp_session_t *session, const char *url,
   return (is_match);
 }
 
+struct in_addr get_server_ip_address (rtsp_session_t *session)
+{
+  return session->parent->server_addr;
+}
