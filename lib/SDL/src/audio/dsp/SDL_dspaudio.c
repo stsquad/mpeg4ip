@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dspaudio.c,v 1.3 2002/05/01 17:40:37 wmaycisco Exp $";
+ "@(#) $Id: SDL_dspaudio.c,v 1.4 2002/10/07 21:21:36 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -118,7 +118,7 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
 	this->GetAudioBuf = DSP_GetAudioBuf;
 	this->CloseAudio = DSP_CloseAudio;
 	this->AudioDelayMsec = DSP_AudioDelayMsec;
-	
+
 	this->free = Audio_DeleteDevice;
 
 	return this;
@@ -396,6 +396,7 @@ static int DSP_OpenAudio(_THIS, SDL_AudioSpec *spec)
 				}
 				break;
 			default:
+				format = 0;
 				break;
 		}
 		if ( ! format ) {
@@ -468,14 +469,14 @@ static int DSP_AudioDelayMsec (_THIS)
 {
   int odelay;
   ioctl(audio_fd, SNDCTL_DSP_GETODELAY, &odelay);
-  if (odelay > 0) {		 
+  if (odelay > 0) {
     /*
      * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)
      */
     odelay *= 1000;
     odelay /= this->spec.channels;
     if (!(this->spec.format == AUDIO_U8 ||
- 	  this->spec.format == AUDIO_S8)) {
+          this->spec.format == AUDIO_S8)) {
       odelay /= 2; // 2 bytes per sample
     }
     odelay /= this->spec.freq;

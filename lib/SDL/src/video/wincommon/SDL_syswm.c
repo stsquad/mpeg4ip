@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syswm.c,v 1.3 2002/05/01 17:41:28 wmaycisco Exp $"
+ "@(#) $Id: SDL_syswm.c,v 1.4 2002/10/07 21:21:47 wmaycisco Exp $"
 #endif
 
 #include <stdio.h>
@@ -34,6 +34,7 @@ static char rcsid =
 #include "SDL_video.h"
 #include "SDL_syswm.h"
 #include "SDL_syswm_c.h"
+#include "SDL_wingl_c.h"
 #include "SDL_pixels_c.h"
 
 #ifdef _WIN32_WCE
@@ -267,6 +268,16 @@ int WIN_GetWMInfo(_THIS, SDL_SysWMinfo *info)
 {
 	if ( info->version.major <= SDL_MAJOR_VERSION ) {
 		info->window = SDL_Window;
+		if ( SDL_VERSIONNUM(info->version.major,
+		                    info->version.minor,
+		                    info->version.patch) >=
+		     SDL_VERSIONNUM(1, 2, 5) ) {
+#ifdef HAVE_OPENGL
+			info->hglrc = GL_hrc;
+#else
+			info->hglrc = NULL;
+#endif
+		}
 		return(1);
 	} else {
 		SDL_SetError("Application not compiled with SDL %d.%d\n",

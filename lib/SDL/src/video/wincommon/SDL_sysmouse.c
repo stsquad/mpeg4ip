@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysmouse.c,v 1.3 2002/05/01 17:41:28 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysmouse.c,v 1.4 2002/10/07 21:21:47 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -95,6 +95,8 @@ static void memxor(Uint8 *dst, Uint8 *src1, Uint8 *src2, int len)
 void WIN_FreeWMCursor(_THIS, WMcursor *cursor)
 {
 #ifndef USE_STATIC_CURSOR
+	if ( cursor->curs == GetCursor() )
+		SetCursor(NULL);
 	if ( cursor->curs != NULL )
 		DestroyCursor(cursor->curs);
 	if ( cursor->ands != NULL )

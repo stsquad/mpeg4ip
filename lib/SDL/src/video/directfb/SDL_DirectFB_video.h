@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_DirectFB_video.h,v 1.2 2002/05/01 17:41:20 wmaycisco Exp $";
+ "@(#) $Id: SDL_DirectFB_video.h,v 1.3 2002/10/07 21:21:43 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_DirectFB_video_h
@@ -45,11 +45,12 @@ struct SDL_PrivateVideoData
   IDirectFBDisplayLayer *layer;
   IDirectFBEventBuffer  *eventbuffer;
 
-#define NUM_MODELISTS	4		/* 8, 16, 24, and 32 bits-per-pixel */
-  int SDL_nummodes[NUM_MODELISTS];
-  SDL_Rect **SDL_modelist[NUM_MODELISTS];
+  int nummodes;
+  SDL_Rect **modelist;
 };
 
 #define HIDDEN (this->hidden)
+
+void SetDirectFBerror (const char *function, DFBResult code);
 
 #endif /* _SDL_DirectFB_video_h */

@@ -260,6 +260,7 @@ Void CVideoObjectDecoder::decodeTextureIntraMB (
 	Int iDcScaler;
 	Int* rgiCoefQ;
 	for (Int iBlk = Y_BLOCK1; iBlk <= V_BLOCK; iBlk++) {
+	  //printf("blk %d - bits %d\n", iBlk, m_pbitstrmIn->get_used_bits());
 		if (iBlk < U_BLOCK) {
 			if (pmbmd -> m_rgTranspStatus [iBlk] == ALL) 
 				continue;

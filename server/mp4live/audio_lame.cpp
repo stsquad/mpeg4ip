@@ -17,6 +17,7 @@
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
+ *		Peter Maersk-Moller	peter@maersk-moller.net (Lame 3.92 support)
  */
 
 #include "mp4live.h"
@@ -32,8 +33,8 @@ bool CLameAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 {
 	m_pConfig = pConfig;
 
+#ifdef OLD_LAME
 	lame_init(&m_lameParams);
-
 	m_lameParams.num_channels = 
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
 	m_lameParams.in_samplerate = 
@@ -53,6 +54,37 @@ bool CLameAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 		m_pConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE, 
 			m_lameParams.out_samplerate);
 	}
+#else
+	if ((m_lameParams = lame_init()) == NULL) {
+		error_message("error: failed to get lame_global_flags");
+		return false;
+	} 
+	lame_set_num_channels(m_lameParams,
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
+	lame_set_in_samplerate(m_lameParams,
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+	lame_set_brate(m_lameParams,
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE));
+	lame_set_mode(m_lameParams,(m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 1 ? MONO : STEREO));		
+	lame_set_quality(m_lameParams,2);
+
+	// no match for silent flag
+
+	// no match for gtkflag
+
+	// THIS IS VERY IMPORTANT. MP4PLAYER DOES NOT SEEM TO LIKE VBR
+	lame_set_bWriteVbrTag(m_lameParams,0);
+
+	if (lame_init_params(m_lameParams) == -1) {
+		error_message("error: failed init lame params");
+		return false;
+	}
+	if (lame_get_in_samplerate(m_lameParams) != lame_get_out_samplerate(m_lameParams)) {
+		error_message("warning: lame audio sample rate mismatch");
+		m_pConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE,
+			lame_get_out_samplerate(m_lameParams));
+	}
+#endif
 
 	m_samplesPerFrame = MP4AV_Mp3GetSamplingWindow(
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
@@ -115,23 +147,45 @@ bool CLameAudioEncoder::EncodeSamples(
 	u_int32_t mp3DataLength = 0;
 
 	if (pLeftBuffer) {
-		if (m_lameParams.num_channels == 1) {
+#ifdef OLD_LAME
+		if (m_lameParams.num_channels == 1)
+		{
 			pRightBuffer = NULL;
 		}
+#else
+		//LAME doesn't seem to like one channel input but like to downsample stereo to mono.
+		if (lame_get_num_channels(m_lameParams) == 1)
+		{
+			pRightBuffer = pLeftBuffer;
+		}
+#endif
 
 		// call lame encoder
 		mp3DataLength = lame_encode_buffer(
+#ifdef OLD_LAME
 			&m_lameParams,
+#else
+			m_lameParams,
+#endif
 			(short*)pLeftBuffer, 
 			(short*)pRightBuffer, 
 			m_samplesPerFrame,
+#ifdef OLD_LAME
 			(char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
+#else
+			(unsigned char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
+#endif
 			m_mp3FrameBufferSize - m_mp3FrameBufferLength);
 
 	} else { // pLeftBuffer == NULL, signal to stop encoding
 		mp3DataLength = lame_encode_finish(
+#ifdef OLD_LAME
 			&m_lameParams,
 			(char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
+#else
+			m_lameParams,
+			(unsigned char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
+#endif
 			m_mp3FrameBufferSize - m_mp3FrameBufferLength);
 	}
 

@@ -91,6 +91,13 @@ build, you should only have to issue the following:
    make
    make install (needs root privileges).
 
+We no longer include lame in our distribution; however, we require
+lame version 3.92 or later for mp4live.  This may change at some point, 
+but for now, it is required.  If you wish to make without mp4live, you 
+can give the --disable-mp4live or --disable-server arguments.  Neither
+the bootstrap or cvs_bootstrap scripts will allow you to build without
+lame installed.
+
 If you don't have root privileges, but still wish to install the 
 distribution to a directory to which you do have write permission,
 then here is an example of how to do that:
@@ -277,8 +284,6 @@ When building on Solaris, libtool and gnu make must be installed and
 used.  If libtool is installed, you make get a warning message that
 common libraries made with gcc less than 3.0 might have problems, 
 ignore it, but don't take binary libraries from any other machines.
-There may also be problems in server/lame - you may have to change
-the compiler name, as well.
 
 General UNIX
 ------------
@@ -301,17 +306,11 @@ mp4encode   Front-end script to the following encoding tools:
 avi2raw     Extracts raw audio/video tracks from an AVI file
 lboxcrop    Vertically crops raw video to a new aspect ratio
 faac        Encodes raw audio into MPEG-4 AAC encoded audio
-lame        Encodes raw audio into MP3 encoded audio
 mp4venc     Encodes raw video into MPEG-4 encoded video using ISO codec
 mp4creator  Creates and hints audio/video tracks to an mp4 file
 xvidenc     Encodes raw video into MPEG-4 encoded video using the Xvid codec
 
 These are described in more detail in doc/encoding/encoding.htm
-
-NOTE ABOUT LAME.
-If you had already installed lame, the previous excutables will not be 
-replaced by this one in spite of their versions. If you want to update 
-lame, you need to perform it by yourself.
 
 A few debugging tools are also included:
 
@@ -422,7 +421,6 @@ mpeg4ip - top level project directory
     server - server specific code
         audio
             faac - AAC encoder program
-            lame - MP3 encoder program
         mp4creator - create and hint A/V tracks to an mp4 file
         mp4live - mp4 live encoding interface
             gui - gtk gui for mp4 live.

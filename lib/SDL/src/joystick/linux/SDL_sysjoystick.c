@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysjoystick.c,v 1.3 2002/05/01 17:40:50 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysjoystick.c,v 1.4 2002/10/07 21:21:38 wmaycisco Exp $";
 #endif
 
 /* This is the system specific header for the SDL joystick API */
@@ -35,7 +35,9 @@ static char rcsid =
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <limits.h>		/* For the definition of PATH_MAX */
-
+#ifdef __arm__
+#include <linux/limits.h> /* Arm cross-compiler needs this */
+#endif
 #include <linux/joystick.h>
 #ifdef USE_INPUT_EVENTS
 #include <linux/input.h>
@@ -65,6 +67,9 @@ static const char *special_joysticks[] = {
 	*/
 	"'WingMan Extreme Digital 3D' 4 1 0",
 	"'Analog 2-axis 4-button 1-hat FCS joystick' 2 1 0",
+	"'Microsoft SideWinder Precision 2 Joystick' 4 1 0",
+	"'Logitech Inc. WingMan Extreme Digital 3D' 4 1 0",
+	"'Saitek Saitek X45' 6 1 0",
 	NULL
 };
 #else

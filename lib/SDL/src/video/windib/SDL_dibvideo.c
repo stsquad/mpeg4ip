@@ -22,13 +22,17 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dibvideo.c,v 1.4 2002/05/01 17:41:28 wmaycisco Exp $";
+ "@(#) $Id: SDL_dibvideo.c,v 1.5 2002/10/07 21:21:47 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
 #include <windows.h>
+#if defined(WIN32_PLATFORM_PSPC)
+#include <aygshell.h>                      // Add Pocket PC includes
+#pragma comment( lib, "aygshell" )         // Link Pocket PC library
+#endif
 
 /* Not yet in the mingw32 cross-compile headers */
 #ifndef CDS_FULLSCREEN
@@ -52,6 +56,15 @@ static char rcsid =
 #define NO_GETDIBITS
 #define NO_CHANGEDISPLAYSETTINGS
 #define NO_GAMMA_SUPPORT
+#endif
+#ifndef WS_MAXIMIZE
+#define WS_MAXIMIZE		0
+#endif
+#ifndef SWP_NOCOPYBITS
+#define SWP_NOCOPYBITS	0
+#endif
+#ifndef PC_NOCOLLAPSE
+#define PC_NOCOLLAPSE	0
 #endif
 
 /* Initialization/Query functions */
@@ -143,11 +156,11 @@ static SDL_VideoDevice *DIB_CreateDevice(int devindex)
 	device->SetGammaRamp = DIB_SetGammaRamp;
 	device->GetGammaRamp = DIB_GetGammaRamp;
 #ifdef HAVE_OPENGL
-        device->GL_LoadLibrary = WIN_GL_LoadLibrary;
-        device->GL_GetProcAddress = WIN_GL_GetProcAddress;
-        device->GL_GetAttribute = WIN_GL_GetAttribute;
-        device->GL_MakeCurrent = WIN_GL_MakeCurrent;
-        device->GL_SwapBuffers = WIN_GL_SwapBuffers;
+	device->GL_LoadLibrary = WIN_GL_LoadLibrary;
+	device->GL_GetProcAddress = WIN_GL_GetProcAddress;
+	device->GL_GetAttribute = WIN_GL_GetAttribute;
+	device->GL_MakeCurrent = WIN_GL_MakeCurrent;
+	device->GL_SwapBuffers = WIN_GL_SwapBuffers;
 #endif
 	device->SetCaption = WIN_SetWMCaption;
 	device->SetIcon = WIN_SetWMIcon;
@@ -440,10 +453,8 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 			(WS_POPUP);
 	const DWORD windowstyle = 
 			(WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX);
-#ifndef _WIN32_WCE
 	const DWORD resizestyle =
 			(WS_THICKFRAME|WS_MAXIMIZEBOX);
-#endif
 	int binfo_size;
 	BITMAPINFO *binfo;
 	HDC hdc;
@@ -455,12 +466,10 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 	/* See whether or not we should center the window */
 	was_visible = IsWindowVisible(SDL_Window);
 
-#ifdef HAVE_OPENGL
 	/* Clean up any GL context that may be hanging around */
 	if ( current->flags & SDL_OPENGL ) {
 		WIN_GL_ShutDown(this);
 	}
-#endif /* HAVE_OPENGL */
 
 	/* Recalculate the bitmasks if necessary */
 	if ( bpp == current->format->BitsPerPixel ) {
@@ -509,6 +518,23 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 	video->h = height;
 	video->pitch = SDL_CalculatePitch(video);
 
+#ifdef WIN32_PLATFORM_PSPC
+	 /* Stuff to hide that $#!^%#$ WinCE taskbar in fullscreen... */
+	if ( flags & SDL_FULLSCREEN ) {
+		if ( !(prev_flags & SDL_FULLSCREEN) ) {
+			SHFullScreen(SDL_Window, SHFS_HIDETASKBAR);
+			SHFullScreen(SDL_Window, SHFS_HIDESIPBUTTON);
+			ShowWindow(FindWindow(TEXT("HHTaskBar"),NULL),SW_HIDE);
+		}
+		video->flags |= SDL_FULLSCREEN;
+	} else {
+		if ( prev_flags & SDL_FULLSCREEN ) {
+			SHFullScreen(SDL_Window, SHFS_SHOWTASKBAR);
+			SHFullScreen(SDL_Window, SHFS_SHOWSIPBUTTON);
+			ShowWindow(FindWindow(TEXT("HHTaskBar"),NULL),SW_SHOWNORMAL);
+		}
+	}
+#endif
 #ifndef NO_CHANGEDISPLAYSETTINGS
 	/* Set fullscreen mode if appropriate */
 	if ( (flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
@@ -542,9 +568,7 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 	}
 
 	style = GetWindowLong(SDL_Window, GWL_STYLE);
-#ifndef _WIN32_WCE
 	style &= ~(resizestyle|WS_MAXIMIZE);
-#endif
 	if ( (video->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
 		style &= ~windowstyle;
 		style |= directstyle;
@@ -562,20 +586,18 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 			style &= ~directstyle;
 			style |= windowstyle;
 			if ( flags & SDL_RESIZABLE ) {
-#ifndef _WIN32_WCE
 				style |= resizestyle;
-#endif
 				video->flags |= SDL_RESIZABLE;
 			}
 		}
-#ifndef _WIN32_WCE
+#if WS_MAXIMIZE
 		if (IsZoomed(SDL_Window)) style |= WS_MAXIMIZE;
 #endif
 	}
 
-   /* DJM: Don't piss of anyone who has setup his own window */
-   if (!SDL_windowid)
-	   SetWindowLong(SDL_Window, GWL_STYLE, style);
+	/* DJM: Don't piss of anyone who has setup his own window */
+	if (!SDL_windowid)
+		SetWindowLong(SDL_Window, GWL_STYLE, style);
 
 	/* Delete the old bitmap if necessary */
 	if ( screen_bmp != NULL ) {
@@ -651,6 +673,7 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 
 	/* Resize the window */
 	if ( SDL_windowid == NULL ) {
+		HWND top;
 		UINT swp_flags;
 
 		SDL_resizing = 1;
@@ -658,11 +681,7 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 		bounds.top = 0;
 		bounds.right = video->w;
 		bounds.bottom = video->h;
-#ifndef _WIN32_WCE
-		AdjustWindowRect(&bounds, GetWindowLong(SDL_Window, GWL_STYLE), FALSE);
-#else
-		AdjustWindowRectEx(&bounds, GetWindowLong(SDL_Window, GWL_STYLE), FALSE,0);
-#endif
+		AdjustWindowRectEx(&bounds, GetWindowLong(SDL_Window, GWL_STYLE), FALSE, 0);
 		width = bounds.right-bounds.left;
 		height = bounds.bottom-bounds.top;
 		x = (GetSystemMetrics(SM_CXSCREEN)-width)/2;
@@ -670,20 +689,20 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 		if ( y < 0 ) { /* Cover up title bar for more client area */
 			y -= GetSystemMetrics(SM_CYCAPTION)/2;
 		}
-#ifndef _WIN32_WCE
-		swp_flags = (SWP_NOCOPYBITS | SWP_NOZORDER | SWP_SHOWWINDOW);
-#else
-		swp_flags = (SWP_NOZORDER | SWP_SHOWWINDOW);
-#endif
+		swp_flags = (SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 		if ( was_visible && !(flags & SDL_FULLSCREEN) ) {
 			swp_flags |= SWP_NOMOVE;
 		}
-		SetWindowPos(SDL_Window, NULL, x, y, width, height, swp_flags);
+		if ( flags & SDL_FULLSCREEN ) {
+			top = HWND_TOPMOST;
+		} else {
+			top = HWND_NOTOPMOST;
+		}
+		SetWindowPos(SDL_Window, top, x, y, width, height, swp_flags);
 		SDL_resizing = 0;
 		SetForegroundWindow(SDL_Window);
 	}
 
-#ifdef HAVE_OPENGL
 	/* Set up for OpenGL */
 	if ( flags & SDL_OPENGL ) {
 		if ( WIN_GL_SetupWindow(this) < 0 ) {
@@ -691,7 +710,6 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 		}
 		video->flags |= SDL_OPENGL;
 	}
-#endif /* HAVE_OPENGL */
 
 	/* We're live! */
 	return(video);
@@ -754,11 +772,7 @@ int DIB_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
 			entries[i].peRed   = colors[i].r;
 			entries[i].peGreen = colors[i].g;
 			entries[i].peBlue  = colors[i].b;
-#ifndef _WIN32_WCE
 			entries[i].peFlags = PC_NOCOLLAPSE;
-#else
-			entries[i].peFlags = 0;
-#endif
 		}
 		SetPaletteEntries(screen_pal, firstcolor, ncolors, entries);
 		SelectPalette(hdc, screen_pal, FALSE);
@@ -889,22 +903,39 @@ int DIB_GetGammaRamp(_THIS, Uint16 *ramp)
 #endif /* !NO_GAMMA_SUPPORT */
 }
 
+static void FlushMessageQueue()
+{
+	MSG  msg;
+	while ( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) ) {
+		if ( msg.message == WM_QUIT ) break;
+		TranslateMessage( &msg );
+		DispatchMessage( &msg );
+	}
+}
+
 void DIB_VideoQuit(_THIS)
 {
 	/* Destroy the window and everything associated with it */
 	if ( SDL_Window ) {
 		/* Delete the screen bitmap (also frees screen->pixels) */
 		if ( this->screen ) {
+#ifdef WIN32_PLATFORM_PSPC
+			if ( this->screen->flags & SDL_FULLSCREEN ) {
+				/* Unhide taskbar, etc. */
+				SHFullScreen(SDL_Window, SHFS_SHOWTASKBAR);
+				SHFullScreen(SDL_Window, SHFS_SHOWSIPBUTTON);
+				ShowWindow(FindWindow(TEXT("HHTaskBar"),NULL),SW_SHOWNORMAL);
+			}
+#endif
 #ifndef NO_CHANGEDISPLAYSETTINGS
 			if ( this->screen->flags & SDL_FULLSCREEN ) {
 				ChangeDisplaySettings(NULL, 0);
+				ShowWindow(SDL_Window, SW_HIDE);
 			}
 #endif
-#ifdef HAVE_OPENGL
 			if ( this->screen->flags & SDL_OPENGL ) {
 				WIN_GL_ShutDown(this);
 			}
-#endif /* HAVE_OPENGL */
 			this->screen->pixels = NULL;
 		}
 		if ( screen_bmp ) {
@@ -917,6 +948,7 @@ void DIB_VideoQuit(_THIS)
 		}
 		DIB_QuitGamma(this);
 		DIB_DestroyWindow(this);
+		FlushMessageQueue();
 
 		SDL_Window = NULL;
 	}

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.h,v 1.4 2002/05/01 17:40:32 wmaycisco Exp $";
+ "@(#) $Id: SDL_video.h,v 1.5 2002/10/07 21:21:33 wmaycisco Exp $";
 #endif
 
 /* Header file for access to the SDL raw framebuffer window */
@@ -215,7 +215,8 @@ typedef enum {
     SDL_GL_ACCUM_RED_SIZE,
     SDL_GL_ACCUM_GREEN_SIZE,
     SDL_GL_ACCUM_BLUE_SIZE,
-    SDL_GL_ACCUM_ALPHA_SIZE
+    SDL_GL_ACCUM_ALPHA_SIZE,
+	SDL_GL_STEREO
 } SDL_GLattr;
 
 /* flags for SDL_SetPalette() */
@@ -578,6 +579,8 @@ extern DECLSPEC int SDLCALL SDL_SetColorKey
  * If 'flag' is SDL_SRCALPHA, alpha blending is enabled for the surface.
  * OR:ing the flag with SDL_RLEACCEL requests RLE acceleration for the
  * surface; if SDL_RLEACCEL is not specified, the RLE accel will be removed.
+ *
+ * The 'alpha' parameter is ignored for surfaces that have an alpha channel.
  */
 extern DECLSPEC int SDLCALL SDL_SetAlpha(SDL_Surface *surface, Uint32 flag, Uint8 alpha);
 
@@ -645,7 +648,7 @@ extern DECLSPEC SDL_Surface * SDLCALL SDL_ConvertSurface
  * 	alpha-blend (using the source per-surface alpha value);
  * 	set destination alpha to opaque.
  *     SDL_SRCALPHA not set:
- * 	copy RGB, set destination alpha to opaque.
+ * 	copy RGB, set destination alpha to source per-surface alpha value.
  *     both:
  * 	if SDL_SRCCOLORKEY set, only copy the pixels matching the
  * 	source colour key.

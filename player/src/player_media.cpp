@@ -1368,6 +1368,9 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
     m_rtcp_rtp_ts = srpak->rtp_ts;
     m_rtcp_received = 1;
     break;
+  case RX_APP:
+    free(e->data);
+    break;
   default:
 #if 0
     media_message(LOG_DEBUG, "Thread %u - Callback from rtp with %d %p", 

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11video.c,v 1.4 2002/05/01 17:41:30 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11video.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
 #endif
 
 /* X11 based SDL video driver implementation.
@@ -282,7 +282,8 @@ static void create_aux_windows(_THIS)
     xattr.border_pixel = 0;
     xattr.colormap = SDL_XColorMap;
 
-    FSwindow = XCreateWindow(SDL_Display, SDL_Root, 0, 0, 32, 32, 0,
+    FSwindow = XCreateWindow(SDL_Display, SDL_Root,
+                             xinerama_x, xinerama_y, 32, 32, 0,
 			     this->hidden->depth, InputOutput, SDL_Visual,
 			     CWOverrideRedirect | CWBackPixel | CWBorderPixel
 			     | CWColormap,
@@ -350,8 +351,12 @@ static void create_aux_windows(_THIS)
 	XClassHint *classhints;
 	classhints = XAllocClassHint();
 	if(classhints != NULL) {
-	    classhints->res_name = "SDL_App";
-	    classhints->res_class = "SDL_App";
+            char *classname = getenv("SDL_VIDEO_X11_WMCLASS");
+            if ( ! classname ) {
+                classname = "SDL_App";
+            }
+	    classhints->res_name = classname;
+	    classhints->res_class = classname;
 	    XSetClassHint(SDL_Display, WMwindow, classhints);
 	    XFree(classhints);
 	}
@@ -509,6 +514,26 @@ static void X11_DestroyWindow(_THIS, SDL_Surface *screen)
 	}
 }
 
+static SDL_bool X11_WindowPosition(_THIS, int *x, int *y, int w, int h)
+{
+	const char *window = getenv("SDL_VIDEO_WINDOW_POS");
+	const char *center = getenv("SDL_VIDEO_CENTERED");
+	if ( window ) {
+		if ( sscanf(window, "%d,%d", x, y) == 2 ) {
+			return SDL_TRUE;
+		}
+		if ( strcmp(window, "center") == 0 ) {
+			center = window;
+		}
+	}
+	if ( center ) {
+		*x = (DisplayWidth(SDL_Display, SDL_Screen) - w)/2;
+		*y = (DisplayHeight(SDL_Display, SDL_Screen) - h)/2;
+		return SDL_TRUE;
+	}
+	return SDL_FALSE;
+}
+
 static void X11_SetSizeHints(_THIS, int w, int h, Uint32 flags)
 {
 	XSizeHints *hints;
@@ -531,13 +556,7 @@ static void X11_SetSizeHints(_THIS, int w, int h, Uint32 flags)
 			hints->flags |= USPosition;
 		} else
 		/* Center it, if desired */
-		if ( getenv("SDL_VIDEO_CENTERED") ) {
-			int display_w, display_h;
-
-			display_w = DisplayWidth(SDL_Display, SDL_Screen);
-			display_h = DisplayHeight(SDL_Display, SDL_Screen);
-			hints->x = (display_w - w)/2;
-			hints->y = (display_h - h)/2;
+		if ( X11_WindowPosition(this, &hints->x, &hints->y, w, h) ) {
 			hints->flags |= USPosition;
 			XMoveWindow(SDL_Display, WMwindow, hints->x, hints->y);
 
@@ -832,6 +851,30 @@ static int X11_CreateWindow(_THIS, SDL_Surface *screen,
 
 	/* Update the internal keyboard state */
 	X11_SetKeyboardState(SDL_Display, NULL);
+
+	/* When the window is first mapped, ignore non-modifier keys */
+	{
+		Uint8 *keys = SDL_GetKeyState(NULL);
+		for ( i = 0; i < SDLK_LAST; ++i ) {
+			switch (i) {
+			    case SDLK_NUMLOCK:
+			    case SDLK_CAPSLOCK:
+			    case SDLK_LCTRL:
+			    case SDLK_RCTRL:
+			    case SDLK_LSHIFT:
+			    case SDLK_RSHIFT:
+			    case SDLK_LALT:
+			    case SDLK_RALT:
+			    case SDLK_LMETA:
+			    case SDLK_RMETA:
+			    case SDLK_MODE:
+				break;
+			    default:
+				keys[i] = SDL_RELEASED;
+				break;
+			}
+		}
+	}
 
 	/* Map them both and go fullscreen, if requested */
 	if ( ! SDL_windowid ) {

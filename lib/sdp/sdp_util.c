@@ -283,5 +283,19 @@ void sdp_debug (int loglevel, const char *fmt, ...)
     }
   }
 }
+
+media_desc_t *sdp_find_media_type (session_desc_t *sptr, const char *name)
+{
+  media_desc_t *mptr = sptr->media;
+
+  while (mptr != NULL) {
+    if (strcasecmp(mptr->media, name) == 0) {
+      return mptr;
+    }
+    mptr = mptr->next;
+  }
+  return NULL;
+}
+
 /* end file sdp_util.c */
 

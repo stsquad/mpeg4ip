@@ -1,4 +1,4 @@
-#! /bin/sh 
+#! /bin/sh
 
 # ltconfig - Create a system-specific libtool.
 # Copyright (C) 1996-1999 Free Software Foundation, Inc.
@@ -186,7 +186,7 @@ enable_shared=yes
 enable_static=yes
 enable_fast_install=yes
 enable_dlopen=unknown
-enable_win32_dll=no
+enable_win32_dll=yes
 ltmain=
 silent=
 srcdir=
@@ -501,7 +501,14 @@ fi
 
 if test -n "$RANLIB"; then
   old_archive_cmds="$old_archive_cmds~\$RANLIB \$oldlib"
-  old_postinstall_cmds="\$RANLIB \$oldlib~$old_postinstall_cmds"
+  case "$host_os" in
+  openbsd*)
+    old_postinstall_cmds="\$RANLIB -t \$oldlib~$old_postinstall_cmds"
+  ;;
+  *)
+    old_postinstall_cmds="\$RANLIB \$oldlib~$old_postinstall_cmds"
+  ;;
+  esac
 fi
 
 # Set sane defaults for `DLLTOOL', `OBJDUMP', and `AS', used on cygwin.
@@ -677,6 +684,11 @@ if test "$with_gcc" = yes; then
     ;;
   cygwin* | mingw* | os2*)
     # We can build DLLs from non-PIC.
+    ;;
+  darwin* | rhapsody*)
+    # PIC is the default on this platform
+    # Common symbols not allowed in MH_DYLIB files
+    pic_flag='-fno-common'
     ;;
   amigaos*)
     # FIXME: we need at least 68020 code to build shared libraries, but
@@ -1105,6 +1117,9 @@ cygwin* | mingw*)
     with_gnu_ld=no
   fi
   ;;
+openbsd*)
+  with_gnu_ld=no
+  ;;
 
 esac
 
@@ -1145,7 +1160,7 @@ EOF
 
   beos*)
     if $LD --help 2>&1 | egrep ': supported targets:.* elf' > /dev/null; then
-      allow_undefined_flag=unsupported
+      #allow_undefined_flag=unsupported
       # Joseph Beckenbach <jrb3@best.com> says some releases of gcc
       # support --undefined.  This deserves some investigation.  FIXME
       archive_cmds='$CC -nostart $libobjs $deplibs $linkopts ${wl}-soname $wl$soname -o $lib'
@@ -1155,23 +1170,56 @@ EOF
     ;;
 
   cygwin* | mingw*)
+    # Special flag that tells Cygwin to use the native MSVC runtime
+    case "$host_os" in
+    cygwin*)
+      cygwin_use_msvcrt=true
+      ;;
+    esac
     # hardcode_libdir_flag_spec is actually meaningless, as there is
     # no search path for DLLs.
     hardcode_libdir_flag_spec='-L$libdir'
-    allow_undefined_flag=unsupported
+#    allow_undefined_flag=unsupported
     always_export_symbols=yes
 
     # Extract the symbol export list from an `--export-all' def file,
     # then regenerate the def file from the symbol export list, so that
     # the compiled dll only exports the symbol export list.
     # Be careful not to strip the DATA tag left by newer dlltools.
-    export_symbols_cmds='test -f $objdir/$soname-ltdll.c || sed -e "/^# \/\* ltdll\.c starts here \*\//,/^# \/\* ltdll.c ends here \*\// { s/^# //; p; }" -e d < $0 > $objdir/$soname-ltdll.c~
-      test -f $objdir/$soname-ltdll.$objext || (cd $objdir && $CC -c $soname-ltdll.c)~
-      $DLLTOOL --export-all --exclude-symbols DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --output-def $objdir/$soname-def  $objdir/$soname-ltdll.$objext $libobjs $convenience~
+    if [ "$cygwin_use_msvcrt" = "true" ]; then
+      export_symbols_cmds='test -f $objdir/$soname-ltdll.c || sed -e "/^# \/\* ltdll\.c starts here \*\//,/^# \/\* ltdll.c ends here \*\// { s/^# //; p; }" -e d < $0 > $objdir/$soname-ltdll.c~
+      test -f $objdir/$soname-ltdll.$objext || (cd $objdir && $CC -U__CYGWIN__ -U__CYGWIN32__ -c $soname-ltdll.c)~
+      $DLLTOOL --exclude-symbols _DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --output-def $objdir/$soname-def  $objdir/$soname-ltdll.$objext $libobjs $convenience~
       sed -e "1,/EXPORTS/d" -e "s/ @ [0-9]*//" -e "s/ *;.*$//" < $objdir/$soname-def > $export_symbols'
+    else
+      export_symbols_cmds='test -f $objdir/$soname-ltdll.c || sed -e "/^# \/\* ltdll\.c starts here \*\//,/^# \/\* ltdll.c ends here \*\// { s/^# //; p; }" -e d < $0 > $objdir/$soname-ltdll.c~
+      test -f $objdir/$soname-ltdll.$objext || (cd $objdir && $CC -c $soname-ltdll.c)~
+      $DLLTOOL --exclude-symbols _DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --output-def $objdir/$soname-def  $objdir/$soname-ltdll.$objext $libobjs $convenience~
+      sed -e "1,/EXPORTS/d" -e "s/ @ [0-9]*//" -e "s/ *;.*$//" < $objdir/$soname-def > $export_symbols'
+    fi
 
     # If DATA tags from a recent dlltool are present, honour them!
-    archive_expsym_cmds='echo EXPORTS > $objdir/$soname-def~
+    if [ "$cygwin_use_msvcrt" = "true" ]; then
+      archive_expsym_cmds='echo EXPORTS > $objdir/$soname-def~
+      _lt_hint=1;
+      cat $export_symbols | while read symbol; do
+        set dummy \$symbol;
+        case \$# in
+          2) echo "	\$2 @ \$_lt_hint ; " >> $objdir/$soname-def;;
+          *) echo "     \$2 @ \$_lt_hint \$3 ; " >> $objdir/$soname-def;;
+        esac;
+	_lt_hint=`expr 1 + \$_lt_hint`;
+      done~
+      test -f $objdir/$soname-ltdll.c || sed -e "/^# \/\* ltdll\.c starts here \*\//,/^# \/\* ltdll.c ends here \*\// { s/^# //; p; }" -e d < $0 > $objdir/$soname-ltdll.c~
+      test -f $objdir/$soname-ltdll.$objext || (cd $objdir && $CC -U__CYGWIN__ -U__CYGWIN32__ -c $soname-ltdll.c)~
+      $CC -Wl,--base-file,$objdir/$soname-base -Wl,--dll -nostartfiles -Wl,-e,_DllMain@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts -L/usr/lib/mingw -mno-cygwin~
+      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols _DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
+      $CC -Wl,--base-file,$objdir/$soname-base $objdir/$soname-exp -Wl,--dll -nostartfiles -Wl,-e,_DllMain@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts -L/usr/lib/mingw -mno-cygwin~
+      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols _DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
+      $CC $objdir/$soname-exp -Wl,--dll -nostartfiles -Wl,-e,_DllMain@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts -L/usr/lib/mingw -mno-cygwin~
+      : strip_is_broken_with_dlls_on_win95B - strip $lib'
+    else
+      archive_expsym_cmds='echo EXPORTS > $objdir/$soname-def~
       _lt_hint=1;
       cat $export_symbols | while read symbol; do
         set dummy \$symbol;
@@ -1183,13 +1231,14 @@ EOF
       done~
       test -f $objdir/$soname-ltdll.c || sed -e "/^# \/\* ltdll\.c starts here \*\//,/^# \/\* ltdll.c ends here \*\// { s/^# //; p; }" -e d < $0 > $objdir/$soname-ltdll.c~
       test -f $objdir/$soname-ltdll.$objext || (cd $objdir && $CC -c $soname-ltdll.c)~
-      $CC -Wl,--base-file,$objdir/$soname-base -Wl,--dll -nostartfiles -Wl,-e,__cygwin_dll_entry@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts~
-      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
-      $CC -Wl,--base-file,$objdir/$soname-base $objdir/$soname-exp -Wl,--dll -nostartfiles -Wl,-e,__cygwin_dll_entry@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts~
-      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
-      $CC $objdir/$soname-exp -Wl,--dll -nostartfiles -Wl,-e,__cygwin_dll_entry@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts'
-
-      old_archive_from_new_cmds='$DLLTOOL --as=$AS --dllname $soname --def $objdir/$soname-def --output-lib $objdir/$libname.a' 
+      $CC -Wl,--base-file,$objdir/$soname-base -Wl,--dll -nostartfiles -Wl,-e,_DllMain@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts~
+      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols _DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
+      $CC -Wl,--base-file,$objdir/$soname-base $objdir/$soname-exp -Wl,--dll -nostartfiles -Wl,-e,_DllMain@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts~
+      $DLLTOOL --as=$AS --dllname $soname --exclude-symbols _DllMain@12,_cygwin_dll_entry@12,_cygwin_noncygwin_dll_entry@12 --def $objdir/$soname-def --base-file $objdir/$soname-base --output-exp $objdir/$soname-exp~
+      $CC $objdir/$soname-exp -Wl,--dll -nostartfiles -Wl,-e,_DllMain@12 -o $lib $objdir/$soname-ltdll.$objext $libobjs $deplibs $linkopts~
+      : strip_is_broken_with_dlls_on_win95B - strip $lib'
+    fi
+    old_archive_from_new_cmds='$DLLTOOL --as=$AS --dllname $soname --def $objdir/$soname-def --output-lib $objdir/$libname.a'
     ;;
 
   netbsd*)
@@ -1247,6 +1296,9 @@ EOF
     case $host_os in
     cygwin* | mingw*)
       # dlltool doesn't understand --whole-archive et. al.
+      whole_archive_flag_spec=
+      ;;
+    netbsd*)
       whole_archive_flag_spec=
       ;;
     *)
@@ -1324,7 +1376,7 @@ else
     # hardcode_libdir_flag_spec is actually meaningless, as there is
     # no search path for DLLs.
     hardcode_libdir_flag_spec=' '
-    allow_undefined_flag=unsupported
+#    allow_undefined_flag=unsupported
     # Tell ltmain to make .lib files, not .a files.
     libext=lib
     # FIXME: Setting linknames here is a bad hack.
@@ -1367,6 +1419,23 @@ else
     hardcode_shlibpath_var=no
     ;;
 
+  darwin* | rhapsody*)
+    case "$host_os" in
+    rhapsody* | darwin1.[012])
+      allow_undefined_flag='-undefined suppress'
+      ;;
+    *) # Darwin 1.3 on
+      allow_undefined_flag='-undefined error'
+      ;;
+    esac
+    archive_cmds='$nonopt $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs $linkopts -install_name $rpath/$soname $verstring'
+    # We need to add '_' to the symbols in $export_symbols first
+    #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols $lib'
+    hardcode_direct=yes
+    hardcode_shlibpath_var=no
+    whole_archive_flag_spec='-all_load $convenience'
+    ;;
+
   hpux9* | hpux10* | hpux11*)
     case "$host_os" in
     hpux9*) archive_cmds='$rm $objdir/$soname~$LD -b +b $install_libdir -o $objdir/$soname $libobjs $deplibs $linkopts~test $objdir/$soname = $lib || mv $objdir/$soname $lib' ;;
@@ -1402,10 +1471,25 @@ else
     ;;
 
   openbsd*)
-    archive_cmds='$LD -Bshareable -o $lib $libobjs $deplibs $linkopts'
-    hardcode_libdir_flag_spec='-R$libdir'
     hardcode_direct=yes
     hardcode_shlibpath_var=no
+    if test -z "`echo __ELF__ | $CC -E - | grep __ELF__`" || test "$host_os-$host_cpu" = "openbsd2.
+8-powerpc"; then
+      archive_cmds='$CC -shared $pic_flag -o $lib $libobjs $deplibs $linkopts'
+      hardcode_libdir_flag_spec='${wl}-R$libdir'
+      export_dynamic_flag_spec='${wl}-E'
+    else
+      case "$host_os" in
+      openbsd[01].* | openbsd2.[0-7] | openbsd2.[0-7].*)
+       archive_cmds='$LD -Bshareable -o $lib $libobjs $deplibs $linkopts'
+       hardcode_libdir_flag_spec='-R$libdir'
+       ;;
+      *)
+       archive_cmds='$CC -shared $pic_flag -o $lib $libobjs $deplibs $linkopts'
+       hardcode_libdir_flag_spec='${wl}-R$libdir'
+       ;;
+      esac
+    fi
     ;;
 
   os2*)
@@ -1438,12 +1522,6 @@ else
     fi
     hardcode_libdir_flag_spec='${wl}-rpath ${wl}$libdir'
     hardcode_libdir_separator=:
-    ;;
-  rhapsody*)
-    archive_cmds='$CC -bundle -undefined suppress -o $lib $libobjs $deplibs $linkopts'
-    hardcode_libdir_flags_spec='-L$libdir'
-    hardcode_direct=yes
-    hardcode_shlibpath_var=no
     ;;
                                        
   sco3.2v5*)
@@ -1500,7 +1578,7 @@ else
     no_undefined_flag=' -z text'
     # $CC -shared without GNU ld will not create a library from C++
     # object files and a static libstdc++, better avoid it by now
-    archive_cmds='$LD -G${allow_undefined_flag} -h $soname -o $lib $libobjs $deplibs $linkopts'
+    archive_cmds='$LD -G${allow_undefined_flag} -h $rpath/$soname -o $lib $libobjs $deplibs $linkopts'
     archive_expsym_cmds='$echo "{ global:" > $lib.exp~cat $export_symbols | sed -e "s/\(.*\)/\1;/" >> $lib.exp~$echo "local: *; };" >> $lib.exp~
 		$LD -G${allow_undefined_flag} -M $lib.exp -h $soname -o $lib $libobjs $deplibs $linkopts~$rm $lib.exp'
     hardcode_libdir_flag_spec=
@@ -1869,15 +1947,21 @@ cygwin* | mingw*)
   need_version=no
   need_lib_prefix=no
   if test "$with_gcc" = yes; then
-    library_names_spec='${libname}`echo ${release} | sed -e 's/[.]/-/g'`${versuffix}.dll $libname.a'
+    library_names_spec='`echo ${libname} | sed -e 's/^lib//g'`.dll $libname.a'
   else
     library_names_spec='${libname}`echo ${release} | sed -e 's/[.]/-/g'`${versuffix}.dll $libname.lib'
   fi
   dynamic_linker='Win32 ld.exe'
-  deplibs_check_method='file_magic file format pei*-i386(.*architecture: i386)?'
+  deplibs_check_method='file_magic file format pe-i386(.*architecture: i386)?'
   file_magic_cmd='${OBJDUMP} -f'
   # FIXME: first we should search . and the directory the executable is in
   shlibpath_var=PATH
+  if test "$with_gcc" = yes; then
+    # See where the system libraries really are - /usr/lib won't cut it
+    libuser32=`$CC --print-file-name=libuser32.a`
+    win32libs=`expr $libuser32 : '\(.*\)/.*'`
+    sys_lib_search_path_spec="$sys_lib_search_path_spec /usr/lib/w32api $win32libs"
+  fi
   lt_cv_dlopen="LoadLibrary"
   lt_cv_dlopen_libs=
   ;;
@@ -1891,7 +1975,8 @@ freebsd*)
   version_type=freebsd-$objformat
   case "$version_type" in
     freebsd-elf*)
-      deplibs_check_method='file_magic ELF [0-9][0-9]*-bit [LM]SB shared object'
+      deplibs_check_method='pass_all'
+    
       file_magic_cmd=/usr/bin/file
       file_magic_test_file=`echo /usr/lib/libc.so*`
       library_names_spec='${libname}${release}.so$versuffix ${libname}${release}.so $libname.so'
@@ -1913,6 +1998,27 @@ freebsd*)
     shlibpath_overrides_runpath=no
     ;;
   esac
+  ;;
+
+darwin* | rhapsody*)
+  dynamic_linker="$host_os dyld"
+  version_type=darwin
+  need_lib_prefix=no
+  need_version=no
+  deplibs_check_method='file_magic Mach-O dynamically linked shared library'
+  file_magic_cmd='/usr/bin/file -L'
+  case "$host_os" in
+  rhapsody* | darwin1.[012])
+    file_magic_test_file='/System/Library/Frameworks/System.framework/System'
+    ;;
+  *) # Darwin 1.3 on
+    file_magic_test_file='/usr/lib/libSystem.dylib'
+    ;;
+  esac
+  library_names_spec='${libname}${release}${versuffix}.$(test .$module = .yes && echo so || echo dylib) ${libname}${release}${major}.$(test .$module = .yes && echo so || echo dylib) ${libname}.$(test .$module = .yes && echo so || echo dylib)'
+  soname_spec='${libname}${release}${major}.$(test .$module = .yes && echo so || echo dylib)'
+  shlibpath_overrides_runpath=yes
+  shlibpath_var=DYLD_LIBRARY_PATH
   ;;
 
 gnu*)
@@ -1940,7 +2046,8 @@ hpux9* | hpux10* | hpux11*)
   case "$host_os" in
   hpux10.20*)
     # TODO:  Does this work for hpux-11 too?
-    deplibs_check_method='file_magic (s[0-9][0-9][0-9]|PA-RISC[0-9].[0-9]) shared library'
+  #  deplibs_check_method='file_magic (s[0-9][0-9][0-9]|PA-RISC[0-9].[0-9]) shared library'
+    deplibs_check_method="unknown"
     file_magic_cmd=/usr/bin/file
     file_magic_test_file=/usr/lib/libc.sl
     ;;
@@ -2017,17 +2124,35 @@ netbsd*)
     dynamic_linker='NetBSD ld.elf_so'
   fi
   shlibpath_var=LD_LIBRARY_PATH
+  deplibs_check_method='pass_all'
   ;;
 
 openbsd*)
   version_type=sunos
-  if test "$with_gnu_ld" = yes; then
-    need_lib_prefix=no
-    need_version=no
+  need_lib_prefix=no
+  need_version=no
+  sys_lib_search_path_spec="/usr/lib"
+  sys_lib_dlsearch_path_spec="/usr/lib /usr/local/lib"
+  file_magic_cmd=/usr/bin/file
+  file_magic_test_file=`echo /usr/lib/libc.so.*`
+  if test "`echo __ELF__ | $CC -E - | grep __ELF__`" = "" -o "$host_os-$host_cpu" = "openbsd2.8-powerpc"; then
+    deplibs_check_method='file_magic ELF [0-9][0-9]*-bit [LM]SB shared object'
+    case "$host_os" in
+    openbsd2.[89] | openbsd2.[89].*)
+      shlibpath_overrides_runpath=no
+    ;;
+    *)
+      shlibpath_overrides_runpath=yes
+    ;;
+    esac
+  else
+    deplibs_check_method='file_magic OpenBSD.* shared library'
+    shlibpath_overrides_runpath=yes
   fi
   library_names_spec='${libname}${release}.so$versuffix ${libname}.so$versuffix'
   finish_cmds='PATH="\$PATH:/sbin" ldconfig -m $libdir'
   shlibpath_var=LD_LIBRARY_PATH
+  deplibs_check_method='pass_all'
   ;;
 
 os2*)
@@ -2051,14 +2176,6 @@ osf3* | osf4* | osf5*)
   deplibs_check_method='pass_all'
   sys_lib_search_path_spec="/usr/shlib /usr/ccs/lib /usr/lib/cmplrs/cc /usr/lib /usr/local/lib /var/shlib"
   sys_lib_dlsearch_path_spec="$sys_lib_search_path_spec"
-  ;;
-
-rhapsody*)
-  version_type=sunos
-  library_names_spec='${libname}.so'
-  soname_spec='${libname}.so'
-  shlibpath_var=DYLD_LIBRARY_PATH
-  deplibs_check_method=pass_all
   ;;
 
 sco3.2v5*)
@@ -2147,6 +2264,17 @@ sysv4*MP*)
 
 *)
   dynamic_linker=no
+  ;;
+
+nto-qnx)
+  version_type=linux
+  need_lib_prefix=no
+  need_version=no
+  library_names_spec='${libname}${release}.so$versuffix ${libname}${release}.so$major $libname.so'
+  soname_spec='${libname}${release}.so$major'
+  shlibpath_var=LD_LIBRARY_PATH
+  shlibpath_overrides_runpath=yes
+  deplibs_check_method='pass_all'
   ;;
 esac
 echo "$ac_t$dynamic_linker" 1>&6

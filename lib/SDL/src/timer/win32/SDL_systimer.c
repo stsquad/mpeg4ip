@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systimer.c,v 1.3 2002/05/01 17:41:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_systimer.c,v 1.4 2002/10/07 21:21:41 wmaycisco Exp $";
 #endif
 
 #include <windows.h>
@@ -33,8 +33,8 @@ static char rcsid =
 #include "SDL_error.h"
 
 #ifdef _WIN32_WCE
-#define USE_GETTICKCOUNT
-#define USE_SETTIMER
+//#define USE_GETTICKCOUNT
+//#define USE_SETTIMER
 #endif
 
 #define TIME_WRAP_VALUE	(~(DWORD)0)

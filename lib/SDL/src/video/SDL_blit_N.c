@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_blit_N.c,v 1.3 2002/05/01 17:41:01 wmaycisco Exp $";
+ "@(#) $Id: SDL_blit_N.c,v 1.4 2002/10/07 21:21:41 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -49,7 +49,6 @@ static char rcsid =
 #define HermesConverterInterface	SDL_BlitInfo
 #define HermesClearInterface		void
 #define STACKCALL
-typedef Uint32 int32;
 
 #include "HeadMMX.h"
 #include "HeadX86.h"
@@ -1203,7 +1202,7 @@ static void BlitNtoN(SDL_BlitInfo *info)
 	int srcbpp = srcfmt->BytesPerPixel;
 	SDL_PixelFormat *dstfmt = info->dst;
 	int dstbpp = dstfmt->BytesPerPixel;
-	unsigned alpha = dstfmt->Amask ? SDL_ALPHA_OPAQUE : 0;
+	unsigned alpha = dstfmt->Amask ? srcfmt->alpha : 0;
 
 	while ( height-- ) {
 		DUFFS_LOOP(
@@ -1359,7 +1358,7 @@ static void BlitNtoNKey(SDL_BlitInfo *info)
 	SDL_PixelFormat *dstfmt = info->dst;
 	int srcbpp = srcfmt->BytesPerPixel;
 	int dstbpp = dstfmt->BytesPerPixel;
-	unsigned alpha = dstfmt->Amask ? SDL_ALPHA_OPAQUE : 0;
+	unsigned alpha = dstfmt->Amask ? srcfmt->alpha : 0;
 
 	while ( height-- ) {
 		DUFFS_LOOP(

@@ -610,6 +610,8 @@ bool MP4GetHintTrackRtpPayload(
 	u_int16_t* pMaxPayloadSize DEFAULT(NULL),
 	char **ppEncodingParams DEFAULT(NULL));
 
+#define MP4_SET_DYNAMIC_PAYLOAD 0xff
+
 bool MP4SetHintTrackRtpPayload(
 	MP4FileHandle hFile,
 	MP4TrackId hintTrackId,

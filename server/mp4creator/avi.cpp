@@ -30,6 +30,7 @@
 static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 {
 	char* videoType = AVI_video_compressor(aviFile);
+	u_int8_t videoProfileLevel = 0x03;
 
 	if (strcasecmp(videoType, "divx")
 	  && strcasecmp(videoType, "dx50")
@@ -87,7 +88,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	}
 
 	// allocate a large enough frame buffer
-	u_int8_t* pFrameBuffer = (u_int8_t*)malloc(maxFrameSize);
+	u_int8_t* pFrameBuffer = (u_int8_t*)malloc(maxFrameSize + 4);
 
 	if (pFrameBuffer == NULL) {
 		fprintf(stderr,	
@@ -110,23 +111,122 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	}
 
 	// find VOP start code in first sample
-	static u_int8_t vopStartCode[4] = { 
-		0x00, 0x00, 0x01, MP4AV_MPEG4_VOP_START 
+	static u_int8_t startCode[3] = { 
+		0x00, 0x00, 0x01, 
 	};
 	u_int32_t vopStart = 0;
+	bool foundVOP = false;
+	bool foundVOSH = false;
+	bool foundVisualObjectStart = false;
+	bool foundVO = false;
+	bool foundVOL = false;
 
-	for (i = 0; i < frameSize - 4; i++) {
-		if (!memcmp(&pFrameBuffer[i], vopStartCode, 4)) {
-			// everything before the VOP
-			// should be configuration info
-			MP4SetTrackESConfiguration(mp4File, trackId,
-				pFrameBuffer, i);
-			vopStart = i;
-		}
+	// Note that we go from 4 to framesize, not 0 to framesize - 4
+	// this is adding padding at the beginning for the VOSH, if
+	// needed
+	for (i = 0; foundVOP == false && i < frameSize; i++) {
+	  if (!memcmp(&pFrameBuffer[i], startCode, 3)) {
+	    // everything before the VOP
+	    // should be configuration info
+	    if (pFrameBuffer[i + 3] == MP4AV_MPEG4_VOP_START) {
+	      vopStart = i;
+	      foundVOP = true;
+
+	    } else if (pFrameBuffer[i + 3] == MP4AV_MPEG4_VOL_START) {
+	      u_int8_t timeBits = 15;
+	      u_int16_t timeTicks = 30000;
+	      u_int16_t frameDuration = 3000;
+	      u_int16_t frameWidth = 0;
+	      u_int16_t frameHeight = 0;
+	      if (MP4AV_Mpeg4ParseVol(pFrameBuffer + i, frameSize - i, 
+				      &timeBits, &timeTicks, &frameDuration, 
+				      &frameWidth, &frameHeight) == false) {
+		fprintf(stderr, "Couldn't parse vol\n");
+	      }
+	      if (frameWidth != AVI_video_width(aviFile)) {
+		fprintf(stderr, 
+			"%s:avi file video width does not match VOL header - %d vs. %d\n", 
+			ProgName, frameWidth, AVI_video_width(aviFile));
+	      }
+	      if (frameHeight != AVI_video_height(aviFile)) {
+		fprintf(stderr, 
+			"%s:avi file video height does not match VOL header - %d vs. %d\n", 
+			ProgName, frameHeight, AVI_video_height(aviFile));
+	      }
+	      foundVOL = true;
+	      
+	    } else if (pFrameBuffer[i + 3] == MP4AV_MPEG4_VOSH_START) {
+	      foundVOSH = true;
+	      MP4AV_Mpeg4ParseVosh(pFrameBuffer + i, 
+				   frameSize - i, 
+				   &videoProfileLevel);
+	    } else if (pFrameBuffer[i + 3] == MP4AV_MPEG4_VO_START) {
+	      foundVisualObjectStart = true;
+	    } else if (pFrameBuffer[i + 3] <= 0x1f) {
+	      foundVO = true;
+	    }
+	    i += 3; // skip past header
+	  }
 	}
 
+	if (foundVOSH == false) {
+	  fprintf(stderr, 
+		  "%s: Warning: no Visual Object Sequence Start (VOSH) header found in MPEG-4 video.\n"
+		  "This can cause problems with players other than mp4player included\n"
+		  "with this package.\n", ProgName);
+	}
+	if (foundVisualObjectStart == false) {
+	  fprintf(stderr, 
+		  "%s: Warning: no Visual Object start header found in MPEG-4 video.\n"
+		  "This can cause problems with players other than mp4player included\n"
+		  "with this package.\n", ProgName);
+	}
+	  
+	if (foundVO == false) {
+	  fprintf(stderr, 
+		  "%s: Warning: No VO header found in mpeg-4 video.\n"
+		  "This can cause problems with players other than mp4player\n",
+		  ProgName);
+	}
+	if (foundVOL == false) {
+	  fprintf(stderr, 
+		  "%s: fatal: No VOL header found in mpeg-4 video stream\n",
+		  ProgName);
+	  MP4DeleteTrack(mp4File, trackId);
+	  return MP4_INVALID_TRACK_ID;
+	}
+
+#if 0
+	// the below will write a VOSH and VO if one doesn't exist
+	if (foundVOSH == false || 
+	    foundVisualObjectStart == false) {
+	  uint8_t *tempes = (uint8_t *)malloc(vopStart + 1 + 5 + 9);
+	  uint32_t templen = 0;
+
+	  if (foundVOSH == false) {
+	    MP4AV_Mpeg4CreateVosh(&tempes,&templen, videoProfileLevel);
+	  }
+	  if (foundVisualObjectStart == false) {
+	    MP4AV_Mpeg4CreateVo(&tempes, &templen, 1);
+	  }
+	  memcpy(tempes + templen, 
+		 pFrameBuffer, 
+		 vopStart + 1);
+	  MP4SetTrackESConfiguration(mp4File, trackId, 
+				     tempes, 
+				     vopStart + 1 + templen);
+	  free(tempes);
+	} else {
+	  MP4SetTrackESConfiguration(mp4File, trackId,
+				     pFrameBuffer, vopStart + 1);
+	}
+#else
+	MP4SetTrackESConfiguration(mp4File, trackId,
+				   pFrameBuffer, vopStart + 1);
+#endif
 	if (MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE) == 1) {
-		MP4SetVideoProfileLevel(mp4File, 0x01);
+	  MP4SetVideoProfileLevel(mp4File, 
+				  MP4AV_Mpeg4VideoToSystemsProfileLevel(videoProfileLevel));
 	}
 
 	// write out the first frame, minus the initial configuration info

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_main.h,v 1.4 2002/05/01 17:40:32 wmaycisco Exp $";
+ "@(#) $Id: SDL_main.h,v 1.5 2002/10/07 21:21:33 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_main_h
@@ -30,8 +30,10 @@ static char rcsid =
 
 /* Redefine main() on Win32 and MacOS so that it is called by winmain.c */
 
-#if defined(WIN32) || (defined(__MWERKS__) && !defined(__BEOS__)) || \
-    defined(macintosh) || defined(__APPLE__) || defined(__SYMBIAN32__)
+#if defined(WIN32) || defined(_WIN32) || \
+    (defined(__MWERKS__) && !defined(__BEOS__)) || \
+    defined(macintosh) || defined(__APPLE__) || \
+    defined(__SYMBIAN32__) || defined(QWS)
 
 #ifdef __cplusplus
 #define C_LINKAGE	"C"

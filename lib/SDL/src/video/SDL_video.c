@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.c,v 1.4 2002/05/01 17:41:06 wmaycisco Exp $";
+ "@(#) $Id: SDL_video.c,v 1.5 2002/10/07 21:21:42 wmaycisco Exp $";
 #endif
 
 /* The high-level video driver subsystem */
@@ -110,6 +110,15 @@ static VideoBootStrap *bootstrap[] = {
 #endif
 #ifdef ENABLE_GEM
 	&GEM_bootstrap,
+#endif
+#ifdef ENABLE_QTOPIA
+	&Qtopia_bootstrap,
+#endif
+#ifdef ENABLE_PICOGUI
+	&PG_bootstrap,
+#endif
+#ifdef ENABLE_DC
+	&DC_bootstrap,
 #endif
 	NULL
 };
@@ -220,6 +229,7 @@ int SDL_VideoInit (const char *driver_name, Uint32 flags)
 	video->gl_config.accum_green_size = 0;
 	video->gl_config.accum_blue_size = 0;
 	video->gl_config.accum_alpha_size = 0;
+	video->gl_config.stereo = 0;
 	
 	/* Initialize the video subsystem */
 	memset(&vformat, 0, sizeof(vformat));
@@ -355,7 +365,7 @@ int SDL_VideoModeOK (int width, int height, int bpp, Uint32 flags)
 	if ( bpp < 8 || bpp > 32 ) {
 		return(0);
 	}
-	if ( (width == 0) || (height == 0) ) {
+	if ( (width <= 0) || (height <= 0) ) {
 		return(0);
 	}
 
@@ -407,6 +417,16 @@ static int SDL_GetVideoMode (int *w, int *h, int *BitsPerPixel, Uint32 flags)
 	int native_bpp;
 	SDL_PixelFormat format;
 	SDL_Rect **sizes;
+
+	/* Check parameters */
+	if ( *BitsPerPixel < 8 || *BitsPerPixel > 32 ) {
+		SDL_SetError("Invalid bits per pixel (range is {8...32})");
+		return(0);
+	}
+	if ((*w <= 0) || (*h <= 0)) {
+		SDL_SetError("Invalid width or height");
+		return(0);
+	}
 
 	/* Try the original video mode, get the closest depth */
 	native_bpp = SDL_VideoModeOK(*w, *h, *BitsPerPixel, flags);
@@ -590,6 +610,7 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 
 	/* Reset the keyboard here so event callbacks can run */
 	SDL_ResetKeyboard();
+	SDL_ResetMouse();
 
 	/* Clean up any previous video mode */
 	if ( SDL_PublicSurface != NULL ) {
@@ -948,9 +969,9 @@ void SDL_UpdateRects (SDL_Surface *screen, int numrects, SDL_Rect *rects)
 
 	if ( screen == SDL_ShadowSurface ) {
 		/* Blit the shadow surface using saved mapping */
-	        SDL_Palette *pal = screen->format->palette;
+		SDL_Palette *pal = screen->format->palette;
 		SDL_Color *saved_colors = NULL;
-	        if ( pal && !(SDL_VideoSurface->flags & SDL_HWPALETTE) ) {
+		if ( pal && !(SDL_VideoSurface->flags & SDL_HWPALETTE) ) {
 			/* simulated 8bpp, use correct physical palette */
 			saved_colors = pal->colors;
 			if ( video->gammacols ) {
@@ -976,8 +997,9 @@ void SDL_UpdateRects (SDL_Surface *screen, int numrects, SDL_Rect *rects)
 						SDL_VideoSurface, &rects[i]);
 			}
 		}
-		if ( saved_colors )
+		if ( saved_colors ) {
 			pal->colors = saved_colors;
+		}
 
 		/* Fall through to video surface update */
 		screen = SDL_VideoSurface;
@@ -1009,9 +1031,9 @@ int SDL_Flip(SDL_Surface *screen)
 	/* Copy the shadow surface to the video surface */
 	if ( screen == SDL_ShadowSurface ) {
 		SDL_Rect rect;
-	        SDL_Palette *pal = screen->format->palette;
+		SDL_Palette *pal = screen->format->palette;
 		SDL_Color *saved_colors = NULL;
-	        if ( pal && !(SDL_VideoSurface->flags & SDL_HWPALETTE) ) {
+		if ( pal && !(SDL_VideoSurface->flags & SDL_HWPALETTE) ) {
 			/* simulated 8bpp, use correct physical palette */
 			saved_colors = pal->colors;
 			if ( video->gammacols ) {
@@ -1027,10 +1049,22 @@ int SDL_Flip(SDL_Surface *screen)
 		rect.y = 0;
 		rect.w = screen->w;
 		rect.h = screen->h;
-		SDL_LowerBlit(SDL_ShadowSurface,&rect, SDL_VideoSurface,&rect);
-
-		if ( saved_colors )
+		if ( SHOULD_DRAWCURSOR(SDL_cursorstate) ) {
+			SDL_LockCursor();
+			SDL_DrawCursor(SDL_ShadowSurface);
+			SDL_LowerBlit(SDL_ShadowSurface, &rect,
+					SDL_VideoSurface, &rect);
+			SDL_EraseCursor(SDL_ShadowSurface);
+			SDL_UnlockCursor();
+		} else {
+			SDL_LowerBlit(SDL_ShadowSurface, &rect,
+					SDL_VideoSurface, &rect);
+		}
+		if ( saved_colors ) {
 			pal->colors = saved_colors;
+		}
+
+		/* Fall through to video surface update */
 		screen = SDL_VideoSurface;
 	}
 	if ( (screen->flags & SDL_DOUBLEBUF) == SDL_DOUBLEBUF ) {
@@ -1296,10 +1330,14 @@ int SDL_GL_LoadLibrary(const char *path)
 	int retval;
 
 	retval = -1;
-	if ( video && video->GL_LoadLibrary ) {
-		retval = video->GL_LoadLibrary(this, path);
+	if ( video == NULL ) {
+		SDL_SetError("Video subsystem has not been initialized");
 	} else {
-		SDL_SetError("No dynamic GL support in video driver");
+		if ( video->GL_LoadLibrary ) {
+			retval = video->GL_LoadLibrary(this, path);
+		} else {
+			SDL_SetError("No dynamic GL support in video driver");
+		}
 	}
 	return(retval);
 }
@@ -1355,17 +1393,20 @@ int SDL_GL_SetAttribute( SDL_GLattr attr, int value )
 		case SDL_GL_STENCIL_SIZE:
 			video->gl_config.stencil_size = value;
 			break;
-	        case SDL_GL_ACCUM_RED_SIZE:
+		case SDL_GL_ACCUM_RED_SIZE:
 			video->gl_config.accum_red_size = value;
 			break;
-	        case SDL_GL_ACCUM_GREEN_SIZE:
+		case SDL_GL_ACCUM_GREEN_SIZE:
 			video->gl_config.accum_green_size = value;
 			break;
-	        case SDL_GL_ACCUM_BLUE_SIZE:
+		case SDL_GL_ACCUM_BLUE_SIZE:
 			video->gl_config.accum_blue_size = value;
 			break;
-	        case SDL_GL_ACCUM_ALPHA_SIZE:
+		case SDL_GL_ACCUM_ALPHA_SIZE:
 			video->gl_config.accum_alpha_size = value;
+			break;
+		case SDL_GL_STEREO:
+			video->gl_config.stereo = value;
 			break;
 		default:
 			SDL_SetError("Unknown OpenGL attribute");

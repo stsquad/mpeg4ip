@@ -42,6 +42,7 @@
 #include <IOKit/hid/IOHIDLib.h>
 #include <IOKit/hid/IOHIDKeys.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <Carbon/Carbon.h> /* for NewPtrClear, DisposePtr */
 
 #include "SDL_error.h"
 #include "SDL_joystick.h"
@@ -570,8 +571,6 @@ int SDL_SYS_JoystickInit(void)
 	CFMutableDictionaryRef hidMatchDictionary = NULL;
 	recDevice *device, *lastDevice;
 	io_object_t ioHIDDeviceObject = NULL;
-	UInt32 usagePage = kHIDPage_GenericDesktop;
-	UInt32 usage = kHIDUsage_GD_Joystick; /* We probably also should check for gamepads? */
 	
 	SDL_numjoysticks = 0;
 	
@@ -590,15 +589,20 @@ int SDL_SYS_JoystickInit(void)
 
 	/* Set up a matching dictionary to search I/O Registry by class name for all HID class devices. */
 	hidMatchDictionary = IOServiceMatching (kIOHIDDeviceKey);
-	if ((hidMatchDictionary != NULL) && (usagePage) && (usage))
+	if ((hidMatchDictionary != NULL))
 	{
 		/* Add key for device type (joystick, in this case) to refine the matching dictionary. */
+		
+		/* NOTE: we now perform this filtering later
+		UInt32 usagePage = kHIDPage_GenericDesktop;
+		UInt32 usage = kHIDUsage_GD_Joystick;
 		CFNumberRef refUsage = NULL, refUsagePage = NULL;
 
-		refUsage = CFNumberCreate (kCFAllocatorDefault, kCFNumberIntType, &usagePage);
+		refUsage = CFNumberCreate (kCFAllocatorDefault, kCFNumberIntType, &usage);
 		CFDictionarySetValue (hidMatchDictionary, CFSTR (kIOHIDPrimaryUsageKey), refUsage);
-		refUsagePage = CFNumberCreate (kCFAllocatorDefault, kCFNumberIntType, &usage);
+		refUsagePage = CFNumberCreate (kCFAllocatorDefault, kCFNumberIntType, &usagePage);
 		CFDictionarySetValue (hidMatchDictionary, CFSTR (kIOHIDPrimaryUsagePageKey), refUsagePage);
+		*/
 	}
 	else
 	{
@@ -609,10 +613,16 @@ int SDL_SYS_JoystickInit(void)
 	/*/ Now search I/O Registry for matching devices. */
 	result = IOServiceGetMatchingServices (masterPort, hidMatchDictionary, &hidObjectIterator);
 	/* Check for errors */
-	if ((kIOReturnSuccess != result) || (NULL == hidObjectIterator))
+	if (kIOReturnSuccess != result)
 	{
 		SDL_SetError("Joystick: Couldn't create a HID object iterator.");
 		return -1;
+	}
+	if (NULL == hidObjectIterator) /* there are no joysticks */
+	{
+		gpDeviceList = NULL;
+		SDL_numjoysticks = 0;
+		return 0;
 	}
 	/* IOServiceGetMatchingServices consumes a reference to the dictionary, so we don't need to release the dictionary ref. */
 
@@ -631,6 +641,18 @@ int SDL_SYS_JoystickInit(void)
 		result = IOObjectRelease (ioHIDDeviceObject);
 //		if (KERN_SUCCESS != result)
 //			HIDReportErrorNum ("IOObjectRelease error with ioHIDDeviceObject.", result);
+
+		/* Filter device list to non-keyboard/mouse stuff */ 
+		if ( device->usagePage == kHIDPage_GenericDesktop &&
+		     (device->usage == kHIDUsage_GD_Keyboard ||
+		      device->usage == kHIDUsage_GD_Mouse)) {
+            
+			/* release memory for the device */
+			HIDDisposeDevice (&device);
+			DisposePtr((Ptr)device);
+			continue;
+		}
+		
 		/* Add device to the end of the list */
 		if (lastDevice)
 			lastDevice->pNext = device;

@@ -310,6 +310,9 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
 					 srpak->ntp_sec, 
 					 srpak->rtp_ts);
     break;
+  case RX_APP:
+    free(e->data);
+    break;
   default:
 #if 0
     rtp_message(LOG_DEBUG, "Thread %u - Callback from rtp with %d %p", 
@@ -616,7 +619,7 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
   diff = m_buffer_len - m_bytes_used;
 
   m_doing_add = 0;
-  if (diff > 2) {
+  if (diff >= 2) {
     // Still bytes in the buffer...
     *buffer = m_buffer + m_bytes_used;
     *buflen = diff;

@@ -34,6 +34,45 @@ do
   fi
 done
 
+#
+# Test for lame
+#
+have_lame=no
+if lame --version >&/dev/null
+then
+   lamever=`lame --version | tr '.' ' '`
+   lameresult=`util/testlame.sh $lamever`
+   if test $lameresult = "yes"; then
+      have_lame=yes
+   fi
+fi
+
+allargs="$@"
+
+if test $have_lame = "no"; then
+   disabled_mp4live=no
+   while test $# -gt 0;
+   do
+      if test $1 = "--disable-server"; then
+         disabled_mp4live=yes
+      else
+         if test $1 = "--disable-mp4live"; then
+            disabled_mp4live=yes
+         fi
+      fi
+   shift
+   done
+   if test $disabled_mp4live = no; then
+      echo "Error - we cannot detect a valid version of lame and you are trying"
+      echo "to build mpeg4ip with mp4live."
+      echo "To remedy this, either reexecute this program with either the"
+      echo "--disable-mp4live or --disable-server options -OR-"
+      echo "install lame at version 3.92 or greater from http://www.mp3dev.org"
+      exit 1
+   fi
+fi
+
+
 set -x
 
 # if src tree is created via cvs export to tar.gz
@@ -58,7 +97,7 @@ do	cd $dir
 	libtoolize --force
 	automake --add-missing --foreign || exit 1
 	autoconf || exit 1
-	./configure "$@" || exit 1
+	./configure $allargs || exit 1
 done
 
 cd $pwd
@@ -68,7 +107,7 @@ libtoolize --force
 autoheader
 automake --add-missing --foreign || exit 1
 autoconf || exit 1
-./configure "$@" || exit 1
+./configure $allargs || exit 1
 
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  
@@ -78,7 +117,7 @@ grep AM_PATH_GTK_2_0 aclocal.m4 || aclocal -I doc || exit 3
 autoheader || exit 1
 automake --add-missing --foreign || exit 1
 autoconf || exit 1
-[ ! -x configure ] || ./configure "$@" || exit 1
+[ ! -x configure ] || ./configure $allargs || exit 1
 set +x
 
 # Now ready to run make

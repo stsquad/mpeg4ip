@@ -40,8 +40,11 @@ static rtp_check_return_t check (lib_message_func_t msg,
   }
 
   fmtp_parse_t *fmtp;
+  int len;
   fmtp = parse_fmtp_for_mpeg4(fmt->fmt_param, msg);
-  if (fmtp->size_length == 0) {
+  len = fmtp->size_length;
+  free_fmtp_parse(fmtp);
+  if (len == 0) {
     return RTP_PLUGIN_NO_MATCH;
   }
   return RTP_PLUGIN_MATCH;
@@ -110,22 +113,22 @@ rtp_plugin_data_t *isma_rtp_plugin_create (format_list_t *media_fmt,
 	       "Rtp ts add is %d (%d %d)", iptr->m_rtp_ts_add,
 	       media_fmt->rtpmap->clock_rate, 
 	       audio_config.frequency);
-  iptr->m_fmtp = *fmtp;
-  iptr->m_min_first_header_bits = iptr->m_fmtp.size_length + iptr->m_fmtp.index_length;
-  iptr->m_min_header_bits = iptr->m_fmtp.size_length + iptr->m_fmtp.index_delta_length;
-  if (iptr->m_fmtp.CTS_delta_length > 0) {
+  iptr->m_fmtp = fmtp;
+  iptr->m_min_first_header_bits = iptr->m_fmtp->size_length + iptr->m_fmtp->index_length;
+  iptr->m_min_header_bits = iptr->m_fmtp->size_length + iptr->m_fmtp->index_delta_length;
+  if (iptr->m_fmtp->CTS_delta_length > 0) {
     iptr->m_min_header_bits++;
     iptr->m_min_first_header_bits++;
   }
-  if (iptr->m_fmtp.DTS_delta_length > 0) {
+  if (iptr->m_fmtp->DTS_delta_length > 0) {
     iptr->m_min_header_bits++;
     iptr->m_min_first_header_bits++;
   }
   isma_message(LOG_DEBUG, ismartp, "min headers are %d %d", iptr->m_min_first_header_bits,
 	       iptr->m_min_header_bits);
 
-  iptr->m_min_header_bits += iptr->m_fmtp.auxiliary_data_size_length;
-  iptr->m_min_first_header_bits += iptr->m_fmtp.auxiliary_data_size_length;
+  iptr->m_min_header_bits += iptr->m_fmtp->auxiliary_data_size_length;
+  iptr->m_min_first_header_bits += iptr->m_fmtp->auxiliary_data_size_length;
   iptr->m_frag_reass_buffer = NULL;
   iptr->m_frag_reass_size_max = 0;
   return (&iptr->plug);
@@ -168,6 +171,9 @@ static void isma_rtp_destroy (rtp_plugin_data_t *pifptr)
     }
     iptr->m_frame_data_head = p->frame_data_next;
     free(p);
+  }
+  if (iptr->m_fmtp != NULL) {
+    free_fmtp_parse(iptr->m_fmtp);
   }
   free(iptr);
 }
@@ -231,16 +237,16 @@ static int insert_frame_data (isma_rtp_data_t *iptr,
 static void get_au_header_bits (isma_rtp_data_t *iptr)
 {
   uint32_t temp;
-  if (iptr->m_fmtp.CTS_delta_length > 0) {
+  if (iptr->m_fmtp->CTS_delta_length > 0) {
     iptr->m_header_bitstream.getbits(1, &temp);
     if (temp > 0) {
-      iptr->m_header_bitstream.getbits(iptr->m_fmtp.CTS_delta_length, &temp);
+      iptr->m_header_bitstream.getbits(iptr->m_fmtp->CTS_delta_length, &temp);
     }
   }
-  if (iptr->m_fmtp.DTS_delta_length > 0) {
+  if (iptr->m_fmtp->DTS_delta_length > 0) {
     iptr->m_header_bitstream.getbits(1, &temp);
     if (temp > 0) {
-      iptr->m_header_bitstream.getbits(iptr->m_fmtp.DTS_delta_length, &temp);
+      iptr->m_header_bitstream.getbits(iptr->m_fmtp->DTS_delta_length, &temp);
     }
   }
 }
@@ -329,10 +335,10 @@ static int process_fragment (isma_rtp_data_t *iptr,
     cur->frag_ptr =  &pak->rtp_data[header_len_bytes];
     cur->frag_len = pak->rtp_data_len - header_len_bytes;
     // if aux data, move frag pointer
-    if (iptr->m_fmtp.auxiliary_data_size_length > 0) {
+    if (iptr->m_fmtp->auxiliary_data_size_length > 0) {
       iptr->m_header_bitstream.byte_align();
       uint32_t aux_len;
-      iptr->m_header_bitstream.getbits(iptr->m_fmtp.auxiliary_data_size_length, &aux_len);
+      iptr->m_header_bitstream.getbits(iptr->m_fmtp->auxiliary_data_size_length, &aux_len);
       aux_len = (aux_len + 7) / 8;
       cur->frag_ptr += aux_len;
       cur->frag_len -= aux_len;
@@ -392,9 +398,9 @@ static void process_packet_header (isma_rtp_data_t *iptr)
 
   iptr->m_header_bitstream.init(&pak->rtp_data[sizeof(uint16_t)],
 			  header_len);
-  if (iptr->m_header_bitstream.getbits(iptr->m_fmtp.size_length, &frame_len) != 0) 
+  if (iptr->m_header_bitstream.getbits(iptr->m_fmtp->size_length, &frame_len) != 0) 
     return;
-  iptr->m_header_bitstream.getbits(iptr->m_fmtp.index_length, &retvalue);
+  iptr->m_header_bitstream.getbits(iptr->m_fmtp->index_length, &retvalue);
   get_au_header_bits(iptr);
 #ifdef DEBUG_ISMA_AAC
   uint64_t msec = iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, pak->rtp_pak_ts, 1);
@@ -422,8 +428,8 @@ static void process_packet_header (isma_rtp_data_t *iptr)
   // Check if frame is fragmented
   // frame_len plus the length of the 2 headers
   int frag_check = frame_len + sizeof(uint16_t);
-  frag_check += iptr->m_fmtp.size_length / 8;
-  if ((iptr->m_fmtp.size_length % 8) != 0) frag_check++;
+  frag_check += iptr->m_fmtp->size_length / 8;
+  if ((iptr->m_fmtp->size_length % 8) != 0) frag_check++;
   if (frag_check > pak->rtp_data_len) {
 #ifdef DEBUG_ISMA_AAC
     isma_message(LOG_DEBUG, ismartp, "Frame is fragmented");
@@ -445,8 +451,8 @@ static void process_packet_header (isma_rtp_data_t *iptr)
   frame_ptr = frame_data->frame_ptr + frame_data->frame_len;
   while (iptr->m_header_bitstream.bits_remain() >= iptr->m_min_header_bits) {
     uint32_t stride;
-    iptr->m_header_bitstream.getbits(iptr->m_fmtp.size_length, &frame_len);
-    iptr->m_header_bitstream.getbits(iptr->m_fmtp.index_delta_length, &stride);
+    iptr->m_header_bitstream.getbits(iptr->m_fmtp->size_length, &frame_len);
+    iptr->m_header_bitstream.getbits(iptr->m_fmtp->index_delta_length, &stride);
     get_au_header_bits(iptr);
     ts += (iptr->m_rtp_ts_add * (1 + stride));
 #ifdef DEBUG_ISMA_AAC
@@ -487,10 +493,10 @@ static void process_packet_header (isma_rtp_data_t *iptr)
       return;
     }
   }
-  if (iptr->m_fmtp.auxiliary_data_size_length > 0) {
+  if (iptr->m_fmtp->auxiliary_data_size_length > 0) {
     iptr->m_header_bitstream.byte_align();
     uint32_t aux_len;
-    iptr->m_header_bitstream.getbits(iptr->m_fmtp.auxiliary_data_size_length, &aux_len);
+    iptr->m_header_bitstream.getbits(iptr->m_fmtp->auxiliary_data_size_length, &aux_len);
     aux_len = (aux_len + 7) / 8;
 #ifdef DEBUG_ISMA_AAC
     isma_message(LOG_DEBUG, ismartp, "Adding %d bytes for aux data size", aux_len);

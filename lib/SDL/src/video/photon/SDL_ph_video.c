@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ph_video.c,v 1.4 2002/05/01 17:41:26 wmaycisco Exp $";
+ "@(#) $Id: SDL_ph_video.c,v 1.5 2002/10/07 21:21:45 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -192,6 +192,7 @@ static int ph_VideoInit(_THIS, SDL_PixelFormat *vformat)
     {
         exit(EXIT_FAILURE);
     }
+    memset(event, 0x00, EVENT_SIZE);
 
     /* Create the blank cursor */
     SDL_BlankCursor = this->CreateWMCursor(this, blank_cdata, blank_cmask,
@@ -200,17 +201,17 @@ static int ph_VideoInit(_THIS, SDL_PixelFormat *vformat)
 
     if (SDL_BlankCursor == NULL)
     {
-        printf("ph_VideoInit: could not create blank cursor\n");
+        printf("ph_VideoInit(): could not create blank cursor !\n");
     }
 
     if (PgGetGraphicsHWCaps(&my_hwcaps) < 0)
     {
-        fprintf(stderr,"ph_VideoInit: GetGraphicsHWCaps failed!! \n");
+        fprintf(stderr,"ph_VideoInit(): GetGraphicsHWCaps failed !\n");
     }
 
     if (PgGetVideoModeInfo(my_hwcaps.current_video_mode, &my_mode_info) < 0)
     {
-        fprintf(stderr,"ph_VideoInit:  PgGetVideoModeInfo failed\n");
+        fprintf(stderr,"ph_VideoInit(): PgGetVideoModeInfo failed !\n");
     }
 
     /* We need to return BytesPerPixel as it in used by CreateRGBsurface */
@@ -255,6 +256,16 @@ static SDL_Surface *ph_SetVideoMode(_THIS, SDL_Surface *current,
     if ((flags & SDL_OPENGL)!=SDL_OPENGL)
     {
         pargc=0;
+        
+        // prevent using HWSURFACE in window mode if desktop bpp != chosen bpp
+        if ((flags & SDL_HWSURFACE) && (!(flags & SDL_FULLSCREEN)))
+        {
+           if (desktopbpp!=bpp)
+           {
+              fprintf(stderr, "ph_SetVideoMode(): SDL_HWSURFACE available only with chosen bpp equal desktop bpp !\n");
+              return NULL;
+           }
+        }
 
         PtSetArg(&arg[pargc++], Pt_ARG_DIM, &dim, 0);
         PtSetArg(&arg[pargc++], Pt_ARG_RESIZE_FLAGS, Pt_FALSE, Pt_RESIZE_XY_AS_REQUIRED);
@@ -317,7 +328,7 @@ static SDL_Surface *ph_SetVideoMode(_THIS, SDL_Surface *current,
 #else
     if (flags & SDL_OPENGL) /* if no built-in OpenGL support */
     {
-        fprintf(stderr, "error: no OpenGL support, try to recompile library.\n");
+        fprintf(stderr, "ph_SetVideoMode(): no OpenGL support, try to recompile library.\n");
         current->flags=(flags & (~SDL_OPENGL));
         return NULL;
 #endif /* HAVE_OPENGL */
@@ -332,7 +343,7 @@ static SDL_Surface *ph_SetVideoMode(_THIS, SDL_Surface *current,
             {
                 if ((mode = get_mode_any_format(width, height, bpp)) == 0)
                 {
-                    fprintf(stderr,"error: get_mode_any_format failed\n");
+                    fprintf(stderr,"ph_SetVideoMode(): get_mode_any_format failed !\n");
                     exit(1);
                 }
             }
@@ -340,7 +351,7 @@ static SDL_Surface *ph_SetVideoMode(_THIS, SDL_Surface *current,
             {
                 if ((mode = get_mode(width, height, bpp)) == 0)
                 {
-                    fprintf(stderr,"error: get_mode failed\n");
+                    fprintf(stderr,"ph_SetVideoMode(): get_mode failed !\n");
                     exit(1);
                 }
             }
@@ -362,7 +373,7 @@ static SDL_Surface *ph_SetVideoMode(_THIS, SDL_Surface *current,
 
             if (PgSetVideoMode(&settings) < 0)
             {
-                fprintf(stderr,"error: PgSetVideoMode failed\n");
+                fprintf(stderr,"ph_SetVideoMode(): PgSetVideoMode failed !\n");
             }
 
             current->flags = (flags & (~SDL_RESIZABLE)); /* no resize for Direct Context */
@@ -424,8 +435,15 @@ static SDL_Surface *ph_SetVideoMode(_THIS, SDL_Surface *current,
     current->format->BitsPerPixel = bpp;
     current->format->BytesPerPixel = (bpp+7)/8;
     current->pitch = SDL_CalculatePitch(current);
+
     /* Must call at least once it setup image planes */
-    ph_ResizeImage(this, current, flags);
+    rtnval = ph_ResizeImage(this, current, flags);
+    
+    if (rtnval==-1)
+    {
+        fprintf(stderr,"ph_SetVideoMode(): ph_ResizeImage failed !\n");
+        return NULL;
+    }
 
     /* delayed set caption call */
     if (captionflag)
@@ -512,9 +530,10 @@ static int ph_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
                 SDL_Image->palette[i] |= colors[i-firstcolor].g<<8;
                 SDL_Image->palette[i] |= colors[i-firstcolor].b;
             }
+
+           /* image needs to be redrawed, very slow method */
+           PgDrawPhImage(&point, SDL_Image, 0);
         }
-        /* image needs to be redrawed, very slow method */
-        PgDrawPhImage(&point, SDL_Image, 0);
     }
     else
     {
@@ -533,7 +552,10 @@ static int ph_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
                 /* window mode must use soft palette */
                 PgSetPalette((PgColor_t*)&syspalph[firstcolor], 0, firstcolor, ncolors, Pg_PALSET_SOFT, 0);
                 /* image needs to be redrawed, very slow method */
-                PgDrawPhImage(&point, SDL_Image, 0);
+                if (SDL_Image)
+                {
+                   PgDrawPhImage(&point, SDL_Image, 0);
+                }
             }
             else
             {
@@ -602,7 +624,7 @@ int ph_SetupOpenGLContext(_THIS, int width, int height, int bpp, Uint32 flags)
 
     if (oglctx==NULL)
     {
-        fprintf(stderr,"ph_SetupOpenGLContext: cannot create OpenGL context.\n");
+        fprintf(stderr,"ph_SetupOpenGLContext(): cannot create OpenGL context.\n");
         return (-1);
     }
 

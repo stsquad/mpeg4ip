@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_macgl.c,v 1.2 2002/05/01 17:41:23 wmaycisco Exp $";
+ "@(#) $Id: SDL_macgl.c,v 1.3 2002/10/07 21:21:44 wmaycisco Exp $";
 #endif
 
 /* AGL implementation of SDL OpenGL support */
@@ -45,6 +45,9 @@ int Mac_GL_Init(_THIS)
 
 	if ( this->gl_config.double_buffer ) {
 		attributes[i++] = AGL_DOUBLEBUFFER;
+	}
+	if ( this->gl_config.stereo ) {
+		attributes[i++] = AGL_STEREO;
 	}
 	if ( this->gl_config.depth_size != 0 ) {
 		attributes[i++] = AGL_DEPTH_SIZE;

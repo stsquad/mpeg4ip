@@ -46,12 +46,12 @@ int process_sdl_key_events (CPlayerSession *psptr,
   uint64_t play_time;
   switch (msg->sym) {
   case SDLK_c:
-    if ((msg->sym & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+    if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
       return 0;
     }
     break;
   case SDLK_x:
-    if ((msg->sym & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+    if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
       return -1;
     }
   case SDLK_UP:
@@ -132,7 +132,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
     }
     break;
   case SDLK_RETURN:
-    if ((msg->sym & (KMOD_LALT | KMOD_RALT)) != 0) {
+    if ((msg->mod & (KMOD_LALT | KMOD_RALT)) != 0) {
 		fullscreen = 1;
 	}
 	break;

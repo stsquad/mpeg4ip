@@ -105,7 +105,7 @@ _Hermes_X86_CPU:
 	xor eax,ecx
 	je .L1
 	
-	push ebx	; ebx is callee-saves
+	push ebx 		; ebx is callee-saves
 	mov eax,1
 	cpuid
 

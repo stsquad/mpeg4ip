@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL.c,v 1.3 2002/05/01 17:40:33 wmaycisco Exp $";
+ "@(#) $Id: SDL.c,v 1.4 2002/10/07 21:21:33 wmaycisco Exp $";
 #endif
 
 /* Initialization code for SDL */
@@ -150,6 +150,12 @@ int SDL_InitSubSystem(Uint32 flags)
 
 int SDL_Init(Uint32 flags)
 {
+#if !defined(DISABLE_THREADS) && defined(ENABLE_PTH)
+	if (!pth_init()) {
+		return -1;
+	}
+#endif
+
 	/* Clear the error message */
 	SDL_ClearError();
 
@@ -223,6 +229,10 @@ void SDL_Quit(void)
 
 	/* Uninstall any parachute signal handlers */
 	SDL_UninstallParachute();
+
+#if !defined(DISABLE_THREADS) && defined(ENABLE_PTH)
+	pth_kill();
+#endif
 }
 
 /* Return the library version number */

@@ -17,13 +17,15 @@
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
+ *		Peter Maersk-Moller	peter@maersk-moller.net (Lame 3.92 support)
  */
 
 #ifndef __AUDIO_LAME_H__
 #define __AUDIO_LAME_H__
 
 #include "audio_encoder.h"
-#include <lame.h>
+#include <lame/lame.h>
+//#include <lame_global_flags.h>
 
 class CLameAudioEncoder : public CAudioEncoder {
 public:
@@ -57,7 +59,11 @@ public:
 	void Stop();
 
 protected:
+#ifdef OLD_LAME
 	lame_global_flags	m_lameParams;
+#else
+	lame_global_flags*	m_lameParams;
+#endif
 	u_int32_t			m_samplesPerFrame;
 	u_int8_t*			m_mp3FrameBuffer;
 	u_int32_t			m_mp3FrameBufferLength;

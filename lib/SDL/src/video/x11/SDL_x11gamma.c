@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11gamma.c,v 1.4 2002/05/01 17:41:29 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11gamma.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
 #endif
 
 #include "SDL.h"
@@ -98,7 +98,7 @@ int X11_SetVidModeGamma(_THIS, float red, float green, float blue)
 static int X11_GetGammaNoLock(_THIS, float *red, float *green, float *blue)
 {
 #ifdef XFREE86_VMGAMMA
-    if (use_vidmode >= 2) {
+    if (use_vidmode >= 200) {
         SDL_NAME(XF86VidModeGamma) gamma;
         if (SDL_NAME(XF86VidModeGetGamma)(SDL_Display, SDL_Screen, &gamma)) {
             *red   = gamma.red;

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysevents.c,v 1.4 2002/05/01 17:41:28 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysevents.c,v 1.5 2002/10/07 21:21:47 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -47,10 +47,15 @@ static char rcsid =
 
 #ifdef _WIN32_WCE
 #define NO_GETKEYBOARDSTATE
+#define NO_CHANGEDISPLAYSETTINGS
 #endif
 
 /* The window we use for everything... */
-const char *SDL_Appname = NULL;
+#ifdef _WIN32_WCE
+LPWSTR SDL_Appname = NULL;
+#else
+LPSTR SDL_Appname = NULL;
+#endif
 HINSTANCE SDL_Instance = NULL;
 HWND SDL_Window = NULL;
 RECT SDL_bounds = {0, 0, 0, 0};
@@ -309,27 +314,27 @@ LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				/* Figure out which button to use */
 				switch (msg) {
 					case WM_LBUTTONDOWN:
-						button = 1;
+						button = SDL_BUTTON_LEFT;
 						state = SDL_PRESSED;
 						break;
 					case WM_LBUTTONUP:
-						button = 1;
+						button = SDL_BUTTON_LEFT;
 						state = SDL_RELEASED;
 						break;
 					case WM_MBUTTONDOWN:
-						button = 2;
+						button = SDL_BUTTON_MIDDLE;
 						state = SDL_PRESSED;
 						break;
 					case WM_MBUTTONUP:
-						button = 2;
+						button = SDL_BUTTON_MIDDLE;
 						state = SDL_RELEASED;
 						break;
 					case WM_RBUTTONDOWN:
-						button = 3;
+						button = SDL_BUTTON_RIGHT;
 						state = SDL_PRESSED;
 						break;
 					case WM_RBUTTONUP:
-						button = 3;
+						button = SDL_BUTTON_RIGHT;
 						state = SDL_RELEASED;
 						break;
 					default:
@@ -370,9 +375,9 @@ LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				if ( move ) {
 					Uint8 button;
 					if ( move > 0 )
-						button = 4;
+						button = SDL_BUTTON_WHEELUP;
 					else
-						button = 5;
+						button = SDL_BUTTON_WHEELDOWN;
 					posted = SDL_PrivateMouseButton(
 						SDL_PRESSED, button, 0, 0);
 					posted |= SDL_PrivateMouseButton(
@@ -438,24 +443,22 @@ LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		return(0);
 #endif /* WM_GETMINMAXINFO */
 
-		case WM_MOVE: {
+		case WM_WINDOWPOSCHANGED: {
 			SDL_VideoDevice *this = current_video;
+			int w, h;
 
 			GetClientRect(SDL_Window, &SDL_bounds);
 			ClientToScreen(SDL_Window, (LPPOINT)&SDL_bounds);
 			ClientToScreen(SDL_Window, (LPPOINT)&SDL_bounds+1);
+			w = SDL_bounds.right-SDL_bounds.left;
+			h = SDL_bounds.bottom-SDL_bounds.top;
 			if ( this->input_grab != SDL_GRAB_OFF ) {
 				ClipCursor(&SDL_bounds);
 			}
-		}
-		break;
-	
-		case WM_SIZE: {
-			if ( SDL_PublicSurface &&
+			if ( SDL_PublicSurface && 
 				(SDL_PublicSurface->flags & SDL_RESIZABLE) ) {
-				SDL_PrivateResize(LOWORD(lParam), HIWORD(lParam));
+				SDL_PrivateResize(w, h);
 			}
-			return(0);
 		}
 		break;
 
@@ -578,22 +581,23 @@ int SDL_RegisterApp(char *name, Uint32 style, void *hInst)
 	/* Register the application class */
 	class.hCursor		= NULL;
 #ifdef _WIN32_WCE
-    {
-	/* WinCE uses the UNICODE version */
-	int nLen = strlen(name)+1;
-	LPWSTR lpszW = alloca(nLen*2);
-	MultiByteToWideChar(CP_ACP, 0, name, -1, lpszW, nLen);
-	class.hIcon		= LoadImage(hInst, lpszW, IMAGE_ICON,
+	{
+		/* WinCE uses the UNICODE version */
+		int nLen = strlen(name)+1;
+		SDL_Appname = malloc(nLen*2);
+		MultiByteToWideChar(CP_ACP, 0, name, -1, SDL_Appname, nLen);
+	}
+#else
+	{
+		int nLen = strlen(name)+1;
+		SDL_Appname = malloc(nLen);
+		strcpy(SDL_Appname, name);
+	}
+#endif /* _WIN32_WCE */
+	class.hIcon		= LoadImage(hInst, SDL_Appname, IMAGE_ICON,
 	                                    0, 0, LR_DEFAULTCOLOR);
 	class.lpszMenuName	= NULL;
-	class.lpszClassName	= lpszW;
-    }
-#else
-	class.hIcon		= LoadImage(hInst, name, IMAGE_ICON,
-	                                    0, 0, LR_DEFAULTCOLOR);
-	class.lpszMenuName	= "(none)";
-	class.lpszClassName	= name;
-#endif /* _WIN32_WCE */
+	class.lpszClassName	= SDL_Appname;
 	class.hbrBackground	= NULL;
 	class.hInstance		= hInst;
 	class.style		= style;
@@ -607,7 +611,6 @@ int SDL_RegisterApp(char *name, Uint32 style, void *hInst)
 		SDL_SetError("Couldn't register application class");
 		return(-1);
 	}
-	SDL_Appname = name;
 	SDL_Instance = hInst;
 
 #ifdef WM_MOUSELEAVE

@@ -314,6 +314,7 @@ Void CVideoObjectDecoder::decodeIVOP ()
 	Int iMBXstart, iMBXstop, iMBYstart, iMBYstop; // Added by KPN for short headers
 	UInt uiNumberOfGobs; // Added by KPN
 	UInt uiGobNumber; // Added by KPN
+	uint32_t lastbits;
 	CMBMode* pmbmd = m_rgmbmd;
 	pmbmd->m_stepSize = m_vopmd.intStepI;
 	PixelC* ppxlcRefY = (PixelC*) m_pvopcRefQ1->pixelsY () + m_iStartInRefToCurrRctY;
@@ -346,6 +347,7 @@ Void CVideoObjectDecoder::decodeIVOP ()
 	Bool bRestartDelayedQP = TRUE; // decodeMBTextureHeadOfIVOP sets this to false
 
 	uiGobNumber=0;
+	lastbits =  m_pbitstrmIn->get_used_bits();
 	while (uiGobNumber < uiNumberOfGobs) { 
 		if (short_video_header) {
 			uiGobHeaderEmpty=1;
@@ -376,7 +378,6 @@ Void CVideoObjectDecoder::decodeIVOP ()
 			PixelC* ppxlcRefMBY = ppxlcRefY;
 			PixelC* ppxlcRefMBU = ppxlcRefU;
 			PixelC* ppxlcRefMBV = ppxlcRefV;
-
 			Bool  bSptMB_NOT_HOLE= TRUE;
 	// Begin: modified by Hughes	  4/9/98
 	//		if (m_uiSprite == 1 && m_vopmd.SpriteXmitMode != STOP) {
@@ -397,6 +398,18 @@ Void CVideoObjectDecoder::decodeIVOP ()
 					iVideoPacketNumber++;
 					bRestartDelayedQP = TRUE;
 				}
+#if 0
+				{
+				uint32_t temp = m_pbitstrmIn->get_used_bits();
+			//printf("Macroblock %d %d %x - bits since last %d total %d\n", iMBY, iMBX, m_pbitstrmIn->peekBits(32),	
+			       temp - lastbits, temp);
+			lastbits = temp;
+				}
+			if (iMBY == 3 && iMBX == 5) {
+			  printf("This is the breakpoint\n");
+			  m_pbitstrmIn->start_dump();
+			}
+#endif
 				pmbmd->m_iVideoPacketNumber = iVideoPacketNumber;	//mv out of if by wchen to set even when errR is off; always used in mbdec 
 				decodeMBTextureHeadOfIVOP (pmbmd, iCurrentQP, bRestartDelayedQP);
 				decodeTextureIntraMB (pmbmd, iMBX, iMBY, ppxlcRefMBY, ppxlcRefMBU, ppxlcRefMBV);

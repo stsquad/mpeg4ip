@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_events.c,v 1.2 2002/05/01 17:40:48 wmaycisco Exp $";
+ "@(#) $Id: SDL_events.c,v 1.3 2002/10/07 21:21:37 wmaycisco Exp $";
 #endif
 
 /* General event handling code for SDL */
@@ -372,7 +372,10 @@ int SDL_PollEvent (SDL_Event *event)
 {
 	SDL_PumpEvents();
 
-	return(SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_ALLEVENTS));
+	/* We can't return -1, just return 0 (no event) on error */
+	if ( SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_ALLEVENTS) <= 0 )
+		return 0;
+	return 1;
 }
 
 int SDL_WaitEvent (SDL_Event *event)
@@ -380,7 +383,7 @@ int SDL_WaitEvent (SDL_Event *event)
 	while ( 1 ) {
 		SDL_PumpEvents();
 		switch(SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_ALLEVENTS)) {
-		    case -1: return -1; 
+		    case -1: return 0;
 		    case 1: return 1;
 		    case 0: SDL_Delay(10);
 		}
@@ -389,7 +392,9 @@ int SDL_WaitEvent (SDL_Event *event)
 
 int SDL_PushEvent(SDL_Event *event)
 {
-	return(SDL_PeepEvents(event, 1, SDL_ADDEVENT, 0));
+	if ( SDL_PeepEvents(event, 1, SDL_ADDEVENT, 0) <= 0 )
+		return -1;
+	return 0;
 }
 
 void SDL_SetEventFilter (SDL_EventFilter filter)

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_mouse.c,v 1.2 2002/05/01 17:40:48 wmaycisco Exp $";
+ "@(#) $Id: SDL_mouse.c,v 1.3 2002/10/07 21:21:37 wmaycisco Exp $";
 #endif
 
 /* General mouse handling code for SDL */
@@ -57,6 +57,17 @@ int SDL_MouseInit(void)
 
 	/* That's it! */
 	return(0);
+}
+
+/* We lost the mouse, so post button up messages for all pressed buttons */
+void SDL_ResetMouse(void)
+{
+	int i;
+	for ( i = 0; i < sizeof(SDL_ButtonState)*8; ++i ) {
+		if ( SDL_ButtonState & SDL_BUTTON(i) ) {
+			SDL_PrivateMouseButton(SDL_RELEASED, i, 0, 0);
+		}
+	}
 }
 
 Uint8 SDL_GetMouseState (int *x, int *y)

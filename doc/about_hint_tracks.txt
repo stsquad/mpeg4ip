@@ -80,8 +80,8 @@ bool MP4SetHintTrackRtpPayload(
 pPayloadName should be the payload type that will be shown in the
 a=rtpmap statment.
 
-pPayloadNumber should most likely be 0 (which will indicate a 
-dynamic payload number), unless you have a payload defined in 
+pPayloadNumber should most likely be MP4_SET_DYNAMIC_PAYLOAD (which will 
+indicate a dynamic payload number), unless you have a payload defined in 
 rfc 1890.  The return value (it is a pointer) will be the dynamic
 value.
 

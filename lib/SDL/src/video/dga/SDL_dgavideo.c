@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dgavideo.c,v 1.4 2002/05/01 17:41:20 wmaycisco Exp $";
+ "@(#) $Id: SDL_dgavideo.c,v 1.5 2002/10/07 21:21:42 wmaycisco Exp $";
 #endif
 
 /* DGA 2.0 based SDL video driver implementation.
@@ -793,10 +793,6 @@ static __inline__ void DGA_dst_to_xy(_THIS, SDL_Surface *dst, int *x, int *y)
 {
 	*x = (long)((Uint8 *)dst->pixels - memory_base)%memory_pitch;
 	*y = (long)((Uint8 *)dst->pixels - memory_base)/memory_pitch;
-	if ( dst == this->screen ) {
-		*x += this->offset_x;
-		*y += this->offset_y;
-	}
 }
 
 static int DGA_FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)

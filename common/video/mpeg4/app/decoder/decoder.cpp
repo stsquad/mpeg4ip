@@ -222,12 +222,14 @@ int main(int argc, char* argv[])
 #endif // __PC_COMPILER_
 		Bool bCachedRefFrame = FALSE;
 		Bool bCachedRefFrameCoded = FALSE;
+		Bool didntreadheader = FALSE;
 		while (iEof != EOF)
 		{
 			if (main_short_video_header) // Added by KPN for short headers
 			{
 				fprintf(stderr,"Frame number: %d\n", nFrames);
-				iEof = pvodec [BASE_LAYER] -> h263_decode ();
+				iEof = pvodec [BASE_LAYER] -> h263_decode (didntreadheader);
+				didntreadheader = TRUE;
 			}
 			else
 				iEof = pvodec [BASE_LAYER] -> decode ();  

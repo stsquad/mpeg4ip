@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbvideo.c,v 1.4 2002/05/01 17:41:22 wmaycisco Exp $";
+ "@(#) $Id: SDL_fbvideo.c,v 1.5 2002/10/07 21:21:43 wmaycisco Exp $";
 #endif
 
 /* Framebuffer console based SDL video driver implementation.
@@ -463,6 +463,9 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	current_w = vinfo.xres;
 	current_h = vinfo.yres;
 	current_index = ((vinfo.bits_per_pixel+7)/8)-1;
+#ifdef BROKEN_MODES
+	FB_AddMode(this, current_index, current_w, current_h);
+#else
 	for ( i=0; i<NUM_MODELISTS; ++i ) {
 		SDL_nummodes[i] = 0;
 		SDL_modelist[i] = NULL;
@@ -475,7 +478,7 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 			if ( i == current_index ) {
 				if ( (current_w > w) || (current_h > h) ) {
 					/* Only check once */
-					FB_AddMode(this, i,current_w,current_h);
+					FB_AddMode(this, i, current_w, current_h);
 					current_index = -1;
 				}
 			}
@@ -484,6 +487,7 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 			}
 		}
 	}
+#endif /* BROKEN_MODES */
 
 	/* Fill in our hardware acceleration capabilities */
 	this->info.wm_available = 0;

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_gemvideo.c,v 1.1 2002/05/01 17:41:22 wmaycisco Exp $";
+ "@(#) $Id: SDL_gemvideo.c,v 1.2 2002/10/07 21:21:43 wmaycisco Exp $";
 #endif
 
 /*
@@ -600,7 +600,6 @@ SDL_Surface *GEM_SetVideoMode(_THIS, SDL_Surface *current,
 	Uint32 modeflags, screensize;
 	SDL_bool use_shadow;
 
-	modeflags = SDL_HWPALETTE;
 	GEM_FreeBuffers(this);
 
 	/*--- Verify if asked mode can be used ---*/
@@ -659,6 +658,11 @@ SDL_Surface *GEM_SetVideoMode(_THIS, SDL_Surface *current,
 	}
 
 	/*--- Initialize screen ---*/
+	modeflags = 0;
+	if (VDI_bpp == 8) {
+		modeflags |= SDL_HWPALETTE;
+	}
+
 	if (flags & SDL_FULLSCREEN) {
 		GEM_LockScreen(this);
 

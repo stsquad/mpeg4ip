@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ph_image.c,v 1.3 2002/05/01 17:41:25 wmaycisco Exp $";
+ "@(#) $Id: SDL_ph_image.c,v 1.4 2002/10/07 21:21:45 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -38,11 +38,14 @@ int PgWaitHWIdle(void);
 
 int ph_SetupImage(_THIS, SDL_Surface *screen)
 {
-    int type=0;
     PgColor_t* palette=NULL;
+    int type=0;
+    int bpp;
+    
+    bpp=screen->format->BitsPerPixel;
 
     /* Determine image type */
-    switch(screen->format->BitsPerPixel)
+    switch(bpp)
     {
         case 8:{
             type = Pg_IMAGE_PALETTE_BYTE;
@@ -65,16 +68,14 @@ int ph_SetupImage(_THIS, SDL_Surface *screen)
         }
         break;
         default:{
-            /* should never get here */
-            fprintf(stderr,"error: unsupported bbp = %d\n",
-                    screen->format->BitsPerPixel);
+            fprintf(stderr,"ph_SetupImage(): unsupported bbp = %d\n", bpp);
             return -1;
         }
         break;
     }
 
     /* palette emulation code */
-    if ((screen->format->BitsPerPixel==8) && (desktoppal==SDLPH_PAL_EMULATE))
+    if ((bpp==8) && (desktoppal==SDLPH_PAL_EMULATE))
     {
         /* creating image palette */
         palette=malloc(_Pg_MAX_PALETTE*sizeof(PgColor_t));
@@ -83,7 +84,7 @@ int ph_SetupImage(_THIS, SDL_Surface *screen)
         /* using shared memory for speed (set last param to 1) */
         if ((SDL_Image = PhCreateImage(NULL, screen->w, screen->h, type, palette, _Pg_MAX_PALETTE, 1)) == NULL)
         {
-            fprintf(stderr,"ph_SetupImage: PhCreateImage failed for bpp=8.\n");
+            fprintf(stderr,"ph_SetupImage(): PhCreateImage failed for bpp=8.\n");
             return -1;
         }
     }
@@ -96,8 +97,9 @@ int ph_SetupImage(_THIS, SDL_Surface *screen)
             return -1;
         }
     }
-
+    
     screen->pixels = SDL_Image->image;
+    screen->pitch = SDL_Image->bpl; /* Recalculated pitch, created by PhCreateImage */
 
     this->UpdateRects = ph_NormalUpdate;
 
@@ -106,83 +108,87 @@ int ph_SetupImage(_THIS, SDL_Surface *screen)
 
 int ph_SetupOCImage(_THIS, SDL_Surface *screen)
 {
-	int type = 0;
+    int type = 0;
+    int bpp;
+    
+    bpp=screen->format->BitsPerPixel;
 
-	/* Determine image type */
-	switch(screen->format->BitsPerPixel)
-	{
-		case 8:{
-			type = Pg_IMAGE_PALETTE_BYTE;
+    /* Determine image type */
+    switch(bpp)
+    {
+        case 8: {
+                    type = Pg_IMAGE_PALETTE_BYTE;
+                }
+                break;
+        case 15:{
+                    type = Pg_IMAGE_DIRECT_555; 
 		}
 		break;
-		case 15:{
-			type = Pg_IMAGE_DIRECT_555; 
-		}
-		break;
-		case 16:{
-			type = Pg_IMAGE_DIRECT_565; 
-		}
-		break;
+        case 16:{
+                    type = Pg_IMAGE_DIRECT_565; 
+                }
+                break;
+        case 24:{
+                    type = Pg_IMAGE_DIRECT_888;
+                }
+                break;
+        case 32:{
+                    type = Pg_IMAGE_DIRECT_8888;
+                }
+                break;
+        default:{
+                    fprintf(stderr,"ph_SetupOCImage(): unsupported bpp = %d\n", bpp);
+                    return -1;
+                }
+                break;
+    }
 
-		case 24:{
-			type = Pg_IMAGE_DIRECT_888;
-		}
-		break;
-		
-		case 32:{
-			type = Pg_IMAGE_DIRECT_8888;
-		}
-		break;
-		default:{
-		/* should never get here */
-			fprintf(stderr,"error: unsupported bbp = %d\n",
-					screen->format->BitsPerPixel);
-			return -1;
-		}
-		break;
-	}
+    OCImage.FrameData0 = (FRAMEDATA *) malloc((size_t)(sizeof(FRAMEDATA)));
+    OCImage.FrameData1 = (FRAMEDATA *) malloc((size_t)(sizeof(FRAMEDATA)));
+    memset(OCImage.FrameData0, 0x00, (size_t)(sizeof(FRAMEDATA)));
+    memset(OCImage.FrameData1, 0x00, (size_t)(sizeof(FRAMEDATA)));
 
-	OCImage.FrameData0 = (FRAMEDATA *) malloc((size_t)(sizeof( FRAMEDATA)));
-	OCImage.FrameData1 = (FRAMEDATA *) malloc((size_t)(sizeof( FRAMEDATA)));
+    if(OCImage.direct_context == NULL)
+    {
+        OCImage.direct_context = PdCreateDirectContext();
+    }
 
-	if(OCImage.direct_context == NULL)
-	   OCImage.direct_context = PdCreateDirectContext();
+    OCImage.offscreen_context = PdCreateOffscreenContext(0, screen->w, screen->h, Pg_OSC_MEM_PAGE_ALIGN);
 
-	OCImage.offscreen_context = PdCreateOffscreenContext(0,screen->w,screen->h, Pg_OSC_MEM_PAGE_ALIGN);
-				
-	if (OCImage.offscreen_context == NULL)
-	{
-	   printf("PdCreateOffscreenContext  failed\n");
-	   return -1;
-	}
+    if (OCImage.offscreen_context == NULL)
+    {
+        fprintf(stderr, "ph_SetupOCImage(): PdCreateOffscreenContext failed !\n");
+        return -1;
+    }
 
-	OCImage.Stride = OCImage.offscreen_context->pitch;	
+    screen->pitch = OCImage.offscreen_context->pitch; /* Recalculated pitch */
 
-        if (OCImage.flags & SDL_DOUBLEBUF)
-      	   printf("hardware flag for doublebuf offscreen context\n");
+    if (OCImage.flags & SDL_DOUBLEBUF)
+    {
+        fprintf(stderr, "ph_SetupOCImage(): Hardware flag for doublebuf offscreen context\n");
+    }
 
-			
-			OCImage.dc_ptr.ptr8 = (unsigned char *) PdGetOffscreenContextPtr(OCImage.offscreen_context);
-			
-			OCImage.CurrentFrameData = OCImage.FrameData0;
-			OCImage.CurrentFrameData->Y = OCImage.dc_ptr.ptr8;
-			OCImage.CurrentFrameData->U = NULL;
-			OCImage.CurrentFrameData->V = NULL;
-			OCImage.current = 0;
-	
-			if(OCImage.dc_ptr.ptr8 == NULL)
-			{
- 				printf("PdGetOffscreenContextPtr failed\n");
- 				return -1;
-			}
-			
-			PhDCSetCurrent(OCImage.offscreen_context);
+    OCImage.dc_ptr.ptr8 = (unsigned char *) PdGetOffscreenContextPtr(OCImage.offscreen_context);
 
-			screen->pixels = OCImage.CurrentFrameData->Y;
-	
-			this->UpdateRects = ph_OCUpdate;
+    if (OCImage.dc_ptr.ptr8 == NULL)
+    {
+        fprintf(stderr, "ph_SetupOCImage(): PdGetOffscreenContextPtr failed !\n");
+        return -1;
+    }
 
-	return 0;
+    OCImage.CurrentFrameData = OCImage.FrameData0;
+    OCImage.CurrentFrameData->Y = OCImage.dc_ptr.ptr8;
+    OCImage.CurrentFrameData->U = NULL;
+    OCImage.CurrentFrameData->V = NULL;
+    OCImage.current = 0;
+
+    PhDCSetCurrent(OCImage.offscreen_context);
+
+    screen->pixels = OCImage.CurrentFrameData->Y;
+
+    this->UpdateRects = ph_OCUpdate;
+
+    return 0;
 }
 
 int ph_SetupOpenGLImage(_THIS, SDL_Surface* screen)
@@ -242,7 +248,6 @@ int ph_ResizeImage(_THIS, SDL_Surface *screen, Uint32 flags)
         return ph_SetupImage(this, screen);
     }      
 }
-
 int ph_AllocHWSurface(_THIS, SDL_Surface *surface)
 {
     return(-1);
@@ -273,10 +278,6 @@ void ph_UnlockHWSurface(_THIS, SDL_Surface *surface)
     return;
 }
 
-static PhPoint_t ph_pos;
-static PhRect_t ph_rect;
-static int i;
-
 void ph_OpenGLUpdate(_THIS, int numrects, SDL_Rect* rects)
 {
    this->GL_SwapBuffers(this);
@@ -286,7 +287,11 @@ void ph_OpenGLUpdate(_THIS, int numrects, SDL_Rect* rects)
 
 void ph_NormalUpdate(_THIS, int numrects, SDL_Rect *rects)
 {
-    for ( i=0; i<numrects; ++i ) 
+    PhPoint_t ph_pos;
+    PhRect_t ph_rect;
+    int i;
+
+    for (i=0; i<numrects; ++i) 
     {
     	if (rects[i].w==0) /* Clipped? */
         { 
@@ -302,20 +307,23 @@ void ph_NormalUpdate(_THIS, int numrects, SDL_Rect *rects)
 
         if (PgDrawPhImageRectmx(&ph_pos, SDL_Image, &ph_rect, 0) < 0)
         {
-            fprintf(stderr,"ph_NormalUpdate: PgDrawPhImageRectmx failed.\n");
+            fprintf(stderr,"ph_NormalUpdate(): PgDrawPhImageRectmx failed.\n");
         }
     }
 
     if (PgFlush() < 0)
     {
-    	fprintf(stderr,"ph_NormalUpdate: PgFlush failed.\n");
+    	fprintf(stderr,"ph_NormalUpdate(): PgFlush failed.\n");
     }
 }
+
 void ph_OCUpdate(_THIS, int numrects, SDL_Rect *rects)
 {
+    int i;
+
     PhPoint_t zero = {0};
-    PhRect_t src_rect;
-    PhRect_t dest_rect;
+    PhArea_t src_rect;
+    PhArea_t dest_rect;
 
     if(OCImage.direct_context == NULL)
     {
@@ -323,7 +331,7 @@ void ph_OCUpdate(_THIS, int numrects, SDL_Rect *rects)
     }
 
     PgSetRegion(PtWidgetRid(window));
-    PgSetClipping(0,NULL);
+    PgSetClipping(0, NULL);
     PgWaitHWIdle();
 
     for (i=0; i<numrects; ++i)
@@ -333,24 +341,27 @@ void ph_OCUpdate(_THIS, int numrects, SDL_Rect *rects)
             continue;
         }
 
-        src_rect.ul.x=rects[i].x;
-        src_rect.ul.y=rects[i].y;
-        dest_rect.ul.x=rects[i].x;
-        dest_rect.ul.y=rects[i].y;
+        src_rect.pos.x=rects[i].x;
+        src_rect.pos.y=rects[i].y;
+        dest_rect.pos.x=rects[i].x;
+        dest_rect.pos.y=rects[i].y;
 
-        dest_rect.lr.x=src_rect.lr.x= rects[i].x +rects[i].w;
-        dest_rect.lr.y=src_rect.lr.y= rects[i].y +rects[i].h;
+        src_rect.size.w=rects[i].w;
+        src_rect.size.h=rects[i].h;
+        dest_rect.size.w=rects[i].w;
+        dest_rect.size.h=rects[i].h;
 
-        zero.x = zero.y = 0;
-        PgSetTranslation (&zero, 0);
+        zero.x = 0;
+        zero.y = 0;
+        PgSetTranslation(&zero, 0);
         PgSetRegion(PtWidgetRid(window));
-        PgSetClipping(0,NULL);
-        PgContextBlitArea(OCImage.offscreen_context, (PhArea_t *)(&src_rect), NULL, (PhArea_t *)(&dest_rect));
-
+        PgSetClipping(0, NULL);
+        PgContextBlitArea(OCImage.offscreen_context, &src_rect, NULL, &dest_rect);
     }
+
     if (PgFlush() < 0)
     {
-        fprintf(stderr,"ph_OCUpdate: PgFlush failed.\n");
+        fprintf(stderr,"ph_OCUpdate(): PgFlush failed.\n");
     }
     
     /* later used to toggling double buffer */

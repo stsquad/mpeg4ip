@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_events_c.h,v 1.2 2002/05/01 17:40:48 wmaycisco Exp $";
+ "@(#) $Id: SDL_events_c.h,v 1.3 2002/10/07 21:21:37 wmaycisco Exp $";
 #endif
 
 /* Useful functions and variables from SDL_events.c */
@@ -63,7 +63,7 @@ extern int SDL_PrivateQuit(void);
 extern int SDL_PrivateSysWMEvent(SDL_SysWMmsg *message);
 
 /* Used by the activity event handler to remove mouse focus */
-extern void SDL_MouseFocus(int focus);
+extern void SDL_ResetMouse(void);
 
 /* Used by the activity event handler to remove keyboard focus */
 extern void SDL_ResetKeyboard(void);

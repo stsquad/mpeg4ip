@@ -24,7 +24,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systimer.c,v 1.4 2002/05/01 17:40:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_systimer.c,v 1.5 2002/10/07 21:21:41 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -40,6 +40,9 @@ static char rcsid =
 
 #if _POSIX_THREAD_SYSCALL_SOFT
 #include <pthread.h>
+#endif
+#ifdef ENABLE_PTH
+#include <pth.h>
 #endif
 
 #if defined(DISABLE_THREADS) || defined(FORK_HACK)
@@ -73,9 +76,9 @@ static float cpu_mhz1000 = 0.0f;
 /* This is for old binutils version that don't recognize rdtsc mnemonics.
    But all binutils version supports this.
 */
-#define rdtsc(t) asm(".byte 0x0f, 0x31; " : "=A" (t));   
+#define rdtsc(t) asm __volatile__ (".byte 0x0f, 0x31; " : "=A" (t))
 #else
-#define rdtsc(t) asm("rdtsc" : "=A" (t));
+#define rdtsc(t) asm __volatile__ ("rdtsc" : "=A" (t))
 #endif
 
 static float calc_cpu_mhz(void)
@@ -142,6 +145,12 @@ Uint32 SDL_GetTicks (void)
 
 void SDL_Delay (Uint32 ms)
 {
+#ifdef ENABLE_PTH
+	pth_time_t tv;
+	tv.tv_sec  =  ms/1000;
+	tv.tv_usec = (ms%1000)*1000;
+	pth_nap(tv);
+#else
 	int was_error;
 
 #ifdef USE_NANOSLEEP
@@ -189,6 +198,7 @@ void SDL_Delay (Uint32 ms)
 		was_error = select(0, NULL, NULL, NULL, &tv);
 #endif /* USE_NANOSLEEP */
 	} while ( was_error && (errno == EINTR) );
+#endif /* ENABLE_PTH */
 }
 
 #ifdef USE_ITIMER

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.4 2002/05/01 17:40:33 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.5 2002/10/07 21:21:33 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -83,8 +83,14 @@ static AudioBootStrap *bootstrap[] = {
 #ifdef ENABLE_AHI
 	&AHI_bootstrap,
 #endif
+#ifdef MINTAUDIO_SUPPORT
+	&MINTAUDIO_bootstrap,
+#endif
 #ifdef DISKAUD_SUPPORT
 	&DISKAUD_bootstrap,
+#endif
+#ifdef ENABLE_DC
+	&DCAUD_bootstrap,
 #endif
 	NULL
 };
@@ -378,6 +384,9 @@ int SDL_OpenAudio(SDL_AudioSpec *desired, SDL_AudioSpec *obtained)
 #ifdef macintosh
 	/* FIXME: Need to implement PPC interrupt asm for SDL_LockAudio() */
 #else
+#if defined(__MINT__) && !defined(ENABLE_THREADS)
+	/* Uses interrupt driven audio, without thread */
+#else
 	/* Create a semaphore for locking the sound buffers */
 	audio->mixer_lock = SDL_CreateMutex();
 	if ( audio->mixer_lock == NULL ) {
@@ -385,7 +394,8 @@ int SDL_OpenAudio(SDL_AudioSpec *desired, SDL_AudioSpec *obtained)
 		SDL_CloseAudio();
 		return(-1);
 	}
-#endif
+#endif /* __MINT__ */
+#endif /* macintosh */
 
 	/* Calculate the silence and size of the audio specification */
 	SDL_CalculateAudioSpec(desired);
@@ -563,9 +573,9 @@ int SDL_AudioDelayMsec (void)
     return (audio->AudioDelayMsec(audio));
   } else {
     return (-1);
-   }
-}
+  }
 
+}
 
 void SDL_AudioQuit(void)
 {

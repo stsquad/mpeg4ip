@@ -29,7 +29,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id $";
+ "@(#) $Id: SDL_sysjoystick.c,v 1.2 2002/10/07 21:21:38 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -39,9 +39,19 @@ static char rcsid =
 #include <string.h>
 #include <errno.h>
 
+#if defined(HAVE_USB_H)
+#include <usb.h>
+#endif
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
+
+#if defined(HAVE_USBHID_H)
 #include <usbhid.h>
+#elif defined(HAVE_LIBUSB_H)
+#include <libusb.h>
+#elif defined(HAVE_LIBUSBHID_H)
+#include <libusbhid.h>
+#endif
 
 #include "SDL_error.h"
 #include "SDL_joystick.h"
@@ -65,7 +75,7 @@ struct report {
 
 static struct {
 	int	uhid_report;
-	enum	hid_kind kind;
+	hid_kind_t kind;
 	const	char *name;
 } const repinfo[] = {
 	{ UHID_INPUT_REPORT,	hid_input,	"input" },
@@ -108,10 +118,16 @@ static char *joydevnames[MAX_JOYS];
 static int	report_alloc(struct report *, struct report_desc *, int);
 static void	report_free(struct report *);
 
+#ifdef USBHID_UCR_DATA
+#define REP_BUF_DATA(rep) ((rep)->buf->ucr_data)
+#else
+#define REP_BUF_DATA(rep) ((rep)->buf->data)
+#endif
+
 int
 SDL_SYS_JoystickInit(void)
 {
-	char s[10];
+	char s[16];
 	int i, fd;
 
 	SDL_numjoysticks = 0;
@@ -194,7 +210,11 @@ SDL_SYS_JoystickOpen(SDL_Joystick *joy)
 		goto usberr;
 	}
 
+#ifdef USBHID_NEW
+	hdata = hid_start_parse(hw->repdesc, 1 << hid_input, rep->rid);
+#else
 	hdata = hid_start_parse(hw->repdesc, 1 << hid_input);
+#endif
 	if (hdata == NULL) {
 		SDL_SetError("%s: Cannot start HID parser", hw->path);
 		goto usberr;
@@ -205,7 +225,8 @@ SDL_SYS_JoystickOpen(SDL_Joystick *joy)
 	joy->nballs = 0;
 
 	while (hid_get_item(hdata, &hitem) > 0) {
-		char *s, *sp;
+		char *sp;
+		const char *s;
 
 		switch (hitem.kind) {
 		case hid_collection:
@@ -224,8 +245,6 @@ SDL_SYS_JoystickOpen(SDL_Joystick *joy)
 			break;
 		case hid_input:
 			switch (HID_PAGE(hitem.usage)) {
-			case HUP_UNDEFINED:
-				break;
 			case HUP_GENERIC_DESKTOP:
 				switch (HID_USAGE(hitem.usage)) {
 				case HUG_X:
@@ -245,6 +264,8 @@ SDL_SYS_JoystickOpen(SDL_Joystick *joy)
 				break;
 			case HUP_BUTTON:
 				joy->nbuttons++;
+				break;
+			default:
 				break;
 			}
 			break;
@@ -268,17 +289,22 @@ usberr:
 void
 SDL_SYS_JoystickUpdate(SDL_Joystick *joy)
 {
-	static struct hid_item hitem;
-	static struct hid_data *hdata;
-	static struct report *rep;
-	int nbutton, naxe;
+	struct hid_item hitem;
+	struct hid_data *hdata;
+	struct report *rep;
+	int nbutton, naxe = -1;
 	Sint32 v;
 	
 	rep = &joy->hwdata->inreport;
-	if (read(joy->hwdata->fd, rep->buf->data, rep->size) != rep->size) {
+
+	if (read(joy->hwdata->fd, REP_BUF_DATA(rep), rep->size) != rep->size) {
 		return;
 	}
+#ifdef USBHID_NEW
+	hdata = hid_start_parse(joy->hwdata->repdesc, 1 << hid_input, rep->rid);
+#else
 	hdata = hid_start_parse(joy->hwdata->repdesc, 1 << hid_input);
+#endif
 	if (hdata == NULL) {
 		fprintf(stderr, "%s: Cannot start HID parser\n",
 		    joy->hwdata->path);
@@ -289,8 +315,6 @@ SDL_SYS_JoystickUpdate(SDL_Joystick *joy)
 		switch (hitem.kind) {
 		case hid_input:
 			switch (HID_PAGE(hitem.usage)) {
-			case HUP_UNDEFINED:
-				continue;
 			case HUP_GENERIC_DESKTOP:
 				switch (HID_USAGE(hitem.usage)) {
 				case HUG_X:
@@ -308,28 +332,20 @@ SDL_SYS_JoystickUpdate(SDL_Joystick *joy)
 				case HUG_WHEEL:
 					naxe = JOYAXE_WHEEL;
 					goto scaleaxe;
+				default:
+					continue;
 				}
 scaleaxe:
-				v = (Sint32)hid_get_data(rep->buf->data, &hitem);
-				if (v != 127) {
-					if (v < 127) {
-						v = -(256 - v);
-						v <<= 7;
-						v++;
-					} else {
-						v++;
-						v <<= 7;
-						v--;
-					}
-				} else {
-					v = 0;
-				}
+				v = (Sint32)hid_get_data(REP_BUF_DATA(rep),
+				    &hitem);
+				v -= (hitem.logical_maximum + hitem.logical_minimum + 1)/2;
+				v *= 32768/((hitem.logical_maximum - hitem.logical_minimum + 1)/2);
 				if (v != joy->axes[naxe]) {
 					SDL_PrivateJoystickAxis(joy, naxe, v);
 				}
 				break;
 			case HUP_BUTTON:
-				v = (Sint32)hid_get_data(rep->buf->data,
+				v = (Sint32)hid_get_data(REP_BUF_DATA(rep),
 				    &hitem);
 				if (joy->buttons[nbutton] != v) {
 					SDL_PrivateJoystickButton(joy,
@@ -337,6 +353,8 @@ scaleaxe:
 				}
 				nbutton++;
 				break;
+			default:
+				continue;
 			}
 			break;
 		default:
@@ -381,7 +399,11 @@ report_alloc(struct report *r, struct report_desc *rd, int repind)
 {
 	int len;
 
+#ifdef USBHID_NEW
 	len = hid_report_size(rd, repinfo[repind].kind, &r->rid);
+#else
+	len = hid_report_size(rd, repinfo[repind].kind, r->rid);
+#endif
 	if (len < 0) {
 		SDL_SetError("Negative HID report size");
 		return (-1);
@@ -389,7 +411,7 @@ report_alloc(struct report *r, struct report_desc *rd, int repind)
 	r->size = len;
 
 	if (r->size > 0) {
-		r->buf = malloc(sizeof(*r->buf) - sizeof(r->buf->data) +
+		r->buf = malloc(sizeof(*r->buf) - sizeof(REP_BUF_DATA(r)) +
 		    r->size);
 		if (r->buf == NULL) {
 			SDL_OutOfMemory();

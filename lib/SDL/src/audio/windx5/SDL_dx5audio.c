@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5audio.c,v 1.5 2002/05/01 17:40:42 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5audio.c,v 1.6 2002/10/07 21:21:36 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -64,7 +64,7 @@ static int Audio_Available(void)
 
 	/* Version check DSOUND.DLL (Is DirectX okay?) */
 	dsound_ok = 0;
-	DSoundDLL = LoadLibrary("DSOUND.DLL");
+	DSoundDLL = LoadLibrary(TEXT("DSOUND.DLL"));
 	if ( DSoundDLL != NULL ) {
 		/* We just use basic DirectSound, we're okay */
 		/* Yay! */
@@ -96,7 +96,7 @@ static int Audio_Available(void)
 		 * to fall back to the DIB driver. */
 		if (dsound_ok) {
 			/* DirectSoundCaptureCreate was added in DX5 */
-			if (!GetProcAddress(DSoundDLL, "DirectSoundCaptureCreate"))
+			if (!GetProcAddress(DSoundDLL, TEXT("DirectSoundCaptureCreate")))
 				dsound_ok = 0;
 
 		}
@@ -122,10 +122,10 @@ static int DX5_Load(void)
 	int status;
 
 	DX5_Unload();
-	DSoundDLL = LoadLibrary("DSOUND.DLL");
+	DSoundDLL = LoadLibrary(TEXT("DSOUND.DLL"));
 	if ( DSoundDLL != NULL ) {
 		DSoundCreate = (void *)GetProcAddress(DSoundDLL,
-					"DirectSoundCreate");
+					TEXT("DirectSoundCreate"));
 	}
 	if ( DSoundDLL && DSoundCreate ) {
 		status = 0;
@@ -191,7 +191,7 @@ AudioBootStrap DSOUND_bootstrap = {
 static void SetDSerror(const char *function, int code)
 {
 	static const char *error;
-	static char  errbuf[BUFSIZ];
+	static char  errbuf[1024];
 
 	errbuf[0] = 0;
 	switch (code) {
@@ -418,6 +418,7 @@ static void DX5_CloseAudio(_THIS)
 	}
 }
 
+#ifdef USE_PRIMARY_BUFFER
 /* This function tries to create a primary audio buffer, and returns the
    number of audio chunks available in the created buffer.
 */
@@ -491,6 +492,7 @@ static int CreatePrimary(LPDIRECTSOUND sndObj, HWND focus,
 	}
 	return(numchunks);
 }
+#endif /* USE_PRIMARY_BUFFER */
 
 /* This function tries to create a secondary audio buffer, and returns the
    number of audio chunks available in the created buffer.
@@ -664,10 +666,12 @@ static int DX5_OpenAudio(_THIS, SDL_AudioSpec *spec)
 
 	/* Create the audio buffer to which we write */
 	NUM_BUFFERS = -1;
+#ifdef USE_PRIMARY_BUFFER
 	if ( mainwin ) {
 		NUM_BUFFERS = CreatePrimary(sound, mainwin, &mixbuf,
 						&waveformat, spec->size);
 	}
+#endif /* USE_PRIMARY_BUFFER */
 	if ( NUM_BUFFERS < 0 ) {
 		NUM_BUFFERS = CreateSecondary(sound, mainwin, &mixbuf,
 						&waveformat, spec->size);
@@ -696,9 +700,7 @@ static int DX5_OpenAudio(_THIS, SDL_AudioSpec *spec)
 	}
 #endif
 	return(0);
-}
-
-static int DX5_AudioDelayMsec (_THIS)
+}static int DX5_AudioDelayMsec (_THIS)
 {
       DWORD cursor, write;
       HRESULT result;
@@ -710,18 +712,17 @@ static int DX5_AudioDelayMsec (_THIS)
       write *= mixlen;
 
       if (result == DS_OK) {
-      /* 
-       * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)+        */
-              odelay = (write - cursor);
-              odelay *= 1000;
-              odelay /= this->spec.channels;
-              if (!(this->spec.format == AUDIO_U8 ||  
-                      this->spec.format == AUDIO_S8)) {
-                      odelay /= 2; // 2 bytes per sample
-              }
-              odelay /= this->spec.freq;
-              return odelay;
-      } 
+	/* 
+	 * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)+        */
+	odelay = (write - cursor);
+	odelay *= 1000;
+	odelay /= this->spec.channels;
+	if (!(this->spec.format == AUDIO_U8 ||
+	      this->spec.format == AUDIO_S8)) {
+	  odelay /= 2; // 2 bytes per sample
+	}
+	odelay /= this->spec.freq;
+	return odelay;
+      }
       return -1;
 }
-

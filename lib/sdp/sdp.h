@@ -306,7 +306,7 @@ void sdp_time_offset_to_str(uint32_t val, char *buff, uint32_t buflen);
 format_list_t *sdp_find_format_in_line(format_list_t *head, char *lptr);
 void sdp_smpte_to_str(double value, uint16_t fps, char *buffer);
 
-
+media_desc_t *sdp_find_media_type(session_desc_t *sptr, const char *name);
 #ifdef __cplusplus
 }
 #endif

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_types.h,v 1.3 2002/05/01 17:40:32 wmaycisco Exp $";
+ "@(#) $Id: SDL_types.h,v 1.4 2002/10/07 21:21:33 wmaycisco Exp $";
 #endif
 
 /* General data types used by the SDL library */
@@ -83,6 +83,17 @@ SDL_COMPILE_TIME_ASSERT(uint32, sizeof(Uint32) == 4);
 SDL_COMPILE_TIME_ASSERT(sint32, sizeof(Sint32) == 4);
 SDL_COMPILE_TIME_ASSERT(uint64, sizeof(Uint64) == 8);
 SDL_COMPILE_TIME_ASSERT(sint64, sizeof(Sint64) == 8);
+
+/* Check to make sure enums are the size of ints, for structure packing.
+   For both Watcom C/C++ and Borland C/C++ the compiler option that makes
+   enums having the size of an int must be enabled.
+   This is "-b" for Borland C/C++ and "-ei" for Watcom C/C++ (v11).
+*/
+typedef enum {
+	DUMMY_ENUM_VALUE
+} SDL_DUMMY_ENUM;
+
+SDL_COMPILE_TIME_ASSERT(enum, sizeof(SDL_DUMMY_ENUM) == sizeof(int));
 
 #undef SDL_COMPILE_TIME_ASSERT
 

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ph_mouse.c,v 1.2 2002/05/01 17:41:26 wmaycisco Exp $";
+ "@(#) $Id: SDL_ph_mouse.c,v 1.3 2002/10/07 21:21:45 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -67,8 +67,8 @@ WMcursor *ph_CreateWMCursor(_THIS,
 	/* Allocate and initialize the cursor memory */
 	if ((cursor = (WMcursor*)malloc(sizeof(WMcursor))) == NULL)
 	{
-        SDL_OutOfMemory();
-        return(NULL);
+            SDL_OutOfMemory();
+            return(NULL);
 	}
 	memset(cursor,0,sizeof(WMcursor));
 

@@ -10,7 +10,7 @@ SUBDIRS = src include docs VisualC
 ## here, as well as have a Makefile generated at the end of configure.in
 ##
 ## This only works for subdirectories one level deep.
-DIST_SUBDIRS = $(SUBDIRS) docs
+DIST_SUBDIRS = $(SUBDIRS)
 
 # SDL runtime configuration script
 bin_SCRIPTS = sdl-config
@@ -19,37 +19,39 @@ bin_SCRIPTS = sdl-config
 EXTRA_DIST =		\
 	BUGS		\
 	TODO		\
-        COPYING		\
-        CREDITS		\
-        INSTALL		\
+	COPYING		\
+	CREDITS		\
+	INSTALL		\
 	README		\
 	README.AmigaOS	\
 	README.CVS	\
+	README.DC	\
 	README.Epoc	\
 	README.MacOS	\
 	README.MacOSX	\
 	README.MiNT	\
 	README.NanoX	\
-	README.OpenBSD	\
+	README.PicoGUI	\
 	README.QNX	\
-	README.Win32	\
+	README.Qtopia	\
 	README.WinCE	\
 	README-SDL.txt	\
-	BorlandC.html	\
+	Borland.html	\
 	Borland.zip	\
-        VisualC.html	\
-        VisualC.zip	\
-        MPWmake.sea.bin	\
+	VisualC.html	\
+	VisualC.zip	\
+	VisualCE.zip	\
+	Makefile.dc	\
+	MPWmake.sea.bin	\
 	CWprojects.sea.bin \
 	PBProjects.tar.gz \
 	EpocBuildFiles.zip \
-        WhatsNew	\
-        docs.html	\
+	WhatsNew	\
+	docs.html	\
 	sdl.m4		\
-        SDL.spec	\
-        autogen.sh	\
-        strip_fPIC.sh \
-	depcomp
+	SDL.spec	\
+	autogen.sh	\
+	strip_fPIC.sh
 
 # M4 macro file for inclusion with autoconf
 m4datadir = $(datadir)/aclocal
@@ -94,7 +96,7 @@ dist-hook:
 	rm -rf `find $(distdir) -type d -name CVS -print`
 
 # Create a CVS snapshot that people can run update -d on
-CVSROOT = :pserver:guest@libsdl.org:/home/slouken/libsdl.org/cvs
+CVSROOT = :pserver:guest@libsdl.org:/home/sdlweb/libsdl.org/cvs
 snapshot:
 	cvs -d $(CVSROOT) login
 	cvs -d $(CVSROOT) checkout SDL12

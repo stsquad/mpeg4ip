@@ -64,7 +64,7 @@ typedef struct isma_rtp_data_t {
   uint32_t m_frame_data_max;
   uint32_t m_rtp_ts_add;
   CBitstream m_header_bitstream;
-  fmtp_parse_t m_fmtp;
+  fmtp_parse_t *m_fmtp;
   int m_min_first_header_bits;
   int m_min_header_bits;
   uint8_t *m_frag_reass_buffer;

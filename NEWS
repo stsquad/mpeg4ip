@@ -1,4 +1,12 @@
-xx/xx/02 Version 0.9.6
+xx/xx/02 Version 0.9.7
+    Improved mp4creator warning messages if VOSH/VO are not included
+      in mpeg4 video from avi or .mp4v file
+    Removed lame from package - version 3.92 required if mp4live is
+      desired.
+    Added mp4trackdump
+    SDL 1.2.5
+
+09/25/02 Version 0.9.6
     RTP plugins for player.
     Converted libmpeg32 to use SDL mutexes instead of pthreads
     H.263 (mpeg4 short headers) supported by ISO decoder in player

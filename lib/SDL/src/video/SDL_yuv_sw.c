@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_yuv_sw.c,v 1.3 2002/05/01 17:41:06 wmaycisco Exp $";
+ "@(#) $Id: SDL_yuv_sw.c,v 1.4 2002/10/07 21:21:42 wmaycisco Exp $";
 #endif
 
 /* This is the software implementation of the YUV video overlay support */
@@ -109,7 +109,6 @@ static char rcsid =
 #define HermesConverterInterface	void
 #define HermesClearInterface		void
 #define STACKCALL
-typedef Uint32 int32;
 
 #include "HeadX86.h"
 #endif

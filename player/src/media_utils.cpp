@@ -754,8 +754,10 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 	return (rtp_byte_stream);
       }
     } else {
-      codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
-				   video_codecs);
+      if (fmt->rtpmap != NULL) {
+	codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
+				     video_codecs);
+      } else return NULL;
       if (codec < 0) {
 	return (NULL);
       }
@@ -766,6 +768,8 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
     } else if (rtp_pt >= 0 && rtp_pt <= 23) {
       codec = MPEG4IP_AUDIO_GENERIC;
     }  else {
+      if (fmt->rtpmap == NULL) return NULL;
+
       codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
 				   audio_codecs);
       if (codec < 0) {

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysvideo.h,v 1.4 2002/05/01 17:41:06 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysvideo.h,v 1.5 2002/10/07 21:21:41 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysvideo_h
@@ -42,6 +42,7 @@ static char rcsid =
 #ifndef _WIN32_WCE
 #define HAVE_OPENGL
 #endif
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
 
@@ -295,13 +296,14 @@ struct SDL_VideoDevice {
 		int blue_size;
 		int alpha_size;
 		int depth_size;
-	        int buffer_size;
+		int buffer_size;
 		int stencil_size;
 		int double_buffer;
-                int accum_red_size;
-                int accum_green_size;
-                int accum_blue_size;
-                int accum_alpha_size;
+		int accum_red_size;
+		int accum_green_size;
+		int accum_blue_size;
+		int accum_alpha_size;
+		int stereo;
 		int driver_loaded;
 		char driver_path[256];
 		void* dll_handle;
@@ -397,6 +399,15 @@ extern VideoBootStrap XBIOS_bootstrap;
 #endif
 #ifdef ENABLE_GEM
 extern VideoBootStrap GEM_bootstrap;
+#endif
+#ifdef ENABLE_QTOPIA
+extern VideoBootStrap Qtopia_bootstrap;
+#endif
+#ifdef ENABLE_PICOGUI
+extern VideoBootStrap PG_bootstrap;
+#endif
+#ifdef ENABLE_DC
+extern VideoBootStrap DC_bootstrap;
 #endif
 /* This is the current video device */
 extern SDL_VideoDevice *current_video;

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysaudio.h,v 1.4 2002/05/01 17:40:33 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysaudio.h,v 1.5 2002/10/07 21:21:33 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysaudio_h
@@ -57,7 +57,7 @@ struct SDL_AudioDevice {
 	Uint8 *(*GetAudioBuf)(_THIS);
 	void (*WaitDone)(_THIS);
 	void (*CloseAudio)(_THIS);
-	int (*AudioDelayMsec)(_THIS);
+        int (*AudioDelayMsec)(_THIS);
 
 	/* * * */
 	/* Lock / Unlock functions added for the Mac port */
@@ -148,8 +148,14 @@ extern AudioBootStrap SNDMGR_bootstrap;
 #ifdef ENABLE_AHI
 extern AudioBootStrap AHI_bootstrap;
 #endif
+#ifdef MINTAUDIO_SUPPORT
+extern AudioBootStrap MINTAUDIO_bootstrap;
+#endif
 #ifdef DISKAUD_SUPPORT
 extern AudioBootStrap DISKAUD_bootstrap;
+#endif
+#ifdef ENABLE_DC
+extern AudioBootStrap DCAUD_bootstrap;
 #endif
 
 /* This is the current audio device */

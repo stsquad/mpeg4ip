@@ -1844,7 +1844,7 @@ void MP4File::SetHintTrackRtpPayload(MP4TrackId hintTrackId,
 	}
 
 	u_int8_t payloadNumber;
-	if (pPayloadNumber && *pPayloadNumber != 0) {
+	if (pPayloadNumber && *pPayloadNumber != MP4_SET_DYNAMIC_PAYLOAD) {
 		payloadNumber = *pPayloadNumber;
 	} else {
 		payloadNumber = AllocRtpPayloadNumber();

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5video.h,v 1.2 2002/05/01 17:41:29 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5video.h,v 1.3 2002/10/07 21:21:48 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_dx5video_h
@@ -57,7 +57,7 @@ struct SDL_PrivateVideoData {
 
 /* DirectX function pointers for video and events */
 extern HRESULT (WINAPI *DDrawCreate)( GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter );
-extern HRESULT (WINAPI *DInputCreate)(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA *ppDI, LPUNKNOWN punkOuter);
+extern HRESULT (WINAPI *DInputCreate)(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUT *ppDI, LPUNKNOWN punkOuter);
 
 /* DirectDraw error reporting function */
 extern void SetDDerror(const char *function, int code);

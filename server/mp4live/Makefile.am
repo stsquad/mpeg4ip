@@ -67,7 +67,6 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib \
 	-I$(top_srcdir)/server/audio/faac \
-	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/lib/xvid \
 	-I$(top_srcdir)/server/video/H26L \
 	-I$(top_srcdir)/common/video/libmpeg32 \
@@ -82,7 +81,7 @@ LDADD = \
 	@GTK_LIBS@ @GLIB_LIBS@ \
 	$(top_builddir)/server/mp4live/gui/libmp4livegui.la \
 	$(top_builddir)/server/audio/faac/libfaac.la \
-	$(top_builddir)/server/audio/lame/libmp3lame.a \
+	-lmp3lame \
 	$(top_builddir)/lib/xvid/libxvid.la \
 	$(top_builddir)/server/video/H26L/libh26lenc.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \

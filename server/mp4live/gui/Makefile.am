@@ -25,7 +25,6 @@ INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/lib/rtp \
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib \
-	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/server/video/divx \
 	-I$(top_srcdir)/server/video/ffmpeg \
 	-I$(top_srcdir)/common/video/libmpeg32 \

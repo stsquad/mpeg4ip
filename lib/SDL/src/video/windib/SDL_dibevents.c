@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dibevents.c,v 1.4 2002/05/01 17:41:28 wmaycisco Exp $";
+ "@(#) $Id: SDL_dibevents.c,v 1.5 2002/10/07 21:21:47 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -333,21 +333,9 @@ static SDL_keysym *TranslateKey(UINT vkey, UINT scancode, SDL_keysym *keysym, in
 
 int DIB_CreateWindow(_THIS)
 {
-#ifdef _WIN32_WCE
-	/* WinCE uses the UNICODE version */
-	int nLen = strlen(SDL_Appname)+1;
-	LPWSTR lpszW = alloca(nLen*2);
-	MultiByteToWideChar(CP_ACP, 0, SDL_Appname, -1, lpszW, nLen);
-
-	SDL_RegisterApp("SDL_app", 0, 0);
-	SDL_Window = CreateWindow(lpszW, lpszW, WS_VISIBLE,
-                                  0, 0, 0, 0, NULL, NULL, SDL_Instance, NULL);
-	if ( SDL_Window == NULL ) {
-		SDL_SetError("Couldn't create window");
-		return(-1);
-	}
-	ShowWindow(SDL_Window, SW_HIDE);
-#else
+#ifndef CS_BYTEALIGNCLIENT
+#define CS_BYTEALIGNCLIENT	0
+#endif
 	SDL_RegisterApp("SDL_app", CS_BYTEALIGNCLIENT, 0);
 	if ( SDL_windowid ) {
 		SDL_Window = (HWND)strtol(SDL_windowid, NULL, 0);
@@ -369,8 +357,6 @@ int DIB_CreateWindow(_THIS)
 		}
 		ShowWindow(SDL_Window, SW_HIDE);
 	}
-#endif /* _WIN32_WCE */
-
 	return(0);
 }
 

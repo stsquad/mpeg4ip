@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_artsaudio.c,v 1.2 2002/05/01 17:40:34 wmaycisco Exp $";
+ "@(#) $Id: SDL_artsaudio.c,v 1.3 2002/10/07 21:21:34 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -144,6 +144,8 @@ static int Audio_Available(void)
 		SDL_NAME(arts_free)();
 	}
 	UnloadARTSLibrary();
+
+	return available;
 }
 
 static void Audio_DeleteDevice(SDL_AudioDevice *device)

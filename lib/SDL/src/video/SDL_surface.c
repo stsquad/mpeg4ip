@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_surface.c,v 1.3 2002/05/01 17:41:06 wmaycisco Exp $";
+ "@(#) $Id: SDL_surface.c,v 1.4 2002/10/07 21:21:41 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -107,6 +107,7 @@ SDL_Surface * SDL_CreateRGBSurface (Uint32 flags,
 	surface->locked = 0;
 	surface->map = NULL;
 	surface->format_version = 0;
+	surface->unused1 = 0;
 	SDL_SetClipRect(surface, NULL);
 
 	/* Get the pixels */
@@ -211,6 +212,7 @@ int SDL_SetColorKey (SDL_Surface *surface, Uint32 flag, Uint32 key)
 	SDL_InvalidateMap(surface->map);
 	return(0);
 }
+/* This function sets the alpha channel of a surface */
 int SDL_SetAlpha (SDL_Surface *surface, Uint32 flag, Uint8 value)
 {
 	Uint32 oldflags = surface->flags;
@@ -268,6 +270,52 @@ int SDL_SetAlpha (SDL_Surface *surface, Uint32 flag, Uint8 value)
 	   || (((oldalpha + 1) ^ (value + 1)) & 0x100))
 		SDL_InvalidateMap(surface->map);
 	return(0);
+}
+int SDL_SetAlphaChannel(SDL_Surface *surface, Uint8 value)
+{
+	int row, col;
+	int offset;
+	Uint8 *buf;
+
+	if ( (surface->format->Amask != 0xFF000000) &&
+	     (surface->format->Amask != 0x000000FF) ) {
+		SDL_SetError("Unsupported surface alpha mask format");
+		return -1;
+	}
+
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+	if ( surface->format->Amask == 0xFF000000 ) {
+			offset = 3;
+	} else {
+			offset = 0;
+	}
+#else
+	if ( surface->format->Amask == 0xFF000000 ) {
+			offset = 0;
+	} else {
+			offset = 3;
+	}
+#endif /* Byte ordering */
+
+	/* Quickly set the alpha channel of an RGBA or ARGB surface */
+	if ( SDL_MUSTLOCK(surface) ) {
+		if ( SDL_LockSurface(surface) < 0 ) {
+			return -1;
+		}
+	}
+	row = surface->h;
+	while (row--) {
+		col = surface->w;
+		buf = (Uint8 *)surface->pixels + row * surface->pitch + offset;
+		while(col--) {
+			*buf = value;
+			buf += 4;
+		}
+	}
+	if ( SDL_MUSTLOCK(surface) ) {
+		SDL_UnlockSurface(surface);
+	}
+	return 0;
 }
 
 /*
@@ -351,6 +399,8 @@ int SDL_LowerBlit (SDL_Surface *src, SDL_Rect *srcrect,
 				SDL_Surface *dst, SDL_Rect *dstrect)
 {
 	SDL_blit do_blit;
+	SDL_Rect hw_srcrect;
+	SDL_Rect hw_dstrect;
 
 	/* Check to make sure the blit mapping is valid */
 	if ( (src->map->dst != dst) ||
@@ -362,6 +412,18 @@ int SDL_LowerBlit (SDL_Surface *src, SDL_Rect *srcrect,
 
 	/* Figure out which blitter to use */
 	if ( (src->flags & SDL_HWACCEL) == SDL_HWACCEL ) {
+		if ( src == SDL_VideoSurface ) {
+			hw_srcrect = *dstrect;
+			hw_srcrect.x += current_video->offset_x;
+			hw_srcrect.y += current_video->offset_y;
+			srcrect = &hw_srcrect;
+		}
+		if ( dst == SDL_VideoSurface ) {
+			hw_dstrect = *dstrect;
+			hw_dstrect.x += current_video->offset_x;
+			hw_dstrect.y += current_video->offset_y;
+			dstrect = &hw_dstrect;
+		}
 		do_blit = src->map->hw_blit;
 	} else {
 		do_blit = src->map->sw_blit;
@@ -485,6 +547,13 @@ int SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color)
 	/* Check for hardware acceleration */
 	if ( ((dst->flags & SDL_HWSURFACE) == SDL_HWSURFACE) &&
 					video->info.blit_fill ) {
+		SDL_Rect hw_rect;
+		if ( dst == SDL_VideoSurface ) {
+			hw_rect = *dstrect;
+			hw_rect.x += current_video->offset_x;
+			hw_rect.y += current_video->offset_y;
+			dstrect = &hw_rect;
+		}
 		return(video->FillHWRect(this, dst, dstrect, color));
 	}
 
@@ -748,8 +817,13 @@ SDL_Surface * SDL_ConvertSurface (SDL_Surface *surface,
 		}
 	}
 	if ( (surface_flags & SDL_SRCALPHA) == SDL_SRCALPHA ) {
-		alpha = surface->format->alpha;
-		SDL_SetAlpha(surface, 0, 0);
+		/* Copy over the alpha channel to RGBA if requested */
+		if ( format->Amask ) {
+			surface->flags &= ~SDL_SRCALPHA;
+		} else {
+			alpha = surface->format->alpha;
+			SDL_SetAlpha(surface, 0, 0);
+		}
 	}
 
 	/* Copy over the image data */
@@ -780,7 +854,11 @@ SDL_Surface * SDL_ConvertSurface (SDL_Surface *surface,
 		        SDL_SetAlpha(convert, aflags|(flags&SDL_RLEACCELOK),
 				alpha);
 		}
-		SDL_SetAlpha(surface, aflags, alpha);
+		if ( format->Amask ) {
+			surface->flags |= SDL_SRCALPHA;
+		} else {
+			SDL_SetAlpha(surface, aflags, alpha);
+		}
 	}
 
 	/* We're ready to go! */
@@ -812,7 +890,7 @@ void SDL_FreeSurface (SDL_Surface *surface)
 		SDL_FreeBlitMap(surface->map);
 		surface->map = NULL;
 	}
-	if ( (surface->flags & SDL_HWSURFACE) == SDL_HWSURFACE ) {
+	if ( surface->hwdata ) {
 		SDL_VideoDevice *video = current_video;
 		SDL_VideoDevice *this  = current_video;
 		video->FreeHWSurface(this, surface);

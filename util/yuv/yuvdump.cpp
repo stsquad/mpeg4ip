@@ -72,7 +72,7 @@ int main (int argc, char **argv)
 					      SDL_YV12_OVERLAY, 
 					      m_screen);
 
-  yuvfile = fopen(*argv, "r");
+  yuvfile = fopen(*argv, FOPEN_READ_BINARY);
   ysize = width*height;
   uvsize = ysize / 4;
   printf("ysize %u uvsize %u\n", ysize, uvsize);

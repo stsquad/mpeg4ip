@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11events.c,v 1.4 2002/05/01 17:41:29 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11events.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting X11 events into SDL events */
@@ -196,7 +196,8 @@ if ( xevent.xcrossing.mode == NotifyUngrab )
 printf("Mode: NotifyUngrab\n");
 #endif
 		if ( (xevent.xcrossing.mode != NotifyGrab) &&
-		     (xevent.xcrossing.mode != NotifyUngrab) ) {
+		     (xevent.xcrossing.mode != NotifyUngrab) &&
+		     (xevent.xcrossing.detail != NotifyInferior) ) {
 			if ( this->input_grab == SDL_GRAB_OFF ) {
 				posted = SDL_PrivateAppActive(0, SDL_APPMOUSEFOCUS);
 			} else {
@@ -835,7 +836,7 @@ Uint16 X11_KeyToUnicode(SDLKey keysym, SDLMod modifiers)
 void X11_SetKeyboardState(Display *display, const char *key_vec)
 {
 	char keys_return[32];
-	int i, gen_event;
+	int i;
 	KeyCode xcode[SDLK_LAST];
 	Uint8 new_kstate[SDLK_LAST];
 	Uint8 *kstate = SDL_GetKeyState(NULL);
@@ -846,15 +847,8 @@ void X11_SetKeyboardState(Display *display, const char *key_vec)
 
 	/* The first time the window is mapped, we initialize key state */
 	if ( ! key_vec ) {
-		key_vec = keys_return;
 		XQueryKeymap(display, keys_return);
-		gen_event = 0;
-	} else {
-#if 1 /* We no longer generate key down events, just update state */
-		gen_event = 0;
-#else
-		gen_event = 1;
-#endif
+		key_vec = keys_return;
 	}
 
 	/* Get the keyboard modifier state */
@@ -927,23 +921,7 @@ void X11_SetKeyboardState(Display *display, const char *key_vec)
 					break;
 			}
 		}
-		if ( kstate[i] == state )
-			continue;
-
-		/*
-		 * Send a fake keyboard event correcting the difference between
-		 * SDL's keyboard state and the actual. Note that there is no
-		 * way to find out the scancode for key releases, but since all
-		 * keys are released when focus is lost only keypresses should
-		 * be sent here
-		 */
-		if ( gen_event ) {
-			SDL_keysym sk;
-			memset(&sk, 0, sizeof(sk));
-			sk.sym = i;
-			sk.scancode = xcode[i];	/* only valid for key press */
-			SDL_PrivateKeyboard(state, &sk);
-		} else {
+		if ( kstate[i] != state ) {
 			kstate[i] = state;
 		}
 	}

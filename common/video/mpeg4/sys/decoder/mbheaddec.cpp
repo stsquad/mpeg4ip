@@ -91,6 +91,7 @@ Void CVideoObjectDecoder::decodeMBTextureHeadOfIVOP (CMBMode* pmbmd, Int& iCurre
 	Int iCBPY = 0;
 	//fprintf(stderr,"[%x]",m_pbitstrmIn->peekBits(32));
 	Int iMCBPC = m_pentrdecSet->m_pentrdecMCBPCintra->decodeSymbol ();
+	//iMCBPC &= 7
 	//fprintf(stderr,"MCBPC = %d\n",iMCBPC);
 	assert (iMCBPC >= 0 && iMCBPC <= 7);			
 	pmbmd->m_dctMd = INTRA;

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syswm.h,v 1.3 2002/05/01 17:40:32 wmaycisco Exp $";
+ "@(#) $Id: SDL_syswm.h,v 1.4 2002/10/07 21:21:33 wmaycisco Exp $";
 #endif
 
 /* Include file for SDL custom system window manager hooks */
@@ -50,7 +50,7 @@ typedef struct SDL_SysWMinfo SDL_SysWMinfo;
 
 /* This is the structure for custom window manager events */
 #if (defined(unix) || defined(__unix__) || defined(_AIX) || defined(__OpenBSD__)) && \
-    (!defined(DISABLE_X11) && !defined(__CYGWIN32__))
+    (!defined(DISABLE_X11) && !defined(__CYGWIN32__) && !defined(ENABLE_NANOX))
  /* AIX is unix, of course, but the native compiler CSet doesn't define unix */
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -111,6 +111,7 @@ typedef struct {
 } SDL_SysWMinfo;
 
 #elif defined(WIN32)
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 /* The windows custom event structure */
@@ -126,6 +127,7 @@ struct SDL_SysWMmsg {
 typedef struct {
 	SDL_version version;
 	HWND window;			/* The Win32 display window */
+	HGLRC hglrc;			/* The OpenGL context, if any */
 } SDL_SysWMinfo;
 
 #else

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5video.c,v 1.4 2002/05/01 17:41:29 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5video.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -51,10 +51,23 @@ static char rcsid =
 #include "SDL_dx5yuv_c.h"
 #include "SDL_wingl_c.h"
 
+#ifdef _WIN32_WCE
+#define NO_CHANGEDISPLAYSETTINGS
+#endif
+#ifndef WS_MAXIMIZE
+#define WS_MAXIMIZE		0
+#endif
+#ifndef SWP_NOCOPYBITS
+#define SWP_NOCOPYBITS	0
+#endif
+#ifndef PC_NOCOLLAPSE
+#define PC_NOCOLLAPSE	0
+#endif
+
 
 /* DirectX function pointers for video and events */
 HRESULT (WINAPI *DDrawCreate)( GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter );
-HRESULT (WINAPI *DInputCreate)(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA *ppDI, LPUNKNOWN punkOuter);
+HRESULT (WINAPI *DInputCreate)(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUT *ppDI, LPUNKNOWN punkOuter);
 
 /* This is the rect EnumModes2 uses */
 struct DX5EnumRect {
@@ -443,19 +456,19 @@ static int DX5_Available(void)
 
 	/* Version check DINPUT.DLL and DDRAW.DLL (Is DirectX okay?) */
 	dinput_ok = 0;
-	DInputDLL = LoadLibrary("DINPUT.DLL");
+	DInputDLL = LoadLibrary(TEXT("DINPUT.DLL"));
 	if ( DInputDLL != NULL ) {
 		dinput_ok = 1;
 	  	FreeLibrary(DInputDLL);
 	}
 	ddraw_ok = 0;
-	DDrawDLL = LoadLibrary("DDRAW.DLL");
+	DDrawDLL = LoadLibrary(TEXT("DDRAW.DLL"));
 	if ( DDrawDLL != NULL ) {
 	  HRESULT (WINAPI *DDrawCreate)(GUID *,LPDIRECTDRAW *,IUnknown *);
 	  LPDIRECTDRAW DDraw;
 
 	  /* Try to create a valid DirectDraw object */
-	  DDrawCreate = (void *)GetProcAddress(DDrawDLL, "DirectDrawCreate");
+	  DDrawCreate = (void *)GetProcAddress(DDrawDLL, TEXT("DirectDrawCreate"));
 	  if ( (DDrawCreate != NULL)
 			&& !FAILED(DDrawCreate(NULL, &DDraw, NULL)) ) {
 	    if ( !FAILED(IDirectDraw_SetCooperativeLevel(DDraw,
@@ -511,15 +524,15 @@ static int DX5_Load(void)
 	int status;
 
 	DX5_Unload();
-	DDrawDLL = LoadLibrary("DDRAW.DLL");
+	DDrawDLL = LoadLibrary(TEXT("DDRAW.DLL"));
 	if ( DDrawDLL != NULL ) {
 		DDrawCreate = (void *)GetProcAddress(DDrawDLL,
-					"DirectDrawCreate");
+					TEXT("DirectDrawCreate"));
 	}
-	DInputDLL = LoadLibrary("DINPUT.DLL");
+	DInputDLL = LoadLibrary(TEXT("DINPUT.DLL"));
 	if ( DInputDLL != NULL ) {
 		DInputCreate = (void *)GetProcAddress(DInputDLL,
-					"DirectInputCreateA");
+					TEXT("DirectInputCreateA"));
 	}
 	if ( DDrawDLL && DDrawCreate && DInputDLL && DInputCreate ) {
 		status = 0;
@@ -596,11 +609,11 @@ static SDL_VideoDevice *DX5_CreateDevice(int devindex)
 	device->SetGammaRamp = DX5_SetGammaRamp;
 	device->GetGammaRamp = DX5_GetGammaRamp;
 #ifdef HAVE_OPENGL
-        device->GL_LoadLibrary = WIN_GL_LoadLibrary;
-        device->GL_GetProcAddress = WIN_GL_GetProcAddress;
-        device->GL_GetAttribute = WIN_GL_GetAttribute;
-        device->GL_MakeCurrent = WIN_GL_MakeCurrent;
-        device->GL_SwapBuffers = WIN_GL_SwapBuffers;
+	device->GL_LoadLibrary = WIN_GL_LoadLibrary;
+	device->GL_GetProcAddress = WIN_GL_GetProcAddress;
+	device->GL_GetAttribute = WIN_GL_GetAttribute;
+	device->GL_MakeCurrent = WIN_GL_MakeCurrent;
+	device->GL_SwapBuffers = WIN_GL_SwapBuffers;
 #endif
 	device->SetCaption = WIN_SetWMCaption;
 	device->SetIcon = WIN_SetWMIcon;
@@ -670,7 +683,7 @@ static HRESULT WINAPI EnumModes2(DDSURFACEDESC *desc, VOID *udata)
 void SetDDerror(const char *function, int code)
 {
 	static char *error;
-	static char  errbuf[BUFSIZ];
+	static char  errbuf[1024];
 
 	errbuf[0] = 0;
 	switch (code) {
@@ -994,11 +1007,13 @@ SDL_Surface *DX5_SetVideoMode(_THIS, SDL_Surface *current,
 		SDL_primary = NULL;
 	}
 
+#ifndef NO_CHANGEDISPLAYSETTINGS
 	/* Unset any previous OpenGL fullscreen mode */
 	if ( (current->flags & (SDL_OPENGL|SDL_FULLSCREEN)) ==
 	                       (SDL_OPENGL|SDL_FULLSCREEN) ) {
 		ChangeDisplaySettings(NULL, 0);
 	}
+#endif
 
 	/* Clean up any GL context that may be hanging around */
 	if ( current->flags & SDL_OPENGL ) {
@@ -1057,6 +1072,7 @@ SDL_Surface *DX5_SetVideoMode(_THIS, SDL_Surface *current,
 		video->h = height;
 		video->pitch = SDL_CalculatePitch(video);
 
+#ifndef NO_CHANGEDISPLAYSETTINGS
 		/* Set fullscreen mode if appropriate.
 		   Ugh, since our list of valid video modes comes from
 		   the DirectX driver, we may not actually be able to
@@ -1077,10 +1093,11 @@ SDL_Surface *DX5_SetVideoMode(_THIS, SDL_Surface *current,
 				SDL_fullscreen_mode = settings;
 			}
 		}
+#endif /* !NO_CHANGEDISPLAYSETTINGS */
 
 		style = GetWindowLong(SDL_Window, GWL_STYLE);
 		style &= ~(resizestyle|WS_MAXIMIZE);
-		if ( (video->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
+		if ( video->flags & SDL_FULLSCREEN ) {
 			style &= ~windowstyle;
 			style |= directstyle;
 		} else {
@@ -1096,20 +1113,23 @@ SDL_Surface *DX5_SetVideoMode(_THIS, SDL_Surface *current,
 					video->flags |= SDL_RESIZABLE;
 				}
 			}
+#if WS_MAXIMIZE
 			if (IsZoomed(SDL_Window)) style |= WS_MAXIMIZE;
+#endif
 		}
 		SetWindowLong(SDL_Window, GWL_STYLE, style);
 
 		/* Resize the window (copied from SDL WinDIB driver) */
 		if ( SDL_windowid == NULL ) {
+			HWND top;
 			UINT swp_flags;
 
 			SDL_resizing = 1;
-			bounds.left = 0;
-			bounds.top = 0;
-			bounds.right = video->w;
+			bounds.top    = 0;
 			bounds.bottom = video->h;
-			AdjustWindowRect(&bounds, GetWindowLong(SDL_Window, GWL_STYLE), FALSE);
+			bounds.left   = 0;
+			bounds.right  = video->w;
+			AdjustWindowRectEx(&bounds, GetWindowLong(SDL_Window, GWL_STYLE), FALSE, 0);
 			width = bounds.right-bounds.left;
 			height = bounds.bottom-bounds.top;
 			x = (GetSystemMetrics(SM_CXSCREEN)-width)/2;
@@ -1117,11 +1137,16 @@ SDL_Surface *DX5_SetVideoMode(_THIS, SDL_Surface *current,
 			if ( y < 0 ) { /* Cover up title bar for more client area */
 				y -= GetSystemMetrics(SM_CYCAPTION)/2;
 			}
-			swp_flags = (SWP_NOCOPYBITS | SWP_NOZORDER | SWP_SHOWWINDOW);
-			if ( was_visible && !(flags & SDL_FULLSCREEN) ) {
+			swp_flags = (SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+			if ( was_visible && !(video->flags & SDL_FULLSCREEN) ) {
 				swp_flags |= SWP_NOMOVE;
 			}
-			SetWindowPos(SDL_Window, NULL, x, y, width, height, swp_flags);
+			if ( video->flags & SDL_FULLSCREEN ) {
+				top = HWND_TOPMOST;
+			} else {
+				top = HWND_NOTOPMOST;
+			}
+			SetWindowPos(SDL_Window, top, x, y, width, height, swp_flags);
 			SDL_resizing = 0;
 			SetForegroundWindow(SDL_Window);
 		}
@@ -1151,7 +1176,9 @@ SDL_Surface *DX5_SetVideoMode(_THIS, SDL_Surface *current,
 				style |= resizestyle;
 			}
 		}
+#if WS_MAXIMIZE
 		if (IsZoomed(SDL_Window)) style |= WS_MAXIMIZE;
+#endif
 	}
 	SetWindowLong(SDL_Window, GWL_STYLE, style);
 
@@ -1368,7 +1395,15 @@ SDL_Surface *DX5_SetVideoMode(_THIS, SDL_Surface *current,
 			}
 		}
 		dd_surface3 = NULL;
+#if 0 /* FIXME: enable this when SDL consistently reports lost surfaces */
+		if ( (flags & SDL_HWSURFACE) == SDL_HWSURFACE ) {
+			video->flags |= SDL_HWSURFACE;
+		} else {
+			video->flags |= SDL_SWSURFACE;
+		}
+#else
 		video->flags |= SDL_SWSURFACE;
+#endif
 		if ( (flags & SDL_RESIZABLE) && !(flags & SDL_NOFRAME) ) {
 			video->flags |= SDL_RESIZABLE;
 		}
@@ -1448,12 +1483,11 @@ SDL_Surface *DX5_SetVideoMode(_THIS, SDL_Surface *current,
 
 		/* Set the size of the window, centering and adjusting */
 		SDL_resizing = 1;
-		bounds.left = 0;
-		bounds.top = 0;
-		bounds.right = video->w;
+		bounds.top    = 0;
 		bounds.bottom = video->h;
-		AdjustWindowRect(&bounds, GetWindowLong(SDL_Window, GWL_STYLE),
-									FALSE);
+		bounds.left   = 0;
+		bounds.right  = video->w;
+		AdjustWindowRectEx(&bounds, GetWindowLong(SDL_Window, GWL_STYLE), FALSE, 0);
 		width = bounds.right-bounds.left;
 		height = bounds.bottom-bounds.top;
 		x = (GetSystemMetrics(SM_CXSCREEN)-width)/2;
@@ -1587,7 +1621,7 @@ static int DX5_AllocDDSurface(_THIS, SDL_Surface *surface,
 	memset(&ddsd, 0, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd);
 	result = IDirectDrawSurface3_Lock(dd_surface3, NULL,
-					&ddsd, DDLOCK_NOSYSLOCK, NULL);
+		&ddsd, (DDLOCK_NOSYSLOCK|DDLOCK_WAIT), NULL);
 	if ( result != DD_OK ) {
 		SetDDerror("DirectDrawSurface3::Lock", result);
 		goto error_end;
@@ -1731,10 +1765,10 @@ static int DX5_HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 	/* Set it up.. the desination must have a DDRAW surface */
 	src_surface = src->hwdata->dd_writebuf;
 	dst_surface = dst->hwdata->dd_writebuf;
-	rect.top    = srcrect->y;
-	rect.bottom = srcrect->y+srcrect->h;
-	rect.left   = srcrect->x;
-	rect.right  = srcrect->x+srcrect->w;
+	rect.top    = (LONG)srcrect->y;
+	rect.bottom = (LONG)srcrect->y+srcrect->h;
+	rect.left   = (LONG)srcrect->x;
+	rect.right  = (LONG)srcrect->x+srcrect->w;
 	if ( (src->flags & SDL_SRCCOLORKEY) == SDL_SRCCOLORKEY )
 		flags = DDBLTFAST_SRCCOLORKEY;
 	else
@@ -1824,10 +1858,10 @@ static int DX5_FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *dstrect, Uint32 col
  fprintf(stderr, "HW accelerated fill at (%d,%d)\n", dstrect->x, dstrect->y);
 #endif
 	dst_surface = dst->hwdata->dd_writebuf;
-	area.top = dstrect->y;
-	area.bottom = dstrect->y+dstrect->h;
-	area.left = dstrect->x;
-	area.right = dstrect->x+dstrect->w;
+	area.top    = (LONG)dstrect->y;
+	area.bottom = (LONG)dstrect->y+dstrect->h;
+	area.left   = (LONG)dstrect->x;
+	area.right  = (LONG)dstrect->x+dstrect->w;
 	bltfx.dwSize = sizeof(bltfx);
 #if defined(NONAMELESSUNION)
 	bltfx.u5.dwFillColor = color;
@@ -1920,11 +1954,11 @@ static int DX5_FlipHWSurface(_THIS, SDL_Surface *surface)
 	LPDIRECTDRAWSURFACE3 dd_surface;
 
 	dd_surface = surface->hwdata->dd_surface;
-	result = IDirectDrawSurface3_Flip(dd_surface, NULL, DDFLIP_WAIT);
+	result = IDirectDrawSurface3_Flip(dd_surface, NULL, 0);
 	if ( result == DDERR_SURFACELOST ) {
 		result = IDirectDrawSurface3_Restore(
 						surface->hwdata->dd_surface);
-		result = IDirectDrawSurface3_Flip(dd_surface,NULL,DDFLIP_WAIT);
+		result = IDirectDrawSurface3_Flip(dd_surface, NULL, 0);
 	}
 	if ( result != DD_OK ) {
 		SetDDerror("DirectDrawSurface3::Flip", result);
@@ -1951,14 +1985,14 @@ void DX5_WindowUpdate(_THIS, int numrects, SDL_Rect *rects)
 	RECT src, dst;
 
 	for ( i=0; i<numrects; ++i ) {
-		src.top = rects[i].y;
-		src.bottom = rects[i].y+rects[i].h;
-		src.left = rects[i].x;
-		src.right = rects[i].x+rects[i].w;
-		dst.top = SDL_bounds.top+src.top;
-		dst.left = SDL_bounds.left+src.left;
+		src.top    = (LONG)rects[i].y;
+		src.bottom = (LONG)rects[i].y+rects[i].h;
+		src.left   = (LONG)rects[i].x;
+		src.right  = (LONG)rects[i].x+rects[i].w;
+		dst.top    = SDL_bounds.top+src.top;
+		dst.left   = SDL_bounds.left+src.left;
 		dst.bottom = SDL_bounds.top+src.bottom;
-		dst.right = SDL_bounds.left+src.right;
+		dst.right  = SDL_bounds.left+src.right;
 		result = IDirectDrawSurface3_Blt(SDL_primary, &dst, 
 					this->screen->hwdata->dd_surface, &src,
 							DDBLT_WAIT, NULL);
@@ -2205,16 +2239,29 @@ static int DX5_GetGammaRamp(_THIS, Uint16 *ramp)
 #endif /* !IDirectDrawGammaControl_SetGammaRamp */
 }
 
+static void FlushMessageQueue()
+{
+	MSG  msg;
+	while ( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) ) {
+		if ( msg.message == WM_QUIT ) break;
+		TranslateMessage( &msg );
+		DispatchMessage( &msg );
+	}
+}
+
 void DX5_VideoQuit(_THIS)
 {
 	int i, j;
 
 	/* If we're fullscreen GL, we need to reset the display */
 	if ( this->screen != NULL ) {
+#ifndef NO_CHANGEDISPLAYSETTINGS
 		if ( (this->screen->flags & (SDL_OPENGL|SDL_FULLSCREEN)) ==
 		                            (SDL_OPENGL|SDL_FULLSCREEN) ) {
 			ChangeDisplaySettings(NULL, 0);
+			ShowWindow(SDL_Window, SW_HIDE);
 		}
+#endif
 		if ( this->screen->flags & SDL_OPENGL ) {
 			WIN_GL_ShutDown(this);
 		}
@@ -2245,6 +2292,7 @@ void DX5_VideoQuit(_THIS)
 	DIB_QuitGamma(this);
 	if ( SDL_Window ) {
 		DX5_DestroyWindow(this);
+		FlushMessageQueue();
 	}
 
 	/* Free our window icon */

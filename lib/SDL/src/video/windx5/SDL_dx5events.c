@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5events.c,v 1.4 2002/05/01 17:41:29 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5events.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
 #endif
 
 /* CAUTION!!!!  If you modify this file, check ../windib/SDL_sysevents.c */
@@ -43,6 +43,10 @@ static char rcsid =
 #define WM_APP	0x8000
 #endif
 
+#ifdef _WIN32_WCE
+#define NO_GETKEYBOARDSTATE
+#endif
+
 /* The keyboard and mouse device input */
 #define MAX_INPUTS	16		/* Maximum of 16-1 input devices */
 #define INPUT_QSIZE	32		/* Buffer up to 32 input messages */
@@ -54,6 +58,7 @@ static void (*SDL_DIfun[MAX_INPUTS])(const int, DIDEVICEOBJECTDATA *);
 static int SDL_DIndev = 0;
 static int mouse_lost;
 static int mouse_pressed;
+static int mouse_buttons_swapped = 0;
 
 /* The translation table from a DirectInput scancode to an SDL keysym */
 static SDLKey DIK_keymap[256];
@@ -67,7 +72,7 @@ static WNDPROC userWindowProc = NULL;
 static void SetDIerror(char *function, int code)
 {
 	static char *error;
-	static char  errbuf[BUFSIZ];
+	static char  errbuf[1024];
 
 	errbuf[0] = 0;
 	switch (code) {
@@ -212,36 +217,10 @@ static int DX5_DInputInit(_THIS)
 		++SDL_DIndev;
 	}
 	mouse_pressed = 0;
+	mouse_buttons_swapped = GetSystemMetrics(SM_SWAPBUTTON);
 
 	/* DirectInput is ready! */
 	return(0);
-}
-
-/* Change cooperative level based on whether or not we are fullscreen */
-void DX5_DInputReset(_THIS, int fullscreen)
-{
-	DWORD level;
-	int i;
-	HRESULT result;
-
-	for ( i=0; i<MAX_INPUTS; ++i ) {
-		if ( SDL_DIdev[i] != NULL ) {
-			if ( fullscreen ) {
-				level = inputs[i].raw_level;
-			} else {
-				level = inputs[i].win_level;
-			}
-			IDirectInputDevice2_Unacquire(SDL_DIdev[i]);
-			result = IDirectInputDevice2_SetCooperativeLevel(
-					SDL_DIdev[i], SDL_Window, level);
-			IDirectInputDevice2_Acquire(SDL_DIdev[i]);
-			if ( result != DI_OK ) {
-				SetDIerror(
-			"DirectInputDevice::SetCooperativeLevel", result);
-			}
-		}
-	}
-	mouse_lost = 1;
 }
 
 /* Clean up DirectInput */
@@ -363,6 +342,11 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 					}
 					state = SDL_RELEASED;
 				}
+				if ( mouse_buttons_swapped ) {
+					if ( button == 1 ) button = 3;
+					else
+					if ( button == 3 ) button = 1;
+				}
 				posted = SDL_PrivateMouseButton(state, button,
 									0, 0);
 			}
@@ -392,10 +376,10 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 					yrel = 0;
 				}
 				if((int)ptrbuf[i].dwData > 0)
-					button = 4;
+					button = SDL_BUTTON_WHEELUP;
 				else
-					button = 5;
-					posted = SDL_PrivateMouseButton(
+					button = SDL_BUTTON_WHEELDOWN;
+				posted = SDL_PrivateMouseButton(
 						SDL_PRESSED, button, 0, 0);
 				posted |= SDL_PrivateMouseButton(
 						SDL_RELEASED, button, 0, 0);
@@ -434,6 +418,11 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 					}
 					state = SDL_RELEASED;
 				}
+				if ( mouse_buttons_swapped ) {
+					if ( button == 1 ) button = 3;
+					else
+					if ( button == 3 ) button = 1;
+				}
 				posted = SDL_PrivateMouseButton(state, button,
 									0, 0);
 				break;
@@ -449,6 +438,7 @@ LONG
  DX5_HandleMessage(_THIS, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg) {
+#ifdef WM_ACTIVATEAPP
 		case WM_ACTIVATEAPP: {
 			int i, active;
 
@@ -467,7 +457,9 @@ LONG
 			}
 		}
 		break;
+#endif /* WM_ACTIVATEAPP */
 
+#ifdef WM_DISPLAYCHANGE
 		case WM_DISPLAYCHANGE: {
 			WORD BitsPerPixel;
 			WORD SizeX, SizeY;
@@ -479,6 +471,7 @@ LONG
 			/* We cause this message when we go fullscreen */
 		}
 		break;
+#endif /* WM_DISPLAYCHANGE */
 
 		/* The keyboard is handled via DirectInput */
 		case WM_SYSKEYUP:
@@ -489,6 +482,7 @@ LONG
 		}
 		return(0);
 
+#if defined(SC_SCREENSAVE) || defined(SC_MONITORPOWER)
 		/* Don't allow screen savers or monitor power downs.
 		   This is because they quietly clear DirectX surfaces.
 		   It would be better to allow the application to
@@ -501,11 +495,11 @@ LONG
 			    (wParam&0xFFF0)==SC_MONITORPOWER)
 				return(0);
 		}
-		goto custom_processing;
-		break;
+		/* Fall through to default processing */
+
+#endif /* SC_SCREENSAVE || SC_MONITORPOWER */
 
 		default: {
-		custom_processing:
 			/* Only post the event if we're watching for it */
 			if ( SDL_ProcessEvents[SDL_SYSWMEVENT] == SDL_ENABLE ) {
 			        SDL_SysWMmsg wmmsg;
@@ -534,7 +528,7 @@ LONG
    1 if there was input, 0 if there was no input, or -1 if the application has
    posted a quit message.
 */
-static int DX5_CheckInput(_THIS, int timeout)
+static int DX5_CheckInput(_THIS, int timeout, BOOL processInput)
 {
 	MSG msg;
 	int      i;
@@ -593,7 +587,7 @@ static int DX5_CheckInput(_THIS, int timeout)
 							evtbuf, &numevents, 0);
 		}
 		/* Handle the events */
-		if ( result == DI_OK ) {
+		if ( result == DI_OK && processInput ) {
 			/* Note: This can post multiple events to event queue
 			 */
 			(*SDL_DIfun[event])((int)numevents, evtbuf);
@@ -614,10 +608,40 @@ static int DX5_CheckInput(_THIS, int timeout)
 	return(0);
 }
 
+/* Change cooperative level based on whether or not we are fullscreen */
+void DX5_DInputReset(_THIS, int fullscreen)
+{
+	DWORD level;
+	int i;
+	HRESULT result;
+
+	for ( i=0; i<MAX_INPUTS; ++i ) {
+		if ( SDL_DIdev[i] != NULL ) {
+			if ( fullscreen ) {
+				level = inputs[i].raw_level;
+			} else {
+				level = inputs[i].win_level;
+			}
+			IDirectInputDevice2_Unacquire(SDL_DIdev[i]);
+			result = IDirectInputDevice2_SetCooperativeLevel(
+					SDL_DIdev[i], SDL_Window, level);
+			IDirectInputDevice2_Acquire(SDL_DIdev[i]);
+			if ( result != DI_OK ) {
+				SetDIerror(
+			"DirectInputDevice::SetCooperativeLevel", result);
+			}
+		}
+	}
+	mouse_lost = 1;
+
+	/* Flush pending input */
+	DX5_CheckInput(this, 0, FALSE);
+}
+
 void DX5_PumpEvents(_THIS)
 {
 	/* Wait for messages and DirectInput */
-	while ( DX5_CheckInput(this, 0) > 0 ) {
+	while ( DX5_CheckInput(this, 0, TRUE) > 0 ) {
 		/* Loop and check again */;
 	}
 }
@@ -759,14 +783,21 @@ static SDL_keysym *TranslateKey(UINT scancode, SDL_keysym *keysym, int pressed)
 	keysym->unicode = 0;
 	if ( pressed && SDL_TranslateUNICODE ) { /* Someday use ToUnicode() */
 		UINT vkey;
+#ifndef NO_GETKEYBOARDSTATE
 		BYTE keystate[256];
 		BYTE chars[2];
+#endif
 
 		vkey = MapVirtualKey(scancode, 1);
+#ifdef NO_GETKEYBOARDSTATE
+		/* Uh oh, better hope the vkey is close enough.. */
+		keysym->unicode = vkey;
+#else
 		GetKeyboardState(keystate);
 		if ( ToAscii(vkey,scancode,keystate,(WORD *)chars,0) == 1 ) {
 			keysym->unicode = chars[0];
 		}
+#endif
 	}
 	return(keysym);
 }
@@ -782,18 +813,20 @@ int DX5_CreateWindow(_THIS)
 		SDL_DIfun[i] = NULL;
 	}
 
-	/* Create the SDL window */
+#ifndef CS_BYTEALIGNCLIENT
+#define CS_BYTEALIGNCLIENT	0
+#endif
 	SDL_RegisterApp("SDL_app", CS_BYTEALIGNCLIENT, 0);
 	if ( SDL_windowid ) {
 		SDL_Window = (HWND)strtol(SDL_windowid, NULL, 0);
 
-      /* DJM: we want all event's for the user specified
-         window to be handled by SDL.
-       */
-      if (SDL_Window) {
-         userWindowProc = (WNDPROC)GetWindowLong(SDL_Window, GWL_WNDPROC);
-         SetWindowLong(SDL_Window, GWL_WNDPROC, (LONG)WinMessage);
-      }
+		/* DJM: we want all event's for the user specified
+		   window to be handled by SDL.
+		 */
+		if (SDL_Window) {
+			userWindowProc = (WNDPROC)GetWindowLong(SDL_Window, GWL_WNDPROC);
+			SetWindowLong(SDL_Window, GWL_WNDPROC, (LONG)WinMessage);
+		}
 	} else {
 		SDL_Window = CreateWindow(SDL_Appname, SDL_Appname,
                         (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX),

@@ -204,6 +204,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	u_int16_t frameHeight = 240;
 	u_int32_t esConfigSize = 0;
 	u_char vopType = 0;
+	bool foundVOSH = false, foundVO = false, foundVOL = false;
 
 	// start reading objects until we get the first VOP
 	while (LoadNextObject(inFile, pObj, &objSize, &objType)) {
@@ -222,12 +223,15 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		if (objType == MP4AV_MPEG4_VOSH_START) {
 			MP4AV_Mpeg4ParseVosh(pObj, objSize, 
 				&videoProfileLevel);
-
+			foundVOSH = true;
+		} else if (objType == MP4AV_MPEG4_VO_START) {
+		  foundVO = true;
 		} else if (objType == MP4AV_MPEG4_VOL_START) {
 			MP4AV_Mpeg4ParseVol(pObj, objSize, 
 				&timeBits, &timeTicks, &frameDuration, 
 				&frameWidth, &frameHeight);
 
+			foundVOL = true;
 #ifdef MP4V_DEBUG
 			printf("ParseVol: timeBits %u timeTicks %u frameDuration %u\n",
 				timeBits, timeTicks, frameDuration);
@@ -241,6 +245,25 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		pObj += objSize;
 	}
 
+	if (foundVOSH == false) {
+	  fprintf(stderr, 
+		  "%s: no VOSH header found in MPEG-4 video.\n"
+		  "This can cause problems with players other than mp4player included\n"
+		  "with this package.\n", ProgName);
+	}
+	if (foundVO == false) {
+	  fprintf(stderr, 
+		  "%s: No VO header found in mpeg-4 video.\n"
+		  "This can cause problems with players other than mp4player\n",
+		  ProgName);
+	}
+	if (foundVOL == false) {
+	  fprintf(stderr, 
+		  "%s: fatal: No VOL header found in mpeg-4 video stream\n",
+		  ProgName);
+	  return MP4_INVALID_TRACK_ID;
+	}
+		  
 	// convert frame duration to canonical time scale
 	// note zero value for frame duration signals variable rate video
 	if (timeTicks == 0) {

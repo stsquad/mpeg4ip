@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_thread.c,v 1.2 2002/05/01 17:40:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_thread.c,v 1.3 2002/10/07 21:21:40 wmaycisco Exp $";
 #endif
 
 /* System independent thread management routines for SDL */
@@ -52,12 +52,6 @@ int SDL_ThreadsInit(void)
 {
 	int retval;
 
-#ifdef ENABLE_PTH
-	if (!pth_init()) {
-		return -1;
-	}
-#endif
-
 	retval = 0;
 	/* Set the thread lock creation flag so that we can reuse an
 	   existing lock on the system - since this mutex never gets
@@ -86,10 +80,6 @@ void SDL_ThreadsQuit()
 	if ( mutex != NULL ) {
 		SDL_DestroyMutex(mutex);
 	}
-
-#ifdef ENABLE_PTH
-	pth_kill();
-#endif
 }
 
 /* Routines for manipulating the thread list */

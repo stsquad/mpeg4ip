@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dmaaudio.c,v 1.3 2002/05/01 17:40:36 wmaycisco Exp $";
+ "@(#) $Id: SDL_dmaaudio.c,v 1.4 2002/10/07 21:21:35 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -377,6 +377,7 @@ static int DMA_OpenAudio(_THIS, SDL_AudioSpec *spec)
 				}
 				break;
 			default:
+				format = 0;
 				break;
 		}
 		if ( ! format ) {
