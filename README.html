@@ -1,0 +1,824 @@
+<html>
+<head><title>MPEG4IP README</title></head>
+<body bgcolor="#ffffff">
+<a NAME="top">
+<b><font color="#0000FF">MPEG4IP README</font></b><br>
+February 04, 2003
+<P>
+<font face="Arial" color="#0000FF" size=-1>
+<b>
+<p><a href="#Project">MPEG4IP Project </a>
+<br><a href="#Overview">Overview</a>
+<br><a href="#legal">Legal</a>
+<br><a href="#build">Building and Installing</a>
+<br><a href="#config">Configure Script Options</a>
+<br><a href="#dss">Darwin Quicktime Streaming Server</a>
+<br><a href="#os">OS Supported</a>
+<br><a href="#executables">Executables</a>
+<br><a href="#exnotes">Executables Notes</a>
+<br><a href="#directory">Directory Structure</a>
+<br><a href="#standards">Standards Compliance</a>
+<br><a href="#latency">Latency in mpeg4ip</a>
+<br><a href="#player">Player Information</a>
+<br><a href="#problems">Known Problems</a>
+</b>
+</font>
+<font face="Arial">
+<P>
+<a NAME="Project">
+<b><font color="#0000FF">MPEG4IP Project</font></b>
+<P>
+The MPEG4IP project provides a standards-based system for encoding, 
+streaming, and playing MPEG-4 encoded audio and video. To achieve 
+this we've integrated a number of existing open source packages, and 
+also created some original code to fill in the gaps.
+<P>
+Please note this project is intended for developers who are interested
+in MPEG-4 audio and video, and Internet streaming. It is not intended
+for end-users. Please read all the legal information in the file <a href="COPYING">COPYING</a>!
+<P>
+Also note that the primary development focus of this project is the 
+Linux platform. If you're going to use the package on other platforms,
+especially non-UNIX platforms, you'll probably have some work to do.
+<P>
+Please use the SourceForge site to report problems, suggest enhancements,
+ask questions, etc. The URL is <a href="http://www.sourceforge.net/projects/mpeg4ip">http://www.sourceforge.net/projects/mpeg4ip</a>
+<P>
+There is also a project web site at <a href="http://www.mpeg4ip.net/">http://www.mpeg4ip.net/</a> that has some general information on MPEG4IP.
+<P>
+We also have a guide to MPEG4IP donated by everwicked.  See
+<a href="doc/MPEG4IP_Guide.pdf">doc/MPEG4IP_Guide.pdf</a>.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="Overview">
+<b><font color="#0000FF">Overview</font></b>
+<P>
+There are two ways to use MPEG4IP to create content:
+<P>
+The older method assumes that you've somehow managed to capture raw audio
+and/or video into a file. That's the starting point from which you can use
+the MPEG4IP encoding tools to create an MP4 file. The simplest method being 
+to use the 'mp4encode' script. Detailed instructions for this script and the
+individual tools that it uses are in <a href="doc/encoding/encoding.htm">doc/encoding/encoding.htm</a>  
+<P>
+The newer method is an integrated live encoding tool called mp4live.  This 
+program is designed to make it easy to create MP4 files or transmit live
+audio/video streams over the network. It can even do both things 
+simultaneously!  The key requirement to use this tool is to have a video 
+capture device and a Video for Linux (v4l) driver for it. So far we've 
+tested with the bttv driver for Brooktree based video capture cards, and 
+the qce driver for Logitech QuickCam Express USB webcams. Both of these 
+solutions can be acquired for about $50 US! Please see the file 
+<a href="server/mp4live/README.html">server/mp4live/README.html</a> for more information about mp4live.
+<P>
+Once an MP4 file is prepared, it can be placed in the content 
+directory of a streaming server. We typically use Apple's Darwin Streaming 
+Server, but any server that understands MP4 files (or hinted Quicktime 
+files) can be used. 
+<P>
+When the content is encoded and available on the server, you can run
+the player. Start 'gmp4player' and then enter the RTSP URL to the server 
+and the content, (command line works too). E.g.<br>  
+    &nbsp;&nbsp;&nbsp;&nbsp;<code>$ gmp4player rtsp://myserver.mydomain.com/mycontent.mp4</code>
+<P>
+Although we're focussed on streaming, the player will also playback from
+a local file. E.g<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<code>$ gmp4player mycontent.mp4</code>
+<P>
+That's not all! The player is not limited to local playback of MP4 files.
+It can also read AVI, CMP, DIVX, AAC, MP3, and WAV. This is useful for 
+debugging since the encoded data can be check independently of the MP4 
+file container, and known good content, such as your favorite MP3, can be 
+used to verify that the player is working correctly with your hardware. E.g.<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<code>$ gmp4player mymusic.mp3</code>
+<P>
+And that's still not all... You can set up your player to run a playlist
+by creating a simple text file with the extension .mp4plist, with
+each item (file or stream) on it's own line.
+<P>
+Note: If you prefer a no UI version of the player, or your system does not
+include GTK or GLIB, just the bare video window, 'mp4player' is available 
+to fit that need.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="legal">
+<b><font face="Arial" color="#0000FF" size=-1>Legal:</font></b>
+<P>
+Please see the file <a href="COPYING">COPYING</a>.
+
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="build">
+<b><font color="#0000FF">Building and Installing</font></b>
+<P>
+We are now (as of release 0.9.5) using make dist for our tarball.  To
+build, you should only have to issue the following:<br>
+<blockquote>
+<code>
+./bootstrap &lt;params for configure&gt;<br>
+make<br>
+make install (needs root privileges).<br>
+</code>
+</blockquote>
+<P>
+We no longer include lame in our distribution; however, we require
+lame version 3.92 or later for mp4live.  This may change at some point, 
+but for now, it is required.  If you wish to make without mp4live, you 
+can give the <code>--disable-mp4live</code> or <code>--disable-server</code> arguments.  Neither
+the bootstrap or cvs_bootstrap scripts will allow you to build without
+lame installed.
+<P>
+If you don't have root privileges, but still wish to install the 
+distribution to a directory to which you do have write permission,
+then here is an example of how to do that:
+<P>
+<blockquote>
+<code>
+   mkdir -p $HOME/local/bin $HOME/local/lib<br>
+   ./bootstrap --prefix=$HOME/local<br>
+   make<br>
+   make install<br>
+</code>
+</blockquote>
+<P>
+If this process works for you, you can skip down to the next section on 
+Configure Script Options.  If this does not work, or you have downloaded 
+from CVS, the below applies.
+<P>
+We've built the distribution using GNU autoconf, automake and libtool.
+We have attempted to follow the GNU conventions for open source packages. 
+This is complicated by the fact that we build on many other packages. Where 
+the package was already using the GNU tools, we left things alone. Where 
+the package was using it's own Makefile, we left things alone if it was a 
+complicated Makefile. If it was straightforward we replaced it with an 
+equivalent automake file.
+<P>
+If you have to install any of these tools (for example, automake is
+not included with Mac OS X), find out where the others are installed
+(which autoconf). If the path does not start with /usr/local, use the
+<code>configure --prefix=&lt;path before /bin on other packages&gt;</code>
+<P>
+For example, if autoconf is in /usr/bin, use the <code>configure --prefix=/usr</code>
+command when installing automake or libtools.
+<P>
+Note: libtool is frequently not installed on Linux systems (autoconf, 
+and automake generally are). You can download libtool from a GNU mirror
+site, or <a href="http://download.sourceforge.net/mpegip/libtool-1.3.5.tar.gz">http://download.sourceforge.net/mpegip/libtool-1.3.5.tar.gz</a>
+<P>
+In order to compile mpeg4ip from CVS, we require the following tools:<br>
+<a href="http://www.gnu.org/software/gcc/">gcc 3.2 or greater</a><br>
+<a href="http://www.gnu.org/software/libtool/libtool.html">libtool 1.4.3</a><br>
+<a href="http://www.gnu.org/software/autoconf/autoconf.html">autoconf 2.53</a><br>
+<a href="http://www.gnu.org/software/automake/automake.html">automake 1.6</a><br>
+<P>
+If you don't have these tools and are trying to compile from CVS, don't
+complain.
+<P>
+Be sure to read the OS specific section later before continuing here.
+<P>
+In general, the code should be portable, but as someone once said 
+"There's no such thing as portable code, just code that has been ported." 
+When you find problems please be sure to use the SourceForge site to tell 
+us what you encountered, and hopefully how you fixed it.
+<P>
+To build:<br>
+<blockquote>
+<code>
+  ./cvs_bootstrap &lt;arguments to pass to configure scripts&gt;<br>
+ make<BR>
+ make install (optional, typically need root privileges)<br>
+</code>
+</blockquote>
+<P>
+The bootstrap script will pass any arguments to the configure scripts.
+<P>
+For the curious, the bootstrap script invokes the configure scripts of 
+the included packages that have them, and then our own top level configure 
+script is generated and run. At the end of this process all the Makefile's
+are ready, and setup in the correct hierarchy. If this doesn't work for you,
+you're free to hack as needed ;-)  
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="config">
+<b><font color="#0000FF">Configure Script Options</font></b>
+<P>
+Two options of potential interest are <code>--disable-server</code> and <code>--disable-player</code>
+which disable the building of the server and player respectively. By
+default both server and player are built.
+<P>
+If you are building on a system with an Intel x86 CPU clone, you may
+need to specify the configuration option <code>--enable-mmx=no</code>. The
+configuration script automatically detects an x86 target CPU and 
+enables MMX assembly code in the build (if the NASM assembler is available).
+If your CPU doesn't support MMX instructions you will want to disable 
+this feature.  The configure script will also check for the minimum
+version of nasm supported; we require 0.98.19 or greater.
+<P>
+To build with IPv6 support, use the <code>--enable-ipv6</code> command option.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="dss">
+<b><font color="#0000FF">Darwin Quicktime Streaming Server</font></b>
+<P>
+Please note that the Apple Darwin Quicktime Streaming Server is NOT distributed
+with mpeg4ip. It can be downloaded from Apple, <a href="http://www.apple.com/">http://www.apple.com/</a> as either
+source or pre-built binaries. For those who choose the source option, below is
+the express version of the build and install process for the Darwin Streaming
+Server:
+<P>
+To build the Darwin Streaming Server:
+<P>
+<blockquote>
+<code>
+    cd DSS4<br>
+    ./Buildit<br>
+</code>
+</blockquote>
+<P>
+To install the Darwin Streaming Server from the build:
+<blockquote>
+<code>
+    cd DSS4<br>
+    mkdir Dist<br>
+    ./DSS_MakeRoot -f Dist<br>
+    cd Dist<br>
+    ./Install    (need root privileges)<br>
+</code>
+</blockquote>
+<P>
+See the documentation that accompanies the server on how to configure it
+for your environment. 
+<P>
+Note the default content directory is /usr/local/movies.
+<P>
+There are some sample mp4 files available on the mpeg4ip SourceForge 
+download area. Also Envivio, <a href="http://www.envivio.com/">http://www.envivio.com/</a>, has some sample mp4 
+files. We suggest first downloading one of these samples and try opening 
+the file with gmp4player. If that works, then try copying the file to the 
+streaming server's content directory (e.g. /usr/local/movies), and enter 
+the appropriate RTSP URL in gmp4player.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="os">
+<b><font color="#0000FF">OS Supported</font></b>
+<P>
+Currently, we have compiled and tested on the following platforms:
+linux, freeBSD, BSD/OS, Solaris and windows.  For all varieties
+of *nux, X11 is required.
+<P>
+To date we've built on Red Hat Linux 6.1, 6.2, 7.0, 7.1, and 7.2 with
+the native compilers, on 7.1 and 7.2 with gcc 3.0, and on 7.3 with gcc 3.1.  
+<P>
+<b>Windows</b>
+<P>
+For windows, Visual Studio 6.0 projects are included.  You will need
+to install nasm in the VC98/bin directory before compiling.  You should
+get nasm-0.98.22-win32.zip from the nasm web site.  You will need to 
+rename nasmw.exe to nasm.exe.  We recommend getting Service Pack 5.
+<P>
+Use the encoding60.dsw project for encoding tools, and the 
+player/src/player60.dsw for the player.
+<P>
+We recommend installing DirectX 8.1 or later.  If that is not possible, 
+and you have problems with video, try uncommenting out #define OLD_SURFACE
+in player/src/video.cpp. Other than that, you'll have to figure it
+out yourself - libsdl.org is a good resource.
+<P>
+To run mp4player other than in Visual Studio, install both mp4player.exe 
+and SDL.DLL into a directory on your Window's path (install them into
+the same directory).   You will also need to install all the plugin
+.dlls into the same directory as well.  Look for the *_plugin projects
+in player60.dsw.
+<P>
+In encoding60.dsw and player60.dsw, if you do a batch build, you will
+see several projects that do not build correctly - these are Lame
+with GTK, and common with IPv6.  This is as designed.  If you want
+these to build, please see the appropriate package creator for the
+correct steps - they are not supported in mpeg4ip.
+<P>
+For windows GUI player, see below section.
+<P>
+<b>Mac OSX</b>
+<P>
+We haven't been able to build mpeg4ip on a MAC for quite some
+time.  We just don't understand the toolchains, and it's not a
+high priority for us.  One of our forum member (yakima) sent us
+the following steps:
+<P>
+- updated automake -&gt; 1.6.3<br>
+- installed DLCompat (dlfcn.h etc., see above)<br>
+- bootstrap w/ <code>--disable-shared --disable-mp4live</code><br>
+- make w/ <code>LDFLAGS='-flat_namespace -undefined warning' </code><br>
+<P>
+Version 0.9.7.2 should have the other changes required to get this
+to compile.  He didn't have any luck with the player plugins, and
+we hope to get that done before the next release.
+<P>
+This makes the below accurate again.
+<P>
+/*<br>
+When building on Mac OSX, you may get an error that libtoolize is
+not installed correctly.  Mac OSX comes with libtool installed as
+glibtool.  Automake (which doesn't come included with OSX) does not
+correct its scripts.
+<P>
+To fix this problem, do a link of libtoolize to glibtoolize (ie:
+<code>ln -s libtoolize glibtoolize</code> wherever glibtoolize is installed).
+<P>
+You should also use the <code>--disable-shared</code> command when issuing the
+bootstrap shell.  This should be done for you if you use the project
+builder project.  
+<P>
+We've tested the latest build on OSX, and have some strange results
+at times.  Your mileage may vary.<br>
+*/
+<P>
+<b>Slackware</b>
+<P>
+When building on Slackware-8.0, you need to consider the following 
+(from maersk):
+<blockquote>
+  The Slackware distribution does not as standard come with shared 
+  libraries for libXv and libXxf86dga. In other cases, where you 
+  have upgraded from xfree86 version 4.0 to 4.1, you may not have 
+  compiled the shared versions. The fix to this is in general is this:
+<P>
+<code>
+  # pushd /usr/X11R6/lib<br>
+  # rm -f libXv.so libXxf86dga.so<br>
+  # ld --whole-archive -shared -o \<br>
+      libXv.so libXv.a<br>
+  # ld --whole-archive -shared -o \<br>
+      libXxf86dga.so libXxf86dga.a<br>
+  # popd<br>
+</code>
+</blockquote>
+<P>
+  Note that you need to be root to do this.
+<P>
+<b>Solaris</b>
+<P>
+When building on Solaris, libtool and gnu make must be installed and
+used.  If libtool is installed, you make get a warning message that
+common libraries made with gcc less than 3.0 might have problems, 
+ignore it, but don't take binary libraries from any other machines.
+<P>
+<b>General UNIX</b>
+<P>
+If you have built a previous version of mpeg4ip, do a make uninstall first,
+or go in and remove libsndfile from your shared libraries directory, unless
+you have another version installed.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="executables">
+<b><font color="#0000FF">Executables</font></b>
+<P>
+If you ran 'make install' with the defaults, then all the MPEG4IP executables
+will end up in /usr/local/bin. 
+<P>
+For encoding tools, you get:<br>
+<table>
+<tr>
+  <td align="left">mp4live</td>     
+  <td align="left" colspan=2>Integrated, live encoding to file or network - Linux only</td>
+</tr>
+<tr>
+  <td align="left" rowspan=7 valign="top">mp4encode</td>   
+  <td align="left" colspan=2 valign="top">Front-end script to the following encoding tools:</td>
+</tr>
+<tr>
+  <td align="left">avi2raw</td>     
+  <td align="left">Extracts raw audio/video tracks from an AVI file</td>
+</tr>
+<tr>
+  <td align="left">lboxcrop</td>    
+  <td align="left">Vertically crops raw video to a new aspect ratio</td>
+</tr>
+<tr>
+  <td align="left">faac</td>        
+  <td align="left">Encodes raw audio into MPEG-4 AAC encoded audio</td>
+</tr>
+<tr>
+  <td align="left">mp4venc</td>     
+  <td align="left">Encodes raw video into MPEG-4 encoded video using ISO codec</td>
+</tr>
+<tr>
+  <td align="left">mp4creator</td>  
+  <td align="left">Creates and hints audio/video tracks to an mp4 file</td>
+</tr>
+<tr>
+  <td align="left">xvidenc</td>     
+  <td align="left">Encodes raw video into MPEG-4 encoded video using the Xvid codec</td>
+</tr>
+</table>
+<P>
+These are described in more detail in doc/encoding/encoding.htm
+<P>
+A few debugging tools are also included:<br>
+<table>
+<tr>
+  <td align="left">mp4extract</td>
+  <td align="left">Utility to extract tracks from an MP4 file</td>
+</tr>
+<tr>
+  <td align="left">mp4dump</td>
+  <td align="left">Utility to dump MP4 file meta-information in text form</td>
+</tr>
+<tr>
+  <td align="left">mp4info</td>
+  <td align="left">Utility to display MP4 file summary</td>
+</tr>
+<tr>
+  <td align="left">avidump</td>
+  <td align="left">Utility to display AVI file summary</td>
+</tr>
+<tr>
+  <td align="left">yuvdump</td>
+  <td align="left">Utility to display a raw video file on the screen</td>
+</tr>
+</table>
+<P>
+For playback, you get:
+<P>
+<table>
+<tr>
+  <td>gmp4player</td>  
+  <td>Simple graphical interface player</td>
+</tr>
+<tr>
+  <td>mp4player</td>   
+  <td>Bare video window with sync'ed audio</td>
+</tr>
+</table>
+<P>
+If you installed the Darwin Streaming Server, those executables will end
+up in /usr/local/sbin.
+<P>
+DarwinStreamingServer    Provides streaming service for MP4 files
+PlaylistBroadcaster      Provides multicast playlist service for MP4 files
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="exnotes">
+<b><font color="#0000FF">Executable Notes</font></b>
+<P>
+<b>FAAC and FAAD</b>
+<P>
+In our desire to make the package smaller, we have removed SNDFILE.
+This has the effect of allowing FAAC to only encode raw PCM files,
+unless bootstrap detects that SNDFILE is installed.  We do not have
+the complete version of FAAD, so the faad standalone decoder will not
+build.
+<P>
+If the existing translation behaviour of FAAC is required, please
+obtain SNDFILE and install it, then re-run bootstrap and make for
+*nux base platforms.  For windows based platforms, obtain a fresh
+copy of faac and use it instead of the one in our package.
+<P>
+An even better idea would be to obtain the complete faac/faad package
+from <a href="http://www.audiocoding.com">http://www.audiocoding.com</a>.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="directory">
+<b><font color="#0000FF">Directory Structure</font></b>
+<P>
+If you're going to start hacking, a map of the territory may prove useful:
+<P>
+<b>mpeg4ip</b> - top level project directory
+<P>
+<b>config</b> - autoconf files
+<P>
+ <b>doc</b> - the minimal doc we've written so far<br>
+        |-&gt; encoding - how to encode content<br>
+        |-&gt; ietf - copies of the relevant RFC's<br>
+        |-&gt; mcast - how to multicast<br>
+        |-&gt; mp4v2 - man pages for mp4v2 library<br>
+        |-&gt; programs - man pages for core programs
+
+<P>
+<b>include</b> - project wide includes 
+<P>
+<b>common</b> - shared code<br>
+|-&gt; video<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+libmpeg32 - mpeg1/2 encoder/decoder<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+mpeg4 -  ISO MPEG-4 video encoder/decoder<br>
+
+<P>
+<b>lib</b> - project wide libraries<br>
+        |-&gt; SDL - Simple DirectMedia Layer<br>
+        |-&gt; avi - AVI file format<br>
+        |-&gt; bitstream - MPEG style low level bitstream utlity<br>
+        |-&gt; config_file - Configuration file utility<br>
+        |-&gt; gnu<br>
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt; 
+           getopt - gnu getopt routines<br>
+        |-&gt; mp4 - MP4 (aka MOV/Quicktime) file format library<br>
+        |-&gt; mp4v2 - new MP4 library written from scratch<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            test - contains some test programs<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            util - contains new mp4dump and mp4extract utilities<br>
+	|-&gt; mpeg2t - mpeg2 transport stream utilities<br>
+        |-&gt; msg_queue - SDL based Inter-thread messages utlity<br>
+        |-&gt; rtp - UCL RTP <br>
+        |-&gt; sdp - Our own SDP<br>
+        |-&gt; win32 - libary files need for MS Windows<br>
+	|-&gt; xvid - xvid video encoder/decoder<br>
+<P>
+<b>player</b> - player specific code<br>
+        |-&gt; lib - libraries specifically for the player<br>
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt; 
+            audio<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+                faad - FAAD AAC decoder<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+                mp3 - MP3 decoder<br>
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt; 
+            libhttp - Our own http client<br>
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            rtsp - Our own RTSP client <br>
+        |-&gt; plugin - home of player plugins<br>
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            audio - audio plugins<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               raw - raw audio plugin<br>
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+	    rtp - rtp bytestream plugins<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+	       h261 - h261 rtp plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               isma_audio - isma audio format plugin<br>
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            video - video plugins<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               raw - raw video plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               mpeg3 - mpeg1/2 video plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+ 	       xvid - xvid video plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+               h261 - h261 decoder<br>
+        |-&gt; src - the player executable<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            codec  <br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+                aa - aac plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+                mp3 - mp3 plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+                mpeg4 - mpeg4 ISO decoder plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+                wav - wav plugin<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            osx - Mac OS X UI<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+	    win_common - common windows code<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            win_client - windows client<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            win_gui - windows gui code.<br>
+<P>
+<b>server</b> - server specific code<br>
+        |-&gt; audio<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            faac - AAC encoder program<br>
+        |-&gt; mp4creator - create and hint A/V tracks to an mp4 file<br>
+        |-&gt; mp4live - mp4 live encoding interface<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            gui - gtk gui for mp4 live.<br>
+        |-&gt; util<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            avi2raw - extract raw A/V data from AVI files<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            avidump - dump AVI meta information.<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            lboxcrop - vertically crop raw video <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            mp4encode - front-end script to simplify encoding process<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            rgb2yuv - rgb to yuv converter<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+            xvidenc - command line interface to Xvid MPEG-4 encoder<br>
+        |-&gt; video<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
+       	    H26L - ITU H.26L TML 9.4 reference video encoder (EXPERIMENTAL)<br>
+<P>
+<b>util</b> - generally useful utilities<br>
+	|-&gt; iptv - read Cisco IP/TV programs from a content manager<br>
+        |-&gt; yuv - simple tools for examining raw video<br>
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="standards">
+<b><font color="#0000FF">Standards Compliance</font></b>
+<P>
+We're not only supporters of open source, we're supporters of open standards!
+We've attempted to use the publically defined standards as much as possible.
+Here's what we believe we are following. If you find something non-compliant,
+please let us know. We certainly will want to fix it.
+<P>
+Here are the citations:
+<P>
+ISO/IEC 14496-1:2001 MPEG-4 Systems (includes MP4 file format)<br>
+ISO/IEC 14496-2:2000 MPEG-4 Video<br>
+ISO/IEC 14496-3:1999 MPEG-4 Audio (includes AAC)<br>
+ISO/IEC 11172-3:1993 MPEG-1 Audio (includes MP3)<br>
+ISO/IEC 13818-3:1998 MPEG-2 Audio (includes extensions to MP3)<br>
+ISO/IEC 13818-7:1997 MPEG-2 AAC<br>
+<P>
+The ISO/IEC documents must be purchased from either ISO (<a href="http://www.iso.ch">www.iso.ch</a>) or one of the national bodies.
+In the US, ANSI is the representative body, and provides an online store under <a href="http://www.ansi.org">www.ansi.org</a>
+<P>
+<table>
+<tr>
+  <td align="left" valign="top">IETF RFC 1889 & 1890</td>
+  <td align="left">RTP</td>
+</tr>
+<tr>
+  <td align="left" valign="top">IETF RFC 2326</td>
+  <td align="left" valign="top">RTSP</td>
+</tr>
+<tr>
+  <td align="left" valign="top">IETF RFC 2327</td> 
+  <td align="left" valign="top">SDP</td>
+</tr>
+<tr>
+  <td align="left" valign="top">IETF RFC 2250</td>
+  <td align="left" valign="top">RTP Payload for MPEG-1/2<br>
+  <i>Note: we're just using the audio part for MP3 (and video reception for the player).</i></td>
+</tr>
+<tr>
+  <td align="left" valign="top">IETF RFC 3119</td> 
+  <td align="left" valign="top">A More Loss-Tolerant RTP Payload Format for MP3 Audio</td>
+</tr>
+<tr>
+  <td align="left" valign="top">IETF RFC 3016</td> 
+  <td align="left" valign="top">RTP Payload for MPEG-4 Audio/Visual<br>
+    <i>Note: we're implementing the MPEG-4 video part</i></td>
+</tr>
+<tr>
+  <td align="left" valign="top">IETF draft-ietf-avt-mpeg4-simple-06.txt</td> 
+  <td align="left" valign="top">work in progress<br>
+    <i>Note: we're implementing the AAC audio part, and for the next
+    release will finalize implementation.</i></td>
+</tr>
+</table>
+<P>
+The IETF RFCs can be found in <a href="doc/ietf">mpeg4ip/doc/ietf</a>
+<P>
+
+Note the MP4 file format is derived from Apple's QuickTime file format.
+That specification is:
+<P>
+Apple Computer QuickTime File Format, June 28 2000
+<a href="http://developer.apple.com/quicktime/">http://developer.apple.com/quicktime/</a>
+<P>
+We're also involved in the Internet Streaming Media Alliance (ISMA) 
+which seeks to standardize the protocols and formats used for streaming.
+We believe MPEG4IP is interoperable with that organization's 1.0 Technical 
+Specification. For more information see <a href="http://www.isma.tv">http://www.isma.tv</a>
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="latency">
+<b><font color="#0000FF">Latency in mpeg4ip</font></b>
+<P>
+There have been enough questions to merit a place in the README about
+the latency in mpeg4ip.
+<P>
+First of all, mpeg4ip is not designed for video conferencing or real
+time display of data.  Most streaming products are not (look at Real
+or Quicktime's buffering schemes - QT buffers 3.0 seconds of data, 
+while Real can buffer up to 30-40 seconds).
+<P>
+When you need to look at latency in a streaming environment, you need
+to look at each potential piece.  In the simplest case (mp4live to 
+mp4player), there are 5 potential places where latency can take place - 
+at mp4live, in the kernel IP transmit stack, in the network, in the
+kernel IP receive stack and in the player.
+<P>
+Mp4live has very little latency.  In video, it tends to be 1 frame.  In
+audio, it tends to be 3-4 audio frames (if using AAC, frames tend to
+be 1024 samples.  MP3 tends to be 1152 samples, but can change based on
+sampling frequency and bit rate.  Samples can be converted to seconds by
+dividing by the sample rate).
+<P>
+The kernel IP stacks can have some latency built in, as well.  Probably
+not too much, but you should be aware that it can exist (look at a sniffer
+trace of DSS output and you'll see what I mean).
+<P>
+Network latency can occur, as well.  Collisions, etc, can happen, especially
+if server and player are not on the same network.
+<P>
+Finally, the player has latency as well.  For streaming, we tend to buffer
+2 seconds for each stream.  This is changeable by setting the 
+RtpBufferTimeMsec variable in the .gmp4player_rc file (for Windows users, 
+you'll have to change the registry to do so).  The value is in milliseconds, 
+and you need to set it to a non-zero value (0 indicates the default value).
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="player">
+<b><font color="#0000FF">Player Information</font></b>
+<P>
+See the new <a href="player/src/README.html">README.html</a> in player/src.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a NAME="problems">
+<b><font color="#0000FF">Known Problems</font></b>
+<P>
+<ul>
+
+  <li> There have been some changes to the MPEG4 AAC DTS headers in the
+  latest version of the MPEG4 specification.  This renders previous
+  .aac files pretty much obsolete.  We have NOT made this change to 
+  mpeg4ip - we will make it in the next release.
+<P>
+  <li> If you're playing through a NAT box, you may have to specify the
+  default client IP ports.  Use the command 
+  <code>RtpIpPortMin=&lt;port&gt;</code> and 
+  <code>RtpIpPortMax=&lt;port&gt;</code> 
+  in the .gmp4player_rc file created in your home
+  directory.  The IETF recommends a range of 6970 to 6999.
+<P>
+  <li> The ISO MPEG-4 video codec bitrate control feature is broken. We've
+  heard that a fix is available, so we're trying to track that down.
+<P>
+  <li> The player for windows is sketchy at best.  We have included project
+  files that should build for Dev Studio 6.0.  We recommend installing 
+  DirectX 8.1 or later.  If that is not possible, and you have problems 
+  with video, try uncommenting out <code>#define OLD_SURFACE</code> in <a href="player/src/video.cpp">player/src/video.cpp</a>.
+<P>  
+  <li> If you have problems with choppy playback, and you're using Windows 98, 
+  forget about it.  The timer tick time is too slow (55 msec) for us to
+  use effectively.  Try Quicktime or Real with Envivio, or update to a
+  newer Windows OS.
+<P>
+  <li> Mac OSX player sometimes will lock up, or stop playing video while
+  continuing the audio - we need someone to help us add the sound buffer 
+  delay to get really good audio/video sync.
+<P>
+  <li> FreeBSD based OS's have a problem with thread delays.  This can 
+  cause the player to skip rendering many frames.  If you have this
+  problem update to the latest version of FreeBSD - the problem still
+  can occur, but is reduced. 
+<P>
+  <li>
+  This is due to an error in the thread scheduling code that causes a problem
+  with a delay of less than the thread scheduler quantum (200 msec in
+  some versions, 20 in others).  Since the average delay used is 9
+  to 10 msec (less as we get closer to the video rendering time), this
+  can have a great effect on video playback.
+ <P> 
+  You can get around this error by rebuilding your libc, after changing the
+  <code>THREAD_SCHED_USECS</code> to 20000 (or lower) from 200000 in thread_private.h.
+<P>
+  <li> If you're running on Linux, and trying to play a raw audio file, and 
+  notice that you get garbage, try setting the <code>LimitAudioSdlBuffer</code> config
+  variable to 1 in the .gmp4player_rc file.  This seems to occur on a 
+  Soundblaster Live, Red Hat 7.3 machine.
+<P>
+  <li> As the RTP standard (or new draft) suggests, the round trip delay can
+  be approximated at the sender side by subtracting the intercepted time 
+  of a RTCP SR and the delay at the client side from the intercepted time 
+  of the corresponding RTCP RR. That is:<br>
+         RRT = Time_RR - Time_SR - Time_delay_at_client.
+<P>
+  However, as the Windows run-time library only provides up to 1 millisecond 
+  resolution (0.001 sec), such measurement on Windows machines on a LAN may 
+  be very inaccurate.
+<P>
+  A typical RRT between two hosts on a LAN is around 0.5 millisecond.  
+  Measurements between Linux/Unix boxes have no such a problem. 
+<P>
+  <li> It appears that mpeg audio created and hinted with our mp4creator do not
+  work correctly with Quicktime when streaming.  This is most likely because 
+  we use a dynamic RTP payload number and a RTP TS frequency that matches 
+  the sampling frequency.  QT seems to only like an RTP payload of 14 and 
+  a RTP TS frequency of 90000. (This is with QT 6.0).  This will work with
+  mpeg 1/2 files, or if you use <code>-timescale=90000</code> when using mp4creator with
+  mp3 files.  If you're using mp4live to stream audio, use the 
+  <code>rtpUseMp4RtpPayload14</code> config file option.
+<P>
+  Neither QT or Real appear to understand mpeg1/2 or mp3 content in a .mp4
+  container file for local playback.
+</ul>
+<P>
+<a href="#top">Back to top</a>
+<P>
+=== END OF README ===
+
+</font>
+</body>
+</html>

@@ -1,3 +1,6 @@
+xx/xx/xx Version 0.9.9
+    Added H.261 encoding for mp4live
+
 03/05/03 Version 0.9.8
     Several changes from ISMA plugfest in IOD and RTSP.
     Fixed audio/video sync problem in mp4live, plus some other problems
