@@ -23,10 +23,7 @@
  */
 #ifndef __SDP_H__
 #define __SDP_H__
-
-#include <stdint.h>
-#include <time.h>
-#include <netinet/in.h>
+#include "systems.h"
 #include "sdp_error.h"
 
 #ifndef TRUE

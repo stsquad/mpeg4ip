@@ -21,15 +21,11 @@
 /*
  * rtsp_util.c - mixture of various utilities needed for rtsp client
  */
-#include <stdlib.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <stdarg.h>
-#include <netdb.h>
+
+#ifndef _WINDOWS
 #include <sys/time.h>
-#include <unistd.h>
+#include <stdarg.h>
+#endif
 #include "rtsp_private.h"
 
 static int rtsp_debug_level = LOG_INFO;
@@ -148,6 +144,9 @@ void free_rtsp_client (rtsp_client_t *rptr)
   free_decode_response(rptr->decode_response);
   rptr->decode_response = NULL;
   free(rptr);
+#ifdef _WINDOWS
+  WSACleanup();
+#endif
 }
 
 /*
@@ -176,7 +175,7 @@ static int rtsp_set_and_decode_url (const char *url, rtsp_client_t *rptr)
     uptr += strlen("rtspu://");
 #endif
   } else {
-    return(EPFNOSUPPORT);
+    return(-1);
   }
 
   nextslash = strchr(uptr, '/');
@@ -258,6 +257,21 @@ rtsp_client_t *rtsp_create_client (const char *url, int *err)
 {
   rtsp_client_t *info;
 
+#ifdef _WINDOWS
+	WORD wVersionRequested;
+	WSADATA wsaData;
+	int ret;
+ 
+	wVersionRequested = MAKEWORD( 2, 0 );
+ 
+	ret = WSAStartup( wVersionRequested, &wsaData );
+	if ( ret != 0 ) {
+	   /* Tell the user that we couldn't find a usable */
+	   /* WinSock DLL.*/
+		*err = ret;
+	    return (NULL);
+	}
+#endif
   info = malloc(sizeof(rtsp_client_t));
   if (info == NULL) {
     *err = ENOMEM;

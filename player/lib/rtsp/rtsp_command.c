@@ -21,12 +21,7 @@
 /*
  * rtsp_command.c - process API calls to send/receive rtsp commands
  */
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include <rtsp_client.h>
+#include "rtsp_client.h"
 #include "rtsp_private.h"
 
 

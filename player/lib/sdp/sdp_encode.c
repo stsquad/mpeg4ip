@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sdp.h>
+#include "sdp.h"
 #include "sdp_decode_private.h"
 
 typedef struct sdp_encode_t {
@@ -264,7 +264,7 @@ static int encode_time (session_time_desc_t *tptr, sdp_encode_t *se)
 {
   uint64_t start, end;
   time_repeat_desc_t *rptr;
-  int ix;
+  size_t ix;
   char buffer[80];
   
   while (tptr != NULL) {

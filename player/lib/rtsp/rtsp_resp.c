@@ -21,11 +21,7 @@
 /*
  * rtsp_resp.c - process rtsp response
  */
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
+
 #include "rtsp_private.h"
 
 static const char *end2 = "\n\r\n\r";

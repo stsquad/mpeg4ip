@@ -6,7 +6,7 @@ librtsp_la_SOURCES = \
 	rtsp_resp.c \
 	rtsp_util.c 
 
-INCLUDES = -I../sdp
+INCLUDES = -I../sdp -I../../../include
 AM_CFLAGS = -DIPTV_COMPATIBLE -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
 check_PROGRAMS = test

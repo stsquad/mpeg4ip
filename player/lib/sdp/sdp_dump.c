@@ -31,14 +31,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sdp.h>
+#include <time.h>
+#include "sdp.h"
 #include "sdp_decode_private.h"
 
 static void time_repeat_dump (time_repeat_desc_t *trptr)
 {
   int morethan1;
   char buffer[80], *start;
-  int cnt, ix;
+  int cnt;
+  size_t ix;
 
   morethan1 = trptr != NULL && trptr->next != NULL;
   cnt = 0;

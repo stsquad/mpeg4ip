@@ -24,9 +24,13 @@
 #ifndef __RTSP_CLIENT_H__
 #define __RTSP_CLIENT_H__ 1
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <glob.h>
+#include "systems.h"
+#ifdef _WINDOWS
+#define LOG_ERR 3
+#define LOG_WARNING 4
+#define LOG_INFO 6
+#define LOG_DEBUG 7
+#endif
 
 #ifdef __cplusplus
 extern "C" {

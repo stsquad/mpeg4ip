@@ -18,10 +18,8 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
-#include <stdint.h>
-#include <netinet/in.h>
-#include <sys/syslog.h>
-#include <rtsp_client.h>
+#include "systems.h"
+#include "rtsp_client.h"
 
 #ifndef __BOOL__
 #define __BOOL__

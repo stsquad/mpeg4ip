@@ -6,6 +6,8 @@ libsdp_la_SOURCES = \
 	sdp_dump.c \
 	sdp_util.c
 
+INCLUDES = -I../../../include
+
 AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
 check_PROGRAMS = test

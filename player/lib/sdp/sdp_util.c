@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sdp.h>
+#include "sdp.h"
 #include "sdp_decode_private.h"
 
 /*
@@ -184,7 +184,7 @@ format_list_t *find_format_in_line (format_list_t *head, char *lptr)
 void smpte_to_str (double value, uint16_t fps, char *buffer)
 {
   double div;
-  uint temp;
+  unsigned int temp;
   size_t index;
   if (fps == 0) fps = 30;
 

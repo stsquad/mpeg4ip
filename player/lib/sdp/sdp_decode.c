@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sdp.h>
+#include "sdp.h"
 #include "sdp_decode_private.h"
 
 #define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
@@ -638,7 +638,7 @@ static int convert_smpte (char *from, char *to, uint16_t fps, double *ret)
   int decimal = FALSE;
   double accum;
   double mult;
-  uint colon;
+  unsigned int colon;
 
   *ret = 0.0;
   mult = 0.0;

@@ -22,18 +22,10 @@
  * rtsp_comm.c - contains communication routines.  Written for linux -
  * if you need PC, you'll have to add some stuff.
  */
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <ctype.h>
-#include <string.h>
-#include <errno.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <sys/socket.h>
+#include "systems.h"
+#ifndef _WINDOWS
 #include <sys/poll.h>
-#include <time.h>
+#endif
 #include "rtsp_private.h"
 
 /*
@@ -116,8 +108,14 @@ int rtsp_send (rtsp_client_t *info, const char *buff, size_t len)
  */
 int rtsp_receive (rtsp_client_t *info)
 {
+
   int ret, totcnt;
+#ifndef _WINDOWS
   struct pollfd pollit;
+#else
+  fd_set read_set;
+  struct timeval timeout;
+#endif
   bool done;
   size_t bufflen;
   char *new;
@@ -126,11 +124,20 @@ int rtsp_receive (rtsp_client_t *info)
   info->recv_buff_used = 0;
   info->recv_buff_parsed = 0;
   do {
+#ifndef _WINDOWS
     pollit.fd = info->server_socket;
     pollit.events = POLLIN | POLLPRI;
     pollit.revents = 0;
 
     ret = poll(&pollit, 1, info->recv_timeout);
+#else
+	FD_ZERO(&read_set);
+	FD_SET(info->server_socket, &read_set);
+	timeout.tv_sec = info->recv_timeout / 1000;
+	timeout.tv_usec = (info->recv_timeout % 1000) * 1000;
+	ret = select(0, &read_set, NULL, NULL, &timeout);
+#endif
+
     if (ret <= 0) {
       rtsp_debug(LOG_ERR, "Response timed out %d %d", info->recv_timeout, ret);
       if (ret == -1) {
@@ -183,6 +190,7 @@ int rtsp_receive (rtsp_client_t *info)
     }
   } while (done == FALSE);
   return (totcnt);
+
 }
 
 /*
@@ -195,7 +203,13 @@ int rtsp_receive (rtsp_client_t *info)
 int rtsp_receive_more (rtsp_client_t *info, size_t more_cnt)
 {
   int ret;
+
+#ifndef _WINDOWS
   struct pollfd pollit;
+#else
+  fd_set read_set;
+  struct timeval timeout;
+#endif
   size_t bufflen;
 
   if (info->recv_buff_len < info->recv_buff_used + more_cnt) {
@@ -213,10 +227,19 @@ int rtsp_receive_more (rtsp_client_t *info, size_t more_cnt)
   }
   
   do {
+#ifndef _WINDOWS
     pollit.fd = info->server_socket;
     pollit.events = POLLIN | POLLPRI;
     pollit.revents = 0;
+
     ret = poll(&pollit, 1, info->recv_timeout);
+#else
+	FD_ZERO(&read_set);
+	FD_SET(info->server_socket, &read_set);
+	timeout.tv_sec = info->recv_timeout / 1000;
+	timeout.tv_usec = (info->recv_timeout % 1000) * 1000;
+	ret = select(0, &read_set, NULL, NULL, &timeout);
+#endif  
     if (ret <= 0) {
       return (-1);
     }
@@ -230,6 +253,7 @@ int rtsp_receive_more (rtsp_client_t *info, size_t more_cnt)
     info->recv_buff[info->recv_buff_used + ret] = '\0';
     more_cnt -= ret;
   } while (more_cnt > 0);
+
  return (0);
 }
 
@@ -239,6 +263,6 @@ int rtsp_receive_more (rtsp_client_t *info, size_t more_cnt)
  */
 void rtsp_close_socket (rtsp_client_t *info)
 {
-  close(info->server_socket);
+  closesocket(info->server_socket);
   info->server_socket = -1;
 }
