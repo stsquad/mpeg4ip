@@ -60,6 +60,9 @@ protected:
 	bool m_use_gmc;
 	bool m_use_qpel;
 	bool m_use_lumimask_plugin;
+	bool m_use_par;
+	int m_par;
+	int m_par_width, m_par_height;
 	//#define WRITE_RAW
 #ifdef WRITE_RAW
 	FILE *m_outfile;

@@ -32,7 +32,7 @@
 #else
 #define CHECK_MP2T_HEADER 
 #endif
-#define DEBUG_MPEG2T 1
+//#define DEBUG_MPEG2T 1
 /*
  * mpeg2 transport layer header routines.
  */

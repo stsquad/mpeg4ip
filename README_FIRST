@@ -15,11 +15,10 @@ Then come on over to the README, COPYING, NEWS and the rest of the
 documentation in the doc directory, including:
 
    doc/MPEG4IP_Guide.pdf - everwicked's guide to mpeg4ip
-   doc/encoding - how to encode using mpeg4ip
    doc/ietf     - IETF standards and proposed standards we are using.
    doc/mcast    - using mpeg4ip to multicast
    doc/mp4v2    - manual pages for mp4v2 library
-   server/mp4live/README - README for mp4live 
+   doc/*.htm*   - html documentation of READMEs, etc
 
 If you have questions, please try the SourceForge forums - please
 do not email us directly.

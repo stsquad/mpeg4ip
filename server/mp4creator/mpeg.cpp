@@ -200,6 +200,8 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
   uint32_t frame_num = 1;
   ismacryp_session_id_t ismaCrypSId;
   mp4v2_ismacrypParams *icPp =  (mp4v2_ismacrypParams *) malloc(sizeof(mp4v2_ismacrypParams));
+  MP4AV_Mp3Header hdr;
+  u_int8_t mpegVersion;
   memset(icPp, 0, sizeof(mp4v2_ismacrypParams));
 
   type = mpeg3_get_audio_format(file, astream);
@@ -221,8 +223,6 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
     fprintf(stderr, "No audio tracks in audio stream %d\n", astream);
     return MP4_INVALID_TRACK_ID;
   }
-  MP4AV_Mp3Header hdr;
-  u_int8_t mpegVersion;
   
   hdr = MP4AV_Mp3HeaderFromBytes(buf);
   mpegVersion = MP4AV_Mp3GetHdrVersion(hdr);

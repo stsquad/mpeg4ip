@@ -49,6 +49,30 @@ bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	m_use_qpel = pConfig->GetBoolValue(CONFIG_XVID10_USE_QPEL);
 	m_use_lumimask_plugin = 
 	  pConfig->GetBoolValue(CONFIG_XVID10_USE_LUMIMASK);
+	m_use_par = 
+	  pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH) != 0 &&
+	  pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT) != 0;
+	if (m_use_par) {
+	  int par_w = pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH);
+	  int par_h = pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT);
+
+	  if (par_w > 255 || par_h > 255) {
+	    error_message("PAR parameters are > 255 - not used");
+	    m_use_par = false;
+	  } else {
+	    m_par = XVID_PAR_11_VGA;
+	    m_par_height = m_par_width = 0;
+	    if (par_w == 12 && par_h == 11) m_par = XVID_PAR_43_PAL;
+	    else if (par_w == 10 && par_h == 11) m_par = XVID_PAR_43_NTSC;
+	    else if (par_w == 16 && par_h == 9) m_par = XVID_PAR_169_PAL;
+	    else if (par_w == 40 && par_h == 33) m_par = XVID_PAR_169_NTSC;
+	    else {
+	      m_par = XVID_PAR_EXT;
+	      m_par_width = par_w;
+	      m_par_height = par_h;
+	    }
+	  }
+	}
 
 	memset(&xvid_gbl_init, 0, sizeof(xvid_gbl_init));
 	xvid_gbl_init.version = XVID_VERSION;
@@ -196,6 +220,11 @@ bool CXvid10VideoEncoder::EncodeImage(
 	xvidFrame.input.stride[1] = uvStride;
 	xvidFrame.input.plane[2] = pV;
 	xvidFrame.input.stride[2] = uvStride;
+	if (m_use_par) {
+	  xvidFrame.par = m_par;
+	  xvidFrame.par_width = m_par_width;
+	  xvidFrame.par_height = m_par_height;
+	}
 	// if we do quality work, we will need to set the motion 
 	// variable accordingly.
 	m_xvidResult.version = XVID_VERSION;
