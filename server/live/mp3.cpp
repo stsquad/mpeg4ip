@@ -25,6 +25,7 @@
  */
 
 #include "mp4live.h"
+#include "mp3.h"
 
 static u_int16_t mp3BitRates[5][14] = {
 	/* MPEG-1, Layer III */
@@ -63,14 +64,14 @@ static u_int16_t Mp3GetHdrSamplingWindow(u_int32_t hdr)
 
 	if (layer == 1) {
 		if (version == 3) {
-			samplingWindow = 1152;
+			samplingWindow = MP3_SAMPLES_PER_FRAME;
 		} else {
-			samplingWindow = 576;
+			samplingWindow = MP3_SAMPLES_PER_FRAME / 2;
 		}
 	} else if (layer == 2) {
-		samplingWindow = 1152;
+		samplingWindow = MP3_SAMPLES_PER_FRAME;
 	} else {
-		samplingWindow = 384;
+		samplingWindow = MP3_SAMPLES_PER_FRAME / 3;
 	}
 
 	return samplingWindow;

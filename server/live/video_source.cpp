@@ -218,8 +218,6 @@ bool CVideoSource::InitDevice(void)
 {
 	int rc;
 
-	// TBD review error handling
-
 	// open the video device
 	m_videoDevice = open(m_pConfig->m_videoDeviceName, O_RDWR);
 	if (m_videoDevice < 0) {
@@ -288,8 +286,13 @@ bool CVideoSource::InitDevice(void)
 		}
 
 		// tune in the desired frequency (channel)
-		unsigned long videoFrequency;
-		videoFrequency = m_pConfig->m_videoChannel->freq;
+		struct CHANNEL_LIST* pChannelList =
+			ListOfChannelLists[m_pConfig->m_videoSignal];
+		struct CHANNEL* pChannel =
+			pChannelList[m_pConfig->m_videoChannelListIndex].list;
+		unsigned long videoFrequency =
+			pChannel[m_pConfig->m_videoChannelIndex].freq;
+
 		rc = ioctl(m_videoDevice, VIDIOCSFREQ, &videoFrequency);
 		if (rc < 0) {
 			error_message("Failed to set video tuner frequency for %s",
@@ -534,7 +537,6 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 			u_int8_t* vopBuf = (u_int8_t*)malloc(m_maxVopSize);
 			u_int32_t vopBufLength;
 			if (vopBuf == NULL) {
-				// TBD error
 				debug_message("Can't malloc VOP buffer!");
 				goto release;
 			}
@@ -616,7 +618,7 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 
 			u_int8_t* yuvBuf = (u_int8_t*)malloc(m_yuvSize);
 			if (yuvBuf == NULL) {
-				// TBD error
+				debug_message("Can't malloc YUV buffer!");
 				goto release;
 			}
 
@@ -642,6 +644,35 @@ release:
 	}
 }
 
+char CVideoSource::GetMpeg4VideoFrameType(CMediaFrame* pFrame)
+{
+	if (pFrame == NULL) {
+		return 0;
+	}
+	if (pFrame->GetDataLength() < 5) {
+		return 0;
+	}
+
+	u_int8_t* pData = (u_int8_t*)pFrame->GetData();
+	if (pData[0] != 0x00 || pData[1] != 0x00 
+	  || pData[2] != 0x01 || pData[3] != 0xB6) {
+		return 0;
+	}
+
+	switch (pData[4] >> 6) {
+	case 0:
+		return 'I';
+	case 1:
+		return 'P';
+	case 2:
+		return 'B';
+	case 3:
+		return 'S';
+	}
+
+	return 0;
+}
+
 bool CVideoCapabilities::ProbeDevice()
 {
 	int rc;
@@ -651,13 +682,14 @@ bool CVideoCapabilities::ProbeDevice()
 		m_canOpen = false;
 		return false;
 	}
+	m_canOpen = true;
 
 	// get device capabilities
 	struct video_capability videoCapability;
 	rc = ioctl(videoDevice, VIDIOCGCAP, &videoCapability);
 	if (rc < 0) {
 		debug_message("Failed to get video capabilities for %s", m_deviceName);
-		m_canOpen = false;
+		m_canCapture = false;
 		close(videoDevice);
 		return false;
 	}
@@ -669,6 +701,7 @@ bool CVideoCapabilities::ProbeDevice()
 		close(videoDevice);
 		return false;
 	}
+	m_canCapture = true;
 
 	m_driverName = stralloc(videoCapability.name);
 	m_numInputs = videoCapability.channels;

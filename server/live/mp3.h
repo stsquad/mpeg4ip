@@ -20,38 +20,12 @@
  *		Bill May 		wmay@cisco.com
  */
 
-#include "mp4live.h"
+#ifndef __MP3_H__
+#define __MP3_H__
 
-int main(int argc, char** argv)
-{
-	int rc;
-	extern int gui_main(int argc, char**argv, CLiveConfig* pConfig);
+#define MP3_SAMPLES_PER_FRAME	1152
 
-	// OPTION to add command line arg parsing here
-	// -f <config-file>
+bool Mp3FindNextFrame(u_int8_t* src, u_int32_t srcLength,
+	u_int8_t** frame, u_int32_t* frameSize, bool allowLayer4);
 
-	// construct default configuration
-	CLiveConfig* pConfig = new CLiveConfig();
-
-	// read user config file if present
-	pConfig->ReadUser();
-
-	// DJM TEMP
-	pConfig->m_videoInput = 1;
-	pConfig->m_videoUseDivxEncoder = true;
-	pConfig->m_videoRawPreview = true;
-	pConfig->m_videoEncodedPreview = false;
-	pConfig->m_videoTargetFrameRate = 10;
-
-	// OPTION to add a headless mode for automatic operation here
-
-	// hand over control to GUI
-	rc = gui_main(argc, argv, pConfig);
-
-	// save any changes to user config file
-	pConfig->WriteUser();
-
-	delete pConfig;
-	exit (rc);
-}
-
+#endif /* __MP3_H__ */

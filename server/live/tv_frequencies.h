@@ -91,23 +91,25 @@
 
 /* --------------------------------------------------------------------- */
 
-struct CHANLIST {
+struct CHANNEL {
     char *name;
     int   freq;
 };
 
-struct CHANLISTS {
+struct CHANNEL_LIST {
     char             *name;
-    struct CHANLIST  *list;
+    struct CHANNEL  *list;
     int               count;
 };
 
-#define CHAN_COUNT(x) (sizeof(x)/sizeof(struct CHANLIST))
+#define CHAN_COUNT(x) (sizeof(x)/sizeof(struct CHANNEL))
 
 /* --------------------------------------------------------------------- */
 
-extern struct CHANLISTS   NtscChannelLists[];
-extern struct CHANLISTS   PalChannelLists[];
-extern struct CHANLISTS   SecamChannelLists[];
+extern struct CHANNEL_LIST   NtscChannelLists[];
+extern struct CHANNEL_LIST   PalChannelLists[];
+extern struct CHANNEL_LIST   SecamChannelLists[];
+
+extern struct CHANNEL_LIST* ListOfChannelLists[];
 
 #endif /* __FREQUENCIES_H__ */

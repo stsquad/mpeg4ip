@@ -27,6 +27,9 @@
 // From gui_main.cpp
 extern CLiveConfig* MyConfig;
 
+void StartVideoPreview(void);
+void StopVideoPreview(void);
+
 void DisplayVideoSettings(void);
 void DisplayAudioSettings(void);
 void DisplayTransmitSettings(void);

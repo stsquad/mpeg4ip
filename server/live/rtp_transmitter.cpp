@@ -138,13 +138,21 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 	if (pFrame == NULL) {
 		return;
 	}
-
-	if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame && m_audioRtpSession) {
-		SendMp3AudioWith2250(pFrame);
+	if (!m_transmit) {
+		delete pFrame;
+		return;
 	}
 
-	if (pFrame->GetType() == CMediaFrame::Mpeg4VideoFrame && m_videoRtpSession) {
+	if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame 
+	  && m_audioRtpSession) {
+		SendMp3AudioWith2250(pFrame);
+
+	} else if (pFrame->GetType() == CMediaFrame::Mpeg4VideoFrame 
+	  && m_videoRtpSession) {
 		SendMpeg4VideoWith3016(pFrame);
+	} else {
+		debug_message("RTP transmitter received unknown frame type %u",
+			pFrame->GetType());
 	}
 }
 
@@ -199,7 +207,8 @@ void CRtpTransmitter::SendMp3QueuedFrames(void)
 	}
 
 	// send packet
-	rtp_send_data_iov(m_videoRtpSession,
+	rtp_send_data_iov(
+		m_audioRtpSession,
 		ConvertAudioTimestamp(m_mp3Queue[0]->GetTimestamp()),
 		m_audioPayloadNumber, 1, 0, NULL,
 		iov, m_mp3QueueCount,
@@ -220,7 +229,7 @@ void CRtpTransmitter::SendMp3JumboFrame(CMediaFrame* pFrame)
 	u_int32_t dataOffset = 0;
 	u_int32_t spaceAvailable = 
 		m_pConfig->m_rtpPayloadSize - mp3PayloadHeaderSize;
-	bool lastPacket = false;
+	bool firstPacket = true;
 
 	Timestamp timestamp = ConvertAudioTimestamp(pFrame->GetTimestamp());
 
@@ -240,21 +249,18 @@ void CRtpTransmitter::SendMp3JumboFrame(CMediaFrame* pFrame)
 
 		// figure out how much data we're sending
 		u_int32_t dataPending = pFrame->GetDataLength() - dataOffset;
-		if (dataPending <= spaceAvailable) {
-			iov[1].iov_len = dataPending; 
-			lastPacket = true;
-		} else {
-			iov[1].iov_len = spaceAvailable; 
-		}
+		iov[1].iov_len = MIN(dataPending, spaceAvailable); 
 
 		// send packet
-		rtp_send_data_iov(m_videoRtpSession,
+		rtp_send_data_iov(
+			m_audioRtpSession,
 			timestamp,
-			m_audioPayloadNumber, lastPacket, 0, NULL,
+			m_audioPayloadNumber, firstPacket, 0, NULL,
 			iov, 2,
 		 	NULL, 0, 0);
 
 		dataOffset += iov[1].iov_len;
+		firstPacket = false;
 
 	} while (dataOffset < pFrame->GetDataLength());
 
@@ -265,6 +271,7 @@ void CRtpTransmitter::SendMpeg4VideoWith3016(CMediaFrame* pFrame)
 {
 	u_int8_t* pData = (u_int8_t*)pFrame->GetData();
 	u_int32_t bytesToSend = pFrame->GetDataLength();
+	struct iovec iov;
 
 	while (bytesToSend) {
 		u_int32_t payloadLength;
@@ -278,11 +285,15 @@ void CRtpTransmitter::SendMpeg4VideoWith3016(CMediaFrame* pFrame)
 			lastPacket = false;
 		}
 
-		rtp_send_data(m_videoRtpSession,
+		iov.iov_base = pData;
+		iov.iov_len = payloadLength;
+
+		rtp_send_data_iov(
+			m_videoRtpSession,
 			ConvertVideoTimestamp(pFrame->GetTimestamp()),
 			m_videoPayloadNumber, lastPacket, 0, NULL,
-			(char*)pData, payloadLength,
-			NULL, 0, 0);
+			&iov, 1,
+		 	NULL, 0, 0);
 
 		pData += payloadLength;
 		bytesToSend -= payloadLength;

@@ -29,9 +29,12 @@
 #include "timestamp.h"
 #include "tv_frequencies.h"
 
-#define VIDEO_STD_ASPECT_RATIO 	1.33
-#define VIDEO_LB1_ASPECT_RATIO 	2.35
-#define VIDEO_LB2_ASPECT_RATIO 	1.75
+#define VIDEO_STD_ASPECT_RATIO 	1.33	// standard 4:3
+#define VIDEO_LB1_ASPECT_RATIO 	2.35	// typical "widescreen" format
+#define VIDEO_LB2_ASPECT_RATIO 	1.85	// approximately 16:9
+
+// forward declarations
+class CVideoCapabilities;
 
 // some configuration utility routines
 class CLiveConfig;
@@ -60,11 +63,11 @@ public:
 		return Read(GetUserFileName());
 	}
 
-	bool Write(char* fileName) {
+	bool Write(char* fileName, bool onlyNonDefaults) {
 		return true; // TEMP
 	}
 	bool WriteUser() {
-		return Write(GetUserFileName());
+		return Write(GetUserFileName(), true);
 	}
 
 	char* GetUserFileName() {
@@ -82,11 +85,12 @@ public:
 		m_videoEnable = true;
 		m_videoEncode = true;
 		m_videoDeviceName = stralloc("/dev/video0");
+		m_videoCapabilities = NULL;
 		m_videoInput = 0;
 		m_videoSignal = VIDEO_MODE_NTSC;
 		m_videoTuner = -1;		
-		m_videoChannelList = &NtscChannelLists[0];		// US Broadcast
-		m_videoChannel = &m_videoChannelList->list[1];	// Channel 3
+		m_videoChannelListIndex = 0;	// US Broadcast
+		m_videoChannelIndex = 1;		// Channel 3
 		m_videoPreview = true;
 		m_videoRawPreview = false;
 		m_videoEncodedPreview = true;
@@ -96,6 +100,8 @@ public:
 		m_videoRawHeight = 240;
 		m_videoWidth = m_videoRawWidth;
 		m_videoHeight = m_videoRawHeight;
+		m_videoMaxWidth = 352;
+		m_videoMaxHeight = 288;
 		m_videoTargetFrameRate = 24;
 		m_videoTargetBitRate = 750;	// Kbps
 		m_videoAspectRatio = VIDEO_STD_ASPECT_RATIO;
@@ -136,11 +142,12 @@ public:
 	bool		m_videoEnable;
 	bool		m_videoEncode;
 	char*		m_videoDeviceName;
+	CVideoCapabilities* m_videoCapabilities;
 	u_int16_t	m_videoInput;
 	u_int16_t	m_videoSignal;
 	int16_t		m_videoTuner;
-	CHANLISTS*	m_videoChannelList;
-	CHANLIST*	m_videoChannel;
+	u_int16_t	m_videoChannelListIndex;
+	u_int16_t	m_videoChannelIndex;
 	bool		m_videoPreview;
 	bool		m_videoRawPreview;
 	bool		m_videoEncodedPreview;
@@ -151,6 +158,8 @@ public:
 	u_int16_t	m_videoRawHeight;
 	u_int16_t	m_videoWidth;
 	u_int16_t	m_videoHeight;
+	u_int16_t	m_videoMaxWidth;
+	u_int16_t	m_videoMaxHeight;
 	u_int16_t	m_videoTargetFrameRate;
 	u_int16_t	m_videoTargetBitRate;
 	float		m_videoAspectRatio;

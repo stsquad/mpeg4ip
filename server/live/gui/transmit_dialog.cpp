@@ -137,7 +137,7 @@ static void on_port_leave(GtkWidget *widget, gpointer *data)
 
 static void on_ttl_menu_activate (GtkWidget *widget, gpointer data)
 {
-	ttlIndex = (u_int8_t)data;
+	ttlIndex = (unsigned int)data & 0xFF;
 }
 
 static void on_address_generate (GtkWidget *widget, gpointer *data)
@@ -348,7 +348,8 @@ void CreateTransmitDialog (void)
 		}
 	}
 	mcast_ttl_menu = CreateOptionMenu (NULL,
-		(const char**) ttlNames, sizeof(ttlNames) / sizeof(char*),
+		ttlNames, 
+		sizeof(ttlNames) / sizeof(char*),
 		ttlIndex,
 		GTK_SIGNAL_FUNC(on_ttl_menu_activate));
 	gtk_box_pack_start(GTK_BOX(vbox), mcast_ttl_menu, TRUE, TRUE, 0);

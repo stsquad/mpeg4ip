@@ -65,7 +65,7 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 
 static void on_sampling_rate_menu_activate (GtkWidget *widget, gpointer data)
 {
-	u_int8_t newIndex = (u_int8_t)data;
+	u_int8_t newIndex = (unsigned int)data & 0xFF;
 
 	if (samplingRateIndex == newIndex) {
 		return;
@@ -102,7 +102,7 @@ static void on_sampling_rate_menu_activate (GtkWidget *widget, gpointer data)
 
 static void on_bit_rate_menu_activate (GtkWidget *widget, gpointer data)
 {
-	u_int8_t newIndex = (u_int8_t)data;
+	u_int8_t newIndex = (unsigned int)data & 0xFF;
 
 	if (bitRateIndex == newIndex) {
 		return;
@@ -237,7 +237,7 @@ void CreateAudioDialog (void)
 		}
 	}
 	sampling_rate_menu = CreateOptionMenu (NULL,
-		(const char**) samplingRateNames, 
+		samplingRateNames, 
 		sizeof(samplingRateNames) / sizeof(char*),
 		samplingRateIndex,
 		GTK_SIGNAL_FUNC(on_sampling_rate_menu_activate));
@@ -251,7 +251,7 @@ void CreateAudioDialog (void)
 		}
 	}
 	bit_rate_menu = CreateOptionMenu (NULL,
-		(const char**) bitRateNames, 
+		bitRateNames, 
 		sizeof(bitRateNames) / sizeof(char*),
 		bitRateIndex,
 		GTK_SIGNAL_FUNC(on_bit_rate_menu_activate));

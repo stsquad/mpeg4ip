@@ -67,11 +67,11 @@ public:
 		}
 	}
 
-	static uint32_t GetRandomMcastAddress(void) {
+	static u_int32_t GetRandomMcastAddress(void) {
 		SeedRandom();
 
 		// pick a random number in the multicast range
-		uint32_t mcast = ((random() & 0x0FFFFFFF) | 0xE0000000);
+		u_int32_t mcast = ((random() & 0x0FFFFFFF) | 0xE0000000);
 
 		// screen out undesirable values
 		// introduces small biases in the results
@@ -145,10 +145,10 @@ protected:
 	u_int32_t		m_videoRtpTimestampOffset;
 	u_int16_t		m_videoSrcPort;
 
-	// this value chose to keep queuing latency reasonable
+	// this value chosen to keep queuing latency reasonable
 	// i.e. on the order of 100's of ms
-	static const u_int16_t mp3PayloadHeaderSize = 4;
 	static const u_int8_t mp3QueueMaxCount = 8;
+	static const u_int16_t mp3PayloadHeaderSize = 4;
 
 	CMediaFrame*	m_mp3Queue[mp3QueueMaxCount];
 	u_int8_t		m_mp3QueueCount;

@@ -35,8 +35,7 @@ public:
 
 		m_pMutex = SDL_CreateMutex();
 		if (m_pMutex == NULL) {
-			// TBD throw exception;
-			debug_message("CreateMutex error");
+			debug_message("CMediaFrame CreateMutex error");
 		}
 		m_refcnt = 1;
 		m_type = type;
@@ -48,45 +47,40 @@ public:
 
 	void AddReference(void) {
 		if (SDL_LockMutex(m_pMutex) == -1) {
-			// TBD throw exception;
-			debug_message("LockMutex error");
+			debug_message("AddReference LockMutex error");
 		}
 		m_refcnt++;
 		if (SDL_UnlockMutex(m_pMutex) == -1) {
-			// TBD throw exception;
-			debug_message("UnlockMutex error");
+			debug_message("AddReference UnlockMutex error");
 		}
 	}
 
 	void RemoveReference(void) {
 		if (SDL_LockMutex(m_pMutex) == -1) {
-			// TBD throw exception;
-			debug_message("LockMutex error");
+			debug_message("RemoveReference LockMutex error");
 		}
 		m_refcnt--;
 		if (SDL_UnlockMutex(m_pMutex) == -1) {
-			// TBD throw exception;
-			debug_message("UnlockMutex error");
+			debug_message("RemoveReference UnlockMutex error");
 		}
 	}
 
 	void operator delete(void* p) {
 		CMediaFrame* me = (CMediaFrame*)p;
 		if (SDL_LockMutex(me->m_pMutex) == -1) {
-			// TBD throw exception;
-			debug_message("LockMutex error");
+			debug_message("CMediaFrame delete LockMutex error");
 		}
 		if (me->m_refcnt > 0) {
 			me->m_refcnt--;
 		}
 		if (me->m_refcnt > 0) {
 			if (SDL_UnlockMutex(me->m_pMutex) == -1) {
-				// TBD throw exception;
-				debug_message("UnlockMutex error");
+				debug_message("CMediaFrame delete UnlockMutex error");
 			}
 			return;
 		}
 		free(me->m_pData);
+		SDL_DestroyMutex(me->m_pMutex);
 		free(me);
 	}
 

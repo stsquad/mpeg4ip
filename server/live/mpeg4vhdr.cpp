@@ -53,8 +53,10 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 	}
 
 	if (want_vo) {
-// make divx decoder happy, for now
-#ifdef TBD
+#ifdef NOTDEF
+		// These should really be inserted,
+		// but current divx decoder barfs if they are present
+
 		// VO - Visual Object
 		putbits(&config, 0x000001B5, 32);
 

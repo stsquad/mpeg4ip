@@ -69,6 +69,8 @@ public:
 			NULL, 0, m_myMsgQueueSemaphore);
 	}
 
+	static char GetMpeg4VideoFrameType(CMediaFrame* pFrame);
+
 protected:
 	static const int MSG_START_CAPTURE	= 1;
 	static const int MSG_STOP_CAPTURE	= 2;
@@ -170,6 +172,10 @@ public:
 		free(m_inputSignalTypes);
 		free(m_inputHasTuners);
 		free(m_inputTunerSignalTypes);
+	}
+
+	inline bool IsValid() {
+		return m_canOpen && m_canCapture;
 	}
 
 public:

@@ -72,6 +72,7 @@ protected:
 	bool InitEncoder(void);
 
 	void ProcessAudio(void);
+	void ForwardCompletedFrames(Timestamp newFrameTimestamp);
 
 protected:
 	bool				m_capture;

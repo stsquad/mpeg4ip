@@ -4,7 +4,7 @@
 /* --------------------------------------------------------------------- */
 
 /* US broadcast */
-static struct CHANLIST ntsc_bcast[] = {
+static struct CHANNEL ntsc_bcast[] = {
     { "2",	 55250 },
     { "3",	 61250 },
     { "4",	 67250 },
@@ -91,7 +91,7 @@ static struct CHANLIST ntsc_bcast[] = {
 };
 
 /* US cable */
-static struct CHANLIST ntsc_cable[] = {
+static struct CHANNEL ntsc_cable[] = {
     { "1",	 73250 },
     { "2",	 55250 },
     { "3",	 61250 },
@@ -232,7 +232,7 @@ static struct CHANLIST ntsc_cable[] = {
 };
 
 /* US HRC */
-static struct CHANLIST ntsc_hrc[] = {
+static struct CHANNEL ntsc_hrc[] = {
     { "1",	  72000 },
     { "2",	  54000 }, 
     { "3",	  60000 }, 
@@ -375,7 +375,7 @@ static struct CHANLIST ntsc_hrc[] = {
 /* --------------------------------------------------------------------- */
 
 /* JP broadcast */
-static struct CHANLIST ntsc_bcast_jp[] = {
+static struct CHANNEL ntsc_bcast_jp[] = {
     { "1",   91250 },
     { "2",   97250 },
     { "3",  103250 },
@@ -443,7 +443,7 @@ static struct CHANLIST ntsc_bcast_jp[] = {
 };
 
 /* JP cable */
-static struct CHANLIST ntsc_cable_jp[] = {
+static struct CHANNEL ntsc_cable_jp[] = {
     { "13",	109250 },
     { "14",	115250 },
     { "15",	121250 },
@@ -501,7 +501,7 @@ static struct CHANLIST ntsc_cable_jp[] = {
 /* --------------------------------------------------------------------- */
 
 /* australia */
-static struct CHANLIST pal_australia[] = {
+static struct CHANNEL pal_australia[] = {
     { "0",	 46250 },
     { "1",	 57250 },
     { "2",	 64250 },
@@ -715,14 +715,14 @@ static struct CHANLIST pal_australia[] = {
     { "68",  847250 },	\
     { "69",  855250 }
 
-static struct CHANLIST europe_west[] = {
+static struct CHANNEL europe_west[] = {
     FREQ_CCIR_I_III,
     FREQ_CCIR_SL_SH,
     FREQ_CCIR_H,
     FREQ_UHF
 };
 
-static struct CHANLIST europe_east[] = {
+static struct CHANNEL europe_east[] = {
     FREQ_OIRT_I_III,
     FREQ_OIRT_SL_SH,
     FREQ_CCIR_I_III,
@@ -731,7 +731,7 @@ static struct CHANLIST europe_east[] = {
     FREQ_UHF
 };
 
-static struct CHANLIST pal_italy[] = {
+static struct CHANNEL pal_italy[] = {
     { "2",	 53750 },
     { "3",	 62250 },
     { "4",	 82250 },
@@ -746,7 +746,7 @@ static struct CHANLIST pal_italy[] = {
     FREQ_UHF
 };
 
-static struct CHANLIST pal_ireland[] = {
+static struct CHANNEL pal_ireland[] = {
     { "0",    45750 },
     { "1",    53750 },
     { "2",    61750 },
@@ -759,7 +759,7 @@ static struct CHANLIST pal_ireland[] = {
     FREQ_UHF,
 };
 
-static struct CHANLIST secam_france[] = {
+static struct CHANNEL secam_france[] = {
     { "K01",    47750 },
     { "K02",    55750 },
     { "K03",    60500 },
@@ -810,7 +810,7 @@ static struct CHANLIST secam_france[] = {
 
 /* --------------------------------------------------------------------- */
 
-static struct CHANLIST pal_newzealand[] = {
+static struct CHANNEL pal_newzealand[] = {
     { "1", 	  45250 }, 
     { "2",	  55250 }, 
     { "3",	  62250 },
@@ -828,7 +828,7 @@ static struct CHANLIST pal_newzealand[] = {
 /* --------------------------------------------------------------------- */
 
 /* China broadcast */
-static struct CHANLIST pal_bcast_cn[] = {
+static struct CHANNEL pal_bcast_cn[] = {
     { "1",	49750 },
     { "2",	57750 },
     { "3",	65750 },
@@ -928,7 +928,7 @@ static struct CHANLIST pal_bcast_cn[] = {
 /* --------------------------------------------------------------------- */
 /* South Africa Broadcast */
 
-static struct CHANLIST pal_bcast_za[] ={
+static struct CHANNEL pal_bcast_za[] ={
     { "1", 175250 },
     { "2", 183250 },
     { "3", 191250 },
@@ -942,7 +942,7 @@ static struct CHANLIST pal_bcast_za[] ={
 
 /* --------------------------------------------------------------------- */
 
-struct CHANLISTS NtscChannelLists[] = {
+struct CHANNEL_LIST NtscChannelLists[] = {
     { "US Broadcast",     ntsc_bcast,        CHAN_COUNT(ntsc_bcast)        },
     { "US Cable",         ntsc_cable,        CHAN_COUNT(ntsc_cable)        },
     { "US Cable HRC",     ntsc_hrc,          CHAN_COUNT(ntsc_hrc)          },
@@ -951,7 +951,7 @@ struct CHANLISTS NtscChannelLists[] = {
     { 0, 0, 0 } /* EOF */
 };
 
-struct CHANLISTS PalChannelLists[] = {
+struct CHANNEL_LIST PalChannelLists[] = {
     { "Western Europe",   europe_west,       CHAN_COUNT(europe_west)       },
     { "Eastern Europe",   europe_east,       CHAN_COUNT(europe_east)       },
     { "Ireland",          pal_ireland,       CHAN_COUNT(pal_ireland)       },
@@ -963,7 +963,16 @@ struct CHANLISTS PalChannelLists[] = {
     { 0, 0, 0 } /* EOF */
 };
 
-struct CHANLISTS SecamChannelLists[] = {
+struct CHANNEL_LIST SecamChannelLists[] = {
     { "France",           secam_france,      CHAN_COUNT(secam_france)      },
     { 0, 0, 0 } /* EOF */
 };
+
+/* indexed by VIDEO_MODE_XXX */
+struct CHANNEL_LIST* ListOfChannelLists[] = {
+	/* VIDEO_MODE_PAL == 0 */ PalChannelLists,
+	/* VIDEO_MODE_NTSC == 1 */ NtscChannelLists,
+	/* VIDEO_MODE_SECAM == 2 */ SecamChannelLists,
+	0
+};
+

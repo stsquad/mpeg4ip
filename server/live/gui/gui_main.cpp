@@ -47,6 +47,7 @@ static GtkWidget *main_window;
 static GtkWidget *main_hbox;
 static GtkWidget *main_vbox1;
 static GtkWidget *main_vbox2;
+static GtkWidget *video_preview;
 
 static GtkWidget *video_enabled_button;
 static GtkWidget *video_preview_button;
@@ -99,6 +100,50 @@ static GtkWidget *current_size_units;
 
 static Timestamp StartTime;
 static Timestamp StopTime;
+
+bool InitialVideoProbe(CLiveConfig* pConfig)
+{
+	static char* devices[] = {
+		"/dev/video", 
+		"/dev/video0", 
+		"/dev/video1", 
+		"/dev/video2", 
+		"/dev/video3"
+	};
+	CVideoCapabilities* pVideoCaps;
+
+	// first try the device we're configured with
+	pVideoCaps = new CVideoCapabilities(pConfig->m_videoDeviceName);
+
+	if (pVideoCaps->IsValid()) {
+		pConfig->m_videoCapabilities = pVideoCaps;
+		return true;
+	}
+
+	delete pVideoCaps;
+
+	// no luck, go searching
+	for (u_int32_t i = 0; i < sizeof(devices) / sizeof(char*); i++) {
+
+		// don't waste time trying something that's already failed
+		if (!strcmp(devices[i], pConfig->m_videoDeviceName)) {
+			continue;
+		} 
+
+		pVideoCaps = new CVideoCapabilities(devices[i]);
+
+		if (pVideoCaps->IsValid()) {
+			free(pConfig->m_videoDeviceName);
+			pConfig->m_videoDeviceName = stralloc(devices[i]);
+			pConfig->m_videoCapabilities = pVideoCaps;
+			return true;
+		}
+		
+		delete pVideoCaps;
+	}
+
+	return false;
+}
 
 /*
  * delete_event - called when window closed
@@ -256,17 +301,23 @@ static void StopMedia(void)
 	}
 }
 
-static void StartVideoPreview(void)
+void StartVideoPreview(void)
 {
 	if (VideoSource == NULL) {
 		VideoSource = new CVideoSource();
 		VideoSource->SetConfig(MyConfig);
 		VideoSource->StartThread();
 	}
+
 	VideoSource->StartPreview();
+
+	// TBD
+	//gtk_preview_size(GTK_PREVIEW(video_preview), 
+	//	MyConfig->m_videoWidth, MyConfig->m_videoHeight);
+	//gtk_widget_show(video_preview);
 }
 
-static void StopVideoPreview(void)
+void StopVideoPreview(void)
 {
 	if (VideoSource) {
 		if (!Started) {
@@ -499,6 +550,19 @@ static gint status_timer (gpointer raw)
 	if (now >= StopTime) {
 		// automatically "press" stop button
 		on_start_button(start_button, NULL);
+
+		// Make sure user knows that were done
+		char *notice;
+
+		if (MyConfig->m_recordEnable && MyConfig->m_rtpEnable) {
+			notice = "Recording and transmission completed";
+		} else if (MyConfig->m_rtpEnable) {
+			notice = "Transmission completed";
+		} else {
+			notice = "Recording completed";
+		}
+		ShowMessage("Duration Elapsed", notice);
+
 		return (FALSE);
 	}
 
@@ -544,7 +608,7 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 
 static void on_duration_units_menu_activate(GtkWidget *widget, gpointer data)
 {
-	durationUnitsIndex = (u_int8_t)data;
+	durationUnitsIndex = (unsigned int)data & 0xFF;;
 }
 
 static gfloat frameLabelAlignment = 0.025;
@@ -818,7 +882,7 @@ void LayoutControlFrame(GtkWidget* box)
 	gtk_box_pack_start(GTK_BOX(hbox), duration_spinner, FALSE, FALSE, 5);
 
 	duration_units_menu = CreateOptionMenu(NULL,
-		(const char**) durationUnitsNames, 
+		durationUnitsNames, 
 		sizeof(durationUnitsNames) / sizeof(char*),
 		durationUnitsIndex,
 		GTK_SIGNAL_FUNC(on_duration_units_menu_activate));
@@ -945,6 +1009,14 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 {
 	MyConfig = pConfig;
 
+	// TBD remember video device 
+
+	InitialVideoProbe(MyConfig);
+
+	// if failed to find a video capture device
+	// should notify user
+	// also note if video device was automatically changed
+
 	gtk_init(&argc, &argv);
 
 	// Setup main window
@@ -977,16 +1049,17 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 	// We use the Gtk Preview widget to get the right type of window created
 	// and then hand it over to SDL to actually do the blitting
 
-	GtkWidget* preview = gtk_preview_new(GTK_PREVIEW_COLOR);
-	gtk_preview_size(GTK_PREVIEW(preview), 
-		MyConfig->m_videoWidth, MyConfig->m_videoHeight);
-	gtk_widget_show(preview);
-	gtk_box_pack_start(GTK_BOX(main_vbox1), preview, FALSE, FALSE, 5);
+	video_preview = gtk_preview_new(GTK_PREVIEW_COLOR);
+	gtk_preview_size(GTK_PREVIEW(video_preview), 
+		MyConfig->m_videoMaxWidth, MyConfig->m_videoMaxHeight);
+	gtk_widget_show(video_preview);
+	gtk_box_pack_start(GTK_BOX(main_vbox1), video_preview, FALSE, FALSE, 5);
 
 	// Let video source know which window to draw into
-	gtk_widget_realize(preview);	// so XCreateWindow() is called
-	if (preview->window) {
-		MyConfig->m_videoPreviewWindowId = GDK_WINDOW_XWINDOW(preview->window);
+	gtk_widget_realize(video_preview);	// so XCreateWindow() is called
+	if (video_preview->window) {
+		MyConfig->m_videoPreviewWindowId = 
+			GDK_WINDOW_XWINDOW(video_preview->window);
 	}
 	
 	// Video Frame
@@ -1012,6 +1085,12 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 	LayoutControlFrame(main_vbox1);
 
 	gtk_widget_show(main_window);
+
+	// TBD if video device was changed, show message?
+	// ???
+	if (MyConfig->m_videoEnable && MyConfig->m_videoPreview) {
+		StartVideoPreview();
+	}
 
 	gtk_main();
 

@@ -18,14 +18,17 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
+
 /*
  * gui_utils.h - various utility programs gotten from the book or
  * other gtk applications
  */
+
+#ifndef __GUIUTILS_H__
+#define __GUIUTILS_H__
+
 #include <stdlib.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 GtkWidget *CreateWidgetFromXpm (GtkWidget *widget, gchar **xpm_data);
 
 GtkWidget *CreateMenuItem (GtkWidget *menu,
@@ -53,10 +56,19 @@ GtkWidget *CreateMenuRadio (GtkWidget *menu,
                             gpointer data);
 
 GtkWidget *CreateOptionMenu(GtkWidget *old,
-			    const char **names,
+			    char **names,
 			    size_t max,
 			    size_t current_index,
-			    GtkSignalFunc on_activate);
+			    GtkSignalFunc on_activate,
+				GSList** menuItems = NULL);
+
+GtkWidget *CreateOptionMenu(GtkWidget *old,
+				char* (*gather_func)(size_t index, void* pUserData),
+				void* pUserData,
+			    size_t max,
+			    size_t current_index,
+			    GtkSignalFunc on_activate,
+				GSList** menuItems = NULL);
   
 int GetNumberEntryValue(GtkWidget *entry, size_t *result);
   
@@ -81,15 +93,17 @@ void FreeChild(GtkWidget *widget);
 void SetEntryValidator(GtkObject* object, 
 	GtkSignalFunc changed_func, GtkSignalFunc leave_func);
 
-  // from gui_showmsg.c
+// from gui_showmsg.cpp
 void ShowMessage (const char *szTitle, const char *szMessage);
-#define CreateMenuItemSeperator(menu) CreateMenuItem(menu, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+#define CreateMenuItemSeperator(menu) \
+	CreateMenuItem(menu, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
 void YesOrNo (const char *szTitle,
 	      const char *szMessage,
 	      int yes_as_default,
 	      GtkSignalFunc yesroutine,
 	      GtkSignalFunc noroutine);
 
-#ifdef __cplusplus
-}
-#endif
+#endif /* __GUIUTILS_H__ */
+

@@ -55,6 +55,8 @@ public:
 				NULL, 0, m_myMsgQueueSemaphore);
 			SDL_WaitThread(m_myThread, NULL);
 			m_myThread = NULL;
+			SDL_DestroySemaphore(m_myMsgQueueSemaphore);
+			m_myMsgQueueSemaphore = NULL;
 		}
 	}
 
@@ -83,37 +85,82 @@ protected:
 class CMediaSink : public CMediaNode {
 public:
 	CMediaSink() {
+		m_pEnqueueMutex = SDL_CreateMutex();
+		if (m_pEnqueueMutex == NULL) {
+			debug_message("EnqueueFrame CreateMutex error");
+		}
+	}
+
+	~CMediaSink() {
+		SDL_DestroyMutex(m_pEnqueueMutex);
 	}
 
 	void EnqueueFrame(CMediaFrame* pFrame) {
+		if (pFrame == NULL) {
+			debug_message("EnqueueFrame: got NULL frame!?");
+			return;
+		}
+		if (SDL_LockMutex(m_pEnqueueMutex) == -1) {
+			debug_message("EnqueueFrame LockMutex error");
+			return;
+		}
+
 		pFrame->AddReference();
 		m_myMsgQueue.send_message(MSG_SINK_FRAME, 
 			(unsigned char*)pFrame, sizeof(CMediaFrame),
 			m_myMsgQueueSemaphore);
+
+		if (SDL_UnlockMutex(m_pEnqueueMutex) == -1) {
+			debug_message("EnqueueFrame UnlockMutex error");
+		}
 	}
 
 protected:
 	static const int MSG_SINK = 2048;
 	static const int MSG_SINK_FRAME = MSG_SINK + 1;
+
+	SDL_mutex*	m_pEnqueueMutex;
 };
 
 class CMediaSource : public CMediaNode {
 public:
 	CMediaSource() {
+		m_pSinksMutex = SDL_CreateMutex();
+		if (m_pSinksMutex == NULL) {
+			debug_message("CreateMutex error");
+		}
+	}
+
+	~CMediaSource() {
+		SDL_DestroyMutex(m_pSinksMutex);
+		m_pSinksMutex = NULL;
 	}
 	
-	// TBD for safety add mutex around sink list
-
 	bool AddSink(CMediaSink* pSink) {
+		bool rc = false;
+
+		if (SDL_LockMutex(m_pSinksMutex) == -1) {
+			debug_message("AddSink LockMutex error");
+			return rc;
+		}
 		for (int i = 0; i < MAX_SINKS; i++) {
 			if (m_sinks[i] == NULL) {
 				m_sinks[i] = pSink;
-				return true;
+				rc = true;
+				break;
 			}
 		}
-		return false;
+		if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
+			debug_message("UnlockMutex error");
+		}
+		return rc;
 	}
+
 	void RemoveSink(CMediaSink* pSink) {
+		if (SDL_LockMutex(m_pSinksMutex) == -1) {
+			debug_message("RemoveSink LockMutex error");
+			return;
+		}
 		for (int i = 0; i < MAX_SINKS; i++) {
 			if (m_sinks[i] == pSink) {
 				int j;
@@ -121,29 +168,52 @@ public:
 					m_sinks[j] = m_sinks[j+1];
 				}
 				m_sinks[j] = NULL;
-				return;
+				break;
 			}
 		}
-	}
-	void RemoveAllSinks() {
-		for (int i = 0; i < MAX_SINKS; i++) {
-			m_sinks[i] = NULL;
+		if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
+			debug_message("UnlockMutex error");
 		}
 	}
 
-protected:
-	void ForwardFrame(CMediaFrame* pFrame) {
+	void RemoveAllSinks(void) {
+		if (SDL_LockMutex(m_pSinksMutex) == -1) {
+			debug_message("RemoveAllSinks LockMutex error");
+			return;
+		}
 		for (int i = 0; i < MAX_SINKS; i++) {
 			if (m_sinks[i] == NULL) {
-				return;
+				break;
+			}
+			m_sinks[i] = NULL;
+		}
+		if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
+			debug_message("UnlockMutex error");
+		}
+	}
+
+
+protected:
+	void ForwardFrame(CMediaFrame* pFrame) {
+		if (SDL_LockMutex(m_pSinksMutex) == -1) {
+			debug_message("ForwardFrame LockMutex error");
+			return;
+		}
+		for (int i = 0; i < MAX_SINKS; i++) {
+			if (m_sinks[i] == NULL) {
+				break;
 			}
 			m_sinks[i]->EnqueueFrame(pFrame);
+		}
+		if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
+			debug_message("UnlockMutex error");
 		}
 	}
 
 protected:
 	static const u_int16_t MAX_SINKS = 8;
 	CMediaSink* m_sinks[MAX_SINKS];
+	SDL_mutex*	m_pSinksMutex;
 };
 
 #endif /* __MEDIA_NODE_H__ */

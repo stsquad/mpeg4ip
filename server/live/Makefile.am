@@ -9,6 +9,7 @@ mp4live_SOURCES = \
 	media_node.h \
 	audio_source.cpp \
 	audio_source.h \
+	mp3.h \
 	mp3.cpp \
 	mp4_recorder.cpp \
 	mp4_recorder.h \
@@ -21,7 +22,7 @@ mp4live_SOURCES = \
 	video_source.cpp \
 	video_source.h \
 	timestamp.h \
-	tv_frequencies.c \
+	tv_frequencies.cpp \
 	tv_frequencies.h \
 	util.c \
 	util.h 

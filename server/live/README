@@ -1,0 +1,175 @@
+July 11, 2001
+
+MP4LIVE 
+=======
+
+MP4LIVE is a Linux audio/video capture utility that can capture and encode 
+audio and video in real-time. The results can be written to either an .mp4
+file, transmitted onto the network via either unicast or multicast, or both 
+simultaneously! The audio is encoded with MP3, and the video with MPEG-4 
+Simple Profile which is OpenDivx compatible.
+
+Please use the MPEG4IP SourceForge site to report problems, suggest 
+enhancements, ask questions, etc. The URL is 
+http://www.sourceforge.net/projects/mpeg4ip
+
+Hardware Requirements
+=====================
+For QCIF size encoding, a Pentium III class machine of at least 500 MHz 
+For CIF size encoding, a Pentium III or better class machine of at least 1 GHz
+
+RAM is not typically an issue. I develop on machines with 128 MB, but I believe much smaller configurations would work fine. The real issue is CPU speed.
+
+A sound card with capture ability and an OSS compatible driver
+
+A video capture card based on the Brooktree 8x8 chip
+
+An analog A/V source - VCR, DVD, Camcorder, Settop box, Tivo, etc.
+	Typically a video capture card will support composite video inputs.
+	Some will also have S-Video input.
+	Others will also have a TV Tuner input.
+
+Software Requirements
+=====================
+Linux with a 2.4 or later kernel
+	(My development was done on RedHat 7.1)
+
+bttv video capture driver
+	Included with RedHat 7.1, I don't know about other Linux distributions
+
+
+WARNINGS!
+=========
+
+Please see the MPEG4IP README regarding legal issues with this code, and
+the list of open source packages that are redistributed with this code.
+
+This is the first beta of mp4live, be prepared for a rough ride. If 
+everything works fine, then count yourself among the blessed. Otherwise,
+let us know what happened and be prepared to do some hacking.
+
+This is a LINUX program! Do not even think about trying to get this to 
+run on Windows or MacOS! Even moving it to other UNIX systems would require 
+some re-programming since the sound and video capture interfaces are Linux 
+specific.
+
+By far the easiest route is to use a Linux distribution that already has a
+2.4 kernel, the bttv driver, and the associated i2c module built into it.
+I've hacked kernels before, and I'm not sure I could sucessfully follow the 
+instructions in the bttv driver as to how to configure a kernel so that it 
+would work. Caveat emptor!
+
+I've had many headaches with sound cards under Linux. Before you start using 
+mp4live, please make sure you're able to playback and record with your sound 
+card!
+
+You should definitely increase the number of capture buffers for the bttv 
+driver. By default it uses 2 buffers. You can increase this by editting 
+/etc/modules.conf and adding the line "add options bttv gbuffers=32" at 
+the end of the file.
+
+Note there is currently no support for DV/mini-DV camcorders via FireWire. 
+You can of course still use these via their composite or S-Video outputs.
+
+
+Building and Installing
+=======================
+
+See the MPEG4IP README for general notes about the build environment. 
+
+Assuming you've already done a build at the top level of mpeg4ip, then all
+you need do to build mp4live is 'make' in the mp4live directory. You can 
+optionally 'make install' to copy the 'mp4live' executable to '/usr/local/bin'.
+
+
+Using mp4live
+=============
+
+There are currently no command line options to mp4live. If you change a 
+configuration setting, then that change will be saved in your home 
+directory in ~/.mp4live_rc. This file is read when mp4live is started,
+and the configuration settings adjusted accordingly.
+
+The default settings for mp4live are to record 1 minute of audio and video
+to an mp4 file, ./capture.mp4  The first time you use the program, it's
+a good idea to just hit the Start button, and see what happens. If all
+goes well, 1 minute later you have a playable/streamable mp4 file. If you
+don't get this, then it's time to review this README, and it that doesn't
+help, then fire off a message on the MPEG4IP SourceForge discussion group.
+
+Assuming things are working you can now use the Settings buttons to adjust
+things like the video size and frame rate, the audio sampling rate, the 
+encoded bitrates, etc. The UI is hopefully self-explanatory. If not, let us
+know what's confusing and we'll look at fixing that. (I'm a big believer that
+if you need to read a document to use a UI, then the UI is broken and should
+be fixed. Of course, as I've re-learned many times, what is obvious and natural
+to me, isn't always to other people.)
+
+
+Known Issues
+============
+
+One of my capture cards typically doesn't initialize correctly unless 
+it is receiving a video signal. This may happen to you. If so, you just
+need to be sure to start the A/V source before you start the mp4live 
+program.
+
+If (when?) the program crashes it can leave zombie processes lying 
+around. This usually results in the window not being destroyed or the
+invoking shell hanging. Use 'ps' to find any threads name 'lt-mp4live'
+and 'kill -9' them. Infrequently, the video capture card may not recover 
+from a crash. In that case, a system rebot is necessary.
+
+It took me awhile to figure this out so perhaps I can save some of you some
+time. If you use the Hauppage WinTV Go card you need to connect the mini-jack
+on the card to the line-in input on your sound card in order to get the
+audio signal from the TV tuner.
+
+I haven't been able to get either of my capture cards to handle 4CIF 
+(SDTV, CCIR 601) capture even though the Bt8x8 can handle those sizes. 
+So in order to minimize complaints, I don't include those sizes in the 
+mp4live UI. Since this is an open source program, you are welcome to 
+add those sizes (gui/video_dialog.cpp) and get it to work. You will of 
+course need a very fast machine to encode such sizes in real-time at 
+any reasonable frame rate.
+
+There is no exploitation of the Pentium IV SSE2 instructions (MMX with
+128 bit operands) yet.
+
+The names that the bttv driver (and hence mp4live's UI) uses for the 
+video capture card inputs is not accurate for all capture cards.
+
+
+Unknowns
+========
+
+I've only used mp4live with two video capture cards the Viewcast Osprey 100
+and the Hauppage WinTV Go. There are many other Bt8x8 based capture cards 
+listed in the bttv driver documentation. Odds are you're using one of these ;-)
+If you have problems with mp4live, my first suggestion is that you download 
+the latest version of the xawtv package, and try it with your capture card. 
+If it works and mp4live doesn't then I'd be glad to hear from you. If xawtv 
+doesn't work with your capture card, then I can't help you. Something is 
+wrong with your capture card/system/bttv driver/kernel combinatin. I don't
+have the capability or inclination to debug that for you! 
+
+In theory, a webcam with a v4l (video4linux) compatible driver should work
+with mp4live. I haven't had a chance to track one down myself yet. So I'd 
+be interested in hearing from anyone who tries this, especially if it works ;-)
+
+We haven't tried this code on an SMP machine. The code is multi-threaded so
+an interesting experiment would be to assign the video encoding thread to 
+one CPU and let the other threads run on another CPU. If you have lots of 
+low-powered CPUs then one could modify the code to run the video encoder 
+on multiple CPUs and round-robin assign raw frames to be encoded. 
+
+
+Links
+=====
+bttv
+xawtv
+ffmpeg
+
+
+Dave Mackie
+Cisco Systems, Inc.

@@ -5,8 +5,8 @@ liblive_gui_la_SOURCES = \
 	mp4live_gui.h \
 	gui_main.cpp \
 	gui_private.h \
-	gui_showmsg.c \
-	gui_utils.c \
+	gui_showmsg.cpp \
+	gui_utils.cpp \
 	gui_utils.h \
 	audio_dialog.cpp \
 	recording_dialog.cpp \

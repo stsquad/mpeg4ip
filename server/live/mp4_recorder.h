@@ -26,6 +26,8 @@
 #include <quicktime.h>
 #include "media_node.h"
 
+#define RTP_HEADER_STD_SIZE 12
+
 class CMp4Recorder : public CMediaSink {
 public:
 	CMp4Recorder() {
@@ -73,12 +75,16 @@ protected:
 
 	int				m_audioTrack;
 	u_int32_t		m_audioFrameNum;
+	u_int16_t		m_audioFrameRate;
 	int				m_audioHintTrack;
 	u_int8_t		m_audioHintBuf[4*1024];
 	u_int32_t 		m_audioHintBufLength;
 	u_int32_t		m_audioRtpPktNum;
 	u_int32_t		m_audioFramesThisHint;
 	u_int32_t		m_audioBytesThisHint;
+	u_int32_t		m_audioBytesThisSec;
+	u_int32_t		m_audioFirstRtpPktThisSec;
+	u_int32_t		m_audioMaxRtpBytesPerSec;
 
 	int				m_videoTrack;
 	u_int32_t		m_videoFrameNum;
@@ -86,6 +92,9 @@ protected:
 	u_int8_t		m_videoHintBuf[4*1024];
 	u_int32_t 		m_videoHintBufLength;
 	u_int32_t		m_videoRtpPktNum;
+	u_int32_t		m_videoBytesThisSec;
+	u_int32_t		m_videoFirstRtpPktThisSec;
+	u_int32_t		m_videoMaxRtpBytesPerSec;
 
 	u_int32_t		m_movieTimeScale;
 	u_int32_t		m_audioTimeScale;

@@ -241,7 +241,7 @@ GtkWidget *CreateSubMenu (GtkWidget *menubar, char *szName)
     menu = gtk_menu_new ();
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), menu);
 
-    /* --- Viola! --- */
+    /* --- Voila! --- */
     return (menu);
 }
 
@@ -273,15 +273,17 @@ GtkWidget *CreateBarSubMenu (GtkWidget *menu, char *szName)
     submenu = gtk_menu_new ();
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), submenu);
 
-    /* --- Viola! --- */
+    /* --- Voila! --- */
     return (submenu);
 }
 
-GtkWidget *CreateOptionMenu (GtkWidget *omenu,
-			     const char **names,
+GtkWidget *CreateOptionMenu(GtkWidget *omenu,
+				 char* (*gather_func)(size_t index, void* pUserData),
+			     void* pUserData,
 			     size_t max,
 			     size_t current_index,
-			     GtkSignalFunc on_activate)
+			     GtkSignalFunc on_activate,
+				 GSList** menuItems)
 {
   GtkWidget *menu;
   GtkWidget *menuitem;
@@ -300,8 +302,11 @@ GtkWidget *CreateOptionMenu (GtkWidget *omenu,
   group = NULL;
   
   for (ix = 0; ix < max; ix++) {
-    menuitem = gtk_radio_menu_item_new_with_label(group, *names);
-    names++;
+	char* name = (gather_func)(ix, pUserData);
+	if (name == NULL) {
+		break;
+	}
+    menuitem = gtk_radio_menu_item_new_with_label(group, name);
     group = gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
     gtk_menu_append(GTK_MENU(menu), menuitem);
     gtk_widget_show(menuitem);
@@ -313,7 +318,33 @@ GtkWidget *CreateOptionMenu (GtkWidget *omenu,
   gtk_option_menu_set_menu(GTK_OPTION_MENU(omenu), menu);
   gtk_option_menu_set_history(GTK_OPTION_MENU(omenu), current_index);
   gtk_widget_show(omenu);
+
+  if (menuItems) {	
+  	*menuItems = group;
+  }
   return (omenu);
+}
+
+static char* GetArrayItem(size_t index, void* pUserData)
+{
+	return ((char**)pUserData)[index];
+}
+
+GtkWidget *CreateOptionMenu(GtkWidget *omenu,
+			     char **names,
+			     size_t max,
+			     size_t current_index,
+			     GtkSignalFunc on_activate,
+				 GSList** menuItems)
+{
+	return CreateOptionMenu(
+		omenu, 
+		GetArrayItem, 
+		(void*)names, 
+		max, 
+		current_index, 
+		on_activate, 
+		menuItems);
 }
 
 void SetNumberEntryValue (GtkWidget *entry,

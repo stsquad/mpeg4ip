@@ -116,7 +116,6 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 
 		sdpMediaVideoFormat.rtpmap = &sdpVideoRtpMap;
 
-		// TBD GenerateMpeg4VideoConfig(pConfig);
 		char* sConfig = BinaryToAscii(pConfig->m_videoMpeg4Config, 
 			pConfig->m_videoMpeg4ConfigLength); 
 		sprintf(videoFmtpBuf, "profile-level-id=%u; config=%s;",
