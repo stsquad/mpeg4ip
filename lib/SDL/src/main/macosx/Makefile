@@ -62,26 +62,26 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-host_alias = i686-pc-linux
-host_triplet = i686-pc-linux-gnu
-ARCH = linux
+host_alias = i386-unknown-freebsd4.3
+host_triplet = i386-unknown-freebsd4.3
+ARCH = freebsd
 ARTSCCONFIG = 
 AS = 
 ASFLAGS = 
 AUDIO_DRIVERS =  disk/libaudio_disk.la dsp/libaudio_dsp.la dma/libaudio_dma.la esd/libaudio_esd.la
 AUDIO_SUBDIRS =  disk dsp dma esd
 CC = gcc
-CDROM_DRIVERS =  linux/libcdrom_linux.la
-CDROM_SUBDIRS =  linux
+CDROM_DRIVERS =  freebsd/libcdrom_freebsd.la
+CDROM_SUBDIRS =  freebsd
 CXX = c++
 DIRECTFB_CFLAGS = 
 DIRECTFB_LIBS = 
 DLLTOOL = 
-ESD_CFLAGS = 
-ESD_CONFIG = /usr/bin/esd-config
-ESD_LIBS = -L/usr/lib -lesd -laudiofile -lm
-JOYSTICK_DRIVERS =  linux/libjoystick_linux.la
-JOYSTICK_SUBDIRS =  linux
+ESD_CFLAGS = -I/usr/local/include
+ESD_CONFIG = /usr/local/bin/esd-config
+ESD_LIBS = -L/usr/local/lib -lesd -laudiofile -lm
+JOYSTICK_DRIVERS =  dummy/libjoystick_dummy.la
+JOYSTICK_SUBDIRS =  dummy
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LN_S = ln -s
 LT_AGE = 0
@@ -89,31 +89,31 @@ LT_CURRENT = 0
 LT_RELEASE = 1.2
 LT_REVISION = 3
 MAKEINFO = makeinfo
-NASM = /usr/bin/nasm
-NASMFLAGS = -f elf
+NASM = 
+NASMFLAGS = 
 OBJC = ???
 OBJCDEPMODE = 
 OBJCFLAGS = 
 OBJDUMP = 
 PACKAGE = SDL
-PKG_CONFIG = no
+PKG_CONFIG = 
 PTH_CONFIG = 
 RANLIB = ranlib
 SDL_BINARY_AGE = 3
-SDL_CFLAGS =  -D_REENTRANT
-SDL_EXTRADIRS =  audio video events joystick cdrom thread timer endian file hermes
-SDL_EXTRALIBS =  audio/libaudio.la video/libvideo.la events/libevents.la joystick/libjoystick.la cdrom/libcdrom.la thread/libthread.la timer/libtimer.la endian/libendian.la file/libfile.la hermes/libhermes.la
+SDL_CFLAGS =  -D_REENTRANT -D_THREAD_SAFE
+SDL_EXTRADIRS =  audio video events joystick cdrom thread timer endian file
+SDL_EXTRALIBS =  audio/libaudio.la video/libvideo.la events/libevents.la joystick/libjoystick.la cdrom/libcdrom.la thread/libthread.la timer/libtimer.la endian/libendian.la file/libfile.la
 SDL_INTERFACE_AGE = 3
-SDL_LIBS = -lSDL -lpthread
+SDL_LIBS = -lSDL -pthread
 SDL_MAJOR_VERSION = 1
 SDL_MICRO_VERSION = 3
 SDL_MINOR_VERSION = 2
 SDL_RLD_FLAGS = -Wl,-rpath,${exec_prefix}/lib
 SDL_VERSION = 1.2.3
-SYSTEM_LIBS =  -lm -L/usr/lib -lesd -laudiofile -lm  -L/usr/X11R6/lib -lX11 -lXext -lXxf86vm -lXxf86dga -lXv -lXinerama -ldl
+SYSTEM_LIBS =  -lm -L/usr/local/lib -lesd -laudiofile -lm  -L/usr/X11R6/lib -lX11 -lXext -lXxf86vm -lXxf86dga -lXv -lXinerama
 VERSION = 1.2.3
-VIDEO_DRIVERS =  dummy/libvideo_null.la x11/libvideo_x11.la dga/libvideo_dga.la fbcon/libvideo_fbcon.la
-VIDEO_SUBDIRS =  dummy x11 dga fbcon
+VIDEO_DRIVERS =  dummy/libvideo_null.la x11/libvideo_x11.la dga/libvideo_dga.la
+VIDEO_SUBDIRS =  dummy x11 dga
 
 #hackhacknibdatadir = $(nibdatadir)/SDLMain.nib
 #hackhacknibdata_DATA = info.nib
@@ -131,7 +131,7 @@ DIST_COMMON =  Info.plist.in Makefile.am Makefile.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = gtar
+TAR = tar
 GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:
@@ -199,7 +199,7 @@ distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    cp -pr $$d/$$file $(distdir)/$$file; \
+	    cp -pr $$/$$file $(distdir)/$$file; \
 	  else \
 	    test -f $(distdir)/$$file \
 	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \

@@ -85,7 +85,15 @@ typedef INT32 int32_t;
 /* unix */
 
 #include <inttypes.h>
+#ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
+#else
+// code from bits/byteswap.h (C) 1997, 1998 Free Software Foundation, Inc.
+#define bswap_32(x) \
+     ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
+      (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
+#define be2me_32(x) bswap_32(x)
+#endif
 
 #ifndef __WINE_WINDEF16_H
 /* workaround for typedef conflict in MPlayer (wine typedefs) */
