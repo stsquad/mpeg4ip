@@ -217,9 +217,10 @@ bool CAudioSource::InitDevice(void)
 	u_int32_t samplingRate = 
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 	u_int32_t targetSamplingRate = samplingRate;
+
 	rc = ioctl(m_audioDevice, SNDCTL_DSP_SPEED, &samplingRate);
-	if (rc < 0 || (u_int)
-	  abs(samplingRate - targetSamplingRate) > targetSamplingRate / 10) {
+
+	if (rc < 0 || samplingRate != targetSamplingRate) {
 		error_message("Couldn't set sampling rate for %s", deviceName);
 		return false;
 	}

@@ -83,7 +83,6 @@ static u_int8_t durationUnitsIndex = 1;
 
 static GtkWidget *media_source_label;
 static GtkWidget *media_source;
-static GtkWidget *media_source_units;
 
 static GtkWidget *start_time_label;
 static GtkWidget *start_time;
@@ -1059,32 +1058,50 @@ void LayoutControlFrame(GtkWidget* box)
 void LayoutStatusFrame(GtkWidget* box)
 {
 	GtkWidget *frame;
+	GtkWidget *frame_vbox;
 	GtkWidget *vbox, *hbox;
 	GtkWidget *separator;
 
 	frame = gtk_frame_new("Status");
 	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_end(GTK_BOX(box), frame, TRUE, TRUE, 5);
+	gtk_box_pack_end(GTK_BOX(box), frame, FALSE, FALSE, 5);
+
+	// frame vbox
+	frame_vbox = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(frame_vbox);
+	gtk_container_add(GTK_CONTAINER(frame), frame_vbox);
 
 	// first row
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
-	gtk_container_add(GTK_CONTAINER(frame), hbox);
-
-	// vbox for labels
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(frame_vbox), hbox, FALSE, FALSE, 2);
 
 	media_source_label = gtk_label_new(" Source:");
 	gtk_misc_set_alignment(GTK_MISC(media_source_label), 0.0, 0.5);
 	gtk_widget_show(media_source_label);
-	gtk_box_pack_start(GTK_BOX(vbox), media_source_label, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), media_source_label, TRUE, TRUE, 5);
 
+	media_source = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(media_source), 1.0, 0.5);
+	gtk_widget_show(media_source);
+	gtk_box_pack_start(GTK_BOX(hbox), media_source, TRUE, TRUE, 5);
+
+	// separator
 	separator = gtk_hseparator_new();
 	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(frame_vbox), separator, TRUE, TRUE, 0);
+
+	// second row
+
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_widget_show(hbox);
+	gtk_box_pack_start(GTK_BOX(frame_vbox), hbox, FALSE, FALSE, 2);
+
+	// vbox for time labels
+	vbox = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
 
 	start_time_label = gtk_label_new(" Start Time:");
 	gtk_misc_set_alignment(GTK_MISC(start_time_label), 0.0, 0.5);
@@ -1106,42 +1123,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(finish_time_label);
 	gtk_box_pack_start(GTK_BOX(vbox), finish_time_label, TRUE, TRUE, 0);
 
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
-
-	current_size_label = gtk_label_new(" Current Size:");
-	gtk_misc_set_alignment(GTK_MISC(current_size_label), 0.0, 0.5);
-	gtk_widget_show(current_size_label);
-	gtk_box_pack_start(GTK_BOX(vbox), current_size_label, TRUE, TRUE, 0);
-
-	final_size_label = gtk_label_new(" Estimated Final Size:");
-	gtk_misc_set_alignment(GTK_MISC(final_size_label), 0.0, 0.5);
-	gtk_widget_show(final_size_label);
-	gtk_box_pack_start(GTK_BOX(vbox), final_size_label, TRUE, TRUE, 0);
-
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
-
-	actual_fps_label = gtk_label_new(" Video Frame Rate:");
-	gtk_misc_set_alignment(GTK_MISC(actual_fps_label), 0.0, 0.5);
-	gtk_widget_show(actual_fps_label);
-	gtk_box_pack_start(GTK_BOX(vbox), actual_fps_label, TRUE, TRUE, 0);
-
-	// vbox for values
+	// vbox for time values
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
 	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
-
-	media_source = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(media_source), 1.0, 0.5);
-	gtk_widget_show(media_source);
-	gtk_box_pack_start(GTK_BOX(vbox), media_source, TRUE, TRUE, 0);
-
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
 
 	start_time = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(start_time), 1.0, 0.5);
@@ -1163,42 +1148,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(finish_time);
 	gtk_box_pack_start(GTK_BOX(vbox), finish_time, TRUE, TRUE, 0);
 
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
-
-	current_size = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(current_size), 1.0, 0.5);
-	gtk_widget_show(current_size);
-	gtk_box_pack_start(GTK_BOX(vbox), current_size, TRUE, TRUE, 0);
-
-	final_size = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(final_size), 1.0, 0.5);
-	gtk_widget_show(final_size);
-	gtk_box_pack_start(GTK_BOX(vbox), final_size, TRUE, TRUE, 0);
-
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
-
-	actual_fps = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(actual_fps), 1.0, 0.5);
-	gtk_widget_show(actual_fps);
-	gtk_box_pack_start(GTK_BOX(vbox), actual_fps, TRUE, TRUE, 0);
-
-	// vbox for units
+	// vbox for time units
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
-
-	media_source_units = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(media_source_units), 1.0, 0.5);
-	gtk_widget_show(media_source_units);
-	gtk_box_pack_start(GTK_BOX(vbox), media_source_units, TRUE, TRUE, 0);
-
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
 
 	start_time_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(start_time_units), 1.0, 0.5);
@@ -1220,9 +1173,51 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(finish_time_units);
 	gtk_box_pack_start(GTK_BOX(vbox), finish_time_units, TRUE, TRUE, 0);
 
+	// separator
 	separator = gtk_hseparator_new();
 	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(frame_vbox), separator, TRUE, TRUE, 0);
+
+	// third row
+
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_widget_show(hbox);
+	gtk_box_pack_start(GTK_BOX(frame_vbox), hbox, FALSE, FALSE, 2);
+
+	// vbox for size labels
+	vbox = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
+
+	current_size_label = gtk_label_new(" Current Size:");
+	gtk_misc_set_alignment(GTK_MISC(current_size_label), 0.0, 0.5);
+	gtk_widget_show(current_size_label);
+	gtk_box_pack_start(GTK_BOX(vbox), current_size_label, TRUE, TRUE, 0);
+
+	final_size_label = gtk_label_new(" Estimated Final Size:");
+	gtk_misc_set_alignment(GTK_MISC(final_size_label), 0.0, 0.5);
+	gtk_widget_show(final_size_label);
+	gtk_box_pack_start(GTK_BOX(vbox), final_size_label, TRUE, TRUE, 0);
+
+	// vbox for size values
+	vbox = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
+
+	current_size = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(current_size), 1.0, 0.5);
+	gtk_widget_show(current_size);
+	gtk_box_pack_start(GTK_BOX(vbox), current_size, TRUE, TRUE, 0);
+
+	final_size = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(final_size), 1.0, 0.5);
+	gtk_widget_show(final_size);
+	gtk_box_pack_start(GTK_BOX(vbox), final_size, TRUE, TRUE, 0);
+
+	// vbox for size units
+	vbox = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(vbox);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
 
 	current_size_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(current_size_units), 1.0, 0.5);
@@ -1234,14 +1229,31 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(final_size_units);
 	gtk_box_pack_start(GTK_BOX(vbox), final_size_units, TRUE, TRUE, 0);
 
+	// separator
 	separator = gtk_hseparator_new();
 	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(frame_vbox), separator, TRUE, TRUE, 0);
+
+	// fourth row
+
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_widget_show(hbox);
+	gtk_box_pack_start(GTK_BOX(frame_vbox), hbox, FALSE, FALSE, 2);
+
+	actual_fps_label = gtk_label_new(" Video Frame Rate:");
+	gtk_misc_set_alignment(GTK_MISC(actual_fps_label), 0.0, 0.5);
+	gtk_widget_show(actual_fps_label);
+	gtk_box_pack_start(GTK_BOX(hbox), actual_fps_label, TRUE, TRUE, 5);
+
+	actual_fps = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(actual_fps), 1.0, 0.5);
+	gtk_widget_show(actual_fps);
+	gtk_box_pack_start(GTK_BOX(hbox), actual_fps, TRUE, TRUE, 0);
 
 	actual_fps_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(actual_fps_units), 1.0, 0.5);
 	gtk_widget_show(actual_fps_units);
-	gtk_box_pack_start(GTK_BOX(vbox), actual_fps_units, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), actual_fps_units, TRUE, TRUE, 5);
 
 	gtk_widget_show(frame); // show control frame
 }

@@ -42,17 +42,7 @@ set -x
 # if src tree is checked out directly via cvs, this is a no-op
 mkdir -p ./config || exit 1
 
-# Pass our args to configure
-case	`uname -s`
-in	Darwin)
-	rm -f server/lib/sndfile/config.* server/lib/sndfile/configure
-	rm -f server/lib/sndfile/ltmain.sh server/lib/sndfile/aclocal.m4
-	rm -f lib/rtp/config.guess lib/rtp/config.sub lib/rtp/configure
-	;;
-esac
-
-
-for dir in /usr/local /usr/contrib /opt/gnome
+for dir in /usr/local /usr/contrib /opt/gnome /usr
 do
    if test -d $dir/share/aclocal -a `which aclocal` != $dir/bin/aclocal
    then
@@ -62,13 +52,21 @@ done
 
 pwd=`pwd`
 for	dir \
-in	$pwd/server/lib/sndfile $pwd/lib/SDL $pwd/lib/rtp 
+in	$pwd/server/lib/sndfile $pwd/lib/SDL 
 do	cd $dir
 	[ ! -f Makefile.am ] || aclocal || aclocal $ACLOCAL_FLAGS || exit 3
 	[ ! -f Makefile.am ] || automake --add-missing --foreign || exit 1
 	[ ! -f configure.in ] || autoconf || exit 1
 	[ ! -x configure ] || ./configure "$@" || exit 1
 done
+
+cd $pwd
+cd lib/rtp
+aclocal || aclocal $ACLOCAL_FLAGS || exit 3
+autoheader
+automake --add-missing --foreign || exit 1
+autoconf || exit 1
+./configure "$@" || exit 1
 
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  
