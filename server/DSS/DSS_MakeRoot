@@ -73,11 +73,11 @@ if [ $FLATTEN != 1 ]; then
 	#echo copying "sample.mov" into "$INSTALLROOT/usr/local/movies"
 	#cp sample.mov $INSTALLROOT/usr/local/movies/
 	
-	echo copying "SpamPro" to "$INSTALLROOT/usr/local/sbin/SpamPro"
-	cp SpamPro.tproj/SpamPro $INSTALLROOT/usr/local/sbin/
+	#echo copying "SpamPro" to "$INSTALLROOT/usr/local/sbin/SpamPro"
+	#cp SpamPro.tproj/SpamPro $INSTALLROOT/usr/local/sbin/
 	
-	echo copying "spampro.conf" to "$INSTALLROOT/usr/local/sbin/spampro.conf"
-	cp SpamPro.tproj/spampro.conf $INSTALLROOT/var/streaming/
+	#echo copying "spampro.conf" to "$INSTALLROOT/usr/local/sbin/spampro.conf"
+	#cp SpamPro.tproj/spampro.conf $INSTALLROOT/var/streaming/
 	
 	#WebAdmin install
 	echo copying "streamingadminserver.pl" into "$INSTALLROOT/usr/local/bin/"
@@ -134,11 +134,11 @@ else
 	#echo copying "sample.mov" into "$INSTALLROOT/movies"
 	#cp sample.mov $INSTALLROOT/
 	
-	echo copying "SpamPro" to "$INSTALLROOT/SpamPro"
-	cp SpamPro.tproj/SpamPro $INSTALLROOT/
+	#echo copying "SpamPro" to "$INSTALLROOT/SpamPro"
+	#cp SpamPro.tproj/SpamPro $INSTALLROOT/
 	
-	echo copying "spampro.conf" to "$INSTALLROOT/spampro.conf"
-	cp SpamPro.tproj/spampro.conf $INSTALLROOT/
+	#echo copying "spampro.conf" to "$INSTALLROOT/spampro.conf"
+	#cp SpamPro.tproj/spampro.conf $INSTALLROOT/
 	
 	#WebAdmin install
 	echo copying "streamingadminserver.pl" into "$INSTALLROOT/"

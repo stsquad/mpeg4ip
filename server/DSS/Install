@@ -47,10 +47,10 @@ if [ $USERID = 0 ]; then
 	
 	
 	echo copying "PlaylistBroadcaster" to "/usr/local/sbin/PlaylistBroadcaster"
-	cp -f PlaylistBroadcaster /usr/local/sbin/
+	cp -f PlaylistBroadcaster.tproj/PlaylistBroadcaster /usr/local/sbin/
 	
 	echo copying "qtpasswd" to "/usr/local/sbin/qtpasswd"
-	cp -f qtpasswd /usr/local/sbin/
+	cp -f qtpasswd.tproj/qtpasswd /usr/local/sbin/
 	
 	echo copying modules to "/usr/local/sbin/StreamingServerModules"
 	if [ ! -d /usr/local/sbin/StreamingServerModules ]; then
@@ -97,11 +97,11 @@ if [ $USERID = 0 ]; then
 	#echo copying "sample.mov" into "/usr/local/movies/sample.mov"
 	#cp -f sample.mov /usr/local/movies/
 	
-	echo copying "SpamPro" to "/usr/local/sbin/SpamPro"
-	cp SpamPro /usr/local/sbin/
+	#echo copying "SpamPro" to "/usr/local/sbin/SpamPro"
+	#cp SpamPro /usr/local/sbin/
 	
-	echo copying "spampro.conf" to "/var/streaming/spampro.conf"
-	cp spampro.conf /var/streaming/
+	#echo copying "spampro.conf" to "/var/streaming/spampro.conf"
+	#cp spampro.conf /var/streaming/
 	
 	#WebAdmin install
 	echo copying "streamingadminserver.pl" into "/usr/local/bin/streamingadminserver.pl"
