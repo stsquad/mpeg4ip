@@ -21,7 +21,7 @@
  * 
  * @APPLE_LICENSE_HEADER_END@
  */
-// $Id: QTHintTrack.cpp,v 1.1 2001/02/27 00:56:49 cahighlander Exp $
+// $Id: QTHintTrack.cpp,v 1.2 2001/02/28 23:23:01 cahighlander Exp $
 //
 // QTHintTrack:
 //   The central point of control for a track in a QTFile.
@@ -453,16 +453,38 @@ void QTHintTrack::GetSamplePacketHeaderVars( char *samplePacketPtr, QTHintTrackR
 	MOVE_WORD( hdrData.dataEntryCount, samplePacketPtr + 10);
 	hdrData.dataEntryCount = ntohs(hdrData.dataEntryCount);
 
-	
-	if( hdrData.hintFlags & 0x4 ) 
+	// MODIFICATION dmackie@cisco.com 12/19/00 - handle RTP timestamp offset
+	if( hdrData.hintFlags & 0x4 )
 	{ 	// Extra Information TLV is present
-		MOVE_LONG_WORD( hdrData.tlvSize, samplePacketPtr + 12);
+		char* tlvPtr = samplePacketPtr + 12;
+		UInt32 tlvPos = 4;
+
+		MOVE_LONG_WORD(hdrData.tlvSize, tlvPtr);
 		hdrData.tlvSize = ntohl(hdrData.tlvSize);
+
+		while (tlvPos < hdrData.tlvSize)
+		{
+			UInt32 tlvEntrySize;
+			MOVE_LONG_WORD(tlvEntrySize, tlvPtr + tlvPos);
+			tlvEntrySize = ntohl(tlvEntrySize);
+
+			if (tlvPtr[tlvPos + 4] == 'r' && tlvPtr[tlvPos + 5] == 't' &&
+				tlvPtr[tlvPos + 6] == 'p' && tlvPtr[tlvPos + 7] == 'o')
+			{
+				MOVE_LONG_WORD(hdrData.rtpTimestampOffset, 
+					tlvPtr + tlvPos + 4 + 4);
+				hdrData.rtpTimestampOffset = ntohl(hdrData.rtpTimestampOffset);
+			}
+			
+			tlvPos += tlvEntrySize;
+		}
 	} 
 	else
 	{
 		hdrData.tlvSize = 0;
+		hdrData.rtpTimestampOffset = 0;
 	}
+	// END MODIFICATION dmackie@cisco.com 12/19/00
 	MOVE_LONG_WORD( hdrData.relativePacketTransmissionTime, samplePacketPtr );
 	
 	hdrData.relativePacketTransmissionTime = ntohl(hdrData.relativePacketTransmissionTime);
@@ -1205,6 +1227,8 @@ QTTrack::ErrorCode QTHintTrack::GetPacket(UInt32 sampleNumber, UInt16 packetNumb
 	if ( err != errNoError )
 		return err;
 		
+	// MODIFICATION dmackie@cisco.com 12/19/00 - added RTP timestamp offset 
+	rtpTimestamp += hdrData.rtpTimestampOffset;
 	
 	*transmitTime =  ( mediaTime * fMediaHeaderAtom->GetTimeScaleRecip() )
 					+ ( hdrData.relativePacketTransmissionTime * fMediaHeaderAtom->GetTimeScaleRecip() );

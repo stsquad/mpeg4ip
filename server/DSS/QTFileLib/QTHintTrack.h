@@ -21,7 +21,7 @@
  * 
  * @APPLE_LICENSE_HEADER_END@
  */
-// $Id: QTHintTrack.h,v 1.1 2001/02/27 00:56:49 cahighlander Exp $
+// $Id: QTHintTrack.h,v 1.2 2001/02/28 23:23:01 cahighlander Exp $
 //
 // QTHintTrack:
 //   The central point of control for a hint track in a QTFile.
@@ -55,7 +55,8 @@ class QTHintTrackRTPHeaderData {
 		UInt16		hintFlags;
 		UInt16		dataEntryCount;
 		UInt32		tlvSize;
-
+		// MODIFICATION dmackie@cisco.com 12/19/00 - added RTP timestamp offset
+		SInt32		rtpTimestampOffset;
 };
 
 //
