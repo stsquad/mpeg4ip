@@ -94,7 +94,7 @@ int rtsp_create_socket (rtsp_client_t *info)
   if (result != 0) return -1;
   
 #ifndef _WIN32
-#ifndef HAVE_IPv6
+#ifdef HAVE_IPv6
   info->server_socket = socket(info->addr_info->ai_family,
 			       info->addr_info->ai_socktype,
 			       info->addr_info->ai_protocol);

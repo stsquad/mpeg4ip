@@ -1,0 +1,67 @@
+/*
+This software module was originally developed by
+Toshiyuki Nomura (NEC Corporation)
+and edited by
+
+in the course of development of the
+MPEG-2 NBC/MPEG-4 Audio standard ISO/IEC 13818-7, 14496-1,2 and 3.
+This software module is an implementation of a part of one or more
+MPEG-2 NBC/MPEG-4 Audio tools as specified by the MPEG-2 NBC/MPEG-4 Audio
+standard. ISO/IEC  gives users of the MPEG-2 NBC/MPEG-4 Audio standards
+free license to this software module or modifications thereof for use in
+hardware or software products claiming conformance to the MPEG-2 NBC/
+MPEG-4 Audio  standards. Those intending to use this software module in
+hardware or software products are advised that this use may infringe
+existing patents. The original developer of this software module and
+his/her company, the subsequent editors and their companies, and ISO/IEC
+have no liability for use of this software module or modifications
+thereof in an implementation. Copyright is not released for non
+MPEG-2 NBC/MPEG-4 Audio conforming products. The original developer
+retains full right to use the code for his/her  own purpose, assign or
+donate the code to a third party and to inhibit third party from using
+the code for non MPEG-2 NBC/MPEG-4 Audio conforming products.
+This copyright notice must be included in all copies or derivative works.
+Copyright (c)1998.
+*/
+/*
+ *	MPEG-4 Audio Verification Model (LPC-ABS Core)
+ *	
+ *	Enhanced Gain Tables
+ *
+ *	Ver1.0	97.03.17	T.Nomura(NEC)
+ *	Ver2.0	98.11.08	T.Nomura(NEC)
+ */
+static float nec_egc[4][(1<<4)] = {
+{((float)  460)/16384, ((float) 5049)/16384,
+ ((float) 3328)/16384, ((float) 8745)/16384,
+ ((float) 2155)/16384, ((float) 6211)/16384,
+ ((float) 4199)/16384, ((float)15087)/16384,
+ ((float) 1199)/16384, ((float) 5562)/16384,
+ ((float) 3775)/16384, ((float)11112)/16384,
+ ((float) 2832)/16384, ((float) 7228)/16384,
+ ((float) 4615)/16384, ((float)23253)/16384 },
+{((float) 3342)/16384, ((float) 3231)/16384,
+ ((float) 1482)/16384, ((float) 5359)/16384,
+ ((float)  135)/16384, ((float) 4113)/16384,
+ ((float) 2452)/16384, ((float) 8599)/16384,
+ ((float) 1005)/16384, ((float) 3650)/16384,
+ ((float) 2015)/16384, ((float) 6358)/16384,
+ ((float)  848)/16384, ((float) 4629)/16384,
+ ((float) 2838)/16384, ((float)15013)/16384 },
+{((float) 4827)/16384, ((float) 2242)/16384,
+ ((float)  435)/16384, ((float) 4010)/16384,
+ ((float) 1187)/16384, ((float) 3016)/16384,
+ ((float) 1450)/16384, ((float) 5760)/16384,
+ ((float) 2490)/16384, ((float) 2617)/16384,
+ ((float)  995)/16384, ((float) 4691)/16384,
+ ((float)  241)/16384, ((float) 3477)/16384,
+ ((float) 1854)/16384, ((float) 7969)/16384 },
+{((float) 9045)/16384, ((float) 1739)/16384,
+ ((float)  883)/16384, ((float) 4160)/16384,
+ ((float) 3582)/16384, ((float) 2736)/16384,
+ ((float)  680)/16384, ((float) 7686)/16384,
+ ((float) 5747)/16384, ((float) 2216)/16384,
+ ((float)    0)/16384, ((float) 5391)/16384,
+ ((float) 2087)/16384, ((float) 3351)/16384,
+ ((float) 1225)/16384, ((float)11417)/16384 }};
+

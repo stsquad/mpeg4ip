@@ -303,8 +303,8 @@ static void on_main_menu_about (GtkWidget *window, gpointer data)
 	  "RTP from UCL\n"
 	  "ISO reference decoder for MPEG4\n"
 	  "FAAC decoder\n"
-	  "OpenDivx decore version 0.48\n"
-	  "Developed by Bill May, 10/00 to 12/01", VERSION);
+	  "Xvid decoder\n"
+	  "Developed by Bill May, 10/00 to present", VERSION);
 
   ShowMessage("About gmp4player",buffer);
 }

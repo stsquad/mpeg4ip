@@ -42,9 +42,11 @@ static int http_dissect_url (const char *name,
   size_t hostlen;
 
   // skip ahead after host
+  rightbracket = NULL;
   if (*uptr == '[') {
     rightbracket = strchr(uptr, ']');
     if (rightbracket != NULL) {
+      uptr++;
       // literal IPv6 address
       if (rightbracket[1] == ':') {
 	nextcolon = rightbracket + 1;
@@ -84,6 +86,7 @@ static int http_dissect_url (const char *name,
       return (-1);
     }
     FREE_CHECK(cptr, m_host);
+    if (rightbracket != NULL) hostlen--;
     host = malloc(hostlen + 1);
     if (host == NULL) {
       return (-1);
@@ -96,7 +99,11 @@ static int http_dissect_url (const char *name,
       return (EINVAL);
     }
     FREE_CHECK(cptr, m_host);
-    cptr->m_host = strdup(uptr);
+    host = strdup(uptr);
+    if (rightbracket != NULL) {
+       host[strlen(host) - 1] = '\0';
+    }
+    cptr->m_host = host;
   }
   
   FREE_CHECK(cptr, m_resource);

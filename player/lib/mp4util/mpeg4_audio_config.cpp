@@ -41,9 +41,19 @@ int audio_object_type_is_aac (mpeg4_audio_config_t *mptr)
   return 0;
 }
 
+
+int audio_object_type_is_celp (mpeg4_audio_config_t *mptr)
+{
+  unsigned int audio_object;
+  audio_object = mptr->audio_object_type;
+  if (audio_object == 8) 
+    return 1;
+  return 0;
+}
+
 void decode_mpeg4_audio_config (const unsigned char *buffer, 
-			       uint32_t buf_len,
-			       mpeg4_audio_config_t *mptr)
+				   uint32_t buf_len,
+				   mpeg4_audio_config_t *mptr)
 {
   CBitstream bit;
   uint32_t ret;
@@ -51,34 +61,59 @@ void decode_mpeg4_audio_config (const unsigned char *buffer,
   bit.init(buffer, buf_len * 8);
 
   if (bit.getbits(5, &ret) < 0)
-    return;
+	return;
 
   mptr->audio_object_type = ret;
 
   if (bit.getbits(4, &ret) < 0)
-    return;
+	return;
 
   if (ret == 0xf) {
-    if (bit.getbits(24, &ret) < 0) 
-      return;
-    mptr->frequency = ret;
+	if (bit.getbits(24, &ret) < 0) 
+	  return;
+	mptr->frequency = ret;
   } else {
-    mptr->frequency = freq_index_to_freq[ret];
+	mptr->frequency = freq_index_to_freq[ret];
   }
   if (bit.getbits(4, &ret) < 0)
-    return;
+	return;
 
   mptr->channels = ret;
   // rptr points to remaining bits - starting with 0x04, moving
   // down buffer_len.
   if (audio_object_type_is_aac(mptr)) {
-    if (bit.getbits(1, &ret) < 0)
-      return;
-    if (ret == 0) {
-      mptr->codec.aac.frame_len_1024 = 1;
-    } else {
-      mptr->codec.aac.frame_len_1024 = 0;
-    }
-  }
+	if (bit.getbits(1, &ret) < 0)
+	  return;
+	if (ret == 0) {
+	  mptr->codec.aac.frame_len_1024 = 1;
+	} else {
+	  mptr->codec.aac.frame_len_1024 = 0;
+	}
+ 
+  }	
+
+
+if (audio_object_type_is_celp(mptr)){
+
+	if (bit.getbits(1, &ret) < 0)
+	  return;
+	
+	if(ret)
+	mptr->codec.celp.isBaseLayer=1;
+	else
+	{
+		bit.getbits(1, &ret);
+		mptr->codec.celp.isBWSLayer=ret;
+		if(ret==0){
+		bit.getbits(2, &ret);
+			mptr->codec.celp.CELP_BRS_id=ret;
+			}
+
+		}
+
+	}
+
+	mptr->codec.celp.NumOfBitsInBuffer=bit.bits_remain();
 }
+
 }

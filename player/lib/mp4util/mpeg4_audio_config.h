@@ -26,12 +26,21 @@ typedef struct aac_audio_config_t {
   int frame_len_1024;
 } aac_audio_config_t;
 
+typedef struct celp_audio_config_t {
+  //int frame_len_1024;
+  int isBaseLayer;
+  int isBWSLayer;
+  int  CELP_BRS_id;
+  int NumOfBitsInBuffer;
+} celp_audio_config_t;
+
 typedef struct mpeg4_audio_config_t {
   unsigned int audio_object_type;
   unsigned int frequency;
   unsigned int channels;
   union {
     aac_audio_config_t aac;
+	celp_audio_config_t celp;
   } codec;
 } mpeg4_audio_config_t;
 
@@ -41,5 +50,6 @@ void decode_mpeg4_audio_config(const unsigned char *buffer,
 			       mpeg4_audio_config_t *mptr);
 
 int audio_object_type_is_aac(mpeg4_audio_config_t *mptr);
+int audio_object_type_is_celp(mpeg4_audio_config_t *mptr);
 }
 #endif

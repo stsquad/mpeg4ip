@@ -63,6 +63,27 @@ Package=<4>
 
 ###############################################################################
 
+Project: "celp_plugin"=..\plugin\audio\celp\celp_plugin\celp_plugin.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libcelp
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4util
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name bitstream
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "common"=..\..\lib\rtp\common60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -76,6 +97,18 @@ Package=<4>
 ###############################################################################
 
 Project: "libavi"=..\..\lib\avi\libavi60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libcelp"=..\lib\audio\celp\libcelp\libcelp.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

@@ -158,7 +158,9 @@ int rtsp_dissect_url (rtsp_client_t *rptr, const char *url)
   }
 
   rptr->port = 554;
+  rightbracket = NULL;
   if (*uptr == '[') {
+    uptr++; // don't include the '['
     rightbracket = strchr(uptr, ']');
     if (rightbracket != NULL) {
       // literal IPv6 address
@@ -195,6 +197,9 @@ int rtsp_dissect_url (rtsp_client_t *rptr, const char *url)
       hostlen = nextslash - uptr;
 	
     }
+    if (rightbracket != NULL) {
+       hostlen--;
+    }
     if (hostlen == 0) {
       return (EINVAL);
     }
@@ -211,6 +216,9 @@ int rtsp_dissect_url (rtsp_client_t *rptr, const char *url)
     rptr->server_name = strdup(uptr);
     if (rptr->server_name == NULL) {
       return (ENOMEM);
+    }
+    if (rightbracket != NULL) {
+      rptr->server_name[strlen(rptr->server_name) - 1] = '\0';
     }
   }
 
