@@ -567,7 +567,7 @@ void CAVMediaFlow::ValidateAndUpdateStreams (void)
 
   s = m_stream_list->GetHead();
   uint32_t max_w = 0, max_h = 0, max_sample_rate = 0, max_chans = 0;
-  bool have_video = false, have_audio = false;
+  bool have_video = false, have_audio = false, have_text = false;
   while (s != NULL) {
     // get the maximum width and maximum height
     if (s->GetBoolValue(STREAM_VIDEO_ENABLED)) {
@@ -596,11 +596,15 @@ void CAVMediaFlow::ValidateAndUpdateStreams (void)
 	MAX(max_chans, 
 	    s->GetAudioProfile()->GetIntegerValue(CFG_AUDIO_CHANNELS));
     }
+    if (s->GetBoolValue(STREAM_TEXT_ENABLED)) {
+      have_text = true;
+    }
     createStreamSdp(m_pConfig, s);
     s = s->GetNext();
   }
   m_pConfig->SetBoolValue(CONFIG_AUDIO_ENABLE, have_audio);
-  m_pConfig->SetBoolValue(CONFIG_VIDEO_ENABLE, have_audio);
+  m_pConfig->SetBoolValue(CONFIG_TEXT_ENABLE, have_text);
+  m_pConfig->SetBoolValue(CONFIG_VIDEO_ENABLE, have_video);
   // streams should all be loaded.
   if (max_chans > 0) {
     m_pConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS,
