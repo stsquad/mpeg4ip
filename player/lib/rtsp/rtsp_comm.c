@@ -117,7 +117,7 @@ int rtsp_receive (rtsp_client_t *info)
   struct timeval timeout;
 #endif
   bool done;
-  uint32_t bufflen;
+  uint32_t bufflen, retlen;
   char *new;
 
   totcnt = 0;
@@ -135,7 +135,7 @@ int rtsp_receive (rtsp_client_t *info)
 	FD_SET(info->server_socket, &read_set);
 	timeout.tv_sec = info->recv_timeout / 1000;
 	timeout.tv_usec = (info->recv_timeout % 1000) * 1000;
-	ret = select(1, &read_set, NULL, NULL, &timeout);
+	ret = select(info->server_socket + 1, &read_set, NULL, NULL, &timeout);
 #endif
 
     if (ret <= 0) {
@@ -158,12 +158,13 @@ int rtsp_receive (rtsp_client_t *info)
       printf("Return from recv was -1");
       return (-1);
     }
-    if (ret < bufflen) {
+	retlen = ret;
+    if (retlen < bufflen) {
       done = TRUE;
-      info->recv_buff_used = ret;
+      info->recv_buff_used = retlen;
     } else {
       done = FALSE;
-      if (ret == bufflen) {
+      if (retlen == bufflen) {
 	// We have a full buffer - if the last character is \r or \n,
 	// go ahead and return.  Otherwise, realloc the buffer to a larger
 	// one.

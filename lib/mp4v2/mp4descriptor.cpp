@@ -93,7 +93,8 @@ void MP4Descriptor::ReadProperties(MP4File* pFile,
 			VERBOSE_ERROR(pFile->GetVerbosity(),
 				printf("Overran descriptor, tag %u data size %u property %u\n",
 					m_tag, m_size, i));
-			throw new MP4Error(ERANGE, "MP4Descriptor::ReadProperties");
+			throw new MP4Error("overran descriptor",
+				 "MP4Descriptor::ReadProperties");
 		} 
 	}
 }

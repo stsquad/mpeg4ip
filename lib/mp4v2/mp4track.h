@@ -83,12 +83,16 @@ protected:
 	bool		IsSyncSample(MP4SampleId sampleId);
 	MP4SampleId	GetNextSyncSample(MP4SampleId sampleId);
 
+	void UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes);
+	void UpdateSyncSamples(MP4SampleId sampleId, bool isSyncSample);
+	void AddSyncSample(MP4SampleId sampleId);
+
 protected:
 	MP4File*	m_pFile;
 	MP4Atom* 	m_pTrakAtom;		// moov.trak[]
 	MP4TrackId	m_trackId;			// moov.trak[].tkhd.trackId
 	char		m_type[5];			// moov.trak[].mdia.hdlr.handlerType
-	MP4SampleId m_currentSampleId;	// used only for writing
+	MP4SampleId m_writeSampleId;	// used only for writing
 
 	MP4Integer32Property* m_pFixedSampleSizeProperty;
 	MP4Integer32Property* m_pSampleSizeProperty;

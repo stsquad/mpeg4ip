@@ -25,14 +25,14 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 {
 	m_pFile = pFile;
 	m_pTrakAtom = pTrakAtom;
+	m_writeSampleId = 1;
 
 	bool success = true;
-	u_int32_t index;
 
 	MP4Integer32Property* pTrackIdProperty;
 	success &= m_pTrakAtom->FindProperty(
 		"trak.tkhd.trackId",
-		(MP4Property**)&pTrackIdProperty, &index);
+		(MP4Property**)&pTrackIdProperty);
 	if (success) {
 		m_trackId = pTrackIdProperty->GetValue();
 	}
@@ -40,7 +40,7 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 	MP4Integer32Property* pTypeProperty;
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.hdlr.handlerType",
-		(MP4Property**)&pTypeProperty, &index);
+		(MP4Property**)&pTypeProperty);
 	if (success) {
 		INT32TOSTR(pTypeProperty->GetValue(), m_type);
 	}
@@ -49,53 +49,53 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stsz.sampleSize",
-		(MP4Property**)&m_pFixedSampleSizeProperty, &index);
+		(MP4Property**)&m_pFixedSampleSizeProperty);
 	
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stsz.entries[0].sampleSize",
-		(MP4Property**)&m_pSampleSizeProperty, &index);
+		(MP4Property**)&m_pSampleSizeProperty);
 
 	// get handles on information needed to map sample id's to file offsets
 
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stsc.entryCount",
-		(MP4Property**)&m_pStscCountProperty, &index);
+		(MP4Property**)&m_pStscCountProperty);
 
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stsc.entries[0].firstChunk",
-		(MP4Property**)&m_pStscFirstChunkProperty, &index);
+		(MP4Property**)&m_pStscFirstChunkProperty);
 
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stsc.entries[0].samplesPerChunk",
-		(MP4Property**)&m_pStscSamplesPerChunkProperty, &index);
+		(MP4Property**)&m_pStscSamplesPerChunkProperty);
 
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stsc.entries[0].firstSample",
-		(MP4Property**)&m_pStscFirstSampleProperty, &index);
+		(MP4Property**)&m_pStscFirstSampleProperty);
 
 	bool haveStco = m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stco.entries[0].chunkOffset",
-		(MP4Property**)&m_pChunkOffsetProperty, &index);
+		(MP4Property**)&m_pChunkOffsetProperty);
 
 	if (!haveStco) {
 		success &= m_pTrakAtom->FindProperty(
 			"trak.mdia.minf.stbl.co64.entries[0].chunkOffset",
-			(MP4Property**)&m_pChunkOffsetProperty, &index);
+			(MP4Property**)&m_pChunkOffsetProperty);
 	}
 
 	// get handles on sample timing info
 
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stts.entryCount",
-		(MP4Property**)&m_pSttsCountProperty, &index);
+		(MP4Property**)&m_pSttsCountProperty);
 	
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stts.entries[0].sampleCount",
-		(MP4Property**)&m_pSttsSampleCountProperty, &index);
+		(MP4Property**)&m_pSttsSampleCountProperty);
 	
 	success &= m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stts.entries[0].sampleDelta",
-		(MP4Property**)&m_pSttsSampleDeltaProperty, &index);
+		(MP4Property**)&m_pSttsSampleDeltaProperty);
 	
 	// get handles on rendering offset info if it exists
 
@@ -105,16 +105,16 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 
 	bool haveCtts = m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.ctts.entryCount",
-		(MP4Property**)&m_pCttsCountProperty, &index);
+		(MP4Property**)&m_pCttsCountProperty);
 
 	if (haveCtts) {
 		success &= m_pTrakAtom->FindProperty(
 			"trak.mdia.minf.stbl.ctts.entries[0].sampleCount",
-			(MP4Property**)&m_pCttsSampleCountProperty, &index);
+			(MP4Property**)&m_pCttsSampleCountProperty);
 
 		success &= m_pTrakAtom->FindProperty(
 			"trak.mdia.minf.stbl.ctts.entries[0].sampleOffset",
-			(MP4Property**)&m_pCttsSampleOffsetProperty, &index);
+			(MP4Property**)&m_pCttsSampleOffsetProperty);
 	}
 
 	// get handles on sync sample info if it exists
@@ -124,12 +124,12 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 
 	bool haveStss = m_pTrakAtom->FindProperty(
 		"trak.mdia.minf.stbl.stss.entryCount",
-		(MP4Property**)&m_pStssCountProperty, &index);
+		(MP4Property**)&m_pStssCountProperty);
 
 	if (haveStss) {
 		success &= m_pTrakAtom->FindProperty(
 			"trak.mdia.minf.stbl.stss.entries[0].sampleNumber",
-			(MP4Property**)&m_pStssSampleProperty, &index);
+			(MP4Property**)&m_pStssSampleProperty);
 	}
 
 	// was everything found?
@@ -197,7 +197,23 @@ void MP4Track::WriteSample(u_int8_t* pBytes, u_int32_t numBytes,
 	MP4Duration duration, MP4Duration renderingOffset, 
 	bool isSyncSample)
 {
-	// TBD write sample
+	// move to EOF
+	u_int64_t samplePosition = m_pFile->GetSize();
+	m_pFile->SetPosition(samplePosition);
+
+	m_pFile->WriteBytes(pBytes, numBytes);
+
+	UpdateSampleSizes(m_writeSampleId, numBytes);
+
+	//UpdateSampleFileOffsets(m_writeSampleId, samplePosition);
+
+	//UpdateSampleTimes(m_writeSampleId, duration);
+
+	//UpdateRenderingOffsets(m_writeSampleId, renderingOffset);
+
+	UpdateSyncSamples(m_writeSampleId, isSyncSample);
+
+	m_writeSampleId++;
 }
 
 u_int32_t MP4Track::GetSampleSize(MP4SampleId sampleId)
@@ -207,6 +223,15 @@ u_int32_t MP4Track::GetSampleSize(MP4SampleId sampleId)
 		return fixedSampleSize;
 	}
 	return m_pSampleSizeProperty->GetValue(sampleId - 1);
+}
+
+void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
+{
+	// TBD fixed sample size case
+
+	m_pSampleSizeProperty->SetCount(sampleId);
+	m_pSampleSizeProperty->SetValue(sampleId - 1, numBytes);
+	// TBD count property
 }
 
 u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
@@ -399,6 +424,50 @@ MP4SampleId MP4Track::GetNextSyncSample(MP4SampleId sampleId)
 	}
 
 	return (MP4SampleId)-1;
+}
+
+void MP4Track::UpdateSyncSamples(MP4SampleId sampleId, bool isSyncSample)
+{
+	if (isSyncSample) {
+		// if stss atom exists, add entry
+		if (m_pStssSampleProperty) {
+			AddSyncSample(sampleId);
+		} // else nothing to do (yet)
+
+	} else { // !isSyncSample
+		// if stss atom doesn't exist, create one
+		if (m_pStssSampleProperty == NULL) {
+			MP4Atom* pStssAtom = MP4Atom::CreateAtom("stss");
+			ASSERT(pStssAtom);
+
+			MP4Atom* pStblAtom = m_pTrakAtom->FindAtom("trak.mdia.minf.stbl");
+			ASSERT(pStblAtom);
+
+			pStssAtom->SetFile(m_pFile);
+			pStssAtom->SetParentAtom(pStblAtom);
+			pStblAtom->AddChildAtom(pStssAtom);
+
+			pStssAtom->FindProperty(
+				"stss.entryCount",
+				(MP4Property**)&m_pStssCountProperty);
+
+			pStssAtom->FindProperty(
+				"stss.entries[0].sampleNumber",
+				(MP4Property**)&m_pStssSampleProperty);
+
+			for (MP4SampleId sid = 1; sid < sampleId; sid++) {
+				AddSyncSample(sid);
+			}
+		} // else nothing to do
+	}
+}
+
+void MP4Track::AddSyncSample(MP4SampleId sampleId)
+{
+	u_int32_t numStss = m_pStssCountProperty->GetValue();
+	m_pStssSampleProperty->SetCount(numStss + 1);
+	m_pStssSampleProperty->SetValue(numStss, sampleId);
+	m_pStssCountProperty->IncrementValue();
 }
 
 // map track type name aliases to official names

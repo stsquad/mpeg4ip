@@ -20,7 +20,7 @@
  */
 #ifndef __PLAYER_UTIL_H__
 #define __PLAYER_UTIL_H__
-#include <config.h> // for strcasestr define
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -230,6 +230,9 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	int                 	 reuse = 1;
 	struct sockaddr_in  	 s_in;
 	struct in_addr		 iface_addr;
+#ifdef WIN32
+	int recv_buf_size = 65536;
+#endif
 	socket_udp         	*s = (socket_udp *)malloc(sizeof(socket_udp));
 	s->mode    = IPv4;
 	s->addr    = NULL;
@@ -258,6 +261,13 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 		socket_error("socket");
 		return NULL;
 	}
+#ifdef WIN32
+	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_RCVBUF, (char *)&recv_buf_size, sizeof(int)) != 0) {
+		socket_error("setsockopt SO_RCVBUF");
+		return NULL;
+	}
+#endif
+
 	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
 		socket_error("setsockopt SO_REUSEADDR");
 		return NULL;
@@ -353,7 +363,7 @@ static int udp_send_iov4(socket_udp *s, struct iovec *iov, int count)
 	s_in.sin_addr.s_addr = s->addr4.s_addr;
 	s_in.sin_port        = htons(s->tx_port);
 
-	msg.msg_name 		 = &s_in;
+	msg.msg_name 		 = (void *)&s_in;
 	msg.msg_namelen 	 = sizeof(s_in);
 	msg.msg_iov 		 = iov;
 	msg.msg_iovlen 		 = count;

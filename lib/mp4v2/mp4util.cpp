@@ -53,6 +53,7 @@ bool MP4NameFirstIndex(const char* s, u_int32_t* pIndex)
 	while (*s != '\0' && *s != '.') {
 		if (*s == '[') {
 			s++;
+			ASSERT(pIndex);
 			if (sscanf(s, "%u", pIndex) != 1) {
 				return false;
 			}

@@ -299,7 +299,7 @@ Void CVideoObjectEncoder::motionCompOverLapEncY (
 )
 {
 	// Overlap Motion Comp use motion vector of current blk and motion vectors of neighboring blks.
-	const CMotionVector *pmvC, *pmvT, *pmvB, *pmvR, *pmvL; // MVs of Cur, Top, Bot, Right and Left Blocks. 
+	const CMotionVector *pmvC, *pmvT = NULL, *pmvB = NULL, *pmvR = NULL, *pmvL = NULL; // MVs of Cur, Top, Bot, Right and Left Blocks. 
 	const CMotionVector *pmvCurrMb, *pmvTopMb, *pmvRightMb, *pmvLeftMb; // MVs of Cur, Top, Right and Left MacroBlocks.
 	const CMBMode *pmbmdTopMb, *pmbmdRightMb, *pmbmdLeftMb; // MVs of Cur, Top, Right and Left MacroBlocks.
 	Bool bIntraT, bIntraR, bIntraL; // flags of 4MV for Cur, Top, Right and Left MacroBlocks.

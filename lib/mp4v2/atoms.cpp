@@ -38,8 +38,30 @@ public:
 		ExpectChildAtom("skip", Optional, Many);
 		ExpectChildAtom("udta", Optional, Many);
 	}
+	void StartWrite() {
+		u_int32_t size = m_pChildAtoms.Size();
+		for (u_int32_t i = 0; i < size; i++) {
+			u_int32_t atomType = ATOMID(m_pChildAtoms[i]->GetType())
+			if (atomType == ATOMID("ftyp")) {
+				m_pChildAtoms[i]->Write();
+			}
+		}
+		for (u_int32_t i = 0; i < size; i++) {
+			u_int32_t atomType = ATOMID(m_pChildAtoms[i]->GetType())
+			if (atomType == ATOMID("mdat")) {
+				m_pChildAtoms[i]->Write();
+				break;
+			}
+		}
+	}
 	void Write() {
-		WriteChildAtoms();
+		u_int32_t size = m_pChildAtoms.Size();
+		for (u_int32_t i = 0; i < size; i++) {
+			u_int32_t atomType = ATOMID(m_pChildAtoms[i]->GetType())
+			if (atomType != ATOMID("ftyp") && atomType != ATOMID("mdat")) {
+				m_pChildAtoms[i]->Write();
+			}
+		}
 	}
 };
 

@@ -49,7 +49,6 @@ void decode_mpeg4_audio_config (const unsigned char *buffer,
   CBitstream bit;
   uint32_t ret;
 
-  player_debug_message("decoding audio config - len %d %x", buf_len, *(ushort *)buffer);
   bit.init(buffer, buf_len * 8);
 
   if (bit.getbits(5, &ret) < 0)

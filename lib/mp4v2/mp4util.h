@@ -39,19 +39,6 @@
 #define VERBOSE(exprverbosity, verbosity, expr)	\
 	if ((exprverbosity) & (verbosity)) { expr; }
 
-/* verbosity levels, inputs to SetVerbosity */
-#define MP4_DETAILS_ALL				0xFFFF
-#define MP4_DETAILS_ERROR			0x0001
-#define MP4_DETAILS_WARNING			0x0002
-#define MP4_DETAILS_READ			0x0004
-#define MP4_DETAILS_WRITE			0x0008
-#define MP4_DETAILS_FIND			0x0010
-#define MP4_DETAILS_TABLE			0x0020
-#define MP4_DETAILS_SAMPLE			0x0040
-
-#define MP4_DETAILS_READ_ALL		\
-	(MP4_DETAILS_READ | MP4_DETAILS_TABLE | MP4_DETAILS_SAMPLE)
-
 #define VERBOSE_ERROR(verbosity, expr)		\
 	VERBOSE(MP4_DETAILS_ERROR, verbosity, expr)
 

@@ -38,6 +38,7 @@ INCLUDES=\
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/lib/SDL/include \
 	-I$(top_srcdir)/lib/mp4 \
+	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/msg_queue \
 	-I$(top_srcdir)/lib/rtp \
 	-I$(top_srcdir)/lib/sdp \
@@ -52,7 +53,7 @@ AM_CFLAGS= -DMPEG4IP -D_REENTRANT -Wall -Wpointer-arith -Wcast-align -Wstrict-pr
 AM_CXXFLAGS = -DMPEG4IP -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
 LDADD = \
-	$(top_builddir)/server/live/gui/liblive_gui.la \
+	$(top_builddir)/server/mp4live/gui/liblive_gui.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/rtp/libuclmmbase.a \

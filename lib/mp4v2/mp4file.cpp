@@ -35,21 +35,29 @@ MP4File::MP4File(char* fileName, char* mode, u_int32_t verbosity)
 	Open(fileName, mode);
 
 	if (strchr(mode, 'r')) {
-		// for read-only or read-write files,
 		// read the file info into memory
 		Read();
 	} else {
-		// for write-only files, 
 		// generate a skeletal atom tree
 		m_pRootAtom = MP4Atom::CreateAtom(NULL);
 		m_pRootAtom->SetFile(this);
 		m_pRootAtom->Generate();
+
+		// create mdat, write it's header (64-bit?)
+		AddAtom("", "mdat");
+
+		/*
+		bool use64 = false;
+		StartWrite(use64);
+		ftyp->Write()
+		mdat->Write()
+		 */
 	}
 }
 
 MP4File::~MP4File()
 {
-	fclose(m_pFile);
+	MP4Close();
 	MP4Free(m_fileName);
 }
 
@@ -58,66 +66,60 @@ void MP4File::Open(char* fileName, char* mode)
 	ASSERT(m_pFile == NULL);
 	m_pFile = fopen(fileName, mode);
 	if (m_pFile == NULL) {
-		VERBOSE_ERROR(m_verbosity, 
-			fprintf(stderr, "Open: failed: %s\n", strerror(errno)));
-		throw MP4Error(errno, "MP4Open");
+		throw MP4Error(errno, "failed" "MP4Open");
 	}
 }
 
 void MP4File::Read()
 {
-	try {
-		// destroy any old information
-		delete m_pRootAtom;
-		for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
-			delete m_pTracks[i];
-		}
-		m_pTracks.Resize(0);
-
-		// create a new root atom
-		m_pRootAtom = MP4Atom::CreateAtom(NULL);
-
-		u_int64_t fileSize = GetSize();
-
-		m_pRootAtom->SetFile(this);
-		m_pRootAtom->SetStart(0);
-		m_pRootAtom->SetSize(fileSize);
-		m_pRootAtom->SetEnd(fileSize);
-
-		m_pRootAtom->Read();
-
-		// create MP4Track's for any tracks in the file
-		u_int32_t trackIndex = 0;
-		while (true) {
-			char trackName[32];
-			snprintf(trackName, sizeof(trackName), "moov.trak[%u]", trackIndex);
-
-			MP4Atom* pTrakAtom = m_pRootAtom->FindAtom(trackName);
-			if (pTrakAtom == NULL) {
-				break;
-			}
-
-			// TBD catch errors and ignore trak?
-			m_pTracks.Add(new MP4Track(this, pTrakAtom));
-	
-			trackIndex++;
-		}
+	// destroy any old information
+	delete m_pRootAtom;
+	for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
+		delete m_pTracks[i];
 	}
-	catch (MP4Error* e) {
-		VERBOSE_ERROR(m_verbosity, e->Print());
-		throw e;
+	m_pTracks.Resize(0);
+
+	// start at beginning of file
+	SetPosition(0);
+
+	// create a new root atom
+	m_pRootAtom = MP4Atom::CreateAtom(NULL);
+
+	u_int64_t fileSize = GetSize();
+
+	m_pRootAtom->SetFile(this);
+	m_pRootAtom->SetStart(0);
+	m_pRootAtom->SetSize(fileSize);
+	m_pRootAtom->SetEnd(fileSize);
+
+	m_pRootAtom->Read();
+
+	// create MP4Track's for any tracks in the file
+	u_int32_t trackIndex = 0;
+	while (true) {
+		char trackName[32];
+		snprintf(trackName, sizeof(trackName), "moov.trak[%u]", trackIndex);
+
+		MP4Atom* pTrakAtom = m_pRootAtom->FindAtom(trackName);
+		if (pTrakAtom == NULL) {
+			break;
+		}
+
+		// TBD catch errors and ignore trak?
+		m_pTracks.Add(new MP4Track(this, pTrakAtom));
+
+		trackIndex++;
 	}
 }
 
-void MP4File::Write()
+void MP4File::StartWrite()
 {
-	try {
-		m_pRootAtom->Write();
-	}
-	catch (MP4Error* e) {
-		VERBOSE_ERROR(m_verbosity, e->Print());
-		throw e;
-	}
+	m_pRootAtom->StartWrite();
+}
+
+void MP4File::EndWrite()
+{
+	m_pRootAtom->Write();
 }
 
 void MP4File::Dump(FILE* pDumpFile)
@@ -126,14 +128,14 @@ void MP4File::Dump(FILE* pDumpFile)
 		pDumpFile = stdout;
 	}
 
-	try {
-		fprintf(pDumpFile, "Dumping %s meta-information...\n", m_fileName);
-		m_pRootAtom->Dump(pDumpFile);
-	}
-	catch (MP4Error* e) {
-		VERBOSE_ERROR(m_verbosity, e->Print());
-		throw e;
-	}
+	fprintf(pDumpFile, "Dumping %s meta-information...\n", m_fileName);
+	m_pRootAtom->Dump(pDumpFile);
+}
+
+void MP4File::Close()
+{
+	// TBD Write();
+	fclose(m_pFile);
 }
 
 u_int64_t MP4File::GetPosition()
@@ -559,10 +561,29 @@ void MP4File::WriteMpegLength(u_int32_t value, bool compact)
 	} while (i > 0);
 }
 
+MP4Atom* MP4File::AddAtom(char* parentName, char* childName)
+{
+	MP4Atom* pParentAtom = m_pRootAtom->FindAtom(parentName);
+	ASSERT(pParentAtom);
+
+	MP4Atom* pChildAtom = MP4Atom::CreateAtom(childName);
+	ASSERT(pChildAtom);
+
+	pChildAtom->SetFile(this);
+	pChildAtom->SetParentAtom(pParentAtom);
+	pChildAtom->Generate();
+
+	pParentAtom->AddChildAtom(pChildAtom);
+
+	return pChildAtom;
+}
+
 bool MP4File::FindProperty(char* name, 
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {
-	*pIndex = 0;	// set the default answer for index
+	if (pIndex) {
+		*pIndex = 0;	// set the default answer for index
+	}
 
 	return m_pRootAtom->FindProperty(name, ppProperty, pIndex);
 }
@@ -736,17 +757,7 @@ void MP4File::SetBytesProperty(char* name,
 
 MP4TrackId MP4File::AddTrack(char* type)
 {
-	MP4Atom* pTrakAtom = MP4Atom::CreateAtom("trak");
-	ASSERT(pTrakAtom);
-
-	MP4Atom* pMoovAtom = m_pRootAtom->FindAtom("moov");
-	ASSERT(pMoovAtom);
-
-	pTrakAtom->SetFile(this);
-	pTrakAtom->SetParentAtom(pMoovAtom);
-	pTrakAtom->Generate();
-
-	pMoovAtom->AddChildAtom(pTrakAtom);
+	MP4Atom* pTrakAtom = AddAtom("moov", "trak");
 
 	MP4Track* pTrack = new MP4Track(this, pTrakAtom);
 	m_pTracks.Add(pTrack);
@@ -937,6 +948,11 @@ u_int32_t MP4File::GetTimeScale()
 	return GetIntegerProperty("moov.mvhd.timeScale");
 }
 
+void MP4File::SetTimeScale(u_int32_t value)
+{
+	SetIntegerProperty("moov.mvhd.timeScale", value);
+}
+
 u_int8_t MP4File::GetODProfileLevel()
 {
 	return GetIntegerProperty("moov.iods.ODProfileLevelId");
@@ -990,7 +1006,7 @@ void MP4File::SetGraphicsProfileLevel(u_int8_t value)
 
 // track level convenience functions
 
-MP4SampleId MP4File::GetNumberofTrackSamples(MP4TrackId trackId)
+MP4SampleId MP4File::GetNumberOfTrackSamples(MP4TrackId trackId)
 {
 	return GetTrackIntegerProperty(trackId, "mdia.minf.stbl.stsz.sampleCount");
 }

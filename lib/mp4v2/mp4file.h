@@ -32,12 +32,16 @@ class MP4BytesProperty;
 class MP4File {
 public:
 	MP4File(char* fileName, char* mode, u_int32_t verbosity = 0);
+	MP4File(char* parentfileName, char* cloneFileName, 
+		char* mode, u_int32_t verbosity = 0);
 	~MP4File();
 
 	/* file operations */
 	void Read();
-	void Write();
+	void StartWrite();
+	void EndWrite();
 	void Dump(FILE* pDumpFile = NULL);
+	void Close();
 
 	/* library property per file */
 
@@ -149,7 +153,7 @@ public:
 
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 
-	MP4SampleId GetNumberofTrackSamples(MP4TrackId trackId);
+	MP4SampleId GetNumberOfTrackSamples(MP4TrackId trackId);
 
 	MP4Duration GetTrackDuration(MP4TrackId trackId);
 
@@ -204,6 +208,8 @@ public:
 	void WriteBits(u_int64_t bits, u_int8_t numBits);
 	void FlushWriteBits();
 	void WriteMpegLength(u_int32_t value, bool compact = false);
+
+	MP4Atom* AddAtom(char* parentName, char* childName);
 
 protected:
 	void Open(char* fileName, char* mode);

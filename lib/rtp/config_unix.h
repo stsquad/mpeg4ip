@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.1 $
- *  $Date: 2001/08/01 00:34:01 $
+ *  $Revision: 1.2 $
+ *  $Date: 2001/09/10 22:10:51 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -72,6 +72,12 @@
 #include <sys/ioctl.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+
+#ifdef __APPLE__
+#define NEED_DRAND48
+#define srand48 srand
+#define lrand48 rand() * rand
+#endif
 
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>

@@ -24,13 +24,7 @@
 
 #include "mpeg4ip.h"
 
-// MP4 API types
-typedef void*		MP4FileHandle;
-typedef u_int32_t	MP4TrackId;
-typedef u_int32_t	MP4SampleId;
-typedef u_int64_t	MP4Timestamp;
-typedef int64_t		MP4Duration;
-
+#include "mp4.h"
 #include "mp4util.h"
 #include "mp4array.h"
 #include "mp4track.h"

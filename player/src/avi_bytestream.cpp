@@ -319,8 +319,8 @@ void CAviAudioByteStream::read_frame (void)
 		 m_this_frame_size);
 
   if (m_add_len_to_stream) {
-    m_buffer_on[0] = m_this_frame_size >> 8;
-    m_buffer_on[1] = m_this_frame_size & 0xff;
+    m_buffer_on[0] = (unsigned char)(m_this_frame_size >> 8);
+    m_buffer_on[1] = (unsigned char)(m_this_frame_size & 0xff);
     m_this_frame_size += 2;
   }
 #if 0

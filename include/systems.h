@@ -21,6 +21,8 @@
  */
 
 #ifdef WIN32
+#define HAVE_IN_PORT_T
+#define HAVE_SOCKLEN_T
 #else
 #include <config.h>
 #endif
@@ -91,8 +93,18 @@ int gettimeofday(struct timeval *t, void *);
 
 #else /* UNIX */
 
-#include <stdint.h>
 #include <stdlib.h>
+
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#else
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#else
+#error "Don't have stdint.h or inttypes.h - no way to get uint8_t"
+#endif
+#endif
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <netinet/in.h>

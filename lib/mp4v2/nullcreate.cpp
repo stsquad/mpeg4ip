@@ -30,41 +30,28 @@ main(int argc, char** argv)
 
 	u_int32_t verbosity = MP4_DETAILS_ALL;
 
-	try {
-		MP4File* pFile = new MP4File(argv[1], "w", verbosity);
+	MP4FileHandle mp4File = MP4Create(argv[1], verbosity);
 
-		pFile->SetODProfileLevel(1);
-		pFile->SetSceneProfileLevel(1);
-		pFile->SetVideoProfileLevel(1);
-		pFile->SetAudioProfileLevel(1);
-		pFile->SetGraphicsProfileLevel(1);
+	MP4SetODProfileLevel(mp4File, 1);
+	MP4SetSceneProfileLevel(mp4File, 1);
+	MP4SetVideoProfileLevel(mp4File, 1);
+	MP4SetAudioProfileLevel(mp4File, 1);
+	MP4SetGraphicsProfileLevel(mp4File, 1);
 
-		MP4TrackId odTrackId = 
-			pFile->AddTrack("od");
+	MP4TrackId odTrackId = 
+		MP4AddTrack(mp4File, "od");
 
-		MP4TrackId bifsTrackId = 
-			pFile->AddTrack("bifs");
+	MP4TrackId bifsTrackId = 
+		MP4AddTrack(mp4File, "bifs");
 
-		MP4TrackId videoTrackId = 
-			pFile->AddVideoTrack(90000, 3000, 320, 240);
+	MP4TrackId videoTrackId = 
+		MP4AddVideoTrack(mp4File, 90000, 3000, 320, 240);
 
-		MP4TrackId audioTrackId = 
-			pFile->AddAudioTrack(44100, 1152);
+	MP4TrackId audioTrackId = 
+		MP4AddAudioTrack(mp4File, 44100, 1152);
 
-		pFile->Write();
+	MP4Close(mp4File);
 
-		delete pFile;
-	}
-
-	catch (MP4Error* e) {
-		// if verbosity is on,
-		// library will already have printed an error message, 
-		// just print it ourselves if we were in quiet mode
-		if (!verbosity) {
-			e->Print();
-		}
-		exit(1);
-	}
 	exit(0);
 }
 

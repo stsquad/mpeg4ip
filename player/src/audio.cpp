@@ -270,7 +270,7 @@ int CAudioSync::initialize_audio (int have_video)
 #endif
       if ((m_do_sync == 0) && m_sample_size < 4096)
 	m_sample_size = 4096;
-      wanted->samples = m_sample_size;
+      wanted->samples = 4096;
       wanted->callback = c_audio_callback;
       wanted->userdata = this;
 #if DEBUG_SYNC

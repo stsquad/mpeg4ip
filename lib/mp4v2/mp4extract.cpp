@@ -32,56 +32,51 @@ main(int argc, char** argv)
 		verbosity = MP4_DETAILS_ALL;
 		fileName = argv[2];
 	} else {
+		verbosity = MP4_DETAILS_ERROR;
 		fileName = argv[1];
 	}
 
-	try {
-		MP4File* pFile = new MP4File(fileName, "r", verbosity);
+	MP4FileHandle mp4File = MP4Read(fileName, verbosity);
 
-		u_int32_t numTracks = pFile->GetNumberOfTracks();
-
-		for (u_int32_t i = 0; i < numTracks; i++) {
-			char trackFileName[MAXPATHLEN];
-			snprintf(trackFileName, MAXPATHLEN, "%s.t%u", fileName, i + 1);
-
-			int trackFd = open(trackFileName, 
-				O_WRONLY | O_CREAT | O_TRUNC, 0644);
-			if (trackFd == -1) {
-				fprintf(stderr, "%s: can't open %s: %s\n",
-					argv[0], trackFileName, strerror(errno));
-				continue;
-			}
-
-			MP4TrackId trackId = pFile->FindTrackId(i);
-			MP4SampleId numSamples = pFile->GetNumberofTrackSamples(trackId);
-
-			u_int8_t* pSample;
-			u_int32_t sampleSize;
-
-			for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
-				pFile->ReadSample(trackId, sampleId, &pSample, &sampleSize);
-				if (write(trackFd, pSample, sampleSize) != sampleSize) {
-					fprintf(stderr, "%s: write to %s failed: %s\n",
-						argv[0], trackFileName, strerror(errno));
-					break;
-				}
-				free(pSample);
-			}
-
-			close(trackFd);
-		}
-
-		delete pFile;
-	}
-	catch (MP4Error* e) {
-		// if verbosity is on,
-		// library will already have printed an error message, 
-		// just print it ourselves if we were in quiet mode
-		if (!verbosity) {
-			e->Print();
-		}
+	if (!mp4File) {
 		exit(1);
 	}
+
+	u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
+
+	for (u_int32_t i = 0; i < numTracks; i++) {
+		char trackFileName[MAXPATHLEN];
+		snprintf(trackFileName, MAXPATHLEN, "%s.t%u", fileName, i + 1);
+
+		int trackFd = open(trackFileName, 
+			O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if (trackFd == -1) {
+			fprintf(stderr, "%s: can't open %s: %s\n",
+				argv[0], trackFileName, strerror(errno));
+			continue;
+		}
+
+		MP4TrackId trackId = MP4FindTrackId(mp4File, i);
+		MP4SampleId numSamples = MP4GetNumberOfTrackSamples(mp4File, trackId);
+
+		u_int8_t* pSample;
+		u_int32_t sampleSize;
+
+		for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
+			MP4ReadSample(mp4File, trackId, sampleId, &pSample, &sampleSize);
+			if (write(trackFd, pSample, sampleSize) != sampleSize) {
+				fprintf(stderr, "%s: write to %s failed: %s\n",
+					argv[0], trackFileName, strerror(errno));
+				break;
+			}
+			free(pSample);
+		}
+
+		close(trackFd);
+	}
+
+	MP4Close(mp4File);
+
 	exit(0);
 }
 

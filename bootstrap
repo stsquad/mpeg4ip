@@ -78,7 +78,7 @@ pwd=`pwd`
 for	dir \
 in	$pwd/server/lib/sndfile $pwd/lib/SDL $pwd/lib/rtp 
 do	cd $dir
-	[ ! -f Makefile.am ] || aclocal $ACLOCAL_FLAGS || exit 3
+	[ ! -f Makefile.am ] || aclocal || aclocal $ACLOCAL_FLAGS || exit 3
 	[ ! -f Makefile.am ] || automake --add-missing --foreign || exit 1
 	[ ! -f configure.in ] || autoconf || exit 1
 	[ -f config.guess ] || cp $CONFIG_GUESS . || exit 1
@@ -88,7 +88,7 @@ done
 
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  
-aclocal $ACLOCAL_FLAGS || exit 3
+aclocal || aclocal $ACLOCAL_FLAGS || exit 3
 autoheader || exit 1
 automake --add-missing --foreign || exit 1
 autoconf || exit 1

@@ -23,15 +23,16 @@
 
 main(int argc, char** argv)
 {
-	MP4FileHandle mp4File;
+	MP4FileHandle mp4File = MP4Read(argv[1], MP4_DETAILS_ERROR);
 
-	mp4File = MP4Open(argv[1], "r");
+	if (!mp4File) {
+		exit(1);
+	}
 
-	MP4Read(mp4File);
-
-	MP4Dump(mp4File, NULL);
+	MP4Dump(mp4File, stdout);
 
 	MP4Close(mp4File);
-}
 
+	exit(0);
+}
 

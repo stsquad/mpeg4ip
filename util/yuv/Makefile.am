@@ -16,6 +16,5 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
 
 LDADD = \
 	@SDL_LIBS@ \
-        -lpthread \
         -lm
 

@@ -90,7 +90,7 @@ class CAviVideoByteStream : public CAviByteStreamBase
     ret /= m_frame_rate;
     return (ret);
   };
-  void config(long num_frames, float frate) {
+  void config(long num_frames, double frate) {
     m_frames_max = num_frames;
     m_frame_rate = (uint32_t)frate;
   };

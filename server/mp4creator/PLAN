@@ -1,0 +1,49 @@
+
+mp4creator <options> mp4-file 
+	-t 				// list track information
+	-c <track-file> // create track from file
+	-ch <track-file> // create track and hint track from file
+	-h <track-id>	// hint trackId
+	-i				// interleave mdat's
+	-hi				// hint interleave (audio tracks only)
+	-p <payload-name>	// choose RTP payload format
+	-d <track-id>	// delete trackid and any associated hint tracks
+					// TBD delete associated data
+	-s				// make streamable, i.e. moov first, mdat's last
+					// implies -i ?
+
+mp4encode becomes:
+	mp4creator -ch foo.divx foo.mp4
+	mp4creator -ch -p 3119 foo.mp3 foo.mp4
+
+Phlilips exercise becomes:
+	mp4creator -t phlips.mp4
+	mp4creator -h 3 philips.mp4
+	mp4creator -h 4 philips.mp4
+
+mp4-file created if DNE, else opened rw
+od & bifs tracks are automatic
+
+Creatable/Hintable types
+.mp3
+	RFC 2250 | RFC 3119
+.aac
+	ISMA
+.divx | .mp4v
+	RFC 3016
+
+Per type
+	virtual GetConfiguration
+		list of name value pairs
+	virtual GetSample
+
+list track info
+	MP4Read()
+create and create and hint
+	MP4Create() or MP4Clone() depending on if file already exists
+hint
+	MP4Clone()
+delete track
+	MP4Clone()
+streamable
+	MP4Clone()?

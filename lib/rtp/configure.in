@@ -97,18 +97,16 @@ AC_CHECK_FUNC(vsnprintf,,AC_DEFINE(NEED_VSNPRINTF))
 # declared anywhere, use egrep header to check (ugh lame, but works)
 
 AC_CACHE_CHECK(for inet_pton in <arpa/inet.h>, ucl_cv_inet_pton_in_inet_h,
-	AC_EGREP_HEADER(uint16_t,
-			stdint.h,
-			ucl_cv_inet_pton_in_inet_h=yes,
-			ucl_cv_inet_pton_in_inet_h=no))
+	AC_CHECK_FUNC(inet_pton,
+		      ucl_cv_inet_pton_in_inet_h=yes,
+		      ucl_cv_inet_pton_in_inet_h=no))
 if test $ucl_cv_inet_pton_in_inet_h = "no"
 then
 	AC_DEFINE(NEED_INET_PTON)
 	LIBOBJS="$LIBOBJS inet_pton.o"
 fi
 AC_CACHE_CHECK(for inet_ntop in <arpa/inet.h>, ucl_cv_inet_ntop_in_inet_h,
-	AC_EGREP_HEADER(uint16_t,
-			stdint.h,
+	AC_CHECK_FUNC(inet_ntop,
 			ucl_cv_inet_ntop_in_inet_h=yes,
 			ucl_cv_inet_ntop_in_inet_h=no))
 if test $ucl_cv_inet_ntop_in_inet_h = "no"

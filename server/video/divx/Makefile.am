@@ -15,7 +15,16 @@ bin_PROGRAMS = divxenc
 divxenc_SOURCES = divxenc.c
 
 INCLUDES = -I$(top_srcdir)/include
-LDADD = $(top_builddir)/server/video/divx/libdivxencore.la -lm
+
+if PROVIDE_GETOPTLONG
+LDADD_E1 = $(top_builddir)/lib/gnu/getopt/libgetopt_long.la
+else
+LDADD_E1 = 
+endif
+
+LDADD = $(top_builddir)/server/video/divx/libdivxencore.la -lm $(LDADD_E1) 
+
+
 
 AM_CFLAGS = -DMPEG4IP -D_REENTRANT -O3 -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 

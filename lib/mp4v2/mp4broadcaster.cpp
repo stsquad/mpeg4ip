@@ -23,26 +23,56 @@
 
 main(int argc, char** argv)
 {
-	char* fileName;
-	u_int32_t verbosity = 0;
-
-	// -v option to control verbosity
-	if (!strcmp(argv[1], "-v")) {
-		verbosity = MP4_DETAILS_ALL;
-		fileName = argv[2];
-	} else {
-		verbosity = MP4_DETAILS_ERROR;
-		fileName = argv[1];
-	}
-
-	MP4FileHandle mp4File = MP4Read(fileName, verbosity);
-
-	if (!mp4File) {
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s <file>\n", argv[0]);
 		exit(1);
 	}
 
-	MP4Dump(mp4File);
+	u_int32_t verbosity = MP4_DETAILS_ERROR;
+	char* fileName = argv[1];
 
+	// open the mp4 file
+	MP4FileHandle mp4File = MP4Read(fileName, verbosity);
+
+	if (MP4GetNumberOfTracks(mp4File, "hint") == 0) {
+		exit(1);
+	}
+
+#ifdef NOTDEF
+	// write out sdp somewhere
+	MP4GetSdp(mp4File);
+
+	// create UDP socket
+	int udpSocket = socket();
+	connect(udpSocket);
+
+
+	// now consecutively read and send the RTP packets
+	// TBD from all hint tracks
+
+	u_int8_t* pPacket;
+	u_int32_t packetSize;
+
+	for (u_int32_t packetNumber = 1; packetNumber <= numPackets; 
+	  packetNumber++) {
+
+		// read next packet
+		MP4ReadRtpPacket(mp4File, trackId, packetNumber, 
+			&pPacket, &packetSize, &xmitTime);
+
+		// TBD timing of send
+
+		send(udpSocket, pPacket, packetSize);
+
+		// free packet buffer
+		free(pPacket);
+	}
+
+	// close the UDP socket
+	close(udpSocket);
+#endif
+
+	// close mp4 file
 	MP4Close(mp4File);
 
 	exit(0);

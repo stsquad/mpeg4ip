@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <getopt.h>
+#include <mpeg4ip_getopt.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <quicktime.h>

@@ -36,8 +36,6 @@ libfaad_la_INCLUDES = \
 	transfo.h\
 	util.h
 
-INCLUDES=-I$(top_srcdir)/include
-
 AM_CFLAGS = -O2 -Werror -Wall -fexceptions 
 
 

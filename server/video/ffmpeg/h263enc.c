@@ -18,6 +18,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include "common.h"
 #include "dsputil.h"

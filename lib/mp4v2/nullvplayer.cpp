@@ -29,82 +29,73 @@ main(int argc, char** argv)
 	}
 
 	u_int32_t verbosity = MP4_DETAILS_ALL;
+	char* fileName = argv[1];
 
-	try {
-		char* fileName = argv[1];
+	// open the mp4 file
+	MP4FileHandle mp4File = MP4Read(fileName, verbosity);
 
-		// open the mp4 file
-		MP4File* pFile = new MP4File(fileName, "r", verbosity);
+	u_int8_t profileLevel = MP4GetVideoProfileLevel(mp4File);
 
-		u_int8_t profileLevel = pFile->GetVideoProfileLevel();
+	// get a handle on the first video track
+	MP4TrackId trackId = MP4FindTrackId(mp4File, 0, "video");
 
-		// get a handle on the first video track
-		MP4TrackId trackId = pFile->FindTrackId(0, "video");
+	// gather the crucial track information 
 
-		// gather the crucial track information 
+	u_int32_t timeScale = MP4GetTrackTimeScale(mp4File, trackId);
 
-		u_int32_t timeScale = pFile->GetTrackTimeScale(trackId);
+	// note all times and durations 
+	// are in units of the track time scale
 
-		// note all times and durations 
-		// are in units of the track time scale
+	MP4Duration trackDuration = MP4GetTrackDuration(mp4File, trackId);
 
-		MP4Duration trackDuration = pFile->GetTrackDuration(trackId);
+	MP4SampleId numSamples = MP4GetNumberOfTrackSamples(mp4File, trackId);
 
-		MP4SampleId numSamples = pFile->GetNumberofTrackSamples(trackId);
+	u_int8_t* pConfig;
+	u_int32_t configSize;
 
-		u_int8_t* pConfig;
-		u_int32_t configSize;
+	MP4GetTrackESConfiguration(mp4File, trackId, &pConfig, &configSize);
 
-		pFile->GetTrackESConfiguration(trackId, &pConfig, &configSize);
+	// initialize decoder with Elementary Stream (ES) configuration
 
-		// initialize decoder with Elementary Stream (ES) configuration
-
-		free(pConfig);
-
-		// now consecutively read and display the track samples
-
-		u_int8_t* pSample;
-		u_int32_t sampleSize;
-		MP4Timestamp sampleTime;
-		MP4Duration sampleDuration;
-		MP4Duration sampleRenderingOffset;
-		bool isSyncSample;
-
-		for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
-
-			// read next sample from video track
-			pFile->ReadSample(trackId, sampleId, 
-				&pSample, &sampleSize,
-				&sampleTime, &sampleDuration, &sampleRenderingOffset, 
-				&isSyncSample);
-
-			// decode frame and display it
-
-			// free sample buffer
-			free(pSample);
-		}
-
-		// close mp4 file
-		delete pFile;
+	// done with our copy of ES configuration
+	free(pConfig);
 
 
-		// Note to seek to time 'when' in the track
-		// use GetSampleIdFromTime(MP4Timestamp when, bool wantSyncSample)
-		// 'wantSyncSample' determines if a sync sample is desired or not
-		// e.g.
-		// MP4SampleId newSampleId = pFile->GetSampleIdFromTime(when, true); 
-		// pFile->ReadSample(trackId, newSampleId, ...);
+	// now consecutively read and display the track samples
+
+	u_int8_t* pSample;
+	u_int32_t sampleSize;
+	MP4Timestamp sampleTime;
+	MP4Duration sampleDuration;
+	MP4Duration sampleRenderingOffset;
+	bool isSyncSample;
+
+	for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
+
+		// read next sample from video track
+		MP4ReadSample(mp4File, trackId, sampleId, 
+			&pSample, &sampleSize,
+			&sampleTime, &sampleDuration, &sampleRenderingOffset, 
+			&isSyncSample);
+
+		// decode frame and display it
+
+		// free sample buffer
+		free(pSample);
 	}
 
-	catch (MP4Error* e) {
-		// if verbosity is on,
-		// library will already have printed an error message, 
-		// just print it ourselves if we were in quiet mode
-		if (!verbosity) {
-			e->Print();
-		}
-		exit(1);
-	}
+	// close mp4 file
+	MP4Close(mp4File);
+
+
+	// Note to seek to time 'when' in the track
+	// use MP4GetSampleIdFromTime(MP4FileHandle hFile, 
+	//		MP4Timestamp when, bool wantSyncSample)
+	// 'wantSyncSample' determines if a sync sample is desired or not
+	// e.g.
+	// MP4SampleId newSampleId = MP4GetSampleIdFromTime(mp4File, when, true); 
+	// MP4ReadSample(mp4File, trackId, newSampleId, ...);
+
 	exit(0);
 }
 

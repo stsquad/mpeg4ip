@@ -86,7 +86,7 @@ public:
 	virtual void Dump(FILE* pFile, u_int32_t index = 0) = NULL;
 
 	virtual bool FindProperty(char* name,
-	  MP4Property** ppProperty, u_int32_t* pIndex);
+	  MP4Property** ppProperty, u_int32_t* pIndex = NULL);
 
 protected:
 	MP4Atom* m_pParentAtom;
@@ -127,7 +127,9 @@ MP4ARRAY_DECL(MP4Property, MP4Property*);
 			} \
 			m_values[index] = value; \
 		} \
-		\
+		void IncrementValue(u_int32_t index = 0) { \
+			m_values[index] += 1; \
+		} \
 		void Read(MP4File* pFile, u_int32_t index = 0) { \
 			if (m_implicit) { \
 				return; \

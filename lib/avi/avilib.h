@@ -102,7 +102,8 @@ typedef struct
                                       performed that needs an index */
 
 /* Possible Audio formats */
-
+#ifndef WAVE_FORMAT_UNKNOWN
+/* Most of these are defined by Microsoft - don't redefine them */
 #define WAVE_FORMAT_UNKNOWN             (0x0000)
 #define WAVE_FORMAT_PCM                 (0x0001)
 #define WAVE_FORMAT_ADPCM               (0x0002)
@@ -116,6 +117,7 @@ typedef struct
 #define WAVE_FORMAT_YAMAHA_ADPCM        (0x0020)
 #define WAVE_FORMAT_DSP_TRUESPEECH      (0x0022)
 #define WAVE_FORMAT_GSM610              (0x0031)
+#endif
 #define IBM_FORMAT_MULAW                (0x0101)
 #define IBM_FORMAT_ALAW                 (0x0102)
 #define IBM_FORMAT_ADPCM                (0x0103)

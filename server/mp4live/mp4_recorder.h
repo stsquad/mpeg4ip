@@ -23,7 +23,11 @@
 #ifndef __MP4_RECORDER_H__
 #define __MP4_RECORDER_H__
 
+#ifdef MP4V2
+#include <mp4.h>
+#else
 #include <quicktime.h>
+#endif
 #include "media_node.h"
 
 #define RTP_HEADER_STD_SIZE 12
@@ -79,7 +83,11 @@ protected:
 protected:
 	bool			m_record;
 	char*			m_mp4FileName;
+#ifdef MP4V2
+	MP4FileHandle	m_mp4File;
+#else
 	quicktime_t*	m_mp4File;
+#endif
 
 	int				m_audioTrack;
 	u_int32_t		m_audioFrameNum;

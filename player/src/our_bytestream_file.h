@@ -32,7 +32,7 @@ typedef struct frame_file_pos_t
   struct frame_file_pos_t *next;
   uint64_t timestamp;
   long file_position;
-  uint32_t frames;
+  uint64_t frames;
 } frame_file_pos_t;
   
   

@@ -26,7 +26,7 @@
  */
 
 #include <mpeg4ip.h>
-#include <getopt.h>
+#include <mpeg4ip_getopt.h>
 #include <quicktime.h>
 
 /* hard limits on range of RTP packet sizes */

@@ -23,7 +23,10 @@ libmp4v2_la_SOURCES = \
 	descriptors.h \
 	descriptors.cpp 
 
-bin_PROGRAMS = mp4dump mp4extract
+bin_PROGRAMS = mp4broadcaster mp4dump mp4extract
+
+mp4broadcaster_SOURCES = mp4broadcaster.cpp
+mp4broadcaster_LDADD = libmp4v2.la
 
 mp4dump_SOURCES = mp4dump.cpp
 mp4dump_LDADD = libmp4v2.la

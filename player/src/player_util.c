@@ -189,7 +189,7 @@ char *strsep (char **sptr, const char *delim)
 #endif
 
 #ifndef HAVE_STRCASESTR
-const char *strcasestr (const char *haystack, const char *needle)
+char *strcasestr (const char *haystack, const char *needle)
 {
   uint32_t nlen, hlen;
   uint32_t ix;
@@ -200,7 +200,7 @@ const char *strcasestr (const char *haystack, const char *needle)
  
   for (ix = 0; ix + nlen <= hlen; ix++) {
     if (strncasecmp(needle, haystack + ix, nlen) == 0) {
-      return (haystack + ix);
+      return ((char *)haystack + ix);
     }
   }
   return (NULL);

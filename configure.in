@@ -3,7 +3,6 @@ AC_INIT()
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
-AM_PROG_LIBTOOL
 AM_INIT_AUTOMAKE(mpeg4ip, 0.7)
 
 dnl Detect the canonical host and target build environment
@@ -13,18 +12,22 @@ AC_CANONICAL_TARGET
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX(c++)
+AM_PROG_LIBTOOL
 AC_PROG_LIBTOOL
 
 dnl Checks for libraries.
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h)
+AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror strcasestr poll)
+AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long)
+
+dnl Add getopt libraries if we don't have them
+AM_CONDITIONAL(PROVIDE_GETOPTLONG, test x$ac_cv_func_getopt_long != xyes)
 
 dnl MY_CHECK_TYPEDEF_FROM_INCLUDE(typedef, include files, define)
 dnl checks if typedef is in include files.  add define in acconfig.h
@@ -109,47 +112,52 @@ ifelse([$3], , , [$3])
 fi
 ])
 
+dnl read out glib and gtk paths and flags.  Will need to dummy this
+dnl out for a glibless system
 AM_PATH_GLIB()
 AM_PATH_GTK()
 
-    AC_ARG_ENABLE(mmx,
-[  --enable-mmx           use MMX assembly on x86 [default=yes]],
-                  , enable_mmx=yes)
+AC_ARG_ENABLE(mmx,
+              [  --enable-mmx           use MMX assembly on x86 [default=yes]],
+              , 
+	      enable_mmx=yes)
 
-    if test x$enable_mmx = xyes; then
-        AC_PATH_PROG(NASM, nasm)
-        if test x$NASM = x -o x$NASM = x'"$NASM"'; then
-            : # nasm isn't installed
-			AM_CONDITIONAL(USE_MMX, false)
-        else
-			case $target in
-			  i?86*)
-				CFLAGS="$CFLAGS -DUSE_MMX"
-				CXXFLAGS="$CXXFLAGS -DUSE_MMX"
-				case $ARCH in
-				  win32)
-					  NASMFLAGS="-f win32"
-					  ;;
-				  *)
-					  NASMFLAGS="-f elf"
-					  ;;
-				esac
-				AC_SUBST(NASMFLAGS)
-				AM_CONDITIONAL(USE_MMX, true)
-				;;
-			  *)
-				AM_CONDITIONAL(USE_MMX, false)
-				;;
-			esac
-        fi
-	else
+if test x$enable_mmx = xyes; then
+   AC_PATH_PROG(NASM, nasm)
+   if test x$NASM = x -o x$NASM = x'"$NASM"'; then
+      : # nasm isn't installed
+       AM_CONDITIONAL(USE_MMX, false)
+   else
+	case $target in
+	i?86*)
+		CFLAGS="$CFLAGS -DUSE_MMX"
+		CXXFLAGS="$CXXFLAGS -DUSE_MMX"
+		case $ARCH in
+		win32)
+		  NASMFLAGS="-f win32"
+		  ;;
+		*)
+		  NASMFLAGS="-f elf"
+		  ;;
+		esac
+		AC_SUBST(NASMFLAGS)
+		AM_CONDITIONAL(USE_MMX, true)
+		;;
+	*)
 		AM_CONDITIONAL(USE_MMX, false)
+		;;
+	esac
     fi
+else
+    AM_CONDITIONAL(USE_MMX, false)
+fi
 
+dnl Get SDL cflags and SDL libraries to include
 SDL_CFLAGS="`lib/SDL/sdl-config --cflags`"
 SDL_LIBS="`lib/SDL/sdl-config --libs | sed 's,-L.* -lSDL,\$(top_builddir)/lib/SDL/src/libSDL.la,'`"
 AC_SUBST(SDL_CFLAGS)
 AC_SUBST(SDL_LIBS)
+
 dnl Now output the Makefile's
 AC_OUTPUT( \
 	Makefile \
@@ -157,7 +165,10 @@ AC_OUTPUT( \
 	lib/avi/Makefile \
 	lib/bitstream/Makefile \
 	lib/config_file/Makefile \
+	lib/gnu/Makefile \
+	lib/gnu/getopt/Makefile \
 	lib/mp4/Makefile \
+	lib/mp4v2/Makefile \
 	lib/msg_queue/Makefile \
 	lib/sdp/Makefile \
 	common/Makefile \
@@ -169,8 +180,8 @@ AC_OUTPUT( \
 	server/video/divx/Makefile \
 	server/video/ffmpeg/Makefile \
 	server/lib/Makefile \
-	server/live/Makefile \
-	server/live/gui/Makefile \
+	server/mp4live/Makefile \
+	server/mp4live/gui/Makefile \
 	server/util/Makefile \
 	server/util/mp4encode/Makefile \
 	server/util/avi2raw/Makefile \

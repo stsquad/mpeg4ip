@@ -25,17 +25,17 @@
  *  - TBD == "To Be Done" 
  */
 
+#include <mpeg4ip.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <getopt.h>
+#include <mpeg4ip_getopt.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
-#include <mpeg4ip.h>
 #include "encore.h"
 
 /* globals */

@@ -54,7 +54,7 @@ public:
 	virtual void Dump(FILE* pFile);
 
 	bool FindProperty(char* name, 
-	  MP4Property** ppProperty, u_int32_t* pIndex) {
+	  MP4Property** ppProperty, u_int32_t* pIndex = NULL) {
 		return FindContainedProperty(name, ppProperty, pIndex);
 	}
 

@@ -20,7 +20,7 @@
  */
 
 #include <mpeg4ip.h>
-#include <getopt.h>
+#include <mpeg4ip_getopt.h>
 #include <avilib.h>
 
 

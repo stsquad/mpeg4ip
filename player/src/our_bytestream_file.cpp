@@ -68,7 +68,7 @@ void COurInByteStreamFile::set_start_time (uint64_t start)
   } else {
     // Non-zero start time - see if we have the time in our list.
     long pos_to_set = 0;
-    uint32_t frames = 0;
+    uint64_t frames = 0;
     uint64_t time;
     m_bookmark_loaded = 0;
     m_bookmark = 0;

@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.1 $ 
- * $Date: 2001/08/01 00:34:01 $
+ * $Revision: 1.2 $ 
+ * $Date: 2001/09/10 22:10:51 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -2022,7 +2022,7 @@ static uint8_t *format_rtcp_sr(uint8_t *buffer, int buflen, struct rtp *session,
 
 	packet->r.sr.sr.ssrc          = htonl(rtp_my_ssrc(session));
 	packet->r.sr.sr.ntp_sec       = htonl((uint32_t)(ntp_ts >> 32));
-	packet->r.sr.sr.ntp_frac      = htonl(ntp_ts & 0xFFFFFFFF);
+	packet->r.sr.sr.ntp_frac      = htonl((uint32_t)(ntp_ts & 0xFFFFFFFF));
 	packet->r.sr.sr.rtp_ts        = htonl(rtp_ts);
 	packet->r.sr.sr.sender_pcount = htonl(session->rtp_pcount);
 	packet->r.sr.sr.sender_bcount = htonl(session->rtp_bcount);
@@ -2194,7 +2194,7 @@ static uint8_t *format_rtcp_app(uint8_t *buffer, int buflen, uint32_t ssrc, rtcp
 }
 
 static void send_rtcp(struct rtp *session, 
-			uint32_t rtp_ts, uint32_t ntp_ts,
+			uint32_t rtp_ts, uint64_t ntp_ts,
 		     rtcp_app *(*appcallback)(struct rtp *session, uint32_t rtp_ts, int max_size))
 {
 	/* Construct and send an RTCP packet. The order in which packets are packed into a */

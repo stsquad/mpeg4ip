@@ -189,14 +189,23 @@ int quicktime_write_trak(quicktime_t *file, quicktime_trak_t *trak, long moov_ti
 	/* printf("quicktime_write_trak duration %d\n", duration); */
 
 	/* get duration in movie's units */
-	trak->tkhd.duration = (long)((float)duration / timescale * moov_time_scale);
+	if (timescale) {
+		trak->tkhd.duration = 
+			(long)((float)duration / timescale * moov_time_scale);
+	} else {
+		trak->tkhd.duration = 0;
+	}
 	trak->mdia.mdhd.duration = duration;
 	trak->mdia.mdhd.time_scale = timescale;
 
 	if (trak->mdia.minf.is_hint) {
-		trak->mdia.minf.hmhd.avgbitrate =
-			(trak->hint_udta.hinf.trpy.numBytes * 8)
-			/ (duration / timescale);
+		if (duration && timescale) {
+			trak->mdia.minf.hmhd.avgbitrate =
+				(trak->hint_udta.hinf.trpy.numBytes * 8)
+					/ (duration / timescale);
+		} else {
+			trak->mdia.minf.hmhd.avgbitrate = 0;
+		}
 	}
 
 	quicktime_write_tkhd(file, &(trak->tkhd));

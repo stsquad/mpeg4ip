@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: monopred.c,v 1.2 2001/09/06 12:16:35 wmaycisco Exp $
+ * $Id: monopred.c,v 1.3 2001/09/10 22:10:51 wmaycisco Exp $
  */
 
 /***********************************************************************************
@@ -36,7 +36,6 @@
  *	  reset_pred_state():	reset the predictor state variables		   *
  *										   *
  **********************************************************************************/
-#include "systems.h"
 #include "all.h"
 #include "util.h"
 
@@ -55,18 +54,18 @@
 static void flt_round(float *pf)
 {
     int flg;
-    uint32_t tmp;
+    u_int32_t tmp;
     float *pt = (float *)&tmp;
     *pt = *pf;
-    flg = tmp & (uint32_t)0x00008000;
-    tmp &= (uint32_t)0xffff0000;
+    flg = tmp & (u_int32_t)0x00008000;
+    tmp &= (u_int32_t)0xffff0000;
     *pf = *pt;
     /* round 1/2 lsb toward infinity */
     if (flg) {
-        tmp &= (uint32_t)0xff800000;       /* extract exponent and sign */
-        tmp |= (uint32_t)0x00010000;       /* insert 1 lsb */
+        tmp &= (u_int32_t)0xff800000;       /* extract exponent and sign */
+        tmp |= (u_int32_t)0x00010000;       /* insert 1 lsb */
         *pf += *pt;                     /* add 1 lsb and elided one */
-        tmp &= (uint32_t)0xff800000;       /* extract exponent and sign */
+        tmp &= (u_int32_t)0xff800000;       /* extract exponent and sign */
         *pf -= *pt;                     /* subtract elided one */
     }
 }
@@ -96,7 +95,7 @@ static void inv_table_flt_round(float *ftmp)
 static void make_inv_tables(faacDecHandle hDecoder)
 {
     int i;
-    uint32_t tmp1, tmp;
+    u_int32_t tmp1, tmp;
     float *pf = (float *)&tmp;
     float ftmp;
 
@@ -126,13 +125,13 @@ static void inv_quant_pred_state(TMP_PRED_STATUS *tmp_psp, PRED_STATUS *psp)
 {
 	int i;
 	short *p2;
-	uint32_t *p1_tmp;
+	u_int32_t *p1_tmp;
 
-	p1_tmp = (uint32_t *)tmp_psp;
+	p1_tmp = (u_int32_t *)tmp_psp;
 	p2 = (short *) psp;
 
 	for (i=0; i<MAX_PRED_BINS*6; i++)
-		p1_tmp[i] = ((uint32_t)p2[i])<<16;
+		p1_tmp[i] = ((u_int32_t)p2[i])<<16;
 }
 
 #define FAST_QUANT
@@ -142,11 +141,11 @@ static void quant_pred_state(PRED_STATUS *psp, TMP_PRED_STATUS *tmp_psp)
 {
     int i;
     short *p1;
-    uint32_t *p2_tmp;
+    u_int32_t *p2_tmp;
 
 #ifdef	FAST_QUANT
     p1 = (short *) psp;
-    p2_tmp = (uint32_t *)tmp_psp;
+    p2_tmp = (u_int32_t *)tmp_psp;
 
     for (i=0; i<MAX_PRED_BINS*6;i++)
       p1[i] = (short) (p2_tmp[i]>>16);
@@ -155,7 +154,7 @@ static void quant_pred_state(PRED_STATUS *psp, TMP_PRED_STATUS *tmp_psp)
     int j;
     for (i=0; i<MAX_PRED_BINS; i++) {
   	p1 = (short *) &psp[i];
-	  p2_tmp = (uint32_t *)tmp_psp;
+	  p2_tmp = (u_int32_t *)tmp_psp;
 
   for (j=0; j<6; j++)
 	    p1[j] = (short) (p2_tmp[i]>>16);
@@ -231,7 +230,7 @@ static void monopred(faacDecHandle hDecoder, Float *pc, PRED_STATUS *psp, TMP_PR
     float *R = pst->r;		/* content of delay elements */
     float *KOR = pst->kor;	/* estimates of correlations */
     float *VAR = pst->var;	/* estimates of variances */
-    uint32_t tmp;
+    u_int32_t tmp;
     int i, j;
 
     r0=R[0];

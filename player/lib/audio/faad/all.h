@@ -27,18 +27,26 @@ Copyright(c)1996.
 #ifndef	_all_h_
 #define _all_h_
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#include <stdio.h>
+#ifdef _WIN32
+#include <conio.h>
+#include <io.h>
+typedef unsigned __int32 u_int32_t;
 #endif
-
-#include "systems.h"
+#include <stdlib.h>
+#include <sys/types.h>
 #include <math.h>
+#include <string.h>
+
 #include "interface.h"
 #include "tns.h"
 #include "nok_ltp_common.h"
 #include "monopred.h"
 #include "bits.h"
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #ifndef _POSIX_SOURCE
 #define                 _POSIX_SOURCE   /* stops repeat typdef of ulong */

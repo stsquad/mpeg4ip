@@ -217,7 +217,9 @@ bool MP4TableProperty::FindProperty(char *name,
 	if (index >= GetCount()) {
 		return false;
 	}
-	*pIndex = index;
+	if (pIndex) {
+		*pIndex = index;
+	}
 
 	VERBOSE_FIND(m_pParentAtom->GetFile()->GetVerbosity(),
 		printf("FindProperty: matched %s\n", name));

@@ -2,7 +2,7 @@
 #define DSPUTIL_H
 
 #include "common.h"
-#include <stdint.h>
+#include <inttypes.h>
 
 typedef short DCTELEM;
 

@@ -144,7 +144,7 @@ public:
 	MP4Atom* FindAtom(char* name);
 
 	bool FindProperty(char* name, 
-		MP4Property** ppProperty, u_int32_t* pIndex);
+		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
 
 	u_int8_t GetDepth();
 
