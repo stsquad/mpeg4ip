@@ -31,7 +31,7 @@
 #endif
 
 
-static GtkWidget *dialog;
+static GtkWidget *dialog = NULL;
 
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
@@ -94,6 +94,13 @@ void CreatePictureDialog (void)
 	GtkWidget* button;
 	GtkObject* adjustment;
 
+	SDL_LockMutex(dialog_mutex);
+	if (dialog != NULL) {
+	  SDL_UnlockMutex(dialog_mutex);
+	  return;
+	}
+	SDL_UnlockMutex(dialog_mutex);
+
 	dialog = gtk_dialog_new();
 	gtk_signal_connect(GTK_OBJECT(dialog),
 		"destroy",
@@ -101,7 +108,7 @@ void CreatePictureDialog (void)
 		&dialog);
 
 	gtk_window_set_title(GTK_WINDOW(dialog), "Picture Settings");
-	gtk_window_set_modal(GTK_WINDOW(dialog), FALSE);
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 #ifndef HAVE_GTK_2_0
 	gtk_container_set_resize_mode(GTK_CONTAINER(dialog), GTK_RESIZE_IMMEDIATE);
 #endif

@@ -26,7 +26,7 @@
 #include "audio_oss_source.h"
 #include "audio_lame.h"
 
-static GtkWidget *dialog;
+static GtkWidget *dialog = NULL;
 
 static char* source_type;
 static char* source_name;
@@ -84,7 +84,6 @@ static void CreateSamplingRateMenu(CAudioCapabilities* pNewAudioCaps);
 static void CreateChannelMenu (uint32_t oldChannelNo);
 static void CreateBitRateMenu(uint32_t oldBitRate);
 static void SetSamplingRate(u_int32_t samplingRate);
-
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
 	gtk_grab_remove(dialog);
@@ -493,6 +492,12 @@ void CreateAudioDialog (void)
 	GtkWidget* button;
 	const char *audioEncoder;
 
+	SDL_LockMutex(dialog_mutex);
+	if (dialog != NULL) {
+	  SDL_UnlockMutex(dialog_mutex);
+	  return;
+	}
+	SDL_UnlockMutex(dialog_mutex);
 	pAudioCaps = MyConfig->m_audioCapabilities;
 
 	dialog = gtk_dialog_new();
@@ -502,6 +507,7 @@ void CreateAudioDialog (void)
 		&dialog);
 
 	gtk_window_set_title(GTK_WINDOW(dialog), "Audio Settings");
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);

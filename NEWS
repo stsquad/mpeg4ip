@@ -1,6 +1,9 @@
-12/xx/03 version 1.0
+12/23/03 version 1.0
     Fix incorrect timestamp on mpeg1/2 insert into mp4 file.
     Allow iTunes \0\0\0\0 atom
+    Fix modal aspects of mp4live dialogs
+    Added several things to README
+    Fixed configuration for several different systems
 
 11/20/03 version 1.0RC3
     Fixed compilation on SuSE 9.0 personal

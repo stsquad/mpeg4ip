@@ -33,6 +33,7 @@
 //#define DEBUG_SYNC_CHANGES 1
 //#define DEBUG_AUDIO_FILL 1
 //#define DEBUG_DELAY 1
+//#define TEST_MONO_TO_STEREO 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(audio_message, "audiosync")
 #else
@@ -342,7 +343,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 	  memset(retbuffer, m_silence, m_buffer_size);
 	  m_buffer_time[fill_index] = m_last_fill_timestamp;
 	  m_buffer_filled[fill_index] = 1;
-	  m_samples_loaded += m_buffer_size;
+	  m_buffer_bytes_loaded += m_buffer_size;
 	  fill_index++;
 	  fill_index %= DECODE_BUFFERS_MAX;
 	  m_fill_index++;
@@ -372,7 +373,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   }
   m_last_fill_timestamp = ts;
   m_buffer_filled[fill_index] = 1;
-  m_samples_loaded += m_buffer_size;
+  m_buffer_bytes_loaded += m_buffer_size;
   m_buffer_time[fill_index] = ts;
   if (resync) {
     m_resync_required = 1;
@@ -389,7 +390,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
     m_psptr->wake_sync_thread();
 #ifdef DEBUG_AUDIO_FILL
   audio_message(LOG_DEBUG, "Filling " U64 " %u %u", 
-		ts, fill_index, m_samples_loaded);
+		ts, fill_index, m_buffer_bytes_loaded);
 #endif
 }
 
@@ -473,14 +474,34 @@ int CSDLAudioSync::initialize_audio (int have_video)
 		     m_obtained.size,
 		    buffer);
 #endif
-      if (m_obtained.channels != m_channels) {
+#ifdef TEST_MONO_TO_STEREO
+#define CHECK_SDL_CHANS_RETURNED  TRUE
+#define OBTAINED_CHANS  2
+#else
+#define CHECK_SDL_CHANS_RETURNED m_obtained.channels != m_channels
+#define OBTAINED_CHANS  m_obtained.channels
+#endif
+      if (CHECK_SDL_CHANS_RETURNED) {
 	SDL_CloseAudio();
-	wanted.channels = m_obtained.channels;
+	wanted.channels = OBTAINED_CHANS;
 	ret = SDL_OpenAudio(&wanted, &m_obtained);
+	audio_message(LOG_INFO, 
+		      "requested f %d chan %d format %x samples %d",
+		      wanted.freq,
+		      wanted.channels,
+		      wanted.format,
+		      wanted.samples);
 	if (ret < 0) {
 	  audio_message(LOG_CRIT, "Couldn't reopen audio, %s", SDL_GetError());
 	  return (-1);
 	}
+	audio_message(LOG_INFO, "got f %d chan %d format %x samples %d size %u %s",
+		      m_obtained.freq,
+		      m_obtained.channels,
+		      m_obtained.format,
+		      m_obtained.samples,
+		      m_obtained.size,
+		    buffer);
 	m_convert_buffer = malloc(m_obtained.size);
 	audio_message(LOG_DEBUG, "convert buffer size is %d", m_obtained.size);
       }
@@ -570,10 +591,10 @@ uint64_t CSDLAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 }
 
 // Audio callback from SDL.
-void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
+void CSDLAudioSync::audio_callback (Uint8 *outStream, int ilen)
 {
   int freed_buffer = 0;
-  uint32_t bufferBytes = (uint32_t)ilen;
+  uint32_t outBufferTotalBytes = (uint32_t)ilen;
   uint64_t this_time;
   int delay = 0;
 
@@ -639,10 +660,10 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 	m_play_sample_index = 0;
 	uint32_t diff;
 	diff = m_buffer_size - m_play_sample_index;
-	if (m_samples_loaded >= diff) {
-	  m_samples_loaded -= diff;
+	if (m_buffer_bytes_loaded >= diff) {
+	  m_buffer_bytes_loaded -= diff;
 	} else {	
-	  m_samples_loaded = 0;
+	  m_buffer_bytes_loaded = 0;
 	}
 	m_consec_wrong_latency = 0;  // reset all latency calcs..
 	m_wrong_latency_total = 0;
@@ -667,7 +688,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 
 
   // Do we have a buffer ?  If no, see if we need to stop.
-  if (m_samples_loaded == 0) {
+  if (m_buffer_bytes_loaded == 0) {
     if (get_eof()) {
       SDL_PauseAudio(1);
       m_audio_paused = 1;
@@ -676,7 +697,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
     }
 #ifdef DEBUG_SYNC
     audio_message(LOG_DEBUG, "No buffer in audio callback %u %u", 
-		  m_samples_loaded, bufferBytes);
+		  m_buffer_bytes_loaded, outBufferTotalBytes);
 #endif
     m_consec_no_buffers++;
     if (m_consec_no_buffers > 10) {
@@ -698,44 +719,56 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
   // We have a valid buffer.  Push it to SDL.
   m_consec_no_buffers = 0;
 
-  while (bufferBytes > 0) {
-    uint32_t bufferSamples;
-    uint32_t thislen, thissamples;
-    bufferSamples = bufferBytes / m_obtained.channels;
+  while (outBufferTotalBytes > 0) {
+    uint32_t outBufferSamples, outBufferBytes;
+    uint32_t decodedBufferBytes, decodedBufferSamples;
 
-    thislen = m_buffer_size - m_play_sample_index;
-    thissamples = thislen / m_channels;
+    // calculate number of bytes left in the decoded bytes ring
+    decodedBufferBytes = m_buffer_size - m_play_sample_index;
+    // samples from bytes
+    decodedBufferSamples = 
+      decodedBufferBytes / (m_channels * m_bytes_per_sample);
     
-    if (bufferSamples < thissamples) {
-      thislen = bufferSamples * m_channels;
-      thissamples = bufferSamples;
+    // See how many samples we can write into SDL buffers
+    outBufferSamples = outBufferTotalBytes / 
+      (m_obtained.channels * m_bytes_per_sample);
+
+    // Adjust bytes from decoded ring accordingly
+    if (outBufferSamples < decodedBufferSamples) {
+      decodedBufferBytes = outBufferSamples * m_channels * m_bytes_per_sample;
+      decodedBufferSamples = outBufferSamples;
     }
+    // Adjust bytes to copy
+    outBufferBytes = decodedBufferSamples * m_obtained.channels * m_bytes_per_sample;
 #ifdef DEBUG_SYNC
     audio_message(LOG_DEBUG, "Playing "U64" offset %d",
 		  m_buffer_time[m_play_index], m_play_sample_index);
 #endif
     if (m_convert_buffer) {
+      // Convert the buffer based on the number of samples
       audio_convert_data(&m_sample_buffer[m_play_index][m_play_sample_index],
-			 thissamples);
-      SDL_MixAudio(stream, (const unsigned char *)m_convert_buffer, thislen, m_volume);
+			 decodedBufferSamples);
+      // Mix based on the number of bytes
+      SDL_MixAudio(outStream, (const unsigned char *)m_convert_buffer, 
+		   outBufferBytes, m_volume);
     } else {
-      SDL_MixAudio(stream, 
+      SDL_MixAudio(outStream, 
 		   (const unsigned char *)&m_sample_buffer[m_play_index][m_play_sample_index],
-		   thislen,
+		   outBufferBytes,
 		   m_volume);
     }
-    bufferBytes -= thissamples * m_obtained.channels;
-    stream += thissamples * m_obtained.channels;
+    outBufferTotalBytes -= outBufferBytes;
+    outStream += outBufferBytes;
 
-    if (thislen <= m_samples_loaded)
-      m_samples_loaded -= thislen;
+    if (decodedBufferBytes <= m_buffer_bytes_loaded)
+      m_buffer_bytes_loaded -= decodedBufferBytes;
     else 
-      m_samples_loaded = 0;
-    m_play_sample_index += thislen;
+      m_buffer_bytes_loaded = 0;
+    m_play_sample_index += decodedBufferBytes;
     if (m_play_sample_index >= m_buffer_size) {
 #ifdef DEBUG_SYNC
       audio_message(LOG_DEBUG, "finished with buffer %d %d", 
-		    m_play_index, m_samples_loaded);
+		    m_play_index, m_buffer_bytes_loaded);
 #endif
 
       m_buffer_filled[m_play_index] = 0;
@@ -752,7 +785,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 #ifdef DEBUG_SYNC
 	  audio_message(LOG_DEBUG, "sempost");
 #endif
-	  bufferBytes = 0;
+	  outBufferTotalBytes = 0;
 	}
       }
     }
@@ -824,7 +857,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 #if DEBUG_SYNC
       audio_message(LOG_DEBUG, 
 		    "latency - time " U64 " index " U64 " latency " U64 " %u", 
-		    this_time, index_time, m_buffer_latency, m_samples_loaded);
+		    this_time, index_time, m_buffer_latency, m_buffer_bytes_loaded);
 #endif
       if (this_time > index_time + ALLOWED_LATENCY || 
 	  this_time < index_time - ALLOWED_LATENCY) {
@@ -916,7 +949,7 @@ void CSDLAudioSync::flush_decode_buffers (void)
   m_play_index = m_fill_index = 0;
   m_audio_paused = 1;
   m_resync_buffer = 0;
-  m_samples_loaded = 0;
+  m_buffer_bytes_loaded = 0;
   if (locked)
     SDL_UnlockAudio();
   //player_debug_message("flushed decode");
@@ -955,7 +988,6 @@ void CSDLAudioSync::audio_convert_data (void *from, uint32_t samples)
     int16_t *src, *dst;
     src = (int16_t *) from;
     dst = (int16_t *) m_convert_buffer;
-    samples /= 2;
     if (m_channels == 1) {
       // 1 channel to 2
       for (uint32_t ix = 0; ix < samples; ix++) {

@@ -46,7 +46,8 @@ libmp4syncsdl_la_SOURCES = \
 libmp4syncsdl_la_LDFLAGS = -static
 
 include_HEADERS = \
-	codec_plugin.h 
+	codec_plugin.h \
+	rtp_plugin.h 
 
 libmp4player_la_SOURCES = \
 	avi_bytestream.cpp \
@@ -101,7 +102,6 @@ libmp4player_la_SOURCES = \
 	rtp_bytestream.h \
 	rtp_bytestream_plugin.cpp \
 	rtp_bytestream_plugin.h \
-	rtp_plugin.h \
 	sync.cpp 
 
 if NO_GLIB_GTK

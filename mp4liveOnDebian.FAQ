@@ -1,0 +1,102 @@
+
+
+
+    =====How to sucessfully compile FAAC and mpeg4ip on Debian WOODY=====
+				
+				FAQ v1.0
+
+
+-requirements, pre-installation, suitable environment for building mpeg4ip
+
+let suppose you have installed a basic setup of debian woody 
+(the actual 'stable'), updated it from network. First make sure you have a 
+complete development system installed. The best way to achieve it is to run 
+tasksel and pick 'C and C++' from  developer section. it makes sure that no 
+devel component is missing. additionaly you will need SDL libraries so do: 
+apt-get install libsdl1.2-dev libsdl1.2debian-all 
+apt-get install libsdl-net1.2-dev libsdl-image1.2-dev libsd-gfx1.2-dev
+
+note: 	you DO NOT NEED to install nasm, it would get you into big trouble 
+	so better not to have it installed
+
+- first steps,installing Lame and something about FAAC(extrernal audio encoders) 
+
+possibly the easiest step on the rough way to get mp4live working is installing
+lame the mp3 encoder. you should get the source from sf.net, both 3.92.x 
+and 3.93.x versions will do, normally you should face with no difficulity 
+during lame compilation/installation.
+(lame soure: http://sourceforge.net/project/showfiles.php?group_id=290)
+
+there are different versions of FAAC available for downloading. also a cvs 
+snapshot is released on each sunday. i suggest to use release 1.20.1 of FAAC 
+(against the documentation which recommends to use the newest version)
+you can try newer versions of FAAC but in that case later you will surely 
+meet problems during compiling mp4live (usually 'unknown pragmas error') 
+so let's stick to FAAC 1.20.1. Maybe it is hard to get it from offical sources 
+but you can get it from my private mpeg4ip-faac collection from:
+http://mpeg4ip.netexpert.hu
+
+- avoiding future troubles, doing the tricky part
+
+the default version of 'libtool' available for the stable debian (woody) is 
+version 1.4 which is NOT suitable for configuring FAAC perfectly 
+(a LOT of unknown options, variables used by FAAC which are unknown for 
+libtool1.4). So we will do a little trick, we will install libtool 1.5 which 
+is normally for debian Sid (testing version of debian yet). Either you can get 
+the standalone .deb from debian.org's package search from the testing(sid) 
+section:
+http://packages.debian.org/cgi-bin/search_packages.pl?keywords=libtool&searchon=names&subword=1&version=testing&release=all
+(it has no further dependencies), or you can modify your /etc/apt/sources.list 
+by turning the 'stable' word after the path into 'sid' then apt-get update, 
+apt-get install libtool, after it got installed you can reverse the changes you
+made in your /etc/apt/sources.list (sid -> stable) and an additional 
+apt-get update is recommended just to avoid possible future confusion around 
+packages. Okay, so now you have a stable woody with 99% Woody packages except
+for libtool which is from Sid (testing), you have the complete dev environment
+either gcc 2.95.x or gcc 3.0 maybe both (if u have installed 3.0 manualy).
+Both versions are ok for the compiling however 2.95.x is more reliable and 
+compatible while 3.0 gives better cpu optimalisations.
+
+note: 	on a powerful cpu i couldnt realise any considerable speed difference 
+	with mp4live which could be derived from the version of gcc
+	so i simply used 2.95.x. Of course the choice is free :)
+
+<mpeg4ip author's note: we have seen significant improvment in the decoding
+ routines with the 3.0 series of GCC, coupled with NASM.  YMMV>
+
+- after the hard part, breath the main thing alive
+
+extract faac (v1.20.1), chmod +x ./bootstrap 
+(as the executable flag is accidentally missing)
+do ./bootstrap in faac folder 
+(it should bring NO error messages thanks to our new libtool)
+do ./configure
+do make
+do make install
+
+now faac is ready, you can test it by typing 'faac' into the shell, 
+it brings the help so it is okay (compiling with libtool 1.4 it gives an 
+error message as it cant load some of the shared libs which couldnt be 
+compiled due to misconfiguration)
+
+NOTE: you MUST manualy copy the faac/include/faac.h to /usr/local/include/
+      as it is not done by the broken installer script but needed to complie 
+      mp4live (newer versions of FAAC are NOT affected by this small bug 
+      but they bring up more problematic things)
+
+<mpeg4ip author - if you use the faac patch file (faac_mpeg4ip_add.tar) before compiling, 
+ you won't have to copy the files.  Ditto if you use a later version of faac>
+
+now let's compile mpeg4ip. you must decide if you want to use mp4live with gui 
+or only in shell. If you want to have GUI after compilation you must install 
+the GTK package (apt-get install libgtk1.2-dev) if not simply skipp this option.
+Extract the latest mpeg4ip tar (1.0rc3 at this moment) into a folder
+cd to it and do ./bootstarp after it simply type make and finally do 
+make install. If all the above is correct mpeg4ip should compile without errors!
+
+
+If you got any problems, questions or remarks please feel free to write 
+me a mail to hell@netexpert.hu
+
+
+EOF

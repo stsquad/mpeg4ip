@@ -244,6 +244,8 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
   uint8_t *to, *from;
 
   /*
+   * m_buffer_filled is ring buffer of YUV data from decoders, with
+   * timestamps.
    * If the next buffer is not filled, indicate that, as well
    */
   if (m_buffer_filled[m_play_index] == 0) {
@@ -301,32 +303,36 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 #endif
       showed = 1;
       m_consec_skipped = 0;
-    if (SDL_LockYUVOverlay(m_image)) {
-      video_message(LOG_ERR, "Failed to lock image");
-    } else {
-    // Must always copy the buffer to memory.  This creates 2 copies of this
-    // data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
-    // sdl -> hardware)
+      /*
+       * Lock the Overlay
+       */
+      if (SDL_LockYUVOverlay(m_image)) {
+	video_message(LOG_ERR, "Failed to lock image");
+      } else {
+	// Must always copy the buffer to memory.  This creates 2 copies of this
+	// data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
+	// sdl -> hardware)
 #ifdef OLD_SURFACE
-    if (m_fullscreen == 0 && m_video_scale == 4) {
-      // when scaling to 200%, don't use SDL stretch blit
-      // use a smoothing (averaging) blit instead
+	if (m_fullscreen == 0 && m_video_scale == 4) {
+	  // when scaling to 200%, don't use SDL stretch blit
+	  // use a smoothing (averaging) blit instead
+	  // we only do this for maybe windows - otherwise, let SDL do it.
 #ifdef USE_MMX
-      FrameDoublerMmx(m_y_buffer[m_play_index], m_image->pixels[0], 
-		      m_width, m_height);
-      FrameDoublerMmx(m_v_buffer[m_play_index], m_image->pixels[1], 
-		      m_width >> 1, m_height >> 1);
-      FrameDoublerMmx(m_u_buffer[m_play_index], m_image->pixels[2], 
-		      m_width >> 1, m_height >> 1);
+	  FrameDoublerMmx(m_y_buffer[m_play_index], m_image->pixels[0], 
+			  m_width, m_height);
+	  FrameDoublerMmx(m_v_buffer[m_play_index], m_image->pixels[1], 
+			  m_width >> 1, m_height >> 1);
+	  FrameDoublerMmx(m_u_buffer[m_play_index], m_image->pixels[2], 
+			  m_width >> 1, m_height >> 1);
 #else
-      FrameDoubler(m_y_buffer[m_play_index], m_image->pixels[0], 
-		   m_width, m_height, m_image->pitches[0]);
-      FrameDoubler(m_v_buffer[m_play_index], m_image->pixels[1], 
-		   m_width >> 1, m_height >> 1, m_image->pitches[1]);
-      FrameDoubler(m_u_buffer[m_play_index], m_image->pixels[2], 
-		   m_width >> 1, m_height >> 1, m_image->pitches[2]);
+	  FrameDoubler(m_y_buffer[m_play_index], m_image->pixels[0], 
+		       m_width, m_height, m_image->pitches[0]);
+	  FrameDoubler(m_v_buffer[m_play_index], m_image->pixels[1], 
+		       m_width >> 1, m_height >> 1, m_image->pitches[1]);
+	  FrameDoubler(m_u_buffer[m_play_index], m_image->pixels[2], 
+		       m_width >> 1, m_height >> 1, m_image->pitches[2]);
 #endif
-    } else 
+	} else 
 #endif
       {
 	// let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
@@ -334,6 +340,8 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 	unsigned int width = m_width, height = m_height;
 
 	if (width != m_image->pitches[0]) {
+	  // The width is not equal to the size in the SDL buffers - 
+	  // we need to copy a row at a time
 	  to = (uint8_t *)m_image->pixels[0];
 	  from = m_y_buffer[m_play_index];
 	  for (ix = 0; ix < height; ix++) {
@@ -342,10 +350,12 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 	    from += width;
 	  }
 	} else {
+	  // Copy entire Y frame
 	  memcpy(m_image->pixels[0], 
 		 m_y_buffer[m_play_index], 
 		 bufsize);
 	}
+	// We reduce the sizes for U and V planes (they are 1/4 the size)
 	bufsize /= 4;
 	width /= 2;
 	height /= 2;
@@ -356,6 +366,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 #define V 1
 #define U 2
 #endif
+	// Copy the U and V - same comments as above
 	if (width != m_image->pitches[V]) {
 	    to = (uint8_t *)m_image->pixels[V];
 	    from = m_v_buffer[m_play_index];
@@ -385,6 +396,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 
       }
 
+	// Actually display the video
     int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
 #ifndef darwin
 #define CORRECT_RETURN 0
@@ -394,8 +406,9 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
     if (rval != CORRECT_RETURN) {
       video_message(LOG_ERR, "Return from display is %d", rval);
     }
+    // and unlock it.
     SDL_UnlockYUVOverlay(m_image);
-	}
+      }
   } 
 #ifdef CHECK_SYNC_TIME
 else {
@@ -411,7 +424,8 @@ else {
   }
 #endif
   /*
-   * Advance the buffer
+   * Advance the ring buffer, indicating that the decoder can fill this
+   * buffer.
    */
   m_buffer_filled[m_play_index] = 0;
 #ifdef VIDEO_SYNC_FILL
@@ -421,9 +435,9 @@ else {
   m_play_index++;
   m_play_index %= MAX_VIDEO_BUFFERS;
   m_total_frames++;
-  // 
-  // okay - we need to signal the decode task to continue...
+
   if (m_decode_waiting) {
+    // If the decode thread is waiting, signal it.
     m_decode_waiting = 0;
     SDL_SemPost(m_decode_sem);
 #ifdef VIDEO_SYNC_FILL
@@ -431,6 +445,9 @@ else {
 #endif
   }
 
+  // Try to return the next time we want to play - it's probably not
+  // accurate, but it should be okay - the sync task looks every 10 msec
+  // or so, anyway.
   if (m_buffer_filled[m_play_index] == 1) {
     if (m_play_this_at[m_play_index] < current_time) 
       return (0);
@@ -447,15 +464,21 @@ else {
   return (10);
 }
 
+/*
+ * get_video_buffer - give the decoder direct access to the YUV
+ * ring buffers, so it can write into that memory
+ */
 int CSDLVideoSync::get_video_buffer(uint8_t **y,
-				 uint8_t **u,
-				 uint8_t **v)
+				    uint8_t **u,
+				    uint8_t **v)
 {
   
   if (m_dont_fill != 0) 
     return (0);
 
   if (m_buffer_filled[m_fill_index] != 0) {
+    // We don't have a buffer - indicate this, and wait for the sync thread
+    // to signal us.
     m_decode_waiting = 1;
     SDL_SemWait(m_decode_sem);
     if (m_dont_fill != 0)
@@ -469,6 +492,10 @@ int CSDLVideoSync::get_video_buffer(uint8_t **y,
   return (1);
 }
 
+/*
+ * filled_video_buffers - API routine called when decoder has filled a 
+ * buffer after it called get_video_buffer
+ */
 void CSDLVideoSync::filled_video_buffers (uint64_t time)
 {
   int ix;
@@ -491,7 +518,7 @@ void CSDLVideoSync::filled_video_buffers (uint64_t time)
 }
 
 /*
- * CSDLVideoSync::set_video_frame - called from codec to indicate a new
+ * CSDLVideoSync::set_video_frame - called from decoder to indicate a new
  * frame is ready.
  * Inputs - y - pointer to y buffer - should point to first byte to copy
  *          u - pointer to u buffer

@@ -411,6 +411,10 @@ bool CAudioCapabilities::ProbeDevice()
 {
   int rc;
 
+#ifndef SNDCTL_DSP_GETERROR
+  error_message("NOTE: You do not have the latest version of OSS with SNDCTL_DSP_GETERROR");
+  error_message("This could have long term sync issues");
+#endif
   // open the audio device
   int audioDevice = open(m_deviceName, O_RDONLY);
   if (audioDevice < 0) {

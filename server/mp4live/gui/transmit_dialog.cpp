@@ -29,7 +29,7 @@
 #include <netdb.h>
 #include "rtp_transmitter.h"
 
-static GtkWidget *dialog;
+static GtkWidget *dialog = NULL;
 
 static GtkWidget *unicast_button;
 static GtkWidget *mcast_button;
@@ -238,6 +238,13 @@ void CreateTransmitDialog (void)
 	GtkWidget* button;
 	GtkObject* adjustment;
 
+	SDL_LockMutex(dialog_mutex);
+	if (dialog != NULL) {
+	  SDL_UnlockMutex(dialog_mutex);
+	  return;
+	}
+	SDL_UnlockMutex(dialog_mutex);
+
 	dialog = gtk_dialog_new();
 	gtk_signal_connect(GTK_OBJECT(dialog),
 		"destroy",
@@ -245,6 +252,7 @@ void CreateTransmitDialog (void)
 		&dialog);
 
 	gtk_window_set_title(GTK_WINDOW(dialog), "Transmission Settings");
+	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
 
 	hbox = gtk_hbox_new(TRUE, 1);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox,

@@ -128,6 +128,7 @@ mp4live_LDADD = \
 	@FFMPEG_LIB@ \
 	-lfaac \
 	-lmp3lame \
+	@LIBVORBIS_LIB@ \
 	$(XVID_LIB) \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \

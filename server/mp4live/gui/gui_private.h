@@ -31,7 +31,7 @@
 // From gui_main.cpp
 extern CLiveConfig* MyConfig;
 extern CPreviewAVMediaFlow* AVFlow;
-
+extern SDL_mutex *dialog_mutex;
 void NewVideoWindow(void);
 void DisplayVideoSettings(void);
 void DisplayAudioSettings(void);

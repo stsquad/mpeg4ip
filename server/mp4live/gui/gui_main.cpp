@@ -121,7 +121,7 @@ static Duration FlowDuration;
 static u_int32_t StartEncodedFrameNumber;
 static u_int64_t StartFileSize;
 static u_int64_t StopFileSize;
-
+SDL_mutex *dialog_mutex;
 /*
  * delete_event - called when window closed
  */
@@ -130,6 +130,7 @@ static void delete_event (GtkWidget *widget, gpointer *data)
   // stop the flow (which gets rid of the preview, before we gtk_main_quit
   AVFlow->Stop();
   delete AVFlow;
+  SDL_DestroyMutex(dialog_mutex);
   gtk_main_quit();
 }
 
@@ -1372,6 +1373,7 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 {
 	MyConfig = pConfig;
 
+	dialog_mutex = SDL_CreateMutex();
 	AVFlow = new CPreviewAVMediaFlow(pConfig);
 
 #if 0

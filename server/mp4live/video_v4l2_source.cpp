@@ -465,6 +465,7 @@ int8_t CV4L2VideoSource::AcquireFrame(Timestamp &frameTimestamp)
 
   int rc = ioctl(m_videoDevice, VIDIOC_DQBUF, &buffer);
   if (rc != 0) {
+    error_message("error %d errno %d", rc, errno);
     return -1;
   }
 

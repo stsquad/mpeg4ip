@@ -23,7 +23,7 @@
 #include "mp4live.h"
 #include "mp4live_gui.h"
 
-static GtkWidget *dialog;
+static GtkWidget *dialog = NULL;
 static GtkWidget *file_combo;
 static GtkWidget *file_entry;
 
@@ -111,6 +111,12 @@ void CreateRecordingDialog (void)
 {
 	GtkWidget *hbox, *label;
 
+	SDL_LockMutex(dialog_mutex);
+	if (dialog != NULL) {
+	  SDL_UnlockMutex(dialog_mutex);
+	  return;
+	}
+	SDL_UnlockMutex(dialog_mutex);
 	dialog = gtk_dialog_new();
 	gtk_signal_connect(GTK_OBJECT(dialog),
 			 "destroy",

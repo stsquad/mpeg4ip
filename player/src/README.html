@@ -210,8 +210,8 @@ the executable for mp4player.exe or wmp4client.exe.  The project files
 should copy the plugin DLLs to the player/src directory, so when 
 running the player, it should work fine.
 <P>
-The plugin pattern can be found in player/src/codec_plugin.h.  It
-is bound to change fairly rapidly for the next couple of CVS releases.
+The plugin pattern can be found in player/src/codec_plugin.h and in player/src/rtp_plugin.h.  
+Both plugins contain a version number to enable detection of API changes.
 <P>
 <a href="#top">Back to top</a>
 <P>

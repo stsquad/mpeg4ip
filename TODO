@@ -1,20 +1,18 @@
-February 26, 2002
+December 23, 2003
 
 Here's a list of things that the authors are working on in the short-term:
 
 * mp4live:
-	Re-encoding support.
-	Xvid, H.26L, and DV support. 
-	Exploit P4 SSE2 more.
+	xvid 1.0 API
 
 * mp4player:
-	mpeg2 transport streams
+        nothing for the moment
 
 Here's a list of things that we would like to do in the future,
 however we're happy to have volunteers do them also ;-)
 
 * Support for DV in mp4live
-* Support for v4l2 and bttv 0.8 in mp4live
+* rewrite player to use timescales for synchronization
 * Update ISO MPEG-4 reference codec to latest version
 * RTP insertion/failover intermediary
 * RSVP support

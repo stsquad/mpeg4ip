@@ -31,7 +31,7 @@
 #endif
 
 
-static GtkWidget *dialog;
+static GtkWidget *dialog = NULL;
 
 static char* source_type;
 static char* source_name;
@@ -710,6 +710,12 @@ void CreateVideoDialog (void)
 	GtkObject* adjustment;
 	uint8_t i;
 
+	SDL_LockMutex(dialog_mutex);
+	if (dialog != NULL) {
+	  SDL_UnlockMutex(dialog_mutex);
+	  return;
+	}
+	SDL_UnlockMutex(dialog_mutex);
 	pVideoCaps = MyConfig->m_videoCapabilities;
 	default_file_audio_source = -1;
 

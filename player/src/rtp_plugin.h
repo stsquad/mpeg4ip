@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2002-2003.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -26,27 +26,79 @@
 
 struct rtp_packet;
 
+/*
+ * API routines for plugin.  These allow access to RTP data structures
+ * you might need
+ */
+
+/*
+ * rtp_ts_to_msec - used to calculate the timestamp to be used from an
+ * rtp timestamp.
+ * ifptr - ifptr from rtp_plugin_data_t
+ * rtp_ts - RTP timestamp to convert
+ * ts - timestamp packet received (rtp_pak->pd.rtp_pd_timestamp)
+ * just_checking - call this with 0 when displaying information, or checking
+ *    on future.  Call this with a 1 when passing back values
+ */
 typedef uint64_t (*rtp_ts_to_msec_f)(void *ifptr, 
 				     uint32_t rtp_ts, 
 				     uint64_t ts, 
 				     int just_checking);
 
+/*
+ * get_next_pak - gets rtp_pak from input queue.  Input queue is sorted by
+ * sequence number
+ * ifptr - same as above
+ * current - pointer to list (allows a look further into list without removing)
+ * rm_from_list - 1 to remove, 0 to keep on list.
+ */
 typedef rtp_packet *(*get_next_pak_f)(void *ifptr, 
 				     rtp_packet *current, 
 				     int rm_from_list);
 
+/*
+ * remove_from_list - removes packet from list
+ * ifptr - same as above
+ * pak - rtp_packet to remove
+ */
 typedef void (*remove_from_list_f)(void *ifptr, 
 				   rtp_packet *pak);
 
+/*
+ * free_pak - free rtp packet
+ */
 typedef void (*free_pak_f)(rtp_packet *pak);
 
+/*
+ * VFT (virtual function table) that allows callbacks from plugins 
+ */
 typedef struct rtp_vft_t {
-  lib_message_func_t log_msg;
+  lib_message_func_t log_msg;          // display output on console
   rtp_ts_to_msec_f   rtp_ts_to_msec;
   get_next_pak_f     get_next_pak;
   remove_from_list_f remove_from_list;
   free_pak_f         free_pak;
 } rtp_vft_t;
+
+/*
+ * This needs to be at the beginning of your data structure, which usually
+ * looks like:
+ * typedef struct my_rtp_plugin_data_t {
+ *    rtp_plugin_data_t rtp_data;
+ *    int my_data;
+ *    < rest of private data>
+ * } my_rtp_plugin_data_t;
+ *
+ * store your data this way, instead of static variables.
+ */
+typedef struct rtp_plugin_data_t {
+  void *ifptr;
+  rtp_vft_t *vft;
+} rtp_plugin_data_t;
+
+/*
+ * APIs that need to be filled in by plugin
+ */
 
 typedef enum {
   RTP_PLUGIN_NO_MATCH,
@@ -55,33 +107,83 @@ typedef enum {
   RTP_PLUGIN_MATCH_USE_AUDIO_DEFAULT,
 } rtp_check_return_t;
 
-typedef struct rtp_plugin_data_t {
-  void *ifptr;
-  rtp_vft_t *vft;
-} rtp_plugin_data_t;
-
+/*
+ * rtp_plugin_check - see if this is the plugin
+ * Inputs:
+ *   msg - use to output any console messages
+ *   fptr - pointer to SDP data (see sdp.h)
+ *   rtp_payload_type - payload type received.
+ * Outputs:
+ *   see rtp_check_return_t enum.  AUDIO_DEFAULT indicates no 
+ *   rtp payload header.  VIDEO_DEFAULT indicates video frames assembled
+ *   with M=0 followed by M=1 as last packet.
+ */
 typedef rtp_check_return_t (*rtp_plugin_check_f)(lib_message_func_t msg,
 						 format_list_t *fptr,
 						 uint8_t rtp_payload_type);
+/*
+ * rtp_plugin_create - create private data needed by RTP plugin
+ * Inputs:
+ *   fptr - pointer to SDP for this media
+ *   rtp_payload_type - value of RTP payload received
+ *   rtp_vft - VFT to be used for callbacks
+ *   ifptr - ifptr to pass to API routines.
+ * Outputs: 
+ *   returns pointer to private data structure (see rtp_plugin_data_t above)
+ */
 typedef rtp_plugin_data_t *(*rtp_plugin_create_f)(format_list_t *fptr, 
 						  uint8_t rtp_payload_type,
 						  rtp_vft_t *rtp_vft,
 						  void *ifptr);
 
+/*
+ * rtp_plugin_destroy - clean up routine. Clean up any data allocated in
+ * private data
+ */
 typedef void (*rtp_plugin_destroy_f)(rtp_plugin_data_t *your_data);
 
+/*
+ * rtp_plugin_start_next_frame - called when RTP plugin should return the
+ * next frame to be decoded.
+ * Inputs:
+ *  your_data - rtp_plugin data
+ *  buffer - return point for buffer pointer.  Note: memory does not get freed.
+ *  buflen - return point for frame buffer length 
+ *  user_data - informational data to pass to a knowledgeable decode plugin
+ *              an example might be the RTP payload header for mpeg2, passed
+ *              to a plugin that could decode part of a frame.
+ * Outputs:
+ *  uint64_t timestamp - use rtp_ts_to_msec API from above.
+ */
 typedef uint64_t (*rtp_plugin_start_next_frame_f)(rtp_plugin_data_t *your_data,
 						  uint8_t **buffer,
 						  uint32_t *buflen, 
 						  void **user_data);
 
+/*
+ * rtp_plugin_used_bytes_for_frame - indicates how many bytes out of frame
+ * were used by the decoder.  Can mostly be ignored by frame based codecs.
+ * Inputs:
+ *  your_data
+ *  bytes - number of bytes processed
+ */
 typedef void (*rtp_plugin_used_bytes_for_frame_f)(rtp_plugin_data_t *your_data,
 						  uint32_t bytes);
 
+/*
+ * rtp_plugin_reset - called during reset events like pause or seek.
+ */
 typedef void (*rtp_plugin_reset_f)(rtp_plugin_data_t *your_data);
 
+/*
+ * rtp_plugin_flush - called to indicate to flush any local data
+ */
 typedef void (*rtp_plugin_flush_f)(rtp_plugin_data_t *your_data);
 
+/*
+ * rtp_plugin_have_no_data - return a 1 if there is no decodable frames
+ * on the RTP queue
+ */
 typedef int (*rtp_plugin_have_no_data_f)(rtp_plugin_data_t *your_data);
 
 typedef struct rtp_plugin_t {
@@ -109,6 +211,9 @@ typedef struct rtp_plugin_t {
 #define RTP_PLUGIN_EXPORT_NAME mpeg4ip_rtp_plugin
 #define RTP_PLUGIN_EXPORT_NAME_STR "mpeg4ip_rtp_plugin"
 
+/*
+ * RTP_PLUGIN - this is the macro to include with your plugin
+ */
 #define RTP_PLUGIN(name, \
                    check, \
                    create, \

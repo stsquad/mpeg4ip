@@ -3,13 +3,15 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 38;
+	objectVersion = 39;
 	objects = {
 		4A3745BB0528B400003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmsg_queue.a;
 			path = lib/msg_queue/.libs/libmsg_queue.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4A3745BC0528B400003608A1 = {
 			fileRef = 4A3745BB0528B400003608A1;
@@ -18,10 +20,12 @@
 			};
 		};
 		4A3745C20528B6DF003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4syncbase.a;
 			path = player/src/.libs/libmp4syncbase.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4A3745C30528B6DF003608A1 = {
 			fileRef = 4A3745C20528B6DF003608A1;
@@ -30,10 +34,12 @@
 			};
 		};
 		4A3745C40528B744003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libconfig_file.a;
 			path = lib/config_file/.libs/libconfig_file.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4A3745C50528B744003608A1 = {
 			fileRef = 4A3745C40528B744003608A1;
@@ -42,10 +48,12 @@
 			};
 		};
 		4A82771405336C28003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = "libstdc++.a";
 			path = "/usr/lib/libstdc++.a";
 			refType = 0;
+			sourceTree = "<absolute>";
 		};
 		4A82771505336C28003608A1 = {
 			fileRef = 4A82771405336C28003608A1;
@@ -54,10 +62,12 @@
 			};
 		};
 		4AD5DA000528A8C1003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4player.a;
 			path = player/src/.libs/libmp4player.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA010528A8C1003608A1 = {
 			fileRef = 4AD5DA000528A8C1003608A1;
@@ -66,16 +76,20 @@
 			};
 		};
 		4AD5DA2D0528AB08003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4syncbase.a;
 			path = player/src/.libs/libmp4syncbase.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA2F0528AB18003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4syncsdl.a;
 			path = player/src/.libs/libmp4syncsdl.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA300528AB18003608A1 = {
 			fileRef = 4AD5DA2F0528AB18003608A1;
@@ -84,10 +98,12 @@
 			};
 		};
 		4AD5DA310528AB30003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4playerutils.a;
 			path = player/src/.libs/libmp4playerutils.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA320528AB30003608A1 = {
 			fileRef = 4AD5DA310528AB30003608A1;
@@ -96,10 +112,12 @@
 			};
 		};
 		4AD5DA330528AC30003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libSDL.a;
 			path = lib/SDL/src/.libs/libSDL.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA340528AC30003608A1 = {
 			fileRef = 4AD5DA330528AC30003608A1;
@@ -108,16 +126,20 @@
 			};
 		};
 		4AD5DA350528AC91003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4syncbase.a;
 			path = player/src/.libs/libmp4syncbase.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA3E0528ADD2003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libhttp.a;
 			path = player/lib/libhttp/.libs/libhttp.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA3F0528ADD2003608A1 = {
 			fileRef = 4AD5DA3E0528ADD2003608A1;
@@ -126,10 +148,12 @@
 			};
 		};
 		4AD5DA400528AE44003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libsdp.a;
 			path = lib/sdp/.libs/libsdp.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA410528AE44003608A1 = {
 			fileRef = 4AD5DA400528AE44003608A1;
@@ -137,23 +161,13 @@
 			settings = {
 			};
 		};
-		4AD5DA420528AE88003608A1 = {
-			isa = PBXFileReference;
-			name = libdl.a;
-			path = /sw/lib/libdl.a;
-			refType = 0;
-		};
-		4AD5DA430528AE88003608A1 = {
-			fileRef = 4AD5DA420528AE88003608A1;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		4AD5DA440528AF01003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4v2.a;
 			path = lib/mp4v2/.libs/libmp4v2.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA450528AF01003608A1 = {
 			fileRef = 4AD5DA440528AF01003608A1;
@@ -162,10 +176,12 @@
 			};
 		};
 		4AD5DA4B0528AF78003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4util.a;
 			path = player/lib/mp4util/.libs/libmp4util.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA4C0528AF78003608A1 = {
 			fileRef = 4AD5DA4B0528AF78003608A1;
@@ -174,10 +190,12 @@
 			};
 		};
 		4AD5DA4D0528AFCF003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4.a;
 			path = lib/mp4/.libs/libmp4.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA4E0528AFCF003608A1 = {
 			fileRef = 4AD5DA4D0528AFCF003608A1;
@@ -186,10 +204,12 @@
 			};
 		};
 		4AD5DA4F0528B04B003608A1 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libmp4av.a;
 			path = lib/mp4av/.libs/libmp4av.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		4AD5DA500528B04B003608A1 = {
 			fileRef = 4AD5DA4F0528B04B003608A1;
@@ -214,6 +234,7 @@
 			isa = PBXGroup;
 			path = mp4v2;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		54EE27050175099F7F000001 = {
 			children = (
@@ -223,17 +244,52 @@
 			name = .libs;
 			path = lib/mp4v2/.libs;
 			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
 		54EE27060175099F7F000001 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libmp4v2.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 //540
 //541
 //542
 //543
 //544
+//9A0
+//9A1
+//9A2
+//9A3
+//9A4
+		9A1731970564378500D3D13B = {
+			containerPortal = F5E8C8A601459D8901927C4D;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = F5E8D73C0145D63801927C4D;
+			remoteInfo = mpeg4ip;
+		};
+		9A1731990564378500D3D13B = {
+			containerPortal = F5E8C8A601459D8901927C4D;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = F5E8D73E0145D63801927C4D;
+			remoteInfo = bootstrap;
+		};
+		9A49FA4105657F0D00A090D6 = {
+			expectedFileType = "compiled.mach-o.executable";
+			includeInIndex = 0;
+			isa = PBXFileReference;
+			path = Untitled;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+//9A0
+//9A1
+//9A2
+//9A3
+//9A4
 //F50
 //F51
 //F52
@@ -248,6 +304,7 @@
 			isa = PBXGroup;
 			path = sys;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A16AB0152C08701927C4D = {
 			children = (
@@ -256,6 +313,7 @@
 			isa = PBXGroup;
 			path = decoder;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A16E60152C08701927C4D = {
 			children = (
@@ -264,11 +322,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A16E70152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_sys_decoder.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A177E0152C08701927C4D = {
 			children = (
@@ -277,11 +338,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A177F0152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_sys.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A17820152C08701927C4D = {
 			children = (
@@ -290,6 +354,7 @@
 			isa = PBXGroup;
 			path = tools;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A17830152C08701927C4D = {
 			children = (
@@ -298,6 +363,7 @@
 			isa = PBXGroup;
 			path = entropy;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A17960152C08701927C4D = {
 			children = (
@@ -306,11 +372,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A17970152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_tools_entropy.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A179D0152C08701927C4D = {
 			children = (
@@ -319,6 +388,7 @@
 			isa = PBXGroup;
 			path = type;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A17DB0152C08701927C4D = {
 			children = (
@@ -327,11 +397,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A17DC0152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_type.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A17DF0152C08701927C4D = {
 			children = (
@@ -344,6 +417,7 @@
 			isa = PBXGroup;
 			path = vtc;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A17E40152C08701927C4D = {
 			children = (
@@ -352,6 +426,7 @@
 			isa = PBXGroup;
 			path = main;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A18010152C08701927C4D = {
 			children = (
@@ -362,21 +437,28 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A18020152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_vtc_main.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A18040152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_vtc_main_dec.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A18060152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_vtc_main_enc.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A180F0152C08701927C4D = {
 			children = (
@@ -385,6 +467,7 @@
 			isa = PBXGroup;
 			path = pezw;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A183E0152C08701927C4D = {
 			children = (
@@ -393,11 +476,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A183F0152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_vtc_pezw.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A18420152C08701927C4D = {
 			children = (
@@ -406,6 +492,7 @@
 			isa = PBXGroup;
 			path = wavelet;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A18680152C08701927C4D = {
 			children = (
@@ -414,11 +501,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A18690152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_vtc_wavelet.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A186C0152C08701927C4D = {
 			children = (
@@ -427,6 +517,7 @@
 			isa = PBXGroup;
 			path = zte;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A188A0152C08701927C4D = {
 			children = (
@@ -435,11 +526,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A188B0152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_vtc_zte.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A188E0152C08701927C4D = {
 			children = (
@@ -448,6 +542,7 @@
 			isa = PBXGroup;
 			path = ztq;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A18BA0152C08701927C4D = {
 			children = (
@@ -456,11 +551,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A18BB0152C08701927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_vtc_ztq.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A1AB50152C1AA01927C4D = {
 			children = (
@@ -469,6 +567,7 @@
 			isa = PBXGroup;
 			path = encoder;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A1AB60152C1AA01927C4D = {
 			children = (
@@ -477,16 +576,21 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A1AB70152C1AA01927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libobj_sys_encoder.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A1ABF0152CA5D01927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libmp4playerutils.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A1AC00152CA5D01927C4D = {
 			children = (
@@ -495,6 +599,7 @@
 			isa = PBXGroup;
 			path = libhttp;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A1AC10152CA5D01927C4D = {
 			children = (
@@ -503,11 +608,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F50A1AC20152CA5D01927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libhttp.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E43B8C01A73F4701FE0166 = {
 			children = (
@@ -516,18 +624,25 @@
 			isa = PBXGroup;
 			path = rtp;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E43B9B01A7507301FE0166 = {
+			expectedFileType = wrapper.framework;
+			fallbackIsa = PBXFileReference;
 			isa = PBXFrameworkReference;
 			name = OpenGL.framework;
 			path = /System/Library/Frameworks/OpenGL.framework;
 			refType = 0;
+			sourceTree = "<absolute>";
 		};
 		F5E43B9C01A7507301FE0166 = {
+			expectedFileType = wrapper.framework;
+			fallbackIsa = PBXFileReference;
 			isa = PBXFrameworkReference;
 			name = IOKit.framework;
 			path = /System/Library/Frameworks/IOKit.framework;
 			refType = 0;
+			sourceTree = "<absolute>";
 		};
 		F5E43B9D01A7507301FE0166 = {
 			fileRef = F5E43B9B01A7507301FE0166;
@@ -542,6 +657,8 @@
 			};
 		};
 		F5E8C8A601459D8901927C4D = {
+			buildSettings = {
+			};
 			buildStyles = (
 				F5E8C8B201459E3201927C4D,
 			);
@@ -567,20 +684,25 @@
 			);
 			isa = PBXGroup;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8C8A801459DCE01927C4D = {
 			children = (
 				F5E8C8A901459DCE01927C4D,
-				F5E8D73A0145D63801927C4D,
+				9A49FA4105657F0D00A090D6,
 			);
 			isa = PBXGroup;
 			name = Products;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8C8A901459DCE01927C4D = {
+			expectedFileType = wrapper.application;
+			fallbackIsa = PBXFileReference;
 			isa = PBXApplicationReference;
 			path = "MPEG-4 Player.app";
 			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		F5E8C8AA01459DCE01927C4D = {
 			buildPhases = (
@@ -593,7 +715,7 @@
 			);
 			buildSettings = {
 				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/player/src\" \"$(SRCROOT)/common/video/mpeg4\" \"$(SRCROOT)/player/src/codec\" \"$(SRCROOT)/player/src/codec/mpeg4\" \"$(SRCROOT)/player/lib\" \"$(SRCROOT)/player/lib/audio\" \"$(SRCROOT)/lib/SDL/include\" \"$(SRCROOT)/lib/mp4\" \"$(SRCROOT)/include\" \"$(SRCROOT)/lib/avi\" \"$(SRCROOT)/lib\" \"$(SRCROOT)\"";
-				LIBRARY_SEARCH_PATHS = "lib/SDL/src/.libs player/src/.libs player/src/codec/aa/.libs player/src/codec/mp3/.libs player/src/codec/mpeg4/.libs player/src/codec/wav/.libs player/lib/audio/faad/.libs player/lib/audio/mp3/.libs player/lib/rtsp/.libs lib/bitstream/.libs lib/config_file/.libs lib/mp4/.libs lib/msg_queue/.libs lib/rtp lib/sdp/.libs /usr/lib/gcc/darwin/default lib/avi/.libs lib/SDL/src/.libs lib/mp4v2/.libs lib/rtp lib/rtp/.libs /mpeg/mpeg4ip-0.9.9/player/src/.libs /sw/lib /mpeg/mpeg4ip-0.9.9/lib/SDL/src/.libs /mpeg/mpeg4ip-0.9.9/player/lib/libhttp/.libs /mpeg/mpeg4ip-0.9.9/lib/sdp/.libs /mpeg/mpeg4ip-0.9.9/lib/mp4v2/.libs /mpeg/mpeg4ip-0.9.9/player/lib/mp4util/.libs /mpeg/mpeg4ip-0.9.9/lib/mp4/.libs /mpeg/mpeg4ip-0.9.9/lib/mp4av/.libs /mpeg/mpeg4ip-0.9.9/lib/msg_queue/.libs /mpeg/mpeg4ip-0.9.9/lib/config_file/.libs /usr/lib/gcc/darwin/3.1";
+				LIBRARY_SEARCH_PATHS = "player/src/codec/aa/.libs player/src/codec/mp3/.libs player/src/codec/mpeg4/.libs player/src/codec/wav/.libs player/lib/audio/faad/.libs player/lib/audio/mp3/.libs player/lib/rtsp/.libs lib/bitstream/.libs /usr/lib/gcc/darwin/default lib/avi/.libs lib/rtp lib/rtp/.libs /sw/lib \"$(SRCROOT)/player/src/.libs\" \"$(SRCROOT)/lib/SDL/src/.libs\" \"$(SRCROOT)/player/lib/libhttp/.libs\" \"$(SRCROOT)/lib/sdp/.libs\" \"$(SRCROOT)/lib/mp4v2/.libs\" \"$(SRCROOT)/player/lib/mp4util/.libs\" \"$(SRCROOT)/lib/mp4/.libs\" \"$(SRCROOT)/lib/mp4av/.libs\" \"$(SRCROOT)/lib/msg_queue/.libs\" \"$(SRCROOT)/lib/config_file/.libs\"";
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				OTHER_REZFLAGS = "";
@@ -693,7 +815,6 @@
 				F5E8D3130145AE3801927C4D,
 				F5E43B9D01A7507301FE0166,
 				F5E43B9E01A7507301FE0166,
-				4AD5DA430528AE88003608A1,
 				4A82771505336C28003608A1,
 			);
 			isa = PBXFrameworksBuildPhase;
@@ -710,15 +831,22 @@
 			buildRules = (
 			);
 			buildSettings = {
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				OPTIMIZATION_CFLAGS = "-O0";
+				ZERO_LINK = YES;
 			};
 			isa = PBXBuildStyle;
 			name = Development;
 		};
 		F5E8C8BA0145A10101927C4D = {
+			expectedFileType = wrapper.nib;
 			isa = PBXFileReference;
 			path = SDLMain.nib;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8C8BB0145A10101927C4D = {
 			fileRef = F5E8C8BA0145A10101927C4D;
@@ -727,40 +855,52 @@
 			};
 		};
 		F5E8C8BC0145A1E901927C4D = {
+			expectedFileType = sourcecode.c.h;
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = MP4PlayerController.h;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8C8BD0145A1E901927C4D = {
+			expectedFileType = sourcecode.c.objc;
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = MP4PlayerController.m;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8C8BE0145A1E901927C4D = {
+			expectedFileType = sourcecode.cpp.cpp;
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = player_session_wrap.cc;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8C8BF0145A1E901927C4D = {
+			expectedFileType = sourcecode.c.h;
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = player_session_wrap.h;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8C8C00145A1E901927C4D = {
+			expectedFileType = sourcecode.c.h;
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = SDLMain.h;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8C8C10145A1E901927C4D = {
+			expectedFileType = sourcecode.c.objc;
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = SDLMain.m;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8C8C20145A1E901927C4D = {
 			fileRef = F5E8C8BC0145A1E901927C4D;
@@ -802,11 +942,7 @@
 			buildActionMask = 12;
 			files = (
 			);
-			generatedFileNames = (
-			);
 			isa = PBXShellScriptBuildPhase;
-			neededFileNames = (
-			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "cp lib/avi/.libs/libavi.al lib/avi/.libs/libavi.a\nranlib lib/avi/.libs/libavi.a";
@@ -826,6 +962,7 @@
 			isa = PBXGroup;
 			path = lib;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D29A0145A74801927C4D = {
 			children = (
@@ -834,6 +971,7 @@
 			isa = PBXGroup;
 			path = SDL;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D2D00145A77A01927C4D = {
 			children = (
@@ -842,6 +980,7 @@
 			isa = PBXGroup;
 			path = src;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D2D10145A8CD01927C4D = {
 			children = (
@@ -850,11 +989,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D2D20145A8CD01927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libSDL.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D2D40145A93C01927C4D = {
 			children = (
@@ -864,12 +1006,16 @@
 			isa = PBXGroup;
 			path = player;
 			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
 		F5E8D3100145AE2B01927C4D = {
+			expectedFileType = wrapper.framework;
+			fallbackIsa = PBXFileReference;
 			isa = PBXFrameworkReference;
 			name = Cocoa.framework;
 			path = /System/Library/Frameworks/Cocoa.framework;
 			refType = 0;
+			sourceTree = "<absolute>";
 		};
 		F5E8D3110145AE2B01927C4D = {
 			fileRef = F5E8D3100145AE2B01927C4D;
@@ -878,10 +1024,13 @@
 			};
 		};
 		F5E8D3120145AE3801927C4D = {
+			expectedFileType = wrapper.framework;
+			fallbackIsa = PBXFileReference;
 			isa = PBXFrameworkReference;
 			name = AGL.framework;
 			path = /System/Library/Frameworks/AGL.framework;
 			refType = 0;
+			sourceTree = "<absolute>";
 		};
 		F5E8D3130145AE3801927C4D = {
 			fileRef = F5E8D3120145AE3801927C4D;
@@ -899,6 +1048,7 @@
 			isa = PBXGroup;
 			path = src;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3150145AE7401927C4D = {
 			children = (
@@ -908,11 +1058,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3160145AE7401927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libmp4player.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3180145AEE601927C4D = {
 			children = (
@@ -925,6 +1078,7 @@
 			isa = PBXGroup;
 			path = codec;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3190145AEE601927C4D = {
 			children = (
@@ -933,6 +1087,7 @@
 			isa = PBXGroup;
 			path = aa;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D32A0145AEE601927C4D = {
 			children = (
@@ -941,11 +1096,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D32B0145AEE601927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libaa.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3360145AEE601927C4D = {
 			children = (
@@ -954,6 +1112,7 @@
 			isa = PBXGroup;
 			path = mp3;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3410145AEE601927C4D = {
 			children = (
@@ -962,11 +1121,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3420145AEE601927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libmp3.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3490145AEE601927C4D = {
 			children = (
@@ -975,6 +1137,7 @@
 			isa = PBXGroup;
 			path = divx;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3540145AEE601927C4D = {
 			children = (
@@ -983,11 +1146,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3550145AEE601927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libdivx.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D35C0145AEE601927C4D = {
 			children = (
@@ -996,6 +1162,7 @@
 			isa = PBXGroup;
 			path = mpeg4;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3670145AEE601927C4D = {
 			children = (
@@ -1004,11 +1171,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3680145AEE601927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libmpeg4.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D36F0145AEE601927C4D = {
 			children = (
@@ -1017,6 +1187,7 @@
 			isa = PBXGroup;
 			path = wav;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D37A0145AEE601927C4D = {
 			children = (
@@ -1025,11 +1196,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D37B0145AEE601927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libourwav.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3DC0145AF7101927C4D = {
 			children = (
@@ -1038,6 +1212,7 @@
 			isa = PBXGroup;
 			path = common;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3DD0145AF7101927C4D = {
 			children = (
@@ -1046,6 +1221,7 @@
 			isa = PBXGroup;
 			path = video;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3DE0145AF7101927C4D = {
 			children = (
@@ -1058,12 +1234,16 @@
 			isa = PBXGroup;
 			path = mpeg4;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D3DF0145AF7101927C4D = {
+			expectedFileType = file;
+			fallbackIsa = PBXFileReference;
 			fileEncoding = 30;
 			isa = PBXExecutableFileReference;
 			path = cpptocc.sh;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D4970145B04301927C4D = {
 			children = (
@@ -1075,6 +1255,7 @@
 			isa = PBXGroup;
 			path = lib;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D4980145B04301927C4D = {
 			children = (
@@ -1084,6 +1265,7 @@
 			isa = PBXGroup;
 			path = audio;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D4990145B04301927C4D = {
 			children = (
@@ -1092,6 +1274,7 @@
 			isa = PBXGroup;
 			path = faad;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D4D60145B04301927C4D = {
 			children = (
@@ -1100,11 +1283,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D4D70145B04301927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libfaad.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5010145B04301927C4D = {
 			children = (
@@ -1113,6 +1299,7 @@
 			isa = PBXGroup;
 			path = mp3;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5260145B04301927C4D = {
 			children = (
@@ -1121,11 +1308,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5270145B04301927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libourmp3.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5610145B04301927C4D = {
 			children = (
@@ -1134,6 +1324,7 @@
 			isa = PBXGroup;
 			path = rtsp;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5730145B04301927C4D = {
 			children = (
@@ -1142,11 +1333,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5740145B04301927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = librtsp.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5800145B04301927C4D = {
 			children = (
@@ -1155,6 +1349,7 @@
 			isa = PBXGroup;
 			path = video;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5810145B04301927C4D = {
 			children = (
@@ -1163,6 +1358,7 @@
 			isa = PBXGroup;
 			path = divx;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5B80145B04301927C4D = {
 			children = (
@@ -1171,11 +1367,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D5B90145B04301927C4D = {
+			expectedFileType = file;
 			isa = PBXFileReference;
 			path = libourdivx.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D70C0145B22F01927C4D = {
 			children = (
@@ -1184,6 +1383,7 @@
 			isa = PBXGroup;
 			path = avi;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D70E0145B22F01927C4D = {
 			children = (
@@ -1192,6 +1392,7 @@
 			isa = PBXGroup;
 			path = bitstream;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D70F0145B22F01927C4D = {
 			children = (
@@ -1200,11 +1401,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7100145B22F01927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libbitstream.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7110145B22F01927C4D = {
 			children = (
@@ -1213,6 +1417,7 @@
 			isa = PBXGroup;
 			path = config_file;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7120145B22F01927C4D = {
 			children = (
@@ -1221,11 +1426,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7130145B22F01927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libconfig_file.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7140145B22F01927C4D = {
 			children = (
@@ -1234,6 +1442,7 @@
 			isa = PBXGroup;
 			path = mp4;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7150145B22F01927C4D = {
 			children = (
@@ -1242,11 +1451,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7160145B22F01927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libmp4.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7170145B22F01927C4D = {
 			children = (
@@ -1255,6 +1467,7 @@
 			isa = PBXGroup;
 			path = msg_queue;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7180145B22F01927C4D = {
 			children = (
@@ -1263,11 +1476,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7190145B22F01927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libmsg_queue.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D71C0145B22F01927C4D = {
 			children = (
@@ -1276,6 +1492,7 @@
 			isa = PBXGroup;
 			path = sdp;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D71D0145B22F01927C4D = {
 			children = (
@@ -1284,11 +1501,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D71E0145B22F01927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libsdp.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7260145B2C001927C4D = {
 			children = (
@@ -1303,6 +1523,7 @@
 			isa = PBXGroup;
 			path = osx;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7290145B3E001927C4D = {
 			children = (
@@ -1311,11 +1532,14 @@
 			isa = PBXGroup;
 			path = .libs;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D72A0145B41101927C4D = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			path = libavi.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D72D0145B57001927C4D = {
 			children = (
@@ -1325,13 +1549,16 @@
 			name = InfoPlist.strings;
 			path = player/src/osx/English.lproj;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D72E0145B57001927C4D = {
+			expectedFileType = text.plist.strings;
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			name = English;
 			path = InfoPlist.strings;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D72F0145B57001927C4D = {
 			fileRef = F5E8D72D0145B57001927C4D;
@@ -1340,10 +1567,12 @@
 			};
 		};
 		F5E8D7340145D1BB01927C4D = {
+			expectedFileType = sourcecode.cpp.cpp;
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = sync.cpp;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7380145D49401927C4D = {
 			children = (
@@ -1355,7 +1584,6 @@
 				4AD5DA350528AC91003608A1,
 				4AD5DA3E0528ADD2003608A1,
 				4AD5DA330528AC30003608A1,
-				4AD5DA420528AE88003608A1,
 				4A3745BB0528B400003608A1,
 				4AD5DA4F0528B04B003608A1,
 				F5E8D3100145AE2B01927C4D,
@@ -1373,6 +1601,7 @@
 			name = Frameworks;
 			path = "";
 			refType = 4;
+			sourceTree = "<group>";
 		};
 		F5E8D7390145D49401927C4D = {
 			children = (
@@ -1382,11 +1611,7 @@
 			name = Resources;
 			path = "";
 			refType = 4;
-		};
-		F5E8D73A0145D63801927C4D = {
-			isa = PBXExecutableFileReference;
-			path = Untitled;
-			refType = 3;
+			sourceTree = "<group>";
 		};
 		F5E8D73C0145D63801927C4D = {
 			buildArgumentsString = $ACTION;
@@ -1416,6 +1641,7 @@
 		F5E8D73D0145D63801927C4D = {
 			isa = PBXTargetDependency;
 			target = F5E8D73E0145D63801927C4D;
+			targetProxy = 9A1731990564378500D3D13B;
 		};
 		F5E8D73E0145D63801927C4D = {
 			buildPhases = (
@@ -1436,24 +1662,21 @@
 			name = bootstrap;
 			productInstallPath = /usr/local/bin;
 			productName = Untitled;
-			productReference = F5E8D73A0145D63801927C4D;
+			productReference = 9A49FA4105657F0D00A090D6;
 		};
 		F5E8D73F0145D63801927C4D = {
 			buildActionMask = 2147483647;
 			files = (
 			);
-			generatedFileNames = (
-			);
 			isa = PBXShellScriptBuildPhase;
-			neededFileNames = (
-			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "PATH=/sw/bin:$PATH\nexport PATH\nexport CFLAGS='-g -fno-common -I/sw/include'\nexport CXXFLAGS='-g -fno-common -I/sw/include'\nexport CPPFLAGS='-g -fno-common -I/sw/include'\n\n[ -f .bootstrapped ] || (./bootstrap --disable-server && patch -p0 --forward <../patch.OSX) || exit 1\ntouch .bootstrapped";
+			shellScript = "PATH=/sw/bin:$PATH\nexport PATH\nexport CFLAGS='-g -fno-common -I/sw/include'\nexport CXXFLAGS='-g -fno-common -I/sw/include'\nexport CPPFLAGS='-g -fno-common -I/sw/include'\n\n[ -f .bootstrapped ] || (./bootstrap --disable-server --prefix=/tmp/test && patch -p0 --forward < .patch.OSX) || exit 1\ntouch .bootstrapped\n\nmkdir -p include\ntouch include/malloc.h\nmkdir -p common/video/mpeg4-2000/vtc/include\ntouch common/video/mpeg4-2000/vtc/include/malloc.h";
 		};
 		F5EF51B50152B7EE01927C4D = {
 			isa = PBXTargetDependency;
 			target = F5E8D73C0145D63801927C4D;
+			targetProxy = 9A1731970564378500D3D13B;
 		};
 //F50
 //F51
@@ -1466,10 +1689,12 @@
 //F63
 //F64
 		F67D1EA3022ACFEB01476132 = {
+			expectedFileType = archive.ar;
 			isa = PBXFileReference;
 			name = libuclmmbase.a;
 			path = .libs/libuclmmbase.a;
 			refType = 4;
+			sourceTree = "<group>";
 		};
 	};
 	rootObject = F5E8C8A601459D8901927C4D;
