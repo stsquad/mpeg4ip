@@ -1,4 +1,4 @@
-April 26, 2002
+August 30, 2002
 
 MPEG4IP Project
 ===============
@@ -91,7 +91,16 @@ build, you should only have to issue the following:
    make
    make install (needs root privileges).
 
-If this works for you, you can skip down to the next section on 
+If you don't have root privileges, but still wish to install the 
+distribution to a directory to which you do have write permission,
+then here is an example of how to do that:
+
+   mkdir -p $HOME/local/bin $HOME/local/lib
+   ./bootstrap --prefix=$HOME/local
+   make
+   make install
+
+If this process works for you, you can skip down to the next section on 
 Configure Script Options.  If this does not work, or you have downloaded 
 from CVS, the below applies.
 
@@ -594,4 +603,18 @@ Known Problems
   notice that you get garbage, try setting the LimitAudioSdlBuffer config
   variable to 1 in the .gmp4player_rc file.  This seems to occur on a 
   Soundblaster Live, Red Hat 7.3 machine.
+
+* As the RTP standard (or new draft) suggests, the round trip delay can
+  be approximated at the sender side by subtracting the intercepted time 
+  of a RTCP SR and the delay at the client side from the intercepted time 
+  of the corresponding RTCP RR. That is:
+         RRT = Time_RR - Time_SR - Time_delay_at_client.
+
+  However, as the Windows run-time library only provides up to 1 millisecond 
+  resolution (0.001 sec), such measurement on Windows machines on a LAN may 
+  be very inaccurate.
+
+  A typical RRT between two hosts on a LAN is around 0.5 millisecond.  
+  Measurements between Linux/Unix boxes have no such a problem. 
+
 === END OF README ===

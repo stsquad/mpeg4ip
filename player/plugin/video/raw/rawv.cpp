@@ -26,7 +26,10 @@
 #include <mp4v2/mp4.h>
 
 
-static codec_data_t *rawv_create (format_list_t *media_fmt,
+static codec_data_t *rawv_create (const char *compressor, 
+				  int type, 
+				  int profile, 
+				  format_list_t *media_fmt,
 				  video_info_t *vinfo,
 				  const uint8_t *userdata,
 				  uint32_t ud_size,

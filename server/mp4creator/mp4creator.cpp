@@ -595,8 +595,13 @@ void ExtractTrack(
 	MP4TrackId trackId, 
 	const char* outputFileName)
 {
-	int outFd = open(outputFileName, 
-			O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	int openFlags = O_WRONLY | O_CREAT | O_TRUNC;
+
+#ifdef _WIN32
+	openFlags |= O_BINARY;
+#endif
+
+	int outFd = open(outputFileName, openFlags, 0644);
 
 	if (outFd == -1) {
 		fprintf(stderr, "%s: can't open %s: %s\n",

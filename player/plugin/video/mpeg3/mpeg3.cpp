@@ -30,7 +30,10 @@
 
 //#define DEBUG_MPEG3_FRAME 1
 
-static codec_data_t *mpeg3_create (format_list_t *media_fmt,
+static codec_data_t *mpeg3_create (const char *compressor,
+				   int type, 
+				   int profile, 
+				   format_list_t *media_fmt,
 				   video_info_t *vinfo,
 				   const uint8_t *userdata,
 				   uint32_t ud_size,

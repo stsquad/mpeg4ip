@@ -168,7 +168,10 @@ int CPlayerMedia::decode_thread (void)
 					   m_user_data,
 					   m_user_data_size);
 	  if (m_plugin != NULL) {
-	    m_plugin_data = (m_plugin->vc_create)(m_media_fmt,
+	    m_plugin_data = (m_plugin->vc_create)(NULL, // must figure from sdp
+						  -1,
+						  -1,
+						  m_media_fmt,
 						  m_video_info,
 						  m_user_data,
 						  m_user_data_size,
@@ -189,7 +192,10 @@ int CPlayerMedia::decode_thread (void)
 					   m_user_data,
 					   m_user_data_size);
 	  if (m_plugin != NULL) {
-	    m_plugin_data = (m_plugin->ac_create)(m_media_fmt,
+	    m_plugin_data = (m_plugin->ac_create)(NULL, 
+						  -1,
+						  -1,
+						  m_media_fmt,
 						  m_audio_info,
 						  m_user_data,
 						  m_user_data_size,

@@ -37,6 +37,7 @@
 #include "audio.h"
 #include "video.h"
 
+#include "rtp_plugin.h"
 /*
  * Portability hacks
  */
@@ -73,6 +74,14 @@ typedef struct codec_plugin_list_t {
 } codec_plugin_list_t;
 
 static codec_plugin_list_t *audio_codecs, *video_codecs;
+
+typedef struct rtp_plugin_list_t {
+  struct rtp_plugin_list_t *next_rtp_plugin;
+  LIBRARY_HANDLE dl_handle;
+  rtp_plugin_t *rtp_plugin;
+} rtp_plugin_list_t;
+
+static rtp_plugin_list_t *rtp_plugins;
 
 static void close_file_search (dir_list_t *ptr)
 {
@@ -133,11 +142,12 @@ void initialize_plugins (void)
 {
   LIBRARY_HANDLE handle;
   codec_plugin_t *cptr;
+  rtp_plugin_t *rptr;
   dir_list_t dir;
   const char *fname;
 
   audio_codecs = video_codecs = NULL;
-
+  rtp_plugins = NULL;
   fname = get_first_file(&dir, PLAYER_PLUGIN_DIR);
 
   while (fname != NULL) {
@@ -174,10 +184,29 @@ void initialize_plugins (void)
 		    cptr->c_type, fname);
 	  }
 	} else {
-	  message(LOG_ERR, "plugin", "Plugin %s has wrong version %s", 
-		  cptr->c_type, cptr->c_version);
+	  message(LOG_ERR, "plugin", "Plugin %s(%s) has wrong version %s", 
+		  fname, cptr->c_type, cptr->c_version);
 	}
-      } else {
+      }
+      rptr = (rtp_plugin_t *)DLL_GET_SYM(handle, RTP_PLUGIN_EXPORT_NAME_STR);
+      if (rptr != NULL) {
+	if (strcmp(rptr->version, RTP_PLUGIN_VERSION) == 0) {
+	  rtp_plugin_list_t *p;
+	  p = MALLOC_STRUCTURE(rtp_plugin_list_t);
+	  if (p == NULL) exit(-1);
+			  
+	  p->rtp_plugin = rptr;
+	  p->dl_handle = handle;
+	  p->next_rtp_plugin = rtp_plugins;
+	  rtp_plugins = p;
+	  message(LOG_INFO, "plugin", "Adding RTP plugin %s %s", 
+		  rptr->name, fname);
+	} else {
+	  message(LOG_CRIT, "plugin", "Plugin %s (%s) has wrong version %s", 
+		  rptr->name, fname, rptr->version);
+	}
+      }
+      if (rptr == NULL && cptr == NULL) {
 	message(LOG_ERR, "plugin", "Can't find export point in plugin %s", 
 		fname);
       }
@@ -276,6 +305,33 @@ codec_plugin_t *check_for_video_codec (const char *compressor,
 	    "Found matching video plugin %s", ret->c_name);
   }
   return (ret);
+}
+
+rtp_check_return_t check_for_rtp_plugins (format_list_t *fptr,
+					  uint8_t rtp_payload_type,
+					  rtp_plugin_t **rtp_plugin)
+{
+  rtp_plugin_list_t *r;
+  rtp_plugin_t *rptr;
+  rtp_check_return_t ret;
+
+  *rtp_plugin = NULL;
+  r = rtp_plugins;
+
+  while (r != NULL) {
+    rptr = r->rtp_plugin;
+
+    if (rptr->rtp_plugin_check != NULL) {
+      ret = (rptr->rtp_plugin_check)(message, fptr, rtp_payload_type);
+      if (ret != RTP_PLUGIN_NO_MATCH) {
+	*rtp_plugin = rptr;
+	return ret;
+      }
+    }
+    r = r->next_rtp_plugin;
+  }
+
+  return RTP_PLUGIN_NO_MATCH;
 }
 
 /*
@@ -406,10 +462,10 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
 void close_plugins (void) 
 {
   codec_plugin_list_t *p;
-
+  rtp_plugin_list_t *r;
   while (audio_codecs != NULL) {
     p = audio_codecs;
-	DLL_CLOSE(p->dl_handle);
+    DLL_CLOSE(p->dl_handle);
     audio_codecs = audio_codecs->next_codec;
     free(p);
   }
@@ -418,6 +474,12 @@ void close_plugins (void)
     DLL_CLOSE(p->dl_handle);
     video_codecs = video_codecs->next_codec;
     free(p);
+  }
+  while (rtp_plugins != NULL) {
+    r = rtp_plugins;
+    DLL_CLOSE(r->dl_handle);
+    rtp_plugins = r->next_rtp_plugin;
+    free(r);
   }
 }
 

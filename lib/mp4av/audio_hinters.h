@@ -70,5 +70,9 @@ bool MP4AV_AudioInterleaveHinter(
 	u_int16_t maxPayloadSize,
 	MP4AV_AudioConcatenator pConcatenator);
 
+MP4Duration MP4AV_GetAudioSampleDuration(
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId);
+
 #endif /* __AUDIO_HINTERS_INCLUDED__ */ 
 

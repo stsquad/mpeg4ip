@@ -64,6 +64,7 @@ typedef struct iso_decode_t {
   CFilePosRecorder *m_fpos;
   int m_framerate;
   video_info_t *m_vinfo;
+  int m_short_header;
 } iso_decode_t;
 
 void iso_clean_up(iso_decode_t *iso);

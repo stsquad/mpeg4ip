@@ -9,6 +9,12 @@
 extern "C" {
 #endif 
 
+#ifdef MPEG4IP
+// for debugging
+#define MPEG4IP_H263_NOACPRED
+#define MPEG4IP_H263_DC
+#endif
+
 // ==========================================
 //	global
 // ==========================================

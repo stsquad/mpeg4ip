@@ -201,13 +201,15 @@ uint32_t CSDLAudioSync::load_audio_buffer (uint8_t *from,
   uint8_t *to;
   uint32_t copied;
 #ifdef DEBUG_AUDIO_FILL
-  audio_message(LOG_DEBUG, "fill %d bytes at "LLU", offset %d", 
-		bytes, ts, m_buffer_offset_on);
+  audio_message(LOG_DEBUG, "fill %d bytes at "LLU", offset %d resync %d", 
+		bytes, ts, m_buffer_offset_on, resync);
 #endif
   copied = 0;
   if (m_buffer_offset_on == 0) {
     if (m_buffer_ts != 0 && m_buffer_ts != ts) {
       m_load_audio_do_next_resync = 1;
+      audio_message(LOG_DEBUG, "timeslot doesn't match - %llu %llu",
+		    ts, m_buffer_ts);
     }
     m_buffer_ts = ts;
   } else {
@@ -298,6 +300,10 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 		    "Filling - last %llu new %llu", m_last_fill_timestamp, ts);
 #endif
       if (diff > ((m_msec_per_frame + 1) * 4)) {
+#ifdef DEBUG_AUDIO_FILL
+      audio_message(LOG_DEBUG, 
+		    "resync required %lld", diff);
+#endif
 	resync = 1;
       } else {
 	// try to fill the holes

@@ -455,6 +455,7 @@ Void COutBitStream::trace (const PixelC* rgpxlc, Int cCol, Int cRow, const Char*
 CInBitStream::CInBitStream (void) 
 {
   m_pistrm = -1;
+  m_output_stuff = 0;
   init();
 }
 

@@ -82,7 +82,9 @@ static int create_mpeg3_video (video_query_t *vq,
   mpeg3f_message(LOG_DEBUG, "video stream h %d w %d fr %g bitr %d", 
 		 vinfo->height, vinfo->width, vq->frame_rate,
 		 bitrate);
-  ret = mptr->create_video_plugin(plugin, NULL, vinfo, NULL, 0);
+  ret = mptr->create_video_plugin(plugin, "MPEG FILE", 
+				  vq->type, vq->profile, 
+				  NULL, vinfo, NULL, 0);
   if (ret < 0) {
     mpeg3f_message(LOG_ERR, "Failed to create video plugin");
     snprintf(errmsg, errlen, "Failed to create video plugin");
@@ -144,7 +146,9 @@ static int create_mpeg3_audio (audio_query_t * aq,
   psptr->set_session_desc(sdesc, buffer);
   sdesc++;
 
-  ret = mptr->create_audio_plugin(plugin, NULL, ainfo, NULL, 0);
+  ret = mptr->create_audio_plugin(plugin, "MPEG FILE", 
+				  aq->type, aq->profile,
+				  NULL, ainfo, NULL, 0);
   if (ret < 0) {
     mpeg3f_message(LOG_ERR, "Failed to create audio plugin");
     snprintf(errmsg, errlen, "Failed to create audio plugin");

@@ -99,6 +99,7 @@ CVideoObjectDecoder::~CVideoObjectDecoder ()
 
 Int CVideoObjectDecoder::h263_decode ()
 {
+#if 0
 	static Bool first_time = TRUE;
 
 	if (!first_time) 
@@ -111,11 +112,11 @@ Int CVideoObjectDecoder::h263_decode ()
 		}
 
 	
-		m_pbitstrmIn -> getBits(22);
 		video_plane_with_short_header(); 
 	}
 	else
 		first_time = FALSE;
+#endif
 
 	m_bUseGOV=FALSE; 
 	m_bLinkisBroken=FALSE;
@@ -207,6 +208,8 @@ Int CVideoObjectDecoder::h263_decode ()
 
 Void CVideoObjectDecoder::video_plane_with_short_header()
 {
+  short_video_header = 1;
+  m_pbitstrmIn -> getBits(22);  // read header
   /* UInt uiTemporalReference = wmay */ m_pbitstrmIn -> getBits (8);
 	m_pbitstrmIn -> getBits(5);
 	UInt uiSourceFormat = m_pbitstrmIn -> getBits (3);
@@ -295,7 +298,7 @@ void CVideoObjectDecoder::decodeShortHeaderIntraMBDC(Int *rgiCoefQ)
 {
 	UInt uiIntraDC;
 	uiIntraDC=m_pbitstrmIn->getBits(8);
-	if (uiIntraDC==128||uiIntraDC==0) fprintf(stderr,"IntraDC = 0 of 128, not allowed in H.263 mode\n");
+	if (uiIntraDC==128||uiIntraDC==0) fprintf(stderr,"IntraDC = 0 of 128, not allowed in H.263 mode value %d\n", uiIntraDC);
 	if (uiIntraDC==255) uiIntraDC=128;
 	
 	rgiCoefQ[0]=uiIntraDC;
@@ -350,7 +353,7 @@ CVideoObjectDecoder::CVideoObjectDecoder (
 
 		fprintf(stderr, "\nBitstream with short header format detected\n"); 
 		*p_short_video_header=TRUE;  
-		m_pbitstrmIn -> getBits(22);
+		// moved inside routine m_pbitstrmIn -> getBits(22);
 		video_plane_with_short_header();
 	}
 	else {
@@ -531,6 +534,7 @@ Int CVideoObjectDecoder::decode (const CVOPU8YUVBA* pvopcBVOPQuant, /*strstreamb
 		m_pentrdecSet = new CEntropyDecoderSet (*m_pbitstrmIn);
 	}
 #endif
+	//printf("start decoding\n");
 	//sprite piece should not come here
 	assert ((m_vopmd.SpriteXmitMode == STOP) || ( m_vopmd.SpriteXmitMode == PAUSE));
 

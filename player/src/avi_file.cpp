@@ -160,6 +160,9 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 				   0);
     int ret;
     ret = mptr->create_video_plugin(plugin,
+				    codec_name,
+				    -1,
+				    -1,
 				    NULL,
 				    vinfo,
 				    NULL,
@@ -205,6 +208,9 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   
     int ret;
     ret = mptr->create_audio_plugin(plugin, 
+				    aq.compressor,
+				    aq.type,
+				    aq.profile,
 				    NULL, 
 				    ainfo,
 				    NULL, 

@@ -75,10 +75,10 @@ static GtkWidget *load_config_button;
 static GtkWidget *save_config_button;
 
 static u_int16_t durationUnitsValues[] = {
-	1, 60, 3600
+	1, 60, 3600, 3600*24, 3600*24*365
 };
 static char* durationUnitsNames[] = {
-	"Seconds", "Minutes", "Hours"
+	"Seconds", "Minutes", "Hours", "Days", "Years"
 };
 static u_int8_t durationUnitsIndex = 1;
 

@@ -13,7 +13,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: inbits.h,v 1.2 2002/03/20 22:45:31 wmaycisco Exp $
+ * $Id: inbits.h,v 1.3 2002/09/10 23:04:29 wmaycisco Exp $
  */
 
 #ifndef __BITS_H__
@@ -36,20 +36,31 @@ class CInBitStream
   void set_buffer(unsigned char *bptr, uint32_t blen);
 
   int get_used_bytes(void) { return m_framebits / 8; };
-  
+  int get_used_bits(void) { return m_framebits; } ;
   uint32_t getBits(uint32_t numBits);
-
+  void start_dump(void) { m_output_stuff = 1; };
+  void stop_dump(void) { m_output_stuff = 0; };
+#define _SWAP(a) ((a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3])
   INLINE uint32_t peekBits(uint32_t numBits)
     {
-      int rbit;
+      uint32_t rbit;
       uint32_t b;
+      uint32_t ret_value;
   
       check_buffer(numBits);
   
       rbit = 32 - m_bitcnt;
-#define _SWAP(a) ((a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3])
       b = _SWAP(m_rdptr);
-      return ((b & bit_msk[rbit]) >> (rbit-numBits));
+      if (rbit < numBits) {
+	b <<= m_bitcnt;
+	b |= m_rdptr[4] >> (8 - m_bitcnt);
+	ret_value = (b >> (32 - numBits)) & bit_msk[numBits];
+      } else 
+	ret_value = ((b & bit_msk[rbit]) >> (rbit-numBits));
+      if (m_output_stuff != 0) {
+	printf("peek %d %x\n", numBits, ret_value);
+      }
+      return ret_value;
     };
 
   int peekOneBit(uint32_t numBits);
@@ -87,7 +98,7 @@ class CInBitStream
   int m_framebits_max;
   uint32_t m_orig_buflen;
   int m_bookmark;
-
+  int m_output_stuff;
   INLINE void check_buffer (int n) {
     int cmp;
       
@@ -111,6 +122,9 @@ class CInBitStream
       }
 
       m_framebits += n;
+      if (m_output_stuff != 0) {
+	printf("Used %d\n", n);
+      }
     };
   void read_ifstream_buffer(void);
 };

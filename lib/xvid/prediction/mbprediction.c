@@ -383,7 +383,15 @@ void MBPrediction(MBParam *pParam,
 		
 		for(j = 0; j < 6; j++) 
 		{
+#ifdef MPEG4IP_H263_DC
+			if ((pParam->global_flags & XVID_SHORT_HEADERS) != 0) {
+				iDcScaler = 16;
+			} else {
+				iDcScaler = get_dc_scaler(iQuant, (j < 4) ? 1 : 0);
+			}
+#else
 			iDcScaler = get_dc_scaler(iQuant, (j < 4) ? 1 : 0);
+#endif
 
 			predict_acdc(mbs,
 				     x,
@@ -403,7 +411,11 @@ void MBPrediction(MBParam *pParam,
 
 		}
 
+#ifdef MPEG4IP_H263_NOACPRED
+		if (S < 0 || (pParam->global_flags & XVID_SHORT_HEADERS) != 0)
+#else
 		if (S < 0)		// dont predict
+#endif
 		{			
 			for(j = 0; j < 6; j++) 
 			{

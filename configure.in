@@ -8,7 +8,7 @@ AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.5.3)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.5.4)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -358,6 +358,8 @@ AC_OUTPUT( \
 	player/plugin/audio/Makefile \
 	player/plugin/audio/celp/Makefile \
 	player/plugin/audio/raw/Makefile \
+	player/plugin/rtp/Makefile \
+	player/plugin/rtp/isma_audio/Makefile \
 	player/plugin/video/Makefile \
 	player/plugin/video/mpeg3/Makefile \
 	player/plugin/video/raw/Makefile \

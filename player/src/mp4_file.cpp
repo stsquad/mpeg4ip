@@ -142,6 +142,9 @@ int CMp4File::create_video(CPlayerSession *psptr,
 				     vq[ix].config_len);
 
       int ret = mptr->create_video_plugin(plugin, 
+					  "MP4 FILE",
+					  vq[ix].type,
+					  vq[ix].profile,
 					  NULL, // sdp info
 					  vinfo, // video info
 					  vq[ix].config,
@@ -218,6 +221,9 @@ int CMp4File::create_audio(CPlayerSession *psptr,
 				     aq[ix].config_len);
 
       ret = mptr->create_audio_plugin(plugin,
+				      "MP4 FILE",
+				      aq[ix].type, 
+				      aq[ix].profile,
 				      NULL, // sdp info
 				      ainfo, // audio info
 				      aq[ix].config,

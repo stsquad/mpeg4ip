@@ -200,7 +200,10 @@ typedef struct codec_data_t {
  *         ifptr - handle to use for audio callbacks
  * Returns - must return a handle that contains codec_data_t.
  */
-typedef codec_data_t *(*ac_create_f)(format_list_t *sdp_media,
+typedef codec_data_t *(*ac_create_f)(const char *compressor, 
+				     int type, 
+				     int profile, 
+				     format_list_t *sdp_media,
 				     audio_info_t *audio,
 				     const uint8_t *user_data,
 				     uint32_t userdata_size,
@@ -217,12 +220,15 @@ typedef codec_data_t *(*ac_create_f)(format_list_t *sdp_media,
  *         ifptr - handle to use for video callbacks
  * Returns - must return a handle that contains codec_data_t.
  */
-typedef codec_data_t *(*vc_create_f)(format_list_t *sdp_media,
-			     video_info_t *video,
-			     const uint8_t *user_data,
-			     uint32_t userdata_size,
-			     video_vft_t *if_vft,
-			     void *ifptr);
+typedef codec_data_t *(*vc_create_f)(const char *compressor, 
+				     int type, 
+				     int profile, 
+				     format_list_t *sdp_media,
+				     video_info_t *video,
+				     const uint8_t *user_data,
+				     uint32_t userdata_size,
+				     video_vft_t *if_vft,
+				     void *ifptr);
 
 /*
  * c_close_f - close plugin - free all data, including ptr
@@ -364,7 +370,7 @@ typedef struct codec_plugin_t {
 #endif
 
 
-#define PLUGIN_VERSION "0.4"
+#define PLUGIN_VERSION "0.5"
 
 /*
  * Use this for an audio plugin without raw file support

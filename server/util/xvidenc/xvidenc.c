@@ -290,13 +290,20 @@ int main(int argc, char** argv)
 
 		/* read yuv data */
 		rc = fread(encFrame.image, sizeof(u_int8_t), yuvSize, rawFile);
+
 		if (rc == 0) {
+			break;
+		}
+		if (rc == -1) {
+			fprintf(stderr, 
+				"%s: read error %s on frame %d: %s\n",
+				progName, rawFileName, frameNumber, strerror(errno));
 			break;
 		}
 		if (rc != yuvSize) {
 			fprintf(stderr, 
-				"%s: read error %s on frame %d: %s\n",
-				progName, rawFileName, frameNumber, strerror(errno));
+				"%s: read error %s on frame %d: too few bytes, expected %d, got %d\n",
+				progName, rawFileName, frameNumber, yuvSize, rc);
 			break;
 		}
 

@@ -136,6 +136,9 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 		u_int32_t offset = 0;
 		u_int32_t remaining = sampleSize;
 
+		// TBD should scan for resync markers (if enabled in ES config)
+		// and packetize on those boundaries
+
 		while (remaining) {
 			bool isLastPacket = false;
 			u_int32_t length;

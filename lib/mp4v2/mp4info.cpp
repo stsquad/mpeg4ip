@@ -53,6 +53,7 @@ static char* PrintAudioInfo(
 		MP4_VORBIS_AUDIO_TYPE,
 		MP4_ALAW_AUDIO_TYPE,
 		MP4_ULAW_AUDIO_TYPE,
+		MP4_G723_AUDIO_TYPE,
 	};
 	static const char* mpegAudioNames[] = {
 		"MPEG-2 AAC Main",
@@ -64,6 +65,7 @@ static char* PrintAudioInfo(
 		"OGG VORBIS",
 		"G.711 aLaw",
 		"G.711 uLaw",
+		"G.723.1",
 	};
 	static u_int8_t numMpegAudioTypes = 
 		sizeof(mpegAudioTypes) / sizeof(u_int8_t);

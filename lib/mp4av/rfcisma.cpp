@@ -182,13 +182,6 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 		return false;
 	}
 
-	MP4Duration sampleDuration = 
-		MP4GetSampleDuration(mp4File, mediaTrackId, 1);
-
-	if (sampleDuration == MP4_INVALID_DURATION) {
-		return false;
-	}
-
 	u_int8_t audioType =
 		MP4GetTrackAudioType(mp4File, mediaTrackId);
 
@@ -206,6 +199,13 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 		  && mpeg4AudioType != MP4_MPEG4_CELP_AUDIO_TYPE) {
 			return false;
 		}
+	}
+
+	MP4Duration sampleDuration = 
+		MP4AV_GetAudioSampleDuration(mp4File, mediaTrackId);
+
+	if (sampleDuration == MP4_INVALID_DURATION) {
+		return false;
 	}
 
 	/* get the ES configuration */

@@ -187,6 +187,11 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId,
 {
 	char outFileName[PATH_MAX];
 	int outFd = -1;
+	int openFlags = O_WRONLY | O_CREAT | O_TRUNC;
+
+#ifdef _WIN32
+	openFlags |= O_BINARY;
+#endif
 
 	if (!sampleMode) {
 		if (dstFileName == NULL) {
@@ -197,8 +202,7 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId,
 				"%s", dstFileName);
 		}
 
-		outFd = open(outFileName, 
-			O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		outFd = open(outFileName, openFlags, 0644);
 		if (outFd == -1) {
 			fprintf(stderr, "%s: can't open %s: %s\n",
 				ProgName, outFileName, strerror(errno));
@@ -236,8 +240,7 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId,
 			snprintf(outFileName, sizeof(outFileName), "%s.t%u.s%u",
 				Mp4FileName, trackId, sampleId);
 
-			outFd = open(outFileName, 
-				O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			outFd = open(outFileName, openFlags, 0644);
 
 			if (outFd == -1) {
 				fprintf(stderr, "%s: can't open %s: %s\n",

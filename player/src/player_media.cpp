@@ -433,6 +433,9 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
 }
 
 int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
+				       const char *compressor, 
+				       int type, 
+				       int profile, 
 				       format_list_t *sdp_media,
 				       video_info_t *video,
 				       const uint8_t *user_data,
@@ -445,7 +448,9 @@ int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
 
   m_plugin = p;
   m_video_info = video;
-  m_plugin_data = (p->vc_create)(sdp_media,
+  m_plugin_data = (p->vc_create)(compressor, 
+				 type,
+				 profile, sdp_media,
 				 video,
 				 user_data,
 				 userdata_size,
@@ -492,6 +497,9 @@ int CPlayerMedia::get_plugin_status (char *buffer, uint32_t buflen)
 }
 
 int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
+				       const char *compressor, 
+				       int type, 
+				       int profile,
 				       format_list_t *sdp_media,
 				       audio_info_t *audio,
 				       const uint8_t *user_data,
@@ -504,7 +512,10 @@ int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
 
   m_audio_info = audio;
   m_plugin = p;
-  m_plugin_data = (p->ac_create)(sdp_media,
+  m_plugin_data = (p->ac_create)(compressor,
+				 type, 
+				 profile, 
+				 sdp_media,
 				 audio,
 				 user_data,
 				 userdata_size,
@@ -1379,6 +1390,7 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
 
   fmt = m_media_info->fmt;
   while (fmt != NULL) {
+    // rtp payloads are all numeric
     temp = atoi(fmt->fmt);
     if (temp == payload_type) {
       m_media_fmt = fmt;
@@ -1434,6 +1446,8 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
     }
     fmt = fmt->next;
   }
+  media_message(LOG_ERR, "Payload type %d not in format list for media %s", 
+		payload_type, m_is_video ? "video" : "audio");
   return (FALSE);
 }
 

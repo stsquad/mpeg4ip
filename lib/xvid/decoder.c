@@ -182,6 +182,12 @@ void decoder_mbintra(DECODER * dec,
 		int16_t predictors[8];
 		int start_coeff;
 
+#ifdef MPEG4IP_H263_DC
+		if (dec->have_short_header) {
+			iDcScaler = 16;
+		}
+#endif
+
 		start_timer();
 		predict_acdc(dec->mbs, x_pos, y_pos, dec->mb_width, i, &block[i*64], iQuant, iDcScaler, predictors);
 		if (!acpred_flag)
@@ -190,6 +196,16 @@ void decoder_mbintra(DECODER * dec,
 		}
 		stop_prediction_timer();
 
+#ifdef MPEG4IP_H263_DC
+		if (dec->have_short_header) {
+			uint16_t dcq = BitstreamGetBits(bs, 8);
+			if (dcq == 255) {
+				dcq = 128;
+			}
+			block[i*64 + 0] = dcq - 129;
+			start_coeff = 1;
+		} else {
+#endif
 		if (quant < intra_dc_threshold)
 		{
 			int dc_size;
@@ -210,6 +226,9 @@ void decoder_mbintra(DECODER * dec,
 		{
 			start_coeff = 0;
 		}
+#ifdef MPEG4IP_H263_DC
+		}
+#endif
 
 		start_timer();
 		if (cbp & (1 << (5-i)))			// coded
@@ -390,14 +409,14 @@ static void decoder_iframe(DECODER * dec, Bitstream * bs, int quant, int intra_d
 			mb->mode = mcbpc & 7;
 			cbpc = (mcbpc >> 4);
 
-#ifdef MPEG4IP
+#ifdef MPEG4IP_H263_NOACPRED
 			if (dec->have_short_header) {
 				acpred_flag = 0;
 			} else {
-#endif
-			acpred_flag = BitstreamGetBit(bs);
-#ifdef MPEG4IP
+				acpred_flag = BitstreamGetBit(bs);
 			}
+#else
+			acpred_flag = BitstreamGetBit(bs);
 #endif
 
 			if (mb->mode == MODE_STUFFING)
@@ -521,7 +540,13 @@ void decoder_pframe(DECODER * dec, Bitstream * bs, int rounding, int quant, int 
 				
 				if (intra)
 				{
+#ifdef MPEG4IP_H263_NOACPRED
+					if (!dec->have_short_header) {
+						acpred_flag = BitstreamGetBit(bs);
+					}
+#else
 					acpred_flag = BitstreamGetBit(bs);
+#endif
 				}
 
 				if (mb->mode == MODE_STUFFING)
@@ -540,7 +565,7 @@ void decoder_pframe(DECODER * dec, Bitstream * bs, int rounding, int quant, int 
 					{
 						quant = 31;
 					}
-					else if (mb->quant < 1)
+					else if (quant < 1)
 					{
 						quant = 1;
 					}

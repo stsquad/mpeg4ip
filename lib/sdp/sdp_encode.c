@@ -46,12 +46,16 @@ static int prepare_sdp_encode (sdp_encode_t *se)
   return (0);
 }
 
-static int add_string_to_encode (sdp_encode_t *sptr, const char *buf)
+static int add_string_to_encode (sdp_encode_t *sptr, const char *buf,
+				 int line)
 {
   uint32_t len;
   char *temp;
   
-  if (buf == NULL) return (EINVAL);
+  if (buf == NULL) {
+    sdp_debug(LOG_CRIT, "Can't add NULL string to SDP - line %d", line);
+    return (EINVAL);
+  }
   len = strlen(buf);
   if (len == 0) return (0);
   
@@ -68,7 +72,7 @@ static int add_string_to_encode (sdp_encode_t *sptr, const char *buf)
 }
 
 #define ADD_STR_TO_ENCODE_WITH_RETURN(se, string) \
- { int ret; ret = add_string_to_encode(se, string); if (ret != 0) return(ret);}
+ { int ret; ret = add_string_to_encode(se, string, __LINE__); if (ret != 0) return(ret);}
 
 #define CHECK_RETURN(a) {int ret; ret = (a); if (ret != 0) return (ret); }
 static int encode_a_ints (int recvonly,
@@ -570,8 +574,9 @@ int sdp_encode_one_to_file (session_desc_t *sptr,
   CHECK_RETURN(sdp_encode(sptr, &sdp));
   ofile = fopen(filename, append ? "a" : "w");
   if (ofile == NULL) {
+    sdp_debug(LOG_CRIT, "Cannot open file %s", filename);
     free(sdp.buffer);
-	return (-1);
+    return (-1);
   }
   fputs(sdp.buffer, ofile);
   fclose(ofile);

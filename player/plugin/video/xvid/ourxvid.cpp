@@ -106,7 +106,10 @@ static int parse_vovod (xvid_codec_t *xvid,
   return ret;
 }
 
-static codec_data_t *xvid_create (format_list_t *media_fmt,
+static codec_data_t *xvid_create (const char *compressor, 
+				  int type, 
+				  int profile,
+				  format_list_t *media_fmt,
 				  video_info_t *vinfo,
 				  const uint8_t *userdata,
 				  uint32_t ud_size,
@@ -327,6 +330,9 @@ static int xvid_codec_check (lib_message_func_t message,
     if ((type == MP4_MPEG4_VIDEO_TYPE) &&
 	(profile >= 1 && profile <= 3)) {
       return 3;
+    }
+    if (type == MP4_H263_VIDEO_TYPE) {
+      return 2;
     }
     return -1;
   }

@@ -273,6 +273,13 @@ void sdp_debug (int loglevel, const char *fmt, ...)
       va_start(ap, fmt);
       (error_msg_func)(loglevel, "libsdp", fmt, ap);
       va_end(ap);
+    } else {
+      va_list ap;
+      printf("libsdp-%d:", loglevel);
+      va_start(ap, fmt);
+      vprintf(fmt, ap);
+      va_end(ap);
+      printf("\n");
     }
   }
 }

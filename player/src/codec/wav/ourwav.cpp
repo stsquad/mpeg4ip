@@ -24,7 +24,10 @@
 /*
  * Create CAACodec class
  */
-static codec_data_t *wav_codec_create (format_list_t *media_fmt,
+static codec_data_t *wav_codec_create (const char *compressor, 
+				       int type, 
+				       int profile, 
+				       format_list_t *media_fmt,
 				       audio_info_t *audio,
 				       const uint8_t *userdata,
 				       uint32_t userdata_size,

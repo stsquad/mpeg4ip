@@ -251,15 +251,15 @@ static void CodeBlockIntra(const MBParam * pParam,
 		BitstreamPutBits(bs, mcbpc_inter_tab[mcbpc].code, mcbpc_inter_tab[mcbpc].len);
 	}
 
-#ifdef MPEG4IP
+#ifdef MPEG4IP_H263_NOACPRED
 	if ((pParam->global_flags & XVID_SHORT_HEADERS) == 0) {
 #endif
-	// ac prediction flag
-	if(pMB->acpred_directions[0])
-		BitstreamPutBits(bs, 1, 1);
-	else
-		BitstreamPutBits(bs, 0, 1);
-#ifdef MPEG4IP
+		// ac prediction flag
+		if(pMB->acpred_directions[0])
+			BitstreamPutBits(bs, 1, 1);
+		else
+			BitstreamPutBits(bs, 0, 1);
+#ifdef MPEG4IP_H263_NOACPRED
 	}
 #endif
 
@@ -279,43 +279,74 @@ static void CodeBlockIntra(const MBParam * pParam,
 	// code block coeffs
 	for(i = 0; i < 6; i++)
 	{
-		if(i < 4)
-			BitstreamPutBits(bs,
-					 dcy_tab[qcoeff[i*64 + 0] + 255].code,
-					 dcy_tab[qcoeff[i*64 + 0] + 255].len);
-		else
-			BitstreamPutBits(bs,
-					 dcc_tab[qcoeff[i*64 + 0] + 255].code,
-			                 dcc_tab[qcoeff[i*64 + 0] + 255].len);
-		
-		if(pMB->cbp & (1 << (5 - i)))
-		{
-			bits = BitstreamPos(bs);
-
 #ifdef MPEG4IP
-	if ((pParam->global_flags & XVID_SHORT_HEADERS) == 1) {
-			/* H.263 only does zigzag scan */
-			CodeCoeff(bs,
-				  &qcoeff[i*64],
-				  intra_table,
-				  scan_tables[0],
-				  1);
-	} else {
-#endif
-			CodeCoeff(bs,
-				  &qcoeff[i*64],
-				  intra_table,
-				  scan_tables[pMB->acpred_directions[i]],
-				  1);
-#ifdef MPEG4IP
-	}
+		if ((pParam->global_flags & XVID_SHORT_HEADERS) != 0) {
+			// H.263
+#ifdef MPEG4IP_H263_DC
+			uint16_t dcq = qcoeff[i*64] + 129;
+			if (dcq < 1) {
+				dcq = 1;
+			} else if (dcq == 128) {
+				dcq = 255;	/* gets remapped */
+			} else if (dcq > 254) {
+				dcq = 254;	/* need to clamp value */
+			} 
+			BitstreamPutBits(bs, dcq, 8);
+#else
+			if (i < 4) {
+				BitstreamPutBits(bs,
+						 dcy_tab[qcoeff[i*64 + 0] + 255].code,
+						 dcy_tab[qcoeff[i*64 + 0] + 255].len);
+			} else {
+				BitstreamPutBits(bs,
+						 dcc_tab[qcoeff[i*64 + 0] + 255].code,
+						 dcc_tab[qcoeff[i*64 + 0] + 255].len);
+			}
 #endif
 
-			bits = BitstreamPos(bs) - bits;
-			pStat->iTextBits += bits;
+			if (pMB->cbp & (1 << (5 - i))) {
+				bits = BitstreamPos(bs);
+
+				CodeCoeff(bs,
+					  &qcoeff[i*64],
+					  intra_table,
+#ifdef MPEG4IP_H263_NOACPRED
+					  scan_tables[0],
+#else
+					  scan_tables[pMB->acpred_directions[i]],
+#endif
+					  1);
+
+				pStat->iTextBits += BitstreamPos(bs) - bits;
+			}
+		} else { 
+#endif
+			// MPEG-4
+			if (i < 4) {
+				BitstreamPutBits(bs,
+						 dcy_tab[qcoeff[i*64 + 0] + 255].code,
+						 dcy_tab[qcoeff[i*64 + 0] + 255].len);
+			} else {
+				BitstreamPutBits(bs,
+						 dcc_tab[qcoeff[i*64 + 0] + 255].code,
+						 dcc_tab[qcoeff[i*64 + 0] + 255].len);
+			}
+
+			if (pMB->cbp & (1 << (5 - i))) {
+				bits = BitstreamPos(bs);
+
+				CodeCoeff(bs,
+					  &qcoeff[i*64],
+					  intra_table,
+					  scan_tables[pMB->acpred_directions[i]],
+					  1);
+
+				pStat->iTextBits += BitstreamPos(bs) - bits;
+			}
+#ifdef MPEG4IP
 		}
+#endif
 	}
-
 }
 
 

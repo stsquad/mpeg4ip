@@ -33,7 +33,6 @@
 #include "qtime_file.h"
 #include "our_config_file.h"
 #include "rtp_bytestream.h"
-#include "codec/aa/isma_rtp_bytestream.h"
 #include "codec_plugin_private.h"
 #include <gnu/strcasestr.h>
 #include "rfc3119_bytestream.h"
@@ -43,6 +42,7 @@
 #ifndef _WIN32
 #include "mpeg2t.h"
 #endif
+#include "rtp_bytestream_plugin.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -55,10 +55,8 @@ enum {
 };
 
 enum {
-  MPEG4IP_AUDIO_AAC,
   MPEG4IP_AUDIO_MP3,
   MPEG4IP_AUDIO_WAV,
-  MPEG4IP_AUDIO_MPEG4_GENERIC,
   MPEG4IP_AUDIO_MP3_ROBUST,
   MPEG4IP_AUDIO_GENERIC,
 };
@@ -80,7 +78,6 @@ static struct codec_list_t {
   {NULL, -1},
 },
   audio_codecs[] = {
-    {"MPEG4-GENERIC", MPEG4IP_AUDIO_MPEG4_GENERIC},
     {"MPA", MPEG4IP_AUDIO_MP3 },
     {"mpa-robust", MPEG4IP_AUDIO_MP3_ROBUST}, 
     {"L16", MPEG4IP_AUDIO_GENERIC },
@@ -603,6 +600,75 @@ int parse_name_for_session (CPlayerSession *psptr,
   return (err);
 }
 
+int check_name_for_network (const char *name, 
+			    int &isOnDemand, 
+			    int &isRtpOverRtsp)
+{
+  sdp_decode_info_t *sdp_info;
+  session_desc_t *sdp;
+  int translated;
+  http_resp_t *http_resp;
+  int do_sdp = 0;
+
+  http_resp = NULL;
+  isOnDemand = 0;
+  isRtpOverRtsp = 0;
+  sdp_info = NULL;
+  if (strncmp(name, "mpeg2t://", strlen("mpeg2t://")) == 0) {
+    return 1;
+  }
+  if (strncmp(name, "rtsp://", strlen("rtsp://")) == 0) {
+    isOnDemand = 1;
+    isRtpOverRtsp = config.get_config_value(CONFIG_USE_RTP_OVER_RTSP);
+    return 1;
+  }
+  // handle http, .sdp case
+  if (strncmp(name, "http://", strlen("http://")) == 0) {
+    http_client_t *http_client;
+    int ret;
+    http_client = http_init_connection(name);
+
+    if (http_client == NULL) {
+      return -1;
+    } 
+    ret = http_get(http_client, NULL, &http_resp);
+    if (ret > 0) {
+      sdp_decode_info_t *sdp_info;
+      sdp_info = set_sdp_decode_from_memory(http_resp->body);
+      do_sdp = 1;
+      http_free_connection(http_client);
+    } else return -1;
+    do_sdp = 1;
+  } else {
+    const char *suffix = strrchr(name, '.');
+    if (suffix == NULL) {
+      return -1;
+    }
+    if (strcasecmp(name, ".sdp") == 0) {
+      sdp_info = set_sdp_decode_from_filename(name);
+    } else 
+      return 0;
+  }
+  if (do_sdp != 0) {
+    if ((sdp_decode(sdp_info, &sdp, &translated) != 0) ||
+	translated != 1){
+      sdp_decode_info_free(sdp_info);
+      return (-1);
+    }
+    if (sdp->control_string != NULL) {
+      isOnDemand = 1;
+      isRtpOverRtsp = config.get_config_value(CONFIG_USE_RTP_OVER_RTSP);
+    }
+    sdp_free_session_desc(sdp);
+    if (http_resp != NULL)
+      http_resp_free(http_resp);
+    sdp_decode_info_free(sdp_info);
+    return 1;
+  }
+  return 0;
+}
+
+  
   
 CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 						       unsigned int rtp_pt,
@@ -620,8 +686,53 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 						       uint32_t rtp_ts)
 {
   CRtpByteStreamBase *rtp_byte_stream;
-
   int codec;
+  rtp_check_return_t plugin_ret;
+  rtp_plugin_t *rtp_plugin;
+
+  rtp_plugin = NULL;
+  rtp_byte_stream = NULL;
+  plugin_ret = check_for_rtp_plugins(fmt, rtp_pt, &rtp_plugin);
+
+  if (plugin_ret != RTP_PLUGIN_NO_MATCH) {
+    switch (plugin_ret) {
+    case RTP_PLUGIN_MATCH:
+      player_debug_message("Starting rtp bytestream %s from plugin", 
+			   rtp_plugin->name);
+      rtp_byte_stream = new CPluginRtpByteStream(rtp_plugin,
+						 fmt,
+						 rtp_pt,
+						ondemand,
+						tps,
+						head,
+						tail,
+						rtp_seq_set,
+						rtp_seq,
+						rtp_ts_set,
+						rtp_base_ts,
+						rtcp_received,
+						ntp_frac,
+						ntp_sec,
+						rtp_ts);
+      break;
+    case RTP_PLUGIN_MATCH_USE_VIDEO_DEFAULT:
+      // just fall through...
+      break; 
+    case RTP_PLUGIN_MATCH_USE_AUDIO_DEFAULT:
+      rtp_byte_stream = 
+	new CAudioRtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
+				rtp_seq_set, rtp_seq,
+				rtp_ts_set, rtp_base_ts, 
+				rtcp_received, ntp_frac, ntp_sec, rtp_ts);
+      if (rtp_byte_stream != NULL) {
+	player_debug_message("Starting generic audio byte stream");
+	return (rtp_byte_stream);
+      }
+
+    default:
+      break;
+    }
+  } else {
   if (strcmp("video", fmt->media->media) == 0) {
     if (rtp_pt == 32) {
       codec = VIDEO_MPEG12;
@@ -662,46 +773,18 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       }
     }
     switch (codec) {
-    case MPEG4IP_AUDIO_AAC:
-    case MPEG4IP_AUDIO_MPEG4_GENERIC:
-      fmtp_parse_t *fmtp;
-
-      fmtp = parse_fmtp_for_mpeg4(fmt->fmt_param, message);
-      if (fmtp->size_length == 0) {
-	// No headers in RTP packet -create normal bytestream
-	player_debug_message("Size of AAC RTP header is 0 - normal bytestream");
-	break;
-      }
-      rtp_byte_stream = new CIsmaAudioRtpByteStream(fmt,
-						    fmtp,
-						    rtp_pt,
-						    ondemand,
-						    tps,
-						    head,
-						    tail,
-						    rtp_seq_set,
-						    rtp_seq,
-						    rtp_ts_set,
-						    rtp_base_ts,
-						    rtcp_received,
-						    ntp_frac,
-						    ntp_sec,
-						    rtp_ts);
-      if (rtp_byte_stream != NULL) {
-	return (rtp_byte_stream);
-      }
-      // Otherwise, create default...
-      break;
-    case MPEG4IP_AUDIO_MP3:
+    case MPEG4IP_AUDIO_MP3: {
       rtp_byte_stream = 
-	new CMP3RtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
-			      rtp_seq_set, rtp_seq,
-			      rtp_ts_set, rtp_base_ts, 
-			      rtcp_received, ntp_frac, ntp_sec, rtp_ts);
+	new CAudioRtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
+				rtp_seq_set, rtp_seq,
+				rtp_ts_set, rtp_base_ts, 
+				rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
-	player_debug_message("Starting mp3 2250 byte stream");
+	rtp_byte_stream->set_skip_on_advance(4);
+	player_debug_message("Starting mp3 2250 audio byte stream");
 	return (rtp_byte_stream);
       }
+    }
       break;
     case MPEG4IP_AUDIO_MP3_ROBUST:
       rtp_byte_stream = 
@@ -743,5 +826,6 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 				       ntp_frac,
 				       ntp_sec,
 				       rtp_ts);
+  }
   return (rtp_byte_stream);
 }

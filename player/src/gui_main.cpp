@@ -17,6 +17,7 @@
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
+ *            Peter Maersk-Moller     peter@maersk-moller.net
  */
 /*
  * gui_main.cpp - Contains the gtk based gui for this player.
@@ -339,6 +340,7 @@ static void on_main_menu_about (GtkWidget *window, gpointer data)
 	  "ISO reference decoder for MPEG4\n"
 	  "FAAC decoder\n"
 	  "Xvid decoder\n"
+	  "Libmpeg3 file and video decoder\n"
 	  "Developed by Bill May, 10/00 to present", VERSION);
 
   ShowMessage("About gmp4player",buffer);

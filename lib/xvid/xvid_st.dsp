@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release_st"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /Ob2 /D "NDEBUG" /D "ARCH_X86" /D "WIN32" /D "_MBCS" /D "_LIB" /D "_WIN32" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /Ob2 /D "NDEBUG" /D "ARCH_X86" /D "WIN32" /D "_MBCS" /D "_LIB" /D "_WIN32" /D "MPEG4IP" /YX /FD /c
 # ADD BASE RSC /l 0xc09 /d "NDEBUG"
 # ADD RSC /l 0xc09 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug_st"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "..\.." /I "..\..\include" /D "_DEBUG" /D "ARCH_X86" /D "WIN32" /D "_MBCS" /D "_LIB" /D "_WIN32" /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "..\.." /I "..\..\include" /D "_DEBUG" /D "ARCH_X86" /D "WIN32" /D "_MBCS" /D "_LIB" /D "_WIN32" /D "MPEG4IP" /YX /FD /GZ /c
 # ADD BASE RSC /l 0xc09 /d "_DEBUG"
 # ADD RSC /l 0xc09 /d "_DEBUG"
 BSC32=bscmake.exe

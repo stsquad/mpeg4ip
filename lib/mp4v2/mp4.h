@@ -138,6 +138,7 @@ typedef u_int32_t	MP4EditId;
 #define MP4_AC3_AUDIO_TYPE				0xE2	/* a private definition */
 #define MP4_ALAW_AUDIO_TYPE				0xE3	/* a private definition */
 #define MP4_ULAW_AUDIO_TYPE				0xE4	/* a private definition */
+#define MP4_G723_AUDIO_TYPE                             0xE5    /* a private definition */
 
 /* MP4 MPEG-4 Audio types from 14496-3 Table 1.5.1 */
 #define MP4_MPEG4_INVALID_AUDIO_TYPE		0

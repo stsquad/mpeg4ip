@@ -96,6 +96,9 @@ libmp4player_la_SOURCES = \
 	rfc3119_bytestream.h \
 	rtp_bytestream.cpp \
 	rtp_bytestream.h \
+	rtp_bytestream_plugin.cpp \
+	rtp_bytestream_plugin.h \
+	rtp_plugin.h \
 	sync.cpp 
 
 if NO_GLIB_GTK
@@ -128,8 +131,6 @@ AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_D
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
 
 libmp4player_la_LIBADD = \
-	codec/aa/libaa.la \
-	codec/mp3/libmp3.la \
 	$(top_builddir)/lib/mpeg2t/libmpeg2_transport.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \

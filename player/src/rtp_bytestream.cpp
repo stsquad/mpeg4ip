@@ -802,7 +802,7 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
   } else diff = 0;
 
   m_doing_add = 0;
-  if (diff > 2) {
+  if (diff > 0) {
     // Still bytes in the buffer...
     *buffer = (uint8_t *)m_working_pak->rtp_data + m_bytes_used;
     *buflen = diff;
@@ -814,9 +814,10 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
   } else {
     if (m_working_pak) xfree(m_working_pak);
     m_buffer_len = 0;
+    m_bytes_used = m_skip_on_advance_bytes;
     m_working_pak = m_head;
     remove_packet_rtp_queue(m_working_pak, 0);
-    *buffer = (uint8_t *)m_working_pak->rtp_data;
+    *buffer = (uint8_t *)m_working_pak->rtp_data + m_bytes_used;
     *buflen = m_working_pak->rtp_data_len;
     ts = m_working_pak->rtp_pak_ts;
 #ifdef DEBUG_RTP_PAKS

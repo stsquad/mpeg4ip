@@ -193,6 +193,9 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
      * Create plugin
      */
     ret = mptr->create_video_plugin(plugin, 
+				    codec_name, 
+				    -1,
+				    -1,
 				    NULL,
 				    vinfo,
 				    (uint8_t *)foo,
@@ -279,6 +282,9 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     audio->freq = sample_rate;
 
     int ret = mptr->create_audio_plugin(plugin,
+					codec, 
+					-1, 
+					-1,
 					NULL, // SDP info
 					audio,
 					ud,

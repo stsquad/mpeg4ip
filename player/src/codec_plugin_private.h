@@ -24,6 +24,7 @@
 #define __CODEC_PLUGIN_PRIVATE_H__
 
 #include "codec_plugin.h"
+#include "rtp_plugin.h"
 
 void initialize_plugins(void);
 
@@ -48,4 +49,9 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
 				    const char *name);
 int video_codec_check_for_raw_file (CPlayerSession *psptr,
 				    const char *name);
+
+// RTP plugins
+rtp_check_return_t check_for_rtp_plugins(format_list_t *fptr,
+					 uint8_t rtp_payload_type,
+					 rtp_plugin_t **rtp_plugin);
 #endif

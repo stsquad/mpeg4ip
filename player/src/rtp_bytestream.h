@@ -79,6 +79,7 @@ class CRtpByteStreamBase : public COurInByteStream
     m_rtp_base_seq_set = 1;
     m_rtp_base_seq = s;
   };
+  int can_skip_frame (void) { return 1; } ;
   void set_wallclock_offset (uint64_t wclock, uint32_t rtp_ts);
   int rtp_ready (void) {
     return (m_stream_ondemand | m_wallclock_offset_set);
@@ -151,7 +152,6 @@ class CRtpByteStream : public CRtpByteStreamBase
   ~CRtpByteStream();
   uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			    void **userdata);
-  int can_skip_frame (void) { return 1; } ;
   int skip_next_frame(uint64_t *ts, int *havesync, uint8_t **buffer,
 		      uint32_t *buflen);
   void used_bytes_for_frame(uint32_t bytes);

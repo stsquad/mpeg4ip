@@ -71,6 +71,7 @@ int parse_name_for_session(CPlayerSession *psptr,
 			   uint32_t errlen,
 			   control_callback_vft_t *);
 
+int check_name_for_network(const char *name, int &isOnDemand, int &isRtpOverRtsp);
 int lookup_audio_codec_by_name(const char *name);
 int lookup_video_codec_by_name(const char *name);
 

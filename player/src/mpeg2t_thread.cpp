@@ -457,6 +457,9 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
 				     vq[ix].config_len);
 
       int ret = mptr->create_video_plugin(plugin, 
+					  "MPEG2 TRANSPORT",
+					  vq[ix].type,
+					  vq[ix].profile,
 					  NULL, // sdp info
 					  vinfo, // video info
 					  vq[ix].config,
@@ -545,6 +548,9 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
 				     aq[ix].config_len);
 
       int ret = mptr->create_audio_plugin(plugin, 
+					  "MPEG2 TRANSPORT",
+					  aq[ix].type,
+					  aq[ix].profile,
 					  NULL, // sdp info
 					  ainfo, // video info
 					  aq[ix].config,

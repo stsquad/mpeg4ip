@@ -99,11 +99,17 @@ class CPlayerMedia {
   const audio_info_t *get_audio_info (void) { return m_audio_info; };
 
   int create_video_plugin(const codec_plugin_t *p,
+			  const char *compressor, 
+			  int profile, 
+			  int type, 
 			  format_list_t *sdp_media,
 			  video_info_t *video,
 			  const uint8_t *user_data,
 			  uint32_t userdata_size);
   int create_audio_plugin(const codec_plugin_t *p,
+			  const char *compressor, 
+			  int profile, 
+			  int type, 
 			  format_list_t *sdp_media,
 			  audio_info_t *audio,
 			  const uint8_t *user_data,

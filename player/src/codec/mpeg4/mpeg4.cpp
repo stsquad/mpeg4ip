@@ -141,7 +141,10 @@ static int parse_vovod (iso_decode_t *iso,
   return havevol;
 }
 
-static codec_data_t *iso_create (format_list_t *media_fmt,
+static codec_data_t *iso_create (const char *compressor, 
+				 int type, 
+				 int profile, 
+				 format_list_t *media_fmt,
 				 video_info_t *vinfo,
 				 const uint8_t *userdata,
 				 uint32_t ud_size,
@@ -270,6 +273,30 @@ static int iso_decode (codec_data_t *ptr,
   switch (iso->m_decodeState) {
   case DECODE_STATE_VOL_SEARCH: {
     uint32_t used = 0;
+    if (buffer[0] == 0 &&
+	buffer[1] == 0 &&
+	(buffer[2] & 0xfc) == 0x80 &&
+	(buffer[3] & 0x03) == 0x02) {
+      // we have the short header
+      iso->m_short_header = 1;
+      iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)buffer, buflen);
+      iso->m_pvodec->video_plane_with_short_header();
+      iso->m_pvodec->postVO_VOLHeadInit(iso->m_pvodec->getWidth(),
+					iso->m_pvodec->getHeight(),
+					&iso->m_bSpatialScalability);
+      iso_message(LOG_INFO, mp4iso, "Decoding using short headers");
+      iso->m_vft->video_configure(iso->m_ifptr, 
+				  iso->m_pvodec->getWidth(),
+				  iso->m_pvodec->getHeight(),
+				  VIDEO_FORMAT_YUV);
+      iso->m_decodeState = DECODE_STATE_NORMAL;
+      try {
+	iEof = iso->m_pvodec->h263_decode();
+      } catch (...) {
+	iso_message(LOG_ERR, mp4iso, "Couldn't decode h263 in vol search");
+      }
+      break; 
+    }
     while (used < buflen && iso->m_decodeState == DECODE_STATE_VOL_SEARCH) {
       try {
 	iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)buffer + used, buflen - used);
@@ -333,7 +360,11 @@ static int iso_decode (codec_data_t *ptr,
     break;
   case DECODE_STATE_NORMAL:
     try {
-      iEof = iso->m_pvodec->decode(NULL, FALSE, FALSE);
+      if (iso->m_short_header != 0) {
+	iEof = iso->m_pvodec->h263_decode();
+      } else {
+	iEof = iso->m_pvodec->decode(NULL, FALSE, FALSE);
+      }
     } catch (int err) {
       // This is because sometimes, the encoder doesn't read all the bytes
       // it should out of the rtp packet.  The rtp bytestream does a read
@@ -472,7 +503,7 @@ static int iso_codec_check (lib_message_func_t message,
 {
   if (compressor != NULL && 
       (strcasecmp(compressor, "MP4 FILE") == 0)) {
-    if (type == MP4_MPEG4_VIDEO_TYPE) {
+    if (type == MP4_MPEG4_VIDEO_TYPE || type == MP4_H263_VIDEO_TYPE) {
       return 1;
     }
     return -1;

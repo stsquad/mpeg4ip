@@ -363,6 +363,31 @@ extern "C" bool MP4AV_Mpeg4ParseGov(
 	return true;
 }
 
+static bool Mpeg4ParseShortHeaderVop(
+	u_int8_t* pVopBuf, 
+	u_int32_t vopSize,
+	u_char* pVopType)
+{
+	CMemoryBitstream vop;
+
+	vop.SetBytes(pVopBuf, vopSize);
+
+	try {
+		// skip start code, temporal ref, and into type
+		vop.SkipBits(22 + 8 + 5 + 3);	
+		if (vop.GetBits(1) == 0) {
+			*pVopType = 'I';
+		} else {
+			*pVopType = 'P';
+		}
+	}
+	catch (int e) {
+		return false;
+	}
+
+	return true;
+}
+
 extern "C" bool MP4AV_Mpeg4ParseVop(
 	u_int8_t* pVopBuf, 
 	u_int32_t vopSize,
@@ -526,12 +551,22 @@ MP4AV_Mpeg4VideoToSystemsProfileLevel(u_int8_t videoProfileLevel)
 
 extern "C" u_char MP4AV_Mpeg4GetVopType(u_int8_t* pVopBuf, u_int32_t vopSize)
 {
-	u_char vopType;
+	u_char vopType = 0;
 
-	if (MP4AV_Mpeg4ParseVop(pVopBuf, vopSize, &vopType, 0, 0, NULL)) {
+	if (vopSize <= 4) {
 		return vopType;
 	}
 
-	return 0;
+	if (pVopBuf[0] == 0 && pVopBuf[1] == 0 
+	  && (pVopBuf[2] & 0xFC) == 0x08 && (pVopBuf[3] & 0x03) == 0x02) {
+		// H.263, (MPEG-4 short header mode)
+		Mpeg4ParseShortHeaderVop(pVopBuf, vopSize, &vopType);
+		
+	} else {
+		// MPEG-4 (normal mode)
+		MP4AV_Mpeg4ParseVop(pVopBuf, vopSize, &vopType, 0, 0, NULL);
+	}
+
+	return vopType;
 }
 

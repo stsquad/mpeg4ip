@@ -44,8 +44,15 @@ extern "C" bool MP4AV_Rfc2250Hinter(
 		return false;
 	}
 
+	u_int8_t audioType =
+		MP4GetTrackAudioType(mp4File, mediaTrackId);
+
+	if (!MP4_IS_MP3_AUDIO_TYPE(audioType)) {
+		return false;
+	}
+
 	MP4Duration sampleDuration = 
-		MP4GetTrackFixedSampleDuration(mp4File, mediaTrackId);
+		MP4AV_GetAudioSampleDuration(mp4File, mediaTrackId);
 
 	if (sampleDuration == MP4_INVALID_DURATION) {
 		return false;

@@ -172,3 +172,30 @@ bool MP4AV_AudioInterleaveHinter(
 	return true;
 }
 
+MP4Duration MP4AV_GetAudioSampleDuration(
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId)
+{
+	MP4SampleId sampleId = 1;
+	MP4SampleId numSamples = 
+		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
+
+	// find first non-zero size sample
+	// we need to search in case an empty audio sample has been added
+	// at the beginning of the track to achieve sync with video
+	for (; sampleId <= numSamples; sampleId++) {
+		if (MP4GetSampleSize(mp4File, mediaTrackId, sampleId) > 0) {
+			break;
+		}
+	}
+	if (sampleId >= numSamples) {
+		return MP4_INVALID_DURATION;
+	}
+
+	// get sample duration
+	return MP4GetSampleDuration(mp4File, mediaTrackId, sampleId);
+
+	// OPTION may want to scan all non-zero sized samples
+	// and check that sample durations are +/-1 the same value
+}
+

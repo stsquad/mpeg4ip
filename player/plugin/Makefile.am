@@ -1,1 +1,1 @@
-SUBDIRS = audio video
+SUBDIRS = audio video rtp
