@@ -1,0 +1,326 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40">
+
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=windows-1252">
+<meta name=ProgId content=Word.Document>
+<meta name=Generator content="Microsoft Word 9">
+<meta name=Originator content="Microsoft Word 9">
+<link rel=File-List href="./encoding_files/filelist.xml">
+<title>Use of the MPEG4IP Server Side Tools</title>
+<!--[if gte mso 9]><xml>
+ <w:WordDocument>
+  <w:Zoom>120</w:Zoom>
+ </w:WordDocument>
+</xml><![endif]-->
+<style>
+<!--
+ /* Style Definitions */
+p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{mso-style-parent:"";
+	margin:0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman";
+	mso-fareast-font-family:"Times New Roman";}
+h1
+	{mso-style-next:Normal;
+	margin-top:12.0pt;
+	margin-right:0in;
+	margin-bottom:3.0pt;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:1;
+	font-size:16.0pt;
+	font-family:Arial;
+	mso-font-kerning:16.0pt;
+	font-weight:bold;}
+p
+	{margin-right:0in;
+	mso-margin-top-alt:auto;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman";
+	mso-fareast-font-family:"Times New Roman";}
+@page Section1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.25in 1.0in 1.25in;
+	mso-header-margin:.5in;
+	mso-footer-margin:.5in;
+	mso-paper-source:0;}
+div.Section1
+	{page:Section1;}
+-->
+</style>
+</head>
+
+<body lang=EN-US style='tab-interval:.5in'>
+
+<div class=Section1>
+
+<h1 align=center style='text-align:center'>Use of the MPEG4IP Server Side Tools</h1>
+
+<p><span style='font-family:Arial'>The MPEG4IP Server Side Tools allow for the
+conversion of raw audio and video into MPEG-4 compressed media stored in an MP4
+file which can be streamed by the Darwin Streaming Server.<o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>Process Overview<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>1) Acquire raw audio and/or video<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>2) Encode audio<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>3) Encode video<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>4) Packetize audio-only<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>5) Packetize video-only<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>6) Packetize both audio and video<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>7) Useful options to both packetizers <o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>8) Make content available<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Note:&nbsp;A shell script 'mp4encode' is
+provided in mpeg4ip/doc/encoding that combines all these steps. It makes some
+assumptions, so you are encouraged to review it to see it if meets your needs
+before using it.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>1) Acquire raw audio and/or video<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>The details here are varied. But the result
+should be a file for audio containing PCM raw audio samples, and/or a file
+containing YUV12, aka YV12, raw video samples. (FYI: This is a planar format
+sampled at 4:2:0)<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>If you use a Windows system for the media
+acquisition, you frequently will have your data stored in an AVI file. If that
+is the case, the avi2raw utility is provided to extract either the audio or
+video tracks from an AVI file, and write the raw track data to a file of your
+choice.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>avi2raw -a
+mymedia.avi myaudio.pcm<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>avi2raw -v
+mymedia.avi myvideo.yuv<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>The avi2raw utility also has very basic
+editing capabilities. You can specify a time to start the extraction in seconds
+from the beginning of the file and a length in seconds. For example, to extract
+10 seconds of video starting at 5 seconds from the beginning of the file:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>avi2raw –s 5 –l 10
+-v mymedia.avi myvideo.yuv<o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>2) Encode audio<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>There are two options for audio encoding:
+MP3 and AAC. <o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>If you wish to use MP3, you will need to use
+your own encoder to generate the MP3 file. We have used lame and been pleased
+with the results, but there are plenty of other encoders out there.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>If you wish to use AAC, the provided faac
+tool will generate the MPEG-4 AAC bitstream. Two parameters are required: the
+profile to be used, typically &quot;LOW&quot; for low-complexity; the desired
+bitrate in Kbps, typically between 16 and 128.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>faac -pLOW -b96
+myaudio.wav <o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'><span
+style='mso-tab-count:1'>      </span>(output file is myaudio.aac)<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>If a raw PCM file is provided as the input,
+then the -r option must be used.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>ISSUE: currently the FAAC code is hard-coded
+with respect to the parameters of the raw format. Hence it is currently easier
+to use the WAV format as input, since the configuration parameters are
+extracted from the file header.<o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>3) Encode video<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>There are two options for video encoding:
+ISO reference and OpenDivx. Both generate MPEG-4 video bitstreams. The OpenDivx
+encoder produces a Simple Profile stream only. The ISO <span
+style="mso-spacerun: yes"> </span>encoder use most of the video tools defined
+for MPEG-4, and hence can produces many of the defined profiles. In terms of
+video quality and encoding speed we have found the OpenDivx encoder to be
+superior.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>If you want to use the OpenDivx encoder, use
+the provided divxenc tool.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>The following options should be used to
+inform the encoder of the configuration parameters for the compressed video
+bitstream.<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-h &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>--height &lt;uint&gt;<span style='mso-tab-count:
+2'>         </span>Use the given number as the video frame height in pixels,
+default value is 320<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-w &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>--width &lt;uint&gt;<span style='mso-tab-count:
+2'>          </span>Use the given number as the video frame width in pixels,
+default value is 240<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-r &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>--rate &lt;uint&gt;<span style='mso-tab-count:
+2'>           </span>Use the given number as the video frame rate in frames per
+second, default value is 30<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-b &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>--bitrate &lt;uint&gt;<span style='mso-tab-count:
+2'>        </span>Use the given number as desired bitrate in Kbps, default
+value is 500<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-i &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>--ifrequency &lt;uint&gt;<span
+style='mso-tab-count:1'>     </span>Use the given number as the frequency of I
+frames in frames, default value is 30, i.e. once a second at 30 fps<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>divxenc -w 320 -h
+240 -r 24 -b 500 -I 24 myvideo.yuv myvideo.divx</span><span style='font-family:
+Arial'><o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>If you want to use the ISO encoder, use the
+provided mp4venc tool. This tool takes one parameter which is the name of a
+file where the many configuration parameters are given. An template parameter
+file, 'template.par', is provided in the mpeg4ip/doc/encoding directory. <o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4venc myvideo.par<o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>4) Packetize audio-only<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>Use the provided mp4apkt tool to generate an
+MP4 file from the MP3 or AAC encoded file. There are two required parameters
+the first is the input file name, the second is the output file name.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4apkt myaudio.mp3
+myaudio.mp4<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4apkt myaudio.aac
+myaudio.mp4<o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>5) Packetize video-only<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>Use the provided mp4vpkt tool to generate an
+MP4 file from the MPEG-4 Video encoded file. There are two required parameters
+the first is the input file name, the second is the output file name.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>The following options should be used to
+inform the packetizer of the configuration parameters of the compressed video
+bitstream.<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-h &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>--height &lt;uint&gt;<span style='mso-tab-count:
+2'>         </span>Use the given number as the video frame height in pixels,
+default value is 320<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-w &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>--width &lt;uint&gt;<span style='mso-tab-count:
+2'>          </span>Use the given number as the video frame width in pixels,
+default value is 240<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-r &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>--rate &lt;uint&gt;<span style='mso-tab-count:
+2'>           </span>Use the given number as the video frame rate in frames per
+second, default value is 30<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt myvideo.cmp
+myvideo.mp4<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt -h 160 -w
+120 -r 15 myvideo.cmp myvideo.mp4&nbsp;<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>If you use the ISO encoder, the video frames
+can be encoded to use bi-directional motion vectors, aka B-frames. If this is
+the case, then you will also need to specify how many B-frames occur between
+non-B-frames (I-frames or P-frames). Note: the answer is often 2. This
+parameter can be specified via the ‘bfrequency’ command line argument. It is
+expected that in a future version of the tool, this parameter will be detected
+automatically. <o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Also if you use B-frames or other advanced
+coding tools of MPEG-4 you should designate which video profile you are complying
+with. By default all streams are marked as &quot;Simple@L3&quot;. If you are
+using advanced tools, &quot;Main@L2&quot; is probably what you want.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt –bfrequency=2
+-profile=&quot;Main@L2&quot; myvideo.cmp myvideo.mp4<o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>6) Packetize both audio and video<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>Use the provided mp4apkt or mp4vpkt tool to
+first generate an MP4 file for one of the media. Then use the '--merge' option
+when packetizing the second media. The resulting MP4 file will contain both
+media tracks and their associated hint tracks.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4apkt myaudio.aac
+mymedia.mp4<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt --merge
+myvideo.cmp mymedia.mp4<o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>7) Useful options to both packetizers<o:p></o:p></span></b></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-s &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>--payloadsize &lt;uint&gt;<span
+style='mso-tab-count:1'>    </span>Use the given number as the RTP payload
+size, the default value is 1460 bytes<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-d<span
+style='mso-tab-count:1'>    </span>--dump<span style='mso-tab-count:1'>      </span>Dumps
+MP4 file structure to stdout<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-t<span
+style='mso-tab-count:1'>    </span>--trace<span style='mso-tab-count:1'>     </span>Dumps
+RTP packetization information to stdout<o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>8) Make content available<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>Copy the MP4 file to a directory under the
+configured media root for your streaming server. See the documentation for your
+server as to how to generate a URL for the file, but typically it would look
+like rtsp://myserver/mymedia.mp4<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>cp mymedia.mp4
+/usr/local/movies<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>&nbsp;<o:p></o:p></span></p>
+
+</div>
+
+</body>
+
+</html>
