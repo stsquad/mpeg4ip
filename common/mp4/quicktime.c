@@ -750,14 +750,14 @@ int quicktime_has_video(quicktime_t *file)
 int quicktime_video_width(quicktime_t *file, int track)
 {
 	if(file->total_vtracks)
-		return file->vtracks[track].track->tkhd.track_width;
+		return file->vtracks[track].track->mdia.minf.stbl.stsd.table[0].width;
 	return 0;
 }
 
 int quicktime_video_height(quicktime_t *file, int track)
 {
 	if(file->total_vtracks)
-		return file->vtracks[track].track->tkhd.track_height;
+		return file->vtracks[track].track->mdia.minf.stbl.stsd.table[0].height;
 	return 0;
 }
 
