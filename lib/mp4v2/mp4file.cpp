@@ -33,7 +33,6 @@ MP4File::MP4File(u_int32_t verbosity)
 	m_mode = 0;
 	m_use64bits = false;
 	m_useIsma = false;
-	m_nextRtpPayloadNumber = 96;
 
 	m_pModificationProperty = NULL;
 	m_pTimeScaleProperty = NULL;
@@ -1531,14 +1530,41 @@ void MP4File::SetHintTrackRtpPayload(MP4TrackId hintTrackId,
 
 u_int8_t MP4File::AllocRtpPayloadNumber()
 {
-	// LATER need to account for any payload numbers 
-	// that were inherited via a clone operation
+	MP4Integer32Array usedPayloads;
+	u_int32_t i;
 
-	if (m_nextRtpPayloadNumber >= 128) {
+	// collect rtp payload numbers in use by existing tracks
+	for (i = 0; i < m_pTracks.Size(); i++) {
+		MP4Atom* pTrakAtom = m_pTracks[i]->GetTrakAtom();
+
+		MP4Integer32Property* pPayloadProperty = NULL;
+		pTrakAtom->FindProperty("trak.udta.hinf.payt.payloadNumber",
+			(MP4Property**)&pPayloadProperty);
+
+		if (pPayloadProperty) {
+			usedPayloads.Add(pPayloadProperty->GetValue());
+		}
+	}
+
+	// search dynamic payload range for an available slot
+	u_int8_t payload;
+	for (payload = 96; payload < 128; payload++) {
+		for (i = 0; i < usedPayloads.Size(); i++) {
+			if (payload == usedPayloads[i]) {
+				break;
+			}
+		}
+		if (i == usedPayloads.Size()) {
+			break;
+		}
+	}
+
+	if (payload >= 128) {
 		throw new MP4Error("no more available rtp payload numbers",
 			"AllocRtpPayloadNumber");
 	}
-	return m_nextRtpPayloadNumber++;
+
+	return payload;
 }
 
 void MP4File::AddRtpHint(MP4TrackId hintTrackId, 

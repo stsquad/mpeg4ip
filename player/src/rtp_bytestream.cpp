@@ -233,11 +233,11 @@ void CRtpByteStreamBase::check_for_end_of_pak (int nothrow)
   /*
    * Check the sequence number...
    */
+#if 0
   if (m_head && m_head->seq == nextseq) {
     m_pak = m_head;
     return;
   }
-
   if (m_head) {
     if (m_bookmark_set == 0)
       err = THROW_RTP_SEQ_NUM_VIOLATION;
@@ -255,6 +255,24 @@ void CRtpByteStreamBase::check_for_end_of_pak (int nothrow)
   if (nothrow == 0) {
     throw ((int)err);
   }
+#else
+  m_pak = NULL;
+  if (m_head) {
+    if (m_head->seq == nextseq) {
+      m_pak = m_head;
+      return;
+    }
+    if (m_bookmark_set == 0)
+      err = THROW_RTP_SEQ_NUM_VIOLATION;
+    else 
+      err = THROW_RTP_BOOKMARK_SEQ_NUM_VIOLATION;
+    player_debug_message("seq # violation - should %d is %d", nextseq, m_head->seq);
+    if (nothrow == 0) {
+      throw ((int)err);
+    }
+  }
+  init();
+#endif    
 }
 
 unsigned char CRtpByteStreamBase::get (void)
@@ -388,7 +406,15 @@ int CRtpByteStreamBase::have_no_data (void)
   if (m_pak == NULL) {
     m_pak = m_head;
   }
-  return (m_pak == NULL);
+  rtp_packet *temp;
+  temp = m_pak;
+  if (temp == NULL) return TRUE;
+
+  do {
+    if (temp->m == 1) return FALSE;
+    temp = temp->next;
+  } while (temp != m_pak);
+  return TRUE;
 }
 
 /*

@@ -403,7 +403,6 @@ protected:
 	char			m_mode;
 	bool			m_use64bits;
 	bool			m_useIsma;
-	u_int8_t		m_nextRtpPayloadNumber;
 
 	// cached properties
 	MP4IntegerProperty*		m_pModificationProperty;

@@ -154,7 +154,7 @@ public:
 	// error handling
 	Void errorInBitstream (Char* rgchErorrMsg);
 
-	Int findStartCode();
+	Int findStartCode(int dontloop = 0);
 
 	// VO and VOL routines
 	Void decodeVOHead ();

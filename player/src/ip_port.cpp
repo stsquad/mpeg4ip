@@ -90,7 +90,7 @@ C2ConsecIpPort::C2ConsecIpPort (CIpPort **global)
   m_first = m_second = NULL;
   in_port_t firstport, maxport;
 
-  firstport = 0;
+  firstport = 1024;
   maxport = ~0;
 
   if (config.get_config_value(CONFIG_IPPORT_MIN) != -1) {
@@ -118,6 +118,8 @@ C2ConsecIpPort::C2ConsecIpPort (CIpPort **global)
       }
     } while ((newone->get_port_num() & 0x1) == 0x1);
 
+    player_debug_message("First port is %d", newone->get_port_num());
+
     // Okay, save the first, get the 2nd.  If okay, just return
     m_first = newone;
     in_port_t next;
@@ -127,6 +129,9 @@ C2ConsecIpPort::C2ConsecIpPort (CIpPort **global)
 	(m_second->get_port_num() == next)) {
       player_debug_message("Ip ports are %u %u", next - 1, next);
       return;
+    } else {
+      player_debug_message("Got port %d invalid %d", m_second->get_port_num(),
+			   m_second->valid());
     }
     // Not okay - save both off in the global queue, and try again...
     m_first->set_next(*global);

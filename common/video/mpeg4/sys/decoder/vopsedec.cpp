@@ -769,7 +769,7 @@ Int CVideoObjectDecoder::decode (const CVOPU8YUVBA* pvopcBVOPQuant, /*strstreamb
 	return TRUE;
 }
 
-Int CVideoObjectDecoder::findStartCode()
+Int CVideoObjectDecoder::findStartCode(int dontloop)
 {
 	// ensure byte alignment
 	m_pbitstrmIn->flush ();
@@ -780,8 +780,9 @@ Int CVideoObjectDecoder::findStartCode()
 		while(m_pbitstrmIn->peekBits(NUMBITS_START_CODE_PREFIX)!=START_CODE_PREFIX)
 		{
 			m_pbitstrmIn->getBits(8);
-			if(m_pbitstrmIn->eof()==EOF)
+			if(m_pbitstrmIn->eof()==EOF || dontloop != 0)
 				return EOF;
+
 		}
 		m_pbitstrmIn->getBits(NUMBITS_START_CODE_PREFIX);
 		if(m_pbitstrmIn->peekBits(NUMBITS_START_CODE_SUFFIX)==USER_DATA_START_CODE)
@@ -1279,7 +1280,7 @@ Bool CVideoObjectDecoder::decodeVOPHead ()
 			m_bLinkisBroken = TRUE;
 /*modified by SONY (98/03/30) End*/
 		
-		findStartCode();
+		findStartCode(1);
 /*
 		m_pbitstrmIn -> getBits (4);
 		Int uiPrefix = m_pbitstrmIn -> getBits (NUMBITS_START_CODE_PREFIX);
