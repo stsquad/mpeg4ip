@@ -17,7 +17,6 @@ DIST_SUBDIRS = $(SUBDIRS)
 EXTRA_DIST =		\
 	COPYING		\
 	CREDITS		\
-	INSTALL		\
 	README		\
 	README.AmigaOS	\
 	README.CVS	\
@@ -33,7 +32,7 @@ EXTRA_DIST =		\
 	README.WinCE	\
 	README-SDL.txt	\
 	WhatsNew	\
-	docs.html	
+	sdl.m4
 
 # M4 macro file for inclusion with autoconf
 m4datadir = $(datadir)/aclocal

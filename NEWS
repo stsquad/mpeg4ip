@@ -7,6 +7,9 @@ xx/xx/04 version 1.1
     Fixed sync flag indication for mp4creator using avi files.
     Changed PACKAGE and VERSION for mpeg4ip to MPEG4IP_PACKAGE and
       MPEG4IP_VERSION
+    Changed so that we no longer overwrite SDL, but clone SDL audio
+      with our changes.
+    Mac OSX xcode projects for tools
 
 12/23/03 version 1.0
     Fix incorrect timestamp on mpeg1/2 insert into mp4 file.

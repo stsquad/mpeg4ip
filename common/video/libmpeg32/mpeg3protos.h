@@ -72,6 +72,7 @@ mpeg3_fs_t* mpeg3_new_fs(const char *path);
 int mpeg3_delete_fs(mpeg3_fs_t *fs);
 int mpeg3io_open_file(mpeg3_fs_t *fs);
 int mpeg3io_close_file(mpeg3_fs_t *fs);
+int64_t mpeg3io_path_total_bytes(char *path);
 int mpeg3io_seek(mpeg3_fs_t *fs, int64_t byte);
 int mpeg3io_read_data(unsigned char *buffer, long bytes, mpeg3_fs_t *fs);
 int mpeg3io_next_code(mpeg3_fs_t *fs, uint32_t code, int count);

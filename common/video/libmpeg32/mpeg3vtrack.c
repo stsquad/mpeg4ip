@@ -213,9 +213,9 @@ int mpeg3vtrack_seek(mpeg3_vtrack_t *track, int dont_decode)
 		    // Go 2 I-frames before current position
 		    frame = track->keyframe_numbers[i];
 		    title_number = (track->frame_offsets[frame] & 
-				    0xff00000000000000) >> 56;
+				    TO_U64(0xff00000000000000)) >> 56;
 		    byte = track->frame_offsets[frame] & 
-		      0xffffffffffffff;
+		    		      TO_U64(0xffffffffffffff);
 
 
 		    mpeg3demux_open_title(demux, title_number);

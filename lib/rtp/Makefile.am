@@ -74,7 +74,8 @@ EXTRA_DIST = \
 	README.qfdes \
 	VERSION \
 	test_rtp_encrypt.txt \
-	test-libcommon
+	test-libcommon \
+	libuclrtp.xcode/project.pbxproj
 
 check_PROGRAMS = test
 test_SOURCES = \

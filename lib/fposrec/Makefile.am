@@ -3,7 +3,7 @@ libfposrec_la_SOURCES = \
 	fposrec.cpp \
 	fposrec.h
 
-EXTRA_DIST = libfileposrec60.dsp
+EXTRA_DIST = libfileposrec60.dsp libfposrec.xcode/project.pbxproj
 
 INCLUDES = -I../../include
 

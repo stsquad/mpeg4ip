@@ -32,5 +32,6 @@ EXTRA_DIST = \
 	gpl.txt \
 	libxvid.dsp \
 	todo.txt \
-	xvid_st.dsp
+	xvid_st.dsp \
+	libxvid.xcode/project.pbxproj
 

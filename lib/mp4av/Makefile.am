@@ -36,7 +36,7 @@ libmp4av_la_SOURCES = \
 	rfc3119.cpp \
 	rfcisma.cpp
 
-EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp
+EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp libmp4av.xcode/project.pbxproj
 
 check_PROGRAMS = mpeg4_vol_decode
 mpeg4_vol_decode_SOURCES = mpeg4_vol_decode.cpp

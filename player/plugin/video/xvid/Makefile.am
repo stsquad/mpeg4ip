@@ -31,4 +31,4 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
-EXTRA_DIST = xvid_plugin.dsp
+EXTRA_DIST = xvid_plugin.dsp xvid_plugin.xcode/project.pbxproj

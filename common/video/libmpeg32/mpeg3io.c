@@ -38,7 +38,7 @@ int mpeg3_copy_fs(mpeg3_fs_t *dst, mpeg3_fs_t *src)
 	return 0;
 }
 
-long mpeg3io_get_total_bytes(mpeg3_fs_t *fs)
+int64_t mpeg3io_get_total_bytes(mpeg3_fs_t *fs)
 {
 	struct stat ostat;
 	stat(fs->path, &ostat);
@@ -53,11 +53,11 @@ long mpeg3io_get_total_bytes(mpeg3_fs_t *fs)
  */
 }
 
-long mpeg3io_path_total_bytes(char *path)
+int64_t mpeg3io_path_total_bytes(char *path)
 {
 	struct stat st;
 	if(stat(path, &st) < 0) return 0;
-	return (long)st.st_size;
+	return st.st_size;
 }
 
 int mpeg3io_open_file(mpeg3_fs_t *fs)

@@ -30,7 +30,10 @@ libmpeg3_la_SOURCES = \
 	timecode.h \
 	workarounds.c \
 	workarounds.h \
-	mpeg3private.inc
+	mpeg3privateinc.h
 
-EXTRA_DIST = mpeg3css_fake.c libmpeg32.dsp  libmpeg32util.dsp libmpeg32_st.dsp
+EXTRA_DIST = mpeg3css_fake.c libmpeg32.dsp  \
+	libmpeg32util.dsp libmpeg32_st.dsp \
+	libmpeg32.xcode/project.pbxproj
+
 

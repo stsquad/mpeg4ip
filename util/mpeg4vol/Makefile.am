@@ -13,3 +13,5 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 mpeg4vol_LDADD = \
 	$(top_builddir)/lib/bitstream/libbitstream.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la 
+
+EXTRA_DIST=mpeg4vol.xcode/project.pbxproj

@@ -112,6 +112,9 @@ int gettimeofday(struct timeval *t, void *);
 #define C_64 100i64
 #define I_64 1i64
 
+#define TO_D64(a) (a##i64)
+#define TO_U64(a) (a##u64)
+
 #define LOG_EMERG 0
 #define LOG_ALERT 1
 #define LOG_CRIT 2
@@ -211,11 +214,16 @@ int gettimeofday(struct timeval *t, void *);
 #define M_64 1000LU
 #define C_64 100LU
 #define I_64 1LU
+#define TO_D64(a) (a##LD)
+#define TO_U64(a) (a##LU)
 #else
 #define MAX_UINT64 -1LLU
 #define D64F "lld"
 #define U64F  "llu"
 #define X64F "llx"
+
+#define TO_D64(a) (a##LLD)
+#define TO_U64(a) (a##LLU)
 
 #define MM_64 1000000LLU
 #define M_64 1000LLU
