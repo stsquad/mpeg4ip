@@ -57,7 +57,7 @@ int decode_mp3_header (unsigned char *buffer,
   mp3->extendedmode = c & 3;
   mp3->mode = c >> 2;
 
-  mp3->frequency = frequencies[mp3->frequencyidx];
+  mp3->frequency = frequencies[sampling_freq];
   if (mp3->layer == 1) {
     mp3->framesize =
       (1200 * bitrate[mp3->version][0][mp3->bitrateindex]) /

@@ -111,7 +111,13 @@ dv_rgb_init(void) {
 
   rgblut = real_rgblut + 256;
   for(i=-256; i < 512; i++) {
+#ifdef MPEG4IP
+    if (i > 255) rgblut[i] = 255;
+    else if (i < 0) rgblut[i] = 0;
+    else rgblut[i] = i;
+#else
     rgblut[i] = CLAMP(i, 0, 255);
+#endif
   } // for
 } /* dv_rgb_init */
 

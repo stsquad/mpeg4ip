@@ -26,6 +26,7 @@
 #include <arpa/inet.h>
 #include "sdp.h"
 #include "mp4.h"
+#include "mp4av.h"
 
 bool GenerateSdpFile(CLiveConfig* pConfig)
 {
@@ -90,16 +91,70 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	bandwidth.user_band = "RR";
 
 	// if SSM, add source filter attribute
-	struct string_list_t sdpSourceFilter;
-	char sIncl[64];
-
 	if (destIsSSMcast) {
-		sdp.unparsed_a_lines = &sdpSourceFilter;
-		memset(&sdpSourceFilter, 0, sizeof(sdpSourceFilter));
-		sdpSourceFilter.string_val = sIncl;
+		char sIncl[64];
+
 		sprintf(sIncl, "a=incl:IN IP4 %s %s",
 			pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS),
 			sIpAddress);
+
+		sdp_add_string_to_list(&sdp.unparsed_a_lines, sIncl);
+	}
+
+	bool audioIsAac =
+		!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+			AUDIO_ENCODING_AAC);
+
+	// if ISMA compliant (no audio or AAC audio), add that 
+	if (!pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) || audioIsAac) {
+		sdp_add_string_to_list(&sdp.unparsed_a_lines,
+			"a=isma-compliance:1,1.0,1");
+	}
+
+	u_int8_t videoProfile = 0xFF;
+
+	if (pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+		videoProfile = 
+			pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID);
+	}
+
+	u_int8_t audioProfile = 0xFF;
+
+	if (pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+		if (audioIsAac) {
+			audioProfile = 0x0F;
+		} else {
+			audioProfile = 0xFE;
+		}
+	}
+
+	u_int8_t* pAudioConfig = NULL;
+	u_int32_t audioConfigLength = 0;
+
+	if (audioIsAac) {
+		MP4AV_AacGetConfiguration(
+			&pAudioConfig,
+			&audioConfigLength,
+			MP4AV_AAC_LC_PROFILE,
+			pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
+			pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
+	}
+
+	char* iod =
+		MP4MakeIsmaSdpIod(
+			videoProfile,
+			pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE),
+			pConfig->m_videoMpeg4Config,
+			pConfig->m_videoMpeg4ConfigLength,
+			audioProfile,
+			pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE),
+			pAudioConfig,
+			audioConfigLength,
+			MP4_DETAILS_ISMA);
+
+	if (iod) {
+		sdp_add_string_to_list(&sdp.unparsed_a_lines, iod);
+		free(iod);
 	}
 
 	// m=	
@@ -170,41 +225,11 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 		if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
 		  AUDIO_ENCODING_MP3)) {
 			sdpAudioRtpMap.encode_name = "MPA";
-		} else {
+		} else if (audioIsAac) {
 			sdpAudioRtpMap.encode_name = "mpeg4-generic";
 
-			/*
-			 * AudioObjectType 			5 bits
-			 * samplingFrequencyIndex 	4 bits
-			 * channelConfiguration 	4 bits
-			 * GA_SpecificConfig
-			 * 	FrameLengthFlag 		1 bit 1024 or 960
-			 * 	DependsOnCoreCoder		1 bit always 0
-			 * 	ExtensionFlag 			1 bit always 0
-			 */
-			u_int8_t aacConfigBuf[2];
-
-			aacConfigBuf[0] = 0x10;
-			aacConfigBuf[1] = 0;
-
-			static u_int16_t aacSamplingRates[] = {
-				96000, 88200, 64000, 48000, 44100, 32000,
-				24000, 22050, 16000, 12000, 11025,  8000, 7350
-			};
-
-			for (u_int8_t i = 0; i < 13; i++) {
-				if (aacSamplingRates[i] 
-				  == pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE)) {
-					aacConfigBuf[0] |= (i & 0xe) >> 1;
-					aacConfigBuf[1] |= (i & 0x1) << 7;
-					break;
-				}
-			}
-
-			aacConfigBuf[1] |= 
-				pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) << 3; 
-
-			char* sConfig = MP4BinaryToBase16(aacConfigBuf, 2);
+			char* sConfig = 
+				MP4BinaryToBase16(pAudioConfig, audioConfigLength);
 
 			sprintf(audioFmtpBuf,
 				"streamtype=5; profile-level-id=15; mode=AAC-hbr; config=%s; "
@@ -220,7 +245,14 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 		sdpMediaAudioFormat.rtpmap = &sdpAudioRtpMap;
 	}
 
-	return (sdp_encode_one_to_file(&sdp, 
+	free(pAudioConfig);
+
+	bool rc = (sdp_encode_one_to_file(&sdp, 
 		pConfig->GetStringValue(CONFIG_SDP_FILE_NAME), 0) == 0);
+
+	// free malloced memory inside sdp structure
+	sdp_free_string_list(&sdp.unparsed_a_lines);
+
+	return rc;
 }
 

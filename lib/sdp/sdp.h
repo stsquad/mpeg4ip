@@ -266,7 +266,7 @@ int sdp_decode(sdp_decode_info_t *decode,
 	       session_desc_t **retval,
 	       int *translated);
 
-void free_session_desc(session_desc_t *sptr);
+void sdp_free_session_desc(session_desc_t *sptr);
 
 /*
  * dump routines
@@ -290,11 +290,15 @@ void sdp_set_error_func(error_msg_func_t func);
   
   
 /* utils */
-format_list_t *add_format_to_list(media_desc_t *mptr, char *val);
-int add_string_to_list(string_list_t **list, char *val);
-void time_offset_to_str(uint32_t val, char *buff, uint32_t buflen);
-format_list_t *find_format_in_line(format_list_t *head, char *lptr);
-void smpte_to_str(double value, uint16_t fps, char *buffer);
+format_list_t *sdp_add_format_to_list(media_desc_t *mptr, char *val);
+void sdp_free_format_list (format_list_t **fptr);
+
+int sdp_add_string_to_list(string_list_t **list, char *val);
+void sdp_free_string_list (string_list_t **list);
+
+void sdp_time_offset_to_str(uint32_t val, char *buff, uint32_t buflen);
+format_list_t *sdp_find_format_in_line(format_list_t *head, char *lptr);
+void sdp_smpte_to_str(double value, uint16_t fps, char *buffer);
 
 
 #ifdef __cplusplus

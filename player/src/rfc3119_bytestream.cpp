@@ -29,6 +29,7 @@
 #include <mp3util/MP3Internals.hh>
 
 //#define DEBUG_3119 1
+//#define DEBUG_3119_INTERLEAVE 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(mpa_message, "mparobust")
 #else
@@ -101,8 +102,9 @@ CRfc3119RtpByteStream::~CRfc3119RtpByteStream (void)
 void CRfc3119RtpByteStream::insert_interleave_adu (adu_data_t *adu)
 {
   adu_data_t *p, *q;
-#ifdef DEBUG_3119
-  mpa_message(LOG_DEBUG, "inserting interleave %d", adu->aduDataSize);
+#ifdef DEBUG_3119_INTERLEAVE
+  mpa_message(LOG_DEBUG, "inserting interleave %d %d %d", adu->aduDataSize,
+	      adu->cyc_ct, adu->interleave_idx);
 #endif
   SDL_LockMutex(m_rtp_packet_mutex);
   
@@ -124,7 +126,7 @@ void CRfc3119RtpByteStream::insert_interleave_adu (adu_data_t *adu)
 	return;
       } 
     }
-    while (p != NULL && p->interleave_idx > adu->interleave_idx) {
+    while (p != NULL && p->interleave_idx < adu->interleave_idx) {
       q = p;
       p = p->next_adu;
     }
@@ -205,219 +207,223 @@ void CRfc3119RtpByteStream::process_packet (void)
      * packets
      */
     pak = m_head;
-    remove_packet_rtp_queue(m_head, 0);
-    pak_ts = rtp_ts_to_msec(pak->rtp_pak_ts, m_wrap_offset);
-    adu_offset = 0;
-    prev_adu = NULL;
+    if (pak != NULL) {
+      remove_packet_rtp_queue(m_head, 0);
+      pak_ts = rtp_ts_to_msec(pak->rtp_pak_ts, m_wrap_offset);
+      adu_offset = 0;
+      prev_adu = NULL;
 
 #ifdef DEBUG_3119
-    mpa_message(LOG_DEBUG, "Process pak seq %d", pak->rtp_pak_seq);
+      mpa_message(LOG_DEBUG, "Process pak seq %d", pak->rtp_pak_seq);
 #endif
 
-    while (pak != NULL && adu_offset < pak->rtp_data_len) {
-      unsigned char *ptr;
-      ptr = (unsigned char *)(pak->rtp_data + adu_offset);
-      if ((*ptr & 0x80) == 0x80) {
-	// first one has a c field of 1 - that's bad
-	xfree(pak);
-	pak = NULL;
-	adu_offset = 0;
-      } else {
-	/*
-	 * Get a new adu - start loading the data
-	 */
-	adu_data_t *adu = get_adu_data();
-
-	adu->pak = pak;
-	adu->next_adu = NULL;
-	adu->last_in_pak = 0;
-	adu->freeframe = 0;
-	if (adu_offset == 0) {
-	  adu->first_in_pak = 1;
-	  adu->timestamp = pak_ts;
-	} else {
-	  adu->first_in_pak = 0;
-	}
-	/*
-	 * Read the ADU header.  It will be 1 byte or 2
-	 */
-	if ((*ptr & 0x40) == 0) {
-	  // 1 byte header
-	  adu->frame_ptr = ptr + 1;
-	  adu->aduDataSize = *ptr & 0x3f;
-	  adu_offset++;
-	} else {
-	  // 2 byte header
-	  adu->aduDataSize = ((*ptr & 0x3f) << 8) + ptr[1];
-	  adu->frame_ptr = ptr + 2;
-	  adu_offset += 2;
-	}
-	/*
-	 * See if we're past the end of the packet
-	 */
-	if (adu_offset + adu->aduDataSize > pak->rtp_data_len) {
-	  // have a fragment here...
-	  // malloc a frame pointer, and copy the rest... 
-	  uint16_t seq = pak->rtp_pak_seq;
-	  unsigned char *to, *from;
-	  to = (unsigned char *)malloc(adu->aduDataSize);
-	  int copied = pak->rtp_data_len - adu_offset;
-	  memcpy(to, adu->frame_ptr, copied);
-	  if (prev_adu != NULL) {
-	    prev_adu->last_in_pak = 1;
-	  } else {
-	    xfree(pak);
-	  }
-	  adu->frame_ptr = to;
-	  adu->freeframe = 1;
-	  to += copied;
-	  while (m_head != NULL && 
-		 m_head->rtp_pak_seq == seq + 1 && 
-		 (*m_head->rtp_data & 0x80) == 0x80 && 
-		 copied < adu->aduDataSize) {
-	    uint32_t bytes;
-	    pak = m_head;
-	    remove_packet_rtp_queue(m_head, 0);
-	    ptr = (unsigned char *)pak->rtp_data;
-	    if ((*ptr & 0x40) == 0) {
-	      // 1 byte header
-	      bytes = *ptr & 0x3f;
-	      from = ptr++;
-	    } else {
-	      // 2 byte header
-	      bytes = ((*ptr & 0x3f) << 8) + ptr[1];
-	      from = ptr + 2;
-	    }
-	    memcpy(to, from, bytes);
-	    copied += bytes;
-	    to += bytes;
-	    seq++;
-	    adu_offset = 0;
-	    pak = NULL;
-	  }
-	  if (copied < adu->aduDataSize) {
-	    free_adu(adu);
-	    continue;
-	  }
+      while (pak != NULL && adu_offset < pak->rtp_data_len) {
+	unsigned char *ptr;
+	ptr = (unsigned char *)(pak->rtp_data + adu_offset);
+	if ((*ptr & 0x80) == 0x80) {
+	  // first one has a c field of 1 - that's bad
+	  xfree(pak);
+	  pak = NULL;
+	  adu_offset = 0;
 	} else {
 	  /*
-	   * adu_offset now points past the end of this adu
+	   * Get a new adu - start loading the data
 	   */
-	  adu_offset += adu->aduDataSize;
-	  if (adu_offset >= pak->rtp_data_len) {
-	    adu->last_in_pak = 1;
+	  adu_data_t *adu = get_adu_data();
+
+	  adu->pak = pak;
+	  adu->next_adu = NULL;
+	  adu->last_in_pak = 0;
+	  adu->freeframe = 0;
+	  if (adu_offset == 0) {
+	    adu->first_in_pak = 1;
+	    adu->timestamp = pak_ts;
+	  } else {
+	    adu->first_in_pak = 0;
 	  }
-	}
-
-	/*
-	 * Calculate the interleave index and the cyc_ct count
-	 * Fill in those values with all 1's
-	 */
-	adu->interleave_idx = *adu->frame_ptr;
-	adu->cyc_ct = *(adu->frame_ptr + 1) >> 5;
-	adu->frame_ptr[0] = 0xff;
-	adu->frame_ptr[1] |= 0xe0;
-
-	/*
-	 * Decode the mp3 header
-	 */
-	if (decode_mp3_header(adu->frame_ptr, 
-			      &adu->mp3hdr) < 0) {
-	  mpa_message(LOG_ERR, 
-		      "Couldn't decode mp3 header, rtp seq %d idx %d cyct %d", 
-		     adu->pak->rtp_pak_seq, 
-		     adu->interleave_idx,
-		     adu->cyc_ct);
-		     
-	  // error case figure this out
-	  if (prev_adu != NULL) {
-	    prev_adu->last_in_pak = adu->last_in_pak;
-	  } 
-	  free_adu(adu);
-	  continue;
-	} 
-	/*
-	 * Headersize, sideInfoSize and aduDataSize 
-	 */
-	adu->headerSize = 4;
-	adu->sideInfoSize = mp3_sideinfo_size(&adu->mp3hdr);
-
-	adu->aduDataSize -= (adu->headerSize + adu->sideInfoSize);
-
-	/*
-	 * Calculate the timestamp add
-	 */
-	if (m_rtp_ts_add == 0) {
-	  m_rtp_ts_add = 
-	    ( 1000 * mp3_get_samples_per_frame(adu->mp3hdr.layer, 
-					       adu->mp3hdr.version));
-	  m_rtp_ts_add /= adu->mp3hdr.frequency;
-	}
-	
-	// here we make a few decisions as to where the packet should
-	// go.
-	// Look at first packet.  If it's got interleave, we're interleaved
-	// if not, set up the timestamp, put it in the ordered_adu_list.
-	// (Don't set recvd_first pak).  If it's the 2nd, and not interleaved,
-	// leave the first, go on non-interleaved
-	// If the first isn't, and the 2nd is, move the first to the
-	// m_deinterleave_list, put the 2nd on the deinterleave list, 
-	// continue.
-	// If not the first, put on the interleaved or deinterleaved list.
-	int insert_interleaved = 0;
-
-	if (m_recvd_first_pak == 0) {
-	  if (adu->interleave_idx == 0xff &&
-	      adu->cyc_ct == 0x7) {
-	    /*
-	     * Have an packet all 1's.  It's either the last of the
-	     * sequence for interleave, or indicates no interleave.
-	     * Put it on the ordered list if there's nothing there.
-	     * If there is something on the ordered list, we're not doing
-	     * interleaved.
-	     */
-	    if (m_ordered_adu_list == NULL) {
-	      insert_interleaved = 0;
+	  /*
+	   * Read the ADU header.  It will be 1 byte or 2
+	   */
+	  if ((*ptr & 0x40) == 0) {
+	    // 1 byte header
+	    adu->frame_ptr = ptr + 1;
+	    adu->aduDataSize = *ptr & 0x3f;
+	    adu_offset++;
+	  } else {
+	    // 2 byte header
+	    adu->aduDataSize = ((*ptr & 0x3f) << 8) + ptr[1];
+	    adu->frame_ptr = ptr + 2;
+	    adu_offset += 2;
+	  }
+	  /*
+	   * See if we're past the end of the packet
+	   */
+	  if (adu_offset + adu->aduDataSize > pak->rtp_data_len) {
+	    // have a fragment here...
+	    // malloc a frame pointer, and copy the rest... 
+	    uint16_t seq = pak->rtp_pak_seq;
+	    unsigned char *to, *from;
+	    to = (unsigned char *)malloc(adu->aduDataSize);
+	    int copied = pak->rtp_data_len - adu_offset;
+	    memcpy(to, adu->frame_ptr, copied);
+	    if (prev_adu != NULL) {
+	      prev_adu->last_in_pak = 1;
 	    } else {
-	      // this is the 2nd packet with the regular
-	      // header - we're not doing interleaved
-	      insert_interleaved = 0;
-	      m_recvd_first_pak = 1;
-	      m_have_interleave = 0;
+	      xfree(pak);
+	    }
+	    adu->frame_ptr = to;
+	    adu->freeframe = 1;
+	    to += copied;
+	    while (m_head != NULL && 
+		   m_head->rtp_pak_seq == seq + 1 && 
+		   (*m_head->rtp_data & 0x80) == 0x80 && 
+		   copied < adu->aduDataSize) {
+	      uint32_t bytes;
+	      pak = m_head;
+	      remove_packet_rtp_queue(m_head, 0);
+	      ptr = (unsigned char *)pak->rtp_data;
+	      if ((*ptr & 0x40) == 0) {
+		// 1 byte header
+		bytes = *ptr & 0x3f;
+		from = ptr++;
+	      } else {
+		// 2 byte header
+		bytes = ((*ptr & 0x3f) << 8) + ptr[1];
+		from = ptr + 2;
+	      }
+	      memcpy(to, from, bytes);
+	      copied += bytes;
+	      to += bytes;
+	      seq++;
+	      adu_offset = 0;
+	      pak = NULL;
+	    }
+	    if (copied < adu->aduDataSize) {
+	      free_adu(adu);
+	      continue;
 	    }
 	  } else {
 	    /*
-	     * Have an interleaved packet
-	     * If there was something on the ordered list, move it to 
-	     * the deinterleaved list
+	     * adu_offset now points past the end of this adu
 	     */
-	    m_recvd_first_pak = 1;
-	    if (m_ordered_adu_list != NULL) {
-	      m_deinterleave_list = m_ordered_adu_list;
-	      m_ordered_adu_list = NULL;
+	    adu_offset += adu->aduDataSize;
+	    if (adu_offset >= pak->rtp_data_len) {
+	      adu->last_in_pak = 1;
+	    }
+	  }
+
+	  /*
+	   * Calculate the interleave index and the cyc_ct count
+	   * Fill in those values with all 1's
+	   */
+	  adu->interleave_idx = *adu->frame_ptr;
+	  adu->cyc_ct = *(adu->frame_ptr + 1) >> 5;
+	  adu->frame_ptr[0] = 0xff;
+	  adu->frame_ptr[1] |= 0xe0;
+
+	  /*
+	   * Decode the mp3 header
+	   */
+	  if (decode_mp3_header(adu->frame_ptr, 
+				&adu->mp3hdr) < 0) {
+	    mpa_message(LOG_ERR, 
+			"Couldn't decode mp3 header, rtp seq %d idx %d cyct %d", 
+			adu->pak->rtp_pak_seq, 
+			adu->interleave_idx,
+			adu->cyc_ct);
+		     
+	    // error case figure this out
+	    if (prev_adu != NULL) {
+	      prev_adu->last_in_pak = adu->last_in_pak;
 	    } 
-	    m_have_interleave = 1;
-	    insert_interleaved = 1;
-	    mpa_message(LOG_INFO, "mpa robust format is interleaved");
-	  }
-	} else {
-	  insert_interleaved = m_have_interleave;
-	}
+	    free_adu(adu);
+	    continue;
+	  } 
+	  /*
+	   * Headersize, sideInfoSize and aduDataSize 
+	   */
+	  adu->headerSize = 4;
+	  adu->sideInfoSize = mp3_sideinfo_size(&adu->mp3hdr);
 
-	adu->backpointer = mp3_get_backpointer(&adu->mp3hdr, 
-					       adu->frame_ptr);
+	  adu->aduDataSize -= (adu->headerSize + adu->sideInfoSize);
 
-	if (insert_interleaved) {
-	  insert_interleave_adu(adu);
-	} else {
-	  // calculate timestamp
-	  if (adu->first_in_pak == 0) {
-	    adu->timestamp = prev_adu->timestamp + m_rtp_ts_add;
+	  /*
+	   * Calculate the timestamp add
+	   */
+	  if (m_rtp_ts_add == 0) {
+	    m_rtp_ts_add = 
+	      ( 1000 * mp3_get_samples_per_frame(adu->mp3hdr.layer, 
+						 adu->mp3hdr.version));
+	    m_rtp_ts_add /= adu->mp3hdr.frequency;
 	  }
-	  insert_processed_adu(adu);
+	
+	  // here we make a few decisions as to where the packet should
+	  // go.
+	  // Look at first packet.  If it's got interleave, we're interleaved
+	  // if not, set up the timestamp, put it in the ordered_adu_list.
+	  // (Don't set recvd_first pak).  If it's the 2nd, and not interleaved,
+	  // leave the first, go on non-interleaved
+	  // If the first isn't, and the 2nd is, move the first to the
+	  // m_deinterleave_list, put the 2nd on the deinterleave list, 
+	  // continue.
+	  // If not the first, put on the interleaved or deinterleaved list.
+	  int insert_interleaved = 0;
+
+	  if (m_recvd_first_pak == 0) {
+	    if (adu->interleave_idx == 0xff &&
+		adu->cyc_ct == 0x7) {
+	      /*
+	       * Have an packet all 1's.  It's either the last of the
+	       * sequence for interleave, or indicates no interleave.
+	       * Put it on the ordered list if there's nothing there.
+	       * If there is something on the ordered list, we're not doing
+	       * interleaved.
+	       */
+	      if (m_ordered_adu_list == NULL) {
+		insert_interleaved = 0;
+	      } else {
+		// this is the 2nd packet with the regular
+		// header - we're not doing interleaved
+		insert_interleaved = 0;
+		m_recvd_first_pak = 1;
+		m_have_interleave = 0;
+	      }
+	    } else {
+	      /*
+	       * Have an interleaved packet
+	       * If there was something on the ordered list, move it to 
+	       * the deinterleaved list
+	       */
+	      m_recvd_first_pak = 1;
+	      if (m_ordered_adu_list != NULL) {
+		m_deinterleave_list = m_ordered_adu_list;
+		m_ordered_adu_list = NULL;
+	      } 
+	      m_have_interleave = 1;
+	      insert_interleaved = 1;
+	      mpa_message(LOG_INFO, "mpa robust format is interleaved");
+	    }
+	  } else {
+	    insert_interleaved = m_have_interleave;
+	  }
+
+	  adu->backpointer = mp3_get_backpointer(&adu->mp3hdr, 
+						 adu->frame_ptr);
+
+	  if (insert_interleaved) {
+	    insert_interleave_adu(adu);
+	  } else {
+	    // calculate timestamp
+	    if (adu->first_in_pak == 0) {
+	      adu->timestamp = prev_adu->timestamp + m_rtp_ts_add;
+	    }
+	    insert_processed_adu(adu);
+	  }
+	  prev_adu = adu;
 	}
-	prev_adu = adu;
-      }
+      } 
+    } else if (m_have_interleave && m_deinterleave_list != NULL) {
+      m_got_next_idx = 1;
     }
 
     // done with packet.  If we're interleaved, move things down
@@ -432,6 +438,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 	int cur_cyc_ct;
 	int ts_index;
 	uint64_t ts = 0;
+	m_got_next_idx = 0;
 	q = NULL;
 	p = m_deinterleave_list;
 	ts_index = -1;
@@ -464,6 +471,14 @@ void CRfc3119RtpByteStream::process_packet (void)
 	    ts = p->timestamp;
 	    ts_index = p->interleave_idx;
 	  }
+#ifdef DEBUG_3119_INTERLEAVE
+	  mpa_message(LOG_DEBUG, "cyc %d index %d fip %d ts %llu %d", 
+		      p->cyc_ct,
+		      p->interleave_idx,
+		      p->first_in_pak,
+		      p->timestamp,
+		      m_rtp_ts_add);
+#endif
 	  p = p->next_adu;
 	}
       } // end moving from deinterleave to processed list
@@ -569,7 +584,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 	prevADU->next_adu = m_pending_adu_list;
 	m_pending_adu_list = prevADU;
 #ifdef DEBUG_3119
-      mpa_message(LOG_DEBUG, "Adding zero frame front, ts %lld", ts);
+	mpa_message(LOG_DEBUG, "Adding zero frame front, ts %lld", ts);
 #endif
       } else {
 
@@ -587,7 +602,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 	prevADU->next_adu = get_adu_data();
 	prevADU = prevADU->next_adu;
 #ifdef DEBUG_3119
-      mpa_message(LOG_DEBUG, "Adding zero frame middle %lld", ts);
+	mpa_message(LOG_DEBUG, "Adding zero frame middle %lld", ts);
 #endif
       }
 

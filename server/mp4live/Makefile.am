@@ -13,7 +13,9 @@ mp4live_SOURCES = \
 	media_flow.cpp \
 	media_frame.h \
 	media_node.h \
-	media_node.cpp \
+	media_sink.h \
+	media_source.h \
+	media_source.cpp \
 	media_time.h \
 	audio_encoder.h \
 	audio_encoder.cpp \

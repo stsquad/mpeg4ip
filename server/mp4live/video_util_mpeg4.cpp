@@ -35,7 +35,7 @@ static void destroy_putbits(BitBuffer* pBitBuf);
 void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 {
 	// OPTION to make these configurable
-	bool want_vosh = false;			
+	bool want_vosh = true;			
 	bool want_vo = true;		
 	bool want_vol = true;	
 	bool want_short_time = false; 
@@ -68,16 +68,12 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 	}
 
 	if (want_vo) {
-#ifdef NOTDEF
-		// These should really be inserted,
-		// but current divx decoder barfs if they are present
-
 		// VO - Visual Object
 		putbits(&config, 0x000001B5, 32);
 
 		// no verid, priority or signal type
 		putbits(&config, 0x08, 8);
-#endif
+
 		// video object 1
 		putbits(&config, 0x00000100, 32);
 	}

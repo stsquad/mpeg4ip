@@ -35,8 +35,10 @@
 #include "sdp.h"
 #include "sdp_decode_private.h"
 
+#define FREE_CHECK(a,b) if (a->b != NULL) { free(a->b); a->b = NULL;}
+
 /*
- * add_format_to_list()
+ * sdp_add_format_to_list()
  * Adds a format to a media_desc_t format list.  Note: will only add unique
  * values.
  *
@@ -47,7 +49,7 @@
  *   pointer to added value.  This could be a new one, or one previously
  *   added
  */
-format_list_t *add_format_to_list (media_desc_t *mptr, char *val)
+format_list_t *sdp_add_format_to_list (media_desc_t *mptr, char *val)
 {
   format_list_t *new, *p;
   
@@ -87,8 +89,31 @@ format_list_t *add_format_to_list (media_desc_t *mptr, char *val)
   return (new);
 }
 
+static void free_rtpmap_desc (rtpmap_desc_t *rtpptr)
+{
+  FREE_CHECK(rtpptr, encode_name);
+  free(rtpptr);
+}
+				   
+void sdp_free_format_list (format_list_t **fptr)
+{
+  format_list_t *p;
+
+  while (*fptr != NULL) {
+    p = *fptr;
+    *fptr = p->next;
+    p->next = NULL;
+    if (p->rtpmap != NULL) {
+      free_rtpmap_desc(p->rtpmap);
+      p->rtpmap = NULL;
+    }
+    FREE_CHECK(p, fmt_param);
+    FREE_CHECK(p, fmt);
+  }
+}
+
 /*
- * add_string_to_list()
+ * sdp_add_string_to_list()
  * Adds string to string_list_t list.  Duplicates string.
  * Inputs:
  *   list - pointer to pointer of list head
@@ -96,7 +121,7 @@ format_list_t *add_format_to_list (media_desc_t *mptr, char *val)
  * Outputs:
  *   TRUE - succeeded, FALSE - failed due to no memory
  */
-int add_string_to_list (string_list_t **list, char *val)
+int sdp_add_string_to_list (string_list_t **list, char *val)
 {
   string_list_t *new, *p;
   
@@ -122,15 +147,26 @@ int add_string_to_list (string_list_t **list, char *val)
   return (TRUE);
 }
 
+void sdp_free_string_list (string_list_t **list)
+{
+  string_list_t *p;
+  while (*list != NULL) {
+    p = *list;
+    *list = p->next;
+    FREE_CHECK(p, string_val);
+    free(p);
+  }
+}
+
 /*
- * time_offset_to_str()
+ * sdp_time_offset_to_str()
  * Converts a time offset in seconds to dhms format. (ie: 3600 -> 1h)
  * Inputs:
  *   val - value in seconds to convert
  *   buff - buffer to store into
  *   buflen - length of buffer
  */
-void time_offset_to_str (uint32_t val, char *buff, uint32_t buflen)
+void sdp_time_offset_to_str (uint32_t val, char *buff, uint32_t buflen)
 {
   uint32_t div;
 
@@ -157,7 +193,7 @@ void time_offset_to_str (uint32_t val, char *buff, uint32_t buflen)
 }
 
 /*
- * find_format_in_line()
+ * sdp_find_format_in_line()
  * Looks for a format value in the list specified.  Must be an exact match.
  * Inputs:
  *   head - pointer to head of format list
@@ -166,7 +202,7 @@ void time_offset_to_str (uint32_t val, char *buff, uint32_t buflen)
  * Outputs:
  *   ptr of matching format or NULL if nothing matched.
  */
-format_list_t *find_format_in_line (format_list_t *head, char *lptr)
+format_list_t *sdp_find_format_in_line (format_list_t *head, char *lptr)
 {
   uint32_t len;
   
@@ -182,7 +218,7 @@ format_list_t *find_format_in_line (format_list_t *head, char *lptr)
   return (NULL);
 }
 
-void smpte_to_str (double value, uint16_t fps, char *buffer)
+void sdp_smpte_to_str (double value, uint16_t fps, char *buffer)
 {
   double div;
   unsigned int temp;
@@ -227,6 +263,7 @@ void sdp_set_error_func (error_msg_func_t func)
 {
   error_msg_func = func;
 }
+
 void sdp_debug (int loglevel, const char *fmt, ...)
 {
   if (loglevel <= sdp_debug_level) {

@@ -171,12 +171,13 @@ void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 	if (pBytes == NULL || numBytes == 0) {
 		return;
 	}
-	if (pFile == NULL) {
-		ASSERT(m_pFile);
-		pFile = m_pFile;
-	}
 
 	if (m_memoryBuffer == NULL) {
+		if (pFile == NULL) {
+			ASSERT(m_pFile);
+			pFile = m_pFile;
+		}
+
 		u_int32_t rc = fwrite(pBytes, 1, numBytes, pFile);
 		if (rc != numBytes) {
 			throw new MP4Error(errno, "MP4WriteBytes");

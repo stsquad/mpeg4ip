@@ -22,7 +22,7 @@
 #ifndef __VIDEO_SDL_PREVIEW_H__ 
 #define __VIDEO_SDL_PREVIEW_H__ 
 
-#include "media_node.h"
+#include "media_sink.h"
 
 class CSDLVideoPreview : public CMediaSink {
 public:

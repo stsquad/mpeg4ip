@@ -244,11 +244,11 @@ static int encode_range (range_desc_t *rptr, sdp_encode_t *se)
 	ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       }
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "=");
-      smpte_to_str(rptr->range_start, rptr->range_smpte_fps, buffer);
+      sdp_smpte_to_str(rptr->range_start, rptr->range_smpte_fps, buffer);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "-");
       if (rptr->range_end_infinite == FALSE) {
-	smpte_to_str(rptr->range_end, rptr->range_smpte_fps, buffer);
+	sdp_smpte_to_str(rptr->range_end, rptr->range_smpte_fps, buffer);
 	ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       }
     }
@@ -276,10 +276,10 @@ static int encode_time (session_time_desc_t *tptr, sdp_encode_t *se)
     rptr = tptr->repeat;
     while (rptr != NULL) {
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "r=");
-      time_offset_to_str(rptr->repeat_interval, buffer, sizeof(buffer));
+      sdp_time_offset_to_str(rptr->repeat_interval, buffer, sizeof(buffer));
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, " ");
-      time_offset_to_str(rptr->active_duration, buffer, sizeof(buffer));
+      sdp_time_offset_to_str(rptr->active_duration, buffer, sizeof(buffer));
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       for (ix = 0; ix < rptr->offset_cnt; ix++) {
 	sprintf(buffer, " %d", rptr->offsets[ix]);
@@ -319,7 +319,7 @@ static int encode_time_adj (time_adj_desc_t *aptr, sdp_encode_t *se)
       buff = buffer;
       len = sizeof(buffer);
     }
-    time_offset_to_str(offset, buff, len);
+    sdp_time_offset_to_str(offset, buff, len);
     
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
     if (dohead == FALSE)

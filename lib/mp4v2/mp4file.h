@@ -29,6 +29,7 @@ class MP4Float32Property;
 class MP4StringProperty;
 class MP4BytesProperty;
 class MP4Descriptor;
+class MP4DescriptorProperty;
 
 class MP4File {
 public: /* equivalent to MP4 library API */
@@ -41,7 +42,6 @@ public: /* equivalent to MP4 library API */
 	void Modify(const char* fileName);
 	void Optimize(const char* orgFileName, 
 		const char* newFileName = NULL);
-	void MakeIsmaCompliant(bool addIsmaComplianceSdp = true);
 	void Dump(FILE* pDumpFile = NULL, bool dumpImplicits = false);
 	void Close();
 
@@ -220,6 +220,22 @@ public: /* equivalent to MP4 library API */
 	const char* GetHintTrackSdp(MP4TrackId hintTrackId);
 	void SetHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
 	void AppendHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
+
+	// ISMA specific functions
+
+	void MakeIsmaCompliant(bool addIsmaComplianceSdp = true);
+
+	void CreateIsmaIodFromParams(
+		u_int8_t videoProfile,
+		u_int32_t videoBitrate,
+		u_int8_t* videoConfig,
+		u_int32_t videoConfigLength,
+		u_int8_t audioProfile,
+		u_int32_t audioBitrate,
+		u_int8_t* audioConfig,
+		u_int32_t audioConfigLength,
+		u_int8_t** ppBytes,
+		u_int64_t* pNumBytes);
 
 	// time convenience functions
 
@@ -465,20 +481,49 @@ protected:
 
 	u_int8_t ConvertTrackTypeToStreamType(const char* trackType);
 
-	void CreateIsmaIod(
-		MP4TrackId odTrackId, MP4TrackId sceneTrackId, 
-		MP4TrackId audioTrackId, MP4TrackId videoTrackId,
-		u_int8_t** ppBytes, u_int64_t* pNumBytes);
-
-	void CreateIsmaODUpdateCommand(
+	void CreateIsmaIodFromFile(
 		MP4TrackId odTrackId,
-		MP4TrackId audioTrackId, MP4TrackId videoTrackId,
-		bool mp4FileMode,
-		u_int8_t** ppBytes, u_int64_t* pNumBytes);
+		MP4TrackId sceneTrackId,
+		MP4TrackId audioTrackId, 
+		MP4TrackId videoTrackId,
+		u_int8_t** ppBytes,
+		u_int64_t* pNumBytes);
 
-	void CreateIsmaSceneCommand(MP4TrackId sceneTrackId,
-		MP4TrackId audioTrackId, MP4TrackId videoTrackId,
-		u_int8_t** ppBytes, u_int64_t* pNumBytes);
+	MP4Descriptor* CreateESD(
+		MP4DescriptorProperty* pEsProperty,
+		u_int32_t esid,
+		u_int8_t objectType,
+		u_int8_t streamType,
+		u_int32_t bufferSize,
+		u_int32_t bitrate,
+		u_int8_t* pConfig,
+		u_int32_t configLength,
+		char* url);
+
+	void CreateIsmaODUpdateCommandFromFileForFile(
+		MP4TrackId odTrackId,
+		MP4TrackId audioTrackId, 
+		MP4TrackId videoTrackId,
+		u_int8_t** ppBytes,
+		u_int64_t* pNumBytes);
+
+	void CreateIsmaODUpdateCommandFromFileForStream(
+		MP4TrackId audioTrackId, 
+		MP4TrackId videoTrackId,
+		u_int8_t** ppBytes,
+		u_int64_t* pNumBytes);
+
+	void CreateIsmaODUpdateCommandForStream(
+		MP4DescriptorProperty* pAudioEsdProperty, 
+		MP4DescriptorProperty* pVideoEsdProperty,
+		u_int8_t** ppBytes,
+		u_int64_t* pNumBytes);
+
+	void CreateIsmaSceneCommand(
+		bool hasAudio,
+		bool hasVideo,
+		u_int8_t** ppBytes, 
+		u_int64_t* pNumBytes);
 
 protected:
 	char*			m_fileName;

@@ -24,7 +24,8 @@
 #define __MEDIA_FLOW_H__
 
 #include "mp4live_config.h"
-#include "media_node.h"
+#include "media_source.h"
+#include "media_sink.h"
 
 // abstract parent class
 class CMediaFlow {
@@ -50,10 +51,10 @@ protected:
 };
 
 enum {
-	FLOW_STATUS_STARTED,
-	FLOW_STATUS_VIDEO_ENCODED_FRAMES,
+	FLOW_STATUS_DONE,
+	FLOW_STATUS_DURATION,
 	FLOW_STATUS_PROGRESS,
-	FLOW_STATUS_EST_SIZE,
+	FLOW_STATUS_VIDEO_ENCODED_FRAMES,
 };
 
 class CAVMediaFlow : public CMediaFlow {

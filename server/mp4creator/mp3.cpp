@@ -218,7 +218,8 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 
 	u_int8_t audioType = MP4AV_Mp3ToMp4AudioType(mpegVersion);
 
-	if (audioType == MP4_INVALID_AUDIO_TYPE) {
+	if (audioType == MP4_INVALID_AUDIO_TYPE
+	  || samplesPerSecond == 0) {
 		fprintf(stderr,	
 			"%s: data in file doesn't appear to be valid audio\n",
 			 ProgName);

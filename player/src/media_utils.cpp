@@ -344,7 +344,7 @@ static int create_from_sdp (CPlayerSession *psptr,
 					      sdp->control_string,
 					      errmsg,
 					      errlen);
-    free_session_desc(sdp);
+    sdp_free_session_desc(sdp);
     free(sdp_info);
     return (err);
   }
@@ -568,6 +568,7 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 			      rtpinfo_received, rtp_rtptime, 
 			      rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
+	player_debug_message("Starting mp3 2250 byte stream");
 	return (rtp_byte_stream);
       }
       break;

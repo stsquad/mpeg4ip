@@ -235,7 +235,11 @@ static int iso_decode (codec_data_t *ptr,
   if (buflen <= 4) return -1;
 
   iso->m_total_frames++;
-  iso->m_pvodec->SetUpBitstreamBuffer(buffer, buflen);
+  buffer[buflen] = 0;
+  buffer[buflen + 1] = 0;
+  buffer[buflen + 2] = 1;
+
+  iso->m_pvodec->SetUpBitstreamBuffer(buffer, buflen + 3);
 
   switch (iso->m_decodeState) {
   case DECODE_STATE_VOL_SEARCH: {
@@ -407,6 +411,8 @@ static int iso_decode (codec_data_t *ptr,
 				pixelw_y, 
 				pixelw_uv, 
 				displaytime);
+  } else {
+    iso_message(LOG_DEBUG, mp4iso, "decode but no frame %llu", ts);
   }
   return (iso->m_pvodec->get_used_bytes());
 }

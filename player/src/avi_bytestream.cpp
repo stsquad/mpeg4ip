@@ -125,7 +125,11 @@ void CAviVideoByteStream::set_start_time (uint64_t start)
 {
   m_play_start_time = start;
 
-  double time = (double)start;
+  double time = (double)
+#ifdef _WIN32
+	  (int64_t)
+#endif
+	  start;
   time *= m_frame_rate;
   time /= 1000;
 #if 0

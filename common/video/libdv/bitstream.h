@@ -138,6 +138,10 @@ static inline guint32 bitstream_get(bitstream_t * bs, guint32 num_bits) {
   return bitstream_get_bh(bs,num_bits);
 }
 
+  #ifdef MPEG4IP
+  #define g_return_if_fail(a) if (!(a)) return
+  #endif
+
 // This will fail unpredictably if you try to put more than 32 bits back
 static inline void bitstream_unget(bitstream_t *bs, guint32 data, guint8 num_bits)
 {

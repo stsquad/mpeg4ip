@@ -34,10 +34,12 @@
 bool CMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
 {
 	switch (valueName) {
+#ifdef TBD
 	case FLOW_STATUS_STARTED:
 		// TBD reflect stopped if all sources have stopped
 		*(u_int32_t*)pValue = m_started;
 		break;
+#endif
 	default:
 		return false;
 	}
@@ -70,7 +72,7 @@ void CAVMediaFlow::Start(void)
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
-		if (m_pConfig->IsOneSource()) {
+		if (m_pConfig->IsOneSource() && m_videoSource) {
 			m_audioSource = m_videoSource;
 		} else {
 			const char* sourceType = 
@@ -331,7 +333,40 @@ void CAVMediaFlow::SetAudioOutput(bool mute)
 
 bool CAVMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
 {
+	CMediaSource* source = NULL;
+	if (m_videoSource) {
+		source = m_videoSource;
+	} else if (m_audioSource) {
+		source = m_audioSource;
+	}
+
 	switch (valueName) {
+	case FLOW_STATUS_DONE: 
+		{
+		bool done = true;
+		if (m_videoSource) {
+			done = m_videoSource->IsDone();
+		}
+		if (m_audioSource) {
+			done = (done && m_audioSource->IsDone());
+		}
+		*(bool*)pValue = done;
+		}
+		break;
+	case FLOW_STATUS_DURATION:
+		if (source) {
+			*(Duration*)pValue = source->GetElapsedDuration();
+		} else {
+			*(Duration*)pValue = 0;
+		}
+		break;
+	case FLOW_STATUS_PROGRESS:
+		if (source) {
+			*(float*)pValue = source->GetProgress();
+		} else {
+			*(float*)pValue = 0.0;
+		}
+		break;
 	case FLOW_STATUS_VIDEO_ENCODED_FRAMES:
 		if (m_videoSource) {
 			*(u_int32_t*)pValue = m_videoSource->GetNumEncodedVideoFrames();

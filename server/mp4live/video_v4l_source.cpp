@@ -102,18 +102,11 @@ void CV4LVideoSource::DoStopCapture(void)
 		return;
 	}
 
-	m_encoder->Stop();
-	delete m_encoder;
-	m_encoder = NULL;
+	ShutdownVideo();
 
 	ReleaseDevice();
 
 	m_capture = false;
-}
-
-void CV4LVideoSource::DoGenerateKeyFrame(void)
-{
-	m_wantKeyFrame = true;
 }
 
 bool CV4LVideoSource::Init(void)
@@ -122,38 +115,16 @@ bool CV4LVideoSource::Init(void)
 		return false;
 	}
 
-	InitSizes();
+	CalculateVideoFrameSize(m_pConfig);
 
-	if (!InitEncoder()) {
-		close(m_videoDevice);
-		m_videoDevice = -1;
-		return false;
-	}
-
-	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) == VIDEO_MODE_NTSC) {
-		m_rawFrameRate = VIDEO_NTSC_FRAME_RATE;
-	} else {
-		m_rawFrameRate = VIDEO_PAL_FRAME_RATE;
-	}
-	m_rawFrameNumber = 0;
-	m_rawFrameDuration = (Duration)
-		((TimestampTicks / m_rawFrameRate) + 0.5);
-
-	m_encodedFrameNumber = 0;
-	m_targetFrameDuration = (Duration)
-		((TimestampTicks / m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE)) 
-			+ 0.5);
+	InitVideo(
+		m_rawFrameRate,
+		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
+		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT),
+		true,
+		true);
 
 	m_maxPasses = (u_int8_t)(m_rawFrameRate + 0.5);
-
-	m_prevYuvImage = NULL;
-	m_prevReconstructImage = NULL;
-	m_prevVopBuf = NULL;
-	m_prevVopBufLength = 0;
-
-	m_skippedFrames = 0;
-	m_encodingDrift = 0;
-	m_encodingMaxDrift = m_targetFrameDuration;
 
 	return true;
 }
@@ -204,6 +175,11 @@ bool CV4LVideoSource::InitDevice(void)
 		error_message("Failed to set video channel info for %s",
 			deviceName);
 		goto failure;
+	}
+	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) == VIDEO_MODE_NTSC) {
+		m_rawFrameRate = VIDEO_NTSC_FRAME_RATE;
+	} else {
+		m_rawFrameRate = VIDEO_PAL_FRAME_RATE;
 	}
 
 	// input source has a TV tuner
@@ -397,36 +373,6 @@ void CalculateVideoFrameSize(CLiveConfig* pConfig)
 	pConfig->m_yuvSize = (pConfig->m_ySize * 3) / 2;
 }
 
-void CV4LVideoSource::InitSizes()
-{
-	CalculateVideoFrameSize(m_pConfig);
-
-	m_yRawSize = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH)
-		* m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
-	m_uvRawSize = m_yRawSize / 4;
-	m_yuvRawSize = m_yRawSize + (2 * m_uvRawSize);
-
-	m_yOffset = m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH)
-		* ((m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT)
-			- m_pConfig->m_videoHeight) / 2);
-	m_uvOffset = m_yOffset / 4;
-		
-	m_yuvSize = m_pConfig->m_ySize + 2 * m_pConfig->m_uvSize;
-}
-
-bool CV4LVideoSource::InitEncoder()
-{
-	m_encoder = VideoEncoderCreate(
-		m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
-
-	if (m_encoder == NULL) {
-		return false;
-	}
-
-	return m_encoder->Init(m_pConfig);
-}
-
 int8_t CV4LVideoSource::AcquireFrame(void)
 {
 	int rc;
@@ -448,12 +394,6 @@ int8_t CV4LVideoSource::AcquireFrame(void)
 
 void CV4LVideoSource::ProcessVideo(void)
 {
-	u_int8_t* yuvImage = NULL;
-	u_int8_t* yImage;
-	u_int8_t* uImage;
-	u_int8_t* vImage;
-	Duration prevFrameDuration = 0;
-
 	// for efficiency, process ~1 second before returning to check for commands
 	for (int pass = 0; pass < m_maxPasses; pass++) {
 
@@ -465,188 +405,16 @@ void CV4LVideoSource::ProcessVideo(void)
 
 		Timestamp frameTimestamp = GetTimestamp();
 
-		if (m_rawFrameNumber == 0) {
-			m_startTimestamp = frameTimestamp;
-			m_targetElapsedDuration = 0;
-		}
-		m_rawFrameNumber++;
+		ProcessVideoFrame(
+			(u_int8_t*)m_videoMap 
+				+ m_videoMbuf.offsets[m_encodeHead],
+			frameTimestamp);
 
-		Duration elapsedTime = frameTimestamp - m_startTimestamp;
-
-		// drop raw frames as needed to match target frame rate
-		if (m_targetElapsedDuration >= elapsedTime + m_rawFrameDuration) {
-			goto release;
-		}
-
-		// check if we are falling behind due to encoding speed
-		if (m_encodingDrift >= m_encodingMaxDrift) {
-			if (m_encodingDrift <= m_targetFrameDuration) {
-				m_encodingDrift = 0;
-			} else {
-				m_encodingDrift -= m_targetFrameDuration;
-			}
-
-			// skip this frame			
-			m_skippedFrames++;
-			goto release;
-		}
-
-		// perform colorspace conversion if necessary
-		if (m_pConfig->m_videoNeedRgbToYuv) {
-			yuvImage = (u_int8_t*)Malloc(m_yuvRawSize);
-
-			RGB2YUV(
-				m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH), 
-				m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT), 
-				(u_int8_t*)m_videoMap + m_videoMbuf.offsets[m_encodeHead],
-				yuvImage,
-				yuvImage + m_yRawSize,
-				yuvImage + m_yRawSize + m_uvRawSize,
-				1);
-		} else {
-			yuvImage = (u_int8_t*)m_videoMap 
-				+ m_videoMbuf.offsets[m_encodeHead];
-		}
-
-		yImage = yuvImage + m_yOffset;
-		uImage = yuvImage + m_yRawSize + m_uvOffset;
-		vImage = uImage + m_uvRawSize;
-
-		// encode video frame to MPEG-4
-		if (m_pConfig->m_videoEncode) {
-
-			// call encoder
-			if (!m_encoder->EncodeImage(
-			  yImage, uImage, vImage, m_wantKeyFrame)) {
-				debug_message("Can't encode image!");
-				goto release;
-			}
-
-			// clear this flag
-			m_wantKeyFrame = false;
-		}
-
-		m_targetElapsedDuration += m_targetFrameDuration;
-
-		// calculate previous frame duration
-		if (m_rawFrameNumber > 0) {
-
-			// first adjust due to skipped frames
-			Duration prevFrameAdjustment = 
-				m_skippedFrames * m_targetFrameDuration;
-
-			prevFrameDuration = 
-				m_targetFrameDuration + prevFrameAdjustment;
-			m_targetElapsedDuration += prevFrameAdjustment;
-
-			// check our duration against real elasped time
-			Duration lag = elapsedTime - m_targetElapsedDuration;
-
-			if (lag > 0) {
-				// adjust by integral number of target duration units
-				prevFrameAdjustment = 
-					(lag / m_targetFrameDuration) * m_targetFrameDuration;
-
-				prevFrameDuration += prevFrameAdjustment;
-				m_targetElapsedDuration += prevFrameAdjustment;
-			}
-		}
-
-		// forward encoded video to sinks
-		if (m_pConfig->m_videoEncode) {
-			if (m_prevVopBuf) {
-				CMediaFrame* pFrame = new CMediaFrame(
-					CMediaFrame::Mpeg4VideoFrame, 
-					m_prevVopBuf, 
-					m_prevVopBufLength,
-					m_prevVopTimestamp, 
-					prevFrameDuration);
-				ForwardFrame(pFrame);
-				delete pFrame;
-			}
-
-			// hold onto this encoded vop until next one is ready
-			m_encoder->GetEncodedImage(&m_prevVopBuf, &m_prevVopBufLength);
-			m_prevVopTimestamp = frameTimestamp;
-
-			m_encodedFrameNumber++;
-		}
-
-		// forward raw video to sinks
-		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)
-		  || m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
-
-			if (m_prevYuvImage) {
-				CMediaFrame* pFrame =
-					new CMediaFrame(CMediaFrame::RawYuvVideoFrame, 
-						m_prevYuvImage, 
-						m_yuvSize,
-						m_prevYuvImageTimestamp, 
-						prevFrameDuration);
-				ForwardFrame(pFrame);
-				delete pFrame;
-			}
-
-			m_prevYuvImage = (u_int8_t*)Malloc(m_yuvSize);
-
-			memcpy(m_prevYuvImage, 
-				yImage, 
-				m_pConfig->m_ySize);
-			memcpy(m_prevYuvImage + m_pConfig->m_ySize, 
-				uImage, 
-				m_pConfig->m_uvSize);
-			memcpy(m_prevYuvImage + m_pConfig->m_ySize + m_pConfig->m_uvSize, 
-				vImage, 
-				m_pConfig->m_uvSize);
-
-			m_prevYuvImageTimestamp = frameTimestamp;
-		}
-
-		// forward reconstructed video to sinks
-		if (m_pConfig->m_videoEncode
-		  && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
-
-			if (m_prevReconstructImage) {
-				CMediaFrame* pFrame =
-					new CMediaFrame(CMediaFrame::ReconstructYuvVideoFrame, 
-						m_prevReconstructImage, 
-						m_yuvSize,
-						m_prevVopTimestamp, 
-						prevFrameDuration);
-				ForwardFrame(pFrame);
-				delete pFrame;
-			}
-
-			m_prevReconstructImage = (u_int8_t*)Malloc(m_yuvSize);
-
-			m_encoder->GetReconstructedImage(
-				m_prevReconstructImage,
-				m_prevReconstructImage + m_pConfig->m_ySize,
-				m_prevReconstructImage + m_pConfig->m_ySize 
-					+ m_pConfig->m_uvSize);
-		}
-
-		// reset skipped frames
-		m_skippedFrames = 0;
-
-		// calculate how we're doing versus target frame rate
-		// this is used to decide if we need to drop frames
-		m_encodingDrift += 
-			(GetTimestamp() - frameTimestamp) - m_targetFrameDuration;
-		if (m_encodingDrift < 0) {
-			m_encodingDrift = 0;
-		}
-
-release:
 		// release video frame buffer back to video capture device
 		if (ReleaseFrame(m_encodeHead)) {
 			m_encodeHead = (m_encodeHead + 1) % m_videoMbuf.frames;
 		} else {
 			debug_message("Couldn't release capture buffer!");
-		}
-		if (m_pConfig->m_videoNeedRgbToYuv) {
-			free(yuvImage);
-			yuvImage = NULL;
 		}
 	}
 }

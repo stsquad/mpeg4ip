@@ -25,7 +25,7 @@
 
 #include <mp4.h>
 #include <mp4av.h>
-#include "media_node.h"
+#include "media_sink.h"
 
 #define RTP_HEADER_STD_SIZE 12
 

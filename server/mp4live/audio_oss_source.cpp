@@ -131,6 +131,7 @@ void COSSAudioSource::DoStopCapture()
 
 bool COSSAudioSource::Init(void)
 {
+	m_realTime = true;
 	m_startTimestamp = 0;
 
 	if (m_pConfig->m_audioEncode) {
@@ -311,6 +312,15 @@ void COSSAudioSource::ProcessAudio(void)
 			// we'll get a new buffer on the next pass
 			m_rawFrameBuffer = NULL;
 		}
+	}
+}
+
+Duration COSSAudioSource::GetElapsedDuration()
+{
+	if (m_pConfig->m_audioEncode) {
+		return SamplesToTicks(m_encodedForwardedSamples);
+	} else {
+		return SamplesToTicks(m_rawForwardedSamples);
 	}
 }
 

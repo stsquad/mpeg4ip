@@ -108,8 +108,6 @@ void CMpeg2FileSource::DoStartVideo(void)
 		return;
 	}
 
-	m_videoStartTimestamp = GetTimestamp();
-
 	m_sourceVideo = true;
 	m_source = true;
 }
@@ -149,36 +147,13 @@ void CMpeg2FileSource::DoStopSource(void)
 		return;
 	}
 
-	if (m_videoSrcYImage) {
-		scale_free_image(m_videoSrcYImage);
-		m_videoSrcYImage = NULL;
-	}
-	if (m_videoDstYImage) {
-		scale_free_image(m_videoDstYImage);
-		m_videoDstYImage = NULL;
-	}
-	if (m_videoYResizer) {
-		scale_image_done(m_videoYResizer);
-		m_videoYResizer = NULL;
-	}
-	if (m_videoSrcUVImage) {
-		scale_free_image(m_videoSrcUVImage);
-		m_videoSrcUVImage = NULL;
-	}
-	if (m_videoDstUVImage) {
-		scale_free_image(m_videoDstUVImage);
-		m_videoDstUVImage = NULL;
-	}
-	if (m_videoUVResizer) {
-		scale_image_done(m_videoUVResizer);
-		m_videoUVResizer = NULL;
-	}
+	ShutdownVideo();
 
-	if (m_videoEncoder) {
-		m_videoEncoder->Stop();
-		delete m_videoEncoder;
-		m_videoEncoder = NULL;
-	}
+	free(m_videoYUVImage);
+	m_videoYUVImage = NULL;
+	m_videoYImage = NULL;
+	m_videoUImage = NULL;
+	m_videoVImage = NULL;
 
 	if (m_audioEncoder) {
 		// flush remaining output from audio encoder
@@ -225,61 +200,21 @@ bool CMpeg2FileSource::InitVideo(void)
 		return false;
 	}
 
-	m_videoSrcWidth =
-		mpeg3_video_width(m_mpeg2File, m_videoStream);
-	m_videoSrcHeight =
-		mpeg3_video_height(m_mpeg2File, m_videoStream);
+	bool realTime =
+		m_pConfig->GetBoolValue(CONFIG_RTP_ENABLE);
 
-	m_videoSrcYSize = m_videoSrcWidth * m_videoSrcHeight;
-	m_videoSrcUVSize = m_videoSrcYSize / 4;
-	m_videoSrcYUVSize = (m_videoSrcYSize * 3) / 2;
+	CMediaSource::InitVideo(
+		mpeg3_frame_rate(m_mpeg2File, m_videoStream),
+		mpeg3_video_width(m_mpeg2File, m_videoStream),
+		mpeg3_video_height(m_mpeg2File, m_videoStream),
+		false, 
+		realTime);
 
-	u_int16_t mpeg4Width =
-		m_pConfig->m_videoWidth;
-	u_int16_t mpeg4Height =
-		m_pConfig->m_videoHeight;
+	m_videoYUVImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
 
-	// TBD which filter?
-	if (m_videoSrcWidth != mpeg4Width || m_videoSrcHeight != mpeg4Height) {
-		m_videoSrcYImage = 
-			scale_new_image(m_videoSrcWidth, m_videoSrcHeight, 1);
-		m_videoDstYImage = 
-			scale_new_image(mpeg4Width, mpeg4Height, 1);
-		m_videoYResizer = 
-			scale_image_init(m_videoDstYImage, m_videoSrcYImage, 
-				Bell_filter, Bell_support);
-
-		m_videoSrcUVImage = 
-			scale_new_image(m_videoSrcWidth / 2, m_videoSrcHeight / 2, 1);
-		m_videoDstUVImage = 
-			scale_new_image(mpeg4Width / 2, mpeg4Height / 2, 1);
-		m_videoUVResizer = 
-			scale_image_init(m_videoDstUVImage, m_videoSrcUVImage, 
-				Bell_filter, Bell_support);
-	}
-
-// TEMP
-	float fps = mpeg3_frame_rate(m_mpeg2File, m_videoStream);
-
-	m_pConfig->SetFloatValue(CONFIG_VIDEO_FRAME_RATE, fps);
-
-	m_videoFrameDuration = (Duration)(((float)TimestampTicks / fps) + 0.5);
-
-	GenerateMpeg4VideoConfig(m_pConfig);
-// END TEMP
-
-	m_videoEncoder = VideoEncoderCreate(
-		m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
-
-	if (!m_videoEncoder) {
-		return false;
-	}
-	if (!m_videoEncoder->Init(m_pConfig)) {
-		return false;
-	}
-
-	m_videoFrameNumber = 0;
-	m_videoElapsedDuration = 0;
+	m_videoYImage = m_videoYUVImage;
+	m_videoUImage = m_videoYUVImage + m_videoSrcYSize;
+	m_videoVImage = m_videoYUVImage + m_videoSrcYSize + m_videoSrcUVSize;
 
 	return true;
 }
@@ -365,11 +300,6 @@ bool CMpeg2FileSource::InitAudio(void)
 	return true;
 }
 
-void CMpeg2FileSource::DoGenerateKeyFrame(void)
-{
-	m_wantKeyFrame = true;
-}
-
 void CMpeg2FileSource::ProcessMedia(void)
 {
 	Duration start = GetElapsedDuration();
@@ -414,20 +344,34 @@ void CMpeg2FileSource::ProcessMedia(void)
 
 void CMpeg2FileSource::ProcessVideo(void)
 {
-	int rc = 0;
+	// check if we'll encode this frame
+	if (!WillUseVideoFrame()) {
+		// if not, just skip frame, don't bother decoding it
+		m_videoSrcFrameNumber++;
+		mpeg3_set_frame(m_mpeg2File, m_videoSrcFrameNumber, m_videoStream);
+		return;
+	}
 
-	u_int8_t* yuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
-	
-	u_int8_t* yImage = yuvImage;
-	u_int8_t* uImage = yuvImage + m_videoSrcYSize;
-	u_int8_t* vImage = yuvImage + m_videoSrcYSize + m_videoSrcUVSize;
+	if (m_realTime) {
+		// TBD PaceFileSource();
+		Duration realDuration =
+			GetTimestamp() - m_videoStartTimestamp;
+		Duration aheadDuration =
+			m_videoElapsedDuration - realDuration; 
+
+		if (aheadDuration >= m_maxAheadDuration) {
+			SDL_Delay((aheadDuration - (m_maxAheadDuration / 2)) / 1000);
+		}
+	}
+
+	int rc = 0;
 
 	// read mpeg2 frame
 	rc = mpeg3_read_yuvframe(
 		m_mpeg2File, 
-		(char*)yImage, 
-		(char*)uImage, 
-		(char*)vImage, 
+		(char*)m_videoYImage, 
+		(char*)m_videoUImage, 
+		(char*)m_videoVImage, 
 		0, 
 		0,
 		m_videoSrcWidth, 
@@ -439,112 +383,12 @@ void CMpeg2FileSource::ProcessVideo(void)
 		return;
 	}
 
-	// resize if necessary
-	if (m_videoYResizer) {
-		u_int8_t* resizedYUV = (u_int8_t*)Malloc(m_pConfig->m_yuvSize);
-		
-		u_int8_t* resizedY = 
-			resizedYUV;
-		u_int8_t* resizedU = 
-			resizedYUV + m_pConfig->m_ySize;
-		u_int8_t* resizedV = 
-			resizedYUV + m_pConfig->m_ySize + m_pConfig->m_uvSize;
+	ProcessVideoFrame(
+		m_videoYUVImage,
+		m_videoStartTimestamp 
+			+ (m_videoSrcFrameNumber * m_videoSrcFrameDuration));
 
-		m_videoSrcYImage->data = yImage;
-		m_videoDstYImage->data = resizedY;
-		scale_image_process(m_videoYResizer);
-
-		m_videoSrcUVImage->data = uImage;
-		m_videoDstUVImage->data = resizedU;
-		scale_image_process(m_videoUVResizer);
-
-		m_videoSrcUVImage->data = vImage;
-		m_videoDstUVImage->data = resizedV;
-		scale_image_process(m_videoUVResizer);
-
-		// done with the original source image
-		free(yuvImage);
-
-		// switch over to resized version
-		yuvImage = resizedYUV;
-		yImage = resizedY;
-		uImage = resizedU;
-		vImage = resizedV;
-	}
-
-	// encode video frame
-	if (m_pConfig->m_videoEncode) {
-
-		// call encoder
-		rc = m_videoEncoder->EncodeImage(
-			yImage, 
-			uImage, 
-			vImage, 
-			m_wantKeyFrame);
-
-		if (!rc) {
-			debug_message("Can't encode image!");
-			return;
-		}
-
-		// clear this flag
-		m_wantKeyFrame = false;
-
-		u_int8_t* vopBuffer;
-		u_int32_t vopBufferLength;
-
-		m_videoEncoder->GetEncodedImage(&vopBuffer, &vopBufferLength);
-
-		// forward encoded video to sinks
-		CMediaFrame* pFrame = new CMediaFrame(
-			CMediaFrame::Mpeg4VideoFrame, 
-			vopBuffer, 
-			vopBufferLength,
-			m_videoStartTimestamp 
-				+ m_videoFrameNumber * m_videoFrameDuration,
-			m_videoFrameDuration);
-		ForwardFrame(pFrame);
-		delete pFrame;
-	}
-
-	// forward raw video to sinks
-	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)
-	  || m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
-
-		CMediaFrame* pFrame =
-			new CMediaFrame(CMediaFrame::RawYuvVideoFrame, 
-				yuvImage, 
-				m_pConfig->m_yuvSize,
-				m_videoStartTimestamp 
-					+ m_videoFrameNumber * m_videoFrameDuration,
-				m_videoFrameDuration);
-		ForwardFrame(pFrame);
-		delete pFrame;
-	}
-
-	// forward reconstructed video to sinks
-	if (m_pConfig->m_videoEncode
-	  && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
-
-		u_int8_t* reconstructImage = 
-			(u_int8_t*)Malloc(m_pConfig->m_yuvSize);
-		
-		m_videoEncoder->GetReconstructedImage(
-			reconstructImage,
-			reconstructImage + m_pConfig->m_ySize,
-			reconstructImage + m_pConfig->m_ySize + m_pConfig->m_uvSize);
-
-		CMediaFrame* pFrame =
-			new CMediaFrame(CMediaFrame::ReconstructYuvVideoFrame, 
-				reconstructImage, 
-				m_pConfig->m_yuvSize,
-				m_videoFrameNumber * m_videoFrameDuration,
-				m_videoFrameDuration);
-		ForwardFrame(pFrame);
-		delete pFrame;
-	}
-
-	m_videoFrameNumber++;
+	return;
 }
 
 void CMpeg2FileSource::ProcessAudio(void)
@@ -554,6 +398,18 @@ void CMpeg2FileSource::ProcessAudio(void)
 		mpeg3_get_sample(m_mpeg2File, m_audioStream);
 	u_int16_t* pcmLeftSamples = NULL;
 	u_int16_t* pcmRightSamples = NULL;
+
+	if (m_realTime) {
+		// TBD PaceFileSource();
+		Duration realDuration =
+			GetTimestamp() - m_audioStartTimestamp;
+		Duration aheadDuration =
+			m_audioElapsedDuration - realDuration; 
+
+		if (aheadDuration >= m_maxAheadDuration) {
+			SDL_Delay((aheadDuration - (m_maxAheadDuration / 2)) / 1000);
+		}
+	}
 
 	if (m_audioEncode
 	  || m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
@@ -701,7 +557,7 @@ cleanup:
 Duration CMpeg2FileSource::GetElapsedDuration()
 {
 	m_videoElapsedDuration =
-		m_videoFrameNumber * m_videoFrameDuration;
+		m_videoSrcFrameNumber * m_videoSrcFrameDuration;
 
 	m_audioElapsedDuration =
 		SamplesToTicks(m_audioSrcSamples);

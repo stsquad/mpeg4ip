@@ -537,11 +537,22 @@ bool MP4WriteRtpHint(
 	MP4Duration duration,
 	bool isSyncSample DEFAULT(true));
 
-/* ISMA specific operations */
+/* ISMA specific utilities */
 
 bool MP4MakeIsmaCompliant(const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
 	bool addIsmaComplianceSdp DEFAULT(true));
+
+char* MP4MakeIsmaSdpIod(
+	u_int8_t videoProfile,
+	u_int32_t videoBitrate,
+	u_int8_t* videoConfig,
+	u_int32_t videoConfigLength,
+	u_int8_t audioProfile,
+	u_int32_t audioBitrate,
+	u_int8_t* audioConfig,
+	u_int32_t audioConfigLength,
+	u_int32_t verbosity DEFAULT(0));
 
 /* time conversion utilties */
 

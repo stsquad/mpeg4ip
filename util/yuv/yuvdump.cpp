@@ -7,8 +7,15 @@ int main (int argc, char **argv)
   uint8_t *ybuf, *ubuf, *vbuf;
   uint32_t height = 240, width = 320, ysize, uvsize, readbytes;
   char buf[32];
+
+  printf("%s - %s version %s\n", *argv, PACKAGE, VERSION);
+
   argc--;
   argv++;
+  if (argc == 0) {
+    printf("Usage - yuvdump -h <height> -w <width> filename\n");
+    return 0;
+  }
 
   while (argv[0][0] == '-') {
     switch (argv[0][1]) {
@@ -74,7 +81,14 @@ int main (int argc, char **argv)
   vbuf = (uint8_t *)malloc(ysize);
 
   unsigned int fcount = 0;
+  int qevent = 0;
   do {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT) {
+	qevent = 1;
+      }
+    }
     fcount++;
     readbytes = fread(ybuf, ysize,  sizeof(uint8_t), yuvfile);
     if (readbytes != 1) {
@@ -100,9 +114,9 @@ int main (int argc, char **argv)
     SDL_UnlockYUVOverlay(m_image);
     //SDL_Delay(33);
     //printf("%u\n", fcount);
-  } while (!feof(yuvfile));
+  } while (qevent == 0 && !feof(yuvfile));
 
-  SDL_Delay(5000);
+  SDL_Delay(2000);
   printf("Frames read %u\n", fcount);
   SDL_FreeYUVOverlay(m_image);
   SDL_FreeSurface(m_screen);

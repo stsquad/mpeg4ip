@@ -81,6 +81,11 @@ void CMp4Recorder::DoStartRecord()
 		return;
 	}
 
+	m_rawVideoTrackId = MP4_INVALID_TRACK_ID;
+	m_encodedVideoTrackId = MP4_INVALID_TRACK_ID;
+	m_rawAudioTrackId = MP4_INVALID_TRACK_ID;
+	m_encodedAudioTrackId = MP4_INVALID_TRACK_ID;
+
 	m_canRecordAudio = true;
 
 	m_rawAudioTimeScale = m_encodedAudioTimeScale = 
@@ -328,7 +333,7 @@ void CMp4Recorder::DoStopRecord()
 			optimize = true;
 		}
 
-		if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
+		if (MP4_IS_VALID_TRACK_ID(m_encodedVideoTrackId)) {
 			MP4AV_Rfc3016Hinter(
 				m_mp4File, 
 				m_encodedVideoTrackId,
@@ -337,7 +342,7 @@ void CMp4Recorder::DoStopRecord()
 			// LATER H.26L hinter when we have a real-time H.26L encoder
 		}
 
-		if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
+		if (MP4_IS_VALID_TRACK_ID(m_encodedAudioTrackId)) {
 			const char *encoding = 
 				m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
 
@@ -378,7 +383,7 @@ void CMp4Recorder::DoStopRecord()
 
 		MP4MakeIsmaCompliant(
 			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-			0, 
+			0,
 			useIsmaTag);
 	}
 

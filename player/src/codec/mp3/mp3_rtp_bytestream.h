@@ -44,5 +44,9 @@ class CMP3RtpByteStream : public CRtpByteStream
   ~CMP3RtpByteStream();
   int have_no_data(void);
   int check_rtp_frame_complete_for_proto(void);
+  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
+ private:
+  rtp_packet *m_pak_on;
+  unsigned char *m_mp3_frame;
 };
 #endif

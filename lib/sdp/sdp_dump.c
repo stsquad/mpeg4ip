@@ -49,13 +49,13 @@ static void time_repeat_dump (time_repeat_desc_t *trptr)
       start = "";
     }
     cnt++;
-    time_offset_to_str(trptr->repeat_interval, buffer, sizeof(buffer));
+    sdp_time_offset_to_str(trptr->repeat_interval, buffer, sizeof(buffer));
     printf("%sRepeat Interval: %s\n", start, buffer);
-    time_offset_to_str(trptr->active_duration, buffer, sizeof(buffer));
+    sdp_time_offset_to_str(trptr->active_duration, buffer, sizeof(buffer));
     printf("%sDuration of session: %s\n", start, buffer);
     printf("%sOffsets: ", start);
     for (ix = 0; ix < trptr->offset_cnt; ix++) {
-      time_offset_to_str(trptr->offsets[ix], buffer, sizeof(buffer));
+      sdp_time_offset_to_str(trptr->offsets[ix], buffer, sizeof(buffer));
       printf("%s ", buffer);
       if ((ix % 8) == 0) {
 	printf("\n%s", start);
@@ -172,12 +172,12 @@ static void range_dump (range_desc_t *rptr, const char *start)
     }
   } else {
     printf("smtpe - start ");
-    smpte_to_str(rptr->range_start, rptr->range_smpte_fps, buffer);
+    sdp_smpte_to_str(rptr->range_start, rptr->range_smpte_fps, buffer);
     printf("%s, end ", buffer);
     if (rptr->range_end_infinite) {
       printf("infinite\n");
     } else {
-      smpte_to_str(rptr->range_end, rptr->range_smpte_fps, buffer);
+      sdp_smpte_to_str(rptr->range_end, rptr->range_smpte_fps, buffer);
       printf("%s\n", buffer);
     }
   }

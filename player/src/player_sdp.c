@@ -79,7 +79,7 @@ void convert_relative_urls_to_absolute (session_desc_t *sdp,
     return;
 
   if ((sdp->control_string != NULL) &&
-      (strncmp(sdp->control_string, "rtsp:://", strlen("rtsp://"))) != 0) {
+      (strncmp(sdp->control_string, "rtsp://", strlen("rtsp://"))) != 0) {
     do_relative_url_to_absolute(&sdp->control_string, base_url, 0);
   }
   

@@ -27,7 +27,7 @@
 #include <sys/ioctl.h>
 #include <linux/soundcard.h>
 
-#include "media_node.h"
+#include "media_source.h"
 #include "audio_encoder.h"
 
 class COSSAudioSource : public CMediaSource {
@@ -41,6 +41,16 @@ public:
 	~COSSAudioSource() {
 		delete m_encoder;
 		free(m_rawFrameBuffer);
+	}
+
+	bool IsDone() {
+		return false;	// live capture device is inexhaustible
+	}
+
+	Duration GetElapsedDuration();
+
+	float GetProgress() {
+		return 0.0;		// live capture device is inexhaustible
 	}
 
 protected:

@@ -22,7 +22,7 @@
 #ifndef __FILE_MPEG2_SOURCE_H__
 #define __FILE_MPEG2_SOURCE_H__
 
-#include "media_node.h"
+#include "media_source.h"
 #include "video_encoder.h"
 #include "audio_encoder.h"
 
@@ -37,25 +37,33 @@ public:
 
 		m_sourceVideo = false;
 		m_videoStream = 0;
-		m_videoSrcYImage = NULL;
-		m_videoDstYImage = NULL;
-		m_videoYResizer = NULL;
-		m_videoSrcUVImage = NULL;
-		m_videoDstUVImage = NULL;
-		m_videoUVResizer = NULL;
-		m_videoEncoder = NULL;
-		m_wantKeyFrame = false;
-		m_videoFrameNumber = 0;
+		m_videoYUVImage = NULL;
+		m_videoYImage = NULL;
+		m_videoUImage = NULL;
+		m_videoVImage = NULL;
 
 		m_sourceAudio = false;
 		m_audioStream = 0;
+
 		m_audioEncode = false;
 		m_audioEncoder = NULL;
 		m_audioEncodedForwardedFrames = 0;
+
+		m_maxAheadDuration = TimestampTicks / 2 ;	// 500 msec
 	}
 
-	u_int32_t GetNumEncodedVideoFrames() {
-		return m_videoFrameNumber;
+	bool IsDone() {
+		return !m_source;
+	}
+
+	Duration GetElapsedDuration();
+
+	float GetProgress() {
+		if (m_mpeg2File) {
+			return mpeg3_tell_percentage(m_mpeg2File);
+		} else {
+			return 0.0;
+		}
 	}
 
 	u_int32_t GetNumEncodedAudioFrames() {
@@ -69,8 +77,6 @@ protected:
 	void DoStartAudio(void);
 	void DoStopSource(void);
 
-	void DoGenerateKeyFrame(void);
-
 	bool InitVideo(void);
 	bool InitAudio(void);
 
@@ -78,35 +84,17 @@ protected:
 	void ProcessVideo(void);
 	void ProcessAudio(void);
 
-	Duration GetElapsedDuration(void);
-
 protected:
 	bool				m_source;
 	mpeg3_t*			m_mpeg2File;
 
 	bool				m_sourceVideo;
-
 	int					m_videoStream;
-	image_t*			m_videoSrcYImage;
-	image_t*			m_videoDstYImage;
-	scaler_t*			m_videoYResizer;
-	image_t*			m_videoSrcUVImage;
-	image_t*			m_videoDstUVImage;
-	scaler_t*			m_videoUVResizer;
-
-	u_int16_t			m_videoSrcWidth;
-	u_int16_t			m_videoSrcHeight;
-	u_int32_t			m_videoSrcYUVSize;
-	u_int32_t			m_videoSrcYSize;
-	u_int32_t			m_videoSrcUVSize;
-
-	CVideoEncoder*		m_videoEncoder;
-	u_int32_t			m_videoFrameNumber;
-	Duration			m_videoFrameDuration;
-	bool				m_wantKeyFrame;
-
-	Timestamp			m_videoStartTimestamp;
 	Duration			m_videoElapsedDuration;
+	u_int8_t*			m_videoYUVImage;
+	u_int8_t*			m_videoYImage;
+	u_int8_t*			m_videoUImage;
+	u_int8_t*			m_videoVImage;
 
 	bool				m_sourceAudio;
 	int					m_audioStream;
@@ -130,6 +118,8 @@ protected:
 
 	Timestamp			m_audioStartTimestamp;
 	Duration			m_audioElapsedDuration;
+
+	Duration			m_maxAheadDuration;
 };
 
 #endif /* __FILE_MPEG2_SOURCE_H__ */

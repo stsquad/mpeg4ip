@@ -27,7 +27,7 @@
 #include <sys/ioctl.h>
 #include <linux/videodev.h>
 
-#include "media_node.h"
+#include "media_source.h"
 #include "video_encoder.h"
 
 void CalculateVideoFrameSize(CLiveConfig* pConfig);
@@ -37,17 +37,23 @@ public:
 	CV4LVideoSource() : CMediaSource() {
 		m_capture = false;
 		m_videoDevice = -1;
-		m_encoder = NULL;
 		m_videoMap = NULL;
 		m_videoFrameMap = NULL;
-		m_wantKeyFrame = false;
-	}
-
-	u_int32_t GetNumEncodedVideoFrames() {
-		return m_encodedFrameNumber;
 	}
 
 	static bool InitialVideoProbe(CLiveConfig* pConfig);
+
+	bool IsDone() {
+		return false;	// live capture is inexhaustible
+	}
+
+	Duration GetElapsedDuration() {
+		return m_videoSrcFrameNumber * m_videoSrcFrameDuration;
+	}
+
+	float GetProgress() {
+		return 0.0;		// live capture device is inexhaustible
+	}
 
 protected:
 	int ThreadMain(void);
@@ -55,16 +61,10 @@ protected:
 	void DoStartCapture(void);
 	void DoStopCapture(void);
 
-	void DoGenerateKeyFrame(void);
-
 	bool Init(void);
 
 	bool InitDevice(void);
 	void ReleaseDevice(void);
-
-	void InitSizes(void);
-
-	bool InitEncoder(void);
 
 	void ProcessVideo(void);
 
@@ -87,35 +87,7 @@ protected:
 	struct video_mmap*	m_videoFrameMap;
 	int8_t				m_captureHead;
 	int8_t				m_encodeHead;
-
 	float				m_rawFrameRate;
-	u_int32_t			m_rawFrameNumber;
-	u_int32_t			m_encodedFrameNumber;
-	u_int32_t			m_skippedFrames;
-	Timestamp			m_startTimestamp;
-	Duration			m_targetElapsedDuration;
-	Duration			m_rawFrameDuration;
-	Duration			m_targetFrameDuration;
-	Duration			m_encodingDrift;
-	Duration			m_encodingMaxDrift;
-	bool				m_wantKeyFrame;
-
-	u_int32_t			m_yuvRawSize;
-	u_int32_t			m_yRawSize;
-	u_int32_t			m_uvRawSize;
-	u_int32_t			m_yuvSize;
-	u_int32_t			m_yOffset;
-	u_int32_t			m_uvOffset;
-
-	u_int8_t*			m_prevYuvImage;
-	u_int8_t*			m_prevReconstructImage;
-	Timestamp			m_prevYuvImageTimestamp;
-
-	u_int8_t*			m_prevVopBuf;
-	u_int32_t			m_prevVopBufLength;
-	Timestamp			m_prevVopTimestamp;
-
-	CVideoEncoder*		m_encoder;
 };
 
 class CVideoCapabilities {

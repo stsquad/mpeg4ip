@@ -501,6 +501,10 @@ public:
 
 	MP4Descriptor* AddDescriptor(u_int8_t tag);
 
+	void AppendDescriptor(MP4Descriptor* pDescriptor) {
+		m_pDescriptors.Add(pDescriptor);
+	}
+
 	void DeleteDescriptor(u_int32_t index);
 
 	void Generate();

@@ -73,11 +73,11 @@ static u_int32_t* trackValues = NULL;
 
 static u_int16_t sizeWidthValues[] = {
 	128, 176, 320, 352, 352,
-	640, 704, 720, 720, 768
+	640, 704, 704, 720, 720, 768
 };
 static u_int16_t sizeHeightValues[] = {
 	96, 144, 240, 288, 480,
-	480, 576, 480, 576, 576
+	480, 480, 576, 480, 576, 576
 };
 static char* sizeNames[] = {
 	"128 x 96 SQCIF", 
@@ -86,6 +86,7 @@ static char* sizeNames[] = {
 	"352 x 288 CIF",
 	"352 x 480 Half D1",
 	"640 x 480 4SIF",
+	"704 x 480 D1",
 	"704 x 576 4CIF",
 	"720 x 480 NTSC CCIR601",
 	"720 x 576 PAL CCIR601",
@@ -265,9 +266,16 @@ static void on_no_default_file_audio_source (GtkWidget *widget, gpointer *data)
 
 static void ChangeSource()
 {
+	static bool changing = false;
+
 	if (!dialog) {
 		return;
 	}
+
+	if (changing) {
+		return;
+	}
+	changing = true;
 
 	default_file_audio_source = -1;
 
@@ -288,6 +296,7 @@ static void ChangeSource()
 		if (access(source_name, R_OK) != 0) {
 			ShowMessage("Change Video Source",
 				"Specified video source can't be opened, check name");
+			changing = false;
 			return;
 		}
 
@@ -319,6 +328,7 @@ static void ChangeSource()
 	ShowSourceSpecificSettings();
 
 	source_modified = false;
+	changing = false;
 }
 
 static void on_source_browse_button (GtkWidget *widget, gpointer *data)
@@ -750,7 +760,7 @@ void CreateVideoDialog (void)
 	source_entry = GTK_COMBO(source_combo)->entry;
 
 	GtkWidget* source_list = GTK_COMBO(source_combo)->list;
-	// TBD gtk_signal_connect(GTK_OBJECT(source_list), "selection_changed",
+	//BAD gtk_signal_connect(GTK_OBJECT(source_list), "selection-changed",
 	//	GTK_SIGNAL_FUNC(ChangeSource), NULL);
 
 	SetEntryValidator(GTK_OBJECT(source_entry),
@@ -808,8 +818,10 @@ void CreateVideoDialog (void)
 
 	sizeIndex = 0; 
 	for (u_int8_t i = 0; i < sizeof(sizeWidthValues) / sizeof(u_int16_t); i++) {
-		if (MyConfig->m_videoWidth == sizeWidthValues[i]
-		  && MyConfig->m_videoHeight == sizeHeightValues[i]) {
+		if (MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH)
+		    == sizeWidthValues[i]
+		  && MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT)
+		    == sizeHeightValues[i]) {
 			sizeIndex = i;
 			break;
 		}

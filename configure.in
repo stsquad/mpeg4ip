@@ -3,7 +3,7 @@ AC_INIT()
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.8)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.9)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -18,6 +18,8 @@ AM_PROG_LIBTOOL
 AC_PROG_LIBTOOL
 AC_PATH_XTRA
 
+AC_C_BIGENDIAN
+
 AS=gcc
 AC_SUBST(AS)
 ASFLAGS="$ASFLAGS"
@@ -30,7 +32,7 @@ dnl Checks for libraries.
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
-AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h)
+AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h glib.h)
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
@@ -180,6 +182,8 @@ if test x$enable_mmx = xyes; then
 		esac
 		AC_SUBST(NASMFLAGS)
 		AM_CONDITIONAL(USE_MMX, true)
+		arch_x86=:
+		AC_DEFINE(ARCH_X86)
 		;;
 	*)
 		AM_CONDITIONAL(USE_MMX, false)
@@ -254,6 +258,7 @@ AC_OUTPUT( \
 	common/video/libmpeg3/Makefile \
 	common/video/libmpeg3/audio/Makefile \
 	common/video/libmpeg3/video/Makefile \
+	common/video/libdv/Makefile \
 	server/Makefile \
 	server/audio/Makefile \
 	server/audio/faac/Makefile \

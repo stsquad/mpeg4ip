@@ -549,11 +549,13 @@ static int rtsp_parse_response (rtsp_client_t *info)
   
   //rtsp_debug(LOG_DEBUG, "Response buffer:\n%s", info->m_resp_buffer);
 
-  lptr = rtsp_get_next_line(info, seperator);
-  if (lptr == NULL) {
-    rtsp_debug(LOG_INFO, "Couldn't get next line");
-    return (RTSP_RESPONSE_MALFORM_HEADER);
-  }
+  do {
+    lptr = rtsp_get_next_line(info, seperator);
+    if (lptr == NULL) {
+      rtsp_debug(LOG_INFO, "Couldn't get next line");
+      return (RTSP_RESPONSE_MALFORM_HEADER);
+    }
+  } while (*lptr == '\0');
 
   rtsp_debug(LOG_DEBUG, lptr);
   if (strncasecmp(lptr, "RTSP/1.0", strlen("RTSP/1.0")) != 0) {

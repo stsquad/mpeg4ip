@@ -29,6 +29,11 @@
 
 #include <stdio.h>
 
+#ifdef MPEG4IP
+#include <assert.h>
+#define g_assert assert
+#endif
+
 #include "vlc.h"
 
 typedef struct dv_vlc_test_s {

@@ -107,7 +107,7 @@ CPlayerSession::~CPlayerSession ()
   }  
 
   if (m_sdp_info) {
-    free_session_desc(m_sdp_info);
+    sdp_free_session_desc(m_sdp_info);
     m_sdp_info = NULL;
   }
 
@@ -246,7 +246,10 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
   /*
    * Make sure we can use the urls in the sdp info
    */
-  if (decode->content_base != NULL) {
+  if (decode->content_location != NULL) {
+    // Note - we may have problems if the content location is not absolute.
+    m_content_base = strdup(decode->content_location);
+  } else if (decode->content_base != NULL) {
     m_content_base = strdup(decode->content_base);
   } else {
     int urllen = strlen(url);

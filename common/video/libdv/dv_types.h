@@ -26,6 +26,7 @@
 #ifndef DV_TYPES_H
 #define DV_TYPES_H
 
+#ifndef MPEG4IP
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif // HAVE_CONFIG_H
@@ -36,6 +37,9 @@
 
 #include <stdlib.h>
 #include <glib.h>
+#else
+#include "systems.h"
+#endif
 
 // For now assume ARCH_X86 means GCC with hints.
 #define HAVE_GCC ARCH_X86
@@ -221,7 +225,7 @@ typedef struct {
    counter examples.  If we do find out there is one, we'll have to
    fix it... */
 
-#if (G_BYTE_ORDER == G_LITTLE_ENDIAN)
+#ifndef WORDS_BIGENDIAN /* mpeg4ip (G_BYTE_ORDER == G_LITTLE_ENDIAN) */
 #define LITTLE_ENDIAN_BITFIELD
 #else
 #define BIG_ENDIAN_BITFIELD
@@ -423,7 +427,8 @@ typedef struct {
 #endif // HAVE_LIBPOPT
 } dv_oss_t;
 
-#if ARCH_X86
+// mpeg4ip#if ARCH_X86
+#ifdef USE_MMX
 extern gboolean dv_use_mmx;
 #endif
 

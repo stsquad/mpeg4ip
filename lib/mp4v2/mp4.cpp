@@ -1742,8 +1742,10 @@ extern "C" bool MP4MakeIsmaCompliant(
 	u_int32_t verbosity,
 	bool addIsmaComplianceSdp)
 {
+	MP4File* pFile = NULL;
+
 	try {
-		MP4File* pFile = new MP4File(verbosity);
+		pFile = new MP4File(verbosity);
 		pFile->Modify(fileName);
 		pFile->MakeIsmaCompliant(addIsmaComplianceSdp);
 		pFile->Close();
@@ -1754,7 +1756,62 @@ extern "C" bool MP4MakeIsmaCompliant(
 		VERBOSE_ERROR(verbosity, e->Print());
 		delete e;
 	}
+	delete pFile;
 	return false;
+}
+
+extern "C" char* MP4MakeIsmaSdpIod(
+	u_int8_t videoProfile,
+	u_int32_t videoBitrate,
+	u_int8_t* videoConfig,
+	u_int32_t videoConfigLength,
+	u_int8_t audioProfile,
+	u_int32_t audioBitrate,
+	u_int8_t* audioConfig,
+	u_int32_t audioConfigLength,
+	u_int32_t verbosity)
+{
+	MP4File* pFile = NULL;
+
+	try {
+		pFile = new MP4File(verbosity);
+
+		u_int8_t* pBytes = NULL;
+		u_int64_t numBytes = 0;
+
+		pFile->CreateIsmaIodFromParams(
+			videoProfile,
+			videoBitrate,
+			videoConfig,
+			videoConfigLength,
+			audioProfile,
+			audioBitrate,
+			audioConfig,
+			audioConfigLength,
+			&pBytes,
+			&numBytes);
+
+		char* iodBase64 = 
+			MP4ToBase64(pBytes, numBytes);
+		MP4Free(pBytes);
+
+		char* sdpIod = 
+			(char*)MP4Malloc(strlen(iodBase64) + 64);
+		sprintf(sdpIod,
+			"a=mpeg4-iod: \042data:application/mpeg4-iod;base64,%s\042",
+			iodBase64);
+		MP4Free(iodBase64);
+
+		delete pFile;
+
+		return sdpIod;
+	}
+	catch (MP4Error* e) {
+		VERBOSE_ERROR(verbosity, e->Print());
+		delete e;
+	}
+	delete pFile;
+	return NULL;
 }
 
 /* Utlities */

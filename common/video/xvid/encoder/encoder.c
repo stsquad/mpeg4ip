@@ -480,7 +480,7 @@ int encoder_create(XVID_ENC_PARAM * pParam)
 	if (pParam->bitrate)
 	{
 		RateCtlInit(&(pEnc->rateCtlParam), pEnc->mbParam.quant,
-			pParam->bitrate * pParam->fincr / pParam->fbase,
+			(double)pParam->bitrate * (double)pParam->fincr / (double)pParam->fbase,
 			pParam->rc_period, pParam->rc_reaction_period, pParam->rc_reaction_ratio);
 	}
 	

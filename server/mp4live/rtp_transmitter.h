@@ -25,7 +25,7 @@
 
 #include <rtp/rtp.h>
 
-#include "media_node.h"
+#include "media_sink.h"
 
 class CRtpTransmitter : public CMediaSink {
 public:

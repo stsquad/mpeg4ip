@@ -9,6 +9,7 @@ mpeg4_iso_plugin_la_SOURCES = \
 mpeg4_iso_plugin_la_LIBADD = \
 	-lm \
 	$(top_builddir)/lib/fposrec/libfposrec.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/common/video/mpeg4/sys/decoder/libobj_sys_decoder.la \
 	$(top_builddir)/common/video/mpeg4/type/libobj_type.la \
 	$(top_builddir)/common/video/mpeg4/sys/libobj_sys.la \

@@ -29,7 +29,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef MPEG4IP
 #include <glib.h>
+#endif
 
 #include "encode.h"
 #include "idct_248.h"

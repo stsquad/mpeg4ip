@@ -36,20 +36,10 @@
 static const char *SPACES=" \t";
 
 #define FREE_CHECK(a,b) if (a->b != NULL) { free(a->b); a->b = NULL;}
- 
+
 /*****************************************************************************
  * Memory free routines - frees memory associated with various structures
  *****************************************************************************/
-static void free_string_list (string_list_t **list)
-{
-  string_list_t *p;
-  while (*list != NULL) {
-    p = *list;
-    *list = p->next;
-    FREE_CHECK(p, string_val);
-    free(p);
-  }
-}
 
 static void free_bandwidth_desc (bandwidth_t *bptr)
 {
@@ -65,6 +55,8 @@ static void free_bandwidth_desc (bandwidth_t *bptr)
 static void free_category_list (category_list_t **cptr)
 {
   category_list_t *p;
+  if (*cptr == NULL) return;
+  
   while (*cptr != NULL) {
     p = *cptr;
     *cptr = p->next;
@@ -78,28 +70,6 @@ static void free_connect_desc (connect_desc_t *cptr)
   FREE_CHECK(cptr, conn_addr);
 }
 
-static void free_rtpmap_desc (rtpmap_desc_t *rtpptr)
-{
-  FREE_CHECK(rtpptr, encode_name);
-  free(rtpptr);
-}
-				   
-static void free_format_list (format_list_t **fptr)
-{
-  format_list_t *p;
-
-  while (*fptr != NULL) {
-    p = *fptr;
-    *fptr = p->next;
-    p->next = NULL;
-    if (p->rtpmap != NULL) {
-      free_rtpmap_desc(p->rtpmap);
-      p->rtpmap = NULL;
-    }
-    FREE_CHECK(p, fmt_param);
-    FREE_CHECK(p, fmt);
-  }
-}
 /*
  * free_media_desc()
  * Frees all memory associated with a media descriptor(mptr)
@@ -109,8 +79,8 @@ static void free_media_desc (media_desc_t *mptr)
   free_bandwidth_desc(mptr->media_bandwidth);
   mptr->media_bandwidth = NULL;
   free_connect_desc(&mptr->media_connect);
-  free_format_list(&mptr->fmt);
-  free_string_list(&mptr->unparsed_a_lines);
+  sdp_free_format_list(&mptr->fmt);
+  sdp_free_string_list(&mptr->unparsed_a_lines);
   FREE_CHECK(mptr, media);
   FREE_CHECK(mptr, media_desc);
   FREE_CHECK(mptr, proto);
@@ -141,10 +111,10 @@ static void free_time_desc (session_time_desc_t *time)
 }
 
 /*
- * free_session_desc()
+ * sdp_free_session_desc()
  * Inputs - sptr - pointer to session_description list to free
  */
-void free_session_desc (session_desc_t *sptr)
+void sdp_free_session_desc (session_desc_t *sptr)
 {
   session_desc_t *p;
 
@@ -179,9 +149,9 @@ void free_session_desc (session_desc_t *sptr)
     sptr->session_bandwidth = NULL;
     free_category_list(&sptr->category_list);
     free_connect_desc(&sptr->session_connect);
-    free_string_list(&sptr->admin_phone);
-    free_string_list(&sptr->admin_email);
-    free_string_list(&sptr->unparsed_a_lines);
+    sdp_free_string_list(&sptr->admin_phone);
+    sdp_free_string_list(&sptr->admin_email);
+    sdp_free_string_list(&sptr->unparsed_a_lines);
     
     while (sptr->time_adj_desc != NULL) {
       time_adj_desc_t *aptr;
@@ -449,7 +419,7 @@ static int sdp_decode_parse_a_fmtp (int arg,
   /*
    * See our format matches a value in the media's format list.
    */
-  fptr = find_format_in_line(mptr->fmt,lptr) ;
+  fptr = sdp_find_format_in_line(mptr->fmt,lptr) ;
 
   if (fptr == NULL) {
     sdp_debug(LOG_ALERT, "Can't find fmtp format %s in media format list", lptr);
@@ -487,7 +457,7 @@ static int sdp_decode_parse_a_rtpmap (int arg,
   /*
    * See our format matches a value in the media's format list.
    */
-  fptr = find_format_in_line(mptr->fmt,lptr) ;
+  fptr = sdp_find_format_in_line(mptr->fmt,lptr) ;
 
   if (fptr == NULL) {
     sdp_debug(LOG_ALERT, "Can't find rtpmap format %s in media list", lptr);
@@ -583,6 +553,7 @@ static int sdp_decode_parse_a_cat (int arg,
 	break;
       }
       new->category = cat;
+      new->next = NULL;
       if (sptr->category_list == NULL) {
 	cptr = sptr->category_list = new;
       } else {
@@ -1092,7 +1063,7 @@ static int sdp_decode_parse_a (char *lptr,
    * Worse comes to worst, store the whole line
    */
   if (parsed == FALSE || errret != 0) {
-    if (add_string_to_list(mptr == NULL ?
+    if (sdp_add_string_to_list(mptr == NULL ?
 			   &sptr->unparsed_a_lines :
 			   &mptr->unparsed_a_lines,
 			   line) == FALSE) {
@@ -1375,7 +1346,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
   do {
     sep = strsep(&lptr, SPACES);
     if (sep != NULL) {
-      if (add_format_to_list(new, sep) == NULL) {
+      if (sdp_add_format_to_list(new, sep) == NULL) {
 	free_media_desc(new);
 	*err = ENOMEM;
 	return (NULL);
@@ -1857,12 +1828,12 @@ int sdp_decode (sdp_decode_info_t *decode,
 	}
 	break;
       case 'e':
-	if (add_string_to_list(&sptr->admin_email, lptr) == FALSE) {
+	if (sdp_add_string_to_list(&sptr->admin_email, lptr) == FALSE) {
 	  errret = ENOMEM;
 	}
 	break;
       case 'p':
-	if (add_string_to_list(&sptr->admin_phone, lptr) == FALSE) {
+	if (sdp_add_string_to_list(&sptr->admin_phone, lptr) == FALSE) {
 	  errret = ENOMEM;
 	}
 	break;
@@ -1930,7 +1901,7 @@ int sdp_decode (sdp_decode_info_t *decode,
 	}
 	p->next = NULL;
       }
-      free_session_desc(sptr);
+      sdp_free_session_desc(sptr);
     }
     sdp_debug(LOG_ALERT, "SDP decode failure %d", errret);
     return (errret);

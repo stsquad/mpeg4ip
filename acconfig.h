@@ -4,3 +4,5 @@
 #undef HAVE_SOCKLEN_T
 
 #undef HAVE_FPOS_T_POS
+
+#undef ARCH_X86

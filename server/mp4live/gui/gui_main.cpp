@@ -109,6 +109,7 @@ static GtkWidget *actual_fps_units;
 
 static Timestamp StartTime;
 static Timestamp StopTime;
+static Duration FlowDuration;
 static u_int32_t StartEncodedFrameNumber;
 static u_int64_t StartFileSize;
 static u_int64_t StopFileSize;
@@ -456,21 +457,6 @@ static gint status_timer (gpointer raw)
 			gtk_label_set_text(GTK_LABEL(finish_time_units), buffer);
 			gtk_widget_show(finish_time_units);
 		}
-
-		if (StopFileSize == 0) {
-			u_int64_t estSize;
-			AVFlow->GetStatus(FLOW_STATUS_EST_SIZE, &estSize);
-			if (estSize > 0) {
-				StopFileSize = StartFileSize + estSize;
-				snprintf(buffer, sizeof(buffer), " %llu",
-					StopFileSize / 1000000);
-				gtk_label_set_text(GTK_LABEL(final_size), buffer);
-				gtk_widget_show(final_size);
-
-				gtk_label_set_text(GTK_LABEL(final_size_units), "MB");
-				gtk_widget_show(final_size_units);
-			}
-		}
 	}
 
 	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
@@ -493,10 +479,15 @@ static gint status_timer (gpointer raw)
 		stop = (now >= StopTime);
 	} 
 
+	if (!stop && duration_secs > 1) {
+		AVFlow->GetStatus(FLOW_STATUS_DONE, &stop);
+	}
 	if (!stop) {
-		u_int32_t flowStatus;
-		if (AVFlow->GetStatus(FLOW_STATUS_STARTED, &flowStatus)) {
-			stop = !flowStatus;
+		Duration elapsedDuration;
+		if (AVFlow->GetStatus(FLOW_STATUS_DURATION, &elapsedDuration)) {
+			if (elapsedDuration >= FlowDuration) {
+				stop = true;
+			}
 		}
 	}
 
@@ -544,17 +535,24 @@ void DoStart()
 	StartTime = GetTimestamp(); 
 
 	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, 
-			&StartEncodedFrameNumber);
+		if (MyConfig->IsFileVideoSource()) {
+			StartEncodedFrameNumber = 0;
+		} else {
+			AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, 
+				&StartEncodedFrameNumber);
+		}
 	}
 
-// TBD
-	if (true) {
-		StopTime = StartTime +
-			gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner))
-			* durationUnitsValues[durationUnitsIndex] * TimestampTicks;
-	} else {
+	FlowDuration =
+		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner))
+		* durationUnitsValues[durationUnitsIndex] * TimestampTicks;
+
+	if (MyConfig->IsFileVideoSource() && MyConfig->IsFileAudioSource()
+	  && !MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
+		// no real time constraints
 		StopTime = 0;
+	} else {
+		StopTime = StartTime + FlowDuration;
 	}
 
 	status_start();
@@ -1209,7 +1207,8 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 
 	// Setup main window
 	main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_policy(GTK_WINDOW(main_window), FALSE, TRUE, FALSE);
+	gtk_window_set_policy(GTK_WINDOW(main_window), FALSE, FALSE, TRUE);
+
 	char buffer[80];
 	snprintf(buffer, sizeof(buffer), "cisco mp4live %s", VERSION);
 	gtk_window_set_title(GTK_WINDOW(main_window), buffer);

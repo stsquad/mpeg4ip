@@ -92,49 +92,43 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
-	/* point to the specified file names */
-	Mp4FileName = argv[optind++];
-
-	/* warn about extraneous non-option arguments */
-	if (optind < argc) {
-		fprintf(stderr, "%s: unknown options specified, ignoring: ", ProgName);
-		while (optind < argc) {
-			fprintf(stderr, "%s ", argv[optind++]);
-		}
-		fprintf(stderr, "\n");
-	}
-
 	/* end processing of command line */
 	printf("%s version %s\n", ProgName, VERSION);
 
-	MP4FileHandle mp4File = MP4Read(Mp4FileName, verbosity);
+	while (optind < argc) {
+		Mp4FileName = argv[optind++];
 
-	if (!mp4File) {
-		exit(1);
-	}
+		printf("%s:\n", Mp4FileName);
 
-	u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
+		MP4FileHandle mp4File = MP4Read(Mp4FileName, verbosity);
 
-	printf("Id\tType\tInfo\n");
-	for (u_int32_t i = 0; i < numTracks; i++) {
-		MP4TrackId trackId = MP4FindTrackId(mp4File, i);
-
-		const char* trackType = 
-			MP4GetTrackType(mp4File, trackId);
-
-		if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
-			PrintAudioInfo(mp4File, trackId);
-		} else if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
-			PrintVideoInfo(mp4File, trackId);
-		} else if (!strcmp(trackType, MP4_HINT_TRACK_TYPE)) {
-			PrintHintInfo(mp4File, trackId);
-		} else {
-			printf("%u\t%s\n", 
-				trackId, trackType);
+		if (!mp4File) {
+			continue;
 		}
-	}
 
-	MP4Close(mp4File);
+		u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
+
+		printf("Id\tType\tInfo\n");
+		for (u_int32_t i = 0; i < numTracks; i++) {
+			MP4TrackId trackId = MP4FindTrackId(mp4File, i);
+
+			const char* trackType = 
+				MP4GetTrackType(mp4File, trackId);
+
+			if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
+				PrintAudioInfo(mp4File, trackId);
+			} else if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
+				PrintVideoInfo(mp4File, trackId);
+			} else if (!strcmp(trackType, MP4_HINT_TRACK_TYPE)) {
+				PrintHintInfo(mp4File, trackId);
+			} else {
+				printf("%u\t%s\n", 
+					trackId, trackType);
+			}
+		}
+
+		MP4Close(mp4File);
+	}
 
 	return(0);
 }

@@ -9,6 +9,7 @@ divx_plugin_la_SOURCES = \
 divx_plugin_la_LIBADD = \
 	-lm \
 	$(top_builddir)/player/lib/video/divx/libourdivx.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/fposrec/libfposrec.la
 
 INCLUDES = -I.. -I../.. -I../../../lib -I$(top_srcdir)/lib/SDL/include -I../../../lib/video/divx -I../../../../common/video/mpeg4 -I../../../../include -I../../../../lib
