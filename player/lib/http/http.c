@@ -5,30 +5,7 @@
  *  (c) 1996 Observatoire de Paris - Meudon - France
  *  see LICENSE for terms, conditions and DISCLAIMER OF ALL WARRANTIES
  *
- * $Id: http.c,v 1.8 2001/09/11 18:03:02 wmaycisco Exp $
- *
- * $Log: http.c,v $
- * Revision 1.8  2001/09/11 18:03:02  wmaycisco
- * Sync for mac osx changes from jsergent.
- *
- * Revision 1.2  2001/08/03 22:34:57  wmay
- * RH6.1 compile items
- *
- * Revision 1.1  2001/08/01 23:05:43  wmay
- * Initial commit of http
- *
- * Revision 1.4  1998/09/23 06:11:55  dl
- * one more lint
- *
- * Revision 1.3  1998/09/23 06:03:45  dl
- * proxy support (old change which was not checked in back in 96)
- * contact, etc.. infos update
- *
- * Revision 1.2  1996/04/18  13:52:14  dl
- * strings.h->string.h
- *
- * Revision 1.1  1996/04/18  12:17:25  dl
- * Initial revision
+ * $Id: http.c,v 1.9 2001/09/11 18:33:17 wmaycisco Exp $
  *
  */
 
