@@ -20,8 +20,19 @@
  * 
  * 
  * @APPLE_LICENSE_HEADER_END@
+ *
+ *
+ * This file contains modifications of the Original Code as defined in
+ * and that are subject to the Apple Public Source License Version 1.2
+ * (the 'License'). You may not use this file expect in accordance with
+ * the License. Please obtain a copy of the License at 
+ * http://www.apple.com/publicsource and read it before using the file.
+ *
+ * Modifications are denoted by the comment "BEGIN MODIFICATION" and
+ * "END MODIFICATION".
+ * 
  */
-// $Id: QTHintTrack.cpp,v 1.2 2001/02/28 23:23:01 cahighlander Exp $
+// $Id: QTHintTrack.cpp,v 1.3 2001/03/07 00:15:05 cahighlander Exp $
 //
 // QTHintTrack:
 //   The central point of control for a track in a QTFile.
@@ -453,7 +464,7 @@ void QTHintTrack::GetSamplePacketHeaderVars( char *samplePacketPtr, QTHintTrackR
 	MOVE_WORD( hdrData.dataEntryCount, samplePacketPtr + 10);
 	hdrData.dataEntryCount = ntohs(hdrData.dataEntryCount);
 
-	// MODIFICATION dmackie@cisco.com 12/19/00 - handle RTP timestamp offset
+	// BEGIN MODIFICATION dmackie@cisco.com 12/19/00 - handle RTP timestamp offset
 	if( hdrData.hintFlags & 0x4 )
 	{ 	// Extra Information TLV is present
 		char* tlvPtr = samplePacketPtr + 12;
@@ -1227,7 +1238,7 @@ QTTrack::ErrorCode QTHintTrack::GetPacket(UInt32 sampleNumber, UInt16 packetNumb
 	if ( err != errNoError )
 		return err;
 		
-	// MODIFICATION dmackie@cisco.com 12/19/00 - added RTP timestamp offset 
+	// BEGIN MODIFICATION dmackie@cisco.com 12/19/00 - added RTP timestamp offset 
 	rtpTimestamp += hdrData.rtpTimestampOffset;
 	
 	*transmitTime =  ( mediaTime * fMediaHeaderAtom->GetTimeScaleRecip() )
