@@ -1,9 +1,15 @@
 C++ = $(CPLUS)
+# Copyright (c) 1999 Apple Computer, Inc.  All rights reserved.
+#  
+
+NAME = CommonUtilitiesLib
+C++ = $(CPLUS)
 CC = $(CCOMP)
 LINK = $(LINKER)
-CCFLAGS += $(MACHDEFINES) -include ../PlatformHeader.h -g -Wall $(CFLAGSX)
+CCFLAGS += $(COMPILER_FLAGS) $(INCLUDE_FLAG) ../PlatformHeader.h -g -Wall
 
-OPTIM = -O2
+# OPTIMIZATION
+CCFLAGS += -O3
 
 # EACH DIRECTORY WITH HEADERS MUST BE APPENDED IN THIS MANNER TO THE CCFLAGS
 
@@ -12,13 +18,12 @@ CCFLAGS += -I..
 
 C++FLAGS = $(CCFLAGS)
 
-CFILES = base64.c	GetWord.c	Trim.c
+CFILES = base64.c	GetWord.c	Trim.c      md5.c
 
 CPPFILES =	atomic.cpp\
 			ConfParser.cpp\
 			DateTranslator.cpp\
 			EventContext.cpp\
-			Exception.cpp \
 			IdleTask.cpp\
 			MyAssert.cpp \
 			OS.cpp\
@@ -48,7 +53,8 @@ CPPFILES =	atomic.cpp\
 			UDPSocketPool.cpp\
 			ev.cpp \
 			UserAgentParser.cpp \
-			QueryParamList.cpp
+			QueryParamList.cpp \
+			md5digest.cpp 
 
 all: libCommonUtilitiesLib.a
 

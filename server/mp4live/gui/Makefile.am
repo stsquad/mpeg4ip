@@ -27,6 +27,6 @@ INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/server/video/ffmpeg \
 	-I$(top_srcdir)/player/lib
 
-AM_CFLAGS= -D_REENTRANT -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes 
+AM_CFLAGS= -D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes 
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall

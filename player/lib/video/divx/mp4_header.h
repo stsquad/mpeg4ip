@@ -134,7 +134,7 @@ extern int getvophdr(void);
 
 extern int __inline nextbits(int nbits);
 extern int __inline bytealigned(int nbits);
-extern void __inline next_start_code();
+extern void __inline next_start_code(void);
 extern int __inline nextbits_bytealigned(int nbit);
 
 #endif // _MP4_HEADER_H_

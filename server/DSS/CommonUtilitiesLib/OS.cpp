@@ -1,28 +1,28 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
-	File:		OS.h
+	File:		OS.cpp
 
 	Contains:  	OS utility functions
 
@@ -55,16 +55,23 @@
 #endif
 
 #if __MacOSX__
+#if MACOSX_PUBLICBETA
 #include <CarbonCore/Timer.h> // Carbon Microseconds
+#else
+#include <CoreServices/CoreServices.h>
+#endif
 #endif
 
 double 	OS::sDivisor = 0;
-double OS::sMicroDivisor = 0;
+double  OS::sMicroDivisor = 0;
 SInt64  OS::sMsecSince1970 = 0;
 SInt64  OS::sMsecSince1900 = 0;
 SInt64  OS::sInitialMsec = 0;
+SInt64	OS::sWrapTime = 0;
+SInt64	OS::sCompareWrap = 0;
+SInt64  OS::sLastTimeMilli = 0;
 
-#if DEBUG
+#if DEBUG || __Win32__
 #include "OSMutex.h"
 #include "OSMemory.h"
 static OSMutex* sLastMillisMutex = NULL;
@@ -96,12 +103,18 @@ void OS::Initialize()
 	the1900Msec *= (70 * 365) + 17;
 	sMsecSince1900 = the1900Msec;
 	
+	sWrapTime = (SInt64) 0x00000001 << 32;
+	sCompareWrap = (SInt64) 0xffffffff << 32;
+	sLastTimeMilli = 0;
+	
 	sInitialMsec = OS::Milliseconds(); //Milliseconds uses sInitialMsec so this assignment is valid only once.
 
 	sMsecSince1970 = ::time(NULL); 	// POSIX time always returns seconds since 1970
 	sMsecSince1970 *= 1000;			// Convert to msec
+	
 
-#if DEBUG
+
+#if DEBUG || __Win32__ 
 	sLastMillisMutex = NEW OSMutex();
 #endif
 }
@@ -138,7 +151,23 @@ SInt64 OS::Milliseconds()
 	return scalarMicros;
 
 #elif __Win32__
-	SInt64 curTimeMilli = (SInt64) ::timeGetTime(); // system time
+	OSMutexLocker locker(sLastMillisMutex);
+	// curTimeMilli = timeGetTime() + ((sLastTimeMilli/ 2^32) * 2^32)
+	// using binary & to reduce it to one operation from two
+	// sCompareWrap and sWrapTime are constants that are never changed
+	// sLastTimeMilli is updated with the curTimeMilli after each call to this function
+	SInt64 curTimeMilli = (UInt32) ::timeGetTime() + (sLastTimeMilli & sCompareWrap);
+	if((curTimeMilli - sLastTimeMilli) < 0)
+	{
+		curTimeMilli += sWrapTime;
+	}
+	sLastTimeMilli = curTimeMilli;
+	
+	// For debugging purposes
+	//SInt64 tempCurMsec = (curTimeMilli - sInitialMsec) + sMsecSince1970;
+	//SInt32 tempCurSec = tempCurMsec / 1000;
+	//printf("OS::MilliSeconds current time = %s\n", ctime(&tempCurSec));
+
 	return (curTimeMilli - sInitialMsec) + sMsecSince1970; // convert to application time
 #else
 	struct timeval t;

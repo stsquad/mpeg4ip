@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTPPacketResender.h
@@ -42,8 +42,9 @@
 #include "UDPSocket.h"
 #include "OSMemory.h"
 #include "OSBufferPool.h"
+#include "OSMutex.h"
 
-#define RTP_PACKET_RESENDER_DEBUGGING 1
+#define RTP_PACKET_RESENDER_DEBUGGING 0
 
 class MyAckListLog;
 
@@ -53,12 +54,13 @@ class RTPResenderEntry
 		
 		void*				fPacketData;
 		UInt32				fPacketSize;
+		Bool16				fIsSpecialBuffer;
 		SInt64				fExpireTime;
 		SInt64				fAddedTime;
 		SInt64				fOrigRetransTimeout;
 		UInt32				fNumResends;
-#if RTP_PACKET_RESENDER_DEBUGGING
 		UInt16				fSeqNum;
+#if RTP_PACKET_RESENDER_DEBUGGING
 		UInt32				fPacketArraySizeWhenAdded;
 #endif
 };
@@ -88,12 +90,18 @@ class RTPPacketResender
 		//
 		// Resends outstanding packets in the queue. Guess what. Not thread safe.
 		void 				ResendDueEntries();
+		
+		//
+		// Clear outstanding packets - if we no longer care about any of the
+		// outstanding, unacked packets
+		void				ClearOutstandingPackets();
 
 		//
 		// ACCESSORS
 		Bool16				IsFlowControlled()		{ return fBandwidthTracker->IsFlowControlled(); }
 		SInt32				GetMaxPacketsInList()	{ return fMaxPacketsInList; }
 		SInt32				GetNumPacketsInList()	{ return fPacketsInList; }
+		SInt32				GetNumResends()			{ return fNumResends; }
 		
 		static UInt32		GetNumRetransmitBuffers() { return sBufferPool.GetTotalNumBuffers(); }
 		static UInt32		GetWastedBufferBytes() { return sNumWastedBytes; }
@@ -103,6 +111,7 @@ class RTPPacketResender
 		void				SetLog( StrPtrLen *logname );
 		UInt32 				SpillGuts(UInt32 inBytesSentThisInterval);
 		void 				LogClose(SInt64 inTimeSpentInFlowControl);
+		void				logprintf( const char * format, ... );
 
 #else
 		void				SetLog( StrPtrLen */*logname*/) {}
@@ -126,7 +135,6 @@ class RTPPacketResender
 		UInt32				fNumSent;					// how many packets sent
 
 #if RTP_PACKET_RESENDER_DEBUGGING
-		void				logprintf( const char * format, ... );
 		MyAckListLog		*fLogger;
 		
 		UInt32				fTrackID;
@@ -140,13 +148,16 @@ class RTPPacketResender
 		UInt32				fPacketArraySize;
 		UInt32				fPacketArrayMask;
 		UInt16				fHighestSeqNum;
-		
+		UInt32				fLastUsed;
+		OSMutex				fPacketQMutex;
+
 		RTPResenderEntry*	GetEntryByIndex(UInt16 inIndex);
 		RTPResenderEntry*	GetEntryBySeqNum(UInt16 inSeqNum);
 
-		RTPResenderEntry*	GetEmptyEntry(UInt16 inSeqNum);
+		RTPResenderEntry*	GetEmptyEntry(UInt16 inSeqNum, UInt32 inPacketSize);
 		void ReallocatePacketArray();
-		void RemovePacket(RTPResenderEntry* inEntry, UInt16 inSeqNum);
+		void RemovePacket(UInt32 packetIndex, Bool16 reuse=true);
+		void RemovePacket(RTPResenderEntry* inEntry);
 
 		static OSBufferPool	sBufferPool;
 		static unsigned int	sNumWastedBytes;

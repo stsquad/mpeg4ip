@@ -1,3 +1,9 @@
+10/XX/01 Version 0.9
+	Updated to DSS 3.0.1
+    Update to UCL RTP version 1.2.8
+    RTP over RTSP.
+    Player "catch up" code for slower processors
+
 9/17/01 Version 0.8
     Port to FreeBSD, BSD/OS, Mac OS X (including Cocoa UI for Mac OS X)
     Conversion of ISO codec to use automake

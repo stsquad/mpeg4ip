@@ -14,7 +14,9 @@
 	To Do:
 */
 
-#pragma once
+#ifndef _MYMUTEX_H_
+#define _MYMUTEX_H_
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,4 +35,6 @@ void mymutex_unlock(mymutex_t);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

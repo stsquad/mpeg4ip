@@ -7,17 +7,22 @@
             Makefile, 
             Makefile.postamble, 
             "adminprotocol-lib.pl", 
-            nav.htm, 
             parse.cgi, 
             parsewithinput.cgi, 
             setgensettings.cgi, 
             setlogsettings.cgi, 
             startstopserver.cgi, 
             index.cgi, 
-            mainpage.htm, 
-            "cgi-lib.pl"
+            "cgi-lib.pl", 
+            setplsettings.cgi, 
+            "playlist-lib.pl", 
+            startstopbcast.cgi, 
+            addremovemovie.cgi, 
+            createplaylist.cgi, 
+            submitplaylist.cgi, 
+            updateplaylist.cgi
         ); 
-        SUBPROJECTS = (javascripts, logs, images, settings, status); 
+        SUBPROJECTS = (javascripts, images, html_en, html_de, html_fr, html_ja); 
     }; 
     LANGUAGE = English; 
     MAKEFILEDIR = "$(MAKEFILEPATH)/pb_makefiles"; 

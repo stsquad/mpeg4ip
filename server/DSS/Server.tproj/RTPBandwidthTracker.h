@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTPBandwidthTracker.h
@@ -48,12 +48,21 @@ class RTPBandwidthTracker
 		 :	fRunningAverageMSecs(0),
 			fRunningMeanDevationMSecs(0),
 			fCurRetransmitTimeout( kMinRetransmitIntervalMSecs ),
+			fUnadjustedRTO( kMinRetransmitIntervalMSecs ),
 			fCongestionWindow(kMaximumSegmentSize),
 			fSlowStartThreshold(0),
 			fSlowStartByteCount(0),
 			fClientWindow(0),
 			fBytesInList(0),
-			fUseSlowStart(inUseSlowStart)
+			fAckTimeout(kMinAckTimeout),
+			fUseSlowStart(inUseSlowStart),
+			fMaxCongestionWindowSize(0),
+			fMinCongestionWindowSize(1000000),
+			fMaxRTO(0),
+			fMinRTO(24000),
+			fTotalCongestionWindowSize(0),
+			fTotalRTO(0),
+			fNumStatsSamples(0)
 		{}
 		
 		~RTPBandwidthTracker() {}
@@ -94,11 +103,30 @@ class RTPBandwidthTracker
 		const SInt32 RunningMeanDevationMSecs() { return fRunningMeanDevationMSecs/ 4; } // fRunningMeanDevationMSecs is stored scaled up 4x
 		const SInt32 CurRetransmitTimeout() 	{ return fCurRetransmitTimeout; }
 		const SInt32 GetCurrentBandwidthInBps()
-			{ return (fCongestionWindow * 1000) / fCurRetransmitTimeout; }
-			
+			{ return (fUnadjustedRTO > 0) ? (fCongestionWindow * 1000) / fUnadjustedRTO : 0; }
+		inline const UInt32 RecommendedClientAckTimeout() { return fAckTimeout; }
+		void UpdateAckTimeout(UInt32 bitsSentInInterval, SInt64 intervalLengthInMsec);
+		void UpdateStats();
+
+		//
+		// Stats
+		SInt32				GetMaxCongestionWindowSize()	{ return fMaxCongestionWindowSize; }
+		SInt32				GetMinCongestionWindowSize()	{ return fMinCongestionWindowSize; }
+		SInt32				GetAvgCongestionWindowSize()	{ return (SInt32)(fTotalCongestionWindowSize / (SInt64)fNumStatsSamples); }
+		SInt32				GetMaxRTO()						{ return fMaxRTO; }
+		SInt32				GetMinRTO()						{ return fMinRTO; }
+		SInt32				GetAvgRTO()						{ return (SInt32)(fTotalRTO / (SInt64)fNumStatsSamples); }
+		
 		enum
 		{
-			kMaximumSegmentSize = 1510  // enet - just a guess!
+			kMaximumSegmentSize = 1510,  // enet - just a guess!
+			
+			//
+			// Our algorithm for telling the client what the ack timeout
+			// is currently not too sophisticated. This could probably be made
+			// better. During slow start, we just use 20, and afterwards, just use 100
+			kMinAckTimeout = 20,
+			kMaxAckTimeout = 100
 		};
 		
 	private:
@@ -108,6 +136,7 @@ class RTPBandwidthTracker
 		SInt32	fRunningAverageMSecs;
 		SInt32	fRunningMeanDevationMSecs;
 		SInt32	fCurRetransmitTimeout;
+		SInt32	fUnadjustedRTO;
 		
 		//
 		// Tracking our window sizes
@@ -116,16 +145,26 @@ class RTPBandwidthTracker
 		SInt32				fSlowStartByteCount;			// counts window a full of acks when past ss thresh
 		SInt32				fClientWindow;			// max window size based on client UDP buffer
 		UInt32				fBytesInList;				// how many unacked bytes on this stream
-
+		UInt32				fAckTimeout;
+		
 		Bool16				fUseSlowStart;
 		Bool16				fIsRetransmitting;		// are we in the re-transmit 'state' ( started resending, but have yet to send 'new' data
 
+		//
+		// Stats
+		SInt32				fMaxCongestionWindowSize;
+		SInt32				fMinCongestionWindowSize;
+		SInt32				fMaxRTO;
+		SInt32				fMinRTO;
+		SInt64				fTotalCongestionWindowSize;
+		SInt64				fTotalRTO;
+		SInt32				fNumStatsSamples;
+		
 		enum
 		{
 			kMinRetransmitIntervalMSecs = 600,
-			kMaxRetransmitIntervalMSecs = 4000
+			kMaxRetransmitIntervalMSecs = 24000
 		};
 };
-
 
 #endif // __RTP_BANDWIDTH_TRACKER_H__

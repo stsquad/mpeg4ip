@@ -13,6 +13,8 @@ libmp4v2_la_SOURCES = \
 	mp4atom.h \
 	mp4atom.cpp \
 	mp4common.h \
+	mp4container.h \
+	mp4container.cpp \
 	mp4descriptor.h \
 	mp4descriptor.cpp \
 	mp4file.h \
@@ -65,6 +67,7 @@ libmp4v2_la_SOURCES = \
 	atom_rtp.cpp \
 	atom_sdp.cpp \
 	atom_smhd.cpp \
+	atom_snro.cpp \
 	atom_stbl.cpp \
 	atom_stco.cpp \
 	atom_stdp.cpp \
@@ -75,6 +78,7 @@ libmp4v2_la_SOURCES = \
 	atom_stsz.cpp \
 	atom_stts.cpp \
 	atom_tfhd.cpp \
+	atom_tims.cpp \
 	atom_tkhd.cpp \
 	atom_tmax.cpp \
 	atom_tmin.cpp \
@@ -86,6 +90,7 @@ libmp4v2_la_SOURCES = \
 	atom_trex.cpp \
 	atom_trpy.cpp \
 	atom_trun.cpp \
+	atom_tsro.cpp \
 	atom_udta.cpp \
 	atom_url.cpp \
 	atom_urn.cpp \
@@ -98,5 +103,7 @@ libmp4v2_la_SOURCES = \
 	qosqualifiers.cpp \
 	odcommands.h \
 	odcommands.cpp \
+	rtphint.h \
+	rtphint.cpp \
 	isma.cpp
 

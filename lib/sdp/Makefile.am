@@ -8,7 +8,7 @@ libsdp_la_SOURCES = \
 
 INCLUDES = -I$(top_srcdir)/include
 
-AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
+AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 
 check_PROGRAMS = test
 test_SOURCES = test.c

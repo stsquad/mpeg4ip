@@ -1,0 +1,81 @@
+# Text messages, errors and warnings
+# Keyword ########################## Message ##########
+# The strings in double quotes are to be localized ####
+#######################################################
+
+# Messages used in cgi-lib.pl
+# Http header and body messages
+Http200Status						"OK"
+Http302Status						"Zur Zeit nicht verf&uuml;gbar"
+Http401Status						"Nicht autorisiert"
+Http403Status						"Zugriff verboten"
+Http404Status						"Datei nicht gefunden"
+Http401Body							"Zur Verwaltung dieses QuickTime Streaming Servers wird ein Administrator-Kennwort ben&ouml;tigt. Bitte versuchen Sie es erneut."
+Http403Body							"Der Zugriff auf die gew&uuml;nschte Datei wurde verweigert."
+Http404Body							"Die gew&uuml;nschte Datei wurde nicht gefunden."
+
+# Server status messages
+ServerNotRunningMessage				"Der Streaming Server ist deaktiviert"
+StartServerMessage					"Klicken Sie in 'Server jetzt starten', um den Server zu starten."
+
+# Messages used in adminprotocol-lib.pl
+# Socket errors
+NoHostError							"Kein Host"
+SocketFailedError					"Verbindung zum Socket fehlgeschlagen"
+ConnectFailedError					"Verbindung fehlgeschlagen"
+SendFailedError						"Senden fehlgeschlagen"
+
+# File errors
+FileOpenError						"Die Datei konnte nicht ge&ouml;ffnet werden" 
+
+# Time strings
+DaysStr								"Tage"
+HoursStr							"Stdn"
+MinutesStr							"Min"
+SecondsStr							"Sek"
+
+# Day strings
+MonStr								"Mon"
+TueStr								"Die"
+WedStr								"Mit"
+ThuStr								"Don"
+FriStr								"Fre"
+SatStr								"Sam"
+SunStr								"Son"
+
+# Month strings
+JanStr								"Jan"
+FebStr								"Feb"
+MarStr								"M&auml;r"
+AprStr								"Apr"
+MayStr								"Mai"
+JunStr								"Jun"
+JulStr								"Jul"
+AugStr								"Aug"
+SepStr								"Sep"
+OctStr								"Okt"
+NovStr								"Nov"
+DecStr								"Dez"
+
+# Server State strings
+ServerStartingUpStr					"Server wird gestartet"
+ServerRunningStr					"Server ist aktiviert"
+ServerNotRunningStr					"Server ist deaktiviert"
+ServerRefusingConnectionsStr		"Verbindungsaufbau fehlgeschlagen"
+ServerInFatalErrorStateStr			"Ein Fehler ist aufgetreten"
+ServerShuttingDownStr				"Server wird ausgeschaltet"
+ServerIdleStr						"Server ist bereit"
+
+# Units
+BytesStr							"Bytes"
+KiloBytesStr						"KB"
+MegaBytesStr						"MB"
+GigaBytesStr						"GB"
+
+# Messages used in playlist-lib.pl
+# labels used in playlist tables
+PLMovie								"Film"
+PLDirectory							"Speicherort"
+PLState_0							"gestoppt"
+PLState_1							"wird gespielt"
+PLState_2							"Fehler"

@@ -24,6 +24,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
+#include "player_session.h"
 #include "audio.h"
 #include "player_util.h"
 //#define DEBUG_SYNC 1
@@ -382,7 +383,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 {
   int freed_buffer = 0;
   uint32_t len = (uint32_t)ilen;
-  uint64_t time;
+  uint64_t this_time;
   int delay = 0;
 
   if (m_resync_required) {
@@ -415,7 +416,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
      * the buffer.  This prevents us from playing past-due buffers.
      */
     int time_okay = 0;
-    time = 0;
+    this_time = 0;
     while ((m_buffer_filled[m_play_index] == 1) &&
 	   (time_okay == 0)) {
       uint64_t buffertime, playtime;
@@ -455,17 +456,17 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 	m_wrong_latency_total = 0;
       } else {
 	time_okay = 1;
-	time = buffertime;
+	this_time = buffertime;
       }
     }
   } else {
-    time = m_buffer_time[m_play_index];
+    this_time = m_buffer_time[m_play_index];
     if (m_first_time == 0) {
       if (m_play_sample_index != 0) {
 	uint64_t temp;
 	temp = (uint64_t) m_play_sample_index * (uint64_t)m_msec_per_frame;
 	temp /= (uint64_t) m_buffer_size;
-	time += temp;
+	this_time += temp;
       }
     }
   }
@@ -535,7 +536,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       m_buffer_latency = delay;
     else
       m_buffer_latency = 0;
-    m_psptr->audio_is_ready(m_buffer_latency, time);
+    m_psptr->audio_is_ready(m_buffer_latency, this_time);
     m_consec_wrong_latency = 0;
     m_wrong_latency_total = 0;
   } 
@@ -547,14 +548,14 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       // Okay - now we check for latency changes.
       uint64_t index_time = delay + m_play_time;
 
-      if (time > index_time + ALLOWED_LATENCY || 
-	  time < index_time - ALLOWED_LATENCY) {
+      if (this_time > index_time + ALLOWED_LATENCY || 
+	  this_time < index_time - ALLOWED_LATENCY) {
 #if DEBUG_SYNC
 	player_debug_message("potential change - index time %llu time %llu", 
-			     index_time, time);
+			     index_time, this_time);
 #endif
 	m_consec_wrong_latency++;
-	m_wrong_latency_total += time - index_time;
+	m_wrong_latency_total += this_time - index_time;
 	int64_t test;
 	test = m_wrong_latency_total / m_consec_wrong_latency;
 	if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {
@@ -579,12 +580,12 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       uint64_t index_time = delay + m_play_time;
 #if DEBUG_SYNC
       player_debug_message("latency - time " LLU " index " LLU " latency " LLU " %u", 
-			   time, index_time, m_buffer_latency, m_samples_loaded);
+			   this_time, index_time, m_buffer_latency, m_samples_loaded);
 #endif
-      if (time > index_time + ALLOWED_LATENCY || 
-	  time < index_time - ALLOWED_LATENCY) {
+      if (this_time > index_time + ALLOWED_LATENCY || 
+	  this_time < index_time - ALLOWED_LATENCY) {
 	m_consec_wrong_latency++;
-	m_wrong_latency_total += time - index_time;
+	m_wrong_latency_total += this_time - index_time;
 	int64_t test;
 	test = m_wrong_latency_total / m_consec_wrong_latency;
 	if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {
@@ -595,7 +596,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 	    } else {
 	      m_buffer_latency += test; 
 	    }
-	    m_psptr->audio_is_ready(m_buffer_latency, time);
+	    m_psptr->audio_is_ready(m_buffer_latency, this_time);
 	    player_debug_message("Latency off by " LLD " - now is " LLU, 
 				 test, m_buffer_latency);
 	  }
@@ -612,7 +613,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
   } else {
 #ifdef DEBUG_SYNC
     player_debug_message("playing %llu %llu latency %llu", 
-			 time, m_play_time, m_buffer_latency);
+			 this_time, m_play_time, m_buffer_latency);
 #endif
   }
 
@@ -629,7 +630,6 @@ void CAudioSync::play_audio (void)
   m_resync_required = 0;
   m_audio_paused = 0;
   m_play_sample_index = 0;
-  m_play_time = m_psptr->get_current_time();
   SDL_PauseAudio(0);
 }
 

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		ClientSocket.h
@@ -52,7 +52,11 @@ class ClientSocket
 		//
 		// When this call returns EAGAIN or EINPROGRESS, caller should use GetEventMask
 		// and GetSocket to wait for a socket event.
-		virtual OS_Error 	Send(const char* inData, const UInt32 inLength) = 0;
+		OS_Error 	Send(const char* inData, const UInt32 inLength);
+
+		//
+		// Sends an ioVec to the server. Same conditions apply as above function 
+		virtual OS_Error 	SendV(iovec* inVec, UInt32 inNumVecs) = 0;
 		
 		//
 		// Reads data from the server. If this returns EAGAIN or EINPROGRESS, call
@@ -92,7 +96,7 @@ class ClientSocket
 
 		enum
 		{
-			kSendBufferLen = 512
+			kSendBufferLen = 2048
 		};
 		
 		// Buffer for sends.
@@ -110,11 +114,12 @@ class TCPClientSocket : public ClientSocket
 		
 		//
 		// Implements the ClientSocket Send and Receive interface for a TCP connection
-		virtual OS_Error 	Send(const char* inData, const UInt32 inLength);
+		virtual OS_Error 	SendV(iovec* inVec, UInt32 inNumVecs);
 		virtual OS_Error 	Read(void* inBuffer, const UInt32 inLength, UInt32* outRcvLen);
 
 		virtual UInt32	GetLocalAddr() { return fSocket.GetLocalAddr(); }
 		virtual void	SetRcvSockBufSize(UInt32 inSize) { fSocket.SetSocketRcvBufSize(inSize); }
+		virtual void 	SetOptions(int sndBufSize = 8192,int rcvBufSize=1024);
 
 	private:
 	
@@ -134,7 +139,7 @@ class HTTPClientSocket : public ClientSocket
 
 		//
 		// Implements the ClientSocket Send and Receive interface for an RTSP / HTTP connection
-		virtual OS_Error 	Send(const char* inData, const UInt32 inLength);
+		virtual OS_Error 	SendV(iovec* inVec, UInt32 inNumVecs);
 		virtual OS_Error 	Read(void* inBuffer, const UInt32 inLength, UInt32* outRcvLen);
 
 		virtual UInt32	GetLocalAddr() { return fGetSocket.GetLocalAddr();  }
@@ -142,6 +147,8 @@ class HTTPClientSocket : public ClientSocket
 
 	private:
 	
+		void 		EncodeVec(iovec* inVec, UInt32 inNumVecs);
+
 		StrPtrLen	fURL;
 		UInt32		fCookie;
 		

@@ -18,7 +18,6 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
-#include <errno.h>
 
 #define ESDP_INVVER  (-10)  // invalid version
 #define ESDP_UNKNOWN_LINE  (-11)  // invalid code

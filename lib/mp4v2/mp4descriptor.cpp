@@ -21,7 +21,29 @@
 
 #include "mp4common.h"
 
-bool MP4Descriptor::FindContainedProperty(char *name,
+MP4Descriptor::MP4Descriptor(u_int8_t tag) {
+	m_tag = tag;
+	m_pParentAtom = NULL;
+	m_start = 0;
+	m_size = 0;
+	m_readMutatePoint = 0;
+}
+
+MP4Descriptor::~MP4Descriptor() 
+{
+	for (u_int32_t i = 0; i < m_pProperties.Size(); i++) {
+		delete m_pProperties[i];
+	}
+}
+
+void MP4Descriptor::AddProperty(MP4Property* pProperty) 
+{
+	ASSERT(pProperty);
+	m_pProperties.Add(pProperty);
+	pProperty->SetParentAtom(m_pParentAtom);
+}
+
+bool MP4Descriptor::FindContainedProperty(const char *name,
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {
 	u_int32_t numProperties = m_pProperties.Size();
@@ -99,10 +121,10 @@ void MP4Descriptor::ReadProperties(MP4File* pFile,
 
 			if (m_pProperties[i]->GetType() == TableProperty) {
 				VERBOSE_READ_TABLE(pFile->GetVerbosity(), 
-					printf("Read: "); m_pProperties[i]->Dump(stdout, true));
+					printf("Read: "); m_pProperties[i]->Dump(stdout, 0, true));
 			} else {
 				VERBOSE_READ(pFile->GetVerbosity(), 
-					printf("Read: "); m_pProperties[i]->Dump(stdout, true));
+					printf("Read: "); m_pProperties[i]->Dump(stdout, 0, true));
 			}
 
 		} else {
@@ -147,7 +169,24 @@ void MP4Descriptor::Write(MP4File* pFile)
 	pFile->SetPosition(endPos);
 }
 
-void MP4Descriptor::Dump(FILE* pFile, bool dumpImplicits)
+void MP4Descriptor::WriteToMemory(MP4File* pFile,
+	u_int8_t** ppBytes, u_int64_t* pNumBytes)
+{
+	u_int8_t* writeBuffer;
+
+	// use write buffer to save descriptor in memory
+	// instead of going directly to disk
+	pFile->EnableWriteBuffer();
+	Write(pFile);
+
+	pFile->GetWriteBuffer(&writeBuffer, pNumBytes);
+	*ppBytes = (u_int8_t*)MP4Malloc(*pNumBytes);
+	memcpy(*ppBytes, writeBuffer, *pNumBytes);
+
+	pFile->DisableWriteBuffer();
+}
+
+void MP4Descriptor::Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits)
 {
 	// call virtual function to adapt properties before dumping
 	Mutate();
@@ -159,7 +198,14 @@ void MP4Descriptor::Dump(FILE* pFile, bool dumpImplicits)
 		return;
 	}
 	for (u_int32_t i = 0; i < numProperties; i++) {
-		m_pProperties[i]->Dump(pFile, dumpImplicits);
+		m_pProperties[i]->Dump(pFile, indent, dumpImplicits);
 	}
 }
 
+u_int8_t MP4Descriptor::GetDepth() 
+{
+	if (m_pParentAtom) {
+		return m_pParentAtom->GetDepth();
+	}
+	return 0;
+}

@@ -24,11 +24,9 @@
 
 class MP4Descriptor {
 public:
-	MP4Descriptor(u_int8_t tag = 0) {
-		m_tag = tag;
-		m_readMutatePoint = 0;
-	}
-	virtual ~MP4Descriptor() { }
+	MP4Descriptor(u_int8_t tag = 0);
+
+	virtual ~MP4Descriptor();
 
 	u_int8_t GetTag() {
 		return m_tag;
@@ -44,25 +42,29 @@ public:
 		}
 	}
 
-	void AddProperty(MP4Property* pProperty) {
-		ASSERT(pProperty);
-		m_pProperties.Add(pProperty);
-		pProperty->SetParentAtom(m_pParentAtom);
-	}
+	void AddProperty(MP4Property* pProperty);
 
 	virtual void Generate();
 	virtual void Read(MP4File* pFile);
 	virtual void Write(MP4File* pFile);
-	virtual void Dump(FILE* pFile, bool dumpImplicits);
+	virtual void Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits);
 
 	MP4Property* GetProperty(u_int32_t index) {
 		return m_pProperties[index];
 	}
 
-	bool FindProperty(char* name, 
+	// use with extreme caution
+	void SetProperty(u_int32_t index, MP4Property* pProperty) {
+		m_pProperties[index] = pProperty;
+	}
+
+	bool FindProperty(const char* name, 
 	  MP4Property** ppProperty, u_int32_t* pIndex = NULL) {
 		return FindContainedProperty(name, ppProperty, pIndex);
 	}
+
+	void WriteToMemory(MP4File* pFile,
+		 u_int8_t** ppBytes, u_int64_t* pNumBytes);
 
 protected:
 	void SetReadMutate(u_int32_t propIndex) {
@@ -77,8 +79,10 @@ protected:
 		// default is a no-op
 	};
 
-	bool FindContainedProperty(char* name,
+	bool FindContainedProperty(const char* name,
 		MP4Property** ppProperty, u_int32_t* pIndex);
+
+	u_int8_t GetDepth();
 
 protected:
 	MP4Atom*			m_pParentAtom;

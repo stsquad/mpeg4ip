@@ -1,5 +1,31 @@
 # adminprotocol-lib.pl
 # Common functions for talking to the admin module of QTSS
+#----------------------------------------------------------
+#
+# @APPLE_LICENSE_HEADER_START@
+#
+# Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+# contents of this file constitute Original Code as defined in and are
+# subject to the Apple Public Source License Version 1.2 (the 'License').
+# You may not use this file except in compliance with the License.  Please
+# obtain a copy of the License at http://www.apple.com/publicsource and
+# read it before using this file.
+#
+# This Original Code and all software distributed under the License are
+# distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+# INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+# see the License for the specific language governing rights and
+# limitations under the License.
+#
+#
+# @APPLE_LICENSE_HEADER_END@
+#
+#
+#---------------------------------------------------------
+
+require ("./playlist-lib.pl");
 
 package adminprotolib;
 
@@ -7,30 +33,66 @@ package adminprotolib;
 #use IO::Socket;
 use Socket;
 
-# GetData(data, authheader, serverName, port, uri) 
+@weekdayStr = ( "SunStr", "MonStr", "TueStr", "WedStr", "ThuStr", "FriStr", "SatStr" );
+@monthStr = ( "JanStr", "FebStr", "MarStr", "AprStr", "MayStr", "JunStr", "JulStr", "AugStr", "SepStr", "OctStr", "NovStr", "DecStr" );
+
+$enMessageHash = $ENV{"QTSSADMINSERVER_EN_MESSAGEHASH"};
+$deMessageHash = $ENV{"QTSSADMINSERVER_DE_MESSAGEHASH"};
+$jaMessageHash = $ENV{"QTSSADMINSERVER_JA_MESSAGEHASH"};
+$frMessageHash = $ENV{"QTSSADMINSERVER_FR_MESSAGEHASH"};
+
+# GetMessageHash()
+# Returns the messages hash given the language
+sub GetMessageHash 
+{
+	my $lang = $ENV{"LANGUAGE"};
+	my $messageHash = $enMessageHash;
+	
+	if($lang eq "en") {
+		$messageHash = $enMessageHash;
+	}
+	elsif($lang eq "de") {
+		$messageHash = $deMessageHash;
+	}
+	elsif($lang eq "ja") {
+		$messageHash = $jaMessageHash;
+	}
+	elsif($lang eq "fr") {
+		$messageHash = $frMessageHash;
+	}
+	
+	return $messageHash;  
+}
+
+my $confPath = $ENV{"QTSSADMINSERVER_CONFIG"};
+
+# GetData(data, messageHash, authheader, serverName, port, uri) 
 # Does an HTTP GET to a server and puts the body in a scalar variable
 # Returns the status code of the response from the server
 sub GetData
 { 
-    my ($authheader, $remote,$port, $iaddr, $paddr, $proto, $uri);
-    $authheader = $_[1];
-    $remote = $_[2];
-    $port = $_[3];
-    $uri = $_[4];
-
+    my ($messHash, $authheader, $remote,$port, $iaddr, $paddr, $proto, $uri);
+    $messHash = $_[1];
+    $authheader = $_[2];
+    $remote = $_[3];
+    $port = $_[4];
+    $uri = $_[5];
+	
+	my %messages = %$messHash;
+	
     my $status = 500;
     if(!($iaddr = inet_aton($remote))) {
-    	$_[0] = "No host: $remote";
+    	$_[0] = "$messages{'NoHostError'}: $remote";
     	return $status;
     }
     $paddr = sockaddr_in($port, $iaddr);
     $proto = getprotobyname('tcp');
     if(!socket(CLIENT_SOCK, PF_INET, SOCK_STREAM, $proto)) {
-    	$_[0] = "Socket failed: $!";
+    	$_[0] = "$messages{'SocketFailedError'}: $!";
     	return $status;
     }
     if(!connect(CLIENT_SOCK, $paddr)) {
-     	$_[0] = "Connect failed: $!";
+     	$_[0] = "$messages{'ConnectFailedError'}: $!";
      	close (CLIENT_SOCK);
      	return $status;
  	}
@@ -41,7 +103,7 @@ sub GetData
     while($bytesSent < length($request)) {
 		$partOfRequest = substr($request, $bytesSent);
 		if(!($bytes = send(CLIENT_SOCK, $partOfRequest, 0))) {
-			$_[0] = "Send failed: $!";
+			$_[0] = "$messages{'SendFailedError'}: $!";
 			close (CLIENT_SOCK);
 			return $status;
 		}
@@ -100,18 +162,19 @@ sub GetData
     return $status;
 }
 
-# EchoData(data, authheader, serverName, port, uri, param)
+# EchoData(data, messageHash, authheader, serverName, port, uri, param)
 # Uses GetData to fetch the uri and parses the value in param=value 
 # into a scalar variable.
 # Returns the value as a scalar
 sub EchoData {
-	my $authheader = $_[1];
-    my $serverName = $_[2];
-    my $serverPort = $_[3];
-    my $uri = $_[4];
-    my $param = $_[5];
+	my $messHash = $_[1];
+	my $authheader = $_[2];
+    my $serverName = $_[3];
+    my $serverPort = $_[4];
+    my $uri = $_[5];
+    my $param = $_[6];
     my $responseText = "";
-    my $status = GetData($responseText, $authheader, $serverName, $serverPort, $uri);
+    my $status = GetData($responseText, $messHash, $authheader, $serverName, $serverPort, $uri);
     if($status != 200) {
     	$_[0] = $responseText;
 		return $status;
@@ -139,6 +202,39 @@ sub EchoData {
 		undef($paramValue);
     }
     $_[0] = $paramValue;
+    return $status;
+}
+
+# GetMovieDir(dirname, messageHash, authheader, serverName, port)
+# Uses GetData to fetch the location of the Movies
+# directory from the QTSS server.
+# Returns the value as a scalar in the first parameter.
+# Also returns an error code.
+sub GetMovieDir {
+	my $messHash = $_[1];
+	my $authheader = $_[2];
+    my $server = $_[3];
+    my $port = $_[4];
+    my $uri = "/modules/admin/server/qtssSvrPreferences/movie_folder";
+	my $param = "/server/qtssSvrPreferences/movie_folder";
+    my $dirname = "";
+    my $status = EchoData($dirname, $messHash, $authheader, $server, $port, $uri, $param);
+                           
+    if ($status eq "401") {
+		$dirname = "Authorization_Failure";
+    }
+    elsif ($dirname eq "") {
+	    if ($^O =~/[Dd]arwin/) {
+            $dirname = "/Library/QuickTimeStreaming/Movies";
+        }
+        elsif ($^O eq "MSWin32") {
+            $dirname = "c:\\Program Files\\Darwin Streaming Server\\Movies";
+        }
+        else {
+            $dirname = "/usr/local/movies/";
+        }
+    }
+	$_[0] = $dirname;
     return $status;
 }
 
@@ -228,16 +324,16 @@ sub HasValue {
 	return 0;
 }
 
-# sub SetAttribute (data, authheader, server, port, fullpath, value, [type])
+# sub SetAttribute (data, messageHash, authheader, server, port, fullpath, value, [type])
 # Sends an admin protocol set command and returns the error value
 sub SetAttribute {
-	my $uri = "/modules".$_[4]."?command=set+value="."\"$_[5]\"";
+	my $uri = "/modules".$_[5]."?command=set+value="."\"$_[6]\"";
 	my $code = 400;
-	if($_[6]) {
-		$uri .= "+type=$_[6]";
+	if($_[7]) {
+		$uri .= "+type=$_[7]";
 	}
 	my $data = "";
-	$status = GetData($data, $_[1], $_[2], $_[3], $uri); 
+	$status = GetData($data, $_[1], $_[2], $_[3], $_[4], $uri); 
 	if($status == 200) {
 		if($data =~ m/^error:\((.*)\)/) {
 			$code = $1;
@@ -250,31 +346,82 @@ sub SetAttribute {
 	return $code;
 }
 
-# sub SetPassword (data, authheader, server, port, fullpath, value)
+# sub SetPassword (data, messageHash, authheader, server, port, qtssUsersFileAttr, value, qtssPasswdName, qtssAdmin)
 # Sends an admin protocol set command for the admin password and returns the error value
 sub SetPassword {
-	my $uri = "/modules".$_[4]."?command=set+value="."\"$_[5]\"";
-	my $code = 400;
+	my $code = 200;
 	my $data = "";
-	$status = GetData($data, $_[1], $_[2], $_[3], $uri); 
-	if($status == 200) {
-		if($data =~ m/^error:\((.*)\)/) {
-			$code = $1;
-		}
+	my $password = "";
+
+	if($_[6] eq ""){
+		$code = 200;
+		$_[0] = "No password given";
+		return;
+	}
+	
+	if($_[6] !~ /^[a-zA-Z_0-9\t\r\n\f]+$/)
+	{
+		# the password contains other than alphanumeric ascii characters
+		$code = 500;
+		return $code;
+	}
+	 
+	if($_[6] =~ /\s+/) {
+		$password = qq("). $_[6] . qq(");
 	}
 	else {
+		$password = $_[6];
+	}
+	
+	#Get the name of the default users file from QTSS 
+	# that's where the current username:password record is
+	my $uri = "/modules/admin". $_[5];
+	my $status = EchoData($data, $_[1], $_[2], $_[3], $_[4], $uri, $_[5]);
+	
+	if ($status != 200) {
 		$code = $status;
-		$_[0] = $data;
+		$_[0] = $data;	
+	}
+	else {
+		$programArgs = "$_[7] $data $_[8] $password";
+		if($^O ne "MSWin32") {
+			if(system($programArgs) == 0) {
+				$code = 200;
+			}
+			else {
+				$code = 500;
+			}
+			$_[0] = "";
+		}
+		else {
+			$progName = qq($_[7]);
+			$progCommandLine = qq("). $_[7] . qq(") . " ". qq(") . $data . qq(") . " $_[8] $password";
+		    eval "require Win32::Process";
+		    if(!$@) {
+			Win32::Process::Create(
+						  $processObj,
+						  $progName,
+						  $progCommandLine,
+						  1,
+						  DETACHED_PROCESS,
+						  ".") || return $code;
+			
+			$processObj->SetPriorityClass(NORMAL_PRIORITY_CLASS);
+			$processObj->Wait(0);
+		    $_[0] = "Password Set";
+			$code = 200;
+		    }
+		}
 	}
 	return $code;
 }
 
-# sub AddValueToAttribute (data, authheader, server, port, fullpath, value)
+# sub AddValueToAttribute (data, messageHash, authheader, server, port, fullpath, value)
 sub AddValueToAttribute {
-	my $uri = "/modules".$_[4]."?command=add+value="."\"$_[5]\"";
+	my $uri = "/modules".$_[5]."?command=add+value="."\"$_[6]\"";
 	my $code = 0;
 	my $data = "";
-	$status = GetData($data, $_[1], $_[2], $_[3], $uri);
+	$status = GetData($data, $_[1], $_[2], $_[3], $_[4], $uri);
 	if($status == 200) { 
 		if($data =~ m/^error:\((.*?)\)$/) {
 			$code = $1;
@@ -287,15 +434,15 @@ sub AddValueToAttribute {
 	return $code;
 }
 
-# sub DeleteValueFromAttribute (data, authheader, server, port, fullpath, value)
+# sub DeleteValueFromAttribute (data, messageHash, authheader, server, port, fullpath, value)
 sub DeleteValueFromAttribute {
-	my $server = $_[2];
-	my $port = $_[3];
-	my $fullpath = $_[4];
-	my $value = $_[5];
+	my $server = $_[3];
+	my $port = $_[4];
+	my $fullpath = $_[5];
+	my $value = $_[6];
 	my $code = 0;
 	my $data = "";
-	my $status = GetData($data, $_[1], $server, $port, "/modules".$fullpath."/*");
+	my $status = GetData($data, $_[1], $_[2], $server, $port, "/modules".$fullpath."/*");
 	if($status != 200) {
 		$code = $status;
 		$_[0] = $data;
@@ -313,7 +460,7 @@ sub DeleteValueFromAttribute {
 	if($index != -1) {
 		my $uri = "/modules".$fullpath."/$index"."?command=del";
 		$data = "";
-		$status = GetData($data, $_[1], $server, $port, $uri); 
+		$status = GetData($data, $_[1], $_[2], $server, $port, $uri); 
 		if($status == 200) {
 			if($data =~ m/^error:\((.*?)\)$/) {
 				$code = $1;
@@ -351,9 +498,16 @@ sub ParseFile {
 		$fvalue = $_[$i+2];
 		$funcparam{$fkey} = $fvalue;
 	}
+	
+	my $messHash = GetMessageHash();
+	my %messages = %$messHash;
+	
 	local (*TEMPFILE, $_);
 	# Open the file
-	open(TEMPFILE, $filename) or print "Can't open $filename: $!\n";
+	if(!open(TEMPFILE, $filename)) {
+		$_[0] = "$messages{'FileOpenError'} $filename: $!\n";
+		return;
+	}
 	# Read the entire file into a buffer and close file handle
 	read(TEMPFILE, $_, -s $filename);
 	close(TEMPFILE);
@@ -370,7 +524,7 @@ sub ParseFile {
 			@params = split /\s+/, $1;
 			$uri = "/modules/admin".$params[0];
 			$data = "";
-			$status = EchoData($data, $authheader, $server, $port, $uri, $params[0]);
+			$status = EchoData($data, $messHash, $authheader, $server, $port, $uri, $params[0]);
 		    if($status == 401) {
 		    	$_[0] = $data;
 		    	return $status;
@@ -385,7 +539,7 @@ sub ParseFile {
 			@params = split /\s+/, $1;
 			$uri = "/modules/admin".$params[1];
 			$data = "";
-			$status =  GetData($data, $authheader, $server, $port, $uri);
+			$status =  GetData($data, $messHash, $authheader, $server, $port, $uri);
 			if($status == 401) {
 		    	$_[0] = $data;
 		    	return $status;
@@ -400,7 +554,7 @@ sub ParseFile {
 			@params = split /\s+/, $1;
 			$uri = "/modules/admin".$params[1];
 			$data = "";
-			$status = EchoData($data, $authheader, $server, $port, $uri, $params[1]);
+			$status = EchoData($data, $messHash, $authheader, $server, $port, $uri, $params[1]);
 			if($status == 401) {
 		    	$_[0] = $data;
 		    	return $status;
@@ -452,7 +606,29 @@ sub ParseFile {
 				$_[0] .= "";
 			}
 			else {
-				$_[0] .= localtime($timeval/1000);		
+				my @tm = localtime($timeval/1000);
+				my $lang = $ENV{"LANGUAGE"};
+				if($lang eq "de") {
+					$_[0] .= sprintf "%s, %d %s %d %2.2d:%2.2d:%2.2d",
+    						$messages{$weekdayStr[$tm[6]]}, $tm[3], $messages{$monthStr[$tm[4]]}, $tm[5]+1900,
+    						$tm[2], $tm[1], $tm[0];		
+    			}
+    			elsif($lang eq "ja") {
+    				$_[0] .= sprintf "%d %s %d %s, %2.2d:%2.2d:%2.2d",
+    						$tm[5]+1900, $messages{$monthStr[$tm[4]]}, $tm[3], $messages{$weekdayStr[$tm[6]]}, 
+    						$tm[2], $tm[1], $tm[0];
+    			}
+    			elsif($lang eq "fr") {
+    				$_[0] .= sprintf "%s %d %s %d %2.2d:%2.2d:%2.2d",
+    						$messages{$weekdayStr[$tm[6]]}, $tm[3], $messages{$monthStr[$tm[4]]}, $tm[5]+1900,
+    						$tm[2], $tm[1], $tm[0];	
+    			}
+    			else {
+    				$_[0] .= sprintf "%s, %d. %s %d %2.2d:%2.2d:%2.2d",
+    						$messages{$weekdayStr[$tm[6]]}, $tm[3], $messages{$monthStr[$tm[4]]}, $tm[5]+1900,
+    						$tm[2], $tm[1], $tm[0];			
+    			}
+
     		}
     	}
 		elsif($tag =~ m/^ACTIONONDATA\s+(\S+)\s+(\S+)\s+(\S+)\s+\'(.*?)\'(\s*)/s) {
@@ -474,7 +650,7 @@ sub ParseFile {
 		}
 		elsif($tag =~ m/^CONVERTMSECTIMETOSTR\s+(\S+)/) {
 			if(defined($varHash{$1})) {
-				my $timeStr = ConvertTimeToStr($varHash{$1});
+				my $timeStr = ConvertTimeToStr($varHash{$1}, $messHash);
 				$_[0] .= $timeStr;
 			}
 			else {
@@ -495,20 +671,18 @@ sub ParseFile {
     	}
     	elsif($tag =~ m/^PRINTFILE\s+(\S+?)\s+(\S+)/s) {
     		if(!defined($varHash{$1}) || !defined($varHash{$2})) {
-    			#$_[0] .= "Server is not Running. Cannot display file";
     			$_[0] .= "";
     		}
     		else {
-    			$_[0] .= GetFile($varHash{$1}, $varHash{$2});
+    			$_[0] .= GetFile($varHash{$1}, $varHash{$2}, $messHash);
     		}
     	}
     	elsif($tag =~ m/^PRINTHTMLFORMATFILE\s+(\S+?)\s+(\S+)/s) {
     		if(!defined($varHash{$1}) || !defined($varHash{$2})) {
-    		    #$_[0] .= qq(<BR><BR><FONT FACE="Arial"><B>Server is not Running. Cannot display file.</B></FONT>);
     			$_[0] .= "";
     		}
     		else {
-    			$_[0] .= GetFormattedFile($varHash{$1}, $varHash{$2});
+    			$_[0] .= GetFormattedFile($varHash{$1}, $varHash{$2}, $messHash);
     		}
     	}
     	elsif($tag =~ m/PROCESSFILE\s+(\S+?)\s+(\S+?)\s+(\S+?)\s+(\S+)/s) {
@@ -557,19 +731,16 @@ sub ParseFile {
 	    		my $i = 0;
 	    		
 	    		while($optstr =~ m/\'(.*?)\'\s+(.*)/) {
-	    			if($value eq $1) {
-	    				$options[$i] = "<OPTION SELECTED>". $1;
-	    			}
-	    			else { $options[$i] = "<OPTION>". $1; }
+	    			$options[$i] = "<OPTION>". $1;
 	    			$optstr = $2;
 	    			$i++;
 	    		}
 	    		if($optstr =~ m/\'(.*?)\'/) {
-	    			if($value eq $1) {
-	    				$options[$i] = "<OPTION SELECTED>". $1;
-	    			}
-	    			else { $options[$i] = "<OPTION>". $1; }
+	    			$options[$i] = "<OPTION>". $1;
 	    		}
+	    		
+	    		$options[$value] =~ s/OPTION/OPTION SELECTED/;
+	    		
 	    		my $result = qq(<SELECT NAME=") . $name. qq(" onChange=") . $handler. qq(()">);
 	    		for($i = 0; $i<=$#options; $i++) {
 	    			$result .= "$options[$i]\n";
@@ -587,19 +758,16 @@ sub ParseFile {
 	    		my $i = 0;
 	    		
 	    		while($optstr =~ m/\'(.*?)\'\s+(.*)/) {
-	    			if($value eq $1) {
-	    				$options[$i] = "<OPTION SELECTED>". $1;
-	    			}
-	    			else { $options[$i] = "<OPTION>". $1; }
+	    			$options[$i] = "<OPTION>". $1;
 	    			$optstr = $2;
 	    			$i++;
 	    		}
 	    		if($optstr =~ m/\'(.*?)\'/) {
-	    			if($value eq $1) {
-	    				$options[$i] = "<OPTION SELECTED>". $1;
-	    			}
-	    			else { $options[$i] = "<OPTION>". $1; }
+	    			$options[$i] = "<OPTION>". $1;
 	    		}
+	    		
+	    		$options[$value] =~ s/OPTION/OPTION SELECTED/;
+	    		
 	    		my $result = qq(<SELECT NAME=") . $name. qq(">);
 	    		for($i = 0; $i<=$#options; $i++) {
 	    			$result .= "$options[$i]\n";
@@ -614,20 +782,67 @@ sub ParseFile {
     		if(defined($value) && defined($varHash{$2})) { 
     			$varHash{$refKey} = SortRecords($varHash{$2}, $3, $4, $value);
     		}
-		}	
+		}
+		elsif($tag =~ m/^GENJAVASCRIPTIFSTATECHANGE\s+\'(.*)\'/s) {
+    		$value = $funcparam{"GENJAVASCRIPTIFSTATECHANGE:stateChange"};
+    		if(defined($value) && ($value == 1)) { 
+    			$_[0] .= $1;
+    		}
+		}
 		elsif($tag =~ m/^IFREMOTE\s+\'(.*?)\'\s+\'(.*)\'/s) {
     		my $remoteData = $1;
     		my $localData = $2;
     		$value = $funcparam{"IFREMOTE:ipaddress"};
-    		if($value ne '127.0.0.1') { 
+    		$localAddress = inet_ntoa(INADDR_LOOPBACK);
+    		if($value ne $localAddress) { 
     			$_[0] .= $remoteData;
     		}
     		else {
     			$_[0] .= $localData;
     		}
 		}
+		elsif($tag =~ m/^IFOSX\s+\'(.*)\'/s) {
+		    if($^O eq "darwin") {
+    			$_[0] .= $1;
+		    }
+		}
+		elsif($tag =~ m/^IFNOTOSX\s+\'(.*)\'/s) {
+		    if($^O ne "darwin") {
+    			$_[0] .= $1;
+		    }
+		}
+		elsif($tag =~ m/^IFOSXAUTOSTARTCHECKBOX$/) {
+		    if($^O eq "darwin") {
+				if(-r $confPath) {
+					$tempBuf = $_;
+			    	open(CONFFILE, "<$confPath");
+			    	while(<CONFFILE>) {
+						chop;
+						if (/^#/ || !/\S/) {
+				    		next; 
+						}
+						/^([^=]+)=(.*)$/;
+						$name = $1; $val = $2;
+						$name =~ s/^\s+//g; $name =~ s/\s+$//g;
+						$val =~ s/^\s+//g; $val =~ s/\s+$//g;
+						if($name eq "qtssAutoStart") {
+						    $autoStart = $val;
+						    last;
+						}
+			    	}
+			    	close(CONFFILE);
+					$_ = $tempBuf;
+				}
+    			if($autoStart == 1) {
+			    	$_[0] .= qq(<INPUT TYPE=checkbox NAME="Auto Start" VALUE="1" CHECKED>);
+    			}
+    			else {
+			    	$_[0] .= qq(<INPUT TYPE=checkbox NAME="Auto Start" VALUE="0">);
+    			}
+		    }
+		}
  		elsif($tag =~ m/^CONVERTTOSTATESTR\s+(\S+)/s) {
- 			$_[0] .= GetServerStateString($varHash{$1});
+ 			$_[0] .= GetServerStateString($varHash{$1}, $messHash);
  		}
     	elsif($tag =~ m/^FILTERSTRUCT\s+(.*)/s) {
 			#filter the elements of the data structure
@@ -650,6 +865,29 @@ sub ParseFile {
     			$_[0] .= "";
     		}
     	}
+	elsif($tag =~ m/^FORMATBYTESTOREADABLEUNITS\s+(\S+)/s) {
+	    $valueInBytes = $varHash{$1};
+	    if(defined($valueInBytes)) {
+		if($valueInBytes < 1024) {         
+		    $_[0] .= "$valueInBytes " . $messages{'BytesStr'};
+		}
+		elsif($valueInBytes < (1024 * 1024)) {
+		    $valueInBytes /= 1024;
+		    $_[0] .= sprintf("%3.3f", $valueInBytes) . " " . $messages{'KiloBytesStr'};
+		}
+		elsif($valueinBytes < (1024 * 1024 * 1024)) {
+		    $valueInBytes /= (1024 * 1024);
+		    $_[0] .= sprintf("%3.3f", $valueInBytes) . " " . $messages{'MegaBytesStr'};
+		}
+		else {
+		    $valueInBytes /= (1024 * 1024 * 1024);
+		    $_[0] .= sprintf("%3.3f", $valueInBytes) . " " . $messages{'GigaBytesStr'};
+		}
+	    }
+	    else {
+		$_[0] .= "";
+	    }
+	}
     	elsif($tag =~ m/^FORMATRADIOBUTTON\s+(\S+)\s+\'(.*?)\'\s+\'(.*?)\'\s+(\S+)/s) {
     		$cond = $varHash{$1};
     		if(defined($cond)) {
@@ -700,24 +938,128 @@ sub ParseFile {
     	elsif($tag =~ m/^GETALLRECORDS\s+(\S+?)\s+(\S+?)\s+(\S+)/s) {
     		my $arKey = $1;
     		$data = "";
-    		$status = GetAllRecords($data, $authheader, $server, $port, $varHash{$2}, $3);
+    		$status = GetAllRecords($data, $messHash, $authheader, $server, $port, $varHash{$2}, $3);
     		if($status == 401) {
     			$_[0] = $data;
     			return $status;
     		}
     		$varHash{$arKey} = $data;
-    	}
+	}
+        elsif($tag =~ m/^FILTERRECORDS\s+(\S+?)\s+(\S+?)\s+(\S+)/s) {
+	    my $refKey = $1;
+	    $varHash{$refKey} = FilterRecords($varHash{$2}, $3);
+	}
     	elsif($tag =~ m/^MODIFYCOLUMNWITHCONDS\s+(\S+?)\s+(\S+?)\s+(\S+?)\s+(\S+?)\s+(\S+?)\s+\'(.*?)\'\s+\'(.*?)\'\s+\'(.*?)\'\s+\'(.*?)\'\s+\'(.*?)\'/s) {
     		my $refKey = $1;
     		$varHash{$refKey} = ModifyColumnWithConds($varHash{$2}, $3, $4, $5, $6, $7, $8, $9, $10);
     	}
     	elsif($tag =~ m/^CONVERTCOLUMNTOSTRTIME\s+(\S+?)\s+(\S+?)\s+(\S+?)\s+(\S+?)\s+(\S+)/s) {
     		my $refKey = $1;
-    		$varHash{$refKey} = ConvertColumnToStrTime($varHash{$2}, $3, $4, $5);
+    		$varHash{$refKey} = ConvertColumnToStrTime($varHash{$2}, $3, $4, $5, $messHash);
     	}
     	elsif($tag =~ m/^SORTRECORDS\s+(\S+?)\s+(\S+?)\s+(\S+?)\s+(\S+?)\s+(\S+)/s) {
     		my $refKey = $1;
     		$varHash{$refKey} = SortRecords($varHash{$2}, $3, $4, $5);
+    	}
+    	elsif($tag =~ m/^FORMATPLAYLISTTABLE/s) {
+    		my @labels;
+    		$labels[0] = "$messages{'PLState_0'}";
+    		$labels[1] = "$messages{'PLState_1'}";
+    		$labels[2] = "$messages{'PLState_2'}";
+    		$_[0] .= &playlistlib::EmitMainPlaylistHTML(\@labels);
+    	}
+     	elsif($tag =~ m/^FORMATCURRENTPLAYLIST/s) {
+     	    my $trailer = $_;
+     	    my $label = "$messages{'PLMovie'}";
+     	    my $pln = &playlistlib::PopCurrPlayList();
+    		$_[0] .= &playlistlib::GeneratePLDetailTable($pln, $label);
+    		$_ = $trailer;
+    	}
+    	elsif($tag =~ m/^CURPLAYLISTURL/s) {
+     	    my $pln = &playlistlib::PopCurrPlayList();
+       	    my $url = $varHash{"pl_url"};
+	   	    #
+     	    # $varHash{"pl_url"} is set by CURPLAYLIST tag.
+     	    #
+     	    if (($url eq "") || ($url eq "sample.sdp")) {
+     	    	# default value is same as playlist name
+     	    	$url = "$pln.sdp";
+     	    }
+    		$_[0] .= $url;
+    	}
+ 		elsif($tag =~ m/^ISCURPLAYLISTMODE\s+(\S+)/s) {
+       	    my $mode = $varHash{"pl_mode"};
+     	    if ($mode eq $1) {
+     	    	$mode = "selected";
+     	    }
+     	    else {
+     	    	$mode = "";
+     	    }
+    		$_[0] .= $mode;
+    	}
+    	elsif($tag =~ m/^CURPLAYLISTLOGSTATE/s) {
+       	    my $logstate = $varHash{"pl_logstate"};
+	   	    #
+     	    # $varHash{"pl_logstate"} is set by CURPLAYLIST tag.
+     	    #
+     	    if ($logstate eq "enabled") {
+     	    	$logstate = " checked";
+     	    }
+     	    else {
+     	    	$logstate = "";
+     	    }
+    		$_[0] .= $logstate;
+    	}
+    	elsif($tag =~ m/^CURPLAYLISTMAXREPS/s) {
+       	    my $maxreps = $varHash{"pl_maxreps"};
+	   	    #
+     	    # $varHash{"pl_maxreps"} is set by CURPLAYLIST tag.
+     	    #
+    		$_[0] .= $maxreps;
+    	}
+    	elsif($tag =~ m/^CURPLAYLIST/s) {
+    		# this happens whenever we display the detail page for a  playlist
+      	    my $trailer = $_;
+    	    my $pln = &playlistlib::PopCurrPlayList();
+		    my @plc = ();
+            my $stat = GetMovieDir($dirname, $messHash, $authheader, $server, $port);
+ 	        my $temp = &playlistlib::ParsePlayListEntry($pln);
+ 			@plc = (@$temp);
+ 			$varHash{"pl_url"} = $plc[0];
+ 			$varHash{"pl_mode"} = $plc[1];
+ 			$varHash{"pl_logstate"} = $plc[2];
+ 			$varHash{"pl_maxreps"} = $plc[4];
+  		    $_[0] .= &playlistlib::DecodePLName($pln);
+  		    &playlistlib::PushCurrPWDir($dirname);
+     		$_ = $trailer;
+   		}
+    	elsif($tag =~ m/^MOVIELIST/s) {
+     	    my $trailer = $_;
+     	   	my $dirname = "";
+    	    $dirname = &playlistlib::PopCurrPWDir();
+    		my @labels;
+    		$labels[0] = "$messages{'PLDirectory'}";
+    		$labels[1] = "$messages{'PLMovie'}";
+    		$labels[2] = "$messages{'Http404Status'}";
+    		$_[0] .= &playlistlib::EmitMovieListHtml($dirname, \@labels);
+    		$_ = $trailer;
+    	}
+    	elsif($tag =~ m/^CURRMOVIEDIR/s) {
+     	    my $trailer = $_;
+     	   	my $dirname = "";
+    	    $dirname = &playlistlib::PopCurrPWDir();
+    	    if ($dirname eq "") {
+            	my $stat = GetMovieDir($dirname, $messHash, $authheader, $server, $port);
+    	    }
+    		$_[0] .= $dirname;
+    		$_ = $trailer;
+    	}
+    	elsif($tag =~ m/^REMOVEMOVIETBL/s) {
+     	    my $trailer = $_;
+      	    my $label = "$messages{'PLMovie'}";
+    	    my $pln = &playlistlib::PopCurrPlayList();
+    		$_[0] .= &playlistlib::GeneratePLRemoveMovieTable($pln, $label);
+    		$_ = $trailer;
     	}
     	elsif($tag =~ m/FORMATDDARRAYWITHINPUT\s+(\S+?)\s+(\S+?)\s+\'(.*?)\'\s+\'(.*?)\'\s+(.*)/s) {
 			my $dArrRef = $varHash{$1};
@@ -778,11 +1120,12 @@ sub ParseFile {
 	return $status;
 }
 
-# sub GetAllRecords($data, $authheader, $server, $port, \%IndexHash, $requestStr)
+# sub GetAllRecords($data, $messageHash, $authheader, $server, $port, \%IndexHash, $requestStr)
 sub GetAllRecords {
-	my $authheader = $_[1];
-	my $uri = "/modules/admin".$_[5]."*?command=get+";
-	my $hRef = $_[4];
+	my $messHash = $_[1];
+	my $authheader = $_[2];
+	my $uri = "/modules/admin".$_[6]."*?command=get+";
+	my $hRef = $_[5];
 	my $filterstr;
 	my $num = 1;
 	foreach $filterstr (keys %$hRef) {
@@ -790,7 +1133,7 @@ sub GetAllRecords {
 		$num++;
 	}
 	my $data = "";
-	my $status = GetData($data, $authheader, $_[2], $_[3], $uri);		
+	my $status = GetData($data, $messHash, $authheader, $_[3], $_[4], $uri);		
 	if($status != 200) {
 		$_[0] = $data;
 		return $status;
@@ -807,8 +1150,8 @@ sub GetAllRecords {
 				my $ind = $hRef->{$1};
 				$indexArr[$j] = $ind;
 				$ddArr[0]->[$ind] = $2;
-	    	}
-		}
+			}
+		 }
 	}
 	
 	$k = 0;
@@ -828,10 +1171,10 @@ sub GetAllRecords {
 }
 
 
-# sub GetAllRecords_WithoutFilters($data, $authheader, $server, $port, \%IndexHash, $requestStr)
+# sub GetAllRecords_WithoutFilters($data, $messageHash, $authheader, $server, $port, \%IndexHash, $requestStr)
 sub GetAllRecords_WithoutFilters {
 	my $data = "";
-	my $status = GetData($data, $_[1], $_[2], $_[3], "/modules/admin".$_[5]."*");
+	my $status = GetData($data, $_[1], $_[2], $_[3], $_[4], "/modules/admin".$_[6]."*");
 	if($status != 200) {
 		$_[0] = $data;
 		return $status;
@@ -839,7 +1182,7 @@ sub GetAllRecords_WithoutFilters {
 	
 	my @lines = split /\n/, $data;
 	my @ddArr;
-	my $hRef = $_[4];
+	my $hRef = $_[5];
 	my $i = 0;
 	
 	my $line = shift @lines;
@@ -866,6 +1209,22 @@ sub GetAllRecords_WithoutFilters {
 	return $status; 	
 }
 
+# sub FilterRecords(\@dArrRef, $column)
+sub FilterRecords {
+    my ($dArrRef, $col) = @_;
+    my @dArr = @$dArrRef;
+    my @newDArr = ();
+    my $i;
+    for($i = 0; $i <= $#dArr; $i++) {
+	        my $arRef = $dArr[$i];
+		my @newArr = @$arRef;
+		if($newArr[$col] eq "") {
+		    push(@newDArr, \@newArr);
+		}
+    }
+    return \@newDArr;
+}
+
 # sub ModifyColumnWithConds(\@dArrRef, $column, $begIndex, $endIndex, $cond, $truAction, $truSuffix, $falAction, $falSuffix)
 sub ModifyColumnWithConds {
 	my ($dArrRef, $col, $b, $e, $cond, $truAct, $truSuf, $falAct, $falSuf) = @_;
@@ -889,9 +1248,9 @@ sub ModifyColumnWithConds {
 	return \@newDArr;
 }
 
-# sub ConvertColumnToStrTime(\@dArrRef, $col, $begIndex, $endIndex)
+# sub ConvertColumnToStrTime(\@dArrRef, $col, $begIndex, $endIndex, $messageHash)
 sub ConvertColumnToStrTime {
-	my ($dArrRef, $col, $b, $e) = @_;
+	my ($dArrRef, $col, $b, $e, $messHash) = @_;
 	my @dArr = @$dArrRef;
 	my @newDArr = ();
 	$e = ($e == -1)? $#dArr : $e;
@@ -899,7 +1258,7 @@ sub ConvertColumnToStrTime {
 	for($i = $b; $i <= $e; $i++) {
 		my $arRef = $dArr[$i];
 		my @newAr = @$arRef;
-		$newAr[$col] = ConvertTimeToStr($newAr[$col]);
+		$newAr[$col] = ConvertTimeToStr($newAr[$col], $messHash);
 		$newDArr[$i] = \@newAr;
 	}
 	return \@newDArr;
@@ -922,7 +1281,7 @@ sub byNumberDescending {
     $b->[0] <=> $a->[0];
 } 
  
-# sub SortRecords(\@dArrRef, $index, [num|alpha], [asc|Ascending|desc|Descending])
+# sub SortRecords(\@dArrRef, $index, [num|alpha], [0|1])
 sub SortRecords {
 	my ($dArrRef, $index, $type, $order) = @_;
 	my @dArr = @$dArrRef;
@@ -937,15 +1296,15 @@ sub SortRecords {
 	
 	my @sortedArr;
 	if($type eq "num") {
-		if(($order eq "asc") || ($order eq "Ascending")) {
+		if($order == 0) {
 			@sortedArr = sort byNumberAscending @sortArr;
-		} elsif(($order eq "desc") || ($order eq "Descending")) {
+		} elsif($order == 1) {
 			@sortedArr = sort byNumberDescending @sortArr;	
 		}
 	} elsif($type eq "alpha") {
-		if(($order eq "asc") || ($order eq "Ascending")) {
+		if($order == 0){
 			@sortedArr = sort byAlphaAscending @sortArr;
-		} elsif(($order eq "desc") || ($order eq "Descending")) {
+		} elsif($order == 1) {
 			@sortedArr = sort byAlphaDescending @sortArr;	
 		}
 	}
@@ -1005,13 +1364,14 @@ sub ModifyData {
 	}
 }
 
-# sub GetFile($dirname, $filename) 
+# sub GetFile(dirname, filename, messageHash) 
 sub GetFile {
-	my ($dirname, $filename) = @_;
+	my ($dirname, $filename, $messHash) = @_;
+	my %messages = %$messHash;
 	my $path = $dirname . qq(/) . $filename . ".log";
 	my ($line, $text);
 	$text = "";
-	open(FILE, $path) or print "Can't open $path: $!\n";
+	open(FILE, $path) or print "$messages{'FileOpenError'} $path: $!\n";
 	while($line = <FILE>) {
 		$text .= $line;
 	}
@@ -1019,17 +1379,22 @@ sub GetFile {
 	return $text;
 }
 
-# sub GetFormattedFile($dirname, $filename) 
+# sub GetFormattedFile(dirname, filename, messageHash) 
 sub GetFormattedFile {
-	my ($dirname, $filename) = @_;
+	my ($dirname, $filename, $messHash) = @_;
+	my %messages = %$messHash;
+	
+	my $path;
 	if($^O eq "MSWin32") {
-	    my $path = $dirname . qq(\\) . $filename . ".log";
+	    $path = $dirname . qq(\\) . $filename . ".log";
 	}
 	else {
-	    my $path = $dirname . qq(/) . $filename . ".log";
+	    $path = $dirname . qq(/) . $filename . ".log";
 	}
+		
 	my ($line, $text);
 	$text = "";
+	
 	if(open(FILE, $path)) {
 		while($line = <FILE>) {
 			if($line =~ m/^#/) {
@@ -1043,7 +1408,7 @@ sub GetFormattedFile {
 		close(FILE);
 	}
 	else {
-		$text = qq(<B>) . "Can't open $path: $!" . qq(</B>) . qq(<BR>);
+		$text = qq(<B>) . "$messages{'FileOpenError'}: $path. $!" . qq(</B>) . qq(<BR>);
 	}
 	return $text;
 }
@@ -1108,20 +1473,23 @@ sub ProcessFile {
 }
 
 
-# sub ConvertTimeToStr($timeInmSec)
+# sub ConvertTimeToStr(timeInmSec, messageHash)
 sub ConvertTimeToStr {
 	my $timeStr;
+	my $messHash = $_[1];
+	my %messages = %$messHash;
+	
 	my $sec = $_[0]/1000;
 	my $days = int ($sec / 86400);
-	if($days != 0) { $timeStr = "$days days"; }	
+	if($days != 0) { $timeStr = "$days $messages{'DaysStr'}"; }	
 	$sec %= 86400;
 	my $hr = int ($sec / 3600);
-	if($hr != 0) { $timeStr .= " $hr hrs"; }	
+	if($hr != 0) { $timeStr .= " $hr $messages{'HoursStr'}"; }	
 	$sec %= 3600;
 	my $min = int ($sec / 60);
-	if($min != 0) { $timeStr .= " $min min"; }	
+	if($min != 0) { $timeStr .= " $min $messages{'MinutesStr'}"; }	
 	$sec %= 60;
-	if($sec != 0) { $timeStr .= " $sec sec"; }
+	if($sec != 0) { $timeStr .= " $sec $messages{'SecondsStr'}"; }
 	return $timeStr; 
 }
 
@@ -1149,10 +1517,10 @@ sub FormatSelectOption {
 	$selectOpt = $_[5];
 	$result = eval($expr); 
 	if(($result && ($selectOpt == 1)) || (!$result && ($selectOpt == 2))) {
-		return (qq(<SELECT NAME="$_[2]"><OPTION SELECTED>$opt1Name<OPTION>$opt2Name</SELECT>));
+		return (qq(<SELECT NAME="$_[2]"><OPTION VALUE="0" SELECTED>$opt1Name<OPTION VALUE="1">$opt2Name</SELECT>));
 	}
 	elsif(($result && ($selectOpt == 2)) || (!$result && ($selectOpt == 1))) {
-		return (qq(<SELECT NAME="$_[2]"><OPTION>$opt1Name<OPTION SELECTED>$opt2Name</SELECT>));
+		return (qq(<SELECT NAME="$_[2]"><OPTION VALUE="0">$opt1Name<OPTION VALUE="1" SELECTED>$opt2Name</SELECT>));
 	}
 	else {
 	 	return (qq(<SELECT NAME="$_[2]"><OPTION>$opt1Name<OPTION>$opt2Name</SELECT>));
@@ -1201,31 +1569,34 @@ sub StartServer() {
 	else {
 		# fork off a child and exec the server
 		if(!($pid = fork())) {
-			exec $prog;
+			exec $prog, '-I';
 			exit;
 		}
 	}
 }
 
-# GetServerStateString(state)
+# GetServerStateString(state, messageHash)
 # Maps the given number to the server state
 # returns the corresponding string
 # qtssStartingUpState|qtssRunningState|qtssRefusingConnectionsState|qtssFatalErrorState|qtssShuttingDownState
 sub GetServerStateString {
 	my $state = $_[0];
+	my $messHash = $_[1];
+	my %messages = %$messHash;
+		
 	if(!defined($state)) {
 		$state = -1;
 	}
 	my @serverStateArr = (
-		"Starting Up",
-		"Running",
-		"Refusing Connections",
-		"In Fatal Error State",
-		"Shutting Down",
-		"Idle"
+		"$messages{'ServerStartingUpStr'}",
+		"$messages{'ServerRunningStr'}",
+		"$messages{'ServerRefusingConnectionsStr'}",
+		"$messages{'ServerInFatalErrorStateStr'}",
+		"$messages{'ServerShuttingDownStr'}",
+		"$messages{'ServerIdleStr'}"
 	);
 	if($state < 0 || $state > $#serverStateArr) {
-		return "Not Running";
+		return "$messages{'ServerNotRunningStr'}";
 	}
 	return $serverStateArr[$state];
 }
@@ -1245,6 +1616,9 @@ sub ParseQueryString {
 	
 	# convert the hex characters
 	$qs[$i] =~ s/%(..)/pack("c",hex($1))/ge;
+	
+	# remove backticks (for security reasons)
+	$qs[$i] =~ s/[`]//g;
 	
 	# split each one into name and value
 	($name, $value) = split(/=/,$qs[$i],2);
@@ -1266,6 +1640,56 @@ sub ConvertToVersionString {
     $result .= ($resultArr[1] == 0)? "0" : "$resultArr[1]";
     
     return $result;
+}
+
+# StripPath ( filename )
+# Strips out any .. and . from a path
+sub StripPath
+{
+    local($dir, @bits, @fixedbits, $b);
+    $dir = $_[0];
+    $dir =~ s/^\/+//g;
+    $dir =~ s/\/+$//g;
+    @bits = split(/\/+/, $dir);    
+    
+	if( $#bits == 0)
+	{
+		$dir =~ s/^\\+//g;
+		$dir =~ s/\\+$//g;
+		@bits = split(/\\+/, $dir);
+	}
+
+    @fixedbits = ();
+    foreach $b (@bits) {
+        if ($b eq ".") {
+	    	# Do nothing..
+        }
+        elsif ($b eq "..") {
+        	if(scalar(@fixedbits) != 0) {
+		    	pop(@fixedbits);
+		    }
+		}
+        else {
+	    	# Add dir to list
+	    	push(@fixedbits, $b);
+		}
+    }
+    return join('/', @fixedbits);
+}
+
+# CheckIfForbidden
+# checks if filename belongs to the document root directory
+sub CheckIfForbidden($accessdir, $filename)
+{
+    my $strippedFileName = StripPath($_[1]);
+    my $filepath = $_[0] . "/" . $strippedFileName;
+	
+    if((-e $filepath) && (-r $filepath)) {
+	return 0; # not forbidden because file exists!
+    }
+    else {
+	return 1; # forbidden
+    }
 }
 
 1; #return true    

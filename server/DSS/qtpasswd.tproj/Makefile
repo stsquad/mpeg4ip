@@ -12,7 +12,7 @@ NAME = qtpasswd
 PROJECTVERSION = 2.8
 PROJECT_TYPE = Tool
 
-CFILES = QTSSPasswd.c
+CPPFILES = QTSSPasswd.cpp
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble m.template\
             h.template
@@ -21,10 +21,10 @@ OTHERSRCS = Makefile.preamble Makefile Makefile.postamble m.template\
 MAKEFILEDIR = $(MAKEFILEPATH)/pb_makefiles
 CODE_GEN_STYLE = DYNAMIC
 MAKEFILE = tool.make
-NEXTSTEP_INSTALLDIR = /usr/sbin
+NEXTSTEP_INSTALLDIR = /usr/local/bin
 WINDOWS_INSTALLDIR = /Library/Executables
 PDO_UNIX_INSTALLDIR = /bin
-LIBS = 
+LIBS = -lCommonUtilitiesLib
 DEBUG_LIBS = $(LIBS)
 PROF_LIBS = $(LIBS)
 

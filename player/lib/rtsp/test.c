@@ -21,11 +21,6 @@
 /*
  * test.c - test program for rtsp library
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
 #include "sdp.h"
 #include "rtsp_private.h"
 
@@ -35,6 +30,39 @@ static const char *optbuff =
 static const char *optbuff2 =
 "OPTIONS * RTSP/1.0\r\nCSeq: 2\r\n\r\n";
 #endif
+static void local_error_msg (int loglevel,
+			     const char *lib,
+			     const char *fmt,
+			     va_list ap)
+{
+#if _WIN32 && _DEBUG
+  char msg[512];
+
+  if (initialized) init_local_mutex();
+  lock_mutex();
+  sprintf(msg, "%s:", lib);
+  OutputDebugString(msg);
+  va_start(ap, fmt);
+  _vsnprintf(msg, 512, fmt, ap);
+  va_end(ap);
+  OutputDebugString(msg);
+  OutputDebugString("\n");
+  unlock_mutex();
+#else
+  struct timeval thistime;
+  char buffer[80];
+
+  gettimeofday(&thistime, NULL);
+  strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
+  printf("%s.%03ld-%s-%d: ",
+	 buffer,
+	 thistime.tv_usec / 1000,
+	 lib,
+	 loglevel);
+  vprintf(fmt, ap);
+  printf("\n");
+#endif
+}
 
 int main (int argc, char **argv)
 {
@@ -48,6 +76,8 @@ int main (int argc, char **argv)
   rtsp_session_t *session;
   int dummy;
 
+  rtsp_set_error_func(local_error_msg);
+  rtsp_set_loglevel(LOG_DEBUG);
   memset(&cmd, 0, sizeof(rtsp_command_t));
 
   argv++;
@@ -109,7 +139,11 @@ int main (int argc, char **argv)
 
   free_decode_response(decode);
   decode = NULL;
+#if 1
   cmd.transport = "RTP/AVP;unicast;client_port=4588-4589";
+#else
+  cmd.transport = "RTP/AVP/TCP;interleaved=0-1";
+#endif
   media = sdp->media;
   dummy = rtsp_send_setup(rtsp_client,
 			  media->control_string,

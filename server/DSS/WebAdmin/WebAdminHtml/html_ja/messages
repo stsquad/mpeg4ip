@@ -1,0 +1,81 @@
+# Text messages, errors and warnings
+# Keyword ########################## Message ##########
+# The strings in double quotes are to be localized ####
+#######################################################
+
+# Messages used in cgi-lib.pl
+# Http header and body messages
+Http200Status						"OK"
+Http302Status						"一時的に使用できません"
+Http401Status						"認証されませんでした"
+Http403Status						"禁止されました"
+Http404Status						"ファイルが見つかりません"
+Http401Body							"この Streaming Server を管理するにはパスワードが必要です。もう一度やり直してください。"
+Http403Body							"要求されたファイルへのアクセスは拒否されました。"
+Http404Body							"要求されたファイルが見つかりません。"
+
+# Server status messages
+ServerNotRunningMessage				"ストリーミングサーバは動作していません"
+StartServerMessage					"サーバを開始するには“今すぐサーバを開始”をクリックします。"
+
+# Messages used in adminprotocol-lib.pl
+# Socket errors
+NoHostError							"ホストがありません"
+SocketFailedError					"ソケットは失敗しました"
+ConnectFailedError					"接続に失敗しました"
+SendFailedError						"送信に失敗しました"
+
+# File errors
+FileOpenError						"ファイルを開けません" 
+
+# Time strings
+DaysStr								"日"
+HoursStr							"時間"
+MinutesStr							"分"
+SecondsStr							"秒"
+
+# Day strings
+MonStr								"月"
+TueStr								"火"
+WedStr								"水"
+ThuStr								"木"
+FriStr								"金"
+SatStr								"土"
+SunStr								"日"
+
+# Month strings
+JanStr								"1"
+FebStr								"2"
+MarStr								"3"
+AprStr								"4"
+MayStr								"5"
+JunStr								"6"
+JulStr								"7"
+AugStr								"8"
+SepStr								"9"
+OctStr								"10"
+NovStr								"11"
+DecStr								"12"
+
+# Server State strings
+ServerStartingUpStr					"開始中"
+ServerRunningStr					"動作中"
+ServerNotRunningStr					"停止中"
+ServerRefusingConnectionsStr		"接続拒否"
+ServerInFatalErrorStateStr			"致命的なエラー"
+ServerShuttingDownStr				"停止処理中"
+ServerIdleStr						"アイドル中"
+
+# Units
+BytesStr							"バイト"
+KiloBytesStr						"KB"
+MegaBytesStr						"MB"
+GigaBytesStr						"GB"
+
+# Messages used in playlist-lib.pl
+# labels used in playlist tables
+PLMovie								"ムービー"
+PLDirectory							"ディレクトリ"
+PLState_0							"中止"
+PLState_1							"再生中"
+PLState_2							"エラー"

@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "player_session.h"
+#include "player_media.h"
 #include <glib.h>
 #include <gtk/gtk.h>
 #include "gui_utils.h"
@@ -552,6 +553,17 @@ static void on_debug_sdp (GtkWidget *window, gpointer data)
   config.set_config_value(CONFIG_SDP_DEBUG, LOG_PRI(loglevel));
 }
 
+static void on_network_rtp_over_rtsp (GtkWidget *window, gpointer data)
+{
+  GtkCheckMenuItem *checkmenu;
+
+  checkmenu = GTK_CHECK_MENU_ITEM(window);
+
+  config.set_config_value(CONFIG_USE_RTP_OVER_RTSP,
+			  checkmenu->active == FALSE ? 1 : 0);
+}
+  
+
 static void on_video_radio (GtkWidget *window, gpointer data)
 {
   int newsize = GPOINTER_TO_INT(data);
@@ -611,6 +623,7 @@ static void on_loop_enabled_button (GtkWidget *widget, gpointer *data)
   master_looped = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
   config.set_config_value(CONFIG_LOOPED, master_looped);
 }
+
 /*
  * Main timer routine - runs ~every 500 msec
  * Might be able to adjust this to handle just when playing.
@@ -619,7 +632,8 @@ static gint main_timer (gpointer raw)
 {
   if (play_state == PLAYING) {
     double val = psptr->get_max_time();
-    double playtime = psptr->get_playing_time();
+    uint64_t pt = psptr->get_playing_time();
+    double playtime = ((double)pt) / 1000.0;
     if (time_slider_pressed == 0 && 
 	val > 0.0 &&
 	psptr->get_session_state() == SESSION_PLAYING) {
@@ -628,7 +642,7 @@ static gint main_timer (gpointer raw)
       } else if (playtime > val) {
 	val = 100.0;
       } else {
-	val = (psptr->get_playing_time() * 100.0) / val;
+	val = (playtime * 100.0) / val;
       }
       GtkAdjustment *adj = gtk_range_get_adjustment(GTK_RANGE(time_slider));
       adj->value = val;
@@ -845,6 +859,14 @@ int main (int argc, char **argv)
 			    "Full Screen",
 			    GTK_SIGNAL_FUNC(on_video_fullscreen),
 			    NULL);
+
+  menu = CreateBarSubMenu(menubar, "Network");
+  menuitem = CreateMenuCheck(menu,
+			     "Use RTP over RTSP(TCP)",
+			     GTK_SIGNAL_FUNC(on_network_rtp_over_rtsp),
+			     NULL,
+			     config.get_config_value(CONFIG_USE_RTP_OVER_RTSP) == 0 ?
+			     1 : 0);
 
   menu = CreateBarSubMenu(menubar, "Help");
   menuitem = CreateMenuItem(menu,

@@ -99,17 +99,22 @@
 # derived files should go.
 #
 
-InstallFiles: adminprotocol-lib.pl cgi-lib.pl mainpage.htm nav.htm parse.cgi index.cgi parsewithinput.cgi setgensettings.cgi setlogsettings.cgi startstopserver.cgi
+InstallFiles: adminprotocol-lib.pl cgi-lib.pl parse.cgi index.cgi parsewithinput.cgi setgensettings.cgi setlogsettings.cgi startstopserver.cgi startstopbcast.cgi
 	mkdir -p $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/adminprotocol-lib.pl $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/adminprotocol-lib.pl
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/cgi-lib.pl $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/cgi-lib.pl
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/mainpage.htm $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/mainpage.htm
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/playlist-lib.pl $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/playlist-lib.pl
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/index.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/index.cgi
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/nav.htm $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/nav.htm
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/parse.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/parse.cgi
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/parsewithinput.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/parsewithinput.cgi
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/setgensettings.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/setgensettings.cgi
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/setlogsettings.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/setlogsettings.cgi
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/startstopserver.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/startstopserver.cgi
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/startstopbcast.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/startstopbcast.cgi
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/setplsettings.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/setplsettings.cgi
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/addremovemovie.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/addremovemovie.cgi
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/createplaylist.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/createplaylist.cgi
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/submitplaylist.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/submitplaylist.cgi
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/updateplaylist.cgi $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/updateplaylist.cgi
 
 

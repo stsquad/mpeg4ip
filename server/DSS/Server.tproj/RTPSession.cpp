@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTPSession.cpp
@@ -46,13 +46,15 @@
 #define RTPSESSION_DEBUGGING 0
 
 RTPSession::RTPSession() :
+	RTPSessionInterface(),
  	fModule(NULL),
+	fHasAnRTPStream(false),
 	fCurrentModuleIndex(0),
 	fCurrentState(kStart),
 	fClosingReason(qtssCliSesCloseClientTeardown),
 	fCurrentModule(0),
 	fModuleDoingAsyncStuff(false),
-	fHasAnRTPStream(false)
+	fLastBandwidthTrackerStatsUpdate(0)
 
 {
 #if DEBUG
@@ -71,15 +73,70 @@ RTPSession::~RTPSession()
 	RTPStream** theStream = NULL;
 	UInt32 theLen = 0;
 	
+	if (QTSServerInterface::GetServer()->GetPrefs()->GetReliableUDPPrintfsEnabled())
+	{
+		SInt32 theNumLatePacketsDropped = 0;
+		SInt32 theNumResends = 0;
+		
+		for (int x = 0; this->GetValuePtr(qtssCliSesStreamObjects, x, (void**)&theStream, &theLen) == QTSS_NoErr; x++)
+		{
+			Assert(theStream != NULL);
+			Assert(theLen == sizeof(RTPStream*));
+			if (*theStream != NULL)
+			{
+				theNumLatePacketsDropped += (*theStream)->GetStalePacketsDropped();
+				theNumResends += (*theStream)->GetResender()->GetNumResends();
+			}
+		}
+		
+		char* theURL = NULL;
+		(void)this->GetValueAsString(qtssCliSesFullURL, 0, &theURL);
+		Assert(theURL != NULL);
+		
+		RTPBandwidthTracker* tracker = this->GetBandwidthTracker();	
+	
+		printf("Client complete. URL: %s.\n",theURL);
+		printf("Max congestion window: %ld. Min congestion window: %ld. Avg congestion window: %ld\n", tracker->GetMaxCongestionWindowSize(), tracker->GetMinCongestionWindowSize(), tracker->GetAvgCongestionWindowSize());
+		printf("Max RTT: %ld. Min RTT: %ld. Avg RTT: %ld\n", tracker->GetMaxRTO(), tracker->GetMinRTO(), tracker->GetAvgRTO());
+		printf("Num resends: %ld. Num skipped frames: %ld. Num late packets dropped: %ld\n", theNumResends, this->GetFramesSkipped(), theNumLatePacketsDropped);
+		
+		delete [] theURL;
+	}
+	
 	for (int x = 0; this->GetValuePtr(qtssCliSesStreamObjects, x, (void**)&theStream, &theLen) == QTSS_NoErr; x++)
 	{
 		Assert(theStream != NULL);
 		Assert(theLen == sizeof(RTPStream*));
 		
-		delete *theStream;
+		if (*theStream != NULL)
+			delete *theStream;
+	}
+	
+	QTSServerInterface* theServer = QTSServerInterface::GetServer();
+	
+	{
+		OSMutexLocker theLocker(theServer->GetMutex());
+		
+		RTPSession** theSession = NULL;
+		//
+		// Remove this session from the qtssSvrClientSessions attribute
+		UInt32 y = 0;
+		for ( ; y < theServer->GetNumRTPSessions(); y++)
+		{
+			QTSS_Error theErr = theServer->GetValuePtr(qtssSvrClientSessions, y, (void**)&theSession, &theLen, true);
+			Assert(theErr == QTSS_NoErr);
+			
+			if (*theSession == this)
+			{
+				theErr = theServer->RemoveValue(qtssSvrClientSessions, y, QTSSDictionary::kDontObeyReadOnly);
+				break;
+			}
+		}
+
+		Assert(y < theServer->GetNumRTPSessions());
+		theServer->AlterCurrentRTPSessionCount(-1);
 	}
 
-	QTSServerInterface::GetServer()->AlterCurrentRTPSessionCount(-1);
 	//we better not be in the RTPSessionMap anymore!
 #if DEBUG
 	Assert(!fRTPMapElem.IsInTable());
@@ -94,23 +151,53 @@ QTSS_Error	RTPSession::Activate(const StrPtrLen& inSessionID)
 	Assert(inSessionID.Len <= QTSS_MAX_SESSION_ID_LENGTH);
 	::memcpy(fRTSPSessionIDBuf, inSessionID.Ptr, inSessionID.Len);
 	fRTSPSessionIDBuf[inSessionID.Len] = '\0';
-	fRTSPSessionID.Len = inSessionID.Len;
+	this->SetVal(qtssCliSesRTSPSessionID, &fRTSPSessionIDBuf[0], inSessionID.Len);
 	
-	fRTPMapElem.Set(fRTSPSessionID, this);
+	fRTPMapElem.Set(*this->GetValue(qtssCliSesRTSPSessionID), this);
+	
+	QTSServerInterface* theServer = QTSServerInterface::GetServer();
 	
 	//Activate puts the session into the RTPSession Map
-	OSRefTable* sessionTable = QTSServerInterface::GetServer()->GetRTPSessionMap();
-	Assert(sessionTable != NULL);
-	QTSS_Error err = sessionTable->Register(&fRTPMapElem);
+	QTSS_Error err = theServer->GetRTPSessionMap()->Register(&fRTPMapElem);
 	if (err == EPERM)
 		return err;
+	Assert(err == QTSS_NoErr);
+	
+	//
+	// Adding this session into the qtssSvrClientSessions attr and incrementing the number of sessions must be atomic
+	OSMutexLocker locker(theServer->GetMutex()); 
+
+	//
+	// Put this session into the qtssSvrClientSessions attribute of the server
+#if DEBUG
+	Assert(theServer->GetNumValues(qtssSvrClientSessions) == theServer->GetNumRTPSessions());
+#endif
+	RTPSession* theSession = this;
+	err = theServer->SetValue(qtssSvrClientSessions, theServer->GetNumRTPSessions(), &theSession, sizeof(theSession), QTSSDictionary::kDontObeyReadOnly);
+	Assert(err == QTSS_NoErr);
 	
 #if DEBUG
 	fActivateCalled = true;
 #endif
 	QTSServerInterface::GetServer()->IncrementTotalRTPSessions();
-	Assert(err == QTSS_NoErr);
 	return QTSS_NoErr;
+}
+
+RTPStream*	RTPSession::FindRTPStreamForChannelNum(UInt8 inChannelNum)
+{
+	RTPStream** theStream = NULL;
+	UInt32 theLen = 0;
+
+	for (int x = 0; this->GetValuePtr(qtssCliSesStreamObjects, x, (void**)&theStream, &theLen) == QTSS_NoErr; x++)
+	{
+		Assert(theStream != NULL);
+		Assert(theLen == sizeof(RTPStream*));
+		
+		if (*theStream != NULL)
+			if (((*theStream)->GetRTPChannelNum() == inChannelNum) || ((*theStream)->GetRTCPChannelNum() == inChannelNum))
+				return *theStream;
+	}
+	return NULL; // Couldn't find a matching stream
 }
 
 QTSS_Error RTPSession::AddStream(RTSPRequestInterface* request, RTPStream** outStream,
@@ -133,8 +220,9 @@ QTSS_Error RTPSession::AddStream(RTSPRequestInterface* request, RTPStream** outS
 			Assert(theStream != NULL);
 			Assert(theLen == sizeof(RTPStream*));
 			
-			if ((*theStream)->GetSSRC() == theSSRC)
-				theSSRC = 0;
+			if (*theStream != NULL)
+				if ((*theStream)->GetSSRC() == theSSRC)
+					theSSRC = 0;
 		}
 	}
 
@@ -159,26 +247,22 @@ QTSS_Error	RTPSession::Play(RTSPRequestInterface* request, QTSS_PlayFlags inFlag
 {
 	//first setup the play associated session interface variables
 	Assert(request != NULL);
-	
 	if (fModule == NULL)
 		return QTSS_RequestFailed;//Can't play if there are no associated streams
 	
-	// Always reset the speed to 1. It is up to a module to override this behavior
-	fSpeed = 1;
-
-	fStartTime = request->GetStartTime();
-	fStopTime = request->GetStopTime();
-	
-	//the client doesn't necessarily specify this information in a play,
-	//if it doesn't, fall back on some defaults.
-	if (fStartTime == -1)
-		fStartTime = 0;
+	//
+	// If any of our media data is going over UDP, make sure to introduce
+	// an artificial delay in our send schedule, so as to make sure the
+	// PLAY response gets to the client before media packets do.
+	UInt32 thePlayDelayTime = kPlayDelayTimeInMilSecs;
+	if (fAllTracksInterleaved)
+		thePlayDelayTime = 0;
 		
 	//what time is this play being issued at?
-	fNextSendPacketsTime = fPlayTime = OS::Milliseconds() + kPlayDelayTimeInMilSecs; //don't play until we've sent the play response
+	fLastBitRateUpdateTime = fNextSendPacketsTime = fPlayTime = OS::Milliseconds() + thePlayDelayTime; //don't play until we've sent the play response
 	if (fIsFirstPlay)
 		fFirstPlayTime = fPlayTime - kPlayDelayTimeInMilSecs;
-	fAdjustedPlayTime = fPlayTime - ((SInt64)(fStartTime * 1000));
+	fAdjustedPlayTime = fPlayTime - ((SInt64)(request->GetStartTime() * 1000));
 
 	//for RTCP SRs, we also need to store the play time in NTP
 	fNTPPlayTime = OS::TimeMilli_To_1900Fixed64Secs(fPlayTime);
@@ -197,8 +281,17 @@ QTSS_Error	RTPSession::Play(RTSPRequestInterface* request, QTSS_PlayFlags inFlag
 	{
 		Assert(theStream != NULL);
 		Assert(theLen == sizeof(RTPStream*));
-		(*theStream)->SetThinningParams();
+		if (*theStream != NULL)
+		{
+			(*theStream)->SetThinningParams();
+			
+			//
+			// If we are using reliable UDP, then make sure to clear all the packets
+			// from the previous play spurt out of the resender
+			(*theStream)->GetResender()->ClearOutstandingPackets();
+		}
 	}
+	Assert(this->GetBandwidthTracker()->BytesInList() == 0);
 	
 	// Set the size of the RTSPSession's send buffer to an appropriate max size
 	// based on the bitrate of the movie. This has 2 benefits:
@@ -240,6 +333,7 @@ QTSS_Error	RTPSession::Play(RTSPRequestInterface* request, QTSS_PlayFlags inFlag
 	Assert(fRTSPSession != NULL); // can this ever happen?
 	if (fRTSPSession != NULL)
 		fRTSPSession->GetSocket()->SetSocketBufSize(theBufferSize);
+		
 	
 #if RTPSESSION_DEBUGGING
 	printf("RTPSession %ld: In Play, about to call Signal\n",(SInt32)this);
@@ -281,16 +375,6 @@ void RTPSession::SendPlayResponse(RTSPRequestInterface* request, UInt32 inFlags)
 {
 	QTSS_RTSPHeader theHeader = qtssRTPInfoHeader;
 	
-	//
-	// If there was a Speed header in the request, add one to the response
-	if (request->GetHeaderDictionary()->GetValue(qtssSpeedHeader)->Len > 0)
-	{
-		char speedBuf[32];
-		::sprintf(speedBuf, "%10.5f", fSpeed);
-		StrPtrLen speedBufPtr(speedBuf);
-		request->AppendHeader(qtssSpeedHeader, &speedBufPtr);
-	}
-	
 	RTPStream** theStream = NULL;
 	UInt32 theLen = 0;
 	
@@ -298,8 +382,11 @@ void RTPSession::SendPlayResponse(RTSPRequestInterface* request, UInt32 inFlags)
 	{
 		Assert(theStream != NULL);
 		Assert(theLen == sizeof(RTPStream*));
-		(*theStream)->AppendRTPInfo(theHeader, request, inFlags);
-		theHeader = qtssSameAsLastHeader;
+		
+		if (*theStream != NULL)
+		{	(*theStream)->AppendRTPInfo(theHeader, request, inFlags);
+			theHeader = qtssSameAsLastHeader;
+		}
 	}
 	request->SendHeader();
 }
@@ -355,7 +442,7 @@ SInt64 RTPSession::Run()
 	printf("RTPSession %ld: In Run. Events %ld\n",(SInt32)this, (SInt32)events);
 #endif
 	// Some callbacks look for this struct in the thread object
-	OSThread::GetCurrent()->SetThreadData(&fModuleState);
+	OSThreadDataSetter theSetter(&fModuleState, NULL);
 
 	//if we have been instructed to go away, then let's delete ourselves
 	if ((events & Task::kKillEvent) || (events & Task::kTimeoutEvent) || (fModuleDoingAsyncStuff))
@@ -401,7 +488,8 @@ SInt64 RTPSession::Run()
 			{
 				SInt64 byePacketTime = OS::Milliseconds();
 				for (int x = 0; this->GetValuePtr(qtssCliSesStreamObjects, x, (void**)&theStream, &theLen) == QTSS_NoErr; x++)
-					(*theStream)->SendRTCPSR(byePacketTime, true);
+					if (theStream && *theStream != NULL)
+						(*theStream)->SendRTCPSR(byePacketTime, true);
 			}
 		}
 		
@@ -450,10 +538,8 @@ SInt64 RTPSession::Run()
 			//
 			// Send retransmits if we need to
 			for (int streamIter = 0; this->GetValuePtr(qtssCliSesStreamObjects, streamIter, (void**)&retransStream, &retransStreamLen) == QTSS_NoErr; streamIter++)
-			{
-				//printf("RTPSession: Calling ResendDueEntries\n");
-				(*retransStream)->SendRetransmits();
-			}
+				if (retransStream && *retransStream)
+					(*retransStream)->SendRetransmits();
 			
 			theParams.rtpSendPacketsParams.outNextPacketTime = fNextSendPacketsTime - theParams.rtpSendPacketsParams.inCurrentTime;
 		}
@@ -462,6 +548,9 @@ SInt64 RTPSession::Run()
 	#if RTPSESSION_DEBUGGING
 			printf("RTPSession %ld: about to call SendPackets\n",(SInt32)this);
 	#endif
+			if ((theParams.rtpSendPacketsParams.inCurrentTime - fLastBandwidthTrackerStatsUpdate) > 1000)
+				this->GetBandwidthTracker()->UpdateStats();
+				
 			theParams.rtpSendPacketsParams.outNextPacketTime = 0;
 			// Async event registration is definitely allowed from this role.
 			fModuleState.eventRequested = false;
@@ -475,13 +564,20 @@ SInt64 RTPSession::Run()
 				theParams.rtpSendPacketsParams.outNextPacketTime = 0;
 			fNextSendPacketsTime = theParams.rtpSendPacketsParams.inCurrentTime + theParams.rtpSendPacketsParams.outNextPacketTime;
 		}
+		
 	}
 	
 	//
 	// Make sure the duration between calls to Run() isn't greater than the
 	// max retransmit delay interval.
 	UInt32 theRetransDelayInMsec = QTSServerInterface::GetServer()->GetPrefs()->GetMaxRetransmitDelayInMsec();
-	if (theParams.rtpSendPacketsParams.outNextPacketTime > theRetransDelayInMsec)
+	UInt32 theBucketInterval = QTSServerInterface::GetServer()->GetPrefs()->GetOverbufferBucketIntervalInMsec();
+	
+	//
+	// We want to avoid waking up to do retransmits, and then going back to sleep for like, 1 msec. So, 
+	// only adjust the time to wake up if the next packet time is greater than the max retransmit delay +
+	// the standard interval between wakeups.
+	if (theParams.rtpSendPacketsParams.outNextPacketTime > (theRetransDelayInMsec + theBucketInterval))
 		theParams.rtpSendPacketsParams.outNextPacketTime = theRetransDelayInMsec;
 	
 	Assert(theParams.rtpSendPacketsParams.outNextPacketTime >= 0);//we'd better not get deleted accidently!

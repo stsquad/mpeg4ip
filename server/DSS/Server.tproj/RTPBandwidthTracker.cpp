@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTPBandwidthTracker.cpp
@@ -54,7 +54,14 @@ void RTPBandwidthTracker::SetWindowSize( SInt32 clientWindowSize )
 	if ( fUseSlowStart )
 	{
 		fSlowStartThreshold = clientWindowSize / 2;
-		fCongestionWindow = kMaximumSegmentSize;
+		
+		//
+		// This is a change to the standard TCP slow start algorithm. What
+		// we found was that on high bitrate high latency networks (a DSL connection, perhaps),
+		// it took just too long for the ACKs to come in and for the window size to
+		// grow enough. So we cheat a bit.
+		fCongestionWindow = kMaximumSegmentSize * 4;
+		//fCongestionWindow = kMaximumSegmentSize;
 	}
 	else
 	{	
@@ -67,12 +74,16 @@ void RTPBandwidthTracker::SetWindowSize( SInt32 clientWindowSize )
 }
 
 void RTPBandwidthTracker::EmptyWindow( UInt32 bytesIncreased, Bool16 updateBytesInList )
-{
+{	
+	if(fBytesInList < bytesIncreased)
+		bytesIncreased = fBytesInList;
+		
 	if (updateBytesInList)
 		fBytesInList -= bytesIncreased;
 
+	// this assert hits
 	Assert(fBytesInList < ((UInt32)fClientWindow + 2000)); //mainly just to catch fBytesInList wrapping below 0
-
+	
 	// update the congestion window by the number of bytes just acknowledged.
 			
 	if ( fCongestionWindow >= fSlowStartThreshold )
@@ -89,7 +100,13 @@ void RTPBandwidthTracker::EmptyWindow( UInt32 bytesIncreased, Bool16 updateBytes
 		}
 	}
 	else
-		fCongestionWindow += bytesIncreased;
+		//
+		// This is a change to the standard TCP slow start algorithm. What
+		// we found was that on high bitrate high latency networks (a DSL connection, perhaps),
+		// it took just too long for the ACKs to come in and for the window size to
+		// grow enough. So we cheat a bit.
+		fCongestionWindow += 2 * bytesIncreased;
+		//fCongestionWindow += bytesIncreased;
 
 	
 	if ( fCongestionWindow > fClientWindow )
@@ -98,6 +115,7 @@ void RTPBandwidthTracker::EmptyWindow( UInt32 bytesIncreased, Bool16 updateBytes
 
 void RTPBandwidthTracker::AdjustWindowForRetransmit()
 {
+	// this assert hits
 	Assert(fBytesInList < ((UInt32)fClientWindow + 2000)); //mainly just to catch fBytesInList wrapping below 0
 
 	// slow start says that we should reduce the new ss threshold to 1/2
@@ -135,6 +153,7 @@ void RTPBandwidthTracker::AdjustWindowForRetransmit()
 
 void RTPBandwidthTracker::AddToRTTEstimate( SInt32 rttSampleMSecs )
 {
+	// this assert hits
 	Assert(fBytesInList < ((UInt32)fClientWindow + 2000)); //mainly just to catch fBytesInList wrapping below 0
 
 	if ( fRunningAverageMSecs == 0 )
@@ -161,7 +180,7 @@ void RTPBandwidthTracker::AddToRTTEstimate( SInt32 rttSampleMSecs )
 	fRunningMeanDevationMSecs += delta - fRunningMeanDevationMSecs / 4;
 	
 	
-	fCurRetransmitTimeout = fRunningAverageMSecs / 8 + fRunningMeanDevationMSecs;
+	fUnadjustedRTO = fCurRetransmitTimeout = fRunningAverageMSecs / 8 + fRunningMeanDevationMSecs;
 	
 	// rto should not be too low..
 	if ( fCurRetransmitTimeout < kMinRetransmitIntervalMSecs )	
@@ -170,4 +189,50 @@ void RTPBandwidthTracker::AddToRTTEstimate( SInt32 rttSampleMSecs )
 	// or too high...
 	if ( fCurRetransmitTimeout > kMaxRetransmitIntervalMSecs )
 		fCurRetransmitTimeout = kMaxRetransmitIntervalMSecs;
+}
+
+void RTPBandwidthTracker::UpdateStats()
+{
+	fNumStatsSamples++;
+	
+	if (fMaxCongestionWindowSize < fCongestionWindow)
+		fMaxCongestionWindowSize = fCongestionWindow;
+	if (fMinCongestionWindowSize > fCongestionWindow)
+		fMinCongestionWindowSize = fCongestionWindow;
+		
+	if (fMaxRTO < fUnadjustedRTO)
+		fMaxRTO = fUnadjustedRTO;
+	if (fMinRTO > fUnadjustedRTO)
+		fMinRTO = fUnadjustedRTO;
+
+	fTotalCongestionWindowSize += fCongestionWindow;
+	fTotalRTO += fUnadjustedRTO;
+}
+
+void RTPBandwidthTracker::UpdateAckTimeout(UInt32 bitsSentInInterval, SInt64 intervalLengthInMsec)
+{
+	//
+	// First figure out how long it will take us to fill up our window, based on
+	// the movie's current bit rate
+	UInt32 unadjustedTimeout = 0;
+	if (bitsSentInInterval > 0)
+		unadjustedTimeout = (intervalLengthInMsec * fCongestionWindow) / bitsSentInInterval;
+
+	//
+	// If we wait that long, that's too long because we need to actually wait for the ack to arrive.
+	// So, subtract 1/2 the rto - the last ack timeout
+	UInt32 rto = (UInt32)fUnadjustedRTO;
+	if (rto < fAckTimeout)
+		rto = fAckTimeout;
+	UInt32 adjustment = (rto - fAckTimeout) / 2;
+	//printf("UnadjustedTimeout = %lu. rto: %ld. Last ack timeout: %lu. Adjustment = %lu.", unadjustedTimeout, fUnadjustedRTO, fAckTimeout, adjustment);
+	if (adjustment > unadjustedTimeout)
+		adjustment = unadjustedTimeout;
+	fAckTimeout = unadjustedTimeout - adjustment;
+	
+	//printf("AckTimeout: %lu\n",fAckTimeout);
+	if (fAckTimeout > kMaxAckTimeout)
+		fAckTimeout = kMaxAckTimeout;
+	else if (fAckTimeout < kMinAckTimeout)
+		fAckTimeout = kMinAckTimeout;
 }

@@ -23,6 +23,7 @@
  */
 #include <stdlib.h>
 #include "player_session.h"
+#include "player_media.h"
 #include <SDL.h>
 #include <SDL_thread.h>
 #include "player_util.h"
@@ -65,7 +66,8 @@ uint64_t CPlayerSession::get_current_time ()
   }
 #endif
   if (current_time < m_start) return 0;
-  return(current_time - m_start);
+  m_current_time = current_time - m_start;
+  return(m_current_time);
 }
 
 
@@ -314,7 +316,7 @@ int CPlayerSession::sync_thread_wait_audio (void)
 	SDL_SemWaitTimeout(m_sync_sem, 10);
       } else {
 	// make sure we set the current time
-	m_current_time = get_current_time();
+	get_current_time();
 	player_debug_message("Current time is %llx", m_current_time);
 	return (SYNC_STATE_PLAYING);
       }
@@ -338,7 +340,7 @@ int CPlayerSession::sync_thread_playing (void)
 	PROCESS_SDL_EVENTS(SYNC_STATE_PLAYING);
     state = process_msg_queue(SYNC_STATE_PLAYING);
     if (state == SYNC_STATE_PLAYING) {
-      m_current_time = get_current_time();
+      get_current_time();
       if (m_audio_sync) {
 	audio_resync_time = m_audio_sync->check_audio_sync(m_current_time, 
 							   have_audio_eof);

@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/1998/REC-html40-19980424/loose.dtd">
+<HTML>
+<HEAD>
+	<TITLE>Admin Serveur Encha&icirc;nement: <%%ECHODATA /server/qtssSvrDefaultDNSName%%></TITLE>
+<SCRIPT LANGUAGE="JavaScript1.2" TYPE="text/javascript">		
+<!--
+
+function init() {
+	toploded = top.nav.loded;
+	if(typeof(toploded) == "number") {
+		top.nav.selekt('3');
+		top.nav.subSelekt('3B');
+		} else {
+	setTimeout("init()", 200);
+	}
+}
+
+// -->
+</SCRIPT>
+<STYLE TYPE="text/css">	
+<!--	
+
+		.headline { font: 24px/24px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; color: #B7BED2; }
+		.tableHeadline { font: 12px/14px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: bold; margin-bottom: 0px; color: #FFFFFF; }
+		.alttableHeadline { font: 16px/16px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: bold; margin-bottom: 0px; color: #000000; }
+		TD { font: 12px/14px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; }
+		.smallTD { font: 10px/12px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; }
+		
+	-->
+</STYLE> 
+</HEAD>
+<%%GETVALUE dir /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logfile_dir%%>
+<%%GETVALUE file /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logfile_name%%>
+<%%PROCESSFILE accessdata dir file 4%%>
+<BODY BGCOLOR="#FFFFFF" ONLOAD="init()">
+<CENTER>
+	<BR>
+	<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0" WIDTH="85%" HEIGHT="32">
+		<TR>
+			<TD WIDTH="455" CLASS="headline">Historique des acc&egrave;s</TD>
+		</TR>
+	</TABLE>
+	<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0" WIDTH="85%">
+		<TR>
+			<TD VALIGN="top"><CENTER>
+					<BR>
+					<BR>
+					<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0" WIDTH="400">
+						<TR>
+							<TD VALIGN="top" WIDTH="100%"><TABLE BORDER="0" CELLSPACING="0" CELLPADDING="4" WIDTH="100%" HEIGHT="14">
+									<TR>
+										<TD BGCOLOR="#8C94AD" CLASS="tableheadline"><B>Fichiers demand&eacute;s depuis la derni&egrave;re r&eacute;initialisation</B></TD>
+									</TR>
+								</TABLE>
+								<TABLE BORDER="0" BGCOLOR="#FFFFFF" CELLSPACING="1" CELLPADDING="4" WIDTH="100%">
+									<TR>
+										<TD BGCOLOR="#C6C6D6" CLASS="smallTD"><B>Fichiers demand&eacute;s</B></TD>
+										<TD WIDTH="47%" BGCOLOR="#C6C6D6" CLASS="smallTD"><B>Requ&ecirc;te</B></TD>
+									</TR>
+									<%%FORMATDDARRAY accessdata 0 -1 '<TR>' '</TR>' 
+ 							   						0 '<TD BGCOLOR="#EFEFF7" CLASS="smallTD">' '</TD>' 
+ 							   						1 '<TD BGCOLOR="#EFEFF7" CLASS="smallTD">' '</TD>'%%>
+								</TABLE></TD>
+						</TR>
+					</TABLE>
+				</CENTER></TD>
+		</TR>
+	</TABLE>
+</CENTER>
+</BODY>
+</HTML>

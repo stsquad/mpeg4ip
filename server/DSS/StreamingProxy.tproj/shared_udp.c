@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
  /*
 	File:		shared_udp.c
@@ -163,6 +163,7 @@ int add_ips_to_shok(shok *theShok, int fromIP, int toIP, int withSib)
 static int gUDPPortMin = 4000;
 static int gUDPPortMax = 65536;
 static int gNextPort = -1;
+
 void set_udp_port_min_and_max(int min, int max)
 {
 	gUDPPortMin = min;
@@ -305,6 +306,7 @@ retry_rtcp:
 	return theShok1;	
 
 bail_error:
+	printf("make_new_shok bail_error\n");
 	close_socket(skt1);
 	close_socket(skt2);
 	if (theShok1 != NULL)
@@ -355,8 +357,14 @@ int upon_receipt_from(shok *theShok, int fromIP, do_routine doThis, void *withTh
 
 /**********************************************/
 extern int gNeedsService;
-extern int gPacketsReceived, gPacketsSent;
-extern int gBytesReceived, gBytesSent;
+extern unsigned long gPacketsReceived;
+extern unsigned long gPacketsSent;
+extern unsigned long gBytesReceived;
+extern unsigned long gBytesSent;
+extern float gDropPercent;
+extern unsigned long gDropDelta;
+
+
 /**********************************************/
 int service_shoks()
 {
@@ -412,14 +420,50 @@ int transfer_data(void *refCon, char *buf, int bufSize)
 {
 	trans_pb	*tpb = (trans_pb*)refCon;
 	int			ret;
-
+	int         isRTCP = 0;
 	if (!tpb)
 		return -1;
+		
+	if (strstr(tpb->socketName,"RTCP"))
+	{	//printf("shared_udp.c transfer_data %s\n",tpb->socketName);
+		isRTCP = 1;
+	}
+	tpb->packetCount++;
+	if (gDropPercent > 0.0 )
+	{	int packetDropped = 0;
+		//printf("transfer_data tpb->nextDropPacket=%qd tpb->packetCount=%qd\n",tpb->nextDropPacket, tpb->packetCount);
+		if (tpb->packetCount == tpb->nextDropPacket)
+		{	tpb->droppedPacketCount ++;
+			tpb->nextDropPacket = 0;
+			//printf("transfer_data tpb->droppedPacketCount=%qd tpb->packetCount=%qd\n",tpb->droppedPacketCount, tpb->packetCount);
+			packetDropped = 1;
+		}
+		
+		if (tpb->nextDropPacket == 0)
+		{	
+			int offset = 0;
+			
+			if (gDropPercent <= 50.0)
+				offset =  100.0 / gDropPercent; // drop the percent packet
+			else if (gDropPercent < 100.0 )
+				offset = 1 + ( ( (rand() % 49) <= ( gDropPercent - 47.0) ) ? 0 : 1);// drop random 1 to 2 packets	1 == next packet or 100% 2== every other 50%	
+			else
+				offset = 1; // 100% = drop next packet
+			
+			tpb->nextDropPacket = tpb->packetCount + offset;				
+		}
+		
+		if (packetDropped)
+			return bufSize;
 
-	gBytesSent += bufSize;
-	gPacketsSent++;
+	}
+	
 	ret = send_udp(tpb->send_from->socket, buf, bufSize, tpb->send_to_ip, tpb->send_to_port);
 	DEBUGPRINT(("Sent %d bytes to %x on port %d on socket %d\n", ret, tpb->send_to_ip, tpb->send_to_port, tpb->send_from->socket));
+	if (ret > 0)
+	{	gBytesSent += ret;
+		gPacketsSent++;
+	}
 	return ret;
 }
 

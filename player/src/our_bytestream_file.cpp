@@ -69,10 +69,10 @@ void COurInByteStreamFile::set_start_time (uint64_t start)
     // Non-zero start time - see if we have the time in our list.
     long pos_to_set = 0;
     uint64_t frames = 0;
-    uint64_t time;
+    uint64_t start_time;
     m_bookmark_loaded = 0;
     m_bookmark = 0;
-    time = 0;
+    start_time = 0;
     if (m_file_pos_tail != NULL) {
       // find closest
       if (start < m_file_pos_tail->timestamp) {
@@ -84,13 +84,13 @@ void COurInByteStreamFile::set_start_time (uint64_t start)
 	  q = p->next;
 	}
 	if (p != NULL) {
-	  time = p->timestamp;
+	  start_time = p->timestamp;
 	  pos_to_set = p->file_position;
 	  frames = p->frames;
 	}
       } else {
 	// After last pointer.
-	time = m_file_pos_tail->timestamp;
+	start_time = m_file_pos_tail->timestamp;
 	pos_to_set = m_file_pos_tail->file_position;
 	frames = m_file_pos_tail->frames;
       }
@@ -100,9 +100,9 @@ void COurInByteStreamFile::set_start_time (uint64_t start)
     read_frame();
     // Read forward from there until we hit the time we want.
     m_frames = frames;
-    m_play_start_time = time;
+    m_play_start_time = start_time;
     while (m_play_start_time < start) {
-      m_codec->skip_frame(time);
+      m_codec->skip_frame(start_time);
       m_play_start_time = (m_frames * 1000) / m_frame_per_sec;
       m_frames++;
     }

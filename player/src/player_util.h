@@ -21,6 +21,17 @@
 #ifndef __PLAYER_UTIL_H__
 #define __PLAYER_UTIL_H__
 
+typedef struct video_info_t {
+  int height;
+  int width;
+  int frame_rate;
+  int file_has_vol_header;
+} video_info_t;
+
+typedef struct audio_info_t {
+  int freq;
+} audio_info_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
-// $Id: QTTrack.h,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
+// $Id: QTTrack.h,v 1.3 2001/10/11 20:39:08 wmaycisco Exp $
 //
 // QTTrack:
 //   The central point of control for a track in a QTFile.
@@ -99,7 +99,7 @@ public:
 	
 	//
 	// Sample functions
-	virtual Bool16 		GetSizeOfSamplesInChunk(UInt32 chunkNumber, UInt32 * const sizePtr, UInt32 * const firstSampleNumPtr, UInt32 * const lastSampleNumPtr, QTAtom_stsc_SampleTableControlBlock * stcbPtr);
+	Bool16 				GetSizeOfSamplesInChunk(UInt32 chunkNumber, UInt32 * const sizePtr, UInt32 * const firstSampleNumPtr, UInt32 * const lastSampleNumPtr, QTAtom_stsc_SampleTableControlBlock * stcbPtr);
 
 	inline 	Bool16		GetChunkFirstLastSample(UInt32 chunkNumber, UInt32 *firstSample, UInt32 *lastSample, 
 												QTAtom_stsc_SampleTableControlBlock *STCB)
@@ -107,14 +107,14 @@ public:
 						}
 
 
-	inline	Bool16		SampleToChunkInfo(UInt32 SampleNumber, UInt32 *samplesPerChunk = NULL, UInt32 *ChunkNumber = NULL, UInt32 *SampleDescriptionIndex = NULL, UInt32 *SampleOffsetInChunk = NULL,
-												QTAtom_stsc_SampleTableControlBlock * STCB = NULL)
+	inline	Bool16		SampleToChunkInfo(UInt32 SampleNumber, UInt32 *samplesPerChunk, UInt32 *ChunkNumber, UInt32 *SampleDescriptionIndex, UInt32 *SampleOffsetInChunk,
+												QTAtom_stsc_SampleTableControlBlock * STCB)
 						{	return fSampleToChunkAtom->SampleToChunkInfo(SampleNumber,samplesPerChunk, ChunkNumber, SampleDescriptionIndex, SampleOffsetInChunk, STCB); 
 						}
 
 
-	inline	Bool16		SampleNumberToChunkNumber(UInt32 SampleNumber, UInt32 *ChunkNumber = NULL, UInt32 *SampleDescriptionIndex = NULL, UInt32 *SampleOffsetInChunk = NULL,
-												 QTAtom_stsc_SampleTableControlBlock * STCB = NULL)
+	inline	Bool16		SampleNumberToChunkNumber(UInt32 SampleNumber, UInt32 *ChunkNumber, UInt32 *SampleDescriptionIndex, UInt32 *SampleOffsetInChunk,
+												 QTAtom_stsc_SampleTableControlBlock * STCB)
 						{	return fSampleToChunkAtom->SampleNumberToChunkNumber(SampleNumber, ChunkNumber, SampleDescriptionIndex, SampleOffsetInChunk, STCB); 
 						}
 
@@ -135,19 +135,19 @@ public:
 						{ 	return fSampleSizeAtom->SampleRangeSize(firstSample, lastSample, sizePtr); 
 						}
 
-	virtual	Bool16		GetSampleInfo(UInt32 SampleNumber, UInt32 * const Length, UInt64 * const Offset = NULL, UInt32 * const SampleDescriptionIndex = NULL,
-									  			QTAtom_stsc_SampleTableControlBlock * STCB = NULL);
+	Bool16		GetSampleInfo(UInt32 SampleNumber, UInt32 * const Length, UInt64 * const Offset, UInt32 * const SampleDescriptionIndex,
+									  			QTAtom_stsc_SampleTableControlBlock * STCB);
 
-	virtual	Bool16		GetSample(UInt32 SampleNumber, char * Buffer, UInt32 * Length,QTFile_FileControlBlock * FCB = NULL, 
-												QTAtom_stsc_SampleTableControlBlock * STCB = NULL);
+	Bool16		GetSample(UInt32 SampleNumber, char * Buffer, UInt32 * Length,QTFile_FileControlBlock * FCB, 
+												QTAtom_stsc_SampleTableControlBlock * STCB);
 
 	inline	Bool16		GetSampleMediaTime(UInt32 SampleNumber, UInt32 * const MediaTime, 
-												QTAtom_stts_SampleTableControlBlock * STCB = NULL)
+												QTAtom_stts_SampleTableControlBlock * STCB)
 						{ 	return fTimeToSampleAtom->SampleNumberToMediaTime(SampleNumber, MediaTime, STCB); 
 						}						
 
 	inline	Bool16		GetSampleNumberFromMediaTime(UInt32 MediaTime, UInt32 * const SampleNumber, 
-												QTAtom_stts_SampleTableControlBlock * STCB = NULL)
+												QTAtom_stts_SampleTableControlBlock * STCB)
 						{ 	return fTimeToSampleAtom->MediaTimeToSampleNumber(MediaTime, SampleNumber, STCB); 
 						}
 
@@ -162,6 +162,10 @@ public:
 								else *SyncSampleNumber = SampleNumber + 1; 
 						}
 
+	inline Bool16			IsSyncSample(UInt32 SampleNumber, UInt32 SyncSampleCursor)
+						{ if (fSyncSampleAtom != NULL) return fSyncSampleAtom->IsSyncSample(SampleNumber, SyncSampleCursor);
+							else return true;
+						} 
 	//
 	// Read functions.
 	inline	Bool16		Read(UInt32 SampleDescriptionID, UInt64 Offset, char * const Buffer, UInt32 Length,

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSS_Private.h
@@ -46,12 +46,15 @@ class QTSSModule;
 class Task;
 
 typedef QTSS_Error 	(*QTSS_CallbackProcPtr)(...);
-typedef void*			(*QTSS_CallbackPtrProcPtr)(...);
+typedef void*		(*QTSS_CallbackPtrProcPtr)(...);
 
 enum
 {
 	// Indexes for each callback routine. Addresses of the callback routines get
-	// placed in an array.
+	// placed in an array. 
+	// IMPORTANT: When adding new callbacks, add only to the end of the list and increment the 
+	// 			  kLastCallback value. Inserting or changing the index order will break dynamic modules
+	//			  built with another release.
 	
 	kNewCallback 					= 0,
 	kDeleteCallback					= 1,
@@ -91,24 +94,22 @@ enum
 	kAddStaticAttributeCallback		= 35,
 	kAddInstanceAttributeCallback	= 36,
 	kRemoveInstanceAttributeCallback= 37,
-	kGetStaticAttrInfoByNameCallback= 38,
-	kGetStaticAttrInfoByIDCallback	= 39,
-	kGetStaticAttrInfoByIndexCallback=40,
-	kGetAttrInfoByIndexCallback		= 41,
-	kGetAttrInfoByNameCallback		= 42,
-	kGetAttrInfoByIDCallback		= 43,
-	
-	kGetValueAsStringCallback		= 44,
-	kGetTypeAsStringCallback		= 45,
-	kConvertStringToTypeCallback	= 46,
-	kGetDataTypeForTypeStringCallback = 47,		
-	kRemoveValueCallback			= 48,
-
-	kRequestGlobalLockCallback		= 49, 
-	kIsGlobalLockedCallback			= 50, 
-	kUnlockGlobalLock				= 51, 
-
-	kLastCallback 					= 52
+	kGetAttrInfoByIndexCallback		= 38,
+	kGetAttrInfoByNameCallback		= 39,
+	kGetAttrInfoByIDCallback		= 40,
+	kGetValueAsStringCallback		= 41,
+	kTypeToTypeStringCallback		= 42,
+	kTypeStringToTypeCallback		= 43,
+	kStringToValueCallback			= 44,		
+	kValueToStringCallback			= 45,		
+	kRemoveValueCallback			= 46,
+	kRequestGlobalLockCallback		= 47, 
+	kIsGlobalLockedCallback			= 48, 
+	kUnlockGlobalLock				= 49, 
+	kAuthenticateCallback			= 50,
+	kAuthorizeCallback				= 51,	
+	kRefreshTimeOutCallback  		= 52,
+	kLastCallback 					= 53
 };
 
 typedef struct {

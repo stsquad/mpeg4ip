@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
-// $Id: QTRTPFile.h,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
+// $Id: QTRTPFile.h,v 1.3 2001/10/11 20:39:08 wmaycisco Exp $
 //
 // QTRTPFile:
 //   An interface to QTFile for TimeShare.
@@ -35,6 +35,7 @@
 #include "OSHeaders.h"
 #include "MyAssert.h"
 #include "RTPMetaInfoPacket.h"
+#include "QTHintTrack.h"
 
 #ifndef __Win32__
 #include <sys/stat.h>
@@ -65,6 +66,7 @@ public:
 		errInvalidQuickTimeFile		= 2,
 		errNoHintTracks				= 3,
 		errTrackIDNotFound			= 4,
+		errCallAgain				= 5,
 		errInternalError			= 100
 	};
 
@@ -92,6 +94,7 @@ public:
 	};
 	
 	struct RTPTrackListEntry {
+	
 		//
 		// Track information
 		UInt32			TrackID;
@@ -102,7 +105,8 @@ public:
 		
 		//
 		// Server information
-		void			*Cookie;
+		void			*Cookie1;
+		UInt32			Cookie2;
 		UInt32			SSRC;
 		UInt16			FileSequenceNumberRandomOffset, BaseSequenceNumberRandomOffset,
 						LastSequenceNumber;
@@ -112,6 +116,10 @@ public:
 		//
 		// Sample/Packet information
 		UInt32			CurSampleNumber;
+		UInt32			ConsecutivePFramesSent;
+		UInt32			PFrameDropInterval;
+		UInt32			SampleToSeekTo;
+		UInt32			NextSyncSampleNumber;
 		UInt16			NumPacketsInThisSample, CurPacketNumber;
 
 		Float64			CurPacketTime;
@@ -148,7 +156,7 @@ public:
 	// Accessors
 			Float64		GetMovieDuration(void);
 			UInt64		GetAddedTracksRTPBytes(void);
-	virtual	char *		GetSDPFile(int * SDPFileLength);
+			char *		GetSDPFile(int * SDPFileLength);
 			UInt32 		GetBytesPerSecond(void);
 
 			char*		GetMoviePath();
@@ -169,8 +177,9 @@ public:
 			UInt32		GetTrackTimeScale(UInt32 TrackID);
 			
 			void		SetTrackSSRC(UInt32 TrackID, UInt32 SSRC);
-			void		SetTrackCookie(UInt32 TrackID, void * Cookie);
+			void		SetTrackCookies(UInt32 TrackID, void * Cookie1, UInt32 Cookie2);
 			
+		
 			//
 			// If you want QTRTPFile to output an RTP-Meta-Info packet instead
 			// of a normal RTP packet for this track, call this function and
@@ -185,23 +194,27 @@ public:
 			{
 				kAllPackets = 0,
 				kNoBFrames = 1,
-				kKeyFramesOnly = 2,
-				kEveryOtherKeyFrame = 3,
-				kEveryFourthKeyFrame = 4
-				//this continues until infinity...
+				k90PercentPFrames = 2,
+				k75PercentPFrames = 3,
+				k50PercentPFrames = 4,
+				kKeyFramesOnly = 5
 			};
 			
-			void		SetTrackQualityLevel(UInt32 TrackID, UInt32 inNewQualityLevel);
-
+			void SetTrackQualityLevel(RTPTrackListEntry* inEntry, UInt32 inNewLevel);
 	//
 	// Packet functions
-	virtual	ErrorCode	Seek(Float64 Time, Float64 MaxBackupTime = 3.0);
-	virtual	UInt32		GetSeekTimestamp(UInt32 TrackID);
-
-	virtual	UInt16		GetNextTrackSequenceNumber(UInt32 TrackID);
-	virtual	Float64		GetNextPacket(char ** Packet, int * PacketLength, void ** Cookie);
-
-	virtual Float64		GetFirstPacketTransmissionTime() { Assert( !fIsFirstPacket );  /*must read first packet before fFirstPacketTransmissionTime is valid*/	return	fFirstPacketTransmissionTime; }
+			ErrorCode	Seek(Float64 Time, Float64 MaxBackupTime = 3.0);
+			ErrorCode	SeekToPacketNumber(UInt32 inTrackID, UInt64 inPacketNumber);
+			
+			UInt32		GetSeekTimestamp(UInt32 TrackID);
+			Float64		GetRequestedSeekTime() 	{ return fRequestedSeekTime; }
+			Float64		GetActualSeekTime()		{ return fSeekTime; }
+			Float64		GetFirstPacketTransmitTime();
+			RTPTrackListEntry* GetLastPacketTrack() { return fLastPacketTrack; }
+                        UInt32		GetNumSkippedSamples() { return fNumSkippedSamples; }
+                        
+			UInt16		GetNextTrackSequenceNumber(UInt32 TrackID);
+			Float64		GetNextPacket(char ** Packet, int * PacketLength);
 
 			ErrorCode	Error() { return fErr; };
 protected:
@@ -219,7 +232,9 @@ protected:
 	//
 	// Protected member functions.
 			Bool16		FindTrackEntry(UInt32 TrackID, RTPTrackListEntry **TrackEntry);
-			Bool16		PrefetchNextPacket(RTPTrackListEntry * TrackEntry, Bool16 DoSeek = false, Float64 Time = 0.0);
+			Bool16		PrefetchNextPacket(RTPTrackListEntry * TrackEntry, Bool16 doSeek = false);
+			ErrorCode 	ScanToCorrectSample();
+			ErrorCode 	ScanToCorrectPacketNumber(UInt32 inTrackID, UInt64 inPacketNumber);
 
 	//
 	// Protected member variables.
@@ -229,10 +244,11 @@ protected:
 	QTFile_FileControlBlock	*fFCB;
 	
 	UInt32				fNumHintTracks;
-	RTPTrackListEntry	*fFirstTrack, *fLastTrack;
+	RTPTrackListEntry	*fFirstTrack, *fLastTrack, *fCurSeekTrack;
 	
 	char				*fSDPFile;
 	UInt32				fSDPFileLength;
+        UInt32				fNumSkippedSamples;
 	
 	Float64				fRequestedSeekTime, fSeekTime;
 
@@ -240,8 +256,8 @@ protected:
 	
 	UInt32				fBytesPerSecond;
 	
-	Float64				fFirstPacketTransmissionTime;
-	Bool16				fIsFirstPacket;
+	Bool16				fHasRTPMetaInfoFieldArray;
+	Bool16				fWasLastSeekASeekToPacketNumber;
 	ErrorCode			fErr;
 	
 	

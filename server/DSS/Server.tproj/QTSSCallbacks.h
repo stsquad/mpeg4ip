@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSCallbacks.h
@@ -57,9 +57,9 @@ class QTSSCallbacks
 		
 		// ADD ATTRIBUTE
 		
-		static QTSS_Error	QTSS_AddAttribute(QTSS_ObjectType inType, const char* inTag, QTSS_AttrParamFunctionPtr inFunctionPtr);
-		static QTSS_Error	QTSS_AddStaticAttribute(QTSS_ObjectType inObjectType, const char* inAttrName, QTSS_AttrParamFunctionPtr inAttrFunPtr, QTSS_AttrDataType inAttrDataType);
-		static QTSS_Error	QTSS_AddInstanceAttribute(QTSS_Object inObject, const char* inAttrName, QTSS_AttrParamFunctionPtr inAttrFunPtr, QTSS_AttrDataType inAttrDataType);
+		static QTSS_Error	QTSS_AddAttribute(QTSS_ObjectType inType, const char* inTag, void* inUnused);
+		static QTSS_Error	QTSS_AddStaticAttribute(QTSS_ObjectType inObjectType, const char* inAttrName, void* inUnused, QTSS_AttrDataType inAttrDataType);
+		static QTSS_Error	QTSS_AddInstanceAttribute(QTSS_Object inObject, const char* inAttrName, void* inUnused, QTSS_AttrDataType inAttrDataType);
 
 		// REMOVE ATTRIBUTE
 		
@@ -67,10 +67,6 @@ class QTSSCallbacks
 
 		// ATTRIBUTE INFO
 		static QTSS_Error	QTSS_IDForAttr(QTSS_ObjectType inType, const char* inTag, QTSS_AttributeID* outID);
-		static QTSS_Error	QTSS_GetStaticAttrInfoByName(QTSS_ObjectType inObjectType, const char* inAttrName, QTSS_Object* outAttrInfoObject);
-		static QTSS_Error	QTSS_GetStaticAttrInfoByID(QTSS_ObjectType inObjectType, QTSS_AttributeID inAttrID, QTSS_Object* outAttrInfoObject);
-		static QTSS_Error	QTSS_GetStaticAttrInfoByIndex(QTSS_ObjectType inObjectType, UInt32 inIndex, QTSS_Object* outAttrInfoObject);
-
 
 		static QTSS_Error	QTSS_GetAttrInfoByName(QTSS_Object inObject, const char* inAttrName, QTSS_Object* outAttrInfoObject);
 		static QTSS_Error	QTSS_GetAttrInfoByID(QTSS_Object inObject, QTSS_AttributeID inAttrID, QTSS_Object* outAttrInfoObject);
@@ -78,14 +74,18 @@ class QTSSCallbacks
 
 		static QTSS_Error 	QTSS_GetNumAttributes(QTSS_Object inObject, UInt32* outNumValues);
 
+		// TYPE INFO & TYPE CONVERSIONS
+		
+		static QTSS_Error	QTSS_TypeToTypeString(const QTSS_AttrDataType inType, char** outTypeString);
+		static QTSS_Error	QTSS_TypeStringToType(const char* inTypeString, QTSS_AttrDataType* outType);
+		static QTSS_Error	QTSS_StringToValue(const char* inValueAsString, const QTSS_AttrDataType inType, void* ioBuffer, UInt32* ioBufSize);
+		static QTSS_Error	QTSS_ValueToString(const void* inValue, const UInt32 inValueLen, const QTSS_AttrDataType inType, char** outString);
+
 		// ATTRIBUTE VALUES
 		
 		static QTSS_Error 	QTSS_GetValuePtr (QTSS_Object inDictionary, QTSS_AttributeID inID, UInt32 inIndex, void** outBuffer, UInt32* outLen);
 		static QTSS_Error 	QTSS_GetValue (QTSS_Object inDictionary, QTSS_AttributeID inID, UInt32 inIndex, void* ioBuffer, UInt32* ioLen);
 		static QTSS_Error 	QTSS_GetValueAsString (QTSS_Object inDictionary, QTSS_AttributeID inID, UInt32 inIndex, char** outString);
-		static const char* 	QTSS_GetTypeAsString (QTSS_AttrDataType inType);
-		static QTSS_Error	QTSS_ConvertStringToType(char* inValueAsString,QTSS_AttrDataType inType, void* ioBuffer, UInt32* ioBufSize);
-		static QTSS_AttrDataType QTSS_GetDataTypeForTypeString(char* inTypeString);
 		
 		static QTSS_Error 	QTSS_SetValue (QTSS_Object inDictionary, QTSS_AttributeID inID, UInt32 inIndex, const void* inBuffer,  UInt32 inLen);
 		static QTSS_Error 	QTSS_GetNumValues (QTSS_Object inObject, QTSS_AttributeID inID, UInt32* outNumValues);
@@ -93,7 +93,7 @@ class QTSSCallbacks
 
 		// STREAM ROUTINES
 		
-		static QTSS_Error	QTSS_Write(QTSS_StreamRef inStream, void* inBuffer, UInt32 inLen, UInt32* outLenWritten, UInt32 inFlags);
+		static QTSS_Error	QTSS_Write(QTSS_StreamRef inStream, void* inBuffer, UInt32 inLen, UInt32* outLenWritten, QTSS_WriteFlags inFlags);
 		static QTSS_Error	QTSS_WriteV(QTSS_StreamRef inStream, iovec* inVec, UInt32 inNumVectors, UInt32 inTotalLength, UInt32* outLenWritten);
 		static QTSS_Error	QTSS_Flush(QTSS_StreamRef inStream);
 		static QTSS_Error	QTSS_Read(QTSS_StreamRef inRef, void* ioBuffer, UInt32 inBufLen, UInt32* outLengthRead);
@@ -128,6 +128,7 @@ class QTSSCallbacks
 		static QTSS_Error	QTSS_Play(QTSS_ClientSessionObject inClientSession, QTSS_RTSPRequestObject inRTSPRequest, QTSS_PlayFlags inPlayFlags);
 		static QTSS_Error	QTSS_Pause(QTSS_ClientSessionObject inClientSession);
 		static QTSS_Error	QTSS_Teardown(QTSS_ClientSessionObject inClientSession);
+		static QTSS_Error	QTSS_RefreshTimeOut(QTSS_ClientSessionObject inClientSession);
 		
 		// ASYNC I/O ROUTINES
 		static QTSS_Error  	QTSS_RequestEvent(QTSS_StreamRef inStream, QTSS_EventType inEventMask);
@@ -137,6 +138,11 @@ class QTSSCallbacks
 		static QTSS_Error	QTSS_RequestLockedCallback();
 		static Bool16		QTSS_IsGlobalLocked();
 		static QTSS_Error	QTSS_UnlockGlobalLock();
+		
+		// AUTHENTICATION AND AUTHORIZATION ROUTINE
+		static QTSS_Error	QTSS_Authenticate(const char* inAuthUserName, const char* inAuthResourceLocalPath, const char* inAuthMoviesDir, QTSS_ActionFlags inAuthRequestAction, QTSS_AuthScheme inAuthScheme, QTSS_RTSPRequestObject ioAuthRequestObject);
+		static QTSS_Error	QTSS_Authorize(QTSS_RTSPRequestObject inAuthRequestObject, char* outAuthRealm, Bool16* outAuthUserAllowed);
+			
 	private:
 	
 };

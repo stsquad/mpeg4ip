@@ -1,31 +1,32 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 
 #include "playlist_broadcaster.h"
 #include "OS.h"
 #include "OSThread.h"
+#include "BroadcasterSession.h"
 
 QTFileBroadcaster::QTFileBroadcaster() 
 {
@@ -34,7 +35,7 @@ QTFileBroadcaster::QTFileBroadcaster()
 	fBasePort = 0;
 	fDebug = false;
 	fDeepDebug = false;
-
+	fQuitImmediatePtr = NULL;
 // transmit time trackers
 	fLastTransmitTime = 0.0;
 	
@@ -52,6 +53,7 @@ QTFileBroadcaster::QTFileBroadcaster()
 	fNumMoviesPlayed = 0;
 	fPlay = true;
 	fSend = true;
+	fBroadcastDefPtr = NULL;
 }
 
 QTFileBroadcaster::~QTFileBroadcaster()
@@ -62,39 +64,63 @@ QTFileBroadcaster::~QTFileBroadcaster()
 	} 
 }
 
-
-int QTFileBroadcaster::SetUp(PLBroadcastDef *broadcastDefPtr)
+int QTFileBroadcaster::SetUp(PLBroadcastDef *broadcastDefPtr, bool *quitImmediatePtr)
 {
 	int result = -1;
 	int numStreams = 0;
-	
+	fQuitImmediatePtr = quitImmediatePtr;
 	PlayListUtils::Initialize();
 	do 
 	{
-		if (! broadcastDefPtr) { result = eParam; 			break; };	
-		if (!broadcastDefPtr->mSDPFile) { result = eSDPFileInvalidName; break; };
+		if (! broadcastDefPtr) 
+		{ result = eParam; 			break; };
 			
+		if (!broadcastDefPtr->mSDPFile || 0 == broadcastDefPtr->mSDPFile[0] ) 
+		{ result = eSDPFileInvalidName; break; };
+		
 		int nameLen = strlen(broadcastDefPtr->mSDPFile);
-		if (nameLen > 255) 	{ result = eSDPFileInvalidName; break; };			
-		if (0 ==  nameLen) 	{ result = eSDPFileInvalidName; break; };	
-		
-		
+		if (nameLen > 255) 	
+		{ result = eSDPFileInvalidName; break; };	
+				
+		if (0 ==  nameLen) 	
+		{ result = eSDPFileInvalidName; break; };	
+
+		if (broadcastDefPtr->mTheSession)
+		{	if (!broadcastDefPtr->mDestSDPFile)
+			{ result = eNetworkSDPFileNameInvalidMissing; break; };
+				
+			if (!broadcastDefPtr->mDestSDPFile[0])
+			{ result = eNetworkSDPFileNameInvalidMissing; break; };
+				
+			if (!::strcmp(broadcastDefPtr->mDestSDPFile, "no_name"))
+			{ result = eNetworkSDPFileNameInvalidMissing; break; };	
+						
+			if ('/' == broadcastDefPtr->mDestSDPFile[0])
+			{ result = eNetworkSDPFileNameInvalidBadPath; break; };
+		}
+			
 		result = fStreamSDPParser.ReadSDP(broadcastDefPtr->mSDPFile);
+			
 		if (result != 0)
 		{ 	if (result < 0) { result = eSDPFileNotFound; 	break; };
 			if (result > 0) { result = eSDPFileInvalid; 	break; };
 		}	
 		
-		if (!broadcastDefPtr->mBasePort) { result = eSDPFileNoPorts; break; };
-		int portLen = strlen(broadcastDefPtr->mBasePort);
-		if (0 ==  portLen) { result = eSDPFileNoPorts; 		break; };	
-		if (portLen > 5  )  { result = eSDPFileInvalidPort; break; };
-					
-		int basePort = atoi(broadcastDefPtr->mBasePort);
-		if (basePort == 0) { result = eSDPFileNoPorts;  	break; };	
-		if 	( (basePort < 1000) || (basePort > 65535) ) 
-			{ result = eSDPFileInvalidPort; 				break; };	
-		
+
+		fBroadcastDefPtr = broadcastDefPtr;
+		if (broadcastDefPtr->mTheSession == NULL)
+		{	if (!broadcastDefPtr->mBasePort) { result = eSDPFileNoPorts; break; };
+			
+			int portLen = strlen(broadcastDefPtr->mBasePort);
+			if (0 ==  portLen) { result = eDescriptionInvalidDestPort; 		break; };	
+			if (portLen > 5  )  { result = eDescriptionInvalidDestPort; break; };
+
+			int basePort = atoi(broadcastDefPtr->mBasePort);
+			if 	( basePort > 65531 ) { result = eDescriptionInvalidDestPort; 				break; };
+			if 	( basePort < 5004 )  { result = eDescriptionInvalidDestPort; 				break; };
+
+		}
+			
 		numStreams = fStreamSDPParser.GetNumTracks();		
 		if (numStreams == 0) { result = eSDPFileNoMedia; 	break; };
 		
@@ -120,7 +146,7 @@ int QTFileBroadcaster::SetUp(PLBroadcastDef *broadcastDefPtr)
 			sdpIPAddress[ipStringPtr->fLen] = '\0';
 			
 			UDPSocketPair *aSocketPair = fSocketlist.Begin();
-			
+			Bool16 setupUDP = true;
 			while (aSocketPair != NULL)
 			{	
 				mediaTypePtr = fStreamSDPParser.fSDPMediaList.SetPos(streamIndex);
@@ -130,22 +156,47 @@ int QTFileBroadcaster::SetUp(PLBroadcastDef *broadcastDefPtr)
 					break;	
 				}
 									
-				if (mediaTypePtr->fPort == 0) 
-				{  
-					result = eSDPFileInvalid;	
-					break;	
-				}
-
-				rtpPort = mediaTypePtr->fPort;
-				rtcpPort = rtpPort + 1;
+				if (broadcastDefPtr->mTheSession != NULL)
+				{
+					mediaTypePtr->fPort = broadcastDefPtr->mTheSession->GetStreamDestPort(streamIndex);
+					//printf("QTFileBroadcaster::SetUp streamIndex=%u port=%d\n",streamIndex,mediaTypePtr->fPort);
 				
-				result = fSocketlist.OpenAndBind(aSocketPair, rtpPort,rtcpPort,sdpIPAddress, atoi(broadcastDefPtr->mTtl)) ;
-				if (result != 0) 
-				{ 
-					result = eSDPFileInvalidPort; 
-					break; 
+					if (BroadcasterSession::kTCPTransportType == broadcastDefPtr->mTheSession->GetTransportType())
+					{	aSocketPair->SetRTSPSession(broadcastDefPtr->mTheSession, (UInt8) streamIndex * 2);
+						setupUDP = false;
+					}
+					else
+					{	setupUDP = true;
+					}
 				}
+				
+				if (setupUDP)
+				{
+					SInt16 ttl = (SInt16) atoi(broadcastDefPtr->mTTL);
+					if 	( ( ttl > 255 ) || ( ttl < 1 ) )
+					{ 	result = eSDPFileInvalidTTL; 	break; 
+					};
 
+					if (mediaTypePtr->fPort == 0) 
+					{  
+						result = eSDPFileInvalidPort;	
+						break;	
+					}
+	
+					rtpPort = mediaTypePtr->fPort;
+					rtcpPort = rtpPort + 1;
+					
+					result = aSocketPair->OpenAndBind(rtpPort,rtcpPort,sdpIPAddress);
+					if (result != 0) 
+					{ 
+						result = eFailedBind; 
+						break; 
+					}
+					
+					(void) aSocketPair->SetMultiCastOptions(ttl);
+
+				}
+				
 				aSocketPair = fSocketlist.Next();
 				streamIndex++;
 			}
@@ -361,7 +412,7 @@ int QTFileBroadcaster::AddTrackAndStream(QTRTPFile *newRTPFilePtr)
 			if (err != 0)
 				break;
 			
-			newRTPFilePtr->SetTrackCookie(trackID, cookie);		
+			newRTPFilePtr->SetTrackCookies(trackID, cookie, 0);		
  			newRTPFilePtr->SetTrackSSRC(trackID, (UInt32) 0); // set later
  			
  			err = newRTPFilePtr->Seek(0.0);
@@ -439,7 +490,6 @@ void usleep(unsigned int)
 }
 #endif
 
-
 Float64 QTFileBroadcaster::Sleep(Float64 transmitTimeMilli)
 {
 	Float64 sleepTime;
@@ -480,7 +530,9 @@ Float64 QTFileBroadcaster::Sleep(Float64 transmitTimeMilli)
 	return sleepTime;
 }
 
-int QTFileBroadcaster::Play()
+/* changed by emil@popwire.com (see relaod.txt for info) */
+int QTFileBroadcaster::Play(char *mTimeFile)
+/* ***************************************************** */
 {
 	SInt16 	err = 0;
 	Float64 transmitTime = 0;
@@ -507,29 +559,106 @@ int QTFileBroadcaster::Play()
 	
 	fMovieStartTime = PlayListUtils::Milliseconds();	
 	fMediaStreamList.MovieStarted(fMovieStartTime);	
+	
+/* changed by emil@popwire.com (see relaod.txt for info) */
+	if(mTimeFile!=NULL)
+	{
+		FILE *fTimeFile = NULL;
+		struct timeval start, dur, end;
+		struct tm tm_start, tm_dur, tm_end;
+
+		memset (&start,0, sizeof(start));
+
+		SInt64 timenow = OS::Milliseconds();
+		start.tv_sec = (long) OS::TimeMilli_To_UnixTimeSecs(timenow);
+		start.tv_usec = (OS::TimeMilli_To_UnixTimeMilli(timenow) - (start.tv_sec * 1000)) * 1000;
+
+		dur.tv_sec = (long)fMovieDuration;
+		dur.tv_usec = (long)((fMovieDuration - dur.tv_sec) * 1000000);
 		
+		end.tv_sec = start.tv_sec + dur.tv_sec + (long)((start.tv_usec + dur.tv_usec) / 1000000);
+		end.tv_usec = (start.tv_usec + dur.tv_usec) % 1000000;
+                time_t startSecs = start.tv_sec;
+                time_t endSecs = end.tv_sec;
+		memcpy(&tm_start, ::localtime(&startSecs), sizeof(struct tm));
+		memcpy(&tm_end, ::localtime(&endSecs), sizeof(struct tm));
+
+		tm_dur.tm_hour = dur.tv_sec / 3600;
+		tm_dur.tm_min = (dur.tv_sec % 3600) / 60;
+		tm_dur.tm_sec = (dur.tv_sec % 3600) % 60;
+
+		/* save start time, stop time and length of currently playing song to .current file */
+		fTimeFile = fopen(mTimeFile, "a");
+		if(fTimeFile)
+		{	
+			SimpleString *theQTTextPtr = fMovieSDPParser->fQTTextLines.Begin();
+			while (theQTTextPtr != NULL)
+			{
+				fwrite(theQTTextPtr->fTheString,theQTTextPtr->fLen, sizeof(char),fTimeFile);
+				fprintf(fTimeFile,"\n");
+				theQTTextPtr = fMovieSDPParser->fQTTextLines.Next();
+			}
+
+			time_t startTime = (time_t) start.tv_sec;
+			time_t endTime = (time_t) end.tv_sec;
+			
+			char *timestringStart = ctime(&startTime);
+			fprintf(fTimeFile,"b=%02d:%02d:%02d:%06lu %ld %s", tm_start.tm_hour, tm_start.tm_min, tm_start.tm_sec, start.tv_usec,startTime,timestringStart);
+			char *timestringEnd = ctime(&endTime);
+			fprintf(fTimeFile,"e=%02d:%02d:%02d:%06lu %ld %s", tm_end.tm_hour, tm_end.tm_min, tm_end.tm_sec, end.tv_usec,endTime,timestringEnd);
+			fprintf(fTimeFile,"d=%02d:%02d:%02d:%06lu %ld \n", tm_dur.tm_hour, tm_dur.tm_min, tm_dur.tm_sec, dur.tv_usec, dur.tv_sec);
+
+			fclose(fTimeFile);
+		}	
+	}
+
 	while (true) 
 	{
+		if (fQuitImmediatePtr && *fQuitImmediatePtr){err = 0; break; } // quit now not an error
 		
-		transmitTime = fRTPFilePtr->GetNextPacket(&rtpPacket.fThePacket, &rtpPacket.fLength, (void **)&theStreamPtr);
+		if (fBroadcastDefPtr->mTheSession)
+		{	UInt32 thePacketQLen = 0;
+			thePacketQLen = fBroadcastDefPtr->mTheSession->GetPacketQLen();
+			SInt64 maxSleep = PlayListUtils::Milliseconds() + 1000;	
+			if (thePacketQLen > eMaxPacketQLen)
+			{	//printf("PacketQ too big = %lu \n", (UInt32) thePacketQLen);
+				while ( (eMaxPacketQLen/2) < fBroadcastDefPtr->mTheSession->GetPacketQLen())
+				{	this->SleepInterval(100.0);
+					if (maxSleep < PlayListUtils::Milliseconds())
+						break;
+				}
+				//printf("PacketQ after sleep = %lu \n", (UInt32) fBroadcastDefPtr->mTheSession->GetPacketQLen());
+				continue;
+			}
+		}
+		
+		
+		transmitTime = fRTPFilePtr->GetNextPacket(&rtpPacket.fThePacket, &rtpPacket.fLength);
+            theStreamPtr = (MediaStream*)fRTPFilePtr->GetLastPacketTrack()->Cookie1;
 		err = fRTPFilePtr->Error();
 		if (err != QTRTPFile::errNoError)   {err = eMovieFileInvalid; break; } // error getting packet
 		if (NULL == rtpPacket.fThePacket)	{err = 0; break; } // end of movie not an error
 		if (NULL == theStreamPtr) 			{err = eMovieFileInvalid; break; }// an error
+
 		
 		transmitTime *= (Float64) PlayListUtils::eMilli; // convert to milliseconds
 		if (transmitTime < 0.0 && negativeTime == false) // Deal with negative transmission times
-		{	movieStartOffset += transmitTime / 15;
+		{	movieStartOffset += (SInt32) (transmitTime / 15.0);
 			negativeTime = true;
 		}
 		sleptTime = (unsigned int) Sleep(transmitTime);
-			
+		
 		err = theStreamPtr->Send(&rtpPacket);
-		if (err != 0)  { err = eInternalError; break; } 
-		
+			
+		if (err != 0)  { break; } 
 		err = fMediaStreamList.UpdateStreams();
-		if (err != 0)  { err = eInternalError; break; } 
+		if (err != 0)  { break; } 
 		
+		if (	(fBroadcastDefPtr != NULL)
+			&&	(fBroadcastDefPtr->mTheSession != NULL)
+			&&	(fBroadcastDefPtr->mTheSession->GetReasonForDying() != BroadcasterSession::kDiedNormally)	
+			)	
+		 { break; } 
 	};
 	
 	fMovieEndTime = (SInt64) PlayListUtils::Milliseconds();	
@@ -544,7 +673,9 @@ int QTFileBroadcaster::Play()
 	return err;
 }
 
-int QTFileBroadcaster::PlayMovie(char *movieFileName)
+/* changed by emil@popwire.com (see relaod.txt for info) */
+int QTFileBroadcaster::PlayMovie(char *movieFileName, char *currentFile)
+/* ***************************************************** */
 {
 	
 	int err = eMovieFileInvalidName;
@@ -554,7 +685,9 @@ int QTFileBroadcaster::PlayMovie(char *movieFileName)
 		err = SetUpAMovie(movieFileName);
 		
 		if (!err && fPlay)
-		{	 err = Play();
+/* changed by emil@popwire.com (see relaod.txt for info) */
+		{	 err = Play(currentFile);
+/* ***************************************************** */
 		}
 	}
 	return err;

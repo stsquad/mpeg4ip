@@ -1,9 +1,11 @@
 {
     DYNAMIC_CODE_GEN = YES; 
     FILESTABLE = {
+        CLASSES = (QTSSPasswd.cpp); 
         FRAMEWORKS = (Foundation.framework); 
         H_FILES = (); 
-        OTHER_LINKED = (QTSSPasswd.c); 
+        OTHER_LIBS = (CommonUtilitiesLib); 
+        OTHER_LINKED = (); 
         OTHER_SOURCES = (Makefile.preamble, Makefile, Makefile.postamble, m.template, h.template); 
         SUBPROJECTS = (); 
     }; 
@@ -11,7 +13,7 @@
     MAKEFILEDIR = "$(MAKEFILEPATH)/pb_makefiles"; 
     NEXTSTEP_BUILDTOOL = /usr/bin/gnumake; 
     NEXTSTEP_COMPILEROPTIONS = "-D__MacOSX__ -DNeXT -include ../revision.h  -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fhandle-exceptions -fcommon"; 
-    NEXTSTEP_INSTALLDIR = /usr/sbin; 
+    NEXTSTEP_INSTALLDIR = /usr/local/bin; 
     NEXTSTEP_JAVA_COMPILER = /usr/bin/javac; 
     NEXTSTEP_OBJCPLUS_COMPILER = /usr/bin/cc; 
     PDO_UNIX_BUILDTOOL = $NEXT_ROOT/Developer/bin/make; 

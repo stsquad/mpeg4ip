@@ -29,24 +29,16 @@
 #include <SDL_thread.h>
 #include <sdp/sdp.h>
 #include <rtsp/rtsp_client.h>
+#include <rtp/rtp.h>
+#include "our_bytestream.h"
 #include "our_msg_queue.h"
-#include "rtp_bytestream.h"
 
 class CPlayerSession;
 class CAudioSync;
 class CVideoSync;
 class C2ConsecIpPort;
-
-typedef struct video_info_t {
-  int height;
-  int width;
-  int frame_rate;
-  int file_has_vol_header;
-} video_info_t;
-
-typedef struct audio_info_t {
-  int freq;
-} audio_info_t;
+class COurInByteStream;
+class CRtpByteStreamBase;
 
 class CPlayerMedia {
  public:
@@ -56,19 +48,16 @@ class CPlayerMedia {
   int create_streaming(CPlayerSession *p,
 		       media_desc_t *sdp_media,
 		       const char **errmsg,
-		       int on_demand);
+		       int on_demand,
+		       int use_rtsp,
+		       int media_number_in_session);
   /* API routine - create - where we provide the bytestream */
   int create_from_file (CPlayerSession *p, COurInByteStream *b, int is_video);
   /* API routine - play, pause */
   int do_play(double start_time_offset = 0.0);
   int do_pause(void);
   int is_video(void) { return (m_is_video); };
-  double get_max_playtime (void) {
-    if (m_byte_stream) {
-      return (m_byte_stream->get_max_playtime());
-    }
-    return (0.0);
-  }
+  double get_max_playtime(void);
   /* API routine - ip port information */
   uint16_t get_our_port (void) { return m_our_port; };
   void set_server_port (uint16_t port) { m_server_port = port; };
@@ -110,6 +99,13 @@ class CPlayerMedia {
     m_user_data_size = length;
   }
   rtsp_session_t *get_rtsp_session(void) { return m_rtsp_session; };
+  void rtp_init_tcp(void);
+  void rtp_periodic(void);
+  void rtp_start(void);
+  void rtp_end(void);
+  int rtp_receive_packet(struct rtp_packet *, int len);
+  int rtcp_send_packet(char *buffer, int buflen);
+  int get_rtp_media_number (void) { return m_rtp_media_number_in_session; };
  private:
   int m_streaming;
   int m_is_video;
@@ -137,6 +133,9 @@ class CPlayerMedia {
    * RTP variables - used to pass info to the bytestream
    *************************************************************************/
   int m_rtp_ondemand;
+  int m_rtp_use_rtsp;
+  int m_rtp_media_number_in_session;
+  int m_rtp_buffering;
   struct rtp *m_rtp_session;
   CRtpByteStreamBase *m_rtp_byte_stream;
   CMsgQueue m_rtp_msg_queue;
@@ -182,6 +181,7 @@ class CPlayerMedia {
 
   const unsigned char *m_user_data;
   int m_user_data_size;
+
 };
 
 int process_rtsp_rtpinfo(char *rtpinfo, 

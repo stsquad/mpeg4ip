@@ -85,7 +85,7 @@ void CRtpTransmitter::DoStartTransmit()
 			m_pConfig->GetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT),
 			m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL), 
 			m_rtcpBandwidth, 
-			RtpCallback, this);
+			RtpCallback, (uint8_t *)this);
 
 		m_mp3QueueCount = 0;
 		m_mp3QueueSize = 0;
@@ -112,7 +112,7 @@ void CRtpTransmitter::DoStartTransmit()
 			m_pConfig->GetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT),
 			m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL), 
 			m_rtcpBandwidth, 
-			RtpCallback, this);
+			RtpCallback, (uint8_t *)this);
 	}
 
 	if (m_audioRtpSession || m_videoRtpSession) {

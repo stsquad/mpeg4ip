@@ -27,7 +27,7 @@
  */
 #ifndef __OUR_BYTESTREAM_H__
 #define __OUR_BYTESTREAM_H__ 1
-
+#include <assert.h>
 #include "systems.h"
 #include <tools/entropy/bytestrm.hpp>
 #include "codec/codec.h"
@@ -44,6 +44,8 @@ class COurInByteStream : public CInByteStreamBase
   virtual void reset(void) = 0;
   virtual int have_no_data (void) {return 0; };
   virtual uint64_t start_next_frame (void) = 0;
+  virtual int can_skip_frame (void) { return 0; };
+  virtual int skip_next_frame (uint64_t *ts, int *hasSyncFrame) { assert(FALSE);return 0; };
   virtual double get_max_playtime (void) = 0;
   virtual void set_start_time(uint64_t start) { m_play_start_time = start; };
   virtual ssize_t read(unsigned char *buffer, size_t bytes) = 0;

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 #include "playlist_lists.h"
@@ -44,7 +44,7 @@ void MediaStreamList::SetUpStreamSSRCs()
 		setMediaStreamPtr = SetPos(i);
 		if (setMediaStreamPtr != NULL) do 
 		{  
-			ssrc = PlayListUtils::Random(); // get a new ssrc
+			ssrc = PlayListUtils::Random() + OS::Milliseconds(); // get a new ssrc
 			aMediaStreamPtr = Begin();		// start at the beginning of the stream list
 			found_duplicate = false;		// default is don't loop
   
@@ -112,36 +112,3 @@ void MediaStreamList::UpdateSenderReportsOnStreams()
 	
 }
 
-// ************************
-//
-// SocketList
-//
-// ************************
-
-SInt16 SocketList::OpenAndBind(UDPSocketPair *aPair, UInt16 rtpPort,UInt16 rtcpPort,char *destAddress, UInt8 ttl) 
-{
-	SInt16 err = -1;
-		
-	if (aPair != NULL)
-	do
-	{
-		err = aPair->Open();
-		if (err != 0) break;
-		
-		err = aPair->Bind(INADDR_ANY);
-		if (err != 0) break;
-		
-		err = aPair->SetDestination (destAddress, rtpPort, rtcpPort, ttl);	
-		if (err != 0) break;
-		
-	} while (false);
-	
-	if (err)
-	{	
-		if (aPair != NULL)
-		{	aPair->Close();
-		}
-	}
-	
-	return err;
-};

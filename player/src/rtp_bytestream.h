@@ -65,6 +65,9 @@ class CRtpByteStreamBase : public COurInByteStream
   };
   int have_no_data(void);
   uint64_t start_next_frame(void);
+  void set_skip_on_advance (uint32_t bytes_to_skip) {
+    m_skip_on_advance_bytes = bytes_to_skip;
+  };
   double get_max_playtime (void) { return 0.0; };
   ssize_t read(unsigned char *buffer, size_t bytes);
   ssize_t read(char *buffer, size_t bytes) {
@@ -75,9 +78,6 @@ class CRtpByteStreamBase : public COurInByteStream
 
   // various routines for RTP interface.
   void set_rtp_rtptime(uint32_t t) { m_rtp_rtptime = t;};
-  void set_skip_on_advance (uint32_t bytes_to_skip) {
-    m_skip_on_advance_bytes = bytes_to_skip;
-  };
   void set_wallclock_offset (uint64_t wclock) {
     if (m_wallclock_offset_set == 0) {
     m_wallclock_offset = wclock;
@@ -120,6 +120,28 @@ class CRtpByteStreamBase : public COurInByteStream
   int check_rtp_frame_complete_for_proto(void);
   int m_rtp_rtpinfo_received;
   uint32_t m_rtptime_last;
+};
+
+class CRtpByteStream : public CRtpByteStreamBase
+{
+ public:
+  CRtpByteStream(unsigned int rtp_proto,
+		 int ondemand,
+		 uint64_t tickpersec,
+		 rtp_packet **head, 
+		 rtp_packet **tail,
+		 int rtpinfo_received,
+		 uint32_t rtp_rtptime,
+		 int rtcp_received,
+		 uint32_t ntp_frac,
+		 uint32_t ntp_sec,
+		 uint32_t rtp_ts) :
+    CRtpByteStreamBase(rtp_proto, ondemand, tickpersec, head, tail,
+		       rtpinfo_received, rtp_rtptime, rtcp_received,
+			 ntp_frac, ntp_sec, rtp_ts)
+    {};
+  int can_skip_frame (void) { return 1; } ;
+  int skip_next_frame(uint64_t *ts, int *havesync);
 };
 
 int add_rtp_packet_to_queue(rtp_packet *pak,

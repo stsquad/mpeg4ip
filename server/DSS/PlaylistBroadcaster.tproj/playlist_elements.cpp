@@ -1,31 +1,31 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 #include "playlist_elements.h"
 #include "playlist_utils.h"
 #include "OS.h"
-
+#include "SocketUtils.h"
 #ifndef __Win32__
 #include <unistd.h>
 #endif
@@ -51,7 +51,7 @@ MediaStream::~MediaStream()
 
 
 UInt32 MediaStream::GetACName(char* ioCNameBuffer)
-{
+{		
 	//clear out the whole buffer
 	::memset(ioCNameBuffer, 0, kMaxCNameLen);
 	
@@ -59,11 +59,11 @@ UInt32 MediaStream::GetACName(char* ioCNameBuffer)
 	ioCNameBuffer[0] = 1;
 	
 	//Unique cname is constructed from the base name and the current time
-	::sprintf(&ioCNameBuffer[1], " %s%"_64BITARG_"d", "QTSS", PlayListUtils::Milliseconds() / 1000);
-	UInt32 cNameLen = ::strlen(ioCNameBuffer);
+	::sprintf(&ioCNameBuffer[2], " %s%"_64BITARG_"d", "QTSS", OS::Milliseconds() / 1000);
+	UInt32 cNameLen = ::strlen(&ioCNameBuffer[2]);
 	//2nd byte of CName should be length
-	ioCNameBuffer[1] = cNameLen - 2;//don't count indicator or length byte
-
+	ioCNameBuffer[1] = cNameLen ;//doesn't count indicator or length byte
+	cNameLen += 2; // add the identifier and len bytes to the result len
 	//pad length to a 4 byte boundary
 	UInt32 padLength = cNameLen % 4;
 	if (padLength > 0)
@@ -130,6 +130,7 @@ void MediaStream::UpdatePacketInStream(RTpPacket *packetPtr)
 
 void MediaStream::MapToStream(UInt32 curRTpTimeStamp, UInt16 curRTpSequenceNumber, unsigned char curPayload, UInt32 *outRTpTimeStampPtr, UInt16 *outRTpSequenceNumberPtr, unsigned char *outPayloadPtr)
 {
+
 	if (fData.fNewMovieStarted == true)		// this is the first packet in a new movie
 	{	
 		fData.fNewMovieStarted = false;	
@@ -142,17 +143,18 @@ void MediaStream::MapToStream(UInt32 curRTpTimeStamp, UInt16 curRTpSequenceNumbe
 	 	
 	UInt32 outTime = (UInt32) ( (UInt64) curTimeStamp & (UInt64) 0xFFFFFFFF ); 
 	UInt16 outSeq =  (UInt16) ( (UInt64) curSequenceNumber & (UInt64) 0xFFFF ); 
-	PayLoad *firstPayLoadPtr =  (fData.fMovieMediaTypePtr)->fPayLoadTypes.Begin(); // potential problem; assumes first payload per track is this payload
 	unsigned char outPayload = curPayload;
+	Assert (fData.fMovieMediaTypePtr != NULL);// should always be valid
+	PayLoad *firstPayLoadPtr =  (fData.fMovieMediaTypePtr)->fPayLoadTypes.Begin(); // potential problem; assumes first payload per track is this payload
 	if (firstPayLoadPtr)
 	{	
 		outPayload = (unsigned char) ( 0x7F & firstPayLoadPtr->payloadID);
 		outPayload |= (curPayload & 0x80);// the movie payload marker
 	}
-	
+
 //	printf("MediaStream::MapToStream outTime = %lu\n", outTime);
 //	printf("MediaStream::MapToStream calculated time = %lu\n",(UInt32) curTimeInScale);	
-		
+
 	if (outRTpTimeStampPtr) *outRTpTimeStampPtr = outTime;
 	if (outRTpSequenceNumberPtr) *outRTpSequenceNumberPtr = outSeq;
 	if (outPayloadPtr)  *outPayloadPtr = outPayload;
@@ -168,7 +170,7 @@ void MediaStream::BuildStaticRTCpReport()
 	*theSRWriter = htonl(0x80c80006);
 	theSRWriter += 7;
 	//SDES length is the length of the CName, plus 2 32bit words, minus 1
-	*theSRWriter = htonl(0x81ca0000 + (cNameLen >> 2) + 1);
+	*theSRWriter = htonl(0x81ca0000 + (cNameLen >> 2) );
 	::memcpy(&fData.fSenderReportBuffer[kSenderReportSizeInBytes], theTempCName, cNameLen);
 	fData.fSenderReportSize = kSenderReportSizeInBytes + cNameLen;
 }
@@ -210,6 +212,7 @@ void MediaStream::StreamStart(SInt64 startTime)
 	fData.fNewStreamStarted = true;
 	fData.fSeqRandomOffset = PlayListUtils::Random();
 	fData.fRTpRandomOffset = PlayListUtils::Random();
+
 	
 //	fData.fSeqRandomOffset = -1000; // test roll over
 //	fData.fRTpRandomOffset = -100000; // test roll over
@@ -309,6 +312,10 @@ static int numStartDropPackets = 0;
 
 int MediaStream::UpdateSenderReport(SInt64 theTime)
 {
+
+	if (NULL == fData.fMovieMediaTypePtr)
+		return 0;
+			
 	int result = 0;
 	
 	SInt64 timeToSend = fData.fLastSenderReportTime + (kSenderReportIntervalInSecs * PlayListUtils::eMilli);
@@ -331,7 +338,7 @@ int MediaStream::UpdateSenderReport(SInt64 theTime)
 	}
 #endif
 	
-	if (theTime > timeToSend )
+	if (theTime > timeToSend)
 	{
 		fData.fLastSenderReportTime = theTime;
 		UInt32* theReport = (UInt32*) fData.fSenderReportBuffer;
@@ -390,6 +397,9 @@ int MediaStream::UpdateSenderReport(SInt64 theTime)
 
 void UDPSocketPair::Close()
 {
+	if (fMultiCastJoined)
+		this->LeaveMulticast();
+		
 #ifdef __Win32__
 	if (fSocketRTp != 0) ::closesocket(fSocketRTp);
 	if (fSocketRTCp != 0) ::closesocket(fSocketRTCp);
@@ -490,7 +500,10 @@ SInt16 UDPSocketPair::Bind(UInt32 addr)
 	for (int count = eSourcePortStart; count < eSourcePortRange; count ++)
 	{
 		PortRTp = count;
-		PortRTCp = count + 1;
+		Assert( (PortRTp & 1) == 0); // must be even
+		count += 1;
+		PortRTCp = count;
+		Assert( (PortRTCp & 1) == 1);// must be odd and one more than rtp port
 		
 		fLocalAddrRTp.sin_port = htons(PortRTp);
 		fLocalAddrRTCp.sin_port = htons(PortRTCp);
@@ -500,23 +513,18 @@ SInt16 UDPSocketPair::Bind(UInt32 addr)
 		err = ::bind(fSocketRTp, (sockaddr *)&fLocalAddrRTp, sizeof(fLocalAddrRTp));
 		if (err != 0)
 		{	
-			//printf("Error binding to rtp port %d \n",PortRTp);
-			fLocalAddrRTp.sin_port = 0;
-			fLocalAddrRTp.sin_addr.s_addr = addr;
+			//printf("UDPSocketPair::Bind Error binding to rtp port %d \n",PortRTp);
+			InitPorts(addr);
 			continue;
 		}
 
 		err = ::bind(fSocketRTCp, (sockaddr *)&fLocalAddrRTCp, sizeof(fLocalAddrRTCp));	
 		if (err != 0)
 		{
-			
-			//printf("Error binding to rtcp port %d \n",PortRTp);
-			err = ::close(fSocketRTp);
-			fLocalAddrRTp.sin_port = 0;
-			fLocalAddrRTp.sin_addr.s_addr = addr;
-
-			fLocalAddrRTCp.sin_port = 0;
-			fLocalAddrRTCp.sin_addr.s_addr = addr;
+			//printf("UDPSocketPair::Bind Error binding to rtcp port %d \n",PortRTp);
+			Close();
+			Open();
+			InitPorts(addr);
 			continue;
 		}  
 		
@@ -554,38 +562,116 @@ SInt16 UDPSocketPair::SendTo(int socket, sockaddr *destAddrPtr, char* inBuffer, 
 
 SInt16 UDPSocketPair::SendRTp(char* inBuffer, UInt32 inLength)
 {	
-	return SendTo(fSocketRTp, (sockaddr*)&fDestAddrRTp, inBuffer, inLength );
+	if (fBroadcasterSession != NULL)
+	{	OSMutexLocker locker(fBroadcasterSession->GetMutex());
+		return fBroadcasterSession->SendPacket(inBuffer,inLength,fChannel);
+	}
+	else
+		return SendTo(fSocketRTp, (sockaddr*)&fDestAddrRTp, inBuffer, inLength );
 }
 
 SInt16 UDPSocketPair::SendRTCp(char* inBuffer, UInt32 inLength)
 {	
-	return SendTo(fSocketRTCp, (sockaddr*)&fDestAddrRTCp, inBuffer, inLength );
+	if (fBroadcasterSession != NULL)
+	{	OSMutexLocker locker(fBroadcasterSession->GetMutex());
+		return fBroadcasterSession->SendPacket(inBuffer,inLength,fChannel+1);
+	}
+	else
+		return SendTo(fSocketRTCp, (sockaddr*)&fDestAddrRTCp, inBuffer, inLength );
 }
 
-SInt16  UDPSocketPair::SetDestination (char *destAddress,UInt16 destPortRTp, UInt16 destPortRTCp, UInt8 ttl)
+SInt16  UDPSocketPair::SetDestination (char *destAddress,UInt16 destPortRTp, UInt16 destPortRTCp)
 {
 	SInt16 result = -1;
 
 	if (destAddress != NULL)
-	{
+	{	UInt32 netAddress = inet_addr(destAddress);
+	
 		fDestAddrRTp = fLocalAddrRTp; 
 		fDestAddrRTp.sin_port = htons(destPortRTp); 
-		fDestAddrRTp.sin_addr.s_addr = inet_addr(destAddress);
+		fDestAddrRTp.sin_addr.s_addr = netAddress;
 		
 		fDestAddrRTCp = fLocalAddrRTCp;
 		fDestAddrRTCp.sin_port = htons(destPortRTCp);		
-		fDestAddrRTCp.sin_addr.s_addr = inet_addr(destAddress);
-
-		if (IN_MULTICAST(ntohl(inet_addr(destAddress)))) {
-			::setsockopt(fSocketRTp, 
-				IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
-			::setsockopt(fSocketRTCp, 
-				IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
-		}
+		fDestAddrRTCp.sin_addr.s_addr =  netAddress;
 		
+		fIsMultiCast = SocketUtils::IsMulticastIPAddr(ntohl(netAddress));
+
 		result = 0;
 	}
 	return result;
+}
+
+SInt16 UDPSocketPair::SetMulticastInterface()
+{
+	// set the outgoing interface for multicast datagrams on this socket
+	in_addr	theLocalAddr;
+	::memset(&theLocalAddr, 0, sizeof(theLocalAddr));
+	
+	theLocalAddr.s_addr = fLocalAddrRTp.sin_addr.s_addr;
+	int err = setsockopt(fSocketRTp, IPPROTO_IP, IP_MULTICAST_IF, (char*)&theLocalAddr, sizeof(theLocalAddr));
+
+	return err;	
+}
+
+SInt16 UDPSocketPair::JoinMulticast()
+{
+	int err = 0;
+
+	
+    UInt32 localAddr = fLocalAddrRTp.sin_addr.s_addr; // Already in network byte order
+
+#if __solaris__
+	if( localAddr == htonl(INADDR_ANY) )
+	     localAddr = htonl(SocketUtils::GetIPAddr(0));
+#endif
+
+	struct ip_mreq	theMulti;
+	::memset(&theMulti, 0, sizeof(theMulti));
+
+	theMulti.imr_multiaddr.s_addr = fDestAddrRTp.sin_addr.s_addr;
+	theMulti.imr_interface.s_addr = localAddr;
+	err = setsockopt(fSocketRTp, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&theMulti, sizeof(theMulti));
+	(void) setsockopt(fSocketRTCp, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&theMulti, sizeof(theMulti));
+
+	if (err == 0)
+		fMultiCastJoined = true;
+		
+	return err;
+}
+
+
+SInt16 UDPSocketPair::SetTTL(SInt16 timeToLive)
+{
+	// set the ttl
+	int	nOptVal = (int)timeToLive;
+	int err = 0;
+	
+	err = setsockopt(fSocketRTp, IPPROTO_IP, IP_MULTICAST_TTL, (char*)&nOptVal, sizeof(nOptVal));
+	if (err != 0) return err;
+
+	err = setsockopt(fSocketRTCp, IPPROTO_IP, IP_MULTICAST_TTL, (char*)&nOptVal, sizeof(nOptVal));
+	return err;	
+}
+
+SInt16 UDPSocketPair::LeaveMulticast()
+{ 
+   UInt32 localAddr = fLocalAddrRTp.sin_addr.s_addr; // Already in network byte order
+
+#if __solaris__
+	if( localAddr == htonl(INADDR_ANY) )
+	     localAddr = htonl(SocketUtils::GetIPAddr(0));
+#endif
+
+	struct ip_mreq	theMulti;
+	::memset(&theMulti, 0, sizeof(theMulti));
+	
+	theMulti.imr_multiaddr.s_addr = fDestAddrRTp.sin_addr.s_addr;
+	theMulti.imr_interface.s_addr = localAddr;
+	
+	int err = setsockopt(fSocketRTp, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char*)&theMulti, sizeof(theMulti));
+	(void) setsockopt(fSocketRTCp, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char*)&theMulti, sizeof(theMulti));
+	return err;
 }
 
 SInt16 UDPSocketPair::RecvFrom(sockaddr *RecvRTpddrPtr, int socket, char* ioBuffer, UInt32 inBufLen, UInt32* outRecvLen)
@@ -599,7 +685,7 @@ SInt16 UDPSocketPair::RecvFrom(sockaddr *RecvRTpddrPtr, int socket, char* ioBuff
 		if (socket == kInvalidSocket) break;
 		
 		sockaddr_in theAddr;
-#if __MacOSXServer__ || __Win32__ || __FreeBSD__ || __MacOSX__
+#if __MacOSXServer__ || __Win32__ || __MacOSX__ || __osf__
 		int addrLen = sizeof(theAddr);
 #else
 		socklen_t addrLen = sizeof(theAddr);
@@ -622,6 +708,54 @@ SInt16 UDPSocketPair::RecvRTCp(char* ioBuffer, UInt32 inBufLen, UInt32* outRecvL
 {
 	return  RecvFrom( (sockaddr *)&fDestAddrRTCp, fSocketRTCp, ioBuffer, inBufLen, outRecvLen);
 }
+
+SInt16 UDPSocketPair::SetMultiCastOptions(SInt16 ttl)
+{
+	SInt16 err = 0;
+
+	if (this->fIsMultiCast) do// set by SetDestination
+	{				
+		err = this->SetTTL(ttl);
+		WarnV(err == 0 , "failed to set ttl");
+		if (err != 0) break;
+
+		err = this->SetMulticastInterface();
+		WarnV(err == 0 , "failed to set multicast socket option");
+		if (err != 0) break;
+		
+		err = this->JoinMulticast();
+		WarnV(err == 0 , "failed to join multicast");
+		if (err != 0) break;
+		
+	} while (false);
+		
+	return err;
+}
+
+SInt16 UDPSocketPair::OpenAndBind( UInt16 rtpPort,UInt16 rtcpPort,char *destAddress) 
+{
+	SInt16 err = -1;
+		
+	do
+	{
+		err = this->Open();
+		if (err != 0) break;
+		
+		err = this->Bind(INADDR_ANY);
+		if (err != 0) break;
+		
+		err = this->SetDestination (destAddress, rtpPort, rtcpPort);	
+		if (err != 0) break;
+		
+	} while (false);
+	
+	if (err)
+	{	
+		this->Close();
+	}
+	
+	return err;
+};
 
 // ************************
 //

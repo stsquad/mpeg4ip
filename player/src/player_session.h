@@ -30,7 +30,6 @@
 
 #include <rtsp/rtsp_client.h>
 #include <sdp/sdp.h>
-#include "player_media.h"
 #include "our_msg_queue.h"
 
 typedef enum {
@@ -40,6 +39,7 @@ typedef enum {
   SESSION_DONE
 } session_state_t;
 
+class CPlayerMedia;
 class CAudioSync;
 class CVideoSync;
 
@@ -62,7 +62,7 @@ class CPlayerSession {
    */
   int create_streaming_broadcast(session_desc_t *sdp,
 				 const char **ermsg);
-  int create_streaming_ondemand(const char *url, const char **errmsg);
+  int create_streaming_ondemand(const char *url, const char **errmsg, int use_rtp_tcp);
   /*
    * API routine - play at time.  If start_from_begin is FALSE, start_time
    * and we're paused, it will continue from where it left off.
@@ -76,19 +76,7 @@ class CPlayerSession {
    * API routine for media set up - associate a created
    * media with the session.
    */
-  void add_media(CPlayerMedia *m) {
-    CPlayerMedia *p;
-    if (m_my_media == NULL) {
-      m_my_media = m;
-    } else {
-      p = m_my_media;
-      while (p->get_next() != NULL) {
-	if (p == m) return;
-	p = p->get_next();
-      }
-      p->set_next(m);
-    }
-  };
+  void add_media(CPlayerMedia *m);
   /*
    * API routine - returns sdp info for streamed session
    */
@@ -101,10 +89,8 @@ class CPlayerSession {
   /*
    * API routine - get the current time
    */
-  double get_playing_time (void) {
-    double ret = (double)m_current_time;
-    ret /= 1000.0;
-    return (ret);
+  uint64_t get_playing_time (void) {
+    return (m_current_time);
   };
   /*
    * API routine - get max play time
@@ -195,15 +181,9 @@ class CPlayerSession {
   const char *m_session_desc[SESSION_DESC_COUNT];
   __inline uint64_t get_time_of_day (void) {
     struct timeval t;
-    struct timezone z;
-    gettimeofday(&t, &z);
-#ifndef _WINDOWS
-    return ((((uint64_t)t.tv_sec) * 1000LLU) +
-	    (((uint64_t)t.tv_usec) / 1000LLU));
-#else
-	return (((uint64_t)t.tv_sec * 1000) + 
-			((uint64_t)t.tv_usec / 1000));
-#endif
+    gettimeofday(&t, NULL);
+    return ((((uint64_t)t.tv_sec) * M_LLU) +
+	    (((uint64_t)t.tv_usec) / M_LLU));
   }
 };
 

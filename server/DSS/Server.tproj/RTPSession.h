@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTPSession.h
@@ -62,6 +62,8 @@ class RTPSession : public RTPSessionInterface
 		
 		QTSSModule*	GetPacketSendingModule()						{ return fModule; }
 		Bool16		HasAnRTPStream()								{ return fHasAnRTPStream; }
+		
+		RTPStream*	FindRTPStreamForChannelNum(UInt8 inChannelNum);
 		
 		//
 		// MODIFIERS
@@ -115,10 +117,14 @@ class RTPSession : public RTPSessionInterface
 		enum
 		{
 			kPlayDelayTimeInMilSecs = 500, //UInt32
+			kRTPStreamArraySize		= 20,
 			kCantGetMutexIdleTime	= 10
 		};
 
 		QTSSModule*			fModule;
+		Bool16				fHasAnRTPStream;
+		
+		char		fRTPStreamArray[kRTPStreamArraySize];
 		
 		// Module invocation and module state.
 		// This info keeps track of our current state so that
@@ -139,11 +145,11 @@ class RTPSession : public RTPSessionInterface
 		// This is here to give the ability to the ClientSessionClosing role to
 		// do asynchronous I/O
 		Bool16				fModuleDoingAsyncStuff;
-		Bool16				fHasAnRTPStream;
 		
 #if DEBUG
 		Bool16 fActivateCalled;
 #endif
+		SInt64				fLastBandwidthTrackerStatsUpdate;
 
 };
 

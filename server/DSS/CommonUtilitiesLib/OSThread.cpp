@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		OSThread.cpp
@@ -49,7 +49,6 @@
 #endif
 
 #include "OSThread.h"
-#include "Exception.h"
 #include "MyAssert.h"
 
 //
@@ -64,6 +63,10 @@ pthread_key_t OSThread::gMainKey = 0;
 #ifdef _POSIX_THREAD_PRIORITY_SCHEDULING
 pthread_attr_t OSThread::sThreadAttr;
 #endif
+#endif
+
+#if __linux__
+Bool16	OSThread::sWrapSleep = false;
 #endif
 
 void OSThread::Initialize()
@@ -89,9 +92,6 @@ void OSThread::Initialize()
 
 OSThread::OSThread()
 : 	fStopRequested(false),
-	fRunning(false),
-	fCancelThrown(false),
-	fDetached(false),
 	fJoined(false),
 	fThreadData(NULL)
 {
@@ -130,11 +130,8 @@ void OSThread::Start()
 
 void OSThread::StopAndWaitForThread()
 {
-	if (!fRunning)
-		return;
-		
 	fStopRequested = true;
-	if (!fJoined && !fDetached)
+	if (!fJoined)
 		Join();
 }
 
@@ -142,7 +139,7 @@ void OSThread::Join()
 {
 	// What we're trying to do is allow the thread we want to delete to complete
 	// running. So we wait for it to stop.
-	Assert(!fJoined && !fDetached);
+	Assert(!fJoined);
 	fJoined = true;
 #ifdef __Win32__
 	DWORD theErr = ::WaitForSingleObject(fThreadID, INFINITE);
@@ -170,62 +167,45 @@ void OSThread::ThreadYield()
 #endif
 }
 
+#include "OS.h"
 void OSThread::Sleep(UInt32 inMsec)
 {
 #ifdef __Win32__
 	::Sleep(inMsec);
+#elif __linux__
+	if (!sWrapSleep) // set true by commandline argument -d. 
+	{	::usleep(inMsec * 1000);
+		return;
+	}
+	
+	if (inMsec == 0)
+		return;
+		
+	// avoid being woken up early. 
+	SInt64 firstTime = OS::Milliseconds();
+	SInt64 starttime = firstTime;
+	::usleep(inMsec * 1000);
+	SInt64 sleepTime = (SInt64) inMsec - (OS::Milliseconds() - starttime);
+	if (sleepTime > 0)
+	{	while ( sleepTime > 0)
+		{	//printf("short sleep = %qd request sleep=%lu\n",sleepTime, inMsec);
+			starttime = OS::Milliseconds();
+			::usleep(sleepTime * 1000);
+			sleepTime -= (OS::Milliseconds() - starttime);
+		}
+		sleepTime = OS::Milliseconds() - firstTime;
+	}
+	else 
+		sleepTime = inMsec - sleepTime;
+	//printf("total sleep = %qd request sleep=%lu\n", sleepTime,inMsec);
+#elif defined(__osf__)
+	if (inMsec < 1000)
+		::usleep(inMsec * 1000); // useconds must be less than 1,000,000
+	else
+		::sleep((inMsec + 500) / 1000); // round to the nearest whole second
 #else
 	::usleep(inMsec * 1000);
 #endif
-}
-
-
-void OSThread::Detach()
-{
-	Assert(!fDetached && !fJoined);
-	fDetached = true;
-}
-
-void OSThread::CheckForStopRequest()
-{
-	if (fStopRequested && !fCancelThrown)
-		ThrowStopRequest();
-}
-
-
-void OSThread::ThrowStopRequest()
-{
-	if (fStopRequested && !fCancelThrown) {
-		fCancelThrown = true;
-		Throw_(Cancel_E);
-	}
-}
-
-void OSThread::CallEntry(OSThread* thread) 	// static method
-{
-	thread->fRunning = true;
-
-	try
-	{
-		thread->Entry();
-	} 
-	catch(...)
-	{
-	}
-
-	thread->fRunning = false;
-	
-	if (thread->fDetached) {
-		Assert(!thread->fJoined);
-#ifdef __Win32__
-		// FIX: What to do here?
-#elif __PTHREADS__
-		pthread_detach((pthread_t)thread->fThreadID);
-#else
-		cthread_detach((cthread_t)thread->fThreadID);
-#endif
-		delete thread;
-	}
 }
 
 #ifdef __Win32__
@@ -239,13 +219,16 @@ void* OSThread::_Entry(void *inThread)  //static
 	BOOL theErr = ::TlsSetValue(sThreadStorageIndex, theThread);
 	Assert(theErr == TRUE);
 #elif __PTHREADS__
-	theThread->fThreadID = (UInt32)pthread_self();
+	theThread->fThreadID = (pthread_t)pthread_self();
 	pthread_setspecific(OSThread::gMainKey, theThread);
 #else
 	theThread->fThreadID = (UInt32)cthread_self();
 	cthread_set_data(cthread_self(), (any_t)theThread);
 #endif
-	OSThread::CallEntry(theThread);
+
+	//
+	// Run the thread
+	theThread->Entry();
 	return NULL;
 }
 

@@ -35,6 +35,8 @@ class MP4Track {
 public:
 	MP4Track(MP4File* pFile, MP4Atom* pTrakAtom);
 
+	virtual ~MP4Track();
+
 	MP4TrackId GetId() {
 		return m_trackId;
 	}
@@ -65,27 +67,36 @@ public:
 		MP4Duration renderingOffset = 0, 
 		bool isSyncSample = true);
 
-	void FinishWrite();
+	virtual void FinishWrite();
 
+	u_int64_t 	GetDuration();		// in track timeScale units
 	u_int32_t	GetTimeScale();
 	u_int32_t	GetNumberOfSamples();
 	u_int32_t	GetSampleSize(MP4SampleId sampleId);
 	u_int32_t	GetMaxSampleSize();
+	u_int64_t 	GetTotalOfSampleSizes();
+	u_int32_t	GetAvgBitrate();	// in bps
+	u_int32_t	GetMaxBitrate();	// in bps
 
 	MP4Duration GetFixedSampleDuration();
 	bool SetFixedSampleDuration(MP4Duration duration);
 
+	void		GetSampleTimes(MP4SampleId sampleId,
+					MP4Timestamp* pStartTime, MP4Duration* pDuration);
+
+	bool		IsSyncSample(MP4SampleId sampleId);
+
 	MP4SampleId GetSampleIdFromTime(MP4Timestamp when, 
 		bool wantSyncSample = false);
+
+	void SetSampleRenderingOffset(MP4SampleId sampleId,
+		 MP4Duration renderingOffset);
 
 	static const char* NormalizeTrackType(const char* type);
 
 protected:
 	u_int64_t	GetSampleFileOffset(MP4SampleId sampleId);
-	void		GetSampleTimes(MP4SampleId sampleId,
-					MP4Timestamp* pStartTime, MP4Duration* pDuration);
 	u_int32_t	GetSampleRenderingOffset(MP4SampleId sampleId);
-	bool		IsSyncSample(MP4SampleId sampleId);
 	MP4SampleId	GetNextSyncSample(MP4SampleId sampleId);
 
 	void UpdateSampleSizes(MP4SampleId sampleId, 

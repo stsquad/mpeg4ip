@@ -7,7 +7,7 @@ libhttp_la_SOURCES = \
 
 INCLUDES = -I$(top_srcdir)/include
 
-AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wstrict-prototypes -Wmissing-prototypes
+AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 
 check_PROGRAMS = http_test
 http_test_SOURCES = http_test.c

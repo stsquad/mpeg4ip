@@ -183,6 +183,11 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 	}
 }
 
+MP4Track::~MP4Track()
+{
+	delete m_pChunkBuffer;	// just in case
+}
+
 const char* MP4Track::GetType()
 {
 	return m_pTypeProperty->GetValue();
@@ -203,6 +208,12 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 			"MP4Track::ReadSample");
 	}
 
+	// handle unusual case of wanting to read a sample
+	// that is still sitting in the write chunk buffer
+	if (m_pChunkBuffer && sampleId >= m_writeSampleId - m_chunkSamples) {
+		WriteChunk();
+	}
+
 	u_int64_t fileOffset = GetSampleFileOffset(sampleId);
 
 	u_int32_t sampleSize = GetSampleSize(sampleId);
@@ -213,10 +224,10 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 	*pNumBytes = sampleSize;
 
 	VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
-		printf("ReadSample: id %u offset 0x"LLX" size %u (0x%x)\n",
-			sampleId, fileOffset, *pNumBytes, *pNumBytes));
+		printf("ReadSample: track %u id %u offset 0x"LLX" size %u (0x%x)\n",
+			m_trackId, sampleId, fileOffset, *pNumBytes, *pNumBytes));
 
-	// TBD could check would be to see if sample is in an mdat atom
+	// TBD good check would be to see if sample is in an mdat atom
 
 	bool bufferMalloc = false;
 	if (*ppBytes == NULL) {
@@ -224,6 +235,7 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 		bufferMalloc = true;
 	}
 
+	u_int64_t oldPos = m_pFile->GetPosition(); // only used in mode == 'w'
 	try { 
 		m_pFile->SetPosition(fileOffset);
 		m_pFile->ReadBytes(*ppBytes, *pNumBytes);
@@ -258,7 +270,14 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 			MP4Free(*ppBytes);
 			*ppBytes = NULL;
 		}
+		if (m_pFile->GetMode() == 'w') {
+			m_pFile->SetPosition(oldPos);
+		}
 		throw e;
+	}
+
+	if (m_pFile->GetMode() == 'w') {
+		m_pFile->SetPosition(oldPos);
 	}
 }
 
@@ -267,8 +286,8 @@ void MP4Track::WriteSample(u_int8_t* pBytes, u_int32_t numBytes,
 	bool isSyncSample)
 {
 	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
-		printf("WriteSample: id %u size %u (0x%x)\n",
-			m_writeSampleId, numBytes, numBytes));
+		printf("WriteSample: track %u id %u size %u (0x%x) ",
+			m_trackId, m_writeSampleId, numBytes, numBytes));
 
 	if (pBytes == NULL) {
 		throw new MP4Error("no sample data", "MP4WriteSample");
@@ -281,6 +300,9 @@ void MP4Track::WriteSample(u_int8_t* pBytes, u_int32_t numBytes,
 	if (duration == MP4_INVALID_DURATION) {
 		duration = GetFixedSampleDuration();
 	}
+
+	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
+		printf("duration "LLU"\n", duration));
 
 	// append sample bytes to chunk buffer
 	m_pChunkBuffer = (u_int8_t*)MP4Realloc(m_pChunkBuffer, 
@@ -321,8 +343,9 @@ void MP4Track::WriteChunk()
 	m_pFile->WriteBytes(m_pChunkBuffer, m_chunkBufferSize);
 
 	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
-		printf("WriteChunk: offset 0x"LLX" size %u (0x%x) numSamples %u\n",
-			chunkOffset, m_chunkBufferSize, m_chunkBufferSize, m_chunkSamples));
+		printf("WriteChunk: track %u offset 0x"LLX" size %u (0x%x) numSamples %u\n",
+			m_trackId, chunkOffset, m_chunkBufferSize, 
+			m_chunkBufferSize, m_chunkSamples));
 
 	UpdateSampleToChunk(m_writeSampleId, 
 		m_pChunkCountProperty->GetValue() + 1, 
@@ -342,6 +365,21 @@ void MP4Track::FinishWrite()
 {
 	// write out any remaining samples in chunk buffer
 	WriteChunk();
+
+	// record bitrates
+	MP4Integer32Property* pBitrateProperty;
+
+	if (m_pTrakAtom->FindProperty(
+	  "trak.mdia.minf.stbl.stsd.*.esds.decConfigDescr.maxBitrate",
+	  (MP4Property**)&pBitrateProperty)) {
+		pBitrateProperty->SetValue(GetMaxBitrate());
+	}
+
+	if (m_pTrakAtom->FindProperty(
+	  "trak.mdia.minf.stbl.stsd.*.esds.decConfigDescr.avgBitrate",
+	  (MP4Property**)&pBitrateProperty)) {
+		pBitrateProperty->SetValue(GetAvgBitrate());
+	}
 }
 
 bool MP4Track::IsChunkFull(MP4SampleId sampleId)
@@ -404,6 +442,27 @@ u_int32_t MP4Track::GetMaxSampleSize()
 	return maxSampleSize;
 }
 
+u_int64_t MP4Track::GetTotalOfSampleSizes()
+{
+	u_int32_t fixedSampleSize = 
+		m_pStszFixedSampleSizeProperty->GetValue(); 
+
+	// if fixed sample size, just need to multiply by number of samples
+	if (fixedSampleSize != 0) {
+		return fixedSampleSize * GetNumberOfSamples();
+	}
+
+	// else non-fixed sample size, sum them
+	u_int64_t totalSampleSizes = 0;
+	u_int32_t numSamples = m_pStszSampleSizeProperty->GetCount();
+	for (MP4SampleId sid = 1; sid <= numSamples; sid++) {
+		u_int32_t sampleSize =
+			m_pStszSampleSizeProperty->GetValue(sid - 1);
+		totalSampleSizes += sampleSize;
+	}
+	return totalSampleSizes;
+}
+
 void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
 {
 	// for first sample
@@ -434,6 +493,59 @@ void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
 			m_pStszSampleCountProperty->IncrementValue();
 		}
 	}
+}
+
+u_int32_t MP4Track::GetAvgBitrate()
+{
+	if (GetDuration() == 0) {
+		return 0;
+	}
+
+	u_int64_t durationSecs =
+		MP4ConvertTime(GetDuration(), GetTimeScale(), MP4_SECS_TIME_SCALE);
+
+	if (GetDuration() % GetTimeScale() != 0) {
+		durationSecs++;
+	}
+
+	return (GetTotalOfSampleSizes() * 8) / durationSecs;
+}
+
+u_int32_t MP4Track::GetMaxBitrate()
+{
+	u_int32_t timeScale = GetTimeScale();
+	MP4SampleId numSamples = GetNumberOfSamples();
+	u_int32_t maxBytesPerSec = 0;
+	u_int32_t bytesThisSec = 0;
+	MP4Timestamp thisSec = 0;
+
+	for (MP4SampleId sid = 1; sid <= numSamples; sid++) {
+		u_int32_t sampleSize;
+		MP4Timestamp sampleTime;
+
+		sampleSize = GetSampleSize(sid);
+
+		GetSampleTimes(sid, &sampleTime, NULL);
+
+		// sample counts for current second
+		if (sampleTime < thisSec + timeScale) {
+			bytesThisSec += sampleSize;
+		} else { // sample is in a future second
+			if (bytesThisSec > maxBytesPerSec) {
+				maxBytesPerSec = bytesThisSec;
+			}
+
+			thisSec = sampleTime - (sampleTime % timeScale);
+			bytesThisSec = sampleSize;
+		}
+	}
+
+	// last second (or partial second) 
+	if (bytesThisSec > maxBytesPerSec) {
+		maxBytesPerSec = bytesThisSec;
+	}
+
+	return maxBytesPerSec * 8;
 }
 
 u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
@@ -620,7 +732,7 @@ void MP4Track::UpdateSampleTimes(MP4Duration duration)
 	if (numStts 
 	  && duration == m_pSttsSampleDeltaProperty->GetValue(numStts-1)) {
 		// increment last entry sampleCount
-		m_pSttsSampleCountProperty->IncrementValue(numStts-1);
+		m_pSttsSampleCountProperty->IncrementValue(1, numStts-1);
 
 	} else {
 		// add stts entry, sampleCount = 1, sampleDuration = duration
@@ -705,7 +817,7 @@ void MP4Track::UpdateRenderingOffsets(MP4SampleId sampleId,
 	   == m_pCttsSampleOffsetProperty->GetValue(numCtts-1)) {
 
 		// increment last entry sampleCount
-		m_pCttsSampleCountProperty->IncrementValue(numCtts-1);
+		m_pCttsSampleCountProperty->IncrementValue(1, numCtts-1);
 
 	} else {
 		// add ctts entry, sampleCount = 1, sampleOffset = renderingOffset
@@ -713,6 +825,12 @@ void MP4Track::UpdateRenderingOffsets(MP4SampleId sampleId,
 		m_pCttsSampleOffsetProperty->AddValue(renderingOffset);
 		m_pCttsCountProperty->IncrementValue();;
 	}
+}
+
+void MP4Track::SetSampleRenderingOffset(MP4SampleId sampleId,
+	 MP4Duration renderingOffset)
+{
+	// TBD
 }
 
 bool MP4Track::IsSyncSample(MP4SampleId sampleId)
@@ -730,7 +848,7 @@ bool MP4Track::IsSyncSample(MP4SampleId sampleId)
 		if (sampleId == syncSampleId) {
 			return true;
 		} 
-		if (sampleId > syncSampleId) {
+		if (sampleId < syncSampleId) {
 			break;
 		}
 	}
@@ -806,6 +924,11 @@ MP4Atom* MP4Track::AddAtom(char* parentName, char* childName)
 	pChildAtom->Generate();
 
 	return pChildAtom;
+}
+
+u_int64_t MP4Track::GetDuration()
+{
+	return m_pMediaDurationProperty->GetValue();
 }
 
 u_int32_t MP4Track::GetTimeScale()

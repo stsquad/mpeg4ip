@@ -18,7 +18,7 @@ CPPFILES = BCasterTracker.cpp BroadcastLog.cpp NoRepeat.cpp\
            playlist_lists.cpp playlist_parsers.cpp PlaylistPicker.cpp\
            playlist_QTRTPBroadcastFile.cpp playlist_SDPGen.cpp\
            playlist_SimpleParse.cpp playlist_utils.cpp\
-           PLBroadcastDef.cpp
+           PLBroadcastDef.cpp BroadcasterSession.cpp
 
 HFILES = BCasterTracker.h BroadcastLog.h NoRepeat.h PickerFromFile.h\
          playlist_broadcaster.h playlist_elements.h playlist_lists.h\
@@ -26,7 +26,7 @@ HFILES = BCasterTracker.h BroadcastLog.h NoRepeat.h PickerFromFile.h\
          playlist_QTRTPBroadcastFile.h playlist_SDPGen.h\
          playlist_SimpleParse.h playlist_utils.h PLBroadcastDef.h\
          playlist_array.h SimplePlayListElement.h StSmartArrayPointer.h\
-         TrackingElement.h tailor.h
+         TrackingElement.h tailor.h BroadcasterSession.h
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble m.template\
             h.template
@@ -38,7 +38,7 @@ MAKEFILE = tool.make
 NEXTSTEP_INSTALLDIR = /usr/local/bin
 WINDOWS_INSTALLDIR = /Library/Executables
 PDO_UNIX_INSTALLDIR = /bin
-LIBS = -lAPICommonCode -lTestQTFileLib
+LIBS = -lAPICommonCode -lRTSPClientLib -lTestQTFileLib
 DEBUG_LIBS = $(LIBS)
 PROF_LIBS = $(LIBS)
 

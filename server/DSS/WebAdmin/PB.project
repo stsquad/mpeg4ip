@@ -6,13 +6,14 @@
             Makefile.preamble, 
             Makefile, 
             Makefile.postamble, 
-            QTSSAdminServer, 
-            StartupParameters.plist
+            streamingadminserver.pem, 
+            streamingadminserver_autostart.conf, 
+            QTSSAdminUrl.bin
         ); 
         PRECOMPILED_HEADERS = (); 
         PROJECT_HEADERS = (); 
         PUBLIC_HEADERS = (); 
-        SUBPROJECTS = (src, WebAdminHtml); 
+        SUBPROJECTS = (src, StartupItems.bproj, WebAdminHtml, NetSSLeay); 
     }; 
     LANGUAGE = English; 
     MAKEFILEDIR = "$(MAKEFILEPATH)/pb_makefiles"; 

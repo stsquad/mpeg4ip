@@ -46,12 +46,10 @@
 **/
 
 void get_mp4picture (unsigned char *bmp, int render_flag); 
-void initdecoder ();
-void closedecoder ();
 
 /***/
 
-void initdecoder ()
+void initdecoder (void)
 {
   int i, j, cc, size;
 
@@ -185,7 +183,7 @@ void initdecoder ()
 
 /***/
 
-void closedecoder ()
+void closedecoder (void)
 {
 	int cc;
 

@@ -51,5 +51,5 @@
 /*** *** ***/
 
 extern void get_mp4picture (unsigned char *bmp, int render_flag);
-extern void initdecoder ();
-extern void closedecoder ();
+extern void initdecoder (void);
+extern void closedecoder (void);

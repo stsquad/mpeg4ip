@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		ReflectorSession.cpp
@@ -44,15 +44,45 @@
 
 #include <errno.h>
 
+
+#ifndef __Win32__
+	#include <unistd.h>
+#endif
+
 #if DEBUG
 #define REFLECTOR_SESSION_DEBUGGING 0
 #else
 #define REFLECTOR_SESSION_DEBUGGING 0
 #endif
 
+#pragma mark _FILE_DELETER_
+
+FileDeleter::FileDeleter(StrPtrLen* inSDPPath)
+{
+	Assert (inSDPPath);
+	fFilePath.Len = inSDPPath->Len;
+	fFilePath.Ptr = NEW char[inSDPPath->Len + 1];
+	Assert (fFilePath.Ptr);
+	memcpy(fFilePath.Ptr, inSDPPath->Ptr,inSDPPath->Len);
+	fFilePath.Ptr[inSDPPath->Len] = 0;
+}
+
+
+FileDeleter::~FileDeleter()
+{
+	//printf("FileDeleter::~FileDeleter delete = %s \n",fFilePath.Ptr);
+	::unlink(fFilePath.Ptr);  
+	delete fFilePath.Ptr;
+	fFilePath.Ptr = NULL;
+	fFilePath.Len = 0;
+}
+
+
 #pragma mark _REFLECTOR_SESSION_
 
 static OSRefTable* 		sStreamMap = NULL;
+
+
 
 void ReflectorSession::Initialize()
 {
@@ -74,7 +104,7 @@ ReflectorSession::ReflectorSession(StrPtrLen* inSourceID, SourceInfo* inInfo)
 		fSourceID.Ptr = NEW char[inSourceID->Len + 1];
 		::memcpy(fSourceID.Ptr, inSourceID->Ptr, inSourceID->Len);
 		fSourceID.Len = inSourceID->Len;
-	fRef.Set(fSourceID, this);
+		fRef.Set(fSourceID, this);
 	}
 }
 
@@ -91,33 +121,54 @@ ReflectorSession::~ReflectorSession()
 	{
 		if (fStreamArray[x] == NULL)
 			continue;
-			
+		
+		UInt32 refCount = fStreamArray[x]->GetRef()->GetRefCount();
+		Bool16 unregisterNow = (refCount == 1) ? true : false;
+		
+		//printf("ReflectorSession::~ReflectorSession stream index=%lu refcount=%lu\n",x,refCount);
 		//decrement the ref count
-		if (fStreamArray[x]->GetRef()->GetRefCount() > 0) 	// Refcount may be 0 if there was
-															// some error setting up the stream
-			sStreamMap->Release(fStreamArray[x]->GetRef());
+		
+		if (refCount > 0) // Refcount may be 0 if there was some error setting up the stream
+			sStreamMap->Release(fStreamArray[x]->GetRef()); // decrement the refcount
 			
-		if (fStreamArray[x]->GetRef()->GetRefCount() == 0)
-		{
-			// Delete this stream if the refcount has dropped to 0
-			sStreamMap->UnRegister(fStreamArray[x]->GetRef());
+		refCount = fStreamArray[x]->GetRef()->GetRefCount();
+		if (refCount == 0)
+		{	// Delete this stream if the refcount has dropped to 0
+			if (unregisterNow)
+				sStreamMap->UnRegister(fStreamArray[x]->GetRef()); // Refcount may be 0 if there was some error setting up the stream
+			//printf("delete stream index=%lu refcount=%lu\n",x,refCount);
 			delete fStreamArray[x];
+			fStreamArray[x] = NULL;
 		}	
 	}
 	
 	// We own this object when it is given to us, so delete it now
+	delete [] fStreamArray;
 	delete fSourceInfo;
+	fLocalSDP.Delete();
+	fSourceID.Delete();
 }
 
-
-QTSS_Error ReflectorSession::SetupReflectorSession(SourceInfo* inInfo, QTSS_RTSPRequestObject inRequest, UInt32 inFlags)
-{
+QTSS_Error ReflectorSession::SetupReflectorSession(SourceInfo* inInfo, QTSS_StandardRTSP_Params* inParams, UInt32 inFlags, Bool16 filterState, UInt32 filterTimeout)
+{	
+	if (inInfo == NULL) // use the current SourceInfo
+		inInfo = fSourceInfo;
+		
 	// Store a reference to this sourceInfo permanently
 	Assert((fSourceInfo == NULL) || (inInfo == fSourceInfo));
 	fSourceInfo = inInfo;
+	
+	fLocalSDP.Delete();// this must be set to the new SDP.
 	fLocalSDP.Ptr = inInfo->GetLocalSDP(&fLocalSDP.Len);
 
 	// Allocate all our ReflectorStreams, using the SourceInfo
+	
+	if (fStreamArray != NULL)
+	{	for (UInt32 x = 0; x < fSourceInfo->GetNumStreams(); x++)
+			if (fSourceInfo->GetStreamInfo(x)->fPort > 0 && fStreamArray[x] != NULL)
+				sStreamMap->Release(fStreamArray[x]->GetRef()); 
+	}
+	delete fStreamArray; // keep the array list synchronized with the source info.
 	fStreamArray = NEW ReflectorStream*[fSourceInfo->GetNumStreams()];
 	::memset(fStreamArray, 0, fSourceInfo->GetNumStreams() * sizeof(ReflectorStream*));
 	
@@ -132,27 +183,44 @@ QTSS_Error ReflectorSession::SetupReflectorSession(SourceInfo* inInfo, QTSS_RTSP
 		OSMutexLocker locker(sStreamMap->GetMutex());
 		OSRef* theStreamRef = NULL;
 		
+		if (false && (inFlags & kIsPushSession)) // always setup our own ports when pushed.
+			fSourceInfo->GetStreamInfo(x)->fPort = 0;
+		else
 		// If the port # of this stream is 0, that means "any port".
 		// We don't know what the dest port of this stream is yet (this
 		// can happen while acting as an RTSP client). Never share these streams.
-		// This can also happen if the incoming data is interleaved in the TCP connection
+		// This can also happen if the incoming data is interleaved in the TCP connection or a dynamic UDP port is requested
 		if (fSourceInfo->GetStreamInfo(x)->fPort > 0)
-			theStreamRef = sStreamMap->Resolve(&theStreamIDPtr);
+		{	theStreamRef = sStreamMap->Resolve(&theStreamIDPtr);
+			#if REFLECTOR_SESSION_DEBUGGING
+			if (theStreamRef != NULL)
+			{
+				ReflectorStream* theRef = (ReflectorStream*)theStreamRef->GetObject();
+				UInt32 refCount = theRef->GetRef()->GetRefCount();
+				printf("stream has port stream index=%lu refcount=%lu\n",x,refCount);
+			}
+			#endif
+		}
 
 		if (theStreamRef == NULL)
 		{
 			fStreamArray[x] = NEW ReflectorStream(fSourceInfo->GetStreamInfo(x));
-
 			// Obviously, we may encounter an error binding the reflector sockets.
 			// If that happens, we'll just abort here, which will leave the ReflectorStream
 			// array in an inconsistent state, so we need to make sure in our cleanup
 			// code to check for NULL.
-			QTSS_Error theError = fStreamArray[x]->BindSockets(inRequest);
+			QTSS_Error theError = fStreamArray[x]->BindSockets(inParams,inFlags, filterState, filterTimeout);
 			if (theError != QTSS_NoErr)
+			{	
+				delete fStreamArray[x];
+				fStreamArray[x] = NULL;
 				return theError;
+			}
 				
 			// If the port was 0, update it to reflect what the actual RTP port is.
 			fSourceInfo->GetStreamInfo(x)->fPort = fStreamArray[x]->GetStreamInfo()->fPort;
+			//printf("ReflectorSession::SetupReflectorSession fSourceInfo->GetStreamInfo(x)->fPort= %u\n",fSourceInfo->GetStreamInfo(x)->fPort);
+			
 			ReflectorStream::GenerateSourceID(fSourceInfo->GetStreamInfo(x), &theStreamID[0]);
 
 			theError = sStreamMap->Register(fStreamArray[x]->GetRef());
@@ -161,21 +229,38 @@ QTSS_Error ReflectorSession::SetupReflectorSession(SourceInfo* inInfo, QTSS_RTSP
 			//unless we do this, the refcount won't increment (and we'll delete the session prematurely
 			OSRef* debug = sStreamMap->Resolve(&theStreamIDPtr);
 			Assert(debug == fStreamArray[x]->GetRef());
+
+			//UInt32 refCount = fStreamArray[x]->GetRef()->GetRefCount();
+			//printf("stream index=%lu refcount=%lu\n",x,refCount);
+		
 		}
-		else
-			fStreamArray[x] = (ReflectorStream*)theStreamRef->GetObject();
+		else	
+			fStreamArray[x] = (ReflectorStream*)theStreamRef->GetObject();   
+
 	}
 	
-#if REFLECTOR_SESSION_DEBUGGING > 3
-	printf("Client spacing: %ld\n", inBucketDelayInMsec);
-#endif
-
+	
 	if (inFlags & kMarkSetup)
 		fIsSetup = true;
 
 	return QTSS_NoErr;
 }
 
+void ReflectorSession::AddBroadcasterClientSession(QTSS_StandardRTSP_Params* inParams)
+{
+	if (NULL == fStreamArray || NULL == inParams) 
+		return;
+		
+	for (UInt32 x = 0; x < fSourceInfo->GetNumStreams(); x++)
+	{
+		if (fStreamArray[x] != NULL)
+		{	//printf("AddBroadcasterSession=%lu\n",inParams->inClientSession);
+			((ReflectorSocket*)fStreamArray[x]->GetSocketPair()->GetSocketA())->AddBroadcasterSession(inParams->inClientSession);
+			((ReflectorSocket*)fStreamArray[x]->GetSocketPair()->GetSocketB())->AddBroadcasterSession(inParams->inClientSession);
+		}
+	}
+	
+}
 void	ReflectorSession::FormatHTML(StrPtrLen* inURL)
 {
 	// Begin writing our source description HTML (used by the relay)
@@ -260,6 +345,21 @@ void 	ReflectorSession::RemoveOutput(ReflectorOutput* inOutput)
 	for (UInt32 y = 0; y < fSourceInfo->GetNumStreams(); y++)
 		fStreamArray[y]->RemoveOutput(inOutput);
 }
+
+void 	ReflectorSession::TearDownAllOutputs()
+{
+	for (UInt32 y = 0; y < fSourceInfo->GetNumStreams(); y++)
+		fStreamArray[y]->TearDownAllOutputs();
+}
+
+void 	ReflectorSession::RemoveSessionFromOutput(QTSS_ClientSessionObject inSession)
+{
+	for (UInt32 x = 0; x < fSourceInfo->GetNumStreams(); x++)
+	{	((ReflectorSocket*)fStreamArray[x]->GetSocketPair()->GetSocketA())->RemoveBroadcasterSession(inSession);
+		((ReflectorSocket*)fStreamArray[x]->GetSocketPair()->GetSocketB())->RemoveBroadcasterSession(inSession);
+	}
+}
+
 
 UInt32	ReflectorSession::GetBitRate()
 {

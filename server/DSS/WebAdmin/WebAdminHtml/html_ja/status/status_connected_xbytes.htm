@@ -1,0 +1,136 @@
+<HTML>
+<HEAD>
+   <META HTTP-EQUIV="content-type" CONTENT="text/html;charset=Shift_JIS">
+   <TITLE>Streaming Server Admin:<%%ECHODATA /server/qtssSvrDefaultDNSName%%></TITLE>
+   <SCRIPT SRC="/javascripts/status_connected.js"></SCRIPT>
+</HEAD>
+
+<%%DEFINEINDEXHASH sessionIndices qtssCliRTSPSessRemoteAddrStr 
+								qtssCliSesCurrentBitRate 
+								qtssCliSesRTPBytesSent
+								qtssCliSesPacketLossPercent 
+								qtssCliSesTimeConnectedinMsec 
+								qtssCliSesPresentationURL
+								QTSSReflectorModuleBroadcasterSession%%>
+<%%GETALLRECORDS sessions sessionIndices /server/qtssSvrClientSessions/*/%%>
+<%%FILTERRECORDS clientSessions sessions 7%%>
+<%%SORTRECORDSWITHINPUT sortedSessions clientSessions 3 num%%>
+<!--Localize - ' bps' ' Kbps' are bits/sec and kilobits/sec -->
+<%%MODIFYCOLUMNWITHCONDS modSessions sortedSessions 2 0 -1 '<1024' '' ' bps' '/1024' ' Kbps'%%>
+<!--Localize - ' Bytes' ' KBytes' are bytes and kilobytes -->
+<%%MODIFYCOLUMNWITHCONDS modSessions modSessions 3 0 -1 '<1024' '' ' バイト' '/1024' ' K バイト'%%>
+<%%CONVERTCOLUMNTOSTRTIME modSessions modSessions 5 0 -1%%> 
+ 
+<BODY BGCOLOR="#FFFFFF" onLoad="initAndStartTimer()">
+<FORM NAME="statusConnectedXbytes" METHOD="GET" ACTION="parsewithinput.cgi">
+<INPUT TYPE="hidden" NAME="timeoutId" VALUE="0">
+<INPUT TYPE="hidden" NAME="filename" VALUE="status/status_connected_xbytes.htm">
+<CENTER><BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="85%" HEIGHT=32>
+   <TR>
+      <TD WIDTH=455>
+         <P><FONT SIZE="+3" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka" COLOR="#B7BED2">接続中のユーザ</FONT></P>
+      </TD>
+      <TD ALIGN=center WIDTH=100>
+         <P></P>
+      </TD>
+   </TR>
+</TABLE>
+ <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="85%">
+   <TR>
+      <TD VALIGN=top>
+         <P ALIGN=right><TABLE BORDER=0 CELLSPACING=4 CELLPADDING=2 WIDTH="60%">
+            <TR>
+               <TD>
+                  <P ALIGN=right><FONT FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka"><B>表示する数：</B></FONT></P>
+               </TD>
+               <TD><!--Localize - '20' '50' '100' '200' 'All Entries' are the number of entries to display -->
+                  <P><FONT SIZE="+1"><%%CREATESELECTFROMINPUTWITHFUNC numEntries updateForm '20' '50' '100' '200' 'すべて'%%></FONT></P>
+               </TD>
+            </TR>
+            <TR>
+               <TD>
+                  <P ALIGN=right><FONT FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka"><B>このページのアップデートの間隔：</B></FONT></P>
+               </TD>
+               <TD><!--Localize - '10 seconds' '1 minute' '5 minutes' '30 minutes' '1 hour' 'Never' are the time intervals for updating the page -->
+                  <P><FONT SIZE="+1"><%%CREATESELECTFROMINPUTWITHFUNC refreshInterval startTimer   
+          								'10 秒' '1 分' '5 分' '30 分' '1 時間' 'なし'%%></FONT></P>
+               </TD>
+            </TR>
+         </TABLE>
+          <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="100%">
+            <TR>
+               <TD VALIGN=top>
+                  <P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="100%" HEIGHT=24>
+                     <TR>
+                        <TD ALIGN=right>
+                           <P ALIGN=left><FONT FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka">特定の列を基準に並べ替えるには、列のラベルをクリックしてください：</FONT></P>
+                        </TD>
+                     </TR>
+                  </TABLE>
+                   <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=4 WIDTH="100%" HEIGHT=10>
+                     <TR>
+                        <TD ALIGN=right NOWRAP BGCOLOR="#8C94AD">
+                           <P ALIGN=left><FONT FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka" COLOR="#FFFFFF"><B>接続中のユーザ</B></FONT></P>
+                        </TD>
+                        <TD ALIGN=right NOWRAP BGCOLOR="#8C94AD">
+                           <CENTER><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>
+                              <TR>
+                                 <TD NOWRAP>
+                                    <P ALIGN=right><FONT FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka"><B>並べ替えの順序：</B></FONT></P>
+                                 </TD>
+                                 <TD NOWRAP><!--Localize - 'Ascending' 'Descending' are the choices for the order in which the entries can be sorted -->
+                                    <P><FONT SIZE="+1"><%%CREATESELECTFROMINPUTWITHFUNC sortOrder updateForm '昇順' '降順'%%></FONT></P>
+                                 </TD>
+                              </TR>
+                           </TABLE>
+                           </CENTER>
+                        </TD>
+                        <TD ALIGN=right NOWRAP WIDTH=210 BGCOLOR="#8C94AD">
+                        <%%GETVALUE curTime /server/qtssSvrCurrentTimeMilliseconds%%>
+                           <P><FONT FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka" COLOR="#FFFFFF"><%%CONVERTTOLOCALTIME curTime%%></FONT></P>
+                        </TD>
+                     </TR>
+                  </TABLE>
+                   <TABLE BORDER=0 CELLSPACING=1 CELLPADDING=4 WIDTH="100%">
+                     <TR>
+                        <TD NOWRAP BGCOLOR="#C6C6D6">
+                           <CENTER><A HREF="javascript:redirectPage('status/status_connected_xip.htm')" TARGET="_self"><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka" COLOR="#0000FF">IP アドレス</FONT></CENTER>
+                        </TD>
+                        <TD NOWRAP BGCOLOR="#C6C6D6">
+                           <CENTER><A HREF="javascript:redirectPage('status/status_connected_xbit.htm')" TARGET="_self"><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka" COLOR="#0000FF">ビットレート</FONT></A></CENTER>
+                        </TD>
+                        <TD BGCOLOR="#A0A0B0">
+                           <CENTER><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka" COLOR="#333333">送信バイト数</FONT></A></CENTER>
+                        </TD>
+                        <TD BGCOLOR="#C6C6D6">
+                           <CENTER><A HREF="javascript:redirectPage('status/status_connected_xloss.htm')" TARGET="_self"><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka" COLOR="#0000FF">パケットの損失（%）</FONT></A></CENTER>
+                        </TD>
+                        <TD NOWRAP BGCOLOR="#C6C6D6">
+                           <CENTER><A HREF="javascript:redirectPage('status/status_connected_xtime.htm')" TARGET="_self"><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka" COLOR="#0000FF">接続時間</FONT></A></CENTER>
+                        </TD>
+                        <TD NOWRAP BGCOLOR="#C6C6D6">
+                           <CENTER><A HREF="javascript:redirectPage('status/status_connected_xmovie.htm')" TARGET="_self"><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka" COLOR="#0000FF"><B>接続先</B></FONT></A></CENTER>
+                        </TD>
+                     </TR>
+<%%FORMATDDARRAYWITHINPUT modSessions 0 '<TR>' '</TR>' 
+ 							   1 '<TD NO WRAP BGCOLOR="#EFEFF7"><CENTER><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka">' '</FONT></CENTER></TD>' 
+ 							   2 '<TD NO WRAP BGCOLOR="#EFEFF7"><CENTER><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka">' ' </FONT></CENTER></TD>' 
+ 							   3 '<TD NO WRAP BGCOLOR="#D6D6E5"><CENTER><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka">' '</FONT></CENTER></TD>' 
+ 							   4 '<TD NO WRAP BGCOLOR="#EFEFF7"><CENTER><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka">' '</FONT></CENTER></TD>' 
+ 							   5 '<TD NO WRAP BGCOLOR="#EFEFF7"><CENTER><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka">' '</FONT></CENTER></TD>' 
+ 							   6 '<TD NO WRAP BGCOLOR="#EFEFF7"><CENTER><FONT SIZE="-1" FACE="ヒラギノ角ゴ Pro W3,MS Pゴシック,Osaka">' '</FONT></CENTER></TD>'%%>
+                  </TABLE>
+                  </P>
+               </TD>
+            </TR>
+         </TABLE>
+         </P>
+      </TD>
+   </TR>
+</TABLE>
+</CENTER>
+</FORM>
+</BODY>
+</HTML>
+

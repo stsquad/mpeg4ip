@@ -45,6 +45,7 @@
 #include "memory.h"
 #include "inet_pton.h"
 #include "inet_ntop.h"
+#include "vsnprintf.h"
 #include "net_udp.h"
 
 #ifdef NEED_ADDRINFO_H
@@ -53,6 +54,10 @@
 
 #define IPv4	4
 #define IPv6	6
+
+#ifdef WIN2K_IPV6
+const struct	in6_addr	in6addr_any = {IN6ADDR_ANY_INIT};
+#endif
 
 /* This is pretty nasty but it's the simplest way to get round */
 /* the Detexis bug that means their MUSICA IPv6 stack uses     */
@@ -117,13 +122,17 @@ struct _socket_udp {
 /*****************************************************************************/
 
 static void
-socket_error(const char *msg)
+socket_error(const char *msg, ...)
 {
+	char		buffer[255];
+	uint32_t	blen = sizeof(buffer) / sizeof(buffer[0]);
+	va_list		ap;
+
 #ifdef WIN32
 #define WSERR(x) {#x,x}
 	struct wse {
 		char  errname[20];
-		int	my_errno;
+		int my_errno;
 	};
 	struct wse ws_errs[] = {
 		WSERR(WSANOTINITIALISED), WSERR(WSAENETDOWN),     WSERR(WSAEACCES),
@@ -141,9 +150,15 @@ socket_error(const char *msg)
 	while(ws_errs[i].my_errno && ws_errs[i].my_errno != e) {
 		i++;
 	}
+	va_start(ap, msg);
+	_vsnprintf(buffer, blen, msg, ap);
+	va_end(ap);
 	printf("ERROR: %s, (%d - %s)\n", msg, e, ws_errs[i].errname);
 #else
-	perror(msg);
+	va_start(ap, msg);
+	vsnprintf(buffer, blen, msg, ap);
+	va_end(ap);
+	perror(buffer);
 #endif
 }
 
@@ -211,6 +226,7 @@ int inet_aton(const char *name, struct in_addr *addr)
 #endif
 
 
+
 /*****************************************************************************/
 /* IPv4 specific functions...                                                */
 /*****************************************************************************/
@@ -218,10 +234,18 @@ int inet_aton(const char *name, struct in_addr *addr)
 static int udp_addr_valid4(const char *dst)
 {
         struct in_addr addr4;
-	if (inet_pton(AF_INET, dst, &addr4) || 
-            gethostbyname(dst) != NULL) {
-                return TRUE;
-        }
+	struct hostent *h;
+
+	if (inet_pton(AF_INET, dst, &addr4)) {
+		return TRUE;
+	} 
+
+	h = gethostbyname(dst);
+	if (h != NULL) {
+		return TRUE;
+	}
+	socket_error("Can't resolve IP address for %s", dst);
+
         return FALSE;
 }
 
@@ -242,6 +266,7 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	if (inet_pton(AF_INET, addr, &s->addr4) != 1) {
 		struct hostent *h = gethostbyname(addr);
 		if (h == NULL) {
+			socket_error("Can't resolve IP address for %s", addr);
                         free(s);
 			return NULL;
 		}
@@ -263,11 +288,11 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	}
 #ifdef WIN32
 	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_RCVBUF, (char *)&recv_buf_size, sizeof(int)) != 0) {
-		socket_error("setsockopt SO_RCVBUF");
-		return NULL;
+	  socket_error("setsockopt SO_RCVBUF");
+	  return NULL;
 	}
 #endif
-
+	
 	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
 		socket_error("setsockopt SO_REUSEADDR");
 		return NULL;
@@ -327,6 +352,7 @@ static void udp_exit4(socket_udp *s)
 			socket_error("setsockopt IP_DROP_MEMBERSHIP");
 			abort();
 		}
+		debug_msg("Dropped membership of multicast group\n");
 	}
 	close(s->fd);
         free(s->addr);
@@ -387,7 +413,7 @@ static const char *udp_host_addr4(void)
 	}
 	hent = gethostbyname(hname);
 	if (hent == NULL) {
-		debug_msg("Can't get host IP address: %s", strerror(errno));
+		socket_error("Can't resolve IP address for %s", hname);
 		return NULL;
 	}
 	assert(hent->h_addrtype == AF_INET);
@@ -466,6 +492,11 @@ static socket_udp *udp_init6(const char *addr, const char *iface, uint16_t rx_po
 #ifdef HAVE_SIN6_LEN
 	s_in.sin6_len    = sizeof(s_in);
 #endif
+	s_in.sin6_addr = in6addr_any;
+	if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
+		socket_error("bind");
+		return NULL;
+	}
 	
 	if (IN6_IS_ADDR_MULTICAST(&(s->addr6))) {
 		unsigned int      loop = 1;
@@ -477,15 +508,6 @@ static socket_udp *udp_init6(const char *addr, const char *iface, uint16_t rx_po
 		imr.ipv6mr_multiaddr = s->addr6;
 		imr.ipv6mr_interface = 0;
 #endif
-		memcpy(s_in.sin6_addr.s6_addr, &s->addr6, sizeof(struct in6_addr));
-		if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
-			/* bind to group address failed, try generic address. */
-			s_in.sin6_addr = in6addr_any;
-			if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
-				socket_error("bind");
-				return NULL;
-			}
-		}
 		
 		if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ipv6_mreq)) != 0) {
 			socket_error("setsockopt IPV6_ADD_MEMBERSHIP");
@@ -498,12 +520,6 @@ static socket_udp *udp_init6(const char *addr, const char *iface, uint16_t rx_po
 		}
 		if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &ttl, sizeof(ttl)) != 0) {
 			socket_error("setsockopt IPV6_MULTICAST_HOPS");
-			return NULL;
-		}
-	} else /* Unicast */ {
-		s_in.sin6_addr = in6addr_any;
-		if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
-			socket_error("bind");
 			return NULL;
 		}
 	}
@@ -616,22 +632,31 @@ static const char *udp_host_addr6(socket_udp *s)
 {
 #ifdef HAVE_IPv6
 	static char		 hname[MAXHOSTNAMELEN];
-	int 			 gai_err;
+	int 			 gai_err, newsock;
 	struct addrinfo 	 hints, *ai;
-	struct sockaddr_in6 	 local;
+	struct sockaddr_in6 	 local, addr6;
 	int len = sizeof(local), result = 0;
 
-	memset((char *)&local, 0, len);
-	local.sin6_family = AF_INET6;
+	newsock=socket(AF_INET6, SOCK_DGRAM,0);
+    memset ((char *)&addr6, 0, len);
+    addr6.sin6_family = AF_INET6;
 #ifdef HAVE_SIN6_LEN
-	local.sin6_len    = len;
+    addr6.sin6_len    = len;
 #endif
+    bind (newsock, (struct sockaddr *) &addr6, len);
+    addr6.sin6_addr = s->addr6;
+    addr6.sin6_port = htons (s->rx_port);
+    connect (newsock, (struct sockaddr *) &addr6, len);
 
-	if ((result = getsockname(s->fd,(struct sockaddr *)&local, &len)) < 0){
+    memset ((char *)&local, 0, len);
+	if ((result = getsockname(newsock,(struct sockaddr *)&local, &len)) < 0){
 		local.sin6_addr = in6addr_any;
 		local.sin6_port = 0;
 		debug_msg("getsockname failed\n");
 	}
+
+	close (newsock);
+
 	if (IN6_IS_ADDR_UNSPECIFIED(&local.sin6_addr) || IN6_IS_ADDR_MULTICAST(&local.sin6_addr)) {
 		if (gethostname(hname, MAXHOSTNAMELEN) != 0) {
 			debug_msg("gethostname failed\n");
@@ -642,7 +667,6 @@ static const char *udp_host_addr6(socket_udp *s)
 		hints.ai_flags     = 0;
 		hints.ai_family    = AF_INET6;
 		hints.ai_socktype  = SOCK_DGRAM;
-		hints.ai_protocol  = IPPROTO_IPV6;
 		hints.ai_addrlen   = 0;
 		hints.ai_canonname = NULL;
 		hints.ai_addr      = NULL;
@@ -675,16 +699,49 @@ static const char *udp_host_addr6(socket_udp *s)
 /* Generic functions, which call the appropriate protocol specific routines. */
 /*****************************************************************************/
 
+/**
+ * udp_addr_valid:
+ * @addr: string representation of IPv4 or IPv6 network address.
+ *
+ * Returns TRUE if @addr is valid, FALSE otherwise.
+ **/
+
 int udp_addr_valid(const char *addr)
 {
         return udp_addr_valid4(addr) | udp_addr_valid6(addr);
 }
 
+/**
+ * udp_init:
+ * @addr: character string containing an IPv4 or IPv6 network address.
+ * @rx_port: receive port.
+ * @tx_port: transmit port.
+ * @ttl: time-to-live value for transmitted packets.
+ *
+ * Creates a session for sending and receiving UDP datagrams over IP
+ * networks. 
+ *
+ * Returns: a pointer to a valid socket_udp structure on success, NULL otherwise.
+ **/
 socket_udp *udp_init(const char *addr, uint16_t rx_port, uint16_t tx_port, int ttl)
 {
 	return udp_init_if(addr, NULL, rx_port, tx_port, ttl);
 }
 
+/**
+ * udp_init_if:
+ * @addr: character string containing an IPv4 or IPv6 network address.
+ * @iface: character string containing an interface name.
+ * @rx_port: receive port.
+ * @tx_port: transmit port.
+ * @ttl: time-to-live value for transmitted packets.
+ *
+ * Creates a session for sending and receiving UDP datagrams over IP
+ * networks.  The session uses @iface as the interface to send and
+ * receive datagrams on.
+ * 
+ * Return value: a pointer to a socket_udp structure on success, NULL otherwise.
+ **/
 socket_udp *udp_init_if(const char *addr, const char *iface, uint16_t rx_port, uint16_t tx_port, int ttl)
 {
 	socket_udp *res;
@@ -697,6 +754,13 @@ socket_udp *udp_init_if(const char *addr, const char *iface, uint16_t rx_port, u
 	return res;
 }
 
+/**
+ * udp_exit:
+ * @s: UDP session to be terminated.
+ *
+ * Closes UDP session.
+ * 
+ **/
 void udp_exit(socket_udp *s)
 {
     switch(s->mode) {
@@ -706,12 +770,22 @@ void udp_exit(socket_udp *s)
     }
 }
 
+/**
+ * udp_send:
+ * @s: UDP session.
+ * @buffer: pointer to buffer to be transmitted.
+ * @buflen: length of @buffer.
+ * 
+ * Transmits a UDP datagram containing data from @buffer.
+ * 
+ * Return value: 0 on success, -1 on failure.
+ **/
 int udp_send(socket_udp *s, char *buffer, int buflen)
 {
 	switch (s->mode) {
 	case IPv4 : return udp_send4(s, buffer, buflen);
 	case IPv6 : return udp_send6(s, buffer, buflen);
-	default   : abort();
+	default   : abort(); /* Yuk! */
 	}
 	return -1;
 }
@@ -728,6 +802,16 @@ int udp_send_iov(socket_udp *s, struct iovec *iov, int count)
 }
 #endif
 
+/**
+ * udp_recv:
+ * @s: UDP session.
+ * @buffer: buffer to read data into.
+ * @buflen: length of @buffer.
+ * 
+ * Reads from datagram queue associated with UDP session.
+ *
+ * Return value: number of bytes read, returns 0 if no data is available.
+ **/
 int udp_recv(socket_udp *s, char *buffer, int buflen)
 {
 	/* Reads data into the buffer, returning the number of bytes read.   */
@@ -752,12 +836,24 @@ int udp_recv(socket_udp *s, char *buffer, int buflen)
 static fd_set	rfd;
 static fd_t	max_fd;
 
+/**
+ * udp_fd_zero:
+ * 
+ * Clears file descriptor from set associated with UDP sessions (see select(2)).
+ * 
+ **/
 void udp_fd_zero(void)
 {
 	FD_ZERO(&rfd);
 	max_fd = 0;
 }
 
+/**
+ * udp_fd_set:
+ * @s: UDP session.
+ * 
+ * Adds file descriptor associated of @s to set associated with UDP sessions.
+ **/
 void udp_fd_set(socket_udp *s)
 {
 	FD_SET(s->fd, &rfd);
@@ -766,26 +862,57 @@ void udp_fd_set(socket_udp *s)
 	}
 }
 
+/**
+ * udp_fd_isset:
+ * @s: UDP session.
+ * 
+ * Checks if file descriptor associated with UDP session is ready for
+ * reading.  This function should be called after udp_select().
+ *
+ * Returns: non-zero if set, zero otherwise.
+ **/
 int udp_fd_isset(socket_udp *s)
 {
 	return FD_ISSET(s->fd, &rfd);
 }
 
+/**
+ * udp_select:
+ * @timeout: maximum period to wait for data to arrive.
+ * 
+ * Waits for data to arrive for UDP sessions.
+ * 
+ * Return value: number of UDP sessions ready for reading.
+ **/
 int udp_select(struct timeval *timeout)
 {
 	return select(max_fd + 1, &rfd, NULL, NULL, timeout);
 }
 
+/**
+ * udp_host_addr:
+ * @s: UDP session.
+ * 
+ * Return value: character string containing network address
+ * associated with session @s.
+ **/
 const char *udp_host_addr(socket_udp *s)
 {
-	switch (s->mode) {
-	case IPv4 : return udp_host_addr4();
-	case IPv6 : return udp_host_addr6(s);
-	default   : abort();
-	}
-	return NULL;
+  if (s && s->mode == IPv6) {
+    return udp_host_addr6(s);
+  } 
+  return udp_host_addr4();
 }
 
+/**
+ * udp_fd:
+ * @s: UDP session.
+ * 
+ * This function allows applications to apply their own socketopt()'s
+ * and ioctl()'s to the UDP session.
+ * 
+ * Return value: file descriptor of socket used by session @s.
+ **/
 int udp_fd(socket_udp *s)
 {
 	if (s && s->fd > 0) {

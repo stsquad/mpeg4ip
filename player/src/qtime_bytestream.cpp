@@ -24,9 +24,8 @@
 //#define DEBUG_QTIME_AUDIO_FRAME 1
 
 #include "systems.h"
-#include "player_session.h"
-#include "player_media.h"
 #include "qtime_bytestream.h"
+#include "player_util.h"
 
 /**************************************************************************
  * Quicktime stream base class functions
@@ -231,6 +230,12 @@ uint64_t CQTVideoByteStream::start_next_frame (void)
   return (ret);
 }
 
+int CQTVideoByteStream::skip_next_frame (uint64_t *ptr, int *hasSync)
+{
+  *hasSync = 0;
+  *ptr = start_next_frame();
+  return 1;
+}
 /*
  * read_frame for video - this will try to read the next frame - it
  * tries to be smart about reading it 1 time if we've already read it

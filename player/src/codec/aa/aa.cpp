@@ -19,8 +19,10 @@
  *              Bill May        wmay@cisco.com
  */
 #include "aa.h"
+#include "our_bytestream.h"
 #include "mpeg4_audio_config.h"
 #include "player_sdp.h"
+#include "player_util.h"
 #define DEBUG_SYNC 2
 /*
  * C interfaces for faac callbacks

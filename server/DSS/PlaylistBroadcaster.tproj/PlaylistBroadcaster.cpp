@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 /*
@@ -51,7 +51,7 @@
 
 #ifndef __Win32__
 #ifndef __MACOS__
-	#ifdef __solaris__
+	#if defined (__solaris__) || defined (__osf__)
 		#include "daemon.h"
 	#else
 		#ifndef __FreeBSD__
@@ -69,8 +69,12 @@
 
 #include "OSHeaders.h"
 #include "OS.h"
+#include "OSMemory.h"
 #include "SocketUtils.h"
 #include "Socket.h"
+#include "Task.h"
+#include "TimeoutTask.h"
+#include "BroadcasterSession.h"
 #include "OSArrayObjectDeleter.h"
 #include "PickerFromFile.h"
 #include "PLBroadcastDef.h"
@@ -106,11 +110,9 @@ static const char* GetMovieFileErrString( int err );
 static void RegisterEventHandlers();
 static void ShowPlaylistStatus();
 static void StopABroadcast( const char* arg );
-static bool DoSDPGen( PLBroadcastDef *broadcastParms, bool preflight );
+static bool DoSDPGen( PLBroadcastDef *broadcastParms, bool preflight, bool overWriteSDP, bool generateNewSDP);
 
 static void AddOurPIDToTracker( const char* bcastSetupFilePath );
-
-
 
 /* -- preflighting --*/
 
@@ -123,8 +125,16 @@ static bool PreflightTrackerFileAccess( int mode );
 static void PreFlightSetupFile( const char * bcastSetupFilePath );
 static void ShowSetupParams(PLBroadcastDef*	broadcastParms, const char *file);
 
+static int PreflightDestSDPFileAccess( const char * sdpPath );
 
-static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight, bool noDaemon, bool showMovieList,bool currentMovie );
+static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight, bool noDaemon, bool showMovieList,bool currentMovie, char *destinationIP,bool writeNewSDP);
+
+/* changed by emil@popwire.com */
+static bool FileCreateAndCheckAccess(char *theFileName);
+static void PrintPlaylistElement(PLDoubleLinkedListNode<SimplePlayListElement> *node,void *file);
+static void ShowPlaylistElements(PlaylistPicker *picker,FILE *file);
+static void RemoveFiles(PLBroadcastDef*	broadcastParms);
+/* ***************************************************** */
 
 /*
 	local variables
@@ -135,11 +145,27 @@ static char* 			sgTrackerDirPath = "/var/run";
 static char* 			sgTrackerFilePath = "/var/run/broadcastlist";
 static BroadcastLog*	sgLogger = NULL;
 static bool				sgTrackingSucceeded = false;
+static BroadcasterSession* sBroadcasterSession = NULL;
+static	StrPtrLen		sSetupDirPath;
+static	PlaylistPicker* 	sTempPicker = NULL;
+static SInt32			sElementCount = 0;
+static SInt32			sMaxUpcomingListSize = 5;
+static 	PLBroadcastDef*		sBroadcastParms = NULL;
+static bool				sPreflightTeardown = false;
 
+enum {maxSDPbuffSize = 10000};
+static char				sSDPBuffer[maxSDPbuffSize] = {0};
+static bool				sQuitImmediate = false;
 #ifdef __MACOS__
 	static char *kMacOptions = "pdv";
 	static char *kMacFilePath = "Work:Movies:test";
 #endif
+
+static	bool	sAnnounceBroadcast = false;
+static	bool	sPushOverTCP = false;
+static int sRTSPClientError = 0;
+static bool	sErrorEvaluted = false;
+static bool sDeepDebug = false;
 
 /* long form options for "getopt_long" */
 
@@ -151,8 +177,13 @@ struct option longopts[] =
     , {"debug",    0, 0, 'd'} 		/* debug a broadcast */
     , {"help",    0, 0, 'h'} 		/* print help info */
     , {"preflight",  0, 0, 'p'} 	/* preflight */
-    , {"movies",  0, 0, 'm'} 		/* show movie list */
+//    , {"movies",  0, 0, 'm'} 		/* show movie list */
     , {"current",  0, 0, 'c'} 		/* show currently playing movie */
+    , {"tcp",  0, 0, 't'} 			/* use tcp push */
+    , {"announce",  0, 0, 'a'} 		/* use announce */
+    , {"ipaddress",  0, 0, 'i'} 	/* use ip address for destination */
+    , {"Debug",  0, 0, 'D'} 		/* deep debug */
+    , {"force",  0, 0, 'f'} 		/* force a new SDP */
     , {0, 0, 0, 0 } 				// terminator for options.	
 
 };
@@ -164,7 +195,6 @@ struct option longopts[] =
 
 int main(int argc, char *argv[]) {
 
-
 	char	*bcastSetupFilePath = NULL;
 	int 	noDaemon = false;
 	char 	anOption;
@@ -174,7 +204,9 @@ int main(int argc, char *argv[]) {
 	int		displayedOptions = 0; // count number of command line options we displayed
 	bool	needsTracker = false;	// set to true when PLB needs tracker access
 	bool	needsLogfile = false;	// set to true when PLB needs tracker access
-
+	char* 	destinationIP = NULL;
+	bool 	writeNewSDP = false;
+	
 #ifdef __Win32__		
 	//
 	// Start Win32 DLLs
@@ -183,25 +215,23 @@ int main(int argc, char *argv[]) {
 	(void)::WSAStartup(wsVersion, &wsData);
 #endif
 
+
 	QTRTPFile::Initialize(); // do only once
 	OS::Initialize();
+	OSThread::Initialize();
+	OSMemory::SetMemoryError(ENOMEM);
 	Socket::Initialize();
-	SocketUtils::Initialize();
+	SocketUtils::Initialize(false);
+	
 	if (SocketUtils::GetNumIPAddrs() == 0)
 	{
-		printf("IP must be enabled to run PlaylistBroadcaster\n");
+		printf("Network initialization failed. IP must be enabled to run PlaylistBroadcaster\n");
 		::exit(0);
 	}
-
-
-	RegisterEventHandlers();
-
-	
 #ifndef __MACOS__
 	sgProgramName = argv[0];
-	while ((anOption = _getopt_internal(argc, argv, "s:ahvdlpm", longopts, (int*)0, true )) != EOF)
+	while ((anOption = _getopt_internal(argc, argv, "s:ahvdlpmatiDf", longopts, (int*)0, true )) != EOF)
 
-//	while ((anOption = getopt_long_only(argc, argv, "s:ahvdlpm", longopts, (int*)0 )) != EOF)
 
 #else
 	sgProgramName = "PlaylistMac";
@@ -223,11 +253,13 @@ int main(int argc, char *argv[]) {
 				displayedOptions++;
 				break;
 				
+/*
 			case 'm':
 				
 				showMovieList = true;
 				noDaemon = true;
 				break;
+*/
 				
 			case 'p':
 				preflight = true;
@@ -236,12 +268,16 @@ int main(int argc, char *argv[]) {
 				needsLogfile = true;
 				break;
 				
+			case 'D':
+				sDeepDebug = true;
+				noDaemon = true;
+				break;
 
 #ifndef __Win32__
 			case 'd':
 				noDaemon = true;
 				break;
-
+			
 			case 'l':
 				// show playlist broadcast status			
 				if (!PreflightTrackerFileAccess( R_OK ))	// check for read access. 
@@ -265,6 +301,24 @@ int main(int argc, char *argv[]) {
 				displayedOptions++;
 				break;
 			
+			case 't':
+				sAnnounceBroadcast = true;
+				sPushOverTCP = true;
+				break;
+
+			case 'a':
+				sAnnounceBroadcast = true;
+				break;				
+			
+			case 'i':
+				destinationIP = argv[optind++];
+				printf("destinationIP =%s\n",destinationIP);
+				break;
+				
+			case 'f':
+				writeNewSDP = true;
+				break;
+				
 			default:
 			    /* Error message already emitted by getopt_long. */
 			    ::usage();
@@ -306,7 +360,7 @@ int main(int argc, char *argv[]) {
 		::exit(0);		// <-- we displayed option info, but have no description file to broadcast
 		
 		
-	PreFlightOrBroadcast( bcastSetupFilePath, preflight, noDaemon, showMovieList, current ); // <- exits() on failure
+	PreFlightOrBroadcast( bcastSetupFilePath, preflight, noDaemon, showMovieList, current,destinationIP,writeNewSDP ); // <- exits() on failure
 	
 
 
@@ -314,25 +368,320 @@ int main(int argc, char *argv[]) {
 
 }
 
+BroadcasterSession *StartBroadcastRTSPSession(PLBroadcastDef *broadcastParms)
+{	
+	TaskThreadPool::AddThreads(OS::GetNumProcessors());
+	TimeoutTask::Initialize();
+	Socket::StartThread();
 
-static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight, bool noDaemon, bool showMovieList, bool currentMovie )
+	UInt32 inAddr = 0;
+	struct hostent* theHostent = ::gethostbyname(broadcastParms->mDestAddress);		
+	if (theHostent != NULL)
+		inAddr = ntohl(*(UInt32*)(theHostent->h_addr_list[0]));
+	else
+		inAddr= SocketUtils::ConvertStringToAddr(broadcastParms->mDestAddress);
+	
+	UInt16 inPort = 554;
+	char * theURL = new char[512];
+	sprintf(theURL,"/%s",broadcastParms->mDestSDPFile);
+	BroadcasterSession::BroadcasterType inBroadcasterType;
+		
+	if (sPushOverTCP)
+		 inBroadcasterType = BroadcasterSession::kRTSPTCPBroadcasterType;
+	else
+		 inBroadcasterType = BroadcasterSession::kRTSPUDPBroadcasterType;
+	
+	UInt32 inDurationInSec = 0;
+	UInt32 inStartPlayTimeInSec = 0;
+	UInt32 inRTCPIntervalInSec = 5; 
+	UInt32 inOptionsIntervalInSec = 0;
+	UInt32 inHTTPCookie = 1; 
+	Bool16 inAppendJunkData = false; 
+	UInt32 inReadInterval = 50;
+	UInt32 inSockRcvBufSize = 32768;
+	StrPtrLen sdpSPL(sSDPBuffer,maxSDPbuffSize);
+	sRTSPClientError = QTFileBroadcaster::eNetworkConnectionError;
+	sBroadcasterSession = NEW BroadcasterSession(inAddr, 
+												inPort,					
+												theURL,
+												inBroadcasterType,		// Client type
+												inDurationInSec,		// Movie length
+												inStartPlayTimeInSec,					// Movie start time
+												inRTCPIntervalInSec,					// RTCP interval
+												inOptionsIntervalInSec,					// Options interval
+												inHTTPCookie,	// HTTP cookie
+												inAppendJunkData,
+												inReadInterval,	// Interval between data reads	
+												inSockRcvBufSize,
+												&sdpSPL,
+												broadcastParms->mName,
+												broadcastParms->mPassword,
+												sDeepDebug);	
+
+	return 	sBroadcasterSession;
+}
+
+Bool16 AnnounceBroadcast(PLBroadcastDef *broadcastParms,QTFileBroadcaster 	*fileBroadcasterPtr)
+{	// return true if no Announce required or broadcast is ok.
+
+	if (!sAnnounceBroadcast) return true;
+	
+#if !MACOSXEVENTQUEUE
+	::select_startevents();//initialize the select() implementation of the event queue
+#endif
+
+	if (SocketUtils::GetNumIPAddrs() == 0)
+	{
+		printf("IP must be enabled to run PlaylistBroadcaster\n");
+		::exit(0);
+	}
+
+	broadcastParms->mTheSession = sBroadcasterSession = StartBroadcastRTSPSession(broadcastParms);
+	while (!sBroadcasterSession->IsDone() && BroadcasterSession::kBroadcasting != sBroadcasterSession->GetState()) 
+	{	OSThread::Sleep(100);
+	}
+	sRTSPClientError = 0;
+	int broadcastErr = sBroadcasterSession->GetRequestStatus();
+	
+	Bool16 isOK = false;	
+	if (broadcastErr != 200) do 
+	{
+		if (412 == broadcastErr)
+		{	
+			::EvalBroadcasterErr(broadcastErr);
+			break;	
+		}
+		
+		if (200 != broadcastErr)
+		{	//printf("broadcastErr = %ld sBroadcasterSession->GetDeathState()=%ld sBroadcasterSession->GetReasonForDying()=%ld\n",broadcastErr,sBroadcasterSession->GetDeathState(),sBroadcasterSession->GetReasonForDying());
+			if (sBroadcasterSession->GetDeathState() == BroadcasterSession::kSendingAnnounce && sBroadcasterSession->GetReasonForDying() == BroadcasterSession::kConnectionFailed)
+				::EvalBroadcasterErr(QTFileBroadcaster::eNetworkConnectionError);
+			else if (401 == broadcastErr)
+				::EvalBroadcasterErr(QTFileBroadcaster::eNetworkAuthorization);
+			else if ((500 == broadcastErr) || (400 == broadcastErr) )
+				::EvalBroadcasterErr(QTFileBroadcaster::eNetworkNotSupported);
+			else 
+				::EvalBroadcasterErr(QTFileBroadcaster::eNetworkRequestError);
+
+			break;
+		}	
+		
+		if (sBroadcasterSession != NULL && BroadcasterSession::kDiedNormally != sBroadcasterSession->GetReasonForDying())
+		{	::EvalBroadcasterErr(QTFileBroadcaster::eNetworkRequestError);
+			break;
+		}	
+	
+		isOK = true;
+		
+	} while (false);
+	else 
+		isOK = true;
+		
+	if (isOK)
+	{
+		broadcastErr = fileBroadcasterPtr->SetUp(broadcastParms, &sQuitImmediate);
+		if (  broadcastErr )
+		{	::EvalBroadcasterErr(broadcastErr);
+			::printf( "- Broadcaster setup failed.\n" );
+			isOK = false;
+			if (sBroadcasterSession != NULL && !sBroadcasterSession->IsDone())
+				sBroadcasterSession->TearDownNow();
+		}
+	}
+	
+	return isOK;
+}
+
+char* GetBroadcastDirPath(const char * setupFilePath)
+{
+	int len = 2;
+	if (setupFilePath != NULL)
+		len = ::strlen(setupFilePath);
+	char *setupDirPath = new char [ len + 1 ];
+	if ( setupDirPath )
+	{	
+		strcpy( setupDirPath, setupFilePath );
+		char* endOfDirPath = strrchr( setupDirPath, kPathDelimiterChar );
+		
+		if ( endOfDirPath )
+		{
+			endOfDirPath++;
+			*endOfDirPath= 0;			
+			
+			int  chDirErr = ::chdir( setupDirPath );			
+			if ( chDirErr )
+				chDirErr = errno;
+				
+			//::printf("- PLB DEBUG MSG: setupDirPath==%s\n  chdir err: %i\n", setupDirPath, chDirErr);			
+		}
+		else
+		{	setupDirPath[0] = '.';
+			setupDirPath[1] = kPathDelimiterChar;
+			setupDirPath[2] = 0;
+		}
+			
+	}
+	
+	//printf("GetBroadcastDirPath setupDirPath = %s\n",setupDirPath);
+	return setupDirPath;
+}
+
+void CreateCurrentAndUpcomingFiles(PLBroadcastDef* broadcastParms)
+{
+	if (!::strcmp(broadcastParms->mShowCurrent, "enabled")) 
+	{	if(FileCreateAndCheckAccess(broadcastParms->mCurrentFile))
+		{ 	/* error */
+		  	sgLogger->LogInfo( "PlaylistBroadcaster Error: Failed to create current broadcast file" );
+		}
+	}
+
+
+	if (!::strcmp(broadcastParms->mShowUpcoming, "enabled")) 
+	{	if(FileCreateAndCheckAccess(broadcastParms->mUpcomingFile))
+		{	/* error */
+			sgLogger->LogInfo( "PlaylistBroadcaster Error:  Failed to create upcoming broadcast file" );
+		}
+	}
+
+}
+
+void UpdateCurrentAndUpcomingFiles(PLBroadcastDef* broadcastParms, char *thePick, PlaylistPicker *picker,PlaylistPicker *insertPicker)
+{
+	if ( 	(NULL == broadcastParms)
+		||  (NULL == thePick)
+		||  (NULL == picker)
+		||  (NULL == insertPicker)
+		) return;
+		
+	// save currently playing song to .current file 
+	if (!::strcmp(broadcastParms->mShowCurrent, "enabled")) 
+	{	FILE *currentFile = fopen(broadcastParms->mCurrentFile, "w");
+		if(currentFile)
+		{
+			if (sSetupDirPath.EqualIgnoreCase(thePick, sSetupDirPath.Len) || '\\' == thePick[0] || '/' == thePick[0])
+				::fprintf(currentFile,"u=%s\n",thePick);
+			else
+				::fprintf(currentFile,"u=%s%s\n", sSetupDirPath.Ptr,thePick);
+
+			fclose(currentFile);
+		}	
+	}
+						
+	/* if .stoplist file exists - prepare to stop broadcast */
+	if(!access(broadcastParms->mStopFile, R_OK))
+	{
+		picker->CleanList();
+		PopulatePickerFromFile(picker, broadcastParms->mStopFile, "", NULL);
+
+		sTempPicker->CleanList();
+
+		remove(broadcastParms->mStopFile);
+		picker->mStopFlag = true;
+	}
+
+	/* if .replacelist file exists - replace current playlist */
+	if(!access(broadcastParms->mReplaceFile, R_OK))
+	{
+		picker->CleanList();	 
+		PopulatePickerFromFile(picker, broadcastParms->mReplaceFile, "", NULL);
+		
+		sTempPicker->CleanList();
+		
+		remove(broadcastParms->mReplaceFile);
+		picker->mStopFlag = false;
+	}
+
+	/* if .insertlist file exists - insert into current playlist */
+	if(!access(broadcastParms->mInsertFile, R_OK))
+	{
+		insertPicker->CleanList();
+		sTempPicker->CleanList();
+
+		PopulatePickerFromFile(insertPicker, broadcastParms->mInsertFile, "", NULL);
+		remove(broadcastParms->mInsertFile);
+		picker->mStopFlag = false;
+	}
+
+
+				// write upcoming playlist to .upcoming file 
+	if (!::strcmp(broadcastParms->mShowUpcoming, "enabled")) 
+	{
+		FILE *upcomingFile = fopen(broadcastParms->mUpcomingFile, "w");
+		if(upcomingFile)
+		{
+			sElementCount = 0;
+		
+			if (!::strcmp(broadcastParms->mPlayMode, "weighted_random")) 
+				fprintf(upcomingFile,"#random play - upcoming list not supported\n");
+			else
+			{	fprintf(upcomingFile,"*PLAY-LIST*\n");
+				ShowPlaylistElements(insertPicker,upcomingFile);
+				ShowPlaylistElements(picker,upcomingFile);
+				if (	picker->GetNumMovies() == 0 
+						&& !picker->mStopFlag 
+						&& 0 != ::strcmp(broadcastParms->mPlayMode, "sequential") 
+					)
+				{	picker->CleanList();
+					PopulatePickerFromFile(picker,broadcastParms->mPlayListFile,"",NULL);
+					ShowPlaylistElements(picker,upcomingFile);
+					sTempPicker->CleanList();
+					PopulatePickerFromFile(sTempPicker,broadcastParms->mPlayListFile,"",NULL);
+				}
+				
+				if 	(	sElementCount <= sMaxUpcomingListSize 
+						&& 0 == ::strcmp(broadcastParms->mPlayMode, "sequential_looped")
+					)
+				{	if (sTempPicker->GetNumMovies() == 0)
+					{	sTempPicker->CleanList();
+						PopulatePickerFromFile(sTempPicker,broadcastParms->mPlayListFile,"",NULL);
+					}
+					while (sElementCount <= sMaxUpcomingListSize )
+						ShowPlaylistElements(sTempPicker,upcomingFile);
+				}
+			}
+			fclose(upcomingFile);
+		}	
+	}
+	else
+	{	
+		if (	picker->GetNumMovies() == 0 
+				&& !picker->mStopFlag 
+				&& ::strcmp(broadcastParms->mPlayMode, "sequential") 
+			)
+		{	picker->CleanList();
+			PopulatePickerFromFile(picker,broadcastParms->mPlayListFile,"",NULL);
+		}		
+	}
+}
+
+
+static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight, bool noDaemon, bool showMovieList, bool currentMovie, char *destinationIP,bool writeNewSDP)
 {
 	PLBroadcastDef*		broadcastParms = NULL;
 	PlaylistPicker* 	picker = NULL;
-	QTFileBroadcaster 	fileBroadcaster;
-	int 				broadcastErr;
-	long				moviePlayCount;
-	char*				thePick;
-	long				numMovieErrors;
-	char				*bcastSetupDirPath;
-	bool				sdpFileCreated = false;
+	PlaylistPicker* 	insertPicker = NULL;
 	
+	QTFileBroadcaster 	fileBroadcaster;
+	int 				broadcastErr = 0;
+	long				moviePlayCount;
+	char*				thePick = NULL;
+	long				numMovieErrors;
+	bool				sdpFileCreated = false;
+	char				*allocatedIPStr = NULL;
+	bool				generateNewSDP = false;
+//	bool				writeNewSDP = false;
 #ifndef __MACOS__
+	RegisterEventHandlers();
+
 	PreFlightSetupFile( bcastSetupFilePath );	// <- exits() on failure
 	
-
-	broadcastParms = new PLBroadcastDef( bcastSetupFilePath );
-	
+	if (destinationIP != NULL)
+	{ allocatedIPStr = new char[strlen(destinationIP)+1];
+	  strcpy(allocatedIPStr,destinationIP);
+	  generateNewSDP = true;
+	}
+	broadcastParms = new PLBroadcastDef( bcastSetupFilePath, allocatedIPStr,  sDeepDebug);	
+	sBroadcastParms = broadcastParms;
 	
 	if( !broadcastParms )
 	{	::printf("- PlaylistBroadcaster: Error. Out of memory.\n" );
@@ -346,56 +695,29 @@ static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight
 	}
 	
 	
-	if ( preflight )
+	if ( preflight || sDeepDebug)
 		ShowSetupParams(broadcastParms, bcastSetupFilePath);
-		
 
-	bcastSetupDirPath = new char [strlen(bcastSetupFilePath) + 1 ];
-	
-	if ( bcastSetupDirPath )
-	{
-		strcpy( bcastSetupDirPath, bcastSetupFilePath );
-
-		char* endOfDirPath = strrchr( bcastSetupDirPath, kPathDelimiterChar );
-		
-		if ( endOfDirPath )
-		{
-			endOfDirPath++;
-		
-			*endOfDirPath= 0;
-			
-			
-			int 	chDirErr = ::chdir( bcastSetupDirPath );
-			
-			if ( chDirErr )
-				chDirErr = errno;
-				
-			//::printf("- PLB DEBUG MSG: bcastSetupDirPath==%s\n  chdir err: %i\n", bcastSetupDirPath, chDirErr);
-			
-		}
-		
-		
-		
-	}
-	else
+	if (NULL == GetBroadcastDirPath(bcastSetupFilePath))
 	{	::printf("- PlaylistBroadcaster: Error. Out of memory.\n" );
 		goto bail;
 	}
-
+	sSetupDirPath.Set(GetBroadcastDirPath(bcastSetupFilePath), strlen(GetBroadcastDirPath(bcastSetupFilePath)));
 
 	if (preflight)
 		picker = new PlaylistPicker(false);				// make sequential picker, no looping
 	else
-		picker = MakePickerFromConfig( broadcastParms ); // make  picker according to parms
-	
+	{	picker = MakePickerFromConfig( broadcastParms ); // make  picker according to parms
+		sTempPicker =  new PlaylistPicker(false);
+		insertPicker = new PlaylistPicker(false);
+		insertPicker->mRemoveFlag = true;
+	}
 	
 	if ( !picker )
 	{	::printf("- PlaylistBroadcaster: Error. Out of memory.\n" );
 		goto bail;
 	}
 	
-	
-
 	::printf("\n");
 	
 	Assert( broadcastParms->mPlayListFile );
@@ -434,7 +756,7 @@ static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight
 	}
 	
 	// create the log file
-	sgLogger = new BroadcastLog( broadcastParms );
+	sgLogger = new BroadcastLog( broadcastParms, &sSetupDirPath );
 	
 	
 	Assert( sgLogger );
@@ -444,9 +766,10 @@ static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight
 		goto bail;
 	}
 	
-	sdpFileCreated = DoSDPGen( broadcastParms, preflight );
-	
-	broadcastErr = fileBroadcaster.SetUp(broadcastParms);
+	sdpFileCreated = DoSDPGen( broadcastParms, preflight, writeNewSDP,generateNewSDP);
+
+	if (!sAnnounceBroadcast)
+		broadcastErr = fileBroadcaster.SetUp(broadcastParms, &sQuitImmediate);
 	
 	if (  broadcastErr )
 	{	
@@ -459,7 +782,6 @@ static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight
 	{	 fileBroadcaster.fPlay = false;
 	
 	}
-	
 	if ( !PreflightTrackerFileAccess( R_OK | W_OK ) )
 		goto bail;
 
@@ -475,10 +797,13 @@ static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight
 			::printf("- PlaylistBroadcaster:  System error (%i).\n", errno);
 			goto bail;
 		}
+
 #endif		
 	}
+	if (!AnnounceBroadcast(broadcastParms,&fileBroadcaster)) 
+		goto bail;
 
-	// ^ daemon must be called before we Open the log and tracker since we'll
+		// ^ daemon must be called before we Open the log and tracker since we'll
 	// get a new pid, our files close,  ( does SIGTERM get sent? )
 	
 	if (( sgLogger ) && ( sgLogger->WantsLogging() ))
@@ -495,15 +820,13 @@ static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight
 	}
 	
 	
-	
 	AddOurPIDToTracker( bcastSetupFilePath ); // <-- exits on failure
-	
-	
 
 	if ( !preflight || showMovieList )
-		sgLogger->LogInfo( "PlaylistBroadcaster started" );
+		sgLogger->LogInfo( "PlaylistBroadcaster started." );
 	else
-		sgLogger->LogInfo( "PlaylistBroadcaster preflight started" );
+	{	sgLogger->LogInfo( "PlaylistBroadcaster preflight started." );
+	}
 
 	//+ make the RTP movie broadcaster
 	
@@ -514,38 +837,112 @@ static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight
 		printf( "----------------------------\n" );
 	}
 	else
-	{
+	{		
 		printf( "\n" );
 		printf( "Problems found\n" );
 		printf( "--------------\n" );
 	}
+
+	if(!preflight)
+	{	CreateCurrentAndUpcomingFiles(broadcastParms);
+	}
 	
 	moviePlayCount = 0;
 	numMovieErrors = 0;
-	
-	for ( thePick = picker->PickOne(); thePick; thePick = picker->PickOne()  )
-	{	++moviePlayCount;
+	sMaxUpcomingListSize = ::atoi( broadcastParms->mMaxUpcomingMovieListSize );
+			
+	while (true)
+	{	
+		if (NULL != insertPicker)
+			thePick = insertPicker->PickOne(); 
+			
+		if (NULL == thePick && (NULL != picker))
+			thePick = picker->PickOne();
 		
-		if ( !preflight || showMovieList )
+		if ( (thePick != NULL) && (!preflight || showMovieList) )
 		{
 			// display the picks in debug mode, but not preflight
 			printf( "[%li] ", moviePlayCount );
-			printf( "%s picked\n", thePick );
+			{	if (sSetupDirPath.EqualIgnoreCase(thePick, sSetupDirPath.Len) || '\\' == thePick[0] || '/' == thePick[0])
+					::printf("%s picked\n", thePick);
+				else
+					::printf("%s%s picked\n", sSetupDirPath.Ptr,thePick);
+			}
+
 		}
 		
 		
 		if ( !showMovieList )
 		{
 			int playError;
+				
+			if(!preflight)
+			{	UpdateCurrentAndUpcomingFiles(broadcastParms, thePick, 	picker, insertPicker);
+				
+				/* if playlist is about to run out repopulate it */
+				if  (	!::strcmp(broadcastParms->mPlayMode, "sequential_looped") )
+				{	if(NULL == thePick &&!picker->mStopFlag)
+					{	if (picker->GetNumMovies() == 0) 
+							break;
+						else
+							continue;
+					}
+						
+				}
+			}
+
+			if (thePick == NULL)
+			{	break;
+			}
+			
+			++moviePlayCount;
 			
 			if (currentMovie && !preflight)
 			{	
 				sgLogger->LogMoviePlay( thePick, NULL, sStartMessage );
 			}
-			playError = fileBroadcaster.PlayMovie( thePick );
 
+			if(!preflight)
+			{
+				playError = fileBroadcaster.PlayMovie( thePick, broadcastParms->mCurrentFile );
+			}
+			else
+			{
+				playError = fileBroadcaster.PlayMovie( thePick, NULL );
+			}
+			
+			if (sQuitImmediate) 
+			{	//printf("QUIT now sBroadcasterSession->Signal(BroadcasterSession::kTeardownEvent)\n");
+				if (!sBroadcasterSession->IsDone())
+					sBroadcasterSession->TearDownNow();
+				goto bail;
+			}
+			
+			if (sBroadcasterSession != NULL && sBroadcasterSession->GetReasonForDying() != BroadcasterSession::kDiedNormally)
+			{	playError = ::EvalBroadcasterErr(QTFileBroadcaster::eNetworkConnectionFailed);
+				goto bail;
+			}
+				
+			if ( playError == 0 && sAnnounceBroadcast)
+			{	int theErr = sBroadcasterSession->GetRequestStatus();
+				if (200 != theErr)
+				{	
+					if (401 == theErr)
+						playError = QTFileBroadcaster::eNetworkAuthorization;
+					else if (500 == theErr)
+						playError = QTFileBroadcaster::eNetworkNotSupported;
+					else 
+						playError = QTFileBroadcaster::eNetworkConnectionError;
+					goto bail;
+				}
+			}
+			
 			if (playError)
 			{	playError = ::EvalBroadcasterErr(playError);
+				
+				if (playError == QTFileBroadcaster::eNetworkConnectionError)
+					goto bail;
+
 				printf("  (file: %s err: %d %s)\n", thePick, playError,GetMovieFileErrString( playError ) );
 				numMovieErrors++;
 			}
@@ -562,61 +959,142 @@ static void PreFlightOrBroadcast( const char *bcastSetupFilePath, bool preflight
 				}
 			}
 			
+
 			if ( !preflight )
 				sgLogger->LogMoviePlay( thePick, GetMovieFileErrString( playError ),NULL );
 		}
 		
+
 		delete [] thePick;
-	
+		thePick = NULL;
 	} 
+	
+	remove(broadcastParms->mCurrentFile);
+	remove(broadcastParms->mUpcomingFile);	
 #else
-		PLBroadcastDef params(bcastSetupFilePath);
-		numMovieErrors = 0;
-		params.ShowSettings();
-		sdpFileCreated = DoSDPGen( &params, true );
-		//fileBroadcaster.fPlay = false;
-		thePick = params.mSDPReferenceMovie;
-		int playError = fileBroadcaster.SetUp(&params);
-		if (!playError)
-			playError = fileBroadcaster.PlayMovie( thePick );
-		if (playError) numMovieErrors =1;
-		printf("%s \n",GetMovieFileErrString( playError ));
+	PLBroadcastDef params(bcastSetupFilePath);
+	numMovieErrors = 0;
+	params.ShowSettings();
+	sdpFileCreated = DoSDPGen( &params, true, writeNewSDP, generateNewSDP );
+	//fileBroadcaster.fPlay = false;
+	thePick = params.mSDPReferenceMovie;
+	int playError = fileBroadcaster.SetUp(&params);
+	if (!playError && !preflight)
+	{
+		UpdateCurrentAndUpcomingFiles(broadcastParms, thePick, 	picker, insertPicker);
+		playError = fileBroadcaster.PlayMovie( thePick, broadcastParms->mCurrentFile );
+	}
+	else
+	{
+		playError = fileBroadcaster.PlayMovie( thePick, NULL );
+	}
+
+	if (sQuitImmediate) 
+	{	//printf("QUIT now sBroadcasterSession->Signal(BroadcasterSession::kTeardownEvent)\n");
+		goto bail;
+	}
+		
+	if (playError) numMovieErrors =1;
+	printf("%s \n",GetMovieFileErrString( playError ));
+	
+	if(!preflight) //emil@popwire.com
+	{
+
+		/* if .stop file exists - prepare to stop broadcast */
+		if(!access(broadcastParms->mStopFile, R_OK))
+		{
+			picker->CleanList();
+			PopulatePickerFromFile(picker, broadcastParms->mStopFile, "", NULL);
+			remove(broadcastParms->mStopFile);
+			picker->mStopFlag = true;
+		}
+
+		/* if .replace file exists - replace current playlist */
+		if(!access(broadcastParms->mReplaceFile, R_OK))
+		{
+			picker->CleanList();
+			PopulatePickerFromFile(picker, broadcastParms->mReplaceFile, "", NULL);
+			remove(broadcastParms->mReplaceFile);
+			picker->mStopFlag = false;
+		}
+
+		if(!access(broadcastParms->mInsertFile, R_OK))
+		{
+			picker->CleanList();
+			PopulatePickerFromFile(insertPicker, broadcastParms->mInsertFile, "", NULL);
+			remove(broadcastParms->mReplaceFile);
+			picker->mStopFlag = false;
+		}
+
+		if (sQuitImmediate) break;
+	}
+	remove(broadcastParms->mCurrentFile);
+	remove(broadcastParms->mUpcomingFile);	
 #endif
 
 	if ( preflight )
 	{
-		char	str[256];
 		
+
+		char	str[256];	
 		printf( " - "  );
-		sprintf( str, "PlaylistBroadcaster found (%li) movie problem(s)." , numMovieErrors );
+		sprintf( str, "PlaylistBroadcaster found (%li) movie problem(s)." , numMovieErrors ); // DONT CHANGE this string is used by the UI
 		printf( "%s\n", str );
 		if (sgLogger) sgLogger->LogInfo( str );
+
 	}
 	
-	
-	if ( !preflight )
-		if (sgLogger) sgLogger->LogInfo( "PlaylistBroadcaster finished" );
-	else
-	{	if (sgLogger) sgLogger->LogInfo( "PlaylistBroadcaster preflight finished" );
-		printf( "PlaylistBroadcaster preflight finished.\n" );
+
+	if (NULL != sBroadcasterSession && !sBroadcasterSession->IsDone() )
+	{	sErrorEvaluted = true;
+		if ( preflight ) 
+			sPreflightTeardown = true;
+		sBroadcasterSession->TearDownNow();
+		sBroadcasterSession->Run();
+		OSThread::Sleep(500);
 	}
-	/*
-	if (!preflight)
-		ShowPickDistribution( picker );
-	*/
 		
 bail:
 
+	RemoveFiles(broadcastParms);
 	//if preflighting and we created tghe file, delete the file now
-	if (preflight && sdpFileCreated)
-		(void)unlink(broadcastParms->mSDPFile);
+	//if (preflight && sdpFileCreated) bug 2579767 says don't delete on preflight.
+	//	(void)unlink(broadcastParms->mSDPFile);
 
 	delete picker;
 	
 	delete broadcastParms;
 
-	delete sgLogger;
-	sgLogger = NULL;
+	if ( !preflight )
+	{
+		if (sgLogger) 
+		{	if (!sQuitImmediate)
+				sgLogger->LogInfo( "PlaylistBroadcaster finished." );
+			else
+				sgLogger->LogInfo( "PlaylistBroadcaster stopped." );			
+		}
+		
+		if (!sQuitImmediate) // test sQuitImmediate again 
+			printf( "\nPlaylistBroadcaster broadcast finished.\n" ); 
+		else
+			printf( "\nPlaylistBroadcaster broadcast stopped.\n" ); 
+	}
+	else
+	{
+		if (sgLogger) 
+		{	if (!sQuitImmediate)
+				sgLogger->LogInfo( "PlaylistBroadcaster preflight finished." );
+			else
+				sgLogger->LogInfo( "PlaylistBroadcaster preflight stopped." );
+		}
+		
+		if (!sQuitImmediate)  // test sQuitImmediate again
+			printf( "\nPlaylistBroadcaster preflight finished.\n" ); 
+		else
+			printf( "\nPlaylistBroadcaster preflight stopped.\n" ); 
+
+	}
+	sgLogger = NULL; // protect the interrupt handler and just let it die don't delete because it is a task thread
 
 #ifndef __Win32__
 	if ( sgTrackingSucceeded )
@@ -631,36 +1109,15 @@ bail:
 		tracker.Save();
 	}
 #endif
+	if (sBroadcasterSession != NULL)
+	{	
+		OSThread::Sleep((unsigned int) 1000);
+
+	}
 	::exit(-1);
 }
 
 
-/* ========================================================================
- * Signal and error handler.
- */
-static void SignalEventHandler( int signalID )
-{
-  
- 	//::printf( "signal %d caught(SignalEventHandler)\n", signalID );
- 	
- 	if ( sgLogger )
-	 	sgLogger->LogInfo( "PlaylistBroadcaster finished" );
-	 
-	 delete sgLogger;
-	 sgLogger = NULL;
-
-#ifndef __Win32__
-	if ( sgTrackingSucceeded )
-	{	// give tracker scope so that it really does it's
-		// thing before "exit" is called.
-		BCasterTracker	tracker( sgTrackerFilePath );
-	
-		tracker.RemoveByProcessID( getpid() );
-		tracker.Save();
-	}
-#endif	
- 	::exit(-1);
-}
 
 
 
@@ -685,9 +1142,9 @@ static void usage()
 
 	*/
 #ifndef __Win32__
-	::printf("usage: %s [ -list | -stop # | -version | -help | -current] | [ -preflight | -debug  file ] \n", sgProgramName );
+	::printf("usage: %s [ -list | -stop # | -version | -help | -current | -announce | -tcp | -ipaddress | -force] | [ -preflight | -debug  file ] \n", sgProgramName );
 #else
-	::printf("usage: %s [ -version | -help | -current] | [ -preflight ] \n", sgProgramName );
+	::printf("usage: %s [ -version | -help | -current | -announce | -tcp | -ipaddress | -force | -debug ] | [ -preflight ] \n", sgProgramName );
 #endif
 
 }
@@ -711,10 +1168,18 @@ static void help()
 	::printf("-stop n: Stop a running broadcast.\n");
 #endif
 	::printf("-current: Show the current movie in the log file. \n");
+	::printf("-announce: Announce the broadcast to the server. \n");
+	::printf("-tcp: Send the broadcast over TCP to the server. \n");
+	::printf("-ipaddress: Specify the destination ip address. Over-rides config file value. \n");
+	::printf("-force: Force a new SDP file to be created even if one already exists. \n");
+	
 	::printf("file: Specify a broadcast description file.\n");
 //	::printf("-o: Hold trackerfile open. (debug)\n");
 //	::printf("-x n: Movie play limit. (debug)\n");
 //	::printf("-g file: Parse and Display broadcast settings. (debug)\n");
+	
+	::printf("Broadcast description file: ");
+	PLBroadcastDef(NULL,NULL,false);
 
 }
 
@@ -743,10 +1208,12 @@ static PlaylistPicker* MakePickerFromConfig( PLBroadcastDef* broadcastParms )
 			else if ( !::strcmp( broadcastParms->mPlayMode, "sequential_looped" ) )
 			{			
 				picker = new PlaylistPicker(true);
+				picker->mRemoveFlag = true;
 			}
 			else if ( !::strcmp( broadcastParms->mPlayMode, "sequential" ) )
 			{			
 				picker = new PlaylistPicker(false);
+				picker->mRemoveFlag = true;
 			}
 		
 		}
@@ -788,21 +1255,23 @@ static const char* GetMovieFileErrString( int err )
 
 }
 
-
 static int EvalBroadcasterErr(int err)
 {
 	int returnErr = err;
 	
 	switch (err)
-	{
+	{	case 412:
+		{	printf("- Server Session Failed: The request was denied.");
+			printf("\n");
+			break;
+		}
 		case QTFileBroadcaster::eNoAvailableSockets :	
-		case QTFileBroadcaster::eSDPFileNotFound :
+		case QTFileBroadcaster::eSDPFileNotFound 	:
 		case QTFileBroadcaster::eSDPDestAddrInvalid :
-		case QTFileBroadcaster::eSDPFileInvalid 	 : 
-		case QTFileBroadcaster::eSDPFileNoMedia 	 : 
-		case QTFileBroadcaster::eSDPFileNoPorts 	 :
-		case QTFileBroadcaster::eSDPFileInvalidPort  :
-		case QTFileBroadcaster::eSDPFileInvalidName  :
+		case QTFileBroadcaster::eSDPFileInvalid 	: 
+		case QTFileBroadcaster::eSDPFileNoMedia 	: 
+		case QTFileBroadcaster::eSDPFileNoPorts 	:
+		case QTFileBroadcaster::eSDPFileInvalidPort :	
 		{	printf("- SDP set up failed: ");
 			switch( err )
 			{
@@ -814,15 +1283,13 @@ static int EvalBroadcasterErr(int err)
 				break;
 				case QTFileBroadcaster::eSDPFileInvalid 	 : printf("The SDP file is invalid."); 
 				break; 
-				case QTFileBroadcaster::eSDPFileNoMedia 	 : printf("The SDP file missing media (m=) references."); 
+				case QTFileBroadcaster::eSDPFileNoMedia 	 : printf("The SDP file is missing media (m=) references."); 
 				break; 
-				case QTFileBroadcaster::eSDPFileNoPorts 	 : printf("The SDP file missing server port information."); 
+				case QTFileBroadcaster::eSDPFileNoPorts 	 : printf("The SDP file is missing server port information."); 
 				break;
-				case QTFileBroadcaster::eSDPFileInvalidPort  : printf("The SDP file server port value is invalid. Valid range is 1001 - 65535."); 
+				case QTFileBroadcaster::eSDPFileInvalidPort  : printf("The SDP file contains an invalid port. Valid range is 5004 - 65530."); 
 				break;
-				case QTFileBroadcaster::eSDPFileInvalidName  : printf("The specified SDP file name is missing or too long."); 
-				break;
-				
+
 				default: printf("SDP set up error %d occured.",err);
 				break;	
 			
@@ -831,9 +1298,38 @@ static int EvalBroadcasterErr(int err)
 		}
 		break;
 		
+		case QTFileBroadcaster::eSDPFileInvalidTTL:
+		case QTFileBroadcaster::eDescriptionInvalidDestPort:
+		case QTFileBroadcaster::eSDPFileInvalidName: 
+		case QTFileBroadcaster::eNetworkSDPFileNameInvalidBadPath:
+		case QTFileBroadcaster::eNetworkSDPFileNameInvalidMissing:
+		{	printf("- Description set up failed: ");
+			switch( err )
+			{
+			
+				case QTFileBroadcaster::eSDPFileInvalidTTL 	 : printf("The multicast_ttl value is incorrect. Valid range is 1 to 255."); 
+				break;
+				case QTFileBroadcaster::eDescriptionInvalidDestPort  : printf("The destination_base_port value is incorrect. Valid range is 5004 - 65530."); 
+				break;
+				case QTFileBroadcaster::eSDPFileInvalidName  : printf("The sdp_file name is missing or too long."); 
+				break;
+				case QTFileBroadcaster::eNetworkSDPFileNameInvalidBadPath: printf("The specified destination_sdp_file must a be relative file path in the movies directory."); 
+				break;
+				case QTFileBroadcaster::eNetworkSDPFileNameInvalidMissing: printf("The specified destination_sdp_file name is missing."); 
+				break;
+							
+				default: printf("Description set up error %d occured.",err);
+				break;	
+			}
+			printf("\n");
+		}
+		break;
+		
+		
+		
 		case QTFileBroadcaster::eMovieFileNotFound	 		:
 		case QTFileBroadcaster::eMovieFileNoHintedTracks 	:
-		case QTFileBroadcaster::eMovieFileNoSDPMatches 	:
+		case QTFileBroadcaster::eMovieFileNoSDPMatches 		:
 		case QTFileBroadcaster::eMovieFileInvalid 			:
 		case QTFileBroadcaster::eMovieFileInvalidName 		:
 		{	printf("- Movie set up failed: ");
@@ -843,7 +1339,7 @@ static int EvalBroadcasterErr(int err)
 				break;
 				case QTFileBroadcaster::eMovieFileNoHintedTracks 	: printf("Movie file has no hinted tracks."); 
 				break;
-				case QTFileBroadcaster::eMovieFileNoSDPMatches 	: printf("Movie file does not match SDP."); 
+				case QTFileBroadcaster::eMovieFileNoSDPMatches 		: printf("Movie file does not match SDP."); 
 				break;
 				case QTFileBroadcaster::eMovieFileInvalid 			: printf("Movie file is invalid."); 
 				break;
@@ -860,7 +1356,7 @@ static int EvalBroadcasterErr(int err)
 		
 		case QTFileBroadcaster::eMem:		
 		case QTFileBroadcaster::eInternalError:
-			printf("- Internal Error: ");
+		{	printf("- Internal Error: ");
 			switch( err )
 			{	
 				case QTFileBroadcaster::eMem	 		: printf("Memory error."); 
@@ -873,6 +1369,47 @@ static int EvalBroadcasterErr(int err)
 				break;	
 			}
 			printf("\n");
+		}
+		break;
+		
+		case QTFileBroadcaster::eFailedBind:
+		case QTFileBroadcaster::eNetworkConnectionError:
+		case QTFileBroadcaster::eNetworkRequestError:
+		case QTFileBroadcaster::eNetworkConnectionStopped:
+		case QTFileBroadcaster::eNetworkAuthorization:
+		case QTFileBroadcaster::eNetworkNotSupported:
+		case QTFileBroadcaster::eNetworkConnectionFailed:
+		{		sErrorEvaluted = true;
+				printf("- Network Connection: ");
+				switch( err )
+				{	
+					case QTFileBroadcaster::eFailedBind 	 : printf("A Socket failed trying to open and bind to a local port.\n."); 
+					break;
+
+					case QTFileBroadcaster::eNetworkConnectionError	 : printf("Failed to connect."); 
+					break;
+					
+					case QTFileBroadcaster::eNetworkRequestError	 : printf("Server returned error."); 
+					break;
+				
+					case QTFileBroadcaster::eNetworkConnectionStopped: printf("Connection stopped."); 
+					break;
+
+					case QTFileBroadcaster::eNetworkAuthorization: printf("Authorization failed."); 
+					break;
+
+					case QTFileBroadcaster::eNetworkNotSupported: printf("Connection not supported by server."); 
+					break;
+
+					case QTFileBroadcaster::eNetworkConnectionFailed	 : printf("Disconnected."); 
+					break;
+
+					default: printf("internal error %d occured.",err);
+					break;	
+				}
+				printf("\n");
+				returnErr = QTFileBroadcaster::eNetworkConnectionError;
+		}
 		break;
 			
 		default:
@@ -901,6 +1438,26 @@ static int MyAccess( const char* path, int mode )
 	return error;
 }
 
+
+static int PreflightDestSDPFileAccess( const char * sdpPath )
+{
+	int 	numPreflightErrors = 0;
+	
+	if ( NULL == sdpPath || 0==sdpPath[0] || 0 == ::strcmp(sdpPath, "no_name") )
+	{	::printf("- PlaylistBroadcaster: The destination_sdp_file parameter is missing from the Broadcaster description file.\n" );
+		numPreflightErrors++;
+	}
+	else
+	{	
+		if ( '/' ==sdpPath[0] || '\\' ==sdpPath[0])
+		{	::printf("- PlaylistBroadcaster: The destination_sdp_file must be a relative path in the movies directory.\n  (path: %s).\n", sdpPath);
+			numPreflightErrors++;
+		}
+	}
+
+	return numPreflightErrors;
+
+}
 
 static int PreflightSDPFileAccess( const char * sdpPath )
 {
@@ -946,10 +1503,9 @@ static int PreflightDestinationAddress( const char *destAddress )
 {
 	int 	numPreflightErrors = 0;
 
-	Assert( destAddress );
 
 	if ( !destAddress )
-	{	::printf("- PlaylistBroadcaster: Error, desitination_ip_address parameter missing from the Broadcaster description file.\n" );
+	{	::printf("- PlaylistBroadcaster: Error, desitination_ip_address parameter missing or incorrect in the Broadcaster description file.\n" );
 		numPreflightErrors++;
 	}
 	
@@ -1016,31 +1572,6 @@ static int PreflightReferenceMovieAccess( const char *refMoviePath )
 	}
 
 	return numPreflightErrors;
-}
-
-
-static void RegisterEventHandlers()
-{
-#ifndef __MACOS__	
-
-   	if ( ::signal(SIGTERM, SIG_IGN) != SIG_IGN) 
-    {	// from kill...
-		if ( ::signal(SIGTERM, SignalEventHandler ) == SIG_ERR )
-     	{	::printf( "- PlaylistBroadcaster: System error (%i).\n", (int)SIG_ERR );
-     	}
- 	}
-
-    if ( ::signal(SIGINT, SIG_IGN) != SIG_IGN) 
-    {	// ^C signal
-		if ( ::signal(SIGINT, SignalEventHandler )  == SIG_ERR  )
-    	{	::printf( "- PlaylistBroadcaster: System error (%i).\n", (int)SIG_ERR );
-     	}
-     	
-    }
-    
-#endif
-
-
 }
 
 
@@ -1128,11 +1659,19 @@ static void StopABroadcast( const char* arg )
 }
 
 
-static bool DoSDPGen( PLBroadcastDef *broadcastParms, bool preflight )
+static bool DoSDPGen( PLBroadcastDef *broadcastParms, bool preflight, bool overWriteSDP, bool generateNewSDP)
 {
 	int numSDPSetupErrors = 0;
 	bool sdpFileCreated = false;
 	
+	if (sAnnounceBroadcast)
+	{	numSDPSetupErrors += PreflightDestSDPFileAccess( broadcastParms->mDestSDPFile );
+		Assert(broadcastParms->mBasePort != NULL);
+		Assert(broadcastParms->mBasePort[0]!=0);
+		broadcastParms->mBasePort[0] = '0';//set to dynamic. ignore any defined.
+		broadcastParms->mBasePort[1] = 0;
+	}
+		
 	numSDPSetupErrors += PreflightSDPFileAccess( broadcastParms->mSDPFile );
 	
 	
@@ -1155,10 +1694,16 @@ static bool DoSDPGen( PLBroadcastDef *broadcastParms, bool preflight )
 		
 		if ( sdpGen )
 		{
+			sdpGen->KeepSDPTracks(false); // set this to keep a=control track ids if we are going to ANNOUNCE the sdp to the server.
+			sdpGen->AddIndexTracks(true); // set this if KeepTracks is false and to ANNOUNCE the sdp to the server.
 			sdpResult = sdpGen->Run( broadcastParms->mSDPReferenceMovie, broadcastParms->mSDPFile, 
 									  broadcastParms->mBasePort, broadcastParms->mDestAddress, 
-									  NULL, 0, 
-									  false );
+									  sSDPBuffer, maxSDPbuffSize, 
+									  overWriteSDP,  generateNewSDP,
+									  broadcastParms->mStartTime,
+									  broadcastParms->mEndTime,
+									  broadcastParms->mIsDynamic
+									  );
 		
 			sdpFileCreated =  sdpGen->fSDPFileCreated;
 			
@@ -1331,3 +1876,206 @@ static void ShowPicker(PlaylistPicker *picker)
 }
 
 #endif
+/* changed by emil@popwire.com (see relaod.txt for info) */
+bool FileCreateAndCheckAccess(char *theFileName){
+	FILE *theFile;
+
+
+#ifndef __Win32__
+	if(access(theFileName, F_OK)){
+		/* file does not exist  - create and set rights */
+		theFile = ::fopen(theFileName, "w+");
+		if(theFile){
+			/* make sure everybody has r/w access to file */
+			(void)::chmod(theFileName, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+			(void)::fclose(theFile);
+		}else return 1;
+	}else{
+		/* file exists - check rights */
+		if(access(theFileName, R_OK|W_OK))return 2;
+	}
+
+#else
+
+	theFile = ::fopen(theFileName,"a");
+
+	if (theFile) ::fclose(theFile);
+
+#endif
+
+
+	return 0;
+}
+
+static void PrintPlaylistElement(PLDoubleLinkedListNode<SimplePlayListElement> *node,void *file)
+{	
+	sElementCount ++;
+	if (sElementCount <= sMaxUpcomingListSize) 	
+	{	char* thePick = node->fElement->mElementName;
+		if (sSetupDirPath.EqualIgnoreCase(thePick, sSetupDirPath.Len) || '\\' == thePick[0] || '/' == thePick[0])
+			::fprintf((FILE*)file,"%s\n", thePick);
+		else
+			::fprintf((FILE*)file,"%s%s\n", sSetupDirPath.Ptr,thePick);
+	}
+}
+
+static void ShowPlaylistElements(PlaylistPicker *picker,FILE *file)
+{
+	if (sElementCount > sMaxUpcomingListSize) 	
+		return;
+		
+	UInt32	x;
+	for (x= 0;x<picker->GetNumBuckets();x++)
+	{	
+		picker->GetBucket(x)->ForEach(PrintPlaylistElement,file);
+	}
+}
+/* ***************************************************** */
+
+static void RegisterEventHandlers()
+{
+#ifdef  __Win32__
+	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) SignalEventHandler, true);
+	return;
+#endif
+
+#ifndef __Win32__	
+
+struct sigaction act;
+	
+#if defined(sun) || defined(i386) || defined(__powerpc__)
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
+	act.sa_handler = (void(*)(int))&SignalEventHandler;
+#else
+	act.sa_mask = 0;
+	act.sa_flags = 0;
+	act.sa_handler = (void(*)(...))&SignalEventHandler;
+#endif
+
+  	if ( ::signal(SIGTERM, SIG_IGN) != SIG_IGN) 
+    {	// from kill...
+		if ( ::sigaction(SIGTERM, &act, NULL) != 0 )
+     	{	::printf( "- PlaylistBroadcaster: System error (%i).\n", (int)SIG_ERR );
+     	}
+ 	}
+
+    if ( ::signal(SIGINT, SIG_IGN) != SIG_IGN) 
+    {	// ^C signal
+		if ( ::sigaction(SIGINT, &act, NULL)  != 0 )
+    	{	::printf( "- PlaylistBroadcaster: System error (%i).\n", (int)SIG_ERR );
+     	}
+     	
+    }
+    
+    if ( ::signal(SIGPIPE, SIG_IGN) != SIG_IGN) 
+    {	// broken pipe probably from a failed RTSP session (the server went down?)
+		if ( ::sigaction(SIGPIPE, &act, NULL)   != 0 )
+     	{	::printf( "- PlaylistBroadcaster: System error (%i).\n", (int)SIG_ERR );
+     	}
+     	
+    }
+ 
+    if ( ::signal(SIGHUP, SIG_IGN) != SIG_IGN) 
+    {	// broken pipe probably from a failed RTSP session (the server went down?)
+		if ( ::sigaction(SIGHUP, &act, NULL)  != 0)
+    	{	::printf( "- PlaylistBroadcaster: System error (%i).\n", (int)SIG_ERR );
+     	}
+     	
+    }
+    
+    
+#endif
+
+
+}
+
+/* ========================================================================
+ * Signal and error handler.
+ */
+static void RemoveFiles(PLBroadcastDef*	broadcastParms)
+{
+	if (broadcastParms != NULL)
+	{
+		if (broadcastParms->mStopFile != NULL)
+			remove(broadcastParms->mStopFile);
+		if (broadcastParms->mStopFile != NULL)
+			remove(broadcastParms->mReplaceFile);
+		if (broadcastParms->mStopFile != NULL)
+			remove(broadcastParms->mInsertFile);
+		if (broadcastParms->mStopFile != NULL)
+			remove(broadcastParms->mCurrentFile);
+		if (broadcastParms->mStopFile != NULL)
+			remove(broadcastParms->mUpcomingFile);	
+	}
+
+}
+/* ========================================================================
+ * Signal and error handler.
+ */
+static void SignalEventHandler( int signalID )
+{	
+
+  	if (sRTSPClientError != 0 && !sErrorEvaluted)
+  	{	EvalBroadcasterErr(sRTSPClientError);
+  		sErrorEvaluted = true;
+   	}
+  	else
+  	{	if (sBroadcasterSession != NULL && !sErrorEvaluted)
+		{	EvalBroadcasterErr(QTFileBroadcaster::eNetworkConnectionStopped);
+			sErrorEvaluted = true;
+		}
+  	}
+ 	//::printf( "signal %d caught(SignalEventHandler)\n", signalID );
+
+#if defined (__solaris__)
+	if (signalID == SIGPIPE && sPreflightTeardown)
+	{	//printf("SignalEventHandler SIGPIPE\n");
+		exit (-1);	
+	}
+#endif
+ 	
+
+#ifndef __Win32__
+	if (sBroadcasterSession != NULL)
+	{	
+
+		if (!sQuitImmediate)
+		{	sQuitImmediate = true;
+		}
+		return;	//we need to let the broadcaster session teardown and clean up
+	}
+
+	if ( sgTrackingSucceeded )
+	{	// give tracker scope so that it really does it's
+		// thing before "exit" is called.
+		BCasterTracker	tracker( sgTrackerFilePath );
+	
+		tracker.RemoveByProcessID( getpid() );
+		tracker.Save();
+	}
+	
+#endif	
+
+	if (!sQuitImmediate) // do once
+ 	{	
+		sQuitImmediate = true; // just in case we get called again
+
+#ifdef __Win32__
+
+ 		if (sBroadcasterSession && !sBroadcasterSession->IsDone())
+		{	sBroadcasterSession->TearDownNow();
+			OSThread::Sleep(1000);
+		}
+		
+		return;
+#endif		
+		
+		if (sgLogger)
+		{	sgLogger->LogInfo( "PlaylistBroadcaster stopped." );
+		}
+		printf( "\nPlaylistBroadcaster stopped.\n" ); 
+		RemoveFiles(sBroadcastParms);
+	}
+ 	::exit(-1);
+}

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		AdminElements.h
@@ -58,6 +58,11 @@
 void PRINT_STR(StrPtrLen *spl);
 void COPYBUFFER(char *dest,char *src,SInt8 size);
 
+void ElementNode_InitPtrArray();
+void ElementNode_InsertPtr(void *ptr, char * src);
+void ElementNode_RemovePtr(void *ptr, char * src);
+SInt32 ElementNode_CountPtrs();
+void ElementNode_ShowPtrs();
 
 class ClientSession {
 	public:
@@ -126,7 +131,7 @@ class ElementNode
 		UInt32 	GetMyIndex() 					{ Assert (fSelfPtr); return fSelfPtr->fIndex;			};
 		
 		UInt32 	GetMyAPI_Type() 				{ Assert (fSelfPtr); return fSelfPtr->fAPI_Type;		};
-		char*	GetMyAPI_TypeStr() 				{ Assert (fSelfPtr); return QTSS_GetTypeAsString(GetMyAPI_Type());	};
+        char*	GetMyAPI_TypeStr() 				{ Assert (fSelfPtr); char* theTypeString = NULL; (void)QTSS_TypeToTypeString(GetMyAPI_Type(), &theTypeString); return theTypeString;	};
 		UInt32 	GetMyFieldType() 				{ Assert (fSelfPtr); return fSelfPtr->fFieldType;		};
 		
 		char*	GetMyAccessData()				{ Assert (fSelfPtr); return fSelfPtr->fAccessData;			};
@@ -151,7 +156,7 @@ class ElementNode
 		UInt32 	GetAPI_ID(SInt32 index) 					{ return fFieldIDs[index].fAPI_ID; 			};
 		UInt32 	GetAttributeIndex(SInt32 index) 			{ return fFieldIDs[index].fIndex; 			};
 		UInt32 	GetAPI_Type(SInt32 index) 					{ return fFieldIDs[index].fAPI_Type;			};
-		char* 	GetAPI_TypeStr(SInt32 index) 				{ return QTSS_GetTypeAsString(GetAPI_Type(index));	};
+		char* 	GetAPI_TypeStr(SInt32 index) 				{ char* theTypeStr = NULL; (void)QTSS_TypeToTypeString(GetAPI_Type(index), &theTypeStr); return theTypeStr;	};
 		UInt32 	GetFieldType(SInt32 index) 					{ return fFieldIDs[index].fFieldType;		};
 		char*	GetAccessData(SInt32 index)					{ return fFieldIDs[index].fAccessData;		};
 		UInt32	GetAccessLen(SInt32 index)					{ return fFieldIDs[index].fAccessLen;			};
@@ -190,8 +195,7 @@ class ElementNode
 		
 		ElementDataFields	*GetElementFieldPtr(SInt32 index);
 		char 				*GetElementDataPtr(SInt32 index);
-		void				SetElementDataPtr(SInt32 index, char * data);
-		
+		void				SetElementDataPtr(SInt32 index, char * data, Bool16 isNode);
 		void				SetMyElementDataPtr(char * data) { fSelfDataPtr = data; }
 		char*				GetMyElementDataPtr() {	return fSelfDataPtr;	}
 		Bool16 				IsFiltered(SInt32 index,QueryURI *queryPtr);
@@ -289,12 +293,13 @@ class AdminClass : public ElementNode
 {
 	public:
 	QueryURI *fQueryPtr;
+	ElementNode *fNodePtr;
 	
 	void SetUpSingleElement(QueryURI *queryPtr, StrPtrLen *currentSegmentPtr,StrPtrLen *nextSegmentPtr, SInt32 index, QTSS_Initialize_Params *initParams);
 	void SetUpSingleNode(QueryURI *queryPtr,  StrPtrLen *currentSegmentPtr, StrPtrLen *nextSegmentPtr, SInt32 index, QTSS_Initialize_Params *initParams); 
 	void Initialize(QTSS_Initialize_Params *initParams, QueryURI *queryPtr); 
-	AdminClass():fQueryPtr(NULL) {};
-	
+	AdminClass():fQueryPtr(NULL), fNodePtr(NULL) {};
+	~AdminClass();
 	static ElementNode::ElementDataFields sAdminSelf[];
 	static ElementNode::ElementDataFields sAdminFieldIDs[];
 	enum 

@@ -4,7 +4,7 @@
  * MODIFIED: Orion Hodson
  *           Markus Germeier
  * 
- * Copyright (c) 1999-2000 University College London
+ * Copyright (c) 1999-2001 University College London
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -265,7 +265,6 @@ void mbus_lock_config_file(struct mbus_config *m)
 		perror("Unable to open mbus configuration file");
 		abort();
 	}
-	xfree(cfg_file);
 
 	/* We attempt to get a lock on the config file, blocking until  */
 	/* the lock can be obtained. The only time this should block is */
@@ -277,8 +276,14 @@ void mbus_lock_config_file(struct mbus_config *m)
 	l.l_len    = 0;
 	if (fcntl(m->cfgfd, F_SETLKW, &l) == -1) {
 		perror("Unable to lock mbus configuration file");
+		printf("The most likely reason for this error is that %s\n", cfg_file);
+		printf("is on an NFS filestore, and you have not correctly setup file locking. \n");
+		printf("Ask your system administrator to ensure that rpc.lockd and/or rpc.statd\n");
+		printf("are running. \n");
 		abort();
 	}
+
+	xfree(cfg_file);
 
 	if (fstat(m->cfgfd, &s) != 0) {
 		perror("Unable to stat config file\n");

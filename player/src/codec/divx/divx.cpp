@@ -304,3 +304,12 @@ int CDivxCodec::skip_frame (uint64_t ts)
   return (decode(ts, 0));
 }
 
+unsigned char CDivxCodec::get (void)
+{ 
+  return m_bytestream->get(); 
+}
+
+void CDivxCodec::bookmark (int val)
+{
+  m_bytestream->bookmark(val);
+}

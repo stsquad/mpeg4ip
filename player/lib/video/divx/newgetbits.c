@@ -128,7 +128,7 @@ void initbits (get_t get, bookmark_t book, void *userdata)
   m_uNumOfBitsInBuffer = 0;
 }
 
-void bookmark (int bSet)
+static void bookmark (int bSet)
 {
 
   if(bSet) {

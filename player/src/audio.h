@@ -28,10 +28,10 @@
 #define __AUDIO_H__ 1
 
 #include "systems.h"
-#include "player_session.h"
-
+#include <SDL.h>
 #define DECODE_BUFFERS_MAX 32
 
+class CPlayerSession;
 // states
 class CAudioSync {
  public:

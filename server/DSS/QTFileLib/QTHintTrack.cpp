@@ -1,38 +1,26 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
  *
- *
- * This file contains modifications of the Original Code as defined in
- * and that are subject to the Apple Public Source License Version 1.2
- * (the 'License'). You may not use this file expect in accordance with
- * the License. Please obtain a copy of the License at 
- * http://www.apple.com/publicsource and read it before using the file.
- *
- * Modifications are denoted by the comment "BEGIN MODIFICATION" and
- * "END MODIFICATION".
- * 
  */
-// $Id: QTHintTrack.cpp,v 1.4 2001/05/09 21:04:37 cahighlander Exp $
 //
 // QTHintTrack:
 //   The central point of control for a track in a QTFile.
@@ -43,11 +31,6 @@
 	
 	
 	added:
-
-inline QTTrack::ErrorCode	GetSamplePacketPtr( char ** samplePacketPtr, UInt32 sampleNumber
-							, UInt16 packetNumber, QTHintTrackRTPHeaderData	&hdrData,  QTHintTrack_HintTrackControlBlock & htcb);
-inline void	GetSamplePacketHeaderVars( char *samplePacketPtr, QTHintTrackRTPHeaderData &hdrData );
-	
 	
 	changed GetPacket to be more efficient in get RTP packets from the hint track
 	
@@ -156,17 +139,12 @@ QTHintTrack_HintTrackControlBlock::QTHintTrack_HintTrackControlBlock(QTFile_File
 	  fCurrentPacketNumber(0),
 	  fCurrentPacketPosition(0)
 {
-	fstscSTCB = NEW QTAtom_stsc_SampleTableControlBlock();
-	fsttsSTCB = NEW QTAtom_stts_SampleTableControlBlock();
-	
 	fMediaTrackSTSC_STCB = NULL;
  	fMediaTrackRefIndex = -2;
 }
 
 QTHintTrack_HintTrackControlBlock::~QTHintTrack_HintTrackControlBlock(void)
 {
-	delete fstscSTCB;
-	delete fsttsSTCB;
 	delete fMediaTrackSTSC_STCB;
 	delete []fCachedSample;
 	delete []fCachedHintTrackSample;
@@ -174,25 +152,11 @@ QTHintTrack_HintTrackControlBlock::~QTHintTrack_HintTrackControlBlock(void)
 	delete [] fRTPMetaInfoFieldArray;
 }
 
-void QTHintTrack_HintTrackControlBlock::Reset(Float64 inSeekTime)
+void QTHintTrack_HintTrackControlBlock::Reset()
 {
 	fSyncSampleCursor = 0;
-	
-	if (inSeekTime == 0)
-	{
-		fCurrentPacketNumber = 0;
-		fCurrentPacketPosition = 0;
-	}
-	else if (fRTPMetaInfoFieldArray != NULL)
-	{
-		//
-		// Argh. The only way to figure out the current packet position
-		// is to actually build all the packets. So call GetPacket in a loop
-		// until we get up to the right seek time!
-		//
-		// Only assert this if we actually are building RTP-Meta-Info packets though
-		Assert(0);//FIXME - Not implemented yet
-	}
+ 	fCurrentPacketNumber = 0;
+	fCurrentPacketPosition = 0;
 }
 
 
@@ -452,7 +416,7 @@ char * QTHintTrack::GetSDPFile(int * length)
 //
 
 
-void QTHintTrack::GetSamplePacketHeaderVars( char *samplePacketPtr, QTHintTrackRTPHeaderData &hdrData )
+void QTHintTrack::GetSamplePacketHeaderVars( char *samplePacketPtr,char *maxBuffPtr, QTHintTrackRTPHeaderData &hdrData )
 {
 	//
 	// Read in this (packetNumber) packet's header.
@@ -464,38 +428,63 @@ void QTHintTrack::GetSamplePacketHeaderVars( char *samplePacketPtr, QTHintTrackR
 	MOVE_WORD( hdrData.dataEntryCount, samplePacketPtr + 10);
 	hdrData.dataEntryCount = ntohs(hdrData.dataEntryCount);
 
-	// BEGIN MODIFICATION dmackie@cisco.com 12/19/00 - handle RTP timestamp offset
-	if( hdrData.hintFlags & 0x4 )
+	//
+	// 0 out our tlv fields
+	hdrData.tlvTimestampOffset = 0;
+	
+	if( hdrData.hintFlags & 0x4 ) 
 	{ 	// Extra Information TLV is present
-		char* tlvPtr = samplePacketPtr + 12;
-		UInt32 tlvPos = 4;
-
-		MOVE_LONG_WORD(hdrData.tlvSize, tlvPtr);
+		MOVE_LONG_WORD( hdrData.tlvSize, samplePacketPtr + 12);
 		hdrData.tlvSize = ntohl(hdrData.tlvSize);
+		//printf("QTHintTrack::GetSamplePacketHeaderVars tlvSize=%lu\n",hdrData.tlvSize);
+		char* tlvParser = samplePacketPtr + 16;
+		char* tlvEnd = tlvParser + hdrData.tlvSize;
 
-		while (tlvPos < hdrData.tlvSize)
+		WarnV(tlvParser < maxBuffPtr, "incorrect tlv data: ignoring"); // error tlv-start past buffer
+		WarnV(tlvEnd < maxBuffPtr, "incorrect tlv data: ignoring"); // error tlv-end past buffer
+		WarnV(tlvEnd >= samplePacketPtr, "incorrect tlv data: ignoring"); // error tlv-end before start of sample in buffer
+		WarnV(tlvParser >= samplePacketPtr, "incorrect tlv data: ignoring"); // error tlv-start before start of sample in buffer
+		
+		//printf("QTHintTrack::GetSamplePacketHeaderVars TLV data  ptr tlvEnd=%ld tlvParser=%ld maxBuffPtr=%ld\n",(SInt32) tlvEnd, (SInt32) tlvParser, (SInt32) maxBuffPtr);
+		if (tlvEnd >= maxBuffPtr || tlvParser >= maxBuffPtr || tlvEnd < samplePacketPtr || tlvParser < samplePacketPtr)
+		{	//printf("TLVSize bad ptr tlvEnd=%ld tlvParser=%ld maxBuffPtr=%ld\n",(SInt32) tlvEnd, (SInt32) tlvParser, (SInt32) maxBuffPtr);
+			hdrData.tlvSize = 0;
+			hdrData.hintFlags = 0;
+			hdrData.tlvTimestampOffset = 0;
+			tlvEnd = tlvParser = 0;
+		}
+		
+		//
+		// if there is a TLV, parse out the 1 field we currently know about, the 'rtpo' field
+		while (tlvParser < tlvEnd)
 		{
-			UInt32 tlvEntrySize;
-			MOVE_LONG_WORD(tlvEntrySize, tlvPtr + tlvPos);
-			tlvEntrySize = ntohl(tlvEntrySize);
-
-			if (tlvPtr[tlvPos + 4] == 'r' && tlvPtr[tlvPos + 5] == 't' &&
-				tlvPtr[tlvPos + 6] == 'p' && tlvPtr[tlvPos + 7] == 'o')
-			{
-				MOVE_LONG_WORD(hdrData.rtpTimestampOffset, 
-					tlvPtr + tlvPos + 4 + 4);
-				hdrData.rtpTimestampOffset = ntohl(hdrData.rtpTimestampOffset);
+			UInt32* theTypeP = (UInt32*)(tlvParser + 4);
+			Assert( ((char*) theTypeP) + 4 < maxBuffPtr);
+			Assert( (char*) theTypeP >= samplePacketPtr);
+			if ( ((char*) theTypeP) + 4 > maxBuffPtr || ((char*)theTypeP) < samplePacketPtr)
+			{	//printf("QTHintTrack::GetSamplePacketHeaderVars tlvParser bad ptr\n");
+				hdrData.tlvSize = 0;
+				hdrData.hintFlags = 0;
+				hdrData.tlvTimestampOffset = 0;
+				break;
 			}
 			
-			tlvPos += tlvEntrySize;
+			if (ntohl(*theTypeP) == FOUR_CHARS_TO_INT( 'r', 't', 'p', 'o' )) //'rtpo'
+			{
+				//
+				// This is the RTP timestamp TLV. Record it
+				hdrData.tlvTimestampOffset = ntohl(*(theTypeP + 1));
+			}
+			
+			//
+			// Skip onto the next TLV entry
+			tlvParser += ntohl(*(UInt32*)tlvParser);
 		}
 	} 
 	else
 	{
 		hdrData.tlvSize = 0;
-		hdrData.rtpTimestampOffset = 0;
 	}
-	// END MODIFICATION dmackie@cisco.com 12/19/00
 	MOVE_LONG_WORD( hdrData.relativePacketTransmissionTime, samplePacketPtr );
 	
 	hdrData.relativePacketTransmissionTime = ntohl(hdrData.relativePacketTransmissionTime);
@@ -531,10 +520,11 @@ QTTrack::ErrorCode QTHintTrack::GetSamplePacketPtr( char ** samplePacketPtr, UIn
 		
 		//if ( fPointerToNextPacket < htcb.fCachedSample )
 		Assert( htcb.fPointerToNextPacket >= htcb.fCachedSample );
-
-		Assert( htcb.fPointerToNextPacket < (char*)(htcb.fCachedSample + htcb.fCachedSampleLength) );
+		
+		char* maxBuffPtr = (char*)(htcb.fCachedSample + htcb.fCachedSampleLength);
+		Assert( htcb.fPointerToNextPacket < maxBuffPtr );
 	
-		this->GetSamplePacketHeaderVars( htcb.fPointerToNextPacket, hdrData );
+		this->GetSamplePacketHeaderVars( htcb.fPointerToNextPacket,maxBuffPtr,  hdrData );
 		
 		//
 		// adjust fPointerToNextPacket past current header data
@@ -567,7 +557,7 @@ QTTrack::ErrorCode QTHintTrack::GetSamplePacketPtr( char ** samplePacketPtr, UIn
 		
 		pSampleBuffer = htcb.fCachedSample;
 		
-		pSampleBufferEnd = ( pSampleBuffer + htcb.fCachedSampleLength );
+		pSampleBufferEnd = (char*) ( pSampleBuffer + htcb.fCachedSampleLength );
 		
 
 
@@ -578,7 +568,7 @@ QTTrack::ErrorCode QTHintTrack::GetSamplePacketPtr( char ** samplePacketPtr, UIn
 		for( UInt16 curPacket = 0; curPacket != packetNumber; curPacket++ ) 
 		{
 		
-			this->GetSamplePacketHeaderVars( pSampleBuffer, hdrData );
+			this->GetSamplePacketHeaderVars( pSampleBuffer,pSampleBufferEnd, hdrData );
 			
 			//
 			// Adjust (and check) pSampleBuffer)
@@ -620,15 +610,16 @@ Bool16 QTHintTrack::GetSamplePtr(UInt32 sampleNumber, char ** samplePtr, UInt32 
 {
 	// General vars
 	UInt32		newSampleLength;
-	QTHintTrack_HintTrackControlBlock tempHTCB;
+	Assert(htcb != NULL);
+	//QTHintTrack_HintTrackControlBlock tempHTCB;
 	
 	//
 	// Use the default htcb if we weren't given one.
-	if( htcb == NULL )
-	{	
+	//if( htcb == NULL )
+	//{	
 //		printf("QTHintTrack::GetPacket htcb == NULL \n");
-		htcb = &tempHTCB;
-	}
+	//	htcb = &tempHTCB;
+	//}
 	//
 	// See if this sample is in our cache, returning it out of the cache if it
 	// is, fetching and caching it if it is not.
@@ -649,7 +640,7 @@ Bool16 QTHintTrack::GetSamplePtr(UInt32 sampleNumber, char ** samplePtr, UInt32 
 	UInt32		sampleDescriptionIndex;
 	UInt64		sampleOffset;
 	
-	if( !this->GetSampleInfo(sampleNumber, &newSampleLength, &sampleOffset, &sampleDescriptionIndex, htcb->fstscSTCB) )
+	if( !this->GetSampleInfo(sampleNumber, &newSampleLength, &sampleOffset, &sampleDescriptionIndex, &htcb->fstscSTCB) )
 		return false;
 	
 	//
@@ -877,7 +868,7 @@ QTTrack::ErrorCode QTHintTrack::GetSampleData( QTHintTrack_HintTrackControlBlock
 			return errNoError;
 		}
 
-		mediaTrackSTSC_STCBPtr = htcb->fstscSTCB;
+		mediaTrackSTSC_STCBPtr = &htcb->fstscSTCB;
 		if( !track->GetSampleInfo(mediaSampleNumber,&sampleLength, &dataOffset, &sampleDescriptionIndex, mediaTrackSTSC_STCBPtr ) )
 			return errInvalidQuickTimeFile;
 
@@ -1028,8 +1019,15 @@ QTTrack::ErrorCode QTHintTrack::GetSampleData( QTHintTrack_HintTrackControlBlock
 			    readLength = remainingLength; // set the read to what is left	       	
 			    chunkNumber++; // The rest of the sample is in the next N chunks 
 			    if( !track->ChunkOffset(chunkNumber, &chunkOffset) ) // Get the Next chunk location
-					return (errInvalidQuickTimeFile); 
-							
+			    {	
+			    	// It seems some movies have sample lengths that overstep the end of the last chunk.
+			    	// if that happens, truncate?
+			    	// Below is a commented out work around for bad offsets. It is commented out because if it happens we should report something is wrong with the file.
+			    	// remainingLength = 0;
+			    	// break;
+			    	return (errInvalidQuickTimeFile); 
+				}
+											
 				dataOffset = chunkOffset;  	 // the location of the data starting at the beginning of the chunk				
 		 		if( !track->GetSizeOfSamplesInChunk(chunkNumber,  (UInt32 *) &sizeOfSamplesInChunk , NULL , NULL , mediaTrackSTSC_STCBPtr) )
 		 			return (errInvalidQuickTimeFile);
@@ -1194,22 +1192,23 @@ QTTrack::ErrorCode QTHintTrack::GetPacket(UInt32 sampleNumber, UInt16 packetNumb
 	char*		pPacketOutBuf;
 	UInt32		packetSize;
 	QTTrack::ErrorCode	err = errNoError;
-	QTHintTrack_HintTrackControlBlock tempHTCB;
+	//QTHintTrack_HintTrackControlBlock tempHTCB;
+	Assert(htcb != NULL);
 	
 	DEEP_DEBUG_PRINT(("QTHintTrack::GetPacket - Building packet #%u in sample %lu.\n", packetNumber, sampleNumber));
 
 	//
 	// Use the default htcb if we weren't given one.
-	if( htcb == NULL )
-	{
+	//if( htcb == NULL )
+	//{
 //		printf("QTHintTrack::GetPacket htcb == NULL \n");
-		htcb = &tempHTCB;
-	}
+	//	htcb = &tempHTCB;
+	//}
 	
 		
 	//
 	// Get the RTP timestamp for this sample.
-	if( !this->GetSampleMediaTime(sampleNumber, &mediaTime, htcb->fsttsSTCB) )
+	if( !this->GetSampleMediaTime(sampleNumber, &mediaTime, &htcb->fsttsSTCB) )
 		return errInvalidQuickTimeFile;
 
 	if( fRTPTimescale == this->GetTimeScale() )
@@ -1238,8 +1237,6 @@ QTTrack::ErrorCode QTHintTrack::GetPacket(UInt32 sampleNumber, UInt16 packetNumb
 	if ( err != errNoError )
 		return err;
 		
-	// BEGIN MODIFICATION dmackie@cisco.com 12/19/00 - added RTP timestamp offset 
-	rtpTimestamp += hdrData.rtpTimestampOffset;
 	
 	*transmitTime =  ( mediaTime * fMediaHeaderAtom->GetTimeScaleRecip() )
 					+ ( hdrData.relativePacketTransmissionTime * fMediaHeaderAtom->GetTimeScaleRecip() );
@@ -1294,7 +1291,9 @@ QTTrack::ErrorCode QTHintTrack::GetPacket(UInt32 sampleNumber, UInt16 packetNumb
 	COPY_WORD(pPacketOutBuf, &tempInt16);
 	pPacketOutBuf += 2;
 
-	tempInt32 = htonl(rtpTimestamp);
+	tempInt32 = rtpTimestamp;
+	tempInt32 += hdrData.tlvTimestampOffset;
+	tempInt32 = htonl(tempInt32);
 	COPY_LONG_WORD(pPacketOutBuf, &tempInt32);
 	pPacketOutBuf += 4;
 
@@ -1458,14 +1457,15 @@ QTTrack::ErrorCode QTHintTrack::GetPacket(UInt32 sampleNumber, UInt16 packetNumb
 	*length = packetSize;
 	
 	//
+	// Always track packet number and packet position.
+	UInt16 thePacketDataLen = pPacketOutBuf - endOfMetaInfo;
+	htcb->fCurrentPacketNumber++;
+	htcb->fCurrentPacketPosition += thePacketDataLen;
+		
+	//
 	// If this is RTP-Meta-Info, well then update the fields we haven't updated yet!!!!!!!
 	if (htcb->fRTPMetaInfoFieldArray != NULL)
 	{
-		UInt16 thePacketDataLen = pPacketOutBuf - endOfMetaInfo;
-
-		htcb->fCurrentPacketNumber++;
-		htcb->fCurrentPacketPosition += thePacketDataLen;
-		
 		//
 		// If this is an RTP-Meta-Info packet, and there is no 'md' field, we shouldn't
 		// send the media data in the packet, so strip it off.

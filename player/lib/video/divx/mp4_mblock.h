@@ -150,7 +150,10 @@ static VLCtabMb MVtab2[] =
 
 /*** *** ***/
 
-extern int macroblock();
-extern int block();
-extern int blockIntra();
-extern int blockInter();
+extern int macroblock(void);
+
+#include "mp4_block.h"
+
+/* from mp4_picture.c */
+void addblockIntra(int comp, int bx, int by);
+void addblockInter(int comp, int bx, int by);

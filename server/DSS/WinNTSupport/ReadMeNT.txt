@@ -1,4 +1,4 @@
-Darwin Streaming Server on Windows NT Server and Windows 2000 Server
+Darwin Streaming Server 3 on Windows NT Server and Windows 2000 Server
 
 
 Installing the server package
@@ -9,7 +9,7 @@ named "Install.bat". Double-click this file to install the server and its
 components on the server machine.
 
 
-The Install script will create the following diretory:
+The Install script will create the following directory:
 
 c:\Program Files\Darwin Streaming Server\
 
@@ -20,8 +20,10 @@ DarwinStreamingServer.exe	- Server executable
 PlaylistBroadcaster.exe		- PlaylistBroadcaster executable
 qtpasswd.exe				- Command-line utility for generating
 				  				password files for access control
-SpamPro.exe					- Command-line program for stress-testing 
+StreamingLoadTool.exe		- Command-line program for stress-testing 
 								the Streaming Server
+streamingloadtool.cfg		- Sample configuration file for use
+								with StreamingLoadTool.exe
 streamingadminserver.pl		- Admin Server that is used for administering 
 								the Streaming Server
 streamingserver.cfg 		- Default server configuration file

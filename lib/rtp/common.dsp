@@ -138,6 +138,10 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\asarray.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\base64.c
 # End Source File
 # Begin Source File
@@ -246,6 +250,14 @@ SOURCE=.\qfDES.c
 # End Source File
 # Begin Source File
 
+SOURCE=".\rijndael-alg-fst.c"
+# End Source File
+# Begin Source File
+
+SOURCE=".\rijndael-api-fst.c"
+# End Source File
+# Begin Source File
+
 SOURCE=.\rtp.c
 # End Source File
 # Begin Source File
@@ -258,7 +270,27 @@ SOURCE=.\util.c
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\acconfig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\addrinfo.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\addrsize.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\asarray.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\base64.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\bittypes.h
 # End Source File
 # Begin Source File
 
@@ -266,7 +298,7 @@ SOURCE=.\btree.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\config_unix.h
+SOURCE=.\cdecl_ext.h
 # End Source File
 # Begin Source File
 
@@ -338,7 +370,47 @@ SOURCE=.\qfDES.h
 # End Source File
 # Begin Source File
 
+SOURCE=".\rijndael-alg-fst.h"
+# End Source File
+# Begin Source File
+
+SOURCE=".\rijndael-api-fst.h"
+# End Source File
+# Begin Source File
+
 SOURCE=.\rtp.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\sockstorage.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\test_base64.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\test_des.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\test_mbus_addr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\test_mbus_parser.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\test_md5.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\test_memory.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\test_net_udp.h
 # End Source File
 # Begin Source File
 

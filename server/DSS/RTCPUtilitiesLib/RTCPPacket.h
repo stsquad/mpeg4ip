@@ -1,25 +1,25 @@
  /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTCPPacket.h
@@ -68,7 +68,7 @@ public:
 	inline int GetReportCount();
 	inline UInt8 GetPacketType();
 	inline UInt16 GetPacketLength();	//in 32-bit words
-	inline UInt32 GetPacketSourceID();
+	inline UInt32 GetPacketSSRC();
 	inline SInt16 GetHeader();
 	UInt8* GetPacketBuffer() { return fReceiverPacketBuffer; }
 	
@@ -216,7 +216,7 @@ inline UInt16 RTCPPacket::GetPacketLength()
 	return (UInt16) ( ntohl(*(UInt32*)&fReceiverPacketBuffer[kPacketLengthOffset]) & kPacketLengthMask);
 }
 
-inline UInt32 RTCPPacket::GetPacketSourceID()
+inline UInt32 RTCPPacket::GetPacketSSRC()
 {
 	return (UInt32) ntohl(*(UInt32*)&fReceiverPacketBuffer[kPacketSourceIDOffset]) ;
 }

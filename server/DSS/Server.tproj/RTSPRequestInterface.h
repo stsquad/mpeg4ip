@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTSPRequestInterface.h
@@ -45,7 +45,7 @@
 #include "RTSPResponseStream.h"
 #include "RTSPProtocol.h"
 #include "QTSSMessages.h"
-
+#include "QTSSUserProfile.h"
 
 
 class RTSPRequestInterface : public QTSSDictionary
@@ -87,6 +87,7 @@ class RTSPRequestInterface : public QTSSDictionary
 
 		void 	AppendDateAndExpires();
 		void	AppendSessionHeaderWithTimeout( StrPtrLen* inSessionID, StrPtrLen* inTimeout );
+		void 	AppendRetransmitHeader(UInt32 inAckTimeout);
 
 		// MODIFIERS
 		
@@ -151,7 +152,6 @@ class RTSPRequestInterface : public QTSSDictionary
 		UInt16						GetTtl()			{ return fTtl; }
 		QTSS_RTPTransportType		GetTransportType()	{ return fTransportType; }
 		UInt32						GetWindowSize()		{ return fWindowSize; }
-		UInt32						GetAckTimeout()		{ return fAckTimeout; }
 		
 			
 		Bool16						HasResponseBeenSent()
@@ -162,7 +162,29 @@ class RTSPRequestInterface : public QTSSDictionary
 		
 		Bool16						GetAllowed()				{ return fAllowed; }
 		void						SetAllowed(Bool16 allowed)	{ fAllowed = allowed;}
+		
+		QTSS_ActionFlags			GetAction()				{ return fAction; }
+		void						SetAction(QTSS_ActionFlags action)	{ fAction = action;}
 
+		Bool16						IsPushRequest()				{ return (fTransportMode == qtssRTPTransportModeReceive) ? true : false; }
+		UInt16						GetSetUpServerPort()		{ return fSetUpServerPort;}
+		QTSS_RTPTransportMode		GetTransportMode()			{ return fTransportMode; }
+		
+		QTSS_AuthScheme				GetAuthScheme()				{  return fAuthScheme; }
+		void						SetAuthScheme(QTSS_AuthScheme scheme)	{ fAuthScheme = scheme;}
+		StrPtrLen*					GetAuthRealm()				{ return &fAuthRealm; }
+		StrPtrLen*					GetAuthNonce()				{ return &fAuthNonce; }
+		StrPtrLen*					GetAuthUri()				{ return &fAuthUri; }
+		UInt32						GetAuthQop()				{ return fAuthQop; }
+		StrPtrLen*					GetAuthNonceCount()			{ return &fAuthNonceCount; }
+		StrPtrLen*					GetAuthCNonce()				{ return &fAuthCNonce; }
+		StrPtrLen*					GetAuthResponse()			{ return &fAuthResponse; }							
+		StrPtrLen*					GetAuthOpaque()				{ return &fAuthOpaque; }
+		QTSSUserProfile*			GetUserProfile()			{ return fUserProfilePtr; }
+		
+		Bool16						GetStale()					{ return fStale; }
+		void						SetStale(Bool16 stale)		{ fStale = stale; }
+		
 	protected:
 
 		//ALL THIS STUFF HERE IS SETUP BY RTSPREQUEST object (derived)
@@ -195,6 +217,7 @@ class RTSPRequestInterface : public QTSSDictionary
 		Float32						fSpeed;
 		Float32						fLateTolerance;
 		StrPtrLen					fLateToleranceStr;
+		Float32						fPrebufferAmt;
 		
 		char*						fFullPath;
 		StrPtrLen					fFirstTransport;
@@ -204,7 +227,7 @@ class RTSPRequestInterface : public QTSSDictionary
 		//
 		// For reliable UDP
 		UInt32						fWindowSize;
-		UInt32						fAckTimeout;
+		StrPtrLen					fWindowSizeStr;
 
 		//Because of URL decoding issues, we need to make a copy of the file path.
 		//Here is a buffer for it.
@@ -215,7 +238,25 @@ class RTSPRequestInterface : public QTSSDictionary
 		QTSSDictionary				fHeaderDictionary;
 		
 		Bool16						fAllowed;
-
+		QTSS_RTPTransportMode		fTransportMode;
+		UInt16						fSetUpServerPort;			//send this back as the server_port if is SETUP request
+	
+		QTSS_ActionFlags			fAction; 	// The action that will be performed for this request
+												// Set to a combination of QTSS_ActionFlags 
+		
+		QTSS_AuthScheme				fAuthScheme;
+		StrPtrLen					fAuthRealm;
+		StrPtrLen					fAuthNonce;
+		StrPtrLen					fAuthUri;
+		UInt32						fAuthQop;
+		StrPtrLen					fAuthNonceCount;
+		StrPtrLen					fAuthCNonce;
+		StrPtrLen					fAuthResponse;							
+		StrPtrLen					fAuthOpaque;
+		QTSSUserProfile				fUserProfile;
+		QTSSUserProfile*			fUserProfilePtr;
+		Bool16						fStale;
+		
 	private:
 
 		RTSPSessionInterface*	fSession;
@@ -235,11 +276,11 @@ class RTSPRequestInterface : public QTSSDictionary
 												RTSPProtocol::RTSPVersion version);
 
 		//Individual param retrieval functions
-		static Bool16 		GetAbsTruncatedPath(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 		GetTruncatedPath(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 		GetFileName(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 		GetFileDigit(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 		GetRealStatusCode(QTSS_FunctionParams* funcParamsPtr);
+		static void* 		GetAbsTruncatedPath(QTSSDictionary* inRequest, UInt32* outLen);
+		static void* 		GetTruncatedPath(QTSSDictionary* inRequest, UInt32* outLen);
+		static void* 		GetFileName(QTSSDictionary* inRequest, UInt32* outLen);
+		static void* 		GetFileDigit(QTSSDictionary* inRequest, UInt32* outLen);
+		static void* 		GetRealStatusCode(QTSSDictionary* inRequest, UInt32* outLen);
 
 
 		//optimized preformatted response header strings

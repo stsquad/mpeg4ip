@@ -17,8 +17,10 @@ libmp4player_la_LDFLAGS = -static
 
 if USE_MMX
 EXTRA_libmp4player_la_SOURCES = frame_doubler_mmx.asm
+libmp4player_la_LIBADD = frame_doubler_mmx.lo
 else
 EXTRA_libmp4player_la_SOURCES = frame_doubler.cpp
+libmp4player_la_LIBADD = frame_doubler.lo
 endif
 
 libmp4playerutils_la_SOURCES = \
@@ -45,8 +47,7 @@ libmp4player_la_SOURCES = \
 	qtime_file.cpp \
 	rtp_bytestream.cpp \
 	sync.cpp \
-	video.cpp \
-	$(EXTRA_libmp4player_la_SOURCES)
+	video.cpp 
 
 if NO_GLIB_GTK
 PROG_E1 =
@@ -71,9 +72,9 @@ movplayer_SOURCES = player_util.c \
 
 INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@ @X_CFLAGS@
 
-AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wmissing-prototypes 
+AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@
 
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
 mp4player_LDADD = \
 	-lm \

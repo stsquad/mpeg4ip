@@ -30,8 +30,7 @@
 #include "media_utils.h"
 #include "audio.h"
 #include "video.h"
-#include <rtp/memory.h>
-
+#include "rtp_bytestream.h"
 //#define DEBUG_DECODE 1
 //#define DEBUG_DECODE_MSGS 1
 
@@ -87,6 +86,7 @@ int CPlayerMedia::decode_thread (void)
   int avg_cnt = 0;
 #endif
   int thread_stop = 0, decoding = 0;
+  uint64_t decode_skipped_frames = 0;
 
   while (thread_stop == 0) {
     // waiting here for decoding or thread stop
@@ -177,28 +177,64 @@ int CPlayerMedia::decode_thread (void)
       // Tell bytestream we're starting the next frame - they'll give us
       // the time.
       ourtime = m_byte_stream->start_next_frame();
-#if 0
+      /*
+       * If we're decoding video, see if we're playing - if so, check
+       * if we've fallen significantly behind the audio
+       */
       if (is_video() &&
 	  (m_parent->get_session_state() == SESSION_PLAYING)) {
 	uint64_t current_time = m_parent->get_playing_time();
 	if (current_time >= ourtime) {
+#ifdef DEBUG_DECODE
 	  player_debug_message("Candidate for skip decode %llu our %llu", 
 			       current_time, ourtime);
+#endif
+	  // If the bytestream can skip ahead, let's do so
 	  if (m_byte_stream->can_skip_frame() != 0) {
-	    uint64_t diff = 0;
+	    int ret;
+	    int hassync;
+	    int count;
+	    current_time += 200; 
+	    count = 0;
+	    // Skip up to the current time + 200 msec
 	    do {
-	      ourtime = m_byte_stream->start_next_frame();
-	      if (ourtime > current_time) diff = ourtime - current_time;
-	    } while (!m_byte_stream->eof() && 
-		     diff < 500LLU);
-	    if (m_byte_stream->eof()) continue;
-	    player_debug_message("Skipping ahead to %llu", ourtime);
+	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync);
+	      decode_skipped_frames++;
+	    } while (ret != 0 &&
+		     !m_byte_stream->eof() && 
+		     current_time > ourtime);
+	    if (m_byte_stream->eof() || ret == 0) continue;
+#ifdef DEBUG_DECODE
+	    player_debug_message("Matched ahead to %llu", ourtime);
+#endif
+	    /*
+	     * Ooh - fun - try to match to the next sync value - if not, 
+	     * 15 frames
+	     */
+	    do {
+	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync);
+	      if (hassync < 0) {
+		uint64_t diff = ourtime - current_time;
+		if (diff > (2 * C_LLU)) {
+		  hassync = 1;
+		}
+	      }
+	      decode_skipped_frames++;
+	      count++;
+	    } while (ret != 0 &&
+		     hassync <= 0 &&
+		     count < 30 &&
+		     !m_byte_stream->eof());
+	    if (m_byte_stream->eof() || ret == 0) continue;
+#ifdef DEBUG_DECODE
+	    player_debug_message("Matched ahead - count %d, sync %d time %llu",
+				 count, hassync, ourtime);
+#endif
 	  }
 	}
       }
-#endif
 #ifdef DEBUG_DECODE
-      player_debug_message("Decoding %c frame " LLX, m_is_video ? 'v' : 'a', ou2rtime);
+      player_debug_message("Decoding %c frame " LLX, m_is_video ? 'v' : 'a', ourtime);
 #endif
 #ifdef TIME_DECODE
       clock_t start, end;
@@ -228,6 +264,9 @@ int CPlayerMedia::decode_thread (void)
 			 avg / avg_cnt,
 			 max);
 #endif
+  if (m_is_video)
+    player_debug_message("Video decoder skipped "LLU" frames", 
+			 decode_skipped_frames);
   delete codec;
   return (0);
 }

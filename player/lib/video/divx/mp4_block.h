@@ -32,4 +32,7 @@
 #ifndef _MP4_BLOCK_H_
 #define _MP4_BLOCK_H_
 
+int block(int block_num, int coded);
+int blockIntra(int block_num, int coded);
+int blockInter(int block_num, int coded);
 #endif // _MP4_BLOCK_H_

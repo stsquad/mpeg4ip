@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
-
+ *
+ */
+ /*
 	Contains:	Object store for RTSP server preferences.
 	
 	
@@ -55,9 +56,6 @@ class QTSServerPrefs : public QTSSPrefs
 		
 		//Individual accessor methods for preferences.
 		
-		//this may return INADDR_ANY
-		UInt32	GetRTSPIPAddress() 						{ return fIPAddress; }
-		
 		//Amount of idle time after which respective protocol sessions are timed out
 		//(stored in seconds)
 		
@@ -80,6 +78,13 @@ class QTSServerPrefs : public QTSSPrefs
 		SInt32	GetTCPAudioDelayToleranceInMSec()		{ return fTCPAudioDelayToleranceInMSec;   }
 		SInt32	GetTCPThickIntervalInSec()				{ return fTCPThickIntervalInSec;   }
 		
+		// Thinning algorithm parameters
+		SInt32	GetDropAllPacketsTimeInMsec()			{ return fDropAllPacketsTimeInMsec; }
+		SInt32	GetThinAllTheWayTimeInMsec()			{ return fThinAllTheWayTimeInMsec; }
+		SInt32	GetOptimalDelayTimeInMsec()				{ return fOptimalDelayInMsec; }
+		SInt32	GetStartThickingTimeInMsec()			{ return fStartThickingTimeInMsec; }
+		UInt32	GetQualityCheckIntervalInMsec()			{ return fQualityCheckIntervalInMsec; }
+				
 		// for tcp buffer size scaling
 		UInt32	GetMinTCPBufferSizeInBytes()			{ return fMinTCPBufferSizeInBytes; }
 		UInt32	GetMaxTCPBufferSizeInBytes()			{ return fMaxTCPBufferSizeInBytes; }
@@ -109,18 +114,20 @@ class QTSServerPrefs : public QTSSPrefs
 		
 		//
 		// For UDP retransmits
+		UInt32	IsReliableUDPEnabled()			{ return fReliableUDP; }
 		UInt32	GetMaxRetransmitDelayInMsec()	{ return fMaxRetransDelayInMsec; }
-		UInt32	GetDefaultWindowSizeInK()		{ return fDefaultWindowSizeInK; }
 		Bool16	IsAckLoggingEnabled()			{ return fIsAckLoggingEnabled; }
 		UInt32	GetRTCPPollIntervalInMsec()		{ return fRTCPPollIntervalInMsec; }
 		UInt32	GetRTCPSocketRcvBufSizeinK()	{ return fRTCPSocketRcvBufSizeInK; }
+		UInt32	GetOverbufferBucketIntervalInMsec(){ return fOverbufferBucketIntervalInMsec; }
+		UInt32	GetMaxSendAheadTimeInSecs()		{ return fMaxSendAheadTimeInSecs; }
 		Bool16	IsSlowStartEnabled()			{ return fIsSlowStartEnabled; }
-		Bool16	IsReliableUDPEnabled()			{ return fIsReliableUDPEnabled; }
-		UInt32	GetMaxOverBufferTimeInSec()		{ return fMaxOverbufferTime; }
-		UInt32	GetRTPPacketDropPercent()		{ return fRTPPacketDropPct; }
-		Bool16	ShareReliableRTPWindowStats()	{ return fShareWindowStats; }
+		Bool16	GetDefaultWindowSizeInK()		{ return fDefaultWindowSizeInK; }
+		Bool16	GetReliableUDPPrintfsEnabled()	{ return fReliableUDPPrintfs; }
 
-
+		//
+		// Optionally require that reliable UDP content be in certain folders
+		Bool16 IsPathInsideReliableUDPDir(StrPtrLen* inPath);
 
 		// Movie folder pref. If the path fits inside the buffer provided,
 		// the path is copied into that buffer. Otherwise, a new buffer is allocated
@@ -130,7 +137,7 @@ class QTSServerPrefs : public QTSSPrefs
 		//
 		// Transport addr pref. Caller must provide a buffer big enough for an IP addr
 		void	GetTransportSrcAddr(StrPtrLen* ioBuf);
-		
+				
 		// String preferences. Note that the pointers returned here is allocated
 		// memory that you must delete!
 		
@@ -145,14 +152,17 @@ class QTSServerPrefs : public QTSSPrefs
 		char*	GetAuthorizationRealm()
 			{ return this->GetStringPref(qtssPrefsDefaultAuthorizationRealm); }
 
-		char*	GetPidFileName()
-			{ return this->GetStringPref(qtssPrefsPidFileName); }
 		char*	GetRunUserName()
 			{ return this->GetStringPref(qtssPrefsRunUserName); }
 		char*	GetRunGroupName()
 			{ return this->GetStringPref(qtssPrefsRunGroupName); }
 
 
+		Bool16	AutoDeleteSDPFiles()		{ return fauto_delete_sdp_files; }
+		QTSS_AuthScheme GetAuthScheme()		{ return fAuthScheme; }
+		
+		UInt32 DeleteSDPFilesInterval()		{ return fsdp_file_delete_interval_seconds; }
+		
 	private:
 
 		UInt32 		fRTSPTimeoutInSecs;
@@ -164,7 +174,6 @@ class QTSServerPrefs : public QTSSPrefs
 		SInt32 	fMaximumConnections;
 		SInt32	fMaxBandwidthInKBits;
 		
-		UInt32	fIPAddress;
 		Bool16	fBreakOnAssert;
 		Bool16	fAutoRestart;
 		UInt32	fTBUpdateTimeInSecs;
@@ -183,6 +192,12 @@ class QTSServerPrefs : public QTSSPrefs
 		SInt32	fTCPVideoDelayToleranceInMSec;
 		SInt32	fTCPAudioDelayToleranceInMSec;
 		SInt32	fTCPThickIntervalInSec;
+		
+		SInt32	fDropAllPacketsTimeInMsec;
+		SInt32	fThinAllTheWayTimeInMsec;
+		SInt32	fOptimalDelayInMsec;
+		SInt32	fStartThickingTimeInMsec;
+		UInt32	fQualityCheckIntervalInMsec;
 
 		UInt32	fMinTCPBufferSizeInBytes;
 		UInt32	fMaxTCPBufferSizeInBytes;
@@ -197,10 +212,14 @@ class QTSServerPrefs : public QTSSPrefs
 		UInt32	fRTCPPollIntervalInMsec;
 		UInt32	fRTCPSocketRcvBufSizeInK;
 		Bool16	fIsSlowStartEnabled;
-		Bool16	fIsReliableUDPEnabled;
-		UInt32	fMaxOverbufferTime;
-		UInt32	fRTPPacketDropPct;
-		Bool16	fShareWindowStats;
+		UInt32	fOverbufferBucketIntervalInMsec;
+		UInt32	fMaxSendAheadTimeInSecs;
+		Bool16  fauto_delete_sdp_files;
+		QTSS_AuthScheme fAuthScheme;
+		UInt32	fsdp_file_delete_interval_seconds;
+		Bool16	fAutoStart;
+		Bool16	fReliableUDP;
+		Bool16	fReliableUDPPrintfs;
 		
 		enum
 		{
@@ -216,6 +235,7 @@ class QTSServerPrefs : public QTSSPrefs
 		};
 			
 		void SetupAttributes();
+		void UpdateAuthScheme();
 
 		//
 		// Returns the string preference with the specified ID. If there

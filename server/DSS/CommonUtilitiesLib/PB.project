@@ -7,8 +7,8 @@
             ConfParser.cpp, 
             DateTranslator.cpp, 
             EventContext.cpp, 
-            Exception.cpp, 
             IdleTask.cpp, 
+            md5digest.cpp, 
             MyAssert.cpp, 
             OS.cpp, 
             OSBufferPool.cpp, 
@@ -48,11 +48,12 @@
             DssStopwatch.h, 
             ev.h, 
             EventContext.h, 
-            Exception.h, 
             FastCopyMacros.h, 
             getopt.h, 
             GetWord.h, 
             IdleTask.h, 
+            md5.h, 
+            md5digest.h, 
             MyAssert.h, 
             OS.h, 
             OSArrayObjectDeleter.h, 
@@ -89,19 +90,16 @@
             UDPDemuxer.h, 
             UDPSocket.h, 
             UDPSocketPool.h, 
-            UserAgentParser.h, 
-            mycondition.h, 
-            mymutex.h
+            UserAgentParser.h
         ); 
         LIBRARYSEARCH = (., .., ../..); 
         OTHER_LIBS = (AtomicLib); 
-        OTHER_LINKED = (base64.c, getopt.c, GetWord.c, mycondition.c, mymutex.c, Trim.c); 
+        OTHER_LINKED = (base64.c, getopt.c, GetWord.c, md5.c, Trim.c); 
         OTHER_SOURCES = (Makefile.preamble, Makefile, Makefile.postamble, m.template, h.template); 
         PRECOMPILED_HEADERS = (); 
         PROJECT_HEADERS = (
             ev.h, 
             EventContext.h, 
-            Exception.h, 
             IdleTask.h, 
             MyAssert.h, 
             OS.h, 
@@ -145,7 +143,9 @@
             getopt.h, 
             PLDoubleLinkedList.h, 
             OSBufferPool.h, 
-            DssStopwatch.h
+            DssStopwatch.h, 
+            md5.h, 
+            md5digest.h
         ); 
         PUBLIC_HEADERS = (); 
         SUBPROJECTS = (); 
@@ -153,7 +153,7 @@
     LANGUAGE = English; 
     MAKEFILEDIR = "$(MAKEFILEPATH)/pb_makefiles"; 
     NEXTSTEP_BUILDTOOL = /usr/bin/gnumake; 
-    NEXTSTEP_COMPILEROPTIONS = "-D__MacOSX__ -DNeXT -include ../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon"; 
+    NEXTSTEP_COMPILEROPTIONS = "-D__MacOSX__ -DNeXT -include ../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions"; 
     NEXTSTEP_INSTALLDIR = /localgibblies/lib; 
     NEXTSTEP_JAVA_COMPILER = /usr/bin/javac; 
     NEXTSTEP_OBJCPLUS_COMPILER = /usr/bin/cc; 

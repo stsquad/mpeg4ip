@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
-// $Id: QTAtom_stss.cpp,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
+// $Id: QTAtom_stss.cpp,v 1.3 2001/10/11 20:39:08 wmaycisco Exp $
 //
 // QTAtom_stss:
 //   The 'stss' QTAtom class.
@@ -110,10 +110,10 @@ Bool16 QTAtom_stss::Initialize(void)
 		if( fSyncSampleTable == NULL )
 			return false;
 		
-		if( ((UInt32)fSyncSampleTable & (UInt32)0x3) == 0)
+		if( ((PointerSizedInt)fSyncSampleTable & (PointerSizedInt)0x3) == 0)
 			fTable = (UInt32 *)fSyncSampleTable;
 		else
-			fTable = (UInt32 *)(((UInt32)fSyncSampleTable + 4) & ~((UInt32)0x3));
+			fTable = (UInt32 *)(((PointerSizedInt)fSyncSampleTable + 4) & ~((PointerSizedInt)0x3));
 		
 		initSucceeds = ReadBytes(stssPos_SampleTable, (char *)fTable, fNumEntries * 4);
 		
@@ -180,20 +180,6 @@ void QTAtom_stss::NextSyncSample(UInt32 SampleNumber, UInt32 *SyncSampleNumber)
 		}
 	}
 }
-
-Bool16 QTAtom_stss::IsSyncSample(UInt32 SampleNumber, UInt32 inCursor)
-{
-	Assert(inCursor <= fNumEntries);
-	for (UInt32 curEntry = inCursor; curEntry < fNumEntries; curEntry++)
-	{
-		if (fTable[curEntry] == SampleNumber)
-			return true;
-		else if (fTable[curEntry] > SampleNumber)
-			return false;
-	}
-	return false;
-}
-
 
 
 // -------------------------------------

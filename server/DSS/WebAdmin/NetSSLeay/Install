@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# script for installing precompiled Perl Net::SSLeay
+# module on MacOSX
+
+mkdir -p /System/Library/Perl/darwin/Net
+cp /Library/QuickTimeStreaming/NetSSLeay/SSLeay.pm /System/Library/Perl/darwin/Net/.
+
+mkdir -p /System/Library/Perl/darwin/auto
+mkdir -p /System/Library/Perl/darwin/auto/Net
+mkdir -p /System/Library/Perl/darwin/auto/Net/SSLeay
+cp /Library/QuickTimeStreaming/NetSSLeay/SSLeay.bs /System/Library/Perl/darwin/auto/Net/SSLeay/.
+cp /Library/QuickTimeStreaming/NetSSLeay/SSLeay.bundle /System/Library/Perl/darwin/auto/Net/SSLeay/.
+cp /Library/QuickTimeStreaming/NetSSLeay/autosplit.ix /System/Library/Perl/darwin/auto/Net/SSLeay/.
+cp /Library/QuickTimeStreaming/NetSSLeay/*.al /System/Library/Perl/darwin/auto/Net/SSLeay/.
+
+mkdir -p /usr/share/man/man3
+cp /Library/QuickTimeStreaming/NetSSLeay/NetSSLeay.3 /usr/share/man/man3/Net::SSLeay.3

@@ -205,6 +205,10 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
 int CQtimeFile::create_audio (CPlayerSession *psptr)
 {
   CPlayerMedia *mptr;
+  unsigned char *foo;
+  int bufsize, ret;
+  long sample_rate;
+  int samples_per_frame;
 
   m_audio_tracks = quicktime_audio_tracks(m_qtfile);
   if (m_audio_tracks > 0) {
@@ -217,20 +221,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
       player_debug_message("Couldn't find audio codec %s", codec);
       return (0);
     }
-    CQTAudioByteStream *abyte;
-    mptr = new CPlayerMedia;
-    if (mptr == NULL) {
-      return (-1);
-    }
-    abyte = new CQTAudioByteStream(this, 0);
-    unsigned char *foo;
-    int bufsize, ret;
-    long len = quicktime_audio_length(m_qtfile, 0);
     ret = quicktime_get_mp4_audio_decoder_config(m_qtfile, 0, &foo, &bufsize);
-    audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
-
-    long sample_rate;
-    int samples_per_frame;
     if (ret >= 0 && foo != NULL) {
       mpeg4_audio_config_t audio_config;
 
@@ -241,7 +232,8 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
 	samples_per_frame = audio_config.codec.aac.frame_len_1024 == 0 ? 
 	  960 : 1024;
       } else {
-	samples_per_frame = 1024;
+	player_debug_message("Unknown audio codec type %d", audio_config.audio_object_type);
+	return (0);
       }
       player_debug_message("From audio rate %ld samples %d", sample_rate, samples_per_frame);
     } else {
@@ -250,6 +242,15 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
       player_debug_message("audio - rate %ld samples %d", 
 			   sample_rate, samples_per_frame);
     }
+    CQTAudioByteStream *abyte;
+    mptr = new CPlayerMedia;
+    if (mptr == NULL) {
+      return (-1);
+    }
+    abyte = new CQTAudioByteStream(this, 0);
+    long len = quicktime_audio_length(m_qtfile, 0);
+    audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
+
     audio->freq = sample_rate;
     mptr->set_codec_type(quicktime_audio_compressor(m_qtfile, 0));
     mptr->set_audio_info(audio);

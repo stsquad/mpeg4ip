@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSMessages.cpp
@@ -36,7 +36,7 @@
 // see QTSS.h (QTSS_TextMessagesObject) for list of enums to map these strings
 
 char*		QTSSMessages::sMessagesKeyStrings[] =
-{
+{ /* index */
 /* 0 */	"qtssMsgNoMessage",
 /* 1 */	"qtssMsgNoURLInRequest",
 /* 2 */	"qtssMsgBadRTSPMethod",
@@ -70,37 +70,48 @@ char*		QTSSMessages::sMessagesKeyStrings[] =
 /* 30*/	"qtssListenPortAccessDenied",
 /* 31*/	"qtssListenPortError",
 /* 32*/	"qtssMsgBadBase64",
-/* 33 */ "qtssMsgSomePortsFailed",
-/* 34 */ "qtssMsgNoPortsSucceeded",
+/* 33*/ "qtssMsgSomePortsFailed",
+/* 34*/ "qtssMsgNoPortsSucceeded",
 /* 35*/ "qtssMsgCannotCreatePidFile",
 /* 36*/ "qtssMsgCannotSetRunUser",
 /* 37*/ "qtssMsgCannotSetRunGroup",
 /* 38*/ "qtssMsgNoSesIDOnDescribe",
 /* 39*/ "qtssServerPrefMissing",
 /* 40*/ "qtssServerPrefWrongType",
-
+/* 41*/ "qtssMsgCantWriteFile",
+/* 42*/ "qtssMsgSockBufSizesTooLarge",
 
  // module specific messages follow (these are dynamically numbered)
  
-	"QTSSvrControlModuleCantRegisterMachPort",
-	"QTSSvrControlModuleCantAllocateMachPort",
-	"QTSSvrControlModuleServerControlFatalErr",
-	"QTSSReflectorModuleCantBindReflectorSocket",
-	"QTSSReflectorModuleCantJoinMulticastGroup",
-	"QTSSFileModuleSeekToNonExistentTime",
-	"QTSSFileModuleNoSDPFileFound",
-	"QTSSFileModuleBadQTFile",
-	"QTSSFileModuleFileIsNotHinted",
-	"QTSSFileModuleExpectedDigitFilename",
-	"QTSSFileModuleTrackDoesntExist",
-	"QTSSReflectorModuleExpectedDigitFilename",
-	"QTSSSpamDefenseModuleTooManyConnections",
-	"QTSSReflectorModuleBadTrackID",
-	"QTSSAccessModuleBadAccessFileName",
-	"QTSSReflectorModuleNoRelaySources",
-	"QTSSReflectorModuleNoRelayDests",
-	"QTSSReflectorModuleNoRelayStreams",
-	"QTSSReflectorModuleNoRelayConfig"
+/* 43*/	"QTSSvrControlModuleCantRegisterMachPort",
+/* 44*/	"QTSSvrControlModuleServerControlFatalErr",
+/* 45*/	"QTSSReflectorModuleCantBindReflectorSocket",
+/* 46*/	"QTSSReflectorModuleCantJoinMulticastGroup",
+/* 47*/	"QTSSFileModuleSeekToNonExistentTime",
+/* 48*/	"QTSSFileModuleNoSDPFileFound",
+/* 49*/	"QTSSFileModuleBadQTFile",
+/* 50*/	"QTSSFileModuleFileIsNotHinted",
+/* 51*/	"QTSSFileModuleExpectedDigitFilename",
+/* 52*/	"QTSSFileModuleTrackDoesntExist",
+/* 53*/	"QTSSReflectorModuleExpectedDigitFilename",
+/* 54*/	"QTSSSpamDefenseModuleTooManyConnections",
+/* 55*/	"QTSSReflectorModuleBadTrackID",
+/* 56*/	"QTSSAccessModuleBadAccessFileName",
+/* 57*/	"QTSSReflectorModuleNoRelaySources",
+/* 58*/	"QTSSReflectorModuleNoRelayDests",
+/* 59*/	"QTSSReflectorModuleNoRelayStreams",
+/* 60*/	"QTSSReflectorModuleNoRelayConfig",
+/* 61*/	"QTSSReflectorModuleDuplicateBroadcastStream",
+/* 62*/	"QTSSAccessModuleUsersFileNotFound",
+/* 63*/	"QTSSAccessModuleGroupsFileNotFound",
+/* 64*/	"QTSSAccessModuleBadUsersFile",
+/* 65*/	"QTSSAccessModuleBadGroupsFile",
+/* 66*/ "QTSSReflectorModuleAnnounceRequiresSDPSuffix",
+/* 67*/ "QTSSReflectorModuleAnnounceDisabled",
+/* 68*/ "QTSSReflectorModuleSDPPortMinimumPort",
+/* 69*/ "QTSSReflectorModuleSDPPortMaximumPort",
+/* 70*/ "QTSSReflectorModuleStaticPortsConflict",
+/* 71*/ "QTSSReflectorModuleStaticPortPrefsBadRange"
 };
 
 // see QTSS.h (QTSS_TextMessagesObject) for list of enums to map these strings
@@ -148,29 +159,40 @@ char*		QTSSMessages::sMessages[] =
 /* 38*/ "A DESCRIBE request cannot contain the Session header",
 /* 39*/ "The following pref, %s, wasn't found. Using a default value of: %s",
 /* 40*/ "The following pref, %s, has the wrong type. Using a default value of: %s",
-/* 41*/ "Attempt to write changes to the prefs file failed. It is possible prefs were lost",
-
+/* 41*/ "Couldn't re-write server prefs file",
+/* 42*/ "Couldn't set desired UDP receive socket buffer size. Using size of %s K",
 
 // module specific messages follow (these are dynamically numbered)
 
-/* 42*/	"Fatal error: Can't register Mach Ports.",
-/* 43*/	"A fatal error occcured while starting up server control module",
-/* 44*/	"Can't bind reflector sockets",
-/* 45*/	"Reflector sockets couldn't join multicast",
-/* 46*/	"Couldn't seek to specified time.",
-/* 47*/	"No SDP file found for the following URL: %s",
-/* 48*/	"The requested file is not a movie file.",
-/* 49*/	"Requested movie hasn't been hinted.",
-/* 50*/	"Expected a digit at the end of the following URL: %s",
-/* 51*/	"Specified trackID doesn't exist in the movie",
-/* 52*/	"Expected a digit at the end of the following URL: %s",
-/* 53*/	"Too many connections from your IP address!",
-/* 54*/	"TrackID doesn't match any trackID for this ReflectorSession",
-/* 55*/	"Invalid config value for qtaccessfilename: name contains %s. Now using default name:%s",
-/* 56*/	"The relay configuration file at: %s has no relay_source lines",
-/* 57*/	"Could not find any relay_destination lines for one of the relay_source lines of the relay configuration file",
-/* 58*/	"Could not find any input stream information for one of the relay_source lines of the relay configuration file",
-/* 59*/	"Found an empty relay configuration file at %s"
+/* 43*/	"Fatal error: Can't register Mach Ports.",
+/* 44*/	"A fatal error occcured while starting up server control module",
+/* 45*/	"Can't bind reflector sockets",
+/* 46*/	"Reflector sockets couldn't join multicast",
+/* 47*/	"Couldn't seek to specified time.",
+/* 48*/	"No SDP file found for the following URL: %s",
+/* 49*/	"The requested file is not a movie file.",
+/* 50*/	"Requested movie hasn't been hinted.",
+/* 51*/	"Expected a digit at the end of the following URL: %s",
+/* 52*/	"Specified trackID doesn't exist in the movie",
+/* 53*/	"Expected a digit at the end of the following URL: %s",
+/* 54*/	"Too many connections from your IP address!",
+/* 55*/	"TrackID doesn't match any trackID for this ReflectorSession",
+/* 56*/	"Invalid config value for qtaccessfilename: name contains %s. Now using default name:%s",
+/* 57*/	"The relay configuration file at: %s has no relay_source lines",
+/* 58*/	"Could not find any relay_destination lines for one of the relay_source lines of the relay configuration file",
+/* 59*/	"Could not find any input stream information for one of the relay_source lines of the relay configuration file",
+/* 60*/	"Found an empty relay configuration file at %s",
+/* 61*/	"A broadcast stream is already setup for this URL",
+/* 62*/ "No users file found at %s.",
+/* 63*/ "No groups file found at %s.",
+/* 64*/ "Unable to read the users file at %s. It may be corrupted.",
+/* 65*/ "Unable to read the groups file at %s. It may be corrupted.",
+/* 66*/ "The Announced file does not end with .sdp",
+/* 67*/ "The Announce feature is disabled. Your request is denied.",
+/* 68*/ "The SDP file's static port %s is less than the QTSSReflectorModule's minimum_static_sdp_port preference.",
+/* 69*/ "The SDP file's static port %s is greater than the QTSSReflectorModule's maximum_static_sdp_port preference.",
+/* 70*/ "The QTSSReflectorModule's minimum_static_sdp_port and maximum_static_sdp_port preferences conflict with the client and dynamic broadcast port range= %s to %s.",
+/* 71*/ "The QTSSReflectorModule's minimum_static_sdp_port and maximum_static_sdp_port preferences define an invalid range (min=%s > max=%s)."
 };
 
 // need to maintain numbers to update kNumMessages in QTSSMessages.h.

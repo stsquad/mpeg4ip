@@ -21,6 +21,27 @@
 
 #include "mp4common.h"
 
+void MP4Error::Print(FILE* pFile)
+{
+	fprintf(pFile, "MP4ERROR: ");
+	if (m_where) {
+		fprintf(pFile, "%s", m_where);
+	}
+	if (m_errstring) {
+		if (m_where) {
+			fprintf(pFile, ": ");
+		}
+		fprintf(pFile, "%s", m_errstring);
+	}
+	if (m_errno) {
+		if (m_where || m_errstring) {
+			fprintf(pFile, ": ");
+		}
+		fprintf(pFile, "%s", strerror(m_errno));
+	}
+	fprintf(pFile, "\n");
+}
+
 bool MP4NameFirstMatches(const char* s1, const char* s2) 
 {
 	if (s1 == NULL || *s1 == '\0' || s2 == NULL || *s2 == '\0') {
@@ -64,7 +85,7 @@ bool MP4NameFirstIndex(const char* s, u_int32_t* pIndex)
 	return false;
 }
 
-char* MP4NameAfterFirst(char *s)
+const char* MP4NameAfterFirst(const char *s)
 {
 	if (s == NULL) {
 		return NULL;
@@ -81,6 +102,44 @@ char* MP4NameAfterFirst(char *s)
 		s++;
 	}
 	return NULL;
+}
+
+char* MP4ToBase64(const u_int8_t* pData, u_int32_t dataSize)
+{
+	static char encoding[64] = {
+		'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P',
+		'Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f',
+		'g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v',
+		'w','x','y','z','0','1','2','3','4','5','6','7','8','9','+','/'
+	};
+
+	char* s = (char*)MP4Calloc((((dataSize + 2) * 4) / 3) + 1);
+
+	const u_int8_t* src = pData;
+	char* dest = s;
+	u_int32_t numGroups = dataSize / 3;
+
+	for (u_int32_t i = 0; i < numGroups; i++) {
+		*dest++ = encoding[src[0] >> 2];
+		*dest++ = encoding[((src[0] & 0x03) << 4) | (src[1] >> 4)];
+		*dest++ = encoding[((src[1] & 0x0F) << 2) | (src[2] >> 6)];
+		*dest++ = encoding[src[2] & 0x3F];
+		src += 3;
+	}
+
+	if (dataSize % 3 == 1) {
+		*dest++ = encoding[src[0] >> 2];
+		*dest++ = encoding[((src[0] & 0x03) << 4)];
+		*dest++ = '=';
+		*dest++ = '=';
+	} else if (dataSize % 3 == 2) {
+		*dest++ = encoding[src[0] >> 2];
+		*dest++ = encoding[((src[0] & 0x03) << 4) | (src[1] >> 4)];
+		*dest++ = encoding[((src[1] & 0x0F) << 2)];
+		*dest++ = '=';
+	}
+
+	return s;
 }
 
 // log2 of value, rounded up

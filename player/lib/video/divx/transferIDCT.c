@@ -34,7 +34,7 @@
 /* frame buffer.  The "clear block" function could be absorbed into this */
 /* loop (set *ouputPtr = 0 after the copy/add).                          */
 
-
+#include "transferIDCT.h"
 #include "portab.h"
 
 void transferIDCT_add(int16_t *sourceS16, uint8_t *destU8, int stride) {

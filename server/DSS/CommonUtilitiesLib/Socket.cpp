@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		Socket.cpp
@@ -38,6 +38,7 @@
 #include <netinet/in.h>
 #include <sys/uio.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
 
 #endif
 
@@ -73,24 +74,11 @@ OS_Error Socket::Open(int theType)
 	if (fFileDesc == EventContext::kInvalidFileDesc)
 		return (OS_Error)OSThread::GetErrno();
 			
-	int 	socketBufSize;
-	
-	// use default buffer size of 16K for STREAM sockets
-	// 40K for RAW and DATAGRAM sockets
-	
-	if ( theType == SOCK_STREAM ) 
-		socketBufSize = 16*1024;
-	else
-		socketBufSize = 40*1024;
-		
 	//
 	// Setup this socket's event context
 	if (fState & kNonBlockingSocketType)
 		this->InitNonBlocking(fFileDesc);	
 
-	int err = ::setsockopt(fFileDesc, SOL_SOCKET, SO_RCVBUF, (char*)&socketBufSize, sizeof(int));
-	AssertV(err == 0, OSThread::GetErrno());
-	
 	return OS_NoErr;
 }
 
@@ -101,6 +89,20 @@ void Socket::ReuseAddr()
 	Assert(err == 0);	
 }
 
+void Socket::NoDelay()
+{
+	int one = 1;
+	int err = ::setsockopt(fFileDesc, IPPROTO_TCP, TCP_NODELAY, (char*)&one, sizeof(int));
+	Assert(err == 0);	
+}
+
+void Socket::KeepAlive()
+{
+	int one = 1;
+	int err = ::setsockopt(fFileDesc, SOL_SOCKET, SO_KEEPALIVE, (char*)&one, sizeof(int));
+	Assert(err == 0);	
+}
+
 void	Socket::SetSocketBufSize(UInt32 inNewSize)
 {
 	int bufSize = inNewSize;
@@ -108,11 +110,13 @@ void	Socket::SetSocketBufSize(UInt32 inNewSize)
 	AssertV(err == 0, OSThread::GetErrno());
 }
 
-void	Socket::SetSocketRcvBufSize(UInt32 inNewSize)
+OS_Error	Socket::SetSocketRcvBufSize(UInt32 inNewSize)
 {
 	int bufSize = inNewSize;
 	int err = ::setsockopt(fFileDesc, SOL_SOCKET, SO_RCVBUF, (char*)&bufSize, sizeof(int));
-	AssertV(err == 0, OSThread::GetErrno());
+	if (err == -1)
+		return OSThread::GetErrno();
+	return OS_NoErr;
 }
 
 
@@ -205,11 +209,6 @@ OS_Error Socket::Send(const char* inData, const UInt32 inLength, UInt32* outLeng
 		//Are there any errors that can happen if the client is connected?
 		//Yes... EAGAIN. Means the socket is now flow-controleld
 		int theErr = OSThread::GetErrno();
-#if __solaris__
-		// Solaris returns this error instead of EAGAIN
-		if (theErr == ENOENT)
-			theErr = EAGAIN;
-#endif
 		if ((theErr != EAGAIN) && (this->IsConnected()))
 			fState ^= kConnected;//turn off connected state flag
 		return (OS_Error)theErr;
@@ -242,11 +241,6 @@ OS_Error Socket::WriteV(const struct iovec* iov, const UInt32 numIOvecs, UInt32*
 		// Are there any errors that can happen if the client is connected?
 		// Yes... EAGAIN. Means the socket is now flow-controleld
 		int theErr = OSThread::GetErrno();
-#ifdef __solaris__
-		// Solaris returns this error instead of EAGAIN
-		if (theErr == ENOENT)
-			theErr = EAGAIN;
-#endif
 		if ((theErr != EAGAIN) && (this->IsConnected()))
 			fState ^= kConnected;//turn off connected state flag
 		return (OS_Error)theErr;
@@ -266,38 +260,15 @@ OS_Error Socket::Read(void *buffer, const UInt32 length, UInt32 *outRecvLenP)
 			
 	//int theRecvLen = ::recv(fFileDesc, buffer, length, 0);//flags??
 	int theRecvLen;
-#if __solaris__
-    do {
-       theRecvLen = ::recv(fFileDesc, (char*)buffer, length, 0);//flags??
-    } while((theRecvLen == -1) && (OSThread::GetErrno() == 0));
-
-#else
     do {
        theRecvLen = ::recv(fFileDesc, (char*)buffer, length, 0);//flags??
     } while((theRecvLen == -1) && (OSThread::GetErrno() == EINTR));
-#endif
 
 	if (theRecvLen == -1)
 	{
 		// Are there any errors that can happen if the client is connected?
 		// Yes... EAGAIN. Means the socket is now flow-controleld
 		int theErr = OSThread::GetErrno();
-		
-#if __solaris__
-		// Solaris returns this error instead of EAGAIN
-		#if DEBUG && 0
-			if (theErr == ENOENT) 
-				printf("DEBUG: Solaris returned ENOENT=%d from recv -- mapped to EAGAIN\n",theErr);
-			if (theErr == EINTR) 
-				printf("DEBUG: Solaris returned EINTR=%d from recv -- mapped to EAGAIN\n",theErr);
-		#endif
-		
-		WarnV( (theErr == ENOENT) || (theErr == EINTR), "Unusual receive error on socket -- mapped to EAGAIN");
-		if ( (theErr == ENOENT) || (theErr == EINTR) )
-		{	theErr = EAGAIN;
-		}			
-#endif
-		
 		if ((theErr != EAGAIN) && (this->IsConnected()))
 			fState ^= kConnected;//turn off connected state flag
 		return (OS_Error)theErr;

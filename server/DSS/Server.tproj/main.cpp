@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		main.cpp
@@ -46,8 +46,12 @@
 #include <unistd.h>
 #endif
 
-#ifdef __solaris__	
+#if defined (__solaris__) || defined (__osf__)
 #include "daemon.h"
+#endif
+
+#if __MacOSX__ || __FreeBSD__
+#include <sys/sysctl.h>
 #endif
 
 #include "FilePrefsSource.h"
@@ -60,6 +64,7 @@
 #include "QTSSExpirationDate.h"
 #include "GenerateXMLPrefs.h"
 
+static int sSigIntCount = 0;
 
 void sigcatcher(int sig, int /*sinfo*/, struct sigcontext* /*sctxt*/);
 
@@ -77,13 +82,12 @@ void sigcatcher(int sig, int /*sinfo*/, struct sigcontext* /*sctxt*/)
 	//Try to shut down gracefully the first time, shutdown forcefully the next time
 	if (sig == SIGINT)
 	{
-		if (QTSServerInterface::GetServer()->GetServerState() == qtssRunningState)
-		{
-			QTSS_ServerState theShutDownState = qtssShuttingDownState;
-			(void)QTSS_SetValue(QTSServerInterface::GetServer(), qtssSvrState, 0, &theShutDownState, sizeof(theShutDownState));
-		}
-		else
-			exit(1);
+		//
+		// Tell the server that there has been a SigInt, the main thread will start
+		// the shutdown process because of this
+		if (sSigIntCount == 0)
+			QTSServerInterface::GetServer()->SetSigInt();
+		sSigIntCount++;
 	}
 			
 }
@@ -103,7 +107,7 @@ int main(int argc, char * argv[])
 	//(void) ::signal(SIGPIPE, SIG_IGN);
 	struct sigaction act;
 	
-#if defined(sun) || defined(i386) || defined(__powerpc__)
+#if defined(sun) || defined(i386) || defined(__powerpc__) || defined (__osf__)
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = 0;
 	act.sa_handler = (void(*)(int))&sigcatcher;
@@ -125,11 +129,31 @@ int main(int argc, char * argv[])
 
 	setrlimit (RLIMIT_NOFILE, &rl);
 #endif
+
+#if __MacOSX__ || __FreeBSD__
+        //
+        // These 2 OSes have problems with large socket buffer sizes. Make sure they allow even
+        // ridiculously large ones, because we may need them to receive a large volume of ACK packets
+        // from the client
+        
+        //
+        // We raise the limit imposed by the kernel by calling the sysctl system call.
+	int mib[CTL_MAXNAME];
+        mib[0] = CTL_KERN;
+        mib[1] = KERN_IPC;
+        mib[2] = KIPC_MAXSOCKBUF;
+        mib[3] = 0;
+
+        int maxSocketBufferSizeVal = 2048 * 1024; // Allow up to 2 MB. That is WAY more than we should need
+        int sysctlErr = ::sysctl(mib, 3, 0, 0, &maxSocketBufferSizeVal, sizeof(maxSocketBufferSizeVal));
+        //Assert(sysctlErr == 0);
+#endif
 	
 	//First thing to do is to read command-line arguments.
 	int ch;
 	UInt16 thePort = 0; //port can be set on the command line
 	int statsUpdateInterval = 0;
+	QTSS_ServerState theInitialState = qtssRunningState;
 	
 	Bool16 dontFork = false;
 	Bool16 theXMLPrefsExist = true;
@@ -153,7 +177,7 @@ int main(int argc, char * argv[])
 	
 	
 #ifndef __MACOS__
-	while ((ch = getopt(argc,argv, "vdZfp:c:xo:s:")) != EOF)
+	while ((ch = getopt(argc,argv, "vdZfxp:c:o:S:I")) != EOF) // opt: means requires option
 	{
 		switch(ch)
 		{
@@ -166,30 +190,43 @@ int main(int argc, char * argv[])
 				//printf("-f: Use config file at /etc/streamingserver.conf\n");
 				printf("-p XXX: Specify the default RTSP listening port of the server\n");
 				printf("-c /myconfigpath.xml: Specify a config file\n");
-				printf("-o /myconfigpath.conf: Specify a DSS 1.x / 2.x config file\n");
+				printf("-o /myconfigpath.conf: Specify a DSS 1.x / 2.x config file to build XML file from\n");
 				printf("-x: Force create new .xml config file from 1.x / 2.x config\n");
-				printf("-s n: Display server stats in the console every \"n\" seconds\n");
+				printf("-S n: Display server stats in the console every \"n\" seconds\n");
+				printf("-I: Start the server in the idle state\n");
 				::exit(0);	
 			case 'd':
 				dontFork = true;
+				
+				#if __linux__
+					OSThread::WrapSleep(true);
+				#endif
+				
 				break;
 			case 'f':
 				theXMLFilePath  = "/etc/streaming/streamingserver.xml";
 				break;
 			case 'p':
+				Assert(optarg != NULL);// this means we didn't declare getopt options correctly or there is a bug in getopt.
 				thePort = ::atoi(optarg);
 				break;
-			case 's':
+			case 'S':
+				Assert(optarg != NULL);// this means we didn't declare getopt options correctly or there is a bug in getopt.
 				statsUpdateInterval = ::atoi(optarg);
 				break;
 			case 'c':
+				Assert(optarg != NULL);// this means we didn't declare getopt options correctly or there is a bug in getopt.
 				theXMLFilePath = optarg;
 				break;
 			case 'o':
+				Assert(optarg != NULL);// this means we didn't declare getopt options correctly or there is a bug in getopt.
 				theConfigFilePath = optarg;
 				break;
 			case 'x':
 				theXMLPrefsExist = false; // Force us to generate a new XML prefs file
+				break;
+			case 'I':
+				theInitialState = qtssIdleState;
 				break;
 			default:
 				break;
@@ -204,26 +241,6 @@ int main(int argc, char * argv[])
 		::exit(0);
 	}
 
-	//Unless the command line option is set, fork & daemonize the process at this point
-	if (!dontFork)
-	{
-#ifdef __sgi
-		// for some reason, this method doesn't work right on IRIX 6.4 unless the first arg
-		// is _DF_NOFORK.  if the first arg is 0 (as it should be) the result is a server
-		// that is essentially paralized and doesn't respond to much at all.  So for now,
-		// leave the first arg as _DF_NOFORK
-		if (_daemonize(_DF_NOFORK, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO) != 0)
-#else
-		if (daemon(0,0) != 0)
-#endif
-		{
-#if DEBUG
-			printf("Failed to daemonize process. Error = %d\n", OSThread::GetErrno());
-#endif
-			exit(-1);
-		}
-	}
-#endif //#ifndef __MACOS__
 
 	XMLPrefsParser theXMLParser(theXMLFilePath);
 	
@@ -233,6 +250,14 @@ int main(int argc, char * argv[])
 	if (theXMLParser.DoesFileExistAsDirectory())
 	{
 		printf("Directory located at location where streaming server prefs file should be.\n");
+		exit(-1);
+	}
+	
+	//
+	// Check to see if we can write to the file
+	if (!theXMLParser.CanWriteFile())
+	{
+		printf("Cannot write to the streaming server prefs file.\n");
 		exit(-1);
 	}
 
@@ -253,7 +278,7 @@ int main(int argc, char * argv[])
 			FilePrefsSource* filePrefsSource = new FilePrefsSource(true); // Allow dups
 			
 			if ( filePrefsSource->InitFromConfigFile(theConfigFilePath) )
-				printf("Could not load configuration file at %s. Generating a new prefs file at %s\n", theConfigFilePath, theXMLFilePath);
+				printf("Could not load configuration file at %s.\n Generating a new prefs file at %s\n", theConfigFilePath, theXMLFilePath);
 			
 			if (GenerateAllXMLPrefs(filePrefsSource, &theXMLParser))
 			{
@@ -284,6 +309,27 @@ int main(int argc, char * argv[])
 		printf("Fatal Error: Could not load configuration file at %s. (%d)\n", theXMLFilePath, OSThread::GetErrno());
 		::exit(-1);
 	}
+	
+	//Unless the command line option is set, fork & daemonize the process at this point
+	if (!dontFork)
+	{
+#ifdef __sgi
+		// for some reason, this method doesn't work right on IRIX 6.4 unless the first arg
+		// is _DF_NOFORK.  if the first arg is 0 (as it should be) the result is a server
+		// that is essentially paralized and doesn't respond to much at all.  So for now,
+		// leave the first arg as _DF_NOFORK
+		if (_daemonize(_DF_NOFORK, STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO) != 0)
+#else
+		if (daemon(0,0) != 0)
+#endif
+		{
+#if DEBUG
+			printf("Failed to daemonize process. Error = %d\n", OSThread::GetErrno());
+#endif
+			exit(-1);
+		}
+	}
+#endif //#ifndef __MACOS__
 	
 	//Construct a Prefs Source object to get server text messages
 	FilePrefsSource theMessagesSource;
@@ -332,8 +378,15 @@ int main(int argc, char * argv[])
 	(void)::sigaction(SIGHUP, &act, NULL);
 	(void)::sigaction(SIGINT, &act, NULL);
 	
+#ifdef __solaris__	
+	// Set Priority Type to Real Time, timeslice = 100 milliseconds. Change the timeslice upwards as needed. This keeps the server priority above the playlist broadcaster which is a time-share scheduling type.
+	char commandStr[64];
+	sprintf(commandStr, "priocntl -s -c RT -t 10 -i pid %d", (int) getpid()); 
+	(void) ::system(commandStr);	
+#endif
+
 	//This function starts, runs, and shuts down the server
-	if (::StartServer(&theXMLParser, &theMessagesSource, thePort, statsUpdateInterval) != qtssFatalErrorState)
+	if (::StartServer(&theXMLParser, &theMessagesSource, thePort, statsUpdateInterval, theInitialState) != qtssFatalErrorState)
 		::RunServer();
 	
 }

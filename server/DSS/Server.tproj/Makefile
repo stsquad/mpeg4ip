@@ -13,25 +13,27 @@ PROJECTVERSION = 2.8
 PROJECT_TYPE = Tool
 
 CPPFILES = GenerateXMLPrefs.cpp main.cpp QTSSCallbacks.cpp\
-           QTSSDictionary.cpp QTSSErrorLogModule.cpp QTSServer.cpp\
-           QTSServerInterface.cpp QTSServerPrefs.cpp\
-           QTSSExpirationDate.cpp QTSSFile.cpp QTSSMessages.cpp\
-           QTSSModule.cpp QTSSPrefs.cpp QTSSSocket.cpp RTCPTask.cpp\
-           RTPBandwidthTracker.cpp RTPPacketResender.cpp RTPSession.cpp\
+           QTSSDataConverter.cpp QTSSDictionary.cpp\
+           QTSSErrorLogModule.cpp QTSServer.cpp QTSServerInterface.cpp\
+           QTSServerPrefs.cpp QTSSExpirationDate.cpp QTSSFile.cpp\
+           QTSSMessages.cpp QTSSModule.cpp QTSSPrefs.cpp QTSSSocket.cpp\
+           QTSSUserProfile.cpp RTCPTask.cpp RTPBandwidthTracker.cpp\
+           RTPOverbufferWindow.cpp RTPPacketResender.cpp RTPSession.cpp\
            RTPSessionInterface.cpp RTPStream.cpp RTSPProtocol.cpp\
            RTSPRequest.cpp RTSPRequestInterface.cpp\
            RTSPRequestStream.cpp RTSPResponseStream.cpp RTSPSession.cpp\
-           RTSPSessionInterface.cpp RunServer.cpp
+           RTSPSessionInterface.cpp RunServer.cpp SDPTimeoutTask.cpp
 
-HFILES = GenerateXMLPrefs.h QTSSCallbacks.h QTSSDictionary.h\
-         QTSSErrorLogModule.h QTSServer.h QTSServerInterface.h\
-         QTSServerPrefs.h QTSSExpirationDate.h QTSSFile.h\
-         QTSSMessages.h QTSSModule.h QTSSPrefs.h QTSSSocket.h\
-         QTSSStream.h RTCPTask.h RTPBandwidthTracker.h\
-         RTPPacketResender.h RTPSession.h RTPSessionInterface.h\
-         RTPStream.h RTSPProtocol.h RTSPRequest.h\
-         RTSPRequestInterface.h RTSPRequestStream.h RTSPResponseStream.h\
-         RTSPSession.h RTSPSessionInterface.h RunServer.h
+HFILES = GenerateXMLPrefs.h QTSSCallbacks.h QTSSDataConverter.h\
+         QTSSDictionary.h QTSSErrorLogModule.h QTSServer.h\
+         QTSServerInterface.h QTSServerPrefs.h QTSSExpirationDate.h\
+         QTSSFile.h QTSSMessages.h QTSSModule.h QTSSPrefs.h\
+         QTSSSocket.h QTSSStream.h QTSSUserProfile.h RTCPTask.h\
+         RTPBandwidthTracker.h RTPOverbufferWindow.h RTPPacketResender.h\
+         RTPSession.h RTPSessionInterface.h RTPStream.h RTSPProtocol.h\
+         RTSPRequest.h RTSPRequestInterface.h RTSPRequestStream.h\
+         RTSPResponseStream.h RTSPSession.h RTSPSessionInterface.h\
+         RunServer.h SDPTimeoutTask.h
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble m.template\
             h.template
@@ -40,21 +42,22 @@ OTHERSRCS = Makefile.preamble Makefile Makefile.postamble m.template\
 MAKEFILEDIR = $(MAKEFILEPATH)/pb_makefiles
 CODE_GEN_STYLE = DYNAMIC
 MAKEFILE = tool.make
-NEXTSTEP_INSTALLDIR = /usr/sbin
+NEXTSTEP_INSTALLDIR = /usr/local/sbin
 WINDOWS_INSTALLDIR = /Library/Executables
 PDO_UNIX_INSTALLDIR = /bin
-LIBS = -lQTSSReflectorModule -lPrefsSourceLib -lQTSSHttpFileModule\
-       -lHTTPUtilitiesLib -lQTSSAdminModule -lQTSSPOSIXFileSysModule\
-       -lQTSSAccessLogModule -lQTSSWebStatsModule -lRTCPUtilitiesLib\
-       -lQTSSWebDebugModule -lQTSSFlowControlModule -lQTSSFileModule\
-       -lOSMemoryLib -lCommonUtilitiesLib -lAPIStubLib -lAPICommonCode\
-       -lRTPMetaInfoLib
+LIBS = -lQTSSAccessModule -lQTSSFileModule -lQTFileLib\
+       -lQTSSRTPFileModule -lQTSSReflectorModule -lPrefsSourceLib\
+       -lQTSSHttpFileModule -lHTTPUtilitiesLib -lQTSSAdminModule\
+       -lQTSSPOSIXFileSysModule -lQTSSAccessLogModule\
+       -lQTSSWebStatsModule -lRTCPUtilitiesLib -lQTSSWebDebugModule\
+       -lQTSSFlowControlModule -lOSMemoryLib -lCommonUtilitiesLib\
+       -lAPIStubLib -lAPICommonCode -lRTPMetaInfoLib
 DEBUG_LIBS = $(LIBS)
 PROF_LIBS = $(LIBS)
 
 
 LIBRARY_PATHS = -L..
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -include ../revision.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -include ../revision.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Carbon -framework Foundation
 
 

@@ -22,7 +22,7 @@ OTHERSRCS = Makefile.preamble Makefile Makefile.postamble m.template\
 MAKEFILEDIR = $(MAKEFILEPATH)/pb_makefiles
 CODE_GEN_STYLE = DYNAMIC
 MAKEFILE = bundle.make
-NEXTSTEP_INSTALLDIR = /usr/sbin/StreamingServerModules.disabled
+NEXTSTEP_INSTALLDIR = /usr/local/sbin/StreamingServerModules.disabled
 WINDOWS_INSTALLDIR = /Library/Bundles
 PDO_UNIX_INSTALLDIR = /Library/Bundles
 LIBS = -lAPICommonCode -lAPIStubLib -lCommonUtilitiesLib\
@@ -32,7 +32,7 @@ PROF_LIBS = $(LIBS)
 BUNDLE_EXTENSION = bundle
 
 
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Carbon -framework Foundation
 
 

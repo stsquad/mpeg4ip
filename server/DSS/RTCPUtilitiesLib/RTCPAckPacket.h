@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTCPAckPacket.h
@@ -35,7 +35,10 @@
 
 #include "OSHeaders.h"
 #include <stdlib.h>
+
+#ifndef __Win32__
 #include <netinet/in.h>
+#endif
 
 class RTCPAckPacket
 {
@@ -49,7 +52,7 @@ class RTCPAckPacket
 		-------   -----------
 		4         rtcp header
 		4         SSRC of receiver
-		4         app type ('ack ')
+		4         app type ('qtak')
 		2         reserved (set to 0)
 		2         seqNum
 
@@ -60,7 +63,7 @@ class RTCPAckPacket
 		// Instead, it is assumed that the RTCP packet validation has already been
 		// done.
 		RTCPAckPacket() : fRTCPAckBuffer(NULL), fAckMaskSize(0) {}
-		~RTCPAckPacket() {}
+		virtual ~RTCPAckPacket() {}
 		
 		// Returns true if this is an Ack packet, false otherwise.
 		// Assumes that inPacketBuffer is a pointer to a valid RTCP packet header.
@@ -69,30 +72,28 @@ class RTCPAckPacket
 		inline UInt16 GetAckSeqNum();
 		inline UInt32 GetAckMaskSizeInBits() { return fAckMaskSize * 8; }
 		inline Bool16 IsNthBitEnabled(UInt32 inBitNumber);
+		inline UInt16 GetPacketLength();
 
 	private:
 	
-	UInt8* fRTCPAckBuffer;
-	UInt32 fAckMaskSize;
+		UInt8* fRTCPAckBuffer;
+		UInt32 fAckMaskSize;
 
-	inline Bool16 IsAckPacketType();
-	
-	enum
-	{
-		kAckPacketType = 'ack ',
+		Bool16 IsAckPacketType();
 		
-		kAppPacketTypeOffset 	= 8,
-		kAckSeqNumOffset 		= 16,
-		kAckMaskOffset 			= 20
-	};
-	
+		enum
+		{	kAckPacketType = 'qtak',
+			kOldAckPacketType = 'ack ', // Remove this
+			kAppPacketTypeOffset 	= 8,
+			kAckSeqNumOffset 		= 16,
+			kAckMaskOffset 			= 20,
+			kPacketLengthMask = 0x0000FFFFUL,
+		};
+		
+		inline Bool16 IsOldAckType(UInt32 theAppType)  { return (theAppType == kOldAckPacketType); } // Remove this
+		inline Bool16 IsAckType(UInt32 theAppType) { return (IsOldAckType(theAppType) || (theAppType == kAckPacketType) );}
 };
 
-
-Bool16 RTCPAckPacket::IsAckPacketType()
-{
-	return (Bool16) (ntohl(*(UInt32*)&fRTCPAckBuffer[kAppPacketTypeOffset]) == kAckPacketType);
-}
 
 Bool16 RTCPAckPacket::IsNthBitEnabled(UInt32 inBitNumber)
 {
@@ -106,6 +107,12 @@ UInt16 RTCPAckPacket::GetAckSeqNum()
 	return (UInt16) (ntohl(*(UInt32*)&fRTCPAckBuffer[kAckSeqNumOffset]));
 }
 
+inline UInt16 RTCPAckPacket::GetPacketLength()
+{
+	return (UInt16) ( ntohl(*(UInt32*)fRTCPAckBuffer) & kPacketLengthMask);
+}
+
+
 
 
 /*
@@ -118,7 +125,7 @@ UInt16 RTCPAckPacket::GetAckSeqNum()
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                           SSRC/CSRC                           |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                          name (ASCII)  = 'ack '               |
+   |                          name (ASCII)  = 'qtak'               |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                           SSRC/CSRC                           |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

@@ -34,7 +34,16 @@ if [ $USERID = 0 ]; then
 		echo removing /usr/sbin/StreamingServerModules
 		rm -rf /usr/sbin/StreamingServerModules
 	fi
+	
+	if [ -f /usr/local/bin/streamingadminserver.pl ]; then
+		echo removing /usr/local/bin/streamingadminserver.pl
+		rm -f /usr/local/bin/streamingadminserver.pl
+	fi
 
+	if [ -f /usr/local/sbin/SpamPro ]; then
+		echo removing /usr/local/sbin/SpamPro
+		rm -f /usr/local/sbin/SpamPro
+	fi
 
 	echo
 
@@ -46,18 +55,19 @@ if [ $USERID = 0 ]; then
 	cp -f DarwinStreamingServer /usr/local/sbin/
 	
 	
-	echo copying "PlaylistBroadcaster" to "/usr/local/sbin/PlaylistBroadcaster"
-	cp -f PlaylistBroadcaster /usr/local/sbin/
+	echo copying "PlaylistBroadcaster" to "/usr/local/bin/PlaylistBroadcaster"
+	cp -f PlaylistBroadcaster /usr/local/bin/
 	
-	echo copying "qtpasswd" to "/usr/local/sbin/qtpasswd"
-	cp -f qtpasswd /usr/local/sbin/
-	
-	echo copying modules to "/usr/local/sbin/StreamingServerModules"
+	echo copying "qtpasswd" to "/usr/local/bin/qtpasswd"
+	cp -f qtpasswd /usr/local/bin/
+
+	# For now, do not copy modules as there are no supported dynamic modules
+	# echo copying modules to "/usr/local/sbin/StreamingServerModules"
 	if [ ! -d /usr/local/sbin/StreamingServerModules ]; then
 		echo creating "/usr/local/sbin/StreamingServerModules" directory
 		mkdir /usr/local/sbin/StreamingServerModules
 	fi
-	cp -f StreamingServerModules/* /usr/local/sbin/StreamingServerModules/
+	# cp -f StreamingServerModules/* /usr/local/sbin/StreamingServerModules/
 	
 	if [ ! -d /etc/streaming ]; then
 		echo creating "/etc/streaming" directory
@@ -70,8 +80,19 @@ if [ $USERID = 0 ]; then
 	echo;echo copying "streamingserver.xml" to "/etc/streaming/streamingserver.xml"
 	cp streamingserver.xml /etc/streaming/streamingserver.xml
 	chmod 600 /etc/streaming/streamingserver.xml
+
+	echo;echo copying "streamingrelay.conf" to "/etc/streaming/streamingrelay.conf"
+	cp streamingrelay.conf /etc/streaming/streamingrelay.conf
+	chmod 600 /etc/streaming/streamingrelay.conf
 		
-	
+	echo;echo copying "qtusers" to "/etc/streaming/qtusers"
+	cp qtusers /etc/streaming/qtusers
+	chmod 600 /etc/streaming/qtusers
+
+	echo;echo copying "streamingadminserver.pem" to "/etc/streaming/streamingadminserver.pem"
+	cp streamingadminserver.pem /etc/streaming/streamingadminserver.pem
+	chmod 400 /etc/streaming/streamingadminserver.pem
+
 	if [ ! -d /var/streaming ]; then
 		echo creating "/var/streaming" directory
 		mkdir -p /var/streaming
@@ -94,30 +115,40 @@ if [ $USERID = 0 ]; then
 		mkdir -p /usr/local/movies
 	fi
 	
-	#echo copying "sample.mov" into "/usr/local/movies/sample.mov"
-	#cp -f sample.mov /usr/local/movies/
+	if [ ! -d /usr/local/playlists ]; then
+		echo creating "/usr/local/playlists" directory
+		mkdir -p /usr/local/playlists
+		chmod 777 /usr/local/playlists
+	fi
 	
-	#echo copying "SpamPro" to "/usr/local/sbin/SpamPro"
-	#cp SpamPro /usr/local/sbin/
+	echo copying "sample.mov" into "/usr/local/movies/sample.mov"
+	cp -f sample.mov /usr/local/movies/
 	
-	#echo copying "spampro.conf" to "/var/streaming/spampro.conf"
-	#cp spampro.conf /var/streaming/
+	echo copying "StreamingLoadTool" to "/usr/local/bin/StreamingLoadTool"
+	cp StreamingLoadTool /usr/local/bin/
+	
+	echo copying "streamingloadtool.conf" to "/etc/streaming/streamingloadtool.conf"
+	cp streamingloadtool.conf /etc/streaming/
 	
 	#WebAdmin install
-	echo copying "streamingadminserver.pl" into "/usr/local/bin/streamingadminserver.pl"
-	cp -f streamingadminserver.pl /usr/local/bin/streamingadminserver.pl
+	echo copying "streamingadminserver.pl" into "/usr/local/sbin/streamingadminserver.pl"
+	cp -f streamingadminserver.pl /usr/local/sbin/streamingadminserver.pl
 	
-	echo copying Admin HTML to "/var/streaming/AdminHtml" directory
+	if [ -d /var/streaming/AdminHtml/ ]; then
+	    echo removing old version of html from "/var/streaming/AdminHtml"
+	    rm -r -f /var/streaming/AdminHtml/*
+	fi    
 	if [ ! -d /var/streaming/ ]; then
 		echo creating "/var/streaming/AdminHtml" directory
 		mkdir -p /var/streaming/AdminHtml
 	fi
+	echo copying Admin HTML to "/var/streaming/AdminHtml" directory
 	cp -f -r AdminHtml /var/streaming/
 	
 	echo;echo "Launching streamingadminserver.pl"
-	/usr/local/bin/streamingadminserver.pl
+	/usr/local/sbin/streamingadminserver.pl
 	
-	echo;echo Installion Complete
+	echo;echo Installation Complete
 
 else
 

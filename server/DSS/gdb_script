@@ -9,7 +9,7 @@ dir APIModules/QTSSSvrControlModule
 dir APIModules/QTSSWebDebugModule
 dir APIModules/QTSSWebStatsModule
 dir APIModules/QTSSDemoAuthorizationModule.bproj
-dir APIModules/QTSSAccessModule.bproj
+dir APIModules/QTSSAccessModule
 dir APIModules/QTSSAdminModule
 dir APIStubLib
 dir CommonUtilitiesLib
@@ -19,4 +19,9 @@ dir PrefsSourceLib
 dir QTFileLib
 dir RTSPClientLib
 dir RTCPUtilitiesLib
-handle SIGPIPE nopass nostop noprint
+handle SIGPIPE nopass noprint 
+
+
+
+
+

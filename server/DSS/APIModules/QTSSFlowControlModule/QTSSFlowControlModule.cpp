@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSFlowControlModule.cpp
@@ -56,14 +56,14 @@ static UInt32	sDefaultLossThinTolerance 		= 30;
 static UInt32	sDefaultNumLossesToThin 		= 3;
 static UInt32	sDefaultLossThickTolerance 		= 5;
 static UInt32	sDefaultLossesToThick 			= 6;
-static UInt32	sDefaultWorsesToThin 			= 3;
+static UInt32	sDefaultWorsesToThin 			= 2;
 
 // Current values for preferences
 static UInt32	sLossThinTolerance 		= 30;
 static UInt32	sNumLossesToThin 		= 3;
 static UInt32	sLossThickTolerance 	= 5;
 static UInt32	sLossesToThick 			= 6;
-static UInt32	sWorsesToThin 			= 3;
+static UInt32	sWorsesToThin 			= 2;
 
 
 // FUNCTION PROTOTYPES
@@ -339,11 +339,15 @@ QTSS_Error ProcessRTCPPacket(QTSS_RTCPProcess_Params* inParams)
 		if ((ratchetLess) && (curQuality < numQualityLevels))
 		{
 			curQuality++;
+			if (curQuality > 1) // v3.0.1=v2.0.1 make level 2 means key frames in the file or max if reflected.
+				curQuality = numQualityLevels;
 			(void)QTSS_SetValue(theStream, qtssRTPStrQualityLevel, 0, &curQuality, sizeof(curQuality));
 		}
 		else if ((ratchetMore) && (curQuality > 0))
 		{
 			curQuality--;
+			if (curQuality > 1)  // v3.0.1=v2.0.1 make level 2 means key frames in the file or max if reflected.
+				curQuality = 1;
 			(void)QTSS_SetValue(theStream, qtssRTPStrQualityLevel, 0, &curQuality, sizeof(curQuality));
 		}
 		

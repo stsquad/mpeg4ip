@@ -33,7 +33,7 @@
  */
 CIpPort::CIpPort (in_port_t startport, in_port_t maxport)
 {
-  struct sockaddr_in sin;
+  struct sockaddr_in saddr;
   
   m_next = NULL;
 
@@ -43,10 +43,10 @@ CIpPort::CIpPort (in_port_t startport, in_port_t maxport)
     if (m_sock < 0) {
       return;
     }
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = INADDR_ANY;
-    sin.sin_port = htons(startport);
-    if (bind(m_sock, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
+    saddr.sin_family = AF_INET;
+    saddr.sin_addr.s_addr = INADDR_ANY;
+    saddr.sin_port = htons(startport);
+    if (bind(m_sock, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
 
       startport++;
       closesocket(m_sock);
@@ -59,14 +59,14 @@ CIpPort::CIpPort (in_port_t startport, in_port_t maxport)
 #else
   socklen_t socklen;
 #endif
-  socklen = sizeof(sin);
-  if (getsockname(m_sock, (struct sockaddr *)&sin, &socklen) < 0) {
+  socklen = sizeof(saddr);
+  if (getsockname(m_sock, (struct sockaddr *)&saddr, &socklen) < 0) {
     closesocket(m_sock);
     m_sock = -1;
     return;
   }
 
-  m_port_num = ntohs(sin.sin_port);
+  m_port_num = ntohs(saddr.sin_port);
 }
 
 /*

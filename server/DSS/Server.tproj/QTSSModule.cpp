@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSModule.cpp
@@ -39,6 +39,7 @@
 
 Bool16	QTSSModule::sHasRTSPRequestModule = false;
 Bool16	QTSSModule::sHasOpenFileModule = false;
+Bool16	QTSSModule::sHasRTSPAuthenticateModule = false;
 
 QTSSAttrInfoDict::AttrInfo	QTSSModule::sAttributes[] =
 {   /*fields:   fAttrName, fFuncPtr, fAttrDataType, fAttrPermission */
@@ -46,7 +47,7 @@ QTSSAttrInfoDict::AttrInfo	QTSSModule::sAttributes[] =
 	/* 1 */ { "qtssModDesc",			NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
 	/* 2 */ { "qtssModVersion",			NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
 	/* 3 */ { "qtssModRoles",			NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModePreempSafe },
-	/* 4 */ { "qtssModPrefs",			NULL,					qtssAttrDataTypeQTSS_Object,qtssAttrModeRead | qtssAttrModePreempSafe },
+	/* 4 */ { "qtssModPrefs",			NULL,					qtssAttrDataTypeQTSS_Object,qtssAttrModeRead | qtssAttrModePreempSafe  | qtssAttrModeInstanceAttrAllowed },
 };
 
 void QTSSModule::Initialize()
@@ -168,7 +169,10 @@ QTSS_Error	QTSSModule::AddRole(QTSS_Role inRole)
 		return QTSS_RequestFailed;
 	if ((inRole == QTSS_OpenFilePreProcess_Role) && (sHasOpenFileModule))
 		return QTSS_RequestFailed;
-	
+	// There can be only one module registered for QTSS_RTSPAuthenticate_Role 
+	if ((inRole == QTSS_RTSPAuthenticate_Role) && (sHasRTSPAuthenticateModule))
+		return QTSS_RequestFailed;
+
 	switch (inRole)
 	{
 		// Map actual QTSS Role names to our private enum values. Turn on the proper one
@@ -177,6 +181,7 @@ QTSS_Error	QTSSModule::AddRole(QTSS_Role inRole)
 		case QTSS_Shutdown_Role:			fRoleArray[kShutdownRole] = true;			break;
 		case QTSS_RTSPFilter_Role:			fRoleArray[kRTSPFilterRole] = true;			break;
 		case QTSS_RTSPRoute_Role:			fRoleArray[kRTSPRouteRole] = true;			break;
+		case QTSS_RTSPAuthenticate_Role:	fRoleArray[kRTSPAthnRole] = true;			break;
 		case QTSS_RTSPAuthorize_Role:		fRoleArray[kRTSPAuthRole] = true;			break;
 		case QTSS_RTSPPreProcessor_Role:	fRoleArray[kRTSPPreProcessorRole] = true;	break;
 		case QTSS_RTSPRequest_Role:			fRoleArray[kRTSPRequestRole] = true;		break;
@@ -193,7 +198,8 @@ QTSS_Error	QTSSModule::AddRole(QTSS_Role inRole)
 		case QTSS_ReadFile_Role:			fRoleArray[kReadFileRole] = true;			break;
 		case QTSS_CloseFile_Role:			fRoleArray[kCloseFileRole] = true;			break;
 		case QTSS_RequestEventFile_Role:	fRoleArray[kRequestEventFileRole] = true;	break;
-		case QTSS_RTSPIncomingData_Role:	fRoleArray[kRTSPIncomingDataRole] = true;	break;
+		case QTSS_RTSPIncomingData_Role:	fRoleArray[kRTSPIncomingDataRole] = true;	break;		
+		case QTSS_StateChange_Role:			fRoleArray[kStateChangeRole] = true;		break;		
 		default:
 			return QTSS_BadArgument;
 	}
@@ -202,6 +208,8 @@ QTSS_Error	QTSSModule::AddRole(QTSS_Role inRole)
 		sHasRTSPRequestModule = true;
 	if (inRole == QTSS_OpenFile_Role)
 		sHasOpenFileModule = true;
+	if (inRole == QTSS_RTSPAuthenticate_Role)
+		sHasRTSPAuthenticateModule = true;
 		
 	//
 	// Add this role to the array of roles attribute

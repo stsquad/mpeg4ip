@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		SourceInfo.h
@@ -41,13 +41,16 @@
 #include "QTSS.h"
 #include "StrPtrLen.h"
 #include "OSQueue.h"
+#include "OS.h"
 
 class SourceInfo
 {
 	public:
 	
 		SourceInfo() : 	fStreamArray(NULL), fNumStreams(0),
-						fOutputArray(NULL), fNumOutputs(0) {}
+						fOutputArray(NULL), fNumOutputs(0),
+						fTimeSet(false),fStartTimeUnixSecs(0),fEndTimeUnixSecs(0),
+						fSessionControlType(kSDPTimeControl)  {}
 		virtual ~SourceInfo() {}// Relies on derived classes to delete any allocated memory
 		
 		enum
@@ -62,7 +65,7 @@ class SourceInfo
 		// the following metadata.
 		struct StreamInfo
 		{
-			StreamInfo() : fSrcIPAddr(0), fDestIPAddr(0), fPort(0), fTimeToLive(0), fPayloadType(0), fTrackID(0), fBufferDelay((Float32) eDefaultBufferDelay), fIsTCP(false){}
+			StreamInfo() : fSrcIPAddr(0), fDestIPAddr(0), fPort(0), fTimeToLive(0), fPayloadType(0), fTrackID(0), fBufferDelay((Float32) eDefaultBufferDelay), fIsTCP(false),fSetupToReceive(false){}
 			StreamInfo(const StreamInfo& copy);// Doesn't copy dynamically allocated data
 			~StreamInfo() {}
 			
@@ -75,6 +78,7 @@ class SourceInfo
 			UInt32 fTrackID;	// ID of this stream
 			Float32 fBufferDelay; // buffer delay (default is 3 seconds)
 			Bool16	fIsTCP; 	// Is this a TCP broadcast? If this is the case, the port and ttl are not valid
+			Bool16	fSetupToReceive;	// If true then a push to the server is setup on this stream.
 		};
 		
 		// Returns the number of StreamInfo objects (number of Streams in this source)
@@ -115,6 +119,22 @@ class SourceInfo
 		// description of the source, stripped of all network info.
 		virtual char*	GetLocalSDP(UInt32* /*newSDPLen*/) { return NULL; }
 		
+		// SDP scheduled times supports earliest start and latest end -- doesn't handle repeat times or multiple active times.
+		#define kNTP_Offset_From_1970 2208988800LU
+		time_t	NTPSecs_to_UnixSecs(UInt32 time) {return (time_t) (time - (UInt32)  kNTP_Offset_From_1970);}
+		UInt32	UnixSecs_to_NTPSecs(time_t time) {return (UInt32) time + (UInt32) kNTP_Offset_From_1970;}
+		Bool16	SetActiveNTPTimes(UInt32 startNTPTime,UInt32 endNTPTime);
+		Bool16  IsValidNTPSecs(UInt32 time) {return time >= (UInt32) kNTP_Offset_From_1970 ? true : false;}
+		Bool16	IsPermanentSource() { return ((fStartTimeUnixSecs == 0) && (fEndTimeUnixSecs == 0)) ? true : false; }
+		Bool16	IsActiveTime(time_t unixTimeSecs);
+		Bool16	IsActiveNow() { return IsActiveTime(OS::UnixTime_Secs()); }
+		Bool16  IsRTSPControlled() {return (fSessionControlType == kRTSPSessionControl) ? true : false; }
+		Bool16  HasTCPStreams();
+		Bool16  HasIncomingBroacast();
+		time_t	GetStartTimeUnixSecs() {return fStartTimeUnixSecs; }
+		time_t	GetEndTimeUnixSecs() {return fEndTimeUnixSecs; }
+		time_t	GetDurationSecs();
+		enum {kSDPTimeControl, kRTSPSessionControl};
 	protected:
 		
 		//utility function used by IsReflectable
@@ -125,6 +145,14 @@ class SourceInfo
 		
 		OutputInfo* fOutputArray;
 		UInt32 		fNumOutputs;
+		
+		Bool16		fTimeSet;
+		time_t		fStartTimeUnixSecs;
+		time_t		fEndTimeUnixSecs;
+			
+		UInt32		fSessionControlType;
 };
+
+
 
 #endif //__SOURCE_INFO_H__

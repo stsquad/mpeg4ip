@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 #ifndef OSHeaders_H
@@ -45,6 +45,7 @@
 	#define QT_PATH_SEPARATOR		'/'
 
 	/* Typedefs */
+	typedef unsigned int		PointerSizedInt;
 	typedef unsigned char		UInt8;
 	typedef signed char			SInt8;
 	typedef unsigned short		UInt16;
@@ -118,6 +119,7 @@
 	#define QT_PATH_SEPARATOR		'/'
 
 	/* Typedefs */
+	typedef unsigned int		PointerSizedInt;
 	typedef unsigned char		UInt8;
 	typedef signed char			SInt8;
 	typedef unsigned short		UInt16;
@@ -164,6 +166,7 @@
 	#define QT_PATH_SEPARATOR		':'
 	
 	/* Typedefs */
+	typedef unsigned int		PointerSizedInt;
 	typedef unsigned char		UInt8;
 	typedef signed char			SInt8;
 	typedef unsigned short		UInt16;
@@ -215,6 +218,7 @@
 	#define true				1
 	#define false				0
 
+	typedef unsigned int		PointerSizedInt;
 	typedef unsigned char		UInt8;
 	typedef signed char			SInt8;
 	typedef unsigned short		UInt16;
@@ -272,6 +276,7 @@
 	//#define true				1
 	//#define false				0
 
+	typedef unsigned int		PointerSizedInt;
 	typedef unsigned char		UInt8;
 	typedef signed char			SInt8;
 	typedef unsigned short		UInt16;
@@ -299,7 +304,57 @@
 	#endif
 		
 	#define	TW0_CHARS_TO_INT( c1, c2 )  ( c1 << 8 | c2 )
+
+#elif defined(__osf__)
 	
+   /* Defines */
+    #define _64BITARG_ "l"
+
+	/* paths */
+	#define	kEOLString "\n"
+	#define	kPathDelimiterString "/"
+	#define	kPathDelimiterChar '/'
+	#define kPartialPathBeginsWithDelimiter 0
+
+	/* Includes */
+	#include <sys/types.h>
+	#include <machine/endian.h>
+	
+	/* Constants */
+	#define QT_TIME_TO_LOCAL_TIME	(-2082844800)
+	#define QT_PATH_SEPARATOR		'/'
+
+	/* Typedefs */
+	typedef unsigned long		PointerSizedInt;
+	typedef unsigned char		UInt8;
+	typedef signed char			SInt8;
+	typedef unsigned short		UInt16;
+	typedef signed short		SInt16;
+	typedef unsigned int		UInt32;
+	typedef signed int			SInt32;
+	typedef signed long			SInt64;
+	typedef unsigned long		UInt64;
+	typedef float				Float32;
+	typedef double				Float64;
+	typedef UInt16				Bool16;
+	typedef UInt8				Bool8;
+	
+	typedef unsigned int		FourCharCode;
+	typedef FourCharCode		OSType;
+
+	#ifdef	FOUR_CHARS_TO_INT
+	#error Conflicting Macro "FOUR_CHARS_TO_INT"
+	#endif
+
+	#define	FOUR_CHARS_TO_INT( c1, c2, c3, c4 )  ( c1 << 24 | c2 << 16 | c3 << 8 | c4 )
+
+	#ifdef	TW0_CHARS_TO_INT
+	#error Conflicting Macro "TW0_CHARS_TO_INT"
+	#endif
+		
+	#define	TW0_CHARS_TO_INT( c1, c2 )  ( c1 << 8 | c2 )
+
+
 #endif
 
 enum

@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="content-type" CONTENT="text/html;charset=Shift_JIS">
+<TITLE>名称未設定</TITLE>
+<SCRIPT LANGUAGE="JavaScript" TYPE="text/javascript">
+
+function setdirectory(name)
+{
+	var doc = parent.pl_edit_ltop.document;
+	var opt = doc.forms[0].elements[0].options[0];
+	var rdir = opt.text;
+	opt.text = rdir + '/' + name;
+	opt.selected = true;
+	doc.forms[0].submit();
+}
+
+function clearform() {
+    var i = 1;
+    var n = document.forms[0].elements.length;
+    while (i < n) {
+        document.forms[0].elements[i].checked = false;
+        document.forms[0].elements[i].defaultChecked = false;
+        i = i+1;
+    }
+}
+
+function submit_it() {
+    setTimeout('clearform()', 1);
+}
+
+</SCRIPT>
+<STYLE TYPE="text/css">	
+<!--	
+
+		.headline { font-size: 24px; line-height: 24px; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; color: #B7BED2; }
+		.tableHeadline { font-size: 12px; line-height: 14px; margin-top: 0px; margin-left: 0px; font-weight: bold; margin-bottom: 0px; color: #FFFFFF; }
+		TD { font-size: 12px; line-height: 14px; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; }
+		.smallTD { font-size: 10px; line-height: 12px; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; }
+		
+	-->
+</STYLE>  
+</HEAD>
+<BODY BGCOLOR="#FFFFFF">
+<FORM NAME="pl_edit_l_form" ID="pl_edit_l_form" METHOD="get" ACTION="addremovemovie.cgi" TARGET="pl_edit_r">
+	<CENTER>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0" WIDTH="100%">
+	<TR>
+		<TD VALIGN="top" WIDTH="100%" ALIGN="RIGHT"><TABLE BORDER="0" BGCOLOR="#FFFFFF" CELLSPACING="1" CELLPADDING="4" WIDTH="100%">
+				<TR>
+					<TD BGCOLOR="#8C94AD" ALIGN="RIGHT"><INPUT TYPE="submit" NAME="Add" VALUE="プレイリストに追加" ONCLICK="submit_it()"></TD>
+				</TR>
+			</TABLE>
+			<TABLE BORDER="0" BGCOLOR="#FFFFFF" CELLSPACING="1" CELLPADDING="4" WIDTH="100%">
+				<TR>
+					<TD ALIGN="center" WIDTH="30" BGCOLOR="#C6C6D6" CLASS="smallTD">&nbsp;</TD>
+					<TD BGCOLOR="#C6C6D6" CLASS="smallTD"><B>名前</B></TD>
+					<TD WIDTH="13%" BGCOLOR="#C6C6D6" CLASS="smallTD"><B>種類</B></TD>
+					<TD BGCOLOR="#C6C6D6" ALIGN="CENTER" CLASS="smallTD"><B>追加</B></TD>
+				</TR>
+			<%%MOVIELIST%%>
+			</TABLE></TD>
+	</TR>
+</TABLE>
+</CENTER>
+</FORM>
+</BODY>
+</HTML>

@@ -1,33 +1,39 @@
 
-Finish testing mp4live writing
+ISMA sdp iod at session level
 
-Add rtp hint helpers
+Change ISMA profile levels for od, sd, and graphics
 
-Finish adapting mp4live to new library - hinting
+mp4creator
+	Mp4v creator - non fixed durations, and B-frames
+	Hinters
+	AVI creator
 
-FinishWrite
-	esds - maxBitrate, avgBitrate
-	hmhd
-
----
-
-Write mp4creator
-
-MP4Clone 
+MP4Optimize
 	Interleaving of existing and new samples on writing
 	Rewriting of chunk offset atom to reflect moves
 
-MP4Optimize
-
-Wrap printf's for verbosity - see example is player/lib/http/http_util.c
+---
 
 Effects of edit lists on reading samples
 
-MP4 v2 new atom types traf, etc.
-
 Option to use dref to separate meta info file from media data file
+	Modify ReadSample to pay attention to dref's
+
+Extended format support
+
+API and INTERNALS documentation
+
+---
 
 Write mp4broadcaster
 
+Wrap printf's for verbosity - see example is player/lib/http/http_util.c
+
 Unclear if stsd.mp4?.esds.ESID should be set in file - email singer
+
+Distinguish cases of no ES Config and error parsing esds
+
+Improve error recovery when length of atom/descriptor is larger than parent/file, resync on parent.
+
+Reshape things to use MPContainer as a base class?
 

@@ -25,11 +25,6 @@
  */
 #ifndef __IP_PORT_H__
 #define __IP_PORT_H__ 1
-#ifndef _WINDOWS
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
 
 // CIpPort will grab the next ip port available when created (and valid).
 // It will hold on to the port until deleted.

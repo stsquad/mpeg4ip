@@ -22,7 +22,6 @@
  * test.c - test utility for sdp library
  */
 #include "systems.h"
-#include <sys/time.h>
 #include "sdp.h"
 
 #define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}

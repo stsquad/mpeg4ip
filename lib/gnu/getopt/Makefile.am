@@ -9,4 +9,4 @@ libgetopt_long_la_SOURCES = getopt.c getopt1.c
 
 INCLUDES = -I../../../include
 
-AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
+AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes

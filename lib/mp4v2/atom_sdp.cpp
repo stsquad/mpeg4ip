@@ -29,7 +29,7 @@ MP4SdpAtom::MP4SdpAtom() : MP4Atom("sdp ")
 
 void MP4SdpAtom::Read() 
 {
-	/* read sdp string, length is implicit in size of atom */
+	// read sdp string, length is implicit in size of atom 
 	u_int64_t size = GetEnd() - m_pFile->GetPosition();
 	char* data = (char*)MP4Malloc(size + 1);
 	m_pFile->ReadBytes((u_int8_t*)data, size);
@@ -37,3 +37,17 @@ void MP4SdpAtom::Read()
 	((MP4StringProperty*)m_pProperties[0])->SetValue(data);
 	MP4Free(data);
 }
+
+void MP4SdpAtom::Write()
+{
+	// since length of string is implicit in size of atom
+	// we need to handle this specially, and not write the terminating \0
+	MP4StringProperty* pSdp = (MP4StringProperty*)m_pProperties[0];
+	const char* sdpText = pSdp->GetValue();
+	if (sdpText) {
+		pSdp->SetFixedLength(strlen(sdpText));
+	}
+	MP4Atom::Write();
+	pSdp->SetFixedLength(0);
+}
+

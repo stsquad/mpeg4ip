@@ -84,7 +84,7 @@ public:
 
 class MP4TrefTypeAtom : public MP4Atom {
 public:
-	MP4TrefTypeAtom(char* type);
+	MP4TrefTypeAtom(const char* type);
 	void Read();
 };
 
@@ -179,6 +179,7 @@ public:
 class MP4Mp4sAtom : public MP4Atom {
 public:
 	MP4Mp4sAtom();
+	void Generate();
 };
 
 class MP4Mp4vAtom : public MP4Atom {
@@ -275,18 +276,49 @@ public:
 class MP4RtpAtom : public MP4Atom {
 public:
 	MP4RtpAtom();
+	void Generate();
 	void Read();
+	void Write();
+
+protected:
+	void AddPropertiesStsdType();
+	void AddPropertiesHntiType();
+
+	void GenerateStsdType();
+	void GenerateHntiType();
+
+	void ReadStsdType();
+	void ReadHntiType();
+
+	void WriteHntiType();
+};
+
+class MP4TimsAtom : public MP4Atom {
+public:
+	MP4TimsAtom();
+};
+
+class MP4TsroAtom : public MP4Atom {
+public:
+	MP4TsroAtom();
+};
+
+class MP4SnroAtom : public MP4Atom {
+public:
+	MP4SnroAtom();
 };
 
 class MP4SdpAtom : public MP4Atom {
 public:
 	MP4SdpAtom();
 	void Read();
+	void Write();
 };
 
 class MP4HinfAtom : public MP4Atom {
 public:
 	MP4HinfAtom();
+	void Generate();
 };
 
 class MP4TrpyAtom : public MP4Atom {

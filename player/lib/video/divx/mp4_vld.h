@@ -93,7 +93,7 @@ extern tab_type tableB17_3[];
 ***/
 
 extern event_t vld_event(int intraFlag);
-extern event_t vld_intra_dct();
-extern event_t vld_inter_dct();
+extern event_t vld_intra_dct(void);
+extern event_t vld_inter_dct(void);
 
 /***/

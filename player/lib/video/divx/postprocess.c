@@ -227,7 +227,7 @@ static void deblock_horiz_default_filter(uint8_t *v, int stride, int QP) {
 
 
 /* this is a horizontal deblocking filter - i.e. it will smooth _vertical_ block edges */
-void deblock_horiz(uint8_t *image, int width, int height, int stride, QP_STORE_T *QP_store, int QP_stride, int chroma) {
+static void deblock_horiz(uint8_t *image, int width, int height, int stride, QP_STORE_T *QP_store, int QP_stride, int chroma) {
 	int x, y;
 	int QP;
 	uint8_t *v;
@@ -574,7 +574,7 @@ static void deblock_vert_default_filter(uint8_t *v, int stride, int QP) {
 
 
 /* this is a vertical deblocking filter - i.e. it will smooth _horizontal_ block edges */
-void deblock_vert( uint8_t *image, int width, int height, int stride, QP_STORE_T *QP_store, int QP_stride, int chroma) {
+static void deblock_vert( uint8_t *image, int width, int height, int stride, QP_STORE_T *QP_store, int QP_stride, int chroma) {
 	int Bx, y;
 	int QP, QPx16;
 	uint8_t *v;
@@ -665,7 +665,7 @@ void deblock_vert( uint8_t *image, int width, int height, int stride, QP_STORE_T
 
 
 /* this is the deringing filter */
-void dering( uint8_t *image, int width, int height, int stride, QP_STORE_T *QP_store, int QP_stride, int chroma) {
+static void dering( uint8_t *image, int width, int height, int stride, QP_STORE_T *QP_store, int QP_stride, int chroma) {
 	int x, y, h, v, i, j;
 	uint8_t *b8x8, *b10x10;
 	uint8_t b8x8filtered[64];

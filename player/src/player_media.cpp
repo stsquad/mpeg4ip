@@ -26,8 +26,8 @@
 #include "player_media.h"
 #include "player_sdp.h"
 #include "player_util.h"
-#include <rtp/rtp.h>
 #include <rtp/memory.h>
+#include "rtp_bytestream.h"
 #include "our_config_file.h"
 #include "media_utils.h"
 #include "ip_port.h"
@@ -53,6 +53,33 @@ static int c_decode_thread (void *data)
   CPlayerMedia *media;
   media = (CPlayerMedia *)data;
   return (media->decode_thread());
+}
+
+static void c_rtp_packet_callback (void *data, struct rtp_packet *pak, int len)
+{
+  ((CPlayerMedia *)data)->rtp_receive_packet(pak, len);
+}
+
+static int c_init_rtp_tcp (void *data)
+{
+  ((CPlayerMedia *)data)->rtp_init_tcp();
+  return 0;
+}
+
+static int c_rtp_start (void *data)
+{
+  ((CPlayerMedia *)data)->rtp_start();
+  return 0;
+}
+static int c_rtp_periodic (void *data)
+{
+  ((CPlayerMedia *)data)->rtp_periodic();
+  return 0;
+}
+
+static int c_rtcp_send_packet (void *ud, char *buffer, int buflen)
+{
+  return ((CPlayerMedia *)ud)->rtcp_send_packet(buffer, buflen);
 }
 
 CPlayerMedia::CPlayerMedia ()
@@ -91,6 +118,7 @@ CPlayerMedia::CPlayerMedia ()
   m_user_data = NULL;
   m_rtcp_received = 0;
   m_streaming = 0;
+  m_rtp_use_rtsp = 0;
 }
 
 CPlayerMedia::~CPlayerMedia()
@@ -227,7 +255,9 @@ int CPlayerMedia::create_from_file (CPlayerSession *p,
 int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 				    media_desc_t *sdp_media,
 				    const char **errmsg,
-				    int ondemand)
+				    int ondemand,
+				    int use_rtsp,
+				    int media_number_in_session)
 {
   char buffer[80];
   rtsp_command_t cmd;
@@ -260,25 +290,31 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
      * Get 2 consecutive IP ports.  If we don't have this, don't even
      * bother
      */
-    m_ports = new C2ConsecIpPort(&global_invalid_ports);
-    if (m_ports == NULL || !m_ports->valid()) {
-      *errmsg = "Could not find any valid IP ports";
-      player_error_message("Couldn't get valid IP ports");
-      return (-1);
-    }
-    m_our_port = m_ports->first_port();
+    if (use_rtsp == 0) {
+      m_ports = new C2ConsecIpPort(&global_invalid_ports);
+      if (m_ports == NULL || !m_ports->valid()) {
+	*errmsg = "Could not find any valid IP ports";
+	player_error_message("Couldn't get valid IP ports");
+	return (-1);
+      }
+      m_our_port = m_ports->first_port();
 
-    /*
-     * Send RTSP setup message - first create the transport string for that
-     * message
-     */
+      /*
+       * Send RTSP setup message - first create the transport string for that
+       * message
+       */
+      create_rtsp_transport_from_sdp(m_parent->get_sdp_info(),
+				     m_media_info,
+				     m_our_port,
+				     buffer,
+				     sizeof(buffer));
+    } else {
+      m_rtp_use_rtsp = 1;
+      m_rtp_media_number_in_session = media_number_in_session;
+      snprintf(buffer, sizeof(buffer), "RTP/AVP/TCP;interleaved=%d-%d", 
+	       media_number_in_session * 2, (media_number_in_session * 2) + 1);
+    }
     memset(&cmd, 0, sizeof(rtsp_command_t));
-    create_rtsp_transport_from_sdp(m_parent->get_sdp_info(),
-				   m_media_info,
-				   m_our_port,
-				   buffer,
-				   sizeof(buffer));
-  
     cmd.transport = buffer;
     int err = 
       rtsp_send_setup(m_parent->get_rtsp_client(),
@@ -338,16 +374,40 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     return (-1);
   }
 
-  m_rtp_inited = 0;
-  m_recv_thread = SDL_CreateThread(c_recv_thread, this);
-  if (m_recv_thread == NULL) {
-    *errmsg = "Couldn't create media thread";
-    player_error_message("Failed to create thread for media %s RTP recv",
-			 m_media_info->media);
-    return (-1);
-  }
-  while (m_rtp_inited == 0) {
-    SDL_Delay(10);
+  if (use_rtsp == 0) {
+    m_rtp_inited = 0;
+    m_recv_thread = SDL_CreateThread(c_recv_thread, this);
+    if (m_recv_thread == NULL) {
+      *errmsg = "Couldn't create media thread";
+      player_error_message("Failed to create thread for media %s RTP recv",
+			   m_media_info->media);
+      return (-1);
+    }
+    while (m_rtp_inited == 0) {
+      SDL_Delay(10);
+    }
+  } else {
+    int ret;
+#ifndef _WIN32
+    ret = rtsp_thread_set_rtp_callback(m_parent->get_rtsp_client(),
+				       c_rtp_packet_callback,
+				       c_rtp_periodic,
+				       m_rtp_media_number_in_session,
+				       this);
+    if (ret < 0) {
+      *errmsg = "Can't setup TCP/RTP callback";
+      return -1;
+    }
+    ret = rtsp_thread_perform_callback(m_parent->get_rtsp_client(),
+				       c_init_rtp_tcp,
+				       this);
+#else
+	ret = -1;
+#endif
+    if (ret < 0) {
+      *errmsg = "Can't init RTP in RTSP thread";
+      return -1;
+    }
   }
   /*
    * create the rtp bytestream
@@ -416,7 +476,15 @@ int CPlayerMedia::do_play (double start_time_offset)
       m_play_start_time = start_time_offset;
     }
     m_paused = 0;
-    m_rtp_msg_queue.send_message(MSG_START_SESSION);
+    if (m_rtp_use_rtsp) {
+#ifndef _WIN32
+      rtsp_thread_perform_callback(m_parent->get_rtsp_client(),
+				   c_rtp_start, 
+				   this);
+#endif
+    } else {
+      m_rtp_msg_queue.send_message(MSG_START_SESSION);
+    }
   } else {
     /*
      * File (or other) playback.
@@ -462,13 +530,23 @@ int CPlayerMedia::do_pause (void)
   /*
    * Pause the various threads
    */
-  m_rtp_msg_queue.send_message(MSG_PAUSE_SESSION);
+  if (!m_rtp_use_rtsp) {
+    m_rtp_msg_queue.send_message(MSG_PAUSE_SESSION);
+  }
   m_decode_msg_queue.send_message(MSG_PAUSE_SESSION, 
 				  NULL, 
 				  0, 
 				  m_decode_thread_sem);
   m_paused = 1;
   return (0);
+}
+
+double CPlayerMedia::get_max_playtime (void) 
+{
+  if (m_byte_stream) {
+    return (m_byte_stream->get_max_playtime());
+  }
+  return (0.0);
 }
 
 /***************************************************************************
@@ -637,6 +715,40 @@ static char *transport_parse_ssrc (char *transport, CPlayerMedia *m)
   return (transport);
 }
 
+static char *transport_parse_interleave (char *transport, CPlayerMedia *m)
+{
+  uint32_t chan, chan2;
+  if (*transport != '=') {
+    return (NULL);
+  }
+  transport++;
+  ADV_SPACE(transport);
+  transport = convert_number(transport, chan);
+  chan2 = m->get_rtp_media_number() * 2;
+  if (chan != chan2) {
+    player_error_message("Transport interleave not what was requested %d %d", 
+			 chan, chan2);
+    return NULL;
+  }
+  ADV_SPACE(transport);
+  if (*transport != '\0') {
+    if (*transport != '-') {
+      return (NULL);
+    }
+    transport++;
+    transport = convert_number(transport, chan2);
+    if (chan + 1 != chan2) {
+      player_error_message("Error in transport interleaved field");
+      return (NULL);
+    }
+    
+    if (*transport == '\0') return (transport);
+  }
+  if (*transport != ';') return (NULL);
+  transport++;
+  return (transport);
+}
+
 static char *rtpinfo_parse_ssrc (char *transport, CPlayerMedia *m, int &end)
 {
   uint32_t ssrc;
@@ -716,6 +828,7 @@ struct {
   TTYPE("server_port", transport_parse_server_port),
   TTYPE("source", transport_parse_source),
   TTYPE("ssrc", transport_parse_ssrc),
+  TTYPE("interleaved", transport_parse_interleave),
   {NULL, 0, NULL},
 }; 
 
@@ -737,11 +850,19 @@ int CPlayerMedia::process_rtsp_transport (char *transport)
   transport += protolen;
   if (*transport == '/') {
     transport++;
-    if (strncasecmp(transport, "UDP", strlen("UDP")) != 0) {
-      player_error_message("Transport is not UDP");
-      return (-1);
+    if (m_rtp_use_rtsp) {
+      if (strncasecmp(transport, "TCP", strlen("TCP")) != 0) {
+	player_error_message("Transport is not TCP");
+	return (-1);
+      }
+      transport += strlen("TCP");
+    } else {
+      if (strncasecmp(transport, "UDP", strlen("UDP")) != 0) {
+	player_error_message("Transport is not UDP");
+	return (-1);
+      }
+      transport += strlen("UDP");
     }
-    transport += strlen("UDP");
   }
   if (*transport != ';') {
     return (-1);
@@ -760,7 +881,7 @@ int CPlayerMedia::process_rtsp_transport (char *transport)
       }
     }
     if (transport_types[ix].name == NULL) {
-      player_error_message("Illegal name in transport - skipping %s", 
+      player_error_message("Illegal mime type in transport - skipping %s", 
 			   transport);
       while (*transport != ';' && *transport != '\0') transport++;
       if (*transport != '\0') transport++;
@@ -858,6 +979,89 @@ int process_rtsp_rtpinfo (char *rtpinfo,
   return (1);
 }
 
+int CPlayerMedia::rtp_receive_packet (struct rtp_packet *pak, int len)
+{
+  int ret;
+  ret = rtp_process_recv_data(m_rtp_session, 0, pak, len);
+  if (ret < 0)
+    xfree(pak);
+  return ret;
+}
+
+void CPlayerMedia::rtp_periodic (void)
+{
+  rtp_send_ctrl(m_rtp_session, 
+		m_rtp_byte_stream != NULL ? 
+		m_rtp_byte_stream->get_last_rtp_timestamp() : 0, 
+		NULL);
+  rtp_update(m_rtp_session);
+  if (m_rtp_byte_stream != NULL) {
+    int ret = m_rtp_byte_stream->recv_task(m_decode_thread_waiting);
+    if (ret > 0) {
+      if (m_rtp_buffering == 0) {
+	m_rtp_buffering = 1;
+	m_decode_msg_queue.send_message(MSG_START_DECODING, 
+					NULL, 
+					0, 
+					m_decode_thread_sem);
+      } else if (m_decode_thread_waiting != 0) {
+	m_decode_thread_waiting = 0;
+	SDL_SemPost(m_decode_thread_sem);
+      }
+    }
+    return;
+  }
+  if (m_head != NULL) {
+    /*
+     * Make sure that the proto is the same
+     */
+    if (m_head->pt == m_tail->pt) {
+      if (m_rtp_queue_len > 10) { // 10 packets consecutive proto same
+	if (determine_proto_from_rtp() == FALSE) {
+	  clear_rtp_packets(); 
+	}
+      }
+    } else {
+      clear_rtp_packets();
+    }
+  }
+}
+
+void CPlayerMedia::rtp_start (void)
+{
+  if (m_rtp_ssrc_set == TRUE) {
+    rtp_set_my_ssrc(m_rtp_session, m_rtp_ssrc);
+  } else {
+    // For now - we'll set up not to wait for RTCP validation 
+    // before indicating if rtp library should accept.
+    rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
+  }
+  if (m_rtp_byte_stream != NULL) {
+    m_rtp_byte_stream->reset();
+    m_rtp_byte_stream->flush_rtp_packets();
+  }
+  m_rtp_buffering = 0;
+}
+
+void CPlayerMedia::rtp_end(void)
+{
+  rtp_send_bye(m_rtp_session);
+  rtp_done(m_rtp_session);
+  m_rtp_session = NULL;
+}
+
+int CPlayerMedia::rtcp_send_packet (char *buffer, int buflen)
+{
+#ifndef _WIN32
+  if (config.get_config_value(CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP) != 0) {
+    return rtsp_thread_send_rtcp(m_parent->get_rtsp_client(),
+				 m_rtp_media_number_in_session,
+				 buffer, 
+				 buflen);
+  }
+#endif
+  return buflen;
+}
 /****************************************************************************
  * RTP receive routines
  ****************************************************************************/
@@ -865,13 +1069,14 @@ int CPlayerMedia::recv_thread (void)
 {
   struct timeval timeout;
   int retcode;
-  int buffering = 0;
   CMsg *newmsg;
   int recv_thread_stop = 0;
-  int receiving = 0;
   connect_desc_t *cptr;
+  int receiving = 0;
   cptr = get_connect_desc_from_media(m_media_info);
 
+
+  m_rtp_buffering = 0;
   if (m_stream_ondemand != 0) {
     /*
      * We need to free up the ports that we got before RTP tries to set 
@@ -883,14 +1088,16 @@ int CPlayerMedia::recv_thread (void)
   }
 
 #ifdef _WINDOWS
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	int ret;
+  WORD wVersionRequested;
+  WSADATA wsaData;
+  int ret;
  
-	wVersionRequested = MAKEWORD( 2, 0 );
- 
-	ret = WSAStartup( wVersionRequested, &wsaData );
-	if ( ret == 0 ) {
+  wVersionRequested = MAKEWORD( 2, 0 );
+  
+  ret = WSAStartup( wVersionRequested, &wsaData );
+  if ( ret != 0 ) {
+    abort();
+  }
 #endif
 
   m_rtp_session = rtp_init(m_source_addr == NULL ? 
@@ -900,14 +1107,9 @@ int CPlayerMedia::recv_thread (void)
 			   cptr->ttl, // need ttl here
 			   5000.0, // rtcp bandwidth ?
 			   c_recv_callback,
-			   this);
-  rtp_setopt(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
-#ifdef _WINDOWS
-	} 
-#endif
+			   (uint8_t *)this);
+  rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
   m_rtp_inited = 1;
-	
-
   
   while (recv_thread_stop == 0) {
     /*
@@ -923,18 +1125,7 @@ int CPlayerMedia::recv_thread (void)
 	if (m_rtp_session == NULL) {
 	  continue;
 	}
-	if (m_rtp_ssrc_set == TRUE) {
-	  rtp_set_my_ssrc(m_rtp_session, m_rtp_ssrc);
-	} else {
-	  // For now - we'll set up not to wait for RTCP validation 
-	  // before indicating if rtp library should accept.
-	  rtp_setopt(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
-	}
-	if (m_rtp_byte_stream != NULL) {
-	  m_rtp_byte_stream->reset();
-	  m_rtp_byte_stream->flush_rtp_packets();
-	}
-	buffering = 0;
+	rtp_start();
 	receiving = 1;
 	break;
       case MSG_PAUSE_SESSION:
@@ -967,55 +1158,18 @@ int CPlayerMedia::recv_thread (void)
       timeout.tv_usec = 500000;
       retcode = rtp_recv(m_rtp_session, &timeout, 0);
       //      player_debug_message("rtp_recv return %d", retcode);
-      rtp_send_ctrl(m_rtp_session, 
-		    m_rtp_byte_stream != NULL ? 
-		    m_rtp_byte_stream->get_last_rtp_timestamp() : 0, 
-		    NULL);
-      rtp_update(m_rtp_session);
+      // Run rtp periodic after each packet received or idle time.
+      rtp_periodic();
 
-      if (m_rtp_byte_stream != NULL) {
-	int ret = m_rtp_byte_stream->recv_task(m_decode_thread_waiting);
-	if (ret > 0) {
-	  if (buffering == 0) {
-	    buffering = 1;
-	    m_decode_msg_queue.send_message(MSG_START_DECODING, 
-					    NULL, 
-					    0, 
-					    m_decode_thread_sem);
-	  } else if (m_decode_thread_waiting != 0) {
-	    m_decode_thread_waiting = 0;
-	    SDL_SemPost(m_decode_thread_sem);
-	  }
-	}
-	continue;
-      }
-
-      if (m_head != NULL) {
-	/*
-	 * Make sure that the proto is the same
-	 */
-	if (m_head->pt == m_tail->pt) {
-	  if (m_rtp_queue_len > 10) { // 10 packets consecutive proto same
-	    if (determine_proto_from_rtp() == FALSE) {
-	      clear_rtp_packets(); 
-	    }
-	  }
-	} else {
-	  clear_rtp_packets();
-	}
-      }
     }
   }
   /*
    * When we're done, send a bye, close up rtp, and go home
    */
-  rtp_send_bye(m_rtp_session);
-  rtp_done(m_rtp_session);
-  m_rtp_session = NULL;
+  rtp_end();
   return (0);
 }
 
-int count = 0, cnt2 = 0;
 /*
  * CPlayerMedia::recv_callback - callback from RTP with valid data
  */
@@ -1123,4 +1277,21 @@ void CPlayerMedia::set_rtp_rtptime (uint32_t time)
   m_rtp_rtptime = time;
 };
 
+void CPlayerMedia::rtp_init_tcp (void) 
+{
+  connect_desc_t *cptr;
+  cptr = get_connect_desc_from_media(m_media_info);
+  m_rtp_session = rtp_init_extern_net(m_source_addr == NULL ? 
+				      cptr->conn_addr : m_source_addr,
+				      m_our_port,
+				      m_server_port,
+				      cptr->ttl,
+				      5000.0, // rtcp bandwidth ?
+				      c_recv_callback,
+				      c_rtcp_send_packet,
+				      (uint8_t *)this);
+  rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
+  m_rtp_inited = 1;
+
+}
 /* end player_media.cpp */

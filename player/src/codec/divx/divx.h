@@ -24,11 +24,7 @@
 #ifndef __DIVX_H__
 #define __DIVX_H__ 1
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "codec.h"
-#include "player_media.h"
 #include "video.h"
 
 #define DIVX_STATE_VO_SEARCH 0
@@ -47,8 +43,8 @@ class CDivxCodec: public CVideoCodecBase {
   int decode(uint64_t ts, int fromrtp);
   int skip_frame(uint64_t ts);
   void do_pause(void);
-  unsigned char get (void) { return m_bytestream->get(); };
-  void bookmark (int val) { m_bytestream->bookmark(val); } ;
+  unsigned char get(void);
+  void bookmark(int val);
  private:
   int parse_vovod(const char *config, int ascii, uint32_t len);
   int m_nFrames;

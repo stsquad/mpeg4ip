@@ -100,8 +100,10 @@
 # derived files should go.
 #
 
-InstallFiles: StartupParameters.plist QTSSAdminServer
-	mkdir -p $(DSTROOT)/System/Library/StartupItems/QuickTimeServer
-	cp $(SRCROOT)/WebAdmin/StartupParameters.plist $(DSTROOT)/System/Library/StartupItems/QuickTimeServer/StartupParameters.plist
-	cp $(SRCROOT)/WebAdmin/QTSSAdminServer $(DSTROOT)/System/Library/StartupItems/QuickTimeServer/QuickTimeServer
+InstallFiles: 
+	mkdir -p $(DSTROOT)/private/etc/streaming
+	mkdir -p $(DSTROOT)/Library/QuickTimeStreaming
 
+	cp $(SRCROOT)/WebAdmin/streamingadminserver.pem $(DSTROOT)/private/etc/streaming/streamingadminserver.pem
+	cp $(SRCROOT)/WebAdmin/streamingadminserver_autostart.conf $(DSTROOT)/private/etc/streaming/streamingadminserver_autostart.conf
+	cp $(SRCROOT)/WebAdmin/QTSSAdminUrl.bin $(DSTROOT)/Library/QuickTimeStreaming/QTSSAdminUrl.bin

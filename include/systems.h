@@ -50,6 +50,7 @@ typedef unsigned __int16 u_int16_t;
 typedef unsigned char u_int8_t;
 typedef __int64 int64_t;
 typedef __int32 int32_t;
+typedef __int16 int16_t;
 typedef __int8  int8_t;
 typedef unsigned short in_port_t;
 typedef unsigned int socklen_t;
@@ -78,6 +79,7 @@ extern "C" {
 #endif
 char *strsep(char **strp, const char *delim); 
 int gettimeofday(struct timeval *t, void *);
+
 #ifdef __cplusplus
 }
 #endif
@@ -87,6 +89,7 @@ int gettimeofday(struct timeval *t, void *);
 #define LLU "%I64u"
 #define LLX "%I64x"
 #define M_LLU 1000i64
+#define C_LLU 100i64
 #define I_LLU 1i64
 
 #define LOG_EMERG 0
@@ -144,6 +147,7 @@ int gettimeofday(struct timeval *t, void *);
 #define LLU "%llu"
 #define LLX "%llx"
 #define M_LLU 1000LLU
+#define C_LLU 100LLU
 #define I_LLU 1LLU
 #ifdef HAVE_FPOS_T_POS
 #define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)((fpos).__pos)

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		UDPSocket.cpp
@@ -88,7 +88,7 @@ OS_Error UDPSocket::RecvFrom(UInt32* outRemoteAddr, UInt16* outRemotePort,
 	Assert(outRemoteAddr != NULL);
 	Assert(outRemotePort != NULL);
 	
-#if __MacOSXServer__ || __Win32__ || __FreeBSD__ || __MacOSX__
+#if __MacOSXServer__ || __Win32__ || __MacOSX__ || __osf__
 	int addrLen = sizeof(fMsgAddr);
 #else
 	socklen_t addrLen = sizeof(fMsgAddr);
@@ -96,14 +96,7 @@ OS_Error UDPSocket::RecvFrom(UInt32* outRemoteAddr, UInt16* outRemotePort,
 	// Win32 says that ioBuffer is a char*
 	SInt32 theRecvLen = ::recvfrom(fFileDesc, (char*)ioBuffer, inBufLen, 0, (sockaddr*)&fMsgAddr, &addrLen);
 	if (theRecvLen == -1)
-	{
-#if __solaris__
-		// Solaris returns this error instead of EAGAIN
-		if (OSThread::GetErrno() == ENOENT)
-			return EAGAIN;
-#endif
 		return (OS_Error)OSThread::GetErrno();
-	}
 	
 	*outRemoteAddr = ntohl(fMsgAddr.sin_addr.s_addr);
 	*outRemotePort = ntohs(fMsgAddr.sin_port);
@@ -124,7 +117,7 @@ OS_Error UDPSocket::JoinMulticast(UInt32 inRemoteAddr)
 	theMulti.imr_multiaddr.s_addr = htonl(inRemoteAddr);
 	theMulti.imr_interface.s_addr = localAddr;
 	int err = setsockopt(fFileDesc, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&theMulti, sizeof(theMulti));
-	AssertV(err == 0, OSThread::GetErrno());
+	//AssertV(err == 0, OSThread::GetErrno());
 	if (err == -1)
 	     return (OS_Error)OSThread::GetErrno();
 	else

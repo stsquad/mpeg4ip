@@ -1,25 +1,25 @@
 /*
- *xx Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTSPSession.cpp
@@ -44,8 +44,17 @@
 #include "UserAgentParser.h"
 #include "base64.h"
 #include "OSArrayObjectDeleter.h"
+#include "md5digest.h"
 
 #include <errno.h>
+
+#ifdef __linux__
+	#include <unistd.h>	// for crypt()
+#endif
+
+#ifdef __solaris__	
+	#include <crypt.h>
+#endif
 
 #if __RTSP_HTTP_DEBUG__
 	#define HTTP_TRACE(s) printf(s);
@@ -90,6 +99,9 @@ static void PrintfStrPtrLen( StrPtrLen *splRequest )
 }
 #endif
 
+//hack stuff
+static char*					sBroadcasterSessionName="QTSSReflectorModuleBroadcasterSession";
+static QTSS_AttributeID			sClientBroadcastSessionAttr	=	qtssIllegalAttrID;
 
 
 static StrPtrLen	sVideoStr("video");
@@ -97,6 +109,10 @@ static StrPtrLen	sAudioStr("audio");
 static StrPtrLen	sRtpMapStr("rtpmap");
 static StrPtrLen	sControlStr("control");
 static StrPtrLen	sBufferDelayStr("x-bufferdelay");
+
+static StrPtrLen	sAuthAlgorithm("md5");
+static StrPtrLen	sAuthQop("auth");
+static StrPtrLen	sEmptyStr("");
 
 // static class member  initialized in RTSPSession ctor
 OSRefTable* RTSPSession::sHTTPProxyTunnelMap = NULL;
@@ -120,7 +136,7 @@ void RTSPSession::Initialize()
 
 
 RTSPSession::RTSPSession( Bool16 doReportHTTPConnectionAddress )
-: fLastRTPSessionIDPtr(&fLastRTPSessionID[0], 0),
+: RTSPSessionInterface(),
   fRequest(NULL),
   fRTPSession(NULL),
   fReadMutex(),
@@ -148,7 +164,13 @@ RTSPSession::RTSPSession( Bool16 doReportHTTPConnectionAddress )
 		
 	fProxySessionID[0] = 0;
 	fProxySessionIDPtr.Set( fProxySessionID, 0 );
-	
+
+	fLastRTPSessionID[0] = 0;
+	fLastRTPSessionIDPtr.Set( fLastRTPSessionID, 0 );
+	Assert(fLastRTPSessionIDPtr.Ptr == &fLastRTPSessionID[0]);
+					
+	(void)QTSS_IDForAttr(qtssClientSessionObjectType, sBroadcasterSessionName, &sClientBroadcastSessionAttr);
+
 }
 
 RTSPSession::~RTSPSession()
@@ -157,9 +179,6 @@ RTSPSession::~RTSPSession()
 	QTSS_RoleParams theParams;
 	theParams.rtspSessionClosingParams.inRTSPSession = this;
 	
-	// We don't allow async events from this role, so just set an empty module state.
-	OSThread::GetCurrent()->SetThreadData(NULL);
-
 	// Invoke modules
 	for (UInt32 x = 0; x < QTSServerInterface::GetNumModulesInRole(QTSSModule::kRTSPSessionClosingRole); x++)
 		(void)QTSServerInterface::GetModule(QTSSModule::kRTSPSessionClosingRole, x)->CallDispatch(QTSS_RTSPSessionClosing_Role, &theParams);
@@ -192,14 +211,14 @@ SInt64 RTSPSession::Run()
 	QTSS_Error err = QTSS_NoErr;
 	QTSSModule* theModule = NULL;
 	UInt32 numModules = 0;
-	
+	Assert(fLastRTPSessionIDPtr.Ptr == &fLastRTPSessionID[0]);
 	// Some callbacks look for this struct in the thread object
-	OSThread::GetCurrent()->SetThreadData(&fModuleState);
+	OSThreadDataSetter theSetter(&fModuleState, NULL);
 	
 	//check for a timeout or a kill. If so, just consider the session dead
 	if ((events & Task::kTimeoutEvent) || (events & Task::kKillEvent))
 		fLiveSession = false;
-		
+	
 	while (this->IsLiveSession())
 	{
 		// RTSP Session state machine. There are several well defined points in an RTSP request
@@ -392,18 +411,9 @@ SInt64 RTSPSession::Run()
 				// through any of the remaining steps
 				if (fInputStream.IsDataPacket())
 				{
-					//
-					// We currently don't support async notifications from within this role
-					QTSS_RoleParams packetParams;
-					packetParams.rtspIncomingDataParams.inPacketData = fInputStream.GetRequestBuffer()->Ptr;
-					packetParams.rtspIncomingDataParams.inPacketLen = fInputStream.GetRequestBuffer()->Len;
-					
-					numModules = QTSServerInterface::GetNumModulesInRole(QTSSModule::kRTSPIncomingDataRole);
-					for (; fCurrentModule < numModules; fCurrentModule++)
-					{
-						theModule = QTSServerInterface::GetModule(QTSSModule::kRTSPIncomingDataRole, fCurrentModule);
-						(void)theModule->CallDispatch(QTSS_RTSPIncomingData_Role, &packetParams);
-					}
+					this->HandleIncomingDataPacket();
+					fState = kCleaningUp;
+					break;
 				}
 				
 				//
@@ -484,7 +494,7 @@ SInt64 RTSPSession::Run()
 				numModules = QTSServerInterface::GetNumModulesInRole(QTSSModule::kRTSPRouteRole);
 				{
 					// Manipulation of the RTPSession from the point of view of
-					// a module is guarenteed to be atomic by the API.
+					// a module is guaranteed to be atomic by the API.
 					Assert(fRTPSession != NULL);
 					OSMutexLocker	locker(fRTPSession->GetSessionMutex());
 					
@@ -528,20 +538,92 @@ SInt64 RTSPSession::Run()
 				fState = kAuthenticatingRequest;
 			}
 			
-
 			case kAuthenticatingRequest:
+			{
+				
+				QTSS_RTSPMethod method = fRequest->GetMethod();
+				if (method != qtssIllegalMethod) do  
+				{   //Set the request action before calling the authentication module
+				
+					if((method == qtssAnnounceMethod) || ((method == qtssSetupMethod) && fRequest->IsPushRequest()))
+					{	fRequest->SetAction(qtssActionFlagsWrite);
+						break;
+					}
+					
+					void* theSession = NULL;
+					UInt32 theLen = sizeof(theSession);
+					if (QTSS_NoErr == fRTPSession->GetValue(sClientBroadcastSessionAttr, 0,  &theSession, &theLen) )
+					{	fRequest->SetAction(qtssActionFlagsWrite); // an incoming broadcast session
+						break;
+					}
+
+					fRequest->SetAction(qtssActionFlagsRead);
+				} while (false);
+				else
+				{	Assert(0);
+				}
+				
+				if(fRequest->GetAuthScheme() == qtssAuthNone)
+				{
+					QTSS_AuthScheme scheme = QTSServerInterface::GetServer()->GetPrefs()->GetAuthScheme();
+					if( scheme == qtssAuthBasic)
+							fRequest->SetAuthScheme(qtssAuthBasic);
+					else if( scheme == qtssAuthDigest)
+							fRequest->SetAuthScheme(qtssAuthDigest);
+				}
+				
+				// Setup the authentication param block
+				QTSS_RoleParams theAuthenticationParams;
+				theAuthenticationParams.rtspAthnParams.inRTSPRequest = fRequest;
+			
+				fModuleState.eventRequested = false;
+				fModuleState.idleTime = 0;
+				if (QTSServerInterface::GetNumModulesInRole(QTSSModule::kRTSPAthnRole) > 0)
+				{
+					if (fModuleState.globalLockRequested )
+					{	
+						fModuleState.globalLockRequested = false;
+						fModuleState.isGlobalLocked = true;
+					} 
+
+					theModule = QTSServerInterface::GetModule(QTSSModule::kRTSPAthnRole, 0);
+					(void)theModule->CallDispatch(QTSS_RTSPAuthenticate_Role, &theAuthenticationParams);
+					fModuleState.isGlobalLocked = false;
+						
+					if (fModuleState.globalLockRequested == true) // call this request back locked
+						return this->CallLocked();
+
+					// If this module has requested an event, return and wait for the event to transpire
+					if (fModuleState.eventRequested == true)
+					{
+						this->ForceSameThread(); 	// We are holding mutexes, so we need to force
+													// the same thread to be used for next Run()
+						return fModuleState.idleTime; // If the module has requested idle time...
+					}
+				}
+				
+				this->CheckAuthentication();
+												
+				fCurrentModule = 0;
+				if (fRequest->HasResponseBeenSent())
+				{
+					fState = kPostProcessingRequest;
+					break;
+				}
+				fState = kAuthorizingRequest;
+			}
+			case kAuthorizingRequest:
 			{
 				// Invoke authorization modules
 				numModules = QTSServerInterface::GetNumModulesInRole(QTSSModule::kRTSPAuthRole);
 
-				// check preferences. if no Authenticating then bail
 				Bool16 		allowed = true;	
 				QTSS_Error 	theErr = QTSS_NoErr;
 								
-				// Invoke authentication modules
+				// Invoke authorization modules
 				
 				// Manipulation of the RTPSession from the point of view of
-				// a module is guarenteed to be atomic by the API.
+				// a module is guaranteed to be atomic by the API.
 				Assert(fRTPSession != NULL);
 				OSMutexLocker	locker(fRTPSession->GetSessionMutex());
 
@@ -593,18 +675,32 @@ SInt64 RTSPSession::Run()
 				{
 					if (false == fRequest->HasResponseBeenSent())
 					{
-						theErr = fRequest->SendChallenge();
+						QTSS_AuthScheme challengeScheme = QTSServerInterface::GetServer()->GetPrefs()->GetAuthScheme();
+						
+						if(challengeScheme == qtssAuthBasic) {
+							fRTPSession->SetAuthScheme(qtssAuthBasic);
+							theErr = fRequest->SendBasicChallenge();
+						}
+						else if(challengeScheme == qtssAuthDigest) {
+							fRTPSession->UpdateDigestAuthChallengeParams(false, false, RTSPSessionInterface::kNoQop);
+							theErr = fRequest->SendDigestChallenge(fRTPSession->GetAuthQop(), fRTPSession->GetAuthNonce(), fRTPSession->GetAuthOpaque());
+						}
+						else {
+							// No authentication scheme is given and the request was not allowed,
+							// so send a 403: Forbidden message
+							theErr = fRequest->SendForbiddenResponse();
+						}
 						if (QTSS_NoErr != theErr) // We had an error so bail on the request quit the session and post process the request.
 						{	
 							fRequest->SetResponseKeepAlive(false);
 							fCurrentModule = 0;
 							fState = kPostProcessingRequest;
-							if (fRTPSession) fRTPSession->Teardown(); // make sure the RTP Session is ended and logged
+							//if (fRTPSession) fRTPSession->Teardown(); // make sure the RTP Session is ended and logged
 							break;
 							
 						}					
 					}
-					if (fRTPSession) fRTPSession->Teardown(); // close RTP Session and log
+					//if (fRTPSession) fRTPSession->Teardown(); // close RTP Session and log
 				}
 					
 				fCurrentModule = 0;
@@ -849,7 +945,6 @@ SInt64 RTSPSession::Run()
 	// is holding onto a reference to this session, just reschedule the timeout.
 	//
 	// At this point, however, the session is DEAD.
-	fTimeoutTask.RefreshTimeout();
 	return 0;
 }
 
@@ -1051,7 +1146,7 @@ QTSS_Error RTSPSession::PreFilterForHTTPProxyTunnel()
 	// We have to set this here, because IF we are able to put ourselves in the map,
 	// the GET may arrive immediately after, and the GET checks this state.
 	fState = kWaitingToBindHTTPTunnel;
-	QTSS_RTSPSessionType theOtherSessionType;
+	QTSS_RTSPSessionType theOtherSessionType = qtssRTSPSession;
 
 	if ( fHTTPMethod == kHTTPMethodPost )
 	{
@@ -1184,6 +1279,140 @@ OSRef* RTSPSession::RegisterRTSPSessionIntoHTTPProxyTunnelMap(QTSS_RTSPSessionTy
 	return theRef;
 }
 
+void RTSPSession::CheckAuthentication() {
+	
+	QTSSUserProfile* profile = fRequest->GetUserProfile();
+	StrPtrLen* userPassword = profile->GetValue(qtssUserPassword);
+	QTSS_AuthScheme scheme = fRequest->GetAuthScheme();
+	Bool16 authenticated = true;
+	
+	// Check if authorization information returned by the client is for the scheme that the server sent the challenge
+	if(scheme != (fRTPSession->GetAuthScheme())) {
+		authenticated = false;
+	}
+	else if(scheme == qtssAuthBasic) {	
+		// For basic authentication, the authentication module returns the crypt of the password, 
+		// so compare crypt of qtssRTSPReqUserPassword and the text in qtssUserPassword
+		StrPtrLen* reqPassword = fRequest->GetValue(qtssRTSPReqUserPassword);
+		char* userPasswdStr = userPassword->GetAsCString();	// memory allocated
+		char* reqPasswdStr = reqPassword->GetAsCString();	// memory allocated
+		
+		if(userPassword->Len == 0)
+		{
+		      authenticated = false;
+		}
+                else
+		{
+#ifdef __Win32__
+		  // The password is md5 encoded for win32
+		  char md5EncodeResult[120];
+		  // no memory is allocated in this function call
+		  MD5Encode(reqPasswdStr, userPasswdStr, md5EncodeResult, sizeof(md5EncodeResult));
+		  if(::strcmp(userPasswdStr, md5EncodeResult) != 0)
+		    authenticated = false;
+#else
+		  if(::strcmp(userPasswdStr, (char*)crypt(reqPasswdStr, userPasswdStr)) != 0)
+		    authenticated = false;
+#endif
+		}
+
+		delete [] userPasswdStr;	// deleting allocated memory
+		userPasswdStr = NULL;
+		delete [] reqPasswdStr;
+		reqPasswdStr = NULL;		// deleting allocated memory
+	}
+	else if(scheme == qtssAuthDigest) { // For digest authentication, md5 digest comparison
+		// The text returned by the authentication module in qtssUserPassword is MD5 hash of (username:realm:password)
+		
+		UInt32 qop = fRequest->GetAuthQop();
+		StrPtrLen* opaque = fRequest->GetAuthOpaque();
+		StrPtrLen* sessionOpaque = fRTPSession->GetAuthOpaque();
+		UInt32 sessionQop = fRTPSession->GetAuthQop();
+		
+		do {
+			// The Opaque string should be the same as that sent by the server
+			// The QoP should be the same as that sent by the server
+			if((sessionOpaque->Len != 0) && !(sessionOpaque->Equal(*opaque))) {
+				authenticated = false;
+				break;
+			}
+			
+			if(sessionQop != qop) {
+				authenticated = false;
+				break;
+			}
+			
+			// All these are just pointers to existing memory... no new memory is allocated
+			//StrPtrLen* userName = profile->GetValue(qtssUserName);
+			//StrPtrLen* realm = fRequest->GetAuthRealm();
+			StrPtrLen* nonce = fRequest->GetAuthNonce();
+			StrPtrLen method = RTSPProtocol::GetMethodString(fRequest->GetMethod());
+			StrPtrLen* digestUri = fRequest->GetAuthUri();
+			StrPtrLen* responseDigest = fRequest->GetAuthResponse();
+			//StrPtrLen hA1;
+			StrPtrLen requestDigest;
+			StrPtrLen emptyStr;
+			
+			StrPtrLen* cNonce = fRequest->GetAuthCNonce();
+			// Since qtssUserPassword = md5(username:realm:password)
+			// Just convert the 16 bit hash to a 32 bit char array to get HA1
+			//HashToString((unsigned char *)userPassword->Ptr, &hA1);
+			//CalcHA1(&sAuthAlgorithm, userName, realm, userPassword, nonce, cNonce, &hA1);
+			
+			
+			// For qop="auth"
+			if(qop ==  RTSPSessionInterface::kAuthQop) {
+				StrPtrLen* nonceCount = fRequest->GetAuthNonceCount();
+				// Convert nounce count (which is a string of 8 hex digits) into a UInt32
+				UInt32 ncValue, i, pos = 1;
+				ncValue = (nonceCount->Ptr)[nonceCount->Len - 1];
+				for(i = (nonceCount->Len - 1); i > 0; i--) {
+					pos *= 16;
+					ncValue += (nonceCount->Ptr)[i - 1] * pos;
+				}
+				// nonce count must not be repeated by the client
+				if(ncValue < (fRTPSession->GetAuthNonceCount())) { 
+					authenticated = false;
+					break;
+				}
+				
+				// allocates memory for requestDigest.Ptr
+				CalcRequestDigest(userPassword, nonce, nonceCount, cNonce, &sAuthQop, &method, digestUri, &emptyStr, &requestDigest);
+				// If they are equal, check if nonce used by client is same as the one sent by the server
+				
+			}	// For No qop
+			else if(qop == RTSPSessionInterface::kNoQop) 
+			{
+				// allocates memory for requestDigest->Ptr
+				CalcRequestDigest(userPassword, nonce, &emptyStr, &emptyStr, &emptyStr, &method, digestUri, &emptyStr, &requestDigest);				
+			}
+			
+			// hA1 is allocated memory 
+			//delete [] hA1.Ptr;
+			
+			if(responseDigest->Equal(requestDigest)) {
+				if(!(nonce->Equal(*(fRTPSession->GetAuthNonce()))))
+					fRequest->SetStale(true);
+				authenticated = true;
+			}
+			else { 
+				authenticated = false;
+			}
+			
+			// delete the memory allocated in CalcRequestDigest above 
+			delete [] requestDigest.Ptr;
+			requestDigest.Len = 0;
+			
+		} while(false); 			
+	}
+	
+	// If authenticaton failed, set qtssUserName in the qtssRTSPReqUserProfile attribute
+	// to NULL.
+	if((!authenticated) || (authenticated && (fRequest->GetStale()))) {
+		(void)profile->SetValue(qtssUserName, 0,  sEmptyStr.Ptr, sEmptyStr.Len, QTSSDictionary::kDontObeyReadOnly);
+	}
+}
+
 void RTSPSession::SetupRequest()
 {
 	//
@@ -1260,7 +1489,7 @@ void RTSPSession::SetupRequest()
 	fRoleParams.rtspRequestParams.inClientSession = fRTPSession;
 	
 	// Setup Authorization params;
-	fRequest->ParseAuthNameAndPassword();	
+	fRequest->ParseAuthHeader();	
 	
 		
 }
@@ -1331,6 +1560,8 @@ QTSS_Error	RTSPSession::FindRTPSession(OSRefTable* inRefTable)
 
 QTSS_Error	RTSPSession::CreateNewRTPSession(OSRefTable* inRefTable)
 {
+	Assert(fLastRTPSessionIDPtr.Ptr == &fLastRTPSessionID[0]);
+
 	// This is a brand spanking new session. At this point, we need to create
 	// a new RTPSession object that will represent this session until it completes.
 	// Then, we need to pass the session onto one of the modules
@@ -1344,22 +1575,30 @@ QTSS_Error	RTSPSession::CreateNewRTPSession(OSRefTable* inRefTable)
 	Assert(fRTPSession == NULL);
 	fRTPSession = NEW RTPSession();
 	
-	// Because this is a new RTP session, setup some dictionary attributes
-	// pertaining to RTSP that only need to be set once
-	this->SetupClientSessionAttrs();	
-	
-	// So, generate a session ID for this session
-	QTSS_Error activationError = EPERM;
-	while (activationError == EPERM)
 	{
-		fLastRTPSessionIDPtr.Len = this->GenerateNewSessionID(fLastRTPSessionID);
+		//
+		// Lock the RTP session down so that it won't delete itself in the
+		// unusual event there is a timeout while we are doing this.
+        OSMutexLocker locker(fRTPSession->GetSessionMutex());
+
+		// Because this is a new RTP session, setup some dictionary attributes
+		// pertaining to RTSP that only need to be set once
+		this->SetupClientSessionAttrs();	
 		
-		//ok, some module has bound this session, we can activate it.
-		//At this point, we may find out that this new session ID is a duplicate.
-		//If that's the case, we'll simply retry until we get a unique ID
-		activationError = fRTPSession->Activate(fLastRTPSessionID);
+		// So, generate a session ID for this session
+		QTSS_Error activationError = EPERM;
+		while (activationError == EPERM)
+		{
+			fLastRTPSessionIDPtr.Len = this->GenerateNewSessionID(fLastRTPSessionID);
+			
+			//ok, some module has bound this session, we can activate it.
+			//At this point, we may find out that this new session ID is a duplicate.
+			//If that's the case, we'll simply retry until we get a unique ID
+			activationError = fRTPSession->Activate(fLastRTPSessionID);
+		}
+		Assert(activationError == QTSS_NoErr);
 	}
-	Assert(activationError == QTSS_NoErr);
+	Assert(fLastRTPSessionIDPtr.Ptr == &fLastRTPSessionID[0]);
 
 	// Activate adds this session into the RTP session map. We need to therefore
 	// make sure to resolve the RTPSession object out of the map, even though
@@ -1451,7 +1690,6 @@ UInt32 RTSPSession::GenerateNewSessionID(char* ioBuffer)
 			theFirstRandom += (UInt32)theSession->GetSessionCreateTime();
 			theFirstRandom += (UInt32)theSession->GetPlayTime();
 			theFirstRandom += (UInt32)theSession->GetBytesSent();
-			theFirstRandom += (UInt32)theSession->GetSessionID();
 		}
 	}
 	//Generate the first half of the random number
@@ -1480,11 +1718,14 @@ UInt32 RTSPSession::GenerateNewSessionID(char* ioBuffer)
 QTSS_Error RTSPSession::IsOkToAddNewRTPSession()
 {
 	QTSServerInterface* theServer = QTSServerInterface::GetServer();
+	QTSS_ServerState theServerState = theServer->GetServerState();
 	
 	//we may want to deny this connection for a couple of different reasons
 	//if the server is refusing new connections
-	if ((theServer->GetServerState() == qtssRefusingConnectionsState) ||
-		(theServer->GetServerState() == qtssIdleState))
+	if ((theServerState == qtssRefusingConnectionsState) ||
+		(theServerState == qtssIdleState) ||
+		(theServerState == qtssFatalErrorState) ||
+		(theServerState == qtssShuttingDownState))
 		return QTSSModuleUtils::SendErrorResponse(fRequest, qtssServerUnavailable,
 													qtssMsgRefusingConnections);
 
@@ -1556,5 +1797,51 @@ QTSS_Error RTSPSession::DumpRequestData()
 	return theErr;
 }
 
+void RTSPSession::HandleIncomingDataPacket()
+{
+	fTimeoutTask.RefreshTimeout();
+	
+	// Attempt to find the RTP session for this request.
+	UInt8	packetChannel = (UInt8)fInputStream.GetRequestBuffer()->Ptr[1];
+	StrPtrLen* theSessionID = this->GetSessionIDForChannelNum(packetChannel);
+	
+	if (theSessionID == NULL)
+	{
+		Assert(0);
+		theSessionID = &fLastRTPSessionIDPtr;
 
+	}
+	
+	OSRefTable* theMap = QTSServerInterface::GetServer()->GetRTPSessionMap();
+	OSRef* theRef = theMap->Resolve(theSessionID);
+	
+	if (theRef != NULL)
+		fRTPSession = (RTPSession*)theRef->GetObject();
 
+	if (fRTPSession == NULL)
+		return;
+
+	StrPtrLen packetWithoutHeaders(fInputStream.GetRequestBuffer()->Ptr + 4, fInputStream.GetRequestBuffer()->Len - 4);
+	
+	OSMutexLocker locker(fRTPSession->GetMutex());
+	fRTPSession->RefreshTimeout();
+	RTPStream* theStream = fRTPSession->FindRTPStreamForChannelNum(packetChannel);
+	theStream->ProcessIncomingInterleavedData(packetChannel, this, &packetWithoutHeaders);
+
+	//
+	// We currently don't support async notifications from within this role
+	QTSS_RoleParams packetParams;
+	packetParams.rtspIncomingDataParams.inRTSPSession = this;
+	
+	packetParams.rtspIncomingDataParams.inClientSession = fRTPSession;
+	packetParams.rtspIncomingDataParams.inPacketData = fInputStream.GetRequestBuffer()->Ptr;
+	packetParams.rtspIncomingDataParams.inPacketLen = fInputStream.GetRequestBuffer()->Len;
+	
+	UInt32 numModules = QTSServerInterface::GetNumModulesInRole(QTSSModule::kRTSPIncomingDataRole);
+	for (; fCurrentModule < numModules; fCurrentModule++)
+	{
+		QTSSModule* theModule = QTSServerInterface::GetModule(QTSSModule::kRTSPIncomingDataRole, fCurrentModule);
+		(void)theModule->CallDispatch(QTSS_RTSPIncomingData_Role, &packetParams);
+	}
+	fCurrentModule = 0;
+}

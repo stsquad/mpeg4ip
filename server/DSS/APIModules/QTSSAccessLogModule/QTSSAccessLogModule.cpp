@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSAccessLogModule.cpp
@@ -65,11 +65,16 @@ static char*	sDefaultLogDir		 		= "/var/streaming/logs/";
 static UInt32	sDefaultMaxLogBytes 		= 51200000;
 static UInt32	sDefaultRollInterval 		= 7;
 static char*	sVoidField 					= "-";
+static Bool16	sStartedUp 					= false;
+static Bool16	sDefaultLogTimeInGMT		= true;
+
+static QTSS_AttributeID sLoggedAuthorizationAttrID = qtssIllegalAttrID;
 
 // Current values for preferences
 static Bool16	sLogEnabled			= false;
 static UInt32	sMaxLogBytes 		= 51200000;
 static UInt32	sRollInterval 		= 7;
+static Bool16	sLogTimeInGMT		= true;
 
 static OSMutex*				sLogMutex 	= NULL;//Log module isn't reentrant
 static QTSSAccessLog*		sAccessLog 	= NULL;
@@ -86,7 +91,7 @@ static char* sLogHeader =	"#Software: %s\n"
 						" c-osversion c-cpu filelength filesize avgbandwidth protocol transport audiocodec videocodec"
 						" channelURL sc-bytes c-bytes s-pkts-sent c-pkts-received c-pkts-lost-client c-pkts-lost-net"
 						" c-pkts-lost-cont-net c-resendreqs c-pkts-recovered-ECC c-pkts-recovered-resent c-buffercount"
-						" c-totalbuffertime c-quality s-ip s-dns s-totalclients s-cpu-util cs-uri-query c-username sc(Realm) sc-respmsg \n";
+						" c-totalbuffertime c-quality s-ip s-dns s-totalclients s-cpu-util cs-uri-query c-username sc(Realm) \n";
 
 
 
@@ -231,6 +236,10 @@ static void 			CheckAccessLogState(Bool16 forceEnabled);
 static QTSS_Error 	RollAccessLog(QTSS_ServiceFunctionArgsPtr inArgs);
 static void 		ReplaceSpaces(StrPtrLen *sourcePtr, StrPtrLen *destPtr, char *replaceStr);
 
+static QTSS_Error	StateChange(QTSS_StateChange_Params* stateChangeParams);
+static void			WriteStartupMessage();
+static void			WriteShutdownMessage();
+
 
 #pragma mark __QTSS_ACCESS_LOG__
 
@@ -247,6 +256,8 @@ QTSS_Error QTSSAccessLogModuleDispatch(QTSS_Role inRole, QTSS_RoleParamPtr inPar
 	{
 		case QTSS_Register_Role:
 			return Register(&inParamBlock->regParams);
+		case QTSS_StateChange_Role:
+			return StateChange(&inParamBlock->stateChangeParams);
 		case QTSS_Initialize_Role:
 			return Initialize(&inParamBlock->initParams);
 		case QTSS_RereadPrefs_Role:
@@ -269,16 +280,22 @@ QTSS_Error Register(QTSS_Register_Params* inParams)
 	// Do role & service setup
 	
 	(void)QTSS_AddRole(QTSS_Initialize_Role);
-//	(void)QTSS_AddRole(QTSS_RTSPPostProcessor_Role); // QTSS_ClientSessionClosing_Role is the only role necessary
+	(void)QTSS_AddRole(QTSS_RTSPPostProcessor_Role);
 	(void)QTSS_AddRole(QTSS_ClientSessionClosing_Role);
 	(void)QTSS_AddRole(QTSS_RereadPrefs_Role);
 	(void)QTSS_AddRole(QTSS_Shutdown_Role);
+	(void)QTSS_AddRole(QTSS_StateChange_Role);
 
 	(void)QTSS_AddService("RollAccessLog", &RollAccessLog);
 	
 	// Tell the server our name!
 	static char* sModuleName = "QTSSAccessLogModule";
 	::strcpy(inParams->outModuleName, sModuleName);
+
+	static char*		sLoggedAuthorizationName = "QTSSAccessLogModuleLoggedAuthorization";
+	
+	(void)QTSS_AddStaticAttribute(qtssClientSessionObjectType, sLoggedAuthorizationName, NULL, qtssAttrDataTypeUInt32);
+	(void)QTSS_IDForAttr(qtssClientSessionObjectType, sLoggedAuthorizationName, &sLoggedAuthorizationAttrID);
 
 	return QTSS_NoErr;
 }
@@ -292,18 +309,7 @@ QTSS_Error Initialize(QTSS_Initialize_Params* inParams)
 	
 	RereadPrefs();
 	CheckAccessLogState(false);
-		
-	//format a date for the startup time
-	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
-	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer);
-	
-	char tempBuffer[1024];
-	if (result)
-		::sprintf(tempBuffer, "#Streaming Server Startup STARTUP %s\n", theDateBuffer);
-
-	// log startup message to error log as well.
-	if ((result) && (sAccessLog != NULL))
-		sAccessLog->WriteToLog(tempBuffer, !kAllowLogToRoll);
+	WriteStartupMessage();
 	
 #if __MacOSXServer__				
 	XCPUStats::Init();
@@ -320,24 +326,25 @@ QTSS_Error RereadPrefs()
 								&sMaxLogBytes, &sDefaultMaxLogBytes, sizeof(sMaxLogBytes));
 	QTSSModuleUtils::GetPref(sPrefs, "request_logfile_interval", 	qtssAttrDataTypeUInt32,
 								&sRollInterval, &sDefaultRollInterval, sizeof(sRollInterval));
+	QTSSModuleUtils::GetPref(sPrefs, "request_logtime_in_gmt", 	qtssAttrDataTypeBool16,
+								&sLogTimeInGMT, &sDefaultLogTimeInGMT, sizeof(sLogTimeInGMT));
 	return QTSS_NoErr;
 }
 
 
 QTSS_Error Shutdown()
 {
-	//log shutdown message
-	//format a date for the shutdown time
-	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
-	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer);
-	
-	char tempBuffer[1024];
-	if (result)
-		::sprintf(tempBuffer, "#Streaming Server Shutdown SHUTDOWN %s\n", theDateBuffer);
+	WriteShutdownMessage();
+	return QTSS_NoErr;
+}
 
-	if ((result) && (sAccessLog != NULL))
-		sAccessLog->WriteToLog(tempBuffer, !kAllowLogToRoll);
-		
+QTSS_Error StateChange(QTSS_StateChange_Params* stateChangeParams)
+{
+	if (stateChangeParams->inNewState == qtssIdleState)
+		WriteShutdownMessage();
+	else if (stateChangeParams->inNewState == qtssRunningState)
+		WriteStartupMessage();
+	
 	return QTSS_NoErr;
 }
 
@@ -345,40 +352,24 @@ QTSS_Error Shutdown()
 
 QTSS_Error PostProcess(QTSS_StandardRTSP_Params* inParams)
 {
-	QTSS_RTSPMethod* theMethod = NULL;
+	static UInt32 sZero = 0;
+	
+	UInt32* theStatus = NULL;
 	UInt32 theLen = 0;
-	QTSS_Error theErr = QTSS_NoErr;
+	QTSS_Error theErr = QTSS_GetValuePtr(inParams->inRTSPRequest, qtssRTSPReqRealStatusCode, 0, (void**)&theStatus, &theLen);
+	if (theErr != QTSS_NoErr)
+		return theErr;
 	
-	if (0) do  // shouldn't be called
+	QTSS_CliSesClosingReason theReason = qtssCliSesCloseClientTeardown;
+	
+	if ((*theStatus == 401) || (*theStatus == 403))
 	{
-		theErr = QTSS_GetValuePtr(inParams->inRTSPRequest, qtssRTSPReqMethod, 0, (void**)&theMethod, &theLen);
-		if ((theMethod == NULL) || (theLen != sizeof(QTSS_RTSPMethod)))
-		{	
-			theErr = QTSS_RequestFailed;
-			break;
-		}
-
-		QTSS_RTSPStatusCode* theStatus = NULL;
-		theErr = QTSS_GetValuePtr(inParams->inRTSPRequest, qtssRTSPReqStatusCode, 0, (void**)&theStatus, &theLen);
-		if (theErr != QTSS_NoErr) break;
+		LogRequest(inParams->inClientSession, NULL, &theReason);
+		(void)QTSS_SetValue(inParams->inClientSession, sLoggedAuthorizationAttrID, 0, theStatus, sizeof(*theStatus));
+	}
+	else
+		(void)QTSS_SetValue(inParams->inClientSession, sLoggedAuthorizationAttrID, 0, &sZero, sizeof(sZero));
 		
-		if ((theStatus == NULL) || (theLen != sizeof(QTSS_RTSPStatusCode)))
-		{	theErr = QTSS_RequestFailed;
-			break;
-		}
-
-		//only log the request if it is a TEARDOWN, or if its an error
-		if ((*theMethod != qtssTeardownMethod) && (*theStatus == qtssSuccessOK))
-		{
-			theErr = QTSS_NoErr;
-			break;
-		}
-		
-		theErr = LogRequest(inParams->inClientSession, inParams->inRTSPSession, NULL);
-		if (theErr != QTSS_NoErr) break;
-	
-	} while (false);
-	
 	return theErr;
 }
 
@@ -477,6 +468,16 @@ QTSS_Error LogRequest( QTSS_ClientSessionObject inClientSession,
 	
 	char tempLogItemBuf[eTempLogItemSize] = { 0 };	
 	StrPtrLen tempLogStr(tempLogItemBuf, eTempLogItemSize -1);
+	
+	//
+	// Check to see if this session is closing because authorization failed. If that's
+	// the case, we've logged that already, let's not log it twice
+	
+	UInt32 theLen = 0;
+	UInt32* authorizationFailed = NULL;
+	(void)QTSS_GetValuePtr(inClientSession, sLoggedAuthorizationAttrID, 0, (void**)&authorizationFailed, &theLen);
+	if ((authorizationFailed != NULL) && (*authorizationFailed > 0))
+		return QTSS_NoErr;
 
 	///inClientSession should never be NULL
 	//inRTSPRequest may be NULL if this is a timeout
@@ -488,14 +489,14 @@ QTSS_Error LogRequest( QTSS_ClientSessionObject inClientSession,
 		
 	//if logging is on, then log the request... first construct a timestamp
 	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
-	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer);
+	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer, sLogTimeInGMT);
 	
 
 	//for now, just ignore the error.
 	if (!result)
 		theDateBuffer[0] = '\0';
 	
-	UInt32 theLen = sizeof(QTSS_RTSPSessionObject);
+	theLen = sizeof(QTSS_RTSPSessionObject);
 	QTSS_RTSPSessionObject theRTSPSession = inRTSPSession;
 	if (theRTSPSession == NULL)
 		(void)QTSS_GetValue(inClientSession, qtssCliSesLastRTSPSession, 0, (void*) &theRTSPSession, &theLen);
@@ -714,6 +715,12 @@ QTSS_Error LogRequest( QTSS_ClientSessionObject inClientSession,
 //						printf(" log UnsupportedMedia ");
 						break;
 				}
+				if (*theReasonPtr == qtssCliSesTearDownBroadcastEnded) //  a broadcaster stopped broadcasting
+				{	
+						*theStatusCode = 452;
+//						printf(" log broadcast removed ");
+						break;
+				}
 	
 				*theStatusCode = 500; // some unknown reason for cancelling the connection
 			}
@@ -877,7 +884,7 @@ void CheckAccessLogState(Bool16 forceEnabled)
 
 	if ((NULL != sAccessLog) && ((!forceEnabled) && (!sLogEnabled)))
 	{
-		delete sAccessLog;
+		sAccessLog->Delete(); //sAccessLog is a task object, so don't delete it directly
 		sAccessLog = NULL;
 	}
 }
@@ -911,7 +918,7 @@ time_t QTSSAccessLog::WriteLogHeader(FILE *inFile)
 
 	//format a date for the startup time
 	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes] = { 0 };
-	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer);
+	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer, false);
 	
 	char tempBuffer[1024] = { 0 };
 	if (result)
@@ -927,6 +934,46 @@ time_t QTSSAccessLog::WriteLogHeader(FILE *inFile)
 	return calendarTime;
 }
 
+
+void	WriteStartupMessage()
+{
+	if (sStartedUp)
+		return;
+		
+	sStartedUp = true;
+	
+	//format a date for the startup time
+	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
+	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer, false);
+	
+	char tempBuffer[1024];
+	if (result)
+		::sprintf(tempBuffer, "# Streaming STARTUP %s\n", theDateBuffer);
+		
+	// log startup message to error log as well.
+	if ((result) && (sAccessLog != NULL))
+		sAccessLog->WriteToLog(tempBuffer, kAllowLogToRoll);
+}
+
+void	WriteShutdownMessage()
+{
+	if (!sStartedUp)
+		return;
+		
+	sStartedUp = false;
+	
+	//log shutdown message
+	//format a date for the shutdown time
+	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
+	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer, false);
+	
+	char tempBuffer[1024];
+	if (result)
+		::sprintf(tempBuffer, "# Streaming SHUTDOWN %s\n", theDateBuffer);
+
+	if ( result && sAccessLog != NULL )
+		sAccessLog->WriteToLog(tempBuffer, kAllowLogToRoll);
+}
 
 
 

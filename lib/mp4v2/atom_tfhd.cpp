@@ -31,7 +31,27 @@ MP4TfhdAtom::MP4TfhdAtom()
 
 void MP4TfhdAtom::AddProperties(u_int32_t flags)
 {
-	// TBD tfhd flags
+	if (flags & 0x01) {
+		// note this property is signed 64!
+		AddProperty(
+			new MP4Integer64Property("baseDataOffset"));
+	}
+	if (flags & 0x02) {
+		AddProperty(
+			new MP4Integer32Property("sampleDescriptionIndex"));
+	}
+	if (flags & 0x08) {
+		AddProperty(
+			new MP4Integer32Property("defaultSampleDuration"));
+	}
+	if (flags & 0x10) {
+		AddProperty(
+			new MP4Integer32Property("defaultSampleSize"));
+	}
+	if (flags & 0x20) {
+		AddProperty(
+			new MP4Integer32Property("defaultSampleFlags"));
+	}
 }
 
 void MP4TfhdAtom::Read()

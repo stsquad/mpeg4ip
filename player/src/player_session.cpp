@@ -83,6 +83,13 @@ CPlayerSession::~CPlayerSession ()
   }
 #endif
 
+  while (m_my_media != NULL) {
+    CPlayerMedia *p;
+    p = m_my_media;
+    m_my_media = p->get_next();
+    delete p;
+  }
+
   if (session_control_is_aggregate()) {
     rtsp_command_t cmd;
     rtsp_decode_t *decode;
@@ -94,12 +101,6 @@ CPlayerSession::~CPlayerSession ()
     free_decode_response(decode);
   }
 
-  while (m_my_media != NULL) {
-    CPlayerMedia *p;
-    p = m_my_media;
-    m_my_media = p->get_next();
-    delete p;
-  }
 
   if (m_rtsp_client) {
     free_rtsp_client(m_rtsp_client);
@@ -155,7 +156,8 @@ int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
  * RTSP session with the server, get the SDP information from it.
  */
 int CPlayerSession::create_streaming_ondemand (const char *url, 
-					       const char **errmsg)
+					       const char **errmsg,
+					       int use_tcp)
 {
   rtsp_command_t cmd;
   rtsp_decode_t *decode;
@@ -171,13 +173,20 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
   /*
    * create RTSP session
    */
-  m_rtsp_client = rtsp_create_client(url, &err);
+  if (use_tcp != 0) {
+#ifndef _WIN32
+    m_rtsp_client = rtsp_create_client_for_rtp_tcp(url, &err);
+#else
+	m_rtsp_client = NULL;
+#endif
+  } else {
+    m_rtsp_client = rtsp_create_client(url, &err);
+  }
   if (m_rtsp_client == NULL) {
     *errmsg = "Failed to create RTSP client";
     player_error_message("Failed to create rtsp client - error %d", err);
     return (err);
   }
-
   cmd.accept = "application/sdp";
 
   /*
@@ -373,6 +382,20 @@ int CPlayerSession::pause_all_media (void)
   } while (m_sync_pause_done == 0);
   m_paused = 1;
   return (0);
+}
+void CPlayerSession::add_media (CPlayerMedia *m) 
+{
+  CPlayerMedia *p;
+  if (m_my_media == NULL) {
+    m_my_media = m;
+  } else {
+    p = m_my_media;
+    while (p->get_next() != NULL) {
+      if (p == m) return;
+      p = p->get_next();
+    }
+    p->set_next(m);
+  }
 }
 
 int CPlayerSession::session_has_audio (void)

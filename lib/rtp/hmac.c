@@ -40,11 +40,22 @@
 #include "md5.h"
 #include "hmac.h"
 
-void hmac_md5(unsigned char   *data,	   /* pointer to data stream        */
-	      int              data_len,   /* length of data stream         */
-	      unsigned char   *key, 	   /* pointer to authentication key */
-	      int              key_len,	   /* length of authentication key  */
-	      unsigned char    digest[16]) /* caller digest to be filled in */
+/**
+ * hmac_md5:
+ * @data: pointer to data stream.
+ * @data_len: length of data stream in bytes.
+ * @key: pointer to authentication key.
+ * @key_len: length of authentication key in bytes.
+ * @digest: digest to be filled in.
+ * 
+ * Computes MD5 @digest of @data using key @key. 
+ * 
+ **/
+void hmac_md5(unsigned char   *data,	   
+	      int              data_len,   
+	      unsigned char   *key, 	   
+	      int              key_len,	   
+	      unsigned char    digest[16]) 
 {
         MD5_CTX       context;
         unsigned char k_ipad[65];    /* inner padding - key XORd with ipad */

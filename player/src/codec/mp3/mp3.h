@@ -28,7 +28,6 @@
 #include "systems.h"
 #include <mp3/MPEGaudio.h>
 #include "codec.h"
-#include "rtp_bytestream.h"
 #include "audio.h"
 
 class COurMp3Loader;

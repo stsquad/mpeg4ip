@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		SocketUtils.cpp
@@ -55,11 +55,29 @@
 #define USE_SIOCGIFNUM 1
 #endif
 
+#ifdef TRUCLUSTER  /* Tru64 Cluster Alias support */
+  
+#include <clua/clua.h>
+#include <sys/clu.h>
+
+static clua_status_t (*clua_getaliasaddress_vector) (struct sockaddr *, int *);
+static char *(*clua_error_vector) (clua_status_t);
+
+#define clua_getaliasaddress (*clua_getaliasaddress_vector)
+#define clua_error (*clua_error_vector)
+
+struct clucall_vector clua_vectors[] = {
+        { "clua_getaliasaddress", &clua_getaliasaddress_vector },
+        { "clua_error", &clua_error_vector },
+        { NULL,     NULL }              /* END OF LIST */
+};
+
+#endif /* TRUCLUSTER */
 
 UInt32							SocketUtils::sNumIPAddrs = 0;
 SocketUtils::IPAddrInfo*		SocketUtils::sIPAddrInfoArray = NULL;
 
-void SocketUtils::Initialize()
+void SocketUtils::Initialize(Bool16 lookupDNSName)
 {
 #if defined(__Win32__) || defined(USE_SIOCGIFNUM)
 
@@ -135,8 +153,9 @@ void SocketUtils::Initialize()
 		//	sNumIPAddrs--;
 		//	continue;
 		//}
-		if (addrListP[addrCount].iiFlags & IFF_LOOPBACK)
-			Assert(addrCount > 0); // If the loopback interface is interface 0, we've got problems
+		//if (addrListP[addrCount].iiFlags & IFF_LOOPBACK)
+		//	if (lookupDNSName) // The playlist broadcaster doesn't care
+		//		Assert(addrCount > 0); // If the loopback interface is interface 0, we've got problems
 			
 		struct sockaddr_in* theAddr = (struct sockaddr_in*)&addrListP[addrCount].iiAddress;
 #elif defined(USE_SIOCGIFNUM)
@@ -182,9 +201,12 @@ void SocketUtils::Initialize()
 		sIPAddrInfoArray[currentIndex].fIPAddrStr.Ptr = new char[sIPAddrInfoArray[currentIndex].fIPAddrStr.Len + 2];
 		::strcpy(sIPAddrInfoArray[currentIndex].fIPAddrStr.Ptr, theAddrStr);
 
-		//convert this addr to a dns name, and store it
-		struct hostent* theDNSName = ::gethostbyaddr((char *)&theAddr->sin_addr,
-														sizeof(theAddr->sin_addr), AF_INET);
+		
+		struct hostent* theDNSName = NULL;
+		if (lookupDNSName) //convert this addr to a dns name, and store it
+		{	theDNSName = ::gethostbyaddr((char *)&theAddr->sin_addr, sizeof(theAddr->sin_addr), AF_INET);
+		}
+		
 		if (theDNSName != NULL)
 		{
 			sIPAddrInfoArray[currentIndex].fDNSNameStr.Len = ::strlen(theDNSName->h_name);
@@ -275,6 +297,35 @@ void SocketUtils::Initialize()
 		if (ifr->ifr_addr.sa_family == AF_INET)
 			sNumIPAddrs++;
 	}
+
+#ifdef TRUCLUSTER
+  	
+	int clusterAliases = 0;
+
+	if (clu_is_member())
+	{
+	  	/* loading the vector table */
+	  if (clua_getaliasaddress_vector == NULL)
+	  {
+	    clucall_stat	clustat;
+	    struct sockaddr_in	sin;
+
+	    clustat = clucall_load("libclua.so", clua_vectors);
+	    int context = 0;
+	    clua_status_t      addr_err;
+
+	    if (clua_getaliasaddress_vector != NULL)
+	      while ( (addr_err = clua_getaliasaddress
+			  ((struct sockaddr*)&sin, &context)) == CLUA_SUCCESS )
+	      {
+		sNumIPAddrs++;
+		clusterAliases++;
+	      }
+	  }
+	  
+	}
+
+#endif // TRUCLUSTER
 	
 	//allocate the IPAddrInfo array. Unfortunately we can't allocate this
 	//array the proper way due to a GCC bug
@@ -309,9 +360,11 @@ void SocketUtils::Initialize()
 			sIPAddrInfoArray[currentIndex].fIPAddrStr.Ptr = new char[sIPAddrInfoArray[currentIndex].fIPAddrStr.Len + 2];
 			::strcpy(sIPAddrInfoArray[currentIndex].fIPAddrStr.Ptr, theAddrStr);
 
-			//convert this addr to a dns name, and store it
-			struct hostent* theDNSName = ::gethostbyaddr((char *)&addrPtr->sin_addr,
-															sizeof(addrPtr->sin_addr), AF_INET);
+			struct hostent* theDNSName = NULL;
+			if (lookupDNSName) //convert this addr to a dns name, and store it
+			{	theDNSName = ::gethostbyaddr((char *)&addrPtr->sin_addr, sizeof(addrPtr->sin_addr), AF_INET);
+			}
+			
 			if (theDNSName != NULL)
 			{
 				sIPAddrInfoArray[currentIndex].fDNSNameStr.Len = ::strlen(theDNSName->h_name);
@@ -330,6 +383,48 @@ void SocketUtils::Initialize()
 			currentIndex++;
 		}
 	}
+
+#ifdef TRUCLUSTER
+	if (clusterAliases > 0)
+	{
+	  int context = 0;
+	  struct sockaddr_in sin;
+	  clua_status_t      addr_err;
+
+	  while ( (addr_err = clua_getaliasaddress ((struct sockaddr*)&sin, &context)) == CLUA_SUCCESS )
+	  {
+	    char* theAddrStr = ::inet_ntoa(sin.sin_addr);
+
+	    //store the IP addr
+	    sIPAddrInfoArray[currentIndex].fIPAddr = ntohl(sin.sin_addr.s_addr);
+	    
+ 	    //store the IP addr as a string
+	    sIPAddrInfoArray[currentIndex].fIPAddrStr.Len = ::strlen(theAddrStr);
+	    sIPAddrInfoArray[currentIndex].fIPAddrStr.Ptr = new char[sIPAddrInfoArray[currentIndex].fIPAddrStr.Len + 2];
+	    ::strcpy(sIPAddrInfoArray[currentIndex].fIPAddrStr.Ptr, theAddrStr);
+
+	    //convert this addr to a dns name, and store it
+	    struct hostent* theDNSName = ::gethostbyaddr((char *)&sin.sin_addr,
+	   						 sizeof(sin.sin_addr), AF_INET);
+	    if (theDNSName != NULL)
+	    {
+		    sIPAddrInfoArray[currentIndex].fDNSNameStr.Len = ::strlen(theDNSName->h_name);
+		    sIPAddrInfoArray[currentIndex].fDNSNameStr.Ptr = new char[sIPAddrInfoArray[currentIndex].fDNSNameStr.Len + 2];
+		    ::strcpy(sIPAddrInfoArray[currentIndex].fDNSNameStr.Ptr, theDNSName->h_name);
+	    }
+	    else
+	    {
+		    //if we failed to look up the DNS name, just store the IP addr as a string
+		    sIPAddrInfoArray[currentIndex].fDNSNameStr.Len = sIPAddrInfoArray[currentIndex].fIPAddrStr.Len;
+		    sIPAddrInfoArray[currentIndex].fDNSNameStr.Ptr = new char[sIPAddrInfoArray[currentIndex].fDNSNameStr.Len + 2];
+		    ::strcpy(sIPAddrInfoArray[currentIndex].fDNSNameStr.Ptr, sIPAddrInfoArray[currentIndex].fIPAddrStr.Ptr);
+	    }
+
+	    currentIndex++;
+	  }
+	}
+#endif // TRUCLUSTER	
+	
 	Assert(currentIndex == sNumIPAddrs);
 #endif
 

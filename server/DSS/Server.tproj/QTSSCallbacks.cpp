@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSCallbacks.cpp
@@ -40,6 +40,7 @@
 #include "Socket.h"
 #include "QTSSFile.h"
 #include "QTSSSocket.h"
+#include "QTSServerInterface.h"
 #include "QTSSDataConverter.h"
 
 #include <errno.h>
@@ -93,15 +94,16 @@ QTSS_Error 	QTSSCallbacks::QTSS_AddRole(QTSS_Role inRole)
 
 #pragma mark __DICTIONARY_ROUTINES__
 
-QTSS_Error	QTSSCallbacks::QTSS_AddAttribute(QTSS_ObjectType inType, const char* inName, QTSS_AttrParamFunctionPtr inFunctionPtr)
+QTSS_Error	QTSSCallbacks::QTSS_AddAttribute(QTSS_ObjectType inType, const char* inName, void* inUnused)
 {
 	//
 	// This call is deprecated, make the new call with sensible default arguments
-	return QTSSCallbacks::QTSS_AddStaticAttribute(inType, inName, inFunctionPtr, qtssAttrDataTypeUnknown);
+	return QTSSCallbacks::QTSS_AddStaticAttribute(inType, inName, inUnused, qtssAttrDataTypeUnknown);
 }
 
-QTSS_Error	QTSSCallbacks::QTSS_AddStaticAttribute(QTSS_ObjectType inObjectType, const char* inAttrName, QTSS_AttrParamFunctionPtr inAttrFunPtr, QTSS_AttrDataType inAttrDataType)
+QTSS_Error	QTSSCallbacks::QTSS_AddStaticAttribute(QTSS_ObjectType inObjectType, const char* inAttrName, void* inUnused, QTSS_AttrDataType inAttrDataType)
 {
+	Assert(inUnused == NULL);
 	QTSS_ModuleState* theState = (QTSS_ModuleState*)OSThread::GetMainThreadData();
 	if (OSThread::GetCurrent() != NULL)
 		theState = (QTSS_ModuleState*)OSThread::GetCurrent()->GetThreadData();
@@ -115,24 +117,16 @@ QTSS_Error	QTSSCallbacks::QTSS_AddStaticAttribute(QTSS_ObjectType inObjectType, 
 		return QTSS_BadArgument;
 		
 	QTSSDictionaryMap* theMap = QTSSDictionaryMap::GetMap(theDictionaryIndex);
-	return theMap->AddAttribute(inAttrName, inAttrFunPtr, inAttrDataType, qtssAttrModeRead | qtssAttrModeWrite | qtssAttrModePreempSafe);
+	return theMap->AddAttribute(inAttrName, NULL, inAttrDataType, qtssAttrModeRead | qtssAttrModeWrite | qtssAttrModePreempSafe);
 }
 
-QTSS_Error	QTSSCallbacks::QTSS_AddInstanceAttribute(QTSS_Object inObject, const char* inAttrName, QTSS_AttrParamFunctionPtr inAttrFunPtr, QTSS_AttrDataType inAttrDataType)
+QTSS_Error	QTSSCallbacks::QTSS_AddInstanceAttribute(QTSS_Object inObject, const char* inAttrName, void* inUnused, QTSS_AttrDataType inAttrDataType)
 {
+	Assert(inUnused == NULL);
 	if ((inObject == NULL) || (inAttrName == NULL))
 		return QTSS_BadArgument;
 	
-	
-	// Get the Static Attribute Map and check there is no existing name
-	QTSSDictionaryMap *theStaticMap = ((QTSSDictionary*)inObject)->GetDictionaryMap();
-	if (theStaticMap != NULL)
-	{
-		if (QTSS_AttrNameExists == theStaticMap->TestAttributeExistsByName(inAttrName))
-			return QTSS_AttrNameExists;
-	}
-	
-	return ((QTSSDictionary*)inObject)->AddInstanceAttribute(inAttrName, inAttrFunPtr, inAttrDataType, qtssAttrModeRead | qtssAttrModeWrite | qtssAttrModePreempSafe);
+	return ((QTSSDictionary*)inObject)->AddInstanceAttribute(inAttrName, NULL, inAttrDataType, qtssAttrModeRead | qtssAttrModeWrite | qtssAttrModePreempSafe);
 }
 
 QTSS_Error QTSSCallbacks::QTSS_RemoveInstanceAttribute(QTSS_Object inObject, QTSS_AttributeID inID)
@@ -156,134 +150,34 @@ QTSS_Error	QTSSCallbacks::QTSS_IDForAttr(QTSS_ObjectType inType, const char* inN
 	return QTSSDictionaryMap::GetMap(theDictionaryIndex)->GetAttrID(inName, outID);
 }
 
-QTSS_Error QTSSCallbacks::QTSS_GetStaticAttrInfoByName(QTSS_ObjectType inObjectType, const char* inAttrName, QTSS_Object* outAttrInfoObject)
-{
-	// Retrieve the Dictionary Map for this object type
-	UInt32 theDictionaryIndex = QTSSDictionaryMap::GetMapIndex(inObjectType);
-	if (theDictionaryIndex == QTSSDictionaryMap::kIllegalDictionary)
-		return QTSS_BadArgument;
-	QTSSDictionaryMap* theMap = QTSSDictionaryMap::GetMap(theDictionaryIndex);
-
-	// Return the attribute info
-	return theMap->GetAttrInfoByName(inAttrName, (QTSSAttrInfoDict**)outAttrInfoObject);
-}
-
-
-QTSS_Error QTSSCallbacks::QTSS_GetStaticAttrInfoByID(QTSS_ObjectType inObjectType, QTSS_AttributeID inAttrID, QTSS_Object* outAttrInfoObject)
-{
-	// Retrieve the Dictionary Map for this object type
-	UInt32 theDictionaryIndex = QTSSDictionaryMap::GetMapIndex(inObjectType);
-	if (theDictionaryIndex == QTSSDictionaryMap::kIllegalDictionary)
-		return QTSS_BadArgument;
-	QTSSDictionaryMap* theMap = QTSSDictionaryMap::GetMap(theDictionaryIndex);
-
-	// Return the attribute info
-	return theMap->GetAttrInfoByID(inAttrID, (QTSSAttrInfoDict**)outAttrInfoObject);
-}
-
-QTSS_Error QTSSCallbacks::QTSS_GetStaticAttrInfoByIndex(QTSS_ObjectType inObjectType, UInt32 inIndex, QTSS_Object* outAttrInfoObject)
-{
-	// Retrieve the Dictionary Map for this object type
-	UInt32 theDictionaryIndex = QTSSDictionaryMap::GetMapIndex(inObjectType);
-	if (theDictionaryIndex == QTSSDictionaryMap::kIllegalDictionary)
-		return QTSS_BadArgument;
-	QTSSDictionaryMap* theMap = QTSSDictionaryMap::GetMap(theDictionaryIndex);
-
-	// Return the attribute info
-	return theMap->GetAttrInfoByIndex(inIndex, (QTSSAttrInfoDict**)outAttrInfoObject);
-}
-
 QTSS_Error QTSSCallbacks::QTSS_GetAttrInfoByIndex(QTSS_Object inObject, UInt32 inIndex, QTSS_Object* outAttrInfoObject)
 {
-	// Retrieve the Dictionary Map for this object type
 	if (inObject == NULL)
 		return QTSS_BadArgument;
 	
-	OSMutexLocker locker(((QTSSDictionary*)inObject)->GetMutex());
-
-	UInt32 numValues = 0;
-	UInt32 numStaticValues = 0;
-	UInt32 numInstanceValues = 0;
-	QTSSDictionaryMap* theMap = NULL;
-
-	// Get the Static Attribute count
-	QTSSDictionaryMap* theStaticMap = ((QTSSDictionary*)inObject)->GetDictionaryMap();
-
-	if (theStaticMap != NULL)
-		numStaticValues  = theStaticMap->GetNumNonRemovedAttrs();
-
-	// Get the Instance Attribute count
-	QTSSDictionaryMap* theInstanceMap = ((QTSSDictionary*)inObject)->GetInstanceDictMap();
-
-	if (theInstanceMap != NULL)
-		numInstanceValues = theInstanceMap->GetNumNonRemovedAttrs();
-		
-	
-	numValues = numInstanceValues + numStaticValues;
-	if ( (numValues == 0) || (inIndex >= numValues) )
-		return QTSS_AttrDoesntExist;
-	
-	if ( (numStaticValues > 0)  && (inIndex < numStaticValues) )
-	{	theMap = theStaticMap;
-	}	
-	else
-	{	if (theInstanceMap != NULL && inIndex >= numStaticValues);
-		{	theMap = theInstanceMap;
-			inIndex = inIndex - numStaticValues;
-			if (inIndex >= numInstanceValues)
-				theMap = NULL;
-		}
-	}
-	
-	if (theMap == NULL)
-		return QTSS_AttrDoesntExist;
-		
-	// Return the attribute info
-	return theMap->GetAttrInfoByIndex(inIndex, (QTSSAttrInfoDict**)outAttrInfoObject);
+	return ((QTSSDictionary*)inObject)->GetAttrInfoByIndex(inIndex, (QTSSAttrInfoDict**)outAttrInfoObject);
 }
 
 QTSS_Error QTSSCallbacks::QTSS_GetAttrInfoByID(QTSS_Object inObject, QTSS_AttributeID inAttrID, QTSS_Object* outAttrInfoObject)
 {
-	// Retrieve the Dictionary Map for this object type
 	if (inObject == NULL)
 		return QTSS_BadArgument;
-		
-	OSMutexLocker locker(((QTSSDictionary*)inObject)->GetMutex());
 	
-	QTSSDictionaryMap* theMap = NULL;
-	Bool16 isInstanceAttribute = QTSSDictionaryMap::IsInstanceAttrID(inAttrID);
-	if (isInstanceAttribute)
-		theMap = ((QTSSDictionary*)inObject)->GetInstanceDictMap();
-	else
-		theMap = ((QTSSDictionary*)inObject)->GetDictionaryMap();
-			
-	if (theMap == NULL)
-		return QTSS_AttrDoesntExist;
-		
-	// Return the attribute info
-	return theMap->GetAttrInfoByID(inAttrID, (QTSSAttrInfoDict**)outAttrInfoObject);
+	return ((QTSSDictionary*)inObject)->GetAttrInfoByID(inAttrID, (QTSSAttrInfoDict**)outAttrInfoObject);
 }
 
 QTSS_Error QTSSCallbacks::QTSS_GetAttrInfoByName(QTSS_Object inObject, const char* inAttrName, QTSS_Object* outAttrInfoObject)
 {
-	// Retrieve the Dictionary Map for this object type
-	QTSSDictionaryMap* theMap = ((QTSSDictionary*)inObject)->GetDictionaryMap(); // static map
-	QTSS_Error err = theMap->GetAttrInfoByName(inAttrName, (QTSSAttrInfoDict**)outAttrInfoObject);
-	if (err == QTSS_AttrDoesntExist)
-	{
-		OSMutexLocker locker(((QTSSDictionary*)inObject)->GetMutex());
-		theMap = ((QTSSDictionary*)inObject)->GetInstanceDictMap(); // instance map	
-		if (theMap != NULL)
-			err = theMap->GetAttrInfoByName(inAttrName, (QTSSAttrInfoDict**)outAttrInfoObject);
-	}
+	if (inObject == NULL)
+		return QTSS_BadArgument;
 	
-	return err;
+	return ((QTSSDictionary*)inObject)->GetAttrInfoByName(inAttrName, (QTSSAttrInfoDict**)outAttrInfoObject);
 }
 
 
 QTSS_Error 	QTSSCallbacks::QTSS_GetValuePtr (QTSS_Object inDictionary, QTSS_AttributeID inID, UInt32 inIndex, void** outBuffer, UInt32* outLen)
 {
-	if (inDictionary == NULL)
+	if ((inDictionary == NULL) || (outBuffer == NULL) || (outLen == NULL))
 		return QTSS_BadArgument;
 	return ((QTSSDictionary*)inDictionary)->GetValuePtr(inID, inIndex, outBuffer, outLen);
 }
@@ -303,24 +197,41 @@ QTSS_Error 	QTSSCallbacks::QTSS_GetValueAsString (QTSS_Object inDictionary, QTSS
 	return ((QTSSDictionary*)inDictionary)->GetValueAsString(inID, inIndex, outString);
 }
 
-const char* QTSSCallbacks::QTSS_GetTypeAsString (QTSS_AttrDataType inType)
-{	
-	return QTSSDataConverter::GetDataTypeStringForType(inType);
+QTSS_Error	QTSSCallbacks::QTSS_TypeToTypeString(const QTSS_AttrDataType inType, char** outTypeString)
+{
+	if (outTypeString == NULL)
+		return QTSS_BadArgument;
+	
+	*outTypeString = QTSSDataConverter::TypeToTypeString(inType);
+	return QTSS_NoErr;
 }
 
-QTSS_AttrDataType QTSSCallbacks::QTSS_GetDataTypeForTypeString(char* inTypeString)
+QTSS_Error	QTSSCallbacks::QTSS_TypeStringToType(const char* inTypeString, QTSS_AttrDataType* outType)
 {
-	return QTSSDataConverter::GetDataTypeForTypeString(inTypeString);
+	if ((inTypeString == NULL) || (outType == NULL))
+		return QTSS_BadArgument;
+		
+	*outType = QTSSDataConverter::TypeStringToType(inTypeString);
+	return QTSS_NoErr;
 }
 
-QTSS_Error	QTSSCallbacks::QTSS_ConvertStringToType(char* inValueAsString,QTSS_AttrDataType inType, void* ioBuffer, UInt32* ioBufSize)
+QTSS_Error	QTSSCallbacks::QTSS_StringToValue(const char* inValueAsString, const QTSS_AttrDataType inType, void* ioBuffer, UInt32* ioBufSize)
 {
-	return 	QTSSDataConverter::ConvertStringToType(inValueAsString,inType,ioBuffer,ioBufSize);
+	return 	QTSSDataConverter::StringToValue(inValueAsString,inType,ioBuffer,ioBufSize);
+}
+
+QTSS_Error	QTSSCallbacks::QTSS_ValueToString(const void* inValue, const UInt32 inValueLen, const QTSS_AttrDataType inType, char** outString)
+{
+	if ((inValue == NULL) || (outString == NULL))
+		return QTSS_BadArgument;
+		
+	 *outString = QTSSDataConverter::ValueToString(inValue,inValueLen,inType);
+	 return QTSS_NoErr;
 }
 
 QTSS_Error 	QTSSCallbacks::QTSS_SetValue (QTSS_Object inDictionary, QTSS_AttributeID inID, UInt32 inIndex, const void* inBuffer,  UInt32 inLen)
 {
-	if (inDictionary == NULL)
+	if ((inDictionary == NULL) || ((inBuffer == NULL) && (inLen > 0)))
 		return QTSS_BadArgument;
 	return ((QTSSDictionary*)inDictionary)->SetValue(inID, inIndex, inBuffer, inLen);
 }
@@ -533,7 +444,7 @@ QTSS_Error	QTSSCallbacks::QTSS_AddService(const char* inServiceName, QTSS_Servic
 		return QTSS_OutOfState;
 
 	return QTSSDictionaryMap::GetMap(QTSSDictionaryMap::kServiceDictIndex)->
-				AddAttribute(inServiceName, (QTSS_AttrParamFunctionPtr)inFunctionPtr, qtssAttrDataTypeUnknown, qtssAttrModeRead);
+				AddAttribute(inServiceName, (QTSS_AttrFunctionPtr)inFunctionPtr, qtssAttrDataTypeUnknown, qtssAttrModeRead);
 }
 
 QTSS_Error	QTSSCallbacks::QTSS_IDForService(const char* inTag, QTSS_ServiceID* outID)
@@ -617,6 +528,9 @@ QTSS_Error QTSSCallbacks::QTSS_SendStandardRTSPResponse(QTSS_RTSPRequestObject i
 		case qtssTeardownMethod:
 			((RTPSession*)inRTPInfo)->SendTeardownResponse((RTSPRequestInterface*)inRTSPRequest);
 			return QTSS_NoErr;
+		case qtssAnnounceMethod:
+			((RTPSession*)inRTPInfo)->SendAnnounceResponse((RTSPRequestInterface*)inRTSPRequest);
+			return QTSS_NoErr;
 	}
 	return QTSS_BadArgument;
 }
@@ -655,6 +569,16 @@ QTSS_Error	QTSSCallbacks::QTSS_Teardown(QTSS_ClientSessionObject inClientSession
 	((RTPSession*)inClientSession)->Teardown();
 	return QTSS_NoErr;
 }
+
+QTSS_Error	QTSSCallbacks::QTSS_RefreshTimeOut(QTSS_ClientSessionObject inClientSession)
+{
+	if (inClientSession == NULL)
+		return QTSS_BadArgument;
+	
+	((RTPSession*)inClientSession)->RefreshTimeouts();
+	return QTSS_NoErr;
+}
+
 
 #pragma mark __ASYNC_ROUTINES__
 
@@ -765,3 +689,100 @@ QTSS_Error	QTSSCallbacks::QTSS_UnlockGlobalLock()
 
 	return QTSS_NoErr;
 }
+
+#pragma mark __AUTH_ROUTINES__
+
+QTSS_Error	QTSSCallbacks::QTSS_Authenticate(const char* inAuthUserName, const char* inAuthResourceLocalPath, const char* inAuthMoviesDir, QTSS_ActionFlags inAuthRequestAction, QTSS_AuthScheme inAuthScheme, QTSS_RTSPRequestObject ioAuthRequestObject)
+{
+	if((inAuthUserName == NULL) || (inAuthResourceLocalPath == NULL) || (inAuthMoviesDir == NULL) || (ioAuthRequestObject == NULL)) 
+		return QTSS_BadArgument;
+	if(inAuthRequestAction == qtssActionFlagsNoFlags)
+		return QTSS_BadArgument;
+	if(inAuthScheme == qtssAuthNone)
+		return QTSS_BadArgument;
+
+	// First create a RTSPRequestInterface object 
+	// There is no session attached to it, so just pass in NULL for the RTSPSession
+	RTSPRequestInterface *request =  (RTSPRequestInterface *) ioAuthRequestObject;
+	// Set all the attributes required by the authentication module, using the input values
+	(void) request->SetValue(qtssRTSPReqUserName, 0,  inAuthUserName , ::strlen(inAuthUserName), QTSSDictionary::kDontObeyReadOnly);
+	(void) request->SetValue(qtssRTSPReqLocalPath, 0,  inAuthResourceLocalPath , ::strlen(inAuthResourceLocalPath), QTSSDictionary::kDontObeyReadOnly);
+	(void) request->SetValue(qtssRTSPReqRootDir, 0,  inAuthMoviesDir , ::strlen(inAuthMoviesDir), QTSSDictionary::kNoFlags);
+	(void) request->SetValue(qtssRTSPReqAction, 0,  (const void *)&inAuthRequestAction , sizeof(QTSS_ActionFlags), QTSSDictionary::kNoFlags);
+	(void) request->SetValue(qtssRTSPReqAuthScheme, 0,  (const void *)&inAuthScheme , sizeof(QTSS_AuthScheme), QTSSDictionary::kDontObeyReadOnly);
+	QTSSUserProfile *profile = request->GetUserProfile();
+	(void) profile->SetValue(qtssUserName, 0, inAuthUserName, ::strlen(inAuthUserName), QTSSDictionary::kDontObeyReadOnly);
+	
+	
+	// Because this is a role being executed from inside a callback, we need to
+	// make sure that QTSS_RequestEvent will not work.
+	Task* curTask = NULL;
+	QTSS_ModuleState* theState = (QTSS_ModuleState*)OSThread::GetMainThreadData();
+	if (OSThread::GetCurrent() != NULL)
+		theState = (QTSS_ModuleState*)OSThread::GetCurrent()->GetThreadData();
+		
+	if (theState != NULL)
+		curTask = theState->curTask;
+	
+	// Setup the authentication param block
+	QTSS_RoleParams theAuthenticationParams;
+	theAuthenticationParams.rtspAthnParams.inRTSPRequest = request;
+			
+	QTSS_Error theErr = QTSS_RequestFailed;
+	
+	// There is only one module that is registered for the RTSP Authentication role
+	if (QTSServerInterface::GetNumModulesInRole(QTSSModule::kRTSPAthnRole) > 0)
+	{
+		theErr = QTSServerInterface::GetModule(QTSSModule::kRTSPAthnRole, 0)->CallDispatch(QTSS_RTSPAuthenticate_Role, &theAuthenticationParams);
+	}
+	
+	// Reset the curTask to what it was before this role started
+	if (theState != NULL)
+		theState->curTask = curTask;
+
+	return theErr;
+}
+
+QTSS_Error	QTSSCallbacks::QTSS_Authorize(QTSS_RTSPRequestObject inAuthRequestObject, char* outAuthRealm, Bool16* outAuthUserAllowed)
+{
+	RTSPRequestInterface* request = (RTSPRequestInterface *) inAuthRequestObject;
+	if (request == NULL)
+		return QTSS_BadArgument;
+			
+	// Because this is a role being executed from inside a callback, we need to
+	// make sure that QTSS_RequestEvent will not work.
+	Task* curTask = NULL;
+	QTSS_ModuleState* theState = (QTSS_ModuleState*)OSThread::GetMainThreadData();
+	if (OSThread::GetCurrent() != NULL)
+		theState = (QTSS_ModuleState*)OSThread::GetCurrent()->GetThreadData();
+		
+	if (theState != NULL)
+		curTask = theState->curTask;
+		
+	QTSS_RoleParams theParams;
+	theParams.rtspRequestParams.inRTSPSession = NULL;
+	theParams.rtspRequestParams.inRTSPRequest = request;
+	theParams.rtspRequestParams.inClientSession = NULL;
+
+	QTSS_Error theErr = QTSS_RequestFailed;
+	UInt32 x = 0;
+	*outAuthUserAllowed = true;
+	
+	// Call all the modules that are registered for the RTSP Authorize Role	
+	for ( ; x < QTSServerInterface::GetNumModulesInRole(QTSSModule::kRTSPAuthRole); x++)
+	{
+		theErr = QTSServerInterface::GetModule(QTSSModule::kRTSPAuthRole, x)->CallDispatch(QTSS_RTSPAuthorize_Role, &theParams);
+	
+		// If any module sets allowed to false, exit the loop as authentication has been denied
+		*outAuthUserAllowed = request->GetAllowed();	
+		if(false == *outAuthUserAllowed)
+			break;
+	}
+	
+	// outAuthRealm is set to the realm that is given by the module that has denied authentication
+	StrPtrLen* realm = request->GetValue(qtssRTSPReqURLRealm);
+	outAuthRealm = realm->GetAsCString();
+	
+	return theErr;
+}
+

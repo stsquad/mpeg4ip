@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSWebStatsModule.cpp
@@ -60,36 +60,6 @@ static QTSS_PrefsObject		 	sServerPrefs = NULL;
 static Bool16					sFalse = false;
 static time_t					sStartupTime = 0;
 
-
-//**************************************************
-class CPUStats {
-public:
-	static void GetStats( double *dpLoad, long *lpTicks);
-#if __MacOSXServer__
-	static void GetMachineInfo(machine_info* ioMachineInfo) 
-	{	if (!CPUStats::sInited)
-			CPUStats::Init();
-		*ioMachineInfo = sMachineInfo;
-	}
-#endif
-	static void Init();
-private:
-	static int	_CPUCount ;
-	static int	_CPUSlots [16] ;
-#if __MacOSXServer__
-	static long _laLastTicks [CPU_STATE_MAX] ;
-	static struct machine_info sMachineInfo;
-#endif
-	static Bool16 sInited;
-
-};
-Bool16 CPUStats::sInited = false;
-int	CPUStats::_CPUCount = 1;
-int	CPUStats::_CPUSlots [16] = {-1};
-#if __MacOSXServer__
-long CPUStats::_laLastTicks[CPU_STATE_MAX];
-struct machine_info CPUStats::sMachineInfo;
-#endif
 
 
 static QTSS_Error 	QTSSWebStatsModuleDispatch(QTSS_Role inRole, QTSS_RoleParamPtr inParams);
@@ -221,7 +191,7 @@ QTSS_Error FilterRequest(QTSS_Filter_Params* inParams)
 			if (theWebStatsURLPtr.Len == 0)
 				return QTSS_NoErr;
 				
-			fullRequest.ConsumeWord(&strPtr);
+			fullRequest.ConsumeUntil(&strPtr, StringParser::sEOLWhitespaceMask);
 			if ( strPtr.Len != 0 && strPtr.Equal(theWebStatsURLPtr) )	//it's a "stats" request
 			{
 				if ( fullRequest.Expect('?') )
@@ -278,8 +248,8 @@ void SendStats(QTSS_StreamRef inStream, UInt32  refreshInterval, Bool16 displayH
 									{"serverstatus", 7},
 									{"", 8},
 									{"", 9},
-									{"kernelinfo", 10},
-									{"cpuload", 11},
+									{"", 10},
+									{"", 11},
 									{"", 12},
 									{"", 13},
 									{"currtp", 14},
@@ -533,41 +503,17 @@ void SendStats(QTSS_StreamRef inStream, UInt32  refreshInterval, Bool16 displayH
 			}
 			break;
 			
-		//**********************************
-		//misc machines stats
 			case 10:
 			{
-#if __MacOSXServer__
-				machine_info machineInfo = {};
-
-
-				CPUStats::GetMachineInfo(&machineInfo);
-			
-//				sprintf(buffer, "<b>Kernel Info: </b> Mach kernel is v%d.%d, built for %d CPU[s]<BR>\n", 
-//								machineInfo.major_version, machineInfo.minor_version, machineInfo.max_cpus);
-				sprintf(buffer, "<b>Kernel Info: </b> Mach kernel built for %d CPU[s]<BR>\n", machineInfo.max_cpus);
-				(void)QTSS_Write(inStream, buffer, ::strlen(buffer), NULL, 0);		
-#else
-				static StrPtrLen sKernelInfoStr("<b>Kernel info not available</b><BR>");
-				(void)QTSS_Write(inStream, sKernelInfoStr.Ptr, sKernelInfoStr.Len, NULL, 0);		
-#endif
+				
+				//NOOP
 			}
 			break;
 	
 			case 11:
 			{
-#if __MacOSXServer__
-				double cpuLoad [3] ;
-			    long cpuTicks[CPU_STATE_MAX] ;
 				
-				CPUStats::GetStats(cpuLoad, cpuTicks) ;
-				sprintf(buffer, "<b>CPU Stats: </b> %ld%% idle, %ld%% user, %ld%% system, load: %.2f, %.2f, %.2f<BR>", 
-								cpuTicks[CPU_STATE_IDLE], cpuTicks[CPU_STATE_USER], cpuTicks[CPU_STATE_SYSTEM], cpuLoad[0], cpuLoad[1], cpuLoad[2]);
-				(void)QTSS_Write(inStream, buffer, ::strlen(buffer), NULL, 0);		
-#else
-				static StrPtrLen sKernelInfoStr2("<b>CPU stats not available</b><BR>");
-				(void)QTSS_Write(inStream, sKernelInfoStr2.Ptr, sKernelInfoStr2.Len, NULL, 0);		
-#endif
+				//NOOP
 			}
 			break;
 	
@@ -988,80 +934,6 @@ void SendStats(QTSS_StreamRef inStream, UInt32  refreshInterval, Bool16 displayH
 
 
 
-
-void CPUStats::Init()
-{
-#if __MacOSXServer__
-    if (xxx_host_info (current_task (), &sMachineInfo) == KERN_SUCCESS) {
-        register int		i, j = 0 ;
-        struct machine_slot	slot ;
-
-        _CPUCount = 0 ;
-        for (i = sMachineInfo.max_cpus ; i-- ; )
-            if ((xxx_slot_info (current_task (), i, &slot)
-                 == KERN_SUCCESS) && (slot.is_cpu == 1)) {
-                _CPUSlots[j++] = i ;
-                _CPUCount++ ;
-            }
-        _CPUSlots[j] = -1 ;
-		
-	}
-#endif
-	
-	CPUStats::sInited = true;
-}
-
-//courtesy of CJ
-void CPUStats::GetStats ( double *dpLoad, long *lpTicks)
-{
-#if __MacOSXServer__
-    register int	i ;
-    register long	lTicks ;
-    long			laSave [CPU_STATE_MAX];
-
-	if (!CPUStats::sInited)
-		CPUStats::Init();
-
-    // Get the curent load average.
-    if (-1 == getloadavg (dpLoad, 3))
-    	dpLoad[0] = dpLoad[1] = dpLoad[2] = 0.0 ;
-
-    // Return if mach says it doesn't have any CPUs.
-    if (_CPUSlots[0] == -1) {
-        lpTicks[0] = lpTicks[1] = lpTicks[2] = 0 ;
-        return ;
-    }
-
-    // Accumulate all CPU ticks into one entry.
-    laSave[0] = laSave[1] = laSave[2] = 0 ;
-    for (i = _CPUCount ; i-- ; ) {
-        struct machine_slot	slot ;
-
-        // Get the percentages of CPU usage for each CPU.
-        if ((xxx_slot_info (current_task (), _CPUSlots[i], &slot)
-             == KERN_SUCCESS) && (slot.is_cpu == 1)) {
-            laSave[CPU_STATE_USER] += slot.cpu_ticks[CPU_STATE_USER] ;
-            laSave[CPU_STATE_SYSTEM] += slot.cpu_ticks[CPU_STATE_SYSTEM] ;
-            laSave[CPU_STATE_IDLE] += slot.cpu_ticks[CPU_STATE_IDLE] ;
-        }
-    }
-
-    // Get the difference between samples.
-    for (lTicks = 0, i = CPU_STATE_MAX ; i-- ; ) {
-        lpTicks[i] = laSave[i] - _laLastTicks[i] ;
-        _laLastTicks[i] = laSave[i] ;
-        lTicks += lpTicks[i] ;
-        lpTicks[i] *= 100 ;
-    }
-
-    // Scale it to a percentage.
-    if (lTicks) {
-        lpTicks[CPU_STATE_USER] /= lTicks ;
-        lpTicks[CPU_STATE_SYSTEM] /= lTicks ;
-        lpTicks[CPU_STATE_IDLE] /= lTicks ;
-    }
-#endif
-}
 
 char*	GetPrefAsString(QTSS_ModulePrefsObject inPrefsObject, char* inPrefName)
 {

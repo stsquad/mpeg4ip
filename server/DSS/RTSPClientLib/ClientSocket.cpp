@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		ClientSocket.cpp
@@ -27,6 +27,16 @@
 	
 	
 */
+#ifndef __Win32__
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <netinet/tcp.h>
+#include <sys/uio.h>
+#endif
+
 
 #include "ClientSocket.h"
 #include "OSMemory.h"
@@ -57,6 +67,14 @@ OS_Error ClientSocket::Open(TCPSocket* inSocket)
 
 		if (theErr != OS_NoErr)
 			return theErr;
+			
+		inSocket->NoDelay();
+#if __FreeBSD__ || __MacOSX__
+	// no KeepAlive -- probably should be off for all platforms.
+#else
+		inSocket->KeepAlive();
+#endif
+
 	}
 	return theErr;
 }
@@ -64,6 +82,7 @@ OS_Error ClientSocket::Open(TCPSocket* inSocket)
 OS_Error ClientSocket::Connect(TCPSocket* inSocket)
 {
 	OS_Error theErr = this->Open(inSocket);
+	Assert(theErr == OS_NoErr);
 	if (theErr != OS_NoErr)
 		return theErr;
 
@@ -80,13 +99,28 @@ OS_Error ClientSocket::Connect(TCPSocket* inSocket)
 	return theErr;
 }
 
+OS_Error ClientSocket::Send(const char* inData, const UInt32 inLength)
+{
+	iovec theVec[1];
+	theVec[0].iov_base = (char*)inData;
+	theVec[0].iov_len = inLength;
+	
+	return this->SendV(theVec, 1);
+}
+
 OS_Error ClientSocket::SendSendBuffer(TCPSocket* inSocket)
 {
 	OS_Error theErr = OS_NoErr;
 	UInt32 theLengthSent = 0;
 	
+	if (fSendBuffer.Len == 0)
+		return OS_NoErr;
+	
 	do
 	{
+		// theLengthSent should be reset to zero before passing its pointer to Send function
+		// otherwise the old value will be used and it will go into an infinite loop sometimes
+		theLengthSent = 0;
 		//
 		// Loop, trying to send the entire message.
 		theErr = inSocket->Send(fSendBuffer.Ptr + fSentLength, fSendBuffer.Len - fSentLength, &theLengthSent);
@@ -118,13 +152,42 @@ TCPClientSocket::TCPClientSocket(UInt32 inSocketType)
 	this->Open(&fSocket);
 }
 
-OS_Error TCPClientSocket::Send(const char* inData, const UInt32 inLength)
+void TCPClientSocket::SetOptions(int sndBufSize,int	rcvBufSize)
+{	//set options on the socket
+
+	//printf("TCPClientSocket::SetOptions sndBufSize=%d,rcvBuf=%d,keepAlive=%d,noDelay=%d\n",sndBufSize,rcvBufSize,(int)keepAlive,(int)noDelay);
+	int err = 0;
+	err = ::setsockopt(fSocket.GetSocketFD(), SOL_SOCKET, SO_SNDBUF, (char*)&sndBufSize, sizeof(int));
+	AssertV(err == 0, OSThread::GetErrno());
+
+	err = ::setsockopt(fSocket.GetSocketFD(), SOL_SOCKET, SO_RCVBUF, (char*)&rcvBufSize, sizeof(int));
+	AssertV(err == 0, OSThread::GetErrno());
+
+#if __FreeBSD__ || __MacOSX__
+	struct timeval time;
+	int len = sizeof(time);
+	time.tv_sec = 0;
+	time.tv_usec = 0;
+
+	err = ::setsockopt(fSocket.GetSocketFD(), SOL_SOCKET, SO_RCVTIMEO, (char*)&time, sizeof(time));
+	AssertV(err == 0, OSThread::GetErrno());
+
+	err = ::setsockopt(fSocket.GetSocketFD(), SOL_SOCKET, SO_SNDTIMEO, (char*)&time, sizeof(time));
+	AssertV(err == 0, OSThread::GetErrno());
+#endif
+
+}
+
+OS_Error TCPClientSocket::SendV(iovec* inVec, UInt32 inNumVecs)
 {
 	if (fSendBuffer.Len == 0)
 	{
-		Assert(inLength < kSendBufferLen);
-		::memcpy(fSendBuffer.Ptr, inData, inLength);
-		fSendBuffer.Len = inLength;
+		for (UInt32 count = 0; count < inNumVecs; count++)
+		{
+			::memcpy(fSendBuffer.Ptr + fSendBuffer.Len, inVec[count].iov_base, inVec[count].iov_len);
+			fSendBuffer.Len += inVec[count].iov_len;
+			Assert(fSendBuffer.Len < ClientSocket::kSendBufferLen);
+		}
 	}
 	
 	OS_Error theErr = this->Connect(&fSocket);
@@ -162,6 +225,7 @@ HTTPClientSocket::HTTPClientSocket(const StrPtrLen& inURL, UInt32 inCookie, UInt
 HTTPClientSocket::~HTTPClientSocket()
 {
 	delete [] fURL.Ptr;
+	delete fPostSocket;
 }
 
 OS_Error HTTPClientSocket::Read(void* inBuffer, const UInt32 inLength, UInt32* outRcvLen)
@@ -240,25 +304,25 @@ OS_Error HTTPClientSocket::Read(void* inBuffer, const UInt32 inLength, UInt32* o
 	if (theErr != OS_NoErr)
 	{
 #if CLIENT_SOCKET_DEBUG
-		printf("HTTPClientSocket::Read: Waiting for data\n");
+		//printf("HTTPClientSocket::Read: Waiting for data\n");
 #endif
 		fSocketP = &fGetSocket;
 		fEventMask = EV_RE;
 	}
 #if CLIENT_SOCKET_DEBUG
-	else
-		printf("HTTPClientSocket::Read: Got some data\n");
+	//else
+		//printf("HTTPClientSocket::Read: Got some data\n");
 #endif
 	return theErr;
 }
 
-OS_Error HTTPClientSocket::Send(const char* inData, const UInt32 inLength)
+OS_Error HTTPClientSocket::SendV(iovec* inVec, UInt32 inNumVecs)
 {
 	//
 	// Bring up the POST connection if we need to
 	if (fPostSocket == NULL)
 		fPostSocket = NEW TCPSocket(NULL, fSocketType);
-		
+
 	if (!fPostSocket->IsConnected())
 	{
 #if CLIENT_SOCKET_DEBUG
@@ -266,9 +330,7 @@ OS_Error HTTPClientSocket::Send(const char* inData, const UInt32 inLength)
 #endif
 		::sprintf(fSendBuffer.Ptr, "POST %s HTTP/1.0\r\nX-SessionCookie: %lu\r\nAccept: application/x-rtsp-rtp-interleaved\r\nUser-Agent: QTSS/2.0\r\n\r\n", fURL.Ptr, fCookie);
 		fSendBuffer.Len = ::strlen(fSendBuffer.Ptr);
-		fSendBuffer.Len += ::Base64encode(fSendBuffer.Ptr + fSendBuffer.Len, inData, inLength);
-		Assert(fSendBuffer.Len < ClientSocket::kSendBufferLen);
-		fSendBuffer.Len = ::strlen(fSendBuffer.Ptr); //Don't trust what the above function returns for a length
+		this->EncodeVec(inVec, inNumVecs);
 	}
 	
 	OS_Error theErr = this->Connect(fPostSocket);
@@ -279,14 +341,20 @@ OS_Error HTTPClientSocket::Send(const char* inData, const UInt32 inLength)
 	// If we have nothing to send currently, this should be a new message, in which case
 	// we can encode it and send it
 	if (fSendBuffer.Len == 0)
+		this->EncodeVec(inVec, inNumVecs);
+	
+#if CLIENT_SOCKET_DEBUG
+	//printf("HTTPClientSocket::Send: Sending data\n");
+#endif
+	return this->SendSendBuffer(fPostSocket);
+}
+
+void HTTPClientSocket::EncodeVec(iovec* inVec, UInt32 inNumVecs)
+{
+	for (UInt32 count = 0; count < inNumVecs; count++)
 	{
-		fSendBuffer.Len = ::Base64encode(fSendBuffer.Ptr, inData, inLength);
+		fSendBuffer.Len += ::Base64encode(fSendBuffer.Ptr + fSendBuffer.Len, (char*)inVec[count].iov_base, inVec[count].iov_len);
 		Assert(fSendBuffer.Len < ClientSocket::kSendBufferLen);
 		fSendBuffer.Len = ::strlen(fSendBuffer.Ptr); //Don't trust what the above function returns for a length
 	}
-	
-#if CLIENT_SOCKET_DEBUG
-	printf("HTTPClientSocket::Send: Sending data\n");
-#endif
-	return this->SendSendBuffer(fPostSocket);
 }

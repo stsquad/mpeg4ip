@@ -4,27 +4,27 @@
 
 
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 
@@ -44,16 +44,16 @@ limit_seq_length  10
 play_list_file /path/file
 sdp_file /path/file
 log_file /path/file
-ttl 15
 
 */
 
 #include "OSHeaders.h"
+#include "BroadcasterSession.h"
 
 class PLBroadcastDef {
 
 	public:
-		PLBroadcastDef( const char* setupFileName );
+		PLBroadcastDef( const char* setupFileName,  char *destinationIP, Bool16 debug );
 		virtual ~PLBroadcastDef();
 		
 		Bool16	ParamsAreValid() { return mParamsAreValid; }
@@ -64,8 +64,6 @@ class PLBroadcastDef {
 										// * == default value, <r> required input
 		char*	mDestAddress;	 		// [0.0.0.0 | domain name?] *127.0.0.1 ( self )
 		char*	mBasePort;				// [ 0...32k?] *5004
-
-		char*	mTtl;					// [ 0...255] *1
 		
 		
 		char*	mPlayMode; 				// [sequential | *sequential_looped | weighted]
@@ -76,11 +74,33 @@ class PLBroadcastDef {
 		char*	mLogging; 				// [*enabled | disabled]
 		char*	mLogFile;				// [os file path] *<PLBroadcastDef-name>.log
 		char*	mSDPReferenceMovie;		// [os file path]
-	
+		char*	mCurrentFile;			// [os file path] *<PLBroadcastDef-name>.current
+		char*	mUpcomingFile;			// [os file path] *<PLBroadcastDef-name>.upcoming
+		char*	mReplaceFile;			// [os file path] *<PLBroadcastDef-name>.replacelist
+		char*	mStopFile;				// [os file path] *<PLBroadcastDef-name>.stoplist
+		char*	mInsertFile;			// [os file path] *<PLBroadcastDef-name>.insertlist
+		char*	mShowCurrent;			// [*enabled | disabled]
+		char*	mShowUpcoming;			// [*enabled | disabled]
+		
+		BroadcasterSession *mTheSession;// a broadcaster RTSP/RTP session with the server.
+		
+		bool	mIgnoreFileIP;
+		char*	mMaxUpcomingMovieListSize; // [ 2^31] *7
+		char*	mDestSDPFile;			// [movies folder relative file path] 
+		
+		char*	mStartTime;			// NTP start time
+		char*	mEndTime;			// NTP end time
+		char*	mIsDynamic;			// true
+		
+		char*	mName;				// Authentication name
+		char*	mPassword;			// Authentication password
+		
+		char *  mTTL;				// TTL for multicast [1..15] *1
 	protected:
 		Bool16	mParamsAreValid;
-		Bool16    SetValue( char** dest, const char* value);
+		Bool16  SetValue( char** dest, const char* value);
 		Bool16	SetDefaults( const char* setupFileName );
+		Bool16	fDebug;
 };
 
 #endif

@@ -27,5 +27,5 @@ MP4MaxrAtom::MP4MaxrAtom()
 	AddProperty(
 		new MP4Integer32Property("granularity"));
 	AddProperty(
-		new MP4Integer32Property("maxBitRate"));
+		new MP4Integer32Property("bytes"));
 }

@@ -27,6 +27,7 @@
 #include "our_bytestream_file.h"
 #include "mp3.h"
 #include "mp3_file.h"
+#include "player_util.h"
 
 static unsigned char c_read_byte (void *userdata)
 {

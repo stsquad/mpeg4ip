@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		StringParser.h
@@ -71,14 +71,14 @@ class StringParser
 		Bool16			ExpectEOL();
 		
 		//Returns the next word
-		void			ConsumeWord(StrPtrLen* outString)
+		void			ConsumeWord(StrPtrLen* outString = NULL)
 							{ ConsumeUntil(outString, sNonWordMask); }
 
 		//Returns all the data before inStopChar
 		void			ConsumeUntil(StrPtrLen* outString, char inStopChar);
 
 		//Returns whatever integer is currently in the stream
-		UInt32			ConsumeInteger(StrPtrLen* outString);
+		UInt32			ConsumeInteger(StrPtrLen* outString = NULL);
 		Float32 		ConsumeFloat();
 
 		//Keeps on going until non-whitespace
@@ -93,7 +93,7 @@ class StringParser
 
 		//+ rt 8.19.99
 		//returns whatever is avaliable until non-whitespace
-		void			ConsumeUntilWhitespace(StrPtrLen* spl )
+		void			ConsumeUntilWhitespace(StrPtrLen* spl = NULL)
 							{ ConsumeUntil( spl, sEOLWhitespaceMask); }
 		void			ConsumeLength(StrPtrLen* spl, SInt32 numBytes);
 
@@ -115,6 +115,12 @@ class StringParser
 		UInt32			GetDataRemaining()
 			{ Assert(fEndGet >= fStartGet); return (UInt32)(fEndGet - fStartGet); }
 		char*			GetCurrentPosition() { return fStartGet; }
+		
+		// A utility for extracting quotes from the start and end of a parsed
+		// string. (Warning: Do not call this method if you allocated your own  
+		// pointer for the Ptr field of the StrPtrLen class.) - [sfu]
+		static void UnQuote(StrPtrLen* outString);
+
 
 #if STRINGPARSERTESTING
 		static Bool16		Test();

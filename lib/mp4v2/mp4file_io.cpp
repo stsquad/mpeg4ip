@@ -61,7 +61,7 @@ u_int64_t MP4File::GetSize()
 {
 	if (m_mode == 'w') {
 		// we're always positioned at the end of file in write mode
-		// except for short intervals in FinishWrite routines
+		// except for short intervals in ReadSample and FinishWrite routines
 		// so we rely on the faster approach of GetPosition()
 		// instead of flushing to disk, and then stat'ing the file
 		m_fileSize = GetPosition();
@@ -357,7 +357,7 @@ char* MP4File::ReadString()
 void MP4File::WriteString(char* string)
 {
 	if (string == NULL) {
-		u_int8_t zero = 0;
+		static u_int8_t zero = 0;
 		WriteBytes(&zero, 1);
 	} else {
 		WriteBytes((u_int8_t*)string, strlen(string) + 1);
@@ -390,7 +390,12 @@ char* MP4File::ReadCountedString(u_int8_t charSize, bool allowExpandedCount)
 void MP4File::WriteCountedString(char* string, 
 	u_int8_t charSize, bool allowExpandedCount)
 {
-	u_int32_t byteLength = strlen(string);
+	u_int32_t byteLength;
+	if (string) {
+		byteLength = strlen(string);
+	} else {
+		byteLength = 0;
+	}
 	u_int32_t charLength = byteLength / charSize;
 
 	if (allowExpandedCount) {

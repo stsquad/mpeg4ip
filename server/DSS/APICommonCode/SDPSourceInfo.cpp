@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		SDPSourceInfo.cpp
@@ -45,6 +45,8 @@ static StrPtrLen	sAudioStr("audio");
 static StrPtrLen	sRtpMapStr("rtpmap");
 static StrPtrLen	sControlStr("control");
 static StrPtrLen	sBufferDelayStr("x-bufferdelay");
+static StrPtrLen	sBroadcastControlStr("x-broadcastcontrol");
+static StrPtrLen	sAutoDisconnect("RTSP");
 
 SDPSourceInfo::~SDPSourceInfo()
 {
@@ -53,10 +55,14 @@ SDPSourceInfo::~SDPSourceInfo()
 		char* theCharArray = (char*)fStreamArray;
 		delete [] theCharArray;
 	}
+	
+	fSDPData.Delete();
 }
 
 char* SDPSourceInfo::GetLocalSDP(UInt32* newSDPLen)
 {
+	Assert(fSDPData.Ptr != NULL);
+
 	Bool16 appendCLine = true;
 	UInt32 trackIndex = 0;
 	
@@ -142,10 +148,19 @@ char* SDPSourceInfo::GetLocalSDP(UInt32* newSDPLen)
 
 void SDPSourceInfo::Parse(char* sdpData, UInt32 sdpLen)
 {
-	Assert(fSDPData.Ptr == NULL);
+	//
+	// There are some situations in which Parse can be called twice.
+	// If that happens, just return and don't do anything the second time.
+	if (fSDPData.Ptr != NULL)
+		return;
+		
 	Assert(fStreamArray == NULL);
 	
-	fSDPData.Set(sdpData, sdpLen);
+	char *sdpDataCopy = NEW char[sdpLen];
+	Assert(sdpDataCopy != NULL);
+	
+	memcpy(sdpDataCopy,sdpData, sdpLen);
+	fSDPData.Set(sdpDataCopy, sdpLen);
 
 	// If there is no trackID information in this SDP, we make the track IDs start
 	// at 1 -> N
@@ -175,7 +190,11 @@ void SDPSourceInfo::Parse(char* sdpData, UInt32 sdpLen)
 	
 	fStreamArray = (StreamInfo*)NEW char[(fNumStreams + 1) * sizeof(StreamInfo)];
 	::memset(fStreamArray, 0, (fNumStreams + 1) * sizeof(StreamInfo));
-	
+
+	// set the default destination as our default IP address and set the default ttl
+	theGlobalStreamInfo.fDestIPAddr = INADDR_ANY;
+	theGlobalStreamInfo.fTimeToLive = kDefaultTTL;
+		
 	//Set bufferdelay to default of 3
 	theGlobalStreamInfo.fBufferDelay = (Float32) eDefaultBufferDelay;
 	
@@ -188,6 +207,20 @@ void SDPSourceInfo::Parse(char* sdpData, UInt32 sdpLen)
 
 		switch (*sdpLine.Ptr)
 		{
+			case 't':
+			{
+				StringParser mParser(&sdpLine);
+								
+				mParser.ConsumeUntil(NULL, StringParser::sDigitMask);
+				UInt32 ntpStart = mParser.ConsumeInteger(NULL);
+				
+				mParser.ConsumeUntil(NULL, StringParser::sDigitMask);				
+				UInt32 ntpEnd = mParser.ConsumeInteger(NULL);
+				
+				SetActiveNTPTimes(ntpStart,ntpEnd);
+			}
+			break;
+			
 			case 'm':
 			{
 				if (hasGlobalStreamInfo)
@@ -229,15 +262,40 @@ void SDPSourceInfo::Parse(char* sdpData, UInt32 sdpLen)
 			break;
 			case 'a':
 			{
+				StringParser aParser(&sdpLine);
+
+				aParser.ConsumeLength(NULL, 2);//go past 'a='
+
+				StrPtrLen aLineType;
+
+				aParser.ConsumeWord(&aLineType);
+
+
+
+				if (aLineType.Equal(sBroadcastControlStr))
+
+				{	// found a control line for the broadcast (delete at time or delete at end of broadcast/server startup)	
+
+					// printf("found =%s\n",sBroadcastControlStr);
+
+					aParser.ConsumeUntil(NULL,StringParser::sWordMask);
+
+					StrPtrLen sessionControlType;
+
+					aParser.ConsumeWord(&sessionControlType);
+
+					if (sessionControlType.Equal(sAutoDisconnect))
+
+					{	fSessionControlType = kRTSPSessionControl; 
+
+					}		
+
+				}
+
 				//if we haven't even hit an 'm' line yet, just ignore all 'a' lines
 				if (theStreamIndex == 0)
 					break;
 					
-				StringParser aParser(&sdpLine);
-				aParser.ConsumeLength(NULL, 2);//go past 'a='
-				StrPtrLen aLineType;
-				aParser.ConsumeWord(&aLineType);
-				
 				if (aLineType.Equal(sRtpMapStr))
 				{
 					//mark the codec type if this line has a codec name on it. If we already
@@ -257,6 +315,7 @@ void SDPSourceInfo::Parse(char* sdpData, UInt32 sdpLen)
 					aParser.ConsumeUntil(NULL, StringParser::sDigitMask);
 					theGlobalStreamInfo.fBufferDelay = aParser.ConsumeFloat();
 				}
+
 			}
 			break;
 			case 'c':
@@ -310,6 +369,9 @@ UInt32 SDPSourceInfo::GetIPAddr(StringParser* inParser, char inStopChar)
 	// Get the IP addr str
 	inParser->ConsumeUntil(&ipAddrStr, inStopChar);
 	
+	if (ipAddrStr.Len == 0)
+		return 0;
+	
 	// NULL terminate it
 	char endChar = ipAddrStr.Ptr[ipAddrStr.Len];
 	ipAddrStr.Ptr[ipAddrStr.Len] = '\0';
@@ -320,6 +382,7 @@ UInt32 SDPSourceInfo::GetIPAddr(StringParser* inParser, char inStopChar)
 	
 	// Make sure to put the old char back!
 	ipAddrStr.Ptr[ipAddrStr.Len] = endChar;
-	
+
 	return ipAddr;
 }
+

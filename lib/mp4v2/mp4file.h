@@ -31,14 +31,14 @@ class MP4BytesProperty;
 class MP4Descriptor;
 
 class MP4File {
-public:
+public: /* equivalent to MP4 library API */
 	MP4File(u_int32_t verbosity = 0);
 	~MP4File();
 
 	/* file operations */
 	void Read(const char* fileName);
 	void Create(const char* fileName, bool use64bits);
-	void Clone(const char* existingFileName, const char* newFileName);
+	void Append(const char* fileName);
 	void Dump(FILE* pDumpFile = NULL, bool dumpImplicits = false);
 	void Close();
 
@@ -57,16 +57,17 @@ public:
 
 	/* file properties */
 
-	u_int64_t GetIntegerProperty(char* name);
-	float GetFloatProperty(char* name);
-	const char* GetStringProperty(char* name);
-	void GetBytesProperty(char* name,
+	u_int64_t GetIntegerProperty(const char* name);
+	float GetFloatProperty(const char* name);
+	const char* GetStringProperty(const char* name);
+	void GetBytesProperty(const char* name,
 		u_int8_t** ppValue, u_int32_t* pValueSize);
 
-	void SetIntegerProperty(char* name, u_int64_t value);
-	void SetFloatProperty(char* name, float value);
-	void SetStringProperty(char* name, char* value);
-	void SetBytesProperty(char* name, u_int8_t* pValue, u_int32_t valueSize);
+	void SetIntegerProperty(const char* name, u_int64_t value);
+	void SetFloatProperty(const char* name, float value);
+	void SetStringProperty(const char* name, const char* value);
+	void SetBytesProperty(const char* name, 
+		const u_int8_t* pValue, u_int32_t valueSize);
 
 	// file level convenience functions
 
@@ -91,39 +92,43 @@ public:
 	u_int8_t GetGraphicsProfileLevel();
 	void SetGraphicsProfileLevel(u_int8_t value);
 
+	const char* GetSessionSdp();
+	void SetSessionSdp(const char* sdpString);
+	void AppendSessionSdp(const char* sdpString);
 
 	/* track operations */
 
-	MP4TrackId AddTrack(char* type, u_int32_t timeScale = 1);
+	MP4TrackId AddTrack(const char* type, u_int32_t timeScale = 1);
 	void DeleteTrack(MP4TrackId trackId);
 
-	u_int32_t GetNumberOfTracks(char* type = NULL);
+	u_int32_t GetNumberOfTracks(const char* type = NULL);
 
 	MP4TrackId AllocTrackId();
-	MP4TrackId FindTrackId(u_int16_t trackIndex, char* type = NULL);
+	MP4TrackId FindTrackId(u_int16_t trackIndex, const char* type = NULL);
 	u_int16_t FindTrackIndex(MP4TrackId trackId);
 	u_int16_t FindTrakAtomIndex(MP4TrackId trackId);
 
 	/* track properties */
 
 	u_int64_t GetTrackIntegerProperty(
-		MP4TrackId trackId, char* name);
+		MP4TrackId trackId, const char* name);
 	float GetTrackFloatProperty(
-		MP4TrackId trackId, char* name);
+		MP4TrackId trackId, const char* name);
 	const char* GetTrackStringProperty(
-		MP4TrackId trackId, char* name);
+		MP4TrackId trackId, const char* name);
 	void GetTrackBytesProperty(
-		MP4TrackId trackId, char* name,
+		MP4TrackId trackId, const char* name,
 		u_int8_t** ppValue, u_int32_t* pValueSize);
 
 	void SetTrackIntegerProperty(
-		MP4TrackId trackId, char* name, int64_t value);
+		MP4TrackId trackId, const char* name, int64_t value);
 	void SetTrackFloatProperty(
-		MP4TrackId trackId, char* name, float value);
+		MP4TrackId trackId, const char* name, float value);
 	void SetTrackStringProperty(
-		MP4TrackId trackId, char* name, char* value);
+		MP4TrackId trackId, const char* name, const char* value);
 	void SetTrackBytesProperty(
-		MP4TrackId trackId, char* name, u_int8_t* pValue, u_int32_t valueSize);
+		MP4TrackId trackId, const char* name, 
+		const u_int8_t* pValue, u_int32_t valueSize);
 
 	/* sample operations */
 
@@ -154,9 +159,14 @@ public:
 		MP4Duration renderingOffset = 0, 
 		bool isSyncSample = true);
 
+	void SetSampleRenderingOffset(
+		MP4TrackId trackId, 
+		MP4SampleId sampleId,
+		MP4Duration renderingOffset);
+
 	/* track level convenience functions */
 
-	MP4TrackId AddSystemsTrack(char* type);
+	MP4TrackId AddSystemsTrack(const char* type);
 
 	MP4TrackId AddODTrack();
 
@@ -187,7 +197,11 @@ public:
 	void GetTrackESConfiguration(MP4TrackId trackId, 
 		u_int8_t** ppConfig, u_int32_t* pConfigSize);
 	void SetTrackESConfiguration(MP4TrackId trackId, 
-		u_int8_t* pConfig, u_int32_t configSize);
+		const u_int8_t* pConfig, u_int32_t configSize);
+
+	const char* GetHintTrackSdp(MP4TrackId hintTrackId);
+	void SetHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
+	void AppendHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
 
 	// time convenience functions
 
@@ -217,7 +231,42 @@ public:
 
 	// specialized operations
 
+	void SetHintTrackRtpPayload(
+		MP4TrackId hintTrackId,
+		const char* payloadName,
+		u_int8_t* pPayloadNumber,
+		u_int16_t maxPayloadSize);
+
+	void AddRtpHint(
+		MP4TrackId hintTrackId,
+		bool isBframe, 
+		u_int32_t timestampOffset);
+
+	void AddRtpPacket(
+		MP4TrackId hintTrackId, 
+		bool setMbit);
+
+	void AddRtpImmediateData(
+		MP4TrackId hintTrackId,
+		const u_int8_t* pBytes,
+		u_int32_t numBytes);
+
+	void AddRtpSampleData(
+		MP4TrackId hintTrackId,
+		MP4SampleId sampleId,
+		u_int32_t dataOffset,
+		u_int32_t dataLength);
+
+	void WriteRtpHint(
+		MP4TrackId hintTrackId,
+		MP4Duration duration,
+		bool isSyncSample);
+
+	u_int8_t AllocRtpPayloadNumber();
+
 	void MakeIsmaCompliant();
+
+	/* end of MP4 API */
 
 	/* "protected" interface to be used only by friends in library */
 
@@ -246,6 +295,10 @@ public:
 
 	u_int32_t PeekBytes(u_int8_t* pBytes, u_int32_t numBytes);
 
+	char GetMode() {
+		return m_mode;
+	}
+
 	void EnableWriteBuffer();
 	void GetWriteBuffer(u_int8_t** ppBytes, u_int64_t* pNumBytes);
 	void DisableWriteBuffer();
@@ -268,58 +321,73 @@ public:
 	void FlushWriteBits();
 	void WriteMpegLength(u_int32_t value, bool compact = false);
 
+	MP4Track* GetTrack(MP4TrackId trackId);
+
 	MP4Duration UpdateDuration(MP4Duration duration);
 
 protected:
-	void Open();
+	void Open(const char* fmode);
 	void ReadFromFile();
+	void GenerateTracks();
 	void BeginWrite();
 	void FinishWrite();
 	void CacheProperties();
 
-	MP4Atom* FindAtom(char* name);
+	void ProtectWriteOperation(char* where);
 
-	MP4Atom* AddAtom(char* parentName, char* childName);
-	MP4Atom* AddAtom(MP4Atom* pParentAtom, char* childName);
+	MP4Atom* FindAtom(const char* name);
 
-	MP4Atom* InsertAtom(char* parentName, char* childName, u_int32_t index);
-	MP4Atom* InsertAtom(MP4Atom* pParentAtom, char* childName, u_int32_t index);
+	MP4Atom* AddAtom(const char* parentName, const char* childName);
+	MP4Atom* AddAtom(MP4Atom* pParentAtom, const char* childName);
 
-	void FindIntegerProperty(char* name, 
+	MP4Atom* InsertAtom(const char* parentName, const char* childName, 
+		u_int32_t index);
+	MP4Atom* InsertAtom(MP4Atom* pParentAtom, const char* childName, 
+		u_int32_t index);
+
+	void FindIntegerProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
-	void FindFloatProperty(char* name, 
+	void FindFloatProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
-	void FindStringProperty(char* name, 
+	void FindStringProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
-	void FindBytesProperty(char* name, 
+	void FindBytesProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
 
-	bool FindProperty(char* name,
+	bool FindProperty(const char* name,
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
 
 	void AddTrackToIod(MP4TrackId trackId);
 
 	void AddTrackToOd(MP4TrackId trackId);
 
-	void GetTrackReferenceProperties(char* trefName,
+	void GetTrackReferenceProperties(const char* trefName,
 		MP4Property** ppCountProperty, MP4Property** ppTrackIdProperty);
 
-	void AddTrackReference(char* trefName, MP4TrackId refTrackId);
+	void AddTrackReference(const char* trefName, MP4TrackId refTrackId);
 
-	u_int32_t FindTrackReference(char* trefName, MP4TrackId refTrackId);
+	u_int32_t FindTrackReference(const char* trefName, MP4TrackId refTrackId);
 
-	char* MakeTrackName(MP4TrackId trackId, char* name);
+	void AddDataReference(MP4TrackId trackId, const char* url);
+
+	char* MakeTrackName(MP4TrackId trackId, const char* name);
 
 	u_int8_t ConvertTrackTypeToStreamType(const char* trackType);
 
-	void WriteIsmaODUpdateCommand(MP4TrackId odTrackId,
-		MP4TrackId audioTrackId, MP4TrackId videoTrackId);
+	void CreateIsmaIod(
+		MP4TrackId odTrackId, MP4TrackId sceneTrackId, 
+		MP4TrackId audioTrackId, MP4TrackId videoTrackId,
+		u_int8_t** ppBytes, u_int64_t* pNumBytes);
 
-	void WriteODCommand(MP4TrackId odTrackId,
-		MP4Descriptor* pDescriptor);
+	void CreateIsmaODUpdateCommand(
+		MP4TrackId odTrackId,
+		MP4TrackId audioTrackId, MP4TrackId videoTrackId,
+		bool mp4FileMode,
+		u_int8_t** ppBytes, u_int64_t* pNumBytes);
 
-	void WriteIsmaSceneCommand(MP4TrackId sceneTrackId,
-		MP4TrackId audioTrackId, MP4TrackId videoTrackId);
+	void CreateIsmaSceneCommand(MP4TrackId sceneTrackId,
+		MP4TrackId audioTrackId, MP4TrackId videoTrackId,
+		u_int8_t** ppBytes, u_int64_t* pNumBytes);
 
 protected:
 	char*			m_fileName;
@@ -333,6 +401,7 @@ protected:
 	char			m_mode;
 	bool			m_use64bits;
 	bool			m_useIsma;
+	u_int8_t		m_nextRtpPayloadNumber;
 
 	// cached properties
 	MP4IntegerProperty*		m_pModificationProperty;

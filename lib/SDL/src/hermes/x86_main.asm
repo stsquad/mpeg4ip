@@ -17,11 +17,6 @@ GLOBAL _x86return
 GLOBAL _Hermes_X86_CPU
 
 
-SECTION .data
-	
-cpu_flags dd 0
-	
-		
 SECTION .text
 		
 ;; _ConvertX86:	 
@@ -109,17 +104,12 @@ _Hermes_X86_CPU:
 	pop eax
 	xor eax,ecx
 	je .L1
-	
-	pusha
-	
+	push ebx		; ebx is callee-saves
 	mov eax,1
 	cpuid
 
-	mov [cpu_flags],edx
-
-	popa
-
-	mov eax,[cpu_flags]
-
+	pop ebx
+	mov eax, edx
+	
 .L1:	
 	ret

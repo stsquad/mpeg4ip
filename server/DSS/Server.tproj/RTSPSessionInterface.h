@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTSPSessionInterface.h
@@ -57,7 +57,7 @@ public:
 	
 	// Allows clients to refresh the timeout
 	void RefreshTimeout()		{ fTimeoutTask.RefreshTimeout(); }
-	
+
 	// In order to facilitate sending out of band data on the RTSP connection,
 	// other objects need to have direct pointer access to this object. But,
 	// because this object is a task object it can go away at any time. If # of
@@ -68,9 +68,17 @@ public:
 	void DecrementObjectHolderCount();
 	
 	// If RTP data is interleaved into the RTSP connection, we need to associate
-	// a unique channel number with each rtp stream. This function allocates
-	// a new channel number, unique wrt this RTSP session.
-	unsigned char		GetChannelNumber() 	{ return fCurChannelNum++; }
+	// 2 unique channel numbers with each RTP stream, one for RTP and one for RTCP.
+	// This function allocates 2 channel numbers, returns the lower one. The other one
+	// is implicitly 1 greater.
+	//
+	// Pass in the RTSP Session ID of the Client session to which these channel numbers will
+	// belong.
+	UInt8				GetTwoChannelNumbers(StrPtrLen* inRTSPSessionID);
+
+	//
+	// Given a channel number, returns the RTSP Session ID to which this channel number refers
+	StrPtrLen*	GetSessionIDForChannelNum(UInt8 inChannelNum);
 	
 	//Two main things are persistent through the course of a session, not
 	//associated with any one request. The RequestStream (which can be used for
@@ -102,7 +110,6 @@ public:
 
 	// performs RTP over RTSP
 	QTSS_Error 	InterleavedWrite(void* inBuffer, UInt32 inLen, UInt32* outLenWritten, unsigned char channel);
-	void		InterleaveSetup();
 
 	enum
 	{
@@ -111,6 +118,13 @@ public:
 		kMaxUserRealmLen	 	= 64
 	};
 
+	enum						// Quality of protection
+	{
+		kNoQop			= 0,	// No Quality of protection
+		kAuthQop		= 1,	// Authentication
+		kAuthIntQop		= 2 	// Authentication with Integrity		
+	};
+		
 protected:
 	enum
 	{
@@ -152,10 +166,10 @@ protected:
 	
 	// What session type are we?
 	QTSS_RTSPSessionType	fSessionType;
-	
 	Bool16				fLiveSession;
 	unsigned int		fObjectHolders;
-	unsigned char		fCurChannelNum;
+	UInt8				fCurChannelNum;
+	StrPtrLen*			fChNumToSessIDMap;	
 	
 	QTSS_StreamRef		fStreamRef;
 
@@ -170,7 +184,7 @@ protected:
 	//Dictionary support
 	
 	// Param retrieval function
-	static Bool16		SetupParams(QTSS_FunctionParams* funcParamsPtr);
+	static void* 		SetupParams(QTSSDictionary* inSession, UInt32* outLen);
 	
 	static QTSSAttrInfoDict::AttrInfo	sAttributes[];
 };

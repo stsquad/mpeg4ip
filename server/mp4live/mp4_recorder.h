@@ -123,8 +123,13 @@ protected:
 	u_int32_t		m_audioFrameDuration;	// in audioTimeScale ticks
 	u_int32_t		m_videoTimeScale;
 
+#ifdef MP4V2
+	u_int8_t		m_audioPayloadNumber;
+	u_int8_t		m_videoPayloadNumber;
+#else
 	u_int32_t		m_audioPayloadNumber;
 	u_int32_t		m_videoPayloadNumber;
+#endif
 };
 
 #endif /* __MP4_RECORDER_H__ */

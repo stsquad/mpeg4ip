@@ -12,10 +12,10 @@ NAME = APICommonCode
 PROJECTVERSION = 2.8
 PROJECT_TYPE = Library
 
-CPPFILES = QTSSDataConverter.cpp QTSSModuleUtils.cpp QTSSRollingLog.cpp\
+CPPFILES = QTAccessFile.cpp QTSSModuleUtils.cpp QTSSRollingLog.cpp\
            SDPSourceInfo.cpp SourceInfo.cpp
 
-HFILES = QTSSDataConverter.h QTSSModuleUtils.h QTSSRollingLog.h\
+HFILES = QTAccessFile.h QTSSModuleUtils.h QTSSRollingLog.h\
          SDPSourceInfo.h SourceInfo.h
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble m.template\
@@ -34,10 +34,10 @@ DEBUG_LIBS = $(LIBS)
 PROF_LIBS = $(LIBS)
 
 
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Foundation
 PROJECT_HEADERS = QTSSModuleUtils.h QTSSRollingLog.h SDPSourceInfo.h\
-                  SourceInfo.h QTSSDataConverter.h
+                  SourceInfo.h QTAccessFile.h
 
 
 

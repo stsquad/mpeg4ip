@@ -39,7 +39,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "QTSSRAWFILEMODULE_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /w /W0 /Gm /GX /ZI /Od /I "../../" /I "../../CommonUtilitiesLib/" /I "../../APICommonCode" /I "../../RTPMetaInfoLib/" /I "../../APIStubLib/" /FI"../../WinNTSupport/Win32header.h" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "QTSSRAWFILEMODULE_EXPORTS" /FD /GZ /c
+# ADD CPP /nologo /MTd /w /W0 /Gm /GX- /ZI /Od /I "../../" /I "../../CommonUtilitiesLib/" /I "../../APICommonCode" /I "../../RTPMetaInfoLib/" /I "../../APIStubLib/" /FI"../../WinNTSupport/Win32header.h" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "QTSSRAWFILEMODULE_EXPORTS" /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"

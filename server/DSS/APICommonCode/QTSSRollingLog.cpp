@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSRollingLog.cpp
@@ -33,14 +33,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
 #include <sys/types.h>   
 #include <sys/stat.h>
 #include <errno.h> 
 #ifndef __Win32__
 #include <sys/time.h>
 #endif
-
 #include "QTSSRollingLog.h"
 #include "OS.h"
 #include "OSMemory.h"
@@ -51,18 +49,20 @@
 	fLogCreateTime(-1),
 	fLogFullPath(NULL)
 {
-	//this->EnableLog();
 }
 
 QTSSRollingLog::~QTSSRollingLog()
 {
-	CloseLog();
-	if (fLogFullPath != NULL)
-		delete[] fLogFullPath;
+	//
+	// Log should already be closed, but just in case...
+	this->CloseLog();
+	delete [] fLogFullPath;
 }
 
 void QTSSRollingLog::WriteToLog(char* inLogData, Bool16 allowLogToRoll)
 {
+	OSMutexLocker locker(&fMutex);
+	
 	if (allowLogToRoll)
 		(void)this->CheckRollLog();
 	if (fLog != NULL)
@@ -74,6 +74,8 @@ void QTSSRollingLog::WriteToLog(char* inLogData, Bool16 allowLogToRoll)
 
 Bool16 QTSSRollingLog::RollLog()
 {
+	OSMutexLocker locker(&fMutex);
+
 	//returns false if an error occurred, true otherwise
 
 	//close the old file.
@@ -86,74 +88,15 @@ Bool16 QTSSRollingLog::RollLog()
 	return result;
 }
 
-//returns false if some error has occurred
-Bool16 QTSSRollingLog::FormatDate(char *ioDateBuffer)
-{
-	Assert(NULL != ioDateBuffer);
-	
-	//use ansi routines for getting the date.
-	time_t calendarTime = ::time(NULL);
-	Assert(-1 != calendarTime);
-	if (-1 == calendarTime)
-		return false;
-		
-	struct tm* theLocalTime = ::localtime(&calendarTime);
-	Assert(NULL != theLocalTime);
-	if (NULL == theLocalTime)
-		return false;
-		
-	//date needs to look like this for common log format: 29/Sep/1998:11:34:54 -0700
-	//this wonderful ANSI routine just does it for you.
-	//::strftime(ioDateBuffer, kMaxDateBufferSize, "%d/%b/%Y:%H:%M:%S", theLocalTime);
-	::strftime(ioDateBuffer, kMaxDateBufferSizeInBytes, "%Y-%m-%d %H:%M:%S", theLocalTime);	
-	return true;
-}
-
-
-Bool16 QTSSRollingLog::CheckRollLog()
-{
-	//returns false if an error occurred, true otherwise
-	if (fLog == NULL)
-		return true;
-	
-	//first check to see if log rolling should happen because of a date interval.
-	//This takes precedence over size based log rolling
-	if ((-1 != fLogCreateTime) && (0 != this->GetRollIntervalInDays()))
-	{
-		time_t calendarTime = ::time(NULL);
-		Assert(-1 != calendarTime);
-		if (-1 != calendarTime)
-		{
-			double theExactInterval = ::difftime(calendarTime, fLogCreateTime);
-			SInt32 theCurInterval = (SInt32)::floor(theExactInterval);
-			
-			//transfer_roll_interval is in days, theCurInterval is in seconds
-			SInt32 theRollInterval = this->GetRollIntervalInDays() * 60 * 60 * 24;
-			if (theCurInterval > theRollInterval)
-				return this->RollLog();
-		}
-	}
-	
-	//now check size based log rolling
-	UInt32 theCurrentPos = ::ftell(fLog);
-	//max_transfer_log_size being 0 is a signal to ignore the setting.
-	if ((this->GetMaxLogBytes() != 0) &&
-		(theCurrentPos > this->GetMaxLogBytes()))
-		return this->RollLog();
-	return true;
-}
-
-void QTSSRollingLog::CloseLog()
-{
-	if (fLog != NULL)
-	{
-		::fclose(fLog);
-		fLog = NULL;
-	}
-}
 
 void QTSSRollingLog::EnableLog( Bool16 appendDotLog )
 {
+	//
+	// Start this object running!
+	this->Signal(Task::kStartEvent);
+
+	OSMutexLocker locker(&fMutex);
+
 	//kill off the cached value
 	if (fLogFullPath != NULL)
 		delete[] fLogFullPath;
@@ -207,16 +150,103 @@ void QTSSRollingLog::EnableLog( Bool16 appendDotLog )
 	}
 }
 
+void QTSSRollingLog::CloseLog()
+{
+	OSMutexLocker locker(&fMutex);
+
+	if (fLog != NULL)
+	{
+		::fclose(fLog);
+		fLog = NULL;
+	}
+}
+
+//returns false if some error has occurred
+Bool16 QTSSRollingLog::FormatDate(char *ioDateBuffer, Bool16 logTimeInGMT)
+{
+	Assert(NULL != ioDateBuffer);
+	
+	//use ansi routines for getting the date.
+	time_t calendarTime = ::time(NULL);
+	Assert(-1 != calendarTime);
+	if (-1 == calendarTime)
+		return false;
+		
+	struct tm* theTime = NULL;
+	
+	if (logTimeInGMT)
+		theTime = ::gmtime(&calendarTime);
+	else
+		theTime = ::localtime(&calendarTime);
+	
+	Assert(NULL != theTime);
+	
+	if (NULL == theTime)
+		return false;
+		
+	// date time needs to look like this for extended log file format: 2001-03-16 23:34:54
+	// this wonderful ANSI routine just does it for you.
+	// the format is YYYY-MM-DD HH:MM:SS
+	// the date time is in GMT, unless logTimeInGMT is false, in which case
+	// the time logged is local time
+	//::strftime(ioDateBuffer, kMaxDateBufferSize, "%d/%b/%Y:%H:%M:%S", theLocalTime);
+	::strftime(ioDateBuffer, kMaxDateBufferSizeInBytes, "%Y-%m-%d %H:%M:%S", theTime);	
+	return true;
+}
+
+Bool16 QTSSRollingLog::CheckRollLog()
+{
+	//returns false if an error occurred, true otherwise
+	if (fLog == NULL)
+		return true;
+	
+	//first check to see if log rolling should happen because of a date interval.
+	//This takes precedence over size based log rolling
+	// this is only if a client connects just between 00:00:00 and 00:01:00
+	// since the task object runs every minute
+	
+	// when an entry is written to the log file, only the file size must be checked
+	// to see if it exceeded the limits
+	
+	// the roll interval should be monitored in a task object 
+	// and rolled at midnight if the creation time has exceeded.
+	if ((-1 != fLogCreateTime) && (0 != this->GetRollIntervalInDays()))
+	{	
+		time_t logCreateTimeMidnight = -1;
+		QTSSRollingLog::ResetToMidnight(&fLogCreateTime, &logCreateTimeMidnight);
+		Assert(logCreateTimeMidnight != -1);
+		
+		time_t calendarTime = ::time(NULL);
+
+		Assert(-1 != calendarTime);
+		if (-1 != calendarTime)
+		{
+			double theExactInterval = ::difftime(calendarTime, logCreateTimeMidnight);
+			SInt32 theCurInterval = (SInt32)::floor(theExactInterval);
+			
+			//transfer_roll_interval is in days, theCurInterval is in seconds
+			SInt32 theRollInterval = this->GetRollIntervalInDays() * 60 * 60 * 24;
+			if (theCurInterval > theRollInterval)
+				return this->RollLog();
+		}
+	}
+	
+	
+	//now check size based log rolling
+	UInt32 theCurrentPos = ::ftell(fLog);
+	//max_transfer_log_size being 0 is a signal to ignore the setting.
+	if ((this->GetMaxLogBytes() != 0) &&
+		(theCurrentPos > this->GetMaxLogBytes()))
+		return this->RollLog();
+	return true;
+}
+
 Bool16 QTSSRollingLog::RenameLogFile(const char* inFileName)
 {
 	//returns false if an error occurred, true otherwise
 
 	//this function takes care of renaming a log file from "myLogFile.log" to
 	//"myLogFile.981217000.log" or if that is already taken, myLogFile.981217001.log", etc 
-	time_t calendarTime = ::time(NULL);
-	Assert(-1 != calendarTime);
-	if (-1 == calendarTime)
-		return false;
 	
 	//fix 2287086. Rolled log name can be different than original log name
 	//GetLogDir returns a copy of the log dir
@@ -242,8 +272,8 @@ Bool16 QTSSRollingLog::RenameLogFile(const char* inFileName)
 	//copy over the base filename
 	::strcat(theNewNameBuffer, logBaseName.GetObject());
 
-	//append today's date
-	struct tm* theLocalTime = ::localtime(&calendarTime);
+	//append the date the file was created
+	struct tm* theLocalTime = ::localtime(&fLogCreateTime);
 	char timeString[10];
 	::strftime(timeString,  10, ".%y%m%d", theLocalTime);
 	::strcat(theNewNameBuffer, timeString);
@@ -289,10 +319,7 @@ Bool16 QTSSRollingLog::RenameLogFile(const char* inFileName)
 		return false;
 	else
 		return true;	
-	
-
 }
-
 
 Bool16 QTSSRollingLog::DoesFileExist(const char *inPath)
 {
@@ -304,8 +331,10 @@ Bool16 QTSSRollingLog::DoesFileExist(const char *inPath)
 		return true;
 }
 
-time_t QTSSRollingLog::WriteLogHeader(FILE* /*inFile*/)
+time_t QTSSRollingLog::WriteLogHeader(FILE* inFile)
 {
+	OSMutexLocker locker(&fMutex);
+
 	//The point of this header is to record the exact time the log file was created,
 	//in a format that is easy to parse through whenever we open the file again.
 	//This is necessary to support log rolling based on a time interval, and POSIX doesn't
@@ -319,6 +348,13 @@ time_t QTSSRollingLog::WriteLogHeader(FILE* /*inFile*/)
 	Assert(NULL != theLocalTime);
 	if (NULL == theLocalTime)
 		return -1;
+	
+	//
+	// Files are always created at hour 0 (we don't care about the time, we always
+	// want them to roll at midnight.
+	//theLocalTime->tm_hour = 0;
+	//theLocalTime->tm_min = 0;
+	//theLocalTime->tm_sec = 0;
 
 	char tempbuf[1024];
 	::strftime(tempbuf, sizeof(tempbuf), "#Log File Created On: %m/%d/%Y %H:%M:%S\n", theLocalTime);
@@ -327,12 +363,14 @@ time_t QTSSRollingLog::WriteLogHeader(FILE* /*inFile*/)
 	//			theLocalTime->tm_hour, theLocalTime->tm_min, theLocalTime->tm_sec,
 	//			theLocalTime->tm_yday, theLocalTime->tm_wday, theLocalTime->tm_isdst);
 	this->WriteToLog(tempbuf, !kAllowLogToRoll);
-		
-	return calendarTime;
+	
+	return this->ReadLogHeader(inFile);
 }
 
 time_t QTSSRollingLog::ReadLogHeader(FILE* inFile)
 {
+	OSMutexLocker locker(&fMutex);
+
 	//This function reads the header in a log file, returning the time stored
 	//at the beginning of this file. This value is used to determine when to
 	//roll the log.
@@ -361,19 +399,106 @@ time_t QTSSRollingLog::ReadLogHeader(FILE* inFile)
 	theFileCreateTime.tm_wday = 0;
 	theFileCreateTime.tm_yday = 0;
 	
+	//if (EOF == ::sscanf(theFirstLine, "#Log File Created On: %d/%d/%d %d:%d:%d\n",
+	//			&theFileCreateTime.tm_mon, &theFileCreateTime.tm_mday, &theFileCreateTime.tm_year,
+	//			&theFileCreateTime.tm_hour, &theFileCreateTime.tm_min, &theFileCreateTime.tm_sec))
+	//	return -1;
+	
+	//
+	// We always want to roll at hour 0, so ignore the time of creation
+	
 	if (EOF == ::sscanf(theFirstLine, "#Log File Created On: %d/%d/%d %d:%d:%d\n",
 				&theFileCreateTime.tm_mon, &theFileCreateTime.tm_mday, &theFileCreateTime.tm_year,
 				&theFileCreateTime.tm_hour, &theFileCreateTime.tm_min, &theFileCreateTime.tm_sec))
 		return -1;
+
+	//
+	// It should be like this anyway, but if the log file is legacy, then...
+	// No! The log file will have the actual time in it but we shall return the exact time
+	//theFileCreateTime.tm_hour = 0;
+	//theFileCreateTime.tm_min = 0;
+	//theFileCreateTime.tm_sec = 0;
 	
-#ifdef __Win32__
+	// Actually, it seems like all platforms need this.
+//#ifdef __Win32__
 	// Win32 has slightly different atime basis than UNIX.
 	theFileCreateTime.tm_yday--;
 	theFileCreateTime.tm_mon--;
 	theFileCreateTime.tm_year -= 1900;
+//#endif
+
+#if 0
+	//use ansi routines for getting the date.
+	time_t calendarTime = ::time(NULL);
+	Assert(-1 != calendarTime);
+	if (-1 == calendarTime)
+		return false;
+		
+	struct tm* theLocalTime = ::localtime(&calendarTime);
+	Assert(NULL != theLocalTime);
+	if (NULL == theLocalTime)
+		return false;
 #endif
 
 	//ok, we should have a filled in tm struct. Convert it to a time_t.
-	return ::mktime(&theFileCreateTime);
+	//time_t thePoopTime = ::mktime(theLocalTime);
+	time_t theTime = ::mktime(&theFileCreateTime);
+	return theTime;
 }
 
+SInt64 QTSSRollingLog::Run()
+{
+	//
+	// If we are going away, just return
+	EventFlags events = this->GetEvents();
+	if (events & Task::kKillEvent)
+		return -1;
+	
+	OSMutexLocker locker(&fMutex);
+	
+	UInt32 theRollInterval = (this->GetRollIntervalInDays())  * 60 * 60 * 24;
+	
+	if((fLogCreateTime != -1) && (fLog != NULL))
+	{
+		time_t logRollTimeMidnight = -1;
+		this->ResetToMidnight(&fLogCreateTime, &logRollTimeMidnight);
+		Assert(logRollTimeMidnight != -1);
+		
+		if(theRollInterval != 0)
+		{
+			time_t calendarTime = ::time(NULL);
+			Assert(-1 != calendarTime);
+			double theExactInterval = ::difftime(calendarTime, logRollTimeMidnight);
+			if(theExactInterval > 0) {
+				UInt32 theCurInterval = (UInt32)::floor(theExactInterval);
+				if (theCurInterval >= theRollInterval)
+					this->RollLog();
+			}
+		}
+	}
+	return 60 * 1000;
+}
+
+void QTSSRollingLog::ResetToMidnight(time_t* inTimePtr, time_t* outTimePtr) 
+{
+	if(*inTimePtr == -1)
+	{
+		*outTimePtr = -1;
+		return;
+	}
+	
+	struct tm* theLocalTime = ::localtime(inTimePtr);
+	Assert(theLocalTime != NULL);
+
+	theLocalTime->tm_hour = 0;
+	theLocalTime->tm_min = 0;
+	theLocalTime->tm_sec = 0;
+	
+	// some weird stuff
+	//theLocalTime->tm_yday--;
+	//theLocalTime->tm_mon--;
+	//theLocalTime->tm_year -= 1900;
+
+	*outTimePtr = ::mktime(theLocalTime);
+
+}

@@ -16,7 +16,8 @@
             playlist_SDPGen.cpp, 
             playlist_SimpleParse.cpp, 
             playlist_utils.cpp, 
-            PLBroadcastDef.cpp
+            PLBroadcastDef.cpp, 
+            BroadcasterSession.cpp
         ); 
         FRAMEWORKS = (Carbon.framework, Foundation.framework); 
         H_FILES = (
@@ -38,10 +39,11 @@
             SimplePlayListElement.h, 
             StSmartArrayPointer.h, 
             TrackingElement.h, 
-            tailor.h
+            tailor.h, 
+            BroadcasterSession.h
         ); 
         LIBRARYSEARCH = (..); 
-        OTHER_LIBS = (APICommonCode, TestQTFileLib); 
+        OTHER_LIBS = (APICommonCode, RTSPClientLib, TestQTFileLib); 
         OTHER_LINKED = (); 
         OTHER_SOURCES = (Makefile.preamble, Makefile, Makefile.postamble, m.template, h.template); 
         SUBPROJECTS = (); 

@@ -44,10 +44,10 @@
  *
 **/
 
-static int getMCBPC();
-static int getCBPY();
+static int getMCBPC(void);
+static int getCBPY(void);
 static int setMV(int block_num);
-static int getMVdata();
+static int getMVdata(void);
 
 /***/
 

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 /*
@@ -45,13 +45,16 @@
 #include <stdio.h>
 #include <errno.h>
 
+#ifdef __linux__
+#include <unistd.h>
+#endif
 
 #ifndef __MACOS__
 	#include <fcntl.h>
 	#include <sys/file.h>
 	#include <sys/stat.h>
 	#include <sys/types.h>
-	#ifndef __solaris__
+	#if !(defined(__solaris__) || defined(__osf__))
 		#include <sys/sysctl.h>
 	#endif
 	#include <sys/time.h>
@@ -212,15 +215,7 @@ bool BCasterTracker::IsProcessRunning( pid_t pid )
 
 // Generic unix code
 	char	procPath[256];
-	char	pidStr[32];
-	
-	::strcpy( procPath, "ps xcp " );
-	::sprintf( pidStr, "%li", (long)pid );
-	::strcat( procPath, pidStr );
-	::strcat( procPath, " | grep ");
-	::strcat( procPath, pidStr );
-	::strcat( procPath, " > " );
-	::strcat( procPath, gTrackerFileTempDataPath );
+	::sprintf( procPath, "ps -p%li | grep %li > %s ",(long)pid,(long)pid,gTrackerFileTempDataPath);	
 
 	int result = system(procPath);
 	if (0 == result)
@@ -497,16 +492,15 @@ BCasterTracker::BCasterTracker( const char* name )
 	mTrackerFile	= NULL;
 	time_t calendarTime	 = 0;
 	
-	calendarTime = ::time(NULL);
+	calendarTime = ::time(NULL) + 10;
 	
 	// wait a long time for access to the file.
 	// 2 possible loops  one to try to open ( and possible create ) the file
 	// the second to obtain an exclusive lock on the file.
 	
 	// the app should probably fail if this cannot be done within the alloted time
+	//printf("time=%ld\n",calendarTime);
 	
-	calendarTime += 5;
-		
 	
 	while ( mTrackerFile == NULL && calendarTime > ::time(NULL) ) 
 	{	mTrackerFile = ::fopen( name, "r+" );
@@ -525,11 +519,13 @@ BCasterTracker::BCasterTracker( const char* name )
 			
 			mTrackerFile = NULL;
 		}
+		::sleep(1);
 	
 	}
 	::strcpy(gTrackerFileTempDataPath,name);
 	::strcat( gTrackerFileTempDataPath, "_tmp" );
 	FILE *	tempFile = NULL;
+	calendarTime = ::time(NULL) + 10;
 	while ( tempFile == NULL && calendarTime > ::time(NULL) ) 
 	{	tempFile = ::fopen( gTrackerFileTempDataPath, "r+" );
 		if ( !tempFile )

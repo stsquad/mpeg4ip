@@ -73,7 +73,7 @@ static tab_type *vldTableB17(int code);
 
 /***/
 
-event_t vld_intra_dct() 
+event_t vld_intra_dct(void) 
 {
 	event_t event;
 	tab_type *tab = NULL;
@@ -147,7 +147,7 @@ event_t vld_intra_dct()
 
 /***/
 
-event_t vld_inter_dct() 
+event_t vld_inter_dct(void) 
 {
 	event_t event;
 	tab_type *tab = NULL;

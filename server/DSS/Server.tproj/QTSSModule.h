@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
-
+ *
+ */
+ /*
 	Contains:	This object represents a single QTSS API compliant module.
 				A module may either be compiled directly into the server,
 				or loaded from a code fragment residing on the disk.
@@ -95,25 +96,27 @@ class QTSSModule : public QTSSDictionary
 			kShutdownRole = 			1,
 			kRTSPFilterRole = 			2,
 			kRTSPRouteRole = 			3,
-			kRTSPAuthRole = 			4,
-			kRTSPPreProcessorRole = 	5,
-			kRTSPRequestRole = 			6,
-			kRTSPPostProcessorRole = 	7,
-			kRTSPSessionClosingRole = 	8,
-			kRTPSendPacketsRole = 		9,
-			kClientSessionClosingRole = 10,
-			kRTCPProcessRole = 			11,
-			kErrorLogRole = 			12,
-			kRereadPrefsRole = 			13,
-			kOpenFileRole = 			14,
-			kOpenFilePreProcessRole = 	15,
-			kAdviseFileRole = 			16,
-			kReadFileRole = 			17,
-			kCloseFileRole = 			18,
-			kRequestEventFileRole = 	19,
-			kRTSPIncomingDataRole = 	20,
+			kRTSPAthnRole =				4,			
+			kRTSPAuthRole = 			5,
+			kRTSPPreProcessorRole = 	6,
+			kRTSPRequestRole = 			7,
+			kRTSPPostProcessorRole = 	8,
+			kRTSPSessionClosingRole = 	9,
+			kRTPSendPacketsRole = 		10,
+			kClientSessionClosingRole = 11,
+			kRTCPProcessRole = 			12,
+			kErrorLogRole = 			13,
+			kRereadPrefsRole = 			14,
+			kOpenFileRole = 			15,
+			kOpenFilePreProcessRole = 	16,
+			kAdviseFileRole = 			17,
+			kReadFileRole = 			18,
+			kCloseFileRole = 			19,
+			kRequestEventFileRole = 	20,
+			kRTSPIncomingDataRole = 	21,
+			kStateChangeRole = 			22,
 			
-			kNumRoles =					21
+			kNumRoles =					23
 		};
 		typedef UInt32 RoleIndex;
 		
@@ -136,6 +139,7 @@ class QTSSModule : public QTSSDictionary
 
 		static Bool16		sHasRTSPRequestModule;
 		static Bool16		sHasOpenFileModule;
+		static Bool16		sHasRTSPAuthenticateModule;
 	
 		static QTSSAttrInfoDict::AttrInfo	sAttributes[];
 };

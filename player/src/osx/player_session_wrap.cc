@@ -61,7 +61,8 @@ void 	CPS_set_up_sync_thread(CPS* s)
 
 double 	CPS_get_playing_time(CPS* s)
 {
-	return s->p->get_playing_time();
+  double pt = (double)s->p->get_playing_time();
+  return pt / 1000.0;
 }
 
 double 	CPS_get_max_time(CPS* s)

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTSPSessionInterface.cpp
@@ -92,6 +92,7 @@ RTSPSessionInterface::RTSPSessionInterface()
 	fLiveSession(true),
 	fObjectHolders(0),
 	fCurChannelNum(0),
+	fChNumToSessIDMap(NULL),
 	fStreamRef(this),
 	fRequestBodyLen(-1)
 {
@@ -114,7 +115,10 @@ RTSPSessionInterface::~RTSPSessionInterface()
  		delete fInputSocketP;
  	
  	delete [] fTCPCoalesceBuffer;
-
+ 	
+ 	for (UInt8 x = 0; x < (fCurChannelNum >> 1); x++)
+ 		delete [] fChNumToSessIDMap[x].Ptr;
+ 	delete [] fChNumToSessIDMap;
 }
 
 void RTSPSessionInterface::DecrementObjectHolderCount()
@@ -171,10 +175,43 @@ QTSS_Error RTSPSessionInterface::RequestEvent(QTSS_EventType inEventMask)
 	return QTSS_NoErr;
 }
 
-void RTSPSessionInterface::InterleaveSetup()
+UInt8 RTSPSessionInterface::GetTwoChannelNumbers(StrPtrLen* inRTSPSessionID)
 {
+	//
+	// Allocate a TCP coalesce buffer if still needed
 	if (fTCPCoalesceBuffer != NULL)
 		fTCPCoalesceBuffer = new char[kTCPCoalesceBufferSize];
+
+	//
+	// Allocate 2 channel numbers
+	UInt8 theChannelNum = fCurChannelNum;
+	fCurChannelNum+=2;
+	
+	//
+	// Reallocate the Ch# to Session ID Map
+	UInt32 numChannelEntries = fCurChannelNum >> 1;
+	StrPtrLen* newMap = NEW StrPtrLen[numChannelEntries];
+	if (fChNumToSessIDMap != NULL)
+	{
+		Assert(numChannelEntries > 1);
+		::memcpy(newMap, fChNumToSessIDMap, sizeof(StrPtrLen) * (numChannelEntries - 1));
+		delete [] fChNumToSessIDMap;
+	}
+	fChNumToSessIDMap = newMap;
+	
+	//
+	// Put this sessionID to the proper place in the map
+	fChNumToSessIDMap[numChannelEntries-1].Set(inRTSPSessionID->GetAsCString(), inRTSPSessionID->Len);
+
+	return theChannelNum;
+}
+
+StrPtrLen*	RTSPSessionInterface::GetSessionIDForChannelNum(UInt8 inChannelNum)
+{
+	if (inChannelNum < fCurChannelNum)
+		return &fChNumToSessIDMap[inChannelNum >> 1];
+	else
+		return NULL;
 }
 
 /*********************************
@@ -339,15 +376,9 @@ void	RTSPSessionInterface::SnarfInputSocket( RTSPSessionInterface* fromRTSPSessi
 
 #pragma mark __PARAM_RETRIEVAL_FUNCTIONS__
 
-Bool16 RTSPSessionInterface::SetupParams(QTSS_FunctionParams* funcParamsPtr)
- {
-	if (funcParamsPtr->selector != qtssGetValuePtrEnterFunc)
-		return false;
-		
-	if (funcParamsPtr->io.valueLen != 0) // already set do nothing
-		return false;
-
- 	RTSPSessionInterface* theSession = (RTSPSessionInterface*)funcParamsPtr->object;
+void* RTSPSessionInterface::SetupParams(QTSSDictionary* inSession, UInt32* /*outLen*/)
+{
+ 	RTSPSessionInterface* theSession = (RTSPSessionInterface*)inSession;
  
  	theSession->fLocalAddr = theSession->fSocket.GetLocalAddr();
  	theSession->fRemoteAddr = theSession->fSocket.GetRemoteAddr();
@@ -361,6 +392,6 @@ Bool16 RTSPSessionInterface::SetupParams(QTSS_FunctionParams* funcParamsPtr)
 	theSession->SetVal(qtssRTSPSesLocalDNS, theLocalDNSStr->Ptr, theLocalDNSStr->Len);
 	theSession->SetVal(qtssRTSPSesRemoteAddr, &theSession->fRemoteAddr, sizeof(theSession->fRemoteAddr));
 	theSession->SetVal(qtssRTSPSesRemoteAddrStr, theRemoteAddrStr->Ptr, theRemoteAddrStr->Len);
-	
-	return false; // force the Get to re-read the attribute after we set it
- }
+
+	return NULL;
+}

@@ -64,9 +64,9 @@ case $PLAT in
 	*)
 		echo "I don't know your platform. I'll assume this is a Linux x86 platform."
 		echo "Please edit the BuildServer script & PlatformHeader.h to add your platform."
-		CPLUS='egcs'
-		CCOMP=egcs
-		LINKER='egcs'
+		CPLUS='gcc'
+		CCOMP=gcc
+		LINKER='gcc'
 		MACHDEFINES=-D__linux__
 		DLLIB=-ldl
 		PTHREADLIB=-lpthread

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTPSessionInterface.h
@@ -38,6 +38,9 @@
 #include "QTSS.h"
 #include "OS.h"
 #include "RTPStream.h"
+#include "md5.h"
+#include "md5digest.h"
+#include "base64.h"
 
 unsigned int 			RTPSessionInterface::sRTPSessionIDCounter = 0;
 
@@ -71,16 +74,13 @@ QTSSAttrInfoDict::AttrInfo	RTPSessionInterface::sAttributes[] =
 	/* 23 */ { "qtssCliTeardownReason", 			NULL, 	qtssAttrDataTypeUInt32,			qtssAttrModeRead | qtssAttrModePreempSafe | qtssAttrModeWrite },
 	/* 24 */ { "qtssCliSesReqQueryString",			NULL, 	qtssAttrDataTypeCharArray,		qtssAttrModeRead | qtssAttrModePreempSafe },
 	/* 25 */ { "qtssCliRTSPReqRespMsg", 			NULL, 	qtssAttrDataTypeCharArray,		qtssAttrModeRead | qtssAttrModePreempSafe },
-	/* 26 */ { "qtssCliSesID", 						NULL, 	qtssAttrDataTypeUInt32,			qtssAttrModeRead | qtssAttrModePreempSafe },
 	
-	/* 27 */ { "qtssCliSesBytesSent", 				NULL, 				qtssAttrDataTypeUInt32,			qtssAttrModeRead },
-	/* 28 */ { "qtssCliSesCurrentBitRate", 			BitRate, 			qtssAttrDataTypeUInt32,			qtssAttrModeRead },
-	/* 29 */ { "qtssCliSesPacketLossPercent", 		PacketLossPercent, 	qtssAttrDataTypeFloat32,		qtssAttrModeRead },
-	/* 30 */ { "qtssCliSesTimeConnectedinMsec", 	TimeConnected, 		qtssAttrDataTypeSInt64,			qtssAttrModeRead },	
-	/* 31 */ { "qtssCliSesCounterID", 				NULL, 	qtssAttrDataTypeUInt32,			qtssAttrModeRead | qtssAttrModePreempSafe },
-	/* 32 */ { "qtssCliSesCurSpeed", 				NULL, 	qtssAttrDataTypeFloat32,		qtssAttrModeRead | qtssAttrModeWrite | qtssAttrModePreempSafe },
-	/* 33 */ { "qtssCliSesStartTime", 				NULL, 	qtssAttrDataTypeFloat64,		qtssAttrModeRead | qtssAttrModePreempSafe },
-	/* 34 */ { "qtssCliSesStopTime", 				NULL, 	qtssAttrDataTypeFloat64,		qtssAttrModeRead | qtssAttrModePreempSafe }
+	/* 26 */ { "qtssCliSesCurrentBitRate", 			NULL, 			qtssAttrDataTypeUInt32,				qtssAttrModeRead | qtssAttrModePreempSafe },
+	/* 27 */ { "qtssCliSesPacketLossPercent", 		PacketLossPercent, 	qtssAttrDataTypeFloat32,		qtssAttrModeRead | qtssAttrModePreempSafe },
+	/* 28 */ { "qtssCliSesTimeConnectedinMsec", 	TimeConnected, 		qtssAttrDataTypeSInt64,			qtssAttrModeRead | qtssAttrModePreempSafe },	
+	/* 29 */ { "qtssCliSesCounterID", 				NULL, 	qtssAttrDataTypeUInt32,			qtssAttrModeRead | qtssAttrModePreempSafe },
+	/* 30 */ { "qtssCliSesRTSPSessionID", 			NULL, 	qtssAttrDataTypeCharArray,		qtssAttrModeRead | qtssAttrModePreempSafe },
+	/* 31 */ { "qtssCliSesFramesSkipped", 			NULL, 	qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite | qtssAttrModePreempSafe }
 };
 
 void	RTPSessionInterface::Initialize()
@@ -93,7 +93,9 @@ void	RTPSessionInterface::Initialize()
 
 RTPSessionInterface::RTPSessionInterface()
 : 	QTSSDictionary(QTSSDictionaryMap::GetMap(QTSSDictionaryMap::kClientSessionDictIndex), NULL),
+	Task(),
 	fIsFirstPlay(true),
+	fAllTracksInterleaved(true), // assume true until proven false!
 	fFirstPlayTime(0),
 	fPlayTime(0),
 	fAdjustedPlayTime(0),
@@ -101,10 +103,8 @@ RTPSessionInterface::RTPSessionInterface()
 	fNextSendPacketsTime(0),
 	fState(qtssPausedState),
 	fPlayFlags(0),
-	fSpeed(1),
-	fStartTime(-1),
-	fStopTime(-1),
-	fRTSPSessionID(fRTSPSessionIDBuf, 0),
+	fLastBitRateBytes(0),
+	fLastBitRateUpdateTime(0),
 	fRTSPSession(NULL),
 	fLastRTSPReqRealStatusCode(200),
 	fTimeoutTask(this, QTSServerInterface::GetServer()->GetPrefs()->GetRTPTimeoutInSecs() * 1000),
@@ -113,20 +113,26 @@ RTPSessionInterface::RTPSessionInterface()
 	fPacketsSent(0),
 	fPacketLossPercent(0.0),
 	fTimeConnected(0),
-	fLastBitRateTime(0),
-	fLastBitsSent(0),
 	fMovieDuration(0),
 	fMovieSizeInBytes(0),
 	fMovieAverageBitRate(0),
 	fMovieCurrentBitRate(0),
 	fTeardownReason(0),
 	fUniqueID(0),
-	fTracker(QTSServerInterface::GetServer()->GetPrefs()->IsSlowStartEnabled())
+	fTracker(QTSServerInterface::GetServer()->GetPrefs()->IsSlowStartEnabled()),
+	fOverbufferWindow(QTSServerInterface::GetServer()->GetPrefs()->GetOverbufferBucketIntervalInMsec(), 0, QTSServerInterface::GetServer()->GetPrefs()->GetMaxSendAheadTimeInSecs()),
+	fAuthScheme(QTSServerInterface::GetServer()->GetPrefs()->GetAuthScheme()),
+	fAuthQop(RTSPSessionInterface::kNoQop),
+	fAuthNonceCount(0),
+	fFramesSkipped(0)
 {
 	//don't actually setup the fTimeoutTask until the session has been bound!
 	//(we don't want to get timeouts before the session gets bound)
 	fTimeout = QTSServerInterface::GetServer()->GetPrefs()->GetRTPTimeoutInSecs() * 1000;
 	fUniqueID = (UInt32)atomic_add(&sRTPSessionIDCounter, 1);
+	
+	// fQualityUpdate is a counter the starting value is the unique ID so every session starts at a different position
+	fQualityUpdate = fUniqueID;
 	
 	//mark the session create time
 	fSessionCreateTime = OS::Milliseconds();
@@ -151,8 +157,6 @@ RTPSessionInterface::RTPSessionInterface()
 	this->SetVal(qtssCliSesMovieSizeInBytes,	&fMovieSizeInBytes, sizeof(fMovieSizeInBytes));
 	this->SetVal(qtssCliSesLastRTSPSession,		&fRTSPSession, sizeof(fRTSPSession));
 	this->SetVal(qtssCliSesMovieAverageBitRate,	&fMovieAverageBitRate, sizeof(fMovieAverageBitRate));
-	this->SetVal(qtssCliSesID,	&fRTSPSessionIDBuf, sizeof(UInt32) );
-	this->SetVal(qtssCliSesBytesSent,	&fBytesSent, sizeof(fBytesSent) );
 	this->SetEmptyVal(qtssCliRTSPSessRemoteAddrStr, &fRTSPSessRemoteAddrStr[0], kIPAddrStrBufSize );
 	this->SetEmptyVal(qtssCliRTSPSessLocalDNS, &fRTSPSessLocalDNS[0], kLocalDNSBufSize);
 	this->SetEmptyVal(qtssCliRTSPSessLocalAddrStr, &fRTSPSessLocalAddrStr[0], kIPAddrStrBufSize);
@@ -164,14 +168,14 @@ RTPSessionInterface::RTPSessionInterface()
 	this->SetVal(qtssCliRTSPReqRealStatusCode, &fLastRTSPReqRealStatusCode, sizeof(fLastRTSPReqRealStatusCode));
 
 	this->SetVal(qtssCliTeardownReason, &fTeardownReason, sizeof(fTeardownReason));
+	this->SetVal(qtssCliSesCurrentBitRate, &fMovieCurrentBitRate, sizeof(fMovieCurrentBitRate));
 	this->SetVal(qtssCliSesCounterID, &fUniqueID, sizeof(fUniqueID));
-	this->SetVal(qtssCliSesCurSpeed, &fSpeed, sizeof(fSpeed));
-	this->SetVal(qtssCliSesStartTime, &fStartTime, sizeof(fStartTime));
-	this->SetVal(qtssCliSesStopTime, &fStopTime, sizeof(fStopTime));
+	this->SetEmptyVal(qtssCliSesRTSPSessionID, &fRTSPSessionIDBuf[0], QTSS_MAX_SESSION_ID_LENGTH + 4);
+	this->SetVal(qtssCliSesFramesSkipped, &fFramesSkipped, sizeof(fFramesSkipped));
 }
 
 void RTPSessionInterface::UpdateRTSPSession(RTSPSessionInterface* inNewRTSPSession)
-{
+{	
 	if (inNewRTSPSession != fRTSPSession)
 	{
 		// If there was an old session, let it know that we are done
@@ -184,15 +188,25 @@ void RTPSessionInterface::UpdateRTSPSession(RTSPSessionInterface* inNewRTSPSessi
 	}
 }
 
+char* RTPSessionInterface::GetSRBuffer(UInt32 inSRLen)
+{
+	if (fSRBuffer.Len < inSRLen)
+	{
+		delete [] fSRBuffer.Ptr;
+		fSRBuffer.Set(NEW char[2*inSRLen], 2*inSRLen);
+	}
+	return fSRBuffer.Ptr;
+}
+
 QTSS_Error RTPSessionInterface::DoSessionSetupResponse(RTSPRequestInterface* inRequest)
 {
 	// This function appends a session header to the SETUP response, and
 	// checks to see if it is a 304 Not Modified. If it is, it sends the entire
 	// response and returns an error
 	if ( QTSServerInterface::GetServer()->GetPrefs()->GetRTSPTimeoutInSecs() > 0 )	// adv the timeout
-		inRequest->AppendSessionHeaderWithTimeout( &fRTSPSessionID, QTSServerInterface::GetServer()->GetPrefs()->GetRTSPTimeoutAsString() );
+		inRequest->AppendSessionHeaderWithTimeout( this->GetValue(qtssCliSesRTSPSessionID), QTSServerInterface::GetServer()->GetPrefs()->GetRTSPTimeoutAsString() );
 	else
-		inRequest->AppendSessionHeaderWithTimeout( &fRTSPSessionID, NULL );	// no timeout in resp.
+		inRequest->AppendSessionHeaderWithTimeout( this->GetValue(qtssCliSesRTSPSessionID), NULL );	// no timeout in resp.
 	
 	if (inRequest->GetStatus() == qtssRedirectNotModified)
 	{
@@ -202,83 +216,53 @@ QTSS_Error RTPSessionInterface::DoSessionSetupResponse(RTSPRequestInterface* inR
 	return QTSS_NoErr;
 }
 
-Bool16 RTPSessionInterface::BitRate(QTSS_FunctionParams* funcParamsPtr)
-{
-
-	// This param retrieval function must be invoked each time it is called,
-	// because the number of sockets can be continually changing
-	if (qtssGetValuePtrEnterFunc != funcParamsPtr->selector)
-		return false;
-		
-	RTPSessionInterface* theSession = (RTPSessionInterface*)funcParamsPtr->object;
-	SInt64 currentTime = OS::Milliseconds();
-	SInt64 lastTime = theSession->fLastBitRateTime;
-	if (lastTime == 0)
-		lastTime = theSession->GetSessionCreateTime();
-	if (lastTime + 1000 < currentTime)
-	{
-		UInt32 timeConnected = (UInt32) (currentTime - lastTime);
-		UInt32 currentBitsSent = theSession->fBytesSent * 8;
-		UInt32 bitsSent = currentBitsSent - theSession->fLastBitsSent;
-		theSession->fLastBitRateTime = currentTime;
-		theSession->fLastBitsSent = currentBitsSent;
-		theSession->fMovieCurrentBitRate = bitsSent/ (timeConnected / 1000);	
-	}
-
-	// Return the result
-	funcParamsPtr->io.bufferPtr =  &theSession->fMovieCurrentBitRate;
-	funcParamsPtr->io.valueLen = sizeof(theSession->fMovieCurrentBitRate);
+void RTPSessionInterface::UpdateBitRateInternal(const SInt64& curTime)
+{	
+	UInt32 bitsInInterval = (fBytesSent - fLastBitRateBytes) * 8;
+	SInt64 updateTime = (curTime - fLastBitRateUpdateTime) / 1000;
+	if (updateTime > 0) // leave Bit Rate the same if updateTime is 0 also don't divide by 0.
+		fMovieCurrentBitRate = bitsInInterval / updateTime;
+	fTracker.UpdateAckTimeout(bitsInInterval, curTime - fLastBitRateUpdateTime);
+	fLastBitRateBytes = fBytesSent;
+	fLastBitRateUpdateTime = curTime;
 	
-	return true;
+	//printf("Cur bandwidth: %d. Cur ack timeout: %d.\n",fTracker.GetCurrentBandwidthInBps(), fTracker.RecommendedClientAckTimeout());
 }
 
-Bool16 RTPSessionInterface::TimeConnected(QTSS_FunctionParams* funcParamsPtr)
+void* RTPSessionInterface::TimeConnected(QTSSDictionary* inSession, UInt32* outLen)
 {
-
-	// This param retrieval function must be invoked each time it is called,
-	// because the number of sockets can be continually changing
-	if (qtssGetValuePtrEnterFunc != funcParamsPtr->selector)
-		return false;
-		
-	RTPSessionInterface* theSession = (RTPSessionInterface*)funcParamsPtr->object;
+	RTPSessionInterface* theSession = (RTPSessionInterface*)inSession;
 	theSession->fTimeConnected = (OS::Milliseconds() - theSession->GetSessionCreateTime());
+
 	// Return the result
-	funcParamsPtr->io.bufferPtr =  &theSession->fTimeConnected;
-	funcParamsPtr->io.valueLen = sizeof(theSession->fTimeConnected);
-	
-	return true;
+	*outLen = sizeof(theSession->fTimeConnected);
+	return &theSession->fTimeConnected;
 }
 
-Bool16 RTPSessionInterface::PacketLossPercent(QTSS_FunctionParams* funcParamsPtr)
-{
-
-	// This param retrieval function must be invoked each time it is called,
-	// because the number of sockets can be continually changing
-	if (qtssGetValuePtrEnterFunc != funcParamsPtr->selector)
-		return false;
-		
-	RTPSessionInterface* theSession = (RTPSessionInterface*)funcParamsPtr->object;
+void* RTPSessionInterface::PacketLossPercent(QTSSDictionary* inSession, UInt32* outLen)
+{	
+	RTPSessionInterface* theSession = (RTPSessionInterface*)inSession;
 	RTPStream* theStream = NULL;
-	UInt32 theLen = sizeof(UInt32);
+	UInt32 theLen = 0;
 			
 	SInt64 packetsLost = 0;
-	SInt64 packetsReceived = 0;
+	SInt64 packetsSent = 0;
 	
-	for (int x = 0; theSession->GetValue(qtssCliSesStreamObjects, x, (void**)&theStream, &theLen) == QTSS_NoErr; x++)
+	for (int x = 0; theSession->GetValue(qtssCliSesStreamObjects, x, (void*)&theStream, &theLen) == QTSS_NoErr; x++)
 	{		
-		if (theStream != NULL)
+		if (theStream != NULL  )
 		{
 			UInt32 streamCurPacketsLost = 0;
 			theLen = sizeof(UInt32);
-			(void) (theStream)->GetValue(qtssRTPStrCurPacketsLostInRTCPInterval,0, &streamCurPacketsLost, &theLen);
+			(void) theStream->GetValue(qtssRTPStrCurPacketsLostInRTCPInterval,0, &streamCurPacketsLost, &theLen);
 			//printf("stream = %d streamCurPacketsLost = %lu \n",x, streamCurPacketsLost);
 			
 			UInt32 streamCurPackets = 0;
 			theLen = sizeof(UInt32);
-			(void) (theStream)->GetValue(qtssRTPStrPacketCountInRTCPInterval,0, &streamCurPackets, &theLen);
+			(void) theStream->GetValue(qtssRTPStrPacketCountInRTCPInterval,0, &streamCurPackets, &theLen);
 			//printf("stream = %d streamCurPackets = %lu \n",x, streamCurPackets);
 				
-			packetsReceived += (SInt64)  streamCurPackets;
+			packetsSent += (SInt64)  streamCurPackets;
 			packetsLost += (SInt64) streamCurPacketsLost;
 			//printf("stream calculated loss = %f \n",x, (Float32) streamCurPacketsLost / (Float32) streamCurPackets);
 			
@@ -286,16 +270,125 @@ Bool16 RTPSessionInterface::PacketLossPercent(QTSS_FunctionParams* funcParamsPtr
 		theStream = NULL;
 		theLen = sizeof(UInt32);
 	}
-	if (packetsReceived > 0)
-	{	theSession->fPacketLossPercent =(( ((Float32) packetsLost / (Float32) packetsReceived) * 100.0) );
+	
+	//Assert(packetsLost <= packetsSent);
+	if (packetsSent > 0)
+	{	if  (packetsLost <= packetsSent)
+			theSession->fPacketLossPercent =(( ((Float32) packetsLost / (Float32) packetsSent) * 100.0) );
+		else
+			theSession->fPacketLossPercent = 100.0;
 	}
 	else
 		theSession->fPacketLossPercent = 0.0;
-	//printf("Session loss percent packetsLost = %qd packetsReceived= %qd theSession->fPacketLossPercent=%f\n",packetsLost,packetsReceived,theSession->fPacketLossPercent);
-		
+	//printf("Session loss percent packetsLost = %qd packetsSent= %qd theSession->fPacketLossPercent=%f\n",packetsLost,packetsSent,theSession->fPacketLossPercent);
 	// Return the result
-	funcParamsPtr->io.bufferPtr =  &theSession->fPacketLossPercent;
-	funcParamsPtr->io.valueLen = sizeof(theSession->fPacketLossPercent);
+	*outLen = sizeof(theSession->fPacketLossPercent);
+	return &theSession->fPacketLossPercent;
+}
+
+void RTPSessionInterface::CreateDigestAuthenticationNonce() {
+
+	// Calculate nonce: MD5 of sessionid:timestamp
+	SInt64 curTime = OS::Milliseconds();
+	char* curTimeStr = NEW char[128];
+	::sprintf(curTimeStr, "%"_64BITARG_"d", curTime);
 	
-	return true;
+	// Delete old nonce before creating a new one
+	if(fAuthNonce.Ptr != NULL)
+		delete [] fAuthNonce.Ptr;
+		
+	MD5_CTX ctxt;
+	unsigned char nonceStr[16];
+	MD5Init(&ctxt);
+	StrPtrLen* sesID = this->GetValue(qtssCliSesRTSPSessionID);
+	MD5Update(&ctxt, (unsigned char *)sesID->Ptr, sesID->Len);
+	MD5Update(&ctxt, (unsigned char *)":", 1);
+	MD5Update(&ctxt, (unsigned char *)curTimeStr, ::strlen(curTimeStr));
+	MD5Final(nonceStr, &ctxt);
+	HashToString(nonceStr, &fAuthNonce);
+
+	delete [] curTimeStr; // No longer required once nonce is created
+		
+	// Set the nonce count value to zero 
+	// as a new nonce has been created	
+	fAuthNonceCount = 0;
+
+}
+
+void RTPSessionInterface::SetChallengeParams(QTSS_AuthScheme scheme, UInt32 qop, Bool16 newNonce, Bool16 createOpaque)
+{	
+	// Set challenge params 
+	// Set authentication scheme
+	fAuthScheme = scheme;	
+	
+	if(fAuthScheme == qtssAuthDigest) {
+		// Set Quality of Protection 
+		// auth-int (Authentication with integrity) not supported yet
+		fAuthQop = qop;
+	
+		if(newNonce || (fAuthNonce.Ptr == NULL))
+			this->CreateDigestAuthenticationNonce();
+	
+		if(createOpaque) {
+			// Generate a random UInt32 and convert it to a string 
+			// The base64 encoded form of the string is made the opaque value
+			SInt64 theMicroseconds = OS::Microseconds();
+			::srand((unsigned int)theMicroseconds);
+			UInt32 randomNum = ::rand();
+			char* randomNumStr = NEW char[128];
+			::sprintf(randomNumStr, "%lu", randomNum);
+			int len = ::strlen(randomNumStr);
+			fAuthOpaque.Len = Base64encode_len(len);
+			char *opaqueStr = NEW char[fAuthOpaque.Len];
+			(void) Base64encode(opaqueStr, randomNumStr,len);
+			delete [] randomNumStr;					// Don't need this anymore
+			if(fAuthOpaque.Ptr != NULL)				// Delete existing pointer before assigning new
+				delete [] fAuthOpaque.Ptr;				// one
+			fAuthOpaque.Ptr = opaqueStr;
+		}
+		else {
+			if(fAuthOpaque.Ptr != NULL) 
+				delete [] fAuthOpaque.Ptr;
+			fAuthOpaque.Len = 0;	
+		}
+		// Increase the Nonce Count by one
+		// This number is a count of the next request the server
+		// expects with this nonce. (Implies that the server
+		// has already received nonce count - 1 requests that 
+		// sent authorization with this nonce
+		fAuthNonceCount ++;
+	}
+}
+
+void RTPSessionInterface::UpdateDigestAuthChallengeParams(Bool16 newNonce, Bool16 createOpaque, UInt32 qop) {
+	if(newNonce || (fAuthNonce.Ptr == NULL))
+		this->CreateDigestAuthenticationNonce();
+	
+			
+	if(createOpaque) {
+		// Generate a random UInt32 and convert it to a string 
+		// The base64 encoded form of the string is made the opaque value
+		SInt64 theMicroseconds = OS::Microseconds();
+		::srand((unsigned int)theMicroseconds);
+		UInt32 randomNum = ::rand();
+		char* randomNumStr = NEW char[128];
+		::sprintf(randomNumStr, "%lu", randomNum);
+		int len = ::strlen(randomNumStr);
+		fAuthOpaque.Len = Base64encode_len(len);
+		char *opaqueStr = NEW char[fAuthOpaque.Len];
+		(void) Base64encode(opaqueStr, randomNumStr,len);
+		delete [] randomNumStr;					// Don't need this anymore
+		if(fAuthOpaque.Ptr != NULL)				// Delete existing pointer before assigning new
+			delete [] fAuthOpaque.Ptr;				// one
+		fAuthOpaque.Ptr = opaqueStr;
+		fAuthOpaque.Len = ::strlen(opaqueStr);
+	}
+	else {
+		if(fAuthOpaque.Ptr != NULL) 
+			delete [] fAuthOpaque.Ptr;
+		fAuthOpaque.Len = 0;	
+	}
+	fAuthNonceCount ++;
+	
+	fAuthQop = qop;
 }

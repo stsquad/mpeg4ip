@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 /*
@@ -36,7 +36,7 @@
 
 #include <stdio.h>	
 #include <stdlib.h>
-
+#include "BroadcasterSession.h"
 
 Bool16 PLBroadcastDef::ConfigSetter( const char* paramName, const char* paramValue[], void* userData )
 {
@@ -46,18 +46,19 @@ Bool16 PLBroadcastDef::ConfigSetter( const char* paramName, const char* paramVal
 	PLBroadcastDef*	broadcastParms = (PLBroadcastDef*)userData;
 	
 	if (!::strcmp( "destination_ip_address", paramName) )
-	{
-		return broadcastParms->SetValue( &broadcastParms->mDestAddress, paramValue[0] );
-
+	{	if (broadcastParms->mIgnoreFileIP)
+			return false;
+		else
+			return broadcastParms->SetValue( &broadcastParms->mDestAddress, paramValue[0] );
 	}
 	else if (!::strcmp( "destination_base_port", paramName) )
 	{
 		return broadcastParms->SetValue( &broadcastParms->mBasePort, paramValue[0] );
 
 	}
-	else if (!::strcmp( "ttl", paramName) )
+	else if (!::strcmp( "max_upcoming_list_size", paramName) )
 	{
-		return broadcastParms->SetValue( &broadcastParms->mTtl, paramValue[0] );
+		return broadcastParms->SetValue( &broadcastParms->mMaxUpcomingMovieListSize, paramValue[0] );
 
 	}
 	else if (!::strcmp( "play_mode", paramName) )
@@ -66,7 +67,7 @@ Bool16 PLBroadcastDef::ConfigSetter( const char* paramName, const char* paramVal
 		if ( ::strcmp( "sequential", paramValue[0]) 
 			&& ::strcmp( "sequential_looped", paramValue[0])
 			&& ::strcmp( "weighted_random", paramValue[0])
-			 )
+		 	)
 			return true;
 
 		return broadcastParms->SetValue( &broadcastParms->mPlayMode, paramValue[0] );
@@ -102,6 +103,11 @@ Bool16 PLBroadcastDef::ConfigSetter( const char* paramName, const char* paramVal
 		return broadcastParms->SetValue( &broadcastParms->mSDPFile, paramValue[0] );
 
 	}
+	else if (!::strcmp( "destination_sdp_file", paramName) )
+	{
+		return broadcastParms->SetValue( &broadcastParms->mDestSDPFile, paramValue[0] );
+
+	}
 	else if (!::strcmp( "logging", paramName) )
 	{
 		if ( ::strcmp( "enabled", paramValue[0]) && ::strcmp( "disabled", paramValue[0]) )
@@ -120,12 +126,64 @@ Bool16 PLBroadcastDef::ConfigSetter( const char* paramName, const char* paramVal
 		return broadcastParms->SetValue( &broadcastParms->mSDPReferenceMovie, paramValue[0] );
 
 	}
-	
-	
+	else if (!::strcmp( "show_current", paramName) )
+	{
+		if ( ::strcmp( "enabled", paramValue[0]) && ::strcmp( "disabled", paramValue[0]) )
+			return true;
+			
+		return broadcastParms->SetValue( &broadcastParms->mShowCurrent, paramValue[0] );
+
+	}
+	else if (!::strcmp( "show_upcoming", paramName) )
+	{
+		if ( ::strcmp( "enabled", paramValue[0]) && ::strcmp( "disabled", paramValue[0]) )
+			return true;
+			
+		return broadcastParms->SetValue( &broadcastParms->mShowUpcoming, paramValue[0] );
+
+	}
+	else if (!::strcmp( "broadcast_start_time", paramName) )
+	{
+		time_t startTime = (time_t) ::strtoul(paramName, NULL, 10);
+		if (startTime < (time_t) 2208988800LU)
+			return true;
+
+		return broadcastParms->SetValue( &broadcastParms->mStartTime, paramValue[0] );
+	}
+	else if (!::strcmp( "broadcast_end_time", paramName) )
+	{			
+		time_t endTime = (time_t) ::strtoul(paramName, NULL, 10);
+		if (endTime < (time_t) 2208988800LU)
+			return true;
+
+		return broadcastParms->SetValue( &broadcastParms->mEndTime, paramValue[0] );
+	}
+	else if (!::strcmp( "broadcast_SDP_is_dynamic", paramName) )
+	{
+		if ( ::strcmp( "enabled", paramValue[0]) && ::strcmp( "disabled", paramValue[0]) )
+			return true;
+			
+		return broadcastParms->SetValue( &broadcastParms->mIsDynamic, paramValue[0] );
+	}
+	else if (!::strcmp( "broadcaster_name", paramName) )
+	{
+		return broadcastParms->SetValue( &broadcastParms->mName, paramValue[0] );
+
+	}
+	else if (!::strcmp( "broadcaster_password", paramName) )
+	{
+		return broadcastParms->SetValue( &broadcastParms->mPassword, paramValue[0] );
+
+	}
+	else if (!::strcmp( "multicast_ttl", paramName) )
+	{
+		return broadcastParms->SetValue( &broadcastParms->mTTL, paramValue[0] );
+
+	}
+
 	
 	return true;
 }
-
 
 Bool16 PLBroadcastDef::SetValue( char** dest, const char* value)
 {
@@ -151,50 +209,50 @@ Bool16 PLBroadcastDef::SetDefaults( const char* setupFileName )
 {
 	Bool16	didFail = false;
 	
-	if ( !didFail )	
+	if (mDestAddress != NULL)
+		mIgnoreFileIP = true;
+		
+	if ( !didFail && !mIgnoreFileIP)	
 		didFail = this->SetValue( &mDestAddress, SocketUtils::GetIPAddrStr(0)->Ptr );
 
 	if ( !didFail )	
 		didFail = this->SetValue( &mBasePort, "5004" );
 
 	if ( !didFail )	
-		didFail = this->SetValue( &mTtl, "1" );
-
-	if ( !didFail )	
 		didFail = this->SetValue( &mPlayMode, "sequential_looped" );
-
-	/*	removed at build 12 
-		if ( !didFail )	
-		didFail = this->SetValue( &mLimitPlay, "enabled" );
-	*/
+	
+	if ( !didFail )	
+		didFail = this->SetValue( &mMaxUpcomingMovieListSize, "7" );
+	
 	if ( !didFail )	
 		didFail = this->SetValue( &mLimitPlayQueueLength, "0" );
 
 	if ( !didFail )	
 		didFail = this->SetValue( &mLogging, "enabled" );
 
-
 	char	nameBuff[512];
-	::strcpy( nameBuff, setupFileName );
+	::strcpy( nameBuff, "broadcast" );
+	if (setupFileName)
+		::strcpy( nameBuff, setupFileName );
+		
 	int		baseLen = strlen(nameBuff);
-	
-	/*
+
+/*
 	
 	if you want to add .log to the base name of the 
 	description file with the .ext stripped, un comment 
 	this code.
 	rt 8.12.99
-	
-	char	*ext;
+*/
+	char	*ext = NULL;
 	ext = ::strrchr( nameBuff, '.' );
-	
 	if ( ext )
-	{
+	{	
 		*ext  = 0;
-		
+		baseLen = ::strlen(nameBuff);
 	}
-	*/
-	
+
+		
 	::strcat( nameBuff, ".log" );	
 	if ( !didFail )
 		didFail = this->SetValue( &mLogFile, nameBuff );
@@ -214,15 +272,70 @@ Bool16 PLBroadcastDef::SetDefaults( const char* setupFileName )
 	::strcat( nameBuff, ".sdp" );
 	if ( !didFail )	
 		didFail = this->SetValue( &mSDPFile, nameBuff );
+
+	if ( !didFail )	
+		didFail = this->SetValue( &mDestSDPFile, "no_name" );
 	
+
+/* current, upcoming, and replacelist created by emil@popwire.com */
+	nameBuff[baseLen] = 0;
+	::strcat( nameBuff, ".current" );	
+	if ( !didFail )
+		didFail = this->SetValue( &mCurrentFile, nameBuff );
+
+	nameBuff[baseLen] = 0;
+	::strcat( nameBuff, ".upcoming" );	
+	if ( !didFail )
+		didFail = this->SetValue( &mUpcomingFile, nameBuff );
+
+	nameBuff[baseLen] = 0;
+	::strcat( nameBuff, ".replacelist" );	
+	if ( !didFail )
+		didFail = this->SetValue( &mReplaceFile, nameBuff );
+
+	nameBuff[baseLen] = 0;
+	::strcat( nameBuff, ".stoplist" );	
+	if ( !didFail )
+		didFail = this->SetValue( &mStopFile, nameBuff );
+		
+	nameBuff[baseLen] = 0;
+	::strcat( nameBuff, ".insertlist" );	
+	if ( !didFail )
+		didFail = this->SetValue( &mInsertFile, nameBuff );
+	
+	if ( !didFail )	
+		didFail = this->SetValue( &mShowCurrent, "enabled" );
+		
+	if ( !didFail )	
+		didFail = this->SetValue( &mShowUpcoming, "enabled" );
+		
+	if ( !didFail )	
+		didFail = this->SetValue( &mStartTime, "0" );
+
+	if ( !didFail )	
+		didFail = this->SetValue( &mEndTime, "0" );
+
+	if ( !didFail )	
+		didFail = this->SetValue( &mIsDynamic, "disabled" );
+		
+	if ( !didFail )	
+		didFail = this->SetValue( &mName, "" );
+
+	if ( !didFail )	
+		didFail = this->SetValue( &mPassword, "" );
+
+	if ( !didFail )	
+		didFail = this->SetValue( &mTTL, "1" );
+
+	
+/* ***************************************************** */
 	return didFail;
 }
 
 
-PLBroadcastDef::PLBroadcastDef( const char* setupFileName )
-	: mDestAddress(NULL)
+PLBroadcastDef::PLBroadcastDef( const char* setupFileName,  char *destinationIP, Bool16 debug )
+	: mDestAddress(destinationIP)
 	, mBasePort(NULL)
-	, mTtl(NULL)
 	, mPlayMode(NULL)
 	// removed at build 12 , mLimitPlay(NULL)
 	, mLimitPlayQueueLength(NULL)
@@ -231,9 +344,37 @@ PLBroadcastDef::PLBroadcastDef( const char* setupFileName )
 	, mLogging(NULL)
 	, mLogFile(NULL)
 	, mSDPReferenceMovie( NULL )
+	, mCurrentFile( NULL )
+	, mUpcomingFile( NULL )
+	, mReplaceFile( NULL )
+	, mStopFile( NULL )
+	, mInsertFile( NULL )
+	, mShowCurrent( NULL )
+	, mShowUpcoming( NULL )
+	, mTheSession( NULL )
+	, mIgnoreFileIP(false)
+	, mMaxUpcomingMovieListSize(NULL)
+	, mDestSDPFile(NULL)
+	, mStartTime(NULL)
+	, mEndTime(NULL)
+	, mIsDynamic(NULL)
+	, mName( NULL)
+	, mPassword( NULL)
+	, mParamsAreValid(false)
+	, mTTL(NULL)
 {
-	mParamsAreValid = false;
-	
+
+	if (!setupFileName && !destinationIP)
+	{	this->SetDefaults( NULL );
+		::printf( "default settings\n" ); 
+		this->ShowSettings();
+		return;
+	}
+
+	fDebug = debug;
+	if (destinationIP != NULL) //we were given an IP to use
+		mIgnoreFileIP = true;
+			
 	Assert( setupFileName );
 	
 	if (setupFileName )
@@ -241,32 +382,58 @@ PLBroadcastDef::PLBroadcastDef( const char* setupFileName )
 		int	err = -1;
 	
 		if ( !this->SetDefaults( setupFileName ) )
-			err = ::ParseConfigFile( false, setupFileName, ConfigSetter, this );
+		{	err = ::ParseConfigFile( false, setupFileName, ConfigSetter, this );
+		}
 
 
 		if ( !err )
-			mParamsAreValid = true;
-		
-		
+		{	mParamsAreValid = true;		
+		}
 	}
 }
 
 void PLBroadcastDef::ShowSettings()
 {
 	::printf( "\n" );
-	::printf( "PlaylistBroadcaster Settings\n" );
+	::printf( "Description File Settings\n" );
 	::printf( "----------------------------\n" );
-	::printf( "destination_ip_address: %s\n", mDestAddress );
-	::printf( "destination_base_port: %s\n", mBasePort );
-	::printf( "ttl: %s\n", mTtl );
-	::printf( "play_mode: %s\n", mPlayMode );
-	// ::printf( "limit_play: %s\n", mLimitPlay );
-	::printf( "recent_movies_list_size: %s\n", mLimitPlayQueueLength );
-	::printf( "playlist_file: %s\n", mPlayListFile );
-	::printf( "logging: %s\n", mLogging );
-	::printf( "log_file: %s\n", mLogFile );
-	::printf( "sdp_reference_movie: %s\n", mSDPReferenceMovie ); 
-	::printf( "sdp_file: %s\n", mSDPFile );
+	::printf( "destination_ip_address  %s\n", mDestAddress );
+	::printf( "destination_sdp_file  %s\n", mDestSDPFile );
+	::printf( "destination_base_port  %s\n", mBasePort );
+	::printf( "play_mode  %s\n", mPlayMode );
+	::printf( "recent_movies_list_size  %s\n", mLimitPlayQueueLength );
+	::printf( "playlist_file  %s\n", mPlayListFile );
+	::printf( "logging  %s\n", mLogging );
+	::printf( "log_file  %s\n", mLogFile );
+	::printf( "sdp_reference_movie  %s\n", mSDPReferenceMovie ); 
+	::printf( "sdp_file  %s\n", mSDPFile );
+	::printf( "max_upcoming_list_size  %s\n", mMaxUpcomingMovieListSize );
+	::printf( "show_current  %s\n", mShowCurrent );
+	::printf( "show_upcoming  %s\n", mShowUpcoming );
+	::printf( "broadcaster_name \"%s\"\n", mName);
+	::printf( "broadcaster_password \"XXXXX\"\n");
+	::printf( "multicast_ttl %s\n",mTTL);
+	
+	time_t startTime = (time_t) ::strtoul(mEndTime, NULL, 10);
+	if (startTime != 0)
+	{	 startTime -= (time_t) 2208988800LU; //1970 - 1900 secs
+		::printf( "broadcast_start_time  %s = %s", mStartTime,ctime(&startTime));
+	}
+	else
+		::printf( "broadcast_start_time  %s\n", mStartTime);
+	
+	
+	time_t endTime = (time_t) strtoul(mEndTime, NULL, 10);
+	if (endTime != 0)
+	{	endTime -= (time_t) 2208988800LU;//1970 - 1900 secs
+		::printf( "broadcast_end_time  %s = %s", mEndTime,ctime(&endTime) );
+	}
+	else
+		::printf( "broadcast_end_time  %s\n", mEndTime);
+	
+	::printf( "broadcast_SDP_is_dynamic  %s\n", mIsDynamic );
+	::printf( "============================\n" );
+	
 }
 
 
@@ -274,7 +441,6 @@ PLBroadcastDef::~PLBroadcastDef()
 {
 	delete [] mDestAddress;
 	delete [] mBasePort;
-	delete [] mTtl;
 	delete [] mPlayMode;
 	// removed at build 12 delete [] mLimitPlay;
 	delete [] mLimitPlayQueueLength;
@@ -283,5 +449,14 @@ PLBroadcastDef::~PLBroadcastDef()
 	delete [] mLogging;
 	delete [] mLogFile;
 	delete [] mSDPReferenceMovie;
-
+	delete [] mMaxUpcomingMovieListSize;
+	delete [] mTTL;
+	delete [] mName;
+	delete [] mShowUpcoming;
+	delete [] mShowCurrent;
+	delete [] mPassword;
+	delete [] mIsDynamic;
+	delete [] mStartTime;
+	delete [] mEndTime;
+	
 }

@@ -14,7 +14,7 @@ PROJECT_TYPE = Aggregate
 
 TOOLS = QTSDPGen.tproj QTRTPGen.tproj QTRTPFileTest.tproj\
         QTSampleLister.tproj QTTrackInfo.tproj QTFileInfo.tproj\
-        QTFileTest.tproj QTBroadcaster.tproj
+        QTFileTest.tproj QTBroadcaster.tproj RTPFileGen.tproj
 
 LIBRARIES = TestQTFileLib
 

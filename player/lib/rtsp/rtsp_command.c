@@ -21,7 +21,6 @@
 /*
  * rtsp_command.c - process API calls to send/receive rtsp commands
  */
-#include "rtsp_client.h"
 #include "rtsp_private.h"
 
 
@@ -152,12 +151,8 @@ int rtsp_send_describe (rtsp_client_t *info,
 
     rtsp_debug(LOG_INFO, "Sending DESCRIBE %s", info->url);
     rtsp_debug(LOG_DEBUG, buffer);
-    ret = rtsp_send(info, buffer, buflen);
-    if (ret < 0) {
-      return (RTSP_RESPONSE_RECV_ERROR);
-    }
 
-    ret = rtsp_get_response(info);
+    ret = rtsp_send_and_get(info, buffer, buflen);
     decode = info->decode_response;
     
     if (ret == RTSP_RESPONSE_GOOD) {
@@ -246,12 +241,8 @@ int rtsp_send_setup (rtsp_client_t *info,
 
   rtsp_debug(LOG_INFO, "Sending SETUP %s", url);
   rtsp_debug(LOG_DEBUG, buffer);
-  ret = rtsp_send(info, buffer, buflen);
-  if (ret < 0) {
-    return (RTSP_RESPONSE_RECV_ERROR);
-  }
 
-  ret = rtsp_get_response(info);
+  ret = rtsp_send_and_get(info, buffer, buflen);
   decode = info->decode_response;
     
   if (ret == RTSP_RESPONSE_GOOD) {
@@ -374,12 +365,8 @@ static int rtsp_send_play_or_pause (const char *command,
 
   rtsp_debug(LOG_INFO, "Sending %s %s", command, url);
   rtsp_debug(LOG_DEBUG, buffer);
-  ret = rtsp_send(info, buffer, buflen);
-  if (ret < 0) {
-    return (RTSP_RESPONSE_RECV_ERROR);
-  }
 
-  ret = rtsp_get_response(info);
+  ret = rtsp_send_and_get(info, buffer, buflen);
   decode = info->decode_response;
     
   if (ret == RTSP_RESPONSE_GOOD) {
@@ -500,13 +487,8 @@ static int rtsp_send_teardown_common (rtsp_client_t *info,
 
   rtsp_debug(LOG_INFO, "Sending TEARDOWN %s", url);
   rtsp_debug(LOG_DEBUG, buffer);
-  ret = rtsp_send(info, buffer, buflen);
-  if (ret < 0) {
-    rtsp_debug(LOG_ERR, "TEARDOWN send failure %d", errno);
-    return (RTSP_RESPONSE_RECV_ERROR);
-  }
 
-  ret = rtsp_get_response(info);
+  ret = rtsp_send_and_get(info, buffer, buflen);
   decode = info->decode_response;
     
   if (ret == RTSP_RESPONSE_GOOD) {

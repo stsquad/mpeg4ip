@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTSPSession.h
@@ -69,6 +69,9 @@ class RTSPSession : public RTSPSessionInterface
 		
 		// Sends an error response & returns error if not ok.
 		QTSS_Error IsOkToAddNewRTPSession();
+		
+		// Checks authentication parameters
+		void CheckAuthentication();
 
 		char				fLastRTPSessionID[QTSS_MAX_SESSION_ID_LENGTH];
 		StrPtrLen			fLastRTPSessionIDPtr;
@@ -86,7 +89,7 @@ class RTSPSession : public RTSPSessionInterface
 	OSRef* 				RegisterRTSPSessionIntoHTTPProxyTunnelMap(QTSS_RTSPSessionType inSessionType);
 	QTSS_Error			PreFilterForHTTPProxyTunnel();				// prefilter for HTTP proxies
 	Bool16 				ParseProxyTunnelHTTP();						// use by PreFilterForHTTPProxyTunnel
-		
+	void				HandleIncomingDataPacket();
 		
 	static 				OSRefTable* sHTTPProxyTunnelMap;	// a map of available partners.
 
@@ -122,23 +125,24 @@ class RTSPSession : public RTSPSessionInterface
 		// the state machine works properly.
 		enum
 		{
-			kReadingRequest 		= 0,
-			kFilteringRequest 		= 1,
-			kRoutingRequest 		= 2,
-			kAuthenticatingRequest 	= 3,
-			kPreprocessingRequest 	= 4,
-			kProcessingRequest 		= 5,
-			kSendingResponse 		= 6,
-			kPostProcessingRequest	= 7,
-			kCleaningUp				= 8,
+			kReadingRequest 			= 0,
+			kFilteringRequest 			= 1,
+			kRoutingRequest 			= 2,
+			kAuthenticatingRequest		= 3,
+			kAuthorizingRequest 		= 4,
+			kPreprocessingRequest 		= 5,
+			kProcessingRequest 			= 6,
+			kSendingResponse 			= 7,
+			kPostProcessingRequest		= 8,
+			kCleaningUp					= 9,
 		
 		// states that RTSP sessions that setup RTSP
 		// through HTTP tunnels pass through
-			kWaitingToBindHTTPTunnel = 9,					// POST or GET side waiting to be joined with it's matching half
-			kSocketHasBeenBoundIntoHTTPTunnel = 10,			// POST side after attachment by GET side ( its dying )
-			kHTTPFilteringRequest = 11,						// after kReadingRequest, enter this state
-			kReadingFirstRequest = 12,						// initial state - the only time we look for an HTTP tunnel
-			kHaveNonTunnelMessage = 13					// we've looked at the message, and its not an HTTP tunnle message
+			kWaitingToBindHTTPTunnel = 10,					// POST or GET side waiting to be joined with it's matching half
+			kSocketHasBeenBoundIntoHTTPTunnel = 11,			// POST side after attachment by GET side ( its dying )
+			kHTTPFilteringRequest = 12,						// after kReadingRequest, enter this state
+			kReadingFirstRequest = 13,						// initial state - the only time we look for an HTTP tunnel
+			kHaveNonTunnelMessage = 14					// we've looked at the message, and its not an HTTP tunnle message
 		};
 		
 		UInt32 fCurrentModule;
@@ -148,8 +152,7 @@ class RTSPSession : public RTSPSessionInterface
 		QTSS_ModuleState	fModuleState;
 		
 		QTSS_Error SetupAuthLocalPath(RTSPRequest *theRTSPRequest);
-		QTSS_Error SetupAuthNameAndPassword(RTSPRequest *theRTSPRequest);
-		QTSS_Error SendChallenge(RTSPRequest *theRTSPRequest);
+		
 		
 		void SaveRequestAuthorizationParams(RTSPRequest *theRTSPRequest);
 		QTSS_Error DumpRequestData();

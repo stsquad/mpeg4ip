@@ -31,7 +31,36 @@ MP4TrunAtom::MP4TrunAtom()
 
 void MP4TrunAtom::AddProperties(u_int32_t flags)
 {
-	// TBD trun flags
+	if (flags & 0x01) {
+		// Note this is a signed 32 value
+		AddProperty(
+			new MP4Integer32Property("dataOffset"));
+	}
+	if (flags & 0x04) {
+		AddProperty(
+			new MP4Integer32Property("firstSampleFlags"));
+	}
+
+	MP4TableProperty* pTable = 
+		new MP4TableProperty("samples", m_pProperties[2]);
+	AddProperty(pTable);
+
+	if (flags & 0x100) {
+		pTable->AddProperty(
+			new MP4Integer32Property("sampleDuration"));
+	}
+	if (flags & 0x200) {
+		pTable->AddProperty(
+			new MP4Integer32Property("sampleSize"));
+	}
+	if (flags & 0x400) {
+		pTable->AddProperty(
+			new MP4Integer32Property("sampleFlags"));
+	}
+	if (flags & 0x800) {
+		pTable->AddProperty(
+			new MP4Integer32Property("sampleCompositionTimeOffset"));
+	}
 }
 
 void MP4TrunAtom::Read()

@@ -48,14 +48,15 @@ INCLUDES=\
 	-I$(top_srcdir)/server/video/ffmpeg \
 	-I$(top_srcdir)/player/lib
 
-AM_CFLAGS= -DMPEG4IP -D_REENTRANT -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes 
+AM_CFLAGS= -DMPEG4IP -D_REENTRANT -DMP4V2 -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
-AM_CXXFLAGS = -DMPEG4IP -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
+AM_CXXFLAGS = -DMPEG4IP -D_REENTRANT -DNOCONTROLS -DMP4V2 -fexceptions -Wall
 
 LDADD = \
 	$(top_builddir)/server/mp4live/gui/liblive_gui.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
+	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/rtp/libuclmmbase.a \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/server/audio/lame/libmp3lame.a \

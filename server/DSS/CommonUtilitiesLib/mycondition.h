@@ -14,7 +14,9 @@
 	To Do:
 */
 
-#pragma once
+#ifndef _MYCONDITION_H_
+#define _MYCONDITION_H_
+
 
 #include <mach/mach.h>
 #include <pthread.h>
@@ -35,4 +37,6 @@ void mycondition_wait(mycondition_t, mymutex_t, int); //timeout as a msec offset
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

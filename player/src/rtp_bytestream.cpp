@@ -287,6 +287,41 @@ unsigned char CRtpByteStreamBase::peek (void)
 {
   return (m_pak ? m_pak->data[m_offset_in_pak] : 0);
 }
+ssize_t CRtpByteStreamBase::read (unsigned char *buffer, size_t bytes_to_read)
+{
+  size_t inbuffer;
+  ssize_t readbytes = 0;
+
+  if (m_pak == NULL) {
+    if (m_bookmark_set == 1) {
+      return (0);
+    }
+    init();
+    throw THROW_RTP_NULL_WHEN_START;
+  }
+
+  do {
+    if ((m_offset_in_pak == 0) &&
+	(m_ts != m_pak->ts)) {
+      if (m_bookmark_set == 1) {
+	return (0);
+      }
+      throw THROW_RTP_DECODE_ACROSS_TS;
+    }
+    inbuffer = m_pak->data_len - m_offset_in_pak;
+    if (bytes_to_read < inbuffer) {
+      inbuffer = bytes_to_read;
+    }
+    memcpy(buffer, &m_pak->data[m_offset_in_pak], inbuffer);
+    buffer += inbuffer;
+    bytes_to_read -= inbuffer;
+    m_offset_in_pak += inbuffer;
+    m_total += inbuffer;
+    readbytes += inbuffer;
+    check_for_end_of_pak();
+  } while (bytes_to_read > 0 && m_pak != NULL);
+  return (readbytes);
+}
 
 void CRtpByteStreamBase::bookmark (int bSet)
 {
@@ -347,42 +382,7 @@ uint64_t CRtpByteStreamBase::start_next_frame (void)
   return (timetick);
 }
 
-ssize_t CRtpByteStreamBase::read (unsigned char *buffer, size_t bytes_to_read)
-{
-  size_t inbuffer;
-  ssize_t readbytes = 0;
-
-  if (m_pak == NULL) {
-    if (m_bookmark_set == 1) {
-      return (0);
-    }
-    init();
-    throw THROW_RTP_NULL_WHEN_START;
-  }
-
-  do {
-    if ((m_offset_in_pak == 0) &&
-	(m_ts != m_pak->ts)) {
-      if (m_bookmark_set == 1) {
-	return (0);
-      }
-      throw THROW_RTP_DECODE_ACROSS_TS;
-    }
-    inbuffer = m_pak->data_len - m_offset_in_pak;
-    if (bytes_to_read < inbuffer) {
-      inbuffer = bytes_to_read;
-    }
-    memcpy(buffer, &m_pak->data[m_offset_in_pak], inbuffer);
-    buffer += inbuffer;
-    bytes_to_read -= inbuffer;
-    m_offset_in_pak += inbuffer;
-    m_total += inbuffer;
-    readbytes += inbuffer;
-    check_for_end_of_pak();
-  } while (bytes_to_read > 0 && m_pak != NULL);
-  return (readbytes);
-}
-
+  
 int CRtpByteStreamBase::have_no_data (void)
 {
   if (m_pak == NULL) {
@@ -610,4 +610,21 @@ int CRtpByteStreamBase::throw_error_minor (int error)
     return 1;
   }
   return 0;
+}
+
+int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame)
+{
+  uint64_t ts;
+  *hasSyncFrame = -1;  // we don't know if we have a sync frame
+  ts = m_head->ts;
+  do {
+    remove_packet_rtp_queue(m_head, 1);
+  } while (m_head != NULL && m_head->ts == ts);
+
+  if (m_head == NULL) return 0;
+  init();
+  m_pak = m_head;
+  ts = start_next_frame();
+  *pts = ts;
+  return (1);
 }

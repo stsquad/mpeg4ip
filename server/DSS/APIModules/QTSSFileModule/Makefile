@@ -27,13 +27,13 @@ MAKEFILE = library.make
 NEXTSTEP_INSTALLDIR = /localgibblies/lib
 WINDOWS_INSTALLDIR = /Developer/Libraries
 PDO_UNIX_INSTALLDIR = /lib
-LIBS = -lQTFileLib
+LIBS = 
 DEBUG_LIBS = $(LIBS)
 PROF_LIBS = $(LIBS)
 
 
 LIBRARY_PATHS = -L../..
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Foundation
 PROJECT_HEADERS = QTSSFileModule.h
 

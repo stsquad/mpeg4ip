@@ -12,52 +12,23 @@ echo "Darwin Streaming Server"
 echo "-----------------------"
 
 
-ATOMICFILE="CommonUtilitiesLib/atomic.c"
-ATOMICLIB=""
-PLATFORMCPPFILES="" 
-
 case $PLAT in
-
-	Darwin."Power Macintosh")
-                echo "Configuring for the "$OSNAME" "$HARDWARENAME" platform"
-                CPLUS=cc
-                CCOMP=cc
-                LINKER="cc"
-                PTHREADLIB=-lpthread
-                ATOMICFILE=" CommonUtilitiesLib/mycondition.c CommonUtilitiesLib/mymutex.c "
-                DLLIB=""
-                MACHDEFINES="-D__MacOSX__ "
-                MODULE_LIBS=
-                ATOMICLIB=" -latomic "
-                ;;
-
-
-	Rhapsody."Power Macintosh")
-                echo "Configuring for the "$OSNAME" "$HARDWARENAME" platform"
-		CPLUS=cc
-		CCOMP=cc
-		LINKER="cc"
-		PTHREADLIB=""
-		ATOMICFILE=" CommonUtilitiesLib/mycondition.c CommonUtilitiesLib/mymutex.c "
-		DLLIB=""
-		MACHDEFINES="-D__MacOSXServer__ -fhandle-exceptions"
-		MODULE_LIBS=
-		ATOMICLIB=" -latomic "
-		PLATFORM_CPP_FILES="APIModules/QTSSSvrControlModule/QTSSvrControlModule.cpp" 
-		;;
 
 	Linux.ppc)
         echo "Configuring for the "$OSNAME" "$HARDWARENAME" platform"
-		CPLUS='egcs'
-		CCOMP=egcs
+		CPLUS=gcc
+		CCOMP=gcc
 		LINKER='egcs'
-		MACHDEFINES=-D__linuxppc__
-		CFLAGSX='-Wno-multichar -pipe'
-		MAKEFLAGSX='-j4'
-		PTHREADLIB=-lpthread
-		DLLIB=-ldl
+ 		MAKE=make
+ 		
+		COMPILER_FLAGS= "-D__linuxppc__ -Wno-multichar -pipe"
+        INCLUDE_FLAG="-include"
+		
+		CORE_LINK_LIBS="-lpthread -ldl -lm -lcrypt"
+
 		SHARED=-shared
 		MODULE_LIBS=
+		
 		if [ -f /usr/include/socketbits.h ]; then
 			NEED_SOCKETBITS=1
 			export NEED_SOCKETBITS
@@ -67,16 +38,19 @@ case $PLAT in
 	Linux.i586 | \
 	Linux.i686)
         echo "Configuring for the "$OSNAME" "$HARDWARENAME" platform"
-		CPLUS='gcc'
+		CPLUS=gcc
 		CCOMP=gcc
-		LINKER='gcc'
-		MACHDEFINES="-D_REENTRANT -D__linux__ -Wall -O3 -fomit-frame-pointer"
-		CFLAGSX='-pipe'
-		MAKEFLAGSX='-j4'
-		DLLIB=-ldl
-		PTHREADLIB=-lpthread
+		LINKER=gcc
+ 		MAKE=make
+ 		
+		COMPILER_FLAGS="-D_REENTRANT -D__linux__ -pipe"
+        INCLUDE_FLAG="-include"
+		
+		CORE_LINK_LIBS="-lpthread -ldl -lm -lcrypt"
+
 		SHARED=-shared
 		MODULE_LIBS=
+		
 		if [ -f /usr/include/socketbits.h ]; then
 			NEED_SOCKETBITS=1
 			export NEED_SOCKETBITS
@@ -85,16 +59,19 @@ case $PLAT in
 
 	Linux.mips)
         echo "Configuring for the "$OSNAME" "$HARDWARENAME" platform"
-		CPLUS='egcs'
-		CCOMP=egcs
+		CPLUS=gcc
+		CCOMP=gcc
 		LINKER='egcs'
-		MACHDEFINES="-D_REENTRANT -D__linux__ -Wall -O3 -fomit-frame-pointer"
-		CFLAGSX='-Wno-multichar -pipe'
-		MAKEFLAGSX='-j4'
-		DLLIB=-ldl
-		PTHREADLIB=-lpthread
+ 		MAKE=make
+ 		
+		COMPILER_FLAGS="-D_REENTRANT -D__linux__ -Wno-multichar -pipe"
+        INCLUDE_FLAG="-include"
+		
+		CORE_LINK_LIBS="-lpthread -ldl -lm -lcrypt"
+
 		SHARED=-shared
 		MODULE_LIBS=
+		
 		if [ -f /usr/include/socketbits.h ]; then
 			NEED_SOCKETBITS=1
 			export NEED_SOCKETBITS
@@ -106,16 +83,15 @@ case $PLAT in
 		CPLUS=gcc
 		CCOMP=gcc
 		LINKER="gcc"
-		PTHREADLIB=-pthread
-		DLLIB=
+ 		MAKE=make
+ 		
+		COMPILER_FLAGS=
+        INCLUDE_FLAG="-include"
+		
+		CORE_LINK_LIBS="-pthread -lm -lcrypt"
+
 		SHARED=-shared
 		MODULE_LIBS="-lgcc -lstdc++"
-		
-		if [ __FreeBSD__ ]; then
-	 		MACHDEFINES=" -fhandle-exceptions"
-		else
-			MACHDEFINES="-D__FreeBSD__ -fhandle-exceptions"
-		fi
 		;;
 	
 	SunOS.sun4m | \
@@ -124,24 +100,49 @@ case $PLAT in
 		CPLUS=gcc
 		CCOMP=gcc
 		LINKER="gcc"
-		PTHREADLIB=-lpthread
-		DLLIB="-ldl -lsocket -lnsl -lresolv"
-		MACHDEFINES="-D__solaris__ -D_REENTRANT"
+ 		MAKE=make
+ 		
+		COMPILER_FLAGS="-D__solaris__ -D_REENTRANT"
+        INCLUDE_FLAG="-include"
+
+		CORE_LINK_LIBS="-lpthread -ldl -lsocket -lnsl -lresolv -lm -lcrypt"
+
 		SHARED=-G
 		MODULE_LIBS=
 		;;
+		
+ 	OSF1.alpha)
+         echo "Configuring for the "$OSNAME" "$HARDWARENAME" Tru64 UNIX platform"
+ 		CPLUS=`pwd`/my_tru64_cxx
+ 		CCOMP=cc
+		LINKER="cxx"
+		MAKE=/usr/local/bin/make
+
+ 		COMPILER_FLAGS="-D__osf__ -DTRUCLUSTER -pthread"
+        INCLUDE_FLAG="-FI"
+
+		CORE_LINK_LIBS="-lpthread -lclu -lm"
+
+		SHARED=-shared
+		MODULE_LIBS=
+ 		;;
 
 	*)
 		echo "I don't know your platform. I'll assume this is a Linux x86 platform."
 		echo "Please edit the BuildServer script & PlatformHeader.h to add your platform."
-		CPLUS='egcs'
-		CCOMP=egcs
+		CPLUS=gcc
+		CCOMP=gcc
 		LINKER='egcs'
-		MACHDEFINES=-D__linux__
-		DLLIB=-ldl
-		PTHREADLIB=-lpthread
+ 		MAKE=make
+ 		
+		COMPILER_FLAGS=-D__linux__
+        INCLUDE_FLAG="-include"
+
+		CORE_LINK_LIBS="-lpthread -ldl -lm -lcrypt"
+
 		SHARED=-shared
 		MODULE_LIBS=
+		
 		if [ -f /usr/include/socketbits.h ]; then
 			NEED_SOCKETBITS=1
 			export NEED_SOCKETBITS
@@ -165,101 +166,89 @@ else
 	export CPLUS
 	export CCOMP
 	export LINKER
-	export MACHDEFINES
-	export CFLAGSX
-	export PTHREADLIB
-	export DLLIB
+	export COMPILER_FLAGS
+	export INCLUDE_FLAG
+	export CORE_LINK_LIBS
 	export SHARED
 	export MODULE_LIBS
-	export ATOMICFILE
-	export ATOMICLIB
-	export PLATFORM_CPP_FILES
 	
 echo Building CommonUtilitiesLib for $PLAT with $CPLUS
 	cd CommonUtilitiesLib/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 echo Building QTFileLib for $PLAT with $CPLUS
 	cd ../QTFileLib/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
-
-echo Building HTTPUtilitiesLib for $PLAT with $CPLUS
-	cd ../HTTPUtilitiesLib/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 echo Building StreamingServer for $PLAT with $CPLUS
 	cd ..
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
-echo Building AccessModule for $PLAT with $CPLUS
-	cd APIModules/QTSSAccessModule.bproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
-	
 echo Building DemoAuthorizationModule for $PLAT with $CPLUS
-	cd ../QTSSDemoAuthorizationModule.bproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	cd APIModules/QTSSDemoAuthorizationModule.bproj/
+	$MAKE -f Makefile.POSIX $*
 	
 echo Building RawFileModule for $PLAT with $CPLUS
 	cd ../QTSSRawFileModule.bproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 	
 echo Building SpamDefenseModule for $PLAT with $CPLUS
 	cd ../QTSSSpamDefenseModule.bproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 	
 	cd ..
 	
 echo Building StreamingProxy for $PLAT with $CPLUS
 	cd ../StreamingProxy.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 	
 echo Building qtpasswd for $PLAT with $CPLUS
 	cd ../qtpasswd.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
-	
+	$MAKE -f Makefile.POSIX $*
+
 echo Building PlaylistBroadcaster for $PLAT with $CPLUS
 	cd ../PlaylistBroadcaster.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 	
 echo Building QTFileTools for $PLAT with $CPLUS
         cd ../QTFileTools/
 
 echo Building QTBroadcaster for $PLAT with $CPLUS
 	cd QTBroadcaster.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 echo Building QTFileInfo for $PLAT with $CPLUS
 	cd ../QTFileInfo.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 echo Building QTFileTest for $PLAT with $CPLUS
 	cd ../QTFileTest.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 echo Building QTRTPFileTest for $PLAT with $CPLUS
 	cd ../QTRTPFileTest.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 echo Building QTRTPGen for $PLAT with $CPLUS
 	cd ../QTRTPGen.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 echo Building QTSDPGen for $PLAT with $CPLUS
 	cd ../QTSDPGen.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 echo Building QTSampleLister for $PLAT with $CPLUS
 	cd ../QTSampleLister.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 echo Building QTTrackInfo for $PLAT with $CPLUS
 	cd ../QTTrackInfo.tproj/
-	make ${MAKEFLAGSX} -f Makefile.POSIX $*
+	$MAKE -f Makefile.POSIX $*
 
 if [ -d ../../SpamPro.tproj ]; then
-	echo Building SpamPro for $PLAT with $CPLUS
+	echo Building StreamingLoadTool for $PLAT with $CPLUS
 		cd ../../SpamPro.tproj/
-		make ${MAKEFLAGSX} -f Makefile.POSIX $*
+		$MAKE -f Makefile.POSIX $*
 fi
 
 

@@ -99,36 +99,22 @@
 # derived files should go.
 #
 
-InstallFiles: apple_logo.gif dot.gif help.gif nav1.gif nav1_h.gif nav1_s.gif nav2.gif nav2_h.gif nav2_s.gif nav3.gif nav3_h.gif nav3_s.gif spacer.gif subnav1A.gif subnav1A_h.gif subnav1A_s.gif subnav1B.gif subnav1B_h.gif subnav1B_s.gif subnav2A.gif subnav2A_h.gif subnav2A_s.gif subnav2B.gif subnav2B_h.gif subnav2B_s.gif subnav3A.gif subnav3A_h.gif subnav3A_s.gif subnav3B.gif subnav3B_h.gif subnav3B_s.gif
+InstallFiles: apple_logo.gif dot.gif help.gif spacer.gif back.gif icon_alert.gif icon_folder.gif icon_movie.gif icon_movie_off.gif icon_play.gif icon_playlist.gif icon_playlist_off.gif icon_play_off.gif icon_stop.gif icon_stop_off.gif trashcan.gif
 	mkdir -p $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/apple_logo.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/apple_logo.gif
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/dot.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/dot.gif
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/help.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/help.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/nav1.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/nav1.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/nav1_h.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/nav1_h.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/nav1_s.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/nav1_s.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/nav2.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/nav2.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/nav2_h.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/nav2_h.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/nav2_s.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/nav2_s.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/nav3.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/nav3.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/nav3_h.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/nav3_h.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/nav3_s.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/nav3_s.gif
 	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/spacer.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/spacer.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav1A.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav1A.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav1A_h.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav1A_h.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav1A_s.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav1A_s.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav1B.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav1B.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav1B_h.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav1B_h.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav1B_s.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav1B_s.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav2A.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav2A.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav2A_h.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav2A_h.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav2A_s.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav2A_s.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav2B.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav2B.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav2B_h.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav2B_h.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav2B_s.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav2B_s.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav3A.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav3A.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav3A_h.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav3A_h.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav3A_s.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav3A_s.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav3B.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav3B.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav3B_h.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav3B_h.gif
-	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/subnav3B_s.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/subnav3B_s.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/back.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/back.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_alert.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_alert.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_folder.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_folder.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_movie.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_movie.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_movie_off.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_movie_off.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_play.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_play.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_playlist.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_playlist.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_playlist_off.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_playlist_off.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_play_off.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_play_off.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_stop.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_stop.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/icon_stop_off.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/icon_stop_off.gif
+	cp $(SRCROOT)/WebAdmin/WebAdminHtml/images/trashcan.gif $(DSTROOT)/Library/QuickTimeStreaming/AdminHtml/images/trashcan.gif
+

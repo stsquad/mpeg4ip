@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTSPRequestStream.cpp
@@ -64,6 +64,7 @@ void RTSPRequestStream::SnarfRetreat( RTSPRequestStream &fromRequest )
 
 QTSS_Error RTSPRequestStream::ReadRequest()
 {
+
 	while (true)
 	{
 		UInt32 newOffset = 0;
@@ -152,6 +153,26 @@ QTSS_Error RTSPRequestStream::ReadRequest()
 			fCurOffset += newOffset;
 		}
 		Assert(newOffset > 0);
+
+		// See if this is an interleaved data packet
+		if ('$' == *(fRequest.Ptr))
+		{	
+			if (fRequest.Len < 4)
+				continue;
+			UInt16* dataLenP = (UInt16*)fRequest.Ptr;
+			UInt32 interleavedPacketLen = ntohs(dataLenP[1]) + 4;
+			if (interleavedPacketLen > fRequest.Len)
+				continue;
+				
+			//put back any data that is not part of the header
+			fRetreatBytes += fRequest.Len - interleavedPacketLen;
+			fRequest.Len = interleavedPacketLen;
+		
+			fRequestPtr = &fRequest;
+			fIsDataPacket = true;
+			return QTSS_RequestArrived;
+		}
+		fIsDataPacket = false;
 
 		//use a StringParser object to search for a double EOL, which signifies the end of
 		//the header.

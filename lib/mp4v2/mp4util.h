@@ -54,6 +54,9 @@
 #define VERBOSE_READ_SAMPLE(verbosity, expr)	\
 	VERBOSE((MP4_DETAILS_READ | MP4_DETAILS_SAMPLE), verbosity, expr)
 
+#define VERBOSE_READ_HINT(verbosity, expr)	\
+	VERBOSE((MP4_DETAILS_READ | MP4_DETAILS_HINT), verbosity, expr)
+
 #define VERBOSE_WRITE(verbosity, expr)		\
 	VERBOSE(MP4_DETAILS_WRITE, verbosity, expr)
 
@@ -63,8 +66,14 @@
 #define VERBOSE_WRITE_SAMPLE(verbosity, expr)	\
 	VERBOSE((MP4_DETAILS_WRITE | MP4_DETAILS_SAMPLE), verbosity, expr)
 
+#define VERBOSE_WRITE_HINT(verbosity, expr)	\
+	VERBOSE((MP4_DETAILS_WRITE | MP4_DETAILS_HINT), verbosity, expr)
+
 #define VERBOSE_FIND(verbosity, expr)		\
 	VERBOSE(MP4_DETAILS_FIND, verbosity, expr)
+
+#define VERBOSE_ISMA(verbosity, expr)		\
+	VERBOSE(MP4_DETAILS_ISMA, verbosity, expr)
 
 inline void Indent(FILE* pFile, u_int8_t depth) {
 	fprintf(pFile, "%*c", depth, ' ');
@@ -85,45 +94,27 @@ public:
 		m_errstring = NULL;
 		m_where = NULL;
 	}
-	MP4Error(int err, char* where = NULL) {
+	MP4Error(int err, const char* where = NULL) {
 		m_errno = err;
 		m_errstring = NULL;
 		m_where = where;
 	}
-	MP4Error(char* errstring, char* where = NULL) {
+	MP4Error(const char* errstring, const char* where = NULL) {
 		m_errno = 0;
 		m_errstring = errstring;
 		m_where = where;
 	}
-	MP4Error(int err, char* errstring, char* where) {
+	MP4Error(int err, const char* errstring, const char* where) {
 		m_errno = err;
 		m_errstring = errstring;
 		m_where = where;
 	}
 
-	void Print(FILE* pFile = stderr) {
-		fprintf(pFile, "MP4ERROR: ");
-		if (m_where) {
-			fprintf(pFile, "%s", m_where);
-		}
-		if (m_errstring) {
-			if (m_where) {
-				fprintf(pFile, ": ");
-			}
-			fprintf(pFile, "%s", m_errstring);
-		}
-		if (m_errno) {
-			if (m_where || m_errstring) {
-				fprintf(pFile, ": ");
-			}
-			fprintf(pFile, "%s", strerror(m_errno));
-		}
-		fprintf(pFile, "\n");
-	}
+	void Print(FILE* pFile = stderr);
 
 	int m_errno;
-	char* m_errstring;
-	char* m_where;
+	const char* m_errstring;
+	const char* m_where;
 };
 
 inline void* MP4Malloc(size_t size) {
@@ -182,6 +173,8 @@ bool MP4NameFirstMatches(const char* s1, const char* s2);
 
 bool MP4NameFirstIndex(const char* s, u_int32_t* pIndex);
 
-char* MP4NameAfterFirst(char *s);
+const char* MP4NameAfterFirst(const char *s);
+
+char* MP4ToBase64(const u_int8_t* pData, u_int32_t dataSize);
 
 #endif /* __MP4_UTIL_INCLUDED__ */

@@ -36,7 +36,7 @@
 #ifndef _NET_UDP
 #define _NET_UDP
 
-typedef struct _socket_udp socket_udp;
+typedef struct _socket_udp socket_udp; 
 
 #if defined(__cplusplus)
 extern "C" {
@@ -46,17 +46,20 @@ int         udp_addr_valid(const char *addr);
 socket_udp *udp_init(const char *addr, uint16_t rx_port, uint16_t tx_port, int ttl);
 socket_udp *udp_init_if(const char *addr, const char *iface, uint16_t rx_port, uint16_t tx_port, int ttl);
 void        udp_exit(socket_udp *s);
+
 int         udp_send(socket_udp *s, char *buffer, int buflen);
 #ifndef _WIN32
-int         udp_send_iov(socket_udp *s, struct iovec *iov, int count);
+int udp_send_iov(socket_udp *s, struct iovec *iov, int count);
 #endif
 int         udp_recv(socket_udp *s, char *buffer, int buflen);
+
+const char *udp_host_addr(socket_udp *s);
+int         udp_fd(socket_udp *s);
+
 int         udp_select(struct timeval *timeout);
 void        udp_fd_zero(void);
 void        udp_fd_set(socket_udp *s);
 int         udp_fd_isset(socket_udp *s);
-const char *udp_host_addr(socket_udp *s);
-int         udp_fd(socket_udp *s);
 
 #if defined(__cplusplus)
 }

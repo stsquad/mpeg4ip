@@ -33,9 +33,6 @@
 #include "mpeg4_audio_config.h"
 #include "our_config_file.h"
 
-#define MP4READ(a, b) MP4Read((char *)(a), (b))
-#define MP4FILEHANDLE_INVALID(a) ((a) == NULL)
-#define MP4TRACKID_VALID(a) ((a) != 0)
 CMp4File *Mp4File1 = NULL;
 /*
  * Create the media for the quicktime file, and set up some session stuff.
@@ -47,8 +44,8 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 {
   MP4FileHandle fh;
 
-  fh = MP4READ(name, 0);
-  if (MP4FILEHANDLE_INVALID(fh)) {
+  fh = MP4Read(name, 0);
+  if (!MP4_IS_VALID_FILE_HANDLE(fh)) {
     *errmsg = "Cannot open mp4 file";
     return -1;
   }
@@ -119,9 +116,9 @@ int CMp4File::create_video (CPlayerSession *psptr)
   do {
     trackId = MP4FindTrackId(m_mp4file, trackcnt, "video");
     trackcnt++;
-  } while (!MP4TRACKID_VALID(trackId) && trackcnt < 10);
+  } while (!MP4_IS_VALID_TRACK_ID(trackId) && trackcnt < 10);
 
-  if (!MP4TRACKID_VALID(trackId)) {
+  if (!MP4_IS_VALID_TRACK_ID(trackId)) {
     return 0;
   }
   trackcnt--;
@@ -181,36 +178,59 @@ int CMp4File::create_audio (CPlayerSession *psptr)
 {
   CPlayerMedia *mptr;
   MP4TrackId trackId;
+  unsigned char *foo = NULL;
+  u_int32_t bufsize;
+  uint8_t audio_type;
+  int audio_is_mp3 = 0;
 
   trackId = MP4FindTrackId(m_mp4file, 0, "audio");
 
-  if (!MP4TRACKID_VALID(trackId)) {
+  if (!MP4_IS_VALID_TRACK_ID(trackId)) {
     return 0;
   }
+
+  // Say we have at least 1 track...
+  m_audio_tracks = 1;
+
+  audio_type = MP4GetTrackAudioType(m_mp4file, trackId);
+  switch (audio_type) {
+  case MP4_MPEG1_AUDIO_TYPE:
+  case MP4_MPEG2_AUDIO_TYPE:
+    audio_is_mp3 = 1;
+    break;
+  case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
+  case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
+  case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
+  case MP4_MPEG4_AUDIO_TYPE:
+    mpeg4_audio_config_t audio_config;
+    audio_is_mp3 = 0;
+    MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
+    if (foo != NULL) {
+      decode_mpeg4_audio_config(foo, bufsize, &audio_config);
+
+      if (audio_object_type_is_aac(&audio_config) == 0) {
+	// should be unsupported
+	player_error_message("MP4 audio object type %d not supported", audio_config.audio_object_type);
+	return (0);
+      }
+    }
+    break;
+  case MP4_PRIVATE_AUDIO_TYPE:
+  case MP4_INVALID_AUDIO_TYPE:
+  default:
+    player_error_message("Unsupported MP4 audio type %x", audio_type);
+    return (0);
+  }
+
   CMp4AudioByteStream *abyte;
   mptr = new CPlayerMedia;
   if (mptr == NULL) {
     return (-1);
   }
   abyte = new CMp4AudioByteStream(this, trackId);
-  unsigned char *foo;
-  u_int32_t bufsize;
   
-  m_audio_tracks = 1;
-  MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
-
-  if (foo != NULL) {
-    mpeg4_audio_config_t audio_config;
-    
-    decode_mpeg4_audio_config(foo, bufsize, &audio_config);
-
-    if (audio_object_type_is_aac(&audio_config) != 0) {
-      mptr->set_codec_type("aac ");
-    } else {
-      // should be unsupported
-      return (0);
-
-    }
+  if (audio_is_mp3 == 0) {
+    mptr->set_codec_type("aac ");
     mptr->set_user_data(foo, bufsize);
   } else {
     mptr->set_codec_type("mp3 ");

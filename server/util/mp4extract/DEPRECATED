@@ -1,0 +1,2 @@
+Note that this utility is deprecated in favor of a new implementation,
+mpeg4ip/lib/mp4v2/util/mp4extract.cpp, that uses the new mp4 library.

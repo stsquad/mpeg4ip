@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSServerInterface.cpp
@@ -48,7 +48,11 @@
 
 UInt32					QTSServerInterface::sServerAPIVersion = QTSS_API_VERSION;
 QTSServerInterface*		QTSServerInterface::sServer = NULL;
+#if __MacOSX__
 StrPtrLen 				QTSServerInterface::sServerNameStr("QTSS");
+#else
+StrPtrLen 				QTSServerInterface::sServerNameStr("DSS");
+#endif
 
 // kVersionString from revision.h, include with -i at project level
 StrPtrLen 				QTSServerInterface::sServerVersionStr(kVersionString);
@@ -76,7 +80,7 @@ QTSSAttrInfoDict::AttrInfo	QTSServerInterface::sAttributes[] =
 	/* 5  */ { "qtssRTSPSvrServerBuildDate", 	NULL, 	qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModePreempSafe },
 	/* 6  */ { "qtssSvrRTSPPorts", 				NULL, 	qtssAttrDataTypeUInt16,		qtssAttrModeRead },
 	/* 7  */ { "qtssSvrRTSPServerHeader", 		NULL, 	qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModePreempSafe },
-	/* 8  */ { "qtssRTSPSvrState", 				NULL, 	qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite  },
+	/* 8  */ { "qtssSvrState", 				NULL, 	qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite  },
 	/* 9  */ { "qtssSvrIsOutOfDescriptors", 	IsOutOfDescriptors, 	qtssAttrDataTypeBool16,	qtssAttrModeRead },
 	/* 10 */ { "qtssRTSPCurrentSessionCount", 	NULL, 	qtssAttrDataTypeUInt32,		qtssAttrModeRead },
 	/* 11 */ { "qtssRTSPHTTPCurrentSessionCount",NULL, 	qtssAttrDataTypeUInt32,		qtssAttrModeRead },
@@ -93,9 +97,9 @@ QTSSAttrInfoDict::AttrInfo	QTSServerInterface::sAttributes[] =
 	/* 22 */ { "qtssSvrStartupTime", 			NULL, 	qtssAttrDataTypeTimeVal,	qtssAttrModeRead },
 	/* 23 */ { "qtssSvrGMTOffsetInHrs", 		NULL, 	qtssAttrDataTypeSInt32,		qtssAttrModeRead },
 	/* 24 */ { "qtssSvrDefaultIPAddrStr", 		NULL, 	qtssAttrDataTypeCharArray,	qtssAttrModeRead },
-	/* 25 */ { "qtssSvrPreferences", 			NULL, 	qtssAttrDataTypeQTSS_Object,qtssAttrModeRead },
+	/* 25 */ { "qtssSvrPreferences", 			NULL, 	qtssAttrDataTypeQTSS_Object,qtssAttrModeRead | qtssAttrModeInstanceAttrAllowed},
 	/* 26 */ { "qtssSvrMessages", 				NULL, 	qtssAttrDataTypeQTSS_Object,qtssAttrModeRead },
-	/* 27 */ { "qtssSvrClientSessions", 		SessionAttribute, 	qtssAttrDataTypeQTSS_Object,qtssAttrModeRead | qtssAttrModePreempSafe},
+	/* 27 */ { "qtssSvrClientSessions", 		NULL, 	qtssAttrDataTypeQTSS_Object,qtssAttrModeRead },
 	/* 28 */ { "qtssSvrCurrentTimeMilliseconds",CurrentUnixTimeMilli, 	qtssAttrDataTypeTimeVal,qtssAttrModeRead},
 	/* 29 */ { "qtssSvrCPULoadPercent", 		NULL, 	qtssAttrDataTypeFloat32,	qtssAttrModeRead},
 	/* 30 */ { "qtssSvrNumReliableUDPBuffers", 	GetNumUDPBuffers, 	qtssAttrDataTypeUInt32,		qtssAttrModeRead },
@@ -150,7 +154,8 @@ QTSServerInterface::QTSServerInterface()
  	fCPUPercent(0),
  	fCPUTimeUsedInSec(0),
  	fUDPWastageInBytes(0),
- 	fNumUDPBuffers(0)
+ 	fNumUDPBuffers(0),
+ 	fSigInt(false)
 {
 	for (UInt32 y = 0; y < QTSSModule::kNumRoles; y++)
 	{
@@ -210,6 +215,41 @@ void QTSServerInterface::KillAllRTPSessions()
 	}	
 }
 
+void QTSServerInterface::SetValueComplete(UInt32 inAttrIndex, QTSSDictionaryMap* inMap,
+							UInt32 inValueIndex, const void* inNewValue, UInt32 inNewValueLen)
+{
+	if (inAttrIndex == qtssSvrState)
+	{
+		Assert(inNewValueLen == sizeof(QTSS_ServerState));
+		
+		//
+		// Invoke the server state change role
+		QTSS_RoleParams theParams;
+		theParams.stateChangeParams.inNewState = *(QTSS_ServerState*)inNewValue;
+		
+		static QTSS_ModuleState sStateChangeState = { NULL, 0, NULL, false };
+		if (OSThread::GetCurrent() == NULL)
+			OSThread::SetMainThreadData(&sStateChangeState);
+		else
+			OSThread::GetCurrent()->SetThreadData(&sStateChangeState);
+
+		UInt32 numModules = QTSServerInterface::GetNumModulesInRole(QTSSModule::kStateChangeRole);
+		{
+			for (UInt32 theCurrentModule = 0; theCurrentModule < numModules; theCurrentModule++)
+			{  
+				QTSSModule* theModule = QTSServerInterface::GetModule(QTSSModule::kStateChangeRole, theCurrentModule);
+				(void)theModule->CallDispatch(QTSS_StateChange_Role, &theParams);
+			}
+		}
+
+		//
+		// Make sure to clear out the thread data
+		if (OSThread::GetCurrent() == NULL)
+			OSThread::SetMainThreadData(NULL);
+		else
+			OSThread::GetCurrent()->SetThreadData(NULL);
+	}
+}
 
 #pragma mark __RTP_STATS_UPDATER_TASK__
 
@@ -364,57 +404,30 @@ RTPSessionInterface* RTPStatsUpdaterTask::GetNewestSession(OSRefTable* inRTPSess
 #pragma mark __PARAM_RETRIEVAL_FUNCTIONS__
 
 
-Bool16 QTSServerInterface::CurrentUnixTimeMilli(QTSS_FunctionParams* funcParamsPtr)
+void* QTSServerInterface::CurrentUnixTimeMilli(QTSSDictionary* inServer, UInt32* outLen)
 {
-
-	// This param retrieval function must be invoked each time it is called,
-	// because the time is continually changing
-	if (qtssGetValuePtrEnterFunc != funcParamsPtr->selector)
-		return false;
-		
- 	QTSServerInterface* theServer = QTSServerInterface::sServer;
-
+ 	QTSServerInterface* theServer = (QTSServerInterface*)inServer;
 	theServer->fCurrentTime_UnixMilli = OS::TimeMilli_To_UnixTimeMilli(OS::Milliseconds());	
 	
 	// Return the result
-	funcParamsPtr->io.bufferPtr =  &theServer->fCurrentTime_UnixMilli;
-	funcParamsPtr->io.valueLen = sizeof(theServer->fCurrentTime_UnixMilli);
-	
-	return true;
+	*outLen = sizeof(theServer->fCurrentTime_UnixMilli);
+	return &theServer->fCurrentTime_UnixMilli;
 }
 
-//param retrieval functions described in .h file
-Bool16 QTSServerInterface::GetTotalUDPSockets(QTSS_FunctionParams* funcParamsPtr)
+void* QTSServerInterface::GetTotalUDPSockets(QTSSDictionary* inServer, UInt32* outLen)
 {
-
-	// This param retrieval function must be invoked each time it is called,
-	// because the number of sockets can be continually changing
-	if (qtssGetValuePtrEnterFunc != funcParamsPtr->selector)
-		return false;
-		
-	QTSServerInterface* theServer = (QTSServerInterface*)funcParamsPtr->object;
+	QTSServerInterface* theServer = (QTSServerInterface*)inServer;
 	// Multiply by 2 because this is returning the number of socket *pairs*
 	theServer->fTotalUDPSockets = theServer->fSocketPool->GetSocketQueue()->GetLength() * 2;
 	
 	// Return the result
-	funcParamsPtr->io.bufferPtr =  &theServer->fTotalUDPSockets;
-	funcParamsPtr->io.valueLen = sizeof(theServer->fTotalUDPSockets);
-	
-	return true;
+	*outLen = sizeof(theServer->fTotalUDPSockets);
+	return &theServer->fTotalUDPSockets;
 }
 
-Bool16 QTSServerInterface::IsOutOfDescriptors(QTSS_FunctionParams *funcParamsPtr)
+void* QTSServerInterface::IsOutOfDescriptors(QTSSDictionary* inServer, UInt32* outLen)
 {
-	// FUNCTIONPTR
-	// Always return handled and the value
-	// Do nothing on exit of get
-	// Return 1 for num values
-	// This param retrieval function must be invoked each time it is called,
-	// because whether we are out of descriptors or not is continually changing
-	if (qtssGetValuePtrEnterFunc != funcParamsPtr->selector)
-		return false;
-	
-	QTSServerInterface* theServer = (QTSServerInterface*)funcParamsPtr->object;
+	QTSServerInterface* theServer = (QTSServerInterface*)inServer;
 	
 	theServer->fIsOutOfDescriptors = false;
 	for (UInt32 x = 0; x < theServer->fNumListeners; x++)
@@ -426,104 +439,34 @@ Bool16 QTSServerInterface::IsOutOfDescriptors(QTSS_FunctionParams *funcParamsPtr
 		}
 	}
 	// Return the result
-	funcParamsPtr->io.bufferPtr = &theServer->fIsOutOfDescriptors;
-	funcParamsPtr->io.valueLen = sizeof(theServer->fIsOutOfDescriptors);
-	return true;	
-}
-//static RTPSessionInterface *sSessionPtr;
-
-Bool16 QTSServerInterface::SessionAttribute(QTSS_FunctionParams* funcParamsPtr)
-{
-
-	// This param retrieval function must be invoked each time it is called,
-	// because the number of sockets can be continually changing
-	switch(funcParamsPtr->selector)
-	{	
-		case qtssGetValuePtrEnterFunc:
-		case qtssGetNumValuesEnterFunc:
-			break;
-			
-		default: 
-			return false;
-	}
-		
-	QTSServerInterface* theServer = (QTSServerInterface*)funcParamsPtr->object;
-	
-	switch(funcParamsPtr->selector)
-	{	
-
-		case qtssGetValuePtrEnterFunc:
-		{
-			funcParamsPtr->io.bufferPtr = (void *) NULL;
-			funcParamsPtr->io.valueLen = 0; 
-
-			OSMutexLocker locker(theServer->GetRTPSessionMap()->GetMutex());
-			OSRefHashTable* theRTPHashTablePtr = theServer->GetRTPSessionMap()->GetHashTable();
-			OSRefHashTableIter theIter(theRTPHashTablePtr);
-			
-			UInt32 numSessionsInList = theServer->GetNumRTPSessions();
-			UInt32 theIndexValue = funcParamsPtr->attributeIndex;
-			
-			for (UInt32 streamCount = 0;theIter.GetCurrent() && streamCount < numSessionsInList ; theIter.Next(), streamCount++)			
-			{
-		
-				RTPSessionInterface** rtp_SessionPtr = (RTPSessionInterface**)theIter.GetCurrent()->GetObjectPtr();
-				if (NULL == rtp_SessionPtr) continue;
-				
-				if (theIndexValue == streamCount)
-				{	
-					//printf("QTSServerInterface::SessionAttribute qtssGetValuePtrEnterFunc Found Session = %lu index = %lu \n", rtp_Session,theIndexValue);
-					funcParamsPtr->io.bufferPtr = (void *) rtp_SessionPtr;
-					funcParamsPtr->io.valueLen = sizeof(rtp_SessionPtr);
-					//printf("QTSServerInterface::SessionAttribute qtssGetValuePtrEnterFunc Found io.bufferPtr = %lu len = %lu \n",funcParamsPtr->io.bufferPtr,funcParamsPtr->io.valueLen);
-					break;
-				}
-			}
-			
-			if (funcParamsPtr->io.bufferPtr == NULL || funcParamsPtr->io.valueLen == 0)
-				funcParamsPtr->handledError = QTSS_ValueNotFound;
-
-		}
-		break;
-		case qtssGetNumValuesEnterFunc:
-		{
-			//printf("QTSServerInterface::SessionAttribute qtssGetNumValuesEnterFunc = %lu \n", theServer->fNumRTPSessions);
-			*(UInt32*)funcParamsPtr->io.bufferPtr = theServer->fNumRTPSessions;
-			funcParamsPtr->io.valueLen = sizeof(theServer->fNumRTPSessions);
-		}
-		break;
-	}
-		
-	return true;
+	*outLen = sizeof(theServer->fIsOutOfDescriptors);
+	return &theServer->fIsOutOfDescriptors;
 }
 
-
-Bool16 QTSServerInterface::GetNumUDPBuffers(QTSS_FunctionParams* funcParamsPtr)
+void* QTSServerInterface::GetNumUDPBuffers(QTSSDictionary* inServer, UInt32* outLen)
 {
 	// This param retrieval function must be invoked each time it is called,
 	// because whether we are out of descriptors or not is continually changing
-	//QTSServerInterface* theServer = (QTSServerInterface*)inServer;
+	QTSServerInterface* theServer = (QTSServerInterface*)inServer;
 	
-	//theServer->fNumUDPBuffers = RTPPacketResender::GetNumRetransmitBuffers();
+	theServer->fNumUDPBuffers = RTPPacketResender::GetNumRetransmitBuffers();
 
 	// Return the result
-	//*outLen = sizeof(theServer->fNumUDPBuffers);
-	//return &theServer->fNumUDPBuffers;
-	return true;	
+	*outLen = sizeof(theServer->fNumUDPBuffers);
+	return &theServer->fNumUDPBuffers;
 }
 
-Bool16 QTSServerInterface::GetNumWastedBytes(QTSS_FunctionParams* funcParamsPtr)
+void* QTSServerInterface::GetNumWastedBytes(QTSSDictionary* inServer, UInt32* outLen)
 {
 	// This param retrieval function must be invoked each time it is called,
 	// because whether we are out of descriptors or not is continually changing
-	//QTSServerInterface* theServer = (QTSServerInterface*)inServer;
+	QTSServerInterface* theServer = (QTSServerInterface*)inServer;
 	
-	//theServer->fUDPWastageInBytes = RTPPacketResender::GetWastedBufferBytes();
+	theServer->fUDPWastageInBytes = RTPPacketResender::GetWastedBufferBytes();
 
 	// Return the result
-	//*outLen = sizeof(theServer->fUDPWastageInBytes);
-	//return &theServer->fUDPWastageInBytes;	
-	return true;	
+	*outLen = sizeof(theServer->fUDPWastageInBytes);
+	return &theServer->fUDPWastageInBytes;	
 }
 
 #pragma mark __ERROR_LOG_STREAM__

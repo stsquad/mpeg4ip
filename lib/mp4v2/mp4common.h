@@ -30,6 +30,7 @@
 #include "mp4track.h"
 #include "mp4file.h"
 #include "mp4property.h"
+#include "mp4container.h"
 #include "mp4descriptor.h"
 #include "mp4atom.h"
 
@@ -37,6 +38,9 @@
 #include "descriptors.h"
 #include "ocidescriptors.h"
 #include "qosqualifiers.h"
+
 #include "odcommands.h"
+
+#include "rtphint.h"
 
 #endif /* __MP4_COMMON_INCLUDED__ */

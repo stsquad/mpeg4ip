@@ -31,4 +31,4 @@ transferIDCT.c \
 transferIDCT.h \
 yuv2rgb.h
 
-AM_CFLAGS = -DMPEG4IP -DPOSTPROCESS -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -D_DECORE -DLINUX -DO_BINARY=0 -fexceptions 
+AM_CFLAGS = -DMPEG4IP -DPOSTPROCESS -D_REENTRANT -D_DECORE -DLINUX -DO_BINARY=0 -fexceptions @BILLS_CWARNINGS@

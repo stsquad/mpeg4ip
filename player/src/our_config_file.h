@@ -38,7 +38,9 @@
 #define CONFIG_IPPORT_MIN 12
 #define CONFIG_IPPORT_MAX 13
 #define CONFIG_USE_OLD_MP4_LIB 14
-#define CONFIG_MAX 15
+#define CONFIG_USE_RTP_OVER_RTSP 15
+#define CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP 16
+#define CONFIG_MAX 17
 
 extern CConfig config;
 

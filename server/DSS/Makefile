@@ -15,15 +15,16 @@ PROJECT_TYPE = Aggregate
 SUBPROJECTS = QTFileTools WebAdmin APIModules
 
 TOOLS = Server.tproj PlaylistBroadcaster.tproj qtpasswd.tproj\
-        StreamingProxy.tproj
+        StreamingProxy.tproj 
 
 LIBRARIES = AtomicLib CommonUtilitiesLib OSMemoryLib RTCPUtilitiesLib\
             PrefsSourceLib APIStubLib HTTPUtilitiesLib RTPMetaInfoLib\
-            QTFileLib APICommonCode RTSPClientLib
+            QTFileLib APICommonCode RTSPClientLib 
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble\
             PlatformHeader.h revision.h streamingrelay.conf\
-            streamingserver.xml sample.mov AboutQTStreamingServer.pdf
+            streamingserver.xml sample.mov AboutQTStreamingServer.pdf\
+            qtusers
 
 MAKEFILEDIR = $(MAKEFILEPATH)/pb_makefiles
 CODE_GEN_STYLE = DYNAMIC

@@ -22,7 +22,42 @@
 #include "mp4common.h"
 #include "atoms.h"
 
-MP4Atom* MP4Atom::CreateAtom(char* type)
+MP4AtomInfo::MP4AtomInfo(const char* name, bool mandatory, bool onlyOne) 
+{
+	m_name = name;
+	m_mandatory = mandatory;
+	m_onlyOne = onlyOne;
+	m_count = 0;
+}
+
+MP4Atom::MP4Atom(const char* type) 
+{
+	SetType(type);
+	m_unknownType = FALSE;
+	m_pFile = NULL;
+	m_start = 0;
+	m_end = 0;
+	m_size = 0;
+	m_pParentAtom = NULL;
+	m_depth = 0xFF;
+}
+
+MP4Atom::~MP4Atom()
+{
+	u_int32_t i;
+
+	for (i = 0; i < m_pProperties.Size(); i++) {
+		delete m_pProperties[i];
+	}
+	for (i = 0; i < m_pChildAtomInfos.Size(); i++) {
+		delete m_pChildAtomInfos[i];
+	}
+	for (i = 0; i < m_pChildAtoms.Size(); i++) {
+		delete m_pChildAtoms[i];
+	}
+}
+
+MP4Atom* MP4Atom::CreateAtom(const char* type)
 {
 	MP4Atom* pAtom = NULL;
 
@@ -125,6 +160,8 @@ MP4Atom* MP4Atom::CreateAtom(char* type)
 			pAtom = new MP4SmhdAtom();
 		} else if (ATOMID(type) == ATOMID("sdp ")) {
 			pAtom = new MP4SdpAtom();
+		} else if (ATOMID(type) == ATOMID("snro")) {
+			pAtom = new MP4SnroAtom();
 		} else if (ATOMID(type) == ATOMID("sync")) {
 			pAtom = new MP4TrefTypeAtom(type);
 		} else if (ATOMID(type) == ATOMID("skip")) {
@@ -154,6 +191,10 @@ MP4Atom* MP4Atom::CreateAtom(char* type)
 			pAtom = new MP4TrpyAtom();
 		} else if (ATOMID(type) == ATOMID("tpyl")) {
 			pAtom = new MP4TpylAtom();
+		} else if (ATOMID(type) == ATOMID("tims")) {
+			pAtom = new MP4TimsAtom();
+		} else if (ATOMID(type) == ATOMID("tsro")) {
+			pAtom = new MP4TsroAtom();
 		}
 	} else if (type[0] == 'u') {
 		if (ATOMID(type) == ATOMID("udta")) {
@@ -344,7 +385,7 @@ void MP4Atom::Skip()
 	m_pFile->SetPosition(m_end);
 }
 
-MP4Atom* MP4Atom::FindAtom(char* name)
+MP4Atom* MP4Atom::FindAtom(const char* name)
 {
 	if (!IsMe(name)) {
 		return NULL;
@@ -366,7 +407,7 @@ MP4Atom* MP4Atom::FindAtom(char* name)
 	return FindChildAtom(name);
 }
 
-bool MP4Atom::FindProperty(char *name, 
+bool MP4Atom::FindProperty(const char *name, 
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {
 	if (!IsMe(name)) {
@@ -388,7 +429,7 @@ bool MP4Atom::FindProperty(char *name,
 	return FindContainedProperty(name, ppProperty, pIndex);
 }
 
-bool MP4Atom::IsMe(char* name)
+bool MP4Atom::IsMe(const char* name)
 {
 	if (name == NULL) {
 		return false;
@@ -407,7 +448,7 @@ bool MP4Atom::IsMe(char* name)
 	return true;
 }
 
-MP4Atom* MP4Atom::FindChildAtom(char* name)
+MP4Atom* MP4Atom::FindChildAtom(const char* name)
 {
 	u_int32_t atomIndex = 0;
 
@@ -428,7 +469,7 @@ MP4Atom* MP4Atom::FindChildAtom(char* name)
 	return NULL;
 }
 
-bool MP4Atom::FindContainedProperty(char *name,
+bool MP4Atom::FindContainedProperty(const char *name,
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {
 	u_int32_t numProperties = m_pProperties.Size();
@@ -484,10 +525,10 @@ void MP4Atom::ReadProperties(u_int32_t startIndex, u_int32_t count)
 
 		if (m_pProperties[i]->GetType() == TableProperty) {
 			VERBOSE_READ_TABLE(GetVerbosity(), 
-				printf("Read: "); m_pProperties[i]->Dump(stdout, true));
+				printf("Read: "); m_pProperties[i]->Dump(stdout, 0, true));
 		} else if (m_pProperties[i]->GetType() != DescriptorProperty) {
 			VERBOSE_READ(GetVerbosity(), 
-				printf("Read: "); m_pProperties[i]->Dump(stdout, true));
+				printf("Read: "); m_pProperties[i]->Dump(stdout, 0, true));
 		}
 	}
 }
@@ -614,10 +655,10 @@ void MP4Atom::WriteProperties(u_int32_t startIndex, u_int32_t count)
 
 		if (m_pProperties[i]->GetType() == TableProperty) {
 			VERBOSE_WRITE_TABLE(GetVerbosity(), 
-				printf("Write: "); m_pProperties[i]->Dump(stdout, false));
+				printf("Write: "); m_pProperties[i]->Dump(stdout, 0, false));
 		} else {
 			VERBOSE_WRITE(GetVerbosity(), 
-				printf("Write: "); m_pProperties[i]->Dump(stdout, false));
+				printf("Write: "); m_pProperties[i]->Dump(stdout, 0, false));
 		}
 	}
 }
@@ -631,6 +672,31 @@ void MP4Atom::WriteChildAtoms()
 
 	VERBOSE_WRITE(GetVerbosity(), 
 		printf("Write: finished %s\n", m_type));
+}
+
+void MP4Atom::AddProperty(MP4Property* pProperty) 
+{
+	ASSERT(pProperty);
+	m_pProperties.Add(pProperty);
+	pProperty->SetParentAtom(this);
+}
+
+void MP4Atom::AddVersionAndFlags()
+{
+	AddProperty(new MP4Integer8Property("version"));
+	AddProperty(new MP4Integer24Property("flags"));
+}
+
+void MP4Atom::AddReserved(char* name, u_int32_t size) 
+{
+	MP4BytesProperty* pReserved = new MP4BytesProperty(name, size); 
+	pReserved->SetReadOnly();
+	AddProperty(pReserved);
+}
+
+void MP4Atom::ExpectChildAtom(const char* name, bool mandatory, bool onlyOne)
+{
+	m_pChildAtomInfos.Add(new MP4AtomInfo(name, mandatory, onlyOne));
 }
 
 u_int8_t MP4Atom::GetVersion()
@@ -665,12 +731,11 @@ void MP4Atom::SetFlags(u_int32_t flags)
 	((MP4Integer24Property*)m_pProperties[1])->SetValue(flags);
 }
 
-void MP4Atom::Dump(FILE* pFile, bool dumpImplicits)
+void MP4Atom::Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits)
 {
-	u_int32_t depth = GetDepth();
-
-	if (depth > 0) {
-		Indent(pFile, depth); fprintf(pFile, "type %s\n", m_type);
+	if (m_type[0] != '\0') {
+		Indent(pFile, indent);
+		fprintf(pFile, "type %s\n", m_type);
 	}
 
 	u_int32_t i;
@@ -683,18 +748,18 @@ void MP4Atom::Dump(FILE* pFile, bool dumpImplicits)
 		/* skip details of tables unless we're told to be verbose */
 		if (m_pProperties[i]->GetType() == TableProperty
 		  && !(GetVerbosity() & MP4_DETAILS_TABLE)) {
-			Indent(pFile, depth + 1);
+			Indent(pFile, indent + 1);
 			fprintf(pFile, "<table entries suppressed>\n");
 			continue;
 		}
 
-		m_pProperties[i]->Dump(pFile, dumpImplicits);
+		m_pProperties[i]->Dump(pFile, indent + 1, dumpImplicits);
 	}
 
 	// dump our children
 	size = m_pChildAtoms.Size();
 	for (i = 0; i < size; i++) {
-		m_pChildAtoms[i]->Dump(pFile, dumpImplicits);
+		m_pChildAtoms[i]->Dump(pFile, indent + 1, dumpImplicits);
 	}
 }
 
@@ -715,7 +780,7 @@ u_int8_t MP4Atom::GetDepth()
 
 	while ((pAtom = pAtom->GetParentAtom()) != NULL) {
 		m_depth++;
-		ASSERT(m_depth < 100);
+		ASSERT(m_depth < 255);
 	}
 	return m_depth;
 }

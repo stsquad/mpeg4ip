@@ -1,3 +1,26 @@
+/*
+ *
+ * @APPLE_LICENSE_HEADER_START@
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
+ * read it before using this file.
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
+ * @APPLE_LICENSE_HEADER_END@
+ *
+ */
 #include "playlist_utils.h"
 #include "playlist_SDPGen.h"
 #include "playlist_broadcaster.h"
@@ -162,11 +185,19 @@ short SDPGen::GetLocalAddrStr(char *returnStr, short maxSize)
 }
 */
 
-char *SDPGen::Process(char *sdpFileName, char * basePort, char *ipAddress, char *anSDPBuffer, int *error)
+char *SDPGen::Process(	char *sdpFileName,
+				 		char * basePort,
+				 		char *ipAddress,
+				 		char *anSDPBuffer,
+				 		char *startTime,
+				 		char *endTime,	
+				 		char *isDynamic,
+				 		int *error
+				 		)
 {
 	char *resultBuf = NULL;
 	short currentPos = 0;
-	
+	short trackID = 1;
 	*error = -1;
 	do
 	{
@@ -213,7 +244,25 @@ char *SDPGen::Process(char *sdpFileName, char * basePort, char *ipAddress, char 
 			if (currentPos < 0) break;
 		}
 		
-
+		{
+			char  timeLine[255];
+			UInt32 startTimeNTPSecs = strtoul(startTime, NULL, 10);
+			UInt32 endTimeNTPSecs = strtoul(endTime, NULL, 10);
+			sprintf(timeLine, "t=%lu %lu\r\n", startTimeNTPSecs, endTimeNTPSecs);			
+			currentPos = AddToBuff(fSDPFileContentsBuf, currentPos, timeLine);
+			if (currentPos < 0) break;
+		}
+		
+		{
+			char  controlLine[255];
+			if ( 0 == ::strcmp( "enabled", isDynamic) )
+				sprintf(controlLine, "a=x-broadcastcontrol:RTSP\r\n");			
+			else
+				sprintf(controlLine, "a=x-broadcastcontrol:TIME\r\n");			
+			currentPos = AddToBuff(fSDPFileContentsBuf, currentPos, controlLine);
+			if (currentPos < 0) break;
+		}
+		
 		//    c=IN IP4 (destinatin ip address)
 		{	
 			char  sdpLine[255];
@@ -267,11 +316,22 @@ char *SDPGen::Process(char *sdpFileName, char * basePort, char *ipAddress, char 
 
 					// found =  strstr(aLine, "a=cliprect"); // turn this off
 					// if (found != NULL) continue;
-
+					
+					found = strstr(aLine, "a=control:trackID"); // turn this off
 					if (!fKeepTracks)
-					{	found = strstr(aLine, "a=control:trackID"); // turn this off
+					{	
+						if (fAddIndexTracks)
+						{
+							if (found != NULL) 
+							{	char mediaLine[eMaxLineLen];											
+								::sprintf(mediaLine,"a=control:trackID=%d\r\n",trackID);
+								currentPos = AddToBuff(fSDPFileContentsBuf, currentPos, mediaLine); // copy rest of line starting with the transport protocol
+								trackID ++;
+							}
+						}
 						if (found != NULL) continue;
 					}
+					
 					
 					found = strstr(aLine,  "a=range"); // turn this off
 					if (found != NULL) continue;
@@ -285,14 +345,15 @@ char *SDPGen::Process(char *sdpFileName, char * basePort, char *ipAddress, char 
 					if (found != NULL)
 					{	
 						char *startToPortVal = strtok(aLine," ");
-						strtok(NULL," "); // step pass the current port value we put it in below
+						strtok(NULL," "); // step past the current port value we put it in below
 						if (found != NULL) 
 						{	char mediaLine[eMaxLineLen];				
 							char *protocol = strtok(NULL,"\r\n"); // the transport protocol
 							
 							::sprintf(mediaLine,"%s %d %s\r\n",startToPortVal,portCount,protocol);
 							currentPos = AddToBuff(fSDPFileContentsBuf, currentPos, mediaLine); // copy rest of line starting with the transport protocol
-							portCount += 2; // set the next port value ( this port + 1 is the RTCP port for this port so we skip by 2)
+							if (portCount != 0)
+								portCount += 2; // set the next port value ( this port + 1 is the RTCP port for this port so we skip by 2)
 							continue;
 						}
 					}
@@ -318,7 +379,7 @@ char *SDPGen::Process(char *sdpFileName, char * basePort, char *ipAddress, char 
 					}
 					aLine[lineLen + 1] = '\r';
 					aLine[lineLen + 2] = '\n';
-					aLine[lineLen + 3] = '\0';
+					aLine[lineLen + 3] = 0;
 					currentPos = AddToBuff(fSDPFileContentsBuf, currentPos, aLine); // copy this line	
 				}
 			}
@@ -340,7 +401,12 @@ int SDPGen::Run(  char *movieFilename
 				, char *ipAddress
 				, char *buff
 				, short buffSize
-				, bool overWriteSDP)
+				, bool overWriteSDP
+				, bool forceNewSDP
+				, char *startTime
+				, char *endTime
+				, char *isDynamic
+				)
 {
 	int result = -1;
 	int fdsdp = -1;
@@ -358,7 +424,7 @@ int SDPGen::Run(  char *movieFilename
 		if (fdsdp != -1)
 			sdpExists = true;
 			
-		if (sdpExists)
+		if (sdpExists && !forceNewSDP)
 		{	
 			if (!overWriteSDP) 
 			{
@@ -395,7 +461,7 @@ int SDPGen::Run(  char *movieFilename
 		theSDPText[sdpFileLength-1] = 0;
 				
 		char *processedSDP = NULL;
-		processedSDP = Process(sdpFilename, basePort, ipAddress, theSDPText, &result);
+		processedSDP = Process(sdpFilename, basePort, ipAddress, theSDPText,startTime,endTime,isDynamic, &result);
 		if (result != 0) break;
 		
 		processedSize = strlen(processedSDP);
@@ -409,7 +475,10 @@ int SDPGen::Run(  char *movieFilename
 			buff[buffSize] = 0;
 		}
 		
-
+		if (!overWriteSDP && sdpExists) 
+		{
+			break;
+		}
 		// Create our SDP file and write out the data			
 #ifdef __Win32__
 		fdsdp = open(sdpFilename, O_CREAT | O_TRUNC | O_WRONLY | O_BINARY, 0664);
@@ -430,7 +499,7 @@ int SDPGen::Run(  char *movieFilename
 	} while (false);
 	
 	if (fdsdp != -1)
-	{
+	{	result = 0;
 		close(fdsdp);
 		fdsdp = -1;
 	}

@@ -39,7 +39,7 @@
  *
 **/
 
-static void rescue_predict();
+static void rescue_predict(void);
 
 /*
 
@@ -190,7 +190,7 @@ void ac_recon(int block_num, short * psBlock)
 #define _IsIntra(mb_y, mb_x) ((modemap[(mb_y)+1][(mb_x)+1] == INTRA) || \
 	(modemap[(mb_y)+1][(mb_x)+1] == INTRA_Q))
 
-static void rescue_predict() 
+static void rescue_predict(void) 
 {
 	int mb_xpos = mp4_hdr.mb_xpos;
 	int mb_ypos = mp4_hdr.mb_ypos;

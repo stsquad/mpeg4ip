@@ -52,25 +52,13 @@ AC_PROG_MAKE_SET
 AC_PROG_CC
 AC_C_INLINE
 AC_C_CONST
-case "$target" in
-    *-*-beos*)
-        AC_PROG_CXX
-        ;;
-    *-*-aix*)
-        AC_PROG_CXX
-        ;;
-    # This is stupid, but necessary on some versions of Linux (joysticks)
-    *-*-linux*)
-        AC_PROG_CXX
-        ;;
-    *-*-darwin*)
-        OBJC="???"
-        AC_SUBST(OBJC)
-        ;;
-esac
+AC_PROG_CXX
+OBJC="???"
+AC_SUBST(OBJC)
 AC_PROG_INSTALL
 AC_FUNC_ALLOCA
-
+ASFLAGS=""
+AC_SUBST(ASFLAGS)
 dnl The alpha architecture needs special flags for binary portability
 case "$target" in
     alpha*-*-linux*)

@@ -19,6 +19,7 @@
  *              Bill May        wmay@cisco.com
  */
 #include "ourwav.h"
+#include "our_bytestream.h"
 #define DEBUG_SYNC
 /*
  * Create CAACodec class

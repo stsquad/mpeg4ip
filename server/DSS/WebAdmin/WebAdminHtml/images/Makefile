@@ -13,14 +13,11 @@ PROJECTVERSION = 2.8
 PROJECT_TYPE = Library
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble\
-            apple_logo.gif dot.gif help.gif nav1.gif nav1_h.gif\
-            nav1_s.gif nav2.gif nav2_h.gif nav2_s.gif nav3.gif\
-            nav3_h.gif nav3_s.gif spacer.gif subnav1A.gif\
-            subnav1A_h.gif subnav1A_s.gif subnav1B.gif subnav1B_h.gif\
-            subnav1B_s.gif subnav2A.gif subnav2A_h.gif subnav2A_s.gif\
-            subnav2B.gif subnav2B_h.gif subnav2B_s.gif subnav3A.gif\
-            subnav3A_h.gif subnav3A_s.gif subnav3B.gif subnav3B_h.gif\
-            subnav3B_s.gif
+            apple_logo.gif dot.gif help.gif spacer.gif back.gif\
+            icon_alert.gif icon_folder.gif icon_movie.gif\
+            icon_movie_off.gif icon_play.gif icon_playlist.gif\
+            icon_playlist_off.gif icon_play_off.gif icon_stop.gif\
+            icon_stop_off.gif trashcan.gif
 
 MAKEFILEDIR = $(MAKEFILEPATH)/pb_makefiles
 CURRENTLY_ACTIVE_VERSION = YES

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		TCPListenerSocket.cpp
@@ -58,14 +58,20 @@ OS_Error TCPListenerSocket::Initialize(UInt32 addr, UInt16 port)
 	OS_Error err = this->TCPSocket::Open();
 	if (0 == err) do
 	{	
-		// set SO_REUSEADDR socket option before calling bind
-		this->ReuseAddr();		
+		// set SO_REUSEADDR socket option before calling bind.
+#ifndef __Win32__
+		// this causes problems on NT (multiple processes can bind simultaneously),
+		// so don't do it on NT.
+		this->ReuseAddr();
+#endif
 		err = this->Bind(addr, port);
 		if (err != 0) break; // don't assert this is just a port already in use.
 
-		// We never need to receive very much data, so just in case we get backed up
-		// in reading, force the clients to flow control early
-		this->SetSocketRcvBufSize(1024);		
+		//
+		// Unfortunately we need to advertise a big buffer because our TCP sockets
+		// can be used for incoming broadcast data. This could force the server
+		// to run out of memory faster if it gets bogged down, but it is unavoidable.
+		this->SetSocketRcvBufSize(32 * 1024);		
 		err = this->Listen(kListenQueueLength);
 		AssertV(err == 0, OSThread::GetErrno()); 
 		if (err != 0) break;
@@ -81,7 +87,7 @@ void TCPListenerSocket::ProcessEvent(int /*eventBits*/)
 	//socket, so whatever you do here has to be fast.
 	
 	struct sockaddr_in addr;
-#if __MacOSXServer__ || __Win32__ || __FreeBSD__ || __MacOSX__
+#if __MacOSXServer__ || __Win32__ || __MacOSX__ || __osf__
 	int size = sizeof(addr);
 #else
 	socklen_t size = sizeof(addr);
@@ -113,25 +119,7 @@ void TCPListenerSocket::ProcessEvent(int /*eventBits*/)
 			}
 			else
 			{	
-#if DEBUG && 0
-				if (acceptError == EINTR)
-					printf("DEBUG: TCP Listener socket got %d err from accept\n",acceptError);
-#endif
-
-#if __solaris__
-				#if DEBUG && 0
-					if (acceptError == ENOENT) 
-						printf("DEBUG: Solaris returned ENOENT=%d from accept -- ignoring\n",acceptError);
-					if (acceptError == EINTR) 
-						printf("DEBUG: Solaris returned EINTR=%d from accept -- ignoring\n",acceptError);
-				#endif
-				
 				WarnV( (acceptError == ENOENT) || (acceptError == EINTR), "Unusual accept error on socket -- ignoring");
-				if ((acceptError == ENOENT) ||(acceptError == EINTR))
-				{	break;
-				}			
-
-#endif
 				continue;
 			}
 		}
@@ -153,10 +141,6 @@ void TCPListenerSocket::ProcessEvent(int /*eventBits*/)
 
 			int	sndBufSize = 8L * 1024L;
 			err = ::setsockopt(osSocket, SOL_SOCKET, SO_SNDBUF, (char*)&sndBufSize, sizeof(int));
-			AssertV(err == 0, OSThread::GetErrno());
-
-			int	rcvBufSize = 1L * 1024L;
-			err = ::setsockopt(osSocket, SOL_SOCKET, SO_RCVBUF, (char*)&rcvBufSize, sizeof(int));
 			AssertV(err == 0, OSThread::GetErrno());
 
 			//setup the socket. When there is data on the socket,

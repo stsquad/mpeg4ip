@@ -3,8 +3,8 @@
  * PROGRAM: RAT
  * AUTHOR:  Isidor Kouvelas + Colin Perkins + Orion Hodson
  *
- * $Revision: 1.1 $
- * $Date: 2001/08/01 00:34:01 $
+ * $Revision: 1.2 $
+ * $Date: 2001/10/11 20:39:03 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -40,9 +40,9 @@
 #ifndef _RAT_MEMORY_H
 #define _RAT_MEMORY_H
 
-#define xrealloc(p,x)	_xrealloc(p, x,__FILE__,__LINE__)
 #define xmalloc(x)	_xmalloc(x,__FILE__,__LINE__)
-#define xstrdup(x)	_xstrdup(x,__FILE__,__LINE__)
+#define xrealloc(p,x)	_xrealloc(p, x,__FILE__,__LINE__)
+#define xstrdup(str)	_xstrdup(str,__FILE__,__LINE__)
 
 #if defined(__cplusplus)
 extern "C" {
@@ -52,11 +52,11 @@ extern "C" {
 void 	 xdoneinit(void);
 void	 xmemchk(void);
 void     xmemdmp(void);
-void     xclaim(void *p, const char *filen, int line);
+void     xclaim(void *addr, const char *filen, int line);
 void     xmemdist(FILE *fp);
 
 /* Replacements for regular memory fn's */
-void	 xfree(void *x);
+void	 xfree(void *p);
 void	*_xmalloc(unsigned size,const char *filen,int line);
 void	*_xrealloc(void *p,unsigned size,const char *filen,int line);
 char	*_xstrdup(const char *s1, const char *filen, int line);

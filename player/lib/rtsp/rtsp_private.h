@@ -18,8 +18,10 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
-#include "systems.h"
 #include "rtsp_client.h"
+#include "rtsp_thread_ipc.h"
+#include <SDL.h>
+#include <SDL_thread.h>
 
 #ifndef __BOOL__
 #define __BOOL__
@@ -44,7 +46,7 @@ struct rtsp_session_ {
   char *session;
   char *url;
 };
-
+#define MAX_RTP_THREAD_SESSIONS 4
 /*
  * client main structure
  */
@@ -65,10 +67,6 @@ struct rtsp_client_ {
    */
   int server_socket;
   int recv_timeout;
-  char *recv_buff;
-  uint32_t recv_buff_len;
-  uint32_t recv_buff_used;
-  uint32_t recv_buff_parsed;
 
   /*
    * rtsp information gleamed from other packets
@@ -78,21 +76,46 @@ struct rtsp_client_ {
   rtsp_decode_t *decode_response;
   char *session;
   rtsp_session_t *session_list;
+  /*
+   * Thread information
+   */
+  struct {
+    int rtp_callback_set;
+    rtp_callback_f rtp_callback;
+    rtsp_thread_callback_f rtp_periodic;
+    void *rtp_userdata;
+  } m_callback[MAX_RTP_THREAD_SESSIONS];
+  SDL_Thread *thread;
+  SDL_mutex *msg_mutex;
+  int comm_socket[2];
+  /*
+   * These are if we don't have socketpair
+   */
+  int comm_socket_write_to;
+  char socket_name[108];
+
+  /*
+   * receive buffer
+   */
+  uint32_t m_buffer_len, m_offset_on;
+  char m_resp_buffer[RECV_BUFF_DEFAULT_LEN + 1];
+
 };
 
 void clear_decode_response(rtsp_decode_t *decode);
 
 void free_rtsp_client(rtsp_client_t *rptr);
 void free_session_info(rtsp_session_t *session);
-
+rtsp_client_t *rtsp_create_client_common(const char *url, int *perr);
+int rtsp_dissect_url(rtsp_client_t *rptr, const char *url);
 /* communications routines */
 int rtsp_create_socket(rtsp_client_t *info);
 void rtsp_close_socket(rtsp_client_t *info);
 
 int rtsp_send(rtsp_client_t *info, const char *buff, uint32_t len);
 void rtsp_flush(rtsp_client_t *info);
-int rtsp_receive(rtsp_client_t *info);
-int rtsp_receive_more(rtsp_client_t *info, uint32_t more_cnt);
+int rtsp_receive(int rsocket, char *buffer, uint32_t len,
+		 uint32_t msec_timeout);
 
 int rtsp_get_response(rtsp_client_t *info);
 
@@ -106,3 +129,16 @@ void rtsp_debug(int loglevel, const char *fmt, ...)
      ;
 #endif
 
+int rtsp_create_thread (rtsp_client_t *info);
+int rtsp_thread_ipc_send (rtsp_client_t *info,
+			  const unsigned char *msg,
+			  int len);
+int rtsp_thread_ipc_send_wait(rtsp_client_t *info,
+			      const unsigned char *msg,
+			      int msg_len,
+			      char *return_msg,
+			      int return_msg_len);
+
+int rtsp_send_and_get(rtsp_client_t *info,
+		      char *buffer,
+		      uint32_t buflen);

@@ -13,13 +13,13 @@ PROJECTVERSION = 2.8
 PROJECT_TYPE = Aggregate
 
 BUNDLES = QTSSSpamDefenseModule.bproj QTSSRawFileModule.bproj\
-          QTSSAccessModule.bproj QTSSFilePrivsModule.bproj\
-          QTSSDemoAuthorizationModule.bproj QTSSDemoSMILModule.bproj
+          QTSSFilePrivsModule.bproj QTSSDemoAuthorizationModule.bproj\
+          QTSSDemoSMILModule.bproj
 
 LIBRARIES = OSMemory_Modules QTSSAccessLogModule QTSSFileModule\
             QTSSReflectorModule QTSSFlowControlModule QTSSWebDebugModule\
             QTSSWebStatsModule QTSSPOSIXFileSysModule QTSSAdminModule\
-            QTSSHttpFileModule
+            QTSSHttpFileModule QTSSRTPFileModule QTSSAccessModule
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble
 

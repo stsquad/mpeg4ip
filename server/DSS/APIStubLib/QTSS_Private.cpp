@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSS_Private.c
@@ -95,19 +95,19 @@ QTSS_Error 	QTSS_AddRole(QTSS_Role inRole)
 
 // DICTIONARY ROUTINES
 
-QTSS_Error	QTSS_AddAttribute(QTSS_ObjectType inType, const char* inTag, QTSS_AttrParamFunctionPtr inFunctionPtr)
+QTSS_Error	QTSS_AddAttribute(QTSS_ObjectType inType, const char* inTag, void* inUnused)
 {
-	return (sCallbacks->addr [kAddAttributeCallback]) (inType, inTag, inFunctionPtr);	
+	return (sCallbacks->addr [kAddAttributeCallback]) (inType, inTag, inUnused);	
 }
 
-QTSS_Error	QTSS_AddStaticAttribute(QTSS_ObjectType inObjectType, char* inAttrName, QTSS_AttrParamFunctionPtr inAttrFunPtr, QTSS_AttrDataType inAttrDataType)
+QTSS_Error	QTSS_AddStaticAttribute(QTSS_ObjectType inObjectType, char* inAttrName, void* inUnused, QTSS_AttrDataType inAttrDataType)
 {
-	return (sCallbacks->addr [kAddStaticAttributeCallback]) (inObjectType, inAttrName, inAttrFunPtr, inAttrDataType);	
+	return (sCallbacks->addr [kAddStaticAttributeCallback]) (inObjectType, inAttrName, inUnused, inAttrDataType);	
 }
 
-QTSS_Error	QTSS_AddInstanceAttribute(QTSS_Object inObject, char* inAttrName, QTSS_AttrParamFunctionPtr inAttrFunPtr, QTSS_AttrDataType inAttrDataType)
+QTSS_Error	QTSS_AddInstanceAttribute(QTSS_Object inObject, char* inAttrName, void* inUnused, QTSS_AttrDataType inAttrDataType)
 {
-	return (sCallbacks->addr [kAddInstanceAttributeCallback]) (inObject, inAttrName, inAttrFunPtr, inAttrDataType);	
+	return (sCallbacks->addr [kAddInstanceAttributeCallback]) (inObject, inAttrName, inUnused, inAttrDataType);	
 }
 
 QTSS_Error QTSS_RemoveInstanceAttribute(QTSS_Object inObject, QTSS_AttributeID inID)
@@ -118,21 +118,6 @@ QTSS_Error QTSS_RemoveInstanceAttribute(QTSS_Object inObject, QTSS_AttributeID i
 QTSS_Error	QTSS_IDForAttr(QTSS_ObjectType inType, const char* inTag, QTSS_AttributeID* outID)
 {
 	return (sCallbacks->addr [kIDForTagCallback]) (inType, inTag, outID);	
-}
-
-QTSS_Error QTSS_GetStaticAttrInfoByName(QTSS_ObjectType inObjectType, char* inAttrName, QTSS_Object* outAttrInfoObject)
-{
-	return (sCallbacks->addr [kGetStaticAttrInfoByNameCallback]) (inObjectType, inAttrName, outAttrInfoObject);
-}
-
-QTSS_Error QTSS_GetStaticAttrInfoByID(QTSS_ObjectType inObjectType, QTSS_AttributeID inAttrID, QTSS_Object* outAttrInfoObject)
-{
-	return (sCallbacks->addr [kGetStaticAttrInfoByIDCallback]) (inObjectType, inAttrID, outAttrInfoObject);	
-}
-
-QTSS_Error QTSS_GetStaticAttrInfoByIndex(QTSS_ObjectType inObjectType, UInt32 inIndex, QTSS_Object* outAttrInfoObject)
-{
-	return (sCallbacks->addr [kGetStaticAttrInfoByIndexCallback]) (inObjectType, inIndex, outAttrInfoObject);	
 }
 
 QTSS_Error QTSS_GetAttrInfoByIndex(QTSS_Object inObject, UInt32 inIndex, QTSS_Object* outAttrInfoObject)
@@ -150,7 +135,6 @@ QTSS_Error QTSS_GetAttrInfoByName(QTSS_Object inObject, char* inAttrName, QTSS_O
 	return (sCallbacks->addr [kGetAttrInfoByNameCallback]) (inObject, inAttrName, outAttrInfoObject);	
 }
 
-
 QTSS_Error 	QTSS_GetValuePtr (QTSS_Object inDictionary, QTSS_AttributeID inID, UInt32 inIndex, void** outBuffer, UInt32* outLen)
 {
 	return (sCallbacks->addr [kGetAttributePtrByIDCallback]) (inDictionary, inID, inIndex, outBuffer, outLen);	
@@ -166,19 +150,24 @@ QTSS_Error QTSS_GetValueAsString (QTSS_Object inObject, QTSS_AttributeID inID, U
 	return (sCallbacks->addr [kGetValueAsStringCallback]) (inObject, inID, inIndex, outString);	
 }
 
-char* QTSS_GetTypeAsString (QTSS_AttrDataType inType)
+QTSS_Error	QTSS_TypeStringToType(const char* inTypeString, QTSS_AttrDataType* outType)
 {
-	return (char*) (sCallbacks->addr [kGetTypeAsStringCallback]) (inType);	
+	return (sCallbacks->addr [kTypeStringToTypeCallback]) (inTypeString, outType);	
 }
 
-QTSS_AttrDataType QTSS_GetDataTypeForTypeString(char* inTypeString)
+QTSS_Error	QTSS_TypeToTypeString(const QTSS_AttrDataType inType, char** outTypeString)
 {
-	return (sCallbacks->addr [kGetDataTypeForTypeStringCallback]) (inTypeString);	
+	return (sCallbacks->addr [kTypeToTypeStringCallback]) (inType, outTypeString);	
 }
 
-QTSS_Error QTSS_ConvertStringToType(char* inValueAsString,QTSS_AttrDataType inType, void* ioBuffer, UInt32* ioBufSize)
+QTSS_Error	QTSS_StringToValue(const char* inValueAsString, const QTSS_AttrDataType inType, void* ioBuffer, UInt32* ioBufSize)
 {
-	return (sCallbacks->addr [kConvertStringToTypeCallback]) (inValueAsString, inType, ioBuffer, ioBufSize);	
+	return (sCallbacks->addr [kStringToValueCallback]) (inValueAsString, inType, ioBuffer, ioBufSize);	
+}
+
+QTSS_Error	QTSS_ValueToString(const void* inValue, const UInt32 inValueLen, const QTSS_AttrDataType inType, char** outString)
+{
+	return (sCallbacks->addr [kValueToStringCallback]) (inValue, inValueLen, inType, outString);	
 }
 
 QTSS_Error 	QTSS_SetValue (QTSS_Object inDictionary, QTSS_AttributeID inID,UInt32 inIndex,  const void* inBuffer,  UInt32 inLen)
@@ -291,6 +280,12 @@ QTSS_Error QTSS_Teardown(QTSS_ClientSessionObject inClientSession)
 	return (sCallbacks->addr [kTeardownCallback]) (inClientSession);		
 }
 
+QTSS_Error QTSS_RefreshTimeOut(QTSS_ClientSessionObject inClientSession)
+{
+	return (sCallbacks->addr [kRefreshTimeOutCallback]) (inClientSession);		
+}
+
+
 // FILE SYSTEM ROUTINES
 
 QTSS_Error	QTSS_OpenFileObject(char* inPath, QTSS_OpenFileFlags inFlags, QTSS_Object* outFileObject)
@@ -349,3 +344,20 @@ QTSS_Error  QTSS_GlobalUnLock()
 {
 	return (sCallbacks->addr [kUnlockGlobalLock])  ();
 }
+
+// AUTHENTICATION AND AUTHORIZATION ROUTINE
+QTSS_Error	QTSS_Authenticate(	const char* inAuthUserName, 
+								const char* inAuthResourceLocalPath, 
+								const char* inAuthMoviesDir, 
+								QTSS_ActionFlags inAuthRequestAction, 
+								QTSS_AuthScheme inAuthScheme, 
+								QTSS_RTSPRequestObject ioAuthRequestObject)
+{
+	return (sCallbacks->addr [kAuthenticateCallback]) (inAuthUserName, inAuthResourceLocalPath, inAuthMoviesDir, inAuthRequestAction, inAuthScheme, ioAuthRequestObject);
+}
+
+QTSS_Error	QTSS_Authorize(QTSS_RTSPRequestObject inAuthRequestObject, char* outAuthRealm, Bool16* outAuthUserAllowed)
+{
+	return (sCallbacks->addr [kAuthorizeCallback]) (inAuthRequestObject, outAuthRealm, outAuthUserAllowed);
+}
+

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 #ifndef playlist_elements_H
 #define playlist_elements_H
@@ -50,6 +50,7 @@
 #include "OSHeaders.h"
 #include "playlist_SimpleParse.h"
 #include "QTRTPFile.h"
+#include "BroadcasterSession.h"
 
 class MediaStream;
 
@@ -156,7 +157,6 @@ class UDPSocketPair
 
 	int					fMaxBindAttempts;
 	int					fState;
-	
 	int					fSocketRTp;
 	struct sockaddr_in	fLocalAddrRTp;
 	struct sockaddr_in	fDestAddrRTp;
@@ -164,16 +164,35 @@ class UDPSocketPair
 	int					fSocketRTCp;
 	struct sockaddr_in	fLocalAddrRTCp;
 	struct sockaddr_in	fDestAddrRTCp;
+	BroadcasterSession *fBroadcasterSession;
+	UInt8 				fChannel;
+	Bool16				fIsMultiCast;
+	Bool16				fMultiCastJoined;
 	
-	UDPSocketPair() : fMaxBindAttempts(eBindMaxTries), fState(false), fSocketRTp(0), fSocketRTCp(0) {};  
+	UDPSocketPair() : 	fMaxBindAttempts(eBindMaxTries), 
+						fState(0),  
+						fSocketRTp(0), 
+						fSocketRTCp(0),
+						fBroadcasterSession(NULL),
+						fChannel(0),
+						fIsMultiCast(false),
+						fMultiCastJoined(false)
+						{};  
 	~UDPSocketPair() { Close(); };
 	
 	SInt16	Open();
 	void 	Close();
 	void	InitPorts(UInt32 addr);
 	SInt16 	Bind(UInt32 addr);
-	SInt16  SetDestination (char *destAddress,UInt16 destPortRTp, UInt16 destPortRTCp, UInt8 ttl);
-	
+	SInt16  OpenAndBind( UInt16 rtpPort,UInt16 rtcpPort,char *destAddress);
+
+	SInt16  SetDestination (char *destAddress,UInt16 destPortRTp, UInt16 destPortRTCp);
+	SInt16 	SetTTL(SInt16 timeToLive);
+	SInt16 	JoinMulticast();
+	SInt16 	LeaveMulticast();
+	SInt16	SetMulticastInterface();
+	SInt16 	SetMultiCastOptions(SInt16 ttl);
+
 	SInt16  SendTo(int socket, sockaddr *destAddrPtr, char* inBuffer, UInt32 inLength );
 	SInt16	SendRTp(char* inBuffer, UInt32 inLength);
 	SInt16	SendRTCp(char* inBuffer, UInt32 inLength);
@@ -182,6 +201,7 @@ class UDPSocketPair
 	SInt16 	RecvRTp(char* ioBuffer, UInt32 inBufLen, UInt32* outRecvLen);
 	SInt16 	RecvRTCp(char* ioBuffer, UInt32 inBufLen, UInt32* outRecvLen);
 
+	void	SetRTSPSession(BroadcasterSession *theSession,UInt8 channel) {fBroadcasterSession = theSession, fChannel=channel;}
 };
 
 class ReceiveBuffer

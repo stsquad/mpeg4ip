@@ -1,0 +1,240 @@
+<HTML>
+<HEAD>
+   <META HTTP-EQUIV="content-type" CONTENT="text/html;charset=Shift_JIS">
+   <TITLE>Streaming Server Admin:<%%ECHODATA /server/qtssSvrDefaultDNSName%%></TITLE>
+<SCRIPT LANGUAGE="JavaScript" TYPE="text/javascript">		
+
+function setOpts() {
+	
+ 	document.forms[0].elements[1].defaultChecked 	= document.forms[0].elements[1].checked;
+ 	document.forms[0].elements[2].defaultChecked 	= document.forms[0].elements[2].checked;
+ 	document.forms[0].elements[3].defaultValue 		= document.forms[0].elements[3].value;
+ 	document.forms[0].elements[4].defaultValue 		= document.forms[0].elements[4].value;
+ 	document.forms[0].elements[5].defaultChecked 	= document.forms[0].elements[5].checked;
+ 	document.forms[0].elements[6].defaultChecked 	= document.forms[0].elements[6].checked;
+ 	document.forms[0].elements[7].defaultValue 		= document.forms[0].elements[7].value;
+ 	document.forms[0].elements[8].defaultValue 		= document.forms[0].elements[8].value;
+ }
+ 
+ function submitChangedValues() {
+	if((document.forms[0].elements[1].defaultChecked == document.forms[0].elements[1].checked) && 
+		(document.forms[0].elements[2].defaultChecked == document.forms[0].elements[2].checked)) {
+		document.forms[0].elements[1].name += "$";
+		document.forms[0].elements[2].name += "$";
+	}
+	else {
+		if(document.forms[0].elements[1].checked) {
+			document.forms[0].elements[1].value = "true";
+			document.forms[0].elements[2].value = "true";
+		}
+		else {
+			document.forms[0].elements[1].value = "false";
+			document.forms[0].elements[2].value = "false";
+		}
+	}
+	if(document.forms[0].elements[3].defaultValue == document.forms[0].elements[3].value)
+		document.forms[0].elements[3].name += "$";
+	if(document.forms[0].elements[4].defaultValue == document.forms[0].elements[4].value)
+		document.forms[0].elements[4].name += "$";
+	if((document.forms[0].elements[5].defaultChecked == document.forms[0].elements[5].checked) && 
+		(document.forms[0].elements[6].defaultChecked == document.forms[0].elements[6].checked)) {
+		document.forms[0].elements[5].name += "$";
+		document.forms[0].elements[6].name += "$";
+	}
+	else {
+		if(document.forms[0].elements[5].checked) {
+			document.forms[0].elements[5].value = "true";
+			document.forms[0].elements[6].value = "true";
+		}
+		else {
+			document.forms[0].elements[5].value = "false";
+			document.forms[0].elements[6].value = "false";
+		}
+	}
+	if(document.forms[0].elements[7].defaultValue == document.forms[0].elements[7].value)
+		document.forms[0].elements[7].name += "$";
+	if(document.forms[0].elements[8].defaultValue == document.forms[0].elements[8].value)
+		document.forms[0].elements[8].name += "$";
+
+	document.forms[0].submit();		
+}
+
+function checkValue(field) {
+	if(field.value < 0) {
+		if(field.name == "Error Log Roll Time")
+			<!--Localize - The text within the double quotes must be localized -->
+			alert("エラーログのロール間隔には正の数値を指定してください");
+		else if(field.name == "Error Log Roll Size")
+		 	<!--Localize - The text within the double quotes must be localized -->
+			alert("エラーログのロールサイズには正の数値を指定してください");
+		else if(field.name == "Access Log Roll Time")
+			<!--Localize - The text within the double quotes must be localized -->
+			alert("アクセスログのロール間隔には正の数値を指定してください");
+		else if(field.name == "Access Log Roll Size")
+		 	<!--Localize - The text within the double quotes must be localized -->
+			alert("アクセスログのロールサイズには正の数値を指定してください");
+		
+		field.value = field.defaultValue;
+	}
+}
+
+function init() {
+	toploded = top.nav.loded;
+	if(typeof(toploded) == "number") {
+		top.nav.selekt('2');
+		top.nav.subSelekt('2B');
+		} else {
+	setTimeout("init()", 200);
+	}
+}
+
+</SCRIPT>
+<STYLE TYPE="text/css">	
+<!--	
+
+		TD { font-size: 12px; line-height: 14px; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; }
+		.headline { font-size: 24px; line-height: 24px; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; color: #B7BED2; }
+		.whiteheader { font-size: 16px; line-height: 17px; margin-top: 0px; margin-left: 0px; font-weight: bold; margin-bottom: 0px; color: #FFFFFF; }
+		.dkgrayheader {  font-size: 13px; line-height: 15px; margin-top: 0px; margin-left: 0px; font-weight: bold; margin-bottom: 0px; color: #333333; }
+		.copyheader { font-size: 12px; line-height: 14px; margin-top: 0px; margin-left: 0px; font-weight: bold; margin-bottom: 0px; }
+		
+	-->
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" ONLOAD="init(); setOpts()">
+<FORM NAME="logsettings" METHOD="GET" ACTION="setlogsettings.cgi">
+<CENTER><BR>
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0" WIDTH="85%" HEIGHT="32">
+   <TR>
+      <TD WIDTH="455" CLASS="headline">
+         ログ設定
+      </TD>
+       <TD ALIGN="center" WIDTH="100">
+         <INPUT TYPE="submit" NAME="Submit" VALUE="送信" ONCLICK="submitChangedValues()">
+      </TD>
+   </TR>
+</TABLE>
+ <TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0" WIDTH="85%">
+   <TR>
+      <TD VALIGN="top">
+         <CENTER><BR>
+         <TABLE BORDER="0" BGCOLOR="#D6D6DE" CELLSPACING="1" CELLPADDING="4" WIDTH="60%" HEIGHT="100%">
+            <TR>
+               <TD VALIGN="top" NOWRAP WIDTH="98%" HEIGHT="14" BGCOLOR="#D6D6DE">
+                  <B>エラーログ：</B>
+               </TD>
+            </TR>
+            <TR>
+               <TD VALIGN="top" WIDTH="98%" BGCOLOR="#FFFFFF">
+                  <CENTER><TABLE BORDER="0" CELLSPACING="4" CELLPADDING="0" WIDTH="90%">
+                     <TR>
+                     	<%%GETVALUE errorlogging /server/qtssSvrPreferences/error_logging%%>
+                      <%%IFVALUEEQUALS isTrue errorlogging 'true'%%>
+ 											  <TD WIDTH="50%" ALIGN="RIGHT">
+                           <B>エラーログ：</B>
+                        </TD>
+                        <TD WIDTH="50%">
+                           <%%FORMATRADIOBUTTON isTrue 'Log Errors' 'true' checked%%>入
+                        </TD>
+                     </TR>
+                     <TR>
+                        <TD VALIGN="top" WIDTH="50%">
+                           
+                        </TD>
+                        <TD WIDTH="50%">
+                           <%%FORMATRADIOBUTTON isTrue 'Log Errors' 'false' unchecked%%>切
+                        </TD>
+                     </TR>
+                  </TABLE>
+                  <BR>
+                  <TABLE BORDER="0" CELLSPACING="4" CELLPADDING="0" WIDTH="90%">
+                     <TR>
+                        <TD WIDTH="50%" ALIGN="RIGHT">
+                           <B>エラーログのロール間隔：</B>
+                        </TD>
+                        <TD WIDTH="50%">
+                           <INPUT TYPE="text" NAME="Error Log Roll Time" VALUE="<%%ECHODATA /server/qtssSvrPreferences/error_logfile_interval%%>" SIZE="3" MAXLENGTH="3" ONCHANGE="checkValue(this)">
+                           日
+                        </TD>
+                     </TR>
+                     <TR>
+                        <TD VALIGN="top" WIDTH="50%">
+                           
+                        </TD>
+                        <TD WIDTH="50%">
+                    				<%%GETVALUE errLogSize /server/qtssSvrPreferences/error_logfile_size%%>
+                           <INPUT TYPE="text" NAME="Error Log Roll Size" VALUE="<%%MODIFYDATA errLogSize '> 0' '/ 1024'%%>" SIZE="9" MAXLENGTH="9" ONCHANGE="checkValue(this)">
+                           KB
+                        </TD>
+                     </TR>
+                  </TABLE>
+                  <BR>
+                  </CENTER>
+               </TD>
+            </TR>
+         </TABLE>
+         <BR>
+         <BR>
+         <TABLE BORDER="0" BGCOLOR="#D6D6DE" CELLSPACING="1" CELLPADDING="4" WIDTH="60%" HEIGHT="100%">
+            <TR>
+               <TD VALIGN="top" NOWRAP WIDTH="98%" HEIGHT="14" BGCOLOR="#D6D6DE">
+                  <B>アクセスログ：</B>
+               </TD>
+            </TR>
+            <TR>
+               <TD VALIGN="top" WIDTH="98%" BGCOLOR="#FFFFFF">
+                  <CENTER><TABLE BORDER="0" CELLSPACING="4" CELLPADDING="0" WIDTH="90%">
+                     <TR>
+                     	<%%GETVALUE accesslogging /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logging%%>
+                      <%%IFVALUEEQUALS isTrue accesslogging 'true'%%>
+                        <TD WIDTH="50%" ALIGN="RIGHT">
+                           <B>アクセスログ：</B>
+                        </TD>
+                        <TD WIDTH="50%">
+                           <%%FORMATRADIOBUTTON isTrue 'Log Access' 'true' checked%%>入
+                        </TD>
+                     </TR>
+                     <TR>
+                        <TD VALIGN="top" WIDTH="50%">
+                           
+                        </TD>
+                        <TD WIDTH="50%">
+                           <%%FORMATRADIOBUTTON isTrue 'Log Access' 'false' unchecked%%>切
+                        </TD>
+                     </TR>
+                  </TABLE>
+                  <BR>
+                  <TABLE BORDER="0" CELLSPACING="4" CELLPADDING="0" WIDTH="90%">
+                     <TR>
+                         <TD WIDTH="50%" ALIGN="RIGHT">
+                           <B>アクセスログのロール間隔：</B>
+                        </TD>
+                        <TD WIDTH="50%">
+                           <INPUT TYPE="text" NAME="Access Log Roll Time" VALUE="<%%ECHODATA /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logfile_interval%%>" SIZE="3" MAXLENGTH="3" ONCHANGE="checkValue(this)">
+                          日
+                        </TD>
+                     </TR>
+                     <TR>
+                        <TD VALIGN="top" WIDTH="50%">
+                           
+                        </TD>
+                        <TD WIDTH="50%">
+                        <%%GETVALUE accLogSize /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logfile_size%%>
+                           <INPUT TYPE="text" NAME="Access Log Roll Size" VALUE="<%%MODIFYDATA accLogSize '> 0' '/ 1024'%%>" SIZE="9" MAXLENGTH="9" ONCHANGE="checkValue(this)">
+                           KB
+                        </TD>
+                     </TR>
+                  </TABLE>
+                  <BR>
+                  </CENTER>
+               </TD>
+            </TR>
+         </TABLE>
+         </CENTER>
+      </TD>
+   </TR>
+</TABLE>
+</CENTER>
+</FORM>
+</BODY>
+</HTML>

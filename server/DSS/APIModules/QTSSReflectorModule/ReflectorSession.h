@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		ReflectorSession.h
@@ -33,8 +33,7 @@
 
 */
 
-#ifndef __REFLECTOR_SESSION__
-#define __REFLECTOR_SESSION__
+		
 
 #include "QTSS.h"
 #include "OSRef.h"
@@ -44,9 +43,26 @@
 
 #include "ReflectorStream.h"
 #include "SourceInfo.h"
+#include "OSArrayObjectDeleter.h"
 
 
+#ifndef _FILE_DELETER_
+#define _FILE_DELETER_
 
+class FileDeleter
+{	public:
+	 	FileDeleter(StrPtrLen* inSDPPath);
+		~FileDeleter();
+		
+	private:
+		StrPtrLen fFilePath;
+};
+
+#endif
+
+
+#ifndef __REFLECTOR_SESSION__
+#define __REFLECTOR_SESSION__
 class ReflectorSession
 {
 	public:
@@ -79,16 +95,19 @@ class ReflectorSession
 		enum
 		{
 			kMarkSetup = 0,		//After SetupReflectorSession is called, IsSetup returns true
-			kDontMarkSetup = 1	//After SetupReflectorSession is called, IsSetup returns false
+			kDontMarkSetup = 1,	//After SetupReflectorSession is called, IsSetup returns false
+			kIsPushSession = 2  // When setting up streams handle port conflicts by allocating.
 		};
 		
-		QTSS_Error		SetupReflectorSession(SourceInfo* inInfo, QTSS_RTSPRequestObject inRequest,
-												UInt32 inFlags = kMarkSetup);
+		QTSS_Error		SetupReflectorSession(SourceInfo* inInfo, QTSS_StandardRTSP_Params* inParams,
+												UInt32 inFlags = kMarkSetup, Bool16 filterState = true, UInt32 filterTimeout = 30);
 												
 		// Packets get forwarded by attaching ReflectorOutput objects to a ReflectorSession.
 
 		void	AddOutput(ReflectorOutput* inOutput);
 		void 	RemoveOutput(ReflectorOutput* inOutput);
+		void 	TearDownAllOutputs();
+		void    RemoveSessionFromOutput(QTSS_ClientSessionObject inSession);
 		void	ManuallyMarkSetup()	{ fIsSetup = true; }
 		
 		// For the Relay's status, a ReflectorSession can format an informative bit of
@@ -107,9 +126,11 @@ class ReflectorSession
 		StrPtrLen*		GetSourceInfoHTML() { return &fSourceInfoHTML; }
 		SourceInfo*		GetSourceInfo()		{ return fSourceInfo; }
 		StrPtrLen*		GetLocalSDP()		{ return &fLocalSDP; }
+		StrPtrLen*		GetSourcePath()		{ return &fSourceID; }
 		Bool16			IsSetup()			{ return fIsSetup; }
 		ReflectorStream*GetStreamByIndex(UInt32 inIndex) { return fStreamArray[inIndex]; }
-		
+		void AddBroadcasterClientSession(QTSS_StandardRTSP_Params* inParams);
+
 		// For the QTSSSplitterModule, this object can cache a QTSS_StreamRef
 		void			SetSocketStream(QTSS_StreamRef inStream)	{ fSocketStream = inStream; }
 		QTSS_StreamRef	GetSocketStream()							{ return fSocketStream; }
@@ -137,7 +158,7 @@ class ReflectorSession
 			kNormalQuality = 0,			//UInt32
 			kNumQualityLevels = 2		//UInt32
 		};
-
+	
 	private:
 	
 		// Is this session setup?
@@ -163,6 +184,7 @@ class ReflectorSession
 		
 		// For the QTSSSplitterModule, this object can cache a QTSS_StreamRef
 		QTSS_StreamRef fSocketStream;
+		
 };
 
 #endif

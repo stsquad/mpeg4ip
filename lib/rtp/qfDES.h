@@ -15,16 +15,16 @@ extern "C" {
 #endif
 
 /* what */
-typedef enum QFDES_what_e {qfDES_encrypt, qfDES_decrypt} QFDES_what;
+typedef enum {qfDES_encrypt, qfDES_decrypt} QFDES_what;
 
 /* mode */
-typedef enum QFDES_mode_e {qfDES_ecb, qfDES_cbc, qfDES_cfb, qfDES_ofb} QFDES_mode;
+typedef enum {qfDES_ecb, qfDES_cbc, qfDES_cfb, qfDES_ofb} QFDES_mode;
 
 /* parity */
-typedef enum QFDES_parity_e {qfDES_even, qfDES_odd} QFDES_parity;
+typedef enum {qfDES_even, qfDES_odd} QFDES_parity;
 
 /* key/IV generation */
-typedef enum QFDES_generate_e {qfDES_key, qfDES_iv} QFDES_generate;
+typedef enum {qfDES_key, qfDES_iv} QFDES_generate;
 
 
 /* This does it all */

@@ -33,7 +33,7 @@ BUNDLE_EXTENSION = bundle
 
 
 LIBRARY_PATHS = -L../..
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wshadow -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wshadow -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Carbon -framework Foundation
 
 

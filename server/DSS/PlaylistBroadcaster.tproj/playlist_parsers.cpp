@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 #include "playlist_parsers.h"
@@ -100,6 +100,21 @@ int LineAndWordsParser::Parse (SimpleString *textStrPtr)
 	return count;
 }
 
+
+short SDPFileParser::CountQTTextLines() 
+{
+	short numlines = 0;	
+	TextLine 		*theLinePtr = fParser.fLines.Begin();
+
+	while (theLinePtr)
+	{	if (GetQTTextFromLine(theLinePtr))
+			numlines ++;
+		
+		theLinePtr = fParser.fLines.Next();
+	};
+	
+	return numlines;
+}
 
 
 short SDPFileParser::CountMediaEntries() 
@@ -189,6 +204,31 @@ void SDPFileParser::GetPayLoadsFromLine(TextLine *theLinePtr, TypeMap *theTypeMa
 		idPtr = theTypeMapPtr->fPayLoads.Next();// get next protocol ID ref
 	}
 }
+
+bool SDPFileParser::GetQTTextFromLine(TextLine *theLinePtr)
+{
+//a=x-qt-text-cpy:xxxxx
+//a=x-qt-text-nam:xxxxxx
+//a=x-qt-text-inf:xxxxxxx
+
+	bool result = false;
+	SimpleString *aWordPtr;	
+	char *xString ="a=x-qt-text";
+	do 
+	{
+		aWordPtr = theLinePtr->fWords.Begin();
+		if (!aWordPtr) break;
+		
+		bool isEqual = (0 == strncmp(aWordPtr->fTheString, xString,strlen(xString) ) ) ? true: false;
+		if (!isEqual) break;
+		
+		result = true;
+	
+	} while (false);
+	
+	return result;
+}
+
 
 bool SDPFileParser::GetMediaFromLine(TextLine *theLinePtr, TypeMap *theTypeMapPtr)
 {
@@ -382,6 +422,10 @@ SInt32 SDPFileParser::ParseSDP(char *theBuff)
 	}
 	// exit (0);
 #endif
+
+	fNumQTTextLines = CountQTTextLines();
+	fQTTextLines.SetSize(fNumQTTextLines);
+	SimpleString *theQTTextPtr = fQTTextLines.Begin();
 	
 	fNumTracks = CountMediaEntries();	
 	fSDPMediaList.SetSize(fNumTracks);
@@ -396,6 +440,12 @@ SInt32 SDPFileParser::ParseSDP(char *theBuff)
 		{	foundIP = ParseIPString(theLinePtr);
 		}
 
+		if (theQTTextPtr && GetQTTextFromLine(theLinePtr))
+		{	SimpleString *srcLinePtr = theLinePtr->fWords.Begin();			
+			theQTTextPtr->SetString(srcLinePtr->fTheString, strcspn(srcLinePtr->fTheString, "\r\n") );
+			theQTTextPtr = fQTTextLines.Next();
+		}
+		
 		found = GetMediaFromLine(theLinePtr, theTypeMapPtr);
 		if (found)
 		{

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		AdminQuery.cpp
@@ -53,6 +53,7 @@
 #include "AdminElementNode.h"
 #include "AdminQuery.h"
 #include "OSMemory.h"
+#include "StringTranslator.h"
 
 /*
 r = recurse -> walk downward in hierarchy 
@@ -81,8 +82,8 @@ StrPtrLen * QueryURI::NextSegment(StrPtrLen *currentPathPtr, StrPtrLen *outNextP
 			//printf("theURLPtr="); PRINT_STR(theURLPtr);
 			//printf("QueryURI::NextSegment currentPathPtr="); PRINT_STR(currentPathPtr);
 			
-			UInt32 len = (UInt32)&(theURLPtr->Ptr[theURLPtr->Len -1]) - ((UInt32) currentPathPtr->Ptr + (currentPathPtr->Len -1));
-			char *startPtr = (char *) ( (UInt32) currentPathPtr->Ptr + currentPathPtr->Len) ;
+			UInt32 len = (PointerSizedInt)&(theURLPtr->Ptr[theURLPtr->Len -1]) - ((PointerSizedInt) currentPathPtr->Ptr + (currentPathPtr->Len -1));
+			char *startPtr = (char *) ( (PointerSizedInt) currentPathPtr->Ptr + currentPathPtr->Len) ;
 			StrPtrLen tempPath(startPtr,len);
 			
 			
@@ -589,7 +590,7 @@ void QueryURI::ParseQueryString(StringParser *parserPtr,StrPtrLen *urlStreamPtr)
 		
 		}
 	}
-	len = (UInt32) stopCharPtr - (UInt32) startCharPtr;
+	len = (UInt32) ((PointerSizedInt)stopCharPtr - (PointerSizedInt) startCharPtr);
 	if (len < QueryURI::eMaxBufferSize)
 	{	if (len > 0) 
 			fHasQuery = true;
@@ -626,7 +627,29 @@ void QueryURI::URLParse(StrPtrLen *inStream)
 {	
 	if (inStream != NULL) 
 	{
-		StringParser parser(inStream);
+		char * decodedRequest = NEW char[inStream->Len + 1];
+		Assert(decodedRequest != NULL);
+		decodedRequest[inStream->Len] = 0;
+		OSCharArrayDeleter decodedRequestDeleter(decodedRequest);
+		
+		StringParser tempParser(inStream);
+		StrPtrLen URLToParse;
+		SInt32 URLoffset = 0;
+		
+		if (inStream->Len > 0)
+		{	// skip past the HTTP command for the StringTranslator::DecodeURL but keep it in our decoded Request buffer
+			tempParser.ConsumeWhitespace();
+			tempParser.ConsumeWord(NULL);
+			tempParser.ConsumeWhitespace();
+			URLToParse.Set(tempParser.GetCurrentPosition(),tempParser.GetDataRemaining());	// this should be a '/' and is required by the DecodeURL routine
+			URLoffset = tempParser.GetDataParsedLen();
+			memcpy(decodedRequest, inStream->Ptr, URLoffset);
+		}
+		
+		SInt32 decodedLen = StringTranslator::DecodeURL(URLToParse.Ptr, URLToParse.Len, &decodedRequest[URLoffset], inStream->Len);
+		StrPtrLen decodedRequestStr(decodedRequest,decodedLen);
+		
+		StringParser parser(&decodedRequestStr);
 		StrPtrLen startFields;
 		StrPtrLen adminURI;
 		StrPtrLen streamURL;
@@ -634,15 +657,15 @@ void QueryURI::URLParse(StrPtrLen *inStream)
 		do // once
 		{ 
 
-			if (!inStream)
+			if (decodedRequestStr.Len < 1)
 			{	
 				//printf("no string to parse \n");
 				break;
 			}
 			
-			if (inStream->Len > QueryURI::eMaxBufferSize -1)
+			if (decodedRequestStr.Len > QueryURI::eMaxBufferSize -1)
 			{	
-				//printf("URL string bigger than Buffer size=%lu\n",inStream->Len);
+				//printf("URL string bigger than Buffer size=%lu\n",decodedRequestStr.Len);
 				break;
 			}		
 	

@@ -19,6 +19,9 @@
  *              Bill May        wmay@cisco.com
  */
 #include "mp3.h"
+#include "player_session.h"
+#include "player_media.h"
+#include "rtp_bytestream.h"
 
 static unsigned char c_byte_get (void *ud)
 {

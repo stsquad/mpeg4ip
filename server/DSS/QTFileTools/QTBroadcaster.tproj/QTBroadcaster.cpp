@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 #include <stdio.h>
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
 				exit(1);
 		}
 
-		RTPFile->SetTrackCookie(atoi(*argv), (char *)CurPort);
+		RTPFile->SetTrackCookies(atoi(*argv), (char *)CurPort, 0);
 		CurPort += 2;
 
 		(void)RTPFile->GetSeekTimestamp(atoi(*argv));
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
 		// General vars
 		char	*Packet;
 		int		PacketLength;
-		int		Cookie;
+		//int		Cookie;
 
 		Float64	SleepTime;
 
@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
 
 		//
 		// Get the next packet.
-		Float64 TransmitTime = RTPFile->GetNextPacket(&Packet, &PacketLength, (void **)&Cookie);
+		Float64 TransmitTime = RTPFile->GetNextPacket(&Packet, &PacketLength);
 		if( Packet == NULL )
 			break;
 		
@@ -187,7 +187,7 @@ printf("Sleeping for %.2f seconds (TransmitTime=%.2f).\n", SleepTime, TransmitTi
 		// Send the packet.
 		memset(&sin, 0, sizeof(struct sockaddr_in));
 		sin.sin_family = AF_INET;
-		sin.sin_port = htons(Cookie);
+		sin.sin_port = htons((short)RTPFile->GetLastPacketTrack()->Cookie1);
 		sin.sin_addr.s_addr = inet_addr(IPAddress);
 		sendto(s, Packet, PacketLength, 0, (struct sockaddr *)&sin, sizeof(struct sockaddr));
 	}

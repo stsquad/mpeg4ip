@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSModuleUtils.cpp
@@ -36,9 +36,10 @@
 #include "OSMemory.h"
 #include "MyAssert.h"
 #include "StringFormatter.h"
-#include "QTSSDataConverter.h"
 #include "ResizeableStringFormatter.h"
-#ifndef WIN32
+#include "QTAccessFile.h"
+
+#ifndef __Win32__
 #include <netinet/in.h>
 #endif
 
@@ -56,41 +57,68 @@ void	QTSSModuleUtils::Initialize(QTSS_TextMessagesObject inMessages,
 	sErrorLog = inErrorLog;
 }
 
-void QTSSModuleUtils::ReadEntireFile(char* inPath, StrPtrLen* outData)
+QTSS_Error QTSSModuleUtils::ReadEntireFile(char* inPath, StrPtrLen* outData, QTSS_TimeVal inModDate, QTSS_TimeVal* outModDate)
 {	
-	//
-	// Use the QTSS file system API to read the file
+	
 	QTSS_Object theFileObject = NULL;
-	QTSS_Error theErr = QTSS_OpenFileObject(inPath, 0, &theFileObject);
-	if (theErr != QTSS_NoErr)
-		return;
+	QTSS_Error theErr = QTSS_NoErr;
+	
+	outData->Ptr = NULL;
+	outData->Len = 0;
+	
+	do { 
+
+		// Use the QTSS file system API to read the file
+		theErr = QTSS_OpenFileObject(inPath, 0, &theFileObject);
+		if (theErr != QTSS_NoErr)
+			break;
+	
+		UInt32 theParamLen = 0;
+		QTSS_TimeVal* theModDate = NULL;
+		theErr = QTSS_GetValuePtr(theFileObject, qtssFlObjModDate, 0, (void**)&theModDate, &theParamLen);
+		Assert(theParamLen == sizeof(QTSS_TimeVal));
+		if(theParamLen != sizeof(QTSS_TimeVal))
+			break;
+		if(outModDate != NULL)
+			*outModDate = (QTSS_TimeVal)*theModDate;
+
+		if(inModDate != -1) {	
+			// If file hasn't been modified since inModDate, don't have to read the file
+			if(*theModDate <= inModDate)
+				break;
+		}
 		
-	UInt64* theLength = NULL;
-	UInt32 theParamLen = 0;
-	theErr = QTSS_GetValuePtr(theFileObject, qtssFlObjLength, 0, (void**)&theLength, &theParamLen);
-	Assert(theParamLen == sizeof(UInt64));
-	if (theParamLen != sizeof(UInt64))
-		return;
+		theParamLen = 0;
+		UInt64* theLength = NULL;
+		theErr = QTSS_GetValuePtr(theFileObject, qtssFlObjLength, 0, (void**)&theLength, &theParamLen);
+		if (theParamLen != sizeof(UInt64))
+			break;
 		
 	
-	// Allocate memory for the file data
-	outData->Ptr = NEW char[*theLength + 1];
-	outData->Len = *theLength;
+		// Allocate memory for the file data
+		outData->Ptr = NEW char[*theLength + 1];
+		outData->Len = *theLength;
+		outData->Ptr[outData->Len] = 0;
 	
-	// Read the data
-	UInt32 recvLen = 0;
-	theErr = QTSS_Read(theFileObject, outData->Ptr, outData->Len, &recvLen);
-	if (theErr != QTSS_NoErr)
-	{
-		delete [] outData->Ptr;
-		outData->Len = 0;
-		return;
-	}
-	Assert(outData->Len == recvLen);
+		// Read the data
+		UInt32 recvLen = 0;
+		theErr = QTSS_Read(theFileObject, outData->Ptr, outData->Len, &recvLen);
+		if (theErr != QTSS_NoErr)
+		{
+			delete [] outData->Ptr;
+			outData->Len = 0;
+			break;
+		}	
+		Assert(outData->Len == recvLen);
+	
+	}while(false);
 	
 	// Close the file
-	theErr = QTSS_CloseFileObject(theFileObject);
-	Assert(theErr == QTSS_NoErr);
+	if(theFileObject != NULL) {
+		theErr = QTSS_CloseFileObject(theFileObject);
+	}
+	
+	return theErr;
 }
 
 void	QTSSModuleUtils::SetupSupportedMethods(QTSS_Object inServer, QTSS_RTSPMethod* inMethodArray, UInt32 inNumMethods)
@@ -405,7 +433,10 @@ void	QTSSModuleUtils::GetPref(QTSS_Object inPrefsObject, char* inPrefName, QTSS_
 		{
 			//
 			// Log an error for this pref only if there was a default value provided.
-			OSCharArrayDeleter theValueStr(QTSSDataConverter::ConvertTypeToString(inDefaultValue, inBufferLen, inType));
+			char* theValueAsString = NULL;
+			theErr = QTSS_ValueToString(inDefaultValue, inBufferLen, inType, &theValueAsString);
+			Assert(theErr == QTSS_NoErr);
+			OSCharArrayDeleter theValueStr(theValueAsString);
 			QTSSModuleUtils::LogError( 	qtssWarningVerbosity,
 										qtssServerPrefMissing,
 										0,
@@ -504,7 +535,10 @@ QTSS_AttributeID	QTSSModuleUtils::CheckPrefDataType(QTSS_Object inPrefsObject, c
 
 	if (thePrefType != inType)
 	{
-		OSCharArrayDeleter theValueStr(QTSSDataConverter::ConvertTypeToString(inDefaultValue, inBufferLen, inType));
+		char* theValueAsString = NULL;
+		theErr = QTSS_ValueToString(inDefaultValue, inBufferLen, inType, &theValueAsString);
+		Assert(theErr == QTSS_NoErr);
+		OSCharArrayDeleter theValueStr(theValueAsString);
 		QTSSModuleUtils::LogError( 	qtssWarningVerbosity,
 									qtssServerPrefWrongType,
 									0,
@@ -535,3 +569,68 @@ QTSS_AttributeID	QTSSModuleUtils::CreatePrefAttr(QTSS_ModulePrefsObject inPrefsO
 	}
 	return theID;
 }
+
+QTSS_ActionFlags QTSSModuleUtils::GetRequestActions(QTSS_RTSPRequestObject theRTSPRequest)
+{
+	// Don't touch write requests
+	QTSS_ActionFlags action = qtssActionFlagsNoFlags;
+	UInt32 len = sizeof(QTSS_ActionFlags);
+	QTSS_Error theErr = QTSS_GetValue(theRTSPRequest, qtssRTSPReqAction, 0, (void*)&action, &len);
+	Assert(theErr == QTSS_NoErr);
+	Assert(len == sizeof(QTSS_ActionFlags));
+	return action;
+}
+
+char* QTSSModuleUtils::GetLocalPath_Copy(QTSS_RTSPRequestObject theRTSPRequest)
+{	char*	pathBuffStr = NULL;
+	QTSS_Error theErr = QTSS_GetValueAsString(theRTSPRequest, qtssRTSPReqLocalPath, 0, &pathBuffStr);
+	Assert(theErr == QTSS_NoErr);
+	return pathBuffStr;
+}
+
+char* QTSSModuleUtils::GetMoviesRootDir_Copy(QTSS_RTSPRequestObject theRTSPRequest)
+{	char*	movieRootDirStr = NULL;
+	QTSS_Error theErr = QTSS_GetValueAsString(theRTSPRequest,qtssRTSPReqRootDir, 0, &movieRootDirStr);
+	Assert(theErr == QTSS_NoErr);
+	return movieRootDirStr;
+}
+
+QTSS_UserProfileObject QTSSModuleUtils::GetUserProfileObject(QTSS_RTSPRequestObject theRTSPRequest)
+{	QTSS_UserProfileObject theUserProfile = NULL;
+	UInt32 len = sizeof(QTSS_UserProfileObject);
+	QTSS_Error theErr = QTSS_GetValue(theRTSPRequest, qtssRTSPReqUserProfile, 0, (void*)&theUserProfile, &len);
+	Assert(theErr == QTSS_NoErr);
+	return theUserProfile;
+}
+
+char *QTSSModuleUtils::GetUserName_Copy(QTSS_UserProfileObject inUserProfile)
+{
+	char*	username = NULL;	
+	(void) QTSS_GetValueAsString(inUserProfile, qtssUserName, 0, &username);
+	return username;
+}
+
+char**  QTSSModuleUtils::GetGroupsArray_Copy(QTSS_UserProfileObject inUserProfile, UInt32 *outNumGroupsPtr)
+{
+	Assert(NULL != outNumGroupsPtr)
+
+	char** outGroupCharPtrArray = NULL;
+	*outNumGroupsPtr = 0;
+	
+	if (NULL == inUserProfile)
+		return NULL;
+	
+	QTSS_Error theErr = QTSS_GetNumValues (inUserProfile,qtssUserGroups, outNumGroupsPtr);
+	if (theErr != QTSS_NoErr || *outNumGroupsPtr == 0)
+		return NULL;
+		
+	outGroupCharPtrArray = NEW char*[*outNumGroupsPtr]; // array of char *
+	UInt32 len = 0;
+	for (UInt32 index = 0; index < *outNumGroupsPtr; index++)
+	{	outGroupCharPtrArray[index] = NULL;
+		QTSS_GetValuePtr(inUserProfile, qtssUserGroups, index,(void **) &outGroupCharPtrArray[index], &len);
+	}	
+
+	return outGroupCharPtrArray;
+}
+

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTCPSRPacket.h
@@ -58,19 +58,29 @@ class RTCPSRPacket
 		// ACCESSORS
 		
 		void*	GetSRPacket() 		{ return &fSenderReportBuffer[0]; }
-		UInt32	GetSRPacketLen() 	{ return fSenderReportSize; }
-		UInt32	GetSRWithByePacketLen() { return fSenderReportSize + kByeSizeInBytes; }
+		UInt32	GetSRPacketLen() 	{ return fSenderReportWithServerInfoSize; }
+		UInt32	GetSRWithByePacketLen() { return fSenderReportWithServerInfoSize + kByeSizeInBytes; }
 		
+		void*	GetServerInfoPacket() { return &fSenderReportBuffer[fSenderReportSize]; }
+		UInt32	GetServerInfoPacketLen() { return kServerInfoSizeInBytes; }
+
 		//
 		// MODIFIERS
 		
+		//
+		// FOR SR
 		inline void	SetSSRC(UInt32 inSSRC);
+		inline void	SetClientSSRC(UInt32 inClientSSRC);
 
 		inline void	SetNTPTimestamp(SInt64 inNTPTimestamp);
 		inline void	SetRTPTimestamp(UInt32 inRTPTimestamp);
 		
 		inline void	SetPacketCount(UInt32 inPacketCount);
 		inline void	SetByteCount(UInt32 inByteCount);
+		
+		//
+		// FOR SERVER INFO APP PACKET
+		inline void	SetAckTimeout(UInt32 inAckTimeoutInMsec);
 
 		//RTCP support requires generating unique CNames for each session.
 		//This function generates a proper cName and returns its length. The buffer
@@ -86,10 +96,12 @@ class RTCPSRPacket
 		enum
 		{
 			kSenderReportSizeInBytes = 36,
+			kServerInfoSizeInBytes = 28,
 			kByeSizeInBytes = 8
 		};
-		char		fSenderReportBuffer[kSenderReportSizeInBytes + kMaxCNameLen + kByeSizeInBytes];
+		char		fSenderReportBuffer[kSenderReportSizeInBytes + kMaxCNameLen + kServerInfoSizeInBytes + kByeSizeInBytes];
 		UInt32		fSenderReportSize;
+		UInt32		fSenderReportWithServerInfoSize;
 
 };
 
@@ -101,9 +113,20 @@ inline void	RTCPSRPacket::SetSSRC(UInt32 inSSRC)
 	// Set SSRC in SDES
 	((UInt32*)&fSenderReportBuffer)[8] = htonl(inSSRC);
 	
-	// Set SSRC in BYE
+	// Set SSRC in SERVER INFO
 	Assert((fSenderReportSize & 3) == 0);
 	((UInt32*)&fSenderReportBuffer)[(fSenderReportSize >> 2) + 1] = htonl(inSSRC);
+
+	// Set SSRC in BYE
+	Assert((fSenderReportWithServerInfoSize & 3) == 0);
+	((UInt32*)&fSenderReportBuffer)[(fSenderReportWithServerInfoSize >> 2) + 1] = htonl(inSSRC);
+}
+
+inline void	RTCPSRPacket::SetClientSSRC(UInt32 inClientSSRC)
+{
+	//
+	// Set Client SSRC in SERVER INFO
+	((UInt32*)&fSenderReportBuffer)[(fSenderReportSize >> 2) + 3] = htonl(inClientSSRC);	
 }
 
 inline void	RTCPSRPacket::SetNTPTimestamp(SInt64 inNTPTimestamp)
@@ -130,5 +153,10 @@ inline void	RTCPSRPacket::SetByteCount(UInt32 inByteCount)
 {
 	((UInt32*)&fSenderReportBuffer)[6] = htonl(inByteCount);
 }	
+
+inline void	RTCPSRPacket::SetAckTimeout(UInt32 inAckTimeoutInMsec)
+{
+	((UInt32*)&fSenderReportBuffer)[(fSenderReportWithServerInfoSize >> 2) - 1] = htonl(inAckTimeoutInMsec);
+}
 
 #endif //__RTCP_SR_PACKET__

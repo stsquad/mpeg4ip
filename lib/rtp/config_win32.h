@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.1 $
- *  $Date: 2001/08/01 00:34:01 $
+ *  $Revision: 1.2 $
+ *  $Date: 2001/10/11 20:39:03 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -50,9 +50,6 @@
 #include <stdlib.h>   /* abs() */
 #include <string.h>
 #include <winsock2.h>
-#ifndef MUSICA_IPV6
-#include <ws2tcpip.h>
-#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -60,8 +57,18 @@
 #ifdef MUSICA_IPV6
 #include <winsock6.h>
 #else
+#ifdef WIN2K_IPV6
+#include <ws2tcpip.h>
+#include <tpipv6.h>
+#else
 #include <ws2ip6.h>
+#include <ws2tcpip.h>
 #endif
+#endif
+#endif
+
+#ifndef MUSICA_IPV6
+#include <ws2tcpip.h>
 #endif
 
 #include <mmreg.h>
@@ -82,9 +89,9 @@ typedef unsigned int	fd_t;
  * be adjusted for 16- or 64-bit architectures
  */
 typedef unsigned __int8		uint8_t;
-typedef unsigned __int16 uint16_t;
-typedef unsigned __int32 uint32_t;
-typedef unsigned __int64 uint64_t;
+typedef unsigned __int16	uint16_t;
+typedef unsigned __int32	uint32_t;
+typedef unsigned __int64    uint64_t;
 typedef __int8		int8_t;
 typedef __int16		int16_t;
 typedef __int32		int32_t;
@@ -173,7 +180,6 @@ extern "C" {
 
 int uname(struct utsname *);
 int getopt(int, char * const *, const char *);
-
 int srandom(int);
 int random(void);
 int gethostid(void);
@@ -182,6 +188,7 @@ int getgid(void);
 #define getpid _getpid
 int nice(int);
 int usleep(unsigned int);
+
 
 const char * w32_make_version_info(char * rat_verion);
 

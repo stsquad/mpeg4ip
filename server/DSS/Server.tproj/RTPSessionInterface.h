@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
-
+ *
+ */
+ /*
 	Contains:	API interface for objects to use to get access to attributes,
 				data items, whatever, specific to RTP sessions (see RTPSession.h
 				for more details on what that object is). This object
@@ -41,6 +42,7 @@
 #include "TimeoutTask.h"
 #include "Task.h"
 #include "RTPBandwidthTracker.h"
+#include "RTPOverbufferWindow.h"
 
 #include "OSMutex.h"
 #include "atomic.h"
@@ -57,10 +59,17 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 		
 		RTPSessionInterface();
 		virtual ~RTPSessionInterface()
-			{ if (fRTSPSession != NULL) fRTSPSession->DecrementObjectHolderCount(); }
+			{ 	if (fRTSPSession != NULL)
+					fRTSPSession->DecrementObjectHolderCount();
+				delete [] fSRBuffer.Ptr;
+				delete [] fAuthNonce.Ptr;		
+				delete [] fAuthOpaque.Ptr;		
+			}
 
 		//Timeouts. This allows clients to refresh the timeout on this session
-		void	RefreshTimeout()  		{ fTimeoutTask.RefreshTimeout(); }
+		void	RefreshTimeout()  	  	{ fTimeoutTask.RefreshTimeout(); }
+		void	RefreshRTSPTimeout()  	{ if (fRTSPSession != NULL) fRTSPSession->RefreshTimeout(); }
+		void	RefreshTimeouts() 		{ RefreshTimeout(); RefreshRTSPTimeout();}
 		
 		//
 		// ACCESSORS
@@ -74,13 +83,10 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 		//Time (msec) most recent play, adjusted for start time of the movie
 		//ex: PlayTime() == 20,000. Client said start 10 sec into the movie,
 		//so AdjustedPlayTime() == 10,000
-		SInt64	GetAdjustedPlayTime()	{ return fAdjustedPlayTime; }
 		QTSS_PlayFlags GetPlayFlags()	{ return fPlayFlags; }
-		RTCPSRPacket*	GetSRPacket()		{ return &fRTCPSRPacket; }
 		OSMutex*		GetSessionMutex()	{ return &fSessionMutex; }
 		UInt32			GetPacketsSent()	{ return fPacketsSent; }
 		UInt32			GetBytesSent()	{ return fBytesSent; }
-		StrPtrLen*	GetSessionID()		{ return &fRTSPSessionID; }
 		OSRef*		GetRef()			{ return &fRTPMapElem; }
 		RTSPSessionInterface* GetRTSPSession() { return fRTSPSession; }
 		UInt32		GetMovieAvgBitrate(){ return fMovieAverageBitRate; }
@@ -88,20 +94,35 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 		QTSS_RTPSessionState	GetSessionState() { return fState; }
 		void	SetUniqueID(UInt32 theID)	{fUniqueID = theID;}
 		RTPBandwidthTracker* GetBandwidthTracker() { return &fTracker; }
+		RTPOverbufferWindow* GetOverbufferWindow() { return &fOverbufferWindow; }
+		UInt32	GetFramesSkipped() { return fFramesSkipped; }
+		
+		//
+		// MEMORY FOR RTCP PACKETS
+		
+		//
+		// Class for easily building a standard RTCP SR
+		RTCPSRPacket*	GetSRPacket()		{ return &fRTCPSRPacket; }
+
+		//
+		// Memory if you want to build your own
+		char*			GetSRBuffer(UInt32 inSRLen);
 		
 		//
 		// STATISTICS UPDATING
 		
 		//The session tracks the total number of bytes sent during the session.
 		//Streams can update that value by calling this function
-		void			UpdateBytesSent(UInt32 bytesSent)
-										{ (void)atomic_add(&fBytesSent, bytesSent); }
+		void			UpdateBytesSent(UInt32 bytesSent) { fBytesSent += bytesSent; }
 						
 		//The session tracks the total number of packets sent during the session.
 		//Streams can update that value by calling this function				
-		void  			UpdatePacketsSent(UInt32 packetsSent)  
-										{ (void)atomic_add(&fPacketsSent, packetsSent); }
-		
+		void  			UpdatePacketsSent(UInt32 packetsSent) { fPacketsSent += packetsSent; }
+										
+		void			UpdateCurrentBitRate(const SInt64& curTime)
+			{ if (curTime > (fLastBitRateUpdateTime + 10000)) this->UpdateBitRateInternal(curTime); }
+
+		void			SetAllTracksInterleaved(Bool16 newValue) { fAllTracksInterleaved = newValue; }		
 		//
 		// RTSP RESPONSES
 
@@ -121,6 +142,25 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 		// let's RTSP Session pass along it's query string
 		void			SetQueryString( StrPtrLen* queryString );
 		
+		// SETTERS and ACCESSORS for auth information
+		// Authentication information that needs to be kept around
+		// for the duration of the session		
+		QTSS_AuthScheme	GetAuthScheme() { return fAuthScheme; }
+		StrPtrLen*		GetAuthNonce() { return &fAuthNonce; }
+		UInt32			GetAuthQop() { return fAuthQop; }
+		UInt32			GetAuthNonceCount() { return fAuthNonceCount; }
+		StrPtrLen*		GetAuthOpaque() { return &fAuthOpaque; }
+		void			SetAuthScheme(QTSS_AuthScheme scheme) { fAuthScheme = scheme; }
+		// Use this if the auth scheme or the qop has to be changed from the defaults 
+		// of scheme = Digest, and qop = auth
+		void			SetChallengeParams(QTSS_AuthScheme scheme, UInt32 qop, Bool16 newNonce, Bool16 createOpaque);
+		// Use this otherwise...if newNonce == true, it will create a new nonce
+		// and reset nonce count. If newNonce == false but nonce was never created earlier
+		// a nonce will be created. If newNonce == false, and there is an existing nonce,
+		// the nounce count will be incremented.
+		void 			UpdateDigestAuthChallengeParams(Bool16 newNonce, Bool16 createOpaque, UInt32 qop);
+	
+		Float32* GetPacketLossPercent() { UInt32 outLen;return  (Float32*) this->PacketLossPercent(this, &outLen);}
 	protected:
 	
 		// These variables are setup by the derived RTPSession object when
@@ -128,6 +168,7 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 
 		//Some stream related information that is shared amongst all streams
 		Bool16		fIsFirstPlay;
+		Bool16		fAllTracksInterleaved;
 		SInt64		fFirstPlayTime;//in milliseconds
 		SInt64		fPlayTime;
 		SInt64		fAdjustedPlayTime;
@@ -140,15 +181,6 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 		// If we are playing, this are the play flags that were set on play
 		QTSS_PlayFlags	fPlayFlags;
 		
-		//
-		// Play speed of this session
-		Float32		fSpeed;
-		
-		//
-		//Start and stop times for this play spurt
-		Float64		fStartTime;
-		Float64		fStopTime;
-		
 		//Session mutex. This mutex should be grabbed before invoking the module
 		//responsible for managing this session. This allows the module to be
 		//non-preemptive-safe with respect to a session
@@ -156,19 +188,26 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 
 		//Stores the session ID
 		OSRef			 	fRTPMapElem;
-		StrPtrLen			fRTSPSessionID;
 		char				fRTSPSessionIDBuf[QTSS_MAX_SESSION_ID_LENGTH + 4];
+		
+		UInt32		fLastBitRateBytes;
+		SInt64		fLastBitRateUpdateTime;
 		
 		// In order to facilitate sending data over the RTSP channel from
 		// an RTP session, we store a pointer to the RTSP session used in
 		// the last RTSP request.
 		RTSPSessionInterface* fRTSPSession;
-
 	private:
 	
-		static Bool16 PacketLossPercent(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 TimeConnected(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 BitRate(QTSS_FunctionParams* funcParamsPtr);
+		//
+		// Utility function for calculating current bit rate
+		void UpdateBitRateInternal(const SInt64& curTime);
+
+		static void* PacketLossPercent(QTSSDictionary* inSession, UInt32* outLen);
+		static void* TimeConnected(QTSSDictionary* inSession, UInt32* outLen);
+		
+		// Create nonce
+		void CreateDigestAuthenticationNonce();
 
 		// One of the RTP session attributes is an iterated list of all streams.
 		// As an optimization, we preallocate a "large" buffer of stream pointers,
@@ -183,6 +222,9 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 			
 			kIPAddrStrBufSize 			= 20,
 			kLocalDNSBufSize 			= 80,
+			
+			kAuthNonceBufSize			= 32,
+			kAuthOpaqueBufSize			= 32,
 			
 		};
 		
@@ -217,12 +259,10 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 		UInt32		fNumQualityLevels;
 		
 		//Statistics
-		unsigned int fBytesSent;
-		unsigned int fPacketsSent;	
+		UInt32 fBytesSent;
+		UInt32 fPacketsSent;	
 		Float32 fPacketLossPercent;
 		SInt64 fTimeConnected;
-		SInt64 fLastBitRateTime;
-		UInt32 fLastBitsSent;
 		// Movie size & movie duration. It may not be so good to associate these
 		// statistics with the movie, for a session MAY have multiple movies...
 		// however, the 1 movie assumption is in too many subsystems at this point
@@ -230,16 +270,31 @@ class RTPSessionInterface : public QTSSDictionary, public Task
 		UInt64		fMovieSizeInBytes;
 		UInt32		fMovieAverageBitRate;
 		UInt32		fMovieCurrentBitRate;
+		
 		QTSS_CliSesTeardownReason fTeardownReason;
 		// So the streams can send sender reports
-		RTCPSRPacket		fRTCPSRPacket;
 		UInt32		fUniqueID;
 		
+		RTCPSRPacket		fRTCPSRPacket;
+		StrPtrLen			fSRBuffer;
+		
 		RTPBandwidthTracker	fTracker;
+		RTPOverbufferWindow	fOverbufferWindow;
 		
 		// Built in dictionary attributes
 		static QTSSAttrInfoDict::AttrInfo	sAttributes[];
 		static unsigned int	sRTPSessionIDCounter;
+
+		// Authentication information that needs to be kept around
+		// for the duration of the session		
+		QTSS_AuthScheme				fAuthScheme;
+		StrPtrLen					fAuthNonce;
+		UInt32						fAuthQop;
+		UInt32						fAuthNonceCount;					
+		StrPtrLen					fAuthOpaque;
+		UInt32						fQualityUpdate;
+		
+		UInt32						fFramesSkipped;
 };
 
 #endif //_RTPSESSIONINTERFACE_H_

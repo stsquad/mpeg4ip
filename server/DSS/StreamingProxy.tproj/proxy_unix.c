@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 /*
@@ -55,11 +55,17 @@
 #include "pthread.h"
 #endif
 
-char *gConfigFilePath = "/etc/streaming/streamingproxy.conf";
-char *gOptionsString = "-c:-p:-d-v-h-s-i:";
+#if defined(__MacOSX__)
+  char *gConfigFilePath = "/private/etc/streaming/streamingproxy.conf";
+#else
+  char *gConfigFilePath = "/etc/streaming/streamingproxy.conf";
+#endif
+
+char *gOptionsString = "-c:-p:-d-v-h-s-x-i:";
 char gOptionsChar = '-';
 
 extern int gMaxPorts;
+extern float gDropPercent;
 /**********************************************/
 int init_network() {
 	return 0;
@@ -86,23 +92,26 @@ void *gethostthread(void *param) {
 	ghpb	pb = (ghpb)param;
 	int		id;
 	pthread_t	tid;
+	int		tryCount = 0;
 
 	if (*pb->result == kKILL_THREAD)
 		exit(0);
 	tid = pthread_self();
 again:
 	hent = gethostbyname(pb->name);
-	if (hent == NULL) {
+	if (hent == NULL) do {
+		tryCount ++;
 		if (h_errno == TRY_AGAIN)
-			goto again;
+			if (tryCount < 10)
+				goto again;
+			else
+				return 0;
 		*pb->result = -1;
-//		pthread_kill(tid, 0);
 		pthread_exit(NULL);
-	}
+	} while(0);
 	id = ntohl(((struct in_addr *)(hent->h_addr_list[0]))->s_addr);
 	*pb->result = id;
 	free(pb);
-//	pthread_kill(tid, 0);
 	pthread_exit(NULL);
 	return NULL;
 }
@@ -112,7 +121,7 @@ int name_to_ip_num(char *name, int *ip, int async)
 {
 	int				ret;
 	struct	in_addr addr;
-
+	int				tryAgain = 0;
 #if USE_THREAD
 	ghpb pb = NULL;
 	pthread_t	tid;
@@ -139,7 +148,7 @@ int name_to_ip_num(char *name, int *ip, int async)
 
 again:
 
-	
+	tryAgain ++;
 	if ( inet_aton( name, &addr ) )
 	{	*ip = ntohl( addr.s_addr );
 		add_to_IP_cache(name, *ip ); 
@@ -149,7 +158,8 @@ again:
 	hent = gethostbyname(name);
 	if (hent == NULL) {
 		if (h_errno == TRY_AGAIN)
-			goto again;
+			if (tryAgain < 10)
+				goto again;
 		add_to_IP_cache(name, -1);
 		return -1;
 	}
@@ -201,6 +211,7 @@ static int __local_ip_address = -1;
 int get_local_ip_address() {
 	char buf[256];
 	struct hostent *hent;
+	int tryCount = 0;
 
 	if (__local_ip_address != -1)
 		return __local_ip_address;
@@ -208,10 +219,17 @@ int get_local_ip_address() {
 	if (gethostname(buf, 256) < 0)
 		return -1;
 again:
+	tryCount ++;
 	hent = gethostbyname(buf);
-	if (hent == NULL) {
-		if (h_errno == TRY_AGAIN)
-			goto again;
+	if (hent == NULL) 
+	{	if (h_errno == TRY_AGAIN)
+		{	if (tryCount < 10)
+			{	goto again;
+			}
+			else
+			{	return 0;
+			}
+		}
 		return -1;
 	}
 	__local_ip_address = ntohl(((struct in_addr *)hent->h_addr)->s_addr);
@@ -304,7 +322,7 @@ int new_socket_udp(void)
 	int ret;
 	ret = socket(PF_INET, SOCK_DGRAM, 0);
 	gMaxPorts++;
-//	set_socket_max_buf(ret);
+	set_socket_max_buf(ret);
 	return ret;
 }
 
@@ -330,17 +348,17 @@ void set_socket_max_buf(int skt)
 	int i = 1, len;
 	len = sizeof(i);
 	getsockopt(skt, SOL_SOCKET, SO_SNDBUF, (char*)&i, &len);
-fprintf(stderr, "sndbuf for socket %d was %d\n", skt, i);
+	/*fprintf(stderr, "sndbuf for socket %d was %d\n", skt, i);*/
 	i *= 2;
 	setsockopt(skt, SOL_SOCKET, SO_SNDBUF, (char*)&i, len);
-getsockopt(skt, SOL_SOCKET, SO_SNDBUF, (char*)&i, &len);
-fprintf(stderr, "sndbuf for socket %d is now %d\n", skt, i);
+	getsockopt(skt, SOL_SOCKET, SO_SNDBUF, (char*)&i, &len);
+	/*fprintf(stderr, "sndbuf for socket %d is now %d\n", skt, i);*/
 	getsockopt(skt, SOL_SOCKET, SO_RCVBUF, (char*)&i, &len);
-fprintf(stderr, "rcvbuf for socket %d was %d\n", skt, i);
+	/*fprintf(stderr, "rcvbuf for socket %d was %d\n", skt, i);*/
 	i *= 2;
 	setsockopt(skt, SOL_SOCKET, SO_RCVBUF, (char*)&i, len);
-getsockopt(skt, SOL_SOCKET, SO_RCVBUF, (char*)&i, &len);
-fprintf(stderr, "rcvbuf for socket %d is now %d\n", skt, i);
+	getsockopt(skt, SOL_SOCKET, SO_RCVBUF, (char*)&i, &len);
+	/*fprintf(stderr, "rcvbuf for socket %d is now %d\n", skt, i);*/
 }
 
 /**********************************************/
@@ -503,6 +521,8 @@ void DoStats(stats_chunk *stats)
 	printf("pps Received           : %lu\n", stats->ppsReceived);
 	printf("pps Sent               : %lu\n", stats->ppsSent);
 	printf("number of ports used   : %lu\n", stats->numPorts);
+	printf("packet loss percent    : %f\n", stats->percentLostPackets);
+	printf("force drop percent     : %f\n",gDropPercent);
 }
 
 /**********************************************/

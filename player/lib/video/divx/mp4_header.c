@@ -40,7 +40,6 @@
  *
 **/
 
-void next_start_code();
 
 /***/
 
@@ -280,7 +279,7 @@ int getvophdr(void)
 /***/
 
 
-void __inline next_start_code()
+void __inline next_start_code(void)
 {
 	if (juice_flag)
 	{

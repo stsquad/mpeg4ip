@@ -279,6 +279,91 @@ v1.2.0	- Add udp_fd() function, to retrieve the underlying file descriptor.
 	  parameter. If you don't use header extensions in your application, set the
 	  additional parameter to zero. 
 	- Fix reception of packets with RTP header extension.
+	* 16 May 2000
+
+v1.2.1	* 16 June 2000 [rat v4.2.5]
+
+v1.2.2	- Fix bug in mbus transmit code which caused messages to have the same sequence
+	  number as the preceeding ack.
+	- Remove get_appname() function from util.[ch], since it didn't
+	  work in all cases (sometimes argv[0] doesn't contain anything
+	  sensible).
+	- Fix RTP header extension code (patch from Jori <jori@lumumba.luc.ac.be>)
+	  as part of RTP interoperability tests.
+	- FreeBSD 4.1 doesn't support binding to an IPv6 multicast address, must
+	  bind to in6addr_any instead (reported by Shirasaki Yasuhiro).
+	- Fix validation of RTCP packets with padding (reported by Vladimir Brauner).
+	- Fix padding octet count in RTCP packets sent with padding (Vladimir Brauner).
+	- Fix RTCP timer reconsideration (Vladimir Brauner).
+	* 22 August 2000 [rat v4.2.8]
+
+v1.2.3	- Add prototype for rtp_del_csrc() which will be needed by the
+ 	  mixer in rat.
+	* 8 September 2000 [rat v4.2.9]
+
+v1.2.4	- Implement rtp_add_csrc() and rtp_del_csrc().
+	- ifdef'ed out FreeBSD bug check in test_net_udp.c for Win32.  
+	  Prevents compilation of test cases otherwise.  Reported by Micheal
+	  Stovenour <michael.stovenour@lucent.com>.
+	* 1 November 2000 [rat v4.2.10]
+
+v1.2.5	- More informative error message when the lock on the mbus configuration 
+	  file cannot be gained.
+	- rtp_init()/rtp_init_if() now take "const char *" for the address
+	- Fix expiration of our own SSRC from the RTP database, if filtering our
+	  packets.
+	- Mark entries in the RTP source database as active senders if we can an 
+	  SR packet from them.
+	- Cleanup RTP database once per second, rather than once per reporting 
+	  interval. This is needed to ensure that reverse reconsideration works
+	  correctly, and sources are correctly deleted after BYEs are received.
+	- Fix reverse reconsideration of the RTCP interval
+	- Change socket_error to support formatted messages.
+	- Add socket_error messages for gethostbyname failures.
+	- Include lower layer overhead when calculating average RTCP size
+	  (patch from Timur Friedman).
+	- Add support for SDES PRIV (the correct formatting of the PRIV item
+	  into prefix length, prefix and value is left to the caller).
+	- Change xmalloc to fill allocated buffer with dummy value when DEBUG 
+	  is defined.  Change DEBUG_MEM version to use same dummy value rather
+	  than a random value, reduces chances of uninitialized pointers 
+	  trashing data before crashing.
+	- Add callback types to rtp.h - rtp_callback and rtcp_app_callback.
+	- For consistency rtp_{get,set}opt -> rtp_{get,set}_option.
+	- Remove unnecessary components from qfdes enumeration declarations.
+	- New directories (src, tests, docs, examples).
+	- Fixed Win32 .{dsw,dsp} files for new directory structure.
+	- Documented net_udp.c.
+	- Move strfind to util.[ch] from mbus_addr.[ch].
+	- Fix CSRC handling (patch from Ivo Sedlacek <ivo.sedlacek@anfdata.cz>)
+	- Fix uninitialized field in SDES PRIV handling (Robert Olson)
+	- Documented debug.[ch], hmac.[ch], md5.[ch], memory.[ch], rtp.[ch].
+	- Added small rtp example. 
+	- Change configure to only select doc for build if gtkdoc installed.
+	* 5 April 2001 [rat v4.2.14]	
+
+1.2.6	- Fix so that we no longer send an RTCP BYE if we leave the session 
+          before sending any other packets.
+	- Fix initial estimate of average RTCP packet size.
+	- Implement RTCP BYE reconsideration.
+	- Fix RTCP transmission interval.
+	- Fix handling of probationary sources in the RTP code (a source is
+	  no longer treated as probationary if we've received RTCP packet 
+	  from it).
+	* 24 April 2001 [rat v4.2.16]
+
+1.2.7	- Add support for Rijndael encryption to the RTP library, contributed
+          by Robert Olson <olson@mcs.anl.gov>.
+	- Fix IPv6 support on Linux
+	- Add configuration for Windows 2000 IPv6 stack
+	- Connect/disconnect to socket before/after getsockname call to make 
+	  it work
+	* 18 May 2001 [rat v4.2.17]
+
+1.2.8   - Created a new socket for use for getsockname - there were too
+          many bugs with disconnecting an IPv6 connected socket.
+    - Fixed include ordering for Win2k.
+    * 25 May 2001 [rat v4.2.18] [nte v2.2]
 
 
 Still to do...
@@ -299,6 +384,5 @@ Still to do...
 	- When weak RTP validation is enabled, spurious sources can be
 	  added to the database (from the CSRC area of a packet?). Reported
 	  by Xiaotao Wu <xiaotaow@cs.columbia.edu>
-	- packets with a header extension are silently thrown away.
-	  Reported by Peter Parnes.
+	- RTP estimate of lower layer overhead is IPv4 specific.
 

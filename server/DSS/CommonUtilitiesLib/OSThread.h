@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		OSThread.h
@@ -65,22 +65,16 @@ public:
 	//
 	// Derived classes must implement their own entry function
 	virtual 	void 			Entry() = 0;
-	
 				void 			Start();
 				
-				void 			Join();
-				void 			Detach();
 				static void		ThreadYield();
 				static void		Sleep(UInt32 inMsec);
 				
+				void			Join();
 				void			SendStopRequest() { fStopRequested = true; }
+				Bool16			IsStopRequested() { return fStopRequested; }
 				void			StopAndWaitForThread();
 
-				
-				//When making a blocking system call, you can frame it
-				//with these static function calls to support stop exceptions
-				void			MakingBlockingCall() 	{ this->CheckForStopRequest(); }
-				void			BlockingCallReturning() { this->CheckForStopRequest(); }
 				void*			GetThreadData()			{ return fThreadData; }
 				void			SetThreadData(void* inThreadData) { fThreadData = inThreadData; }
 				
@@ -93,6 +87,10 @@ public:
 				UInt32			GetNumLocksHeld() { return 0; }
 				void			IncrementLocksHeld() {}
 				void			DecrementLocksHeld() {}
+#endif
+
+#if __linux__
+				static void		WrapSleep( Bool16 wrapSleep) {sWrapSleep = wrapSleep; }
 #endif
 
 #ifdef __Win32__
@@ -110,9 +108,6 @@ public:
 	
 private:
 
-	void 			ThrowStopRequest();
-	void 			CheckForStopRequest();	
-
 #ifdef __Win32__
 	static DWORD	sThreadStorageIndex;
 #elif __PTHREADS__
@@ -122,14 +117,13 @@ private:
 #endif
 #endif
 
-	Bool16 fStopRequested:1;
-	Bool16 fRunning:1;
-	Bool16 fCancelThrown:1;
-	Bool16 fDetached:1;
-	Bool16 fJoined:1;
+	Bool16 fStopRequested;
+	Bool16 fJoined;
 
 #ifdef __Win32__
 	HANDLE			fThreadID;
+#elif __PTHREADS__
+	pthread_t		fThreadID;
 #else
 	UInt32 			fThreadID;
 #endif
@@ -137,13 +131,31 @@ private:
 	DateBuffer		fDateBuffer;
 	
 	static void*	sMainThreadData;
-	static void		CallEntry(OSThread* thread);		
 #ifdef __Win32__
 	static unsigned int WINAPI _Entry(LPVOID inThread);
 #else
 	static void* 	_Entry(void* inThread);
 #endif
+
+#if __linux__
+	static Bool16 sWrapSleep;
+#endif
 };
+
+class OSThreadDataSetter
+{
+	public:
+	
+		OSThreadDataSetter(void* inInitialValue, void* inFinalValue) : fFinalValue(inFinalValue)
+			{ OSThread::GetCurrent()->SetThreadData(inInitialValue); }
+			
+		~OSThreadDataSetter() { OSThread::GetCurrent()->SetThreadData(fFinalValue); }
+		
+	private:
+	
+		void*	fFinalValue;
+};
+
 
 #endif
 

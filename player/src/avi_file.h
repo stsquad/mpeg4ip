@@ -27,6 +27,8 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 
+class CPlayerSession;
+
 int create_media_for_avi_file (CPlayerSession *psptr,
 			       const char *name,
 			       const char **errmsg,

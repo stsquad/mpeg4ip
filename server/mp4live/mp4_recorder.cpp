@@ -65,7 +65,7 @@ void CMp4Recorder::DoStartRecord()
 #ifdef MP4V2
 	m_mp4File = MP4Create(
 		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-		MP4_DETAILS_WRITE_ALL);
+		0 /* DEBUG MP4_DETAILS_ERROR | MP4_DETAILS_WRITE_ALL */);
 #else
 	m_mp4File = quicktime_open(
 		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), 0, 1, 0);
@@ -137,9 +137,9 @@ void CMp4Recorder::DoStartRecord()
 				// TBD error
 			}
 
-			// TBD MP4SetHintTrackRtpPayload(m_mp4File, m_videoHintTrack,
-			// 	"MP4V-ES", &m_videoPayloadNumber,  
-			//	m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			MP4SetHintTrackRtpPayload(m_mp4File, m_videoHintTrack,
+			 	"MP4V-ES", &m_videoPayloadNumber,  
+				m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
 #else
 			m_videoHintTrack = quicktime_set_video_hint(
 				m_mp4File, m_videoTrack, 
@@ -169,7 +169,7 @@ void CMp4Recorder::DoStartRecord()
 
 				/* add this to the MP4 file's sdp atom */
 #ifdef MP4V2
-				// TBD MP4SetHintTrackSdp(m_mp4File, m_videoHintTrack, sdpBuf);
+				MP4AppendHintTrackSdp(m_mp4File, m_videoHintTrack, sdpBuf);
 #else
 				quicktime_add_video_sdp(m_mp4File, sdpBuf, 
 					m_videoTrack, m_videoHintTrack);
@@ -217,9 +217,9 @@ void CMp4Recorder::DoStartRecord()
 				// TBD error
 			}
 
-			// TBD MP4SetHintTrackRtpPayload(m_mp4File, m_audioHintTrack,
-			// 	"MPA", &m_audioPayloadNumber,  
-			//	m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			MP4SetHintTrackRtpPayload(m_mp4File, m_audioHintTrack,
+			 	"MPA", &m_audioPayloadNumber,  
+				m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
 #else
 			m_audioHintTrack = quicktime_set_audio_hint(m_mp4File, m_audioTrack,
 				"MPA", &m_audioPayloadNumber, 
@@ -235,8 +235,8 @@ void CMp4Recorder::DoStartRecord()
 			m_audioMaxRtpBytesPerSec = 0;
 
 #ifdef MP4V2
-			// MP4AddRtpHint(m_mp4File, m_audioHintTrack);
-			// MP4AddRtpPacket(m_mp4File, m_audioHintTrack, true);
+			MP4AddRtpHint(m_mp4File, m_audioHintTrack);
+			MP4AddRtpPacket(m_mp4File, m_audioHintTrack, true);
 #else
 			quicktime_init_hint_sample(m_audioHintBuf, &m_audioHintBufLength);
 			quicktime_add_hint_packet(m_audioHintBuf, &m_audioHintBufLength, 
@@ -266,6 +266,8 @@ void CMp4Recorder::DoStopRecord()
 		if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
 		  && m_audioFramesThisHint > 0) {
 #ifdef MP4V2
+			MP4WriteRtpHint(m_mp4File, m_audioHintTrack, 
+				m_audioFramesThisHint * m_audioFrameDuration);
 #else
 			quicktime_write_audio_hint(m_mp4File, 
 				m_audioHintBuf, m_audioHintBufLength, 
@@ -278,6 +280,7 @@ void CMp4Recorder::DoStopRecord()
 		}
 
 #ifdef MP4V2
+		// no-op
 #else
 		/* record maximum bits per second in Quicktime file */
 		quicktime_set_audio_hint_max_rate(m_mp4File, 
@@ -415,6 +418,8 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 	  - m_audioBytesThisHint) {
 
 #ifdef MP4V2
+		MP4WriteRtpHint(m_mp4File, m_audioHintTrack, 
+			m_audioFramesThisHint * m_audioFrameDuration);
 #else
 		// write out hint sample
 		quicktime_write_audio_hint(m_mp4File, 
@@ -432,8 +437,8 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 		m_audioBytesThisHint = 0;
 
 #ifdef MP4V2
-		// MP4AddRtpHint(m_mp4File, m_audioHintTrack);
-		// MP4AddRtpPacket(m_mp4File, m_audioHintTrack, true);
+		MP4AddRtpHint(m_mp4File, m_audioHintTrack);
+		MP4AddRtpPacket(m_mp4File, m_audioHintTrack, true);
 #else
 		quicktime_init_hint_sample(m_audioHintBuf, &m_audioHintBufLength);
 		quicktime_add_hint_packet(m_audioHintBuf, &m_audioHintBufLength, 
@@ -452,10 +457,10 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 		static u_int32_t zero32 = 0;
 
 #ifdef MP4V2
-		//MP4AddRtpImmediateData(m_mp4File, m_audioHintTrack,
-		//	(u_int8_t*)&zero32, sizeof(zero32));
-		//MP4AddRtpSampleData(m_mp4File, m_audioHintTrack,
-		//	m_audioFrameNum, 0, frameLength);
+		MP4AddRtpImmediateData(m_mp4File, m_audioHintTrack,
+			(u_int8_t*)&zero32, sizeof(zero32));
+		MP4AddRtpSampleData(m_mp4File, m_audioHintTrack,
+			m_audioFrameNum, 0, frameLength);
 #else
 		quicktime_add_hint_immed_data(m_audioHintBuf, &m_audioHintBufLength,
 			(u_char*)&zero32, sizeof(zero32));
@@ -478,6 +483,11 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 			payloadHeader[3] = frameOffset & 0xFF;
 
 #ifdef MP4V2
+			MP4AddRtpImmediateData(m_mp4File, m_audioHintTrack,
+				(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
+
+			MP4AddRtpSampleData(m_mp4File, m_audioHintTrack,
+				m_audioFrameNum, frameOffset, fragLength);
 #else
 			quicktime_add_hint_immed_data(
 				m_audioHintBuf, &m_audioHintBufLength,
@@ -493,13 +503,14 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 			// if we're not at the last fragment
 			if (frameOffset < frameLength) {
 #ifdef MP4V2
+				MP4AddRtpPacket(m_mp4File, m_audioHintTrack, false);
 #else
 				// we'll need another RTP packet
 				quicktime_add_hint_packet(
 					m_audioHintBuf, &m_audioHintBufLength, 
 					m_audioPayloadNumber, m_audioRtpPktNum);
-				m_audioRtpPktNum++;
 #endif
+				m_audioRtpPktNum++;
 			}
 		}
 
@@ -540,25 +551,28 @@ void CMp4Recorder::Write3016Hints(u_int32_t frameLength,
 
 	m_videoHintBufLength = 0;
 #ifdef MP4V2
-	//MP4AddRtpHint(m_mp4File, m_videoHintTrack);
+	MP4AddRtpHint(m_mp4File, m_videoHintTrack);
 #else
 	quicktime_init_hint_sample(m_videoHintBuf, &m_videoHintBufLength);
 #endif
 
 	while (remaining) {
+		bool isLastPacket = false;
 		u_int32_t payloadLength;
 
 		if (remaining <= m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
 			payloadLength = remaining;
+			isLastPacket = true;
 		} else {
 			payloadLength = m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
 		}
 
 #ifdef MP4V2
-		//MP4AddRtpPacket(m_mp4File, m_videoHintTrack, isLastPacket);
+		MP4AddRtpPacket(m_mp4File, m_videoHintTrack, isLastPacket);
 		m_videoRtpPktNum++;
-		//MP4AddRtpSampleData(m_mp4File, m_videoHintTrack,
-		//	m_videoFrameNum, offset, payloadLength);
+
+		MP4AddRtpSampleData(m_mp4File, m_videoHintTrack,
+			m_videoFrameNum, offset, payloadLength);
 #else
 		quicktime_add_hint_packet(m_videoHintBuf, &m_videoHintBufLength, 
 			m_videoPayloadNumber, m_videoRtpPktNum);
@@ -573,6 +587,7 @@ void CMp4Recorder::Write3016Hints(u_int32_t frameLength,
 	}
 
 #ifdef MP4V2
+	MP4WriteRtpHint(m_mp4File, m_videoHintTrack, frameDuration, isIFrame);
 #else
 	quicktime_set_hint_Mbit(m_videoHintBuf);
 	quicktime_write_video_hint(m_mp4File, m_videoHintBuf, m_videoHintBufLength, 

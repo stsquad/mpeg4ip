@@ -101,16 +101,22 @@
 
 InstallModules:
 	if [ ! -d $(SYMROOT)/QTSSModules ]; then  mkdir $(SYMROOT)/QTSSModules; fi
-	if [ ! -d $(SYMROOT)/QTSSModules_disabled ]; then  mkdir $(SYMROOT)/QTSSModules.disabled; fi
+	if [ ! -d $(SYMROOT)/QTSSModules_disabled ]; then  mkdir $(SYMROOT)/QTSSModules.disabled; fi	
 
-InstallFiles: streamingrelay.conf streamingserver.xml sample.mov AboutQTStreamingServer.pdf
+InstallFiles: streamingrelay.conf streamingserver.xml sample.mov
 	mkdir -p $(DSTROOT)/Library/QuickTimeStreaming/Logs
 	mkdir -p $(DSTROOT)/Library/QuickTimeStreaming/Movies
+	mkdir -p $(DSTROOT)/Library/QuickTimeStreaming/Playlists
+	chmod 0777 $(DSTROOT)/Library/QuickTimeStreaming/Playlists
 	mkdir -p $(DSTROOT)/private/etc/streaming
+	mkdir -p $(DSTROOT)/usr/local/sbin/StreamingServerModules
 	cp $(SRCROOT)/streamingserver.xml $(DSTROOT)/private/etc/streaming/streamingserver.xml
 	cp $(SRCROOT)/streamingserver.xml $(DSTROOT)/private/etc/streaming/streamingserver.xml-sample
 	cp $(SRCROOT)/streamingrelay.conf $(DSTROOT)/private/etc/streaming/streamingrelay.conf
+	cp $(SRCROOT)/qtusers $(DSTROOT)/private/etc/streaming/qtusers
 	cp $(SRCROOT)/sample.mov $(DSTROOT)/Library/QuickTimeStreaming/Movies/sample.mov
-	cp $(SRCROOT)/AboutQTStreamingServer.pdf $(DSTROOT)/Library/QuickTimeStreaming/UserManual.pdf
-
-	
+	if [ -d $(DSTROOT)/usr/local/bin ]; then chmod 0755 $(DSTROOT)/usr/local/bin; fi
+	chgrp -R admin $(DSTROOT)/Library/QuickTimeStreaming
+	chgrp -R admin $(DSTROOT)/private/etc/streaming
+	chmod -R g+w $(DSTROOT)/Library/QuickTimeStreaming
+	chmod -R g+w $(DSTROOT)/private/etc/streaming

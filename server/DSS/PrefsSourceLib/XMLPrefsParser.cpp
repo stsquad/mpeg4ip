@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		XMLPrefsParser.cpp
@@ -270,7 +270,7 @@ void	XMLPrefsParser::RemovePrefValue(const UInt32 inPrefIndex, const UInt32 inVa
 	}
 }
 
-void	XMLPrefsParser::RemovePref( UInt32 inPrefIndex )
+void	XMLPrefsParser::RemovePref( const UInt32 inPrefIndex )
 {
     if (inPrefIndex >= fNumPrefs)
             return;
@@ -279,8 +279,10 @@ void	XMLPrefsParser::RemovePref( UInt32 inPrefIndex )
     if (NULL == theElem)
             return;
 
-    for (UInt32 x = theElem->fNumValues - 1; x <= 0; x--)
-        this->RemovePrefValue( inPrefIndex, x );
+	// RemovePrefValue moves data if it exists past the removed index so delete from the end 
+	for (SInt32 x = theElem->fNumValues - 1; x >= 0; x--) 
+		this->RemovePrefValue( inPrefIndex, x );   
+		
 }
 
 Bool16	XMLPrefsParser::DoesFileExist()
@@ -303,6 +305,28 @@ Bool16	XMLPrefsParser::DoesFileExistAsDirectory()
 	fFile.Close();
 	
 	return itExists;
+}
+
+Bool16	XMLPrefsParser::CanWriteFile()
+{
+	//
+	// First check if it exists for reading
+	FILE* theFile = ::fopen(fFilePath, "r");
+	if (theFile == NULL)
+		return true;
+	
+	::fclose(theFile);
+	
+	//
+	// File exists for reading, check if we can write it
+	theFile = ::fopen(fFilePath, "a");
+	if (theFile == NULL)
+		return false;
+		
+	//
+	// We can read and write
+	::fclose(theFile);
+	return true;
 }
 	
 static const StrPtrLen kServer("SERVER");
@@ -518,7 +542,6 @@ void XMLPrefsParser::ParseListPrefData(StringParser* inParser, XMLPrefElem* inPr
 static char* kFileHeader[] = 
 {
 	"<?xml version =\"1.0\"?>",
-        "<!-- This is a sample /etc/streaming/streamingserver.xml file -->",
 	"<!-- The Document Type Definition (DTD) for the file -->",
 	"<!DOCTYPE CONFIGURATION [",
 	"<!ELEMENT CONFIGURATION (SERVER, MODULE*)>",
@@ -624,6 +647,9 @@ int	XMLPrefsParser::WritePrefsFile()
 	::fprintf(theFile, "%s", theFileWriter.GetBufPtr());
 	::fclose(theFile);
 	
+#ifndef __Win32__
+	::chmod(fFilePath, S_IRUSR | S_IWUSR | S_IRGRP);
+#endif
 #if 0
 	//
 	// Old POSIX code. This doesn't work well on Win32
@@ -632,7 +658,7 @@ int	XMLPrefsParser::WritePrefsFile()
 		return true;
 		
 #ifndef __Win32__
-	::chmod(fFilePath, S_IRUSR | S_IWUSR | S_IRGRP);
+	::chmod(fFilePath, S_IRUSR | S_IWUSR );
 #endif
 
 	int theErr = ::write(theFile, theFileWriter.GetBufPtr(), theFileWriter.GetCurrentOffset());

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTSPRequest.cpp
@@ -39,6 +39,7 @@
 #include "StringParser.h"
 #include "StringTranslator.h"
 #include "OS.h"
+#include "OSMemory.h"
 #include "QTSS.h"
 #include "QTSSModuleUtils.h"
 #include "base64.h"
@@ -77,7 +78,22 @@ RTSPRequest::sURLStopConditions[] =
 	0, 0, 0, 0, 0, 0 			 //250-255
 };
 
-static StrPtrLen	sDefaultRealm("Streaming Server");
+static StrPtrLen	sDefaultRealm("Streaming Server", 16);
+static StrPtrLen	sAuthBasicStr("Basic", 5);
+static StrPtrLen	sAuthDigestStr("Digest", 6);
+static StrPtrLen	sUsernameStr("username", 8);
+static StrPtrLen	sRealmStr("realm", 5);
+static StrPtrLen	sNonceStr("nonce", 5);
+static StrPtrLen	sUriStr("uri", 3);
+static StrPtrLen	sQopStr("qop", 3);
+static StrPtrLen	sQopAuthStr("auth", 3);
+static StrPtrLen	sQopAuthIntStr("auth-int", 8);
+static StrPtrLen	sNonceCountStr("nc", 2);
+static StrPtrLen	sResponseStr("response", 8);
+static StrPtrLen	sOpaqueStr("opaque", 6);
+static StrPtrLen	sEqualQuote("=\"", 2);
+static StrPtrLen	sQuoteCommaSpace("\", ", 3);
+static StrPtrLen	sStaleTrue("stale=\"true\", ", 14); 
 
 //Parses the request
 QTSS_Error RTSPRequest::Parse()
@@ -173,10 +189,22 @@ QTSS_Error RTSPRequest::ParseURI(StringParser &parser)
 		urlParser.ConsumeUntil(&theHost, '/');
 		fHeaderDictionary.SetVal(qtssHostHeader, &theHost);
 	}
-	
-	//whatever is in this position in the URl must be the relative URL. Store that
-	//in the qtssURLParam.
-	this->SetVal(qtssRTSPReqURI, urlParser.GetCurrentPosition(), urlParser.GetDataReceivedLen() - urlParser.GetDataParsedLen());
+
+	//
+	// In case there is no URI at all... we have to fake it.
+	static char* sSlashURI = "/";
+		
+	//whatever is in this position in the URL must be the URI. Store that
+	//in the qtssURLParam. Confused?
+	UInt32 uriLen = urlParser.GetDataReceivedLen() - urlParser.GetDataParsedLen();
+	if (uriLen > 0)
+		this->SetVal(qtssRTSPReqURI, urlParser.GetCurrentPosition(), urlParser.GetDataReceivedLen() - urlParser.GetDataParsedLen());
+	else
+		//
+		// This might happen if there is nothing after the host at all, not even
+		// a '/'. This is legal (RFC 2326, Sec 3.2). If so, just pretend that there
+		// is a '/'
+		this->SetVal(qtssRTSPReqURI, sSlashURI, 1);
 
 	// parse the query string from the url if present.
 	// init qtssRTSPReqQueryString dictionary to an empty string
@@ -288,7 +316,8 @@ QTSS_Error RTSPRequest::ParseHeaders(StringParser& parser)
 			case qtssXRetransmitHeader:			ParseRetransmitHeader();break;
 			case qtssContentLengthHeader:		ParseContentLengthHeader();break;
 			case qtssSpeedHeader:				ParseSpeedHeader();		break;
-			case qtssXRTPOptionsHeader:			ParseRTPOptionsHeader();break;
+			case qtssXTransportOptionsHeader:	ParseTransportOptionsHeader();break;
+			case qtssXPreBufferHeader:			ParsePrebufferHeader();break;
 			default:	break;
 		}
 	}
@@ -364,6 +393,11 @@ void RTSPRequest::ParseTransportHeader()
 				this->ParseTimeToLiveSubHeader(&theTransportSubHeader);
 				break;
 			}
+			case 'm':	//mode sub-header
+			{
+				this->ParseModeSubHeader(&theTransportSubHeader);
+				break;
+			}
 		}
 		
 		// Move onto the next parameter
@@ -418,15 +452,20 @@ void  RTSPRequest::ParseRetransmitHeader()
 	{
 		//
 		// Parse out params
-		static const StrPtrLen kAckTimeout("ack-timeout");
 		static const StrPtrLen kWindow("window");
 		 
 		if (theProtArg.Equal(kWindow))
+		{
 			fWindowSize = theRetransmitParser.ConsumeInteger(NULL);
-		else if (theProtArg.Equal(kAckTimeout))
-			fAckTimeout = theRetransmitParser.ConsumeInteger(NULL);
 			
-		theRetransmitParser.ConsumeLength(NULL, 1); //Skip past ';'
+			// Save out the window size argument as a string so we
+			// can easily put it into the response
+			// (we never muck with this header)
+			fWindowSizeStr.Ptr = theProtArg.Ptr;
+			fWindowSizeStr.Len = theRetransmitParser.GetCurrentPosition() - theProtArg.Ptr;
+		}
+			
+		theRetransmitParser.GetThru(NULL, ';'); //Skip past ';'
 	}
 }
 
@@ -434,6 +473,23 @@ void  RTSPRequest::ParseContentLengthHeader()
 {
 	StringParser theContentLenParser(fHeaderDictionary.GetValue(qtssContentLengthHeader));
 	fContentLength = theContentLenParser.ConsumeInteger(NULL);
+}
+
+void  RTSPRequest::ParsePrebufferHeader()
+{
+	StringParser thePrebufferParser(fHeaderDictionary.GetValue(qtssXPreBufferHeader));
+
+	StrPtrLen thePrebufferArg;
+	while (thePrebufferParser.GetThru(&thePrebufferArg, '='))	
+	{
+		static const StrPtrLen kMaxTimeSubHeader("maxtime");
+
+		if (thePrebufferArg.Equal(kMaxTimeSubHeader))
+			fPrebufferAmt = thePrebufferParser.ConsumeFloat();
+			
+		thePrebufferParser.GetThru(NULL, ';'); //Skip past ';'
+	
+	}
 }
 
 void  RTSPRequest::ParseIfModSinceHeader()
@@ -451,9 +507,9 @@ void RTSPRequest::ParseSpeedHeader()
 	fSpeed = theSpeedParser.ConsumeFloat();
 }
 
-void RTSPRequest::ParseRTPOptionsHeader()
+void RTSPRequest::ParseTransportOptionsHeader()
 {
-	StringParser theRTPOptionsParser(fHeaderDictionary.GetValue(qtssXRTPOptionsHeader));
+	StringParser theRTPOptionsParser(fHeaderDictionary.GetValue(qtssXTransportOptionsHeader));
 	StrPtrLen theRTPOptionsSubHeader;
 
 	do
@@ -464,7 +520,7 @@ void RTSPRequest::ParseRTPOptionsHeader()
 		{
 			StringParser theLateTolParser(&theRTPOptionsSubHeader);
 			theLateTolParser.ConsumeLength(NULL, sLateTolerance.Len + 1);
-			fLateTolerance = theLateTolParser.ConsumeInteger(NULL);
+			fLateTolerance = theLateTolParser.ConsumeFloat();
 			fLateToleranceStr = theRTPOptionsSubHeader;
 		}
 		
@@ -495,6 +551,37 @@ void RTSPRequest::ParseAddrSubHeader(StrPtrLen* inSubHeader, StrPtrLen* inHeader
 	*outAddr = SocketUtils::ConvertStringToAddr(theAddr.Ptr);
 	
 	theAddr.Ptr[theAddr.Len] = theTerminator;
+}
+
+void RTSPRequest::ParseModeSubHeader(StrPtrLen* inModeSubHeader)
+{
+	static StrPtrLen sModeSubHeader("mode=");
+	static StrPtrLen sReceiveMode("receive");
+	static StrPtrLen sRecordMode("record");
+	StringParser theSubHeaderParser(inModeSubHeader);
+
+	// Skip over to the first port
+	StrPtrLen theFirstBit;
+	theSubHeaderParser.ConsumeLength(&theFirstBit, sModeSubHeader.Len);
+	
+	// Make sure this is the client port subheader
+	if (theFirstBit.Equal(sModeSubHeader)) do
+	{
+		StrPtrLen theMode;
+		theSubHeaderParser.ConsumeWord(&theMode);
+		
+		if (theMode.Equal(sReceiveMode))
+		{	fTransportMode = qtssRTPTransportModeReceive;
+			break;
+		}
+		
+		if (theMode.Equal(sRecordMode))
+		{	fTransportMode = qtssRTPTransportModeRecord;
+			break;
+		}
+		
+	} while (false);
+	
 }
 
 void RTSPRequest::ParseClientPortSubHeader(StrPtrLen* inClientPortSubHeader)
@@ -534,58 +621,122 @@ void RTSPRequest::ParseTimeToLiveSubHeader(StrPtrLen* inTimeToLiveSubHeader)
 	fTtl = (UInt16)theSubHeaderParser.ConsumeInteger(NULL);
 }
 
-QTSS_Error RTSPRequest::ParseAuthNameAndPassword(void)
+QTSS_Error RTSPRequest::ParseAuthHeader(void)
  {
 	char decodedLine[kAuthNameAndPasswordBuffSize] = { 0 };
-	char codedLine[kAuthNameAndPasswordBuffSize] = { 0 };
-	
+		
 	QTSS_Error	theErr = QTSS_NoErr;
 	QTSSDictionary *theRTSPHeaders = this->GetHeaderDictionary();
 	StrPtrLen	*authLine = theRTSPHeaders->GetValue(qtssAuthorizationHeader);
-	if (authLine != NULL) do //once
+	if (authLine != NULL)
 	{	
 		//PrintfStrPtrLen(  &authLine );
-		if (0 == authLine->Len) break;
-		
-		Assert( authLine->Len < kAuthNameAndPasswordBuffSize );
-		if (authLine->Len >= kAuthNameAndPasswordBuffSize) authLine->Len = kAuthNameAndPasswordBuffSize -1;
-		memcpy (codedLine,authLine->Ptr,authLine->Len);
-		authLine->Set(codedLine, authLine->Len);
-	
+		if (0 == authLine->Len) return theErr;
+				
 		StrPtrLen	authWord("");
 		StringParser parsedAuthLine(authLine);
 		parsedAuthLine.ConsumeUntilWhitespace(&authWord);
-		if (!authWord.Equal(StrPtrLen("Basic",strlen("Basic") ) ) ) break;
+		if (authWord.EqualIgnoreCase(sAuthBasicStr.Ptr, sAuthBasicStr.Len)) { 
 		
-		parsedAuthLine.ConsumeWhitespace();
-		parsedAuthLine.ConsumeUntilWhitespace(&authWord);
-		if (0 == authWord.Len ) break;		
-		if (authWord.Len > 1024) break;
+			parsedAuthLine.ConsumeWhitespace();
+			parsedAuthLine.ConsumeUntilWhitespace(&authWord);
+			if (0 == authWord.Len ) return theErr;
+			char* encodedStr = authWord.GetAsCString();
+			UInt32 decodedUserPassLen = Base64decode_len(encodedStr);
+			char *decodedAuthWord = NULL;
+			StrPtrLen	nameAndPassword;
+			if(decodedUserPassLen >= kAuthNameAndPasswordBuffSize) {
+				decodedAuthWord = NEW char[decodedUserPassLen + 1];
+				(void) Base64decode(decodedAuthWord, encodedStr);
+				nameAndPassword.Set(decodedAuthWord, ::strlen(decodedAuthWord));
+			}
+			else {
+				(void) Base64decode(decodedLine, encodedStr);
+				nameAndPassword.Set(decodedLine, ::strlen(decodedLine));
+			}
+			
+			delete [] encodedStr;
+			StrPtrLen	name("");
+			StrPtrLen	password("");
+			StringParser parsedNameAndPassword(&nameAndPassword);
 		
-		(void) Base64decode(decodedLine, authWord.Ptr);
-		StrPtrLen	nameAndPassword(decodedLine);
-		StrPtrLen	name("");
-		StrPtrLen	password("");
-		StrPtrLen	dump("");
-		StringParser parsedNameAndPassword(&nameAndPassword);
-		
-		//PrintfStrPtrLen(  &nameAndPassword );
-
-		parsedNameAndPassword.ConsumeUntil(&name,':');			
-		parsedNameAndPassword.ConsumeLength(&dump, 1);
-		parsedNameAndPassword.GetThruEOL(&password);
+			parsedNameAndPassword.ConsumeUntil(&name,':');			
+			parsedNameAndPassword.ConsumeLength(NULL, 1);
+			parsedNameAndPassword.GetThruEOL(&password);
 				
-		//PrintfStrPtrLen(  &name );
-		//PrintfStrPtrLen(  &password );
-		
-		(void) this->SetValue(qtssRTSPReqUserName,0,  name.Ptr , name.Len, QTSSDictionary::kDontObeyReadOnly);
-		(void) this->SetValue(qtssRTSPReqUserPassword,0,  password.Ptr , password.Len, QTSSDictionary::kDontObeyReadOnly);
-		
-	} while (false);
-	
+			fAuthScheme = qtssAuthBasic;
+			// Set the qtssRTSPReqUserName and qtssRTSPReqUserPassword attributes in the Request object
+			(void) this->SetValue(qtssRTSPReqUserName, 0,  name.Ptr , name.Len, QTSSDictionary::kDontObeyReadOnly);
+			(void) this->SetValue(qtssRTSPReqUserPassword, 0,  password.Ptr , password.Len, QTSSDictionary::kDontObeyReadOnly);
+			// Also set the qtssUserName attribute in the qtssRTSPReqUserProfile object attribute of the Request Object
+			(void) fUserProfile.SetValue(qtssUserName, 0, name.Ptr, name.Len, QTSSDictionary::kDontObeyReadOnly);
+			if(decodedAuthWord != NULL)
+				delete [] decodedAuthWord;
+		}
+		else if (authWord.EqualIgnoreCase(sAuthDigestStr.Ptr, sAuthDigestStr.Len)) {
+			fAuthScheme = qtssAuthDigest;
+			parsedAuthLine.ConsumeWhitespace();
+			while(true) {
+				StrPtrLen fieldNameAndValue("");
+				parsedAuthLine.GetThru(&fieldNameAndValue, ','); 
+				StringParser parsedNameAndValue(&fieldNameAndValue);
+				StrPtrLen fieldName("");
+				StrPtrLen fieldValue("");
+				
+				//Parse name="value" pair fields in the auth line
+				parsedNameAndValue.ConsumeUntil(&fieldName, '=');
+				parsedNameAndValue.ConsumeLength(NULL, 1);
+				parsedNameAndValue.GetThruEOL(&fieldValue);
+				StringParser::UnQuote(&fieldValue);
+				
+				// fieldValue.Ptr below is a pointer to a part of the qtssAuthorizationHeader 
+				// as GetValue returns a pointer
+				// Since the header attribute remains for the entire time the request is alive
+				// we don't need to make copies of the values of each field into the request
+				// object, and can just keep pointers to the values
+				// Thus, no need to delete memory for the following fields when the request is deleted:
+				// fAuthRealm, fAuthNonce, fAuthUri, fAuthNonceCount, fAuthResponse, fAuthOpaque
+				if(fieldName.Equal(sUsernameStr)) {
+					// Set the qtssRTSPReqUserName attribute in the Request object
+					(void) this->SetValue(qtssRTSPReqUserName, 0,  fieldValue.Ptr , fieldValue.Len, QTSSDictionary::kDontObeyReadOnly);
+					// Also set the qtssUserName attribute in the qtssRTSPReqUserProfile object attribute of the Request Object
+					(void) fUserProfile.SetValue(qtssUserName, 0, fieldValue.Ptr, fieldValue.Len, QTSSDictionary::kDontObeyReadOnly);
+				}
+				else if(fieldName.Equal(sRealmStr)) {
+					fAuthRealm.Set(fieldValue.Ptr, fieldValue.Len);
+				}
+				else if(fieldName.Equal(sNonceStr)) {
+					fAuthNonce.Set(fieldValue.Ptr, fieldValue.Len);
+				}
+				else if(fieldName.Equal(sUriStr)) {
+					fAuthUri.Set(fieldValue.Ptr, fieldValue.Len);
+				}
+				else if(fieldName.Equal(sQopStr)) {
+					if(fieldValue.Equal(sQopAuthStr))
+						fAuthQop = RTSPSessionInterface::kAuthQop;
+					else if(fieldValue.Equal(sQopAuthIntStr))
+						fAuthQop = RTSPSessionInterface::kAuthIntQop;
+				}
+				else if(fieldName.Equal(sNonceCountStr)) {
+					fAuthNonceCount.Set(fieldValue.Ptr, fieldValue.Len);
+				}
+				else if(fieldName.Equal(sResponseStr)) {
+					fAuthResponse.Set(fieldValue.Ptr, fieldValue.Len);
+				}
+				else if(fieldName.Equal(sOpaqueStr)) {
+					fAuthOpaque.Set(fieldValue.Ptr, fieldValue.Len);
+				}
+						
+				parsedAuthLine.ConsumeWhitespace();
+				if(parsedAuthLine.GetDataRemaining() == 0)
+					// Workaround gcc bug - ORIGINAL CODE was - break;
+					goto done;
+			}	
+		}
+	}
+done:
 	return theErr;
-};
-
+}
 
 void RTSPRequest::SetupAuthLocalPath(void)
 {
@@ -601,7 +752,63 @@ void RTSPRequest::SetupAuthLocalPath(void)
 	this->SetVal(qtssRTSPReqLocalPath, fFullPath, theLen);
 }
 
-QTSS_Error RTSPRequest::SendChallenge(void)
+QTSS_Error RTSPRequest::SendDigestChallenge(UInt32 qop, StrPtrLen *nonce, StrPtrLen* opaque)
+{
+	QTSS_Error theErr = QTSS_NoErr;
+
+	char challengeBuf[kAuthChallengeHeaderBufSize];
+	ResizeableStringFormatter challengeFormatter(challengeBuf, kAuthChallengeHeaderBufSize);
+	
+	StrPtrLen realm;
+	char *prefRealmPtr = NULL;
+	StrPtrLen *realmPtr = this->GetValue(qtssRTSPReqURLRealm);				// Get auth realm set by the module
+	if(realmPtr->Len > 0) {
+		realm = *realmPtr;
+	}
+	else {																	// If module hasn't set the realm
+		QTSServerInterface* theServer = QTSServerInterface::GetServer();	// get the realm from prefs
+		prefRealmPtr = theServer->GetPrefs()->GetAuthorizationRealm(); 		// allocates memory
+		Assert(prefRealmPtr != NULL);
+		if (prefRealmPtr != NULL){	
+			realm.Set(prefRealmPtr, strlen(prefRealmPtr));
+		}
+		else {
+			realm = sDefaultRealm;	
+		}
+	}
+	
+	// Creating the Challenge header
+	challengeFormatter.Put(sAuthDigestStr);				// [Digest]
+	challengeFormatter.PutSpace();						// [Digest ] 
+	challengeFormatter.Put(sRealmStr);					// [Digest realm]
+	challengeFormatter.Put(sEqualQuote);				// [Digest realm="]
+	challengeFormatter.Put(realm);						// [Digest realm="somerealm]
+	challengeFormatter.Put(sQuoteCommaSpace);			// [Digest realm="somerealm", ]
+	if(this->GetStale()) {
+		challengeFormatter.Put(sStaleTrue);				// [Digest realm="somerealm", stale="true", ]
+	}
+	challengeFormatter.Put(sNonceStr);					// [Digest realm="somerealm", nonce]
+	challengeFormatter.Put(sEqualQuote);				// [Digest realm="somerealm", nonce="]
+	challengeFormatter.Put(*nonce);						// [Digest realm="somerealm", nonce="19723343a9fd75e019723343a9fd75e0]
+	challengeFormatter.PutChar('"');					// [Digest realm="somerealm", nonce="19723343a9fd75e019723343a9fd75e0"]
+	challengeFormatter.PutTerminator();					// [Digest realm="somerealm", nonce="19723343a9fd75e019723343a9fd75e0"\0]
+
+	StrPtrLen challengePtr(challengeFormatter.GetBufPtr(), challengeFormatter.GetBytesWritten() - 1);
+	fStatus = qtssClientUnAuthorized;
+	this->SetResponseKeepAlive(true);
+	this->AppendHeader(qtssWWWAuthenticateHeader, &challengePtr);
+	this->SendHeader();
+	
+	// deleting the memory that was allocated in GetPrefs call above
+	if (prefRealmPtr != NULL)
+	{	
+		delete[] prefRealmPtr;	
+	}
+		
+	return theErr;
+}
+
+QTSS_Error RTSPRequest::SendBasicChallenge(void)
 {	
 	QTSS_Error theErr = QTSS_NoErr;
 	char *prefRealmPtr = NULL;
@@ -650,19 +857,26 @@ QTSS_Error RTSPRequest::SendChallenge(void)
 		#if (0)
 		{  // test code
 			char test[256];
+			
 			memcpy(test,sDefaultRealm.Ptr,sDefaultRealm.Len);
+			test[sDefaultRealm.Len] = 0;
 			printf("the static realm =%s \n",test);
-
-			memcpy(test,prefRealm.Ptr,prefRealm.Len);
+			
+			OSCharArrayDeleter prefDeleter(QTSServerInterface::GetServer()->GetPrefs()->GetAuthorizationRealm());
+			memcpy(test,prefDeleter.GetObject(),strlen(prefDeleter.GetObject()));
+			test[strlen(prefDeleter.GetObject())] = 0;
 			printf("the Pref realm =%s \n",test);
 
 			memcpy(test,moduleRealm.Ptr,moduleRealm.Len);
+			test[moduleRealm.Len] = 0;
 			printf("the moduleRealm  =%s \n",test);
 		
 			memcpy(test,whichRealm.Ptr,whichRealm.Len);
+			test[whichRealm.Len] = 0;
 			printf("the challenge realm  =%s \n",test);
 			
 			memcpy(test,challenge.Ptr,challenge.Len);
+			test[challenge.Len] = 0;
 			printf("the challenge string  =%s len = %ld\n",test, challenge.Len);
 		}
 		#endif
@@ -681,4 +895,13 @@ QTSS_Error RTSPRequest::SendChallenge(void)
 	}
 	
 	return theErr;
+}
+
+QTSS_Error RTSPRequest::SendForbiddenResponse(void)
+{
+	fStatus = qtssClientForbidden;
+	this->SetResponseKeepAlive(false);
+	this->SendHeader();
+
+	return QTSS_NoErr;
 }

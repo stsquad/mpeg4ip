@@ -100,7 +100,5 @@
 #
 
 InstallFiles: streamingadminserver.pl 
-	mkdir -p $(DSTROOT)/usr/local/bin
-	cp $(SRCROOT)/WebAdmin/src/streamingadminserver.pl $(DSTROOT)/usr/local/bin/streamingadminserver.pl
-
-
+	mkdir -p $(DSTROOT)/usr/local/sbin
+	cp $(SRCROOT)/WebAdmin/src/streamingadminserver.pl $(DSTROOT)/usr/local/sbin/streamingadminserver.pl

@@ -34,6 +34,7 @@ MP4StsdAtom::MP4StsdAtom()
 	ExpectChildAtom("mp4a", Optional, Many);
 	ExpectChildAtom("mp4s", Optional, Many);
 	ExpectChildAtom("mp4v", Optional, Many);
+	ExpectChildAtom("rtp ", Optional, Many);
 }
 
 void MP4StsdAtom::Read() 

@@ -1,7 +1,29 @@
 #!/usr/bin/perl
 # A very simple perl web server used by Streaming Admin Server
-
-#---------------------------------------------------------
+#----------------------------------------------------------
+#
+# @APPLE_LICENSE_HEADER_START@
+#
+# Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+# contents of this file constitute Original Code as defined in and are
+# subject to the Apple Public Source License Version 1.2 (the 'License').
+# You may not use this file except in compliance with the License.  Please
+# obtain a copy of the License at http://www.apple.com/publicsource and
+# read it before using this file.
+#
+# This Original Code and all software distributed under the License are
+# distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+# INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+# see the License for the specific language governing rights and
+# limitations under the License.
+#
+#
+# @APPLE_LICENSE_HEADER_END@
+#
+#
+# ---------------------------------------------------------
 # Copyright (c) Jamie Cameron
 # All rights reserved.
 #
@@ -35,7 +57,19 @@ package streamingadminserver;
 use Socket;
 use POSIX;
 use Sys::Hostname;
-
+eval "use Net::SSLeay";
+if (!$@) {
+	$use_ssl = 1;
+	# These functions only exist for SSLeay 1.0
+	eval "Net::SSLeay::SSLeay_add_ssl_algorithms()";
+	eval "Net::SSLeay::load_error_strings()";
+	if (defined(&Net::SSLeay::X509_STORE_CTX_get_current_cert) &&
+	    defined(&Net::SSLeay::CTX_load_verify_locations) &&
+	    defined(&Net::SSLeay::CTX_set_verify)) {
+		$client_certs = 1;
+	}
+}
+	
 # Get streamingadminserver's perl path and location
 $streamingadminserver_path = $0;
 open(SOURCE, $streamingadminserver_path);
@@ -44,29 +78,51 @@ close(SOURCE);
 @streamingadminserver_argv = @ARGV;
 
 if($^O eq "MSWin32") {
-	$defaultConfigPath = "C:/ProgramFiles/Darwin Streaming Server/treamingadminserver.conf";
+	$defaultConfigPath = "C:/Program Files/Darwin Streaming Server/streamingadminserver.conf";
 }
 else {
 	$defaultConfigPath = "/etc/streaming/streamingadminserver.conf";
 }
 
+$debug = 0;
 # Find and read config file
-if (@ARGV != 1) {
+if (@ARGV < 1) {
     $conf = $defaultConfigPath;
 }
-else {
-	if($^O eq "MSWin32") {
-    	$conf = $ARGV[0];
+elsif(@ARGV == 1) {
+    if($ARGV[0] eq "-d") {
+	$conf = $defaultConfigPath;
+	$debug = 1;
+    }
+    else {
+	&usage($defaultConfigPath);
+	exit;
+    }
+}
+elsif(@ARGV == 2) {
+    if(($ARGV[0] eq "-cd") || ($ARGV[0] eq "-dc")) {
+	$debug = 1;
+    }
+    elsif($ARGV[0] ne "-c") {
+	&usage($defaultConfigPath);
+	exit;
+    }
+    if($^O eq "MSWin32") {
+	    $conf = $ARGV[1];
+	}
+    else {
+	if ($ARGV[1] =~ /^\//) {
+	    $conf = $ARGV[1];
 	}
 	else {
-    	if ($ARGV[0] =~ /^\//) {
-			$conf = $ARGV[0];
-   	}
-    	else {
-			chop($pwd = `pwd`);
-			$conf = "$pwd/$ARGV[0]";
-    	}
+	    chop($pwd = `pwd`);
+	    $conf = "$pwd/$ARGV[1]";
 	}
+    }
+}
+else {
+	&usage($defaultConfigPath);
+    exit;
 }
 
 if(!open(CONF, $conf)) {
@@ -75,7 +131,7 @@ if(!open(CONF, $conf)) {
 	}
 } else {
 	while(<CONF>) {
-	    chop;
+	    chomp;
 	    if (/^#/ || !/\S/) { 
 			next; 
 	    }
@@ -92,6 +148,7 @@ if(!open(CONF, $conf)) {
 if($^O eq "darwin") {
 	%vital = ("port", 1220,
 	  "root", "/Library/QuickTimeStreaming/AdminHtml",
+      "plroot", "/Library/QuickTimeStreaming/Playlists/",
 	  "server", "QTSS 3.0 Admin Server/1.0",
 	  "index_docs", "index.html index.htm index.cgi",
 	  "addtype_html", "text/html",
@@ -104,20 +161,28 @@ if($^O eq "darwin") {
 	  "realm", "QTSS Admin Server",
 	  "qtssIPAddress", "localhost",
 	  "qtssPort", "554",
-	  "qtssName", "/usr/sbin/QuickTimeStreamingServer",
+	  "qtssName", "/usr/local/sbin/QuickTimeStreamingServer",
+	  "qtssAutoStart", "1",
 	  "logfile", "/Library/QuickTimeStreaming/Logs/streamingadminserver.log",
 	  "log", "1",
 	  "logclear", "0",
-	  "logtime", "168"  
+	  "logtime", "168",
+	  "messagesfile", "messages",
+	  "gbrowse", "0",
+	  "ssl", "1",
+	  "keyfile", "/etc/streaming/streamingadminserver.pem",
+	  "qtssQTPasswd", "/usr/local/bin/qtpasswd",
+	  "qtssAdmin", "streamingadmin"  
 	  );
 }
 elsif($^O eq "MSWin32") {
 	%vital = ("port", 1220,
 	  "root", "C:/Program Files/Darwin Streaming Server/AdminHtml",
+	  "plroot", "C:/Program Files/Darwin Streaming Server/Playlists/",
 	  "server", "QTSS 3.0 Admin Server/1.0",
 	  "index_docs", "index.html index.htm index.cgi",
 	  "addtype_html", "text/html",
-          "addtype_htm", "text/html",
+      "addtype_htm", "text/html",
 	  "addtype_txt", "text/plain",
 	  "addtype_gif", "image/gif",
 	  "addtype_jpg", "image/jpeg",
@@ -127,19 +192,27 @@ elsif($^O eq "MSWin32") {
 	  "qtssIPAddress", "localhost",
 	  "qtssPort", "554",
 	  "qtssName", "C:/Program Files/Darwin Streaming Server/DarwinStreamingServer.exe",
-	  "logfile", "C:/Program Files/Darwin Streaming Server/Logs/streamingadminserver.log",
+	  "qtssAutoStart", "1",
+      "logfile", "C:/Program Files/Darwin Streaming Server/Logs/streamingadminserver.log",
 	  "log", "1",
 	  "logclear", "0",
-	  "logtime", "168"  
+	  "logtime", "168",
+	  "messagesfile", "messages",
+	  "gbrowse", "0",
+	  "ssl", "1",
+	  "keyfile", "C:/Program Files/Darwin Streaming Server/streamingadminserver.pem",
+	  "qtssQTPasswd", "C:/Program Files/Darwin Streaming Server/qtpasswd.exe",
+	  "qtssAdmin", "streamingadmin" 
 	  );
 }
 else {
 	%vital = ("port", 1220,
 	  "root", "/var/streaming/AdminHtml",
+      "plroot", "/var/streaming/playlists/",
 	  "server", "DSS 3.0 Admin Server/1.0",
 	  "index_docs", "index.html index.htm index.cgi",
 	  "addtype_html", "text/html",
-          "addtype_htm", "text/html",
+      "addtype_htm", "text/html",
 	  "addtype_txt", "text/plain",
 	  "addtype_gif", "image/gif",
 	  "addtype_jpg", "image/jpeg",
@@ -149,19 +222,31 @@ else {
 	  "qtssIPAddress", "localhost",
 	  "qtssPort", "554",
 	  "qtssName", "/usr/local/sbin/DarwinStreamingServer",
+      "qtssAutoStart", "1",
 	  "logfile", "/var/streaming/logs/streamingadminserver.log",
 	  "log", "1",
 	  "logclear", "0",
-	  "logtime", "168"  
+	  "logtime", "168",
+	  "messagesfile", "messages",
+	  "gbrowse", "0",
+	  "ssl", "1",
+	  "keyfile", "/etc/streaming/streamingadminserver.pem",
+	  "qtssQTPasswd", "/usr/local/bin/qtpasswd",
+	  "qtssAdmin", "streamingadmin" 
 	  );
 }
+
 foreach $v (keys %vital) {
-	if (!$config{$v}) {
+	if ((!defined($config{$v})) || ($config{$v} eq "")) {
 		if ($vital{$v} eq "") {
-	    	die "Missing config option $v";
+		    die "Missing config option $v";
 		}
 		$config{$v} = $vital{$v};
-    }
+	}
+}
+
+if($config{'qtssIPAddress'} eq "localhost") {
+	$config{'qtssIPAddress'} = inet_ntoa(INADDR_LOOPBACK);
 }
 
 # init days and months for http_date
@@ -177,18 +262,35 @@ if ($^O ne "MSWin32") {
 
 # Read users file
 #if ($config{'userfile'}) {
-#    open(USERS, $config{'userfile'});
-#    while(<USERS>) {
-#		if (/^([^:\s]+):([^:\s]+):(\d*):(.*)/) {
-#	    	$users{$1} = $2;
-#	    	$certs{$1} = $4;
+#	open(USERS, $config{'userfile'});
+#	while(<USERS>) {
+#		s/\r|\n//g;
+#		local @user = split(/:/, $_);
+#		$users{$user[0]} = $user[1];
+#		$certs{$user[0]} = $user[3] if ($user[3]);
+#		if ($user[4] =~ /^allow\s+(.*)/) {
+#			$allow{$user[0]} = [ &to_ipaddress(split(/\s+/, $1)) ];
 #		}
-#		elsif (/^([^:\s]+):([^:\s]+)/) {
-#	    	$users{$1} = $2;
+#		elsif ($user[4] =~ /^deny\s+(.*)/) {
+#			$deny{$user[0]} = [ &to_ipaddress(split(/\s+/, $1)) ];
 #		}
-#   }
-#   close(USERS);
+#	}
+#	close(USERS);
 #}
+
+# Setup SSL if possible and if requested
+if (!$config{'ssl'}) { $use_ssl = 0; }
+if ($use_ssl) {
+	$ssl_ctx = Net::SSLeay::CTX_new() ||
+		die "Failed to create SSL context : $!";
+	$client_certs = 0 if (!$config{'ca'} || !%certs);
+	if ($client_certs) {
+		Net::SSLeay::CTX_load_verify_locations(
+			$ssl_ctx, $config{'ca'}, "");
+		Net::SSLeay::CTX_set_verify(
+			$ssl_ctx, &Net::SSLeay::VERIFY_PEER, \&verify_client);
+		}
+	}
 
 ## Read MIME types file and add extra types
 #if ($config{"mimetypes"} ne "") {
@@ -209,6 +311,167 @@ foreach $k (keys %config) {
     $mime{$1} = $config{$k};
 }
 
+# get the time zone
+if ($config{'log'}) {
+	local(@gmt, @lct, $days, $hours, $mins);
+	@make_date_marr = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+		 	   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec");
+	@gmt = gmtime(time());
+	@lct = localtime(time());
+	$days = $lct[3] - $gmt[3];
+	$hours = ($days < -1 ? 24 : 1 < $days ? -24 : $days * 24) +
+		 $lct[2] - $gmt[2];
+	$mins = $hours * 60 + $lct[1] - $gmt[1];
+	$timezone = ($mins < 0 ? "-" : "+"); $mins = abs($mins);
+	$timezone .= sprintf "%2.2d%2.2d", $mins/60, $mins%60;
+	}
+
+# Read the messages file for each language
+# and store in a hash variable
+%messagesfile = ();
+$messagesfile{"en"} = $config{'root'} . "/html_en/" . $config{'messagesfile'}; 
+$messagesfile{"de"} = $config{'root'} . "/html_de/" . $config{'messagesfile'}; 
+$messagesfile{"fr"} = $config{'root'} . "/html_fr/" . $config{'messagesfile'}; 
+$messagesfile{"ja"} = $config{'root'} . "/html_ja/" . $config{'messagesfile'}; 
+
+%messages = ();
+for $lang (keys %messagesfile) {
+	# Create a hash for each message file 
+	# The keys are the keywords and the values are the message strings
+	$messageHashRef = ();
+	open(MESSAGES, $messagesfile{$lang}) or die "Couldn't find the $lang language messages file!";
+	while($messageLine = <MESSAGES>) {
+		if(($messageLine =~ /^#/) || ($messageLine =~ /^\s+$/)) {
+			next;
+		}
+		if($messageLine =~ /^(\s*?)(\S+)(\s+?)\"(.*)\"(\s*)$/) {
+			$keyword = $2;
+			$messageStr = $4;
+		}
+		$messageHashRef->{$keyword} = $messageStr;
+	}
+	$messages{$lang} = $messageHashRef;
+
+	close(MESSAGES);
+ }
+
+if($config{'qtssAutoStart'} == 1) {
+# check if the streaming server is running by trying to connect
+# to it. If the server doesn't respond, look for the name of the 
+# streaming server binary in the config file and start it
+
+	if(!($iaddr = inet_aton($config{'qtssIPAddress'}))) { 
+		if($debug) {
+	   		print "No host: $config{'qtssIPAddress'}\n";
+		}
+	}
+	$paddr = sockaddr_in($config{'qtssPort'}, $iaddr);
+	$proto = getprotobyname('tcp');
+	if(!socket(TEST_SOCK, PF_INET, SOCK_STREAM, $proto)) {
+    	if($debug) {
+			print "Couldn't create socket to connect to the Streaming Server: $!\n";
+    	}
+	}
+	if(!connect(TEST_SOCK, $paddr)) {
+    	if($debug) {
+			print "Couldn't connect to the Streaming Server at $config{'qtssIPAddress'} "
+			    . " on port $config{'qtssPort'}\n";
+			if($^O eq "MSWin32") {
+		    	print "Please start Darwin Streaming Server from the Service Manager\n";
+			}
+			else {
+	    		print "Launching Streaming Server...\n";
+			}
+    	}
+
+	    $prog = $config{'qtssName'};
+	    if($^O ne "MSWin32") {
+	        unless ($forkpid = fork()) {
+		    	unless (fork()) {
+					close(MAIN);
+					exec($prog);
+					if($debug) {
+			    		print "Cannot launch the streaming server.\n";
+					}
+					exit 0;
+		    	}
+		    	exit 0;
+			}
+    	}
+	    else {
+			#eval "require Win32::Service";
+			#if($@) {
+			#	print "Win32::Service module not installed.\n"
+			#		. "Cannot launch the Streaming Server from the admin server\n";
+			#}
+			#else {
+			#	Win32::Service::StartService(NULL, "Darwin Streaming Server");
+			#}
+    	}
+	}
+	close(TEST_SOCK);
+}
+
+# For darwin platforms (other than Win32)
+if(($^O ne "MSWin32") && ($^O ne "darwin")) {
+	if ($config{'inetd'}) {
+		# We are being run from inetd - go direct to handling the request
+		$SIG{'HUP'} = 'IGNORE';
+		$SIG{'TERM'} = 'DEFAULT';
+		$SIG{'PIPE'} = 'DEFAULT';
+		open(SOCK, "+>&STDIN");
+
+		# Check if it is time for the logfile to be cleared
+		if ($config{'logclear'}) {
+			local $write_logtime = 0;
+			local @st = stat("$config{'logfile'}.time");
+			if (@st) {
+				if ($st[9]+$config{'logtime'}*60*60 < time()){
+					# need to clear log
+					$write_logtime = 1;
+					unlink($config{'logfile'});
+				}
+			}
+			else { $write_logtime = 1; }
+			if ($write_logtime) {
+				open(LOGTIME, ">$config{'logfile'}.time");
+				print LOGTIME time(),"\n";
+				close(LOGTIME);
+			}
+		}
+
+		# Initialize SSL for this connection
+		if ($use_ssl) {
+			$ssl_con = Net::SSLeay::new($ssl_ctx);
+			Net::SSLeay::set_fd($ssl_con, fileno(SOCK));
+			Net::SSLeay::use_RSAPrivateKey_file(
+				$ssl_con, $config{'keyfile'},
+				&Net::SSLeay::FILETYPE_PEM);
+			Net::SSLeay::use_certificate_file(
+				$ssl_con, $config{'keyfile'},
+				&Net::SSLeay::FILETYPE_PEM);
+			Net::SSLeay::accept($ssl_con) || exit;
+		}
+
+		# Work out the hostname for this web server
+		if (!$config{'host'}) {
+			($myport, $myaddr) =
+				unpack_sockaddr_in(getsockname(SOCK));
+			$myname = gethostbyaddr($myaddr, AF_INET);
+			if ($myname eq "") {
+				$myname = inet_ntoa($myaddr);
+			}
+			$host = $myname;
+		}
+		else { $host = $config{'host'}; }
+		$port = $config{'port'};
+
+		while(&handle_request(getpeername(SOCK))) { }
+		close(SOCK);
+		exit;
+	}
+}
+	
 # Open main socket
 $proto = getprotobyname('tcp');
 $baddr = $config{"bind"} ? inet_aton($config{"bind"}) : INADDR_ANY;
@@ -224,11 +487,14 @@ bind(MAIN, $servaddr) || die "Failed to start Streaming Admin Server.\n"
 listen(MAIN, SOMAXCONN) || die "Failed to listen on socket for Streaming Admin Server: $!\n";
 
 # Split from the controlling terminal
-if ($^O ne "MSWin32") {
- 	if (fork()) {
+if (($^O ne "MSWin32") && ($debug == 0)) {
+    if (fork()) {
 		exit;
- 	}
-	setsid();
+    }
+    setsid();
+    open(STDIN, '>/dev/null');
+    open(STDOUT, '>/dev/null');
+    open(STDERR, '>/dev/null');
 }
 
 # write out the PID file
@@ -238,76 +504,6 @@ if ($^O ne "MSWin32") {
 #    printf PIDFILE "%d\n", getpid();
 #    close(PIDFILE);
 #}
-
-# check if the streaming server is running by trying to connect
-# to it. If the server doesn't respond, look for the name of the 
-# streaming server binary in the config file and start it
-if(!($iaddr = inet_aton($config{'qtssIPAddress'}))) { 
-		print "No host: $config{'qtssIPAddress'}\n";			
-}
-$paddr = sockaddr_in($config{'qtssPort'}, $iaddr);
-$proto = getprotobyname('tcp');
-if(!socket(TEST_SOCK, PF_INET, SOCK_STREAM, $proto)) {
-	print "Coudn't create socket to connect to the Streaming Server: $!\n";
-}
-if(!connect(TEST_SOCK, $paddr)) {
-    print "Couldn't connect to the Streaming Server at $config{'qtssIPAddress'} "
-	. " on port $config{'qtssPort'}\n";
-    if($^O eq "MSWin32") {
-	print "Please start Darwin Streaming Server from the Service Manager\n";
-    }
-    else {
-	print "Trying to launch...\n";
-    }
-    $prog = $config{'qtssName'};
-    if($^O ne "MSWin32") {
-	if(!($forkpid = fork())) {
-	    close(MAIN);
-	    if(exec($prog)) {
-		print "Launched the streaming server.\n";
-	    }  
-	    else {
-		print "Cannot launch $prog: $?\n"; 
-	    }
-	    exit;
-	}
-	#if(system($prog) != 0) {
-	#   print "Cannot launch $prog: $?";
-	#}
-	#else {
-	#   print "Launched the streaming server.\n";
-	#}
-    }
-    else {
-	#eval "require Win32::Service";
-	#if($@) {
-	#	print "Win32::Service module not installed.\n"
-	#		. "Cannot launch the Streaming Server from the admin server\n";
-	#}
-	#else {
-	#	Win32::Service::StartService(NULL, "Darwin Streaming Server");
-	#}
-	
-	#eval "require Win32::Process";
-	#if($@) {
-	#	print "Win32::Process module not installed.\n"
-	#		. "Cannot launch the Streaming Server from the admin server\n";
-	#}
-	#else {
-	#	if(Win32::Process::Create($processObj, $prog, "", 0, DETACHED_PROCESS, ".") == 0) { 
-	#		print "Failed to launch the Streaming Server\n";
-	#	}
-	#	else {
-	#		$processObj->SetPriorityClass(NORMAL_PRIORITY_CLASS) 
-	#			|| print "Couldn't set the priority of the Streaming Server process\n";
-	#		$processObj->Wait(0);
-	#		print "Launched the Streaming Server\n";
-	#	}
-	#}
-    }
-}
-close(TEST_SOCK);
-
 
 # Start the log-clearing process, if needed. This checks every minute
 # to see if the log has passed its reset time, and if so clears it
@@ -339,21 +535,6 @@ if ($^O ne "MSWin32") {
     }
 }
 
-# get the time zone
-if ($config{'log'}) {
-    local(@gmt, @lct, $days, $hours, $mins);
-    @make_date_marr = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
-		       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec");
-    @gmt = gmtime(time());
-    @lct = localtime(time());
-    $days = $lct[3] - $gmt[3];
-    $hours = ($days < -1 ? 24 : 1 < $days ? -24 : $days * 24) +
-	$lct[2] - $gmt[2];
-    $mins = $hours * 60 + $lct[1] - $gmt[1];
-    $timezone = ($mins < 0 ? "-" : "+"); $mins = abs($mins);
-    $timezone .= sprintf "%2.2d%2.2d", $mins/60, $mins%60;
-}
-
 # Run the main loop
 if ($^O ne "MSWin32") {
 	$SIG{'CHLD'} = 'streamingadminserver::reaper';
@@ -376,7 +557,7 @@ while(1) {
 		}
     }
 
-    local $sel = select($rmask, undef, undef, undef);
+    local $sel = select($rmask, undef, undef, 10);
     if ($need_restart) { &restart_streamingadminserver(); }
     
     #if($^O ne "MSWin32") {
@@ -391,13 +572,10 @@ while(1) {
     #}
 
     next if ($sel <= 0);
-    
     if (vec($rmask, fileno(MAIN), 1)) {
 		# got new connection
 		$acptaddr = accept(SOCK, MAIN);
-		
 		if (!$acptaddr) { next; }
-	
 	
 		if($^O ne "MSWin32") {
 	    	# create pipes
@@ -407,8 +585,8 @@ while(1) {
 				$p++;
 				pipe($PASSINr, $PASSINw);
 				pipe($PASSOUTr, $PASSOUTw);
-				select($PASSINw); $| = 1;
-				select($PASSOUTw); $| = 1;
+				select($PASSINw); $| = 1; select($PASSINr); $| = 1;
+				select($PASSOUTw); $| = 1; select($PASSOUTw); $| = 1;
 		 	}
 		}
 	
@@ -416,6 +594,19 @@ while(1) {
 		select(STDOUT);
 
 		if($^O eq "MSWin32") {
+			# Initialize SSL for this connection
+			if ($use_ssl) {
+				$ssl_con = Net::SSLeay::new($ssl_ctx);
+				Net::SSLeay::set_fd($ssl_con, fileno(SOCK));
+				Net::SSLeay::use_RSAPrivateKey_file(
+					$ssl_con, $config{'keyfile'},
+					&Net::SSLeay::FILETYPE_PEM);
+				Net::SSLeay::use_certificate_file(
+					$ssl_con, $config{'keyfile'},
+					&Net::SSLeay::FILETYPE_PEM);
+				Net::SSLeay::accept($ssl_con) || next;
+			}
+		
 		    # Work out the hostname for this web server
 		    if (!$config{'host'}) {
 				($myport, $myaddr) =
@@ -440,6 +631,19 @@ while(1) {
 				$SIG{'PIPE'} = 'DEFAULT';
 				#$SIG{'CHLD'} = 'IGNORE';
 				$SIG{'HUP'} = 'IGNORE';
+				# Initialize SSL for this connection
+				if ($use_ssl) {
+					$ssl_con = Net::SSLeay::new($ssl_ctx);
+					Net::SSLeay::set_fd($ssl_con, fileno(SOCK));
+					Net::SSLeay::use_RSAPrivateKey_file(
+						$ssl_con, $config{'keyfile'},
+						&Net::SSLeay::FILETYPE_PEM);
+					Net::SSLeay::use_certificate_file(
+						$ssl_con, $config{'keyfile'},
+						&Net::SSLeay::FILETYPE_PEM);
+					Net::SSLeay::accept($ssl_con) || exit;
+				}
+				
 				# close useless pipes
 				if ($config{'passdelay'}) {
 				    foreach $p (@passin) { close($p); }
@@ -460,13 +664,12 @@ while(1) {
 				}
 				else { $host = $config{'host'}; }
 				$port = $config{'port'};
-		
 				while(&handle_request($acptaddr)) { }
 				close(SOCK);
 				close($PASSINw); close($PASSOUTw);
 				exit;
 	    	}
-		    # push(@childpids, $handpid);
+		    push(@childpids, $handpid);
 		    if ($config{'passdelay'}) {
 				close($PASSINw); close($PASSOUTr);
 				push(@passin, $PASSINr); push(@passout, $PASSOUTw);
@@ -514,15 +717,33 @@ while(1) {
 	}
 }
 
+# usage
+sub usage
+{
+    printf("Usage: streamingadminserver.pl [-cd] [configfilepath]\n");
+    printf("    Command                                           How it works\n");
+    printf("    -------                                           ------------\n");
+    printf("1. streamingadminserver.pl                           uses default config file\n");
+    printf("                                                     if found at $_[0]\n");
+    printf("                                                     else uses internal defaults\n");
+    printf("2. streamingadminserver.pl -d                        uses default config as above\n");
+    printf("                                                     and runs in debug mode\n");
+    printf("3. streamingadminserver.pl -c  xyzfilepath           uses config file at 'xyzfilepath'\n");
+    printf("4. streamingadminserver.pl -dc  xyzfilepath          like 3. above and runs in debug mode\n");
+    printf("5. streamingadminserver.pl -cd  xyzfilepath          like 3. above and runs in debug mode\n");
+}
+
 # handle_request(address)
 # Where the real work is done
 sub handle_request
 {
     $acptip = inet_ntoa((unpack_sockaddr_in($_[0]))[1]);
     $datestr = &http_date(time());
-    
     # Read the HTTP request and headers
     ($reqline = &read_line()) =~ s/\r|\n//g;
+	if(!defined($reqline) && ($use_ssl == 1)) {
+		&https_redirect($host, $port, "/");
+	}
     if (!($reqline =~ /^(GET|POST|HEAD)\s+(.*)\s+HTTP\/1\..$/)) {
 	&http_error(400, "Bad Request");
     }
@@ -541,6 +762,32 @@ sub handle_request
 		}
 		else { $host = $header{'host'}; }
     }
+    
+    # Set defaults so that english html can be sent if the accept-language header is not given
+    my $langDir = $config{"root"} . "/html_en";
+    my $language = "en";
+    
+    if (defined($header{'accept-language'})) {
+		@langArr =	split /,/ , $header{'accept-language'};
+	    if($langArr[0] =~ m/^de/) {
+	    	$langDir = $config{"root"} . "/html_de";
+	    	$language = "de";
+	    }
+	    elsif($langArr[0] =~ m/^fr/) {
+	    	$langDir = $config{"root"} . "/html_fr";
+	    	$language = "fr";
+	    }
+	    elsif($langArr[0] =~ m/^ja/) {
+	    	$langDir = $config{"root"} . "/html_ja";
+	    	$language = "ja";
+	    }
+		else { 
+			$langDir = $config{"root"} . "/html_en"; 
+			$language = "en";
+		}
+    }
+    
+    undef(%in);
     if ($page =~ /^([^\?]+)\?(.*)$/) {
 		# There is some query string information
 		$page = $1;
@@ -550,6 +797,16 @@ sub handle_request
 	    	$queryargs =~ s/\+/ /g;
 	    	$queryargs =~ s/%(..)/pack("c",hex($1))/ge;
 	    	$querystring = "";
+		}
+		else {
+			# Parse query-string parameters
+			local @in = split(/\&/, $querystring);
+			foreach $i (@in) {
+				local ($k, $v) = split(/=/, $i, 2);
+				$k =~ s/\+/ /g; $k =~ s/%(..)/pack("c",hex($1))/ge;
+				$v =~ s/\+/ /g; $v =~ s/%(..)/pack("c",hex($1))/ge;
+				$in{$k} = $v;
+			}
 		}
     }
 
@@ -588,6 +845,21 @@ sub handle_request
     # Check for password if needed
     if (%users) {
 		$validated = 0;
+		
+		# check for SSL authentication
+		if ($use_ssl && $verified_client) {
+			$peername = Net::SSLeay::X509_NAME_oneline(
+					Net::SSLeay::X509_get_subject_name(
+						Net::SSLeay::get_peer_certificate(
+							$ssl_con)));
+			foreach $u (keys %certs) {
+				if ($certs{$u} eq $peername) {
+					$authuser = $u;
+					$validated = 2;
+					last;
+				}
+			}
+		}
 	
 		# Check for normal HTTP authentication
 		if (!$validated && $header{authorization} =~ /^basic\s+(\S+)$/i) {
@@ -607,7 +879,7 @@ sub handle_request
 	    	#print STDERR "checking $authuser $authpass -> $validated\n";
 
 	    	if($^O ne "MSWin32") {
-				if ($config{'passdelay'}) {
+				if ($config{'passdelay'} && !$config{'inetd'}) {
 		    		# check with main process for delay
 		    		print $PASSINw "$authuser $acptip $validated\n";
 		    		<$PASSOUTr> =~ /(\d+)/;
@@ -641,7 +913,6 @@ sub handle_request
 			&http_error(403, "Access denied for $acptip");
 			return 0;
 		}	
-	
     }
     
     # Figure out what kind of page was requested
@@ -655,7 +926,17 @@ sub handle_request
 		if ($b ne "") { $sofar .= "/$b"; }
 		$full = $config{"root"} . $sofar;
 		@st = stat($full);
-		if (!@st) { &http_error(404, "File not found"); }
+		if (!@st) {
+			$full =  $langDir . $sofar;
+			@st = stat($full);
+			if(@st) {
+				my $redirectUrl = "/html_" . "$language" . $sofar;
+				&http_redirect($use_ssl, $host, $config{'port'}, $redirectUrl);
+			}
+			else{
+				&http_error(404, "File not found"); 
+			}
+		}
 	
 		# Check if this is a directory
 		if (-d $full) {
@@ -685,10 +966,11 @@ sub handle_request
 		if ($page !~ /\/$/) {
 	    	# It doesn't.. redirect
 	   		&write_data("HTTP/1.0 302 Moved Temporarily\r\n");
-	    	$portstr = ($port == 80) ? "" : ":$port";
+	    	$portstr = ($port == 80 && !$use_ssl) ? "" :
+			   ($port == 443 && $use_ssl) ? "" : ":$port";
 	    	&write_data("Date: $datestr\r\n");
 	    	&write_data("Server: $config{'server'}\r\n");
-	    	$prot = "http";
+	    	$prot = $use_ssl ? "https" : "http";
 	    	&write_data("Location: $prot://$host$portstr$page/\r\n");
 	    	&write_keep_alive(0);
 	    	&write_data("\r\n");
@@ -760,9 +1042,12 @@ sub handle_request
 		$ENV{"SERVER_ADMIN"} = $config{"email"};
 		$ENV{"SERVER_ROOT"} = $config{"root"};
 		$ENV{"SERVER_PORT"} = $port;
+        $ENV{"PLAYLISTS_ROOT"} = $config{"plroot"};
+        $ENV{"GBROWSE_FLAG"} = $config{"gbrowse"};
 		$ENV{"REMOTE_HOST"} = $acptip;
 		$ENV{"REMOTE_ADDR"} = $acptip;
 		$ENV{"REMOTE_USER"} = $authuser if (defined($authuser));
+		$ENV{"SSL_USER"} = $peername if ($validated == 2);
 		$ENV{"DOCUMENT_ROOT"} = $config{"root"};
 		$ENV{"GATEWAY_INTERFACE"} = "CGI/1.1";
 		$ENV{"SERVER_PROTOCOL"} = "HTTP/1.0";
@@ -776,7 +1061,16 @@ sub handle_request
 		$ENV{"QTSSADMINSERVER_QTSSIP"} = $config{"qtssIPAddress"};
 		$ENV{"QTSSADMINSERVER_QTSSPORT"} = $config{"qtssPort"};
 		$ENV{"QTSSADMINSERVER_QTSSNAME"} = $config{"qtssName"};
-		$ENV{"HTTPS"} = "OFF";
+		$ENV{"QTSSADMINSERVER_QTSSAUTOSTART"} = $config{"qtssAutoStart"};
+		$ENV{"QTSSADMINSERVER_QTSSQTPASSWD"} = $config{"qtssQTPasswd"};
+		$ENV{"QTSSADMINSERVER_QTSSADMIN"} = $config{"qtssAdmin"};
+		$ENV{"QTSSADMINSERVER_EN_MESSAGEHASH"} = $messages{"en"};
+		$ENV{"QTSSADMINSERVER_DE_MESSAGEHASH"} = $messages{"de"};
+		$ENV{"QTSSADMINSERVER_JA_MESSAGEHASH"} = $messages{"ja"};
+		$ENV{"QTSSADMINSERVER_FR_MESSAGEHASH"} = $messages{"fr"};
+		$ENV{"LANGDIR"} = $langDir;
+		$ENV{"LANGUAGE"} = $language;
+		$ENV{"HTTPS"} =  "ON" if ($use_ssl);
 		if (defined($header{"content-length"})) {
 	    	$ENV{"CONTENT_LENGTH"} = $header{"content-length"};
 		}
@@ -1027,6 +1321,45 @@ sub http_error
     }
 }
 
+# https_redirect(host, port, redirecturl)
+sub https_redirect
+{
+	$use_ssl = 0;
+    close(CGIOUT);
+    &write_data("HTTP/1.0 302 Temporarily Unavailable\r\n");
+    &write_data("Server: $config{server}\r\n");
+    &write_data("Date: $datestr\r\n");
+    my $portStr = ($_[1] == 443) ? "" : ":$_[1]";
+    &write_data("Location: https://$_[0]$portStr$_[2]\r\n");
+    &write_data("Connection: close\r\n");
+    &write_keep_alive(0);
+    &write_data("\r\n");
+    &log_request($acptip, $authuser, $reqline, 302, 0);
+    $use_ssl = 1;
+    if ($^O ne "MSWin32") {
+		exit;
+    }
+}
+
+# http_redirect(use_ssl, host, port, redirecturl, [dontexit])
+sub http_redirect
+{
+    close(CGIOUT);
+    &write_data("HTTP/1.0 302 Temporarily Unavailable\r\n");
+    &write_data("Server: $config{server}\r\n");
+    &write_data("Date: $datestr\r\n");
+    my $prot = $_[0] ? "https" : "http";
+    my $portStr = ($_[2] == 80 && !$_[0]) ? "" : ($_[2] == 443 && $_[0]) ? "" : ":$_[2]";
+    &write_data("Location: $prot://$_[1]$portStr$_[3]\r\n");
+    &write_data("Connection: close\r\n");
+    &write_keep_alive(0);
+    &write_data("\r\n");
+    &log_request($acptip, $authuser, $reqline, 302, 0);
+    if ($^O ne "MSWin32") {
+		exit if (!$_[4]);
+    }
+}
+
 sub get_type
 {
     if ($_[0] =~ /\.([A-z0-9]+)$/) {
@@ -1048,6 +1381,14 @@ sub simplify_path
     $dir =~ s/^\/+//g;
     $dir =~ s/\/+$//g;
     @bits = split(/\/+/, $dir);
+    
+    if ($#bits == 0) # the path separator in $dir is not '/' maybe it is '\' (windows)
+    {
+    	$dir =~ s/^\\+//g;
+    	$dir =~ s/\\+$//g;
+    	@bits = split(/\\+/, $dir);
+    }
+     
     @fixedbits = ();
     $_[1] = 0;
     foreach $b (@bits) {
@@ -1092,6 +1433,12 @@ sub ip_match
 {
     local(@io, @mo, @ms, $i, $j);
     @io = split(/\./, $_[0]);
+	local $hn;
+	if (!defined($hn = $ip_match_cache{$_[0]})) {
+		$hn = gethostbyaddr(inet_aton($_[0]), AF_INET);
+		$hn = "" if ((&to_ipaddress($hn))[0] ne $_[0]);
+		$ip_match_cache{$_[0]} = $hn;
+	}    
     for($i=1; $i<@_; $i++) {
 	local $mismatch = 0;
 	if ($_[$i] =~ /^(\S+)\/(\S+)$/) {
@@ -1102,6 +1449,10 @@ sub ip_match
 		    $mismatch = 1;
 		}
 	    }
+	}
+	elsif ($_[$i] =~ /^\*(\S+)$/) {
+		# Compare with hostname regexp
+		$mismatch = 1 if ($hn !~ /$1$/);
 	}
 	else {
 	    # Compare with IP or network
@@ -1140,36 +1491,68 @@ sub to_ipaddress
 {
     local (@rv, $i);
     foreach $i (@_) {
-	if ($i =~ /(\S+)\/(\S+)/) { push(@rv, $i); }
+	if ($i =~ /(\S+)\/(\S+)/ || $i =~ /^\*\S+$/) { push(@rv, $i); }
 	else { push(@rv, join('.', unpack("CCCC", inet_aton($i)))); }
     }
     return @rv;
 }
 
 # read_line()
-# Reads one line from SOCK
+# Reads one line from SOCK or SSL
 sub read_line
 {
-    return <SOCK>; 
+	local($idx, $more, $rv);
+	if ($use_ssl) {
+		while(($idx = index($read_buffer, "\n")) < 0) {
+			# need to read more..
+			if (!($more = Net::SSLeay::read($ssl_con))) {
+				# end of the data
+				$rv = $read_buffer;
+				undef($read_buffer);
+				return $rv;
+			}
+			$read_buffer .= $more;
+		}
+		$rv = substr($read_buffer, 0, $idx+1);
+		$read_buffer = substr($read_buffer, $idx+1);
+		return $rv;
+	}
+	else { return <SOCK>; }
 }
-
 
 # read_data(length)
-# Reads up to some amount of data from SOCK
+# Reads up to some amount of data from SOCK or the SSL connection
 sub read_data
 {
-    local($buf);
-    read(SOCK, $buf, $_[0]) || return undef;
-    return $buf;
+	if ($use_ssl) {
+		local($rv);
+		if (length($read_buffer)) {
+			$rv = $read_buffer;
+			undef($read_buffer);
+			return $rv;
+		}
+		else {
+			return Net::SSLeay::read($ssl_con, $_[0]);
+		}
+	}
+	else {
+		local($buf);
+		read(SOCK, $buf, $_[0]) || return undef;
+		return $buf;
+	}
 }
 
-
 # write_data(data)
-# Writes a string to SOCK
+# Writes a string to SOCK or the SSL connection
 sub write_data
 {
-    print SOCK $_[0];
-    $write_data_count += length($_[0]);
+	if ($use_ssl) {
+		Net::SSLeay::write($ssl_con, $_[0]);
+	}
+	else {
+		syswrite(SOCK, $_[0], length($_[0]));
+	}
+	$write_data_count += length($_[0]);
 }
 
 # reset_byte_count()
@@ -1289,7 +1672,7 @@ sub READ
 
 sub OPEN
 {
-print STDERR "open() called - should never happen!\n";
+	print STDERR "open() called - should never happen!\n";
 }
  
 sub READLINE
@@ -1365,6 +1748,16 @@ sub write_to_sock
     }
 }
 
+sub verify_client
+{
+	local $cert = Net::SSLeay::X509_STORE_CTX_get_current_cert($_[1]);
+	if ($cert) {
+		local $errnum = Net::SSLeay::X509_STORE_CTX_get_error($_[1]);
+		$verified_client = 1 if (!$errnum);
+	}
+	return 1;
+}
+
 sub END
 {
     if ($doing_eval) {
@@ -1374,5 +1767,20 @@ sub END
 	&log_request($acptip, $authuser, $reqline,
 		     $cgiheader{"location"} ? "302" : "200", &byte_count());
     }
+}
+
+# urlize
+# Convert a string to a form ok for putting in a URL
+sub urlize {
+  local($tmp, $tmp2, $c);
+  $tmp = $_[0];
+  $tmp2 = "";
+  while(($c = chop($tmp)) ne "") {
+	if ($c !~ /[A-z0-9]/) {
+		$c = sprintf("%%%2.2X", ord($c));
+		}
+	$tmp2 = $c . $tmp2;
+	}
+  return $tmp2;
 }
 

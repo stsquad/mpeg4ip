@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		StrPtrLen.cpp
@@ -74,6 +74,12 @@ char* StrPtrLen::GetAsCString() const
 
 Bool16 StrPtrLen::Equal(const StrPtrLen &compare) const
 {
+	if (NULL == compare.Ptr && NULL == Ptr )
+		return true;
+		
+	if (NULL == compare.Ptr)
+		return false;
+
 	if ((compare.Len == Len) && (memcmp(compare.Ptr, Ptr, Len) == 0))
 		return true;
 	else
@@ -81,7 +87,13 @@ Bool16 StrPtrLen::Equal(const StrPtrLen &compare) const
 }
 
 Bool16 StrPtrLen::Equal(const char* compare) const
-{
+{	
+	if (NULL == compare && NULL == Ptr )
+		return true;
+		
+	if (NULL == compare)
+		return false;
+		
 	if ((::strlen(compare) == Len) && (memcmp(compare, Ptr, Len) == 0))
 		return true;
 	else
@@ -118,6 +130,79 @@ Bool16 StrPtrLen::EqualIgnoreCase(const char* compare, const UInt32 len) const
 	return false;
 }
 
+char *StrPtrLen::FindStringCase(char *queryCharStr, StrPtrLen *resultStr, Bool16 caseSensitive) const
+{
+	// Be careful about exiting this method from the middle. This routine deletes allocated memory at the end.
+	// 
+
+	if (resultStr)
+		resultStr->Set(NULL,0);
+
+	Assert (NULL != queryCharStr);
+	if (NULL == queryCharStr) return NULL;
+	if (NULL == Ptr) return NULL;
+	if (0 == Len) return NULL;
+	
+
+	StrPtrLen queryStr(queryCharStr);
+	char *editSource = NULL;
+	char *resultChar = NULL;
+	char lastSourceChar = Ptr[Len];
+	
+	if (lastSourceChar != 0) // need to modify for termination. 
+	{	editSource = NEW char[Len + 1]; // Ptr could be a static string so make a copy
+		::memcpy( editSource, Ptr, Len );
+		editSource[Len] = 0; // this won't work on static strings so we are modifing a new string here
+	}
+
+	char *queryString = queryCharStr;		
+	char *dupSourceString = NULL;
+	char *dupQueryString = NULL;
+	char *sourceString = Ptr;
+	UInt32 foundLen = 0;
+	
+	if (editSource != NULL) // a copy of the source ptr and len 0 terminated
+		sourceString = editSource;
+	
+	if (!caseSensitive)
+	{	dupSourceString = ::strdup(sourceString);
+		dupQueryString = ::strdup(queryCharStr);				
+		if (dupSourceString && dupQueryString) 
+		{	sourceString = StrPtrLen(dupSourceString).ToUpper();
+			queryString = StrPtrLen(dupQueryString).ToUpper();
+			resultChar = ::strstr(sourceString,queryString);
+		}
+	}
+	else
+	{	resultChar = ::strstr(sourceString,queryString);		
+	}
+	
+	if (resultChar != NULL) // get the start offset
+	{	foundLen = resultChar - sourceString;
+		resultChar = Ptr + foundLen;  // return a pointer in the source buffer
+		if (resultChar > (Ptr + Len)) // make sure it is in the buffer
+			resultChar = NULL;
+	}
+	
+	if (caseSensitive)
+	{	if (dupSourceString) ::free(dupSourceString);
+		if (dupQueryString) ::free(dupQueryString);
+	}
+	
+	if (editSource != NULL)  
+		delete [] editSource;
+	
+	if (resultStr != NULL && resultChar != NULL)
+		resultStr->Set(resultChar,queryStr.Len);
+	
+#if STRPTRLENTESTING	
+	printf("StrPtrLen::FindStringCase found string=%s\n",resultChar);
+#endif
+
+	return resultChar;
+}
+
+
 #if STRPTRLENTESTING
 Bool16	StrPtrLen::Test()
 {
@@ -128,30 +213,142 @@ Bool16	StrPtrLen::Test()
 	static char* test5 = "cONTnnt-TYPe:";
 	static char* test6 = "cONTent-TY";
 	
+	static char* test7 = "ontent-Type:";
+	static char* test8 = "ONTent-TYPe:";
+	static char* test9 = "-TYPe:";
+	static char* test10 = ":";
+	
 	StrPtrLen theVictim1(test1, strlen(test1));
-	if (!theVictim1.EqualIgnoreCase(test2, strlen(test2))
+	if (!theVictim1.EqualIgnoreCase(test2, strlen(test2)))
 		return false;
 		
-	if (theVictim1.EqualIgnoreCase(test3, strlen(test3))
+	if (theVictim1.EqualIgnoreCase(test3, strlen(test3)))
 		return false;
-	if (!theVictim1.EqualIgnoreCase(test1, strlen(test1))
+	if (!theVictim1.EqualIgnoreCase(test1, strlen(test1)))
 		return false;
 
 	StrPtrLen theVictim2(test3, strlen(test3));
-	if (!theVictim2.EqualIgnoreCase(test4, strlen(test4))
+	if (!theVictim2.EqualIgnoreCase(test4, strlen(test4)))
 		return false;
-	if (theVictim2.EqualIgnoreCase(test5, strlen(test5))
+	if (theVictim2.EqualIgnoreCase(test5, strlen(test5)))
 		return false;
-	if (theVictim2.EqualIgnoreCase(test6, strlen(test6))
+	if (theVictim2.EqualIgnoreCase(test6, strlen(test6)))
 		return false;
+		
+	StrPtrLen outResultStr;
+	if (!theVictim1.FindStringIgnoreCase(test2, &outResultStr))
+		return false;
+	if (theVictim1.FindStringIgnoreCase(test3, &outResultStr))
+		return false;
+	if (!theVictim1.FindStringIgnoreCase(test1, &outResultStr))
+		return false;
+	if (!theVictim2.FindStringIgnoreCase(test4))
+		return false;
+	if (theVictim2.FindStringIgnoreCase(test5))
+		return false;
+	if (!theVictim2.FindStringIgnoreCase(test6))
+		return false;
+	if (!theVictim2.FindStringIgnoreCase(test7))
+		return false;
+	if (!theVictim2.FindStringIgnoreCase(test8))
+		return false;
+	if (!theVictim2.FindStringIgnoreCase(test9))
+		return false;
+	if (!theVictim2.FindStringIgnoreCase(test10))
+		return false;
+
+	if (theVictim1.FindString(test2, &outResultStr))
+		return false;
+	if (theVictim1.FindString(test3, &outResultStr))
+		return false;
+	if (!theVictim1.FindString(test1, &outResultStr))
+		return false;
+	if (theVictim2.FindString(test4))
+		return false;
+	if (theVictim2.FindString(test5))
+		return false;
+	if (theVictim2.FindString(test6))
+		return false;
+	if (!theVictim2.FindString(test7))
+		return false;
+	if (theVictim2.FindString(test8))
+		return false;
+	if (theVictim2.FindString(test9))
+		return false;
+	if (!theVictim2.FindString(test10))
+		return false;
+	
+	StrPtrLen query;
+	query.Set(test2);
+	if (theVictim1.FindString(query, &outResultStr))
+		return false;
+	if (outResultStr.Len > 0)
+		return false;
+	if (outResultStr.Ptr != NULL)
+		return false;
+		
+	query.Set(test3);
+	if (theVictim1.FindString(query, &outResultStr))
+		return false;
+	if (outResultStr.Len > 0)
+		return false;
+	if (outResultStr.Ptr != NULL)
+		return false;
+		
+	query.Set(test1);
+	if (!theVictim1.FindString(query, &outResultStr))
+		return false;
+	if (!outResultStr.Equal(query))
+		return false;
+		
+	query.Set(test4);
+	if (query.Equal(theVictim2.FindString(query)))
+		return false;
+	
+	query.Set(test5);
+	if (query.Equal(theVictim2.FindString(query)))
+		return false;
+
+	query.Set(test6);
+	if (query.Equal(theVictim2.FindString(query)))
+		return false;
+
+	query.Set(test7);
+	if (!query.Equal(theVictim2.FindString(query)))
+		return false;
+
+	query.Set(test8);
+	if (query.Equal(theVictim2.FindString(query)))
+		return false;
+
+	query.Set(test9);
+	if (query.Equal(theVictim2.FindString(query)))
+		return false;
+
+	query.Set(test10);
+	if (!query.Equal(theVictim2.FindString(query)))
+		return false;
+	
+	query.Set(test10);
+	if (!query.Equal(theVictim2.FindString(query)))
+		return false;
+	
+	StrPtrLen partialStaticSource(test1,5);
+	query.Set("abcd");
+	if (query.Equal(partialStaticSource.FindString(query)))
+		return false;
+		
+	query.Set("47");
+	if (query.Equal(partialStaticSource.FindString(query))) // success = !equal because the char str is longer than len
+		return false;
+	
+	if (query.FindString(partialStaticSource.FindString(query))) // success = !found because the 0 term src is not in query
+		return false;
+
+	partialStaticSource.FindString(query,&outResultStr);
+	if (!outResultStr.Equal(query)) // success =found the result Ptr and Len is the same as the query
+		return false;
+
 	return true;
 }
-
-
 #endif
-
-
-
-
-
-

@@ -1,5 +1,6 @@
 {
     DYNAMIC_CODE_GEN = YES; 
+    English_RESOURCES = {}; 
     FILESTABLE = {
         H_FILES = (); 
         OTHER_SOURCES = (
@@ -11,7 +12,8 @@
             streamingrelay.conf, 
             streamingserver.xml, 
             sample.mov, 
-            AboutQTStreamingServer.pdf
+            AboutQTStreamingServer.pdf, 
+            qtusers
         ); 
         SUBPROJECTS = (
             QTFileTools, 

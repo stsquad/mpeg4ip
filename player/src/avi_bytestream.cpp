@@ -22,9 +22,8 @@
  * avi_bytestream.cpp - convert quicktime file to a bytestream
  */
 #include "systems.h"
-#include "player_session.h"
-#include "player_media.h"
 #include "avi_bytestream.h"
+#include "player_util.h"
 
 /**************************************************************************
  * Quicktime stream base class functions

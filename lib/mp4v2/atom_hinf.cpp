@@ -37,3 +37,21 @@ MP4HinfAtom::MP4HinfAtom()
 	ExpectChildAtom("dmax", Optional, OnlyOne);
 	ExpectChildAtom("payt", Optional, OnlyOne);
 }
+
+void MP4HinfAtom::Generate()
+{
+	// hinf is special in that although all it's child atoms
+	// are optional (on read), if we generate it for writing
+	// we really want all the children
+
+	for (u_int32_t i = 0; i < m_pChildAtomInfos.Size(); i++) {
+		MP4Atom* pChildAtom = 
+			CreateAtom(m_pChildAtomInfos[i]->m_name);
+
+		AddChildAtom(pChildAtom);
+
+		// and ask it to self generate
+		pChildAtom->Generate();
+	}
+}
+

@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
-// $Id: QTRTPFile.cpp,v 1.3 2001/08/01 00:34:59 wmaycisco Exp $
+// $Id: QTRTPFile.cpp,v 1.4 2001/10/11 20:39:08 wmaycisco Exp $
 //
 // QTRTPFile:
 //   An interface to QTFile for TimeShare.
@@ -348,14 +348,16 @@ QTRTPFile::QTRTPFile(Bool16 debugFlag, Bool16 deepDebugFlag)
 	, fNumHintTracks(0)
 	, fFirstTrack(NULL)
 	, fLastTrack(NULL)
+	, fCurSeekTrack(NULL)
 	, fSDPFile(NULL)
 	, fSDPFileLength(0)
+        , fNumSkippedSamples(0)
 	, fRequestedSeekTime(0.0)
 	, fSeekTime(0.0)
 	, fLastPacketTrack(NULL)
 	, fBytesPerSecond(0)
-	, fFirstPacketTransmissionTime(0.0)
-	, fIsFirstPacket(true)
+	, fHasRTPMetaInfoFieldArray(false)
+	, fWasLastSeekASeekToPacketNumber(false)
 	, fErr(errNoError)
 {
 	fFCB = NEW QTFile_FileControlBlock();
@@ -448,7 +450,8 @@ QTRTPFile::ErrorCode QTRTPFile::Initialize(const char * filePath)
 		listEntry->IsPacketAvailable = false;
 		listEntry->QualityLevel = kAllPackets;
 		
-		listEntry->Cookie = NULL;
+		listEntry->Cookie1 = NULL;
+		listEntry->Cookie2 = 0;
 		listEntry->SSRC = 0;
 
 		listEntry->BaseSequenceNumberRandomOffset = 0;
@@ -460,6 +463,10 @@ QTRTPFile::ErrorCode QTRTPFile::Initialize(const char * filePath)
 		listEntry->FileTimestampRandomOffset = 0;
 		
 		listEntry->CurSampleNumber = 0;
+		listEntry->ConsecutivePFramesSent = 0;
+		listEntry->PFrameDropInterval = 0;
+		listEntry->SampleToSeekTo = 0;
+		listEntry->NextSyncSampleNumber = 0;
 		listEntry->NumPacketsInThisSample = 0;
 		listEntry->CurPacketNumber = 0;
 		
@@ -586,12 +593,12 @@ char * QTRTPFile::GetSDPFile(int * sdpFileLength)
 	{
 		//
 		// Verify that this is an SDP atom.
-		fFile->Read(globalSDPTOCEntry->AtomDataPos+4, (char *)&tempAtomType, 4);
+		fFile->Read(globalSDPTOCEntry->AtomDataPos, (char *)&tempAtomType, 4);
 		
 		if ( ntohl(tempAtomType) == FOUR_CHARS_TO_INT('s', 'd', 'p', ' ') ) 
 		{
 			haveGlobalSDPAtom = true;
-			fSDPFileLength += globalSDPTOCEntry->AtomDataLength - 8;
+			fSDPFileLength += globalSDPTOCEntry->AtomDataLength - 4;
 		}
 	}
 
@@ -605,8 +612,8 @@ char * QTRTPFile::GetSDPFile(int * sdpFileLength)
 	
 	if( haveGlobalSDPAtom ) 
 	{
-		fFile->Read(globalSDPTOCEntry->AtomDataPos + 8, pSDPFile, globalSDPTOCEntry->AtomDataLength - 8);
-		pSDPFile += globalSDPTOCEntry->AtomDataLength - 8;
+		fFile->Read(globalSDPTOCEntry->AtomDataPos + 4, pSDPFile, globalSDPTOCEntry->AtomDataLength - 4);
+		pSDPFile += globalSDPTOCEntry->AtomDataLength - 4;
 	}
 	
 	::memcpy(pSDPFile, sdpRangeLine, ::strlen(sdpRangeLine));
@@ -751,7 +758,7 @@ void QTRTPFile::SetTrackSSRC(UInt32 trackID, UInt32 SSRC)
 	trackEntry->SSRC = SSRC;
 }
 
-void QTRTPFile::SetTrackCookie(UInt32 trackID, void * cookie)
+void QTRTPFile::SetTrackCookies(UInt32 TrackID, void * Cookie1, UInt32 Cookie2)
 {
 	// General vars
 	RTPTrackListEntry	*trackEntry;
@@ -759,12 +766,30 @@ void QTRTPFile::SetTrackCookie(UInt32 trackID, void * cookie)
 	
 	//
 	// Find this track.
-	if( !this->FindTrackEntry(trackID, &trackEntry) )
+	if( !this->FindTrackEntry(TrackID, &trackEntry) )
 		return;
 	
 	//
 	// Set the cookie.
-	trackEntry->Cookie = cookie;
+	trackEntry->Cookie1 = Cookie1;
+	trackEntry->Cookie2 = Cookie2;
+}
+
+void QTRTPFile::SetTrackQualityLevel(RTPTrackListEntry* inEntry, UInt32 inNewQualityLevel)
+{
+	if (inNewQualityLevel != inEntry->QualityLevel)
+	{
+		inEntry->QualityLevel = inNewQualityLevel;
+
+		if (inEntry->QualityLevel == k90PercentPFrames)
+			inEntry->PFrameDropInterval = 10;
+		else if (inEntry->QualityLevel == k75PercentPFrames)
+			inEntry->PFrameDropInterval = 4;
+		else if (inEntry->QualityLevel == k50PercentPFrames)
+			inEntry->PFrameDropInterval = 2;
+					
+		inEntry->ConsecutivePFramesSent = 0;
+	}
 }
 
 void QTRTPFile::SetTrackRTPMetaInfo(UInt32 TrackID, RTPMetaInfoPacket::FieldID* inFieldArray, Bool16 isVideo)
@@ -781,22 +806,7 @@ void QTRTPFile::SetTrackRTPMetaInfo(UInt32 TrackID, RTPMetaInfoPacket::FieldID* 
 	//
 	// Set the cookie.
 	trackEntry->HTCB->SetupRTPMetaInfo(inFieldArray, isVideo);
-}
-
-void QTRTPFile::SetTrackQualityLevel(UInt32 trackID, UInt32 inNewQuality)
-{
-	// General vars
-	RTPTrackListEntry	*trackEntry;
-	
-	
-	//
-	// Find this track.
-	if( !this->FindTrackEntry(trackID, &trackEntry) )
-		return;
-	
-	//
-	// Set the option.
-	trackEntry->QualityLevel = inNewQuality;
+	fHasRTPMetaInfoFieldArray = true;
 }
 
 // -------------------------------------
@@ -820,11 +830,21 @@ UInt32 QTRTPFile::GetBytesPerSecond(void)
 //
 QTRTPFile::ErrorCode QTRTPFile::Seek(Float64 seekToTime, Float64 maxBackupTime)
 {
+	//fHasRTPMetaInfoFieldArray = true;
 	// General vars
 	RTPTrackListEntry	*listEntry;
 	UInt32				bytesPerSecond;
 	Float64				syncToTime = seekToTime;
 
+	if (fErr == errCallAgain)
+	{
+		fErr = this->ScanToCorrectSample();
+		return fErr;
+	}
+	
+	//
+	// This is Seek, not SeekToPacketNumber.
+	fWasLastSeekASeekToPacketNumber = false;
 
 	//
 	// Adjust the size of our QTFile buffer to reflect the current bitrate of
@@ -858,7 +878,7 @@ QTRTPFile::ErrorCode QTRTPFile::Seek(Float64 seekToTime, Float64 maxBackupTime)
 		if ( mediaTime < 0 )
 			mediaTime = 0;
 			
-		if ( !listEntry->HintTrack->GetSampleNumberFromMediaTime(mediaTime, &newSampleNumber, listEntry->HTCB->fsttsSTCB) )
+		if ( !listEntry->HintTrack->GetSampleNumberFromMediaTime(mediaTime, &newSampleNumber, &listEntry->HTCB->fsttsSTCB) )
 			continue;	// This track is probably done playing.
 		
 		//
@@ -869,7 +889,7 @@ QTRTPFile::ErrorCode QTRTPFile::Seek(Float64 seekToTime, Float64 maxBackupTime)
 
 		//
 		// Figure out what time this sample is at.
-		if( !listEntry->HintTrack->GetSampleMediaTime(newSyncSampleNumber, &newSampleMediaTime) )
+		if( !listEntry->HintTrack->GetSampleMediaTime(newSyncSampleNumber, &newSampleMediaTime, &listEntry->HTCB->fsttsSTCB) )
 			return errInvalidQuickTimeFile;
 			
 		newSampleMediaTime += listEntry->HintTrack->GetFirstEditMediaTime();
@@ -888,37 +908,181 @@ QTRTPFile::ErrorCode QTRTPFile::Seek(Float64 seekToTime, Float64 maxBackupTime)
 		fSeekTime = syncToTime;
 	else
 		fSeekTime = seekToTime;
-
-	//
-	// Prefetch a packet for all active tracks.
-	for( listEntry = fFirstTrack; listEntry != NULL; listEntry = listEntry->NextTrack ) 
+	
+	for ( listEntry = fFirstTrack; listEntry != NULL; listEntry = listEntry->NextTrack ) 
 	{
-		//
-		// Only fetch packets on active tracks.
 		if( !listEntry->IsTrackActive )
 			continue;
-		
-		//
-		// Reset the sample table caches.
-		listEntry->HTCB->fstscSTCB->Reset();
-		listEntry->HTCB->Reset(fSeekTime);
+
+		listEntry->IsPacketAvailable = false;
 
 		//
-		// Prefetch a packet.
-		listEntry->IsPacketAvailable = false;
-		if( !this->PrefetchNextPacket(listEntry, true, fSeekTime) )
+		// Reset the sample table caches.
+		listEntry->HTCB->fstscSTCB.Reset();
+		listEntry->HTCB->Reset();
+
+		//
+		// Compute the media time and get the sample at that time.
+		SInt32 mediaTime = (SInt32)(fSeekTime * listEntry->HintTrack->GetTimeScale());
+		mediaTime -= listEntry->HintTrack->GetFirstEditMediaTime();
+		if( mediaTime < 0 )
+			mediaTime = 0;
+
+		listEntry->SampleToSeekTo = 0;
+		if (!listEntry->HintTrack->GetSampleNumberFromMediaTime(mediaTime, &listEntry->SampleToSeekTo, &listEntry->HTCB->fsttsSTCB))
 			continue;
 		
 		//
-		// We've got a packet..
-		listEntry->IsPacketAvailable = true;
-	}
+		// If we are building meta-info packets, we have to build all the packets up until the destination
+		// point in the movie, we can't just skip there. So, start by jumping to the beginning of the movie,
+		// then PrefetchPacketForAllTracks will move to the right point in the movie
+		if (fHasRTPMetaInfoFieldArray)
+		{
+			mediaTime = 0;
+			mediaTime -= listEntry->HintTrack->GetFirstEditMediaTime();
+			if( mediaTime < 0 )
+				mediaTime = 0;
 
+			listEntry->CurSampleNumber = 0;
+			if (!listEntry->HintTrack->GetSampleNumberFromMediaTime(mediaTime, &listEntry->CurSampleNumber, &listEntry->HTCB->fsttsSTCB))
+				continue;
+		}
+		else
+			listEntry->CurSampleNumber = listEntry->SampleToSeekTo;
+		
+		//
+		// Clear our current packet information.
+		listEntry->NumPacketsInThisSample = 0;
+		listEntry->CurPacketNumber = 0;
+	
+		if (this->PrefetchNextPacket(listEntry, true))
+			listEntry->IsPacketAvailable = true;
+	}
+	
 	//
 	// 'Forget' that we had a previous packet.
 	fLastPacketTrack = NULL;
 	
+	if (fHasRTPMetaInfoFieldArray)
+	{
+		fCurSeekTrack = fFirstTrack;
+		fErr = this->ScanToCorrectSample();
+		return fErr;
+	}
+
 	return errNoError;
+}
+
+QTRTPFile::ErrorCode QTRTPFile::ScanToCorrectSample()
+{
+	UInt32 packetCount = 0;
+	//
+	// Prefetch a packet for all active tracks.
+	for( ; fCurSeekTrack != NULL; fCurSeekTrack = fCurSeekTrack->NextTrack ) 
+	{
+		//
+		// Only fetch packets on active tracks.
+		if( !fCurSeekTrack->IsTrackActive )
+			continue;
+		
+		//
+		// Scan through all the packets in this track until we get to the sample we want
+		while (fCurSeekTrack->CurSampleNumber < fCurSeekTrack->SampleToSeekTo)
+		{
+			if (packetCount > 100)
+				return errCallAgain;
+			else
+				packetCount++;
+			
+			if (!this->PrefetchNextPacket(fCurSeekTrack))
+			{
+				fCurSeekTrack->IsPacketAvailable = false;
+				break;
+			}
+		}
+		
+	}
+	return errNoError;
+}
+
+QTRTPFile::ErrorCode QTRTPFile::SeekToPacketNumber(UInt32 inTrackID, UInt64 inPacketNumber)
+{
+	if (fErr == errCallAgain)
+	{
+		fErr = this->ScanToCorrectPacketNumber(inTrackID, inPacketNumber);
+		return fErr;
+	}
+
+	//
+	// We need to track this so that we don't use the sync sample table if we start thinnning
+	fWasLastSeekASeekToPacketNumber = true;
+
+	for (RTPTrackListEntry	*listEntry = fFirstTrack; listEntry != NULL; listEntry = listEntry->NextTrack ) 
+	{
+		if( !listEntry->IsTrackActive )
+			continue;
+
+		listEntry->IsPacketAvailable = false;
+
+		//
+		// Reset the sample table caches.
+		listEntry->HTCB->fstscSTCB.Reset();
+		listEntry->HTCB->Reset();
+
+		//
+		// Jump to the beginning of each track
+		SInt32 mediaTime = 0;
+		mediaTime -= listEntry->HintTrack->GetFirstEditMediaTime();
+		if( mediaTime < 0 )
+			mediaTime = 0;
+
+		listEntry->CurSampleNumber = 0;
+		if (!listEntry->HintTrack->GetSampleNumberFromMediaTime(mediaTime, &listEntry->CurSampleNumber, &listEntry->HTCB->fsttsSTCB))
+			continue;
+		
+		//
+		// Clear our current packet information.
+		listEntry->NumPacketsInThisSample = 0;
+		listEntry->CurPacketNumber = 0;
+	
+		if (this->PrefetchNextPacket(listEntry, true))
+			listEntry->IsPacketAvailable = true;
+	}
+	
+	if (inPacketNumber == 0)
+		return errNoError;
+		
+	fErr = this->ScanToCorrectPacketNumber(inTrackID, inPacketNumber);
+	return fErr;
+}
+
+QTRTPFile::ErrorCode 	QTRTPFile::ScanToCorrectPacketNumber(UInt32 inTrackID, UInt64 inPacketNumber)
+{
+	int theLen = 0;
+	for (UInt32 packetCount = 0; packetCount < 100; packetCount++)
+	{
+		if ((fLastPacketTrack != NULL) && (fLastPacketTrack->TrackID == inTrackID) && (fLastPacketTrack->HTCB->fCurrentPacketNumber == inPacketNumber))
+		{
+			UInt32			newSampleMediaTime;
+			//
+			// Figure out what time this sample is at.
+			if( !fLastPacketTrack->HintTrack->GetSampleMediaTime(fLastPacketTrack->CurSampleNumber, &newSampleMediaTime, &fLastPacketTrack->HTCB->fsttsSTCB) )
+				return errInvalidQuickTimeFile;
+				
+			newSampleMediaTime += fLastPacketTrack->HintTrack->GetFirstEditMediaTime();
+			fRequestedSeekTime = (Float64)newSampleMediaTime * fLastPacketTrack->HintTrack->GetTimeScaleRecip();
+			//fLastPacketTrack = NULL; // So that when we next call GetNextPacket, we actually get the same packet
+			return errNoError;
+		}
+			
+		char* thePacket = NULL;
+		(void)this->GetNextPacket(&thePacket, &theLen);
+		
+		if (thePacket == NULL)
+			return errInvalidQuickTimeFile;
+	}
+	
+	return errCallAgain;
 }
 
 UInt32 QTRTPFile::GetSeekTimestamp(UInt32 trackID)
@@ -955,6 +1119,32 @@ UInt32 QTRTPFile::GetSeekTimestamp(UInt32 trackID)
 	return rtpTimestamp;
 }
 
+Float64 QTRTPFile::GetFirstPacketTransmitTime()
+{
+	RTPTrackListEntry	*listEntry;
+	Bool16				haveFirstPacketTime = false;
+	Float64				firstPacketTime = 0;
+
+	//
+	// Figure out which track is going to produce the next packet.
+	for( listEntry = fFirstTrack; listEntry != NULL; listEntry = listEntry->NextTrack ) 
+	{
+		//
+		// Only look at active tracks that have packets.
+		if( !listEntry->IsTrackActive || !listEntry->IsPacketAvailable)
+			continue;
+		
+		//
+		// See if this track has a time earlier than our initial time.
+		if( (listEntry->CurPacketTime <= firstPacketTime) || !haveFirstPacketTime ) 
+		{
+			haveFirstPacketTime 	= true;
+			firstPacketTime 		= listEntry->CurPacketTime;
+		}
+	}
+	return firstPacketTime;
+}
+
 UInt16 QTRTPFile::GetNextTrackSequenceNumber(UInt32 trackID)
 {
 	// General vars
@@ -974,7 +1164,7 @@ UInt16 QTRTPFile::GetNextTrackSequenceNumber(UInt32 trackID)
 	return ntohs(rtpSequenceNumber);
 }
 
-Float64 QTRTPFile::GetNextPacket(char ** outPacket, int * outPacketLength, void ** outCookie)
+Float64 QTRTPFile::GetNextPacket(char ** outPacket, int * outPacketLength)
 {
 	// General vars
 	RTPTrackListEntry	*listEntry;
@@ -988,7 +1178,6 @@ Float64 QTRTPFile::GetNextPacket(char ** outPacket, int * outPacketLength, void 
 	// Clear the input.
 	*outPacket = NULL;
 	*outPacketLength = 0;
-	*outCookie = NULL;
 	
 	//
 	// Prefetch the next packet of the track that the *last* packet came from.
@@ -1034,16 +1223,7 @@ Float64 QTRTPFile::GetNextPacket(char ** outPacket, int * outPacketLength, void 
 	
 	*outPacket = firstPacket->CurPacket;
 	*outPacketLength = firstPacket->CurPacketLength;
-	*outCookie = firstPacket->Cookie;
 
-	// hinted qt movies impossibly tell you to play their data at a point in the 
-	// past.  we note that here so that it can be corrected for
-	if ( fIsFirstPacket )
-	{
-		fIsFirstPacket = false;
-		fFirstPacketTransmissionTime =  firstPacket->CurPacketTime;
-	}
-	
 	return firstPacket->CurPacketTime;
 }
 
@@ -1076,35 +1256,13 @@ Bool16 QTRTPFile::FindTrackEntry(UInt32 trackID, RTPTrackListEntry **trackEntry)
 	return false;
 }
 
-Bool16 QTRTPFile::PrefetchNextPacket(RTPTrackListEntry * trackEntry, Bool16 doSeek, Float64 packetTime)
+Bool16 QTRTPFile::PrefetchNextPacket(RTPTrackListEntry * trackEntry, Bool16 doSeek)
 {
 	// General vars
 	UInt16			*pSequenceNumber;
 	UInt32			*pTimestamp;
+	Bool16			skipThisSample = false;
 
-	//
-	// Do a seek if requested.
-	if( doSeek ) 
-	{
-		// General vars
-		SInt32			mediaTime;
-	
-		//
-		// Compute the media time and get the sample at that time.
-		mediaTime = (SInt32)(packetTime * trackEntry->HintTrack->GetTimeScale());
-		mediaTime -= trackEntry->HintTrack->GetFirstEditMediaTime();
-		if( mediaTime < 0 )
-			mediaTime = 0;
-			
-		if( !trackEntry->HintTrack->GetSampleNumberFromMediaTime(mediaTime, &trackEntry->CurSampleNumber, trackEntry->HTCB->fsttsSTCB) )
-			return false;
-		
-		//
-		// Clear our current packet information.
-		trackEntry->NumPacketsInThisSample = 0;
-		trackEntry->CurPacketNumber = 0;
-	}
-	
 	// Temporary vars
 	QTTrack::ErrorCode	rcTrack = QTTrack::errIsBFrame;
 	
@@ -1128,13 +1286,85 @@ Bool16 QTRTPFile::PrefetchNextPacket(RTPTrackListEntry * trackEntry, Bool16 doSe
 			// move on.
 			if( trackEntry->QualityLevel >= kKeyFramesOnly )
 			{
-				//Use the quality level to determine how many key frames to skip over.
-				for (UInt32 keyFramesSkipCount = (kKeyFramesOnly - 1); keyFramesSkipCount < trackEntry->QualityLevel; keyFramesSkipCount++)
-					trackEntry->HintTrack->GetNextSyncSample(trackEntry->CurSampleNumber, &trackEntry->CurSampleNumber);
+				trackEntry->HintTrack->GetNextSyncSample(trackEntry->CurSampleNumber, &trackEntry->NextSyncSampleNumber);
+				if (!fHasRTPMetaInfoFieldArray && !fWasLastSeekASeekToPacketNumber)
+                                {
+                                        fNumSkippedSamples += trackEntry->NextSyncSampleNumber - trackEntry->CurSampleNumber;
+					trackEntry->CurSampleNumber = trackEntry->NextSyncSampleNumber;
+                                }
+				else
+				{
+                                        //
+                                        // If we are generating RTPMetaInfo packets, we need to track
+                                        // the total number of packets we are generating. The only way
+                                        // to do that is to actually generate all the packets. So do so.
+					trackEntry->CurSampleNumber++;
+					if (trackEntry->CurSampleNumber != trackEntry->NextSyncSampleNumber)
+                                        {
+                                                fNumSkippedSamples++;
+						skipThisSample = true;
+                                        }
+					else
+						skipThisSample = false;
+				}
+			}
+			else if (trackEntry->QualityLevel >= k90PercentPFrames)
+			{
+                                //
+                                // If we are skipping a certain % of p-frames, figure out
+                                // whether we need to skip this p-frame sample
+				trackEntry->CurSampleNumber++;
+				skipThisSample = false;
+
+                                //
+                                // Only skip this sample if it is not a sync sample
+				if (!trackEntry->HintTrack->IsSyncSample(trackEntry->CurSampleNumber, 0))
+				{
+                                        //
+                                        // figure out where the next sync sample is
+					if (trackEntry->CurSampleNumber >= trackEntry->NextSyncSampleNumber)
+						trackEntry->HintTrack->GetNextSyncSample(trackEntry->CurSampleNumber, &trackEntry->NextSyncSampleNumber);
+
+                                        //
+                                        // Increment our count of consecutive p-frames sent
+					trackEntry->ConsecutivePFramesSent++;
+                                        
+                                        //
+                                        // If we have hit the p-frame drop interval, we should drop this p-frame
+					if (trackEntry->ConsecutivePFramesSent == trackEntry->PFrameDropInterval)
+					{
+                                                //
+                                                // WAIT! We are pretty close to a sync sample. DON'T drop
+                                                // this p-frame. Instead, drop the 2 p-frames right
+                                                // before the next key frame
+						if ((trackEntry->NextSyncSampleNumber - trackEntry->CurSampleNumber) > trackEntry->PFrameDropInterval)
+						{
+							trackEntry->ConsecutivePFramesSent = 0;
+							skipThisSample = true;
+                                                        fNumSkippedSamples++;
+						}
+					}
+					else if (trackEntry->ConsecutivePFramesSent > trackEntry->PFrameDropInterval)
+					{
+                                                //
+                                                // This code will get executed if we are delaying our p-frame
+                                                // dropping because we are close to a key frame. This code here
+                                                // will cause the 2 frames before a key frame to be dropped
+						Assert(trackEntry->NextSyncSampleNumber > trackEntry->CurSampleNumber);
+						if ((trackEntry->NextSyncSampleNumber - trackEntry->CurSampleNumber) <= 2)
+						{
+							skipThisSample = true;
+                                                        fNumSkippedSamples++;
+							if ((trackEntry->NextSyncSampleNumber - trackEntry->CurSampleNumber) <= 1)
+								trackEntry->ConsecutivePFramesSent = 0;
+						}
+					}
+				}
 			}
 			else
 			{
 				trackEntry->CurSampleNumber++;
+				skipThisSample = false;
 			}
 			
 			//
@@ -1167,7 +1397,7 @@ Bool16 QTRTPFile::PrefetchNextPacket(RTPTrackListEntry * trackEntry, Bool16 doSe
 		rcTrack = trackEntry->HintTrack->GetPacket(trackEntry->CurSampleNumber, trackEntry->CurPacketNumber,
 												   trackEntry->CurPacket, &trackEntry->CurPacketLength,
 												   &trackEntry->CurPacketTime,
-												   (trackEntry->QualityLevel == kNoBFrames),
+												   (trackEntry->QualityLevel >= kNoBFrames),
 												   trackEntry->SSRC,
 												   trackEntry->HTCB);
 
@@ -1176,6 +1406,12 @@ Bool16 QTRTPFile::PrefetchNextPacket(RTPTrackListEntry * trackEntry, Bool16 doSe
 		::printf( "GetPacket sample time %li NumPackets: %li Packet fetched %li. len: %li\n", 
 					(long)packetTimer.Duration(), (long)trackEntry->NumPacketsInThisSample, (long)trackEntry->CurPacketNumber, (long)trackEntry->CurPacketLength  );
 	#endif
+	
+		//
+		// If we are doing keyframes only and this is not a sync sample, don't return this packet.
+		// This will happen if we are generating RTPMetaInfo packets and thinning.
+		if (skipThisSample)
+			rcTrack = QTTrack::errIsBFrame;
 	}
 
 	if( rcTrack != QTTrack::errNoError )

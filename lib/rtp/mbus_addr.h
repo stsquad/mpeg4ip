@@ -36,6 +36,4 @@
 int     mbus_addr_match(const char *a, const char *b);
 int mbus_addr_identical(const char *a, const char *b);
 
-/* The strfind() function is mainly for internal use, but might be useful to others... */
-int strfind(const char *haystack, const char *needle_start, const char *needle_end);
 

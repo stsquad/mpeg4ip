@@ -32,7 +32,7 @@ PROF_LIBS = $(LIBS)
 BUNDLE_EXTENSION = bundle
 
 
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Foundation
 
 

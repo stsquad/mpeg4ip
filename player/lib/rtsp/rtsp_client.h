@@ -124,6 +124,9 @@ typedef struct rtsp_client_ rtsp_client_t;
  */
 typedef struct rtsp_session_ rtsp_session_t;
 
+  struct rtp_packet;
+  
+typedef void (*rtp_callback_f)(void *, struct rtp_packet *, int len);
 /*
  * free_decode_response - call this after the decode response has been
  * used.  It will free all memory under it.
@@ -144,7 +147,23 @@ void free_rtsp_client(rtsp_client_t *info);
  * Output - pointer to rtsp_client handle
  */
 rtsp_client_t *rtsp_create_client(const char *url, int *err);
+rtsp_client_t *rtsp_create_client_for_rtp_tcp(const char *url,
+					      int *err);
 
+  typedef int (*rtsp_thread_callback_f)(void *);
+
+  int rtsp_thread_perform_callback(rtsp_client_t *info,
+				   rtsp_thread_callback_f func,
+				   void *ud);
+int rtsp_thread_set_rtp_callback(rtsp_client_t *info,
+				 rtp_callback_f rtp_callback,
+				 rtsp_thread_callback_f rtp_periodic,
+				 int rtp_interleave,
+				 void *ud);
+  int rtsp_thread_send_rtcp(rtsp_client_t *info,
+			    int interleave,
+			    char *buffer,
+			    int buflen);
 /*
  * rtsp message function error messages
  */
@@ -155,7 +174,7 @@ rtsp_client_t *rtsp_create_client(const char *url, int *err);
 #define RTSP_RESPONSE_CLOSED_SOCKET -5
 #define RTSP_RESPONSE_REDIRECT  1
 #define RTSP_RESPONSE_GOOD 0
-
+#define RTSP_RESPONSE_MALFORM_HEADER -6
 /*
  * rtsp_send_describe - send describe message
  * Input - info - handle for session

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTCPAPPPacket.h
@@ -42,6 +42,7 @@ class RTCPCompressedQTSSPacket : public RTCPPacket
 public:
 
 	RTCPCompressedQTSSPacket();
+	virtual ~RTCPCompressedQTSSPacket() {}
 	
 	//Call this before any accessor method. Returns true if successful, false otherwise
 	Bool16 ParseCompressedQTSSPacket(UInt8* inPacketBuffer, UInt32 inPacketLength);
@@ -60,6 +61,7 @@ public:
 	inline UInt32 GetNumEyes()	{return fNumEyes;}
 	inline UInt32 GetNumEyesActive()	{return fNumEyesActive;}
 	inline UInt32 GetNumEyesPaused()	{return fNumEyesPaused;}
+	inline UInt32 GetOverbufferWindowSize()	{return fOverbufferWindowSize;}
 	
 	//Proposed - are these there yet?
 	inline UInt32 GetTotalPacketReceived()	{return fTotalPacketsReceived;}
@@ -91,6 +93,7 @@ private:
 	UInt32 fNumEyes;
 	UInt32 fNumEyesActive;
 	UInt32 fNumEyesPaused;
+	UInt32 fOverbufferWindowSize;
 	
 	//Proposed - are these there yet?
 	UInt32 fTotalPacketsReceived;
@@ -137,6 +140,7 @@ class RTCPqtssPacket : public RTCPPacket
 public:
 	
 	RTCPqtssPacket() : RTCPPacket(), fRTCPAPPDataBuffer(NULL) {}
+	virtual ~RTCPqtssPacket() {}
 	
 	//Call this before any accessor method. Returns true if successful, false otherwise
 	Bool16 ParseQTSSPacket(UInt8* inPacketBuffer, UInt32 inPacketLength);

@@ -13,7 +13,7 @@ PROJECTVERSION = 2.8
 PROJECT_TYPE = Library
 
 CPPFILES = ConfParser.cpp DateTranslator.cpp EventContext.cpp\
-           Exception.cpp IdleTask.cpp MyAssert.cpp OS.cpp\
+           IdleTask.cpp md5digest.cpp MyAssert.cpp OS.cpp\
            OSBufferPool.cpp OSCodeFragment.cpp OSCond.cpp\
            OSFileSource.cpp OSHeap.cpp OSMutex.cpp OSMutexRW.cpp\
            OSQueue.cpp OSRef.cpp OSThread.cpp QueryParamList.cpp\
@@ -24,9 +24,9 @@ CPPFILES = ConfParser.cpp DateTranslator.cpp EventContext.cpp\
            UDPSocketPool.cpp UserAgentParser.cpp
 
 HFILES = atomic.h base64.h ConfParser.h DateTranslator.h\
-         DssStopwatch.h ev.h EventContext.h Exception.h\
-         FastCopyMacros.h getopt.h GetWord.h IdleTask.h MyAssert.h\
-         OS.h OSArrayObjectDeleter.h OSBufferPool.h OSCodeFragment.h\
+         DssStopwatch.h ev.h EventContext.h FastCopyMacros.h getopt.h\
+         GetWord.h IdleTask.h md5.h md5digest.h MyAssert.h OS.h\
+         OSArrayObjectDeleter.h OSBufferPool.h OSCodeFragment.h\
          OSCond.h OSFileSource.h OSHashTable.h OSHeaders.h OSHeap.h\
          OSMemory.h OSMutex.h OSMutexRW.h OSQueue.h OSRef.h\
          OSThread.h PLDoubleLinkedList.h QueryParamList.h\
@@ -34,10 +34,9 @@ HFILES = atomic.h base64.h ConfParser.h DateTranslator.h\
          StringFormatter.h StringParser.h StringTranslator.h\
          StrPtrLen.h Task.h TCPListenerSocket.h TCPSocket.h\
          tempcalls.h TimeoutTask.h timestamp.h Trim.h UDPDemuxer.h\
-         UDPSocket.h UDPSocketPool.h UserAgentParser.h mycondition.h\
-         mymutex.h
+         UDPSocket.h UDPSocketPool.h UserAgentParser.h
 
-CFILES = base64.c getopt.c GetWord.c mycondition.c mymutex.c Trim.c
+CFILES = base64.c getopt.c GetWord.c md5.c Trim.c
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble m.template\
             h.template
@@ -57,13 +56,13 @@ PROF_LIBS = $(LIBS)
 
 
 LIBRARY_PATHS = -L. -L.. -L../..
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Carbon -framework Foundation
-PROJECT_HEADERS = ev.h EventContext.h Exception.h IdleTask.h\
-                  MyAssert.h OS.h OSCodeFragment.h OSCond.h\
-                  OSFileSource.h OSHeap.h OSMutex.h OSQueue.h OSRef.h\
-                  OSThread.h Socket.h SocketUtils.h StringFormatter.h\
-                  StringParser.h StringTranslator.h StrPtrLen.h Task.h\
+PROJECT_HEADERS = ev.h EventContext.h IdleTask.h MyAssert.h OS.h\
+                  OSCodeFragment.h OSCond.h OSFileSource.h OSHeap.h\
+                  OSMutex.h OSQueue.h OSRef.h OSThread.h Socket.h\
+                  SocketUtils.h StringFormatter.h StringParser.h\
+                  StringTranslator.h StrPtrLen.h Task.h\
                   TCPListenerSocket.h TCPSocket.h TimeoutTask.h\
                   UDPDemuxer.h UDPSocket.h UDPSocketPool.h atomic.h\
                   OSArrayObjectDeleter.h OSHashTable.h OSHeaders.h\
@@ -72,7 +71,7 @@ PROJECT_HEADERS = ev.h EventContext.h Exception.h IdleTask.h\
                   StopWatch.h base64.h UserAgentParser.h\
                   DateTranslator.h ConfParser.h GetWord.h Trim.h\
                   getopt.h PLDoubleLinkedList.h OSBufferPool.h\
-                  DssStopwatch.h
+                  DssStopwatch.h md5.h md5digest.h
 
 
 

@@ -35,6 +35,8 @@ MP4RootAtom::MP4RootAtom()
 
 void MP4RootAtom::BeginWrite(bool use64) 
 {
+	// only call under MP4Create() control
+
 	u_int32_t size = m_pChildAtoms.Size();
 	u_int32_t i;
 
@@ -46,7 +48,7 @@ void MP4RootAtom::BeginWrite(bool use64)
 		}
 	}
 
-	// begin writing mdat atom
+	// begin writing the one and only mdat atom
 	for (i = 0; i < size; i++) {
 		u_int32_t atomType = ATOMID(m_pChildAtoms[i]->GetType());
 		if (atomType == ATOMID("mdat")) {
@@ -58,27 +60,27 @@ void MP4RootAtom::BeginWrite(bool use64)
 
 void MP4RootAtom::Write()
 {
+	// no-op
+}
+
+void MP4RootAtom::FinishWrite(bool use64)
+{
 	u_int32_t size = m_pChildAtoms.Size();
-	u_int32_t i;
-	// finish writing mdat atom
-	for (i = 0; i < size; i++) {
+	int32_t i;
+
+	// finish writing last mdat atom
+	for (i = size - 1; i >= 0; i--) {
 		u_int32_t atomType = ATOMID(m_pChildAtoms[i]->GetType());
 		if (atomType == ATOMID("mdat")) {
 			m_pChildAtoms[i]->FinishWrite(m_pFile->Use64Bits());
 			break;
 		}
 	}
+	ASSERT(i != -1);
 
-	// write all other atoms other than ftyp and mdat
-	for (i = 0; i < size; i++) {
-		u_int32_t atomType = ATOMID(m_pChildAtoms[i]->GetType());
-		if (atomType != ATOMID("ftyp") && atomType != ATOMID("mdat")) {
-			m_pChildAtoms[i]->Write();
-		}
+	// write all atoms after last mdat
+	for (i++ ; i < size; i++) {
+		m_pChildAtoms[i]->Write();
 	}
 }
 
-void MP4RootAtom::FinishWrite(bool use64)
-{
-	// no-op
-}

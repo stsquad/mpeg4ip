@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTCPSRPacket.cpp
@@ -53,8 +53,33 @@ RTCPSRPacket::RTCPSRPacket()
 	*theSRWriter = htonl(0x81ca0000 + (cNameLen >> 2) + 1);
 	::memcpy(&fSenderReportBuffer[kSenderReportSizeInBytes], theTempCName, cNameLen);
 	fSenderReportSize = kSenderReportSizeInBytes + cNameLen;
+
+/*
+ SERVER INFO PACKET FORMAT
+struct qtss_rtcp_struct
+{
+	RTCPHeader		header;
+	UInt32			ssrc;		// ssrc of rtcp originator
+	OSType			name;
+	UInt32			senderSSRC;
+	SInt16			reserved;
+	SInt16			length;		// bytes of data (atoms) / 4
+	// qtsi_rtcp_atom structures follow
+};
+*/
+
+	//
+	// Write the SERVER INFO APP packet
+	UInt32* theAckInfoWriter = (UInt32*)&fSenderReportBuffer[fSenderReportSize];
+	*theAckInfoWriter = htonl(0x81cc0006);
+	theAckInfoWriter += 2;
+	*(theAckInfoWriter++) = htonl(FOUR_CHARS_TO_INT('q', 't', 's', 'i')); // Ack Info APP name
+	theAckInfoWriter++; // leave space for the ssrc (again)
+	*(theAckInfoWriter++) = htonl(2); // 2 UInt32s for the 'at' field
+	*(theAckInfoWriter++) = htonl(FOUR_CHARS_TO_INT( 'a', 't', 0, 4 ));
+	fSenderReportWithServerInfoSize = (char*)(theAckInfoWriter+1) - fSenderReportBuffer;	
 	
-	UInt32* theByeWriter = (UInt32*)&fSenderReportBuffer[fSenderReportSize];
+	UInt32* theByeWriter = (UInt32*)&fSenderReportBuffer[fSenderReportWithServerInfoSize];
 	*theByeWriter = htonl(0x81cb0001);
 }
 

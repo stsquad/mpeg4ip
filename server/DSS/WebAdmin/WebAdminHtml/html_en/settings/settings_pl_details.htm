@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+<HTML>
+<HEAD>
+   <TITLE>untitled</TITLE>
+<SCRIPT LANGUAGE="JavaScript" TYPE="text/javascript">		
+
+
+function initAndSetOpts() {
+	//init();
+	//setOpts();
+}
+
+</SCRIPT>
+<STYLE TYPE="text/css">	
+<!--	
+
+		.headline { font: 24px/24px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; color: #B7BED2; }
+		.tableHeadline { font: 12px/14px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: bold; margin-bottom: 0px; color: #FFFFFF; }
+		.alttableHeadline { font: 16px/16px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: bold; margin-bottom: 0px; color: #000000; }
+		TD { font: 12px/14px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; }
+		.smallTD { font: 10px/12px arial, helvetica, trebuchet MS, geneva, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; }
+		
+	-->
+</STYLE>  
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" ONLOAD="initAndSetOpts();">
+<FORM NAME="pldetails" METHOD="get" ACTION="updateplaylist.cgi">
+	<CENTER>
+		<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0" WIDTH="85%" HEIGHT="23">
+			<TR>
+				<TD WIDTH="1%"><A HREF="parse.cgi?settings/settings_playlists.htm" TARGET="content"><B><IMG SRC="../images/back.gif" WIDTH="24" HEIGHT="24" BORDER="0" ALIGN="middle" ALT=""></B></A></TD>
+				<TD WIDTH="1%"><IMG SRC="../images/spacer.gif" WIDTH="10" HEIGHT="10" ALT=""></TD>
+				<TD WIDTH="98%" CLASS="headline">Playlist: Details</TD>
+			</TR>
+		</TABLE>
+		<BR>
+		<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="6" WIDTH="85%">
+			<TR>
+				<TD WIDTH="1%" HEIGHT="24" BGCOLOR="#9999CC" VALIGN="middle"><IMG SRC="../images/icon_playlist.gif" WIDTH="16" HEIGHT="16" ALT=""></TD>
+				<TD WIDTH="49%" HEIGHT="24" BGCOLOR="#9999CC" VALIGN="middle" CLASS="alttableHeadline">&nbsp;<B><%%CURPLAYLIST%%></B></TD>
+				<TD WIDTH="50%" HEIGHT="24" BGCOLOR="#9999CC" ALIGN="RIGHT" VALIGN="MIDDLE"><INPUT TYPE="submit" NAME="Update" VALUE="Submit"></TD>
+			</TR>
+		</TABLE>
+		<BR>
+		<CENTER>
+			<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0" WIDTH="85%">
+				<TR>
+					<TD VALIGN="top" WIDTH="50%" ALIGN="CENTER">
+					    <TABLE BORDER="0" CELLSPACING="4" CELLPADDING="2" WIDTH="90%">
+							<TR>
+								<TD WIDTH="50%" ALIGN="RIGHT"><B>Playlist Name:</B></TD>
+								<TD WIDTH="50%"><INPUT TYPE="text" NAME="playlistname" VALUE="<%%CURPLAYLIST%%>" SIZE="30"></TD>
+							</TR>
+							<TR>
+								<TD WIDTH="50%" ALIGN="RIGHT"><B>Playlist URL:</B></TD>
+								<TD WIDTH="60%"><INPUT TYPE="text" NAME="playlistURL" VALUE="<%%CURPLAYLISTURL%%>" SIZE="40"></TD>
+							</TR>
+							<TR>
+								<TD ALIGN="RIGHT"><INPUT TYPE="checkbox" NAME="logging" VALUE="enabled"<%%CURPLAYLISTLOGSTATE%%>></TD><TD><B>Enable Logging</B></TD>
+							</TR>
+						</TABLE></TD>
+					<TD VALIGN="top" WIDTH="50%" ALIGN="CENTER">
+					    <TABLE BORDER="0" CELLSPACING="4" CELLPADDING="2" WIDTH="85%">
+							<TR>
+								<TD ALIGN="left" VALIGN="middle"><B>Play Mode:</B>
+										<SELECT NAME="mode"> 
+										<OPTION <%%ISCURPLAYLISTMODE weighted_random%%> VALUE="weighted_random">Weighted Random
+										<OPTION <%%ISCURPLAYLISTMODE sequential_looped%%> VALUE="sequential_looped">Sequential Looped
+										<OPTION <%%ISCURPLAYLISTMODE sequential%%> VALUE="sequential">Sequential </SELECT></TD>
+							</TR>
+							<TR>
+								<TD><B>Items only repeat after</B>
+								<INPUT TYPE="text" NAME="maxrepeats" VALUE="<%%CURPLAYLISTMAXREPS%%>" SIZE="4" MAXLENGTH="4">
+								<B>other items have played</B></TD>
+							</TR>
+						</TABLE></TD>
+				</TR>
+			</TABLE>
+		</CENTER>
+		<HR SIZE="1" WIDTH="85%">
+		<BR>
+		<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0" WIDTH="60%">
+			<TR>
+				<TD VALIGN="top" WIDTH="100%"><FONT COLOR="#666666">To change an item's position in the list, edit its order number and click the Submit button (other items will be repositioned automatically).</FONT>
+					<BR>
+					<BR>
+					<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="4" WIDTH="100%">
+						<TR>
+							<TD BGCOLOR="#8C94AD" CLASS="tableHeadline">Items in this Playlist</TD>
+							<TD ALIGN="right" BGCOLOR="#8C94AD" CLASS="smallTD"><A HREF="parse.cgi?settings/settings_pl_edit.htm" TARGET="content">Click here to Add/Remove Items to list</A></TD>
+						</TR>
+					</TABLE></TD>
+			</TR>
+			<TR>
+				<TD WIDTH="100%" ALIGN="CENTER">
+				    <TABLE BORDER="0" BGCOLOR="#FFFFFF" CELLSPACING="1" CELLPADDING="4" WIDTH="100%">
+					    <!-- header titles for the current playlist on this server -->
+						<TR>
+							<TD HEIGHT="10" BGCOLOR="#C6C6D6" ALIGN="CENTER" CLASS="smallTD"><B>Order</B></TD>
+							<TD ALIGN="center" WIDTH="30" HEIGHT="10" BGCOLOR="#C6C6D6" CLASS="smallTD">&nbsp;</TD>
+							<TD WIDTH="60%" HEIGHT="10" BGCOLOR="#C6C6D6" CLASS="smallTD"><B>Name</B></TD>
+							<TD HEIGHT="10" BGCOLOR="#C6C6D6" CLASS="smallTD"><B>Kind</B></TD>
+							<TD HEIGHT="10" BGCOLOR="#C6C6D6" ALIGN="CENTER" CLASS="smallTD"><B>Weight</B></TD>
+						</TR>
+						<!-- list of current playlists on this server -->
+<%%FORMATCURRENTPLAYLIST%%>
+					</TABLE></TD>
+			</TR>
+		</TABLE>
+	</CENTER>
+</FORM>
+</BODY>
+</HTML>

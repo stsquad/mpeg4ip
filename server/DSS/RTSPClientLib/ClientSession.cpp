@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		ClientSession.cpp
@@ -51,12 +51,12 @@ ClientSession::ClientSession(	UInt32 inAddr, UInt16 inPort, char* inURL,
 								UInt32 inRTCPIntervalInSec, UInt32 inOptionsIntervalInSec,
 								UInt32 inHTTPCookie, Bool16 inAppendJunkData, UInt32 inReadInterval,
 								UInt32 inSockRcvBufSize, Float32 inLateTolerance, char* inMetaInfoFields,
-								Float32 inSpeed, Bool16 inVerbosePrinting )
+								Float32 inSpeed, Bool16 inVerbosePrinting, char* inPacketRangePlayHeader, UInt32 inOverbufferWindowSizeInK )
 :	fSocket(NULL),
 	fClient(NULL),
 	fTimeoutTask(this, kIdleTimeoutInMsec),
 
-	fDurationInSec(inDurationInSec),
+	fDurationInSec(inDurationInSec - inStartPlayTimeInSec),
 	fStartPlayTimeInSec(inStartPlayTimeInSec),
 	fRTCPIntervalInSec(inRTCPIntervalInSec),
 	fOptionsIntervalInSec(inOptionsIntervalInSec),
@@ -75,7 +75,10 @@ ClientSession::ClientSession(	UInt32 inAddr, UInt16 inPort, char* inURL,
 	fSockRcvBufSize(inSockRcvBufSize),
 	
 	fSpeed(inSpeed),
-	fStats(NULL)
+	fPacketRangePlayHeader(inPacketRangePlayHeader),
+	fStats(NULL),
+	fOverbufferWindowSizeInK(inOverbufferWindowSizeInK),
+	fCurRTCPTrack(0)
 {
 	StrPtrLen theURL(inURL);
 
@@ -257,7 +260,7 @@ SInt64 ClientSession::Run()
 						//
 						// We have valid SDP. If this is a UDP connection, construct a UDP
 						// socket array to act as incoming sockets.
-						if ((fControlType == kUDPTransportType) || (fControlType == kReliableUDPTransportType))
+						if ((fTransportType == kUDPTransportType) || (fTransportType == kReliableUDPTransportType))
 							this->SetupUDPSockets();
 							
 						//
@@ -315,7 +318,10 @@ SInt64 ClientSession::Run()
 			}
 			case kSendingPlay:
 			{
-				theErr = fClient->SendPlay(fStartPlayTimeInSec, fSpeed);
+				if (fPacketRangePlayHeader != NULL)
+					theErr = fClient->SendPacketRangePlay(fPacketRangePlayHeader, fSpeed);
+				else
+					theErr = fClient->SendPlay(fStartPlayTimeInSec, fSpeed);
 #if CLIENT_SESSION_DEBUG
 				printf("Sending PLAY. Result = %lu. Response code = %lu\n", theErr, fClient->GetStatus());
 #endif				
@@ -338,11 +344,6 @@ SInt64 ClientSession::Run()
 							fStats[ssrcCount].fIsSSRCValid = true;
 					}
 					
-					// If we are supposed to drop the POST side of the HTTP connection,
-					// do so now.
-					if (fControlType == kRTSPHTTPDropPostControlType)
-						((HTTPClientSocket*)fSocket)->ClosePost();
-
 					fState = kPlaying;
 					sPlayingConnections++;
 					
@@ -354,7 +355,8 @@ SInt64 ClientSession::Run()
 			}
 			case kPlaying:
 			{
-				theErr = this->ReadMediaData();
+				if (fCurRTCPTrack == fSDPParser.GetNumStreams())
+					theErr = this->ReadMediaData();
 
 				//
 				// If we've encountered some fatal error, bail.
@@ -380,9 +382,26 @@ SInt64 ClientSession::Run()
 				{
 					if ((curTime - fLastRTCPTime) > (fRTCPIntervalInSec * 1000))
 					{
-						this->SendReceiverReport();
+						//
+						// If we are using TCP as our media transport, we only need to
+						// send 1 set of RTCPs to the server, to tell it about overbuffering
+						if (fTransportType != kTCPTransportType)
+							fCurRTCPTrack = 0;
+
 						fLastRTCPTime = curTime;
 					}
+						
+					for ( ; fCurRTCPTrack < fSDPParser.GetNumStreams(); fCurRTCPTrack++)
+					{
+						if (this->SendReceiverReport(fCurRTCPTrack) != OS_NoErr)
+							break;
+					}
+
+					// If we are supposed to drop the POST side of the HTTP connection,
+					// do so now, after the 1st set of RTCP packets
+					if ((fCurRTCPTrack == fSDPParser.GetNumStreams()) && (fControlType == kRTSPHTTPDropPostControlType))
+						((HTTPClientSocket*)fSocket)->ClosePost();
+
 					return fReadInterval;
 				}
 				break;
@@ -708,7 +727,7 @@ void ClientSession::AckPackets(UInt32 inTrackIndex, UInt16 inCurSeqNum, Bool16 i
 	*(theWriter++) = htonl(0x80CC0000);	
 	//*(ia++) = htonl(trk[i].TrackSSRC);
 	*(theWriter++) = htonl(0);
-	*(theWriter++) = htonl('ack ');
+	*(theWriter++) = htonl('qtak');
 	*(theWriter++) = htonl(0);
 	
 	SInt16 theSeqNumDifference = inCurSeqNum - fStats[inTrackIndex].fHighestSeqNum;
@@ -793,11 +812,8 @@ void ClientSession::AckPackets(UInt32 inTrackIndex, UInt16 inCurSeqNum, Bool16 i
 }
 
 
-void ClientSession::SendReceiverReport()
+OS_Error ClientSession::SendReceiverReport(UInt32 inTrackID)
 {
-	if (fUDPSocketArray == NULL)
-		return;
-		
 	//
 	// build the RTCP receiver report.
 	char theRRBuffer[256];
@@ -833,11 +849,11 @@ void ClientSession::SendReceiverReport()
 	*(theWriter++) = htonl('QTSS');
 	//*(ia++) = toBigEndian_ulong(trk[i].rcvrSSRC);
 	*(theWriter++) = htonl(0);
-	*(theWriter++) = htonl(8);			// eight 4-byte quants below
+	*(theWriter++) = htonl(8);			// number of 4-byte quants below
 #define RR 0x72720004
 #define PR 0x70720004
 #define PD 0x70640002
-#define PL 0x706C0004
+#define OB 0x6F620004
 	*(theWriter++) = htonl(RR);
 	//unsigned int now, secs;
 	//now = microseconds();
@@ -851,20 +867,33 @@ void ClientSession::SendReceiverReport()
 	*(theWriter++) = htonl(PR);
 	//*(ia++) = htonl(trk[i].rtp_num_received);
 	*(theWriter++) = htonl(0);
-	*(theWriter++) = htonl(PL);
+	//*(theWriter++) = htonl(PL);
 	//*(ia++) = htonl(trk[i].rtp_num_lost);
-	*(theWriter++) = htonl(0);
+	//*(theWriter++) = htonl(0);
+	*(theWriter++) = htonl(OB);
+	*(theWriter++) = htonl(fOverbufferWindowSizeInK * 1024);
 	*(theWriter++) = htonl(PD);
 	*(theWriter++) = htonl(0);		// should be a short, but we need to pad to a long for the entire RTCP app packet
 
 #if CLIENT_SESSION_DEBUG
 	printf("Sending receiver reports.\n");
-#endif				
+#endif
 	// Send the packet
-	for (UInt32 x = 0; x < fSDPParser.GetNumStreams(); x++)
+	if (fUDPSocketArray != NULL)
 	{
-		Assert(fStats[x].fDestRTCPPort != 0);
-		fUDPSocketArray[(x*2)+1]->SendTo(fSocket->GetHostAddr(), fStats[x].fDestRTCPPort, theRRBuffer,
+		Assert(fStats[inTrackID].fDestRTCPPort != 0);
+		fUDPSocketArray[(inTrackID*2)+1]->SendTo(fSocket->GetHostAddr(), fStats[inTrackID].fDestRTCPPort, theRRBuffer,
 															(theWriter - theWriterStart) * sizeof(UInt32));
 	}
+	else
+	{
+		OS_Error theErr = fClient->PutMediaPacket(fSDPParser.GetStreamInfo(inTrackID)->fTrackID,
+										true,
+										theRRBuffer,
+										(theWriter - theWriterStart) * sizeof(UInt32));
+		if (theErr != OS_NoErr)
+			return theErr;
+
+	}
+	return OS_NoErr;
 }

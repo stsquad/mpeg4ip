@@ -10,6 +10,10 @@ AC_PROG_RANLIB
 
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS(sys/time.h)
+if test "$ac_cv_header_sys_time_h" = "yes"; then
+	AC_HEADER_TIME
+fi
 AC_C_CONST
 AC_TYPE_SIZE_T
 
@@ -87,7 +91,8 @@ AC_CHECK_FILE(/dev/urandom,AC_DEFINE(HAVE_DEV_URANDOM))
 
 # If more files than mbus.c use vsnprintf, split it out into
 # vsnprintf.c and add it to AC_REPLACE_FUNCS
-AC_CHECK_FUNC(vsnprintf,,AC_DEFINE(NEED_VSNPRINTF))
+# AC_CHECK_FUNC(vsnprintf,,AC_DEFINE(NEED_VSNPRINTF))
+AC_REPLACE_FUNCS(vsnprintf)
 
 ###############################################################################
 # If inet_aton is actually needed somewhere, split it out into
@@ -97,18 +102,18 @@ AC_CHECK_FUNC(vsnprintf,,AC_DEFINE(NEED_VSNPRINTF))
 # declared anywhere, use egrep header to check (ugh lame, but works)
 
 AC_CACHE_CHECK(for inet_pton in <arpa/inet.h>, ucl_cv_inet_pton_in_inet_h,
-	AC_CHECK_FUNC(inet_pton,
-		      ucl_cv_inet_pton_in_inet_h=yes,
-		      ucl_cv_inet_pton_in_inet_h=no))
+	[AC_CHECK_FUNC(inet_pton,
+			ucl_cv_inet_pton_in_inet_h=yes,
+			ucl_cv_inet_pton_in_inet_h=no)])
 if test $ucl_cv_inet_pton_in_inet_h = "no"
 then
 	AC_DEFINE(NEED_INET_PTON)
 	LIBOBJS="$LIBOBJS inet_pton.o"
 fi
 AC_CACHE_CHECK(for inet_ntop in <arpa/inet.h>, ucl_cv_inet_ntop_in_inet_h,
-	AC_CHECK_FUNC(inet_ntop,
+	[AC_CHECK_FUNC(inet_ntop,
 			ucl_cv_inet_ntop_in_inet_h=yes,
-			ucl_cv_inet_ntop_in_inet_h=no))
+			ucl_cv_inet_ntop_in_inet_h=no)])
 if test $ucl_cv_inet_ntop_in_inet_h = "no"
 then
 	AC_DEFINE(NEED_INET_NTOP)
@@ -171,27 +176,24 @@ AC_ARG_ENABLE(debug-mem,
 # IPv6 related configuration options
 
 AC_ARG_ENABLE(ipv6,
-	[  --enable-ipv6           enable ipv6],
-	[if test $enableval = yes
-	then
+        [  --enable-ipv6           enable ipv6],
+	AC_DEFINE(HAVE_IPv6))
+
+AC_ARG_ENABLE(kame-ipv6,
+	[  --enable-kame-ipv6      enable kame implementation of ipv6],
+	[
 		AC_DEFINE(HAVE_IPv6)
-		case "$host_os" in
-		# FreeBSD Kame uses seperate libinet6
-		freebsd*)	
-			LIBS="$LIBS -L/usr/local/v6/lib -linet6"
-			;;
-		*)	;;
-		esac
-	fi])
+		LIBS="$LIBS -L/usr/local/v6/lib -linet6"
+	])
 
 # Test below are IPv6 specific.  Their result has no bearing if HAVE_IPv6 is
 # not defined.  They are kept outside IPv6 enable check to keep code readable.
 
 AC_CACHE_CHECK(for getipnodebyname in <netdb.h>, ucl_cv_getipnodebyname_in_netdb_h,
-	AC_EGREP_HEADER(getipnodebyname,
+	[AC_EGREP_HEADER(getipnodebyname,
 		netdb.h,
 		ucl_cv_getipnodebyname_in_netdb_h=yes,	
-		ucl_cv_getipnodebyname_in_netdb_h=no))
+		ucl_cv_getipnodebyname_in_netdb_h=no)])
 if test $ucl_cv_getipnodebyname_in_netdb_h
 then
 	AC_DEFINE(HAVE_GETIPNODEBYNAME) 
@@ -200,10 +202,10 @@ fi
 AC_CHECK_HEADERS(netinet6/in6.h)
 
 AC_CACHE_CHECK(for struct addrinfo in <netdb.h>, ucl_cv_st_addrinfo_in_netdb_h,
-	AC_EGREP_HEADER(addrinfo,
+	[AC_EGREP_HEADER(addrinfo,
 		netdb.h,
 		ucl_cv_st_addrinfo_in_netdb_h=yes,	
-		ucl_cv_st_addrinfo_in_netdb_h=no))
+		ucl_cv_st_addrinfo_in_netdb_h=no)])
 if test $ucl_cv_st_addrinfo_in_netdb_h
 then
 	AC_DEFINE(HAVE_ST_ADDRINFO) 
@@ -227,6 +229,18 @@ if test $ucl_cv_sin6_len = yes
 then
 	AC_DEFINE(HAVE_SIN6_LEN) 
 fi
+
+###############################################################################
+# Check whether gtk-doc is installed
+
+AC_CHECK_PROG(GTKDOC, gtkdoc-scan, yes, no, $PATH)
+if test "$GTKDOC" = yes 
+then
+	OPTDOC=doc
+else
+	OPTDOC=
+fi
+AC_SUBST(OPTDOC)
 
 ###############################################################################
 # GCC-specific warning flags

@@ -1,8 +1,8 @@
 SUBDIRS = decoder encoder
 
-AM_CFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -Wall -Wpointer-arith -Wcast-align -Wmissing-prototypes -fexceptions
+AM_CFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ @BILLS_CWARNINGS@ -fexceptions
 
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
 INCLUDES = -I../type -I../tools -I../../../../include
 
@@ -23,4 +23,4 @@ libobj_sys_la_SOURCES = \
 			spt.cpp \
 			tps_bfshape.cpp \
 			tps_enhcbuf.cpp \
-			vopses.cpp \
+			vopses.cpp

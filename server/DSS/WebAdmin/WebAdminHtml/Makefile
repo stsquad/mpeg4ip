@@ -12,12 +12,16 @@ NAME = WebAdminHtml
 PROJECTVERSION = 2.8
 PROJECT_TYPE = Aggregate
 
-LIBRARIES = javascripts logs images settings status
+SUBPROJECTS = html_en html_de html_fr html_ja
+
+LIBRARIES = javascripts images
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble\
-            adminprotocol-lib.pl nav.htm parse.cgi parsewithinput.cgi\
+            adminprotocol-lib.pl parse.cgi parsewithinput.cgi\
             setgensettings.cgi setlogsettings.cgi startstopserver.cgi\
-            index.cgi mainpage.htm cgi-lib.pl
+            index.cgi cgi-lib.pl setplsettings.cgi playlist-lib.pl\
+            startstopbcast.cgi addremovemovie.cgi createplaylist.cgi\
+            submitplaylist.cgi updateplaylist.cgi
 
 MAKEFILEDIR = $(MAKEFILEPATH)/pb_makefiles
 CODE_GEN_STYLE = DYNAMIC

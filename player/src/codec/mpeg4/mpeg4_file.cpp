@@ -33,6 +33,7 @@
 //#include "sys/tps_enhcbuf.hpp"
 //#include "sys/decoder/enhcbufdec.hpp"
 #include "sys/decoder/vopsedec.hpp"
+#include "player_util.h"
 
 int create_media_for_mpeg4_file (CPlayerSession *psptr, 
 				 const char *name,

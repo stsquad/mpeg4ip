@@ -2,8 +2,8 @@
  * FILE:    memory.c
  * AUTHORS:  Isidor Kouvelas / Colin Perkins / Mark Handley / Orion Hodson
  *
- * $Revision: 1.1 $
- * $Date: 2001/08/01 00:34:01 $
+ * $Revision: 1.2 $
+ * $Date: 2001/10/11 20:39:03 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -76,7 +76,18 @@ static alloc_blk mem_item[MAX_ADDRS];
 
 static int   naddr = 0; /* number of allocations */
 static int   tick  = 1; /* xmemchk assumes this is one, do not change without checking why */
+
 static int   init  = 0;
+
+/**
+ * xdoneinit:
+ * @void: 
+ * 
+ * Marks end of an applications initialization period.  For media
+ * applications with real-time data transfer it's sometimes helpful to
+ * distinguish between memory allocated during application
+ * initialization and when application is running.
+ **/
 
 void xdoneinit(void) 
 {
@@ -129,6 +140,16 @@ static alloc_blk *mem_item_find(uint32_t key) {
         return (alloc_blk*)p;
 }
 
+/**
+ * xmemchk:
+ * @void: 
+ * 
+ * Check for bounds overruns in all memory allocated with xmalloc(),
+ * xrealloc(), and xstrdup().  Information on corrupted blocks is
+ * rendered on the standard error stream.  This includes where the
+ * block was allocated, the size of the block, and the number of
+ * allocations made since the block was created.
+ **/
 void xmemchk(void)
 {
         uint32_t    last_key;
@@ -227,6 +248,13 @@ alloc_blk_cmp_est(const void *vab1, const void *vab2)
         }
 }
 
+/**
+ * xmemdmp:
+ * @void: 
+ * 
+ * Dumps the address, size, age, and point of allocation in code.
+ *
+ **/
 void 
 xmemdmp(void)
 {
@@ -259,6 +287,17 @@ xmemdmp(void)
 
 /* Because block_alloc recycles blocks we need to know which code
  * fragment takes over responsibility for the memory.  */
+
+/**
+ * xclaim:
+ * @addr: address
+ * @filen: new filename
+ * @line: new allocation line
+ * 
+ * Coerces information in allocation table about allocation file and
+ * line to be @filen and @line.  This is used by the evil
+ * block_alloc() and should probably not be used anywhere else ever.
+ **/
 void 
 xclaim(void *addr, const char *filen, int line)
 {
@@ -285,6 +324,12 @@ xclaim(void *addr, const char *filen, int line)
         m->est    = tick++;
 }
 
+/**
+ * xmemdist:
+ * @fp: file pointer
+ * 
+ * Dumps information on existing memory allocations to file.
+ **/
 void 
 xmemdist(FILE *fp)
 {
@@ -316,6 +361,17 @@ xmemdist(FILE *fp)
         qsort(mem_item, naddr, sizeof(mem_item[0]), mem_key_cmp);
 }
 
+/**
+ * xfree:
+ * @p: pointer to block to freed.
+ * 
+ * Free block of memory.  Semantically equivalent to free(), but
+ * checks for bounds overruns in @p and tidies up state associated
+ * additional functionality.
+ *
+ * Must be used to free memory allocated with xmalloc(), xrealloc(),
+ * and xstrdup().
+ **/
 void 
 xfree(void *p)
 {
@@ -372,12 +428,11 @@ xfree(void *p)
 void *
 _xmalloc(unsigned size, const char *filen, int line)
 {
-        uint32_t   *j;
+        uint32_t   *data;
         void       *p;
-        uint8_t    *t;
         chk_header *ch;
 
-        p = (void*) malloc(size + sizeof(chk_header) + MAGIC_MEMORY_SIZE);
+        p = (void*) malloc (size + sizeof(chk_header) + MAGIC_MEMORY_SIZE);
 
 	assert(p     != NULL);
 	assert(filen != NULL);
@@ -388,21 +443,16 @@ _xmalloc(unsigned size, const char *filen, int line)
         ch->size  = size;
         ch->magic = MAGIC_MEMORY;
 
-        /* Fill allocated memory with random numbers */
+	data = (uint32_t*)((chk_header *)p + 1);
 #if 0
-        for (j = (uint32_t*)((chk_header *)p + 1); size > 4; size -= 4) {
-                *j++ = rand();
-        }
-        for (t = (uint8_t*)j; size > 0; size--) { 
-                *t++ = (uint8_t)(rand());
-        }
+	memset((void*)data, 0xf0, size);
+#else
+	memset((void*)data, 0, size);
+#endif
         
         /* Fix block tail */
-        memcpy(t, &ch->magic, MAGIC_MEMORY_SIZE);
-#else
-		memset(p + sizeof(chk_header), 0, size);
-		memcpy(p + sizeof(chk_header) + size, &ch->magic, MAGIC_MEMORY_SIZE);
-#endif
+        memcpy(((uint8_t*)data) + size, &ch->magic, MAGIC_MEMORY_SIZE);
+
         /* Check set up okay */
         if (chk_header_okay(ch) == FALSE) {
                 fprintf(stderr, "Implementation Error\n");
@@ -500,12 +550,22 @@ void xclaim    (void *p, const char *filen, int line)
 }
 
 void xmemdist (FILE *f) { UNUSED(f); }
+
 void xfree    (void *x) { free(x); }
 
 void *_xmalloc(unsigned int size, const char *filen, int line) {
-        UNUSED(filen);
-        UNUSED(line);
-        return malloc(size);
+	void	*m;
+
+	m = malloc(size);
+
+#ifdef DEBUG
+	/* This is just to check initialization errors in allocated structs */
+	memset(m, 0xf0, size);
+#endif
+	UNUSED(filen);
+	UNUSED(line);
+
+	return m;
 }
 
 void *_xrealloc(void *p, unsigned int size,const char *filen,int line) {

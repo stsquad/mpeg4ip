@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
- * Reserved.  This file contains Original Code and/or Modifications of
- * Original Code as defined in and that are subject to the Apple Public
- * Source License Version 1.1 (the "License").  You may not use this file
- * except in compliance with the License.  Please obtain a copy of the
- * License at http://www.apple.com/publicsource and read it before using
- * this file.
- * 
- * The Original Code and all software distributed under the License are
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
+ * read it before using this file.
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
  * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE OR NON- INFRINGEMENT.  Please see the
- * License for the specific language governing rights and limitations
- * under the License.
- * 
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSSplitterModule.cpp
@@ -290,7 +290,7 @@ QTSS_Error DoDescribe(QTSS_StandardRTSP_Params* inParams)
 		{
 		 	// Describe has completed. At this point we can setup the ReflectorSession.
 		 	// However, tell it not to consider this session completely setup yet, as 
-		 	theErr = theSession->SetupReflectorSession(theSession->GetSourceInfo(), inParams->inRTSPRequest, ReflectorSession::kDontMarkSetup);
+		 	theErr = theSession->SetupReflectorSession(theSession->GetSourceInfo(), inParams, ReflectorSession::kDontMarkSetup);
 		 	if (theErr != QTSS_NoErr)
 		 	{
 		 		// If we get an error here, for some reason we couldn't bind the ports, etc, etc.
@@ -352,7 +352,7 @@ ReflectorSession* FindOrCreateSession(StrPtrLen* inPath, QTSS_StandardRTSP_Param
 	StrPtrLen theFileData;
 	RTSPSourceInfo* theInfo = NULL;
 	
-	QTSSModuleUtils::ReadEntireFile(inPath->Ptr, &theFileData);
+	(void)QTSSModuleUtils::ReadEntireFile(inPath->Ptr, &theFileData);
 	if (theFileData.Len > 0)
 		theInfo = NEW RTSPSourceInfo(Socket::kNonBlockingSocketType);
 	else
@@ -574,8 +574,8 @@ QTSS_Error DoPlay(QTSS_StandardRTSP_Params* inParams, ReflectorSession* inSessio
 	UInt32 bitsPerSecond =	inSession->GetBitRate();
 	(void)QTSS_SetValue(inParams->inClientSession, qtssCliSesMovieAverageBitRate, 0, &bitsPerSecond, sizeof(bitsPerSecond));
 
-	//Server shouldn't send RTCP (reflector does it), server shouldn't write rtp header either
-	QTSS_Error theErr = QTSS_Play(inParams->inClientSession, inParams->inRTSPRequest, 0);
+	//Server shouldn't send RTCP (reflector does it), but the server should append the server info app packet
+	QTSS_Error theErr = QTSS_Play(inParams->inClientSession, inParams->inRTSPRequest, qtssPlayFlagsAppendServerInfo);
 	if (theErr != QTSS_NoErr)
 		return theErr;
 	

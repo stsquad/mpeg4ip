@@ -37,7 +37,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /w /W0 /Gm /GX /ZI /Od /I "../" /I "../WinNTSupport/" /I ".." /FI"../WinNTSupport/Win32header.h" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /FD /GZ /c
+# ADD CPP /nologo /w /W0 /Gm /ZI /Od /I "../" /I "../WinNTSupport/" /I ".." /FI"../WinNTSupport/Win32header.h" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /FD /GZ /c
 # SUBTRACT CPP /YX /Yc /Yu
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -75,10 +75,6 @@ SOURCE=.\EventContext.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\Exception.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\getopt.c
 # End Source File
 # Begin Source File
@@ -88,6 +84,14 @@ SOURCE=.\GetWord.c
 # Begin Source File
 
 SOURCE=.\IdleTask.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\md5.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\md5digest.cpp
 # End Source File
 # Begin Source File
 

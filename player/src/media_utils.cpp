@@ -25,6 +25,7 @@
 #include <sdp/sdp.h>
 #include <libhttp/http.h>
 #include "player_session.h"
+#include "player_media.h"
 #include "codec/codec.h"
 #include "codec/aa/aa.h"
 #include "codec/aa/aa_file.h"
@@ -212,7 +213,7 @@ static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
     }
     if (sdp_is_valid_codec(sdp_media) >= 0) {
       CPlayerMedia *mptr = new CPlayerMedia;
-      err = mptr->create_streaming(psptr, sdp_media, errmsg, 0);
+      err = mptr->create_streaming(psptr, sdp_media, errmsg, 0, 0, 0);
       if (err < 0) {
 	return (-1);
       }
@@ -256,7 +257,9 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
   /*
    * This will open the rtsp session
    */
-  err = psptr->create_streaming_ondemand(name, errmsg);
+  err = psptr->create_streaming_ondemand(name, 
+					 errmsg, 
+					 config.get_config_value(CONFIG_USE_RTP_OVER_RTSP));
   if (err != 0) {
     return (-1);
   }
@@ -279,7 +282,12 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
     }
     if (sdp_is_valid_codec(sdp_media) >= 0) {
       CPlayerMedia *mptr = new CPlayerMedia;
-      err = mptr->create_streaming(psptr, sdp_media, errmsg, 1);
+      err = mptr->create_streaming(psptr, 
+				   sdp_media, 
+				   errmsg, 
+				   1, 
+				   config.get_config_value(CONFIG_USE_RTP_OVER_RTSP),
+				   media_count);
       if (err < 0) {
 	return (-1);
       }
@@ -534,11 +542,11 @@ int which_mpeg4_codec (format_list_t *fptr,
 {
   
   if (fptr && fptr->fmt_param) {
-    const char *config = strcasestr(fptr->fmt_param, profile_tag);
-    if (config != NULL) {
-      config += strlen(profile_tag);
+    const char *cfg_str = strcasestr(fptr->fmt_param, profile_tag);
+    if (cfg_str != NULL) {
+      cfg_str += strlen(profile_tag);
       int profile_value = -1;
-      sscanf(config, "%d", &profile_value);
+      sscanf(cfg_str, "%d", &profile_value);
       // check for profile tag value - if it's simple, use DIVX
       if (profile_value > 0 && profile_value <= 3) 
 	return (VIDEO_DIVX);
@@ -648,16 +656,16 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       break;
     }
   }
-  rtp_byte_stream = new CRtpByteStreamBase(rtp_proto,
-					   ondemand,
-					   tps,
-					   head,
-					   tail,
-					   rtpinfo_received,
-					   rtp_rtptime,
-					   rtcp_received,
-					   ntp_frac,
-					   ntp_sec,
-					   rtp_ts);
+  rtp_byte_stream = new CRtpByteStream(rtp_proto,
+				       ondemand,
+				       tps,
+				       head,
+				       tail,
+				       rtpinfo_received,
+				       rtp_rtptime,
+				       rtcp_received,
+				       ntp_frac,
+				       ntp_sec,
+				       rtp_ts);
   return (rtp_byte_stream);
 }

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 // SimpleParse:
 
@@ -71,22 +71,37 @@ class SDPGen
 	protected: 
 		QTRTPFile		fRTPFile;
 				bool	fKeepTracks;
+				bool	fAddIndexTracks;
 		 		short 	AddToBuff(char *aSDPFile, short currentFilePos, char *chars);
 		 		UInt32	RandomTime(void);
 		  		short	GetNoExtensionFileName(char *pathName, char *result, short maxResult);
-				char 	*Process(char *sdpFileName, char * basePort, char *ipAddress, char *anSDPBuffer, int *error);
+				char 	*Process(	char *sdpFileName, 
+									char * basePort, 
+									char *ipAddress, 
+									char *anSDPBuffer, 
+									char *startTime,
+				 					char *endTime,	
+				 					char *isDynamic,
+									int *error
+								);
 		
 	public: 
-			 SDPGen() : fSDPFileContentsBuf(NULL), fKeepTracks(false), fSDPFileCreated(false) {	QTRTPFile::Initialize(); };
+			 SDPGen() : fSDPFileContentsBuf(NULL), fKeepTracks(false),fAddIndexTracks(false), fSDPFileCreated(false) {	QTRTPFile::Initialize(); };
 			~SDPGen() { if (fSDPFileContentsBuf) delete fSDPFileContentsBuf; };
-			void KeepTracks(bool enabled) { fKeepTracks = enabled;} ;
+			void KeepSDPTracks(bool enabled) { fKeepTracks = enabled;} ;
+			void AddIndexTracks(bool enabled) { fAddIndexTracks = enabled;} ;
 			int Run(  char *movieFilename
 				, char *sdpFilename
 				, char *basePort
 				, char *ipAddress
 				, char *buff
 				, short buffSize
-				, bool overWriteSDP); 
+				, bool overWriteSDP
+				, bool forceNewSDP
+				, char *startTime
+				, char *endTime
+				, char *isDynamic
+				); 
 				
 			bool	fSDPFileCreated;
 };

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTSPRequestInterface.cp
@@ -84,7 +84,13 @@ QTSSAttrInfoDict::AttrInfo	RTSPRequestInterface::sAttributes[] =
 	/* 24 */ { "qtssRTSPReqRespMsg",			NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModePreempSafe | qtssAttrModeWrite },
 	/* 25 */ { "qtssRTSPReqContentLen",			NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModePreempSafe },
 	/* 26 */ { "qtssRTSPReqSpeed",				NULL,					qtssAttrDataTypeFloat32,	qtssAttrModeRead | qtssAttrModePreempSafe },
-	/* 27 */ { "qtssRTSPReqLateTolerance",		NULL,					qtssAttrDataTypeFloat32,	qtssAttrModeRead | qtssAttrModePreempSafe }
+	/* 27 */ { "qtssRTSPReqLateTolerance",		NULL,					qtssAttrDataTypeFloat32,	qtssAttrModeRead | qtssAttrModePreempSafe },
+	/* 28 */ { "qtssRTSPReqTransportMode",		NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModePreempSafe },
+	/* 29 */ { "qtssRTSPReqSetUpServerPort",	NULL,					qtssAttrDataTypeUInt16,		qtssAttrModeRead | qtssAttrModePreempSafe | qtssAttrModeWrite},
+	/* 30 */ { "qtssRTSPReqAction",				NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModePreempSafe | qtssAttrModeWrite },
+	/* 31 */ { "qtssRTSPReqUserProfile",		NULL,					qtssAttrDataTypeQTSS_Object, qtssAttrModeRead | qtssAttrModePreempSafe | qtssAttrModeWrite },
+	/* 32 */ { "qtssRTSPReqPrebufferMaxTime",	NULL,					qtssAttrDataTypeFloat32, 	qtssAttrModeRead | qtssAttrModePreempSafe },
+	/* 33 */ { "qtssRTSPReqAuthScheme",			NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModePreempSafe }
 };
 
 
@@ -133,13 +139,21 @@ RTSPRequestInterface::RTSPRequestInterface(RTSPSessionInterface *session)
 	fIfModSinceDate(0),
 	fSpeed(0),
 	fLateTolerance(-1),
+	fPrebufferAmt(-1),
 	fFullPath(NULL),
 	fStreamRef(this),
 	fWindowSize(0),
-	fAckTimeout(0),
 	fMovieFolderPtr(&fMovieFolderPath[0]),
 	fHeaderDictionary(QTSSDictionaryMap::GetMap(QTSSDictionaryMap::kRTSPHeaderDictIndex)),
 	fAllowed(true),
+	fTransportMode(qtssRTPTransportModePlay),
+	fSetUpServerPort(0),
+	fAction(qtssActionFlagsNoFlags),
+	fAuthScheme(qtssAuthNone),
+	fAuthQop(RTSPSessionInterface::kNoQop),
+	fUserProfile(),
+	fUserProfilePtr(&fUserProfile),
+	fStale(false),
 	fSession(session),
 	fOutputStream(session->GetOutputStream()),
 	fStandardHeadersWritten(false)
@@ -156,6 +170,7 @@ RTSPRequestInterface::RTSPRequestInterface(RTSPSessionInterface *session)
 	this->SetVal(qtssRTSPReqContentLen, &fContentLength, sizeof(fContentLength));
 	this->SetVal(qtssRTSPReqSpeed, &fSpeed, sizeof(fSpeed));
 	this->SetVal(qtssRTSPReqLateTolerance, &fLateTolerance, sizeof(fLateTolerance));
+	this->SetVal(qtssRTSPReqPrebufferMaxTime, &fPrebufferAmt, sizeof(fPrebufferAmt));
 	
 	// Get the default root directory from QTSSPrefs, and store that in the proper parameter
 	// Note that the GetMovieFolderPath function may allocate memory, so we check for that
@@ -168,7 +183,12 @@ RTSPRequestInterface::RTSPRequestInterface(RTSPSessionInterface *session)
 	//typically aren't set for every request, so we lazy initialize those when we parse the request
 
 	this->SetVal(qtssRTSPReqUserAllowed, &fAllowed, sizeof(fAllowed));
-
+	this->SetVal(qtssRTSPReqTransportType, &fTransportType, sizeof(fTransportType));
+	this->SetVal(qtssRTSPReqTransportMode, &fTransportMode, sizeof(fTransportMode));
+	this->SetVal(qtssRTSPReqSetUpServerPort, &fSetUpServerPort, sizeof(fSetUpServerPort));
+	this->SetVal(qtssRTSPReqAction, &fAction, sizeof(fAction));
+	this->SetVal(qtssRTSPReqUserProfile, &fUserProfilePtr, sizeof(QTSSUserProfile*));
+	this->SetVal(qtssRTSPReqAuthScheme, &fAuthScheme, sizeof(fAuthScheme));
 }
 
 void RTSPRequestInterface::AppendHeader(QTSS_RTSPHeader inHeader, StrPtrLen* inValue)
@@ -221,20 +241,24 @@ void RTSPRequestInterface::AppendSessionHeaderWithTimeout( StrPtrLen* inSessionI
 		static StrPtrLen	sTimeoutString(";timeout=");
 
 		// Just write out the session header and session ID
-		fOutputStream->Put( RTSPProtocol::GetHeaderString(qtssSessionHeader ) );
-		fOutputStream->Put(sColonSpace);
-		fOutputStream->Put( *inSessionID );
-		
-		
-		if ( inTimeout != NULL )
+		if (inSessionID != NULL && inSessionID->Len > 0)
 		{
-			fOutputStream->Put( sTimeoutString );
-			fOutputStream->Put( *inTimeout );
+			fOutputStream->Put( RTSPProtocol::GetHeaderString(qtssSessionHeader ) );
+			fOutputStream->Put(sColonSpace);
+			fOutputStream->Put( *inSessionID );
+		
+		
+			if ( inTimeout != NULL )
+			{
+				fOutputStream->Put( sTimeoutString );
+				fOutputStream->Put( *inTimeout );
+			}
+		
+		
+			fOutputStream->PutEOL();
 		}
-		
-		
-		fOutputStream->PutEOL();
 	}
+
 }
 
 void RTSPRequestInterface::AppendTransportHeader(StrPtrLen* serverPortA,
@@ -294,6 +318,30 @@ void RTSPRequestInterface::AppendContentBaseHeader(StrPtrLen* theURL)
 	fOutputStream->PutChar('/');
 	fOutputStream->PutEOL();
 }
+
+void RTSPRequestInterface::AppendRetransmitHeader(UInt32 inAckTimeout)
+{
+	static const StrPtrLen kAckTimeout("ack-timeout=");
+
+	fOutputStream->Put(RTSPProtocol::GetHeaderString(qtssXRetransmitHeader));
+	fOutputStream->Put(sColonSpace);
+	fOutputStream->Put(RTSPProtocol::GetRetransmitProtocolName());
+	fOutputStream->PutChar(';');
+	fOutputStream->Put(kAckTimeout);
+	fOutputStream->Put(inAckTimeout);
+	
+	if (fWindowSizeStr.Len > 0)
+	{
+		//
+		// If the client provided a window size, append that as well.
+		fOutputStream->PutChar(';');
+		fOutputStream->Put(fWindowSizeStr);
+	}
+	
+	fOutputStream->PutEOL();
+	
+}
+
 
 void RTSPRequestInterface::AppendRTPInfoHeader(QTSS_RTSPHeader inHeader,
 												StrPtrLen* url, StrPtrLen* seqNumber,
@@ -408,20 +456,12 @@ RTSPRequestInterface::WriteV(iovec* inVec, UInt32 inNumVectors, UInt32 inTotalLe
 
 #pragma mark __PARAM_RETRIEVAL_FUNCTIONS__
 //param retrieval functions described in .h file
-Bool16 RTSPRequestInterface::GetAbsTruncatedPath(QTSS_FunctionParams* funcParamsPtr)
+void* RTSPRequestInterface::GetAbsTruncatedPath(QTSSDictionary* inRequest, UInt32* /*outLen*/)
 {
 	//We only want this param retrieval function to be invoked once, so set the
-	//qtssRTSPReqFilePathTruncParam to be a valid pointer
-
-	if (funcParamsPtr->selector != qtssGetValuePtrEnterFunc)
-		return false;
-		
-	if (funcParamsPtr->io.valueLen != 0) // already set do nothing
-		return false;
+	//qtssRTSPReqTruncAbsoluteURL to be a valid pointer
 	
-	//This function works for 2 attributes, because they are almost the same: qtssRTSPReqFilePathTruncParam, qtssRTSPReqTruncAbsoluteURLParam
-	
-	RTSPRequestInterface* theRequest = (RTSPRequestInterface*)funcParamsPtr->object;
+	RTSPRequestInterface* theRequest = (RTSPRequestInterface*)inRequest;
 	theRequest->SetVal(qtssRTSPReqTruncAbsoluteURL, theRequest->GetValue(qtssRTSPReqAbsoluteURL));
 
 	//Adjust the length to truncate off the last file in the path
@@ -429,66 +469,53 @@ Bool16 RTSPRequestInterface::GetAbsTruncatedPath(QTSS_FunctionParams* funcParams
 	StrPtrLen* theAbsTruncPathParam = theRequest->GetValue(qtssRTSPReqTruncAbsoluteURL);
 	theAbsTruncPathParam->Len--;
 	while (theAbsTruncPathParam->Ptr[theAbsTruncPathParam->Len] != kPathDelimiterChar)
-	{
 		theAbsTruncPathParam->Len--;
-	}
 	
-	funcParamsPtr->io.bufferPtr = theAbsTruncPathParam->Ptr;
-	funcParamsPtr->io.valueLen = theAbsTruncPathParam->Len;
-
-	return true;
+	return NULL;
 }
 //param retrieval functions described in .h file
-Bool16 RTSPRequestInterface::GetTruncatedPath(QTSS_FunctionParams* funcParamsPtr)
+void* RTSPRequestInterface::GetTruncatedPath(QTSSDictionary* inRequest, UInt32* /*outLen*/)
 {
 	//We only want this param retrieval function to be invoked once, so set the
 	//qtssRTSPReqFilePathTruncParam to be a valid pointer
-
-	if (funcParamsPtr->selector != qtssGetValuePtrEnterFunc)
-		return false;
-		
-	if (funcParamsPtr->io.valueLen != 0) // already set do nothing
-		return false;
 	
 	//This function works for 2 attributes, because they are almost the same: qtssRTSPReqFilePathTruncParam, qtssRTSPReqTruncAbsoluteURLParam
 	
-	RTSPRequestInterface* theRequest = (RTSPRequestInterface*)funcParamsPtr->object;
+	RTSPRequestInterface* theRequest = (RTSPRequestInterface*)inRequest;
 	theRequest->SetVal(qtssRTSPReqFilePathTrunc, theRequest->GetValue(qtssRTSPReqFilePath));
+	theRequest->SetVal(qtssRTSPReqTruncAbsoluteURL, theRequest->GetValue(qtssRTSPReqAbsoluteURL));
 
 	//Adjust the length to truncate off the last file in the path
-	
 	StrPtrLen* theTruncPathParam = theRequest->GetValue(qtssRTSPReqFilePathTrunc);
-	theTruncPathParam->Len--;
-	while (theTruncPathParam->Ptr[theTruncPathParam->Len] != kPathDelimiterChar)
+	StrPtrLen* theAbsTruncPathParam = theRequest->GetValue(qtssRTSPReqTruncAbsoluteURL);
+
+	if (theTruncPathParam->Len > 0)
 	{
 		theTruncPathParam->Len--;
+		theAbsTruncPathParam->Len--;
+		while ( (theTruncPathParam->Len != 0) && (theTruncPathParam->Ptr[theTruncPathParam->Len] != kPathDelimiterChar) )
+		{
+			theTruncPathParam->Len--;
+			theAbsTruncPathParam->Len--;
+		}
 	}
-	funcParamsPtr->io.bufferPtr = theTruncPathParam->Ptr;
-	funcParamsPtr->io.valueLen = theTruncPathParam->Len;
 
-	return true;
+	return NULL;
 }
 
-Bool16 RTSPRequestInterface::GetFileName(QTSS_FunctionParams* funcParamsPtr)
+void* RTSPRequestInterface::GetFileName(QTSSDictionary* inRequest, UInt32* /*outLen*/)
 {
-
 	//We only want this param retrieval function to be invoked once, so set the
 	//qtssRTSPReqFilePathTruncParam to be a valid pointer
-
-	if (funcParamsPtr->selector != qtssGetValuePtrEnterFunc)
-		return false;
-		
-	if (funcParamsPtr->io.valueLen != 0) // already set do nothing
-		return false;
 	
-	RTSPRequestInterface* theRequest = (RTSPRequestInterface*)funcParamsPtr->object;
+	RTSPRequestInterface* theRequest = (RTSPRequestInterface*)inRequest;
 	theRequest->SetVal(qtssRTSPReqFileName, theRequest->GetValue(qtssRTSPReqFilePath));
 
 	StrPtrLen* theFileNameParam = theRequest->GetValue(qtssRTSPReqFileName);
 
 	//paranoid check
 	if (theFileNameParam->Len == 0)
-		return false;
+		return theFileNameParam;
 		
 	//walk back in the file name until we hit a /
 	SInt32 x = theFileNameParam->Len - 1;
@@ -497,31 +524,22 @@ Bool16 RTSPRequestInterface::GetFileName(QTSS_FunctionParams* funcParamsPtr)
 			break;
 	//once we do, make the tempPtr point to the next character after the slash,
 	//and adjust the length accordingly
-	if (theFileNameParam->Ptr[x] == kPathDelimiterChar)
+	if (theFileNameParam->Ptr[x] == kPathDelimiterChar )
 	{
 		theFileNameParam->Ptr = (&theFileNameParam->Ptr[x]) + 1;
 		theFileNameParam->Len -= (x + 1);
 	}
 	
-	funcParamsPtr->io.bufferPtr = theFileNameParam->Ptr;
-	funcParamsPtr->io.valueLen = theFileNameParam->Len;
-
-	return true;
+	return NULL;		
 }
 
 
-Bool16 RTSPRequestInterface::GetFileDigit(QTSS_FunctionParams* funcParamsPtr)
+void* RTSPRequestInterface::GetFileDigit(QTSSDictionary* inRequest, UInt32* /*outLen*/)
 {
 	//We only want this param retrieval function to be invoked once, so set the
 	//qtssRTSPReqFileDigitParam to be a valid pointer
-
-	if (funcParamsPtr->selector != qtssGetValuePtrEnterFunc)
-		return false;
-		
-	if (funcParamsPtr->io.valueLen != 0) // already set do nothing
-		return false;
 	
-	RTSPRequestInterface* theRequest = (RTSPRequestInterface*)funcParamsPtr->object;
+	RTSPRequestInterface* theRequest = (RTSPRequestInterface*)inRequest;
 	theRequest->SetVal(qtssRTSPReqFileDigit, theRequest->GetValue(qtssRTSPReqFilePath));
 
 	StrPtrLen* theFileDigit = theRequest->GetValue(qtssRTSPReqFileDigit);
@@ -539,26 +557,16 @@ Bool16 RTSPRequestInterface::GetFileDigit(QTSS_FunctionParams* funcParamsPtr)
 	//Move pointer back onto the digit
 	theFileDigit->Ptr++;
 	
-	funcParamsPtr->io.bufferPtr = theFileDigit->Ptr;
-	funcParamsPtr->io.valueLen = theFileDigit->Len;
-
-	return true;
+	return NULL;
 }
 
-Bool16 RTSPRequestInterface::GetRealStatusCode(QTSS_FunctionParams* funcParamsPtr)
+void* RTSPRequestInterface::GetRealStatusCode(QTSSDictionary* inRequest, UInt32* outLen)
 {
 	// Set the fRealStatusCode variable based on the current fStatusCode.
 	// Return it to the caller (this means this function will be invoked each
 	// time the parameter is requested, which is what we want).
-	if (funcParamsPtr->selector != qtssGetValuePtrEnterFunc)
-		return false;
-	
-	RTSPRequestInterface* theReq = (RTSPRequestInterface*)funcParamsPtr->object;
+	RTSPRequestInterface* theReq = (RTSPRequestInterface*)inRequest;
 	theReq->fRealStatusCode = RTSPProtocol::GetStatusCode(theReq->fStatus);
-	
-	funcParamsPtr->io.bufferPtr = &theReq->fRealStatusCode;
-	funcParamsPtr->io.valueLen = sizeof(theReq->fRealStatusCode);
-	
-	return true;
-
+	*outLen = sizeof(UInt32);
+	return &theReq->fRealStatusCode;
 }

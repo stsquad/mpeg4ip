@@ -54,8 +54,14 @@ main(int argc, char** argv)
 	MP4TrackId videoTrackId = 
 		MP4AddVideoTrack(mp4File, 90000, 3000, 320, 240);
 
+	MP4TrackId videoHintTrackId = 
+		MP4AddHintTrack(mp4File, videoTrackId);
+
 	MP4TrackId audioTrackId = 
 		MP4AddAudioTrack(mp4File, 44100, 1152);
+
+	MP4TrackId audioHintTrackId = 
+		MP4AddHintTrack(mp4File, audioTrackId);
 
 	MP4MakeIsmaCompliant(mp4File);
 

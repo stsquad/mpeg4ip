@@ -44,6 +44,7 @@
 #include "qfDES.h"
 #include "base64.h"
 #include "gettimeofday.h"
+#include "vsnprintf.h"
 #include "mbus.h"
 #include "mbus_config.h"
 #include "mbus_parser.h"
@@ -56,17 +57,6 @@
 
 #define MBUS_MAGIC	0x87654321
 #define MBUS_MSG_MAGIC	0x12345678
-
-#ifdef NEED_VSNPRINTF
-static int vsnprintf(char *s, size_t buf_size, const char *format, va_list ap)
-{
-	/* Quick hack replacement for vsnprintf... note that this */
-	/* doesn't check for buffer overflows, and so is open to  */
-	/* many really nasty attacks!                             */
-	UNUSED(buf_size);
-        return vsprintf(s,format,ap);
-}
-#endif
 
 struct mbus_msg {
 	struct mbus_msg	*next;
@@ -670,7 +660,7 @@ void mbus_qmsg(struct mbus *m, const char *dest, const char *cmnd, const char *a
 	curr->dest             = xstrdup(dest);
 	curr->retransmit_count = 0;
 	curr->message_size     = alen + 60 + strlen(dest) + strlen(m->addr);
-	curr->seqnum           = m->seqnum++;
+	curr->seqnum           = ++m->seqnum;
 	curr->reliable         = reliable;
 	curr->complete         = FALSE;
 	curr->num_cmds         = 1;

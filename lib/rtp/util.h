@@ -3,8 +3,8 @@
  * PROGRAM: RAT
  * AUTHOR:  Isidor Kouvelas + Colin Perkins + Orion Hodson
  *
- * $Revision: 1.1 $
- * $Date: 2001/08/01 00:34:01 $
+ * $Revision: 1.2 $
+ * $Date: 2001/10/11 20:39:03 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -59,8 +59,11 @@ void purge_chars(char *src, char *to_go);
 /* overlapping_words: returns how many words match in two strings */
 int overlapping_words(const char *s1, const char *s2, int max_words);
 
-/* appname: strips path from argv[0] */
-const char *get_appname(const char *argv0);
+/* The strfind() function is mainly for internal use, but might be
+   useful to others... */
+int strfind(const char *haystack, 
+	    const char *needle_start, 
+	    const char *needle_end);
 
 #if defined(__cplusplus)
 }

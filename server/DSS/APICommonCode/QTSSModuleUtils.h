@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSModuleUtils.h
@@ -47,7 +47,7 @@ class QTSSModuleUtils
 	
 		// Read the complete contents of the file at inPath into the StrPtrLen.
 		// This function allocates memory for the file data.
-		static void 	ReadEntireFile(char* inPath, StrPtrLen* outData);
+		static QTSS_Error 	ReadEntireFile(char* inPath, StrPtrLen* outData, QTSS_TimeVal inModDate = -1, QTSS_TimeVal* outModDate = NULL);
 
 		// If your module supports RTSP methods, call this function from your QTSS_Initialize
 		// role to tell the server what those methods are.
@@ -151,6 +151,21 @@ class QTSSModuleUtils
 		// Given an attribute in an object, returns its attribute ID
 		// or qtssIllegalAttrID if it isn't found.
 		static QTSS_AttributeID GetAttrID(QTSS_Object inObject, char* inPrefName);
+		
+		//
+		//
+		//
+		/// Get the type of request. Returns qtssActionFlagsNoFlags on failure.
+		//	Result is a bitmap of flags
+		//
+		static QTSS_ActionFlags GetRequestActions(QTSS_RTSPRequestObject theRTSPRequest);
+
+		static char* GetLocalPath_Copy(QTSS_RTSPRequestObject theRTSPRequest);
+		static char* GetMoviesRootDir_Copy(QTSS_RTSPRequestObject theRTSPRequest);
+		static QTSS_UserProfileObject GetUserProfileObject(QTSS_RTSPRequestObject theRTSPRequest);
+		
+		static char*  GetUserName_Copy(QTSS_UserProfileObject inUserProfile);
+		static char** GetGroupsArray_Copy(QTSS_UserProfileObject inUserProfile, UInt32 *outNumGroupsPtr);
 		
 	private:
 	

@@ -219,9 +219,12 @@ MD5Transform(uint32_t state[4], unsigned char block[64])
 	memset((unsigned char *) x, 0, sizeof(x));
 }
 
-/*
- * MD5 initialization. Begins an MD5 operation, writing a new context.
- */
+/**
+ * MD5Init:
+ * @context: MD5 context to be initialized.
+ * 
+ * Initializes MD5 context for the start of message digest computation.
+ **/
 void 
 MD5Init(MD5_CTX * context)
 {
@@ -233,10 +236,16 @@ MD5Init(MD5_CTX * context)
 	context->state[3] = 0x10325476;
 }
 
-/*
+/**
+ * MD5Update:
+ * @context: MD5 context to be updated.
+ * @input: pointer to data to be fed into MD5 algorithm.
+ * @inputLen: size of @input data in bytes.
+ * 
  * MD5 block update operation. Continues an MD5 message-digest operation,
  * processing another message block, and updating the context.
- */
+ **/
+
 void 
 MD5Update(MD5_CTX * context, unsigned char *input, unsigned int inputLen)
 {
@@ -271,10 +280,16 @@ MD5Update(MD5_CTX * context, unsigned char *input, unsigned int inputLen)
 	}
 }
 
-/*
- * MD5 finalization. Ends an MD5 message-digest operation, writing the the
- * message digest and zeroizing the context.
- */
+/**
+ * MD5Final:
+ * @digest: 16-byte buffer to write MD5 checksum.
+ * @context: MD5 context to be finalized.
+ * 
+ * Ends an MD5 message-digest operation, writing the the message
+ * digest and zeroing the context.  The context must be initialized
+ * with MD5Init() before being used for other MD5 checksum calculations.
+ **/
+
 void 
 MD5Final(unsigned char digest[16], MD5_CTX * context)
 {

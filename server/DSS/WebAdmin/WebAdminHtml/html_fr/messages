@@ -1,0 +1,81 @@
+# Text messages, errors and warnings
+# Keyword ########################## Message ##########
+# The strings in double quotes are to be localized ####
+#######################################################
+
+# Messages used in cgi-lib.pl
+# Http header and body messages
+Http200Status						"OK"
+Http302Status						"Temporairement indisponible"
+Http401Status						"Non autoris&eacute;"
+Http403Status						"Interdit"
+Http404Status						"Fichier introuvable"
+Http401Body							"Il faut un mot de passe pour administrer ce serveur d'encha&icirc;nement. Veuillez r&eacute;essayer."
+Http403Body							"L'acc&egrave;s au fichier requis est refus&eacute;."
+Http404Body							"Le fichier requis est introuvable."
+
+# Server status messages
+ServerNotRunningMessage				"Le serveur d’encha&icirc;nement est arr&ecirc;t&eacute;"
+StartServerMessage					"Pour lancer le serveur, cliquez sur Lancer le serveur."
+
+# Messages used in adminprotocol-lib.pl
+# Socket errors
+NoHostError							"Aucun h&ocirc;te"
+SocketFailedError					"&Eacute;chec du socket"
+ConnectFailedError					"&Eacute;chec de connexion"
+SendFailedError						"&Eacute;chec d'envoi"
+
+# File errors
+FileOpenError						"Impossible d’ouvrir le fichier" 
+
+# Time strings
+DaysStr								"jours"
+HoursStr							"h"
+MinutesStr							"min"
+SecondsStr							"s"
+
+# Day strings
+MonStr								"Lun"
+TueStr								"Mar"
+WedStr								"Mer"
+ThuStr								"Jeu"
+FriStr								"Ven"
+SatStr								"Sam"
+SunStr								"Dim"
+
+# Month strings
+JanStr								"Jan"
+FebStr								"F&eacute;v"
+MarStr								"Mar"
+AprStr								"Avr"
+MayStr								"Mai"
+JunStr								"Jun"
+JulStr								"Jul"
+AugStr								"Ao&ucirc;"
+SepStr								"Sep"
+OctStr								"Oct"
+NovStr								"Nov"
+DecStr								"D&eacute;c"
+
+# Server State strings
+ServerStartingUpStr					"D&eacute;marrage"
+ServerRunningStr					"En service"
+ServerNotRunningStr					"Arr&ecirc;t&eacute;"
+ServerRefusingConnectionsStr		"Refus des connexions"
+ServerInFatalErrorStateStr			"&Eacute;tat d'erreur fatale"
+ServerShuttingDownStr				"Extinction"
+ServerIdleStr						"Inactif"
+
+# Units
+BytesStr							"Octets"
+KiloBytesStr						"Ko"
+MegaBytesStr						"Mo"
+GigaBytesStr						"Go"
+
+# Messages used in playlist-lib.pl
+# labels used in playlist tables
+PLMovie								"S&eacute;quence"
+PLDirectory							"R&eacute;pertoire"
+PLState_0							"arr&ecirc;t&eacute;"
+PLState_1							"lecture"
+PLState_2							"erreur"

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 
 /*
@@ -67,6 +67,8 @@ int gDebug = 0;
 int gStats = 1;
 #else
 int gStats = 0;
+#define unix
+
 #endif
 
 #define ANY_ADDRESS	-1
@@ -86,7 +88,7 @@ int		gNumUsers = 0;
 //int		gUDPPortMax = 65535;
 
 int		gProxyIP = -1;
-int             gRTSPIP   = ANY_ADDRESS;
+int     gRTSPIP   = ANY_ADDRESS;
 int		gMaxPorts = 0;
 
 unsigned long gBytesReceived = 0;
@@ -97,9 +99,72 @@ unsigned long gLastPacketsReceived = 0;
 unsigned long gLastPacketsSent = 0;
 
 /**********************************************/
+
+int gDropEnabled = 0;
+float gDropPercent = 0.0;
+time_t gStartDropOffset = 0;
+
+/**********************************************/
 #if defined(unix)
 void sig_catcher(int sig)
 {
+	if (gDropEnabled)
+	{
+	
+		if (sig == SIGUSR1)
+		{	gDropPercent = 0;
+#if __solaris__
+			signal(SIGUSR1, sig_catcher);
+#endif
+			return;
+		}
+			
+		if (sig == SIGUSR2)
+		{	gDropPercent += 1.0;
+			if (gDropPercent > 100.0)
+				gDropPercent = 100.0;
+				
+#if __solaris__
+			signal(SIGUSR2, sig_catcher);
+#endif
+			return;
+		}
+		
+		if (sig == SIGHUP)
+		{
+			FILE * dropParamFile = fopen("drop","r");
+			if (dropParamFile != NULL)
+			{	char inBuff[256];
+				while (fgets(inBuff, sizeof(inBuff), dropParamFile) != 0)
+				{	char *tag;
+					char *value;
+					tag = strtok(inBuff, " ");
+					if (tag != NULL && NULL != strstr(tag,"drop_percent"))
+					{	value = strtok(NULL, " \r\n");
+						printf("drop_percent value=%s\n",value);
+						if (value != NULL)
+							sscanf(value, "%f",&gDropPercent);
+					}
+					
+				}
+				
+				fclose(dropParamFile);
+			}
+#if __solaris__
+			signal(SIGHUP, sig_catcher);
+#endif
+			return;
+		}	
+	}
+	
+	// do nothing cases
+	if ( (sig == SIGUSR1) || (sig == SIGUSR2) || (sig == SIGHUP) )
+	{	
+#if __solaris__
+		sigignore(sig);
+#endif
+		return; 
+	}	
 	gQuitting = 1;
 }
 #endif
@@ -109,11 +174,15 @@ static void print_usage(char *name)
 {
 	printf("%s/%s Built on %s, %s: [-dvh] [-p #] [-c <file>]\n", name, kVersionString, __DATE__, __TIME__ );
 	printf("  -d        : debug\n");
-	printf("  -v        : verbose\n");
+	printf("  -v        : print usage\n");
 	printf("  -h        : help (this message)\n");
 	printf("  -p #      : listen on port # (defaults to 554)\n");
 	printf("  -c <file> : configuration file (defaults to %s)\n", gConfigFilePath);
 	printf("  -i <hostname/ip address> : RTP Hostname/IP Address bind address.\n");
+	printf("  -s        : statistics\n");
+	printf("  -x        : enable packet drop mode (defaults to 0). SIGUSR1 to reset to 0. SIGUSR2 to add 1 to drop percent\n");
+	printf("              use SIGHUP to read tag and value 'drop_percent 5' from the local file 'drop'. Use -s to see drop statistics\n");
+	
 }
 
 /**********************************************/
@@ -146,7 +215,10 @@ int main(int argc, char *argv[])
 	signal(SIGINT, sig_catcher);
 	signal(SIGHUP, sig_catcher);
 	signal(SIGTERM, sig_catcher);
+	signal(SIGUSR1, sig_catcher);
+	signal(SIGUSR2, sig_catcher);
 	signal(SIGPIPE, SIG_IGN);
+	
 	//
 	// boost our priority
 #if sgi
@@ -178,8 +250,14 @@ int main(int argc, char *argv[])
 			case 'd':
 				gDebug = 1;
 				break;
+				
+			case 'x':
+				gDropEnabled = 1;
+				break;
+				
 			case 'v':
-				gVerbose = 1;
+				print_usage(argv[0]);
+				exit(0);
 				break;
 			case 's':
 				gStats = 1;
@@ -237,7 +315,10 @@ int main(int argc, char *argv[])
 		
 	//
 	if (gProxyIP == -1)
-	  gProxyIP = get_local_ip_address();
+	{ 	//gProxyIP = get_local_ip_address(); this returns the local loopback (127.0.0.1) and is useless
+		ErrorString("An rtp-bind-addr configuration line or -i command line option is required.\n");
+		return -1;
+	}
 
 	if (gVerbose)
 		printf("rtp-bind-addr: %s\n", ip_to_string(gProxyIP));
@@ -289,6 +370,10 @@ int main(int argc, char *argv[])
 				stats.ppsSent = ((gPacketsSent - gLastPacketsSent) * USEC_PER_MSEC) / msElapsed;
 				stats.totalPacketsReceived = gPacketsReceived;
 				stats.totalPacketsSent = gPacketsSent;
+				if (stats.ppsReceived > 0)
+					stats.percentLostPackets = 100.0 - ((float) stats.ppsSent / (float) stats.ppsReceived  * (float)100.0);
+				else
+					stats.percentLostPackets = 0.0;
 				stats.numPorts = gMaxPorts;
 				DoStats(&stats);
 				gBytesReceived = 0;
@@ -485,22 +570,35 @@ rtsp_session *new_session(void)
 			s->trk[i].ID = 0;
 			s->trk[i].ClientRTPPort = -1;
 			s->trk[i].ServerRTPPort = -1;
+			
 			s->trk[i].RTP_S2P = NULL;
 			s->trk[i].RTCP_S2P = NULL;
 			s->trk[i].RTP_P2C = NULL;
 			s->trk[i].RTCP_P2C = NULL;
+			
 			s->trk[i].RTP_S2C_tpb.status = NULL;
 			s->trk[i].RTP_S2C_tpb.send_from = NULL;
 			s->trk[i].RTP_S2C_tpb.send_to_ip = -1;
 			s->trk[i].RTP_S2C_tpb.send_to_port = -1;
+			s->trk[i].RTP_S2C_tpb.packetSendCount = 0;
+			s->trk[i].RTP_S2C_tpb.nextDropPacket = 0;
+			s->trk[i].RTP_S2C_tpb.droppedPacketCount = 0;
+			
 			s->trk[i].RTCP_S2C_tpb.status = NULL;
 			s->trk[i].RTCP_S2C_tpb.send_from = NULL;
 			s->trk[i].RTCP_S2C_tpb.send_to_ip = -1;
 			s->trk[i].RTCP_S2C_tpb.send_to_port = -1;
+			s->trk[i].RTCP_S2C_tpb.packetSendCount = 0;
+			s->trk[i].RTCP_S2C_tpb.nextDropPacket = 0;
+			s->trk[i].RTCP_S2C_tpb.droppedPacketCount = 0;
+			
 			s->trk[i].RTCP_C2S_tpb.status = NULL;
 			s->trk[i].RTCP_C2S_tpb.send_from = NULL;
 			s->trk[i].RTCP_C2S_tpb.send_to_ip = -1;
 			s->trk[i].RTCP_C2S_tpb.send_to_port = -1;
+			s->trk[i].RTCP_C2S_tpb.packetSendCount = 0;
+			s->trk[i].RTCP_C2S_tpb.nextDropPacket = 0;
+			s->trk[i].RTCP_C2S_tpb.droppedPacketCount = 0;
 		}
 		s->numTracks = 0;
 
@@ -840,6 +938,9 @@ static int has_ports(char *inp, int *client_port, int *server_port)
 		p = strchr(p, '=');
 		if (p - 11 < inp) {
 		}
+		else if (p == NULL)
+		{
+		}
 		else if (strn_casecmp(p - 11, "client_port=", 12) == 0) {
 			got_client = 1;
 			*client_port = atoi(p + 1);
@@ -866,7 +967,8 @@ void service_session(rtsp_session *s)
 	track_info	*t;
 	char		cmd[256], *w;
 	int 		responseHeaderLen = 0;
-
+	char		*startBuff;
+	
 	/* see if we have any commands coming in */
 	pBuf = s->cinbuf + s->amtInClientInBuffer;
 	canRead = sizeof(s->cinbuf) - s->amtInClientInBuffer - 1;
@@ -946,6 +1048,9 @@ void service_session(rtsp_session *s)
 			break;
 
 		case stParseClientCommand:
+			if (gDebug)
+				DebugStringS("service_session stParseClientCommand start=%s", s->cinbuf);
+			startBuff = s->soutbuf;
 			//
 			// see what the command and server address is
 			//
@@ -960,7 +1065,6 @@ void service_session(rtsp_session *s)
 				}
 				else
 					numDelims = 0;
-
 				//
 				// see if we can snarf our data out of the headers
 				if (is_command(p, cmd, temp)) {
@@ -1034,23 +1138,37 @@ void service_session(rtsp_session *s)
 				num = strlen(p);
 				memcpy(s->soutbuf + s->amtInServerOutBuffer, p, num);
 				s->amtInServerOutBuffer += num;
+					
 				s->soutbuf[s->amtInServerOutBuffer++] = '\r';
 				s->soutbuf[s->amtInServerOutBuffer++] = '\n';
 			}
 
-			s->soutbuf[s->amtInServerOutBuffer++] = '\r';
-			s->soutbuf[s->amtInServerOutBuffer++] = '\n';
-
+			if (*(s->cinbuf + s->amtInServerOutBuffer) == 0)
+			{
+				s->soutbuf[s->amtInServerOutBuffer++] = '\r';
+				s->soutbuf[s->amtInServerOutBuffer++] = '\n';
+			}
+			
 			s->amtInClientInBuffer -= s->amtInServerOutBuffer;
 			if (s->amtInClientInBuffer > 0)
+			{	
 				memcpy(s->cinbuf, s->cinbuf + s->amtInServerOutBuffer, s->amtInClientInBuffer);
+				s->cinbuf[s->amtInClientInBuffer] = 0;
+				if (gDebug)
+					DebugStringS("service_session stParseClientCommand memcpy to s->cinbuf=%s", s->cinbuf);
+			}
 			else if (s->amtInClientInBuffer < 0)
 				s->amtInClientInBuffer = 0;
 			s->state = stServerTransactionSend;
-
+				
+			if (s->soutbuf[s->amtInServerOutBuffer - 4] != '\r')
+			{
+				s->soutbuf[s->amtInServerOutBuffer++] = '\r';
+				s->soutbuf[s->amtInServerOutBuffer++] = '\n';
+			}
+			
 			if (gDebug)
-				DebugStringS("%s", s->soutbuf);
-
+				DebugStringS("service_session stParseClientCommand SEND TO CLIENT=%s", s->soutbuf);
 			gNeedsService++;
 			break;
 
@@ -1170,6 +1288,8 @@ void service_session(rtsp_session *s)
 					pBuf[num] = '\0';
 					if (gDebug)
 						printf("\nread %d bytes from server:%s\n", num, pBuf);
+					if (0 == num)
+						sleep_milliseconds(1);	
 					s->amtInServerInBuffer += num;
 				}
 			}
@@ -1261,18 +1381,21 @@ void service_session(rtsp_session *s)
 						t->RTP_S2C_tpb.send_from = t->RTP_P2C;
 						t->RTP_S2C_tpb.send_to_ip = s->client_ip;
 						t->RTP_S2C_tpb.send_to_port = t->ClientRTPPort;
+						memcpy(t->RTP_S2C_tpb.socketName,"RTP Server to Client",strlen("RTP Server to Client") + 1);
 						upon_receipt_from(t->RTP_S2P, s->server_ip, transfer_data, &(t->RTP_S2C_tpb));
 	
 						t->RTCP_S2C_tpb.status = &s->die;
 						t->RTCP_S2C_tpb.send_from = t->RTCP_P2C;
 						t->RTCP_S2C_tpb.send_to_ip = s->client_ip;
 						t->RTCP_S2C_tpb.send_to_port = t->ClientRTPPort + 1;
+						memcpy(t->RTCP_S2C_tpb.socketName,"RTCP Server to Client",strlen("RTCP Server to Client") + 1);
 						upon_receipt_from(t->RTCP_S2P, s->server_ip, transfer_data, &(t->RTCP_S2C_tpb));
 	
 						t->RTCP_C2S_tpb.status = &s->die;
 						t->RTCP_C2S_tpb.send_from = t->RTCP_S2P;
 						t->RTCP_C2S_tpb.send_to_ip = s->server_ip;
 						t->RTCP_C2S_tpb.send_to_port = t->ServerRTPPort + 1;
+						memcpy(t->RTCP_C2S_tpb.socketName,"RTCP Client to Server",strlen("RTCP Client to Server") + 1);
 						upon_receipt_from(t->RTCP_P2C, s->client_ip, transfer_data, &(t->RTCP_C2S_tpb));
 	
 						if (gDebug)
@@ -1286,10 +1409,12 @@ void service_session(rtsp_session *s)
 						w = find_transport_header(p);
 						if (w != NULL)
 							*w = '\0';
-						sprintf(temp, "%sclient_port=%d-%d;server_port=%d-%d", p,
+						sprintf(temp, "%sclient_port=%d-%d;server_port=%d-%d;source=%s", p,
 							t->ClientRTPPort, t->ClientRTPPort+1,
-							t->RTP_P2C->port, t->RTCP_P2C->port);
+							t->RTP_P2C->port, t->RTCP_P2C->port,
+							ip_to_string(gProxyIP));
 						p = temp;
+						
 					}
 	
 					//
@@ -1343,21 +1468,21 @@ void service_session(rtsp_session *s)
 						//  c=IN IP0 ?
 						if (has_IN_IP(lineBuff, temp)) 
 						{
-							char *nextChar = lineBuff;
+							//char *nextChar = lineBuff;
 							
 							//
 							// reconstruct the IN IP string, but
 							// make sure our replacement string is the
 							// same length as the original string
 							// so as not to change the Content-Length string
-							while ( *nextChar )
-							{	
+						//	while ( *nextChar )
+						//	{	
 								// replace all digits on the line with zeros...
-								if ( isdigit( *nextChar ) )
-									*nextChar = '0';
-								nextChar++;
-							
-							}
+						//		if ( isdigit( *nextChar ) )
+						//			*nextChar = '0';
+						//		nextChar++;
+						//	
+						//	}
 						}
 						
 						//
@@ -1582,7 +1707,7 @@ void read_config() {
 				}
 			}
 			else {
-				ErrorStringS("invalid configuration line [%s]", line);
+				ErrorStringS("invalid configuration line [%s]\n", line);
 			}
 		}
 	}

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		RTPStream.h
@@ -68,7 +68,11 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		//ACCESS FUNCTIONS
 		
 		UInt32		GetSSRC()					{ return fSsrc; }
-		
+		UInt8		GetRTPChannelNum()			{ return fRTPChannel; }
+		UInt8		GetRTCPChannelNum()			{ return fRTCPChannel; }
+		RTPPacketResender* GetResender()		{ return &fResender; }
+		QTSS_RTPTransportType GetTransportType() { return fTransportType; }
+		UInt32		GetStalePacketsDropped()	{ return fStalePacketsDropped; }
 		// Setup uses the info in the RTSPRequestInterface to associate
 		// all the necessary resources, ports, sockets, etc, etc, with this
 		// stream.
@@ -77,7 +81,7 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		// Write sends RTP data to the client. Caller must specify
 		// either qtssWriteFlagsIsRTP or qtssWriteFlagsIsRTCP
 		virtual QTSS_Error	Write(void* inBuffer, UInt32 inLen,
-										UInt32* outLenWritten, UInt32 inFlags);
+										UInt32* outLenWritten, QTSS_WriteFlags inFlags);
 		
 		
 		//UTILITY FUNCTIONS:
@@ -95,9 +99,14 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		void			AppendRTPInfo(QTSS_RTSPHeader inHeader,
 										RTSPRequestInterface* request, UInt32 inFlags);
 
+		//
+		// When we get an incoming Interleaved Packet for this stream, this
+		// function should be called
+		void ProcessIncomingInterleavedData(UInt8 inChannelNum, RTSPSessionInterface* inRTSPSession, StrPtrLen* inPacket);
+
 		//When we get a new RTCP packet, we can directly invoke the RTP session and tell it
 		//to process the packet right now!
-		void ProcessPacket(StrPtrLen* inPacket);
+		void ProcessIncomingRTCPPacket(StrPtrLen* inPacket);
 
 		// Send a RTCP SR on this stream. Pass in true if this SR should also have a BYE
 		void SendRTCPSR(const SInt64& inTime, Bool16 inAppendBye = false);
@@ -113,16 +122,19 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		void SetThinningParams();
 		
 	private:
-	
+		
 		enum
 		{
 			kMaxSsrcSizeInBytes 		= 12,
 			kMaxStreamURLSizeInBytes 	= 32,
 			kDefaultPayloadBufSize		= 32,
 			kSenderReportIntervalInSecs = 7,
-			kNumPrebuiltChNums			= 10
+			kNumPrebuiltChNums			= 10,
 		};
 	
+		SInt64 fLastQualityChange;
+		SInt32 fQualityInterval;
+
 		//either pointers to the statically allocated sockets (maintained by the server)
 		//or fresh ones (only fresh in extreme special cases)
 		UDPSocketPair* 			fSockets;
@@ -143,6 +155,7 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		UInt32		fRemoteAddr;
 		UInt16		fRemoteRTPPort;
 		UInt16		fRemoteRTCPPort;
+		UInt16		fLocalRTPPort;
 		
 		//RTCP stuff 
 		SInt64		fLastSenderReportTime;
@@ -174,7 +187,7 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		char		fStreamURL[kMaxStreamURLSizeInBytes];
 		StrPtrLen	fStreamURLPtr;
 		
-		UInt32		fQualityLevel;
+		SInt32		fQualityLevel;
 		UInt32		fNumQualityLevels;
 		
 		UInt32		fLastRTPTimestamp;
@@ -182,7 +195,7 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		// RTCP data
 		UInt32		fFractionLostPackets;
 		UInt32		fTotalLostPackets;
-		UInt32		fPriorTotalLostPackets;
+		//UInt32		fPriorTotalLostPackets;
 		UInt32		fJitter;
 		UInt32		fReceiverBitRate;
 		UInt16		fAvgLateMsec;
@@ -203,21 +216,36 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		UInt16		fFrameRate;
 		UInt16		fExpectedFrameRate;
 		UInt16		fAudioDryCount;
+		UInt32		fClientSSRC;
 		
 		Bool16		fIsTCP;
 		QTSS_RTPTransportType fTransportType;
 		
+		// HTTP params
+		// Each stream has a set of thinning related tolerances,
+		// that are dependent on prefs and parameters in the SETUP.
+		// These params, as well as the current packet delay determine
+		// whether a packet gets dropped.
+		SInt32		fTurnThinningOffDelay_TCP;
+		SInt32		fIncreaseThinningDelay_TCP;
+		SInt32		fDropAllPacketsForThisStreamDelay_TCP;
+		UInt32		fStalePacketsDropped_TCP;
+		SInt64		fTimeStreamCaughtUp_TCP;
+		SInt64		fLastQualityLevelIncreaseTime_TCP;
 		//
 		// Each stream has a set of thinning related tolerances,
 		// that are dependent on prefs and parameters in the SETUP.
 		// These params, as well as the current packet delay determine
 		// whether a packet gets dropped.
-		SInt32		fCurrentPacketDelay;  // dictionary: qtssRTPStrCurrentPacketDelay
-		SInt32		fTurnThinningOffDelay;
-		SInt32		fIncreaseThinningDelay;
+		SInt32		fThinAllTheWayDelay;
+		SInt32		fOptimalDelay;
+		SInt32		fStartThickingDelay;
+		SInt32		fQualityCheckInterval;
 		SInt32		fDropAllPacketsForThisStreamDelay;
 		UInt32		fStalePacketsDropped;
-		UInt32		fTimeStreamCaughtUp;
+		SInt64		fLastQualityCheckTime;
+		SInt64		fLastCurrentPacketDelay;
+		Bool16		fJustIncreasedQualityLevel;
 		
 		Float32 	fBufferDelay; // from the sdp
 		Float32		fLateToleranceInSec;
@@ -225,7 +253,8 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		// Pointer to the stream ref (this is just a this pointer)
 		QTSS_StreamRef	fStreamRef;
 		
-		UInt32		fOverbufferTimeInSec;
+		UInt32		fCurrentAckTimeout;
+		SInt32		fMaxSendAheadTimeMSec;
 		
 #if DEBUG
 		UInt32		fNumPacketsDroppedOnTCPFlowControl;
@@ -235,18 +264,29 @@ class RTPStream : public QTSSDictionary, public UDPDemuxerTask
 		
 		// If we are interleaving RTP data over the TCP connection,
 		// these are channel numbers to use for RTP & RTCP
-		unsigned char	fRTPChannel;
-		unsigned char	fRTCPChannel;
+		UInt8	fRTPChannel;
+		UInt8	fRTCPChannel;
 		
 		// acutally write the data out that way
 		QTSS_Error	InterleavedWrite(void* inBuffer, UInt32 inLen, UInt32* outLenWritten, unsigned char channel );
 
 		// implements the ReliableRTP protocol
-		QTSS_Error	ReliableRTPWrite(void* inBuffer, UInt32 inLen);
+		QTSS_Error	ReliableRTPWrite(void* inBuffer, UInt32 inLen, const SInt64& curPacketDelay);
 
+		void 		SetTCPThinningParams();
+		QTSS_Error	TCPWrite(void* inBuffer, UInt32 inLen, UInt32* outLenWritten, UInt32 inFlags);
 
 		static QTSSAttrInfoDict::AttrInfo	sAttributes[];
 		static StrPtrLen					sChannelNums[];
 		static QTSS_ModuleState				sRTCPProcessModuleState;
+		
+		Bool16 UpdateQualityLevel(const SInt64& inTransmitTime, const SInt64& inCurrentPacketDelay,
+										const SInt64& inCurrentTime, UInt32 inPacketSize);
+		
+		void DropQualityLevelValue(); 
+		void RaiseQualityLevelValue();
+		
+		
 };
+
 #endif // __RTPSTREAM_H__

@@ -39,7 +39,8 @@ class CMp4ByteStream : public COurInByteStream
  public:
   CMp4ByteStream(CMp4File *parent,
 		 MP4TrackId track,
-		 const char *type);
+		 const char *type,
+		 int has_video);
   ~CMp4ByteStream();
   int eof(void);
   unsigned char get(void);
@@ -47,6 +48,8 @@ class CMp4ByteStream : public COurInByteStream
   void bookmark(int bSet);
   void reset(void);
   uint64_t start_next_frame(void);
+  int can_skip_frame(void) { return 1; };
+  int skip_next_frame(uint64_t *ts, int *hasSyncFrame);
   ssize_t read(unsigned char *buffer, size_t bytes);
   ssize_t read (char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
@@ -70,12 +73,15 @@ class CMp4ByteStream : public COurInByteStream
   u_int8_t *m_buffer_on;
   MP4SampleId m_frame_on;
   uint64_t m_frame_on_ts;
+  int m_frame_on_has_sync;
   
   MP4SampleId m_frame_in_buffer;
   uint64_t m_frame_in_buffer_ts;
+  int m_frame_in_buffer_has_sync;
 
   MP4SampleId m_frame_in_bookmark;
   uint64_t m_frame_in_bookmark_ts;
+  int m_frame_in_bookmark_has_sync;
 
   u_int32_t m_max_frame_size;
   u_int8_t *m_buffer;
@@ -89,6 +95,7 @@ class CMp4ByteStream : public COurInByteStream
   const char *m_type;
   void set_timebase(MP4SampleId frame);
   double m_max_time;
+  int m_has_video;
 };
 
 /*
@@ -100,7 +107,7 @@ class CMp4VideoByteStream : public CMp4ByteStream
  public:
   CMp4VideoByteStream(CMp4File *parent,
 		      MP4TrackId track) :
-    CMp4ByteStream(parent, track, "video") {};
+    CMp4ByteStream(parent, track, "video", 1) {};
 };
 
 /*
@@ -112,7 +119,7 @@ class CMp4AudioByteStream : public CMp4ByteStream
  public:
   CMp4AudioByteStream(CMp4File *parent,
 		      MP4TrackId track) :
-    CMp4ByteStream(parent, track, "audio") {};
+    CMp4ByteStream(parent, track, "audio", 0) {};
 
 };
 

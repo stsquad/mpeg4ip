@@ -27,12 +27,8 @@
  * Bill May (wmay@cisco.com)
  * Cisco Systems, Inc.
  */
-#include <ctype.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
 #include "sdp.h"
+#include <time.h>
 #include "sdp_decode_private.h"
 
 static void time_repeat_dump (time_repeat_desc_t *trptr)

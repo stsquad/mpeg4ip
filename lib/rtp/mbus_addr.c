@@ -36,41 +36,8 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "debug.h"
+#include "util.h"
 #include "mbus_addr.h"
-
-int strfind(const char *haystack, const char *needle_start, const char *needle_end)
-{
-	/* Returns TRUE if the string between needle_start and needle_end */
-	/* is found in haystack. The haystack MUST be zero terminated.    */
-	const char	*n, *h;
-	const char	*h_end = haystack + strlen(haystack);
-
-#ifdef DEBUG
-	/* Paranoia check that memory between needle_start and needle_end */
-	/* is a valid string, and doesn't contain a zero byte.            */
-	for (n = needle_start; n != needle_end; n++) {
-		assert(*n != '\0');
-	}
-#endif
-
-	n = needle_start;
-	h = haystack;
-
-	do {
-		if (*n == *h) {
-			n++;
-			h++;
-		} else {
-			h = h - (n - needle_start) + 1;
-			n = needle_start;
-		}
-	} while ((h < h_end) && (n <= needle_end));
-
-	if (n == (needle_end + 1)) {
-		return TRUE;
-	}
-	return FALSE;
-}
 
 int mbus_addr_match(const char *a, const char *b)
 {

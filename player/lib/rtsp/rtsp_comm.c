@@ -19,14 +19,12 @@
  *              Bill May        wmay@cisco.com
  */
 /*
- * rtsp_comm.c - contains communication routines.  Written for linux -
- * if you need PC, you'll have to add some stuff.
+ * rtsp_comm.c - contains communication routines.
  */
-#include "systems.h"
+#include "rtsp_private.h"
 #ifdef HAVE_POLL
 #include <sys/poll.h>
 #endif
-#include "rtsp_private.h"
 
 /*
  * rtsp_create_socket()
@@ -38,8 +36,10 @@ int rtsp_create_socket (rtsp_client_t *info)
 {
   struct sockaddr_in sockaddr;
   int result;
+  struct hostent *host;
 
   // Do we have a socket already - if so, go ahead
+
   if (info->server_socket != -1) {
     return (0);
   }
@@ -47,6 +47,11 @@ int rtsp_create_socket (rtsp_client_t *info)
   if (info->server_name == NULL) {
     return (-1);
   }
+  host = gethostbyname(info->server_name);
+  if (host == NULL) {
+    return (h_errno);
+  }
+  info->server_addr = *(struct in_addr *)host->h_addr;
 
   info->server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -106,156 +111,39 @@ int rtsp_send (rtsp_client_t *info, const char *buff, uint32_t len)
  *   recv_buff_parsed - used by above routine in case we got more than
  *      1 response at a time.
  */
-int rtsp_receive (rtsp_client_t *info)
+int rtsp_receive (int rsocket, char *buffer, uint32_t len,
+		  uint32_t msec_timeout)
 {
 
-  int ret, totcnt;
-#ifdef HAVE_POLL
-  struct pollfd pollit;
-#else
-  fd_set read_set;
-  struct timeval timeout;
-#endif
-  bool done;
-  uint32_t bufflen, retlen;
-  char *new;
-
-  totcnt = 0;
-  info->recv_buff_used = 0;
-  info->recv_buff_parsed = 0;
-  do {
-#ifdef HAVE_POLL
-    pollit.fd = info->server_socket;
-    pollit.events = POLLIN | POLLPRI;
-    pollit.revents = 0;
-
-    ret = poll(&pollit, 1, info->recv_timeout);
-#else
-	FD_ZERO(&read_set);
-	FD_SET(info->server_socket, &read_set);
-	timeout.tv_sec = info->recv_timeout / 1000;
-	timeout.tv_usec = (info->recv_timeout % 1000) * 1000;
-	ret = select(info->server_socket + 1, &read_set, NULL, NULL, &timeout);
-#endif
-
-    if (ret <= 0) {
-      rtsp_debug(LOG_ERR, "Response timed out %d %d", info->recv_timeout, ret);
-      if (ret == -1) {
-	rtsp_debug(LOG_ERR, "Errorno is %d", errno);
-      }
-      return (-1);
-    }
-
-    bufflen = info->recv_buff_len - info->recv_buff_used;
-    ret = recv(info->server_socket,
-	       info->recv_buff + info->recv_buff_used,
-	       info->recv_buff_len - info->recv_buff_used,
-	       0);
-    totcnt += ret;
-    // We can always do this - recv_buff has a 1 byte pad at end
-    info->recv_buff[totcnt] = '\0';
-    if (ret == -1) {
-      printf("Return from recv was -1");
-      return (-1);
-    }
-	retlen = ret;
-    if (retlen < bufflen) {
-      done = TRUE;
-      info->recv_buff_used = retlen;
-    } else {
-      done = FALSE;
-      if (retlen == bufflen) {
-	// We have a full buffer - if the last character is \r or \n,
-	// go ahead and return.  Otherwise, realloc the buffer to a larger
-	// one.
-	if ((info->recv_buff[info->recv_buff_len] == '\n') ||
-	    (info->recv_buff[info->recv_buff_len] == '\r')) {
-	  info->recv_buff_used = info->recv_buff_len;
-	  done = TRUE;
-	} else {
-	  new = realloc(info->recv_buff,
-			info->recv_buff_len + RECV_BUFF_DEFAULT_LEN);
-	  if (new == NULL) {
-	    return (-1);
-	  } else {
-	    info->recv_buff = new;
-	    info->recv_buff_used = info->recv_buff_len;
-	    info->recv_buff_len += RECV_BUFF_DEFAULT_LEN;
-	    rtsp_debug(LOG_DEBUG, "Reallocated buffer to len %d",
-		       info->recv_buff_len);
-	  }
-	}
-      } else {
-	return (-1);
-      }
-    }
-  } while (done == FALSE);
-  return (totcnt);
-
-}
-
-/*
- * rtsp_receive_more()
- * Receives more data into the buffer if needed.  If we, for some reason,
- * didn't parse the message right (basically, in the case of entity which
- * is large, and managed to have a \n where the buffer would fill, but still
- * had more data), we can use this routine to get more data.
- */
-int rtsp_receive_more (rtsp_client_t *info, uint32_t more_cnt)
-{
   int ret;
-
 #ifdef HAVE_POLL
   struct pollfd pollit;
+  
+  pollit.fd = rsocket;
+  pollit.events = POLLIN | POLLPRI;
+  pollit.revents = 0;
+
+  ret = poll(&pollit, 1, msec_timeout);
 #else
   fd_set read_set;
   struct timeval timeout;
+  FD_ZERO(&read_set);
+  FD_SET(rsocket, &read_set);
+  timeout.tv_sec = msec_timeout / 1000;
+  timeout.tv_usec = (msec_timeout % 1000) * 1000;
+  ret = select(rsocket + 1, &read_set, NULL, NULL, &timeout);
 #endif
-  uint32_t bufflen;
 
-  if (info->recv_buff_len < info->recv_buff_used + more_cnt) {
-    char *new;
-    new = realloc(info->recv_buff,
-		  info->recv_buff_used + more_cnt);
-    if (new == NULL) {
-      return (-1);
-    } else {
-      info->recv_buff = new;
-      info->recv_buff_len = info->recv_buff_used + more_cnt;
-      rtsp_debug(LOG_DEBUG, "Reallocated buffer to len %d",
-		 info->recv_buff_len);
+  if (ret <= 0) {
+    rtsp_debug(LOG_ERR, "Response timed out %d %d", msec_timeout, ret);
+    if (ret == -1) {
+      rtsp_debug(LOG_ERR, "Errorno is %d", errno);
     }
+    return (-1);
   }
-  
-  do {
-#ifdef HAVE_POLL
-    pollit.fd = info->server_socket;
-    pollit.events = POLLIN | POLLPRI;
-    pollit.revents = 0;
 
-    ret = poll(&pollit, 1, info->recv_timeout);
-#else
-	FD_ZERO(&read_set);
-	FD_SET(info->server_socket, &read_set);
-	timeout.tv_sec = info->recv_timeout / 1000;
-	timeout.tv_usec = (info->recv_timeout % 1000) * 1000;
-	ret = select(0, &read_set, NULL, NULL, &timeout);
-#endif  
-    if (ret <= 0) {
-      return (-1);
-    }
-
-    bufflen = info->recv_buff_len - info->recv_buff_used;
-    ret = recv(info->server_socket,
-	       info->recv_buff + info->recv_buff_used,
-	       bufflen,
-	       0);
-    // We can always do this - recv_buff has a 1 byte pad at end
-    info->recv_buff[info->recv_buff_used + ret] = '\0';
-    more_cnt -= ret;
-  } while (more_cnt > 0);
-
- return (0);
+  ret = recv(rsocket, buffer, len, 0);
+  return (ret);
 }
 
 /*
@@ -264,6 +152,7 @@ int rtsp_receive_more (rtsp_client_t *info, uint32_t more_cnt)
  */
 void rtsp_close_socket (rtsp_client_t *info)
 {
-  closesocket(info->server_socket);
+  if (info->server_socket != -1)
+    closesocket(info->server_socket);
   info->server_socket = -1;
 }

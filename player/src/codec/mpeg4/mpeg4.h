@@ -26,8 +26,6 @@
 
 #include "systems.h"
 #include "codec.h"
-#include "player_media.h"
-
 #include "video.h"
 
 #define DECODE_STATE_VOL_SEARCH 0

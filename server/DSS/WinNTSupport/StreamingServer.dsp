@@ -38,7 +38,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MTd /w /W0 /Gm /GX /ZI /Od /I "../" /I "../CommonUtilitiesLib/" /I "../QTFileLib/" /I "../RTPMetaInfoLib/" /I "../PrefsSourceLib/" /I "../APIModules/" /I "../APIStubLib/" /I "../APICommonCode/" /I "../HTTPUtilitiesLib/" /I "../RTCPUtilitiesLib/" /I "../RTSPClientLib/" /I "../APIModules/QTSSFileModule/" /I "../APIModules/QTSSHttpFileModule/" /I "../APIModules/QTSSAccessLogModule/" /I "../APIModules/QTSSPosixFileSysModule/" /I "../APIModules/QTSSAdminModule/" /I "../APIModules/QTSSReflectorModule/" /I "../APIModules/QTSSWebStatsModule/" /I "../APIModules/QTSSWebDebugModule/" /I "../APIModules/QTSSFlowControlModule/" /FI"../WinNTSupport/Win32header.h" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /FD /GZ /c
+# ADD CPP /nologo /MTd /w /W0 /Gm /ZI /Od /I "../" /I "../CommonUtilitiesLib/" /I "../QTFileLib/" /I "../RTPMetaInfoLib/" /I "../PrefsSourceLib/" /I "../APIModules/" /I "../APIStubLib/" /I "../APICommonCode/" /I "../HTTPUtilitiesLib/" /I "../RTCPUtilitiesLib/" /I "../RTSPClientLib/" /I "../APIModules/QTSSFileModule/" /I "../APIModules/QTSSHttpFileModule/" /I "../APIModules/QTSSAccessModule/" /I "../APIModules/QTSSAccessLogModule/" /I "../APIModules/QTSSPosixFileSysModule/" /I "../APIModules/QTSSAdminModule/" /I "../APIModules/QTSSReflectorModule/" /I "../APIModules/QTSSWebStatsModule/" /I "../APIModules/QTSSWebDebugModule/" /I "../APIModules/QTSSFlowControlModule/" /FI"../WinNTSupport/Win32header.h" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -107,6 +107,10 @@ SOURCE=..\APIModules\QTSSReflectorModule\SequenceNumberMap.cpp
 # End Group
 # Begin Source File
 
+SOURCE=..\APIModules\QTSSAccessModule\AccessChecker.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\APIModules\QTSSAdminModule\AdminElementNode.cpp
 # End Source File
 # Begin Source File
@@ -116,6 +120,10 @@ SOURCE=..\APIModules\QTSSAdminModule\AdminQuery.cpp
 # Begin Source File
 
 SOURCE=..\APIModules\QTSSAccessLogModule\QTSSAccessLogModule.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\APIModules\QTSSAccessModule\QTSSAccessModule.cpp
 # End Source File
 # Begin Source File
 
@@ -159,6 +167,10 @@ SOURCE=..\Server.tproj\QTSSCallbacks.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\Server.tproj\QTSSDataConverter.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\Server.tproj\QTSSDictionary.cpp
 # End Source File
 # Begin Source File
@@ -172,6 +184,10 @@ SOURCE=..\Server.tproj\QTSServer.cpp
 # Begin Source File
 
 SOURCE=..\Server.tproj\QTSServerInterface.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\Server.tproj\QTSServerPrefs.cpp
 # End Source File
 # Begin Source File
 
@@ -255,6 +271,10 @@ SOURCE=..\Server.tproj\RunServer.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\Server.tproj\SDPTimeoutTask.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\Server.tproj\win32main.cpp
 # End Source File
 # End Group
@@ -304,11 +324,15 @@ SOURCE=..\HTTPUtilitiesLib\HTTPRequest.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\Server.tproj\QTSServerPrefs.cpp
+SOURCE=..\Server.tproj\QTSSUserProfile.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=..\PrefsSourceLib\RelayPrefsSource.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\Server.tproj\RTPOverbufferWindow.cpp
 # End Source File
 # Begin Source File
 

@@ -72,12 +72,14 @@ int main(int argc, char** argv)
 			verbosity |= MP4_DETAILS_READ;
 			if (optarg) {
 				u_int32_t level;
-				if (sscanf(optarg, "%u", &level) == 1 && level > 1) {
-					if (level == 2) {
+				if (sscanf(optarg, "%u", &level) == 1) {
+					if (level >= 2) {
 						verbosity |= MP4_DETAILS_TABLE;
-					} else if (level == 3) {
+					} 
+					if (level >= 3) {
 						verbosity |= MP4_DETAILS_SAMPLE;
-					} else {
+					} 
+					if (level >= 4) {
 						verbosity = MP4_DETAILS_ALL;
 					}
 				}

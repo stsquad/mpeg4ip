@@ -67,6 +67,9 @@ typedef u_int64_t	MP4Duration;
 #define MP4_DETAILS_FIND			0x00000010
 #define MP4_DETAILS_TABLE			0x00000020
 #define MP4_DETAILS_SAMPLE			0x00000040
+#define MP4_DETAILS_HINT			0x00000080
+#define MP4_DETAILS_ISMA			0x00000100
+
 #define MP4_DETAILS_READ_ALL		\
 	(MP4_DETAILS_READ | MP4_DETAILS_TABLE | MP4_DETAILS_SAMPLE)
 #define MP4_DETAILS_WRITE_ALL		\
@@ -136,9 +139,9 @@ MP4FileHandle MP4Create(const char* fileName,
 	bool use64bits DEFAULT(0),
 	bool useExtensibleFormat DEFAULT(0));
 
-MP4FileHandle MP4Clone(const char* existingFileName, 
-	const char* newFileName, 
-	u_int32_t verbosity DEFAULT(0));
+MP4FileHandle MP4Append(const char* fileName, 
+	u_int32_t verbosity DEFAULT(0),
+	bool useExtensibleFormat DEFAULT(0));
 
 bool MP4Optimize(const char* existingFileName, 
 	const char* newFileName, 
@@ -187,37 +190,38 @@ bool MP4SetGraphicsProfileLevel(MP4FileHandle hFile, u_int8_t value);
 /* generic file properties */
 
 u_int64_t MP4GetIntegerProperty(
-	MP4FileHandle hFile, char* propName);
+	MP4FileHandle hFile, const char* propName);
 
 float MP4GetFloatProperty(
-	MP4FileHandle hFile, char* propName);
+	MP4FileHandle hFile, const char* propName);
 
 const char* MP4GetStringProperty(
-	MP4FileHandle hFile, char* propName);
+	MP4FileHandle hFile, const char* propName);
 
 void MP4GetBytesProperty(
-	MP4FileHandle hFile, char* propName,
+	MP4FileHandle hFile, const char* propName,
 	u_int8_t** ppValue, u_int32_t* pValueSize);
 
 bool MP4SetIntegerProperty(
-	MP4FileHandle hFile, char* propName, int64_t value);
+	MP4FileHandle hFile, const char* propName, int64_t value);
 
 bool MP4SetFloatProperty(
-	MP4FileHandle hFile, char* propName, float value);
+	MP4FileHandle hFile, const char* propName, float value);
 
 bool MP4SetStringProperty(
-	MP4FileHandle hFile, char* propName, char* value);
+	MP4FileHandle hFile, const char* propName, const char* value);
 
 bool MP4SetBytesProperty(
-	MP4FileHandle hFile, char* propName, u_int8_t* pValue, u_int32_t valueSize);
+	MP4FileHandle hFile, const char* propName, 
+	const u_int8_t* pValue, u_int32_t valueSize);
 
 /* track operations */
 
 MP4TrackId MP4AddTrack(
-	MP4FileHandle hFile, char* type);
+	MP4FileHandle hFile, const char* type);
 
 MP4TrackId MP4AddSystemsTrack(
-	MP4FileHandle hFile, char* type);
+	MP4FileHandle hFile, const char* type);
 
 MP4TrackId MP4AddODTrack(
 	MP4FileHandle hFile);
@@ -241,10 +245,10 @@ bool MP4DeleteTrack(
 	MP4FileHandle hFile, MP4TrackId trackId);
 
 u_int32_t MP4GetNumberOfTracks(
-	MP4FileHandle hFile, char* type DEFAULT(NULL));
+	MP4FileHandle hFile, const char* type DEFAULT(NULL));
 
 MP4TrackId MP4FindTrackId(
-	MP4FileHandle hFile, u_int16_t index, char* type DEFAULT(NULL));
+	MP4FileHandle hFile, u_int16_t index, const char* type DEFAULT(NULL));
 
 u_int16_t MP4FindTrackIndex(
 	MP4FileHandle hFile, MP4TrackId trackId);
@@ -281,7 +285,7 @@ void MP4GetTrackESConfiguration(
 
 bool MP4SetTrackESConfiguration(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	u_int8_t* pConfig, u_int32_t configSize);
+	const u_int8_t* pConfig, u_int32_t configSize);
 
 MP4SampleId MP4GetNumberOfTrackSamples(
 	MP4FileHandle hFile, MP4TrackId trackId);
@@ -290,35 +294,35 @@ MP4SampleId MP4GetNumberOfTrackSamples(
 
 u_int64_t MP4GetTrackIntegerProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	char* propName);
+	const char* propName);
 
 float MP4GetTrackFloatProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	char* propName);
+	const char* propName);
 
 const char* MP4GetTrackStringProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	char* propName);
+	const char* propName);
 
 void MP4GetTrackBytesProperty(
-	MP4FileHandle hFile, MP4TrackId trackId, char* propName,
+	MP4FileHandle hFile, MP4TrackId trackId, const char* propName,
 	u_int8_t** ppValue, u_int32_t* pValueSize);
 
 bool MP4SetTrackIntegerProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	char* propName, int64_t value);
+	const char* propName, int64_t value);
 
 bool MP4SetTrackFloatProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	char* propName, float value);
+	const char* propName, float value);
 
 bool MP4SetTrackStringProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	char* propName, char* value);
+	const char* propName, const char* value);
 
 bool MP4SetTrackBytesProperty(
 	MP4FileHandle hFile, MP4TrackId trackId, 
-	char* propName, u_int8_t* pValue, u_int32_t valueSize);
+	const char* propName, const u_int8_t* pValue, u_int32_t valueSize);
 
 /* sample operations */
 
@@ -360,12 +364,86 @@ MP4SampleId MP4GetSampleIdFromTime(
 	MP4Timestamp when, 
 	bool wantSyncSample DEFAULT(false));
 
-/* specialized operations */
+bool MP4SetSampleRenderingOffset(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId,
+	MP4Duration renderingOffset);
+
+/* rtp hint track operations */
+
+bool MP4SetHintTrackRtpPayload(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	const char* payloadName,
+	u_int8_t* pPayloadNumber,
+	u_int16_t maxPayloadSize);
+
+const char* MP4GetSessionSdp(
+	MP4FileHandle hFile);
+
+bool MP4SetSessionSdp(
+	MP4FileHandle hFile,
+	const char* sdpString);
+
+bool MP4AppendSessionSdp(
+	MP4FileHandle hFile,
+	const char* sdpString);
+
+const char* MP4GetHintTrackSdp(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId);
+
+bool MP4SetHintTrackSdp(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	const char* sdpString);
+
+bool MP4AppendHintTrackSdp(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	const char* sdpString);
+
+bool MP4AddRtpHint(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId);
+
+bool MP4AddRtpVideoHint(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	bool isBframe DEFAULT(false), 
+	u_int32_t timestampOffset DEFAULT(0));
+
+bool MP4AddRtpPacket(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	bool setMbit DEFAULT(false));
+
+bool MP4AddRtpImmediateData(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	const u_int8_t* pBytes,
+	u_int32_t numBytes);
+
+bool MP4AddRtpSampleData(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	MP4SampleId sampleId,
+	u_int32_t dataOffset,
+	u_int32_t dataLength);
+
+bool MP4WriteRtpHint(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	MP4Duration duration,
+	bool isSyncSample DEFAULT(true));
+
+/* ISMA specific operations */
 
 /* 
  * note this operation should be done 
- * after media tracks have been created
- * but before media samples are written
+ * after media and hint tracks have been created
+ * but before media samples and hints are written
  */
 bool MP4MakeIsmaCompliant(
 	MP4FileHandle hFile);

@@ -22,11 +22,7 @@
  * http_util.c - http utilities.
  */
 #include "systems.h"
-#ifndef _WINDOWS
 #include <time.h>
-#include <sys/time.h>
-#endif
-
 #include "http_private.h"
 
 /*

@@ -42,23 +42,23 @@ class CConfig {
   CConfig(const config_variable_t *foo, uint32_t max);
   CConfig(const config_variable_t *foo, uint32_t max, const char *name);
   ~CConfig(void);
-  int get_config_type(uint32_t index);
-  int get_config_value(int index);
-  int get_config_value(uint32_t index) { return get_config_value((int)index); };
-  int get_config_default_value(uint32_t index);
-  const char *get_config_string(uint32_t index);
-  const char *get_config_default_string(uint32_t index);
+  int get_config_type(uint32_t cindex);
+  int get_config_value(int cindex);
+  int get_config_value(uint32_t cindex) { return get_config_value((int)cindex); };
+  int get_config_default_value(uint32_t cindex);
+  const char *get_config_string(uint32_t cindex);
+  const char *get_config_default_string(uint32_t cindex);
   int read_config_file(const char *name = NULL);
   void write_config_file(const char *name = NULL);
-  void set_config_value(uint32_t index, int value)
+  void set_config_value(uint32_t cindex, int value)
     {
-      m_values[index] = value;
+      m_values[cindex] = value;
       m_changed = 1;
     };
-  void set_config_string(uint32_t index, char *str)
+  void set_config_string(uint32_t cindex, char *str)
     {
-      if (m_strings[index] != NULL) free(m_strings[index]);
-      m_strings[index] = str;
+      if (m_strings[cindex] != NULL) free(m_strings[cindex]);
+      m_strings[cindex] = str;
       m_changed = 1;
     };
   void move_config_strings(uint32_t dest_index, uint32_t from_index)

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
- * Reserved.  This file contains Original Code and/or Modifications of
- * Original Code as defined in and that are subject to the Apple Public
- * Source License Version 1.1 (the "License").  You may not use this file
- * except in compliance with the License.  Please obtain a copy of the
- * License at http://www.apple.com/publicsource and read it before using
- * this file.
- * 
- * The Original Code and all software distributed under the License are
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
+ * read it before using this file.
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
  * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE OR NON- INFRINGEMENT.  Please see the
- * License for the specific language governing rights and limitations
- * under the License.
- * 
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		ReflectorStream.h
@@ -65,7 +65,24 @@ class ReflectorStream;
 
 class ReflectorPacket
 {
-	private:
+	public:
+		void	SetPacketData(char *data, UInt32 len) {	Assert(kMaxReflectorPacketSize > len); if (len > 0) memcpy(this->fPacketPtr.Ptr,data,len); this->fPacketPtr.Len = len;}
+		UInt32  GetSSRC(Bool16 isRTCP) 
+		{
+			if (fPacketPtr.Ptr == NULL || fPacketPtr.Len < 8)
+				return 0;		
+						
+			UInt32* theSsrcPtr = (UInt32*)fPacketPtr.Ptr;
+			if (isRTCP)// RTCP 
+				return ntohl(theSsrcPtr[1]); 
+					
+			if (fPacketPtr.Len < 12)
+				return 0;
+			
+			return ntohl(theSsrcPtr[2]);  // RTP SSRC
+		}
+
+	//private: //temp put back later
 	
 		ReflectorPacket() : fQueueElem(this), fPacketPtr(fPacketData, 0), fNeededByOutput(true) {}
 		~ReflectorPacket() {}
@@ -95,28 +112,40 @@ class ReflectorSocket : public IdleTask, public UDPSocket
 
 		ReflectorSocket();
 		virtual ~ReflectorSocket();
-		
+		void	AddBroadcasterSession(QTSS_ClientSessionObject inSession) { OSMutexLocker locker(this->GetDemuxer()->GetMutex()); fBroadcasterClientSession = inSession; }
+		void 	RemoveBroadcasterSession(QTSS_ClientSessionObject inSession){	OSMutexLocker locker(this->GetDemuxer()->GetMutex()); if (inSession == fBroadcasterClientSession) fBroadcasterClientSession = NULL; }
 		void	AddSender(ReflectorSender* inSender);
 		void	RemoveSender(ReflectorSender* inStreamElem);
 		Bool16	HasSender() { return (this->GetDemuxer()->GetHashTable()->GetNumEntries() > 0); }
-	
+		Bool16  ProcessPacket(const SInt64& inMilliseconds,ReflectorPacket* thePacket,UInt32 theRemoteAddr,UInt16 theRemotePort);
+		ReflectorPacket* 	GetPacket();
+		virtual SInt64		Run();
+		void 	SetSSRCFilter(Bool16 state, UInt32 timeoutSecs) { fFilterSSRCs = state; fTimeoutSecs = timeoutSecs;}
 	private:
 		
-		virtual SInt64		Run();
-		ReflectorPacket* 	GetPacket();
-		void 				GetIncomingData(const SInt64& inMilliseconds);
-		
+		//virtual SInt64		Run();
+		void 	GetIncomingData(const SInt64& inMilliseconds);
+		void	FilterInvalidSSRCs(ReflectorPacket* thePacket,Bool16 isRTCP);
+
 		//Number of packets to allocate when the socket is first created
 		enum
 		{
-			kNumPreallocatedPackets = 20	//UInt32
+			kNumPreallocatedPackets = 20,	//UInt32
+			kRefreshBroadcastSessionIntervalMilliSecs = 10000,
+			kSSRCTimeOut = 30000 // milliseconds before clearing the SSRC if no new ssrcs have come in
 		};
-
+		QTSS_ClientSessionObject	fBroadcasterClientSession;
+		SInt64 						fLastBroadcasterTimeOutRefresh;	
 		// Queue of available ReflectorPackets
 		OSQueue	fFreeQueue;
 		// Queue of senders
 		OSQueue fSenderQueue;
 		SInt64	fSleepTime;
+		
+		UInt32	fValidSSRC;
+		SInt64	fLastValidSSRCTime;
+		Bool16	fFilterSSRCs;
+		UInt32  fTimeoutSecs;
 };
 
 
@@ -169,8 +198,6 @@ class ReflectorSender : public UDPDemuxerTask
 	SInt64		fLastRRTime;
 	OSQueueElem	fSocketQueueElem;
 	
-	inline SInt64		ThePacketIsToEarlyForTheBucket( ReflectorPacket* thePacket, UInt32 bucketIndex, SInt64 currentTimeInMSec );
-	
 	friend class ReflectorSocket;
 	friend class ReflectorStream;
 };
@@ -210,7 +237,8 @@ class ReflectorStream
 		
 		// Call this to initialize the reflector sockets. Uses the QTSS_RTSPRequestObject
 		// if provided to report any errors that occur 
-		QTSS_Error		BindSockets(QTSS_RTSPRequestObject inRequest);
+		// Passes the QTSS_ClientSessionObject to the socket so the socket can update the session if needed.
+		QTSS_Error BindSockets(QTSS_StandardRTSP_Params* inParams, UInt32 inReflectorSessionFlags, Bool16 filterState, UInt32 timeout);
 		
 		// This stream reflects packets from the broadcast to specific ReflectorOutputs.
 		// You attach outputs to ReflectorStreams this way. You can force the ReflectorStream
@@ -223,10 +251,13 @@ class ReflectorStream
 		// Removes the specified output from this ReflectorStream.
 		void 	RemoveOutput(ReflectorOutput* inOutput); // Removes this output from all tracks
 		
+		void  TearDownAllOutputs(); // causes a tear down and then a remove
+
 		// If the incoming data is RTSP interleaved, packets for this stream are identified
 		// by channel numbers
 		void					SetRTPChannelNum(SInt16 inChannel) { fRTPChannel = inChannel; }
 		void					SetRTCPChannelNum(SInt16 inChannel) { fRTCPChannel = inChannel; }
+		void 					PushPacket(char *packet, UInt32 packetLen, Bool16 isRTCP);
 		
 		//
 		// ACCESSORS
@@ -238,7 +269,8 @@ class ReflectorStream
 		void*					GetStreamCookie()	{ return this; }
 		SInt16					GetRTPChannel()		{ return fRTPChannel; }
 		SInt16					GetRTCPChannel()	{ return fRTCPChannel; }
-		
+		UDPSocketPair*			GetSocketPair()		{ return fSockets;}
+
 	private:
 	
 		//Sends an RTCP receiver report to the broadcast source
@@ -310,29 +342,6 @@ class ReflectorStream
 };
 
 
-
-
-// return 0 if this packet is within the time window to send
-// else return # MSecs to wait before sending this packet
-SInt64	ReflectorSender::ThePacketIsToEarlyForTheBucket( ReflectorPacket* thePacket, UInt32 bucketIndex, SInt64 currentTimeInMSec )
-{
-	// each successive bucket is delayed by fSession->fClientSpacing
-	// this smooths the bandwidth hump caused by the output of the rebroadcast of new packets.
-	
-	SInt64	whenToSend;
-	
-	whenToSend = thePacket->fTimeArrived + ( (SInt64)bucketIndex * ReflectorStream::sDelayInMsec )  - currentTimeInMSec;
-	
-	if ( whenToSend < 0 )
-	{	
-		//printf("Packet fTimeArrived: %li, bucketIndex %li, fClientSpacing %li OS::Milliseconds() %li\n", (long)thePacket->fTimeArrived, bucketIndex, (long)fSession->fClientSpacing, (long)OS::Milliseconds());
-		return 0;
-	
-	}
-
-	return whenToSend;
-
-}
 
 #endif //_REFLECTOR_SESSION_H_
 

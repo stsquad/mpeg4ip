@@ -14,10 +14,13 @@ PROJECT_TYPE = Aggregate
 
 SUBPROJECTS = WebAdminHtml
 
-LIBRARIES = src
+BUNDLES = StartupItems.bproj
+
+LIBRARIES = src NetSSLeay
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble\
-            QTSSAdminServer StartupParameters.plist
+            streamingadminserver.pem streamingadminserver_autostart.conf\
+            QTSSAdminUrl.bin
 
 MAKEFILEDIR = $(MAKEFILEPATH)/pb_makefiles
 CODE_GEN_STYLE = DYNAMIC

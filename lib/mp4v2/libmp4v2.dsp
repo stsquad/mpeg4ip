@@ -241,6 +241,10 @@ SOURCE=.\atom_smhd.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\atom_snro.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_stbl.cpp
 # End Source File
 # Begin Source File
@@ -278,6 +282,10 @@ SOURCE=.\atom_stts.cpp
 # Begin Source File
 
 SOURCE=.\atom_tfhd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_tims.cpp
 # End Source File
 # Begin Source File
 
@@ -325,6 +333,10 @@ SOURCE=.\atom_trun.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\atom_tsro.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_udta.cpp
 # End Source File
 # Begin Source File
@@ -354,6 +366,10 @@ SOURCE=.\mp4.cpp
 # Begin Source File
 
 SOURCE=.\mp4atom.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4container.cpp
 # End Source File
 # Begin Source File
 
@@ -391,6 +407,10 @@ SOURCE=.\odcommands.cpp
 
 SOURCE=.\qosqualifiers.cpp
 # End Source File
+# Begin Source File
+
+SOURCE=.\rtphint.cpp
+# End Source File
 # End Group
 # Begin Group "include"
 
@@ -418,6 +438,10 @@ SOURCE=.\mp4atom.h
 # Begin Source File
 
 SOURCE=.\mp4common.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4container.h
 # End Source File
 # Begin Source File
 
@@ -450,6 +474,10 @@ SOURCE=.\odcommands.h
 # Begin Source File
 
 SOURCE=.\qosqualifiers.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtphint.h
 # End Source File
 # End Group
 # End Target

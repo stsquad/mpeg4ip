@@ -42,7 +42,7 @@ DEBUG_LIBS = $(LIBS)
 PROF_LIBS = $(LIBS)
 
 
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Foundation
 PROJECT_HEADERS = QTRTPFile.h QTAtom.h QTAtom_dref.h QTAtom_elst.h\
                   QTAtom_hinf.h QTAtom_mdhd.h QTAtom_mvhd.h\

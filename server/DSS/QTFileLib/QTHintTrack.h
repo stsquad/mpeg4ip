@@ -1,38 +1,26 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
- * 
  *
- * This file contains modifications of the Original Code as defined in
- * and that are subject to the Apple Public Source License Version 1.2
- * (the 'License'). You may not use this file expect in accordance with
- * the License. Please obtain a copy of the License at 
- * http://www.apple.com/publicsource and read it before using the file.
- *
- * Modifications are denoted by the comment "BEGIN MODIFICATION" and
- * "END MODIFICATION".
- * 
  */
-// $Id: QTHintTrack.h,v 1.4 2001/05/09 21:04:37 cahighlander Exp $
 //
 // QTHintTrack:
 //   The central point of control for a hint track in a QTFile.
@@ -66,9 +54,7 @@ class QTHintTrackRTPHeaderData {
 		UInt16		hintFlags;
 		UInt16		dataEntryCount;
 		UInt32		tlvSize;
-		// BEGIN MODIFICATION dmackie@cisco.com 12/19/00 - added RTP timestamp offset
-		SInt32		rtpTimestampOffset;
-		// END MODIFICATION
+		SInt32		tlvTimestampOffset; //'rtpo' TLV which is the timestamp offset for this packet
 };
 
 //
@@ -84,7 +70,7 @@ public:
 	//
 	// If you are moving around randomly (seeking), you should call this to reset
 	// caches
-	void				Reset(Float64 inSeekTime);
+	void				Reset();
 
 	//
 	// If you want this HTCB to build RTP Meta Info packets,
@@ -101,8 +87,8 @@ public:
 	
 	//
 	// Sample Table control blocks
-	QTAtom_stsc_SampleTableControlBlock * fstscSTCB;
-	QTAtom_stts_SampleTableControlBlock * fsttsSTCB;
+	QTAtom_stsc_SampleTableControlBlock  fstscSTCB;
+	QTAtom_stts_SampleTableControlBlock  fsttsSTCB;
 	
 	//
 	// Sample cache
@@ -164,7 +150,7 @@ public:
 	
 	//
 	// Sample functions
-	virtual	Bool16		GetSamplePtr(UInt32 SampleNumber, char ** Buffer, UInt32 * Length,
+	Bool16		GetSamplePtr(UInt32 SampleNumber, char ** Buffer, UInt32 * Length,
 									 QTHintTrack_HintTrackControlBlock * HTCB);
 
 	//
@@ -175,7 +161,7 @@ public:
 	
 	inline	UInt16		GetRTPSequenceNumberRandomOffset(void) { return fSequenceNumberRandomOffset; }
 	
-	virtual	ErrorCode	GetNumPackets(UInt32 SampleNumber, UInt16 * NumPackets,
+	ErrorCode	GetNumPackets(UInt32 SampleNumber, UInt16 * NumPackets,
 									  QTHintTrack_HintTrackControlBlock * HTCB = NULL);
 
 	//
@@ -189,7 +175,7 @@ public:
 	//		is a compressed field ID.
 	//
 	// Supported fields: tt, md, ft, pp, pn, sq
-	virtual	ErrorCode	GetPacket(UInt32 SampleNumber, UInt16 PacketNumber,
+	ErrorCode	GetPacket(UInt32 SampleNumber, UInt16 PacketNumber,
 								  char * Buffer, UInt32 * Length,
 								  Float64 * TransmitTime,
 								  Bool16 dropBFrames,
@@ -230,7 +216,7 @@ protected:
 											void* inFieldData, UInt32 inFieldLen, char** ioBuffer);
 
 	inline QTTrack::ErrorCode	GetSamplePacketPtr( char ** samplePacketPtr, UInt32 sampleNumber, UInt16 packetNumber, QTHintTrackRTPHeaderData	&hdrData,  QTHintTrack_HintTrackControlBlock & htcb);
-	inline void			GetSamplePacketHeaderVars( char *samplePacketPtr, QTHintTrackRTPHeaderData &hdrData );
+	inline void			GetSamplePacketHeaderVars( char *samplePacketPtr,char *maxBuffPtr, QTHintTrackRTPHeaderData &hdrData );
 };
 
 #endif // QTHintTrack_H

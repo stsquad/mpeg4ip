@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		ev.cpp
@@ -99,6 +99,7 @@ void select_startevents()
 	
 	//Add the read end of the pipe to the read mask
 	FD_SET(sPipes[0], &sReadSet);
+	sMaxFDPos = sPipes[0];
 }
 
 int select_removeevent(int which)
@@ -116,7 +117,7 @@ int select_removeevent(int which)
 		FD_CLR(which, &sReturnedReadSet);
 		FD_CLR(which, &sReturnedWriteSet);
 	
-		sCookieArray[which] = 0; // Clear out the cookie
+		sCookieArray[which] = NULL; // Clear out the cookie
 		
 		if (which == sMaxFDPos)
 		{
@@ -161,50 +162,55 @@ int select_watchevent(struct eventreq *req, int which)
 
 int select_modwatch(struct eventreq *req, int which)
 {
-	//Add or remove this fd from the specified sets
-	if (which & EV_RE)
-	{
-#if EV_DEBUGGING
-		printf("modwatch: Enabling %d in readset\n", req->er_handle);
-#endif
-		FD_SET(req->er_handle, &sReadSet);
-	}
-	else
-	{
-#if EV_DEBUGGING
-		printf("modwatch: Disbling %d in readset\n", req->er_handle);
-#endif
-		FD_CLR(req->er_handle, &sReadSet);
-	}
-	if (which & EV_WR)
-	{
-#if EV_DEBUGGING
-		printf("modwatch: Enabling %d in writeset\n", req->er_handle);
-#endif
-		FD_SET(req->er_handle, &sWriteSet);
-	}
-	else
-	{
-#if EV_DEBUGGING
-		printf("modwatch: Disabling %d in writeset\n", req->er_handle);
-#endif
-		FD_CLR(req->er_handle, &sWriteSet);
-	}
-
 	{
 		//Manipulating sMaxFDPos is not pre-emptive safe, so we have to wrap it in a mutex
 		//I believe this is the only variable that is not preemptive safe....
 		OSMutexLocker locker(&sMaxFDPosMutex);
 
+		//Add or remove this fd from the specified sets
+		if (which & EV_RE)
+		{
+	#if EV_DEBUGGING
+			printf("modwatch: Enabling %d in readset\n", req->er_handle);
+	#endif
+			FD_SET(req->er_handle, &sReadSet);
+		}
+		else
+		{
+	#if EV_DEBUGGING
+			printf("modwatch: Disbling %d in readset\n", req->er_handle);
+	#endif
+			FD_CLR(req->er_handle, &sReadSet);
+		}
+		if (which & EV_WR)
+		{
+	#if EV_DEBUGGING
+			printf("modwatch: Enabling %d in writeset\n", req->er_handle);
+	#endif
+			FD_SET(req->er_handle, &sWriteSet);
+		}
+		else
+		{
+	#if EV_DEBUGGING
+			printf("modwatch: Disabling %d in writeset\n", req->er_handle);
+	#endif
+			FD_CLR(req->er_handle, &sWriteSet);
+		}
+
 		if (req->er_handle > sMaxFDPos)
 			sMaxFDPos = req->er_handle;
-	}
 
 #if EV_DEBUGGING
-	printf("modwatch: MaxFDPos=%d\n", sMaxFDPos);
+		printf("modwatch: MaxFDPos=%d\n", sMaxFDPos);
 #endif
-	Assert(req->er_handle < (int)(sizeof(fd_set) * 8));
-	sCookieArray[req->er_handle] = req->er_data;
+		//
+		// Also, modifying the cookie is not preemptive safe. This must be
+		// done atomically wrt setting the fd in the set. Otherwise, it is
+		// possible to have a NULL cookie on a fd.
+		Assert(req->er_handle < (int)(sizeof(fd_set) * 8));
+		Assert(req->er_data != NULL);
+		sCookieArray[req->er_handle] = req->er_data;
+	}
 	
 	//write to the pipe so that select wakes up and registers the new mask
 	int theErr = ::write(sPipes[1], "p", 1);
@@ -239,7 +245,7 @@ int select_waitevent(struct eventreq *req, void* /*onlyForMacOSX*/)
 	{
 		if (sInReadSet)
 		{
-		OSMutexLocker locker(&sMaxFDPosMutex);
+			OSMutexLocker locker(&sMaxFDPosMutex);
 #if EV_DEBUGGING
 			printf("waitevent: Looping through readset starting at %d\n", sCurrentFDPos);
 #endif
@@ -265,7 +271,7 @@ int select_waitevent(struct eventreq *req, void* /*onlyForMacOSX*/)
 		}
 		if (!sInReadSet)
 		{
-		OSMutexLocker locker(&sMaxFDPosMutex);
+			OSMutexLocker locker(&sMaxFDPosMutex);
 #if EV_DEBUGGING
 			printf("waitevent: Looping through writeset starting at %d\n", sCurrentFDPos);
 #endif
@@ -300,10 +306,14 @@ int select_waitevent(struct eventreq *req, void* /*onlyForMacOSX*/)
 	{
 		OSMutexLocker locker(&sMaxFDPosMutex);
 #if DEBUG
-		for (int x = 0; x < sMaxFDPos; x++)
-			Assert(!FD_ISSET(x, &sReturnedReadSet));
-		for (int y = 0; y < sMaxFDPos; y++)
-			Assert(!FD_ISSET(y, &sReturnedWriteSet));
+		//
+		// In a very bizarre circumstance (sMaxFDPos goes down & then back up again, these
+		// asserts could hit.
+		//
+		//for (int x = 0; x < sMaxFDPos; x++)
+		//	Assert(!FD_ISSET(x, &sReturnedReadSet));
+		//for (int y = 0; y < sMaxFDPos; y++)
+		//	Assert(!FD_ISSET(y, &sReturnedWriteSet));
 #endif	
 #if EV_DEBUGGING
 		printf("waitevent: Finished with all fds in set. Stopped traverse of writeset at %d maxFD = %d\n", sCurrentFDPos,sMaxFDPos);

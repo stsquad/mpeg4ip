@@ -17,13 +17,13 @@ HFILES = getopt.h proxy.h proxy_plat.h shared_udp.h util.h
 CFILES = getopt.c proxy.c proxy_unix.c shared_udp.c util.c
 
 OTHERSRCS = Makefile.preamble Makefile Makefile.postamble m.template\
-            h.template
+            h.template streamingproxy.conf StreamingProxy.html
 
 
 MAKEFILEDIR = $(MAKEFILEPATH)/pb_makefiles
 CODE_GEN_STYLE = DYNAMIC
 MAKEFILE = tool.make
-NEXTSTEP_INSTALLDIR = /usr/sbin
+NEXTSTEP_INSTALLDIR = /localgibblies/sbin
 WINDOWS_INSTALLDIR = /Library/Executables
 PDO_UNIX_INSTALLDIR = /bin
 LIBS = 
@@ -31,7 +31,7 @@ DEBUG_LIBS = $(LIBS)
 PROF_LIBS = $(LIBS)
 
 
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -include ../revision.h  -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../PlatformHeader.h -include ../revision.h  -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Foundation
 
 

@@ -44,15 +44,40 @@
  *
 **/
 
-static int getDCsizeLum();
-static int getDCsizeChr();
-static int getDCdiff();
-static void setDCscaler(int block_num);
+static int getDCsizeLum(void);
+static int getDCsizeChr(void);
+static int getDCdiff(int dct_dc_size);
+
 #ifdef NOT_USED
 static int getACdir();
 #endif
 static __inline void clearblock(short * psblock);
 static __inline void iquant(short * psblock, int intraFlag);
+
+static void setDCscaler(int block_num) 
+{
+	int type = (block_num < 4) ? 0 : 1;
+	int quant = mp4_hdr.quantizer;
+
+	if (type == 0) {
+		if (quant > 0 && quant < 5) 
+			mp4_hdr.dc_scaler = 8;
+		else if (quant > 4 && quant < 9) 
+			mp4_hdr.dc_scaler = (2 * quant);
+		else if (quant > 8 && quant < 25) 
+			mp4_hdr.dc_scaler = (quant + 8);
+		else 
+			mp4_hdr.dc_scaler = (2 * quant - 16);
+	}
+  else {
+		if (quant > 0 && quant < 5) 
+			mp4_hdr.dc_scaler = 8;
+		else if (quant > 4 && quant < 25) 
+			mp4_hdr.dc_scaler = ((quant + 13) / 2);
+		else 
+			mp4_hdr.dc_scaler = (quant - 6);
+	}
+}
 
 /***/
 
@@ -333,7 +358,7 @@ int blockInter(int block_num, int coded)
 
 /***/
 
-static int getDCsizeLum()
+static int getDCsizeLum(void)
 {
 	int code;
 
@@ -398,7 +423,7 @@ static int getDCsizeLum()
 	return 0;
 }
 
-static int getDCsizeChr()
+static int getDCsizeChr(void)
 {
 	// [Ag][note] bad code
 
@@ -463,30 +488,6 @@ static int getDCdiff(int dct_dc_size)
 
 /***/
 
-static void setDCscaler(int block_num) 
-{
-	int type = (block_num < 4) ? 0 : 1;
-	int quant = mp4_hdr.quantizer;
-
-	if (type == 0) {
-		if (quant > 0 && quant < 5) 
-			mp4_hdr.dc_scaler = 8;
-		else if (quant > 4 && quant < 9) 
-			mp4_hdr.dc_scaler = (2 * quant);
-		else if (quant > 8 && quant < 25) 
-			mp4_hdr.dc_scaler = (quant + 8);
-		else 
-			mp4_hdr.dc_scaler = (2 * quant - 16);
-	}
-  else {
-		if (quant > 0 && quant < 5) 
-			mp4_hdr.dc_scaler = 8;
-		else if (quant > 4 && quant < 25) 
-			mp4_hdr.dc_scaler = ((quant + 13) / 2);
-		else 
-			mp4_hdr.dc_scaler = (quant - 6);
-	}
-}
 
 /***/
 

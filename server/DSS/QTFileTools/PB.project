@@ -12,7 +12,8 @@
             QTTrackInfo.tproj, 
             QTFileInfo.tproj, 
             QTFileTest.tproj, 
-            QTBroadcaster.tproj
+            QTBroadcaster.tproj, 
+            RTPFileGen.tproj
         ); 
     }; 
     LANGUAGE = English; 

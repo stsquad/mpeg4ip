@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSErrorLogModule.cpp
@@ -48,11 +48,15 @@ static QTSS_Error 	QTSSErrorLogModuleDispatch(QTSS_Role inRole, QTSS_RoleParamPt
 // A service routine allowing other modules to roll the log
 static QTSS_Error 	RollErrorLog(QTSS_ServiceFunctionArgsPtr inArgs);
 
-static QTSS_Error 		Register(QTSS_Register_Params* inParams);
-static QTSS_Error		Shutdown();
+static QTSS_Error 	Register(QTSS_Register_Params* inParams);
+static QTSS_Error	Shutdown();
 		
-static QTSS_Error		LogError(QTSS_RoleParamPtr inParamBlock);
+static QTSS_Error	LogError(QTSS_RoleParamPtr inParamBlock);
 static void			CheckErrorLogState();
+
+static QTSS_Error	StateChange(QTSS_StateChange_Params* stateChangeParams);
+static void			WriteStartupMessage();
+static void			WriteShutdownMessage();
 
 // QTSSERRORLOG CLASS DEFINITION
 
@@ -61,12 +65,7 @@ class QTSSErrorLog : public QTSSRollingLog
 	public:
 	
 		QTSSErrorLog() : QTSSRollingLog() {}
-		virtual ~QTSSErrorLog()
-			{
-				//force the error log to flush
-				QTSS_ErrorLog_Params errorParam = {qtssWarningVerbosity, ""};
-				(void)LogError((QTSS_RoleParamPtr)&errorParam);
-			}
+		virtual ~QTSSErrorLog() {}
 	
 		virtual char* GetLogName() 	{ return QTSServerInterface::GetServer()->GetPrefs()->GetErrorLogName();}
 		
@@ -81,9 +80,10 @@ class QTSSErrorLog : public QTSSRollingLog
 // STATIC DATA
 
 static OSMutex*			sLogMutex = NULL;//Log module isn't reentrant
-static QTSSErrorLog*		sErrorLog = NULL;
+static QTSSErrorLog*	sErrorLog = NULL;
 static char				sLastErrorString[1024] = "";
-static int					sDupErrorStringCount = 0;
+static int				sDupErrorStringCount = 0;
+static Bool16			sStartedUp = false;
 
 
 // FUNCTION IMPLEMENTATIONS
@@ -100,6 +100,8 @@ QTSS_Error QTSSErrorLogModuleDispatch(QTSS_Role inRole, QTSS_RoleParamPtr inPara
 	{
 		case QTSS_Register_Role:
 			return Register(&inParamBlock->regParams);
+		case QTSS_StateChange_Role:
+			return StateChange(&inParamBlock->stateChangeParams);
 		case QTSS_ErrorLog_Role:
 			return LogError(inParamBlock);
 		case QTSS_Shutdown_Role:
@@ -119,6 +121,7 @@ QTSS_Error Register(QTSS_Register_Params* inParams)
 	
 	(void)QTSS_AddRole(QTSS_ErrorLog_Role);
 	(void)QTSS_AddRole(QTSS_Shutdown_Role);
+	(void)QTSS_AddRole(QTSS_StateChange_Role);
 	
 	(void)QTSS_AddService("RollErrorLog", &RollErrorLog);
 	
@@ -127,25 +130,7 @@ QTSS_Error Register(QTSS_Register_Params* inParams)
 	// errors ASAP.
 	
 	CheckErrorLogState();
-		
-	//format a date for the startup time
-	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
-	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer);
-	
-	char tempBuffer[1024];
-	if (result)
-		::sprintf(tempBuffer, "# Streaming Startup STARTUP %s\n", theDateBuffer);
-		
-	// log startup message to error log as well.
-	if ((result) && (sErrorLog != NULL))
-		sErrorLog->WriteToLog(tempBuffer, !kAllowLogToRoll);
-	
-	//write the expire date to the log
-	if ( QTSSExpirationDate::WillSoftwareExpire() && sErrorLog != NULL )
-	{
-		QTSSExpirationDate::sPrintExpirationDate(tempBuffer);
-		sErrorLog->WriteToLog(tempBuffer, !kAllowLogToRoll);
-	}
+	WriteStartupMessage();
 	
 	// Tell the server our name!
 	static char* sModuleName = "QTSSErrorLogModule";
@@ -156,18 +141,17 @@ QTSS_Error Register(QTSS_Register_Params* inParams)
 
 QTSS_Error Shutdown()
 {
-	//log shutdown message
-	//format a date for the shutdown time
-	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
-	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer);
-	
-	char tempBuffer[1024];
-	if (result)
-		::sprintf(tempBuffer, "# Streaming Shutdown SHUTDOWN %s\n", theDateBuffer);
+	WriteShutdownMessage();
+	return QTSS_NoErr;
+}
 
-	if ( result && sErrorLog != NULL )
-		sErrorLog->WriteToLog(tempBuffer, !kAllowLogToRoll);
-		
+QTSS_Error StateChange(QTSS_StateChange_Params* stateChangeParams)
+{
+	if (stateChangeParams->inNewState == qtssIdleState)
+		WriteShutdownMessage();
+	else if (stateChangeParams->inNewState == qtssRunningState)
+		WriteStartupMessage();
+	
 	return QTSS_NoErr;
 }
 
@@ -209,7 +193,7 @@ QTSS_Error LogError(QTSS_RoleParamPtr inParamBlock)
 					
 				//timestamp the error
 				char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
-				Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer);
+				Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer, false);
 				//for now, just ignore the error.
 				if (!result)
 					theDateBuffer[0] = '\0';
@@ -239,7 +223,7 @@ QTSS_Error LogError(QTSS_RoleParamPtr inParamBlock)
 			
 		//timestamp the error
 		char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
-		Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer);
+		Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer, false);
 		//for now, just ignore the error.
 		if (!result)
 			theDateBuffer[0] = '\0';
@@ -270,7 +254,7 @@ void CheckErrorLogState()
 
 	if ((NULL != sErrorLog) && (!thePrefs->IsErrorLogEnabled()))
 	{
-		delete sErrorLog;
+		sErrorLog->Delete(); //sErrorLog is a task object, so don't delete it directly
 		sErrorLog = NULL;
 	}
 }
@@ -285,5 +269,50 @@ QTSS_Error RollErrorLog(QTSS_ServiceFunctionArgsPtr /*inArgs*/)
 	return QTSS_NoErr;
 }
 
+void	WriteStartupMessage()
+{
+	if (sStartedUp)
+		return;
+		
+	sStartedUp = true;
+	
+	//format a date for the startup time
+	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
+	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer, false);
+	
+	char tempBuffer[1024];
+	if (result)
+		::sprintf(tempBuffer, "# Streaming STARTUP %s\n", theDateBuffer);
+		
+	// log startup message to error log as well.
+	if ((result) && (sErrorLog != NULL))
+		sErrorLog->WriteToLog(tempBuffer, kAllowLogToRoll);
+	
+	//write the expire date to the log
+	if ( QTSSExpirationDate::WillSoftwareExpire() && sErrorLog != NULL )
+	{
+		QTSSExpirationDate::sPrintExpirationDate(tempBuffer);
+		sErrorLog->WriteToLog(tempBuffer, kAllowLogToRoll);
+	}
+}
 
+void	WriteShutdownMessage()
+{
+	if (!sStartedUp)
+		return;
+		
+	sStartedUp = false;
+	
+	//log shutdown message
+	//format a date for the shutdown time
+	char theDateBuffer[QTSSRollingLog::kMaxDateBufferSizeInBytes];
+	Bool16 result = QTSSRollingLog::FormatDate(theDateBuffer, false);
+	
+	char tempBuffer[1024];
+	if (result)
+		::sprintf(tempBuffer, "# Streaming SHUTDOWN %s\n", theDateBuffer);
+
+	if ( result && sErrorLog != NULL )
+		sErrorLog->WriteToLog(tempBuffer, kAllowLogToRoll);
+}
 

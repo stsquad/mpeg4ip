@@ -58,37 +58,37 @@ if test $ac_cv_prog_gcc = yes ; then
 	fi
 	
 if test $cross_compiling = yes ; then
-	AC_MSG_WARN([******************************************************************])
-	AC_MSG_WARN([*** We are cross-compiling, so have to assume sizeof (short) == 2 ])
-	AC_MSG_WARN([*** and sizeof (int) == 4. If this is not the case there is no    ])
-	AC_MSG_WARN([*** chance of this working. Please contact the mantainer.         ])
-	AC_MSG_WARN([*** If the sizeof issues are not a problem you may need to        ])
-	AC_MSG_WARN([*** undefine CAN_READ_WRITE_x86_IEEE in src/config.h.             ])
-	AC_MSG_WARN([******************************************************************])
+	AC_MSG_WARN([[******************************************************************]])
+	AC_MSG_WARN([[*** We are cross-compiling, so have to assume sizeof (short) == 2 ]])
+	AC_MSG_WARN([[*** and sizeof (int) == 4. If this is not the case there is no    ]])
+	AC_MSG_WARN([[*** chance of this working. Please contact the mantainer.         ]])
+	AC_MSG_WARN([[*** If the sizeof issues are not a problem you may need to        ]])
+	AC_MSG_WARN([[*** undefine CAN_READ_WRITE_x86_IEEE in src/config.h.             ]])
+	AC_MSG_WARN([[******************************************************************]])
 	fi
 	
 if test $ac_cv_sizeof_int != 4 ; then
-	AC_MSG_WARN([******************************************************************])
-	AC_MSG_WARN([*** sizeof (int) != 4                                             ])
-	AC_MSG_WARN([******************************************************************])
+	AC_MSG_WARN([[******************************************************************]])
+	AC_MSG_WARN([[*** sizeof (int) != 4                                             ]])
+	AC_MSG_WARN([[******************************************************************]])
 	fi
 
 if test $ac_cv_sizeof_short != 2 ; then
-	AC_MSG_WARN([******************************************************************])
-	AC_MSG_WARN([*** sizeof (short) != 2.                                          ])
-	AC_MSG_WARN([******************************************************************])
+	AC_MSG_WARN([[******************************************************************]])
+	AC_MSG_WARN([[*** sizeof (short) != 2.                                          ]])
+	AC_MSG_WARN([[******************************************************************]])
 	fi
 	
 if test $ac_cv_sizeof_float != 4 ; then
-	AC_MSG_WARN([******************************************************************])
-	AC_MSG_WARN([*** sizeof (float) != 4.                                          ])
-	AC_MSG_WARN([******************************************************************])
+	AC_MSG_WARN([[******************************************************************]])
+	AC_MSG_WARN([[*** sizeof (float) != 4.                                          ]])
+	AC_MSG_WARN([[******************************************************************]])
 	fi
 	
 if test $ac_cv_sizeof_double != 8 ; then
-	AC_MSG_WARN([******************************************************************])
-	AC_MSG_WARN([*** sizeof (double) != 8.                                         ])
-	AC_MSG_WARN([******************************************************************])
+	AC_MSG_WARN([[******************************************************************]])
+	AC_MSG_WARN([[*** sizeof (double) != 8.                                         ]])
+	AC_MSG_WARN([[******************************************************************]])
 	fi
 	
 case "$target_cpu" in
@@ -103,10 +103,10 @@ case "$target_cpu" in
 		;;
 
 	*)
-		AC_MSG_WARN([*****************************************************************])
-		AC_MSG_WARN([*** Not able to determine endian-ness of processor.              ])
-		AC_MSG_WARN([*** You will need to edit src/config.h before compiling.         ])
-		AC_MSG_WARN([*****************************************************************])
+		AC_MSG_WARN([[*****************************************************************]])
+		AC_MSG_WARN([[*** Not able to determine endian-ness of processor.              ]])
+		AC_MSG_WARN([[*** You will need to edit src/config.h before compiling.         ]])
+		AC_MSG_WARN([[*****************************************************************]])
 		;;
 esac
 
@@ -120,10 +120,10 @@ case "$target_cpu" in
 		;;
 
 	*)
-		AC_MSG_WARN([*****************************************************************])
-		AC_MSG_WARN([*** Not able to determine endian-ness of processor.              ])
-		AC_MSG_WARN([*** You will need to edit src/config.h before compiling.         ])
-		AC_MSG_WARN([*****************************************************************])
+		AC_MSG_WARN([[*****************************************************************]])
+		AC_MSG_WARN([[*** Not able to determine endian-ness of processor.              ]])
+		AC_MSG_WARN([[*** You will need to edit src/config.h before compiling.         ]])
+		AC_MSG_WARN([[*****************************************************************]])
 		;;
 esac
 

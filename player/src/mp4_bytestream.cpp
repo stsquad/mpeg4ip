@@ -23,18 +23,17 @@
  */
 
 #include "systems.h"
-#include "player_session.h"
-#include "player_media.h"
 #include "mp4_bytestream.h"
-
+#include "player_util.h"
 //#define DEBUG_MP4_FRAME 1
 
 /**************************************************************************
  * Quicktime stream base class functions
  **************************************************************************/
 CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
-					MP4TrackId track,
-					const char *type)
+				MP4TrackId track,
+				const char *type,
+				int has_video)
   : COurInByteStream()
 {
 #ifdef OUTPUT_TO_FILE
@@ -55,6 +54,7 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
   m_bookmark_buffer = (u_int8_t *)malloc(m_max_frame_size * sizeof(char));
   m_buffer_on = m_buffer;
   m_type = type;
+  m_has_video = has_video;
   m_frame_in_buffer = 0xffffffff;
   m_frame_in_bookmark = 0xffffffff;
   MP4Duration trackDuration;
@@ -216,6 +216,14 @@ uint64_t CMp4ByteStream::start_next_frame (void)
   return (m_frame_on_ts);
 }
 
+int CMp4ByteStream::skip_next_frame (uint64_t *pts, int *pSync)
+{
+  uint64_t ts;
+  ts = start_next_frame();
+  *pts = ts;
+  *pSync = m_frame_on_has_sync;
+  return (1);
+}
 /*
  * read_frame for video - this will try to read the next frame - it
  * tries to be smart about reading it 1 time if we've already read it
@@ -232,6 +240,7 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 #endif
     m_byte_on = 0;
     m_frame_on_ts = m_frame_in_buffer_ts;
+    m_frame_on_has_sync = m_frame_in_buffer_has_sync;
     return;
   }
   if (m_bookmark_read_frame != 0 && 
@@ -250,6 +259,7 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
       m_frame_in_buffer = m_frame_in_bookmark;
       m_frame_in_buffer_ts = m_frame_in_bookmark_ts;
       m_frame_on_ts = m_frame_in_buffer_ts;
+      m_frame_on_has_sync = m_frame_in_buffer_has_sync;
       m_frame_in_bookmark = 0xfffffff;
     } else {
       // Bookmarking, and had already read it.
@@ -277,7 +287,7 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
   }
   MP4Timestamp sampleTime;
   MP4Duration sampleDuration, sampleRenderingOffset;
-  bool isSyncSample;
+  bool isSyncSample = FALSE;
 
   m_this_frame_size = m_max_frame_size;
   MP4ReadSample(m_parent->get_file(),
@@ -305,14 +315,18 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 				    m_track,
 				    sampleTime,
 				    MP4_MSECS_TIME_SCALE);
+  //if (isSyncSample == TRUE && m_has_video != 0 ) player_debug_message("%s has sync sample %llu", m_type, ts);
 #ifdef DEBUG_MP4_FRAME
   player_debug_message("Converts to time %llu", ts);
 #endif
   if (m_bookmark == 0) {
     m_frame_in_buffer_ts = ts;
+    m_frame_on_ts = ts;
+    m_frame_in_buffer_has_sync = m_frame_on_has_sync = isSyncSample;
   } else {
     m_bookmark_read_frame_size = m_this_frame_size;
     m_frame_in_bookmark_ts = ts;
+    m_frame_in_bookmark_has_sync = isSyncSample;
   }
 		
   m_parent->unlock_file_mutex();

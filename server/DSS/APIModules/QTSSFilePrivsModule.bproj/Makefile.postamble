@@ -100,4 +100,4 @@
 #
 
 StripExtension:
-	mv $(DSTROOT)/usr/sbin/StreamingServerModules.disabled/QTSSFilePrivsModule.bundle $(DSTROOT)/usr/sbin/StreamingServerModules.disabled/QTSSFilePrivsModule
+	mv $(DSTROOT)/usr/local/sbin/StreamingServerModules.disabled/QTSSFilePrivsModule.bundle $(DSTROOT)/usr/local/sbin/StreamingServerModules.disabled/QTSSFilePrivsModule

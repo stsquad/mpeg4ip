@@ -7,8 +7,8 @@
  *          Orion Hodson
  *          Jerry Isdale
  * 
- * $Revision: 1.1 $
- * $Date: 2001/08/01 00:34:01 $
+ * $Revision: 1.2 $
+ * $Date: 2001/10/11 20:39:03 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -68,6 +68,15 @@ void _dprintf(const char *format, ...)
 #endif /* DEBUG */
 }
 
+/**
+ * debug_dump:
+ * @lp: pointer to memory region.
+ * @len: length of memory region in bytes.
+ * 
+ * Writes a dump of a memory region to stdout.  The dump contains a
+ * hexadecimal and an ascii representation of the memory region.
+ * 
+ **/
 void debug_dump(void*lp, long len)
 {
    char * p;
@@ -137,6 +146,19 @@ void debug_dump(void*lp, long len)
    }
 }
 
+/**
+ * debug_set_core_dir:
+ * @argv0: the application path (usually argv[0] in main()).
+ * 
+ * Creates a directory with the application name and makes it the
+ * current working directory.  
+ * 
+ * This function exists because some unix variants use the name 'core'
+ * for core dump files.  When an application uses multiple processes,
+ * this can be problematic if the failure of one process leads to the
+ * failure of another because the dependent process 'core' file will
+ * overwrite the core of the failing process.
+ **/
 void debug_set_core_dir(const char *argv0)
 {
 #if defined(DEBUG) && !defined(WIN32)

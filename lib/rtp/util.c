@@ -3,8 +3,8 @@
  * PROGRAM: RAT
  * AUTHOR: Isidor Kouvelas + Colin Perkins + Mark Handley + Orion Hodson
  * 
- * $Revision: 1.1 $
- * $Date: 2001/08/01 00:34:01 $
+ * $Revision: 1.2 $
+ * $Date: 2001/10/11 20:39:03 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -301,19 +301,36 @@ overlapping_words(const char *s1, const char *s2, int max_words)
         return nover;
 }
 
-const char*
-get_appname(const char *argv0) {
-        const char *l;   /* Pointer to last separator */
-        char        sep; /* Separator character */
-        
-#ifdef WIN32
-        sep = '\\';
-#else
-        sep = '/';
+int strfind(const char *haystack, const char *needle_start, const char *needle_end)
+{
+	/* Returns TRUE if the string between needle_start and needle_end */
+	/* is found in haystack. The haystack MUST be zero terminated.    */
+	const char	*n, *h;
+	const char	*h_end = haystack + strlen(haystack);
+
+#ifdef DEBUG
+	/* Paranoia check that memory between needle_start and needle_end */
+	/* is a valid string, and doesn't contain a zero byte.            */
+	for (n = needle_start; n != needle_end; n++) {
+		assert(*n != '\0');
+	}
 #endif
-        l = strrchr(argv0, sep);
-        if (l != NULL) {
-                return (l + 1);
-        }
-        return argv0;
+
+	n = needle_start;
+	h = haystack;
+
+	do {
+		if (*n == *h) {
+			n++;
+			h++;
+		} else {
+			h = h - (n - needle_start) + 1;
+			n = needle_start;
+		}
+	} while ((h < h_end) && (n <= needle_end));
+
+	if (n == (needle_end + 1)) {
+		return TRUE;
+	}
+	return FALSE;
 }

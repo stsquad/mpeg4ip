@@ -30,3 +30,11 @@ MP4Mp4sAtom::MP4Mp4sAtom()
 
 	ExpectChildAtom("esds", Required, OnlyOne);
 }
+
+void MP4Mp4sAtom::Generate()
+{
+	MP4Atom::Generate();
+
+	((MP4Integer16Property*)m_pProperties[1])->SetValue(1);
+}
+

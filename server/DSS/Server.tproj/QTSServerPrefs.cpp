@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSPrefs.cpp
@@ -64,13 +64,13 @@ QTSServerPrefs::PrefInfo QTSServerPrefs::sPrefInfo[] =
 	{ kDontAllowMultipleValues,	"/usr/local/movies",NULL			},	//movie_folder
 #endif
 	{ kDontAllowMultipleValues,	"0",		NULL					},	//bind_ip_addr
-	{ kDontAllowMultipleValues,	"true",		NULL					},	//break_on_assert
+	{ kDontAllowMultipleValues,	"false",	NULL					},	//break_on_assert
 	{ kDontAllowMultipleValues,	"true",		NULL					},	//auto_restart
 	{ kDontAllowMultipleValues,	"1",		NULL					},	//total_bytes_update
 	{ kDontAllowMultipleValues,	"60",		NULL					},	//average_bandwidth_update
 	{ kDontAllowMultipleValues,	"600",		NULL					},	//safe_play_duration
 #ifdef __MacOSX__
-	{ kDontAllowMultipleValues,	"/usr/sbin/StreamingServerModules",	NULL	},	//module_folder
+	{ kDontAllowMultipleValues,	"/usr/local/sbin/StreamingServerModules",	NULL	},	//module_folder
 #elif __Win32__
 	{ kDontAllowMultipleValues,	"c:\\Program Files\\Darwin Streaming Server\\QTSSModules",	NULL	},	//module_folder
 #else
@@ -90,31 +90,40 @@ QTSServerPrefs::PrefInfo QTSServerPrefs::sPrefInfo[] =
 	{ kDontAllowMultipleValues,	"true",		NULL					},	//screen_logging
 	{ kDontAllowMultipleValues,	"true",		NULL					},	//error_logging
 	{ kDontAllowMultipleValues,	"50",		NULL					},	//tcp_min_thin_delay_tolerance
-	{ kDontAllowMultipleValues,	"1000",		NULL					},	//tcp_max_thin_delay_tolerance
-	{ kDontAllowMultipleValues,	"2500",		NULL					},	//tcp_max_video_delay_tolerance
-	{ kDontAllowMultipleValues,	"4000",		NULL					},	//tcp_max_audio_delay_tolerance
+	{ kDontAllowMultipleValues,	"300",		NULL					},	//tcp_max_thin_delay_tolerance
+	{ kDontAllowMultipleValues,	"500",		NULL					},	//tcp_max_video_delay_tolerance
+	{ kDontAllowMultipleValues,	"2500",		NULL					},	//tcp_max_audio_delay_tolerance
 	{ kDontAllowMultipleValues,	"8192",		NULL					},	//min_tcp_buffer_size
 	{ kDontAllowMultipleValues,	"32768",	NULL					},	//max_tcp_buffer_size
 	{ kDontAllowMultipleValues,	".33",		NULL					},	//tcp_seconds_to_buffer
 	{ kDontAllowMultipleValues,	"false",	NULL					},	//do_report_http_connection_ip_address
 	{ kDontAllowMultipleValues,	"Streaming Server",	NULL			},	//default_authorization_realm
-	{ kDontAllowMultipleValues,	"/var/run/qtss.pid",NULL			},	//pid_file_name
-	{ kDontAllowMultipleValues,	"",			NULL					},	//set_user_name
-	{ kDontAllowMultipleValues,	"",			NULL					},	//set_group_name
+	{ kDontAllowMultipleValues,	"",			NULL					},	//run_user_name
+	{ kDontAllowMultipleValues,	"",			NULL					},	//run_group_name
 	{ kDontAllowMultipleValues,	"false",	NULL					},	//append_source_addr_in_transport
 	{ kAllowMultipleValues,		"554",		sAdditionalDefaultPorts	},	//rtsp_ports
-	{ kDontAllowMultipleValues,	"200",		NULL					},	//max_retransmit_delay
+	{ kDontAllowMultipleValues,	"500",		NULL					},	//max_retransmit_delay
 	{ kDontAllowMultipleValues,	"128",		NULL					},	//default_window_size
 	{ kDontAllowMultipleValues,	"false",	NULL					},	//ack_logging_enabled
 	{ kDontAllowMultipleValues,	"100",		NULL					},	//rtcp_poll_interval
-	{ kDontAllowMultipleValues,	"64",		NULL					},	//rtcp_rcv_buf_size
+	{ kDontAllowMultipleValues,	"768",		NULL					},	//rtcp_rcv_buf_size
+	{ kDontAllowMultipleValues,	"200",		NULL					},	//overbuffer_bucket_interval
+	{ kDontAllowMultipleValues,	"0",		NULL					},	//tcp_thick_min_interval
+	{ kDontAllowMultipleValues,	"",			NULL					},	//alt_transport_src_ipaddr
+	{ kDontAllowMultipleValues,	"25",		NULL					},	//max_send_ahead_time
 	{ kDontAllowMultipleValues,	"true",		NULL					},	//reliable_udp_slow_start
-	{ kDontAllowMultipleValues,	"true",		NULL					},	//reliable_udp_enabled
-	{ kDontAllowMultipleValues,	"6",		NULL					},	//max_overbuffer_time
-	{ kDontAllowMultipleValues,	"15",		NULL					},	//tcp_thick_min_interval
-	{ kDontAllowMultipleValues,	"0",		NULL					},	//rtp_packet_drop_pct
-	{ kDontAllowMultipleValues,	"true",		NULL					},	//share_window_stats
-	{ kDontAllowMultipleValues,	"",			NULL					}	//alt_transport_src_ipaddr
+	{ kDontAllowMultipleValues,	"true",		NULL					},	//auto_delete_sdp_files
+	{ kDontAllowMultipleValues,	"digest",	NULL					},	//authentication_scheme
+	{ kDontAllowMultipleValues,	"10",		NULL					},	//sdp_file_delete_interval_seconds
+	{ kDontAllowMultipleValues,	"false",	NULL					},	//auto_start
+	{ kDontAllowMultipleValues,	"true",		NULL					},	//reliable_udp
+	{ kAllowMultipleValues,		"",			NULL					},	//reliable_udp_dirs
+	{ kDontAllowMultipleValues,	"false",	NULL					},	//reliable_udp_printfs
+	{ kDontAllowMultipleValues,	"500",		NULL					},	//drop_all_packets_delay
+	{ kDontAllowMultipleValues,	"1000",		NULL					},	//thin_all_the_way_delay
+	{ kDontAllowMultipleValues,	"8000",		NULL					},	//optimal_delay
+	{ kDontAllowMultipleValues,	"11000",	NULL					},	//start_thicking_delay
+	{ kDontAllowMultipleValues,	"4000",		NULL					}	//quality_check_interval
 };
 
 
@@ -150,23 +159,33 @@ QTSSAttrInfoDict::AttrInfo	QTSServerPrefs::sAttributes[] =
 	/* 26 */ { "tcp_seconds_to_buffer",					NULL,					qtssAttrDataTypeFloat32,qtssAttrModeRead | qtssAttrModeWrite },
 	/* 27 */ { "do_report_http_connection_ip_address",	NULL,					qtssAttrDataTypeBool16,	qtssAttrModeRead | qtssAttrModeWrite },
 	/* 28 */ { "default_authorization_realm",			NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
-	/* 29 */ { "pid_file_name",							NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
-	/* 30 */ { "set_user_name",							NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
-	/* 31 */ { "set_group_name",						NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
-	/* 32 */ { "append_source_addr_in_transport",		NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 33 */ { "rtsp_port",								NULL,					qtssAttrDataTypeUInt16,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 34 */ { "max_retransmit_delay",					NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 35 */ { "default_window_size",					NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 36 */ { "ack_logging_enabled",					NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 37 */ { "rtcp_poll_interval",					NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 38 */ { "rtcp_rcv_buf_size",						NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 39 */ { "reliable_udp_slow_start",				NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 40 */ { "reliable_udp_enabled",					NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 41 */ { "max_overbuffer_time",					NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 42 */ { "tcp_thick_min_interval",				NULL,					qtssAttrDataTypeSInt32,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 43 */ { "rtp_packet_drop_pct",					NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 44 */ { "share_window_stats",					NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
-	/* 45 */ { "alt_transport_src_ipaddr",				NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite }
+	/* 29 */ { "run_user_name",							NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
+	/* 30 */ { "run_group_name",						NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
+	/* 31 */ { "append_source_addr_in_transport",		NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 32 */ { "rtsp_port",								NULL,					qtssAttrDataTypeUInt16,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 33 */ { "max_retransmit_delay",					NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 34 */ { "default_window_size",					NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 35 */ { "ack_logging_enabled",					NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 36 */ { "rtcp_poll_interval",					NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 37 */ { "rtcp_rcv_buf_size",						NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 38 */ { "overbuffer_bucket_interval",			NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 39 */ { "tcp_thick_min_interval",				NULL,					qtssAttrDataTypeSInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 40 */ { "alt_transport_src_ipaddr",				NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
+	/* 41 */ { "max_send_ahead_time",					NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 42 */ { "reliable_udp_slow_start",				NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 43 */ { "auto_delete_sdp_files",					NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 44 */ { "authentication_scheme",					NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
+	/* 45 */ { "sdp_file_delete_interval_seconds",		NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 46 */ { "auto_start",							NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 47 */ { "reliable_udp",							NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 48 */ { "reliable_udp_dirs",						NULL,					qtssAttrDataTypeCharArray,	qtssAttrModeRead | qtssAttrModeWrite },
+	/* 49 */ { "reliable_udp_printfs",					NULL,					qtssAttrDataTypeBool16,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 50 */ { "drop_all_packets_delay",				NULL,					qtssAttrDataTypeSInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 51 */ { "thin_all_the_way_delay",				NULL,					qtssAttrDataTypeSInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 52 */ { "optimal_delay",							NULL,					qtssAttrDataTypeSInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 53 */ { "start_thicking_delay",					NULL,					qtssAttrDataTypeSInt32,		qtssAttrModeRead | qtssAttrModeWrite },
+	/* 54 */ { "quality_check_interval",				NULL,					qtssAttrDataTypeUInt32,		qtssAttrModeRead | qtssAttrModeWrite }
+
 };
 
 #pragma mark __QTSS_SERVER_PREFS__
@@ -179,7 +198,6 @@ QTSServerPrefs::QTSServerPrefs(XMLPrefsParser* inPrefsSource, Bool16 inWriteMiss
 	fRTPTimeoutInSecs(0),
 	fMaximumConnections(0),
 	fMaxBandwidthInKBits(0),
-	fIPAddress(0),
 	fBreakOnAssert(false),
 	fAutoRestart(false),
 	fTBUpdateTimeInSecs(0),
@@ -195,6 +213,11 @@ QTSServerPrefs::QTSServerPrefs(XMLPrefsParser* inPrefsSource, Bool16 inWriteMiss
 	fTCPVideoDelayToleranceInMSec(0),
 	fTCPAudioDelayToleranceInMSec(0),
 	fTCPThickIntervalInSec(0),
+	fDropAllPacketsTimeInMsec(0),
+	fThinAllTheWayTimeInMsec(0),
+	fOptimalDelayInMsec(0),
+	fStartThickingTimeInMsec(0),
+	fQualityCheckIntervalInMsec(0),
 	fMinTCPBufferSizeInBytes(0),
 	fMaxTCPBufferSizeInBytes(0),
 	fTCPSecondsToBuffer(0),
@@ -206,10 +229,14 @@ QTSServerPrefs::QTSServerPrefs(XMLPrefsParser* inPrefsSource, Bool16 inWriteMiss
 	fRTCPPollIntervalInMsec(0),
 	fRTCPSocketRcvBufSizeInK(0),
 	fIsSlowStartEnabled(false),
-	fIsReliableUDPEnabled(false),
-	fMaxOverbufferTime(0),
-	fRTPPacketDropPct(0),
-	fShareWindowStats(0)
+	fOverbufferBucketIntervalInMsec(0),
+	fMaxSendAheadTimeInSecs(0),
+	fauto_delete_sdp_files(true),
+	fAuthScheme(qtssAuthDigest),
+	fsdp_file_delete_interval_seconds(10),
+	fAutoStart(false),
+	fReliableUDP(true),
+	fReliableUDPPrintfs(false)
 {
 	SetupAttributes();
 	RereadServerPreferences(inWriteMissingPrefs);
@@ -261,12 +288,21 @@ void QTSServerPrefs::SetupAttributes()
 	this->SetVal(qtssPrefsAckLoggingEnabled, 		&fIsAckLoggingEnabled,   sizeof(fIsAckLoggingEnabled));
 	this->SetVal(qtssPrefsRTCPPollIntervalInMsec, 	&fRTCPPollIntervalInMsec,   sizeof(fRTCPPollIntervalInMsec));
 	this->SetVal(qtssPrefsRTCPSockRcvBufSizeInK, 	&fRTCPSocketRcvBufSizeInK,   sizeof(fRTCPSocketRcvBufSizeInK));
-	this->SetVal(qtssPrefsRelUDPSlowStartEnabled, 	&fIsSlowStartEnabled,   sizeof(fIsSlowStartEnabled));
-	this->SetVal(qtssPrefsRelUDPEnabled, 			&fIsReliableUDPEnabled,   sizeof(fIsReliableUDPEnabled));
-	this->SetVal(qtssPrefsMaxOverbufferTimeInSec, 	&fMaxOverbufferTime,   sizeof(fMaxOverbufferTime));
+	this->SetVal(qtssPrefsOverbufferBucketInterval, &fOverbufferBucketIntervalInMsec,   sizeof(fOverbufferBucketIntervalInMsec));
 	this->SetVal(qtssPrefsTCPThickIntervalInSec, 	&fTCPThickIntervalInSec,   sizeof(fTCPThickIntervalInSec));
-	this->SetVal(qtssPrefsTCPThickIntervalInSec, 	&fTCPThickIntervalInSec,   sizeof(fTCPThickIntervalInSec));
-	this->SetVal(qtssPrefsRelUDPShareWindowStats, 	&fShareWindowStats,   sizeof(fShareWindowStats));
+	this->SetVal(qtssPrefsMaxAdvanceSendTimeInSec, 	&fMaxSendAheadTimeInSecs,   sizeof(fMaxSendAheadTimeInSecs));
+	this->SetVal(qtssPrefsReliableUDPSlowStart, 	&fIsSlowStartEnabled,   sizeof(fIsSlowStartEnabled));
+	this->SetVal(qtssPrefsAutoDeleteSDPFiles, 		&fauto_delete_sdp_files,   sizeof(fauto_delete_sdp_files));
+	this->SetVal(qtssPrefsDeleteSDPFilesInterval, 	&fsdp_file_delete_interval_seconds,   sizeof(fsdp_file_delete_interval_seconds));
+	this->SetVal(qtssPrefsAutoStart, 				&fAutoStart,   			sizeof(fAutoStart));
+	this->SetVal(qtssPrefsReliableUDP, 				&fReliableUDP,   		sizeof(fReliableUDP));
+	this->SetVal(qtssPrefsReliableUDPPrintfs, 		&fReliableUDPPrintfs,   	sizeof(fReliableUDPPrintfs));
+
+	this->SetVal(qtssPrefsDropAllPacketsDelayInMsec, 	&fDropAllPacketsTimeInMsec,   	sizeof(fDropAllPacketsTimeInMsec));
+	this->SetVal(qtssPrefsThinAllTheWayDelayInMsec,		&fThinAllTheWayTimeInMsec,   	sizeof(fThinAllTheWayTimeInMsec));
+	this->SetVal(qtssPrefsOptimalDelayInMsec, 			&fOptimalDelayInMsec,   		sizeof(fOptimalDelayInMsec));
+	this->SetVal(qtssPrefsStartThickingDelayInMsec, 	&fStartThickingTimeInMsec,   	sizeof(fStartThickingTimeInMsec));
+	this->SetVal(qtssPrefsQualityCheckIntervalInMsec, 	&fQualityCheckIntervalInMsec,  	sizeof(fQualityCheckIntervalInMsec));
 }
 
 
@@ -317,7 +353,7 @@ void QTSServerPrefs::RereadServerPreferences(Bool16 inWriteMissingPrefs)
 			{
 				//
 				// Add this value into the file, cuz we need it.
-				UInt32 newPrefIndex = fPrefsSource->AddPref( NULL, sAttributes[x].fAttrName, QTSSDataConverter::GetDataTypeStringForType(sAttributes[x].fAttrDataType));
+				UInt32 newPrefIndex = fPrefsSource->AddPref( NULL, sAttributes[x].fAttrName, QTSSDataConverter::TypeToTypeString(sAttributes[x].fAttrDataType));
 				fPrefsSource->AddPrefValue(newPrefIndex, sPrefInfo[x].fDefaultValue);
 				
 				if (sPrefInfo[x].fAdditionalDefVals != NULL)
@@ -329,7 +365,7 @@ void QTSServerPrefs::RereadServerPreferences(Bool16 inWriteMissingPrefs)
 			continue;
 		}
 		
-		QTSS_AttrDataType theType = QTSSDataConverter::GetDataTypeForTypeString(thePrefTypeStr);
+		QTSS_AttrDataType theType = QTSSDataConverter::TypeStringToType(thePrefTypeStr);
 		
 		if ((x < qtssPrefsNumParams) && (theType != sAttributes[x].fAttrDataType)) // Only generate errors for server prefs
 		{
@@ -363,7 +399,7 @@ void QTSServerPrefs::RereadServerPreferences(Bool16 inWriteMissingPrefs)
 				//
 				// Remove it out of the file and add in the default.
 				fPrefsSource->RemovePref(theIndex);
-				UInt32 newPrefIndex2 = fPrefsSource->AddPref( NULL, sAttributes[x].fAttrName, QTSSDataConverter::GetDataTypeStringForType(sAttributes[x].fAttrDataType));
+				UInt32 newPrefIndex2 = fPrefsSource->AddPref( NULL, sAttributes[x].fAttrName, QTSSDataConverter::TypeToTypeString(sAttributes[x].fAttrDataType));
 				fPrefsSource->AddPrefValue(newPrefIndex2, sPrefInfo[x].fDefaultValue);
 				if (sPrefInfo[x].fAdditionalDefVals != NULL)
 				{
@@ -380,12 +416,32 @@ void QTSServerPrefs::RereadServerPreferences(Bool16 inWriteMissingPrefs)
 			
 		this->SetPrefValuesFromFile(theIndex, x, theNumValues);
 	}
+	
+	//
+	// Do any special pref post-processing
+	this->UpdateAuthScheme();
 
-        //
-        // In case we made any changes, write out the prefs file
-        (void)fPrefsSource->WritePrefsFile();
+    //
+    // In case we made any changes, write out the prefs file
+    (void)fPrefsSource->WritePrefsFile();
 }
 
+void	QTSServerPrefs::UpdateAuthScheme()
+{
+	static StrPtrLen sNoAuthScheme("none");
+	static StrPtrLen sBasicAuthScheme("basic");
+	static StrPtrLen sDigestAuthScheme("digest");
+	
+	// Get the auth scheme attribute
+	StrPtrLen* theAuthScheme = this->GetValue(qtssPrefsAuthenticationScheme);
+	
+	if (theAuthScheme->Equal(sNoAuthScheme))
+		fAuthScheme = qtssAuthNone;
+	else if (theAuthScheme->Equal(sBasicAuthScheme))
+		fAuthScheme = qtssAuthBasic;
+	else if (theAuthScheme->Equal(sDigestAuthScheme))
+		fAuthScheme = qtssAuthDigest;
+}
 
 char*	QTSServerPrefs::GetMovieFolder(char* inBuffer, UInt32* ioLen)
 {
@@ -403,8 +459,29 @@ char*	QTSServerPrefs::GetMovieFolder(char* inBuffer, UInt32* ioLen)
 		inBuffer = NEW char[theMovieFolder->Len + 2];
 		::memcpy(inBuffer, theMovieFolder->Ptr, theMovieFolder->Len);
 	}
+	inBuffer[theMovieFolder->Len] = 0;
 	*ioLen = theMovieFolder->Len;
 	return inBuffer;
+}
+
+Bool16 QTSServerPrefs::IsPathInsideReliableUDPDir(StrPtrLen* inPath)
+{
+	OSMutexLocker locker(&fPrefsMutex);
+
+	QTSS_Error theErr = QTSS_NoErr;
+	for (UInt32 x = 0; theErr == QTSS_NoErr; x++)
+	{
+		StrPtrLen theReliableUDPDir;
+		theErr = this->GetValuePtr(qtssPrefsReliableUDPDirs, x, (void**)&theReliableUDPDir.Ptr, &theReliableUDPDir.Len, true);
+		
+		if (theErr != QTSS_NoErr)
+			return false;
+			
+		if (inPath->NumEqualIgnoreCase(theReliableUDPDir.Ptr, theReliableUDPDir.Len))
+			return true;
+	}
+	Assert(0);
+	return false;
 }
 
 void QTSServerPrefs::GetTransportSrcAddr(StrPtrLen* ioBuf)

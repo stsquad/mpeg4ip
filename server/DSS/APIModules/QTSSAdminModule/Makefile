@@ -34,7 +34,7 @@ PROF_LIBS = $(LIBS)
 
 HEADER_PATHS = -I../..
 LIBRARY_PATHS = -L../.. -L.. -L../../..
-NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon
+NEXTSTEP_PB_CFLAGS = -D__MacOSX__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon -fno-exceptions
 FRAMEWORKS = -framework Foundation
 PROJECT_HEADERS = QTSSAdminModule.h
 

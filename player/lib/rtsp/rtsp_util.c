@@ -22,7 +22,6 @@
  * rtsp_util.c - mixture of various utilities needed for rtsp client
  */
 
-#include "systems.h"
 #include "rtsp_private.h"
 
 static int rtsp_debug_level = LOG_ALERT;
@@ -129,36 +128,17 @@ void free_decode_response (rtsp_decode_t *decode)
   }
 }
 
-/*
- * free_rtsp_client()
- * frees all memory associated with rtsp client information
- */
-void free_rtsp_client (rtsp_client_t *rptr)
-{
-  CHECK_AND_FREE(rptr, orig_url);
-  CHECK_AND_FREE(rptr, url);
-  CHECK_AND_FREE(rptr, server_name);
-  CHECK_AND_FREE(rptr, recv_buff);
-  CHECK_AND_FREE(rptr, cookie);
-  free_decode_response(rptr->decode_response);
-  rptr->decode_response = NULL;
-  free(rptr);
-#ifdef _WINDOWS
-  WSACleanup();
-#endif
-}
 
 /*
  * rtsp_set_and_decode_url()
  * will decode the url, make sure it matches RTSP url information,
  * pulls out the server name and port, then gets the server address
  */
-static int rtsp_set_and_decode_url (const char *url, rtsp_client_t *rptr)
+int rtsp_dissect_url (rtsp_client_t *rptr, const char *url)
 {
   const char *uptr;
   const char *nextslash, *nextcolon;
-  uint32_t hostlen;
-  struct hostent *host;
+  int hostlen;
   
   if (rptr->url != NULL || rptr->server_name != NULL) {
     return (EEXIST);
@@ -219,87 +199,7 @@ static int rtsp_set_and_decode_url (const char *url, rtsp_client_t *rptr)
     }
   }
 
-  host = gethostbyname(rptr->server_name);
-  if (host == NULL) {
-    return (h_errno);
-  }
-  rptr->server_addr = *(struct in_addr *)host->h_addr;
   return (0);
-}
-
-/*
- * rtsp_setup_url()
- * decodes and creates/connect socket for rtsp url
- */
-static int rtsp_setup_url (rtsp_client_t *info, const char *url)
-{
-  int err;
-  err = rtsp_set_and_decode_url(url, info);
-  if (err != 0) {
-    rtsp_debug(LOG_ALERT, "Couldn't decode url %d\n", err);
-    return (err);
-  }
-
-  err = rtsp_create_socket(info);
-  if (err != 0) {
-    rtsp_debug(LOG_EMERG,"Couldn't create socket %d\n", errno);
-  }
-  return (err);
-}
-
-/*
- * rtsp_create_client()
- * Creates rtsp_client_t for client information, initializes it, and
- * connects to server.
- */
-rtsp_client_t *rtsp_create_client (const char *url, int *err)
-{
-  rtsp_client_t *info;
-
-#ifdef _WINDOWS
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	int ret;
- 
-	wVersionRequested = MAKEWORD( 2, 0 );
- 
-	ret = WSAStartup( wVersionRequested, &wsaData );
-	if ( ret != 0 ) {
-	   /* Tell the user that we couldn't find a usable */
-	   /* WinSock DLL.*/
-		*err = ret;
-	    return (NULL);
-	}
-#endif
-  info = malloc(sizeof(rtsp_client_t));
-  if (info == NULL) {
-    *err = ENOMEM;
-    return (NULL);
-  }
-  memset(info, 0, sizeof(rtsp_client_t));
-  info->url = NULL;
-  info->orig_url = NULL;
-  info->server_name = NULL;
-  info->cookie = NULL;
-  info->recv_timeout = 2 * 1000;  // default timeout is 2 seconds.
-  info->recv_buff_len = RECV_BUFF_DEFAULT_LEN;
-  info->recv_buff = malloc(info->recv_buff_len + 1); // always room for \0
-  info->server_socket = -1;
-  info->next_cseq = 1;
-  info->session = NULL;
-  
-  if (info->recv_buff == NULL) {
-    *err = ENOMEM;
-    free_rtsp_client(info);
-    return (NULL);
-  }
-  info->recv_buff[info->recv_buff_len] = '\0';
-  *err = rtsp_setup_url(info, url);
-  if (*err != 0) {
-    free_rtsp_client(info);
-    return (NULL);
-  }
-  return (info);
 }
 
 /*
@@ -312,6 +212,7 @@ rtsp_client_t *rtsp_create_client (const char *url, int *err)
 int rtsp_setup_redirect (rtsp_client_t *info)
 {
   rtsp_decode_t *decode;
+  int ret;
   if (info->decode_response == NULL)
     return (-1);
 
@@ -333,7 +234,10 @@ int rtsp_setup_redirect (rtsp_client_t *info)
   CHECK_AND_FREE(info, server_name);
   rtsp_close_socket(info);
 
-  return (rtsp_setup_url(info, decode->location));
+  ret = rtsp_dissect_url(info, decode->location);
+  if (ret != 0) return (ret);
+  
+  return (rtsp_create_socket(info));
 }
 
 

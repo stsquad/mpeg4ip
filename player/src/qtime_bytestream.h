@@ -91,6 +91,8 @@ class CQTVideoByteStream : public CQTByteStreamBase
     };
   void reset(void);
   uint64_t start_next_frame(void);
+  int can_skip_frame(void) { return 1; };
+  int skip_next_frame (uint64_t *ts, int *hasSync);
   void set_start_time(uint64_t start);
   double get_max_playtime(void);
   void config(long num_frames, float frate, int time_scale);

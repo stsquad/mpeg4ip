@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		win32main.cpp
@@ -43,7 +43,9 @@ static FilePrefsSource sPrefsSource(true); // Allow dups
 static XMLPrefsParser* sXMLParser = NULL;
 static FilePrefsSource sMessagesSource;
 static UInt16 sPort = 0; //port can be set on the command line
+static int sStatsUpdateInterval = 0;
 static SERVICE_STATUS_HANDLE sServiceStatusHandle = 0;
+static QTSS_ServerState sInitialState = qtssRunningState;
 
 //
 // Functions
@@ -67,7 +69,7 @@ int main(int argc, char * argv[])
 	Bool16 notAService = false;
 	Bool16 theXMLPrefsExist = true;
 	
-	while ((ch = getopt(argc,argv, "vdp:c:irs")) != EOF)
+	while ((ch = getopt(argc,argv, "vdxp:o:c:irsS:I")) != EOF) // opt: means requires option
 	{
 		switch(ch)
 		{
@@ -84,17 +86,26 @@ int main(int argc, char * argv[])
 				printf("-i: Install the Darwin Streaming Server service\n");
 				printf("-r: Remove the Darwin Streaming Server service\n");
 				printf("-s: Start the Darwin Streaming Server service\n");
+				printf("-S n: Display server stats in the console every \"n\" seconds\n");
+				printf("-I: Start the server in the idle state\n");
 				::exit(0);	
 			case 'd':
 				notAService = true;
 				break;
 			case 'p':
+				Assert(optarg != NULL);// this means we didn't declare getopt options correctly or there is a bug in getopt.
 				sPort = ::atoi(optarg);
 				break;
 			case 'c':
+				Assert(optarg != NULL);// this means we didn't declare getopt options correctly or there is a bug in getopt.
 				theXMLFilePath = optarg;
 				break;
+			case 'S':
+				Assert(optarg != NULL);// this means we didn't declare getopt options correctly or there is a bug in getopt.
+				sStatsUpdateInterval = ::atoi(optarg);
+				break;
 			case 'o':
+				Assert(optarg != NULL);// this means we didn't declare getopt options correctly or there is a bug in getopt.
 				theConfigFilePath = optarg;
 				break;
 			case 'x':
@@ -113,6 +124,9 @@ int main(int argc, char * argv[])
 				printf("Starting the Darwin Streaming Server service...\n");
 				::RunAsService("Darwin Streaming Server");
 				::exit(0);
+			case 'I':
+				sInitialState = qtssIdleState;
+				break;
 			default:
 				break;
 		}
@@ -132,6 +146,21 @@ int main(int argc, char * argv[])
 	// Create an XML prefs parser object using the specified path
 	sXMLParser = new XMLPrefsParser(theXMLFilePath);
 	
+	//
+	// Check to see if the XML file exists as a directory. If it does,
+	// just bail because we do not want to overwrite a directory
+	if (sXMLParser->DoesFileExistAsDirectory())
+	{
+		printf("Directory located at location where streaming server prefs file should be.\n");
+		::exit(0);
+	}
+	
+	if (!sXMLParser->CanWriteFile())
+	{
+		printf("Cannot write to the streaming server prefs file.\n");
+		::exit(0);
+	}
+
 	// If we aren't forced to create a new XML prefs file, whether
 	// we do or not depends solely on whether the XML prefs file exists currently.
 	if (theXMLPrefsExist)
@@ -144,7 +173,7 @@ int main(int argc, char * argv[])
 		
 		int prefsErr = sPrefsSource.InitFromConfigFile(theConfigFilePath);
 		if ( prefsErr )
-			printf("Could not load configuration file at %s. Generating a new prefs file at %s\n", theConfigFilePath, theXMLFilePath);
+			printf("Could not load configuration file at %s.\n Generating a new prefs file at %s\n", theConfigFilePath, theXMLFilePath);
 
 		//
 		// Generate a brand-new XML prefs file out of the old prefs
@@ -178,7 +207,7 @@ int main(int argc, char * argv[])
 	if (notAService)
 	{
 		// If we're running off the command-line, don't do the service initiation crap.
-		::StartServer(sXMLParser, &sMessagesSource, sPort, 0); // No stats update interval for now
+		::StartServer(sXMLParser, &sMessagesSource, sPort, sStatsUpdateInterval, sInitialState); // No stats update interval for now
 		::RunServer();
 		::exit(0);
 	}
@@ -220,7 +249,7 @@ void __stdcall ServiceMain(DWORD /*argc*/, LPTSTR *argv)
 	
 	//
 	// Start & Run the server - no stats update interval for now
-	if (::StartServer(sXMLParser, &sMessagesSource, sPort, 0) != qtssFatalErrorState)
+	if (::StartServer(sXMLParser, &sMessagesSource, sPort, sStatsUpdateInterval, sInitialState) != qtssFatalErrorState)
 	{
 		::ReportStatus( SERVICE_RUNNING, NO_ERROR );
 		::RunServer(); // This function won't return until the server has died
@@ -400,7 +429,10 @@ void InstallService(char* inServiceName)
                         SC_MANAGER_ALL_ACCESS   // access required
                         );
 	if (!theSCManager)
+	{
+		printf("Failed to install Darwin Streaming Server Service\n");
 		return;
+	}
 
     theService = CreateService(
         theSCManager,               // SCManager database
@@ -418,7 +450,12 @@ void InstallService(char* inServiceName)
         NULL);                      // no password
 
 	if (theService)
+	{
 		::CloseServiceHandle(theService);
+		printf("Installed Darwin Streaming Server Service\n");
+	}
+	else
+		printf("Failed to install Darwin Streaming Server Service\n");
 
 	::CloseServiceHandle(theSCManager);
 }
@@ -434,14 +471,20 @@ void RemoveService(char *inServiceName)
                         SC_MANAGER_ALL_ACCESS   // access required
                         );
 	if (!theSCManager)
+	{
+		printf("Failed to remove Darwin Streaming Server Service\n");
 		return;
+	}
 
     theService = ::OpenService(theSCManager, inServiceName, SERVICE_ALL_ACCESS);
 	if (theService != NULL)
 	{
 		(void)::DeleteService(theService);
 		::CloseServiceHandle(theService);
+		printf("Removed Darwin Streaming Server Service\n");
     }
-    
+    else
+		printf("Failed to remove Darwin Streaming Server Service\n");
+
 	::CloseServiceHandle(theSCManager);
 }

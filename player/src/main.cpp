@@ -24,6 +24,7 @@
 #include "systems.h"
 #include <rtsp/rtsp_client.h>
 #include "player_session.h"
+#include "player_media.h"
 #include "player_util.h"
 #include "our_msg_queue.h"
 #include "ip_port.h"

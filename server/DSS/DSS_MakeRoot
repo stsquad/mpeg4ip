@@ -31,20 +31,18 @@ if [ $FLATTEN != 1 ]; then
 	# Install each file into it's appropriate location relative to "$INSTALLROOT"
 
 	echo copying "DarwinStreamingServer" to "$INSTALLROOT/usr/local/sbin/DarwinStreamingServer"
-	mkdir -p $INSTALLROOT/usr/l
-	ocal/sbin
+	mkdir -p $INSTALLROOT/usr/local/sbin
 	cp DarwinStreamingServer $INSTALLROOT/usr/local/sbin/
 	
-	echo copying "PlaylistBroadcaster" to "$INSTALLROOT/usr/local/sbin/PlaylistBroadcaster"
-	cp PlaylistBroadcaster.tproj/PlaylistBroadcaster $INSTALLROOT/usr/local/sbin/
+	echo copying "PlaylistBroadcaster" to "$INSTALLROOT/usr/local/bin/PlaylistBroadcaster"
+	cp PlaylistBroadcaster.tproj/PlaylistBroadcaster $INSTALLROOT/usr/local/bin/
 	
-	echo copying "qtpasswd" to "$INSTALLROOT/usr/local/sbin/qtpasswd"
-	cp qtpasswd.tproj/qtpasswd $INSTALLROOT/usr/local/sbin/
+	echo copying "qtpasswd" to "$INSTALLROOT/usr/local/bin/qtpasswd"
+	cp qtpasswd.tproj/qtpasswd $INSTALLROOT/usr/local/bin/
 	
 	echo creating "$INSTALLROOT/usr/local/sbin/StreamingServerModules" directory
 	mkdir $INSTALLROOT/usr/local/sbin/StreamingServerModules
-#	cp APIModules/QTSSAccessModule.bproj/QTSSAccessModule $INSTALLROOT/usr/local/sbin/StreamingServerModules/
-	
+
 	echo copying "streamingserver.xml-POSIX" to "$INSTALLROOT/etc/streaming/streamingserver.xml"
 	mkdir -p $INSTALLROOT/etc/streaming
 	cp -i streamingserver.xml-POSIX $INSTALLROOT/etc/streaming/streamingserver.xml
@@ -53,6 +51,9 @@ if [ $FLATTEN != 1 ]; then
 	
 	echo copying "streamingrelay.conf" to "$INSTALLROOT/etc/streaming/streamingrelay.conf"
 	cp -i streamingrelay.conf $INSTALLROOT/etc/streaming/
+
+	echo copying "qtusers" to "$INSTALLROOT/etc/streaming/qtusers"
+	cp -i qtusers $INSTALLROOT/etc/streaming/
 	
 	echo creating "$INSTALLROOT/var/streaming/logs" directory
 	mkdir -p $INSTALLROOT/var/streaming/logs
@@ -60,12 +61,8 @@ if [ $FLATTEN != 1 ]; then
 	echo copying "Documentation/AboutDarwinStreamingSvr.pdf" into "$INSTALLROOT/var/streaming/usermanual.pdf"
 	cp Documentation/AboutDarwinStreamingSvr.pdf $INSTALLROOT/var/streaming/usermanual.pdf
 	
-	echo copying "Documentation/AboutDarwinStreamingSvr.pdf" into "$INSTALLROOT/var/streaming/usermanual.pdf"
-	cp Documentation/AboutDarwinStreamingSvr.pdf $INSTALLROOT/var/streaming/usermanual.pdf
-	
 	echo copying "Documentation/DSSReadMe.htm" into "$INSTALLROOT/var/streaming/readme.html"
 	cp Documentation/DSSReadMe.htm $INSTALLROOT/var/streaming/readme.html
-	
 	
 	echo creating "$INSTALLROOT/usr/local/movies" directory
 	mkdir -p $INSTALLROOT/usr/local/movies
@@ -73,15 +70,22 @@ if [ $FLATTEN != 1 ]; then
 	#echo copying "sample.mov" into "$INSTALLROOT/usr/local/movies"
 	#cp sample.mov $INSTALLROOT/usr/local/movies/
 	
-	#echo copying "SpamPro" to "$INSTALLROOT/usr/local/sbin/SpamPro"
-	#cp SpamPro.tproj/SpamPro $INSTALLROOT/usr/local/sbin/
+	if [-d SpamPro.tproj ]; then
+	echo copying "StreamingLoadTool" to "$INSTALLROOT/usr/local/bin/StreamingLoadTool"
+	cp SpamPro.tproj/StreamingLoadTool $INSTALLROOT/usr/local/bin/
 	
-	#echo copying "spampro.conf" to "$INSTALLROOT/usr/local/sbin/spampro.conf"
-	#cp SpamPro.tproj/spampro.conf $INSTALLROOT/var/streaming/
-	
+	echo copying "streamingloadtool.conf" to "$INSTALLROOT/etc/streaming/streamingloadtool.conf"
+	cp SpamPro.tproj/streamingloadtool.conf $INSTALLROOT/etc/streaming/streamingloadtool.conf
+	else
+                echo "Warning: there is no SpamPro.tproj folder"
+    fi
+        
 	#WebAdmin install
-	echo copying "streamingadminserver.pl" into "$INSTALLROOT/usr/local/bin/"
-	cp WebAdmin/src/streamingadminserver.pl $INSTALLROOT/usr/local/bin/streamingadminserver.pl
+	echo copying "streamingadminserver.pl" into "$INSTALLROOT/usr/local/sbin/"
+	cp WebAdmin/src/streamingadminserver.pl $INSTALLROOT/usr/local/sbin/streamingadminserver.pl
+
+	echo copying "streamingadminserver.pem" into "$INSTALLROOT/etc/streaming/"
+	cp WebAdmin/streamingadminserver.pem $INSTALLROOT/etc/streaming/streamingadminserver.pem
 	
 	echo creating "$INSTALLROOT/var/streaming/AdminHtml" directory
 	mkdir -p $INSTALLROOT/var/streaming/AdminHtml
@@ -89,14 +93,15 @@ if [ $FLATTEN != 1 ]; then
 	echo copying Admin HTML to "$INSTALLROOT/var/streaming/AdminHtml" directory
 	cp WebAdmin/WebAdminHtml/adminprotocol-lib.pl $INSTALLROOT/var/streaming/AdminHtml/adminprotocol-lib.pl
 	cp WebAdmin/WebAdminHtml/cgi-lib.pl $INSTALLROOT/var/streaming/AdminHtml/cgi-lib.pl
-	cp WebAdmin/WebAdminHtml/mainpage.htm $INSTALLROOT/var/streaming/AdminHtml/mainpage.htm
+	cp WebAdmin/WebAdminHtml/playlist-lib.pl $INSTALLROOT/var/streaming/AdminHtml/playlist-lib.pl
 	cp WebAdmin/WebAdminHtml/index.cgi $INSTALLROOT/var/streaming/AdminHtml/index.cgi
-	cp WebAdmin/WebAdminHtml/nav.htm $INSTALLROOT/var/streaming/AdminHtml/nav.htm
 	cp WebAdmin/WebAdminHtml/parse.cgi $INSTALLROOT/var/streaming/AdminHtml/parse.cgi
 	cp WebAdmin/WebAdminHtml/parsewithinput.cgi $INSTALLROOT/var/streaming/AdminHtml/parsewithinput.cgi
 	cp WebAdmin/WebAdminHtml/setgensettings.cgi $INSTALLROOT/var/streaming/AdminHtml/setgensettings.cgi
 	cp WebAdmin/WebAdminHtml/setlogsettings.cgi $INSTALLROOT/var/streaming/AdminHtml/setlogsettings.cgi
+	cp WebAdmin/WebAdminHtml/setplsettings.cgi $INSTALLROOT/var/streaming/AdminHtml/setplsettings.cgi
 	cp WebAdmin/WebAdminHtml/startstopserver.cgi $INSTALLROOT/var/streaming/AdminHtml/startstopserver.cgi
+    cp WebAdmin/WebAdminHtml/startstopbcast.cgi $INSTALLROOT/var/streaming/AdminHtml/startstopbcast.cgi
 else
 	# Build a "flat" directory containing an "Install" script
 
@@ -111,10 +116,9 @@ else
 	
 	echo copying "qtpasswd" to "$INSTALLROOT/qtpasswd"
 	cp qtpasswd.tproj/qtpasswd $INSTALLROOT/
-	
+
 	echo creating "$INSTALLROOT/StreamingServerModules" directory
 	mkdir -p $INSTALLROOT/StreamingServerModules
-#	cp APIModules/QTSSAccessModule.bproj/QTSSAccessModule $INSTALLROOT/StreamingServerModules/
 	
 	echo copying "streamingserver.xml-POSIX" to "$INSTALLROOT/streamingserver.xml"
 	cp -i streamingserver.xml-POSIX $INSTALLROOT/streamingserver.xml
@@ -124,53 +128,134 @@ else
 	
 	echo copying "streamingrelay.conf" to "$INSTALLROOT/streamingrelay.conf"
 	cp -i streamingrelay.conf $INSTALLROOT/
+
+	echo copying "qtusers" to "$INSTALLROOT/qtusers"
+        cp -i qtusers $INSTALLROOT/
 	
 	echo copying "Documentation/AboutDarwinStreamingSvr.pdf" into "usermanual.pdf"
 	cp Documentation/AboutDarwinStreamingSvr.pdf $INSTALLROOT/usermanual.pdf
 	
-	echo copying "Documentation/DSSReadMe.htm" into "$INSTALLROOT/readme.html"
-	cp Documentation/DSSReadMe.htm $INSTALLROOT/readme.html
+	echo copying "Documentation/Readme.html" into "$INSTALLROOT/readme.html"
+	cp Documentation/Readme.html $INSTALLROOT/readme.html
 	
 	#echo copying "sample.mov" into "$INSTALLROOT/movies"
 	#cp sample.mov $INSTALLROOT/
 	
-	#echo copying "SpamPro" to "$INSTALLROOT/SpamPro"
-	#cp SpamPro.tproj/SpamPro $INSTALLROOT/
+	if [ -d SpamPro.tproj ]; then
+	echo copying "StreamingLoadTool" to "$INSTALLROOT/StreamingLoadTool"
+	cp SpamPro.tproj/StreamingLoadTool $INSTALLROOT/
 	
-	#echo copying "spampro.conf" to "$INSTALLROOT/spampro.conf"
-	#cp SpamPro.tproj/spampro.conf $INSTALLROOT/
-	
+	echo copying "streamingloadtool.conf" to "$INSTALLROOT/streamingloadtool.conf"
+	cp SpamPro.tproj/streamingloadtool.conf $INSTALLROOT/
+	else
+                echo "Warning: there is no SpamPro.tproj folder"
+    fi
+        
 	#WebAdmin install
 	echo copying "streamingadminserver.pl" into "$INSTALLROOT/"
 	cp WebAdmin/src/streamingadminserver.pl $INSTALLROOT/streamingadminserver.pl
+
+	echo copying "streamingadminserver.pem" into "$INSTALLROOT/"
+	cp WebAdmin/streamingadminserver.pem $INSTALLROOT/streamingadminserver.pem
 	
 	echo creating "$INSTALLROOT/AdminHtml" directory
 	mkdir -p $INSTALLROOT/AdminHtml
 	
 	echo copying Admin HTML to "$INSTALLROOT/AdminHtml" directory
 	cp WebAdmin/WebAdminHtml/*.pl $INSTALLROOT/AdminHtml/
-	cp WebAdmin/WebAdminHtml/*.htm $INSTALLROOT/AdminHtml/
 	cp WebAdmin/WebAdminHtml/*.cgi $INSTALLROOT/AdminHtml/
 
 	echo creating "$INSTALLROOT/AdminHtml/images/" directory
 	mkdir -p $INSTALLROOT/AdminHtml/images/
 	cp WebAdmin/WebAdminHtml/images/*.gif $INSTALLROOT/AdminHtml/images/
-
+	
 	echo creating "$INSTALLROOT/AdminHtml/javascripts/" directory
 	mkdir -p $INSTALLROOT/AdminHtml/javascripts/
 	cp WebAdmin/WebAdminHtml/javascripts/*.js $INSTALLROOT/AdminHtml/javascripts/
 	
-	echo creating "$INSTALLROOT/AdminHtml/logs/" directory
-	mkdir -p $INSTALLROOT/AdminHtml/logs/
-	cp WebAdmin/WebAdminHtml/logs/*.htm $INSTALLROOT/AdminHtml/logs/
+	echo creating "$INSTALLROOT/AdminHtml/html_en/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_en/
+	cp WebAdmin/WebAdminHtml/html_en/*.htm $INSTALLROOT/AdminHtml/html_en/
+	cp WebAdmin/WebAdminHtml/html_en/messages $INSTALLROOT/AdminHtml/html_en/
 	
-	echo creating "$INSTALLROOT/AdminHtml/settings/" directory
-	mkdir -p $INSTALLROOT/AdminHtml/settings/
-	cp WebAdmin/WebAdminHtml/settings/*.htm $INSTALLROOT/AdminHtml/settings/
+	echo creating "$INSTALLROOT/AdminHtml/html_en/logs/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_en/logs/
+	cp WebAdmin/WebAdminHtml/html_en/logs/*.htm $INSTALLROOT/AdminHtml/html_en/logs/
 	
-	echo creating "$INSTALLROOT/AdminHtml/status/" directory
-	mkdir -p $INSTALLROOT/AdminHtml/status/
-	cp WebAdmin/WebAdminHtml/status/*.htm $INSTALLROOT/AdminHtml/status/
+	echo creating "$INSTALLROOT/AdminHtml/html_en/settings/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_en/settings/
+	cp WebAdmin/WebAdminHtml/html_en/settings/*.htm $INSTALLROOT/AdminHtml/html_en/settings/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_en/status/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_en/status/
+	cp WebAdmin/WebAdminHtml/html_en/status/*.htm $INSTALLROOT/AdminHtml/html_en/status/
+
+	echo creating "$INSTALLROOT/AdminHtml/html_en/images/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_en/images/
+	cp WebAdmin/WebAdminHtml/html_en/images/*.gif $INSTALLROOT/AdminHtml/html_en/images/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_de/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_de/
+	cp WebAdmin/WebAdminHtml/html_de/*.htm $INSTALLROOT/AdminHtml/html_de/
+	cp WebAdmin/WebAdminHtml/html_de/messages $INSTALLROOT/AdminHtml/html_de/
+
+	echo creating "$INSTALLROOT/AdminHtml/html_de/logs/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_de/logs/
+	cp WebAdmin/WebAdminHtml/html_de/logs/*.htm $INSTALLROOT/AdminHtml/html_de/logs/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_de/settings/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_de/settings/
+	cp WebAdmin/WebAdminHtml/html_de/settings/*.htm $INSTALLROOT/AdminHtml/html_de/settings/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_de/status/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_de/status/
+	cp WebAdmin/WebAdminHtml/html_de/status/*.htm $INSTALLROOT/AdminHtml/html_de/status/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_de/images/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_de/images/
+	cp WebAdmin/WebAdminHtml/html_de/images/*.gif $INSTALLROOT/AdminHtml/html_de/images/
+
+	echo creating "$INSTALLROOT/AdminHtml/html_fr/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_fr/
+	cp WebAdmin/WebAdminHtml/html_fr/*.htm $INSTALLROOT/AdminHtml/html_fr/
+	cp WebAdmin/WebAdminHtml/html_fr/messages $INSTALLROOT/AdminHtml/html_fr/
+
+	echo creating "$INSTALLROOT/AdminHtml/html_fr/logs/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_fr/logs/
+	cp WebAdmin/WebAdminHtml/html_fr/logs/*.htm $INSTALLROOT/AdminHtml/html_fr/logs/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_fr/settings/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_fr/settings/
+	cp WebAdmin/WebAdminHtml/html_fr/settings/*.htm $INSTALLROOT/AdminHtml/html_fr/settings/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_fr/status/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_fr/status/
+	cp WebAdmin/WebAdminHtml/html_fr/status/*.htm $INSTALLROOT/AdminHtml/html_fr/status/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_fr/images/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_fr/images/
+	cp WebAdmin/WebAdminHtml/html_fr/images/*.gif $INSTALLROOT/AdminHtml/html_fr/images/
+
+	echo creating "$INSTALLROOT/AdminHtml/html_ja/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_ja/
+	cp WebAdmin/WebAdminHtml/html_ja/*.htm $INSTALLROOT/AdminHtml/html_ja/
+	cp WebAdmin/WebAdminHtml/html_ja/messages $INSTALLROOT/AdminHtml/html_ja/
+
+	echo creating "$INSTALLROOT/AdminHtml/html_ja/logs/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_ja/logs/
+	cp WebAdmin/WebAdminHtml/html_ja/logs/*.htm $INSTALLROOT/AdminHtml/html_ja/logs/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_ja/settings/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_ja/settings/
+	cp WebAdmin/WebAdminHtml/html_ja/settings/*.htm $INSTALLROOT/AdminHtml/html_ja/settings/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_ja/status/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_ja/status/
+	cp WebAdmin/WebAdminHtml/html_ja/status/*.htm $INSTALLROOT/AdminHtml/html_ja/status/
+	
+	echo creating "$INSTALLROOT/AdminHtml/html_ja/images/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/html_ja/images/
+	cp WebAdmin/WebAdminHtml/html_ja/images/*.gif $INSTALLROOT/AdminHtml/html_ja/images/
 
 	echo creating "$INSTALLROOT/AdminHtml/help/" directory
 	mkdir -p $INSTALLROOT/AdminHtml/help/

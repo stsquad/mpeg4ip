@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		ClientSession.h
@@ -58,7 +58,7 @@ class ClientSession : public Task
 						UInt32 inRTCPIntervalInSec, UInt32 inOptionsIntervalInSec,
 						UInt32 inHTTPCookie, Bool16 inAppendJunkData, UInt32 inReadInterval,
 						UInt32 inSockRcvBufSize, Float32 inLateTolerance, char* inMetaInfoFields,
-						Float32 inSpeed, Bool16 inVerbosePrinting );
+						Float32 inSpeed, Bool16 inVerbosePrinting, char* inPacketRangePlayHeader, UInt32 inOverbufferWindowSizeInK );
 		virtual ~ClientSession();
 		
 		//
@@ -187,6 +187,7 @@ class ClientSession : public Task
 		UInt32			fSockRcvBufSize;
 		
 		Float32			fSpeed;
+		char*			fPacketRangePlayHeader;
 		
 		//
 		// Client stats
@@ -219,6 +220,8 @@ class ClientSession : public Task
 			
 		};
 		TrackStats*			fStats;
+		UInt32				fOverbufferWindowSizeInK;
+		UInt32				fCurRTCPTrack;
 		
 		//
 		// Global stats
@@ -231,7 +234,7 @@ class ClientSession : public Task
 		void	SetupUDPSockets();
 		void	ProcessMediaPacket(char* inPacket, UInt32 inLength, UInt32 inTrackID, Bool16 isRTCP);
 		OS_Error	ReadMediaData();
-		void 	SendReceiverReport();
+		OS_Error 	SendReceiverReport(UInt32 inTrackID);
 		void 	AckPackets(UInt32 inTrackIndex, UInt16 inCurSeqNum, Bool16 inCurSeqNumValid);
 };
 

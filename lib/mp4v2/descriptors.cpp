@@ -65,6 +65,9 @@ void MP4IODescriptor::Generate()
 {
 	((MP4BitfieldProperty*)m_pProperties[0])->SetValue(1);
 	((MP4BitfieldProperty*)m_pProperties[3])->SetValue(0xF);
+	for (u_int32_t i = 5; i <= 9; i++) {
+		((MP4Integer8Property*)m_pProperties[i])->SetValue(0xFF);
+	}
 }
 
 void MP4IODescriptor::Mutate()

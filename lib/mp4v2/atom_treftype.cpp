@@ -21,7 +21,7 @@
 
 #include "mp4common.h"
 
-MP4TrefTypeAtom::MP4TrefTypeAtom(char* type) 
+MP4TrefTypeAtom::MP4TrefTypeAtom(const char* type) 
 	: MP4Atom(type) 
 {
 	MP4Integer32Property* pCount = 

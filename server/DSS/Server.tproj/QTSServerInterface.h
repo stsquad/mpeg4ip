@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSServerInterface.h
@@ -124,6 +124,7 @@ class QTSServerInterface : public QTSSDictionary
 		UInt64				GetTotalRTPBytes()		{ return fTotalRTPBytes; }
 		UInt64				GetTotalRTPPacketsLost(){ return fTotalRTPPacketsLost; }
 		Float32				GetCPUPercent()			{ return fCPUPercent; }
+		Bool16				SigIntSet()				{ return fSigInt; }
 		
 		//
 		//
@@ -162,6 +163,10 @@ class QTSServerInterface : public QTSSDictionary
 		void				KillAllRTPSessions();
 		
 		//
+		// SIGINT - to interrupt the server, set this flag and the server will shut down
+		void				SetSigInt() 				{ fSigInt = true; }
+		
+		//
 		// MODULE STORAGE
 		
 		// All module objects are stored here, and are accessable through
@@ -177,6 +182,11 @@ class QTSServerInterface : public QTSSDictionary
 									Assert(inIndex < sNumModulesInRole[inRole]);
 									return sModuleArray[inRole][inIndex];
 								}
+
+		//
+		// We need to override this. This is how we implement the QTSS_StateChange_Role
+		virtual void 	SetValueComplete(UInt32 inAttrIndex, QTSSDictionaryMap* inMap,
+									UInt32 inValueIndex, const void* inNewValue, UInt32 inNewValueLen);
 		
 		//
 		// ERROR LOGGING
@@ -285,20 +295,23 @@ class QTSServerInterface : public QTSSDictionary
 		// Stats for UDP retransmits
 		UInt32				fUDPWastageInBytes;
 		UInt32				fNumUDPBuffers;
+		
+		Bool16				fSigInt;
 
 		// Param retrieval functions
-		static Bool16 CurrentUnixTimeMilli(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 GetTotalUDPSockets(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 IsOutOfDescriptors(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 SessionAttribute(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 GetNumUDPBuffers(QTSS_FunctionParams* funcParamsPtr);
-		static Bool16 GetNumWastedBytes(QTSS_FunctionParams* funcParamsPtr);
+		static void* CurrentUnixTimeMilli(QTSSDictionary* inServer, UInt32* outLen);
+		static void* GetTotalUDPSockets(QTSSDictionary* inServer, UInt32* outLen);
+		static void* IsOutOfDescriptors(QTSSDictionary* inServer, UInt32* outLen);
+		static void* GetNumUDPBuffers(QTSSDictionary* inServer, UInt32* outLen);
+		static void* GetNumWastedBytes(QTSSDictionary* inServer, UInt32* outLen);
 		
 		static QTSServerInterface*	sServer;
 		static QTSSAttrInfoDict::AttrInfo	sAttributes[];
 		
 		friend class RTPStatsUpdaterTask;
+		friend class SessionTimeoutTask;
 };
+
 
 class RTPStatsUpdaterTask : public Task
 {
@@ -318,6 +331,7 @@ class RTPStatsUpdaterTask : public Task
 		SInt64 fLastBandwidthAvg;
 		SInt64 fLastBytesSent;
 };
+
 
 
 #endif // __QTSSERVERINTERFACE_H__

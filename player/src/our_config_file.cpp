@@ -51,6 +51,8 @@ static config_variable_t configs[] = {
   { CONFIG_IPPORT_MIN, "RtpIpPortMin", CONFIG_INT, -1, NULL},
   { CONFIG_IPPORT_MAX, "RtpIpPortMax", CONFIG_INT, -1, NULL},
   { CONFIG_USE_OLD_MP4_LIB, "UseOldMp4Lib", CONFIG_INT, 0, NULL},
+  { CONFIG_USE_RTP_OVER_RTSP, "UseRtpOverRtsp", CONFIG_INT, 0, NULL},
+  { CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP, "SendRtcpInRtpOverRtsp", CONFIG_INT, 0, NULL},
 };
 
 CConfig config(configs, CONFIG_MAX);

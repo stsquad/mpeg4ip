@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSServer.h
@@ -36,6 +36,7 @@
 
 #include "QTSServerInterface.h"
 
+class SDPTimeoutTask;
 class RTCPTask;
 class RTSPListenerSocket;
 class RTPSocketPool;
@@ -67,7 +68,7 @@ class QTSServer : public QTSServerInterface
 		// function may be called after the server has created threads, but the
 		// server must not be in a state where it can do real work. In other words,
 		// call this function right after calling Initialize.					
-		void InitModules();
+		void InitModules(QTSS_ServerState inEndState);
 		
 		//
 		// StartTasks
@@ -108,7 +109,8 @@ class QTSServer : public QTSServerInterface
 		// GLOBAL TASKS
 		RTCPTask* 			fRTCPTask;
 		RTPStatsUpdaterTask*fStatsTask;
-
+		SDPTimeoutTask		*fSDPTimeoutTask;
+		SessionTimeoutTask	*fSessionTimeoutTask;
 		static char*		sPortPrefString;
 		static XMLPrefsParser* sPrefsSource;
 		static PrefsSource* sMessagesSource;
@@ -134,6 +136,7 @@ class QTSServer : public QTSServerInterface
 		// Call module init roles
 		void 					DoInitRole();
 		void 					SetupPublicHeader();
+		UInt32					GetRTSPIPAddr(QTSServerPrefs* inPrefs);
 		
 		// Build & destroy the optimized role / module arrays for invoking modules
 		void 					BuildModuleRoleArrays();

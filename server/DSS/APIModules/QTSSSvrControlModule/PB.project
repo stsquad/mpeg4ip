@@ -21,7 +21,7 @@
     MAKEFILEDIR = "$(MAKEFILEPATH)/pb_makefiles"; 
     NEXTSTEP_BUILDTOOL = /bin/gnumake; 
     NEXTSTEP_COMPILEROPTIONS = "-D__MacOSXServer__ -DNeXT -include ../../PlatformHeader.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fhandle-exceptions -fcommon"; 
-    NEXTSTEP_INSTALLDIR = /lib; 
+    NEXTSTEP_INSTALLDIR = /localgibblies/lib; 
     NEXTSTEP_JAVA_COMPILER = /usr/bin/javac; 
     NEXTSTEP_OBJCPLUS_COMPILER = /usr/bin/cc; 
     PDO_UNIX_BUILDTOOL = $NEXT_ROOT/Developer/bin/make; 

@@ -37,14 +37,9 @@ public:
 	MP4AtomInfo() {
 		m_name = NULL;
 	}
-	MP4AtomInfo(char* name, bool mandatory, bool onlyOne) {
-		m_name = name;
-		m_mandatory = mandatory;
-		m_onlyOne = onlyOne;
-		m_count = 0;
-	}
+	MP4AtomInfo(const char* name, bool mandatory, bool onlyOne);
 
-	char* m_name;
+	const char* m_name;
 	bool m_mandatory;
 	bool m_onlyOne;
 	u_int32_t m_count;
@@ -54,20 +49,11 @@ MP4ARRAY_DECL(MP4AtomInfo, MP4AtomInfo*);
 
 class MP4Atom {
 public:
-	MP4Atom(char* type = NULL) {
-		SetType(type);
-		m_unknownType = FALSE;
-		m_pFile = NULL;
-		m_start = 0;
-		m_end = 0;
-		m_size = 0;
-		m_pParentAtom = NULL;
-		m_depth = 0xFF;
-	}
-	virtual ~MP4Atom() { };
+	MP4Atom(const char* type = NULL);
+	virtual ~MP4Atom();
 
 	static MP4Atom* ReadAtom(MP4File* pFile, MP4Atom* pParentAtom);
-	static MP4Atom* CreateAtom(char* type);
+	static MP4Atom* CreateAtom(const char* type);
 	static bool IsReasonableType(const char* type);
 
 	MP4File* GetFile() {
@@ -101,7 +87,7 @@ public:
 	const char* GetType() {
 		return m_type;
 	};
-	void SetType(char* type) {
+	void SetType(const char* type) {
 		if (type) {
 			WARNING(strlen(type) != 4);
 			memcpy(m_type, type, 4);
@@ -161,13 +147,17 @@ public:
 		return m_pChildAtoms.Size();
 	}
 
+	MP4Atom* GetChildAtom(u_int32_t index) {
+		return m_pChildAtoms[index];
+	}
+
 	MP4Property* GetProperty(u_int32_t index) {
 		return m_pProperties[index];
 	}
 
-	MP4Atom* FindAtom(char* name);
+	MP4Atom* FindAtom(const char* name);
 
-	bool FindProperty(char* name, 
+	bool FindProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
 
 	u_int8_t GetDepth();
@@ -179,37 +169,25 @@ public:
 	virtual void BeginWrite(bool use64 = false);
 	virtual void Write();
 	virtual void FinishWrite(bool use64 = false);
-	virtual void Dump(FILE* pFile, bool dumpImplicits);
+	virtual void Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits);
 
 protected:
-	void AddProperty(MP4Property* pProperty) {
-		ASSERT(pProperty);
-		m_pProperties.Add(pProperty);
-		pProperty->SetParentAtom(this);
-	}
+	void AddProperty(MP4Property* pProperty);
 
-	void AddVersionAndFlags() {
-		AddProperty(new MP4Integer8Property("version"));
-		AddProperty(new MP4Integer24Property("flags"));
-	}
+	void AddVersionAndFlags();
 
-	void AddReserved(char* name, u_int32_t size) {
-		MP4BytesProperty* pReserved = new MP4BytesProperty(name, size); 
-		pReserved->SetReadOnly();
-		AddProperty(pReserved);
-	}
+	void AddReserved(char* name, u_int32_t size);
 
-	void ExpectChildAtom(char* name, bool mandatory, bool onlyOne = true) {
-		m_pChildAtomInfos.Add(new MP4AtomInfo(name, mandatory, onlyOne));
-	}
+	void ExpectChildAtom(const char* name, 
+		bool mandatory, bool onlyOne = true);
 
 	MP4AtomInfo* FindAtomInfo(const char* name);
 
-	bool IsMe(char* name);
+	bool IsMe(const char* name);
 
-	MP4Atom* FindChildAtom(char* name);
+	MP4Atom* FindChildAtom(const char* name);
 
-	bool FindContainedProperty(char* name, 
+	bool FindContainedProperty(const char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex);
 
 	void ReadProperties(

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
- * Reserved.  This file contains Original Code and/or Modifications of
- * Original Code as defined in and that are subject to the Apple Public
- * Source License Version 1.1 (the "License").  You may not use this file
- * except in compliance with the License.  Please obtain a copy of the
- * License at http://www.apple.com/publicsource and read it before using
- * this file.
- * 
- * The Original Code and all software distributed under the License are
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
+ * read it before using this file.
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
  * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE OR NON- INFRINGEMENT.  Please see the
- * License for the specific language governing rights and limitations
- * under the License.
- * 
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSReflectorModule.cpp
@@ -70,6 +70,13 @@ static char* 				sRelayPrefs		 			= NULL;
 static char* 				sRelayStatsURL	 			= NULL;
 static StrPtrLen			sRequestHeader;
 static QTSS_ModulePrefsObject sPrefs					= NULL;
+
+#ifndef __Win32__
+static char*	sDefaultRelayPrefs		 		= "/etc/streaming/streamingrelay.conf";
+#else
+static char*	sDefaultRelayPrefs		 		= "c:\\Program Files\\Darwin Streaming Server\\streamingrelay.cfg";
+#endif
+
 
 static OSQueue* 	sSessionQueue = NULL;
 
@@ -220,7 +227,7 @@ QTSS_Error RereadPrefs()
 	delete [] sRelayPrefs;
 	delete [] sRelayStatsURL;
 	
-	sRelayPrefs = QTSSModuleUtils::GetStringPref(sPrefs, "relay_prefs_file", "");
+	sRelayPrefs = QTSSModuleUtils::GetStringPref(sPrefs, "relay_prefs_file", sDefaultRelayPrefs);
 	sRelayStatsURL = QTSSModuleUtils::GetStringPref(sPrefs, "relay_stats_url", "");
 
 	RereadRelayPrefs();
@@ -574,7 +581,7 @@ void FindSourceInfos(OSQueue* inFileQueue, OSQueue* inSessionQueue)
 				if (::memcmp(theBodyStr.Ptr + (theBodyStr.Len - sSDPSuffix.Len), sSDPSuffix.Ptr, sSDPSuffix.Len) == 0)
 				{
 					StrPtrLen theFileData;
-					QTSSModuleUtils::ReadEntireFile(theBodyStr.Ptr, &theFileData);
+					(void)QTSSModuleUtils::ReadEntireFile(theBodyStr.Ptr, &theFileData);
 					if (theFileData.Len > 0) // There is a Relay SDP file!
 					{
 						RelaySDPSourceInfo* theInfo = NEW RelaySDPSourceInfo(&theFileData);

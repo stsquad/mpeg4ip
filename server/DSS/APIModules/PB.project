@@ -13,18 +13,19 @@
             QTSSWebStatsModule, 
             QTSSSpamDefenseModule.bproj, 
             QTSSRawFileModule.bproj, 
-            QTSSAccessModule.bproj, 
             QTSSFilePrivsModule.bproj, 
             QTSSDemoAuthorizationModule.bproj, 
             QTSSPOSIXFileSysModule, 
             QTSSDemoSMILModule.bproj, 
             QTSSAdminModule, 
-            QTSSHttpFileModule
+            QTSSHttpFileModule, 
+            QTSSRTPFileModule, 
+            QTSSAccessModule
         ); 
     }; 
     LANGUAGE = English; 
     MAKEFILEDIR = "$(MAKEFILEPATH)/pb_makefiles"; 
-    NEXTSTEP_BUILDTOOL = /bin/gnumake; 
+    NEXTSTEP_BUILDTOOL = /usr/bin/gnumake; 
     NEXTSTEP_JAVA_COMPILER = /usr/bin/javac; 
     NEXTSTEP_OBJCPLUS_COMPILER = /usr/bin/cc; 
     PDO_UNIX_BUILDTOOL = $NEXT_ROOT/Developer/bin/make; 

@@ -1,25 +1,25 @@
 /*
- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
- * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
- * The contents of this file constitute Original Code as defined in and are 
- * subject to the Apple Public Source License Version 1.1 (the "License").  
- * You may not use this file except in compliance with the License.  Please 
- * obtain a copy of the License at http://www.apple.com/publicsource and 
+ *
+ * Copyright (c) 1999-2001 Apple Computer, Inc.  All Rights Reserved. The
+ * contents of this file constitute Original Code as defined in and are
+ * subject to the Apple Public Source License Version 1.2 (the 'License').
+ * You may not use this file except in compliance with the License.  Please
+ * obtain a copy of the License at http://www.apple.com/publicsource and
  * read it before using this file.
- * 
- * This Original Code and all software distributed under the License are 
- * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
- * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
- * the specific language governing rights and limitations under the 
- * License.
- * 
- * 
+ *
+ * This Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.  Please
+ * see the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ *
  * @APPLE_LICENSE_HEADER_END@
+ *
  */
 /*
 	File:		QTSSDictionary.h
@@ -46,10 +46,15 @@
 #include "MyAssert.h"
 #include "QTSSStream.h"
 
+class QTSSDictionary;
 class QTSSDictionaryMap;
+class QTSSAttrInfoDict;
 
 #define __DICTIONARY_TESTING__ 0
 
+//
+// Function prototype for attr functions
+typedef void* (*QTSS_AttrFunctionPtr)(QTSSDictionary* , UInt32* );
 
 class QTSSDictionary : public QTSSStream
 {
@@ -72,19 +77,11 @@ class QTSSDictionary : public QTSSStream
 			kDontCallCompletionRoutine = 2
 		};
 		
-		QTSS_Error SetFunctionParams(QTSS_FunctionParams *funcParams,QTSS_AttributeFuncSelector selector, QTSS_AttributeID inAttrID, UInt32 inIndex,
-											void** outValueBuffer, UInt32* outValueLen);
-
 		// This version of GetValue copies the element into a buffer provided by the caller
 		// Returns: 	QTSS_BadArgument, QTSS_NotPreemptiveSafe (if attribute is not preemptive safe),
 		//				QTSS_BadIndex (if inIndex is bad)
 		QTSS_Error GetValue(QTSS_AttributeID inAttrID, UInt32 inIndex, void* ioValueBuffer, UInt32* ioValueLen);
 
-		// Support for attribute function pointers
-		inline void SetFunctionTypeParams(QTSS_FunctionParams *funcParamsPtr, QTSS_AttributeFuncSelector selector, QTSS_AttributeID inAttrID, UInt32 inIndex);
-		Bool16  GetSetValuePtrFunc(QTSS_AttrParamFunctionPtr theFuncPtr, QTSS_AttributeFuncSelector selector, QTSS_AttributeID inAttrID, UInt32 inIndex, void** ioValueBuffer, UInt32* ioValueLen, QTSS_Error* handledErrorPtr);
-
-		Bool16  GetSetNumValuePtrFunc(QTSS_AttrParamFunctionPtr theFuncPtr,QTSS_AttributeFuncSelector selector,QTSS_AttributeID inAttrID, UInt32 inIndex, UInt32 *numValuesPtr, UInt32* ioValueLenPtr, QTSS_Error* handledErrorPtr);
 
 		//This version of GetValue returns a pointer to the internal buffer for the attribute.
 		//Only usable if the attribute is preemptive safe.
@@ -107,6 +104,11 @@ class QTSSDictionary : public QTSSStream
 		// Returns:		QTSS_BadArgument, QTSS_ReadOnly, QTSS_BadIndex
 		QTSS_Error RemoveValue(QTSS_AttributeID inAttrID, UInt32 inIndex, UInt32 inFlags = kNoFlags);
 		
+		// Utility routine used by the two external flavors of GetValue
+		QTSS_Error GetValuePtr(QTSS_AttributeID inAttrID, UInt32 inIndex,
+											void** outValueBuffer, UInt32* outValueLen,
+											Bool16 isInternal);
+
 		//
 		// ACCESSORS
 		
@@ -128,16 +130,17 @@ class QTSSDictionary : public QTSSStream
 		OSMutex*	GetMutex() { return fMutexP; }
 
 		//
+		// GETTING ATTRIBUTE INFO
+		QTSS_Error GetAttrInfoByIndex(UInt32 inIndex, QTSSAttrInfoDict** outAttrInfoDict);
+		QTSS_Error GetAttrInfoByName(const char* inAttrName, QTSSAttrInfoDict** outAttrInfoDict);
+		QTSS_Error GetAttrInfoByID(QTSS_AttributeID inAttrID, QTSSAttrInfoDict** outAttrInfoDict);
+		
+
+		//
 		// INSTANCE ATTRIBUTES
 		
-		//
-		// Caller can allow / disallow instance attributes. Currently,
-		// by default they are not allowed
-		void		SetInstanceAttrsAllowed(Bool16 areInstanceAttrsAllowed)
-			{ fInstanceAttrsAllowed = areInstanceAttrsAllowed; }
-		
 		QTSS_Error	AddInstanceAttribute(	const char* inAttrName,
-											QTSS_AttrParamFunctionPtr inFuncPtr,
+											QTSS_AttrFunctionPtr inFuncPtr,
 											QTSS_AttrDataType inDataType,
 											QTSS_AttrPermission inPermission );
 											
@@ -171,18 +174,15 @@ class QTSSDictionary : public QTSSStream
 
 	private:
 	
-		// Utility routine used by the two external flavors of GetValue
-		QTSS_Error GetValuePtr(QTSS_AttributeID inAttrID, UInt32 inIndex,
-											void** outValueBuffer, UInt32* outValueLen,
-											Bool16 isInternal);
-
 		struct DictValueElement
 		{
 			// This stores all necessary information for each attribute value.
 			
 			DictValueElement() : 	fAllocatedLen(0), fNumAttributes(0),
 									fAllocatedInternally(false) {}
-			~DictValueElement() { if (fAllocatedInternally) delete [] fAttributeData.Ptr; }
+									
+			// Does not delete! You Must call DeleteAttributeData for that
+			~DictValueElement() {}
 			
 			StrPtrLen	fAttributeData;	// The data
 			UInt32		fAllocatedLen;	// How much space do we have allocated?
@@ -196,7 +196,8 @@ class QTSSDictionary : public QTSSStream
 		QTSSDictionaryMap* 	fMap;
 		QTSSDictionaryMap* 	fInstanceMap;
 		OSMutex*			fMutexP;
-		Bool16				fInstanceAttrsAllowed;
+		
+		void DeleteAttributeData(DictValueElement* inDictValues, UInt32 inNumValues);
 };
 
 
@@ -209,7 +210,7 @@ class QTSSAttrInfoDict : public QTSSDictionary
 			// This is all the relevent information for each dictionary
 			// attribute.
 			char 					fAttrName[QTSS_MAX_ATTRIBUTE_NAME_SIZE + 1];
-			QTSS_AttrParamFunctionPtr 	fFuncPtr;
+			QTSS_AttrFunctionPtr 	fFuncPtr;
 			QTSS_AttrDataType		fAttrDataType;
 			QTSS_AttrPermission		fAttrPermission;
 		};
@@ -244,6 +245,8 @@ class QTSSDictionaryMap
 			kNoFlags		= 0,
 			kAllowRemoval 	= 1,
 			kIsInstanceMap 	= 2,
+			kInstanceAttrsAllowed = 4,
+			kCompleteFunctionsAllowed = 8
 		};
 		
 		//
@@ -257,7 +260,7 @@ class QTSSDictionaryMap
 				
 		// All functions either return QTSS_BadArgument or QTSS_NoErr
 		QTSS_Error 		AddAttribute(	const char* inAttrName,
-										QTSS_AttrParamFunctionPtr inFuncPtr,
+										QTSS_AttrFunctionPtr inFuncPtr,
 										QTSS_AttrDataType inDataType,
 										QTSS_AttrPermission inPermission );
 										
@@ -272,10 +275,6 @@ class QTSSDictionaryMap
 		QTSS_Error	GetAttrInfoByID(QTSS_AttributeID inID, QTSSAttrInfoDict** outAttrInfoDict);
 		QTSS_Error	GetAttrInfoByIndex(UInt32 inIndex, QTSSAttrInfoDict** outAttrInfoDict);
 		QTSS_Error	GetAttrID(const char* inAttrName, QTSS_AttributeID* outID);
-
-		
-		QTSS_Error TestAttributeExistsByID(QTSS_AttributeID inID);
-		QTSS_Error TestAttributeExistsByName(const char* inAttrName);
 		
 		//
 		// PRIVATE ATTR PERMISSIONS
@@ -286,7 +285,7 @@ class QTSSDictionaryMap
 
 		//
 		// CONVERTING attribute IDs to array indexes. Returns -1 if inAttrID doesn't exist
-		SInt32					ConvertAttrIDToArrayIndex(QTSS_AttributeID inAttrID);
+		inline SInt32					ConvertAttrIDToArrayIndex(QTSS_AttributeID inAttrID);
 
 		static Bool16			IsInstanceAttrID(QTSS_AttributeID inAttrID)
 			{ return (inAttrID & 0x80000000) != 0; }
@@ -308,7 +307,7 @@ class QTSSDictionaryMap
 		Bool16					IsRemoved(UInt32 inIndex) 
 			{ Assert(inIndex < fNextAvailableID); return fAttrArray[inIndex]->fAttrInfo.fAttrPermission & qtssPrivateAttrModeRemoved; }
 
-		QTSS_AttrParamFunctionPtr	GetAttrFunction(UInt32 inIndex)
+		QTSS_AttrFunctionPtr	GetAttrFunction(UInt32 inIndex)
 			{ Assert(inIndex < fNextAvailableID); return fAttrArray[inIndex]->fAttrInfo.fFuncPtr; }
 			
 		char*					GetAttrName(UInt32 inIndex)
@@ -319,7 +318,9 @@ class QTSSDictionaryMap
 
 		QTSS_AttrDataType		GetAttrType(UInt32 inIndex)
 			{ Assert(inIndex < fNextAvailableID); return fAttrArray[inIndex]->fAttrInfo.fAttrDataType; }
-			
+		
+		Bool16					InstanceAttrsAllowed() { return fFlags & kInstanceAttrsAllowed; }
+		Bool16					CompleteFunctionsAllowed() { return fFlags & kCompleteFunctionsAllowed; }
 
 		// MODIFIERS
 		
@@ -327,7 +328,7 @@ class QTSSDictionaryMap
 		
 		void 		SetAttribute(	QTSS_AttributeID inID, 
 									const char* inAttrName,
-									QTSS_AttrParamFunctionPtr inFuncPtr,
+									QTSS_AttrFunctionPtr inFuncPtr,
 									QTSS_AttrDataType inDataType,
 									QTSS_AttrPermission inPermission );
 
@@ -355,8 +356,9 @@ class QTSSDictionaryMap
 			kModuleDictIndex	 			= 10,
 			kModulePrefsDictIndex			= 11,
 			kAttrInfoDictIndex				= 12,
+			kQTSSUserProfileDictIndex		= 13,
 
-			kNumDictionaries				= 13,
+			kNumDictionaries				= 14,
 			kIllegalDictionary				= kNumDictionaries
 		};
 		
@@ -387,5 +389,15 @@ class QTSSDictionaryMap
 		
 		friend class QTSSDictionary;
 };
+
+inline SInt32	QTSSDictionaryMap::ConvertAttrIDToArrayIndex(QTSS_AttributeID inAttrID)
+{
+	SInt32 theIndex = inAttrID & 0x7FFFFFFF;
+	if ((theIndex < 0) || (theIndex >= (SInt32)fNextAvailableID))
+		return -1;
+	else
+		return theIndex;
+}
+
 
 #endif

@@ -28,6 +28,7 @@
 #include "divx.h"
 #include "divx_file.h"
 #include <divxif.h>
+#include "player_util.h"
 
 static unsigned int c_get (void *ud)
 {

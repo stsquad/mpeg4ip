@@ -38,7 +38,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /w /W0 /Gm /GX /ZI /Od /I "../" /I "../CommonUtilitiesLib/" /I "../QTFileLib/" /I "../RTPMetaInfoLib/" /I "../PrefsSourceLib/" /I "../APIModules/" /I "../APIStubLib/" /I "../APICommonCode/" /I "../RTCPUtilitiesLib/" /FI"../WinNTSupport/Win32header.h" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /FD /GZ /c
+# ADD CPP /nologo /w /W0 /Gm /ZI /Od /I "../" /I "../CommonUtilitiesLib/" /I "../QTFileLib/" /I "../RTPMetaInfoLib/" /I "../RTSPClientLib/" /I "../APIModules/" /I "../APIStubLib/" /I "../APICommonCode/" /I "../RTCPUtilitiesLib/" /FI"../WinNTSupport/Win32header.h" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /FD /I /GZ "../PrefsSourceLib/" /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -55,7 +55,15 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\BroadcasterSession.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\BroadcastLog.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\RTSPClientLib\ClientSocket.cpp
 # End Source File
 # Begin Source File
 
@@ -117,10 +125,26 @@ SOURCE=.\PLBroadcastDef.cpp
 
 SOURCE=..\APICommonCode\QTSSRollingLog.cpp
 # End Source File
+# Begin Source File
+
+SOURCE=..\RTSPClientLib\RTSPClient.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\APICommonCode\SDPSourceInfo.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\APICommonCode\SourceInfo.cpp
+# End Source File
 # End Group
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# End Group
+# Begin Group "Header Files"
+
+# PROP Default_Filter ""
 # End Group
 # Begin Source File
 
