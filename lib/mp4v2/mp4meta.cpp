@@ -102,7 +102,7 @@ bool MP4File::CreateMetadataAtom(const char* name)
         return false;
 
     /* some fields need special flags set */
-    if (name[0] == '©')
+    if ((uint8_t)name[0] == 0251)
     {
         pMetaAtom->SetFlags(0x1);
     } else if ((memcmp(name, "cpil", 4) == 0) || (memcmp(name, "tmpo", 4) == 0)) {

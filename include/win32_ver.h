@@ -1,2 +1,2 @@
 #define PACKAGE "mpeg4ip"
-#define VERSION "1.0RC2.1"
+#define VERSION "1.0RC3"

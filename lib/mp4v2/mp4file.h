@@ -39,7 +39,7 @@ public: /* equivalent to MP4 library API */
 
 	/* file operations */
 	void Read(const char* fileName);
-	void Create(const char* fileName, bool use64bits);
+	void Create(const char* fileName, u_int32_t flags);
 	void Modify(const char* fileName);
 	void Optimize(const char* orgFileName, 
 		const char* newFileName = NULL);
@@ -55,9 +55,7 @@ public: /* equivalent to MP4 library API */
 		m_verbosity = verbosity;
 	}
 
-	bool Use64Bits() {
-		return m_use64bits;
-	}
+	bool Use64Bits(const char *atomName);
 
 	/* file properties */
 
@@ -671,7 +669,7 @@ protected:
 	MP4TrackId		m_odTrackId;
 	u_int32_t		m_verbosity;
 	char			m_mode;
-	bool			m_use64bits;
+	u_int32_t               m_createFlags;
 	bool			m_useIsma;
 
 	// cached properties

@@ -78,7 +78,6 @@ CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr) : CVideoSync(psptr)
   m_consec_skipped = 0;
   m_fullscreen = 0;
   m_filled_frames = 0;
-  m_double_width = 0;
   m_pixel_width = 0;
   m_pixel_height = 0;
   m_max_width = 0;
@@ -120,10 +119,11 @@ CSDLVideoSync::~CSDLVideoSync (void)
  * CSDLVideoSync::config - routine for the codec to call to set up the
  * width, height and frame_rate of the video
  */
-void CSDLVideoSync::config (int w, int h)
+void CSDLVideoSync::config (int w, int h, double aspect_ratio)
 {
   m_width = w;
   m_height = h;
+  m_aspect_ratio = aspect_ratio;
   for (int ix = 0; ix < MAX_VIDEO_BUFFERS; ix++) {
     m_y_buffer[ix] = (uint8_t *)malloc(w * h * sizeof(uint8_t));
     m_u_buffer[ix] = (uint8_t *)malloc(w/2 * h/2 * sizeof(uint8_t));
@@ -174,7 +174,6 @@ int CSDLVideoSync::initialize_video (const char *name, int x, int y)
 #endif
       }
       int w = m_width * video_scale / 2;
-      if (m_double_width) w *= 2;
       int h = m_height * video_scale / 2;
       m_screen = SDL_SetVideoMode(w,
 				  h,
@@ -626,10 +625,6 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
 #endif
   // Save values for future use (i.e. -1 values as argument will
   // restore an argument.)
-  if (pixel_width > -1) m_pixel_width = pixel_width;
-  if (pixel_height > -1) m_pixel_height = pixel_height;
-  if (max_width > -1) m_max_width = max_width;
-  if (max_height > -1) m_max_height = max_height;
 
   if (m_image) {
     SDL_FreeYUVOverlay(m_image);
@@ -655,9 +650,13 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
   }
 
   int win_w = m_width * video_scale / 2;
-  if (m_double_width) win_w *= 2;
   int win_h = m_height * video_scale / 2;
     
+  if (pixel_width > -1) m_pixel_width = pixel_width;
+  if (pixel_height > -1) m_pixel_height = pixel_height;
+  if (max_width > -1) m_max_width = max_width;
+  if (max_height > -1) m_max_height = max_height;
+
   // Check and see if we should use old values.
   if (pixel_width == -1 && m_pixel_width) pixel_width = m_pixel_width;
   if (pixel_height == -1 && m_pixel_height) pixel_height = m_pixel_height;
@@ -684,13 +683,22 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
 	else win_h = win_w * pixel_height / pixel_width;
       }
     }
+  } else {
+    // this case is when we set it from the aspect ratio defined.
+    if (m_aspect_ratio != 0.0) {
+      double win_wf = m_aspect_ratio;
+      win_wf *= win_h;
+      video_message(LOG_INFO, "aspect ration %g %g %d %d", 
+		    m_aspect_ratio, win_wf, win_w, win_h);
+      win_w = (int)win_wf;
+    }
   }
   if (m_fullscreen == 1) {
     if (max_width > 0 && win_w > max_width) win_w = max_width;
     if (max_height > 0 && win_h > max_height) win_h = max_height;
   }
-  video_message(LOG_DEBUG, "Setting video mode %d %d %x", 
-		win_w, win_h, mask);
+  video_message(LOG_DEBUG, "Setting video mode %d %d %x %g", 
+		win_w, win_h, mask, m_aspect_ratio);
   m_screen = SDL_SetVideoMode(win_w, win_h, m_video_bpp, 
 			      mask);
   if (m_screen == NULL) {
@@ -721,18 +729,14 @@ void CSDLVideoSync::do_video_resize (int pixel_width,
   }
 }
 
-void CSDLVideoSync::double_width (void)
-{
-  m_double_width = 1;
-}
-
 static void c_video_configure (void *ifptr,
-			      int w,
-			      int h,
-			      int format)
+			       int w,
+			       int h,
+			       int format,
+			       double aspect_ratio)
 {
   // asdf - ignore format for now
-  ((CSDLVideoSync *)ifptr)->config(w, h);
+  ((CSDLVideoSync *)ifptr)->config(w, h, aspect_ratio);
 }
 
 static int c_video_get_buffer (void *ifptr, 

@@ -123,7 +123,8 @@ static int h261_decode (codec_data_t *ptr,
     h261->m_vft->video_configure(h261->m_ifptr, 
 				 h261->m_w,
 				 h261->m_h,
-				 VIDEO_FORMAT_YUV);
+				 VIDEO_FORMAT_YUV,
+				 0.0);
     h261->m_initialized = 1;
   }
 

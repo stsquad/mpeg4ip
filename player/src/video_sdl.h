@@ -49,7 +49,7 @@ class CSDLVideoSync : public CVideoSync {
 		       int m_pixelw_y,
 		       int m_pixelw_uv,
 		       uint64_t time);
-  void config (int w, int h); // from codec
+  void config (int w, int h, double aspect_ratio); // from codec
   void set_wait_sem (SDL_sem *p) { m_decode_sem = p; };  // from set up
   void flush_decode_buffers(void);    // from decoder task in response to stop
   void flush_sync_buffers(void);      // from sync task in response to stop
@@ -58,16 +58,15 @@ class CSDLVideoSync : public CVideoSync {
   void set_fullscreen(int fullscreen);
   int get_fullscreen (void) { return m_fullscreen; };
   void do_video_resize(int m_pixel_width = -1, int m_pixel_height = -1, int m_max_width = -1, int m_max_height = -1);
-  void double_width(void);
  private:
   int m_video_bpp;
   int m_video_scale;
   int m_fullscreen;
   unsigned int m_width, m_height;
+  double m_aspect_ratio;
   int m_video_initialized;
   int m_config_set;
   int m_paused;
-  int m_double_width;
   volatile int m_have_data;
   SDL_Surface *m_screen;
   SDL_Overlay *m_image;

@@ -140,6 +140,7 @@ typedef struct
 /* Pointers to frame buffers. */
 	unsigned char *newframe[3];
 	int horizontal_size, vertical_size, mb_width, mb_height;
+  int aspect_ratio_define;
 	int coded_picture_width,  coded_picture_height;
 	int chroma_format, chrom_width, chrom_height, blk_cnt;
 	int pict_type;

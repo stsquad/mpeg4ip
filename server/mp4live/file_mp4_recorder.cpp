@@ -121,7 +121,10 @@ void CMp4Recorder::DoStartRecord()
   bool hugeFile = 
     (duration > 0xFFFFFFFF) 
     || (m_pConfig->m_recordEstFileSize > 1000000000LLU);
- 
+  uint32_t createFlags = 0;
+  if (hugeFile) {
+    createFlags |= MP4_CREATE_64BIT_DATA;
+  }
   debug_message("Creating huge file - %s", hugeFile ? "yes" : "no");
   u_int32_t verbosity =
     MP4_DETAILS_ERROR /* DEBUG | MP4_DETAILS_WRITE_ALL */;
@@ -129,7 +132,7 @@ void CMp4Recorder::DoStartRecord()
   if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_OVERWRITE)) {
     m_mp4File = MP4Create(
                           m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-                          verbosity, hugeFile);
+                          verbosity, createFlags);
   } else {
     m_mp4File = MP4Modify(
                           m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),

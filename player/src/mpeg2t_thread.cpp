@@ -446,9 +446,6 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
       vinfo = MALLOC_STRUCTURE(video_info_t);
       vinfo->height = vq[ix].h;
       vinfo->width = vq[ix].w;
-      if (vinfo->height == 480 && vinfo->width == 352) {
-	psptr->double_screen_width();
-      }
       plugin = check_for_video_codec("MPEG2 TRANSPORT",
 				     NULL,
 				     vq[ix].type,

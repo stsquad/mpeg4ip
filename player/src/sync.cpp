@@ -156,9 +156,6 @@ int CPlayerSession::process_msg_queue (int state)
       if (m_video_sync) {
 	m_video_sync->set_screen_size(m_screen_scale);
 	m_video_sync->set_fullscreen(m_fullscreen);
-	if (m_double_screen_width == 1) {
-	  m_video_sync->double_width();
-	}
 	m_video_sync->do_video_resize(m_pixel_width, m_pixel_height);
       }
       break;
@@ -190,9 +187,6 @@ int CPlayerSession::sync_thread_init (void)
       // initialize the video size from the player session information
       m_video_sync->set_screen_size(m_screen_scale);
       m_video_sync->set_fullscreen(m_fullscreen);
-      if (m_double_screen_width == 1) {
-	m_video_sync->double_width();
-      }
       ret = m_video_sync->initialize_video(m_session_name,
 					   m_screen_pos_x,
 					   m_screen_pos_y);

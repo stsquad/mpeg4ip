@@ -1114,11 +1114,11 @@ Void CVideoObjectDecoder::decodeVOLBody()
 	}
 	//ASSERT(uiOLI == 0);
 	
-	UInt uiAspect = m_pbitstrmIn -> getBits (4);
-	if(uiAspect==15) // extended PAR
+	m_ivolAspectRatio = m_pbitstrmIn -> getBits (4);
+	if(m_ivolAspectRatio==15) // extended PAR
 	{
-	  /* UInt iParWidth = wmay */ m_pbitstrmIn -> getBits (8);
-	  /* UInt iParHeight = wmay */m_pbitstrmIn -> getBits (8);
+	  m_ivolAspectWidth = m_pbitstrmIn -> getBits (8);
+	  m_ivolAspectHeight = m_pbitstrmIn -> getBits (8);
 	}
 
 	UInt uiMark;

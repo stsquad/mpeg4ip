@@ -99,12 +99,12 @@ session_state_t
 
 int 	parse_name_for_c_session(CPS* s, const char* name, char* errmsg, unsigned int len)
 {
-	return parse_name_for_session(s->p, name, errmsg, len);
+	return parse_name_for_session(s->p, name, errmsg, len, NULL);
 }
 
+extern "C" void initialize_plugins(void);
 void player_initialize_plugins(void)
 {
-  extern void initialize_plugins(void);
   initialize_plugins();
 }
 

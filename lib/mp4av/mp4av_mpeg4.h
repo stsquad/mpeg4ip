@@ -61,8 +61,10 @@ bool MP4AV_Mpeg4ParseVol(
 	u_int16_t* pTimeTicks, 
 	u_int16_t* pFrameDuration, 
 	u_int16_t* pFrameWidth, 
-	u_int16_t* pFrameHeight);
-
+	u_int16_t* pFrameHeight,
+	u_int8_t * aspectRatioDefine DEFAULT_PARM(NULL),
+	u_int8_t * aspectRatioWidth DEFAULT_PARM(NULL),
+	u_int8_t * aspectRatioHeight DEFAULT_PARM(NULL));
 bool MP4AV_Mpeg4CreateVol(
 	u_int8_t** ppBytes,
 	u_int32_t* pNumBytes,

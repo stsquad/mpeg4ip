@@ -65,9 +65,6 @@ static int create_mpeg3_video (video_query_t *vq,
   vinfo->height = vq->h;
   vinfo->width = vq->w;
 
-  if (vinfo->height == 480 && vinfo->width == 352) {
-    psptr->double_screen_width();
-  }
   char buffer[80];
   int bitrate;
   ret = snprintf(buffer, 80, "MPEG-%d Video, %d x %d, %g",

@@ -38,7 +38,7 @@ DEFINE_MESSAGE_MACRO(video_message, "videosync")
  * CDummyVideoSync::config - routine for the codec to call to set up the
  * width, height and frame_rate of the video
  */
-void CDummyVideoSync::config (int w, int h)
+void CDummyVideoSync::config (int w, int h, double aspect_ratio)
 {
   m_width = w;
   m_height = h;
@@ -98,10 +98,11 @@ void CDummyVideoSync::double_width (void)
 static void c_video_configure (void *ifptr,
 			      int w,
 			      int h,
-			      int format)
+			      int format,
+			       double aspect_ratio)
 {
   // asdf - ignore format for now
-  ((CDummyVideoSync *)ifptr)->config(w, h);
+  ((CDummyVideoSync *)ifptr)->config(w, h, aspect_ratio);
 }
 
 static int c_video_get_buffer (void *ifptr, 

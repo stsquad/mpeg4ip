@@ -1,4 +1,4 @@
-.TH "MP4" "3" "Version 0.9" "Cisco Systems Inc." "MP4 File Format Library"
+.TH "MP4" "3" "Version 1.0" "Cisco Systems Inc." "MP4 File Format Library"
 .SH "NAME"
 .LP 
 \fBMP4Modify\fR \- Modify an existing mp4 file
@@ -12,7 +12,7 @@ MP4FileHandle \fBMP4Modify\fR(
 .br 
 	u_int32_t \fIverbosity\fP = 0,
 .br 
-	bool \fIuseExtensibleFormat\fP = 0
+	u_int32_t \fIflags\fP = 0
 .br 
 );
 
@@ -25,8 +25,8 @@ Specifies the path name of the file to be modified.
 \fIverbosity\fP
 Specifies a bitmask of diagnostic details the library should print to stdout during its functioning. See MP4SetVerbosity() for values.
 .TP 
-\fIuseExtensibleFormat\fP
-Currently ignored. When implemented it will use extensions to the mp4 file format to allow incremental additions to media tracks.
+\fIflags\fP
+Currently ignored. 
 .SH "RETURN VALUES"
 .LP 
 Upon successful completion the function returns a handle to the mp4 file. This is used in subsequent calls to the library to modify the file.

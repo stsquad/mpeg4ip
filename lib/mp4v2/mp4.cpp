@@ -52,13 +52,14 @@ extern "C" MP4FileHandle MP4Read(const char* fileName, u_int32_t verbosity)
 }
 
 extern "C" MP4FileHandle MP4Create(const char* fileName, 
-	u_int32_t verbosity, bool use64bits, bool useExtensibleFormat)
+				   u_int32_t verbosity, 
+				   u_int32_t flags)
 {
 	MP4File* pFile = NULL;
 	try {
 		pFile = new MP4File(verbosity);
 		// LATER useExtensibleFormat, moov first, then mvex's
-		pFile->Create(fileName, use64bits);
+		pFile->Create(fileName, flags);
 		return (MP4FileHandle)pFile;
 	}
 	catch (MP4Error* e) {
@@ -70,7 +71,7 @@ extern "C" MP4FileHandle MP4Create(const char* fileName,
 }
 
 extern "C" MP4FileHandle MP4Modify(const char* fileName, 
-	u_int32_t verbosity, bool useExtensibleFormat)
+	u_int32_t verbosity, u_int32_t flags)
 {
 	MP4File* pFile = NULL;
 	try {

@@ -27,6 +27,12 @@ To delete an undesired track from an existing mp4 file, use the "\-delete=<track
 Detailed diagnostics are available via the "\-verbosity=<level>" option. Levels 1\-5 are available.
 .SH "OPTIONS"
 .LP 
+.TP
+\fB\-aac-old-file-format\fR
+Use 58 bit ADTS headers in aac file
+.TP
+\fB\-aac-profile=[\fI2|4\fP]
+Force AAC to mpeg2 or mpeg4 profile
 .TP 
 \fB\-c, \-create\fR=<\fIfile\fP>
 Create a media track using <\fIfile\fP>. File must have either .mp3 .aac .divx or .mp4v extension.
@@ -48,12 +54,21 @@ Print a list of tracks in the specified mp4 file and exit.
 .TP 
 \fB\-m, \-mtu\fR=<\fIsize\fP>
 Specifies the network maximum transmission unit (MTU) to use when creating hint tracks. The default value is 1500.
+.TP
+\fB\-mpeg4-video-profile=<\fIlevel\fP> 
+Mpeg4 video profile override
 .TP 
 \fB\-O, \-optimize\fR
 Optimize the layout of the mp4 file to interleave the data in time, hence reducing disk seeks during streaming or playback. This also arranges the mp4 file so that the media control information is at the beginning of the file. This allows HTTP streaming of the mp4 file.
 .TP 
 \fB\-r, \-rate\fR=<\fIfps\fP>
 Specifies video frame rate (frames per second) when creating a video media track. The value can be either an integer or floating point number. It may be necessary to specify this parameter for some MPEG\-4 video streams due to encoding bugs.
+.TP
+\fB\-use64bits\fR
+Allow use of larger than 2GB worth of data in the resulting mp4file.  This option must be used during creation.
+.TP
+\fB\-use64bitstime\fR
+Allow the use of 64 bit timestamps.  This option must be used during creation.  Use of this option will not allow local playback on Quicktime
 .TP 
 \fB\-v, \-verbosity\fR=<\fIlevel\fP>
 Causes increasing levels of diagnostics to be printed. A level includes details of all lower levels. Levels are:

@@ -26,6 +26,8 @@
 
 #include <mpeg4ip.h>
 #include <sdp.h>
+
+#define PLUGIN_VERSION "0.7"
 /***************************************************************************
  *  Audio callbacks from plugin to renderer
  ***************************************************************************/
@@ -106,13 +108,15 @@ typedef struct audio_vft_t {
  *         w - width in pixels
  *         h - height in pixels
  *         format - right now, only VIDEO_FORMAT_YUV
+ *         aspect_ratio - 0.0 for default, set for value (value will
+ *           adjust so display_w = h * aspect_ratio;
  * Outputs: none
  */
 typedef void (*video_configure_f)(void *ifptr,
 				  int w,
 				  int h,
-				  int format);
-
+				  int format,
+				  double aspect_ratio);
 /*
  * video_get_buffer_f - request y, u and v buffers before decoding
  * Inputs: ifptr - handle
@@ -368,8 +372,6 @@ typedef struct codec_plugin_t {
 #define DLL_EXPORT
 #endif
 
-
-#define PLUGIN_VERSION "0.6"
 
 /*
  * Use this for an audio plugin without raw file support

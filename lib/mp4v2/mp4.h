@@ -275,17 +275,20 @@ extern "C" {
 #endif
 
 /* file operations */
+#define MP4_CREATE_64BIT_DATA (0x01)
+#define MP4_CREATE_64BIT_TIME (0x02) // Quicktime is not compatible with this
+#define MP4_CREATE_64BIT (MP4_CREATE_64BIT_DATA | MP4_CREATE_64BIT_TIME)
+#define MP4_CREATE_EXTENSIBLE_FORMAT (0x04)
 
 MP4FileHandle MP4Create(
 	const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
-	bool use64bits DEFAULT(0),
-	bool useExtensibleFormat DEFAULT(0));
+	u_int32_t flags DEFAULT(0));
 
 MP4FileHandle MP4Modify(
 	const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
-	bool useExtensibleFormat DEFAULT(0));
+	u_int32_t flags DEFAULT(0));
 
 MP4FileHandle MP4Read(
 	const char* fileName, 

@@ -16,8 +16,8 @@
  * SOFTWARE.
  */
 
-#ifndef HAVE_INET_PTON
 #include "config_unix.h"
+#ifndef HAVE_INET_PTON
 #include "config_win32.h"
 #include "inet_pton.h"
 

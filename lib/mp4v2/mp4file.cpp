@@ -33,7 +33,7 @@ MP4File::MP4File(u_int32_t verbosity)
 
 	m_verbosity = verbosity;
 	m_mode = 0;
-	m_use64bits = false;
+	m_createFlags = 0;
 	m_useIsma = false;
 
 	m_pModificationProperty = NULL;
@@ -72,11 +72,11 @@ void MP4File::Read(const char* fileName)
 	CacheProperties();
 }
 
-void MP4File::Create(const char* fileName, bool use64bits)
+void MP4File::Create(const char* fileName, u_int32_t flags)
 {
 	m_fileName = MP4Stralloc(fileName);
 	m_mode = 'w';
-	m_use64bits = use64bits;
+	m_createFlags = flags;
 
 	Open("wb+");
 
@@ -94,6 +94,21 @@ void MP4File::Create(const char* fileName, bool use64bits)
 	m_pRootAtom->BeginWrite();
 }
 
+bool MP4File::Use64Bits (const char *atomName)
+{
+  if (!strcmp(atomName, "mdat") || !strcmp(atomName, "stbl")) {
+    return (m_createFlags & MP4_CREATE_64BIT_DATA) == MP4_CREATE_64BIT_DATA;
+  }
+
+  if (!strcmp(atomName, "mvhd") || 
+      !strcmp(atomName, "tkhd") ||
+      !strcmp(atomName, "mdhd")) {
+    return (m_createFlags & MP4_CREATE_64BIT_TIME) == MP4_CREATE_64BIT_TIME;
+  }
+  return false;
+}
+
+    
 void MP4File::Modify(const char* fileName)
 {
 	m_fileName = MP4Stralloc(fileName);
@@ -481,7 +496,9 @@ void MP4File::FinishWrite()
 		MP4Atom* pFreeAtom = MP4Atom::CreateAtom("free");
 		ASSERT(pFreeAtom);
 		pFreeAtom->SetFile(this);
-		pFreeAtom->SetSize(MAX(m_orgFileSize - (m_fileSize + 8), 0));
+		int64_t size = m_orgFileSize - (m_fileSize + 8);
+		if (size < 0) size = 0;
+		pFreeAtom->SetSize(size);
 		pFreeAtom->Write();
 		delete pFreeAtom;
 	}

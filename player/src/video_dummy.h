@@ -50,7 +50,7 @@ class CDummyVideoSync : public CVideoSync {
 		      int m_pixelw_y,
 		      int m_pixelw_uv,
 		      uint64_t time);
-  void config (int w, int h); // from codec
+  void config (int w, int h, double aspect_ratio); // from codec
   void double_width(void);
  protected:
   int m_width;

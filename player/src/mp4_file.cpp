@@ -133,11 +133,6 @@ int CMp4File::create_video(CPlayerSession *psptr,
       if (mptr == NULL) {
 	return (-1);
       }
-      if (MP4_IS_MPEG2_VIDEO_TYPE(vq[ix].type) &&
-	  (vq[ix].h == 480 &&
-	   vq[ix].w == 352)) {
-	psptr->double_screen_width();
-      }
 						  
       video_info_t *vinfo;
       vinfo = (video_info_t *)malloc(sizeof(video_info_t));

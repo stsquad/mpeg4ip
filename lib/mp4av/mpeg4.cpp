@@ -161,9 +161,14 @@ extern "C" bool MP4AV_Mpeg4ParseVol(
 	u_int16_t* pTimeTicks, 
 	u_int16_t* pFrameDuration, 
 	u_int16_t* pFrameWidth, 
-	u_int16_t* pFrameHeight)
+	u_int16_t* pFrameHeight,
+	u_int8_t * aspectRatioDefine,
+	u_int8_t * aspectRatioWidth,
+	u_int8_t * aspectRatioHeight)
+
 {
 	CMemoryBitstream vol;
+	uint8_t aspect;
 
 	vol.SetBytes(pVolBuf, volSize);
 
@@ -177,9 +182,18 @@ extern "C" bool MP4AV_Mpeg4ParseVol(
 			verid = vol.GetBits(4);			// object layer verid
 			vol.SkipBits(3);				// object layer priority
 		}
-		if (vol.GetBits(4) == 0xF) { 	// aspect ratio info
-			vol.SkipBits(8);				// par width
-			vol.SkipBits(8);				// par height
+		aspect = vol.GetBits(4);
+		if (aspectRatioDefine != NULL)
+		  *aspectRatioDefine = aspect;
+		if (aspect == 0xF) { 	// aspect ratio info
+		  if (aspectRatioWidth != NULL) 
+		    *aspectRatioWidth = vol.GetBits(8);
+		  else
+		    vol.SkipBits(8);				// par width
+		  if (aspectRatioHeight != NULL) 
+		    *aspectRatioHeight = vol.GetBits(8);
+		  else
+		    vol.SkipBits(8);				// par height
 		}
 		if (vol.GetBits(1)) {			// vol control parameters
 			vol.SkipBits(2);				// chroma format

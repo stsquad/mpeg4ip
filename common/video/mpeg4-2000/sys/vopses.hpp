@@ -124,6 +124,9 @@ public:
 	VOLMode& getvolmd () {return m_volmd;}			//OBSSFIX_1:1
 	Int getvolWidth () {return m_ivolWidth;}		//OBSSFIX_1:1
 	Int getvolHeight () {return m_ivolHeight;}		//OBSSFIX_1:1
+  Int getvolAspectRatio() { return m_ivolAspectRatio; };
+  Int getvolAspectWidth() { return m_ivolAspectWidth; };
+  Int getvolAspectHeight() { return m_ivolAspectHeight; };
 	ShapeMode* shapemd () {return m_rgBaseshpmd;}
 	Void setShapeMode (ShapeMode* shapemode) {m_rgBaseshpmd = shapemode;}
 	CMotionVector* getmvBaseBY() {return m_rgmvBaseBY; }					
@@ -684,6 +687,7 @@ protected:
 	Int m_iFrameWidthYxMBSize, m_iFrameWidthYxBlkSize, m_iFrameWidthUVxBlkSize;
 	Int m_iFrameWidthY, m_iFrameWidthUV;
 	Int m_ivolWidth, m_ivolHeight;
+  Int m_ivolAspectRatio, m_ivolAspectHeight, m_ivolAspectWidth;
 
 	// VOP variables
 	CRct m_rctCurrVOPY, m_rctCurrVOPUV;

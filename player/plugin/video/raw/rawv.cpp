@@ -50,7 +50,8 @@ static codec_data_t *rawv_create (const char *compressor,
   rawv->m_vft->video_configure(rawv->m_ifptr, 
 			       vinfo->width,
 			       vinfo->height,
-			       VIDEO_FORMAT_YUV);
+			       VIDEO_FORMAT_YUV,
+			       0.0);
   return ((codec_data_t *)rawv);
 }
 

@@ -79,7 +79,6 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_unused_ports = NULL;
   m_first_time_played = 0;
   m_latency = 0;
-  m_double_screen_width = 0;
   m_have_audio_rtcp_sync = false;
   m_screen_scale = 2;
 }
@@ -309,9 +308,6 @@ CVideoSync * CPlayerSession::set_up_video_sync (void)
 {
   if (m_video_sync == NULL) {
     m_video_sync = create_video_sync(this);
-    if (m_double_screen_width) {
-      m_video_sync->double_width();
-    }
   }
   return m_video_sync;
 }
@@ -552,13 +548,6 @@ void CPlayerSession::set_screen_size (int scaletimes2,
   m_pixel_height = pixel_height;
   // Note - wmay - used to set the video sync directly here - now
   // we wait until we're initing or get resize message in sync thread.
-  send_sync_thread_a_message(MSG_SYNC_RESIZE_SCREEN);
-}
-
-void CPlayerSession::double_screen_width (void)
-{
-  m_double_screen_width = 1;
-  // note - see set_screen_size message
   send_sync_thread_a_message(MSG_SYNC_RESIZE_SCREEN);
 }
 

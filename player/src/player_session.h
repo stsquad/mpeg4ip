@@ -129,7 +129,6 @@ class CPlayerSession {
   void set_screen_location(int x, int y);
   void set_screen_size(int scaletimes2, int fullscreen = 0,
 		       int pixel_width = -1, int pixel_height = -1);
-  void double_screen_width(void);
   void session_set_seekable (int seekable) {
     m_seekable = seekable;
   };
@@ -235,7 +234,6 @@ class CPlayerSession {
   CIpPort *m_unused_ports;
   int m_rtp_over_rtsp;
   uint64_t m_first_time_played;
-  int m_double_screen_width;
   bool m_have_audio_rtcp_sync;
   rtcp_sync_t m_audio_rtcp_sync;
 };

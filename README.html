@@ -809,6 +809,10 @@ See the new <a href="player/src/README.html">README.html</a> in player/src.
 <b><font color="#0000FF">Known Problems</font></b>
 <P>
 <ul>
+<li> If you have a large (greater than 2G) that does not play locally with 
+Quicktime, recreate it using 1.0RC3 or later. Quicktime does not correctly 
+support 64 bit time atoms in a mp4 file.
+<P>
 <li> We do not support gcc 2.95.3.  There is a problem that makes it think
 that when a long is defined as an int, and time_t is defined as an int, that
 <code>&#037ld</code> should not be the correct format.  You can try to fix 

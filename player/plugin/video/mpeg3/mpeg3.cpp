@@ -138,10 +138,27 @@ static int mpeg3_decode (codec_data_t *ptr,
 			    video->vertical_size, video->horizontal_size);
       mpeg3->m_h = video->vertical_size;
       mpeg3->m_w = video->horizontal_size;
+      double aspect_ratio;
+      aspect_ratio = 0.0;
+      switch (video->aspect_ratio_define) {
+      case 1:
+      default:
+	break;
+      case 2:
+	aspect_ratio = 4.0 / 3.0;
+	break;
+      case 3:
+	aspect_ratio = 16.0 / 9.0;
+	break;
+      case 4:
+	aspect_ratio = 2.21;
+	break;
+      }
       mpeg3->m_vft->video_configure(mpeg3->m_ifptr, 
 				    mpeg3->m_w,
 				    mpeg3->m_h,
-				    VIDEO_FORMAT_YUV);
+				    VIDEO_FORMAT_YUV,
+				    aspect_ratio);
       // Gross and disgusting, but it looks like it didn't clean up
       // properly - so just start from beginning of buffer and decode.
  y = NULL;

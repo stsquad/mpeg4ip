@@ -1,5 +1,7 @@
 11/xx/03 version 1.0RC3
     Fixed compilation on SuSE 9.0 personal
+    Added compatibility code for large files and Quicktime local playback
+    Read aspect ratio in player for mpeg1/2/4 and set correctly
 
 11/04/03 version 1.0RC2
     Fixed V4L2 missing parameter to VIDIOC_QBUF parameter for 2.6 kernel

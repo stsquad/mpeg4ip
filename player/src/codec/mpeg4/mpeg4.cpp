@@ -61,6 +61,48 @@ static uint8_t tohex (char a)
   return (tolower(a) - 'a' + 10);
 }
 
+static double calculate_aspect_ratio (iso_decode_t *iso)
+{
+  double ret_val;
+  int aspect_ratio_h;
+  int aspect_ratio_w;
+
+  ret_val = 0.0;
+  aspect_ratio_h = 0;
+  aspect_ratio_w = 0;
+  switch (iso->m_pvodec->getvolAspectRatio()) {
+  default:
+    break; 
+  case 2:
+    aspect_ratio_w = 12;
+    aspect_ratio_h = 11;
+    break;
+  case 3:
+    aspect_ratio_w = 10;
+    aspect_ratio_h = 11;
+    break;
+  case 4:
+    aspect_ratio_w = 16;
+    aspect_ratio_h = 11;
+    break;
+  case 5:
+    aspect_ratio_w = 40;
+    aspect_ratio_h = 33;
+    break;
+  case 0xf:
+    aspect_ratio_w = iso->m_pvodec->getvolAspectWidth();
+    aspect_ratio_h = iso->m_pvodec->getvolAspectHeight();
+    break;
+  }
+
+  if (aspect_ratio_h != 0) {
+    ret_val = (double)iso->m_pvodec->getvolWidth();
+    ret_val *= (double)aspect_ratio_w;
+    ret_val /= (double)iso->m_pvodec->getvolHeight();
+    ret_val /= (double)aspect_ratio_h;
+  }
+  return ret_val;
+}
 
 // Parse the format config passed in.  This is the vo vod header
 // that we need to get width/height/frame rate
@@ -125,7 +167,8 @@ static int parse_vovod (iso_decode_t *iso,
       iso->m_vft->video_configure(iso->m_ifptr, 
 				  iso->m_pvodec->getWidth(),
 				  iso->m_pvodec->getHeight(),
-				  VIDEO_FORMAT_YUV);
+				  VIDEO_FORMAT_YUV,
+				  calculate_aspect_ratio(iso));
       havevol = 1;
     } catch (int err) {
       iso_message(LOG_DEBUG, mp4iso, 
@@ -296,7 +339,8 @@ static int iso_decode (codec_data_t *ptr,
       iso->m_vft->video_configure(iso->m_ifptr, 
 				  iso->m_pvodec->getWidth(),
 				  iso->m_pvodec->getHeight(),
-				  VIDEO_FORMAT_YUV);
+				  VIDEO_FORMAT_YUV,
+				  calculate_aspect_ratio(iso));
       iso->m_decodeState = DECODE_STATE_NORMAL;
       try {
 	iEof = iso->m_pvodec->h263_decode(FALSE);
@@ -319,7 +363,8 @@ static int iso_decode (codec_data_t *ptr,
 	  iso->m_vft->video_configure(iso->m_ifptr, 
 				      iso->m_pvodec->getWidth(),
 				      iso->m_pvodec->getHeight(),
-				      VIDEO_FORMAT_YUV);
+				      VIDEO_FORMAT_YUV,
+				      calculate_aspect_ratio(iso));
 	
 	  iso->m_decodeState = DECODE_STATE_WAIT_I;
 	  used += iso->m_pvodec->get_used_bytes();
@@ -339,7 +384,8 @@ static int iso_decode (codec_data_t *ptr,
 	iso->m_vft->video_configure(iso->m_ifptr, 
 				    iso->m_vinfo->width,
 				    iso->m_vinfo->height,
-				    VIDEO_FORMAT_YUV);
+				    VIDEO_FORMAT_YUV,
+				    calculate_aspect_ratio(iso));
 
 	iso->m_decodeState = DECODE_STATE_NORMAL;
       } 
@@ -383,6 +429,7 @@ static int iso_decode (codec_data_t *ptr,
       } else {
 	uint8_t *vophdr = MP4AV_Mpeg4FindVop(buffer, buflen);
 	if (vophdr != NULL && vophdr != buffer) {
+	  iso_message(LOG_DEBUG, mp4iso, "Illegal code before VOP header");
 	  used = vophdr - buffer;
 	  buflen -= used;
 	  buffer = vophdr;

@@ -1,6 +1,7 @@
 Changes in xxxx
 ---------------
-
+Change to MP4Create and MP4Modify to allow flags to be set for 64 bit
+to allow Quicktime compatibility
 Change to MP4CloneTrack and MP4CopyTrack for when you copy a hint
 track - you must now specify the track ID in the new file for the
 reference track.

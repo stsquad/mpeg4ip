@@ -95,17 +95,22 @@ static int parse_vovod (xvid_codec_t *xvid,
 
   uint8_t timeBits;
   uint16_t timeTicks, dur, width, height;
-
+  uint8_t aspect_ratio, aspect_ratio_w, aspect_ratio_h;
   if (MP4AV_Mpeg4ParseVol(volptr, 
 			  vollen, 
 			  &timeBits, 
 			  &timeTicks,
 			  &dur,
 			  &width,
-			  &height) == false) {
+			  &height,
+			  &aspect_ratio,
+			  &aspect_ratio_w,
+			  &aspect_ratio_h) == false) {
     return 0;
   }
 
+  xvid_message(LOG_DEBUG, "xvid", "aspect ratio %x %d %d", 
+	       aspect_ratio, aspect_ratio_w, aspect_ratio_h);
   // Get the VO/VOL header.  If we fail, set the bytestream back
   ret = 0;
   XVID_DEC_PARAM param;
@@ -115,11 +120,42 @@ static int parse_vovod (xvid_codec_t *xvid,
   ret = xvid_decore(NULL, XVID_DEC_CREATE,
 		    &param, NULL);
   if (ret == XVID_ERR_OK) {
+    double ar = 0.0;
+    switch (aspect_ratio) {
+    default:
+      aspect_ratio_h = 0;
+      break; 
+    case 2:
+      aspect_ratio_w = 12;
+      aspect_ratio_h = 11;
+      break;
+    case 3:
+      aspect_ratio_w = 10;
+      aspect_ratio_h = 11;
+      break;
+    case 4:
+      aspect_ratio_w = 16;
+      aspect_ratio_h = 11;
+      break;
+    case 5:
+      aspect_ratio_w = 40;
+      aspect_ratio_h = 33;
+      break;
+    case 0xf:
+      break;
+    }
+    if (aspect_ratio_h != 0) {
+      ar = (double)aspect_ratio_w;
+      ar *= (double) param.width;
+      ar /= (double)aspect_ratio_h;
+      ar /= (double)param.height;
+    }
     xvid->m_xvid_handle = param.handle;
     xvid->m_vft->video_configure(xvid->m_ifptr, 
 				 param.width,
 				 param.height,
-				 VIDEO_FORMAT_YUV);
+				 VIDEO_FORMAT_YUV,
+				 ar);
   }
   // we need to then run the VOL through the decoder.
   XVID_DEC_FRAME frame;
@@ -278,7 +314,8 @@ static int xvid_decode (codec_data_t *ptr,
     xvid->m_vft->video_configure(xvid->m_ifptr, 
 				 xvid->m_width,
 				 xvid->m_height,
-				 VIDEO_FORMAT_YUV);
+				 VIDEO_FORMAT_YUV,
+				 0.0);
     xvid->m_decodeState = XVID_STATE_NORMAL;
   }
 

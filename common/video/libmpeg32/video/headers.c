@@ -9,13 +9,13 @@ int mpeg3video_getseqhdr(mpeg3video_t *video)
 {
 	int i;
 
-	int aspect_ratio, picture_rate, vbv_buffer_size;
+	int picture_rate, vbv_buffer_size;
 	int constrained_parameters_flag;
 	int load_intra_quantizer_matrix, load_non_intra_quantizer_matrix;
 
 	video->horizontal_size = mpeg3bits_getbits(video->vstream, 12);
 	video->vertical_size = mpeg3bits_getbits(video->vstream, 12);
-	aspect_ratio = mpeg3bits_getbits(video->vstream, 4);
+	video->aspect_ratio_define = mpeg3bits_getbits(video->vstream, 4);
 	video->framerate_code = mpeg3bits_getbits(video->vstream, 4);
 	video->bitrate = mpeg3bits_getbits(video->vstream, 18);
 	mpeg3bits_getbit_noptr(video->vstream); /* marker bit (=1) */

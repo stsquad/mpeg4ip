@@ -87,6 +87,7 @@ int main(int argc, char** argv)
     "  -rate=<fps>             Video frame rate, e.g. 30 or 29.97\n"
     "  -timescale=<ticks>      Time scale (ticks per second)\n"
     "  -use64bits              Use for large files\n"
+    "  -use64bitstime          Use for 64 Bit times (not QT player compatible)\n"
     "  -verbose[=[1-5]]        Enable debug messages\n"
     "  -version                Display version information\n"
     ;
@@ -99,7 +100,7 @@ int main(int argc, char** argv)
   bool doList = false;
   bool doOptimize = false;
   bool doInterleave = false;
-  bool use64bits = false;
+  uint64_t createFlags = 0;
   char* mp4FileName = NULL;
   char* inputFileName = NULL;
   char* outputFileName = NULL;
@@ -142,12 +143,13 @@ int main(int argc, char** argv)
       { "rate", 1, 0, 'r' },
       { "timescale", 1, 0, 't' },
       { "use64bits", 0, 0, 'u' },
+      { "use64bitstime", 0, 0, 'U' },
       { "verbose", 2, 0, 'v' },
       { "version", 0, 0, 'V' },
       { NULL, 0, 0, 0 }
     };
 
-    c = getopt_long_only(argc, argv, "ac:d:e:E::H::Ilm:Op:r:t:uv::V",
+    c = getopt_long_only(argc, argv, "ac:d:e:E::H::Ilm:Op:r:t:uUv::V",
 			 long_options, &option_index);
 
     if (c == -1)
@@ -261,7 +263,10 @@ int main(int argc, char** argv)
       TimeScaleSpecified = true;
       break;
     case 'u':
-      use64bits = true;
+      createFlags |= MP4_CREATE_64BIT_DATA;
+      break;
+    case 'U':
+      createFlags |= MP4_CREATE_64BIT_TIME;
       break;
     case 'v':
       Verbosity |= (MP4_DETAILS_READ | MP4_DETAILS_WRITE);
@@ -395,7 +400,7 @@ int main(int argc, char** argv)
     if (!mp4FileExists) {
       if (doCreate) {
 	mp4File = MP4Create(mp4FileName, Verbosity,
-			    use64bits ? 1 : 0);
+			    createFlags);
 	if (mp4File) {
 	  MP4SetTimeScale(mp4File, Mp4TimeScale);
 	}
@@ -411,7 +416,7 @@ int main(int argc, char** argv)
 	exit(EXIT_CREATE_FILE);
       }
     } else {
-      if (use64bits) {
+      if (createFlags != 0) {
 	fprintf(stderr, "Must specify 64 bits on new file only");
 	exit(EXIT_CREATE_FILE);
       }
@@ -541,7 +546,7 @@ int main(int argc, char** argv)
     }
 
     MP4FileHandle outputFile = MP4Create(outputFileName, Verbosity,
-					 use64bits ? 1 : 0);
+					 createFlags);
     MP4SetTimeScale(outputFile, Mp4TimeScale);
     u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
     for (u_int32_t i = 0; i < numTracks; i++) {
