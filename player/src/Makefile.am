@@ -12,7 +12,9 @@ SUFFIXES = .asm
 
 SUBDIRS = codec
 
-noinst_LTLIBRARIES = libmp4playerutils.la libmp4player.la
+noinst_LTLIBRARIES = libmp4playerutils.la libmp4player.la libmp4syncbase.la \
+	libmp4syncsdl.la
+
 libmp4player_la_LDFLAGS = -static
 
 if USE_MMX
@@ -23,12 +25,22 @@ EXTRA_libmp4player_la_SOURCES = frame_doubler.cpp
 libmp4player_la_LIBADD = frame_doubler.lo
 endif
 
+libmp4playerutils_la_LDFLAGS = -static
 libmp4playerutils_la_SOURCES = \
 	our_bytestream_file.cpp \
 	player_util.c 
 
-libmp4player_la_SOURCES = \
+libmp4syncbase_la_SOURCES = \
 	audio.cpp \
+	video.cpp
+libmp4syncbase_la_LDFLAGS = -static
+
+libmp4syncsdl_la_SOURCES = \
+	audio_sdl.cpp \
+	video_sdl.cpp
+libmp4syncsdl_la_LDFLAGS = -static
+
+libmp4player_la_SOURCES = \
 	avi_bytestream.cpp \
 	avi_file.cpp \
 	codec_plugin.cpp \
@@ -81,9 +93,11 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DPLAYE
 
 mp4player_LDADD = \
 	-lm \
-	$(top_builddir)/player/src/libmp4player.la \
-	$(top_builddir)/player/src/codec/aa/libaa.la \
-	$(top_builddir)/player/src/codec/mp3/libmp3.la \
+	libmp4player.la \
+	libmp4syncsdl.la \
+	libmp4syncbase.la \
+	codec/aa/libaa.la \
+	codec/mp3/libmp3.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
 	$(top_builddir)/lib/sdp/libsdp.la \

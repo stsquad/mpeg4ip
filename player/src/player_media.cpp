@@ -87,96 +87,7 @@ static int c_rtcp_send_packet (void *ud, char *buffer, int buflen)
   return ((CPlayerMedia *)ud)->rtcp_send_packet(buffer, buflen);
 }
 
-static void c_audio_config (void *ifptr, int freq, 
-			    int chans, int format, uint32_t max_buffer_size)
-{
-  ((CPlayerMedia *)ifptr)->get_audio_sync()->set_config(freq,
-							chans,
-							format,
-							max_buffer_size);
-}
 
-static unsigned char *c_get_audio_buffer (void *ifptr)
-{
-  return ((CPlayerMedia *)ifptr)->get_audio_sync()->get_audio_buffer();
-}
-
-static void c_filled_audio_buffer (void *ifptr,
-				   uint64_t ts,
-				   int resync_req)
-{
-  ((CPlayerMedia *)ifptr)->get_audio_sync()->filled_audio_buffer(ts, 
-								 resync_req);
-}
-
-static uint32_t c_load_audio_buffer (void *ifptr, 
-				     unsigned char *from, 
-				     uint32_t bytes, 
-				     uint64_t ts, 
-				     int resync)
-{
-  return ((CPlayerMedia *)ifptr)->get_audio_sync()->load_audio_buffer(from,
-								      bytes,
-								      ts, 
-								      resync);
-}
-  
-audio_vft_t audio_vft = {
-  message,
-  c_audio_config,
-  c_get_audio_buffer,
-  c_filled_audio_buffer,
-  c_load_audio_buffer
-};
-
-static void c_video_configure (void *ifptr,
-			      int w,
-			      int h,
-			      int format)
-{
-  // asdf - ignore format for now
-  ((CPlayerMedia *)ifptr)->get_video_sync()->config(w, h);
-}
-
-static int c_video_get_buffer (void *ifptr, 
-			       unsigned char **y,
-			       unsigned char **u,
-			       unsigned char **v)
-{
-  return (((CPlayerMedia *)ifptr)->get_video_sync()->get_video_buffer(y, u, v));
-}
-
-static int c_video_filled_buffer(void *ifptr, uint64_t time)
-{
-  return (((CPlayerMedia *)ifptr)->get_video_sync()->filled_video_buffers(time));
-}
-
-static int c_video_have_frame (void *ifptr,
-			       const unsigned char *y,
-			       const unsigned char *u,
-			       const unsigned char *v,
-			       int m_pixelw_y,
-			       int m_pixelw_uv,
-			       uint64_t time)
-{
-  CPlayerMedia *foo = (CPlayerMedia *)ifptr;
-
-  return (foo->get_video_sync()->set_video_frame(y, 
-						 u, 
-						 v, 
-						 m_pixelw_y,
-						 m_pixelw_uv,
-						 time));
-}
-
-video_vft_t video_vft = 
-{
-  message,
-  c_video_configure,
-  c_video_get_buffer,
-  c_video_filled_buffer,
-  c_video_have_frame,
-};
 
 CPlayerMedia::CPlayerMedia (CPlayerSession *p)
 {
@@ -383,7 +294,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
      * bother
      */
     if (use_rtsp == 0) {
-      m_ports = new C2ConsecIpPort(&global_invalid_ports);
+      m_ports = new C2ConsecIpPort(m_parent->get_unused_ip_port_ptr());
       if (m_ports == NULL || !m_ports->valid()) {
 	snprintf(errmsg, errlen, "Could not find any valid IP ports");
 	media_message(LOG_ERR, "Couldn't get valid IP ports");
@@ -528,8 +439,8 @@ int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
 				 video,
 				 user_data,
 				 userdata_size,
-				 &video_vft,
-				 this);
+				 get_video_vft(),
+				 m_video_sync);
   if (m_plugin_data == NULL) 
     return -1;
 
@@ -554,8 +465,8 @@ int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
 				 audio,
 				 user_data,
 				 userdata_size,
-				 &audio_vft,
-				 this);
+				 get_audio_vft(),
+				 m_audio_sync);
   if (m_plugin_data == NULL) return -1;
 
   if (user_data != NULL)

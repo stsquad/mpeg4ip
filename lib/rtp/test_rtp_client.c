@@ -7,9 +7,9 @@
 #define TTL 1
 #define RTCP_BW 1500*0.05
 #define FILENAME "test_qcif_200_aac_64.mp4" // default
-rtp_t rtp_session;
+struct rtp *session;
 uint16_t previous = 0;
-uint32_t rtp_timestamp = 0;
+uint32_t rtp_timestamp;
 int fd;
 int number_of_received_packet;
 
@@ -21,8 +21,8 @@ static void c_rtp_callback(struct rtp *session, rtp_event *e)
   switch (e->type) {
   case RX_RTP:
     printf("session %p, event type is RX_RTP\n", session);
-
-    // process rtp packet
+    
+    // process rtp packet 
     pak = (rtp_packet *)e->data;
     
     // Check sequence numbers received.  
@@ -30,7 +30,7 @@ static void c_rtp_callback(struct rtp *session, rtp_event *e)
     if(previous != 0){
       if((pak->ph.ph_seq != (previous + 1))) {
 	printf("packet loss");
-	 exit(1);
+	exit(1);
       }
     }
     previous = pak->ph.ph_seq;
@@ -38,22 +38,21 @@ static void c_rtp_callback(struct rtp *session, rtp_event *e)
     // Save the last rtp_timestamp from the packet for use below
     rtp_timestamp = pak->ph.ph_ts;
 
-    // Compare data in packet with data in file.  Use the
-    // pak->rtp_data pointer and compare for pak->rtp_data_len bytes
-    
     if((read(fd, buf_from_file, pak->rtp_data_len) == -1)){
       perror("file read");
       exit(1);
     }
-    //    read(fd, buf_from_file, pak->rtp_data_len);
+    //debug by nori
+    //    write(1, pak->rtp_data, pak->rtp_data_len);
 
+    // Compare data in packet with data in file.  Use the
+    // pak->rtp_data pointer and compare for pak->rtp_data_len bytes
     if (memcmp(pak->rtp_data, buf_from_file, pak->rtp_data_len) != 0) {
-      printf("fail: packet corrupt\n");
+      printf("\nfail: packet corrupt\n");
       exit(1);
     }else {
-      printf("\n");
-      printf("packet correct!\n");
-      printf("my_ssrc = %d\n", rtp_my_ssrc(rtp_session));
+      printf("\nsuccess: packet correct!\n");
+      printf("my_ssrc = %d\n", rtp_my_ssrc(session));
       printf("received timestamp = %d\n", rtp_timestamp);
       printf("sequence number = %d\n", pak->ph.ph_seq);
     }
@@ -99,13 +98,32 @@ static void c_rtp_callback(struct rtp *session, rtp_event *e)
 
 static void rtp_end(void)
 {
-  if (rtp_session != NULL) {
-    rtp_send_bye(rtp_session);
-    rtp_done(rtp_session);
+  if (session != NULL) {
+    rtp_send_bye(session);
+    rtp_done(session);
   }
-  rtp_session = NULL;
+  session = NULL;
 }
 
+static int our_encrypt(void *foo, unsigned char *buffer, unsigned int len)
+{
+  struct rtp *session;
+  unsigned int ix;
+
+  session = (struct rtp *)foo;
+  for (ix = 12; ix < len; ix++) buffer[ix] = buffer[ix] + 1;
+  return TRUE;
+}
+
+static int our_decrypt(void *foo, unsigned char *buffer, unsigned int len)
+{
+  struct rtp *session;
+  unsigned int ix;
+
+  session = (struct rtp *)foo;
+  for (ix=12; ix < len; ix++) buffer[ix] = buffer[ix] - 1+1;
+  return TRUE;
+}
 
 int main (int argc, char *argv[])
 {
@@ -117,6 +135,7 @@ int main (int argc, char *argv[])
   int c;                        
   struct hostent *h;
   struct utsname myname;
+  int buff[BUFFSIZE];
 
   // default session 
   if(uname(&myname) < 0){
@@ -175,47 +194,29 @@ int main (int argc, char *argv[])
   printf("Press Return key...");
   getchar();
 
-  /*
-  if (argc != 5) {
-    printf("No arguments specified\n");
-    exit(-1);
-  }
-  */
-
-  //  if((fd = open(argv[4], O_RDONLY)) == -1){
   if((fd = open(filename, O_RDONLY)) == -1){
     perror(filename);
     exit(-1);
   }
 
-  /*  
-      rx = atoi(argv[2]);  tx = atoi(argv[3]);
-  */
-
-  /*  rtp_session = rtp_init(argv[1], rx, tx, TTL, RTCP_BW, c_rtp_callback, 
-      NULL);*/
-  if( (rtp_session = rtp_init(ip_addr, rx_port, tx_port, TTL, 
+  if( (session = rtp_init(ip_addr, rx_port, tx_port, TTL, 
 			 RTCP_BW, c_rtp_callback, NULL)) == NULL){
     exit(-1);
   }
-  rtp_set_option(rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
-  rtp_set_option(rtp_session, RTP_OPT_PROMISC, TRUE);
-
+  rtp_set_option(session, RTP_OPT_WEAK_VALIDATION, FALSE);
+  rtp_set_option(session, RTP_OPT_PROMISC, TRUE);
+  rtp_set_encryption(session, our_encrypt, our_decrypt, buff);
 
   recv_judge = 1;
   number_of_received_packet = 0;
   while((recv_judge == 1)) {
     tv.tv_sec = 10;
     tv.tv_usec = 0;
-    recv_judge = rtp_recv(rtp_session, &tv, 0);
+    recv_judge = rtp_recv(session, &tv, 0);//rtp_timestamp);
+
     // Here, we have to call a periodic function to send RTCP.
-    // 
-    rtp_send_ctrl(rtp_session,
-		  //  0, // should be the last rtp timestamp we received
-		  rtp_timestamp,
-		  NULL);
-    rtp_update(rtp_session);
-    //    number_of_received_packet++;
+    rtp_send_ctrl(session, rtp_timestamp, NULL);
+    rtp_update(session);
   }
 
   printf("\nI've received %d RTP packets!\n\n", number_of_received_packet);

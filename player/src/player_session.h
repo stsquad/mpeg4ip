@@ -31,6 +31,7 @@
 #include <rtsp/rtsp_client.h>
 #include <sdp/sdp.h>
 #include "our_msg_queue.h"
+#include "ip_port.h"
 
 typedef enum {
   SESSION_PAUSED,
@@ -151,6 +152,7 @@ class CPlayerSession {
   int set_session_desc (int line, const char *desc);
   const char *get_session_desc(int line);
   void streaming_media_set_up(void) { m_streaming_media_set_up = 1; };
+  CIpPort **get_unused_ip_port_ptr(void) { return &m_unused_ports; };
  private:
   void process_sdl_events(void);
   int process_msg_queue(int state);
@@ -200,6 +202,7 @@ class CPlayerSession {
   }
   media_close_callback_f m_media_close_callback;
   int m_streaming_media_set_up;
+  CIpPort *m_unused_ports;
 };
 
 int c_sync_thread(void *data);

@@ -27,6 +27,7 @@
 #include "codec_plugin.h"
 extern "C" {
 #include <libmpeg3.h>
+#include <mpeg3video.h>
 }
 
 #define m_vft c.v.video_vft

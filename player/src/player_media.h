@@ -88,8 +88,6 @@ class CPlayerMedia {
   
   void set_video_sync(CVideoSync *p) {m_video_sync = p;};
   void set_audio_sync(CAudioSync *p) {m_audio_sync = p;};
-  CAudioSync *get_audio_sync(void) { return m_audio_sync; };
-  CVideoSync *get_video_sync(void) { return m_video_sync; };
 
   const video_info_t *get_video_info (void) { return m_video_info; };
   const audio_info_t *get_audio_info (void) { return m_audio_info; };

@@ -92,7 +92,7 @@ unsigned char mpeg3demux_read_prev_char_packet(mpeg3_demuxer_t *demuxer);
 
 #define mpeg3demux_current_time(demuxer) (((mpeg3_demuxer_t *)(demuxer))->time + ((mpeg3_demuxer_t *)(demuxer))->time_offset)
 
-static unsigned char mpeg3demux_read_char(mpeg3_demuxer_t *demuxer)
+static __inline unsigned char mpeg3demux_read_char(mpeg3_demuxer_t *demuxer)
 {
 //printf("mpeg3demux_read_char %lx %lx\n", demuxer->data_position, demuxer->data_size);
 	if(demuxer->data_position < demuxer->data_size)
@@ -107,7 +107,7 @@ static unsigned char mpeg3demux_read_char(mpeg3_demuxer_t *demuxer)
 
 
 
-static unsigned char mpeg3demux_read_prev_char(mpeg3_demuxer_t *demuxer)
+static __inline unsigned char mpeg3demux_read_prev_char(mpeg3_demuxer_t *demuxer)
 {
 	if(demuxer->data_position != 0)
 	{

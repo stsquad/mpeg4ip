@@ -44,7 +44,7 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
   int inserted = TRUE;
   int16_t diff;
 #ifdef DEBUG_RTP_PAKS
-  rtp_message(LOG_DEBUG, "CBThread %u - m %u pt %u seq %d ts %d len %d", 
+  rtp_message(LOG_DEBUG, "CBThread %u - m %u pt %u seq %u ts %u len %d", 
 	      SDL_ThreadID(),
 	      pak->rtp_pak_m, pak->rtp_pak_pt, pak->rtp_pak_seq, 
 	      pak->rtp_pak_ts, pak->rtp_data_len);

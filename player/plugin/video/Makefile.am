@@ -1,1 +1,1 @@
-SUBDIRS = raw xvid
+SUBDIRS = raw xvid mpeg3

@@ -34,6 +34,8 @@
 #include "player_session.h"
 #include "player_media.h"
 #include "our_bytestream_file.h"
+#include "audio.h"
+#include "video.h"
 
 /*
  * Portability hacks
@@ -320,7 +322,7 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
 					 maxtime);
 	mptr->create_from_file(fbyte, TRUE);
 	cifptr->ifptr = mptr;
-	cifptr->v.video_vft = &video_vft;
+	cifptr->v.video_vft = get_video_vft();
 	for (int ix = 0; ix < 4; ix++) 
 	  if (desc[ix] != NULL) 
 	    psptr->set_session_desc(ix, desc[ix]);
@@ -377,7 +379,7 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
 					 maxtime);
 	mptr->create_from_file(fbyte, FALSE);
 	cifptr->ifptr = mptr;
-	cifptr->v.audio_vft = &audio_vft;
+	cifptr->v.audio_vft = get_audio_vft();
 	for (int ix = 0; ix < 4; ix++) 
 	  if (desc[ix] != NULL) 
 	    psptr->set_session_desc(ix, desc[ix]);

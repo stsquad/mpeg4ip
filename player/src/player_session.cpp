@@ -30,6 +30,11 @@
 #include "audio.h"
 #include "video.h"
 
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(sync_message, "avsync")
+#else
+#define sync_message(loglevel, fmt...) message(loglevel, "avsync", fmt)
+#endif
 /*
  * c callback for sync thread
  */
@@ -67,6 +72,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   }
   m_media_close_callback = NULL;
   m_streaming_media_set_up = 0;
+  m_unused_ports = NULL;
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -143,6 +149,13 @@ CPlayerSession::~CPlayerSession ()
   
   if (m_media_close_callback != NULL) {
     m_media_close_callback();
+  }
+
+  while (m_unused_ports != NULL) {
+    CIpPort *first;
+    first = m_unused_ports;
+    m_unused_ports = first->get_next();
+    delete first;
   }
 
   SDL_Quit();
@@ -277,7 +290,7 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
 CVideoSync * CPlayerSession::set_up_video_sync (void)
 {
   if (m_video_sync == NULL) {
-    m_video_sync = new CVideoSync(this);
+    m_video_sync = create_video_sync(this);
   }
   return m_video_sync;
 }
@@ -285,7 +298,7 @@ CVideoSync * CPlayerSession::set_up_video_sync (void)
 CAudioSync *CPlayerSession::set_up_audio_sync (void)
 {
   if (m_audio_sync == NULL) {
-    m_audio_sync = new CAudioSync(this, m_audio_volume);
+    m_audio_sync = create_audio_sync(this, m_audio_volume);
   }
   return m_audio_sync;
 }
@@ -554,5 +567,69 @@ int CPlayerSession::set_session_desc (int line, const char *desc)
 const char *CPlayerSession::get_session_desc (int line)
 {
   return m_session_desc[line];
+}
+/*
+ * audio_is_ready - when the audio indicates that it's ready, it will
+ * send a latency number, and a play time
+ */
+void CPlayerSession::audio_is_ready (uint64_t latency, uint64_t time)
+{
+  m_start = get_time_of_day();
+  m_start -= time;
+  m_start += latency;
+  if (latency != 0) {
+    m_clock_wrapped = -1;
+  }
+  sync_message(LOG_DEBUG, "Audio is ready "LLU" - latency "LLU, time, latency);
+  sync_message(LOG_DEBUG, "m_start is "LLX, m_start);
+  m_waiting_for_audio = 0;
+  SDL_SemPost(m_sync_sem);
+}
+
+void CPlayerSession::adjust_start_time (int64_t time)
+{
+  m_start -= time;
+  m_clock_wrapped = -1;
+  sync_message(LOG_INFO, "Adjusting start time "LLD " to " LLU, time,
+	       get_current_time());
+  SDL_SemPost(m_sync_sem);
+}
+
+/*
+ * get_current_time.  Gets the time of day, subtracts off the start time
+ * to get the current play time.
+ */
+uint64_t CPlayerSession::get_current_time (void)
+{
+  uint64_t current_time;
+
+  if (m_waiting_for_audio != 0) {
+    return 0;
+  }
+  current_time = get_time_of_day();
+#if 0
+  sync_message(LOG_DEBUG, "current time %llx m_start %llx", 
+	       current_time, m_start);
+  if (current_time < m_start) {
+    if (m_clock_wrapped == -1) {
+      return (0);
+    } else {
+      m_clock_wrapped = 1;
+    }
+  } else{
+    if (m_clock_wrapped > 0) {
+      uint64_t temp;
+      temp = 1;
+      temp <<= 32;
+      temp /= 1000;
+      current_time += temp;
+    } else {
+      m_clock_wrapped = 0;
+    }
+  }
+#endif
+  if (current_time < m_start) return 0;
+  m_current_time = current_time - m_start;
+  return(m_current_time);
 }
 /* end file player_session.cpp */

@@ -2,7 +2,7 @@
 #define MPEG3_VTRACK_H
 
 #include "mpeg3demux.h"
-#include "video/mpeg3video.h"
+//#include "video/mpeg3video.h"
 
 typedef struct
 {
@@ -12,7 +12,6 @@ typedef struct
 	float frame_rate;
 	float aspect_ratio;
 	mpeg3_demuxer_t *demuxer;
-	mpeg3video_t *video;
 	long current_position;  /* Number of next frame to be played */
 	long total_frames;     /* Total frames in the file */
   unsigned char *track_frame_buffer;

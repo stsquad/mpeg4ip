@@ -33,7 +33,6 @@
 #include "our_config_file.h"
 #include "rtp_bytestream.h"
 #include "codec/aa/isma_rtp_bytestream.h"
-#include "ip_port.h"
 #include "codec_plugin_private.h"
 #include <gnu/strcasestr.h>
 #include "rfc3119_bytestream.h"
@@ -43,8 +42,6 @@
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
  */
-CIpPort *global_invalid_ports = NULL;
-
 enum {
   VIDEO_MPEG4_ISO,
   VIDEO_DIVX,

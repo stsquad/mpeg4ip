@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.5 $ 
- * $Date: 2002/05/08 21:11:41 $
+ * $Revision: 1.6 $ 
+ * $Date: 2002/05/23 21:41:56 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -51,6 +51,10 @@ extern "C" {
 #if !defined(WORDS_BIGENDIAN) && !defined(WORDS_SMALLENDIAN)
 #error RTP library requires WORDS_BIGENDIAN or WORDS_SMALLENDIAN to be defined.
 #endif
+
+  // moved here by nori
+typedef int (*rtp_encrypt_func)(void *, unsigned char *, unsigned int);
+typedef int (*rtp_decrypt_func)(void *, unsigned char *, unsigned int);
 
 struct rtp;
 
@@ -289,6 +293,10 @@ int rtp_process_recv_data(struct rtp *session,
 			  int buflen);
 
 void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen);
+
+  // added by nori
+int rtp_set_encryption(struct rtp *session, rtp_encrypt_func efunc, rtp_decrypt_func, void *userdata);
+  int rtp_get_encryption_enabled(struct rtp *session);
 
 #ifdef __cplusplus
 }

@@ -111,7 +111,6 @@ int mpeg3vtrack_seek(mpeg3_vtrack_t *track, int dont_decode)
   int attempts;
   mpeg3_t *file = track->file;
   int is_video_stream = file->is_video_stream;
-  mpeg3video_t *video = track->video;
   double percentage;
   long frame_number;
   int match_refframes = 1;
@@ -220,7 +219,7 @@ int mpeg3vtrack_seek(mpeg3_vtrack_t *track, int dont_decode)
 	track->frame_seek = -1;
 	if(frame_number < 0) frame_number = 0;
 	if(frame_number > track->total_frames) 
-	  frame_number = track->video->maxframe;
+	  frame_number = track->total_frames;
 
 	//printf("mpeg3video_seek 1 %ld %ld\n", frame_number, video->framenum);
 
@@ -378,7 +377,7 @@ int mpeg3vtrack_previous_frame(mpeg3_vtrack_t *vtrack)
 
   if(mpeg3demux_bof(vtrack->demuxer)) 
     mpeg3demux_seek_percentage(vtrack->demuxer, 0);
-  vtrack->video->repeat_count = 0;
+  //  vtrack->video->repeat_count = 0;
   return 0;
 }
 
@@ -395,11 +394,9 @@ int mpeg3vtrack_drop_frames(mpeg3_vtrack_t *vtrack, long frames)
     }
   return result;
 }
-#endif
 
 static
 mpeg3video_t* mpeg3vtrack_new_video (mpeg3_vtrack_t *track,
-				     int have_mmx,
 				     int is_video_stream,
 				     int cpus)
 {
@@ -407,8 +404,7 @@ mpeg3video_t* mpeg3vtrack_new_video (mpeg3_vtrack_t *track,
   mpeg3_demuxer_t *demux = track->demuxer;
   int result = 0;
 
-  video = mpeg3video_new(have_mmx, 
-			 is_video_stream,
+  video = mpeg3video_new(is_video_stream,
 			 cpus);
 
   mpeg3vtrack_get_frame(track);
@@ -537,6 +533,7 @@ mpeg3video_t* mpeg3vtrack_new_video (mpeg3_vtrack_t *track,
 
   return video;
 }
+#endif
 /* ======================================================================= */
 /*                                    ENTRY POINTS */
 /* ======================================================================= */
@@ -608,7 +605,6 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	}
 #else
 	new_vtrack->video = mpeg3vtrack_new_video(new_vtrack,
-						 file->have_mmx,
 						 file->is_video_stream,
 						 file->cpus);
 	if(!new_vtrack->video)
@@ -624,7 +620,6 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 
 int mpeg3_delete_vtrack(mpeg3_t *file, mpeg3_vtrack_t *vtrack)
 {
-	if(vtrack->video) mpeg3video_delete(vtrack->video);
 	if(vtrack->demuxer) mpeg3_delete_demuxer(vtrack->demuxer);
 	free(vtrack);
 	return 0;
@@ -671,96 +666,3 @@ int mpeg3vtrack_read_raw_resize (mpeg3_vtrack_t *vtrack,
   return result;
 }
 
-int mpeg3vtrack_read_frame(mpeg3_vtrack_t *track, 
-			   long frame_number, 
-			   unsigned char **output_rows,
-			   int in_x, 
-			   int in_y, 
-			   int in_w, 
-			   int in_h, 
-			   int out_w, 
-			   int out_h, 
-			   int color_model)
-{
-	int result = 0;
-
-	if(!result) result = mpeg3vtrack_seek(track, 0);
-
-	if (!result) result = mpeg3vtrack_get_frame(track);
-
-//printf("mpeg3video_read_frame 4\n");
-	if (!result) {
-	  result = mpeg3video_read_frame(track->video,
-					 track->track_frame_buffer,
-					 track->track_frame_buffer_size,
-					 output_rows,
-					 in_x, 
-					 in_y, 
-					 in_w, 
-					 in_h, 
-					 out_w, 
-					 out_h, 
-					 color_model);
-
-	  mpeg3vtrack_cleanup_frame(track);
-	}
-//printf("mpeg3video_read_frame 5\n");
-
-	return result;
-}
-
-int mpeg3vtrack_read_yuvframe(mpeg3_vtrack_t *vtrack, 
-			      char *y_output,
-			      char *u_output,
-			      char *v_output,
-			      int in_x,
-			      int in_y,
-			      int in_w,
-			      int in_h)
-{
-	int result = 0;
-
-	if(!result) result = mpeg3vtrack_seek(vtrack, 0);
-
-	if (!result) result = mpeg3vtrack_get_frame(vtrack);
-
-
-	if(!result) {
-	  result = mpeg3video_read_yuvframe(vtrack->video, 
-					    vtrack->track_frame_buffer,
-					    vtrack->track_frame_buffer_size,
-					    y_output, 
-					    u_output,
-					    v_output,
-					    in_x,
-					    in_y,
-					    in_w,
-					    in_h);
-	  mpeg3vtrack_cleanup_frame(vtrack);
-	}
-	return result;
-}
-
-int mpeg3vtrack_read_yuvframe_ptr(mpeg3_vtrack_t *vtrack, 
-				  char **y_output,
-				  char **u_output,
-				  char **v_output)
-{
-	int result = 0;
-
-	if(!result) result = mpeg3vtrack_seek(vtrack, 0);
-
-	if (!result) result = mpeg3vtrack_get_frame(vtrack);
-
-
-	if(!result) {
-	  result = mpeg3video_read_yuvframe_ptr(vtrack->video, 
-						vtrack->track_frame_buffer,
-						vtrack->track_frame_buffer_size,
-						y_output,
-						u_output,
-						v_output);
-	  mpeg3vtrack_cleanup_frame(vtrack);
-	}
-	return result;
-}

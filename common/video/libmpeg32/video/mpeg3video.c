@@ -235,7 +235,7 @@ void mpeg3video_init_scantables(mpeg3video_t *video)
 	}
 }
 
-mpeg3video_t *mpeg3video_allocate_struct(int have_mmx)
+mpeg3video_t *mpeg3video_allocate_struct(void)
 {
 	int i;
 	mpeg3video_t *video = calloc(1, sizeof(mpeg3video_t));
@@ -248,7 +248,7 @@ mpeg3video_t *mpeg3video_allocate_struct(int have_mmx)
 
 /* First frame is all green */
 	video->framenum = -1;
-	video->have_mmx = have_mmx;
+	video->have_mmx = mpeg3_mmx_test();
 
 	video->percentage_seek = -1;
 	video->frame_seek = -1;
@@ -376,14 +376,13 @@ static long gop_to_frame(mpeg3video_t *video, mpeg3_timecode_t *gop_timecode)
 
 
 
-mpeg3video_t* mpeg3video_new(int have_mmx,
-			     int is_video_stream,
+mpeg3video_t* mpeg3video_new(int is_video_stream,
 			     int cpus)
 {
 	mpeg3video_t *video;
 	int result = 0;
 
-	video = mpeg3video_allocate_struct(have_mmx);
+	video = mpeg3video_allocate_struct();
 	video->cpus = cpus;
 
 	return video;

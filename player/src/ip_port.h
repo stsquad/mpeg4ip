@@ -56,5 +56,4 @@ class C2ConsecIpPort {
   CIpPort *m_first, *m_second;
 };
 
-extern CIpPort *global_invalid_ports;
 #endif

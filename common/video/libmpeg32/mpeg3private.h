@@ -40,7 +40,6 @@ typedef struct
 
 	int program;  /* Number of program to play */
 	int cpus;
-	int have_mmx;
 	int seekable; /* Filesystem is seekable */
 } mpeg3_t;
 

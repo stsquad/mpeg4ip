@@ -1,13 +1,16 @@
-SUBDIRS = audio video
+SUBDIRS = video
 
-noinst_LTLIBRARIES = libmpeg3.la
+noinst_LTLIBRARIES = libmpeg3.la libmpeg3util.la
 
 INCLUDES= -I$(top_srcdir)/include -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/mp4v2
 AM_CFLAGS= -DHAVE_CSS
+libmpeg3util_la_LDFLAGS = -static 
+libmpeg3util_la_SOURCES = \
+	bitstream.c \
+	bitstream.h 
+
 libmpeg3_la_LDFLAGS = -static 
 libmpeg3_la_SOURCES = \
-	bitstream.c \
-	bitstream.h \
 	ifo.h \
 	libmpeg3.c \
 	libmpeg3.h \
@@ -30,10 +33,3 @@ libmpeg3_la_SOURCES = \
 	workarounds.c \
 	workarounds.h
 
-libmpeg3_la_LIBADD = \
-	audio/libmpeg3audio.la \
-	video/libmpeg3video.la 
-
-check_PROGRAMS = test
-test_SOURCES = test.c
-test_LDADD = libmpeg3.la -lm -lpthread

@@ -29,78 +29,44 @@
 
 #include "systems.h"
 #include <SDL.h>
+#include "codec_plugin.h"
+
 #define DECODE_BUFFERS_MAX 32
 
 class CPlayerSession;
 // states
 class CAudioSync {
  public:
-  CAudioSync(CPlayerSession *psptr, int volume);
-  ~CAudioSync();
+  CAudioSync(CPlayerSession *psptr) { 
+    m_psptr = psptr;
+    m_eof = 0;
+  } ;
+  virtual ~CAudioSync(void) {};
   // APIs from  codec
-  unsigned char *get_audio_buffer(void);
-  void filled_audio_buffer(uint64_t ts, int resync);
-  void set_config(int freq, int channels, int format, uint32_t max_buffer_size);
+  void clear_eof(void);
   void set_eof(void);
-  uint32_t load_audio_buffer(unsigned char *from, 
-			     uint32_t bytes, 
-			     uint64_t ts, 
-			     int resync);
-  
+  int get_eof(void) { return m_eof; };
   // APIs from sync task
-  int initialize_audio(int have_video);
-  int is_audio_ready(uint64_t &disptime);
-  uint64_t check_audio_sync(uint64_t current_time, int &have_eof);
-  void play_audio(void);
-  void audio_callback(Uint8 *stream, int len);
-  void flush_sync_buffers(void);
-  void flush_decode_buffers(void);
+  virtual int initialize_audio(int have_video);
+  virtual int is_audio_ready(uint64_t &disptime);
+  virtual uint64_t check_audio_sync(uint64_t current_time, int &have_eof);
+  virtual void play_audio(void);
+
+  virtual void flush_sync_buffers(void);
+  virtual void flush_decode_buffers(void);
 
   // Initialization, other APIs
-  void set_wait_sem(SDL_sem *p) {m_audio_waiting = p; } ;
-  void set_volume(int volume);
- private:
-  volatile int m_dont_fill;
-  uint64_t m_buffer_ts;
-  uint32_t m_buffer_offset_on;
-  uint32_t m_buffer_size;
-  uint32_t m_fill_index, m_play_index;
-  volatile int m_buffer_filled[DECODE_BUFFERS_MAX];
-  uint64_t m_buffer_time[DECODE_BUFFERS_MAX];
-  uint64_t m_last_fill_timestamp;
-  uint64_t m_play_time;
-  SDL_AudioSpec m_obtained;
-  unsigned char *m_sample_buffer[DECODE_BUFFERS_MAX];
-  int m_config_set;
-  int m_audio_initialized;
-  int m_freq;
-  int m_channels;
-  int m_format;
-  int m_resync_required;
-  int m_audio_paused;
-  int m_consec_no_buffers;
-  volatile int m_audio_waiting_buffer;
-  int m_eof_found;
-  int m_use_SDL_delay;
-  uint32_t m_resync_buffer;
+  virtual void set_wait_sem(SDL_sem *p) {m_audio_waiting = p; } ;
+  virtual void set_volume(int volume);
+ protected:
   SDL_sem *m_audio_waiting;
   CPlayerSession *m_psptr;
-  uint32_t m_skipped_buffers;
-  uint32_t m_didnt_fill_buffers;
-  int m_first_time;
-  int m_first_filled;
-  uint32_t m_msec_per_frame;
-  uint64_t m_buffer_latency;
-  int m_consec_wrong_latency;
-  int64_t m_wrong_latency_total;
-  int m_volume;
-  int m_do_sync;
-  uint32_t m_sample_size;
-  uint32_t m_play_sample_index;
-  uint32_t m_samples_loaded;
-  uint32_t m_bytes_per_sample;
+  int m_eof;
 };
 
+CAudioSync *create_audio_sync(CPlayerSession *, int volume);
+
+audio_vft_t *get_audio_vft(void);
 #endif
 
 

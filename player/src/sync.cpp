@@ -39,43 +39,6 @@ DEFINE_MESSAGE_MACRO(sync_message, "avsync")
 #define sync_message(loglevel, fmt...) message(loglevel, "avsync", fmt)
 #endif
 
-  /*
- * get_current_time.  Gets the time of day, subtracts off the start time
- * to get the current play time.
- */
-  uint64_t CPlayerSession::get_current_time ()
-{
-  uint64_t current_time;
-
-  if (m_waiting_for_audio != 0) {
-    return 0;
-  }
-  current_time = get_time_of_day();
-#if 0
-  sync_message(LOG_DEBUG, "current time %llx m_start %llx", 
-	       current_time, m_start);
-  if (current_time < m_start) {
-    if (m_clock_wrapped == -1) {
-      return (0);
-    } else {
-      m_clock_wrapped = 1;
-    }
-  } else{
-    if (m_clock_wrapped > 0) {
-      uint64_t temp;
-      temp = 1;
-      temp <<= 32;
-      temp /= 1000;
-      current_time += temp;
-    } else {
-      m_clock_wrapped = 0;
-    }
-  }
-#endif
-  if (current_time < m_start) return 0;
-  m_current_time = current_time - m_start;
-  return(m_current_time);
-}
 
 
 /*
@@ -109,8 +72,6 @@ const char *sync_state[] = {
  * process_sdl_events - process the sdl event queue.  This will allow the
  * video window to capture things like close, key strokes.
  */
-#define PROCESS_SDL_EVENTS(abc) process_sdl_events(abc)
-
 void CPlayerSession::process_sdl_events (void)
 {
   SDL_Event event;
@@ -128,7 +89,8 @@ void CPlayerSession::process_sdl_events (void)
       break;
     case SDL_KEYDOWN:
 #ifdef DEBUG_SYNC_SDL_EVENTS
-      sync_message(LOG_DEBUG, "Pressed %x %s", event.key.keysym.mod, SDL_GetKeyName(event.key.keysym.sym));
+      sync_message(LOG_DEBUG, "Pressed %x %s", 
+		   event.key.keysym.mod, SDL_GetKeyName(event.key.keysym.sym));
 #endif
       switch (event.key.keysym.sym) {
       case SDLK_ESCAPE:
@@ -305,11 +267,6 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	}
 	sync_message(LOG_DEBUG, 
 		     "Resynced at time "LLU " "LLU, m_current_time, vstart);
-	/*
-	 * Play off some video
-	 */
-	if (m_video_sync && m_current_time >= vstart)
-	  m_video_sync->play_video();
       } else {
 	SDL_Delay(10);
       }
@@ -541,30 +498,4 @@ int c_sync_thread (void *data)
   return (0);
 }
 
-/*
- * audio_is_ready - when the audio indicates that it's ready, it will
- * send a latency number, and a play time
- */
-void CPlayerSession::audio_is_ready (uint64_t latency, uint64_t time)
-{
-  m_start = get_time_of_day();
-  m_start -= time;
-  m_start += latency;
-  if (latency != 0) {
-    m_clock_wrapped = -1;
-  }
-  sync_message(LOG_DEBUG, "Audio is ready "LLU" - latency "LLU, time, latency);
-  sync_message(LOG_DEBUG, "m_start is "LLX, m_start);
-  m_waiting_for_audio = 0;
-  SDL_SemPost(m_sync_sem);
-}
-
-void CPlayerSession::adjust_start_time (int64_t time)
-{
-  m_start -= time;
-  m_clock_wrapped = -1;
-  sync_message(LOG_INFO, "Adjusting start time "LLD " to " LLU, time,
-	       get_current_time());
-  SDL_SemPost(m_sync_sem);
-}
 /* end sync.cpp */

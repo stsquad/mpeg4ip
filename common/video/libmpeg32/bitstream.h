@@ -1,7 +1,6 @@
 #ifndef BITSTREAM_H
 #define BITSTREAM_H
 
-#include "mpeg3demux.h"
 #include <sys/types.h>
 
 //                                    next bit in forward direction
@@ -17,10 +16,6 @@ typedef struct
 	u_int32_t bfr;  /* bfr = buffer for bits */
 	int bit_number;   /* position of pointer in bfr */
 	int bfr_size;    /* number of bits in bfr.  Should always be a multiple of 8 */
-#ifndef MPEG4IP
-	void *file;    /* Mpeg2 file */
-#endif
-	mpeg3_demuxer_t *demuxer;   /* Mpeg2 demuxer */
 /* If the input ptr is true, data is read from it instead of the demuxer. */
 	unsigned char *input_ptr;
   unsigned char *orig_ptr;
@@ -31,28 +26,16 @@ typedef struct
 /*                                 Entry Points */
 /* ======================================================================== */
 
-#define mpeg3bits_tell_percentage(stream) mpeg3demux_tell_percentage((stream)->demuxer)
-
-#define mpeg3bits_packet_time(stream) mpeg3demux_current_time((stream)->demuxer)
-
-#define mpeg3bits_time_offset(stream) mepg2demux_time_offset((stream)->demuxer)
-
 static __inline int mpeg3bits_error (mpeg3_bits_t *stream)
 {
-  if (stream->input_ptr != NULL) return 0;
-  return(mpeg3demux_error(stream->demuxer));
+  return 0;
 }
 
 static __inline int mpeg3bits_eof (mpeg3_bits_t *stream)
 {
-  if (stream->input_ptr != NULL) {
-    long diff = stream->input_ptr - stream->orig_ptr;
-    return (diff >= stream->buflen);
-  }
-  return mpeg3demux_eof(stream->demuxer);
+  long diff = stream->input_ptr - stream->orig_ptr;
+  return (diff >= stream->buflen);
 }
-
-#define mpeg3bits_bof(stream) mpeg3demux_bof((stream)->demuxer)
 
 /* Read bytes backward from the file until the reverse_bits is full. */
 static __inline void mpeg3bits_fill_reverse_bits(mpeg3_bits_t* stream, int bits)
@@ -68,14 +51,10 @@ static __inline void mpeg3bits_fill_reverse_bits(mpeg3_bits_t* stream, int bits)
 // Insert bytes before bfr_size
 	while(stream->bfr_size - stream->bit_number < bits)
 	{
-	  if(stream->input_ptr) {
 	    stream->bfr |= (unsigned int)(*--stream->input_ptr) << stream->bfr_size;
 	    if (stream->input_ptr < stream->orig_ptr) {
 	      printf("fill reverse past begin\n");
 	    }
-	  }
-		else
-			stream->bfr |= (unsigned int)mpeg3demux_read_prev_char(stream->demuxer) << stream->bfr_size;
 		stream->bfr_size += 8;
 	}
 }
@@ -86,14 +65,7 @@ static __inline void mpeg3bits_fill_bits(mpeg3_bits_t* stream, int bits)
 	while(stream->bit_number < bits)
 	{
 		stream->bfr <<= 8;
-		if(stream->input_ptr)
-		{
-			stream->bfr |= *stream->input_ptr++;
-		}
-		else
-		{
-			stream->bfr |= mpeg3demux_read_char(stream->demuxer);
-		}
+		stream->bfr |= *stream->input_ptr++;
 		stream->bit_number += 8;
 		stream->bfr_size += 8;
 		if(stream->bfr_size > 32) stream->bfr_size = 32;
@@ -106,10 +78,7 @@ static __inline unsigned int mpeg3bits_getbyte_noptr(mpeg3_bits_t* stream)
 	if(stream->bit_number < 8)
 	{
 		stream->bfr <<= 8;
-		if(stream->input_ptr)
-			stream->bfr |= *stream->input_ptr++;
-		else
-			stream->bfr |= mpeg3demux_read_char(stream->demuxer);
+		stream->bfr |= *stream->input_ptr++;
 
 		stream->bfr_size += 8;
 		if(stream->bfr_size > 32) stream->bfr_size = 32;
@@ -124,10 +93,7 @@ static __inline unsigned int mpeg3bits_getbit_noptr(mpeg3_bits_t* stream)
 	if(!stream->bit_number)
 	{
 		stream->bfr <<= 8;
-		if (stream->input_ptr) {
-		  stream->bfr |= *stream->input_ptr++;
-		} else 
-		stream->bfr |= mpeg3demux_read_char(stream->demuxer);
+		stream->bfr |= *stream->input_ptr++;
 
 		stream->bfr_size += 8;
 		if(stream->bfr_size > 32) stream->bfr_size = 32;
@@ -153,14 +119,7 @@ static __inline unsigned int mpeg3bits_showbits24_noptr(mpeg3_bits_t* stream)
 	while(stream->bit_number < 24)
 	{
 		stream->bfr <<= 8;
-		if(stream->input_ptr)
-		{
-			stream->bfr |= *stream->input_ptr++;
-		}
-		else
-		{
-		stream->bfr |= mpeg3demux_read_char(stream->demuxer);
-		}
+		stream->bfr |= *stream->input_ptr++;
 		stream->bit_number += 8;
 		stream->bfr_size += 8;
 		if(stream->bfr_size > 32) stream->bfr_size = 32;
@@ -173,14 +132,7 @@ static __inline unsigned int mpeg3bits_showbits32_noptr(mpeg3_bits_t* stream)
 	while(stream->bit_number < 32)
 	{
 		stream->bfr <<= 8;
-		if(stream->input_ptr)
-		{
-			stream->bfr |= *stream->input_ptr++;
-		}
-		else
-		{
-		stream->bfr |= mpeg3demux_read_char(stream->demuxer);
-		}
+		stream->bfr |= *stream->input_ptr++;
 		stream->bit_number += 8;
 		stream->bfr_size += 8;
 		if(stream->bfr_size > 32) stream->bfr_size = 32;
@@ -194,6 +146,7 @@ static __inline unsigned int mpeg3bits_showbits(mpeg3_bits_t* stream, int bits)
 	return (stream->bfr >> (stream->bit_number - bits)) & (0xffffffff >> (32 - bits));
 }
 
+#if 0
 static __inline unsigned int mpeg3bits_getbits_reverse(mpeg3_bits_t* stream, int bits)
 {
 	unsigned int result;
@@ -210,5 +163,15 @@ static __inline unsigned int mpeg3bits_showbits_reverse(mpeg3_bits_t* stream, in
 	result = (stream->bfr >> stream->bit_number) & (0xffffffff >> (32 - bits));
 	return result;
 }
+
+#endif
+#ifdef __cplusplus
+extern "C" {
+#endif
+int mpeg3bits_use_ptr_len(mpeg3_bits_t *stream, unsigned char *buffer,
+			  long buflen);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

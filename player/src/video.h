@@ -28,6 +28,7 @@
 #include "systems.h"
 //#include <type/typeapi.h>
 #include <SDL.h>
+#include "codec_plugin.h"
 
 #define MAX_VIDEO_BUFFERS 16
 
@@ -36,55 +37,36 @@ class CPlayerSession;
 class CVideoSync {
  public:
   CVideoSync(CPlayerSession *ptptr);
-  ~CVideoSync(void);
-  int initialize_video(const char *name, int x, int y);  // from sync task
-  int is_video_ready(uint64_t &disptime);  // from sync task
-  int64_t play_video_at(uint64_t current_time, // from sync task
-			 int &have_eof);
-  int get_video_buffer(unsigned char **y,
-		       unsigned char **u,
-		       unsigned char **v);
-  int filled_video_buffers(uint64_t time);
-  int set_video_frame(const Uint8 *y,      // from codec
-		      const Uint8 *u,
-		      const Uint8 *v,
-		      int m_pixelw_y,
-		      int m_pixelw_uv,
-		      uint64_t time);
-  void config (int w, int h); // from codec
+  virtual ~CVideoSync(void);
+
   void set_wait_sem (SDL_sem *p) { m_decode_sem = p; };  // from set up
-  void flush_decode_buffers(void);    // from decoder task in response to stop
-  void flush_sync_buffers(void);      // from sync task in response to stop
-  void play_video(void);
+  virtual int get_video_buffer(unsigned char **y,
+			       unsigned char **u,
+			       unsigned char **v);
+  virtual int filled_video_buffers(uint64_t time);
+  virtual int set_video_frame(const Uint8 *y,      // from codec
+			      const Uint8 *u,
+			      const Uint8 *v,
+			      int m_pixelw_y,
+			      int m_pixelw_uv,
+			      uint64_t time);
+  virtual void config (int w, int h); // from codec
+  virtual void flush_decode_buffers(void);    
+                              // from decoder task in response to stop
   void set_eof(void) { m_eof_found = 1; };
-  void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
-  void set_fullscreen(int fullscreen);
-  int get_fullscreen (void) { return m_fullscreen; };
-  void do_video_resize(void); // from sync
-  uint64_t get_video_msec_per_frame (void) { return m_msec_per_frame; };
- private:
+  virtual void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
+  virtual void set_fullscreen(int fullscreen);
+  virtual int get_fullscreen (void) { return 0;};
+  virtual int initialize_video(const char *name, int x, int y);  // from sync task
+  virtual int is_video_ready(uint64_t &disptime);  // from sync task
+  virtual int64_t play_video_at(uint64_t current_time, // from sync task
+			 int &have_eof);
+  virtual void do_video_resize(void);     // from sync
+  virtual void flush_sync_buffers(void);  // from sync task in response to stop
+ protected:
   CPlayerSession *m_psptr;
-  int m_eof_found;
-  int m_video_bpp;
-  int m_video_scale;
-  int m_fullscreen;
-  unsigned int m_width, m_height;
-  int m_video_initialized;
-  int m_config_set;
-  int m_paused;
-  volatile int m_have_data;
-  SDL_Surface *m_screen;
-  SDL_Overlay *m_image;
-  SDL_Rect m_dstrect;
-  uint32_t m_fill_index, m_play_index;
-  int m_decode_waiting;
-  volatile int m_buffer_filled[MAX_VIDEO_BUFFERS];
-  Uint8 *m_y_buffer[MAX_VIDEO_BUFFERS];
-  Uint8 *m_u_buffer[MAX_VIDEO_BUFFERS];
-  Uint8 *m_v_buffer[MAX_VIDEO_BUFFERS];
-  uint64_t m_play_this_at[MAX_VIDEO_BUFFERS];
   SDL_sem *m_decode_sem;
-  int m_dont_fill;
+  int m_eof_found;
   uint32_t m_consec_skipped;
   uint32_t m_behind_frames;
   uint32_t m_total_frames;
@@ -105,4 +87,7 @@ extern void FrameDoubler(u_int8_t* pSrcPlane, u_int8_t* pDstPlane,
 	u_int32_t srcWidth, u_int32_t srcHeight, u_int32_t destWidth);
 #endif
 
+video_vft_t *get_video_vft(void);
+
+CVideoSync *create_video_sync(CPlayerSession *psptr);
 #endif

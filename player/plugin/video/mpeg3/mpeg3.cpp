@@ -23,10 +23,8 @@
  */
 
 #include "mpeg3.h"
-extern "C" {
-#include <mpeg3protos.h>
 #include <mpeg3videoprotos.h>
-}
+#include <bitstream.h>
 #include "mp4av.h"
 
 //#define DEBUG_MPEG3_FRAME 1
@@ -46,14 +44,7 @@ static codec_data_t *mpeg3_create (format_list_t *media_fmt,
   mpeg3->m_vft = vft;
   mpeg3->m_ifptr = ifptr;
 
-  mpeg3->m_video = mpeg3video_new(
-#ifdef USE_MMX
-				  1,
-#else
-				  0,
-#endif
-				  0, 
-				  1);
+  mpeg3->m_video = mpeg3video_new(0, 1);
 
   mpeg3->m_did_pause = 1;
   return ((codec_data_t *)mpeg3);

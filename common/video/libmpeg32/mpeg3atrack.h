@@ -2,7 +2,6 @@
 #define MPEG3ATRACK_H
 
 #include "mpeg3demux.h"
-#include "audio/mpeg3audio.h"
 
 typedef struct
 {
@@ -10,7 +9,6 @@ typedef struct
 	int channels;
 	int sample_rate;
 	mpeg3_demuxer_t *demuxer;
-	mpeg3audio_t *audio;
 	long current_position;
 	long total_samples;
 	int format;               /* format of audio */

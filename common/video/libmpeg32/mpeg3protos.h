@@ -66,35 +66,6 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	int number);
 int mpeg3_delete_vtrack(mpeg3_t *file, mpeg3_vtrack_t *vtrack);
 
-/* AUDIO */
-mpeg3audio_t* mpeg3audio_new(mpeg3_atrack_t *track, int is_ac3);
-int mpeg3audio_delete(mpeg3audio_t *audio);
-
-
-/* VIDEO */
-mpeg3video_t* mpeg3video_new(int have_mmx,
-			     int is_video_stream, int cpus);
-int mpeg3video_delete(mpeg3video_t *video);
-int mpeg3video_read_frame(mpeg3video_t *video, 
-			  unsigned char *input,
-			  long input_size,
-			  unsigned char **output_rows,
-			  int in_x, 
-			  int in_y, 
-			  int in_w, 
-			  int in_h, 
-			  int out_w, 
-			  int out_h, 
-			  int color_model);
-int mpeg3video_get_header(mpeg3video_t *video, int dont_repeat);
-int mpeg3video_initdecoder(mpeg3video_t *video);
-int mpeg3video_read_yuvframe_ptr(mpeg3video_t *video, 
-				 unsigned char *input,
-				 long input_size,
-				 char **y_output,
-				 char **u_output,
-				 char **v_output);
-
 /* FILESYSTEM */
 
 mpeg3_fs_t* mpeg3_new_fs(const char *path);
@@ -107,19 +78,6 @@ int mpeg3io_next_code(mpeg3_fs_t *fs, uint32_t code, int count);
 int mpeg3io_prev_code(mpeg3_fs_t *fs, uint32_t code, int count);
 
 /* BITSTREAM */
-#ifndef MPEG4IP
-mpeg3_bits_t* mpeg3bits_new_stream(mpeg3_t *file, mpeg3_demuxer_t *demuxer);
-#else
-mpeg3_bits_t* mpeg3bits_new_stream(mpeg3_demuxer_t *demuxer);
-#endif
-unsigned int mpeg3bits_getbits(mpeg3_bits_t* stream, int n);
-int mpeg3bits_seek_byte(mpeg3_bits_t* stream, int64_t position);
-int mpeg3bits_open_title(mpeg3_bits_t* stream, int title);
-int64_t mpeg3bits_tell(mpeg3_bits_t* stream);
-int mpeg3bits_use_ptr_len(mpeg3_bits_t *stream,
-			  unsigned char *buffer,
-			  long buflen);
-
 
 
 #endif

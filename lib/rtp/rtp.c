@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.12 $ 
- * $Date: 2002/05/21 19:38:13 $
+ * $Revision: 1.13 $ 
+ * $Date: 2002/05/23 21:41:56 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -67,15 +67,15 @@
 #define MAX_ENCRYPTION_PAD 16
 
 static int rijndael_initialize(struct rtp *session, u_char *hash, int hash_len);
-static int rijndael_decrypt(struct rtp *session, unsigned char *data,
+static int rijndael_decrypt(void *ifptr, unsigned char *data,
 			    unsigned int size);
-static int rijndael_encrypt(struct rtp *session, unsigned char *data,
+static int rijndael_encrypt(void *ifptr, unsigned char *data,
 			    unsigned int size);
 
 static int des_initialize(struct rtp *session, u_char *hash, int hash_len);
-static int des_decrypt(struct rtp *session, unsigned char *data,
+static int des_decrypt(void *ifptr, unsigned char *data,
 		       unsigned int size);
-static int des_encrypt(struct rtp *session, unsigned char *data,
+static int des_encrypt(void *ifptr, unsigned char *data,
 		       unsigned int size);
 
 #define MAX_DROPOUT    3000
@@ -207,10 +207,15 @@ typedef struct {
 /*
  * Encryption function types
  */
-typedef int (*rtp_encrypt_func)(struct rtp *, unsigned char *data,
-				unsigned int size);
-typedef int (*rtp_decrypt_func)(struct rtp *, unsigned char *data,
-				unsigned int size);
+
+// moved to rtp.h by nori
+/*
+ * typedef int (*rtp_encrypt_func)(struct rtp *, unsigned char *data,
+ *				unsigned int size);
+ *
+ * typedef int (*rtp_decrypt_func)(struct rtp *, unsigned char *data,
+ *				unsigned int size);
+ */
 typedef int (*rtcp_send_f)(struct rtp *s, char *buffer, int buflen);
 
 /*
@@ -258,6 +263,7 @@ struct rtp {
  	rtp_encrypt_func encrypt_func;
  	rtp_decrypt_func decrypt_func;
  	int encryption_pad_length;
+  void *encrypt_userdata; // added by nori
  	union {
  		struct {
  			keyInstance keyInstEncrypt;
@@ -1362,6 +1368,8 @@ int rtp_process_recv_data (struct rtp *session,
   packet->pd.rtp_pd_buflen = buflen;
 
   if (buflen > 0) {
+    //nori
+    printf("Nori session->encryption_enabled = %d\n", session->encryption_enabled);
     if (session->encryption_enabled)
       {
 	(session->decrypt_func)(session, buffer, buflen);
@@ -2196,6 +2204,7 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 	/* the amount of padding to add here, so we can reserve    */
 	/* space - the actual padding is added later.              */
 	if ((session->encryption_enabled) &&
+	    (session->encryption_pad_length != 0) &&
 	    ((buffer_len % session->encryption_pad_length) != 0)) {
 		pad         = TRUE;
 		pad_len     = session->encryption_pad_length - (buffer_len % session->encryption_pad_length);
@@ -2252,7 +2261,9 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 	/* Finally, encrypt if desired... */
 	if (session->encryption_enabled)
 	{
+	  if (session->encryption_pad_length != 0) {
 		ASSERT((buffer_len % session->encryption_pad_length) == 0);
+	  }
 		(session->encrypt_func)(session, buffer + RTP_PACKET_HEADER_SIZE,
 					buffer_len); 
 	}
@@ -2676,6 +2687,7 @@ static void send_rtcp(struct rtp *session,
 	/* And encrypt if desired... */
 	if (session->encryption_enabled)
 	  {
+	    if (session->encryption_pad_length != 0) {
 		if (((ptr - buffer) % session->encryption_pad_length) != 0) {
 			/* Add padding to the last packet in the compound, if necessary. */
 			/* We don't have to worry about overflowing the buffer, since we */
@@ -2692,7 +2704,8 @@ static void send_rtcp(struct rtp *session,
 			((rtcp_t *) lpt)->common.p = TRUE;
 			((rtcp_t *) lpt)->common.length = htons((int16_t)(((ptr - lpt) / 4) - 1));
 		}
- 		(session->encrypt_func)(session, buffer, ptr - buffer); 
+	    }
+	    (session->encrypt_func)(session, buffer, ptr - buffer); 
 	}
 	if (session->rtcp_bw != 0.0) {
 	  (session->rtcp_send)(session, buffer, ptr - buffer);
@@ -2876,6 +2889,7 @@ static void rtp_send_bye_now(struct rtp *session)
 	ptr += 4;
 	
 	if (session->encryption_enabled) {
+	    if (session->encryption_pad_length != 0) {
 		if (((ptr - buffer) % session->encryption_pad_length) != 0) {
 			/* Add padding to the last packet in the compound, if necessary. */
 			/* We don't have to worry about overflowing the buffer, since we */
@@ -2892,7 +2906,8 @@ static void rtp_send_bye_now(struct rtp *session)
 			common->length = htons((int16_t)(((ptr - (uint8_t *) common) / 4) - 1));
 		}
 		ASSERT(((ptr - buffer) % session->encryption_pad_length) == 0);
-		(session->encrypt_func)(session, buffer, ptr - buffer);
+	    }
+	    (session->encrypt_func)(session, buffer, ptr - buffer);
 	}
 	(session->rtcp_send)(session, buffer, ptr - buffer);
 	/* Loop the data back to ourselves so local participant can */
@@ -3152,6 +3167,10 @@ static int des_initialize(struct rtp *session, u_char *hash, int hashlen)
 	session->encryption_pad_length = 8;
 	session->encrypt_func = des_encrypt;
 	session->decrypt_func = des_decrypt;
+
+	// test(by nori)
+	rtp_set_encryption(session, session->encrypt_func, session->decrypt_func, session->encrypt_userdata);
+
 	
         if (session->crypto_state.des.encryption_key != NULL) {
                 xfree(session->crypto_state.des.encryption_key);
@@ -3184,18 +3203,21 @@ static int des_initialize(struct rtp *session, u_char *hash, int hashlen)
 	return TRUE;
 }
 
-static int des_encrypt(struct rtp *session, unsigned char *data,
+static int des_encrypt(void *ifptr, unsigned char *data,
 		unsigned int size)
 {
+  struct rtp *session = (struct rtp *)ifptr;
+
   uint8_t 	 initVec[8] = {0,0,0,0,0,0,0,0};
     qfDES_CBC_e(session->crypto_state.des.encryption_key,
 		data, size, initVec);
     return TRUE;
 }
 
-static int des_decrypt(struct rtp *session, unsigned char *data,
-		       unsigned int size)
+static int des_decrypt(void *ifptr, unsigned char *data,
+		unsigned int size)
 {
+  struct rtp *session = (struct rtp *)ifptr;
   uint8_t 	 initVec[8] = {0,0,0,0,0,0,0,0};
     qfDES_CBC_d(session->crypto_state.des.encryption_key,
 		data, size, initVec);
@@ -3236,9 +3258,10 @@ static int rijndael_initialize(struct rtp *session, u_char *hash, int hash_len)
     return TRUE;
 }
 
-static int rijndael_encrypt(struct rtp *session, unsigned char *data,
+static int rijndael_encrypt(void *ifptr, unsigned char *data,
 			    unsigned int size)
 {
+  struct rtp *session = (struct rtp *)ifptr;
 	int rc;
 
 
@@ -3252,9 +3275,10 @@ static int rijndael_encrypt(struct rtp *session, unsigned char *data,
 	return rc;
 }
 
-static int rijndael_decrypt(struct rtp *session, unsigned char *data,
+static int rijndael_decrypt(void *ifptr, unsigned char *data,
 			    unsigned int size)
 {
+  struct rtp *session = (struct rtp *)ifptr;
 	int rc;
 
 	/*
@@ -3319,3 +3343,18 @@ int rtp_get_ttl(struct rtp *session)
 	return session->ttl;
 }
 
+// test (by nori)
+int rtp_set_encryption(struct rtp *session, rtp_encrypt_func efunc, rtp_decrypt_func dfunc, void *userdata)
+{
+	rtp_message(LOG_DEBUG, "Enabling SRTP encryption");
+	session->encryption_enabled = 1;
+	session->encrypt_func = efunc;
+	session->decrypt_func = dfunc;
+       	session->encrypt_userdata = userdata;
+	session->encryption_pad_length = 0;
+	return 0;
+}
+int rtp_get_encryption_enabled(struct rtp *session)
+{
+  return session->encryption_enabled;
+}

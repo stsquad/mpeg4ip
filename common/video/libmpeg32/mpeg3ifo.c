@@ -1,9 +1,8 @@
 #include <mpeg4ip.h>
 #ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
-#else
-#include <mpeg4ip_byteswap.h>
 #endif
+#include <mpeg4ip_byteswap.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdlib.h>

@@ -293,14 +293,6 @@ int main (int argc, char **argv)
     start_session(name, max_loop);
   }
   // remove invalid global ports
-  CIpPort *first;
-  while (global_invalid_ports != NULL) {
-    first = global_invalid_ports;
-    global_invalid_ports = first->get_next();
-    player_debug_message("Freeing invalid port %u", first->get_port_num());
-    delete first;
-  }
-
   close_plugins();
 
   return(0); 

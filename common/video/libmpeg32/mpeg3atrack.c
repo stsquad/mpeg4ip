@@ -236,7 +236,7 @@ mpeg3_atrack_t* mpeg3_new_atrack(mpeg3_t *file,
 	  new_atrack = NULL;
 	}
 
-	printf("mpeg3 demux length %g\n", mpeg3demux_length(new_atrack->demuxer));
+	//printf("mpeg3 demux length %g\n", mpeg3demux_length(new_atrack->demuxer));
 // Copy pointers
 	if(file->sample_offsets)
 	{
@@ -254,19 +254,18 @@ mpeg3_atrack_t* mpeg3_new_atrack(mpeg3_t *file,
 	    new_atrack->total_frames = (uint32_t)time;
 	    new_atrack->total_sample_offsets = new_atrack->total_frames * 
 	      new_atrack->samples_per_frame;
-	    printf("total frames %d\n", new_atrack->total_frames);
+	    //printf("total frames %d\n", new_atrack->total_frames);
 	  } else {
 	    new_atrack->total_frames = 0;
 	    new_atrack->total_sample_offsets = 0;
 	  }
 	} 
-	printf("total offsets %ld\n", new_atrack->total_sample_offsets);
+	//printf("total offsets %ld\n", new_atrack->total_sample_offsets);
 	return new_atrack;
 }
 
 int mpeg3_delete_atrack(mpeg3_t *file, mpeg3_atrack_t *atrack)
 {
-	if(atrack->audio) mpeg3audio_delete(atrack->audio);
 	if(atrack->demuxer) mpeg3_delete_demuxer(atrack->demuxer);
 	free(atrack);
 	return 0;

@@ -116,8 +116,8 @@ int CPlayerMedia::decode_thread (void)
 						  m_video_info,
 						  m_user_data,
 						  m_user_data_size,
-						  &video_vft,
-						  this);
+						  get_video_vft(),
+						  m_video_sync);
 	    if (m_plugin_data == NULL) {
 	      m_plugin = NULL;
 	    } else {
@@ -137,8 +137,8 @@ int CPlayerMedia::decode_thread (void)
 						  m_audio_info,
 						  m_user_data,
 						  m_user_data_size,
-						  &audio_vft,
-						  this);
+						  get_audio_vft(),
+						  m_audio_sync);
 	    if (m_plugin_data == NULL) {
 	      m_plugin = NULL;
 	    } else {
@@ -230,8 +230,9 @@ int CPlayerMedia::decode_thread (void)
 		     !m_byte_stream->eof() && 
 		     current_time > ourtime);
 	    if (m_byte_stream->eof() || ret == 0) continue;
-#ifdef DEBUG_DECODE
-	    media_message(LOG_INFO, "Skipped ahead to %llu", ourtime);
+#if 1
+	    media_message(LOG_INFO, "Skipped ahead %llu  to %llu", 
+			  current_time - 200, ourtime);
 #endif
 	    /*
 	     * Ooh - fun - try to match to the next sync value - if not, 
@@ -290,6 +291,7 @@ int CPlayerMedia::decode_thread (void)
       end = clock();
       if (ret > 0) {
 	diff = end - start;
+	media_message(LOG_DEBUG, "%c " LLD, m_is_video ? 'v' : 'a',diff);
 	if (diff > max) max = diff;
 	avg += diff;
 	avg_cnt++;
@@ -299,11 +301,15 @@ int CPlayerMedia::decode_thread (void)
     }
   }
 #ifdef TIME_DECODE
-  if (avg_cnt != 0)
+  if (avg_cnt != 0) {
     media_message(LOG_INFO, "%s Decode avg time is " LLD " max " LLD, 
 		  m_is_video ? "video" : "audio",
 		  avg / avg_cnt,
 		  max);
+    media_message(LOG_INFO, "%s total %lld count %d", 
+		  m_is_video ? "video" : "audio",
+		  avg, avg_cnt);
+  }
 #endif
   if (m_is_video)
     media_message(LOG_NOTICE, "Video decoder skipped "LLU" frames", 

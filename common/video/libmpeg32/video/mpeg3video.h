@@ -152,5 +152,29 @@ typedef struct
 } mpeg3video_t;
 
 
+/* VIDEO */
+mpeg3video_t* mpeg3video_new(int is_video_stream, int cpus);
+int mpeg3video_delete(mpeg3video_t *video);
+int mpeg3video_read_frame(mpeg3video_t *video, 
+			  unsigned char *input,
+			  long input_size,
+			  unsigned char **output_rows,
+			  int in_x, 
+			  int in_y, 
+			  int in_w, 
+			  int in_h, 
+			  int out_w, 
+			  int out_h, 
+			  int color_model);
+int mpeg3video_get_header(mpeg3video_t *video, int dont_repeat);
+int mpeg3video_initdecoder(mpeg3video_t *video);
+int mpeg3video_read_yuvframe_ptr(mpeg3video_t *video, 
+				 unsigned char *input,
+				 long input_size,
+				 char **y_output,
+				 char **u_output,
+				 char **v_output);
+
+
 #endif
 
