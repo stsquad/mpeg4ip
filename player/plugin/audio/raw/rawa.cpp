@@ -158,7 +158,7 @@ static int rawa_decode (codec_data_t *ptr,
     int audio_format;
 
     if (rawa->m_bitsperchan == 16) {
-      audio_format = AUDIO_S16SYS;
+      audio_format = AUDIO_S16MSB;
     } else {
       audio_format = AUDIO_U8;
     }

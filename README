@@ -602,6 +602,10 @@ Known Problems
   DirectX 8.1 or later.  If that is not possible, and you have problems 
   with video, try uncommenting out #define OLD_SURFACE in player/src/video.cpp.
 
+  If you have problems with choppy playback, and you're using Windows 98, 
+  forget about it.  The timer tick time is too slow (55 msec) for us to
+  use effectively.  
+
 * Mac OSX player sometimes will lock up, or stop playing video while
   continuing the audio - we need someone to help us add the sound buffer 
   delay to get really good audio/video sync.
@@ -642,7 +646,10 @@ Known Problems
   work correctly with Quicktime when streaming.  This is most likely because 
   we use a dynamic RTP payload number and a RTP TS frequency that matches 
   the sampling frequency.  QT seems to only like an RTP payload of 14 and 
-  a RTP TS frequency of 90000. (This is with QT 6.0).
+  a RTP TS frequency of 90000. (This is with QT 6.0).  This will work with
+  mpeg 1/2 files, or if you use -timescale=90000 when using mp4creator with
+  mp3 files.  If you're using mp4live to stream audio, use the 
+  rtpUseMp4RtpPayload14 config file option.
 
   Neither QT or Real appear to understand mpeg1/2 or mp3 content in a .mp4
   container file.

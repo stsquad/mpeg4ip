@@ -15,4 +15,6 @@
 
 #undef HAVE_ST_ADDRINFO
 
+#undef HAVE_GTK
+
 #undef HAVE_GTK_2_0

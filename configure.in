@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.6.3)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.6.4)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -220,6 +220,7 @@ if test x$haveglib20 = xyes; then
    AM_PATH_GTK_2_0(, [havegtk20=yes], [havegtk20=no])
    if test x$havegtk20 = xyes; then 
       AC_DEFINE(HAVE_GTK_2_0)
+      AC_DEFINE(HAVE_GTK)
       glib_gtk=yes
    else
       haveglib20=no
@@ -229,6 +230,7 @@ if test x$haveglib20 = xno; then
    AM_PATH_GLIB(, [glib_gtk=yes], [glib_gtk=no])
    if test x$glib_gtk = xyes; then
       AM_PATH_GTK(, [glib_gtk=yes], [glib_gtk=no])
+      AC_DEFINE(HAVE_GTK)
    fi
 fi
 

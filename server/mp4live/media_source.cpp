@@ -847,6 +847,9 @@ pcmBufferCheck:
 		}
 #endif
 
+		// Since the below is run after conversion to the dst sample
+		// rate, but we don't split out the channels, we need to
+		// use the SrcBytesToSamples call, not the DstBytesToSamples
 		CMediaFrame* pFrame =
 			new CMediaFrame(
 				PCMAUDIOFRAME, 
@@ -854,11 +857,11 @@ pcmBufferCheck:
 				pcmDataLength,
 				m_audioStartTimestamp 
 					+ DstSamplesToTicks(m_audioDstRawSampleNumber),
-				DstBytesToSamples(pcmDataLength),
+				SrcBytesToSamples(pcmDataLength),
 				m_audioDstSampleRate);
 		ForwardFrame(pFrame);
 
-		m_audioDstRawSampleNumber += DstBytesToSamples(pcmDataLength);
+		m_audioDstRawSampleNumber += SrcBytesToSamples(pcmDataLength);
 		m_audioDstRawFrameNumber++;
 	}
 

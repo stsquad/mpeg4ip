@@ -76,7 +76,7 @@ static GtkWidget *config_file_entry;
 static GtkWidget *load_config_button;
 static GtkWidget *save_config_button;
 
-static u_int16_t durationUnitsValues[] = {
+static u_int32_t durationUnitsValues[] = {
 	1, 60, 3600, 3600*24, 3600*24*365
 };
 static char* durationUnitsNames[] = {
@@ -264,7 +264,7 @@ void DisplayControlSettings(void)
 
 	// duration units
 	for (u_int8_t i = 0; 
-	  i < sizeof(durationUnitsValues) / sizeof(u_int16_t); i++) {
+	  i < sizeof(durationUnitsValues) / sizeof(*durationUnitsValues); i++) {
 		if (MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS) 
 		  == durationUnitsValues[i]) {
 			durationUnitsIndex = i;

@@ -77,6 +77,7 @@ int main(int argc, char** argv)
                 "                          (use 3119 or mpa-robust for mp3 rfc 3119 support)\n"
 		"  -rate=<fps>             Video frame rate, e.g. 30 or 29.97\n"
 		"  -timescale=<ticks>      Time scale (ticks per second)\n"
+	        "  -use64bits              Use for large files\n"
 		"  -verbose[=[1-5]]        Enable debug messages\n"
         "  -version                Display version information\n"
 		;
@@ -88,6 +89,7 @@ int main(int argc, char** argv)
 	bool doList = false;
 	bool doOptimize = false;
 	bool doInterleave = false;
+	bool use64bits = false;
 	char* mp4FileName = NULL;
 	char* inputFileName = NULL;
 	char* outputFileName = NULL;
@@ -120,12 +122,13 @@ int main(int argc, char** argv)
 			{ "payload", 1, 0, 'p' },
 			{ "rate", 1, 0, 'r' },
 			{ "timescale", 1, 0, 't' },
+			{ "use64bits", 0, 0, 'u' },
 			{ "verbose", 2, 0, 'v' },
 			{ "version", 0, 0, 'V' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "c:d:e:H::Ilm:Op:r:t:v::V",
+		c = getopt_long_only(argc, argv, "c:d:e:H::Ilm:Op:r:t:uv::V",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -203,6 +206,9 @@ int main(int argc, char** argv)
 				exit(EXIT_COMMAND_LINE);
 			}
 			break;
+		case 'u':
+		  use64bits = true;
+		  break;
 		case 'v':
 			Verbosity |= (MP4_DETAILS_READ | MP4_DETAILS_WRITE);
 			if (optarg) {
@@ -322,7 +328,8 @@ int main(int argc, char** argv)
 	if (doCreate || doHint) {
 		if (!mp4FileExists) {
 			if (doCreate) {
-				mp4File = MP4Create(mp4FileName, Verbosity);
+				mp4File = MP4Create(mp4FileName, Verbosity,
+						    use64bits ? 1 : 0);
 				if (mp4File) {
 					MP4SetTimeScale(mp4File, Mp4TimeScale);
 				}
@@ -333,6 +340,10 @@ int main(int argc, char** argv)
 				exit(EXIT_CREATE_FILE);
 			}
 		} else {
+		  if (use64bits) {
+		    fprintf(stderr, "Must specify 64 bits on new file only");
+		    exit(EXIT_CREATE_FILE);
+		  }
 			mp4File = MP4Modify(mp4FileName, Verbosity);
 		}
 

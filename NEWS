@@ -9,6 +9,8 @@ xx/xx/02 Version 0.9.7
     Add method of reading programs from IP/TV content manager, then
       starting them with special iptv url
     Xvid check for SSE2 instructions from Steve Schultz
+    Got new TV tuner frequency lists from xawtv
+    Added command to mp4creator to force 64 bit file sizes
 
 09/25/02 Version 0.9.6
     RTP plugins for player.
