@@ -192,7 +192,7 @@ Void StartArDecoder(ArDecoder *decoder, CInBitStream *bitstream)
 
   for (i = 1; i<CODE_BITS; i++) {
 //    j = BitstreamLookBit(bitstream,i+decoder->extrabits);
-	  j = bitstream->peekOneBit (i + decoder->extrabits);
+	  j = bitstream->peekOneBit ((uint32_t)i + decoder->extrabits);
     decoder->V += decoder->V + j;
     if (j == 0) {
       decoder->nzerosf--;
@@ -257,7 +257,7 @@ Void AddNextInputBit(CInBitStream *bitstream, ArDecoder *decoder)
 
 	BitstreamFlushBits(bitstream,	1);
 //	i = (Int)BitstreamLookBit(bitstream, CODE_BITS-1+decoder->extrabits);
-	i = bitstream->peekOneBit (CODE_BITS-1+decoder->extrabits);
+	i = bitstream->peekOneBit ((uint32_t)CODE_BITS-1+decoder->extrabits);
 	decoder->V += decoder->V + i;
 	decoder->arpipe += decoder->arpipe + i;
 
@@ -321,7 +321,7 @@ Void DECODE_RENORMALISE(ArDecoder *decoder,  CInBitStream *bitstream)
 Void  BitstreamFlushBits(CInBitStream *bitstream, Int nBits)
 {
 	assert (nBits >= 0);
-	bitstream->getBits (nBits);
+	bitstream->getBits ((uint32_t)nBits);
 }
 
 

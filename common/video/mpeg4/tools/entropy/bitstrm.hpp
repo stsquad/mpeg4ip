@@ -45,7 +45,8 @@ Revision History:
 #ifndef _BITSTREAM_HPP_
 #define _BITSTREAM_HPP_
 //#include <streambuf.h>
-#include "bytestrm.hpp"
+#include "inbits.h"
+//#include "bytestrm.hpp"
 class istream;
 class ostream;
 
@@ -64,6 +65,7 @@ protected:
     CIOBitStream () {m_iBitPosition=0; m_iBuffer=0; m_lCounter=0;}
 };
 
+#if 0
 Class CInBitStream : public CIOBitStream
 {
 public:
@@ -104,6 +106,7 @@ protected:
     UInt m_iBuffer_bookmark;
     Int m_bookmark_eofstate;
 };
+#endif
 
 Class COutBitStream : public CIOBitStream
 {

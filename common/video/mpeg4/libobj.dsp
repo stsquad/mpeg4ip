@@ -265,14 +265,6 @@ SOURCE=.\tools\entropy\bitstrm.hpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\tools\entropy\bytestrm.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\tools\entropy\bytestrm.hpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\tools\entropy\entropy.hpp
 # End Source File
 # Begin Source File
@@ -282,6 +274,10 @@ SOURCE=.\tools\entropy\huffman.cpp
 # Begin Source File
 
 SOURCE=.\tools\entropy\huffman.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\tools\entropy\inbits.h
 # End Source File
 # Begin Source File
 

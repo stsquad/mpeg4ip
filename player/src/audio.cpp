@@ -254,15 +254,11 @@ int CAudioSync::initialize_audio (int have_video)
 {
   if (m_audio_initialized == 0) {
     if (m_config_set) {
-      SDL_AudioSpec *wanted;
+      SDL_AudioSpec wanted;
       m_do_sync = have_video;
-      wanted = (SDL_AudioSpec *)malloc(sizeof(SDL_AudioSpec));
-      if (wanted == NULL) {
-	return (-1);
-      }
-      wanted->freq = m_freq;
-      wanted->channels = m_channels;
-      wanted->format = m_format;
+      wanted.freq = m_freq;
+      wanted.channels = m_channels;
+      wanted.format = m_format;
       int sample_size;
       sample_size = m_buffer_size / (m_channels * m_bytes_per_sample);
 #ifndef _WINDOWS
@@ -280,19 +276,19 @@ int CAudioSync::initialize_audio (int have_video)
 #endif
       if ((m_do_sync == 0) && m_sample_size < 4096)
 	m_sample_size = 4096;
-      wanted->samples = 4096;
-      wanted->callback = c_audio_callback;
-      wanted->userdata = this;
+      wanted.samples = 4096;
+      wanted.callback = c_audio_callback;
+      wanted.userdata = this;
 #if DEBUG_SYNC
        audio_message(LOG_INFO, 
 		     "requested f %d chan %d format %x samples %d size %u",
-		     wanted->freq,
-		     wanted->channels,
-		     wanted->format,
-		     wanted->samples,
-		     wanted->size);
+		     wanted.freq,
+		     wanted.channels,
+		     wanted.format,
+		     wanted.samples,
+		     wanted.size);
 #endif
-      int ret = SDL_OpenAudio(wanted, &m_obtained);
+      int ret = SDL_OpenAudio(&wanted, &m_obtained);
       if (ret < 0) {
 	audio_message(LOG_CRIT, "Couldn't open audio, %s", SDL_GetError());
 	return (-1);

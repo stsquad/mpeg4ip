@@ -43,6 +43,8 @@ class CPlayerMedia;
 class CAudioSync;
 class CVideoSync;
 
+typedef void (*media_close_callback_f)(void);
+
 class CPlayerSession {
  public:
   /*
@@ -113,6 +115,9 @@ class CPlayerSession {
   };
   session_state_t get_session_state(void) {
     return (m_session_state);
+  }
+  void set_media_close_callback (media_close_callback_f mccf) {
+    m_media_close_callback = mccf;
   }
   /*
    * Non-API routines - used for c interfaces, for sync task APIs.
@@ -186,6 +191,7 @@ class CPlayerSession {
     return ((((uint64_t)t.tv_sec) * M_LLU) +
 	    (((uint64_t)t.tv_usec) / M_LLU));
   }
+  media_close_callback_f m_media_close_callback;
 };
 
 #endif

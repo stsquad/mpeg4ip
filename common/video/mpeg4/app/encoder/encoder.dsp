@@ -112,10 +112,6 @@ SOURCE=..\..\sys\block.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\tools\entropy\bytestrm.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\sys\cae.cpp
 # End Source File
 # Begin Source File
@@ -505,6 +501,10 @@ SOURCE=..\..\type\grayi.hpp
 # Begin Source File
 
 SOURCE=..\..\tools\entropy\huffman.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\tools\entropy\inbits.h
 # End Source File
 # Begin Source File
 

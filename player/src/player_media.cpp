@@ -152,7 +152,7 @@ CPlayerMedia::~CPlayerMedia()
     m_rtsp_session = NULL;
   }
     
-  if (m_source_addr) free(m_source_addr);
+  if (m_source_addr != NULL) free(m_source_addr);
   m_next = NULL;
   m_parent = NULL;
 

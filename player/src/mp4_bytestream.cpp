@@ -72,7 +72,7 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
 
 CMp4ByteStream::~CMp4ByteStream()
 {
-  if (m_buffer) {
+  if (m_buffer != NULL) {
     free(m_buffer);
     m_buffer = NULL;
   }

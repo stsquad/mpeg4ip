@@ -43,7 +43,7 @@ COurInByteStreamFile::~COurInByteStreamFile(void)
     fclose(m_file);
     m_file = NULL;
   }
-  if (m_filename) {
+  if (m_filename != NULL) {
     free((void *)m_filename);
     m_filename = NULL;
   }
@@ -55,13 +55,16 @@ COurInByteStreamFile::~COurInByteStreamFile(void)
   }
   m_file_pos_tail = NULL;
   m_buffer_on = NULL;
-  if (m_orig_buffer) {
+  if (m_orig_buffer != NULL) {
     free(m_orig_buffer);
   }
 }
 
 void COurInByteStreamFile::set_start_time (uint64_t start) 
 {
+#ifdef FILE_DEBUG
+  player_debug_message("Skip ahead to %llu", start);
+#endif
   if (start == 0) {
     // reset it back to the beginning
     m_frames = 0;
@@ -100,8 +103,10 @@ void COurInByteStreamFile::set_start_time (uint64_t start)
     m_buffer_position = pos_to_set;
     read_frame();
     // Read forward from there until we hit the time we want.
+#ifdef FILE_DEBUG
     player_debug_message("Skipping ahead - start position %ld", 
 			 pos_to_set);
+#endif
     m_frames = frames;
     m_play_start_time = start_time;
     while (m_play_start_time < start) {
@@ -176,6 +181,12 @@ uint64_t COurInByteStreamFile::start_next_frame (unsigned char **buffer,
   *buflen = m_buffer_size - m_index;
 #ifdef FILE_DEBUG
   player_debug_message("Start frame %lld %d %d", m_total, m_index, *buflen);
+  if (m_buffer_on != NULL) 
+    player_debug_message("%02x %02x %02x %02x", 
+			 *(m_buffer_on + m_index), 
+			 *(m_buffer_on + m_index + 1), 
+			 *(m_buffer_on + m_index + 2), 
+			 *(m_buffer_on + m_index + 3)); 
 #endif
   return (ret);
 }
@@ -212,12 +223,19 @@ void COurInByteStreamFile::get_more_bytes (unsigned char **buffer,
 	    diff);
     m_index = diff;
     read_frame(1);
-    if (m_buffer_size <= diff) 
+    if (m_buffer_size <= diff) {
+#ifdef FILE_DEBUG
+      player_debug_message("Throwing EOF");
+#endif
       throw THROW_PAST_EOF;
+    }
   } else {
     read_frame();
     if (m_buffer_size == 0) {
       throw THROW_PAST_EOF;
+#ifdef FILE_DEBUG
+      player_debug_message("Throwing EOF");
+#endif
     }
   }
   *buffer = m_buffer_on;
@@ -226,6 +244,7 @@ void COurInByteStreamFile::get_more_bytes (unsigned char **buffer,
 
 void COurInByteStreamFile::read_frame (int from_index)
 {
+  m_buffer_position = ftell(m_file);
   if (from_index == 0) {
     m_buffer_size = fread(m_orig_buffer, 1, m_buffer_size_max, m_file);
 #ifdef FILE_DEBUG
@@ -233,7 +252,7 @@ void COurInByteStreamFile::read_frame (int from_index)
 			 m_buffer_position, m_buffer_size);
 #endif
   } else {
-    m_buffer_position = ftell(m_file) - m_index;
+    m_buffer_position -= m_index;
     m_buffer_size = fread(m_orig_buffer + m_index,
 			  1, 
 			  m_buffer_size_max - m_index,

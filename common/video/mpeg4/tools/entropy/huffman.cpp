@@ -558,7 +558,7 @@ Int CHuffmanDecoder::decodeSymbol()
     do
     {
         Int iBit;
-        iBit=m_pBitStream->getBits(1);
+        iBit=m_pBitStream->getBits((uint32_t)1);
         if(iBit==0)
         {
             if(m_pTree[lNextNodeOrSymbol].is0Valid())

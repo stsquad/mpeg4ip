@@ -37,6 +37,14 @@ CMp4File *Mp4File1 = NULL;
 /*
  * Create the media for the quicktime file, and set up some session stuff.
  */
+static void close_mp4_file (void)
+{
+  if (Mp4File1 != NULL) {
+    delete Mp4File1;
+    Mp4File1 = NULL;
+  }
+}
+
 int create_media_for_mp4_file (CPlayerSession *psptr, 
 			       const char *name,
 			       const char **errmsg,
@@ -44,13 +52,16 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 {
   MP4FileHandle fh;
 
+  psptr->set_media_close_callback(close_mp4_file);
+
   fh = MP4Read(name, MP4_DETAILS_ERROR);
   if (!MP4_IS_VALID_FILE_HANDLE(fh)) {
     *errmsg = "Cannot open mp4 file";
     return -1;
   }
-  if (Mp4File1 != NULL) 
-    delete Mp4File1;
+
+  close_mp4_file();
+
   Mp4File1 = new CMp4File(fh);
   // quicktime is searchable...
   psptr->session_set_seekable(1);

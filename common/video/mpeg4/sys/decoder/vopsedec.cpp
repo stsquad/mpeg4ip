@@ -54,7 +54,6 @@ Revision History:
 
 *************************************************************************/
 #include <stdio.h>
-#include <fstream.h>
 #ifdef __GNUC__
 #include <strstream.h>
 #else
@@ -64,7 +63,6 @@ Revision History:
 
 #include "typeapi.h"
 #include "codehead.h"
-#include "entropy/bytestrm_file.hpp"
 #include "entropy/bitstrm.hpp"
 #include "entropy/entropy.hpp"
 #include "entropy/huffman.hpp"
@@ -92,8 +90,7 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 CVideoObjectDecoder::~CVideoObjectDecoder ()
 {
 //	delete m_pistrm;
-  if (m_bcreatedByteStream)
-    delete m_pbytestrmIn;
+  if (m_pistrm >= 0) close(m_pistrm);
 	delete m_pbitstrmIn;
 	delete m_pentrdecSet;
 	delete m_pvopcRightMB;
@@ -305,15 +302,13 @@ void CVideoObjectDecoder::decodeShortHeaderIntraMBDC(Int *rgiCoefQ)
 }
 
 
-CVideoObjectDecoder::CVideoObjectDecoder (CInByteStreamBase *pbytestrmIn) : CVideoObject()
+CVideoObjectDecoder::CVideoObjectDecoder () : CVideoObject()
 {
   m_t = m_tPastRef = m_tFutureRef = 0;
   m_iBCount = 0;
   m_vopmd.iVopConstantAlphaValue = 255;
   short_video_header = FALSE;
-  m_bcreatedByteStream = FALSE;
-  m_pbytestrmIn = pbytestrmIn;	
-  m_pbitstrmIn = new CInBitStream (m_pbytestrmIn);
+  m_pbitstrmIn = new CInBitStream();
   m_pentrdecSet = new CEntropyDecoderSet (*m_pbitstrmIn);
 
 }
@@ -329,8 +324,8 @@ CVideoObjectDecoder::CVideoObjectDecoder (
 #if 0
 	if (pistrm == NULL) {
 #endif
-		m_pistrm = new ifstream (pchStrFile, ios::binary | ios::in);
-		if(!m_pistrm->is_open())
+	  m_pistrm = open(pchStrFile, O_RDONLY);
+	  if(m_pistrm < 0)
 			fatal_error("Can't open bitstream file");
 #if 0
 	}
@@ -338,9 +333,7 @@ CVideoObjectDecoder::CVideoObjectDecoder (
 		m_pistrm = (ifstream *)new istream (pistrm);
 	}
 #endif
-	m_pbytestrmIn = new CInByteStreamFile(*m_pistrm);
-	m_bcreatedByteStream = TRUE;
-	m_pbitstrmIn = new CInBitStream (m_pbytestrmIn);
+	m_pbitstrmIn = new CInBitStream(m_pistrm);
 	m_pentrdecSet = new CEntropyDecoderSet (*m_pbitstrmIn);
 
 	m_t = m_tPastRef = m_tFutureRef = 0;
@@ -496,9 +489,7 @@ CVideoObjectDecoder::CVideoObjectDecoder (
 	Int iDisplayWidth, Int iDisplayHeight
 ) : CVideoObject ()
 {
-	m_pistrm = NULL;
-	m_bcreatedByteStream = FALSE;
-	m_pbytestrmIn = NULL;
+	m_pistrm = -1;
 	m_pbitstrmIn = NULL;
 	m_pentrdecSet = NULL;
 
@@ -1705,7 +1696,7 @@ Int CVideoObjectDecoder::ReadNextVopPredType ()
 
 Void CVideoObjectDecoder::errorInBitstream (Char* rgchErorrMsg)
 {
-	fprintf (stderr, "%s at %d\n", rgchErorrMsg, m_pbitstrmIn->getCounter ());
+	fprintf (stderr, "%s at %d\n", rgchErorrMsg, 0);
 	assert (FALSE);
 	exit (1);
 }
@@ -2113,11 +2104,6 @@ void CVideoObjectDecoder::setClockRateScale ( CVideoObjectDecoder *pvopdec )
 	m_iClockRateScale = pvopdec->m_volmd.iClockRate / m_volmd.iClockRate;
 }
 	// end: added by Sharp (98/6/26)
-void CVideoObjectDecoder::set_byte_stream(CInByteStreamBase *p)
-{ m_pbytestrmIn = p;
- m_pbitstrmIn->attach(p);
-}
-
 
 /******************************************
 ***	class CEnhcBufferDecoder	***

@@ -71,6 +71,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   for (int ix = 0; ix < SESSION_DESC_COUNT; ix++) {
     m_session_desc[ix] = NULL;
   }
+  m_media_close_callback = NULL;
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -139,6 +140,11 @@ CPlayerSession::~CPlayerSession ()
       free((void *)m_session_desc[ix]);
     m_session_desc[ix] = NULL;
   }
+  
+  if (m_media_close_callback != NULL) {
+    m_media_close_callback();
+  }
+
   SDL_Quit();
 }
 

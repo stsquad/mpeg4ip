@@ -123,8 +123,10 @@ char *optarg;
    Otherwise, `optind' communicates from one call to the next
    how much of ARGV has been scanned so far.  */
 
+#ifndef HAVE_GETOPT
 /* 1003.2 says this must be 1 before any call.  */
 int optind = 1;
+#endif
 
 /* Formerly, initialization of getopt depended on optind==0, which
    causes problems with re-calling getopt as programs generally don't
@@ -144,6 +146,7 @@ static char *nextchar;
 /* Callers store zero here to inhibit the error message
    for unrecognized options.  */
 
+#ifndef HAVE_GETOPT
 int opterr = 1;
 
 /* Set to an option character which was unrecognized.
@@ -152,6 +155,7 @@ int opterr = 1;
 
 int optopt = '?';
 
+#endif
 /* Describe how to deal with options that follow non-option ARGV-elements.
 
    If the caller did not specify anything,
@@ -954,6 +958,7 @@ _getopt_internal (argc, argv, optstring, longopts, longind, long_only)
   }
 }
 
+#ifndef HAVE_GETOPT
 int
 getopt (argc, argv, optstring)
      int argc;
@@ -966,6 +971,7 @@ getopt (argc, argv, optstring)
 			   0);
 }
 
+#endif
 #endif	/* Not ELIDE_CODE.  */
 
 #ifdef TEST

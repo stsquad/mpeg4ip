@@ -3,7 +3,7 @@ AC_INIT()
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.2.3)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.2.4)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -222,6 +222,7 @@ AC_OUTPUT( \
 	server/util/Makefile \
 	server/util/mp4encode/Makefile \
 	server/util/avi2raw/Makefile \
+	server/util/avidump/Makefile \
 	server/util/rgb2yuv/Makefile \
 	server/util/lboxcrop/Makefile \
 	server/util/mp4apkt/Makefile \

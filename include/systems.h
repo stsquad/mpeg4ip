@@ -72,9 +72,9 @@ typedef int ssize_t;
 #define open _open
 #define access _access
 #define F_OK 0
-#define O_RDWR _O_RDWR
-#define O_CREAT _O_CREAT
-#define O_RDONLY _O_RDONLY
+#define OPEN_RDWR (_O_RDWR | _O_BINARY)
+#define OPEN_CREAT (_O_CREAT | _O_BINARY)
+#define OPEN_RDONLY (_O_RDONLY | _O_BINARY)
 #define srandom srand
 #define random rand
 
@@ -148,6 +148,10 @@ int gettimeofday(struct timeval *t, void *);
 #include <sys/time.h>
 #include <sys/param.h>
 
+#define OPEN_RDWR O_RDWR
+#define OPEN_CREAT O_CREAT 
+#define OPEN_RDONLY O_RDONLY
+
 #define closesocket close
 #define IOSBINARY ios::bin
 #define MAX_UINT64 -1LLU
@@ -206,4 +210,7 @@ char *strsep(char **strp, const char *delim);
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef MAX
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
 #endif /* __SYSTEMS_H__ */

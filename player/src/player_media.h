@@ -67,7 +67,7 @@ class CPlayerMedia {
   media_desc_t *get_sdp_media_desc (void) { return m_media_info; };
   void set_source_addr (char *s)
     {
-      if (m_source_addr) free(m_source_addr);
+      if (m_source_addr != NULL) free(m_source_addr);
       m_source_addr = s;
     }
   const char *get_source_addr(void);

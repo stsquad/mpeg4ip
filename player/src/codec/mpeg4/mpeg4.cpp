@@ -50,21 +50,19 @@
 static void c_get_more (void *ud, 
 			unsigned char **buffer, 
 			uint32_t *buflen,
-			uint32_t used,
-			int get)
+			uint32_t used)
 {
   uint32_t ret;
 
   COurInByteStream *bs = (COurInByteStream *)ud;
 
-  bs->get_more_bytes(buffer, &ret, used, get);
+  bs->get_more_bytes(buffer, &ret, used, 0);
   *buflen = ret;
 }
 static void c_just_fail (void *ud, 
 			unsigned char **buffer, 
 			uint32_t *buflen,
-			uint32_t used,
-			int get)
+			 uint32_t used)
 {
   throw 0;
 }
@@ -79,8 +77,7 @@ CMpeg4Codec::CMpeg4Codec(CVideoSync *v,
 {
   m_main_short_video_header = FALSE;
   m_bytestream = pbytestrm;
-  m_mem_bytestream = new CInByteStreamBase(c_get_more, m_bytestream);
-  m_pvodec = new CVideoObjectDecoder(m_mem_bytestream);
+  m_pvodec = new CVideoObjectDecoder();
   m_decodeState = DECODE_STATE_VOL_SEARCH;
   if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
     // See if we can decode a passed in vovod header
@@ -135,7 +132,6 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
 {
   unsigned char buffer[255];
   unsigned char *bufptr;
-  CInByteStreamBase *membytestream;
 
   if (ascii == 1) {
     const char *config = strcasestr(vovod, "config=");
@@ -174,14 +170,12 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
 
   // Create a byte stream to take from our buffer.
   // Temporary set of our bytestream
-  membytestream = new CInByteStreamBase(c_just_fail, NULL);
-  m_pvodec->set_byte_stream(membytestream);
-
   // Get the VOL header.  If we fail, set the bytestream back
   int havevol = 0;
   do {
     try {
-      membytestream->set_buffer(bufptr, len);
+      m_pvodec->SetUpBitstreamBuffer(c_just_fail, NULL,
+				     bufptr, len);
       m_pvodec->decodeVOLHead();
       m_pvodec->postVO_VOLHeadInit(m_pvodec->getWidth(),
 				   m_pvodec->getHeight(),
@@ -196,7 +190,7 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
       player_debug_message("Caught exception in VOL mem header search");
     }
     uint32_t used;
-    used = membytestream->used_bytes();
+    used = m_pvodec->get_used_bytes();
     bufptr += used;
     len -= used;
   } while (havevol == 0 && len > 0);
@@ -204,8 +198,6 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
 
   // We've found the VO VOL header - that's good.
   // Reset the byte stream back to what it was, delete our temp stream
-  m_pvodec->set_byte_stream(m_mem_bytestream);
-  delete membytestream;
   //player_debug_message("Decoded vovod header correctly");
   return havevol;
 }
@@ -222,7 +214,10 @@ int CMpeg4Codec::decode (uint64_t ts,
 {
   Int iEof = 1;
   m_total_frames++;
-  m_mem_bytestream->set_buffer(buffer, buflen);
+  m_pvodec->SetUpBitstreamBuffer(c_get_more, 
+				 m_bytestream, 
+				 buffer, 
+				 buflen);
   switch (m_decodeState) {
   case DECODE_STATE_VOL_SEARCH:
     try {
@@ -240,7 +235,7 @@ int CMpeg4Codec::decode (uint64_t ts,
     } catch (int err) {
       player_debug_message("Caught exception in VOL search %s", 
 			   m_bytestream->get_throw_error(err));
-      m_bytestream->used_bytes_for_frame(buflen);
+      m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
       return (-1);
     }
     //      return(0);
@@ -249,7 +244,7 @@ int CMpeg4Codec::decode (uint64_t ts,
       iEof = m_pvodec->decode(NULL, TRUE);
       if (iEof == -1) {
 	m_num_wait_i_frames++;
-	m_bytestream->used_bytes_for_frame(m_mem_bytestream->used_bytes());
+	m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
 	return(0);
       }
       m_decodeState = DECODE_STATE_NORMAL;
@@ -264,7 +259,7 @@ int CMpeg4Codec::decode (uint64_t ts,
 	player_debug_message("Caught exception in WAIT_I %d", err);
 	//}
 #endif
-      m_bytestream->used_bytes_for_frame(buflen);
+      m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
       return (-1);
     }
     break;
@@ -279,23 +274,23 @@ int CMpeg4Codec::decode (uint64_t ts,
       // to the decoder thread so it gives us a new timestamp.
       if (m_bytestream->throw_error_minor(err) != 0) {
 	//player_debug_message("decode across ts");
-	m_bytestream->used_bytes_for_frame(buflen);
+	m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
 	return (-1);
       }
       player_debug_message("Mpeg4 ncaught %s -> waiting for I", 
 			   m_bytestream->get_throw_error(err));
       m_decodeState = DECODE_STATE_WAIT_I;
-      m_bytestream->used_bytes_for_frame(buflen);
+      m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
       return (-1);
     } catch (...) {
-	m_bytestream->used_bytes_for_frame(buflen);
+	m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
 	m_decodeState = DECODE_STATE_WAIT_I;
 	return (-1);
     }
     break;
   }
 
-  m_bytestream->used_bytes_for_frame(m_mem_bytestream->used_bytes());
+  m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
   /*
    * We've got a good frame.  See if we need to display it
    */

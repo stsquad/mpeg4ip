@@ -487,7 +487,7 @@ Void CVideoObjectDecoder::decodePVOP_WithShape ()
 		ShapeMode shpmdColocatedMB;
 		if(m_vopmd.bShapeCodingType) {
 			shpmdColocatedMB = m_rgmbmdRef [
-				min (iMBY, m_iNumMBYRef-1) * m_iNumMBXRef
+				MIN (iMBY, m_iNumMBYRef-1) * m_iNumMBXRef
 			].m_shpmd;
 			decodeInterShape (m_pvopcRefQ0, pmbmd, 0, iMBY,
 				m_rctCurrVOPY.left, y, pmv, pmvBY,
@@ -574,8 +574,8 @@ Void CVideoObjectDecoder::decodePVOP_WithShape ()
 				// Modified for error resilient mode by Toshiba(1997-11-14)
 				if(m_vopmd.bShapeCodingType) {
 					shpmdColocatedMB = m_rgmbmdRef [
-						min (max (0, iMBX+1), m_iNumMBXRef-1) + 
- 						min (max (0, iMBY), m_iNumMBYRef-1) * m_iNumMBXRef
+						MIN (MAX (0, iMBX+1), m_iNumMBXRef-1) + 
+ 						MIN (MAX (0, iMBY), m_iNumMBYRef-1) * m_iNumMBXRef
 					].m_shpmd;
 					decodeInterShape (
 						m_pvopcRefQ0,
@@ -1162,11 +1162,11 @@ Void CVideoObjectDecoder::decodeBVOP_WithShape ()
 			{
 				ShapeMode shpmdColocatedMB;
 				if(m_vopmd.fShapeBPredDir==B_FORWARD)
-					shpmdColocatedMB = m_rgshpmd [min (max (0, iMBX), m_iRefShpNumMBX - 1)
-					+ min (max (0, iMBY), m_iRefShpNumMBY - 1) * m_iRefShpNumMBX];
+					shpmdColocatedMB = m_rgshpmd [MIN (MAX (0, iMBX), m_iRefShpNumMBX - 1)
+					+ MIN (MAX (0, iMBY), m_iRefShpNumMBY - 1) * m_iRefShpNumMBX];
 				else
-					shpmdColocatedMB = m_rgmbmdRef [min (max (0, iMBX), m_iNumMBXRef - 1)
-						+ min (max (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef].m_shpmd;
+					shpmdColocatedMB = m_rgmbmdRef [MIN (MAX (0, iMBX), m_iNumMBXRef - 1)
+						+ MIN (MAX (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef].m_shpmd;
 					
 				decodeInterShape (
 					m_vopmd.fShapeBPredDir==B_FORWARD ? m_pvopcRefQ0 : m_pvopcRefQ1,

@@ -172,7 +172,7 @@ avi_t* AVI_open_output_file(char * filename)
       we do not truncate the file when we open it.
       Instead it is truncated when the AVI file is closed */
 
-   AVI->fdes = open(filename,O_RDWR|O_CREAT,0600);
+   AVI->fdes = open(filename,OPEN_RDWR|OPEN_CREAT,0600);
    if (AVI->fdes < 0)
    {
       AVI_errno = AVI_ERR_OPEN;
@@ -626,7 +626,7 @@ avi_t *AVI_open_input_file(const char *filename, int getIndex)
 
    /* Open the file */
 
-   AVI->fdes = open(filename,O_RDONLY);
+   AVI->fdes = open(filename,OPEN_RDONLY);
    if(AVI->fdes < 0)
    {
       AVI_errno = AVI_ERR_OPEN;

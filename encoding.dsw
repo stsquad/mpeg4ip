@@ -33,6 +33,42 @@ Package=<4>
 
 ###############################################################################
 
+Project: "avi2raw"=.\server\util\avi2raw\avi2raw.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libavi_st
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "avidump"=.\SERVER\UTIL\AVIDUMP\avidump.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libavi_st
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "divxenc"=.\server\video\divx\divxenc.dsp - Package Owner=<4>
 
 Package=<5>

@@ -14,10 +14,17 @@ MPEGaudio::~MPEGaudio()
 
 bool MPEGaudio::fillbuffer(uint32_t _size)
 {
+  //printf("fillbuffer %d\n", _size);
+  //int buflen = _buflen;
   if (_size > _buflen) {
     (m_get_more)(m_userdata, &_buffer, &_buflen, _orig_buflen - _buflen);
-    if (_buflen < _size)
+    if (_buflen < _size) {
+#if 0
+      printf("Fill buffer failed - size %d buflen %d return %d\n", 
+	     _size, buflen, _buflen);
+#endif
       return false;
+    }
     _orig_buflen = _buflen;
   }
   bitindex = 0;
@@ -29,26 +36,24 @@ int MPEGaudio::findheader (unsigned char *frombuffer,
 			   uint32_t *frameptr)
 {
   uint32_t skipped;
+  //printf("Find header\n");
   _orig_buflen = frombuffer_len;
   while (frombuffer_len >= 4) {
     if ((ntohs(*(uint16_t*)frombuffer) & 0xffe0) == 0xffe0) {
       _buffer = frombuffer;
       _buflen = frombuffer_len;
       skipped = _orig_buflen - frombuffer_len;
-
+      //printf("skipped is %d\n", skipped);
       if (loadheader()) {
 	/* Fill the buffer with new data */
-	if (frombuffer_len < framesize) {
-	  _buflen = 0;
-	  skipped = 0;
-	  // fillbuffer will say we've used all the frombuffer_len - 
-	  // so we don't need to skip anything...
-	  if (frameptr != NULL)
-	    *frameptr = framesize - frombuffer_len;
-	  if(!fillbuffer(framesize))
-	    return -1;
-	} else {
-	  if (frameptr != NULL) {
+	if (frameptr != NULL) {
+	  if (frombuffer_len < framesize) {
+	    _buflen = _orig_buflen; // keep all bytes in frame
+	    skipped = 0;
+	    *frameptr = framesize;
+	    if(!fillbuffer(framesize))
+	      return -1;
+	  } else {
 	    *frameptr = framesize;
 	  }
 	}
@@ -65,10 +70,15 @@ int MPEGaudio::decodeFrame (unsigned char *tobuffer,
 			    unsigned char *frombuffer, 
 			    uint32_t fromlen)
 {
+  //printf("DecodeFrame\n");
   _buffer = frombuffer;
   _buflen = fromlen;
   _orig_buflen = fromlen;
   if (loadheader() == false) {
+#if 0
+    printf("Couldn't load mp3 header - orig %d buflen %d\n", 
+	   _orig_buflen, _buflen);
+#endif
     return _orig_buflen - _buflen;
   }
 
@@ -90,6 +100,10 @@ int MPEGaudio::decodeFrame (unsigned char *tobuffer,
   if (layer == 3) extractlayer3();
   else if (layer == 2) extractlayer2();
   else if (layer == 1) extractlayer1();
+#if 0
+  printf("orig %d buflen %d framesize %d\n", 
+	 _orig_buflen, _buflen, framesize - 4);
+#endif
   return ((_orig_buflen - _buflen) + (framesize - 4));
 }
   

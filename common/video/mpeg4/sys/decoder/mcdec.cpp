@@ -89,8 +89,8 @@ Void CVideoObjectDecoder::motionCompAndAddErrorMB_BVOP (
 	    case DIRECT:
 			Int iOffset;
 			if(m_volmd.fAUsage != RECTANGLE)
-				iOffset = (min (max (0, iMBX), m_iNumMBXRef - 1) + 
-				min (max (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef) * PVOP_MV_PER_REF_PER_MB;
+				iOffset = (MIN (MAX (0, iMBX), m_iNumMBXRef - 1) + 
+				MIN (MAX (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef) * PVOP_MV_PER_REF_PER_MB;
 			else
 				iOffset=PVOP_MV_PER_REF_PER_MB*(iMBX + iMBY*m_iNumMBX);
 			motionCompDirectMode(x, y, pmbmd, &m_rgmvRef[iOffset],
@@ -240,8 +240,8 @@ Void CVideoObjectDecoder::motionCompAlphaMB_BVOP(
 
 // INTERLACE 02-19-99
 		else if ((pmbmd -> m_bFieldMV) && (pmbmd->m_mbType == DIRECT)) {
-			Int iOffset = (min (max (0,iMBX), m_iNumMBXRef - 1) +
-				min (max (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef) * PVOP_MV_PER_REF_PER_MB;
+			Int iOffset = (MIN (MAX (0,iMBX), m_iNumMBXRef - 1) +
+				MIN (MAX (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef) * PVOP_MV_PER_REF_PER_MB;
 			motionCompDirectMode(x, y, pmbmd, &m_rgmvRef[iOffset],
 				prctMVLimitForward, prctMVLimitBackward, 1);
 		}

@@ -32,6 +32,7 @@
 #include "sys/vopses.hpp"
 //#include "sys/tps_enhcbuf.hpp"
 //#include "sys/decoder/enhcbufdec.hpp"
+#include "tools/entropy/bitstrm.hpp"
 #include "sys/decoder/vopsedec.hpp"
 #include "player_util.h"
 

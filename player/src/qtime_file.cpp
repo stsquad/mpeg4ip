@@ -34,6 +34,13 @@
 #include "our_config_file.h"
 
 CQtimeFile *QTfile1 = NULL;
+static void close_qt_file (void)
+{
+  if (QTfile1 != NULL) {
+    delete QTfile1;
+    QTfile1 = NULL;
+  }
+}
 /*
  * Create the media for the quicktime file, and set up some session stuff.
  */
@@ -47,8 +54,9 @@ int create_media_for_qtime_file (CPlayerSession *psptr,
     player_error_message("File %s is not quicktime", name);
     return (-1);
   }
-  if (QTfile1 != NULL) 
-    delete QTfile1;
+ 
+  psptr->set_media_close_callback(close_qt_file);
+
   QTfile1 = new CQtimeFile(name);
   // quicktime is searchable...
   psptr->session_set_seekable(1);

@@ -94,15 +94,15 @@ CVideoSync::~CVideoSync (void)
     m_screen = NULL;
   }
   for (int ix = 0; ix < MAX_VIDEO_BUFFERS; ix++) {
-    if (m_y_buffer[ix]) {
+    if (m_y_buffer[ix] != NULL) {
       free(m_y_buffer[ix]);
       m_y_buffer[ix] = NULL;
     }
-    if (m_u_buffer[ix]) {
+    if (m_u_buffer[ix] != NULL) {
       free(m_u_buffer[ix]);
       m_u_buffer[ix] = NULL;
     }
-    if (m_v_buffer[ix]) {
+    if (m_v_buffer[ix] != NULL) {
       free(m_v_buffer[ix]);
       m_v_buffer[ix] = NULL;
     }

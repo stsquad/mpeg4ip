@@ -47,6 +47,7 @@ Revision History:
 #include <stdlib.h>
 #include "typeapi.h"
 #include "bitstrm.hpp"
+#include "inbits.h"
 
 
 #ifdef __MFC_
@@ -73,14 +74,8 @@ Void print_bit (UInt x, UInt num, UInt startPos) // print num bits starting from
 	printf ("\n");
 }
 
-Char CInBitStream::getBitsC (Int iNOfBits)
-{
-    assert (iNOfBits <= 8);
-    assert (iNOfBits >= 0);
-	return (Char)  getBits ((UInt) iNOfBits);
-}
 
-static unsigned int msk[33] =
+unsigned int bit_msk[33] =
 {
   0x00000000, 0x00000001, 0x00000003, 0x00000007,
   0x0000000f, 0x0000001f, 0x0000003f, 0x0000007f,
@@ -93,111 +88,6 @@ static unsigned int msk[33] =
   0xffffffff
 };
 
-UInt CInBitStream::getBits (UInt numBits)
-{
-  assert (numBits <= 32);
-  if (numBits == 0) return 0;
-	
-  UInt retData;
-  if (m_uNumOfBitsInBuffer >= numBits) {	// don't need to read from FILE
-    m_uNumOfBitsInBuffer -= numBits;
-    retData = m_chDecBuffer >> m_uNumOfBitsInBuffer;
-    retData &= msk[numBits];
-  } else {
-    int nbits;
-    nbits = numBits - m_uNumOfBitsInBuffer;
-    retData = m_chDecBuffer << nbits;
-    switch ((nbits - 1) / 8) {
-    case 3:
-      nbits -= 8;
-      retData |= m_pInStream->get() << nbits;
-      // fall through
-    case 2:
-      nbits -= 8;
-      retData |= m_pInStream->get() << nbits;
-    case 1:
-      nbits -= 8;
-      retData |= m_pInStream->get() << nbits;
-    case 0:
-      break;
-    }
-    m_chDecBuffer = m_pInStream->get();
-    m_uNumOfBitsInBuffer = 8 - nbits;
-    retData |= (m_chDecBuffer >> m_uNumOfBitsInBuffer) & msk[nbits];
-  }
-  return retData & msk[numBits];
-
-}
-
-Void CInBitStream::getBits (Char *pBits, Int lNOfBits)
-{
-    assert (lNOfBits <= 8);
-    assert (lNOfBits >= 0);
-
-    while(lNOfBits>0)
-    {
-        if(lNOfBits>8)
-        {
-            *pBits=(Char) getBitsC(8);
-            lNOfBits-=8;
-            pBits++;
-        }
-        else
-        {
-            *pBits=(Char) getBitsC ((UInt) lNOfBits);
-            break;
-        }
-    }
-}
-
-Void CInBitStream::attach (CInByteStreamBase *inStream, Int iBitPosition)
-{
-    assert(iBitPosition<8);
-    assert(iBitPosition>=0);
-    m_iBitPosition=iBitPosition;
-    m_pInStream=inStream;
-    //    m_iBuffer=0x00ff&m_pInStream->peek();
-}
-
-Void CInBitStream::flush (Int nExtraBits)
-{
-//	Modified for error resilient mode by Toshiba(1997-11-14)
-	if(m_uNumOfBitsInBuffer==0) getBits (nExtraBits);		//first get some bits then flush
-	//getBits (nExtraBits);		//first get some bits then flush
-//	End Toshiba(1997-11-14)
-	// commented out for error recovery assert (m_uNumOfBitsInBuffer != 8);
-	m_lCounter += m_uNumOfBitsInBuffer;
-	m_uNumOfBitsInBuffer = 0;
-}
-
-Void CInBitStream::setBookmark ()
-{
-	bookmark (1);
-}
-
-Void CInBitStream::gotoBookmark ()
-{
-	bookmark (0);
-}
-
-Void CInBitStream::bookmark (Bool bSet)
-{
-
-	if(bSet) {
-	  m_pInStream->bookmark(bSet);
-		m_uNumOfBitsInBuffer_bookmark = m_uNumOfBitsInBuffer;
-		m_chDecBuffer_bookmark = m_chDecBuffer;
-		m_lCounter_bookmark = m_lCounter;
-		m_bBookmarkOn = TRUE;
-	}
-	else {
-	  m_pInStream->bookmark(bSet);
-		m_uNumOfBitsInBuffer = m_uNumOfBitsInBuffer_bookmark; 
-		m_chDecBuffer = m_chDecBuffer_bookmark; 
-		m_lCounter = m_lCounter_bookmark; 
-		m_bBookmarkOn = FALSE;
-	}
-}
 
 COutBitStream::COutBitStream (Char* pchBuffer, Int iBitPosition, ostream* pstrmTrace) : 
 	m_pstrmTrace (pstrmTrace),
@@ -348,122 +238,6 @@ Void COutBitStream::putBits (Int data, UInt numBits, const Char* rgchSymbolName)
 	}
 }
 
-Int CInBitStream::eof () const
-{
-	if(m_uNumOfBitsInBuffer==0)
-		return (m_pInStream->eof())?(EOF):0;
-	else
-		return 0;
-}
-
-Int CInBitStream::peekBits (const UInt numBits)
-{
-#if 0
-  // wmay - removed this to simply set the bookmark and restore it.
-	assert (numBits <= 32);
-	UInt iBitsToRet;
-	Int nBitsToPeek = numBits - m_uNumOfBitsInBuffer;
-
-	if (nBitsToPeek <= 0)
-		iBitsToRet = getbit (m_chDecBuffer, 7, numBits);
-	else
-	{
-	  m_pInStream->bookmark(TRUE);
-		iBitsToRet = getbit (m_chDecBuffer, 7, m_uNumOfBitsInBuffer);
-		for (; nBitsToPeek > 0; nBitsToPeek -= 8) {
-			int chNext = m_pInStream->get();			//get the next ch
-			Int iNext = chNext & 0x000000FF;			//clean the upper bits 
-			if (nBitsToPeek < 8){						//fractional char
-				iNext = iNext >> (8 - nBitsToPeek);
-				iBitsToRet = iNext | (iBitsToRet << nBitsToPeek);
-			}
-			else	{
-				iBitsToRet = iBitsToRet << 8;			//full char
-				iBitsToRet |= iNext;
-			}
-		}
-		m_pInStream->bookmark(FALSE);
-	}			
-	
-	return iBitsToRet;		
-#endif
-	UInt iBitsToRet;
-	setBookmark();
-	iBitsToRet = getBits(numBits);
-	gotoBookmark();
-	return iBitsToRet;
-
-}
-
-Int CInBitStream::peekOneBit (const UInt numBits) const
-{
-	Int iBit,chNext;
-	Int nBitsToPeek = numBits - m_uNumOfBitsInBuffer;
-	
-	if(nBitsToPeek<=0)
-		iBit=m_chDecBuffer&(256>>(m_uNumOfBitsInBuffer - 1 - numBits));
-	else
-	{
-	  m_pInStream->bookmark(TRUE);
-		for (; nBitsToPeek > 0; nBitsToPeek -= 8)
-			chNext = m_pInStream->get();
-		nBitsToPeek += 8;
-		iBit=chNext&(256>>nBitsToPeek);
-		m_pInStream->bookmark(FALSE);
-	}
-
-	return iBit!=0;
-}
-
-//wchen-9-30-97: peekflush () function name changed
-//wchen-9-30-97: matching of stuffing bits done outside bitstrm.cpp because bitstrm.cpp should be generic 
-//	Added for error resilience mode By Toshiba
-Int CInBitStream::peekBitsTillByteAlign (Int& nBitsToPeek)
-{
-	assert (m_uNumOfBitsInBuffer != 8);
-//	if(m_bFlashEnable){
-	nBitsToPeek = (m_uNumOfBitsInBuffer == 0) ? 8 : m_uNumOfBitsInBuffer;
-	return peekBits(nBitsToPeek);
-//	}
-//	return 0;
-}
-
-//wchen-9-30-97: function name changed
-//added by toshiba for error resilience
-//	Modified for error resilient mode by Toshiba(1997-11-14)
-Int CInBitStream::peekBitsFromByteAlign (Int nBitsToPeek) const
-//Int CInBitStream::peekBitsFromByteAlign (UInt nBitsToPeek) const
-//	End Toshiba(1997-11-14)
-{
-	assert (nBitsToPeek <= 32);
-	UInt iBitsToRet = 0;
-
-//	if (nBitsToPeek <= 0)
-//		iBitsToRet = getbit (m_chDecBuffer, 7, numBits);
-	//wchen-9-30-97
-	if (nBitsToPeek == 0)		// UInt can never to negative
-		return 0;				// no need to call get bits
-	else
-	{
-	  m_pInStream->bookmark(TRUE);
-		if (m_uNumOfBitsInBuffer==0)	
-			m_pInStream->get();	//length of stuffing bit = 8bits
-		for (; nBitsToPeek > 0; nBitsToPeek -= 8) {
-			Int chNext = m_pInStream->get();			//get the next ch
-			Int iNext = chNext & 0x000000FF;			//clean the upper bits 
-			if (nBitsToPeek < 8){						//fractional char
-				iNext = iNext >> (8 - nBitsToPeek);
-				iBitsToRet = iNext | (iBitsToRet << nBitsToPeek);
-			}
-			else	{
-				iBitsToRet = iBitsToRet << 8;			//full char
-				iBitsToRet |= iNext;
-			}
-		}
-		m_pInStream->bookmark(FALSE);
-	}
-	return iBitsToRet;		
-}
 
 Void COutBitStream::putBits (Char *pBits, Int lNOfBits)
 {
@@ -676,4 +450,130 @@ Void COutBitStream::trace (const PixelC* rgpxlc, Int cCol, Int cRow, const Char*
 		(*m_pstrmTrace) << "\n";		
 	}
 	m_pstrmTrace->flush ();
+}
+
+CInBitStream::CInBitStream (void) 
+{
+  m_pistrm = -1;
+  init();
+}
+
+CInBitStream::CInBitStream (int istrm)
+{
+  m_pistrm = istrm;
+  init();
+}
+
+CInBitStream::~CInBitStream() 
+{
+  if (m_pistrm >= 0) {
+    free(m_buffer);
+  };
+}
+  
+void CInBitStream::init (void) {
+  m_bookmark = 0;
+  m_get_more_bytes = NULL;
+  m_buffer = NULL;
+  m_framebits = m_framebits_max = 0;
+}
+
+
+uint32_t CInBitStream::getBits (uint32_t numBits)
+{
+  uint32_t ret = peekBits(numBits);
+  flushbits(numBits);
+  return ret;
+}
+
+int CInBitStream::peekOneBit (uint32_t numBits)
+{
+  return peekBits(numBits) & 0x1;
+}
+
+int CInBitStream::peekBitsTillByteAlign (int &nBitsToPeek)
+{
+  nBitsToPeek = 8 - m_bitcnt;
+  return peekBits(nBitsToPeek);
+}
+
+int CInBitStream::peekBitsFromByteAlign (int nBitsToPeek) 
+{
+  int ret;
+  if (nBitsToPeek == 0) return 0;
+  setBookmark();
+  getBits((uint32_t)8 - m_bitcnt);
+  ret = peekBits(nBitsToPeek);
+  gotoBookmark();
+  return ret;
+}
+
+void CInBitStream::bookmark (Bool bSet) 
+{
+  if (bSet) setBookmark();
+  else gotoBookmark();
+}
+
+
+void CInBitStream::read_ifstream_buffer (void)
+{
+  int left, offset, ret;
+  if (m_buffer == NULL) {
+    m_buffer = (unsigned char *)malloc(8092);
+    m_orig_buflen = read(m_pistrm, m_buffer, 8092);
+    m_framebits = 0;
+    m_bitcnt = 0;
+    m_rdptr = m_buffer;
+  } else {
+    if (m_bookmark == 0) {
+      left = m_orig_buflen - (m_framebits / 8);
+      offset = m_orig_buflen - left;
+      memmove(m_buffer,
+	      m_buffer + offset,
+	      left);
+      ret = read(m_pistrm, m_buffer + offset, m_orig_buflen - left);
+      m_orig_buflen = left + ret;
+      m_framebits = m_bitcnt;
+      m_rdptr = m_buffer;
+    } else {
+      left = m_orig_buflen - (m_bookmark_framebits / 8);
+      offset = m_orig_buflen - left;
+      memmove(m_buffer,
+	      m_buffer + offset,
+	      left);
+      ret = read(m_pistrm, m_buffer + offset, m_orig_buflen - left);
+      m_orig_buflen = left + ret;
+      int framebits_past, rdptr_past;
+
+      framebits_past = m_framebits - m_bookmark_framebits;
+      rdptr_past = m_rdptr - m_bookmark_rdptr;
+      m_framebits = m_bitcnt + framebits_past;
+      m_bookmark_framebits = m_bitcnt;
+      m_bookmark_rdptr = m_buffer;
+      m_rdptr = m_buffer + rdptr_past;
+    }
+  }
+  m_framebits_max = m_orig_buflen * 8;
+}
+
+void CInBitStream::set_buffer (get_more_bytes_t gb,
+			       void *ud, 
+			       unsigned char *bptr, 
+			       uint32_t blen) 
+{
+  m_get_more_bytes = gb;
+  m_ud = ud;
+  m_buffer = bptr;
+  m_rdptr = bptr;
+  m_bitcnt = 0;
+  m_framebits = 0;
+  m_orig_buflen = blen;
+  m_framebits_max = blen * 8;
+}
+
+Void CInBitStream::flush (int nExtraBits) 
+{
+  if (m_bitcnt == 0) getBits((uint32_t)nExtraBits);
+  if (m_bitcnt != 0)
+    flushbits(8 - m_bitcnt);
 }

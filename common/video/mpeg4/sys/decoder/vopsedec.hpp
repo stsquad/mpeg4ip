@@ -56,7 +56,7 @@ Revision History:
 #define __VOPSEDEC_HPP_
 
 class CVideoObject;
-class ifstream;
+class istream;
 class strstreambuf;
 class CInByteStream;
 class CInBitStream;
@@ -72,8 +72,7 @@ Class CVideoObjectDecoder : public CVideoObject
 public:
 	// Constructors
 	~CVideoObjectDecoder ();
-	CVideoObjectDecoder () {};
-	CVideoObjectDecoder (CInByteStreamBase *in);
+	CVideoObjectDecoder ();
 	CVideoObjectDecoder ( 
 		const Char* pchStrFile, // bitstream file
 		Int iDisplayWidth, Int iDisplayHeight,
@@ -84,6 +83,13 @@ public:
         CVideoObjectDecoder (	// for back/forward shape
 		int iDisplayWidth, int iDisplayHeight
 	);
+	Void SetUpBitstreamBuffer(get_more_bytes_t gb, 
+				  void *ud, 
+				  unsigned char *bptr, 
+				  uint32_t blen) {
+	  m_pbitstrmIn->set_buffer(gb, ud, bptr, blen);
+	};
+	int get_used_bytes(void) { return m_pbitstrmIn->get_used_bytes(); };
 	Void FakeOutVOVOLHead(int h, int w, int fr, Bool *pbSpatialScalability);
 	void postVO_VOLHeadInit(Int iDisplayWidth, Int iDisplayHeight,Bool *pbSpatialScalability);
 	// Operations
@@ -112,10 +118,7 @@ void decodeShortHeaderIntraMBDC(Int *rgiCoefQ);
 
 //protected:
 public:
- void set_byte_stream(CInByteStreamBase *p);
-	own ifstream* m_pistrm;
-	own CInByteStreamBase *m_pbytestrmIn;
-	own Bool m_bcreatedByteStream;
+	own int m_pistrm;
 	own CInBitStream* m_pbitstrmIn;		//bitstream
 	own CEntropyDecoderSet* m_pentrdecSet;	//huffman decoder set
 							  //used for video packet header decoding by Toshiba

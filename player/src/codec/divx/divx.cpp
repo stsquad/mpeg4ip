@@ -122,7 +122,7 @@ CDivxCodec::~CDivxCodec()
   divx_message(LOG_NOTICE, "dropped b frames: %u", m_dropped_b_frames);
   divx_message(LOG_NOTICE, "wait for I times: %u", m_num_wait_i);
   divx_message(LOG_NOTICE, "wait I frames   : %u", m_num_wait_i_frames);
-
+  closedecoder();
 }
 
 // Convert a hex character to it's decimal value.
