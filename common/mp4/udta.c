@@ -82,6 +82,21 @@ int quicktime_read_udta(quicktime_t *file, quicktime_udta_t *udta, quicktime_ato
 int quicktime_write_udta(quicktime_t *file, quicktime_udta_t *udta)
 {
 	quicktime_atom_t atom, subatom;
+
+	/*
+	 * Empty udta atom make Darwin Streaming Server unhappy
+	 * so avoid it
+	 */
+	if (file->use_mp4) {
+		if (udta->copyright_len == 0) {
+			return;
+		}
+	} else {
+		if (udta->copyright_len + udta->name_len + udta->info_len == 0) {
+			return;
+		}
+	}
+
 	quicktime_atom_write_header(file, &atom, "udta");
 
 	if(udta->copyright_len)
