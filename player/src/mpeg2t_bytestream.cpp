@@ -123,7 +123,8 @@ void CMpeg2tByteStream::used_bytes_for_frame (uint32_t bytes_used)
 int CMpeg2tByteStream::skip_next_frame (uint64_t *pts, 
 					int *pSync,
 					uint8_t **buffer, 
-					uint32_t *buflen)
+					uint32_t *buflen,
+					void **userdata)
 {
   uint64_t ts;
   ts = start_next_frame(buffer, buflen, NULL);

@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.9 $ 
- * $Date: 2002/07/15 22:44:57 $
+ * $Revision: 1.10 $ 
+ * $Date: 2002/11/14 19:46:39 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -230,6 +230,12 @@ rtp_t		rtp_init(const char *addr,
 			 int ttl, double rtcp_bw, 
 			 rtp_callback callback,
 			 uint8_t *userdata);
+  // rtp_init_xmitter - for transmitters - send an RTCP with the first packet
+rtp_t		rtp_init_xmitter(const char *addr, 
+				 uint16_t rx_port, uint16_t tx_port, 
+				 int ttl, double rtcp_bw, 
+				 rtp_callback callback,
+				 uint8_t *userdata);
 rtp_t		rtp_init_if(const char *addr, char *iface, 
 			    uint16_t rx_port, uint16_t tx_port, 
 			    int ttl, double rtcp_bw, 

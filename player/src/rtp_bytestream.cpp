@@ -220,7 +220,6 @@ void CRtpByteStreamBase::init (void)
 void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock, 
 					       uint32_t rtp_ts) 
 {
-#ifdef DEBUG_RTP_WCLOCK
   if (m_wallclock_offset_set == 1 &&
       m_stream_ondemand == 0) {
     int32_t rtp_ts_diff;
@@ -232,13 +231,20 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
     wclock_calc /= m_rtptime_tickpersec;
     wclock_calc += m_wallclock_offset;
     if (wclock_calc != wclock) {
+#ifdef DEBUG_RTP_WCLOCK
       rtp_message(LOG_DEBUG, 
 		  "%s - set wallclock - wclock should be "LLU" is "LLU, 
 		m_name, wclock_calc, wclock);
+#endif
+      // don't change wclock offset if it's > 100 msec - otherwise, 
+      // it's annoying noise
+      int64_t diff = wclock_calc - wclock;
+      if (abs(diff) < 100) {
+	return;
+      }
     }
     
   }
-#endif
   m_wallclock_offset_set = 1;
   SDL_LockMutex(m_rtp_packet_mutex);
   m_wallclock_offset = wclock;
@@ -271,7 +277,7 @@ CRtpByteStreamBase::calculate_wallclock_offset_from_rtcp (uint32_t ntp_frac,
   offset *= M_LLU;
   wclock += offset;
 #ifdef DEBUG_RTP_BCAST
-  rtp_message(LOG_DEBUG, "%s RTCP data - sec %u frac %u value %llu ts %d", 
+  rtp_message(LOG_DEBUG, "%s RTCP data - sec %u frac %u value %llu ts %u", 
 	      m_name, ntp_sec, ntp_frac, wclock, rtp_ts);
 #endif
   set_wallclock_offset(wclock, rtp_ts);
@@ -713,7 +719,8 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
 
 int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
 				     uint8_t **buffer, 
-				     uint32_t *buflen)
+				     uint32_t *buflen,
+				     void **ud)
 {
   uint64_t ts;
   *hasSyncFrame = -1;  // we don't know if we have a sync frame
@@ -727,7 +734,7 @@ int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
   if (m_head == NULL) return 0;
   init();
   m_buffer_len = m_bytes_used = 0;
-  ts = start_next_frame(buffer, buflen, NULL);
+  ts = start_next_frame(buffer, buflen, ud);
   *pts = ts;
   return (1);
 }

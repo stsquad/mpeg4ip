@@ -27,7 +27,7 @@
 #include "media_sink.h"
 
 #include "video_util_resize.h"
-
+#include "resampl.h"
 // DEBUG #define DEBUG_VCODEC_SHADOW
 
 // forward declarations
@@ -291,9 +291,7 @@ protected:
 	u_int32_t		m_audioSrcFrameNumber;
 
 	// audio resampling info
-	int16_t*		m_audioResampleInputBuffer;
-	u_int32_t		m_audioResampleInputNumber;
-	bool			m_audioResampleUseLinear;
+	resample_t              *m_audioResample;
 
 	// audio destination info
 	MediaType		m_audioDstType;

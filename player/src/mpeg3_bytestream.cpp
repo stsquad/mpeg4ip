@@ -144,9 +144,10 @@ void CMpeg3VideoByteStream::used_bytes_for_frame (uint32_t bytes_used)
 }
 
 int CMpeg3VideoByteStream::skip_next_frame (uint64_t *pts, 
-				     int *pSync,
-				     uint8_t **buffer, 
-				     uint32_t *buflen)
+					    int *pSync,
+					    uint8_t **buffer, 
+					    uint32_t *buflen,
+					    void **ud)
 {
   uint64_t ts;
   mpeg3_read_video_chunk_cleanup(m_file, m_stream);
@@ -288,9 +289,10 @@ void CMpeg3AudioByteStream::used_bytes_for_frame (uint32_t bytes_used)
 }
 
 int CMpeg3AudioByteStream::skip_next_frame (uint64_t *pts, 
-				     int *pSync,
-				     uint8_t **buffer, 
-				     uint32_t *buflen)
+					    int *pSync,
+					    uint8_t **buffer, 
+					    uint32_t *buflen,
+					    void **ud)
 {
   uint64_t ts;
   ts = start_next_frame(buffer, buflen, NULL);

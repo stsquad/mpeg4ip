@@ -1259,6 +1259,23 @@ static struct CHANLIST argentina[] = {
     { "093",  644250 },
 };
 
+/* added by toxic */
+static struct CHANLIST secam_russia[] ={
+    { "1",  49750 },
+    { "2",  59250 },
+    { "3",  77250 },
+    { "4",  85250 },
+    { "5",  93250 },
+    { "6", 175250 },
+    { "7", 183250 },
+    { "8", 191250 },
+    { "9", 199250 },
+    {"10", 207250 },
+    {"11", 215250 },
+    {"12", 223250 },
+    FREQ_UHF
+};
+
 /* --------------------------------------------------------------------- */
 
 struct CHANLISTS chanlists[] = {
@@ -1279,6 +1296,7 @@ struct CHANLISTS chanlists[] = {
     { "argentina",        argentina,         CHAN_COUNT(argentina)         },
     { "canada-cable",     ntsc_cable_ca,     CHAN_COUNT(ntsc_cable_ca)     },
     { "australia-optus",        pal_australia_optus,     CHAN_COUNT(pal_australia_optus)     },
+    { "russia",           secam_russia,      CHAN_COUNT(secam_russia)      },
     { NULL, NULL, 0 } /* EOF */
 };
 #if 0
@@ -1300,6 +1318,7 @@ struct STRTAB chanlist_names[18] = {
     { 14, "argentina" },
     { 15, "canada-cable" },
     {  16, "australia-optus" },
+    {  17, "Russia" },
     { -1, NULL }
 };
 #endif

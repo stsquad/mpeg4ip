@@ -156,10 +156,11 @@ void CMp4ByteStream::used_bytes_for_frame (uint32_t bytes_used)
 int CMp4ByteStream::skip_next_frame (uint64_t *pts, 
 				     int *pSync,
 				     uint8_t **buffer, 
-				     uint32_t *buflen)
+				     uint32_t *buflen,
+				     void **ud)
 {
   uint64_t ts;
-  ts = start_next_frame(buffer, buflen, NULL);
+  ts = start_next_frame(buffer, buflen, ud);
   *pts = ts;
   *pSync = m_frame_on_has_sync;
   return (1);

@@ -404,11 +404,13 @@ mpeg4ip - top level project directory
             audio - audio plugins
                raw - raw audio plugin
 	    rtp - rtp bytestream plugins
+	       h261 - h261 rtp plugin
                isma_audio - isma audio format plugin
             video - video plugins
                raw - raw video plugin
                mpeg3 - mpeg1/2 video plugin
  	       xvid - xvid video plugin
+               h261 - h261 decoder
         src - the player executable
             codec - 
                 aa - aac plugin

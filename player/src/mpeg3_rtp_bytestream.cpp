@@ -228,7 +228,8 @@ uint32_t CMpeg3RtpByteStream::calc_this_ts_from_future (int frame_type,
 							
 int CMpeg3RtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
 					  uint8_t **buffer, 
-					  uint32_t *buflen)
+					  uint32_t *buflen, 
+					  void **ud)
 {
   uint64_t ts;
   *hasSyncFrame = -1;  // we don't know if we have a sync frame

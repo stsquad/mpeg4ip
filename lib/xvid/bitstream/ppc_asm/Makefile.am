@@ -11,6 +11,7 @@ SUFFIXES = .asm
 
 ###########################################################################
 
+EXTRA_DIST=cbp_ppc.s cbp_altivec.s
 if USE_PPC
 noinst_LTLIBRARIES = libxvidbitstreamppc.la
 libxvidbitstreamppc_la_LDFLAGS = -static

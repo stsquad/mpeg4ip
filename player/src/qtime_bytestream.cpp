@@ -157,10 +157,11 @@ uint64_t CQTVideoByteStream::start_next_frame (uint8_t **buffer,
 
 int CQTVideoByteStream::skip_next_frame (uint64_t *ptr, int *hasSync,
 					 uint8_t **buffer, 
-					 uint32_t *buflen)
+					 uint32_t *buflen,
+					 void **ud)
 {
   *hasSync = 0;
-  *ptr = start_next_frame(buffer, buflen, NULL);
+  *ptr = start_next_frame(buffer, buflen, ud);
   return 1;
 }
 /*

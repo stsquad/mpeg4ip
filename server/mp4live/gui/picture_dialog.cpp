@@ -143,7 +143,9 @@ void CreatePictureDialog (void)
 	hscale = gtk_hscale_new(GTK_ADJUSTMENT(adjustment));
 	gtk_scale_set_value_pos(GTK_SCALE(hscale), GTK_POS_RIGHT);
 	gtk_scale_set_digits(GTK_SCALE(hscale), 0);
+#ifdef HAVE_GTK_2_0
 	gtk_widget_set_size_request(GTK_WIDGET(hscale), 200, -1);
+#endif
 	gtk_widget_show(hscale);
 	gtk_box_pack_start(GTK_BOX(vbox), hscale, FALSE, FALSE, 0);
 

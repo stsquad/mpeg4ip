@@ -153,7 +153,7 @@ class CRtpByteStream : public CRtpByteStreamBase
   uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			    void **userdata);
   int skip_next_frame(uint64_t *ts, int *havesync, uint8_t **buffer,
-		      uint32_t *buflen);
+		      uint32_t *buflen, void **userdata = NULL);
   void used_bytes_for_frame(uint32_t bytes);
   int have_no_data(void);
   void flush_rtp_packets(void);

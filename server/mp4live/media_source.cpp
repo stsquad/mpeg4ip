@@ -55,7 +55,6 @@ CMediaSource::CMediaSource()
 	m_videoDstPrevReconstructImage = NULL;
 	m_videoDstPrevFrame = NULL;
 
-	m_audioResampleInputBuffer = NULL;
 	m_audioPreEncodingBuffer = NULL;
 	m_audioEncoder = NULL;
 }
@@ -64,6 +63,15 @@ CMediaSource::~CMediaSource()
 {
 	SDL_DestroyMutex(m_pSinksMutex);
 	m_pSinksMutex = NULL;
+	
+	if (m_audioResample != NULL) {
+	  for (int ix = 0; ix < m_audioDstChannels; ix++) {
+	    free(m_audioResample[ix]);
+	    m_audioResample[ix] = NULL;
+	  }
+	  free(m_audioResample);
+	  m_audioResample = NULL;
+	}
 }
 
 bool CMediaSource::AddSink(CMediaSink* pSink) 
@@ -667,23 +675,14 @@ bool CMediaSource::SetAudioSrc(
 
 	// if we need to resample
 	if (m_audioDstSampleRate != m_audioSrcSampleRate) {
-
-		// if sampling rates are integral multiples
-		// we can use simpler, faster linear interpolation
-		// else we use quadratic interpolation
-		if (m_audioDstSampleRate < m_audioSrcSampleRate) {
-			m_audioResampleUseLinear =
-				((m_audioSrcSampleRate % m_audioDstSampleRate) == 0);
-
-		} else if (m_audioDstSampleRate >= m_audioSrcSampleRate) {
-			m_audioResampleUseLinear =
-				((m_audioDstSampleRate % m_audioSrcSampleRate) == 0);
+	  // create a resampler for each audio destination channel - 
+	  // we will combine the channels before resampling
+		m_audioResample = (resample_t *)malloc(sizeof(resample_t) *
+						       m_audioDstChannels);
+		for (int ix = 0; ix <= m_audioDstChannels; ix++) {
+		  m_audioResample[ix] = st_resample_start(m_audioSrcSampleRate, 
+							  m_audioDstSampleRate);
 		}
-
-		m_audioResampleInputNumber = 0;
-		free(m_audioResampleInputBuffer);
-		m_audioResampleInputBuffer =
-			(int16_t*)calloc(16 * m_audioSrcChannels, 2);
 	}
 
 	// this calculation doesn't take into consideration the resampling
@@ -738,6 +737,37 @@ void CMediaSource::ProcessAudioFrame(
 	u_int8_t* pcmData = frameData;
 	u_int32_t pcmDataLength = frameDataLength;
 
+	if (m_audioSrcChannels != m_audioDstChannels) {
+	  // Convert the channels if they don't match
+	  // we either double the channel info, or combine
+	  // the left and right
+	  uint32_t samples = SrcBytesToSamples(frameDataLength);
+	  uint32_t dstLength = DstSamplesToBytes(samples);
+	  pcmData = (u_int8_t *)Malloc(dstLength);
+	  pcmDataLength = dstLength;
+	  pcmMalloced = true;
+
+	  int16_t *src = (int16_t *)frameData;
+	  int16_t *dst = (int16_t *)pcmData;
+	  if (m_audioSrcChannels == 1) {
+	    // 1 channel to 2
+	    for (uint32_t ix = 0; ix < samples; ix++) {
+	      *dst++ = *src;
+	      *dst++ = *src++;
+	    }
+	  } else {
+	    // 2 channels to 1
+	    for (uint32_t ix = 0; ix < samples; ix++) {
+	      int32_t sum = *src++;
+	      sum += *src++;
+	      sum /= 2;
+	      if (sum < -32768) sum = -32768;
+	      else if (sum > 32767) sum = 32767;
+	      *dst++ = sum & 0xffff;
+	    }
+	  }
+	}
+	  
 	// resample audio, if necessary
 	if (m_audioSrcSampleRate != m_audioDstSampleRate) {
 		ResampleAudio(pcmData, pcmDataLength);
@@ -769,18 +799,22 @@ pcmBufferCheck:
 
 	if (pcmBuffered) {
 		u_int32_t samplesAvailable =
-			SrcBytesToSamples(m_audioPreEncodingBufferLength);
+			DstBytesToSamples(m_audioPreEncodingBufferLength);
 
 		// not enough samples collected yet to call encode or forward
 		if (samplesAvailable < m_audioDstSamplesPerFrame) {
 			return;
+		}
+		if (pcmMalloced) {
+		  free(pcmData);
+		  pcmMalloced = false;
 		}
 
 		// setup for encode/forward
 		pcmData = 
 			&m_audioPreEncodingBuffer[0];
 		pcmDataLength = 
-			SrcSamplesToBytes(m_audioDstSamplesPerFrame);
+			DstSamplesToBytes(m_audioDstSamplesPerFrame);
 	}
 
 	// encode audio frame
@@ -791,7 +825,7 @@ pcmBufferCheck:
 		bool rc = m_audioEncoder->EncodeSamples(
 			(int16_t*)pcmData, 
 			m_audioDstSamplesPerFrame,
-			m_audioSrcChannels);
+			m_audioDstChannels);
 
 		if (!rc) {
 			debug_message("failed to encode audio");
@@ -837,7 +871,8 @@ pcmBufferCheck:
 			pcmMalloced = false;
 		}
 #ifndef WORDS_BIGENDIAN
-		// swap byte ordering
+		// swap byte ordering so we have big endian to write into
+		// the file.
 		uint16_t *pdata = (uint16_t *)pcmForwardedData;
 		for (uint32_t ix = 0; 
 		     ix < pcmDataLength; 
@@ -847,9 +882,6 @@ pcmBufferCheck:
 		}
 #endif
 
-		// Since the below is run after conversion to the dst sample
-		// rate, but we don't split out the channels, we need to
-		// use the SrcBytesToSamples call, not the DstBytesToSamples
 		CMediaFrame* pFrame =
 			new CMediaFrame(
 				PCMAUDIOFRAME, 
@@ -857,7 +889,7 @@ pcmBufferCheck:
 				pcmDataLength,
 				m_audioStartTimestamp 
 					+ DstSamplesToTicks(m_audioDstRawSampleNumber),
-				SrcBytesToSamples(pcmDataLength),
+				DstBytesToSamples(pcmDataLength),
 				m_audioDstSampleRate);
 		ForwardFrame(pFrame);
 
@@ -884,153 +916,52 @@ void CMediaSource::ResampleAudio(
 	u_int8_t* frameData,
 	u_int32_t frameDataLength)
 {
-	int32_t inIndex;
-	u_int32_t outIndex;
-	float x0, x1, x2, x3;
-	u_int8_t ch;
-	int16_t y0, y1, y2, y3;
-	int32_t outValue;
-	int32_t i;
-	float outTime0;
-	int16_t* pIn =
-		(int16_t*)frameData;
+  uint32_t samplesIn;
+  uint32_t samplesInConsumed;
+  uint32_t outBufferSamplesLeft;
+  uint32_t outBufferSamplesWritten;
+  uint32_t chan_offset;
 
-	// compute how many input samples are available
-	u_int32_t numIn =
-		m_audioResampleInputNumber + SrcBytesToSamples(frameDataLength);
+  samplesIn = DstBytesToSamples(frameDataLength);
 
-	// compute how many output samples 
-	// can be generated from the available input samples
-	u_int32_t numOut =
-		(numIn * m_audioDstSampleRate) / m_audioSrcSampleRate;
+  // so far, record the pre length
+  while (samplesIn > 0) {
+    outBufferSamplesLeft = 
+      DstBytesToSamples(m_audioPreEncodingBufferMaxLength - 
+			m_audioPreEncodingBufferLength);
+    for (uint8_t chan_ix = 0; chan_ix < m_audioDstChannels; chan_ix++) {
+      samplesInConsumed = samplesIn;
+      outBufferSamplesWritten = outBufferSamplesLeft;
 
-	uint32_t numOutMax = SrcSamplesToBytes(numOut) + m_audioPreEncodingBufferLength;
-	if (numOutMax >= m_audioPreEncodingBufferMaxLength) {
-	  m_audioPreEncodingBufferMaxLength = numOutMax;
-	  m_audioPreEncodingBuffer = (u_int8_t*)realloc(
-							m_audioPreEncodingBuffer,
-							m_audioPreEncodingBufferMaxLength);
-	}
-
-	int16_t* pOut = 
-		(int16_t*)&m_audioPreEncodingBuffer[m_audioPreEncodingBufferLength];
-	float inTime0 = 
-		(float)(m_audioResampleInputNumber * m_audioDstSampleRate)
-		/ (float)m_audioSrcSampleRate;
-
+      chan_offset = chan_ix * (DstSamplesToBytes(1));
+      if (st_resample_flow(m_audioResample[chan_ix],
+			   (int16_t *)(frameData + chan_offset),
+			   (int16_t *)(&m_audioPreEncodingBuffer[m_audioPreEncodingBufferLength + chan_offset]),
+			   &samplesInConsumed, 
+			   &outBufferSamplesWritten,
+			   m_audioDstChannels) < 0) {
+	error_message("resample failed");
+      }
 #ifdef DEBUG_AUDIO_RESAMPLER
-	printf("resample numIn %u numOut %u inTime0 %f buffer at %d\n",
-	       numIn, numOut, inTime0, m_audioPreEncodingBufferLength);
+      debug_message("Chan %d consumed %d wrote %d", 
+		    chan_ix, samplesInConsumed, outBufferSamplesWritten);
 #endif
-
-
-	// for all output samples
-	for (outIndex = 0; true; outIndex++) {
-
-		outTime0 = 
-			(outIndex * m_audioSrcSampleRate) / (float)m_audioDstSampleRate;
-
-		inIndex = (int32_t)(outTime0 - inTime0 + 0.5);
-
-#ifdef DEBUG_AUDIO_RESAMPLER
-		printf("resample out %d %f in %d\n",
-		       outIndex, outTime0, inIndex);
-#endif
-
-		// the unusual location of the loop exit condition
-		// is because we need the initial inIndex for the next call
-		// see the end of this function for how this is used
-		if (outIndex >= numOut) {
-			break;
-		}
-
-		x1 = outTime0 - (inTime0 + inIndex);
-		x0 = x1 + 1;
-		x2 = x1 - 1;
-		x3 = x1 - 2;
-
-		for (ch = 0; ch < m_audioSrcChannels; ch++) {
-
-			if (inIndex < 0) {
-				y1 = m_audioResampleInputBuffer
-					[(-(inIndex) - 1) * m_audioSrcChannels + ch];
-			} else {
-				y1 = pIn[inIndex * m_audioSrcChannels + ch];
-			}
-			if (inIndex + 1 < 0) {
-				y2 = m_audioResampleInputBuffer
-					[(-(inIndex + 1) - 1) * m_audioSrcChannels + ch];
-			} else {
-				y2 = pIn[(inIndex + 1) * m_audioSrcChannels + ch];
-			}
-
-			if (m_audioResampleUseLinear) {
-				*pOut++ = (int16_t)
-					(((y2 * x1) - (y1 * x2)) + 0.5);
-
-			} else { // use quadratic resampling
-				if (inIndex - 1 < 0) {
-					y0 = m_audioResampleInputBuffer
-						[(-(inIndex - 1) - 1) * m_audioSrcChannels + ch];
-				} else {
-					y0 = pIn[(inIndex - 1) * m_audioSrcChannels + ch];
-				}
-				if (inIndex + 2 < 0) {
-					y3 = m_audioResampleInputBuffer
-						[(-(inIndex + 2) - 1) * m_audioSrcChannels + ch];
-				} else {
-					y3 = pIn[(inIndex + 2) * m_audioSrcChannels + ch];
-				}
-
-				outValue = (int32_t)(
-					- (y0 * x1 * x2 * x3 / 6) 
-					+ (y1 * x0 * x2 * x3 / 2) 
-					- (y2 * x0 * x1 * x3 / 2) 
-					+ (y3 * x0 * x1 * x2 / 6)
-					+ 0.5);
-
-				// DEBUG printf("x0 %f y %d %d %d %d -> %d (delta %d)\n",
-				// DEBUG x0, y0, y1, y2, y3, 
-				// DEBUG outValue, outValue - ((y0 + y1) / 2));
-
-				if (outValue > 32767) {
-					outValue = 32767;
-				} else if (outValue < -32767) {
-					outValue = -32767;
-				}
-
-				*pOut++ = (int16_t)outValue;
-			}
-		}
-	}
-
-	// since resampling inputs can span input frame boundaries
-	// we may need to save up to 3 samples for the next call
-	m_audioResampleInputNumber = 0;
-
-#ifdef DEBUG_AUDIO_RESAMPLER
-	printf("resample save from %d to %d\n",
-	       SrcBytesToSamples(frameDataLength) - 1, inIndex);
-#endif
-
-	for (i = SrcBytesToSamples(frameDataLength) - 1; 
-	  i >= inIndex; i--) {
-
-		// DEBUG printf("resample save [%d] <- [%d]\n",
-		// DEBUG m_audioResampleInputNumber, i);
-
-		memcpy(
-			&m_audioResampleInputBuffer[m_audioResampleInputNumber],
-			&pIn[i * m_audioSrcChannels],
-			m_audioSrcChannels * sizeof(int16_t));
-
-		m_audioResampleInputNumber++;
-	}
-
-	m_audioPreEncodingBufferLength += 
-		numOut * m_audioSrcChannels * sizeof(int16_t);
-
-	return;
+    }
+    if (outBufferSamplesLeft < outBufferSamplesWritten) {
+      error_message("Written past end of buffer");
+    }
+    samplesIn -= samplesInConsumed;
+    outBufferSamplesLeft -= outBufferSamplesWritten;
+    m_audioPreEncodingBufferLength += DstSamplesToBytes(outBufferSamplesWritten);
+    // If we have no room for new output data, and more to process,
+    // give us a bunch more room...
+    if (outBufferSamplesLeft == 0 && samplesIn > 0) {
+      m_audioPreEncodingBufferMaxLength *= 2;
+      m_audioPreEncodingBuffer = 
+	(u_int8_t*)realloc(m_audioPreEncodingBuffer,
+			   m_audioPreEncodingBufferMaxLength);
+    }
+  } // end while we still have input samples
 }
 
 void CMediaSource::ForwardEncodedAudioFrames(
@@ -1095,8 +1026,6 @@ void CMediaSource::DoStopAudio()
 		m_audioEncoder = NULL;
 	}
 
-	free(m_audioResampleInputBuffer);
-	m_audioResampleInputBuffer = NULL;
 
 	free(m_audioPreEncodingBuffer);
 	m_audioPreEncodingBuffer = NULL;

@@ -278,9 +278,12 @@ int CPlayerMedia::decode_thread (void)
 	    current_time += 200; 
 	    count = 0;
 	    // Skip up to the current time + 200 msec
+	    ud = NULL;
 	    do {
+	      if (ud != NULL) free(ud);
 	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync,
-						   &frame_buffer, &frame_len);
+						   &frame_buffer, &frame_len,
+						   &ud);
 	      decode_skipped_frames++;
 	    } while (ret != 0 &&
 		     !m_byte_stream->eof() && 
@@ -295,8 +298,10 @@ int CPlayerMedia::decode_thread (void)
 	     * 15 frames
 	     */
 	    do {
+	      if (ud != NULL) free(ud);
 	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync,
-						   &frame_buffer, &frame_len);
+						   &frame_buffer, &frame_len,
+						   &ud);
 	      if (hassync < 0) {
 		uint64_t diff = ourtime - current_time;
 		if (diff > (2 * C_LLU)) {

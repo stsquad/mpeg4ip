@@ -50,6 +50,8 @@ libmp4live_la_SOURCES = \
 	mp4live_common.h \
 	mp4live_config.cpp \
 	mp4live_config.h \
+	resample.c \
+	resample.h \
 	rtp_transmitter.cpp \
 	rtp_transmitter.h \
 	sdp_file.cpp \

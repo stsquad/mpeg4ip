@@ -46,7 +46,7 @@ class CMpeg3VideoByteStream : public COurInByteStream
   void used_bytes_for_frame(uint32_t bytes);
   int can_skip_frame(void) { return 1; };
   int skip_next_frame(uint64_t *ts, int *hasSyncFrame, uint8_t **buffer,
-		      uint32_t *buflen);
+		      uint32_t *buflen, void **ud);
   double get_max_playtime(void);
 
   void play(uint64_t start);
@@ -83,7 +83,7 @@ class CMpeg3AudioByteStream : public COurInByteStream
   void used_bytes_for_frame(uint32_t bytes);
   int can_skip_frame(void) { return 1; };
   int skip_next_frame(uint64_t *ts, int *hasSyncFrame, uint8_t **buffer,
-		      uint32_t *buflen);
+		      uint32_t *buflen, void **ud);
   double get_max_playtime(void);
 
   void play(uint64_t start);

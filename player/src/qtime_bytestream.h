@@ -80,7 +80,7 @@ class CQTVideoByteStream : public CQTByteStreamBase
 			    uint32_t *buflen, void **ud);
   int can_skip_frame(void) { return 1; };
   int skip_next_frame (uint64_t *ts, int *hasSync, uint8_t **buffer,
-		       uint32_t *buflen);
+		       uint32_t *buflen, void **ud);
   void play(uint64_t start);
   double get_max_playtime(void);
   void config(long num_frames, float frate, int time_scale);

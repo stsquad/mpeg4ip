@@ -132,6 +132,16 @@ Notes:      Code redistributed with MPEG4IP is just the core codec library
             See the project site to obtain the complete distribution which 
             includes a Video for Windows wrapper.
 
+
+Name:       h261 decoder
+Version:    vic-2.8, openh323-1.10.0
+Origin:     http://www.openh323.org, http://www-nrg.ee.lbl.gov/vic/
+Authors:    Various
+Directory:  player/plugin/video/h261
+License:    MPL, Regents of University of California copyright (See files).
+Note:       Code redistributed by mpeg4ip is a mixture of code from openh323
+            and vic code (vic code did not compile and was missing files).
+
 We will attempt to keep up with the current stable releases of
 these packages. 
 

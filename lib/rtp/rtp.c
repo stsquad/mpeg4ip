@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.17 $ 
- * $Date: 2002/07/15 22:44:56 $
+ * $Revision: 1.18 $ 
+ * $Date: 2002/11/14 19:46:39 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -1004,6 +1004,19 @@ struct rtp *rtp_init(const char *addr,
                      uint8_t *userdata)
 {
 	return rtp_init_if(addr, NULL, rx_port, tx_port, ttl, rtcp_bw, callback, userdata, 0);
+}
+
+struct rtp *rtp_init_xmitter (const char *addr, 
+			      uint16_t rx_port, uint16_t tx_port,
+			      int ttl, double rtcp_bw, 
+			      rtp_callback callback, 
+			      uint8_t *userdata)
+{
+  struct rtp *session = rtp_init(addr, rx_port, tx_port, ttl, rtcp_bw,
+			callback, userdata);
+
+  gettimeofday(&(session->next_rtcp_send_time), NULL);
+  return session;
 }
 
 static int rtcp_local_send (struct rtp *session, uint8_t *buffer, int buflen)

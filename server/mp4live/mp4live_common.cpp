@@ -4,7 +4,7 @@
 #include "mp4live_common.h"
 #include "video_v4l_source.h"
 #include "audio_oss_source.h"
-
+#include "signal.h"
 
 int ReadConfigFile (const char *configFileName, 
 		    CLiveConfig *pConfig)
@@ -87,5 +87,50 @@ void SetupRealTimeFeatures (CLiveConfig *pConfig)
 # endif
     }
 #endif /* _POSIX_MEMLOCK */
+  }
+}
+
+static struct sig_str_to_value_ {
+  const char *str;
+  int value; 
+} sig_str_to_value[] = {
+  { "hup", SIGHUP },
+  { "abrt", SIGABRT },
+  { "alrm",  SIGALRM },
+  { "usr1", SIGUSR1},
+  { "usr2", SIGUSR2},
+  { "int", SIGINT},
+  { "quit", SIGQUIT},
+  { "term", SIGTERM},
+  { "stop", SIGSTOP},
+};
+
+void InstallSignalHandler (CLiveConfig *pConfig, 
+			   void (*sighandler)(int))
+{
+  const char *sig = pConfig->GetStringValue(CONFIG_APP_SIGNAL_HALT);
+  struct sigaction act;
+  bool sigintset = false;
+
+  act.sa_handler = sighandler;
+  sigemptyset(&act.sa_mask);
+  act.sa_flags = 0;
+
+  int maxsigs = sizeof(sig_str_to_value) / sizeof(sig_str_to_value[0]);
+  if (sig != NULL && *sig != '\0') {
+    debug_message("sigals are %s", sig);
+    for (int ix = 0; ix < maxsigs; ix++) {
+      if (strcasestr(sig, sig_str_to_value[ix].str) != NULL) {
+	debug_message("installing sig %s", sig_str_to_value[ix].str);
+	sigaction(sig_str_to_value[ix].value, &act, 0);
+	if (sig_str_to_value[ix].value == SIGINT) {
+	  sigintset = true;
+	}
+      }
+    }
+  }
+
+  if (sigintset == false) {
+    sigaction(SIGINT, &act, 0);
   }
 }

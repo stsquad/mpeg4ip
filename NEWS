@@ -11,6 +11,8 @@ xx/xx/02 Version 0.9.7
     Xvid check for SSE2 instructions from Steve Schultz
     Got new TV tuner frequency lists from xawtv
     Added command to mp4creator to force 64 bit file sizes
+    H.261 decoding for player
+    Send immediate RTCP when starting mp4live
 
 09/25/02 Version 0.9.6
     RTP plugins for player.

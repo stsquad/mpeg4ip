@@ -17,4 +17,7 @@ CMediaSource *CreateVideoSource(CLiveConfig *pConfig);
 
 CMediaSource *CreateAudioSource(CLiveConfig *pConfig, CMediaSource *videoSource);
 
+void InstallSignalHandler(CLiveConfig *pConfig, 
+			  void (*sighandler)(int));
+
 #endif

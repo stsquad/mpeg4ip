@@ -26,6 +26,7 @@
 #include "audio_oss_source.h"
 #include "mp4live_common.h"
 #include <getopt.h>
+#include <signal.h>
 
 // InitializeConfigVariables - if you want to add configuration 
 // variables, you most likely want to add them here, before you
@@ -203,12 +204,25 @@ int main(int argc, char** argv)
 	exit (rc);
 }
 
+static int stop_signal_received;
+
+static void signal_stop_handler (int sig)
+{
+  error_message("Received stop signal %d", sig);
+  stop_signal_received = 1;
+}
+
 int nogui_main(CLiveConfig* pConfig)
 {
+  double maxduration, duration;
+  time_t starttime, nowtime;
+
 	if (!pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
 	  && !pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 		return -1;
 	}
+
+	InstallSignalHandler(pConfig, signal_stop_handler);
 
 	// override any configured value of preview
 	bool previewValue =
@@ -218,9 +232,17 @@ int nogui_main(CLiveConfig* pConfig)
 	CAVMediaFlow* pFlow = new CAVMediaFlow(pConfig);
 
 	pFlow->Start();
+	stop_signal_received = 0;
+	maxduration = pConfig->GetIntegerValue(CONFIG_APP_DURATION)
+	  * pConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS);
+	
+	starttime = time(NULL);
+	do {
+	  sleep(1);
+	  nowtime = time(NULL);
+	  duration = difftime(nowtime, starttime);
+	} while (duration < maxduration && stop_signal_received == 0);
 
-	sleep(pConfig->GetIntegerValue(CONFIG_APP_DURATION)
-		* pConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS));
 
 	pFlow->Stop();
 

@@ -120,8 +120,8 @@ void CRtpTransmitter::CreateAudioRtpDestination (uint32_t ref,
 						 in_port_t srcPort)
 {
   CRtpDestination *adest, *p;
-  debug_message("Creating rtp destination %s %d %d", 
-		destAddress, destPort, ref);
+  debug_message("Creating rtp destination %s %d %d %d", 
+		destAddress, destPort, ref, srcPort);
   if (srcPort == 0) srcPort = m_audioSrcPort;
   adest = new CRtpDestination(ref, 
 			      destAddress,
@@ -604,12 +604,12 @@ void CRtpDestination::start (void)
   if (m_rtpSession == NULL) {
     debug_message("Starting rtp dest %s %d %d", 
 		  m_destAddr, m_destPort, m_srcPort);
-    m_rtpSession = rtp_init(m_destAddr,
-			    m_srcPort,
-			    m_destPort,
-			    m_mcast_ttl, 
-			    m_rtcp_bandwidth, 
-			    RtpCallback, (uint8_t *)this);
+    m_rtpSession = rtp_init_xmitter(m_destAddr,
+				    m_srcPort,
+				    m_destPort,
+				    m_mcast_ttl, 
+				    m_rtcp_bandwidth, 
+				    RtpCallback, (uint8_t *)this);
     if (m_rtpSession == NULL) {
       error_message("Couldn't start rtp session");
     }

@@ -482,7 +482,7 @@ public:
 protected:
 	SConfigVariable* FindByName(const char* sName) {
 		for (config_index_t i = 0; i < m_numVariables; i++) {
-			if (!strcmp(sName, m_variables[i].m_sName)) {
+			if (!strcasecmp(sName, m_variables[i].m_sName)) {
 				return &m_variables[i];
 			}
 		}

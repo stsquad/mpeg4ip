@@ -62,28 +62,6 @@ void CMp4Recorder::DoStartRecord()
 		return;
 	}
 
-	// first get the mp4 file setup
-
-	// enable huge file mode in mp4 if estimated size goes over 1 GB
-	bool hugeFile = 
-		m_pConfig->m_recordEstFileSize > 1000000000;
-	u_int32_t verbosity =
-		MP4_DETAILS_ERROR /* DEBUG | MP4_DETAILS_WRITE_ALL */;
-
-	if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_OVERWRITE)) {
-		m_mp4File = MP4Create(
-			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-			verbosity, hugeFile);
-	} else {
-		m_mp4File = MP4Modify(
-			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-			verbosity);
-	}
-
-	if (!m_mp4File) {
-		return;
-	}
-
 	m_makeIod = true;
 	m_makeIsmaCompliant = true;
 	m_rawVideoTrackId = MP4_INVALID_TRACK_ID;
@@ -108,6 +86,33 @@ void CMp4Recorder::DoStartRecord()
 		m_movieTimeScale = m_audioTimeScale;
 	}
 
+ 	// get the mp4 file setup
+ 
+ 	// enable huge file mode in mp4 
+ 	// if duration is very long or if estimated size goes over 1 GB
+ 	u_int64_t duration = m_pConfig->GetIntegerValue(CONFIG_APP_DURATION) 
+ 		* m_pConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS)
+ 		* m_movieTimeScale;
+ 	bool hugeFile = 
+ 		(duration > 0xFFFFFFFF) 
+ 		|| (m_pConfig->m_recordEstFileSize > 1000000000);
+ 
+ 	u_int32_t verbosity =
+ 		MP4_DETAILS_ERROR /* DEBUG | MP4_DETAILS_WRITE_ALL */;
+ 
+ 	if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_OVERWRITE)) {
+ 		m_mp4File = MP4Create(
+ 			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
+ 			verbosity, hugeFile);
+ 	} else {
+ 		m_mp4File = MP4Modify(
+ 			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
+ 			verbosity);
+ 	}
+ 
+ 	if (!m_mp4File) {
+ 		return;
+	}
 	MP4SetTimeScale(m_mp4File, m_movieTimeScale);
 
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {

@@ -50,6 +50,7 @@ class CPluginRtpByteStream : public CRtpByteStreamBase
   uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			    void **userdata);
   void used_bytes_for_frame(uint32_t bytes);
+  int skip_next_frame (uint64_t *ts, int *hasSyncFrame, uint8_t **buffer, uint32_t *buflen, void **userdata);
   int have_no_data(void);
   void flush_rtp_packets(void);
   void reset(void);

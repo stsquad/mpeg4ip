@@ -50,7 +50,7 @@ class CMp4ByteStream : public COurInByteStream
   void used_bytes_for_frame(uint32_t bytes);
   int can_skip_frame(void) { return 1; };
   int skip_next_frame(uint64_t *ts, int *hasSyncFrame, uint8_t **buffer,
-		      uint32_t *buflen);
+		      uint32_t *buflen, void **ud);
   void check_for_end_of_frame(void);
   double get_max_playtime(void);
 

@@ -100,6 +100,29 @@ uint64_t CPluginRtpByteStream::start_next_frame (uint8_t **buffer,
 						     userdata);
 }
 
+int CPluginRtpByteStream::skip_next_frame (uint64_t *pts, 
+					   int *hasSyncFrame, 
+					   uint8_t **buffer, 
+					   uint32_t *buflen,
+					   void **ud)
+{
+  uint32_t ts;
+  *hasSyncFrame = -1;
+
+  
+  if (m_head == NULL) return 0;
+
+  ts = m_head->rtp_pak_ts;
+  do {
+    remove_packet_rtp_queue(m_head, 1);
+  } while (m_head != NULL && m_head->rtp_pak_ts == ts);
+
+  if (m_head == NULL) return 0;
+  (m_rtp_plugin->rtp_plugin_reset)(m_rtp_plugin_data);
+
+  *pts = start_next_frame(buffer, buflen, ud);
+  return 1;
+}
 void CPluginRtpByteStream::used_bytes_for_frame (uint32_t bytes)
 {
   (m_rtp_plugin->rtp_plugin_used_bytes_for_frame)(m_rtp_plugin_data, bytes);
