@@ -1,1 +1,1 @@
-SUBDIRS = faad
+SUBDIRS = faad mp3
