@@ -857,7 +857,7 @@ MP4TrackId MP4File::AddTrack(const char* type, u_int32_t timeScale)
 	pTrakAtom->FindProperty(
 		"trak.mdia.mdhd.timeScale", (MP4Property**)&pInteger32Property);
 	ASSERT(pInteger32Property);
-	pInteger32Property->SetValue(timeScale ? timeScale : 1);
+	pInteger32Property->SetValue(timeScale ? timeScale : 1000);
 
 	// now have enough to create MP4Track object
 	MP4Track* pTrack = NULL;

@@ -1,4 +1,4 @@
-May 2, 2002 - Dave Mackie
+May 9, 2002 - Dave Mackie
 
 MP4LIVE 
 =======
@@ -227,6 +227,11 @@ In the next release, it is planned that all the libmpeg3 and mpeg4ip encoded
 media track types should be accepted. Depending on community feedback support 
 for avi file sources may be added.
 
+One final caveat, this feature is still being tested and refined, so you 
+may well encounter some problems. We would appreciate your feedback, and
+details of what you attempted and what happened (success/failure/partial 
+success).
+
 Here's how to use this feature:
 
 - Click on "Settings" in the Video section of the mp4live main window to
@@ -298,12 +303,13 @@ like a file, but the data only exists in memory and never goes to disk.
 This is an efficient way to have the two applications share the media data. 
 
 To configure this feaure, add the following to ~/.mp4live_rc (or whatever
-configuration file you want to use):
+configuration file you want to use), changing "/dir" to some directory 
+where you want the named pipes to exist:
 
 rawEnable=1
-rawAudioFile=/foo/audio_pipe
+rawAudioFile=/dir/audio_pipe
 rawAudioUseFifo=1 
-rawVideoFile=/foo/video_pipe
+rawVideoFile=/dir/video_pipe
 rawVideoUseFifo=1 
 
 The audio format is 16 bit PCM, the video format is YUV12 (planar 4:2:0 YUV).
@@ -370,6 +376,7 @@ for now the application gets very unresponsive during this period. If this
 is a big problem for you, there is a configuration option to disable the
 hinting process, "recordMp4HintTracks=0". The mp4 file can always be hinted
 later with the mp4creator utility.
+
 
 Unknowns
 ========

@@ -66,6 +66,7 @@ public:
 		m_videoPreview = NULL;
 		m_mp4Recorder = NULL;
 		m_rtpTransmitter = NULL;
+		m_rawSink = NULL;
 	}
 
 	virtual ~CAVMediaFlow() {

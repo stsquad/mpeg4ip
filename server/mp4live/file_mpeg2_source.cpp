@@ -119,7 +119,7 @@ void CMpeg2FileSource::DoStartAudio(void)
 		return;
 	}
 
-	if (!m_source) {
+	if (!m_source) { 
 		m_mpeg2File = mpeg3_open(
 			m_pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
 

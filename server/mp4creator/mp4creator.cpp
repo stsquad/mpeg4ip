@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 		"usage: %s <options> <mp4-file>\n"
 		"  Options:\n"
 		"  -create=<input-file>    Create track from <input-file>\n"
-		"    input files can be of type: .aac .mp3 .divx .mp4v\n"
+		"    input files can be of type: .aac .mp3 .divx .mp4v .m4v .cmp .xvid\n"
 		"  -delete=<track-id>      Delete a track\n"
 		"  -hint[=<track-id>]      Create hint track, also -H\n"
 		"  -interleave             Use interleaved audio payload format, also -I\n"
@@ -67,6 +67,7 @@ int main(int argc, char** argv)
 	        "  -payload=<payload>      Rtp payload type \n"
                 "                          (use 3119 or mpa-robust for mp3 rfc 3119 support)\n"
 		"  -rate=<fps>             Video frame rate, e.g. 30 or 29.97\n"
+		"  -timescale=<ticks>      Time scale (ticks per second)\n"
 		"  -verbose[=[1-5]]        Enable debug messages\n"
         "  -version                Display version information\n"
 		;
@@ -85,9 +86,11 @@ int main(int argc, char** argv)
 	MP4TrackId deleteTrackId = MP4_INVALID_TRACK_ID;
 	u_int16_t maxPayloadSize = 1460;
 
+	VideoFrameRate = 0;		// determine from input file
+	Mp4TimeScale = 90000;
+
 	// begin processing command line
 	ProgName = argv[0];
-	VideoFrameRate = 0;		// determine from input file
 
 	while (true) {
 		int c = -1;
@@ -103,12 +106,13 @@ int main(int argc, char** argv)
 			{ "optimize", 0, 0, 'O' },
 			{ "payload", 1, 0, 'p' },
 			{ "rate", 1, 0, 'r' },
+			{ "timescale", 1, 0, 't' },
 			{ "verbose", 2, 0, 'v' },
 			{ "version", 0, 0, 'V' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "c:d:H::Ilm:o:Op:v::V",
+		c = getopt_long_only(argc, argv, "c:d:H::Ilm:Op:r:t:v::V",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -165,6 +169,14 @@ int main(int argc, char** argv)
 			if (sscanf(optarg, "%f", &VideoFrameRate) != 1) {
 				fprintf(stderr, 
 					"%s: bad rate specified: %s\n",
+					 ProgName, optarg);
+				exit(EXIT_COMMAND_LINE);
+			}
+			break;
+		case 't':
+			if (sscanf(optarg, "%u", &Mp4TimeScale) != 1) {
+				fprintf(stderr, 
+					"%s: bad timescale specified: %s\n",
 					 ProgName, optarg);
 				exit(EXIT_COMMAND_LINE);
 			}
@@ -252,7 +264,7 @@ int main(int argc, char** argv)
 			if (doCreate) {
 				mp4File = MP4Create(mp4FileName, verbosity);
 				if (mp4File) {
-					MP4SetTimeScale(mp4File, 90000);
+					MP4SetTimeScale(mp4File, Mp4TimeScale);
 				}
 			} else {
 				fprintf(stderr,
@@ -390,6 +402,8 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 
 	} else if (!strcasecmp(extension, ".divx")
 	  || !strcasecmp(extension, ".mp4v")
+	  || !strcasecmp(extension, ".m4v")
+	  || !strcasecmp(extension, ".xvid")
 	  || !strcasecmp(extension, ".cmp")) {
 		trackIds[0] = Mp4vCreator(mp4File, inFile);
 

@@ -30,3 +30,13 @@ version.h: VERSION
 	sed -e 's/.*/#define CCL_VERSION "v&"/' $? > version.h
 
 AM_CFLAGS = -DDEBUG
+
+check_PROGRAMS = test_rtp_server test_rtp_client
+test_rtp_server_LDADD = libuclmmbase.la
+test_rtp_server_SOURCES = test_rtp_server.c # net_udp.c
+
+##test_SOURCES = test.c test_des.c test_mbus_addr.c test_mbus_parser.c \
+##	test_md5.c test_memory.c test_net_udp.c test_base64.c
+
+test_rtp_client_LDADD = libuclmmbase.la
+test_rtp_client_SOURCES = test_rtp_client.c  

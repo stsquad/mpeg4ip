@@ -151,17 +151,40 @@ protected:
 		u_int32_t* pNumSamples,
 		u_int32_t* pNumFrames);
 
-	Duration SamplesToTicks(u_int32_t numSamples) {
-		return (numSamples * TimestampTicks)
-			/ m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
-	}
-
 	void DoStopAudio();
 
+	// audio utility routines
+
+	Duration SrcSamplesToTicks(u_int32_t numSamples) {
+		return (numSamples * TimestampTicks) / m_audioSrcSampleRate;
+	}
+
+	Duration DstSamplesToTicks(u_int32_t numSamples) {
+		return (numSamples * TimestampTicks) / m_audioDstSampleRate;
+	}
+
+	u_int32_t SrcSamplesToBytes(u_int32_t numSamples) {
+		return (numSamples * m_audioSrcChannels * sizeof(u_int16_t));
+	}
+
+	u_int32_t DstSamplesToBytes(u_int32_t numSamples) {
+		return (numSamples * m_audioDstChannels * sizeof(u_int16_t));
+	}
+
+	u_int32_t SrcBytesToSamples(u_int32_t numBytes) {
+		return (numBytes / (m_audioSrcChannels * sizeof(u_int16_t)));
+	}
+
+	u_int32_t DstBytesToSamples(u_int32_t numBytes) {
+		return (numBytes / (m_audioDstChannels * sizeof(u_int16_t)));
+	}
+
+
 protected:
-	static const int MSG_SOURCE_START_VIDEO	= 1;
-	static const int MSG_SOURCE_START_AUDIO	= 2;
-	static const int MSG_SOURCE_KEY_FRAME	= 3;
+	static const int MSG_SOURCE	= 2048;
+	static const int MSG_SOURCE_START_VIDEO	= MSG_SOURCE + 1;
+	static const int MSG_SOURCE_START_AUDIO	= MSG_SOURCE + 2;
+	static const int MSG_SOURCE_KEY_FRAME	= MSG_SOURCE + 3;
 
 	// sink info
 	static const u_int16_t MAX_SINKS = 8;
@@ -237,7 +260,11 @@ protected:
 	u_int16_t		m_audioSrcSamplesPerFrame;
 	u_int64_t		m_audioSrcSampleNumber;
 	u_int32_t		m_audioSrcFrameNumber;
-	u_int16_t*		m_audioSrcResamplingBuffer;
+
+	// audio resampling info
+	int16_t*		m_audioResampleInputBuffer;
+	u_int32_t		m_audioResampleInputNumber;
+	bool			m_audioResampleUseLinear;
 
 	// audio destination info
 	MediaType		m_audioDstType;
@@ -250,10 +277,10 @@ protected:
 	u_int32_t		m_audioDstRawFrameNumber;
 
 	// audio encoding info
+	u_int8_t*		m_audioPreEncodingBuffer;
+	u_int32_t		m_audioPreEncodingBufferLength;
+	u_int32_t		m_audioPreEncodingBufferMaxLength;
 	CAudioEncoder*	m_audioEncoder;
-	u_int8_t*		m_audioBuffer;
-	u_int32_t		m_audioBufferLength;
-	u_int32_t		m_audioBufferMaxLength;
 
 	// audio timing info
 	Duration		m_audioSrcElapsedDuration;

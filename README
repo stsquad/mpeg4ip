@@ -184,7 +184,7 @@ Windows
 For windows, Visual Studio 6.0 projects are included.  You will need
 to install nasm in the VC98/bin directory before compiling.  You should
 get nasm-0.98.22-win32.zip from the nasm web site.  You will need to 
-rename nasmw.exe to nasm.exe.
+rename nasmw.exe to nasm.exe.  We recommend getting Service Pack 5.
 
 We recommend installing DirectX 8.1 or later.  If that is not possible, 
 and you have problems with video, try uncommenting out #define OLD_SURFACE
@@ -196,11 +196,6 @@ the same directory).   You will also need to install all the plugin
 .dlls.
 
 For windows GUI player, see below section.
-
-BSD/OS
-------
-For BSD/OS, you may need a semaphore shim.  Contact Steven Schultz
-for help on that (contact information in Authors).
 
 Mac OSX
 -------
@@ -247,6 +242,12 @@ ignore it, but don't take binary libraries from any other machines.
 There may also be problems in server/lame - you may have to change
 the compiler name, as well.
 
+General UNIX
+------------
+If you have built a previous version of mpeg4ip, do a make uninstall first,
+or go in and remove libsndfile from your shared libraries directory, unless
+you have another version installed.
+
 Executables
 ===========
 
@@ -289,7 +290,6 @@ For playback, you get:
 gmp4player  Simple graphical interface player
 mp4player   Bare video window with sync'ed audio
 
-
 If you installed the Darwin Streaming Server, those executables will end
 up in /usr/local/sbin.
 
@@ -308,7 +308,7 @@ unless bootstrap detects that SNDFILE is installed.
 If the existing translation behaviour of FAAC is required, please
 obtain SNDFILE and install it, then re-run bootstrap and make for
 *nux base platforms.  For windows based platforms, obtain a fresh
-copy of faac.
+copy of faac and use it instead of the one in our package.
 
 Directory Structure
 ===================
@@ -330,6 +330,7 @@ mpeg4ip - top level project directory
 
     common - shared code
         video 
+	    libmpeg3 - mpeg1/2 encoder/decoder
             mpeg4 - ISO MPEG-4 video encoder/decoder
 
     lib - project wide libraries
@@ -372,7 +373,6 @@ mpeg4ip - top level project directory
 	    win_common - common windows code
             win_client - windows client
             win_gui - windows gui code.
-        plugin - player plug in modules
 
     server - server specific code
         audio
@@ -461,7 +461,8 @@ On linux (and linux like) platforms, the plugins should be in the
 mp4player_plugin directory, which is a sub directory of where the
 other mpeg4ip libraries will be stored.  You must do a make install
 of the plugin when running/debugging with plugins - the player does
-not currently search for plugins.
+not currently search for plugins.  When installing a new version of
+the plugins, it is a good idea to purge this directory.
 
 On Windows, the .dlls that get created must be in the same directory as 
 the executable for mp4player.exe or wmp4client.exe.  The project files
@@ -493,19 +494,18 @@ CTRL-X - close mp4player
 Windows GUI
 ===========
 
-We've created a simple windows GUI.  It requires VC 6.0, and consists
-of 2 parts - wmp4player and wmp4client.  wmp4player contains the
-GUI, and wmp4client is basically mp4player that will communicate with
+We've created a simple windows GUI.  It consists of 2 parts - 
+wmp4player and wmp4client.  wmp4player contains the GUI, and 
+wmp4client is basically mp4player that will communicate with
 wmp4player.
-
-VC 5.0 crashes right on startup - sorry.
 
 wmp4client is launched as a seperate process, due to SDL limitations.
 The 2 processes communicate using file maps in memory.  See the CMp4Process
 and CMP4If classes in wmp4player and CClientProcess in wmp4client.
 
 To create this, look for the player60.dsw in player/src directory. This
-will make all 3 executables (mp4player, wmp4player.exe and wmp4client.exe).
+will make all 3 executables (mp4player, wmp4player.exe and wmp4client.exe,
+as well as all the plugins).
 
 To install wmp4player, put the wmp4player.exe, wmp4client.exe and
 SDL.dll in the same directory.  We will not be writing any installers.
@@ -543,5 +543,19 @@ Known Problems
 * Mac OSX player sometimes will lock up, or stop playing video while
   continuing the audio - we need someone to help us add the sound buffer 
   delay to get really good audio/video sync.
+
+* FreeBSD based OS's have a problem with thread delays.  This can 
+  cause the player to skip rendering many frames.  If you have this
+  problem update to the latest version of FreeBSD - the problem still
+  can occur, but is reduced. 
+
+  This is due to an error in the thread scheduling code that causes a problem
+  with a delay of less than the thread scheduler quantum (200 msec in
+  some versions, 20 in others).  Since the average delay used is 9
+  to 10 msec (less as we get closer to the video rendering time), this
+  can have a great effect on video playback.
+  
+  You can get around this error by rebuilding your libc, after changing the
+  THREAD_SCHED_USECS to 20000 (or lower) from 200000 in thread_private.h.
 
 === END OF README ===

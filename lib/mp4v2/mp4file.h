@@ -101,7 +101,7 @@ public: /* equivalent to MP4 library API */
 
 	/* track operations */
 
-	MP4TrackId AddTrack(const char* type, u_int32_t timeScale = 1);
+	MP4TrackId AddTrack(const char* type, u_int32_t timeScale = 1000);
 	void DeleteTrack(MP4TrackId trackId);
 
 	u_int32_t GetNumberOfTracks(const char* type = NULL, u_int8_t subType = 0);

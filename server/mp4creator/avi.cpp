@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -47,17 +47,17 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		exit(EXIT_AVI_CREATOR);
 	}
 
-	MP4Duration mp4TimeScale = 90000;
 #ifdef _WIN32
 	MP4Duration mp4FrameDuration;
-	mp4FrameDuration = (MP4Duration)((int64_t)(mp4TimeScale));
-	mp4FrameDuration /= (int64_t)frameRate;
+	mp4FrameDuration = 
+		(MP4Duration)((double)Mp4TimeScale / frameRate);
 #else
-	MP4Duration mp4FrameDuration = (MP4Duration)(mp4TimeScale / frameRate);
+	MP4Duration mp4FrameDuration = 
+		(MP4Duration)(Mp4TimeScale / frameRate);
 #endif
 
 	MP4TrackId trackId = MP4AddVideoTrack(mp4File,
-		mp4TimeScale, mp4FrameDuration, 
+		Mp4TimeScale, mp4FrameDuration, 
 		AVI_video_width(aviFile), AVI_video_height(aviFile), 
 		MP4_MPEG4_VIDEO_TYPE);
 

@@ -36,7 +36,6 @@
 #include "config_unix.h"
 #include "config_win32.h"
 #include "debug.h"
-#include "version.h"
 #include "test_base64.h"
 #include "test_des.h"
 #include "test_md5.h"
@@ -63,7 +62,7 @@ int main(int argc, char *argv[])
 
 	UNUSED(argc);
 	UNUSED(argv);
-	printf("Testing common multimedia library %s\n", CCL_VERSION);
+	printf("Testing common multimedia library %s\n", VERSION);
 	test_base64();
 	test_des();
 	test_md5();

@@ -399,21 +399,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "wav_plugin"=.\codec\wav\wav_plugin60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name SDL
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "wmp4client60"=.\win_client\wmp4client60.dsp - Package Owner=<4>
 
 Package=<5>

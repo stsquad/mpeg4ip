@@ -27,7 +27,7 @@
 #include <sys/poll.h>
 #endif
 
-#ifndef HAVE_ST_ADDRINFO
+#if !defined(HAVE_ST_ADDRINFO) && !defined(_WIN32)
 #include "addrinfo.h"
 #endif
 

@@ -156,8 +156,12 @@ int http_decode_and_connect_url (const char *name,
       // Might be same - resolve new address and compare
       host = gethostbyname(cptr->m_host);
       if (host == NULL) {
+#ifdef _WIN32
+		  return -1;
+#else
 	if (h_errno > 0) h_errno = 0 - h_errno;
 	return (h_errno);
+#endif
       }
       if (memcmp(host->h_addr,
 		 &cptr->m_server_addr,
@@ -182,8 +186,12 @@ int http_decode_and_connect_url (const char *name,
     // No existing connection - get the new address.
     host = gethostbyname(cptr->m_host);
     if (host == NULL) {
+#ifdef _WIN32
+		return -1;
+#else
       if (h_errno > 0) h_errno = 0 - h_errno;
       return (h_errno);
+#endif
     }
     cptr->m_server_addr = *(struct in_addr *)host->h_addr;
   }

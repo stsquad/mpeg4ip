@@ -54,6 +54,8 @@ CMediaSource::CMediaSource()
 	m_videoDstPrevReconstructImage = NULL;
 	m_videoDstPrevFrame = NULL;
 
+	m_audioResampleInputBuffer = NULL;
+	m_audioPreEncodingBuffer = NULL;
 	m_audioEncoder = NULL;
 }
 
@@ -712,6 +714,40 @@ bool CMediaSource::InitAudio(
 	m_audioDstSamplesPerFrame = 
 		m_audioEncoder->GetSamplesPerFrame();
 
+	// if we need to resample
+	if (m_audioDstSampleRate != m_audioSrcSampleRate) {
+
+		// if sampling rates are integral multiples
+		// we can use simpler, faster linear interpolation
+		// else we use quadratic interpolation
+		if (m_audioDstSampleRate < m_audioSrcSampleRate) {
+			m_audioResampleUseLinear =
+				((m_audioSrcSampleRate % m_audioDstSampleRate) == 0);
+
+		} else if (m_audioDstSampleRate >= m_audioSrcSampleRate) {
+			m_audioResampleUseLinear =
+				((m_audioDstSampleRate % m_audioSrcSampleRate) == 0);
+		}
+
+		m_audioResampleInputNumber = 0;
+		m_audioResampleInputBuffer =
+			(int16_t*)calloc(16 * m_audioSrcChannels, 2);
+	}
+
+	m_audioPreEncodingBufferLength = 0;
+	m_audioPreEncodingBufferMaxLength =
+		2 * MAX(SrcSamplesToBytes(m_audioSrcSamplesPerFrame),
+				DstSamplesToBytes(m_audioDstSamplesPerFrame));
+
+	m_audioPreEncodingBuffer = (u_int8_t*)malloc(
+		m_audioPreEncodingBufferMaxLength);
+		
+	if (m_audioPreEncodingBuffer == NULL) {
+		delete m_audioEncoder;
+		m_audioEncoder = NULL;
+		return false;
+	}
+
 	return true;
 }
 
@@ -728,15 +764,15 @@ void CMediaSource::ProcessAudioFrame(
 		Duration drift =
 			(GetTimestamp() - m_startTimestamp) - m_audioSrcElapsedDuration;
 
-		if (m_audioSrcDrift > SamplesToTicks(frameDuration)
+		if (m_audioSrcDrift > SrcSamplesToTicks(frameDuration)
 		  && drift > m_audioSrcDrift) {
-			// TEMP m_videoSource->AddEncodingDrift(drift - m_audioSrcDrift);
+			m_videoSource->AddEncodingDrift(drift - m_audioSrcDrift);
 		}
 		m_audioSrcDrift = drift;
 	}
 
 	m_audioSrcFrameNumber++;
-	m_audioSrcElapsedDuration += SamplesToTicks(frameDuration);
+	m_audioSrcElapsedDuration += SrcSamplesToTicks(frameDuration);
 
 	// TEMP
 	if (m_audioSrcType != CMediaFrame::PcmAudioFrame) {
@@ -745,33 +781,54 @@ void CMediaSource::ProcessAudioFrame(
 	}
 
 	bool pcmMalloced = false;
+	bool pcmBuffered;
 	u_int8_t* pcmData = frameData;
 	u_int32_t pcmDataLength = frameDataLength;
 
-#ifdef NOTDEF
-	// TBD reduce number of channels
-
-	// resample audio if necessary
+	// resample audio, if necessary
 	if (m_audioSrcSampleRate != m_audioDstSampleRate) {
-		// TBD ResampleAudio(pcmData, pcmDataLength);
-		// TBD pcmData, and pcmDataLength will be changed
+		ResampleAudio(pcmData, pcmDataLength);
+
+		// resampled data is now available in m_audioPreEncodingBuffer
+		pcmBuffered = true;
+
+	} else if (m_audioSrcSamplesPerFrame != m_audioDstSamplesPerFrame) {
+		// reframe audio, if necessary
+		// e.g. MP3 is 1152 samples/frame, AAC is 1024 samples/frame
+
+		// add samples to end of m_audioBuffer
+		// InitAudio() ensures that buffer is large enough
+		memcpy(
+			&m_audioPreEncodingBuffer[m_audioPreEncodingBufferLength],
+			pcmData,
+			pcmDataLength);
+
+		m_audioPreEncodingBufferLength += pcmDataLength;
+
+		pcmBuffered = true;
+
+	} else {
+		pcmBuffered = false;
 	}
 
-	// reframe audio if necessary
-	if (m_audioSrcSamplesPerFrame != m_audioDstSamplesPerFrame) {
-		// TBD add samples to end of m_audioBuffer
-		// expanding if necessary
+// LATER restructure so as get rid of this label, and goto below
+pcmBufferCheck:
+
+	if (pcmBuffered) {
+		u_int32_t samplesAvailable =
+			DstBytesToSamples(m_audioPreEncodingBufferLength);
 
 		// not enough samples collected yet to call encode or forward
-		if (m_audioBufferLength < m_audioDstSamplesPerFrame 
-		  * m_audioDstChannels * sizeof(u_int16_t)) {
+		if (samplesAvailable < m_audioDstSamplesPerFrame) {
 			return;
 		}
 
-		pcmData = m_audioBuffer;
-		pcmDataLength = m_audioDstSamplesPerFrame * sizeof(u_int16_t);
+		// setup for encode/forward
+		pcmData = 
+			&m_audioPreEncodingBuffer[0];
+		pcmDataLength = 
+			DstSamplesToBytes(m_audioDstSamplesPerFrame);
 	}
-#endif
 
 	// encode audio frame
 	if (m_pConfig->m_audioEncode) {
@@ -789,7 +846,7 @@ void CMediaSource::ProcessAudioFrame(
 
 		ForwardEncodedAudioFrames(
 			m_startTimestamp 
-				+ SamplesToTicks(m_audioDstSampleNumber),
+				+ DstSamplesToTicks(m_audioDstSampleNumber),
 			&forwardedSamples,
 			&forwardedFrames);
 
@@ -816,25 +873,158 @@ void CMediaSource::ProcessAudioFrame(
 				CMediaFrame::PcmAudioFrame, 
 				pcmForwardedData, 
 				pcmDataLength,
-				m_startTimestamp + SamplesToTicks(m_audioDstRawSampleNumber),
-				frameDuration,
-				m_audioSrcSampleRate);
+				m_startTimestamp 
+					+ DstSamplesToTicks(m_audioDstRawSampleNumber),
+				DstBytesToSamples(pcmDataLength),
+				m_audioDstSampleRate);
 		ForwardFrame(pFrame);
 		delete pFrame;
 
-		m_audioDstRawSampleNumber += m_audioSrcSamplesPerFrame;
+		m_audioDstRawSampleNumber += DstBytesToSamples(pcmDataLength);
 		m_audioDstRawFrameNumber++;
 	}
 
 	if (pcmMalloced) {
 		free(pcmData);
 	}
+
+	if (pcmBuffered) {
+		m_audioPreEncodingBufferLength -= pcmDataLength;
+
+		memcpy(
+			&m_audioPreEncodingBuffer[0],
+			&m_audioPreEncodingBuffer[pcmDataLength],
+			m_audioPreEncodingBufferLength);
+
+		goto pcmBufferCheck;
+	}
 }
 
-void ResampleAudio(
+void CMediaSource::ResampleAudio(
 	u_int8_t* frameData,
 	u_int32_t frameDataLength)
 {
+	int16_t* pIn =
+		(int16_t*)frameData;
+	int16_t* pOut = 
+		(int16_t*)&m_audioPreEncodingBuffer[m_audioPreEncodingBufferLength];
+
+	// compute how many input samples are available
+	u_int32_t numIn =
+		m_audioResampleInputNumber + SrcBytesToSamples(frameDataLength);
+
+	// compute how many output samples 
+	// can be generated from the available input samples
+	u_int32_t numOut =
+		(numIn * m_audioDstSampleRate) / m_audioSrcSampleRate;
+
+	float inTime0 = 
+		(float)(m_audioResampleInputNumber * m_audioSrcSampleRate)
+		/ (float)m_audioDstSampleRate;
+
+	int32_t inIndex;
+	u_int32_t outIndex;
+
+	// for all output samples
+	for (outIndex = 0; true; outIndex++) {
+
+		float outTime0 = 
+			(outIndex * m_audioSrcSampleRate) / (float)m_audioDstSampleRate;
+
+		inIndex = (int32_t)(outTime0 - inTime0 + 0.5);
+
+		// DEBUG printf("resample out %d %f in %d %f\n",
+		// DEBUG outIndex, outTime0, inIndex, inTime0);
+
+		// the unusual location of the loop exit condition
+		// is because we need the initial inIndex for the next call
+		// see the end of this function for how this is used
+		if (outIndex >= numOut) {
+			break;
+		}
+
+		float x1 = outTime0 - (inTime0 + inIndex);
+		float x0 = x1 + 1;
+		float x2 = x1 - 1;
+		float x3 = x1 - 2;
+
+		for (u_int8_t ch = 0; ch < m_audioSrcChannels; ch++) {
+			int16_t y0, y1, y2, y3;
+
+			if (inIndex < 0) {
+				y1 = m_audioResampleInputBuffer
+					[(-(inIndex) - 1) * m_audioSrcChannels + ch];
+			} else {
+				y1 = pIn[inIndex * m_audioSrcChannels + ch];
+			}
+			if (inIndex + 1 < 0) {
+				y2 = m_audioResampleInputBuffer
+					[(-(inIndex + 1) - 1) * m_audioSrcChannels + ch];
+			} else {
+				y2 = pIn[(inIndex + 1) * m_audioSrcChannels + ch];
+			}
+
+			if (m_audioResampleUseLinear) {
+				*pOut++ = (int16_t)
+					(((y2 * x1) - (y1 * x2)) + 0.5);
+
+			} else { // use quadratic resampling
+				if (inIndex - 1 < 0) {
+					y0 = m_audioResampleInputBuffer
+						[(-(inIndex - 1) - 1) * m_audioSrcChannels + ch];
+				} else {
+					y0 = pIn[(inIndex - 1) * m_audioSrcChannels + ch];
+				}
+				if (inIndex + 2 < 0) {
+					y3 = m_audioResampleInputBuffer
+						[(-(inIndex + 2) - 1) * m_audioSrcChannels + ch];
+				} else {
+					y3 = pIn[(inIndex + 2) * m_audioSrcChannels + ch];
+				}
+
+				int32_t outValue = (int32_t)(
+					- (y0 * x1 * x2 * x3 / 6) 
+					+ (y1 * x0 * x2 * x3 / 2) 
+					- (y2 * x0 * x1 * x3 / 2) 
+					+ (y3 * x0 * x1 * x2 / 6)
+					+ 0.5);
+
+				// DEBUG printf("x0 %f y %d %d %d %d -> %d (delta %d)\n",
+				// DEBUG x0, y0, y1, y2, y3, 
+				// DEBUG outValue, outValue - ((y0 + y1) / 2));
+
+				if (outValue > 32767) {
+					outValue = 32767;
+				} else if (outValue < -32767) {
+					outValue = -32767;
+				}
+
+				*pOut++ = (int16_t)outValue;
+			}
+		}
+	}
+
+	// since resampling inputs can span input frame boundaries
+	// we may need to save up to 3 samples for the next call
+	m_audioResampleInputNumber = 0;
+	for (int32_t i = SrcBytesToSamples(frameDataLength) - 1; 
+	  i >= inIndex; i--) {
+
+		// DEBUG printf("resample save [%d] <- [%d]\n",
+		// DEBUG m_audioResampleInputNumber, i);
+
+		memcpy(
+			&m_audioResampleInputBuffer[m_audioResampleInputNumber],
+			&pIn[i * m_audioSrcChannels],
+			m_audioSrcChannels * sizeof(int16_t));
+
+		m_audioResampleInputNumber++;
+	}
+
+	m_audioPreEncodingBufferLength += 
+		numOut * m_audioSrcChannels * sizeof(int16_t);
+
+	return;
 }
 
 void CMediaSource::ForwardEncodedAudioFrames(
@@ -863,9 +1053,10 @@ void CMediaSource::ForwardEncodedAudioFrames(
 				m_audioEncoder->GetFrameType(),
 				pFrame, 
 				frameLength,
-				baseTimestamp + SamplesToTicks(frameNumSamples),
+				baseTimestamp 
+					+ DstSamplesToTicks(frameNumSamples),
 				frameNumSamples,
-				m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+				m_audioDstSampleRate);
 		ForwardFrame(pMediaFrame);
 		delete pMediaFrame;
 
@@ -887,7 +1078,7 @@ void CMediaSource::DoStopAudio()
 
 		ForwardEncodedAudioFrames(
 			m_startTimestamp
-				+ SamplesToTicks(m_audioDstSampleNumber),
+				+ DstSamplesToTicks(m_audioDstSampleNumber),
 			&forwardedSamples,
 			&forwardedFrames);
 
@@ -898,6 +1089,12 @@ void CMediaSource::DoStopAudio()
 		delete m_audioEncoder;
 		m_audioEncoder = NULL;
 	}
+
+	free(m_audioResampleInputBuffer);
+	m_audioResampleInputBuffer = NULL;
+
+	free(m_audioPreEncodingBuffer);
+	m_audioPreEncodingBuffer = NULL;
 
 	m_sourceAudio = false;
 }

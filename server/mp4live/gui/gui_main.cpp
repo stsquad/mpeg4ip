@@ -52,7 +52,9 @@ static GtkWidget *video_settings_button;
 
 static GtkWidget *audio_enabled_button;
 static GtkWidget *audio_mute_button;
-static GtkWidget *audio_settings_label;
+static GtkWidget *audio_settings_label1;
+static GtkWidget *audio_settings_label2;
+static GtkWidget *audio_settings_label3;
 static GtkWidget *audio_settings_button;
 
 static GtkWidget *record_enabled_button;
@@ -68,7 +70,6 @@ static GtkWidget *start_button_label;
 static GtkWidget *duration_spinner;
 static GtkWidget *duration_units_menu;
 
-static GtkWidget *config_file_combo;
 static GtkWidget *config_file_entry;
 static GtkWidget *load_config_button;
 static GtkWidget *save_config_button;
@@ -208,8 +209,15 @@ void DisplayAudioSettings(void)
 	snprintf(buffer, sizeof(buffer), " %s at %u kbps",
 		encoding,
 		MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE));
-	gtk_label_set_text(GTK_LABEL(audio_settings_label), buffer);
-	gtk_widget_show(audio_settings_label);
+	gtk_label_set_text(GTK_LABEL(audio_settings_label1), buffer);
+	gtk_widget_show(audio_settings_label1);
+
+	snprintf(buffer, sizeof(buffer), " %s @ %u Hz",
+		(MyConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 2
+			? "Stereo" : "Mono"),
+		MyConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+	gtk_label_set_text(GTK_LABEL(audio_settings_label2), buffer);
+	gtk_widget_show(audio_settings_label2);
 }
 
 void DisplayTransmitSettings (void)
@@ -306,6 +314,23 @@ void DisplayAllSettings()
 	DisplayTransmitSettings();
 	DisplayControlSettings();
 	DisplayStatusSettings();
+}
+
+void DisplayFinishTime(Timestamp t)
+{
+	time_t secs;
+	const struct tm *local;
+	char buffer[128];
+
+	secs = (time_t)GetSecsFromTimestamp(t);
+	local = localtime(&secs);
+	strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
+	gtk_label_set_text(GTK_LABEL(finish_time), buffer);
+	gtk_widget_show(finish_time);
+
+	strftime(buffer, sizeof(buffer), "%p", local);
+	gtk_label_set_text(GTK_LABEL(finish_time_units), buffer);
+	gtk_widget_show(finish_time_units);
 }
 
 static void on_video_enabled_button (GtkWidget *widget, gpointer *data)
@@ -422,15 +447,7 @@ static void status_start()
 
 	// finish time
 	if (StopTime) {
-		secs = (time_t)GetSecsFromTimestamp(StopTime);
-		local = localtime(&secs);
-		strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
-		gtk_label_set_text(GTK_LABEL(finish_time), buffer);
-		gtk_widget_show(finish_time);
-
-		strftime(buffer, sizeof(buffer), "%p", local);
-		gtk_label_set_text(GTK_LABEL(finish_time_units), buffer);
-		gtk_widget_show(finish_time_units);
+		DisplayFinishTime(StopTime);
 	}
 
 	// file size
@@ -504,15 +521,7 @@ static gint status_timer (gpointer raw)
 
 		if (progress > 0.0) {
 			u_int32_t estDuration = (u_int32_t)(duration_secs / progress);
-			secs = (time_t)GetSecsFromTimestamp(StartTime) + estDuration;
-			local = localtime(&secs);
-			strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
-			gtk_label_set_text(GTK_LABEL(finish_time), buffer);
-			gtk_widget_show(finish_time);
-
-			strftime(buffer, sizeof(buffer), "%p", local);
-			gtk_label_set_text(GTK_LABEL(finish_time_units), buffer);
-			gtk_widget_show(finish_time_units);
+			DisplayFinishTime(StartTime + (estDuration * TimestampTicks));
 		}
 	}
 
@@ -625,23 +634,25 @@ void DoStop()
 {
 	gtk_timeout_remove(status_timer_id);
 
-	GtkWidget* stopDialog = NULL;
-
 	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
-		char* notice = "Closing mp4 file";
+		char* notice = "CLOSING";
 
 		if (MyConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
-			notice = "Closing and hinting mp4 file";
+			notice = "HINTING";
 		}
 
-		// TBD this doesn't get shown 
-		stopDialog = ShowMessage("Stopping", notice, false);
+		// borrow finish time field
+		gtk_label_set_text(GTK_LABEL(finish_time), notice);
+		gtk_widget_show_now(finish_time);
+
+		gtk_label_set_text(GTK_LABEL(finish_time_units), "");
+		gtk_widget_show_now(finish_time_units);
 	}
 
 	AVFlow->Stop();
 
-	if (stopDialog) {
-		CloseShowMessage(NULL, stopDialog);
+	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
+		DisplayFinishTime(GetTimestamp());
 	}
 
 	// unlock changes to settings
@@ -837,7 +848,7 @@ static void LayoutVideoFrame(GtkWidget* box)
 static void LayoutAudioFrame(GtkWidget* box)
 {
 	GtkWidget *frame;
-	GtkWidget *vbox, *hbox;
+	GtkWidget *vbox, *hbox, *vbox1, *vbox2;
 
 	frame = gtk_frame_new("Audio");
 	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
@@ -876,19 +887,39 @@ static void LayoutAudioFrame(GtkWidget* box)
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
 
 	// settings summary
-	audio_settings_label = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(audio_settings_label), 0.0, 0.5);
-	gtk_widget_show(audio_settings_label);
-	gtk_box_pack_start(GTK_BOX(hbox), audio_settings_label, TRUE, TRUE, 0);
+
+	// secondary vbox for two labels
+	vbox1 = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(vbox1);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox1, TRUE, TRUE, 5);
+
+	audio_settings_label1 = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(audio_settings_label1), 0.0, 0.5);
+	gtk_widget_show(audio_settings_label1);
+	gtk_box_pack_start(GTK_BOX(vbox1), audio_settings_label1, TRUE, TRUE, 0);
+
+	audio_settings_label2 = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(audio_settings_label2), 0.0, 0.5);
+	gtk_widget_show(audio_settings_label2);
+	gtk_box_pack_start(GTK_BOX(vbox1), audio_settings_label2, TRUE, TRUE, 0);
+
+	// secondary vbox to match stacked labels
+	vbox2 = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(vbox2);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox2, FALSE, FALSE, 5);
 
 	// settings button
 	audio_settings_button = gtk_button_new_with_label(" Settings... ");
-	gtk_box_pack_start(GTK_BOX(hbox), audio_settings_button, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(vbox2), audio_settings_button, FALSE, FALSE, 5);
 	gtk_signal_connect(GTK_OBJECT(audio_settings_button), 
 		"clicked",
 		GTK_SIGNAL_FUNC(on_audio_settings_button),
 		NULL);
 	gtk_widget_show(audio_settings_button);
+
+	// empty label to get sizing correct
+	audio_settings_label3 = gtk_label_new("");
+	gtk_box_pack_start(GTK_BOX(vbox2), audio_settings_label3, TRUE, TRUE, 0);
 
 	// finalize
 	gtk_container_add(GTK_CONTAINER(frame), vbox);

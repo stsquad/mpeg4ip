@@ -184,6 +184,11 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			exit(EXIT_MP4V_CREATOR);
 		}
 
+//#ifdef MP4V_DEBUG
+		printf("objType %x objSize %u\n",
+			objType, objSize);
+//#endif
+
 		if (objType == MP4AV_MPEG4_VOSH_START) {
 			MP4AV_Mpeg4ParseVosh(pObj, objSize, 
 				&videoProfileLevel);
@@ -211,26 +216,25 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	if (timeTicks == 0) {
 		timeTicks = 1;
 	}
-	u_int32_t mp4TimeScale = 90000;
 	u_int32_t mp4FrameDuration;
 
 	if (VideoFrameRate) {
-		mp4FrameDuration = (u_int32_t)(((float)mp4TimeScale) / VideoFrameRate);
+		mp4FrameDuration = (u_int32_t)(((float)Mp4TimeScale) / VideoFrameRate);
 	} else if (frameDuration) {
-		mp4FrameDuration = (mp4TimeScale * frameDuration) / timeTicks;
+		mp4FrameDuration = (Mp4TimeScale * frameDuration) / timeTicks;
 	} else {
 		// the spec for embedded timing and the implementations that I've
 		// seen all vary dramatically, so until things become clearer
 		// we don't support these types of encoders
 		fprintf(stderr,	
-			"%s: unable to parse variable rate video stream\n", ProgName);
+			"%s: variable rate video stream signalled, please specify average frame rate with -r option\n", ProgName);
 		exit(EXIT_MP4V_CREATOR);
 	}
 
 	// create the new video track
 	MP4TrackId trackId = 
 		MP4AddVideoTrack(mp4File, 
-			mp4TimeScale, mp4FrameDuration, 
+			Mp4TimeScale, mp4FrameDuration, 
 			frameWidth, frameHeight, 
 			MP4_MPEG4_VIDEO_TYPE);
 
