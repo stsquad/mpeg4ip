@@ -22,6 +22,8 @@
 #ifndef __DESCRIPTORS_INCLUDED__
 #define __DESCRIPTORS_INCLUDED__
 
+const u_int8_t MP4ODescrTag				= 0x01; 
+const u_int8_t MP4IODescrTag					= 0x02; 
 const u_int8_t MP4ESDescrTag				= 0x03; 
 const u_int8_t MP4DecConfigDescrTag			= 0x04; 
 const u_int8_t MP4DecSpecificDescrTag		= 0x05; 
@@ -34,8 +36,8 @@ const u_int8_t MP4IPMPDescrTag			 	= 0x0B;
 const u_int8_t MP4RegistrationDescrTag	 	= 0x0D; 
 const u_int8_t MP4ESIDIncDescrTag			= 0x0E; 
 const u_int8_t MP4ESIDRefDescrTag			= 0x0F; 
-const u_int8_t MP4IODescrTag				= 0x10; 
-const u_int8_t MP4ODescrTag					= 0x11; 
+const u_int8_t MP4FileIODescrTag			= 0x10; 
+const u_int8_t MP4FileODescrTag				= 0x11; 
 const u_int8_t MP4ExtProfileLevelDescrTag 	= 0x13; 
 const u_int8_t MP4ExtDescrTagsStart			= 0x80; 
 const u_int8_t MP4ExtDescrTagsEnd			= 0xFE; 

@@ -22,7 +22,7 @@
 #include "mp4common.h"
 
 MP4IODescriptor::MP4IODescriptor()
-	: MP4Descriptor(MP4IODescrTag)
+	: MP4Descriptor(MP4FileIODescrTag)
 {
 	/* N.B. other member functions depend on the property indicies */
 	AddProperty( /* 0 */
@@ -81,7 +81,7 @@ void MP4IODescriptor::Mutate()
 }
 
 MP4ODescriptor::MP4ODescriptor()
-	: MP4Descriptor(MP4ODescrTag)
+	: MP4Descriptor(MP4FileODescrTag)
 {
 	/* N.B. other member functions depend on the property indicies */
 	AddProperty( /* 0 */
@@ -580,10 +580,14 @@ MP4Descriptor* MP4DescriptorProperty::CreateDescriptor(u_int8_t tag)
 		pDescriptor = new MP4ESIDRefDescriptor();
 		break;
 	case MP4IODescrTag:
+	case MP4FileIODescrTag:
 		pDescriptor = new MP4IODescriptor();
+		pDescriptor->SetTag(tag);
 		break;
 	case MP4ODescrTag:
+	case MP4FileODescrTag:
 		pDescriptor = new MP4ODescriptor();
+		pDescriptor->SetTag(tag);
 		break;
 	case MP4ExtProfileLevelDescrTag:
 		pDescriptor = new MP4ExtProfileLevelDescriptor();

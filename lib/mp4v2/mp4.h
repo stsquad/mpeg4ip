@@ -506,9 +506,8 @@ bool MP4WriteRtpHint(
 
 /* ISMA specific operations */
 
-bool MP4MakeIsmaCompliant(
-	MP4FileHandle hFile);
-
+bool MP4MakeIsmaCompliant(const char* fileName, 
+	u_int32_t verbosity DEFAULT(0));
 
 /* time conversion utilties */
 

@@ -290,11 +290,12 @@ int main(int argc, char** argv)
 			CreateHintTrack(mp4File, hintTrackId, payloadName, doInterleave);
 		} 
 
+		MP4Close(mp4File);
+
 		if (doCreate) {
-			MP4MakeIsmaCompliant(mp4File);
+			MP4MakeIsmaCompliant(mp4FileName, verbosity);
 		}
 
-		MP4Close(mp4File);
 
 	} else if (doDelete) {
 		if (!mp4FileExists) {

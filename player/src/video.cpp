@@ -75,6 +75,7 @@ CVideoSync::CVideoSync (CPlayerSession *psptr)
   m_consec_skipped = 0;
   m_current_time = 0;
   m_fullscreen = 0;
+  m_filled_frames = 0;
 }
 
 CVideoSync::~CVideoSync (void)
@@ -112,6 +113,7 @@ CVideoSync::~CVideoSync (void)
   if (m_behind_frames > 0) 
     video_message(LOG_NOTICE, "Average behind time "LLU, m_behind_time / m_behind_frames);
   video_message(LOG_NOTICE, "Skipped rendering %u", m_skipped_render);
+  video_message(LOG_NOTICE, "Filled frames %u", m_filled_frames);
 }
 
 /*
@@ -477,7 +479,7 @@ int CVideoSync::filled_video_buffers(uint64_t time, uint64_t &current_time)
   ix = m_fill_index;
   m_fill_index++;
   m_fill_index %= MAX_VIDEO_BUFFERS;
-  
+  m_filled_frames++;
   m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
   video_message(LOG_DEBUG, "Filled %llu %d", time, ix);
@@ -571,6 +573,7 @@ int CVideoSync::set_video_frame(const Uint8 *y,
   ix = m_fill_index;
   m_fill_index++;
   m_fill_index %= MAX_VIDEO_BUFFERS;
+  m_filled_frames++;
   m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
   video_message(LOG_DEBUG, "filled %llu %d", time, ix);

@@ -945,7 +945,20 @@ void MP4Track::SetSampleRenderingOffset(MP4SampleId sampleId,
 	if (m_pCttsCountProperty == NULL
 	  || m_pCttsCountProperty->GetValue() == 0) {
 		// if not then Update routine can be used 
+		// to create a ctts entry for samples before this one
+		// and a ctts entry for this sample 
 		UpdateRenderingOffsets(sampleId, renderingOffset);
+
+		// but we also need a ctts entry 
+		// for all samples after this one
+		u_int32_t afterSamples = GetNumberOfSamples() - sampleId;
+
+		if (afterSamples) {
+			m_pCttsSampleCountProperty->AddValue(afterSamples);
+			m_pCttsSampleOffsetProperty->AddValue(0);
+			m_pCttsCountProperty->IncrementValue();;
+		}
+
 		return;
 	}
 
@@ -953,7 +966,8 @@ void MP4Track::SetSampleRenderingOffset(MP4SampleId sampleId,
 	u_int32_t cttsIndex = GetSampleCttsIndex(sampleId, &firstSampleId);
 
 	// do nothing in the degenerate case
-	if (renderingOffset == m_pCttsSampleOffsetProperty->GetValue(cttsIndex)) {
+	if (renderingOffset == 
+	  m_pCttsSampleOffsetProperty->GetValue(cttsIndex)) {
 		return;
 	}
 

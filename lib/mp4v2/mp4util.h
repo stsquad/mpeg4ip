@@ -117,6 +117,10 @@ public:
 	const char* m_where;
 };
 
+void MP4HexDump(
+	u_int8_t* pBytes, u_int32_t numBytes,
+	FILE* pFile = stdout, u_int8_t indent = 0);
+
 inline void* MP4Malloc(size_t size) {
 	void* p = malloc(size);
 	if (p == NULL && size > 0) {

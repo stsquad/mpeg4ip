@@ -390,11 +390,14 @@ static int create_media_for_http (CPlayerSession *psptr,
  * call to set up the session.  This should be redone with plugins at
  * some point.
  */
+#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
+
 int parse_name_for_session (CPlayerSession *psptr,
 			    const char *name,
 			    const char **errmsg)
 {
   int err;
+  ADV_SPACE(name);
   if (strncmp(name, "rtsp://", strlen("rtsp://")) == 0) {    
     err = create_media_for_streaming_ondemand(psptr, name, errmsg);
     return (err);

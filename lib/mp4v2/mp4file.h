@@ -39,7 +39,9 @@ public: /* equivalent to MP4 library API */
 	void Read(const char* fileName);
 	void Create(const char* fileName, bool use64bits);
 	void Modify(const char* fileName);
-	void Optimize(const char* orgFileName, const char* newFileName);
+	void Optimize(const char* orgFileName, 
+		const char* newFileName);
+	void MakeIsmaCompliant();
 	void Dump(FILE* pDumpFile = NULL, bool dumpImplicits = false);
 	void Close();
 
@@ -314,8 +316,6 @@ public: /* equivalent to MP4 library API */
 		bool isSyncSample);
 
 	u_int8_t AllocRtpPayloadNumber();
-
-	void MakeIsmaCompliant();
 
 	/* end of MP4 API */
 

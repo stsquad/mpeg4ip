@@ -27,5 +27,5 @@ MP4IodsAtom::MP4IodsAtom()
 	AddVersionAndFlags();
 	AddProperty(
 		new MP4DescriptorProperty(NULL, 
-			MP4IODescrTag, MP4ODescrTag, Required, OnlyOne));
+			MP4FileIODescrTag, MP4FileODescrTag, Required, OnlyOne));
 }

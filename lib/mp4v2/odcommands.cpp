@@ -27,7 +27,7 @@ MP4ODUpdateDescriptor::MP4ODUpdateDescriptor()
 	// just a container for ObjectDescriptors
 	AddProperty( /* 0 */
 		new MP4DescriptorProperty(NULL,
-			MP4ODescrTag, 0, Required, Many));
+			MP4FileODescrTag, 0, Required, Many));
 }
 
 MP4ODRemoveDescriptor::MP4ODRemoveDescriptor()

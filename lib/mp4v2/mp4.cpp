@@ -1633,26 +1633,26 @@ extern "C" bool MP4WriteRtpHint(
 
 /* ISMA specific operations */
 
-/* 
- * note this operation should be done 
- * after media and hint tracks have been created
- * but before media samples and hints are written
- */
 extern "C" bool MP4MakeIsmaCompliant(
-	MP4FileHandle hFile)
+	const char* fileName, 
+	u_int32_t verbosity)
 {
-	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
-		try {
-			((MP4File*)hFile)->MakeIsmaCompliant();
-			return true;
-		}
-		catch (MP4Error* e) {
-			PRINT_ERROR(e);
-			delete e;
-		}
+	try {
+		MP4File* pFile = new MP4File(verbosity);
+		pFile->Modify(fileName);
+		pFile->MakeIsmaCompliant();
+		pFile->Close();
+		delete pFile;
+		return true;
+	}
+	catch (MP4Error* e) {
+		VERBOSE_ERROR(verbosity, e->Print());
+		delete e;
 	}
 	return false;
 }
+
+/* Utlities */
 
 extern "C" char* MP4BinaryToBase16(
 	const u_int8_t* pData, 

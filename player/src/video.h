@@ -91,6 +91,7 @@ class CVideoSync {
   uint32_t m_consec_skipped;
   uint32_t m_behind_frames;
   uint32_t m_total_frames;
+  uint32_t m_filled_frames;
   uint64_t m_behind_time;
   uint64_t m_behind_time_max;
   uint32_t m_skipped_render;
