@@ -65,6 +65,7 @@ typedef struct mpeg2t_pid_t {
   uint32_t data_len_max;
   int collect_pes;
   mpeg2t_pak_type pak_type;
+  void *userdata;
 } mpeg2t_pid_t;
 
   
@@ -130,7 +131,6 @@ typedef struct mpeg2t_es_t {
   uint16_t sample_per_frame; // audio info
   int audio_chans;           // audio info
   int save_frames;           // set this to save frames
-  void *es_userdata;
   int frames_in_list;
 } mpeg2t_es_t;
 
@@ -201,8 +201,8 @@ mpeg2t_pid_t *mpeg2t_lookup_pid(mpeg2t_t *ptr,uint16_t pid);
  * mpeg2t_es_[set | get]_userdata - set/get a userdata value for 
  * the elementary stream.
  */
-void mpeg2t_es_set_userdata(mpeg2t_es_t *es_pid, void *data);
-void *mpeg2t_es_get_userdata(mpeg2t_es_t *es_pid);
+void mpeg2t_set_userdata(mpeg2t_pid_t *es_pid, void *data);
+void *mpeg2t_get_userdata(mpeg2t_pid_t *es_pid);
 
 /*
  * mpeg2t_[start | stop]_saving_frames - start or stop saving

@@ -1,3 +1,4 @@
+SUBDIRS = . util
 noinst_LTLIBRARIES = libmpeg2_transport.la
 libmpeg2_transport_la_SOURCES = \
 	mpeg2_transport.c \

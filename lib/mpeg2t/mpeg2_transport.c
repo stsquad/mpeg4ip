@@ -927,14 +927,14 @@ void delete_mpeg2t_transport (mpeg2t_t *ptr)
 /*
  * Other API routines
  */
-void *mpeg2t_es_get_userdata (mpeg2t_es_t *es_pid)
+void *mpeg2t_get_userdata (mpeg2t_pid_t *pid)
 {
-  return es_pid->es_userdata;
+  return pid->userdata;
 }
 
-void mpeg2t_es_set_userdata (mpeg2t_es_t *es_pid, void *ud)
+void mpeg2t_set_userdata (mpeg2t_pid_t *pid, void *ud)
 {
-  es_pid->es_userdata = ud;
+  pid->userdata = ud;
 }
 
 void mpeg2t_start_saving_frames (mpeg2t_es_t *es_pid)
