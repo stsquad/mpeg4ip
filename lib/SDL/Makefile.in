@@ -132,7 +132,8 @@ DATA =  $(m4data_DATA)
 
 DIST_COMMON =  README COPYING INSTALL Makefile.am Makefile.in \
 SDL.spec.in TODO acinclude.m4 aclocal.m4 config.guess config.sub \
-configure configure.in install-sh ltconfig ltmain.sh sdl-config.in
+configure configure.in install-sh ltconfig ltmain.sh missing \
+mkinstalldirs sdl-config.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)

@@ -113,8 +113,8 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 #define SUB_PNTFILE "%s/%2.2d/%s.pnt"	//for sprite i/o
 #define ROOT_YUVFILE "%s/%s.yuv"
 #define ROOT_SEGFILE "%s/%s.seg"
-//#define IOS_BINARY ios::bin
-#define IOS_BINARY 0
+#define IOS_BINARY ios::binary
+//#define IOS_BINARY 0
 #define MKDIR "mkdir %s/%2.2d"
 #endif
 

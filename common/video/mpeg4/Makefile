@@ -9,7 +9,7 @@
 #CCC 		= g++ -D __TRACE_AND_STATS_ -D__DOUBLE_PRECISION_
 CCC 		= g++ -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_
 
-CFLAGS		= -g $(INC) -O3 -Wall -Wpointer-arith -fexceptions -fno-rtti -Wall -Werror
+CFLAGS		= -g $(INC) -O2 -Wall -Wpointer-arith -fexceptions -fno-rtti -Wall -Werror
 
 LN 			= /bin/ln -s
 MV 			= /bin/mv

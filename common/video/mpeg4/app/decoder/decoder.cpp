@@ -50,6 +50,7 @@ Revision History:
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream.h>
 #include <fstream.h>
 
 #ifdef __PC_COMPILER_

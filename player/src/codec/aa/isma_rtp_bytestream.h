@@ -30,14 +30,14 @@
 #include "bitstream/bitstream.h"
 //#define ISMA_RTP_DUMP_OUTPUT_TO_FILE 1
 
-typedef struct isma_pak_data_t {
-  struct isma_pak_data_t *pak_data_next;
+typedef struct isma_frame_data_t {
+  struct isma_frame_data_t *frame_data_next;
   rtp_packet *pak;
   char *frame_ptr;
   size_t frame_len;
   int last_in_pak;
   uint32_t rtp_timestamp;
-} isma_pak_data_t;
+} isma_frame_data_t;
 
 class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
 {
@@ -75,23 +75,23 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
 #ifdef ISMA_RTP_DUMP_OUTPUT_TO_FILE
   FILE *m_outfile;
 #endif
-  isma_pak_data_t *m_pak_data_head;
-  isma_pak_data_t *m_pak_data_free;
-  size_t m_pak_data_max;
+  isma_frame_data_t *m_frame_data_head;
+  isma_frame_data_t *m_frame_data_free;
+  size_t m_frame_data_max;
   uint32_t m_rtp_ts_add;
   void process_packet_header(void);
-  int insert_pak_data(isma_pak_data_t *pak);
-  isma_pak_data_t *get_pak_data (void) {
-    isma_pak_data_t *pak;
-    if (m_pak_data_free == NULL) {
-      player_debug_message("Mallocing m_pak_data");
-      pak = (isma_pak_data_t *)malloc(sizeof(isma_pak_data_t));
+  int insert_frame_data(isma_frame_data_t *pak);
+  isma_frame_data_t *get_frame_data (void) {
+    isma_frame_data_t *pak;
+    if (m_frame_data_free == NULL) {
+      player_debug_message("Mallocing m_frame_data");
+      pak = (isma_frame_data_t *)malloc(sizeof(isma_frame_data_t));
       if (pak == NULL) return NULL;
     } else {
-      pak = m_pak_data_free;
-      m_pak_data_free = pak->pak_data_next;
+      pak = m_frame_data_free;
+      m_frame_data_free = pak->frame_data_next;
     }
-    pak->pak_data_next = NULL;
+    pak->frame_data_next = NULL;
     pak->last_in_pak = 0;
     return (pak);
   }

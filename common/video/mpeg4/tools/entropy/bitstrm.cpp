@@ -42,10 +42,9 @@ Revision History:
 
 *************************************************************************/
 
+#include <iostream.h>
 #include "typeapi.h"
 #include "bitstrm.hpp"
-#include <istream.h>
-#include <ostream.h>
 #include <stdio.h>
 #include <stdlib.h>
 

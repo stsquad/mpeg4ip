@@ -78,8 +78,8 @@ public:
 		const Char* pchStrFile, // bitstream file
 		Int iDisplayWidth, Int iDisplayHeight,
 		Bool *pbSpatialScalability = NULL,
-		Bool *p_short_video_header=FALSE,
-		strstreambuf* pistrm = NULL
+		Bool *p_short_video_header=FALSE //,
+		// strstreambuf* pistrm = NULL
 	);
         CVideoObjectDecoder (	// for back/forward shape
 		int iDisplayWidth, int iDisplayHeight
@@ -87,7 +87,7 @@ public:
 	Void FakeOutVOVOLHead(int h, int w, int fr, Bool *pbSpatialScalability);
 	void postVO_VOLHeadInit(Int iDisplayWidth, Int iDisplayHeight,Bool *pbSpatialScalability);
 	// Operations
-	Int decode (const CVOPU8YUVBA* pvopcBVOPQuant = NULL, strstreambuf* pistrm = NULL, Bool waitForI = FALSE, Bool drop = FALSE);
+	Int decode (const CVOPU8YUVBA* pvopcBVOPQuant = NULL, /* strstreambuf* pistrm = NULL, */ Bool waitForI = FALSE, Bool drop = FALSE);
 	Int ReadNextVopPredType ();  //for Spatial Scalable Coding
 	Int h263_decode(); // [FDS]
 

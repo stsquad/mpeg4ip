@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 5.00
 
 ###############################################################################
 
-Project: "SDL"=..\lib\SDL\VisualC\SDL\SDL.DSP - Package Owner=<4>
+Project: "SDL"=..\..\lib\SDL\VisualC\SDL\SDL.DSP - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -18,7 +18,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "SDLmain"=..\lib\SDL\VisualC\SDLmain\SDLmain.dsp - Package Owner=<4>
+Project: "SDLmain"=..\..\lib\SDL\VisualC\SDLMain\SDLMain.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -42,7 +42,19 @@ Package=<4>
 
 ###############################################################################
 
-Project: "common"=..\lib\rtp\common.dsp - Package Owner=<4>
+Project: "common"=..\..\lib\rtp\common.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "http"=..\lib\http\http.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -66,7 +78,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libconfig_file"=..\..\COMMON\LIB\CONFIG_FILE\libconfig_file.dsp - Package Owner=<4>
+Project: "libconfig_file"=..\..\lib\config_file\libconfig_file.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -102,7 +114,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libmp4"=..\..\common\mp4\libmp4.dsp - Package Owner=<4>
+Project: "libmp4"=..\..\lib\mp4\libmp4.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -126,7 +138,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libmsg_queue"=..\..\COMMON\LIB\MSG_QUEUE\libmsg_queue.dsp - Package Owner=<4>
+Project: "libmsg_queue"=..\..\lib\msg_queue\libmsg_queue.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -174,7 +186,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libsdp"=..\lib\sdp\libsdp.dsp - Package Owner=<4>
+Project: "libsdp"=..\..\lib\sdp\libsdp.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -238,6 +250,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name bitstream
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name http
     End Project Dependency
 }}}
 

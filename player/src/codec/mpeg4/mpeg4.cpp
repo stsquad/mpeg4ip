@@ -213,7 +213,7 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
     //      return(0);
   case DECODE_STATE_WAIT_I:
     try {
-      iEof = m_pvodec->decode(NULL, NULL, TRUE);
+      iEof = m_pvodec->decode(NULL, TRUE);
       if (iEof == -1) {
 	m_num_wait_i_frames++;
 	return(0);
@@ -235,7 +235,7 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
     break;
   case DECODE_STATE_NORMAL:
     try {
-      iEof = m_pvodec->decode(NULL, NULL, FALSE, m_dropFrame);
+      iEof = m_pvodec->decode(NULL, FALSE, m_dropFrame);
       if (m_dropFrame && iEof == -1) {
 	//player_debug_message("Dropped b");
 	m_dropped_b_frames++;

@@ -48,7 +48,5 @@ class COurInByteStream : public CInByteStreamBase
 
  protected:
   uint64_t m_play_start_time;
- private:
-  void audio_set_timebase(long frame);
 };
 #endif

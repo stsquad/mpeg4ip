@@ -28,8 +28,20 @@ class CBitstream {
   CBitstream(void) {};
   ~CBitstream (void) {};
   void init(const unsigned char *buffer, size_t bit_len);
-  void init(char *buffer, size_t bit_len) {
-    init((unsigned char *)buffer, bit_len);
+  void init(const char *buffer, size_t bit_len) {
+    init((const unsigned char *)buffer, (size_t)bit_len);
+  };
+  void init(const char *buffer, int bit_len) {
+    init((const unsigned char *)buffer, (size_t)bit_len);
+  };
+  void init(const unsigned char *buffer, int bit_len) {
+    init(buffer, (size_t)bit_len);
+  };
+  void init(const char *buffer, unsigned short bit_len) {
+    init((const unsigned char *)buffer, (size_t)bit_len);
+  };
+  void init(const unsigned char *buffer, unsigned short bit_len) {
+    init(buffer, (size_t)bit_len);
   };
   int getbits(size_t bits, uint32_t &retvalue);
   int peekbits(size_t bits, uint32_t &retvalue) {

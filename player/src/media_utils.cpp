@@ -23,6 +23,7 @@
  */
 #include <stdlib.h>
 #include <sdp/sdp.h>
+#include <http/http_lib.h>
 #include "player_session.h"
 #include "codec/codec.h"
 #include "codec/aa/aa.h"
@@ -268,15 +269,14 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
  * sdp file.  It could be either an on-demand program (we look for the 
  * url in the control string), or a broadcast.
  */
-static int create_media_from_sdp_file(CPlayerSession *psptr, 
-				      const char *name, 
-				      const char **errmsg)
-{
-  sdp_decode_info_t *sdp_info;
-  session_desc_t *sdp;
-  sdp_info = set_sdp_decode_from_filename(name);
-  int translated;
 
+static int create_from_sdp (CPlayerSession *psptr,
+			    const char *name,
+			    const char **errmsg,
+			    sdp_decode_info_t *sdp_info) 
+{
+  session_desc_t *sdp;
+  int translated;
 
   if (sdp_info == NULL) {
     *errmsg = "SDP error";
@@ -309,6 +309,54 @@ static int create_media_from_sdp_file(CPlayerSession *psptr,
 					       errmsg));
 }
 
+static int create_media_from_sdp_file(CPlayerSession *psptr, 
+				      const char *name, 
+				      const char **errmsg)
+{
+  sdp_decode_info_t *sdp_info;
+  sdp_info = set_sdp_decode_from_filename(name);
+
+  return (create_from_sdp(psptr, name, errmsg, sdp_info));
+}
+
+static int create_media_for_http (CPlayerSession *psptr,
+				  const char *name,
+				  const char **errmsg)
+{
+  char *data, *filename, *proxy;
+  char typebuf[70];
+  int ret;
+  int len;
+
+  proxy=getenv("http_proxy");
+  if (proxy != NULL) {
+    ret=http_parse_url(proxy,&filename);
+    if (ret<0) return ret;
+    http_proxy_server=http_server;
+    http_server=NULL;
+    http_proxy_port=http_port;
+  }
+  ret = http_parse_url(name, &filename);
+  if (ret < 0) {
+    if (proxy != NULL) free(http_proxy_server);
+    *errmsg = "Couldn't translate URL";
+    return (-1);
+  }
+  ret = http_get(filename, &data, &len, typebuf);
+  if (! ((ret == 201) || (ret == 200))) {
+    *errmsg = "Failed to get data from URL";
+    return (-1);
+  }
+  sdp_decode_info_t *sdp_info;
+
+  sdp_info = set_sdp_decode_from_memory(data);
+  ret = create_from_sdp(psptr, name, errmsg, sdp_info);
+  if (data) free(data);
+  if (filename) free(filename);
+  if (http_server) free(http_server);
+  if (proxy) free(http_proxy_server);
+  return (ret);
+}
 /*
  * parse_name_for_session - look at the name, determine what routine to 
  * call to set up the session.  This should be redone with plugins at
@@ -323,6 +371,10 @@ int parse_name_for_session (CPlayerSession *psptr,
     err = create_media_for_streaming_ondemand(psptr, name, errmsg);
     return (err);
   }
+  if (strncmp(name, "http://", strlen("http://")) == 0) {
+    err = create_media_for_http(psptr, name, errmsg);
+    return (err);
+  }    
 #ifndef _WINDOWS
   struct stat statbuf;
   if (stat(name, &statbuf) != 0) {

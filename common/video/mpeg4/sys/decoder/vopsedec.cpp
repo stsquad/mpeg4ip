@@ -86,11 +86,7 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW				   
 #endif // __MFC_
 
-#ifdef __PC_COMPILER_
 #define IOSBINARY ios::binary
-#else
-#define IOSBINARY ios::bin
-#endif // __PC_COMPILER_
 
 #define _FOR_GSSP_
 #undef assert
@@ -328,19 +324,22 @@ CVideoObjectDecoder::CVideoObjectDecoder (
 	const Char* pchStrFile,
 	Int iDisplayWidth, Int iDisplayHeight,
 	Bool *pbSpatialScalability,
-	Bool *p_short_video_header,
-	strstreambuf* pistrm
+	Bool *p_short_video_header//,
+	//strstreambuf* pistrm
 	) : CVideoObject ()
 {
+#if 0
 	if (pistrm == NULL) {
+#endif
 		m_pistrm = new ifstream (pchStrFile, IOSBINARY | ios::in);
 		if(!m_pistrm->is_open())
 			fatal_error("Can't open bitstream file");
+#if 0
 	}
 	else {
 		m_pistrm = (ifstream *)new istream (pistrm);
 	}
-
+#endif
 	m_pbytestrmIn = new CInByteStreamFile(*m_pistrm);
 	m_bcreatedByteStream = TRUE;
 	m_pbitstrmIn = new CInBitStream (m_pbytestrmIn);
@@ -529,8 +528,9 @@ CVideoObjectDecoder::CVideoObjectDecoder (
 }
 // for back/forward shape	End	 Sharp(1998-02-10)
 
-Int CVideoObjectDecoder::decode (const CVOPU8YUVBA* pvopcBVOPQuant, strstreambuf* pistrm, Bool waitForI, Bool drop)
+Int CVideoObjectDecoder::decode (const CVOPU8YUVBA* pvopcBVOPQuant, /*strstreambuf* pistrm, */ Bool waitForI, Bool drop)
 {
+#if 0
 	if (pistrm != NULL) {
 		delete (istream *)m_pistrm;
 		delete m_pbytestrmIn;
@@ -541,7 +541,7 @@ Int CVideoObjectDecoder::decode (const CVOPU8YUVBA* pvopcBVOPQuant, strstreambuf
 		m_pbitstrmIn = new CInBitStream (m_pbytestrmIn);
 		m_pentrdecSet = new CEntropyDecoderSet (*m_pbitstrmIn);
 	}
-
+#endif
 	//sprite piece should not come here
 	assert ((m_vopmd.SpriteXmitMode == STOP) || ( m_vopmd.SpriteXmitMode == PAUSE));
 

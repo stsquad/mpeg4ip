@@ -61,6 +61,7 @@ Revision History:
 *************************************************************************/
 
 #include <stdio.h>
+#include <iostream.h>
 #include <fstream.h>
 #include <math.h>
 #include <stdlib.h>

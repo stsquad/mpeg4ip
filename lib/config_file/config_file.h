@@ -42,7 +42,8 @@ class CConfig {
   CConfig(const config_variable_t *foo, size_t max, const char *name);
   ~CConfig(void);
   int get_config_type(size_t index);
-  int get_config_value(size_t index);
+  int get_config_value(int index);
+  int get_config_value(size_t index) { return get_config_value((int)index); };
   int get_config_default_value(size_t index);
   const char *get_config_string(size_t index);
   const char *get_config_default_string(size_t index);

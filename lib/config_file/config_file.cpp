@@ -91,8 +91,9 @@ int CConfig::get_config_type (size_t index)
   return (m_types[index]);
 }
 
-int CConfig::get_config_value (size_t index)
+int CConfig::get_config_value (int ix)
 {
+  size_t index = ix;
   if (index < 0 || index >= m_config_max)
     return (-1);
   if (m_types[index] != CONFIG_INT)

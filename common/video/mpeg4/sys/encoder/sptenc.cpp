@@ -37,10 +37,10 @@ Revision History:
 *************************************************************************/
 
 #include <stdio.h>
+#include <iostream.h>
 #include <fstream.h>
 #include <math.h>
 #include <stdlib.h>
-
 #include "typeapi.h"
 #include "codehead.h"
 #include "global.hpp"

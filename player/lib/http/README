@@ -1,0 +1,28 @@
+ 
+*** Http tiny library & command line program  package ***  release 1.2
+(c) 1998 Laurent Demailly       -  see LICENSE
+(c) 1996 Observatoire de Paris
+Author(s): Laurent Demailly <L@Demailly.com> - http://www.demailly.com/~dl/
+
+
+http_lib.c is a small library for http commands,
+see  nroff -man man3/http_lib.3 | more
+
+http is a example of use. see nroff -man man1/http.1 | more
+(or see http-man.txt if you don't have nroff/man)
+
+
+To compile / INSTALL:
+ You need a C compiler, preferably ansi, like gcc
+
+1) EDIT makefile
+2) type  make depend (or remove everything after the # DO NOT DELETE ... line)
+3) type  make  
+   (you might have edit http_lib.c for includes, in that case, 
+   Please tell me...)
+4) type  make install
+5) enjoy using "http" and/or the library in your programs (-lhttp)
+6) send feedback and your best uses of the lib to
+   <L@Demailly.com> !
+
+Tested succesfully on Linux, Solaris, Hp-Ux(8), and OS/9

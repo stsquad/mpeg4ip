@@ -44,6 +44,7 @@ Revision History:
 
 #include <stdlib.h>
 #include <string.h>
+#include <iostream.h>
 #include "typeapi.h"
 #include "entropy.hpp"
 #include "huffman.hpp"

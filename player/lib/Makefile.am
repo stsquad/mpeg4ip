@@ -1,1 +1,1 @@
-SUBDIRS = rtsp audio video 
+SUBDIRS = http rtsp audio video 

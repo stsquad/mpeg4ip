@@ -87,6 +87,7 @@ LDADD = \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/player/src/libmp4player.la \
+	$(top_builddir)/player/lib/http/libhttp.la \
 	$(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/lib/config_file/libconfig_file.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
@@ -100,7 +101,9 @@ LDADD = \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
 	$(top_builddir)/player/src/codec/wav/libourwav.la \
+	$(top_builddir)/player/lib/http/libhttp.la \
 	$(top_builddir)/player/src/libmp4player.la \
+	$(top_builddir)/player/lib/http/libhttp.la \
 	-L/usr/lib -L/usr/X11R6/lib -lgtk -lgdk \
 	 -lgmodule -lglib -ldl -lXi -lXext -lX11 -lm
 
