@@ -24,7 +24,7 @@
 
 int main(int argc, char** argv)
 {
-	char* usageString = "usage: %s [-v [<level>]] <file-name>\n";
+	char* usageString = "usage: %s [-verbose=[<level>]] <file-name>\n";
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
 	bool dumpImplicits = false;
 

@@ -193,7 +193,7 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   if (temp > 0) {
     m_rtp_buffer_time = temp;
   } else {
-    m_rtp_buffer_time = 2 * M_64;
+    m_rtp_buffer_time = TO_U64(2000);
   }
 
   m_timescale = tps;
@@ -248,7 +248,7 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
       m_stream_ondemand == 0) {
     rtp_ts_diff = rtp_ts;
     rtp_ts_diff -= m_rtcp_rtp_ts;
-    wclock_calc = rtp_ts_diff * M_64;
+    wclock_calc = rtp_ts_diff * TO_U64(1000);
     wclock_calc /= m_timescale;
     wclock_calc += m_rtcp_ts;
     if (wclock_calc != wclock) {
@@ -285,7 +285,7 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
     if (diff > compare) {
       // adjust once an hour, to keep errors low
       // we'll adjust the timestamp and rtp timestamp
-      diff *= M_64;
+      diff *= TO_U64(1000);
       diff /= m_timescale;
       m_first_pak_ts += diff;
       m_first_pak_rtp_ts = rtp_ts;
@@ -325,12 +325,12 @@ CRtpByteStreamBase::calculate_wallclock_offset_from_rtcp (uint32_t ntp_frac,
 {
   uint64_t wclock;
   wclock = ntp_frac;
-  wclock *= M_64;
-  wclock /= (I_64 << 32);
+  wclock *= TO_U64(1000);
+  wclock /= (TO_U64(1) << 32);
   uint64_t offset;
   offset = ntp_sec;
   offset -= NTP_TO_UNIX_TIME;
-  offset *= M_64;
+  offset *= TO_U64(1000);
   wclock += offset;
 #ifdef DEBUG_RTP_WCLOCK
   rtp_message(LOG_DEBUG, "%s RTCP data - sec %u frac %u value "U64" ts %u", 
@@ -565,7 +565,7 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	uint64_t calc;
 	calc = tail_ts;
 	calc -= head_ts;
-	calc *= M_64;
+	calc *= TO_U64(1000);
 	calc /= m_timescale;
 	if (calc > m_rtp_buffer_time) {
 	  if (m_base_ts_set == false) {
@@ -628,7 +628,7 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	    time_t this_time;
 	    this_time = time(NULL);
 	    if (this_time > sptr->time_desc->end_time && 
-		timeout >= M_64) {
+		timeout >= TO_U64(1000)) {
 	      m_eof = 1;
 	    }
 	  }
@@ -676,7 +676,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
 
   if (((m_ts & 0x80000000) == 0x80000000) &&
       ((rtp_ts & 0x80000000) == 0)) {
-    wrap_offset += (I_64 << 32);
+    wrap_offset += (TO_U64(1) << 32);
     have_wrap = true;
   }
 
@@ -687,7 +687,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
 
     if (adjusted_wc_rtp_ts > adjusted_rtp_ts) {
       timetick = adjusted_wc_rtp_ts - adjusted_rtp_ts;
-      timetick *= M_64;
+      timetick *= TO_U64(1000);
       timetick /= m_timescale;
       if (timetick > m_play_start_time) {
 	timetick = 0;
@@ -696,7 +696,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
       }
     } else {
       timetick = adjusted_rtp_ts - adjusted_wc_rtp_ts;
-      timetick *= M_64;
+      timetick *= TO_U64(1000);
       timetick /= m_timescale;
       timetick += m_play_start_time;
     }
@@ -727,11 +727,11 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
     int64_t adder;
     if (have_wrap) {
       adder = (int64_t)rtp_ts;
-      adder += I_64 << 32;
+      adder += TO_U64(1) << 32;
       adder -= (int64_t)m_first_pak_rtp_ts;
       // adjust once an hour, to keep errors low
       // we'll adjust the timestamp and rtp timestamp
-      adder *= M_64;
+      adder *= TO_U64(1000);
       adder /= m_timescale;
       m_first_pak_ts += adder;
       m_first_pak_rtp_ts = rtp_ts;

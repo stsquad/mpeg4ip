@@ -395,7 +395,8 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 				   &h,
 				   &w, 
 				   &frame_rate,
-				   &bitrate) < 0) {
+				   &bitrate, 
+				   NULL) < 0) {
 	  mpeg3_delete_vtrack(file, new_vtrack);
 	  return NULL;
 	}

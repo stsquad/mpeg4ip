@@ -26,6 +26,7 @@
 #include "mpeg4ip_sdl_includes.h"
 #include <mpeg2t/mpeg2_transport.h>
 #include <rtsp/rtsp_client.h>
+#include "media_utils.h"
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
@@ -140,5 +141,14 @@ int mpeg2t_thread_ipc_send_wait(mpeg2t_client_t *info,
 #ifdef __cplusplus
 }
 #endif
-
+void mpeg2t_check_streams(video_query_t **pvq, 
+			  audio_query_t **paq,
+			  mpeg2t_t *decoder,
+			  uint &audio_count,
+			  uint &video_count,
+			  char *errmsg, 
+			  uint32_t errlen,
+			  CPlayerSession *psptr,
+			  control_callback_vft_t *cc_vft);
+     
 #endif

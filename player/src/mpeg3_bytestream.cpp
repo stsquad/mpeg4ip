@@ -153,9 +153,11 @@ int CMpeg3VideoByteStream::skip_next_frame (uint64_t *pts,
   mpeg3_read_video_chunk_cleanup(m_file, m_stream);
   ts = start_next_frame(buffer, buflen, NULL);
   *pts = ts;
-  if (*buffer != NULL)
-    *pSync = MP4AV_Mpeg3FindGopOrPictHdr(*buffer, *buflen, NULL);
-  else 
+  if (*buffer != NULL) {
+    int ret, ftype;
+    ret = MP4AV_Mpeg3FindPictHdr(*buffer, *buflen, &ftype);
+    *pSync =  (ret >= 0 && ftype == 1) ? 1 : 0;
+  } else 
     *pSync = 0;
   //*pSync = m_frame_on_has_sync;
   return (1);
@@ -282,7 +284,7 @@ uint64_t CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer,
   }
   ts = m_frame_on;
   ts *= spf;
-  ts *= M_64;
+  ts *= TO_U64(1000);
   ts /= m_freq;
   m_frame_on++;
   //mpeg3f_message(LOG_DEBUG, "audiostart %ld "U64" %d", m_frame_on, ts, m_this_frame_size);

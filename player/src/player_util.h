@@ -54,7 +54,7 @@ static inline void funcname (int loglevel, const char *fmt, ...) \
 { \
 	va_list ap; \
 	va_start(ap, fmt); \
-	player_library_message(loglevel, libname, fmt, ap); \
+	library_message(loglevel, libname, fmt, ap); \
 	va_end(ap); \
 } 
 #else
@@ -64,8 +64,8 @@ static inline void funcname (int loglevel, const char *fmt, ...) \
 static  __inline uint64_t get_time_of_day (void) {
   struct timeval t;
   gettimeofday(&t, NULL);
-  return ((((uint64_t)t.tv_sec) * M_64) +
-	  (((uint64_t)t.tv_usec) / M_64));
+  return ((((uint64_t)t.tv_sec) * TO_U64(1000)) +
+	  (((uint64_t)t.tv_usec) / TO_U64(1000)));
 }
 
 

@@ -91,7 +91,7 @@ int aac_file_next_frame (codec_data_t *your,
 
 
   uint64_t calc;
-  calc = aac->m_framecount * 1024 * M_64;
+  calc = aac->m_framecount * TO_U64(1024 * 1000);
   calc /= aac->m_freq;
   *ts = calc;
   *buffer = aac->m_buffer;

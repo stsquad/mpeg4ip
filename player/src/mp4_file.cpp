@@ -318,23 +318,8 @@ int CMp4File::create_media (CPlayerSession *psptr,
   video_count = 0;
   uint32_t verb = MP4GetVerbosity(m_mp4file);
   MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
-  do {
-    trackId = MP4FindTrackId(m_mp4file, video_count, MP4_VIDEO_TRACK_TYPE);
-
-    if (MP4_IS_VALID_TRACK_ID(trackId)) {
-      video_count++;
-    }
-  } while (MP4_IS_VALID_TRACK_ID(trackId));
-
-  audio_count = 0;
-  do {
-    trackId = MP4FindTrackId(m_mp4file, audio_count, MP4_AUDIO_TRACK_TYPE);
-    
-    if (MP4_IS_VALID_TRACK_ID(trackId)) {
-      audio_count++;
-    }
-  } while (MP4_IS_VALID_TRACK_ID(trackId));
-
+  video_count = MP4GetNumberOfTracks(m_mp4file, MP4_VIDEO_TRACK_TYPE);
+  audio_count = MP4GetNumberOfTracks(m_mp4file, MP4_AUDIO_TRACK_TYPE);
   MP4SetVerbosity(m_mp4file, verb);
 
   if (video_count == 0 && audio_count == 0) {
@@ -361,7 +346,9 @@ int CMp4File::create_media (CPlayerSession *psptr,
 		 trackId, profileID);
     uint8_t *foo;
     u_int32_t bufsize;
+    MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
     MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
+    MP4SetVerbosity(m_mp4file, verb);
     
     plugin = check_for_video_codec("MP4 FILE",
 				   NULL,
@@ -404,10 +391,12 @@ int CMp4File::create_media (CPlayerSession *psptr,
 
       audio_type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
       profile = MP4GetAudioProfileLevel(m_mp4file);
+      MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
       MP4GetTrackESConfiguration(m_mp4file, 
 				 trackId, 
 				 &userdata, 
 				 &userdata_size);
+      MP4SetVerbosity(m_mp4file, verb);
       plugin = check_for_audio_codec("MP4 FILE",
 				     NULL,
 				     audio_type,

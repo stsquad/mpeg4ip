@@ -282,11 +282,16 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
 	
 	calc /= 30;
 	//message(LOG_DEBUG, "xvid", "I frame at %u "U64, framecount, calc);
-	xvid->m_fpos->record_point(ftell(xvid->m_ifile) - 
-				   xvid->m_buffer_size - 
-				   xvid->m_buffer_on, 
-				   calc, 
-				   framecount);
+ 	fpos_t pos;
+	if (fgetpos(xvid->m_ifile, &pos) >= 0) {
+	  uint64_t offset;
+	  FPOS_TO_VAR(pos, uint64_t, offset);
+	  xvid->m_fpos->record_point(offset - 
+				     xvid->m_buffer_size - 
+				     xvid->m_buffer_on, 
+				     calc, 
+				     framecount);
+	}
       }
       xvid->m_buffer_on = nextframe;
     }
@@ -361,7 +366,7 @@ int xvid_file_next_frame (codec_data_t *your_data,
     value = xvid_find_header(xvid, 4);
   }
 
-  *ts = (xvid->m_frame_on * M_64) / 30; //mp4_hdr.fps;
+  *ts = (xvid->m_frame_on * TO_U64(1000)) / 30; //mp4_hdr.fps;
   *buffer = &xvid->m_buffer[xvid->m_buffer_on];
   xvid->m_frame_on++;
   return xvid->m_buffer_size - xvid->m_buffer_on;
@@ -393,7 +398,10 @@ int xvid_file_seek_to (codec_data_t *your, uint64_t ts)
   xvid->m_buffer_on = 0;
   xvid->m_buffer_size = 0;
 
-  fseek(xvid->m_ifile, fpos->file_position, SEEK_SET);
+  fpos_t pos;
+  VAR_TO_FPOS(pos, fpos->file_position);
+  fsetpos(xvid->m_ifile, &pos);
+
   xvid_reset_buffer(xvid);
   return 0;
 }

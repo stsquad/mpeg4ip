@@ -99,7 +99,7 @@ static codec_data_t *aac_codec_create (const char *compressor,
   config.defSampleRate = aac->m_freq;
   faacDecSetConfiguration(aac->m_info, &config);
   aac->m_msec_per_frame = aac->m_output_frame_size;
-  aac->m_msec_per_frame *= M_64;
+  aac->m_msec_per_frame *= TO_U64(1000);
   aac->m_msec_per_frame /= aac->m_freq;
 
   //  faad_init_bytestream(&m_info->ld, c_read_byte, c_bookmark, m_bytestream);
@@ -120,13 +120,16 @@ void aac_close (codec_data_t *ptr)
     printf("\nin aac close\n");
     return;
   }
+  printf("\nclosed aac close\n");
   aac_codec_t *aac = (aac_codec_t *)ptr;
   faacDecClose(aac->m_info);
   aac->m_info = NULL;
 
-  if (aac->m_temp_buff) {
-    free(aac->m_temp_buff);
-    aac->m_temp_buff = NULL;
+  CHECK_AND_FREE(aac->m_temp_buff);
+  CHECK_AND_FREE(aac->m_buffer);
+  if (aac->m_ifile != NULL) {
+    fclose(aac->m_ifile);
+    aac->m_ifile = NULL;
   }
 #if DUMP_OUTPUT_TO_FILE
   fclose(aac->m_outfile);

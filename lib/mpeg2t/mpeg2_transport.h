@@ -109,6 +109,7 @@ typedef struct mpeg2t_es_t {
   uint32_t pict_header_offset;
   SDL_mutex *list_mutex;
   int info_loaded;           // 1 if video info or audio info is valid
+  int is_video;              // 1 if video, 0 if audio
   int h, w;                  // video info
   double frame_rate;         // video info
   uint32_t tick_per_frame;   // video info
@@ -118,6 +119,7 @@ typedef struct mpeg2t_es_t {
   uint16_t sample_per_frame; // audio info
   int audio_chans;           // audio info
   int save_frames;           // set this to save frames
+  int report_psts;
   int frames_in_list;
 } mpeg2t_es_t;
 
@@ -198,8 +200,15 @@ void *mpeg2t_get_userdata(mpeg2t_pid_t *es_pid);
  * streams that indicate that they are to be saved will save the
  * data so it can be retrieved using mpeg2t_get_es_list_head().
  */
-void mpeg2t_start_saving_frames(mpeg2t_es_t *es_pid);
-void mpeg2t_stop_saving_frames(mpeg2t_es_t *es_pid);
+#define MPEG2T_PID_NOTHING 0
+#define MPEG2T_PID_REPORT_PSTS 1
+#define MPEG2T_PID_SAVE_FRAME 2
+#define MPEG2T_PID_EVERYTHING (MPEG2T_PID_REPORT_PSTS | MPEG2T_PID_SAVE_FRAME)
+
+void mpeg2t_set_frame_status(mpeg2t_es_t *es_pid, uint32_t status);
+
+  void mpeg2t_clear_frames (mpeg2t_es_t *es_pid);
+
 
 int mpeg2t_write_stream_info(mpeg2t_es_t *es_pid, 
 			     char *buffer,

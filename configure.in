@@ -8,23 +8,28 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.0.11)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.0.13)
 
 dnl Checks for programs. 
 
 dnl check for mac
+SUN_LIBS=
+have_macosx=false
 case "$target" in
    *-apple-darwin*)
    have_macosx=true
    ;;
+   *-*-solaris*)
+     SUN_LIBS=-lstdc++
+     ;;
    *)
-   have_macosx=false
    ;;
 esac
 
 if test $have_macosx = false; then
    AC_CONFIG_SUBDIRS(lib/SDLAudio)
 fi
+AM_CONDITIONAL(HAVE_MAC_OSX, $have_macosx)
 AC_CONFIG_SUBDIRS(lib/rtp)
 
 AC_LIBTOOL_DLOPEN
@@ -114,7 +119,6 @@ AC_CHECK_LIB(mpeg2,
 AM_CONDITIONAL(HAVE_LIBMPEG2, $have_mpeg2)
 LIBS=$saved_LIBS
 AC_SUBST(LIBVORBIS_LIB)
-
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
@@ -423,6 +427,7 @@ dnl Get SDL cflags and SDL libraries to include
 SDL_LIBS="`sdl-config --libs`"
 AC_SUBST(SDL_LIBS)
 
+AC_SUBST(SUN_LIBS)
 
 dnl
 BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Wno-unknown-pragmas"
@@ -482,7 +487,6 @@ AC_OUTPUT( \
 	lib/mp4av/Makefile \
 	lib/mpeg2t/Makefile \
 	lib/msg_queue/Makefile \
-	lib/SDL_VisualC/Makefile \
 	lib/sdp/Makefile \
 	lib/utils/Makefile \
 	lib/xvid/Makefile \
@@ -561,6 +565,7 @@ AC_OUTPUT( \
 	player/src/win_gui/res/Makefile \
 	util/Makefile \
 	util/iptv/Makefile \
+	util/mpeg2/Makefile \
 	util/mpeg4vol/Makefile \
 	util/yuv/Makefile \
 	mpeg4ip-config

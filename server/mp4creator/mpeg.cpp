@@ -92,7 +92,7 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
 				      vstream) == 0) {
     int ret;
     int frame_type;
-    ret = MP4AV_Mpeg3FindGopOrPictHdr(buf, blen, &frame_type);
+    ret = MP4AV_Mpeg3FindPictHdr(buf, blen, &frame_type);
     // we sometimes have the next start code...
     if (buf[blen - 4] == 0 &&
 	buf[blen - 3] == 0 &&
@@ -108,7 +108,7 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
     }
 #endif
     MP4WriteSample(mp4file, id, buf, blen, mp4FrameDuration, 0, 
-		   ret >= 0 ? true : false);
+		   ret >= 0 && frame_type == 1 ? true : false);
     mpeg3_read_video_chunk_cleanup(file, vstream);
     if (ret > 0 || frame_type != 3) {
       // I or P frame

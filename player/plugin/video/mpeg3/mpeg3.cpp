@@ -87,9 +87,10 @@ static int mpeg3_frame_is_sync (codec_data_t *ifptr,
 				void *userdata)
 {
   int ret;
+  int ftype;
 
-  ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen, NULL);
-  if (ret >= 0) {
+  ret = MP4AV_Mpeg3FindPictHdr(buffer, buflen, &ftype);
+  if (ret >= 0 && ftype == 1) {
     mpeg3_do_pause(ifptr);
     return 1;
   }
@@ -181,10 +182,10 @@ static int mpeg3_decode (codec_data_t *ptr,
   } 
     if (mpeg3->m_did_pause) {
       if (mpeg3->m_got_i == 0) {
-	int ret;
- 	ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen, NULL);
+	int ret, ftype;
+ 	ret = MP4AV_Mpeg3FindPictHdr(buffer, buflen, &ftype);
 
-	if (ret >= 0) {
+	if (ret >= 0 && ftype == 1) {
 	  mpeg3->m_got_i = 1;
 	  render = 0;
 	} else

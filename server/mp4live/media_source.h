@@ -36,7 +36,6 @@ class CVideoEncoder;
 
 // virtual parent class for audio and/or video sources
 // contains all the common media processing code
-
 class CMediaSource : public CMediaNode {
 public:
 	CMediaSource();
@@ -294,12 +293,6 @@ protected:
 	// video previous frame info
 	u_int8_t*		m_videoDstPrevImage;
 	u_int8_t*		m_videoDstPrevReconstructImage;
-	u_int8_t*		m_videoDstPrevFrame;
-	u_int32_t		m_videoDstPrevFrameLength;
-	Timestamp               m_videoDstPrevFrameTimestamp;
-	Duration                m_videoDstPrevFrameElapsedDuration;
-
-
 	// audio source info 
 	MediaType		m_audioSrcType;
 	u_int8_t		m_audioSrcChannels;

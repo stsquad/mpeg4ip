@@ -307,6 +307,14 @@ static void create_es (mpeg2t_t *ptr,
   es->pid.pak_type = MPEG2T_ES_PAK;
   es->pid.pid = pid;
   es->stream_type = stream_type;
+  switch (es->stream_type) {
+  case 1:
+  case 2:
+    es->is_video = 1;
+    break;
+  default:
+    es->is_video = 0;
+  }
   if (es_info_len != 0) {
     es->es_data = (uint8_t *)malloc(es_info_len);
     if (es->es_data != NULL) {
@@ -513,9 +521,7 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
 static void clean_es_data (mpeg2t_es_t *es_pid) 
 {
   es_pid->have_ps_ts = 0;
-  switch (es_pid->stream_type) {
-  case 1:
-  case 2:
+  if (es_pid->is_video) {
     // mpeg1 or mpeg2 video
     es_pid->work_state = 0;
     es_pid->header = 0;
@@ -524,10 +530,7 @@ static void clean_es_data (mpeg2t_es_t *es_pid)
     if (es_pid->work != NULL) {
       mpeg2t_malloc_es_work(es_pid, es_pid->work->frame_len);
     }
-    break;
-  case 3:
-  case 4:
-  case 129:
+  } else {
     // mpeg1/mpeg2 audio (mp3 codec)
     if (es_pid->work != NULL ) {
       free(es_pid->work);
@@ -535,10 +538,6 @@ static void clean_es_data (mpeg2t_es_t *es_pid)
     }
     es_pid->work_loaded = 0;
     es_pid->left = 0;
-    break;
-  case 0xf:
-    // aac
-    break;
   }
 }  
 
@@ -637,6 +636,13 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   uint32_t nextcc, pakcc;
   int ret;
   int ac;
+  int have_psts;
+
+  if (es_pid->save_frames == 0 &&
+      es_pid->report_psts == 0 &&
+      es_pid->info_loaded > 0) {
+    return 0;
+  }
 
   ac = mpeg2t_adaptation_control(buffer);
   // Note to self - if ac is 0x3, we may have to check
@@ -662,6 +668,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   esptr = mpeg2t_transport_payload_start(buffer, &buflen);
   if (esptr == NULL) return -1;
   
+  have_psts = 0;
   if (mpeg2t_payload_unit_start_indicator(buffer) != 0) {
     // start of PES packet
     if ((esptr[0] != 0) ||
@@ -677,8 +684,6 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     esptr += 6;
     buflen -= 6;
 
-    mpeg2t_message(LOG_DEBUG, 
-		   "PES start stream id %02x len %d", stream_id, pes_len);
     read_pes_options = 0;
     // do we have header extensions
     switch ((stream_id & 0x70) >> 4) {
@@ -713,9 +718,9 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	// read presentation timestamp
 	uint64_t pts;
 #if 1
-	mpeg2t_message(LOG_DEBUG, "Stream %x %02x %02x %02x", 
+	mpeg2t_message(LOG_INFO, "Stream %x %02x %02x %02x", 
 	       stream_id, esptr[0], esptr[1], esptr[2]);
-	mpeg2t_message(LOG_DEBUG, "PTS %02x %02x %02x %02x %02x", 
+	mpeg2t_message(LOG_INFO, "PTS %02x %02x %02x %02x %02x", 
 	       esptr[3], esptr[4], esptr[5], esptr[6], esptr[7]);
 #endif
 	if (((esptr[1] >> 6) & 0x3) !=
@@ -735,17 +740,22 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	pts |= ((esptr[7] >> 1) & 0x7f);
 	es_pid->have_ps_ts = 1;
 	es_pid->ps_ts = pts; // (pts * M_64) / (90 * M_64); // give msec
+	have_psts = 1;
 	mpeg2t_message(LOG_INFO, "pid %x psts "U64, 
-		       es_pid->pid.pid, es_pid->ps_ts);
+		      es_pid->pid.pid, es_pid->ps_ts);
       }
       buflen -= esptr[2] + 3;
       esptr += esptr[2] + 3;
+      pes_len -= esptr[2] + 3;
     }
   // process esptr, buflen
     if (buflen == 0) {
       es_pid->have_ps_ts = 0;
       return 0;
     }
+    mpeg2t_message(LOG_DEBUG, 
+		   "%x PES start stream id %02x len %d (%d)", ifptr->pid, 
+		   stream_id, pes_len, buflen);
   } else {
     // 0 in Payload start - process frame at start
     read_pes_options = 0;
@@ -771,6 +781,8 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     break;
   }
   //es_pid->have_ps_ts = 0;
+  if (have_psts != 0 && 
+      es_pid->report_psts != 0) ret = 1;
   return ret;
 }
 			    
@@ -941,14 +953,25 @@ void mpeg2t_set_userdata (mpeg2t_pid_t *pid, void *ud)
   pid->userdata = ud;
 }
 
-void mpeg2t_start_saving_frames (mpeg2t_es_t *es_pid)
-{
-  es_pid->save_frames = 1;
-}
-
-void mpeg2t_stop_saving_frames (mpeg2t_es_t *es_pid)
+void mpeg2t_set_frame_status (mpeg2t_es_t *es_pid, 
+			      uint32_t flags)
 {
   es_pid->save_frames = 0;
+  es_pid->report_psts = 0;
+  if (flags == MPEG2T_PID_NOTHING) {
+    mpeg2t_clear_frames(es_pid);
+    return;
+  }
+  if ((flags & MPEG2T_PID_REPORT_PSTS) != 0) {
+    es_pid->report_psts = 1;
+  }
+  if ((flags & MPEG2T_PID_SAVE_FRAME) != 0) {
+    es_pid->save_frames = 1;
+  }
+}
+
+void mpeg2t_clear_frames (mpeg2t_es_t *es_pid) 
+{
   SDL_LockMutex(es_pid->list_mutex);
   es_pid->have_ps_ts = 0;
   es_pid->have_seq_header = 0;
@@ -960,7 +983,7 @@ void mpeg2t_stop_saving_frames (mpeg2t_es_t *es_pid)
   }
   clean_es_data(es_pid);
   SDL_UnlockMutex(es_pid->list_mutex);
-}
+}  
 
 int mpeg2t_write_stream_info (mpeg2t_es_t *es_pid, 
 			      char *buffer,

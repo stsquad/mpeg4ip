@@ -34,7 +34,8 @@ static int MP4AV_Ac3FindFrameStart (const uint8_t *buf,
 				    const uint8_t **ppFrame,
 				    uint32_t *bitrate,
 				    uint32_t *freq,
-				    uint32_t *framesize)
+				    uint32_t *framesize,
+				    uint32_t *chans)
 {
   while (buflen >= 6) {
     if (ntohs(*(const uint16_t *)buf) == 0x0b77) {
@@ -45,6 +46,27 @@ static int MP4AV_Ac3FindFrameStart (const uint8_t *buf,
       if (*framesize != 0) {
 	*bitrate = brate;
 	*freq = srate;
+	if (flags & A52_LFE) {
+	  *chans = 6;
+	} else {
+	  switch (flags & A52_CHANNEL_MASK) {
+	  case A52_MONO:
+	    *chans = 1;
+	    break;
+	  case A52_CHANNEL:
+	  case A52_STEREO:
+	  case A52_DOLBY:
+	    *chans = 2;
+	    break;
+	  case A52_2F2R:
+	    *chans = 4;
+	    break;
+	  default:
+	    *chans = 5;
+	    break;
+	  }
+	}
+
 	return 1;
       }
     }
@@ -60,7 +82,8 @@ static int MP4AV_Ac3FindFrameStart (const uint8_t *buf,
  */
 static uint32_t mpeg2t_find_ac3_frame_start (mpeg2t_es_t *es_pid, 
 					     const uint8_t *esptr, 
-					     uint32_t buflen)
+					     uint32_t buflen,
+					     int *ret)
 {
   const uint8_t *fptr;
   int found = 0;
@@ -69,6 +92,7 @@ static uint32_t mpeg2t_find_ac3_frame_start (mpeg2t_es_t *es_pid,
   uint32_t framesize;
   uint32_t freq;
   uint32_t bitrate;
+  uint32_t chans;
 
   if (es_pid->left != 0) {
     // Indicates that we have up to 3 bytes left from previous frame
@@ -80,7 +104,8 @@ static uint32_t mpeg2t_find_ac3_frame_start (mpeg2t_es_t *es_pid,
 
     found = MP4AV_Ac3FindFrameStart(es_pid->left_buff, 7, &fptr, 
 				    &bitrate, &freq,
-				    &framesize);
+				    &framesize,
+				    &chans);
     if (found) {
       dropped = fptr - (const uint8_t *)&es_pid->left_buff[0];
 #if 0
@@ -95,7 +120,7 @@ static uint32_t mpeg2t_find_ac3_frame_start (mpeg2t_es_t *es_pid,
     // Not found with leftover bytes - see if it's in the buffer
     found = MP4AV_Ac3FindFrameStart(esptr, buflen, &fptr, 
 				    &bitrate, &freq,
-				    &framesize);
+				    &framesize, &chans);
     if (found == 0) {
       memcpy(es_pid->left_buff,
 	     esptr + buflen - 5, 
@@ -112,13 +137,15 @@ static uint32_t mpeg2t_find_ac3_frame_start (mpeg2t_es_t *es_pid,
   if (found) {
     // We've found the header - load up the info if we haven't already
     es_pid->sample_freq = freq;
+    es_pid->audio_chans = chans;
     es_pid->sample_per_frame = 256 * 6;
     es_pid->bitrate = bitrate;
-    mpeg2t_message(LOG_INFO, "ac3 - freq %u spf %u brate %g", 
+    mpeg2t_message(LOG_NOTICE, "ac3 - freq %u spf %u brate %g", 
 		   es_pid->sample_freq,
 		   es_pid->sample_per_frame,
 		   es_pid->bitrate);
     es_pid->info_loaded = 1;
+    *ret = 1;
     // We know how big the frame will be, so malloc it
     mpeg2t_malloc_es_work(es_pid, framesize);
     if (es_pid->work == NULL) return buflen;
@@ -174,7 +201,7 @@ int process_mpeg2t_ac3_audio (mpeg2t_es_t *es_pid,
 	return ret;
       }
 
-      used = mpeg2t_find_ac3_frame_start(es_pid, esptr, buflen);
+      used = mpeg2t_find_ac3_frame_start(es_pid, esptr, buflen, &ret);
       esptr += buflen;
       buflen -= used;
     } else {

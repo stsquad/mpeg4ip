@@ -298,8 +298,10 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 
 	} else if (pFrame->GetType() == m_videoFrameType 
 		   && m_videoRtpDestination) {
+	  // Note - the below changed from the DTS to the PTS - this
+	  // is required for b-frames, or mpeg2
 	  u_int32_t rtpTimestamp =
-	    VideoTimestampToRtp(pFrame->GetTimestamp());
+	    VideoTimestampToRtp(pFrame->GetPtsTimestamp());
 	  u_int64_t ntpTimestamp = 
 	    TimestampToNtp(pFrame->GetTimestamp());
 	  

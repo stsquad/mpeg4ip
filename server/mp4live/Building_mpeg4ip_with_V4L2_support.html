@@ -15,6 +15,7 @@ Original version by Waqar Mohsin<br>
 <p>
 <a href="#rh">Building on Redhat 9</a><br>
 <a href="#suse">Adding 2.6.1 Kernel to SuSE 9.0</a><br>
+<a href="#rhupgrade">Adding the 2.6.3 Kernel to Redhat 9.0</a><br>
 
 <div id="rh">
 <h2>A. Redhat Linux 9 Installation</h2>
@@ -308,6 +309,195 @@ Here's the diff that I had to make after the <code>generate-modprobe.conf</code>
 <p>
 Good luck.
 <p>
+<big></big>
+<div id="rhupgrade">
+<h2>C. Redhat 9.0 Installation of 2.6.3 kernel</h2></div>
+<p>
+Written by TrFremont
+<p>
+This was written 25th February 2004. URLs and available files change over 
+time so if you are attempting this far in the future do not be surprised 
+if things are not the same.
+<p>
+I am no Kernel expert. I did this to get rid of a bug. Mooie helped me
+a lot with how to do this. 
+<p>
+<h3>Why do this?</h3>
+<p>
+If you use Red Hat 9.0, a Brooktree chip capture card and have installed
+MPEG4IP and kept it up to date, you probaby have MPEG4IP V1.0 or V1.05, the
+bttv driver from bttv9-20030717.tar.gz and the V4L2 package distributed with
+MPEG4IP. The recent revisions contained in those packages cured the a/v sync
+problems, but there is a another, and more rare bug buried deep in that old
+bttv driver which sometimes causes video capture to freeze. In order to
+remove the bug you must update to a recent bttv package, which also needs a
+more recent v4l2 package, and they both need a more recent linux kernel than
+2.4.20, which is the one that was distributed with RH 9.0.
+<p>
+Here are instructions on how to obtain, configure, build and install
+linux 2.6.3 kernel which contains the latest bttv and v4l2 packages.
+<p>
+If you have other than Brooktree hardware, there are drivers for other video
+capture systems included. I have not tried them, but they may match your
+hardware.
+<p>
+<h3>Advantages</h3>
+<p>
+You get rid of the bug that causes video capture to hang.
+No more messing about with extra packages or kernel modules - 
+everything is now available as options right in the new kernel.
+<p>
+<h3>Disadvantages</h3>
+<p>
+The Red Hat organization does not support the use of later kernels, so if
+you have a Red Hat bug show up, they might not be able to help you solve it.
+However, the only bug I have found so far is that the memory useage is no
+longer show correctly in the System Monitor tool. I have not yet
+investigated how to fix this. Compiling, shells, Mozilla, all seem to work
+ok with 2.6.3.
+<p>
+<h3>Upgrade Relaiblility</h3>
+<p>
+This upgrade has been completed on two machines so far. The second machine
+upgrade went almost like clockwork. One machine had RH9.0 plus all the
+latest upgrades from Red Hat. The other had no upgrades at all, was stock
+RH9.0 installed from ISO CDs.
+<p>
+<h3>Utilities Needed</h3>
+<p>
+If you have compiled and installed MPEG4IP you should have enough to deal
+with the kernel.
+<p>
+<h3>Method In Brief</h3>
+<p>
+Download and unpackage the kernel source. Run configure, select options.
+Make. Make Install. Fix bootloader. Reboot.
+<p>
+<h3>Method in Detail</h3>
+<p>
+Log in as root, go to
+<a href="http://www.kernel.org">http://www.kernel.org</a><br>
+Click on the 2.6.3 link (latest stable at time of writing) and save the 
+.bz2 file to your /root/ directory.<br>
+unzip and untar the files. You will then have a 
+/root/linux-2.6.3/ directory.<br>
+(You can put the files any place, though there is a warning about NOT using
+  /usr/src/linux area as other files around there may mess things up.)
+<p>
+Make sure you are in root directory -<br>
+<code>#cd /root</code><br>
+Reset the ownership of all the package files -<br>
+<code>#chown -R root.root linux-2.6.3</code><br>
+Move to the package directory -<br>
+<code>#cd linux-2.6.3</code><br>
+(You can read the README file there, it has alternate build commands and
+note about versions of compilers needed etc.)<p>
+Run the configuration program - <br>
+<code>#make menuconfig</code><br>
+(It will check some things, then bring up a menu system for selecting
+options.)
+<p>
+You must now select the bttv and v4l2 items, they are _not_ on by default.
+Navigate through the items, turn on the ones shown [Y] below.
+<p>
+<pre>
+I2C Support
+  [Y] I2C Support
+      I2C Algorithms 
+      [Y] bit banging
+      [Y] Video For Linux
+         Video For Linux
+	 Video Adapters
+	 [Y] BT848 Video For Linux
+</pre>
+<p>
+(If you have a capture card or system other than BT848, select what is
+appropriate. I do not know how well the other options work)
+<p>
+(Also, you _may_ have to turn on support for the audio card you have.
+ One machine with on-board audio worked with nothing extra. The other
+ machine with a PCI sound blaster card needed its support option enabled
+ before sound worked.)
+<p>
+Possibly - <br>
+<pre>
+[Y] for audio device that you have.
+</pre>
+<p>
+Mpeg4ip note: see above as how to configure with OSS enabled.
+<p>
+Exit and save the configuration.<br>
+Run make<br>
+<code>#make</code><br>
+(It takes less than an hour on 1.7G P4.)<p>
+Install<br>
+<code>#make install</code><br>
+(Note that if you have to do this a second time, and you are running the on
+the new kernel from the first attempt, make install may not work. You have
+to reboot to the old kernel to install the new one.)
+<p>
+I use the grub boot loader. Make install puts an entry in /etc/grub.conf
+however it does not set the boot information correctly, you have to fix that
+by hand to make it boot properly.
+<p>
+Look for the section that starts 'title Red hat Linux (2.6.3)<br>
+Look about two lines below that for the line  that starts 'kernel....<br>
+If that line ends with 'root=LABEL=/' you need to change that to
+something like 'root=/dev/hda3'<br>
+If you look at around the 7th line in the file, there may be a comment
+that shows the correct root= setting for your system. Use that.
+<p>
+
+You can change the default boot option by changing the number at the
+end of the 'default=x' line, make x 0 to select the first of\ption, 1 for
+the second...
+<p>
+Save the grub.conf file.
+<br>
+Shutdown / restart the machine. 
+<br>
+Watch the boot messages, make sure the new 2.6.3 kernel gets selected.
+<br>
+You may see error/warning messages early in the boot process, something like
+<br>
+<code>QM_MODULES: Function not implemented</code><br>
+<code>Likely about initializing USB keyboard, usb mouse, ohci1394.</code>
+<p>
+These _appear_ to be the system still trying to load modules which are not
+used in this kernel, as they are already in the kernel now. If the rest of the
+boot proceeds I think you can ignore those warnings.
+<p>
+You may be able to get rid of them by fixing something in /lib/modules. But
+that may also prevent booting to the old kernel in the future.
+<p>
+mp4live and gmp4player will work without re-compiling them, however on one
+machine I did re-compile mpeg4ip without incident.
+<p>
+MPEG4IP NOTE: if you went from an non-V4L2 kernel, you will need to re-bootstrap
+mpeg4ip and recompile
+<p>
+If you have to change something in the kernel config, and recompile the
+kernel, you might want to 
+<p>
+<code>#make mrproper</code><br>
+first, to clean everything up.
+<p>
+If you get lost in changing options and things end up working worse rather
+than better, you can start again by<br>
+<code>#rm .config</code><br>
+then<br>
+<code>#make menuconfig</code><br>
+it will start afresh.
+<p>
+MPEG4IP NOTE - this is a good primer - read the above SuSE install in
+addition to this if some things are not clear.
+<p>
+Remember, mpeg4ip is not the kernel project - we cannot support your
+kernel install - we can barely do our own.
+<p>
+Good luck!
+<p>
+
 <a href="http://validator.w3.org/check/referer"><img
    src="http://www.w3.org/Icons/valid-html401"
    alt="Valid HTML 4.01!" height="31" width="88"></a>

@@ -21,6 +21,14 @@
 #ifndef __MP4AV_MPEG3_H__
 #define __MP4AV_MPEG3_H__ 1
 
+#define MPEG3_START_CODE_PREFIX          0x000001
+#define MPEG3_SEQUENCE_START_CODE        0x000001b3
+#define MPEG3_PICTURE_START_CODE         0x00000100
+#define MPEG3_GOP_START_CODE             0x000001b8
+#define MPEG3_EXT_START_CODE             0x000001b5
+#define MPEG3_SLICE_MIN_START            0x00000101
+#define MPEG3_SLICE_MAX_START            0x000001af
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,13 +36,22 @@ extern "C" {
   int MP4AV_Mpeg3ParseSeqHdr(uint8_t *pbuffer, uint32_t buflen, 
 			     int *have_mpeg2,
 			      uint32_t *height, uint32_t *width, 
-			      double *frame_rate, double *bitrate);
+			      double *frame_rate, double *bitrate,
+			     double *aspect_ratio);
 
   int MP4AV_Mpeg3PictHdrType(uint8_t *pbuffer);
 
   uint16_t MP4AV_Mpeg3PictHdrTempRef(uint8_t *pbuffer);
 
-  int MP4AV_Mpeg3FindGopOrPictHdr(uint8_t *pbuffer, uint32_t buflen, int *ftype);
+  int MP4AV_Mpeg3FindPictHdr(uint8_t *pbuffer, uint32_t buflen, int *ftype);
+  int MP4AV_Mpeg3FindNextStart (uint8_t *pbuffer, 
+				uint32_t buflen,
+				uint32_t *optr, 
+				uint32_t *scode);
+  int MP4AV_Mpeg3FindNextSliceStart (uint8_t *pbuffer,
+				     uint32_t startoffset, 
+				     uint32_t buflen,
+				     uint32_t *slice_offset);
 #ifdef __cplusplus
 }
 #endif

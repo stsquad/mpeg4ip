@@ -96,48 +96,6 @@ void player_debug_message (const char *fmt, ...)
   fflush(output_file);
 }
 
-void message (int loglevel, const char *lib, const char *fmt, ...)
-{
-  va_list ap;
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
-
-  gettimeofday(&thistime, NULL);
-  secs = thistime.tv_sec;
-  // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
-  fprintf(output_file, "%s.%03lu-%s-%d: ",
-	 buffer, (unsigned long)thistime.tv_usec / 1000, lib, loglevel);
-  va_start(ap, fmt);
-  vfprintf(output_file, fmt, ap);
-  va_end(ap);
-  fprintf(output_file, "\n");
-  fflush(output_file);
-}
-
-void player_library_message (int loglevel,
-			     const char *lib,
-			     const char *fmt,
-			     va_list ap)
-{
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
-
-  gettimeofday(&thistime, NULL);
-  secs = thistime.tv_sec;
-  strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
-  fprintf(output_file, "%s.%03lu-%s-%d: ",
-	 buffer,
-	 (unsigned long)thistime.tv_usec / 1000,
-	 lib,
-	 loglevel);
-  vfprintf(output_file, fmt, ap);
-  fprintf(output_file, "\n");
-  fflush(output_file);
-}
-
 
 #ifndef HAVE_STRCASESTR
 char *strcasestr (const char *haystack, const char *needle)

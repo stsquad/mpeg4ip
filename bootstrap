@@ -32,7 +32,6 @@ then echo "Please run cvs_bootstrap instead."
 fi
 
 target_system=`uname -s`
-if test $target_system != "Darwin"; then
   if sdl-config >/dev/null 2>/dev/null
   then
     echo "SDL appears to be installed"
@@ -41,7 +40,6 @@ if test $target_system != "Darwin"; then
     echo "You must have sdl-config in your path to continue"
     exit 1
   fi
-fi
 
 allargs="$@"
 #

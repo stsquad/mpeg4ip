@@ -120,7 +120,7 @@ void CMp4Recorder::DoStartRecord()
     * m_movieTimeScale;
   bool hugeFile = 
     (duration > 0xFFFFFFFF) 
-    || (m_pConfig->m_recordEstFileSize > (M_64 * MM_64));
+    || (m_pConfig->m_recordEstFileSize > (TO_U64(1000000000)));
   uint32_t createFlags = 0;
   if (hugeFile) {
     createFlags |= MP4_CREATE_64BIT_DATA;
@@ -248,11 +248,13 @@ void CMp4Recorder::DoStartRecord()
                               m_mp4File, 
                               videoProfile);
 
-      MP4SetTrackESConfiguration(
-                                 m_mp4File, 
-                                 m_encodedVideoTrackId,
-                                 videoConfig,
-                                 videoConfigLen);
+      if (videoConfigLen > 0) {
+	MP4SetTrackESConfiguration(
+				   m_mp4File, 
+				   m_encodedVideoTrackId,
+				   videoConfig,
+				   videoConfigLen);
+      }
     }
   }
 
@@ -441,12 +443,22 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 
       dataLen = pFrame->GetDataLength();
       pDataStart = (uint8_t *)pFrame->GetData();
-      pData = MP4AV_Mpeg4FindVop(pDataStart, dataLen);
-      if (pData == NULL ||
-	  MP4AV_Mpeg4GetVopType(pDataStart,
-				dataLen - (pData - pDataStart)) != 'I') {
-        if (pFrame->RemoveReference()) delete pFrame;
-        return;
+      if (pFrame->GetType() == MPEG4VIDEOFRAME) {
+	pData = MP4AV_Mpeg4FindVop(pDataStart, dataLen);
+	if (pData == NULL ||
+	    MP4AV_Mpeg4GetVopType(pDataStart,
+				  dataLen - (pData - pDataStart)) != 'I') {
+	  if (pFrame->RemoveReference()) delete pFrame;
+	  return;
+	}
+      } else {
+	// MPEG2 video
+	int ret, ftype;
+	ret = MP4AV_Mpeg3FindPictHdr(pDataStart, dataLen, &ftype);
+	if (ret < 0 || ftype != 1) {
+	  if (pFrame->RemoveReference()) delete pFrame;
+	  return;
+	}
       }
 
       if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) &&
@@ -485,24 +497,42 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 #endif
     dataLen = m_prevEncodedVideoFrame->GetDataLength();
 
-    pData = MP4AV_Mpeg4FindVop((uint8_t *)m_prevEncodedVideoFrame->GetData(),
+    
+    Duration rend_offset = 0;
+    if (pFrame->GetType() == MPEG4VIDEOFRAME) {
+      pData = MP4AV_Mpeg4FindVop((uint8_t *)m_prevEncodedVideoFrame->GetData(),
 			       dataLen);
-    if (pData) {
-      dataLen -= (pData - (uint8_t *)m_prevEncodedVideoFrame->GetData());
-      isIFrame =
-	(MP4AV_Mpeg4GetVopType(pData,dataLen) == 'I');
+      if (pData) {
+	dataLen -= (pData - (uint8_t *)m_prevEncodedVideoFrame->GetData());
+	isIFrame =
+	  (MP4AV_Mpeg4GetVopType(pData,dataLen) == 'I');
+      } else {
+	pData = (uint8_t *)m_prevEncodedVideoFrame->GetData();
+      }
     } else {
+      // mpeg2
+      int ret, ftype;
       pData = (uint8_t *)m_prevEncodedVideoFrame->GetData();
+      ret = MP4AV_Mpeg3FindPictHdr(pData, dataLen, &ftype);
+      isIFrame = false;
+      if (ret >= 0) {
+	if (ftype == 1) isIFrame = true;
+	if (ftype != 3) {
+	  rend_offset = m_prevEncodedVideoFrame->GetPtsTimestamp() - 
+	    m_prevEncodedVideoFrame->GetTimestamp();
+	  rend_offset = GetTimescaleFromTicks(rend_offset, m_movieTimeScale);
+	}
+      }
     }
 
     MP4WriteSample(
-                   m_mp4File,
-                   m_encodedVideoTrackId,
-                   pData,
+		   m_mp4File,
+		   m_encodedVideoTrackId,
+		   pData,
 		   dataLen,
 		   videoDurationInTimescaleFrame,
-                   0,
-                   isIFrame);
+		   rend_offset,
+		   isIFrame);
 		
     m_encodedVideoFrameNumber++;
     if (m_prevEncodedVideoFrame->RemoveReference()) {
@@ -637,7 +667,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
     m_prevRawVideoFrame = pFrame;
 
     // ENCODED VIDEO
-  } else if (pFrame->GetType() == MPEG4VIDEOFRAME
+  } else if (pFrame->GetType() == m_encodedVideoFrameType
              && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
 
     ProcessEncodedVideoFrame(pFrame);
@@ -690,10 +720,30 @@ void CMp4Recorder::DoStopRecord()
     }
   }
   if (m_prevEncodedVideoFrame) {
-    bool isIFrame =
-      (MP4AV_Mpeg4GetVopType(
-                             (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
-                             m_prevEncodedVideoFrame->GetDataLength()) == 'I');
+    bool isIFrame;
+    Duration rend_offset = 0;
+    
+    if (m_prevEncodedVideoFrame->GetType() == MPEG4VIDEOFRAME) {
+      isIFrame = 
+	(MP4AV_Mpeg4GetVopType(
+			       (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
+			       m_prevEncodedVideoFrame->GetDataLength()) == 'I');
+    } else {
+      int ret, ftype;
+      ret = 
+	MP4AV_Mpeg3FindPictHdr((u_int8_t *)m_prevEncodedVideoFrame->GetData(), 
+			       m_prevEncodedVideoFrame->GetDataLength(),
+			       &ftype);
+      isIFrame = false;
+      if (ret >= 0) {
+	if (ftype == 1) isIFrame = true;
+	if (ftype != 3) {
+	  rend_offset = m_prevEncodedVideoFrame->GetPtsTimestamp() - 
+	    m_prevEncodedVideoFrame->GetTimestamp();
+	  rend_offset = GetTimescaleFromTicks(rend_offset, m_movieTimeScale);
+	}
+      }
+    }
 
     MP4WriteSample(
                    m_mp4File,
@@ -701,7 +751,7 @@ void CMp4Recorder::DoStopRecord()
                    (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
                    m_prevEncodedVideoFrame->GetDataLength(),
                    m_prevEncodedVideoFrame->ConvertDuration(m_videoTimeScale),
-                   0,
+                   rend_offset,
                    isIFrame);
     if (m_prevEncodedVideoFrame->RemoveReference()) {
       delete m_prevEncodedVideoFrame;

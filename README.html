@@ -387,7 +387,7 @@ all compiler packages, and the following packages.  I recommend to install them 
 Be sure to install the GLIB/GTK family over the existing installs - for the most part, be sure to use configure --prefix=/opt/gnome.
 <p>
 If you want to run gmp4player with sound, you will need to disable the aRTs 
-sound server.  Start the Control Center, select Sound & Multimedia, then select
+sound server.  Start the Control Center, select Sound &amp; Multimedia, then select
 Sound System.  Uncheck the box that says "Start aRts soundserver on KDE 
 startup", and hit Apply.  You will need to log out, then log back in.
 <p>
@@ -449,6 +449,9 @@ you have another version installed.
 <P>
 <b>Windows</b>
 <P>
+<b>NOTE:</b> We don't usually support the Windows code in CVS.  So, 
+unless you're explicitly told to use CVS, <b>don't</b>.
+<P>
 As of 1.0, we're supporting Windows less and less.  You can read the
 code yourself - if you have trouble doing so, our windows code is not
 for you.
@@ -458,8 +461,16 @@ to install nasm in the VC98/bin directory before compiling.  You should
 get nasm-0.98.22-win32.zip from the nasm web site.  You will need to 
 rename nasmw.exe to nasm.exe.  We require Service Pack 5.
 <P>
-<b>NOTE:</b> We don't usually support the Windows code in CVS.  So, 
-unless you're explicitly told to use CVS, <b>don't</b>.
+We also require you to install the SDL project into where ever you
+are compiling the mpeg4ip project.  Download the latest <a href="http://www.libsdl.org">
+SDL Development Library</a>, Windows Visual C++ zip file and extract it into the mpeg4ip
+top level directory.  You must rename it SDL, instead of SDL-1.2.x.  You
+should get docs, an include directory and a lib directory.  You may also
+have to install lib/SDL.dll into a Windows directory (c:\winnt\system32 
+or the equivalent.
+<p>
+If you're looking at these directions, and going "Huh?" - this project may
+not be right for you.
 <P>
 Use the encoding60.dsw project for encoding tools, and the 
 player/src/player60.dsw for the player.
@@ -476,37 +487,23 @@ the same directory).   You will also need to install all the plugin
 in player60.dsw.
 <P>
 In encoding60.dsw and player60.dsw, if you do a batch build, you will
-see several projects that do not build correctly - these are Lame
-with GTK, and common with IPv6.  This is as designed.  If you want
-these to build, please see the appropriate package creator for the
-correct steps - they are not supported in mpeg4ip.
+see several projects that do not build correctly - these common with IPv6.  
+This is as designed.  If you want these to build, please see the appropriate
+package creator for the correct steps - they are not supported in mpeg4ip.
 <P>
 For windows GUI player, see the player README
 <P>
 <b>Mac OSX</b>
 <P>
-We haven't been able to build mpeg4ip on a MAC for quite some
-time.  We just don't understand the toolchains, and it's not a
-high priority for us.  One of our forum member (yakima) sent us
-the following steps:
-<P>
-- updated automake -&gt; 1.6.3<br>
-- installed DLCompat (dlfcn.h etc., see above)<br>
-- bootstrap w/ <code>--disable-shared --disable-mp4live</code><br>
-- make w/ <code>LDFLAGS='-flat_namespace -undefined warning' </code><br>
-<P>
-Version 0.9.7.2 should have the other changes required to get this
-to compile.  He didn't have any luck with the player plugins, and
-we hope to get that done before the next release.
-<P>
-<P> 
-Another good friend, Steve Schultz, said that if you run into a number
-of link errors in the player, remove the -lstdc++ in player/src/Makefile.am.
-<P>
-This may make the below accurate again.
-<P>
-/*<br>
-When building on Mac OSX, you may get an error that libtoolize is
+We only support 10.3.2 (Panther) and later.  You should have the
+tools installed (you do not need Xcode installed, unless you only
+want the tools, and don't want to install SDL).
+<p>
+You should install SDL-1.2.7 (or greater) from source, not from the
+binaries.  We require the sdl-config script, which is not installed 
+with the binaries.
+<p>
+You may get an error that libtoolize is
 not installed correctly.  Mac OSX comes with libtool installed as
 glibtool.  Automake (which doesn't come included with OSX) does not
 correct its scripts.
@@ -514,23 +511,14 @@ correct its scripts.
 To fix this problem, do a link of libtoolize to glibtoolize (ie:
 <code>ln -s libtoolize glibtoolize</code> wherever glibtoolize is installed).
 <P>
-You should also use the <code>--disable-shared</code> command when issuing the
-bootstrap shell.  This should be done for you if you use the project
-builder project.  
-<P>
-We've tested the latest build on OSX, and have some strange results
-at times.  Your mileage may vary.<br>
-*/
-<P>
-Alternately, you might try patching using the patch.osx file found in 
-the top level directory, and using the Project Builder project files.
-<P>
-Needless to say, the player will not work very well on MacOSX - we never
+The player will not work very well on MacOSX - we never
 figured out how to get information out of the audio driver to calculate the
-audio latency delay.  We really recommend using Quicktime.
+audio latency delay, and there is some problem with SDL that requires the
+video to be in the main thread, like windows.
+We really recommend using Quicktime.
 <P>
-Maybe, if I can get a mac and some time, I'll do a little work in this
-area.  But don't look for it until late 2004.
+We'll be working on this as time permits in 2004 - maybe by the summer, 
+we'll have a rock solid player
 <p>
 <a href="#top">Back to top</a>
 <P>
@@ -542,7 +530,7 @@ If you ran 'make install' with the defaults, then all the MPEG4IP executables
 will end up in /usr/local/bin. 
 <P>
 For encoding tools, you get:<br>
-<table class='p'>
+<table class='p' summary="encoding tool list">
 <tr>
   <td align="left">mp4live</td>     
   <td align="left" colspan=2>Integrated, live encoding to file or network - Linux only</td>
@@ -580,7 +568,7 @@ For encoding tools, you get:<br>
 These are described in more detail in doc/encoding/encoding.htm
 <P>
 A few debugging tools are also included:<br>
-<table>
+<table summary="debugging tool list">
 <tr>
   <td align="left">mp4extract</td>
   <td align="left">Utility to extract tracks from an MP4 file (deprecated)</td>
@@ -609,7 +597,7 @@ A few debugging tools are also included:<br>
 <P>
 For playback, you get:
 <P>
-<table>
+<table summary="players">
 <tr>
   <td>gmp4player</td>  
   <td>Simple graphical interface player</td>
@@ -796,9 +784,9 @@ ISO/IEC 13818-7:1997 MPEG-2 AAC<br>
 The ISO/IEC documents must be purchased from either ISO (<a href="http://www.iso.ch">www.iso.ch</a>) or one of the national bodies.
 In the US, ANSI is the representative body, and provides an online store under <a href="http://www.ansi.org">www.ansi.org</a>
 <P>
-<table>
+<table summary="IETF documentation">
 <tr>
-  <td align="left" valign="top">IETF RFC 1889 & 1890</td>
+  <td align="left" valign="top">IETF RFC 1889 &amp; 1890</td>
   <td align="left">RTP</td>
 </tr>
 <tr>
@@ -824,10 +812,9 @@ In the US, ANSI is the representative body, and provides an online store under <
     <i>Note: we're implementing the MPEG-4 video part</i></td>
 </tr>
 <tr>
-  <td align="left" valign="top">IETF draft-ietf-avt-mpeg4-simple-06.txt</td> 
-  <td align="left" valign="top">work in progress<br>
-    <i>Note: we're implementing the AAC audio part, and for the next
-    release will finalize implementation.</i></td>
+  <td align="left" valign="top">IETF RFC 3640</td> 
+  <td align="left" valign="top">RTP Payload for Tranport of MPEG-4 Elementary Streams<br>
+    <i>Note: we're implementing the AAC and Celp audio part.</i></td>
 </tr>
 </table>
 <P>
@@ -913,7 +900,7 @@ support 64 bit time atoms in a mp4 file.
 </li>
 <li> We do not support gcc 2.95.3.  There is a problem that makes it think
 that when a long is defined as an int, and time_t is defined as an int, that
-<code>&#037ld</code> should not be the correct format.  You can try to fix 
+<code>&#037;ld</code> should not be the correct format.  You can try to fix 
 these by removing the l when you get the warning.
 </li>
   <li> There have been some changes to the MPEG4 AAC DTS headers in the

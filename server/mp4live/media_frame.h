@@ -42,7 +42,7 @@ typedef u_int16_t MediaType;
 #define H26LVIDEOFRAME          13
 #define RECONSTRUCTYUVVIDEOFRAME 	15
 #define H261VIDEOFRAME          16
-
+#define MPEG2VIDEOFRAME         17
 
 typedef void (*media_free_f)(void *);
 
@@ -52,9 +52,10 @@ public:
 		MediaType type = UNDEFINEDFRAME, 
 		void* pData = NULL, 
 		u_int32_t dataLength = 0, 
-		Timestamp timestamp = 0, 
+		Timestamp dts = 0, 
 		Duration duration = 0, 
-		u_int32_t durationScale = TimestampTicks) {
+		u_int32_t durationScale = TimestampTicks,
+		Timestamp pts = 0) {
 
 		m_pMutex = SDL_CreateMutex();
 		if (m_pMutex == NULL) {
@@ -64,7 +65,8 @@ public:
 		m_type = type;
 		m_pData = pData;
 		m_dataLength = dataLength;
-		m_timestamp = timestamp;
+		m_dts = dts;
+		m_pts = pts;
 		m_duration = duration;
 		m_durationScale = durationScale;
 		m_media_free = NULL;
@@ -120,11 +122,17 @@ public:
 		return m_dataLength;
 	}
 	Timestamp GetTimestamp(void) {
-		return m_timestamp;
+		return m_dts;
 	}
 	void SetTimestamp(Timestamp t) {
-	  m_timestamp = t;
+	  m_dts = t;
 	}
+	Timestamp GetPtsTimestamp (void) {
+	  return m_pts;
+	};
+	void SetPtsTimestamp(Timestamp t) {
+	  m_pts = t;
+	};
 	Duration GetDuration(void) {
 		return m_duration;
 	}
@@ -149,7 +157,8 @@ protected:
 	MediaType	m_type;
 	void* 		m_pData;
 	u_int32_t 	m_dataLength;
-	Timestamp	m_timestamp;
+	Timestamp	m_pts;
+	Timestamp       m_dts;
 	Duration 	m_duration;
 	u_int32_t	m_durationScale;
 	media_free_f    m_media_free;

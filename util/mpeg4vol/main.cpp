@@ -170,7 +170,7 @@ static void decode (uint8_t *vol, uint32_t len)
       printf("    chroma format - %u\n", bs->GetBits(2));
       printf("    low delay - %u\n", bs->GetBits(1));
       temp = bs->GetBits(1);
-      printf("    vbv_parameters - %u\n", bs->GetBits(1));
+      printf("    vbv_parameters - %u\n", temp); 
       if (temp) {
 	temp = bs->GetBits(15) << 15;
 	CheckMarker(bs);

@@ -35,9 +35,20 @@ libmp4syncbase_la_SOURCES = \
 	video.cpp \
 	video.h 
 
+if HAVE_MAC_OSX
+  SDL_AUDIO_SRC = audio_macosx.cpp audio_macosx.h
+  SDL_AUDIO_LIB =
+  SDL_AUDIO_INC =
+  ADD_CFLAGS=-Ddarwin -D_THREAD_SAFE -DNEED_SDL_VIDEO_IN_MAIN_THREAD 
+else
+  SDL_AUDIO_SRC = audio_sdl.cpp audio_sdl.h
+  SDL_AUDIO_LIB = $(top_builddir)/lib/SDLAudio/src/libmpeg4ipSDL.la 
+  SDL_AUDIO_INC = -I$(top_builddir)/lib/SDLAudio/include
+  ADD_CFLAGS=
+endif
+
 libmp4syncsdl_la_SOURCES = \
-	audio_sdl.cpp \
-	audio_sdl.h \
+	$(SDL_AUDIO_SRC) \
 	video_sdl.cpp \
 	video_sdl.h
 
@@ -56,9 +67,13 @@ libmp4player_la_SOURCES = \
 	ip_port.h \
 	media_utils.cpp \
 	media_utils.h \
+	mpeg2f_bytestream.cpp \
+	mpeg2f_bytestream.h \
 	mpeg2t.h \
 	mpeg2t_bytestream.cpp \
 	mpeg2t_bytestream.h \
+	mpeg2t_file.cpp \
+	mpeg2t_file.h \
 	mpeg2t_private.h \
 	mpeg2t_thread.cpp \
 	mpeg2t_thread.h \
@@ -120,11 +135,11 @@ gmp4player_SOURCES = \
 	gui_utils.h \
 	gui_xpm.h
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDLAudio/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@ 
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio $(SDL_AUDIO_INC) -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@ 
 
-AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
+AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\" $(ADD_CFLAGS)
 
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"  $(ADD_CFLAGS)
 
 libmp4player_la_LIBADD = \
 	$(top_builddir)/lib/mpeg2t/libmpeg2_transport.la \
@@ -141,6 +156,7 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
+	$(top_builddir)/lib/fposrec/libfposrec.la \
 	@ISMACRYPLIB@ \
 	$(top_builddir)/lib/avi/libavi.la  \
 	$(top_builddir)/lib/utils/libutils.la
@@ -153,7 +169,7 @@ mp4player_LDADD = \
 	libmp4syncbase.la \
 	libmp4playerutils.la \
 	@SDL_LIBS@  \
-	$(top_builddir)/lib/SDLAudio/src/libmpeg4ipSDL.la 
+	$(SDL_AUDIO_LIB)
 
 
 gmp4player_LDADD = $(mp4player_LDADD) \

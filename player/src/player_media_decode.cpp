@@ -304,7 +304,7 @@ int CPlayerMedia::decode_thread (void)
 						   &ud);
 	      if (hassync < 0) {
 		uint64_t diff = ourtime - current_time;
-		if (diff > (2 * C_64)) {
+		if (diff > TO_U64(200)) {
 		  hassync = 1;
 		}
 	      }

@@ -25,7 +25,7 @@
 
 class CBitstream {
  public:
-  CBitstream(void) {};
+  CBitstream(void) { m_verbose = 0;};
   CBitstream(const uint8_t *buffer, uint32_t bit_len) {
     m_verbose = 0;
     init(buffer, bit_len);

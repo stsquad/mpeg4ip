@@ -98,6 +98,16 @@ MediaType get_video_mp4_fileinfo_base (CLiveConfig *pConfig,
       *videoConfig = NULL;
       *videoConfigLen = 0;
     return H261VIDEOFRAME;
+  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG2)) {
+    *createIod = false;
+    *isma_compliant = false;
+    *videoProfile = 0xff;
+    *videoConfig = NULL;
+    *videoConfigLen = 0;
+    if (mp4_video_type) {
+      *mp4_video_type = MP4_MPEG2_VIDEO_TYPE;
+    }
+    return MPEG2VIDEOFRAME;
   }
   return UNDEFINEDFRAME;
 }
@@ -130,12 +140,12 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
   sdpMediaVideoFormat = MALLOC_STRUCTURE(format_list_t);
   memset(sdpMediaVideoFormat, 0, sizeof(*sdpMediaVideoFormat));
   sdpMediaVideo->fmt = sdpMediaVideoFormat;
-  sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
-  memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
-  sdpMediaVideoFormat->media = sdpMediaVideo;
-  sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
 
   if (mtype == MPEG4VIDEOFRAME) {
+    sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
+    memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
+    sdpMediaVideoFormat->media = sdpMediaVideo;
+    sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, 
 			   "a=mpeg4-esid:20");
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines,
@@ -158,8 +168,12 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
     sdpMediaVideoFormat->fmt_param = strdup(videoFmtpBuf);
   } else if (mtype == H261VIDEOFRAME) {
     sdpMediaVideoFormat->fmt = strdup("31");
+#if 0
     sdpVideoRtpMap->encode_name = strdup("h261");
     sdpVideoRtpMap->clock_rate = 90000;
+#endif
+  } else if (mtype == MPEG2VIDEOFRAME) {
+    sdpMediaVideoFormat->fmt = strdup("32");
   }
 
   return sdpMediaVideo;
@@ -176,7 +190,12 @@ void create_mp4_video_hint_track_base (CLiveConfig *pConfig,
     MP4AV_Rfc3016Hinter(mp4file, 
 			trackId,
 			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG2)) {
+    Mpeg12Hinter(mp4file, 
+		 trackId,
+		 pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
   }
+
 }
 
 static void H261SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
@@ -257,6 +276,160 @@ static void Mpeg43016SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
     delete pFrame;
 }
 
+static void Mpeg2SendVideo (CMediaFrame *pFrame, 
+			    CRtpDestination *list,
+			    uint32_t rtpTimestamp,
+			    uint16_t maxPayloadSize)
+{
+  uint8_t rfc2250[4], rfc2250_2;
+  uint32_t sampleSize;
+  uint8_t *pData, *pbuffer;
+  uint32_t scode;
+  int have_seq;
+  bool stop;
+  uint32_t offset;
+  uint8_t *pstart;
+  uint8_t type;
+  uint32_t next_slice, prev_slice;
+  bool slice_at_begin;
+  CRtpDestination *rdptr;
+
+  pData = (uint8_t *)pFrame->GetData();
+  sampleSize = pFrame->GetDataLength();
+
+  offset = 0;
+  have_seq = 0;
+  pbuffer = pData;
+  stop = false;
+  do {
+    uint32_t oldoffset;
+    oldoffset = offset;
+    if (MP4AV_Mpeg3FindNextStart(pData + offset, 
+				 sampleSize - offset, 
+				 &offset, 
+				 &scode) < 0) {
+      // didn't find the start code
+#ifdef DEBUG_MPEG3_HINT
+      printf("didn't find start code\n");
+#endif
+      stop = true;
+    } else {
+      offset += oldoffset;
+#ifdef DEBUG_MPEG3_HINT
+      printf("next sscode %x found at %d\n", scode, offset);
+#endif
+      if (scode == MPEG3_SEQUENCE_START_CODE) have_seq = 1;
+      offset += 4; // start with next value
+    }
+  } while (scode != MPEG3_PICTURE_START_CODE && stop == false);
+ 
+  pstart = pbuffer + offset; // point to inside of picture start
+  type = (pstart[1] >> 3) & 0x7;
+ 
+  rfc2250[0] = (*pstart >> 6) & 0x3;
+  rfc2250[1] = (pstart[0] << 2) | ((pstart[1] >> 6) & 0x3); // temporal ref
+  rfc2250[2] = type;
+  rfc2250_2 = rfc2250[2];
+  rfc2250[3] = 0;
+  if (type == 2 || type == 3) {
+    rfc2250[3] = pstart[3] << 5;
+    if ((pstart[4] & 0x80) != 0) rfc2250[3] |= 0x10;
+    if (type == 3) {
+      rfc2250[3] |= (pstart[4] >> 3) & 0xf;
+    }
+  }
+
+  prev_slice = 0;
+  if (MP4AV_Mpeg3FindNextSliceStart(pbuffer, offset, sampleSize, &next_slice) < 0) {
+    slice_at_begin = false;
+  } else {
+    slice_at_begin = true;
+  }
+  offset = 0;
+  bool nomoreslices = false;
+  bool found_slice = slice_at_begin;
+  bool onfirst = true;
+  
+  maxPayloadSize -= sizeof(rfc2250); // make sure we have room
+  while (sampleSize > 0) {
+      bool isLastPacket;
+      uint32_t len_to_write;
+
+      if (sampleSize <= maxPayloadSize) {
+	// leave started_slice alone
+	len_to_write = sampleSize;
+	isLastPacket = true;
+	prev_slice = 0;
+      } else {
+	found_slice =  (onfirst == false) && (nomoreslices == false) && (next_slice <= maxPayloadSize);
+	onfirst = false;
+	isLastPacket = false;
+
+	while (nomoreslices == false && next_slice <= maxPayloadSize) {
+	  prev_slice = next_slice;
+	  if (MP4AV_Mpeg3FindNextSliceStart(pbuffer, next_slice + 4, sampleSize, &next_slice) >= 0) {
+#ifdef DEBUG_MPEG3_HINT
+	    printf("prev_slice %u next slice %u %u\n", prev_slice, next_slice,
+		   offset + next_slice);
+#endif
+	    found_slice = true;
+	  } else {
+	    // at end
+	    nomoreslices = true;
+	  }
+	}
+	// prev_slice should have the end value.  If it's not 0, we have
+	// the end of the slice.
+	if (found_slice) len_to_write = prev_slice;
+	else len_to_write = MIN(maxPayloadSize, sampleSize);
+      } 
+
+      rfc2250[2] = rfc2250_2;
+      if (have_seq != 0) {
+	rfc2250[2] |= 0x20;
+	have_seq = 0;
+      }
+
+      if (slice_at_begin) {
+	rfc2250[2] |= 0x10; // set b bit
+      }
+      if (found_slice || isLastPacket) {
+	rfc2250[2] |= 0x08; // set end of slice bit
+	slice_at_begin = true; // for next time
+      } else {
+	slice_at_begin = false;
+      }
+      
+  struct iovec iov[2];
+  iov[0].iov_base = rfc2250;
+  iov[0].iov_len = sizeof(rfc2250);
+  iov[1].iov_base = pData + offset;
+  iov[1].iov_len = len_to_write;
+  rdptr = list;
+  while (rdptr != NULL) {
+    int rc = rdptr->send_iov(iov, 2, rtpTimestamp, 
+			     len_to_write >= sampleSize ? 1 : 0);
+    rc -= sizeof(rtp_packet_header);
+    rc -= sizeof(rfc2250);
+    if (rc != (int)len_to_write) {
+      error_message("send_iov error - returned %d %d", rc, len_to_write);
+    }
+    rdptr = rdptr->get_next();
+  }
+
+  offset += len_to_write;
+  sampleSize -= len_to_write;
+  prev_slice = 0;
+  next_slice -= len_to_write;
+  pbuffer += len_to_write;
+
+  }
+
+  if (pFrame->RemoveReference())
+    delete pFrame;
+}
+
+
 video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CLiveConfig *pConfig,
 						       MediaType *pType,
 						       uint8_t *pPayload)
@@ -270,6 +443,10 @@ video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CLiveConfig *pConfig,
     *pPayload = 31;
     *pType = H261VIDEOFRAME;
     return H261SendVideo;
+  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG2)) {
+    *pPayload =32;
+    *pType = MPEG2VIDEOFRAME;
+    return Mpeg2SendVideo;
   }
   return NULL;
 }

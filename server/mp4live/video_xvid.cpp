@@ -117,8 +117,10 @@ bool CXvidVideoEncoder::EncodeImage(
 	u_int32_t yStride,
 	u_int32_t uvStride,
 	bool wantKeyFrame,
-	Duration Elapsed)
+	Duration Elapsed,
+	Timestamp srcFrameTimestamp)
 {
+  m_srcFrameTimestamp = srcFrameTimestamp;
 	m_vopBuffer = (u_int8_t*)malloc(m_pConfig->m_videoMaxVopSize);
 	if (m_vopBuffer == NULL) {
 		return false;
@@ -155,8 +157,11 @@ bool CXvidVideoEncoder::EncodeImage(
 }
 
 bool CXvidVideoEncoder::GetEncodedImage(
-	u_int8_t** ppBuffer, u_int32_t* pBufferLength)
+	u_int8_t** ppBuffer, u_int32_t* pBufferLength,
+	Timestamp *dts, Timestamp *pts)
 {
+  // will have to change this if we do b frames
+  *dts = *pts = m_srcFrameTimestamp; 
 	*ppBuffer = m_vopBuffer;
 	*pBufferLength = m_vopBufferLength;
 

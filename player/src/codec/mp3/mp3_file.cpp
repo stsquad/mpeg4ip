@@ -255,14 +255,17 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
 	mp3->m_freq = freq;
       }
       if ((framecount % 16) == 0) {
-	long current;
-	current = ftell(mp3->m_ifile);
-	current -= framesize;
-	current -= mp3->m_buffer_size - mp3->m_buffer_on;
-	uint64_t calc;
-	calc = framecount * mp3->m_samplesperframe * M_64;
-	calc /= mp3->m_freq;
-	mp3->m_fpos->record_point(current, calc, framecount);
+ 	fpos_t pos;
+	if (fgetpos(mp3->m_ifile, &pos) >= 0) {
+	  uint64_t current;
+	  FPOS_TO_VAR(pos, uint64_t, current);
+	  current -= framesize;
+	  current -= mp3->m_buffer_size - mp3->m_buffer_on;
+	  uint64_t calc;
+	  calc = framecount * mp3->m_samplesperframe * TO_U64(1000);
+	  calc /= mp3->m_freq;
+	  mp3->m_fpos->record_point(current, calc, framecount);
+	}
       }
       framecount++;
     }
@@ -361,7 +364,7 @@ int mp3_file_next_frame (codec_data_t *your_data,
 
     // Calculate the current time
     uint64_t calc;
-    calc = mp3->m_framecount * mp3->m_samplesperframe * M_64;
+    calc = mp3->m_framecount * mp3->m_samplesperframe * TO_U64(1000);
     calc /= mp3->m_freq;
     *ts = calc;
     mp3->m_framecount++;
@@ -378,8 +381,9 @@ int mp3_raw_file_seek_to (codec_data_t *ptr, uint64_t ts)
   mp3->m_framecount = fpos->frames;
   mp3->m_buffer_on = 0;
   mp3->m_buffer_size = 0;
-
-  fseek(mp3->m_ifile, fpos->file_position, SEEK_SET);
+  fpos_t pos;
+  VAR_TO_FPOS(pos, fpos->file_position);
+  fsetpos(mp3->m_ifile, &pos);
   return 0;
 }
   

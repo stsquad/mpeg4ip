@@ -13,78 +13,46 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
 /*
- * qtime_bytestream.cpp - convert quicktime file to a bytestream
+ * mpeg2f_bytestream.cpp - convert mpeg2 transport stream file to bytestream
+ * using lib/mpeg2t to read file.
  */
 
 #include "mpeg4ip.h"
-#include "mpeg2t_bytestream.h"
+#include "mpeg2f_bytestream.h"
 #include "player_util.h"
 #include "mp4av.h"
 //#define DEBUG_MPEG2T_FRAME 1
 //#define DEBUG_MPEG2T_PSTS 1
 
 static inline bool convert_psts (mpeg2t_es_t *es_pid,
-				 mpeg2t_stream_t *sptr,
-				 mpeg2t_frame_t *fptr)
+				 mpeg2t_frame_t *fptr,
+				 uint64_t start_psts)
 {
-  mpeg2t_client_t *info = sptr->m_parent;
   uint64_t ps_ts;
   // we want to 0 out the timestamps of the incoming transport
   // stream so that the on-demand shows the correct timestamps
 
   // see if we've set the initial timestamp
-  if (info->m_have_start_psts == 0) {
-    if (fptr->have_ps_ts == 0) {
-#ifdef DEBUG_MPEG2T_PSTS
-      player_debug_message("dropping %d - no psts", sptr->m_is_video);
-#endif
-      return false;
-    }
-    if (sptr->m_is_video != 0) {
-      if (fptr->frame_type != 1) {
-#ifdef DEBUG_MPEG2T_PSTS
-	player_debug_message("dropping "U64" video ftype %d", 
-			     fptr->ps_ts, fptr->frame_type);
-#endif
-	return false;
-      }
-      // adjust ps_ts to the dts - subtract off the temporal reference field
-      ps_ts = fptr->ps_ts;
-      uint16_t temp_ref = MP4AV_Mpeg3PictHdrTempRef(fptr->frame + fptr->pict_header_offset);
-      ps_ts -= ((temp_ref + 1) * es_pid->tick_per_frame);
-#ifdef DEBUG_MPEG2T_PSTS
-      player_debug_message("video - convert temp ref %d "U64" to "U64, 
-			   temp_ref, fptr->ps_ts, ps_ts);
-#endif
-    } else {
-      // audio - use the psts
-      ps_ts = fptr->ps_ts;
-    }
-      
-    info->m_start_psts = ps_ts;
-    info->m_have_start_psts = 1;
-  } else {
-    // here, we want to check for a gross change in the psts
-    if (fptr->have_ps_ts == 0) return true;
-    ps_ts = fptr->ps_ts;
-    // need to put a limit on how much less before we restart
-    if (ps_ts < info->m_start_psts) return false;
-  }
-  sptr->m_last_psts = ps_ts;
+  // here, we want to check for a gross change in the psts
+  if (fptr->have_ps_ts == 0) return true;
+
+  ps_ts = fptr->ps_ts;
+  // need to put a limit on how much less before we restart
+  if (ps_ts < start_psts) return false;
+
 #ifdef DEBUG_MPEG2T_PSTS
   uint64_t initial = fptr->ps_ts;
 #endif
-  fptr->ps_ts -= info->m_start_psts;
+  fptr->ps_ts -= start_psts;
 #ifdef DEBUG_MPEG2T_PSTS
-  player_debug_message("%s convert psts "U64" to "U64" "U64,
-		       sptr->m_is_video ? "video" : "audio", 
-		       initial, fptr->ps_ts, info->m_start_psts);
+  player_debug_message(" convert psts "U64" to "U64" "U64,
+		       fptr->ps_ts, start_psts, initial);
   
 #endif
   return true;
@@ -93,10 +61,10 @@ static inline bool convert_psts (mpeg2t_es_t *es_pid,
 /**************************************************************************
  * 
  **************************************************************************/
-CMpeg2tByteStream::CMpeg2tByteStream (mpeg2t_es_t *es_pid,
+CMpeg2fByteStream::CMpeg2fByteStream (CMpeg2tFile *f,
+				      mpeg2t_es_t *es_pid,
 				      const char *type,
-				      int has_video,
-				      int ondemand)
+				      int has_video)
   : COurInByteStream(type)
 {
 #ifdef OUTPUT_TO_FILE
@@ -105,15 +73,14 @@ CMpeg2tByteStream::CMpeg2tByteStream (mpeg2t_es_t *es_pid,
   strcat(buffer, ".raw");
   m_output_file = fopen(buffer, "w");
 #endif
+  m_file = f;
   m_es_pid = es_pid;
-  m_stream_ptr = (mpeg2t_stream_t *)mpeg2t_get_userdata(&m_es_pid->pid); 
   m_has_video = has_video;
   m_timestamp_loaded = 0;
   m_frame = NULL;
-  m_ondemand = ondemand;
 }
 
-CMpeg2tByteStream::~CMpeg2tByteStream()
+CMpeg2fByteStream::~CMpeg2fByteStream()
 {
   mpeg2t_set_frame_status(m_es_pid, MPEG2T_PID_NOTHING); // eliminate any callbacks
 #ifdef OUTPUT_TO_FILE
@@ -122,17 +89,13 @@ CMpeg2tByteStream::~CMpeg2tByteStream()
   mpeg2t_free_frame(m_frame);
 }
 
-int CMpeg2tByteStream::eof(void)
+int CMpeg2fByteStream::eof(void)
 {
-  return m_stream_ptr->m_have_eof; 
+  return m_es_pid->list == NULL && m_file->eof();
 }
 
-int CMpeg2tByteStream::have_no_data (void)
-{
-  return (m_es_pid->list == NULL);
-}
-
-void CMpeg2tByteStream::reset (void) 
+// clear out the cruft.
+void CMpeg2fByteStream::reset (void) 
 {
   mpeg2t_frame_t *p;
   do {
@@ -142,67 +105,63 @@ void CMpeg2tByteStream::reset (void)
   } while (p != NULL);
 }
 
-void CMpeg2tByteStream::pause (void)
+// pause - just reset.  We might not want to do this if we
+// need to start where we stopped.
+void CMpeg2fByteStream::pause (void)
 {
-  mpeg2t_client_t *info = m_stream_ptr->m_parent;
-  info->m_have_start_psts = 0;
-  mpeg2t_set_frame_status(m_es_pid, MPEG2T_PID_NOTHING);
   reset();
-  m_stream_ptr->m_buffering = 1;
-  m_stream_ptr->m_have_eof = 0;
 }
 
-void CMpeg2tByteStream::play (uint64_t start_time)
+void CMpeg2fByteStream::play (uint64_t start_time)
 {
-  m_stream_ptr->m_have_eof = 0;
   m_play_start_time = start_time;
-  mpeg2t_set_frame_status(m_es_pid, MPEG2T_PID_SAVE_FRAME);
+  m_file->seek_to(start_time);
 }
 
-uint64_t CMpeg2tByteStream::start_next_frame (uint8_t **buffer, 
+uint64_t CMpeg2fByteStream::start_next_frame (uint8_t **buffer, 
 					      uint32_t *buflen,
 					      void **ud)
 {
   uint64_t ret;
-  mpeg2t_free_frame(m_frame);
+  if (m_frame) {
+    mpeg2t_free_frame(m_frame);
+  }
   
-  // dump frames until we have a valid start psts for both
-  // audio and video
-  bool done = false;
-  while (done == false) {
+  // see if there is a frame ready for this pid.  If not, 
+  // request one
+  m_frame = mpeg2t_get_es_list_head(m_es_pid);
+  if (m_frame == NULL) {
+    m_file->get_frame_for_pid(m_es_pid);
     m_frame = mpeg2t_get_es_list_head(m_es_pid);
     if (m_frame == NULL) {
+      player_debug_message("%s no frame", m_name);
       return 0;
     }
-    done = convert_psts(m_es_pid, m_stream_ptr, m_frame);
-    if (done == false) {
-      mpeg2t_free_frame(m_frame);
-    }
+  }
+  // Convert the psts
+  if (convert_psts(m_es_pid, m_frame, m_file->get_start_psts()) == false) {
+    return 0;
   }
 
-  if (m_frame != NULL) {
-    if (get_timestamp_for_frame(m_frame, ret) >= 0) {
-      *buffer = m_frame->frame;
-      *buflen = m_frame->frame_len;
-      if (m_ondemand) {
-	ret += m_play_start_time;
-      }
+  // convert the psts into a timestamp
+  if (get_timestamp_for_frame(m_frame, ret) >= 0) {
+    *buffer = m_frame->frame;
+    *buflen = m_frame->frame_len;
 #ifdef DEBUG_MPEG2T_FRAME
-      player_debug_message("%s - len %d time "U64" ftype %d", 
-			   m_name, *buflen, ret, m_frame->frame_type);
+    player_debug_message("%s - len %d time "U64" ftype %d", 
+			 m_name, *buflen, ret, m_frame->frame_type);
 #endif
-      return (ret);
-    }
+    return (ret);
   }
   return 0;
 }
 
-void CMpeg2tByteStream::used_bytes_for_frame (uint32_t bytes_used)
+void CMpeg2fByteStream::used_bytes_for_frame (uint32_t bytes_used)
 {
   // nothing here yet...
 }
 
-int CMpeg2tByteStream::skip_next_frame (uint64_t *pts, 
+int CMpeg2fByteStream::skip_next_frame (uint64_t *pts, 
 					int *pSync,
 					uint8_t **buffer, 
 					uint32_t *buflen,
@@ -215,22 +174,33 @@ int CMpeg2tByteStream::skip_next_frame (uint64_t *pts,
   if (*buffer == NULL) return 0;
   return (1);
 }
-// left off here...
 
-double CMpeg2tByteStream::get_max_playtime (void) 
+double CMpeg2fByteStream::get_max_playtime (void) 
 {
-  // we shouldn't know - we might need to do something when
-  // we're running sdp...
-  return (0.0);
+  return m_file->get_max_time();
 };
 
-void CMpeg2tVideoByteStream::reset(void)
+void CMpeg2fVideoByteStream::reset(void)
 {
   m_have_prev_frame_type = 0;
   m_timestamp_loaded = 0;
-  CMpeg2tByteStream::reset();
+  CMpeg2fByteStream::reset();
 }
-int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
+
+void CMpeg2fVideoByteStream::play (uint64_t start_time)
+{
+  CMpeg2fByteStream::play(start_time);
+  // make sure we start with the next i frame
+  do {
+    m_file->get_frame_for_pid(m_es_pid);
+    while (m_es_pid->list && m_es_pid->list->frame_type != 1) {
+      mpeg2t_free_frame(mpeg2t_get_es_list_head(m_es_pid));
+    }
+  } while (!m_file->eof() && 
+	   (m_es_pid->list == NULL || m_es_pid->list->frame_type != 1));
+}
+
+int CMpeg2fVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
 						     uint64_t &outts)
 
 {
@@ -258,11 +228,7 @@ int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
   }
   m_timestamp_loaded = 1;
   ts = fptr->ps_ts;
-#if 0
-  if (m_ondemand != 0) {
-    ts -= m_es_pid->first_ps_ts;
-  }
-#endif
+
   if (m_have_prev_frame_type) {
     if (fptr->frame_type == 3) {
       // B frame
@@ -291,13 +257,13 @@ int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
   return 0;
 }
 
-void CMpeg2tAudioByteStream::reset(void)
+void CMpeg2fAudioByteStream::reset(void)
 {
   m_timestamp_loaded = 0;
-  CMpeg2tByteStream::reset();
+  CMpeg2fByteStream::reset();
 }
 
-int CMpeg2tAudioByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
+int CMpeg2fAudioByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
 						     uint64_t &ts)
 {
   uint64_t pts_in_msec;
@@ -335,5 +301,5 @@ int CMpeg2tAudioByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
 #endif
   return 0;
 }
-  
+
 /* end file mpeg2t_bytestream.cpp */

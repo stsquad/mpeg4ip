@@ -140,7 +140,7 @@ static codec_data_t *celp_codec_create (const char *compressor,
 
 
 
-  celp->m_msec_per_frame *= M_64;
+  celp->m_msec_per_frame *= TO_U64(1000);
   celp->m_msec_per_frame /= celp->m_freq;
   celp->m_last=userdata_size;
 	

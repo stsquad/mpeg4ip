@@ -1,1 +1,7 @@
-SUBDIRS = avi bitstream fposrec gnu mp4 mp4v2 mp4av msg_queue rtp sdp SDLAudio utils xvid mpeg2t SDL_VisualC
+if HAVE_MAC_OSX
+  extradir = 
+else
+  extradir = SDLAudio
+endif
+
+SUBDIRS = avi bitstream fposrec gnu mp4 mp4v2 mp4av msg_queue rtp sdp utils xvid mpeg2t $(extradir) 

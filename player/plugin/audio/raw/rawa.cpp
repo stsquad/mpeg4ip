@@ -186,7 +186,7 @@ static int rawa_decode (codec_data_t *ptr,
 
   if (ts == rawa->m_ts) {
     uint64_t calc;
-    calc = rawa->m_bytes * M_64;
+    calc = rawa->m_bytes * TO_U64(1000);
     calc /= rawa->m_chans;
     if (rawa->m_bitsperchan == 16) calc /= 2;
     calc /= rawa->m_freq;

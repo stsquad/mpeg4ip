@@ -469,7 +469,7 @@ static void status_start()
 
 	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
 		snprintf(buffer, sizeof(buffer), " "U64,
-			StartFileSize / MM_64);
+			StartFileSize / TO_U64(1000000));
 		gtk_label_set_text(GTK_LABEL(current_size), buffer);
 		gtk_widget_show(current_size);
 
@@ -478,7 +478,7 @@ static void status_start()
 
 		StopFileSize = MyConfig->m_recordEstFileSize;
 		snprintf(buffer, sizeof(buffer), " "U64,
-			StopFileSize / MM_64);
+			StopFileSize / TO_U64(1000000));
 		gtk_label_set_text(GTK_LABEL(final_size), buffer);
 		gtk_widget_show(final_size);
 
@@ -520,7 +520,7 @@ static gint status_timer (gpointer raw)
 		struct stat stats;
 		if (stat(fname, &stats) == 0) {
 		  uint64_t size = stats.st_size;
-		  size /= (MM_64);
+		  size /= TO_U64(1000000);
 		  snprintf(buffer, sizeof(buffer), " "U64, size);
 		} else {
 		  snprintf(buffer, sizeof(buffer), "BAD");

@@ -19,7 +19,7 @@ CFilePosRecorder::~CFilePosRecorder (void)
   m_last = NULL;
 }
 
-void CFilePosRecorder::record_point (long file_position,
+void CFilePosRecorder::record_point (uint64_t file_position,
 				     uint64_t ts, 
 				     uint64_t frame)
 {

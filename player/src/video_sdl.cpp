@@ -27,8 +27,13 @@
 #include "player_session.h"
 #include "video_sdl.h"
 #include "player_util.h"
+#ifdef _WIN32
+#include "SDL_error.h"
+#include "SDL_syswm.h"
+#else
 #include <SDL/SDL_error.h>
 #include <SDL/SDL_syswm.h>
+#endif
 #include "our_config_file.h"
 //#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
@@ -160,7 +165,7 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
     }
   } else {
     // this case is when we set it from the aspect ratio defined.
-    if (m_aspect_ratio != 0.0) {
+    if (m_aspect_ratio != 0.0 && m_aspect_ratio != 1.0) {
       double win_wf = m_aspect_ratio;
       win_wf *= win_h;
       video_message(LOG_INFO, "aspect ration %g %g %d %d", 

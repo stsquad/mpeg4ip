@@ -59,8 +59,10 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (uint8_t *pbuffer,
 				       uint32_t *height,
 				       uint32_t *width,
 				       double *frame_rate,
-				       double *bitrate)
+				       double *bitrate,
+				       double *aspect_ratio)
 {
+  uint32_t aspect_code;
   uint32_t framerate_code;
   uint32_t bitrate_int;
   uint32_t bitrate_ext;
@@ -82,6 +84,17 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (uint8_t *pbuffer,
       *height = (pbuffer[1] & 0xf);
       *height <<= 8;
       *height |= pbuffer[2];
+      aspect_code = (pbuffer[3] >> 4) & 0xf;
+      if (aspect_ratio != NULL) {
+	switch (aspect_code) {
+	default: *aspect_ratio = 1.0; break;
+	case 2: *aspect_ratio = 4.0 / 3.0; break;
+	case 3: *aspect_ratio = 16.0 / 9.0; break;
+	case 4: *aspect_ratio = 2.21; break;
+	}
+      }
+	  
+	
       framerate_code = pbuffer[3] & 0xf;
       *frame_rate = mpeg3_frame_rate_table[framerate_code];
       // 18 bits
@@ -138,7 +151,15 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (uint8_t *pbuffer,
 
     *height = bs.GetBits(12);
     *width = bs.GetBits(12);
-    bs.GetBits(4);
+    aspect_code = bs.GetBits(4);
+    if (aspect_ratio != NULL) {
+      switch (aspect_code) {
+      default: *aspect_ratio = 1.0; break;
+      case 2: *aspect_ratio = 4.0 / 3.0; break;
+      case 3: *aspect_ratio = 16.0 / 9.0; break;
+      case 4: *aspect_ratio = 2.21; break;
+      }
+    }
     framerate_code = bs.GetBits(4);
     *frame_rate = mpeg3_frame_rate_table[framerate_code];
 
@@ -174,10 +195,11 @@ extern "C" uint16_t MP4AV_Mpeg3PictHdrTempRef (uint8_t *pbuffer)
   pbuffer += sizeof(uint32_t);
   return ((pbuffer[0] << 2) | ((pbuffer[1] >> 6) & 0x3));
 }
-static int FindNextStart (uint8_t *pbuffer, 
-			  uint32_t buflen,
-			  uint32_t *optr, 
-			  uint32_t *scode)
+
+extern "C" int MP4AV_Mpeg3FindNextStart (uint8_t *pbuffer, 
+					 uint32_t buflen,
+					 uint32_t *optr, 
+					 uint32_t *scode)
 {
   uint32_t value;
   uint32_t offset;
@@ -194,13 +216,13 @@ static int FindNextStart (uint8_t *pbuffer,
   return -1;
 }
 
-static int FindNextSliceStart (uint8_t *pbuffer,
-			       uint32_t startoffset, 
-			       uint32_t buflen,
-			       uint32_t *slice_offset)
+extern "C" int MP4AV_Mpeg3FindNextSliceStart (uint8_t *pbuffer,
+					      uint32_t startoffset, 
+					      uint32_t buflen,
+					      uint32_t *slice_offset)
 {
   uint32_t slicestart, code;
-  while (FindNextStart(pbuffer + startoffset, 
+  while (MP4AV_Mpeg3FindNextStart(pbuffer + startoffset, 
 		       buflen - startoffset, 
 		       &slicestart, 
 		       &code) >= 0) {
@@ -218,9 +240,9 @@ static int FindNextSliceStart (uint8_t *pbuffer,
   return -1;
 }
 				  
-extern "C" int MP4AV_Mpeg3FindGopOrPictHdr (uint8_t *pbuffer,
-					    uint32_t buflen,
-					    int *frame_type)
+extern "C" int MP4AV_Mpeg3FindPictHdr (uint8_t *pbuffer,
+				       uint32_t buflen,
+				       int *frame_type)
 {
   uint32_t value;
   uint32_t offset;
@@ -232,14 +254,8 @@ extern "C" int MP4AV_Mpeg3FindGopOrPictHdr (uint8_t *pbuffer,
     if (value == MPEG3_PICTURE_START_CODE) {
       ftype = MP4AV_Mpeg3PictHdrType(pbuffer);
       if (frame_type != NULL) *frame_type = ftype;
-      if (ftype == 1) {
-	return 0;
-      } else {
-	return -1;
-      }
-    } else if (value == MPEG3_GOP_START_CODE) {
-      return 1;
-    }
+      return offset;
+    } 
   }
   return -1;
 }
@@ -321,7 +337,7 @@ extern "C" bool Mpeg12Hinter (MP4FileHandle mp4file,
     do {
       uint32_t oldoffset;
       oldoffset = offset;
-      if (FindNextStart(pbuffer + offset, 
+      if (MP4AV_Mpeg3FindNextStart(pbuffer + offset, 
 			sampleSize - offset, 
 			&offset, 
 			&scode) < 0) {
@@ -347,10 +363,6 @@ extern "C" bool Mpeg12Hinter (MP4FileHandle mp4file,
     rfc2250[1] = (pstart[0] << 2) | ((pstart[1] >> 6) & 0x3); // temporal ref
     rfc2250[2] = type;
     rfc2250_2 = rfc2250[2];
-    if (have_seq != 0) {
-      rfc2250[2] |= 0x20;
-      have_seq = 0;
-    }
 
     rfc2250[3] = 0;
     if (type == 2 || type == 3) {
@@ -368,7 +380,7 @@ extern "C" bool Mpeg12Hinter (MP4FileHandle mp4file,
     // not in the buffer size - this should be in the while loop.
     
     prev_slice = 0;
-    if (FindNextSliceStart(pbuffer, offset, sampleSize, &next_slice) < 0) {
+    if (MP4AV_Mpeg3FindNextSliceStart(pbuffer, offset, sampleSize, &next_slice) < 0) {
       slice_at_begin = false;
     } else {
       slice_at_begin = true;
@@ -398,7 +410,7 @@ extern "C" bool Mpeg12Hinter (MP4FileHandle mp4file,
 
 	while (nomoreslices == false && next_slice <= maxPayloadSize) {
 	  prev_slice = next_slice;
-	  if (FindNextSliceStart(pbuffer, next_slice + 4, sampleSize, &next_slice) >= 0) {
+	  if (MP4AV_Mpeg3FindNextSliceStart(pbuffer, next_slice + 4, sampleSize, &next_slice) >= 0) {
 #ifdef DEBUG_MPEG3_HINT
 	    printf("prev_slice %u next slice %u %u\n", prev_slice, next_slice,
 		   offset + next_slice);
@@ -416,6 +428,10 @@ extern "C" bool Mpeg12Hinter (MP4FileHandle mp4file,
       } 
 
       rfc2250[2] = rfc2250_2;
+      if (have_seq != 0) {
+	rfc2250[2] |= 0x20;
+	have_seq = 0;
+      }
       if (slice_at_begin) {
 	rfc2250[2] |= 0x10; // set b bit
       }

@@ -37,7 +37,6 @@ done
 # Test for SDL
 #
 target_system=`uname -s`
-if test $target_system != "Darwin"; then
    if sdl-config --version >/dev/null 2>/dev/null
       then
       echo "Found SDL"
@@ -46,7 +45,6 @@ if test $target_system != "Darwin"; then
       echo "Please install it and rerun this script"
       exit 1
    fi
-fi
 #
 # Test for lame
 #

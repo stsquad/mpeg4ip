@@ -24,6 +24,33 @@
 
 #include "video_encoder.h"
 #include <avcodec.h>
+class CTimestampPush {
+ public:
+  CTimestampPush(uint max) {
+    m_in = 0;
+    m_out = 0;
+    m_max = max;
+    m_stack = (Timestamp *)malloc(max * sizeof(Timestamp));
+  };
+  ~CTimestampPush() {
+    free(m_stack);
+  };
+  void Push (Timestamp t) {
+    m_stack[m_in] = t;
+    m_in++;
+    if (m_in >= m_max) m_in = 0;
+  };
+  Timestamp Pop (void) {
+    Timestamp ret;
+    ret = m_stack[m_out];
+    m_out++;
+    if (m_out >= m_max) m_out = 0;
+    return ret;
+  };
+ private:
+  Timestamp *m_stack;
+  uint m_in, m_out, m_max;
+};
 
 class CFfmpegVideoEncoder : public CVideoEncoder {
 public:
@@ -36,11 +63,13 @@ public:
 	bool EncodeImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
 		u_int32_t yStride, u_int32_t uvStride,
-		bool wantKeyFrame = false,
-		Duration elapsedDuration = NULL);
+		bool wantKeyFrame,
+		Duration elapsedDuration,
+		Timestamp srcFrameTimestamp);
 
 	bool GetEncodedImage(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
+		u_int8_t** ppBuffer, u_int32_t* pBufferLength,
+		Timestamp *dts, Timestamp *pts);
 
 	bool GetReconstructedImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV);
@@ -49,6 +78,10 @@ public:
 	media_free_f GetMediaFreeFunction(void);
 
 protected:
+#define OUTPUT_RAW
+#ifdef OUTPUT_RAW
+	FILE *m_outfile;
+#endif
 	MediaType m_media_frame;
 	AVCodec *m_codec;
 	AVCodecContext		*m_avctx;
@@ -56,6 +89,8 @@ protected:
 	u_int8_t*			m_vopBuffer;
 	u_int32_t			m_vopBufferLength;
 	u_int8_t*  m_YUV;
+	CTimestampPush *m_push;
+	Duration m_frame_time;
 };
 
 #endif /* __VIDEO_FFMPEG_H__ */

@@ -32,7 +32,8 @@
  */
 static uint32_t mpeg2t_find_mp3_frame_start (mpeg2t_es_t *es_pid, 
 					     const uint8_t *esptr, 
-					     uint32_t buflen)
+					     uint32_t buflen,
+					     int *ret)
 {
   const uint8_t *fptr;
   int found = 0;
@@ -82,11 +83,12 @@ static uint32_t mpeg2t_find_mp3_frame_start (mpeg2t_es_t *es_pid,
       es_pid->sample_per_frame = MP4AV_Mp3GetHdrSamplingWindow(hdr);
       es_pid->bitrate = MP4AV_Mp3GetBitRate(hdr) * 1000.0;
       es_pid->mpeg_layer = MP4AV_Mp3GetHdrLayer(hdr);
-      mpeg2t_message(LOG_INFO, "MP3 - chans %d freq %d spf %d", 
+      mpeg2t_message(LOG_NOTICE, "MP3 - chans %d freq %d spf %d", 
 		     es_pid->audio_chans, 
 		     es_pid->sample_freq,
 		     es_pid->sample_per_frame);
       es_pid->info_loaded = 1;
+      *ret = 1;
     }
     // We know how big the frame will be, so malloc it
     mpeg2t_malloc_es_work(es_pid, framesize);
@@ -141,7 +143,7 @@ int process_mpeg2t_mpeg_audio (mpeg2t_es_t *es_pid,
 	return ret;
       }
 
-      used = mpeg2t_find_mp3_frame_start(es_pid, esptr, buflen);
+      used = mpeg2t_find_mp3_frame_start(es_pid, esptr, buflen, &ret);
 
       esptr += buflen;
       buflen -= used;

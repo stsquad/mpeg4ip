@@ -60,7 +60,6 @@ CMediaSource::CMediaSource()
   m_videoEncoder = NULL;
   m_videoDstPrevImage = NULL;
   m_videoDstPrevReconstructImage = NULL;
-  m_videoDstPrevFrame = NULL;
 
   m_audioPreEncodingBuffer = NULL;
   m_audioEncoder = NULL;
@@ -251,8 +250,6 @@ bool CMediaSource::InitVideo(
 
   m_videoDstPrevImage = NULL;
   m_videoDstPrevReconstructImage = NULL;
-  m_videoDstPrevFrame = NULL;
-  m_videoDstPrevFrameLength = 0;
 
   return true;
 }
@@ -473,7 +470,8 @@ void CMediaSource::ProcessVideoYUVFrame(
 					  yImage, uImage, vImage, 
 					  yStride, uvStride,
 					  m_videoWantKeyFrame,
-					  m_videoDstElapsedDuration);
+					  m_videoDstElapsedDuration,
+					  srcFrameTimestamp);
 
     if (!rc) {
       debug_message("Can't encode image!");
@@ -494,17 +492,26 @@ void CMediaSource::ProcessVideoYUVFrame(
 
   // forward encoded video to sinks
   if (m_pConfig->m_videoEncode) {
-    m_videoEncoder->GetEncodedImage(&m_videoDstPrevFrame,
-                                    &m_videoDstPrevFrameLength);
-
-    CMediaFrame* pFrame = new CMediaFrame(
-                                          m_videoEncoder->GetFrameType(),
-                                          m_videoDstPrevFrame,
-                                          m_videoDstPrevFrameLength,
-                                          srcFrameTimestamp,
-                                          m_videoDstFrameDuration);
-    pFrame->SetMediaFreeFunction(m_videoEncoder->GetMediaFreeFunction());
-    ForwardFrame(pFrame);
+    uint8_t *frame;
+    uint32_t frame_len;
+    Timestamp pts, dts;
+    m_videoEncoder->GetEncodedImage(&frame,
+                                    &frame_len,
+				    &dts,
+				    &pts);
+    if (frame_len != 0) {
+      //error_message("frame len %d time %llu", frame_len, out);
+      CMediaFrame* pFrame = new CMediaFrame(
+					    m_videoEncoder->GetFrameType(),
+					    frame,
+					    frame_len,
+					    dts,
+					    m_videoDstFrameDuration,
+					    TimestampTicks,
+					    pts);
+      pFrame->SetMediaFreeFunction(m_videoEncoder->GetMediaFreeFunction());
+      ForwardFrame(pFrame);
+    }
   }
 
   // forward raw video to sinks

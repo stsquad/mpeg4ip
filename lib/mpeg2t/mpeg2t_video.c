@@ -49,6 +49,10 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
     es_pid->header <<= 8;
     es_pid->header |= *esptr;
 
+    if ((es_pid->header & 0xffffff00) == 0x00000100) {
+      mpeg2t_message(LOG_DEBUG, "header %x", es_pid->header);
+    }
+
     if (es_pid->work_state == 0) {
       /*
        * Work state 0 - looking for any header
@@ -150,7 +154,8 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 				       &h, 
 				       &w, 
 				       &frame_rate,
-				       &bitrate) >= 0) {
+				       &bitrate, 
+				       NULL) >= 0) {
 	      mpeg2t_message(LOG_NOTICE, "Found seq header - h %d w %d fr %g offset %d len %d", 
 			     h, w, frame_rate, es_pid->seq_header_offset,
 			     es_pid->work_loaded);

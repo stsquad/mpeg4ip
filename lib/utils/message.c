@@ -20,6 +20,26 @@
  */
 #include "mpeg4ip.h"
 #include "mpeg4ip_utils.h"
+#if _WIN32
+#include "mpeg4ip_sdl_includes.h"
+
+SDL_mutex *outex;
+static int initialized = 0;
+static void init_local_mutex (void)
+{
+	outex = SDL_CreateMutex();
+	initialized = 1;
+}
+static void lock_mutex(void)
+{
+	SDL_mutexP(outex);
+} 
+static void unlock_mutex(void)
+{
+	SDL_mutexV(outex);
+}
+#endif
+
 
 void message (int loglevel, const char *lib, const char *fmt, ...)
 {

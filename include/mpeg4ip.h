@@ -108,12 +108,9 @@ int gettimeofday(struct timeval *t, void *);
 #define D64F "I64d"
 #define U64F  "I64u"
 #define X64F "I64x"
-#define M_64 1000i64
-#define C_64 100i64
-#define I_64 1i64
 
-#define TO_D64(a) (a##i64)
-#define TO_U64(a) (a##u64)
+#define TO_D64(a) (a##I64)
+#define TO_U64(a) (a##UI64)
 
 #define LOG_EMERG 0
 #define LOG_ALERT 1
@@ -210,10 +207,6 @@ int gettimeofday(struct timeval *t, void *);
 #define U64F  "lu"
 #define X64F "lx"
 
-#define MM_64 1000000LU
-#define M_64 1000LU
-#define C_64 100LU
-#define I_64 1LU
 #define TO_D64(a) (a##LD)
 #define TO_U64(a) (a##LU)
 #else
@@ -224,11 +217,6 @@ int gettimeofday(struct timeval *t, void *);
 
 #define TO_D64(a) (a##LLD)
 #define TO_U64(a) (a##LLU)
-
-#define MM_64 1000000LLU
-#define M_64 1000LLU
-#define C_64 100LLU
-#define I_64 1LLU
 #endif
 
 #ifdef HAVE_FPOS_T_POS
@@ -250,6 +238,10 @@ int gettimeofday(struct timeval *t, void *);
 #define D64  "%"D64F
 #define U64  "%"U64F
 #define X64 "%"X64F
+
+#define M_LLU TO_U64(1000)
+#define M_64 TO_U64(1000)
+#define LLU  U64
 
 #include <stdarg.h>
 typedef void (*error_msg_func_t)(int loglevel,
@@ -357,8 +349,19 @@ typedef unsigned char bool;
 # endif
 #endif
 
+#ifndef INT16_MAX
+# define INT16_MAX (32767)
+#endif
+#ifndef INT16_MIN 
+# define INT16_MIN (-32767-1)
+#endif 
+
 #ifndef UINT32_MAX
 # define UINT32_MAX             (4294967295U)
+#endif
+
+#ifndef UINT64_MAX
+# define UINT64_MAX TO_U64(0xffffffffffffffff)
 #endif
 
 #endif /* __MPEG4IP_INCLUDED__ */

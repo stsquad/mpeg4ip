@@ -38,10 +38,12 @@ public:
 	bool EncodeImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
 		u_int32_t yStride, u_int32_t uvStride,
-		bool wantKeyFrame, Duration elapsed);
+		bool wantKeyFrame, Duration elapsed,
+		Timestamp srcFrameTimestamp);
 
 	bool GetEncodedImage(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
+		u_int8_t** ppBuffer, u_int32_t* pBufferLength,
+		Timestamp *dts, Timestamp *pts);
 
 	bool GetReconstructedImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV);
@@ -52,6 +54,7 @@ protected:
 	void*				m_xvidHandle;
 	u_int8_t*			m_vopBuffer;
 	u_int32_t			m_vopBufferLength;
+	Timestamp               m_srcFrameTimestamp;
 	XVID_ENC_FRAME 		m_xvidFrame;
 	XVID_ENC_STATS		m_xvidResult;
 };

@@ -21,14 +21,6 @@
 
 #include "mp4common.h"
 
-#ifdef HAVE_FPOS_T_POS
-#define FPOS_TO_UINT64(x)		((u_int64_t)((x).__pos))
-#define UINT64_TO_FPOS(x, y)	((x).__pos = (y))
-#else 
-#define FPOS_TO_UINT64(x)		((u_int64_t)(x))
-#define UINT64_TO_FPOS(x, y)	((x) = (fpos)(y))
-#endif
-
 // MP4File low level IO support
 
 u_int64_t MP4File::GetPosition(FILE* pFile)
@@ -43,7 +35,9 @@ u_int64_t MP4File::GetPosition(FILE* pFile)
 		if (fgetpos(pFile, &fpos) < 0) {
 			throw new MP4Error(errno, "MP4GetPosition");
 		}
-		return FPOS_TO_UINT64(fpos);
+		uint64_t ret;
+		FPOS_TO_VAR(fpos, uint64_t, ret);
+		return ret;
 	} else {
 		return m_memoryBufferPosition;
 	}

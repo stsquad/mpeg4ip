@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /I "../../../include" /I "../lib/SDL/include" /I "../../lib" /I "../../lib/SDL/include" /I "../../include" /I "../lib" /I "../../common/video/mpeg4" /I "../../lib/sdp" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /I "../../../include" /I "../lib/SDL/include" /I "../../lib" /I "../../SDL/include" /I "../../include" /I "../lib" /I "../../common/video/mpeg4" /I "../../lib/sdp" /I "../../lib/utils" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -53,7 +53,12 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /subsystem:windows /machine:I386 /nodefaultlib:"libc.lib"
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib advapi32.lib ../../SDL/lib/SDL.lib ../../SDL/lib/SDLMain.lib winmm.lib /nologo /subsystem:windows /machine:I386 /nodefaultlib:"libc.lib"
+# Begin Special Build Tool
+SOURCE="$(InputPath)"
+PostBuild_Desc=copying SDL
+PostBuild_Cmds=copy ..\..\SDL\lib\SDL.dll
+# End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "mp4player - Win32 Debug"
 
@@ -69,7 +74,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "../../lib" /I "../../lib/SDL/include" /I "../../include" /I "../lib" /I "../../common/video/mpeg4" /I "../../lib/sdp" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /D "_CONSOLE" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "../../lib" /I "../../SDL/include" /I "../../include" /I "../lib" /I "../../common/video/mpeg4" /I "../../lib/sdp" /I "../../lib/utils" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /D "_CONSOLE" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -79,11 +84,11 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 ws2_32.lib wininet.lib advapi32.lib /nologo /subsystem:windows /pdb:none /debug /machine:I386 /nodefaultlib:"libcd.lib" /nodefaultlib:"msvcrt.lib" /out:"debug/mp4player.exe"
+# ADD LINK32 wininet.lib ws2_32.lib advapi32.lib user32.lib ../../SDL/lib/SDL.lib ../../SDL/lib/SDLMain.lib winmm.lib /nologo /subsystem:windows /pdb:none /debug /machine:I386 /nodefaultlib:"libcd.lib" /nodefaultlib:"msvcrt.lib" /out:"debug/mp4player.exe"
 # SUBTRACT LINK32 /nodefaultlib
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
-PostBuild_Cmds=copy ..\..\lib\SDL_VisualC\Debug\SDL.dll
+PostBuild_Cmds=copy ..\..\SDL\lib\SDL.dll
 # End Special Build Tool
 
 !ENDIF 

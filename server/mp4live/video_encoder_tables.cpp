@@ -97,6 +97,23 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeNames,
     mpeg4SizeNames
   },
+  {
+    "Mpeg2 - ffmpeg", 
+    VIDEO_ENCODING_MPEG2,
+    VIDEO_ENCODER_FFMPEG,
+    MPEG4_SIZES - 2,
+    MPEG4_SIZES,
+    MPEG4_SIZES,
+    mpeg4SizeWidthValues,
+    mpeg4SizeWidthValues,
+    mpeg4SizeWidthValues,
+    mpeg4SizeHeightValues,
+    mpeg4SizeHeightValues,
+    mpeg4SizeHeightValues,
+    mpeg4SizeNames,
+    mpeg4SizeNames,
+    mpeg4SizeNames
+  },
 #endif
   {
     "H261",

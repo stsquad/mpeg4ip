@@ -88,7 +88,7 @@ int wav_file_next_frame (codec_data_t *your,
   uint64_t calc;
 
   *buffer = &wav->m_wav_buffer[wav->m_wav_buffer_on];
-  calc = wav->m_wav_buffer_on * M_64;
+  calc = wav->m_wav_buffer_on * TO_U64(1000);
   calc /= wav->m_bytes_per_channel;
   calc /= wav->m_sdl_config->channels;
   calc /= wav->m_sdl_config->freq;
@@ -119,7 +119,7 @@ int wav_raw_file_seek_to (codec_data_t *ifptr, uint64_t ts)
   calc = ts * wav->m_bytes_per_channel * 
     wav->m_sdl_config->channels *
     wav->m_sdl_config->freq;
-  calc /= M_64;
+  calc /= TO_U64(1000);
   wav->m_wav_buffer_on = calc;
   if (wav->m_bytes_per_channel != 1)
     wav->m_wav_buffer_on &= ~1;

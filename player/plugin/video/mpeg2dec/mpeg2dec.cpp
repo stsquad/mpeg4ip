@@ -79,9 +79,9 @@ static int mpeg2dec_frame_is_sync (codec_data_t *ifptr,
 				void *userdata)
 {
   int ret;
-
-  ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen, NULL);
-  if (ret >= 0) {
+  int ftype;
+  ret = MP4AV_Mpeg3FindPictHdr(buffer, buflen, &ftype);
+  if (ret >= 0 && ftype == 1) {
     mpeg2dec_do_pause(ifptr);
     return 1;
   }
@@ -139,13 +139,28 @@ static int mpeg2dec_decode (codec_data_t *ptr,
      if (mpeg2dec->m_video_initialized == 0) {
        mpeg2dec->m_h = sequence->height;
        mpeg2dec->m_w = sequence->width;
+       int have_mpeg2;
+       uint32_t height;
+       uint32_t width;
+       double frame_rate;
+       double bitrate;
        double aspect_ratio;
-       mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "pix w %u pix h %u", 
-				sequence->pixel_width, 
-				sequence->pixel_height);
-       aspect_ratio = sequence->pixel_width;
-       aspect_ratio *= mpeg2dec->m_w;
-       aspect_ratio /= (double)(sequence->pixel_height * mpeg2dec->m_h);
+       if (MP4AV_Mpeg3ParseSeqHdr(buffer, 
+				  buflen,
+				  &have_mpeg2, 
+				  &height, 
+				  &width, 
+				  &frame_rate,
+				  &bitrate, 
+				  &aspect_ratio) < 0) {
+	 
+	 mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "pix w %u pix h %u", 
+				  sequence->pixel_width, 
+				  sequence->pixel_height);
+	 aspect_ratio = sequence->pixel_width;
+	 aspect_ratio *= mpeg2dec->m_w;
+	 aspect_ratio /= (double)(sequence->pixel_height * mpeg2dec->m_h);
+       }
        mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "%ux%u aspect %g", 
 				mpeg2dec->m_w, mpeg2dec->m_h, 
 				aspect_ratio);

@@ -427,12 +427,14 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
   while (aptr != NULL) {
 
     if (aptr->codec->c_raw_file_check != NULL) {
+      player_debug_message("Trying raw file codec %s", aptr->codec->c_name);
       cifptr = aptr->codec->c_raw_file_check(message,
 					     name,
 					     &maxtime,
 					     desc,
 					     &config);
       if (cifptr != NULL) {
+	player_debug_message("Found raw file codec %s", aptr->codec->c_name);
 	CPlayerMedia *mptr;
       
 	mptr = new CPlayerMedia(psptr);

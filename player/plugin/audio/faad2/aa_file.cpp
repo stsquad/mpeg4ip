@@ -1,32 +1,36 @@
 /*
- * The contents of this file are subject to the Mozilla Public
- * License Version 1.1 (the "License"); you may not use this file
- * except in compliance with the License. You may obtain a copy of
- * the License at http://www.mozilla.org/MPL/
- * 
- * Software distributed under the License is distributed on an "AS
- * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * rights and limitations under the License.
- * 
- * The Original Code is MPEG4IP.
- * 
- * The Initial Developer of the Original Code is Cisco Systems Inc.
- * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
- * 
- * Contributor(s): 
- *              Bill May        wmay@cisco.com
- */
+** MPEG4IP plugin for FAAD2
+** Copyright (C) 2003 Bill May wmay@cisco.com
+**
+** This program is free software; you can redistribute it and/or modify
+** it under the terms of the GNU General Public License as published by
+** the Free Software Foundation; either version 2 of the License, or
+** (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software
+** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+**
+** $Id: aa_file.cpp,v 1.3 2004/03/15 23:56:29 wmaycisco Exp $
+**/
 /*
  * aa_file.cpp - create media structure for aac files
  */
 
 #include "faad2.h"
 codec_data_t *aac_file_check (lib_message_func_t message,
-			      const char *name, 
-			      double *max, 
-			      char *desc[4])
+                  const char *name,
+                  double *max,
+                  char *desc[4]
+#ifdef HAVE_PLUGIN_VERSION_0_8
+                , CConfigSet *pConfig
+#endif
+)
 {
   aac_codec_t *aac;
   int len = strlen(name);
@@ -47,22 +51,22 @@ codec_data_t *aac_file_check (lib_message_func_t message,
   }
   aac->m_output_frame_size = 1024;
   aac->m_info = faacDecOpen(); // use defaults here...
-  aac->m_buffer_size = fread(aac->m_buffer, 
-			     1, 
-			     aac->m_buffer_size_max, 
-			     aac->m_ifile);
+  aac->m_buffer_size = fread(aac->m_buffer,
+                 1,
+                 aac->m_buffer_size_max,
+                 aac->m_ifile);
 
   unsigned long freq;
   unsigned char chans;
 
-  faacDecInit(aac->m_info, (unsigned char *)aac->m_buffer, 
-	      aac->m_buffer_size, &freq, &chans);
+  faacDecInit(aac->m_info, (unsigned char *)aac->m_buffer,
+          aac->m_buffer_size, &freq, &chans);
   // may want to actually decode the first frame...
   if (freq == 0) {
     message(LOG_ERR, aaclib, "Couldn't determine AAC frame rate");
     aac_close((codec_data_t *)aac);
     return (NULL);
-  } 
+  }
   aac->m_freq = freq;
   aac->m_chans = chans;
   aac->m_faad_inited = 1;
@@ -72,36 +76,36 @@ codec_data_t *aac_file_check (lib_message_func_t message,
 
 
 int aac_file_next_frame (codec_data_t *your,
-			 uint8_t **buffer, 
-			 uint64_t *ts)
+             uint8_t **buffer,
+             uint64_t *ts)
 {
   aac_codec_t *aac = (aac_codec_t *)your;
 
   if (aac->m_buffer_on > 0) {
-    memmove(aac->m_buffer, 
-	    &aac->m_buffer[aac->m_buffer_on],
-	    aac->m_buffer_size - aac->m_buffer_on);
+    memmove(aac->m_buffer,
+        &aac->m_buffer[aac->m_buffer_on],
+        aac->m_buffer_size - aac->m_buffer_on);
   }
   aac->m_buffer_size -= aac->m_buffer_on;
-  aac->m_buffer_size += fread(aac->m_buffer + aac->m_buffer_size, 
-			      1, 
-			      aac->m_buffer_size_max - aac->m_buffer_size,
-			      aac->m_ifile);
+  aac->m_buffer_size += fread(aac->m_buffer + aac->m_buffer_size,
+                  1,
+                  aac->m_buffer_size_max - aac->m_buffer_size,
+                  aac->m_ifile);
   aac->m_buffer_on = 0;
   if (aac->m_buffer_size == 0) return 0;
 
 
   uint64_t calc;
-  calc = aac->m_framecount * 1024 * M_64;
+  calc = aac->m_framecount * 1024 * M_LLU;
   calc /= aac->m_freq;
   *ts = calc;
   *buffer = aac->m_buffer;
   aac->m_framecount++;
   return (aac->m_buffer_size);
 }
-	
-void aac_file_used_for_frame (codec_data_t *ifptr, 
-			     uint32_t bytes)
+
+void aac_file_used_for_frame (codec_data_t *ifptr,
+                 uint32_t bytes)
 {
   aac_codec_t *aac = (aac_codec_t *)ifptr;
   aac->m_buffer_on += bytes;

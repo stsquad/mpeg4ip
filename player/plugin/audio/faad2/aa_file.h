@@ -1,26 +1,26 @@
 /*
- * The contents of this file are subject to the Mozilla Public
- * License Version 1.1 (the "License"); you may not use this file
- * except in compliance with the License. You may obtain a copy of
- * the License at http://www.mozilla.org/MPL/
- * 
- * Software distributed under the License is distributed on an "AS
- * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * rights and limitations under the License.
- * 
- * The Original Code is MPEG4IP.
- * 
- * The Initial Developer of the Original Code is Cisco Systems Inc.
- * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
- * 
- * Contributor(s): 
- *              Bill May        wmay@cisco.com
- */
+** MPEG4IP plugin for FAAD2
+** Copyright (C) 2003 Bill May wmay@cisco.com
+**
+** This program is free software; you can redistribute it and/or modify
+** it under the terms of the GNU General Public License as published by
+** the Free Software Foundation; either version 2 of the License, or
+** (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software
+** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+**
+** $Id: aa_file.h,v 1.2 2004/03/15 23:56:29 wmaycisco Exp $
+**/
 /*
  * aa_file.h - prototypes for aac files
  */
 int create_media_for_aac_file (CPlayerSession *pspstr,
-			       const char *name,
-			       const char **errmsg);
+                   const char *name,
+                   const char **errmsg);

@@ -85,10 +85,10 @@ int main (int argc, char **argv)
 	if (*argv == NULL) {
 		proc.initial_response(-1, psptr,"No argument to process");
 	} else {
-		rtsp_set_error_func(player_library_message);
-		rtp_set_error_msg_func(player_library_message);
-		sdp_set_error_func(player_library_message);
-		http_set_error_func(player_library_message);
+		rtsp_set_error_func(library_message);
+		rtp_set_error_msg_func(library_message);
+		sdp_set_error_func(library_message);
+		http_set_error_func(library_message);
 	
 		master_sem = SDL_CreateSemaphore(0);
 		psptr = new CPlayerSession(&master_queue, master_sem,

@@ -245,7 +245,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
       // We're not synced.  See if the video is ready, and if the audio
       // is ready.  Then start them going...
       int vsynced = 1, asynced = 1;
-      uint64_t astart, vstart;
+      uint64_t astart = 0, vstart = 0;
 
       if (m_video_sync) {
 	vsynced = m_video_sync->is_video_ready(vstart);

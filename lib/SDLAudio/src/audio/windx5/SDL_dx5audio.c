@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5audio.c,v 1.1 2004/02/25 01:18:51 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5audio.c,v 1.2 2004/03/15 23:56:21 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -50,7 +50,7 @@ static void DX5_PlayAudio(_THIS);
 static Uint8 *DX5_GetAudioBuf(_THIS);
 static void DX5_WaitDone(_THIS);
 static void DX5_CloseAudio(_THIS);
-static void DX5_AudioDelayMsec (_THIS)
+static int DX5_AudioDelayMsec (_THIS)
 {
   DWORD cursor, write;
   HRESULT result;

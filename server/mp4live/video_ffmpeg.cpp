@@ -22,6 +22,7 @@
 #include "mp4live.h"
 #ifdef HAVE_FFMPEG
 #include "video_ffmpeg.h"
+#include "mp4av.h"
 //#include "encoder-h263.h"
 //#include <dsputil.h>
 //#include <mpegvideo.h>
@@ -33,6 +34,10 @@ CFfmpegVideoEncoder::CFfmpegVideoEncoder()
 	m_vopBuffer = NULL;
 	m_vopBufferLength = 0;
 	m_YUV = NULL;
+	m_push = NULL;
+#ifdef OUTPUT_RAW
+	m_outfile = NULL;
+#endif
 }
 
 bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
@@ -41,8 +46,30 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
   avcodec_register_all();
   m_pConfig = pConfig;
 
-  m_codec = avcodec_find_encoder(CODEC_ID_MPEG4);
-  m_media_frame = MPEG4VIDEOFRAME;
+  if (m_push != NULL) {
+    delete m_push;
+    m_push = NULL;
+  }
+  double rate;
+  rate = TimestampTicks / pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
+
+  m_frame_time = (Duration)rate;
+  if (strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
+		 VIDEO_ENCODING_MPEG4) == 0) {
+    m_push = new CTimestampPush(1);
+    m_codec = avcodec_find_encoder(CODEC_ID_MPEG4);
+    m_media_frame = MPEG4VIDEOFRAME;
+#ifdef OUTPUT_RAW
+    m_outfile = fopen("raw.m4v", FOPEN_WRITE_BINARY);
+#endif
+  } else {
+    m_push = new CTimestampPush(3);
+    m_codec = avcodec_find_encoder(CODEC_ID_MPEG2VIDEO);
+    m_media_frame = MPEG2VIDEOFRAME;
+#ifdef OUTPUT_RAW
+    m_outfile = fopen("raw.m2v", FOPEN_WRITE_BINARY);
+#endif
+  }
 
   if (m_codec == NULL) {
     error_message("Couldn't find codec");
@@ -58,10 +85,16 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
   m_avctx->frame_rate = (int)(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
   m_avctx->frame_rate_base = 1;
   
-  m_avctx->gop_size = (int)
-    ((m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE)+0.5)
-     * m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
-  m_avctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+  if (m_media_frame == MPEG2VIDEOFRAME) {
+    m_avctx->gop_size = 15;
+    m_avctx->b_frame_strategy = 0;
+    m_avctx->max_b_frames = 2;
+  } else {
+    m_avctx->gop_size = (int)
+      ((m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE)+0.5)
+       * m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
+    m_avctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+  }
   if (avcodec_open(m_avctx, m_codec) < 0) {
     error_message("Couldn't open codec");
     return false;
@@ -74,8 +107,10 @@ bool CFfmpegVideoEncoder::EncodeImage(
 	u_int8_t* pY, u_int8_t* pU, u_int8_t* pV, 
 	u_int32_t yStride, u_int32_t uvStride,
 	bool wantKeyFrame, 
-	Duration elapsedDuration)
+	Duration elapsedDuration,
+	Timestamp srcFrameTimestamp)
 {
+  m_push->Push(srcFrameTimestamp);
 	if (m_vopBuffer == NULL) {
 		m_vopBuffer = (u_int8_t*)malloc(m_pConfig->m_videoMaxVopSize);
 		if (m_vopBuffer == NULL) {
@@ -98,6 +133,12 @@ bool CFfmpegVideoEncoder::EncodeImage(
 						 m_vopBuffer, 
 						 m_pConfig->m_videoMaxVopSize, 
 						 m_picture);
+	//error_message("ffmpeg len %d", m_vopBufferLength);
+#ifdef OUTPUT_RAW
+	if (m_vopBufferLength) {
+	  fwrite(m_vopBuffer, m_vopBufferLength, 1, m_outfile);
+	}
+#endif
 	//	m_avctx.frame_number++;
 
 	return true;
@@ -105,11 +146,31 @@ bool CFfmpegVideoEncoder::EncodeImage(
 
 
 bool CFfmpegVideoEncoder::GetEncodedImage(
-	u_int8_t** ppBuffer, u_int32_t* pBufferLength)
+	u_int8_t** ppBuffer, u_int32_t* pBufferLength,
+	Timestamp *dts, Timestamp *pts)
 {
   *ppBuffer = m_vopBuffer;
   *pBufferLength = m_vopBufferLength;
-  
+
+  if (m_vopBufferLength != 0) {
+    *dts = m_push->Pop();
+    if (m_media_frame == MPEG2VIDEOFRAME) {
+      // special processing for mpeg2 - the pts is not when we
+      // dts
+      int ret, ftype;
+      ret = MP4AV_Mpeg3FindPictHdr(m_vopBuffer, m_vopBufferLength, &ftype);
+      if (ret >= 0 && ftype != 3) {
+	*pts = *dts + (2 * m_frame_time);
+      } else {
+	*pts = *dts - m_frame_time;
+      }
+      //error_message("dts %llu pts %llu", *dts, *pts);
+    } else {
+      *pts = *dts;
+    }
+  } else {
+    *dts = *pts = 0;
+  }
   m_vopBuffer = NULL;
   m_vopBufferLength = 0;
   
@@ -165,6 +226,11 @@ void CFfmpegVideoEncoder::Stop()
   CHECK_AND_FREE(m_YUV);
   CHECK_AND_FREE(m_picture);
   CHECK_AND_FREE(m_avctx);
+#ifdef OUTPUT_RAW
+  if (m_outfile) {
+    fclose(m_outfile);
+  }
+#endif
 	  
 }
 

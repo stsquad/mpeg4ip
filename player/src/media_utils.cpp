@@ -39,6 +39,7 @@
 #ifndef _WIN32
 #include "mpeg2t.h"
 #endif
+#include "mpeg2t_file.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -697,8 +698,12 @@ int parse_name_for_session (CPlayerSession *psptr,
 				    cc_vft);
   } else if (strcasecmp(suffix, ".mpeg") == 0 ||
 	     strcasecmp(suffix, ".mpg") == 0) {
+    err = create_media_for_mpeg2t_file(psptr, name, errmsg, errlen, 
+				       have_audio_driver, cc_vft);
+    if (err < 0) {
     err = create_media_for_mpeg_file(psptr, name, errmsg, 
 				     errlen, have_audio_driver, cc_vft);
+    }
   } else {
     // raw files
     if (have_audio_driver) {

@@ -3,19 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "SDL"=..\..\lib\SDL_VisualC\SDL60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "SDLmain"=..\..\lib\SDL_VisualC\SDLMain60.dsp - Package Owner=<4>
+Project: "SDLaudio"=..\..\lib\SDLAudio\SDLaudio.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -109,9 +97,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp4util
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name SDL
     End Project Dependency
 }}}
 
@@ -339,9 +324,6 @@ Package=<4>
     Project_Dep_Name need_for_win
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name SDL
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libmp4util
     End Project Dependency
     Begin Project Dependency
@@ -453,9 +435,6 @@ Package=<4>
     Project_Dep_Name libmpplayer
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name SDLmain
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libconfig_file
     End Project Dependency
     Begin Project Dependency
@@ -471,7 +450,10 @@ Package=<4>
     Project_Dep_Name libmp4av
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name SDL
+    Project_Dep_Name utils
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name SDLaudio
     End Project Dependency
 }}}
 
@@ -492,14 +474,23 @@ Package=<4>
     Project_Dep_Name libmpeg32util
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name SDL
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libmp4av
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmissing60
     End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "utils"=..\..\LIB\UTILS\utils.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
 }}}
 
 ###############################################################################
@@ -512,9 +503,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name SDLmain
-    End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmpplayer
     End Project Dependency
@@ -529,6 +517,12 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp4av
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name utils
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name SDLaudio
     End Project Dependency
 }}}
 

@@ -27,6 +27,6 @@ mpeg2t_test_SOURCES = test.cpp
 mpeg2t_test_LDADD = libmpeg2_transport.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
-	@SDL_LIBS@ -lSDLMain
+	@SDL_LIBS@ 
 
 EXTRA_DIST= libmpeg2t.xcode/project.pbxproj

@@ -252,11 +252,16 @@ codec_data_t *mpeg4_iso_file_check (lib_message_func_t message,
 	
 	calc /= iso->m_framerate;
 	//message(LOG_DEBUG, "mp4iso", "I frame at %u "U64, framecount, calc);
-	iso->m_fpos->record_point(ftell(iso->m_ifile) - 
-				  iso->m_buffer_size - 
-				  iso->m_buffer_on, 
-				  calc, 
-				  framecount);
+	uint64_t offset;
+	fpos_t pos;
+        if (fgetpos(iso->m_ifile, &pos) > 0) {
+	  FPOS_TO_VAR(pos, uint64_t, offset);
+	  iso->m_fpos->record_point(offset - 
+				    iso->m_buffer_size - 
+				    iso->m_buffer_on, 
+				    calc, 
+				    framecount);
+	}
       }
       iso->m_buffer_on = nextframe;
     }
@@ -324,7 +329,7 @@ int divx_file_next_frame (codec_data_t *your_data,
     value = divx_find_header(divx, 4);
   }
 
-  *ts = (divx->m_frame_on * M_64) / divx->m_framerate;
+  *ts = (divx->m_frame_on * TO_U64(1000)) / divx->m_framerate;
   *buffer = &divx->m_buffer[divx->m_buffer_on];
   divx->m_frame_on++;
   return divx->m_buffer_size - divx->m_buffer_on;
@@ -355,7 +360,9 @@ int divx_file_seek_to (codec_data_t *your, uint64_t ts)
   divx->m_buffer_on = 0;
   divx->m_buffer_size = 0;
 
-  fseek(divx->m_ifile, fpos->file_position, SEEK_SET);
+  fpos_t pos;
+  VAR_TO_FPOS(pos, fpos->file_position);
+  fsetpos(divx->m_ifile, &pos);
   divx_reset_buffer(divx);
   return 0;
 }

@@ -3,7 +3,7 @@ libdir = @PLAYER_PLUGIN_DIR@
 lib_LTLIBRARIES = a52_audio_plugin.la
 a52_audio_plugin_la_LDFLAGS = -module
 a52_audio_plugin_la_SOURCES = \
-	a52dec.cpp a52dec.h
+	a52dec.cpp a52dec.h ac3_file.cpp
 a52_audio_plugin_la_LIBADD = \
 	-lm -la52
 

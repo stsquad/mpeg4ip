@@ -37,10 +37,12 @@ public:
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
 		u_int32_t yStride, u_int32_t uvStride,
 		bool wantKeyFrame,
-		Duration elapsedDuration) = NULL;
+		Duration elapsedDuration,
+		Timestamp srcFrameTimestamp) = NULL;
 
 	virtual bool GetEncodedImage(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
+		u_int8_t** ppBuffer, u_int32_t* pBufferLength,
+		Timestamp *dts, Timestamp *pts) = NULL;
 
 	virtual bool GetReconstructedImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;

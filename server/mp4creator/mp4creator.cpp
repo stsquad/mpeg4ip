@@ -174,6 +174,10 @@ int main(int argc, char** argv)
       inputFileName = optarg;
       break;
     case 'd':
+      if (optarg == NULL) {
+	fprintf(stderr, "%s:no track-id specified for delete\n", ProgName);
+	exit(EXIT_COMMAND_LINE);
+      }
       if (sscanf(optarg, "%u", &deleteTrackId) != 1) {
 	fprintf(stderr, 
 		"%s: bad track-id specified: %s\n",
@@ -183,6 +187,11 @@ int main(int argc, char** argv)
       doDelete = true;
       break;
     case 'e':
+      if (optarg == NULL) {
+	fprintf(stderr, "%s:no track-id specified for extract\n", ProgName);
+	exit(EXIT_COMMAND_LINE);
+      }
+
       if (sscanf(optarg, "%u", &extractTrackId) != 1) {
 	fprintf(stderr, 
 		"%s: bad track-id specified: %s\n",
@@ -221,6 +230,10 @@ int main(int argc, char** argv)
       break;
     case 'm':
       u_int32_t mtu;
+      if (optarg == NULL) {
+	fprintf(stderr, "%s:no mtu specified\n", ProgName);
+	exit(EXIT_COMMAND_LINE);
+      }
       if (sscanf(optarg, "%u", &mtu) != 1 || mtu < 64) {
 	fprintf(stderr, 
 		"%s: bad mtu specified: %s\n",
@@ -230,6 +243,10 @@ int main(int argc, char** argv)
       maxPayloadSize = mtu - 40;	// subtract IP, UDP, and RTP hdrs
       break;
     case 'M':
+      if (optarg == NULL) {
+	fprintf(stderr, "%s:no video profile specifed\n", ProgName);
+	exit(EXIT_COMMAND_LINE);
+      }
       if (sscanf(optarg, "%u", &VideoProfileLevel) != 1 ||
 	  (VideoProfileLevel < 0 || VideoProfileLevel > 3)) {
 	fprintf(stderr,
@@ -246,6 +263,10 @@ int main(int argc, char** argv)
       payloadName = optarg;
       break;
     case 'r':
+      if (optarg == NULL) {
+	fprintf(stderr, "%s:no rate specifed\n", ProgName);
+	exit(EXIT_COMMAND_LINE);
+      }
       if (sscanf(optarg, "%f", &VideoFrameRate) != 1) {
 	fprintf(stderr, 
 		"%s: bad rate specified: %s\n",
@@ -254,6 +275,10 @@ int main(int argc, char** argv)
       }
       break;
     case 't':
+      if (optarg == NULL) {
+	fprintf(stderr, "%s:no time scale specifed\n", ProgName);
+	exit(EXIT_COMMAND_LINE);
+      }
       if (sscanf(optarg, "%u", &Mp4TimeScale) != 1) {
 	fprintf(stderr, 
 		"%s: bad timescale specified: %s\n",

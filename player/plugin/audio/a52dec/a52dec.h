@@ -41,13 +41,37 @@ typedef struct a52dec_codec_t {
   int m_initialized;
   int m_resync;
   int m_chans;
+  int m_freq;
   uint64_t m_last_ts;
   uint32_t m_frames_at_ts;
   a52_state_t *m_state;
+  uint8_t *m_buffer;
+  uint32_t m_framecount;
+  uint32_t m_buffer_on;
+  uint32_t m_buffer_size;
+  uint32_t m_buffer_size_max;
+  FILE *m_ifile;
   //#define OUTPUT_TO_FILE 1
 #ifdef OUTPUT_TO_FILE
   FILE *m_outfile;
 #endif
 } a52dec_codec_t;
+
+#define MAX_READ_BUFFER (768 * 8 * 2)
+
+codec_data_t *ac3_file_check(lib_message_func_t message,
+			     const char *name, 
+			     double *max, 
+			     char *desc[4],
+			     CConfigSet *pConfig);
+int ac3_file_next_frame(codec_data_t *your,
+			 uint8_t **buffer, 
+			 uint64_t *ts);
+void ac3_file_used_for_frame(codec_data_t *ifptr, 
+			     uint32_t bytes);
+int ac3_file_eof (codec_data_t *ifptr);
+int ac3_raw_file_seek_to(codec_data_t *ifptr, uint64_t ts);
+
+
 
 #endif

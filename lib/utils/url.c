@@ -22,6 +22,17 @@
 
 #include "mpeg4ip.h"
 #include "mpeg4ip_utils.h"
+static size_t strcount (const char *string, const char *vals)
+{
+  size_t count = 0;
+  if (string == NULL) return 0;
+
+  while (*string != '\0') {
+    if (strchr(vals, *string) != NULL) count++;
+    string++;
+  }
+  return count;
+}
 
 char *convert_url (const char *to_convert)
 {
@@ -31,9 +42,9 @@ char *convert_url (const char *to_convert)
 
   if (to_convert == NULL) return NULL;
 
-  count = strspn(to_convert, spaces);
+  count = strcount(to_convert, spaces);
   count *= 3; // replace each space with %20
-  count += strspn(to_convert, "%") * 2;
+  count += strcount(to_convert, "%") * 2;
 
   count += strlen(to_convert) + 1;
   
@@ -52,6 +63,7 @@ char *convert_url (const char *to_convert)
     } else
       *p++ = *to_convert++;
   }
+  *p++ = *to_convert; // final \0
   return ret;
 }
 

@@ -646,16 +646,18 @@ void CH261Encoder::encode(uint8_t* vf, const u_int8_t *crvec)
 
 bool
 CH261PixelEncoder::EncodeImage(uint8_t *pY, 
-			      uint8_t *pU,
-			      uint8_t *pV,
-			      uint32_t yStride,
-			      uint32_t uvStride,
-			      bool wantKeyFrame,
-			       Duration elapsedDuration)
+			       uint8_t *pU,
+			       uint8_t *pV,
+			       uint32_t yStride,
+			       uint32_t uvStride,
+			       bool wantKeyFrame,
+			       Duration elapsedDuration,
+			       Timestamp srcTimestamp)
 {
   uint32_t y;
   uint8_t *pFrame;
   // check if everything is all together
+  m_srcFrameTimestamp = srcTimestamp;
   pFrame = pY;
   if (yStride != width_ ||
       uvStride != (width_ / 2) ||
@@ -939,8 +941,11 @@ CH261PixelEncoder::EncodeImage(uint8_t *pY,
 }
 
 bool CH261PixelEncoder::GetEncodedImage(uint8_t **ppBuffer, 
-				       uint32_t *pBufferLength)
+				       uint32_t *pBufferLength,
+					Timestamp *dts, 
+					Timestamp *pts)
 {
+  *dts = *pts = m_srcFrameTimestamp;
   *ppBuffer = (uint8_t *)m_head;
   m_head = NULL;
   *pBufferLength = 0;

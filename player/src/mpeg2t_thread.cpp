@@ -585,6 +585,7 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
       mpeg2t_stream_t *stream;
       stream = MALLOC_STRUCTURE(mpeg2t_stream_t);
       stream->m_parent = info;
+      stream->m_last_psts = 0;
       stream->m_mptr = mptr;
       stream->m_is_video = 1;
       stream->m_buffering = 1;
@@ -617,9 +618,9 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
 	  sdesc++;
 	}
       }
-      mpeg2t_start_saving_frames(es_pid);
+      mpeg2t_set_frame_status(es_pid, MPEG2T_PID_SAVE_FRAME);
     }  else {
-      mpeg2t_stop_saving_frames(es_pid);
+      mpeg2t_set_frame_status(es_pid, MPEG2T_PID_NOTHING);
     }
   }
   return created;
@@ -716,9 +717,9 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
 	  sdesc++;
 	}
       }
-      mpeg2t_start_saving_frames(es_pid);
-    } else {
-      mpeg2t_stop_saving_frames(es_pid);
+      mpeg2t_set_frame_status(es_pid, MPEG2T_PID_SAVE_FRAME);
+    }  else {
+      mpeg2t_set_frame_status(es_pid, MPEG2T_PID_NOTHING);
     }
   }
   return created;
@@ -778,7 +779,7 @@ mpeg2t_client_t *mpeg2t_start_rtsp (CPlayerSession *psptr,
 	      ADV_SPACE(dptr);
 	      char *endptr;
 	      duration = strtoull(dptr, &endptr, 10);
-	      duration = (duration + 999) / M_64; // convert usec to msec
+	      duration = (duration + 999) / TO_U64(1000); // convert usec to msec
 	      have_duration = endptr != dptr;
 	    }
 	  }
@@ -852,6 +853,190 @@ mpeg2t_client_t *mpeg2t_start_rtsp (CPlayerSession *psptr,
     mp2t->m_end_time = duration;
   }
   return mp2t;
+}
+void mpeg2t_check_streams (video_query_t **pvq, 
+			   audio_query_t **paq,
+			   mpeg2t_t *decoder,
+			   uint &audio_count,
+			   uint &video_count,
+			   char *errmsg, 
+			   uint32_t errlen,
+			   CPlayerSession *psptr,
+			   control_callback_vft_t *cc_vft)
+{
+  uint audio_info_count, video_info_count;
+  mpeg2t_pid_t *pid_ptr;
+  mpeg2t_es_t *es_pid;
+  int passes;
+
+  pid_ptr = &decoder->pas.pid;
+  audio_count = video_count = 0;
+  audio_info_count = video_info_count = 0;
+  passes = 0;
+
+  do {
+  SDL_LockMutex(decoder->pid_mutex);
+  while (pid_ptr != NULL) {
+    switch (pid_ptr->pak_type) {
+    case MPEG2T_PAS_PAK:
+    case MPEG2T_PROG_MAP_PAK:
+      break;
+    case MPEG2T_ES_PAK:
+      es_pid = (mpeg2t_es_t *)pid_ptr;
+      switch (es_pid->stream_type) {
+      case MPEG2T_ST_MPEG_VIDEO:
+      case MPEG2T_ST_MPEG4_VIDEO:
+      case MPEG2T_ST_11172_VIDEO:
+	video_count++;
+	if (es_pid->info_loaded) video_info_count++;
+	break;
+      case MPEG2T_ST_11172_AUDIO:
+      case MPEG2T_ST_MPEG_AUDIO:
+      case 129:
+	audio_count++;
+	if (es_pid->info_loaded) audio_info_count++;
+	break;
+      case MPEG2T_ST_MPEG_AUDIO_6_A:
+      case MPEG2T_ST_MPEG_AUDIO_6_B:
+      case MPEG2T_ST_MPEG_AUDIO_6_C:
+      case MPEG2T_ST_MPEG_AUDIO_6_D:
+      case MPEG2T_ST_MPEG2_AAC:
+      default:
+	mpeg2t_message(LOG_INFO, "PID %x - Unknown/unused stream type %d",
+		       pid_ptr->pid, es_pid->stream_type);
+	break;
+      }
+      break;
+    }
+    pid_ptr = pid_ptr->next_pid;
+  }
+  SDL_UnlockMutex(decoder->pid_mutex);
+  passes++;
+  if (audio_count != audio_info_count ||
+      video_info_count != video_count) {
+    SDL_Delay(1 * 1000);
+  }
+  } while (audio_info_count != audio_count && video_info_count != video_info_count);
+  video_query_t *vq;
+  audio_query_t *aq;
+  if (video_count > 0) {
+    vq = (video_query_t *)malloc(sizeof(video_query_t) * video_count);
+    memset(vq, 0, sizeof(video_query_t) * video_count);
+  } else {
+    vq = NULL;
+  }
+  if (audio_count > 0) {
+    aq = (audio_query_t *)malloc(sizeof(audio_query_t) * audio_count);
+    memset(aq, 0, sizeof(audio_query_t) * audio_count);
+  } else {
+    aq = NULL;
+  }
+
+  *pvq = vq;
+  *paq = aq;
+
+  uint vid_cnt = 0, aud_cnt = 0;
+  codec_plugin_t *plugin;
+
+  pid_ptr = &decoder->pas.pid;
+  SDL_LockMutex(decoder->pid_mutex);
+  while (pid_ptr != NULL) {
+    switch (pid_ptr->pak_type) {
+    case MPEG2T_PAS_PAK:
+    case MPEG2T_PROG_MAP_PAK:
+      break;
+    case MPEG2T_ES_PAK:
+      es_pid = (mpeg2t_es_t *)pid_ptr;
+      if (es_pid->is_video) {
+	if (vid_cnt < video_count) {
+	  plugin = check_for_video_codec("MPEG2 TRANSPORT",
+					 NULL,
+					 es_pid->stream_type,
+					 -1,
+					 es_pid->es_data,
+					 es_pid->es_info_len);
+	  if (plugin == NULL) {
+	    snprintf(errmsg, errlen, 
+		     "Can't find video plugin for stream type %d",
+		     es_pid->stream_type);
+	    mpeg2t_message(LOG_ERR, errmsg);
+	  } else {
+	    vq[vid_cnt].track_id = pid_ptr->pid;
+	    vq[vid_cnt].compressor = "MPEG2 TRANSPORT";
+	    vq[vid_cnt].type = es_pid->stream_type;
+	    vq[vid_cnt].profile = -1;
+	    vq[vid_cnt].fptr = NULL;
+	    if (es_pid->info_loaded != 0) {
+	      vq[vid_cnt].h = es_pid->h;
+	      vq[vid_cnt].w = es_pid->w;
+	      vq[vid_cnt].frame_rate = es_pid->frame_rate;
+	      mpeg2t_message(LOG_DEBUG, "video stream h %d w %d fr %g bitr %g", 
+			     es_pid->h, es_pid->w, es_pid->frame_rate, 
+			     es_pid->bitrate);
+	    } else {
+	      vq[vid_cnt].h = -1;
+	      vq[vid_cnt].w = -1;
+	      vq[vid_cnt].frame_rate = 0.0;
+	    }
+	    vq[vid_cnt].config = es_pid->es_data;
+	    vq[vid_cnt].config_len = es_pid->es_info_len;
+	    vq[vid_cnt].enabled = 0;
+	    vq[vid_cnt].reference = NULL;
+	    vid_cnt++;
+	  }
+	}
+      } else {
+	if (aud_cnt < audio_count) {
+	  plugin = check_for_audio_codec("MPEG2 TRANSPORT",
+					 NULL,
+					 es_pid->stream_type,
+					 -1,
+					 es_pid->es_data,
+					 es_pid->es_info_len);
+	  if (plugin == NULL) {
+	    snprintf(errmsg, errlen, 
+		     "Can't find audio plugin for stream type %d",
+		     es_pid->stream_type);
+	    mpeg2t_message(LOG_ERR, errmsg);
+	  } else {
+	    aq[aud_cnt].track_id = pid_ptr->pid;
+	    aq[aud_cnt].compressor = "MPEG2 TRANSPORT";
+	    aq[aud_cnt].type = es_pid->stream_type;
+	    aq[aud_cnt].profile = -1;
+	    aq[aud_cnt].fptr = NULL;
+	    aq[aud_cnt].config = es_pid->es_data;
+	    aq[aud_cnt].config_len = es_pid->es_info_len;
+	    if (es_pid->info_loaded != 0) {
+	      aq[aud_cnt].chans = es_pid->audio_chans;
+	      aq[aud_cnt].sampling_freq = es_pid->sample_freq;
+	      mpeg2t_message(LOG_DEBUG, "audio stream chans %d sf %d bitrate %g", 
+			     es_pid->audio_chans, es_pid->sample_freq, es_pid->bitrate / 1000.0);
+	    } else {
+	      aq[aud_cnt].chans = -1;
+	      aq[aud_cnt].sampling_freq = -1;
+	    }
+	    aq[aud_cnt].enabled = 0;
+	    aq[aud_cnt].reference = NULL;
+	    aud_cnt++;
+	  }
+	}
+      }
+    }
+    pid_ptr = pid_ptr->next_pid;
+  }
+  SDL_UnlockMutex(decoder->pid_mutex);
+  if (cc_vft && cc_vft->media_list_query != NULL) {
+    (cc_vft->media_list_query)(psptr, vid_cnt, vq, aud_cnt, aq);
+  } else {
+    if (video_count > 0) {
+      vq[0].enabled = 1;
+    }
+    if (audio_count > 0) {
+      aq[0].enabled = 1;
+    }
+  }
+  video_count = vid_cnt;
+  audio_count = aud_cnt;
 }
 
 int create_mpeg2t_session (CPlayerSession *psptr,
@@ -932,199 +1117,20 @@ int create_mpeg2t_session (CPlayerSession *psptr,
   psptr->set_media_close_callback(close_mpeg2t_client, mp2t);
   // Okay - we need to gather together information about pids and
   // lists, then call the audio/video query vectors.
-  int audio_count, video_count;
-  int audio_info_count, video_info_count;
-  int passes;
-  mpeg2t_pid_t *pid_ptr;
-  mpeg2t_es_t *es_pid;
-  mp2t->decoder->save_frames_at_start = 0;
-  pid_ptr = &mp2t->decoder->pas.pid;
-  audio_count = video_count = 0;
-  audio_info_count = video_info_count = 0;
-  passes = 0;
-
-  do {
-  SDL_LockMutex(mp2t->decoder->pid_mutex);
-  while (pid_ptr != NULL) {
-    switch (pid_ptr->pak_type) {
-    case MPEG2T_PAS_PAK:
-    case MPEG2T_PROG_MAP_PAK:
-      break;
-    case MPEG2T_ES_PAK:
-      es_pid = (mpeg2t_es_t *)pid_ptr;
-      switch (es_pid->stream_type) {
-      case MPEG2T_ST_MPEG_VIDEO:
-      case MPEG2T_ST_MPEG4_VIDEO:
-      case MPEG2T_ST_11172_VIDEO:
-	video_count++;
-	if (es_pid->info_loaded) video_info_count++;
-	break;
-      case MPEG2T_ST_11172_AUDIO:
-      case MPEG2T_ST_MPEG_AUDIO:
-      case 129:
-	audio_count++;
-	if (es_pid->info_loaded) audio_info_count++;
-	break;
-      case MPEG2T_ST_MPEG_AUDIO_6_A:
-      case MPEG2T_ST_MPEG_AUDIO_6_B:
-      case MPEG2T_ST_MPEG_AUDIO_6_C:
-      case MPEG2T_ST_MPEG_AUDIO_6_D:
-      case MPEG2T_ST_MPEG2_AAC:
-      default:
-	mpeg2t_message(LOG_INFO, "PID %x - Unknown/unused stream type %d",
-		       pid_ptr->pid, es_pid->stream_type);
-	break;
-      }
-      break;
-    }
-    pid_ptr = pid_ptr->next_pid;
-  }
-  SDL_UnlockMutex(mp2t->decoder->pid_mutex);
-  passes++;
-  if (audio_count != audio_info_count ||
-      video_info_count != video_count) {
-    SDL_Delay(1 * 1000);
-  }
-  } while (audio_info_count != audio_count && video_info_count != video_info_count);
+  uint audio_count, video_count;
   video_query_t *vq;
   audio_query_t *aq;
-  if (video_count > 0) {
-    vq = (video_query_t *)malloc(sizeof(video_query_t) * video_count);
-    memset(vq, 0, sizeof(video_query_t) * video_count);
-  } else {
-    vq = NULL;
-  }
-  if (audio_count > 0) {
-    aq = (audio_query_t *)malloc(sizeof(audio_query_t) * audio_count);
-    memset(aq, 0, sizeof(audio_query_t) * audio_count);
-  } else {
-    aq = NULL;
-  }
+  mp2t->decoder->save_frames_at_start = 0;
+  mpeg2t_check_streams(&vq, &aq, mp2t->decoder, audio_count, video_count, 
+		       errmsg, errlen, psptr, cc_vft);
 
-  int vid_cnt = 0, aud_cnt = 0;
-  codec_plugin_t *plugin;
-
-  pid_ptr = &mp2t->decoder->pas.pid;
-  SDL_LockMutex(mp2t->decoder->pid_mutex);
-  while (pid_ptr != NULL) {
-    switch (pid_ptr->pak_type) {
-    case MPEG2T_PAS_PAK:
-    case MPEG2T_PROG_MAP_PAK:
-      break;
-    case MPEG2T_ES_PAK:
-      es_pid = (mpeg2t_es_t *)pid_ptr;
-      switch (es_pid->stream_type) {
-      case MPEG2T_ST_11172_VIDEO:
-      case MPEG2T_ST_MPEG_VIDEO:
-      case MPEG2T_ST_MPEG4_VIDEO:
-	if (vid_cnt < video_count) {
-	  plugin = check_for_video_codec("MPEG2 TRANSPORT",
-					 NULL,
-					 es_pid->stream_type,
-					 -1,
-					 es_pid->es_data,
-					 es_pid->es_info_len);
-	  if (plugin == NULL) {
-	    snprintf(errmsg, errlen, 
-		     "Can't find video plugin for stream type %d",
-		     es_pid->stream_type);
-	    mpeg2t_message(LOG_ERR, errmsg);
-	  } else {
-	    vq[vid_cnt].track_id = pid_ptr->pid;
-	    vq[vid_cnt].compressor = "MPEG2 TRANSPORT";
-	    vq[vid_cnt].type = es_pid->stream_type;
-	    vq[vid_cnt].profile = -1;
-	    vq[vid_cnt].fptr = NULL;
-	    if (es_pid->info_loaded != 0) {
-	      vq[vid_cnt].h = es_pid->h;
-	      vq[vid_cnt].w = es_pid->w;
-	      vq[vid_cnt].frame_rate = es_pid->frame_rate;
-	      mpeg2t_message(LOG_DEBUG, "video stream h %d w %d fr %g bitr %g", 
-			     es_pid->h, es_pid->w, es_pid->frame_rate, 
-			     es_pid->bitrate);
-	    } else {
-	      vq[vid_cnt].h = -1;
-	      vq[vid_cnt].w = -1;
-	      vq[vid_cnt].frame_rate = 0.0;
-	    }
-	    vq[vid_cnt].config = es_pid->es_data;
-	    vq[vid_cnt].config_len = es_pid->es_info_len;
-	    vq[vid_cnt].enabled = 0;
-	    vq[vid_cnt].reference = NULL;
-	    vid_cnt++;
-	  }
-	}
-	break;
-      case MPEG2T_ST_MPEG_AUDIO:
-      case MPEG2T_ST_11172_AUDIO:
-      case 129:
-	if (aud_cnt < audio_count) {
-	  plugin = check_for_audio_codec("MPEG2 TRANSPORT",
-					 NULL,
-					 es_pid->stream_type,
-					 -1,
-					 es_pid->es_data,
-					 es_pid->es_info_len);
-	  if (plugin == NULL) {
-	    snprintf(errmsg, errlen, 
-		     "Can't find audio plugin for stream type %d",
-		     es_pid->stream_type);
-	    mpeg2t_message(LOG_ERR, errmsg);
-	  } else {
-	    aq[aud_cnt].track_id = pid_ptr->pid;
-	    aq[aud_cnt].compressor = "MPEG2 TRANSPORT";
-	    aq[aud_cnt].type = es_pid->stream_type;
-	    aq[aud_cnt].profile = -1;
-	    aq[aud_cnt].fptr = NULL;
-	    aq[aud_cnt].config = es_pid->es_data;
-	    aq[aud_cnt].config_len = es_pid->es_info_len;
-	    if (es_pid->info_loaded != 0) {
-	      aq[aud_cnt].chans = es_pid->audio_chans;
-	      aq[aud_cnt].sampling_freq = es_pid->sample_freq;
-	      mpeg2t_message(LOG_DEBUG, "audio stream chans %d sf %d bitrate %g", 
-			     es_pid->audio_chans, es_pid->sample_freq, es_pid->bitrate / 1000.0);
-	    } else {
-	      aq[aud_cnt].chans = -1;
-	      aq[aud_cnt].sampling_freq = -1;
-	    }
-	    aq[aud_cnt].enabled = 0;
-	    aq[aud_cnt].reference = NULL;
-	    aud_cnt++;
-	  }
-	}
-	break;
-      case MPEG2T_ST_MPEG_AUDIO_6_A:
-      case MPEG2T_ST_MPEG_AUDIO_6_B:
-      case MPEG2T_ST_MPEG_AUDIO_6_C:
-      case MPEG2T_ST_MPEG_AUDIO_6_D:
-      case MPEG2T_ST_MPEG2_AAC:
-      default:
-	mpeg2t_message(LOG_INFO, "PID %x - Unknown/unused stream type %d",
-		       es_pid->stream_type, pid_ptr->pid);
-	break;
-      }
-      break;
-    }
-    pid_ptr = pid_ptr->next_pid;
-  }
-  SDL_UnlockMutex(mp2t->decoder->pid_mutex);
-  if (cc_vft && cc_vft->media_list_query != NULL) {
-    (cc_vft->media_list_query)(psptr, vid_cnt, vq, aud_cnt, aq);
-  } else {
-    if (video_count > 0) {
-      vq[0].enabled = 1;
-    }
-    if (audio_count > 0) {
-      aq[0].enabled = 1;
-    }
-  }
   int total_enabled = 0;
 
   psptr->set_session_desc(0, "MPEG2 Transport Stream");
 
   int sdesc = 1;
   // create video media
-  int ret =  mpeg2t_create_video(mp2t, psptr, vq, vid_cnt, 
+  int ret =  mpeg2t_create_video(mp2t, psptr, vq, video_count, 
 				 errmsg, errlen, sdesc);
   if (ret < 0) {
     free(aq);
@@ -1134,7 +1140,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
   total_enabled += ret;
   // create audio media
   ret = mpeg2t_create_audio(mp2t, psptr, aq, 
-			    aud_cnt, errmsg, errlen, sdesc);
+			    audio_count, errmsg, errlen, sdesc);
   if (ret < 0) {
     free(aq);
     free(vq);
@@ -1168,3 +1174,4 @@ int create_mpeg2t_session (CPlayerSession *psptr,
 // will want to flush them.
 // Options are to add a do_pause to the bytestream.
 // or have a pause registration in either player media or playersession
+

@@ -1,46 +1,49 @@
 /*
- * The contents of this file are subject to the Mozilla Public
- * License Version 1.1 (the "License"); you may not use this file
- * except in compliance with the License. You may obtain a copy of
- * the License at http://www.mozilla.org/MPL/
- * 
- * Software distributed under the License is distributed on an "AS
- * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
- * implied. See the License for the specific language governing
- * rights and limitations under the License.
- * 
- * The Original Code is MPEG4IP.
- * 
- * The Initial Developer of the Original Code is Cisco Systems Inc.
- * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
- * 
- * Contributor(s): 
- *              Bill May        wmay@cisco.com
- */
+** MPEG4IP plugin for FAAD2
+** Copyright (C) 2003 Bill May wmay@cisco.com
+**
+** This program is free software; you can redistribute it and/or modify
+** it under the terms of the GNU General Public License as published by
+** the Free Software Foundation; either version 2 of the License, or
+** (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software
+** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+**
+** $Id: faad2.cpp,v 1.4 2004/03/15 23:56:29 wmaycisco Exp $
+**/
 #include "faad2.h"
 #include <mpeg4_audio_config.h>
 #include <mpeg4_sdp.h>
 #include <mp4.h>
-#ifndef HAVE_PLUGIN_VERSION_0_9
 #include <SDL/SDL.h>
-#endif
+
 #define DEBUG_SYNC 2
 
+#ifndef M_LLU
+#define M_LLU M_64
+#define LLU U64
+#endif
 const char *aaclib="faad2";
 
 /*
  * Create CAACodec class
  */
-static codec_data_t *aac_codec_create (const char *compressor, 
-				       int type, 
-				       int profile, 
-				       format_list_t *media_fmt,
-				       audio_info_t *audio,
-				       const uint8_t *userdata,
-				       uint32_t userdata_size,
-				       audio_vft_t *vft,
-				       void *ifptr)
+static codec_data_t *aac_codec_create (const char *compressor,
+                       int type,
+                       int profile,
+                       format_list_t *media_fmt,
+                       audio_info_t *audio,
+                       const uint8_t *userdata,
+                       uint32_t userdata_size,
+                       audio_vft_t *vft,
+                       void *ifptr)
 
 {
   aac_codec_t *aac;
@@ -55,7 +58,7 @@ static codec_data_t *aac_codec_create (const char *compressor,
 
   aac->m_resync_with_header = 1;
   aac->m_record_sync_time = 1;
-  
+
   aac->m_audio_inited = 0;
 
   // Use media_fmt to indicate that we're streaming.
@@ -70,26 +73,26 @@ static codec_data_t *aac_codec_create (const char *compressor,
       userdata = fmtp->config_binary;
       userdata_size = fmtp->config_binary_len;
     }
-  } 
+  }
 
   aac->m_info = faacDecOpen();
   unsigned long srate;
   unsigned char chan;
   if ((userdata == NULL && fmtp == NULL) ||
-      (faacDecInit2(aac->m_info, 
-		     (uint8_t *)userdata, 
-		     userdata_size, 
-		    &srate,
-		     &chan) < 0)) {
+      (faacDecInit2(aac->m_info,
+             (uint8_t *)userdata,
+             userdata_size,
+            &srate,
+             &chan) < 0)) {
       if (fmtp != NULL) free_fmtp_parse(fmtp);
       return NULL;
   }
-  
+
   mp4AudioSpecificConfig mp4ASC;
   aac->m_output_frame_size = 1024;
   if (AudioSpecificConfig((unsigned char *)userdata,
-			  userdata_size, 
-			  &mp4ASC)) {
+              userdata_size,
+              &mp4ASC)) {
     if (mp4ASC.frameLengthFlag) {
       aac->m_output_frame_size = 960;
     }
@@ -98,7 +101,7 @@ static codec_data_t *aac_codec_create (const char *compressor,
   aac->m_chans = chan;
   aac->m_faad_inited = 1;
   aac->m_msec_per_frame = aac->m_output_frame_size;
-  aac->m_msec_per_frame *= M_64;
+  aac->m_msec_per_frame *= M_LLU;
   aac->m_msec_per_frame /= aac->m_freq;
 
   //  faad_init_bytestream(&m_info->ld, c_read_byte, c_bookmark, m_bytestream);
@@ -121,6 +124,11 @@ void aac_close (codec_data_t *ptr)
   aac_codec_t *aac = (aac_codec_t *)ptr;
   faacDecClose(aac->m_info);
   aac->m_info = NULL;
+  CHECK_AND_FREE(aac->m_buffer);
+  if (aac->m_ifile != NULL) {
+     fclose(aac->m_ifile);
+     aac->m_ifile = NULL;
+  }
 
 #if DUMP_OUTPUT_TO_FILE
   fclose(aac->m_outfile);
@@ -145,12 +153,12 @@ static void aac_do_pause (codec_data_t *ifptr)
  * Decode task call for FAAC
  */
 static int aac_decode (codec_data_t *ptr,
-		       uint64_t ts,
-		       int from_rtp,
-		       int *sync_frame,
-		       uint8_t *buffer,
-		       uint32_t buflen, 
-		       void *userdata)
+               uint64_t ts,
+               int from_rtp,
+               int *sync_frame,
+               uint8_t *buffer,
+               uint32_t buflen,
+               void *userdata)
 {
   aac_codec_t *aac = (aac_codec_t *)ptr;
   unsigned long bytes_consummed;
@@ -172,7 +180,7 @@ static int aac_decode (codec_data_t *ptr,
       aac->m_current_frame = 0;
     }
 
-    // Note - here m_current_time should pretty much always be >= rtpts.  
+    // Note - here m_current_time should pretty much always be >= rtpts.
     // If we're not, we most likely want to stop and resync.  We don't
     // need to keep decoding - just decode this frame and indicate we
     // need a resync... That should handle fast forwards...  We need
@@ -182,17 +190,17 @@ static int aac_decode (codec_data_t *ptr,
 
   if (aac->m_faad_inited == 0) {
     /*
-     * If not initialized, do so.  
+     * If not initialized, do so.
      */
     abort();
     unsigned long freq;
     unsigned char chans;
-    
+
     faacDecInit(aac->m_info,
-		(unsigned char *)buffer,
-		buflen,
-		&freq,
-		&chans);
+        (unsigned char *)buffer,
+        buflen,
+        &freq,
+        &chans);
     aac->m_freq = freq;
     aac->m_chans = chans;
     aac->m_faad_inited = 1;
@@ -204,20 +212,20 @@ static int aac_decode (codec_data_t *ptr,
   //aa_message(LOG_DEBUG, aaclib, "decoding %d bits", buflen * 8);
   faacDecFrameInfo frame_info;
   buff = (uint8_t *)faacDecDecode(aac->m_info,
-				  &frame_info,
-				  buffer, 
-				  buflen);
+                  &frame_info,
+                  buffer,
+                  buflen);
   if (buff != NULL) {
     bytes_consummed = frame_info.bytesconsumed;
 #if 0
-    aa_message(LOG_DEBUG, aaclib, U64" bytes %d samples %d", 
-	       ts, bytes_consummed, frame_info.samples);
+    aa_message(LOG_DEBUG, aaclib, LLU" bytes %d samples %d",
+           ts, bytes_consummed, frame_info.samples);
 #endif
     if (aac->m_audio_inited != 0) {
       int tempchans = frame_info.channels;
       if (tempchans != aac->m_chans) {
-	aa_message(LOG_NOTICE, aaclib, "chupdate - chans from data is %d", 
-		   tempchans);
+    aa_message(LOG_NOTICE, aaclib, "chupdate - chans from data is %d",
+           tempchans);
       }
     } else {
       int tempchans = frame_info.channels;
@@ -228,19 +236,24 @@ static int aac_decode (codec_data_t *ptr,
 	aac->m_record_sync_time = 1;
 	return bytes_consummed;
       }
-      aac->m_chans = tempchans;
+      if (frame_info.num_lfe_channels > 0) {
+	aac->m_chans = 6;
+      } else {
+	aac->m_chans = frame_info.num_front_channels + 
+	  frame_info.num_back_channels;
+      }
       aac->m_freq = frame_info.samplerate;
 
       aac->m_vft->audio_configure(aac->m_ifptr,
-				  aac->m_freq, 
-				  aac->m_chans, 
+                  aac->m_freq,
+                  aac->m_chans,
 #ifdef HAVE_PLUGIN_VERSION_0_9
 				  AUDIO_FMT_S16,
 #else
-				  AUDIO_S16SYS, 
+                  AUDIO_S16SYS,
 #endif
-				  aac->m_output_frame_size);
-      uint8_t *now = aac->m_vft->audio_get_buffer(aac->m_ifptr);
+                  aac->m_output_frame_size);
+
       aac->m_audio_inited = 1;
     }
     /*
@@ -250,15 +263,57 @@ static int aac_decode (codec_data_t *ptr,
     fwrite(buff, aac->m_output_frame_size * 4, 1, aac->m_outfile);
 #endif
     if (frame_info.samples != 0) {
-      aac->m_vft->audio_load_buffer(aac->m_ifptr,
-				    buff,
-				    frame_info.samples * 2,
-				    aac->m_last_ts, 
-				    aac->m_resync_with_header);
+      if (aac->m_chans <= 2) {
+	aac->m_vft->audio_load_buffer(aac->m_ifptr,
+				      buff,
+				      frame_info.samples * sizeof(int16_t),
+				      aac->m_last_ts,
+				      aac->m_resync_with_header);
+      } else {
+	int16_t *now = (int16_t *)aac->m_vft->audio_get_buffer(aac->m_ifptr);
+	uint32_t samples = frame_info.samples / aac->m_chans;
+	int16_t *inptr = (int16_t *)buff;
+
+	memset(now, 0, frame_info.samples * sizeof(int16_t));
+	for (uint32_t ix = 0; ix < samples; ix++) {
+	  for (unsigned char chx = 0; chx < frame_info.channels; chx++) {
+	    switch (frame_info.channel_position[chx]) {
+	    case FRONT_CHANNEL_CENTER:
+	      now[4] = *inptr++;
+	      break;
+	    case FRONT_CHANNEL_LEFT:
+	      now[0] = *inptr++;
+	      break;
+	    case FRONT_CHANNEL_RIGHT:
+	      now[1] = *inptr++;
+	      break;
+	    case SIDE_CHANNEL_LEFT:
+	    case SIDE_CHANNEL_RIGHT:
+	    case BACK_CHANNEL_CENTER:
+	      inptr++;
+	      break;
+	    case BACK_CHANNEL_LEFT:
+	      now[2] = *inptr++;
+	      break;
+	    case BACK_CHANNEL_RIGHT:
+	      now[3] = *inptr++;
+	      break;
+	    case LFE_CHANNEL:
+	      now[5] = *inptr++;
+	      break;
+	    }
+	  }
+	  now += 6;
+	}
+	aac->m_vft->audio_filled_buffer(aac->m_ifptr,
+					aac->m_last_ts,
+					aac->m_resync_with_header);
+      } 
+	      
       if (aac->m_resync_with_header == 1) {
-	aac->m_resync_with_header = 0;
+    aac->m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
-	aa_message(LOG_DEBUG, aaclib, "Back to good at "U64, aac->m_current_time);
+    aa_message(LOG_DEBUG, aaclib, "Back to good at "LLU, aac->m_current_time);
 #endif
       }
     }
@@ -266,8 +321,8 @@ static int aac_decode (codec_data_t *ptr,
     aa_message(LOG_ERR, aaclib, "error return is %d", frame_info.error);
     aac->m_resync_with_header = 1;
 #ifdef DEBUG_SYNC
-    aa_message(LOG_ERR, aaclib, "Audio decode problem - at "U64, 
-	       aac->m_current_time);
+    aa_message(LOG_ERR, aaclib, "Audio decode problem - at "LLU,
+           aac->m_current_time);
 #endif
   }
   aac->m_last_ts = aac->m_current_time;
@@ -282,15 +337,19 @@ static const char *aac_compressors[] = {
 };
 
 static int aac_codec_check (lib_message_func_t message,
-			    const char *compressor,
-			    int type,
-			    int profile,
-			    format_list_t *fptr, 
-			    const uint8_t *userdata,
-			    uint32_t userdata_size)
+                const char *compressor,
+                int type,
+                int profile,
+                format_list_t *fptr,
+                const uint8_t *userdata,
+                uint32_t userdata_size
+#ifdef HAVE_PLUGIN_VERSION_0_8
+              ,CConfigSet *pConfig
+#endif
+              )
 {
   fmtp_parse_t *fmtp = NULL;
-  if (compressor != NULL && 
+  if (compressor != NULL &&
       strcasecmp(compressor, "MP4 FILE") == 0 &&
       type != -1) {
     switch (type) {
@@ -303,7 +362,7 @@ static int aac_codec_check (lib_message_func_t message,
       return -1;
     }
   }
-  if (fptr != NULL && 
+  if (fptr != NULL &&
       fptr->rtpmap != NULL &&
       fptr->rtpmap->encode_name != NULL) {
     if (strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) {
@@ -312,8 +371,8 @@ static int aac_codec_check (lib_message_func_t message,
     if (userdata == NULL) {
       fmtp = parse_fmtp_for_mpeg4(fptr->fmt_param, message);
       if (fmtp != NULL) {
-	userdata = fmtp->config_binary;
-	userdata_size = fmtp->config_binary_len;
+    userdata = fmtp->config_binary;
+    userdata_size = fmtp->config_binary_len;
       }
     }
   }
@@ -322,7 +381,7 @@ static int aac_codec_check (lib_message_func_t message,
     decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
     message(LOG_DEBUG, "aac", "audio type is %d", audio_config.audio_object_type);
     if (fmtp != NULL) free_fmtp_parse(fmtp);
-    
+
     if (audio_object_type_is_aac(&audio_config) == 0) {
       return -1;
     }
@@ -340,7 +399,7 @@ static int aac_codec_check (lib_message_func_t message,
     const char **lptr = aac_compressors;
     while (*lptr != NULL) {
       if (strcasecmp(*lptr, compressor) == 0) {
-	return 2;
+    return 2;
       }
       lptr++;
     }
@@ -349,18 +408,37 @@ static int aac_codec_check (lib_message_func_t message,
   return -1;
 }
 
+#ifndef HAVE_PLUGIN_VERSION_0_8
 AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("faad2",
-				 aac_codec_create,
-				 aac_do_pause,
-				 aac_decode,
-				 NULL, 
-				 aac_close,
-				 aac_codec_check,
-				 aac_file_check,
-				 aac_file_next_frame,
-				 aac_file_used_for_frame,
-				 aac_raw_file_seek_to,
-				 aac_file_eof);
+                 aac_codec_create,
+                 aac_do_pause,
+                 aac_decode,
+                 NULL,
+                 aac_close,
+                 aac_codec_check,
+                 aac_file_check,
+                 aac_file_next_frame,
+                 aac_file_used_for_frame,
+                 aac_raw_file_seek_to,
+               aac_file_eof
+               );
+#else
+AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("faad2",
+               aac_codec_create,
+               aac_do_pause,
+               aac_decode,
+               NULL,
+               aac_close,
+               aac_codec_check,
+               aac_file_check,
+               aac_file_next_frame,
+               aac_file_used_for_frame,
+               aac_raw_file_seek_to,
+               aac_file_eof,
+               NULL,
+               0
+               );
+#endif
 /* end file aa.cpp */
 
 

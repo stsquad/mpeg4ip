@@ -32,7 +32,7 @@
  * for easier makes
  */
 #define PLUGIN_VERSION "0.9"
-//#define HAVE_PLUGIN_VERSION_0_8 1
+#define HAVE_PLUGIN_VERSION_0_8 1
 #define HAVE_PLUGIN_VERSION_0_9 1
 
 /***************************************************************************
@@ -54,13 +54,14 @@
  */
 typedef enum audio_format_t {
   AUDIO_FMT_U8 = 0,
-    AUDIO_FMT_S8,
-    AUDIO_FMT_U16LSB,
-    AUDIO_FMT_S16LSB,
-    AUDIO_FMT_U16MSB,
-    AUDIO_FMT_S16MSB,
-    AUDIO_FMT_U16,
-    AUDIO_FMT_S16
+  AUDIO_FMT_S8,
+  AUDIO_FMT_U16LSB,
+  AUDIO_FMT_S16LSB,
+  AUDIO_FMT_U16MSB,
+  AUDIO_FMT_S16MSB,
+  AUDIO_FMT_U16,
+  AUDIO_FMT_S16,
+  AUDIO_FMT_FLOAT,
 } audio_format_t;
 
 typedef void (*audio_configure_f)(void *ifptr,

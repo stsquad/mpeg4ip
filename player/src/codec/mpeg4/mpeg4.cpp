@@ -152,10 +152,12 @@ static int parse_vovod (iso_decode_t *iso,
     bufptr = (unsigned char *)vovod;
   }
 
+#if 0
   for (uint32_t jx = 0; jx < len; jx++) {
     printf("%02x ", bufptr[jx]);
   }
   printf("\n");
+#endif
   
   // Create a byte stream to take from our buffer.
   // Temporary set of our bytestream
@@ -571,6 +573,7 @@ static const char *iso_compressors[] = {
   "dvx1", 
   "div4", 
   "mpeg4", 
+  "xvid",
   NULL,
 };
 

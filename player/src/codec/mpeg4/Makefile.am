@@ -10,8 +10,12 @@ mpeg4_iso_plugin_la_SOURCES = \
 
 mpeg4_dir=common/video/mpeg4-2000
 
+#
+# note - remove -lstdc++ from here, 2/27/04 - looks like it was needed
+# for Solaris
+#
 mpeg4_iso_plugin_la_LIBADD = \
-	-lm -lstdc++ \
+	-lm @SUN_LIBS@ \
 	$(top_builddir)/lib/fposrec/libfposrec.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/$(mpeg4_dir)/sys/decoder/libobj_sys_decoder.la \
