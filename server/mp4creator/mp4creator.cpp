@@ -71,6 +71,7 @@ int main(int argc, char** argv)
 		"  -hint[=<track-id>]      Create hint track, also -H\n"
 		"  -interleave             Use interleaved audio payload format, also -I\n"
 		"  -list                   List tracks in mp4 file\n"
+	        "  -mpeg4-video-profile=<level> Mpeg4 video profile override\n"
 		"  -mtu=<size>             MTU for hint track\n"
 		"  -optimize               Optimize mp4 file layout\n"
 	        "  -payload=<payload>      Rtp payload type \n"
@@ -103,6 +104,7 @@ int main(int argc, char** argv)
 	VideoFrameRate = 0;		// determine from input file
 	TimeScaleSpecified = false;
 	Mp4TimeScale = 90000;
+	VideoProfileLevelSpecified = false;
 
 	// begin processing command line
 	ProgName = argv[0];
@@ -118,6 +120,7 @@ int main(int argc, char** argv)
 			{ "hint", 2, 0, 'H' },
 			{ "interleave", 0, 0, 'I' },
 			{ "list", 0, 0, 'l' },
+			{ "mpeg4-video-profile", 1, 0, 'M' },
 			{ "mtu", 1, 0, 'm' },
 			{ "optimize", 0, 0, 'O' },
 			{ "payload", 1, 0, 'p' },
@@ -185,6 +188,16 @@ int main(int argc, char** argv)
 			}
 			maxPayloadSize = mtu - 40;	// subtract IP, UDP, and RTP hdrs
 			break;
+		case 'M':
+		  if (sscanf(optarg, "%u", &VideoProfileLevel) != 1 ||
+		      (VideoProfileLevel < 0 || VideoProfileLevel > 3)) {
+		    fprintf(stderr,
+			    "%s: bad mpeg4 video profile level specified %d\n",
+			    ProgName, VideoProfileLevel);
+		    exit(EXIT_COMMAND_LINE);
+		  }
+		  VideoProfileLevelSpecified = TRUE;
+		  break;
 		case 'O':
 			doOptimize = true;
 			break;

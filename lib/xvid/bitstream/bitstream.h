@@ -99,8 +99,24 @@
 #define VOL_START_CODE	0x12
 #define VOP_START_CODE	0x1b6
 
+#define	NUMBITS_VP_HEC					1
+#define NUMBITS_VOP_QUANTIZER			5
+#define	NUMBITS_VP_QUANTIZER			NUMBITS_VOP_QUANTIZER
+#define NUMBITS_VOP_PRED_TYPE			2
+#define	NUMBITS_VP_PRED_TYPE			NUMBITS_VOP_PRED_TYPE
+#define NUMBITS_VOP_WIDTH				13
+#define NUMBITS_VOP_HEIGHT				13
+#define NUMBITS_VOP_HORIZONTAL_SPA_REF	13
+#define NUMBITS_VOP_VERTICAL_SPA_REF	13
+#define NUMBITS_VOP_FCODE				3
+#define	NUMBITS_VP_INTRA_DC_SWITCH_THR	3
+
 #define READ_MARKER()	BitstreamSkip(bs, 1)
 #define WRITE_MARKER()	BitstreamPutBit(bs, 1)
+
+// resync-specific
+#define NUMBITS_VP_RESYNC_MARKER  17
+#define RESYNC_MARKER 1
 
 // vop coding types 
 // intra, prediction, backward, sprite, not_coded
@@ -110,6 +126,7 @@
 #define S_VOP	3
 #define N_VOP	4
 
+int read_video_packet_header(DECODER * dec,int coding_type,Bitstream *bs, const int addbits, int * quant);
 
 // header stuff
 int BitstreamReadHeaders(Bitstream * bs, DECODER * dec, uint32_t * rounding,
@@ -235,6 +252,31 @@ static __inline void BitstreamSkip(Bitstream * const bs, const uint32_t bits)
 	//printf("used %d\n", bits);
 }
 
+// number of bits to next byte alignment
+static uint32_t __inline
+BitstreamNumBitsToByteAlign(Bitstream *bs)
+{
+	uint32_t n = (32 - bs->pos) % 8;
+	return n == 0 ? 8 : n;
+}
+
+
+// show nbits from next byte alignment
+static uint32_t __inline 
+BitstreamShowBitsFromByteAlign(Bitstream *bs, int bits)
+{
+	Bitstream bookmark;
+	int align_bits = BitstreamNumBitsToByteAlign(bs);
+	int ret_value = 0;
+
+	if (bits == 0) return ret_value;
+	memcpy(&bookmark,bs,sizeof(Bitstream));
+	BitstreamSkip(bs,align_bits);			
+	ret_value = BitstreamShowBits(bs,bits);
+	memcpy(bs,&bookmark,sizeof(Bitstream));
+	
+	return ret_value;
+}
 
 /* move forward to the next byte boundary */
 

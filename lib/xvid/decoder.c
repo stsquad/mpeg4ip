@@ -157,7 +157,8 @@ void decoder_mbintra(DECODER * dec,
 		     const uint32_t cbp,
 		     Bitstream * bs,
 		     const uint32_t quant,
-		     const uint32_t intra_dc_threshold)
+		     const uint32_t intra_dc_threshold,
+			 const unsigned int bound)
 {
 
 	DECLARE_ALIGNED_MATRIX(block, 6, 64, int16_t, CACHE_LINE);
@@ -193,7 +194,7 @@ void decoder_mbintra(DECODER * dec,
 #endif
 
 		start_timer();
-		predict_acdc(dec->mbs, x_pos, y_pos, dec->mb_width, i, &block[i*64], iQuant, iDcScaler, predictors);
+		predict_acdc(dec->mbs, x_pos, y_pos, dec->mb_width, i, &block[i*64], iQuant, iDcScaler, predictors, bound);
 		if (!acpred_flag)
 		{
 			pMB->acpred_directions[i] = 0;
@@ -399,20 +400,35 @@ static void decoder_mbinter(DECODER * dec,
 static void decoder_iframe(DECODER * dec, Bitstream * bs, int quant, int intra_dc_threshold)
 {
 
+	uint32_t bound;
 	uint32_t x, y;
+
+	bound = 0;
 
 	for (y = 0; y < dec->mb_height; y++)
 	{
 		for (x = 0; x < dec->mb_width; x++)
 		{
-			MACROBLOCK * mb = &dec->mbs[y*dec->mb_width + x];
-
+			MACROBLOCK *mb;
 			uint32_t mcbpc;
 			uint32_t cbpc;
 			uint32_t acpred_flag;
 			uint32_t cbpy;
 			uint32_t cbp;
 
+			while (BitstreamShowBits(bs, 9) == 1)
+				BitstreamSkip(bs, 9);
+
+			if (check_resync_marker(bs, 0))
+			{
+				bound = read_video_packet_header(dec,I_VOP,bs, 0, &quant);
+				if (bound) {
+					x = bound % dec->mb_width;
+					y = bound / dec->mb_width;
+				}
+			}
+			mb = &dec->mbs[y * dec->mb_width + x];
+	
 			// DEBUG
 			//printf("xvid mb %u %u 0x%08x, start %u\n",
 				//y, x, BitstreamShowBits(bs, 32), BitstreamPos(bs));
@@ -460,13 +476,13 @@ static void decoder_iframe(DECODER * dec, Bitstream * bs, int quant, int intra_d
 				DEBUG1("deci: field_dct: ", mb->field_dct);
 			}
 
-			decoder_mbintra(dec, mb, x, y, acpred_flag, cbp, bs, quant, intra_dc_threshold);
+			decoder_mbintra(dec, mb, x, y, acpred_flag, cbp, bs, quant, intra_dc_threshold, bound);
 		}
 	}
 }
 
 
-static void get_motion_vector(DECODER *dec, Bitstream *bs, int x, int y, int k, VECTOR * mv, int fcode)
+static void get_motion_vector(DECODER *dec, Bitstream *bs, int x, int y, int k, VECTOR * mv, int fcode, const int bound)
 {
 
 	int scale_fac = 1 << (fcode - 1);
@@ -474,39 +490,26 @@ static void get_motion_vector(DECODER *dec, Bitstream *bs, int x, int y, int k, 
 	int low = ((-32) * scale_fac);
 	int range = (64 * scale_fac);
 
-	VECTOR pmv[4];
-	uint32_t psad[4];
-
+	VECTOR pmv;
 	int mv_x, mv_y;
-	int pmv_x, pmv_y;
 
-
-	get_pmvdata(dec->mbs, x, y, dec->mb_width, k, pmv, psad);
-
-	pmv_x = pmv[0].x;
-	pmv_y = pmv[0].y;
+	pmv = get_pmv2(dec->mbs, dec->mb_width, bound, x, y, k);
 
 	mv_x = get_mv(bs, fcode);
 	mv_y = get_mv(bs, fcode);
-	
-	mv_x += pmv_x;
-	mv_y += pmv_y;
 
-	if (mv_x < low)
-	{
+	mv_x += pmv.x;
+	mv_y += pmv.y;
+
+	if (mv_x < low) {
 		mv_x += range;
-	} 
-	else if (mv_x > high)
-	{
+	} else if (mv_x > high) {
 		mv_x -= range;
 	}
 
-	if (mv_y < low)
-	{
+	if (mv_y < low) {
 		mv_y += range;
-	} 
-	else if (mv_y > high)
-	{
+	} else if (mv_y > high) {
 		mv_y -= range;
 	}
 
@@ -519,7 +522,9 @@ static
 void decoder_pframe(DECODER * dec, Bitstream * bs, int rounding, int quant, int fcode, int intra_dc_threshold)
 {
 
+	uint32_t bound;
 	uint32_t x, y;
+	int cp_mb, st_mb;
 
 	image_swap(&dec->cur, &dec->refn);
 	
@@ -527,11 +532,27 @@ void decoder_pframe(DECODER * dec, Bitstream * bs, int rounding, int quant, int 
 	image_setedges(&dec->refn, dec->edged_width, dec->edged_height, dec->width, dec->height, dec->interlacing);
 	stop_edges_timer();
 
+	bound = 0;
+
 	for (y = 0; y < dec->mb_height; y++)
 	{
 		for (x = 0; x < dec->mb_width; x++)
 		{
-			MACROBLOCK * mb = &dec->mbs[y*dec->mb_width + x];
+			MACROBLOCK *mb;
+
+			// skip stuffing
+			while (BitstreamShowBits(bs, 10) == 1)
+				BitstreamSkip(bs, 10);
+
+			if (check_resync_marker(bs, fcode - 1))
+			{
+				bound = read_video_packet_header(dec,P_VOP,bs, fcode - 1, &quant);
+				if (bound) {
+					x = bound % dec->mb_width;
+					y = bound / dec->mb_width;
+				}
+			}
+			mb = &dec->mbs[y * dec->mb_width + x];
 
 			if (!BitstreamGetBit(bs))			// not_coded
 			{
@@ -607,28 +628,28 @@ void decoder_pframe(DECODER * dec, Bitstream * bs, int rounding, int quant, int 
 				{
 					if (dec->interlacing && mb->field_pred)
 					{
-						get_motion_vector(dec, bs, x, y, 0, &mb->mvs[0], fcode);
-						get_motion_vector(dec, bs, x, y, 0, &mb->mvs[1], fcode);
+						get_motion_vector(dec, bs, x, y, 0, &mb->mvs[0], fcode, bound);
+						get_motion_vector(dec, bs, x, y, 0, &mb->mvs[1], fcode, bound);
 					}
 					else
 					{
-						get_motion_vector(dec, bs, x, y, 0, &mb->mvs[0], fcode);
+						get_motion_vector(dec, bs, x, y, 0, &mb->mvs[0], fcode, bound);
 						mb->mvs[1].x = mb->mvs[2].x = mb->mvs[3].x = mb->mvs[0].x;
 						mb->mvs[1].y = mb->mvs[2].y = mb->mvs[3].y = mb->mvs[0].y;
 					}
 				}
 				else if (mb->mode == MODE_INTER4V /* || mb->mode == MODE_INTER4V_Q */)
 				{
-					get_motion_vector(dec, bs, x, y, 0, &mb->mvs[0], fcode);
-					get_motion_vector(dec, bs, x, y, 1, &mb->mvs[1], fcode);
-					get_motion_vector(dec, bs, x, y, 2, &mb->mvs[2], fcode);
-					get_motion_vector(dec, bs, x, y, 3, &mb->mvs[3], fcode);
+					get_motion_vector(dec, bs, x, y, 0, &mb->mvs[0], fcode, bound);
+					get_motion_vector(dec, bs, x, y, 1, &mb->mvs[1], fcode, bound);
+					get_motion_vector(dec, bs, x, y, 2, &mb->mvs[2], fcode, bound);
+					get_motion_vector(dec, bs, x, y, 3, &mb->mvs[3], fcode, bound);
 				}
 				else  // MODE_INTRA, MODE_INTRA_Q
 				{
 					mb->mvs[0].x = mb->mvs[1].x = mb->mvs[2].x = mb->mvs[3].x = 0;
 					mb->mvs[0].y = mb->mvs[1].y = mb->mvs[2].y = mb->mvs[3].y = 0;
-					decoder_mbintra(dec, mb, x, y, acpred_flag, cbp, bs, quant, intra_dc_threshold);
+					decoder_mbintra(dec, mb, x, y, acpred_flag, cbp, bs, quant, intra_dc_threshold, bound);
 					continue;
 				}
 
@@ -740,9 +761,12 @@ int decoder_find_vol (DECODER * dec,
 	BitstreamInit(&bs, frame->bitstream, frame->length);
 
 	ret = BitstreamReadHeaders(&bs, dec, &rounding, &quant, &fcode, &intra_dc_threshold, 1);
+#ifdef MPEG4IP
 	if (dec->have_short_header) {
 	  frame->length = len;
-	} else {
+	} else 
+#endif
+	{
 	  frame->length = len - (BitstreamPos(&bs) / 8);
 	}
 

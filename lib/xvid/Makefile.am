@@ -31,6 +31,8 @@ libxvid_la_LIBADD = \
 EXTRA_DIST = \
 	authors.txt \
 	changelog.txt \
+	gpl.txt \
 	libxvid.dsp \
+	todo.txt \
 	xvid_st.dsp
 

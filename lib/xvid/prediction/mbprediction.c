@@ -83,8 +83,10 @@ void predict_acdc(MACROBLOCK *pMBs,
 		  int16_t qcoeff[64],
 		  uint32_t current_quant,
 		  int32_t iDcScaler,
-		  int16_t predictors[8])
+		  int16_t predictors[8],
+		  const int bound)
 {
+	const int mbpos = (y * mb_width) + x;
 	int16_t *left, *top, *diag, *current;
 
 	int32_t left_quant = current_quant;
@@ -104,8 +106,9 @@ void predict_acdc(MACROBLOCK *pMBs,
 
 	// left macroblock 
 
-	if(x && (pMBs[index - 1].mode == MODE_INTRA 
-		 || pMBs[index - 1].mode == MODE_INTRA_Q)) {
+	if(x && mbpos >= bound + 1  &&
+		(pMBs[index - 1].mode == MODE_INTRA || 
+		 pMBs[index - 1].mode == MODE_INTRA_Q)) {
 
 		left = pMBs[index - 1].pred_values[0];
 		left_quant = pMBs[index - 1].quant;
@@ -114,8 +117,9 @@ void predict_acdc(MACROBLOCK *pMBs,
     
 	// top macroblock
 	
-	if(y && (pMBs[index - mb_width].mode == MODE_INTRA 
-		 || pMBs[index - mb_width].mode == MODE_INTRA_Q)) {
+	if(mbpos >= bound + (int)mb_width &&
+	   (pMBs[index - mb_width].mode == MODE_INTRA || 
+	    pMBs[index - mb_width].mode == MODE_INTRA_Q)) {
 
 		top = pMBs[index - mb_width].pred_values[0];
 		top_quant = pMBs[index - mb_width].quant;
@@ -123,8 +127,9 @@ void predict_acdc(MACROBLOCK *pMBs,
     
 	// diag macroblock 
 	
-	if(x && y && (pMBs[index - 1 - mb_width].mode == MODE_INTRA 
-		      || pMBs[index - 1 - mb_width].mode == MODE_INTRA_Q)) {
+	if(x && mbpos >= bound + (int)mb_width + 1 &&
+	   (pMBs[index - 1 - mb_width].mode == MODE_INTRA || 
+		pMBs[index - 1 - mb_width].mode == MODE_INTRA_Q)) {
 
 		diag = pMBs[index - 1 - mb_width].pred_values[0];
 	}
@@ -403,7 +408,8 @@ void MBPrediction(MBParam *pParam,
 				     &qcoeff[j*64],
 				     iQuant,
 				     iDcScaler,
-				     predictors[j]);
+				     predictors[j],
+					 0);
 
 			S += calc_acdc(pMB,
 				       j,

@@ -7,6 +7,8 @@
 
 void init_vlc_tables(void);
 
+int check_resync_marker(Bitstream * bs, int addbits);
+
 int get_mcbpc_intra(Bitstream * bs);
 int get_mcbpc_inter(Bitstream * bs);
 int get_cbpy(Bitstream * bs, int intra);

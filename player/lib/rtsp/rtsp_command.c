@@ -224,15 +224,15 @@ int rtsp_send_setup (rtsp_client_t *info,
   maxlen = sizeof(buffer);
   buflen = snprintf(buffer, maxlen, "SETUP %s RTSP/1.0\r\n", url);
 
+  // always use the session here...
   if (rtsp_build_common(buffer,
 			maxlen,
 			&buflen,
 			info,
 			cmd,
-			is_aggregate ? info->session : NULL) == -1) {
+			info->session) == -1) {
     return (RTSP_RESPONSE_RECV_ERROR);
   }
-    
   ret = snprintf(buffer + buflen, maxlen - buflen, "\r\n");
   if (ret == -1) {
     return (RTSP_RESPONSE_RECV_ERROR);
@@ -262,6 +262,8 @@ int rtsp_send_setup (rtsp_client_t *info,
       }
     }
     sptr = info->session_list;
+    // we really need to seperate out the session from the
+    // rest of the Session: header
     while (sptr != NULL) {
       if (strcmp(sptr->url, url) == 0)
 	break;
@@ -280,8 +282,7 @@ int rtsp_send_setup (rtsp_client_t *info,
       sptr->parent = info;
       sptr->next = info->session_list;
       info->session_list = sptr;
-      if (is_aggregate && info->session == NULL)
-	info->session = sptr->session;
+      info->session = sptr->session;
     }
     *session_result = sptr;
     return (RTSP_RESPONSE_GOOD);

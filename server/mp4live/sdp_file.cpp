@@ -171,7 +171,6 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 	    audioBandwidth->bandwidth =
 	      pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE)/ 1000;
 	  
-	    free(pAudioConfig);
 	  }
 	} else {
 	  audioIsIsma = true;
@@ -267,6 +266,10 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 	    sdp_add_string_to_list(&sdp->unparsed_a_lines, iod);
 	    free(iod);
 	  }
+	}
+
+	if (pAudioConfig) {
+	  free(pAudioConfig);
 	}
 
 	if (audioIsIsma && videoIsIsma) {

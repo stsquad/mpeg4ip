@@ -48,6 +48,7 @@ EXTRA_DIST = \
 	crypt_random.h \
 	debug.h \
 	drand48.h \
+	getaddrinfo.c \
 	gettimeofday.c \
 	gettimeofday.h \
 	hmac.h \
@@ -67,15 +68,24 @@ EXTRA_DIST = \
 	rijndael-api-fst.h \
 	rtp.h \
 	sockstorage.h \
+	test.c \
+	test_base64.c \
 	test_base64.h \
+	test_des.c \
 	test_des.h \
+	test_mbus_addr.c \
 	test_mbus_addr.h \
+	test_mbus_parser.c \
 	test_mbus_parser.h \
+	test_md5.c \
 	test_md5.h \
+	test_memory.c \
 	test_memory.h \
+	test_net_udp.c \
 	test_net_udp.h \
 	test_rtp_encrypt.txt \
 	util.h \
+	vsnprintf.c \
 	vsnprintf.h \
 	MODS \
 	README \

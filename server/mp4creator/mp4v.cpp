@@ -250,6 +250,14 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		  "%s: no VOSH header found in MPEG-4 video.\n"
 		  "This can cause problems with players other than mp4player included\n"
 		  "with this package.\n", ProgName);
+	} else {
+	  if (VideoProfileLevelSpecified && 
+	      videoProfileLevel != VideoProfileLevel) {
+	    fprintf(stderr, 
+		    "%s: You have specified a different video profile level than was detected in the VOSH header\n"
+		    "The level you specified was %d and %d was read from the VOSH\n",
+		    ProgName, VideoProfileLevel, videoProfileLevel);
+	  }
 	}
 	if (foundVO == false) {
 	  fprintf(stderr, 
@@ -302,6 +310,9 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		return MP4_INVALID_TRACK_ID;
 	}
 
+	if (VideoProfileLevelSpecified) {
+	  videoProfileLevel = VideoProfileLevel;
+	}
 	if (MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE) == 1) {
 		MP4SetVideoProfileLevel(mp4File, 
 			MP4AV_Mpeg4VideoToSystemsProfileLevel(videoProfileLevel));

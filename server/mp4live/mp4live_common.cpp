@@ -25,6 +25,11 @@ int ReadConfigFile (const char *configFileName,
 			       pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE_KBPS) * 1000);
       pConfig->SetToDefault(CONFIG_AUDIO_BIT_RATE_KBPS);
     }
+    if (!pConfig->IsDefault(CONFIG_RTP_DEST_ADDRESS) &&
+	pConfig->IsDefault(CONFIG_RTP_AUDIO_DEST_ADDRESS)) {
+      pConfig->SetStringValue(CONFIG_RTP_AUDIO_DEST_ADDRESS,
+			      pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS));
+    }
     PrintDebugMessages =
       pConfig->GetIntegerValue(CONFIG_APP_DEBUG);
  }

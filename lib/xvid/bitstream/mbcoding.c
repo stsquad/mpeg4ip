@@ -450,6 +450,31 @@ void MBCoding(const MBParam * pParam,
  * decoding stuff starts here                                  *
  ***************************************************************/
 
+/*
+ * For IVOP addbits == 0
+ * For PVOP addbits == fcode - 1
+ * For BVOP addbits == max(fcode,bcode) - 1
+ * returns true or false
+ */
+
+int 
+check_resync_marker(Bitstream * bs, int addbits)
+{
+	uint32_t nbits;
+	uint32_t code;
+	uint32_t nbitsresyncmarker = NUMBITS_VP_RESYNC_MARKER + addbits;
+
+	nbits = BitstreamNumBitsToByteAlign(bs);
+	code = BitstreamShowBits(bs, nbits);
+
+	if (code == (((uint32_t)1 << (nbits - 1)) - 1))
+	{
+		return BitstreamShowBitsFromByteAlign(bs, nbitsresyncmarker) == RESYNC_MARKER;
+	}
+
+	return 0;
+}
+
 int get_mcbpc_intra(Bitstream * bs)
 {
 

@@ -182,7 +182,9 @@ static bool ValidateAndSave(void)
 	// copy new values to config
 	MyConfig->SetStringValue(CONFIG_RTP_DEST_ADDRESS, 
 		gtk_entry_get_text(GTK_ENTRY(address_entry)));
-
+	MyConfig->SetStringValue(CONFIG_RTP_AUDIO_DEST_ADDRESS,
+		gtk_entry_get_text(GTK_ENTRY(address_entry)));
+				 
 	MyConfig->SetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT, videoPort);
 	MyConfig->SetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT, audioPort);
 	MyConfig->SetIntegerValue(CONFIG_RTP_MCAST_TTL, ttlValues[ttlIndex]);

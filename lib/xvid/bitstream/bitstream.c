@@ -99,6 +99,109 @@ void bs_get_matrix(Bitstream * bs, uint8_t * matrix)
 	} 
 } 
 
+
+// for PVOP addbits == fcode - 1
+// for BVOP addbits == max(fcode,bcode) - 1
+// returns mbpos
+int read_video_packet_header(DECODER * dec,int coding_type,Bitstream *bs, const int addbits, int * quant)
+{
+	uint32_t mbpos;
+	uint32_t hec = 0;
+	int		 mb_num = 0;
+	int		 mb_pos_len;
+	int		 val;
+	int		 nbits = 0;
+	
+	
+	/* remove ResyncMarker */ 
+    nbits = NUMBITS_VP_RESYNC_MARKER + addbits;
+	BitstreamSkip(bs, BitstreamNumBitsToByteAlign(bs));
+	BitstreamGetBits(bs,nbits);
+
+	DEBUG("<video_packet_header>");
+
+	mb_num = dec->mb_width * dec->mb_height;
+	if (!(mb_num>0)) {	
+		DEBUG("video_packet_header : mb_num = 0");
+		return 0;
+	}
+
+	/* evaluate LengthOfMBNumber (log(mb_num-1)/log(2)) + 1 */
+   	val = mb_num - 1;
+	mb_pos_len = 0;
+	for(; val; mb_pos_len++)
+		val>>=1;
+
+	mbpos = 0;
+	if (dec->shape != VIDOBJLAY_SHAPE_RECTANGULAR) {
+		hec = BitstreamGetBits(bs,NUMBITS_VP_HEC);
+
+		/* warning : do not work with sprite */
+		if (hec) {
+			int marker;
+			int left;
+			int top;
+
+			/* width */
+			BitstreamGetBits(bs,NUMBITS_VOP_WIDTH);
+			marker = BitstreamGetBits(bs,1); // marker bit
+			if (!(marker==1)) {	
+				DEBUG("video_packet_header : marker = 0");
+				return 0;
+			}
+		
+			/* height */ 
+			BitstreamGetBits(bs,NUMBITS_VOP_HEIGHT);
+			marker = BitstreamGetBits(bs,1); // marker bit
+			if (!(marker==1)) {	
+				DEBUG("video_packet_header : marker = 0");
+				return 0;
+			}
+	
+			/* left corner */
+			left = (BitstreamGetBits(bs,1) == 0) ?
+					BitstreamGetBits(bs,NUMBITS_VOP_HORIZONTAL_SPA_REF - 1) : 
+					((int)BitstreamGetBits(bs,NUMBITS_VOP_HORIZONTAL_SPA_REF - 1) - (1 << (NUMBITS_VOP_HORIZONTAL_SPA_REF - 1)));
+			marker = BitstreamGetBits(bs,1); // marker bit
+			if (!(marker==1)) {	
+				DEBUG("video_packet_header : marker = 0");
+				return 0;
+			}
+
+			/* top corner */
+			top = (BitstreamGetBits(bs,1) == 0) ?
+				   BitstreamGetBits(bs,NUMBITS_VOP_VERTICAL_SPA_REF - 1) : 
+				   ((int)BitstreamGetBits(bs,NUMBITS_VOP_VERTICAL_SPA_REF - 1) - (1 << (NUMBITS_VOP_VERTICAL_SPA_REF - 1)));
+			marker = BitstreamGetBits(bs,1); // marker bit
+			if (!(marker==1)) {	
+				DEBUG("video_packet_header : marker = 0");
+				return 0;
+			}
+			/* must be even pix unit */
+			if (!(((left | top)&1)==0)) {	
+				DEBUG("video_packet_header : marker = 0");
+				return 0;
+			}
+	  }
+	}
+
+	/* reading mbpos */
+	if(mb_num>1)
+		mbpos = BitstreamGetBits(bs,mb_pos_len);
+	
+	/* reading quant */
+	if(dec->shape!=VIDOBJLAY_SHAPE_BINARY_ONLY) {
+		*quant = BitstreamGetBits(bs,NUMBITS_VP_QUANTIZER);
+	}
+
+	if (dec->shape == VIDOBJLAY_SHAPE_RECTANGULAR)
+		hec = BitstreamGetBits(bs,NUMBITS_VP_HEC);
+	if (hec){
+		DEBUG("Time reference and VOP_pred_type not supported");
+	}
+
+	return	mbpos;
+}
 /*
 decode headers
 returns coding_type, or -1 if error
