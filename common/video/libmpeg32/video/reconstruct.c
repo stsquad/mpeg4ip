@@ -1,6 +1,7 @@
 #include "mpeg3video.h"
 #include <stdio.h>
 
+#undef HAVE_MMX
 #ifdef HAVE_MMX
 
 #ifdef HAVE_3Dnow

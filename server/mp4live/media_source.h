@@ -63,11 +63,11 @@ public:
 			NULL, 0, m_myMsgQueueSemaphore);
 	}
 
-	virtual bool IsDone() = NULL;
+	virtual bool IsDone() = 0;
 
 	virtual Duration GetElapsedDuration();
 
-	virtual float GetProgress() = NULL;
+	virtual float GetProgress() = 0;
 
 	virtual u_int32_t GetNumEncodedVideoFrames() {
 		return m_videoEncodedFrames;

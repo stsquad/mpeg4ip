@@ -33,11 +33,11 @@ public:
 		m_pConfig = NULL;
 	}
 
-	virtual MediaType GetFrameType(void) = NULL;
+	virtual MediaType GetFrameType(void) = 0;
 
-	virtual bool Init(CLiveConfig* pConfig, bool realTime = true) = NULL;
+	virtual bool Init(CLiveConfig* pConfig, bool realTime = true) = 0;
 
-	virtual void Stop() = NULL;
+	virtual void Stop() = 0;
 
 protected:
 	CLiveConfig*	m_pConfig;

@@ -50,7 +50,9 @@ extern int opterr;
 /* Set to an option character which was unrecognized.  */
 
 extern int optopt;
+#endif
 
+#if !defined(HAVE_GETOPT_LONG) && !defined(HAVE_GETOPT_LONG_ONLY) 
 /* Describe the long-named options requested by the application.
    The LONG_OPTIONS argument to getopt_long or getopt_long_only is a vector
    of `struct option' terminated by an element containing a name which is

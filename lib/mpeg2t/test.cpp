@@ -33,6 +33,11 @@ int main (int argc, char **argv)
     buflen = readfromfile;
     ptr = buffer;
     done_with_buf = 0;
+#if 0
+    FILE *ofile;
+    bool has_pat = false;
+    ofile = fopen("patpmap.ts", FOPEN_WRITE_BINARY);
+#endif
 
     while (done_with_buf == 0) {
       pidptr = mpeg2t_process_buffer(mpeg2t, ptr, buflen, &offset);
@@ -41,6 +46,18 @@ int main (int argc, char **argv)
       if (buflen < 188) {
 	done_with_buf = 1;
       }
+#if 0
+      if (pidptr != NULL && pidptr->pak_type == MPEG2T_PAS_PAK) {
+	fwrite(ptr - 188, 1, 188, ofile);
+	has_pat = true;
+	fprintf(stderr, "have pat\n");
+      }
+      if (pidptr != NULL && pidptr->pak_type == MPEG2T_PROG_MAP_PAK) {
+	fwrite(ptr - 188, 1, 188, ofile);
+	fclose(ofile);
+	exit(1);
+      }
+#endif
       if (pidptr != NULL && pidptr->pak_type == MPEG2T_ES_PAK) {
 	mpeg2t_frame_t *p;
 	es_pid = (mpeg2t_es_t *)pidptr;

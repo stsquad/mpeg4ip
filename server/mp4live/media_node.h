@@ -83,7 +83,7 @@ protected:
 	static const uint32_t MSG_NODE_STOP		= MSG_NODE + 2;
 	static const uint32_t MSG_NODE_STOP_THREAD	= MSG_NODE + 3;
 
-	virtual int ThreadMain(void) = NULL;
+	virtual int ThreadMain(void) = 0;
 
 protected:
 	SDL_Thread*			m_myThread;

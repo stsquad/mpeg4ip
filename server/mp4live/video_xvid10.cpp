@@ -17,6 +17,7 @@
  * 
  * Contributor(s): 
  *		Bill May wmay@cisco.com
+ *              Peter Maersk-Moller peter@maersk-moller.net (interlace)
  */
 
 #include "mp4live.h"
@@ -47,6 +48,7 @@ bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	if (m_video_quality > 6) m_video_quality = 6;
 	m_use_gmc = pConfig->GetBoolValue(CONFIG_XVID10_USE_GMC);
 	m_use_qpel = pConfig->GetBoolValue(CONFIG_XVID10_USE_QPEL);
+	m_use_interlacing = pConfig->GetBoolValue(CONFIG_XVID10_USE_INTERLACING);
 	m_use_lumimask_plugin = 
 	  pConfig->GetBoolValue(CONFIG_XVID10_USE_LUMIMASK);
 	m_use_par = 
@@ -209,6 +211,9 @@ bool CXvid10VideoEncoder::EncodeImage(
 	  if (xvidFrame.vop_flags & XVID_VOP_INTER4V) {
 	    xvidFrame.motion |= XVID_ME_QUARTERPELREFINE8;
 	  }
+	}
+	if (m_use_interlacing) {
+	  xvidFrame.vol_flags |= XVID_VOL_INTERLACING;
 	}
 	  
 	xvidFrame.bitstream = m_vopBuffer;

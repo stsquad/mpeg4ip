@@ -343,6 +343,7 @@ static int xvid_decode (codec_data_t *ptr,
 #endif
     if (ret < 0 || ret > buflen) {
       buflen = 0;
+
     } else {
       buflen -= ret;
       buffer += ret;
@@ -363,7 +364,7 @@ static int xvid_decode (codec_data_t *ptr,
 #if 0
     xvid->m_vft->log_msg(LOG_DEBUG, "xvid", "error returned %d", ret);
 #endif
-      
+    xvid->m_total_frames++;
   return (ret);
 }
 #if 0

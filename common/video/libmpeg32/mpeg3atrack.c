@@ -208,6 +208,7 @@ static int mpeg3_atrack_suck_frame_info (mpeg3_atrack_t *atrack)
     break;
   }
   mpeg3demux_seek_start(demux);
+  return 0;
 }
 
 mpeg3_atrack_t* mpeg3_new_atrack(mpeg3_t *file, 

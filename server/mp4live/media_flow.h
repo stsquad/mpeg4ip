@@ -38,9 +38,9 @@ public:
 		m_started = false;
 	}
 
-	virtual void Start() = NULL;
+	virtual void Start() = 0;
 
-	virtual void Stop() = NULL; 
+	virtual void Stop() = 0; 
 
 	void SetConfig(CLiveConfig* pConfig) {
 		m_pConfig = pConfig;

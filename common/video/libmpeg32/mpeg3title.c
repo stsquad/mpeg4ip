@@ -54,7 +54,7 @@ int mpeg3_dump_title(mpeg3_title_t *title)
 	printf("mpeg3_dump_title path %s timecode_table_size %d\n", title->fs->path, title->timecode_table_size);
 	for(i = 0; i < title->timecode_table_size; i++)
 	{
-		printf("%.02f: %x - %x %.02f %.02f %x\n", 
+		printf("%.02f: "X64" - "X64" %.02f %.02f %x\n", 
 			title->timecode_table[i].absolute_start_time, 
 			title->timecode_table[i].start_byte, 
 			title->timecode_table[i].end_byte, 
@@ -299,7 +299,7 @@ int mpeg3demux_print_timecodes(mpeg3_title_t *title, FILE *output)
 		{
 			timecode = &title->timecode_table[i];
 
-			fprintf(output, "REGION: %ld %ld %f %f %d\n",
+			fprintf(output, "REGION: "D64" "D64" %f %f %d\n",
 				timecode->start_byte,
 				timecode->end_byte,
 				timecode->start_time,

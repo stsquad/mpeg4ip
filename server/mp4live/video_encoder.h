@@ -31,21 +31,21 @@ class CVideoEncoder : public CMediaCodec {
 public:
 	CVideoEncoder() { };
 
-	virtual bool Init(CLiveConfig *pConfig, bool realTime = true) = NULL;
+	virtual bool Init(CLiveConfig *pConfig, bool realTime = true) = 0;
 
 	virtual bool EncodeImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
 		u_int32_t yStride, u_int32_t uvStride,
 		bool wantKeyFrame,
 		Duration elapsedDuration,
-		Timestamp srcFrameTimestamp) = NULL;
+		Timestamp srcFrameTimestamp) = 0;
 
 	virtual bool GetEncodedImage(
 		u_int8_t** ppBuffer, u_int32_t* pBufferLength,
-		Timestamp *dts, Timestamp *pts) = NULL;
+		Timestamp *dts, Timestamp *pts) = 0;
 
 	virtual bool GetReconstructedImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
+		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = 0;
 	virtual media_free_f GetMediaFreeFunction(void) { return NULL; };
 
 	virtual bool CanGetEsConfig (void) { return false; };

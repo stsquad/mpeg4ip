@@ -278,17 +278,17 @@ GtkWidget *CreateBarSubMenu (GtkWidget *menu, char *szName)
 }
 
 GtkWidget *CreateOptionMenu(GtkWidget *omenu,
-				 char* (*gather_func)(size_t index, void* pUserData),
+			    char* (*gather_func)(uint32_t index, void* pUserData),
 			     void* pUserData,
-			     size_t max,
-			     size_t current_index,
+			     uint32_t max,
+			     uint32_t current_index,
 			     GtkSignalFunc on_activate,
 				 GSList** menuItems)
 {
   GtkWidget *menu;
   GtkWidget *menuitem;
   GSList *group;
-  size_t ix;
+  uint32_t ix;
 
   if (omenu != NULL) {
     if (gtk_option_menu_get_menu(GTK_OPTION_MENU(omenu)) != NULL) {
@@ -325,15 +325,15 @@ GtkWidget *CreateOptionMenu(GtkWidget *omenu,
   return (omenu);
 }
 
-static char* GetArrayItem(size_t index, void* pUserData)
+static char* GetArrayItem(uint32_t index, void* pUserData)
 {
 	return ((char**)pUserData)[index];
 }
 
 GtkWidget *CreateOptionMenu(GtkWidget *omenu,
 			     char **names,
-			     size_t max,
-			     size_t current_index,
+			     uint32_t max,
+			     uint32_t current_index,
 			     GtkSignalFunc on_activate,
 				 GSList** menuItems)
 {
@@ -348,7 +348,7 @@ GtkWidget *CreateOptionMenu(GtkWidget *omenu,
 }
 
 void SetNumberEntryValue (GtkWidget *entry,
-			     size_t value)
+			     uint32_t value)
 {
   char buffer[80];
   
@@ -358,8 +358,8 @@ void SetNumberEntryValue (GtkWidget *entry,
 
 GtkWidget *AddNumberEntryBoxWithLabel (GtkWidget *vbox,
 				       const char *label_name,
-				       size_t value,
-				       size_t value_len)
+				       uint32_t value,
+				       uint32_t value_len)
 {
   GtkWidget *hbox, *label, *ret;
 
@@ -383,7 +383,7 @@ GtkWidget *AddNumberEntryBoxWithLabel (GtkWidget *vbox,
   return (ret);
 }
 
-int GetNumberEntryValue (GtkWidget *entry, size_t *result)
+int GetNumberEntryValue (GtkWidget *entry, uint32_t *result)
 {
   const char *text;
   char *endptr;
@@ -423,7 +423,7 @@ GtkWidget *AddButtonToDialog (GtkWidget *dialog,
 GtkWidget *AddEntryBoxWithLabel (GtkWidget *vbox,
 				 const char *label_name,
 				 const char *initial_value,
-				 size_t value_len)
+				 uint32_t value_len)
 {
   GtkWidget *hbox, *label, *ret;
 

@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.1)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.1.1)
 
 dnl Checks for programs. 
 
@@ -199,28 +199,39 @@ dnl @author  Guido Draheim <guidod@gmx.de>
 dnl heavilly modified
 AC_DEFUN(MY_CHECK_CC_OPT,
 [
-   AC_MSG_CHECKING([whether ${CC-cc} accepts $1])
-   echo 'void f(){}' > conftest.c
-   if test -z "`${CC-cc} -c $1 conftest.c 2>&1`"; then
-      $2=yes
-      AC_MSG_RESULT([yes])
-   else
-      $2=no
-      AC_MSG_RESULT([no])
+save_CFLAG="$CFLAGS"
+save_CXXFLAG="$CXXFLAGS"
+CFLAGS="$CFLAGS -Werror $1"
+CXXFLAGS="$CXXFLAGS -Werror $1"
+   AC_MSG_CHECKING([whether $3 accepts $1])
+   AC_COMPILE_IFELSE(
+[extern void f(void); void f(void){}],
+[$2=yes
+ AC_MSG_RESULT([yes])],
+[$2=no
+ AC_MSG_RESULT([no])])
+CFLAGS="$save_CFLAG"
+CXXFLAGS="$save_CXXFLAG"
+])
+
+AC_DEFUN(MY_CHECK_CC_OPT_SET,
+[
+   MY_CHECK_CC_OPT($1, mpeg4ip_ok, $3)
+   if test $mpeg4ip_ok = yes; then
+     $2="$$2 $1"
    fi
-   rm -f conftest*
 ])
 
 AC_DEFUN(MY_CHECK_CC_OPT_F_OR_M,
 [
   temp_val=-m$1
-  MY_CHECK_CC_OPT($temp_val,mpeg4ip_ok)
+  MY_CHECK_CC_OPT($temp_val,mpeg4ip_ok, [c compiler])
   if test $mpeg4ip_ok = yes; then
      AC_SUBST($2, $temp_val)
      AM_CONDITIONAL(HAVE_$2, true)
   else
      temp_val=-f$1
-     MY_CHECK_CC_OPT($temp_val, mpeg4ip_ok)
+     MY_CHECK_CC_OPT($temp_val, mpeg4ip_ok, [c compiler])
      if test $mpeg4ip_ok = yes; then
         AC_SUBST($2, $temp_val)
      AM_CONDITIONAL(HAVE_$2, true)
@@ -486,13 +497,22 @@ AC_SUBST(SDL_LIB_LIBS)
 AC_SUBST(SUN_LIBS)
 
 dnl
-BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Wno-unknown-pragmas"
-BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wno-char-subscripts -Woverloaded-virtual -Wno-unknown-pragmas -Wno-deprecated"
-MY_CHECK_CC_OPT([-Wformat=2], mpeg4ip_ok)
-if test $mpeg4ip_ok = yes; then
-   BILLS_CWARNINGS="$BILLS_CWARNINGS -Wformat=2"
-   BILLS_CPPWARNINGS="$BILLS_CPPWARNINGS -Wformat=2"
-fi
+BILLS_CWARNINGS="-Wall -Werror"
+
+MY_CHECK_CC_OPT_SET([-Wmissing-prototypes], BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wmissing-declarations], BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wno-char-subscripts], BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wno-unknown-pragmas],BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wformat=2],BILLS_CWARNINGS, [c compiler])
+BILLS_CPPWARNINGS="-Wall -Werror"
+AC_LANG_PUSH(C++)
+MY_CHECK_CC_OPT_SET([-Wmissing-prototypes], BILLS_CPPWARNINGS,[c++ compiler])
+MY_CHECK_CC_OPT_SET([-Wno-char-subscripts], BILLS_CPPWARNINGS,[c++ compiler])
+MY_CHECK_CC_OPT_SET([-Woverloaded-virtual], BILLS_CPPWARNINGS,[c++ compiler])
+MY_CHECK_CC_OPT_SET([-Wno-unknown-pragmas], BILLS_CPPWARNINGS,[c++ compiler])
+MY_CHECK_CC_OPT_SET([-Wno-deprecated], BILLS_CPPWARNINGS,[c++ compiler])
+MY_CHECK_CC_OPT_SET([-Wformat=2], BILLS_CPPWARNINGS,[c++ compiler])
+AC_LANG_POP(C++)
 AC_SUBST(BILLS_CWARNINGS)
 AC_SUBST(BILLS_CPPWARNINGS)
 

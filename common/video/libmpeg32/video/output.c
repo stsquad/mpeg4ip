@@ -3,6 +3,7 @@
 #include <string.h>
 
 #define CLIP(x)  ((x) >= 0 ? ((x) < 255 ? (x) : 255) : 0)
+#undef HAVE_MMX
 
 #ifndef _MSC_VER
 static long long mpeg3_MMX_0 = 0L;

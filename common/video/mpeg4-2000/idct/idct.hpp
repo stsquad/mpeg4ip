@@ -54,7 +54,7 @@ protected:
 	void readin(const src *psrc, int stride){
 		short *p=block;
 		for(int row=0; row<IDCT_BLOCK_SIZE; row++, psrc+=stride, p+=IDCT_BLOCK_SIZE)
-			for(int col=0; col<BLOCK_SIZE; col++)
+			for(int col=0; col< IDCT_BLOCK_SIZE; col++)
 				p[col]=psrc[col];
 	}
 
@@ -62,7 +62,7 @@ protected:
 	void writeout(dest *pdst, int stride){
 		short *p=block;
 		for(int row=0; row<IDCT_BLOCK_SIZE; row++, pdst+=stride, p+=IDCT_BLOCK_SIZE)
-			for(int col=0; col<BLOCK_SIZE; col++)
+			for(int col=0; col<IDCT_BLOCK_SIZE; col++)
 				pdst[col]=p[col];
 	}
 
@@ -70,7 +70,7 @@ protected:
 	void clipWriteout(dest *pdst, int stride){
 		short *p=block;
 		for(int row=0; row<IDCT_BLOCK_SIZE; row++, pdst+=stride, p+=IDCT_BLOCK_SIZE)
-			for(int col=0; col<BLOCK_SIZE; col++)
+			for(int col=0; col<IDCT_BLOCK_SIZE; col++)
 				pdst[col]=clipping[p[col]];
 	};
 

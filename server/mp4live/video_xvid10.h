@@ -17,6 +17,7 @@
  * 
  * Contributor(s): 
  *		Bill May wmay@cisco.com
+ *              Peter Maersk-Moller peter@maersk-moller.net (interlace)
  */
 
 #ifndef __VIDEO_XVID10_H__
@@ -59,6 +60,7 @@ protected:
 	uint8_t m_video_quality; // 0 to 6
 	bool m_use_gmc;
 	bool m_use_qpel;
+	bool m_use_interlacing;
 	bool m_use_lumimask_plugin;
 	bool m_use_par;
 	int m_par;

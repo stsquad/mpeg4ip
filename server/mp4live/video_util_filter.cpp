@@ -83,7 +83,7 @@ static inline void linearBlend(unsigned char *src, int stride)
 // error_message("mmx");
   asm volatile(
        "leal (%0, %1), %%eax                           \n\t"
-       "leal (%%eax, %1, 4), %%ebx                     \n\t"
+       "leal (%%eax, %1, 4), %%ecx                     \n\t"
 
        "movq (%0), %%mm0                               \n\t" // L0
        "movq (%%eax, %1), %%mm1                        \n\t" // L2
@@ -99,31 +99,31 @@ static inline void linearBlend(unsigned char *src, int stride)
        PAVGB(%%mm2, %%mm1)                                   // L2+L4
        PAVGB(%%mm0, %%mm1)                                   // 2L3 + L2 + L4
        "movq %%mm1, (%%eax, %1)                        \n\t"
-       "movq (%%ebx), %%mm1                            \n\t" // L5
+       "movq (%%ecx), %%mm1                            \n\t" // L5
        PAVGB(%%mm1, %%mm0)                                   // L3+L5
        PAVGB(%%mm2, %%mm0)                                   // 2L4 + L3 + L5
        "movq %%mm0, (%%eax, %1, 2)                     \n\t"
-       "movq (%%ebx, %1), %%mm0                        \n\t" // L6
+       "movq (%%ecx, %1), %%mm0                        \n\t" // L6
        PAVGB(%%mm0, %%mm2)                                   // L4+L6
        PAVGB(%%mm1, %%mm2)                                   // 2L5 + L4 + L6
        "movq %%mm2, (%0, %1, 4)                        \n\t"
-       "movq (%%ebx, %1, 2), %%mm2                     \n\t" // L7
+       "movq (%%ecx, %1, 2), %%mm2                     \n\t" // L7
 
 
       PAVGB(%%mm2, %%mm1)                                   // L5+L7
        PAVGB(%%mm0, %%mm1)                                   // 2L6 + L5 + L7
-       "movq %%mm1, (%%ebx)                            \n\t"
+       "movq %%mm1, (%%ecx)                            \n\t"
        "movq (%0, %1, 8), %%mm1                        \n\t" // L8
        PAVGB(%%mm1, %%mm0)                                   // L6+L8
        PAVGB(%%mm2, %%mm0)                                   // 2L7 + L6 + L8
-       "movq %%mm0, (%%ebx, %1)                        \n\t"
-       "movq (%%ebx, %1, 4), %%mm0                     \n\t" // L9
+       "movq %%mm0, (%%ecx, %1)                        \n\t"
+       "movq (%%ecx, %1, 4), %%mm0                     \n\t" // L9
        PAVGB(%%mm0, %%mm2)                                   // L7+L9
        PAVGB(%%mm1, %%mm2)                                   // 2L8 + L7 + L9
-       "movq %%mm2, (%%ebx, %1, 2)                     \n\t"
+       "movq %%mm2, (%%ecx, %1, 2)                     \n\t"
 
        : : "r" (src), "r" (stride)
-       : "%eax", "%ebx"
+       : "%eax", "%ecx"
   );
   emms();
 #else

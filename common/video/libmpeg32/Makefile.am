@@ -3,7 +3,7 @@ SUBDIRS = video
 noinst_LTLIBRARIES = libmpeg3.la libmpeg3util.la
 
 INCLUDES= -I$(top_srcdir)/include -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/mp4v2 
-AM_CFLAGS= -DHAVE_CSS
+AM_CFLAGS= -DHAVE_CSS -Wall
 libmpeg3util_la_SOURCES = \
 	bitstream.c \
 	bitstream.h 

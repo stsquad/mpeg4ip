@@ -31,17 +31,17 @@ class CAudioEncoder : public CMediaCodec {
 public:
 	CAudioEncoder() { };
 
-	virtual u_int32_t GetSamplesPerFrame() = NULL;
+	virtual u_int32_t GetSamplesPerFrame() = 0;
 
 	virtual bool EncodeSamples(
 		int16_t* pSamples, 
 		u_int32_t numSamplesPerChannel,
-		u_int8_t numChannels) = NULL;
+		u_int8_t numChannels) = 0;
 
 	virtual bool GetEncodedFrame(
 		u_int8_t** ppBuffer, 
 		u_int32_t* pBufferLength,
-		u_int32_t* pNumSamplesPerChannel) = NULL;
+		u_int32_t* pNumSamplesPerChannel) = 0;
 
 
 	// utility routines

@@ -122,19 +122,14 @@ int CPlayerMedia::decode_thread (void)
   void *ud = NULL;
   
   uint32_t frames_decoded;
+  uint64_t start_decode_time = 0;
+  uint64_t last_decode_time = 0;
+  bool have_start_time = false;
   uint64_t bytes_decoded;
-  uint32_t frames_decoded_last_sec;
-  uint64_t bytes_decoded_last_sec;
-  uint64_t current_second;
-  uint32_t total_secs;
-  uint32_t last_div = 0;
 
-  total_secs = 0;
   frames_decoded = 0;
   bytes_decoded = 0;
-  frames_decoded_last_sec = 0;
-  bytes_decoded_last_sec = 0;
-  current_second = 0;
+
 
   while (thread_stop == 0) {
     // waiting here for decoding or thread stop
@@ -229,9 +224,6 @@ int CPlayerMedia::decode_thread (void)
     media_message(LOG_DEBUG, "%s Into decode loop",
 		  is_video() ? "video" : "audio");
 #endif
-    frames_decoded_last_sec = 0;
-    bytes_decoded_last_sec = 0;
-    current_second = 0;
     while ((thread_stop == 0) && decoding) {
       parse_decode_message(thread_stop, decoding);
       if (thread_stop != 0)
@@ -342,27 +334,13 @@ int CPlayerMedia::decode_thread (void)
 #endif
 	if (ret > 0) {
 	  frames_decoded++;
+	  if (have_start_time == false) {
+	    have_start_time = true;
+	    start_decode_time = ourtime;
+	  }
+	  last_decode_time = ourtime;
 	  m_byte_stream->used_bytes_for_frame(ret);
 	  bytes_decoded += ret;
-	  last_div = ourtime % 1000;
-	  if ((ourtime / 1000) > current_second) {
-	    if (frames_decoded_last_sec != 0) {
-#if 0
-	      media_message(LOG_DEBUG, "%s - Second "U64", frames %d bytes "U64,
-			    m_is_video ? "video" : "audio", 
-			    current_second,
-			    frames_decoded_last_sec,
-			    bytes_decoded_last_sec);
-#endif
-	    }
-	    current_second = ourtime / 1000;
-	    total_secs++;
-	    frames_decoded_last_sec = 1;
-	    bytes_decoded_last_sec = ret;
-	  } else {
-	    frames_decoded_last_sec++;
-	    bytes_decoded_last_sec += ret;
-	  }
 	} else {
 	  m_byte_stream->used_bytes_for_frame(frame_len);
 	}
@@ -374,21 +352,24 @@ int CPlayerMedia::decode_thread (void)
   if (m_is_video)
     media_message(LOG_NOTICE, "Video decoder skipped %u frames", 
 		  decode_skipped_frames);
-  if (total_secs != 0) {
+  if (last_decode_time > start_decode_time) {
     double fps, bps;
     double secs;
-    secs = last_div;
+    uint64_t total_time = last_decode_time - start_decode_time;
+    secs = total_time;
     secs /= 1000.0;
-    secs += total_secs;
-
+#if 0
+    media_message(LOG_DEBUG, "last time "U64" first "U64, 
+		  last_decode_time, start_decode_time);
+#endif
     fps = frames_decoded;
     fps /= secs;
     bps = UINT64_TO_DOUBLE(bytes_decoded);
     bps *= 8.0 / secs;
-    media_message(LOG_NOTICE, "%s - bytes "U64", seconds %g, fps %g bps "U64,
+    media_message(LOG_NOTICE, "%s - bytes "U64", seconds %g, fps %g bps %g",
 		  m_is_video ? "video" : "audio", 
 		  bytes_decoded, secs, 
-		  fps, bytes_decoded * 8 / total_secs);
+		  fps, bps);
   }
   if (m_plugin) {
     m_plugin->c_close(m_plugin_data);

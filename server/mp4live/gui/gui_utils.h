@@ -27,7 +27,7 @@
 #ifndef __GUIUTILS_H__
 #define __GUIUTILS_H__
 
-#include <stdlib.h>
+#include "mpeg4ip.h"
 
 GtkWidget *CreateWidgetFromXpm (GtkWidget *widget, gchar **xpm_data);
 
@@ -57,27 +57,27 @@ GtkWidget *CreateMenuRadio (GtkWidget *menu,
 
 GtkWidget *CreateOptionMenu(GtkWidget *old,
 			    char **names,
-			    size_t max,
-			    size_t current_index,
+			    uint32_t max,
+			    uint32_t current_index,
 			    GtkSignalFunc on_activate,
 				GSList** menuItems = NULL);
 
 GtkWidget *CreateOptionMenu(GtkWidget *old,
-				char* (*gather_func)(size_t index, void* pUserData),
+				char* (*gather_func)(uint32_t index, void* pUserData),
 				void* pUserData,
-			    size_t max,
-			    size_t current_index,
+			    uint32_t max,
+			    uint32_t current_index,
 			    GtkSignalFunc on_activate,
 				GSList** menuItems = NULL);
   
-int GetNumberEntryValue(GtkWidget *entry, size_t *result);
+int GetNumberEntryValue(GtkWidget *entry, uint32_t *result);
   
-void SetNumberEntryValue(GtkWidget *entry, size_t value);
+void SetNumberEntryValue(GtkWidget *entry, uint32_t value);
   
 GtkWidget *AddNumberEntryBoxWithLabel(GtkWidget *vbox,
 				      const char *label_name,
-				      size_t value,
-				      size_t value_len);
+				      uint32_t value,
+				      uint32_t value_len);
   
 GtkWidget *AddButtonToDialog(GtkWidget *dialog,
 			     const char *name,
@@ -86,7 +86,7 @@ GtkWidget *AddButtonToDialog(GtkWidget *dialog,
 GtkWidget *AddEntryBoxWithLabel(GtkWidget *vbox,
 				const char *label_name,
 				const char *initial_value,
-				size_t value_len);
+				uint32_t value_len);
   
 void FreeChild(GtkWidget *widget);
 
