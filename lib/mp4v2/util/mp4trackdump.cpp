@@ -68,6 +68,7 @@ int main(int argc, char** argv)
   char* usageString = 
     "usage: %s [-l] [-t <track-id>] [-s <sample-id>] [-v [<level>]] <file-name>\n";
   MP4TrackId trackId = MP4_INVALID_TRACK_ID;
+  MP4SampleId sampleId = MP4_INVALID_SAMPLE_ID;
   u_int32_t verbosity = MP4_DETAILS_ERROR;
 
   /* begin processing command line */
@@ -77,6 +78,7 @@ int main(int argc, char** argv)
     int option_index = 0;
     static struct option long_options[] = {
       { "track", 1, 0, 't' },
+      { "sample", 1, 0, 's' },
       { "verbose", 2, 0, 'v' },
       { "version", 0, 0, 'V' },
       { NULL, 0, 0, 0 }
@@ -89,6 +91,13 @@ int main(int argc, char** argv)
       break;
 
     switch (c) {
+    case 's':
+      if (sscanf(optarg, "%u", &sampleId) != 1) {
+	fprintf(stderr, "%s: bad sample-id specified: %s\n", 
+		ProgName, optarg);
+	exit(1);
+      }
+      break;
     case 't':
       if (sscanf(optarg, "%u", &trackId) != 1) {
 	fprintf(stderr, 
@@ -164,16 +173,55 @@ int main(int argc, char** argv)
   if (!mp4File) {
     exit(1);
   }
+  
+  if (sampleId != MP4_INVALID_SAMPLE_ID) {
+    if (trackId == 0) {
+      fprintf(stderr, "%s: Must specify track for sample\n", ProgName);
+      return -1;
+    }
+    if (sampleId > MP4GetTrackNumberOfSamples(mp4File, trackId)) {
+      fprintf(stderr, "%s: Sample number %u is past end %u\n", 
+	      ProgName, sampleId, MP4GetTrackNumberOfSamples(mp4File, trackId));
+      return -1;
+    }
+    uint32_t sample_size = MP4GetTrackMaxSampleSize(mp4File, trackId);
+    uint8_t *sample = (uint8_t *)malloc(sample_size);
+    MP4Timestamp sampleTime;
+    MP4Duration sampleDuration, sampleRenderingOffset;
+    uint32_t this_size = sample_size;
+    bool isSyncSample;
+    bool ret = MP4ReadSample(mp4File, 
+			     trackId, 
+			     sampleId, 
+			     &sample,
+			     &this_size,
+			     &sampleTime, 
+			     &sampleDuration, 
+			     &sampleRenderingOffset,
+			     &isSyncSample);
+    if (ret == false) {
+      fprintf(stderr, "Sample read error\n");
+      return -1;
+    }
+    printf("Track %u, Sample %u, Length %u\n", 
+	   trackId, sampleId, this_size);
 
-  if (trackId == 0) {
-    u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
-
-    for (u_int32_t i = 0; i < numTracks; i++) {
-      trackId = MP4FindTrackId(mp4File, i);
+    for (uint32_t ix = 0; ix < this_size; ix++) {
+      if ((ix % 16) == 0) printf("\n%04u ", ix);
+      printf("%02x ", sample[ix]);
+    }
+    printf("\n");
+  } else {
+    if (trackId == 0) {
+      u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
+      
+      for (u_int32_t i = 0; i < numTracks; i++) {
+	trackId = MP4FindTrackId(mp4File, i);
+	DumpTrack(mp4File, trackId);
+      }
+    } else {
       DumpTrack(mp4File, trackId);
     }
-  } else {
-    DumpTrack(mp4File, trackId);
   }
 
   MP4Close(mp4File);

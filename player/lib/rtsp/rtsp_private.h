@@ -32,8 +32,6 @@
 /*
  * Some useful macros.
  */
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
-
 /*
  * Session structure.
  */

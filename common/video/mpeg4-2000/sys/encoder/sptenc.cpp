@@ -40,7 +40,7 @@ Revision History:
 *************************************************************************/
 
 #include <stdio.h>
-#include <fstream.h>
+#include <iostream.h>
 #include <math.h>
 #include <stdlib.h>
 

@@ -58,15 +58,14 @@ struct http_client_ {
   char m_resp_buffer[RESP_BUF_SIZE + 1];
 };
 
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
-
 #define FREE_CHECK(a,b){ if (a->b != NULL) { free((void *)a->b); a->b = NULL;}}
 
 int http_decode_and_connect_url (const char *name,
 				 http_client_t *ptr);
   
 int http_build_header(char *buffer, uint32_t maxlen, uint32_t *at,
-		      http_client_t *cptr, const char *method);
+		      http_client_t *cptr, const char *method,
+		      const char *add_header, char *content_body);
 
 int http_get_response(http_client_t *handle, http_resp_t **resp);
 

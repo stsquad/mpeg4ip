@@ -597,7 +597,6 @@ static int create_media_for_iptv (CPlayerSession *psptr,
  * call to set up the session.  This should be redone with plugins at
  * some point.
  */
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
 
 int parse_name_for_session (CPlayerSession *psptr,
 			    const char *name,

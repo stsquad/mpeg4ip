@@ -25,6 +25,9 @@
 
 /* include system and project specific headers */
 #include "mpeg4ip.h"
+#ifdef ISMACRYPT
+#include "../ismacryp/ismacryplib.h"
+#endif
 
 #include <math.h>	/* to define float HUGE_VAL and/or NAN */
 #ifndef NAN
@@ -205,6 +208,64 @@ typedef u_int32_t	MP4EditId;
 #define MP4_IS_MPEG4_VIDEO_TYPE(type) \
 	((type) == MP4_MPEG4_VIDEO_TYPE)
 
+/* Mpeg4 Visual Profile Defines - ISO/IEC 14496-2:2001/Amd.2:2002(E) */
+#define MPEG4_SP_L1 (0x1)
+#define MPEG4_SP_L2 (0x2)
+#define MPEG4_SP_L3 (0x3)
+#define MPEG4_SP_L0 (0x8)
+#define MPEG4_SSP_L1 (0x11)
+#define MPEG4_SSP_L2 (0x12)
+#define MPEG4_CP_L1 (0x21)
+#define MPEG4_CP_L2 (0x22)
+#define MPEG4_MP_L2 (0x32)
+#define MPEG4_MP_L3 (0x33)
+#define MPEG4_MP_L4 (0x34)
+#define MPEG4_NBP_L2 (0x42)
+#define MPEG4_STP_L1 (0x51)
+#define MPEG4_SFAP_L1 (0x61)
+#define MPEG4_SFAP_L2 (0x62)
+#define MPEG4_SFBAP_L1 (0x63)
+#define MPEG4_SFBAP_L2 (0x64)
+#define MPEG4_BATP_L1 (0x71)
+#define MPEG4_BATP_L2 (0x72)
+#define MPEG4_HP_L1 (0x81)
+#define MPEG4_HP_L2 (0x82)
+#define MPEG4_ARTSP_L1 (0x91)
+#define MPEG4_ARTSP_L2 (0x92)
+#define MPEG4_ARTSP_L3 (0x93)
+#define MPEG4_ARTSP_L4 (0x94)
+#define MPEG4_CSP_L1 (0xa1)
+#define MPEG4_CSP_L2 (0xa2)
+#define MPEG4_CSP_L3 (0xa3)
+#define MPEG4_ACEP_L1 (0xb1)
+#define MPEG4_ACEP_L2 (0xb2)
+#define MPEG4_ACEP_L3 (0xb3)
+#define MPEG4_ACEP_L4 (0xb4)
+#define MPEG4_ACP_L1 (0xc1)
+#define MPEG4_ACP_L2 (0xc2)
+#define MPEG4_AST_L1 (0xd1)
+#define MPEG4_AST_L2 (0xd2)
+#define MPEG4_AST_L3 (0xd3)
+#define MPEG4_S_STUDIO_P_L1 (0xe1)
+#define MPEG4_S_STUDIO_P_L2 (0xe2)
+#define MPEG4_S_STUDIO_P_L3 (0xe3)
+#define MPEG4_S_STUDIO_P_L4 (0xe4)
+#define MPEG4_C_STUDIO_P_L1 (0xe5)
+#define MPEG4_C_STUDIO_P_L2 (0xe6)
+#define MPEG4_C_STUDIO_P_L3 (0xe7)
+#define MPEG4_C_STUDIO_P_L4 (0xe8)
+#define MPEG4_ASP_L0 (0xF0)
+#define MPEG4_ASP_L1 (0xF1)
+#define MPEG4_ASP_L2 (0xF2)
+#define MPEG4_ASP_L3 (0xF3)
+#define MPEG4_ASP_L4 (0xF4)
+#define MPEG4_ASP_L5 (0xF5)
+#define MPEG4_FGSP_L0 (0xf8)
+#define MPEG4_FGSP_L1 (0xf9)
+#define MPEG4_FGSP_L2 (0xfa)
+#define MPEG4_FGSP_L3 (0xfb)
+#define MPEG4_FGSP_L4 (0xfc)
+#define MPEG4_FGSP_L5 (0xfd)
 
 /* MP4 API declarations */
 
@@ -343,11 +404,14 @@ MP4TrackId MP4AddAudioTrack(
 	MP4Duration sampleDuration,
 	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
 
+#ifdef ISMACRYPT
 MP4TrackId MP4AddEncAudioTrack(
 	MP4FileHandle hFile, 
 	u_int32_t timeScale, 
 	MP4Duration sampleDuration,
+	ismacryp_session_id_t ismaCryptSId,
 	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
+#endif
 
 MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, 
@@ -357,13 +421,16 @@ MP4TrackId MP4AddVideoTrack(
 	u_int16_t height,
 	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
 
+#ifdef ISMACRYPT
 MP4TrackId MP4AddEncVideoTrack(
 	MP4FileHandle hFile, 
 	u_int32_t timeScale, 
 	MP4Duration sampleDuration,
 	u_int16_t width, 
 	u_int16_t height,
+	ismacryp_session_id_t ismaCryptSId, 
 	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
+#endif
 
 MP4TrackId MP4AddHintTrack(
 	MP4FileHandle hFile, 
@@ -372,7 +439,8 @@ MP4TrackId MP4AddHintTrack(
 MP4TrackId MP4CloneTrack(
 	MP4FileHandle srcFile, 
 	MP4TrackId srcTrackId,
-	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE));
+	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE),
+	MP4TrackId dstHintTrackReferenceTrack DEFAULT(MP4_INVALID_TRACK_ID));
 
 MP4TrackId MP4EncAndCloneTrack(
 	MP4FileHandle srcFile, 
@@ -383,13 +451,17 @@ MP4TrackId MP4CopyTrack(
 	MP4FileHandle srcFile, 
 	MP4TrackId srcTrackId,
 	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE), 
-	bool applyEdits DEFAULT(false));
+	bool applyEdits DEFAULT(false),
+	MP4TrackId dstHintTrackReferenceTrack DEFAULT(MP4_INVALID_TRACK_ID));
 
+#ifdef ISMACRYPT
 MP4TrackId MP4EncAndCopyTrack(
 	MP4FileHandle srcFile, 
 	MP4TrackId srcTrackId,
-	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE), 
+	ismacryp_session_id_t ismaCryptSId,
+	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE),
 	bool applyEdits DEFAULT(false));
+#endif
 
 bool MP4DeleteTrack(
 	MP4FileHandle hFile, 
@@ -582,6 +654,17 @@ bool MP4CopySample(
 	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE),
 	MP4TrackId dstTrackId DEFAULT(MP4_INVALID_TRACK_ID),
 	MP4Duration dstSampleDuration DEFAULT(MP4_INVALID_DURATION));
+
+#ifdef ISMACRYPT
+bool MP4EncAndCopySample(
+	MP4FileHandle srcFile,
+	MP4TrackId srcTrackId, 
+	MP4SampleId srcSampleId,
+	ismacryp_session_id_t ismaCryptSId,
+	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE),
+	MP4TrackId dstTrackId DEFAULT(MP4_INVALID_TRACK_ID),
+	MP4Duration dstSampleDuration DEFAULT(MP4_INVALID_DURATION));
+#endif
 
 /* Note this function is not yet implemented */
 bool MP4ReferenceSample(

@@ -31,8 +31,6 @@
 #include "sdp.h"
 #include "sdp_decode_private.h"
 
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
-
 static const char *SPACES=" \t";
 
 #define FREE_CHECK(a,b) if (a->b != NULL) { free(a->b); a->b = NULL;}

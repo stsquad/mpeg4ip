@@ -28,7 +28,8 @@
 #include <sys/time.h>
 
 typedef u_int64_t Timestamp;
-const u_int64_t TimestampTicks = 1000000;
+#define TimestampTicks (1000000LLU)
+#define TIMESTAMP_TICKS_TO_MSEC (TimestampTicks / 1000LLU)
 typedef int64_t Duration;
 
 inline Timestamp GetTimestampFromTimeval(struct timeval* pTimeval) {
@@ -58,5 +59,20 @@ inline Timestamp GetTimestampFromNtp(uint32_t ntp_sec, uint32_t ntp_frac)
   }
   ret += (ntp_sec * TimestampTicks);
   return ret;
+}
+
+inline Timestamp GetTicksFromTimescale (Timestamp toconvert,
+					Timestamp base_on_scale,
+					Timestamp base_in_ticks,
+					uint32_t timescale)
+{
+  Duration add_to_base;
+
+  add_to_base = toconvert;
+  add_to_base -= base_on_scale;
+  add_to_base *= TimestampTicks;
+  add_to_base /= (Duration)timescale;
+
+  return add_to_base + base_in_ticks;
 }
 #endif /* __MEDIA_TIME_H__ */

@@ -286,4 +286,44 @@ double CMp4ByteStream::get_max_playtime (void)
   return (m_max_time);
 };
 
+#ifdef ISMACRYPT
+uint64_t CMp4EncAudioByteStream::start_next_frame (uint8_t **buffer, 
+						   uint32_t *buflen,
+						   void **ud)
+{
+  uint64_t ret = CMp4AudioByteStream::start_next_frame(buffer, buflen, ud);
+  printf("decrypting audio frame\n");
+  u_int8_t *temp_buffer = CMp4ByteStream::get_buffer();
+  uint32_t temp_this_frame_size = CMp4ByteStream::get_this_frame_size();
+  if (ismacrypDecryptSample(m_ismaCryptSId, temp_this_frame_size, temp_buffer) 
+      != 0) {
+    // error
+  }
+  CMp4ByteStream::set_buffer(temp_buffer);
+  CMp4ByteStream::set_this_frame_size(temp_this_frame_size);
+
+  
+  return ret; 
+}
+
+uint64_t CMp4EncVideoByteStream::start_next_frame (uint8_t **buffer, 
+						   uint32_t *buflen,
+						   void **ud)
+{
+  uint64_t ret = CMp4VideoByteStream::start_next_frame(buffer, buflen, ud);
+  printf("decrypting video frame\n");
+  u_int8_t *temp_buffer = CMp4ByteStream::get_buffer();
+  uint32_t temp_this_frame_size = CMp4ByteStream::get_this_frame_size();
+  if (ismacrypDecryptSample(m_ismaCryptSId, temp_this_frame_size, temp_buffer) 
+      != 0) {
+    // error
+  }
+  CMp4ByteStream::set_buffer(temp_buffer);
+  CMp4ByteStream::set_this_frame_size(temp_this_frame_size);
+
+  
+  return ret; 
+}
+#endif
+
 /* end file qtime_bytestream.cpp */

@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 				fprintf(stderr, 
 					"%s: bad height specified: %s\n",
 					 progName, optarg);
-			} else if (frameHeight & 1) {
+			} else if (i & 1) {
 				fprintf(stderr, 
 					"%s: bad height specified, must be multiple of 2: %s\n",
 					 progName, optarg);
@@ -104,12 +104,12 @@ int main(int argc, char** argv)
 		case 'w': {
 			/* -width <pixels> */
 			u_int i;
-			gotwidth = FALSE;
+			gotwidth = TRUE;
 			if (sscanf(optarg, "%u", &i) < 1) {
 				fprintf(stderr, 
 					"%s: bad width specified: %s\n",
 					 progName, optarg);
-			} else if (frameWidth & 1) {
+			} else if (i & 1) {
 				fprintf(stderr, 
 					"%s: bad width specified, must be multiple of 2: %s\n",
 					 progName, optarg);
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
 
 	if (gotheight == FALSE || gotwidth == FALSE) {
 	  fprintf(stderr, "%s - you haven't specified height or width - going with %dx%d", 
-		  frameWidth, frameHeight);
+		  progName, frameWidth, frameHeight);
 	}
 	/* point to the specified file names */
 	rgbFileName = argv[optind++];

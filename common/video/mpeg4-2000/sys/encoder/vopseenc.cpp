@@ -84,6 +84,7 @@ Revision History:
 
 #include <stdio.h>
 #include <fstream>
+#include <iostream>
 #include <math.h>
 #include <stdlib.h>
 

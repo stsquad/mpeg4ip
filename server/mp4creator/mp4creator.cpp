@@ -60,6 +60,12 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
 // main routine
 int main(int argc, char** argv)
 {
+#ifdef ISMACRYPT
+  printf("using ismacrypt\n");
+#else
+  printf("not using ismacrypt\n");
+#endif
+
   char* usageString = 
     "usage: %s <options> <mp4-file>\n"
     "  Options:\n"
@@ -120,6 +126,7 @@ int main(int argc, char** argv)
     int option_index = 0;
     static struct option long_options[] = {
       { "aac-old-file-format", 0, 0, 'a' },
+      { "aac-profile", 1, 0, 'A'},
       { "create", 1, 0, 'c' },
       { "delete", 1, 0, 'd' },
       { "extract", 2, 0, 'e' },
@@ -371,7 +378,18 @@ int main(int argc, char** argv)
   bool mp4FileExists = (access(mp4FileName, F_OK) == 0);
 
   MP4FileHandle mp4File;
-  
+
+#ifdef ISMACRYPT
+  // initialize session if encrypting
+  if (doEncrypt) {
+    if (ismacrypInitSession(&ismaCryptSId) != 0) {
+      fprintf(stderr, 
+	      "%s: could not initialize the ISMAcrypt session\n",
+	      ProgName);
+      exit(EXIT_ISMACRYPT_INIT);
+    }
+  }
+#endif
 
   if (doCreate || doHint) {
     if (!mp4FileExists) {
@@ -420,7 +438,7 @@ int main(int argc, char** argv)
       // we do this if audio and/or video are MPEG-4
       MP4TrackId* pTrackId = pCreatedTrackIds;
 
-      while (*pTrackId != MP4_INVALID_TRACK_ID) {				
+      while (*pTrackId != MP4_INVALID_TRACK_ID) {			       
 	const char *type =
 	  MP4GetTrackType(mp4File, *pTrackId);
 	
@@ -511,8 +529,15 @@ int main(int argc, char** argv)
       // encrypt if the trackid was specified as an argument to -encrypt
       // or if no arg were specified (i.e. encrypt all tracks)
       if ((curTrackId == encryptTrackId) || 
-	  (encryptTrackId == MP4_INVALID_TRACK_ID)) { 
-	MP4EncAndCopyTrack(mp4File, curTrackId, outputFile);  
+	  (encryptTrackId == MP4_INVALID_TRACK_ID)) {
+#ifdef ISMACRYPT 
+	MP4EncAndCopyTrack(mp4File, curTrackId, ismaCryptSId, outputFile);  
+#else
+
+	fprintf(stderr,
+	      "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n", 
+	      ProgName);
+#endif
       } else {
 	MP4CopyTrack(mp4File, curTrackId, outputFile);
       }
@@ -579,7 +604,18 @@ int main(int argc, char** argv)
     }
   }
 
-  return(EXIT_SUCCESS);
+#ifdef ISMACRYPT
+  // terminate session if encrypting
+  if (doEncrypt) {
+    if (ismacrypEndSession(ismaCryptSId) != 0) {
+      fprintf(stderr, 
+	      "%s: could not end the ISMAcrypt session\n",
+	      ProgName);
+      exit(EXIT_ISMACRYPT_END);
+    }
+  }
+#endif
+ return(EXIT_SUCCESS);
 }
 
 MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName,

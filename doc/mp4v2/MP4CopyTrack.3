@@ -1,56 +1,54 @@
 .TH "MP4" "3" "Version 0.9" "Cisco Systems Inc." "MP4 File Format Library"
 .SH "NAME"
 .LP 
-\fBMP4CopySample\fR \- Make a copy of a specified sample
+\fBMP4CopyTrack\fR \- Make a copy of a specified track
 .SH "SYNTAX"
 .LP 
 #include <mp4.h>
 .LP 
-MP4TrackId \fBMP4CopySample\fR(
+MP4TrackId \fBMP4CopyTrack\fR(
 .br 
 	MP4FileHandle \fIsrcFile\fP,
 .br 
 	MP4TrackId \fIsrcTrackId\fP,
 .br 
-	MP4SampleId \fIsrcSampleId\fP,
-.br 
 	MP4FileHandle \fIdstFile\fP = MP4_INVALID_FILE_HANDLE,
 .br 
-	MP4TrackId \fIdstTrackId\fP = MP4_INVALID_TRACK_ID,
+	bool \fIapplyEdits\fP = false,
 .br 
-	MP4Duration \fIdstSampleDuration\fP = MP4_INVALID_DURATION
-.br 
+	MP4TrackId \fIdstHintTrackReferenceTrack\fP = MP4_INVALID_TRACK_ID
+.br
 )
 .SH "ARGUMENTS"
 .LP 
 .TP 
 \fIsrcFile\fP
-Specifies the mp4 file of the source of the operation.
+Specifies the mp4 file of the source track of the operation.
 .TP 
 \fIsrcTrackId\fP
-Specifies the track of the source sample.
-.TP 
-\fIsrcSampleId\fP
-Specifies the sample to be copied.
+Specifies the track id of the track to be copied.
 .TP 
 \fIdstFile\fP
-Specifies the mp4 file of the new, copied sample. If the value is MP4_INVALID_FILE_HANDLE, the new sample is created in the same file as the source sample. 
+Specifies the mp4 file of the new, copied track. If the value  is MP4_INVALID_FILE_HANDLE, the new track is created in the same file as the source track. 
 .TP 
-\fIdstTrackId\fP
-Specifies the track of the new sample. If the value is MP4_INVALID_TRACK_ID, the new sample is created in the same track as the source sample.
-.TP 
-\fIdstSampleDuration\fP
-Specifies the duration in the track time scale of the new sample. If the value is MP4_INVALID_DURATION, then the duration of the source sample is used.
+\fIapplyEdits\fP
+Specifies if the track edit list is to be applied during the copying of media samples. If false, then all samples are copied, if true then only those samples included by the track edit list are copied.
+.TP
+\fIdstHintTrackReferenceTrack\fP
+When cloning a hint track, this parameter specifies the track id of the reference track in the destination file.
 .SH "RETURN VALUES"
 .LP 
-Upon success, the sample id of the new sample. Upon an error, MP4_INVALID_SAMPLE_ID.
+Upon success, the track id of the new track. Upon an error, MP4_INVALID_TRACK_ID.
 
 .SH "DESCRIPTION"
 .LP 
-\fBMP4CopySample\fR creates a new sample based on an existing sample. Note that another copy of the media sample data is created in the file using this function. I.e. this call is equivalent to MP4ReadSample() followed by MP4WriteSample().
+\fBMP4CopyTrack\fR creates a new track to an mp4 file that is a copy of an existing track with respect to the track media type, other control information, and media samples.
 .LP 
-Note that is the responsibility of the caller to ensure that the copied media sample makes sense in the destination track. E.g. copying a video sample to an audio track is unlikely to result in anything good happening, even copying a sample from video track to another requires that the tracks use the same encoding and that issues such as image size are addressed.
+The applyEdits parameter of this function allows for easy creation of standalone clips from a larger mp4 file. To do this use MP4AddTrackEdit() to specify the start and duration of the clip, and then use MP4CopyTrack() to export that portion of the media to a new mp4 file.
+.LP 
+Note if you do not want to copy the media samples, but just want to create a track with the same type and control information of the source track use MP4CloneTrack().
+
 
 .SH "SEE ALSO"
 .LP 
-MP4(3) MP4ReadSample(3) MP4WriteSample(3)
+MP4(3) MP4CloneTrack(3) MP4AddTrackEdit(3)

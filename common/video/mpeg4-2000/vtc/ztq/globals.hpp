@@ -1,4 +1,4 @@
-/* $Id: globals.hpp,v 1.1 2003/05/05 21:24:20 wmaycisco Exp $ */
+/* $Id: globals.hpp,v 1.2 2003/08/01 22:48:43 wmaycisco Exp $ */
 /****************************************************************************/
 /*   MPEG4 Visual Texture Coding (VTC) Mode Software                        */
 /*                                                                          */
@@ -74,7 +74,7 @@
 #endif 
 
 /* Definition of bitstream(tentative solution) */
-#define VERSION	(2)
+//#define VERSION	(2)
 
 /* main data structure */
 EXTERN WVT_CODEC mzte_codec;

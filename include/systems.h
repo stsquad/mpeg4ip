@@ -271,6 +271,8 @@ char *strsep(char **strp, const char *delim);
 
 #define NUM_ELEMENTS_IN_ARRAY(name) ((sizeof((name))) / (sizeof(*(name))))
 
+#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
+
 #ifndef HAVE_GLIB_H
 typedef char gchar;
 typedef unsigned char guchar;

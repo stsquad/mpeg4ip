@@ -1,10 +1,14 @@
 SUBDIRS = . test util
 
-INCLUDES = -I$(top_srcdir)/include
+INCLUDES = -I$(top_srcdir)/include \
+           -I$(top_srcdir)/@ISMACRYPTINC@
 
 AM_CXXFLAGS = @BILLS_CPPWARNINGS@
 
-lib_LTLIBRARIES = libmp4v2.la
+lib_LTLIBRARIES = libmp4v2.la 
+
+libmp4v2_la_LIBADD = \
+         $(top_builddir)/@ISMACRYPTLIB@
 
 libmp4v2_la_SOURCES = \
 	atom_co64.cpp \

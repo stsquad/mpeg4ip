@@ -25,7 +25,6 @@
 #include <time.h>
 #include "sdp.h"
 
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
 
 static void local_error_msg (int loglevel,
 			     const char *lib,

@@ -61,7 +61,6 @@
 #include <sys/stat.h>
 // end: added by Sharp (99/2/16)
 
-#define DEFINE_GLOBALS
 
 #include "basic.hpp"
 #include "dataStruct.hpp"

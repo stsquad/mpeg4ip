@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.9)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.9.1)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -69,7 +69,7 @@ AC_DEFUN(MY_CHECK_TYPEDEF_FROM_INCLUDE,
 	          [$1;],
                   mpeg4ip_ok=yes, mpeg4ip_ok=no)
    if test $mpeg4ip_ok = yes; then
-      AC_DEFINE($3)
+      $3
       AC_MSG_RESULT([yes])
    else
       AC_MSG_RESULT([no])
@@ -78,17 +78,19 @@ AC_DEFUN(MY_CHECK_TYPEDEF_FROM_INCLUDE,
 
 MY_CHECK_TYPEDEF_FROM_INCLUDE([in_port_t temp], 
 	[#include <sys/types.h>
-	 #include <netinet/in.h>], [HAVE_IN_PORT_T])
+	 #include <netinet/in.h>], 
+	 [AC_DEFINE(HAVE_IN_PORT_T, [1], [in_port_t definition])])
 MY_CHECK_TYPEDEF_FROM_INCLUDE([socklen_t temp], 
 	[#include <sys/types.h>
-	 #include <sys/socket.h>], HAVE_SOCKLEN_T)
+	 #include <sys/socket.h>], 
+	 [AC_DEFINE(HAVE_SOCKLEN_T, [1], [have_socklen_t definition])])
 MY_CHECK_TYPEDEF_FROM_INCLUDE([fpos_t foo; foo.__pos = 0;],
 	[#include <stdio.h>],
-	[HAVE_FPOS_T_POS])
+	[AC_DEFINE(HAVE_FPOS_T_POS, [1], [have_fpos_t_pos definition])])
 
 MY_CHECK_TYPEDEF_FROM_INCLUDE([struct addrinfo foo;],
 	[#include <netdb.h>],
-	[HAVE_ST_ADDRINFO])
+	[AC_DEFINE(HAVE_ST_ADDRINFO, [1], [have addrinfo definition])])
 
 dnl borrowed from ac-archive.sourceforge.net
 dnl @author  Guido Draheim <guidod@gmx.de>
@@ -157,6 +159,21 @@ esac],
 [player=true])
 AM_CONDITIONAL(PLAYER, test $player = true)
 
+AC_ARG_ENABLE(ismacrypt,
+[  --enable-ismacrypt    enable build of ISMA crypt],, enable_ismacrypt=no)
+
+if test x$enable_ismacrypt != xno; then
+   ISMACRYPTLIB=${enable_ismacrypt}/libismacryp.la
+   ISMACRYPTINC=-I${enable_ismacrypt}
+   AC_SUBST(ISMACRYPTLIB)
+   AC_SUBST(ISMACRYPTINC)
+   CFLAGS="$CFLAGS -DISMACRYPT"
+   CXXFLAGS="$CXXFLAGS -DISMACRYPT"
+   AC_MSG_NOTICE([enabling ISMAcrypt - directory ${enable_ismacrypt}])
+else
+  AC_MSG_NOTICE([no ismacrypt])
+fi
+
 AC_ARG_ENABLE(mp4live,
 [  --enable-mp4live       enable mp4live build on Linux [default=yes]],
                   , enable_mp4live=yes)
@@ -178,7 +195,7 @@ AC_ARG_ENABLE(ipv6,
               enable_ipv6=yes)
 
     if test x$enable_ipv6 = xyes; then
-       AC_DEFINE(HAVE_IPv6)
+       AC_DEFINE(HAVE_IPv6, 1, [enable IPv6 architecture])
     fi
 
 dnl ### Checking for the existence of files
@@ -213,7 +230,7 @@ AC_ARG_ENABLE(ppc,
 if test x$enable_ppc = xyes; then
 case $target in
 *powerpc*) 
-	AC_DEFINE(ARCH_PPC)
+	AC_DEFINE(ARCH_PPC, 1, [Power PC Architecture])
         AM_CONDITIONAL(USE_PPC, true)
 	;;
 *)
@@ -231,8 +248,8 @@ AM_PATH_GLIB_2_0(, [haveglib20=yes], [haveglib20=no])
 if test x$haveglib20 = xyes; then 
    AM_PATH_GTK_2_0(, [havegtk20=yes], [havegtk20=no])
    if test x$havegtk20 = xyes; then 
-      AC_DEFINE(HAVE_GTK_2_0)
-      AC_DEFINE(HAVE_GTK)
+      AC_DEFINE(HAVE_GTK_2_0, 1, [Have GTK 2.0 on system])
+      AC_DEFINE(HAVE_GTK, 1, [Have GTK on system])
       glib_gtk=yes
    else
       haveglib20=no
@@ -242,7 +259,7 @@ if test x$haveglib20 = xno; then
    AM_PATH_GLIB(, [glib_gtk=yes], [glib_gtk=no])
    if test x$glib_gtk = xyes; then
       AM_PATH_GTK(, [glib_gtk=yes], [glib_gtk=no])
-      AC_DEFINE(HAVE_GTK)
+      AC_DEFINE(HAVE_GTK, 1, [Have GTK on system])
    fi
 fi
 
@@ -300,7 +317,7 @@ if test x$enable_mmx = xyes; then
 		AC_SUBST(NASMFLAGS)
 		AM_CONDITIONAL(USE_MMX, true)
 		arch_x86=:
-		AC_DEFINE(ARCH_X86)
+		AC_DEFINE(ARCH_X86, 1, [have intel processor])
 		;;
 	*)
 		AM_CONDITIONAL(USE_MMX, false)
@@ -314,12 +331,12 @@ else
 fi
 
 dnl Get SDL cflags and SDL libraries to include
-SDL_LIBS="`lib/SDL/sdl-config --libs | sed 's,-L.* -lSDL,\$(top_builddir)/lib/SDL/src/libSDL.la,'`"
+SDL_LIBS="`sh lib/SDL/sdl-config --libs | sed 's,-L.* -lSDL,\$(top_builddir)/lib/SDL/src/libSDL.la,'`"
 AC_SUBST(SDL_LIBS)
 
 dnl
 BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Wno-unknown-pragmas"
-BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Woverloaded-virtual -Wno-unknown-pragmas -Wno-deprecated"
+BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wno-char-subscripts -Woverloaded-virtual -Wno-unknown-pragmas -Wno-deprecated"
 AC_SUBST(BILLS_CWARNINGS)
 AC_SUBST(BILLS_CPPWARNINGS)
 

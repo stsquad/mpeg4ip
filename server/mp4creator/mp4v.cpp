@@ -237,7 +237,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 				timeBits, timeTicks, frameDuration);
 #endif
 
-		} else if (objType == MP4AV_MPEG4_VOP_START) {
+		} else if (foundVOL == true || objType == MP4AV_MPEG4_VOP_START) {
 			esConfigSize = pObj - pCurrentSample;
 			// ready to set up mp4 track
 			break;
@@ -297,6 +297,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	// create the new video track
 	MP4TrackId trackId;
 	if (doEncrypt) {
+#ifdef ISMACRYPT
 		trackId = 
 		MP4AddEncVideoTrack(
 			mp4File, 
@@ -305,6 +306,12 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 			frameWidth, 
 			frameHeight, 
 			MP4_MPEG4_VIDEO_TYPE);
+#else
+		trackId = MP4_INVALID_TRACK_ID;
+		fprintf(stderr,
+	       "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
+			ProgName);
+#endif
 	} else {
 		trackId = 
 		MP4AddVideoTrack(
@@ -348,6 +355,17 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 			u_int32_t sampleSize = (pObj + objSize) - pCurrentSample;
 
 			vopType = MP4AV_Mpeg4GetVopType(pObj, objSize);
+
+#ifdef ISMACRYPT
+			 if (doEncrypt) {
+			   if (ismacrypEncryptSample(ismaCryptSId, sampleSize, 
+						     sampleBuffer) != 0) {
+			     fprintf(stderr,	
+				     "%s: can't encrypt video sample %u\n", 
+				     ProgName, sampleId);
+			   }
+			 }
+#endif
 
 			rc = MP4WriteSample(mp4File, trackId, 
 				pCurrentSample, sampleSize,

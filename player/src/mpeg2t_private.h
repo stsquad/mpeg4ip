@@ -35,8 +35,6 @@
 /*
  * Some useful macros.
  */
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
-
 class CPlayerMedia;
 
 typedef struct mpeg2t_thread_info_ mpeg2t_thread_info_t;

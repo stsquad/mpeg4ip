@@ -77,6 +77,7 @@ Revision History:
 *************************************************************************/
 #include <stdio.h>
 #include <fstream.h>
+#include <iostream.h>
 #ifdef __GNUC__
 #include <strstream.h>
 #else

@@ -60,6 +60,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 
 	MP4TrackId trackId;
 	if (doEncrypt) {
+#ifdef ISMACRYPT
 	  trackId = MP4AddEncVideoTrack(
 				     mp4File,
 				     Mp4TimeScale, 
@@ -67,6 +68,12 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 				     AVI_video_width(aviFile), 
 				     AVI_video_height(aviFile), 
 				     MP4_MPEG4_VIDEO_TYPE);
+#else
+	  trackId = MP4_INVALID_TRACK_ID;
+	  fprintf(stderr,
+	     "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
+		  ProgName);
+#endif
 	} else {
 	  trackId = MP4AddVideoTrack(
 				     mp4File,
@@ -139,7 +146,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 	  if (!memcmp(&pFrameBuffer[i], startCode, 3)) {
 	    // everything before the VOP
 	    // should be configuration info
-	    if (pFrameBuffer[i + 3] == MP4AV_MPEG4_VOP_START) {
+	    if (foundVOL || pFrameBuffer[i + 3] == MP4AV_MPEG4_VOP_START) {
 	      vopStart = i;
 	      foundVOP = true;
 
@@ -344,8 +351,15 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 	
 	MP4TrackId trackId;
 	if (doEncrypt) {
+#ifdef ISMACRYPT
 	  trackId = MP4AddEncAudioTrack(mp4File, samplesPerSecond, 
 				     samplesPerFrame, mp4AudioType);
+#else
+	  trackId = MP4_INVALID_TRACK_ID;
+	  fprintf(stderr,
+	      "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
+		  ProgName);
+#endif
 	} else {
 	   trackId = MP4AddAudioTrack(mp4File, samplesPerSecond, 
 				     samplesPerFrame, mp4AudioType);

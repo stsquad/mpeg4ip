@@ -33,6 +33,9 @@
 #include <mp4util/mpeg4_audio_config.h>
 #include "our_config_file.h"
 #include "codec_plugin_private.h"
+#ifdef ISMACRYPT
+#include <ismacryplib.h>
+#endif
 
 /*
  * Create the media for the quicktime file, and set up some session stuff.
@@ -164,7 +167,24 @@ int CMp4File::create_video(CPlayerSession *psptr,
       }
 
       CMp4VideoByteStream *vbyte;
+
+#ifdef ISMACRYPT
+      /* check if ismacryp */
+      printf("checking for encryption\n");
+      if (MP4GetTrackIntegerProperty(m_mp4file, vq[ix].track_id,
+			    "mdia.minf.stbl.stsd.encv.sinf.frma.data-format") 
+	  != (u_int64_t)-1) {
+	printf("encrypted video\n");
+	vbyte = new CMp4EncVideoByteStream(this, vq[ix].track_id);
+	printf("bytestream has been created\n");
+	// TODO: add the code to end the session in the right place
+      } else {
+	printf("not encrypted video\n");
+	vbyte = new CMp4VideoByteStream(this, vq[ix].track_id);
+      }
+#else
       vbyte = new CMp4VideoByteStream(this, vq[ix].track_id);
+#endif
       if (vbyte == NULL) {
 	delete mptr;
 	return (-1);
@@ -208,7 +228,24 @@ int CMp4File::create_audio(CPlayerSession *psptr,
       if (mptr == NULL) {
 	return (-1);
       }
+
+#ifdef ISMACRYPT
+      /* check if ismacryp */
+      printf("checking for encryption\n");
+      if (MP4GetTrackIntegerProperty(m_mp4file, aq[ix].track_id,
+			    "mdia.minf.stbl.stsd.enca.sinf.frma.data-format") 
+	  != (u_int64_t)-1) {
+	printf("encrypted audio\n");
+	abyte = new CMp4EncAudioByteStream(this, aq[ix].track_id);
+	printf("bytestream has been created\n");
+	// TODO: add the code to end the session in the right place
+      } else {
+	printf("not encrypted audio\n");
+	abyte = new CMp4AudioByteStream(this, aq[ix].track_id);
+      }
+#else 
       abyte = new CMp4AudioByteStream(this, aq[ix].track_id);
+#endif
       audio_info_t *ainfo;
       ainfo = (audio_info_t *)malloc(sizeof(audio_info_t));
       memset(ainfo, 0, sizeof(*ainfo));

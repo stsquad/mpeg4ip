@@ -57,7 +57,8 @@ Revision History:
 #include <stdio.h>
 #include <stdlib.h>
 #include <fstream.h>
-
+#include <iostream.h>
+#include <strstream.h>
 #ifdef __PC_COMPILER_
 #include <windows.h>
 #include <mmsystem.h>
@@ -77,7 +78,11 @@ Revision History:
 #define __GLOBAL_VAR_
 #endif
 
+#define DEFINE_GLOBALS
+
+
 #include "global.hpp"
+#include "globals.hpp"
 
 #ifdef __MFC_
 #ifdef _DEBUG
@@ -225,7 +230,7 @@ int main(int argc, char* argv[])
 	if ( !bScalability || !bTemporalScalability ){
 		CVideoObjectDecoder* pvodec [2];
 		Bool bSpatialScalable = FALSE;
-		CRct rctDisplayBackup = rctDisplay; // for recovery from sprite decoding
+		//		CRct rctDisplayBackup = rctDisplay; // for recovery from sprite decoding
 
 		pvodec [BASE_LAYER] = new CVideoObjectDecoder (argv [1], rctDisplay.width, rctDisplay.height(), &bSpatialScalable, &main_short_video_header);
 	
@@ -315,15 +320,15 @@ int main(int argc, char* argv[])
 		Bool bCachedRefFrame = FALSE;
 		Bool bCachedRefFrameCoded = FALSE;
 		//OBSS_SAIT_991015 //_SS_BASE_BVOP_
-		Int iBASEVOP_time;
-		Int iBASEVOP_PredType;
+		Int iBASEVOP_time = 0;
+		Int iBASEVOP_PredType = 0;
 		//~OBSS_SAIT_991015 //_SS_BASE_BVOP_
 		while (iEof != EOF)
 		{
 			if (main_short_video_header) // Added by KPN for short headers
 			{
 				fprintf(stderr,"Frame number: %d\n", nFrames);
-				iEof = pvodec [BASE_LAYER] -> h263_decode ();
+				iEof = pvodec [BASE_LAYER] -> h263_decode (false);
 			}
 			else
 				iEof = pvodec [BASE_LAYER] -> decode ();  
@@ -698,7 +703,7 @@ int main(int argc, char* argv[])
 // end: delted by Sharp (98/10/26)
 #endif
 		// for back/forward shape output 
-		FILE* pfTestSeg;
+		FILE* pfTestSeg = NULL;
 		if (bScalability)
 			if (pvodec [ENHN_LAYER]-> volmd ().iEnhnType != 0) { // change for Norio Ito
 				sprintf (pchTmp, "%s.bfseg", argv [2 + bScalability]);
@@ -710,7 +715,7 @@ int main(int argc, char* argv[])
 #ifdef __PC_COMPILER_
 		Int tickBegin = ::GetTickCount ();
 #endif // __PC_COMPILER_
-		Time tPvopBase, tNextBase, tNextEnhc;
+		Time tPvopBase, tNextBase, tNextEnhc = 0;
 		int nBaseFrames = 0;
 		int nEnhcFrames = 0;
 		Bool bCacheRefFrame = FALSE; // added by Sharp (98/11/18)

@@ -125,7 +125,7 @@ gmp4player_SOURCES = \
 movplayer_SOURCES = \
 	movplayer.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPTINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
 
@@ -147,6 +147,7 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
+	@ISMACRYPTLIB@ \
 	$(top_builddir)/lib/avi/libavi.la 
 
 mp4player_LDADD = \
@@ -157,7 +158,7 @@ mp4player_LDADD = \
 	libmp4syncbase.la \
 	libmp4playerutils.la \
 	@SDL_LIBS@ \
-	$(top_builddir)/lib/SDL/src/main/libSDLmain.a
+	$(top_builddir)/lib/SDL/src/main/libSDLmain.a 
 
 gmp4player_LDADD = $(mp4player_LDADD) \
 	@GTK_LIBS@ @GLIB_LIBS@

@@ -56,10 +56,6 @@
 #include <stdio.h>
 #include <math.h>
 
-#ifdef _VTC_DECODER_
-#define DEFINE_GLOBALS
-#endif
-
 #include "basic.hpp"
 #include "dataStruct.hpp"
 #include "startcode.hpp"
@@ -1566,7 +1562,7 @@ Void CVTCDecoder::decode(Char *InBitsFile, Char *RecImageFile,
 
   noteProgress("\n----- MPEG-4 Visual Texture Coding: Decoding -----\n");
 
-	mzte_codec.m_visual_object_verid = VERSION; // This value is set to 2 tentatively
+  mzte_codec.m_visual_object_verid = 2; //VERSION; // This value is set to 2 tentatively
 
 // begin: added by Sharp (99/11/18)
 	if ( strstr(InBitsFile, "v1") != NULL || strstr(InBitsFile, "V1") != NULL )

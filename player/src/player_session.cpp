@@ -400,7 +400,10 @@ int CPlayerSession::play_all_media (int start_from_begin,
 
     memset(&cmd, 0, sizeof(rtsp_command_t));
     if (range != NULL) {
-      sprintf(buffer, "npt=%g-%g", start_time, range->range_end);
+      uint64_t stime = (uint64_t)(start_time * 1000.0);
+      uint64_t etime = (uint64_t)(range->range_end * 1000.0);
+      sprintf(buffer, "npt="LLU"."LLU"-"LLU"."LLU, 
+	      stime / 1000, stime % 1000, etime / 1000, etime % 1000);
       cmd.range = buffer;
     }
     if (rtsp_send_aggregate_play(m_rtsp_client,

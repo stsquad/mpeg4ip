@@ -44,8 +44,10 @@
 #ifndef __GLOBAL_VAR_
 #define __GLOBAL_VAR_
 #endif
-
+#define DEFINE_GLOBALS
 #include <sys/global.hpp>
+#include <vtc/ztq/globals.hpp>
+
 #include <mp4v2/mp4.h>
 #include <mp4av/mp4av.h>
 

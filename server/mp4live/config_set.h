@@ -228,7 +228,7 @@ public:
 		  (SConfigVariable*)malloc(size);
 
 		memcpy(m_variables, variables, size);
-		m_defaultFileName = defaultFileName;
+		m_defaultFileName = strdup(defaultFileName);
 		SetToDefaults();
 		m_unknown_head = NULL;
 	};
@@ -247,6 +247,7 @@ public:
 		  free(ptr);
 		  ptr = m_unknown_head;
 		}
+		CHECK_AND_FREE(m_defaultFileName);
 	}
 
 	void InitializeIndexes(void) {
@@ -394,6 +395,42 @@ public:
 	  m_variables[iName].SetToDefault();
 	}
 
+	void ProcessLine (char *line) {
+	// comment
+	  if (line[0] == '#') {
+	    return;
+	  }
+	  char* s = line;
+	  while (*s != '\0') s++;
+	  s--;
+	  while (isspace(*s)) {
+	    *s = '\0';
+	    s--;
+	  }
+	  s = line;
+
+	  SConfigVariable* var = FindByName(strsep(&s, "="));
+	  if (var == NULL || s == NULL) {
+	    if (s != NULL) {
+	      *(s - 1) = '='; // restore seperation character
+	      SUnknownConfigVariable *ptr;
+	      ptr = MALLOC_STRUCTURE(SUnknownConfigVariable);
+	      ptr->next = m_unknown_head;
+	      ptr->value = strdup(line);
+	      m_unknown_head = ptr;
+	    }
+	    if (m_debug) {
+	      fprintf(stderr, "bad config line %s\n", s);  
+	    }
+	    return;
+	  }
+	  if (!var->FromAscii(s)) {
+	    if (m_debug) {
+	      fprintf(stderr, "bad config value in line %s\n", s);  
+	    }
+	  }
+	}
+
 	bool ReadFromFile(const char* fileName) {
 		free(m_fileName);
 		m_fileName = stralloc(fileName);
@@ -406,38 +443,7 @@ public:
 		}
 		char line[256];
 		while (fgets(line, sizeof(line), pFile)) {
-			// comment
-			if (line[0] == '#') {
-				continue;
-			}
-			char* s = line;
-			while (*s != '\0') s++;
-			s--;
-			while (isspace(*s)) {
-			  *s = '\0';
-			  s--;
-			}
-			s = line;
-			SConfigVariable* var = FindByName(strsep(&s, "="));
-			if (var == NULL || s == NULL) {
-			  if (s != NULL) {
-			    *(s - 1) = '='; // restore seperation character
-			    SUnknownConfigVariable *ptr;
-			    ptr = MALLOC_STRUCTURE(SUnknownConfigVariable);
-			    ptr->next = m_unknown_head;
-			    ptr->value = strdup(line);
-			    m_unknown_head = ptr;
-			  }
-				if (m_debug) {
-					fprintf(stderr, "bad config line %s\n", s);  
-				}
-				continue;
-			}
-			if (!var->FromAscii(s)) {
-				if (m_debug) {
-					fprintf(stderr, "bad config value in line %s\n", s);  
-				}
-			}
+		  ProcessLine(line);
 		}
 		fclose(pFile);
 		return true;

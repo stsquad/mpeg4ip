@@ -74,7 +74,6 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 				 0);
   if (plugin == NULL) {
     video_count = 0;
-    return -1;
   } else {
     vq.track_id = 1;
     vq.compressor = codec_name;

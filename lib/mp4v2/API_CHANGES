@@ -1,3 +1,10 @@
+Changes in xxxx
+---------------
+
+Change to MP4CloneTrack and MP4CopyTrack for when you copy a hint
+track - you must now specify the track ID in the new file for the
+reference track.
+
 Changes in 0.9.9
 ---------------------------
 Added support for ISMA's Ismacrypt specification:

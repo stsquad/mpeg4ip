@@ -100,7 +100,7 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 
 	}
 
-	u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);
+ 	u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);
 	if (pSampleBuffer == NULL) {
 		MP4DeleteTrack(mp4File, hintTrackId);
 		return false;

@@ -37,6 +37,7 @@ Revision History:
 *************************************************************************/
 #include <stdio.h>
 #include <fstream.h>
+#include <strstream.h>
 #include <math.h>
 
 #include "typeapi.h"

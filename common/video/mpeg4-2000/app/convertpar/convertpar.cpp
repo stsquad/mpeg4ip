@@ -68,7 +68,7 @@ void my_assert(int iFlag)
 		fatal_error("Some assert failed! Check original par file format.\nSorry to be non-specific, but monkeys wrote this section.\n");
 }
 
-Int main (Int argc, Char* argv[])
+int main (Int argc, Char* argv[])
 {
 	UInt nLine = 1;
 	UInt* pnLine = &nLine;
@@ -1111,7 +1111,7 @@ Int main (Int argc, Char* argv[])
 	// quantizer selection: 0 -- H.263, 1 -- MPEG
 	nextValidLine (pfPara, pnLine);
 	for (iObj = 0; iObj < nVO; iObj++)	{
-		if (fscanf (pfPara, "%d", &(rgfQuant [BASE_LAYER] [iObj])) != 1)	{
+		if (fscanf (pfPara, "%d", (int *)&(rgfQuant [BASE_LAYER] [iObj])) != 1)	{
 			fprintf(stderr, "wrong parameter file format on line %d\n", *pnLine);
 			fatal_error("Conversion aborted");
 		}
@@ -1122,7 +1122,7 @@ Int main (Int argc, Char* argv[])
 	}
 	if (bAnyScalability)	{
 		for (iObj = 0; iObj < nVO; iObj++)	{
-			if (fscanf (pfPara, "%d", &(rgfQuant [ENHN_LAYER] [iObj])) != 1)	{
+			if (fscanf (pfPara, "%d", (int *)&(rgfQuant [ENHN_LAYER] [iObj])) != 1)	{
 				fprintf(stderr, "wrong parameter file format on line %d\n", *pnLine);
 				fatal_error("Conversion aborted");
 			}

@@ -16,38 +16,32 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie			dmackie@cisco.com
+ *              Bill May        wmay@cisco.com
  */
 
-#ifndef __MP4_COMMON_INCLUDED__
-#define __MP4_COMMON_INCLUDED__
+/*
+ * http_test - provide test harness for libhttp.
+ */
+#include "systems.h"
+#include "http.h"
 
-// common includes for everything 
-// with an internal view of the library
-// i.e. all the .cpp's just #include "mp4common.h"
+int main (int argc, char **argv)
+{
+  http_client_t *http_client;
+  http_resp_t *http_resp;
+  argv++;
+  http_set_loglevel(LOG_DEBUG);
 
-#include "mpeg4ip.h"
+  http_client = http_init_connection(*argv);
+  if (http_client == NULL) {
+    printf("no client\n");
+    return (1);
+  }
 
-#include "mp4.h"
-#include "mp4util.h"
-#include "mp4array.h"
-#include "mp4track.h"
-#include "mp4file.h"
-#include "mp4property.h"
-#include "mp4container.h"
-#include "mp4descriptor.h"
-#include "mp4atom.h"
+  http_resp = NULL;
+  http_post(http_client, NULL, &http_resp,"foo=bar&bar=lick+me+baby");
+  http_resp_free(http_resp);
+  http_free_connection(http_client);
+  return (0);
+}
 
-#include "atoms.h"
-#include "descriptors.h"
-#include "ocidescriptors.h"
-#include "qosqualifiers.h"
-
-#include "odcommands.h"
-
-#include "rtphint.h"
-#ifdef ISMACRYPT
-#include <ismacryplib.h>
-#endif
-
-#endif /* __MP4_COMMON_INCLUDED__ */

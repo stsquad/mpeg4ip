@@ -29,7 +29,21 @@ mpeg4_iso_plugin_la_LIBADD = \
 	$(top_builddir)/$(mpeg4_dir)/tools/sadct/libobj_tools_sadct.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la
 
-INCLUDES = -I.. -I../.. -I../../../lib -I$(top_srcdir)/lib/SDL/include -I$(top_builddir)/$(mpeg4_dir) -I$(top_builddir)/include -I$(top_builddir)/lib -I$(top_srcdir)/lib/mp4v2
+INCLUDES = -I.. \
+	-I../.. \
+	-I../../../lib \
+	-I$(top_srcdir)/lib/SDL/include \
+	-I$(top_builddir)/$(mpeg4_dir) \
+	-I$(top_builddir)/$(mpeg4_dir)/type \
+	-I$(top_builddir)/$(mpeg4_dir)/vtc/include \
+	-I$(top_builddir)/$(mpeg4_dir)/vtc/pezw \
+	-I$(top_builddir)/$(mpeg4_dir)/vtc/shape \
+	-I$(top_builddir)/$(mpeg4_dir)/vtc/wavelet \
+	-I$(top_builddir)/$(mpeg4_dir)/vtc/zte \
+	-I$(top_builddir)/$(mpeg4_dir)/vtc/ztq \
+	-I$(top_builddir)/include \
+	-I$(top_builddir)/lib \
+	-I$(top_srcdir)/lib/mp4v2
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@ -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_OBSS_
 

@@ -25,8 +25,6 @@
 #include <sdp/sdp.h>
 #include "mpeg4_sdp.h"
 
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
-
 #define TTYPE(a,b) {a, sizeof(a), b}
 
 #define FMTP_PARSE_FUNC(a) static char *(a) (char *ptr, \

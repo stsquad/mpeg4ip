@@ -225,116 +225,135 @@ static bool GetFirstHeader(FILE* inFile)
 
 MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 {
-	// collect all the necessary meta information
-	u_int32_t samplesPerSecond;
-	u_int8_t mpegVersion;
-	u_int8_t profile;
-	u_int8_t channelConfig;
+  // collect all the necessary meta information
+  u_int32_t samplesPerSecond;
+  u_int8_t mpegVersion;
+  u_int8_t profile;
+  u_int8_t channelConfig;
 
-	if (!GetFirstHeader(inFile)) {
-		fprintf(stderr,	
-			"%s: data in file doesn't appear to be valid audio\n",
-			 ProgName);
-		return MP4_INVALID_TRACK_ID;
-	}
+  if (!GetFirstHeader(inFile)) {
+    fprintf(stderr,	
+	    "%s: data in file doesn't appear to be valid audio\n",
+	    ProgName);
+    return MP4_INVALID_TRACK_ID;
+  }
 
-	samplesPerSecond = MP4AV_AdtsGetSamplingRate(firstHeader);
-	mpegVersion = MP4AV_AdtsGetVersion(firstHeader);
-	profile = MP4AV_AdtsGetProfile(firstHeader);
-	if (aacProfileLevel == 2) {
-	  if (profile > MP4_MPEG4_AAC_SSR_AUDIO_TYPE) {
-	    fprintf(stderr, "Can't convert profile to mpeg2\nDo not contact project creators for help\n");
-	    return MP4_INVALID_TRACK_ID;
-	  }
-	  mpegVersion = 1;
-	} else if (aacProfileLevel == 4) {
-	  mpegVersion = 0;
-	}
-	channelConfig = MP4AV_AdtsGetChannels(firstHeader);
+  samplesPerSecond = MP4AV_AdtsGetSamplingRate(firstHeader);
+  mpegVersion = MP4AV_AdtsGetVersion(firstHeader);
+  profile = MP4AV_AdtsGetProfile(firstHeader);
+  if (aacProfileLevel == 2) {
+    if (profile > MP4_MPEG4_AAC_SSR_AUDIO_TYPE) {
+      fprintf(stderr, "Can't convert profile to mpeg2\nDo not contact project creators for help\n");
+      return MP4_INVALID_TRACK_ID;
+    }
+    mpegVersion = 1;
+  } else if (aacProfileLevel == 4) {
+    mpegVersion = 0;
+  }
+  channelConfig = MP4AV_AdtsGetChannels(firstHeader);
 
-	u_int8_t audioType = MP4_INVALID_AUDIO_TYPE;
-	switch (mpegVersion) {
-	case 0:
-		audioType = MP4_MPEG4_AUDIO_TYPE;
-		break;
-	case 1:
-		switch (profile) {
-		case 0:
-			audioType = MP4_MPEG2_AAC_MAIN_AUDIO_TYPE;
-			break;
-		case 1:
-			audioType = MP4_MPEG2_AAC_LC_AUDIO_TYPE;
-			break;
-		case 2:
-			audioType = MP4_MPEG2_AAC_SSR_AUDIO_TYPE;
-			break;
-		case 3:
-			fprintf(stderr,	
-				"%s: data in file doesn't appear to be valid audio\n",
-				 ProgName);
-			return MP4_INVALID_TRACK_ID;
-		default:
-			ASSERT(false);
-		}
-		break;
-	default:
-		ASSERT(false);
-	}
+  u_int8_t audioType = MP4_INVALID_AUDIO_TYPE;
+  switch (mpegVersion) {
+  case 0:
+    audioType = MP4_MPEG4_AUDIO_TYPE;
+    break;
+  case 1:
+    switch (profile) {
+    case 0:
+      audioType = MP4_MPEG2_AAC_MAIN_AUDIO_TYPE;
+      break;
+    case 1:
+      audioType = MP4_MPEG2_AAC_LC_AUDIO_TYPE;
+      break;
+    case 2:
+      audioType = MP4_MPEG2_AAC_SSR_AUDIO_TYPE;
+      break;
+    case 3:
+      fprintf(stderr,	
+	      "%s: data in file doesn't appear to be valid audio\n",
+	      ProgName);
+      return MP4_INVALID_TRACK_ID;
+    default:
+      ASSERT(false);
+    }
+    break;
+  default:
+    ASSERT(false);
+  }
 
-	// add the new audio track
-	MP4TrackId trackId;
-	if (doEncrypt) {
-		trackId = MP4AddEncAudioTrack(mp4File, 
-				samplesPerSecond, 1024, audioType);
-	} else {	
-              	trackId = MP4AddAudioTrack(mp4File,
-                    		samplesPerSecond, 1024, audioType);
-	}
+  // add the new audio track
+  MP4TrackId trackId;
+  if (doEncrypt) {
+#ifdef ISMACRYPT
+    trackId = MP4AddEncAudioTrack(mp4File, samplesPerSecond, 
+				  1024, audioType, ismaCryptSId);
+#else
+    fprintf(stderr,
+	      "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n", 
+	      ProgName);
+    trackId = MP4_INVALID_TRACK_ID;
+#endif
+  } else {	
+    trackId = MP4AddAudioTrack(mp4File,
+                    	       samplesPerSecond, 1024, audioType);
+  }
 
-	if (trackId == MP4_INVALID_TRACK_ID) {
-		fprintf(stderr,	
-			"%s: can't create audio track\n", ProgName);
-		return MP4_INVALID_TRACK_ID;
-	}
+  if (trackId == MP4_INVALID_TRACK_ID) {
+    fprintf(stderr,	
+	    "%s: can't create audio track\n", ProgName);
+    return MP4_INVALID_TRACK_ID;
+  }
 
-	if (MP4GetNumberOfTracks(mp4File, MP4_AUDIO_TRACK_TYPE) == 1) {
-		MP4SetAudioProfileLevel(mp4File, 0x0F);
-	}
+  if (MP4GetNumberOfTracks(mp4File, MP4_AUDIO_TRACK_TYPE) == 1) {
+    MP4SetAudioProfileLevel(mp4File, 0x0F);
+  }
 	
-	u_int8_t* pConfig = NULL;
-	u_int32_t configLength = 0;
+  u_int8_t* pConfig = NULL;
+  u_int32_t configLength = 0;
 
-	MP4AV_AacGetConfiguration(
-		&pConfig,
-		&configLength,
-		profile,
-		samplesPerSecond,
-		channelConfig);
+  MP4AV_AacGetConfiguration(
+			    &pConfig,
+			    &configLength,
+			    profile,
+			    samplesPerSecond,
+			    channelConfig);
 
-	if (!MP4SetTrackESConfiguration(mp4File, trackId, 
-	  pConfig, configLength)) {
-		fprintf(stderr,	
-			"%s: can't write audio configuration\n", ProgName);
-		MP4DeleteTrack(mp4File, trackId);
-		return MP4_INVALID_TRACK_ID;
-	}
+  if (!MP4SetTrackESConfiguration(mp4File, trackId, 
+				  pConfig, configLength)) {
+    fprintf(stderr,	
+	    "%s: can't write audio configuration\n", ProgName);
+    MP4DeleteTrack(mp4File, trackId);
+    return MP4_INVALID_TRACK_ID;
+  }
 
-	// parse the ADTS frames, and write the MP4 samples
-	u_int8_t sampleBuffer[8 * 1024];
-	u_int32_t sampleSize = sizeof(sampleBuffer);
-	MP4SampleId sampleId = 1;
+  // parse the ADTS frames, and write the MP4 samples
+  u_int8_t sampleBuffer[8 * 1024];
+  u_int32_t sampleSize = sizeof(sampleBuffer);
+  MP4SampleId sampleId = 1;
 
-	while (LoadNextAacFrame(inFile, sampleBuffer, &sampleSize, true)) {
-		if (!MP4WriteSample(mp4File, trackId, sampleBuffer, sampleSize)) {
-			fprintf(stderr,	
-				"%s: can't write audio frame %u\n", ProgName, sampleId);
-			MP4DeleteTrack(mp4File, trackId);
-			return MP4_INVALID_TRACK_ID;
-		}
-		sampleId++;
-		sampleSize = sizeof(sampleBuffer);
-	}
+  while (LoadNextAacFrame(inFile, sampleBuffer, &sampleSize, true)) {
+    if (doEncrypt) {
+#ifdef ISMACRYPT
+      if (ismacrypEncryptSample(ismaCryptSId, sampleSize, sampleBuffer) != 0) {
+	fprintf(stderr,	
+		"%s: can't encrypt audio frame %u\n", ProgName, sampleId);
+      }
+#else 
+    fprintf(stderr,
+              "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
+              ProgName);
+#endif
+    }
+    if (!MP4WriteSample(mp4File, trackId, sampleBuffer, sampleSize)) {
+      fprintf(stderr,	
+	      "%s: can't write audio frame %u\n", ProgName, sampleId);
+      MP4DeleteTrack(mp4File, trackId);
+      return MP4_INVALID_TRACK_ID;
+    }
+    sampleId++;
+    sampleSize = sizeof(sampleBuffer);
+  }
 
-	return trackId;
+  return trackId;
 }
 

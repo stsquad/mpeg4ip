@@ -28,8 +28,6 @@
 #include "player_sdp.h"
 #include "player_util.h"
 
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
-
 /*
  * do_relative_url_to_absolute - does the actual work to convert a
  * relative url to an absolute url.

@@ -46,12 +46,19 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
     MP4_MPEG2_MAIN_VIDEO_TYPE : MP4_MPEG1_VIDEO_TYPE;
 
   if (doEncrypt) {
+#ifdef ISMACRYPT
     id = MP4AddEncVideoTrack(mp4file, 
 			     Mp4TimeScale, 
 			     mp4FrameDuration,
 			     w, 
 			     h, 
 			     video_type);
+#else
+    id = MP4_INVALID_TRACK_ID;
+    fprintf(stderr,
+	    "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
+	    ProgName);
+#endif
   } else {
     id = MP4AddVideoTrack(mp4file, 
 			  Mp4TimeScale, 
@@ -90,7 +97,16 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
     if (buf[blen - 4] == 0 &&
 	buf[blen - 3] == 0 &&
 	buf[blen - 2] == 1) blen -= 4;
-
+    
+#ifdef ISMACRYPT
+    // encrypt the sample if neeed
+    if (doEncrypt) {
+      if (ismacrypEncryptSample(ismaCryptSId, blen, buf) != 0) {
+	fprintf(stderr,	
+		"%s: can't encrypt video sample %u\n", ProgName, id);
+      }
+    }
+#endif
     MP4WriteSample(mp4file, id, buf, blen, mp4FrameDuration, 0, 
 		   ret >= 0 ? true : false);
     mpeg3_read_video_chunk_cleanup(file, vstream);
@@ -160,10 +176,17 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
   MP4Duration duration = (90000 * samples_per_frame) / freq;
 
   if (doEncrypt) {
+#ifdef ISMACRYPT
     id = MP4AddEncAudioTrack(mp4file, 
 			     90000, 
 			     duration,
 			     audioType);
+#else
+    id = MP4_INVALID_TRACK_ID;
+    fprintf(stderr,
+	    "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
+	    ProgName);
+#endif
   } else {
     id = MP4AddAudioTrack(mp4file, 
 			  90000, 
@@ -183,7 +206,16 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
   }
 
   do {
-    
+#ifdef ISMACRYPT
+    // encrypt if needed
+     if (doEncrypt) {
+      if (ismacrypEncryptSample(ismaCryptSId, blen, buf) != 0) {
+	fprintf(stderr,	
+		"%s: can't encrypt audio sample %u\n", ProgName, id);
+      }
+    }
+#endif
+     // now write the sample
     if (!MP4WriteSample(mp4file, id, buf, blen)) {
       fprintf(stderr, "%s: can't write audio track %u, stream %d",
 	      ProgName, frame_num, astream);

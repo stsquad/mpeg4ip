@@ -951,7 +951,7 @@ bool CH261Encoder::Init(CLiveConfig *pConfig, bool realTime)
   m_bitRate = pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
 
   value = pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
-  value = roundf(value);
+  value = value + 0.5;
   m_framerate = (uint8_t)value;
   m_bitsPerFrame = m_bitRate / m_framerate;
   m_framesForQualityCheck = pConfig->GetIntegerValue(CONFIG_VIDEO_H261_QUALITY_ADJ_FRAMES);

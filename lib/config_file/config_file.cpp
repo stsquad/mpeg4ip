@@ -149,7 +149,6 @@ void CConfig::get_default_name (char *buffer)
   }
 }
 
-#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
 
 char *CConfig::find_name (char *ptr, uint32_t &ix)
 {

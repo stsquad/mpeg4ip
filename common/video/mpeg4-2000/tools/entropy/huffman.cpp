@@ -45,6 +45,7 @@ Revision History:
 
 #include <stdlib.h>
 #include <string.h>
+#include <fstream.h>
 #include <iostream.h>
 #include "typeapi.h"
 #include "entropy.hpp"

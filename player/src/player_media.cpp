@@ -546,7 +546,10 @@ int CPlayerMedia::do_play (double start_time_offset,
 	    start_time_offset > range->range_end) 
 	  start_time_offset = range->range_start;
 	// need to check for smpte
-	sprintf(buffer, "npt=%g-%g", start_time_offset, range->range_end);
+	uint64_t stime = (uint64_t)(start_time_offset * 1000.0);
+	uint64_t etime = (uint64_t)(range->range_end * 1000.0);
+	sprintf(buffer, "npt="LLU"."LLU"-"LLU"."LLU, 
+		stime / 1000, stime % 1000, etime / 1000, etime % 1000);
 	cmd.range = buffer;
 
 	if (rtsp_send_play(m_rtsp_session, &cmd, &decode) != 0) {

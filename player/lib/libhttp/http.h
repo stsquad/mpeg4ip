@@ -56,6 +56,10 @@ extern "C" {
    * http_get - get from a particular url on the location specified above
    */
   int http_get(http_client_t *, const char *url, http_resp_t **resp);
+  int http_post (http_client_t *cptr,
+		 const char *url,
+		 http_resp_t **resp,
+		 char *body);
   /*
    * http_resp_free - free up response structure passed as a result of
    * http_get

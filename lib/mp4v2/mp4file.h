@@ -194,10 +194,13 @@ public: /* equivalent to MP4 library API */
 		MP4Duration sampleDuration,
 		u_int8_t audioType);
 
+#ifdef ISMACRYPT
 	MP4TrackId AddEncAudioTrack( // ismacrypt
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
-		u_int8_t audioType);
+		u_int8_t audioType,
+		ismacryp_session_id_t ismaCryptSId);
+#endif
 
 	MP4TrackId AddVideoTrack(
 		u_int32_t timeScale, 
@@ -205,13 +208,16 @@ public: /* equivalent to MP4 library API */
 		u_int16_t width, 
 		u_int16_t height, 
 		u_int8_t videoType);
-	
+
+#ifdef ISMACRYPT	
 	MP4TrackId AddEncVideoTrack( // ismacrypt
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
 		u_int16_t width, 
 		u_int16_t height, 
+		ismacryp_session_id_t ismaCryptSId,
 		u_int8_t videoType);
+#endif
 
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 

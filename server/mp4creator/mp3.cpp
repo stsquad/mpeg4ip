@@ -231,11 +231,18 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	if (TimeScaleSpecified && Mp4TimeScale == 90000) {
 	  duration = (90000 * samplesPerFrame) / samplesPerSecond;
 	  if (doEncrypt) {
+#ifdef ISMACRYPT
 	    trackId = 
 	      MP4AddEncAudioTrack(mp4File, 
 			       90000,
 			       duration, 
 			       audioType);
+#else
+	    trackId = MP4_INVALID_TRACK_ID;
+	    fprintf(stderr,
+	       "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
+		    ProgName);
+#endif
 	  } else {
 	    trackId = 
 	      MP4AddAudioTrack(mp4File, 
@@ -245,9 +252,16 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	  }
 	} else {
 	  if (doEncrypt) {
+#ifdef ISMACRYPT
 	    trackId = 
 	      MP4AddEncAudioTrack(mp4File, 
 			       samplesPerSecond, samplesPerFrame, audioType);
+#else
+	    trackId = MP4_INVALID_TRACK_ID;
+	    fprintf(stderr,
+	       "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
+		    ProgName);
+#endif  
 	  } else {
 	    trackId = 
 	      MP4AddAudioTrack(mp4File, 
@@ -270,6 +284,16 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	MP4SampleId sampleId = 1;
 
 	while (LoadNextMp3Frame(inFile, sampleBuffer, &sampleSize)) {
+#ifdef ISMACRYPT
+	         if (doEncrypt) {
+		   if (ismacrypEncryptSample(ismaCryptSId, sampleSize, 
+					     sampleBuffer) != 0) {
+		     fprintf(stderr,	
+			     "%s: can't encrypt audio frame %u\n", 
+			     ProgName, sampleId);
+		   }
+		 }
+#endif
 		if (!MP4WriteSample(mp4File, trackId, sampleBuffer, sampleSize)) {
 			fprintf(stderr,	
 				"%s: can't write audio frame %u\n", ProgName, sampleId);

@@ -22,6 +22,7 @@
  * rtsp_command.c - process API calls to send/receive rtsp commands
  */
 #include "rtsp_private.h"
+#include <math.h>
 
 
 static const char *UserAgent = "Cisco RTSP 1.0";
@@ -97,7 +98,9 @@ static int rtsp_build_common (char *buffer,
     SNPRINTF_CHECK("Referer: %s\r\n", cmd->referer);
   }
   if (cmd && cmd->scale != 0.0) {
-    SNPRINTF_CHECK("Scale: %g\r\n", cmd->scale);
+    uint64_t temp = (uint64_t)(cmd->scale * 1000000.0);
+    SNPRINTF_CHECK("Scale: "LLU, temp);
+    SNPRINTF_CHECK("."LLU"\r\n", temp / 1000000);
   }
   if (session) {
     SNPRINTF_CHECK("Session: %s\r\n", session);
@@ -105,7 +108,9 @@ static int rtsp_build_common (char *buffer,
     SNPRINTF_CHECK("Session: %s\r\n", cmd->session);
   }
   if (cmd && cmd->speed != 0.0) {
-    SNPRINTF_CHECK("Speed: %g\r\n", cmd->speed);
+    uint64_t temp = (uint64_t)(cmd->speed * 1000000.0);
+    SNPRINTF_CHECK("Speed: "LLU, temp);
+    SNPRINTF_CHECK("."LLU"\r\n", temp / 1000000);
   }
   if (cmd && cmd->transport) {
     SNPRINTF_CHECK("Transport: %s\r\n", cmd->transport);

@@ -25,6 +25,9 @@
 #ifndef __MP4_BYTESTREAM_H__
 #define __MP4_BYTESTREAM_H__
 #include <mp4.h>
+#ifdef ISMACRYPT
+#include <ismacryplib.h>
+#endif
 #include "our_bytestream.h"
 #include "mp4_file.h"
 #include "player_util.h"
@@ -55,6 +58,13 @@ class CMp4ByteStream : public COurInByteStream
   double get_max_playtime(void);
 
   void play(uint64_t start);
+#ifdef ISMACRYPT
+  u_int8_t *get_buffer() {return m_buffer; }
+  void set_buffer(u_int8_t *buffer) {memcpy(m_buffer, buffer, sizeof(buffer));}
+  uint32_t get_this_frame_size() {return m_this_frame_size;}
+  void set_this_frame_size(uint32_t frame_size)
+    {m_this_frame_size = frame_size;}
+#endif
  private:
 #ifdef OUTPUT_TO_FILE
   FILE *m_output_file;
@@ -107,6 +117,63 @@ class CMp4AudioByteStream : public CMp4ByteStream
     CMp4ByteStream(parent, track, "audio", 0) {};
 
 };
+
+#ifdef ISMACRYPT
+/*
+ * CMp4EncVideoByteStream is for encrypted video streams.  
+ * It is inherited from CMp4VideoByteStreamBase.
+ */
+class CMp4EncVideoByteStream : public CMp4VideoByteStream
+{
+ public:
+  CMp4EncVideoByteStream(CMp4File *parent,
+			 MP4TrackId track) :
+    CMp4VideoByteStream(parent, track) {
+    if (ismacrypInitSession(&m_ismaCryptSId) != 0) {
+      // error
+      printf("can't initialize video ismacryp session\n");
+    }
+  };
+  ~CMp4EncVideoByteStream() {
+    if (ismacrypEndSession(m_ismaCryptSId) != 0) {
+       // error
+       printf("could not end the video ismacryp session\n");
+     }
+  }
+  uint64_t start_next_frame(uint8_t **buffer,
+			    uint32_t *buflen,
+			    void **ud);
+  ismacryp_session_id_t m_ismaCryptSId; // eventually make it private
+                                        // and add accessor function
+};  
+
+/*
+ * CMp4EncAudioByteStream is for encrypted audio streams.  
+ * It is inherited from CMp4AudioByteStreamBase.
+ */
+class CMp4EncAudioByteStream : public CMp4AudioByteStream
+{
+ public:
+  CMp4EncAudioByteStream(CMp4File *parent,
+			 MP4TrackId track) :
+    CMp4AudioByteStream(parent, track) {
+    if (ismacrypInitSession(&m_ismaCryptSId) != 0) {
+	  // error
+      printf("can't initialize audio ismacryp session\n");
+    }};
+  ~CMp4EncAudioByteStream() {
+    if (ismacrypEndSession(m_ismaCryptSId) != 0) {
+      // error
+      printf("could not end the audio ismacryp session\n");
+    }
+  }
+  uint64_t start_next_frame(uint8_t **buffer,
+			    uint32_t *buflen,
+			    void **ud); 
+  ismacryp_session_id_t m_ismaCryptSId; // eventually make it private
+                                        // and add accessor function
+};
+#endif
 
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(mp4f_message, "mp4file")

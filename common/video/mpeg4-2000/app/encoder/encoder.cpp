@@ -112,6 +112,8 @@ Revision History:
 #define __GLOBAL_VAR_
 #endif
 #include "global.hpp"
+#define DEFINE_GLOBALS
+#include "globals.hpp"
 
 #ifdef __MFC_
 #ifdef _DEBUG

@@ -234,7 +234,9 @@ int http_build_header (char *buffer,
 		       uint32_t maxlen,
 		       uint32_t *at,
 		       http_client_t *cptr,
-		       const char *method)
+		       const char *method,
+		       const char *add_header,
+		       char *content_body)
 {
   int ret;
 #define SNPRINTF_CHECK(fmt, value) \
@@ -253,7 +255,16 @@ int http_build_header (char *buffer,
   if (ret == -1) return -1;
   *at += ret;
   SNPRINTF_CHECK("User-Agent: %s\r\n", user_agent);
-  SNPRINTF_CHECK("%s", "\r\n");
+  if (add_header != NULL) {
+    SNPRINTF_CHECK("%s\r\n", add_header);
+  }
+  if (content_body != NULL) {
+    size_t len = strlen(content_body);
+    SNPRINTF_CHECK("Content-length: %d\r\n\r\n", len);
+    SNPRINTF_CHECK("%s", content_body);
+  } else {
+    SNPRINTF_CHECK("%s", "\r\n");
+  }
 #undef SNPRINTF_CHECK
   return (ret);
 }

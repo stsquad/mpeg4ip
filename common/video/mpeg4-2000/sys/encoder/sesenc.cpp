@@ -84,7 +84,7 @@ Revision History:
 #include "stdio.h"
 #include "math.h"
 #include "fstream.h"
-#include "iostream.h"
+#include "ostream.h"
 
 #include "typeapi.h"
 #include "codehead.h"
@@ -1697,32 +1697,33 @@ Void CSessionEncoder::getInputFiles (FILE*& pfYuvSrc,
 
 Void CSessionEncoder::initVOEncoder (CVideoObjectEncoder** rgpvoenc, Int iobj, ofstream* rgpostrmTrace [])
 {
+#if 0
 	Int iVOidx = iobj - m_iFirstVO;
 	Bool bTemporalScalability = m_rgvolmd[BASE_LAYER][iVOidx].bTemporalScalability; // added by Sharp (98/2/10)
 //	Bool bTemporalScalability = TRUE; // added by Sharp (98/2/10)
 	if (m_rgbSpatialScalability [iVOidx] == TRUE)	{
 		rgpvoenc [BASE_LAYER] = new CVideoObjectEncoder (
-														iobj, 
-														m_rgvolmd [BASE_LAYER] [iVOidx], 
-														m_rgvopmd [BASE_LAYER] [iVOidx], 
-														m_iFirstFrame,
-														m_iLastFrame,
-														m_rctOrg.width,
-														m_rctOrg.height(),
-														m_rguiRateControl [BASE_LAYER] [iVOidx],
-														m_rguiBudget [BASE_LAYER] [iVOidx],
-														rgpostrmTrace [BASE_LAYER],
-// GMC
-														m_rguiSpriteUsage [iVOidx],
-// ~GMC
-														m_rguiWarpingAccuracy [iVOidx],
-														m_rgNumOfPnts [iVOidx],
-														m_pppstDst [iVOidx],
-														m_SptMode,
-														m_rctFrame,
-                                                        m_rctOrg,
-														m_rgiMVFileUsage [BASE_LAYER][iVOidx],
-														m_pchMVFileName  [BASE_LAYER][iVOidx]);
+								 iobj, 
+								 m_rgvolmd [BASE_LAYER] [iVOidx], 
+								 m_rgvopmd [BASE_LAYER] [iVOidx], 
+								 m_iFirstFrame,
+								 m_iLastFrame,
+								 m_rctOrg.width,
+								 m_rctOrg.height(),
+								 m_rguiRateControl [BASE_LAYER] [iVOidx],
+								 m_rguiBudget [BASE_LAYER] [iVOidx],
+								 rgpostrmTrace [BASE_LAYER],
+								 // GMC
+								 m_rguiSpriteUsage [iVOidx],
+								 // ~GMC
+								 m_rguiWarpingAccuracy [iVOidx],
+								 m_rgNumOfPnts [iVOidx],
+								 m_pppstDst [iVOidx],
+								 m_SptMode,
+								 m_rctFrame,
+								 m_rctOrg,
+								 m_rgiMVFileUsage [BASE_LAYER][iVOidx],
+								 m_pchMVFileName  [BASE_LAYER][iVOidx]);
 // begin: added by Sharp (98/2/10)
 		if ( bTemporalScalability )
 			rgpvoenc [ENHN_LAYER] = new CVideoObjectEncoder (
@@ -1796,6 +1797,7 @@ Void CSessionEncoder::initVOEncoder (CVideoObjectEncoder** rgpvoenc, Int iobj, o
 														m_rgiMVFileUsage [BASE_LAYER][iVOidx],
 														m_pchMVFileName  [BASE_LAYER][iVOidx]);
 	}
+#endif
 }
 
 Bool CSessionEncoder::loadData (UInt iFrame, FILE* pfYuvSrc, FILE* pfSegSrc, FILE** ppfAuxSrc,

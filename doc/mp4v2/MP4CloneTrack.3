@@ -12,8 +12,10 @@ MP4TrackId \fBMP4CloneTrack\fR(
 .br 
 	MP4TrackId \fIsrcTrackId\fP,
 .br 
-	MP4FileHandle \fIdstFile\fP = MP4_INVALID_FILE_HANDLE
+	MP4FileHandle \fIdstFile\fP = MP4_INVALID_FILE_HANDLE,
 .br 
+	MP4TrackId \fIdstHintTrackReferenceTrack\fP = MP4_INVALID_TRACK_ID
+.br
 )
 .SH "ARGUMENTS"
 .LP 
@@ -25,7 +27,10 @@ Specifies the mp4 file of the source track of the operation.
 Specifies the track id of the track to be cloned.
 .TP 
 \fIdstFile\fP
-Specifies the mp4 file of the new, cloned track. If the value  is MP4_INVALID_FILE_HANDLE, the new track is created in the same file as the source track. 
+Specifies the mp4 file of the new, cloned track. If the value is MP4_INVALID_FILE_HANDLE, the new track is created in the same file as the source track. 
+.TP
+\fIdstHintTrackReferenceTrack\fP
+When cloning a hint track, this parameter specifies the track id of the reference track in the destination file.
 .SH "RETURN VALUES"
 .LP 
 Upon success, the track id of the new track. Upon an error, MP4_INVALID_TRACK_ID.

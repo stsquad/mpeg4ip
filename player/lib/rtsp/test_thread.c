@@ -186,6 +186,8 @@ int main (int argc, char **argv)
   free(sdpdecode);
 
   if (decode->content_base != NULL) {
+    convert_relative_urls_to_absolute(sdp, decode->content_base);
+  } else {
     convert_relative_urls_to_absolute (sdp, *argv);
   }
 
@@ -194,7 +196,7 @@ int main (int argc, char **argv)
 #if 0
   cmd.transport = "RTP/AVP;unicast;client_port=4588-4589";
 #else
-  cmd.transport = "RTP/AVP/TCP;interleaved=0-1";
+  cmd.transport = "RTP/AVP/TCP;unicast;interleaved=0-1";
 #endif
   media = sdp->media;
   dummy = rtsp_send_setup(rtsp_client,
@@ -213,7 +215,12 @@ int main (int argc, char **argv)
   free_decode_response(decode);
   cmd.range = "npt=0.0-30.0";
   cmd.transport = NULL;
-  dummy = rtsp_send_play(session, &cmd, &decode);
+  if (sdp->control_string != NULL) {
+    // send aggregate play
+    dummy = rtsp_send_aggregate_play(rtsp_client, sdp->control_string, &cmd, &decode);
+  } else {
+    dummy = rtsp_send_play(session, &cmd, &decode);
+  }
   if (dummy != RTSP_RESPONSE_GOOD) {
     rtsp_debug(LOG_INFO, "response to play is %d\n", dummy);
   } else {
@@ -221,7 +228,11 @@ int main (int argc, char **argv)
   }
   free_decode_response(decode);
   cmd.range = NULL;
-  dummy = rtsp_send_pause(session, &cmd, &decode);
+  if (sdp->control_string) {
+    dummy = rtsp_send_aggregate_pause(rtsp_client, sdp->control_string, &cmd, &decode);
+  } else {
+    dummy = rtsp_send_pause(session, &cmd, &decode);
+  }
   if (dummy != RTSP_RESPONSE_GOOD) {
     rtsp_debug(LOG_INFO, "response to pause is %d\n", dummy);
   } else {
@@ -230,7 +241,11 @@ int main (int argc, char **argv)
   free_decode_response(decode);
   cmd.range = "npt=15.0-30.0";
   cmd.transport = NULL;
-  dummy = rtsp_send_play(session, &cmd, &decode);
+  if (sdp->control_string != NULL) {
+    dummy = rtsp_send_aggregate_play(rtsp_client, sdp->control_string, &cmd, &decode);
+  } else {
+    dummy = rtsp_send_play(session, &cmd, &decode);
+  }
   if (dummy != RTSP_RESPONSE_GOOD) {
     rtsp_debug(LOG_INFO, "response to play is %d\n", dummy);
   } else {
@@ -238,7 +253,11 @@ int main (int argc, char **argv)
   }
   free_decode_response(decode);
   cmd.transport = NULL;
-  dummy = rtsp_send_teardown(session, NULL, &decode);
+  if (sdp->control_string != NULL) {
+    dummy = rtsp_send_aggregate_teardown(rtsp_client, sdp->control_string, &cmd, &decode);
+  } else {
+    dummy = rtsp_send_teardown(session, NULL, &decode);
+  }
   rtsp_debug(LOG_DEBUG, "Teardown response %d\n", dummy);
   sdp_free_session_desc(sdp);
   free_decode_response(decode);
