@@ -181,7 +181,8 @@ static void InterleaveHinter(
 
 	for (u_int32_t i = 1; i <= numSamples; i += stride * bundle) {
 		for (u_int32_t j = 0; j < stride; j++) {
-			for (u_int32_t k = 0; k < bundle; k++) {
+			u_int32_t k;
+			for (k = 0; k < bundle; k++) {
 
 				MP4SampleId sampleId = i + j + (k * stride);
 
@@ -194,20 +195,29 @@ static void InterleaveHinter(
 				pSampleIds[k] = sampleId;
 			}
 
+			if (k == 0) {
+				break;
+			}
+
 			// compute hint duration
 			// note this is used to control the RTP timestamps 
 			// that are emitted for the packet,
 			// it isn't the actual duration of the samples in the packet
 			MP4Duration hintDuration;
 			if (j + 1 == stride) {
-				hintDuration = ((stride * bundle) - j) * sampleDuration;
+				// at the end of the track
+				if (i + (stride * bundle) > numSamples) {
+					hintDuration = ((numSamples - i) - j) * sampleDuration;
+				} else {
+					hintDuration = ((stride * bundle) - j) * sampleDuration;
+				}
 			} else {
 				hintDuration = sampleDuration;
 			}
 
 			// write hint
 			WriteHint(mp4File, mediaTrackId, hintTrackId,
-				bundle, pSampleIds, hintDuration);
+				k, pSampleIds, hintDuration);
 		}
 	}
 
@@ -258,7 +268,8 @@ void RfcIsmaHinter(
 
 	MP4Duration sampleDuration = 
 		MP4GetTrackFixedSampleDuration(mp4File, mediaTrackId);
-	ASSERT(sampleDuration);
+	// TBD Philips uses variable duration for AAC
+	ASSERT(sampleDuration != MP4_INVALID_DURATION);
 
 	u_int32_t samplesPerPacket = 0;
  

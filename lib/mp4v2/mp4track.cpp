@@ -553,6 +553,10 @@ u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
 	u_int32_t stscIndex;
 	u_int32_t numStscs = m_pStscCountProperty->GetValue();
 
+	if (numStscs == 0) {
+		throw new MP4Error("No data chunks exist", "GetSampleFileOffset");
+	}
+
 	for (stscIndex = 0; stscIndex < numStscs; stscIndex++) {
 		if (sampleId < m_pStscFirstSampleProperty->GetValue(stscIndex)) {
 			ASSERT(stscIndex != 0);

@@ -234,7 +234,7 @@ int CPlayerMedia::decode_thread (void)
 	}
       }
 #ifdef DEBUG_DECODE
-      player_debug_message("Decoding %c frame " LLX, m_is_video ? 'v' : 'a', ourtime);
+      player_debug_message("Decoding %c frame " LLU, m_is_video ? 'v' : 'a', ourtime);
 #endif
 #ifdef TIME_DECODE
       clock_t start, end;

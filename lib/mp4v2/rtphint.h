@@ -147,7 +147,7 @@ protected:
 	MP4Integer64Property*	m_pTrpy;
 	MP4Integer64Property*	m_pNump;
 	MP4Integer64Property*	m_pTpyl;
-	MP4Integer64Property*	m_pMaxr;
+	MP4Integer32Property*	m_pMaxr;
 	MP4Integer64Property*	m_pDmed;
 	MP4Integer64Property*	m_pDimm;
 	MP4Integer32Property*	m_pPmax;

@@ -39,7 +39,7 @@ void Rfc2250Hinter(
 
 	MP4Duration sampleDuration = 
 		MP4GetTrackFixedSampleDuration(mp4File, mediaTrackId);
-	ASSERT(sampleDuration);
+	ASSERT(sampleDuration != MP4_INVALID_DURATION);
 
 	u_int16_t bytesThisHint = 0;
 	u_int16_t samplesThisHint = 0;

@@ -591,6 +591,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
 		 info->m_resp_buffer,
 		 info->m_buffer_len);
 	  len += info->m_buffer_len;
+	  info->m_offset_on = info->m_buffer_len; // get ready for next...
 	}
       }
     } else {

@@ -380,6 +380,15 @@ uint64_t CRtpByteStreamBase::start_next_frame (void)
       return (m_play_start_time - timetick);
     }
     timetick += m_play_start_time;
+#if 0
+    player_debug_message("time "LLU" offset %d %02x %02x %02x %02x", 
+			 timetick, 
+			 m_offset_in_pak,
+			 m_pak->data[m_offset_in_pak],
+			 m_pak->data[m_offset_in_pak+1],
+			 m_pak->data[m_offset_in_pak+2],
+			 m_pak->data[m_offset_in_pak+3]);
+#endif
   } else {
     if (((m_ts & 0x80000000) == 0x80000000) &&
 	((m_pak->ts & 0x80000000) == 0)) {
@@ -413,7 +422,7 @@ int CRtpByteStreamBase::have_no_data (void)
   do {
     if (temp->m == 1) return FALSE;
     temp = temp->next;
-  } while (temp != m_pak);
+  } while (temp != NULL && temp != m_pak);
   return TRUE;
 }
 
@@ -632,7 +641,8 @@ const char *CRtpByteStreamBase::get_throw_error (int error)
 
 int CRtpByteStreamBase::throw_error_minor (int error)
 {
-  if (error == THROW_RTP_DECODE_ACROSS_TS) {
+  if ((error == THROW_RTP_DECODE_ACROSS_TS) ||
+      (error == THROW_RTP_NULL_WHEN_START)) {
     return 1;
   }
   return 0;

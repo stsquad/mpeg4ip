@@ -26,7 +26,7 @@
 #include "video.h"
 #include "player_util.h"
 #include <SDL_syswm.h>
-//#define VIDEO_SYNC_PLAY 1
+//#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
 //#define SHORT_VIDEO 1
 
@@ -232,18 +232,18 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
 {
   uint64_t play_this_at;
   m_current_time = current_time;
-  /*
-   * If we have end of file, indicate it
-   */
-  if (m_eof_found != 0) {
-    have_eof = 1;
-    return (-1);
-  }
 
   /*
    * If the next buffer is not filled, indicate that, as well
    */
   if (m_buffer_filled[m_play_index] == 0) {
+    /*
+     * If we have end of file, indicate it
+     */
+    if (m_eof_found != 0) {
+      have_eof = 1;
+      return (-1);
+    }
     if (current_time < m_next_time) {
       //      player_debug_message("nf %llu", m_next_time - current_time);
       return (m_next_time - current_time);
@@ -265,7 +265,8 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
     return (play_this_at - current_time);
   }
 #if VIDEO_SYNC_PLAY
-  player_debug_message("play "LLU" at "LLU, play_this_at, current_time);
+  player_debug_message("play "LLU" at "LLU " %d", play_this_at, current_time,
+		       m_play_index);
 #endif
 
   /*
@@ -421,7 +422,7 @@ int CVideoSync::filled_video_buffers(uint64_t time, uint64_t &current_time)
   
   m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
-  player_debug_message("Filled %llu", time);
+  player_debug_message("Filled %llu %d", time, ix);
 #endif
   return (1);
 }
@@ -509,11 +510,12 @@ int CVideoSync::set_video_frame(const Uint8 *y,
    * advance the buffer, and post to the sync task
    */
   m_buffer_filled[m_fill_index] = 1;
+  ix = m_fill_index;
   m_fill_index++;
   m_fill_index %= MAX_VIDEO_BUFFERS;
   m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
-  player_debug_message("filled %llu", time);
+  player_debug_message("filled %llu %d", time, ix);
 #endif
   return (m_paused);
 }

@@ -27,7 +27,7 @@ char* mp4FileName;
 
 // forward declaration
 void PrintTrackList(MP4FileHandle mp4File);
-void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId);
+void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode);
 
 
 int main(int argc, char** argv)
@@ -35,6 +35,7 @@ int main(int argc, char** argv)
 	char* usageString = 
 		"usage: %s [-l] [-t <track-id>] [-v [<level>]] <file-name>\n";
 	bool doList = false;
+	bool doSamples = false;
 	MP4TrackId trackId = 0;
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
 
@@ -46,11 +47,12 @@ int main(int argc, char** argv)
 		static struct option long_options[] = {
 			{ "list", 0, 0, 'l' },
 			{ "track", 1, 0, 't' },
+			{ "samples", 0, 0, 's' },
 			{ "verbose", 2, 0, 'v' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "lt:v::",
+		c = getopt_long_only(argc, argv, "lt:sv::",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -59,6 +61,9 @@ int main(int argc, char** argv)
 		switch (c) {
 		case 'l':
 			doList = true;
+			break;
+		case 's':
+			doSamples = true;
 			break;
 		case 't':
 			if (sscanf(optarg, "%u", &trackId) != 1) {
@@ -131,10 +136,10 @@ int main(int argc, char** argv)
 
 		for (u_int32_t i = 0; i < numTracks; i++) {
 			trackId = MP4FindTrackId(mp4File, i);
-			ExtractTrack(mp4File, trackId);
+			ExtractTrack(mp4File, trackId, doSamples);
 		}
 	} else {
-		ExtractTrack(mp4File, trackId);
+		ExtractTrack(mp4File, trackId, doSamples);
 	}
 
 	MP4Close(mp4File);
@@ -154,17 +159,22 @@ void PrintTrackList(MP4FileHandle mp4File)
 	}
 }
 
-void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId)
+void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode)
 {
-	char trackFileName[MAXPATHLEN];
-	snprintf(trackFileName, MAXPATHLEN, "%s.t%u", mp4FileName, trackId);
+	// TBD use just last component of mp4FileName for output file name
+	char outFileName[MAXPATHLEN];
+	int outFd = -1;
 
-	int trackFd = open(trackFileName, 
-		O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	if (trackFd == -1) {
-		fprintf(stderr, "%s: can't open %s: %s\n",
-			progName, trackFileName, strerror(errno));
-		return;
+	if (!sampleMode) {
+		snprintf(outFileName, MAXPATHLEN, "%s.t%u", mp4FileName, trackId);
+
+		outFd = open(outFileName, 
+			O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if (outFd == -1) {
+			fprintf(stderr, "%s: can't open %s: %s\n",
+				progName, outFileName, strerror(errno));
+			return;
+		}
 	}
 
 	MP4SampleId numSamples = 
@@ -183,19 +193,41 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId)
 		rc = MP4ReadSample(mp4File, trackId, sampleId, &pSample, &sampleSize);
 		if (rc == 0) {
 			fprintf(stderr, "%s: read sample %u for %s failed\n",
-				progName, sampleId, trackFileName);
+				progName, sampleId, outFileName);
 			break;
 		}
 
-		rc = write(trackFd, pSample, sampleSize);
+		if (sampleMode) {
+			snprintf(outFileName, MAXPATHLEN, "%s.t%u.s%u",
+				mp4FileName, trackId, sampleId);
+
+			outFd = open(outFileName, 
+				O_WRONLY | O_CREAT | O_TRUNC, 0644);
+
+			if (outFd == -1) {
+				fprintf(stderr, "%s: can't open %s: %s\n",
+					progName, outFileName, strerror(errno));
+				break;
+			}
+		}
+
+		rc = write(outFd, pSample, sampleSize);
 		if (rc == -1 || (u_int32_t)rc != sampleSize) {
 			fprintf(stderr, "%s: write to %s failed: %s\n",
-				progName, trackFileName, strerror(errno));
+				progName, outFileName, strerror(errno));
 			break;
 		}
+
 		free(pSample);
+
+		if (sampleMode) {
+			close(outFd);
+			outFd = -1;
+		}
 	}
 
-	close(trackFd);
+	if (outFd != -1) {
+		close(outFd);
+	}
 }
 
