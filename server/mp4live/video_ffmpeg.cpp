@@ -247,41 +247,19 @@ media_free_f CFfmpegVideoEncoder::GetMediaFreeFunction(void)
 bool CFfmpegVideoEncoder::GetReconstructedImage(
 	u_int8_t* pY, u_int8_t* pU, u_int8_t* pV)
 {
+  uint32_t w = Profile()->m_videoWidth;
+  uint32_t uvw = w / 2;
 
-#if 1
-  if (m_avctx->coded_frame->linesize[0] == (int)Profile()->m_videoWidth) {
-	memcpy(pY, m_avctx->coded_frame->data[0],
-		Profile()->m_ySize);
-	memcpy(pU, m_avctx->coded_frame->data[1],
-		Profile()->m_uvSize);
-	memcpy(pV, m_avctx->coded_frame->data[2],
-		Profile()->m_uvSize);
-  } else {
-    const uint8_t *sY, *sU, *sV;
-    sY = m_avctx->coded_frame->data[0];
-    sU = m_avctx->coded_frame->data[1];
-    sV = m_avctx->coded_frame->data[2];
-    if (sY == NULL) return false;
-    uint16_t ix;
-    for (ix = 0; ix < Profile()->m_videoHeight; ix++) {
-      memcpy(pY, sY, Profile()->m_videoWidth);
-      pY += Profile()->m_videoWidth;
-      sY += m_avctx->coded_frame->linesize[0];
-    }
-    for (ix = 0; ix < Profile()->m_videoHeight / 2; ix++) {
-      memcpy(pU, sU, Profile()->m_videoWidth / 2);
-      pU += Profile()->m_videoWidth / 2;
-      sU += m_avctx->coded_frame->linesize[1];
-      memcpy(pV, sV, Profile()->m_videoWidth / 2);
-      pV += Profile()->m_videoWidth / 2;
-      sV += m_avctx->coded_frame->linesize[2];
-    }
-  }
-	
-	return true;
-#else
-	return false;
-#endif
+  CopyYuv(m_avctx->coded_frame->data[0],
+	  m_avctx->coded_frame->data[1],
+	  m_avctx->coded_frame->data[2],
+	  m_avctx->coded_frame->linesize[0],
+	  m_avctx->coded_frame->linesize[1],
+	  m_avctx->coded_frame->linesize[2],
+	  pY, pU, pV, 
+	  w, uvw, uvw, 
+	  w, Profile()->m_videoHeight);
+  return true;
 }
 
 void CFfmpegVideoEncoder::StopEncoder (void)

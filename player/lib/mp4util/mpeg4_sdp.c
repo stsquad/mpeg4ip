@@ -27,17 +27,17 @@
 
 #define TTYPE(a,b) {a, sizeof(a), b}
 
-#define FMTP_PARSE_FUNC(a) static char *(a) (char *ptr, \
+#define FMTP_PARSE_FUNC(a) static const char *(a) (const char *ptr, \
 					     fmtp_parse_t *fptr, \
 					     lib_message_func_t message)
-static char *fmtp_advance_to_next (char *ptr)
+static const char *fmtp_advance_to_next (const char *ptr)
 {
   while (*ptr != '\0' && *ptr != ';') ptr++;
   if (*ptr == ';') ptr++;
   return (ptr);
 }
 
-static char *fmtp_parse_number (char *ptr, int *ret_value)
+static char *fmtp_parse_number (const char *ptr, int *ret_value)
 {
   long int value;
   char *ret_ptr;
@@ -56,7 +56,7 @@ static char *fmtp_parse_number (char *ptr, int *ret_value)
 
 FMTP_PARSE_FUNC(fmtp_streamtype)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->stream_type);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -66,7 +66,7 @@ FMTP_PARSE_FUNC(fmtp_streamtype)
 
 FMTP_PARSE_FUNC(fmtp_profile_level_id)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->profile_level_id);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -74,7 +74,7 @@ FMTP_PARSE_FUNC(fmtp_profile_level_id)
   return (ret);
 }
 
-static unsigned char to_hex (char *ptr)
+static unsigned char to_hex (const char *ptr)
 {
   if (isdigit(*ptr)) {
     return (*ptr - '0');
@@ -85,13 +85,14 @@ static unsigned char to_hex (char *ptr)
 FMTP_PARSE_FUNC(fmtp_config)
 {
   char *iptr;
+  const char *lptr;
   uint32_t len;
   unsigned char *bptr;
   
-  iptr = ptr;
-  while (isxdigit(*iptr)) iptr++;
-  len = iptr - ptr;
-  if (len == 0 || len & 0x1 || !(*iptr == ';' || *iptr == '\0')) {
+  lptr = ptr;
+  while (isxdigit(*lptr)) lptr++;
+  len = lptr - ptr;
+  if (len == 0 || len & 0x1 || !(*lptr == ';' || *lptr == '\0')) {
     message(LOG_ERR, "mp4util", "Error in fmtp config statement");
     return (fmtp_advance_to_next(ptr));
   }
@@ -113,7 +114,7 @@ FMTP_PARSE_FUNC(fmtp_config)
 
 FMTP_PARSE_FUNC(fmtp_constant_size)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->constant_size);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -123,7 +124,7 @@ FMTP_PARSE_FUNC(fmtp_constant_size)
 
 FMTP_PARSE_FUNC(fmtp_size_length)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->size_length);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -133,7 +134,7 @@ FMTP_PARSE_FUNC(fmtp_size_length)
 
 FMTP_PARSE_FUNC(fmtp_index_length)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->index_length);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -143,7 +144,7 @@ FMTP_PARSE_FUNC(fmtp_index_length)
 
 FMTP_PARSE_FUNC(fmtp_index_delta_length)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->index_delta_length);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -153,7 +154,7 @@ FMTP_PARSE_FUNC(fmtp_index_delta_length)
 
 FMTP_PARSE_FUNC(fmtp_CTS_delta_length)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->CTS_delta_length);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -164,7 +165,7 @@ FMTP_PARSE_FUNC(fmtp_CTS_delta_length)
 FMTP_PARSE_FUNC(fmtp_DTS_delta_length)
 
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->DTS_delta_length);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -174,7 +175,7 @@ FMTP_PARSE_FUNC(fmtp_DTS_delta_length)
 
 FMTP_PARSE_FUNC(fmtp_auxiliary_data_size_length)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->auxiliary_data_size_length);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -184,7 +185,7 @@ FMTP_PARSE_FUNC(fmtp_auxiliary_data_size_length)
 
 FMTP_PARSE_FUNC(fmtp_bitrate)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->bitrate);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -194,7 +195,7 @@ FMTP_PARSE_FUNC(fmtp_bitrate)
 
 FMTP_PARSE_FUNC(fmtp_profile)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->profile);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -221,7 +222,7 @@ FMTP_PARSE_FUNC(fmtp_ivlength)
 
 FMTP_PARSE_FUNC(fmtp_ivdeltalength)
 {
-  char *ret;
+  const char *ret;
   ret = fmtp_parse_number(ptr, &fptr->ISMACrypIVDeltaLength);
   if (ret == NULL) {
     ret = fmtp_advance_to_next(ptr);
@@ -256,7 +257,7 @@ FMTP_PARSE_FUNC(fmtp_key)
 struct {
   const char *name;
   uint32_t namelen;
-  char *(*routine)(char *, fmtp_parse_t *, lib_message_func_t);
+  const char *(*routine)(const char *, fmtp_parse_t *, lib_message_func_t);
 } fmtp_types[] = 
 {
   TTYPE("streamtype", fmtp_streamtype),
@@ -282,10 +283,10 @@ struct {
   {NULL, 0, NULL},
 }; 
 
-fmtp_parse_t *parse_fmtp_for_mpeg4 (char *optr, lib_message_func_t message)
+fmtp_parse_t *parse_fmtp_for_mpeg4 (const char *optr, lib_message_func_t message)
 {
   int ix;
-  char *bptr;
+  const char *bptr;
   fmtp_parse_t *ptr;
 
   bptr = optr;

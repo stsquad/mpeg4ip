@@ -48,9 +48,11 @@ public:
 	bool GetReconstructedImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV);
 
+ public:
 	bool CanGetEsConfig(void) { return true; };
 	bool GetEsConfig(uint8_t **ppEsConfig,
 			 uint32_t *pEsConfigLen);
+ protected:
 
 	void StopEncoder(void);
 	void*				m_xvidHandle;

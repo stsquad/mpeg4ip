@@ -153,6 +153,23 @@ const video_encoder_table_t video_encoder_table[] = {
     h263SizeNames
   },
 #endif
+  { 
+    "H264 - x264",
+    VIDEO_ENCODING_H264,
+    VIDEO_ENCODER_X264,
+    MPEG4_SIZES - 3, // can't use last 2 sizes
+    MPEG4_SIZES,
+    MPEG4_SIZES,
+    mpeg4SizeWidthValues,
+    mpeg4SizeWidthValues,
+    mpeg4SizeWidthValues,
+    mpeg4SizeHeightValues,
+    mpeg4SizeHeightValues,
+    mpeg4SizeHeightValues,
+    mpeg4SizeNames,
+    mpeg4SizeNames,
+    mpeg4SizeNames
+  },
   {
     "H261",
     VIDEO_ENCODING_H261,

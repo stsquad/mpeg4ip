@@ -15,6 +15,7 @@ December 1, 2004
 <br><a href="#Overview">Overview</a>
 <br><a href="#legal">Legal</a>
 <br><a href="#dss">Darwin Quicktime Streaming Server</a>
+<br><a href="#pre">Prerequisites for Building</a>
 <br><a href="#build">Building and Installing</a>
 <br><a href="#config">Bootstrap Options</a>
 <br><a href="#os">OS Supported</a>
@@ -156,13 +157,68 @@ forums for more information
 <p>
 <a href="#top">Back to top</a>
 <P>
+<div id="pre">
+<h2>Prerequisites for Building</h2>
+</div>
+<P>
+This section will discuss prerequisites for building mpeg4ip (ie: packages
+that you will want to install to build correctly).  This does not include
+Windows.  To build on Windows, see <a href="#windoze">these instructions.</a>
+<p>
+Specifics on how to build using these libraries will be discussed 
+<a href="#build">below.</a>
+<p>
+All builds require the <a href="http://www.libsdl.org">SDL</a> development 
+libraries.  SDL version 1.2.7 or later is required; please be sure to 
+install the development library.
+<p>
+If you have a x86 based platform, you will want to install nasm.  If you
+do not install it, you may not be able to decode or encode at the frame
+rates desired. See the <a href="http://nasm.sourceforge.net">nasm site</a> for information.
+<p>
+If you are building the player, you may want the following packages:
+<ul>
+<li><a href="http://ffmpeg.sourceforge.net">ffmpeg</a> with AMR narrow-band 
+and wide-band packages</li>
+<li><a href="http://www.xvid.org">xvidcore</a> (versions 0.9.8 or later)</li>
+<li><a href="http://libmpeg2.sourceforge.net">libmpeg2</a> (highly recommended 
+for mpeg2 decoding)</li>
+<li><a href="http://tangent.org/index.pl?node=libID3">libid3</a> - id3 tags 
+for mp3 files</li>
+<li><a href="http://liba52.sourceforge.net">liba52</a> - AC3 decoding for 
+mpeg files and mpeg2 transport streams</li>
+<li><a href="http://www.audiocoding.com">faad2</a> <a href="#faad2">(install after installing mpeg4ip)</a></li>
+</ul>
+<p>
+If you are building mp4live (linux systems only), you are required to have 
+the following packages installed:
+<ul>
+<li><a href="http://www.audiocoding.com">faac</a>, version 1.20.1 or later</li>
+<li><a href="http://lame.sourceforge.net">lame</a>, version 3.92 or later</li>
+</ul>
+<p>
+The following packages are optional for mp4live, but will enable more 
+functionality:
+<ul>
+<li><a href="http://ffmpeg.sourceforge.net">ffmpeg</a> (H.263, mpeg-4, mpeg-2 
+video content, AMR, mpeg-2 audio)</li>
+<li><a href="http://www.xvid.org">xvid</a> (mpeg-4 video encoding)</li>
+<li><a href="http://www.videolan.org/x264.html">x264</a> (H.264 video encoding)</li>
+<li>V4L2 interface (comes with 2.6 kernel, Fedora Core is a special case)</li>
+</ul>
+<p>
+The developer recommends ffmpeg for mpeg-4 encoding.  Please see the
+<a href="#ffmpeg">instructions below</a> for how to install with ffmpeg.
+<p>
+<a href="#top">Back to top</a>
+<P>
 <div id="build">
 <h2>Building and Installing</h2>
 </div>
 <P>
-Please read this section completely before building, or you may have to do
-it twice; mpeg4ip has a number of optional packages that should be installed
-before starting the build process.
+Please read the section on prerequisites and this section completely before
+building, or you may have to do it twice; mpeg4ip has a number of optional 
+packages that should be installed before starting the build process.
 <p>
 If you are building on Windows, please see these <a href="#windoze">instructions.</a>
 <p>
@@ -176,71 +232,31 @@ make install (needs root privileges).<br>
 </kbd>
 </div>
 </blockquote>
-<P>
-You will need to have the SDL development libraries installed.  1.2.7
-is required; however, earlier versions may work.  If they don't, install
-1.2.7 or later before contacting us.
 <p>
 Several systems have differing requirements. Please see
 the section on <a href="#os">Operating Systems Supported</a> before
 continuing.
 <P>
-Be aware, that mpeg4ip will build and work if you do not have nasm installed on
-a Linux platform, but you may experience low frame rates with mp4live, and
-drop frames with gmp4player.  
-<p>
-If you do not have nasm installed (look at the bootstrap log to be sure), and
-you contact me asking why you're not getting a good frame rate, I will make
-fun of you and call you silly names.  You will want to rebuild any encoding/
-decoding libraries such as xvid, ffmpeg, lame, faac, faad once you have installed
-nasm.  See <a href="http://nasm.sourceforge.net">the nasm site</a> for information.
-<P>
-Mp4live will only build on Linux systems.  We no longer include lame or faac 
-in our distribution; however, mp4live requires lame version 3.92 or later and 
-faac as of version 1.20.1.  This may change at some point, but for now, it is 
-required. 
-<p>
-As of release 1.1, mpeg4ip no longer includes a mpeg-4 encoder that works
-with mp4live due to licensing restrictions.  However, you can download either
- xvidcore-0.9.2, xvidcore-1.0 or ffmpeg-0.4.8 (or later) and have mpeg-4 
-encoding.
-<p>The developer's preference is ffmpeg, since this will activate mpeg-2, mpeg-4
-and H.263 encoding, as well as a number of decoding options.
-<p>If you wish to build mpeg4ip without mp4live, you can give the 
+If you wish to build mpeg4ip without mp4live, you can give the 
 <code>--disable-mp4live</code> or <code>--disable-server</code> arguments.  
 Neither the bootstrap or cvs_bootstrap scripts will allow you to build without
-lame and faac installed or one of the above arguments on a Linux system.  Other systems
-will automatically detect that you are not building on Linux and will not
-build mp4live.
+lame and faac installed or one of the above arguments on a Linux system.  
+Other systems will automatically detect that you are not building on Linux 
+and will not build mp4live.
 <p>
 Mp4live also works best with the V4L2 interface, which is not installed on most
-linux distributions with a 2.4 kernel.  mp4live will work without the V4L2 interface, but
-you will have long term audio/video synchronization problems (where long term could
-be minutes or hours).  We give a little information on  
+linux distributions with a 2.4 kernel.  mp4live will work without the V4L2 
+interface, but you will have long term audio/video synchronization problems 
+(where long term could be minutes or hours).  We give a little information on  
 <a href="Building_mpeg4ip_with_V4L2_support.html">how we've 
 installed V4L2</a>.  2.6 series kernels should have V4L2 built in.
-<p>
-You can download the sources for <a href="http://lame.sourceforge.net">lame
-</a> and <a href="http://www.audiocoding.com">faac</a>.  
-<P>Or you 
-can download the RPM for lame like this:<br>
-<ol>
-  <li>Go to <a href="http://rpmfind.net">http://rpmfind.net</a></li>
-  <li>Search for <span style="font-style: italic;">lame</span> and <span
- style="font-style: italic;">lame-devel</span> and download the RPMs to
-the home directory. I downloaded <code>lame-3.93.1-fr2.i386.rpm</code>
-and <code>lame-devel-3.93.1-fr2.i386.rpm</code>.<br>
-  </li>
-  <li><code>su<br>
-    </code></li>
-  <li><code>rpm -ivh lame*</code></li>
-</ol>
 <P>
-We support ffmpeg as an optional audio and video encoder for mp4live, and will use
-the decoding library of ffmpeg as both audio and video plugins for the player. 
-There are 2 methods to do this, depending on version.
-<p>
-For version 0.4.8 or earlier,
+Fedora Core 3 and below do not include the correct include files to
+activate V4L2.  At this point, we believe that the V4L2 is supported
+after installing the videodev.h and videodev2.h files, but have not
+verified it.
+<p id="ffmpeg">
+To install with ffmpeg version 0.4.8 or earlier,
 enter the argument<code>--enable-ffmpeg=&lt;directory&gt;</code> to the 
 bootstrap or cvs_bootstrap.  <code>&lt;directory&gt;</code> is required and 
 must be the absolute path to where the ffmpeg code has been compiled - do not 
@@ -268,26 +284,14 @@ after installing it, if you get an error that it (/usr/local/lib/libavcodec.a)
 is out of date.
 <p>
 We've tested with ffmpeg version 0.4.7, 0.4.8 and 0.4.9-pre1.  See the 
-<a href="http://ffmpeg.sourceforge.net">ffmpeg</a> site for information on
-how to download.  CVS versions are <b>not</b> recommended.  If you would like to do
+<a href="http://ffmpeg.sourceforge.net">ffmpeg</a> site for information on how to download.  Use of CVS versions are
+at the discretion of the user.  If you have problems with compiling with a
+CVS version of ffmpeg, please use a released version.  If you would like to do
 mpeg2 encoding, you will need ffmpeg.
-<P>
-In addition, if you have the xvid library installed, we will use that for the
-player plugin and for mp4live.  The configure scripts will automatically detect it 
-and use the installed library.  We've tested with xvidcore version 0.9.2, 
-and have also tested with xvidcore 1.0.
-If you are using xvidcore, mp4live will not display an encoded preview.  
-<p>See the 
-<a href="http://www.xvid.org">xvid</a> site for more information. 
-<p>
-We also will use the following libraries if you have them installed:
-<ul>
-<li>libid3 - id3 tags for mp3 files</li>
-<li>liba52 - AC3 decoding for mpeg files and mpeg2 transport streams</li>
-<li>libmpeg2 - mpeg2 decoding library</li>
-</ul> 
-<p>
-We highly recommend libmpeg2 if you want to decode mpeg2.
+<p id="faad2">
+If you want to install faad2, please do it after you install mpeg4ip.  If
+you have previously installed it, you must uninstall it (and most likely
+uninstall faac, as well).
 <p>
 If you don't have root privileges, but still wish to install the 
 distribution to a directory to which you do have write permission,

@@ -806,7 +806,7 @@ extern "C" MP4TrackId MP4AddH264VideoTrack(
 
 extern "C" bool MP4AddH264SequenceParameterSet (MP4FileHandle hFile,
 						MP4TrackId trackId,
-						uint8_t *pSequence,
+						const uint8_t *pSequence,
 						uint16_t sequenceLen)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
@@ -826,8 +826,8 @@ extern "C" bool MP4AddH264SequenceParameterSet (MP4FileHandle hFile,
 }
 extern "C" bool MP4AddH264PictureParameterSet (MP4FileHandle hFile,
 					       MP4TrackId trackId,
-					       uint8_t *pPict,
-						uint16_t pictLen)
+					       const uint8_t *pPict,
+					       uint16_t pictLen)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {

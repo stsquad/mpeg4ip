@@ -30,7 +30,7 @@
 #include "sdp.h"
 #include "sdp_decode_private.h"
 
-#define FREE_CHECK(a,b) if (a->b != NULL) { free(a->b); a->b = NULL;}
+#define FREE_CHECK(a,b) if (a->b != NULL) { free((void *)a->b); a->b = NULL;}
 
 /*
  * sdp_add_format_to_list()
@@ -44,7 +44,7 @@
  *   pointer to added value.  This could be a new one, or one previously
  *   added
  */
-format_list_t *sdp_add_format_to_list (media_desc_t *mptr, char *val)
+format_list_t *sdp_add_format_to_list (media_desc_t *mptr, const char *val)
 {
   format_list_t *new, *p;
   
@@ -117,7 +117,7 @@ void sdp_free_format_list (format_list_t **fptr)
  * Outputs:
  *   TRUE - succeeded, FALSE - failed due to no memory
  */
-int sdp_add_string_to_list (string_list_t **list, char *val)
+int sdp_add_string_to_list (string_list_t **list, const char *val)
 {
   string_list_t *new, *p;
   

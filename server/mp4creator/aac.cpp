@@ -89,7 +89,8 @@ static bool LoadNextAdtsHeader(FILE* inFile, u_int8_t* hdr)
 		if (state == hdrByteSize - 1) {
 			hdr[state] = b;
 			if (dropped > 0) {
-				fprintf(stderr, "Warning: dropped %u input bytes\n", dropped);
+			  fprintf(stderr, "Warning: dropped %u input bytes at offset "U64"\n", dropped, 
+				  ftello(inFile) - dropped - state - 1);
 			}
 			return true;
 		}
@@ -111,6 +112,7 @@ static bool LoadNextAdtsHeader(FILE* inFile, u_int8_t* hdr)
 					}
 				} else {
 					state = 0;
+					dropped ++;
 				}
 			}
 			/* initial state, looking for 11111111 */
@@ -121,6 +123,7 @@ static bool LoadNextAdtsHeader(FILE* inFile, u_int8_t* hdr)
 				} else {
 					 /* else drop it */ 
 					dropped++;
+					//					printf("%02x ", b);
 				}
 			}
 		}

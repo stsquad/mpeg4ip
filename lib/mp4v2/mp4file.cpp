@@ -1667,7 +1667,7 @@ MP4TrackId MP4File::AddH264VideoTrack(
 }
 
 bool MP4File::AddH264SequenceParameterSet (MP4TrackId trackId,
-					   uint8_t *pSequence,
+					   const uint8_t *pSequence,
 					   uint16_t sequenceLen)
 {
   MP4Atom *avcCAtom = 
@@ -1709,8 +1709,8 @@ bool MP4File::AddH264SequenceParameterSet (MP4TrackId trackId,
   return true;
 }
 bool MP4File::AddH264PictureParameterSet (MP4TrackId trackId,
-					   uint8_t *pPict,
-					   uint16_t pictLen)
+					  const uint8_t *pPict,
+					  uint16_t pictLen)
 {
   MP4Atom *avcCAtom = 
     FindAtom(MakeTrackName(trackId,

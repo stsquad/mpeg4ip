@@ -290,10 +290,10 @@ public: /* equivalent to MP4 library API */
 				     uint8_t AVCLevelIndication,
 				     uint8_t sampleLenFieldSizeMinusOne);
 	bool AddH264SequenceParameterSet(MP4TrackId trackId,
-					 uint8_t *pSequence,
+					 const uint8_t *pSequence,
 					 uint16_t sequenceLen);
 	bool AddH264PictureParameterSet(MP4TrackId trackId,
-					uint8_t *pPicture,
+					const uint8_t *pPicture,
 					uint16_t pictureLen);
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 

@@ -103,7 +103,7 @@ class CVideoProfile : public CConfigEntry
   };
   void LoadConfigVariables(void);
   void Update(void);
-  uint8_t m_videoMpeg4ProfileId;
+  uint32_t m_videoMpeg4ProfileId;
   uint8_t *m_videoMpeg4Config;
   uint32_t m_videoMpeg4ConfigLength;
   uint32_t m_videoWidth, m_videoHeight;

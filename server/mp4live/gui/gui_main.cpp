@@ -1237,7 +1237,7 @@ on_StreamTransmit_toggled              (GtkToggleButton *togglebutton,
   CMediaStream *ms = GetSelectedStream();
   if (ms == NULL) return;
   ms->SetBoolValue(STREAM_TRANSMIT, set);
-  DisplayStreamTransmit(ms);
+  DisplayStreamData(SelectedStream);
 }
 
 // When the record gets clicked

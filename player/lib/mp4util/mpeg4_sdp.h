@@ -46,7 +46,7 @@ typedef struct fmtp_parse_t {
 #ifdef __cplusplus
 extern "C" {
 #endif
-  fmtp_parse_t *parse_fmtp_for_mpeg4(char *bptr, lib_message_func_t);
+  fmtp_parse_t *parse_fmtp_for_mpeg4(const char *bptr, lib_message_func_t);
   void free_fmtp_parse(fmtp_parse_t *ptr);
 #ifdef __cplusplus
 }

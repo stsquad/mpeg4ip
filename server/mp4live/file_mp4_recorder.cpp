@@ -26,6 +26,8 @@
 #include "audio_encoder.h"
 #include "text_encoder.h"
 #include "mpeg4ip_byteswap.h"
+#include "mp4av_h264.h"
+//#define DEBUG_H264 1
 
 int CMp4Recorder::ThreadMain(void) 
 {
@@ -68,6 +70,8 @@ int CMp4Recorder::ThreadMain(void)
     }
     delete pMsg;
   }
+  CHECK_AND_FREE(m_videoTempBuffer);
+  m_videoTempBufferSize = 0;
   return 0;
 }
 
@@ -276,6 +280,28 @@ void CMp4Recorder::DoStartRecord()
 			   m_videoTrackId,
 			   bitrate,
 			   bitrate);
+      } else if (m_videoFrameType == H264VIDEOFRAME) {
+	uint8_t avcprofile, profile_compat, avclevel;
+	avcprofile = (m_video_profile->m_videoMpeg4ProfileId >> 16) & 0xff;
+	profile_compat = (m_video_profile->m_videoMpeg4ProfileId >> 8) & 0xff;
+	avclevel = (m_video_profile->m_videoMpeg4ProfileId) & 0xff;
+	debug_message("h264 track %x %x %x", 
+		      avcprofile, profile_compat, avclevel);
+	m_videoTrackId = MP4AddH264VideoTrack(m_mp4File, 
+					      m_videoTimeScale,
+					      MP4_INVALID_DURATION,
+					      m_video_profile->m_videoWidth,
+					      m_video_profile->m_videoHeight,
+					      avcprofile, 
+					      profile_compat, 
+					      avclevel, 
+					      3);
+
+	MP4SetVideoProfileLevel(m_mp4File, 0x7f);
+	m_makeIod = false;
+	m_makeIsmaCompliant = false;
+      } else if (m_videoFrameType == H261VIDEOFRAME) {
+	error_message("H.261 recording is not supported");
       } else {
 	m_videoTrackId = MP4AddVideoTrack(m_mp4File,
 					  m_videoTimeScale,
@@ -294,14 +320,14 @@ void CMp4Recorder::DoStartRecord()
 	
 	MP4SetVideoProfileLevel(m_mp4File, 
 				videoProfile);
-      }
 
-      if (videoConfigLen > 0) {
-	MP4SetTrackESConfiguration(
-				   m_mp4File, 
-				   m_videoTrackId,
-				   videoConfig,
-				   videoConfigLen);
+	if (videoConfigLen > 0) {
+	  MP4SetTrackESConfiguration(
+				     m_mp4File, 
+				     m_videoTrackId,
+				     videoConfig,
+				     videoConfigLen);
+	}
       }
     }
   }
@@ -495,6 +521,134 @@ void CMp4Recorder::ProcessEncodedAudioFrame (CMediaFrame *pFrame)
 /******************************************************************************
  * Process encoded video frame
  ******************************************************************************/
+static uint32_t write_sei (uint8_t *to, const uint8_t *from, uint32_t len)
+{
+  uint8_t *nal_write = to + 4;
+  uint32_t written_bytes = 1;
+#ifdef DEBUG_H264
+  debug_message("sei start %u", len);
+#endif
+  *nal_write++ = *from++;
+  len--;
+  
+  uint32_t payload_type, payload_size, typesize, sizesize;
+  while (len >= 2 && *from != 0x80) {
+    payload_type = h264_read_sei_value(from, &typesize);
+    payload_size = h264_read_sei_value(from + typesize, &sizesize);
+#ifdef DEBUG_H264
+    debug_message("type %u sizes %u", payload_type, payload_size);
+#endif
+    uint32_t size = typesize + sizesize + payload_size;
+    if (size <= len) {
+      switch (payload_type) {
+      case 3:
+      case 10:
+      case 11:
+      case 12:
+	// need to skip these
+	break;
+      default:
+	memmove(nal_write, from, size);
+	nal_write += size;
+	written_bytes += size;
+      }
+      from += size;
+      len -= size;
+    } else {
+      len = 0;
+    }
+  }
+  if (written_bytes <= 1) {
+    return 0;
+  } 
+  to[0] = (written_bytes >> 24) & 0xff;
+  to[1] = (written_bytes >> 16) & 0xff;
+  to[2] = (written_bytes >> 8) & 0xff;
+  to[3] = written_bytes & 0xff;
+#ifdef DEBUG_H264
+  debug_message("sei - %u bytes", written_bytes + 4);
+#endif
+  return written_bytes + 4;
+}
+
+void CMp4Recorder::WriteH264Frame (CMediaFrame *pFrame,
+				   Duration dur)
+{
+  bool isIFrame = false;
+  Duration rend_offset = 0;
+  h264_media_frame_t *mf = (h264_media_frame_t *)pFrame->GetData();
+  
+  uint32_t size = mf->buffer_len + (4 * mf->nal_number);
+  if (size > m_videoTempBufferSize) {
+    m_videoTempBuffer = (uint8_t *)realloc(m_videoTempBuffer, size);
+    m_videoTempBufferSize = size;
+  }
+  uint32_t len_written = 0;
+  for (uint32_t ix = 0; ix < mf->nal_number; ix++) {
+    bool write_it = false;
+    switch (mf->nal_bufs[ix].nal_type) {
+    case H264_NAL_TYPE_SEI:
+      len_written += write_sei(m_videoTempBuffer + len_written,
+			       mf->buffer + mf->nal_bufs[ix].nal_offset,
+			       mf->nal_bufs[ix].nal_length);
+      break;
+    case H264_NAL_TYPE_SEQ_PARAM:
+      MP4AddH264SequenceParameterSet(m_mp4File,
+				     m_videoTrackId,
+				     mf->buffer + mf->nal_bufs[ix].nal_offset,
+				     mf->nal_bufs[ix].nal_length);       
+      debug_message("writing seq parameter %u",mf->nal_bufs[ix].nal_length);
+      break;
+    case H264_NAL_TYPE_PIC_PARAM:
+      MP4AddH264PictureParameterSet(m_mp4File,
+				    m_videoTrackId, 
+				    mf->buffer + mf->nal_bufs[ix].nal_offset,
+				    mf->nal_bufs[ix].nal_length);       
+      debug_message("writing pic parameter %u", mf->nal_bufs[ix].nal_length);
+      break;
+    case H264_NAL_TYPE_IDR_SLICE:
+      isIFrame = true;
+      // fall through
+    case H264_NAL_TYPE_NON_IDR_SLICE:
+    case H264_NAL_TYPE_DP_A_SLICE:
+    case H264_NAL_TYPE_DP_B_SLICE:
+    case H264_NAL_TYPE_DP_C_SLICE:
+      write_it = true;
+      break;
+    case H264_NAL_TYPE_FILLER_DATA:
+      write_it = false;
+    default:
+      write_it = true;
+      break;
+    }
+#ifdef DEBUG_H264
+    debug_message("h264 nal %d type %d write %d", 
+		  ix, mf->nal_bufs[ix].nal_type, write_it);
+#endif
+    if (write_it) {
+      // write length.
+      uint32_t to_write;
+      to_write = mf->nal_bufs[ix].nal_length;
+      m_videoTempBuffer[len_written] = (to_write >> 24) & 0xff;
+      m_videoTempBuffer[len_written + 1] = (to_write >> 16) & 0xff;
+      m_videoTempBuffer[len_written + 2] = (to_write >> 8) & 0xff;
+      m_videoTempBuffer[len_written + 3] = to_write & 0xff;
+      len_written += 4;
+      memcpy(m_videoTempBuffer + len_written,
+	     mf->buffer + mf->nal_bufs[ix].nal_offset,
+	     to_write);
+      len_written += to_write;
+    }
+  }
+  MP4WriteSample(m_mp4File, 
+		 m_videoTrackId,
+		 m_videoTempBuffer, 
+		 len_written,
+		 dur, 
+		 rend_offset, 
+		 isIFrame);
+}
+
 void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 {
     // we drop encoded video frames until we get the first encoded audio frame
@@ -549,6 +703,22 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 	  if (pFrame->RemoveReference()) delete pFrame;
 	  return;
 	}
+      } else if (pFrame->GetType() == H264VIDEOFRAME) {
+	h264_media_frame_t *mf = (h264_media_frame_t *)pFrame->GetData();
+	bool found_idr = false;
+	for (uint32_t ix = 0;
+	     found_idr == false && ix < mf->nal_number;
+	     ix++) {
+	  found_idr = mf->nal_bufs[ix].nal_type == H264_NAL_TYPE_IDR_SLICE;
+	}
+#ifdef DEBUG_H264
+	debug_message("h264 nals %d found %d", 
+		      mf->nal_number, found_idr);
+#endif
+	if (found_idr == false) {
+	  if (pFrame->RemoveReference()) delete pFrame;
+	  return;
+	}
       } else {
 	// MPEG2 video
 	int ret, ftype;
@@ -596,58 +766,62 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
     dataLen = m_prevVideoFrame->GetDataLength();
 
     
-    Duration rend_offset = 0;
-    if (pFrame->GetType() == MPEG4VIDEOFRAME) {
-      pData = MP4AV_Mpeg4FindVop((uint8_t *)m_prevVideoFrame->GetData(),
-			       dataLen);
-      if (pData) {
-	dataLen -= (pData - (uint8_t *)m_prevVideoFrame->GetData());
+    if (pFrame->GetType() == H264VIDEOFRAME) {
+      WriteH264Frame(m_prevVideoFrame, videoDurationInTimescaleFrame);
+    } else {
+      Duration rend_offset = 0;
+      if (pFrame->GetType() == MPEG4VIDEOFRAME) {
+	pData = MP4AV_Mpeg4FindVop((uint8_t *)m_prevVideoFrame->GetData(),
+				   dataLen);
+	if (pData) {
+	  dataLen -= (pData - (uint8_t *)m_prevVideoFrame->GetData());
+	  isIFrame =
+	    (MP4AV_Mpeg4GetVopType(pData,dataLen) == VOP_TYPE_I);
+#if 0
+	  debug_message("record type %d %02x %02x %02x %02x",
+			MP4AV_Mpeg4GetVopType(pData, dataLen),
+			pData[0],
+			pData[1],
+			pData[2],
+			pData[3]);
+#endif
+	} else {
+	  pData = (uint8_t *)m_prevVideoFrame->GetData();
+	}
+      } else if (pFrame->GetType() == H263VIDEOFRAME) {
+	pData = (uint8_t *)m_prevVideoFrame->GetData();
+	isIFrame = ((pData[4] & 0x02) == 0);
+#if 0
 	isIFrame =
 	  (MP4AV_Mpeg4GetVopType(pData,dataLen) == VOP_TYPE_I);
-#if 0
-	debug_message("record type %d %02x %02x %02x %02x",
-		      MP4AV_Mpeg4GetVopType(pData, dataLen),
-		      pData[0],
-		      pData[1],
-		      pData[2],
-		      pData[3]);
+	debug_message("frame %02x %02x %02x %d", pData[2], pData[3], pData[4],
+		      isIFrame);
 #endif
       } else {
+	// mpeg2
+	int ret, ftype;
 	pData = (uint8_t *)m_prevVideoFrame->GetData();
-      }
-    } else if (pFrame->GetType() == H263VIDEOFRAME) {
-      pData = (uint8_t *)m_prevVideoFrame->GetData();
-      isIFrame = ((pData[4] & 0x02) == 0);
-#if 0
-      isIFrame =
-	(MP4AV_Mpeg4GetVopType(pData,dataLen) == VOP_TYPE_I);
-      debug_message("frame %02x %02x %02x %d", pData[2], pData[3], pData[4],
-		    isIFrame);
-#endif
-    } else {
-      // mpeg2
-      int ret, ftype;
-      pData = (uint8_t *)m_prevVideoFrame->GetData();
-      ret = MP4AV_Mpeg3FindPictHdr(pData, dataLen, &ftype);
-      isIFrame = false;
-      if (ret >= 0) {
-	if (ftype == 1) isIFrame = true;
-	if (ftype != 3) {
-	  rend_offset = m_prevVideoFrame->GetPtsTimestamp() - 
-	    m_prevVideoFrame->GetTimestamp();
-	  rend_offset = GetTimescaleFromTicks(rend_offset, m_movieTimeScale);
+	ret = MP4AV_Mpeg3FindPictHdr(pData, dataLen, &ftype);
+	isIFrame = false;
+	if (ret >= 0) {
+	  if (ftype == 1) isIFrame = true;
+	  if (ftype != 3) {
+	    rend_offset = m_prevVideoFrame->GetPtsTimestamp() - 
+	      m_prevVideoFrame->GetTimestamp();
+	    rend_offset = GetTimescaleFromTicks(rend_offset, m_movieTimeScale);
+	  }
 	}
       }
-    }
 
-    MP4WriteSample(
-		   m_mp4File,
-		   m_videoTrackId,
-		   pData,
-		   dataLen,
-		   videoDurationInTimescaleFrame,
-		   rend_offset,
-		   isIFrame);
+      MP4WriteSample(
+		     m_mp4File,
+		     m_videoTrackId,
+		     pData,
+		     dataLen,
+		     videoDurationInTimescaleFrame,
+		     rend_offset,
+		     isIFrame);
+    }
 		
     m_videoFrameNumber++;
     if (m_prevVideoFrame->RemoveReference()) {
@@ -719,7 +893,6 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
     }
     return;
   }
-  //debug_message("type %d ts "U64, pFrame->GetType(), pFrame->GetTimestamp());
   // RAW AUDIO
   if (pFrame->GetType() == PCMAUDIOFRAME && m_recordAudio) {
     if (m_audioFrameNumber == 1) {
@@ -916,38 +1089,43 @@ void CMp4Recorder::DoStopRecord()
     } else {
       bool isIFrame;
       Duration rend_offset = 0;
-      
-      if (m_prevVideoFrame->GetType() == MPEG4VIDEOFRAME ||
-	  m_prevVideoFrame->GetType() == H263VIDEOFRAME) {
-	isIFrame = 
-	  (MP4AV_Mpeg4GetVopType(
-				 (u_int8_t*) m_prevVideoFrame->GetData(),
-				 m_prevVideoFrame->GetDataLength()) == VOP_TYPE_I);
+
+      if (m_prevVideoFrame->GetType() == H264VIDEOFRAME) {
+	WriteH264Frame(m_prevVideoFrame, 
+		       m_prevVideoFrame->ConvertDuration(m_videoTimeScale));
       } else {
-	int ret, ftype;
-	ret = 
-	  MP4AV_Mpeg3FindPictHdr((u_int8_t *)m_prevVideoFrame->GetData(), 
-				 m_prevVideoFrame->GetDataLength(),
-				 &ftype);
-	isIFrame = false;
-	if (ret >= 0) {
-	  if (ftype == 1) isIFrame = true;
-	  if (ftype != 3) {
-	    rend_offset = m_prevVideoFrame->GetPtsTimestamp() - 
-	      m_prevVideoFrame->GetTimestamp();
-	    rend_offset = GetTimescaleFromTicks(rend_offset, m_movieTimeScale);
+	if (m_prevVideoFrame->GetType() == MPEG4VIDEOFRAME ||
+	    m_prevVideoFrame->GetType() == H263VIDEOFRAME) {
+	  isIFrame = 
+	    (MP4AV_Mpeg4GetVopType(
+				   (u_int8_t*) m_prevVideoFrame->GetData(),
+				   m_prevVideoFrame->GetDataLength()) == VOP_TYPE_I);
+	} else {
+	  int ret, ftype;
+	  ret = 
+	    MP4AV_Mpeg3FindPictHdr((u_int8_t *)m_prevVideoFrame->GetData(), 
+				   m_prevVideoFrame->GetDataLength(),
+				   &ftype);
+	  isIFrame = false;
+	  if (ret >= 0) {
+	    if (ftype == 1) isIFrame = true;
+	    if (ftype != 3) {
+	      rend_offset = m_prevVideoFrame->GetPtsTimestamp() - 
+		m_prevVideoFrame->GetTimestamp();
+	      rend_offset = GetTimescaleFromTicks(rend_offset, m_movieTimeScale);
+	    }
 	  }
 	}
-      }
 
-      MP4WriteSample(
-		     m_mp4File,
-		     m_videoTrackId,
-		     (u_int8_t*) m_prevVideoFrame->GetData(),
-		     m_prevVideoFrame->GetDataLength(),
-		     m_prevVideoFrame->ConvertDuration(m_videoTimeScale),
-		     rend_offset,
-		     isIFrame);
+	MP4WriteSample(
+		       m_mp4File,
+		       m_videoTrackId,
+		       (u_int8_t*) m_prevVideoFrame->GetData(),
+		       m_prevVideoFrame->GetDataLength(),
+		       m_prevVideoFrame->ConvertDuration(m_videoTimeScale),
+		       rend_offset,
+		       isIFrame);
+      }
       if (m_prevVideoFrame->RemoveReference()) {
 	delete m_prevVideoFrame;
       }

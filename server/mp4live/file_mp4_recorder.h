@@ -33,6 +33,8 @@ public:
   CMp4Recorder(CMediaStream *stream) {
     Init();
     m_stream = stream;
+    m_videoTempBuffer = NULL;
+    m_videoTempBufferSize = 0;
   };
 
   const char *GetRecordFileName(void) {
@@ -96,8 +98,10 @@ protected:
   u_int32_t		m_videoFrameNumber;
   Timestamp		m_videoStartTimestamp;
   Duration              m_videoDurationTimescale;
-  MediaType               m_videoFrameType;
-
+  MediaType             m_videoFrameType;
+  uint8_t              *m_videoTempBuffer;
+  uint32_t              m_videoTempBufferSize;
+  
   bool                  m_recordAudio;
   MP4TrackId		m_audioTrackId;
   u_int32_t		m_audioFrameNumber;
@@ -121,6 +125,7 @@ protected:
   void ProcessEncodedAudioFrame(CMediaFrame *pFrame);
   void ProcessEncodedVideoFrame(CMediaFrame *pFrame);
   void ProcessEncodedTextFrame(CMediaFrame *pFrame);
+  void WriteH264Frame(CMediaFrame *pFrame, Duration dur);
 #ifndef WORDS_BIGENDIAN
   uint16_t *m_convert_pcm;
   uint32_t  m_convert_pcm_size;

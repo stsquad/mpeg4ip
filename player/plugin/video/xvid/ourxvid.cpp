@@ -133,7 +133,7 @@ static int look_and_parse_vol (xvid_codec_t *xvid,
 // Parse the format config passed in.  This is the vo vod header
 // that we need to get width/height/frame rate
 static int parse_vovod (xvid_codec_t *xvid,
-			char *vovod,
+			const char *vovod,
 			int ascii,
 			uint32_t len)
 {

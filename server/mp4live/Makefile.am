@@ -45,6 +45,7 @@ endif
   XVID_LIB=-lxvidcore
 endif
 
+X264_SRC=video_x264.cpp video_x264.h
 
 libmp4live_la_SOURCES = \
 	audio_encoder_base.cpp \
@@ -111,7 +112,7 @@ libmp4live_la_SOURCES = \
 	audio_ffmpeg.cpp \
 	audio_ffmpeg.h \
 	video_ffmpeg.cpp \
-	video_ffmpeg.h $(XVID_SRC)
+	video_ffmpeg.h $(XVID_SRC) $(X264_SRC)
 
 mp4live_SOURCES = \
 	audio_encoder.cpp \
@@ -138,7 +139,7 @@ INCLUDES=\
 	-I$(top_srcdir)/player/lib \
 	-I$(top_srcdir)/player/src \
 	-I./h261 \
-	@FFMPEG_INC@
+	@FFMPEG_INC@ 
 
 AM_CXXFLAGS = -DADD_XVID_ENCODER \
 	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER \
@@ -160,6 +161,7 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/utils/libutils.la \
 	./h261/libmp4live_h261.la \
 	-lpthread \
-	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) 
+	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) \
+	@X264_LIB@
 
 EXTRA_DIST = $(ed1) $(ed2) README_MULTIOUTPUT.txt

@@ -33,7 +33,7 @@
 
 static const char *SPACES=" \t";
 
-#define FREE_CHECK(a,b) if (a->b != NULL) { free(a->b); a->b = NULL;}
+#define FREE_CHECK(a,b) if (a->b != NULL) { free((void*)a->b); a->b = NULL;}
 
 /*****************************************************************************
  * Memory free routines - frees memory associated with various structures
@@ -845,7 +845,7 @@ static int sdp_decode_parse_a_int (int arg,
  */
 static int check_value_list_or_user (char *lptr,
 				     const char **list,
-				     char **user_value)
+				     const char **user_value)
 {
   uint32_t len;
   int cnt;

@@ -54,7 +54,8 @@ class CV4L2VideoSource : public CMediaSource {
     SDL_LockMutex(m_v4l_mutex);
     m_release_index_mask |= (1 << index);
     SDL_UnlockMutex(m_v4l_mutex);
-    SDL_SemPost(m_myMsgQueueSemaphore);
+    if (m_waiting_frames_return)
+      SDL_SemPost(m_myMsgQueueSemaphore);
   };
 
  protected:
@@ -86,6 +87,7 @@ class CV4L2VideoSource : public CMediaSource {
   SDL_mutex *m_v4l_mutex;
   uint32_t m_release_index_mask;
   bool m_use_alternate_release;
+  bool m_waiting_frames_return;
 };
 
 

@@ -31,10 +31,11 @@ int CV4L2VideoSource::ThreadMain(void)
 {
   debug_message("v4l2 thread start");
   m_v4l_mutex = SDL_CreateMutex();
+  m_waiting_frames_return = false;
   while (true) {
     int rc;
 
-   if (m_source) {
+   if (m_source && m_waiting_frames_return == false) {
      rc = SDL_SemTryWait(m_myMsgQueueSemaphore);
     } else {
       rc = SDL_SemWait(m_myMsgQueueSemaphore);
@@ -48,7 +49,7 @@ int CV4L2VideoSource::ThreadMain(void)
     // message pending
     if (rc == 0) {
       CMsg* pMsg = m_myMsgQueue.get_message();
-		
+      
       if (pMsg != NULL) {
         switch (pMsg->get_value()) {
         case MSG_NODE_STOP_THREAD:
@@ -65,7 +66,7 @@ int CV4L2VideoSource::ThreadMain(void)
           break;
         }
         delete pMsg;
-      }
+      } 
     }
 
     if (m_source) {
@@ -511,6 +512,7 @@ int8_t CV4L2VideoSource::AcquireFrame(Timestamp &frameTimestamp)
   int rc = ioctl(m_videoDevice, VIDIOC_DQBUF, &buffer);
   if (rc != 0) {
     error_message("error %d errno %d %s", rc, errno, strerror(errno));
+    m_waiting_frames_return = true;
     return -1;
   }
   SDL_UnlockMutex(m_v4l_mutex);
@@ -550,6 +552,10 @@ void CV4L2VideoSource::ReleaseFrames (void)
 
   while (released_mask != 0 && index < 32) {
     if ((index_mask & released_mask) != 0) {
+      if (m_waiting_frames_return) {
+	m_waiting_frames_return = false;
+	error_message("frame return");
+      }
       struct v4l2_buffer buffer;
       buffer.index = index;
       buffer.memory = V4L2_MEMORY_MMAP;
@@ -597,7 +603,7 @@ void CV4L2VideoSource::ProcessVideo(void)
     // dequeue next frame from video capture buffer
     int index = AcquireFrame(frameTimestamp);
     if (index == -1) {
-      continue;
+      return;
     }
 
     u_int8_t* mallocedYuvImage = NULL;

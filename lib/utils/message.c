@@ -161,6 +161,7 @@ void library_message (int loglevel,
 	 lib,
 	 loglevel);
   vfprintf(outfile, fmt, ap);
-  fprintf(outfile, "\n");
+  if (fmt[strlen(fmt) - 1] != '\n')
+     fprintf(outfile, "\n");
 }
 

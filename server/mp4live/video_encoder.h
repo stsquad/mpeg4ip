@@ -31,6 +31,35 @@
 #include "media_feeder.h"
 #include "video_util_resize.h"
 
+class CTimestampPush {
+ public:
+  CTimestampPush(uint max) {
+    m_in = 0;
+    m_out = 0;
+    m_max = max;
+    m_stack = (Timestamp *)malloc(max * sizeof(Timestamp));
+  };
+  ~CTimestampPush() {
+    free(m_stack);
+  };
+  void Push (Timestamp t) {
+    m_stack[m_in] = t;
+    m_in++;
+    if (m_in >= m_max) m_in = 0;
+  };
+  Timestamp Pop (void) {
+    Timestamp ret;
+    ret = m_stack[m_out];
+    m_out++;
+    if (m_out >= m_max) m_out = 0;
+    return ret;
+  };
+ private:
+  Timestamp *m_stack;
+  uint m_in, m_out, m_max;
+};
+
+
 class CVideoEncoder : public CMediaCodec {
 public:
   CVideoEncoder(CVideoProfile *vp,

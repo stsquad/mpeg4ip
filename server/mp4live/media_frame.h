@@ -47,9 +47,10 @@ typedef u_int16_t MediaType;
 #define MPEG2VIDEOFRAME         17
 #define RAWPCMAUDIOFRAME	18
 #define H263VIDEOFRAME          19
+#define H264VIDEOFRAME          20
 
-#define PLAINTEXTFRAME          20
-#define HREFTEXTFRAME           21
+#define PLAINTEXTFRAME          32
+#define HREFTEXTFRAME           33
 
 typedef void (*media_free_f)(void *);
 
@@ -63,6 +64,19 @@ typedef struct yuv_media_frame_t {
   bool free_y;
   bool force_iframe;
 } yuv_media_frame_t;
+
+typedef struct h264_nal_buf_t {
+  uint32_t nal_offset;
+  uint32_t nal_length;
+  uint8_t nal_type;
+} h264_nal_buf_t;
+
+typedef struct h264_media_frame_t {
+  const uint8_t *buffer;
+  uint32_t buffer_len;
+  uint32_t nal_number;
+  h264_nal_buf_t *nal_bufs;
+} h264_media_frame_t;
 
 class CMediaFrame {
 public:

@@ -42,6 +42,10 @@
 #include "video_ffmpeg.h"
 #endif
 
+#ifdef HAVE_X264
+#include "video_x264.h"
+#endif
+
 #include "h261/encoder-h261.h"
 #include "rtp_transmitter.h"
 CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp,
@@ -72,6 +76,12 @@ CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp,
 		return new CH26LVideoEncoder(vp, next, realTime);
 #else
 		error_message("H.26L encoder not available in this build");
+#endif
+	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_X264)) {
+#ifdef HAVE_X264
+	  return new CX264VideoEncoder(vp, next, realTime);
+#else
+	  error_message("X264 encoder is not available in this build");
 #endif
 	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_H261)) {
 	  
@@ -130,6 +140,13 @@ MediaType get_video_mp4_fileinfo_base (CVideoProfile *pConfig,
     *videoConfig = NULL;
     *videoConfigLen = 0;
     return H263VIDEOFRAME;
+  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_H264)) { 
+    *createIod = false;
+    *isma_compliant = false;
+    *videoProfile = pConfig->m_videoMpeg4ProfileId;
+    *videoConfig = pConfig->m_videoMpeg4Config;
+    *videoConfigLen = 0;
+    return H264VIDEOFRAME;
   }
   return UNDEFINEDFRAME;
 }
@@ -212,6 +229,20 @@ media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
  	    pConfig->GetIntegerValue(CFG_VIDEO_HEIGHT), 
 	    pConfig->GetIntegerValue(CFG_VIDEO_WIDTH));
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, cliprect);
+  } else if (mtype == H264VIDEOFRAME) {
+    sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
+    memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
+    sdpMediaVideoFormat->fmt = strdup("96");
+    sdpMediaVideoFormat->media = sdpMediaVideo;
+    sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
+    sdpVideoRtpMap->clock_rate = 90000;
+    sdpVideoRtpMap->encode_name = strdup("H264");
+    sprintf(videoFmtpBuf, 
+	    "profile-level-id=%06x; sprop-parameter-sets=%s; packetization-mode=1",
+	    *videoProfile,
+	    (char *)*videoConfig);
+    sdpMediaVideoFormat->fmt_param = strdup(videoFmtpBuf);
+    
   }
 
   return sdpMediaVideo;
@@ -237,6 +268,8 @@ void create_mp4_video_hint_track_base (CVideoProfile *pConfig,
     MP4AV_Rfc2429Hinter(mp4file, 
 			trackId, 
 			mtu);
+  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_H264)) {
+    MP4AV_H264Hinter(mp4file, trackId, mtu);
   }
 
 }
@@ -526,6 +559,162 @@ static void H263SendVideoRfc2429 (CMediaFrame *pFrame, CRtpDestination *list,
   if (pFrame->RemoveReference())
     delete pFrame;
 }
+
+/*
+ * H264SendVideo - send h264 video according to rfc proposal
+ */
+static void H264SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
+			   uint32_t rtpTimestamp,
+			   uint16_t mtu)
+{
+  h264_media_frame_t *mf = (h264_media_frame_t *)pFrame->GetData();
+  uint32_t nal_on = 0;
+  struct iovec iov[32];
+
+  while (nal_on < mf->nal_number) {
+    uint32_t nal_len = mf->nal_bufs[nal_on].nal_length;
+    const uint8_t *nal_ptr = mf->buffer + mf->nal_bufs[nal_on].nal_offset;
+    /*
+     * We have 3 types of packets we can send:
+     * fragmentation units - if the NAL is > mtu
+     * single nal units - if the NAL is < mtu, and can only fit 1 NAL
+     * single time aggregation units - if we can put multiple NALs 
+     *
+     * We don't send multiple time aggregation units
+     */
+    if (nal_len > mtu) {
+      // fragmentation unit - break up into mtu size chunks
+#ifdef DEBUG_H264_TX
+      debug_message("%u fu %u", nal_on, nal_len);
+#endif
+      uint8_t header[2], head;
+      header[0] = (*nal_ptr & 0x60) | 28;
+      header[1] = 0x80; // s indication
+      head = *nal_ptr & 0x1f;
+      nal_ptr++; // remove the first byte
+      nal_len--;
+      // increment nal_on, so we can compare against mf->nal_number for end
+      // of buffer
+      nal_on++; 
+      while (nal_len > 0) {
+	uint32_t write_size;
+	bool last = false;
+	header[1] |= head;
+	if ((nal_len + 2) <= mtu) {
+	  header[1] |= 0x40;
+	  write_size = nal_len;
+	  last = true;
+	} else {
+	  write_size = mtu - 2;
+	}
+	iov[0].iov_base = header;
+	iov[0].iov_len = 2;
+	iov[1].iov_base = (void *)nal_ptr;
+	iov[1].iov_len = write_size;
+	// send
+#ifdef DEBUG_H264_TX
+	debug_message("frag %u %u %02x %02x", write_size, 
+		      (last && nal_on >= mf->nal_number) ? 1 : 0,
+		      header[0], header[1]);
+#endif
+		      
+	CRtpDestination *rdptr = list;
+	while (rdptr != NULL) {
+	  rdptr->send_iov(iov, 2, rtpTimestamp, 
+			  (last && nal_on >= mf->nal_number) ? 1 : 0);
+	  rdptr = rdptr->get_next();
+	}
+	header[1] = 0;
+	nal_ptr += write_size;
+	nal_len -= write_size;
+      } // end while (nal_len > 0)
+    } else if (((nal_on + 1) >= mf->nal_number)  ||
+	       ((nal_len + mf->nal_bufs[nal_on].nal_length + 5) > mtu)) {
+      // single nal unit packet
+      iov[0].iov_base = (void *)nal_ptr;
+      iov[0].iov_len = nal_len;
+      nal_on++; // needs to be before, so we trigger on M bit setting
+#ifdef DEBUG_H264_TX
+      debug_message("%u snup %u %u", nal_on, nal_len, 
+		    nal_on >= mf->nal_number ? 1 : 0);
+#endif
+      CRtpDestination *rdptr = list;
+      while (rdptr != NULL) {
+	rdptr->send_iov(iov, 1, rtpTimestamp, 
+			nal_on >= mf->nal_number ? 1 : 0);
+	rdptr = rdptr->get_next();
+      }
+    } else {
+      // single time aggregation packet (stap) - first check how
+      // many nals we want to put into the packet
+      uint32_t nal_check = nal_on;
+      uint32_t size = 1;
+      do {
+	size += 2 + mf->nal_bufs[nal_check].nal_length;
+	nal_check++;
+      } while (nal_check < mf->nal_number && size < mtu);
+#ifdef DEBUG_H264_TX
+      debug_message("nal on %u check %u size %u", 
+		    nal_on, nal_check, size);
+#endif
+      if (size > mtu) nal_check--;
+      if (nal_check - nal_on > 15) {
+	// so we fit in iov
+	nal_check = nal_on + 15;
+      }
+      uint8_t stap = 24;
+      uint8_t max_nri = 0;
+      // first, put the stap header
+      iov[0].iov_base = &stap;
+      iov[0].iov_len = 1;
+      uint8_t lens[2][15];
+      uint32_t iov_on = 1;
+      while (nal_on < nal_check) {
+	nal_len = mf->nal_bufs[nal_on].nal_length;
+	nal_ptr = mf->buffer + mf->nal_bufs[nal_on].nal_offset;
+	// ready the length
+	lens[0][iov_on - 1] = nal_len >> 8;
+	lens[1][iov_on - 1] = nal_len & 0xff;
+	iov[iov_on].iov_base = &lens[0][iov_on - 1];
+	iov[iov_on].iov_len = 2;
+	iov_on++;
+	// then store the nal
+	iov[iov_on].iov_base = (void *)nal_ptr;
+	iov[iov_on].iov_len = nal_len;
+	if ((*nal_ptr & 0x60) > max_nri) max_nri = *nal_ptr & 0x60;
+#ifdef DEBUG_H264_TX
+	debug_message("%u stap %u", nal_on, nal_len);
+#endif
+	nal_on++;
+	iov_on++;
+      }
+      // set the nri value in the stap header
+      stap |= max_nri;
+#ifdef DEBUG_H264_TX
+      debug_message("stap %u %u", iov_on,
+		      nal_on >= mf->nal_number ? 1 : 0);
+#endif
+      // send the packet
+      CRtpDestination *rdptr = list;
+      while (rdptr != NULL) {
+	rdptr->send_iov(iov, iov_on, rtpTimestamp, 
+			nal_on >= mf->nal_number ? 1 : 0);
+	rdptr = rdptr->get_next();
+      }
+    }
+  }
+		 
+  if (pFrame->RemoveReference())
+    delete pFrame;
+}
+
+static void DummySendVideo (CMediaFrame *pFrame, CRtpDestination *list,
+			    uint32_t rtpTimestamp,
+			    uint16_t mtu)
+{
+  if (pFrame->RemoveReference())
+    delete pFrame;
+}
  
 rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CVideoProfile *pConfig,
 						 MediaType *pType,
@@ -548,6 +737,11 @@ rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CVideoProfile *pConfig,
     *pPayload = 96;
     *pType = H263VIDEOFRAME;
     return H263SendVideoRfc2429;
+  } else if (strcasecmp(encodingName, VIDEO_ENCODING_H264) == 0) {
+    *pPayload = 96;
+    *pType = H264VIDEOFRAME;
+    return H264SendVideo;
   }
-  return NULL;
+
+  return DummySendVideo;
 }

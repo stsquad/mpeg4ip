@@ -41,7 +41,7 @@ extern "C" {
 
 typedef struct string_list_t {
   struct string_list_t *next;
-  char *string_val;
+  const char *string_val;
 } string_list_t;
 
 typedef enum {
@@ -78,7 +78,7 @@ typedef struct bandwidth_t {
   struct bandwidth_t *next;
   bandwidth_modifier_t modifier;
   unsigned long bandwidth;
-  char *user_band;
+  const char *user_band;
 } bandwidth_t;
 
 typedef struct category_list_t {
@@ -87,8 +87,8 @@ typedef struct category_list_t {
 } category_list_t;
 
 typedef struct connect_desc_t {
-  char *conn_type;
-  char *conn_addr;
+  const char *conn_type;
+  const char *conn_addr;
   uint32_t	ttl;
   uint32_t	num_addr;
   int used;
@@ -104,11 +104,11 @@ typedef enum key_types_t {
 
 typedef struct key_desc_t {
   key_types_t key_type;
-  char *key;
+  const char *key;
 } key_desc_t;
 
 typedef struct rtpmap_desc_t {
-  char *encode_name;
+  const char *encode_name;
   uint32_t clock_rate;
   uint32_t encode_param;
 } rtpmap_desc_t;
@@ -116,9 +116,9 @@ typedef struct rtpmap_desc_t {
 typedef struct format_list_t {
   struct format_list_t *next;
   struct media_desc_t *media;
-  char *fmt;
+  const char *fmt;
   rtpmap_desc_t *rtpmap;
-  char *fmt_param;
+  const char *fmt_param;
 } format_list_t;
 
 /*
@@ -150,12 +150,12 @@ typedef struct range_desc_t {
 typedef struct media_desc_t {
   struct media_desc_t *next;
   struct session_desc_t *parent;
-  char *media;  // media name
-  char *proto;  // protocol used
-  char *sdplang;
-  char *lang;
-  char *media_desc;      // description string
-  char *control_string;  // rtsp control string
+  const char *media;  // media name
+  const char *proto;  // protocol used
+  const char *sdplang;
+  const char *lang;
+  const char *media_desc;      // description string
+  const char *control_string;  // rtsp control string
   format_list_t *fmt;    // All possible formats for this media
   string_list_t *unparsed_a_lines;  // Any unparsed lines
   int recvonly, sendrecv, sendonly;
@@ -171,7 +171,7 @@ typedef struct media_desc_t {
   range_desc_t    media_range;
   bandwidth_t  *media_bandwidth;
   int orient_type;
-  char *orient_user_type;
+  const char *orient_user_type;
   key_desc_t key;
   void *USER;
 } media_desc_t;
@@ -205,18 +205,18 @@ typedef struct session_time_desc_t {
 typedef struct session_desc_t {
   struct session_desc_t *next;
   /* o= fields */
-  char *orig_username;
+  const char *orig_username;
   uint64_t   session_id;
   uint64_t   session_version;
-  char *create_addr_type;
-  char *create_addr;
+  const char *create_addr_type;
+  const char *create_addr;
   category_list_t *category_list;
   /* s= field */
-  char *session_name;
+  const char *session_name;
   /* i= field */
-  char *session_desc;
+  const char *session_desc;
   /* u = field */
-  char *uri;
+  const char *uri;
   /* Administrator Information */
   string_list_t *admin_phone;
   string_list_t *admin_email;
@@ -226,13 +226,13 @@ typedef struct session_desc_t {
   bandwidth_t *session_bandwidth;
   /* key type */
   key_desc_t key;
-  char *keywds;
-  char *tool;
-  char *charset;
-  char *sdplang;
-  char *lang;
-  char *control_string;
-  char *etag;
+  const char *keywds;
+  const char *tool;
+  const char *charset;
+  const char *sdplang;
+  const char *lang;
+  const char *control_string;
+  const char *etag;
   /* start/end times, in an array form */
   session_time_desc_t *time_desc;
   time_adj_desc_t *time_adj_desc;
@@ -241,7 +241,7 @@ typedef struct session_desc_t {
   /* unparsed lines */
   string_list_t *unparsed_a_lines;
   int conf_type;
-  char *conf_type_user;
+  const char *conf_type_user;
   int recvonly, sendrecv, sendonly;
   /* For user use - nothing done internal */
   void *USER;
@@ -298,10 +298,10 @@ void sdp_set_error_func(error_msg_func_t func);
   
   
 /* utils */
-format_list_t *sdp_add_format_to_list(media_desc_t *mptr, char *val);
+format_list_t *sdp_add_format_to_list(media_desc_t *mptr, const char *val);
 void sdp_free_format_list (format_list_t **fptr);
 
-int sdp_add_string_to_list(string_list_t **list, char *val);
+int sdp_add_string_to_list(string_list_t **list, const char *val);
 void sdp_free_string_list (string_list_t **list);
 
 void sdp_time_offset_to_str(uint32_t val, char *buff, uint32_t buflen);
