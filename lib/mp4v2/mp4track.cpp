@@ -152,8 +152,8 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 	*pNumBytes = GetSampleSize(sampleId);
 
 	VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
-		printf("ReadSample: offset 0x"LLX" size %u (0x%x)\n",
-			fileOffset, *pNumBytes, *pNumBytes));
+		printf("ReadSample: id %u offset 0x"LLX" size %u (0x%x)\n",
+			sampleId, fileOffset, *pNumBytes, *pNumBytes));
 
 	*ppBytes = (u_int8_t*)MP4Malloc(*pNumBytes);
 
@@ -187,7 +187,7 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 
 	catch (MP4Error* e) {
 		// let's not leak memory
-		MP4Free(ppBytes);
+		MP4Free(*ppBytes);
 		*ppBytes = NULL;
 		throw e;
 	}

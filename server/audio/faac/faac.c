@@ -16,22 +16,13 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: faac.c,v 1.6 2001/09/11 18:03:05 wmaycisco Exp $
+ * $Id: faac.c,v 1.7 2001/09/12 17:08:34 wmaycisco Exp $
  */
+#include "systems.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
-#if defined(__unix__) || defined(__APPLE__)
-#define min(a,b) ( (a) < (b) ? (a) : (b) )
-#include <sys/time.h>
+#ifdef HAVE_GETRUSAGE
 #include <sys/resource.h>
-#include <unistd.h>
 #endif
-
-#include <stdio.h>
-#include <stdlib.h>
 
 #include <sndfile.h>
 
@@ -60,16 +51,16 @@ int main(int argc, char *argv[])
 
 	FILE *outfile;
 
-#if defined(__unix__) || defined(__APPLE__)
+#ifdef HAVE_GETRUSAGE
 	struct rusage usage;
 #endif
-#ifdef _WIN32
+#ifndef _WIN32
+	float totalSecs;
+	int mins;
+#else
 	long begin, end;
 	int nTotSecs, nSecs;
 	int nMins;
-#else
-	float totalSecs;
-	int mins;
 #endif
 
 	/* get the default encoder configuration values */
@@ -221,7 +212,7 @@ int main(int argc, char *argv[])
 
 	if (outfile)
 	{
-#ifdef _WIN32
+#ifndef HAVE_GETRUSAGE
 		begin = GetTickCount();
 #endif
 		frames = (int)(sfinfo.samples/1024+0.5);
@@ -245,7 +236,7 @@ int main(int argc, char *argv[])
 
 #ifndef _DEBUG
 			printf("%.2f%%\tBusy encoding %s.\r",
-				min((double)(currentFrame*100)/frames,100), argv[argc-2]);
+				MIN((double)(currentFrame*100)/frames,100), argv[argc-2]);
 #endif
 
 			/* all done, bail out */
@@ -272,7 +263,7 @@ int main(int argc, char *argv[])
 		nSecs = nTotSecs - (60*nMins);
 		printf("Encoding %s took:\t%d:%.2d\t\n", argv[argc-2], nMins, nSecs);
 #else
-#ifdef __unix__
+#ifdef HAVE_GETRUSAGE
 		if (getrusage(RUSAGE_SELF, &usage) == 0) {
 			totalSecs = usage.ru_utime.tv_sec;
 			mins = totalSecs/60;

@@ -171,6 +171,9 @@ u_int16_t MP4FindTrackIndex(
 
 /* specific track properties */
 
+const char* MP4GetTrackType(
+	MP4FileHandle hFile, MP4TrackId trackId);
+
 MP4Duration MP4GetTrackDuration(
 	MP4FileHandle hFile, MP4TrackId trackId);
 

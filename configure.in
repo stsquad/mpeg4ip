@@ -25,7 +25,7 @@ AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h)
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long)
+AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getrusage)
 
 dnl Add getopt libraries if we don't have them
 AM_CONDITIONAL(PROVIDE_GETOPTLONG, test x$ac_cv_func_getopt_long != xyes)

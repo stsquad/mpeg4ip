@@ -155,6 +155,8 @@ public:
 
 	MP4SampleId GetNumberOfTrackSamples(MP4TrackId trackId);
 
+	const char* GetTrackType(MP4TrackId trackId);
+
 	MP4Duration GetTrackDuration(MP4TrackId trackId);
 
 	u_int32_t GetTrackTimeScale(MP4TrackId trackId);

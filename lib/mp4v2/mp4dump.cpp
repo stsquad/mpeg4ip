@@ -24,7 +24,7 @@
 
 int main(int argc, char** argv)
 {
-	char* usageString = "%s [-v [<level>]] <file-name>\n";
+	char* usageString = "usage: %s [-v [<level>]] <file-name>\n";
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
 
 	/* begin processing command line */
@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "v",
+		c = getopt_long_only(argc, argv, "v:",
 			long_options, &option_index);
 
 		if (c == -1)

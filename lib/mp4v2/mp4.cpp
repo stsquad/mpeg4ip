@@ -467,6 +467,18 @@ extern "C" u_int16_t MP4FindTrackIndex(
 
 /* specific track properties */
 
+extern "C" const char* MP4GetTrackType(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+	try {
+		return ((MP4File*)hFile)->GetTrackType(trackId);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		return NULL;
+	}
+}
+
 extern "C" MP4Duration MP4GetTrackDuration(
 	MP4FileHandle hFile, MP4TrackId trackId)
 {

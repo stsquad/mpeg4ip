@@ -175,13 +175,14 @@ u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes)
 
 	u_int32_t rc;
 	rc = fread(pBytes, 1, numBytes, m_pFile);
-	if (rc == 0) {
-		throw new MP4Error(errno, "MP4ReadBytes");
-	}
 	if (rc != numBytes) {
-		throw new MP4Error(
-			"not enough bytes, reached end-of-file",
-			"MP4ReadBytes");
+		if (feof(m_pFile)) {
+			throw new MP4Error(
+				"not enough bytes, reached end-of-file",
+				"MP4ReadBytes");
+		} else {
+			throw new MP4Error(errno, "MP4ReadBytes");
+		}
 	}
 	return rc;
 }
@@ -1009,6 +1010,11 @@ void MP4File::SetGraphicsProfileLevel(u_int8_t value)
 MP4SampleId MP4File::GetNumberOfTrackSamples(MP4TrackId trackId)
 {
 	return GetTrackIntegerProperty(trackId, "mdia.minf.stbl.stsz.sampleCount");
+}
+
+const char* MP4File::GetTrackType(MP4TrackId trackId)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->GetType();
 }
 
 u_int32_t MP4File::GetTrackTimeScale(MP4TrackId trackId)

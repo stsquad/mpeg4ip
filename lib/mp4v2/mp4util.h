@@ -37,7 +37,7 @@
 #endif
 
 #define VERBOSE(exprverbosity, verbosity, expr)	\
-	if ((exprverbosity) & (verbosity)) { expr; }
+	if (((exprverbosity) & (verbosity)) == (exprverbosity)) { expr; }
 
 #define VERBOSE_ERROR(verbosity, expr)		\
 	VERBOSE(MP4_DETAILS_ERROR, verbosity, expr)
@@ -85,6 +85,7 @@ public:
 	}
 
 	void Print(FILE* pFile = stderr) {
+		fprintf(pFile, "MP4ERROR: ");
 		if (m_where) {
 			fprintf(pFile, "%s", m_where);
 		}
