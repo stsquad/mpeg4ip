@@ -54,9 +54,9 @@ void CInByteStreamRtp::assign_pak (rtp_packet *pak)
   m_offset_in_pak = 0;
 }
 
-Char CInByteStreamRtp::get (void)
+char CInByteStreamRtp::get (void)
 {
-  Char ret;
+  char ret;
   const char *err;
 
   if (m_pak == NULL) {
@@ -81,6 +81,7 @@ Char CInByteStreamRtp::get (void)
   if (m_offset_in_pak >= m_pak->data_len) {
     m_offset_in_pak = 0;
     m_pak = m_media->advance_head(m_bookmark_set, &err);
+
     if (m_pak == NULL && m_bookmark_set == 0) {
       init();
       throw err;
@@ -92,12 +93,12 @@ Char CInByteStreamRtp::get (void)
   return (ret);
 }
 
-Char CInByteStreamRtp::peek (void) 
+char CInByteStreamRtp::peek (void) 
 {
   return (m_pak ? m_pak->data[m_offset_in_pak] : 0);
 }
 
-void CInByteStreamRtp::bookmark (Bool bSet)
+void CInByteStreamRtp::bookmark (int bSet)
 {
   if (bSet == TRUE) {
     m_bookmark_set = 1;

@@ -26,10 +26,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <fstream.h>
 #include <sdp/sdp.h>
 #include "player_media.h"
-#include "player_rtp_bytestream.h"
+//#include "player_rtp_bytestream.h"
 #include "video.h"
 
 class CCodecBase {
@@ -46,7 +45,7 @@ class CAudioCodecBase : public CCodecBase {
 		   CInByteStreamBase *pbytestream,
 		   format_list_t *media_fmt,
 		   audio_info_t *audio,
-		   const char *userdata = NULL,
+		   const unsigned char *userdata = NULL,
 		   size_t userdata_size = 0) : CCodecBase() {
     m_audio_sync = audio_sync;
     m_bytestream = pbytestream;
@@ -60,7 +59,7 @@ class CAudioCodecBase : public CCodecBase {
   CInByteStreamBase *m_bytestream;
   format_list_t *m_media_fmt;
   audio_info_t *m_audio_info;
-  const char *m_userdata;
+  const unsigned char *m_userdata;
   size_t m_userdata_size;
 };
 
@@ -70,7 +69,7 @@ class CVideoCodecBase : public CCodecBase {
 		   CInByteStreamBase *pbytestream,
 		   format_list_t *media_fmt,
 		   video_info_t *vid,
-		   const char *userdata = NULL,
+		   const unsigned char *userdata = NULL,
 		   size_t userdata_size = 0) : CCodecBase() {
     m_video_sync = video_sync;
     m_bytestream = pbytestream;
@@ -84,7 +83,7 @@ class CVideoCodecBase : public CCodecBase {
   CInByteStreamBase *m_bytestream;
   format_list_t *m_media_fmt;
   video_info_t *m_video_info;
-  const char *m_userdata;
+  const unsigned char *m_userdata;
   size_t m_userdata_size;
 };
 

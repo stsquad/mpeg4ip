@@ -18,8 +18,8 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
+
 #include "our_bytestream_file.h"
-#include <fstream.h>
 #include "player_util.h"
 
 COurInByteStreamFile::COurInByteStreamFile (CPlayerMedia *m,
@@ -27,16 +27,23 @@ COurInByteStreamFile::COurInByteStreamFile (CPlayerMedia *m,
   COurInByteStream(m)
 {
   m_filename = strdup(filename);
-  m_pInStream = new ifstream(m_filename, ios::bin | ios::in);
+  m_file = fopen(m_filename, "rb");
   m_frames = 0;
   m_total = 0;
+  m_bookmark_loaded = 0;
+  m_bookmark = 0;
+  m_buffer_size_max = 4096;
+  m_buffer_size = 1;
+  m_orig_buffer = (char *)malloc(m_buffer_size_max);
+  m_bookmark_buffer = (char *)malloc(m_buffer_size_max);
+  read_frame();
 }
 
 COurInByteStreamFile::~COurInByteStreamFile(void)
 {
-  if (m_pInStream) {
-    delete m_pInStream;
-    m_pInStream = NULL;
+  if (m_file) {
+    fclose(m_file);
+    m_file = NULL;
   }
   if (m_filename) {
     free((void *)m_filename);
@@ -44,8 +51,9 @@ COurInByteStreamFile::~COurInByteStreamFile(void)
   }
   player_debug_message("bytes %llu, frames %llu, fps %llu",
 		       m_total, m_frames, m_frame_per_sec);
-  player_debug_message("bits per sec %llu", 
-		       (m_total * 8 * m_frame_per_sec) / m_frames);
+  if (m_frames > 0)
+    player_debug_message("bits per sec %llu", 
+			 (m_total * 8 * m_frame_per_sec) / m_frames);
 }
 
 uint64_t COurInByteStreamFile::start_next_frame (void) 
@@ -55,4 +63,81 @@ uint64_t COurInByteStreamFile::start_next_frame (void)
   m_frames++;
   ret += m_play_start_time;
   return (ret);
+}
+
+void COurInByteStreamFile::read_frame (void)
+{
+  if (m_bookmark) {
+    if (m_bookmark_loaded) {
+      m_buffer_on = m_bookmark_buffer;
+      m_buffer_size = m_bookmark_loaded_size;
+      m_index = 0;
+      return;
+    }
+	
+    m_bookmark_loaded_size = m_buffer_size = 
+		fread(m_bookmark_buffer, 1, m_buffer_size_max, m_file);
+    if (m_bookmark_loaded_size > 0) {
+      m_index = 0;
+      m_bookmark_loaded = 1;
+    }
+    return;
+  }
+  if (m_bookmark_loaded) {
+    m_bookmark_loaded = 0;
+    m_buffer_on = m_bookmark_buffer;
+    m_bookmark_buffer = m_orig_buffer;
+    m_orig_buffer = m_buffer_on;
+    m_buffer_size = m_bookmark_loaded_size;
+    m_index = 0;
+    return;
+  }
+  m_buffer_size = fread(m_orig_buffer, 1, m_buffer_size_max, m_file);
+  m_buffer_on = m_orig_buffer;
+  m_index = 0;
+}
+
+int COurInByteStreamFile::eof (void) 
+{ 
+  return (m_buffer_size == 0);
+}
+
+char COurInByteStreamFile::get (void) 
+{
+  char ret = m_buffer_on[m_index];
+  m_index++;
+  m_total++;
+  if (m_index >= m_buffer_size) {
+    read_frame();
+  }
+  return (ret);
+}
+
+char COurInByteStreamFile::peek (void)
+{
+  return (m_buffer_on[m_index]);
+}
+
+void COurInByteStreamFile::bookmark (int bSet)
+{
+  if (bSet) {
+    m_bookmark = 1;
+    m_bookmark_buffer_size = m_buffer_size;
+    m_bookmark_index = m_index;
+    m_bookmark_total = m_total;
+  } else {
+    m_bookmark = 0;
+    m_buffer_size = m_bookmark_buffer_size;
+    m_index = m_bookmark_index;
+    m_buffer_on = m_orig_buffer;
+    m_total = m_bookmark_total;
+  }
+}
+
+void COurInByteStreamFile::reset (void)
+{
+  fseek(m_file, 0, SEEK_SET); 
+  m_bookmark_loaded = 0;
+  m_bookmark = 0;
+  read_frame();
 }

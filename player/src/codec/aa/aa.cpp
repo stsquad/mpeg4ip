@@ -23,10 +23,11 @@ extern "C" {
 #include <faad/filestream.h>
 }
 
+#define DEBUG_SYNC 2
 /*
  * C interfaces for faac callbacks
  */
-int c_read_byte (FILE_STREAM *fs, int *err)
+unsigned char c_read_byte (FILE_STREAM *fs, int *err)
 {
   CAACodec *aa = (CAACodec *)fs->userdata;
   return (aa->read_byte(fs, err));
@@ -63,7 +64,7 @@ CAACodec::CAACodec (CAudioSync *a,
 		    CInByteStreamBase *pbytestrm,
 		    format_list_t *media_fmt,
 		    audio_info_t *audio,
-		    const char *userdata,
+		    const unsigned char *userdata,
 		    size_t userdata_size) : 
   CAudioCodecBase(a, pbytestrm, media_fmt, audio, userdata, userdata_size)
 {
@@ -108,6 +109,9 @@ CAACodec::CAACodec (CAudioSync *a,
     }
   }
   player_debug_message("Setting freq to %d", m_freq);
+#if DUMP_OUTPUT_TO_FILE
+  m_outfile = fopen("temp.raw", "w");
+#endif
 }
 
 CAACodec::~CAACodec()
@@ -121,6 +125,9 @@ CAACodec::~CAACodec()
     free(m_local_buffer);
     m_local_buffer = NULL;
   }
+#if DUMP_OUTPUT_TO_FILE
+  fclose(m_outfile);
+#endif
 }
 
 /*
@@ -195,8 +202,12 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     }
   } catch (const char *err) {
 #ifdef DEBUG_SYNC
-    player_error_message("Got exception %s at %llu", err, m_current_time);
+    player_error_message("AA Got exception %s at %llu", err, m_current_time);
 #endif
+    m_resync_with_header = 1;
+    m_record_sync_time = 1;
+    return (bits);
+  } catch (...) {
     m_resync_with_header = 1;
     m_record_sync_time = 1;
     return (bits);
@@ -231,8 +242,13 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
       /*
        * good result - give it to audio sync class
        */
+#if DUMP_OUTPUT_TO_FILE
+	  fwrite(buff, 1024 * 4, 1, m_outfile);
+#endif
+#if 1
       m_audio_sync->filled_audio_buffer(m_current_time, 
 					m_resync_with_header);
+#endif
       if (m_resync_with_header == 1) {
 	m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
@@ -249,21 +265,25 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     }
   } catch (const char *err) {
 #ifdef DEBUG_SYNC
-    player_error_message("Got exception %s at %llu", err, m_current_time);
+    player_error_message("aa Got exception %s at %llu", err, m_current_time);
 #endif
     m_resync_with_header = 1;
     m_record_sync_time = 1;
+  } catch (...) {
+    m_resync_with_header = 1;
+    m_record_sync_time = 1;
+    return (bits);
   }
   return (bits);
 }
 
-int CAACodec::read_byte(FILE_STREAM *fs, int *err)
+unsigned char CAACodec::read_byte(FILE_STREAM *fs, int *err)
 {
   if (m_bytestream->eof()) { 
     *err = 1; 
-    return -1; 
+    return (unsigned char)-1; 
   }
-  return (m_bytestream->get());
+  return ((unsigned char)m_bytestream->get());
 }
 
 void CAACodec::reset (void)
@@ -273,7 +293,7 @@ void CAACodec::reset (void)
 
 int CAACodec::peek (void *data, int len)
 {
-  Char *dptr = (Char *)data;
+  char *dptr = (char *)data;
   m_bytestream->bookmark(1);
   for (int ix = 0; ix < len; ix++) {
     *dptr++ = m_bytestream->get();

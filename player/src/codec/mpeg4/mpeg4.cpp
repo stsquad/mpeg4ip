@@ -24,9 +24,22 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <fstream.h>
 #include "player_mem_bytestream.h"
+#include <stdio.h>
+#include <stdlib.h>
 
+#ifdef _WINDOWS
+#include <windows.h>
+#include <mmsystem.h>
+#endif // __PC_COMPILER_
+
+#include <type/typeapi.h>
+#include <sys/mode.hpp>
+#include <sys/vopses.hpp>
+#include <tools/entropy/bitstrm.hpp>
+#include <sys/tps_enhcbuf.hpp>
+#include <sys/decoder/enhcbufdec.hpp>
+#include <sys/decoder/vopsedec.hpp>
 #include "mpeg4.h"
 #include <player_util.h>
 #ifndef __GLOBAL_VAR_
@@ -39,14 +52,24 @@ CMpeg4Codec::CMpeg4Codec(CVideoSync *v,
 			 CInByteStreamBase *pbytestrm, 
 			 format_list_t *media_fmt,
 			 video_info_t *vinfo,
-			 const char *userdata,
+			 const unsigned char *userdata,
 			 size_t ud_size) :
   CVideoCodecBase(v, pbytestrm, media_fmt, vinfo, userdata, ud_size)
 {
   m_main_short_video_header = FALSE;
   m_bytestream = pbytestrm;
   m_pvodec = new CVideoObjectDecoder(pbytestrm);
-  if (vinfo != NULL) {
+  m_decodeState = DECODE_STATE_VO_SEARCH;
+  if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
+    // See if we can decode a passed in vovod header
+    if (parse_vovod(media_fmt->fmt_param, 1, 0) == 1) {
+      m_decodeState = DECODE_STATE_WAIT_I;
+    }
+  } else if (userdata != NULL) {
+    if (parse_vovod((const char *)userdata, 0, ud_size) == 1) {
+      m_decodeState = DECODE_STATE_WAIT_I;
+    }
+  } else if (vinfo != NULL) {
     m_pvodec->FakeOutVOVOLHead(vinfo->height,
 			       vinfo->width,
 			       vinfo->frame_rate,
@@ -56,18 +79,8 @@ CMpeg4Codec::CMpeg4Codec(CVideoSync *v,
 			 vinfo->frame_rate);
 
     m_decodeState = DECODE_STATE_NORMAL;
-  } else {
-    if (media_fmt == NULL || media_fmt->fmt_param == NULL) {
-      m_decodeState = DECODE_STATE_VO_SEARCH;
-    } else {
-      // See if we can decode a passed in vovod header
-      if (parse_vovod(media_fmt->fmt_param) == 1) {
-	m_decodeState = DECODE_STATE_WAIT_I;
-      } else {
-	m_decodeState = DECODE_STATE_VO_SEARCH;
-      }
-    }
-  }
+  } 
+
   m_dropped_b_frames = 0;
   m_num_wait_i = 0;
   m_num_wait_i_frames = 0;
@@ -87,7 +100,7 @@ CMpeg4Codec::~CMpeg4Codec()
 }
 
 // Convert a hex character to it's decimal value.
-char tohex (char a)
+static char tohex (char a)
 { 
   if (isdigit(a))
     return (a - '0');
@@ -96,53 +109,70 @@ char tohex (char a)
 
 // Parse the format config passed in.  This is the vo vod header
 // that we need to get width/height/frame rate
-int CMpeg4Codec::parse_vovod (const char *vovod)
+int CMpeg4Codec::parse_vovod (const char *vovod,
+			      int ascii,
+			      size_t len)
 {
   char buffer[255];
+  CInByteStreamMem *membytestream = new CInByteStreamMem();
 
-  char *config = strstr(vovod, "config=");
-  if (config == NULL) {
-    return 0;
+  if (ascii == 1) {
+    char *config = strstr(vovod, "config=");
+    if (config == NULL) {
+      return 0;
+    }
+    config += strlen("config=");
+    char *end;
+    end = config;
+    while (isxdigit(*end)) end++;
+    if (config == end) {
+      return 0;
+    }
+    // config string will run from config to end
+    len = end - config;
+    // make sure we have even number of digits to convert to binary
+    if ((len % 2) == 1) 
+      return 0;
+    end = buffer;
+    // Convert the config= from ascii to binary
+    for (size_t ix = 0; ix < len; ix++) {
+      *end = 0;
+      *end = (tohex(*config)) << 4;
+      config++;
+      *end += tohex(*config);
+      config++;
+      end++;
+    }
+    len /= 2;
+    membytestream->set_memory(buffer, len);
+  } else {
+    membytestream->set_memory(vovod, len);
   }
-  config += strlen("config=");
-  char *end;
-  end = config;
-  while (isxdigit(*end)) end++;
-  if (config == end) {
-    return 0;
-  }
-  // config string will run from config to end
-  size_t len = end - config;
-  // make sure we have even number of digits to convert to binary
-  if ((len % 2) == 1) 
-    return 0;
-  end = buffer;
-  // Convert the config= from ascii to binary
-  for (size_t ix = 0; ix < len; ix++) {
-    *end = 0;
-    *end = (tohex(*config)) << 4;
-    config++;
-    *end += tohex(*config);
-    config++;
-    end++;
-  }
+
 
   // Create a byte stream to take from our buffer.
-  CInByteStreamMem *membytestream = new CInByteStreamMem();
-  membytestream->set_memory(buffer, len/2);
   // Temporary set of our bytestream
   m_pvodec->set_byte_stream(membytestream);
 
   // Get the VO/VOL header.  If we fail, set the bytestream back
-  try {
-    m_pvodec->decodeVOHead();
-    //player_debug_message("Found VO in header");
-  } catch (const char *err) {
-    player_debug_message("Caught exception in VO mem header search %s", err);
+  int havevo = 0;
+
+  do {
+    try {
+      m_pvodec->decodeVOHead();
+      //player_debug_message("Found VO in header");
+      havevo = 1;
+    } catch (const char *err) {
+      player_debug_message("Caught exception in VO mem header search %s", err);
+    }
+  } while (havevo == 0 && membytestream->eof() == 0);
+
+  if (havevo == 0) {
     m_pvodec->set_byte_stream(m_bytestream);
     delete membytestream;
     return (0);
   }
+
   try {
     m_pvodec->decodeVOLHead();
     m_pvodec->postVO_VOLHeadInit(m_pvodec->getWidth(),
@@ -220,10 +250,12 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
       m_bCachedRefFrameCoded = FALSE;
       m_cached_valid = FALSE;
       m_cached_time = 0;
-    } catch (const char *err) {
+    } catch (...) { //(const char *err) {
+#if 0
       if (strcmp(err, "DECODE ACROSS TS") != 0) {
 	player_debug_message("Caught exception in WAIT_I %s", err);
       }
+#endif
       return (-1);
     }
     break;
@@ -248,7 +280,10 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
       player_debug_message("Normal caught %s", err);
       m_decodeState = DECODE_STATE_WAIT_I;
       return (-1);
-    }
+    } catch (...) {
+		m_decodeState = DECODE_STATE_WAIT_I;
+		return (-1);
+	}
     break;
   }
 
@@ -319,7 +354,10 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
     u = pvopcQuant->getPlane(U_PLANE)->pixels(0,0);
     v = pvopcQuant->getPlane(V_PLANE)->pixels(0,0);
     m_last_time = displaytime;
-    //    player_debug_message("Adding video at %llu", displaytime);
+#if 0
+    player_debug_message("Adding video at %llu %d", displaytime,
+			 m_pvodec->vopmd().vopPredType);
+#endif
 
     uint64_t rettime;
     int cmp = 

@@ -25,9 +25,11 @@
  */
 #ifndef __IP_PORT_H__
 #define __IP_PORT_H__ 1
+#ifndef _WINDOWS
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
 
 // CIpPort will grab the next ip port available when created (and valid).
 // It will hold on to the port until deleted.
@@ -36,7 +38,7 @@ class CIpPort {
   CIpPort();
   ~CIpPort();
   CIpPort *get_next (void) { return m_next;};
-  void *set_next (CIpPort *p) { m_next = p;};
+  void set_next (CIpPort *p) { m_next = p;};
   uint16_t get_port_num (void) { return m_port_num;};
   int valid(void) { return (m_sock == -1 ? 0 : 1);};
  private:

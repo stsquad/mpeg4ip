@@ -177,9 +177,13 @@ static void start_session_from_name (const char *name)
     const char *errmsg;
     errmsg = NULL;
     // See if we can create media for this session
-    if (parse_name_for_session(psptr, name, &errmsg) == 0) {
+    int ret = parse_name_for_session(psptr, name, &errmsg);
+    if (ret >= 0) {
       // Yup - valid session.  Set volume, set up sync thread, and
       // start the session
+      if (ret > 0) {
+	ShowMessage("Warning", errmsg);
+      }
       if (master_muted == 0)
 	psptr->set_audio_volume(master_volume);
       else
@@ -548,7 +552,7 @@ int main (int argc, char **argv)
 
   command_mutex = SDL_CreateMutex();
 
-  //rtsp_set_loglevel(LOG_DEBUG);
+  rtsp_set_loglevel(LOG_DEBUG);
   /*
    * Set up main window
    */

@@ -21,12 +21,32 @@
 #ifndef __MEDIA_UTILS_H__
 #define __MEDIA_UTILS_H__ 1
 
-
+#include "video.h"
+#include "our_bytestream.h"
+#include "codec/codec.h"
 extern CIpPort *global_invalid_ports;
 
 int parse_name_for_session(CPlayerSession *psptr,
 			   const char *name,
 			   const char **errmsg);
 
+int lookup_audio_codec_by_name(const char *name);
+int lookup_video_codec_by_name(const char *name);
+
+CCodecBase *start_audio_codec(const char *codec_name,
+			      CAudioSync *audio_sync,
+			      CInByteStreamBase *pbytestream,
+			      format_list_t *media_fmt,
+			      audio_info_t *aud,
+			      const unsigned char *userdata,
+			      size_t userdata_size);
+
+CCodecBase *start_video_codec(const char *codec_name,
+			      CVideoSync *video_sync,
+			      CInByteStreamBase *pbytestream,
+			      format_list_t *media_fmt,
+			      video_info_t *vid,
+			      const unsigned char *userdata,
+			      size_t userdata_size);
 
 #endif

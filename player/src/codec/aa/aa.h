@@ -24,20 +24,15 @@
 
 #ifndef __AA_H__
 #define __AA_H__ 1
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <fstream.h>
+#include "systems.h"
 extern "C" {
 #include <faad/faad.h>
 }
-#include <sys/time.h>
-#include <unistd.h>
+
 #include "codec.h"
 #include "player_rtp_bytestream.h"
 #include "player_mem_bytestream.h"
 #include "audio.h"
-#define AA_DECODE_BUFFERS 4
 
 class CAACodec : public CAudioCodecBase {
  public:
@@ -45,12 +40,12 @@ class CAACodec : public CAudioCodecBase {
 	   CInByteStreamBase *pbytestrm,
 	   format_list_t *media_desc,
 	   audio_info_t *audio,
-	   const char *userdata = NULL,
+	   const unsigned char *userdata = NULL,
 	   size_t userdata_size = 0);
   ~CAACodec();
   int decode(uint64_t rtptime, int fromrtp);
   void do_pause(void);
-  int read_byte(FILE_STREAM *fs, int *err);
+  unsigned char read_byte(FILE_STREAM *fs, int *err);
   void reset(void);
   int peek(void *data, int len);
  private:
@@ -69,6 +64,10 @@ class CAACodec : public CAudioCodecBase {
   size_t m_local_buffersize;
   char *m_local_buffer;
   int m_freq;  // frequency
+#define DUMP_OUTPUT_TO_FILE 1
+#if DUMP_OUTPUT_TO_FILE
+  FILE *m_outfile;
+#endif
 };
 
 #endif

@@ -22,11 +22,7 @@
  * player_session.cpp - describes player session class, which is the
  * main access point for the player
  */
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
+#include "systems.h"
 #include "player_session.h"
 #include "player_media.h"
 #include "player_sdp.h"
@@ -66,6 +62,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_screen_pos_x = 0;
   m_screen_pos_y = 0;
   m_clock_wrapped = -1;
+  m_hardware_error = 0;
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -169,7 +166,9 @@ int CPlayerSession::create_streaming (const char *url, const char **errmsg)
   /*
    * Decode the SDP information into structures we can use.
    */
-  if (sdp_decode(sdpdecode, &m_sdp_info, &dummy) != 0) {
+  err = sdp_decode(sdpdecode, &m_sdp_info, &dummy);
+  free(sdpdecode);
+  if (err != 0) {
     *errmsg = "Couldn't decode session description";
     player_error_message("Couldn't decode sdp %s", decode->body);
     free_decode_response(decode);
@@ -216,7 +215,9 @@ void CPlayerSession::set_up_sync_thread(void)
     media= media->get_next();
   }
   m_sync_sem = SDL_CreateSemaphore(0);
+#ifndef _WINDOWS
   m_sync_thread = SDL_CreateThread(c_sync_thread, this);
+#endif
 }
 
 /*
@@ -234,7 +235,11 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
      * we were paused.  Continue.
      */
     m_play_start_time = m_current_time;
+#ifdef _WINDOWS
+	start_time = (double)(int64_t)m_current_time;
+#else
     start_time = (double) m_current_time;
+#endif
     start_time /= 1000.0;
     player_debug_message("Restarting at %llu, %g", m_current_time, start_time);
   } else {

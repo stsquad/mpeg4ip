@@ -41,9 +41,9 @@ class CQTByteStreamBase : public COurInByteStream
 		    int track);
   ~CQTByteStreamBase();
   int eof(void);
-  Char get(void);
-  Char peek(void);
-  void bookmark(Bool bSet);
+  char get(void);
+  char peek(void);
+  void bookmark(int bSet);
   virtual void reset(void) = 0;
   virtual uint64_t start_next_frame (void) = 0;
  protected:
@@ -55,10 +55,10 @@ class CQTByteStreamBase : public COurInByteStream
   size_t m_frames_max;
   size_t m_frame_rate;
   size_t m_max_frame_size;
-  Char *m_buffer;
+  char *m_buffer;
   int m_bookmark;
-  Char *m_bookmark_buffer;
-  Char *m_buffer_on;
+  char *m_bookmark_buffer;
+  char *m_buffer_on;
   size_t m_byte_on, m_bookmark_byte_on;
   size_t m_bookmark_frame_on;
   size_t m_this_frame_size, m_bookmark_this_frame_size;

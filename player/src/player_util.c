@@ -21,16 +21,30 @@
 /*
  * player_util.c - utility routines for output
  */
-#include <stdarg.h>
-#include <unistd.h>
+
+#include "systems.h"
+#ifndef _WINDOWS
+#include <time.h>
 #include <sys/time.h>
-#include <stdio.h>
+#include <unistd.h>
+#include <stdarg.h>
+#endif
+
 #include "player_util.h"
 
 void player_error_message (const char *fmt, ...)
 {
-  struct timeval thistime;
   va_list ap;
+#if _WIN32 && _DEBUG
+        char msg[512];
+                
+        va_start(ap, fmt);
+	_vsnprintf(msg, 512, fmt, ap);
+        va_end(ap);
+        OutputDebugString(msg);
+		OutputDebugString("\n");
+#else
+  struct timeval thistime;
   char buffer[80];
 
   gettimeofday(&thistime, NULL);
@@ -41,12 +55,22 @@ void player_error_message (const char *fmt, ...)
   vprintf(fmt, ap);
   va_end(ap);
   printf("\n");
+#endif
 }
 
 void player_debug_message (const char *fmt, ...)
 {
-  struct timeval thistime;
   va_list ap;
+#if _WIN32 && _DEBUG
+        char msg[512];
+        
+        va_start(ap, fmt);
+	_vsnprintf(msg, 512, fmt, ap);
+        va_end(ap);
+        OutputDebugString(msg);
+		OutputDebugString("\n");
+#else
+  struct timeval thistime;
   char buffer[80];
 
   gettimeofday(&thistime, NULL);
@@ -57,6 +81,41 @@ void player_debug_message (const char *fmt, ...)
   vprintf(fmt, ap);
   va_end(ap);
   printf("\n");
+#endif
 }
 
+#ifdef _WINDOWS
+#include <sys/timeb.h>
+
+int gettimeofday (struct timeval *t, void *foo)
+{
+	struct _timeb temp;
+	_ftime(&temp);
+	t->tv_sec = temp.time;
+	t->tv_usec = temp.millitm * 1000;
+	return (0);
+}
+
+char *strsep (char **sptr, const char *delim)
+{
+	char *start, *ret;
+	start = ret = *sptr;
+	if ((ret == NULL) || ret == '\0') {
+	   return (NULL);
+	}
+
+	while (*ret != '\0' &&
+		   strchr(delim, *ret) == NULL) {
+		ret++;
+	}
+	if (*ret == '\0') {
+		*sptr = NULL;
+	} else {
+	    *ret = '\0';
+	    ret++;
+	    *sptr = ret;
+	}
+	return (start);
+}
+#endif
 /* end file player_util.c */

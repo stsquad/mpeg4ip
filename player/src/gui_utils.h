@@ -53,7 +53,7 @@ GtkWidget *CreateMenuRadio (GtkWidget *menu,
 void FreeChild(GtkWidget *widget);
 
   // from gui_showmsg.c
-void ShowMessage (char *szTitle, char *szMessage);
+void ShowMessage (const char *szTitle, const char *szMessage);
 #define CreateMenuItemSeperator(menu) CreateMenuItem(menu, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 #ifdef __cplusplus

@@ -26,9 +26,8 @@
  */
 #ifndef __PLAYER_MEM_BYTESTREAM_H__
 #define __PLAYER_MEM_BYTESTREAM_H__ 1
-#include <type/typeapi.h>
+#include "systems.h"
 #include <tools/entropy/bytestrm.hpp>
-#include <rtp/config_unix.h>
 #include "player_util.h"
 
 
@@ -37,11 +36,11 @@ class CInByteStreamMem : public CInByteStreamBase
  public:
   CInByteStreamMem();
   ~CInByteStreamMem();
-  int eof (void) { return 0; };
-  Char get(void);
-  Char peek(void);
+  int eof (void) { return m_offset >= m_len; };
+  char get(void);
+  char peek(void);
   void reset(void) { };
-  void bookmark(Bool Bset);
+  void bookmark(int Bset);
   void set_memory (const char *membuf, size_t len) {
     m_memptr = membuf;
     m_len = len;

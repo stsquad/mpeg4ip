@@ -27,8 +27,7 @@
 #ifndef __AUDIO_H__
 #define __AUDIO_H__ 1
 
-#include <stdint.h>
-#include <unistd.h>
+#include "systems.h"
 #include <SDL.h>
 #include "player_session.h"
 
@@ -89,6 +88,10 @@ class CAudioSync {
   int64_t m_wrong_latency_total;
   int m_volume;
   int m_do_sync;
+  size_t m_sample_size;
+  size_t m_play_sample_index;
+  size_t m_samples_loaded;
+  short *m_weird_sample;
 };
 
 #endif

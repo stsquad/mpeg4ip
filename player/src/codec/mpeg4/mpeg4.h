@@ -24,25 +24,10 @@
 #ifndef __MPEG4_H__
 #define __MPEG4_H__ 1
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fstream.h>
-
-#ifdef __PC_COMPILER_
-#include <windows.h>
-#include <mmsystem.h>
-#endif // __PC_COMPILER_
-
-#include <type/typeapi.h>
-#include <sys/mode.hpp>
-#include <sys/vopses.hpp>
-#include <tools/entropy/bitstrm.hpp>
-#include <sys/tps_enhcbuf.hpp>
-#include <sys/decoder/enhcbufdec.hpp>
-#include <sys/decoder/vopsedec.hpp>
+#include "systems.h"
 #include "codec.h"
 #include "player_media.h"
-#include "player_rtp_bytestream.h"
+
 #include "video.h"
 
 #define DECODE_STATE_VO_SEARCH 0
@@ -58,22 +43,22 @@ class CMpeg4Codec: public CVideoCodecBase {
 	      CInByteStreamBase *pbytestrm, 
 	      format_list_t *media_fmt,
 	      video_info_t *vinfo,
-	      const char *userdata = NULL,
+	      const unsigned char *userdata = NULL,
 	      size_t ud_size = 0);
   ~CMpeg4Codec();
   int decode(uint64_t ts, int fromrtp);
   void do_pause(void);
  private:
-  int parse_vovod(const char *config);
+  int parse_vovod(const char *config, int ascii, size_t len);
   CVideoObjectDecoder *m_pvodec;
-  Bool m_main_short_video_header;
-  Int m_nFrames;
-  Int m_decodeState;
-  Bool m_bSpatialScalability;
-  Bool m_bCachedRefFrame;
-  Bool m_bCachedRefFrameCoded;
-  Bool m_dropFrame;
-  Bool m_cached_valid;
+  int m_main_short_video_header;
+  int m_nFrames;
+  int m_decodeState;
+  int m_bSpatialScalability;
+  int m_bCachedRefFrame;
+  int m_bCachedRefFrameCoded;
+  int m_dropFrame;
+  int m_cached_valid;
   uint64_t m_cached_time;
   uint64_t m_last_time;
   size_t m_dropped_b_frames;

@@ -41,9 +41,9 @@ void CInByteStreamMem::init()
   m_bookmark_set = 0;
 }
 
-Char CInByteStreamMem::get (void)
+char CInByteStreamMem::get (void)
 {
-  Char ret;
+  char ret;
 
   ret = *m_memptr++;
   m_offset++;
@@ -55,14 +55,14 @@ Char CInByteStreamMem::get (void)
   return (ret);
 }
 
-Char CInByteStreamMem::peek (void) 
+char CInByteStreamMem::peek (void) 
 {
   return (*m_memptr);
 }
 
-void CInByteStreamMem::bookmark (Bool bSet)
+void CInByteStreamMem::bookmark (int bSet)
 {
-  if (bSet == TRUE) {
+  if (bSet) {
     m_bookmark_set = 1;
     m_bookmark_offset = m_offset;
     m_bookmark_memptr = m_memptr;

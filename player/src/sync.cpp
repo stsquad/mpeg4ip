@@ -48,7 +48,11 @@ uint64_t CPlayerSession::get_current_time ()
     }
   } else{
     if (m_clock_wrapped > 0) {
-      current_time += ((1LL << 32)/1000);
+	  uint64_t temp;
+	  temp = 1;
+	  temp <<= 32;
+	  temp /= 1000;
+      current_time += temp;
     } else {
       m_clock_wrapped = 0;
     }
@@ -64,7 +68,6 @@ int CPlayerSession::sync_thread (void)
   int init_done;
   m_clock_wrapped = 0;
   int synced;
-  int m_hardware_error = 0;
   CMsg *newmsg;
 
   /*
@@ -108,6 +111,7 @@ int CPlayerSession::sync_thread (void)
   } while (init_done == 0 && m_hardware_error == 0);
 
   if (m_hardware_error == 1) {
+#ifndef _WINDOWS
     while (1) {
       SDL_SemWait(m_sync_sem);
       while ((newmsg = m_sync_thread_msg_queue.get_message()) != NULL) {
@@ -116,6 +120,9 @@ int CPlayerSession::sync_thread (void)
 	}
       }
     }
+#else
+	return (-1);
+#endif
   }
       
   m_current_time = 0;
@@ -126,7 +133,7 @@ int CPlayerSession::sync_thread (void)
   m_start = (t.tv_sec * 1000) + (t.tv_usec / 1000);
   synced = 0;
   uint64_t audio_resync_time = 0, video_resync_time = 0;
-  int video_status = 0;
+  int64_t video_status = 0;
   int wait_for_signal = 1;
   int stop_thread = 0;
   int is_paused = 1;
@@ -201,7 +208,7 @@ int CPlayerSession::sync_thread (void)
 	if (ret == 0) {
 	  vsynced = 0;
 	} else {
-	  player_debug_message("return from video start is %llu", vstart);
+	  //player_debug_message("return from video start is %llu", vstart);
 	}
       } 
 
@@ -274,19 +281,27 @@ int CPlayerSession::sync_thread (void)
     }
 
     if (m_video_sync && m_audio_sync) {
-      if (video_status == 0 || audio_resync_time == 0) {
-	wait_for_signal = 1;
+      if (video_status > 0 || audio_resync_time == 0) {
+	if (video_status < 9) {
+	  wait_for_signal = 0;
+	} else {
+	  wait_for_signal = 1;
+	}
       } else {
 	wait_for_signal = 0;
       }
     } else if (m_video_sync) {
       if (have_video_eof == 1) {
+#ifndef _WINDOWS
 	m_master_msg_queue->send_message(MSG_SESSION_FINISHED,
 					 NULL,
 					 0, 
 					 m_master_msg_queue_sem);
 	wait_for_signal = 1;
-      } else if (video_status == 0) {
+#else
+	return (1);
+#endif
+      } else if (video_status >= 9) {
 	wait_for_signal = 1;
       } else {
 	wait_for_signal = 0;
@@ -294,13 +309,17 @@ int CPlayerSession::sync_thread (void)
     } else {
       // audio only
       if (have_audio_eof == 1) {
+#ifndef _WINDOWS
 	m_master_msg_queue->send_message(MSG_SESSION_FINISHED, 
 					 NULL, 
 					 0, 
 					 m_master_msg_queue_sem);
 	wait_for_signal = 1;
+#else
+	return (1);
+#endif
       } else if (audio_resync_time != 0) {
-#if 1
+#if 0
 	player_debug_message("Audio resync is %llu", audio_resync_time);
 	player_debug_message("Current time is %llu", m_current_time);
 #endif
@@ -322,11 +341,15 @@ int CPlayerSession::sync_thread (void)
 	  range_end = (uint64_t)(m_range->range_end * 1000.0);
 	  if (m_current_time > range_end) {
 	    //player_debug_message("timeout reached %llu", m_current_time);
+#ifndef _WINDOWS
 	    m_master_msg_queue->send_message(MSG_SESSION_FINISHED, 
 					     NULL, 
 					     0, 
 					     m_master_msg_queue_sem);
 	    SDL_SemWait(m_sync_sem);
+#else
+		return (1);
+#endif
 	  }
 	} else {
 	  if ((m_audio_sync == NULL || have_audio_eof == 1) &&

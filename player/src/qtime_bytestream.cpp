@@ -21,8 +21,7 @@
 /*
  * qtime_bytestream.cpp - convert quicktime file to a bytestream
  */
-#include <stdint.h>
-#include <unistd.h>
+#include "systems.h"
 #include "player_session.h"
 #include "player_media.h"
 #include "qtime_bytestream.h"
@@ -41,8 +40,8 @@ CQTByteStreamBase::CQTByteStreamBase (CQtimeFile *parent,
   m_parent = parent;
   m_eof = 0;
   m_max_frame_size = 16 * 1024;
-  m_buffer = (Char *) malloc(m_max_frame_size * sizeof(Char));
-  m_bookmark_buffer = (Char *)malloc(m_max_frame_size * sizeof(Char));
+  m_buffer = (char *) malloc(m_max_frame_size * sizeof(char));
+  m_bookmark_buffer = (char *)malloc(m_max_frame_size * sizeof(char));
   m_buffer_on = m_buffer;
   m_bookmark_read_frame = 0;
 }
@@ -59,9 +58,9 @@ int CQTByteStreamBase::eof(void)
 }
 
 
-Char CQTByteStreamBase::get (void)
+char CQTByteStreamBase::get (void)
 {
-  Char ret;
+  char ret;
 #if 0
   player_debug_message("Getting byte %u frame %u %u bookmark %d", 
 		       m_byte_on, m_frame_on, m_this_frame_size, m_bookmark);
@@ -87,12 +86,12 @@ Char CQTByteStreamBase::get (void)
   return (ret);
 }
 
-Char CQTByteStreamBase::peek (void) 
+char CQTByteStreamBase::peek (void) 
 {
   return (m_buffer_on[m_byte_on]);
 }
 
-void CQTByteStreamBase::bookmark (Bool bSet)
+void CQTByteStreamBase::bookmark (int bSet)
 {
   if (bSet) {
     m_bookmark = 1;
@@ -157,7 +156,7 @@ void CQTVideoByteStream::read_frame (void)
     if (m_bookmark == 0) {
       // Yup - looks like it - just adjust the buffers and return
       m_bookmark_read_frame = 0;
-      Char *temp = m_buffer;
+      char *temp = m_buffer;
       m_buffer = m_bookmark_buffer;
       m_bookmark_buffer = temp;
       m_buffer_on = m_buffer;
@@ -177,9 +176,9 @@ void CQTVideoByteStream::read_frame (void)
 					 m_track);
   if (next_frame_size > m_max_frame_size) {
     m_max_frame_size = next_frame_size;
-    m_buffer = (Char *)realloc(m_buffer, next_frame_size * sizeof(Char));
-    m_bookmark_buffer = (Char *)realloc(m_bookmark_buffer, 
-					next_frame_size * sizeof(Char));
+    m_buffer = (char *)realloc(m_buffer, next_frame_size * sizeof(char));
+    m_bookmark_buffer = (char *)realloc(m_bookmark_buffer, 
+					next_frame_size * sizeof(char));
   }
   m_this_frame_size = next_frame_size;
   if (m_bookmark == 0) {
@@ -247,7 +246,7 @@ void CQTAudioByteStream::read_frame (void)
   if (m_bookmark_read_frame != 0) {
     if (m_bookmark == 0) {
       m_bookmark_read_frame = 0;
-      Char *temp = m_buffer;
+      char *temp = m_buffer;
       m_buffer = m_bookmark_buffer;
       m_bookmark_buffer = temp;
       m_buffer_on = m_buffer;
@@ -276,9 +275,9 @@ void CQTAudioByteStream::read_frame (void)
 						 m_track);
   if (m_this_frame_size < 0) {
     m_max_frame_size = -m_this_frame_size;
-    m_buffer = (Char *)realloc(m_buffer, m_max_frame_size * sizeof(Char));
-    m_bookmark_buffer = (Char *)realloc(m_bookmark_buffer,
-					m_max_frame_size * sizeof(Char));
+    m_buffer = (char *)realloc(m_buffer, m_max_frame_size * sizeof(char));
+    m_bookmark_buffer = (char *)realloc(m_bookmark_buffer,
+					m_max_frame_size * sizeof(char));
     // Okay - I could have used a goto, but it really grates...
     if (m_bookmark == 0) {
       m_buffer_on = m_buffer;

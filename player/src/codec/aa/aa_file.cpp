@@ -39,7 +39,7 @@ int create_media_for_aac_file (CPlayerSession *psptr,
   mptr = new CPlayerMedia;
   if (mptr == NULL) {
     *errmsg = "Couldn't create media";
-    return (1);
+    return (-1);
   }
 
   /*
@@ -56,7 +56,7 @@ int create_media_for_aac_file (CPlayerSession *psptr,
     freq = aac_get_sample_rate();
     if (freq == 0) {
       *errmsg = "Couldn't determine AAC frame rate";
-      return (1);
+      return (-1);
     }
   } 
   aac_decode_free();
@@ -64,7 +64,7 @@ int create_media_for_aac_file (CPlayerSession *psptr,
   fbyte = new COurInByteStreamFile(mptr, name);
   if (fbyte == NULL) {
     *errmsg = "Couldn't create file stream";
-    return (1);
+    return (-1);
   }
   /*
    * This is not necessarilly true - we may want to read the aac, then
@@ -74,14 +74,14 @@ int create_media_for_aac_file (CPlayerSession *psptr,
   *errmsg = "Can't create thread";
   ret =  mptr->create_from_file(psptr, fbyte, FALSE);
   if (ret != 0) {
-    return (1);
+    return (-1);
   }
 
   audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
   audio->freq = freq;
   audio->stream_has_length = 0;
   mptr->set_audio_info(audio);
-  player_debug_message("Freq set to %d", freq);
+  mptr->set_codec_type("aac ");
   return (0);
 }
 

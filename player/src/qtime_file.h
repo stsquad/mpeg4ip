@@ -45,6 +45,8 @@ class CQtimeFile {
   int create_audio (CPlayerSession *psptr);
   int create_video (CPlayerSession *psptr);
   quicktime_t *get_file(void) {return m_qtfile; };
+  int get_audio_tracks (void) { return m_audio_tracks; };
+  int get_video_tracks (void) { return m_video_tracks; };
  private:
   char *m_name;
   quicktime_t *m_qtfile;

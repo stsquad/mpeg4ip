@@ -4,7 +4,7 @@ libmpeg4_la_SOURCES = \
 	mpeg4.cpp \
 	mpeg4_file.cpp
 
-INCLUDES = -I.. -I../.. -I../../../lib -I../../../lib/SDL/include -I../../../../common/video/mpeg4
+INCLUDES = -I.. -I../.. -I../../../lib -I../../../lib/SDL/include -I../../../../common/video/mpeg4 -I../../../../include
 
 AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 

@@ -27,6 +27,12 @@
 #include "our_bytestream_file.h"
 #include "mpeg4.h"
 #include "mpeg4_file.h"
+#include "type/typeapi.h"
+#include "sys/mode.hpp"
+#include "sys/vopses.hpp"
+//#include "sys/tps_enhcbuf.hpp"
+//#include "sys/decoder/enhcbufdec.hpp"
+#include "sys/decoder/vopsedec.hpp"
 
 int create_media_for_mpeg4_file (CPlayerSession *psptr, 
 				 const char *name,
@@ -35,7 +41,7 @@ int create_media_for_mpeg4_file (CPlayerSession *psptr,
   CPlayerMedia *mptr;
   COurInByteStreamFile *fbyte;
   CVideoObjectDecoder *vdec;
-  Bool dummy1, dummy2;
+  int dummy1, dummy2;
   vdec = new CVideoObjectDecoder(name, -1, -1, &dummy1, &dummy2);
   Int clockrate = vdec->getClockRate();
   delete vdec;
@@ -44,18 +50,19 @@ int create_media_for_mpeg4_file (CPlayerSession *psptr,
   mptr = new CPlayerMedia;
   if (mptr == NULL) {
     *errmsg = "Couldn't create media";
-    return (1);
+    return (-1);
   }
 
   fbyte = new COurInByteStreamFile(mptr, name);
   if (fbyte == NULL) {
     *errmsg = "Couldn't create file";
-    return (1);
+    return (-1);
   }
 
   fbyte->config_for_file(clockrate);
   player_debug_message("Configuring for frame rate %d", clockrate);
   *errmsg = "Couldn't create task";
+  mptr->set_codec_type("mp4 ");
   return( mptr->create_from_file(psptr, fbyte, TRUE));
 }
 

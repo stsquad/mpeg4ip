@@ -26,12 +26,8 @@
 #ifndef __PLAYER_RTP_BYTESTREAM_H__
 #define __PLAYER_RTP_BYTESTREAM_H__ 1
 #include "our_bytestream.h"
-#include <rtp/config_unix.h>
-extern "C" {
-#include <rtp/rtp.h>
-}
 #include "player_util.h"
-
+#include "rtp/rtp.h"
 
 class CPlayerMedia;
 
@@ -41,9 +37,9 @@ class CInByteStreamRtp : public COurInByteStream
   CInByteStreamRtp(CPlayerMedia *m);
   ~CInByteStreamRtp();
   int eof (void) { return 0; };
-  Char get(void);
-  Char peek(void);
-  void bookmark(Bool Bset);
+  char get(void);
+  char peek(void);
+  void bookmark(int Bset);
   void reset(void) { init(); };
   int have_no_data(void);
   uint64_t start_next_frame(void);

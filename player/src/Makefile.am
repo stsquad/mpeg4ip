@@ -47,7 +47,7 @@ gmp4player_SOURCES = \
 movplayer_SOURCES = player_util.c \
 	movplayer.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I../lib/SDL/include -I$(top_srcdir)/common/mp4 -I$(top_srcdir)/include -I/usr/lib/glib/include
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I../lib/SDL/include -I$(top_srcdir)/common/mp4 -I$(top_srcdir)/include -I/usr/lib/glib/include -I$(top_srcdir)/include
 
 AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes 
 
@@ -61,11 +61,15 @@ LDADD = \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/player/lib/audio/faad/libfaad.la \
 	$(top_builddir)/player/src/codec/mpeg4/libmpeg4.la \
+	$(top_builddir)/player/lib/video/divx/libourdivx.la \
+	$(top_builddir)/player/src/codec/divx/libdivx.la \
+	$(top_builddir)/player/lib/video/divx/libourdivx.la \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
 	$(top_builddir)/player/lib/SDL/src/libSDL.la \
 	$(top_builddir)/common/mp4/libmp4.la \
 	-lpthread \
 	-lm \
+	$(top_builddir)/player/lib/video/divx/libourdivx.la \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
 	-L/usr/lib -L/usr/X11R6/lib -lgtk -lgdk \

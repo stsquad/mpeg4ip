@@ -21,12 +21,7 @@
 /*
  * This is a command line based player for testing the library
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
-#include <syslog.h>
+#include "systems.h"
 #include <rtsp/rtsp_client.h>
 #include "player_session.h"
 #include "player_util.h"
@@ -43,7 +38,7 @@ int main (int argc, char **argv)
   int loopcount = 0;
   int max_loop = 1;
 
-  //rtsp_set_loglevel(LOG_DEBUG);
+  rtsp_set_loglevel(LOG_DEBUG);
   argv++;
   argc--;
   if (argc && strcmp(*argv, "-l") == 0) {
@@ -69,21 +64,34 @@ int main (int argc, char **argv)
   }
   
   const char *errmsg;
-  if (parse_name_for_session(psptr, name, &errmsg) != 0) {
+  int ret = parse_name_for_session(psptr, name, &errmsg);
+  if (ret < 0) {
+	player_debug_message(errmsg);
     delete psptr;
     return (1);
   }
 
+  if (ret > 0) {
+	  player_debug_message(errmsg);
+  }
+
   psptr->set_up_sync_thread();
+  psptr->set_screen_location(100, 100);
+  psptr->set_screen_size(2);
   while (loopcount < max_loop) {
     loopcount++;
+	player_debug_message("Starting");
     if (psptr->play_all_media(TRUE) != 0) {
       delete psptr;
       return (1);
     }
+
+#ifdef _WINDOWS
+	psptr->sync_thread();
+#endif
+#if 0
     int keep_going = 0;
     int paused = 0;
-
 #ifdef DO_PAUSE
     int did_pause = 0;
 #endif
@@ -134,6 +142,7 @@ int main (int argc, char **argv)
       psptr->pause_all_media();
     }
 #endif
+#endif
   }
   delete psptr;
   SDL_DestroySemaphore(master_sem);
@@ -147,6 +156,6 @@ int main (int argc, char **argv)
     delete first;
   }
      
-  exit(0); 
+  return(0); 
 }  
   

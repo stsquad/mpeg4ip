@@ -157,6 +157,7 @@ class CPlayerSession {
   session_state_t m_session_state;
   int m_screen_pos_x;
   int m_screen_pos_y;
+  int m_hardware_error;
 };
 
 #endif

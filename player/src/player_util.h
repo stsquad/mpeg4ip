@@ -24,12 +24,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  
+
 void player_error_message(const char *fmt, ...)
-       __attribute__((format(__printf__, 1, 2)));
+#ifndef _WINDOWS
+       __attribute__((format(__printf__, 1, 2)))
+#endif
+;
 
 void player_debug_message(const char *fmt, ...)
-       __attribute__((format(__printf__, 1, 2)));
+#ifndef _WINDOWS
+       __attribute__((format(__printf__, 1, 2)))
+#endif
+	   ;
 
 #ifdef __cplusplus
 }

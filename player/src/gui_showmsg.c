@@ -60,7 +60,7 @@ static void ClearShowMessage (GtkWidget *widget, gpointer data)
  *
  * Show a popup message to the user.
  */
-void ShowMessage (char *szTitle, char *szMessage)
+void ShowMessage (const char *szTitle, const char *szMessage)
 {
     GtkWidget *label;
     GtkWidget *button;

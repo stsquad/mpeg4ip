@@ -1,4 +1,4 @@
-/*
+ /*
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of
@@ -24,7 +24,7 @@
 #ifndef __OUR_BYTESTREAM_FILE_H__
 #define __OUR_BYTESTREAM_FILE_H__ 1
 
-#include <stdint.h>
+#include "systems.h"
 #include "our_bytestream.h"
 
 class COurInByteStreamFile : public COurInByteStream
@@ -32,27 +32,11 @@ class COurInByteStreamFile : public COurInByteStream
  public:
   COurInByteStreamFile(CPlayerMedia *m, const char *filename);
   ~COurInByteStreamFile();
-  int eof(void) { return (m_pInStream->eof()); };
-  Char get(void){ m_total++; return (m_pInStream->get()); };
-  Char peek(void) { return (m_pInStream->peek()); };
-  void bookmark(Bool bSet){
-    if (bSet) {
-      m_bookmark_strmpos = m_pInStream->tellg();
-      m_bookmark_eofstate = m_pInStream->eof();
-      m_total_bookmark = m_total;
-    } else {
-      m_pInStream->seekg(m_bookmark_strmpos);
-      if (m_bookmark_eofstate == 0)
-	m_pInStream->clear();
-      m_total = m_total_bookmark;
-    }
-  };
-  void reset(void) {
-    m_pInStream->clear();
-    m_pInStream->seekg(0);
-    m_frames = 0;
-    m_total = 0;
-  };
+  int eof(void);
+  char get(void);
+  char peek(void);
+  void bookmark(int bSet); 
+  void reset(void);
   int have_no_data(void) { return eof(); };
   uint64_t start_next_frame(void);
   void config_for_file (uint64_t frame_per_sec) {
@@ -60,13 +44,19 @@ class COurInByteStreamFile : public COurInByteStream
   };
   double get_max_playtime (void) { return 0.0; };
  private:
+  void read_frame (void);
   const char *m_filename;
   uint64_t m_frames;
   uint64_t m_frame_per_sec;
-  istream *m_pInStream;
-  streampos m_bookmark_strmpos;
+  FILE *m_file;
   int m_bookmark_eofstate;
-  uint64_t m_total, m_total_bookmark;
+  uint64_t m_total, m_bookmark_total;
+  char *m_buffer_on, *m_orig_buffer, *m_bookmark_buffer;
+  size_t m_buffer_size, m_bookmark_buffer_size;
+  size_t m_bookmark_loaded, m_bookmark_loaded_size;
+  size_t m_buffer_size_max;
+  size_t m_index, m_bookmark_index;
+  int m_bookmark;
 };
 
 #endif

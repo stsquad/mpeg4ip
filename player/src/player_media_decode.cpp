@@ -22,19 +22,13 @@
  * player_media_decode.cpp
  * decode task thread for a CPlayerMedia
  */
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
+#include "systems.h"
 #include "player_session.h"
 #include "player_media.h"
 #include "player_sdp.h"
 #include "player_util.h"
-
+#include "media_utils.h"
 #include <rtp/memory.h>
-#include "mpeg4.h"
-#include "codec/aa/aa.h"
 
 /*
  * CPlayerMedia::advance_head - move to the next rtp packet in the
@@ -62,11 +56,14 @@ rtp_packet *CPlayerMedia::advance_head (int bookmark_set, const char **err)
     p = m_head->next;
     nextseq = m_head->seq + 1;
     if (nextseq != p->seq) {
+#if 0
       p = m_head;
       m_head = m_head->next;
       m_tail->next = m_head;
       m_head->prev = m_tail;
       xfree(p);
+#endif
+	  //player_debug_message("bookmark seq number");
       *err = "bookmark Sequence number violation";
       p = NULL;
     }
@@ -102,6 +99,7 @@ rtp_packet *CPlayerMedia::advance_head (int bookmark_set, const char **err)
 
   if (m_head) {
     *err = "Sequence number violation";
+    player_debug_message("seq # violation - should %d is %d", nextseq, m_head->seq);
   } else {
     *err = "No more data";
   }
@@ -149,17 +147,17 @@ void CPlayerMedia::parse_decode_message (int &thread_stop, int &decoding)
  */
 int CPlayerMedia::decode_thread (void) 
 {
-
   //  uint32_t msec_per_frame = 0;
   CCodecBase *codec = NULL;
   int ret = 0;
+#define TIME_DECODE
 #ifdef TIME_DECODE
   int64_t avg = 0, diff;
   int64_t max = 0;
   int avg_cnt = 0;
 #endif
   int thread_stop = 0, decoding = 0;
-  uint codec_proto = 0;
+  unsigned int codec_proto = 0;
 
   while (thread_stop == 0) {
     // waiting here for decoding or thread stop
@@ -179,19 +177,34 @@ int CPlayerMedia::decode_thread (void)
 	if (is_video()) {
 	  m_video_sync->set_sync_sem(m_parent->get_sync_sem());
 	  m_video_sync->set_wait_sem(m_decode_thread_sem);
-	  codec = new CMpeg4Codec(m_video_sync, 
-				  m_byte_stream,
-				  m_media_fmt,
-				  m_video_info);
+	  codec = start_video_codec(m_codec_type,
+				    m_video_sync, 
+				    m_byte_stream,
+				    m_media_fmt,
+				    m_video_info,
+				    m_user_data,
+				    m_user_data_size);
 	} else {
 	  m_audio_sync->set_sync_sem(m_parent->get_sync_sem());
 	  m_audio_sync->set_wait_sem(m_decode_thread_sem);
-	  codec = new CAACodec(m_audio_sync, 
-			       m_byte_stream, 
-			       m_media_fmt,
-			       m_audio_info);
+	  codec = start_audio_codec(m_codec_type,
+				    m_audio_sync, 
+				    m_byte_stream, 
+				    m_media_fmt,
+				    m_audio_info,
+				    m_user_data,
+				    m_user_data_size);
 	}
 	codec_proto = m_rtp_proto;
+	if (codec == NULL) {
+	  while (thread_stop == 0 && decoding) {
+	    SDL_Delay(100);
+	    if (m_rtp_byte_stream) {
+	      flush_rtp_packets();
+	    }
+	    parse_decode_message(thread_stop, decoding);
+	  }
+	}
       } else {
 	codec->do_pause();
 	// to do - compare with m_rtp_proto
@@ -246,9 +259,12 @@ int CPlayerMedia::decode_thread (void)
 	  if (diff > max) max = diff;
 	  avg += diff;
 	  avg_cnt++;
-#if 0
+#if 1
 	  if ((avg_cnt % 100) == 0) {
-	    player_debug_message("Decode avg time is %lld", avg / avg_cnt);
+	    player_debug_message("%s Decode avg time is %lld max %lld", 
+				 m_codec_type,
+				 avg / avg_cnt, max);
+	    max = 0;
 	  }
 #endif
 	}

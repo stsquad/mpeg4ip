@@ -21,7 +21,7 @@
 /*
  * ip_port.cpp - reserve IP port numbers for audio/video RTP streams
  */
-#include <unistd.h>
+#include "systems.h"
 #include "ip_port.h"
 
 /*
@@ -47,14 +47,19 @@ CIpPort::CIpPort (void)
   sin.sin_port = 0;
 
   if (bind(m_sock, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
-    close(m_sock);
+    closesocket(m_sock);
     m_sock = -1;
     return;
   }
 
-  socklen_t socklen = sizeof(sin);
+#ifdef _WINDOWS
+  int socklen;
+#else
+  socklen_t socklen;
+#endif
+  socklen = sizeof(sin);
   if (getsockname(m_sock, (struct sockaddr *)&sin, &socklen) < 0) {
-    close(m_sock);
+    closesocket(m_sock);
     m_sock = -1;
     return;
   }
@@ -68,7 +73,7 @@ CIpPort::CIpPort (void)
 CIpPort::~CIpPort (void)
 {
   if (m_sock != -1) {
-    close(m_sock);
+    closesocket(m_sock);
     m_sock = -1;
   }
 }

@@ -28,9 +28,8 @@
 #ifndef __OUR_BYTESTREAM_H__
 #define __OUR_BYTESTREAM_H__ 1
 
-#include <type/typeapi.h>
 #include <tools/entropy/bytestrm.hpp>
-#include <stdint.h>
+#include "systems.h"
 
 class CPlayerMedia;
 
@@ -41,15 +40,15 @@ class COurInByteStream : public CInByteStreamBase
     {m_media = m;};
   virtual ~COurInByteStream() {};
   virtual int eof(void) = 0;
-  virtual Char get(void) = 0;
-  virtual Char peek(void) = 0;
-  virtual void bookmark(Bool bSet) = 0;
+  virtual char get(void) = 0;
+  virtual char peek(void) = 0;
+  virtual void bookmark(int bSet) = 0;
   virtual void reset(void) = 0;
-  virtual int have_no_data (void) {return FALSE; };
+  virtual int have_no_data (void) {return 0; };
   virtual uint64_t start_next_frame (void) = 0;
   virtual double get_max_playtime (void) = 0;
   virtual void set_start_time(uint64_t start) { m_play_start_time = start; };
-  int still_same_ts (void) { return FALSE; };
+  int still_same_ts (void) { return 0; };
 
  protected:
   uint64_t m_play_start_time;

@@ -29,10 +29,6 @@
 #include <SDL_thread.h>
 #include <sdp/sdp.h>
 #include <rtsp/rtsp_client.h>
-#include <rtp/config_unix.h>
-extern "C" {
-#include <rtp/rtp.h>
-}
 #include "msg_queue.h"
 #include "ip_port.h"
 #include "player_rtp_bytestream.h"
@@ -45,12 +41,13 @@ typedef struct video_info_t {
   int height;
   int width;
   int frame_rate;
+  int file_has_vol_header;
 } video_info_t;
 
 typedef struct audio_info_t {
   int freq;
   int stream_has_length;
-};
+} audio_info_t;
 
 class CPlayerMedia {
  public:
@@ -59,7 +56,8 @@ class CPlayerMedia {
   /* API routine - create - for RTP stream */
   int create_streaming(CPlayerSession *p,
 		       media_desc_t *sdp_media,
-		       const char **errmsg);
+		       const char **errmsg,
+		       int on_demand);
   /* API routine - create - where we provide the bytestream */
   int create_from_file (CPlayerSession *p, COurInByteStream *b, int is_video);
   /* API routine - play, pause */
@@ -107,6 +105,13 @@ class CPlayerMedia {
   const audio_info_t *get_audio_info (void) { return m_audio_info; };
   void set_video_info (video_info_t *p) { m_video_info = p; };
   void set_audio_info (audio_info_t *p) { m_audio_info = p; };
+  void set_codec_type (const char *codec) {
+    m_codec_type = strdup(codec);
+  };
+  void set_user_data (const unsigned char *udata, int length) {
+    m_user_data = udata;
+    m_user_data_size = length;
+  }
  private:
   int m_is_video;
   int m_paused;
@@ -124,8 +129,8 @@ class CPlayerMedia {
   time_t m_start_time;
   uint32_t m_rtptime_last;
 
-  uint m_rtp_proto;
-  
+  unsigned int m_rtp_proto;
+  int m_stream_ondemand;
   int m_sync_time_set;
   uint64_t m_sync_time_offset;
   uint32_t m_rtptime_tickpersec;
@@ -142,6 +147,7 @@ class CPlayerMedia {
   size_t m_rtp_queue_len_max;
 
   // Other rtp information
+  int m_rtp_ondemand;
   int m_rtp_ssrc_set;
   uint32_t m_rtp_ssrc;
   int m_rtp_init_seq_set;
@@ -153,6 +159,7 @@ class CPlayerMedia {
   SDL_Thread *m_decode_thread;
   volatile int m_decode_thread_waiting;
   SDL_sem *m_decode_thread_sem;
+  const char *m_codec_type;
 
   // State change variable
   CMsgQueue m_rtp_msg_queue;
@@ -170,6 +177,9 @@ class CPlayerMedia {
   CInByteStreamRtp *m_rtp_byte_stream;
   video_info_t *m_video_info;
   audio_info_t *m_audio_info;
+
+  const unsigned char *m_user_data;
+  int m_user_data_size;
 };
 
 #endif

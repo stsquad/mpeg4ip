@@ -23,15 +23,12 @@
  * Things to do - pull all rtp info out of this, push it into rtp bytestream
  * class.
  */
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
+#include "systems.h"
 #include "player_session.h"
 #include "player_media.h"
 #include "player_sdp.h"
 #include "player_util.h"
+#include <rtp/rtp.h>
 #include <rtp/memory.h>
 
 /*
@@ -95,6 +92,8 @@ CPlayerMedia::CPlayerMedia ()
   m_rtp_byte_stream = NULL;
   m_video_info = NULL;
   m_audio_info = NULL;
+  m_codec_type = NULL;
+  m_user_data = NULL;
 }
 
 CPlayerMedia::~CPlayerMedia()
@@ -146,7 +145,13 @@ CPlayerMedia::~CPlayerMedia()
     player_debug_message("Payload received: %llu bytes", m_rtp_data_received);
     div = m_rtp_packet_received / diff;
     player_debug_message("Packets per sec : %g", div);
-    div = m_rtp_data_received * 8.0 / diff;
+#ifdef _WINDOWS
+    div = (int64_t)m_rtp_data_received;
+#else
+	div = m_rtp_data_received;
+#endif
+	div *= 8.0;
+	div /= diff;
     player_debug_message("Bits per sec   : %g", div);
 			 
   }
@@ -162,6 +167,15 @@ CPlayerMedia::~CPlayerMedia()
   if (m_audio_info) {
     free(m_audio_info);
     m_audio_info = NULL;
+  }
+  if (m_codec_type) {
+    free((void *)m_codec_type);
+    m_codec_type = NULL;
+  }
+
+  if (m_user_data) {
+    free((void *)m_user_data);
+    m_user_data = NULL;
   }
 }
 /*
@@ -193,7 +207,8 @@ int CPlayerMedia::create_from_file (CPlayerSession *p,
  */
 int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 				    media_desc_t *sdp_media,
-				    const char **errmsg)
+				    const char **errmsg,
+				    int ondemand)
 {
   char buffer[80];
   rtsp_command_t cmd;
@@ -216,59 +231,62 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     return (-1);
   }
 
-  /*
-   * Get 2 consecutive IP ports.  If we don't have this, don't even
-   * bother
-   */
-  m_ports = new C2ConsecIpPort(&global_invalid_ports);
-  if (m_ports == NULL || !m_ports->valid()) {
-    *errmsg = "Could not find any valid IP ports";
-    player_error_message("Couldn't get valid IP ports");
-    return (-1);
-  }
-
-  m_our_port = m_ports->first_port();
   m_parent = psptr;
   m_media_info = sdp_media;
   m_is_video = strcmp(sdp_media->media, "video") == 0;
-    
+  m_stream_ondemand = ondemand;
+  if (ondemand != 0) {
+    /*
+     * Get 2 consecutive IP ports.  If we don't have this, don't even
+     * bother
+     */
+    m_ports = new C2ConsecIpPort(&global_invalid_ports);
+    if (m_ports == NULL || !m_ports->valid()) {
+      *errmsg = "Could not find any valid IP ports";
+      player_error_message("Couldn't get valid IP ports");
+      return (-1);
+    }
+    m_our_port = m_ports->first_port();
 
-  /*
-   * Send RTSP setup message - first create the transport string for that
-   * message
-   */
-  memset(&cmd, 0, sizeof(rtsp_command_t));
-  create_rtsp_transport_from_sdp(m_parent->get_sdp_info(),
-				 m_media_info,
-				 m_our_port,
-				 buffer,
-				 sizeof(buffer));
+    /*
+     * Send RTSP setup message - first create the transport string for that
+     * message
+     */
+    memset(&cmd, 0, sizeof(rtsp_command_t));
+    create_rtsp_transport_from_sdp(m_parent->get_sdp_info(),
+				   m_media_info,
+				   m_our_port,
+				   buffer,
+				   sizeof(buffer));
   
-  cmd.transport = buffer;
-  if (rtsp_send_setup(m_parent->get_rtsp_client(),
-		      m_media_info->control_string,
-		      &cmd,
-		      &m_rtsp_session,
-		      &decode) != 0) {
-    *errmsg = "Couldn't set up media session";
-    player_error_message("Can't create session %s", m_media_info->media);
-    if (decode != NULL)
-      free_decode_response(decode);
-    return (-1);
-  }
-  cmd.transport = NULL;
-  player_error_message("Transport returned is %s", decode->transport);
+    cmd.transport = buffer;
+    if (rtsp_send_setup(m_parent->get_rtsp_client(),
+			m_media_info->control_string,
+			&cmd,
+			&m_rtsp_session,
+			&decode) != 0) {
+      *errmsg = "Couldn't set up media session";
+      player_error_message("Can't create session %s", m_media_info->media);
+      if (decode != NULL)
+	free_decode_response(decode);
+      return (-1);
+    }
+    cmd.transport = NULL;
+    player_error_message("Transport returned is %s", decode->transport);
 
-  /*
-   * process the transport they sent.  They need to send port numbers, 
-   * addresses, rtptime information, that sort of thing
-   */
-  if (process_rtsp_transport(decode->transport) != 0) {
-    *errmsg = "Couldn't process transport information";
+    /*
+     * process the transport they sent.  They need to send port numbers, 
+     * addresses, rtptime information, that sort of thing
+     */
+    if (process_rtsp_transport(decode->transport) != 0) {
+      *errmsg = "Couldn't process transport information";
+      free_decode_response(decode);
+      return(-1);
+    }
     free_decode_response(decode);
-    return(-1);
+  } else {
+    m_server_port = m_our_port = m_media_info->port;
   }
-  free_decode_response(decode);
   connect_desc_t *cptr;
   cptr = get_connect_desc_from_media(m_media_info);
   if (cptr == NULL) {
@@ -281,13 +299,15 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
   // go ahead and init rtp, and the associated task
   //
   m_parent->add_media(this);
-  /*
-   * We need to free up the ports that we got before RTP tries to set 
-   * them up, so we don't have any re-use conflicts.  There is a small
-   * window here that they might get used...
-   */
-  delete m_ports; // free up the port numbers
-  m_ports = NULL;
+  if (ondemand != 0) {
+    /*
+     * We need to free up the ports that we got before RTP tries to set 
+     * them up, so we don't have any re-use conflicts.  There is a small
+     * window here that they might get used...
+     */
+    delete m_ports; // free up the port numbers
+    m_ports = NULL;
+  }
   m_rtp_session = rtp_init(m_source_addr == NULL ? 
 			   cptr->conn_addr : m_source_addr,
 			   m_our_port,
@@ -351,45 +371,47 @@ int CPlayerMedia::do_play (double start_time_offset)
   range_desc_t *range;
 
   if (m_rtp_byte_stream != NULL) {
-    /*
-     * We're streaming - send the RTSP play command
-     */
-    memset(&cmd, 0, sizeof(rtsp_command_t));
+    if (m_stream_ondemand != 0) {
+      /*
+       * We're streaming - send the RTSP play command
+       */
+      memset(&cmd, 0, sizeof(rtsp_command_t));
 
-    // only do range if we're not paused
-    range = get_range_from_media(m_media_info);
-    if (range == NULL) {
-      return (-1);
-    }
-    if (start_time_offset < range->range_start || 
-	start_time_offset > range->range_end) 
-      start_time_offset = range->range_start;
-    // need to check for smpte
-    sprintf(buffer, "npt=%g-%g", start_time_offset, range->range_end);
-    cmd.range = buffer;
+      // only do range if we're not paused
+      range = get_range_from_media(m_media_info);
+      if (range == NULL) {
+	return (-1);
+      }
+      if (start_time_offset < range->range_start || 
+	  start_time_offset > range->range_end) 
+	start_time_offset = range->range_start;
+      // need to check for smpte
+      sprintf(buffer, "npt=%g-%g", start_time_offset, range->range_end);
+      cmd.range = buffer;
 
-    if (rtsp_send_play(m_rtsp_session, &cmd, &decode) != 0) {
-      player_error_message("RTSP play command failed");
+      if (rtsp_send_play(m_rtsp_session, &cmd, &decode) != 0) {
+	player_error_message("RTSP play command failed");
+	free_decode_response(decode);
+	return (-1);
+      }
+
+      /*
+       * process the return information
+       */
+      if (process_rtsp_rtpinfo(decode->rtp_info) != 0) {
+	free_decode_response(decode);
+	return (-1);
+      }
+      /*
+       * set the various play times, and send a message to the recv task
+       * that it needs to start
+       */
+      m_play_start_time = start_time_offset;
+      m_byte_stream->set_start_time((uint64_t)(m_play_start_time * 1000.0));
       free_decode_response(decode);
-      return (-1);
     }
-
-    /*
-     * process the return information
-     */
-    if (process_rtsp_rtpinfo(decode->rtp_info) != 0) {
-      free_decode_response(decode);
-      return (-1);
-    }
-    /*
-     * set the various play times, and send a message to the recv task
-     * that it needs to start
-     */
-    m_play_start_time = start_time_offset;
-    m_byte_stream->set_start_time((uint64_t)(m_play_start_time * 1000.0));
     m_paused = 0;
     m_rtp_msg_queue.send_message(MSG_START_SESSION);
-    free_decode_response(decode);
   } else {
     /*
      * File (or other) playback.
@@ -965,7 +987,6 @@ int CPlayerMedia::add_packet_to_queue (rtp_packet *pak)
   rtp_packet *q;
   int inserted = TRUE;
   int16_t diff;
-
 #if 0
     player_debug_message("CBThread %u - m %u pt %u seq %x ts %u len %d", 
 			 SDL_ThreadID(),
@@ -1085,10 +1106,14 @@ int CPlayerMedia::determine_proto_from_rtp(void)
 			     m_media_info->media, m_rtp_proto, 
 			     m_rtptime_tickpersec);
 #endif
+	set_codec_type(fmt->rtpmap->encode_name);
       } else {
 	m_rtptime_tickpersec = 90000;
       }
-      m_rtptime_ntptickperrtptick = (1LL << 32) / m_rtptime_tickpersec;
+
+      m_rtptime_ntptickperrtptick = 1;
+	  m_rtptime_ntptickperrtptick <<= 32;
+	  m_rtptime_ntptickperrtptick /= m_rtptime_tickpersec;
       m_rtp_byte_stream->set_rtp_config(m_rtptime_tickpersec);
 #if 0
       player_debug_message("media %s - rtp tps %u ntp per rtp %llu",
