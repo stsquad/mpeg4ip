@@ -59,8 +59,10 @@ int quicktime_read_iods(quicktime_t *file, quicktime_iods_t *iods)
 {
 	iods->version = quicktime_read_char(file);
 	iods->flags = quicktime_read_int24(file);
-	/* skip 6 bytes */
-	quicktime_set_position(file, quicktime_position(file) + 6);
+	quicktime_read_char(file); /* skip tag */
+	quicktime_read_mp4_descr_length(file);	/* skip length */
+	/* skip ODID, ODProfile, sceneProfile */
+	quicktime_set_position(file, quicktime_position(file) + 4);
 	iods->audioProfileId = quicktime_read_char(file);
 	iods->videoProfileId = quicktime_read_char(file);
 	/* will skip the remainder of the atom */
