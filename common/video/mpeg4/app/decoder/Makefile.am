@@ -1,6 +1,6 @@
 #
 
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
+AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
 
 INCLUDES = -I.. -I../../type -I../../tools -I../../../../../include \
   -I../../sys -I../../sys/encoder -I../../vtc/include \
