@@ -16,7 +16,8 @@
  * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
  * 
  * Contributor(s): 
- *	Bill May wmay@cisco.com	
+ *	Bill May		wmay@cisco.com	
+ *	Peter Maersk-Moller	peter@maersk-moller.net
  */
 
 #include "mp4live.h"
@@ -74,6 +75,9 @@ bool get_audio_rtp_info (CLiveConfig *pConfig,
 			 uint8_t *audioPayloadBytesPerPacket,
 			 uint8_t *audioPayloadBytesPerFrame,
 			 uint8_t *audioQueueMaxCount,
+			 uint8_t *audioiovMaxCount,
+			 audio_queue_frame_f *audio_queue_frame,
+			 audio_set_rtp_payload_f *audio_set_rtp_payload,
 			 audio_set_rtp_header_f *audio_set_header,
 			 audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
 			 void **ud)
@@ -85,6 +89,9 @@ bool get_audio_rtp_info (CLiveConfig *pConfig,
 				 audioPayloadBytesPerPacket,
 				 audioPayloadBytesPerFrame, 
 				 audioQueueMaxCount,
+				 audioiovMaxCount,
+			 	 audio_queue_frame,
+			         audio_set_rtp_payload,
 				 audio_set_header, 
 				 audio_set_jumbo, 
 				 ud);

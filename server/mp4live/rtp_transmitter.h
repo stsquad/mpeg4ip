@@ -18,6 +18,7 @@
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
  *		Bill May 		wmay@cisco.com
+ *		Peter Maersk-Moller	peter@maersk-moller.net
  */
 
 #ifndef __RTP_TRANSMITTER_H__
@@ -26,6 +27,25 @@
 #include <rtp/rtp.h>
 #include "media_sink.h"
 #include "audio_encoder.h"
+
+// *****************************************************************************
+// Flags set by audio_queue_frame()
+// Unless DROP_IT or IS_JUMBO is set, then frame will be added to queue before
+// the flag SEND_NOW is checked. This is how it should be understood:
+//
+//      if DROP_IT return;
+//      if SEND_FIRST { send(queue); empty(queue); }
+//      if IS_JUMBO { sendjumbo(frame); return; }
+//      add_to_queue(frame);
+//      if SEND_NOW { send(queue); empty(queue); }
+//
+// *****************************************************************************
+#define NO_OP           0               // No op except just add frame to queue
+#define DROP_IT         1               // Drop frame on the spot
+#define SEND_FIRST      2               // Send queue first before anything else
+#define IS_JUMBO        4               // Send jumbo and return
+#define SEND_NOW        8               // Send queue after frame has been added
+// *****************************************************************************
 
 class CRtpDestination
 {
@@ -140,6 +160,7 @@ protected:
 	void DoSendFrame(CMediaFrame* pFrame);
 
 	void SendAudioFrame(CMediaFrame* pFrame);
+	void OldSendAudioFrame(CMediaFrame* pFrame);
 	void SendAudioJumboFrame(CMediaFrame* pFrame);
 	void SendQueuedAudioFrames(void);
 
@@ -208,6 +229,10 @@ protected:
 	u_int16_t		m_audioSrcPort;
 	u_int8_t		m_audioPayloadBytesPerPacket;
 	u_int8_t		m_audioPayloadBytesPerFrame;
+	u_int8_t		m_audioiovMaxCount;		// max number of iov segments
+	u_int32_t		*m_frameno;			// We need to count the frames
+	audio_queue_frame_f	m_audio_queue_frame;		// plugin function for queing
+	audio_set_rtp_payload_f	m_audio_set_rtp_payload;	// plugin function for rtp packing
 	audio_set_rtp_header_f  m_audio_set_rtp_header;
 	audio_set_rtp_jumbo_frame_f m_audio_set_rtp_jumbo_frame;
 	void *m_audio_rtp_userdata;

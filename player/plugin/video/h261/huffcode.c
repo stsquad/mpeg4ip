@@ -1,15 +1,5 @@
 /************ Change log
  *
- * $Log: huffcode.c,v $
- * Revision 1.4  2002/11/20 21:17:18  wmaycisco
- * 0.9.6.9
- *
- * Revision 1.1  2002/11/07 18:31:30  wmay
- * Add h261 decoder, code for sending immediate RTCP in mp4live
- *
- * Revision 1.2  2001/01/29 19:42:38  dereks
- * Add change log facility (Thanks Robert)
- *
  *
  *
  *

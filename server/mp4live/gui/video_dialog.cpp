@@ -95,7 +95,9 @@ static char* mpeg4SizeNames[] = {
 	"768 x 576 PAL SQ Pixel"
 }; 
 static u_int16_t* sizeWidthValues = mpeg4SizeWidthValues;
+static u_int16_t  sizeWidthValueCnt = sizeof(mpeg4SizeWidthValues) / sizeof(mpeg4SizeWidthValues[0]);
 static u_int16_t* sizeHeightValues = mpeg4SizeHeightValues;
+static u_int16_t  sizeHeightValueCnt = sizeof(mpeg4SizeWidthValues) / sizeof(mpeg4SizeWidthValues[0]);
 static u_int8_t sizeIndex;
 static u_int8_t sizeMaxIndex;
 
@@ -431,8 +433,10 @@ static void CreateSizeMenu()
 
   names = mpeg4SizeNames;
   sizeWidthValues = mpeg4SizeWidthValues;
+  sizeWidthValueCnt = sizeof(mpeg4SizeWidthValues) / sizeof(mpeg4SizeWidthValues[0]);
   sizeHeightValues = mpeg4SizeHeightValues;
-  sizeMaxIndex = sizeof(mpeg4SizeWidthValues) / sizeof(u_int16_t);
+  sizeHeightValueCnt = sizeof(mpeg4SizeHeightValues) / sizeof(mpeg4SizeHeightValues[0]);
+  sizeMaxIndex = sizeWidthValueCnt;
   if (signalIndex == 1) {
     // NTSC can't support the two largest sizes
     sizeMaxIndex -= 2;
@@ -837,7 +841,7 @@ void CreateVideoDialog (void)
 	}
 
 	sizeIndex = 0; 
-	for (u_int8_t i = 0; i < sizeof(sizeWidthValues) / sizeof(u_int16_t); i++) {
+	for (u_int8_t i = 0; i < sizeWidthValueCnt; i++) {
 		if (MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH)
 		    == sizeWidthValues[i]
 		  && MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT)

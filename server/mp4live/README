@@ -175,6 +175,20 @@ will cause the video to be automatically cropped so you don't waste precious
 CPU time encoding the empty black bars at the top and bottom of the screen. 
 
 
+Use with QT 6.0 and Real One
+============================
+
+It is possible to create content for QT 6.0 and Real One with the 
+Envivio plug in.  You must create with the audio encoding set to 
+AAC for both of these.  
+
+If you want to stream (using the instructions below), you must have
+Envivio version 1.2.  Download Real One, then download Envivio TV
+version 1.2 afterwards.  The Envivio plugin downloaded with Real One
+will not play multiple AAC frames in a RTP packet, so your sound will
+appear to stutter.
+
+
 Network Transmission
 ====================
 
@@ -204,6 +218,9 @@ on the same machine as mp4live. This allows the client to be started with
 the HTTP URL of the sdp file, and it will download the .sdp file via http
 and then use the information in the .sdp file to tune into the network
 transmission. E.g. 'gmp4player http://myserver/myprogram.sdp'
+
+For Real One, use the Open command with http://myserver/myprogram.sdp.  For
+QT6.0, use Open URL.
 
 You can of course distribute the .sdp file in a number of other ways, say
 ftp, or email. You would then start the player with the local file name 

@@ -18,6 +18,7 @@
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
  *		Bill May 		wmay@cisco.com
+ *		Peter Maersk-Moller	peter@maersk-moller.net
  */
 
 #include "mp4live.h"
@@ -36,6 +37,10 @@ CRtpTransmitter::CRtpTransmitter (CLiveConfig *pConfig) : CMediaSink()
   m_audioQueue = NULL;
   m_haveAudioStartTimestamp = false;
   m_audio_rtp_userdata = NULL;
+  m_audio_set_rtp_payload = NULL;	// plugin function to determind how to build RTP payload
+  m_audio_queue_frame = NULL;		// plugin function to determind how to queue frames for RTP
+  m_frameno = NULL;			// plugin will allocate counter space
+  m_audioiovMaxCount = 0;		// Max number of iov segments for send_iov
   if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
 	  
     if (m_audioSrcPort == 0) {
@@ -52,12 +57,18 @@ CRtpTransmitter::CRtpTransmitter (CLiveConfig *pConfig) : CMediaSink()
 			   &m_audioPayloadBytesPerPacket,
 			   &m_audioPayloadBytesPerFrame,
 			   &m_audioQueueMaxCount,
+			   &m_audioiovMaxCount,
+			   &m_audio_queue_frame,
+			   &m_audio_set_rtp_payload,
 			   &m_audio_set_rtp_header,
 			   &m_audio_set_rtp_jumbo_frame,
 			   &m_audio_rtp_userdata) == false) {
       error_message("rtp transmitter: unknown audio encoding %s",
 		    m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING));
     }
+
+    if (m_audioiovMaxCount == 0)			// This is purely for backwards compability
+      m_audioiovMaxCount = m_audioQueueMaxCount;	// Can go away when lame and faac plugin sets this
 
     if (m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET)) {
       m_audioRtpTimestampOffset = 0;
@@ -112,6 +123,10 @@ CRtpTransmitter::~CRtpTransmitter (void)
   }
   SDL_DestroyMutex(m_destListMutex);
   CHECK_AND_FREE(m_audio_rtp_userdata);
+  if (m_frameno != NULL) {
+	free (m_frameno);
+	m_frameno = NULL;		// Not strictly necessary
+  }
 }
 
 void CRtpTransmitter::CreateAudioRtpDestination (uint32_t ref,
@@ -275,7 +290,8 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 	}
 }
 
-void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
+// void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
+void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 {
 	// first compute how much data we'll have 
 	// after adding this audio frame
@@ -326,9 +342,71 @@ void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
 	}
 }
 
+/*
+ * #define DROP_IT	1
+ * #define SEND_FIRST	2
+ * #define IS_JUMBO	4
+ * #define SEND_NOW	8
+ */
+void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
+{
+	if (m_audio_queue_frame != NULL) {
+
+		// Get status for what we should do with the next frame
+		int check_frame = m_audio_queue_frame(&m_frameno,
+			pFrame->GetDataLength(),
+			m_audioQueueCount, m_audioQueueSize,
+			(u_int32_t) m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+
+#ifdef RTP_DEBUG
+		fprintf(stderr,"Check Frame :");
+		if (check_frame & DROP_IT) fprintf(stderr," DROP");
+		if (check_frame & SEND_FIRST) fprintf(stderr," FIRST");
+		if (check_frame & IS_JUMBO) fprintf(stderr," JUMBO");
+		if (check_frame == 0 || !((check_frame & DROP_IT) ||
+		  (check_frame & IS_JUMBO))) fprintf(stderr," QUEUE");
+		if (check_frame & SEND_NOW) fprintf(stderr," NOW");
+		fprintf(stderr,"\n");
+#endif	// RTP_DEBUG
+
+		// Check and see if we should send it or drop it
+		if (check_frame & DROP_IT)
+			return;
+
+		// Check and see if we should send the queue first
+		if (m_audioQueueCount > 0 && (check_frame & SEND_FIRST)) {
+
+			// send anything that's pending
+			SendQueuedAudioFrames();
+		}
+
+		// See if we have a jumbo frame
+		if (check_frame & IS_JUMBO) {
+			SendAudioJumboFrame(pFrame);
+			return;
+		}
+
+		// Add frame to queue
+		m_audioQueue[m_audioQueueCount++] = pFrame;
+		m_audioQueueSize += pFrame->GetDataLength();
+
+		// and check to see if we want ot send it now
+		if (check_frame & SEND_NOW) {
+
+			// send anything that's pending
+			SendQueuedAudioFrames();
+		}
+
+	} else {
+
+		// B & D 's original CRtpTransmitter::SendAudioFrame
+		OldSendAudioFrame(pFrame);
+	}
+}
+
 void CRtpTransmitter::SendQueuedAudioFrames(void)
 {
-	struct iovec iov[m_audioQueueMaxCount + 1];
+	struct iovec iov[m_audioiovMaxCount + 1];
 	int ix;
 	int i = 0;
 	CRtpDestination *rdptr;
@@ -355,24 +433,34 @@ void CRtpTransmitter::SendQueuedAudioFrames(void)
 	  rdptr = rdptr->get_next();
 	}
 
-	// audio payload data
-	for (i = 0; i < m_audioQueueCount; i++) {
-	  iov[i + 1].iov_base = m_audioQueue[i]->GetData();
-	  iov[i + 1].iov_len = m_audioQueue[i]->GetDataLength();
-	}
-
+	// moved this from below
 	// See if we need to add the header.
 	int iov_start = 1;
 	int iov_add = 0;
 
-	if (m_audio_set_rtp_header != NULL) {
-	  if ((m_audio_set_rtp_header)(iov, 
-				       m_audioQueueCount, 
-				       m_audio_rtp_userdata)) {
-	    iov_start = 0;
-	    iov_add = 1;
-	  } 
+	if (m_audio_set_rtp_payload != NULL) {
+		iov_start = 0;
+		iov_add = m_audio_set_rtp_payload(m_audioQueue,
+					m_audioQueueCount,
+					iov,
+					m_audio_rtp_userdata);
+	} else {
+		// audio payload data
+		for (i = 0; i < m_audioQueueCount; i++) {
+	  	iov[i + 1].iov_base = m_audioQueue[i]->GetData();
+	  	iov[i + 1].iov_len = m_audioQueue[i]->GetDataLength();
+		}
+
+		if (m_audio_set_rtp_header != NULL) {
+	  		if ((m_audio_set_rtp_header)(iov, 
+				       	m_audioQueueCount, 
+				       	m_audio_rtp_userdata)) {
+	    			iov_start = 0;
+	    			iov_add = 1;
+	  		} 
+		}
 	}
+		
 	// send packet
 	rdptr = m_audioRtpDestination;
 	while (rdptr != NULL) {

@@ -17,6 +17,7 @@
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
+ *		Peter Maersk-Moller	peter@maersk-moller.net
  */
 
 #include "mp4live.h"
@@ -30,7 +31,6 @@
 #ifdef ADD_FAAC_ENCODER
 #include "audio_faac.h"
 #endif
-
 
 CAudioEncoder* AudioEncoderBaseCreate(const char* encoderName)
 {
@@ -48,7 +48,7 @@ CAudioEncoder* AudioEncoderBaseCreate(const char* encoderName)
 		error_message("lame encoder not available in this build");
 #endif
 	} else {
-		error_message("unknown encoder specified");
+                error_message("unknown audio encoder (%s) specified",encoderName);
 	}
 	return NULL;
 }
@@ -85,6 +85,7 @@ MediaType get_base_audio_mp4_fileinfo (CLiveConfig *pConfig,
 #else
     return UNDEFINEDFRAME;
 #endif
+
   } else {
     error_message("unknown encoder specified");
   }
@@ -120,6 +121,7 @@ media_desc_t *create_base_audio_sdp (CLiveConfig *pConfig,
 #else
     return NULL;
 #endif
+
   } else {
     error_message("unknown encoder specified");
   }
@@ -152,6 +154,9 @@ bool get_base_audio_rtp_info (CLiveConfig *pConfig,
 			 uint8_t *audioPayloadBytesPerPacket,
 			 uint8_t *audioPayloadBytesPerFrame,
 			 uint8_t *audioQueueMaxCount,
+			 uint8_t *audioiovMaxCount,
+			 audio_queue_frame_f *audio_queue_frame,
+			 audio_set_rtp_payload_f *audio_set_rtp_payload,
 			 audio_set_rtp_header_f *audio_set_header,
 			 audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
 			 void **ud)

@@ -31,7 +31,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * @(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/player/plugin/video/h261/bsd-endian.h,v 1.1 2002/11/14 19:46:40 wmaycisco Exp $ (LBL)
  */
 
 #include "systems.h"

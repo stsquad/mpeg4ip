@@ -79,6 +79,16 @@ void create_mp4_audio_hint_track(CLiveConfig *pConfig,
 				 MP4FileHandle mp4file,
 				 MP4TrackId trackId);
 
+typedef int (*audio_queue_frame_f)(u_int32_t **frameno,
+					u_int32_t frameLength,
+					u_int8_t audioQueueCount,
+					u_int16_t audioQueueSize,
+					u_int32_t rtp_payload_size);
+typedef int (*audio_set_rtp_payload_f)(CMediaFrame** m_audioQueue,
+					int queue_cnt,
+					struct iovec *iov,
+					void *ud);
+
 typedef bool (*audio_set_rtp_header_f)(struct iovec *iov,
 				       int queue_cnt,
 				       void *ud);
@@ -97,6 +107,9 @@ bool get_audio_rtp_info (CLiveConfig *pConfig,
 			 uint8_t *audioPayloadBytesPerPacket,
 			 uint8_t *audioPayloadBytesPerFrame,
 			 uint8_t *audioQueueMaxCount,
+			 uint8_t *audioiovMaxCount,
+			 audio_queue_frame_f *audio_queue_frame,
+			 audio_set_rtp_payload_f *audio_set_rtp_payload,
 			 audio_set_rtp_header_f *audio_set_header,
 			 audio_set_rtp_jumbo_frame_f *audio_set_jumbo_frame,
 			 void **ud);
@@ -130,6 +143,9 @@ bool get_base_audio_rtp_info (CLiveConfig *pConfig,
 			      uint8_t *audioPayloadBytesPerPacket,
 			      uint8_t *audioPayloadBytesPerFrame,
 			      uint8_t *audioQueueMaxCount,
+			      uint8_t *audioiovMaxCount,
+			      audio_queue_frame_f * audio_queue_frame,
+			      audio_set_rtp_payload_f *audio_set_rtp_payload,
 			      audio_set_rtp_header_f *audio_set_header,
 			      audio_set_rtp_jumbo_frame_f *audio_set_jumbo_frame,
 			      void **ud);

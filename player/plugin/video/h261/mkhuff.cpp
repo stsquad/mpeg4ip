@@ -31,10 +31,6 @@
  * SUCH DAMAGE.
  */
 
-#ifndef lint
-static char rcsid[] =
-    "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/player/plugin/video/h261/mkhuff.cpp,v 1.1 2002/11/14 19:46:40 wmaycisco Exp $ (LBL)";
-#endif
 
 #include <stdlib.h>
 #include <stdio.h>
