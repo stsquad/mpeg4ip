@@ -1054,7 +1054,15 @@ MP4TrackId MP4File::AddSystemsTrack(const char* type)
 	pStsdCountProperty->IncrementValue();
 
 	SetTrackIntegerProperty(trackId, 
-		"mdia.minf.stbl.stsd.mp4s.esds.ESID", trackId);
+				"mdia.minf.stbl.stsd.mp4s.esds.ESID", 
+#if 0
+				// note - for a file, these values need to 
+				// be 0 - wmay - 04/16/2003
+				trackId
+#else
+				0
+#endif
+				);
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4s.esds.decConfigDescr.objectTypeId", 
@@ -1122,7 +1130,15 @@ MP4TrackId MP4File::AddAudioTrack(
 		"mdia.minf.stbl.stsd.mp4a.timeScale", timeScale);
 
 	SetTrackIntegerProperty(trackId, 
-		"mdia.minf.stbl.stsd.mp4a.esds.ESID", trackId);
+				"mdia.minf.stbl.stsd.mp4a.esds.ESID", 
+#if 0
+				// note - for a file, these values need to 
+				// be 0 - wmay - 04/16/2003
+				trackId
+#else
+				0
+#endif
+				);
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.objectTypeId", 
@@ -1170,7 +1186,15 @@ MP4TrackId MP4File::AddVideoTrack(
 		"mdia.minf.stbl.stsd.mp4v.height", height);
 
 	SetTrackIntegerProperty(trackId, 
-		"mdia.minf.stbl.stsd.mp4v.esds.ESID", trackId);
+				"mdia.minf.stbl.stsd.mp4v.esds.ESID", 
+#if 0
+				// note - for a file, these values need to 
+				// be 0 - wmay - 04/16/2003
+				trackId
+#else
+				0
+#endif
+				);
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4v.esds.decConfigDescr.objectTypeId", 

@@ -171,9 +171,17 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   *head = NULL;
   m_tail = *tail;
   *tail = NULL;
-  set_rtp_base_ts(rtp_base_ts);
+  if (rtp_ts_set) {
+    set_rtp_base_ts(rtp_base_ts);
+  } else {
+    m_base_ts_set = false;
+  }
 
-  set_rtp_base_seq(rtp_base_seq);
+  if (rtp_seq_set) {
+    set_rtp_base_seq(rtp_base_seq);
+  } else {
+    m_rtp_base_seq_set = false;
+  }
 
   m_have_first_pak_ts = false;
   m_rtp_pt = rtp_pt;
@@ -571,6 +579,7 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 		      m_name, m_head->rtp_pak_seq,
 		      head_ts, tail_ts, calc);
 #endif
+	  m_next_seq = m_head->rtp_pak_seq - 1;
 	  rtp_done_buffering();
 	  
 	}
@@ -636,6 +645,21 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 int CRtpByteStreamBase::check_rtp_frame_complete_for_payload_type (void)
 {
   return (m_head && m_tail->rtp_pak_m == 1);
+}
+
+bool CRtpByteStreamBase::check_seq (uint16_t seq)
+{
+  if (seq != m_next_seq) {
+    rtp_message(LOG_INFO, "%s - rtp sequence is %u should be %u", 
+		m_name, seq, m_next_seq);
+    return false;
+  }
+  return true;
+}
+
+void CRtpByteStreamBase::set_last_seq (uint16_t seq)
+{
+  m_next_seq = seq + 1;
 }
 
 uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
@@ -799,6 +823,8 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
 #endif
     return (m_last_realtime);
   } else {
+    check_seq(m_head->rtp_pak_seq);
+
     m_buffer_len = 0;
     while (finished == 0) {
       rpak = m_head;
@@ -852,6 +878,7 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
       if (rpak->rtp_pak_m == 1) {
 	finished = 1;
       }
+      set_last_seq(rpak->rtp_pak_seq);
       xfree(rpak);
     }
     m_bytes_used = 0;
@@ -886,6 +913,7 @@ int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
   if (m_head == NULL) return 0;
   ts = m_head->rtp_pak_ts;
   do {
+    set_last_seq(m_head->rtp_pak_seq);
     remove_packet_rtp_queue(m_head, 1);
   } while (m_head != NULL && m_head->rtp_pak_ts == ts);
 
@@ -1004,12 +1032,9 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
     m_buffer_len = 0;
     m_bytes_used = m_skip_on_advance_bytes;
     m_working_pak = m_head;
+    check_seq(m_working_pak->rtp_pak_seq);
+    set_last_seq(m_working_pak->rtp_pak_seq);
     remove_packet_rtp_queue(m_working_pak, 0);
-    if (m_have_first_pak_ts && m_seq_recvd != m_working_pak->rtp_pak_seq) {
-      rtp_message(LOG_ERR, "%s missing seq should be %d got %d", 
-		  m_name, m_seq_recvd, m_working_pak->rtp_pak_seq);
-    }
-    m_seq_recvd = m_working_pak->rtp_pak_seq + 1;
 
     *buffer = (uint8_t *)m_working_pak->rtp_data + m_bytes_used;
     *buflen = m_working_pak->rtp_data_len;

@@ -287,21 +287,28 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	s->fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (s->fd < 0) {
 		socket_error("socket");
+		free(s);
 		return NULL;
 	}
 #ifdef WIN32
 	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_RCVBUF, (char *)&recv_buf_size, sizeof(int)) != 0) {
 	  socket_error("setsockopt SO_RCVBUF");
+	  close(s->fd);
+	  free(s);
 	  return NULL;
 	}
 #endif
 	
 	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
 		socket_error("setsockopt SO_REUSEADDR");
+		close(s->fd);
+		free(s);
 		return NULL;
 	}
 #ifdef SO_REUSEPORT
 	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEPORT, (char *) &reuse, sizeof(reuse)) != 0) {
+	  close(s->fd);
+	  free(s);
 		socket_error("setsockopt SO_REUSEPORT");
 		return NULL;
 	}
@@ -311,6 +318,8 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	s_in.sin_port        = htons(rx_port);
 	if (bind(s->fd, (struct sockaddr *) &s_in, sizeof(s_in)) != 0) {
 		socket_error("bind: port %d", rx_port);
+		close(s->fd);
+		free(s);
 		return NULL;
 	}
 	if (IN_MULTICAST(ntohl(s->addr4.s_addr))) {
@@ -322,20 +331,28 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 		
 		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
 			socket_error("setsockopt IP_ADD_MEMBERSHIP");
+			close(s->fd);
+			free(s);
 			return NULL;
 		}
 #ifndef WIN32
 		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) != 0) {
 			socket_error("setsockopt IP_MULTICAST_LOOP");
+	  close(s->fd);
+	  free(s);
 			return NULL;
 		}
 #endif
 		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &s->ttl, sizeof(s->ttl)) != 0) {
 			socket_error("setsockopt IP_MULTICAST_TTL");
+			close(s->fd);
+			free(s);
 			return NULL;
 		}
 		if (iface_addr.s_addr != 0) {
 			if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_IF, (char *) &iface_addr, sizeof(iface_addr)) != 0) {
+			  close(s->fd);
+			  free(s);
 				socket_error("setsockopt IP_MULTICAST_IF");
 				return NULL;
 			}

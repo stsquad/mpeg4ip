@@ -97,6 +97,7 @@ uint64_t CPluginRtpByteStream::start_next_frame (uint8_t **buffer,
 						 uint32_t *buflen,
 						 void **userdata)
 {
+  check_seq(m_head->rtp_pak_seq);
   return (m_rtp_plugin->rtp_plugin_start_next_frame)(m_rtp_plugin_data,
 						     buffer, 
 						     buflen, 
@@ -117,6 +118,8 @@ int CPluginRtpByteStream::skip_next_frame (uint64_t *pts,
 
   ts = m_head->rtp_pak_ts;
   do {
+    check_seq(m_head->rtp_pak_seq);
+    set_last_seq(m_head->rtp_pak_seq);
     remove_packet_rtp_queue(m_head, 1);
   } while (m_head != NULL && m_head->rtp_pak_ts == ts);
 
@@ -156,6 +159,7 @@ rtp_packet *CPluginRtpByteStream::get_next_pak (rtp_packet *current,
   else current = current->rtp_next;
 
   if (remove) {
+    set_last_seq(current->rtp_pak_seq);
     remove_packet_rtp_queue(current, 0);
   }
   return (current);
@@ -163,6 +167,7 @@ rtp_packet *CPluginRtpByteStream::get_next_pak (rtp_packet *current,
 
 void CPluginRtpByteStream::remove_from_list (rtp_packet *pak)
 {
+  set_last_seq(pak->rtp_pak_seq);
   remove_packet_rtp_queue(pak, 0);
 }
 

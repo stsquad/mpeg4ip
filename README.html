@@ -742,8 +742,12 @@ See the new <a href="player/src/README.html">README.html</a> in player/src.
 
   <li> There have been some changes to the MPEG4 AAC DTS headers in the
   latest version of the MPEG4 specification.  This renders previous
-  .aac files pretty much obsolete.  We have NOT made this change to 
-  mpeg4ip - we will make it in the next release.
+  .aac files pretty much obsolete.  We have made this change to 
+  mpeg4ip as of the 0.9.9 version.  If you need to use older aac files, 
+  you can use the --aac-old-file-format parameter to mp4creator.
+  If you need to generate new aac files, you can use the mp4creator with
+  the --aac-old-file-format, then extract the track with the mp4creator 
+  --extract command.
 <P>
   <li> If you're playing through a NAT box, you may have to specify the
   default client IP ports.  Use the command 

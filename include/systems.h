@@ -129,6 +129,12 @@ int gettimeofday(struct timeval *t, void *);
 
 #define UINT64_TO_DOUBLE(a) ((double)((int64_t)(a)))
 #else /* UNIX */
+/*****************************************************************************
+ *   UNIX LIKE DEFINES BELOW THIS POINT
+ *****************************************************************************/
+#ifdef sun
+#include <sys/feature_tests.h>
+#endif
 
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
@@ -197,6 +203,9 @@ int gettimeofday(struct timeval *t, void *);
 #define UINT64_TO_DOUBLE(a) ((double)(a))
 #endif /* define unix */
 
+/*****************************************************************************
+ *             Generic type includes used in the whole package               *
+ *****************************************************************************/
 #include <stdarg.h>
 typedef void (*error_msg_func_t)(int loglevel,
 				 const char *lib,
@@ -250,6 +259,7 @@ char *strsep(char **strp, const char *delim);
 #define CHECK_AND_FREE(a) if ((a) != NULL) { free((void *)(a)); (a) = NULL;}
 
 #define NUM_ELEMENTS_IN_ARRAY(name) ((sizeof((name))) / (sizeof(*(name))))
+
 #ifndef HAVE_GLIB_H
 typedef char gchar;
 typedef unsigned char guchar;

@@ -98,10 +98,8 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
     remove_packet_rtp_queue(rpak, 0);
 
     correct_hdr = 1;
-    if (m_next_seq != rpak->rtp_pak_seq) {
+    if (check_seq(rpak->rtp_pak_seq) == false) {
       correct_hdr = 0;
-      rtp_message(LOG_INFO, "%s missing rtp sequence - should be %u is %u", 
-		  m_name, m_next_seq, rpak->rtp_pak_seq);
       first = 0;
     } else {
       if (first == 0) {
@@ -124,7 +122,7 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
       dropped_seq = 1;
     }
 
-    m_next_seq = rpak->rtp_pak_seq + 1; // handles wrap correctly
+    set_last_seq(rpak->rtp_pak_seq);
 
     uint8_t *from;
     uint32_t len;
@@ -199,7 +197,7 @@ uint32_t CMpeg3RtpByteStream::calc_this_ts_from_future (int frame_type,
   }
 
   SDL_LockMutex(m_rtp_packet_mutex);
-  if (m_head->rtp_pak_seq != m_next_seq) {
+  if (check_seq(m_head->rtp_pak_seq) == false) {
     outts = m_head->rtp_pak_ts - m_rtp_frame_add; // not accurate, but close enuff
   } else {
     new_frame_type = m_head->rtp_data[2] & 0x7;
@@ -231,6 +229,8 @@ int CMpeg3RtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
   if (m_head == NULL) return 0;
   ts = m_head->rtp_pak_ts;
   do {
+    check_seq(m_head->rtp_pak_seq);
+    set_last_seq(m_head->rtp_pak_seq);
     remove_packet_rtp_queue(m_head, 1);
   } while (m_head != NULL && m_head->rtp_pak_ts == ts);
 
@@ -269,8 +269,6 @@ void CMpeg3RtpByteStream::rtp_done_buffering (void)
   rtp_packet *p, *q;
   int had_b;
   SDL_LockMutex(m_rtp_packet_mutex);
-
-  m_next_seq = m_head->rtp_pak_seq;
 
 #ifdef DEBUG_MPEG3_RTP_TIME 
   p = m_head;

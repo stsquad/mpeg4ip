@@ -100,6 +100,8 @@ class CRtpByteStreamBase : public COurInByteStream
 
   void syncronize(rtcp_sync_t *sync);
  protected:
+  bool check_seq (uint16_t seq);
+  void set_last_seq(uint16_t seq);
   void init(void);
   // Make sure all classes call this to calculate real time.
   uint64_t rtp_ts_to_msec(uint32_t rtp_ts, uint64_t uts, uint64_t &wrap_offset);
@@ -137,7 +139,7 @@ class CRtpByteStreamBase : public COurInByteStream
   format_list_t *m_fmt;
   int m_eof;
   int m_rtpinfo_set_from_pak;
-  uint16_t m_seq_recvd;
+  uint16_t m_next_seq;
   bool m_have_first_pak_ts;
   uint64_t m_first_pak_ts;
   uint32_t m_first_pak_rtp_ts;

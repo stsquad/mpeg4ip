@@ -765,7 +765,7 @@ CRtpDestination::CRtpDestination (uint32_t ref_number,
 void CRtpDestination::start (void) 
 {
 
-  if (m_rtpSession == NULL) {
+  while (m_rtpSession == NULL) {
     debug_message("Starting rtp dest %s %d %d", 
 		  m_destAddr, m_destPort, m_srcPort);
     if (m_srcPort == 0) m_srcPort = m_destPort;
@@ -777,6 +777,7 @@ void CRtpDestination::start (void)
 				    RtpCallback, (uint8_t *)this);
     if (m_rtpSession == NULL) {
       error_message("Couldn't start rtp session");
+      SDL_Delay(10);
     }
   }
 }
