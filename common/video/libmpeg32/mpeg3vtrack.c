@@ -43,6 +43,7 @@ int mpeg3vtrack_get_frame (mpeg3_vtrack_t *track)
 	  // can't do this yet - we're still reading from the demuxer...
 	  *output = mpeg3demux_read_char(track->demuxer);
 	  code |= *output++;
+	  //	  printf("%d %08x\n", track->track_frame_buffer_size, code);
 	  track->track_frame_buffer_size++;
 	  if (code == MPEG3_PICTURE_START_CODE) {
 	    count++;
@@ -518,14 +519,10 @@ mpeg3video_t* mpeg3vtrack_new_video (mpeg3_vtrack_t *track,
 
 
       video->maxframe = track->total_frames;
-#if 0
-      mpeg3bits_seek_start(video->vstream);
-      mpeg3video_get_firstframe(video);
-#else
       mpeg3video_get_firstframe(video,
 				track->track_frame_buffer,
 				track->track_frame_buffer_size);
-#endif
+      mpeg3vtrack_cleanup_frame(track);
     }
   else
     {

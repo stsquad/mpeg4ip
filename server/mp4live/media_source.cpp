@@ -432,7 +432,8 @@ void CMediaSource::ProcessVideoFrame(
 
 	// resize image if necessary
 	if (m_videoYResizer) {
-		u_int8_t* resizedYUV = (u_int8_t*)Malloc(m_videoDstYUVSize);
+		u_int8_t* resizedYUV = 
+			(u_int8_t*)Malloc(m_videoDstYUVSize);
 		
 		u_int8_t* resizedY = 
 			resizedYUV;
@@ -691,6 +692,7 @@ bool CMediaSource::InitAudio(
 	m_audioDstRawFrameNumber = 0;
 
 	m_audioSrcElapsedDuration = 0;
+	m_audioSrcDrift = 0;
 	m_audioDstElapsedDuration = 0;
 
 	// init audio encoder
@@ -722,18 +724,16 @@ void CMediaSource::ProcessAudioFrame(
 		m_startTimestamp = GetTimestamp();
 	}
 
-#ifdef NOTDEF
 	if (m_sourceRealTime) {
 		Duration drift =
-			(GetTimestamp() - m_startTimestamp) 
-			- m_audioSrcElapsedDuration
-			- m_audioSrcDrift;
+			(GetTimestamp() - m_startTimestamp) - m_audioSrcElapsedDuration;
 
-		if (drift > 0) {
-			m_videoSource->AddEncodingDrift(drift);
+		if (m_audioSrcDrift > SamplesToTicks(frameDuration)
+		  && drift > m_audioSrcDrift) {
+			// TEMP m_videoSource->AddEncodingDrift(drift - m_audioSrcDrift);
 		}
+		m_audioSrcDrift = drift;
 	}
-#endif
 
 	m_audioSrcFrameNumber++;
 	m_audioSrcElapsedDuration += SamplesToTicks(frameDuration);
@@ -748,7 +748,30 @@ void CMediaSource::ProcessAudioFrame(
 	u_int8_t* pcmData = frameData;
 	u_int32_t pcmDataLength = frameDataLength;
 
-	// TBD audio resampling
+#ifdef NOTDEF
+	// TBD reduce number of channels
+
+	// resample audio if necessary
+	if (m_audioSrcSampleRate != m_audioDstSampleRate) {
+		// TBD ResampleAudio(pcmData, pcmDataLength);
+		// TBD pcmData, and pcmDataLength will be changed
+	}
+
+	// reframe audio if necessary
+	if (m_audioSrcSamplesPerFrame != m_audioDstSamplesPerFrame) {
+		// TBD add samples to end of m_audioBuffer
+		// expanding if necessary
+
+		// not enough samples collected yet to call encode or forward
+		if (m_audioBufferLength < m_audioDstSamplesPerFrame 
+		  * m_audioDstChannels * sizeof(u_int16_t)) {
+			return;
+		}
+
+		pcmData = m_audioBuffer;
+		pcmDataLength = m_audioDstSamplesPerFrame * sizeof(u_int16_t);
+	}
+#endif
 
 	// encode audio frame
 	if (m_pConfig->m_audioEncode) {
@@ -806,6 +829,12 @@ void CMediaSource::ProcessAudioFrame(
 	if (pcmMalloced) {
 		free(pcmData);
 	}
+}
+
+void ResampleAudio(
+	u_int8_t* frameData,
+	u_int32_t frameDataLength)
+{
 }
 
 void CMediaSource::ForwardEncodedAudioFrames(

@@ -44,7 +44,7 @@ static codec_data_t *mpeg3_create (format_list_t *media_fmt,
   mpeg3->m_vft = vft;
   mpeg3->m_ifptr = ifptr;
 
-  mpeg3->m_video = mpeg3video_new(NULL, 
+  mpeg3->m_video = mpeg3video_new(
 #ifdef USE_MMX
 				  1,
 #else
@@ -115,7 +115,8 @@ static int mpeg3_decode (codec_data_t *ptr,
 
   y = NULL;
   ret = mpeg3video_read_yuvframe_ptr(video,
-				     0, 
+				     buffer,
+				     buflen + 3,
 				     &y,
 				     &u,
 				     &v);

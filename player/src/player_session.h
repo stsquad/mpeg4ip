@@ -150,6 +150,7 @@ class CPlayerSession {
   CPlayerMedia *rtsp_url_to_media (const char *url);
   int set_session_desc (int line, const char *desc);
   const char *get_session_desc(int line);
+  void streaming_media_set_up(void) { m_streaming_media_set_up = 1; };
  private:
   void process_sdl_events(void);
   int process_msg_queue(int state);
@@ -198,6 +199,7 @@ class CPlayerSession {
 	    (((uint64_t)t.tv_usec) / M_LLU));
   }
   media_close_callback_f m_media_close_callback;
+  int m_streaming_media_set_up;
 };
 
 int c_sync_thread(void *data);

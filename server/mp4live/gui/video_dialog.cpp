@@ -28,8 +28,10 @@
 static GtkWidget *dialog;
 
 static char* source_type;
+static char* source_name;
 static GtkWidget *source_combo;
 static GtkWidget *source_entry;
+static GtkWidget *source_list;
 static GtkWidget *browse_button;
 static bool source_modified;
 static bool default_file_audio_dialog = false;
@@ -266,16 +268,16 @@ static void on_no_default_file_audio_source (GtkWidget *widget, gpointer *data)
 
 static void ChangeSource()
 {
-	static bool changing = false;
+	char* new_source_name =
+		gtk_entry_get_text(GTK_ENTRY(source_entry));
 
-	if (!dialog) {
+	if (!strcmp(new_source_name, source_name)) {
+		source_modified = false;
 		return;
 	}
 
-	if (changing) {
-		return;
-	}
-	changing = true;
+	free(source_name);
+	source_name = stralloc(new_source_name);
 
 	default_file_audio_source = -1;
 
@@ -290,13 +292,9 @@ static void ChangeSource()
 		}
 		pVideoCaps = NULL;
 
-		char* source_name =
-			gtk_entry_get_text(GTK_ENTRY(source_entry));
-
 		if (access(source_name, R_OK) != 0) {
 			ShowMessage("Change Video Source",
 				"Specified video source can't be opened, check name");
-			changing = false;
 			return;
 		}
 
@@ -320,7 +318,7 @@ static void ChangeSource()
 	track_menu = CreateTrackMenu(
 		track_menu,
 		'V',
-		gtk_entry_get_text(GTK_ENTRY(source_entry)),
+		source_name,
 		&trackIndex,
 		&trackNumber,
 		&trackValues);
@@ -328,7 +326,6 @@ static void ChangeSource()
 	ShowSourceSpecificSettings();
 
 	source_modified = false;
-	changing = false;
 }
 
 static void on_source_browse_button (GtkWidget *widget, gpointer *data)
@@ -336,7 +333,7 @@ static void on_source_browse_button (GtkWidget *widget, gpointer *data)
 	FileBrowser(source_entry, GTK_SIGNAL_FUNC(ChangeSource));
 }
 
-static void on_source_changed(GtkWidget *widget, gpointer *data)
+static void on_source_entry_changed(GtkWidget *widget, gpointer *data)
 {
 	if (widget == source_entry) {
 		source_modified = true;
@@ -345,12 +342,18 @@ static void on_source_changed(GtkWidget *widget, gpointer *data)
 
 static void on_source_leave(GtkWidget *widget, gpointer *data)
 {
-	if (!source_modified) {
-		return;
+	if (source_modified) {
+		ChangeSource();
 	}
-
-	ChangeSource();
 }
+
+static void on_source_list_changed(GtkWidget *widget, gpointer *data)
+{
+	if (widget == source_list) {
+		ChangeSource();
+	}
+}
+
 
 char* GetChannelName(size_t index, void* pUserData)
 {
@@ -540,9 +543,14 @@ static void on_aspect_menu_activate(GtkWidget *widget, gpointer data)
 static bool ValidateAndSave(void)
 {
 	// if source has been modified
-	// and isn't validated, then don't proceed
 	if (source_modified) {
-		return false;
+		// validate it
+		ChangeSource();
+
+		// can't validate
+		if (source_modified) {
+			return false;
+		}
 	}
 
 	// if previewing, stop video source
@@ -632,6 +640,7 @@ static bool ValidateAndSave(void)
 
 	// refresh display of settings in main window
 	DisplayVideoSettings();  
+	DisplayStatusSettings();  
 
 	return true;
 }
@@ -752,19 +761,22 @@ void CreateVideoDialog (void)
 		source_type = "";
 	}
 
+	free(source_name);
+	source_name = 
+		stralloc(MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
+
 	source_modified = false;
 
-	source_combo = CreateFileCombo(
-		MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
+	source_combo = CreateFileCombo(source_name);
 
 	source_entry = GTK_COMBO(source_combo)->entry;
 
-	GtkWidget* source_list = GTK_COMBO(source_combo)->list;
-	//BAD gtk_signal_connect(GTK_OBJECT(source_list), "selection-changed",
-	//	GTK_SIGNAL_FUNC(ChangeSource), NULL);
+	source_list = GTK_COMBO(source_combo)->list;
+	gtk_signal_connect(GTK_OBJECT(source_list), "select_child",
+		GTK_SIGNAL_FUNC(on_source_list_changed), NULL);
 
 	SetEntryValidator(GTK_OBJECT(source_entry),
-		GTK_SIGNAL_FUNC(on_source_changed), 
+		GTK_SIGNAL_FUNC(on_source_entry_changed), 
 		GTK_SIGNAL_FUNC(on_source_leave));
 
 	gtk_widget_show(source_combo);

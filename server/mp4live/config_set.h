@@ -211,12 +211,21 @@ public:
 	CConfigSet(SConfigVariable* variables, 
 	  config_index_t numVariables, 
 	  const char* defaultFileName) {
+		m_fileName = NULL;
 		m_debug = false;
 		m_variables = variables;
 		m_numVariables = numVariables;
 		m_defaultFileName = defaultFileName;
 		SetToDefaults();
 	};
+
+	~CConfigSet() {
+		free(m_fileName);
+	}
+
+	const char* GetFileName() {
+		return m_fileName;
+	}
 
 	inline void CheckIName(config_index_t iName) {
 		if (iName >= m_numVariables) {
@@ -327,6 +336,8 @@ public:
 	}
 
 	bool ReadFromFile(const char* fileName) {
+		free(m_fileName);
+		m_fileName = stralloc(fileName);
 		FILE* pFile = fopen(fileName, "r");
 		if (pFile == NULL) {
 			if (m_debug) {
@@ -402,6 +413,7 @@ protected:
 	config_index_t		m_numVariables;
 	const char*			m_defaultFileName;
 	bool 				m_debug;
+	char*				m_fileName;
 };
 
 #endif /* __CONFIG_SET_H__ */

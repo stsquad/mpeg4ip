@@ -29,8 +29,10 @@
 static GtkWidget *dialog;
 
 static char* source_type;
-static GtkWidget *source_entry;
+static char* source_name;
 static GtkWidget *source_combo;
+static GtkWidget *source_entry;
+static GtkWidget *source_list;
 static bool source_modified;
 static GtkWidget *browse_button;
 static GtkWidget *input_label;
@@ -168,6 +170,17 @@ static void SourceOssDevice()
 
 static void ChangeSource()
 {
+	char* new_source_name =
+		gtk_entry_get_text(GTK_ENTRY(source_entry));
+
+	if (!strcmp(new_source_name, source_name)) {
+		source_modified = false;
+		return;
+	}
+
+	free(source_name);
+	source_name = stralloc(new_source_name);
+
 	if (SourceIsDevice()) {
 		source_type = AUDIO_SOURCE_OSS;
 	
@@ -178,9 +191,6 @@ static void ChangeSource()
 			delete pAudioCaps;
 		}
 		pAudioCaps = NULL;
-
-		const char* source_name =
-			gtk_entry_get_text(GTK_ENTRY(source_entry));
 
 		if (access(source_name, R_OK) != 0) {
 			ShowMessage("Change Audio Source",
@@ -212,7 +222,7 @@ static void on_source_browse_button (GtkWidget *widget, gpointer *data)
 	FileBrowser(source_entry, GTK_SIGNAL_FUNC(ChangeSource));
 }
 
-static void on_source_changed(GtkWidget *widget, gpointer *data)
+static void on_source_entry_changed(GtkWidget *widget, gpointer *data)
 {
 	if (widget == source_entry) {
 		source_modified = true;
@@ -221,11 +231,16 @@ static void on_source_changed(GtkWidget *widget, gpointer *data)
 
 static void on_source_leave(GtkWidget *widget, gpointer *data)
 {
-	if (!source_modified) {
-		return;
+	if (source_modified) {
+		ChangeSource();
 	}
+}
 
-	ChangeSource();
+static void on_source_list_changed(GtkWidget *widget, gpointer *data)
+{
+	if (widget == source_list) {
+		ChangeSource();
+	}
 }
 
 static void on_input_menu_activate (GtkWidget *widget, gpointer data)
@@ -438,9 +453,14 @@ void CreateBitRateMenu()
 static bool ValidateAndSave(void)
 {
 	// if source has been modified
-	// and isn't validated, then don't proceed
 	if (source_modified) {
-		return false;
+		// validate it
+		ChangeSource();
+
+		// can't validate
+		if (source_modified) {
+			return false;
+		}
 	}
 
 	// copy new values to config
@@ -485,6 +505,7 @@ static bool ValidateAndSave(void)
 	MyConfig->Update();
 
 	DisplayAudioSettings();  // display settings in main window
+	DisplayStatusSettings();  
 
 	return true;
 }
@@ -590,16 +611,23 @@ void CreateAudioDialog (void)
 	}
 
 	// source entry
+	free(source_name);
+	source_name =
+		stralloc(MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+
 	source_modified = false;
 
-	source_combo = CreateFileCombo(
-		MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+	source_combo = CreateFileCombo(source_name);
 
 	source_entry = GTK_COMBO(source_combo)->entry;
 
 	SetEntryValidator(GTK_OBJECT(source_entry),
-		GTK_SIGNAL_FUNC(on_source_changed),
+		GTK_SIGNAL_FUNC(on_source_entry_changed),
 		GTK_SIGNAL_FUNC(on_source_leave));
+
+	source_list = GTK_COMBO(source_combo)->list;
+	gtk_signal_connect(GTK_OBJECT(source_list), "select_child",
+		GTK_SIGNAL_FUNC(on_source_list_changed), NULL);
 
 	gtk_widget_show(source_combo);
 	gtk_box_pack_start(GTK_BOX(hbox2), source_combo, TRUE, TRUE, 0);

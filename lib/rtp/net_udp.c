@@ -600,8 +600,6 @@ static int udp_send_iov6(socket_udp *s, struct iovec *iov, int count)
 	
 	ASSERT(s != NULL);
 	ASSERT(s->mode == IPv6);
-	ASSERT(buffer != NULL);
-	ASSERT(buflen > 0);
 	
 	memset((char *)&s_in, 0, sizeof(s_in));
 	s_in.sin6_family = AF_INET6;
@@ -683,7 +681,7 @@ static char *udp_host_addr6(socket_udp *s)
 			abort();
 		}
 		freeaddrinfo(ai);
-		return (const char*)hname;
+		return xstrdup(hname);
 	}
 	if (inet_ntop(AF_INET6, &local.sin6_addr, hname, MAXHOSTNAMELEN) == NULL) {
 		debug_msg("inet_ntop: %s: \n", hname);

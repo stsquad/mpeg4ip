@@ -66,6 +66,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
     m_session_desc[ix] = NULL;
   }
   m_media_close_callback = NULL;
+  m_streaming_media_set_up = 0;
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -82,7 +83,8 @@ CPlayerSession::~CPlayerSession ()
 
 
 
-  if (session_control_is_aggregate()) {
+  if (m_streaming_media_set_up != 0 &&
+      session_control_is_aggregate()) {
     rtsp_command_t cmd;
     rtsp_decode_t *decode;
     memset(&cmd, 0, sizeof(rtsp_command_t));

@@ -180,7 +180,7 @@ int main(int argc, char** argv)
 
 	// save any changes to user config file
 	if (configFileName == NULL) {
-		pConfig->WriteDefaultFile();
+		pConfig->WriteToFile(pConfig->GetFileName());
 	} else {
 		free(configFileName);
 	}

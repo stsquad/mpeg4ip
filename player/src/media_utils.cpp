@@ -256,6 +256,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
     snprintf(errmsg, errlen, "No known codecs found in SDP");
     return (-1);
   }
+  psptr->streaming_media_set_up();
   if (have_audio_but_no_driver > 0) {
     snprintf(errmsg, errlen, "Not playing audio codecs - no driver");
     return (1);

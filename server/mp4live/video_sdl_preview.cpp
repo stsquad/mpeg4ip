@@ -145,6 +145,8 @@ void CSDLVideoPreview::DoPreviewFrame(CMediaFrame* pFrame)
 			SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
 
 			SDL_UnlockYUVOverlay(m_sdlImage);
+
+			// TBD SDL_Delay(pFrame->GetDuration() / 1000);
 		}
 	}
 	

@@ -1,5 +1,4 @@
 May 2, 2002 - Dave Mackie
-April 23, 2002 - Dag Bakke (minor additions)
 
 MP4LIVE 
 =======
@@ -7,8 +6,8 @@ MP4LIVE
 MP4LIVE is a Linux audio/video capture utility that can capture and encode 
 audio and video in real-time. The results can be written to either an .mp4
 file, transmitted onto the network via either unicast or multicast, or both 
-simultaneously! The audio is encoded with MP3, and the video with MPEG-4 
-Simple Profile which is OpenDivx compatible.
+simultaneously! The audio is encoded with MP3 or AAC, and the video with 
+MPEG-4 Simple Profile.
 
 Please use the MPEG4IP SourceForge site to report problems, suggest 
 enhancements, ask questions, etc. The URL is 
@@ -20,13 +19,12 @@ Changes in Version 0.9.4
 The Xvid MPEG-4 video encoder has replaced the ffmpeg MPEG-4 video encoder.
 
 MPEG-2 and MP4 files can now be used as the media source instead of
-the video and audio capture cards. Libmpeg3 has been used to provide 
-support for MPEG-2 file sources and decoding of MPEG-2 audio and video.
-(MPEG-1 is also covered by libmpeg3). There are some modest UI changes
-to support this.
+the video and audio capture cards. Note this feature is experimental,
+so you may see some problems with it. Feedback is always welcome.
+(For more information see the "Advanced Usage" section of this document.)
 
 The raw audio and video recorder has been enhanced to provide support for
-named pipes (fifos).
+named pipes (fifos), and is now a standard part of the program.
 
 The UI now automatically resizes when the video window is made smaller.
 
@@ -37,7 +35,7 @@ interoperablity issue).
 Hardware Requirements
 =====================
 Pentium III class machine of at least 500 MHz 
-Pentium IV class machine at 2 GHz is very nice.
+(Pentium IV class machine at 2 GHz is very nice.)
 
 Note systems vary quite a bit in their video capture abilities. For instance,
 I have a name brand 750 MHz PIII that drops frames when pushed to CIF sizes
@@ -211,10 +209,82 @@ mp4live instead.
 Advanced Usage
 ==============
 
-File Sources
-============
+File Sources - EXPERIMENTAL
+===========================
 
-TBD
+If you would like to use a file as the media source instead of capture cards,
+mp4live now has some support for this. Via use of the libmpeg3 library, 
+mp4live can read and decode any of the MPEG-1 or MPEG-2 file types. mp4live 
+can also source from raw audio or video tracks recorded into an mp4 file.
+
+One possible use for this feature is to convert previously encoded MPEG-1
+or MPEG-2 files to MPEG-4. Another possible use is to produce multiple 
+encodings of the media at different bitrates. Yet another possible use is 
+to have mp4live transmit previously recorded files, though dedicated tools 
+such as the DSS PlaylistBroadcaster may better serve that need.
+
+In the next release, it is planned that all the libmpeg3 and mpeg4ip encoded 
+media track types should be accepted. Depending on community feedback support 
+for avi file sources may be added.
+
+Here's how to use this feature:
+
+- Click on "Settings" in the Video section of the mp4live main window to
+bring up the "Video Settings" dialog box.
+
+- In "Video Settings", change the "Source" to the name of your file either
+via typing it in or using the "Browse..." dialog box.
+
+- A popup dialog will appear asking if you also want to use this file as 
+the audio source, typically you will answer "Yes".
+
+- The "Video Settings" dialog is now modified to display a list of the
+available video tracks in the selected source file. Typically there is only 
+one video track, and so no user selection is necessary. However, if your
+file does contain more than one video track, select the one you want to use.
+
+Typically that's it for setup! 
+
+Other potential setup steps are:
+
+- If you want to use a different file as the audio source, you will need to
+go to the "Audio Settings" dialog box and specify this file as the audio 
+source.
+
+- If the audio source file contains multiple audio tracks (different languages
+perhaps), then you may need to select the one that you want to use. This can
+be done in the "Audio Settings" dialog box.
+
+What happens in mp4live when you hit the "Start" button with a file source
+is a bit different than when capture cards are used. The underlying 
+assumption is that the source media will not match the desired target media 
+in terms of encoding, frame rate, bit rate, etc. So the source media is 
+first decoded if necessary (e.g. MPEG-2). If necessary, image size, frame
+rate, number of channels, sampling rate, etc. are adjusted to match your
+target output settings and the media is (re-)encoded. The destination(s) of
+the encoded media work as before, namely to file or network.
+
+Note doing work described above can result in significant additional 
+computational burden so you may see a degradation in real time encoding 
+rate depending on your source, target settings, and system configuration.
+For example decoding a MPEG-2 video track at 720x480 29.97 fps and then
+reencoding to MPEG-4 at 768x576 @ 25 fps is going to put a significant load 
+on your computer!
+
+Also note that you will see different behavior in mp4live's video preview 
+window when file sources are used. Specifically:
+
+Recording only mode - mp4live (re-)encodes as fast as possible. This may 
+be much faster or much slower than real time. 
+
+Transmitting only mode - mp4live (re-)encodes at a real-time rate, dropping 
+video frames if necessary. Due to implementation issues, the video preview 
+window will appear jerky in this mode as compared to live capture. I expect 
+to fix this in the next release of mp4live.
+
+Both Recording and Transmitting modes - The transmitting mode supercedes the 
+recording mode hence the media is encoded at a real time rate.
+
 
 Sharing Capture Cards
 =====================
@@ -225,15 +295,15 @@ in that many drivers only support one reader at a time. To address this
 issue, mp4live can be configure to write the raw audio and/or video that
 it reads from the capture cards to a named pipe (fifo). A named pipe looks
 like a file, but the data only exists in memory and never goes to disk.
-This is an efficient way to have the two applications share the data. 
+This is an efficient way to have the two applications share the media data. 
 
 To configure this feaure, add the following to ~/.mp4live_rc (or whatever
 configuration file you want to use):
 
 rawEnable=1
-rawAudioFile=/foo/raw_audio
+rawAudioFile=/foo/audio_pipe
 rawAudioUseFifo=1 
-rawVideoFile=/foo/raw_video
+rawVideoFile=/foo/video_pipe
 rawVideoUseFifo=1 
 
 The audio format is 16 bit PCM, the video format is YUV12 (planar 4:2:0 YUV).

@@ -36,7 +36,9 @@ void DisplayVideoSettings(void);
 void DisplayAudioSettings(void);
 void DisplayRecordingSettings(void);
 void DisplayTransmitSettings(void);
-void DisplayTranscodingSettings(void);
+void DisplayControlSettings(void);
+void DisplayStatusSettings(void);
+void DisplayAllSettings(void);
 
 void DoStart(void);
 void DoStop(void);

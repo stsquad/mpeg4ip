@@ -142,6 +142,10 @@ protected:
 		u_int32_t frameDataLength,
 		u_int32_t frameDuration);
 
+	void ResampleAudio(
+		u_int8_t* frameData,
+		u_int32_t frameDataLength);
+
 	void ForwardEncodedAudioFrames(
 		Timestamp baseTimestamp,
 		u_int32_t* pNumSamples,
@@ -233,6 +237,7 @@ protected:
 	u_int16_t		m_audioSrcSamplesPerFrame;
 	u_int64_t		m_audioSrcSampleNumber;
 	u_int32_t		m_audioSrcFrameNumber;
+	u_int16_t*		m_audioSrcResamplingBuffer;
 
 	// audio destination info
 	MediaType		m_audioDstType;
@@ -246,9 +251,13 @@ protected:
 
 	// audio encoding info
 	CAudioEncoder*	m_audioEncoder;
+	u_int8_t*		m_audioBuffer;
+	u_int32_t		m_audioBufferLength;
+	u_int32_t		m_audioBufferMaxLength;
 
 	// audio timing info
 	Duration		m_audioSrcElapsedDuration;
+	Duration		m_audioSrcDrift;
 	Duration		m_audioDstElapsedDuration;
 };
 
