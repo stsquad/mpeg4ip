@@ -72,7 +72,6 @@ extern unsigned char mpeg3_non_linear_mquant_table[32];
 typedef struct
 {
   int cpus;
-	void* track;
 
 /* ================================= Seeking variables ========================= */
 	mpeg3_bits_t *vstream;

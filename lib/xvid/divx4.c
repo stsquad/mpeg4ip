@@ -356,7 +356,6 @@ int encore(void * handle, int opt, void * param1, void * param2)
 
 #ifdef MPEG4IP
 			xparam.raw_height = xparam.height;
-			xparam.time_inc_bits = 1;
 #endif
 
 			xerr = encoder_create(&xparam);

@@ -235,18 +235,13 @@ void mpeg3video_init_scantables(mpeg3video_t *video)
 	}
 }
 
-mpeg3video_t *mpeg3video_allocate_struct(mpeg3_vtrack_t *track,
-					 int have_mmx)
+mpeg3video_t *mpeg3video_allocate_struct(int have_mmx)
 {
 	int i;
 	mpeg3video_t *video = calloc(1, sizeof(mpeg3video_t));
 	pthread_mutexattr_t mutex_attr;
 
-	video->track = track;
-	if (track == NULL)
-	  video->vstream = mpeg3bits_new_stream(NULL);
-	else
-	  video->vstream = mpeg3bits_new_stream(track->demuxer);
+	video->vstream = mpeg3bits_new_stream(NULL);
 
 //printf("mpeg3video_allocate_struct %d\n", mpeg3bits_eof(video->vstream));
 	video->last_number = -1;
@@ -335,12 +330,21 @@ int* mpeg3video_get_scaletable(int input_w, int output_w)
 }
 
 /* Get the first I frame. */
-int mpeg3video_get_firstframe(mpeg3video_t *video)
+int mpeg3video_get_firstframe(mpeg3video_t *video,
+			      unsigned char *input, 
+			      long size)
 {
 	int result = 0;
 	video->repeat_count = video->current_repeat = 0;
-	result = mpeg3video_read_frame_backend(video, 0);
-	return result;
+	return mpeg3video_process_frame(video, input, size);
+}
+
+int mpeg3video_process_frame(mpeg3video_t *video,
+			     unsigned char *input, 
+			     long size)
+{
+	mpeg3bits_use_ptr_len(video->vstream, input, size);
+	return mpeg3video_read_frame_backend(video, 0);
 }
 
 static long gop_to_frame(mpeg3video_t *video, mpeg3_timecode_t *gop_timecode)
@@ -372,133 +376,15 @@ static long gop_to_frame(mpeg3video_t *video, mpeg3_timecode_t *gop_timecode)
 
 
 
-mpeg3video_t* mpeg3video_new(mpeg3_vtrack_t *track,
-			     int have_mmx,
+mpeg3video_t* mpeg3video_new(int have_mmx,
 			     int is_video_stream,
 			     int cpus)
 {
 	mpeg3video_t *video;
 	int result = 0;
 
-	video = mpeg3video_allocate_struct(track, have_mmx);
+	video = mpeg3video_allocate_struct(have_mmx);
 	video->cpus = cpus;
-
-//printf("mpeg3video_new 1 %llx %llx\n", mpeg3bits_tell(video->vstream), mpeg3demux_tell(track->demuxer));
-#if 0
-	result = mpeg3video_get_header(video, 1);
-//printf("mpeg3video_new 2 %d\n", result);
-
-	if(!result)
-	{
-		int hour, minute, second, frame;
-		int gop_found;
-
-		mpeg3video_initdecoder(video);
-		video->decoder_initted = 1;
-		track->width = video->horizontal_size;
-		track->height = video->vertical_size;
-		track->frame_rate = video->frame_rate;
-
-/* Try to get the length of the file from GOP's */
-		if(!track->frame_offsets)
-		{
-		  if (is_video_stream)
-			{
-			  printf("In frame offset read\n");
-/* Load the first GOP */
-				mpeg3bits_seek_start(video->vstream);
-				result = mpeg3video_next_code(video->vstream, MPEG3_GOP_START_CODE);
-				if(!result) mpeg3bits_getbits(video->vstream, 32);
-				if(!result) result = mpeg3video_getgophdr(video);
-
-				hour = video->gop_timecode.hour;
-				minute = video->gop_timecode.minute;
-				second = video->gop_timecode.second;
-				frame = video->gop_timecode.frame;
-
-				video->first_frame = gop_to_frame(video, &video->gop_timecode);
-
-/*
- * 			video->first_frame = (long)(hour * 3600 * video->frame_rate + 
- * 				minute * 60 * video->frame_rate +
- * 				second * video->frame_rate +
- * 				frame);
- */
-
-/* GOPs are supposed to have 16 frames */
-
-				video->frames_per_gop = 16;
-
-/* Read the last GOP in the file by seeking backward. */
-				mpeg3bits_seek_end(video->vstream);
-				mpeg3bits_start_reverse(video->vstream);
-				result = mpeg3video_prev_code(video->vstream, MPEG3_GOP_START_CODE);
-				mpeg3bits_start_forward(video->vstream);
-				mpeg3bits_getbits(video->vstream, 8);
-				if(!result) result = mpeg3video_getgophdr(video);
-
-				hour = video->gop_timecode.hour;
-				minute = video->gop_timecode.minute;
-				second = video->gop_timecode.second;
-				frame = video->gop_timecode.frame;
-
-				video->last_frame = gop_to_frame(video, &video->gop_timecode);
-
-/*
- * 			video->last_frame = (long)((double)hour * 3600 * video->frame_rate + 
- * 				minute * 60 * video->frame_rate +
- * 				second * video->frame_rate +
- * 				frame);
- */
-
-//printf("mpeg3video_new 3 %p\n", video);
-
-/* Count number of frames to end */
-				while(!result)
-				{
-					result = mpeg3video_next_code(video->vstream, MPEG3_PICTURE_START_CODE);
-//printf("mpeg3video_new 2 %d %ld\n", result, video->last_frame);
-					if(!result)
-					{
-						mpeg3bits_getbyte_noptr(video->vstream);
-						video->last_frame++;
-					}
-				}
-
-				track->total_frames = video->last_frame - video->first_frame + 1;
-//printf("mpeg3video_new 3 %ld\n", track->total_frames);
-				mpeg3bits_seek_start(video->vstream);
-			}
-			else
-// Try to get the length of the file from the multiplexing.
-			{
-				video->first_frame = 0;
-				track->total_frames = video->last_frame = 
-					(long)(mpeg3demux_length(video->vstream->demuxer) * 
-						video->frame_rate);
-				video->first_frame = 0;
-			}
-		}
-		else
-// Get length from table of contents
-		{
-			track->total_frames = track->total_frame_offsets;
-		}
-
-
-
-		video->maxframe = track->total_frames;
-		mpeg3bits_seek_start(video->vstream);
-		mpeg3video_get_firstframe(video);
-	}
-	else
-	{
-//printf("mpeg3video_new 3 %p\n", video);
-		mpeg3video_delete(video);
-		video = 0;
-	}
-//printf("mpeg3video_new 4 %p\n", video);
-#endif
 
 	return video;
 }

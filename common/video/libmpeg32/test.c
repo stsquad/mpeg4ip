@@ -44,7 +44,7 @@ int main (int argc, char **argv)
 
   mpeg3_set_mmx(file, 1);
 
-#if 0
+#if 1
   if (mpeg3_has_video(file) != 0) {
     printf("video in file\n");
     printf("total vstreams = %d\n", mpeg3_total_vstreams(file));

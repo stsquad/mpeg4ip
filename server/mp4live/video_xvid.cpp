@@ -50,7 +50,6 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	xvidEncParams.height = m_pConfig->m_videoHeight;
 	xvidEncParams.raw_height = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
-	xvidEncParams.time_inc_bits = m_pConfig->m_videoTimeIncrBits;
 	xvidEncParams.fincr = 1001;
 	xvidEncParams.fbase = 
 		(int)(1001 * m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);

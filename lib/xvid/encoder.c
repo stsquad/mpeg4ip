@@ -117,7 +117,11 @@ int encoder_create(XVID_ENC_PARAM * pParam)
 	pEnc->mbParam.raw_height = pParam->raw_height;
 	pEnc->mbParam.fincr = pParam->fincr;
 	pEnc->mbParam.fbase = pParam->fbase;
-	pEnc->mbParam.time_inc_bits = pParam->time_inc_bits;
+
+	pEnc->mbParam.time_inc_bits = 1;
+	while (pParam->fbase > (1 << pEnc->mbParam.time_inc_bits)) {
+		pEnc->mbParam.time_inc_bits++;
+	}
 #endif
 
 	pEnc->sStat.fMvPrevSigma = -1;

@@ -6,6 +6,7 @@
 
 typedef struct
 {
+  void *file;
 	int width;
 	int height;
 	float frame_rate;
@@ -17,8 +18,8 @@ typedef struct
   unsigned char *track_frame_buffer;
   long track_frame_buffer_size;
   long track_frame_buffer_maxsize;
-  double percentage;
-  long frame;
+  double percentage_seek;
+  long frame_seek;
 /* Pointer to master table of contents */
 	int64_t *frame_offsets;
 	int total_frame_offsets;

@@ -793,6 +793,7 @@ int mpeg3_seek_percentage(mpeg3_t *file, double percentage)
 	return 0;
 }
 
+#if 0
 int mpeg3_previous_frame(mpeg3_t *file, int stream)
 {
 	file->last_type_read = 2;
@@ -803,6 +804,7 @@ int mpeg3_previous_frame(mpeg3_t *file, int stream)
 
 	return 0;
 }
+#endif
 
 double mpeg3_tell_percentage(mpeg3_t *file)
 {
@@ -885,7 +887,7 @@ int mpeg3_read_frame(mpeg3_t *file,
 
 	if(file->total_vstreams)
 	{
-		result = mpeg3video_read_frame(file->vtrack[stream]->video, 
+		result = mpeg3vtrack_read_frame(file->vtrack[stream], 
 					file->vtrack[stream]->current_position, 
 					output_rows,
 					in_x, 
@@ -908,8 +910,10 @@ int mpeg3_drop_frames(mpeg3_t *file, long frames, int stream)
 
 	if(file->total_vstreams)
 	{
+#if 0
 		result = mpeg3video_drop_frames(file->vtrack[stream]->video, 
 						frames);
+#endif
 		if(frames > 0) file->vtrack[stream]->current_position += frames;
 		file->last_type_read = 2;
 		file->last_stream_read = stream;
@@ -979,11 +983,10 @@ int mpeg3_read_yuvframe_ptr(mpeg3_t *file,
 //printf("mpeg3_read_yuvframe 1 %d %d\n", mpeg3demux_tell(file->vtrack[stream]->demuxer), mpeg3demuxer_total_bytes(file->vtrack[stream]->demuxer));
 	if(file->total_vstreams)
 	{
-		result = mpeg3video_read_yuvframe_ptr(file->vtrack[stream]->video, 
-					file->vtrack[stream]->current_position, 
-					y_output,
-					u_output,
-					v_output);
+		result = mpeg3vtrack_read_yuvframe_ptr(file->vtrack[stream], 
+						       y_output,
+						       u_output,
+						       v_output);
 		file->last_type_read = 2;
 		file->last_stream_read = stream;
 		file->vtrack[stream]->current_position++;
@@ -1075,18 +1078,3 @@ int mpeg3_read_video_chunk(mpeg3_t *file,
 	return result;
 }
 
-int mpeg3_read_video_chunk_resize(mpeg3_t *file, 
-				  unsigned char **output, 
-				  long *size, 
-				  long *max_size,
-				  int stream)
-{
-  int result = 0;
-  if(file->total_vstreams)
-    {
-      result = mpeg3vtrack_read_raw_resize(file->vtrack[stream], output, size, max_size);
-      file->last_type_read = 2;
-      file->last_stream_read = stream;
-    }
-  return result;
-}

@@ -160,7 +160,6 @@ typedef struct
 
 #ifdef MPEG4IP
 	int raw_height;			// height of raw image, >= height
-	int time_inc_bits;		// number of bits in a vop time increment
 #endif
 						
 } XVID_ENC_PARAM;
