@@ -1,5 +1,5 @@
 #include "systems.h"
-#ifndef USE_SELECT
+#ifdef HAVE_POLL
 #include <sys/poll.h>
 #endif
 #include "http_private.h"
@@ -9,7 +9,7 @@ static int http_recv (int server_socket,
 		      uint32_t len)
 {
   int ret;
-#ifndef USE_SELECT
+#ifdef HAVE_POLL
   struct pollfd pollit;
 
   pollit.fd = server_socket;
@@ -24,7 +24,7 @@ static int http_recv (int server_socket,
   FD_SET(server_socket, &read_set);
   timeout.tv_sec = 2;
   timeout.tx_usec = 0;
-  ret = select(1, &read_set, NULL, NULL, &timeout);
+  ret = select(server_socket + 1, &read_set, NULL, NULL, &timeout);
 #endif
   if (ret <= 0) {
     return -1;
