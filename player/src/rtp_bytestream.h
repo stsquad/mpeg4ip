@@ -81,7 +81,7 @@ class CRtpByteStreamBase : public COurInByteStream
   void remove_packet_rtp_queue(rtp_packet *pak, int free);
  protected:
   void init(void);
-  rtp_packet *m_pak, *m_head, *m_tail;
+  rtp_packet *m_head, *m_tail;
   int m_offset_in_pak;
   uint32_t m_skip_on_advance_bytes;
   uint32_t m_ts;

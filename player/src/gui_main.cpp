@@ -241,7 +241,6 @@ static void start_session_from_name (const char *name)
   } else {
     create_session_from_name(name);
   }
-  player_debug_message("name is %s", name);
 
   // Add this file to the drop down list
   // If we're playing, adjust the gui
@@ -251,7 +250,6 @@ static void start_session_from_name (const char *name)
       config.move_config_strings(CONFIG_PREV_FILE_3, CONFIG_PREV_FILE_2);
       config.move_config_strings(CONFIG_PREV_FILE_2, CONFIG_PREV_FILE_1);
       config.move_config_strings(CONFIG_PREV_FILE_1, CONFIG_PREV_FILE_0);
-      player_debug_message("String is %s", name);
       config.set_config_string(CONFIG_PREV_FILE_0, strdup(name));
     }
   }
@@ -261,7 +259,6 @@ static void start_session_from_name (const char *name)
     gtk_combo_set_popdown_strings (GTK_COMBO(combo), playlist);
     gtk_widget_show(combo);
   }
-  player_debug_message("name is %s", name);
   SDL_mutexV(command_mutex);
 }
 
@@ -270,7 +267,6 @@ static void start_session_from_name (const char *name)
  */
 void delete_event (GtkWidget *widget, gpointer *data)
 {
-  //  if (widget == main_window) {
   if (psptr != NULL) {
     delete psptr;
   }
@@ -278,7 +274,6 @@ void delete_event (GtkWidget *widget, gpointer *data)
     delete master_playlist;
   }
   gtk_main_quit();
-    //}
 }
 
 static void on_main_menu_close (GtkWidget *window, gpointer data)

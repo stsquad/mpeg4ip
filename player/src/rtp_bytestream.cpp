@@ -69,9 +69,11 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
       }
     }
   } else if ((((*head)->rtp_pak_seq < (*tail)->rtp_pak_seq) &&
-	      ((pak->rtp_pak_seq > (*tail)->rtp_pak_seq) || pak->rtp_pak_seq < (*head)->rtp_pak_seq)) ||
+	      ((pak->rtp_pak_seq > (*tail)->rtp_pak_seq) || 
+	       (pak->rtp_pak_seq < (*head)->rtp_pak_seq))) ||
 	     (((*head)->rtp_pak_seq > (*tail)->rtp_pak_seq) &&
-	      ((pak->rtp_pak_seq > (*tail)->rtp_pak_seq && pak->rtp_pak_seq < (*head)->rtp_pak_seq)))) {
+	      ((pak->rtp_pak_seq > (*tail)->rtp_pak_seq && 
+		pak->rtp_pak_seq < (*head)->rtp_pak_seq)))) {
     // insert between tail and head
     // Maybe move head - probably move tail.
     (*tail)->rtp_next = pak;
@@ -204,7 +206,6 @@ CRtpByteStreamBase::~CRtpByteStreamBase (void)
 
 void CRtpByteStreamBase::init (void)
 {
-  m_pak = NULL;
   m_offset_in_pak = m_skip_on_advance_bytes;
 }
 
@@ -468,8 +469,6 @@ uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer,
 #ifdef DEBUG_RTP_PAKS
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
-    if (m_buffer_len - m_bytes_used == 3249)
-      player_debug_message("This");
   } else {
     m_buffer_len = 0;
     while (finished == 0) {
@@ -571,7 +570,6 @@ int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
 
   if (m_head == NULL) return 0;
   init();
-  m_pak = m_head;
   m_buffer_len = m_bytes_used = 0;
   ts = start_next_frame(buffer, buflen);
   *pts = ts;
