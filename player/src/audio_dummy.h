@@ -42,10 +42,10 @@ class CDummyAudioSync : public CAudioSync {
     m_configed = 0;
   } ;
 
-  unsigned char *get_audio_buffer(void);
+  uint8_t *get_audio_buffer(void);
   void filled_audio_buffer(uint64_t ts, int resync);
   void set_config(int freq, int channels, int format, uint32_t max_buffer_size);
-  uint32_t load_audio_buffer(unsigned char *from, 
+  uint32_t load_audio_buffer(uint8_t *from, 
 			     uint32_t bytes, 
 			     uint64_t ts, 
 			     int resync);

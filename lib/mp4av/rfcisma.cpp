@@ -196,13 +196,23 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 		return false;
 	}
 
-	// check that track contains either MPEG-4 AAC or CELP
+	u_int8_t audioType =
+		MP4GetTrackAudioType(mp4File, mediaTrackId);
+
+	if (audioType != MP4_MPEG4_AUDIO_TYPE
+	  && !MP4_IS_AAC_AUDIO_TYPE(audioType)) {
+		return false;
+	}
+
 	u_int8_t mpeg4AudioType =
 		MP4GetTrackAudioMpeg4Type(mp4File, mediaTrackId);
 
-	if (!MP4_IS_MPEG4_AAC_AUDIO_TYPE(mpeg4AudioType) 
-	  && mpeg4AudioType != MP4_MPEG4_CELP_AUDIO_TYPE) {
-		return false;
+	if (audioType == MP4_MPEG4_AUDIO_TYPE) {
+		// check that track contains either MPEG-4 AAC or CELP
+		if (!MP4_IS_MPEG4_AAC_AUDIO_TYPE(mpeg4AudioType) 
+		  && mpeg4AudioType != MP4_MPEG4_CELP_AUDIO_TYPE) {
+			return false;
+		}
 	}
 
 	/* get the ES configuration */

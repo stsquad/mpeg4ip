@@ -545,8 +545,11 @@ extern "C" MP4TrackId MP4AddSceneTrack(MP4FileHandle hFile)
 	return MP4_INVALID_TRACK_ID;
 }
 
-extern "C" MP4TrackId MP4AddAudioTrack(MP4FileHandle hFile, 
-	u_int32_t timeScale, u_int32_t sampleDuration, u_int8_t audioType)
+extern "C" MP4TrackId MP4AddAudioTrack(
+	MP4FileHandle hFile, 
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration, 
+	u_int8_t audioType)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
@@ -561,9 +564,13 @@ extern "C" MP4TrackId MP4AddAudioTrack(MP4FileHandle hFile,
 	return MP4_INVALID_TRACK_ID;
 }
 
-extern "C" MP4TrackId MP4AddVideoTrack(MP4FileHandle hFile, 
-	u_int32_t timeScale, u_int32_t sampleDuration,
-	u_int16_t width, u_int16_t height, u_int8_t videoType)
+extern "C" MP4TrackId MP4AddVideoTrack(
+	MP4FileHandle hFile, 
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration,
+	u_int16_t width, 
+	u_int16_t height, 
+	u_int8_t videoType)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {

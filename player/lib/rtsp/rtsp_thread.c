@@ -73,7 +73,7 @@ static int rtsp_thread_start_cmd (rtsp_client_t *info)
   }
 #endif
   ret = rtsp_create_socket(info);
-  return (0);
+  return (ret);
 }
 
 /*

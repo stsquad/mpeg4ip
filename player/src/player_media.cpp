@@ -426,7 +426,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
 int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
 				       format_list_t *sdp_media,
 				       video_info_t *video,
-				       const unsigned char *user_data,
+				       const uint8_t *user_data,
 				       uint32_t userdata_size)
 {
   if (m_video_sync == NULL) {
@@ -449,10 +449,33 @@ int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
   return 0;
 }
 
+void CPlayerMedia::set_plugin_data (const codec_plugin_t *p, 
+				    codec_data_t *d, 
+				    video_vft_t *v, 
+				    audio_vft_t *a)
+{
+  m_plugin = p;
+  m_plugin_data = d;
+  if (is_video()) {
+    if (m_video_sync == NULL) {
+      m_video_sync = m_parent->set_up_video_sync();
+    }
+    d->ifptr = m_video_sync;
+    d->v.video_vft = v;
+  } else {
+    if (m_audio_sync == NULL) {
+      m_audio_sync = m_parent->set_up_audio_sync();
+    }
+    d->ifptr = m_audio_sync;
+    d->v.audio_vft = a;
+  }
+    
+}
+
 int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
 				       format_list_t *sdp_media,
 				       audio_info_t *audio,
-				       const unsigned char *user_data,
+				       const uint8_t *user_data,
 				       uint32_t userdata_size)
 {
   if (m_audio_sync == NULL) {
@@ -1351,6 +1374,7 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
   char payload_type = (char)m_head->rtp_pak_pt, temp;
   format_list_t *fmt;
   uint64_t tickpersec;
+  CRtpByteStreamBase *bs;
 
   fmt = m_media_info->fmt;
   while (fmt != NULL) {
@@ -1368,7 +1392,7 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
 	tickpersec = 90000;
       }
 
-      m_rtp_byte_stream = 
+      bs = 
 	create_rtp_byte_stream_for_format(m_media_fmt,
 					  payload_type,
 					  m_stream_ondemand,
@@ -1381,8 +1405,9 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
 					  m_rtcp_ntp_frac,
 					  m_rtcp_ntp_sec,
 					  m_rtcp_rtp_ts);
+      bs->set_start_time((uint64_t)(m_play_start_time * 1000.0));
+      m_rtp_byte_stream = bs;
       m_byte_stream = m_rtp_byte_stream;
-      m_byte_stream->set_start_time((uint64_t)(m_play_start_time * 1000.0));
 #if 1
       media_message(LOG_DEBUG, "media %s - rtp tps %u ntp per rtp ",
 			   m_media_info->media,

@@ -15,15 +15,18 @@ noinst_LTLIBRARIES = libmpeg3video.la
 libmpeg3video_la_LDFLAGS = -static
 
 INCLUDES=-I $(top_srcdir)/include
+
 if USE_MMX
 AM_CFLAGS = -DHAVE_MMX -fomit-frame-pointer -malign-loops=2 -malign-jumps=2 -malign-functions=2
 
 EXTRA_libmpeg3video_la_SOURCES = \
+     mmxidct.S \
      reconmmx.asm 
 libmpeg3video_la_LIBADD = \
+	mmxidct.lo \
      reconmmx.lo 
 else
-AM_CFLAGS = -fomit-frame-pointer -malign-loops=2 -malign-jumps=2 -malign-functions=2
+AM_CFLAGS = 
 EXTRA_libmpeg3video_la_SOURCES = 
 libmpeg3video_la_LIBADD = 
 
@@ -36,7 +39,6 @@ libmpeg3video_la_SOURCES = \
 	idct.h \
 	layerdata.h \
 	macroblocks.c \
-	mmxidct.S \
 	mmxtest.c \
 	motion.c \
 	mpeg3video.c \
@@ -48,7 +50,8 @@ libmpeg3video_la_SOURCES = \
 	slice.c \
 	slice.h \
 	vlc.c \
-	vlc.h \
-	worksheet.c
+	vlc.h 
+
+EXTRA_DIST = worksheet.c
 
 

@@ -25,7 +25,7 @@
 #include "our_bytestream.h"
 
 typedef struct video_query_t {
-  int key;
+  uint32_t track_id;
   const char *compressor;
   int type;
   int profile;
@@ -33,30 +33,36 @@ typedef struct video_query_t {
   int h;
   int w;
   double frame_rate;
+  const uint8_t *config;
+  uint32_t config_len;
   // user supplied
   int enabled;
   void *reference;
 } video_query_t;
 
 typedef struct audio_query_t {
-  int key;
+  uint32_t track_id;
   const char *compressor;
   int type;
   int profile;
   format_list_t *fptr;
   int sampling_freq;
   int chans;
+  const uint8_t *config;
+  uint32_t config_len;
   // user supplied
   int enabled;
   void *reference;
-};
+} audio_query_t;
 
-typedef int (*audio_list_query_f)(int number, audio_query_t *);
-typedef int (*video_list_query_f)(int number, video_query_t *);
+typedef void (*media_list_query_f)(CPlayerSession *psptr,
+				   int num_video, 
+				   video_query_t *,
+				   int num_audio,
+				   audio_query_t *);
 
 typedef struct control_callback_vft_t {
-  audio_list_query_f audio_list_query;
-  video_list_query_f video_list_query;
+  media_list_query_f media_list_query;
 } control_callback_vft_t;
 
 int parse_name_for_session(CPlayerSession *psptr,

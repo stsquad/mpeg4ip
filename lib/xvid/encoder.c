@@ -21,7 +21,11 @@
 #define ENC_CHECK(X) if(!(X)) return XVID_ERR_FORMAT
 
 
+#ifdef MPEG4IP
+static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool vol_header);
+#else
 static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits);
+#endif
 static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool force_inter, bool vol_header);
 
 static int DQtab[4] = 
@@ -48,9 +52,6 @@ int encoder_create(XVID_ENC_PARAM * pParam)
 	ENC_CHECK(pParam->height > 0 && pParam->height <= 1280);
 	ENC_CHECK(!(pParam->width % 2));
 	ENC_CHECK(!(pParam->height % 2));
-#ifdef MPEG4IP
-	ENC_CHECK(!(pParam->raw_height % 2));
-#endif
 
 	if (pParam->fincr <= 0 || pParam->fbase <= 0)
 	{
@@ -114,7 +115,6 @@ int encoder_create(XVID_ENC_PARAM * pParam)
 	pEnc->mbParam.edged_height = 16 * pEnc->mbParam.mb_height + 2 * EDGE_SIZE;
 
 #ifdef MPEG4IP
-	pEnc->mbParam.raw_height = pParam->raw_height;
 	pEnc->mbParam.fincr = pParam->fincr;
 	pEnc->mbParam.fbase = pParam->fbase;
 
@@ -234,21 +234,42 @@ int encoder_encode(Encoder * pEnc, XVID_ENC_FRAME * pFrame, XVID_ENC_STATS * pRe
 	ENC_CHECK(pEnc);
 	ENC_CHECK(pFrame);
 	ENC_CHECK(pFrame->bitstream);
+#ifndef MPEG4IP
 	ENC_CHECK(pFrame->image);
+#endif
 
 	pEnc->mbParam.global_flags = pFrame->general;
 	pEnc->mbParam.motion_flags = pFrame->motion;
 	pEnc->mbParam.hint = &pFrame->hint;
 
 	start_timer();
-	if (image_input(&pEnc->sCurrent, pEnc->mbParam.width, pEnc->mbParam.height,
 #ifdef MPEG4IP
-		pEnc->mbParam.raw_height,
+	if (pFrame->image == NULL 
+	  && pFrame->colorspace == XVID_CSP_I420) {
+		ENC_CHECK(pFrame->image_y);
+		ENC_CHECK(pFrame->image_u);
+		ENC_CHECK(pFrame->image_v);
+		ENC_CHECK(pFrame->stride >= pEnc->mbParam.width);
+
+		if (yuv_input(&pEnc->sCurrent, 
+		  pEnc->mbParam.width, 
+		  pEnc->mbParam.height,
+		  pEnc->mbParam.edged_width, 
+		  pFrame->image_y, pFrame->image_u, pFrame->image_v,
+		  pFrame->stride,
+		  pFrame->colorspace)) {
+			return XVID_ERR_FORMAT;
+		}
+	} else {
 #endif
+	if (image_input(&pEnc->sCurrent, pEnc->mbParam.width, pEnc->mbParam.height,
 		pEnc->mbParam.edged_width, pFrame->image, pFrame->colorspace))
 	{
 		return XVID_ERR_FORMAT;
 	}
+#ifdef MPEG4IP
+	}
+#endif
 	stop_conv_timer();
 
 	EMMS();
@@ -319,19 +340,34 @@ int encoder_encode(Encoder * pEnc, XVID_ENC_FRAME * pFrame, XVID_ENC_STATS * pRe
 			write_vol_header = ret1 | ret2;
 	}
 
+#ifdef MPEG4IP
+	if (pEnc->iFrameNum == 0) {
+		BitstreamWriteVoshHeader(&bs);
+		write_vol_header = 1;
+	}
+#endif
+
 	if (pFrame->intra < 0)
 	{
 		if ((pEnc->iFrameNum == 0) || ((pEnc->iMaxKeyInterval > 0) 
 					       && (pEnc->iFrameNum >= pEnc->iMaxKeyInterval)))
 
+#ifdef MPEG4IP
+			pFrame->intra = FrameCodeI(pEnc, &bs, &bits, write_vol_header);
+#else
 			pFrame->intra = FrameCodeI(pEnc, &bs, &bits);
+#endif
 		else
 			pFrame->intra = FrameCodeP(pEnc, &bs, &bits, 0, write_vol_header);
 	}
 	else
 	{
 		if (pFrame->intra == 1)
+#ifdef MPEG4IP
+			pFrame->intra = FrameCodeI(pEnc, &bs, &bits, write_vol_header);
+#else
 			pFrame->intra = FrameCodeI(pEnc, &bs, &bits);
+#endif
 		else
 			pFrame->intra = FrameCodeP(pEnc, &bs, &bits, 1, write_vol_header);
 	}
@@ -603,7 +639,11 @@ void HintedMEGet(Encoder * pEnc, int intra)
 }
 
 
-static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits)
+static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits
+#ifdef MPEG4IP
+	, bool vol_header
+#endif
+	)
 {
 
 	DECLARE_ALIGNED_MATRIX(dct_codes, 6, 64, int16_t, CACHE_LINE);
@@ -615,7 +655,13 @@ static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits)
 	pEnc->mbParam.rounding_type = 1;
 	pEnc->mbParam.coding_type = I_VOP;
 
+#ifdef MPEG4IP
+	if (vol_header) {
+		BitstreamWriteVolHeader(bs, &pEnc->mbParam);
+	}
+#else
 	BitstreamWriteVolHeader(bs, &pEnc->mbParam);
+#endif
 	BitstreamWriteVopHeader(bs, &pEnc->mbParam);
 
 	*pBits = BitstreamPos(bs);
@@ -715,7 +761,11 @@ static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool forc
 
 	if (bIntra == 1)
 	{
+#ifdef MPEG4IP
+		return FrameCodeI(pEnc, bs, pBits, vol_header);
+#else
 		return FrameCodeI(pEnc, bs, pBits);
+#endif
 	}
 
 	pEnc->mbParam.coding_type = P_VOP;

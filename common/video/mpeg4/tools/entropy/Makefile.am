@@ -11,4 +11,9 @@ libobj_tools_entropy_la_LDFLAGS = -static
 
 libobj_tools_entropy_la_SOURCES = \
 	bitstrm.cpp \
-	huffman.cpp
+	huffman.cpp \
+	bitstrm.hpp \
+	entropy.hpp \
+	huffman.hpp \
+	inbits.h \
+	vlc.hpp

@@ -39,10 +39,11 @@ COurInByteStreamFile::~COurInByteStreamFile(void)
 
 void COurInByteStreamFile::set_start_time (uint64_t start) 
 {
+  if (m_plugin->c_raw_file_seek_to != NULL)
   m_plugin->c_raw_file_seek_to(m_plugin_data, start);
 }
 
-uint64_t COurInByteStreamFile::start_next_frame (unsigned char **buffer, 
+uint64_t COurInByteStreamFile::start_next_frame (uint8_t **buffer, 
 						 uint32_t *buflen,
 						 void **userdata) 
 {
@@ -72,7 +73,8 @@ int COurInByteStreamFile::eof (void)
 
 void COurInByteStreamFile::reset (void)
 {
-  m_plugin->c_raw_file_seek_to(m_plugin_data, 0);
+  if (m_plugin->c_raw_file_seek_to != NULL) 
+    m_plugin->c_raw_file_seek_to(m_plugin_data, 0);
 }
 
 /* end file our_bytestream_file.cpp */

@@ -109,6 +109,7 @@ void sdp_free_format_list (format_list_t **fptr)
     }
     FREE_CHECK(p, fmt_param);
     FREE_CHECK(p, fmt);
+    free(p);
   }
 }
 

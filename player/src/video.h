@@ -44,6 +44,7 @@ class CVideoSync {
   virtual void flush_decode_buffers(void);    
                               // from decoder task in response to stop
   void set_eof(void) { m_eof_found = 1; };
+  int get_eof(void) { return m_eof_found; };
   virtual void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
   virtual void set_fullscreen(int fullscreen);
   virtual int get_fullscreen (void) { return 0;};

@@ -38,7 +38,9 @@ GtkWidget* CreateTrackMenu(
 	u_int32_t** ppMenuValues);
 
 bool IsDevice(const char* name);
+bool IsUrl(const char* name);
 bool IsMp4File(const char* name);
+bool IsMpeg2File(const char* name);
 
 int32_t FileDefaultAudio(char* fileName);
 

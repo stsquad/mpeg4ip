@@ -41,38 +41,34 @@ const char *celplib="celp";
 
 
 static codec_data_t *celp_codec_create (format_list_t *media_fmt,
-				       audio_info_t *audio,
-				       const unsigned char *userdata,
-				       uint32_t userdata_size,
-				       audio_vft_t *vft,
-				       void *ifptr)
+					audio_info_t *audio,
+					const uint8_t *userdata,
+					uint32_t userdata_size,
+					audio_vft_t *vft,
+					void *ifptr)
 
 {
 
 
   int i;
-	celp_codec_t *celp;
+  celp_codec_t *celp;
   celp = (celp_codec_t *)malloc(sizeof(celp_codec_t));
   memset(celp, 0, sizeof(celp_codec_t));
   
-  #if 1 	 
+#if 1 	 
   celp->m_vft = vft;
   celp->m_ifptr = ifptr;
   fmtp_parse_t *fmtp = NULL;
+
+  BsInit(0, 0, 0);
   
   // Start setting up CELP stuff...
-  celp->m_bStream= (BsBitStream *) malloc(sizeof(BsBitStream));
-  celp->m_bStream->buffer[0]=(BsBitBuffer*)malloc(sizeof(BsBitBuffer));
-  
-  
-  celp->m_bBuffer=BsAllocBuffer(userdata_size);
   
   celp->m_resync_with_header = 1;
   celp->m_record_sync_time = 1;
   
   celp->m_celp_inited = 0;
   celp->m_audio_inited = 0;
-  celp->m_bufs = (uint16_t *)malloc(4096);
   //celp->m_temp_buff = (float *)malloc(4096);
 
   
@@ -102,59 +98,63 @@ static codec_data_t *celp_codec_create (format_list_t *media_fmt,
   mpeg4_audio_config_t audio_config;
   if (userdata != NULL || fmtp != NULL) {
     
-	
+    celp_message(LOG_DEBUG, celplib, "config len %d %02x %02x %02x %02x", 
+		 userdata_size, userdata[0], userdata[1], userdata[2], 
+		 userdata[3]);
     decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
     celp->m_object_type = audio_config.audio_object_type;
     celp->m_freq = audio_config.frequency;
     celp->m_chans = audio_config.channels;
-    
   }
 
 
 	
 
-// write 
-BsBitBuffer *bitHeader;
-BsBitStream	*hdrStream;
+  // write 
+  BsBitBuffer *bitHeader;
+  BsBitStream	*hdrStream;
 
 
-bitHeader=BsAllocBuffer(userdata_size*8);
+  bitHeader=BsAllocBuffer(userdata_size * 8);
+
+  //wmay removed
+  bitHeader->numBit=userdata_size*8;
+  bitHeader->size=userdata_size*8;
+
+  memcpy(bitHeader->data,userdata,userdata_size);
 
 
-bitHeader->numBit=userdata_size*8;
-bitHeader->size=userdata_size*8;
+  hdrStream = BsOpenBufferRead(bitHeader);
 
-memcpy(  bitHeader->data,userdata,userdata_size*8);
-
-
-hdrStream = BsOpenBufferRead(bitHeader);
-
-BsGetSkip (hdrStream,userdata_size*8-audio_config.codec.celp.NumOfBitsInBuffer);
-celp->m_bBuffer=BsAllocBuffer(userdata_size*8);
-BsGetBuffer (hdrStream, celp->m_bBuffer,audio_config.codec.celp.NumOfBitsInBuffer);
-int delayNumSample;
+  BsGetSkip (hdrStream,userdata_size*8-audio_config.codec.celp.NumOfBitsInBuffer);
+  BsBitBuffer *bBuffer=BsAllocBuffer(userdata_size*8);
+  BsGetBuffer (hdrStream, bBuffer,audio_config.codec.celp.NumOfBitsInBuffer);
+  int delayNumSample;
 
 
-DecLpcInit(celp->m_chans,celp->m_freq,0,NULL,
-				celp->m_bBuffer ,&celp->m_output_frame_size,&delayNumSample);
+  DecLpcInit(celp->m_chans,celp->m_freq,0,NULL,
+	     bBuffer ,&celp->m_output_frame_size,&delayNumSample);
 
 
 
-celp->m_msec_per_frame *= M_LLU;
-celp->m_msec_per_frame /= celp->m_freq;
-celp->m_last=userdata_size;
+  celp->m_msec_per_frame *= M_LLU;
+  celp->m_msec_per_frame /= celp->m_freq;
+  celp->m_last=userdata_size;
 	
-BsFreeBuffer (bitHeader);
+  BsFreeBuffer (bitHeader);
 
-BsFreeBuffer (celp->m_bBuffer);
+  BsFreeBuffer (bBuffer);
 
 	
-celp->m_sampleBuf=(float**)malloc(celp->m_chans*sizeof(float*));
-	for(i=0;i<celp->m_chans;i++)
-		celp->m_sampleBuf[i]=(float*)malloc(celp->m_output_frame_size*sizeof(float));
+  celp->m_sampleBuf=(float**)malloc(celp->m_chans*sizeof(float*));
+  for(i=0;i<celp->m_chans;i++)
+    // wmay - added 2 times
+    celp->m_sampleBuf[i]=(float*)malloc(2*celp->m_output_frame_size*sizeof(float));
 
-//celp->audiFile = AudioOpenWrite("out1.au",".au",
-//		  celp->m_chans,celp->m_freq);
+  celp->m_bufs = 
+    (uint16_t *)malloc(sizeof(uint16_t) * 2 * celp->m_chans * celp->m_output_frame_size);
+  //celp->audiFile = AudioOpenWrite("out1.au",".au",
+  //		  celp->m_chans,celp->m_freq);
 
 
 
@@ -162,6 +162,7 @@ celp->m_sampleBuf=(float**)malloc(celp->m_chans*sizeof(float*));
   celp_message(LOG_INFO, celplib,"CELP object type is %d", celp->m_object_type);
   //celp_message(LOG_INFO, celplib,"CELP channel are %d", celp->m_chans );
   celp_message(LOG_INFO, celplib, "Setting freq to %d", celp->m_freq);
+  celp_message(LOG_INFO, celplib, "output frame size is %d", celp->m_output_frame_size);
   
  
 
@@ -173,45 +174,57 @@ celp->m_sampleBuf=(float**)malloc(celp->m_chans*sizeof(float*));
     free_fmtp_parse(fmtp);
   }
 #endif	 
+  celp->m_vft->audio_configure(celp->m_ifptr,
+			       celp->m_freq, 
+			       celp->m_chans, 
+			       AUDIO_S16SYS,
+			       celp->m_output_frame_size);
+
   return (codec_data_t *)celp;
 
 
-  }
+}
 
 void celp_close (codec_data_t *ptr)
 {
   
 	
 	
-	int i;
-	if (ptr == NULL) {
+  int i;
+  if (ptr == NULL) {
     printf("\nin celp close\n");
     
-	  return;
+    return;
   }
  
-	celp_codec_t *celp = (celp_codec_t *)ptr;
+  celp_codec_t *celp = (celp_codec_t *)ptr;
  
 		
-	if(celp->m_bufs) {
-		free(celp->m_bufs);
-		celp->m_bufs=NULL;
+  if(celp->m_bufs) {
+    free(celp->m_bufs);
+    celp->m_bufs=NULL;
 
-	}
-	//AudioClose(celp->audiFile);
+  }
+  //AudioClose(celp->audiFile);
   
 	
-// if (celp->m_temp_buff) {
-//    free(celp->m_temp_buff);
-//    celp->m_temp_buff = NULL;
-//  }
+  // if (celp->m_temp_buff) {
+  //    free(celp->m_temp_buff);
+  //    celp->m_temp_buff = NULL;
+  //  }
 
 
-	if(celp->m_sampleBuf){
-		for(i=0; i<celp->m_chans;i++) free(celp->m_sampleBuf[i]);
-	}
+  if(celp->m_sampleBuf){
+    for(i=0; i<celp->m_chans;i++) {
+      free(celp->m_sampleBuf[i]);
+      celp->m_sampleBuf[i] = NULL;
+    }
 
-	DecLpcFree();
+    free(celp->m_sampleBuf);
+    celp->m_sampleBuf = NULL;
+  }
+
+  DecLpcFree();
 
 #if DUMP_OUTPUT_TO_FILE
   fclose(celp->m_outfile);
@@ -219,7 +232,7 @@ void celp_close (codec_data_t *ptr)
   free(celp);
   
 		
- } 
+} 
 
 /*
  * Handle pause - basically re-init the codec
@@ -228,13 +241,11 @@ static void celp_do_pause (codec_data_t *ifptr)
 {
   
 
-	celp_codec_t *celp = (celp_codec_t *)ifptr;
+  celp_codec_t *celp = (celp_codec_t *)ifptr;
   celp->m_resync_with_header = 1;
   celp->m_record_sync_time = 1;
   celp->m_audio_inited = 0;
   celp->m_celp_inited = 0;
-  if (celp->m_bufs == NULL) 
-    celp->m_bufs = (uint16_t*)malloc(4096);
 	
 }
 
@@ -242,21 +253,16 @@ static void celp_do_pause (codec_data_t *ifptr)
  * Decode task call for CELP
  */
 static int celp_decode (codec_data_t *ptr,
-		       uint64_t ts,
-		       int from_rtp,
-		       int *sync_frame,
-		       unsigned char *buffer,
-		       uint32_t buflen)
+			uint64_t ts,
+			int from_rtp,
+			int *sync_frame,
+			uint8_t *buffer,
+			uint32_t buflen,
+			void *userdata)
 {
- 
-	
-  
-#if 1	
   int usedNumBit;	
   celp_codec_t *celp = (celp_codec_t *)ptr;
   
-  //  struct timezone tz;
-
   if (celp->m_record_sync_time) {
     celp->m_current_frame = 0;
     celp->m_record_sync_time = 0;
@@ -282,125 +288,60 @@ static int celp_decode (codec_data_t *ptr,
 
 	
 
-    if (celp->m_celp_inited == 0) {
+  if (celp->m_celp_inited == 0) {
     
 	
-    celp->m_bBuffer=BsAllocBuffer(buflen*8);
-	
-	
-	/*
-       * If not initialized, do so.  
+    /*
+     * If not initialized, do so.  
      */
     
-	//
-	celp->m_celp_inited = 1;
+    //
+    celp->m_celp_inited = 1;
 	
-	}
-	
+  }
+  //printf("buflen:%d\n",buflen);
 
-	//printf("buflen:%d\n",buflen);
+  //if ( ((celp->m_last-buflen)/celp->m_last) < 0.2) return (0);
+  if ( buflen<5) return (-1);
+  
+  BsBitBuffer local;
+  local.data= (unsigned char *)buffer;
+  local.numBit=buflen*8;
+  local.size=buflen*8;
+	
+  DecLpcFrame(&local,celp->m_sampleBuf,&usedNumBit);
+	
+  //AudioWriteData(celp->audiFile,celp->m_sampleBuf,celp->m_output_frame_size);
+	
+  int chan,sample;
 
-	/*
-    unsigned char *buff;
+  uint8_t *now = celp->m_vft->audio_get_buffer(celp->m_ifptr);
+  if (now != NULL) {
+    uint16_t *buf = (uint16_t *)now;
+    
+    for(chan=0;chan<celp->m_chans;chan++){
+      for(sample=0;sample < celp->m_output_frame_size; sample++){
+	buf[sample +(chan*celp->m_output_frame_size)]=
+	  (uint16_t)celp->m_sampleBuf[chan][sample];
 	
-    /* 
-     * Get an audio buffer
-     * /
-	
-    if (celp->m_audio_inited == 0) {
-      buff = celp->m_temp_buff;
-    } else {
-      buff = celp->m_vft->audio_get_buffer(celp->m_ifptr);
+      }
     }
-    if (buff == NULL) {
-      //player_debug_message("Can't get buffer in celp");
-      return (0);
-    }
-
-    */
-	
-	
-	int dim=celp->m_output_frame_size;
-
-	//if ( ((celp->m_last-buflen)/celp->m_last) < 0.2) return (0);
-	if ( buflen<23) return (0);
-
-	celp->m_bBuffer->data=buffer;
-	celp->m_bBuffer->numBit=buflen*8;
-	celp->m_bBuffer->size=buflen*8;
-	
-	
-	
-	DecLpcFrame(celp->m_bBuffer,celp->m_sampleBuf,&usedNumBit);
-	
-	//AudioWriteData(celp->audiFile,celp->m_sampleBuf,celp->m_output_frame_size);
-	
-	int tempchans = celp->m_chans;	  
-
-	
-	
-	int k,j;
-	
-	
-	
-	for(j=0;j<celp->m_chans;j++){
-	for(k=0;k<celp->m_output_frame_size;k++){
-			
-		    
-			celp->m_bufs[k+(j*celp->m_output_frame_size)]=(uint16_t)celp->m_sampleBuf[j][k];
-			
-	}
-			
-	
-	}
-	
-	
-
-	celp->m_vft->audio_configure(celp->m_ifptr,
-				     celp->m_freq, 
-				     celp->m_chans, 
-				     AUDIO_S16SYS,// AUDIO_S8,//
-				     celp->m_output_frame_size);
-
-	unsigned char *now = celp->m_vft->audio_get_buffer(celp->m_ifptr);
-	if (now != NULL) {
-	  memcpy(now, celp->m_bufs , tempchans * (dim) * sizeof(int16_t));
-	}
-	
-	celp->m_audio_inited = 1;
-	
-
-
-	
-      /*
-       * good result - give it to audio sync class
-       */
-	  //free(buff);
-
+  }
 	
 #if DUMP_OUTPUT_TO_FILE
-      fwrite(buff, celp->m_output_frame_size * 4, 1, celp->m_outfile);
+  fwrite(buff, celp->m_output_frame_size * 4, 1, celp->m_outfile);
 #endif
-      celp->m_vft->audio_filled_buffer(celp->m_ifptr,
-				      celp->m_current_time, 
-				      celp->m_resync_with_header);
-      if (celp->m_resync_with_header == 1) {
-	celp->m_resync_with_header = 0;
+  celp->m_vft->audio_filled_buffer(celp->m_ifptr,
+				   celp->m_current_time, 
+				   celp->m_resync_with_header);
+  if (celp->m_resync_with_header == 1) {
+    celp->m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
-	celp_message(LOG_DEBUG, celplib, "Back to good at "LLU, celp->m_current_time);
+    celp_message(LOG_DEBUG, celplib, "Back to good at "LLU, celp->m_current_time);
 #endif
-      }
+  }
       
-
-
-
-
-	return bit2byte(usedNumBit);
-
-
-#else 
-	return 2; 
-#endif
+  return bit2byte(usedNumBit);
 }
 
 static const char *celp_compressors[] = {
@@ -410,12 +351,12 @@ static const char *celp_compressors[] = {
 };
 
 static int celp_codec_check (lib_message_func_t message,
-			    const char *compressor,
-			    int type,
-			    int profile,
-			    format_list_t *fptr, 
-			    const unsigned char *userdata,
-			    uint32_t userdata_size)
+			     const char *compressor,
+			     int type,
+			     int profile,
+			     format_list_t *fptr, 
+			     const uint8_t *userdata,
+			     uint32_t userdata_size)
 {
   fmtp_parse_t *fmtp = NULL;
   if (compressor != NULL && 
@@ -463,17 +404,12 @@ static int celp_codec_check (lib_message_func_t message,
   return -1;
 }
 
-AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("celp",
-				 celp_codec_create,
-				 celp_do_pause,
-				 celp_decode,
-				 celp_close,
-				 celp_codec_check,
-				 celp_file_check,
-				 celp_file_next_frame,
-				 celp_file_used_for_frame,
-				 celp_raw_file_seek_to,
-				 celp_file_eof);
+AUDIO_CODEC_PLUGIN("celp",
+		   celp_codec_create,
+		   celp_do_pause,
+		   celp_decode,
+		   celp_close,
+		   celp_codec_check);
 /* end file aa.cpp */
 
 

@@ -79,8 +79,14 @@ void error_message (const char *fmt, ...)
 #endif
 }
 
+bool PrintDebugMessages = false;
+
 void debug_message (const char *fmt, ...)
 {
+  if (!PrintDebugMessages) {
+    return;
+  }
+
   va_list ap;
 #if _WIN32 && _DEBUG
        char msg[512];
@@ -106,6 +112,14 @@ void debug_message (const char *fmt, ...)
   va_end(ap);
   printf("\n");
 #endif
+}
+
+void lib_message(int loglevel, const char* lib, const char* fmt, ...)
+{
+	va_list ap;
+
+	// TEMP
+	debug_message(fmt, ap);
 }
 
 #ifdef _WINDOWS

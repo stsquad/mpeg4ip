@@ -397,6 +397,7 @@ mpeg3_t* mpeg3_open_copy(const char *path, mpeg3_t *old_file)
 	}
 	else
 // IFO file
+#ifndef _WIN32
     if(bits == MPEG3_IFO_PREFIX)
     {
 //printf("libmpeg3 1\n");
@@ -415,6 +416,7 @@ mpeg3_t* mpeg3_open_copy(const char *path, mpeg3_t *old_file)
 		mpeg3io_close_file(file->fs);
     }
     else
+#endif
 	if(((bits >> 24) & 0xff) == MPEG3_SYNC_BYTE)
 	{
 /* Transport stream */
@@ -739,7 +741,7 @@ int mpeg3_set_frame(mpeg3_t *file,
 {
 	if(file->total_vstreams)
 	{
-		file->vtrack[stream]->current_position = frame;
+	  file->vtrack[stream]->current_position = frame;
 		mpeg3vtrack_seek_frame(file->vtrack[stream], frame);
 		return 0;
 	}

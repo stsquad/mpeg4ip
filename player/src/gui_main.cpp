@@ -86,6 +86,27 @@ static GtkTargetEntry drop_types[] =
   { "text/plain", 0, 1 }
 };
 
+static void media_list_query (CPlayerSession *psptr,
+			      int num_video, 
+			      video_query_t *vq,
+			      int num_audio,
+			      audio_query_t *aq)
+{
+  if (num_video > 0) {
+    if (config.get_config_value(CONFIG_PLAY_VIDEO) != 0) {
+      vq[0].enabled = 1;
+    } 
+  }
+  if (num_audio > 0) {
+    if (config.get_config_value(CONFIG_PLAY_AUDIO) != 0) {
+      aq[0].enabled = 1;
+    } 
+  }
+}
+
+static control_callback_vft_t cc_vft = {
+  media_list_query,
+};
 /*
  * toggle_button_adjust - make sure a toggle button reflects the correct
  * state
@@ -139,6 +160,7 @@ static void adjust_gui_for_play (void)
   gtk_widget_grab_focus(combo);
 }
 
+
 static void create_session_from_name (const char *name)
 {
   gint x, y, w, h;
@@ -147,6 +169,12 @@ static void create_session_from_name (const char *name)
   gdk_window_get_position(window, &x, &y);
   gdk_window_get_size(window, &w, &h);
   y += h + 40;
+
+  if (config.get_config_value(CONFIG_PLAY_AUDIO) == 0 &&
+      config.get_config_value(CONFIG_PLAY_VIDEO) == 0) {
+    ShowMessage("Hey Dummy", "You have both audio and video disabled");
+    return;
+  }
 
   // If we're already running a session, close it.
   if (psptr != NULL) {
@@ -161,7 +189,7 @@ static void create_session_from_name (const char *name)
     errmsg[0] = '\0';
     // See if we can create media for this session
     int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg),
-				     NULL);
+				     &cc_vft);
     if (ret >= 0) {
       // Yup - valid session.  Set volume, set up sync thread, and
       // start the session
@@ -575,6 +603,28 @@ static void on_debug_sdp (GtkWidget *window, gpointer data)
 
   sdp_set_loglevel(LOG_PRI(loglevel));
   config.set_config_value(CONFIG_SDP_DEBUG, LOG_PRI(loglevel));
+}
+
+static void on_media_play_audio (GtkWidget *window, gpointer data)
+{
+  GtkCheckMenuItem *checkmenu;
+  checkmenu = GTK_CHECK_MENU_ITEM(window);
+
+  config.set_config_value(CONFIG_PLAY_AUDIO, checkmenu->active);
+  if (psptr != NULL) {
+    ShowMessage("Warning", "Play audio will not take effect until next session");
+  }
+}
+
+static void on_media_play_video (GtkWidget *window, gpointer data)
+{
+  GtkCheckMenuItem *checkmenu;
+  checkmenu = GTK_CHECK_MENU_ITEM(window);
+
+  config.set_config_value(CONFIG_PLAY_VIDEO, checkmenu->active);
+  if (psptr != NULL) {
+    ShowMessage("Warning", "Play video will not take effect until next session");
+  }
 }
 
 static void on_network_rtp_over_rtsp (GtkWidget *window, gpointer data)
@@ -1031,6 +1081,18 @@ printf("%s\n", *argv);
 			    GTK_SIGNAL_FUNC(on_video_fullscreen),
 			    NULL);
 
+  menuitem = CreateMenuCheck(menu, 
+			     "Play Audio", 
+			     GTK_SIGNAL_FUNC(on_media_play_audio),
+			     NULL,
+			     config.get_config_value(CONFIG_PLAY_AUDIO));
+
+  menuitem = CreateMenuCheck(menu, 
+			     "Play Video", 
+			     GTK_SIGNAL_FUNC(on_media_play_video),
+			     NULL,
+			     config.get_config_value(CONFIG_PLAY_VIDEO));
+
   menu = CreateBarSubMenu(menubar, "Network");
   menuitem = CreateMenuCheck(menu,
 			     "Use RTP over RTSP(TCP)",
@@ -1283,9 +1345,9 @@ printf("%s\n", *argv);
   time_slider_adj = gtk_adjustment_new(0.0,
 				  0.0,
 				  100.0,
-				  1.0,
-				  0.0,
-				  0.0);
+				  0.5,
+				  0.5,
+				  0.5);
   
   time_slider = gtk_hscale_new(GTK_ADJUSTMENT(time_slider_adj));
   gtk_widget_ref(time_slider);

@@ -5,8 +5,12 @@
 #include "../decoder.h"
 #include "../global.h"
 
+#ifndef MIN
 #define MIN(X, Y) ((X)<(Y)?(X):(Y))
+#endif
+#ifndef MAX
 #define MAX(X, Y) ((X)>(Y)?(X):(Y))
+#endif
 
 // very large value
 #define MV_MAX_ERROR	(4096 * 256)

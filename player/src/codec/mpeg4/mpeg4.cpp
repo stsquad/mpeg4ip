@@ -142,7 +142,7 @@ static int parse_vovod (iso_decode_t *iso,
 
 static codec_data_t *iso_create (format_list_t *media_fmt,
 				 video_info_t *vinfo,
-				 const unsigned char *userdata,
+				 const uint8_t *userdata,
 				 uint32_t ud_size,
 				 video_vft_t *vft,
 				 void *ifptr)
@@ -226,7 +226,7 @@ static int iso_decode (codec_data_t *ptr,
 		       uint64_t ts, 
 		       int from_rtp, 
 		       int *sync_frame,
-		       unsigned char *buffer,
+		       uint8_t *buffer,
 		       uint32_t buflen,
 		       void *userdata)
 {
@@ -240,14 +240,14 @@ static int iso_decode (codec_data_t *ptr,
   buffer[buflen + 1] = 0;
   buffer[buflen + 2] = 1;
 
-  iso->m_pvodec->SetUpBitstreamBuffer(buffer, buflen + 3);
+  iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)buffer, buflen + 3);
 
   switch (iso->m_decodeState) {
   case DECODE_STATE_VOL_SEARCH: {
     uint32_t used = 0;
     while (used < buflen && iso->m_decodeState == DECODE_STATE_VOL_SEARCH) {
       try {
-	iso->m_pvodec->SetUpBitstreamBuffer(buffer + used, buflen - used);
+	iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)buffer + used, buflen - used);
 	iso->m_pvodec->decodeVOLHead();
 	iso->m_pvodec->postVO_VOLHeadInit(iso->m_pvodec->getWidth(),
 					  iso->m_pvodec->getHeight(),
@@ -391,14 +391,14 @@ static int iso_decode (codec_data_t *ptr,
     /*
      * Get the information to the video sync structure
      */
-    const unsigned char *y, *u, *v;
+    const uint8_t *y, *u, *v;
     int pixelw_y, pixelw_uv;
     pixelw_y =  pvopcQuant->getPlane(Y_PLANE)->where().width;
     pixelw_uv = pvopcQuant->getPlane(U_PLANE)->where().width;
 
-    y = pvopcQuant->getPlane(Y_PLANE)->pixels(0,0);
-    u = pvopcQuant->getPlane(U_PLANE)->pixels(0,0);
-    v = pvopcQuant->getPlane(V_PLANE)->pixels(0,0);
+    y = (const uint8_t *)pvopcQuant->getPlane(Y_PLANE)->pixels(0,0);
+    u = (const uint8_t *)pvopcQuant->getPlane(U_PLANE)->pixels(0,0);
+    v = (const uint8_t *)pvopcQuant->getPlane(V_PLANE)->pixels(0,0);
     iso->m_last_time = displaytime;
 #if 0
     player_debug_message("Adding video at "LLU" %d", displaytime,
@@ -442,7 +442,7 @@ static int iso_codec_check (lib_message_func_t message,
 			    int type,
 			    int profile,
 			    format_list_t *fptr,
-			    const unsigned char *userdata,
+			    const uint8_t *userdata,
 			    uint32_t userdata_size)
 {
   if (compressor != NULL && 

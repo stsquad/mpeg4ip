@@ -3,7 +3,7 @@ libdir = @PLAYER_PLUGIN_DIR@
 lib_LTLIBRARIES = raw_video_plugin.la
 raw_video_plugin_la_LDFLAGS = -module
 raw_video_plugin_la_SOURCES = \
-	rawv.cpp
+	rawv.cpp rawv.h
 raw_video_plugin_la_LIBADD = \
 	-lm 
 

@@ -365,10 +365,6 @@ void image_interpolate(const IMAGE * refn,
 
 
 int image_input(IMAGE * image, uint32_t width, int height, 
-#ifdef MPEG4IP
-	/* Note only implemented for yuv_to_yuv_c */
-	uint32_t raw_height,
-#endif
 	uint32_t edged_width, uint8_t * src, int csp)
 {
 
@@ -402,33 +398,13 @@ int image_input(IMAGE * image, uint32_t width, int height,
 		return 0;
 
 	case XVID_CSP_I420 :
-#ifdef MPEG4IP
-		if (height != raw_height) {
-			yuv_to_yv12_clip_c(image->y, image->u, image->v, src, 
-							width, height, raw_height, edged_width);
-		} else {
-			yuv_to_yv12(image->y, image->u, image->v, src, 
-							width, height, edged_width);
-		}
-#else
 		yuv_to_yv12(image->y, image->u, image->v, src, 
 						width, height, edged_width);
-#endif
 		return 0;
 
 	case XVID_CSP_YV12 :	/* u/v swapped */
-#ifdef MPEG4IP
-		if (height != raw_height) {
-			yuv_to_yv12_clip_c(image->y, image->u, image->v, src, 
-						width, height, raw_height, edged_width);
-		} else {
-			yuv_to_yv12(image->y, image->v, image->u, src, 
-						width, height, edged_width);
-		}
-#else
 		yuv_to_yv12(image->y, image->v, image->u, src, 
 						width, height, edged_width);
-#endif
 		return 0;
 
 	case XVID_CSP_YUY2 :
@@ -610,3 +586,47 @@ int image_dump(IMAGE * image, uint32_t edged_width, uint32_t edged_height, char 
 
 	return 0;
 }
+
+#ifdef MPEG4IP
+int yuv_input(
+	IMAGE * image, 
+	uint32_t width, 
+	uint32_t height, 
+	uint32_t stride_out, 
+	uint8_t *y_in, 
+	uint8_t *u_in, 
+	uint8_t *v_in, 
+	uint32_t stride_in, 
+	int csp)
+{
+	uint8_t* y_out = image->y;
+	uint8_t* u_out = image->u;
+	uint8_t* v_out = image->v;
+
+	uint32_t stridein2 = stride_in >> 1;
+	uint32_t strideout2 = stride_out >> 1;
+	uint32_t width2 = width >> 1;
+
+    uint32_t y;
+
+	for (y = height; y; y--)	{
+	    memcpy(y_out, y_in, width);
+	    y_in += stride_in;
+		y_out += stride_out;
+	}
+
+	for (y = height >> 1; y; y--) {
+	    memcpy(u_out, u_in, width2);
+		u_in += stridein2;
+		u_out += strideout2;
+	}
+
+	for (y = height >> 1; y; y--) {
+	    memcpy(v_out, v_in, width2);
+		v_in += stridein2;
+		v_out+= strideout2;
+	}
+
+	return 0;
+}
+#endif

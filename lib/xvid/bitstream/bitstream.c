@@ -593,6 +593,27 @@ static void bs_put_matrix(Bitstream * bs, const int16_t *matrix)
 	}
 }
 
+#ifdef MPEG4IP
+/*
+	write vosh header
+*/
+void BitstreamWriteVoshHeader(Bitstream * const bs)
+{
+    BitstreamPad(bs);
+
+	BitstreamPutBits(bs, VISOBJSEQ_START_CODE, 32);
+	BitstreamPutBits(bs, 3, 8);			// Simple Profile @ L3
+
+	// video object_start_code
+	BitstreamPutBits(bs, VISOBJ_START_CODE, 32);
+	// no verid, priority, or signal type
+    BitstreamPutBits(bs, 0x08, 8);
+	
+	// video object_start_code & vo_id
+	BitstreamPutBits(bs, VO_START_CODE, 27);
+    BitstreamPutBits(bs, 0, 5);
+}
+#endif
 
 /*
 	write vol header
@@ -600,18 +621,29 @@ static void bs_put_matrix(Bitstream * bs, const int16_t *matrix)
 void BitstreamWriteVolHeader(Bitstream * const bs,
 						const MBParam * pParam)
 {
-	// video object_start_code & vo_id
     BitstreamPad(bs);
+
+#ifndef MPEG4IP
+	// video object_start_code & vo_id
 	BitstreamPutBits(bs, VO_START_CODE, 27);
     BitstreamPutBits(bs, 0, 5);
+#endif
 
 	// video_object_layer_start_code & vol_id
 	BitstreamPutBits(bs, VOL_START_CODE, 28);
 	BitstreamPutBits(bs, 0, 4);
 
 	BitstreamPutBit(bs, 0);				// random_accessible_vol
+#ifdef MPEG4IP
+	BitstreamPutBits(bs, 1, 8);			// video_object_type_indication
+										// 1 == simple profile
+	BitstreamPutBit(bs, 1);				// is_object_layer_identified 
+	BitstreamPutBits(bs, 2, 4);			// visual object layer ver id = 2 
+	BitstreamPutBits(bs, 1, 3);			// visual object layer priority = 1 
+#else
 	BitstreamPutBits(bs, 0, 8);			// video_object_type_indication
 	BitstreamPutBit(bs, 0);				// is_object_layer_identified (0=not given)
+#endif
 	BitstreamPutBits(bs, 1, 4);			// aspect_ratio_info (1=1:1)
 	BitstreamPutBit(bs, 0);				// vol_control_parameters (0=not given)
 	BitstreamPutBits(bs, 0, 2);			// video_object_layer_shape (0=rectangular)
@@ -632,6 +664,7 @@ void BitstreamWriteVolHeader(Bitstream * const bs,
 	WRITE_MARKER();
 
 	// fixed_vop_rate
+	// MPEG4IP - above comment is incorrect, 0 signals variable rate
 	BitstreamPutBit(bs, 0);
 
 	// fixed_time_increment: value=nth_of_sec, nbits = log2(resolution)
@@ -645,7 +678,11 @@ void BitstreamWriteVolHeader(Bitstream * const bs,
 	
 	BitstreamPutBit(bs, pParam->global_flags & XVID_INTERLACING);		// interlace
 	BitstreamPutBit(bs, 1);		// obmc_disable (overlapped block motion compensation)
+#ifdef MPEG4IP
+	BitstreamPutBits(bs, 0, 2);		// sprite_usage
+#else
 	BitstreamPutBit(bs, 0);		// sprite_enable
+#endif
 	BitstreamPutBit(bs, 0);		// not_in_bit
 
 	// quant_type   0=h.263  1=mpeg4(quantizer tables)
@@ -667,9 +704,16 @@ void BitstreamWriteVolHeader(Bitstream * const bs,
 
 	}
 
+#ifdef MPEG4IP
+	BitstreamPutBit(bs, 0);		// quarter pixel
+#endif
 	BitstreamPutBit(bs, 1);		// complexity_estimation_disable
 	BitstreamPutBit(bs, 1);		// resync_marker_disable
 	BitstreamPutBit(bs, 0);		// data_partitioned
+#ifdef MPEG4IP
+	BitstreamPutBit(bs, 0);		// newpred
+	BitstreamPutBit(bs, 0);		// reduced resolution vop
+#endif
 	BitstreamPutBit(bs, 0);		// scalability
 }
 

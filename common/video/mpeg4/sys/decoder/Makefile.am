@@ -19,4 +19,11 @@ libobj_sys_decoder_la_SOURCES = \
 			shpdec.cpp \
 			sptdec.cpp \
 			vopmbdec.cpp \
-			vopsedec.cpp
+			vopsedec.cpp \
+			blkdec.hpp \
+			enhcbufdec.hpp \
+			mbdec.hpp \
+			shpdec.hpp \
+			vopmbdec.hpp \
+			vopsedec.hpp
+

@@ -72,7 +72,12 @@ CIsmaAudioRtpByteStream::CIsmaAudioRtpByteStream (format_list_t *media_fmt,
   decode_mpeg4_audio_config(fmtp->config_binary,
 			    fmtp->config_binary_len,
 			    &audio_config);
-  m_rtp_ts_add = audio_config.codec.aac.frame_len_1024 != 0 ? 1024 : 960;
+  if (audio_object_type_is_aac(&audio_config)) {
+    m_rtp_ts_add = audio_config.codec.aac.frame_len_1024 != 0 ? 1024 : 960;
+  } else {
+    m_rtp_ts_add = audio_config.codec.celp.samples_per_frame;
+    isma_message(LOG_DEBUG, "celp spf is %d", m_rtp_ts_add);
+  }
   m_rtp_ts_add = (m_rtp_ts_add * media_fmt->rtpmap->clock_rate) /
     audio_config.frequency;
   isma_message(LOG_DEBUG, 
@@ -471,7 +476,7 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
   remove_packet_rtp_queue(pak, 0);
 }
 
-uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CIsmaAudioRtpByteStream::start_next_frame (uint8_t **buffer, 
 						    uint32_t *buflen,
 						    void **userdata)
 {
@@ -576,7 +581,7 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
       while (ptr != NULL) {
 	if (m_frag_reass_size + ptr->frag_len > m_frag_reass_size_max) {
 	  m_frag_reass_size_max += max(4096, ptr->frag_len);
-	  m_frag_reass_buffer = (unsigned char *)realloc(m_frag_reass_buffer, 
+	  m_frag_reass_buffer = (uint8_t *)realloc(m_frag_reass_buffer, 
 							 m_frag_reass_size_max);
 	}
 	memmove(m_frag_reass_buffer + m_frag_reass_size, 
@@ -588,7 +593,7 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
       *buffer = m_frag_reass_buffer;
       *buflen = m_frag_reass_size;
     } else { 
-      *buffer = (unsigned char *)m_frame_data_on->frame_ptr;
+      *buffer = (uint8_t *)m_frame_data_on->frame_ptr;
       *buflen = m_frame_data_on->frame_len;
     }
   } else {

@@ -38,7 +38,7 @@ codec_data_t *celp_file_check (lib_message_func_t message,
   memset(celp, 0, sizeof(*celp));
   *max = 0;
 
-  celp->m_buffer = (unsigned char *)malloc(MAX_READ_BUFFER);
+  celp->m_buffer = (uint8_t *)malloc(MAX_READ_BUFFER);
   celp->m_buffer_size_max = MAX_READ_BUFFER;
   celp->m_ifile = fopen(name, FOPEN_READ_BINARY);
   if (celp->m_ifile == NULL) {
@@ -70,7 +70,7 @@ codec_data_t *celp_file_check (lib_message_func_t message,
 
 
 int celp_file_next_frame (codec_data_t *your,
-			 unsigned char **buffer, 
+			 uint8_t **buffer, 
 			 uint64_t *ts)
 {
   celp_codec_t *celp = (celp_codec_t *)your;

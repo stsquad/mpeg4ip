@@ -72,18 +72,23 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_media_close_callback = NULL;
   m_streaming_media_set_up = 0;
   m_unused_ports = NULL;
+  m_first_time_played = 0;
+  m_latency = 0;
 }
 
 CPlayerSession::~CPlayerSession ()
 {
+  int hadthread = 0;
 #ifndef _WINDOWS
   if (m_sync_thread) {
     send_sync_thread_a_message(MSG_STOP_THREAD);
     SDL_WaitThread(m_sync_thread, NULL);
     m_sync_thread = NULL;
+    hadthread = 1;
   }
 #else
   send_sync_thread_a_message(MSG_STOP_THREAD);
+  hadthread = 1;
 #endif
 
 
@@ -156,8 +161,9 @@ CPlayerSession::~CPlayerSession ()
     m_unused_ports = first->get_next();
     delete first;
   }
-
-  SDL_Quit();
+  if (hadthread != 0) {
+    SDL_Quit();
+  }
 }
 
 int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
@@ -167,6 +173,7 @@ int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
   session_set_seekable(0);
   m_sdp_info = sdp;
   m_streaming = 1;
+  m_rtp_over_rtsp = 0;
   return (0);
 }
 /*
@@ -202,6 +209,8 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
     player_error_message("Failed to create rtsp client - error %d", err);
     return (err);
   }
+  m_rtp_over_rtsp = use_tcp;
+
   cmd.accept = "application/sdp";
 
   /*
@@ -218,7 +227,8 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
     } else {
       retval = -1;
     }
-    snprintf(errmsg, errlen, "RTSP describe error %d", retval);
+    snprintf(errmsg, errlen, "RTSP describe error %d %s", retval,
+	     decode->retresp != NULL ? decode->retresp : "");
     player_error_message("Describe response not good\n");
     free_decode_response(decode);
     return (retval);
@@ -570,8 +580,9 @@ const char *CPlayerSession::get_session_desc (int line)
 void CPlayerSession::audio_is_ready (uint64_t latency, uint64_t time)
 {
   m_start = get_time_of_day();
+  sync_message(LOG_DEBUG, "Aisready "LLU, m_start);
   m_start -= time;
-  m_start += latency;
+  m_latency = latency;
   if (latency != 0) {
     m_clock_wrapped = -1;
   }
@@ -623,8 +634,9 @@ uint64_t CPlayerSession::get_current_time (void)
     }
   }
 #endif
-  if (current_time < m_start) return 0;
+  //if (current_time < m_start) return 0;
   m_current_time = current_time - m_start;
+  if (m_current_time >= m_latency) m_current_time -= m_latency;
   return(m_current_time);
 }
 /* end file player_session.cpp */

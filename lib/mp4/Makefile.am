@@ -59,4 +59,9 @@ libmp4_la_SOURCES = \
 	trpy.c \
 	udta.c \
 	util.c \
-	vmhd.c
+	vmhd.c \
+	funcprotos.h \
+	private.h \
+	quicktime.h \
+	rtphint.h \
+	sizes.h

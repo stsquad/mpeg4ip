@@ -2,7 +2,9 @@
 #define SLICE_H
 
 #include <sys/types.h>
+#ifndef _WIN32
 #include <pthread.h>
+#endif
 
 /* Array of these feeds the slice decoders */
 typedef struct
@@ -13,7 +15,11 @@ typedef struct
 	int current_position;    /* Position in buffer */
 	u_int32_t bits;
 	int bits_size;
+#ifndef _WIN32
 	pthread_mutex_t completion_lock; /* Lock slice until completion */
+#else
+  HANDLE completion_lock;
+#endif
 	int done;           /* Signal for slice decoder to skip */
 } mpeg3_slice_buffer_t;
 
@@ -33,8 +39,13 @@ typedef struct
 	int pri_brk;                  /* slice/macroblock */
 	short block[12][64];
 	int sparse[12];
+#ifndef _WIN32
 	pthread_t tid;   /* ID of thread */
 	pthread_mutex_t input_lock, output_lock, completion_lock;
+#else
+  HANDLE tid;
+  HANDLE input_lock, output_lock, completion_lock;
+#endif
 } mpeg3_slice_t;
 
 #define mpeg3slice_fillbits(buffer, nbits) \

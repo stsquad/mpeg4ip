@@ -77,7 +77,7 @@ static int xvid_reset_buffer (xvid_codec_t *xvid)
  * xvid_buffer_load
  * Make sure we have at least 1 full VOP frame in the buffer
  */
-static int xvid_buffer_load (xvid_codec_t *xvid, unsigned char *ftype) 
+static int xvid_buffer_load (xvid_codec_t *xvid, uint8_t *ftype) 
 {
   int next_hdr, left, value;
 
@@ -145,7 +145,7 @@ static int xvid_buffer_load (xvid_codec_t *xvid, unsigned char *ftype)
   // We don't have enough read in... Go forward
   while (xvid->m_buffer_size_max < 65535) {
     int old, readsize;
-    xvid->m_buffer = (unsigned char *)realloc(xvid->m_buffer,
+    xvid->m_buffer = (uint8_t *)realloc(xvid->m_buffer,
 					      xvid->m_buffer_size_max + 1024);
     readsize = fread(&xvid->m_buffer[xvid->m_buffer_size_max],
 		     1, 
@@ -209,7 +209,7 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
     return NULL;
   }
 
-  xvid->m_buffer = (unsigned char *)malloc(16 * 1024);
+  xvid->m_buffer = (uint8_t *)malloc(16 * 1024);
   xvid->m_buffer_size_max = 16 * 1024;
   xvid->m_fpos = new CFilePosRecorder();
   xvid->m_fpos->record_point(0, 0, 0);
@@ -219,7 +219,7 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
    */
   int havevol = 0;
   int nextframe;
-  unsigned char ftype;
+  uint8_t ftype;
   nextframe = xvid_buffer_load(xvid, &ftype);
 
   do {
@@ -275,7 +275,7 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
  * Read in the next frame, return timestamp
  */
 int xvid_file_next_frame (codec_data_t *your_data,
-			  unsigned char **buffer, 
+			  uint8_t **buffer, 
 			  uint64_t *ts)
 {
   xvid_codec_t *xvid;

@@ -37,13 +37,13 @@ class CSDLVideoSync : public CVideoSync {
   int is_video_ready(uint64_t &disptime);  // from sync task
   int64_t play_video_at(uint64_t current_time, // from sync task
 			 int &have_eof);
-  int get_video_buffer(unsigned char **y,
-		       unsigned char **u,
-		       unsigned char **v);
+  int get_video_buffer(uint8_t **y,
+		       uint8_t **u,
+		       uint8_t **v);
   int filled_video_buffers(uint64_t time);
-  int set_video_frame(const Uint8 *y,      // from codec
-		      const Uint8 *u,
-		      const Uint8 *v,
+  int set_video_frame(const uint8_t *y,      // from codec
+		      const uint8_t *u,
+		      const uint8_t *v,
 		      int m_pixelw_y,
 		      int m_pixelw_uv,
 		      uint64_t time);
@@ -71,9 +71,9 @@ class CSDLVideoSync : public CVideoSync {
   uint32_t m_fill_index, m_play_index;
   int m_decode_waiting;
   volatile int m_buffer_filled[MAX_VIDEO_BUFFERS];
-  Uint8 *m_y_buffer[MAX_VIDEO_BUFFERS];
-  Uint8 *m_u_buffer[MAX_VIDEO_BUFFERS];
-  Uint8 *m_v_buffer[MAX_VIDEO_BUFFERS];
+  uint8_t *m_y_buffer[MAX_VIDEO_BUFFERS];
+  uint8_t *m_u_buffer[MAX_VIDEO_BUFFERS];
+  uint8_t *m_v_buffer[MAX_VIDEO_BUFFERS];
   uint64_t m_play_this_at[MAX_VIDEO_BUFFERS];
   int m_dont_fill;
 };

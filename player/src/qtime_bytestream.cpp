@@ -40,7 +40,7 @@ CQTByteStreamBase::CQTByteStreamBase (CQtimeFile *parent,
   m_parent = parent;
   m_eof = 0;
   m_max_frame_size = 16 * 1024;
-  m_buffer = (unsigned char *) malloc(m_max_frame_size * sizeof(char));
+  m_buffer = (uint8_t *) malloc(m_max_frame_size * sizeof(char));
   m_frame_in_buffer = 0xffffffff;
 }
 
@@ -102,7 +102,7 @@ void CQTVideoByteStream::reset (void)
   video_set_timebase(0);
 }
 
-uint64_t CQTVideoByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CQTVideoByteStream::start_next_frame (uint8_t **buffer, 
 					       uint32_t *buflen,
 					       void **ud)
 {
@@ -156,7 +156,7 @@ uint64_t CQTVideoByteStream::start_next_frame (unsigned char **buffer,
 }
 
 int CQTVideoByteStream::skip_next_frame (uint64_t *ptr, int *hasSync,
-					 unsigned char **buffer, 
+					 uint8_t **buffer, 
 					 uint32_t *buflen)
 {
   *hasSync = 0;
@@ -186,7 +186,7 @@ void CQTVideoByteStream::read_frame (uint32_t frame_to_read)
 					 m_track);
   if (next_frame_size > m_max_frame_size) {
     m_max_frame_size = next_frame_size + 4;
-    m_buffer = (unsigned char *)realloc(m_buffer, 
+    m_buffer = (uint8_t *)realloc(m_buffer, 
 					(next_frame_size + 4) * sizeof(char));
   }
   m_this_frame_size = next_frame_size;
@@ -196,7 +196,7 @@ void CQTVideoByteStream::read_frame (uint32_t frame_to_read)
   player_debug_message("reading into buffer %u", m_this_frame_size);
 #endif
   quicktime_read_frame(m_parent->get_file(),
-		       m_buffer,
+		       (unsigned char *)m_buffer,
 		       m_track);
 #ifdef DEBUG_QTIME_VIDEO_FRAME
   player_debug_message("Buffer %d %02x %02x %02x %02x", 
@@ -303,7 +303,7 @@ void CQTAudioByteStream::reset (void)
   audio_set_timebase(0);
 }
 
-uint64_t CQTAudioByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CQTAudioByteStream::start_next_frame (uint8_t **buffer, 
 					       uint32_t *buflen,
 					       void **ud)
 {
@@ -347,7 +347,7 @@ void CQTAudioByteStream::read_frame (uint32_t frame_to_read)
 
   m_frame_in_buffer = frame_to_read;
 
-  unsigned char *buff = m_buffer;
+  unsigned char *buff = (unsigned char *)m_buffer;
   quicktime_set_audio_position(m_parent->get_file(), 
 			       frame_to_read, 
 			       m_track);
@@ -357,10 +357,10 @@ void CQTAudioByteStream::read_frame (uint32_t frame_to_read)
 						 m_track);
   if (m_this_frame_size < 0) {
     m_max_frame_size = -m_this_frame_size;
-    m_buffer = (unsigned char *)realloc(m_buffer, m_max_frame_size * sizeof(char));
+    m_buffer = (uint8_t *)realloc(m_buffer, m_max_frame_size * sizeof(char));
     // Okay - I could have used a goto, but it really grates...
     m_frame_in_buffer = frame_to_read;
-    buff = m_buffer;
+    buff = (unsigned char *)m_buffer;
     quicktime_set_audio_position(m_parent->get_file(), 
 				 frame_to_read, 
 				 m_track);

@@ -107,7 +107,7 @@ static int parse_vovod (xvid_codec_t *xvid,
 
 static codec_data_t *xvid_create (format_list_t *media_fmt,
 				  video_info_t *vinfo,
-				  const unsigned char *userdata,
+				  const uint8_t *userdata,
 				  uint32_t ud_size,
 				  video_vft_t *vft,
 				  void *ifptr)
@@ -197,7 +197,7 @@ static int xvid_decode (codec_data_t *ptr,
 			uint64_t ts, 
 			int from_rtp,
 			int *sync_frame,
-			unsigned char *buffer, 
+			uint8_t *buffer, 
 			uint32_t buflen,
 			void *ud)
 {
@@ -263,9 +263,9 @@ static int xvid_decode (codec_data_t *ptr,
 
   if (ret == XVID_ERR_OK) {
     xvid->m_vft->video_have_frame(xvid->m_ifptr,
-				  (const unsigned char *)decpict.y,
-				  (const unsigned char *)decpict.u,
-				  (const unsigned char *)decpict.v,
+				  (const uint8_t *)decpict.y,
+				  (const uint8_t *)decpict.u,
+				  (const uint8_t *)decpict.v,
 				  decpict.stride_y,
 				  decpict.stride_uv,
 				  ts);
@@ -298,7 +298,7 @@ static int xvid_codec_check (lib_message_func_t message,
 			     int type,
 			     int profile,
 			     format_list_t *fptr,
-			     const unsigned char *userdata,
+			     const uint8_t *userdata,
 			     uint32_t userdata_size)
 {
   if (compressor != NULL && 

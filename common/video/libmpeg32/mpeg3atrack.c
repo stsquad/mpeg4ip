@@ -310,7 +310,7 @@ static int mpeg3_atrack_read_pcm_frame (mpeg3_atrack_t *atrack,
   if (mpeg3_atrack_check_length(output, *len, maxlen) < 0) return -1;
  
   ret = mpeg3demux_read_data(demux, *output, *len);
-  if (ret) return -1;
+  if (ret != *len) return -1;
   return 0;
 }
 
@@ -349,7 +349,7 @@ static int mpeg3_atrack_read_mp3_frame (mpeg3_atrack_t *atrack,
 
   memcpy(*output, code, 4);
   ret = mpeg3demux_read_data(demux, *output + 4, *len - 4);
-  if (ret) return -1;
+  if (ret != *len - 4) return -1;
   return 0;
 }
 
@@ -389,7 +389,7 @@ static int mpeg3_atrack_read_aac_frame (mpeg3_atrack_t *atrack,
 
   memcpy(*output, hdr, hdr_size);
   ret = mpeg3demux_read_data(demux, *output + hdr_size, *len - hdr_size);
-  if (ret) return -1;
+  if (ret != *len - hdr_size) return -1;
   return 0;
 }
 
@@ -417,7 +417,7 @@ static int mpeg3_atrack_read_ac3_frame (mpeg3_atrack_t *atrack,
   *output[0] = code >> 8;
   *output[1] = code & 0xff;
   ret = mpeg3demux_read_data(demux, *output + 2, *len - 2);
-  if (ret) return -1;
+  if (ret != *len - 2) return -1;
 
   return 0;
 }

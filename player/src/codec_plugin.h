@@ -56,7 +56,7 @@ typedef void (*audio_configure_f)(void *ifptr,
  * Inputs: ifptr - pointer to handle
  * Outputs: unsigned char pointer to buffer to write to.
  */
-typedef unsigned char *(*audio_get_buffer_f)(void *ifptr);
+typedef uint8_t *(*audio_get_buffer_f)(void *ifptr);
 /*
  * audio_filled_buffer_f - routine to call after decoding
  *  audio frame into a buffer gotten above.
@@ -81,7 +81,7 @@ typedef void (*audio_filled_buffer_f)(void *ifptr,
  *    resync - resync required
  */
 typedef uint32_t (*audio_load_buffer_f)(void *ifptr,
-					unsigned char *from,
+					uint8_t *from,
 					uint32_t bytes,
 					uint64_t ts,
 					int resync);
@@ -125,9 +125,9 @@ typedef void (*video_configure_f)(void *ifptr,
  * Note: will wait for return until buffer ready
  */
 typedef int (*video_get_buffer_f)(void *ifptr,
-				  unsigned char **y,
-				  unsigned char **u,
-				  unsigned char **v);
+				  uint8_t **y,
+				  uint8_t **u,
+				  uint8_t **v);
 /*
  * video_filled_buffer_f - indicates we've filled buffer gotten above
  * Inputs - ifptr - handle
@@ -147,9 +147,9 @@ typedef int (*video_filled_buffer_f)(void *ifptr,
  *         time - render time
  */
 typedef int (*video_have_frame_f)(void *ifptr,
-				  const unsigned char *y,
-				  const unsigned char *u,
-				  const unsigned char *v,
+				  const uint8_t *y,
+				  const uint8_t *u,
+				  const uint8_t *v,
 				  int m_pixelw_y,
 				  int m_pixelw_uv,
 				  uint64_t time);
@@ -202,7 +202,7 @@ typedef struct codec_data_t {
  */
 typedef codec_data_t *(*ac_create_f)(format_list_t *sdp_media,
 				     audio_info_t *audio,
-				     const unsigned char *user_data,
+				     const uint8_t *user_data,
 				     uint32_t userdata_size,
 				     audio_vft_t *if_vft,
 				     void *ifptr);
@@ -219,7 +219,7 @@ typedef codec_data_t *(*ac_create_f)(format_list_t *sdp_media,
  */
 typedef codec_data_t *(*vc_create_f)(format_list_t *sdp_media,
 			     video_info_t *video,
-			     const unsigned char *user_data,
+			     const uint8_t *user_data,
 			     uint32_t userdata_size,
 			     video_vft_t *if_vft,
 			     void *ifptr);
@@ -253,7 +253,7 @@ typedef int (*c_decode_frame_f)(codec_data_t *ptr,
 				uint64_t ts,
 				int from_rtp,
 				int *sync_frame,
-				unsigned char *buffer,
+				uint8_t *buffer,
 				uint32_t buflen, 
 				void *userdata);
 
@@ -276,7 +276,7 @@ typedef int (*c_compress_check_f)(lib_message_func_t msg,
 				  int type,
 				  int profile,
 				  format_list_t *fptr,
-				  const unsigned char *userdata,
+				  const uint8_t *userdata,
 				  uint32_t userdata_size);
 
 /*
@@ -301,7 +301,7 @@ typedef codec_data_t *(*c_raw_file_check_f)(lib_message_func_t msg,
  * Return value - number of bytes (0 for no frame)
  */
 typedef int (*c_raw_file_next_frame_f)(codec_data_t *your_data,
-				      unsigned char **buffer,
+				      uint8_t **buffer,
 				      uint64_t *ts);
 
 /*

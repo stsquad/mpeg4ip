@@ -18,9 +18,7 @@ libfaad_la_SOURCES = \
 	stereo.c \
 	tns.c \
 	transfo.c \
-	util.c
-
-libfaad_la_INCLUDES = \
+	util.c \
 	all.h \
 	bits.h \
 	block.h \
@@ -38,4 +36,4 @@ libfaad_la_INCLUDES = \
 INCLUDES = -I$(top_srcdir)/include
 AM_CFLAGS = -O2 -Werror -Wall -fexceptions 
 
-
+EXTRA_DIST = COPYING libfaad60.dsp libfaad60.dsw README

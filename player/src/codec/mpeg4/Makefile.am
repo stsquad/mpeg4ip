@@ -4,7 +4,9 @@ lib_LTLIBRARIES = mpeg4_iso_plugin.la
 mpeg4_iso_plugin_la_LDFLAGS = -module
 mpeg4_iso_plugin_la_SOURCES = \
 	mpeg4.cpp \
-	mpeg4_file.cpp
+	mpeg4.h \
+	mpeg4_file.cpp \
+	mpeg4_file.h
 
 mpeg4_iso_plugin_la_LIBADD = \
 	-lm \

@@ -31,5 +31,8 @@ libmpeg3_la_SOURCES = \
 	mpeg3vtrack.h \
 	timecode.h \
 	workarounds.c \
-	workarounds.h
+	workarounds.h \
+	mpeg3private.inc
+
+EXTRA_DIST = mpeg3css_fake.c 
 

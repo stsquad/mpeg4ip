@@ -26,6 +26,7 @@
 #include "rtp_bytestream.h"
 #include "our_config_file.h"
 //#define DEBUG_RTP_PAKS 1
+//#define DEBUG_RTP_BCAST 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 #else
@@ -182,9 +183,6 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
 
   m_rtptime_tickpersec = tps;
 
-  if (rtcp_received) {
-    calculate_wallclock_offset_from_rtcp(ntp_frac, ntp_sec, rtp_ts);
-  }
   init();
 
   m_ts = 0;
@@ -196,6 +194,9 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   m_rtp_packet_mutex = SDL_CreateMutex();
   m_buffering = 0;
   m_eof = 0;
+  if (rtcp_received) {
+    calculate_wallclock_offset_from_rtcp(ntp_frac, ntp_sec, rtp_ts);
+  }
 }
 
 CRtpByteStreamBase::~CRtpByteStreamBase (void)
@@ -211,6 +212,20 @@ void CRtpByteStreamBase::init (void)
 {
   m_offset_in_pak = m_skip_on_advance_bytes;
   m_eof = 0;
+}
+void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock, 
+					       uint32_t rtp_ts) 
+{
+  m_wallclock_offset_set = 1;
+  SDL_LockMutex(m_rtp_packet_mutex);
+  m_wallclock_offset = wclock;
+  m_wallclock_rtp_ts = rtp_ts;
+  m_wallclock_offset_wrap = m_wrap_offset;
+  if (((m_ts & 0x80000000) == 0x80000000) &&
+      ((rtp_ts & 0x80000000) == 0)) {
+    m_wallclock_offset_wrap += (I_LLU << 32);
+  }
+  SDL_UnlockMutex(m_rtp_packet_mutex);
 }
 
 /*
@@ -232,18 +247,11 @@ CRtpByteStreamBase::calculate_wallclock_offset_from_rtcp (uint32_t ntp_frac,
   offset -= NTP_TO_UNIX_TIME;
   offset *= M_LLU;
   wclock += offset;
-
-  offset = rtp_ts;
-  offset *= M_LLU;
-  offset /= m_rtptime_tickpersec;
-  // offset is now a consistent offset between wall clock time and rtp
-  // for rtp ts 0.
-  wclock -= offset;
-#if 0
-  rtp_message(LOG_DEBUG, "wallclock offset is %llu - prev %llu", 
-		       wclock, m_wallclock_offset);
+#ifdef DEBUG_RTP_BCAST
+  rtp_message(LOG_DEBUG, "%s RTCP data - sec %u frac %u value %llu ts %d", 
+	      m_name, ntp_sec, ntp_frac, wclock, rtp_ts);
 #endif
-  set_wallclock_offset(wclock);
+  set_wallclock_offset(wclock, rtp_ts);
 }
 
 /*
@@ -463,15 +471,36 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t ts,
     }
     timetick += m_play_start_time;
   } else {
+    uint64_t adjusted_rtp_ts;
+    uint64_t adjusted_wc_rtp_ts;
 
     if (((m_ts & 0x80000000) == 0x80000000) &&
 	((ts & 0x80000000) == 0)) {
       wrap_offset += (I_LLU << 32);
     }
-    timetick = ts + m_wrap_offset;
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    timetick += m_wallclock_offset;
+    SDL_LockMutex(m_rtp_packet_mutex);
+    adjusted_rtp_ts = wrap_offset;
+    adjusted_rtp_ts += ts;
+    adjusted_wc_rtp_ts = m_wallclock_offset_wrap;
+    adjusted_wc_rtp_ts += m_wallclock_rtp_ts;
+    SDL_UnlockMutex(m_rtp_packet_mutex);
+
+    if (adjusted_rtp_ts >= adjusted_wc_rtp_ts) {
+      timetick = adjusted_rtp_ts - adjusted_wc_rtp_ts;
+      timetick *= M_LLU;
+      timetick /= m_rtptime_tickpersec;
+      timetick += m_wallclock_offset;
+    } else {
+      timetick = adjusted_wc_rtp_ts - adjusted_rtp_ts;
+      timetick *= M_LLU;
+      timetick /= m_rtptime_tickpersec;
+      timetick = m_wallclock_offset - timetick;
+    }
+#ifdef DEBUG_RTP_BCAST
+    rtp_message(LOG_DEBUG, "%s wcts %llu ts %llu wcntp %llu tp %llu",
+		m_name, adjusted_wc_rtp_ts, adjusted_rtp_ts, m_wallclock_offset,
+		timetick);
+#endif
   }
   // record time
   m_last_realtime = timetick;
@@ -496,7 +525,7 @@ CRtpByteStream::CRtpByteStream(const char *name,
 		     rtpinfo_received, rtp_rtptime, rtcp_received,
 		     ntp_frac, ntp_sec, rtp_ts)
 {
-  m_buffer = (unsigned char *)malloc(4096);
+  m_buffer = (uint8_t *)malloc(4096);
   m_buffer_len_max = 4096;
   m_bytes_used = m_buffer_len = 0;
 }
@@ -507,7 +536,7 @@ CRtpByteStream::~CRtpByteStream (void)
   m_buffer = NULL;
 }
 
-uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer, 
 					   uint32_t *buflen,
 					   void **ud)
 {
@@ -526,10 +555,10 @@ uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer,
     // Still bytes in the buffer...
     *buffer = m_buffer + m_bytes_used;
     *buflen = diff;
-    ts = m_ts;
 #ifdef DEBUG_RTP_PAKS
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
+    return (m_last_realtime);
   } else {
     m_buffer_len = 0;
     while (finished == 0) {
@@ -555,14 +584,14 @@ uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer,
 	}
 	seq = rpak->rtp_pak_seq + 1;
       }
-      unsigned char *from;
+      uint8_t *from;
       uint32_t len;
-      from = (unsigned char *)rpak->rtp_data + m_skip_on_advance_bytes;
+      from = (uint8_t *)rpak->rtp_data + m_skip_on_advance_bytes;
       len = rpak->rtp_data_len - m_skip_on_advance_bytes;
       if ((m_buffer_len + len) > m_buffer_len_max) {
 	// realloc
 	m_buffer_len_max = m_buffer_len + len + 1024;
-	m_buffer = (unsigned char *)realloc(m_buffer, m_buffer_len_max);
+	m_buffer = (uint8_t *)realloc(m_buffer, m_buffer_len_max);
       }
       memcpy(m_buffer + m_buffer_len, 
 	     from,
@@ -580,14 +609,14 @@ uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer,
     rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif
   }
-  m_ts = ts;
   timetick = rtp_ts_to_msec(ts, m_wrap_offset);
+  m_ts = ts;
   
   return (timetick);
 }
 
 int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
-				     unsigned char **buffer, 
+				     uint8_t **buffer, 
 				     uint32_t *buflen)
 {
   uint64_t ts;
@@ -679,7 +708,7 @@ int CAudioRtpByteStream::check_rtp_frame_complete_for_payload_type (void)
   return m_head != NULL;
 }
 
-uint64_t CAudioRtpByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer, 
 						uint32_t *buflen,
 						void **ud)
 {
@@ -693,18 +722,19 @@ uint64_t CAudioRtpByteStream::start_next_frame (unsigned char **buffer,
   m_doing_add = 0;
   if (diff > 2) {
     // Still bytes in the buffer...
-    *buffer = (unsigned char *)m_working_pak->rtp_data + m_bytes_used;
+    *buffer = (uint8_t *)m_working_pak->rtp_data + m_bytes_used;
     *buflen = diff;
     ts = m_ts;
 #ifdef DEBUG_RTP_PAKS
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
+    return (m_last_realtime);
   } else {
     if (m_working_pak) xfree(m_working_pak);
     m_buffer_len = 0;
     m_working_pak = m_head;
     remove_packet_rtp_queue(m_working_pak, 0);
-    *buffer = (unsigned char *)m_working_pak->rtp_data;
+    *buffer = (uint8_t *)m_working_pak->rtp_data;
     *buflen = m_working_pak->rtp_data_len;
     ts = m_working_pak->rtp_pak_ts;
 #ifdef DEBUG_RTP_PAKS
@@ -715,7 +745,8 @@ uint64_t CAudioRtpByteStream::start_next_frame (unsigned char **buffer,
   }
 
   // We're going to have to handle wrap better...
+  uint64_t retts = rtp_ts_to_msec(ts, m_wrap_offset);
   m_ts = ts;
-  return rtp_ts_to_msec(ts, m_wrap_offset);
+  return retts;
 
 }

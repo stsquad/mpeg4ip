@@ -7,8 +7,13 @@ noinst_LTLIBRARIES = libobj_vtc_zte.la
 libobj_vtc_zte_la_LDFLAGS = -static
 
 libobj_vtc_zte_la_SOURCES = \
-			ac.cpp \
-			bitpack.cpp \
-			ztscanUtil.cpp \
-			ztscan_dec.cpp \
-			ztscan_enc.cpp 
+	ac.cpp \
+	ac.hpp \
+	bitpack.cpp \
+	bitpack.hpp \
+	startcode.hpp \
+	ztscan_common.hpp \
+	ztscan_dec.cpp \
+	ztscan_enc.cpp \
+	ztscanUtil.cpp \
+	ztscanUtil.hpp

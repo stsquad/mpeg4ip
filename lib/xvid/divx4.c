@@ -354,10 +354,6 @@ int encore(void * handle, int opt, void * param1, void * param2)
 			xparam.max_key_interval = eparam->max_key_interval;
 			quality = eparam->quality;
 
-#ifdef MPEG4IP
-			xparam.raw_height = xparam.height;
-#endif
-
 			xerr = encoder_create(&xparam);
 
 			eparam->handle = xparam.handle;

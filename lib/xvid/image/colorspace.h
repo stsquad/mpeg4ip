@@ -43,12 +43,6 @@ color_inputFunc uyvy_to_yv12_mmx;
 /* xmm */
 color_inputFunc yuv_to_yv12_xmm;
 
-#ifdef MPEG4IP
-void yuv_to_yv12_clip_c(
-	uint8_t *y_out, uint8_t *u_out, uint8_t *v_out,
-	uint8_t *src, int width, int height, int raw_height, int stride);
-#endif
-
 
 /* output color conversion functions (decoder) */
  

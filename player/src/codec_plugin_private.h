@@ -33,14 +33,14 @@ codec_plugin_t *check_for_audio_codec(const char *compressor,
 				      format_list_t *fptr,
 				      int audio_type,
 				      int profile,
-				      const unsigned char *userdata,
+				      const uint8_t *userdata,
 				      uint32_t userdata_size);
 
 codec_plugin_t *check_for_video_codec(const char *compressor,
 				      format_list_t *fptr,
 				      int type,
 				      int profile, 
-				      const unsigned char *userdata,
+				      const uint8_t *userdata,
 				      uint32_t userdata_size);
 class CPlayerSession;
 

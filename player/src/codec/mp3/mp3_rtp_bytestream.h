@@ -45,10 +45,10 @@ class CMP3RtpByteStream : public CRtpByteStream
   ~CMP3RtpByteStream();
   int have_no_data(void);
   int check_rtp_frame_complete_for_payload_type(void);
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+  uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			    void **userdata);
  private:
   rtp_packet *m_pak_on;
-  unsigned char *m_mp3_frame;
+  uint8_t *m_mp3_frame;
 };
 #endif

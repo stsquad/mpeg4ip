@@ -220,8 +220,8 @@ void CRfc3119RtpByteStream::process_packet (void)
 #endif
 
       while (pak != NULL && adu_offset < pak->rtp_data_len) {
-	unsigned char *ptr;
-	ptr = (unsigned char *)(pak->rtp_data + adu_offset);
+	uint8_t *ptr;
+	ptr = (uint8_t *)(pak->rtp_data + adu_offset);
 	if ((*ptr & 0x80) == 0x80) {
 	  // first one has a c field of 1 - that's bad
 	  xfree(pak);
@@ -265,8 +265,8 @@ void CRfc3119RtpByteStream::process_packet (void)
 	    // have a fragment here...
 	    // malloc a frame pointer, and copy the rest... 
 	    uint16_t seq = pak->rtp_pak_seq;
-	    unsigned char *to, *from;
-	    to = (unsigned char *)malloc(adu->aduDataSize);
+	    uint8_t *to, *from;
+	    to = (uint8_t *)malloc(adu->aduDataSize);
 	    int copied = pak->rtp_data_len - adu_offset;
 	    memcpy(to, adu->frame_ptr, copied);
 	    if (prev_adu != NULL) {
@@ -284,7 +284,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 	      uint32_t bytes;
 	      pak = m_head;
 	      remove_packet_rtp_queue(m_head, 0);
-	      ptr = (unsigned char *)pak->rtp_data;
+	      ptr = (uint8_t *)pak->rtp_data;
 	      if ((*ptr & 0x40) == 0) {
 		// 1 byte header
 		bytes = *ptr & 0x3f;
@@ -604,7 +604,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 
       prevADU->pak = NULL;
       prevADU->frame_ptr = 
-	(unsigned char *)malloc(tailADU->framesize);
+	(uint8_t *)malloc(tailADU->framesize);
       prevADU->aduDataSize = 0;
       prevADU->timestamp = ts;
       prevADU->first_in_pak = 0;
@@ -617,7 +617,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 	     tailADU->frame_ptr, 
 	     prevADU->headerSize + prevADU->sideInfoSize);
 
-      ZeroOutMP3SideInfo(prevADU->frame_ptr, 
+      ZeroOutMP3SideInfo((unsigned char *)prevADU->frame_ptr, 
 			 tailADU->framesize,
 			 prevADUend);
       prevADU->mp3hdr = MP4AV_Mp3HeaderFromBytes(prevADU->frame_ptr);
@@ -630,7 +630,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
   }
 }
 
-uint64_t CRfc3119RtpByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CRfc3119RtpByteStream::start_next_frame (uint8_t **buffer, 
 						  uint32_t *buflen,
 						  void **ud)
 {
@@ -711,13 +711,13 @@ uint64_t CRfc3119RtpByteStream::start_next_frame (unsigned char **buffer,
   if (m_mp3_frame == NULL ||
       m_mp3_frame_size < endOfHeadFrame) {
     m_mp3_frame_size = endOfHeadFrame * 2;
-    m_mp3_frame = (unsigned char *)realloc(m_mp3_frame, m_mp3_frame_size);
+    m_mp3_frame = (uint8_t *)realloc(m_mp3_frame, m_mp3_frame_size);
   }
 
   int copy;
   copy = m_pending_adu_list->headerSize + m_pending_adu_list->sideInfoSize;
   memcpy(m_mp3_frame, m_pending_adu_list->frame_ptr, copy);
-  unsigned char *start_of_data;
+  uint8_t *start_of_data;
 
   endOfHeadFrame -= copy;
   memset(m_mp3_frame + copy, 0, endOfHeadFrame);

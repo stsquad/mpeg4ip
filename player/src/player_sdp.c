@@ -38,26 +38,29 @@ void do_relative_url_to_absolute (char **control_string,
 				  const char *base_url,
 				  int dontfree)
 {
-  char *str;
-  uint32_t cblen;
+  char *str, *cpystr;
+  uint32_t cblen, malloclen;
 
-  cblen = strlen(base_url);
-  if (base_url[cblen - 1] != '/') cblen++;
+  malloclen = cblen = strlen(base_url);
+
+  if (base_url[cblen - 1] != '/') malloclen++;
   /*
    * If the control string is just a *, use the base url only
    */
-  if (strcmp(*control_string, "*") != 0) {
-    if (**control_string == '/') cblen--;
+  cpystr = *control_string;
+  if (strcmp(cpystr, "*") != 0) {
+    if (*cpystr == '/') cpystr++;
+
     // duh - add 1 for \0...
-    str = (char *)malloc(strlen(*control_string) + cblen + 1);
+    str = (char *)malloc(strlen(cpystr) + malloclen + 1);
     if (str == NULL)
       return;
     strcpy(str, base_url);
     if (base_url[cblen - 1] != '/') {
       strcat(str, "/");
     }
-    strcat(str, **control_string == '/' ?
-	   *control_string + 1 : *control_string);
+    if (*cpystr == '/') cpystr++;
+    strcat(str, cpystr);
   } else {
     str = strdup(base_url);
   }

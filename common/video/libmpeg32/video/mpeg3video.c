@@ -241,7 +241,7 @@ mpeg3video_t *mpeg3video_allocate_struct(void)
 	mpeg3video_t *video = calloc(1, sizeof(mpeg3video_t));
 	pthread_mutexattr_t mutex_attr;
 
-	video->vstream = mpeg3bits_new_stream(NULL);
+	video->vstream = mpeg3bits_new_stream();
 
 //printf("mpeg3video_allocate_struct %d\n", mpeg3bits_eof(video->vstream));
 	video->last_number = -1;

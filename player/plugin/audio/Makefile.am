@@ -1,1 +1,1 @@
-SUBDIRS = raw
+SUBDIRS = raw celp

@@ -11,7 +11,7 @@
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
 /* Don't advance pointer */
-static inline unsigned char packet_next_char(mpeg3_demuxer_t *demuxer)
+static __inline unsigned char packet_next_char(mpeg3_demuxer_t *demuxer)
 {
 //printf(__FUNCTION__ " called\n");
 	return demuxer->raw_data[demuxer->raw_offset];
@@ -25,7 +25,7 @@ static unsigned char packet_read_char(mpeg3_demuxer_t *demuxer)
 	return result;
 }
 
-static inline unsigned int packet_read_int16(mpeg3_demuxer_t *demuxer)
+static __inline unsigned int packet_read_int16(mpeg3_demuxer_t *demuxer)
 {
 	unsigned int a, b, result;
 //printf(__FUNCTION__ " called\n");
@@ -36,7 +36,7 @@ static inline unsigned int packet_read_int16(mpeg3_demuxer_t *demuxer)
 	return result;
 }
 
-static inline unsigned int packet_next_int24(mpeg3_demuxer_t *demuxer)
+static __inline unsigned int packet_next_int24(mpeg3_demuxer_t *demuxer)
 {
 	unsigned int a, b, c, result;
 //printf(__FUNCTION__ " called\n");
@@ -48,7 +48,7 @@ static inline unsigned int packet_next_int24(mpeg3_demuxer_t *demuxer)
 	return result;
 }
 
-static inline unsigned int packet_read_int24(mpeg3_demuxer_t *demuxer)
+static __inline unsigned int packet_read_int24(mpeg3_demuxer_t *demuxer)
 {
 	unsigned int a, b, c, result;
 //printf(__FUNCTION__ " called\n");
@@ -60,7 +60,7 @@ static inline unsigned int packet_read_int24(mpeg3_demuxer_t *demuxer)
 	return result;
 }
 
-static inline unsigned int packet_read_int32(mpeg3_demuxer_t *demuxer)
+static __inline unsigned int packet_read_int32(mpeg3_demuxer_t *demuxer)
 {
 	unsigned int a, b, c, d, result;
 //printf(__FUNCTION__ " called\n");
@@ -73,7 +73,7 @@ static inline unsigned int packet_read_int32(mpeg3_demuxer_t *demuxer)
 	return result;
 }
 
-static inline unsigned int packet_skip(mpeg3_demuxer_t *demuxer, long length)
+static __inline unsigned int packet_skip(mpeg3_demuxer_t *demuxer, long length)
 {
 //printf(__FUNCTION__ " called\n");
 	demuxer->raw_offset += length;
@@ -1371,6 +1371,7 @@ int mpeg3demux_read_data(mpeg3_demuxer_t *demuxer,
 				result = mpeg3_read_next_packet(demuxer);
 			}
 		}
+		return i;
 	}
 	else
 	{

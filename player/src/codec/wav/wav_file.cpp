@@ -80,7 +80,7 @@ codec_data_t *wav_file_check (lib_message_func_t message,
 
 
 int wav_file_next_frame (codec_data_t *your,
-			 unsigned char **buffer,
+			 uint8_t **buffer,
 			 uint64_t *ts)
 {
   wav_codec_t *wav = (wav_codec_t *)your;

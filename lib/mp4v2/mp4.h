@@ -130,15 +130,18 @@ typedef u_int64_t	MP4Duration;
 #define MP4_IS_MP3_AUDIO_TYPE(type) \
 	((type) == MP4_MPEG1_AUDIO_TYPE || (type) == MP4_MPEG2_AUDIO_TYPE) 
 
-#define MP4_IS_AAC_AUDIO_TYPE(type) \
+#define MP4_IS_MPEG2_AAC_AUDIO_TYPE(type) \
 	(((type) >= MP4_MPEG2_AAC_MAIN_AUDIO_TYPE \
-		&& (type) <= MP4_MPEG2_AAC_SSR_AUDIO_TYPE) \
-	  || (type) == MP4_MPEG4_AUDIO_TYPE)
+		&& (type) <= MP4_MPEG2_AAC_SSR_AUDIO_TYPE))
 
-#define MP4_IS_MPEG4_AAC_AUDIO_TYPE(type) \
-	(((type) >= MP4_MPEG4_AAC_MAIN_AUDIO_TYPE \
-		&& (type) <= MP4_MPEG4_AAC_LTP_AUDIO_TYPE) \
-	  || (type) == MP4_MPEG4_AAC_SCALABLE_AUDIO_TYPE)
+#define MP4_IS_MPEG4_AAC_AUDIO_TYPE(mpeg4Type) \
+	(((mpeg4Type) >= MP4_MPEG4_AAC_MAIN_AUDIO_TYPE \
+		&& (mpeg4Type) <= MP4_MPEG4_AAC_LTP_AUDIO_TYPE) \
+	  || (mpeg4Type) == MP4_MPEG4_AAC_SCALABLE_AUDIO_TYPE)
+
+#define MP4_IS_AAC_AUDIO_TYPE(type) \
+	(MP4_IS_MPEG2_AAC_AUDIO_TYPE(type) \
+	|| (type) == MP4_MPEG4_AUDIO_TYPE)
 
 /* MP4 Video track types - see MP4AddVideoTrack() */
 #define MP4_INVALID_VIDEO_TYPE			0x00
@@ -157,7 +160,7 @@ typedef u_int64_t	MP4Duration;
 #define MP4_H26L_VIDEO_TYPE				0xF1	/* a private definition */
 #define MP4_H263_VIDEO_TYPE				0xF2	/* a private definition */
 
-// MP4 Video type utilities
+/* MP4 Video type utilities */
 #define MP4_IS_MPEG1_VIDEO_TYPE(type) \
 	((type) == MP4_MPEG1_VIDEO_TYPE)
 
@@ -178,25 +181,31 @@ extern "C" {
 
 /* file operations */
 
-MP4FileHandle MP4Create(const char* fileName, 
+MP4FileHandle MP4Create(
+	const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
 	bool use64bits DEFAULT(0),
 	bool useExtensibleFormat DEFAULT(0));
 
-MP4FileHandle MP4Modify(const char* fileName, 
+MP4FileHandle MP4Modify(
+	const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
 	bool useExtensibleFormat DEFAULT(0));
 
-MP4FileHandle MP4Read(const char* fileName, 
+MP4FileHandle MP4Read(
+	const char* fileName, 
 	u_int32_t verbosity DEFAULT(0));
 
-bool MP4Close(MP4FileHandle hFile);
+bool MP4Close(
+	MP4FileHandle hFile);
 
-bool MP4Optimize(const char* existingFileName, 
+bool MP4Optimize(
+	const char* existingFileName, 
 	const char* newFileName DEFAULT(NULL), 
 	u_int32_t verbosity DEFAULT(0));
 
-bool MP4Dump(MP4FileHandle hFile, 
+bool MP4Dump(
+	MP4FileHandle hFile, 
 	FILE* pDumpFile DEFAULT(NULL), 
 	bool dumpImplicits DEFAULT(0));
 
@@ -237,23 +246,32 @@ bool MP4SetGraphicsProfileLevel(MP4FileHandle hFile, u_int8_t value);
 /* generic file properties */
 
 u_int64_t MP4GetIntegerProperty(
-	MP4FileHandle hFile, const char* propName);
+	MP4FileHandle hFile, 
+	const char* propName);
 
 float MP4GetFloatProperty(
-	MP4FileHandle hFile, const char* propName);
+	MP4FileHandle hFile, 
+	const char* propName);
 
 const char* MP4GetStringProperty(
-	MP4FileHandle hFile, const char* propName);
+	MP4FileHandle hFile, 
+	const char* propName);
 
 void MP4GetBytesProperty(
-	MP4FileHandle hFile, const char* propName,
-	u_int8_t** ppValue, u_int32_t* pValueSize);
+	MP4FileHandle hFile, 
+	const char* propName,
+	u_int8_t** ppValue, 
+	u_int32_t* pValueSize);
 
 bool MP4SetIntegerProperty(
-	MP4FileHandle hFile, const char* propName, int64_t value);
+	MP4FileHandle hFile, 
+	const char* propName, 
+	int64_t value);
 
 bool MP4SetFloatProperty(
-	MP4FileHandle hFile, const char* propName, float value);
+	MP4FileHandle hFile, 
+	const char* propName, 
+	float value);
 
 bool MP4SetStringProperty(
 	MP4FileHandle hFile, const char* propName, const char* value);
@@ -265,10 +283,12 @@ bool MP4SetBytesProperty(
 /* track operations */
 
 MP4TrackId MP4AddTrack(
-	MP4FileHandle hFile, const char* type);
+	MP4FileHandle hFile, 
+	const char* type);
 
 MP4TrackId MP4AddSystemsTrack(
-	MP4FileHandle hFile, const char* type);
+	MP4FileHandle hFile, 
+	const char* type);
 
 MP4TrackId MP4AddODTrack(
 	MP4FileHandle hFile);
@@ -277,19 +297,26 @@ MP4TrackId MP4AddSceneTrack(
 	MP4FileHandle hFile);
 
 MP4TrackId MP4AddAudioTrack(
-	MP4FileHandle hFile, u_int32_t timeScale, u_int32_t sampleDuration,
+	MP4FileHandle hFile, 
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration,
 	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
 
 MP4TrackId MP4AddVideoTrack(
-	MP4FileHandle hFile, u_int32_t timeScale, u_int32_t sampleDuration,
-	u_int16_t width, u_int16_t height,
+	MP4FileHandle hFile, 
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration,
+	u_int16_t width, 
+	u_int16_t height,
 	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
 
 MP4TrackId MP4AddHintTrack(
-	MP4FileHandle hFile, MP4TrackId refTrackId);
+	MP4FileHandle hFile, 
+	MP4TrackId refTrackId);
 
 bool MP4DeleteTrack(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 u_int32_t MP4GetNumberOfTracks(
 	MP4FileHandle hFile, 
@@ -311,86 +338,119 @@ u_int16_t MP4FindTrackIndex(
 /* specific track properties */
 
 const char* MP4GetTrackType(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 MP4Duration MP4GetTrackDuration(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 u_int32_t MP4GetTrackTimeScale(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 bool MP4SetTrackTimeScale(
-	MP4FileHandle hFile, MP4TrackId trackId, u_int32_t value);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
+	u_int32_t value);
 
 u_int8_t MP4GetTrackAudioType(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 u_int8_t MP4GetTrackAudioMpeg4Type(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 u_int8_t MP4GetTrackVideoType(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 /* returns MP4_INVALID_DURATION if track samples do not have a fixed duration */
 MP4Duration MP4GetTrackFixedSampleDuration(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 u_int32_t MP4GetTrackBitRate(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 void MP4GetTrackESConfiguration(
-	MP4FileHandle hFile, MP4TrackId trackId, 
-	u_int8_t** ppConfig, u_int32_t* pConfigSize);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
+	u_int8_t** ppConfig, 
+	u_int32_t* pConfigSize);
 
 bool MP4SetTrackESConfiguration(
-	MP4FileHandle hFile, MP4TrackId trackId, 
-	const u_int8_t* pConfig, u_int32_t configSize);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
+	const u_int8_t* pConfig, 
+	u_int32_t configSize);
 
 MP4SampleId MP4GetTrackNumberOfSamples(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 u_int16_t MP4GetTrackVideoWidth(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 u_int16_t MP4GetTrackVideoHeight(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 float MP4GetTrackVideoFrameRate(
-	MP4FileHandle hFile, MP4TrackId trackId);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
 
 /* generic track properties */
 
 u_int64_t MP4GetTrackIntegerProperty(
-	MP4FileHandle hFile, MP4TrackId trackId, 
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
 	const char* propName);
 
 float MP4GetTrackFloatProperty(
-	MP4FileHandle hFile, MP4TrackId trackId, 
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
 	const char* propName);
 
 const char* MP4GetTrackStringProperty(
-	MP4FileHandle hFile, MP4TrackId trackId, 
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
 	const char* propName);
 
 void MP4GetTrackBytesProperty(
-	MP4FileHandle hFile, MP4TrackId trackId, const char* propName,
-	u_int8_t** ppValue, u_int32_t* pValueSize);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
+	const char* propName,
+	u_int8_t** ppValue, 
+	u_int32_t* pValueSize);
 
 bool MP4SetTrackIntegerProperty(
-	MP4FileHandle hFile, MP4TrackId trackId, 
-	const char* propName, int64_t value);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
+	const char* propName, 
+	int64_t value);
 
 bool MP4SetTrackFloatProperty(
-	MP4FileHandle hFile, MP4TrackId trackId, 
-	const char* propName, float value);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
+	const char* propName, 
+	float value);
 
 bool MP4SetTrackStringProperty(
-	MP4FileHandle hFile, MP4TrackId trackId, 
-	const char* propName, const char* value);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
+	const char* propName, 
+	const char* value);
 
 bool MP4SetTrackBytesProperty(
-	MP4FileHandle hFile, MP4TrackId trackId, 
-	const char* propName, const u_int8_t* pValue, u_int32_t valueSize);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId, 
+	const char* propName, 
+	const u_int8_t* pValue, 
+	u_int32_t valueSize);
 
 /* sample operations */
 

@@ -51,7 +51,7 @@ typedef unsigned __int8 uint8_t;
 typedef unsigned __int64 u_int64_t;
 typedef unsigned __int32 u_int32_t;
 typedef unsigned __int16 u_int16_t;
-typedef unsigned char u_int8_t;
+typedef unsigned __int8 u_int8_t;
 typedef __int64 int64_t;
 typedef __int32 int32_t;
 typedef __int16 int16_t;
@@ -72,6 +72,7 @@ typedef int ssize_t;
 #define close _close
 #define open _open
 #define access _access
+#define vsnprintf _vsnprintf
 #define F_OK 0
 #define OPEN_RDWR (_O_RDWR | _O_BINARY)
 #define OPEN_CREAT (_O_CREAT | _O_BINARY)

@@ -36,11 +36,11 @@ class CSDLAudioSync : public CAudioSync {
   CSDLAudioSync(CPlayerSession *psptr, int volume);
   ~CSDLAudioSync(void);
   // APIs from  codec
-  unsigned char *get_audio_buffer(void);
+  uint8_t *get_audio_buffer(void);
   void filled_audio_buffer(uint64_t ts, int resync);
   void set_config(int freq, int channels, int format, uint32_t max_buffer_size);
   void set_eof(void);
-  uint32_t load_audio_buffer(unsigned char *from, 
+  uint32_t load_audio_buffer(uint8_t *from, 
 			     uint32_t bytes, 
 			     uint64_t ts, 
 			     int resync);
@@ -68,7 +68,7 @@ class CSDLAudioSync : public CAudioSync {
   uint64_t m_last_fill_timestamp;
   uint64_t m_play_time;
   SDL_AudioSpec m_obtained;
-  unsigned char *m_sample_buffer[DECODE_BUFFERS_MAX];
+  uint8_t *m_sample_buffer[DECODE_BUFFERS_MAX];
   int m_config_set;
   int m_audio_initialized;
   int m_freq;

@@ -38,7 +38,7 @@ static unsigned int msk[33] =
   0xffffffff
 };
 
-void CBitstream::init (const unsigned char *buffer, 
+void CBitstream::init (const uint8_t *buffer, 
 		       uint32_t bit_len)
 {
   m_chDecBuffer = buffer;

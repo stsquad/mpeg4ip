@@ -38,7 +38,7 @@ Copyright (c) 1996.
 
 Source file: dec_lpc.c
 
-$Id: dec_lpc.c,v 1.1 2002/05/13 18:57:42 wmaycisco Exp $
+$Id: dec_lpc.c,v 1.2 2002/06/21 23:19:50 wmaycisco Exp $
 
 Required modules:
 common.o        common module
@@ -289,6 +289,40 @@ void DecLpcInit (
   char **parav;
   int result;
   int mp4ffFlag    =0;
+
+  SampleRateMode     = 1;  /* Default: 16 kHz */
+  QuantizationMode   = 1;  /* Default: Vector Quantizer */
+  FineRateControl    = 0;  /* Default: FineRateControl is OFF */
+  LosslessCodingMode = 0;  /* Default: Lossless coding is OFF */
+  Wideband_VQ = Optimized_VQ;
+  reduced_order = 0;
+  complexity_level = 0;
+  InstanceContext = NULL;
+  bit_rate = 0;
+ sampling_frequency = 0;
+ frame_size = 0;
+ n_subframes = 0;
+ sbfrm_size = 0;
+ lpc_order = 0;
+ num_lpc_indices = 0;
+ num_shape_cbks = 0;
+ num_gain_cbks = 0;
+
+ org_frame_bit_allocation = NULL;   
+
+ RPE_configuration = 0;
+ MPE_Configuration = 0;
+ NumEnhLayers = 0;
+ BandwidthScalabilityMode = 0;
+ BWS_configuration = 0;
+ PostFilterSW = 0;
+
+ ExcitationMode = 0;
+
+  DecEnhStage = 0;
+   DecBwsMode = 0;
+  dummysw = 0;
+ sysFlag = 0;
 
   if (numChannel != 1 ) 
   {

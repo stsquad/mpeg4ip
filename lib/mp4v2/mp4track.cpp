@@ -518,7 +518,7 @@ void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
 		u_int32_t fixedSampleSize = 
 			m_pStszFixedSampleSizeProperty->GetValue(); 
 
-		if (numBytes != fixedSampleSize) {
+		if (fixedSampleSize == 0 || numBytes != fixedSampleSize) {
 			// sample size is not fixed
 
 			if (fixedSampleSize) {

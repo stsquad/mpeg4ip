@@ -8,9 +8,9 @@ AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.4.5)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.4.7)
 
-
+AC_CONFIG_SUBDIRS(lib/SDL lib/rtp)
 
 dnl Checks for programs.
 AC_LIBTOOL_DLOPEN
@@ -225,14 +225,12 @@ else
 fi
 
 dnl Get SDL cflags and SDL libraries to include
-SDL_CFLAGS="`lib/SDL/sdl-config --cflags`"
 SDL_LIBS="`lib/SDL/sdl-config --libs | sed 's,-L.* -lSDL,\$(top_builddir)/lib/SDL/src/libSDL.la,'`"
-AC_SUBST(SDL_CFLAGS)
 AC_SUBST(SDL_LIBS)
 
 dnl
 BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Wno-unknown-pragmas"
-BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Woverloaded-virtual -Wno-unknown-pragmas"
+BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Woverloaded-virtual -Wno-unknown-pragmas -Wno-deprecated"
 AC_SUBST(BILLS_CWARNINGS)
 AC_SUBST(BILLS_CPPWARNINGS)
 
@@ -254,11 +252,19 @@ AC_OUTPUT( \
 	common/video/mpeg4/tools/entropy/Makefile \
 	common/video/mpeg4/type/Makefile \
 	common/video/mpeg4/vtc/Makefile \
+	common/video/mpeg4/vtc/include/Makefile \
 	common/video/mpeg4/vtc/main/Makefile \
 	common/video/mpeg4/vtc/pezw/Makefile \
 	common/video/mpeg4/vtc/wavelet/Makefile \
 	common/video/mpeg4/vtc/zte/Makefile \
 	common/video/mpeg4/vtc/ztq/Makefile \
+	doc/Makefile \
+	doc/encoding/Makefile \
+	doc/ietf/Makefile \
+	doc/mcast/Makefile \
+	doc/programs/Makefile \
+	doc/mp4v2/Makefile \
+	include/Makefile \
 	lib/Makefile \
 	lib/avi/Makefile \
 	lib/bitstream/Makefile \
@@ -270,6 +276,7 @@ AC_OUTPUT( \
 	lib/mp4v2/test/Makefile \
 	lib/mp4v2/util/Makefile \
 	lib/mp4av/Makefile \
+	lib/mpeg2t/Makefile \
 	lib/msg_queue/Makefile \
 	lib/sdp/Makefile \
 	lib/xvid/Makefile \
@@ -286,15 +293,14 @@ AC_OUTPUT( \
 	lib/xvid/quant/x86_asm/Makefile \
 	lib/xvid/utils/Makefile \
 	lib/xvid/utils/x86_asm/Makefile \
+	mpeg4ip.pbproj/Makefile \
 	common/Makefile \
 	common/video/Makefile \
 	common/video/libmpeg3/Makefile \
 	common/video/libmpeg3/audio/Makefile \
 	common/video/libmpeg3/video/Makefile \
 	common/video/libmpeg32/Makefile \
-	common/video/libmpeg32/audio/Makefile \
 	common/video/libmpeg32/video/Makefile \
-	common/video/libdv/Makefile \
 	server/Makefile \
 	server/audio/Makefile \
 	server/audio/faac/Makefile \
@@ -315,12 +321,17 @@ AC_OUTPUT( \
 	player/lib/libhttp/Makefile \
 	player/lib/rtsp/Makefile \
 	player/lib/audio/Makefile \
+	player/lib/audio/celp/Makefile \
+	player/lib/audio/celp/BS/Makefile \
+	player/lib/audio/celp/dec/Makefile \
+	player/lib/audio/celp/include/Makefile \
 	player/lib/audio/faad/Makefile \
 	player/lib/audio/mp3/Makefile \
 	player/lib/audio/mp3util/Makefile \
 	player/lib/mp4util/Makefile \
 	player/plugin/Makefile \
 	player/plugin/audio/Makefile \
+	player/plugin/audio/celp/Makefile \
 	player/plugin/audio/raw/Makefile \
 	player/plugin/video/Makefile \
 	player/plugin/video/mpeg3/Makefile \
@@ -332,9 +343,14 @@ AC_OUTPUT( \
 	player/src/codec/mp3/Makefile \
 	player/src/codec/mpeg4/Makefile \
 	player/src/codec/wav/Makefile \
+	player/src/osx/Makefile \
+	player/src/osx/English.lproj/Makefile \
+	player/src/osx/SDLMain.nib/Makefile \
+	player/src/win_client/Makefile \
+	player/src/win_common/Makefile \
+	player/src/win_gui/Makefile \
+	player/src/win_gui/hlp/Makefile \
+	player/src/win_gui/res/Makefile \
 	util/Makefile \
 	util/yuv/Makefile \
-	doc/Makefile \
-	doc/programs/Makefile \
-	doc/mp4v2/Makefile \
 )

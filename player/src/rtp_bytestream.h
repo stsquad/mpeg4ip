@@ -71,12 +71,7 @@ class CRtpByteStreamBase : public COurInByteStream
 
   // various routines for RTP interface.
   void set_rtp_rtptime(uint32_t t) { m_rtp_rtptime = t;};
-  void set_wallclock_offset (uint64_t wclock) {
-    if (m_wallclock_offset_set == 0) {
-    m_wallclock_offset = wclock;
-    m_wallclock_offset_set = 1;
-    }
-  };
+  void set_wallclock_offset (uint64_t wclock, uint32_t rtp_ts);
   int rtp_ready (void) {
     return (m_stream_ondemand | m_wallclock_offset_set);
   };
@@ -100,6 +95,8 @@ class CRtpByteStreamBase : public COurInByteStream
   uint64_t m_wrap_offset;
   int m_wallclock_offset_set;
   uint64_t m_wallclock_offset;
+  uint32_t m_wallclock_rtp_ts;
+  uint64_t m_wallclock_offset_wrap;
   void calculate_wallclock_offset_from_rtcp(uint32_t ntp_frac,
 					    uint32_t ntp_sec,
 					    uint32_t rtp_ts);
@@ -137,16 +134,16 @@ class CRtpByteStream : public CRtpByteStreamBase
 		 uint32_t ntp_sec,
 		 uint32_t rtp_ts);
   ~CRtpByteStream();
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+  uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			    void **userdata);
   int can_skip_frame (void) { return 1; } ;
-  int skip_next_frame(uint64_t *ts, int *havesync, unsigned char **buffer,
+  int skip_next_frame(uint64_t *ts, int *havesync, uint8_t **buffer,
 		      uint32_t *buflen);
   void used_bytes_for_frame(uint32_t bytes);
   int have_no_data(void);
   void flush_rtp_packets(void);
  protected:
-  unsigned char *m_buffer;
+  uint8_t *m_buffer;
   uint32_t m_buffer_len;
   uint32_t m_buffer_len_max;
   uint32_t m_bytes_used;
@@ -170,7 +167,7 @@ class CAudioRtpByteStream : public CRtpByteStream
   ~CAudioRtpByteStream();
   int have_no_data(void);
   int check_rtp_frame_complete_for_payload_type(void);
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+  uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			    void **userdata);
  private:
   rtp_packet *m_working_pak;

@@ -12,12 +12,18 @@ libourmp3_la_SOURCES =		\
 	mpeglayer3.cpp		\
 	mpegtable.cpp		\
 	mpegtoraw.cpp           \
-	ourmpegaudio.cpp
+	ourmpegaudio.cpp \
+	MPEGaction.h \
+	MPEGaudio.h \
+	MPEGerror.h \
+	MPEGfilter.h \
+	MPEGring.h
 
 EXTRA_DIST =			\
 	AUTHORS			\
 	COPYING.LIB		\
 	README			\
-	README.LIB
+	README.LIB 		\
+	libmp360.dsp 
 
 AM_CXXFLAGS = -D_REENTRANT -Werror -Wall -fexceptions -I$(top_srcdir)/lib/SDL/include -I../../../../include

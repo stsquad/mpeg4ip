@@ -121,15 +121,15 @@ bool CV4LVideoSource::Init(void)
 		(m_pConfig->m_videoNeedRgbToYuv ?
 			CMediaFrame::RgbVideoFrame :
 			CMediaFrame::YuvVideoFrame),
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT),
-		true,
 		true);
 
-	m_maxPasses = 
-		(u_int8_t)(m_videoSrcFrameRate + 0.5);
-	m_videoSrcFrameDuration =
-		(Duration)(((float)TimestampTicks / m_videoSrcFrameRate) + 0.5);
+	SetVideoSrcSize(
+		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
+		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT),
+		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
+		true);
+
+	m_maxPasses = (u_int8_t)(m_videoSrcFrameRate + 0.5);
 
 	return true;
 }
@@ -238,7 +238,7 @@ bool CV4LVideoSource::InitDevice(void)
 
 	// map the video capture buffers
 	m_videoMap = mmap(0, m_videoMbuf.size, 
-		PROT_READ, MAP_SHARED, m_videoDevice, 0);
+		PROT_READ | PROT_WRITE, MAP_SHARED, m_videoDevice, 0);
 	if (m_videoMap == MAP_FAILED) {
 		error_message("Failed to map video capture memory for %s", 
 			deviceName);
@@ -408,11 +408,42 @@ void CV4LVideoSource::ProcessVideo(void)
 			continue;
 		}
 
-		ProcessVideoFrame(
-			(u_int8_t*)m_videoMap 
-				+ m_videoMbuf.offsets[m_encodeHead],
-			m_videoSrcYUVSize,
-			m_videoSrcFrameDuration);
+		Timestamp frameTimestamp = GetTimestamp();
+
+		u_int8_t* mallocedYuvImage = NULL;
+		u_int8_t* pY;
+		u_int8_t* pU;
+		u_int8_t* pV;
+
+		// perform colorspace conversion if necessary
+		if (m_videoSrcType == CMediaFrame::RgbVideoFrame) {
+			mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
+
+			pY = mallocedYuvImage;
+			pU = pY + m_videoSrcYSize;
+			pV = pU + m_videoSrcUVSize,
+
+			RGB2YUV(
+				m_videoSrcWidth,
+				m_videoSrcHeight,
+				(u_int8_t*)m_videoMap + m_videoMbuf.offsets[m_encodeHead],
+				pY,
+				pU,
+				pV,
+				1);
+		} else {
+			pY = (u_int8_t*)m_videoMap + m_videoMbuf.offsets[m_encodeHead];
+			pU = pY + m_videoSrcYSize;
+			pV = pU + m_videoSrcUVSize;
+		}
+
+		ProcessVideoYUVFrame(
+			pY, 
+			pU, 
+			pV,
+			m_videoSrcWidth,
+			m_videoSrcWidth >> 1,
+			frameTimestamp);
 
 		// release video frame buffer back to video capture device
 		if (ReleaseFrame(m_encodeHead)) {
@@ -420,6 +451,8 @@ void CV4LVideoSource::ProcessVideo(void)
 		} else {
 			debug_message("Couldn't release capture buffer!");
 		}
+
+		free(mallocedYuvImage);
 	}
 }
 

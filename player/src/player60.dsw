@@ -63,7 +63,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "celp_plugin"=..\plugin\audio\celp\celp_plugin\celp_plugin.dsp - Package Owner=<4>
+Project: "celp_plugin"=..\plugin\audio\celp\celp_plugin.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -108,7 +108,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libcelp"=..\lib\audio\celp\libcelp\libcelp.dsp - Package Owner=<4>
+Project: "libcelp"=..\lib\audio\celp\libcelp.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -205,6 +205,18 @@ Package=<4>
 ###############################################################################
 
 Project: "libmp4"=..\..\lib\mp4\libmp460.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libmp4av"=..\..\lib\mp4av\libmp4av.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -365,6 +377,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libmp3util60
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -395,6 +410,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name wav_plugin
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -416,18 +434,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name need_for_win
     End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "need_for_win"=..\..\lib\win32\need_for_win60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
+    Begin Project Dependency
+    Project_Dep_Name libmissing60
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -454,6 +463,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmissing60
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av
     End Project Dependency
 }}}
 
@@ -511,6 +523,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name need_for_win
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing60
     End Project Dependency
 }}}
 

@@ -31,7 +31,7 @@ typedef struct mp3_codec_t {
    * raw file
    */
   FILE *m_ifile;
-  unsigned char *m_buffer;
+  uint8_t *m_buffer;
   uint32_t m_buffer_size_max;
   uint32_t m_buffer_size;
   uint32_t m_buffer_on;
@@ -44,7 +44,7 @@ codec_data_t *mp3_file_check(lib_message_func_t message,
 			     double *max,
 			     char *desc[4]);
 int mp3_file_next_frame(codec_data_t *your_data,
-			unsigned char **buffer,
+			uint8_t **buffer,
 			uint64_t *ts);
 
 int mp3_raw_file_seek_to(codec_data_t *ptr, uint64_t ts);

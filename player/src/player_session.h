@@ -99,6 +99,9 @@ class CPlayerSession {
    * API routine - get the current time
    */
   uint64_t get_playing_time (void) {
+    if (m_streaming && session_is_seekable() == 0) {
+      return (m_current_time - m_first_time_played);
+    }
     return (m_current_time);
   };
   /*
@@ -125,6 +128,19 @@ class CPlayerSession {
   }
   void set_media_close_callback (media_close_callback_f mccf) {
     m_media_close_callback = mccf;
+  }
+  int session_is_network (int &on_demand, int &rtp_over_rtsp) {
+    if (m_streaming == 0) {
+      return 0;
+    }
+    if (m_seekable) { 
+      on_demand = 1;
+      rtp_over_rtsp = m_rtp_over_rtsp;
+    } else {
+      on_demand = 0;
+      rtp_over_rtsp = 0;
+    }
+	return 1;
   }
   /*
    * Non-API routines - used for c interfaces, for sync task APIs.
@@ -168,6 +184,7 @@ class CPlayerSession {
   int m_streaming;
   uint64_t m_current_time; // current time playing
   uint64_t m_start;
+  uint64_t m_latency;
   int m_clock_wrapped;
   uint64_t m_play_start_time;
   session_desc_t *m_sdp_info;
@@ -197,6 +214,8 @@ class CPlayerSession {
   media_close_callback_f m_media_close_callback;
   int m_streaming_media_set_up;
   CIpPort *m_unused_ports;
+  int m_rtp_over_rtsp;
+  uint64_t m_first_time_played;
 };
 
 int c_sync_thread(void *data);

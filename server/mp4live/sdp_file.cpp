@@ -33,6 +33,7 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	session_desc_t sdp;
 
 	memset(&sdp, 0, sizeof(sdp));
+
 	// o=
 	sdp.session_id = GetTimestamp();
 	sdp.session_version = GetTimestamp();
@@ -59,32 +60,34 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	// s=
 	sdp.session_name = pConfig->GetStringValue(CONFIG_SDP_FILE_NAME);
 
-	bool destIsMcast = false;
-	bool destIsSSMcast = false;
+	bool destIsMcast = false;		// Multicast
+	bool destIsSSMcast = false;		// Single Source Multicast
 	struct in_addr in;
 	struct in6_addr in6;
 
-	if (inet_aton(pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS), &in)) {
+	char* sDestAddr = 
+		pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS);
+
+	if (inet_aton(sDestAddr, &in)) {
 		sdp.session_connect.conn_type = "IP4";
 		destIsMcast = IN_MULTICAST(ntohl(in.s_addr));
 		if ((ntohl(in.s_addr) >> 24) == 232) {
 			destIsSSMcast = true;
 		}
-	} else if (inet_pton(AF_INET6, pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS), &in6)) {
+	} else if (inet_pton(AF_INET6, sDestAddr, &in6)) {
 		sdp.session_connect.conn_type = "IP6";
 		destIsMcast = IN6_IS_ADDR_MULTICAST(&in6);
 	}
 
 	// c=
-	sdp.session_connect.conn_addr = 
-		pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS);
+	sdp.session_connect.conn_addr = sDestAddr;
 	if (destIsMcast) {
 		sdp.session_connect.ttl = 
 			pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL);
 	}
 	sdp.session_connect.used = 1;
 
-	// Since we don't do anything with RTCP RR's
+	// Since we currently don't do anything with RTCP RR's
 	// and they create unnecessary state in the routers
 	// tell clients not to generate them
 	struct bandwidth_t bandwidth;
@@ -109,7 +112,7 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 		!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
 			AUDIO_ENCODING_AAC);
 
-	// if ISMA compliant (no audio or AAC audio), add that 
+	// if ISMA compliant (no audio or AAC audio), add that info
 	if (!pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) || audioIsAac) {
 		sdp_add_string_to_list(&sdp.unparsed_a_lines,
 			"a=isma-compliance:1,1.0,1");
@@ -154,7 +157,7 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 			pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE),
 			pAudioConfig,
 			audioConfigLength,
-			MP4_DETAILS_ISMA);
+			0 /* DEBUG MP4_DETAILS_ISMA */);
 
 	if (iod) {
 		sdp_add_string_to_list(&sdp.unparsed_a_lines, iod);
@@ -166,6 +169,7 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	format_list_t sdpMediaVideoFormat;
 	rtpmap_desc_t sdpVideoRtpMap;
 	char videoFmtpBuf[512];
+	bandwidth_t videoBandwidth;
 
 	if (pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 		memset(&sdpMediaVideo, 0, sizeof(sdpMediaVideo));
@@ -189,20 +193,29 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 
 		sdpMediaVideoFormat.rtpmap = &sdpVideoRtpMap;
 
-		char* sConfig = MP4BinaryToBase16(pConfig->m_videoMpeg4Config, 
+		char* sConfig = MP4BinaryToBase16(
+			pConfig->m_videoMpeg4Config, 
 			pConfig->m_videoMpeg4ConfigLength); 
 
-		sprintf(videoFmtpBuf, "profile-level-id=%u; config=%s;",
+		sprintf(videoFmtpBuf, 
+			"profile-level-id=%u; config=%s;",
 			pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_LEVEL_ID),
 			sConfig); 
 		free(sConfig);
 
 		sdpMediaVideoFormat.fmt_param = videoFmtpBuf;
+
+		memset(&videoBandwidth, 0, sizeof(videoBandwidth));
+		sdpMediaVideo.media_bandwidth = &videoBandwidth;
+		videoBandwidth.modifier = BANDWIDTH_MODIFIER_AS; 
+		videoBandwidth.bandwidth =
+			pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE);
 	}
 
 	media_desc_t sdpMediaAudio;
 	format_list_t sdpMediaAudioFormat;
 	rtpmap_desc_t sdpAudioRtpMap;
+	bandwidth_t audioBandwidth;
 
 	char audioFmtpBuf[512];
 
@@ -229,6 +242,7 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 		if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
 		  AUDIO_ENCODING_MP3)) {
 			sdpAudioRtpMap.encode_name = "MPA";
+
 		} else if (audioIsAac) {
 			sdpAudioRtpMap.encode_name = "mpeg4-generic";
 
@@ -247,10 +261,19 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 			pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 
 		sdpMediaAudioFormat.rtpmap = &sdpAudioRtpMap;
+
+		memset(&audioBandwidth, 0, sizeof(audioBandwidth));
+		sdpMediaAudio.media_bandwidth = &audioBandwidth;
+		audioBandwidth.modifier = BANDWIDTH_MODIFIER_AS; 
+		audioBandwidth.bandwidth =
+			pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE);
 	}
 
 	free(pAudioConfig);
 
+	// finally call sdp library 
+	// to write the entire sdp description
+	// to the given sdp file name
 	bool rc = (sdp_encode_one_to_file(&sdp, 
 		pConfig->GetStringValue(CONFIG_SDP_FILE_NAME), 0) == 0);
 

@@ -1,6 +1,6 @@
 #
 
-AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
+AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
 INCLUDES = -I.. -I../../type -I../../tools -I../../../../../include \
   -I../../sys -I../../sys/encoder -I../../vtc/include \
@@ -10,6 +10,8 @@ INCLUDES = -I.. -I../../type -I../../tools -I../../../../../include \
 bin_PROGRAMS = mp4venc
 
 mp4venc_SOURCES = encoder.cpp
+
+EXTRA_DIST = encoder60.dsp example.par
 
 LDADD= \
   ../../sys/encoder/libobj_sys_encoder.la \

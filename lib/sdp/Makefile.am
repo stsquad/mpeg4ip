@@ -4,7 +4,12 @@ libsdp_la_SOURCES = \
 	sdp_decode.c \
 	sdp_encode.c \
 	sdp_dump.c \
-	sdp_util.c
+	sdp_util.c \
+	sdp_decode_private.h \
+	sdp_error.h \
+	sdp.h
+
+EXTRA_DIST = libsdp60.dsp
 
 INCLUDES = -I$(top_srcdir)/include
 

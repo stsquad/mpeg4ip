@@ -187,11 +187,11 @@ class MPEGaudio {
  public:
   MPEGaudio(void);
   ~MPEGaudio();
-  int findheader(unsigned char *frombuffer,
+  int findheader(uint8_t *frombuffer,
 		 uint32_t frombuffer_len,
 		 uint32_t *framesize = NULL);
-  int decodeFrame(unsigned char *tobuffer,
-		  unsigned char *frombuffer,
+  int decodeFrame(uint8_t *tobuffer,
+		  uint8_t *frombuffer,
 		  uint32_t frombuffer_len);
 protected:
     bool sdl_audio;

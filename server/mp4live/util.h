@@ -29,6 +29,21 @@ inline void* Malloc(size_t size) {
 	return p;
 } 
 
+inline void imgcpy(
+	u_int8_t* dst, u_int8_t* src, 
+	u_int16_t width, u_int16_t height, u_int16_t src_stride) {
+
+	if (width == src_stride) {
+		memcpy(dst, src, width * height);
+	} else {
+		for (u_int16_t i = 0; i < height; i++) {
+			memcpy(dst, src, width);
+			dst += width;
+			src += src_stride;
+		}
+	}
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,6 +57,12 @@ void error_message(const char *fmt, ...)
 void debug_message(const char *fmt, ...)
 #ifndef _WINDOWS
        __attribute__((format(__printf__, 1, 2)))
+#endif
+	   ;
+
+void lib_message(int loglevel, const char* lib, const char *fmt, ...)
+#ifndef _WINDOWS
+       __attribute__((format(__printf__, 3, 4)))
 #endif
 	   ;
 

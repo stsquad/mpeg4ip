@@ -1,4 +1,4 @@
-man_MANS = \
+this_FILES = \
 	MP4.3 \
 	MP4AddAudioTrack.3 \
 	MP4AddHintTrack.3 \
@@ -88,3 +88,8 @@ man_MANS = \
 	MP4SetVideoProfileLevel.3 \
 	MP4WriteRtpHint.3 \
 	MP4WriteSample.3 
+
+
+man_MANS = $(this_FILES)
+
+EXTRA_DIST = $(this_FILES)

@@ -116,6 +116,9 @@ int BitstreamReadHeaders(Bitstream * bs, DECODER * dec, uint32_t * rounding,
 						 uint32_t * quant, uint32_t * fcode, uint32_t * intra_dc_threshold,
 			 int findvol);
 
+#ifdef MPEG4IP
+void BitstreamWriteVoshHeader(Bitstream * const bs);
+#endif
 
 void BitstreamWriteVolHeader(Bitstream * const bs,
 						const MBParam * pParam);
@@ -280,6 +283,7 @@ static void __inline BitstreamForward(Bitstream * const bs, const uint32_t bits)
 }
 
 
+#ifndef MPEG4IP
 /* pad bitstream to the next byte boundary */
 
 static void __inline BitstreamPad(Bitstream * const bs)
@@ -291,6 +295,7 @@ static void __inline BitstreamPad(Bitstream * const bs)
 		BitstreamForward(bs, 8 - remainder);
     }
 }
+#endif
 
 
 /* read n bits from bitstream */
@@ -349,5 +354,24 @@ static void __inline BitstreamPutBits(Bitstream * const bs,
 		BitstreamForward(bs, remainder);
 	}
 }
+
+#ifdef MPEG4IP
+static void __inline BitstreamPad(Bitstream * const bs)
+{
+	uint32_t remainder = bs->pos % 8;
+
+    if (remainder)
+    {
+		// padding rule is a 0 bit 
+		// followed by 1's until the byte boundary
+		uint32_t pad = 8 - remainder;
+		BitstreamPutBit(bs, 0);
+		pad--;
+		if (pad > 0) {
+			BitstreamPutBits(bs, (1 << pad) - 1, pad);
+		}
+    }
+}
+#endif
 
 #endif /* _BITSTREAM_H_ */

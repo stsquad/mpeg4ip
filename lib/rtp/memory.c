@@ -2,8 +2,8 @@
  * FILE:    memory.c
  * AUTHORS:  Isidor Kouvelas / Colin Perkins / Mark Handley / Orion Hodson
  *
- * $Revision: 1.3 $
- * $Date: 2002/01/11 00:55:16 $
+ * $Revision: 1.4 $
+ * $Date: 2002/06/21 23:19:48 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -94,7 +94,8 @@ void xdoneinit(void)
 	init = tick++;
 }
 
-static int chk_header_okay(const chk_header *ch)
+extern int chk_header_okay(const chk_header *ch);
+int chk_header_okay(const chk_header *ch)
 {
         const uint8_t *tm; /* tail magic */
         ASSERT(ch != NULL);
@@ -385,6 +386,7 @@ xfree(void *p)
 	}
         ch = ((chk_header*)p) - 1;
 
+        printf("free at %p\n", ch);
         /* Validate entry  */
         if (chk_header_okay(ch) == FALSE) {
                 printf("ERROR: Freeing corrupted block\n");
@@ -479,7 +481,8 @@ _xmalloc(unsigned size, const char *filen, int line)
                 fprintf(stderr, "Implementation Error\n");
                 abort();
         }
-        
+
+        printf("malloc at %p\n", p);
         return (uint8_t*)p + sizeof(chk_header);
 }
 

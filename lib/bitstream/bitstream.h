@@ -26,24 +26,24 @@
 class CBitstream {
  public:
   CBitstream(void) {};
-  CBitstream(const unsigned char *buffer, uint32_t bit_len) {
+  CBitstream(const uint8_t *buffer, uint32_t bit_len) {
     init(buffer, bit_len);
   };
   ~CBitstream (void) {};
-  void init(const unsigned char *buffer, uint32_t bit_len);
+  void init(const uint8_t *buffer, uint32_t bit_len);
   void init(const char *buffer, uint32_t bit_len) {
-    init((const unsigned char *)buffer, (uint32_t)bit_len);
+    init((const uint8_t *)buffer, (uint32_t)bit_len);
   };
   void init(const char *buffer, int bit_len) {
-    init((const unsigned char *)buffer, (uint32_t)bit_len);
+    init((const uint8_t *)buffer, (uint32_t)bit_len);
   };
-  void init(const unsigned char *buffer, int bit_len) {
+  void init(const uint8_t *buffer, int bit_len) {
     init(buffer, (uint32_t)bit_len);
   };
   void init(const char *buffer, unsigned short bit_len) {
-    init((const unsigned char *)buffer, (uint32_t)bit_len);
+    init((const uint8_t *)buffer, (uint32_t)bit_len);
   };
-  void init(const unsigned char *buffer, unsigned short bit_len) {
+  void init(const uint8_t *buffer, unsigned short bit_len) {
     init(buffer, (uint32_t)bit_len);
   };
   uint32_t GetBits(uint32_t bits);
@@ -76,12 +76,12 @@ class CBitstream {
   int byte_align(void);
  private:
   uint32_t m_uNumOfBitsInBuffer;
-  const unsigned char *m_chDecBuffer;
+  const uint8_t *m_chDecBuffer;
   unsigned char m_chDecData;
   uint32_t m_chDecBufferSize;
   int m_bBookmarkOn;
   uint32_t m_uNumOfBitsInBuffer_bookmark;
-  const unsigned char *m_chDecBuffer_bookmark;
+  const uint8_t *m_chDecBuffer_bookmark;
   uint32_t m_chDecBufferSize_bookmark;
 };
 

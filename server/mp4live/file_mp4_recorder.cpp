@@ -157,6 +157,7 @@ void CMp4Recorder::DoStartRecord()
 
 		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
 			m_rawAudioFrameNum = 1;
+			m_rawAudioDuration = 0;
 
 			m_rawAudioTrackId = MP4AddAudioTrack(
 				m_mp4File, 
@@ -174,6 +175,7 @@ void CMp4Recorder::DoStartRecord()
 
 		if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
 			m_encodedAudioFrameNum = 1;
+			m_encodedAudioDuration = 0;
 
 			u_int8_t audioType;
 
@@ -241,14 +243,42 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 	  && m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
 
 		if (m_canRecordAudio) {
+			if (m_rawAudioFrameNum == 1) {
+				m_rawAudioStartTimestamp = pFrame->GetTimestamp();
+				m_rawAudioDuration = 0;
+			}
+
+			// check for audio continuity
+			Duration skew =
+				MP4ConvertToTrackDuration(
+					m_mp4File, 
+					m_rawAudioTrackId, 
+					(pFrame->GetTimestamp() - m_rawAudioStartTimestamp)
+						- m_rawAudioDuration,
+					TimestampTicks);
+
+			if (skew > 128) {
+				// record audio gap
+				MP4WriteSample(
+					m_mp4File,
+					m_rawAudioTrackId,
+					NULL,
+					0,
+					skew);
+			}
+
 			MP4WriteSample(
 				m_mp4File,
 				m_rawAudioTrackId,
 				(u_int8_t*)pFrame->GetData(), 
 				pFrame->GetDataLength(),
-				pFrame->GetDataLength() / 4);
+				pFrame->GetDataLength() 
+					/ (2 * m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)));
 
 			m_rawAudioFrameNum++;
+
+			m_rawAudioDuration += 
+				pFrame->ConvertDuration(TimestampTicks);
 		}
 
 	} else if ((pFrame->GetType() == CMediaFrame::Mp3AudioFrame
@@ -256,6 +286,30 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 	  && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
 
 		if (m_canRecordAudio) {
+			if (m_encodedAudioFrameNum == 1) {
+				m_encodedAudioStartTimestamp = pFrame->GetTimestamp();
+				m_encodedAudioDuration = 0;
+			}
+
+			// check for audio continuity
+			Duration skew =
+				MP4ConvertToTrackDuration(
+					m_mp4File, 
+					m_encodedAudioTrackId, 
+					(pFrame->GetTimestamp() - m_encodedAudioStartTimestamp)
+						- m_encodedAudioDuration,
+					TimestampTicks);
+
+			if (skew > 128) {
+				// record audio gap
+				MP4WriteSample(
+					m_mp4File,
+					m_encodedAudioTrackId,
+					NULL,
+					0,
+					skew);
+			}
+
 			MP4WriteSample(
 				m_mp4File,
 				m_encodedAudioTrackId,
@@ -264,6 +318,9 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 				pFrame->ConvertDuration(m_encodedAudioTimeScale));
 
 			m_encodedAudioFrameNum++;
+
+			m_encodedAudioDuration += 
+				pFrame->ConvertDuration(TimestampTicks);
 		}
 
 	} else if (pFrame->GetType() == CMediaFrame::YuvVideoFrame

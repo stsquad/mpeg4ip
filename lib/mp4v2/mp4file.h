@@ -188,11 +188,17 @@ public: /* equivalent to MP4 library API */
 
 	MP4TrackId AddSceneTrack();
 
-	MP4TrackId AddAudioTrack(u_int32_t timeScale, u_int32_t sampleDuration,
+	MP4TrackId AddAudioTrack(
+		u_int32_t timeScale, 
+		MP4Duration sampleDuration,
 		u_int8_t audioType);
 
-	MP4TrackId AddVideoTrack(u_int32_t timeScale, u_int32_t sampleDuration,
-		u_int16_t width, u_int16_t height, u_int8_t videoType);
+	MP4TrackId AddVideoTrack(
+		u_int32_t timeScale, 
+		MP4Duration sampleDuration,
+		u_int16_t width, 
+		u_int16_t height, 
+		u_int8_t videoType);
 
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 

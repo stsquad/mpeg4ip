@@ -262,6 +262,8 @@ sdp_decode_info_t *set_sdp_decode_from_memory(const char *memptr);
 
 sdp_decode_info_t *set_sdp_decode_from_filename(const char *filename);
 
+void sdp_decode_info_free(sdp_decode_info_t *free);
+
 int sdp_decode(sdp_decode_info_t *decode,
 	       session_desc_t **retval,
 	       int *translated);
@@ -283,8 +285,12 @@ int sdp_encode_one_to_file(session_desc_t *sptr,
 int sdp_encode_list_to_file(session_desc_t *sptr,
 			    const char *filename,
 			    int append);
+/*
+ * NOTE - sdp_encode_[one|list]_to_memory require freeing memory
+ */
 int sdp_encode_one_to_memory(session_desc_t *sptr, char **mem);
 int sdp_encode_list_to_memory (session_desc_t *sptr, char **mem, int *count);
+
 void sdp_set_loglevel(int loglevel);
 void sdp_set_error_func(error_msg_func_t func);
   

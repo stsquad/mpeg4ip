@@ -69,7 +69,7 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   ~CIsmaAudioRtpByteStream();
   void reset(void);
   int have_no_data(void);
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+  uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			    void **userdata);
   void used_bytes_for_frame(uint32_t byte);
   void flush_rtp_packets(void);
@@ -105,7 +105,7 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   void get_au_header_bits(void);
   void cleanup_frag(isma_frame_data_t * frame_data);
   int process_fragment(rtp_packet *pak, isma_frame_data_t *frame_data);
-  unsigned char *m_frag_reass_buffer;
+  uint8_t *m_frag_reass_buffer;
   uint32_t m_frag_reass_size;
   uint32_t m_frag_reass_size_max;
 };

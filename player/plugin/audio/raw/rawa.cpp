@@ -27,7 +27,7 @@
  */
 static codec_data_t *rawa_codec_create (format_list_t *media_fmt,
 					audio_info_t *audio,
-					const unsigned char *userdata,
+					const uint8_t *userdata,
 					uint32_t userdata_size,
 					audio_vft_t *vft,
 					void *ifptr)
@@ -99,7 +99,7 @@ static int rawa_decode (codec_data_t *ptr,
 		       uint64_t ts,
 		       int from_rtp,
 		       int *sync_frame,
-		       unsigned char *buffer,
+		       uint8_t *buffer,
 		       uint32_t buflen,
 			void *ud)
 {
@@ -113,7 +113,7 @@ static int rawa_decode (codec_data_t *ptr,
       // Special mp4 case - we don't know how many channels, but we
       // do know that we've got 1 seconds worth of data...
       if (rawa->m_temp_buff == NULL) {
-	rawa->m_temp_buff = (unsigned char *)malloc(buflen);
+	rawa->m_temp_buff = (uint8_t *)malloc(buflen);
 	memcpy(rawa->m_temp_buff, buffer, buflen);
 	rawa->m_temp_buffsize = buflen;
 	LOGIT(LOG_DEBUG, "rawaudio", "setting %d bufsize", 
@@ -201,7 +201,7 @@ static int rawa_codec_check (lib_message_func_t message,
 			    int type,
 			    int profile,
 			    format_list_t *fptr, 
-			    const unsigned char *userdata,
+			    const uint8_t *userdata,
 			    uint32_t userdata_size)
 {
   if (compressor != NULL && 

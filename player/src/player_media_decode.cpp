@@ -34,7 +34,6 @@
 #include "codec_plugin_private.h"
 //#define DEBUG_DECODE 1
 //#define DEBUG_DECODE_MSGS 1
-//#define TIME_DECODE 1
 /*
  * parse_decode_message - handle messages to the decode task
  */
@@ -80,13 +79,30 @@ int CPlayerMedia::decode_thread (void)
 {
   //  uint32_t msec_per_frame = 0;
   int ret = 0;
-#ifdef TIME_DECODE
-  int64_t avg = 0, diff;
-  int64_t max = 0;
-  int avg_cnt = 0;
-#endif
   int thread_stop = 0, decoding = 0;
-  uint64_t decode_skipped_frames = 0;
+  uint32_t decode_skipped_frames = 0;
+  uint64_t ourtime;
+      // Tell bytestream we're starting the next frame - they'll give us
+      // the time.
+  uint8_t *frame_buffer;
+  uint32_t frame_len;
+  void *ud = NULL;
+  
+  uint32_t frames_decoded;
+  uint64_t bytes_decoded;
+  uint32_t frames_decoded_last_sec;
+  uint64_t bytes_decoded_last_sec;
+  uint64_t current_second;
+  uint32_t total_secs;
+  uint32_t last_div = 0;
+
+  total_secs = 0;
+  frames_decoded = 0;
+  bytes_decoded = 0;
+  frames_decoded_last_sec = 0;
+  bytes_decoded_last_sec = 0;
+  current_second = 0;
+
   while (thread_stop == 0) {
     // waiting here for decoding or thread stop
     ret = SDL_SemWait(m_decode_thread_sem);
@@ -99,10 +115,17 @@ int CPlayerMedia::decode_thread (void)
     if (decoding == 1) {
       // We've been told to start decoding - if we don't have a codec, 
       // create one
-      if (is_video())
+      if (is_video()) {
+	if (m_video_sync == NULL) {
+	  m_video_sync = m_parent->set_up_video_sync();
+	}
 	m_video_sync->set_wait_sem(m_decode_thread_sem);
-      else
+      } else {
+	if (m_audio_sync == NULL) {
+	  m_audio_sync = m_parent->set_up_audio_sync();
+	}
 	m_audio_sync->set_wait_sem(m_decode_thread_sem);
+      }
       if (m_plugin == NULL) {
 	if (is_video()) {
 	  m_plugin = check_for_video_codec(NULL,
@@ -167,6 +190,9 @@ int CPlayerMedia::decode_thread (void)
     media_message(LOG_DEBUG, "%s Into decode loop",
 		  is_video() ? "video" : "audio");
 #endif
+    frames_decoded_last_sec = 0;
+    bytes_decoded_last_sec = 0;
+    current_second = 0;
     while ((thread_stop == 0) && decoding) {
       parse_decode_message(thread_stop, decoding);
       if (thread_stop != 0)
@@ -194,12 +220,6 @@ int CPlayerMedia::decode_thread (void)
 	continue;
       }
 
-      uint64_t ourtime;
-      // Tell bytestream we're starting the next frame - they'll give us
-      // the time.
-      unsigned char *frame_buffer;
-      uint32_t frame_len;
-      void *ud = NULL;
       frame_buffer = NULL;
       ourtime = m_byte_stream->start_next_frame(&frame_buffer, 
 						&frame_len,
@@ -267,10 +287,6 @@ int CPlayerMedia::decode_thread (void)
       media_message(LOG_DEBUG, "Decoding %c frame " LLU, 
 		    m_is_video ? 'v' : 'a', ourtime);
 #endif
-#ifdef TIME_DECODE
-      clock_t start, end;
-      start = clock();
-#endif
       if (frame_buffer != NULL && frame_len != 0) {
 	int sync_frame;
 	ret = m_plugin->c_decode_frame(m_plugin_data,
@@ -285,38 +301,59 @@ int CPlayerMedia::decode_thread (void)
 		      m_is_video ? 'v' : 'a', ret);
 #endif
 	if (ret > 0) {
+	  frames_decoded++;
 	  m_byte_stream->used_bytes_for_frame(ret);
+	  bytes_decoded += ret;
+	  last_div = ourtime % 1000;
+	  if ((ourtime / 1000) > current_second) {
+	    if (frames_decoded_last_sec != 0) {
+#if 0
+	      media_message(LOG_DEBUG, "%s - Second "LLU", frames %d bytes "LLU,
+			    m_is_video ? "video" : "audio", 
+			    current_second,
+			    frames_decoded_last_sec,
+			    bytes_decoded_last_sec);
+#endif
+	    }
+	    current_second = ourtime / 1000;
+	    total_secs++;
+	    frames_decoded_last_sec = 1;
+	    bytes_decoded_last_sec = ret;
+	  } else {
+	    frames_decoded_last_sec++;
+	    bytes_decoded_last_sec += ret;
+	  }
 	} else {
 	  m_byte_stream->used_bytes_for_frame(frame_len);
 	}
 
-#ifdef TIME_DECODE
-      end = clock();
-      if (ret > 0) {
-	diff = end - start;
-	media_message(LOG_DEBUG, "%c " LLD, m_is_video ? 'v' : 'a',diff);
-	if (diff > max) max = diff;
-	avg += diff;
-	avg_cnt++;
-      }
-#endif
       }
     }
+    // calculate frame rate for session
   }
-#ifdef TIME_DECODE
-  if (avg_cnt != 0) {
-    media_message(LOG_INFO, "%s Decode avg time is " LLD " max " LLD, 
-		  m_is_video ? "video" : "audio",
-		  avg / avg_cnt,
-		  max);
-    media_message(LOG_INFO, "%s total %lld count %d", 
-		  m_is_video ? "video" : "audio",
-		  avg, avg_cnt);
-  }
-#endif
   if (m_is_video)
-    media_message(LOG_NOTICE, "Video decoder skipped "LLU" frames", 
+    media_message(LOG_NOTICE, "Video decoder skipped %u frames", 
 		  decode_skipped_frames);
+  if (total_secs != 0) {
+    double fps, bps;
+    double secs;
+    secs = last_div;
+    secs /= 1000.0;
+    secs += total_secs;
+
+    fps = frames_decoded;
+    fps /= secs;
+    bps = 
+#ifdef _WIN32
+		(int64_t)
+#endif
+		bytes_decoded;
+    bps *= 8.0 / secs;
+    media_message(LOG_NOTICE, "%s - bytes "LLU", seconds %g, fps %g bps "LLU,
+		  m_is_video ? "video" : "audio", 
+		  bytes_decoded, secs, 
+		  fps, bytes_decoded * 8 / total_secs);
+  }
   if (m_plugin) {
     m_plugin->c_close(m_plugin_data);
     m_plugin_data = NULL;

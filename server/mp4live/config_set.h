@@ -306,6 +306,9 @@ public:
 		CheckIName(iName);
 		CheckStringType(iName);
 #endif
+		if (svalue == m_variables[iName].m_value.m_svalue) {
+			return;
+		}
 		free(m_variables[iName].m_value.m_svalue);
 		m_variables[iName].m_value.m_svalue = stralloc(svalue);
 		if (m_variables[iName].m_value.m_svalue == NULL) {

@@ -45,9 +45,9 @@ void CDummyVideoSync::config (int w, int h)
   m_config_set = 1;
 }
 
-int CDummyVideoSync::get_video_buffer(unsigned char **y,
-				 unsigned char **u,
-				 unsigned char **v)
+int CDummyVideoSync::get_video_buffer(uint8_t **y,
+				      uint8_t **u,
+				      uint8_t **v)
 {
   
   if (m_y == NULL) {
@@ -101,9 +101,9 @@ static void c_video_configure (void *ifptr,
 }
 
 static int c_video_get_buffer (void *ifptr, 
-			       unsigned char **y,
-			       unsigned char **u,
-			       unsigned char **v)
+			       uint8_t **y,
+			       uint8_t **u,
+			       uint8_t **v)
 {
   return (((CDummyVideoSync *)ifptr)->get_video_buffer(y, u, v));
 }
@@ -114,9 +114,9 @@ static int c_video_filled_buffer(void *ifptr, uint64_t time)
 }
 
 static int c_video_have_frame (void *ifptr,
-			       const unsigned char *y,
-			       const unsigned char *u,
-			       const unsigned char *v,
+			       const uint8_t *y,
+			       const uint8_t *u,
+			       const uint8_t *v,
 			       int m_pixelw_y,
 			       int m_pixelw_uv,
 			       uint64_t time)

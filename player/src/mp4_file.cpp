@@ -50,7 +50,8 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 			       const char *name,
 			       char *errmsg,
 			       uint32_t errlen,
-			       int have_audio_driver)
+			       int have_audio_driver,
+			       control_callback_vft_t *cc_vft)
 {
   MP4FileHandle fh;
 
@@ -68,43 +69,39 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
   // quicktime is searchable...
   psptr->session_set_seekable(1);
 
-  int video;
-  video = Mp4File1->create_video(psptr, errmsg, errlen);
-  if (video < 0) {
-    return (-1);
+  int ret;
+  ret = Mp4File1->create_media(psptr, 
+				 errmsg, 
+				 errlen, 
+				 have_audio_driver,
+				 cc_vft);
+  if (ret <= 0) return ret;
+
+  int offset = 0;
+
+  if (Mp4File1->get_illegal_video_codec() != 0) {
+    offset = snprintf(errmsg, errlen, "Unknown or unused Video tracks ");
   }
-  mp4f_message(LOG_DEBUG, "create video returned %d", video);
-  int audio = 0;
-  if (have_audio_driver > 0) {
-    audio = Mp4File1->create_audio(psptr, errmsg, errlen);
-    if (audio < 0) {
-      return (-1);
-    }
-    mp4f_message(LOG_DEBUG, "create audio returned %d", audio);
+
+  if (Mp4File1->have_audio() != 0 && have_audio_driver == 0) {
+    offset += snprintf(errmsg + offset, errlen - offset, 
+		       "%sNo Audio driver - can't play audio",
+		       offset == 0 ? "" : "and ");
+  } else if (Mp4File1->get_illegal_audio_codec() != 0) {
+    snprintf(errmsg + offset, errlen - offset, 
+	     "%sUnknown or unused audio tracks", 
+	     offset == 0 ? "" : "and ");
   }
-  if (audio == 0 && video == 0) {
-    snprintf(errmsg, errlen, "No known audio or video codecs found in file");
-    return (-1);
-  }
-  if (audio == 0 && Mp4File1->get_audio_tracks() > 0) {
-    if (have_audio_driver > 0) 
-      snprintf(errmsg, errlen,  "Unknown Audio Codec");
-    else 
-      snprintf(errmsg, errlen, "No Audio driver - can't play audio");
-    return (1);
-  }
-  if ((Mp4File1->get_video_tracks() != 0) && video == 0) {
-    return (1);
-  }
-  return (0);
+  return (1);
 }
 
 CMp4File::CMp4File (MP4FileHandle filehandle)
 {
   m_mp4file = filehandle;
   m_file_mutex = SDL_CreateMutex();
-  m_audio_tracks = 0;
-  m_video_tracks = 0;
+  m_illegal_audio_codec = 0;
+  m_illegal_video_codec = 0;
+  m_have_audio = 0;
 }
 
 CMp4File::~CMp4File (void)
@@ -117,188 +114,289 @@ CMp4File::~CMp4File (void)
   }
 }
 
-int CMp4File::create_video (CPlayerSession *psptr,
-			    char *errmsg, 
-			    uint32_t errlen)
+int CMp4File::create_video(CPlayerSession *psptr, 
+			   video_query_t *vq, 
+			   int video_offset,
+			   char *errmsg, 
+			   uint32_t errlen)
 {
+  int ix;
   CPlayerMedia *mptr;
-  MP4TrackId trackId;
-
-  trackId = MP4FindTrackId(m_mp4file, 0, 
-	MP4_VIDEO_TRACK_TYPE, MP4_MPEG4_VIDEO_TYPE);
-
-  if (!MP4_IS_VALID_TRACK_ID(trackId)) {
-    return 0;
-  }
-  uint8_t video_type = MP4GetTrackVideoType(m_mp4file, trackId);
-  uint8_t profileID = MP4GetVideoProfileLevel(m_mp4file);
-  mp4f_message(LOG_DEBUG, "MP4 - got track %x profile ID %d", 
-	       trackId, profileID);
-  unsigned char *foo;
-  u_int32_t bufsize;
-  MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
-
   codec_plugin_t *plugin;
-  plugin = check_for_video_codec("MP4 FILE",
-				 NULL,
-				 video_type,
-				 profileID,
-				 foo, 
-				 bufsize);
 
-  if (plugin == NULL) {
-    snprintf(errmsg, errlen, "Can't find plugin for video type %d, profile %d",
-	     video_type, profileID);
-    return 0;
+  for (ix = 0; ix < video_offset; ix++) {
+    if (vq[ix].enabled != 0) {
+
+      mptr = new CPlayerMedia(psptr);
+      if (mptr == NULL) {
+	return (-1);
+      }
+      video_info_t *vinfo;
+      vinfo = (video_info_t *)malloc(sizeof(video_info_t));
+      vinfo->height = vq[ix].h;
+      vinfo->width = vq[ix].w;
+      plugin = check_for_video_codec("MP4 FILE",
+				     NULL,
+				     vq[ix].type,
+				     vq[ix].profile,
+				     vq[ix].config, 
+				     vq[ix].config_len);
+
+      int ret = mptr->create_video_plugin(plugin, 
+					  NULL, // sdp info
+					  vinfo, // video info
+					  vq[ix].config,
+					  vq[ix].config_len);
+
+      if (ret < 0) {
+	mp4f_message(LOG_ERR, "Failed to create plugin data");
+	snprintf(errmsg, errlen, "Failed to start plugin");
+	delete mptr;
+	return -1;
+      }
+
+      CMp4VideoByteStream *vbyte;
+      vbyte = new CMp4VideoByteStream(this, vq[ix].track_id);
+      if (vbyte == NULL) {
+	delete mptr;
+	return (-1);
+      }
+
+      ret = mptr->create_from_file(vbyte, TRUE);
+      if (ret != 0) {
+	return (-1);
+      }
+    } else {
+      if (vq[ix].config != NULL) free((void *)vq[ix].config);
+    }
   }
+  return 0;
+}
 
-  mptr = new CPlayerMedia(psptr);
-  if (mptr == NULL) {
-    return (-1);
-  }
-  video_info_t *vinfo;
-  vinfo = (video_info_t *)malloc(sizeof(video_info_t));
-  vinfo->height = MP4GetTrackVideoHeight(m_mp4file, trackId);
-  vinfo->width = MP4GetTrackVideoWidth(m_mp4file, trackId);
+int CMp4File::create_audio(CPlayerSession *psptr, 
+			   audio_query_t *aq, 
+			   int audio_offset,
+			   char *errmsg,
+			   uint32_t errlen)
+{
+  int ix;
+  CPlayerMedia *mptr;
+  codec_plugin_t *plugin;
+  for (ix = 0; ix < audio_offset; ix++) {
+    if (aq[ix].enabled != 0) {
+      CMp4AudioByteStream *abyte;
+      mptr = new CPlayerMedia(psptr);
+      if (mptr == NULL) {
+	return (-1);
+      }
+      abyte = new CMp4AudioByteStream(this, aq[ix].track_id);
+      audio_info_t *ainfo;
+      ainfo = (audio_info_t *)malloc(sizeof(audio_info_t));
+      memset(ainfo, 0, sizeof(*ainfo));
 
-  int ret = mptr->create_video_plugin(plugin, 
+      ainfo->freq = aq[ix].sampling_freq;
+      if (aq[ix].type == MP4_PCM16_AUDIO_TYPE) {
+	ainfo->bitspersample = 16;
+      }
+
+      int ret;
+      plugin = check_for_audio_codec("MP4 FILE",
+				     NULL,
+				     aq[ix].type,
+				     aq[ix].profile,
+				     aq[ix].config,
+				     aq[ix].config_len);
+
+      ret = mptr->create_audio_plugin(plugin,
 				      NULL, // sdp info
-				      vinfo, // video info
-				      foo,
-				      bufsize);
+				      ainfo, // audio info
+				      aq[ix].config,
+				      aq[ix].config_len);
+      if (ret < 0) {
+	mp4f_message(LOG_ERR, "Couldn't create audio from plugin %s", 
+		     plugin->c_name);
+	snprintf(errmsg, errlen, "Couldn't start audio plugin %s", 
+		 plugin->c_name);
+	delete mptr;
+	delete abyte;
+	return -1;
+      }
 
-  if (ret < 0) {
-    mp4f_message(LOG_ERR, "Failed to create plugin data");
-    snprintf(errmsg, errlen, "Failed to start plugin");
-    delete mptr;
+      ret = mptr->create_from_file(abyte, FALSE);
+      if (ret != 0) {
+	return (-1);
+      }
+    } else {
+      if (aq[ix].config != NULL) free((void *)aq[ix].config);
+    }
+  }
+
+  return 0;
+}
+
+
+int CMp4File::create_media (CPlayerSession *psptr,
+			    char *errmsg, 
+			    uint32_t errlen,
+			    int have_audio_driver,
+			    control_callback_vft_t *cc_vft)
+{
+  int video_count, video_offset;
+  int audio_count, audio_offset;
+  MP4TrackId trackId;
+  video_query_t *vq;
+  audio_query_t *aq;
+  int ix;
+  codec_plugin_t *plugin;
+  int ret_value = 0;
+
+  video_count = 0;
+  do {
+    trackId = MP4FindTrackId(m_mp4file, video_count, MP4_VIDEO_TRACK_TYPE);
+
+    if (MP4_IS_VALID_TRACK_ID(trackId)) {
+      video_count++;
+    }
+  } while (MP4_IS_VALID_TRACK_ID(trackId));
+
+  audio_count = 0;
+  do {
+    trackId = MP4FindTrackId(m_mp4file, audio_count, MP4_AUDIO_TRACK_TYPE);
+    
+    if (MP4_IS_VALID_TRACK_ID(trackId)) {
+      audio_count++;
+    }
+  } while (MP4_IS_VALID_TRACK_ID(trackId));
+
+
+  if (video_count == 0 && audio_count == 0) {
+    snprintf(errmsg, errlen, "No audio or video tracks in file");
     return -1;
   }
 
-  CMp4VideoByteStream *vbyte;
-  vbyte = new CMp4VideoByteStream(this, trackId);
-  if (vbyte == NULL) {
-    return (-1);
+  if (video_count > 0) {
+    vq = (video_query_t *)malloc(sizeof(video_query_t) * video_count);
+  } else {
+    vq = NULL;
+  }
+  if (have_audio_driver && audio_count > 0) {
+    aq = (audio_query_t *)malloc(sizeof(audio_query_t) * audio_count);
+  } else {
+    aq = NULL;
   }
 
-  ret = mptr->create_from_file(vbyte, TRUE);
-  if (ret != 0) {
-    return (-1);
-  }
-  
-  mp4f_message(LOG_DEBUG, "ES config has %d bytes", bufsize);
-  m_video_tracks = 1;
-  return (1);
-}
+  for (ix = 0, video_offset = 0; ix < video_count; ix++) {
+    trackId = MP4FindTrackId(m_mp4file, ix, MP4_VIDEO_TRACK_TYPE);
+    uint8_t video_type = MP4GetTrackVideoType(m_mp4file, trackId);
+    uint8_t profileID = MP4GetVideoProfileLevel(m_mp4file);
+    mp4f_message(LOG_DEBUG, "MP4 - got track %x profile ID %d", 
+		 trackId, profileID);
+    uint8_t *foo;
+    u_int32_t bufsize;
+    MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
+    
+    plugin = check_for_video_codec("MP4 FILE",
+				   NULL,
+				   video_type,
+				   profileID,
+				   foo, 
+				   bufsize);
 
-int CMp4File::create_audio (CPlayerSession *psptr,
-			    char *errmsg,
-			    uint32_t errlen)
-{
-  CPlayerMedia *mptr;
-  u_int32_t trackcnt = 0;
-  MP4TrackId trackId;
-  unsigned char *userdata = NULL;
-  u_int32_t userdata_size;
-  const char *compressor = NULL;
-  uint8_t audio_type;
-  uint8_t profile;
-  codec_plugin_t *plugin = NULL;
-
-  while (1) {
-    trackId = MP4FindTrackId(m_mp4file, trackcnt, MP4_AUDIO_TRACK_TYPE);
-
-    // no more audio tracks, none are acceptable
-    if (!MP4_IS_VALID_TRACK_ID(trackId)) {
-      mp4f_message(LOG_ERR, "No supported MP4 audio types");
-      return 0;
+    if (plugin == NULL) {
+      snprintf(errmsg, errlen, 
+	       "Can't find plugin for video type %d, profile %d",
+	       video_type, profileID);
+      m_illegal_video_codec++;
+      ret_value = 1;
+    } else {
+      vq[video_offset].track_id = trackId;
+      vq[video_offset].compressor = "MP4 FILE";
+      vq[video_offset].type = video_type;
+      vq[video_offset].profile = profileID;
+      vq[video_offset].fptr = NULL;
+      vq[video_offset].h = MP4GetTrackVideoHeight(m_mp4file, trackId);
+      vq[video_offset].w = MP4GetTrackVideoWidth(m_mp4file, trackId);
+      vq[video_offset].frame_rate = MP4GetTrackVideoFrameRate(m_mp4file, trackId);
+      vq[video_offset].config = foo;
+      vq[video_offset].config_len = bufsize;
+      vq[video_offset].enabled = 0;
+      vq[video_offset].reference = NULL;
+      video_offset++;
     }
+  }
 
-    audio_type = MP4GetTrackAudioType(m_mp4file, trackId);
-    profile = MP4GetAudioProfileLevel(m_mp4file);
-    compressor = "MP4 FILE";
-    switch (audio_type) {
-    case MP4_MPEG1_AUDIO_TYPE:
-    case MP4_MPEG2_AUDIO_TYPE:
-      break;
-    case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
-    case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
-    case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
-    case MP4_MPEG4_AUDIO_TYPE:
+  audio_offset = 0;
+  if (have_audio_driver) {
+    for (ix = 0; ix < audio_count; ix++) {
+      trackId = MP4FindTrackId(m_mp4file, ix, MP4_AUDIO_TRACK_TYPE);
+      uint8_t audio_type;
+      uint8_t profile;
+      uint8_t *userdata = NULL;
+      u_int32_t userdata_size;
+
+      audio_type = MP4GetTrackAudioType(m_mp4file, trackId);
+      profile = MP4GetAudioProfileLevel(m_mp4file);
       MP4GetTrackESConfiguration(m_mp4file, 
 				 trackId, 
 				 &userdata, 
 				 &userdata_size);
-      break;
-    default:
-      break;
-    }
-
-    // track looks good
-    if (MP4_IS_VALID_TRACK_ID(trackId)) {
-      plugin = check_for_audio_codec(compressor,
+      plugin = check_for_audio_codec("MP4 FILE",
 				     NULL,
 				     audio_type,
 				     profile,
 				     userdata,
 				     userdata_size);
-      if (plugin != NULL)
-	break;
-      snprintf(errmsg, errlen, "Couldn't find plugin for audio type %d profile %d", 
-	       audio_type, profile);
+      if (plugin != NULL) {
+	aq[audio_offset].track_id = trackId;
+	aq[audio_offset].compressor = "MP4 FILE";
+	aq[audio_offset].type = audio_type;
+	aq[audio_offset].profile = profile;
+	aq[audio_offset].fptr = NULL;
+	aq[audio_offset].config = userdata;
+	aq[audio_offset].config_len = userdata_size;
+	aq[audio_offset].sampling_freq = 
+	  MP4GetTrackTimeScale(m_mp4file, trackId);
+	aq[audio_offset].chans = -1;
+	aq[audio_offset].enabled = 0;
+	aq[audio_offset].reference = NULL;
+	audio_offset++;
+      } else {
+	m_illegal_audio_codec++;
+	ret_value = 1;
+      }
     }
-
-    // keep looking
-    trackcnt++;
+  } else {
+    if (audio_count)
+      ret_value = 1;
   }
 
-  // can't find any acceptable audio tracks
-  if (!MP4_IS_VALID_TRACK_ID(trackId)) {
-    return 0;
-  }
-
-  if (plugin == NULL) {
-    return 0;
-  }
-
-  // Say we have at least 1 track...
-  m_audio_tracks = 1;
-
-  CMp4AudioByteStream *abyte;
-  mptr = new CPlayerMedia(psptr);
-  if (mptr == NULL) {
-    return (-1);
-  }
-  abyte = new CMp4AudioByteStream(this, trackId);
-
-  audio_info_t *ainfo;
-  ainfo = (audio_info_t *)malloc(sizeof(audio_info_t));
-  memset(ainfo, 0, sizeof(*ainfo));
-
-  ainfo->freq = MP4GetTrackTimeScale(m_mp4file, trackId);
-  if (audio_type == MP4_PCM16_AUDIO_TYPE) {
-    ainfo->bitspersample = 16;
+  if (cc_vft && cc_vft->media_list_query != NULL) {
+    (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq);
+  } else {
+    if (video_offset > 0) {
+      vq[0].enabled = 1;
+    }
+    if (audio_offset > 0) {
+      aq[0].enabled = 1;
+    }
   }
 
   int ret;
-  ret = mptr->create_audio_plugin(plugin,
-				  NULL, // sdp info
-				  ainfo, // audio info
-				  userdata,
-				  userdata_size);
+  ret = create_video(psptr, vq, video_offset, errmsg, errlen);
+  free(vq);
+
   if (ret < 0) {
-    mp4f_message(LOG_ERR, "Couldn't create audio from plugin %s", plugin->c_name);
-    snprintf(errmsg, errlen, "Couldn't start audio plugin %s", 
-	     plugin->c_name);
-    delete mptr;
-    delete abyte;
+    free(aq);
     return -1;
   }
+ 
+  ret = create_audio(psptr, aq, audio_offset, errmsg, errlen);
+  free(aq);
 
-  ret = mptr->create_from_file(abyte, FALSE);
-  if (ret != 0) {
-    return (-1);
-  }
-  return (1);
+  if (ret < 0) ret_value = -1;
+
+  
+  return (ret_value);
 }
 
 /* end file mp4_file.cpp */

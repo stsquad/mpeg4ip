@@ -42,7 +42,9 @@
 #define CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP 16
 #define CONFIG_PREV_DIRECTORY 17
 #define CONFIG_RTP_DEBUG 18
-#define CONFIG_MAX 19
+#define CONFIG_PLAY_AUDIO 19
+#define CONFIG_PLAY_VIDEO 20
+#define CONFIG_MAX 21
 
 extern CConfig config;
 

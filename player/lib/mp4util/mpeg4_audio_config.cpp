@@ -26,8 +26,7 @@ static long freq_index_to_freq[] = {
   96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 
   12000, 11025, 8000, 7350 };
 
-extern "C" {
-int audio_object_type_is_aac (mpeg4_audio_config_t *mptr)
+extern "C" int audio_object_type_is_aac (mpeg4_audio_config_t *mptr)
 {
   unsigned int audio_object;
   audio_object = mptr->audio_object_type;
@@ -42,18 +41,23 @@ int audio_object_type_is_aac (mpeg4_audio_config_t *mptr)
 }
 
 
-int audio_object_type_is_celp (mpeg4_audio_config_t *mptr)
+
+
+extern "C" int audio_object_type_is_celp (mpeg4_audio_config_t *mptr)
 {
   unsigned int audio_object;
+
   audio_object = mptr->audio_object_type;
   if (audio_object == 8) 
     return 1;
+
   return 0;
 }
 
-void decode_mpeg4_audio_config (const unsigned char *buffer, 
-				   uint32_t buf_len,
-				   mpeg4_audio_config_t *mptr)
+
+extern "C" void decode_mpeg4_audio_config (const uint8_t *buffer, 
+					   uint32_t buf_len,
+					   mpeg4_audio_config_t *mptr)
 {
   CBitstream bit;
   uint32_t ret;
@@ -61,59 +65,95 @@ void decode_mpeg4_audio_config (const unsigned char *buffer,
   bit.init(buffer, buf_len * 8);
 
   if (bit.getbits(5, &ret) < 0)
-	return;
+    return;
 
   mptr->audio_object_type = ret;
 
   if (bit.getbits(4, &ret) < 0)
-	return;
+    return;
 
   if (ret == 0xf) {
-	if (bit.getbits(24, &ret) < 0) 
-	  return;
-	mptr->frequency = ret;
+    if (bit.getbits(24, &ret) < 0) 
+      return;
+    mptr->frequency = ret;
   } else {
-	mptr->frequency = freq_index_to_freq[ret];
+    mptr->frequency = freq_index_to_freq[ret];
   }
+
   if (bit.getbits(4, &ret) < 0)
-	return;
+    return;
 
   mptr->channels = ret;
+
   // rptr points to remaining bits - starting with 0x04, moving
   // down buffer_len.
   if (audio_object_type_is_aac(mptr)) {
-	if (bit.getbits(1, &ret) < 0)
-	  return;
-	if (ret == 0) {
-	  mptr->codec.aac.frame_len_1024 = 1;
-	} else {
-	  mptr->codec.aac.frame_len_1024 = 0;
+    if (bit.getbits(1, &ret) < 0)
+      return;
+
+    if (ret == 0) {
+      mptr->codec.aac.frame_len_1024 = 1;
+    } else {
+      mptr->codec.aac.frame_len_1024 = 0;
+    }
+  } else if (audio_object_type_is_celp(mptr)){
+    try {
+      mptr->codec.celp.isBaseLayer = bit.GetBits(1);
+      if (mptr->codec.celp.isBaseLayer == 0) {
+	mptr->codec.celp.isBWSLayer = bit.GetBits(1);
+	if (mptr->codec.celp.isBWSLayer == 0) {
+	  mptr->codec.celp.CELP_BRS_id = bit.GetBits(2);
 	}
- 
-  }	
+      }
 
-
-if (audio_object_type_is_celp(mptr)){
-
-	if (bit.getbits(1, &ret) < 0)
-	  return;
-	
-	if(ret)
-	mptr->codec.celp.isBaseLayer=1;
+      mptr->codec.celp.NumOfBitsInBuffer=bit.bits_remain();
+      mptr->codec.celp.excitation_mode = bit.GetBits(1);
+      mptr->codec.celp.sample_rate_mode = bit.GetBits(1);
+      mptr->codec.celp.fine_rate_control = bit.GetBits(1);
+      if (mptr->codec.celp.excitation_mode == CELP_EXCITATION_MODE_RPE) {
+	mptr->codec.celp.rpe_config = bit.GetBits(3);
+	// 16000 is 10 msec, all others are 15 msec
+	if (mptr->codec.celp.rpe_config == 1) // 16000 bitrate
+	  mptr->codec.celp.samples_per_frame = (16000 * 10) / 1000;
 	else
-	{
-		bit.getbits(1, &ret);
-		mptr->codec.celp.isBWSLayer=ret;
-		if(ret==0){
-		bit.getbits(2, &ret);
-			mptr->codec.celp.CELP_BRS_id=ret;
-			}
-
-		}
-
-	}
-
-	mptr->codec.celp.NumOfBitsInBuffer=bit.bits_remain();
-}
-
+	  mptr->codec.celp.samples_per_frame = (16000 * 15) / 1000;
+      } else {
+	mptr->codec.celp.mpe_config = bit.GetBits(5);
+	mptr->codec.celp.num_enh_layers = bit.GetBits(2);
+	if (mptr->codec.celp.sample_rate_mode == 1) {
+	  // 16kHz sample rate
+	  if (mptr->codec.celp.mpe_config < 16) {
+	    mptr->codec.celp.samples_per_frame = (16000 * 20) / 1000;
+	  } else {
+	    mptr->codec.celp.samples_per_frame = (16000 * 10) / 1000;
+	  }
+	} else {
+	  if (bit.bits_remain() > 0) {
+	    mptr->codec.celp.bwsm = bit.GetBits(1);
+	  } else {
+	    mptr->codec.celp.bwsm = 0;
+	  }
+	  if (mptr->codec.celp.mpe_config < 3) {
+	    //40
+	    mptr->codec.celp.samples_per_frame = (8000 * 40) / 1000;
+	  } else if (mptr->codec.celp.mpe_config < 6) {
+	    // 30
+	    mptr->codec.celp.samples_per_frame = (8000 * 30) / 1000;
+	  } else if (mptr->codec.celp.mpe_config < 22) {
+	    // 20
+	    mptr->codec.celp.samples_per_frame = (8000 * 20) / 1000;
+	  } else if (mptr->codec.celp.mpe_config < 27) {
+	    // 10
+	    mptr->codec.celp.samples_per_frame = (8000 * 10) / 1000;
+	  } else {
+	    // 30
+	    mptr->codec.celp.samples_per_frame = (8000 * 30) / 1000;
+	  }
+	  if (mptr->codec.celp.bwsm != 0) {
+	    mptr->codec.celp.samples_per_frame *= 2;
+	  }
+	}      
+      }
+    } catch (...) {}
+  }
 }

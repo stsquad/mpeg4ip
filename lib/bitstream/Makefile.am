@@ -1,7 +1,10 @@
 noinst_LTLIBRARIES = libbitstream.la
 libbitstream_la_LDFLAGS = -static
 libbitstream_la_SOURCES = \
-	bitstream.cpp 
+	bitstream.cpp \
+	bitstream.h
+
+EXTRA_DIST = bitstream60.dsp 
 
 INCLUDES = -I../../include
 

@@ -38,7 +38,7 @@ codec_data_t *aac_file_check (lib_message_func_t message,
   memset(aac, 0, sizeof(*aac));
   *max = 0;
 
-  aac->m_buffer = (unsigned char *)malloc(MAX_READ_BUFFER);
+  aac->m_buffer = (uint8_t *)malloc(MAX_READ_BUFFER);
   aac->m_buffer_size_max = MAX_READ_BUFFER;
   aac->m_ifile = fopen(name, FOPEN_READ_BINARY);
   if (aac->m_ifile == NULL) {
@@ -54,7 +54,7 @@ codec_data_t *aac_file_check (lib_message_func_t message,
 
   unsigned long freq, chans;
 
-  faacDecInit(aac->m_info, aac->m_buffer, &freq, &chans);
+  faacDecInit(aac->m_info, (unsigned char *)aac->m_buffer, &freq, &chans);
   // may want to actually decode the first frame...
   if (freq == 0) {
     message(LOG_ERR, aaclib, "Couldn't determine AAC frame rate");
@@ -70,7 +70,7 @@ codec_data_t *aac_file_check (lib_message_func_t message,
 
 
 int aac_file_next_frame (codec_data_t *your,
-			 unsigned char **buffer, 
+			 uint8_t **buffer, 
 			 uint64_t *ts)
 {
   aac_codec_t *aac = (aac_codec_t *)your;

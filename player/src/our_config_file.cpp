@@ -50,6 +50,8 @@ static config_variable_t configs[] = {
   { CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP, "SendRtcpInRtpOverRtsp", CONFIG_INT, 0, NULL},
   { CONFIG_PREV_DIRECTORY, "PrevDirectory", CONFIG_STRING, 0, NULL},
   { CONFIG_RTP_DEBUG, "RtpDebug", CONFIG_INT, LOG_ALERT, NULL},
+  { CONFIG_PLAY_AUDIO, "PlayAudio", CONFIG_INT, 1, NULL },
+  { CONFIG_PLAY_VIDEO, "PlayVideo", CONFIG_INT, 1, NULL },
 };
 
 CConfig config(configs, CONFIG_MAX);

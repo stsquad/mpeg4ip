@@ -2,7 +2,9 @@ lib_LTLIBRARIES = wav_plugin.la
 wav_plugin_la_LDFLAGS = -module
 wav_plugin_la_SOURCES = \
 	ourwav.cpp \
-	wav_file.cpp
+	ourwav.h \
+	wav_file.cpp \
+	wav_file.h
 
 libdir = @PLAYER_PLUGIN_DIR@
 

@@ -545,7 +545,7 @@ static gint status_timer (gpointer raw)
 		stop = (now >= StopTime);
 	} 
 
-	if (!stop && duration_secs > 1) {
+	if (!stop && duration_secs > 10) {
 		AVFlow->GetStatus(FLOW_STATUS_DONE, &stop);
 	}
 	if (!stop) {
@@ -601,11 +601,11 @@ void DoStart()
 	StartTime = GetTimestamp(); 
 
 	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		if (MyConfig->IsFileVideoSource()) {
-			StartEncodedFrameNumber = 0;
-		} else {
+		if (MyConfig->IsCaptureVideoSource()) {
 			AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, 
 				&StartEncodedFrameNumber);
+		} else {
+			StartEncodedFrameNumber = 0;
 		}
 	}
 
@@ -613,7 +613,7 @@ void DoStart()
 		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner))
 		* durationUnitsValues[durationUnitsIndex] * TimestampTicks;
 
-	if (MyConfig->IsFileVideoSource() && MyConfig->IsFileAudioSource()
+	if (!MyConfig->IsCaptureVideoSource() && !MyConfig->IsCaptureAudioSource()
 	  && !MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
 		// no real time constraints
 		StopTime = 0;

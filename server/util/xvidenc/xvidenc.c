@@ -293,10 +293,12 @@ int main(int argc, char** argv)
 
 		if (frameNumber > 0 && (frameNumber % (10 * (int)frameRate)) == 0) {
 			int elapsed = time(0) - startTime;
-			printf("Encoded %u seconds of video in %u seconds, %u fps\n", 
-				(int)(frameNumber / frameRate),
-				elapsed, 
-				frameNumber / elapsed);
+			if (elapsed > 0) {
+				printf("Encoded %u seconds of video in %u seconds, %u fps\n", 
+					(int)(frameNumber / frameRate),
+					elapsed, 
+					frameNumber / elapsed);
+			}
 		}
 	}
 

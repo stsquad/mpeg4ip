@@ -29,13 +29,14 @@ extern "C" {
 #endif
 
 bool MP4AV_Mp3GetNextFrame(
-	u_int8_t* pSrc, 
+	const u_int8_t* pSrc, 
 	u_int32_t srcLength,
-	u_int8_t** ppFrame, 
+	const u_int8_t** ppFrame, 
 	u_int32_t* pFrameSize, 
-	bool allowLayer4 DEFAULT_PARM(false));
+	bool allowLayer4 DEFAULT_PARM(false),
+	bool donthack DEFAULT_PARM(false));
 
-MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(u_int8_t* pBytes);
+MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(const u_int8_t* pBytes);
 
 u_int8_t MP4AV_Mp3GetHdrVersion(MP4AV_Mp3Header hdr);
 
@@ -51,7 +52,7 @@ u_int16_t MP4AV_Mp3GetSamplingWindow(u_int16_t samplingRate);
 
 u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr);
 
-u_int16_t MP4AV_Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize);
+u_int16_t MP4AV_Mp3GetAduOffset(const u_int8_t* pFrame, u_int32_t frameSize);
 
 u_int8_t MP4AV_Mp3GetCrcSize(MP4AV_Mp3Header hdr);
 

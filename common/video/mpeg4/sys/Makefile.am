@@ -10,17 +10,28 @@ noinst_LTLIBRARIES = libobj_sys.la
 libobj_sys_la_LDFLAGS = -static
 
 libobj_sys_la_SOURCES = \
-			block.cpp \
-			cae.cpp \
-			dct.cpp \
-			error.cpp \
-			mb.cpp \
-			mc.cpp \
-			mcpad.cpp \
-			mode.cpp \
-			mv.cpp \
-			shape.cpp \
-			spt.cpp \
-			tps_bfshape.cpp \
-			tps_enhcbuf.cpp \
-			vopses.cpp
+	block.cpp \
+	cae.cpp \
+	dct.cpp \
+	error.cpp \
+	mb.cpp \
+	mc.cpp \
+	mcpad.cpp \
+	mode.cpp \
+	mv.cpp \
+	shape.cpp \
+	spt.cpp \
+	tps_bfshape.cpp \
+	tps_enhcbuf.cpp \
+	vopses.cpp \
+	block.hpp \
+	cae.h \
+	codehead.h \
+	dct.hpp \
+	global.hpp \
+	mb.hpp \
+	mode.hpp \
+	shape.hpp \
+	tps_enhcbuf.hpp \
+	vopses.hpp
+

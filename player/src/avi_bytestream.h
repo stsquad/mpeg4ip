@@ -40,7 +40,7 @@ class CAviByteStreamBase : public COurInByteStream
   
   int eof(void);
   virtual void reset(void) = 0;
-  virtual uint64_t start_next_frame (unsigned char **buf,
+  virtual uint64_t start_next_frame (uint8_t **buf,
 				     uint32_t *buflen,
 				     void **ud) = 0;
   virtual void used_bytes_for_frame(uint32_t bytes) = 0;
@@ -51,7 +51,7 @@ class CAviByteStreamBase : public COurInByteStream
   uint32_t m_frame_in_buffer;
   uint32_t m_frames_max;
   uint32_t m_max_frame_size;
-  unsigned char *m_buffer;
+  uint8_t *m_buffer;
   uint32_t m_buffer_on;
   uint32_t m_byte_on;
   uint32_t m_this_frame_size;
@@ -71,7 +71,7 @@ class CAviVideoByteStream : public CAviByteStreamBase
     read_frame(0);
     };
   void reset(void);
-  uint64_t start_next_frame(unsigned char **buf,
+  uint64_t start_next_frame(uint8_t **buf,
 			    uint32_t *buflen,
 			    void **ud);
   void used_bytes_for_frame(uint32_t bytes);
@@ -104,7 +104,7 @@ class CAviAudioByteStream : public CAviByteStreamBase
     {
     };
   void reset(void);
-  uint64_t start_next_frame(unsigned char **buffer, 
+  uint64_t start_next_frame(uint8_t **buffer, 
 			    uint32_t *buflen, 
 			    void **ud);
   void used_bytes_for_frame(uint32_t bytes);

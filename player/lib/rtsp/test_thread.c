@@ -71,6 +71,65 @@ static int callback (void *foo)
   rtsp_debug(LOG_DEBUG, "callback - SDL thread %d\n", SDL_ThreadID());
   return (SDL_ThreadID());
 }
+static void do_relative_url_to_absolute (char **control_string,
+				  const char *base_url,
+				  int dontfree)
+{
+  char *str, *cpystr;
+  uint32_t cblen, malloclen;
+
+  malloclen = cblen = strlen(base_url);
+
+  if (base_url[cblen - 1] != '/') malloclen++;
+  /*
+   * If the control string is just a *, use the base url only
+   */
+  cpystr = *control_string;
+  if (strcmp(cpystr, "*") != 0) {
+    if (*cpystr == '/') cpystr++;
+
+    // duh - add 1 for \0...
+    str = (char *)malloc(strlen(cpystr) + malloclen + 1);
+    if (str == NULL)
+      return;
+    strcpy(str, base_url);
+    if (base_url[cblen - 1] != '/') {
+      strcat(str, "/");
+    }
+    if (*cpystr == '/') cpystr++;
+    strcat(str, cpystr);
+  } else {
+    str = strdup(base_url);
+  }
+  if (dontfree == 0) 
+    free(*control_string);
+  *control_string = str;
+}
+
+/*
+ * convert_relative_urls_to_absolute - for every url inside the session
+ * description, convert relative to absolute.
+ */
+static void convert_relative_urls_to_absolute (session_desc_t *sdp,
+					const char *base_url)
+{
+  media_desc_t *media;
+  
+  if (base_url == NULL)
+    return;
+
+  if ((sdp->control_string != NULL) &&
+      (strncmp(sdp->control_string, "rtsp://", strlen("rtsp://"))) != 0) {
+    do_relative_url_to_absolute(&sdp->control_string, base_url, 0);
+  }
+  
+  for (media = sdp->media; media != NULL; media = media->next) {
+    if ((media->control_string != NULL) &&
+	(strncmp(media->control_string, "rtsp://", strlen("rtsp://")) != 0)) {
+      do_relative_url_to_absolute(&media->control_string, base_url, 0);
+    }
+  }
+}
 
 int main (int argc, char **argv)
 {
@@ -127,29 +186,7 @@ int main (int argc, char **argv)
   free(sdpdecode);
 
   if (decode->content_base != NULL) {
-    for (media = sdp->media; media != NULL; media = media->next) {
-      if (media->control_string != NULL) {
-	if (strncmp(media->control_string, "rtsp://", strlen("rtsp://")) != 0){
-	  // missing content base - make an absolute url
-	  char *str;
-	  uint32_t cblen;
-	  cblen = strlen(decode->content_base);
-	  if (decode->content_base[cblen - 1] != '/') cblen++;
-	  str = malloc(strlen(media->control_string) + cblen);
-	  strcpy(str, decode->content_base);
-	  if (decode->content_base[cblen - 1] != '/') {
-	    strcat(str, "/");
-	  }
-	  strcat(str, media->control_string);
-	  rtsp_debug(LOG_INFO, "converted %s %s to %s\n", decode->content_base,
-		 media->control_string,
-		 str);
-	  free(media->control_string);
-	  media->control_string = str;
-	    
-	}
-      }
-    }
+    convert_relative_urls_to_absolute (sdp, *argv);
   }
 
   free_decode_response(decode);

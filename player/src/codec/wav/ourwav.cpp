@@ -26,7 +26,7 @@
  */
 static codec_data_t *wav_codec_create (format_list_t *media_fmt,
 				       audio_info_t *audio,
-				       const unsigned char *userdata,
+				       const uint8_t *userdata,
 				       uint32_t userdata_size,
 				       audio_vft_t *vft,
 				       void *ifptr)
@@ -69,11 +69,11 @@ static int wav_decode (codec_data_t *ifptr,
 		       uint64_t ts, 
 		       int from_rtp,
 		       int *sync_frame,
-		       unsigned char *buffer, 
+		       uint8_t *buffer, 
 		       uint32_t buflen,
 		       void *userdata)
 {
-  unsigned char *buff;
+  uint8_t *buff;
   wav_codec_t *wav = (wav_codec_t *)ifptr;
 	
   if (wav->m_configured == 0) {
@@ -119,7 +119,7 @@ static int wav_codec_check (lib_message_func_t message,
 			    int audio_format,
 			    int profile, 
 			    format_list_t *fptr,
-			    const unsigned char *userdata,
+			    const uint8_t *userdata,
 			    uint32_t userdata_size)
 {
   return -1;

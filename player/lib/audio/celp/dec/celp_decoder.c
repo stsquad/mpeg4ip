@@ -698,7 +698,14 @@ int      mp4ffFlag
 {
 
    INST_CONTEXT_LPC_DEC_TYPE	*InstCtxt;
-	
+   frame_ctr = 0;   /* Frame Counter                   */
+
+   postfilter = 0;           /* Postfilter switch               */
+   prev_Qlsp_coefficients = NULL; /* previous quantized LSP coeff.   */
+
+   buf_Qlsp_coefficients_bws = NULL; /* current quantized LSP coeff. */
+   prev_Qlsp_coefficients_bws = NULL;/* previous quantized LSP coeff. */
+
     /* -----------------------------------------------------------------*/
     /* Create & initialise private storage for instance context         */
     /* -----------------------------------------------------------------*/
@@ -1216,13 +1223,22 @@ void celp_close_decoder
 	
   if (ExcitationMode == MultiPulseExc)
   {
-    	free(prev_Qlsp_coefficients);
+    if (prev_Qlsp_coefficients != NULL) {
+      free(prev_Qlsp_coefficients);
+      prev_Qlsp_coefficients = NULL;
+    }
 
  	PHI_FreeLpcAnalysisDecoder(PHI_Priv);
 	if (BandwidthScalabilityMode == ON)
 	{
-	  free(buf_Qlsp_coefficients_bws);
-	  free(prev_Qlsp_coefficients_bws);
+	  if (buf_Qlsp_coefficients_bws != NULL) {
+	    free(buf_Qlsp_coefficients_bws);
+	    buf_Qlsp_coefficients_bws = NULL;
+	  }
+	  if (prev_Qlsp_coefficients_bws != NULL) {
+	    free(prev_Qlsp_coefficients_bws);
+	    prev_Qlsp_coefficients_bws = NULL;
+	  }
 	}
   }
 	
@@ -1238,7 +1254,10 @@ void celp_close_decoder
     /* Dispose of private storage for instance context                  */
     /* -----------------------------------------------------------------*/
     InstCtxt = (INST_CONTEXT_LPC_DEC_TYPE *)*InstanceContext;
-    free(InstCtxt->PHI_Priv);
+    if (InstCtxt->PHI_Priv != NULL) {
+      free(InstCtxt->PHI_Priv);
+      InstCtxt->PHI_Priv = NULL;
+    }
     free(InstCtxt);
     *InstanceContext = NULL;
 

@@ -54,21 +54,27 @@ protected:
 
 	char*			m_mp4FileName;
 	MP4FileHandle	m_mp4File;
-	MP4TrackId		m_rawAudioTrackId;
-	MP4TrackId		m_encodedAudioTrackId;
-	MP4TrackId		m_rawVideoTrackId;
-	MP4TrackId		m_encodedVideoTrackId;
 
 	u_int32_t		m_movieTimeScale;
-	u_int32_t		m_rawAudioTimeScale;
-	u_int32_t		m_encodedAudioTimeScale;
 	u_int32_t		m_videoTimeScale;
 
+	MP4TrackId		m_rawVideoTrackId;
 	u_int32_t		m_rawVideoFrameNum;
+
+	MP4TrackId		m_encodedVideoTrackId;
 	u_int32_t		m_encodedVideoFrameNum;
 
+	MP4TrackId		m_rawAudioTrackId;
+	u_int32_t		m_rawAudioTimeScale;
 	u_int32_t		m_rawAudioFrameNum;
+	Timestamp		m_rawAudioStartTimestamp;
+	Duration		m_rawAudioDuration;
+
+	MP4TrackId		m_encodedAudioTrackId;
+	u_int32_t		m_encodedAudioTimeScale;
 	u_int32_t		m_encodedAudioFrameNum;
+	Timestamp		m_encodedAudioStartTimestamp;
+	Duration		m_encodedAudioDuration;
 };
 
 #endif /* __FILE_MP4_RECORDER_H__ */

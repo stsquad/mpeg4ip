@@ -39,10 +39,11 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 			       const char *name,
 			       char *errmsg,
 			       uint32_t errlen,
-			       int have_audio_driver)
+			       int have_audio_driver,
+			       control_callback_vft_t *cc_vft)
 {
   avi_t *avi;
-
+  CPlayerMedia *mptr;
   avi = AVI_open_input_file(name, 1);
   if (avi == NULL) {
     snprintf(errmsg, errlen, AVI_strerror());
@@ -50,49 +51,195 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     return (-1);
   }
 
-  if (Avifile1 != NULL) 
+  if (Avifile1 != NULL) {
     delete Avifile1;
-  Avifile1 = new CAviFile(name, avi);
-  // quicktime is searchable...
+    Avifile1 = NULL;
+  }
 
-   int video;
-   video = Avifile1->create_video(psptr, errmsg, errlen);
-   if (video < 0) {
-     return (-1);
-   }
-   int audio;
-   int seekable = 1;
-   if (have_audio_driver > 0) {
-     audio = Avifile1->create_audio(psptr, errmsg, errlen);
-     if (audio < 0) {
-       return (-1);
-     }
-     if (audio != 0) seekable = 0;
-   } else
-     audio = 0;
-   psptr->session_set_seekable(seekable);
+  int video_count = 1;
+  codec_plugin_t *plugin;
+  video_query_t vq;
 
-   if (audio == 0 && video == 0) {
-     snprintf(errmsg, errlen, "No valid audio or video codecs in avi file");
-     return (-1);
-   }
-   if (audio == 0 && Avifile1->get_audio_tracks() > 0) {
-     snprintf(errmsg, errlen, "Unknown Audio Codec in avi file ");
-     return (1);
-   }
-   if (video != 1) {
-     snprintf(errmsg, errlen, "Unknown Video Codec %s in avi file",
-	     AVI_video_compressor(Avifile1->get_file()));
+  const char *codec_name = AVI_video_compressor(avi);
+  player_debug_message("Trying avi video codec %s", codec_name);
+  plugin = check_for_video_codec(codec_name, 
+				 NULL,
+				 -1,
+				 -1,
+				 NULL,
+				 0);
+  if (plugin == NULL) {
+    video_count = 0;
+    return -1;
+  } else {
+    vq.track_id = 1;
+    vq.compressor = codec_name;
+    vq.type = -1;
+    vq.profile = -1;
+    vq.fptr = NULL;
+    vq.h = AVI_video_height(avi);
+    vq.w = AVI_video_width(avi);
+    vq.frame_rate = AVI_video_frame_rate(avi);
+    vq.config = NULL;
+    vq.config_len = 0;
+    vq.enabled = 0;
+    vq.reference = NULL;
+  }
+
+  int have_audio = 0;
+  int audio_count = 0;
+  audio_query_t aq;
+
+  if (AVI_audio_bytes(avi) != 0) {
+    have_audio = 1;
+    plugin = check_for_audio_codec("AVI FILE",
+				   NULL,
+				   AVI_audio_format(avi), 
+				   -1, 
+				   NULL, 
+				   0);
+    if (plugin != NULL) {
+      audio_count = 1;
+      aq.track_id = 1;
+      aq.compressor = "AVI_FILE";
+      aq.type = AVI_audio_format(avi);
+      aq.profile = -1;
+      aq.fptr = NULL;
+      aq.sampling_freq = AVI_audio_rate(avi);
+      aq.chans = AVI_audio_channels(avi);
+      aq.config = NULL;
+      aq.config_len = 0;
+      aq.enabled = 0;
+      aq.reference = NULL;
+    }
+  }
+
+  if (cc_vft != NULL && cc_vft->media_list_query != NULL) {
+    (cc_vft->media_list_query)(psptr, video_count, &vq, audio_count, &aq);
+  } else {
+    if (video_count != 0) vq.enabled = 1;
+    if (audio_count != 0) aq.enabled = 1;
+  }
+
+
+  if ((video_count == 0 || vq.enabled == 0) && 
+      (audio_count == 0 || aq.enabled == 0)) {
+    snprintf(errmsg, errlen, "No audio or video tracks enabled or playable");
+    AVI_close(avi);
+    return -1;
+  }
+  
+  Avifile1 = new CAviFile(name, avi, vq.enabled, audio_count);
+
+  if (video_count != 0 && vq.enabled) {
+    mptr = new CPlayerMedia(psptr);
+    if (mptr == NULL) {
+      return (-1);
+    }
+  
+    video_info_t *vinfo = MALLOC_STRUCTURE(video_info_t);
+    if (vinfo == NULL) 
+      return (-1);
+    vinfo->height = vq.h;
+    vinfo->width = vq.w;
+    player_debug_message("avi file h %d w %d frame rate %g", 
+			 vinfo->height,
+			 vinfo->width,
+			 vq.frame_rate);
+
+    plugin = check_for_video_codec(codec_name, 
+				   NULL,
+				   -1,
+				   -1,
+				   NULL,
+				   0);
+    int ret;
+    ret = mptr->create_video_plugin(plugin,
+				    NULL,
+				    vinfo,
+				    NULL,
+				    0);
+    if (ret < 0) {
+      snprintf(errmsg, errlen, "Failed to create video plugin %s", 
+	       codec_name);
+      player_error_message("Failed to create plugin data");
+      delete mptr;
+      return -1;
+    }
+    CAviVideoByteStream *vbyte = new CAviVideoByteStream(Avifile1);
+    if (vbyte == NULL) {
+      delete mptr;
+      return (-1);
+    }
+    vbyte->config(AVI_video_frames(avi), vq.frame_rate);
+    ret = mptr->create_from_file(vbyte, TRUE);
+    if (ret != 0) {
+      return (-1);
+    }
+  }
+    
+  int seekable = 1;
+  if (have_audio_driver > 0 && audio_count > 0 && aq.enabled != 0) {
+    plugin = check_for_audio_codec("AVI FILE",
+				   NULL,
+				   aq.type,
+				   -1, 
+				   NULL, 
+				   0);
+    CAviAudioByteStream *abyte;
+    mptr = new CPlayerMedia(psptr);
+    if (mptr == NULL) {
+      return (-1);
+    }
+    audio_info_t *ainfo;
+    ainfo = MALLOC_STRUCTURE(audio_info_t);
+    ainfo->freq = aq.sampling_freq;
+    ainfo->chans = aq.chans;
+    ainfo->bitspersample = AVI_audio_bits(avi); 
+
+  
+    int ret;
+    ret = mptr->create_audio_plugin(plugin, 
+				    NULL, 
+				    ainfo,
+				    NULL, 
+				    0);
+    if (ret < 0) {
+      delete mptr;
+      player_error_message("Couldn't create audio from plugin %s", 
+			   plugin->c_name);
+      return -1;
+    }
+    abyte = new CAviAudioByteStream(Avifile1);
+
+    ret = mptr->create_from_file(abyte, FALSE);
+    if (ret != 0) {
+      return (-1);
+    }
+    seekable = 0;
+  } 
+  psptr->session_set_seekable(seekable);
+
+  if (audio_count == 0 && have_audio != 0) {
+    snprintf(errmsg, errlen, "Unknown Audio Codec in avi file ");
+    return (1);
+  }
+  if (video_count != 1) {
+    snprintf(errmsg, errlen, "Unknown Video Codec %s in avi file",
+	     codec_name);
     return (1);
   }
   return (0);
 }
 
-CAviFile::CAviFile (const char *name, avi_t *avi)
+CAviFile::CAviFile (const char *name, avi_t *avi,
+		    int at, int vt)
 {
   m_name = strdup(name);
   m_file = avi;
   m_file_mutex = SDL_CreateMutex();
+  m_video_tracks = vt;
+  m_audio_tracks = at;
 }
 
 CAviFile::~CAviFile (void)
@@ -104,149 +251,6 @@ CAviFile::~CAviFile (void)
     SDL_DestroyMutex(m_file_mutex);
     m_file_mutex = NULL;
   }
-}
-
-int CAviFile::create_video (CPlayerSession *psptr,
-			    char *errmsg, 
-			    uint32_t errlen)
-{
-  CPlayerMedia *mptr;
-  codec_plugin_t *plugin;
-
-  const char *codec_name = AVI_video_compressor(m_file);
-  player_debug_message("Trying avi video codec %s", codec_name);
-  plugin = check_for_video_codec(codec_name, 
-				 NULL,
-				 -1,
-				 -1,
-				 NULL,
-				 0);
-  if (plugin == NULL) {
-    snprintf(errmsg,errlen, "Couldn't find video codec `%s\'", 
-	     codec_name);
-    player_debug_message(errmsg);
-    return -1;
-  }
-
-  mptr = new CPlayerMedia(psptr);
-  if (mptr == NULL) {
-    return (-1);
-  }
-  
-  video_info_t *vinfo = (video_info_t *)malloc(sizeof(video_info_t));
-  if (vinfo == NULL) 
-    return (-1);
-  vinfo->height = AVI_video_height(m_file);
-  vinfo->width = AVI_video_width(m_file);
-  player_debug_message("avi file h %d w %d frame rate %g", 
-		       vinfo->height,
-		       vinfo->width,
-		       AVI_video_frame_rate(m_file));
-
-  int ret;
-  ret = mptr->create_video_plugin(plugin,
-				  NULL,
-				  vinfo,
-				  NULL,
-				  0);
-  if (ret < 0) {
-    snprintf(errmsg, errlen, "Failed to create video plugin %s", 
-	     codec_name);
-    player_error_message("Failed to create plugin data");
-    delete mptr;
-    return -1;
-  }
-  CAviVideoByteStream *vbyte = new CAviVideoByteStream(this);
-  if (vbyte == NULL) {
-    delete mptr;
-    return (-1);
-  }
-  vbyte->config(AVI_video_frames(m_file),
-		AVI_video_frame_rate(m_file));
-  ret = mptr->create_from_file(vbyte, TRUE);
-  if (ret != 0) {
-    return (-1);
-  }
-  player_debug_message("Video Max time is %g", vbyte->get_max_playtime());
-  return (1);
-}
-
-int CAviFile::create_audio (CPlayerSession *psptr, 
-			    char *errmsg, 
-			    uint32_t errlen)
-{
-  m_audio_tracks = 0;
-  //  CPlayerMedia *mptr;
-
-  if (AVI_audio_bytes(m_file) != 0) {
-    player_debug_message("Avi file audio - channels %d bits %d format %x rate %ld bytes %ld", 
-			 AVI_audio_channels(m_file),
-			 AVI_audio_bits(m_file),
-			 AVI_audio_format(m_file),
-			 AVI_audio_rate(m_file),
-			 AVI_audio_bytes(m_file));
-  }
-
-  codec_plugin_t *plugin = NULL;
-
-  player_debug_message("Trying for avi audio codec %d", 
-		       AVI_audio_format(m_file));
-  plugin = check_for_audio_codec("AVI FILE",
-				 NULL,
-				 AVI_audio_format(m_file), 
-				 -1, 
-				 NULL, 
-				 0);
-  if (plugin == NULL) {
-    player_debug_message("No audio plugin found");
-    return 0;
-  }
-  CAviAudioByteStream *abyte;
-  CPlayerMedia *mptr = new CPlayerMedia(psptr);
-    if (mptr == NULL) {
-      return (-1);
-  }
-  audio_info_t *ainfo;
-  ainfo = MALLOC_STRUCTURE(audio_info_t);
-  ainfo->freq = AVI_audio_rate(m_file);
-  ainfo->chans = AVI_audio_channels(m_file);
-  ainfo->bitspersample = AVI_audio_bits(m_file); 
-
-  
-  int ret;
-  ret = mptr->create_audio_plugin(plugin, 
-				  NULL, 
-				  ainfo,
-				  NULL, 
-				  0);
-  if (ret < 0) {
-    delete mptr;
-    player_error_message("Couldn't create audio from plugin %s", 
-			 plugin->c_name);
-    return -1;
-  }
-  abyte = new CAviAudioByteStream(this);
-
-#if 0
-  long sample_rate = AVI_audio_rate(m_file);
-  
-  
-  float sr = (float)sample_rate;
-  long len = AVI_audio_bytes(m_file);
-  int duration = len / 2;
-  player_debug_message("audio - rate %g len %ld samples %d", sr, len, duration);
-  audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
-  audio->freq = (int)sr;
-  mptr->set_codec_type(codec);
-  mptr->set_audio_info(audio);
-  //abyte->config(len, sr, duration);
-  player_debug_message("audio Max time is %g", abyte->get_max_playtime());
-#endif
-  ret = mptr->create_from_file(abyte, FALSE);
-  if (ret != 0) {
-    return (-1);
-  }
-  return (1);
 }
 
 /* end file avi_file.cpp */

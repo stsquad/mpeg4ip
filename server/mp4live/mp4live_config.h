@@ -34,8 +34,8 @@
 
 #define NUM_FILE_HISTORY		8
 
-#define FILE_SOURCE_MP4			"mp4"
-#define FILE_SOURCE_MPEG2		"mpg"
+#define FILE_SOURCE				"FILE"
+#define URL_SOURCE				"URL"
 
 #define AUDIO_SOURCE_OSS		"OSS"
 
@@ -97,6 +97,8 @@ enum {
 	CONFIG_APP_FILE_5,
 	CONFIG_APP_FILE_6,
 	CONFIG_APP_FILE_7,
+	CONFIG_APP_DEBUG,
+	CONFIG_APP_LOGLEVEL,
 
 	CONFIG_AUDIO_ENABLE,
 	CONFIG_AUDIO_SOURCE_TYPE,
@@ -146,6 +148,8 @@ enum {
 	CONFIG_RTP_DEST_ADDRESS,
 	CONFIG_RTP_AUDIO_DEST_PORT,
 	CONFIG_RTP_VIDEO_DEST_PORT,
+	CONFIG_RTP_OVER_RTSP,
+	CONFIG_RTP_RECV_BUFFER_TIME,
 	CONFIG_RTP_PAYLOAD_SIZE,
 	CONFIG_RTP_MCAST_TTL,
 	CONFIG_RTP_DISABLE_TS_OFFSET,
@@ -202,6 +206,12 @@ static SConfigVariable MyConfigVariables[] = {
 
 	{ CONFIG_APP_FILE_7, "file7", 
 		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_APP_DEBUG, "debug", 
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_APP_LOGLEVEL, "logLevel", 
+		CONFIG_TYPE_INTEGER, (config_integer_t)0, },
 
 	// AUDIO
 
@@ -346,6 +356,12 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_RTP_VIDEO_DEST_PORT, "rtpVideoDestPort",
 		CONFIG_TYPE_INTEGER, (config_integer_t)20000, },
 
+	{ CONFIG_RTP_OVER_RTSP, "rtpOverRtsp",
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_RTP_RECV_BUFFER_TIME, "rtpRecvBufferTime",
+		CONFIG_TYPE_INTEGER, (config_integer_t)2, },
+
 	{ CONFIG_RTP_PAYLOAD_SIZE, "rtpPayloadSize",
 		CONFIG_TYPE_INTEGER, (config_integer_t)1460, },
 
@@ -398,8 +414,8 @@ public:
 	void UpdateRecord();
 
 	bool IsOneSource();
-	bool IsFileVideoSource();
-	bool IsFileAudioSource();
+	bool IsCaptureVideoSource();
+	bool IsCaptureAudioSource();
 
 	bool SourceRawVideo() {
 		return (GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)

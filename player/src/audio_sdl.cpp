@@ -52,6 +52,7 @@ static void c_audio_callback (void *userdata, Uint8 *stream, int len)
 CSDLAudioSync::CSDLAudioSync (CPlayerSession *psptr, int volume) :
   CAudioSync(psptr)
 {
+  SDL_Init(SDL_INIT_AUDIO | SDL_INIT_NOPARACHUTE);
   m_fill_index = m_play_index = 0;
   for (int ix = 0; ix < DECODE_BUFFERS_MAX; ix++) {
     m_buffer_filled[ix] = 0;
@@ -127,7 +128,7 @@ void CSDLAudioSync::set_config (int freq,
     m_buffer_filled[ix] = 0;
     // I'm not sure where the 2 * comes in... Check this out
     m_sample_buffer[ix] = 
-      (unsigned char *)malloc(2 * m_buffer_size);
+      (uint8_t *)malloc(2 * m_buffer_size);
   }
   m_freq = freq;
   m_channels = channels;
@@ -142,9 +143,10 @@ void CSDLAudioSync::set_config (int freq,
  * Codec api - get_audio_buffer - will wait if there are no available
  * buffers
  */
-unsigned char *CSDLAudioSync::get_audio_buffer (void)
+uint8_t *CSDLAudioSync::get_audio_buffer (void)
 {
   int ret;
+  int locked = 0;
   if (m_dont_fill == 1) {
 #ifdef DEBUG_AUDIO_FILL
     audio_message(LOG_DEBUG, "first dont fill");
@@ -152,9 +154,13 @@ unsigned char *CSDLAudioSync::get_audio_buffer (void)
     return (NULL);
   }
 
-  SDL_LockAudio();
+  if (m_audio_initialized != 0) {
+    locked = 1;
+    SDL_LockAudio();
+  }
   ret = m_buffer_filled[m_fill_index];
-  SDL_UnlockAudio();
+  if (locked)
+    SDL_UnlockAudio();
   if (ret == 1) {
     m_audio_waiting_buffer = 1;
     SDL_SemWait(m_audio_waiting);
@@ -165,9 +171,14 @@ unsigned char *CSDLAudioSync::get_audio_buffer (void)
 #endif
       return (NULL);
     }
-    SDL_LockAudio();
+    locked = 0;
+    if (m_audio_initialized != 0) {
+      SDL_LockAudio();
+      locked = 1;
+    }
     ret = m_buffer_filled[m_fill_index];
-    SDL_UnlockAudio();
+    if (locked)
+      SDL_UnlockAudio();
     if (ret == 1) {
 #ifdef DEBUG_AUDIO_FILL
       audio_message(LOG_DEBUG, "no buff");
@@ -178,12 +189,12 @@ unsigned char *CSDLAudioSync::get_audio_buffer (void)
   return (m_sample_buffer[m_fill_index]);
 }
 
-uint32_t CSDLAudioSync::load_audio_buffer (unsigned char *from, 
-					uint32_t bytes, 
-					uint64_t ts, 
-					int resync)
+uint32_t CSDLAudioSync::load_audio_buffer (uint8_t *from, 
+					   uint32_t bytes, 
+					   uint64_t ts, 
+					   int resync)
 {
-  unsigned char *to;
+  uint8_t *to;
   uint32_t copied;
   int64_t diff, calc;
 #ifdef DEBUG_AUDIO_FILL
@@ -252,6 +263,7 @@ uint32_t CSDLAudioSync::load_audio_buffer (unsigned char *from,
 void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 {
   uint32_t fill_index;
+  int locked;
   // m_dont_fill will be set when we have a pause
   if (m_dont_fill == 1) {
     return;
@@ -260,7 +272,11 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   m_fill_index++;
   m_fill_index %= DECODE_BUFFERS_MAX;
 
-  SDL_LockAudio();
+  locked = 0;
+  if (m_audio_initialized != 0) {
+    SDL_LockAudio();
+    locked = 1;
+  }
   if (m_first_filled != 0) {
     m_first_filled = 0;
   } else {
@@ -277,10 +293,11 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
       } else {
 	// try to fill the holes
 	m_last_fill_timestamp += m_msec_per_frame + 1; // fill plus extra
-	SDL_UnlockAudio();
+	if (locked)
+	  SDL_UnlockAudio();
 	int64_t ts_diff;
 	do {
-	  unsigned char *retbuffer;
+	  uint8_t *retbuffer;
 	  // Get and swap buffers.
 	  retbuffer = get_audio_buffer();
 	  if (retbuffer == NULL) {
@@ -290,7 +307,11 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 	    audio_message(LOG_ERR, "retbuffer not fill index in audio sync");
 	    return;
 	  }
-	  SDL_LockAudio();
+	  locked = 0;
+	  if (m_audio_initialized != 0) {
+	    SDL_LockAudio();
+	    locked = 1;
+	  }
 	  m_sample_buffer[m_fill_index] = m_sample_buffer[fill_index];
 	  m_sample_buffer[fill_index] = retbuffer;
 	  memset(retbuffer, m_obtained.silence, m_buffer_size);
@@ -301,19 +322,25 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 	  fill_index %= DECODE_BUFFERS_MAX;
 	  m_fill_index++;
 	  m_fill_index %= DECODE_BUFFERS_MAX;
-	  SDL_UnlockAudio();
+	  if (locked)
+	    SDL_UnlockAudio();
 	  audio_message(LOG_NOTICE, "Filling timestamp %llu with silence",
 			m_last_fill_timestamp);
 	  m_last_fill_timestamp += m_msec_per_frame + 1; // fill plus extra
 	  ts_diff = ts - m_last_fill_timestamp;
 	  audio_message(LOG_DEBUG, "diff is %lld", ts_diff);
 	} while (ts_diff > 0);
-	SDL_LockAudio();
+	locked = 0;
+	if (m_audio_initialized != 0) {
+	  SDL_LockAudio();
+	  locked = 1;
+	}
       }
     } else {
       if (m_last_fill_timestamp == ts) {
 	audio_message(LOG_NOTICE, "Repeat timestamp with audio %llu", ts);
-	SDL_UnlockAudio();
+	if (locked)
+	  SDL_UnlockAudio();
 	return;
       }
     }
@@ -329,7 +356,8 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
     audio_message(LOG_DEBUG, "Resync from filled_audio_buffer");
 #endif
   }
-  SDL_UnlockAudio();
+  if (locked)
+    SDL_UnlockAudio();
 
   // Check this - we might not want to do this unless we're resyncing
   if (resync)
@@ -342,7 +370,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 
 void CSDLAudioSync::set_eof(void) 
 { 
-  unsigned char *to;
+  uint8_t *to;
   if (m_buffer_offset_on != 0) {
     to = get_audio_buffer();
     if (to != NULL) {
@@ -386,10 +414,10 @@ int CSDLAudioSync::initialize_audio (int have_video)
 #endif
       if ((m_do_sync == 0) && m_sample_size < 4096)
 	m_sample_size = 4096;
-      wanted.samples = 4096;
+      wanted.samples = m_sample_size;
       wanted.callback = c_audio_callback;
       wanted.userdata = this;
-#if DEBUG_SYNC
+#if 1
        audio_message(LOG_INFO, 
 		     "requested f %d chan %d format %x samples %d",
 		     wanted.freq,
@@ -624,7 +652,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
     thislen = m_buffer_size - m_play_sample_index;
     if (len < thislen) thislen = len;
     SDL_MixAudio(stream, 
-		 &m_sample_buffer[m_play_index][m_play_sample_index],
+		 (const unsigned char *)&m_sample_buffer[m_play_index][m_play_sample_index],
 		 thislen,
 		 m_volume);
     len -= thislen;
@@ -778,7 +806,11 @@ void CSDLAudioSync::flush_sync_buffers (void)
 // and entry into play.  This way, m_dont_fill race conditions are resolved.
 void CSDLAudioSync::flush_decode_buffers (void)
 {
-  SDL_LockAudio();
+  int locked = 0;
+  if (m_audio_initialized != 0) {
+    locked = 1;
+    SDL_LockAudio();
+  }
   m_dont_fill = 0;
   m_first_filled = 1;
   for (int ix = 0; ix < DECODE_BUFFERS_MAX; ix++) {
@@ -789,7 +821,8 @@ void CSDLAudioSync::flush_decode_buffers (void)
   m_audio_paused = 1;
   m_resync_buffer = 0;
   m_samples_loaded = 0;
-  SDL_UnlockAudio();
+  if (locked)
+    SDL_UnlockAudio();
   //player_debug_message("flushed decode");
 }
 
@@ -808,7 +841,7 @@ static void c_audio_config (void *ifptr, int freq,
 				    max_buffer_size);
 }
 
-static unsigned char *c_get_audio_buffer (void *ifptr)
+static uint8_t *c_get_audio_buffer (void *ifptr)
 {
   return ((CSDLAudioSync *)ifptr)->get_audio_buffer();
 }
@@ -822,7 +855,7 @@ static void c_filled_audio_buffer (void *ifptr,
 }
 
 static uint32_t c_load_audio_buffer (void *ifptr, 
-				     unsigned char *from, 
+				     uint8_t *from, 
 				     uint32_t bytes, 
 				     uint64_t ts, 
 				     int resync)

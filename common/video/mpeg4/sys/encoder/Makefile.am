@@ -22,4 +22,14 @@ libobj_sys_encoder_la_SOURCES = \
 			sptenc.cpp \
 			tm5rc.cpp \
 			vopmbenc.cpp \
-			vopseenc.cpp
+			vopseenc.cpp \
+			blkenc.hpp \
+			enhcbufenc.hpp \
+			mbenc.hpp \
+			paramset.h \
+			sesenc.hpp \
+			shpenc.hpp \
+			tm5rc.hpp \
+			vopmbenc.hpp \
+			vopseenc.hpp
+

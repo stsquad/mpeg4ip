@@ -117,9 +117,9 @@ void CSDLVideoSync::config (int w, int h)
   m_width = w;
   m_height = h;
   for (int ix = 0; ix < MAX_VIDEO_BUFFERS; ix++) {
-    m_y_buffer[ix] = (Uint8 *)malloc(w * h * sizeof(Uint8));
-    m_u_buffer[ix] = (Uint8 *)malloc(w/2 * h/2 * sizeof(Uint8));
-    m_v_buffer[ix] = (Uint8 *)malloc(w/2 * h/2 * sizeof(Uint8));
+    m_y_buffer[ix] = (uint8_t *)malloc(w * h * sizeof(uint8_t));
+    m_u_buffer[ix] = (uint8_t *)malloc(w/2 * h/2 * sizeof(uint8_t));
+    m_v_buffer[ix] = (uint8_t *)malloc(w/2 * h/2 * sizeof(uint8_t));
     m_buffer_filled[ix] = 0;
   }
   m_config_set = 1;
@@ -245,7 +245,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 {
   uint64_t play_this_at;
   unsigned int ix;
-  Uint8 *to, *from;
+  uint8_t *to, *from;
 
   /*
    * If the next buffer is not filled, indicate that, as well
@@ -334,11 +334,11 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 #endif
       {
 	// let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
-	uint32_t bufsize = m_width * m_height * sizeof(Uint8);
+	uint32_t bufsize = m_width * m_height * sizeof(uint8_t);
 	unsigned int width = m_width, height = m_height;
 
 	if (width != m_image->pitches[0]) {
-	  to = m_image->pixels[0];
+	  to = (uint8_t *)m_image->pixels[0];
 	  from = m_y_buffer[m_play_index];
 	  for (ix = 0; ix < height; ix++) {
 	    memcpy(to, from, width);
@@ -361,7 +361,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 #define U 2
 #endif
 	if (width != m_image->pitches[V]) {
-	    to = m_image->pixels[V];
+	    to = (uint8_t *)m_image->pixels[V];
 	    from = m_v_buffer[m_play_index];
 	  for (ix = 0; ix < height; ix++) {
 	    memcpy(to, from, width);
@@ -374,7 +374,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 		 bufsize);
 	}
 	if (width != m_image->pitches[U]) {
-	    to = m_image->pixels[U];
+	    to = (uint8_t *)m_image->pixels[U];
 	    from = m_u_buffer[m_play_index];
 	  for (ix = 0; ix < height; ix++) {
 	    memcpy(to, from, width);
@@ -446,9 +446,9 @@ else {
   return (10);
 }
 
-int CSDLVideoSync::get_video_buffer(unsigned char **y,
-				 unsigned char **u,
-				 unsigned char **v)
+int CSDLVideoSync::get_video_buffer(uint8_t **y,
+				 uint8_t **u,
+				 uint8_t **v)
 {
   
   if (m_dont_fill != 0) 
@@ -503,15 +503,15 @@ int CSDLVideoSync::filled_video_buffers (uint64_t time)
  *          current_time - current time we're displaying - this allows the
  *            codec to intelligently drop frames if it's falling behind.
  */
-int CSDLVideoSync::set_video_frame(const Uint8 *y, 
-				const Uint8 *u, 
-				const Uint8 *v,
+int CSDLVideoSync::set_video_frame(const uint8_t *y, 
+				const uint8_t*u, 
+				const uint8_t *v,
 				int pixelw_y, 
 				int pixelw_uv, 
 				uint64_t time)
 {
-  Uint8 *dst;
-  const Uint8 *src;
+  uint8_t *dst;
+  const uint8_t *src;
   unsigned int ix;
 
   if (m_dont_fill != 0) {
@@ -689,9 +689,9 @@ static void c_video_configure (void *ifptr,
 }
 
 static int c_video_get_buffer (void *ifptr, 
-			       unsigned char **y,
-			       unsigned char **u,
-			       unsigned char **v)
+			       uint8_t **y,
+			       uint8_t **u,
+			       uint8_t **v)
 {
   return (((CSDLVideoSync *)ifptr)->get_video_buffer(y, u, v));
 }
@@ -702,9 +702,9 @@ static int c_video_filled_buffer(void *ifptr, uint64_t time)
 }
 
 static int c_video_have_frame (void *ifptr,
-			       const unsigned char *y,
-			       const unsigned char *u,
-			       const unsigned char *v,
+			       const uint8_t *y,
+			       const uint8_t *u,
+			       const uint8_t *v,
 			       int m_pixelw_y,
 			       int m_pixelw_uv,
 			       uint64_t time)

@@ -109,12 +109,17 @@ void COSSAudioSource::DoStopCapture()
 
 bool COSSAudioSource::Init(void)
 {
-	bool rc =
-		InitAudio(
-			CMediaFrame::PcmAudioFrame,
-			m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
-			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
-			true);
+	bool rc = InitAudio(
+		true);
+
+	if (!rc) {
+		return false;
+	}
+
+	rc = SetAudioSrc(
+		CMediaFrame::PcmAudioFrame,
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
 
 	if (!rc) {
 		return false;
@@ -209,10 +214,22 @@ void COSSAudioSource::ProcessAudio(void)
 			continue;
 		}
 
+		Timestamp frameTimestamp;
+
+		if (m_audioSrcFrameNumber == 0) {
+			// timestamp needs to reflect the first pcm sample
+			frameTimestamp = m_audioStartTimestamp =
+				GetTimestamp() - SrcSamplesToTicks(m_audioSrcSamplesPerFrame);
+		} else {
+			frameTimestamp = m_audioStartTimestamp +
+				SrcSamplesToTicks(m_audioSrcSampleNumber);
+		}
+
 		ProcessAudioFrame(
 			m_pcmFrameBuffer,
 			m_pcmFrameSize,
-			m_audioSrcSamplesPerFrame);
+			frameTimestamp,
+			false);
 	}
 }
 

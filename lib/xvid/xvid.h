@@ -157,10 +157,6 @@ typedef struct
 	int max_key_interval;	// the maximum interval between key frames
 
 	void * handle;			// [out] encoder instance handle
-
-#ifdef MPEG4IP
-	int raw_height;			// height of raw image, >= height
-#endif
 						
 } XVID_ENC_PARAM;
 
@@ -202,6 +198,14 @@ typedef struct
 
 	void * image;			// [in] image ptr
     int colorspace;			// [in] source colorspace
+
+#ifdef MPEG4IP
+	// [in] image ptr YUV planes
+	void* image_y;
+	void* image_u;
+	void* image_v;
+	int stride;				// [in] byte length of y scanline
+#endif
 
 	unsigned char *quant_intra_matrix; // [in] custom intra qmatrix
 	unsigned char *quant_inter_matrix; // [in] custom inter qmatrix

@@ -28,12 +28,11 @@ libmpeg3_la_SOURCES = \
 	mpeg3vtrack.h \
 	timecode.h \
 	workarounds.c \
-	workarounds.h
+	workarounds.h \
+	mpeg3private.inc
 
 libmpeg3_la_LIBADD = \
 	audio/libmpeg3audio.la \
 	video/libmpeg3video.la 
-check_PROGRAMS = test
-test_SOURCES = test.c
-test_LDADD = libmpeg3.la -lm -lpthread
 
+EXTRA_DIST = mpeg3css_fake.c 

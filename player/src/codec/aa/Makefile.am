@@ -4,7 +4,9 @@ lib_LTLIBRARIES = aac_plugin.la
 aac_plugin_la_LDFLAGS = -module
 aac_plugin_la_SOURCES = \
 	aac.cpp \
-	aa_file.cpp
+	aac.h \
+	aa_file.cpp \
+	aa_file.h
 
 aac_plugin_la_LIBADD = \
 	$(top_builddir)/player/lib/audio/faad/libfaad.la \
@@ -13,7 +15,8 @@ aac_plugin_la_LIBADD = \
 noinst_LTLIBRARIES = libaa.la
 libaa_la_LDFLAGS = -static
 libaa_la_SOURCES = \
-	isma_rtp_bytestream.cpp
+	isma_rtp_bytestream.cpp \
+	isma_rtp_bytestream.h
 
 INCLUDES = -I../.. -I../../../lib -I../../../lib/audio -I$(top_srcdir)/include -I$(top_srcdir)/lib/SDL/include -I../../../../lib
 

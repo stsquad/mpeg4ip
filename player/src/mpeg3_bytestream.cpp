@@ -25,6 +25,7 @@
 #include "systems.h"
 #include "mpeg3_bytestream.h"
 #include "player_util.h"
+#include "mp4av/mp4av.h"
 #include <math.h>
 //#define DEBUG_MP4_FRAME 1
 
@@ -69,16 +70,20 @@ int CMpeg3VideoByteStream::eof(void)
 
 
 
+#include "mpeg3protos.h"
 void CMpeg3VideoByteStream::set_timebase (double time)
 {
   double calc;
   m_eof = 0;
   m_frame_on = 0;
-  mpeg3_seek_video_percentage(m_file, m_stream, time / m_max_time);
+  //mpeg3_seek_video_percentage(m_file, m_stream, time / m_max_time);
   
   calc = (time * m_frame_rate);
   calc = ceil(calc);
   m_frame_on = (long)(calc);
+  mpeg3_set_frame(m_file, m_frame_on, m_stream);
+  mpeg3f_message(LOG_DEBUG, "video seek frame is %ld %g %g", m_frame_on,
+		 time, m_max_time);
 }
 
 void CMpeg3VideoByteStream::reset (void) 
@@ -87,7 +92,7 @@ void CMpeg3VideoByteStream::reset (void)
   m_this_frame_size = 0;
 }
 
-uint64_t CMpeg3VideoByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CMpeg3VideoByteStream::start_next_frame (uint8_t **buffer, 
 						  uint32_t *buflen,
 						  void **ud)
 {
@@ -96,7 +101,7 @@ uint64_t CMpeg3VideoByteStream::start_next_frame (unsigned char **buffer,
   if (m_eof) {
     return 0;
   }
-  unsigned char *buf;
+  uint8_t *buf;
   long blen;
 
   int ret = mpeg3_read_video_chunk_resize(m_file,
@@ -142,13 +147,17 @@ void CMpeg3VideoByteStream::used_bytes_for_frame (uint32_t bytes_used)
 
 int CMpeg3VideoByteStream::skip_next_frame (uint64_t *pts, 
 				     int *pSync,
-				     unsigned char **buffer, 
+				     uint8_t **buffer, 
 				     uint32_t *buflen)
 {
   uint64_t ts;
+  mpeg3_read_video_chunk_cleanup(m_file, m_stream);
   ts = start_next_frame(buffer, buflen, NULL);
   *pts = ts;
-  *pSync = 0;
+  if (*buffer != NULL)
+    *pSync = MP4AV_Mpeg3FindGopOrPictHdr(*buffer, *buflen, NULL);
+  else 
+    *pSync = 0;
   //*pSync = m_frame_on_has_sync;
   return (1);
 }
@@ -232,7 +241,7 @@ void CMpeg3AudioByteStream::reset (void)
   m_this_frame_size = 0;
 }
 
-uint64_t CMpeg3AudioByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer, 
 						  uint32_t *buflen,
 						  void **ud)
 {
@@ -277,7 +286,7 @@ void CMpeg3AudioByteStream::used_bytes_for_frame (uint32_t bytes_used)
 
 int CMpeg3AudioByteStream::skip_next_frame (uint64_t *pts, 
 				     int *pSync,
-				     unsigned char **buffer, 
+				     uint8_t **buffer, 
 				     uint32_t *buflen)
 {
   uint64_t ts;

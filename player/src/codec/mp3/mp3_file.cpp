@@ -139,7 +139,7 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
     free(mp3);
     return NULL;
   }
-  mp3->m_buffer = (unsigned char *)malloc(1024);
+  mp3->m_buffer = (uint8_t *)malloc(1024);
   if (mp3->m_buffer == NULL) {
     fclose(mp3->m_ifile);
     free(mp3);
@@ -247,7 +247,7 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
 }
 
 int mp3_file_next_frame (codec_data_t *your_data,
-			 unsigned char **buffer,
+			 uint8_t **buffer,
 			 uint64_t *ts)
 {
   mp3_codec_t *mp3;

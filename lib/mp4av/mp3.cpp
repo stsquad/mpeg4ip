@@ -47,11 +47,12 @@ static u_int16_t Mp3SampleRates[4][3] = {
 };
 
 extern "C" bool MP4AV_Mp3GetNextFrame(
-	u_int8_t* pSrc, 
+	const u_int8_t* pSrc, 
 	u_int32_t srcLength,
-	u_int8_t** ppFrame, 
+	const u_int8_t** ppFrame, 
 	u_int32_t* pFrameSize, 
-	bool allowLayer4)
+	bool allowLayer4,
+	bool donthack)
 {
 	u_int state = 0;
 	u_int dropped = 0;
@@ -99,10 +100,11 @@ extern "C" bool MP4AV_Mp3GetNextFrame(
 				bytes[state] = b;
 				state = 1;
 			} else {
-				if (dropped == 0 && 
+				if (donthack == FALSE && 
+				    (dropped == 0 && 
 				  ((b & 0xE0) == 0xE0 && 
 				  (b & 0x18) != 0x08 && 
-			  	  ((b & 0x06) != 0 || allowLayer4))) {
+			  	  ((b & 0x06) != 0 || allowLayer4)))) {
 					/*
 					 * HACK have seen files where previous frame 
 					 * was marked as padded, but the byte was never added
@@ -121,7 +123,7 @@ extern "C" bool MP4AV_Mp3GetNextFrame(
 	}
 }
 
-extern "C" MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(u_int8_t* pBytes)
+extern "C" MP4AV_Mp3Header MP4AV_Mp3HeaderFromBytes(const u_int8_t* pBytes)
 {
 	return (pBytes[0] << 24) | (pBytes[1] << 16)
 		| (pBytes[2] << 8) | pBytes[3];
@@ -245,7 +247,7 @@ extern "C" u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr)
 }
 
 extern "C" u_int16_t 
-MP4AV_Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize)
+MP4AV_Mp3GetAduOffset(const u_int8_t* pFrame, u_int32_t frameSize)
 {
 	if (frameSize < 2) {
 		return 0;

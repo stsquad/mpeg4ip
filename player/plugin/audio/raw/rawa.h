@@ -37,7 +37,7 @@ typedef struct rawa_codec_t {
   int m_output_frame_size;
   int m_initialized;
   int m_resync;
-  unsigned char *m_temp_buff;
+  uint8_t *m_temp_buff;
   uint32_t m_temp_buffsize;
   uint64_t m_ts;
   uint64_t m_bytes;

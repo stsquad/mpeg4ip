@@ -30,7 +30,7 @@
  */
 static codec_data_t *mp3_codec_create (format_list_t *media_fmt,
 				       audio_info_t *audio,
-				       const unsigned char *userdata,
+				       const uint8_t *userdata,
 				       uint32_t userdata_size,
 				       audio_vft_t *vft,
 				       void *ifptr)
@@ -111,7 +111,7 @@ static int mp3_decode (codec_data_t *ptr,
 		       uint64_t ts, 
 		       int from_rtp, 
 		       int *sync_frame,
-		       unsigned char *buffer,
+		       uint8_t *buffer,
 		       uint32_t buflen,
 		       void *userdata)
 {
@@ -146,14 +146,14 @@ static int mp3_decode (codec_data_t *ptr,
   }
       
 
-  unsigned char *buff;
+  uint8_t *buff;
 
     /* 
      * Get an audio buffer
      */
   buff = mp3->m_vft->audio_get_buffer(mp3->m_ifptr);
   if (buff == NULL) {
-    //player_debug_message("Can't get buffer in aa");
+    mp3_message(LOG_DEBUG, "mp3", "Can't get buffer in aa");
     return (-1);
   }
   bits = mp3->m_mp3_info->decodeFrame(buff, buffer, buflen);
@@ -210,7 +210,7 @@ static int mp3_codec_check (lib_message_func_t message,
 			    int audio_type,
 			    int profile,
 			    format_list_t *fptr,
-			    const unsigned char *userdata,
+			    const uint8_t *userdata,
 			    uint32_t userdata_size)
 {
   if (compressor != NULL && 

@@ -56,7 +56,7 @@ void CDummyAudioSync::set_config (int freq, int channels, int format,
   }
 }
   
-unsigned char *CDummyAudioSync::get_audio_buffer (void)
+uint8_t *CDummyAudioSync::get_audio_buffer (void)
 {
   return m_buffer;
 }
@@ -67,7 +67,7 @@ void CDummyAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 		ts, resync);
 }
 
-uint32_t CDummyAudioSync::load_audio_buffer (unsigned char *from,
+uint32_t CDummyAudioSync::load_audio_buffer (uint8_t *from,
 					     uint32_t bytes, 
 					     uint64_t ts, 
 					     int resync)
@@ -86,7 +86,7 @@ static void c_audio_config (void *ifptr, int freq,
 				    max_buffer_size);
 }
 
-static unsigned char *c_get_audio_buffer (void *ifptr)
+static uint8_t *c_get_audio_buffer (void *ifptr)
 {
   return ((CDummyAudioSync *)ifptr)->get_audio_buffer();
 }
@@ -100,7 +100,7 @@ static void c_filled_audio_buffer (void *ifptr,
 }
 
 static uint32_t c_load_audio_buffer (void *ifptr, 
-				     unsigned char *from, 
+				     uint8_t *from, 
 				     uint32_t bytes, 
 				     uint64_t ts, 
 				     int resync)

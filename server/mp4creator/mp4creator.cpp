@@ -423,6 +423,8 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 	const char* payloadName, bool interleave, u_int16_t maxPayloadSize)
 {
+	bool rc;
+
 	if (MP4GetTrackNumberOfSamples(mp4File, mediaTrackId) == 0) {
 		fprintf(stderr, 
 			"%s: couldn't create hint track, no media samples\n", ProgName);
@@ -440,7 +442,7 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 		case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
 		case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
 		case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
-			MP4AV_RfcIsmaHinter(mp4File, mediaTrackId, 
+			rc = MP4AV_RfcIsmaHinter(mp4File, mediaTrackId, 
 				interleave, maxPayloadSize);
 			break;
 		case MP4_MPEG1_AUDIO_TYPE:
@@ -448,10 +450,10 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 			if (payloadName && 
 			  (!strcasecmp(payloadName, "3119") 
 			  || !strcasecmp(payloadName, "mpa-robust"))) {
-				MP4AV_Rfc3119Hinter(mp4File, mediaTrackId, 
+				rc = MP4AV_Rfc3119Hinter(mp4File, mediaTrackId, 
 					interleave, maxPayloadSize);
 			} else {
-				MP4AV_Rfc2250Hinter(mp4File, mediaTrackId, 
+				rc = MP4AV_Rfc2250Hinter(mp4File, mediaTrackId, 
 					false, maxPayloadSize);
 			}
 			break;
@@ -464,7 +466,7 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 		u_int8_t videoType = MP4GetTrackVideoType(mp4File, mediaTrackId);
 
 		if (videoType == MP4_MPEG4_VIDEO_TYPE) {
-			MP4AV_Rfc3016Hinter(mp4File, mediaTrackId, maxPayloadSize);
+			rc = MP4AV_Rfc3016Hinter(mp4File, mediaTrackId, maxPayloadSize);
 		} else {
 			fprintf(stderr, 
 				"%s: can't hint non-MPEG4 video type\n", ProgName);
@@ -473,6 +475,12 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 	} else {
 		fprintf(stderr, 
 			"%s: can't hint track type %s\n", ProgName, trackType);
+		exit(EXIT_CREATE_HINT);
+	}
+
+	if (!rc) {
+		fprintf(stderr, 
+			"%s: error hinting track %u\n", ProgName, mediaTrackId);
 		exit(EXIT_CREATE_HINT);
 	}
 }

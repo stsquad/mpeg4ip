@@ -7,8 +7,8 @@
  *          Orion Hodson
  *          Jerry Isdale
  * 
- * $Revision: 1.4 $
- * $Date: 2001/11/14 00:54:14 $
+ * $Revision: 1.5 $
+ * $Date: 2002/06/21 23:19:48 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -239,7 +239,7 @@ void rtp_message (int loglevel, const char *fmt, ...)
       // To add date, add %a %b %d to strftime
       secs = thistime.tv_sec;
       strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
-      printf("%s.%03ld-libhttp-%d: ",
+      printf("%s.%03ld-rtp-%d: ",
 	     buffer, (unsigned long)thistime.tv_usec / 1000, loglevel);
       vprintf(fmt, ap);
       printf("\n");

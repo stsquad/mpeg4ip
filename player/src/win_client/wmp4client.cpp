@@ -72,7 +72,7 @@ int main (int argc, char **argv)
 		int ret = -1;
 		errmsg[0] = '\0';
 		if (psptr != NULL) {
-			ret = parse_name_for_session(psptr, *argv, errmsg, *errmsg);
+			ret = parse_name_for_session(psptr, *argv, errmsg, *errmsg, NULL);
 			if (ret < 0) {
 				//player_debug_message("%s %s", errmsg, name);
 				delete psptr;
@@ -131,13 +131,7 @@ int main (int argc, char **argv)
 		SDL_DestroySemaphore(master_sem);
 	}
 	  // remove invalid global ports
-	CIpPort *first;
-	while (global_invalid_ports != NULL) {
-		first = global_invalid_ports;
-		global_invalid_ports = first->get_next();
-		player_debug_message("Freeing invalid port %u", first->get_port_num());
-		delete first;
-	}
+	
 	close_plugins();
 	config.write_config_file("Software\\Mpeg4ip", "Config");
 	close_output();

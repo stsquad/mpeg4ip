@@ -7,6 +7,66 @@
 #include "mp4av.h"
 #include <stdlib.h>
 
+void mpeg3vtrack_cleanup_frame (mpeg3_vtrack_t *track)
+{
+  long size;
+
+  if (track->track_frame_buffer == NULL) return;
+
+  size = track->track_frame_buffer_size;
+  track->track_frame_buffer[0] = track->track_frame_buffer[size - 4];
+  track->track_frame_buffer[1] = track->track_frame_buffer[size - 3];
+  track->track_frame_buffer[2] = track->track_frame_buffer[size - 2];
+  track->track_frame_buffer[3] = track->track_frame_buffer[size - 1];
+  track->track_frame_buffer_size = 4;
+}
+
+static 
+int mpeg3vtrack_locate_frame (mpeg3_vtrack_t *track,
+			    long frame)
+{
+  mpeg3_demuxer_t *demux;
+  long start_frame;
+  uint32_t offset;
+  uint32_t code = 0;
+  demux = track->demuxer;
+  if (frame < track->current_position) {
+    mpeg3demux_seek_start(demux);
+    start_frame = 0;
+  } else
+    start_frame = track->current_position;
+
+  // clean out last frame
+  while (!mpeg3demux_eof(demux)) {
+    mpeg3vtrack_cleanup_frame(track);
+    offset = 4;
+    track->track_frame_buffer_size = 
+    mpeg3demux_read_data(demux,
+			 track->track_frame_buffer,
+			 track->track_frame_buffer_maxsize);
+    for (offset = 4, code = 0; offset < track->track_frame_buffer_size - 3; offset++) {
+      code <<= 8;
+      code |= track->track_frame_buffer[offset];
+      if (code == MPEG3_PICTURE_START_CODE) {
+	start_frame++;
+	if (start_frame >= frame) {
+	  for (offset = offset - 3; 
+	       offset < track->track_frame_buffer_size; 
+	       offset++) {
+	    mpeg3demux_read_prev_char(demux);
+	  }
+	  track->track_frame_buffer_size = 0;
+	  track->current_position = frame;
+	  return 0;
+	}
+      }
+    }
+  }
+  return 1;
+}
+  
+  
+    
 static
 int mpeg3vtrack_get_frame (mpeg3_vtrack_t *track)
 
@@ -16,6 +76,7 @@ int mpeg3vtrack_get_frame (mpeg3_vtrack_t *track)
 	mpeg3_demuxer_t *demux = track->demuxer;
 	unsigned char *output;
 
+	track->current_position++;
 	output = track->track_frame_buffer;
 	if (track->track_frame_buffer_size == 0) 
 	  count = 0;
@@ -58,19 +119,6 @@ int mpeg3vtrack_get_frame (mpeg3_vtrack_t *track)
 	return mpeg3demux_eof(demux);
 }
 
-void mpeg3vtrack_cleanup_frame (mpeg3_vtrack_t *track)
-{
-  long size;
-
-  if (track->track_frame_buffer == NULL) return;
-
-  size = track->track_frame_buffer_size;
-  track->track_frame_buffer[0] = track->track_frame_buffer[size - 4];
-  track->track_frame_buffer[1] = track->track_frame_buffer[size - 3];
-  track->track_frame_buffer[2] = track->track_frame_buffer[size - 2];
-  track->track_frame_buffer[3] = track->track_frame_buffer[size - 1];
-  track->track_frame_buffer_size = 4;
-}
 
 
 /* Line up on the beginning of the previous code. */
@@ -128,88 +176,7 @@ int mpeg3vtrack_seek(mpeg3_vtrack_t *track, int dont_decode)
       percentage = track->percentage_seek;
       track->percentage_seek = -1;
       mpeg3demux_seek_percentage(track->demuxer, percentage);
-#if 0
-
-      // Go to previous I-frame #1
-
-      mpeg3demux_read_prev_char(track->demuxer);
-      // wmay - ASDF if we pull into vtrack
-      if(track->video->has_gops)
-	result = mpeg3vtrack_prev_code(demux, MPEG3_GOP_START_CODE);
-      else
-	result = mpeg3vtrack_prev_code(demux, MPEG3_SEQUENCE_START_CODE);
-      //printf("mpeg3video_seek 3\n");
-
-      if (dont_decode != 0 && result) return 0;
-
-      if (!result) {
-	for (ix = 0; ix < 4; ix++) 
-	  mpeg3demux_read_prev_char(demux);
-      }
-
-
-
-      // Go to previous I-frame #2
-      // wmay - ASDF if we pull into vtrack
-      if(track->video->has_gops)
-	result = mpeg3vtrack_prev_code(demux, MPEG3_GOP_START_CODE);
-      else
-	result = mpeg3vtrack_prev_code(demux, MPEG3_SEQUENCE_START_CODE);
-
-      if (dont_decode != 0 && result) return 0;
-
-
-      if (!result) {
-	for (ix = 0; ix < 4; ix++) 
-	  mpeg3demux_read_prev_char(demux);
-      }
-
-
-
-
-      //mpeg3bits_start_forward(vstream);
-      mpeg3demux_read_char(demux);
-
-      // Reread first two I frames
-      if(mpeg3demux_tell_percentage(demux) <= 0) 
-	{
-	  long len;
-	  mpeg3demux_seek_percentage(demux, 0);
-	  if (dont_decode == 1) {
-	    return result;
-	  }
-	  mpeg3vtrack_get_frame(track);
-	  // okay - here, do a raw read, then call get_firstframe
-	  mpeg3video_get_firstframe(track->video, 
-				    track->track_frame_buffer,
-				    track->track_frame_buffer_size);
-	  
-	  mpeg3vtrack_cleanup_frame(track);
-	  mpeg3vtrack_get_frame(track);
-	  mpeg3video_process_frame(track->video, 
-				   track->track_frame_buffer,
-				   track->track_frame_buffer_size);
-	  mpeg3vtrack_cleanup_frame(track);
-	}
-      //printf("mpeg3video_seek 4\n");
-
-
-      if (dont_decode == 1) return result;
-
-      // Read up to the correct percentage
-      result = 0;
-      while(!result && mpeg3demux_tell_percentage(demux) < percentage)
-	{
-	  result = mpeg3vtrack_get_frame(track);
-	  if (!result) {
-	    result = mpeg3video_process_frame(track->video, 
-					      track->track_frame_buffer,
-					      track->track_frame_buffer_size);
-	    mpeg3vtrack_cleanup_frame(track);
-	  }
-	}
-      //printf("mpeg3video_seek 5\n");
-#endif
+      printf("Seek time is %g\n", mpeg3demux_get_time(track->demuxer));
     }
   else
     /* Seek to a frame */
@@ -256,32 +223,26 @@ int mpeg3vtrack_seek(mpeg3_vtrack_t *track, int dont_decode)
 	else
 	  /* Seek to start of file */
 	  {
-	      mpeg3demux_seek_start(track);
+	  if(frame_number < 16)
+	    {
+	      mpeg3demux_seek_start(demux);
 	      for (ix = 0; ix < frame_number; ix++) {
 		mpeg3vtrack_get_frame(track);
 	      }
-	  }
 #if 0
-	  if(frame_number < 16)
-	    {
-	      mpeg3demux_seek_start(vstream);
-	      for (ix = 0; ix < frame_number, ix++) {
-		mpeg3vtrack_get_frame(track);
-	      }
 	      track->video->repeat_count = track->video->current_repeat = 0;
 	      track->video->framenum = 0;
 	      result = mpeg3vtrack_drop_frames(track, 
 					       frame_number - video->framenum);
+#endif
 	    }
 	  else
 	    {
 	      /* Seek to an I frame. */
-	      if((frame_number < video->framenum || 
-		  frame_number - video->framenum > MPEG3_SEEK_THRESHOLD))
-		{
 		  /* Elementary stream */
 		  if(is_video_stream)
 		    {
+#if 0
 		      //mpeg3_t *file = video->file;
 		      mpeg3_vtrack_t *track = video->track;
 		      int64_t byte = (int64_t)((double)(mpeg3demuxer_total_bytes(vstream->demuxer) / 
@@ -321,6 +282,7 @@ int mpeg3vtrack_seek(mpeg3_vtrack_t *track, int dont_decode)
 			  video->framenum = this_gop_start;
 			  result = mpeg3video_drop_frames(video, frame_number - video->framenum);
 			}
+#endif
 		    }
 		  else
 
@@ -328,37 +290,16 @@ int mpeg3vtrack_seek(mpeg3_vtrack_t *track, int dont_decode)
 
 		    /* System stream */
 		    {
-		      mpeg3bits_seek_time(vstream, (double)frame_number / video->frame_rate);
-
-		      percentage = mpeg3bits_tell_percentage(vstream);
-		      //printf("seek frame %ld percentage %f byte %ld\n", frame_number, percentage, mpeg3bits_tell(vstream));
-		      mpeg3bits_start_reverse(vstream);
-		      mpeg3video_prev_code(vstream, MPEG3_GOP_START_CODE);
-		      mpeg3bits_getbits_reverse(vstream, 32);
-		      mpeg3bits_start_forward(vstream);
-		      //printf("seek system 1 %f\n", (double)frame_number / video->frame_rate);
-
-		      while(!result && mpeg3bits_tell_percentage(vstream) < percentage)
-			{
-			  result = mpeg3video_read_frame_backend(video, 0);
-			  if(match_refframes)
-			    mpeg3video_match_refframes(video);
-
-			  //printf("seek system 2 %f %f\n", mpeg3bits_tell_percentage(vstream) / percentage);
-			  match_refframes = 0;
-			}
-		      //printf("seek system 3 %f\n", (double)frame_number / video->frame_rate);
-		    }
-
-		  video->framenum = frame_number;
-		}
-	      else
-		// Drop frames
-		{
-		  mpeg3video_drop_frames(video, frame_number - video->framenum);
-		}
-	    }
+		      mpeg3vtrack_locate_frame(track, frame_number);
+#if 0
+		      mpeg3demux_seek_time(demux, ((double)frame_number) / track->frame_rate);
+		      percentage = mpeg3demux_tell_percentage(demux);
 #endif
+		      //printf("seek frame %ld percentage %f byte %ld\n", frame_number, percentage, mpeg3bits_tell(vstream));
+		    }
+		}
+
+	    }
       }
 
   return result;
@@ -393,145 +334,6 @@ int mpeg3vtrack_drop_frames(mpeg3_vtrack_t *vtrack, long frames)
       result = mpeg3video_read_frame_backend(video, frame_number - video->framenum);
     }
   return result;
-}
-
-static
-mpeg3video_t* mpeg3vtrack_new_video (mpeg3_vtrack_t *track,
-				     int is_video_stream,
-				     int cpus)
-{
-  mpeg3video_t *video;
-  mpeg3_demuxer_t *demux = track->demuxer;
-  int result = 0;
-
-  video = mpeg3video_new(is_video_stream,
-			 cpus);
-
-  mpeg3vtrack_get_frame(track);
-
-  mpeg3bits_use_ptr_len(video->vstream, 
-			track->track_frame_buffer, 
-			track->track_frame_buffer_size);
-
-  result = mpeg3video_get_header(video, 1);
-  //printf("mpeg3video_new 2 %d\n", result);
-
-  if(!result)
-    {
-      int hour, minute, second, frame;
-      int gop_found;
-
-      mpeg3video_initdecoder(video);
-      video->decoder_initted = 1;
-      track->width = video->horizontal_size;
-      track->height = video->vertical_size;
-      track->frame_rate = video->frame_rate;
-
-      /* Try to get the length of the file from GOP's */
-      if(!track->frame_offsets)
-	{
-	  if (is_video_stream)
-	    {
-#if 0
-	      printf("In frame offset read\n");
-	      /* Load the first GOP */
-	      mpeg3demux_seek_start(demux);
-	      result = mpeg3video_next_code(video->vstream, MPEG3_GOP_START_CODE);
-	      if(!result) mpeg3bits_getbits(video->vstream, 32);
-	      if(!result) result = mpeg3video_getgophdr(video);
-
-	      hour = video->gop_timecode.hour;
-	      minute = video->gop_timecode.minute;
-	      second = video->gop_timecode.second;
-	      frame = video->gop_timecode.frame;
-
-	      video->first_frame = gop_to_frame(video, &video->gop_timecode);
-
-	      /*
-	       * 			video->first_frame = (long)(hour * 3600 * video->frame_rate + 
-	       * 				minute * 60 * video->frame_rate +
-	       * 				second * video->frame_rate +
-	       * 				frame);
-	       */
-
-	      /* GOPs are supposed to have 16 frames */
-
-	      video->frames_per_gop = 16;
-
-	      /* Read the last GOP in the file by seeking backward. */
-	      mpeg3bits_seek_end(video->vstream);
-	      mpeg3bits_start_reverse(video->vstream);
-	      result = mpeg3video_prev_code(video->vstream, MPEG3_GOP_START_CODE);
-	      mpeg3bits_start_forward(video->vstream);
-	      mpeg3bits_getbits(video->vstream, 8);
-	      if(!result) result = mpeg3video_getgophdr(video);
-
-	      hour = video->gop_timecode.hour;
-	      minute = video->gop_timecode.minute;
-	      second = video->gop_timecode.second;
-	      frame = video->gop_timecode.frame;
-
-	      video->last_frame = gop_to_frame(video, &video->gop_timecode);
-
-	      /*
-	       * 			video->last_frame = (long)((double)hour * 3600 * video->frame_rate + 
-	       * 				minute * 60 * video->frame_rate +
-	       * 				second * video->frame_rate +
-	       * 				frame);
-	       */
-
-	      //printf("mpeg3video_new 3 %p\n", video);
-
-	      /* Count number of frames to end */
-	      while(!result)
-		{
-		  result = mpeg3video_next_code(video->vstream, MPEG3_PICTURE_START_CODE);
-		  //printf("mpeg3video_new 2 %d %ld\n", result, video->last_frame);
-		  if(!result)
-		    {
-		      mpeg3bits_getbyte_noptr(video->vstream);
-		      video->last_frame++;
-		    }
-		}
-
-	      track->total_frames = video->last_frame - video->first_frame + 1;
-	      //printf("mpeg3video_new 3 %ld\n", track->total_frames);
-	      mpeg3bits_seek_start(video->vstream);
-#endif
-	    }
-	  else
-	    // Try to get the length of the file from the multiplexing.
-	    {
-	      video->first_frame = 0;
-	      track->total_frames = video->last_frame = 
-		(long)(mpeg3demux_length(demux) * 
-		       video->frame_rate);
-	      video->first_frame = 0;
-	    }
-	}
-      else
-	// Get length from table of contents
-	{
-	  track->total_frames = track->total_frame_offsets;
-	}
-
-
-
-      video->maxframe = track->total_frames;
-      mpeg3video_get_firstframe(video,
-				track->track_frame_buffer,
-				track->track_frame_buffer_size);
-      mpeg3vtrack_cleanup_frame(track);
-    }
-  else
-    {
-      //printf("mpeg3video_new 3 %p\n", video);
-      mpeg3video_delete(video);
-      video = 0;
-    }
-  //printf("mpeg3video_new 4 %p\n", video);
-
-  return video;
 }
 #endif
 /* ======================================================================= */
@@ -593,7 +395,6 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	mpeg3demux_seek_start(new_vtrack->demuxer);
 	new_vtrack->track_frame_buffer_size = 0;
 
-#if 1
 	if (!new_vtrack->frame_offsets) {
 	  if (file->is_video_stream) {
 	  } else {
@@ -603,17 +404,7 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	} else {
 	  new_vtrack->total_frames = new_vtrack->total_frame_offsets;
 	}
-#else
-	new_vtrack->video = mpeg3vtrack_new_video(new_vtrack,
-						 file->is_video_stream,
-						 file->cpus);
-	if(!new_vtrack->video)
-	{
-/* Failed */
-		mpeg3_delete_vtrack(file, new_vtrack);
-		new_vtrack = 0;
-	}
-#endif
+
 //printf("mpeg3_new_vtrack 2\n");
 	return new_vtrack;
 }

@@ -35,6 +35,7 @@ public:
 
 	bool EncodeImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
+		u_int32_t yStride, u_int32_t uvStride,
 		bool wantKeyFrame = false);
 
 	bool GetEncodedImage(
@@ -46,18 +47,7 @@ public:
 	void Stop();
 
 protected:
-	static void imgcpy(u_int8_t* dst, u_int8_t* src, 
-		u_int16_t width, u_int16_t height, u_int16_t stride) {
-		for (u_int16_t i = 0; i < height; i++) {
-			memcpy(dst, src, width);
-			dst += width;
-			src += stride;
-		}
-	}
-
-protected:
 	void*				m_xvidHandle;
-	u_int32_t			m_inputOffset;
 	u_int8_t*			m_vopBuffer;
 	u_int32_t			m_vopBufferLength;
 	XVID_ENC_FRAME 		m_xvidFrame;

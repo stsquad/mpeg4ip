@@ -95,18 +95,18 @@ class CPlayerMedia {
   int create_video_plugin(const codec_plugin_t *p,
 			  format_list_t *sdp_media,
 			  video_info_t *video,
-			  const unsigned char *user_data,
+			  const uint8_t *user_data,
 			  uint32_t userdata_size);
   int create_audio_plugin(const codec_plugin_t *p,
 			  format_list_t *sdp_media,
 			  audio_info_t *audio,
-			  const unsigned char *user_data,
+			  const uint8_t *user_data,
 			  uint32_t userdata_size);
-  void set_plugin_data (const codec_plugin_t *p, codec_data_t *d) {
-    m_plugin = p;
-    m_plugin_data = d;
-  }
-  void set_user_data (const unsigned char *udata, int length) {
+  void set_plugin_data (const codec_plugin_t *p, 
+			codec_data_t *d, 
+			video_vft_t *v, 
+			audio_vft_t *a);
+  void set_user_data (const uint8_t *udata, int length) {
     m_user_data = udata;
     m_user_data_size = length;
   }
@@ -193,7 +193,7 @@ class CPlayerMedia {
   video_info_t *m_video_info;
   audio_info_t *m_audio_info;
 
-  const unsigned char *m_user_data;
+  const uint8_t *m_user_data;
   int m_user_data_size;
 
 };

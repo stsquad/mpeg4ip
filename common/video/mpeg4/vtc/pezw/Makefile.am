@@ -7,12 +7,19 @@ noinst_LTLIBRARIES = libobj_vtc_pezw.la
 libobj_vtc_pezw_la_LDFLAGS = -static
 
 libobj_vtc_pezw_la_SOURCES = \
-			PEZW_ac.cpp \
-			PEZW_utils.cpp \
-			PEZW_textureLayerBQ.cpp \
-			wvtpezw_tree_init_encode.cpp \
-			wvtpezw_tree_encode.cpp \
-			wvtPEZW.cpp \
-			wvtpezw_tree_init_decode.cpp \
-			wvtpezw_tree_decode.cpp \
-			PEZW_globals.cpp
+	PEZW_ac.cpp \
+	PEZW_ac.hpp \
+	PEZW_functions.hpp \
+	PEZW_globals.cpp \
+	PEZW_mpeg4.hpp \
+	PEZW_textureLayerBQ.cpp \
+	PEZW_utils.cpp \
+	PEZW_zerotree.hpp \
+	wvtPEZW.cpp \
+	wvtPEZW.hpp \
+	wvtpezw_tree_codec.hpp \
+	wvtpezw_tree_decode.cpp \
+	wvtpezw_tree_encode.cpp \
+	wvtpezw_tree_init_decode.cpp \
+	wvtpezw_tree_init_encode.cpp
+	

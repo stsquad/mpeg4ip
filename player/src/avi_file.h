@@ -29,11 +29,13 @@
 
 class CPlayerSession;
 
+struct control_callback_vft_t;
 int create_media_for_avi_file (CPlayerSession *psptr,
 			       const char *name,
 			       char *errmsg,
 			       uint32_t errlen, 
-			       int have_audio_driver);
+			       int have_audio_driver,
+			       control_callback_vft_t *);
 
 /*
  * CAviFile contains access information for the avi bytestream
@@ -42,15 +44,11 @@ int create_media_for_avi_file (CPlayerSession *psptr,
  */
 class CAviFile {
  public:
-  CAviFile(const char *name, avi_t *avi);
+  CAviFile(const char *name, avi_t *avi, int audio_tracks, int video_tracks);
   ~CAviFile();
   void lock_file_mutex (void) { SDL_mutexP(m_file_mutex); };
   void unlock_file_mutex (void) { SDL_mutexV(m_file_mutex); };
-  int create_audio (CPlayerSession *psptr, char *errmsg, uint32_t errlen);
-  int create_video (CPlayerSession *psptr, char *errmsg, uint32_t errlen);
   avi_t *get_file(void) {return m_file; };
-  int get_audio_tracks (void) { return m_audio_tracks; };
-  int get_video_tracks (void) { return m_video_tracks; };
  private:
   char *m_name;
   avi_t *m_file;

@@ -62,6 +62,7 @@ protected:
 protected:
 	int					m_audioDevice;
 	u_int16_t			m_maxPasses;
+	Timestamp			m_audioStartTimestamp;
 	u_int8_t*			m_pcmFrameBuffer;
 	u_int32_t			m_pcmFrameSize;
 };

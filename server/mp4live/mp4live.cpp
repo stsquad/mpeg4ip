@@ -102,6 +102,10 @@ int main(int argc, char** argv)
 		}
 
 		pConfig->m_appAutomatic = automatic;
+
+		extern bool PrintDebugMessages;
+		PrintDebugMessages =
+			pConfig->GetIntegerValue(CONFIG_APP_DEBUG);
 	} 
 	catch (CConfigException* e) {
 		delete e;
@@ -191,6 +195,7 @@ int main(int argc, char** argv)
 #endif /* _POSIX_MEMLOCK */
 	}
 
+	// cleanup
 	delete pConfig;
 	exit (rc);
 }

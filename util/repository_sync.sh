@@ -146,6 +146,17 @@ if [ $skipversion = 0 ]; then
    cvs $CVS_N commit -m 'Version bump for sync' VERSION RELEASE_VERSION include/win32_ver.h configure.in 1>&5 2>&5
 fi
 
+#
+# Tag this directory
+#
+tagvalue=`cat VERSION | tr -s '.' '_'`
+tagvalue1=`date +_%y%m%d_%H%M`
+tagvalue=VERSION_$tagvalue$tagvalue1
+
+echo Tagging source tree with $tagvalue >&5
+echo Tagging source tree with $tagvalue >&6
+
+cvs $CVS_N tag $tagvalue 1>&5 2>&5
 cd $start_dir
 #
 # checkout or update destination repository.  Update dest_dir, dest_rep

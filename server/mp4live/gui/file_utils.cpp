@@ -102,16 +102,39 @@ void FileBrowser(
 
 bool IsDevice(const char* fileName)
 {
-	// might also want to stat()
+	// LATER might also want to stat()
 	return !strncmp(fileName, "/dev/", 5);
+}
+
+bool IsUrl(const char* name)
+{
+	return (strchr(name, ':') != NULL);
 }
 
 bool IsMp4File(const char* fileName)
 {
+	if (IsUrl(fileName)) {
+		return false;
+	}
 	if (strlen(fileName) <= 4) {
 		return false;
 	} 
 	return !strcmp(&fileName[strlen(fileName) - 4], ".mp4");
+}
+
+bool IsMpeg2File(const char* fileName)
+{
+	if (IsUrl(fileName)) {
+		return false;
+	}
+	if (strlen(fileName) <= 4) {
+		return false;
+	} 
+
+	const char* ext3 = &fileName[strlen(fileName) - 4];
+
+	return !strcmp(ext3, ".mpg")
+		|| !strcmp(ext3, ".vob");
 }
 
 int32_t Mp4FileDefaultAudio(char* fileName)
@@ -155,8 +178,10 @@ int32_t FileDefaultAudio(char* fileName)
 {
 	if (IsMp4File(fileName)) {
 		return Mp4FileDefaultAudio(fileName);
-	} else {
+	} else if (IsMpeg2File(fileName)) {
 		return Mpeg2FileDefaultAudio(fileName);
+	} else {
+		return 0;
 	}
 }
 
@@ -443,16 +468,16 @@ GtkWidget* CreateTrackMenu(
 {
 	pTrackIndex = pMenuIndex;
 
-	if (IsDevice(source)) {
-		return CreateNullTrackMenu(
-			menu, type, source, pMenuIndex, pMenuNumber, ppMenuValues);	
-
-	} else if (IsMp4File(source)) {
+	if (IsMp4File(source)) {
 		return CreateMp4TrackMenu(
 			menu, type, source, pMenuIndex, pMenuNumber, ppMenuValues);	
 
-	} else {
+	} else if (IsMpeg2File(source)) {
 		return CreateMpeg2TrackMenu(
+			menu, type, source, pMenuIndex, pMenuNumber, ppMenuValues);	
+
+	} else {
+		return CreateNullTrackMenu(
 			menu, type, source, pMenuIndex, pMenuNumber, ppMenuValues);	
 	}
 }

@@ -292,23 +292,21 @@ static void ChangeSource()
 		}
 		pVideoCaps = NULL;
 
-		if (access(source_name, R_OK) != 0) {
-			ShowMessage("Change Video Source",
-				"Specified video source can't be opened, check name");
-			return;
-		}
-
-		if (IsMp4File(source_name)) {
-			source_type = FILE_SOURCE_MP4;
+		if (IsUrl(source_name)) {
+			source_type = URL_SOURCE;
 		} else {
-			source_type = FILE_SOURCE_MPEG2;
+			if (access(source_name, R_OK) != 0) {
+				ShowMessage("Change Video Source",
+					"Specified video source can't be opened, check name");
+			}
+			source_type = FILE_SOURCE;
 		}
 
 		if (!default_file_audio_dialog
 		  && FileDefaultAudio(source_name) >= 0) {
 			YesOrNo(
 				"Change Video Source",
-				"Do you want to use this file for the audio source also?",
+				"Do you want to use this for the audio source also?",
 				true,
 				GTK_SIGNAL_FUNC(on_yes_default_file_audio_source),
 				GTK_SIGNAL_FUNC(on_no_default_file_audio_source));
@@ -749,18 +747,9 @@ void CreateVideoDialog (void)
 	gtk_widget_show(hbox2);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 0);
 
-	// source entry
-	char* type = MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
-	if (!strcasecmp(type, VIDEO_SOURCE_V4L)) {
-		source_type = VIDEO_SOURCE_V4L;
-	} else if (!strcasecmp(type, FILE_SOURCE_MP4)) {
-		source_type = FILE_SOURCE_MP4;
-	} else if (!strcasecmp(type, FILE_SOURCE_MPEG2)) {
-		source_type = FILE_SOURCE_MPEG2;
-	} else {
-		source_type = "";
-	}
+	source_type = MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
 
+	// source entry
 	free(source_name);
 	source_name = 
 		stralloc(MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));

@@ -48,7 +48,8 @@ EXTRA_DIST =		\
 	sdl.m4		\
         SDL.spec	\
         autogen.sh	\
-        strip_fPIC.sh
+        strip_fPIC.sh \
+	depcomp
 
 # M4 macro file for inclusion with autoconf
 m4datadir = $(datadir)/aclocal

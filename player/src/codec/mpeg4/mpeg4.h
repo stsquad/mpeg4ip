@@ -55,7 +55,7 @@ typedef struct iso_decode_t {
   uint32_t m_total_frames;
   // raw file support
   FILE *m_ifile;
-  unsigned char *m_buffer;
+  uint8_t *m_buffer;
   uint32_t m_buffer_size_max;
   uint32_t m_buffer_size;
   uint32_t m_buffer_on;
@@ -74,7 +74,7 @@ codec_data_t *mpeg4_iso_file_check(lib_message_func_t message,
 				   char *desc[4]);
 
 int divx_file_next_frame(codec_data_t *your_data,
-			 unsigned char **buffer, 
+			 uint8_t **buffer, 
 			 uint64_t *ts);
 
 void divx_file_used_for_frame(codec_data_t *your,

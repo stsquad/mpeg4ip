@@ -97,8 +97,11 @@ int main (int argc, char **argv)
     } else {
       printf("Error formating session %d\n", err);
     }
+    free(formatted);
     sdp_free_session_desc(session);
   }
+  sdp_decode_info_free(sdpd);
+
   return (0);
 }
 

@@ -164,8 +164,6 @@ void MP4File::DisableMemoryBuffer(u_int8_t** ppBytes, u_int64_t* pNumBytes)
 
 void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 {
-	WARNING(pBytes == NULL);
-	WARNING(numBytes == 0);
 	ASSERT(m_numWriteBits == 0 || m_numWriteBits >= 8);
 
 	if (pBytes == NULL || numBytes == 0) {

@@ -33,7 +33,7 @@
 typedef struct adu_data_t {
   struct adu_data_t *next_adu;
   rtp_packet *pak;
-  unsigned char *frame_ptr;
+  uint8_t *frame_ptr;
   int aduDataSize;
   uint64_t timestamp;
   char first_in_pak;
@@ -69,7 +69,7 @@ class CRfc3119RtpByteStream : public CRtpByteStreamBase
   ~CRfc3119RtpByteStream();
   void reset(void);
   int have_no_data(void);
-  uint64_t start_next_frame(unsigned char **buffer, 
+  uint64_t start_next_frame(uint8_t **buffer, 
 			    uint32_t *buflen, 
 			    void **ud);
   void used_bytes_for_frame(uint32_t byte);
@@ -94,7 +94,7 @@ class CRfc3119RtpByteStream : public CRtpByteStreamBase
   int m_got_next_idx;
   int m_have_interleave;
 
-  unsigned char *m_mp3_frame;
+  uint8_t *m_mp3_frame;
   uint32_t m_mp3_frame_size;
   
   int insert_frame_data(adu_data_t *pak);

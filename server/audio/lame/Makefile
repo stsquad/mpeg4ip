@@ -248,12 +248,14 @@ endif
 CC_SWITCHES = -DNDEBUG -D__NO_MATH_INLINES $(CC_OPTS) $(SNDLIB) $(GTK) $(BRHIST_SWITCH)
 c_sources = \
         brhist.c \
-	formatBitstream.c \
 	fft.c \
+	formatBitstream.c \
 	get_audio.c \
-	l3bitstream.c \
+        gpkplotting.c \
+        gtkanal.c \
         id3tag.c \
 	ieeefloat.c \
+	l3bitstream.c \
         lame.c \
         newmdct.c \
         parse.c \
@@ -261,16 +263,14 @@ c_sources = \
 	psymodel.c \
 	quantize.c \
 	quantize-pvt.c \
-	vbrquantize.c \
 	reservoir.c \
 	tables.c \
 	takehiro.c \
 	timestatus.c \
 	util.c \
+	vbrquantize.c \
         VbrTag.c \
         version.c \
-        gtkanal.c \
-        gpkplotting.c \
 #        mpglib/common.c \
 #        mpglib/dct64_i386.c \
 #        mpglib/decode_i386.c \
@@ -346,3 +346,81 @@ test: $(PGM)
 
 testg: $(PGM)
 	./lame -g -h ../test/castanets.wav
+
+PACKAGE = mpeg4ip
+VERSION = `cat ../../../VERSION`
+top_distdir = ../../..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+srcdir = .
+mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
+EXTRA_DIST = \
+	amiga_mpega.c \
+	API \
+	brhist.h \
+	COPYING \
+	CVS \
+	debugscalefac.c \
+	encoder.h \
+	fft.h \
+	formatBitstream.h \
+	get_audio.h \
+	gpkplotting.h \
+	gtkanal.h \
+	HACKING \
+	id3tag.h \
+	ieeefloat.h \
+	INSTALL \
+	install.sh \
+	l3bitstream.h \
+	l3bitstream-pvt.h \
+	l3side.h \
+	lame60.dsp \
+	lame60.dsw \
+	lame.dsp \
+	lame.dsw \
+	lame.h \
+	LICENSE \
+	machine.h \
+	main.c \
+	Makefile \
+	Makefile.MSVC \
+	mlame \
+	mp3rtp.c \
+	mp3x.c \
+	newmdct.h \
+	portableio.h \
+	PRESETS.draft \
+	psymodel.h \
+	quantize.h \
+	quantize-pvt.h \
+	README \
+	README.WINGTK \
+	reservoir.h \
+	rtp.c \
+	rtp.h \
+	tables.h \
+	testcase.mp3 \
+	testcase.wav \
+	timestatus.h \
+	TODO \
+	USAGE \
+	util.h \
+	VbrTag.h \
+	version.h 
+DISTFILES = $(c_sources) $(EXTRA_DIST)
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    $(mkinstalldirs) "$(distdir)/$$dir"; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    cp -pR $$d/$$file $(distdir) \
+	    || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done

@@ -179,13 +179,11 @@ Duration CMediaSource::GetElapsedDuration()
 	return 0;
 }
 
-// used to pace (slow down) file sources when feeding sinks
-// that want data in real time (e.g. RTP transmitter)
-// capture cards are inherently paced by the driver
-
+// slow down non-realtime sources, i.e. files
+// if any of the sinks require real-time semantics, i.e. RTP/UDP
 void CMediaSource::PaceSource()
 {
-	if (!m_sourceRealTime) {
+	if (m_sourceRealTime || !m_sinkRealTime) {
 		return;
 	}
 
@@ -236,23 +234,14 @@ void CMediaSource::DoStopSource()
 
 bool CMediaSource::InitVideo(
 	MediaType srcType,
-	u_int16_t srcWidth,
-	u_int16_t srcHeight,
-	bool matchAspectRatios,
 	bool realTime)
 {
 	m_sourceRealTime = realTime;
+	m_sinkRealTime = m_pConfig->GetBoolValue(CONFIG_RTP_ENABLE);
 
 	m_videoSrcType = srcType;
 	m_videoSrcFrameNumber = 0;
 	m_audioSrcFrameNumber = 0;	// ensure audio is also at zero
-	m_videoSrcWidth = srcWidth;
-	m_videoSrcHeight = srcHeight;
-	m_videoSrcAspectRatio = (float)srcWidth / (float)srcHeight;
-	// these next three may change below
-	m_videoSrcAdjustedHeight = srcHeight;
-	m_videoSrcYCrop = 0;
-	m_videoSrcUVCrop = 0;
 
 	m_videoDstType = CMediaFrame::Mpeg4VideoFrame;
 	m_videoDstFrameRate =
@@ -270,29 +259,6 @@ bool CMediaSource::InitVideo(
 	m_videoDstUVSize = m_videoDstYSize / 4;
 	m_videoDstYUVSize = (m_videoDstYSize * 3) / 2;
 
-	// match aspect ratios
-	if (matchAspectRatios 
-	  && fabs(m_videoSrcAspectRatio - m_videoDstAspectRatio) > 0.01) {
-
-		m_videoSrcAdjustedHeight =
-			(u_int16_t)(m_videoSrcWidth / m_videoDstAspectRatio);
-		if ((m_videoSrcAdjustedHeight % 16) != 0) {
-			m_videoSrcAdjustedHeight += 16 - (m_videoSrcAdjustedHeight % 16);
-		}
-
-		if (m_videoSrcAspectRatio < m_videoDstAspectRatio) {
-			// crop src
-			m_videoSrcYCrop = m_videoSrcWidth * 
-				((m_videoSrcHeight - m_videoSrcAdjustedHeight) / 2);
-			m_videoSrcUVCrop = m_videoSrcYCrop / 4;
-		}
-	}
-
-	m_videoSrcYSize = m_videoSrcWidth 
-		* MAX(m_videoSrcHeight, m_videoSrcAdjustedHeight);
-	m_videoSrcUVSize = m_videoSrcYSize / 4;
-	m_videoSrcYUVSize = (m_videoSrcYSize * 3) / 2;
-
 	// intialize encoder
 	m_videoEncoder = VideoEncoderCreate(
 		m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
@@ -304,31 +270,6 @@ bool CMediaSource::InitVideo(
 		delete m_videoEncoder;
 		m_videoEncoder = NULL;
 		return false;
-	}
-
-	// initial resizing
-	if (m_videoSrcWidth != m_videoDstWidth 
-	  || m_videoSrcAdjustedHeight != m_videoDstHeight) {
-
-		m_videoSrcYImage = 
-			scale_new_image(m_videoSrcWidth, 
-				m_videoSrcAdjustedHeight, 1);
-		m_videoDstYImage = 
-			scale_new_image(m_videoDstWidth, 
-				m_videoDstHeight, 1);
-		m_videoYResizer = 
-			scale_image_init(m_videoDstYImage, m_videoSrcYImage, 
-				Bell_filter, Bell_support);
-
-		m_videoSrcUVImage = 
-			scale_new_image(m_videoSrcWidth / 2, 
-				m_videoSrcAdjustedHeight / 2, 1);
-		m_videoDstUVImage = 
-			scale_new_image(m_videoDstWidth / 2, 
-				m_videoDstHeight / 2, 1);
-		m_videoUVResizer = 
-			scale_image_init(m_videoDstUVImage, m_videoSrcUVImage, 
-				Bell_filter, Bell_support);
 	}
 
 	m_videoWantKeyFrame = true;
@@ -348,27 +289,106 @@ bool CMediaSource::InitVideo(
 	return true;
 }
 
-// TEMP, goes away once mpeg2 file reader and codec are seperate
-bool CMediaSource::WillUseVideoFrame(Duration frameDuration)
+void CMediaSource::SetVideoSrcSize(
+	u_int16_t srcWidth,
+	u_int16_t srcHeight,
+	u_int16_t srcStride,
+	bool matchAspectRatios)
 {
-	return m_videoDstElapsedDuration
-		< m_videoSrcElapsedDuration + frameDuration;
+	// N.B. InitVideo() must be called first
+
+	m_videoSrcWidth = srcWidth;
+	m_videoSrcHeight = srcHeight;
+	m_videoSrcAspectRatio = (float)srcWidth / (float)srcHeight;
+	m_videoMatchAspectRatios = matchAspectRatios;
+
+	SetVideoSrcStride(srcStride);
 }
 
-void CMediaSource::ProcessVideoFrame(
-	u_int8_t* frameData,
-	u_int32_t frameDataLength,
-	Duration frameDuration)
+void CMediaSource::SetVideoSrcStride(
+	u_int16_t srcStride)
+{
+	// N.B. SetVideoSrcSize() should be called once before 
+
+	m_videoSrcYStride = srcStride;
+	m_videoSrcUVStride = srcStride / 2;
+
+	// these next three may change below
+	m_videoSrcAdjustedHeight = m_videoSrcHeight;
+	m_videoSrcYCrop = 0;
+	m_videoSrcUVCrop = 0;
+
+	// match aspect ratios
+	if (m_videoMatchAspectRatios 
+	  && fabs(m_videoSrcAspectRatio - m_videoDstAspectRatio) > 0.01) {
+
+		m_videoSrcAdjustedHeight =
+			(u_int16_t)(m_videoSrcWidth / m_videoDstAspectRatio);
+		if ((m_videoSrcAdjustedHeight % 16) != 0) {
+			m_videoSrcAdjustedHeight += 16 - (m_videoSrcAdjustedHeight % 16);
+		}
+
+		if (m_videoSrcAspectRatio < m_videoDstAspectRatio) {
+			// crop src
+			m_videoSrcYCrop = m_videoSrcYStride * 
+				((m_videoSrcHeight - m_videoSrcAdjustedHeight) / 2);
+			m_videoSrcUVCrop = m_videoSrcYCrop / 4;
+		}
+	}
+
+	m_videoSrcYSize = m_videoSrcYStride 
+		* MAX(m_videoSrcHeight, m_videoSrcAdjustedHeight);
+	m_videoSrcUVSize = m_videoSrcYSize / 4;
+	m_videoSrcYUVSize = (m_videoSrcYSize * 3) / 2;
+
+	// resizing
+
+	DestroyVideoResizer();
+
+	if (m_videoSrcWidth != m_videoDstWidth 
+	  || m_videoSrcAdjustedHeight != m_videoDstHeight) {
+
+		m_videoSrcYImage = 
+			scale_new_image(m_videoSrcWidth, 
+				m_videoSrcAdjustedHeight, 1);
+		m_videoSrcYImage->span = m_videoSrcYStride;
+		m_videoDstYImage = 
+			scale_new_image(m_videoDstWidth, 
+				m_videoDstHeight, 1);
+		m_videoYResizer = 
+			scale_image_init(m_videoDstYImage, m_videoSrcYImage, 
+				Bell_filter, Bell_support);
+
+		m_videoSrcUVImage = 
+			scale_new_image(m_videoSrcWidth / 2, 
+				m_videoSrcAdjustedHeight / 2, 1);
+		m_videoSrcUVImage->span = m_videoSrcUVStride;
+		m_videoDstUVImage = 
+			scale_new_image(m_videoDstWidth / 2, 
+				m_videoDstHeight / 2, 1);
+		m_videoUVResizer = 
+			scale_image_init(m_videoDstUVImage, m_videoSrcUVImage, 
+				Bell_filter, Bell_support);
+	}
+}
+
+void CMediaSource::ProcessVideoYUVFrame(
+	u_int8_t* pY,
+	u_int8_t* pU,
+	u_int8_t* pV,
+	u_int16_t yStride,
+	u_int16_t uvStride,
+	Timestamp srcFrameTimestamp)
 {
 	if (m_videoSrcFrameNumber == 0 && m_audioSrcFrameNumber == 0) {
-		m_startTimestamp = GetTimestamp();
+		m_startTimestamp = srcFrameTimestamp;
 	}
 
 	m_videoSrcFrameNumber++;
-	m_videoSrcElapsedDuration += frameDuration;
+	m_videoSrcElapsedDuration = srcFrameTimestamp - m_startTimestamp;
 
 	// drop src frames as needed to match target frame rate
-	if (m_videoDstElapsedDuration >= m_videoSrcElapsedDuration) {
+	if (m_videoDstElapsedDuration > m_videoSrcElapsedDuration) {
 		return;
 	}
 
@@ -395,40 +415,22 @@ void CMediaSource::ProcessVideoFrame(
 		}
 	}
 
-	// TEMP
-	if (m_videoSrcType != CMediaFrame::YuvVideoFrame
-	  && m_videoSrcType != CMediaFrame::RgbVideoFrame) {
-		debug_message("TBD implement video decoding");
-		return;
+	Timestamp encodingStartTimestamp = GetTimestamp();
+
+	// this will either never happen (live capture)
+	// or just happen once at startup when we discover
+	// the stride used by the video decoder
+	if (yStride != m_videoSrcYStride) {
+		SetVideoSrcSize(m_videoSrcWidth, m_videoSrcHeight, 
+			yStride, m_videoMatchAspectRatios);
 	}
 
-	u_int8_t* yuvImage;
-	bool mallocedYuvImage;
-
-	Duration encodingStartTimestamp = GetTimestamp();
-
-	// perform colorspace conversion if necessary
-	if (m_videoSrcType == CMediaFrame::RgbVideoFrame) {
-		yuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
-		mallocedYuvImage = true;
-
-		RGB2YUV(
-			m_videoSrcWidth,
-			m_videoSrcHeight,
-			frameData,
-			yuvImage,
-			yuvImage + m_videoSrcYSize,
-			yuvImage + m_videoSrcYSize + m_videoSrcUVSize,
-			1);
-	} else {
-		yuvImage = frameData;
-		mallocedYuvImage = false;
-	}
+	u_int8_t* mallocedYuvImage = NULL;
 
 	// crop to desired aspect ratio (may be a no-op)
-	u_int8_t* yImage = yuvImage + m_videoSrcYCrop;
-	u_int8_t* uImage = yuvImage + m_videoSrcYSize + m_videoSrcUVCrop;
-	u_int8_t* vImage = uImage + m_videoSrcUVSize;
+	u_int8_t* yImage = pY + m_videoSrcYCrop;
+	u_int8_t* uImage = pU + m_videoSrcUVCrop;
+	u_int8_t* vImage = pV + m_videoSrcUVCrop;
 
 	// Note: caller is responsible for adding any padding that is needed
 
@@ -457,16 +459,16 @@ void CMediaSource::ProcessVideoFrame(
 		scale_image_process(m_videoUVResizer);
 
 		// done with the original source image
-		if (mallocedYuvImage) {
-			free(yuvImage);
-		}
+		// this may be NULL
+		free(mallocedYuvImage);
 
 		// switch over to resized version
-		yuvImage = resizedYUV;
+		mallocedYuvImage = resizedYUV;
 		yImage = resizedY;
 		uImage = resizedU;
 		vImage = resizedV;
-		mallocedYuvImage = true;
+		yStride = m_videoDstWidth;
+		uvStride = yStride / 2;
 	}
 
 	// if we want encoded video frames
@@ -474,13 +476,13 @@ void CMediaSource::ProcessVideoFrame(
 
 		// call video encoder
 		bool rc = m_videoEncoder->EncodeImage(
-			yImage, uImage, vImage, m_videoWantKeyFrame);
+			yImage, uImage, vImage, 
+			yStride, uvStride,
+			m_videoWantKeyFrame);
 
 		if (!rc) {
 			debug_message("Can't encode image!");
-			if (mallocedYuvImage) {
-				free(yuvImage);
-			}
+			free(mallocedYuvImage);
 			return;
 		}
 
@@ -504,10 +506,8 @@ void CMediaSource::ProcessVideoFrame(
 		dstPrevFrameDuration += dstPrevFrameAdjustment;
 		m_videoDstElapsedDuration += dstPrevFrameAdjustment;
 
-		// check our duration against real elasped time
-		Duration realElapsedTime =
-			encodingStartTimestamp - m_startTimestamp;
-		Duration lag = realElapsedTime - m_videoDstElapsedDuration;
+		// next check our duration against real elasped time
+		Duration lag = m_videoSrcElapsedDuration - m_videoDstElapsedDuration;
 
 		if (lag > 0) {
 			// adjust by integral number of target duration units
@@ -554,15 +554,21 @@ void CMediaSource::ProcessVideoFrame(
 
 		m_videoDstPrevImage = (u_int8_t*)Malloc(m_videoDstYUVSize);
 
-		memcpy(m_videoDstPrevImage, 
+		imgcpy(m_videoDstPrevImage, 
 			yImage, 
-			m_videoDstYSize);
-		memcpy(m_videoDstPrevImage + m_videoDstYSize,
+			m_videoDstWidth,
+			m_videoDstHeight,
+			yStride);
+		imgcpy(m_videoDstPrevImage + m_videoDstYSize,
 			uImage, 
-			m_videoDstUVSize);
-		memcpy(m_videoDstPrevImage + m_videoDstYSize + m_videoDstUVSize,
+			m_videoDstWidth / 2,
+			m_videoDstHeight / 2,
+			uvStride);
+		imgcpy(m_videoDstPrevImage + m_videoDstYSize + m_videoDstUVSize,
 			vImage, 
-			m_videoDstUVSize);
+			m_videoDstWidth / 2,
+			m_videoDstHeight / 2,
+			uvStride);
 	}
 
 	// forward reconstructed video to sinks
@@ -608,13 +614,24 @@ void CMediaSource::ProcessVideoFrame(
 		}
 	}
 
-	if (mallocedYuvImage) {
-		free(yuvImage);
-	}
+	free(mallocedYuvImage);
 	return;
 }
 
 void CMediaSource::DoStopVideo()
+{
+	DestroyVideoResizer();
+
+	if (m_videoEncoder) {
+		m_videoEncoder->Stop();
+		delete m_videoEncoder;
+		m_videoEncoder = NULL;
+	}
+
+	m_sourceVideo = false;
+}
+
+void CMediaSource::DestroyVideoResizer()
 {
 	if (m_videoSrcYImage) {
 		scale_free_image(m_videoSrcYImage);
@@ -640,34 +657,13 @@ void CMediaSource::DoStopVideo()
 		scale_image_done(m_videoUVResizer);
 		m_videoUVResizer = NULL;
 	}
-
-	if (m_videoEncoder) {
-		m_videoEncoder->Stop();
-		delete m_videoEncoder;
-		m_videoEncoder = NULL;
-	}
-
-	m_sourceVideo = false;
 }
 
 bool CMediaSource::InitAudio(
-	MediaType srcType,
-	u_int8_t srcChannels,
-	u_int32_t srcSampleRate,
 	bool realTime)
 {
 	m_sourceRealTime = realTime;
-
-	// audio source info 
-	m_audioSrcType = srcType;
-	m_audioSrcChannels = srcChannels;
-	m_audioSrcSampleRate = srcSampleRate;
-	if (srcType == CMediaFrame::Mp3AudioFrame) {
-		m_audioSrcSamplesPerFrame = 
-			MP4AV_Mp3GetSamplingWindow(srcSampleRate);
-	} else {
-		m_audioSrcSamplesPerFrame = 1024;
-	}
+	m_sinkRealTime = m_pConfig->GetBoolValue(CONFIG_RTP_ENABLE);
 	m_audioSrcSampleNumber = 0;
 	m_audioSrcFrameNumber = 0;
 	m_videoSrcFrameNumber = 0;	// ensure video is also at zero
@@ -694,10 +690,25 @@ bool CMediaSource::InitAudio(
 	m_audioDstRawFrameNumber = 0;
 
 	m_audioSrcElapsedDuration = 0;
-	m_audioSrcDrift = 0;
 	m_audioDstElapsedDuration = 0;
 
+	return true;
+}
+
+bool CMediaSource::SetAudioSrc(
+	MediaType srcType,
+	u_int8_t srcChannels,
+	u_int32_t srcSampleRate)
+{
+	// audio source info 
+	m_audioSrcType = srcType;
+	m_audioSrcChannels = srcChannels;
+	m_audioSrcSampleRate = srcSampleRate;
+	m_audioSrcSamplesPerFrame = 0;	// unknown, presumed variable
+
 	// init audio encoder
+	delete m_audioEncoder;
+
 	m_audioEncoder = AudioEncoderCreate(
 		m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODER));
 
@@ -705,7 +716,7 @@ bool CMediaSource::InitAudio(
 		return false;
 	}
 
-	if (!m_audioEncoder->Init(m_pConfig, realTime)) {
+	if (!m_audioEncoder->Init(m_pConfig, m_sourceRealTime)) {
 		delete m_audioEncoder;
 		m_audioEncoder = NULL;
 		return false;
@@ -730,16 +741,17 @@ bool CMediaSource::InitAudio(
 		}
 
 		m_audioResampleInputNumber = 0;
+		free(m_audioResampleInputBuffer);
 		m_audioResampleInputBuffer =
 			(int16_t*)calloc(16 * m_audioSrcChannels, 2);
 	}
 
 	m_audioPreEncodingBufferLength = 0;
 	m_audioPreEncodingBufferMaxLength =
-		2 * MAX(SrcSamplesToBytes(m_audioSrcSamplesPerFrame),
-				DstSamplesToBytes(m_audioDstSamplesPerFrame));
+		4 * DstSamplesToBytes(m_audioDstSamplesPerFrame);
 
-	m_audioPreEncodingBuffer = (u_int8_t*)malloc(
+	m_audioPreEncodingBuffer = (u_int8_t*)realloc(
+		m_audioPreEncodingBuffer,
 		m_audioPreEncodingBufferMaxLength);
 		
 	if (m_audioPreEncodingBuffer == NULL) {
@@ -754,30 +766,24 @@ bool CMediaSource::InitAudio(
 void CMediaSource::ProcessAudioFrame(
 	u_int8_t* frameData,
 	u_int32_t frameDataLength,
-	u_int32_t frameDuration)	// in samples
+	Timestamp srcFrameTimestamp,
+	bool resync)
 {
 	if (m_videoSrcFrameNumber == 0 && m_audioSrcFrameNumber == 0) {
-		m_startTimestamp = GetTimestamp();
-	}
-
-	if (m_sourceRealTime) {
-		Duration drift =
-			(GetTimestamp() - m_startTimestamp) - m_audioSrcElapsedDuration;
-
-		if (m_audioSrcDrift > SrcSamplesToTicks(frameDuration)
-		  && drift > m_audioSrcDrift) {
-			m_videoSource->AddEncodingDrift(drift - m_audioSrcDrift);
-		}
-		m_audioSrcDrift = drift;
+		m_startTimestamp = srcFrameTimestamp;
 	}
 
 	m_audioSrcFrameNumber++;
-	m_audioSrcElapsedDuration += SrcSamplesToTicks(frameDuration);
+	m_audioSrcElapsedDuration = srcFrameTimestamp - m_startTimestamp;
 
-	// TEMP
-	if (m_audioSrcType != CMediaFrame::PcmAudioFrame) {
-		debug_message("TBD implement audio decoding");
-		return;
+	if (resync) {
+		// flush preEncodingBuffer
+		m_audioPreEncodingBufferLength = 0;
+
+		// change dst sample numbers to account for gap
+		m_audioDstSampleNumber =
+		m_audioDstRawSampleNumber =
+			DstTicksToSamples(m_audioSrcElapsedDuration);
 	}
 
 	bool pcmMalloced = false;
@@ -833,12 +839,26 @@ pcmBufferCheck:
 	// encode audio frame
 	if (m_pConfig->m_audioEncode) {
 
+		Timestamp encodingStartTimestamp = GetTimestamp();
+
 		bool rc = m_audioEncoder->EncodeSamples(
 			(u_int16_t*)pcmData, pcmDataLength);
 
 		if (!rc) {
 			debug_message("failed to encode audio");
 			return;
+		}
+
+		Duration encodingTime =
+			(GetTimestamp() - encodingStartTimestamp);
+
+		if (m_sourceRealTime) {
+			Duration drift = encodingTime 
+				- DstSamplesToTicks(DstBytesToSamples(pcmDataLength));
+
+			if (drift > 0) {
+				m_videoSource->AddEncodingDrift(drift);
+			}
 		}
 
 		u_int32_t forwardedSamples;
@@ -1047,6 +1067,9 @@ void CMediaSource::ForwardEncodedAudioFrames(
 			break;
 		}
 
+		(*pNumSamples) += frameNumSamples;
+		(*pNumFrames)++;
+
 		// forward the encoded frame to sinks
 		CMediaFrame* pMediaFrame =
 			new CMediaFrame(
@@ -1054,14 +1077,11 @@ void CMediaSource::ForwardEncodedAudioFrames(
 				pFrame, 
 				frameLength,
 				baseTimestamp 
-					+ DstSamplesToTicks(frameNumSamples),
+					+ DstSamplesToTicks((*pNumSamples)),
 				frameNumSamples,
 				m_audioDstSampleRate);
 		ForwardFrame(pMediaFrame);
 		delete pMediaFrame;
-
-		(*pNumSamples) += frameNumSamples;
-		(*pNumFrames)++;
 	}
 }
 

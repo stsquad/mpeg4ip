@@ -38,8 +38,6 @@ Revision History:
 #ifndef __HEADER_H_ 
 #define __HEADER_H_
 
-#define pi 3.141592653589
-
 // for motion 
 #define NOT_MV 10000
 

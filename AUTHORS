@@ -2,6 +2,7 @@ MPEG4IP original code and integration by:
     Dave Mackie                 dmackie@cisco.com
     Bill May                    wmay@cisco.com
     Alix Marchandise-Franquet   alix@cisco.com
+    Massimo Villari             mvillari@cisco.com
 
 MPEG4IP would like to thank the following people for help in porting
 to other versions of *nux, windows and Mac OS X:
@@ -10,10 +11,15 @@ to other versions of *nux, windows and Mac OS X:
     Sean Gilligan               sean_gilligan@catalla.com
     Michael Rossberg            aziel@gmx.net
     Luis F. Ramirez             de_xt@hotmail.com
+    Petter Reinholdtsen         pere@hungry.com
 
 We'd like to thank George (everwicked) Diamantopoulos for his mpeg4ip
 guide.
     George Diamantopoulos       everwicked@everwicked.com
+
+We'd also like to thank the ever-present Maersk (Peter Maersk-Moller)
+for all his help with testing and other support.
+    Peter Maersk-Moller         peter@maersk-moller.net
 
 Authors for incorporated open source packages can be found in the respective 
 package sub-directories. The primary authors are also listed in the README.

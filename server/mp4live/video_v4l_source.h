@@ -81,9 +81,7 @@ protected:
 	struct video_mmap*	m_videoFrameMap;
 	int8_t				m_captureHead;
 	int8_t				m_encodeHead;
-
 	float				m_videoSrcFrameRate;
-	Duration			m_videoSrcFrameDuration;
 };
 
 class CVideoCapabilities {

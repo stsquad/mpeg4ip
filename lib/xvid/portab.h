@@ -138,6 +138,7 @@ static __inline int64_t read_counter() {
 		return (((int64_t)tu) << 32) | (int64_t)tb;
 	}
 #else
+#if defined(__i386__)
 	#define BSWAP(a) __asm__ ( "bswapl %0\n" : "=r" (a) : "0" (a) )
 	#define EMMS() __asm__("emms\n\t")
 
@@ -153,6 +154,14 @@ static __inline int64_t read_counter() {
 
     return ts;
 }
+#else
+#define BSWAP(a) \
+	 ((a) = ( ((a)&0xff)<<24) | (((a)&0xff00)<<8) | (((a)>>8)&0xff00) | (((a)>>24)&0xff))
+#define EMSS()
+static __inline int64_t read_counter() {
+	return 0;
+}
+#endif
 
 #endif
 
@@ -164,6 +173,9 @@ static __inline int64_t read_counter() {
 #define DEBUG3(X,A,B,C)
 #define DEBUG8(X,A,B,C,D,E,F,G,H)
 #define DEBUGCBR(A,B,C)
+#define DECLARE_ALIGNED_MATRIX(name,sizex,sizey,type,alignment) \
+	type name##_storage[(sizex)*(sizey)+(alignment)-1]; \
+	type * name = (type *) (((int32_t) name##_storage+(alignment - 1)) & ~((int32_t)(alignment)-1))
 
 #include <inttypes.h>
 

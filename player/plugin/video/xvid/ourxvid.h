@@ -41,7 +41,7 @@ typedef struct xvid_codec_t {
   uint32_t m_total_frames;
   // raw file support
   FILE *m_ifile;
-  unsigned char *m_buffer;
+  uint8_t *m_buffer;
   uint32_t m_buffer_size_max;
   uint32_t m_buffer_size;
   uint32_t m_buffer_on;
@@ -63,7 +63,7 @@ codec_data_t *xvid_file_check(lib_message_func_t message,
 			      double *max,
 			      char *desc[4]);
 int xvid_file_next_frame(codec_data_t *your_data,
-			  unsigned char **buffer, 
+			  uint8_t **buffer, 
 			 uint64_t *ts);
 void xvid_file_used_for_frame(codec_data_t *your,uint32_t bytes);
 int xvid_file_seek_to(codec_data_t *you, uint64_t ts);

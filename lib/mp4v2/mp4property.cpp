@@ -437,8 +437,6 @@ void MP4BytesProperty::Write(MP4File* pFile, u_int32_t index)
 	if (m_implicit) {
 		return;
 	}
-	WARNING(m_values[index] == NULL);
-	WARNING(m_valueSizes[index] == 0);
 	pFile->WriteBytes(m_values[index], m_valueSizes[index]);
 }
 

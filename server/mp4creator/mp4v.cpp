@@ -184,10 +184,10 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			exit(EXIT_MP4V_CREATOR);
 		}
 
-//#ifdef MP4V_DEBUG
+#ifdef MP4V_DEBUG
 		printf("objType %x objSize %u\n",
 			objType, objSize);
-//#endif
+#endif
 
 		if (objType == MP4AV_MPEG4_VOSH_START) {
 			MP4AV_Mpeg4ParseVosh(pObj, objSize, 

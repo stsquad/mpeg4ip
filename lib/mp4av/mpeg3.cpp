@@ -120,17 +120,20 @@ extern "C" int MP4AV_Mpeg3PictHdrType (uint8_t *pbuffer)
 }
 
 extern "C" int MP4AV_Mpeg3FindGopOrPictHdr (uint8_t *pbuffer,
-					    uint32_t buflen)
+					    uint32_t buflen,
+					    int *frame_type)
 {
   uint32_t value;
   uint32_t offset;
-
+  int ftype;
   for (offset = 0; offset < buflen; offset++, pbuffer++) {
     value = (pbuffer[0] << 24) | (pbuffer[1] << 16) | (pbuffer[2] << 8) | 
       pbuffer[3];
 
     if (value == MPEG3_PICTURE_START_CODE) {
-      if (MP4AV_Mpeg3PictHdrType (pbuffer) == 1) {
+      ftype = MP4AV_Mpeg3PictHdrType(pbuffer);
+      if (frame_type != NULL) *frame_type = ftype;
+      if (ftype == 1) {
 	return 0;
       } else {
 	return -1;

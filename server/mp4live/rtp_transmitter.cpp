@@ -23,6 +23,8 @@
 #include "mp4live.h"
 #include "rtp_transmitter.h"
 
+// #define RTP_DEBUG 1
+
 int CRtpTransmitter::ThreadMain(void) 
 {
 	while (SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
@@ -245,6 +247,14 @@ void CRtpTransmitter::SendQueuedAudioFrames(void)
 	u_int64_t ntpTimestamp =
 		TimestampToNtp(m_audioQueue[0]->GetTimestamp());
 
+#if RTP_DEBUG
+	debug_message("A ts %llu rtp %u ntp %u.%u",
+		m_audioQueue[0]->GetTimestamp(),
+		rtpTimestamp,
+		(u_int32_t)(ntpTimestamp >> 32),
+		(u_int32_t)ntpTimestamp);
+#endif
+
 	// check if RTCP SR needs to be sent
 	rtp_send_ctrl_2(m_audioRtpSession, rtpTimestamp, ntpTimestamp, NULL);
 	rtp_update(m_audioRtpSession);
@@ -302,6 +312,14 @@ void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
 		AudioTimestampToRtp(pFrame->GetTimestamp());
 	u_int64_t ntpTimestamp =
 		TimestampToNtp(pFrame->GetTimestamp());
+
+#if RTP_DEBUG
+	debug_message("A ts %llu rtp %u ntp %u.%u",
+		pFrame->GetTimestamp(),
+		rtpTimestamp,
+		(u_int32_t)(ntpTimestamp >> 32),
+		(u_int32_t)ntpTimestamp);
+#endif
 
 	// check if RTCP SR needs to be sent
 	rtp_send_ctrl_2(m_audioRtpSession, rtpTimestamp, ntpTimestamp, NULL);
@@ -404,6 +422,14 @@ void CRtpTransmitter::SendMpeg4VideoWith3016(CMediaFrame* pFrame)
 		VideoTimestampToRtp(pFrame->GetTimestamp());
 	u_int64_t ntpTimestamp =
 		TimestampToNtp(pFrame->GetTimestamp());
+
+#if RTP_DEBUG
+	debug_message("V ts %llu rtp %u ntp %u.%u",
+		pFrame->GetTimestamp(),
+		rtpTimestamp,
+		(u_int32_t)(ntpTimestamp >> 32),
+		(u_int32_t)ntpTimestamp);
+#endif
 
 	// check if RTCP SR needs to be sent
 	rtp_send_ctrl_2(m_videoRtpSession, rtpTimestamp, ntpTimestamp, NULL);

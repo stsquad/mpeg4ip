@@ -20,7 +20,7 @@ bool MPEGaudio::fillbuffer(uint32_t _size)
   return true;
 }
 
-int MPEGaudio::findheader (unsigned char *frombuffer, 
+int MPEGaudio::findheader (uint8_t *frombuffer, 
 			   uint32_t frombuffer_len,
 			   uint32_t *frameptr)
 {
@@ -30,7 +30,7 @@ int MPEGaudio::findheader (unsigned char *frombuffer,
        skipped++) {
     if (frombuffer[skipped] == 0xff &&
 	((frombuffer[skipped + 1] & 0xe0) == 0xe0)) {
-      _buffer = frombuffer + skipped;
+      _buffer = (unsigned char *)frombuffer + skipped;
       _buflen = frombuffer_len - skipped;
 
       if (loadheader()) {
@@ -46,12 +46,12 @@ int MPEGaudio::findheader (unsigned char *frombuffer,
   return -1;
 }
 
-int MPEGaudio::decodeFrame (unsigned char *tobuffer, 
-			    unsigned char *frombuffer, 
+int MPEGaudio::decodeFrame (uint8_t *tobuffer, 
+			    uint8_t *frombuffer, 
 			    uint32_t fromlen)
 {
   //printf("DecodeFrame\n");
-  _buffer = frombuffer;
+  _buffer = (unsigned char *)frombuffer;
   _buflen = fromlen;
   if (loadheader() == false) {
 #if 1

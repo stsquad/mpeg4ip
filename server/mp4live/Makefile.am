@@ -42,10 +42,6 @@ mp4live_SOURCES = \
 	video_util_rgb.cpp \
 	video_util_tv.h \
 	video_util_tv.cpp \
-	file_mpeg2_source.h \
-	file_mpeg2_source.cpp \
-	file_mp4_source.h \
-	file_mp4_source.cpp \
 	file_mp4_recorder.h \
 	file_mp4_recorder.cpp \
 	file_raw_sink.h \
@@ -59,8 +55,6 @@ mp4live_SOURCES = \
 # LATER
 # video_1394_source
 # video_dv
-# rtp_receiver
-# audio_vorbis
 
 INCLUDES=\
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ \
@@ -76,26 +70,29 @@ INCLUDES=\
 	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/lib/xvid \
 	-I$(top_srcdir)/server/video/H26L \
-	-I$(top_srcdir)/common/video/libmpeg3 \
-	-I$(top_srcdir)/player/lib
+	-I$(top_srcdir)/common/video/libmpeg32 \
+	-I$(top_srcdir)/player/lib \
+	-I$(top_srcdir)/player/src
 
 AM_CXXFLAGS = -DADD_XVID_ENCODER \
 	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER \
-	-DMPEG2_RAW_ONLY \
 	-D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
 LDADD = \
 	$(top_builddir)/server/mp4live/gui/libmp4livegui.la \
+	$(top_builddir)/server/audio/faac/libfaac.la \
+	$(top_builddir)/server/audio/lame/libmp3lame.a \
+	$(top_builddir)/lib/xvid/libxvid.la \
+	$(top_builddir)/server/video/H26L/libh26lenc.la \
+	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/rtp/libuclmmbase.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
-	$(top_builddir)/server/audio/faac/libfaac.la \
-	$(top_builddir)/server/audio/lame/libmp3lame.a \
-	$(top_builddir)/lib/xvid/libxvid.la \
-	$(top_builddir)/server/video/H26L/libh26lenc.la \
-	$(top_builddir)/common/video/libmpeg3/libmpeg3.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	-lpthread \
-	$(top_builddir)/lib/SDL/src/libSDL.la \
+	@SDL_LIBS@ \
+	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
 	@GTK_LIBS@ @GLIB_LIBS@
+

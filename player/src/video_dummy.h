@@ -40,13 +40,13 @@ class CDummyVideoSync : public CVideoSync {
   CDummyVideoSync(CPlayerSession *ptptr) : CVideoSync(ptptr) {
     m_y = m_u = m_v = NULL;
   };
-  int get_video_buffer(unsigned char **y,
-		       unsigned char **u,
-		       unsigned char **v);
+  int get_video_buffer(uint8_t **y,
+		       uint8_t **u,
+		       uint8_t **v);
   int filled_video_buffers(uint64_t time);
-  int set_video_frame(const Uint8 *y,      // from codec
-		      const Uint8 *u,
-		      const Uint8 *v,
+  int set_video_frame(const uin8_t *y,      // from codec
+		      const uint8_t *u,
+		      const uint8_t *v,
 		      int m_pixelw_y,
 		      int m_pixelw_uv,
 		      uint64_t time);

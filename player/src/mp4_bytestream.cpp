@@ -118,7 +118,7 @@ void CMp4ByteStream::reset (void)
   set_timebase(1);
 }
 
-uint64_t CMp4ByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CMp4ByteStream::start_next_frame (uint8_t **buffer, 
 					   uint32_t *buflen,
 					   void **ud)
 {
@@ -129,7 +129,7 @@ uint64_t CMp4ByteStream::start_next_frame (unsigned char **buffer,
 
   read_frame(m_frame_on);
 
-#ifdef DEBUG_MP4_FRAME 
+#if 0
   mp4f_message(LOG_DEBUG, "%s - Reading frame %d ts %llu - len %u %02x %02x %02x %02x", 
 	       m_name, m_frame_on, m_frame_on_ts, m_this_frame_size,
 	       m_buffer[m_byte_on],
@@ -155,7 +155,7 @@ void CMp4ByteStream::used_bytes_for_frame (uint32_t bytes_used)
 
 int CMp4ByteStream::skip_next_frame (uint64_t *pts, 
 				     int *pSync,
-				     unsigned char **buffer, 
+				     uint8_t **buffer, 
 				     uint32_t *buflen)
 {
   uint64_t ts;

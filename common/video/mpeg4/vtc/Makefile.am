@@ -1,1 +1,1 @@
-SUBDIRS= main pezw wavelet zte ztq
+SUBDIRS= main pezw wavelet zte ztq include

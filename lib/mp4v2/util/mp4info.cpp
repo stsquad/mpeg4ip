@@ -334,5 +334,7 @@ static void PrintHintInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 		payloadName,
 		referenceTrackId
 	);
+	if (payloadName != NULL)
+	  free(payloadName);
 }
 

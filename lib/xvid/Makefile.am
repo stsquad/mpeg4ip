@@ -28,4 +28,9 @@ libxvid_la_LIBADD = \
 	prediction/libxvidprediction.la \
 	quant/libxvidquant.la \
 	utils/libxvidutils.la 
+EXTRA_DIST = \
+	authors.txt \
+	changelog.txt \
+	libxvid.dsp \
+	xvid_st.dsp
 

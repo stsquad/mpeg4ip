@@ -117,13 +117,23 @@ static void free_time_desc (session_time_desc_t *time)
 void sdp_free_session_desc (session_desc_t *sptr)
 {
   session_desc_t *p;
+  media_desc_t *mptr, *q;
 
   p = sptr;
   while (p != NULL) {
     sptr = p;
     p = p->next;
-
+    
     sptr->next = NULL;
+    mptr = sptr->media;
+    sptr->media = NULL;
+
+    while (mptr != NULL) {
+      q = mptr;
+      mptr = q->next;
+      free_media_desc(q);
+    }
+
     FREE_CHECK(sptr, etag);
     FREE_CHECK(sptr, orig_username);
     FREE_CHECK(sptr, control_string);
@@ -180,67 +190,87 @@ void sdp_free_session_desc (session_desc_t *sptr)
  *    TRUE - have a new line.
  *    FALSE - all done.
  */
-static int get_next_line (char *olptr,
+static int get_next_line (char **polptr,
 			  sdp_decode_info_t *decode,
-			  uint32_t buflen)
+			  uint32_t *buflen)
 {
-  char *lptr;
-  char tempchar;
   char *fret;
-  int extra;
+  uint32_t len;
+  uint32_t buflen_left;
+  const char *cptr;
 
-  lptr = olptr;
   if (decode->isMem) {
-    /*
-     * reading from memory - copy up to next \n\r or \0
-     */
-    buflen--; /* account for ending 0 */
-    if (*decode->memptr == '\0')
-      return FALSE;
-    do {
-      extra = 0;
-      tempchar = *decode->memptr;
+    cptr = decode->memptr;
+
+    if (*cptr == '\0') return FALSE;
+
+    while (*cptr != '\0' && *cptr != '\n' && *cptr != '\r') cptr++;
+
+    len = cptr - decode->memptr;
+    if (*buflen <= len + 1) {
+      if (len > 65535) {
+	sdp_debug(LOG_CRIT, "Max line length of 65535 exceeded %u", 
+		  len);
+	return (FALSE);
+      }
+      *polptr = realloc(*polptr, len + 1);
+      *buflen = len + 1;
+    }
+    memcpy(*polptr, decode->memptr, len);
+    (*polptr)[len] = '\0';
+    decode->memptr += len;
+    while (*decode->memptr == '\n' || *decode->memptr == '\r')
       decode->memptr++;
-      if (tempchar == '\n' || tempchar == '\r') {
-	tempchar = '\0';
-	while (*decode->memptr == '\n' || *decode->memptr == '\r') {
-	  extra++;
-	  decode->memptr++;
-	}
-      }
-      if (buflen > 0) {
-	*lptr++ = tempchar;
-	buflen--;
-      } else {
-	sdp_debug(LOG_WARNING, "Empty line in SDP");
-	*lptr = '\0';
-      }
-    } while (tempchar != '\0');
   } else {
+    char *ptr;
     // File reads...
     if (decode->ifile == NULL)
       return FALSE;
-    // Read file until we hit the end, or a non-blank line read
-    do {
-      extra = 0;
-      fret = fgets(lptr, buflen, decode->ifile);
-      if (fret == NULL)
-	return (FALSE);
-      while (*fret != '\0') {
-	if (*fret == '\n' || *fret == '\r') {
-	  extra++;
-	  *fret = '\0';
-	}
-	else fret++;
-      }
-      if (*lptr == '\0') {
-	sdp_debug(LOG_WARNING, "Empty line in SDP");
-      }
-    } while (*lptr == '\0');
-  }
+    if (*buflen == 0) {
+      *polptr = (char *)malloc(1024);
+      *buflen = 1024;
+    }
 
-  if (extra > 1) {
-    sdp_debug(LOG_WARNING, "Extra cr or lf at end of %s", olptr);
+    // Read file until we hit the end, or a non-blank line read
+    ptr = *polptr;
+    buflen_left = *buflen;
+    len = 0;
+
+    while (1) {
+      fret = fgets(ptr, buflen_left, decode->ifile);
+      if (fret == NULL) {
+	if (len > 0) {
+	  sdp_debug(LOG_WARNING, "Unterminated last line");
+	  (*polptr)[len] = '\0'; // make sure
+	  return (TRUE);
+	}
+	return (FALSE);
+      }
+
+      len = strlen(ptr);
+      if (ptr[len - 1] == '\n' || ptr[len - 1] == '\r') {
+	// we have an end of line
+	len--;
+	while (len >= 0 &&
+	       (ptr[len] == '\n' || ptr[len] == '\r')) {
+	  ptr[len] = '\0';
+	  len--;
+	}
+	return (TRUE);
+      }
+      
+      // too long...
+      buflen_left -= len;
+      if (*buflen + 1024 > 65535) {
+	sdp_debug(LOG_CRIT, "Max line length of 65535 exceeded %u", 
+		  *buflen);
+	return (FALSE);
+      }
+      *buflen += 1024;
+      buflen_left += 1024;
+      *polptr = realloc(*polptr, *buflen);
+      ptr = *polptr + *buflen - buflen_left;
+    }
   }
 
   return TRUE;
@@ -1729,9 +1759,10 @@ int sdp_decode (sdp_decode_info_t *decode,
 		session_desc_t **retlist,
 		int *translated)
 {
-  char line[1024], *lptr;
+  char *line, *lptr;
   char code;
   int errret;
+  uint32_t linelen;
 
   session_desc_t *first_session,*sptr;
   media_desc_t *current_media;
@@ -1746,7 +1777,9 @@ int sdp_decode (sdp_decode_info_t *decode,
   current_time = NULL;
   *translated = 0;
   errret = 0;
-  while (errret == 0 && get_next_line(line, decode, 1024) != FALSE) {
+  line = NULL;
+  linelen = 0;
+  while (errret == 0 && get_next_line(&line, decode, &linelen) != FALSE) {
     lptr = line;
     ADV_SPACE(lptr);
     /*
@@ -1754,7 +1787,7 @@ int sdp_decode (sdp_decode_info_t *decode,
      */
     if (*lptr == '\0')
       continue;
-    sdp_debug(LOG_DEBUG, lptr);
+    sdp_debug(LOG_DEBUG, "\'%s\'",  lptr);
     /*
      * Let's be strict about 1 character code
      */
@@ -1885,8 +1918,9 @@ int sdp_decode (sdp_decode_info_t *decode,
     }
   }
 
-  if (decode->isMem == FALSE) {
-    fclose(decode->ifile);
+
+  if (line != NULL) {
+    free(line);
   }
 
   if (errret != 0) {
@@ -1961,4 +1995,12 @@ sdp_decode_info_t *set_sdp_decode_from_filename (const char *filename)
   }
 
   return (decode_ptr);
+}
+
+void sdp_decode_info_free (sdp_decode_info_t *decode)
+{
+  if (decode->isMem == FALSE) {
+    fclose(decode->ifile);
+  }
+  free(decode);
 }

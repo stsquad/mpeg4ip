@@ -676,7 +676,7 @@ void MP4File::FindIntegerProperty(const char* name,
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {
 	if (!FindProperty(name, ppProperty, pIndex)) {
-		throw new MP4Error("no such property", "MP4File::FindIntegerProperty");
+		throw new MP4Error("no such property - %s", "MP4File::FindIntegerProperty", name);
 	}
 
 	switch ((*ppProperty)->GetType()) {
@@ -687,7 +687,7 @@ void MP4File::FindIntegerProperty(const char* name,
 	case Integer64Property:
 		break;
 	default:
-		throw new MP4Error("type mismatch", "MP4File::FindIntegerProperty");
+	  throw new MP4Error("type mismatch - property %s type %d", "MP4File::FindIntegerProperty", name, (*ppProperty)->GetType());
 	}
 }
 
@@ -717,10 +717,13 @@ void MP4File::FindFloatProperty(const char* name,
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {
 	if (!FindProperty(name, ppProperty, pIndex)) {
-		throw new MP4Error("no such property", "MP4File::FindFloatProperty");
+		throw new MP4Error("no such property - %s", "MP4File::FindFloatProperty", name);
 	}
 	if ((*ppProperty)->GetType() != Float32Property) {
-		throw new MP4Error("type mismatch", "MP4File::FindFloatProperty");
+		throw new MP4Error("type mismatch - property %s type %d", 
+				   "MP4File::FindFloatProperty",
+				   name, 
+				   (*ppProperty)->GetType());
 	}
 }
 
@@ -750,10 +753,11 @@ void MP4File::FindStringProperty(const char* name,
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {
 	if (!FindProperty(name, ppProperty, pIndex)) {
-		throw new MP4Error("no such property", "MP4File::FindStringProperty");
+		throw new MP4Error("no such property - %s", "MP4File::FindStringProperty", name);
 	}
 	if ((*ppProperty)->GetType() != StringProperty) {
-		throw new MP4Error("type mismatch", "MP4File::FindStringProperty");
+		throw new MP4Error("type mismatch - property %s type %d", "MP4File::FindStringProperty",
+				   name, (*ppProperty)->GetType());
 	}
 }
 
@@ -783,10 +787,10 @@ void MP4File::FindBytesProperty(const char* name,
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {
 	if (!FindProperty(name, ppProperty, pIndex)) {
-		throw new MP4Error("no such property", "MP4File::FindBytesProperty");
+		throw new MP4Error("no such property %s", "MP4File::FindBytesProperty", name);
 	}
 	if ((*ppProperty)->GetType() != BytesProperty) {
-		throw new MP4Error("type mismatch", "MP4File::FindBytesProperty");
+		throw new MP4Error("type mismatch - property %s - type %d", "MP4File::FindBytesProperty", name, (*ppProperty)->GetType());
 	}
 }
 
@@ -1091,8 +1095,10 @@ MP4TrackId MP4File::AddSceneTrack()
 	return trackId;
 }
 
-MP4TrackId MP4File::AddAudioTrack(u_int32_t timeScale, 
-	u_int32_t sampleDuration, u_int8_t audioType)
+MP4TrackId MP4File::AddAudioTrack(
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration, 
+	u_int8_t audioType)
 {
 	MP4TrackId trackId = AddTrack(MP4_AUDIO_TRACK_TYPE, timeScale);
 
@@ -1133,8 +1139,11 @@ MP4TrackId MP4File::AddAudioTrack(u_int32_t timeScale,
 }
 
 MP4TrackId MP4File::AddVideoTrack(
-	u_int32_t timeScale, u_int32_t sampleDuration, 
-	u_int16_t width, u_int16_t height, u_int8_t videoType)
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration, 
+	u_int16_t width, 
+	u_int16_t height, 
+	u_int8_t videoType)
 {
 	MP4TrackId trackId = AddTrack(MP4_VIDEO_TRACK_TYPE, timeScale);
 
@@ -1277,28 +1286,39 @@ u_int32_t MP4File::GetNumberOfTracks(const char* type, u_int8_t subType)
 
 MP4TrackId MP4File::AllocTrackId()
 {
-	MP4TrackId trackId = GetIntegerProperty("moov.mvhd.nextTrackId");
+	MP4TrackId trackId = 
+		GetIntegerProperty("moov.mvhd.nextTrackId");
 
 	if (trackId <= 0xFFFF) {
-		SetIntegerProperty("moov.mvhd.nextTrackId", trackId + 1);
-	} else {
-		// extremely rare case where we need to search for a track id
-		for (u_int16_t i = 1; i <= 0xFFFF; i++) {
-			try {
-				FindTrackIndex(i);
-			}
-			catch (MP4Error* e) {
-				trackId = i;
-				delete e;
-			}
+		// check that nextTrackid is correct
+		try {
+			FindTrackIndex(trackId);
+			// ERROR, this trackId is in use
 		}
-		// even more extreme case where mp4 file has 2^16 tracks in it
-		if (trackId > 0xFFFF) {
-			throw new MP4Error("too many exising tracks", "AddTrack");
+		catch (MP4Error* e) {
+			// OK, this trackId is not in use, proceed
+			delete e;
+			SetIntegerProperty("moov.mvhd.nextTrackId", trackId + 1);
+			return trackId;
 		}
 	}
 
-	return trackId;
+	// we need to search for a track id
+	for (trackId = 1; trackId <= 0xFFFF; trackId++) {
+		try {
+			FindTrackIndex(trackId);
+			// KEEP LOOKING, this trackId is in use
+		}
+		catch (MP4Error* e) {
+			// OK, this trackId is not in use, proceed
+			delete e;
+			return trackId;
+		}
+	}
+
+	// extreme case where mp4 file has 2^16 tracks in it
+	throw new MP4Error("too many exising tracks", "AddTrack");
+	return MP4_INVALID_TRACK_ID;		// to keep MSVC happy
 }
 
 MP4TrackId MP4File::FindTrackId(
@@ -1334,7 +1354,9 @@ MP4TrackId MP4File::FindTrackId(
 		}
 	}
 
-	throw new MP4Error("Track index doesn't exist", "FindTrackId"); 
+	throw new MP4Error("Track index doesn't exist - track %d type %s", 
+			   "FindTrackId", 
+			   trackIndex, type); 
 	return MP4_INVALID_TRACK_ID; // satisfy MS compiler
 }
 
@@ -1346,7 +1368,7 @@ u_int16_t MP4File::FindTrackIndex(MP4TrackId trackId)
 		}
 	}
 	
-	throw new MP4Error("Track id doesn't exist", "FindTrackIndex"); 
+	throw new MP4Error("Track id %d doesn't exist", "FindTrackIndex", trackId); 
 	return (u_int16_t)-1; // satisfy MS compiler
 }
 
@@ -1360,7 +1382,8 @@ u_int16_t MP4File::FindTrakAtomIndex(MP4TrackId trackId)
 		}
 	}
 
-	throw new MP4Error("Track id doesn't exist", "FindTrakAtomIndex"); 
+	throw new MP4Error("Track id %d doesn't exist", "FindTrakAtomIndex",
+			   trackId); 
 	return (u_int16_t)-1; // satisfy MS compiler
 }
 

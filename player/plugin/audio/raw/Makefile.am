@@ -3,7 +3,7 @@ libdir = @PLAYER_PLUGIN_DIR@
 lib_LTLIBRARIES = raw_audio_plugin.la
 raw_audio_plugin_la_LDFLAGS = -module
 raw_audio_plugin_la_SOURCES = \
-	rawa.cpp
+	rawa.cpp rawa.h
 raw_audio_plugin_la_LIBADD = \
 	-lm 
 

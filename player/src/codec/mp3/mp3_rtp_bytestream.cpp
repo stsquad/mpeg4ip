@@ -76,7 +76,7 @@ int CMP3RtpByteStream::check_rtp_frame_complete_for_payload_type (void)
   return m_head != NULL;
 }
 
-uint64_t CMP3RtpByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CMP3RtpByteStream::start_next_frame (uint8_t **buffer, 
 					      uint32_t *buflen,
 					      void **userdata)
 {
@@ -93,6 +93,7 @@ uint64_t CMP3RtpByteStream::start_next_frame (unsigned char **buffer,
 #ifdef DEBUG_RTP_PAKS
     mp3_rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
+    return (m_last_realtime);
   } else {
     m_buffer_len = 0;
     if (m_pak_on != NULL) {
@@ -101,7 +102,7 @@ uint64_t CMP3RtpByteStream::start_next_frame (unsigned char **buffer,
     m_pak_on = m_head;
     remove_packet_rtp_queue(m_pak_on, 0);
       
-    m_mp3_frame = (unsigned char *)m_pak_on->rtp_data;
+    m_mp3_frame = (uint8_t *)m_pak_on->rtp_data;
     m_buffer_len = m_pak_on->rtp_data_len;
     m_ts = m_pak_on->rtp_pak_ts;
 

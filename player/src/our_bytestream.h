@@ -48,7 +48,7 @@ class COurInByteStream
    * start_next_frame - return ts offset, pointer to buffer start, length
    * in buffer
    */
-  virtual uint64_t start_next_frame (unsigned char **buffer, uint32_t *buflen,
+  virtual uint64_t start_next_frame (uint8_t **buffer, uint32_t *buflen,
 				     void **userdata) = 0;
   /*
    * used_bytes_for_frame - called after we process a frame with the number
@@ -62,7 +62,7 @@ class COurInByteStream
   /*
    * skip_next_frame - actually do it...
    */
-  virtual int skip_next_frame (uint64_t *ts, int *hasSyncFrame, unsigned char **buffer, uint32_t *buflen) { assert(0 == 1);return 0; };
+  virtual int skip_next_frame (uint64_t *ts, int *hasSyncFrame, uint8_t **buffer, uint32_t *buflen) { assert(0 == 1);return 0; };
   virtual double get_max_playtime (void) = 0;
   virtual void set_start_time (uint64_t start) { m_play_start_time = start; };
  protected:

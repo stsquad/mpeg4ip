@@ -48,8 +48,6 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 
 	xvidEncParams.width = m_pConfig->m_videoWidth;
 	xvidEncParams.height = m_pConfig->m_videoHeight;
-	xvidEncParams.raw_height = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
 	xvidEncParams.fincr = 1001;
 	xvidEncParams.fbase = 
 		(int)(1001 * m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
@@ -73,10 +71,6 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 
 	m_xvidHandle = xvidEncParams.handle; 
 
-	m_inputOffset =
-		(xvidEncParams.raw_height - xvidEncParams.height) / 2 
-		* xvidEncParams.width;
-
 	memset(&m_xvidFrame, 0, sizeof(m_xvidFrame));
 
 	m_xvidFrame.general = XVID_HALFPEL | XVID_H263QUANT;
@@ -95,17 +89,22 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 }
 
 bool CXvidVideoEncoder::EncodeImage(
-	u_int8_t* pY, u_int8_t* pU, u_int8_t* pV, bool wantKeyFrame)
+	u_int8_t* pY, 
+	u_int8_t* pU, 
+	u_int8_t* pV, 
+	u_int32_t yStride,
+	u_int32_t uvStride,
+	bool wantKeyFrame)
 {
 	m_vopBuffer = (u_int8_t*)malloc(m_pConfig->m_videoMaxVopSize);
 	if (m_vopBuffer == NULL) {
 		return false;
 	}
 
-	// So long as images planes are consecutive in memory
-	// perhaps separated by a crop area, then we can just
-	// give xvid the start of the raw Y plane
-	m_xvidFrame.image = pY - m_inputOffset;
+	m_xvidFrame.image_y = pY;
+	m_xvidFrame.image_u = pU;
+	m_xvidFrame.image_v = pV;
+	m_xvidFrame.stride = yStride;
 	m_xvidFrame.bitstream = m_vopBuffer;
 	m_xvidFrame.intra = (wantKeyFrame ? 1 : -1);
 

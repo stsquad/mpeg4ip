@@ -178,7 +178,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
     ret = quicktime_video_sequence_header(m_qtfile, ix, NULL, &length);
     if (ret < 0) {
       bufsize = -ret;
-      unsigned char *foo = (unsigned char *)malloc(bufsize);
+      uint8_t *foo = (uint8_t *)malloc(bufsize);
       int ret2 = quicktime_video_sequence_header(m_qtfile, ix, foo, &bufsize);
       if (ret2 != 1) {
 	player_debug_message("Weird error here %d %d", ret, ret2);
@@ -194,7 +194,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
     ret = mptr->create_video_plugin(plugin, 
 				    NULL,
 				    vinfo,
-				    foo,
+				    (uint8_t *)foo,
 				    bufsize);
     /*
      * Create bytestream
@@ -225,7 +225,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
 int CQtimeFile::create_audio (CPlayerSession *psptr)
 {
   CPlayerMedia *mptr;
-  unsigned char *ud;
+  uint8_t *ud;
   int udsize, ret;
   long sample_rate;
   int samples_per_frame;
@@ -240,7 +240,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
 
     ud = NULL;
     udsize = 0;
-    ret = quicktime_get_mp4_audio_decoder_config(m_qtfile, 0, &ud, &udsize);
+    ret = quicktime_get_mp4_audio_decoder_config(m_qtfile, 0, (unsigned char **)&ud, &udsize);
 
     plugin = check_for_audio_codec(codec, NULL, -1, -1, ud, udsize);
     if (plugin == NULL) {

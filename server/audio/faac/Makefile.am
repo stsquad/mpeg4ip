@@ -28,6 +28,7 @@ libfaac_la_SOURCES = \
 	channels.h \
 	channels.c \
 	coder.h \
+	faac.h \
 	fft.h \
 	fft.c \
 	filtbank.h \
@@ -48,3 +49,4 @@ libfaac_la_SOURCES = \
 	util.h \
 	util.c
 
+EXTRA_DIST = COPYING libfaac.pdf 

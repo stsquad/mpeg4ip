@@ -1,5 +1,7 @@
 
-lib_LTLIBRARIES = libuclmmbase.la
+noinst_LTLIBRARIES = libuclmmbase.la
+
+libuclmmbase_la_LDFLAGS = -static
 
 libuclmmbase_la_SOURCES= \
 	asarray.c \
@@ -26,17 +28,50 @@ libuclmmbase_la_SOURCES= \
 	util.c \
 	version.h 
 
+EXTRA_DIST = \
+	acconfig.h \
+	addrinfo.h \
+	addrsize.h \
+	asarray.h \
+	base64.h \
+	bills_srtp.h \
+	bittypes.h \
+	btree.h \
+	cdecl_ext.h \
+	config_unix.h \
+	config_win32.h \
+	crypt_random.h \
+	debug.h \
+	drand48.h \
+	gettimeofday.h \
+	hmac.h \
+	inet_ntop.h \
+	inet_pton.h \
+	mbus_addr.h \
+	mbus_config.h \
+	mbus.h \
+	mbus_parser.h \
+	md5.h \
+	memory.h \
+	net_udp.h \
+	ntp.h \
+	qfDES.h \
+	rijndael-alg-fst.h \
+	rijndael-api-fst.h \
+	rtp.h \
+	sockstorage.h \
+	test_base64.h \
+	test_des.h \
+	test_mbus_addr.h \
+	test_mbus_parser.h \
+	test_md5.h \
+	test_memory.h \
+	test_net_udp.h \
+	util.h \
+	vsnprintf.h \
+	boxes-fst.dat
+
 version.h: VERSION
 	sed -e 's/.*/#define CCL_VERSION "v&"/' $? > version.h
 
 AM_CFLAGS = -DDEBUG
-
-check_PROGRAMS = test_rtp_server test_rtp_client
-test_rtp_server_LDADD = libuclmmbase.la
-test_rtp_server_SOURCES = test_rtp_server.c # net_udp.c
-
-##test_SOURCES = test.c test_des.c test_mbus_addr.c test_mbus_parser.c \
-##	test_md5.c test_memory.c test_net_udp.c test_base64.c
-
-test_rtp_client_LDADD = libuclmmbase.la
-test_rtp_client_SOURCES = test_rtp_client.c  

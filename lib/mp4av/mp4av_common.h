@@ -22,11 +22,13 @@
 #ifndef __MP4AV_COMMON_INCLUDED__
 #define __MP4AV_COMMON_INCLUDED__ 
 
+#ifndef ASSERT
 #ifdef NODEBUG
 #define ASSERT(expr)
 #else
 #include <assert.h>
 #define ASSERT(expr)	assert(expr)
+#endif
 #endif
 
 #include <mp4.h>

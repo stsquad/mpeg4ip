@@ -3,7 +3,7 @@ libdir = @PLAYER_PLUGIN_DIR@
 lib_LTLIBRARIES = mpeg3_video_plugin.la
 mpeg3_video_plugin_la_LDFLAGS = -module
 mpeg3_video_plugin_la_SOURCES = \
-	mpeg3.cpp
+	mpeg3.cpp mpeg3.h
 mpeg3_video_plugin_la_LIBADD = \
 	-lm \
 	$(top_builddir)/common/video/libmpeg32/video/libmpeg3video.la \

@@ -138,7 +138,7 @@ bool CLameAudioEncoder::GetEncodedSamples(
 	u_int32_t* pBufferLength,
 	u_int32_t* pNumSamples)
 {
-	u_int8_t* mp3Frame;
+	const u_int8_t* mp3Frame;
 	u_int32_t mp3FrameLength;
 
 	if (!MP4AV_Mp3GetNextFrame(m_mp3FrameBuffer, m_mp3FrameBufferLength, 

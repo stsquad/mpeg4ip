@@ -156,21 +156,19 @@ bool CLiveConfig::IsOneSource()
 	return sameSourceName;
 }
 
-bool CLiveConfig::IsFileVideoSource()
+bool CLiveConfig::IsCaptureVideoSource()
 {
 	const char *sourceType =
 		GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
 
-	return !strcasecmp(sourceType, FILE_SOURCE_MP4)
-		|| !strcasecmp(sourceType, FILE_SOURCE_MPEG2);
+	return !strcasecmp(sourceType, VIDEO_SOURCE_V4L);
 }
 
-bool CLiveConfig::IsFileAudioSource()
+bool CLiveConfig::IsCaptureAudioSource()
 {
 	const char *sourceType =
 		GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
 
-	return !strcasecmp(sourceType, FILE_SOURCE_MP4)
-		|| !strcasecmp(sourceType, FILE_SOURCE_MPEG2);
+	return !strcasecmp(sourceType, AUDIO_SOURCE_OSS);
 }
 

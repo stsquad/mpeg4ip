@@ -68,7 +68,6 @@ typedef struct
 	uint32_t global_flags;
 
 #ifdef MPEG4IP
-	uint32_t raw_height;
 	uint16_t fincr;
 	uint16_t fbase;
 	uint8_t  time_inc_bits;

@@ -21,18 +21,22 @@
 
 #ifndef __MP4_UTIL_INCLUDED__
 #define __MP4_UTIL_INCLUDED__
-
 #include <assert.h>
 
+#ifndef ASSERT
 #ifdef NDEBUG
 #define ASSERT(expr)
-#define WARNING(expr)
 #else
 #define ASSERT(expr) \
 	if (!(expr)) { \
 		fflush(stdout); \
 		assert((expr)); \
 	}
+#endif
+#endif
+#ifdef NDEBUG
+#define WARNING(expr)
+#else
 #define WARNING(expr) \
 	if (expr) { \
 		fflush(stdout); \
@@ -98,25 +102,56 @@ public:
 		m_errno = 0;
 		m_errstring = NULL;
 		m_where = NULL;
+		m_free = 0;
+	}
+	~MP4Error() {
+	  if (m_free != 0) {
+	    free((void *)m_errstring);
+	  }
 	}
 	MP4Error(int err, const char* where = NULL) {
 		m_errno = err;
 		m_errstring = NULL;
 		m_where = where;
+		m_free = 0;
 	}
-	MP4Error(const char* errstring, const char* where = NULL) {
-		m_errno = 0;
-		m_errstring = errstring;
-		m_where = where;
+	MP4Error(const char *format, const char *where, ...) {
+	  char *string;
+	  m_errno = 0;
+	  string = (char *)malloc(512);
+	  m_where = where;
+	  if (string) {
+	    va_list ap;
+	    va_start(ap, where);
+	    vsnprintf(string, 512, format, ap);
+	    va_end(ap);
+	    m_errstring = string;
+	    m_free = 1;
+	  } else {
+	    m_errstring = format;
+	    m_free = 0;
+	  }
 	}
-	MP4Error(int err, const char* errstring, const char* where) {
-		m_errno = err;
-		m_errstring = errstring;
-		m_where = where;
+	MP4Error(int err, const char* format, const char* where, ...) {
+	  char *string;
+	  m_errno = err;
+	  string = (char *)malloc(512);
+	  m_where = where;
+	  if (string) {
+	    va_list ap;
+	    va_start(ap, where);
+	    vsnprintf(string, 512, format, ap);
+	    va_end(ap);
+	    m_errstring = string;
+	    m_free = 1;
+	  } else {
+	    m_errstring = format;
+	    m_free = 0;
+	  }
 	}
 
 	void Print(FILE* pFile = stderr);
-
+	int m_free;
 	int m_errno;
 	const char* m_errstring;
 	const char* m_where;

@@ -68,8 +68,12 @@
 #define EVEN(A)		(((A)<0?(A)+1:(A)) & ~1)
 
 
+#ifndef MIN
 #define MIN(X, Y) ((X)<(Y)?(X):(Y))
+#endif
+#ifndef MAX
 #define MAX(X, Y) ((X)>(Y)?(X):(Y))
+#endif
 #define ABS(X)    (((X)>0)?(X):-(X))
 #define SIGN(X)   (((X)>0)?1:-1)
 

@@ -74,6 +74,12 @@ typedef struct codec_plugin_list_t {
 
 static codec_plugin_list_t *audio_codecs, *video_codecs;
 
+static void close_file_search (dir_list_t *ptr)
+{
+#ifndef _WIN32
+  closedir(ptr->dptr);
+#endif
+}
 /*
  * portable way to find the next file.  In unix, we're looking for
  * any .so files.  In windows, we've already started looking for .dll
@@ -181,6 +187,7 @@ void initialize_plugins (void)
     }
     fname = find_next_file(&dir, PLAYER_PLUGIN_DIR);
   }
+  close_file_search(&dir);
 }
 
 /*
@@ -191,7 +198,7 @@ codec_plugin_t *check_for_audio_codec (const char *compressor,
 				       format_list_t *fptr,
 				       int audio_type,
 				       int profile, 
-				       const unsigned char *userdata,
+				       const uint8_t *userdata,
 				       uint32_t userdata_size)
 {
   codec_plugin_list_t *aptr;
@@ -232,7 +239,7 @@ codec_plugin_t *check_for_video_codec (const char *compressor,
 				       format_list_t *fptr,
 				       int type,
 				       int profile, 
-				       const unsigned char *userdata,
+				       const uint8_t *userdata,
 				       uint32_t userdata_size)
 {
   codec_plugin_list_t *vptr;
@@ -315,14 +322,13 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
 	 */
 	mptr = new CPlayerMedia(psptr);
 
-	mptr->set_plugin_data(vptr->codec, cifptr);
 	COurInByteStreamFile *fbyte;
 	fbyte = new COurInByteStreamFile(vptr->codec,
 					 cifptr,
 					 maxtime);
 	mptr->create_from_file(fbyte, TRUE);
-	cifptr->ifptr = mptr;
-	cifptr->v.video_vft = get_video_vft();
+	mptr->set_plugin_data(vptr->codec, cifptr, get_video_vft(), NULL);
+
 	for (int ix = 0; ix < 4; ix++) 
 	  if (desc[ix] != NULL) 
 	    psptr->set_session_desc(ix, desc[ix]);
@@ -372,14 +378,13 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
       
 	mptr = new CPlayerMedia(psptr);
 
-	mptr->set_plugin_data(aptr->codec, cifptr);
 	COurInByteStreamFile *fbyte;
 	fbyte = new COurInByteStreamFile(aptr->codec,
 					 cifptr,
 					 maxtime);
 	mptr->create_from_file(fbyte, FALSE);
-	cifptr->ifptr = mptr;
-	cifptr->v.audio_vft = get_audio_vft();
+	mptr->set_plugin_data(aptr->codec, cifptr, NULL, get_audio_vft());
+
 	for (int ix = 0; ix < 4; ix++) 
 	  if (desc[ix] != NULL) 
 	    psptr->set_session_desc(ix, desc[ix]);

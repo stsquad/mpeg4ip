@@ -24,8 +24,6 @@
 #include "media_flow.h"
 #include "audio_oss_source.h"
 #include "video_v4l_source.h"
-#include "file_mpeg2_source.h"
-#include "file_mp4_source.h"
 #include "video_sdl_preview.h"
 #include "file_mp4_recorder.h"
 #include "rtp_transmitter.h"
@@ -56,12 +54,9 @@ void CAVMediaFlow::Start(void)
 
 		if (!strcasecmp(sourceType, VIDEO_SOURCE_V4L)) {
 			m_videoSource = new CV4LVideoSource();
-
-		} else if (!strcasecmp(sourceType, FILE_SOURCE_MP4)) {
-			m_videoSource = new CMp4FileSource();
-
-		} else if (!strcasecmp(sourceType, FILE_SOURCE_MPEG2)) {
-			m_videoSource = new CMpeg2FileSource();
+		} else {
+			error_message("unknown video source type %s", sourceType);
+			return;
 		}
 		m_videoSource->SetConfig(m_pConfig);
 		m_videoSource->StartThread();
@@ -77,12 +72,9 @@ void CAVMediaFlow::Start(void)
 			if (!strcasecmp(sourceType, AUDIO_SOURCE_OSS)) {
 				SetAudioInput();
 				m_audioSource = new COSSAudioSource();
-
-			} else if (!strcasecmp(sourceType, FILE_SOURCE_MP4)) {
-				m_audioSource = new CMp4FileSource();
-
-			} else if (!strcasecmp(sourceType, FILE_SOURCE_MPEG2)) {
-				m_audioSource = new CMpeg2FileSource();
+			} else {
+				error_message("unknown audio source type %s", sourceType);
+				return;
 			}
 			m_audioSource->SetConfig(m_pConfig);
 			m_audioSource->StartThread();
@@ -124,11 +116,15 @@ void CAVMediaFlow::Start(void)
 	}
 #endif
 
-	if (m_videoSource) {
-		m_videoSource->StartVideo();
-	}
-	if (m_audioSource) {
-		m_audioSource->StartAudio();
+	if (m_videoSource && m_videoSource == m_audioSource) {
+		m_videoSource->Start();
+	} else {
+		if (m_videoSource) {
+			m_videoSource->StartVideo();
+		}
+		if (m_audioSource) {
+			m_audioSource->StartAudio();
+		}
 	}
 	if (m_mp4Recorder) {
 		m_mp4Recorder->Start();
@@ -182,7 +178,7 @@ void CAVMediaFlow::Stop(void)
 		m_audioSource = NULL;
 	}
 
-	if (m_pConfig->IsFileVideoSource()) {
+	if (!m_pConfig->IsCaptureVideoSource()) {
 		if (m_videoSource && !oneSource) {
 			m_videoSource->StopThread();
 			delete m_videoSource;
@@ -227,7 +223,7 @@ void CAVMediaFlow::StartVideoPreview(void)
 		return;
 	}
 
-	if (m_pConfig->IsFileVideoSource()) {
+	if (!m_pConfig->IsCaptureVideoSource()) {
 		return;
 	}
 
@@ -251,7 +247,7 @@ void CAVMediaFlow::StartVideoPreview(void)
 
 void CAVMediaFlow::StopVideoPreview(void)
 {
-	if (m_pConfig->IsFileVideoSource()) {
+	if (!m_pConfig->IsCaptureVideoSource()) {
 		return;
 	}
 

@@ -81,7 +81,7 @@ static unsigned char to_hex (char *ptr)
   if (isdigit(*ptr)) {
     return (*ptr - '0');
   }
-  return (tolower(*ptr) - 'a');
+  return (tolower(*ptr) - 'a' + 10);
 }
 
 FMTP_PARSE_FUNC(fmtp_config)
@@ -99,7 +99,7 @@ FMTP_PARSE_FUNC(fmtp_config)
   }
   iptr = fptr->config_ascii = (char *)malloc(len + 1);
   len /= 2;
-  bptr = fptr->config_binary = (unsigned char *)malloc(len);
+  bptr = fptr->config_binary = (uint8_t *)malloc(len);
   fptr->config_binary_len = len;
   
   while (len > 0) {

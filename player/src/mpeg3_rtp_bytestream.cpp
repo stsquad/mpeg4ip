@@ -50,7 +50,7 @@ CMpeg3RtpByteStream::CMpeg3RtpByteStream(unsigned int rtp_pt,
 {
 }
 
-uint64_t CMpeg3RtpByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer, 
 						uint32_t *buflen,
 						void **ud)
 {
@@ -69,7 +69,7 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (unsigned char **buffer,
     // Still bytes in the buffer...
     *buffer = m_buffer + m_bytes_used;
     *buflen = diff;
-    ts = m_ts;
+    return (m_last_realtime);
 #ifdef DEBUG_RTP_PAKS
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
@@ -98,7 +98,7 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (unsigned char **buffer,
 	}
 	seq = rpak->rtp_pak_seq + 1;
       }
-      unsigned char *from;
+      uint8_t *from;
       uint32_t len;
       m_skip_on_advance_bytes = 4;
       if ((*rpak->rtp_data & 0x4) != 0) {
@@ -106,12 +106,12 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (unsigned char **buffer,
 	if ((rpak->rtp_data[4] & 0x40) != 0) {
 	}
       }
-      from = (unsigned char *)rpak->rtp_data + m_skip_on_advance_bytes;
+      from = (uint8_t *)rpak->rtp_data + m_skip_on_advance_bytes;
       len = rpak->rtp_data_len - m_skip_on_advance_bytes;
       if ((m_buffer_len + len) > m_buffer_len_max) {
 	// realloc
 	m_buffer_len_max = m_buffer_len + len + 1024;
-	m_buffer = (unsigned char *)realloc(m_buffer, m_buffer_len_max);
+	m_buffer = (uint8_t *)realloc(m_buffer, m_buffer_len_max);
       }
       memcpy(m_buffer + m_buffer_len, 
 	     from,
@@ -136,7 +136,7 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (unsigned char **buffer,
 }
 
 int CMpeg3RtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
-					  unsigned char **buffer, 
+					  uint8_t **buffer, 
 					  uint32_t *buflen)
 {
   uint64_t ts;

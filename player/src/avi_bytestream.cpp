@@ -36,7 +36,7 @@ CAviByteStreamBase::CAviByteStreamBase (CAviFile *parent, const char *which)
   m_parent = parent;
   m_eof = 0;
   m_max_frame_size = 16 * 1024;
-  m_buffer = (unsigned char *) malloc(m_max_frame_size * sizeof(char));
+  m_buffer = (uint8_t *) malloc(m_max_frame_size * sizeof(char));
 }
 
 CAviByteStreamBase::~CAviByteStreamBase()
@@ -66,7 +66,7 @@ void CAviVideoByteStream::reset (void)
   video_set_timebase(0);
 }
 
-uint64_t CAviVideoByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CAviVideoByteStream::start_next_frame (uint8_t **buffer, 
 						uint32_t *buflen,
 						void **ud)
 {
@@ -114,7 +114,7 @@ void CAviVideoByteStream::read_frame (uint32_t frame_to_read)
 
   if (next_frame_size > m_max_frame_size) {
     m_max_frame_size = next_frame_size;
-    m_buffer = (unsigned char *)realloc(m_buffer, next_frame_size * sizeof(char) + 4);
+    m_buffer = (uint8_t *)realloc(m_buffer, next_frame_size * sizeof(char) + 4);
   }
   m_this_frame_size = next_frame_size;
   AVI_read_frame(m_parent->get_file(), (char *)m_buffer);
@@ -154,7 +154,7 @@ void CAviAudioByteStream::reset (void)
   audio_set_timebase(0);
 }
 
-uint64_t CAviAudioByteStream::start_next_frame (unsigned char **buffer, 
+uint64_t CAviAudioByteStream::start_next_frame (uint8_t **buffer, 
 						uint32_t *buflen,
 						void **ud)
 {

@@ -4,6 +4,7 @@ lib_LTLIBRARIES = xvid_plugin.la
 xvid_plugin_la_LDFLAGS = -module
 xvid_plugin_la_SOURCES = \
 	ourxvid.cpp \
+	ourxvid.h \
 	xvid_file.cpp
 
 xvid_plugin_la_LIBADD = \
@@ -18,3 +19,4 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
+EXTRA_DIST = xvid_plugin.dsp

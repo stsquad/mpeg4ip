@@ -192,15 +192,14 @@ static void ChangeSource()
 		}
 		pAudioCaps = NULL;
 
-		if (access(source_name, R_OK) != 0) {
-			ShowMessage("Change Audio Source",
-				"Specified audio source can't be opened, check name");
-		}
-
-		if (IsMp4File(source_name)) {
-			source_type = FILE_SOURCE_MP4;
+		if (IsUrl(source_name)) {
+			source_type = URL_SOURCE;
 		} else {
-			source_type = FILE_SOURCE_MPEG2;
+			if (access(source_name, R_OK) != 0) {
+				ShowMessage("Change Audio Source",
+					"Specified audio source can't be opened, check name");
+			}
+			source_type = FILE_SOURCE;
 		}
 	}
 
@@ -598,17 +597,7 @@ void CreateAudioDialog (void)
 	gtk_widget_show(hbox2);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 0);
 
-	// source entry
-	char* type = MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
-	if (!strcasecmp(type, AUDIO_SOURCE_OSS)) {
-		source_type = AUDIO_SOURCE_OSS;
-	} else if (!strcasecmp(type, FILE_SOURCE_MP4)) {
-		source_type = FILE_SOURCE_MP4;
-	} else if (!strcasecmp(type, FILE_SOURCE_MPEG2)) {
-		source_type = FILE_SOURCE_MPEG2;
-	} else {
-		source_type = "";
-	}
+	source_type = MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
 
 	// source entry
 	free(source_name);

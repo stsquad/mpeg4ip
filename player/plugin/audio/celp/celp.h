@@ -37,8 +37,6 @@ typedef struct celp_codec_t {
   codec_data_t c;
   audio_vft_t *m_vft;
   void *m_ifptr;
-  BsBitStream *m_bStream;
-  BsBitBuffer *m_bBuffer;
   float **m_sampleBuf;
   uint16_t *m_bufs;
   //AudioFileStruct  *audiFile;
@@ -61,7 +59,7 @@ typedef struct celp_codec_t {
   FILE *m_outfile;
 #endif
   FILE *m_ifile;
-  unsigned char *m_buffer;
+  uint8_t *m_buffer;
   uint32_t m_buffer_size_max;
   uint32_t m_buffer_size;
   uint32_t m_buffer_on;
@@ -82,7 +80,7 @@ codec_data_t *celp_file_check(lib_message_func_t message,
 			     char *desc[4]);
 
 int celp_file_next_frame(codec_data_t *ifptr,
-			unsigned char **buffer,
+			uint8_t **buffer,
 			uint64_t *ts);
 int celp_file_eof(codec_data_t *ifptr);
 

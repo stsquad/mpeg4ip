@@ -126,7 +126,8 @@ int decoder_create(XVID_DEC_PARAM * param)
 
 int decoder_destroy(DECODER * dec)
 {
-	xvid_free(dec->mbs);
+	if (dec->mbs != NULL)
+	   xvid_free(dec->mbs);
 	image_destroy(&dec->refn, dec->edged_width, dec->edged_height);
 	image_destroy(&dec->cur, dec->edged_width, dec->edged_height);
 	xvid_free(dec);

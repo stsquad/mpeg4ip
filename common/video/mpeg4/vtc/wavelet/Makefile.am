@@ -8,10 +8,15 @@ libobj_vtc_wavelet_la_LDFLAGS = -static
 
 libobj_vtc_wavelet_la_SOURCES = \
 	download_filter.cpp \
-	dwt.cpp \
+	download_filter.h \
 	dwt_aux.cpp \
+	dwt.cpp \
+	dwt.h \
+	dwt.hpp \
 	dwtmask.cpp \
-	idwt.cpp \
 	idwt_aux.cpp \
-	imagebox.cpp
+	idwt.cpp \
+	imagebox.cpp \
+	wvtfilter.h \
+	default.h
 

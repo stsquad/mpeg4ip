@@ -26,6 +26,8 @@ typedef struct
 /*                                 Entry Points */
 /* ======================================================================== */
 
+mpeg3_bits_t *mpeg3bits_new_stream(void);
+
 static __inline int mpeg3bits_error (mpeg3_bits_t *stream)
 {
   return 0;

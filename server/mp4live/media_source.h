@@ -111,36 +111,48 @@ protected:
 
 	bool InitVideo(
 		MediaType srcType,
-		u_int16_t srcWidth,
-		u_int16_t srcHeight,
-		bool matchAspectRatios = true,
 		bool realTime = true);
 
-	void ProcessVideoFrame(
-		u_int8_t* frameData,
-		u_int32_t frameDataLength,
-		Duration frameDuration);
+	void SetVideoSrcSize(
+		u_int16_t srcWidth,
+		u_int16_t srcHeight,
+		u_int16_t srcStride,
+		bool matchAspectRatios = false);
 
-	bool WillUseVideoFrame(Duration frameDuration);
+	void SetVideoSrcStride(
+		u_int16_t srcStride);
+
+	void ProcessVideoYUVFrame(
+		u_int8_t* pY,
+		u_int8_t* pU,
+		u_int8_t* pV,
+		u_int16_t yStride,
+		u_int16_t uvStride,
+		Timestamp frameTimestamp);
 
 	void DoGenerateKeyFrame() {
 		m_videoWantKeyFrame = true;
 	}
+
+	void DestroyVideoResizer();
 
 	void DoStopVideo();
 
 	// Audio
 
 	bool InitAudio(
+		bool realTime);
+
+	bool SetAudioSrc(
 		MediaType srcType,
 		u_int8_t srcChannels,
-		u_int32_t srcSampleRate,
-		bool realTime);
+		u_int32_t srcSampleRate);
 
 	void ProcessAudioFrame(
 		u_int8_t* frameData,
 		u_int32_t frameDataLength,
-		u_int32_t frameDuration);
+		Timestamp frameTimestamp,
+		bool resync);
 
 	void ResampleAudio(
 		u_int8_t* frameData,
@@ -161,6 +173,14 @@ protected:
 
 	Duration DstSamplesToTicks(u_int32_t numSamples) {
 		return (numSamples * TimestampTicks) / m_audioDstSampleRate;
+	}
+
+	u_int32_t SrcTicksToSamples(Duration duration) {
+		return (duration * m_audioSrcSampleRate) / TimestampTicks;
+	}
+
+	u_int32_t DstTicksToSamples(Duration duration) {
+		return (duration * m_audioDstSampleRate) / TimestampTicks;
 	}
 
 	u_int32_t SrcSamplesToBytes(u_int32_t numSamples) {
@@ -196,6 +216,7 @@ protected:
 	bool			m_sourceVideo;
 	bool			m_sourceAudio;
 	bool			m_sourceRealTime;
+	bool			m_sinkRealTime;
 	Timestamp		m_startTimestamp;
 	Duration		m_maxAheadDuration;
 
@@ -209,7 +230,9 @@ protected:
 	float			m_videoSrcAspectRatio;
 	u_int32_t		m_videoSrcYUVSize;
 	u_int32_t		m_videoSrcYSize;
+	u_int16_t		m_videoSrcYStride;
 	u_int32_t		m_videoSrcUVSize;
+	u_int16_t		m_videoSrcUVStride;
 	u_int32_t		m_videoSrcYCrop;
 	u_int32_t		m_videoSrcUVCrop;
 
@@ -226,6 +249,7 @@ protected:
 	u_int32_t		m_videoDstUVSize;
 
 	// video resizing info
+	bool			m_videoMatchAspectRatios;
 	image_t*		m_videoSrcYImage;
 	image_t*		m_videoDstYImage;
 	scaler_t*		m_videoYResizer;
@@ -284,7 +308,6 @@ protected:
 
 	// audio timing info
 	Duration		m_audioSrcElapsedDuration;
-	Duration		m_audioSrcDrift;
 	Duration		m_audioDstElapsedDuration;
 };
 

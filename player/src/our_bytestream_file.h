@@ -40,7 +40,7 @@ class COurInByteStreamFile : public COurInByteStream
   int have_no_data(void) {
     return m_plugin->c_raw_file_has_eof(m_plugin_data);
   };
-  uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen,
+  uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			    void **userdata);
   void used_bytes_for_frame(uint32_t bytes);
   double get_max_playtime (void) { return m_max_play_time; };

@@ -27,7 +27,7 @@
 typedef struct fmtp_parse_t {
   int stream_type;
   int profile_level_id;
-  unsigned char *config_binary;
+  uint8_t *config_binary;
   char *config_ascii;
   uint32_t config_binary_len;
   int constant_size;

@@ -28,7 +28,7 @@
 
 static codec_data_t *rawv_create (format_list_t *media_fmt,
 				  video_info_t *vinfo,
-				  const unsigned char *userdata,
+				  const uint8_t *userdata,
 				  uint32_t ud_size,
 				  video_vft_t *vft,
 				  void *ifptr)
@@ -71,7 +71,7 @@ static int rawv_decode (codec_data_t *ptr,
 			uint64_t ts, 
 			int from_rtp,
 			int *sync_frame,
-			unsigned char *buffer, 
+			uint8_t *buffer, 
 			uint32_t buflen,
 			void *ud)
 {
@@ -81,7 +81,7 @@ static int rawv_decode (codec_data_t *ptr,
   uint32_t len;
 
   len = rawv->m_h * rawv->m_w;  
-  unsigned char *y, *u, *v;
+  uint8_t *y, *u, *v;
   y = buffer;
   u = buffer + len;
   v = u + (len / 4);
@@ -109,7 +109,7 @@ static int rawv_codec_check (lib_message_func_t message,
 			     int type,
 			     int profile,
 			     format_list_t *fptr,
-			     const unsigned char *userdata,
+			     const uint8_t *userdata,
 			     uint32_t userdata_size)
 {
   if (compressor != NULL && 

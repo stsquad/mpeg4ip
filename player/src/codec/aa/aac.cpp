@@ -32,7 +32,7 @@ const char *aaclib="aac";
  */
 static codec_data_t *aac_codec_create (format_list_t *media_fmt,
 				       audio_info_t *audio,
-				       const unsigned char *userdata,
+				       const uint8_t *userdata,
 				       uint32_t userdata_size,
 				       audio_vft_t *vft,
 				       void *ifptr)
@@ -53,7 +53,7 @@ static codec_data_t *aac_codec_create (format_list_t *media_fmt,
   
   aac->m_faad_inited = 0;
   aac->m_audio_inited = 0;
-  aac->m_temp_buff = (unsigned char *)malloc(4096);
+  aac->m_temp_buff = (uint8_t *)malloc(4096);
 
   // Use media_fmt to indicate that we're streaming.
   if (media_fmt != NULL) {
@@ -142,7 +142,7 @@ static void aac_do_pause (codec_data_t *ifptr)
   aac->m_audio_inited = 0;
   aac->m_faad_inited = 0;
   if (aac->m_temp_buff == NULL) 
-    aac->m_temp_buff = (unsigned char *)malloc(4096);
+    aac->m_temp_buff = (uint8_t *)malloc(4096);
 }
 
 /*
@@ -152,7 +152,7 @@ static int aac_decode (codec_data_t *ptr,
 		       uint64_t ts,
 		       int from_rtp,
 		       int *sync_frame,
-		       unsigned char *buffer,
+		       uint8_t *buffer,
 		       uint32_t buflen, 
 		       void *userdata)
 {
@@ -191,7 +191,7 @@ static int aac_decode (codec_data_t *ptr,
       unsigned long freq, chans;
 
       faacDecInit(aac->m_info,
-		  buffer,
+		  (unsigned char *)buffer,
 		  &freq,
 		  &chans);
       aac->m_freq = freq;
@@ -199,7 +199,7 @@ static int aac_decode (codec_data_t *ptr,
       aac->m_faad_inited = 1;
     }
 
-    unsigned char *buff;
+    uint8_t *buff;
 
     /* 
      * Get an audio buffer
@@ -216,7 +216,7 @@ static int aac_decode (codec_data_t *ptr,
 
     unsigned long samples;
     bits = faacDecDecode(aac->m_info,
-			 buffer, 
+			 (unsigned char *)buffer, 
 			 &bytes_consummed,
 			 (short *)buff, 
 			 &samples);
@@ -248,7 +248,7 @@ static int aac_decode (codec_data_t *ptr,
 				     aac->m_chans, 
 				     AUDIO_S16SYS, 
 				     aac->m_output_frame_size);
-	unsigned char *now = aac->m_vft->audio_get_buffer(aac->m_ifptr);
+	uint8_t *now = aac->m_vft->audio_get_buffer(aac->m_ifptr);
 	if (now != NULL) {
 	  memcpy(now, buff, tempchans * aac->m_output_frame_size * sizeof(int16_t));
 	}
@@ -293,7 +293,7 @@ static int aac_codec_check (lib_message_func_t message,
 			    int type,
 			    int profile,
 			    format_list_t *fptr, 
-			    const unsigned char *userdata,
+			    const uint8_t *userdata,
 			    uint32_t userdata_size)
 {
   fmtp_parse_t *fmtp = NULL;

@@ -1,0 +1,42 @@
+Troubleshooting Guide to MPEG4IP
+
+Installation
+
+1)The README file when the file is uncompressed says the following:
+To build:
+    ./bootstrap
+    make
+    make install (optional, typically need root privileges)
+
+However, the documentation on the web says the following:
+To build:
+./bootstrap make
+make install (optional, typically need root privileges)
+
+This discrepancy is a little confusing for the user. Following the version
+declared in the README file seems to work. 
+
+3) When trying to play a file for the first time, gmp4player gave an unknown
+codec error. In order to fix this, the  "make install" was required, and 
+therefore, not optional.  
+
+4) The gmp4player is installed in /usr/local/bin/gmp4player. This should be 
+more clearly stated in the README.
+
+
+Execution
+
+1) After adding /usr/local/bin/ to your PATH, you can run gmp4player
+with an executable or a URL that begins with rtsp:// as a command line 
+arguments.
+
+2) For no apparent reason, the player sometimes quits unexpectedly when trying 
+read a stream from a Darwin Streaming Server streaming an .mp4
+file created by Ivast/Adobe.  I have no solution for this.
+
+3) When trying to play a .mp4 file created by QuickTime 6 Pro from the DSS,
+the applications gives the error: "Floating Exception" midway through the 
+playing of the file.  I have no solution for this either. 
+
+
+

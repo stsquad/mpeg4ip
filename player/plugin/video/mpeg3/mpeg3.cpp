@@ -31,7 +31,7 @@
 
 static codec_data_t *mpeg3_create (format_list_t *media_fmt,
 				   video_info_t *vinfo,
-				   const unsigned char *userdata,
+				   const uint8_t *userdata,
 				   uint32_t ud_size,
 				   video_vft_t *vft,
 				   void *ifptr)
@@ -77,7 +77,7 @@ static int mpeg3_decode (codec_data_t *ptr,
 			uint64_t ts, 
 			int from_rtp,
 			int *sync_frame,
-			unsigned char *buffer, 
+			uint8_t *buffer, 
 			uint32_t buflen,
 			 void *ud)
 {
@@ -127,7 +127,7 @@ static int mpeg3_decode (codec_data_t *ptr,
     if (mpeg3->m_did_pause) {
       if (mpeg3->m_got_i == 0) {
 	int ret;
-	ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen);
+ 	ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen, NULL);
 
 	if (ret >= 0) {
 	  mpeg3->m_got_i = 1;
@@ -146,6 +146,19 @@ static int mpeg3_decode (codec_data_t *ptr,
   }
   char *y, *u, *v;
 
+#if 0
+  if (from_rtp) {
+    int ftype;
+    ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen, &ftype);
+    if (ret <= 0) {
+      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu - type %d", 
+			    ts, ftype);
+    }
+  }
+#endif
+      
+
+    
   y = NULL;
   ret = mpeg3video_read_yuvframe_ptr(video,
 				     buffer,
@@ -160,9 +173,9 @@ static int mpeg3_decode (codec_data_t *ptr,
 			  ts);
 #endif
     ret = mpeg3->m_vft->video_have_frame(mpeg3->m_ifptr,
-					 (unsigned char *)y, 
-					 (unsigned char *)u, 
-					 (unsigned char *)v, 
+					 (const uint8_t *)y, 
+					 (const uint8_t *)u, 
+					 (const uint8_t *)v, 
 					 mpeg3->m_w, mpeg3->m_w / 2, ts);
   } else {
 #ifdef DEBUG_MPEG3_FRAME
@@ -183,7 +196,7 @@ static int mpeg3_codec_check (lib_message_func_t message,
 			     int type,
 			     int profile,
 			     format_list_t *fptr,
-			     const unsigned char *userdata,
+			     const uint8_t *userdata,
 			     uint32_t userdata_size)
 {
   if (fptr != NULL) {

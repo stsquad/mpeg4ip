@@ -249,6 +249,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	  /* 
 	   * If we have audio, we use that for syncing.  Start it up
 	   */
+	  m_first_time_played = astart;
 	  m_current_time = astart;
 	  sync_message(LOG_DEBUG, "Astart is %llu", astart);
 	  m_waiting_for_audio = 1;
@@ -259,6 +260,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	   * Video only - set up the start time based on the video time
 	   * returned
 	   */
+	  m_first_time_played = vstart;
 	  m_current_time = vstart;
 	  m_waiting_for_audio = 0;
 	  m_start = get_time_of_day();
@@ -467,6 +469,8 @@ int CPlayerSession::sync_thread (int state)
 				       0, 
 				       m_master_msg_queue_sem);
       m_session_state = SESSION_DONE;
+      break;
+    case SYNC_STATE_EXIT:
       break;
     }
   }

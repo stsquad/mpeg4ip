@@ -48,7 +48,7 @@ int mpeg3video_clearblock(mpeg3_slice_t *slice, int comp, int size)
 	return 0;
 }
 
-static inline int mpeg3video_getdclum(mpeg3_slice_buffer_t *slice_buffer)
+static __inline int mpeg3video_getdclum(mpeg3_slice_buffer_t *slice_buffer)
 {
 	int code, size, val;
 /* decode length */

@@ -93,12 +93,24 @@ SOURCE=.\getopt1.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\need_for_win32.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\strcasestr.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\strsep.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\strcasestr.h
+# End Source File
 # End Group
 # End Target
 # End Project
