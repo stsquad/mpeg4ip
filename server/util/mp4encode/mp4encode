@@ -9,6 +9,7 @@ fps=24
 aspectRatio=1.33	# 4:3 standard definition TV aspect ratio
 use_iso=0
 vbitRate=500
+samplingFreq=44100
 
 use_mp3=0
 abitRate=96
@@ -16,7 +17,7 @@ abitRate=96
 debug=0
 
 # Process command line options
-while getopts "A:IMRV:a:dh:r:w:" opt; do
+while getopts "A:IMRV:a:dh:r:w:k:" opt; do
 	case $opt in
 		A ) abitRate=$OPTARG ;;
 		I ) use_iso=1 ;;
@@ -24,6 +25,7 @@ while getopts "A:IMRV:a:dh:r:w:" opt; do
 		R ) convertRgb=1 ;;
 		V ) vbitRate=$OPTARG ;;
 		a ) aspectRatio=$OPTARG ;;
+	        k ) samplingFreq=$OPTARG ;;
 		d ) debug=1 ;;
 		h ) videoHeight=$OPTARG ;;
 		r ) fps=$OPTARG ;;
@@ -92,6 +94,7 @@ if [ ! -f $prefix.yuv ] || [ $prefix.avi -nt $prefix.yuv ]; then
 		mv $prefix.yuv $prefix.rgb
 		echo "Converting video from RGB24 to YUV12"
 		rgb2yuv -w $videoWidth -h $videoHeight $prefix.rgb $prefix.yuv
+		rm -f ${prefix.rgb}
 	fi
 
 	# Perform simple check that we do indeed have raw YUV12 video
@@ -157,10 +160,10 @@ fi
 echo "Encoding audio"
 if [ $use_mp3 = 0 ]; then 
 	afile=${prefix}.aac
-	faac -r -m4 -pLC -b${abitRate} ${prefix}.pcm ${afile}
+	faac -r${samplingFreq} -m4 -pLC -b${abitRate} ${prefix}.pcm ${afile}
 else
 	afile=${prefix}.mp3
-	lame -r -x -h -b ${abitRate} ${prefix}.pcm ${afile}
+	lame -r -s${samplingFreq} -x -h -b ${abitRate} ${prefix}.pcm ${afile}
 fi
 
 if [ $debug = 0 ]; then

@@ -86,22 +86,22 @@ void proceed2nextMacroblock()
 #endif
 
   // Update the statistics
-  stat->bit_use_mb_type[img->type]      += currMB->bitcounter[BITS_MB_MODE];
-  stat->bit_use_coeffY[img->type]       += currMB->bitcounter[BITS_COEFF_Y_MB] ;
-  stat->bit_use_mode_inter[img->mb_mode]+= currMB->bitcounter[BITS_INTER_MB];
-  stat->tmp_bit_use_cbp[img->type]      += currMB->bitcounter[BITS_CBP_MB];
-  stat->bit_use_coeffC[img->type]       += currMB->bitcounter[BITS_COEFF_UV_MB];
-  stat->bit_use_delta_quant[img->type]  += currMB->bitcounter[BITS_DELTA_QUANT_MB];
+  h26lstat->bit_use_mb_type[img->type]      += currMB->bitcounter[BITS_MB_MODE];
+  h26lstat->bit_use_coeffY[img->type]       += currMB->bitcounter[BITS_COEFF_Y_MB] ;
+  h26lstat->bit_use_mode_inter[img->mb_mode]+= currMB->bitcounter[BITS_INTER_MB];
+  h26lstat->tmp_bit_use_cbp[img->type]      += currMB->bitcounter[BITS_CBP_MB];
+  h26lstat->bit_use_coeffC[img->type]       += currMB->bitcounter[BITS_COEFF_UV_MB];
+  h26lstat->bit_use_delta_quant[img->type]  += currMB->bitcounter[BITS_DELTA_QUANT_MB];
 
 /*  if (input->symbol_mode == UVLC)
-    stat->bit_ctr += currMB->bitcounter[BITS_TOTAL_MB]; */
+    h26lstat->bit_ctr += currMB->bitcounter[BITS_TOTAL_MB]; */
   if (img->type==INTRA_IMG)
-    ++stat->mode_use_intra[img->mb_mode];
+    ++h26lstat->mode_use_intra[img->mb_mode];
   else
     if (img->type != B_IMG)
-      ++stat->mode_use_inter[img->mb_mode];
+      ++h26lstat->mode_use_inter[img->mb_mode];
     else
-      ++stat->mode_use_Bframe[img->mb_mode];
+      ++h26lstat->mode_use_Bframe[img->mb_mode];
 
   // Update coordinates of macroblock
   img->mb_x++;
@@ -135,8 +135,8 @@ void proceed2nextMacroblock()
   // Statistics
   if ((img->type == INTER_IMG)||(img->types==SP_IMG) )
   {
-    ++stat->quant0;
-    stat->quant1 += img->qp;      // to find average quant for inter frames
+    ++h26lstat->quant0;
+    h26lstat->quant1 += img->qp;      // to find average quant for inter frames
   }
 }
 
@@ -1235,7 +1235,7 @@ void write_one_macroblock()
   }
   bitCount[BITS_TOTAL_MB] = bitCount[BITS_MB_MODE] + bitCount[BITS_COEFF_Y_MB]  + bitCount[BITS_INTER_MB]
     + bitCount[BITS_CBP_MB] + bitCount[BITS_DELTA_QUANT_MB] + bitCount[BITS_COEFF_UV_MB];
-  stat->bit_slice += bitCount[BITS_TOTAL_MB];
+  h26lstat->bit_slice += bitCount[BITS_TOTAL_MB];
 }
 
 /*!

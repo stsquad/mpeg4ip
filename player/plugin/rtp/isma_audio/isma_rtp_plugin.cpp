@@ -42,6 +42,8 @@ static rtp_check_return_t check (lib_message_func_t msg,
   fmtp_parse_t *fmtp;
   int len;
   fmtp = parse_fmtp_for_mpeg4(fmt->fmt_param, msg);
+  if (fmtp == NULL) return RTP_PLUGIN_NO_MATCH;
+
   len = fmtp->size_length;
   free_fmtp_parse(fmtp);
   if (len == 0) {

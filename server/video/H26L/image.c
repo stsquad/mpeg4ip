@@ -137,7 +137,7 @@ int encode_one_frame()
 
     // Proceed to next slice
     img->current_slice_nr++;
-    stat->bit_slice = 0;
+    h26lstat->bit_slice = 0;
     if (img->current_mb_nr == img->total_number_mb) // end of frame reached?
       end_of_frame = TRUE;
   }
@@ -179,48 +179,48 @@ int encode_one_frame()
 
 #ifdef _LEAKYBUCKET_
   // Store bits used for this frame and increment counter of no. of coded frames
-  Bit_Buffer[total_frame_buffer] = stat->bit_ctr - stat->bit_ctr_n;
+  Bit_Buffer[total_frame_buffer] = h26lstat->bit_ctr - h26lstat->bit_ctr_n;
   total_frame_buffer++;
 #endif
   if(img->number == 0)
   {
     printf("%3d(I)  %8d %4d %7.4f %7.4f %7.4f  %5d \n",
-        frame_no, stat->bit_ctr-stat->bit_ctr_n,
+        frame_no, h26lstat->bit_ctr-h26lstat->bit_ctr_n,
         img->qp, snr->snr_y, snr->snr_u, snr->snr_v, tmp_time);
-    stat->bitr0=stat->bitr;
-    stat->bit_ctr_0=stat->bit_ctr;
-    stat->bit_ctr=0;
+    h26lstat->bitr0=h26lstat->bitr;
+    h26lstat->bit_ctr_0=h26lstat->bit_ctr;
+    h26lstat->bit_ctr=0;
   }
   else
   {
     if (img->type == INTRA_IMG)
     {
-      stat->bit_ctr_P += stat->bit_ctr-stat->bit_ctr_n;
+      h26lstat->bit_ctr_P += h26lstat->bit_ctr-h26lstat->bit_ctr_n;
       printf("%3d(I)  %8d %4d %7.4f %7.4f %7.4f  %5d \n",
-        frame_no, stat->bit_ctr-stat->bit_ctr_n,
+        frame_no, h26lstat->bit_ctr-h26lstat->bit_ctr_n,
         img->qp, snr->snr_y, snr->snr_u, snr->snr_v, tmp_time);
     }
     else if (img->type != B_IMG)
     {
-      stat->bit_ctr_P += stat->bit_ctr-stat->bit_ctr_n;
+      h26lstat->bit_ctr_P += h26lstat->bit_ctr-h26lstat->bit_ctr_n;
       if(img->types == SP_IMG)
         printf("%3d(SP) %8d %4d %7.4f %7.4f %7.4f  %5d    %3d\n",
-          frame_no, stat->bit_ctr-stat->bit_ctr_n,
+          frame_no, h26lstat->bit_ctr-h26lstat->bit_ctr_n,
           img->qp, snr->snr_y, snr->snr_u, snr->snr_v, tmp_time, intras);
       else
         printf("%3d(P)  %8d %4d %7.4f %7.4f %7.4f  %5d    %3d\n",
-          frame_no, stat->bit_ctr-stat->bit_ctr_n,
+          frame_no, h26lstat->bit_ctr-h26lstat->bit_ctr_n,
           img->qp, snr->snr_y, snr->snr_u, snr->snr_v, tmp_time, intras);
     }
     else
     {
-      stat->bit_ctr_B += stat->bit_ctr-stat->bit_ctr_n;
+      h26lstat->bit_ctr_B += h26lstat->bit_ctr-h26lstat->bit_ctr_n;
       printf("%3d(B)  %8d %4d %7.4f %7.4f %7.4f  %5d \n",
-        frame_no, stat->bit_ctr-stat->bit_ctr_n, img->qp,
+        frame_no, h26lstat->bit_ctr-h26lstat->bit_ctr_n, img->qp,
         snr->snr_y, snr->snr_u, snr->snr_v, tmp_time);
     }
   }
-  stat->bit_ctr_n=stat->bit_ctr;
+  h26lstat->bit_ctr_n=h26lstat->bit_ctr;
 
 
   if(img->number == 0)
@@ -260,8 +260,8 @@ void encode_one_slice(SyntaxElement *sym)
   }
 
   // Update statistics
-  stat->bit_slice += len;
-  stat->bit_use_header[img->type] += len;
+  h26lstat->bit_slice += len;
+  h26lstat->bit_use_header[img->type] += len;
 
   while (end_of_slice == FALSE) // loop over macroblocks
   {
@@ -302,7 +302,7 @@ void init_frame()
 
   img->current_mb_nr=0;
   img->current_slice_nr=0;
-  stat->bit_slice = 0;
+  h26lstat->bit_slice = 0;
 
   if(input->UseConstrainedIntraPred)
   {

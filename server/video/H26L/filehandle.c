@@ -383,7 +383,7 @@ int terminate_slice()
         }
 
         bytes_written = currStream->byte_pos;
-        stat->bit_ctr += 8*bytes_written;     // actually written bits
+        h26lstat->bit_ctr += 8*bytes_written;     // actually written bits
 #ifdef H26L_LIB
         memcpy(&memout[memoutlength], currStream->streamBuffer, bytes_written);
 		memoutlength += bytes_written;
@@ -436,7 +436,7 @@ int terminate_slice()
 #else
         fwrite (currStream->streamBuffer, 1, bytes_written, out);
 #endif
-        stat->bit_ctr += 8*bytes_written;
+        h26lstat->bit_ctr += 8*bytes_written;
 
         // Go back to the end of the stream
         currStream->byte_pos = byte_pos;
@@ -450,7 +450,7 @@ int terminate_slice()
           start_data++;
         bytes_written = currStream->byte_pos - start_data; // number of written bytes
 
-        stat->bit_ctr += 8*bytes_written;     // actually written bits
+        h26lstat->bit_ctr += 8*bytes_written;     // actually written bits
 #ifdef H26L_LIB
         memcpy(&memout[memoutlength], currStream->streamBuffer+start_data, 
 			bytes_written);
@@ -561,7 +561,7 @@ int terminate_slice()
           // and write the RTP packet
           rtp_bytes_written = RTPWriteBits (Marker, FirstBytePacketType, currStream->streamBuffer, bytes_written, out);
         }
-        stat->bit_ctr += 8*bytes_written;
+        h26lstat->bit_ctr += 8*bytes_written;
         // Provide the next partition with a 'fresh' buffer
         currStream->stored_bits_to_go = 8;
         currStream->stored_byte_buf   = 0;

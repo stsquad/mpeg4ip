@@ -612,7 +612,7 @@ typedef struct
 
 extern InputParameters *input;
 extern ImageParameters *img;
-extern StatParameters *stat;
+extern StatParameters *h26lstat;
 extern SNRParameters *snr;
 
 #ifdef H26L_LIB
