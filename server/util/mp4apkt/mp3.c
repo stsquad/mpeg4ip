@@ -81,8 +81,23 @@ static bool loadNextMp3Header(FILE* inFile, u_int32_t* pHdr, bool allowLayer4)
 				bytes[state] = b;
 				state = 1;
 			} else {
-				/* else drop it */ 
-				dropped++;
+				if (dropped == 0 && 
+				  ((b & 0xE0) == 0xE0 && 
+				  (b & 0x18) != 0x08 && 
+			  	  ((b & 0x06) != 0 || allowLayer4))) {
+					/*
+					 * HACK have seen files where previous frame 
+					 * was marked as padded, but the byte was never added
+					 * which results in the next frame's leading 0XFF being
+					 * eaten. We attempt to repair that situation here.
+					 */
+					bytes[0] = 0xFF;
+					bytes[1] = b;
+					state = 2;
+				} else {
+					/* else drop it */ 
+					dropped++;
+				}
 			}
 		}
 	}
@@ -128,7 +143,7 @@ static u_int16_t getMp3FrameSize(u_int32_t hdr)
 	u_int8_t bitRateIndex1;
 	u_int8_t bitRateIndex2 = (hdr >> 12) & 0xF;
 	u_int8_t sampleRateIndex = (hdr >> 10) & 0x3;
-	bool isProtected = (hdr >> 16) & 0x1;
+	bool isProtected = !((hdr >> 16) & 0x1);
 	bool isPadded = (hdr >> 9) & 0x1;
 	u_int16_t frameSize = 0;
 
@@ -179,7 +194,7 @@ bool loadNextMp3Frame(FILE* inFile, u_char* pBuf, u_int* pBufSize)
 	frameSize = getMp3FrameSize(header);
 
 	/* adjust for header which has already been read */
-	frameSize -= 4 + 2;
+	frameSize -= 4;
 	
 	/* put the header in the buffer */
 	pBuf[0] = (header >> 24) & 0xFF;
