@@ -42,8 +42,6 @@
 void CPlayerMedia::start_decoding (void)
 {
   m_decode_msg_queue.send_message(MSG_START_DECODING, 
-				  NULL, 
-				  0, 
 				  m_decode_thread_sem);
 }
 

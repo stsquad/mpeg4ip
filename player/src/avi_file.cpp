@@ -46,8 +46,6 @@ static void close_avi_file (void *data)
  */
 int create_media_for_avi_file (CPlayerSession *psptr, 
 			       const char *name,
-			       char *errmsg,
-			       uint32_t errlen,
 			       int have_audio_driver,
 			       control_callback_vft_t *cc_vft)
 {
@@ -56,7 +54,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   CPlayerMedia *mptr;
   avi = AVI_open_input_file(name, 1);
   if (avi == NULL) {
-    snprintf(errmsg, errlen, "%s", AVI_strerror());
+    psptr->set_message("%s", AVI_strerror());
     player_error_message("%s", AVI_strerror());
     return (-1);
   }
@@ -134,7 +132,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 
   if ((video_count == 0 || vq.enabled == 0) && 
       (audio_count == 0 || aq.enabled == 0)) {
-    snprintf(errmsg, errlen, "No audio or video tracks enabled or playable");
+    psptr->set_message("No audio or video tracks enabled or playable");
     AVI_close(avi);
     return -1;
   }
@@ -177,7 +175,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 				    NULL,
 				    0);
     if (ret < 0) {
-      snprintf(errmsg, errlen, "Failed to create video plugin %s", 
+      psptr->set_message("Failed to create video plugin %s", 
 	       codec_name);
       player_error_message("Failed to create plugin data");
       delete mptr;
@@ -189,7 +187,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
       return (-1);
     }
     vbyte->config(AVI_video_frames(avi), vq.frame_rate);
-    ret = mptr->create(vbyte, TRUE, errmsg, errlen);
+    ret = mptr->create(vbyte, TRUE);
     if (ret != 0) {
       return (-1);
     }
@@ -235,7 +233,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     }
     abyte = new CAviAudioByteStream(Avifile1);
 
-    ret = mptr->create(abyte, FALSE, errmsg, errlen);
+    ret = mptr->create(abyte, FALSE);
     if (ret != 0) {
       return (-1);
     }
@@ -244,11 +242,11 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   psptr->session_set_seekable(seekable);
 
   if (audio_count == 0 && have_audio != 0) {
-    snprintf(errmsg, errlen, "Unknown Audio Codec in avi file ");
+    psptr->set_message("Unknown Audio Codec in avi file ");
     return (1);
   }
   if (video_count != 1) {
-    snprintf(errmsg, errlen, "Unknown Video Codec %s in avi file",
+    psptr->set_message("Unknown Video Codec %s in avi file",
 	     codec_name);
     return (1);
   }

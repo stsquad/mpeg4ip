@@ -60,13 +60,20 @@ extern "C" MP4FileHandle MP4Read(const char* fileName, u_int32_t verbosity)
 
 extern "C" MP4FileHandle MP4Create (const char* fileName,
 				    u_int32_t verbosity, 
-				    u_int32_t  flags,
-				    int add_ftyp,
-				    int add_iods,
-				    char* majorBrand, 
-				    u_int32_t minorVersion,
-				    char** supportedBrands, 
-				    u_int32_t supportedBrandsCount)
+				    u_int32_t  flags)
+{
+  return MP4CreateEx(fileName, verbosity, flags);
+}
+
+extern "C" MP4FileHandle MP4CreateEx (const char* fileName,
+				      u_int32_t verbosity, 
+				      u_int32_t  flags,
+				      int add_ftyp,
+				      int add_iods,
+				      char* majorBrand, 
+				      u_int32_t minorVersion,
+				      char** supportedBrands, 
+				      u_int32_t supportedBrandsCount)
 {
 	MP4File* pFile = NULL;
 	try {

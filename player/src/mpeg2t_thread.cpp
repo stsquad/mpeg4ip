@@ -406,14 +406,13 @@ int mpeg2t_thread (void *data)
  * mpeg2t_create_client
  * create threaded mpeg2t session
  */
-static mpeg2t_client_t *mpeg2t_create_client (const char *address,
+static mpeg2t_client_t *mpeg2t_create_client (CPlayerSession *psptr,
+					      const char *address,
 					      in_port_t rx_port,
 					      in_port_t tx_port,
 					      int use_rtp,
 					      double rtcp_bw, 
 					      int ttl,
-					      char *errmsg,
-					      uint32_t errmsg_len,
 					      rtsp_client_t *client = NULL,
 					      char *rtsp_url = NULL)
 {
@@ -465,7 +464,7 @@ static mpeg2t_client_t *mpeg2t_create_client (const char *address,
 				  &resp);
   if (ret < 0 || resp < 0) {
     mpeg2t_delete_client(info);
-    snprintf(errmsg, errmsg_len, "Couldn't create client - error %d", resp);
+    psptr->set_message("Couldn't create client - error %d", resp);
     return NULL;
   }
   if (info->m_rtsp_client) {
@@ -480,7 +479,7 @@ static mpeg2t_client_t *mpeg2t_create_client (const char *address,
 				   &cmd, 
 				   &decode);
     if (err != RTSP_RESPONSE_GOOD) {
-      snprintf(errmsg, errmsg_len, "RTSP play error %s %s", 
+      psptr->set_message("RTSP play error %s %s", 
 	       decode->retcode, decode->retresp);
       free_decode_response(decode);
       memset(&cmd, 0, sizeof(rtsp_command_t));
@@ -503,6 +502,9 @@ static mpeg2t_client_t *mpeg2t_create_client (const char *address,
     ret = SDL_SemWaitTimeout(info->pam_recvd_sem, 1000);
     if (ret == SDL_MUTEX_TIMEDOUT) {
       max--;
+      if (psptr->ShouldStopProcessing()) {
+	max = -1;
+      }
       mpeg2t_message(LOG_DEBUG, "timeout - still left %d", max);
     }
   } while (ret == SDL_MUTEX_TIMEDOUT && max >= 0);
@@ -522,7 +524,7 @@ static mpeg2t_client_t *mpeg2t_create_client (const char *address,
 				     &decode);
       free_rtsp_client(info->m_rtsp_client);
       }
-      snprintf(errmsg, errmsg_len, "Did not receive Transport Stream Program Map in %d seconds", config.get_config_value(CONFIG_MPEG2T_PAM_WAIT_SECS));
+      psptr->set_message("Did not receive Transport Stream Program Map in %d seconds", config.get_config_value(CONFIG_MPEG2T_PAM_WAIT_SECS));
       mpeg2t_delete_client(info);
       return NULL;
     }
@@ -559,8 +561,6 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
 			       CPlayerSession *psptr, 
 			       video_query_t *vq, 
 			       int video_offset,
-			       char *errmsg, 
-			       uint32_t errlen,
 			       int &sdesc)
 {
   int ix;
@@ -609,7 +609,7 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
 
       if (ret < 0) {
 	mpeg2t_message(LOG_ERR, "Failed to create plugin data");
-	snprintf(errmsg, errlen, "Failed to start plugin");
+	psptr->set_message("Failed to start plugin");
 	delete mptr;
 	return -1;
       }
@@ -633,7 +633,7 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
 	free(stream);
 	return (-1);
       }
-      ret = mptr->create(vbyte, TRUE, errmsg, errlen, 1);
+      ret = mptr->create(vbyte, TRUE, 1);
       if (ret != 0) {
 	mpeg2t_message(LOG_CRIT, "failed to create from file");
 	free(stream);
@@ -658,8 +658,6 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
 				CPlayerSession *psptr, 
 				audio_query_t *aq, 
 				int audio_offset,
-				char *errmsg, 
-				uint32_t errlen,
 				int &sdesc)
 {
   int ix;
@@ -708,7 +706,7 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
 
       if (ret < 0) {
 	mpeg2t_message(LOG_ERR, "Failed to create plugin data");
-	snprintf(errmsg, errlen, "Failed to start plugin");
+	psptr->set_message("Failed to start plugin");
 	delete mptr;
 	return -1;
       }
@@ -733,7 +731,7 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
 	free(stream);
 	return (-1);
       }
-      ret = mptr->create(abyte, FALSE, errmsg, errlen, 1);
+      ret = mptr->create(abyte, FALSE, 1);
       if (ret != 0) {
 	mpeg2t_message(LOG_CRIT, "failed to create from file");
 	free(stream);
@@ -755,9 +753,7 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
 }
 
 mpeg2t_client_t *mpeg2t_start_rtsp (CPlayerSession *psptr, 
-				    const char *orig_name, 
-				    char *errmsg, 
-				    uint32_t errlen)
+				    const char *orig_name)
 {
   char *rtsp_url;
   rtsp_client_t *rptr;
@@ -777,7 +773,7 @@ mpeg2t_client_t *mpeg2t_start_rtsp (CPlayerSession *psptr,
   // That's to change mpeg2t:// to rtsp://
   rptr = rtsp_create_client(rtsp_url, &err);
   if (rptr == NULL) {
-    snprintf(errmsg, errlen, "Couldn't create rtsp client %d", err);
+    psptr->set_message("Couldn't create rtsp client %d", err);
     free(rtsp_url);
     return NULL;
   }
@@ -792,7 +788,7 @@ mpeg2t_client_t *mpeg2t_start_rtsp (CPlayerSession *psptr,
 		      strlen("application/sdp")) == 0) {
 	free_decode_response(decode);
 	free(rtsp_url);
-	snprintf(errmsg, errlen, "Returned content type is SDP - please use rtsp://");
+	psptr->set_message("Returned content type is SDP - please use rtsp://");
 	return NULL;
       } else if (strncasecmp(decode->content_type, 
 			     "application/x-rtsp-mh",
@@ -837,10 +833,10 @@ mpeg2t_client_t *mpeg2t_start_rtsp (CPlayerSession *psptr,
 
   if (err != RTSP_RESPONSE_GOOD) {
     if (decode != NULL) {
-      snprintf(errmsg, errlen, "RTSP error %s %s",
+      psptr->set_message("RTSP error %s %s",
 	       decode->retcode, decode->retresp);
     } else {
-      snprintf(errmsg, errlen, "RTSP setup error %d", err);
+      psptr->set_message("RTSP setup error %d", err);
     }
     free_rtsp_client(rptr);
     free_decode_response(decode);
@@ -855,7 +851,7 @@ mpeg2t_client_t *mpeg2t_start_rtsp (CPlayerSession *psptr,
   delete port;
   err = process_rtsp_transport(&parse, decode->transport, "RAW/RAW/UDP");
   if (err < 0) {
-    snprintf(errmsg, errlen, "error in rtsp transport \"%s\"", decode->transport);
+    psptr->set_message("error in rtsp transport \"%s\"", decode->transport);
     free_rtsp_client(rptr);
     free_decode_response(decode);
     free(rtsp_url);
@@ -864,14 +860,13 @@ mpeg2t_client_t *mpeg2t_start_rtsp (CPlayerSession *psptr,
   free_decode_response(decode);
 
   
-  mp2t = mpeg2t_create_client(parse.source,
+  mp2t = mpeg2t_create_client(psptr, 
+			      parse.source,
 			      parse.client_port,
 			      parse.server_port, 
 			      0, 
 			      0.0,
 			      0, 
-			      errmsg, 
-			      errlen,
 			      rptr,
 			      rtsp_url);
 
@@ -888,8 +883,6 @@ void mpeg2t_check_streams (video_query_t **pvq,
 			   mpeg2t_t *decoder,
 			   uint &audio_count,
 			   uint &video_count,
-			   char *errmsg, 
-			   uint32_t errlen,
 			   CPlayerSession *psptr,
 			   control_callback_vft_t *cc_vft)
 {
@@ -988,10 +981,10 @@ void mpeg2t_check_streams (video_query_t **pvq,
 					 es_pid->es_info_len,
 					 &config);
 	  if (plugin == NULL) {
-	    snprintf(errmsg, errlen, 
+	    psptr->set_message(
 		     "Can't find video plugin for stream type %d",
 		     es_pid->stream_type);
-	    mpeg2t_message(LOG_ERR, "%s", errmsg);
+	    mpeg2t_message(LOG_ERR, "%s", psptr->get_message());
 	  } else {
 	    vq[vid_cnt].track_id = pid_ptr->pid;
 	    vq[vid_cnt].stream_type = STREAM_TYPE_MPEG2_TRANSPORT_STREAM;
@@ -1031,10 +1024,10 @@ void mpeg2t_check_streams (video_query_t **pvq,
 					 es_pid->es_info_len,
 					 &config);
 	  if (plugin == NULL) {
-	    snprintf(errmsg, errlen, 
+	    psptr->set_message(
 		     "Can't find audio plugin for stream type %d",
 		     es_pid->stream_type);
-	    mpeg2t_message(LOG_ERR, "%s", errmsg);
+	    mpeg2t_message(LOG_ERR, "%s", psptr->get_message());
 	  } else {
 	    aq[aud_cnt].track_id = pid_ptr->pid;
 	    aq[aud_cnt].stream_type = STREAM_TYPE_MPEG2_TRANSPORT_STREAM;
@@ -1082,8 +1075,6 @@ void mpeg2t_check_streams (video_query_t **pvq,
 int create_mpeg2t_session (CPlayerSession *psptr,
 			   const char *orig_name, 
 			   session_desc_t *sdp,
-			   char *errmsg, 
-			   uint32_t errlen, 
 			   int have_audio_driver,
 			   control_callback_vft_t *cc_vft)
 {
@@ -1100,7 +1091,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
     if (slash == NULL) {
       slash = name + strlen(name);
       if (colon == NULL || slash == NULL || colon > slash) {
-	snprintf(errmsg, errlen, "Misformed mpeg2 url %s", orig_name);
+	psptr->set_message("Misformed mpeg2 url %s", orig_name);
 	return -1;
       }
   
@@ -1115,7 +1106,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
       char *eport;
       rxport = strtoul(port, &eport, 10);
       if (eport == NULL || *eport != '\0') {
-	snprintf(errmsg, errlen, "Illegal port number in url %s", orig_name);
+	psptr->set_message("Illegal port number in url %s", orig_name);
 	free(addr);
 	free(port);
 	return -1;
@@ -1123,11 +1114,11 @@ int create_mpeg2t_session (CPlayerSession *psptr,
       free(port);
   
 
-      mp2t = mpeg2t_create_client(addr, rxport, 0, 0, 0.0, 0, errmsg, errlen);
+      mp2t = mpeg2t_create_client(psptr, addr, rxport, 0, 0, 0.0, 0);
       free(addr);
     } else {
        // we have a rtsp like url.
-      mp2t = mpeg2t_start_rtsp(psptr, orig_name, errmsg, errlen);
+      mp2t = mpeg2t_start_rtsp(psptr, orig_name);
       if (mp2t == NULL)
 	return -1;
     }
@@ -1139,14 +1130,13 @@ int create_mpeg2t_session (CPlayerSession *psptr,
     if (find_rtcp_bandwidth_from_media(sdp->media, &bw) < 0) {
       bw = 5000.0;
     }
-    mp2t = mpeg2t_create_client(cptr->conn_addr,
+    mp2t = mpeg2t_create_client(psptr,
+				cptr->conn_addr,
 				sdp->media->port,
 				0,
 				1, // use rtp
 				bw,
-				cptr->ttl,
-				errmsg, 
-				errlen);
+				cptr->ttl);
   } else {
     return -1;
   }
@@ -1162,7 +1152,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
   audio_query_t *aq;
   mp2t->decoder->save_frames_at_start = 0;
   mpeg2t_check_streams(&vq, &aq, mp2t->decoder, audio_count, video_count, 
-		       errmsg, errlen, psptr, cc_vft);
+		       psptr, cc_vft);
 
   int total_enabled = 0;
 
@@ -1171,7 +1161,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
   int sdesc = 1;
   // create video media
   int ret =  mpeg2t_create_video(mp2t, psptr, vq, video_count, 
-				 errmsg, errlen, sdesc);
+				 sdesc);
   if (ret < 0) {
     free(aq);
     free(vq);
@@ -1180,7 +1170,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
   total_enabled += ret;
   // create audio media
   ret = mpeg2t_create_audio(mp2t, psptr, aq, 
-			    audio_count, errmsg, errlen, sdesc);
+			    audio_count, sdesc);
   if (ret < 0) {
     free(aq);
     free(vq);
@@ -1202,7 +1192,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
 					     0);
     } else {
 					     
-      psptr->create_streaming_broadcast(NULL, errmsg, errlen);
+      psptr->create_streaming_broadcast(NULL);
     }
     return 0;
   }

@@ -20,6 +20,8 @@ protected: // create from serialization only
 public:
 	void OnCloseSession();
 	void OnSessionDied();
+	void OnSessionWarning(WPARAM, LPARAM);
+	void OnSessionError(WPARAM, LPARAM);
 // Operations
 public:
 

@@ -34,6 +34,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(ID_DEFAULT_HELP, CFrameWnd::OnHelpFinder)
 	ON_MESSAGE(WM_CLOSED_SESSION, OnCloseSession)
 	ON_MESSAGE(WM_SESSION_DIED, OnSessionDied)
+	ON_MESSAGE(WM_SESSION_ERROR, OnSessionError)
+	ON_MESSAGE(WM_SESSION_WARNING, OnSessionWarning)
 END_MESSAGE_MAP()
 
 static UINT indicators[] =
@@ -93,6 +95,19 @@ void CMainFrame::OnSessionDied (void)
 	theApp.SessionDied();
 }
 
+void CMainFrame::OnSessionWarning(WPARAM temp, LPARAM notemp)
+{
+	const char *p = (const char *)temp;
+	AfxMessageBox(p);
+}
+
+void CMainFrame::OnSessionError(WPARAM temp, LPARAM notemp)
+{
+	const char *p = (const char *)temp;
+	AfxMessageBox(p);
+	theApp.StopSession();
+}
+	
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame diagnostics
 

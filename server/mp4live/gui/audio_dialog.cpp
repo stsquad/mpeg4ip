@@ -148,7 +148,8 @@ static void SourceOssDevice()
 
 	CreateChannelMenu(channelValues[channelIndex]);
 	// change bit rate menu
-	CreateBitRateMenu(bitRateValues[bitRateIndex]);
+	CreateBitRateMenu(bitRateValues == NULL ? 
+			  0 : bitRateValues[bitRateIndex]);
 }
 
 static void ChangeSource()
@@ -369,11 +370,13 @@ void CreateBitRateMenu(uint32_t oldBitRate)
 	u_int32_t samplingRate = samplingRateValues[samplingRateIndex];
 
 	// free up old names
-	for (i = 0; i < bitRateNumber; i++) {
-		free(bitRateNames[i]);
-		bitRateNames[i] = NULL;
+	if (bitRateNames != NULL) {
+	  for (i = 0; i < bitRateNumber; i++) {
+	    free(bitRateNames[i]);
+	    bitRateNames[i] = NULL;
+	  }
+	  free(bitRateNames);
 	}
-	free(bitRateNames);
 	bitRateNumber = 0;
 	
 	audio_encoder_table_t *aenct;
@@ -444,22 +447,25 @@ static bool ValidateAndSave(void)
 	MyConfig->SetIntegerValue(CONFIG_AUDIO_SOURCE_TRACK,
 		trackValues ? trackValues[trackIndex] : 0);
 
-	MyConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS, 
-		channelValues[channelIndex]);
-
-	audio_encoder_table_t *aenct;
-	
-	aenct = audio_encoder_table[encodingIndex];
-	MyConfig->SetStringValue(CONFIG_AUDIO_ENCODING, 
-				 aenct->audio_encoding);
-	MyConfig->SetStringValue(CONFIG_AUDIO_ENCODER, 
-				 aenct->audio_encoder);
-
-	MyConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE, 
-		samplingRateValues[samplingRateIndex]);
-
-	MyConfig->SetIntegerValue(CONFIG_AUDIO_BIT_RATE,
-		bitRateValues[bitRateIndex]);
+	if (samplingRateValues != NULL && bitRateValues != NULL) {
+	  MyConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS, 
+				    channelValues[channelIndex]);
+	  
+	  audio_encoder_table_t *aenct;
+	  
+	  aenct = audio_encoder_table[encodingIndex];
+	  MyConfig->SetStringValue(CONFIG_AUDIO_ENCODING, 
+				   aenct->audio_encoding);
+	  MyConfig->SetStringValue(CONFIG_AUDIO_ENCODER, 
+				   aenct->audio_encoder);
+	  
+	  if (samplingRateValues != NULL)
+	    MyConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE, 
+				      samplingRateValues[samplingRateIndex]);
+	  
+	  MyConfig->SetIntegerValue(CONFIG_AUDIO_BIT_RATE,
+				    bitRateValues[bitRateIndex]);
+	}
 
 	MyConfig->Update();
 

@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.8 $
- *  $Date: 2004/02/11 00:38:58 $
+ *  $Revision: 1.9 $
+ *  $Date: 2005/01/07 19:49:43 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -40,11 +40,7 @@
 #ifndef WIN32
 #ifndef _CONFIG_UNIX_H
 #define _CONFIG_UNIX_H
-#undef VERSION
-#undef PACKAGE
 #include "uclconf.h"
-#undef VERSION
-#undef PACKAGE
 #include "../../include/mpeg4ip_version.h"
 #include <limits.h>
 #include <sys/types.h>

@@ -128,20 +128,28 @@ libtoolize --force
 autoheader
 automake --add-missing --foreign || exit 1
 autoconf || exit 1
+cd $pwd
+
+cd $pwd/common/video/mpeg4-2000
+aclocal || aclocal $ACLOCAL_FLAGS || exit 3
+libtoolize --force
+autoheader
+automake --add-missing --foreign || exit 1
+autoconf || exit 1
 
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  
 if `aclocal $ACLOCAL_FLAGS`; then
 echo
 else
-if `aclocal -I doc`; then
-ACLOCAL_FLAGS="-I doc $ACLOCAL_FLAGS"
+if `aclocal -I $pwd/doc`; then
+ACLOCAL_FLAGS="-I $pwd/doc $ACLOCAL_FLAGS"
 else
-if `aclocal -I util $ACLOCAL_FLAGS`; then
-ACLOCAL_FLAGS="-I util $ACLOCAL_FLAGS"
+if `aclocal -I $pwd/util $ACLOCAL_FLAGS`; then
+ACLOCAL_FLAGS="-I $pwd/util $ACLOCAL_FLAGS"
 else
-if `aclocal -I doc -I util $ACLOCAL_FLAGS`; then
-ACLOCAL_FLAGS="-I doc -I util $ACLOCAL_FLAGS"
+if `aclocal -I $pwd/doc -I $pwd/util $ACLOCAL_FLAGS`; then
+ACLOCAL_FLAGS="-I $pwd/doc -I $pwd/util $ACLOCAL_FLAGS"
 fi
 fi
 fi
@@ -152,7 +160,8 @@ grep AM_PATH_GTK_2_0 aclocal.m4 || aclocal -I doc || exit 3
 autoheader || exit 1
 automake --add-missing --foreign || exit 1
 autoconf || exit 1
-[ ! -x configure ] || ./configure $allargs ACLOCAL_AMFLAGS="$ACLOCAL_FLAGS" || exit 1
+echo "Do not remove this file or you might have to re-bootstrap" > bootstrapped
+[ ! -x configure ] || ./configure --enable-warns-as-err $allargs ACLOCAL_AMFLAGS="$ACLOCAL_FLAGS" || exit 1
 set +x
 
 # Now ready to run make

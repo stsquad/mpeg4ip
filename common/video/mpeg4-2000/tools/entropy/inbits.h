@@ -13,12 +13,63 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: inbits.h,v 1.3 2003/09/12 23:19:05 wmaycisco Exp $
+ * $Id: inbits.h,v 1.4 2005/01/07 19:49:41 wmaycisco Exp $
  */
 
 #ifndef __BITS_H__
 #define __BITS_H__ 1
-#include "mpeg4ip.h"
+
+#ifdef WIN32
+typedef unsigned __int32 uint32_t;
+#define close _close
+#define open _open
+#include <windows.h>
+#include <fcntl.h>
+#include <io.h>
+#else
+#ifdef PACKAGE_BUGREPORT
+#define TEMP_PACKAGE_BUGREPORT PACKAGE_BUGREPORT
+#define TEMP_PACKAGE_NAME PACKAGE_NAME
+#define TEMP_PACKAGE_STRING PACKAGE_STRING
+#define TEMP_PACKAGE_TARNAME PACKAGE_TARNAME
+#define TEMP_PACKAGE_VERSION PACKAGE_VERSION
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
+#include "mpeg4-2000.h"
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_VERSION
+#define PACKAGE_BUGREPORT TEMP_PACKAGE_BUGREPORT
+#define PACKAGE_NAME TEMP_PACKAGE_NAME
+#define PACKAGE_STRING TEMP_PACKAGE_STRING
+#define PACKAGE_TARNAME TEMP_PACKAGE_TARNAME
+#define PACKAGE_VERSION TEMP_PACKAGE_VERSION
+#else
+#include "mpeg4-2000.h"
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#include <unistd.h>
+#include <fcntl.h>
+#endif
+
+#ifndef MAX
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 extern unsigned int bit_msk[33];
 #define INLINE __inline

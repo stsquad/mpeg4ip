@@ -33,9 +33,6 @@
 #include <gdk/gdkkeysyms.h>
 #include <string.h>
 #include "gui_utils.h"
-#include <stdio.h>
-#include <stdint.h>
-#include <errno.h>
 /*
  * CreateWidgetFromXpm
  *

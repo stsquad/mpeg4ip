@@ -46,19 +46,15 @@ class CPlayerMedia {
   ~CPlayerMedia();
   /* API routine - create - for RTP stream */
   int create_streaming(media_desc_t *sdp_media,
-		       char *errmsg,
-		       uint32_t errlen,
 		       int on_demand,
 		       int use_rtsp,
 		       int media_number_in_session);
   /* API routine - create - where we provide the bytestream */
   int create(COurInByteStream *b, 
 	     int is_video, 
-	     char *errmsg = NULL, 
-	     uint32_t errlen = 0, 
 	     int streaming = 0);
   /* API routine - play, pause */
-  int do_play(double start_time_offset, char *errmsg, uint32_t errlen);
+  int do_play(double start_time_offset);
   int do_pause(void);
   int is_video(void) { return (m_is_video); };
   double get_max_playtime(void);
@@ -135,7 +131,7 @@ class CPlayerMedia {
   int get_rtp_media_number (void) { return m_rtp_media_number_in_session; };
   void syncronize_rtp_bytestreams(rtcp_sync_t *sync);
  private:
-  int create_common(int is_video, char *errmsg, uint32_t errlen);
+  int create_common(int is_video);
   void wait_on_bytestream(void);
   int m_streaming;
   int m_is_video;

@@ -7,10 +7,10 @@
 # Check that we can find libtool
 # Frequently it hasn't been installed
 if glibtool --version > /dev/null 2> /dev/null
-then 
+    then 
     libtool=glibtool
     if libtoolize --version > /dev/null
-    then
+	then
 	echo "Found link for libtoolize"
     else 
 	echo "Need a link for libtoolize to glibtoolize"
@@ -18,28 +18,28 @@ then
 	exit 1
     fi
 elif libtool --version >/dev/null
-then libtool=libtool
+    then libtool=libtool
 else echo "libtool does not appear to be installed."
-     echo "Please install it and then rerun this script."
-     exit 1
+    echo "Please install it and then rerun this script."
+    exit 1
 fi
 
 if (test ! -f ./configure) 
-then echo "Please run cvs_bootstrap instead."
-     echo "Please note that you will need autoconf, automake and libtool"
-     echo "of the correct version as specified in the README"
-     exit 1
+    then echo "Please run cvs_bootstrap instead."
+    echo "Please note that you will need autoconf, automake and libtool"
+    echo "of the correct version as specified in the README"
+    exit 1
 fi
 
 target_system=`uname -s`
-  if sdl-config --version >/dev/null 2>/dev/null
-  then
+if sdl-config --version >/dev/null 2>/dev/null
+    then
     echo "SDL appears to be installed"
-  else
+else
     echo "SDL does not appear to be installed - install the SDL development package"
     echo "You must have sdl-config in your path to continue"
     exit 1
-  fi
+fi
 
 allargs="$@"
 #
@@ -63,20 +63,20 @@ if test $target_system = "Linux"; then
 	have_lame=no
     fi
 
-    if test $have_lame = "no"; then
-	disabled_mp4live=no
-	while test $# -gt 0;
-	  do
-	  if test $1 = "--disable-server"; then
+    disabled_mp4live=no
+    while test $# -gt 0;
+      do
+      if test $1 = "--disable-server"; then
+	  disabled_mp4live=yes
+      else
+	  if test $1 = "--disable-mp4live"; then
 	      disabled_mp4live=yes
-	  else
-	      if test $1 = "--disable-mp4live"; then
-		  disabled_mp4live=yes
-	      fi
 	  fi
-	  shift
-	done
-	if test $disabled_mp4live = no; then
+      fi
+      shift
+    done
+    if test $disabled_mp4live = no; then
+	if test $have_lame = "no"; then
 	    echo "Error - we cannot detect a valid version of lame and/or faac and you are trying"
 	    echo "to build mpeg4ip with mp4live."
 	    echo "To remedy this, either reexecute this program with either the"
@@ -84,6 +84,23 @@ if test $target_system = "Linux"; then
 	    echo "install lame at version 3.92 or greater from http://www.mp3dev.org"
 	    echo "and libfaac at verion 1.20 or greater from http://www.audiocoding.com"
 	    exit 1
+	fi
+	# we have lame and faac - see if faac is built with mp4 support
+	faac --help >&faac_help
+	sdf=`grep "MP4 support unavailable" faac_help`
+	rm -f faac_help
+	if test -n $sdf; then
+	    if which mpeg4ip-config >/dev/null 2>/dev/null; then
+		echo "Warning - faac uses libmp4v, but we've detected a version"
+		echo "of mpeg4ip.  If you get errors building mp4live, please"
+		echo "rebuild faac without mp4v2 support"
+	    else
+		echo "Error - we have detected a version of faac that has libmp4v2 support"
+		echo "and no copy of mpeg4ip-config.  This means faac was built with"
+		echo "faad2 and the libraries will be incompatible".
+		echo "Please reinstall faac without mp4v2 support"
+		exit 1
+	    fi
 	fi
     fi
 fi
@@ -94,7 +111,7 @@ set -x
 # this code recreates the empty directories
 # if src tree is checked out directly via cvs, this is a no-op
 mkdir -p ./config || exit 1
-
+echo "Do not remove this file or you might have to re-bootstrap" > bootstrapped
 ./configure $allargs || exit 1
 set +x
 

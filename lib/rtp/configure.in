@@ -1,11 +1,11 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT()
+AC_INIT(uclrtp, 1.2.8)
 AM_CONFIG_HEADER(uclconf.h:config.h.in)
 
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE(uclrtp, 1.2.8)
+AM_INIT_AUTOMAKE([1.5 no-define])
 
 AC_PROG_CC
 AC_PROG_CPP
@@ -236,7 +236,47 @@ AC_SUBST(OPTDOC)
 # GCC-specific warning flags
 if test "$GCC" = yes
 then
-        CFLAGS="$CFLAGS -W -Wall -Wwrite-strings -Wbad-function-cast -Wmissing-prototypes -Wmissing-declarations -Werror"
+AC_DEFUN([MY_CHECK_CC_OPT],
+[
+save_CFLAG="$CFLAGS"
+save_CXXFLAG="$CXXFLAGS"
+CFLAGS="$CFLAGS -Werror $1"
+CXXFLAGS="$CXXFLAGS -Werror $1"
+   AC_MSG_CHECKING([whether $3 accepts $1])
+   AC_COMPILE_IFELSE(
+[extern void f(void); void f(void){}],
+[$2=yes
+ AC_MSG_RESULT([yes])],
+[$2=no
+ AC_MSG_RESULT([no])])
+CFLAGS="$save_CFLAG"
+CXXFLAGS="$save_CXXFLAG"
+])
+AC_DEFUN([MY_CHECK_CC_OPT_SET],
+[
+   MY_CHECK_CC_OPT($1, mpeg4ip_ok, $3)
+   if test $mpeg4ip_ok = yes; then
+     $2="$$2 $1"
+   fi
+])
+AC_ARG_ENABLE(warns-as-err,
+[AC_HELP_STRING([--enable-warns-as-err],[enable warnings as errors])],
+	[if test x$enableval = xno; then
+	   AC_MSG_NOTICE([compiler warnings will not be errors])
+         else 
+           BASE_ERR="$BASE_ERR -Werror"
+	   AC_MSG_NOTICE([enabling compiler warnings as errors])
+         fi
+	 ],
+	 [AC_MSG_NOTICE([compiler warnings will not be errs])]) 
+
+BILLS_CWARNINGS="$BASE_ERR"
+MY_CHECK_CC_OPT_SET([-Wmissing-prototypes], BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wmissing-declarations], BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wbad-function-cast], BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wwrite-strings],BILLS_CWARNINGS, [c compiler])
+MY_CHECK_CC_OPT_SET([-Wformat=2],BILLS_CWARNINGS, [c compiler])
+        CFLAGS="$CFLAGS -W $BILLS_CWARNINGS"
 fi
 
 ###############################################################################

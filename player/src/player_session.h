@@ -56,6 +56,8 @@ typedef struct rtcp_sync_t {
   uint64_t timescale;
 } rtcp_sync_t;
 
+struct control_callback_vft_t;
+
 class CPlayerSession {
  public:
   /*
@@ -64,6 +66,7 @@ class CPlayerSession {
   CPlayerSession(CMsgQueue *master_queue,
 		 SDL_sem *master_sem,
 		 const char *name,
+		 control_callback_vft_t *cc_vft,
 		 void *video_persistence = NULL);
   /*
    * API routine - destroy session - free all sub-structures, cleans
@@ -74,12 +77,17 @@ class CPlayerSession {
    * API routine - create a rtsp session with the url.  After that, you
    * need to associate media
    */
-  int create_streaming_broadcast(session_desc_t *sdp,
-				 char *ermsg,
-				 uint32_t errlen);
+  const char *get_session_name(void) { return m_session_name; };
+  const char *get_message(void) { return m_message; };
+  void set_message(const char *fmt, ...) {
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(m_message, sizeof(m_message) - 1, fmt, ap);
+    va_end(ap);
+  };
+  int create_streaming_broadcast(session_desc_t *sdp);
   int create_streaming_ondemand(const char *url,
-				char *errmsg,
-				uint32_t errlen,
 				int use_rtp_tcp);
   int create_streaming_ondemand_other(rtsp_client_t *rtsp_client,
 				      const char *control_url,
@@ -87,12 +95,12 @@ class CPlayerSession {
 				      uint64_t end_time,
 				      int dont_send_start_play,
 				      int seekable);
+  void start(void);
   /*
    * API routine - play at time.  If start_from_begin is FALSE, start_time
    * and we're paused, it will continue from where it left off.
    */
-  int play_all_media(int start_from_begin = FALSE, double start_time = 0.0,
-		     char *errmsg = NULL, uint32_t errlen = 0);
+  int play_all_media(int start_from_begin = FALSE, double start_time = 0.0);
   /*
    * API routine - pause
    */
@@ -110,7 +118,7 @@ class CPlayerSession {
   /*
    * API routine - after setting up media, need to set up sync thread
    */
-  void set_up_sync_thread(void);
+  void set_up_syncs(void);
   CVideoSync *set_up_video_sync(void);
   CAudioSync *set_up_audio_sync(void);
   /*
@@ -167,6 +175,7 @@ class CPlayerSession {
   /*
    * Non-API routines - used for c interfaces, for sync task APIs.
    */
+  void start_session_work(void);
   void wake_sync_thread (void) {
     SDL_SemPost(m_sync_sem);
   }
@@ -198,6 +207,10 @@ class CPlayerSession {
   };
   void *grab_video_persistence (void);
   void display_status(void);
+  bool ShouldStopProcessing(void) {
+    return ((m_stop_processing != NULL) &&
+	    (SDL_SemTryWait(m_stop_processing) == 0));
+  };
  private:
   void *m_video_connection;
   int m_started_video_connection;
@@ -257,11 +270,14 @@ class CPlayerSession {
   uint64_t m_end_time;
   int m_dont_send_first_rtsp_play;
   void *m_video_persistence;
+  bool m_grabbed_video_persistence;
   int m_max_width;
   int m_max_height;
   uint m_init_tries_made;
+  char m_message[512];
+  control_callback_vft_t *m_cc_vft;
+  SDL_sem *m_stop_processing;
 };
 
 int c_sync_thread(void *data);
-
 #endif

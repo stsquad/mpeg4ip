@@ -41,8 +41,6 @@ static void close_mpeg3_file (void *data)
 static int create_mpeg3_video (video_query_t *vq,
 			       mpeg2ps_t *vfile, 
 			       CPlayerSession *psptr,
-			       char *errmsg, 
-			       uint32_t errlen, 
 			       int &sdesc)
 {
   CPlayerMedia *mptr;
@@ -60,12 +58,12 @@ static int create_mpeg3_video (video_query_t *vq,
 				 0,
 				 &config);
   if (plugin == NULL) {
-    snprintf(errmsg, errlen, "Can't find plugin for mpeg video");
+    psptr->set_message("Can't find plugin for mpeg video");
     return 0;
   } 
   mptr = new CPlayerMedia(psptr);
   if (mptr == NULL) {
-    snprintf(errmsg, errlen, "Could not create video media");
+    psptr->set_message("Could not create video media");
     return -1;
   }
   video_info_t *vinfo;
@@ -94,19 +92,19 @@ static int create_mpeg3_video (video_query_t *vq,
 				  NULL, vinfo, NULL, 0);
   if (ret < 0) {
     mpeg3f_message(LOG_ERR, "Failed to create video plugin");
-    snprintf(errmsg, errlen, "Failed to create video plugin");
+    psptr->set_message("Failed to create video plugin");
     free(vinfo);
     return -1;
   }
   CMpeg3VideoByteStream *vbyte;
   vbyte = new CMpeg3VideoByteStream(vfile, vq->track_id);
   if (vbyte == NULL) {
-    snprintf(errmsg, errlen, "Failed to create video bytestream");
+    psptr->set_message("Failed to create video bytestream");
     return -1;
   }
-  ret = mptr->create(vbyte, TRUE, errmsg, errlen);
+  ret = mptr->create(vbyte, TRUE);
   if (ret != 0) {
-    snprintf(errmsg, errlen, "Couldn't create video media");
+    psptr->set_message("Couldn't create video media");
     return -1;
   }
   return 1;
@@ -115,8 +113,6 @@ static int create_mpeg3_video (video_query_t *vq,
 static int create_mpeg3_audio (audio_query_t * aq,
 			       mpeg2ps_t *afile, 
 			       CPlayerSession *psptr,
-			       char *errmsg, 
-			       uint32_t errlen,
 			       int &sdesc)
 {
   CPlayerMedia *mptr;
@@ -132,13 +128,13 @@ static int create_mpeg3_audio (audio_query_t * aq,
 				 0,
 				 &config);
   if (plugin == NULL) {
-    snprintf(errmsg, errlen, "Can't find plugin for mpeg audio format %s",
+    psptr->set_message("Can't find plugin for mpeg audio format %s",
 	     mpeg2ps_get_audio_stream_name(afile, aq->track_id));
     return 0;
   } 
   mptr = new CPlayerMedia(psptr);
   if (mptr == NULL) {
-    snprintf(errmsg, errlen, "Could not create video media");
+    psptr->set_message("Could not create video media");
     return -1;
   }
   audio_info_t *ainfo;
@@ -161,7 +157,7 @@ static int create_mpeg3_audio (audio_query_t * aq,
 				  NULL, ainfo, NULL, 0);
   if (ret < 0) {
     mpeg3f_message(LOG_ERR, "Failed to create audio plugin");
-    snprintf(errmsg, errlen, "Failed to create audio plugin");
+    psptr->set_message("Failed to create audio plugin");
     free(ainfo);
     delete mptr;
     return -1;
@@ -169,12 +165,12 @@ static int create_mpeg3_audio (audio_query_t * aq,
   CMpeg3AudioByteStream *abyte;
   abyte = new CMpeg3AudioByteStream(afile, aq->track_id);
   if (abyte == NULL) {
-    snprintf(errmsg, errlen, "Failed to create audio bytestream");
+    psptr->set_message("Failed to create audio bytestream");
     return -1;
   }
   ret = mptr->create(abyte, FALSE);
   if (ret != 0) {
-    snprintf(errmsg, errlen, "Couldn't create audio media");
+    psptr->set_message("Couldn't create audio media");
     return -1;
   }
   return 1;
@@ -182,8 +178,6 @@ static int create_mpeg3_audio (audio_query_t * aq,
 
 int create_media_for_mpeg_file (CPlayerSession *psptr,
 				const char *name,
-				char *errmsg, 
-				uint32_t errlen,
 				int have_audio_driver,
 				control_callback_vft_t *cc_vft)
 {
@@ -198,7 +192,7 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
 
   file = mpeg2ps_init(name);
   if (file == NULL) {
-    snprintf(errmsg, errlen, "file %s is not a valid .mpg file",
+    psptr->set_message("file %s is not a valid .mpg file",
 	     name);
     return -1;
   }
@@ -296,7 +290,7 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
   }
 
   if (audio_offset == 0 && video_offset == 0) {
-    snprintf(errmsg, errlen, "No playable streams in file");
+    psptr->set_message("No playable streams in file");
     CHECK_AND_FREE(aq);
     CHECK_AND_FREE(vq);
     return -1;
@@ -312,7 +306,7 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
   sdesc = 1;
   for (ix = 0; ret >= 0 && ix < video_offset; ix++) {
     if (vq[ix].enabled) {
-      ret = create_mpeg3_video(&vq[ix], file, psptr, errmsg, errlen, sdesc);
+      ret = create_mpeg3_video(&vq[ix], file, psptr, sdesc);
       if (ret <= 0) {
       } 
     }
@@ -320,7 +314,7 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
   if (ret >= 0) {
     for (ix = 0; ix < audio_offset && ret >= 0; ix++) {
       if (aq[ix].enabled) {
-	ret = create_mpeg3_audio(&aq[ix], file, psptr, errmsg, errlen,sdesc);
+	ret = create_mpeg3_audio(&aq[ix], file, psptr, sdesc);
 	if (ret <= 0) {
 	} 
       }

@@ -32,12 +32,10 @@ struct control_callback_vft_t;
 struct video_query_t;
 struct audio_query_t;
 
-int create_media_for_mp4_file (CPlayerSession *psptr,
-			       const char *name,
-			       char *errmsg,
-			       uint32_t errlen, 
-			       int have_audio_driver,
-			       control_callback_vft_t *);
+int create_media_for_mp4_file(CPlayerSession *psptr,
+			      const char *name,
+			      int have_audio_driver,
+			      control_callback_vft_t *);
 
 /*
  * CMp4File contains access information for the mp4 bytestream
@@ -50,16 +48,16 @@ class CMp4File {
   ~CMp4File();
   void lock_file_mutex (void) { SDL_mutexP(m_file_mutex); };
   void unlock_file_mutex (void) { SDL_mutexV(m_file_mutex); };
-  int create_media (CPlayerSession *psptr, char *errmsg, uint32_t errlen,
+  int create_media (CPlayerSession *psptr,
 		    int have_audio_driver, control_callback_vft_t *);
   MP4FileHandle get_file(void) {return m_mp4file; };
   int get_illegal_audio_codec (void) { return m_illegal_audio_codec;};
   int get_illegal_video_codec (void) { return m_illegal_video_codec;};
   int have_audio (void) { return m_have_audio; };
   int create_video(CPlayerSession *psptr, video_query_t *vq, int video_offset,
-		   char *errmsg, uint32_t errlen, int &start_desc);
+		   int &start_desc);
   int create_audio(CPlayerSession *psptr, audio_query_t *vq, int audio_offset,
-		   char *errmsg, uint32_t errlen, int &start_desc);
+		   int &start_desc);
  private:
   MP4FileHandle m_mp4file;
   SDL_mutex *m_file_mutex;

@@ -67,11 +67,21 @@ typedef struct control_callback_vft_t {
   media_list_query_f media_list_query;
 } control_callback_vft_t;
 
+class CMsgQueue;
+
+CPlayerSession *start_session(CMsgQueue *master_queue,
+			      SDL_sem *master_sem,
+			      void *persist,
+			      const char *name,
+			      control_callback_vft_t *cc_vft,
+			      int audio_volume,
+			      int screen_loc_x,
+			      int screen_loc_y,
+			      int screen_size);
+// internal api only
 int parse_name_for_session(CPlayerSession *psptr,
-			   const char *name,
-			   char *errmsg,
-			   uint32_t errlen,
-			   control_callback_vft_t *);
+			    const char *name,
+			    control_callback_vft_t *cc_vft);
 
 int check_name_for_network(const char *name, int &isOnDemand, int &isRtpOverRtsp);
 int lookup_audio_codec_by_name(const char *name);

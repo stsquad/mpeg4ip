@@ -520,7 +520,7 @@ CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr,
   m_consec_skipped = 0;
   m_fullscreen = 0;
   m_filled_frames = 0;
-  video_message(LOG_DEBUG, "vp is %p", video_persistence);
+  video_message(LOG_DEBUG, "persistence is %p", video_persistence);
 #ifdef WRITE_YUV
   m_outfile = fopen("raw.yuv", FOPEN_WRITE_BINARY);
 #endif

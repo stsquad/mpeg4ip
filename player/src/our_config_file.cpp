@@ -57,7 +57,7 @@ static const SConfigVariable MyConfigVariables[] = {
   CONFIG_INT(CONFIG_LIMIT_AUDIO_SDL_BUFFER, "LimitAudioSdlBuffer", 0),
   CONFIG_INT(CONFIG_MPEG2T_DEBUG, "Mpeg2tDebug", LOG_ALERT),
   CONFIG_INT(CONFIG_ASPECT_RATIO, "AspectRatio", 0),
-  CONFIG_INT(CONFIG_FULL_SCREEN, "FullScreen", 0),
+  CONFIG_BOOL(CONFIG_FULL_SCREEN, "FullScreen", false),
   CONFIG_STRING_HELP(CONFIG_MULTICAST_RX_IF, "MulticastIf", NULL, "Physical interface to receive multicast"),
   CONFIG_INT_HELP(CONFIG_RX_SOCKET_SIZE, "RxSocketSize", 0, "Default receive buffer socket size"),
   CONFIG_STRING(CONFIG_MULTICAST_SRC, "MulticastSrc", NULL),

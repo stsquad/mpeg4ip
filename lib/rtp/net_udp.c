@@ -48,7 +48,7 @@
 #include "vsnprintf.h"
 #include "net_udp.h"
 #ifndef _WIN32
-#include "mpeg4ip_config.h"
+//#include "mpeg4ip_config.h"
 #endif
 
 #ifdef NEED_ADDRINFO_H
@@ -169,7 +169,7 @@ socket_error(const char *msg, ...)
 	va_end(ap);
 	blen -= retlen;
 	snprintf(buffer + retlen, blen, ":%s", strerror(errno));
-	rtp_message(LOG_ALERT, buffer);
+	rtp_message(LOG_ALERT, "%s", buffer);
 #endif
 }
 

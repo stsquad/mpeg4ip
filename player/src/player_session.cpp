@@ -31,6 +31,7 @@
 #include "player_util.h"
 #include "audio.h"
 #include "video.h"
+#include "media_utils.h"
 
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(sync_message, "avsync")
@@ -41,8 +42,10 @@ DEFINE_MESSAGE_MACRO(sync_message, "avsync")
 CPlayerSession::CPlayerSession (CMsgQueue *master_mq, 
 				SDL_sem *master_sem,
 				const char *name,
+				control_callback_vft_t *cc_vft,
 				void *video_persistence)
 {
+  m_cc_vft = cc_vft;
   m_sdp_info = NULL;
   m_my_media = NULL;
   m_rtsp_client = NULL;
@@ -80,13 +83,19 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_screen_scale = 2;
   m_set_end_time = 0;
   m_dont_send_first_rtsp_play = 0;
+  // if we are passed a persistence, it is grabbed...
   m_video_persistence = video_persistence;
+  m_grabbed_video_persistence = m_video_persistence != NULL;
   m_init_tries_made = 0;
+  m_message[0] = '\0';
+  m_stop_processing = SDL_CreateSemaphore(0);
 }
 
 CPlayerSession::~CPlayerSession ()
 {
   int hadthread = 0;
+  // indicate that we want to stop the start-up processing
+  SDL_SemPost(m_stop_processing);
 #ifndef NEED_SDL_VIDEO_IN_MAIN_THREAD
   if (m_sync_thread) {
     send_sync_thread_a_message(MSG_STOP_THREAD);
@@ -98,8 +107,6 @@ CPlayerSession::~CPlayerSession ()
   send_sync_thread_a_message(MSG_STOP_THREAD);
   hadthread = 1;
 #endif
-
-
 
   if (m_streaming_media_set_up != 0 &&
       session_control_is_aggregate()) {
@@ -145,6 +152,10 @@ CPlayerSession::~CPlayerSession ()
     }
     delete m_video_sync;
     m_video_sync = NULL;
+  } 
+  if (m_grabbed_video_persistence) {
+    sync_message(LOG_DEBUG, "grabbed persist");
+    quit_sdl = 0;
   }
 
   if (m_audio_sync != NULL) {
@@ -180,9 +191,50 @@ CPlayerSession::~CPlayerSession ()
   }
 }
 
-int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
-						char *ermsg,
-						uint32_t errlen)
+// start will basically start the sync thread, which will call
+// start_session_work
+void CPlayerSession::start (void)
+{
+  m_sync_sem = SDL_CreateSemaphore(0);
+#ifndef NEED_SDL_VIDEO_IN_MAIN_THREAD
+  m_sync_thread = SDL_CreateThread(c_sync_thread, this);
+#else
+  start_session_work();
+#endif
+}
+
+// API from the sync task - this will start the session
+// while this is running (except if NEED_SDL_VIDEO_IN_MAIN_THREAD),
+// callees from parse_name_for_session can call ShouldStopProcessing
+// to see if they should stop what they are doing.
+void CPlayerSession::start_session_work (void)
+{
+  int ret;
+  bool err = false;
+  ret = parse_name_for_session(this, 
+			       get_session_name(), 
+			       m_cc_vft);
+
+  if (ret >= 0) {
+    set_up_syncs();
+    if (play_all_media(TRUE, 0.0) < 0) {
+      err = true;
+    }
+    if (err == false && ret > 0) {
+      m_master_msg_queue->send_message(MSG_SESSION_WARNING, 
+				       m_master_msg_queue_sem);
+    }
+  } else {
+    err = true;
+  }
+   
+  if (err) {
+    m_master_msg_queue->send_message(MSG_SESSION_ERROR, 
+				     m_master_msg_queue_sem);
+  }
+}
+
+int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp)
 {
   session_set_seekable(0);
   m_sdp_info = sdp;
@@ -195,9 +247,7 @@ int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
  * create_streaming - create a session for streaming.  Create an
  * RTSP session with the server, get the SDP information from it.
  */
-int CPlayerSession::create_streaming_ondemand (const char *url, 
-					       char *errmsg,
-					       uint32_t errlen, 
+int CPlayerSession::create_streaming_ondemand (const char *url,
 					       int use_tcp)
 {
   rtsp_command_t cmd;
@@ -220,7 +270,7 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
     m_rtsp_client = rtsp_create_client(url, &err);
   }
   if (m_rtsp_client == NULL) {
-    snprintf(errmsg, errlen, "Failed to create RTSP client");
+    set_message("Failed to create RTSP client");
     player_error_message("Failed to create rtsp client - error %d", err);
     return (err);
   }
@@ -241,12 +291,12 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
       retval = (((decode->retcode[0] - '0') * 100) +
 		((decode->retcode[1] - '0') * 10) +
 		(decode->retcode[2] - '0'));
-      snprintf(errmsg, errlen, "RTSP describe error %d %s", retval,
-	       decode->retresp != NULL ? decode->retresp : "");
+      set_message("RTSP describe error %d %s", retval,
+		  decode->retresp != NULL ? decode->retresp : "");
       free_decode_response(decode);
     } else {
       retval = -1;
-      snprintf(errmsg, errlen, "RTSP return invalid %d", rtsp_resp);
+      set_message("RTSP return invalid %d", rtsp_resp);
     }
     player_error_message("Describe response not good\n");
     return (retval);
@@ -254,7 +304,7 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
 
   sdpdecode = set_sdp_decode_from_memory(decode->body);
   if (sdpdecode == NULL) {
-    snprintf(errmsg, errlen, "Memory failure");
+    set_message("Memory failure");
     player_error_message("Couldn't get sdp decode\n");
     free_decode_response(decode);
     return (-1);
@@ -266,16 +316,16 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
   err = sdp_decode(sdpdecode, &m_sdp_info, &dummy);
   free(sdpdecode);
   if (err != 0) {
-    snprintf(errmsg, errlen, "Couldn't decode session description %s",
+    set_message("Couldn't decode session description %s",
 	     decode->body);
     player_error_message("Couldn't decode sdp %s", decode->body);
     free_decode_response(decode);
     return (-1);
   }
   if (dummy != 1) {
-    snprintf(errmsg, errlen, "Incorrect number of sessions in sdp decode %d",
+    set_message("Incorrect number of sessions in sdp decode %d",
 	     dummy);
-    player_error_message("%s", errmsg);
+    player_error_message("%s", get_message());
     free_decode_response(decode);
     return (-1);
   }
@@ -353,7 +403,7 @@ CAudioSync *CPlayerSession::set_up_audio_sync (void)
  * set_up_sync_thread.  Creates the sync thread, and a sync class
  * for each media
  */
-void CPlayerSession::set_up_sync_thread(void) 
+void CPlayerSession::set_up_syncs(void) 
 {
   CPlayerMedia *media;
 
@@ -366,19 +416,13 @@ void CPlayerSession::set_up_sync_thread(void)
     }
     media= media->get_next();
   }
-  m_sync_sem = SDL_CreateSemaphore(0);
-#ifndef NEED_SDL_VIDEO_IN_MAIN_THREAD
-  m_sync_thread = SDL_CreateThread(c_sync_thread, this);
-#endif
 }
 
 /*
  * play_all_media - get all media to play
  */
 int CPlayerSession::play_all_media (int start_from_begin, 
-				    double start_time,
-				    char *errmsg, 
-				    uint32_t errlen)
+				    double start_time)
 {
   int ret;
   CPlayerMedia *p;
@@ -443,11 +487,9 @@ int CPlayerSession::play_all_media (int start_from_begin,
 				 m_session_control_url,
 				 &cmd,
 				 &decode) != 0) {
-      if (errmsg != NULL) {
-	snprintf(errmsg, errlen, "RTSP Aggregate Play Error %s-%s", 
-		 decode->retcode,
-		 decode->retresp != NULL ? decode->retresp : "");
-      }
+      set_message("RTSP Aggregate Play Error %s-%s", 
+		  decode->retcode,
+		  decode->retresp != NULL ? decode->retresp : "");
       player_debug_message("RTSP aggregate play command failed");
       free_decode_response(decode);
       return (-1);
@@ -460,9 +502,7 @@ int CPlayerSession::play_all_media (int start_from_begin,
     int ret = process_rtsp_rtpinfo(decode->rtp_info, this, NULL);
     free_decode_response(decode);
     if (ret < 0) {
-      if (errmsg != NULL) {
-	snprintf(errmsg, errlen, "RTSP aggregate RtpInfo response failure");
-      }
+      set_message("RTSP aggregate RtpInfo response failure");
       player_debug_message("rtsp aggregate rtpinfo failed");
       return (-1);
     }
@@ -470,7 +510,7 @@ int CPlayerSession::play_all_media (int start_from_begin,
   m_dont_send_first_rtsp_play = 0;
 
   while (p != NULL) {
-    ret = p->do_play(start_time, errmsg, errlen);
+    ret = p->do_play(start_time);
     if (ret != 0) return (ret);
     p = p->get_next();
   }
@@ -711,6 +751,10 @@ void CPlayerSession::syncronize_rtp_bytestreams (rtcp_sync_t *sync)
 
 void *CPlayerSession::grab_video_persistence (void)
 {
+  if (m_video_sync == NULL) {
+    m_grabbed_video_persistence = true;
+    return m_video_persistence;
+  }
   return m_video_sync->grab_video_persistence();
 }
 

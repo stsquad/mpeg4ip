@@ -65,7 +65,6 @@ int main (int argc, char **argv)
 	SDL_sem *master_sem;
 	CClientProcess proc;
 	CMsgQueue master_queue;
-	char errmsg[512];
 
 	argv++;
 	argc--;
@@ -98,35 +97,21 @@ int main (int argc, char **argv)
 		http_set_error_func(library_message);
 	
 		master_sem = SDL_CreateSemaphore(0);
-		psptr = new CPlayerSession(&master_queue, master_sem,
-								   *argv, NULL);
-		int ret = -1;
-		errmsg[0] = '\0';
-		if (psptr != NULL) {
-			ret = parse_name_for_session(psptr, *argv, errmsg, sizeof(errmsg), NULL);
-			if (ret < 0) {
-				//player_debug_message("%s %s", errmsg, name);
-				delete psptr;
-				psptr = NULL;
-			} else {
-				
-				if (ret > 0) {
-					player_debug_message(errmsg);
-				}
-				
-				psptr->set_up_sync_thread();
-				psptr->set_screen_location(100, 100);
-				
-				psptr->set_screen_size(screen_size);
-				psptr->set_audio_volume(config.get_config_value(CONFIG_VOLUME));
-				if (psptr->play_all_media(TRUE) != 0) {
-					snprintf(errmsg, sizeof(*errmsg), "Couldn't start playing");
-					delete psptr;
-					psptr = NULL;
-				}
-			}
+			
+		psptr = start_session(&master_queue, 
+							  master_sem, 
+							  NULL,
+							  *argv,
+							  NULL,
+							  config.get_config_value(CONFIG_VOLUME),
+			                  100, 
+			                  100,
+			                  screen_size);
+		if (psptr == NULL) {
+			proc.initial_response(-1, NULL, NULL);
+		} else {
+		proc.initial_response(0, psptr, psptr->get_message());
 		}
-		proc.initial_response(ret, psptr, errmsg);
 	}
 	// Either way - we need to loop and wait until we get the
 	// terminate message
@@ -139,6 +124,13 @@ int main (int argc, char **argv)
 			switch (msg->get_value()) {
 			case MSG_SESSION_FINISHED:
 				proc.send_message(GUI_MSG_SESSION_FINISHED);
+				break;
+			case MSG_SESSION_WARNING:
+				proc.send_string(GUI_MSG_SESSION_WARNING, psptr->get_message());
+				break;
+			case MSG_SESSION_ERROR:
+				player_error_message("error is \"%s\"", psptr->get_message());
+				proc.send_string(GUI_MSG_SESSION_ERROR, psptr->get_message());
 				break;
 			case MSG_RECEIVED_QUIT:
 				proc.send_message(GUI_MSG_RECEIVED_QUIT);

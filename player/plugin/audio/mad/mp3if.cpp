@@ -18,11 +18,16 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
+#define DECLARE_CONFIG_VARIABLES
 #include "mp3if.h"
 #include <mp4av/mp4av.h>
 #include <mp4v2/mp4.h>
 #include <mpeg2t/mpeg2_transport.h>
 #include <mpeg2ps/mpeg2_ps.h>
+
+static SConfigVariable MyConfigVariables[] = {
+  CONFIG_BOOL(CONFIG_USE_MAD, "UseMAD", false),
+};
 
 #define mp3_message mp3->m_vft->log_msg
 
@@ -195,7 +200,9 @@ static int mp3_decode (codec_data_t *ptr,
 #ifdef DEBUG_MAD
     mp3_message(LOG_DEBUG, "mad", "init decoder");
 #endif
-    (void *)mp3->m_mad_decoder.sync = malloc(sizeof(*mp3->m_mad_decoder.sync));
+    void **foo = (void **)&mp3->m_mad_decoder.sync;
+
+    *foo = malloc(sizeof(*mp3->m_mad_decoder.sync));
     memset(mp3->m_mad_decoder.sync, 0, sizeof(*mp3->m_mad_decoder.sync));
 
     mp3->m_mad_stream = &mp3->m_mad_decoder.sync->stream;
@@ -306,6 +313,9 @@ static int mp3_codec_check (lib_message_func_t message,
 			    uint32_t userdata_size,
 			    CConfigSet *pConfig)
 {
+  if (pConfig->GetBoolValue(CONFIG_USE_MAD) == false) {
+    return -1;
+  }
   if ((strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) &&
       (audio_type != -1)) {
     switch (audio_type) {
@@ -377,8 +387,9 @@ AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("mad",
 				 NULL,
 				 mp3_raw_file_seek_to,
 				 mp3_file_eof,
-				 NULL,
-				 0);
+				 MyConfigVariables,
+				 sizeof(MyConfigVariables) /
+				 sizeof(*MyConfigVariables));
 
 /* end file mp3.cpp */
 

@@ -287,6 +287,10 @@ extern "C" {
 MP4FileHandle MP4Create(
 	const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
+	u_int32_t flags DEFAULT(0));
+MP4FileHandle MP4CreateEx(
+        const char *fileName,
+	u_int32_t verbosity DEFAULT(0),
 	u_int32_t flags DEFAULT(0),
 	int add_ftyp DEFAULT(1),
 	int add_iods DEFAULT(1),

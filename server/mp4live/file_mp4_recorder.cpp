@@ -178,15 +178,15 @@ void CMp4Recorder::DoStartRecord()
 		    AUDIO_ENCODING_AMR) == 0)) {
       static char* p3gppSupportedBrands[2] = {"3gp5", "3gp4"};
 
-      m_mp4File = MP4Create(m_mp4FileName,
-			    verbosity,
-			    createFlags,
-			    1,
-			    0,
-			    p3gppSupportedBrands[0],
-			    0x0001,
-			    p3gppSupportedBrands,
-			    NUM_ELEMENTS_IN_ARRAY(p3gppSupportedBrands));
+      m_mp4File = MP4CreateEx(m_mp4FileName,
+			      verbosity,
+			      createFlags,
+			      1,
+			      0,
+			      p3gppSupportedBrands[0],
+			      0x0001,
+			      p3gppSupportedBrands,
+			      NUM_ELEMENTS_IN_ARRAY(p3gppSupportedBrands));
     } else {
       m_mp4File = MP4Create(m_mp4FileName,
 			    verbosity, createFlags);

@@ -253,6 +253,16 @@ void CMP4Process::receive_thread (void)
 				ptr = (const sdl_event_msg_t *)pmbox->to_gui_mbox;
 				((CFrameWnd*) AfxGetApp()->m_pMainWnd)->GetActiveView()->PostMessage(WM_SDL_KEY,
 					ptr->sym, ptr->mod);
+				break;
+			case GUI_MSG_SESSION_WARNING:
+			case GUI_MSG_SESSION_ERROR:
+				const char *p;
+				p = strdup((const char *)pmbox->to_gui_mbox);
+				theApp.m_pMainWnd->PostMessage(
+					pmbox->to_gui_command == GUI_MSG_SESSION_WARNING ?
+                    WM_SESSION_WARNING : WM_SESSION_ERROR, (WPARAM)p , 0);
+				break;
+					
 			default:
 				//theApp.PostThreadMessage(WM_USER, 0, 0);
 				break;

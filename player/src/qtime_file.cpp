@@ -49,14 +49,12 @@ static void close_qt_file (void *data)
  */
 int create_media_for_qtime_file (CPlayerSession *psptr, 
 				 const char *name,
-				 char *errmsg,
-				 uint32_t errlen,
 				 int have_audio_driver)
 {
   CQtimeFile *QTfile1;
   if (quicktime_check_sig(name) == 0) {
-    snprintf(errmsg, errlen, "File %s is not a quicktime file", name);
-    player_error_message("%s", errmsg);
+    psptr->set_message("File %s is not a quicktime file", name);
+    player_error_message("%s", psptr->get_message());
     return (-1);
   }
  
@@ -69,30 +67,30 @@ int create_media_for_qtime_file (CPlayerSession *psptr,
   int video;
   video = QTfile1->create_video(psptr);
   if (video < 0) {
-    snprintf(errmsg, errlen, "Internal quicktime video error");
+    psptr->set_message("Internal quicktime video error");
     return (-1);
   }
   int audio = 0;
   if (have_audio_driver > 0) {
     audio = QTfile1->create_audio(psptr);
     if (audio < 0) {
-      snprintf(errmsg, errlen, "Internal quicktime audio error");
+      psptr->set_message("Internal quicktime audio error");
       return (-1);
     }
   }
   if (audio == 0 && video == 0) {
-    snprintf(errmsg, errlen, "No valid codecs in file %s", name);
+    psptr->set_message("No valid codecs in file %s", name);
     return (-1);
   }
   if (audio == 0 && QTfile1->get_audio_tracks() > 0) {
     if (have_audio_driver > 0) 
-      snprintf(errmsg, errlen, "Invalid Audio Codec");
+      psptr->set_message("Invalid Audio Codec");
     else 
-      snprintf(errmsg, errlen, "No Audio driver - no sound");
+      psptr->set_message("No Audio driver - no sound");
     return (1);
   }
   if ((QTfile1->get_video_tracks() != 0) && video == 0) {
-    snprintf(errmsg, errlen, "Invalid Video Codec");
+    psptr->set_message("Invalid Video Codec");
     return (1);
   }
   return (0);

@@ -2,7 +2,7 @@
 
 repository=mpeg4ip
 
-export CVS_RSH=cvsssh
+export CVS_RSH=ssh
 CVS_N=
 
 release=0
@@ -137,6 +137,7 @@ if [ $skipversion = 0 ]; then
    echo New version number is `cat VERSION` >&6
    echo \#define MPEG4IP_PACKAGE \"mpeg4ip\" > include/mpeg4ip_version.h
    echo \#define MPEG4IP_VERSION \"`cat VERSION`\" >> include/mpeg4ip_version.h
+   sh util/version_defines.sh `cat VERSION | tr '.' ' '` >>include/mpeg4ip_version.h
    #
    # Update configure.in version
    #

@@ -235,6 +235,7 @@ void CClientProcess::msg_send_thread (void)
 				uint32_t msg_len;
 				const void *foo;
 				foo = msg->get_message(msg_len);
+				player_debug_message("message %x size %d", msg->get_value(), msg_len);
 				if (msg_len > 0) {
 					memcpy(pmbox->to_gui_mbox,
 						   foo,

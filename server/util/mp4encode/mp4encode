@@ -138,7 +138,7 @@ if [ $use_iso = 0 ]; then
 else
 	# Create video encoder parameters file from template
 	isoBitRate=`expr ${vbitRate} \* 100000`
-	sed -e "s?BASEDIR?${here}?" -e "s/FILEPREFIX/${prefix}/" -e "s/LASTFRAME/${lastframe}/" -e "s/FRAMEWIDTH/${videoWidth}/" -e "s/FRAMEHEIGHT/${videoHeight}/" -e "s/FRAMERATE/${fps}/" -e "s/BFREQUENCY/${bfrequency}/" -e "s/PFREQUENCY/${pfrequency}/" -e "s/BITRATE/${isoBitRate}/" /usr/local/share/mp4venc_template.par > ${prefix}.par 
+	sed -e "s?BASEDIR?${here}?" -e "s/FILEPREFIX/${prefix}/" -e "s/LASTFRAME/${lastframe}/" -e "s/FRAMEWIDTH/${videoWidth}/" -e "s/FRAMEHEIGHT/${videoHeight}/" -e "s/FRAMERATE/${fps}/" -e "s/BFREQUENCY/${bfrequency}/" -e "s/PFREQUENCY/${pfrequency}/" -e "s/BITRATE/${isoBitRate}/" mp4venc_template.par > ${prefix}.par 
 
 	mp4venc ${prefix}.par
 	vfile=${prefix}.cmp

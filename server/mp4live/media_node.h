@@ -51,7 +51,7 @@ public:
 	void StopThread() {
 		if (m_myThread) {
 			m_myMsgQueue.send_message(MSG_NODE_STOP_THREAD,
-				NULL, 0, m_myMsgQueueSemaphore);
+						  m_myMsgQueueSemaphore);
 			SDL_WaitThread(m_myThread, NULL);
 			m_myThread = NULL;
 			SDL_DestroySemaphore(m_myMsgQueueSemaphore);
@@ -61,12 +61,12 @@ public:
 
 	void Start(void) {
 		m_myMsgQueue.send_message(MSG_NODE_START,
-			 NULL, 0, m_myMsgQueueSemaphore);
+					  m_myMsgQueueSemaphore);
 	}
 
 	void Stop(void) {
 		m_myMsgQueue.send_message(MSG_NODE_STOP,
-			NULL, 0, m_myMsgQueueSemaphore);
+					  m_myMsgQueueSemaphore);
 	}
 
 	virtual ~CMediaNode() {

@@ -215,8 +215,7 @@ static void create_session_from_name (const char *name)
 {
   gint x, y, w, h;
   GdkWindow *window;
-  int display_err = 0;
-  char errmsg[512];
+  //  int display_err = 0;
     
   window = GTK_WIDGET(main_window)->window;
   gdk_window_get_position(window, &x, &y);
@@ -234,19 +233,32 @@ static void create_session_from_name (const char *name)
     close_session();
   }
 
+  //  bool do_delete = false;
+
+  psptr = start_session(&master_queue, 
+			NULL,
+			NULL,
+			name, 
+			&cc_vft,
+			master_muted ? 0 : master_volume,
+			x, 
+			y, 
+			master_screen_size / 50);
+  if (psptr != NULL) {
+    adjust_gui_for_play();
+  }
+#if 0
   psptr = new CPlayerSession(&master_queue,
 			     NULL,
 			     name);
   if (psptr != NULL) {
-    errmsg[0] = '\0';
     // See if we can create media for this session
-    int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg),
-				     &cc_vft);
+    int ret = parse_name_for_session(psptr, name, &cc_vft);
     if (ret >= 0) {
       // Yup - valid session.  Set volume, set up sync thread, and
       // start the session
       if (ret > 0) {
-	ShowMessage("Warning", errmsg);
+	ShowMessage("Warning", psptr->get_message());
       }
       if (master_muted == false)
 	psptr->set_audio_volume(master_volume);
@@ -262,26 +274,29 @@ static void create_session_from_name (const char *name)
       config.set_config_value(CONFIG_ASPECT_RATIO, old_aspect_ratio + 1);
       set_aspect_ratio(old_aspect_ratio);
 
-      if (psptr->play_all_media(TRUE, 0.0, errmsg,sizeof(errmsg)) < 0) {
-	delete psptr;
-	psptr = NULL;
+      if (psptr->play_all_media(TRUE, 0.0) < 0) {
+	do_delete = true;
 	display_err = 1;
       } else {
 	adjust_gui_for_play();
       }
     } else {
       display_err = 1;
-      delete psptr;
-      psptr = NULL;
+      do_delete = true;
     }
   }
   if (display_err != 0) {
     // Nope - display a message
     char buffer[1024];
     snprintf(buffer, sizeof(buffer), "%s cannot be opened\n%s", name,
-	     errmsg);
+	     psptr->get_message());
     ShowMessage("Open error", buffer);
   }
+  if (do_delete) {
+    delete psptr;
+    psptr = NULL;
+  }
+#endif
 }
 /*
  * start a session
@@ -436,9 +451,7 @@ static void on_seek_activate (GtkWidget *window, gpointer data)
     char errmsg[512];
     int ret = 
 	psptr->play_all_media(time == 0.0 ? TRUE : FALSE, 
-			      time, 
-			      errmsg, 
-			      sizeof(errmsg));
+			      time);
     if (ret == 0) {
       adjust_gui_for_play();
     }
@@ -529,8 +542,6 @@ static void on_main_menu_about (GtkWidget *window, gpointer data)
 	  "RTP from UCL\n"
 	  "ISO reference decoder for MPEG4\n"
 	  "FAAC decoder\n"
-	  "Xvid decoder\n"
-	  "Libmpeg3 file and video decoder\n"
 	  "Developed by Bill May, 10/00 to present", MPEG4IP_VERSION
 	  );
 
@@ -662,7 +673,6 @@ static void on_play_list_selected (GtkWidget *window, gpointer data)
 static void on_play_clicked (GtkWidget *window, gpointer data)
 {
   int ret;
-  char errmsg[512];
   if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(play_button)) == FALSE) {
     if (play_state == PLAYING) {
       toggle_button_adjust(play_button, TRUE);
@@ -676,10 +686,10 @@ static void on_play_clicked (GtkWidget *window, gpointer data)
   SDL_mutexP(command_mutex);
   switch (play_state) {
   case PAUSED:
-    ret = psptr->play_all_media(FALSE, 0.0, errmsg, sizeof(errmsg));
+    ret = psptr->play_all_media(FALSE, 0.0);
     break;
   case STOPPED:
-    ret = psptr->play_all_media(TRUE, 0.0, errmsg, sizeof(errmsg));
+    ret = psptr->play_all_media(TRUE, 0.0);
     break;
   default:
     break;
@@ -689,10 +699,10 @@ static void on_play_clicked (GtkWidget *window, gpointer data)
   SDL_mutexV(command_mutex);
   if (ret != 0) {
     char buffer[1024];
-    close_session();
     snprintf(buffer, sizeof(buffer), "Error re-starting session: %s", 
-	     errmsg);
+	     psptr->get_message());
     ShowMessage("Play error", buffer);
+    close_session();
   }
 }
 
@@ -991,7 +1001,6 @@ static int on_time_slider_pressed (GtkWidget *window, gpointer data)
 
 static int on_time_slider_adjusted (GtkWidget *window, gpointer data)
 {
-  char errmsg[512];
   double maxtime, newtime;
   time_slider_pressed = 0;
   if (psptr == NULL) 
@@ -1012,17 +1021,16 @@ static int on_time_slider_adjusted (GtkWidget *window, gpointer data)
     psptr->pause_all_media();
   }
   // If we're going all the way back to the beginning, indicate that
-  int ret = psptr->play_all_media(newtime == 0.0 ? TRUE : FALSE, newtime,
-				  errmsg, sizeof(errmsg));
+  int ret = psptr->play_all_media(newtime == 0.0 ? TRUE : FALSE, newtime);
   if (ret == 0) 
     adjust_gui_for_play();
   SDL_mutexV(command_mutex);
   if (ret != 0) {
     char buffer[1024];
-    close_session();
     snprintf(buffer, sizeof(buffer), "Error re-starting session: %s", 
-	     errmsg);
+	     psptr->get_message());
     ShowMessage("Play error", buffer);
+    close_session();
   } 
   return FALSE;
 }
@@ -1041,7 +1049,6 @@ static bool one_sec = false;
 static gint main_timer (gpointer raw)
 {
   uint64_t play_time;
-  char errmsg[512];
   char buffer[1024];
   if (play_state == PLAYING) {
     flush_log_file();
@@ -1119,6 +1126,20 @@ static gint main_timer (gpointer raw)
   CMsg *newmsg;
   while ((newmsg = master_queue.get_message()) != NULL) {
     switch (newmsg->get_value()) {
+    case MSG_SESSION_ERROR: 
+    case MSG_SESSION_WARNING: 
+      //
+      if (psptr != NULL) {
+	char buffer[1024];
+	snprintf(buffer, sizeof(buffer), "%s cannot be opened\n%s", 
+		 psptr->get_session_name(),
+		 psptr->get_message());
+	ShowMessage("Open error", buffer);
+      }
+      if (newmsg->get_value() == MSG_SESSION_WARNING) {
+	break;
+      }
+      // otherwise fall through into quit
     case MSG_RECEIVED_QUIT:
       //player_debug_message("received quit");
       on_main_menu_close(NULL, 0);
@@ -1147,10 +1168,10 @@ static gint main_timer (gpointer raw)
 	    break;
 	  SDL_mutexP(command_mutex);
 	  psptr->pause_all_media();
-	  if (psptr->play_all_media(TRUE, 0.0, errmsg, sizeof(errmsg)) < 0) {
-	    close_session();
+	  if (psptr->play_all_media(TRUE, 0.0) < 0) {
 	    snprintf(buffer, sizeof(buffer), "Error re-starting session: %s", 
-		     errmsg);
+		     psptr->get_message());
+	    close_session();
 	    ShowMessage("Play error", buffer);
 	  } else {
 	    adjust_gui_for_play();
@@ -1226,14 +1247,14 @@ static gint main_timer (gpointer raw)
 	  do_pause();
 	} else if (play_state == PAUSED && psptr) {
 	  SDL_mutexP(command_mutex);
-	  if (psptr->play_all_media(FALSE, 0.0, errmsg, sizeof(errmsg)) == 0) {
+	  if (psptr->play_all_media(FALSE, 0.0) == 0) {
 	    adjust_gui_for_play();
 	    SDL_mutexV(command_mutex);
 	  } else {
 	    SDL_mutexV(command_mutex);
-	    close_session();
 	    snprintf(buffer, sizeof(buffer), "Error re-starting session: %s", 
-		     errmsg);
+		     psptr->get_message());
+	    close_session();
 	    ShowMessage("Play error", buffer);
 	  }
 	}
@@ -1241,10 +1262,10 @@ static gint main_timer (gpointer raw)
       case SDLK_HOME:
 	if (psptr && play_state == PLAYING) {
 	  psptr->pause_all_media();
-	  if (psptr->play_all_media(TRUE, 0.0, errmsg, sizeof(errmsg)) < 0) {
-	    close_session();
+	  if (psptr->play_all_media(TRUE, 0.0) < 0) {
 	    snprintf(buffer, sizeof(buffer), "Error re-starting session: %s", 
-		     errmsg);
+		     psptr->get_message());
+	    close_session();
 	    ShowMessage("Play error", buffer);
 	  }
 	}
@@ -1260,13 +1281,13 @@ static gint main_timer (gpointer raw)
 	  maxtime = psptr->get_max_time();
 	  if (ptime < maxtime) {
 	    psptr->pause_all_media();
-	    if (psptr->play_all_media(FALSE, ptime, errmsg, sizeof(errmsg)) == 0) {
+	    if (psptr->play_all_media(FALSE, ptime) == 0) {
 	      adjust_gui_for_play();
 	    } else {
 	      SDL_mutexV(command_mutex);
-	      close_session();
 	      snprintf(buffer, sizeof(buffer), "Error re-starting session: %s", 
-		       errmsg);
+		       psptr->get_message());
+	      close_session();
 	      ShowMessage("Play error", buffer);
 	      break;
 	    }
@@ -1288,9 +1309,9 @@ static gint main_timer (gpointer raw)
 	      adjust_gui_for_play();
 	    } else {
 	      SDL_mutexV(command_mutex);
-	      close_session();
 	      snprintf(buffer, sizeof(buffer), "Error starting session: %s", 
-		       errmsg);
+		       psptr->get_message());
+	      close_session();
 	      ShowMessage("Play error", buffer);
 	      break;
 	    }

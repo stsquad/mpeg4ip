@@ -507,15 +507,15 @@ int main(int argc, char** argv)
         }
 
 	if ((!strcmp(extension, ".amr")) || (!strcmp(extension, ".263"))) {
-		mp4File = MP4Create(mp4FileName,
-				    Verbosity,
-				    createFlags,
-				    1,  // add ftyp atom
-				    0,  // don't add iods
-				    p3gppSupportedBrands[0],
-				    0x0001,
-				    p3gppSupportedBrands,
-				    sizeof(p3gppSupportedBrands) / sizeof(p3gppSupportedBrands[0]));
+		mp4File = MP4CreateEx(mp4FileName,
+				      Verbosity,
+				      createFlags,
+				      1,  // add ftyp atom
+				      0,  // don't add iods
+				      p3gppSupportedBrands[0],
+				      0x0001,
+				      p3gppSupportedBrands,
+				      sizeof(p3gppSupportedBrands) / sizeof(p3gppSupportedBrands[0]));
 	} else {
 	  mp4File = MP4Create(mp4FileName, Verbosity,
 			      createFlags);

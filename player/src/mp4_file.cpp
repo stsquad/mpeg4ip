@@ -49,8 +49,6 @@ static void close_mp4_file (void *data)
 
 int create_media_for_mp4_file (CPlayerSession *psptr, 
 			       const char *name,
-			       char *errmsg,
-			       uint32_t errlen,
 			       int have_audio_driver,
 			       control_callback_vft_t *cc_vft)
 {
@@ -59,7 +57,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 
   fh = MP4Read(name, MP4_DETAILS_ERROR); // | MP4_DETAILS_READ | MP4_DETAILS_SAMPLE);
   if (!MP4_IS_VALID_FILE_HANDLE(fh)) {
-    snprintf(errmsg, errlen, "`%s\' is not an mp4 file", name);
+    psptr->set_message("`%s\' is not an mp4 file", name);
     return -1;
   }
 
@@ -70,14 +68,15 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 
   int ret;
   ret = Mp4File1->create_media(psptr, 
-				 errmsg, 
-				 errlen, 
-				 have_audio_driver,
-				 cc_vft);
+			       have_audio_driver,
+			       cc_vft);
   if (ret <= 0) return ret;
 
   int offset = 0;
 
+  char errmsg[512];
+  uint32_t errlen = sizeof(errmsg) - 1;
+  errmsg[0] = '\0';
   if (Mp4File1->get_illegal_video_codec() != 0) {
     offset = snprintf(errmsg, errlen, "Unknown or unused Video tracks ");
   }
@@ -91,6 +90,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 	     "%sUnknown or unused audio tracks", 
 	     offset == 0 ? "" : "and ");
   }
+  psptr->set_message(errmsg);
   return (1);
 }
 
@@ -116,8 +116,6 @@ CMp4File::~CMp4File (void)
 int CMp4File::create_video(CPlayerSession *psptr, 
 			   video_query_t *vq, 
 			   int video_offset,
-			   char *errmsg, 
-			   uint32_t errlen,
 			   int &start_desc)
 {
   int ix;
@@ -157,7 +155,7 @@ int CMp4File::create_video(CPlayerSession *psptr,
 
       if (ret < 0) {
 	mp4f_message(LOG_ERR, "Failed to create plugin data");
-	snprintf(errmsg, errlen, "Failed to start plugin");
+	psptr->set_message("Failed to start plugin");
 	delete mptr;
 	return -1;
       }
@@ -184,7 +182,7 @@ int CMp4File::create_video(CPlayerSession *psptr,
 	return (-1);
       }
 
-      ret = mptr->create(vbyte, TRUE, errmsg, errlen);
+      ret = mptr->create(vbyte, TRUE);
       if (ret != 0) {
 	return (-1);
       }
@@ -210,8 +208,6 @@ int CMp4File::create_video(CPlayerSession *psptr,
 int CMp4File::create_audio(CPlayerSession *psptr, 
 			   audio_query_t *aq, 
 			   int audio_offset,
-			   char *errmsg,
-			   uint32_t errlen,
 			   int &start_desc)
 {
   int ix;
@@ -273,14 +269,14 @@ int CMp4File::create_audio(CPlayerSession *psptr,
       if (ret < 0) {
 	mp4f_message(LOG_ERR, "Couldn't create audio from plugin %s", 
 		     plugin->c_name);
-	snprintf(errmsg, errlen, "Couldn't start audio plugin %s", 
-		 plugin->c_name);
+	psptr->set_message("Couldn't start audio plugin %s", 
+			   plugin->c_name);
 	delete mptr;
 	delete abyte;
 	return -1;
       }
 
-      ret = mptr->create(abyte, FALSE, errmsg, errlen);
+      ret = mptr->create(abyte, FALSE);
       if (ret != 0) {
 	return (-1);
       }
@@ -306,8 +302,6 @@ int CMp4File::create_audio(CPlayerSession *psptr,
 
 
 int CMp4File::create_media (CPlayerSession *psptr,
-			    char *errmsg, 
-			    uint32_t errlen,
 			    int have_audio_driver,
 			    control_callback_vft_t *cc_vft)
 {
@@ -330,7 +324,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
   MP4SetVerbosity(m_mp4file, verb);
 
   if (video_count == 0 && audio_count == 0) {
-    snprintf(errmsg, errlen, "No audio or video tracks in file");
+    psptr->set_message("No audio or video tracks in file");
     return -1;
   }
 
@@ -380,18 +374,20 @@ int CMp4File::create_media (CPlayerSession *psptr,
 				    &pictheader, &pictheadersize);
       bufsize = 0;
       for (ix = 0; seqheadersize[ix] != 0; ix++) {
-	bufsize += seqheadersize[ix] + 3;
+	bufsize += seqheadersize[ix] + 4;
       }
       for (ix = 0; pictheadersize[ix] != 0; ix++) {
-	bufsize += pictheadersize[ix] + 3;
+	bufsize += pictheadersize[ix] + 4;
       }
       foo = (uint8_t *)malloc(bufsize);
       uint32_t copied = 0;
+      // headers do not have the byte stream start code stored in the file
       for (ix = 0; seqheadersize[ix] != 0; ix++) {
 	foo[copied] = 0;
 	foo[copied + 1] = 0;
-	foo[copied + 2] = 1;
-	copied += 3; // add header
+	foo[copied + 2] = 0;
+	foo[copied + 3] = 1;
+	copied += 4; // add header
 	memcpy(foo + copied, 
 	       seqheader[ix], 
 	       seqheadersize[ix]);
@@ -403,8 +399,9 @@ int CMp4File::create_media (CPlayerSession *psptr,
       for (ix = 0; pictheadersize[ix] != 0; ix++) {
 	foo[copied] = 0;
 	foo[copied + 1] = 0;
-	foo[copied + 2] = 1;
-	copied += 3; // add header
+	foo[copied + 2] = 0;
+	foo[copied + 3] = 1;
+	copied += 4; // add header
 	memcpy(foo + copied, 
 	       pictheader[ix], 
 	       pictheadersize[ix]);
@@ -435,11 +432,10 @@ int CMp4File::create_media (CPlayerSession *psptr,
 				   vq[video_offset].config_len,
 				   &config);
     if (plugin == NULL) {
-      snprintf(errmsg, errlen, 
-	       "Can't find plugin for video %s type %d, profile %d",
-	       vq[video_offset].compressor,
-	       vq[video_offset].type, 
-	       vq[video_offset].profile);
+      psptr->set_message("Can't find plugin for video %s type %d, profile %d",
+			 vq[video_offset].compressor,
+			 vq[video_offset].type, 
+			 vq[video_offset].profile);
       m_illegal_video_codec++;
       ret_value = 1;
       // possibly memleak for foo here
@@ -507,7 +503,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
   }
 
   if (video_offset == 0 && audio_offset == 0) {
-    snprintf(errmsg, errlen, "No playable codecs in mp4 file");
+    psptr->set_message("No playable codecs in mp4 file");
     return -1;
   }
   if (cc_vft && cc_vft->media_list_query != NULL) {
@@ -523,7 +519,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
 
   int vidret, audret;
   int start_desc = 1;
-  vidret = create_video(psptr, vq, video_offset, errmsg, errlen,start_desc);
+  vidret = create_video(psptr, vq, video_offset, start_desc);
   free(vq);
 
   if (vidret < 0) {
@@ -531,7 +527,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
     return -1;
   }
  
-  audret = create_audio(psptr, aq, audio_offset, errmsg, errlen, start_desc);
+  audret = create_audio(psptr, aq, audio_offset, start_desc);
   free(aq);
 
   if (audret < 0) ret_value = -1;

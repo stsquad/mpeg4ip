@@ -37,6 +37,7 @@ typedef struct h264_rtp_data_t {
   uint8_t *m_buffer;
   uint32_t m_buffer_size;
   uint32_t m_buffersize_max;
+  bool m_have_first_nal;
 } h264_rtp_data_t;
 
 

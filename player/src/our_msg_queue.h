@@ -34,7 +34,9 @@
 #define MSG_SYNC_RESIZE_SCREEN 6
 #define MSG_RECEIVED_QUIT 7
 #define MSG_SDL_KEY_EVENT 8
-
+#define MSG_SESSION_ERROR 9
+#define MSG_SESSION_WARNING 10
+#define MSG_OUR_LAST_MESSAGE 11
 typedef struct sdl_event_msg_t {
   SDLKey sym;
   SDLMod mod;

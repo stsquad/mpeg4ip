@@ -21,6 +21,8 @@
 #define WM_CLOSED_SESSION (WM_USER)
 #define WM_SESSION_DIED   (WM_USER + 1)
 #define WM_SDL_KEY		  (WM_USER + 2)
+#define WM_SESSION_ERROR  (WM_USER + 3)
+#define WM_SESSION_WARNING (WM_USER + 4)
 
 class CWmp4playerApp : public CWinApp
 {

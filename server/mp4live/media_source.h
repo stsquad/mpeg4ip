@@ -50,17 +50,17 @@ public:
 
 	void StartVideo(void) {
 		m_myMsgQueue.send_message(MSG_SOURCE_START_VIDEO,
-			NULL, 0, m_myMsgQueueSemaphore);
+					  m_myMsgQueueSemaphore);
 	}
 
 	void StartAudio(void) {
 		m_myMsgQueue.send_message(MSG_SOURCE_START_AUDIO,
-			NULL, 0, m_myMsgQueueSemaphore);
+					  m_myMsgQueueSemaphore);
 	}
 
 	void GenerateKeyFrame(void) {
 		m_myMsgQueue.send_message(MSG_SOURCE_KEY_FRAME,
-			NULL, 0, m_myMsgQueueSemaphore);
+					  m_myMsgQueueSemaphore);
 	}
 
 	virtual bool IsDone() = 0;

@@ -144,8 +144,6 @@ void mpeg2t_check_streams(video_query_t **pvq,
 			  mpeg2t_t *decoder,
 			  unsigned int &audio_count,
 			  unsigned int &video_count,
-			  char *errmsg, 
-			  uint32_t errlen,
 			  CPlayerSession *psptr,
 			  control_callback_vft_t *cc_vft);
      

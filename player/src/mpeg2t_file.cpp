@@ -41,8 +41,6 @@ DEFINE_MESSAGE_MACRO(mpeg2f_message, "mpeg2f")
 
 int create_media_for_mpeg2t_file (CPlayerSession *psptr, 
 				  const char *name,
-				  char *errmsg, 
-				  uint32_t errlen, 
 				  int have_audio_driver, 
 				  control_callback_vft_t *cc_vft)
 {
@@ -51,17 +49,17 @@ int create_media_for_mpeg2t_file (CPlayerSession *psptr,
 
   ifile = fopen(name, FOPEN_READ_BINARY);
   if (ifile == NULL) {
-    snprintf(errmsg, errlen, "Couldn't open file %s", name);
+    psptr->set_message("Couldn't open file %s", name);
     return -1;
   }
 
   if (fread(buffer, 1, 1, ifile) <= 0) {
-    snprintf(errmsg, errlen, "Couldn't read file %s", name);
+    psptr->set_message("Couldn't read file %s", name);
     fclose(ifile);
     return -1;
   }
   if (buffer[0] != MPEG2T_SYNC_BYTE) {
-    snprintf(errmsg, errlen, "File is not mpeg2 transport %s", name);
+    psptr->set_message("File is not mpeg2 transport %s", name);
     fclose(ifile);
     return -1;
   }
@@ -69,12 +67,12 @@ int create_media_for_mpeg2t_file (CPlayerSession *psptr,
 
   int ret;
   psptr->session_set_seekable(0);
-  ret = tfile->create(errmsg, errlen, psptr);
+  ret = tfile->create(psptr);
   if (ret < 0) {
     delete tfile;
     return ret;
   }
-  ret = tfile->create_media(errmsg, errlen, psptr, cc_vft);
+  ret = tfile->create_media(psptr, cc_vft);
 
   if (ret < 0) {
     player_error_message("mpeg2t file found");
@@ -117,11 +115,11 @@ CMpeg2tFile::~CMpeg2tFile (void)
  * Create - will determine pids and psts ranges in file.  Will also
  * loop through the file and determine CFilePosRec points at percentages
  */
-int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
+int CMpeg2tFile::create (CPlayerSession *psptr)
 {
   m_mpeg2t = create_mpeg2_transport();
   if (m_mpeg2t == NULL) {
-    snprintf(errmsg, errlen, "Couldn't create mpeg2 transport");
+    psptr->set_message("Couldn't create mpeg2 transport");
     fclose(m_ifile);
     return -1;
   }
@@ -130,7 +128,7 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
   m_buffer = (uint8_t *)malloc(m_buffer_size_max);
 
   if (m_buffer == NULL) {
-    snprintf(errmsg, errlen, "Malloc error");
+    psptr->set_message("Malloc error");
     return -1;
   }
   m_buffer[0] = MPEG2T_SYNC_BYTE;
@@ -228,7 +226,7 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
   } while (m_buffer_size >=188 && done == false);
 
   if (done == false) {
-    snprintf(errmsg, errlen, "Could not find information in TS");
+    psptr->set_message("Could not find information in TS");
     mpeg2t_set_loglevel(olddebuglevel);
     return -1;
   }
@@ -415,8 +413,6 @@ int CMpeg2tFile::create_video (CPlayerSession *psptr,
 			       mpeg2t_t *decoder,
 			       video_query_t *vq,
 			       uint video_offset,
-			       char *errmsg, 
-			       uint32_t errlen,
 			       int &sdesc)
 {
   uint ix;
@@ -466,7 +462,7 @@ int CMpeg2tFile::create_video (CPlayerSession *psptr,
 
       if (ret < 0) {
 	mpeg2f_message(LOG_ERR, "Failed to create plugin data");
-	snprintf(errmsg, errlen, "Failed to start plugin");
+	psptr->set_message("Failed to start plugin");
 	delete mptr;
 	return -1;
       }
@@ -478,7 +474,7 @@ int CMpeg2tFile::create_video (CPlayerSession *psptr,
 	delete mptr;
 	return (-1);
       }
-      ret = mptr->create(vbyte, TRUE, errmsg, errlen, 0);
+      ret = mptr->create(vbyte, TRUE, 0);
       if (ret != 0) {
 	mpeg2f_message(LOG_CRIT, "failed to create from file");
 	return (-1);
@@ -502,8 +498,6 @@ int CMpeg2tFile::create_audio (CPlayerSession *psptr,
 			       mpeg2t_t *decoder,
 			       audio_query_t *aq,
 			       uint audio_offset,
-			       char *errmsg, 
-			       uint32_t errlen,
 			       int &sdesc)
 {
   uint ix;
@@ -553,7 +547,7 @@ int CMpeg2tFile::create_audio (CPlayerSession *psptr,
 
       if (ret < 0) {
 	mpeg2f_message(LOG_ERR, "Failed to create plugin data");
-	snprintf(errmsg, errlen, "Failed to start plugin");
+	psptr->set_message("Failed to start plugin");
 	delete mptr;
 	return -1;
       }
@@ -565,7 +559,7 @@ int CMpeg2tFile::create_audio (CPlayerSession *psptr,
 	delete mptr;
 	return (-1);
       }
-      ret = mptr->create(abyte, FALSE, errmsg, errlen, 0);
+      ret = mptr->create(abyte, FALSE, 0);
       if (ret != 0) {
 	mpeg2f_message(LOG_CRIT, "failed to create from file");
 	return (-1);
@@ -586,8 +580,7 @@ int CMpeg2tFile::create_audio (CPlayerSession *psptr,
 }
 
 
-int CMpeg2tFile::create_media (char *errmsg, uint32_t errlen, 
-			       CPlayerSession *psptr, 
+int CMpeg2tFile::create_media (CPlayerSession *psptr, 
 			       control_callback_vft_t *cc_vft)
 {
   uint audio_count, video_count;
@@ -597,8 +590,8 @@ int CMpeg2tFile::create_media (char *errmsg, uint32_t errlen,
   int sdesc = 1;
   int total_enabled;
   mpeg2t_check_streams(&vq, &aq, m_mpeg2t, audio_count, video_count, 
-		       errmsg, errlen, psptr, cc_vft);
-  ret = create_video(psptr, m_mpeg2t, vq, video_count, errmsg, errlen, sdesc);
+		       psptr, cc_vft);
+  ret = create_video(psptr, m_mpeg2t, vq, video_count, sdesc);
   if (ret < 0) {
     free(aq);
     free(vq);
@@ -606,7 +599,7 @@ int CMpeg2tFile::create_media (char *errmsg, uint32_t errlen,
   }
   total_enabled = ret;
 
-  ret = create_audio(psptr, m_mpeg2t, aq, audio_count, errmsg, errlen, sdesc);
+  ret = create_audio(psptr, m_mpeg2t, aq, audio_count, sdesc);
   free(aq);
   free(vq);
   if (ret < 0) {
@@ -616,6 +609,7 @@ int CMpeg2tFile::create_media (char *errmsg, uint32_t errlen,
 
   psptr->set_media_close_callback(close_mpeg2t_file, (void *)this);
 
+  const char *errmsg = psptr->get_message();
   return *errmsg != '\0' ? 1 : 0 ;
 
 }  

@@ -84,8 +84,6 @@ void CPlayerSession::process_sdl_events (void)
     switch (event.type) {
     case SDL_QUIT:
       m_master_msg_queue->send_message(MSG_RECEIVED_QUIT,
-				       NULL, 
-				       0,
 				       m_master_msg_queue_sem);
 #ifdef DEBUG_SYNC_SDL_EVENTS
       sync_message(LOG_DEBUG, "Quit event detected");
@@ -180,7 +178,7 @@ int CPlayerSession::process_msg_queue (int state)
 int CPlayerSession::sync_thread_init (void)
 {
   int ret = 1;
-
+  bool video_failed = false, audio_failed = false;
   uint media_count = 0, media_initialized = 0;
 
   for (CPlayerMedia *mptr = m_my_media;
@@ -194,21 +192,36 @@ int CPlayerSession::sync_thread_init (void)
       ret = m_video_sync->initialize_video(m_session_name,
 					   m_screen_pos_x,
 					   m_screen_pos_y);
-      if (ret > 0) media_initialized++;
+      if (ret > 0) {
+	media_initialized++;
+      } else {
+	video_failed = true;
+      }
     } else {
       media_count++;
       ret = m_audio_sync->initialize_audio(m_video_sync != NULL);
-      if (ret > 0) media_initialized++;
+      if (ret > 0) {
+	media_initialized++;
+      } else {
+	audio_failed = true;
+      }
     }
   }
   if (media_count > 0 && media_count == media_initialized) {
     return (SYNC_STATE_WAIT_SYNC); 
   } 
 
-  if (media_count > 0) {
+  if (media_count > 0 && media_initialized > 0) {
     m_init_tries_made++;
     if (m_init_tries_made > 50) {
       sync_message(LOG_CRIT, "One media is not initializing; it might not be receiving correctly");
+      if (video_failed) {
+	sync_message(LOG_INFO, "video failed");
+      } 
+      if (audio_failed) {
+	sync_message(LOG_INFO, "audio failed");
+      }
+
       ret = -1;
     }
   }
@@ -221,8 +234,6 @@ int CPlayerSession::sync_thread_init (void)
       m_audio_sync->flush_sync_buffers();
     }
     m_master_msg_queue->send_message(MSG_RECEIVED_QUIT, 
-				     NULL, 
-				     0, 
 				     m_master_msg_queue_sem);
     m_hardware_error = 1;
     return (SYNC_STATE_DONE);
@@ -580,8 +591,6 @@ int CPlayerSession::sync_thread (int state)
 	m_video_sync->do_video_resize();
       }
       m_master_msg_queue->send_message(MSG_SESSION_FINISHED, 
-				       NULL, 
-				       0, 
 				       m_master_msg_queue_sem);
       m_session_state = SESSION_DONE;
       break;
@@ -601,11 +610,13 @@ int c_sync_thread (void *data)
   CPlayerSession *p;
   int state = SYNC_STATE_INIT;
   p = (CPlayerSession *)data;
+  p->start_session_work();
   do {
    state = p->sync_thread(state);
   } while (state != SYNC_STATE_EXIT);
   return (0);
 }
+
 
 void CPlayerSession::display_status (void)
 {

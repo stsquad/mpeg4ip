@@ -31,22 +31,18 @@ class CMpeg2tFile {
 
   ~CMpeg2tFile(void);
   void get_frame_for_pid(mpeg2t_es_t *es_pid);
-  int create(char *errmsg, uint32_t len, CPlayerSession *psptr);
-  int create_media(char *errmsg, uint32_t errlen, CPlayerSession *psptr,
+  int create(CPlayerSession *psptr);
+  int create_media(CPlayerSession *psptr,
 		   control_callback_vft_t *cc_vft);
   int create_video(CPlayerSession *psptr,
 		   mpeg2t_t *info,
 		   video_query_t *vq,
 		   uint video_count,
-		   char *errmsg, 
-		   uint32_t errlen,
 		   int &sdesc);
   int create_audio (CPlayerSession *psptr,
 		    mpeg2t_t *decoder,
 		    audio_query_t *aq,
 		    uint audio_offset,
-		    char *errmsg, 
-		    uint32_t errlen,
 		    int &sdesc);
   int eof(void);
   uint64_t get_start_psts (void) { return m_start_psts; } ;
@@ -72,8 +68,6 @@ class CMpeg2tFile {
 
 int create_media_for_mpeg2t_file (CPlayerSession *psptr, 
 				  const char *name,
-				  char *errmsg, 
-				  uint32_t errlen, 
 				  int have_audio_driver, 
 				  control_callback_vft_t *cc_vft);
 

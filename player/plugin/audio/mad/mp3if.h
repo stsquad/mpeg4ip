@@ -7,6 +7,8 @@
 #include "codec_plugin.h"
 #include <fposrec/fposrec.h>
 
+DECLARE_CONFIG(CONFIG_USE_MAD);
+
 #define m_vft c.v.audio_vft
 #define m_ifptr c.ifptr
 typedef struct mp3_codec_t {

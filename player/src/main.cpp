@@ -65,34 +65,6 @@ static void media_list_query (CPlayerSession *psptr,
 static control_callback_vft_t cc_vft = {
   media_list_query,
 };
-static int set_aspect_ratio(int newaspect, CPlayerSession *psptr)
-{
-  if (psptr != NULL) {
-    switch (newaspect) {
-    case 1 : 
-      psptr->set_screen_size(screen_size,fullscreen,4,3);
-      break;
-    case 2 : 
-      psptr->set_screen_size(screen_size,fullscreen,16,9);
-      break;
-    case 3 : 
-      psptr->set_screen_size(screen_size,fullscreen,185,100);
-      break;
-    case 4 : 
-      psptr->set_screen_size(screen_size,fullscreen,235,100);
-      break;
-    case 5:
-      psptr->set_screen_size(screen_size, fullscreen, 1, 1);
-      break;
-    default: 
-      psptr->set_screen_size(screen_size,fullscreen,0,0);
-      newaspect = 0;
-      break;
-    }
-    config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
-  } else player_error_message("Can't set aspect ratio yet");
-  return(newaspect);
-}
 
 int process_sdl_key_events (CPlayerSession *psptr,
 		 				   sdl_event_msg_t *msg)
@@ -230,11 +202,11 @@ int process_sdl_key_events (CPlayerSession *psptr,
 }
 
 /*
- * Start_session will return the video persistence handle, if grab is 1.
+ * main_Start_session will return the video persistence handle, if grab is 1.
  * set persist to the value, when you want to re-use.  Remember to delete
  */
-static void *start_session (const char *name, int max_loop, int grab = 0, 
-			    void *persist = NULL)
+static void *main_start_session (const char *name, int max_loop, int grab = 0, 
+				 void *persist = NULL)
 {
   char buffer[80];
   bool done = false;
@@ -246,37 +218,20 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
 
   master_sem = SDL_CreateSemaphore(0);
   snprintf(buffer, sizeof(buffer), "%s %s - %s", MPEG4IP_PACKAGE, MPEG4IP_VERSION, name);
-  psptr = new CPlayerSession(&master_queue, master_sem,
-			     buffer, 
-			     persist);
-  if (psptr == NULL) {
-    return (NULL);
-  }
-  
-  char errmsg[512];
-  errmsg[0] = '\0';
-  int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg), &cc_vft);
-  if (ret < 0) {
-    player_debug_message("%s %s", errmsg, name);
-    delete psptr;
-    return (NULL);
-  }
 
-  if (ret > 0) {
-    player_debug_message("%s", errmsg);
-  }
+  psptr = start_session(&master_queue, 
+			master_sem, 
+			persist,
+			name, 
+			&cc_vft,
+			config.get_config_value(CONFIG_VOLUME),
+			100, 
+			100,
+			screen_size);
 
-  psptr->set_up_sync_thread();
-  psptr->set_screen_location(100, 100);
+  if (psptr == NULL) done = true;
 
-  fullscreen = config.get_config_value(CONFIG_FULL_SCREEN);
-  set_aspect_ratio(config.get_config_value(CONFIG_ASPECT_RATIO),psptr);
-  psptr->set_audio_volume(config.get_config_value(CONFIG_VOLUME));
   while (done == false) {
-    if (psptr->play_all_media(TRUE) != 0) {
-      delete psptr;
-      return (NULL);
-    }
     session_paused = 0;
     int keep_going = 0;
 #ifdef NEED_SDL_VIDEO_IN_MAIN_THREAD
@@ -294,6 +249,12 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
 	case MSG_SESSION_FINISHED:
 	  keep_going = 1;
 	  break;
+	case MSG_SESSION_WARNING:
+	  player_debug_message("%s", psptr->get_message());
+	  break;
+	case MSG_SESSION_ERROR:
+	  player_error_message("%s", psptr->get_message());
+	  // fall into
 	case MSG_RECEIVED_QUIT:
 	  keep_going = 1;
 	  max_loop = 0; // get rid of the loop count
@@ -327,8 +288,9 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
     // grab before we delete
     persist = psptr->grab_video_persistence();
   }
-    
-  delete psptr;
+
+  if (psptr != NULL)
+    delete psptr;
   SDL_DestroySemaphore(master_sem);
   return (persist);
 }
@@ -510,9 +472,9 @@ int main (int argc, char **argv)
       do {
 	if (start != NULL) {
 	  if (persist == NULL) {
-	    persist = start_session(start, 1, 1);
+	    persist = main_start_session(start, 1, 1);
 	  } else {
-	    persist = start_session(start, 1, 0, persist);
+	    persist = main_start_session(start, 1, 0, persist);
 	  }
 	}
 	start = list->get_next();
@@ -523,7 +485,7 @@ int main (int argc, char **argv)
       }
     }
   } else {
-    start_session(name, max_loop, 0, persist);
+    main_start_session(name, max_loop, 0, persist);
   }
   // remove invalid global ports
   if (persist != NULL) {

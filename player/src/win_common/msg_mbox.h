@@ -42,5 +42,7 @@ typedef struct client_msg_play_t {
 #define GUI_MSG_SESSION_FINISHED 0x80
 #define GUI_MSG_RECEIVED_QUIT    0x81
 #define GUI_MSG_SDL_KEY          0x82
+#define GUI_MSG_SESSION_ERROR        0x83
+#define GUI_MSG_SESSION_WARNING      0x84
 
 #endif

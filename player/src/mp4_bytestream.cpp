@@ -379,7 +379,7 @@ bool CMp4H264VideoByteStream::start_next_frame (uint8_t **buffer,
 						void **ud)
 {
   bool ret;
-  uint32_t len = 0, read_offset = 0;
+  uint32_t len = 1, read_offset = 0;
   uint32_t nal_len;
   uint32_t write_offset = 0;
   ret = CMp4VideoByteStream::start_next_frame(buffer, 
@@ -420,6 +420,11 @@ bool CMp4H264VideoByteStream::start_next_frame (uint8_t **buffer,
 #endif
       m_translate_buffer[write_offset] = 0;
       m_translate_buffer[write_offset + 1] = 0;
+      if (write_offset == 0) {
+	// make sure that the first nal has a extra 0 (0 0 0 1 header)
+	m_translate_buffer[2] = 0;
+	write_offset = 1;
+      }
       m_translate_buffer[write_offset + 2] = 1;
       memcpy(m_translate_buffer + write_offset + 3, 
 	     *buffer + read_offset + m_buflen_size,

@@ -31,8 +31,6 @@ class CPlayerSession;
 struct control_callback_vft_t;
 int create_media_for_avi_file (CPlayerSession *psptr,
 			       const char *name,
-			       char *errmsg,
-			       uint32_t errlen, 
 			       int have_audio_driver,
 			       control_callback_vft_t *);
 

@@ -95,19 +95,32 @@ static void add_nal_to_buffer (h264_rtp_data_t *iptr,
 			       bool add_header = true)
 {
   uint32_t headersize;
-  if (add_header) headersize = 4;
-  else headersize = 0;
+  if (add_header) {
+    uint8_t nal_type = header & 0x1f;
+    if (nal_type == H264_NAL_TYPE_SEQ_PARAM ||
+	nal_type == H264_NAL_TYPE_PIC_PARAM) {
+      headersize = 5;
+    } else if (iptr->m_have_first_nal == false) {
+      iptr->m_have_first_nal = true;
+      headersize = 5;
+    } else 
+      headersize = 4;
+  } else headersize = 0;
 
   if (iptr->m_buffer_size + buflen + headersize > iptr->m_buffersize_max) {
     iptr->m_buffersize_max += (buflen + headersize) * 2;
     iptr->m_buffer = (uint8_t *)realloc(iptr->m_buffer,iptr->m_buffersize_max);
   }
   // add 00 00 01 [headerbyte] header
+  uint8_t *bptr = iptr->m_buffer + iptr->m_buffer_size;
   if (add_header) {
-    iptr->m_buffer[iptr->m_buffer_size] = 0;
-    iptr->m_buffer[iptr->m_buffer_size + 1] = 0;
-    iptr->m_buffer[iptr->m_buffer_size + 2] = 1;
-    iptr->m_buffer[iptr->m_buffer_size + 3] = header;
+    *bptr++ = 0;
+    *bptr++ = 0;
+    if (headersize == 5) {
+      *bptr++ = 0;
+    }
+    *bptr++ = 1;
+    *bptr++ = header;
   }
 
   memcpy(iptr->m_buffer + iptr->m_buffer_size + headersize, 
@@ -116,6 +129,9 @@ static void add_nal_to_buffer (h264_rtp_data_t *iptr,
   iptr->m_buffer_size += buflen + headersize;
 }
 
+/*
+ * process_fus - process fragmentation units.
+ */
 static bool process_fus (h264_rtp_data_t *iptr, rtp_packet **pRpak,
 			 uint32_t rtp_ts)
 {
@@ -123,6 +139,7 @@ static bool process_fus (h264_rtp_data_t *iptr, rtp_packet **pRpak,
   uint8_t *dptr;
   uint8_t header;
   dptr = rpak->rtp_data;
+  // Read the FU header. d7 - start bit, d6 - end bit, d5 - 0 d43210 - nal type
   if ((dptr[1] & 0x80) != 0x80) {
     h264_message(LOG_ERR, h264rtp, "FUs - first packet no start bit %x seq %u",
 		 dptr[1], rpak->rtp_pak_seq);
@@ -133,6 +150,8 @@ static bool process_fus (h264_rtp_data_t *iptr, rtp_packet **pRpak,
 		    rpak->rtp_data + 2, 
 		    rpak->rtp_data_len - 2, 
 		    header);
+  // continue with the rest of the fragmentation - packets should be here, 
+  // because we wouldn't be here if we didn't find an m bit
   do {
     (iptr->m_vft->free_pak)(rpak);
     rpak = (iptr->m_vft->get_head_and_check)(iptr->m_ifptr, true, rtp_ts);
@@ -186,6 +205,7 @@ static bool start_next_frame (rtp_plugin_data_t *pifptr,
       rtp_ts = rpak->rtp_pak_ts;
       ntp_ts = rpak->pd.rtp_pd_timestamp;
       have_first = true;
+      iptr->m_have_first_nal = false;
     } 
     // process the various NAL types.
     uint8_t *dptr;
@@ -197,16 +217,20 @@ static bool start_next_frame (rtp_plugin_data_t *pifptr,
 #endif
     if (nal_type >= H264_NAL_TYPE_NON_IDR_SLICE &&
 	nal_type <= H264_NAL_TYPE_FILLER_DATA) {
+      // regular NAL - put in buffer, adding the header.
       add_nal_to_buffer(iptr, rpak->rtp_data + 1, 
 			rpak->rtp_data_len - 1,
 			*rpak->rtp_data);
     } else if (nal_type == 24) {
-      // stap - copy each access 
+      // stap-A (single time aggregation packet - copy each access 
       uint32_t data_len = rpak->rtp_data_len - 1; // remove stap header
       dptr++;
       while (data_len > 0) {
+	// first, theres a 2 byte length field
 	uint32_t len = (dptr[0] << 8) | dptr[1];
 	dptr += 2;
+	// then the header, followed by the body.  We'll add the header
+	// in the add_nal_to_buffer - that's why the nal body is dptr + 1
 	add_nal_to_buffer(iptr, dptr + 1,
 			  len - 1,
 			  *dptr);
@@ -218,8 +242,9 @@ static bool start_next_frame (rtp_plugin_data_t *pifptr,
 		       "Stap error - requested %d - %d in buffer", 
 		       len + 2, data_len);
 #endif
-	} else 
+	} else {
 	  data_len -= (len + 2);
+	}
       }
     } else if (nal_type == 28) {
       // FUs
@@ -230,7 +255,10 @@ static bool start_next_frame (rtp_plugin_data_t *pifptr,
 	  continue;
 	}
       }
-      // don't forget to check for rpak == NULL here
+    } else {
+      h264_message(LOG_ERR, h264rtp, "illegal NAL type %d in header seq %u",
+		   nal_type, rpak->rtp_pak_seq);
+      // just fall through - if it was an m-bit, let the buffer pass
     }
     // save off the last sequence number
     have_m = rpak->rtp_pak_m != 0;

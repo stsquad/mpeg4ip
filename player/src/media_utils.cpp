@@ -97,8 +97,6 @@ int lookup_video_codec_by_name (const char *name)
 
 static int create_media_from_sdp (CPlayerSession *psptr,
 				  session_desc_t *sdp,
-				  char *errmsg,
-				  uint32_t errlen,
 				  int have_audio_driver,
 				  int broadcast,
 				  int only_check_first,
@@ -130,7 +128,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
       sdp->media->fmt != NULL &&
       strcmp(sdp->media->fmt->fmt, "33") == 0) {
     // we have a mpeg2 transport stream
-    return (create_mpeg2t_session(psptr, NULL, sdp, errmsg, errlen,
+    return (create_mpeg2t_session(psptr, NULL, sdp, 
 				  have_audio_driver, cc_vft));
 				  
   }
@@ -264,8 +262,6 @@ static int create_media_from_sdp (CPlayerSession *psptr,
     if (vq[ix].enabled != 0) {
       CPlayerMedia *mptr = new CPlayerMedia(psptr);
       err = mptr->create_streaming(vq[ix].fptr->media, 
-				   errmsg, 
-				   errlen,
 				   broadcast, 
 				   config.get_config_value(CONFIG_USE_RTP_OVER_RTSP),
 				   media_count);
@@ -282,8 +278,6 @@ static int create_media_from_sdp (CPlayerSession *psptr,
     if (aq[ix].enabled != 0) {
       CPlayerMedia *mptr = new CPlayerMedia(psptr);
       err = mptr->create_streaming(aq[ix].fptr->media, 
-				   errmsg, 
-				   errlen,
 				   broadcast, 
 				   config.get_config_value(CONFIG_USE_RTP_OVER_RTSP),
 				   media_count);
@@ -300,17 +294,16 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   if (vq != NULL) free(vq);
 
   if (media_count == 0) {
-    snprintf(errmsg, errlen, "No known codecs found in SDP");
+    psptr->set_message("No known codecs found in SDP");
     return (-1);
   }
   psptr->streaming_media_set_up();
   if (have_audio_but_no_driver > 0) {
-    snprintf(errmsg, errlen, "Not playing audio codecs - no driver");
+    psptr->set_message("Not playing audio codecs - no driver");
     return (1);
   }
   if (invalid_count > 0) {
-    snprintf(errmsg, errlen, 
-	     "There were unknowns codecs during decode - playing valid ones");
+    psptr->set_message("There were unknowns codecs during decode - playing valid ones");
     return (1);
   }
   return (0);
@@ -320,21 +313,17 @@ static int create_media_from_sdp (CPlayerSession *psptr,
  */
 static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
 						 session_desc_t *sdp,
-						 char *errmsg,
-						 uint32_t errlen,
 						 int have_audio_driver,
 						 control_callback_vft_t *cc_vft)
 {
   int err;
   // need to set range in player session...
-  err = psptr->create_streaming_broadcast(sdp, errmsg, errlen);
+  err = psptr->create_streaming_broadcast(sdp);
   if (err != 0) {
     return (-1);
   }
   return (create_media_from_sdp(psptr, 
 				sdp, 
-				errmsg, 
-				errlen,
 				have_audio_driver, 
 				0,
 				1,
@@ -346,8 +335,6 @@ static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
  */
 static int create_media_for_streaming_ondemand (CPlayerSession *psptr, 
 						const char *name,
-						char *errmsg,
-						uint32_t errlen,
 						control_callback_vft_t *cc_vft)
 {
   int err;
@@ -356,8 +343,6 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
    * This will open the rtsp session
    */
   err = psptr->create_streaming_ondemand(name, 
-					 errmsg,
-					 errlen,
 					 config.get_config_value(CONFIG_USE_RTP_OVER_RTSP));
   if (err != 0) {
     return (-1);
@@ -366,8 +351,6 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
   int have_audio_driver = do_we_have_audio();
   return (create_media_from_sdp(psptr,
 				sdp, 
-				errmsg,
-				errlen,
 				have_audio_driver, 
 				1,
 				0,
@@ -382,8 +365,6 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
 
 static int create_from_sdp (CPlayerSession *psptr,
 			    const char *name,
-			    char *errmsg,
-			    uint32_t errlen,
 			    sdp_decode_info_t *sdp_info,
 			    int have_audio_driver,
 			    control_callback_vft_t *cc_vft) 
@@ -392,18 +373,18 @@ static int create_from_sdp (CPlayerSession *psptr,
   int translated;
 
   if (sdp_info == NULL) {
-    strcpy(errmsg, "SDP error");
+    psptr->set_message("SDP error");
     return (-1);
   }
 
   if (sdp_decode(sdp_info, &sdp, &translated) != 0) {
-    snprintf(errmsg, errlen, "Invalid SDP file");
+    psptr->set_message("Invalid SDP file");
     sdp_decode_info_free(sdp_info);
     return (-1);
   }
 
   if (translated != 1) {
-    snprintf(errmsg, errlen, "More than 1 program described in SDP");
+    psptr->set_message("More than 1 program described in SDP");
     sdp_decode_info_free(sdp_info);
     return (-1);
   }
@@ -413,8 +394,6 @@ static int create_from_sdp (CPlayerSession *psptr,
     // An on demand file... Just use the URL...
     err = create_media_for_streaming_ondemand(psptr,
 					      sdp->control_string,
-					      errmsg,
-					      errlen,
 					      cc_vft);
     sdp_free_session_desc(sdp);
     sdp_decode_info_free(sdp_info);
@@ -423,16 +402,12 @@ static int create_from_sdp (CPlayerSession *psptr,
   sdp_decode_info_free(sdp_info);
   return (create_media_for_streaming_broadcast(psptr,
 					       sdp,
-					       errmsg,
-					       errlen,
 					       have_audio_driver,
 					       cc_vft));
 }
 
 static int create_media_from_sdp_file(CPlayerSession *psptr, 
 				      const char *name, 
-				      char *errmsg,
-				      uint32_t errlen,
 				      int have_audio_driver,
 				      control_callback_vft_t *cc_vft)
 {
@@ -441,8 +416,6 @@ static int create_media_from_sdp_file(CPlayerSession *psptr,
 
   return (create_from_sdp(psptr, 
 			  name, 
-			  errmsg, 
-			  errlen, 
 			  sdp_info, 
 			  have_audio_driver, 
 			  cc_vft));
@@ -450,8 +423,6 @@ static int create_media_from_sdp_file(CPlayerSession *psptr,
 
 static int create_media_for_http (CPlayerSession *psptr,
 				  const char *name,
-				  char *errmsg,
-				  uint32_t errlen,
 				  control_callback_vft_t *cc_vft)
 {
   http_client_t *http_client;
@@ -462,7 +433,7 @@ static int create_media_for_http (CPlayerSession *psptr,
   http_client = http_init_connection(name);
 
   if (http_client == NULL) {
-    snprintf(errmsg, errlen, "Can't create http client");
+    psptr->set_message("Can't create http client");
     return -1;
   } 
   ret = http_get(http_client, NULL, &http_resp);
@@ -473,14 +444,12 @@ static int create_media_for_http (CPlayerSession *psptr,
     sdp_info = set_sdp_decode_from_memory(http_resp->body);
     ret = create_from_sdp(psptr, 
 			  name, 
-			  errmsg, 
-			  errlen, 
 			  sdp_info, 
 			  have_audio_driver,
 			  cc_vft);
   } else {
     ret = -1;
-    snprintf(errmsg, errlen, "HTTP error %d, %s", http_resp->ret_code, 
+    psptr->set_message("HTTP error %d, %s", http_resp->ret_code, 
 	     http_resp->resp_phrase);
   }
   http_resp_free(http_resp);
@@ -489,10 +458,9 @@ static int create_media_for_http (CPlayerSession *psptr,
   return (ret);
 }
 #ifndef _WIN32
-static session_desc_t *find_sdp_for_program (const char *cm, 
+static session_desc_t *find_sdp_for_program (CPlayerSession *psptr, 
+					     const char *cm, 
 					     const char *loc,
-					     char *errmsg, 
-					     uint32_t errlen,
 					     uint64_t prog)
 {
   char buffer[1024];
@@ -508,8 +476,8 @@ static session_desc_t *find_sdp_for_program (const char *cm,
   http_client = http_init_connection(buffer);
 
   if (http_client == NULL) {
-    snprintf(errmsg, errlen, "Cannot create http client with %s\n", 
-	     cm);
+    psptr->set_message("Cannot create http client with %s\n", 
+		       cm);
     return NULL;
   }
   ret = http_get(http_client, NULL, &http_resp);
@@ -543,8 +511,6 @@ static session_desc_t *find_sdp_for_program (const char *cm,
 
 static int create_media_for_iptv (CPlayerSession *psptr,
 				  const char *name,
-				  char *errmsg,
-				  uint32_t errlen,
 				  int have_audio_driver,
 				  control_callback_vft_t *cc_vft)
 {
@@ -555,7 +521,7 @@ static int create_media_for_iptv (CPlayerSession *psptr,
   name += strlen("iptv://");
   slash = strchr(name, '/');
   if (slash == NULL || slash == name) {
-    snprintf(errmsg, errlen, "Invalid iptv content manager");
+    psptr->set_message("Invalid iptv content manager");
     return -1;
   }
   cm = (char *)malloc(slash - name + 1);
@@ -563,16 +529,16 @@ static int create_media_for_iptv (CPlayerSession *psptr,
   cm[slash - name] = '\0';
   slash++;
   if (sscanf(slash, U64, &prog) != 1) {
-    snprintf(errmsg, errlen, "Invalid iptv program");
+    psptr->set_message("Invalid iptv program");
     return -1;
   }
   
   // check on-demand first
-  sdp = find_sdp_for_program(cm, "iptvfiles/guide.sdf",
-			     errmsg, errlen, prog);
+  sdp = find_sdp_for_program(psptr, cm, "iptvfiles/guide.sdf",
+			     prog);
   if (sdp == NULL) {
-    sdp = find_sdp_for_program(cm, "servlet/OdPublish", 
-			       errmsg, errlen, prog);
+    sdp = find_sdp_for_program(psptr, cm, "servlet/OdPublish", 
+			       prog);
   }
   free(cm);
 
@@ -584,16 +550,12 @@ static int create_media_for_iptv (CPlayerSession *psptr,
     // An on demand file... Just use the URL...
     err = create_media_for_streaming_ondemand(psptr,
 					      sdp->control_string,
-					      errmsg,
-					      errlen,
 					      cc_vft);
     sdp_free_session_desc(sdp);
     return (err);
   }
   return (create_media_for_streaming_broadcast(psptr,
 					       sdp,
-					       errmsg,
-					       errlen,
 					       have_audio_driver,
 					       cc_vft));
 }  
@@ -604,11 +566,8 @@ static int create_media_for_iptv (CPlayerSession *psptr,
  * call to set up the session.  This should be redone with plugins at
  * some point.
  */
-
 int parse_name_for_session (CPlayerSession *psptr,
 			    const char *name,
-			    char *errmsg,
-			    uint32_t errlen,
 			    control_callback_vft_t *cc_vft)
 {
   int err;
@@ -626,13 +585,11 @@ int parse_name_for_session (CPlayerSession *psptr,
   if (strncmp(name, "rtsp://", strlen("rtsp://")) == 0) {    
     err = create_media_for_streaming_ondemand(psptr, 
 					      name, 
-					      errmsg, 
-					      errlen,
 					      cc_vft);
     return (err);
   }
   if (strncmp(name, "http://", strlen("http://")) == 0) {
-    err = create_media_for_http(psptr, name, errmsg, errlen, cc_vft);
+    err = create_media_for_http(psptr, name, cc_vft);
     return (err);
   }    
 
@@ -643,8 +600,6 @@ int parse_name_for_session (CPlayerSession *psptr,
   if (strncmp(name, "iptv://", strlen("iptv://")) == 0) {
     err = create_media_for_iptv(psptr, 
 				name, 
-				errmsg, 
-				errlen, 
 				have_audio_driver, 
 				cc_vft);
     return err;
@@ -652,24 +607,24 @@ int parse_name_for_session (CPlayerSession *psptr,
 #endif
 #ifndef _WIN32
   if (strncmp(name, "mpeg2t://", strlen("mpeg2t://")) == 0) {
-    err = create_mpeg2t_session(psptr, name, NULL, errmsg, errlen, 
+    err = create_mpeg2t_session(psptr, name, NULL, 
 				have_audio_driver, cc_vft);
     return (err);
   }
 
   struct stat statbuf;
   if (stat(name, &statbuf) != 0) {
-    snprintf(errmsg, errlen, "File \'%s\' not found", name);
+    psptr->set_message("File \'%s\' not found", name);
     return (-1);
   }
   if (!S_ISREG(statbuf.st_mode)) {
-    snprintf(errmsg, errlen, "File \'%s\' is not a file", name);
+    psptr->set_message("File \'%s\' is not a file", name);
     return (-1);
   }
 #else
   OFSTRUCT ReOpenBuff;
   if (OpenFile(name, &ReOpenBuff,OF_READ) == HFILE_ERROR) {
-    snprintf(errmsg, errlen, "File %s not found", name);
+    psptr->set_message("File %s not found", name);
     return (-1);
   }
 
@@ -678,7 +633,7 @@ int parse_name_for_session (CPlayerSession *psptr,
 
   const char *suffix = strrchr(name, '.');
   if (suffix == NULL) {
-    snprintf(errmsg, errlen, "No useable suffix on file %s", name);
+    psptr->set_message("No useable suffix on file %s", name);
     return err;
   }
 
@@ -686,8 +641,6 @@ int parse_name_for_session (CPlayerSession *psptr,
   if (strcasecmp(suffix, ".sdp") == 0) {
     err = create_media_from_sdp_file(psptr, 
 				     name, 
-				     errmsg, 
-				     errlen, 
 				     have_audio_driver,
 				     cc_vft);
   } else if ((strcasecmp(suffix, ".mov") == 0) ||
@@ -697,23 +650,17 @@ int parse_name_for_session (CPlayerSession *psptr,
     if (config.get_config_value(CONFIG_USE_OLD_MP4_LIB) == 0) {
       err = create_media_for_mp4_file(psptr, 
 				      name, 
-				      errmsg, 
-				      errlen,
 				      have_audio_driver,
 				      cc_vft);
     } else err = -1;
     if (err < 0) {
       err = create_media_for_qtime_file(psptr, 
 					name, 
-					errmsg, 
-					errlen,
 					have_audio_driver);
     }
   } else if (strcasecmp(suffix, ".avi") == 0) {
     err = create_media_for_avi_file(psptr, 
 				    name, 
-				    errmsg, 
-				    errlen, 
 				    have_audio_driver,
 				    cc_vft);
   } else if (strcasecmp(suffix, ".mpeg") == 0 ||
@@ -721,13 +668,13 @@ int parse_name_for_session (CPlayerSession *psptr,
 	     strcasecmp(suffix, ".vob") == 0) {
 #ifdef _WIN32
 	  err = -1;
+	  psptr->set_message("Do not handle mpeg files in windows");
 #else
-    err = create_media_for_mpeg2t_file(psptr, name, errmsg, errlen, 
+    err = create_media_for_mpeg2t_file(psptr, name, 
 				       have_audio_driver, cc_vft);
 
     if (err < 0) {
-    err = create_media_for_mpeg_file(psptr, name, errmsg, 
-				     errlen, have_audio_driver, cc_vft);
+    err = create_media_for_mpeg_file(psptr, name, have_audio_driver, cc_vft);
     }
 #endif
   } else {
@@ -760,6 +707,7 @@ int parse_name_for_session (CPlayerSession *psptr,
 
     if (cdata == NULL) {
       err = -1;
+	  psptr->set_message("file \"%s\" is not understood", name);
     } else {
       CPlayerMedia *mptr;
       /*
@@ -869,5 +817,52 @@ int check_name_for_network (const char *name,
   }
   return 0;
 }
+
+CPlayerSession *start_session (CMsgQueue *master_queue,
+			       SDL_sem *master_sem,
+			       void *persist,
+			       const char *name,
+			       control_callback_vft_t *cc_vft,
+			       int audio_volume,
+			       int screen_loc_x,
+			       int screen_loc_y,
+			       int screen_size)
+{
+  CPlayerSession *psptr;
+
+  CMsg *newmsg;
+  while ((newmsg = master_queue->get_message()) != NULL) {
+    delete newmsg;
+  }
+  psptr = new CPlayerSession(master_queue, 
+			     master_sem, 
+			     name, 
+			     cc_vft,
+			     persist);
+  if (psptr == NULL) return NULL;
+
+  psptr->set_audio_volume(audio_volume);
+  psptr->set_screen_location(screen_loc_x, screen_loc_y);
+  bool fullscreen = config.GetBoolValue(CONFIG_FULL_SCREEN);
+  int pix_w = 0, pix_h = 0;
+  switch (config.get_config_value(CONFIG_ASPECT_RATIO)) {
+  case 1: pix_w = 4; pix_h = 3; break;
+  case 2: pix_w = 16; pix_h = 9; break;
+  case 3: pix_w = 185; pix_h = 100; break;
+  case 4: pix_w = 235; pix_h = 100; break;
+  case 5: pix_w = 1; pix_h = 1; break;
+  }
+
+  psptr->set_screen_size(screen_size, fullscreen, pix_w, pix_h);
+  // we've set up all the stuff - start
+  psptr->start();
+  return psptr;
+}
+
+  
+
+
+
+  
 
 /* end file media_utils.cpp */
