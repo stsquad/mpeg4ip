@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.0.19)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.1)
 
 dnl Checks for programs. 
 
@@ -75,27 +75,27 @@ AC_CHECK_SIZEOF(long)
 
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
-use_mpeg4ip_xvid=false
 dnl Check for pre 1.0 API version of xvid
 AC_MSG_CHECKING([for xvid.h, API version 3])
 AC_TRY_COMPILE([],
 	[#include <xvid.h>
 	 int ix = API_VERSION;],
-	[AC_MSG_RESULT(yes)
-	 AC_DEFINE(HAVE_XVID_H, [1], [have xvid.h])
-         use_mpeg4ip_xvid=false],
-        [AC_MSG_RESULT(no)
-         use_mpeg4ip_xvid=true])
+	 [no_xvid=false],
+	 [no_xvid=true])
 use_xvid10=false
-if test $use_mpeg4ip_xvid = true; then
-   AC_CHECK_HEADER(xvid.h, use_mpeg4ip_xvid=false, use_mpeg4ip_xvid=true)
-   if test $use_mpeg4ip_xvid = false; then
+if test $no_xvid = false; then
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(HAVE_XVID_H, [1], [have xvid.h])
+else
+   AC_MSG_RESULT(no)
+   AC_CHECK_HEADER(xvid.h, [no_xvid=false], [noxvid=true])
+   if test $no_xvid = false; then
       use_xvid10=true
       AC_DEFINE(HAVE_XVID10, [1], [have xvid.h with 1.0 API])
    fi
 fi
 AM_CONDITIONAL(HAVE_XVID_1_0, $use_xvid10)
-AM_CONDITIONAL(USE_MPEG4IP_XVID, $use_mpeg4ip_xvid)
+AM_CONDITIONAL(NO_XVID, $no_xvid)
 AC_LANG_PUSH(C++)
 AC_CHECK_HEADER(id3/tag.h, [have_id3_tag=true], [have_id3_tag=false])
 if test $have_id3_tag = true; then
@@ -125,9 +125,39 @@ AM_CONDITIONAL(HAVE_A52DEC_LIB, $have_a52)
 have_mpeg2=true
 AC_CHECK_LIB(mpeg2,
 	     mpeg2_init,
-	     [AC_DEFINE(HAVE_LIBMPEG2, [1], [have libmpeg2 decoder library])],
+	     [have_mpeg2=true],
 	     [have_mpeg2=false])
+if test x$have_mpeg2 = xtrue; then
+   AC_MSG_CHECKING([libmpeg2 version])
+   AC_COMPILE_IFELSE([#include <stdint.h>
+#include <mpeg2dec/mpeg2.h>
+
+#ifndef MPEG2_VERSION
+#error no mpeg2 version
+#else
+#if MPEG2_VERSION(0, 4, 0) <= MPEG2_RELEASE
+int main (int argc, char **argv)
+{
+  return 0;
+}
+#else
+#error prior release
+#endif
+#endif
+],
+	[have_mpeg2=true],
+	[have_mpeg2=false])
+   if test x$have_mpeg2 = xtrue; then
+      AC_MSG_RESULT([yes])
+   else
+      AC_MSG_RESULT([no])
+   fi
+fi
+
 AM_CONDITIONAL(HAVE_LIBMPEG2, $have_mpeg2)
+if test $have_mpeg2 = true; then
+   AC_DEFINE(HAVE_LIBMPEG2, [1], [have libmpeg2 decoder library])
+fi
 LIBS=$saved_LIBS
 AC_SUBST(LIBVORBIS_LIB)
 
@@ -499,7 +529,6 @@ AC_OUTPUT( \
 	common/video/mpeg4-2000/vtc/zte/Makefile \
 	common/video/mpeg4-2000/vtc/ztq/Makefile \
 	doc/Makefile \
-	doc/encoding/Makefile \
 	doc/ietf/Makefile \
 	doc/mcast/Makefile \
 	doc/programs/Makefile \
@@ -521,21 +550,6 @@ AC_OUTPUT( \
 	lib/msg_queue/Makefile \
 	lib/sdp/Makefile \
 	lib/utils/Makefile \
-	lib/xvid/Makefile \
-	lib/xvid/dct/Makefile \
-	lib/xvid/dct/x86_asm/Makefile \
-	lib/xvid/bitstream/Makefile \
-	lib/xvid/bitstream/ppc_asm/Makefile \
-	lib/xvid/bitstream/x86_asm/Makefile \
-	lib/xvid/image/Makefile \
-	lib/xvid/image/x86_asm/Makefile \
-	lib/xvid/motion/Makefile \
-	lib/xvid/motion/x86_asm/Makefile \
-	lib/xvid/prediction/Makefile \
-	lib/xvid/quant/Makefile \
-	lib/xvid/quant/x86_asm/Makefile \
-	lib/xvid/utils/Makefile \
-	lib/xvid/utils/x86_asm/Makefile \
 	mpeg4ip.pbproj/Makefile \
 	common/Makefile \
 	common/video/Makefile \
@@ -553,7 +567,6 @@ AC_OUTPUT( \
 	server/util/avidump/Makefile \
 	server/util/rgb2yuv/Makefile \
 	server/util/lboxcrop/Makefile \
-	server/util/xvidenc/Makefile \
 	player/Makefile \
 	player/lib/Makefile \
 	player/lib/libhttp/Makefile \

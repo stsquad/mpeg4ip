@@ -99,4 +99,4 @@ test_LDADD = libuclmmbase.la
 version.h: VERSION
 	sed -e 's/.*/#define CCL_VERSION "v&"/' $? > version.h
 
-AM_CFLAGS = -DDEBUG
+AM_CFLAGS = -DDEBUG -I../..

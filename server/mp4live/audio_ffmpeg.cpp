@@ -13,81 +13,69 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2004.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Bill May   wmay@cisco.com
  */
 
 #include "mp4live.h"
-#include "audio_lame.h"
+#ifdef HAVE_FFMPEG
+#include "audio_ffmpeg.h"
 #include <mp4av.h>
 
-static const uint32_t lame_sample_rates[] = {
-  8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 
+// these are for mpeg2
+static const uint32_t ffmpeg_sample_rates[] = {
+  44100, 48000, 
 };
 
-static int get_mpeg_type_for_samplerate (int sr)
+static const uint32_t ffmpeg_bit_rates[] = {
+  112000, 128000, 160000, 192000, 224000, 256000, 320000
+};
+
+static int get_index_for_samplerate (uint32_t sr)
 {
-  for (uint x = 0; x < 3; x++) {
-    for (uint y = 0; y < 4; y++) {
-      if (samplerate_table[x][y] == sr) {
-	return x;
-      }
+  unsigned int ix;
+  for (ix = 0; ix < NUM_ELEMENTS_IN_ARRAY(ffmpeg_sample_rates); ix ++) {
+    if (sr == ffmpeg_sample_rates[ix]) {
+      return ix;
     }
   }
   return -1;
 }
 
-static uint32_t *lame_bitrate_for_samplerate (uint32_t samplerate, 
-					      uint8_t chans,
-					      uint32_t *ret_size)
+
+static uint32_t *ffmpeg_bitrate_for_samplerate (uint32_t samplerate, 
+						uint8_t chans,
+						uint32_t *ret_size)
 {
-  int ix = get_mpeg_type_for_samplerate(samplerate);
-  int iy;
+  int ix = get_index_for_samplerate(samplerate);
 
   if (ix < 0) {
     return NULL;
   }
-  uint32_t *ret = (uint32_t *)malloc(16 * sizeof(uint32_t));
-  *ret_size = 0;
-  lame_global_flags *lameParams;
+  uint32_t elements = NUM_ELEMENTS_IN_ARRAY(ffmpeg_bit_rates);
+  elements -= ix;
 
-  for (iy = 0; iy < 16; iy++) {
-    if (bitrate_table[ix][iy] > 0) {
-      lameParams = lame_init();
-      lame_set_num_channels(lameParams, chans);
-      lame_set_in_samplerate(lameParams, samplerate);
-      lame_set_mode(lameParams,
-		    (chans == 1 ? MONO : STEREO));		
-      lame_set_quality(lameParams,2);
-      lame_set_bWriteVbrTag(lameParams,0);
-      lame_set_brate(lameParams,
-		     bitrate_table[ix][iy]);
-
-      if (lame_init_params(lameParams) != -1) {
-	if (lame_get_in_samplerate(lameParams) == lame_get_out_samplerate(lameParams)) {
-	  ret[*ret_size] = bitrate_table[ix][iy] * 1000;
-	  *ret_size = *ret_size + 1;
-	}
-      }
-      lame_close(lameParams);
-    }
-  }
+  uint32_t *ret = (uint32_t *)malloc(elements * sizeof(uint32_t));
+  *ret_size = elements;
+  memcpy(ret, &ffmpeg_bit_rates[ix], elements * sizeof(uint32_t));
   return ret;
 }
 
-audio_encoder_table_t lame_audio_encoder_table =  {
-  "MP3 - lame",
-  AUDIO_ENCODER_LAME,
+// right now, use ffmpeg for mpeg1, layer 2, so that we'll work
+// with mpeg2 and quicktime
+audio_encoder_table_t ffmpeg_audio_encoder_table =  {
+  "MPEG Layer 2 - ffmpeg",
+  VIDEO_ENCODER_FFMPEG,
   AUDIO_ENCODING_MP3,
-  lame_sample_rates,
-  NUM_ELEMENTS_IN_ARRAY(lame_sample_rates),
-  lame_bitrate_for_samplerate,
+  ffmpeg_sample_rates,
+  NUM_ELEMENTS_IN_ARRAY(ffmpeg_sample_rates),
+  ffmpeg_bitrate_for_samplerate,
   2
 };
     
-MediaType lame_mp4_fileinfo (CLiveConfig *pConfig,
+MediaType ffmpeg_mp4_fileinfo (CLiveConfig *pConfig,
 			     bool *mpeg4,
 			     bool *isma_compliant,
 			     uint8_t *audioProfile,
@@ -101,12 +89,12 @@ MediaType lame_mp4_fileinfo (CLiveConfig *pConfig,
   *audioConfig = NULL;
   *audioConfigLen = 0;
   if (mp4AudioType != NULL) {
-    *mp4AudioType = MP4_MP3_AUDIO_TYPE;
+    *mp4AudioType = MP4_MPEG1_AUDIO_TYPE;
   }
   return MP3AUDIOFRAME;
 }
 
-media_desc_t *lame_create_audio_sdp (CLiveConfig *pConfig,
+media_desc_t *ffmpeg_create_audio_sdp (CLiveConfig *pConfig,
 				     bool *mpeg4,
 				     bool *isma_compliant,
 				     uint8_t *audioProfile,
@@ -117,7 +105,7 @@ media_desc_t *lame_create_audio_sdp (CLiveConfig *pConfig,
   format_list_t *sdpMediaAudioFormat;
   rtpmap_desc_t *sdpAudioRtpMap;
 
-  lame_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile,
+  ffmpeg_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile,
 		    audioConfig, audioConfigLen, NULL);
 
   sdpMediaAudio = MALLOC_STRUCTURE(media_desc_t);
@@ -151,7 +139,7 @@ media_desc_t *lame_create_audio_sdp (CLiveConfig *pConfig,
 
 }
 
-static bool lame_set_rtp_header (struct iovec *iov,
+static bool ffmpeg_set_rtp_header (struct iovec *iov,
 				 int queue_cnt,
 				 void *ud)
 {
@@ -161,7 +149,7 @@ static bool lame_set_rtp_header (struct iovec *iov,
   return true;
 }
 
-static bool lame_set_rtp_jumbo (struct iovec *iov,
+static bool ffmpeg_set_rtp_jumbo (struct iovec *iov,
 				uint32_t dataOffset,
 				uint32_t bufferLen,
 				uint32_t rtpPacketMax,
@@ -186,7 +174,7 @@ static bool lame_set_rtp_jumbo (struct iovec *iov,
   return true;
 }
 
-bool lame_get_audio_rtp_info (CLiveConfig *pConfig,
+bool ffmpeg_get_audio_rtp_info (CLiveConfig *pConfig,
 			      MediaType *audioFrameType,
 			      uint32_t *audioTimeScale,
 			      uint8_t *audioPayloadNumber,
@@ -208,80 +196,69 @@ bool lame_get_audio_rtp_info (CLiveConfig *pConfig,
   *audioPayloadBytesPerPacket = 4;
   *audioPayloadBytesPerFrame = 0;
   *audioQueueMaxCount = 8;
-  *audio_set_header = lame_set_rtp_header;
-  *audio_set_jumbo = lame_set_rtp_jumbo;
+  *audio_set_header = ffmpeg_set_rtp_header;
+  *audio_set_jumbo = ffmpeg_set_rtp_jumbo;
   *ud = malloc(4);
   memset(*ud, 0, 4);
   return true;
 }
 
-
-CLameAudioEncoder::CLameAudioEncoder()
+CFfmpegAudioEncoder::CFfmpegAudioEncoder()
 {
 	m_mp3FrameBuffer = NULL;
+	m_codec = NULL;
+	m_avctx = NULL;
 }
 
-bool CLameAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
+bool CFfmpegAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 {
-	m_pConfig = pConfig;
-	if ((m_lameParams = lame_init()) == NULL) {
-		error_message("error: failed to get lame_global_flags");
-		return false;
-	} 
-	lame_set_num_channels(m_lameParams,
-			      m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
-	lame_set_in_samplerate(m_lameParams,
-			       m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
-	lame_set_brate(m_lameParams,
-		       m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE) / 1000);
-	lame_set_mode(m_lameParams,
-		      (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 1 ? MONO : STEREO));		
-	lame_set_quality(m_lameParams,2);
+  avcodec_init();
+  avcodec_register_all();
 
-	// no match for silent flag
+  m_pConfig = pConfig;
 
-	// no match for gtkflag
+  m_codec = avcodec_find_encoder(CODEC_ID_MP2);
+  if (m_codec == NULL) {
+    error_message("Couldn't find codec");
+    return false;
+  }
+  m_avctx = avcodec_alloc_context();
+  m_frame = avcodec_alloc_frame();
 
-	// THIS IS VERY IMPORTANT. MP4PLAYER DOES NOT SEEM TO LIKE VBR
-	lame_set_bWriteVbrTag(m_lameParams,0);
+  m_avctx->codec_type = CODEC_TYPE_AUDIO;
+  m_avctx->codec_id = CODEC_ID_MP2;
+  m_avctx->bit_rate = m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE);
+  m_avctx->sample_rate = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+  m_avctx->channels = m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
 
-	if (lame_init_params(m_lameParams) == -1) {
-		error_message("error: failed init lame params");
-		return false;
-	}
-	if (lame_get_in_samplerate(m_lameParams) != lame_get_out_samplerate(m_lameParams)) {
-		error_message("warning: lame audio sample rate mismatch - wanted %d got %d",
-			      lame_get_in_samplerate(m_lameParams), 
-			      lame_get_out_samplerate(m_lameParams));
-		m_pConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE,
-			lame_get_out_samplerate(m_lameParams));
-	}
+  if (avcodec_open(m_avctx, m_codec) < 0) {
+    error_message("Couldn't open ffmpeg codec");
+    return false;
+  }
+  m_samplesPerFrame = 
+    MP4AV_Mp3GetSamplingWindow(m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
 
-	//error_message("lame version is %d", lame_get_version(m_lameParams));
-	m_samplesPerFrame = MP4AV_Mp3GetSamplingWindow(
-		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+  m_mp3FrameMaxSize = (u_int)(1.25 * m_samplesPerFrame) + 7200;
 
-	m_mp3FrameMaxSize = (u_int)(1.25 * m_samplesPerFrame) + 7200;
+  m_mp3FrameBufferSize = 2 * m_mp3FrameMaxSize;
 
-	m_mp3FrameBufferSize = 2 * m_mp3FrameMaxSize;
+  m_mp3FrameBufferLength = 0;
 
-	m_mp3FrameBufferLength = 0;
+  m_mp3FrameBuffer = (u_int8_t*)malloc(m_mp3FrameBufferSize);
 
-	m_mp3FrameBuffer = (u_int8_t*)malloc(m_mp3FrameBufferSize);
-
-	if (!m_mp3FrameBuffer) {
-		return false;
-	}
-
-	return true;
+  if (!m_mp3FrameBuffer) {
+    return false;
+  }
+  
+  return true;
 }
 
-u_int32_t CLameAudioEncoder::GetSamplesPerFrame()
+u_int32_t CFfmpegAudioEncoder::GetSamplesPerFrame()
 {
 	return m_samplesPerFrame;
 }
 
-bool CLameAudioEncoder::EncodeSamples(
+bool CFfmpegAudioEncoder::EncodeSamples(
 	int16_t* pSamples, 
 	u_int32_t numSamplesPerChannel,
 	u_int8_t numChannels)
@@ -293,68 +270,32 @@ bool CLameAudioEncoder::EncodeSamples(
 	u_int32_t mp3DataLength = 0;
 
 	if (pSamples != NULL) { 
-		int16_t* pLeftBuffer = NULL;
-		bool mallocedLeft = false;
-		int16_t* pRightBuffer = NULL;
-		bool mallocedRight = false;
-
-		if (numChannels == 1) {
-		  pLeftBuffer = pSamples;
-
-		  // both right and left need to be the same - can't 
-		  // pass NULL as pRightBuffer
-		  pRightBuffer = pSamples;
-
-		} else { // numChannels == 2
-		  // let lame handle stereo to mono conversion
-			DeinterleaveStereoSamples(
-				pSamples, 
-				numSamplesPerChannel,
-				&pLeftBuffer, 
-				&pRightBuffer);
-
-			mallocedLeft = true;
-			mallocedRight = true;
-		} 
-
-		// call lame encoder
-		mp3DataLength = lame_encode_buffer(
-			m_lameParams,
-			pLeftBuffer, 
-			pRightBuffer, 
-			m_samplesPerFrame,
-			(unsigned char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
-			m_mp3FrameBufferSize - m_mp3FrameBufferLength);
-		if (mallocedLeft) {
-			free(pLeftBuffer);
-			pLeftBuffer = NULL;
-		}
-		if (mallocedRight) {
-			free(pRightBuffer);
-			pRightBuffer = NULL;
-		}
-
-	} else { // pSamples == NULL
-		// signal to stop encoding
 	  mp3DataLength = 
-	    lame_encode_flush( m_lameParams,
-			       (unsigned char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
-			       m_mp3FrameBufferSize - m_mp3FrameBufferLength);
+	    avcodec_encode_audio(m_avctx,
+				 m_mp3FrameBuffer,
+				 m_mp3FrameBufferSize,
+				 pSamples);
+
+	} else {
+	  return false;
 	}
 
 	m_mp3FrameBufferLength += mp3DataLength;
-	//debug_message("audio -return from lame_encode_buffer is %d %d", mp3DataLength, m_mp3FrameBufferLength);
+	//	error_message("audio -return from ffmpeg_encode_buffer is %d %d", mp3DataLength, m_mp3FrameBufferLength);
 
 	return (mp3DataLength >= 0);
 }
 
-bool CLameAudioEncoder::GetEncodedFrame(
+bool CFfmpegAudioEncoder::GetEncodedFrame(
 	u_int8_t** ppBuffer, 
 	u_int32_t* pBufferLength,
 	u_int32_t* pNumSamplesPerChannel)
 {
 	const u_int8_t* mp3Frame;
 	u_int32_t mp3FrameLength;
+
+	// I'm not sure we actually need all this code; however, 
+	// it doesn't hurt.  It's copied from the lame interface
 
 	if (!MP4AV_Mp3GetNextFrame(m_mp3FrameBuffer, m_mp3FrameBufferLength, 
 	  &mp3Frame, &mp3FrameLength)) {
@@ -383,6 +324,8 @@ bool CLameAudioEncoder::GetEncodedFrame(
 	memcpy(m_mp3FrameBuffer, 
 		mp3Frame + mp3FrameLength, 
 		m_mp3FrameBufferLength - mp3FrameLength);
+	//	error_message("vers %d layer %d", MP4AV_Mp3GetHdrVersion(MP4AV_Mp3HeaderFromBytes(*ppBuffer)),
+	//      MP4AV_Mp3GetHdrLayer(MP4AV_Mp3HeaderFromBytes(*ppBuffer)));
 	m_mp3FrameBufferLength -= mp3FrameLength;
 
 	*pNumSamplesPerChannel = m_samplesPerFrame;
@@ -390,11 +333,12 @@ bool CLameAudioEncoder::GetEncodedFrame(
 	return true;
 }
 
-void CLameAudioEncoder::Stop()
+void CFfmpegAudioEncoder::Stop()
 {
-	free(m_mp3FrameBuffer);
-	m_mp3FrameBuffer = NULL;
-	lame_close(m_lameParams);
-	m_lameParams = NULL;
+  avcodec_close(m_avctx);
+  m_avctx = NULL;
+  free(m_mp3FrameBuffer);
+  m_mp3FrameBuffer = NULL;
 }
 
+#endif

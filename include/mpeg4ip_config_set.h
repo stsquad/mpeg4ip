@@ -345,7 +345,6 @@ public:
 	inline bool IsDefault (const config_index_t iName) {
 #if CONFIG_SAFETY
 	  CheckIName(iName);
-	  CheckIntegerType(iName);
 #endif
 	  return m_variables[iName].IsValueDefault();
 	};

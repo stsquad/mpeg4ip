@@ -30,3 +30,4 @@ libmpeg4ipSDL_la_DEPENDENCIES =	\
 # The SDL library sources
 GENERAL_SRCS = 		
 
+EXTRA_DIST = SDL_error.c

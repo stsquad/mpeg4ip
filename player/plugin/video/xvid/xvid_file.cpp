@@ -23,11 +23,7 @@
  * Read a raw file for xvid.
  */
 #include "ourxvid.h"
-#ifndef HAVE_XVID_H
-#include "../../../../lib/xvid/xvid.h"
-#else
 #include <xvid.h>
-#endif
 #include "mp4av.h"
 //#include "divx4.h"
 

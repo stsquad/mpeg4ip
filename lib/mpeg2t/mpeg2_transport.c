@@ -25,14 +25,14 @@
 #include <assert.h>
 #include "mpeg2t_private.h"
 
-//#define DUMP_ADAPTION_CONTOL 1
+//#define DUMP_ADAPTION_CONTROL 1
 #define DEBUG 1
 #ifdef DEBUG
 #define CHECK_MP2T_HEADER assert(*pHdr == MPEG2T_SYNC_BYTE)
 #else
 #define CHECK_MP2T_HEADER 
 #endif
-
+#define DEBUG_MPEG2T 1
 /*
  * mpeg2 transport layer header routines.
  */
@@ -122,7 +122,7 @@ const uint8_t *mpeg2t_transport_payload_start (const uint8_t *pHdr,
     }
     *payload_len = 183 - pHdr[4];
 #if DUMP_ADAPTION_CONTROL
-    mpeg2t_message(LOG_DEBUG, "adaptation control - len %d", pHdr[4]);
+    mpeg2t_message(LOG_ERR, "adaptation control - len %d", pHdr[4]);
     for (ix = 0; ix < pHdr[4]; ix += 4) {
       mpeg2t_message(LOG_DEBUG, "%d - %02x %02x %02x %02x", 
 		     ix, 
@@ -727,7 +727,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
       if (esptr[2] + 3 > buflen) {
 	return 0;
       }
-#if 0
+#ifdef DEBUG_MPEG2T
       if ((esptr[1] & 0x20)) {
 	mpeg2t_message(LOG_INFO, "pid %x has ESCR", es_pid->pid.pid);
       }
@@ -769,7 +769,6 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
       }
 
       // this is how we would read the dts, if we wanted to use it
-      // I'm not sure what it buys us.
       if (esptr[1] & 0x40) {
 	pts = ((esptr[offset] >> 1) & 0x7);
 	pts <<= 8;
@@ -786,10 +785,13 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	es_pid->have_dts = 1;
 	es_pid->dts = pts;
       }
-
+#ifdef DEBUG_MPEG2T
+      mpeg2t_message(LOG_INFO, "pid %x pes buflen %d\n", es_pid->pid.pid, esptr[2]);
+#endif
       buflen -= esptr[2] + 3;
       esptr += esptr[2] + 3;
-      pes_len -= esptr[2] + 3;
+      if (pes_len > 0)
+	pes_len -= esptr[2] + 3;
     }
   // process esptr, buflen
     if (buflen == 0) {

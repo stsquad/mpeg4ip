@@ -31,11 +31,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <time.h>
-#ifndef HAVE_XVID_H
-#include "../../../lib/xvid/xvid.h"
-#else
 #include <xvid.h>
-#endif
 #include <mp4av.h>
 /* globals */
 char* progName;
@@ -71,9 +67,7 @@ int main(int argc, char** argv)
   XVID_INIT_PARAM xvidInitParams;
   XVID_ENC_PARAM xvidEncParams;
   XVID_ENC_FRAME xvidFrame;
-#ifdef HAVE_XVID_H
   XVID_DEC_PICTURE decpict;
-#endif
   XVID_ENC_STATS xvidResult;
   void *xvidHandle;
   u_int32_t yuvSize, ySize;
@@ -238,12 +232,7 @@ int main(int argc, char** argv)
   xvidEncParams.height = frameHeight;
   xvidEncParams.fincr = 1;
   xvidEncParams.fbase = (int)(frameRate + 0.5);
-#ifdef HAVE_XVID_H
   xvidEncParams.rc_bitrate = bitRate;
-#else
-  xvidEncParams.bitrate = bitRate;
-  xvidEncParams.rc_buffersize = 16;
-#endif
   xvidEncParams.min_quantizer = 1;
   xvidEncParams.max_quantizer = 31;
   xvidEncParams.max_key_interval = iFrameFrequency;
@@ -268,14 +257,6 @@ int main(int argc, char** argv)
   ySize = frameWidth * frameHeight;
   yuvSize = (ySize * 3) / 2;
   readbuffer = (uint8_t *)malloc(yuvSize);
-#ifndef HAVE_XVID_H
-  xvidFrame.colorspace = XVID_CSP_I420;
-  xvidFrame.quant = 0;
-  xvidFrame.image_y = readbuffer;
-  xvidFrame.image_u = xvidFrame.image_y + ySize;
-  xvidFrame.image_v = xvidFrame.image_u + ySize / 4;
-  xvidFrame.stride = frameWidth;
-#else
   decpict.y = readbuffer;
   decpict.u = decpict.y + ySize;
   decpict.v = decpict.u + ySize / 4;
@@ -283,7 +264,7 @@ int main(int argc, char** argv)
   decpict.stride_u = frameWidth / 2;
   xvidFrame.image = &decpict;
   xvidFrame.colorspace = XVID_CSP_USER;
-#endif
+
   
   startTime = time(0);
 

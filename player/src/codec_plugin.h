@@ -24,9 +24,8 @@
 #ifndef __CODEC_PLUGIN_H__
 #define __CODEC_PLUGIN_H__ 1
 
-#include <mpeg4ip.h>
-#include <sdp.h>
 #include <mpeg4ip_config_set.h>
+#include <sdp.h>
 /*
  * When you change the plugin version, you should add a "HAVE_PLUGIN_VERSION"
  * for easier makes

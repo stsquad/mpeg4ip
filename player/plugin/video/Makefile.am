@@ -1,5 +1,12 @@
 if HAVE_LIBMPEG2
-SUBDIRS = raw xvid mpeg3 h261 mpeg2dec
+ed1=mpeg2dec
 else
-SUBDIRS = raw xvid mpeg3 h261
+ed1=
 endif
+if NO_XVID
+ed2=
+else
+ed2=xvid
+endif
+
+SUBDIRS = raw mpeg3 h261 $(ed1) $(ed2)

@@ -184,8 +184,6 @@ EXTRA_DIST = \
 	player60.dsw \
 	wmp4player60.dsp \
 	frame_doubler.cpp \
-	README.html \
-	INTERNALS.html \
 	video_dummy.cpp \
 	video_dummy.h
 

@@ -1,20 +1,28 @@
-xx/xx/04 version 1.1
+05/17/04 version 1.1
     Added no-overwrite mode in mp4live
     if present, use libid3 to read ID tags
     Fixed problem with player a/v sync when relaying through DSS
     Added input video filters to mp4live
-    Added plugins for libac3 and libmpeg2 (must be installed before configuration)
+    Added player plugins for libac3 and libmpeg2 (must be installed before configuration)
     Fixed sync flag indication for mp4creator using avi files.
+    Fixed so that 64 bit machines could be used easier.  Enhanced macros for
+      indication of 64 bits, and for 64 bit printf formatting.
     Changed PACKAGE and VERSION for mpeg4ip to MPEG4IP_PACKAGE and
       MPEG4IP_VERSION
+    Have player use mp4live configuration variable routines
     Changed so that we no longer overwrite SDL, but clone SDL audio
       with our changes.
     Mac OSX support (including mp4player) and some xcode projects for tools
-    Mpeg2 transport stream file parsing for player, including crude sync
+    Mpeg2 transport stream file parsing for player, including crude seek
+    Mpeg2 transport stream works with some mpeg2 transport stream servers - 
+     use mpeg2t:// instead of rtsp://.
     Mpeg2 video encoding via ffmpeg in mp4live
     Xvid 1.0 API for mp4live, gmp4player
     Ability to enter config file parameters on command line for mp4live and gmp4player
     ISMAcryp support
+    mpeg4vol and H.264 file reader utilities.
+    For player, added downconverting/upconverting of channels to 1 or 2 channels,
+      also added some new audio formats
 
 12/23/03 version 1.0
     Fix incorrect timestamp on mpeg1/2 insert into mp4 file.

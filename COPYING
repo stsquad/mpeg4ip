@@ -102,16 +102,6 @@ License:    Other, see COPYRIGHT
 Notes:      This directory contains additional third-party code with 
             different licenses.
 
-Name:       xvid
-Version:    April 12, 2002
-Origin:     http://www.xvid.org/
-Authors:    Michael Militzer, Peter Ross, Christoph Lampert
-Directory:  mpeg4ip/lib/xvid
-License:    GNU General Public License (GPL), version 2 1991
-Notes:      Code redistributed with MPEG4IP is just the core codec library
-            See the project site to obtain the complete distribution which 
-            includes a Video for Windows wrapper.
-
 
 Name:       h261 decoder
 Version:    vic-2.8, openh323-1.10.0

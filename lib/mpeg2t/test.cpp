@@ -16,7 +16,7 @@ int main (int argc, char **argv)
 
   buffer = (uint8_t *)malloc(BUFFER_SIZE);
 
-  //mpeg2t_set_loglevel(LOG_NOTICE);
+  mpeg2t_set_loglevel(LOG_DEBUG);
   mpeg2t = create_mpeg2_transport();
   mpeg2t->save_frames_at_start = 1;
   argc--;

@@ -1,10 +1,11 @@
 if NO_GLIB_GTK
-SUBD = 
-GUILIBS = 
+SUBD= 
+GUILIBS= 
+GUIADD=
 else
-SUBD = gui
-GUILIBS = libmp4livepreview.la
-GUIADD = gui/libmp4livegui.la
+SUBD=gui
+GUILIBS=libmp4livepreview.la
+GUIADD=gui/libmp4livegui.la
 endif
 
 SUBDIRS = $(SUBD) h261
@@ -29,17 +30,21 @@ else
   ed1= video_v4l2_source.cpp video_v4l2_source.h
 endif
 
+if NO_XVID
+   XVID_SRC=
+   ed2=video_xvid10.h video_xvid10.cpp video_xvid.h video_xvid.cpp
+   XVID_LIB=
+else
 if HAVE_XVID_1_0
   XVID_SRC=video_xvid10.h video_xvid10.cpp
+  ed2 = video_xvid.h video_xvid.cpp
 else
-  XVID_SRC=video_xvid.h video_xvid.cpp
+   XVID_SRC=video_xvid.cpp video_xvid.h
+   ed2=video_xvid10.h video_xvid10.cpp
 endif
-
-if USE_MPEG4IP_XVID
-  XVID_LIB=$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la
-else
   XVID_LIB=-lxvidcore
 endif
+
 
 libmp4live_la_SOURCES = \
 	audio_encoder_base.cpp \
@@ -87,6 +92,8 @@ libmp4live_la_SOURCES = \
 	video_encoder.h \
 	video_encoder_base.h \
 	video_encoder_base.cpp \
+	audio_ffmpeg.cpp \
+	audio_ffmpeg.h \
 	video_ffmpeg.cpp \
 	video_ffmpeg.h $(XVID_SRC)
 
@@ -125,11 +132,8 @@ mp4live_LDADD = \
 	@GTK_LIBS@ @GLIB_LIBS@ \
 	$(GUIADD) \
 	libmp4live.la \
-	@FFMPEG_LIB@ \
 	-lfaac \
 	-lmp3lame \
-	@LIBVORBIS_LIB@ \
-	$(XVID_LIB) \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
@@ -140,7 +144,6 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/utils/libutils.la \
 	./h261/libmp4live_h261.la \
 	-lpthread \
-	@SDL_LIBS@ \
-	$(GUILIBS)
+	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) 
 
-EXTRA_DIST = README.html INTERNALS.html $(ed1) Building_mpeg4ip_with_V4L2_support.html
+EXTRA_DIST = $(ed1) $(ed2)

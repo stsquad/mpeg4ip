@@ -1,0 +1,506 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type"
+ content="text/html; charset=ISO-8859-1">
+  <title>Building mpeg4ip with V4L2 support</title>
+</head>
+<body>
+<div style="text-align: center;">
+<h1>Building mpeg4ip with V4L2 support</h1></div>
+<p>
+January, 2004<br>
+Bill May<br>
+Original version by Waqar Mohsin<br>
+<p>
+<a href="#rh">Building on Redhat 9</a><br>
+<a href="#suse">Adding 2.6.1 Kernel to SuSE 9.0</a><br>
+<a href="#rhupgrade">Adding the 2.6.3 Kernel to Redhat 9.0</a><br>
+
+<div id="rh">
+<h2>A. Redhat Linux 9 Installation</h2>
+</div>
+<p>
+This section only applies if you setting up a machine from scratch.<br>
+If not, go <a href="#build1">here</a>
+<br>
+Pick the <span style="font-style: italic;">custom install</span>
+option.<br>
+<h3>1. Package Group Selection</h3>
+<table cellpadding="2" cellspacing="2" border="1"
+ style="text-align: left; height: 383px; width: 513px;">
+  <tbody>
+    <tr>
+      <td
+ style="vertical-align: top; background-color: rgb(192, 192, 192);">Package
+Name<br>
+      </td>
+      <td
+ style="vertical-align: top; background-color: rgb(192, 192, 192);">Selected<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">X Window System<br>
+      </td>
+      <td style="vertical-align: top;">31/33<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">GNOME<br>
+      </td>
+      <td style="vertical-align: top;">35/35<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">KDE<br>
+      </td>
+      <td style="vertical-align: top;">14/16<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Editors<br>
+      </td>
+      <td style="vertical-align: top;">2/4<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Graphical Internet<br>
+      </td>
+      <td style="vertical-align: top;">8/14<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Sound and Video<br>
+      </td>
+      <td style="vertical-align: top;">14/19<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Graphics<br>
+      </td>
+      <td style="vertical-align: top;">10/13<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Server Configuration Tools<br>
+      </td>
+      <td style="vertical-align: top;">9/13<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Web Server<br>
+      </td>
+      <td style="vertical-align: top;">12/17<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Development Tools<br>
+      </td>
+      <td style="vertical-align: top;">35/46<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Kernel Development<br>
+      </td>
+      <td style="vertical-align: top;">4/4<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">X Software Development<br>
+      </td>
+      <td style="vertical-align: top;">18/18<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">GNOME Software Development<br>
+      </td>
+      <td style="vertical-align: top;">42/48<br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">Administration Tools<br>
+      </td>
+      <td style="vertical-align: top;">11/11<br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<p>
+<div id="build1">
+<h3>2. Build a Custom Kernel</h3></div>
+<p>
+The instructions are given in <a
+ href="http://www.redhat.com/docs/manuals/linux/RHL-9-Manual/custom-guide/ch-custom-kernel.html">Redhat
+Linux 9 Customization Guide</a>. You must have the kernel source installed before continuing<br>
+<ol>
+  <li>Open a terminal.</li>
+  <li><code>su -</code></li>
+  <li><code>cd /usr/src/linux-2.4</code></li>
+  <li><code>make mrproper</code></li>
+  <li><code>cp config/kernel-2.4.20-i686.config .config</code></li>
+  <li><code>make xconfig</code></li>
+  <li>This will bring up the Linux Kernel Configuration window. Just
+click <span style="font-style: italic;">Save and Exit</span>.</li>
+  <li><code>make clean</code></li>
+  <li><code>make bzImage</code></li>
+  <li><code>make modules</code></li>
+  <li><code>make modules_install</code></li>
+  <li><code>make install</code></li>
+  <li>Verify that <code>/boot/initrd-2.4.20-8custom.img</code> exists</li>
+  <li><code>reboot</code></li>
+</ol>
+<p>
+<h3>3. Install V4L2</h3>
+<p>
+V4L2 is a work in progress. So far, I've only gotten the 20030717 CVS
+snapshot to work.<p>
+You should read the directions from the V4L2 web site - they only apply for the
+versions that we've specified.<br>
+<ol>
+  <li>Download <code>v4l2-20030717.tar.gz</code>
+to the home directory</li>
+  <li><code>tar xvfz v4l2-20030717.tar.gz</code></li>
+  <li>su</li>
+  <li><code>cd v4l2</code></li>
+  <li><span style="font-family: monospace;"></span><code>mv
+/usr/include/linux/videodev.h /usr/include/linux/videodev.h.orig</code><code></code></li>
+  <li><code>cp videodev.h /usr/include/linux</code><code></code></li>
+  <li><code>cp videodev2.h /usr/include/linux</code></li>
+  <li>Edit <code>Makefile</code> and change <code>depmod</code> to <code>/sbin/depmod</code></li>
+  <li><code>make</code></li>
+  <li><code>make install</code></li>
+</ol>
+<h3>4. Install New bttv Driver</h3>
+<ol>
+  <li>Download <code>bttv9-20030717.tar.gz</code>
+to the home directory</li>
+  <li><code>tar xvfz bttv9-20030717.tar.gz</code><code></code></li>
+  <li>su</li>
+  <li><code>cd bttv-0.9.12<br>
+    </code></li>
+  <li>Edit <code>Makefile</code> and change <code>depmod</code> to <code>/sbin/depmod</code></li>
+  <li><code>make</code></li>
+  <li><code>make install</code></li>
+</ol>
+<h3>5. Setup modprobe to load bttv from new location</h3>
+<p>
+The V4L2 and bttv drivers are installed in the
+/lib/modules/2.4.20-8custom/v4l2 directory. You should see a listing
+similar to this:<br>
+<br>
+<code>-rw-r--r--&nbsp;&nbsp;&nbsp; 1 root&nbsp;&nbsp;&nbsp;&nbsp;
+root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4936 Aug&nbsp; 4
+18:54 btcx-risc.o<br>
+-rw-r--r--&nbsp;&nbsp;&nbsp; 1 root&nbsp;&nbsp;&nbsp;&nbsp;
+root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 113484 Aug&nbsp; 4 18:54 bttv.o<br>
+-rw-r--r--&nbsp;&nbsp;&nbsp; 1 root&nbsp;&nbsp;&nbsp;&nbsp;
+root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 15616 Jul 18 10:48
+v4l1-compat.o<br>
+-rw-r--r--&nbsp;&nbsp;&nbsp; 1 root&nbsp;y&nbsp;&nbsp;&nbsp;
+root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8084 Jul 18 10:48
+v4l2-common.o<br>
+-rw-r--r--&nbsp;&nbsp;&nbsp; 1 root&nbsp;&nbsp;&nbsp;&nbsp;
+root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 19544 Aug&nbsp; 4 18:54
+video-buf.o</code><br>
+<br>
+The original V4L2 and bttv drivers are installed in
+/lib/modules/2.4.20-8custom/kernel/drivers/media/video.<br>
+<br>
+<span style="font-weight: bold;">modprobe</span> is a program which
+loads/unloads <span style="font-style: italic;">loadable kernel modules</span>
+(LKMs). By default, modprobe searches for an LKM in /lib/modules/boot
+before looking in /lib/modules/2.4.20-8custom. This can be verified by
+using the '<code>modprobe -c</code>' command. modprobe also uses
+/lib/modules/2.4.20-8custom/modules.dep for resolving module
+dependencies.<br>
+<br>
+The bttv driver installation does not remove the original bttv.o entry
+from the modules.dep file (bug ???). Since we want to load the bttv
+driver (and its dependencies) from the new location
+(/lib/modules/2.4.20-8custom/v4l2 directory), an easy way is to rename
+the original bttv LKM and remove its entry from the modules.dep file.
+We recommend removing all bttv.o files.  Do a <code>find . -name bttv.o -print</code> and make sure all copies of bttv.o are purged.
+The following steps do that:<br>
+<ol>
+  <li><code>cd /lib/modules/2.4.20-8custom/kernel/drivers/media/video</code></li>
+  <li><code>mv bttv.o bttv.o.orig</code> &nbsp&nbsp(We recommend <code>rm bttv.o</code>)</li>
+  <li><code>cd /lib/modules/2.4.20-8custom</code></li>
+  <li>Edit <code>modules.dep</code> and delete <code>/lib/modules/2.4.20-8custom/kernel/drivers/media/video/bttv.o</code>
+and its dependencies.</li>
+  <li>Reboot and select the custom kernel when the kernel load screen appears.  Alternatively, change /etc/grub.conf to indicate a default of 0 (that will be the custom kernel you created, and will automatically select it when you reboot).<br>
+  </li>
+</ol>
+<p>
+Do a find to make sure that you've overwritten all bttv.o files.
+<h3>6. Testing the Installation</h3>
+<ul>
+  <li><code>su -</code></li>
+  <li><code>modprobe bttv</code></li>
+  <li><code>modinfo bttv</code> should display something like<br>
+  </li>
+</ul>
+<p>
+<code>filename:&nbsp;&nbsp;&nbsp;
+/lib/modules/2.4.20-8custom/v4l2/bttv.o<br>
+description: "bttv - v4l/v4l2 driver module for bt848/878 based cards"<br>
+author:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "Ralph Metzler &amp; Marcus
+Metzler &amp; Gerd Knorr"<br>
+license:&nbsp;&nbsp;&nbsp;&nbsp; "GPL"<br>
+...<br>
+</code>
+<ul>
+  <li><code>modinfo v4l2-common</code> should display something like</li>
+</ul>
+<p>
+<code>filename:&nbsp;&nbsp;&nbsp;
+/lib/modules/2.4.20-8custom/v4l2/v4l2-common.o<br>
+description: "misc helper functions for v4l2 device drivers"<br>
+author:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "Bill Dirks, Justin Schoeman,
+Gerd Knorr"<br>
+license:&nbsp;&nbsp;&nbsp;&nbsp; "GPL"</code><br>
+<big></big>
+<div id="suse">
+<h2>B. SuSE 9.0 Installation of 2.6.1 kernel</h2></div>
+<p>
+This section describes what I did when updating SuSE to a 2.6.1 kernel with
+V4L2 support.  I'm not 100% happy with the results (it seems to return the
+default settings for the audio, which on my machine is muted, and microphone
+off), but it appears to work.
+<p>
+Note: I did not use the 2.6 test kernel sources that come with SuSE 9.0.
+<p>
+First, see the instructions on what RPMs are needed for SuSE 9.0 PRO in 
+the main readme.
+<p>
+<ul>
+<li>First, download the 2.6.1 kernel. Untar it.</li>
+<li>Next, download the v4l2 patches.  I used the 2.6.1rc3 patch. Patch them into the kernel source </li>
+<li>You'll have to make a minor change to kernel/exit.c.  You'll have to add
+<code>EXPORT_SYMBOL(__set_special_pids);</code> and <code>EXPORT_SYMBOL(set_special_pids);</code> before the function calls.</li>
+<li>Configure the kernel.  You can use make oldconfig.  Make sure that you 
+enable OSS (it says deprecated, but I was not able to get the ALSA OSS 
+compatibility layer to work, so I needed it).</li>
+<li>Build the kernel.<code>make;make modules</code></li>
+<li>Download and untar the bttv driver.  I used 0.9.12.</li>
+<li>Make the bttv driver <code>make KDIR=</code><i>kernel source directory</i></li>
+<li>Install the kernel.  <code>make install; make modules_install</code></li>
+<li>Install the bttv driver <code>make install</code></li>
+<li>Add the kernel to lilo or grub</li>
+</ul>
+<p>
+At this point, you may have a bootable kernel.  I, on the other hand, did not.  It appeared not to load any of the modules for the PCI slots.
+<P>
+This was the difficult part.  I went to the /etc directory, and used the <code>generate-modprobe.conf
+</code> command to generate a new modprobe.conf.  Then I had to add command to install eth0, eth1 and 
+the bttv driver.  I also had to remove the snd_ prefixes from the options for snd-emu10k1 and options snd:
+<p>
+Here's the diff that I had to make after the <code>generate-modprobe.conf</code>:<br>
+<code> 
+< options snd-emu10k1 snd_enable=1 snd_index=0 <br>
+< options snd snd_cards_limit=1 snd_major=116 <br>
+---<br>
+> options snd-emu10k1 enable=1 index=0<br>
+> options snd cards_limit=1 major=116<br>
+217a218,221<br>
+> install eth0 /bin/true<br>
+> install eth1 /bin/true<br>
+> install bttv /sbin/modprobe --ignore-install bttv && { /sbin/modprobe -k tuner; /sbin/modprobe -k msp3400; } <br>
+</code>
+<p>
+Good luck.
+<p>
+<big></big>
+<div id="rhupgrade">
+<h2>C. Redhat 9.0 Installation of 2.6.3 kernel</h2></div>
+<p>
+Written by TrFremont
+<p>
+This was written 25th February 2004. URLs and available files change over 
+time so if you are attempting this far in the future do not be surprised 
+if things are not the same.
+<p>
+I am no Kernel expert. I did this to get rid of a bug. Mooie helped me
+a lot with how to do this. 
+<p>
+<h3>Why do this?</h3>
+<p>
+If you use Red Hat 9.0, a Brooktree chip capture card and have installed
+MPEG4IP and kept it up to date, you probaby have MPEG4IP V1.0 or V1.05, the
+bttv driver from bttv9-20030717.tar.gz and the V4L2 package distributed with
+MPEG4IP. The recent revisions contained in those packages cured the a/v sync
+problems, but there is a another, and more rare bug buried deep in that old
+bttv driver which sometimes causes video capture to freeze. In order to
+remove the bug you must update to a recent bttv package, which also needs a
+more recent v4l2 package, and they both need a more recent linux kernel than
+2.4.20, which is the one that was distributed with RH 9.0.
+<p>
+Here are instructions on how to obtain, configure, build and install
+linux 2.6.3 kernel which contains the latest bttv and v4l2 packages.
+<p>
+If you have other than Brooktree hardware, there are drivers for other video
+capture systems included. I have not tried them, but they may match your
+hardware.
+<p>
+<h3>Advantages</h3>
+<p>
+You get rid of the bug that causes video capture to hang.
+No more messing about with extra packages or kernel modules - 
+everything is now available as options right in the new kernel.
+<p>
+<h3>Disadvantages</h3>
+<p>
+The Red Hat organization does not support the use of later kernels, so if
+you have a Red Hat bug show up, they might not be able to help you solve it.
+However, the only bug I have found so far is that the memory useage is no
+longer show correctly in the System Monitor tool. I have not yet
+investigated how to fix this. Compiling, shells, Mozilla, all seem to work
+ok with 2.6.3.
+<p>
+<h3>Upgrade Relaiblility</h3>
+<p>
+This upgrade has been completed on two machines so far. The second machine
+upgrade went almost like clockwork. One machine had RH9.0 plus all the
+latest upgrades from Red Hat. The other had no upgrades at all, was stock
+RH9.0 installed from ISO CDs.
+<p>
+<h3>Utilities Needed</h3>
+<p>
+If you have compiled and installed MPEG4IP you should have enough to deal
+with the kernel.
+<p>
+<h3>Method In Brief</h3>
+<p>
+Download and unpackage the kernel source. Run configure, select options.
+Make. Make Install. Fix bootloader. Reboot.
+<p>
+<h3>Method in Detail</h3>
+<p>
+Log in as root, go to
+<a href="http://www.kernel.org">http://www.kernel.org</a><br>
+Click on the 2.6.3 link (latest stable at time of writing) and save the 
+.bz2 file to your /root/ directory.<br>
+unzip and untar the files. You will then have a 
+/root/linux-2.6.3/ directory.<br>
+(You can put the files any place, though there is a warning about NOT using
+  /usr/src/linux area as other files around there may mess things up.)
+<p>
+Make sure you are in root directory -<br>
+<code>#cd /root</code><br>
+Reset the ownership of all the package files -<br>
+<code>#chown -R root.root linux-2.6.3</code><br>
+Move to the package directory -<br>
+<code>#cd linux-2.6.3</code><br>
+(You can read the README file there, it has alternate build commands and
+note about versions of compilers needed etc.)<p>
+Run the configuration program - <br>
+<code>#make menuconfig</code><br>
+(It will check some things, then bring up a menu system for selecting
+options.)
+<p>
+You must now select the bttv and v4l2 items, they are _not_ on by default.
+Navigate through the items, turn on the ones shown [Y] below.
+<p>
+<pre>
+I2C Support
+  [Y] I2C Support
+      I2C Algorithms 
+      [Y] bit banging
+      [Y] Video For Linux
+         Video For Linux
+	 Video Adapters
+	 [Y] BT848 Video For Linux
+</pre>
+<p>
+(If you have a capture card or system other than BT848, select what is
+appropriate. I do not know how well the other options work)
+<p>
+(Also, you _may_ have to turn on support for the audio card you have.
+ One machine with on-board audio worked with nothing extra. The other
+ machine with a PCI sound blaster card needed its support option enabled
+ before sound worked.)
+<p>
+Possibly - <br>
+<pre>
+[Y] for audio device that you have.
+</pre>
+<p>
+Mpeg4ip note: see above as how to configure with OSS enabled.
+<p>
+Exit and save the configuration.<br>
+Run make<br>
+<code>#make</code><br>
+(It takes less than an hour on 1.7G P4.)<p>
+Install<br>
+<code>#make install</code><br>
+(Note that if you have to do this a second time, and you are running the on
+the new kernel from the first attempt, make install may not work. You have
+to reboot to the old kernel to install the new one.)
+<p>
+I use the grub boot loader. Make install puts an entry in /etc/grub.conf
+however it does not set the boot information correctly, you have to fix that
+by hand to make it boot properly.
+<p>
+Look for the section that starts 'title Red hat Linux (2.6.3)<br>
+Look about two lines below that for the line  that starts 'kernel....<br>
+If that line ends with 'root=LABEL=/' you need to change that to
+something like 'root=/dev/hda3'<br>
+If you look at around the 7th line in the file, there may be a comment
+that shows the correct root= setting for your system. Use that.
+<p>
+
+You can change the default boot option by changing the number at the
+end of the 'default=x' line, make x 0 to select the first of\ption, 1 for
+the second...
+<p>
+Save the grub.conf file.
+<br>
+Shutdown / restart the machine. 
+<br>
+Watch the boot messages, make sure the new 2.6.3 kernel gets selected.
+<br>
+You may see error/warning messages early in the boot process, something like
+<br>
+<code>QM_MODULES: Function not implemented</code><br>
+<code>Likely about initializing USB keyboard, usb mouse, ohci1394.</code>
+<p>
+These _appear_ to be the system still trying to load modules which are not
+used in this kernel, as they are already in the kernel now. If the rest of the
+boot proceeds I think you can ignore those warnings.
+<p>
+You may be able to get rid of them by fixing something in /lib/modules. But
+that may also prevent booting to the old kernel in the future.
+<p>
+mp4live and gmp4player will work without re-compiling them, however on one
+machine I did re-compile mpeg4ip without incident.
+<p>
+MPEG4IP NOTE: if you went from an non-V4L2 kernel, you will need to re-bootstrap
+mpeg4ip and recompile
+<p>
+If you have to change something in the kernel config, and recompile the
+kernel, you might want to 
+<p>
+<code>#make mrproper</code><br>
+first, to clean everything up.
+<p>
+If you get lost in changing options and things end up working worse rather
+than better, you can start again by<br>
+<code>#rm .config</code><br>
+then<br>
+<code>#make menuconfig</code><br>
+it will start afresh.
+<p>
+MPEG4IP NOTE - this is a good primer - read the above SuSE install in
+addition to this if some things are not clear.
+<p>
+Remember, mpeg4ip is not the kernel project - we cannot support your
+kernel install - we can barely do our own.
+<p>
+Good luck!
+<p>
+
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
+</body>
+</html>

@@ -1,6 +1,6 @@
 SUBDIRS = bitstream dct image motion prediction quant utils
 
-lib_LTLIBRARIES = libmpeg4ip_xvid.la
+noinst_LTLIBRARIES = libmpeg4ip_xvid.la
 
 AM_CFLAGS= -O3
 

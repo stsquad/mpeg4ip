@@ -1072,6 +1072,9 @@ static gint main_timer (gpointer raw)
 	  }
 	  if (start != NULL)
 	    create_session_from_name(start);
+	  else {
+	    on_stop_clicked(NULL, NULL);
+	  }
 	} while (start != NULL && psptr == NULL);
 	SDL_mutexV(command_mutex);
       } else if (master_looped) {
@@ -1121,6 +1124,13 @@ static gint main_timer (gpointer raw)
       case SDLK_c:
 	if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
 	  on_main_menu_close(NULL, 0);
+	}
+	break;
+      case SDLK_n:
+	if ((msg->mod & KMOD_CTRL) != 0) {
+	  if (master_playlist != NULL) {
+	    master_queue.send_message(MSG_SESSION_FINISHED);
+	  }
 	}
 	break;
       case SDLK_x:

@@ -28,7 +28,9 @@
 #ifdef HAVE_XVID10
 #include "video_xvid10.h"
 #else
+#ifdef HAVE_XVID_H
 #include "video_xvid.h"
+#endif
 #endif
 #endif
 
@@ -52,7 +54,9 @@ CVideoEncoder* VideoEncoderCreateBase(CLiveConfig *pConfig)
 		error_message("ffmpeg encoder not available in this build");
 #endif
 	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_XVID)) {
-#ifdef ADD_XVID_ENCODER
+
+#if defined(HAVE_XVID10) || defined(HAVE_XVID_H)
+
 #ifdef HAVE_XVID10
 	  return new CXvid10VideoEncoder();
 #else
@@ -225,6 +229,7 @@ static void H261SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
     
     rdptr = list;
     while (rdptr != NULL) {
+      //error_message("h.261 - sending %d", pData->len + 4);
       rdptr->send_iov(iov, 2, rtpTimestamp, pData->next == NULL);
       rdptr = rdptr->get_next();
     }
@@ -450,11 +455,11 @@ video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CLiveConfig *pConfig,
     *pType = MPEG4VIDEOFRAME;
     *pPayload = 96;
     return Mpeg43016SendVideo;
-  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_H261)) {
+  } else if (strcasecmp(encodingName, VIDEO_ENCODING_H261) == 0) {
     *pPayload = 31;
     *pType = H261VIDEOFRAME;
     return H261SendVideo;
-  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG2)) {
+  } else if (strcasecmp(encodingName, VIDEO_ENCODING_MPEG2) == 0) {
     *pPayload =32;
     *pType = MPEG2VIDEOFRAME;
     return Mpeg2SendVideo;

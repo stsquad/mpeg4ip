@@ -23,12 +23,17 @@
 #include "audio_encoder.h"
 #include "audio_lame.h"
 #include "audio_faac.h"
-
+#ifdef HAVE_FFMPEG
+#include "audio_ffmpeg.h"
+#endif
 
 audio_encoder_table_t *audio_encoder_table[] = 
   {
     &lame_audio_encoder_table,
     &faac_audio_encoder_table,
+#ifdef HAVE_FFMPEG
+    &ffmpeg_audio_encoder_table,
+#endif
   };    
 
 const uint32_t audio_encoder_table_size = NUM_ELEMENTS_IN_ARRAY(audio_encoder_table);

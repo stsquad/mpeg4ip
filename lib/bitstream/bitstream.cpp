@@ -134,6 +134,14 @@ int CBitstream::byte_align(void)
     m_chDecBuffer++;
     m_chDecBufferSize -= MIN(m_chDecBufferSize,8);
 #endif
+  } else {
+    // if we are byte aligned, check for 0x7f value - this will indicate
+    // we need to skip those bits
+    uint8_t readval;
+    readval = PeekBits(8);
+    if (readval == 0x7f) {
+      readval = GetBits(8);
+    }
   }
   return (temp);
 }

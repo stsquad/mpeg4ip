@@ -24,11 +24,7 @@
 
 #include "video_encoder.h"
 
-#ifdef HAVE_XVID_H
 #include <xvid.h>
-#else
-#include "../../lib/xvid/xvid.h"
-#endif
 
 class CXvidVideoEncoder : public CVideoEncoder {
 public:
@@ -61,6 +57,11 @@ protected:
 	Timestamp               m_srcFrameTimestamp;
 	XVID_ENC_FRAME 		m_xvidFrame;
 	XVID_ENC_STATS		m_xvidResult;
+//#define WRITE_RAW 1
+#ifdef WRITE_RAW
+	FILE *m_raw_file;
+#endif
+
 };
 
 #endif /* __VIDEO_XVID_H__ */

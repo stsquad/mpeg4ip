@@ -33,13 +33,14 @@ static char* h261SizeNames[] = {
 	"352 x 288 CIF",
 };
 
+#if defined(HAVE_FFMPEG) || defined(HAVE_XVID_H) || defined(HAVE_XVID10)
 static u_int16_t mpeg4SizeWidthValues[] = {
 	128, 176, 320, 352, 352,
-	640, 704, 704, 720, 720, 768
+	640, 704, 720, 704, 720, 768,
 };
 static u_int16_t mpeg4SizeHeightValues[] = {
 	96, 144, 240, 288, 480,
-	480, 480, 576, 480, 576, 576
+	480, 480, 480, 576, 576, 576,
 };
 static  char* mpeg4SizeNames[] = {
 	"128 x 96 SQCIF", 
@@ -49,28 +50,26 @@ static  char* mpeg4SizeNames[] = {
 	"352 x 480 Half D1",
 	"640 x 480 4SIF",
 	"704 x 480 D1",
-	"704 x 576 4CIF",
 	"720 x 480 NTSC CCIR601",
+	"704 x 576 4CIF",
 	"720 x 576 PAL CCIR601",
 	"768 x 576 PAL SQ Pixel"
 }; 
+#endif
 
 #define MPEG4_SIZES (sizeof(mpeg4SizeWidthValues) / sizeof(*mpeg4SizeWidthValues))
 
 const video_encoder_table_t video_encoder_table[] = {
+#if defined(HAVE_XVID_H) || defined(HAVE_XVID10)
   { 
 #ifdef HAVE_XVID_H
     "Mpeg4 - xvid release",
 #else
-#ifdef HAVE_XVID10
     "Mpeg4 - xvid 1.0 release",
-#else
-    "Mpeg4 - xvid mpeg4ip",
-#endif
 #endif
     VIDEO_ENCODING_MPEG4,
     VIDEO_ENCODER_XVID,
-    MPEG4_SIZES - 2, // can't use last 2 sizes
+    MPEG4_SIZES - 3, // can't use last 2 sizes
     MPEG4_SIZES,
     MPEG4_SIZES,
     mpeg4SizeWidthValues,
@@ -83,12 +82,13 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeNames,
     mpeg4SizeNames
   },
+#endif
 #ifdef HAVE_FFMPEG
   { 
     "Mpeg4 - ffmpeg",
     VIDEO_ENCODING_MPEG4,
     VIDEO_ENCODER_FFMPEG,
-    MPEG4_SIZES - 2, // can't use last 2 sizes
+    MPEG4_SIZES - 3, // can't use last 2 sizes
     MPEG4_SIZES,
     MPEG4_SIZES,
     mpeg4SizeWidthValues,
@@ -105,7 +105,7 @@ const video_encoder_table_t video_encoder_table[] = {
     "Mpeg2 - ffmpeg", 
     VIDEO_ENCODING_MPEG2,
     VIDEO_ENCODER_FFMPEG,
-    MPEG4_SIZES - 2,
+    MPEG4_SIZES - 3,
     MPEG4_SIZES,
     MPEG4_SIZES,
     mpeg4SizeWidthValues,

@@ -42,7 +42,7 @@ typedef struct RLTable {
     H263_VLC vlc;            /* decoding only */
 } RLTable;
 
-const UINT16 inter_vlc[103][2] = {
+static const UINT16 inter_vlc[103][2] = {
 { 0x2, 2 },{ 0xf, 4 },{ 0x15, 6 },{ 0x17, 7 },
 { 0x1f, 8 },{ 0x25, 9 },{ 0x24, 9 },{ 0x21, 10 },
 { 0x20, 10 },{ 0x7, 11 },{ 0x6, 11 },{ 0x20, 11 },
@@ -71,7 +71,7 @@ const UINT16 inter_vlc[103][2] = {
 { 0x5e, 12 },{ 0x5f, 12 },{ 0x3, 7 },
 };
 
-const INT8 inter_level[102] = {
+static const INT8 inter_level[102] = {
   1,  2,  3,  4,  5,  6,  7,  8,
   9, 10, 11, 12,  1,  2,  3,  4,
   5,  6,  1,  2,  3,  4,  1,  2,
@@ -87,7 +87,7 @@ const INT8 inter_level[102] = {
   1,  1,  1,  1,  1,  1,
 };
 
-const INT8 inter_run[102] = {
+static const INT8 inter_run[102] = {
   0,  0,  0,  0,  0,  0,  0,  0,
   0,  0,  0,  0,  1,  1,  1,  1,
   1,  1,  2,  2,  2,  2,  3,  3,

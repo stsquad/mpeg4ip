@@ -107,15 +107,16 @@ CSDLVideo::CSDLVideo(int initial_x, int initial_y)
 	m_max_height = DisplayHeight(info.info.x11.display, 
                             DefaultScreen(info.info.x11.display));
         info.info.x11.unlock_func();
+        video_message(LOG_INFO, "Max Window resolution %dx%d\n", m_max_width, m_max_height);
   } else {
       video_message(LOG_ERR, "Failed to get Max resolution foe window system\n");
   }
 #elif defined (WM_WIN)
       m_max_width=GetSystemMetrics(SM_CXSCREEN);
       m_max_height=GetSystemMetrics(SM_CYSCREEN);
+      video_message(LOG_INFO, "Max Window resolution %dx%d\n", m_max_width, m_max_height);
 #endif
   }
-  video_message(LOG_INFO, "Max Window resolution %dx%d\n", m_max_width, m_max_height);
 }
 
 /*

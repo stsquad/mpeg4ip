@@ -276,19 +276,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "xvid_st"=.\lib\xvid\xvid_st.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "xvidenc"=.\SERVER\UTIL\XVIDENC\xvidenc.dsp - Package Owner=<4>
+Project: "mpeg4vol"=.\UTIL\MPEG4VOL\mpeg4vol.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -297,10 +285,10 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name libmissing60
+    Project_Dep_Name libmp4v2_st
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name xvid_st
+    Project_Dep_Name libmissing60
     End Project Dependency
 }}}
 

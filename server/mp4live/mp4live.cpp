@@ -180,7 +180,24 @@ int main(int argc, char** argv)
 	    sdpOnly = true;
 	    break;
 	  case 'v':
-	    fprintf(stderr, "%s version %s\n", argv[0], MPEG4IP_VERSION);
+	    fprintf(stderr, 
+		    "%s version %s %s\n", argv[0], MPEG4IP_VERSION,
+#ifdef HAVE_LINUX_VIDEODEV2_H
+		    "V4L2"
+#else
+		    "V4L"
+#endif
+		    );
+#ifdef HAVE_FFMPEG
+	    fprintf(stderr, "  - with ffmpeg encoder\n");
+#endif
+#ifdef HAVE_XVID_1_0
+	    fprintf(stderr, "  - with XVID 1.0 encoder\n");
+#endif
+#ifdef HAVE_XVID_H
+	    fprintf(stderr, "  - with xvid 0.9.2 encoder\n");
+#endif
+
 	    exit(0);
 	  case '?':
 	  default:

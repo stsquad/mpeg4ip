@@ -8,3 +8,8 @@ libismacryp_la_SOURCES = ismacryplib.c \
 	ismacryplib_priv.h
 
 @ISMACRYP_FLAGS@
+
+EXTRA_DIST = \
+	libismacryp.dsp \
+	libismacryp_st.dsp \
+	README

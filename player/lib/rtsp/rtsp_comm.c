@@ -272,9 +272,11 @@ void rtsp_close_socket (rtsp_client_t *info)
   if (info->server_socket != -1)
     closesocket(info->server_socket);
   info->server_socket = -1;
+#ifdef HAVE_IPv6
   if (info->addr_info != NULL) {
     freeaddrinfo(info->addr_info);
     info->addr_info = NULL;
   }
+#endif
 }
 

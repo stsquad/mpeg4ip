@@ -233,7 +233,7 @@ bool CXvid10VideoEncoder::GetEncodedImage(
 	m_vopBuffer = NULL;
 	m_vopBufferLength = 0;
 
-	return true;
+	return *pBufferLength != 0;
 }
 
 bool CXvid10VideoEncoder::GetReconstructedImage(

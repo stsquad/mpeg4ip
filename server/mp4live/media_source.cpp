@@ -494,12 +494,13 @@ void CMediaSource::ProcessVideoYUVFrame(
   if (m_pConfig->m_videoEncode) {
     uint8_t *frame;
     uint32_t frame_len;
+    bool got_image;
     Timestamp pts, dts;
-    m_videoEncoder->GetEncodedImage(&frame,
-                                    &frame_len,
-				    &dts,
-				    &pts);
-    if (frame_len != 0) {
+    got_image = m_videoEncoder->GetEncodedImage(&frame,
+						&frame_len,
+						&dts,
+						&pts);
+    if (got_image) {
       //error_message("frame len %d time %llu", frame_len, out);
       CMediaFrame* pFrame = new CMediaFrame(
 					    m_videoEncoder->GetFrameType(),

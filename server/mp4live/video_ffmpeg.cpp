@@ -149,6 +149,7 @@ bool CFfmpegVideoEncoder::GetEncodedImage(
 	u_int8_t** ppBuffer, u_int32_t* pBufferLength,
 	Timestamp *dts, Timestamp *pts)
 {
+  bool ret = true;
   *ppBuffer = m_vopBuffer;
   *pBufferLength = m_vopBufferLength;
 
@@ -170,11 +171,12 @@ bool CFfmpegVideoEncoder::GetEncodedImage(
     }
   } else {
     *dts = *pts = 0;
+    ret = false;
   }
   m_vopBuffer = NULL;
   m_vopBufferLength = 0;
   
-  return true;
+  return ret;
 }
 media_free_f CFfmpegVideoEncoder::GetMediaFreeFunction(void)
 {

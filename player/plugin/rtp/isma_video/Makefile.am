@@ -20,3 +20,4 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
+EXTRA_DIST = ismacryp_rtp_video_plugin.dsp

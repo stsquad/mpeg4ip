@@ -64,7 +64,8 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "idct" /I "sys" /I "sys/encoder" /I "sys/decoder" /I "type" /I "tools" /I "tools/entropy" /I "vtc" /I "vtc/include" /I "vtc/main" /I "vtc/pezw" /I "vtc/wavelet" /I "vtc/zte" /I "vtc/ztq" /I "..\..\..\include" /I "vtc/shape" /D "_DEBUG" /D "__PC_COMPILER_" /D "WIN32" /D "_WINDOWS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "_MBC" /D "_CONSOLE" /D "_OBSS_" /D "_VTC_DECODER_" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "idct" /I "sys" /I "sys/encoder" /I "sys/decoder" /I "type" /I "tools" /I "tools/entropy" /I "vtc" /I "vtc/include" /I "vtc/main" /I "vtc/pezw" /I "vtc/wavelet" /I "vtc/zte" /I "vtc/ztq" /I "..\..\..\include" /I "vtc/shape" /D "_DEBUG" /D "__PC_COMPILER_" /D "WIN32" /D "_WINDOWS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "_MBC" /D "_CONSOLE" /D "_OBSS_" /D "_VTC_DECODER_" /YX /FD /c
+# SUBTRACT CPP /Fr
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
 BSC32=bscmake.exe
@@ -687,6 +688,10 @@ SOURCE=.\vtc\zte\ztscanUtil.hpp
 # Begin Source File
 
 SOURCE=.\tools\entropy\bytestrm_file.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\idct\idct.cpp
 # End Source File
 # Begin Source File
 

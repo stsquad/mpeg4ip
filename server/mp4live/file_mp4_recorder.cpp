@@ -85,7 +85,10 @@ void CMp4Recorder::DoStartRecord()
   m_makeIod = true;
   m_makeIsmaCompliant = true;
 
-  m_canRecordRawVideo = false;
+  if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE))
+    m_canRecordRawVideo = false;
+  else 
+    m_canRecordRawVideo = true;
 
   m_prevRawVideoFrame = NULL;
   m_prevEncodedVideoFrame = NULL;
@@ -627,7 +630,8 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
       }
 
       // make sure this frame was captured after the first audio frame
-      if (pFrame->GetTimestamp() < m_rawAudioStartTimestamp) {
+      if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) &&
+	  pFrame->GetTimestamp() < m_rawAudioStartTimestamp) {
         if (pFrame->RemoveReference()) delete pFrame;
         return;
       }

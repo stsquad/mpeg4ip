@@ -11,4 +11,4 @@ INCLUDES = -I$(top_srcdir)/include
 AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 AM_CXXFLAGS = -D_REENTRANT -fexceptions @BILLS_CPPWARNINGS@ 
 
-
+EXTRA_DIST= utils.dsp

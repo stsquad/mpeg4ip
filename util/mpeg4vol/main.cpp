@@ -22,15 +22,15 @@ void CheckMarker (CBitstream *bs)
 
 uint32_t CheckUserData (uint32_t header, CBitstream *bs)
 {
-  char buffer[80];
+  char *buffer;
   uint32_t in_buffer = 0;
-  bool can_print = true;
 
   if (header != 0x000001b2) {
     return header;
   }
   printf("User Data\n  ");
 
+  buffer = (char *)malloc(((bs->bits_remain()  + 7) / 8) + 1);
   bool done = false;
   while (done == false) {
     if (bs->bits_remain() < 8) {
@@ -45,22 +45,18 @@ uint32_t CheckUserData (uint32_t header, CBitstream *bs)
     buffer[in_buffer] = bs->GetBits(8);
     printf("%02x ", buffer[in_buffer]);
     if (!isprint(buffer[in_buffer])) {
-      printf("n ");
-      can_print = false;
+      buffer[in_buffer] = ' ';
     }
     in_buffer++;
-    if (in_buffer > sizeof(buffer)) { 
-      in_buffer = 0;
-      can_print = false;
-    }
   }
   buffer[in_buffer] = '\0';
   printf("\n");
   
-  if (can_print) {
-    printf("  %s\n", buffer);
-  }
-  return bs->GetBits(32);
+  printf("  \"%s\"\n", buffer);
+  free(buffer);
+  if (bs->bits_remain() >= 32)
+    return bs->GetBits(32);
+  return 0;
 }
 void LoadQuantTable (CBitstream *bs) 
 {
@@ -97,7 +93,9 @@ static void decode (uint8_t *vol, uint32_t len)
     } else {
       printf("No Video Object Sequence\n");
     }
-    temp = CheckUserData(temp, bs);
+    do {
+      temp = CheckUserData(temp, bs);
+    } while (temp == 0x000001b2);
     if (temp == 0x000001b5) {
       printf("Visual Object\n");
       temp = bs->GetBits(1);
@@ -128,7 +126,9 @@ static void decode (uint8_t *vol, uint32_t len)
       bs->byte_align();
       temp = bs->GetBits(32);
     }
-    temp = CheckUserData(temp, bs);
+    do {
+      temp = CheckUserData(temp, bs);
+    } while (temp == 0x000001b2);
     if ((temp & 0xfffffff0) == 0x00000100) {
       printf("Video Object - %u\n", temp & 0xf);
       temp = bs->GetBits(32);
@@ -136,7 +136,9 @@ static void decode (uint8_t *vol, uint32_t len)
       printf("No Video Object\n");
     }
       
-    temp = CheckUserData(temp, bs);
+    do {
+      temp = CheckUserData(temp, bs);
+    } while (temp == 0x000001b2);
     if ((temp & 0xfffffff0) != 0x00000120) {
       fprintf(stderr, "illegal start code %08x\n", temp);
       exit(1);
@@ -417,7 +419,9 @@ static void decode (uint8_t *vol, uint32_t len)
     bs->byte_align();
     if (bs->bits_remain() > 32) {
       temp = bs->GetBits(32);
-      temp = CheckUserData(temp, bs);
+      do {
+	temp = CheckUserData(temp, bs);
+      } while (temp == 0x000001b2);
     }
   } catch (...) {
     fprintf(stderr, "bitstream read error\n");
@@ -472,14 +476,19 @@ int main (int argc, char *argv[])
     argv++;
   }
   if (argc > 0) {
+	len = 1;
     while (argc > 0) {
       len += strlen(*argv);
-      allargs = (char *)realloc(allargs, len);
+	  if (allargs == NULL) {
+		  allargs = (char *)malloc(len);
+		  allargs[0] = '\0';
+	  } else 
+         allargs = (char *)realloc(allargs, len);
       strcat(allargs, *argv);
       argv++;
       argc--;
     }
-    if (len & 0x1) {
+    if ((len - 1) & 0x1) {
       fprintf(stderr, "odd length VOL\n");
       exit(1);
     }
@@ -501,7 +510,7 @@ int main (int argc, char *argv[])
     decode(vol, len);
   }
 
-  exit(0);
+  return(0);
 }
     
     

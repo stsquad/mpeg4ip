@@ -32,6 +32,7 @@ EXTRA_DIST =		\
 	README.WinCE	\
 	README-SDL.txt	\
 	WhatsNew	\
+	SDLaudio.dsp    \
 	sdl.m4
 
 # M4 macro file for inclusion with autoconf

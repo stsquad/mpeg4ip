@@ -40,56 +40,16 @@ static uint8_t tohex (char a)
   return (tolower(a) - 'a' + 10);
 }
 
-// Parse the format config passed in.  This is the vo vod header
-// that we need to get width/height/frame rate
-static void parse_vovod (xvid_codec_t *xvid,
-			char *vovod,
-			int ascii,
-			uint32_t len)
+static int look_for_vol (xvid_codec_t *xvid, 
+			 uint8_t *bufptr, 
+			 uint32_t len)
 {
-  uint8_t buffer[255];
-  uint8_t *bufptr;
-  int ret;
-
-  if (ascii == 1) {
-    const char *config = strcasestr(vovod, "config=");
-    if (config == NULL) {
-      return;
-    }
-    config += strlen("config=");
-    const char *end;
-    end = config;
-    while (isxdigit(*end)) end++;
-    if (config == end) {
-      return;
-    }
-    // config string will run from config to end
-    len = end - config;
-    // make sure we have even number of digits to convert to binary
-    if ((len % 2) == 1) 
-      return ;
-    uint8_t *write;
-    write = buffer;
-    // Convert the config= from ascii to binary
-    for (uint32_t ix = 0; ix < len; ix++) {
-      *write = 0;
-      *write = (tohex(*config)) << 4;
-      config++;
-      *write += tohex(*config);
-      config++;
-      write++;
-    }
-    len /= 2;
-    bufptr = buffer;
-  } else {
-    bufptr = (uint8_t *)vovod;
-  }
-
   uint8_t *volptr;
   int vollen;
+  int ret;
   volptr = MP4AV_Mpeg4FindVol(bufptr, len);
   if (volptr == NULL) {
-    return ;
+    return -1 ;
   }
   vollen = len - (volptr - bufptr);
 
@@ -106,13 +66,12 @@ static void parse_vovod (xvid_codec_t *xvid,
 			  &aspect_ratio,
 			  &aspect_ratio_w,
 			  &aspect_ratio_h) == false) {
-    return ;
+    return -1;
   }
 
   xvid_message(LOG_DEBUG, "xvid", "aspect ratio %x %d %d", 
 	       aspect_ratio, aspect_ratio_w, aspect_ratio_h);
   // Get the VO/VOL header.  If we fail, set the bytestream back
-  ret = 0;
 
   xvid_dec_create_t create;
   create.version = XVID_VERSION;
@@ -172,6 +131,10 @@ static void parse_vovod (xvid_codec_t *xvid,
 		      XVID_DEC_DECODE, 
 		      &dec, 
 		      &stats);
+    if (ret < 0) {
+      xvid_message(LOG_NOTICE, "xvidif", "decoded vol ret %d", ret);
+    }
+      
     if (ret < 0 || ret > vollen) {
       vollen = 0;
     } else {
@@ -180,6 +143,52 @@ static void parse_vovod (xvid_codec_t *xvid,
     }
     // we could check for vol changes, etc here, if we wanted.
   } while (vollen > 4 && stats.type == 0);
+  return 0;
+}
+// Parse the format config passed in.  This is the vo vod header
+// that we need to get width/height/frame rate
+static int parse_vovod (xvid_codec_t *xvid,
+			char *vovod,
+			int ascii,
+			uint32_t len)
+{
+  uint8_t buffer[255];
+  uint8_t *bufptr;
+
+  if (ascii == 1) {
+    const char *config = strcasestr(vovod, "config=");
+    if (config == NULL) {
+      return -1;
+    }
+    config += strlen("config=");
+    const char *end;
+    end = config;
+    while (isxdigit(*end)) end++;
+    if (config == end) {
+      return -1;
+    }
+    // config string will run from config to end
+    len = end - config;
+    // make sure we have even number of digits to convert to binary
+    if ((len % 2) == 1) 
+      return -1;
+    uint8_t *write;
+    write = buffer;
+    // Convert the config= from ascii to binary
+    for (uint32_t ix = 0; ix < len; ix++) {
+      *write = 0;
+      *write = (tohex(*config)) << 4;
+      config++;
+      *write += tohex(*config);
+      config++;
+      write++;
+    }
+    len /= 2;
+    bufptr = buffer;
+  } else {
+    bufptr = (uint8_t *)vovod;
+  }
+  return look_for_vol(xvid, bufptr, len);
 }
 
 static codec_data_t *xvid_create (const char *compressor, 
@@ -205,12 +214,18 @@ static codec_data_t *xvid_create (const char *compressor,
   gbl_init.cpu_flags = 0;
   xvid_global(NULL, 0, &gbl_init, NULL);
 
+  xvid->m_decodeState = XVID_STATE_VO_SEARCH;
   if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
     // See if we can decode a passed in vovod header
-    parse_vovod(xvid, media_fmt->fmt_param, 1, 0);
+    if (parse_vovod(xvid, media_fmt->fmt_param, 1, 0) == 0) {
+      xvid->m_decodeState = XVID_STATE_WAIT_I;
+    }
   } else if (userdata != NULL) {
-    parse_vovod(xvid, (char *)userdata, 0, ud_size);
+    if (parse_vovod(xvid, (char *)userdata, 0, ud_size) == 0) {
+      xvid->m_decodeState = XVID_STATE_WAIT_I;
+    }
   } 
+
   xvid->m_vinfo = vinfo;
 
   xvid->m_num_wait_i = 0;
@@ -297,6 +312,13 @@ static int xvid_decode (codec_data_t *ptr,
   xvid_message(LOG_DEBUG, "xvidif", "%u at %llu", 
 	       blen, ts);
 #endif
+  if (xvid->m_decodeState == XVID_STATE_VO_SEARCH) {
+    ret = look_for_vol(xvid, buffer, buflen);
+    if (ret < 0) {
+      return buflen;
+    }
+    xvid->m_decodeState = XVID_STATE_NORMAL;
+  }
   xvid_dec_frame_t dec;
   xvid_dec_stats_t stats;
   do {

@@ -33,4 +33,4 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
-EXTRA_DIST = isma_audio_rtp_plugin.dsp
+EXTRA_DIST = isma_audio_rtp_plugin.dsp ismacryp_rtp_audio.dsp

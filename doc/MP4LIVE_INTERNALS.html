@@ -1,0 +1,259 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<HTML lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<title>MP4LIVE INTERNALS</title></head>
+<body id="top">
+<h1>MP4LIVE INTERNALS</h1>
+<p>
+October, 2003
+<P>
+<P>
+<b>
+<a href="#mp4live">MP4LIVE INTERNALS</a><br>
+<a href="#prog">Program Control</a><br>
+<a href="#flow">Media Flows and Nodes</a><br>
+<a href="#source">Media Sources</a><br>
+<a href="#codec">Media Codecs</a><br>
+<a href="#frame">Media Frames</a><br>
+<a href="#sink">Media Sinks</a><br>
+<a href="#lsource">List of Media Sources</a><br>
+<a href="#lcodec">List of Codecs</a><br>
+<a href="#lsink">List of Media Sinks</a><br>
+</b>
+
+<P>
+<div id="mp4live">
+<h2>MP4LIVE INTERNALS</h2>
+</div>
+<P>
+This document provides an overview of the internals of the mp4live 
+application for those who intend to modify mp4live. See the <a href="m4rm.html">README</a> for information on using mp4live. 
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="prog">
+<h2>Program Control</h2>
+</div>
+<P>
+The control flow of mp4live is easiest to understand if one first considers
+the no GUI (--headless) mode of operation. In this mode, mp4live reads 
+a configuration file, and then creates a "media flow" which will use
+this configuration. The media flow is started which causes the appropriate
+threads of execution to be started. The main program thread then sleeps
+for the desired duration, and upon awaking tells the media flow to stop.
+Program execution then ends.
+<P>
+When the mp4live GUI is active the main program thread runs the GUI code.
+In this case the GUI actions cause configuration information to be changed,
+and the media flow to be started and stopped.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="flow">
+<h2>Media Flows and Nodes</h2>
+</div>
+<P>
+The "media flow" (media_flow.h) is the top level concept that organizes 
+the processing activities of mp4live. A media flow is a collection of 
+media nodes (media_node.h), with forwarding rules between the nodes. Each 
+media node is a thread within the mp4live process. Each thread has
+a message queue which can be used to control the threads. Currently, messages
+are typically only used for starting and stopping the threads, and notifying
+media sinks when new media frames from the media sources have become available. 
+Other coordination between threads can be achieved via the shared configuration
+information data.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="source">
+<h2>Media Sources</h2>
+</div>
+<P>
+A "media source" (media_source.h) is a media node that acquires raw media
+frames and processes them according to the target output(s) of the current flow
+configuration. Currently, a media source may produce either audio, video,
+or both. It may produce multiple media frames for an input frame. For
+example, a video source may generate a reconstructed YUV video frame, 
+and an MPEG-4 encoded video frame.
+<P>
+Since much of the media processing is shared regardless of the details of
+media acquisition, the base media source class (media_source.cpp) contains
+the central code to encode media and maintain timing and synchronization.
+The generic media processing is somewhat over-engineered at present to 
+allow for transcoding scenarios where the source is pre-existing encoded 
+media instead of a capture device that can be configured to match the 
+desired output.
+<P>
+The generic process for audio includes:
+<ul>
+<li> Reframing of PCM audio samples, e.g. MP3 frames containing 1152 PCM
+samples needing to reframed to AAC which uses 1024 PCM samples
+<li> Resampling of PCM samples to reduce sampling frequency, and hence bitrate
+<li> Channel adaptation, e.g. stereo to mono.
+<li> Encoding via media codec
+<li> Forwarding of raw and/or encoded audio frames
+</ul>
+<P>
+The generic process for video includes:
+<ul>
+<li> Colorspace conversion from RGB24 to YUV12. Some capture devices can't
+ deliver YUV, just RGB. In particular webcams seem to fall into this class.
+<li> Frame rate adaption, e.g. down-sampling from 29.97 fps to 24 fps
+<li> Image resizing, e.g. converting from 352x288 to 320x240
+<li> Image cropping, i.e. converting from 4:3 to 16:9 aspect ratio
+<li> Encoding via media codec
+<li> Forwarding of raw and/or encoded video frames
+</ul>
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="codec">
+<h2>Media Codecs</h2>
+</div>
+<P>
+There are two defined types of media codecs (encoders), audio and video.
+These are defined in audio_encoder.h and video_encoder.h as abstract classes
+that provide simple generalized interfaces to the encoder libraries.
+The media codec classes are used by the media sources to invoke the media
+encoders to transform raw, uncompressed media into encoded media.
+<P>
+Each supported media codec derives a class from the appropriate abstract
+class, and provides code to map the generic interface to that provided by
+the codec library.
+<P>
+Each encoder type also has a number of calls to set various variables for
+rtp transmission or saving to an mp4 file.  These are also defined in
+audio_encoder.h and video_encoder.h
+<p>
+Encoders can be added dynamically by adding a new video encoder class, and 
+adding to the video_encoder_tables.cpp, or adding a new audio encoder 
+class and adding to the audio_encoder_tables.cpp.  You will also want to add
+the correct hooks to each routine in audio_encoder.cpp and video_encoder.cpp.
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="frame">
+<h2>Media Frames</h2>
+</div>
+<P>
+
+The output(s) of a media source is a "media frame" (media_frame.h). This is a
+reference counted structure that contains: a pointer to malloc'ed media data,
+the media data length, the media type, the timestamp of the media frame, the
+media frame duration (used in audio only), and the timescale of the media frame duration (ticks
+per second).  If creating your own source, it is imperative to get a synchronized
+timestamp between sources.
+<P>
+A media source constructs one or more "media frames" during its processing for
+each acquired media frame. Each one of these output media frames is sent in
+a message to all the registered sinks of the source. Note that if there are
+N sinks, N messages are created that all point to 1 media frame, i.e. only
+1 copy of the media data exists. The reference count on the media frame
+ensures that as each media sink "frees" the media frame the reference count
+is decremented. When the media frame reference count reaches 0, the media
+frame data is free'ed and the media frame is destroyed. 
+
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="sink">
+<h2>Media Sinks</h2>
+</div>
+<P>
+
+A "media sink" (media_sink.h) is a media node that receives media frames
+from a media source, and delivers them to a destination device such as a
+file or network socket. To date media sinks do very little processing of
+the received media frames. They exist so that there are independent threads
+that can buffer media frames and block on writes to destination devices.
+I.e. it would be very bad if the media sources couldn't keep up with the
+capture devices which in general can't be "paused" without dropping media.
+Note that while a media sink is blocked on a write to a destination device,
+memory is being consumed as newly processed media frames pile up in its
+receive queue. If the media sink can't catch up with the real-time media 
+flow eventually, then memory exhaustion will occur. Let the developer beware! 
+This is a very real concern if you are planning on adding a sink that will
+use TCP to a remote system as the destination device. A write timeout should
+be used to avert an ugly program exit.
+<P>
+Note currently, a registered sink receives all the outputted types of media 
+frame from a media source. The media sink is expected to check the type of the
+received media frame, and reject (free) any types that it does not want. 
+
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="lsource">
+<h2>List of Media Sources</h2>
+</div>
+<P>
+<table summary="media source list">
+<tr><td valign="top">V4L</td><td>video_v4l_source.cpp<br>
+	Acquires YUV12 images from a V4L (Video For Linux) device
+</td></tr>
+<tr><td valign="top">V4L2</td><td>video_v4l2_source.cpp<br>
+	Acquires YUV12 images from a V4L2 (Video For Linux) device (recommended)
+</td></tr>
+<tr><td valign="top">OSS</td><td>audio_oss_source.cpp<br>
+	Acquires PCM16 audio samples from an OSS (Open Sound System) device
+</td></tr>
+</table>
+
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="lcodec">
+<h2>List of Codecs</h2>
+</div>
+<P>
+Lame -&gt; MP3 - audio_lame.cpp, installed from lame version 3.92 or later
+<P>
+FAAC -&gt; AAC - audio_faac.cpp, installed from faac version 1.21 or later
+<P>
+Xvid -&gt; MPEG4 - video_xvid.cpp, mpeg4ip/lib/xvid, or from xvidcode 0.92 or later
+<P>
+Xvid 1.0 -&gt; MPEG4 - video_xvid10.cpp, from xvidcode 1.0RC3 or later
+<P>
+ffmpeg-&gt; MPEG4 - video_ffmpeg.cpp, installed from ffmpeg version 0.4.7 or later (see main README for installation instructions).
+<P>
+<a href="#top">Back to top</a>
+<P>
+<div id="lsink">
+<h2>List of Media Sinks</h2>
+</div>
+<P>
+<table summary="media sinks">
+
+<tr><td valign="top">MP4</td><td>file_mp4_recorder.cpp<br>
+	Writes media frames to an mp4 file
+</td></tr>
+<tr><td valign="top">RTP</td><td>rtp_transmitter.cpp<br>
+	Transmits media frames via RTP/UDP/IP<br>
+	Implements media specific RTP payloads as defined in IETF RFCs
+        <P>
+	An adjunct to the RTP transmitter is the SDP file writer (sdp_file.cpp)
+	which constructs an SDP file that can be used to tune into the RTP streams
+</td></tr>
+<tr><td valign="top">SDL Previewer</td><td>video_sdl_preview.cpp<br>
+	Display video frames to a local video display <br>
+	via the SDL multi-platform library
+</td></tr>
+
+<tr><td valign="top">Raw Sink</td><td>file_raw_sink.cpp <br>
+	Writes raw media frames (YUV12 and PCM16) to a local named pipe<br>
+	This enables sharing of the capture devices between mp4live and another
+	application.
+</td></tr>
+</table>
+<P>
+<a href="#top">Back to top</a>
+<P>
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
+
+
+</body>
+</html>

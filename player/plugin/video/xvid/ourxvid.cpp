@@ -27,19 +27,10 @@
 #include <mp4util/mpeg4_sdp.h>
 #include <gnu/strcasestr.h>
 #include <mp4v2/mp4.h>
-#ifndef HAVE_XVID_H
-#include "../../../../lib/xvid/xvid.h"
-#else
 #include <xvid.h>
-#endif
 #include <mp4av/mp4av.h>
 
 #define xvid_message (xvid->m_vft->log_msg)
-#ifndef HAVE_XVID_H
-static SConfigVariable MyConfigVariables[] = {
-  CONFIG_BOOL(CONFIG_USE_XVID, "UseOldXvid", false),
-};
-#endif
 
 // Convert a hex character to it's decimal value.
 static uint8_t tohex (char a)
@@ -47,6 +38,97 @@ static uint8_t tohex (char a)
   if (isdigit(a))
     return (a - '0');
   return (tolower(a) - 'a' + 10);
+}
+static int look_and_parse_vol (xvid_codec_t *xvid,
+			       uint8_t *bufptr,
+			       uint32_t len)
+{
+  uint8_t *volptr;
+  uint32_t vollen;
+  int ret;
+  volptr = MP4AV_Mpeg4FindVol(bufptr, len);
+  if (volptr == NULL) {
+    return -1;
+  }
+  vollen = len - (volptr - bufptr);
+
+  uint8_t timeBits;
+  uint16_t timeTicks, dur, width, height;
+  uint8_t aspect_ratio, aspect_ratio_w, aspect_ratio_h;
+  if (MP4AV_Mpeg4ParseVol(volptr, 
+			  vollen, 
+			  &timeBits, 
+			  &timeTicks,
+			  &dur,
+			  &width,
+			  &height,
+			  &aspect_ratio,
+			  &aspect_ratio_w,
+			  &aspect_ratio_h) == false) {
+    return -1;
+  }
+
+  xvid_message(LOG_DEBUG, "xvid", "aspect ratio %x %d %d", 
+	       aspect_ratio, aspect_ratio_w, aspect_ratio_h);
+  // Get the VO/VOL header.  If we fail, set the bytestream back
+  ret = 0;
+  XVID_DEC_PARAM param;
+  param.width = width;
+  param.height = height;
+
+  ret = xvid_decore(NULL, XVID_DEC_CREATE,
+		    &param, NULL);
+  if (ret != XVID_ERR_OK) {
+    return -1;
+  }
+  double ar = 0.0;
+  switch (aspect_ratio) {
+  default:
+    aspect_ratio_h = 0;
+    break; 
+  case 2:
+    aspect_ratio_w = 12;
+    aspect_ratio_h = 11;
+    break;
+  case 3:
+    aspect_ratio_w = 10;
+    aspect_ratio_h = 11;
+    break;
+  case 4:
+    aspect_ratio_w = 16;
+    aspect_ratio_h = 11;
+    break;
+  case 5:
+    aspect_ratio_w = 40;
+    aspect_ratio_h = 33;
+    break;
+  case 0xf:
+    break;
+  }
+  if (aspect_ratio_h != 0) {
+    ar = (double)aspect_ratio_w;
+    ar *= (double) param.width;
+    ar /= (double)aspect_ratio_h;
+    ar /= (double)param.height;
+  }
+  xvid->m_xvid_handle = param.handle;
+  xvid->m_vft->video_configure(xvid->m_ifptr, 
+			       param.width,
+			       param.height,
+			       VIDEO_FORMAT_YUV,
+			       ar);
+  // we need to then run the VOL through the decoder.
+  XVID_DEC_FRAME frame;
+  XVID_DEC_PICTURE decpict;
+
+  frame.bitstream = (void *)volptr;
+  frame.length = vollen;
+  frame.colorspace = XVID_CSP_USER;
+  frame.image = &decpict;
+  ret = xvid_decore(xvid->m_xvid_handle, XVID_DEC_DECODE, &frame, NULL);
+  xvid_message(LOG_NOTICE, "xvidif", "decoded vol ret %d", ret);
+  
+  return ret == XVID_ERR_OK ? 0 : -1;
 }
 
 // Parse the format config passed in.  This is the vo vod header
@@ -58,7 +140,6 @@ static int parse_vovod (xvid_codec_t *xvid,
 {
   uint8_t buffer[255];
   uint8_t *bufptr;
-  int ret;
 
   if (ascii == 1) {
     const char *config = strcasestr(vovod, "config=");
@@ -93,87 +174,7 @@ static int parse_vovod (xvid_codec_t *xvid,
   } else {
     bufptr = (uint8_t *)vovod;
   }
-
-  uint8_t *volptr;
-  uint32_t vollen;
-  volptr = MP4AV_Mpeg4FindVol(bufptr, len);
-  if (volptr == NULL) {
-    return 0;
-  }
-  vollen = len - (volptr - bufptr);
-
-  uint8_t timeBits;
-  uint16_t timeTicks, dur, width, height;
-  uint8_t aspect_ratio, aspect_ratio_w, aspect_ratio_h;
-  if (MP4AV_Mpeg4ParseVol(volptr, 
-			  vollen, 
-			  &timeBits, 
-			  &timeTicks,
-			  &dur,
-			  &width,
-			  &height,
-			  &aspect_ratio,
-			  &aspect_ratio_w,
-			  &aspect_ratio_h) == false) {
-    return 0;
-  }
-
-  xvid_message(LOG_DEBUG, "xvid", "aspect ratio %x %d %d", 
-	       aspect_ratio, aspect_ratio_w, aspect_ratio_h);
-  // Get the VO/VOL header.  If we fail, set the bytestream back
-  ret = 0;
-  XVID_DEC_PARAM param;
-  param.width = width;
-  param.height = height;
-
-  ret = xvid_decore(NULL, XVID_DEC_CREATE,
-		    &param, NULL);
-  if (ret == XVID_ERR_OK) {
-    double ar = 0.0;
-    switch (aspect_ratio) {
-    default:
-      aspect_ratio_h = 0;
-      break; 
-    case 2:
-      aspect_ratio_w = 12;
-      aspect_ratio_h = 11;
-      break;
-    case 3:
-      aspect_ratio_w = 10;
-      aspect_ratio_h = 11;
-      break;
-    case 4:
-      aspect_ratio_w = 16;
-      aspect_ratio_h = 11;
-      break;
-    case 5:
-      aspect_ratio_w = 40;
-      aspect_ratio_h = 33;
-      break;
-    case 0xf:
-      break;
-    }
-    if (aspect_ratio_h != 0) {
-      ar = (double)aspect_ratio_w;
-      ar *= (double) param.width;
-      ar /= (double)aspect_ratio_h;
-      ar /= (double)param.height;
-    }
-    xvid->m_xvid_handle = param.handle;
-    xvid->m_vft->video_configure(xvid->m_ifptr, 
-				 param.width,
-				 param.height,
-				 VIDEO_FORMAT_YUV,
-				 ar);
-  }
-  // we need to then run the VOL through the decoder.
-  XVID_DEC_FRAME frame;
-  frame.bitstream = (void *)volptr;
-  frame.length = vollen;
-  frame.colorspace = XVID_CSP_USER;
-  xvid_decore(xvid->m_xvid_handle, XVID_DEC_DECODE, &frame, NULL);
-  
-  return ret;
+  return look_and_parse_vol(xvid, bufptr, len);
 }
 
 static codec_data_t *xvid_create (const char *compressor, 
@@ -201,11 +202,11 @@ static codec_data_t *xvid_create (const char *compressor,
   xvid->m_decodeState = XVID_STATE_VO_SEARCH;
   if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
     // See if we can decode a passed in vovod header
-    if (parse_vovod(xvid, media_fmt->fmt_param, 1, 0) == XVID_ERR_OK) {
+    if (parse_vovod(xvid, media_fmt->fmt_param, 1, 0) == 0) {
       xvid->m_decodeState = XVID_STATE_WAIT_I;
     }
   } else if (userdata != NULL) {
-    if (parse_vovod(xvid, (char *)userdata, 0, ud_size) == XVID_ERR_OK) {
+    if (parse_vovod(xvid, (char *)userdata, 0, ud_size) == 0) {
       xvid->m_decodeState = XVID_STATE_WAIT_I;
     }
   } 
@@ -305,6 +306,13 @@ static int xvid_decode (codec_data_t *ptr,
 
   
   switch (xvid->m_decodeState) {
+  case XVID_STATE_VO_SEARCH:
+    ret = look_and_parse_vol(xvid, buffer, buflen);
+    if (ret < 0) {
+      return buflen;
+    }
+    xvid->m_decodeState = XVID_STATE_NORMAL;
+    break;
   case XVID_STATE_WAIT_I:
     do_wait_i = 1;
     break;
@@ -370,11 +378,7 @@ static int xvid_codec_check (lib_message_func_t message,
 			     CConfigSet *pConfig)
 {
   int retval;
-#ifndef HAVE_XVID_H
-  retval = pConfig->GetBoolValue(CONFIG_USE_XVID) ? 255 : 3;
-#else
   retval = 3;
-#endif
   if (compressor != NULL && 
       (strcasecmp(compressor, "MP4 FILE") == 0)) {
     if ((type == MP4_MPEG4_VIDEO_TYPE) &&
@@ -436,25 +440,6 @@ message(LOG_ERR, "xvid", "indicated simple tools in xvid");
   return -1;
 }
 
-#ifndef HAVE_XVID_H
-VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("xvid", 
-				 xvid_create,
-				 xvid_do_pause,
-				 xvid_decode,
-				 NULL,
-				 xvid_close,
-				 xvid_codec_check,
-				 xvid_frame_is_sync,
-				 xvid_file_check,
-				 xvid_file_next_frame,
-				 xvid_file_used_for_frame,
-				 xvid_file_seek_to,
-				 xvid_skip_frame,
-				 xvid_file_eof,
-				 MyConfigVariables,
-				 sizeof(MyConfigVariables) /
-				 sizeof(*MyConfigVariables));
-#else
 VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("xvid", 
 				 xvid_create,
 				 xvid_do_pause,
@@ -471,4 +456,3 @@ VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("xvid",
 				 xvid_file_eof,
 				 NULL,
 				 0);
-#endif

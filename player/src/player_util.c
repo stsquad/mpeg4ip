@@ -79,7 +79,13 @@ void player_error_message (const char *fmt, ...)
   gettimeofday(&thistime, NULL);
   // To add date, add %a %b %d to strftime
   secs = thistime.tv_sec;
-  strftime(buffer, sizeof(buffer), "%T", localtime(&secs));
+  strftime(buffer, sizeof(buffer), 
+#ifdef _WIN32
+	  "%H:%M:%S",
+#else
+	  "%T",
+#endif
+	  localtime(&secs));
   printf("%s.%03lu-my_player-%d: ", buffer,
 	 (unsigned long)thistime.tv_usec / 1000, LOG_ERR);
   va_start(ap, fmt);
@@ -113,7 +119,13 @@ void player_debug_message (const char *fmt, ...)
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
   // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%T", localtime(&secs));
+  strftime(buffer, sizeof(buffer), 
+#ifdef _WIN32
+	  "%H:%M:%S",
+#else
+	  "%T",
+#endif
+	  localtime(&secs));
   printf("%s.%03lu-my_player-%d: ",
 	 buffer, (unsigned long)thistime.tv_usec / 1000, LOG_DEBUG);
   va_start(ap, fmt);

@@ -31,6 +31,9 @@
 #ifdef ADD_FAAC_ENCODER
 #include "audio_faac.h"
 #endif
+#ifdef HAVE_FFMPEG
+#include "audio_ffmpeg.h"
+#endif
 
 CAudioEncoder* AudioEncoderBaseCreate(const char* encoderName)
 {
@@ -46,6 +49,12 @@ CAudioEncoder* AudioEncoderBaseCreate(const char* encoderName)
 		return new CLameAudioEncoder();
 #else
 		error_message("lame encoder not available in this build");
+#endif
+	} else if (strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG) == 0) {
+#ifdef HAVE_FFMPEG
+	  return new CFfmpegAudioEncoder();
+#else
+	  error_message("ffmpeg audio encoder not available in this build");
 #endif
 	} else {
                 error_message("unknown audio encoder (%s) specified",encoderName);
@@ -77,6 +86,18 @@ MediaType get_base_audio_mp4_fileinfo (CLiveConfig *pConfig,
   } else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
 #ifdef ADD_LAME_ENCODER
     return lame_mp4_fileinfo(pConfig, mpeg4,
+			     isma_compliant, 
+			     audioProfile, 
+			     audioConfig,
+			     audioConfigLen,
+			     mp4_audio_type);
+#else
+    return UNDEFINEDFRAME;
+#endif
+
+  } else if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
+#ifdef HAVE_FFMPEG
+    return ffmpeg_mp4_fileinfo(pConfig, mpeg4,
 			     isma_compliant, 
 			     audioProfile, 
 			     audioConfig,
@@ -118,6 +139,17 @@ media_desc_t *create_base_audio_sdp (CLiveConfig *pConfig,
 				 audioProfile, 
 				 audioConfig,
 				 audioConfigLen);
+#else
+    return NULL;
+#endif
+
+  } else if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
+#ifdef HAVE_FFMPEG
+    return ffmpeg_create_audio_sdp(pConfig, mpeg4,
+				   isma_compliant, 
+				   audioProfile, 
+				   audioConfig,
+				   audioConfigLen);
 #else
     return NULL;
 #endif
@@ -190,6 +222,21 @@ bool get_base_audio_rtp_info (CLiveConfig *pConfig,
 				   audio_set_header,
 				   audio_set_jumbo,
 				   ud);
+#else
+    return false;
+#endif
+  } else if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
+#ifdef HAVE_FFMPEG
+    return ffmpeg_get_audio_rtp_info(pConfig,
+				     audioFrameType,
+				     audioTimeScale,
+				     audioPayloadNumber,
+				     audioPayloadBytesPerPacket,
+				     audioPayloadBytesPerFrame,
+				     audioQueueMaxCount,
+				     audio_set_header,
+				     audio_set_jumbo,
+				     ud);
 #else
     return false;
 #endif

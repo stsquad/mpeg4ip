@@ -57,14 +57,11 @@ if test $target_system = "Linux"; then
     fi
 
     have_faac=no
-    faac >/dev/null 2>testfaac
-    have_faac=`sh util/testfaac.sh testfaac`
-    rm -f testfaac
-
-    if test $have_faac = "no"; then
+    if which faac >/dev/null 2>/dev/null; then
+	have_faac=yes
+    else
 	have_lame=no
     fi
-
 
     if test $have_lame = "no"; then
 	disabled_mp4live=no
@@ -80,7 +77,7 @@ if test $target_system = "Linux"; then
 	  shift
 	done
 	if test $disabled_mp4live = no; then
-	    echo "Error - we cannot detect a valid version of lame and faac and you are trying"
+	    echo "Error - we cannot detect a valid version of lame and/or faac and you are trying"
 	    echo "to build mpeg4ip with mp4live."
 	    echo "To remedy this, either reexecute this program with either the"
 	    echo "--disable-mp4live or --disable-server options -OR-"

@@ -239,7 +239,7 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
 
      if ( !strncmp(kms_data, temp, strlen(KMS_DATA_AUDIOKEY_STR)) ) {
        for (i=0;i<AES_KEY_SALT_LEN;i++) {
-          fscanf(fp, "%x", &(sp->aes_overlay[i]));
+          fscanf(fp, "%x", &(sp->kk.aes_overlay[i]));
        }
        foundKey = TRUE;
        break;
@@ -275,7 +275,7 @@ static ismacryp_rc_t initSessionData (ismacryp_session_id_t session,
   }
 
   // Init cipher.
-  rc=aes_icm_context_init(sp->cp->state, sp->aes_overlay);
+  rc=aes_icm_context_init(sp->cp->state, sp->kk.aes_overlay);
   if ( rc != err_status_ok ) {
       fprintf(stdout," - init cipher for session %d FAILED  rc = %d\n", session,
                                      rc );
