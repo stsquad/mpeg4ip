@@ -30,6 +30,7 @@
 #include "mpeg3_file.h"
 #include "mpeg3_bytestream.h"
 #include "codec_plugin_private.h"
+#include "our_config_file.h"
 
 static void close_mpeg3_file (void *data)
 {
@@ -56,7 +57,8 @@ static int create_mpeg3_video (video_query_t *vq,
 				 -1,
 				 -1,
 				 NULL,
-				 0);
+				 0,
+				 &config);
   if (plugin == NULL) {
     snprintf(errmsg, errlen, "Can't find plugin for mpeg video");
     return 0;
@@ -127,7 +129,8 @@ static int create_mpeg3_audio (audio_query_t * aq,
 				 aq->type,
 				 -1,
 				 NULL,
-				 0);
+				 0,
+				 &config);
   if (plugin == NULL) {
     snprintf(errmsg, errlen, "Can't find plugin for mpeg audio format %s",
 	     mpeg2ps_get_audio_stream_name(afile, aq->track_id));
@@ -212,7 +215,8 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
 				   -1,
 				   -1,
 				   NULL,
-				   0);
+				   0,
+				   &config);
     if (plugin != NULL) video_cnt = video_streams;
   }
 
@@ -223,7 +227,8 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
 				   mpeg2ps_get_audio_stream_type(file, ix),
 				   -1,
 				   NULL,
-				   0);
+				   0,
+				   &config);
     if (plugin != NULL) audio_cnt++;
   }
     
@@ -266,7 +271,8 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
 				     mpeg2ps_get_audio_stream_type(file, ix),
 				     -1,
 				     NULL,
-				     0);
+				     0,
+				     &config);
       if (plugin != NULL) {
 	aq[audio_offset].track_id = ix;
 	aq[audio_offset].stream_type = STREAM_TYPE_MPEG_FILE;

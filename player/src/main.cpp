@@ -362,7 +362,7 @@ int main (int argc, char **argv)
   }
   
   config.SetDefaultFileName(buffer);
-  initialize_plugins();
+  initialize_plugins(&config);
   config.InitializeIndexes();
   opterr = 0;
   while (true) {

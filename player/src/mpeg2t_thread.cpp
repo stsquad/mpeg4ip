@@ -598,7 +598,8 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
 				     vq[ix].type,
 				     vq[ix].profile,
 				     vq[ix].config, 
-				     vq[ix].config_len);
+				     vq[ix].config_len,
+				     &config);
 
       int ret = mptr->create_video_plugin(plugin, 
 					  STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
@@ -696,7 +697,8 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
 				     aq[ix].type,
 				     aq[ix].profile,
 				     aq[ix].config, 
-				     aq[ix].config_len);
+				     aq[ix].config_len,
+				     &config);
 
       int ret = mptr->create_audio_plugin(plugin, 
 					  STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
@@ -987,7 +989,8 @@ void mpeg2t_check_streams (video_query_t **pvq,
 					 es_pid->stream_type,
 					 -1,
 					 es_pid->es_data,
-					 es_pid->es_info_len);
+					 es_pid->es_info_len,
+					 &config);
 	  if (plugin == NULL) {
 	    snprintf(errmsg, errlen, 
 		     "Can't find video plugin for stream type %d",
@@ -1029,7 +1032,8 @@ void mpeg2t_check_streams (video_query_t **pvq,
 					 es_pid->stream_type,
 					 -1,
 					 es_pid->es_data,
-					 es_pid->es_info_len);
+					 es_pid->es_info_len,
+					 &config);
 	  if (plugin == NULL) {
 	    snprintf(errmsg, errlen, 
 		     "Can't find audio plugin for stream type %d",

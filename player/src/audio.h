@@ -70,6 +70,7 @@ class CAudioSync {
   // Initialization, other APIs
   virtual void set_volume(int volume) = 0;
   virtual void display_status(void) {};
+  uint32_t get_bytes_per_sample_input (void) { return m_bytes_per_sample_input;};
  protected:
   void audio_convert_init(uint32_t size, uint32_t samples) {
     m_convert_buffer = malloc(size);

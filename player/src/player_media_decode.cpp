@@ -32,6 +32,7 @@
 #include "video.h"
 #include "rtp_bytestream.h"
 #include "codec_plugin_private.h"
+#include "our_config_file.h"
 //#define DEBUG_DECODE 1
 //#define DEBUG_DECODE_MSGS 1
 /*
@@ -163,7 +164,8 @@ int CPlayerMedia::decode_thread (void)
 					   -1,
 					   -1,
 					   m_user_data,
-					   m_user_data_size);
+					   m_user_data_size,
+					   &config);
 	  if (m_plugin != NULL) {
 	    m_plugin_data = (m_plugin->vc_create)(STREAM_TYPE_RTP,
 						  NULL, // must figure from sdp
@@ -189,7 +191,8 @@ int CPlayerMedia::decode_thread (void)
 					   -1, 
 					   -1, 
 					   m_user_data,
-					   m_user_data_size);
+					   m_user_data_size,
+					   &config);
 	  if (m_plugin != NULL) {
 	    m_plugin_data = (m_plugin->ac_create)(STREAM_TYPE_RTP,
 						  NULL, 

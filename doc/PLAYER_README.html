@@ -85,6 +85,9 @@ Here is the current list by categories:
 <tr align=center>
 <td>Looped</td><td>Boolean</td><td>0</td><td>yes</td><td>loop session</td>
 </tr>
+<tr align=center>
+<td>LogFile</td><td>String</td><td>none</td><td>yes</td><td>File to save console output</td>
+</tr>
 <tr><td colspan=5 align=center><b>Audio Knobs</b></tr>
 <tr>
   <th>Name</th><th>Type</th><th>Default</th><th>Gui</th><th>Does</th>
@@ -164,6 +167,12 @@ Here is the current list by categories:
 <tr align=center>
 <td>Mpeg2tDebug</td><td>Integer</td><td>LOG_ALERT</td><td>yes</td><td>Sets Mpeg2t library debug level</td>
 </tr>
+<tr align=center>
+<td>Mpeg2psDebug</td><td>Integer</td><td>LOG_ALERT</td><td>yes</td><td>Sets Mpeg2ps library debug level</td>
+</tr>
+<tr align=center>
+<td>DisplayDebug</td><td>boolean</td><td>0</td><td>yes</td><td>Display status every second (gmp4player only)</td>
+</tr>
 <tr><td colspan=5 align=center><b>Plugin Knobs</b></td></tr>
 <tr>
   <th>Name</th><th>Type</th><th>Default</th><th>Gui</th><th>Does</th>
@@ -171,7 +180,10 @@ Here is the current list by categories:
 <td>Mpeg4IsoOnly</td><td>Boolean</td><td>0</td><td>yes</td><td>Forces ISO decoder over Xvid</td>
 </tr>
 <tr align=center>
-<td>UseMpeg3</td><td>Boolean</td><td>0</td><td>no</td><td>Forces use of libmpeg3 decoder</td>
+<td>UseFFmpeg</td><td>Boolean</td><td>0</td><td>no</td><td>Forces use of FFmpeg video decoder</td>
+</tr>
+<tr align=center>
+<td>UseFFmpegAudio</td><td>Boolean</td><td>0</td><td>no</td><td>Forces use of FFmpeg audio decoder</td>
 </tr>
 </table>
 <P>

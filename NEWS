@@ -16,6 +16,7 @@ xx/xx/04 Version 1.2
     Updated some of UCL RTP library 1.2.16 changes
     Rewrote player audio renderer for long term sync
     Fixes for player rtp base class for long term sync
+    Allow player to handle timestamp discrepancies.
     Removed libmpeg3, added mpeg program stream reader code
     Multi-output mp4live from Cesar Gonzalez
 

@@ -62,14 +62,6 @@ License:    Other, see COPYRIGHT file
 Notes:      Use may require payment of patent royalties
             This code is being used for evaluation and experimentation.
 
-Name:       libmpeg3
-Version:    1.5
-Origin:     http://heroinewarrior.com/libmpeg3.php3
-Authors:    Heroine Virtual 
-Directory:  lib/libmpeg32
-License:    GNU General Public License (GPL), version 2 1991
-Notes:      Use may require payment of patent royalties
-
 Name:       Quicktime for Linux
 Version:    1.2
 Origin:     http://heroinewarrior.com/quicktime.php3 

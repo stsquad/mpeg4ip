@@ -161,8 +161,7 @@ protected:
 	void ProcessAudioFrame(
 		u_int8_t* frameData,
 		u_int32_t frameDataLength,
-		Timestamp frameTimestamp,
-		bool resync);
+		Timestamp frameTimestamp);
 
 	void ResampleAudio(
 		u_int8_t* frameData,

@@ -446,7 +446,8 @@ int CMpeg2tFile::create_video (CPlayerSession *psptr,
 				     vq[ix].type,
 				     vq[ix].profile,
 				     vq[ix].config, 
-				     vq[ix].config_len);
+				     vq[ix].config_len,
+				     &config);
 
       int ret = mptr->create_video_plugin(plugin, 
 					  STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
@@ -532,7 +533,8 @@ int CMpeg2tFile::create_audio (CPlayerSession *psptr,
 				     aq[ix].type,
 				     aq[ix].profile,
 				     aq[ix].config, 
-				     aq[ix].config_len);
+				     aq[ix].config_len,
+				     &config);
 
       int ret = mptr->create_audio_plugin(plugin, 
 					  STREAM_TYPE_MPEG2_TRANSPORT_STREAM,

@@ -29,6 +29,8 @@
 #endif
 
 #include "codec_plugin_private.h"
+#include "mpeg4ip_utils.h"
+#if 0
 #include "player_util.h"
 #include "our_config_file.h"
 #include "player_session.h"
@@ -36,6 +38,7 @@
 #include "our_bytestream_file.h"
 #include "audio.h"
 #include "video.h"
+#endif
 
 #include "rtp_plugin.h"
 /*
@@ -222,7 +225,7 @@ static void close_library (plugin_list_t *p)
  * initialize_plugins
  * Start search for plugins - classify them as audio or video
  */
-void initialize_plugins (void)
+void initialize_plugins (CConfigSet *pConfig)
 {
   codec_plugin_t *cptr;
   rtp_plugin_t *rptr;
@@ -297,8 +300,10 @@ void initialize_plugins (void)
       if (p->codec != NULL) {
 	if (p->codec->c_variable_list != NULL &&
 	    p->codec->c_variable_list_count > 0) {
-	  config.AddConfigVariables(p->codec->c_variable_list,
-				    p->codec->c_variable_list_count);
+	  if (pConfig != NULL) {
+	    pConfig->AddConfigVariables(p->codec->c_variable_list,
+					p->codec->c_variable_list_count);
+	  }
 	}
       }
       p->next_plugin = plugins;
@@ -322,7 +327,8 @@ codec_plugin_t *check_for_audio_codec (const char *stream_type,
 				       int audio_type,
 				       int profile, 
 				       const uint8_t *userdata,
-				       uint32_t userdata_size)
+				       uint32_t userdata_size,
+				       CConfigSet *pConfig)
 {
   plugin_list_t *aptr;
   int best_value = 0;
@@ -343,7 +349,7 @@ codec_plugin_t *check_for_audio_codec (const char *stream_type,
 					     fptr,
 					     userdata,
 					     userdata_size,
-					     &config);
+					     pConfig);
       if (temp > best_value) {
 	best_value = temp;
 	ret = aptr->codec;
@@ -368,7 +374,8 @@ codec_plugin_t *check_for_video_codec (const char *stream_type,
 				       int type,
 				       int profile, 
 				       const uint8_t *userdata,
-				       uint32_t userdata_size)
+				       uint32_t userdata_size,
+				       CConfigSet *pConfig)
 {
   plugin_list_t *vptr;
   int best_value = 0;
@@ -389,7 +396,7 @@ codec_plugin_t *check_for_video_codec (const char *stream_type,
 					     fptr,
 					     userdata,
 					     userdata_size,
-					     &config);
+					     pConfig);
       if (temp > best_value) {
 	best_value = temp;
 	ret = vptr->codec;
@@ -406,7 +413,8 @@ codec_plugin_t *check_for_video_codec (const char *stream_type,
 
 rtp_check_return_t check_for_rtp_plugins (format_list_t *fptr,
 					  uint8_t rtp_payload_type,
-					  rtp_plugin_t **rtp_plugin)
+					  rtp_plugin_t **rtp_plugin,
+					  CConfigSet *pConfig)
 {
   plugin_list_t *r;
   rtp_plugin_t *rptr;
@@ -419,7 +427,7 @@ rtp_check_return_t check_for_rtp_plugins (format_list_t *fptr,
     rptr = r->rtp_plugin;
 
     if (rptr && rptr->rtp_plugin_check != NULL) {
-      ret = (rptr->rtp_plugin_check)(message, fptr, rtp_payload_type, &config);
+      ret = (rptr->rtp_plugin_check)(message, fptr, rtp_payload_type, pConfig);
       if (ret != RTP_PLUGIN_NO_MATCH) {
 	*rtp_plugin = rptr;
 	return ret;
@@ -436,18 +444,14 @@ rtp_check_return_t check_for_rtp_plugins (format_list_t *fptr,
  * goes through list of video codecs to see if "name" has a raw file
  * match
  */
-int video_codec_check_for_raw_file (CPlayerSession *psptr,
-				    const char *name)
+codec_data_t *video_codec_check_for_raw_file (const char *name,
+					      codec_plugin_t **codec,
+					      double *maxtime,
+					      char **desc,
+					      CConfigSet *pConfig)
 {
   plugin_list_t *vptr;
   codec_data_t *cifptr;
-  char *desc[4];
-  double maxtime;
-
-  desc[0] = NULL;
-  desc[1] = NULL;
-  desc[2] = NULL;
-  desc[3] = NULL;
 
   vptr = plugins;
   
@@ -457,39 +461,22 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
 	vptr->codec->c_raw_file_check != NULL) {
       cifptr = vptr->codec->c_raw_file_check(message,
 					     name,
-					     &maxtime,
+					     maxtime,
 					     desc,
-					     &config);
+					     pConfig);
       if (cifptr != NULL) {
+	*codec = vptr->codec;
+#if 0
 	player_debug_message("Found raw file codec %s", vptr->codec->c_name);
-	CPlayerMedia *mptr;
-   
-	/*
-	 * Create the player media, and the bytestream
-	 */
-	mptr = new CPlayerMedia(psptr);
-
-	COurInByteStreamFile *fbyte;
-	fbyte = new COurInByteStreamFile(vptr->codec,
-					 cifptr,
-					 maxtime);
-	mptr->create(fbyte, TRUE);
-	mptr->set_plugin_data(vptr->codec, cifptr, get_video_vft(), NULL);
-
-	for (int ix = 0; ix < 4; ix++) 
-	  if (desc[ix] != NULL) 
-	    psptr->set_session_desc(ix, desc[ix]);
-
-	if (maxtime != 0.0) {
-	  psptr->session_set_seekable(1);
-	}
 
 	return 0;
+#endif
+	return cifptr;
       }
     } 
     vptr = vptr->next_plugin;
   }
-  return -1;
+  return NULL;
 }
 
 /*
@@ -497,18 +484,15 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
  * goes through the list of audio codecs, looking for raw file
  * support
  */
-int audio_codec_check_for_raw_file (CPlayerSession *psptr,
-				    const char *name)
+codec_data_t *audio_codec_check_for_raw_file (const char *name,
+					      codec_plugin_t **codec,
+					      double *maxtime,
+					      char **desc,
+					      CConfigSet *pConfig)
 {
   plugin_list_t *aptr;
   codec_data_t *cifptr;
-  char *desc[4];
-  double maxtime;
 
-  desc[0] = NULL;
-  desc[1] = NULL;
-  desc[2] = NULL;
-  desc[3] = NULL;
 
   aptr = plugins;
   while (aptr != NULL) {
@@ -516,13 +500,16 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
     if (aptr->codec != NULL &&
 	aptr->codec_is_audio &&
 	aptr->codec->c_raw_file_check != NULL) {
-      player_debug_message("Trying raw file codec %s", aptr->codec->c_name);
+      message(LOG_DEBUG, "plugin", 
+	      "Trying raw file codec %s", aptr->codec->c_name);
       cifptr = aptr->codec->c_raw_file_check(message,
 					     name,
-					     &maxtime,
+					     maxtime,
 					     desc,
-					     &config);
+					     pConfig);
       if (cifptr != NULL) {
+	*codec = aptr->codec;
+#if 0
 	player_debug_message("Found raw file codec %s", aptr->codec->c_name);
 	CPlayerMedia *mptr;
       
@@ -544,12 +531,14 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
 	}
 
 	return 0;
+#endif
+	return cifptr;
       }
     }
 					   
     aptr = aptr->next_plugin;
   }
-  return -1;
+  return NULL;
 }
 
 /*

@@ -332,7 +332,8 @@ void CSDLVideo::display_image (uint8_t *y, uint8_t *u, uint8_t *v)
     // when scaling to 200%, don't use SDL stretch blit
     // use a smoothing (averaging) blit instead
     // we only do this for maybe windows - otherwise, let SDL do it.
-#ifdef USE_MMX
+#if 0
+    // sorry - too many problems with this...
     FrameDoublerMmx(y, m_image->pixels[0], 
 		    m_image_w, m_image_h);
     FrameDoublerMmx(v, m_image->pixels[1], 

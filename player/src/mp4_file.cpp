@@ -142,7 +142,8 @@ int CMp4File::create_video(CPlayerSession *psptr,
 				     vq[ix].type,
 				     vq[ix].profile,
 				     vq[ix].config, 
-				     vq[ix].config_len);
+				     vq[ix].config_len,
+				     &config);
 
       int ret = mptr->create_video_plugin(plugin, 
 					  vq[ix].stream_type,
@@ -257,7 +258,8 @@ int CMp4File::create_audio(CPlayerSession *psptr,
 				     aq[ix].type,
 				     aq[ix].profile,
 				     aq[ix].config,
-				     aq[ix].config_len);
+				     aq[ix].config_len,
+				     &config);
 
       ret = mptr->create_audio_plugin(plugin,
 				      STREAM_TYPE_MP4_FILE,
@@ -430,7 +432,8 @@ int CMp4File::create_media (CPlayerSession *psptr,
 				   vq[video_offset].type,
 				   vq[video_offset].profile,
 				   vq[video_offset].config,
-				   vq[video_offset].config_len);
+				   vq[video_offset].config_len,
+				   &config);
     if (plugin == NULL) {
       snprintf(errmsg, errlen, 
 	       "Can't find plugin for video %s type %d, profile %d",
@@ -481,7 +484,8 @@ int CMp4File::create_media (CPlayerSession *psptr,
 				     aq[audio_offset].type,
 				     aq[audio_offset].profile,
 				     aq[audio_offset].config,
-				     aq[audio_offset].config_len);
+				     aq[audio_offset].config_len,
+				     &config);
       if (plugin != NULL) {
 	aq[audio_offset].fptr = NULL;
 	aq[audio_offset].sampling_freq = 

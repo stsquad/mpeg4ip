@@ -1353,7 +1353,7 @@ int main (int argc, char **argv)
     strcat(buffer, "/.gmp4player_rc");
   }
   
-  initialize_plugins();
+  initialize_plugins(&config);
   config.SetDefaultFileName(buffer);
   config.InitializeIndexes();
   opterr = 0;

@@ -405,7 +405,7 @@ void COSSAudioSource::ProcessAudio(void)
 	m_audioOssMaxBufferFrames;
     }
 
-    ProcessAudioFrame(m_pcmFrameBuffer, m_pcmFrameSize, timestamp, false);
+    ProcessAudioFrame(m_pcmFrameBuffer, m_pcmFrameSize, timestamp);
 
   }
 }

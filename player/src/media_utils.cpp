@@ -39,6 +39,7 @@
 #include "mpeg2t.h"
 #include "mpeg2t_file.h"
 #endif
+#include "our_bytestream_file.h"
  /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -179,7 +180,8 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 				      -1,
 				      -1,
 				      NULL,
-				      0);
+				      0,
+				      &config);
 	if (codec == NULL) {
 	  if (only_check_first != 0)
 	    fmt = NULL;
@@ -214,7 +216,8 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 					-1,
 					-1,
 					NULL,
-					0);
+					0,
+					&config);
 	  if (codec == NULL) {
 	    if (only_check_first != 0)
 	      fmt = NULL;
@@ -718,11 +721,58 @@ int parse_name_for_session (CPlayerSession *psptr,
 #endif
   } else {
     // raw files
+    codec_data_t *cdata = NULL;
+    double maxtime;
+    char *desc[4];
+    bool is_video = false;
+    codec_plugin_t *codec;
+    desc[0] = NULL;
+    desc[1] = NULL;
+    desc[2] = NULL;
+    desc[3] = NULL;
+
     if (have_audio_driver) {
-      err = audio_codec_check_for_raw_file(psptr, name);
+      cdata = audio_codec_check_for_raw_file(name,
+					     &codec,
+					     &maxtime, 
+					     desc,
+					     &config);
     }
-    if (err < 0) {
-      err = video_codec_check_for_raw_file(psptr, name);
+    if (cdata == NULL) {
+      cdata = video_codec_check_for_raw_file(name, 
+					     &codec,
+					     &maxtime,
+					     desc,
+					     &config);
+      is_video = true;
+    }
+
+    if (cdata == NULL) {
+      err = -1;
+    } else {
+      CPlayerMedia *mptr;
+      /*
+       * Create the player media, and the bytestream
+       */
+      mptr = new CPlayerMedia(psptr);
+      
+      COurInByteStreamFile *fbyte;
+      fbyte = new COurInByteStreamFile(codec,
+				       cdata,
+				       maxtime);
+      mptr->create(fbyte, is_video);
+      mptr->set_plugin_data(codec, cdata, 
+			    is_video ? get_video_vft() : NULL,
+			    is_video ? NULL : get_audio_vft());
+
+      for (int ix = 0; ix < 4; ix++) 
+	if (desc[ix] != NULL) 
+	  psptr->set_session_desc(ix, desc[ix]);
+      
+      if (maxtime != 0.0) {
+	psptr->session_set_seekable(1);
+      }
+      err = 0;
     }
   }
   

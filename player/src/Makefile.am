@@ -13,14 +13,7 @@ SUFFIXES = .asm
 SUBDIRS = codec osx win_client win_common win_gui
 
 noinst_LTLIBRARIES = libmp4playerutils.la libmp4player.la libmp4syncbase.la \
-	libmp4syncsdl.la
-
-if USE_MMX
-EXTRA_libmp4syncsdl_la_SOURCES = frame_doubler_mmx.asm
-libmp4syncsdl_la_LIBADD = frame_doubler_mmx.lo
-else
-EXTRA_libmp4syncsdl_la_SOURCES = frame_doubler.cpp
-endif
+	libmp4syncsdl.la libmp4decode_plugin.la
 
 libmp4playerutils_la_SOURCES = \
 	our_bytestream.h \
@@ -32,8 +25,13 @@ libmp4playerutils_la_SOURCES = \
 libmp4syncbase_la_SOURCES = \
 	audio.cpp \
 	audio.h \
+	frame_doubler.cpp \
 	video.cpp \
 	video.h 
+
+libmp4decode_plugin_la_SOURCES = \
+	codec_plugin.cpp \
+	codec_plugin_private.h
 
 if HAVE_MAC_OSX
   SDL_AUDIO_SRC = audio_macosx.cpp audio_macosx.h
@@ -63,8 +61,6 @@ libmp4player_la_SOURCES = \
 	avi_bytestream.h \
 	avi_file.cpp \
 	avi_file.h \
-	codec_plugin.cpp \
-	codec_plugin_private.h \
 	ip_port.cpp \
 	ip_port.h \
 	media_utils.cpp \
@@ -144,6 +140,7 @@ AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_D
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"  $(ADD_CFLAGS)
 
 libmp4player_la_LIBADD = \
+	libmp4decode_plugin.la \
 	$(top_builddir)/lib/mpeg2ps/libmpeg2_program.la \
 	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
@@ -184,7 +181,6 @@ EXTRA_DIST = \
 	mp4player60.dsp \
 	player60.dsw \
 	wmp4player60.dsp \
-	frame_doubler.cpp \
 	video_dummy.cpp \
 	video_dummy.h
 

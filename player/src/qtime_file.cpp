@@ -147,7 +147,8 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
 				   type,
 				   profileID,
 				   NULL,
-				   0);
+				   0,
+				   &config);
     if (plugin == NULL) {
       player_debug_message("Couldn't find video codec %s", codec_name);
       continue;
@@ -250,7 +251,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     ret = quicktime_get_mp4_audio_decoder_config(m_qtfile, 0, (unsigned char **)&ud, &udsize);
 
     plugin = check_for_audio_codec(STREAM_TYPE_QT_FILE, codec, NULL, -1, 
-				   -1, ud, udsize);
+				   -1, ud, udsize, &config);
     if (plugin == NULL) {
       player_debug_message("Couldn't find audio codec %s", codec);
       return (0);

@@ -136,13 +136,21 @@ Finally, there is a thread for synchronization of audio and video.
 <p>
 We use the open source package SDL for rendering - it is a multiple platform
 rendering engine for games.  We have modified it slightly to get the 
-audio latency for better synchronization.  
+audio latency for better synchronization. (Actually, we use the standard SDL
+routines, and copy the audio rendering into our own library, which we've added
+our audio latency code).  
 <P>
 The decode plugins will have an interface to a sync class - there are 
 both audio and video sync classes, with different interfaces.  audio.cpp and video.cpp contain 
 the base classes for rendering - video_sdl.cpp and
 audio_sdl.cpp contain the SDL rendering functions.  
 These classes provide buffering for the audio and video.
+<p>
+Audio now has an intermediate base class that we use, located in audio_buffer.cpp and
+audio_buffer.h.  This class will take an create a ring buffer from the decoded
+audio.  It will then allow callbacks, making hardware specific calls to start/stop/
+pause.  It does a bunch more than that, to verify that the audio is being received
+correctly, and will add/subtract samples to match output frequency clock drift.
 <p>
 If someone wanted, they could replace these functions with other rendering engines,
 like we did for audio on Mac OSX.  Look at audio_macosx.cpp for more examples.
@@ -152,7 +160,7 @@ fairly complex state machine when both audio and video is being displayed.
 It works by starting the audio rendering, then using the audio latency to 
 feedback the display time to the sync task for video rendering.  The SDL 
 audio driver uses a callback when it requires more data.  
-<P>
+<p>
 We synchronize the "display" times passed by the bytestream with the time of 
 day from the gettimeofday function.
 <P>

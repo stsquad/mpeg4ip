@@ -65,7 +65,7 @@ int CLoopSource::ThreadMain(void)
 
 void CLoopSource::ProcessFrame(CMediaFrame* pFrame)
 {
-	if(pFrame->GetType() == RECONSTRUCTYUVVIDEOFRAME && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) && m_source==true)
+	if(pFrame->GetType() == YUVVIDEOFRAME && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) && m_source==true)
 	{
 		ProcessVideo(pFrame);
 
@@ -169,7 +169,7 @@ void CLoopSource::ProcessAudio(CMediaFrame* pFrame)
 	u_int8_t* pcmData;
 	pcmData=(u_int8_t*)Malloc(pFrame->GetDataLength());
 	memcpy(pcmData, (u_int8_t*)pFrame->GetData(), (u_int32_t)pFrame->GetDataLength());
-	ProcessAudioFrame(pcmData, (u_int32_t)pFrame->GetDataLength(), (u_int64_t)pFrame->GetTimestamp(), false);
+	ProcessAudioFrame(pcmData, (u_int32_t)pFrame->GetDataLength(), (u_int64_t)pFrame->GetTimestamp());
 	free(pcmData);
 	if (pFrame->RemoveReference())
 	  delete pFrame;

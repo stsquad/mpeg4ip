@@ -515,7 +515,8 @@ void CMediaSource::ProcessVideoYUVFrame(
   }
 
   // forward raw video to sinks
-  if (m_pConfig->SourceRawVideo()) {
+  if (m_pConfig->SourceRawVideo() ||
+      m_pConfig->GetBoolValue(CONFIG_FEEDER_SINK_ENABLE)) {
 
     m_videoDstPrevImage = (u_int8_t*)Malloc(m_videoDstYUVSize);
 
@@ -738,8 +739,7 @@ void CMediaSource::AddSilenceFrame(void)
 void CMediaSource::ProcessAudioFrame(
 				     u_int8_t* frameData,
 				     u_int32_t frameDataLength,
-				     Timestamp srcFrameTimestamp,
-				     bool resync)
+				     Timestamp srcFrameTimestamp)
 {
   if (m_audioSrcFrameNumber == 0) {
     if (!m_sourceVideo || m_videoSrcFrameNumber == 0) {
@@ -770,6 +770,8 @@ void CMediaSource::ProcessAudioFrame(
   m_audioSrcElapsedDuration = srcFrameTimestamp - m_audioEncodingStartTimestamp;
   m_audioSrcFrameNumber++;
 
+#if 0 
+  // not needed
   if (resync) {
     // flush preEncodingBuffer
     m_audioPreEncodingBufferLength = 0;
@@ -779,6 +781,7 @@ void CMediaSource::ProcessAudioFrame(
       = DstTicksToSamples(m_audioSrcElapsedDuration);
     error_message("Received resync");
   }
+#endif
 
   bool pcmMalloced = false;
   bool pcmBuffered;
@@ -934,7 +937,7 @@ void CMediaSource::ProcessAudioFrame(
 
   //Forward PCM Frames to Feeder Sink
   if ((m_pConfig->GetBoolValue(CONFIG_FEEDER_SINK_ENABLE) &&
-				m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) && frameDataLength > 0)) {
+       frameDataLength > 0)) {
     // make a copy of the pcm data if needed
     u_int8_t* FwdedData;
 

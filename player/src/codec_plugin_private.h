@@ -26,17 +26,18 @@
 #include "codec_plugin.h"
 #include "rtp_plugin.h"
 
-extern "C" void initialize_plugins(void);
+  void initialize_plugins(CConfigSet *pConfig);
 
-void close_plugins(void);
+  void close_plugins(void);
 
-codec_plugin_t *check_for_audio_codec(const char *stream_type,
-				      const char *compressor,
-				      format_list_t *fptr,
-				      int audio_type,
-				      int profile,
-				      const uint8_t *userdata,
-				      uint32_t userdata_size);
+  codec_plugin_t *check_for_audio_codec(const char *stream_type,
+					const char *compressor,
+					format_list_t *fptr,
+					int audio_type,
+					int profile,
+					const uint8_t *userdata,
+					uint32_t userdata_size,
+					CConfigSet *pConfig);
 
 codec_plugin_t *check_for_video_codec(const char *stream_type,
 				      const char *compressor,
@@ -44,16 +45,25 @@ codec_plugin_t *check_for_video_codec(const char *stream_type,
 				      int type,
 				      int profile, 
 				      const uint8_t *userdata,
-				      uint32_t userdata_size);
-class CPlayerSession;
+				      uint32_t userdata_size,
+				      CConfigSet *pConfig);
 
-int audio_codec_check_for_raw_file (CPlayerSession *psptr,
-				    const char *name);
-int video_codec_check_for_raw_file (CPlayerSession *psptr,
-				    const char *name);
+codec_data_t *audio_codec_check_for_raw_file(const char *name,
+					     codec_plugin_t **codec,
+					     double *maxtime,
+					     char **desc,
+					     CConfigSet *pConfig);
+
+codec_data_t *video_codec_check_for_raw_file(const char *name,
+					     codec_plugin_t **codec,
+					     double *maxtime,
+					     char **desc,
+					     CConfigSet *pConfig);
+
 
 // RTP plugins
-rtp_check_return_t check_for_rtp_plugins(format_list_t *fptr,
-					 uint8_t rtp_payload_type,
-					 rtp_plugin_t **rtp_plugin);
+rtp_check_return_t check_for_rtp_plugins (format_list_t *fptr,
+					  uint8_t rtp_payload_type,
+					  rtp_plugin_t **rtp_plugin,
+					  CConfigSet *pConfig);
 #endif

@@ -159,13 +159,13 @@ void CLoopFeederSink::DoWriteFrame(CMediaFrame* pFrame)
 	int i=0;	
 	while(pConfigAux[i]!=NULL)
 	{
-		if(pFrame->GetType()==RAWPCMAUDIOFRAME)
+		if(pFrame->GetType() == RAWPCMAUDIOFRAME)
 		{
 			if (pInputAudio[i]!=NULL) {
 				pFrame->AddReference();
 				pInputAudio[i]->EnqueueFrame(pFrame);
 			}
-		} else if (pFrame->GetType()==RECONSTRUCTYUVVIDEOFRAME)
+		} else if (pFrame->GetType()==YUVVIDEOFRAME)
 		{
 			if (pInputVideo[i]!=NULL) {
 				pFrame->AddReference();

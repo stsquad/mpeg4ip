@@ -445,7 +445,7 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
   rtp_plugin_t *rtp_plugin;
   int stream_ondemand;
   rtp_plugin = NULL;
-  plugin_ret = check_for_rtp_plugins(fmt, rtp_pt, &rtp_plugin);
+  plugin_ret = check_for_rtp_plugins(fmt, rtp_pt, &rtp_plugin, &config);
   
   stream_ondemand = 0;
   if (m_stream_ondemand == 1 &&

@@ -30,6 +30,7 @@
 #include "avi_bytestream.h"
 #include "avi_file.h"
 #include "codec_plugin_private.h"
+#include "our_config_file.h"
 
 static void close_avi_file (void *data)
 {
@@ -72,7 +73,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 				 -1,
 				 -1,
 				 NULL,
-				 0);
+				 0, 
+				 &config);
   if (plugin == NULL) {
     video_count = 0;
   } else {
@@ -103,7 +105,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 				   AVI_audio_format(avi), 
 				   -1, 
 				   NULL, 
-				   0);
+				   0,
+				   &config);
     if (plugin != NULL) {
       audio_count = 1;
       aq.track_id = 1;
@@ -161,7 +164,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 				   -1,
 				   -1,
 				   NULL,
-				   0);
+				   0,
+				   &config);
     int ret;
     ret = mptr->create_video_plugin(plugin,
 				    STREAM_TYPE_AVI_FILE,
@@ -199,7 +203,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 				   aq.type,
 				   -1, 
 				   NULL, 
-				   0);
+				   0,
+				   &config);
     CAviAudioByteStream *abyte;
     mptr = new CPlayerMedia(psptr);
     if (mptr == NULL) {
