@@ -10,7 +10,11 @@ include_HEADERS = mp4.h
 
 libmp4v2_la_SOURCES = \
 	3gp.cpp \
+	atom_amr.cpp \
+	atom_avc1.cpp \
+	atom_avcC.cpp \
 	atom_bitr.cpp \
+	atom_btrt.cpp \
 	atom_co64.cpp \
 	atom_cprt.cpp \
 	atom_ctts.cpp \
@@ -58,15 +62,15 @@ libmp4v2_la_SOURCES = \
 	atom_root.cpp \
 	atom_rtp.cpp \
 	atom_s263.cpp \
-	atom_samr.cpp \
-	atom_sawb.cpp \
 	atom_schi.cpp \
 	atom_schm.cpp \
 	atom_sdp.cpp \
 	atoms.h \
 	atom_sinf.cpp \
 	atom_smhd.cpp \
+	atom_smi.cpp \
 	atom_snro.cpp \
+	atom_sound.cpp \
 	atom_stbl.cpp \
 	atom_stco.cpp \
 	atom_stdp.cpp \
@@ -93,6 +97,7 @@ libmp4v2_la_SOURCES = \
 	atom_udta.cpp \
 	atom_url.cpp \
 	atom_urn.cpp \
+	atom_video.cpp \
 	atom_vmhd.cpp \
 	descriptors.cpp \
 	descriptors.h \

@@ -239,4 +239,7 @@ char* MP4ToBase16(const u_int8_t* pData, u_int32_t dataSize);
 
 char* MP4ToBase64(const u_int8_t* pData, u_int32_t dataSize);
 
+const char* MP4NormalizeTrackType(const char* type,
+				  uint32_t verbosity);
+
 #endif /* __MP4_UTIL_INCLUDED__ */

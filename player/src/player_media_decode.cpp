@@ -156,14 +156,16 @@ int CPlayerMedia::decode_thread (void)
       }
       if (m_plugin == NULL) {
 	if (is_video()) {
-	  m_plugin = check_for_video_codec(NULL,
+	  m_plugin = check_for_video_codec(STREAM_TYPE_RTP,
+					   NULL,
 					   m_media_fmt,
 					   -1,
 					   -1,
 					   m_user_data,
 					   m_user_data_size);
 	  if (m_plugin != NULL) {
-	    m_plugin_data = (m_plugin->vc_create)(NULL, // must figure from sdp
+	    m_plugin_data = (m_plugin->vc_create)(STREAM_TYPE_RTP,
+						  NULL, // must figure from sdp
 						  -1,
 						  -1,
 						  m_media_fmt,
@@ -180,14 +182,16 @@ int CPlayerMedia::decode_thread (void)
 	    }
 	  }
 	} else {
-	  m_plugin = check_for_audio_codec(NULL,
+	  m_plugin = check_for_audio_codec(STREAM_TYPE_RTP,
+					   NULL,
 					   m_media_fmt,
 					   -1, 
 					   -1, 
 					   m_user_data,
 					   m_user_data_size);
 	  if (m_plugin != NULL) {
-	    m_plugin_data = (m_plugin->ac_create)(NULL, 
+	    m_plugin_data = (m_plugin->ac_create)(STREAM_TYPE_RTP,
+						  NULL, 
 						  -1,
 						  -1,
 						  m_media_fmt,
@@ -356,7 +360,7 @@ int CPlayerMedia::decode_thread (void)
     double fps, bps;
     double secs;
     uint64_t total_time = last_decode_time - start_decode_time;
-    secs = total_time;
+    secs = UINT64_TO_DOUBLE(total_time);
     secs /= 1000.0;
 #if 0
     media_message(LOG_DEBUG, "last time "U64" first "U64, 

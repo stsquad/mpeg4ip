@@ -32,7 +32,7 @@
 #include "mpeg2t_file.h"
 #include "mp4av.h"
 
-#define DEBUG_MPEG2F_SEARCH 1
+//#define DEBUG_MPEG2F_SEARCH 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(mpeg2f_message, "mpeg2f")
 #else
@@ -80,7 +80,7 @@ int create_media_for_mpeg2t_file (CPlayerSession *psptr,
     player_error_message("mpeg2t file found");
     delete tfile;
   }
-
+  psptr->set_session_desc(0, name);
   return ret;
 }
 
@@ -126,7 +126,7 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
     return -1;
   }
   // nice, large buffers to process
-  m_buffer_size_max = 188 * 1000;
+  m_buffer_size_max = 188 * 2000;
   m_buffer = (uint8_t *)malloc(m_buffer_size_max);
 
   if (m_buffer == NULL) {
@@ -147,7 +147,6 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
   olddebuglevel = config.get_config_value(CONFIG_MPEG2T_DEBUG);
   if (olddebuglevel != LOG_DEBUG)
     mpeg2t_set_loglevel(LOG_CRIT);
-  mpeg2f_message(LOG_DEBUG, "starting mpeg2f");
   m_mpeg2t->save_frames_at_start = 1;
   /*
    * We need to determine which PIDs are present, and try to establish
@@ -177,7 +176,7 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 	    if (fptr->have_dts != 0) {
 	      ps_ts = fptr->dts;
 	    } else {
-	      if (es_pid->is_video) {
+	      if (es_pid->is_video == 1) { // mpeg2
 		// video - make sure we get the first I frame, then we can
 		// get the real timestamp
 		if (fptr->frame_type != 1) {
@@ -268,6 +267,9 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
   if (perc > (end / TO_U64(10))) {
     perc = end / TO_U64(10);
   }
+  if (perc < (end / TO_U64(50))) {
+    perc = end / TO_U64(50);
+  }
 #ifdef DEBUG_MPEG2F_SEARCH
   mpeg2f_message(LOG_DEBUG, "perc is "U64" "U64, perc, (perc * TO_U64(100)) / end );
 #endif
@@ -343,12 +345,12 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 
   } while (cur < end - (m_buffer_size_max * 2));
 
+  //mpeg2f_message(LOG_DEBUG, "starting end search");
   // Now, we'll go to close to the end of the file, and look for a 
   // final PSTS.  This gives us a rough estimate of the elapsed time
   long seek_offset;
   seek_offset = 0;
   seek_offset -= (m_buffer_size_max) * 2;
-
   fseek(m_ifile, seek_offset, SEEK_END);
   m_buffer_on = m_buffer_size = 0;
   uint64_t max_psts;
@@ -381,16 +383,17 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
     m_buffer_size += m_buffer_on;
     m_buffer_on = 0;
   } while (m_buffer_size > 188) ;
-#ifdef DEBUG_MPEG2F_SEARCH
-  player_debug_message("last psts is "U64" "U64, max_psts,
-		       (max_psts - m_start_psts) / TO_U64(90000));
-#endif
   m_last_psts = max_psts;
   // Calculate the rough max time; hopefully it will be greater than the
   // initial...
   m_max_time = max_psts;
   m_max_time -= m_start_psts;
   m_max_time /= 90000.0;
+#ifdef DEBUG_MPEG2F_SEARCH
+  player_debug_message("last psts is "U64" "U64" %g", max_psts,
+		       (max_psts - m_start_psts) / TO_U64(90000),
+		       m_max_time);
+#endif
   mpeg2t_set_loglevel(olddebuglevel);
 
   if (is_seekable) {
@@ -437,7 +440,8 @@ int CMpeg2tFile::create_video (CPlayerSession *psptr,
       vinfo = MALLOC_STRUCTURE(video_info_t);
       vinfo->height = vq[ix].h;
       vinfo->width = vq[ix].w;
-      plugin = check_for_video_codec("MPEG2 TRANSPORT",
+      plugin = check_for_video_codec(STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+				     NULL,
 				     NULL,
 				     vq[ix].type,
 				     vq[ix].profile,
@@ -445,7 +449,8 @@ int CMpeg2tFile::create_video (CPlayerSession *psptr,
 				     vq[ix].config_len);
 
       int ret = mptr->create_video_plugin(plugin, 
-					  "MPEG2 TRANSPORT",
+					  STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+					  NULL,
 					  vq[ix].type,
 					  vq[ix].profile,
 					  NULL, // sdp info
@@ -521,7 +526,8 @@ int CMpeg2tFile::create_audio (CPlayerSession *psptr,
       ainfo->freq = aq[ix].sampling_freq;
       ainfo->chans = aq[ix].chans;
       ainfo->bitspersample = 0;
-      plugin = check_for_audio_codec("MPEG2 TRANSPORT",
+      plugin = check_for_audio_codec(STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+				     NULL,
 				     NULL,
 				     aq[ix].type,
 				     aq[ix].profile,
@@ -529,7 +535,8 @@ int CMpeg2tFile::create_audio (CPlayerSession *psptr,
 				     aq[ix].config_len);
 
       int ret = mptr->create_audio_plugin(plugin, 
-					  "MPEG2 TRANSPORT",
+					  STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+					  NULL,
 					  aq[ix].type,
 					  aq[ix].profile,
 					  NULL, // sdp info
@@ -580,7 +587,7 @@ int CMpeg2tFile::create_media (char *errmsg, uint32_t errlen,
   video_query_t *vq;
   audio_query_t *aq;
   int ret;
-  int sdesc = 0;
+  int sdesc = 1;
   int total_enabled;
   mpeg2t_check_streams(&vq, &aq, m_mpeg2t, audio_count, video_count, 
 		       errmsg, errlen, psptr, cc_vft);

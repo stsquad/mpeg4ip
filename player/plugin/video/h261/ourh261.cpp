@@ -26,7 +26,8 @@
 #include "h261_userdata.h"
 //#define DEBUG_H261_FRAME 1
 
-static codec_data_t *h261_create (const char *compressor,
+static codec_data_t *h261_create (const char *stream_type,
+				  const char *compressor,
 				   int type, 
 				   int profile, 
 				   format_list_t *media_fmt,
@@ -153,6 +154,7 @@ static int h261_decode (codec_data_t *ptr,
 }
 
 static int h261_codec_check (lib_message_func_t message,
+			     const char *stream_type,
 			     const char *compressor,
 			     int type,
 			     int profile,
@@ -161,7 +163,8 @@ static int h261_codec_check (lib_message_func_t message,
 			     uint32_t userdata_size,
 			     CConfigSet *pConfig)
 {
-  if (fptr != NULL) {
+  if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
+      fptr != NULL) {
     if (strcmp(fptr->fmt, "31") == 0) {
       return 1;
     }

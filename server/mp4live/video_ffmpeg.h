@@ -23,7 +23,11 @@
 #define __VIDEO_FFMPEG_H__
 
 #include "video_encoder.h"
+#ifdef HAVE_FFMPEG_INSTALLED
+#include <ffmpeg/avcodec.h>
+#else
 #include <avcodec.h>
+#endif
 class CTimestampPush {
  public:
   CTimestampPush(uint max) {

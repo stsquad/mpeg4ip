@@ -23,8 +23,8 @@
 #include <mpeg4ip.h>
 #include <mpeg4ip_getopt.h>
 #include <avilib.h>
-
-
+#include <mp4av_h264.h>
+//#define DEBUG_H264 1
 /* globals */
 char* progName;
 
@@ -46,7 +46,9 @@ int main(int argc, char** argv)
 	char* rawFileName = NULL;
 	avi_t* aviFile = NULL;
 	FILE* rawFile = NULL;
-	u_int32_t numBytes;
+	int verbose = FALSE;
+	u_int32_t numBytes, totBytes = 0;
+	bool eliminate_short_frames = FALSE;
 
 	/* begin process command line */
 	progName = argv[0];
@@ -55,16 +57,18 @@ int main(int argc, char** argv)
 		int option_index = 0;
 		static struct option long_options[] = {
 			{ "audio", 0, 0, 'a' },
+			{ "eliminate-short-frames", 0, 0, 'e'},
 			{ "length", 1, 0, 'l' },
 			{ "quiet", 0, 0, 'q' },
 			{ "start", 1, 0, 's' },
 			{ "video", 0, 0, 'v' },
 			{ "version", 0, 0, 'V'},
+			{ "verbose", 0, 0, 'R'},
 			{ "help", 0, 0, 'h'},
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "al:qs:vVh",
+		c = getopt_long_only(argc, argv, "ael:qs:vVh",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -85,6 +89,9 @@ int main(int argc, char** argv)
 			extractVideo = FALSE;
 			break;
 		}
+		case 'e':
+		  eliminate_short_frames = TRUE;
+		  break;
 		case 'l': {
 			/* --length=<secs> */
 			u_int i;
@@ -119,6 +126,9 @@ int main(int argc, char** argv)
 		}
 		case '?':
 			break;
+		case 'R':
+		  verbose = TRUE; quiet = FALSE;
+		  break;
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n", progName,
 			  MPEG4IP_PACKAGE, MPEG4IP_VERSION);
@@ -218,6 +228,9 @@ int main(int argc, char** argv)
 				progName, AVI_strerror());
 			exit(9);
 		}
+#ifdef DEBUG_H264
+		h264_decode_t dec;
+#endif
 
 		while (TRUE) {
 			numBytes = AVI_read_frame(aviFile, buf);
@@ -227,13 +240,40 @@ int main(int argc, char** argv)
 				break;
 			}
 
+			totBytes += numBytes;
+			videoFramesRead++;
+			if (verbose) {
+			  printf("frame %d - len %u total %u\n", 
+				 videoFramesRead, numBytes, totBytes);
+			}
 			/*
 			 * note some capture programs 
 			 * insert a zero length frame occasionally
 			 * hence numBytes == 0, but we're not a EOF
 			 */
+			if ((eliminate_short_frames && numBytes > 4) ||
+			    (eliminate_short_frames == FALSE && numBytes)) {
+			  // test
+#ifdef DEBUG_H264
+			  uint32_t offset = 0, read;
+			  do {
+			    if (h264_is_start_code(buf + offset)) {
+			      int ret = 
+			      h264_detect_boundary(buf + offset, 
+						   numBytes - offset, 
+						   &dec);
 
-			if (numBytes) {
+			      printf(" frame offset %d nal type %d slice %d %d\n", 
+				     offset,
+				     dec.nal_unit_type,
+				     dec.slice_type,
+				     ret);
+			    }
+			    read = h264_find_next_start_code(buf + offset, 
+							     numBytes - offset);
+			    offset += read;
+			  } while (read != 0 && offset < numBytes);
+#endif
 				if (fwrite(buf, 1, numBytes, rawFile) != numBytes) {
 					fprintf(stderr,
 						"%s: error writing %s: %s\n",
@@ -243,11 +283,12 @@ int main(int argc, char** argv)
 			} else {
 				emptyFramesRead++;
 			}
-
-			videoFramesRead++;
 			if (videoFramesRead >= numDesiredVideoFrames) {
 				break;
 			}
+		}
+		if (verbose) {
+		  printf("read %u video bytes\n", totBytes);
 		}
 
 		if (numBytes < 0) {
@@ -337,6 +378,9 @@ int main(int argc, char** argv)
 			}
 		}
 
+		if (verbose) {
+		  printf("read %u audio bytes\n", audioBytesRead);
+		}
 		if (duration && audioBytesRead < numDesiredAudioBytes) {
 			fprintf(stderr,
 				"%s: warning: could only extract %u seconds of audio\n",

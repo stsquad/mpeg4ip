@@ -7,7 +7,7 @@ INCLUDES = \
 
 AM_CXXFLAGS = -DMPEG4IP @BILLS_CPPWARNINGS@
 
-lib_LTLIBRARIES = libmp4av.la libh264av.la
+lib_LTLIBRARIES = libmp4av.la
 
 include_HEADERS = \
 	mp4av_aac.h \
@@ -26,6 +26,7 @@ libmp4av_la_SOURCES = \
 	audio.cpp \
 	audio_hinters.cpp \
 	audio_hinters.h \
+	h264.cpp \
 	l16.cpp \
 	mp3.cpp \
 	mbs.h \
@@ -34,13 +35,15 @@ libmp4av_la_SOURCES = \
 	mpeg3.cpp \
 	mpeg4.cpp \
 	rfc2250.cpp \
+	rfc2429.cpp \
 	rfc3016.cpp \
 	rfc3119.cpp \
+	rfc3267.cpp \
         rfccrypto.cpp \
-	rfcisma.cpp
+	rfcisma.cpp \
+	rfch264.cpp
 
-libh264av_la_SOURCES = \
-	h264.cpp 
+libmp4av_la_LIBADD = $(top_builddir)/lib/bitstream/libbitstream.la
 
 EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp libmp4av.xcode/project.pbxproj
 

@@ -59,8 +59,7 @@ void ExtractTrack(
 		  MP4TrackId trackId, 
 		  const char* outputFileName);
 
-bool CanBeIsmaCompliant(
-                  MP4FileHandle mp4File);
+static bool Is3GPP(MP4FileHandle mp4File);
 
 // external declarations
 
@@ -81,11 +80,13 @@ MP4TrackId H263Creator(MP4FileHandle mp4File, FILE* inFile,
                        u_int8_t h263Profile, u_int8_t h263Level,
                        bool setBitrates, u_int8_t cbrTolerance);
 
+MP4TrackId H264Creator(MP4FileHandle mp4File, FILE *inFile);
 u_int8_t h263Profile = 0;
 u_int8_t h263Level = 10;
 u_int8_t H263CbrTolerance = 0;
 bool setBitrates = false;
 static bool allowVariableFrameRate = false;
+static bool allowAvi = false;
 
 // main routine
 int main(int argc, char** argv)
@@ -95,11 +96,12 @@ int main(int argc, char** argv)
     "  Options:\n"
     "  -aac-old-file-format    Use old file format with 58 bit adts headers\n"
     "  -aac-profile=[2|4]      Force AAC to mpeg2 or mpeg4 profile\n"
+    "  -allow-avi-files        Allow avi files\n"
     "  -calcH263Bitrates       Calculate and add bitrate information\n"
     "  -create=<input-file>    Create track from <input-file>\n"
     "    input files can be of type: .263 .aac .amr .mp3 .divx .mp4v .m4v .cmp .xvid\n"
-    "  -extract=<track-id>     Extract a track\n"
     "  -encrypt[=<track-id>]   Encrypt a track, also -E\n"
+    "  -extract=<track-id>     Extract a track\n"
     "  -delete=<track-id>      Delete a track\n"
     "  -force3GPCompliance     Force making the file 3GP compliant. This disables ISMA compliance.\n"
     "  -forceH263Profile=<profile> Force using H.263 Profile <profile> (default is 0)\n"
@@ -160,6 +162,7 @@ int main(int argc, char** argv)
     static struct option long_options[] = {
       { "aac-old-file-format", 0, 0, 'a' },
       { "aac-profile", 1, 0, 'A'},
+      { "allow-avi-files", 0, 0, 'B'},
       { "calcH263Bitrates", 0, 0, 'C'},
       { "create", 1, 0, 'c' },
       { "delete", 1, 0, 'd' },
@@ -187,7 +190,7 @@ int main(int argc, char** argv)
       { NULL, 0, 0, 0 }
     };
 
-    c = getopt_long_only(argc, argv, "ac:Cd:e:E::GH::IlL:m:Op:P:r:t:T:uUv::VZ",
+    c = getopt_long_only(argc, argv, "aBc:Cd:e:E::GH::IlL:m:Op:P:r:t:T:uUv::VZ",
 			 long_options, &option_index);
 
     if (c == -1)
@@ -206,6 +209,9 @@ int main(int argc, char** argv)
 	exit(EXIT_COMMAND_LINE);
       }
       fprintf(stderr, "Warning - you have changed the AAC profile level.  This is not recommended\nIf you have problems with the resultant file, it is your own fault\nDo not contact project creators\n");
+      break;
+    case 'B':
+      allowAvi = true;
       break;
     case 'c':
       doCreate = true;
@@ -501,13 +507,15 @@ int main(int argc, char** argv)
         }
 
 	if ((!strcmp(extension, ".amr")) || (!strcmp(extension, ".263"))) {
-		mp4File = MP4CreateEx(mp4FileName,
-				Verbosity,
-				createFlags,
-				p3gppSupportedBrands[0],
-				0x0001,
-				p3gppSupportedBrands,
-				sizeof(p3gppSupportedBrands) / sizeof(p3gppSupportedBrands[0]));
+		mp4File = MP4Create(mp4FileName,
+				    Verbosity,
+				    createFlags,
+				    1,  // add ftyp atom
+				    0,  // don't add iods
+				    p3gppSupportedBrands[0],
+				    0x0001,
+				    p3gppSupportedBrands,
+				    sizeof(p3gppSupportedBrands) / sizeof(p3gppSupportedBrands[0]));
 	} else {
 	  mp4File = MP4Create(mp4FileName, Verbosity,
 			      createFlags);
@@ -632,19 +640,28 @@ int main(int argc, char** argv)
       sprintf(buffer, "mp4creator %s", MPEG4IP_VERSION);
       MP4SetMetadataTool(mp4File, buffer);
     }
-    bool canBeIsmaCompliant = CanBeIsmaCompliant(mp4File);
-    MP4Close(mp4File);
+    bool is3GPP = Is3GPP(mp4File);
     
-    if (canBeIsmaCompliant && (!force3GPCompliance)) {
-      MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
-    } else {
+    if (is3GPP || (force3GPCompliance)) {
       // If we created the file, CreateEX already takes care of this...
+      MP4Close(mp4File);
       MP4Make3GPCompliant(mp4FileName,
                           Verbosity,
                           p3gppSupportedBrands[0],
                           0x0001,
                           p3gppSupportedBrands,
                           sizeof(p3gppSupportedBrands) / sizeof(p3gppSupportedBrands[0]));
+    } else {
+      // check if it should be ISMA - check profile 
+      uint8_t video_profile = MP4GetVideoProfileLevel(mp4File);
+      uint8_t audio_profile = MP4GetAudioProfileLevel(mp4File);
+      MP4Close(mp4File);
+      if ((video_profile >= 0xfe) ||
+	  (audio_profile >= 0xfe)) {
+	// not isma compliant - we have non isma stuff.
+      } else {
+	MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
+      }
     }
   } else if (doEncrypt) { 
     // just encrypting, not creating nor hinting, but may already be hinted
@@ -865,9 +882,19 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName,
   if (!strcasecmp(extension, ".avi")) {
     fclose(inFile);
     inFile = NULL;
-
-    pTrackIds = AviCreator(mp4File, inputFileName, doEncrypt);
-
+    if (allowAvi) {
+      fprintf(stderr, "You are creating an mp4 file from an avi file\n"
+	      "This is not recommended due to the use of b-frames\n");
+      
+      pTrackIds = AviCreator(mp4File, inputFileName, doEncrypt);
+    } else {
+      fprintf(stderr, "Creating with an avi file is not recommended.\n"
+	      "Use avi2raw on the audio and video parts of the avi file,\n"
+	      "Then use mp4creator with the extracted files\n"
+	      "Use avidump to find the video frame rate\n"
+	      "Alternatively, use the --allow-avi-files option\n");
+      exit(-1);
+    }
   } else if (!strcasecmp(extension, ".aac")) {
     trackIds[0] = AacCreator(mp4File, inFile, doEncrypt);
 
@@ -895,6 +922,9 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName,
   } else if (strcasecmp(extension, ".263") == 0) {
 	  trackIds[0] = H263Creator(mp4File, inFile, h263Profile, h263Level,
                                     setBitrates, H263CbrTolerance);
+  } else if ((strcasecmp(extension, ".h264") == 0) ||
+	     (strcasecmp(extension, ".264") == 0)) {
+    trackIds[0] = H264Creator(mp4File, inFile);
   } else {
     fprintf(stderr, 
 	    "%s: unknown file type\n", ProgName);
@@ -1032,52 +1062,70 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
     }
   }
   else if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
-    u_int8_t audioType = MP4GetTrackEsdsObjectTypeId(mp4File, mediaTrackId);
+    const char *media_data_name;
+    media_data_name = MP4GetTrackMediaDataName(mp4File, mediaTrackId);
+    
+    if (strcasecmp(media_data_name, "mp4a") == 0) {
+      u_int8_t audioType = MP4GetTrackEsdsObjectTypeId(mp4File, mediaTrackId);
 
-    switch (audioType) {
-    case MP4_MPEG4_AUDIO_TYPE:
-    case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
-    case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
-    case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
-      rc = MP4AV_RfcIsmaHinter(mp4File, mediaTrackId, 
-			       interleave, maxPayloadSize);
-      break;
-    case MP4_MPEG1_AUDIO_TYPE:
-    case MP4_MPEG2_AUDIO_TYPE:
-      if (payloadName && 
-	  (!strcasecmp(payloadName, "3119") 
-	   || !strcasecmp(payloadName, "mpa-robust"))) {
-	rc = MP4AV_Rfc3119Hinter(mp4File, mediaTrackId, 
+      switch (audioType) {
+      case MP4_MPEG4_AUDIO_TYPE:
+      case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
+      case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
+      case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
+	rc = MP4AV_RfcIsmaHinter(mp4File, mediaTrackId, 
 				 interleave, maxPayloadSize);
-      } else {
-	rc = MP4AV_Rfc2250Hinter(mp4File, mediaTrackId, 
-				 false, maxPayloadSize);
+	break;
+      case MP4_MPEG1_AUDIO_TYPE:
+      case MP4_MPEG2_AUDIO_TYPE:
+	if (payloadName && 
+	    (!strcasecmp(payloadName, "3119") 
+	     || !strcasecmp(payloadName, "mpa-robust"))) {
+	  rc = MP4AV_Rfc3119Hinter(mp4File, mediaTrackId, 
+				   interleave, maxPayloadSize);
+	} else {
+	  rc = MP4AV_Rfc2250Hinter(mp4File, mediaTrackId, 
+				   false, maxPayloadSize);
+	}
+	break;
+      case MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE:
+      case MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE:
+	rc = L16Hinter(mp4File, mediaTrackId, maxPayloadSize);
+	break;
+      default:
+	fprintf(stderr, 
+		"%s: can't hint non-MPEG4/non-MP3 audio type\n", ProgName);
       }
-      break;
-    case MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE:
-    case MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE:
-      rc = L16Hinter(mp4File, mediaTrackId, maxPayloadSize);
-      break;
-    default:
-      fprintf(stderr, 
-	      "%s: can't hint non-MPEG4/non-MP3 audio type\n", ProgName);
+    } else if (strcasecmp(media_data_name, "samr") == 0 ||
+	       strcasecmp(media_data_name, "sawb") == 0) {
+      rc = MP4AV_Rfc3267Hinter(mp4File, mediaTrackId, maxPayloadSize);
     }
   } else if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
-    u_int8_t videoType = MP4GetTrackEsdsObjectTypeId(mp4File, mediaTrackId);
+    const char *media_data_name;
+    media_data_name = MP4GetTrackMediaDataName(mp4File, mediaTrackId);
     
-    switch (videoType) {
-    case MP4_MPEG4_VIDEO_TYPE:
-      rc = MP4AV_Rfc3016Hinter(mp4File, mediaTrackId, maxPayloadSize);
-      break;
-    case MP4_MPEG1_VIDEO_TYPE:
-    case MP4_MPEG2_SIMPLE_VIDEO_TYPE:
-    case MP4_MPEG2_MAIN_VIDEO_TYPE:
-      rc = Mpeg12Hinter(mp4File, mediaTrackId, maxPayloadSize);
-      break;
-    default:
-      fprintf(stderr, 
-	      "%s: can't hint non-MPEG4 video type\n", ProgName);
-      break;
+    if (strcasecmp(media_data_name, "mp4v") == 0) {
+      u_int8_t videoType = MP4GetTrackEsdsObjectTypeId(mp4File, mediaTrackId);
+      
+      switch (videoType) {
+      case MP4_MPEG4_VIDEO_TYPE:
+	rc = MP4AV_Rfc3016Hinter(mp4File, mediaTrackId, maxPayloadSize);
+	break;
+      case MP4_MPEG1_VIDEO_TYPE:
+      case MP4_MPEG2_SIMPLE_VIDEO_TYPE:
+      case MP4_MPEG2_MAIN_VIDEO_TYPE:
+	rc = Mpeg12Hinter(mp4File, mediaTrackId, maxPayloadSize);
+	break;
+      default:
+	fprintf(stderr, 
+		"%s: can't hint non-MPEG4 video type\n", ProgName);
+	break;
+      }
+    } else if (strcasecmp(media_data_name, "avc1") == 0) {
+      // h264;
+      rc = MP4AV_H264Hinter(mp4File, mediaTrackId, maxPayloadSize);
+    } else if (strcasecmp(media_data_name, "s263") == 0) {
+      rc = MP4AV_Rfc2429Hinter(mp4File, mediaTrackId, maxPayloadSize);
     }
   } else {
     fprintf(stderr, 
@@ -1114,21 +1162,19 @@ void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId,
 
   const char* trackType =
     MP4GetTrackType(mp4File, trackId);
+  const char *media_data_name = 
+    MP4GetTrackMediaDataName(mp4File, trackId);
 
   if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
-    if (!MP4_IS_MPEG2_VIDEO_TYPE(MP4GetTrackEsdsObjectTypeId(mp4File, trackId))) {
-      prependES = true;
-    }
+    prependES = true;
   } else if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
-    if (MP4_IS_AAC_AUDIO_TYPE(MP4GetTrackEsdsObjectTypeId(mp4File, trackId))) {
+
+    if (strcmp(media_data_name, "mp4a") == 0 &&
+	MP4_IS_AAC_AUDIO_TYPE(MP4GetTrackEsdsObjectTypeId(mp4File, trackId))) {
       prependADTS = true;
-    }
-    // Find out whether this track is an AMR/WB track...
-    if (MP4HaveTrackIntegerProperty(mp4File, trackId, 
-				    "mdia.minf.stbl.stsd.sawb.damr.vendor")) {
+    } else if (strcmp(media_data_name, "sawb") == 0) {
       amrType = AMR_TYPE_AMRWB;
-    } else if (MP4HaveTrackIntegerProperty(mp4File, trackId, 
-					   "mdia.minf.stbl.stsd.samr.damr.vendor")) {
+    } else if (strcmp(media_data_name, "samr") == 0) {
       amrType = AMR_TYPE_AMR;
     }
     switch (amrType) {
@@ -1220,19 +1266,27 @@ void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId,
   close(outFd);
 }
 
-bool CanBeIsmaCompliant(MP4FileHandle mp4File)
+bool Is3GPP(MP4FileHandle mp4File)
 {
   u_int32_t numberOfTracks = MP4GetNumberOfTracks(mp4File);
   u_int32_t i;
+ 
 
   for (i = 0 ; i < numberOfTracks ; i++) {
     MP4TrackId trackId = MP4FindTrackId(mp4File, i);
-    // this is probably wrong.  Instead of doing a negative, we should do 
-    // a positive.
-    if (MP4HaveTrackIntegerProperty(mp4File, trackId, "mdia.minf.stbl.stsd.samr.damr.vendor") ||
-      MP4HaveTrackIntegerProperty(mp4File, trackId, "mdia.minf.stbl.stsd.sawb.damr.vendor") ||
-      MP4HaveTrackIntegerProperty(mp4File, trackId, "mdia.minf.stbl.stsd.s263.d263.vendor")) {
-      return false;
+
+    const char *type, *media_data_name;
+    type = MP4GetTrackType(mp4File, trackId);
+    media_data_name = MP4GetTrackMediaDataName(mp4File, trackId);
+
+    if (strcmp(type, MP4_VIDEO_TRACK_TYPE) == 0) {
+      if (strcmp(media_data_name, "s263") != 0) {
+	return false;
+      }
+    } else if (strcmp(type, MP4_AUDIO_TRACK_TYPE) == 0) {
+      if (strcmp(media_data_name, "samr") != 0 &&
+	  strcmp(media_data_name, "sawb") != 0)
+	return false;
     }
   }
   return true;

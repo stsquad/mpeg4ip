@@ -24,7 +24,7 @@
  *		Ximpo Group Ltd.           mp4v2@ximpo.com
  */
 
-//#define MP4V_DEBUG 1
+//#define DEBUG_MP4V 1
 
 /*
  * Notes:
@@ -226,11 +226,12 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                     "%s: buffer overflow, invalid video stream?\n", ProgName);
             return MP4_INVALID_TRACK_ID;
         }
-
+#ifdef DEBUG_MP4V
         if (Verbosity & MP4_DETAILS_SAMPLE) {
             printf("MP4V type %x size %u\n",
                     objType, objSize);
         }
+#endif
 
         if (objType == MP4AV_MPEG4_VOSH_START) {
             MP4AV_Mpeg4ParseVosh(pObj, objSize,
@@ -244,7 +245,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                     &frameWidth, &frameHeight);
 
             foundVOL = true;
-#ifdef MP4V_DEBUG
+#ifdef DEBUG_MP4V
             printf("ParseVol: timeBits %u timeTicks %u frameDuration %u\n",
                     timeBits, timeTicks, frameDuration);
 #endif
@@ -400,7 +401,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
     if (MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE) == 1) {
         MP4SetVideoProfileLevel(mp4File, videoProfileLevel);
     }
-
+    printf("es config size is %d\n", esConfigSize);
     if (esConfigSize) {
         MP4SetTrackESConfiguration(mp4File, trackId,
                 pCurrentSample, esConfigSize);
@@ -491,7 +492,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                         case MPEG4_SP_L3:
                             break;
                         default:
-#ifdef MP4V_DEBUG
+#ifdef DEBUG_MP4V
                             printf("sample %u %c renderingOffset "U64"\n",
                                     refVopId, prevVopType,
                                     currentSampleTime - refVopTime);
@@ -542,11 +543,12 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
             MP4DeleteTrack(mp4File, trackId);
             return MP4_INVALID_TRACK_ID;
         }
-
+#ifdef DEBUG_MP4V
         if (Verbosity & MP4_DETAILS_SAMPLE) {
             printf("MP4V type %x size %u\n",
                     objType, objSize);
         }
+#endif
     }
 
     // Left over at end - make sure we set the last P or I frame
@@ -558,7 +560,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
         case MPEG4_SP_L3:
             break;
         default:
-#ifdef MP4V_DEBUG
+#ifdef DEBUG_MP4V
             printf("sample %u %c renderingOffset "U64"\n",
                     refVopId, prevVopType, currentSampleTime - refVopTime);
 #endif

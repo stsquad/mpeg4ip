@@ -95,6 +95,10 @@ bool Mpeg12Hinter(MP4FileHandle mp4File,
 		  MP4TrackId mediaTrackID,
 		  uint16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
 
+bool MP4AV_Rfc3267Hinter(MP4FileHandle mp4File,
+		  MP4TrackId mediaTrackID,
+		  uint16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
+
 // This struct is used to pass ISMACRYP protocol parameters
 // to the ISMACRYP hinters, MP4AV_RfcCryptoAudioHinter and
 // MP4AV_RfcCryptoVideoHinter.
@@ -127,6 +131,28 @@ bool MP4AV_RfcCryptoVideoHinter(
         mp4av_ismacrypParams *icPp,
 	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE),
 	char* PayloadMIMEType DEFAULT_PARM(""));
+
+  MP4TrackId MP4AV_H264_HintTrackCreate(MP4FileHandle mp4File,
+					MP4TrackId mediaTrackId);
+  void MP4AV_H264_HintAddSample(MP4FileHandle mp4File,
+				MP4TrackId hintTrackId,
+				MP4SampleId sampleId,
+				uint8_t *pSampleBuffer,
+				uint32_t sampleSize,
+				uint32_t sizeLength,
+				MP4Duration duration,
+				MP4Duration renderingOffset,
+				bool isSyncSample,
+				uint16_t maxPayloadSize);
+
+  bool MP4AV_H264Hinter(MP4FileHandle mp4File, 
+			MP4TrackId mediaTrackId, 
+			u_int16_t maxPayloadSize);
+
+  int16_t MP4AV_AmrFrameSize(uint8_t mode, bool isAmrWb);
+  bool MP4AV_Rfc2429Hinter(MP4FileHandle file,
+			   MP4TrackId mediaTrackId,
+			   uint16_t maxPayloadSize);
 
 #ifdef __cplusplus
 }

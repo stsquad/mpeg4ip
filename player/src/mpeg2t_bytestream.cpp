@@ -49,7 +49,8 @@ static inline bool convert_psts (mpeg2t_es_t *es_pid,
     if (fptr->have_dts != 0) {
       ps_ts = fptr->dts;
     } else {
-      if (sptr->m_is_video != 0) {
+      // wmay - 07/02/04 - move out h264 for now.
+      if (sptr->m_is_video != 0 && es_pid->stream_type != MPEG2T_STREAM_H264) {
 	if (fptr->frame_type != 1) {
 #ifdef DEBUG_MPEG2T_PSTS
 	  player_debug_message("dropping "U64" video ftype %d", 
@@ -252,8 +253,6 @@ int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
 {
   uint64_t ts;
   //  m_es_pid->frame_rate = 24;
-  double value = 90000.0 / m_es_pid->frame_rate;
-  uint64_t frame_time = (uint64_t)value;
 #ifdef DEBUG_MPEG2T_PSTS
   if (fptr->have_dts) {
     player_debug_message("video frame len %d have  dts %d ts "U64,
@@ -263,6 +262,20 @@ int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
 			 fptr->frame_len, fptr->have_ps_ts, fptr->ps_ts);
   }
 #endif
+  if (m_es_pid->stream_type == MPEG2T_STREAM_H264) {
+    if (fptr->have_dts || fptr->have_ps_ts) {
+      if (fptr->have_dts)
+	outts = fptr->dts;
+      else
+	outts = fptr->ps_ts;
+      outts *= TO_U64(1000);
+      outts /= TO_U64(90000); // get msec from 90000 timescale
+      return 0;
+    }
+    return -1;
+  }
+  double value = 90000.0 / m_es_pid->frame_rate;
+  uint64_t frame_time = (uint64_t)value;
   if (fptr->have_ps_ts == 0 && fptr->have_dts == 0) {
     // We don't have a timestamp on this - just increment from
     // the previous timestamp.

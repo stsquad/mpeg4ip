@@ -45,7 +45,8 @@ static int create_mpeg3_video (video_query_t *vq,
 #ifdef ARCH_X86
   //  mpeg3_set_mmx(vfile, 1);
 #endif
-  plugin = check_for_video_codec("MPEG FILE",
+  plugin = check_for_video_codec(STREAM_TYPE_MPEG_FILE,
+				 "mp2v",
 				 NULL,
 				 -1,
 				 -1,
@@ -79,7 +80,8 @@ static int create_mpeg3_video (video_query_t *vq,
   mpeg3f_message(LOG_DEBUG, "video stream h %d w %d fr %g bitr %d", 
 		 vinfo->height, vinfo->width, vq->frame_rate,
 		 bitrate);
-  ret = mptr->create_video_plugin(plugin, "MPEG FILE", 
+  ret = mptr->create_video_plugin(plugin, STREAM_TYPE_MPEG_FILE,
+				  vq->compressor,
 				  vq->type, vq->profile, 
 				  NULL, vinfo, NULL, 0);
   if (ret < 0) {
@@ -113,7 +115,8 @@ static int create_mpeg3_audio (audio_query_t * aq,
   codec_plugin_t *plugin;
   int ret;
 
-  plugin = check_for_audio_codec("MPEG FILE",
+  plugin = check_for_audio_codec(STREAM_TYPE_MPEG_FILE,
+				 NULL,
 				 NULL,
 				 aq->type,
 				 -1,
@@ -143,7 +146,8 @@ static int create_mpeg3_audio (audio_query_t * aq,
   psptr->set_session_desc(sdesc, buffer);
   sdesc++;
 
-  ret = mptr->create_audio_plugin(plugin, "MPEG FILE", 
+  ret = mptr->create_audio_plugin(plugin, aq->stream_type,
+				  aq->compressor,
 				  aq->type, aq->profile,
 				  NULL, ainfo, NULL, 0);
   if (ret < 0) {
@@ -195,7 +199,8 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
 
   video_cnt = 0;
   if (video_streams > 0) {
-    plugin = check_for_video_codec("MPEG FILE",
+    plugin = check_for_video_codec(STREAM_TYPE_MPEG_FILE,
+				   "mp2v",
 				   NULL,
 				   -1,
 				   -1,
@@ -205,7 +210,8 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
   }
 
   for (ix = 0, audio_cnt = 0; ix < audio_streams; ix++) {
-    plugin = check_for_audio_codec("MPEG FILE",
+    plugin = check_for_audio_codec(STREAM_TYPE_MPEG_FILE,
+				   NULL,
 				   NULL,
 				   mpeg3_get_audio_format(file, ix),
 				   -1,
@@ -230,7 +236,8 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
   video_offset = 0;
   for (ix = 0; ix < video_cnt; ix++) {
     vq[video_offset].track_id = ix;
-    vq[video_offset].compressor = "MPEG FILE";
+    vq[video_offset].stream_type = STREAM_TYPE_MPEG_FILE;
+    vq[video_offset].compressor = "mp2v";
     vq[video_offset].type = mpeg3_video_layer(file, ix);
     vq[video_offset].profile = -1;
     vq[video_offset].fptr = NULL;
@@ -246,7 +253,8 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
   audio_offset = 0;
   if (have_audio_driver) {
     for (ix = 0; ix < audio_streams; ix++) {
-      plugin = check_for_audio_codec("MPEG FILE",
+      plugin = check_for_audio_codec(STREAM_TYPE_MPEG_FILE,
+				     NULL,
 				     NULL,
 				     mpeg3_get_audio_format(file, ix),
 				     -1,
@@ -254,7 +262,8 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
 				     0);
       if (plugin != NULL) {
 	aq[audio_offset].track_id = ix;
-	aq[audio_offset].compressor = "MPEG FILE";
+	aq[audio_offset].stream_type = STREAM_TYPE_MPEG_FILE;
+	aq[audio_offset].compressor = NULL;
 	aq[audio_offset].type = mpeg3_get_audio_format(file, ix);
 	aq[audio_offset].profile = -1;
 	aq[audio_offset].fptr = NULL;

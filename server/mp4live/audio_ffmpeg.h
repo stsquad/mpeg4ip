@@ -23,7 +23,11 @@
 #define __AUDIO_FFMPEG_H__
 
 #include "audio_encoder.h"
+#ifdef HAVE_FFMPEG_INSTALLED
+#include <ffmpeg/avcodec.h>
+#else
 #include <avcodec.h>
+#endif
 #include <sdp.h>
 
 media_desc_t *ffmpeg_create_audio_sdp(CLiveConfig *pConfig,

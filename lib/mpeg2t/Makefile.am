@@ -25,6 +25,7 @@ check_PROGRAMS = mpeg2t_test
 
 mpeg2t_test_SOURCES = test.cpp
 mpeg2t_test_LDADD = libmpeg2_transport.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	@SDL_LIBS@ 

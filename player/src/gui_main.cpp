@@ -86,7 +86,7 @@ static const char *last_entry = NULL;
 static const gchar *last_file = NULL;
 static int doing_seek = 0;
 static GtkWidget *videoradio[3];
-static GtkWidget *aspectratio[5];
+static GtkWidget *aspectratio[6];
 
 static GtkTargetEntry drop_types[] = 
 {
@@ -181,26 +181,29 @@ static void set_aspect_ratio(uint32_t newaspect)
     return;
   }
 
-  if (newaspect > 4) newaspect = 0;
+  if (newaspect > 5) newaspect = 0;
   config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
   if (psptr != NULL) {
     switch (newaspect) {
-      case 1 : 
-	psptr->set_screen_size(master_screen_size/50,master_fullscreen,4,3);
-	break;
-      case 2 : 
-	psptr->set_screen_size(master_screen_size/50,master_fullscreen,16,9);
-	break;
-      case 3 : 
-	psptr->set_screen_size(master_screen_size/50,master_fullscreen,185,100);
-	break;
-      case 4 : 
-	psptr->set_screen_size(master_screen_size/50,master_fullscreen,235,100);
-	break;
-      default: 
-	psptr->set_screen_size(master_screen_size/50,master_fullscreen,0,0);
-	newaspect = 0;
-	break;
+    case 1 : 
+      psptr->set_screen_size(master_screen_size/50,master_fullscreen,4,3);
+      break;
+    case 2 : 
+      psptr->set_screen_size(master_screen_size/50,master_fullscreen,16,9);
+      break;
+    case 3 : 
+      psptr->set_screen_size(master_screen_size/50,master_fullscreen,185,100);
+      break;
+    case 4 : 
+      psptr->set_screen_size(master_screen_size/50,master_fullscreen,235,100);
+      break;
+    case 5:
+      psptr->set_screen_size(master_screen_size/50,master_fullscreen, 1, 1);
+      break;
+    default: 
+      psptr->set_screen_size(master_screen_size/50,master_fullscreen,0,0);
+      newaspect = 0;
+      break;
     }
   } 
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio[newaspect]), TRUE);
@@ -1249,6 +1252,7 @@ static gint main_timer (gpointer raw)
       case SDLK_2:
       case SDLK_3:
       case SDLK_4:
+      case SDLK_5:
 	if ((msg->mod & KMOD_CTRL) != 0) {
 	  set_aspect_ratio(msg->sym - SDLK_0);
 	}
@@ -1432,8 +1436,8 @@ int main (int argc, char **argv)
   sprintf(buffer, "Cisco Open Source Streaming Video Player %s", MPEG4IP_VERSION);
   gtk_window_set_title(GTK_WINDOW(main_window), buffer);
   gtk_widget_set_uposition(GTK_WIDGET(main_window), 10, 10);
-  gtk_widget_set_usize(main_window, 450, 185);
-  gtk_window_set_default_size(GTK_WINDOW(main_window), 450, 185);
+  gtk_widget_set_usize(main_window, 450, 200);
+  gtk_window_set_default_size(GTK_WINDOW(main_window), 450, 200);
   gtk_signal_connect(GTK_OBJECT(main_window),
 		     "delete_event",
 		     GTK_SIGNAL_FUNC(delete_event),
@@ -1560,6 +1564,12 @@ int main (int argc, char **argv)
 				   &aspectratiolist,
 				   GTK_SIGNAL_FUNC(on_aspect_ratio),
 				   GINT_TO_POINTER(4));
+  aspectratio[5] = CreateMenuRadio(videosub, 
+				   "1:1",
+				   &aspectratiolist,
+				   GTK_SIGNAL_FUNC(on_aspect_ratio),
+				   GINT_TO_POINTER(5));
+
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio[value]), TRUE);
   CreateMenuItemSeperator(menu);
 

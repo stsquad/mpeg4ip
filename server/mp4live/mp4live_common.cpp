@@ -44,7 +44,7 @@ int ReadConfigFile (const char *configFileName,
     }
 #endif /* xvid not defined */
     PrintDebugMessages =
-      pConfig->GetIntegerValue(CONFIG_APP_DEBUG);
+      pConfig->GetBoolValue(CONFIG_APP_DEBUG);
  }
   catch (CConfigException* e) {
     delete e;

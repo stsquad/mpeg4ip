@@ -30,9 +30,10 @@
  * When you change the plugin version, you should add a "HAVE_PLUGIN_VERSION"
  * for easier makes
  */
-#define PLUGIN_VERSION "0.9"
+#define PLUGIN_VERSION "0.A"
 #define HAVE_PLUGIN_VERSION_0_8 1
 #define HAVE_PLUGIN_VERSION_0_9 1
+#define HAVE_PLUGIN_VERSION_0_A 1
 
 /***************************************************************************
  *  Audio callbacks from plugin to renderer
@@ -214,6 +215,11 @@ typedef struct codec_data_t {
   } v;
 } codec_data_t;
 
+#define STREAM_TYPE_RTP "RTP"
+#define STREAM_TYPE_MPEG2_TRANSPORT_STREAM "MPEG2 TRANSPORT"
+#define STREAM_TYPE_AVI_FILE "AVI FILE"
+#define STREAM_TYPE_MPEG_FILE "MPEG FILE"
+#define STREAM_TYPE_MP4_FILE "MP4 FILE"
 /*
  * ac_create_f - audio codec plugin creation routine
  * Inputs: sdp_media - pointer to session description information for stream
@@ -224,7 +230,8 @@ typedef struct codec_data_t {
  *         ifptr - handle to use for audio callbacks
  * Returns - must return a handle that contains codec_data_t.
  */
-typedef codec_data_t *(*ac_create_f)(const char *compressor, 
+typedef codec_data_t *(*ac_create_f)(const char *stream_type,
+				     const char *compressor, 
 				     int type, 
 				     int profile, 
 				     format_list_t *sdp_media,
@@ -244,7 +251,8 @@ typedef codec_data_t *(*ac_create_f)(const char *compressor,
  *         ifptr - handle to use for video callbacks
  * Returns - must return a handle that contains codec_data_t.
  */
-typedef codec_data_t *(*vc_create_f)(const char *compressor, 
+typedef codec_data_t *(*vc_create_f)(const char *stream_type,
+				     const char *compressor, 
 				     int type, 
 				     int profile, 
 				     format_list_t *sdp_media,
@@ -310,6 +318,7 @@ typedef int (*c_print_status_f)(codec_data_t *ptr,
  *                number - weighted value of how well decoding can do.
  */
 typedef int (*c_compress_check_f)(lib_message_func_t msg,
+				  const char *stream_type,
 				  const char *compressor,
 				  int type,
 				  int profile,

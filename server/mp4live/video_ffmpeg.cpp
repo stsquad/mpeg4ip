@@ -86,9 +86,16 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
   m_avctx->frame_rate_base = 1;
   if (pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH) > 0 &&
       pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT) > 0) {
+#ifndef HAVE_FFMPEG_RATIONAL
     float asp = (float)pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH);
     asp /= (float)pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT);
     m_avctx->aspect_ratio = asp;
+#else
+    AVRational asp = 
+      {pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH),
+       pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT)};
+    m_avctx->sample_aspect_ratio = asp;
+#endif
   }
 			       
   
@@ -140,7 +147,7 @@ bool CFfmpegVideoEncoder::EncodeImage(
 						 m_vopBuffer, 
 						 m_pConfig->m_videoMaxVopSize, 
 						 m_picture);
-	//error_message("ffmpeg len %d", m_vopBufferLength);
+	//debug_message(U64" ffmpeg len %d", srcFrameTimestamp, m_vopBufferLength);
 #ifdef OUTPUT_RAW
 	if (m_vopBufferLength) {
 	  fwrite(m_vopBuffer, m_vopBufferLength, 1, m_outfile);

@@ -292,7 +292,7 @@ bool CV4L2VideoSource::InitDevice(void)
   rc = ioctl(m_videoDevice, VIDIOC_REQBUFS, &reqbuf);
   if (rc < 0 || reqbuf.count < 1) {
     error_message("Failed to allocate buffers for %s", deviceName);
-    goto failure;
+    return false;
   }
 
   // map the video capture buffers
@@ -360,11 +360,13 @@ bool CV4L2VideoSource::InitDevice(void)
   return true;
 
  failure:
-  for (uint32_t i = 0; i < m_buffers_count; i++) {
-    if (m_buffers[i].start)
-      munmap(m_buffers[i].start, m_buffers[i].length);
+  if (m_buffers) {
+    for (uint32_t i = 0; i < m_buffers_count; i++) {
+      if (m_buffers[i].start)
+	munmap(m_buffers[i].start, m_buffers[i].length);
+    }
+    free(m_buffers);
   }
-  if (m_buffers) free(m_buffers);
   
   close(m_videoDevice);
   m_videoDevice = -1;

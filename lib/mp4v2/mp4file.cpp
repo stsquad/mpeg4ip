@@ -55,6 +55,7 @@ MP4File::MP4File(u_int32_t verbosity)
 	m_bufReadBits = 0;
 	m_numWriteBits = 0;
 	m_bufWriteBits = 0;
+	m_editName = NULL;
 }
 
 MP4File::~MP4File()
@@ -65,6 +66,8 @@ MP4File::~MP4File()
 		delete m_pTracks[i];
 	}
 	MP4Free(m_memoryBuffer);	// just in case
+	CHECK_AND_FREE(m_editName);
+	
 }
 
 void MP4File::Read(const char* fileName)
@@ -79,14 +82,10 @@ void MP4File::Read(const char* fileName)
 	CacheProperties();
 }
 
-void MP4File::Create(const char* fileName, u_int32_t flags)
-{
-	        CreateEx( fileName, flags, NULL, 0, NULL, 0 );
-}
-
-void MP4File::CreateEx(const char* fileName, u_int32_t flags, 
-		       char* majorBrand, u_int32_t minorVersion, 
-		       char** supportedBrands, u_int32_t supportedBrandsCount)
+void MP4File::Create(const char* fileName, u_int32_t flags, 
+		     int add_ftyp, int add_iods, 
+		     char* majorBrand, u_int32_t minorVersion, 
+		     char** supportedBrands, u_int32_t supportedBrandsCount)
 {
 	m_fileName = MP4Stralloc(fileName);
 	m_mode = 'w';
@@ -99,15 +98,16 @@ void MP4File::CreateEx(const char* fileName, u_int32_t flags,
 	m_pRootAtom->SetFile(this);
 	m_pRootAtom->Generate();
 
-	if ((majorBrand != NULL) || (minorVersion != 0)) {
-		MakeFtypAtom(majorBrand, minorVersion, 
-			     supportedBrands, supportedBrandsCount);
+	if (add_ftyp != 0) {
+	  MakeFtypAtom(majorBrand, minorVersion, 
+		       supportedBrands, supportedBrandsCount);
 	}
 
 	CacheProperties();
 
 	// create mdat, and insert it after ftyp, and before moov
-	InsertChildAtom(m_pRootAtom, "mdat", 1);
+	InsertChildAtom(m_pRootAtom, "mdat", 
+			add_ftyp != 0 ? 1 : 0);
 
 	// start writing
 	m_pRootAtom->BeginWrite();
@@ -561,11 +561,10 @@ const char* MP4File::TempFileName()
 	// there are so many attempts in libc to get this right
 	// that for portablity reasons, it's best just to roll our own
 #ifndef _WIN32
-	static char tempFileName[64];
 	u_int32_t i;
 	for (i = getpid(); i < 0xFFFFFFFF; i++) {
-		sprintf(tempFileName, "./tmp%u.mp4", i);
-		if (access(tempFileName, F_OK) != 0) {
+		sprintf(m_tempFileName, "./tmp%u.mp4", i);
+		if (access(m_tempFileName, F_OK) != 0) {
 			break;
 		}
 	}
@@ -573,14 +572,13 @@ const char* MP4File::TempFileName()
 		throw new MP4Error("can't create temporary file", "TempFileName");
 	}
 #else
-	static char tempFileName[MAX_PATH + 3];
 	GetTempFileName(".", // dir. for temp. files 
 					"mp4",                // temp. filename prefix 
 					0,                    // create unique name 
-					tempFileName);        // buffer for name 
+					m_tempFileName);        // buffer for name 
 #endif
 
-	return tempFileName;
+	return m_tempFileName;
 }
 
 void MP4File::Rename(const char* oldFileName, const char* newFileName)
@@ -878,7 +876,7 @@ MP4TrackId MP4File::AddTrack(const char* type, u_int32_t timeScale)
 	pInteger32Property->SetValue(trackId);
 
 	// set track type
-	const char* normType = MP4Track::NormalizeTrackType(type);
+	const char* normType = MP4NormalizeTrackType(type, m_verbosity);
 
 	// sanity check for user defined types
 	if (strlen(normType) > 4) {
@@ -955,7 +953,7 @@ void MP4File::AddTrackToIod(MP4TrackId trackId)
 	}
 
 	for (u_int32_t i = 0; i < pDescriptorProperty->GetCount(); i++) {
-		static char name[32];
+	  /* static */char name[32];
 		snprintf(name, sizeof(name), "esIds[%u].id", i);
 
 		MP4Integer32Property* pIdProperty = NULL;
@@ -1079,7 +1077,7 @@ void MP4File::AddDataReference(MP4TrackId trackId, const char* url)
 
 MP4TrackId MP4File::AddSystemsTrack(const char* type)
 {
-	const char* normType = MP4Track::NormalizeTrackType(type); 
+	const char* normType = MP4NormalizeTrackType(type, m_verbosity); 
 
 	// TBD if user type, fix name to four chars, and warn
 
@@ -1147,22 +1145,6 @@ MP4TrackId MP4File::AddSceneTrack()
 	return trackId;
 }
 
-MP4Atom* MP4File::GetTrakDamrAtom(MP4TrackId trackId)
-{
-	MP4Atom* amrAtom;
-	u_int16_t trackIndex = FindTrackIndex(trackId);
-	MP4Track* pTrack = m_pTracks[trackIndex];
-	ASSERT(pTrack);
-	MP4Atom* pTrakAtom = pTrack->GetTrakAtom();
-	ASSERT(pTrakAtom);
-	if ((amrAtom = pTrakAtom->FindAtom("trak.mdia.minf.stbl.stsd.sawb.damr"))) {
-		return amrAtom;
-	}
-	else if ((amrAtom = pTrakAtom->FindAtom("trak.mdia.minf.stbl.stsd.samr.damr"))) {
-		return amrAtom;
-	}
-	return NULL;
-}
 // NULL terminated list of brands which require the IODS atom
 char *brandsWithIods[] = { "mp42",
                            "isom",
@@ -1174,7 +1156,7 @@ bool MP4File::ShallHaveIods()
         MP4StringProperty *pMajorBrandProperty;
 	
 	MP4Atom* ftypAtom = m_pRootAtom->FindAtom("ftyp");
-	ASSERT(ftypAtom);
+	if (ftypAtom == NULL) return false;
 	
         // Check the major brand
 	ftypAtom->FindProperty(
@@ -1218,66 +1200,33 @@ void MP4File::SetAmrVendor(
 		MP4TrackId trackId,
 		u_int32_t vendor)
 {
-	
-	MP4Atom* damrAtom = GetTrakDamrAtom(trackId);
-	
-	if (damrAtom == NULL)
-		return;
-	
-	MP4Integer32Property* pVendorProperty = NULL;
-	
-	damrAtom->FindProperty("damr.vendor",
-			(MP4Property**)&pVendorProperty,
-			NULL);
-	ASSERT(pVendorProperty);
-	
-	pVendorProperty->SetValue(vendor);
-	
-	damrAtom->Rewrite();
-	
+	SetTrackIntegerProperty(trackId, 
+				"mdia.minf.stbl.stsd.*.damr.vendor",
+				vendor);
 }
 
 void MP4File::SetAmrDecoderVersion(
 		MP4TrackId trackId,
 		u_int8_t decoderVersion)
 {
-	MP4Atom* damrAtom = GetTrakDamrAtom(trackId);
-	
-	if (damrAtom == NULL)
-		return;
-	
-	MP4Integer8Property* pDecoderVersionProperty;
-	
-	damrAtom->FindProperty("damr.decoderVersion",
-			(MP4Property**)&pDecoderVersionProperty,
-			NULL);
-	ASSERT(pDecoderVersionProperty);
-	
-	pDecoderVersionProperty->SetValue(decoderVersion);
-	
-	damrAtom->Rewrite();
+
+	SetTrackIntegerProperty(trackId, 
+				"mdia.minf.stbl.stsd.*.damr.decoderVersion",
+				decoderVersion);
 }
 
 void MP4File::SetAmrModeSet(
 		MP4TrackId trackId,
 		u_int16_t modeSet)
 {
-	MP4Atom* damrAtom = GetTrakDamrAtom(trackId);
-	
-	if (damrAtom == NULL)
-		return;
-	
-	MP4Integer16Property* pModeSetProperty;
-	
-	damrAtom->FindProperty("damr.modeSet",
-			(MP4Property**)&pModeSetProperty,
-			NULL);
-	ASSERT(pModeSetProperty);
-	
-	pModeSetProperty->SetValue(modeSet);
-	
-	damrAtom->Rewrite();
-	
+  SetTrackIntegerProperty(trackId, 
+			  "mdia.minf.stbl.stsd.*.damr.modeSet",
+			  modeSet);
+}
+uint16_t MP4File::GetAmrModeSet(MP4TrackId trackId)
+{
+  return GetTrackIntegerProperty(trackId, 
+				 "mdia.minf.stbl.stsd.*.damr.modeSet");
 }
 
 MP4TrackId MP4File::AddAmrAudioTrack(
@@ -1308,35 +1257,22 @@ MP4TrackId MP4File::AddAmrAudioTrack(
 			(MP4Property**)&pStsdCountProperty);
 	pStsdCountProperty->IncrementValue();
 	
-	if (isAmrWB) {
-		SetTrackIntegerProperty(trackId,
-			"mdia.minf.stbl.stsd.sawb.timeScale", timeScale);
+	SetTrackIntegerProperty(trackId,
+				"mdia.minf.stbl.stsd.*.timeScale", 
+				timeScale);
 	
 	SetTrackIntegerProperty(trackId,
-			"mdia.minf.stbl.stsd.sawb.damr.modeSet", modeSet);
+				"mdia.minf.stbl.stsd.*.damr.modeSet", 
+				modeSet);
 	
 	SetTrackIntegerProperty(trackId,
-			"mdia.minf.stbl.stsd.sawb.damr.modeChangePeriod", modeChangePeriod);
+				"mdia.minf.stbl.stsd.*.damr.modeChangePeriod", 
+				modeChangePeriod);
 	
 	SetTrackIntegerProperty(trackId,
-			"mdia.minf.stbl.stsd.sawb.damr.framesPerSample", framesPerSample);
+				"mdia.minf.stbl.stsd.*.damr.framesPerSample", 
+				framesPerSample);
 	
-	m_pTracks[FindTrackIndex(trackId)]->
-		SetFixedSampleDuration(fixedSampleDuration);
-	
-	} else {
-		SetTrackIntegerProperty(trackId,
-				"mdia.minf.stbl.stsd.samr.timeScale", timeScale);
-		
-		SetTrackIntegerProperty(trackId,
-				"mdia.minf.stbl.stsd.samr.damr.modeSet", modeSet);
-		
-		SetTrackIntegerProperty(trackId,
-				"mdia.minf.stbl.stsd.samr.damr.modeChangePeriod", modeChangePeriod);
-		
-		SetTrackIntegerProperty(trackId,
-				"mdia.minf.stbl.stsd.samr.damr.framesPerSample", framesPerSample);
-	}
 	
 	m_pTracks[FindTrackIndex(trackId)]->
 		SetFixedSampleDuration(fixedSampleDuration);
@@ -1489,12 +1425,13 @@ MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale,
   return trackId;
 }
 
-MP4TrackId MP4File::AddVideoTrack(
+
+MP4TrackId MP4File::AddVideoTrackDefault(
 	u_int32_t timeScale, 
 	MP4Duration sampleDuration, 
 	u_int16_t width, 
 	u_int16_t height, 
-	u_int8_t videoType)
+	const char *videoType)
 {
 	MP4TrackId trackId = AddTrack(MP4_VIDEO_TRACK_TYPE, timeScale);
 
@@ -1505,7 +1442,7 @@ MP4TrackId MP4File::AddVideoTrack(
 
 	InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd", 0);
 
-	AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4v");
+	AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), videoType);
 
 	// stsd is a unique beast in that it has a count of the number 
 	// of child atoms that needs to be incremented after we add the mp4v atom
@@ -1514,6 +1451,27 @@ MP4TrackId MP4File::AddVideoTrack(
 		MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
 		(MP4Property**)&pStsdCountProperty);
 	pStsdCountProperty->IncrementValue();
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsz.sampleSize", sampleDuration);
+
+	m_pTracks[FindTrackIndex(trackId)]->
+		SetFixedSampleDuration(sampleDuration);
+
+	return trackId;
+}
+MP4TrackId MP4File::AddMP4VideoTrack(
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration, 
+	u_int16_t width, 
+	u_int16_t height, 
+	u_int8_t videoType)
+{
+  MP4TrackId trackId = AddVideoTrackDefault(timeScale, 
+					    sampleDuration,
+					    width, 
+					    height,
+					    "mp4v");
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4v.width", width);
@@ -1539,12 +1497,6 @@ MP4TrackId MP4File::AddVideoTrack(
 		"mdia.minf.stbl.stsd.mp4v.esds.decConfigDescr.streamType", 
 		MP4VisualStreamType);
 
-	SetTrackIntegerProperty(trackId, 
-		"mdia.minf.stbl.stsz.sampleSize", sampleDuration);
-
-	m_pTracks[FindTrackIndex(trackId)]->
-		SetFixedSampleDuration(sampleDuration);
-
 	return trackId;
 }
 
@@ -1563,24 +1515,11 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
 {
   u_int32_t original_fmt = 0;
 
-  MP4TrackId trackId = AddTrack(MP4_VIDEO_TRACK_TYPE, timeScale);
-
-  AddTrackToOd(trackId);
-
-  SetTrackFloatProperty(trackId, "tkhd.width", width);
-  SetTrackFloatProperty(trackId, "tkhd.height", height);
-
-  InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd", 0);
-
-  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "encv");
-
-  // stsd is a unique beast in that it has a count of the number 
-  // of child atoms that needs to be incremented after we add the encv atom
-  MP4Integer32Property* pStsdCountProperty;
-  FindIntegerProperty(
-		      MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
-		      (MP4Property**)&pStsdCountProperty);
-  pStsdCountProperty->IncrementValue();
+  MP4TrackId trackId = AddVideoTrackDefault(timeScale, 
+					    sampleDuration,
+					    width,
+					    height,
+					    "encv");
 
   SetTrackIntegerProperty(trackId, 
 			  "mdia.minf.stbl.stsd.encv.width", width);
@@ -1589,7 +1528,7 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
 
   /* set all the ismacryp-specific values */
   // original format is mp4v
-  original_fmt = ('m'<<24 | 'p'<<16 | '4'<<8 | 'v');
+  original_fmt = ATOMID("mp4v");
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.encv.sinf.frma.data-format", 
 			  original_fmt);
@@ -1642,47 +1581,157 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
 		"mdia.minf.stbl.stsd.encv.esds.decConfigDescr.streamType", 
 			  MP4VisualStreamType);
 
-  SetTrackIntegerProperty(trackId, 
-			  "mdia.minf.stbl.stsz.sampleSize", sampleDuration);
-
-  m_pTracks[FindTrackIndex(trackId)]->
-    SetFixedSampleDuration(sampleDuration);
-
   return trackId;
+}
+
+MP4TrackId MP4File::AddH264VideoTrack(
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration, 
+	u_int16_t width, 
+	u_int16_t height, 
+	uint8_t AVCProfileIndication,
+	uint8_t profile_compat,
+	uint8_t AVCLevelIndication,
+	uint8_t sampleLenFieldSizeMinusOne)
+{
+  MP4TrackId trackId = AddVideoTrackDefault(timeScale, 
+					    sampleDuration,
+					    width, 
+					    height,
+					    "avc1");
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.avc1.width", width);
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.avc1.height", height);
+
+	/* shouldn't need this
+	AddChildAtom(MakeTrackName(trackId,
+				   "mdia.minf.stbl.stsd.avc1"),
+		     "avcC");
+	*/
+	SetTrackIntegerProperty(trackId,
+				"mdia.minf.stbl.stsd.avc1.avcC.AVCProfileIndication",
+				AVCProfileIndication);
+	SetTrackIntegerProperty(trackId,
+				"mdia.minf.stbl.stsd.avc1.avcC.profile_compatibility",
+				profile_compat);
+	SetTrackIntegerProperty(trackId,
+				"mdia.minf.stbl.stsd.avc1.avcC.AVCLevelIndication",
+				AVCLevelIndication);
+	SetTrackIntegerProperty(trackId,
+				"mdia.minf.stbl.stsd.avc1.avcC.lengthSizeMinusOne",
+				sampleLenFieldSizeMinusOne);
+	
+
+	return trackId;
+}
+
+bool MP4File::AddH264SequenceParameterSet (MP4TrackId trackId,
+					   uint8_t *pSequence,
+					   uint16_t sequenceLen)
+{
+  MP4Atom *avcCAtom = 
+    FindAtom(MakeTrackName(trackId,
+			   "mdia.minf.stbl.stsd.avc1.avcC"));
+  MP4BitfieldProperty *pCount;
+  MP4Integer16Property *pLength;
+  MP4BytesProperty *pUnit;
+  if ((avcCAtom->FindProperty("avcC.numOfSequenceParameterSets",
+			     (MP4Property **)&pCount) == false) ||
+      (avcCAtom->FindProperty("avcC.sequenceEntries.sequenceParameterSetLength",
+			      (MP4Property **)&pLength) == false) ||
+      (avcCAtom->FindProperty("avcC.sequenceEntries.sequenceParameterSetNALUnit",
+			      (MP4Property **)&pUnit) == false)) {
+    VERBOSE_ERROR(m_verbosity, WARNING("Could not find avcC properties"));
+    return false;
+  }
+  uint32_t count = pCount->GetValue();
+  
+  if (count > 0) {
+    // see if we already exist
+    for (uint32_t index = 0; index < count; index++) {
+      if (pLength->GetValue(index) == sequenceLen) {
+	uint8_t *seq;
+	uint32_t seqlen;
+	pUnit->GetValue(&seq, &seqlen, index);
+	if (memcmp(seq, pSequence, sequenceLen) == 0) {
+	  free(seq);
+	  return true;
+	}
+	free(seq);
+      }
+    }
+  }
+  pLength->AddValue(sequenceLen);
+  pUnit->AddValue(pSequence, sequenceLen);
+  pCount->IncrementValue();
+
+  return true;
+}
+bool MP4File::AddH264PictureParameterSet (MP4TrackId trackId,
+					   uint8_t *pPict,
+					   uint16_t pictLen)
+{
+  MP4Atom *avcCAtom = 
+    FindAtom(MakeTrackName(trackId,
+			   "mdia.minf.stbl.stsd.avc1.avcC"));
+  MP4Integer8Property *pCount;
+  MP4Integer16Property *pLength;
+  MP4BytesProperty *pUnit;
+  if ((avcCAtom->FindProperty("avcC.numOfPictureParameterSets",
+			     (MP4Property **)&pCount) == false) ||
+      (avcCAtom->FindProperty("avcC.pictureEntries.pictureParameterSetLength",
+			      (MP4Property **)&pLength) == false) ||
+      (avcCAtom->FindProperty("avcC.pictureEntries.pictureParameterSetNALUnit",
+			      (MP4Property **)&pUnit) == false)) {
+    VERBOSE_ERROR(m_verbosity, 
+		  WARNING("Could not find avcC picture table properties"));
+    return false;
+  }
+  uint32_t count = pCount->GetValue();
+  
+  if (count > 0) {
+    // see if we already exist
+    for (uint32_t index = 0; index < count; index++) {
+      if (pLength->GetValue(index) == pictLen) {
+	uint8_t *seq;
+	uint32_t seqlen;
+	pUnit->GetValue(&seq, &seqlen, index);
+	if (memcmp(seq, pPict, pictLen) == 0) {
+	  VERBOSE_WRITE(m_verbosity, 
+			fprintf(stderr, "picture matches %d\n", index));
+	  free(seq);
+	  return true;
+	}
+	free(seq);
+      }
+    }
+  }
+  pLength->AddValue(pictLen);
+  pUnit->AddValue(pPict, pictLen);
+  pCount->IncrementValue();
+  VERBOSE_WRITE(m_verbosity, 
+		fprintf(stderr, "new picture added %d\n", pCount->GetValue()));
+
+  return true;
 }
 void  MP4File::SetH263Vendor(
 		MP4TrackId trackId,
 		u_int32_t vendor)
 {
-	
-	MP4Atom* d263Atom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.s263.d263"));
-	
-	if (d263Atom == NULL)
-		return;
-
 	SetTrackIntegerProperty(trackId,
 			"mdia.minf.stbl.stsd.s263.d263.vendor",
 			vendor);
-
-	d263Atom->Rewrite();
-	
 }
 
 void MP4File::SetH263DecoderVersion(
 		MP4TrackId trackId,
 		u_int8_t decoderVersion)
 {
-	MP4Atom* d263Atom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.s263.d263"));
-	
-	if (d263Atom == NULL) {
-		return;
-	}
-	
 	SetTrackIntegerProperty(trackId,
 			"mdia.minf.stbl.stsd.s263.d263.decoderVersion",
 			decoderVersion);
-
-	d263Atom->Rewrite();
 }
 
 void MP4File::SetH263Bitrates(
@@ -1690,13 +1739,6 @@ void MP4File::SetH263Bitrates(
 	u_int32_t avgBitrate,
 	u_int32_t maxBitrate)
 {
-	MP4Atom* bitrAtom = FindAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd.s263.d263.bitr"));
-
-	if (bitrAtom == NULL) {
-		VERBOSE_ERROR(m_verbosity, WARNING("Could not find bitr atom!"));
-		return;
-	}
-
 	SetTrackIntegerProperty(trackId, 
 			"mdia.minf.stbl.stsd.s263.d263.bitr.avgBitrate", 
 			avgBitrate);
@@ -1704,8 +1746,6 @@ void MP4File::SetH263Bitrates(
 	SetTrackIntegerProperty(trackId,
 			"mdia.minf.stbl.stsd.s263.d263.bitr.maxBitrate",
 			maxBitrate);
-
-	bitrAtom->Rewrite();
 
 }
 
@@ -1720,24 +1760,11 @@ MP4TrackId MP4File::AddH263VideoTrack(
 		u_int32_t maxBitrate)
 
 {
-	MP4TrackId trackId = AddTrack(MP4_VIDEO_TRACK_TYPE, timeScale);
-	
-	AddTrackToOd(trackId);
-	
-	SetTrackFloatProperty(trackId, "tkhd.width", width);
-	SetTrackFloatProperty(trackId, "tkhd.height", height);
-	
-	InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd", 0);
-	
-	AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "s263");
-	
-	// stsd is a unique beast in that it has a count of the number
-	// of child atoms that needs to be incremented after we add the mp4v atom
-	MP4Integer32Property* pStsdCountProperty;
-	FindIntegerProperty(
-			MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
-			(MP4Property**)&pStsdCountProperty);
-	pStsdCountProperty->IncrementValue();
+  MP4TrackId trackId = AddVideoTrackDefault(timeScale, 
+					    sampleDuration,
+					    width,
+					    height,
+					    "s263");
 	
 	SetTrackIntegerProperty(trackId,
 			"mdia.minf.stbl.stsd.s263.width", width);
@@ -1763,9 +1790,6 @@ MP4TrackId MP4File::AddH263VideoTrack(
 	
 	SetTrackIntegerProperty(trackId,
 			"mdia.minf.stbl.stsz.sampleSize", sampleDuration);
-	
-	m_pTracks[FindTrackIndex(trackId)]->
-		SetFixedSampleDuration(sampleDuration);
 	
 	return trackId;
 
@@ -1844,7 +1868,7 @@ u_int32_t MP4File::GetNumberOfTracks(const char* type, u_int8_t subType)
 	} 
 
 	u_int32_t typeSeen = 0;
-	const char* normType = MP4Track::NormalizeTrackType(type);
+	const char* normType = MP4NormalizeTrackType(type, m_verbosity);
 
 	for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
 		if (!strcmp(normType, m_pTracks[i]->GetType())) {
@@ -1911,7 +1935,7 @@ MP4TrackId MP4File::FindTrackId(u_int16_t trackIndex,
   } 
 
   u_int32_t typeSeen = 0;
-  const char* normType = MP4Track::NormalizeTrackType(type);
+  const char* normType = MP4NormalizeTrackType(type, m_verbosity);
 
   for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
     if (!strcmp(normType, m_pTracks[i]->GetType())) {
@@ -2053,15 +2077,14 @@ char* MP4File::MakeTrackName(MP4TrackId trackId, const char* name)
 {
 	u_int16_t trakIndex = FindTrakAtomIndex(trackId);
 
-	static char trakName[1024];
 	if (name == NULL || name[0] == '\0') {
-		snprintf(trakName, sizeof(trakName), 
+		snprintf(m_trakName, sizeof(m_trakName), 
 			"moov.trak[%u]", trakIndex);
 	} else {
-		snprintf(trakName, sizeof(trakName), 
+		snprintf(m_trakName, sizeof(m_trakName), 
 			"moov.trak[%u].%s", trakIndex, name);
 	}
-	return trakName;
+	return m_trakName;
 }
 
 u_int64_t MP4File::GetTrackIntegerProperty(MP4TrackId trackId, const char* name)
@@ -2230,6 +2253,22 @@ const char* MP4File::GetTrackType(MP4TrackId trackId)
 	return m_pTracks[FindTrackIndex(trackId)]->GetType();
 }
 
+const char *MP4File::GetTrackMediaDataName (MP4TrackId trackId)
+{
+  MP4Atom *pChild;
+  MP4Atom *pAtom = 
+    FindAtom(MakeTrackName(trackId, 
+			   "mdia.minf.stbl.stsd"));
+  if (pAtom->GetNumberOfChildAtoms() != 1) {
+    VERBOSE_ERROR(m_verbosity, 
+		  fprintf(stderr, "track %d has more than 1 child atoms in stsd\n", trackId));
+    return NULL;
+  }
+  pChild = pAtom->GetChildAtom(0);
+  return pChild->GetType();
+}
+	     
+
 u_int32_t MP4File::GetTrackTimeScale(MP4TrackId trackId)
 {
 	return m_pTracks[FindTrackIndex(trackId)]->GetTimeScale();
@@ -2246,13 +2285,6 @@ void MP4File::SetTrackTimeScale(MP4TrackId trackId, u_int32_t value)
 MP4Duration MP4File::GetTrackDuration(MP4TrackId trackId)
 {
 	return GetTrackIntegerProperty(trackId, "mdia.mdhd.duration");
-}
-
-// now GetTrackEsdsObjectTypeId 
-u_int8_t MP4File::GetTrackAudioType(MP4TrackId trackId)
-{
-        return GetTrackIntegerProperty(trackId,
-                "mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.objectTypeId");
 }
 
 u_int8_t MP4File::GetTrackEsdsObjectTypeId(MP4TrackId trackId)
@@ -2288,12 +2320,6 @@ u_int8_t MP4File::GetTrackAudioMpeg4Type(MP4TrackId trackId)
 	return mpeg4Type;
 }
 
-// replaced with GetTrackEsdsObjectTypeId
-u_int8_t MP4File::GetTrackVideoType(MP4TrackId trackId)
-{
-	return GetTrackIntegerProperty(trackId, 
-		"mdia.minf.stbl.stsd.mp4v.esds.decConfigDescr.objectTypeId");
-}
 
 MP4Duration MP4File::GetTrackFixedSampleDuration(MP4TrackId trackId)
 {
@@ -2316,6 +2342,12 @@ float MP4File::GetTrackVideoFrameRate(MP4TrackId trackId)
 	return ((double)numSamples / UINT64_TO_DOUBLE(msDuration)) * MP4_MSECS_TIME_SCALE;
 }
 
+int MP4File::GetTrackAudioChannels (MP4TrackId trackId)
+{
+  return GetTrackIntegerProperty(trackId, 
+				 "mdia.minf.stbl.stsd.*[0].channels");
+}
+
 // true if media track encrypted according to ismacryp
 bool MP4File::IsIsmaCrypMediaTrack(MP4TrackId trackId)
 {
@@ -2333,6 +2365,14 @@ void MP4File::GetTrackESConfiguration(MP4TrackId trackId,
 {
 	GetTrackBytesProperty(trackId, 
 		"mdia.minf.stbl.stsd.*[0].esds.decConfigDescr.decSpecificInfo[0].info",
+		ppConfig, pConfigSize);
+}
+
+void MP4File::GetTrackVideoMetadata(MP4TrackId trackId, 
+	u_int8_t** ppConfig, u_int32_t* pConfigSize)
+{
+	GetTrackBytesProperty(trackId, 
+		"mdia.minf.stbl.stsd.*[0].*.metadata",
 		ppConfig, pConfigSize);
 }
 
@@ -2371,6 +2411,90 @@ void MP4File::SetTrackESConfiguration(MP4TrackId trackId,
 	// set the value
 	pInfoProperty->SetValue(pConfig, configSize);
 }
+
+void MP4File::GetTrackH264ProfileLevel (MP4TrackId trackId, 
+					uint8_t *pProfile, 
+					uint8_t *pLevel)
+{
+  *pProfile = 
+    GetTrackIntegerProperty(trackId, 
+			    "mdia.minf.stbl.stsd.*[0].avcC.AVCProfileIndication");
+  *pLevel = 
+    GetTrackIntegerProperty(trackId, 
+			    "mdia.minf.stbl.stsd.*[0].avcC.AVCLevelIndication");
+}
+void MP4File::GetTrackH264LengthSize (MP4TrackId trackId, 
+				      uint32_t *pLength)
+{
+  *pLength = 1 + 
+    GetTrackIntegerProperty(trackId, 
+			    "mdia.minf.stbl.stsd.*[0].avcC.lengthSizeMinusOne");
+}
+
+bool MP4File::GetTrackH264SeqPictHeaders (MP4TrackId trackId,
+					  uint8_t ***pppSeqHeader,
+					  uint32_t **ppSeqHeaderSize,
+					  uint8_t ***pppPictHeader,
+					  uint32_t **ppPictHeaderSize)
+{
+  uint32_t count;
+
+  MP4Atom *avcCAtom = 
+    FindAtom(MakeTrackName(trackId, 
+			   "mdia.minf.stbl.stsd.avc1.avcC"));
+  MP4BitfieldProperty *pSeqCount;
+  MP4IntegerProperty *pSeqLen, *pPictCount, *pPictLen;
+  MP4BytesProperty *pSeqVal, *pPictVal;
+  if ((avcCAtom->FindProperty("avcC.numOfSequenceParameterSets",
+			     (MP4Property **)&pSeqCount) == false) ||
+      (avcCAtom->FindProperty("avcC.sequenceEntries.sequenceParameterSetLength",
+			      (MP4Property **)&pSeqLen) == false) ||
+      (avcCAtom->FindProperty("avcC.sequenceEntries.sequenceParameterSetNALUnit",
+			      (MP4Property **)&pSeqVal) == false)) {
+    VERBOSE_ERROR(m_verbosity, WARNING("Could not find avcC properties"));
+    return false;
+  }
+  uint8_t **ppSeqHeader =
+    (uint8_t **)malloc((pSeqCount->GetValue() + 1) * sizeof(uint8_t *));
+  *pppSeqHeader = ppSeqHeader;
+
+  uint32_t *pSeqHeaderSize = 
+    (uint32_t *)malloc((pSeqCount->GetValue() + 1) * sizeof(uint32_t *));
+
+  *ppSeqHeaderSize = pSeqHeaderSize;
+  for (count = 0; count < pSeqCount->GetValue(); count++) {
+    pSeqVal->GetValue(&(ppSeqHeader[count]), &(pSeqHeaderSize[count]));
+  }
+  ppSeqHeader[count] = NULL;
+  pSeqHeaderSize[count] = 0;
+
+  if ((avcCAtom->FindProperty("avcC.numOfPictureParameterSets",
+			     (MP4Property **)&pPictCount) == false) ||
+      (avcCAtom->FindProperty("avcC.pictureEntries.pictureParameterSetLength",
+			      (MP4Property **)&pPictLen) == false) ||
+      (avcCAtom->FindProperty("avcC.pictureEntries.pictureParameterSetNALUnit",
+			      (MP4Property **)&pPictVal) == false)) {
+    VERBOSE_ERROR(m_verbosity, 
+		  WARNING("Could not find avcC picture table properties"));
+    return false;
+  }
+  uint8_t 
+  **ppPictHeader = 
+    (uint8_t **)malloc((pPictCount->GetValue() + 1) * sizeof(uint8_t *));
+  uint32_t *pPictHeaderSize = 
+    (uint32_t *)malloc((pPictCount->GetValue() + 1)* sizeof(uint32_t *));
+  *pppPictHeader = ppPictHeader;
+  *ppPictHeaderSize = pPictHeaderSize;
+
+  for (count = 0; count < pPictCount->GetValue(); count++) {
+    pPictVal->GetValue(&(ppPictHeader[count]), &(pPictHeaderSize[count]));
+  }
+  ppPictHeader[count] = NULL;
+  pPictHeaderSize[count] = 0;
+  return true;
+}
+
+
 
 const char* MP4File::GetHintTrackSdp(MP4TrackId hintTrackId)
 {
@@ -2772,11 +2896,14 @@ char* MP4File::MakeTrackEditName(
 {
 	char* trakName = MakeTrackName(trackId, NULL);
 
-	static char editName[1024];
-	snprintf(editName, sizeof(editName), 
+	if (m_editName == NULL) {
+	  m_editName = (char *)malloc(1024);
+	  if (m_editName == NULL) return NULL;
+	}
+	snprintf(m_editName, 1024,
 		"%s.edts.elst.entries[%u].%s", 
 		trakName, editId - 1, name);
-	return editName;
+	return m_editName;
 }
 
 MP4EditId MP4File::AddTrackEdit(

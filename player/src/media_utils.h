@@ -26,6 +26,7 @@
 
 typedef struct video_query_t {
   uint32_t track_id;
+  const char *stream_type;
   const char *compressor;
   int type;
   int profile;
@@ -42,6 +43,7 @@ typedef struct video_query_t {
 
 typedef struct audio_query_t {
   uint32_t track_id;
+  const char *stream_type;
   const char *compressor;
   int type;
   int profile;

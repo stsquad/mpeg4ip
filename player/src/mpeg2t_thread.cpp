@@ -102,14 +102,50 @@ static uint32_t mpeg2t_decode_buffer (mpeg2t_client_t *info,
 		}
 	      }
 	    } else {
-	      uint32_t msec;
+	      uint32_t msec = 0;
 	      if (sptr->m_is_video) {
-		// use the video values for buffering
-		double msec_in_list;
-		msec_in_list = es_pid->frames_in_list;
-		msec_in_list *= 1000.0;
-		msec_in_list /= es_pid->frame_rate;
-		msec = (int)msec_in_list;
+		if (es_pid->stream_type != MPEG2T_STREAM_H264) {
+		  // use the video values for buffering
+		  double msec_in_list;
+		  msec_in_list = es_pid->frames_in_list;
+		  msec_in_list *= 1000.0;
+		  msec_in_list /= es_pid->frame_rate;
+		  msec = (int)msec_in_list;
+		} else {
+		  mpeg2t_frame_t *fptr = es_pid->list;
+		  while (fptr != NULL && 
+			 (fptr->have_ps_ts == 0 &&
+			  fptr->have_dts == 0)) fptr = fptr->next_frame;
+		  if (fptr != NULL) {
+		    mpeg2t_frame_t *eptr = fptr;
+		    while (eptr->next_frame != NULL) eptr = eptr->next_frame;
+		    if (fptr != eptr &&
+			(eptr->have_ps_ts != 0 || 
+			 eptr->have_dts != 0)) {
+		      uint64_t start, end;
+		      start = fptr->have_dts ? fptr->dts : fptr->ps_ts;
+		      end = eptr->have_dts ? eptr->dts : eptr->ps_ts;
+		      if (end > start) {
+			end -= start;
+			end *= 1000;
+			end /= 90000;
+			msec = end;
+		      }
+#if 0
+		      mpeg2t_message(LOG_DEBUG, "start "U64" end "U64" msec %u",
+				     start, end, msec);
+#endif
+		    } else {
+#if 0
+		      mpeg2t_message(LOG_INFO, "no end dts or pts");
+#endif
+		    }
+		  } else {
+#if 0
+		    mpeg2t_message(LOG_INFO, "no dts or pts");
+#endif
+		  }
+		}
 	      } else {
 		// use the audio values for buffering
 		msec = es_pid->frames_in_list;
@@ -557,7 +593,8 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
       vinfo = MALLOC_STRUCTURE(video_info_t);
       vinfo->height = vq[ix].h;
       vinfo->width = vq[ix].w;
-      plugin = check_for_video_codec("MPEG2 TRANSPORT",
+      plugin = check_for_video_codec(STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+				     NULL,
 				     NULL,
 				     vq[ix].type,
 				     vq[ix].profile,
@@ -565,7 +602,8 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
 				     vq[ix].config_len);
 
       int ret = mptr->create_video_plugin(plugin, 
-					  "MPEG2 TRANSPORT",
+					  STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+					  NULL,
 					  vq[ix].type,
 					  vq[ix].profile,
 					  NULL, // sdp info
@@ -653,7 +691,8 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
       ainfo->freq = aq[ix].sampling_freq;
       ainfo->chans = aq[ix].chans;
       ainfo->bitspersample = 0;
-      plugin = check_for_audio_codec("MPEG2 TRANSPORT",
+      plugin = check_for_audio_codec(STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+				     NULL,
 				     NULL,
 				     aq[ix].type,
 				     aq[ix].profile,
@@ -661,7 +700,8 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
 				     aq[ix].config_len);
 
       int ret = mptr->create_audio_plugin(plugin, 
-					  "MPEG2 TRANSPORT",
+					  STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+					  NULL,
 					  aq[ix].type,
 					  aq[ix].profile,
 					  NULL, // sdp info
@@ -879,6 +919,7 @@ void mpeg2t_check_streams (video_query_t **pvq,
       case MPEG2T_ST_MPEG_VIDEO:
       case MPEG2T_ST_MPEG4_VIDEO:
       case MPEG2T_ST_11172_VIDEO:
+      case MPEG2T_ST_H264_VIDEO:
 	video_count++;
 	if (es_pid->info_loaded) video_info_count++;
 	break;
@@ -939,9 +980,10 @@ void mpeg2t_check_streams (video_query_t **pvq,
       break;
     case MPEG2T_ES_PAK:
       es_pid = (mpeg2t_es_t *)pid_ptr;
-      if (es_pid->is_video) {
+      if (es_pid->is_video > 0) {
 	if (vid_cnt < video_count) {
-	  plugin = check_for_video_codec("MPEG2 TRANSPORT",
+	  plugin = check_for_video_codec(STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+					 NULL,
 					 NULL,
 					 es_pid->stream_type,
 					 -1,
@@ -954,7 +996,8 @@ void mpeg2t_check_streams (video_query_t **pvq,
 	    mpeg2t_message(LOG_ERR, "%s", errmsg);
 	  } else {
 	    vq[vid_cnt].track_id = pid_ptr->pid;
-	    vq[vid_cnt].compressor = "MPEG2 TRANSPORT";
+	    vq[vid_cnt].stream_type = STREAM_TYPE_MPEG2_TRANSPORT_STREAM;
+	    vq[vid_cnt].compressor = NULL;
 	    vq[vid_cnt].type = es_pid->stream_type;
 	    vq[vid_cnt].profile = -1;
 	    vq[vid_cnt].fptr = NULL;
@@ -972,6 +1015,8 @@ void mpeg2t_check_streams (video_query_t **pvq,
 	    }
 	    vq[vid_cnt].config = es_pid->es_data;
 	    vq[vid_cnt].config_len = es_pid->es_info_len;
+	    es_pid->es_data = NULL;
+	    es_pid->es_info_len = 0;
 	    vq[vid_cnt].enabled = 0;
 	    vq[vid_cnt].reference = NULL;
 	    vid_cnt++;
@@ -979,7 +1024,8 @@ void mpeg2t_check_streams (video_query_t **pvq,
 	}
       } else {
 	if (aud_cnt < audio_count) {
-	  plugin = check_for_audio_codec("MPEG2 TRANSPORT",
+	  plugin = check_for_audio_codec(STREAM_TYPE_MPEG2_TRANSPORT_STREAM,
+					 NULL,
 					 NULL,
 					 es_pid->stream_type,
 					 -1,
@@ -992,12 +1038,15 @@ void mpeg2t_check_streams (video_query_t **pvq,
 	    mpeg2t_message(LOG_ERR, "%s", errmsg);
 	  } else {
 	    aq[aud_cnt].track_id = pid_ptr->pid;
-	    aq[aud_cnt].compressor = "MPEG2 TRANSPORT";
+	    aq[aud_cnt].stream_type = STREAM_TYPE_MPEG2_TRANSPORT_STREAM;
+	    aq[aud_cnt].compressor = NULL;
 	    aq[aud_cnt].type = es_pid->stream_type;
 	    aq[aud_cnt].profile = -1;
 	    aq[aud_cnt].fptr = NULL;
 	    aq[aud_cnt].config = es_pid->es_data;
 	    aq[aud_cnt].config_len = es_pid->es_info_len;
+	    es_pid->es_data = NULL;
+	    es_pid->es_info_len = 0;
 	    if (es_pid->info_loaded != 0) {
 	      aq[aud_cnt].chans = es_pid->audio_chans;
 	      aq[aud_cnt].sampling_freq = es_pid->sample_freq;

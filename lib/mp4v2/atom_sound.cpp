@@ -3,49 +3,59 @@
  * License Version 1.1 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of
  * the License at http://www.mozilla.org/MPL/
- *
+ * 
  * Software distributed under the License is distributed on an "AS
  * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
  * implied. See the License for the specific language governing
  * rights and limitations under the License.
- *
+ * 
  * The Original Code is MPEG4IP.
- *
+ * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
- *
- * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
- * and was contributed by Ximpo Group Ltd.
- *
- * Portions created by Ximpo Group Ltd. are
- * Copyright (C) Ximpo Group Ltd. 2003, 2004.  All Rights Reserved.
- *
- * Contributor(s):
- *              Ximpo Group Ltd.          mp4v2@ximpo.com
+ * Copyright (C) Cisco Systems Inc. 2004.  All Rights Reserved.
+ * 
+ * Contributor(s): 
+ *		Bill May		wmay@cisco.com
  */
 
 #include "mp4common.h"
 
-MP4SamrAtom::MP4SamrAtom() 
-	: MP4Atom("samr") 
+MP4SoundAtom::MP4SoundAtom(const char *atomid) 
+	: MP4Atom(atomid) 
 {
 	AddReserved("reserved1", 6); /* 0 */
 
 	AddProperty( /* 1 */
 		new MP4Integer16Property("dataReferenceIndex"));
-
-	AddReserved("reserved2", 16); /* 2 */
-
-	AddProperty( /* 3 */
-		new MP4Integer16Property("timeScale"));
-
-	AddReserved("reserved3", 2); /* 4 */
-
-	ExpectChildAtom("damr", Required, OnlyOne);
+	AddProperty( /* 2 */
+		    new MP4Integer16Property("soundVersion"));
+	AddReserved( "reserved2", 6); /* 3 */
+	
+	AddProperty( /* 4 */
+		    new MP4Integer16Property("channels"));
+	AddProperty( /* 5 */
+		    new MP4Integer16Property("sampleSize"));
+	AddProperty( /* 6 */
+		    new MP4Integer16Property("packetSize"));
+	AddProperty( /* 7 */
+		    new MP4Integer32Property("timeScale"));
 }
 
-void MP4SamrAtom::Generate()
+void MP4SoundAtom::AddProperties (uint8_t version)
+{
+  if (version > 0) {
+    AddProperty( /* 8 */
+		new MP4Integer32Property("samplesPerPacket"));
+    AddProperty( /* 9 */
+		new MP4Integer32Property("bytesPerPacket"));
+    AddProperty( /* 10 */
+		new MP4Integer32Property("bytesPerFrame"));
+    AddProperty( /* 11 */
+		new MP4Integer32Property("bytesPerSample"));
+  }
+}
+void MP4SoundAtom::Generate()
 {
 	MP4Atom::Generate();
 
@@ -62,4 +72,11 @@ void MP4SamrAtom::Generate()
 	((MP4BytesProperty*)m_pProperties[2])->
 		SetValue(reserved2, sizeof(reserved2));
 	m_pProperties[2]->SetReadOnly(true);
+}
+
+void MP4SoundAtom::Read()
+{
+  ReadProperties(0, 3); // read first 3 properties
+  AddProperties(((MP4IntegerProperty *)m_pProperties[2])->GetValue());
+  ReadProperties(3); // continue
 }

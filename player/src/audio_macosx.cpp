@@ -128,13 +128,13 @@ CSDLAudioSync::~CSDLAudioSync (void)
 /*
  * codec api - set up information about the stream
  */
-void CSDLAudioSync::set_config (int freq, 
+uint32_t CSDLAudioSync::set_config (int freq, 
 			     int channels, 
 			     audio_format_t format, 
 			     uint32_t sample_size) 
 {
   if (m_config_set != 0) 
-    return;
+    return 0;
   
   audio_message(LOG_DEBUG, "configure audio freq %d chan %d format %d",
 			freq, channels, format);
@@ -184,6 +184,7 @@ void CSDLAudioSync::set_config (int freq,
   m_msec_per_frame = (sample_size * 1000) / m_freq;
   audio_message(LOG_DEBUG, "buffer size %d msec per frame %d", 
 		m_buffer_size, m_msec_per_frame);
+  return m_buffer_size;
 };
 
 /*

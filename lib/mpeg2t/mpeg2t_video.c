@@ -25,6 +25,7 @@
 #include "mpeg2_transport.h"
 #include "mpeg2t_private.h"
 #include "mp4av.h"
+#include "mp4av_h264.h"
 
 #define MPEG3_SEQUENCE_START_CODE        0x000001b3
 #define MPEG3_PICTURE_START_CODE         0x00000100
@@ -142,6 +143,7 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	    es_pid->header == MPEG3_SEQUENCE_END_CODE) {
 	  // last frame code should be 0 to finish off picture code.
 	  es_pid->work->frame[es_pid->work_loaded - 1] = 0;
+	  es_pid->work->seq_header_offset = es_pid->seq_header_offset;
 	  framesfinished = 1;
 	  if (es_pid->info_loaded == 0 && es_pid->have_seq_header) {
 	    uint32_t h, w;
@@ -177,6 +179,7 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	  mpeg2t_finished_es_work(es_pid, es_pid->work_loaded);
 
 	  es_pid->have_seq_header = 0;
+	  es_pid->seq_header_offset = 0;
 	  mpeg2t_malloc_es_work(es_pid, es_pid->work_max_size);
 	  if (es_pid->work != NULL) {
 	    // Put the header we just found at the start of the frame,
@@ -222,4 +225,195 @@ int mpeg2t_mpeg_video_info (mpeg2t_es_t *es_pid, char *buffer, size_t len)
     snprintf(buffer + offset, len - offset, ", %d kbps", rate);
   }
   return 0;
+}
+
+
+
+int mpeg2t_h264_video_info (mpeg2t_es_t *es_pid, char *buffer, size_t len)
+{
+  int rate, offset;
+  if (es_pid->info_loaded == 0) return -1;
+  offset = snprintf(buffer, len, "H.264 Video, %d x %d",
+		    es_pid->w, es_pid->h);
+  if (es_pid->bitrate > 0.0) {
+    rate = es_pid->bitrate / 1000;
+    snprintf(buffer + offset, len - offset, ", %d kbps", rate);
+  }
+  return 0;
+}
+
+int process_mpeg2t_h264_video (mpeg2t_es_t *es_pid, 
+			       const uint8_t *esptr, 
+			       uint32_t buflen)
+{
+
+  int have_header = 0;
+  uint8_t nal_value = 0;
+  int framesfinished = 0;
+  mpeg2t_message(LOG_DEBUG, "enter h264 process");
+#if 0
+  if (es_pid->peshdr_loaded != 0 && ((es_pid->stream_id & 0xf0) != 0xe0)) {
+    mpeg2t_message(LOG_ERR, "Video stream PID %x with bad stream_id %x", 
+		   es_pid->pid.pid,
+		   es_pid->stream_id);
+    return 0;
+  }
+#endif
+  // note - one thing that we're not handling correctly is the
+  // extra 0 byte before the access header.  That's okay for now, but
+  // may run into problems later.
+  while (buflen > 0) {
+    es_pid->header <<= 8;
+    es_pid->header |= *esptr;
+    have_header = 0;
+    if ((es_pid->header & 0xffffff00) == 0x00000100) {
+      have_header = 1;
+      nal_value = es_pid->header & 0x1f;
+      mpeg2t_message(LOG_DEBUG, "header %x %x %d", es_pid->header, nal_value,
+		     es_pid->work_state);
+    }
+
+    if (es_pid->work_state == 0) {
+      /*
+       * Work state 0 - looking for access unit header
+       */
+      if (have_header != 0 && nal_value == H264_NAL_TYPE_ACCESS_UNIT) {
+	// have first header.
+	if (es_pid->work_max_size < 4096) es_pid->work_max_size = 4096;
+
+	// always do this in state 0 to get the psts at the start
+	mpeg2t_malloc_es_work(es_pid, es_pid->work_max_size);
+	if (es_pid->work == NULL) return framesfinished;
+
+	// Store header
+	es_pid->work->flags = 0;
+	es_pid->work->frame[0] = 0;
+	es_pid->work->frame[1] = 0;
+	es_pid->work->frame[2] = 1;
+	es_pid->work->frame[3] = *esptr;
+	es_pid->work_loaded = 4;
+	es_pid->work_state = 2;
+#if 1
+	mpeg2t_message(LOG_DEBUG, "video - state 0 header %x state %d\n", es_pid->header, 
+	       es_pid->work_state);
+#endif
+      }
+    } else {
+      /*
+       * All other work states - load the current byte into the
+       * buffer - reallocate buffer if needed
+       */
+
+      if (es_pid->work_loaded >= es_pid->work_max_size - 5) {
+	uint8_t *frameptr;
+	es_pid->work_max_size += 1024;
+	frameptr = 
+	  (uint8_t *)realloc(es_pid->work,
+			     sizeof(mpeg2t_frame_t) + 
+			     es_pid->work_max_size);
+
+	if (frameptr == NULL) {
+	  es_pid->work = NULL;
+	  es_pid->work_state = 0;
+	  es_pid->header = 0;
+	  buflen--;
+	  esptr++;
+	  break;
+	} else {
+	  es_pid->work = (mpeg2t_frame_t *)frameptr;
+	  frameptr += sizeof(mpeg2t_frame_t);
+	  es_pid->work->frame = frameptr;
+	}
+      }
+	
+      es_pid->work->frame[es_pid->work_loaded] = *esptr;
+      es_pid->work_loaded++;
+
+
+      if (have_header != 0) {
+	if (h264_nal_unit_type_is_slice(nal_value)) {
+	  if ((es_pid->work->flags & HAVE_PICT_HEADER) == 0) {
+	    es_pid->work->pict_header_offset = es_pid->work_loaded - 4;
+	    es_pid->work->flags |= HAVE_PICT_HEADER;
+	  }
+	} else {
+	  switch (nal_value) {
+	  case H264_NAL_TYPE_ACCESS_UNIT:
+	    es_pid->work->frame[es_pid->work_loaded - 1] = 0;
+	    framesfinished = 1;
+	    if (es_pid->info_loaded == 0) {
+	      // look to fill in es_pid information such as frame rate, etc
+	      if ((es_pid->work->flags & (HAVE_SEQ_HEADER | HAVE_PIC_PARAM_HEADER)) == 
+		  (HAVE_SEQ_HEADER | HAVE_PIC_PARAM_HEADER)) {
+		h264_decode_t dec;
+		memset(&dec, 0, sizeof(dec));
+		if (h264_read_seq_info(es_pid->work->frame + es_pid->work->seq_header_offset,
+				       es_pid->work_loaded - es_pid->work->seq_header_offset,
+				       &dec) == 0) {
+		  es_pid->info_loaded = 1;
+		  es_pid->h = dec.pic_height;
+		  es_pid->w = dec.pic_width;
+		  // don't have timing info yet.
+		  //es_pid->bitrate = bitrate;
+		  //es_pid->frame_rate = frame_rate;
+		  //es_pid->tick_per_frame = (uint32_t)(90000.0 / frame_rate);
+		  //es_pid->mpeg_layer = have_mpeg2 ? 2 : 1;
+		}
+	      }
+	    }
+
+	    // store the frame type so we can figure out the timestamps
+	    // we don't know how the pts and dts will work, so assume we'll
+	    // have the values.
+#if 0
+	    es_pid->work->frame_type = 
+	      MP4AV_Mpeg3PictHdrType(es_pid->work->frame + 
+				     es_pid->pict_header_offset);
+#endif
+
+
+	    // xxx hack for temporary
+	    es_pid->work->frame_type = 1;
+	    //printf("hi %d\n", es_pid->work->frame_type);
+
+	    mpeg2t_message(LOG_DEBUG, "finished work %d", es_pid->work_loaded);
+	    // -4 might have to be -5 in the case of zero byte
+	    mpeg2t_finished_es_work(es_pid, es_pid->work_loaded - 4);
+
+	    es_pid->have_seq_header = 0;
+	    mpeg2t_malloc_es_work(es_pid, es_pid->work_max_size);
+	    if (es_pid->work != NULL) {
+	      // Put the header we just found at the start of the frame,
+	      // then set the work state accordingly.
+	      es_pid->work->frame[0] = 0;
+	      es_pid->work->frame[1] = 0;
+	      es_pid->work->frame[2] = 1;
+	      es_pid->work->frame[3] = *esptr;
+	      es_pid->work_loaded = 4;
+	      es_pid->work->flags = 0;
+	      es_pid->work_state = 2;
+	    } else {
+	      es_pid->work_state = 0;
+	      es_pid->header = 0;
+	      return framesfinished;
+	    }
+	    break;
+	  case H264_NAL_TYPE_SEQ_PARAM:
+	    es_pid->work->seq_header_offset = es_pid->work_loaded - 4;
+	    es_pid->work->flags |= HAVE_SEQ_HEADER;
+	    break;
+	  case H264_NAL_TYPE_PIC_PARAM:
+	    es_pid->work->nal_pic_param_offset = es_pid->work_loaded - 4;
+	    es_pid->work->flags |= HAVE_PIC_PARAM_HEADER;
+	    break;
+	  
+	  }
+	}
+      }
+    }
+    esptr++;
+    buflen--;
+  }
+  return framesfinished;
+
 }

@@ -29,7 +29,8 @@
 /*
  * Create CMP3Codec class
  */
-static codec_data_t *mp3_codec_create (const char *compressor, 
+static codec_data_t *mp3_codec_create (const char *stream_type,
+				       const char *compressor, 
 				       int type, 
 				       int profile, 
 				       format_list_t *media_fmt,
@@ -214,6 +215,7 @@ static const char *mp3_compressors[] = {
 };
 
 static int mp3_codec_check (lib_message_func_t message,
+			    const char *stream_type,
 			    const char *compressor,
 			    int audio_type,
 			    int profile,
@@ -222,8 +224,7 @@ static int mp3_codec_check (lib_message_func_t message,
 			    uint32_t userdata_size,
 			    CConfigSet *pConfig)
 {
-  if (compressor != NULL && 
-      (strcasecmp(compressor, "MP4 FILE") == 0) &&
+  if ((strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) &&
       (audio_type != -1)) {
     switch (audio_type) {
     case MP4_MPEG1_AUDIO_TYPE:
@@ -233,23 +234,23 @@ static int mp3_codec_check (lib_message_func_t message,
       return -1;
     }
   }
-  if (compressor != NULL) {
-    if ((strcasecmp(compressor, "AVI FILE") == 0) &&
-	(audio_type == 85)) {
-      return 1;
-    }
-    if ((strcasecmp(compressor, "MPEG FILE") == 0) &&
+  if ((strcasecmp(stream_type, STREAM_TYPE_AVI_FILE) == 0) &&
+      (audio_type == 85)) {
+    return 1;
+  }
+  if ((strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) &&
 	(audio_type == 1)) { // AUDIO_MPEG def from libmpeg3
       return 1;
-    }
-    if ((strcasecmp(compressor, "MPEG2 TRANSPORT") == 0) &&
-	((audio_type == MPEG2T_ST_MPEG_AUDIO) ||
-	 (audio_type == MPEG2T_ST_11172_AUDIO))) {
-      return 1;
-    }
   }
 
-  if (fptr != NULL) {
+  if ((strcasecmp(stream_type, STREAM_TYPE_MPEG2_TRANSPORT_STREAM) == 0) &&
+      ((audio_type == MPEG2T_ST_MPEG_AUDIO) ||
+       (audio_type == MPEG2T_ST_11172_AUDIO))) {
+    return 1;
+  }
+
+  if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
+      fptr != NULL) {
     if (strcmp(fptr->fmt, "14") == 0) {
       return 1;
     }

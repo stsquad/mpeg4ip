@@ -53,6 +53,7 @@ class CAudioSync {
 
   virtual void flush_sync_buffers(void);
   virtual void flush_decode_buffers(void);
+  virtual uint32_t set_config(int freq, int channels, audio_format_t format, uint32_t max_samples) {return 0;};
 
   // Initialization, other APIs
   virtual void set_wait_sem(SDL_sem *p) {m_audio_waiting = p; } ;

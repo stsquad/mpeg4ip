@@ -24,7 +24,8 @@
 /*
  * Create raw audio structure
  */
-static codec_data_t *rawa_codec_create (const char *compressor, 
+static codec_data_t *rawa_codec_create (const char *stream_type,
+					const char *compressor, 
 					int type, 
 					int profile, 
 					format_list_t *media_fmt,
@@ -44,6 +45,7 @@ static codec_data_t *rawa_codec_create (const char *compressor,
   rawa->m_ifptr = ifptr;
   rawa->m_initialized = 0;
   rawa->m_temp_buff = NULL;
+  rawa->m_bitsperchan = 16;
   if (media_fmt != NULL) {
     /*
      * Raw pcm - L8 or L16
@@ -52,7 +54,6 @@ static codec_data_t *rawa_codec_create (const char *compressor,
     rawa->m_chans = media_fmt->rtpmap->encode_param != 0 ?
       media_fmt->rtpmap->encode_param : 1;
     if (strcasecmp(media_fmt->rtpmap->encode_name, "L16") == 0) {
-      rawa->m_bitsperchan = 16;
     } else if ((*media_fmt->rtpmap->encode_name == '1') &&
 	       (media_fmt->rtpmap->encode_name[1] == '0') ||
 	       (media_fmt->rtpmap->encode_name[1] == '1')) {
@@ -66,18 +67,33 @@ static codec_data_t *rawa_codec_create (const char *compressor,
     rawa->m_convert_bytes = 1;
 #endif
   } else {
-#ifndef WORDS_BIGENDIAN
-    if (type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE)
-      rawa->m_convert_bytes = 1;
-    if (strcasecmp(compressor, "MPEG FILE") == 0)
-      rawa->m_convert_bytes = 1;
-#else
-    if (type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE)
-      rawa->m_convert_bytes = 1;
-#endif
     rawa->m_freq = audio->freq;
     rawa->m_chans = audio->chans;
-    rawa->m_bitsperchan = audio->bitspersample;
+#ifndef WORDS_BIGENDIAN
+    if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
+      if (type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE)
+	rawa->m_convert_bytes = 1;
+      else if (strcasecmp(compressor, "raw ") == 0) {
+	rawa->m_bitsperchan = 8;
+      } else if (strcasecmp(compressor, "twos") == 0) {
+	rawa->m_convert_bytes = 1;
+      }
+    }
+    if (strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0)
+      rawa->m_convert_bytes = 1;
+    if (strcasecmp(stream_type, STREAM_TYPE_AVI_FILE) == 0) 
+      rawa->m_convert_bytes = 1;
+#else
+    if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
+      if (type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE)
+	rawa->m_convert_bytes = 1;
+      else if (strcasecmp(compressor, "raw ") == 0) {
+	rawa->m_bitsperchan = 8;
+      } else if (strcasecmp(compressor, "sowt") == 0) {
+	rawa->m_convert_bytes = 1;
+      }
+    }
+#endif
   }
 
   LOGIT(LOG_DEBUG, "rawa", 
@@ -120,6 +136,7 @@ static int rawa_decode (codec_data_t *ptr,
   rawa_codec_t *rawa = (rawa_codec_t *)ptr;
   uint32_t ix;
   unsigned short *b;
+  uint32_t orig_buflen = buflen;
 
   //  LOGIT(LOG_DEBUG, "rawa", "ts "U64" buffer len %d", ts, buflen);
   if (rawa->m_initialized == 0) {
@@ -165,6 +182,7 @@ static int rawa_decode (codec_data_t *ptr,
     } else {
       audio_format = AUDIO_FMT_U8;
     }
+    rawa->m_bytesperchan = rawa->m_bitsperchan / 8;
     rawa->m_vft->audio_configure(rawa->m_ifptr,
 				 rawa->m_freq, 
 				 rawa->m_chans, 
@@ -197,6 +215,18 @@ static int rawa_decode (codec_data_t *ptr,
     rawa->m_ts = ts;
   }
 
+  if (buflen < rawa->m_bytesperchan) {
+    if (rawa->m_in_small_buffer == false) {
+      rawa->m_small_buffer = *buffer << 8;
+      rawa->m_in_small_buffer = true;
+      return buflen;
+    } else {
+      rawa->m_small_buffer |= *buffer;
+      rawa->m_in_small_buffer = false;
+      buffer = (uint8_t *)&rawa->m_small_buffer;
+      buflen = 2;
+    }
+  }
   /*
    * if we're over RTP, we've got the buffer reversed...
    */
@@ -215,39 +245,42 @@ static int rawa_decode (codec_data_t *ptr,
 				 rawa->m_resync);
   rawa->m_resync = 0;
 
-  return (buflen);
+  return (orig_buflen);
 }
 
 
 static int rawa_codec_check (lib_message_func_t message,
-			    const char *compressor,
-			    int type,
-			    int profile,
-			    format_list_t *fptr, 
-			    const uint8_t *userdata,
-			    uint32_t userdata_size,
-			    CConfigSet *pConfig)
+			     const char *stream_type,
+			     const char *compressor,
+			     int type,
+			     int profile,
+			     format_list_t *fptr, 
+			     const uint8_t *userdata,
+			     uint32_t userdata_size,
+			     CConfigSet *pConfig)
 {
-  if (compressor != NULL && 
-      strcasecmp(compressor, "MP4 FILE") == 0 &&
-      type != -1) {
+  if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
     if ((type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE) ||
 	(type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE))
       return 1;
-  }
-  if (compressor != NULL) {
-    if (strcasecmp(compressor, "AVI FILE") == 0 &&
-	type == 1) {
-    return 1;
-    }
-
-    if ((strcasecmp(compressor, "MPEG FILE") == 0) &&
-	(type == 3)) { // AUDIO_PCM from mpeg file
+    if ((strcasecmp(compressor, "twos") == 0) ||
+	(strcasecmp(compressor, "sowt") == 0) ||
+	(strcasecmp(compressor, "raw ") == 0)) {
       return 1;
     }
-						    
   }
-  if (fptr != NULL) {
+  if (strcasecmp(stream_type, STREAM_TYPE_AVI_FILE) == 0 &&
+      type == 1) {
+    return 1;
+  }
+
+  if ((strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) &&
+      (type == 3)) { // AUDIO_PCM from mpeg file
+    return 1;
+  }
+						    
+  if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
+      fptr != NULL) {
     if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
       if (strcasecmp(fptr->rtpmap->encode_name, "L16") == 0) {
 	return 1;

@@ -102,7 +102,7 @@ protected:
 		\
 		type& operator[](MP4ArrayIndex index) { \
 			if (!ValidIndex(index)) { \
-				throw new MP4Error(ERANGE, "MP4Array::[]"); \
+				throw new MP4Error(ERANGE, "index %u of %u", "MP4Array::[]", index, m_numElements); \
 			} \
 			return m_elements[index]; \
 		} \

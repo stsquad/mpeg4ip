@@ -22,13 +22,7 @@
 
 #include "mp4live.h"
 #include "file_mp4_recorder.h"
-
-#ifdef HAVE_LINUX_VIDEODEV2_H
-#include "video_v4l2_source.h"
-#else
-#include "video_v4l_source.h"
-#endif
-
+#include "video_encoder.h"
 #include "audio_encoder.h"
 
 int CMp4Recorder::ThreadMain(void) 
@@ -457,7 +451,9 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 	    MP4AV_Mpeg4GetVopType(pData,
 				  dataLen - (pData - pDataStart));
 	if (voptype != 'I') {
-	  debug_message("wrong vop type %c %02x %02x %02x %02x %02x", voptype,
+	  debug_message(U64" wrong vop type %c %02x %02x %02x %02x %02x", 
+			pFrame->GetTimestamp(),
+			voptype,
 			pData[0],
 			pData[1],
 			pData[2],
@@ -521,6 +517,14 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 	dataLen -= (pData - (uint8_t *)m_prevEncodedVideoFrame->GetData());
 	isIFrame =
 	  (MP4AV_Mpeg4GetVopType(pData,dataLen) == 'I');
+#if 0
+	debug_message("record type %c %02x %02x %02x %02x",
+		      MP4AV_Mpeg4GetVopType(pData, dataLen),
+		      pData[0],
+		      pData[1],
+		      pData[2],
+		      pData[3]);
+#endif
       } else {
 	pData = (uint8_t *)m_prevEncodedVideoFrame->GetData();
       }
@@ -567,7 +571,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
     }
     return;
   }
-
+  //debug_message("type %d ts "U64, pFrame->GetType(), pFrame->GetTimestamp());
   // RAW AUDIO
   if (pFrame->GetType() == PCMAUDIOFRAME
       && m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {

@@ -316,7 +316,8 @@ void initialize_plugins (void)
  * check_for_audio_codec
  * search the list of audio codecs for one that matches the parameters
  */
-codec_plugin_t *check_for_audio_codec (const char *compressor,
+codec_plugin_t *check_for_audio_codec (const char *stream_type,
+				       const char *compressor,
 				       format_list_t *fptr,
 				       int audio_type,
 				       int profile, 
@@ -335,6 +336,7 @@ codec_plugin_t *check_for_audio_codec (const char *compressor,
 	aptr->codec->c_compress_check != NULL) {
       int temp;
       temp = (aptr->codec->c_compress_check)(message,
+					     stream_type,
 					     compressor,
 					     audio_type,
 					     profile, 
@@ -360,7 +362,8 @@ codec_plugin_t *check_for_audio_codec (const char *compressor,
  * check_for_video_codec
  * search the list of video plugins  for one that matches the parameters
  */
-codec_plugin_t *check_for_video_codec (const char *compressor,
+codec_plugin_t *check_for_video_codec (const char *stream_type,
+				       const char *compressor,
 				       format_list_t *fptr,
 				       int type,
 				       int profile, 
@@ -379,6 +382,7 @@ codec_plugin_t *check_for_video_codec (const char *compressor,
 	vptr->codec->c_compress_check != NULL) {
       int temp;
       temp = (vptr->codec->c_compress_check)(message,
+					     stream_type,
 					     compressor,
 					     type,
 					     profile, 

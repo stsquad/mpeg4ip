@@ -16,6 +16,7 @@ mp4creator_SOURCES = \
 	amr.cpp \
 	avi.cpp \
 	h263.cpp \
+	h264.cpp \
 	mp3.cpp \
 	mp4creator.h \
 	mp4creator.cpp \

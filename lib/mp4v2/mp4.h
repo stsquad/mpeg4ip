@@ -196,7 +196,6 @@ typedef u_int32_t	MP4EditId;
 #define MP4_JPEG_VIDEO_TYPE				0x6C
 #define MP4_PRIVATE_VIDEO_TYPE			0xD0
 #define MP4_YUV12_VIDEO_TYPE			0xF0	/* a private definition */
-#define MP4_H264_VIDEO_TYPE				0xF1	/* a private definition */
 #define MP4_H263_VIDEO_TYPE				0xF2	/* a private definition */
 #define MP4_H261_VIDEO_TYPE				0xF3	/* a private definition */
 
@@ -287,16 +286,13 @@ extern "C" {
 MP4FileHandle MP4Create(
 	const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
-	u_int32_t flags DEFAULT(0));
-
-MP4FileHandle MP4CreateEx(
-		const char* fileName,
-		u_int32_t verbosity DEFAULT(0),
-		u_int32_t flags  DEFAULT(0),
-		char* majorBrand DEFAULT(0),
-		u_int32_t minorVersion DEFAULT(0),
-		char** supportedBrands DEFAULT(0),
-		u_int32_t supportedBrandsCount DEFAULT(0));
+	u_int32_t flags DEFAULT(0),
+	int add_ftyp DEFAULT(1),
+	int add_iods DEFAULT(1),
+	char* majorBrand DEFAULT(0),
+	u_int32_t minorVersion DEFAULT(0),
+	char** supportedBrands DEFAULT(0),
+	u_int32_t supportedBrandsCount DEFAULT(0));
 
 MP4FileHandle MP4Modify(
 	const char* fileName, 
@@ -459,10 +455,8 @@ void MP4SetAmrDecoderVersion(
 		MP4TrackId trackId,
 		u_int8_t decoderVersion);
 
-void MP4SetAmrModeSet(
-		MP4FileHandle hFile,
-		MP4TrackId trackId,
-		u_int16_t modeSet);
+void MP4SetAmrModeSet(MP4FileHandle hFile, MP4TrackId trakId, uint16_t modeSet);
+uint16_t MP4GetAmrModeSet(MP4FileHandle hFile, MP4TrackId trackId);
 
 MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, 
@@ -481,6 +475,24 @@ MP4TrackId MP4AddEncVideoTrack(
         mp4v2_ismacrypParams *icPp,
 	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
 
+MP4TrackId MP4AddH264VideoTrack(
+				MP4FileHandle hFile,
+				u_int32_t timeScale, 
+				MP4Duration sampleDuration, 
+				u_int16_t width, 
+				u_int16_t height, 
+				uint8_t AVCProfileIndication,
+				uint8_t profile_compat,
+				uint8_t AVCLevelIndication,
+				uint8_t sampleLenFieldSizeMinusOne);
+bool MP4AddH264SequenceParameterSet(MP4FileHandle hFile,
+				    MP4TrackId trackId,
+				    uint8_t *pSequence,
+				    uint16_t sequenceLen);
+bool MP4AddH264PictureParameterSet(MP4FileHandle hFile,
+				   MP4TrackId trackId,
+				   uint8_t *pPict,
+				    uint16_t pictLen);
 void MP4SetH263Vendor(
 		MP4FileHandle hFile,
 		MP4TrackId trackId,
@@ -571,6 +583,8 @@ const char* MP4GetTrackType(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 
+const char *MP4GetTrackMediaDataName(MP4FileHandle hFile,
+				     MP4TrackId trackId);
 MP4Duration MP4GetTrackDuration(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
@@ -584,17 +598,7 @@ bool MP4SetTrackTimeScale(
 	MP4TrackId trackId, 
 	u_int32_t value);
 
-// Should not be used, replace with MP4GetTrackEsdsObjectTypeId
-u_int8_t MP4GetTrackAudioType(
-	MP4FileHandle hFile, 
-	MP4TrackId trackId);
-
 u_int8_t MP4GetTrackAudioMpeg4Type(
-	MP4FileHandle hFile, 
-	MP4TrackId trackId);
-
-// Should not be used, replace with MP4GetTrackEsdsObjectTypeId
-u_int8_t MP4GetTrackVideoType(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 
@@ -611,6 +615,11 @@ u_int32_t MP4GetTrackBitRate(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 
+bool MP4GetTrackVideoMetadata(MP4FileHandle hFile,
+			      MP4TrackId trackId,
+			      uint8_t **ppConfig,
+			      uint32_t *pConfigSize);
+
 bool MP4GetTrackESConfiguration(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId, 
@@ -623,6 +632,20 @@ bool MP4SetTrackESConfiguration(
 	const u_int8_t* pConfig, 
 	u_int32_t configSize);
 
+/* h264 information routines */
+bool MP4GetTrackH264ProfileLevel(MP4FileHandle hFile,
+				 MP4TrackId trackId,
+				 uint8_t *pProfile,
+				 uint8_t *pLevel);
+bool MP4GetTrackH264SeqPictHeaders(MP4FileHandle hFile,
+				   MP4TrackId trackId,
+				   uint8_t ***pSeqHeaders,
+				   uint32_t **pSeqHeaderSize,
+				   uint8_t ***pPictHeader,
+				   uint32_t **pPictHeaderSize);
+bool MP4GetTrackH264LengthSize(MP4FileHandle hFile,
+			       MP4TrackId trackId,
+			       uint32_t *pLength);
 MP4SampleId MP4GetTrackNumberOfSamples(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
@@ -638,6 +661,9 @@ u_int16_t MP4GetTrackVideoHeight(
 float MP4GetTrackVideoFrameRate(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
+
+int MP4GetTrackAudioChannels(MP4FileHandle hFile, 
+				  MP4TrackId trackId);
 
 bool MP4IsIsmaCrypMediaTrack(
         MP4FileHandle hFile,
@@ -1135,6 +1161,10 @@ char* MP4BinaryToBase16(
 char* MP4BinaryToBase64(
 	const u_int8_t* pData, 
 	u_int32_t dataSize);
+
+uint8_t *Base64ToBinary(const char *pData, 
+			uint32_t decodeSize, 
+			uint32_t *pDataSize);
 
 #ifdef __cplusplus
 }

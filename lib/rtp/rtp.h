@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.14 $ 
- * $Date: 2004/04/15 22:32:41 $
+ * $Revision: 1.15 $ 
+ * $Date: 2004/08/17 21:37:05 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -66,7 +66,7 @@ typedef struct rtp_packet_data {
   struct rtp_packet *rtp_pd_next, *rtp_pd_prev;
   uint32_t	*rtp_pd_csrc;
   uint8_t	*rtp_pd_data;
-  int		 rtp_pd_data_len;
+  uint32_t	 rtp_pd_data_len;
   uint8_t	*rtp_pd_extn;
   uint16_t	 rtp_pd_extn_len; /* Size of the extension in 32 bit words minus one */
   uint16_t	 rtp_pd_extn_type;/* Extension type field in the RTP packet header   */

@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "..\mp4v2" /I "." /I "..\..\include" /I "..\..\lib\mp4v2" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\mp4v2" /I "..\..\lib\mp4v2" /I "." /I "..\..\include" /I "..\bitstream" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "..\..\lib\mp4v2" /I "." /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "..\..\lib\mp4v2" /I "." /I "..\..\include" /I "..\bitstream" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -97,6 +97,14 @@ SOURCE=.\audio_hinters.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\bitstream\bitstream.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\h264.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\l16.cpp
 # End Source File
 # Begin Source File
@@ -121,6 +129,10 @@ SOURCE=.\rfc2250.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\rfc2429.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\rfc3016.cpp
 # End Source File
 # Begin Source File
@@ -129,7 +141,15 @@ SOURCE=.\rfc3119.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\rfc3267.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\rfccrypto.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\rfch264.cpp
 # End Source File
 # Begin Source File
 

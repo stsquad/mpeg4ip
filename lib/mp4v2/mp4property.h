@@ -419,7 +419,7 @@ protected:
 
 class MP4TableProperty : public MP4Property {
 public:
-	MP4TableProperty(char* name, MP4Property* pCountProperty);
+	MP4TableProperty(char* name, MP4IntegerProperty* pCountProperty);
 
 	~MP4TableProperty();
 
@@ -441,18 +441,10 @@ public:
 	}
 
 	u_int32_t GetCount() {
-		if (m_pCountProperty->GetType() == Integer8Property) {
-			return ((MP4Integer8Property*)m_pCountProperty)->GetValue();
-		} else {
-			return ((MP4Integer32Property*)m_pCountProperty)->GetValue();
-		} 
+	  return m_pCountProperty->GetValue();
 	}
 	void SetCount(u_int32_t count) {
-		if (m_pCountProperty->GetType() == Integer8Property) {
-			((MP4Integer8Property*)m_pCountProperty)->SetValue(count);
-		} else {
-			((MP4Integer32Property*)m_pCountProperty)->SetValue(count);
-		} 
+	  m_pCountProperty->SetValue(count);
 	}
 
 	void Read(MP4File* pFile, u_int32_t index = 0);
@@ -471,7 +463,7 @@ protected:
 		MP4Property** ppProperty, u_int32_t* pIndex);
 
 protected:
-	MP4Property*		m_pCountProperty;
+	MP4IntegerProperty*	m_pCountProperty;
 	MP4PropertyArray	m_pProperties;
 };
 

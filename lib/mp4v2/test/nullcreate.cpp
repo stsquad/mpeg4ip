@@ -20,9 +20,13 @@
  */
 
 #include "mp4.h"
+#if 0
+#include "mp4util.h"
+#endif
 
 main(int argc, char** argv)
 {
+#if 1
 	if (argc < 2) {
 		fprintf(stderr, "Usage: %s <file>\n", argv[0]);
 		exit(1);
@@ -52,7 +56,20 @@ main(int argc, char** argv)
 		MP4AddSceneTrack(mp4File);
 
 	MP4TrackId videoTrackId = 
+#if 0
 		MP4AddVideoTrack(mp4File, 90000, 3000, 320, 240);
+#else
+	MP4AddH264VideoTrack(mp4File, 90000, 3000, 320, 240, 
+			     1, 2, 3, 1);
+	static uint8_t pseq[] = { 0, 1, 2, 3, 4, 5, 6,7, 8, 9 };
+
+	MP4AddH264SequenceParameterSet(mp4File, videoTrackId, pseq, 10);
+	MP4AddH264SequenceParameterSet(mp4File, videoTrackId, pseq, 6);
+	MP4AddH264PictureParameterSet(mp4File, videoTrackId, pseq, 7);
+	MP4AddH264PictureParameterSet(mp4File, videoTrackId, pseq, 8);
+	MP4AddH264PictureParameterSet(mp4File, videoTrackId, pseq, 7);
+
+#endif
 
 	MP4TrackId videoHintTrackId = 
 		MP4AddHintTrack(mp4File, videoTrackId);
@@ -68,8 +85,36 @@ main(int argc, char** argv)
 
 	MP4Close(mp4File);
 
-	MP4MakeIsmaCompliant(argv[1], verbosity);
+	//	MP4MakeIsmaCompliant(argv[1], verbosity);
 
 	exit(0);
+#else
+   uint8_t *bin = NULL;
+
+   for (uint32_t ix = 4; ix < 1024; ix++) {
+     printf("pass %d\n", ix);
+     bin = (uint8_t *)malloc(ix);
+     for (uint32_t jx = 0; jx < ix; jx++) {
+       bin[jx] = ((uint32_t)random()) >> 24;
+     }
+     char *test;
+     test = MP4ToBase64(bin, ix);
+     uint8_t *ret;
+     uint32_t retsize;
+     ret = Base64ToBinary(test, strlen(test), &retsize);
+     if (retsize != ix) {
+       printf("return size not same %d %d\n", ix, retsize);
+       exit(0);
+     }
+     if (memcmp(ret, bin, ix) != 0) {
+       printf("memory not same\n");
+       exit(0);
+     }
+     free(test);
+     free(ret);
+     free(bin);
+   }
+   return 0;
+#endif
 }
 

@@ -1,29 +1,11 @@
 #include "mpeg4ip.h"
 #include <bitstream.h>
 #include <math.h>
+#include <mp4av_h264.h>
 
 #define H264_START_CODE 0x000001
 #define H264_PREVENT_3_BYTE 0x000003
 
-typedef struct h264_decode_t {
-  uint32_t log2_max_frame_num_minus4;
-  uint32_t log2_max_pic_order_cnt_lsb_minus4;
-  uint32_t pic_order_cnt_type;
-  uint8_t frame_mbs_only_flag;
-  uint8_t pic_order_present_flag;
-  uint8_t delta_pic_order_always_zero_flag;
-
-  uint8_t nal_ref_idc;
-  uint8_t nal_unit_type;
-  
-  uint8_t field_pic_flag;
-  uint8_t bottom_field_flag;
-  uint32_t frame_num;
-  uint32_t idr_pic_id;
-  uint32_t pic_order_cnt_lsb;
-  int32_t delta_pic_order_cnt_bottom;
-  int32_t delta_pic_order_cnt[2];
-} h264_decode_t;
 
 static uint8_t exp_golomb_bits[256] = {
 8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 3, 
@@ -319,18 +301,18 @@ uint32_t h264_find_next_start_code (uint8_t *pBuf,
 }
 
 static const char *nal[] = {
-  "Coded slice of non-IDR picture",
-  "Coded slice data partition A", 
-  "Coded slice data partition B", 
-  "Coded slice data partition C", 
-  "Coded slice of an IDR picture",
-  "SEI",
-  "Sequence parameter set",
-  "Picture parameter set",
-  "Access unit delimeter", 
-  "End of Sequence",
-  "end of stream", 
-  "filler data",
+  "Coded slice of non-IDR picture", // 1
+  "Coded slice data partition A",   // 2
+  "Coded slice data partition B",   // 3
+  "Coded slice data partition C",   // 4
+  "Coded slice of an IDR picture",  // 5
+  "SEI",                            // 6
+  "Sequence parameter set",         // 7
+  "Picture parameter set",          // 8
+  "Access unit delimeter",          // 9
+  "End of Sequence",                // 10
+  "end of stream",                  // 11
+  "filler data",                    // 12
 };
 
 static const char *nal_unit_type (uint8_t type)
@@ -379,7 +361,7 @@ void h264_slice_header (h264_decode_t *dec, CBitstream *bs)
       printf("    bottom_field_flag: %u\n", dec->bottom_field_flag);
     }
   }
-  if (dec->nal_unit_type == 5) {
+  if (dec->nal_unit_type == H264_NAL_TYPE_IDR_SLICE) {
     dec->idr_pic_id = h264_ue(bs);
     printf("   idr_pic_id: %u\n", dec->idr_pic_id);
   }
@@ -425,17 +407,17 @@ uint8_t h264_parse_nal (h264_decode_t *dec, CBitstream *bs)
     dec->nal_unit_type = type = bs->GetBits(5);
     printf(" ref %u type %u %s\n", dec->nal_ref_idc, type, nal_unit_type(type));
     switch (type) {
-    case 1:
-    case 5:
+    case H264_NAL_TYPE_NON_IDR_SLICE:
+    case H264_NAL_TYPE_IDR_SLICE:
       h264_slice_layer_without_partitioning(dec, bs);
       break;
-    case 7:
+    case H264_NAL_TYPE_SEQ_PARAM:
       h264_parse_sequence_parameter_set(dec, bs);
       break;
-    case 8:
+    case H264_NAL_TYPE_PIC_PARAM:
       h264_parse_pic_parameter_set(dec, bs);
       break;
-    case 9:
+    case H264_NAL_TYPE_ACCESS_UNIT:
       printf("   primary_pic_type: %u\n", bs->GetBits(3));
       break;
     }
@@ -479,8 +461,8 @@ bool compare_boundary (h264_decode_t *prev, h264_decode_t *on)
     }
   }
 
-  if (prev->nal_unit_type == 5 &&
-      on->nal_unit_type == 5) {
+  if (prev->nal_unit_type == H264_NAL_TYPE_IDR_SLICE &&
+      on->nal_unit_type == H264_NAL_TYPE_IDR_SLICE) {
     if (prev->idr_pic_id != on->idr_pic_id) {
       return false;
     }
@@ -558,7 +540,8 @@ int main (int argc, char **argv)
       } else {
 	// have a complete NAL from buffer_on to end
 	if (ret > 3) {
-	  printf("Nal length %d\n", ret);
+	  printf("Nal length %d header %d\n", ret,
+		 buffer[buffer_on + 2] == 1 ? 4 : 5);
 	  ourbs.init(buffer + buffer_on, ret * 8);
 	  uint8_t type = h264_parse_nal(&dec, &ourbs);
 	  if (type >= 1 && type <= 5) {

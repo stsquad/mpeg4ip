@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 
 	/* check that we have at least one non-option argument */
 	if ((argc - optind) < 1) {
-		fprintf(stderr, "usage: %s %s", progName, usageString);
+		fprintf(stderr, "usage: %s %s\n", progName, usageString);
 		exit(1);
 	}
 

@@ -518,7 +518,7 @@ CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr,
   m_behind_time_max = 0;
   m_skipped_render = 0;
   m_video_scale = 2;
-  m_last_filled_time = MAX_UINT64;
+  m_last_filled_time = TO_U64(0x7fffffffffffffff);
   m_msec_per_frame = 100;
   m_consec_skipped = 0;
   m_fullscreen = 0;
@@ -716,7 +716,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 				 m_v_buffer[m_play_index]);
   } 
 else {
-#ifdef VIDEO_SYNC_PLAY
+#if 0
     video_message(LOG_DEBUG, "Video lagging current time "U64" "U64" "U64, 
 			 play_this_at, current_time, m_msec_per_frame);
 #endif
@@ -822,7 +822,12 @@ void CSDLVideoSync::filled_video_buffers (uint64_t time)
   uint64_t temp;
   temp = time - m_last_filled_time;
   if (temp != 0) {
-    m_msec_per_frame = MIN(temp, m_msec_per_frame);
+    if (temp < m_msec_per_frame) {
+      m_msec_per_frame = temp;
+#ifdef VIDEO_SYNC_PLAY
+      video_message(LOG_DEBUG, "msec per frame "U64, m_msec_per_frame);
+#endif
+    }
   }
   m_last_filled_time = time;
   m_psptr->wake_sync_thread();
@@ -920,9 +925,12 @@ void CSDLVideoSync::set_video_frame(const uint8_t *y,
   m_filled_frames++;
   uint64_t temp;
   temp = time - m_last_filled_time;
-  if (temp != 0) {
-    m_msec_per_frame = MIN(temp, m_msec_per_frame);
-  }
+    if (temp > 0 && temp < m_msec_per_frame) {
+      m_msec_per_frame = temp;
+#ifdef VIDEO_SYNC_PLAY
+      video_message(LOG_DEBUG, "msec per frame "U64, m_msec_per_frame);
+#endif
+    }
   m_last_filled_time = time;
   m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL

@@ -89,7 +89,23 @@ SOURCE=.\3gp.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\atom_amr.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_avc1.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_avcC.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_bitr.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_btrt.cpp
 # End Source File
 # Begin Source File
 
@@ -261,14 +277,6 @@ SOURCE=.\atom_s263.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\atom_samr.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\atom_sawb.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\atom_sdp.cpp
 # End Source File
 # Begin Source File
@@ -382,6 +390,10 @@ SOURCE=.\atom_url.cpp
 # Begin Source File
 
 SOURCE=.\atom_urn.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_video.cpp
 # End Source File
 # Begin Source File
 
@@ -551,6 +563,14 @@ SOURCE=.\atom_schm.cpp
 # Begin Source File
 
 SOURCE=.\atom_sinf.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_smi.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_sound.cpp
 # End Source File
 # Begin Source File
 

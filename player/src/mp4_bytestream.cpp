@@ -216,8 +216,8 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 		      &sampleRenderingOffset,
 		      &isSyncSample);
   if (ret == FALSE) {
-    mp4f_message(LOG_ALERT, "Couldn't read frame from mp4 file - frame %d", 
-		 frame_to_read);
+    mp4f_message(LOG_ALERT, "Couldn't read frame from mp4 file - frame %d %d", 
+		 frame_to_read, m_track);
     m_eof = 1;
     m_parent->unlock_file_mutex();
     return;
@@ -363,4 +363,47 @@ uint64_t CMp4EncVideoByteStream::start_next_frame (uint8_t **buffer,
   return ret; 
 }
 
+uint64_t CMp4H264VideoByteStream::start_next_frame (uint8_t **buffer, 
+						    uint32_t *buflen, 
+						    void **ud)
+{
+  uint64_t ret;
+  ret = CMp4VideoByteStream::start_next_frame(buffer, 
+					      buflen, 
+					      ud);
+  if (*buffer != NULL && *buflen != 0) {
+    if (m_buflen_size == 0) {
+      m_parent->lock_file_mutex();
+      MP4GetTrackH264LengthSize(m_parent->get_file(), m_track, &m_buflen_size);
+      m_parent->unlock_file_mutex();
+    }
+    uint32_t len = 0, read_offset = 0;
+    uint32_t nal_len;
+    do {
+      nal_len = read_nal_size(*buffer + read_offset);
+      len += nal_len + 3;
+      read_offset += nal_len + m_buflen_size;
+    } while (read_offset < *buflen);
+    if (len > m_translate_buffer_size) {
+      m_translate_buffer = (uint8_t *)realloc(m_translate_buffer, len);
+      m_translate_buffer_size = len;
+    }
+    uint32_t write_offset = 0;
+    read_offset = 0;
+    do {
+      nal_len = read_nal_size(*buffer + read_offset);
+      m_translate_buffer[write_offset] = 0;
+      m_translate_buffer[write_offset + 1] = 0;
+      m_translate_buffer[write_offset + 2] = 1;
+      memcpy(m_translate_buffer + write_offset + 3, 
+	     *buffer + read_offset + m_buflen_size,
+	     nal_len);
+      write_offset += nal_len + 3;
+      read_offset = nal_len + m_buflen_size;
+    } while (read_offset < *buflen);
+    *buffer = m_translate_buffer;
+    *buflen = write_offset;
+  }
+  return ret;
+}
 /* end file qtime_bytestream.cpp */

@@ -394,7 +394,7 @@ char* MP4File::ReadString()
 void MP4File::WriteString(char* string)
 {
 	if (string == NULL) {
-		static u_int8_t zero = 0;
+		u_int8_t zero = 0;
 		WriteBytes(&zero, 1);
 	} else {
 		WriteBytes((u_int8_t*)string, strlen(string) + 1);

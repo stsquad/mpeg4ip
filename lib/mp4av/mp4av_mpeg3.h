@@ -22,12 +22,15 @@
 #define __MP4AV_MPEG3_H__ 1
 
 #define MPEG3_START_CODE_PREFIX          0x000001
-#define MPEG3_SEQUENCE_START_CODE        0x000001b3
 #define MPEG3_PICTURE_START_CODE         0x00000100
-#define MPEG3_GOP_START_CODE             0x000001b8
-#define MPEG3_EXT_START_CODE             0x000001b5
 #define MPEG3_SLICE_MIN_START            0x00000101
 #define MPEG3_SLICE_MAX_START            0x000001af
+#define MPEG3_USER_DATA_START_CODE       0x000001b2
+#define MPEG3_SEQUENCE_START_CODE        0x000001b3
+#define MPEG3_SEQUENCE_ERR_START_CODE    0x000001b4
+#define MPEG3_EXT_START_CODE             0x000001b5
+#define MPEG3_SEQUENCE_END_START_CODE    0x000001b7
+#define MPEG3_GOP_START_CODE             0x000001b8
 
 #ifdef __cplusplus
 extern "C" {

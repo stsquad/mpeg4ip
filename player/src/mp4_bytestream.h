@@ -71,7 +71,7 @@ class CMp4ByteStream : public COurInByteStream
   FILE *my_unenc_file;
   FILE *my_unenc_file2;
 #endif
- private:
+ protected:
 #ifdef OUTPUT_TO_FILE
   FILE *m_output_file;
 #endif
@@ -111,6 +111,33 @@ class CMp4VideoByteStream : public CMp4ByteStream
     CMp4ByteStream(parent, track, "video", 1) {};
 };
 
+class CMp4H264VideoByteStream : public CMp4VideoByteStream
+{
+ public:
+  CMp4H264VideoByteStream(CMp4File *parent, 
+			  MP4TrackId track) :
+    CMp4VideoByteStream(parent, track) {
+    m_translate_buffer = NULL;
+    m_translate_buffer_size = 0;
+    m_buflen_size = 0;
+  };
+  uint64_t start_next_frame(uint8_t **buffer,
+			    uint32_t *buflen,
+			    void **ud);
+ protected:
+  uint32_t read_nal_size(uint8_t *buffer) {
+    if (m_buflen_size == 1) {
+      return *buffer;
+    } else if (m_buflen_size == 2) {
+      return buffer[0] << 8 | buffer[1];
+    } 
+    return buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+  };
+  uint8_t *m_translate_buffer;
+  uint32_t m_translate_buffer_size;
+  uint32_t m_buflen_size;
+};
+			  
 /*
  * CMp4AudioByteStream is for audio streams.  It is inherited from
  * CMp4ByteStreamBase.

@@ -467,7 +467,7 @@ static void process_packet_header (isma_enc_rtp_data_t *iptr)
 
   // Check if frame is fragmented
   // frame_len plus the length of the 2 headers
-  int frag_check = frame_len + sizeof(uint16_t);
+  uint32_t frag_check = frame_len + sizeof(uint16_t);
   frag_check += iptr->m_fmtp->size_length / 8;
   if ((iptr->m_fmtp->size_length % 8) != 0) frag_check++;
   if (frag_check > pak->rtp_data_len) {

@@ -11,265 +11,241 @@
 
 <p>The MPEG4IP Server Side Tools allow for the conversion of raw audio and 
 video into MPEG-4 compressed media stored in an MP4 file which can be streamed
-by the Darwin Streaming Server.
+by the Darwin Streaming Server.  It also includes tools for displaying 
+information about the streams.
 
 <p>If you are using a Linux system, the easiest method is to use 
 <a href="m4rm.html">mp4live</a>.  Hook
 your inputs to your capture card, set your audio and video settings (remember 
 to use AAC to create ISMA-compatible content), and start.
-
-<p>If you are using a UNIX system, the next easiest way to proceed is to use the 
-<code>mp4encode</code> script which is installed with MPEG4IP. This script 
-makes some simplifying assumptions about the input and the
-desired output. See <a href="#simple">The Simple Process</a> below.  Note that
-the mp4encode script might be outdated.y
-
-<p>If you are using Windows, or if <code>mp4encode</code> doesn't meet your 
-needs, you must use the tools directly. See <a href="#detailed">The
-Detailed Process</a> below for the details of the underlying tools.
-
-<h2><a id="simple"><b>The Simple Process</b></a></h2>
-
+<p>
+On other OS machines, or on linux without a capture card, you will need to
+use encoders that are not included with this package, like xvid, faac, lame,
+or ffmpeg to encode content.  You can then use mpeg4ip's tools to put that
+content into formats that can be used for streaming or interoperability.
+<p>
+The basic steps to create content are:
 <ol>
-<li><b>Capture raw audio and/or video into an AVI file</b>
-
-<p>The details here are varied. But generally speaking, you use a capture 
-program to record audio and video from either a camera or a capture board 
-into an AVI file on disk.
-
-<p>The audio format should be PCM raw audio, 16 bits/sample, little-endian byte order.<p>
-You can choose the number of channels and sampling frequency (<code>mp4encode</code>
-assumes 2 channels, 44100 samples/sec.
-
-<p>The video format should be YUV12, aka YV12.
-(FYI: This is a planar format sampled at 4:2:0). Any frame size and frame rate
-are acceptable. If your capture program doesn't support this format, capture in
-RGB24 (packed format) which every capture program should support; MPEG4IP has a
-utility to convert from RGB24 to YUV12.
-
-<p>Personally, I recommend 320x240 @ 24
-frames/sec as a good compromise between video quality and size. At these
-settings, 5 minutes of raw audio/video will consume approximately 1 GB of disk
-space. (Don't worry things get much better once we encode.)
-
-<li><b>Encode content</b>
-
-<p>Invoke 'mp4encode' with the name of the raw AVI file to produce the encoded MP4 file.
-
-<p>The following parameters can be specified to <code>mp4encode</code>
-
-<table cellpadding='5'>
-<tbody>
-<tr><td><code>-w &lt;uint&gt;</code></td><td>The input video frame width in pixels,
-default value is 320</td></tr>
-<tr><td><code>-h &lt;uint&gt;</code></td><td>The input video frame height in pixels,
-default value is 240</td></tr>
-<tr><td><code>-r &lt;uint&gt;</code></td><td>The video frame rate in frames per second,
-default value is 24</td></tr>
-
-<tr><td><code>-V &lt;uint&gt;</code></td><td>The desired video bitrate in Kbps, default
-value is 500</td></tr>
-
-<tr><td><code>-A &lt;uint&gt;</code></td><td>The desired audio bitrate in Kbps, default
-value is 96</td></tr>
-
-<tr><td><code>-a &lt;float&gt;</code></td><td>
-The desired aspect ratio, default value is 1.33 (4:3). Typically letterbox is 2.35.</td></tr>
-
-<tr><td><code>-I</code></td><td>
-Use the ISO MPEG-4 video encoder instead of the Xvid encoder
-</td></tr>
-
-<tr><td><code>-M
-</code></td><td>
-Use the MP3 audio encoder instead of the AAC encoder
-</td></tr>
-
-<tr><td><code>-R
-</code></td><td>
-The input video is RGB24, convert to YUV12 before encoding.
-</td></tr>
-
-<tr><td><code>-d
-</code></td><td>
-Debug mode, leave intermediate
-files.
-</td></tr>
-</tbody>
+<li><a href="#getcontent">Get raw content</a> in form that encoder can understand.  This is probably YUV 
+4:2:0 format for video, or 16 bit PCM for audio.
+<br>
+It may also be another format for transcoders, like VLC, ffmpeg or virtualdub.
+</li>
+<li><a href="#encode">Encode</a> the content into elementary streams or another format that mpeg4ip 
+understands. </li>
+<li><a href="#assemble">Assemble</a> the content into mp4 file container</li>
+<li><a href="#hint">Hint</a> the files for streaming, if needed</li>
+</ol>
+<p>
+<div id="tools">
+<h2><b>Tools available</b></h2></div>
+<table class='p' summary="encoding tool list">
+<tr>
+  <td align="left" valign="top">avi2raw</td>     
+  <td align="left" valign="top">Extracts audio/video tracks from an AVI file</td>
+</tr>
+<tr>
+  <td align="left" valign="top">lboxcrop</td>    
+  <td align="left" valign="top">Vertically crops raw video to a new aspect ratio</td>
+</tr>
+<tr>
+  <td id="rgb2yuv" align="left" valign="top">rgb2yuv</td>    
+  <td align="left" valign="top">Convert 24 bit RGB data file to a YUV 4:2:0 file</td>
+</tr>
+<tr>
+  <td align="left" valign="top">mp4venc</td>     
+  <td align="left" valign="top">Encodes raw video into MPEG-4 encoded video using ISO codec - not available on all systems</td>
+</tr>
+<tr>
+  <td id="mp4creator" align="left" valign="top">mp4creator</td>  
+  <td align="left" valign="top">Creates and hints audio/video tracks to an mp4 file.  Can also be used to extract tracks and reconstruct AAC headers, and can encrypt to the ISMACryp specification.  It will also assemble 3GPP files, but not hint them.</td>
+</tr>
+<tr>
+  <td align="left" valign="top">xvidenc</td>     
+  <td align="left" valign="top">Encodes raw video into MPEG-4 encoded video using the Xvid codec.  Not available with xvid 1.0 (yet)</td>
+</tr>
+<tr>
+  <td id="mp4dump" align="left" valign="top">mp4dump</td>
+  <td align="left" valign="top">Utility to dump MP4 file meta-information in text form</td>
+</tr>
+<tr>
+  <td id="mp4trackdump" align="left" valign="top">mp4trackdump</td>
+  <td align="left" valign="top">Utility to dump MP4 file track information in text form</td>
+</tr>
+<tr>
+  <td id="mp4info" align="left" valign="top">mp4info</td>
+  <td align="left" valign="top">Utility to display MP4 file summary</td>
+</tr>
+<tr>
+  <td id="avidump" align="left" valign="top">avidump</td>
+  <td align="left" valign="top">Utility to display AVI file summary</td>
+</tr>
+<tr>
+  <td id="yuvdump" align="left" valign="top">yuvdump</td>
+  <td align="left" valign="top">Utility to display a raw video file on the screen</td>
+</tr>
 </table>
-
-
-
-<p>Examples:
-
-<p><code>mp4encode
-mycontent.avi</code> (results are written to mycontent.mp4)
-
-<p><code>mp4encode
--w 640 -h 480 -r 30 -I -R -V 1000 -M -A 128 mycontent.avi mycontent_mpeg4_1000_mp3_128.mp4</code>
-
-<li><b> Make content available</b>
-
-<p>Copy the MP4 file to a directory under the
-configured media root for your streaming server. See the documentation for your
-server as to how to generate a URL for the file, but typically it would look
-like <code>rtsp://myserver/mycontent.mp4</code>
-
-<p>Example:
-
-<p><code>cp mycontent.mp4 /usr/local/movies</code>
-
-</ol>
-<h2><a id="detailed"> <b>The Detailed Process</b></a></h2>
-
-<ol>
-<li><b>Acquire raw audio and/or video</b>
-
-<p>The details here are varied. But generally speaking, you use a capture 
-program to record audio and video from either a camera or a capture board 
-into an AVI file on disk.
-
-<p>The audio format should be PCM raw audio, 16 bits/sample, little-endian byte order.<p>
-You can choose the number of channels and sampling frequency (<code>mp4encode</code>
-assumes 2 channels, 44100 samples/sec.
-
-<p>The video format should be YUV12, aka YV12.
-(FYI: This is a planar format sampled at 4:2:0). Any frame size and frame rate
-are acceptable. If your capture program doesn't support this format, capture in
-RGB24 (packed format) which every capture program should support; MPEG4IP has a
-utility to convert from RGB24 to YUV12.
-
-<p>If you use a Windows system for the media
-acquisition, you frequently will have your data stored in an AVI file. If that
-is the case, the avi2raw utility is provided to extract either the audio or
-video tracks from an AVI file, and write the raw track data to a file of your
-choice.
-
-<p>Examples:
-
-<p><code>avi2raw -a mymedia.avi myaudio.pcm</code>
-
-<p><code>avi2raw -v mymedia.avi myvideo.yuv</code>
-
-<p><code>avi2raw -v mymedia.avi myvideo.rgb</code>
-
-<p>The avi2raw utility also has very basic
-editing capabilities. You can specify a time to start the extraction in seconds
-from the beginning of the file and a length in seconds. For example, to extract
-10 seconds of video starting at 5 seconds from the beginning of the file.
-
-<p><code>avi2raw -s 5 -l 10 -v mymedia.avi myvideo.yuv</code>
-
-<p>If you have captured the video in RGB24 format, you need to convert that to 
-YUV12 before giving it to the video encoder.  To do that use the MPEG4IP utility, rgb2yuv. Note that the video image width and height must be specified for rgb2yuv. For example:
-<p><code>rgb2yuv -w 320 -h 240 myvideo.rgb myvideo.yuv</code>
-
-<p>Note that if the avi file already contains encoded content, you can still
-use avi2raw to extract into elementary streams.  For example:
-<p><code>avi2raw -v mymedia.avi myvideo.xvid</code>
-
-<li><b>Encode audio</b>
-
-<p>For ISMA compliant audio, the popular choice is AAC encoding.  mpeg4ip
-will also support MP3 Content.
-
-<ol>
-<li><b>MP3</b>
-
-<p>If you wish to use MP3, download a mp3 encoding package such as LAME, and
-follow the directions.
-
-<p>Examples:
-
-<p><code>lame -h -b 128 myaudio.wav</code>
-
-<p><code>lame -h -b 96 -r -x -s 22050 -m m myaudio.pcm</code>
-
-<li><b>AAC</b>
-
-<p>If you wish to use AAC, download an AAC encoding package such as FAAC, 
-and follow the directions.
-
-<p>You will want to most likely encode as low-complexity.
-<p>Examples (faac version 1.23.1):
-
-<p><code>faac -o 0 -a128 myaudio.wav myaudio.aac</code>
-
-<p><code>faac -o 0 -a96 -P myaudio.pcm myaudio.aac</code>
-</ol>
-<li><b> Encode video</b>
-
-<p>For mpeg4ip, you will want to encode your video in mpeg4, simple or
-advanced simple profile.  We include an older version of the xvid codec.
-We also recommend the released version of xvid, or ffmpeg.  We also 
-include the ISO encoder, but do not have the encoder linking on Linux.
-The ISO encoder contains many of the video tools defined for MPEG-4, and hence
-can produce many of the defined profiles. In terms of video quality and
-encoding speed we have found the Xvid encoder to be vastly superior.
-
-<p>If you want to use the ISO encoder, you will need to create an executable
-and use a file where the many configuration parameters are given. An template parameter
-file, 'mp4venc_template.par', is installed into the /usr/local/share directory.
- 
-<li><b>Adding audio to a MP4 file </b>
-
-<p>Use the provided mp4creator tool to generate an MP4 file from the MP3 or 
-AAC encoded file. There are two required parameters: the first is the input 
-file name, the second is the output file name. The -H option instructs 
-mp4creator to add a hint track needed by the streaming server.
-
-<p>Examples:
-
-<p><code>mp4creator -c myaudio.mp3 -H myaudio.mp4</code>
-
-<p><code>mp4creator -c myaudio.aac -H myaudio.mp4</code>
-
-<li><b>Adding video to a MP4 file</b>
-
-<p>Use the provided mp4creator tool to generate
-an MP4 file from the MPEG-4 Video encoded file. There are three required
-parameters the first is the input file name, the second is the video frame
-rate, the third is the output file name. The -H option instructs mp4creator to
-add a hint track needed by the Darwin Streaming Server.
-
-<p>Examples:
-
-<p><code>mp4creator -c myvideo.xvid -H -r=29.97 myvideo.mp4</code>
-
-<p><code>mp4creator -c myvideo.cmp -H -r=25 myvideo.mp4</code>
-
-<li><b>Create an audio and video mp4 file </b>
-
-<p>Use the provided mp4creator tool to first generate an MP4 file for one of 
-the media. Then use the mp4creator tool to add the second media. The resulting 
-MP4 file will contain both media tracks and any associated hint tracks.
-
-<p>Example:
-
-<p><code>mp4creator -c myaudio.aac -H mymedia.mp4 </code>
-
-<p><code>mp4creator -c myvideo.xvid -r=15 -H mymedia.mp4</code>
-
-<li><b>Useful options </b>
-
-<p><code>-mtu=&lt;uint&gt;</code> Use the given number as the MTU
-size for hinting, the default value is 1500 bytes
-
-<p><code>-verbosity=&lt;uint&gt;</code> Emits increasing levels about what is
-happening to stdout
-
-<li><b>Make content available</b>
-
-<p>Copy the MP4 file to a directory under the
-configured media root for your streaming server. See the documentation for your
-server as to how to generate a URL for the file, but typically it would look
-like rtsp://myserver/mymedia.mp4
-
-<p><span style='font-family:Arial'>Example:</span>
-
-<p><code>cp mymedia.mp4 /usr/local/movies</code>
-
-</ol> 
+<p>
+Note: the mp4encode script is no longer available.  Since we recommend
+getting the encoders from those sites, supporting it was made unwieldy. 
+<div id="getcontent">
+<h2><b>Getting Raw Content</b></h2></div>
+<p>
+There are many ways of getting raw content.  Most likely, the content will 
+come in a couple of different forms - raw YUV, RGB or PCM files, or .avi, .mp4 
+or .mov containers containing raw data.
+<p>
+If you have an .avi container, you can use <a href="#avidump">avidump</a> to 
+display information about the contents.  The "Video Compressor" and 
+"Audio format" fields display information about what format the audio and 
+video are in. I420 is YUV 4:2:0, DIB is RGB.  Other codes might indicate 
+that the content is already encoded, so you can skip the next step.
+<p>
+avidump will also give you information about video frame rate, audio
+sampling rates and channels that you will need for encoding.
+<p>
+For .mp4 and .mov containers, you can use <a href="#mp4info">mp4info</a> to 
+display information about what audio and video tracks are in those container
+files.  .mov codes for raw video are "raw " for RGB and "Yuv2" for 
+YUV 4:2:2.  mp4live will store raw YUV with a special code only used for
+mpeg4ip.
+<p>
+If you have RGB data, you will need to use the <a href="#rgb2yuv">rgb2yuv</a>
+utility to convert the RGB data.  The RGB data needs to be in 24 bit packed 
+format to work with this utility.  RGB24 is a packed format with 1 byte for 
+each R, G and B.
+<p>
+You can also use the lboxcrop to crop the YUV data.
+<p>
+For the most part, the encoders that need YUV data will need YUV12, aka YV12.
+(FYI: This is a planar format sampled at 4:2:0)
+<p>
+Our <a href="#yuvdump">yuvdump</a> utility is a good method of checking 
+that your YUV data is correct and in the correct format.  The height and 
+width must be specified, but if the data is correct, you should see the 
+video that you are trying to encode.
+<div id="encode">
+<h2><b>Encoding Content</b></h2></div>
+<p>
+When you have raw audio and raw video, you will need to use an encoder
+to put the audio and video in the correct encode format for your application.
+<p>
+mpeg4ip contains the ISO encoder, which compiles only on the windows
+platform. If you want to use this encoder, you will need to create an 
+executable and use a file where the many configuration parameters are given. 
+An template parameter file, 'mp4venc_template.par', is located in the 
+server/util/mp4encode directory.  We do not support this encoder, and
+don't know how to set the parameters, so don't ask.
+<p> 
+How you encode your audio and video depends mainly on your available
+encoder options, the bandwidth that you wish to use, and the interoperability
+level you wish to maintain.
+<p>
+We recommend released versions of ffmpeg or xvid for encoding video, and 
+faac or lame for encoding audio, although any standard encoder should
+be okay.
+<p>
+For the most part, these stand-alone encoders will create elementary 
+streams, but may create mpeg files, or avi files, or even .mp4 files.
+mp4player should be able to play most of the elementary streams.
+<div id="assemble">
+<h2><b>Assembling the content</b></h2></div>
+<p>
+The mpeg4ip project's crown jewel is our mpeg-4 file container library, 
+mp4v2, and our ability to store various content into files.
+<p>
+The mpeg-4 (mp4) file container format is defined in ISO-IEC 14496-12 and
+14496-14, and is based on the Quicktime .mov format.  One of the main
+features of this container format is that it is really content agnostic,
+and can be used to stream pretty much anything with the addition of
+standard hint tracks.  To paraphrase the movie "Apollo 13", you could
+stream a washing machine if you could figure out how to hint it.
+<p>
+The mp4 file container can contain any number of streams (also called
+tracks).  A fully hinted ISMA mp4 container can contain 6 different
+tracks.
+<p>
+The mpeg4ip project was built mainly on creating files interoperable with 
+the ISMA.  These files are mpeg-4 simple and advanced simple profile
+encoded with AAC low complexity audio in a mp4 container. (ISO 14496-2
+video, 14496-3 audio, 14496-14 file format).  
+<p>
+We've since added other encoded formats, such as mpeg1 or mpeg2 support
+for streaming servers using the mpeg-4 file container, and have received
+contributed code for 3GP support (h.263 video and AMR audio).  We're also
+working to try to create .mov files compatible with Quicktime.
+<p>
+We've also put an emphasis on flexibility, so non-standard files (such
+as mpeg-4 video with mp3 audio, or mpeg-2 video with aac audio) can 
+be supported.
+<p>
+To assemble content using this library requires the use of the 
+<a href="#mp4creator">mp4creator</a> utility.  This utility has several
+functions.  For the most up-to-date information, use <code>man mp4creator
+</code>. These are:
+<ul>
+<li>Adding streams to file</li>
+<li>Hinting tracks</li>
+<li>Extracting tracks</li>
+<li>Deleting streams from a file</li>
+<li>Encrypting tracks according to ISMAcryp specification</li>
+</ul>
+<p>
+For mp4 containers (and .mov files, as well), 3 utilities are provided
+that can be used at any time in the creation process.  These are:
+<ul>
+<li><a href="#mp4info">mp4info</a></li>
+<li><a href="#mp4dump">mp4dump</a></li>
+<li><a href="#mp4trackdump">mp4trackdump</a></li>
+</ul>
+<p>
+Each utility has a man page.
+<div id="add">
+<h3>Adding Streams to file</h3></div>
+<p>Adding audio or video elementary streams to mp4 containers is very
+simple.  Simply use the --create option:
+<p><code>mp4creator [-create] &lt;es file&gt; &lt;mp4 file&gt;</code>
+<p> 
+Supported elementary streams are: mpeg-4, H.263, H.264 (video), AAC,
+MP3, AMR (audio).
+<p>
+Video elementary streams will need to specify the frame rate.  Mpeg-4
+video can use variable frame rate information stored in the headers using
+the -variable-frame-rate option; however, most encoders do not put information
+that would be sufficient to correctly use this function.
+<p>
+mp4creator will also use .mpeg files to create mp4 file containers; the 
+first audio and first video tracks will be added at the same time.
+<p>
+mp4creator used to support creation from avi files; however, avi files
+do not support B frames very well, and various creation tools such as 
+divx and xvid have created different ways to store b-frames in avi files.
+<p>
+Therefore, avi support is deprecated.  We recommend using avi2raw for
+audio and video in the avi file, then using the elementary stream file
+to create the content.
+<div id="hint">
+<h3>Hinting tracks file</h3></div>
+<p>
+To hint tracks, use the -hint=&lt;track&gt; option to mp4creator.  The -hint
+option can also be used when adding the file to the track; however, sometimes
+it seems to fail - we recommend using 2 steps.  Use the <a href="#mp4info">
+mp4info</a> utility to display the track number
+<p>
+mp4creator can add hint tracks for mpeg-1, mpeg-2, mpeg-4, H.263 and 
+H.264 video, and mpeg(1,2,3), aac audio.
+<div id="extract">
+<h3>Extracting tracks from a file</h3></div>
+<p>
+To extract track, simply use the -extract=&lt;track&gt; option.
+<div id="delete">
+<h3>Deleting tracks from a file</h3></div>
+<p>
+To delete tracks, simply use the -extract=&lt;track&gt; option.
+<div id="cryp">
+<h3>Encrypting tracks</h3></div>
+<p>
+TBA
 <p>
   <a href="http://validator.w3.org/check?uri=referer">
     <img

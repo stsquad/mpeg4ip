@@ -34,6 +34,7 @@ typedef struct rawa_codec_t {
   int m_freq;  // frequency
   int m_chans; // channels
   int m_bitsperchan;
+  uint32_t m_bytesperchan;
   int m_output_frame_size;
   int m_initialized;
   int m_resync;
@@ -42,6 +43,8 @@ typedef struct rawa_codec_t {
   uint64_t m_ts;
   uint64_t m_bytes;
   int m_convert_bytes;
+  uint16_t m_small_buffer;
+  bool m_in_small_buffer;
 } rawa_codec_t;
 
 #endif

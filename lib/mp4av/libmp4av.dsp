@@ -133,6 +133,10 @@ SOURCE=.\rfccrypto.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\rfch264.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\rfcisma.cpp
 # End Source File
 # End Group

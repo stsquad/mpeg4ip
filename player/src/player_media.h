@@ -98,6 +98,7 @@ class CPlayerMedia {
   const audio_info_t *get_audio_info (void) { return m_audio_info; };
 
   int create_video_plugin(const codec_plugin_t *p,
+			  const char *stream_type,
 			  const char *compressor, 
 			  int profile, 
 			  int type, 
@@ -106,6 +107,7 @@ class CPlayerMedia {
 			  const uint8_t *user_data,
 			  uint32_t userdata_size);
   int create_audio_plugin(const codec_plugin_t *p,
+			  const char *stream_type,
 			  const char *compressor, 
 			  int profile, 
 			  int type, 

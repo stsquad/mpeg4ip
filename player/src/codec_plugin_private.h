@@ -30,14 +30,16 @@ extern "C" void initialize_plugins(void);
 
 void close_plugins(void);
 
-codec_plugin_t *check_for_audio_codec(const char *compressor,
+codec_plugin_t *check_for_audio_codec(const char *stream_type,
+				      const char *compressor,
 				      format_list_t *fptr,
 				      int audio_type,
 				      int profile,
 				      const uint8_t *userdata,
 				      uint32_t userdata_size);
 
-codec_plugin_t *check_for_video_codec(const char *compressor,
+codec_plugin_t *check_for_video_codec(const char *stream_type,
+				      const char *compressor,
 				      format_list_t *fptr,
 				      int type,
 				      int profile, 

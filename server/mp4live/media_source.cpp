@@ -31,9 +31,6 @@
 //#define DEBUG_SYNC 1
 //#define DEBUG_AUDIO_SYNC 1
 //#define DEBUG_VIDEO_SYNC 1
-//#define DEBUG_SYNC_DRIFT 1
-//#define DEBUG_SYNC_DROPS 1
-//#define DEBUG_SYNC_LAG 1
 
 CMediaSource::CMediaSource() 
 {
@@ -356,7 +353,7 @@ void CMediaSource::ProcessVideoYUVFrame(
   m_videoSrcElapsedDuration = srcFrameTimestamp - m_videoStartTimestamp;
 
 #ifdef DEBUG_VIDEO_SYNC
-  debug_message("src# %d srcDuration="U64" dst# %d dstDuration "U64" encDrift "U64,
+  debug_message("vsrc# %d srcDuration="U64" dst# %d dstDuration "U64" encDrift "U64,
                 m_videoSrcFrameNumber, m_videoSrcElapsedDuration,
                 m_videoDstFrameNumber, m_videoDstElapsedDuration,
                 m_videoEncodingDrift);
@@ -376,6 +373,8 @@ void CMediaSource::ProcessVideoYUVFrame(
 
   // source gets ahead of destination
   if (lag > 3 * m_videoDstFrameDuration) {
+    debug_message("lag "D64" src "U64" dst "U64,
+		  lag, m_videoSrcElapsedDuration, m_videoDstElapsedDuration);
     int j = (lag - (2 * m_videoDstFrameDuration)) / m_videoDstFrameDuration;
     m_videoDstFrameNumber += j;
     m_videoDstElapsedDuration = VideoDstFramesToDuration();
@@ -870,10 +869,9 @@ void CMediaSource::ProcessAudioFrame(
     Duration frametime = DstSamplesToTicks(DstBytesToSamples(frameDataLength));
 
 #ifdef DEBUG_AUDIO_SYNC
-    debug_message("src# %d srcDuration="U64" dst# %d dstDuration "U64" encDuration "U64,
+    debug_message("asrc# %d srcDuration="U64" dst# %d dstDuration "U64,
                   m_audioSrcFrameNumber, m_audioSrcElapsedDuration,
-                  m_audioDstFrameNumber, m_audioDstElapsedDuration,
-                  m_audioEncodingElapsedDuration);
+                  m_audioDstFrameNumber, m_audioDstElapsedDuration);
 #endif
 
     // destination gets ahead of source

@@ -30,7 +30,8 @@ const char *aaclib="aac";
 /*
  * Create CAACodec class
  */
-static codec_data_t *aac_codec_create (const char *compressor, 
+static codec_data_t *aac_codec_create (const char *stream_type,
+				       const char *compressor, 
 				       int type, 
 				       int profile, 
 				       format_list_t *media_fmt,
@@ -296,6 +297,7 @@ static const char *aac_compressors[] = {
 };
 
 static int aac_codec_check (lib_message_func_t message,
+			    const char *stream_type,
 			    const char *compressor,
 			    int type,
 			    int profile,
@@ -306,7 +308,7 @@ static int aac_codec_check (lib_message_func_t message,
 {
   fmtp_parse_t *fmtp = NULL;
   if (compressor != NULL && 
-      strcasecmp(compressor, "MP4 FILE") == 0 &&
+      strcasecmp(stream_type, "MP4 FILE") == 0 &&
       type != -1) {
     switch (type) {
     case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
@@ -318,7 +320,8 @@ static int aac_codec_check (lib_message_func_t message,
       return -1;
     }
   }
-  if (fptr != NULL && 
+  if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
+      fptr != NULL && 
       fptr->rtpmap != NULL &&
       fptr->rtpmap->encode_name != NULL) {
     if ((strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) &&
@@ -336,7 +339,7 @@ static int aac_codec_check (lib_message_func_t message,
   if (userdata != NULL) {
     mpeg4_audio_config_t audio_config;
     decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
-    message(LOG_DEBUG, "aac", "audio type is %d", audio_config.audio_object_type);
+    //    message(LOG_DEBUG, "aac", "audio type is %d", audio_config.audio_object_type);
     if (fmtp != NULL) free_fmtp_parse(fmtp);
     
     if (audio_object_type_is_aac(&audio_config) == 0) {

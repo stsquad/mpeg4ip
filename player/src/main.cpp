@@ -37,6 +37,7 @@
 #include "video.h"
 #include "video_sdl.h"
 #include "mpeg4ip_getopt.h"
+#include "mpeg2t/mpeg2_transport.h"
 
 static int session_paused;
 static int screen_size = 2;
@@ -67,22 +68,25 @@ static int set_aspect_ratio(int newaspect, CPlayerSession *psptr)
 {
   if (psptr != NULL) {
     switch (newaspect) {
-      case 1 : 
-	psptr->set_screen_size(screen_size,fullscreen,4,3);
-        break;
-      case 2 : 
-	psptr->set_screen_size(screen_size,fullscreen,16,9);
-        break;
-      case 3 : 
-	psptr->set_screen_size(screen_size,fullscreen,185,100);
-        break;
-      case 4 : 
-	psptr->set_screen_size(screen_size,fullscreen,235,100);
-        break;
-      default: 
-	psptr->set_screen_size(screen_size,fullscreen,0,0);
-        newaspect = 0;
-        break;
+    case 1 : 
+      psptr->set_screen_size(screen_size,fullscreen,4,3);
+      break;
+    case 2 : 
+      psptr->set_screen_size(screen_size,fullscreen,16,9);
+      break;
+    case 3 : 
+      psptr->set_screen_size(screen_size,fullscreen,185,100);
+      break;
+    case 4 : 
+      psptr->set_screen_size(screen_size,fullscreen,235,100);
+      break;
+    case 5:
+      psptr->set_screen_size(screen_size, fullscreen, 1, 1);
+      break;
+    default: 
+      psptr->set_screen_size(screen_size,fullscreen,0,0);
+      newaspect = 0;
+      break;
     }
     config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
   } else player_error_message("Can't set aspect ratio yet");
@@ -203,6 +207,9 @@ int process_sdl_key_events (CPlayerSession *psptr,
 	break;
       case 4 : 
 	psptr->set_screen_size(screen_size,fullscreen,235,100);
+	break;
+      case 5:
+	psptr->set_screen_size(screen_size,fullscreen,1,1);
 	break;
       default: 
 	psptr->set_screen_size(screen_size,fullscreen,0,0);
@@ -453,6 +460,10 @@ int main (int argc, char **argv)
   sdp_set_loglevel(config.get_config_value(CONFIG_SDP_DEBUG));
   http_set_error_func(library_message);
   http_set_loglevel(config.get_config_value(CONFIG_HTTP_DEBUG));
+#ifndef _WIN32
+  mpeg2t_set_error_func(library_message);
+  mpeg2t_set_loglevel(config.get_config_value(CONFIG_MPEG2T_DEBUG));
+#endif
   if (config.get_config_value(CONFIG_RX_SOCKET_SIZE) != 0) {
     rtp_set_receive_buffer_default_size(config.get_config_value(CONFIG_RX_SOCKET_SIZE));
   }

@@ -125,6 +125,22 @@ const uint8_t *mpeg2t_transport_payload_start (const uint8_t *pHdr,
     pid = ((pHdr[1] << 8) | pHdr[2]) & 0x1fff;
     mpeg2t_message(LOG_ERR, "pid %x adaptation control - len %d", 
 		   pid, pHdr[4]);
+    if ((pHdr[5] & 0x10) != 0) {
+      uint64_t pcr;
+      uint16_t ext;
+      pcr = pHdr[6]; 
+      pcr = (pcr << 8) | pHdr[7];
+      pcr = (pcr << 8) | pHdr[8];
+      pcr = (pcr << 8) | pHdr[9];
+      pcr <<= 1;
+      if ((pHdr[10] & 0x80) != 0) { 
+	pcr |= 1;
+      }
+      ext = (pHdr[10] & 0x1) << 8;
+      ext |= pHdr[11];
+      mpeg2t_message(LOG_ERR, "pid %x pcr "U64" ext %u",
+		     pid, pcr, ext);
+    }
     for (ix = 0; ix < pHdr[4]; ix += 4) {
       mpeg2t_message(LOG_ERR, "pid %x %d - %02x %02x %02x %02x", 
 		     pid, ix, 
@@ -295,7 +311,6 @@ static void create_es (mpeg2t_t *ptr,
 		       uint32_t es_info_len)
 {
   mpeg2t_es_t *es;
-  uint32_t ix;
 
   mpeg2t_message(LOG_INFO, 
 		 "Adding ES PID %x stream type %d", pid, stream_type);
@@ -317,6 +332,9 @@ static void create_es (mpeg2t_t *ptr,
   case 2:
     es->is_video = 1;
     break;
+  case 0x1b:
+    es->is_video = 2;
+    break;
   default:
     es->is_video = 0;
   }
@@ -326,7 +344,11 @@ static void create_es (mpeg2t_t *ptr,
       memcpy(es->es_data, es_data, es_info_len);
       es->es_info_len = es_info_len;
     }
-    mpeg2t_message(LOG_ERR, "pid %x - es len %d", pid, es_info_len);
+    mpeg2t_message(LOG_ERR, "pid %x - es len %d %p", pid, es_info_len,
+		   es->es_data);
+#if 0
+ {
+  uint32_t ix;
     for (ix = 0; ix < es_info_len; ix += 4) {
       mpeg2t_message(LOG_ERR, "%d - %02x %02x %02x %02x", 
 		     ix, es_data[ix], 
@@ -334,6 +356,8 @@ static void create_es (mpeg2t_t *ptr,
 		     es_data[ix + 2],
 		     es_data[ix + 3]);
     }
+ }
+#endif
   }
   es->work_max_size = 4096;
   es->save_frames = ptr->save_frames_at_start;
@@ -543,7 +567,7 @@ static void clean_es_data (mpeg2t_es_t *es_pid)
 {
   es_pid->have_ps_ts = 0;
   es_pid->have_dts = 0;
-  if (es_pid->is_video) {
+  if (es_pid->is_video > 0) {
     // mpeg1 or mpeg2 video
     es_pid->work_state = 0;
     es_pid->header = 0;
@@ -854,6 +878,9 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   case 129:
     ret = process_mpeg2t_ac3_audio(es_pid, esptr, buflen);
     break;
+  case 0x1b:
+    ret = process_mpeg2t_h264_video(es_pid, esptr, buflen);
+    break;
   case 0xf:
     // aac
     break;
@@ -996,6 +1023,8 @@ void delete_mpeg2t_transport (mpeg2t_t *ptr)
   pidptr = ptr->pas.pid.next_pid;
 
   while (pidptr != NULL) {
+    mpeg2t_message(LOG_CRIT, "cleaning %p pid %x", 
+		   pidptr, pidptr->pid);
     switch (pidptr->pak_type) {
     case MPEG2T_ES_PAK:
       clean_es_pid((mpeg2t_es_t *)pidptr);
@@ -1083,6 +1112,9 @@ int mpeg2t_write_stream_info (mpeg2t_es_t *es_pid,
     break;
   case 129:
     ret = mpeg2t_ac3_audio_info(es_pid, buffer, buflen);
+    break;
+  case 0x1b:
+    ret = mpeg2t_h264_video_info(es_pid, buffer, buflen);
     break;
   case 0xf:
     // aac

@@ -65,7 +65,8 @@ static inline int16_t convert (int32_t i)
 /*
  * Create ac3 audio structure
  */
-static codec_data_t *a52dec_codec_create (const char *compressor, 
+static codec_data_t *a52dec_codec_create (const char *stream_type,
+					  const char *compressor, 
 					int type, 
 					int profile, 
 					format_list_t *media_fmt,
@@ -397,6 +398,7 @@ static int a52dec_decode (codec_data_t *ptr,
 
 
 static int a52dec_codec_check (lib_message_func_t message,
+			       const char *stream_type,
 			       const char *compressor,
 			       int type,
 			       int profile,
@@ -405,23 +407,20 @@ static int a52dec_codec_check (lib_message_func_t message,
 			       uint32_t userdata_size,
 			       CConfigSet *pConfig)
 {
-  if (compressor != NULL && 
-      strcasecmp(compressor, "MP4 FILE") == 0 &&
+  if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0 &&
       type != -1) {
     // we don't handle this yet...
     return -1; 
   }
-  if (compressor != NULL) {
-    if ((strcasecmp(compressor, "MPEG FILE") == 0) &&
-	(type == 2)) { // AUDIO_AC3 from mpeg file
-      return 1;
-    }
-    if ((strcasecmp(compressor, "MPEG2 TRANSPORT") == 0) &&
-	(type == 129)) {
-      return 1;
-    }
-						    
+  if ((strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) &&
+      (type == 2)) { // AUDIO_AC3 from mpeg file
+    return 1;
   }
+  if ((strcasecmp(stream_type, STREAM_TYPE_MPEG2_TRANSPORT_STREAM) == 0) &&
+	(type == 129)) {
+    return 1;
+  }
+						    
   return -1;
 }
 

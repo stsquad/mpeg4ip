@@ -60,7 +60,7 @@ static char* PrintAudioInfo(
 		"MPEG-4 ER Parametric",
 	};
 
-	static u_int8_t mpegAudioTypes[] = {
+	static const u_int8_t mpegAudioTypes[] = {
 		MP4_MPEG2_AAC_MAIN_AUDIO_TYPE,	// 0x66
 		MP4_MPEG2_AAC_LC_AUDIO_TYPE,	// 0x67
 		MP4_MPEG2_AAC_SSR_AUDIO_TYPE,	// 0x68
@@ -88,61 +88,67 @@ static char* PrintAudioInfo(
 		"G.723.1",
 		"PCM16 (big endian)",
 	};
-	static u_int8_t numMpegAudioTypes =
+	u_int8_t numMpegAudioTypes =
 		sizeof(mpegAudioTypes) / sizeof(u_int8_t);
 
 	const char* typeName = "Unknown";
 	bool foundType = false;
-	u_int8_t type = MP4GetTrackEsdsObjectTypeId(mp4File, trackId);
+	u_int8_t type = 0;
+	const char *media_data_name;
 
-	switch (type) {
-	case MP4_MPEG4_AUDIO_TYPE:  {
-	  u_int8_t* pAacConfig = NULL;
-	  u_int32_t aacConfigLength;
+	media_data_name = MP4GetTrackMediaDataName(mp4File, trackId);
 
-	  MP4GetTrackESConfiguration(mp4File,
-				     trackId,
-				     &pAacConfig,
-				     &aacConfigLength);
-
-	  if (pAacConfig != NULL && aacConfigLength >= 2) {
-	    type = (pAacConfig[0] >> 3) & 0x1f;
-	    if (type == 0 || type == 5 || type == 10 || type == 11 ||
-		type == 18 || type >= 28) {
-	      typeName = "MPEG-4 Unknown Profile";
-	    } else {
-	        typeName = mpeg4AudioNames[type - 1];
-		foundType = true;
-	    }
-	    free(pAacConfig);
-	  } else {
-	    typeName = "MPEG-4 (no GAConfig)";
-	    foundType = true;
-	  }
-	  break;
-	}
-	case MP4_INVALID_AUDIO_TYPE:
-	  // type not found
-	  // try with 3gpp codecs
-	  if (MP4HaveTrackIntegerProperty(mp4File, trackId, 
-					  "mdia.minf.stbl.stsd.samr.damr.vendor")) {
+	if (media_data_name == NULL) {
+	  typeName = "Unknown - no media data name";
+	} else if (strcasecmp(media_data_name, "samr") == 0) {
 	    typeName = "AMR";
 	    foundType = true;
-	  } else if (MP4HaveTrackIntegerProperty(mp4File, trackId, 
-						 "mdia.minf.stbl.stsd.sawb.damr.vendor")) {
+	} else if (strcasecmp(media_data_name, "samr") == 0) {
 	    typeName = "AMR-WB";
 	    foundType = true;
-	  }
-	  break;
-	  // fall through
-	default:
-	  for (u_int8_t i = 0; i < numMpegAudioTypes; i++) {
-	    if (type == mpegAudioTypes[i]) {
-	      typeName = mpegAudioNames[i];
+	} else if (strcasecmp(media_data_name, "mp4a") == 0) {
+	    
+	  type = MP4GetTrackEsdsObjectTypeId(mp4File, trackId);
+
+	  switch (type) {
+	  case MP4_MPEG4_AUDIO_TYPE:  {
+	    u_int8_t* pAacConfig = NULL;
+	    u_int32_t aacConfigLength;
+	    
+	    MP4GetTrackESConfiguration(mp4File,
+				       trackId,
+				       &pAacConfig,
+				       &aacConfigLength);
+	    
+	    if (pAacConfig != NULL && aacConfigLength >= 2) {
+	      type = (pAacConfig[0] >> 3) & 0x1f;
+	      if (type == 0 || type == 5 || type == 10 || type == 11 ||
+		  type == 18 || type >= 28) {
+		typeName = "MPEG-4 Unknown Profile";
+	      } else {
+	        typeName = mpeg4AudioNames[type - 1];
+		foundType = true;
+	      }
+	      free(pAacConfig);
+	    } else {
+	      typeName = "MPEG-4 (no GAConfig)";
 	      foundType = true;
-	      break;
+	    }
+	    break;
+	  }
+	    // fall through
+	  default:
+	    for (u_int8_t i = 0; i < numMpegAudioTypes; i++) {
+	      if (type == mpegAudioTypes[i]) {
+		typeName = mpegAudioNames[i];
+		foundType = true;
+		break;
+	      }
 	    }
 	  }
+	} else {
+	  typeName = media_data_name;
+	  foundType = true;
 	}
 
 	u_int32_t timeScale =
@@ -183,7 +189,7 @@ static char* PrintAudioInfo(
 
 	return sInfo;
 }
-static struct {
+static const struct {
   uint8_t profile;
   const char *name;
 } VisualProfileToName[] = {
@@ -263,7 +269,7 @@ static char* PrintVideoInfo(
 	MP4TrackId trackId)
 {
 
-	static u_int8_t mpegVideoTypes[] = {
+	static const u_int8_t mpegVideoTypes[] = {
 		MP4_MPEG2_SIMPLE_VIDEO_TYPE,	// 0x60
 		MP4_MPEG2_MAIN_VIDEO_TYPE,		// 0x61
 		MP4_MPEG2_SNR_VIDEO_TYPE,		// 0x62
@@ -273,7 +279,6 @@ static char* PrintVideoInfo(
 		MP4_MPEG1_VIDEO_TYPE,			// 0x6A
 		MP4_JPEG_VIDEO_TYPE,			// 0x6C
 		MP4_YUV12_VIDEO_TYPE,
-		MP4_H264_VIDEO_TYPE,
 		MP4_H263_VIDEO_TYPE,
 		MP4_H261_VIDEO_TYPE,
 	};
@@ -287,41 +292,53 @@ static char* PrintVideoInfo(
 		"MPEG-1",
 		"JPEG",
 		"YUV12",
-		"H.264",
 		"H.263",
 		"H.261",
 	};
-	static u_int8_t numMpegVideoTypes =
+	u_int8_t numMpegVideoTypes =
 		sizeof(mpegVideoTypes) / sizeof(u_int8_t);
 	bool foundTypeName = false;
 	const char* typeName = "Unknown";
 
-	u_int8_t type = MP4GetTrackEsdsObjectTypeId(mp4File, trackId);
+	const char *media_data_name;
+	uint8_t type = 0;
+	media_data_name = MP4GetTrackMediaDataName(mp4File, trackId);
 
-        if ( type == MP4_INVALID_VIDEO_TYPE ) {
-          // type not found
-          // try with 3gpp codecs
-          if (MP4HaveTrackIntegerProperty(mp4File, trackId, "mdia.minf.stbl.stsd.s263.d263.vendor")) {
-            type = MP4_H263_VIDEO_TYPE;
-          }
-        }
-
-	if (type == MP4_MPEG4_VIDEO_TYPE) {
-		type = MP4GetVideoProfileLevel(mp4File);
-		typeName = Mpeg4VisualProfileName(type);
-		if (typeName == NULL) {
-		  typeName = "MPEG-4 Unknown Profile";
+	if (media_data_name == NULL) {
+	  typeName = "Unknown - no media data name";
+	  foundTypeName = true;
+	} else if (strcasecmp(media_data_name, "avc1") == 0) {
+	  // avc
+	  typeName = "H.264";
+	  foundTypeName = true;
+	} else if (strcasecmp(media_data_name, "s263") == 0) {
+	  // 3gp h.263
+	  typeName = "H.263";
+	  foundTypeName = true;
+	} else if ((strcasecmp(media_data_name, "mp4v") == 0) ||
+		   (strcasecmp(media_data_name, "encv") == 0)) {
+	  // note encv might needs it's own field eventually.
+	  type = MP4GetTrackEsdsObjectTypeId(mp4File, trackId);
+	  if (type == MP4_MPEG4_VIDEO_TYPE) {
+	    type = MP4GetVideoProfileLevel(mp4File);
+	    typeName = Mpeg4VisualProfileName(type);
+	    if (typeName == NULL) {
+	      typeName = "MPEG-4 Unknown Profile";
 		} else {
-		  foundTypeName = true;
-		}
-	} else {
-	  for (u_int8_t i = 0; i < numMpegVideoTypes; i++) {
-	    if (type == mpegVideoTypes[i]) {
-	      typeName = mpegVideoNames[i];
 	      foundTypeName = true;
-	      break;
+	    }
+	  } else {
+	    for (u_int8_t i = 0; i < numMpegVideoTypes; i++) {
+	      if (type == mpegVideoTypes[i]) {
+		typeName = mpegVideoNames[i];
+		foundTypeName = true;
+		break;
+	      }
 	    }
 	  }
+	} else {
+	  typeName = media_data_name;
+	  foundTypeName = true; // we don't have a type value to display
 	}
 
 	MP4Duration trackDuration =
@@ -347,7 +364,7 @@ static char* PrintVideoInfo(
 	// type duration avgBitrate frameSize frameRate
 	if (foundTypeName) {
 	  sprintf(sInfo,
-		  "%u\tvideo\t%s%s, %.3f secs, %u kbps, %ux%u @ %.2f fps\n",
+		  "%u\tvideo\t%s%s, %.3f secs, %u kbps, %ux%u @ %f fps\n",
 		  trackId,
 		  MP4IsIsmaCrypMediaTrack(mp4File, trackId) ? "encv - " : "",
 		  typeName,
@@ -359,7 +376,7 @@ static char* PrintVideoInfo(
 		  );
 	} else {
 	  sprintf(sInfo,
-		  "%u\tvideo\t%s(%u), %.3f secs, %u kbps, %ux%u @ %.2f fps\n",
+		  "%u\tvideo\t%s(%u), %.3f secs, %u kbps, %ux%u @ %f fps\n",
 		  trackId,
 		  typeName,
 		  type, 

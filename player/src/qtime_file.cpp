@@ -141,7 +141,8 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
       type = MP4_MPEG4_VIDEO_TYPE;
     }
 
-    plugin = check_for_video_codec(codec_name,
+    plugin = check_for_video_codec("QT FILE",
+				   codec_name,
 				   NULL, 
 				   type,
 				   profileID,
@@ -194,6 +195,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
      * Create plugin
      */
     ret = mptr->create_video_plugin(plugin, 
+				    "QT FILE",
 				    codec_name, 
 				    -1,
 				    -1,
@@ -247,7 +249,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     udsize = 0;
     ret = quicktime_get_mp4_audio_decoder_config(m_qtfile, 0, (unsigned char **)&ud, &udsize);
 
-    plugin = check_for_audio_codec(codec, NULL, -1, -1, ud, udsize);
+    plugin = check_for_audio_codec("QT FILE", codec, NULL, -1, -1, ud, udsize);
     if (plugin == NULL) {
       player_debug_message("Couldn't find audio codec %s", codec);
       return (0);
@@ -283,6 +285,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     audio->freq = sample_rate;
 
     int ret = mptr->create_audio_plugin(plugin,
+					"QT FILE",
 					codec, 
 					-1, 
 					-1,

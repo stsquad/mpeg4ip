@@ -47,10 +47,13 @@ CLiveConfig *InitializeConfigVariables (void)
   CLiveConfig *ret;
 
   home = getenv("HOME");
+  userFileName[0] = '\0';
   if (home) {
     strcpy(userFileName, home);
-    strcat(userFileName, "/.mp4live_rc");
+    strcat(userFileName, "/");
   }
+  strcat(userFileName, ".mp4live_rc");
+
   ret = new CLiveConfig(MyConfigVariables,
 			 sizeof(MyConfigVariables) / sizeof(SConfigVariable),
 			 home ? userFileName : NULL);

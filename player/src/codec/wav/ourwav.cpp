@@ -24,7 +24,8 @@
 /*
  * Create CAACodec class
  */
-static codec_data_t *wav_codec_create (const char *compressor, 
+static codec_data_t *wav_codec_create (const char *stream_type, 
+				       const char *compressor,
 				       int type, 
 				       int profile, 
 				       format_list_t *media_fmt,
@@ -128,6 +129,7 @@ static int wav_decode (codec_data_t *ifptr,
 }
 
 static int wav_codec_check (lib_message_func_t message,
+			    const char *stream_type,
 			    const char *compressor,
 			    int audio_format,
 			    int profile, 

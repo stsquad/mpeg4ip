@@ -125,8 +125,6 @@ public:
 		MP4Timestamp* pStartTime = NULL, 
 		MP4Duration* pDuration = NULL);
 
-	static const char* NormalizeTrackType(const char* type);
-
 	// special operation for use during hint track packet assembly
 	void ReadSampleFragment(
 		MP4SampleId sampleId,

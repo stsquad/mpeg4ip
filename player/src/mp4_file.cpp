@@ -136,7 +136,8 @@ int CMp4File::create_video(CPlayerSession *psptr,
       vinfo = (video_info_t *)malloc(sizeof(video_info_t));
       vinfo->height = vq[ix].h;
       vinfo->width = vq[ix].w;
-      plugin = check_for_video_codec("MP4 FILE",
+      plugin = check_for_video_codec(vq[ix].stream_type,
+				     vq[ix].compressor,
 				     NULL,
 				     vq[ix].type,
 				     vq[ix].profile,
@@ -144,7 +145,8 @@ int CMp4File::create_video(CPlayerSession *psptr,
 				     vq[ix].config_len);
 
       int ret = mptr->create_video_plugin(plugin, 
-					  "MP4 FILE",
+					  vq[ix].stream_type,
+					  vq[ix].compressor,
 					  vq[ix].type,
 					  vq[ix].profile,
 					  NULL, // sdp info
@@ -165,7 +167,9 @@ int CMp4File::create_video(CPlayerSession *psptr,
       /* check if ismacryp */
       uint32_t verb = MP4GetVerbosity(m_mp4file);
       MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
-      if (MP4IsIsmaCrypMediaTrack(m_mp4file, vq[ix].track_id)) {
+      if (strcasecmp(vq[ix].compressor, "avc1") == 0) {
+	vbyte = new CMp4H264VideoByteStream(this, vq[ix].track_id);
+      } else if (strcasecmp(vq[ix].compressor, "encv") == 0) {
         IVLength = MP4GetTrackIntegerProperty(m_mp4file,
                     vq[ix].track_id, "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length");
 	vbyte = new CMp4EncVideoByteStream(this, vq[ix].track_id,IVLength);
@@ -238,13 +242,17 @@ int CMp4File::create_audio(CPlayerSession *psptr,
       memset(ainfo, 0, sizeof(*ainfo));
 
       ainfo->freq = aq[ix].sampling_freq;
+      if (aq[ix].chans != -1) {
+	ainfo->chans = aq[ix].chans;
+      }
       if ((aq[ix].type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE) ||
 	  (aq[ix].type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE)) {
 	ainfo->bitspersample = 16;
       }
 
       int ret;
-      plugin = check_for_audio_codec("MP4 FILE",
+      plugin = check_for_audio_codec(STREAM_TYPE_MP4_FILE,
+				     aq[ix].compressor, // media_data field
 				     NULL,
 				     aq[ix].type,
 				     aq[ix].profile,
@@ -252,7 +260,8 @@ int CMp4File::create_audio(CPlayerSession *psptr,
 				     aq[ix].config_len);
 
       ret = mptr->create_audio_plugin(plugin,
-				      "MP4 FILE",
+				      STREAM_TYPE_MP4_FILE,
+				      aq[ix].compressor,
 				      aq[ix].type, 
 				      aq[ix].profile,
 				      NULL, // sdp info
@@ -308,6 +317,8 @@ int CMp4File::create_media (CPlayerSession *psptr,
   int ix;
   codec_plugin_t *plugin;
   int ret_value = 0;
+  uint8_t *foo;
+  u_int32_t bufsize;
   
   video_count = 0;
   uint32_t verb = MP4GetVerbosity(m_mp4file);
@@ -323,51 +334,116 @@ int CMp4File::create_media (CPlayerSession *psptr,
 
   if (video_count > 0) {
     vq = (video_query_t *)malloc(sizeof(video_query_t) * video_count);
+    memset(vq, 0, sizeof(video_query_t) * video_count);
   } else {
     vq = NULL;
   }
   if (have_audio_driver && audio_count > 0) {
     aq = (audio_query_t *)malloc(sizeof(audio_query_t) * audio_count);
+    memset(aq, 0, sizeof(audio_query_t) * audio_count);
   } else {
     aq = NULL;
   }
 
   for (ix = 0, video_offset = 0; ix < video_count; ix++) {
     trackId = MP4FindTrackId(m_mp4file, ix, MP4_VIDEO_TRACK_TYPE);
-    uint8_t video_type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
-    uint8_t profileID = MP4GetVideoProfileLevel(m_mp4file);
-    mp4f_message(LOG_DEBUG, "MP4 - got track %x profile ID %d", 
+    const char *media_data_name;
+    media_data_name = MP4GetTrackMediaDataName(m_mp4file, trackId);
+    // for now, treat mp4v and encv the same
+    vq[video_offset].track_id = trackId;
+    vq[video_offset].stream_type = STREAM_TYPE_MP4_FILE;
+    vq[video_offset].compressor = media_data_name;
+    if (strcasecmp(media_data_name, "mp4v") == 0 ||
+	strcasecmp(media_data_name, "encv") == 0) {
+      uint8_t video_type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
+      uint8_t profileID = MP4GetVideoProfileLevel(m_mp4file);
+      mp4f_message(LOG_DEBUG, "MP4 - got track %x profile ID %d", 
 		 trackId, profileID);
-    uint8_t *foo;
-    u_int32_t bufsize;
-    MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
-    MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
-    MP4SetVerbosity(m_mp4file, verb);
-    
-    plugin = check_for_video_codec("MP4 FILE",
-				   NULL,
-				   video_type,
-				   profileID,
-				   foo, 
-				   bufsize);
-
-    if (plugin == NULL) {
-      snprintf(errmsg, errlen, 
-	       "Can't find plugin for video type %d, profile %d",
-	       video_type, profileID);
-      m_illegal_video_codec++;
-      ret_value = 1;
-    } else {
-      vq[video_offset].track_id = trackId;
-      vq[video_offset].compressor = "MP4 FILE";
+      MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
+      MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
+      MP4SetVerbosity(m_mp4file, verb);
       vq[video_offset].type = video_type;
       vq[video_offset].profile = profileID;
       vq[video_offset].fptr = NULL;
+      vq[video_offset].config = foo;
+      vq[video_offset].config_len = bufsize;
+    } else if (strcasecmp(media_data_name, "avc1") == 0) {
+      uint8_t profile, level;
+      uint8_t **seqheader, **pictheader;
+      uint32_t *pictheadersize, *seqheadersize;
+      uint32_t ix;
+      MP4GetTrackH264ProfileLevel(m_mp4file, trackId, &profile, &level);
+      MP4GetTrackH264SeqPictHeaders(m_mp4file, trackId, 
+				    &seqheader, &seqheadersize,
+				    &pictheader, &pictheadersize);
+      bufsize = 0;
+      for (ix = 0; seqheadersize[ix] != 0; ix++) {
+	bufsize += seqheadersize[ix] + 3;
+      }
+      for (ix = 0; pictheadersize[ix] != 0; ix++) {
+	bufsize += pictheadersize[ix] + 3;
+      }
+      foo = (uint8_t *)malloc(bufsize);
+      uint32_t copied = 0;
+      for (ix = 0; seqheadersize[ix] != 0; ix++) {
+	foo[copied] = 0;
+	foo[copied + 1] = 0;
+	foo[copied + 2] = 1;
+	copied += 3; // add header
+	memcpy(foo + copied, 
+	       seqheader[ix], 
+	       seqheadersize[ix]);
+	copied += seqheadersize[ix];
+	free(seqheader[ix]);
+      }
+      free(seqheader);
+      free(seqheadersize);
+      for (ix = 0; pictheadersize[ix] != 0; ix++) {
+	foo[copied] = 0;
+	foo[copied + 1] = 0;
+	foo[copied + 2] = 1;
+	copied += 3; // add header
+	memcpy(foo + copied, 
+	       pictheader[ix], 
+	       pictheadersize[ix]);
+	copied += pictheadersize[ix];
+	free(pictheader[ix]);
+      }
+      free(pictheader);
+      free(pictheadersize);
+	
+      vq[video_offset].type = level;
+      vq[video_offset].profile = profile;
+      vq[video_offset].fptr = NULL;
+      vq[video_offset].config = foo;
+      vq[video_offset].config_len = bufsize;
+    } else {
+      MP4GetTrackVideoMetadata(m_mp4file, trackId, &foo, &bufsize);
+      vq[video_offset].config = foo;
+      vq[video_offset].config_len = bufsize;
+    }
+
+      
+    plugin = check_for_video_codec(vq[video_offset].stream_type,
+				   vq[video_offset].compressor,
+				   NULL,
+				   vq[video_offset].type,
+				   vq[video_offset].profile,
+				   vq[video_offset].config,
+				   vq[video_offset].config_len);
+    if (plugin == NULL) {
+      snprintf(errmsg, errlen, 
+	       "Can't find plugin for video %s type %d, profile %d",
+	       vq[video_offset].compressor,
+	       vq[video_offset].type, 
+	       vq[video_offset].profile);
+      m_illegal_video_codec++;
+      ret_value = 1;
+      // possibly memleak for foo here
+    } else {
       vq[video_offset].h = MP4GetTrackVideoHeight(m_mp4file, trackId);
       vq[video_offset].w = MP4GetTrackVideoWidth(m_mp4file, trackId);
       vq[video_offset].frame_rate = MP4GetTrackVideoFrameRate(m_mp4file, trackId);
-      vq[video_offset].config = foo;
-      vq[video_offset].config_len = bufsize;
       vq[video_offset].enabled = 0;
       vq[video_offset].reference = NULL;
       video_offset++;
@@ -378,36 +454,39 @@ int CMp4File::create_media (CPlayerSession *psptr,
   if (have_audio_driver) {
     for (ix = 0; ix < audio_count; ix++) {
       trackId = MP4FindTrackId(m_mp4file, ix, MP4_AUDIO_TRACK_TYPE);
-      uint8_t audio_type;
-      uint8_t profile;
-      uint8_t *userdata = NULL;
-      u_int32_t userdata_size;
+      const char *media_data_name;
+      media_data_name = MP4GetTrackMediaDataName(m_mp4file, trackId);
 
-      audio_type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
-      profile = MP4GetAudioProfileLevel(m_mp4file);
-      MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
-      MP4GetTrackESConfiguration(m_mp4file, 
-				 trackId, 
-				 &userdata, 
-				 &userdata_size);
-      MP4SetVerbosity(m_mp4file, verb);
-      plugin = check_for_audio_codec("MP4 FILE",
-				     NULL,
-				     audio_type,
-				     profile,
-				     userdata,
-				     userdata_size);
-      if (plugin != NULL) {
-	aq[audio_offset].track_id = trackId;
-	aq[audio_offset].compressor = "MP4 FILE";
-	aq[audio_offset].type = audio_type;
-	aq[audio_offset].profile = profile;
-	aq[audio_offset].fptr = NULL;
+      aq[audio_offset].track_id = trackId;
+      aq[audio_offset].stream_type = STREAM_TYPE_MP4_FILE;
+      aq[audio_offset].compressor = media_data_name;
+      if (strcasecmp(media_data_name, "mp4a") == 0 ||
+	  strcasecmp(media_data_name, "enca") == 0) {
+	uint8_t *userdata = NULL;
+	u_int32_t userdata_size;
+	aq[audio_offset].type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
+	aq[audio_offset].profile = MP4GetAudioProfileLevel(m_mp4file);
+	MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
+	MP4GetTrackESConfiguration(m_mp4file, 
+				   trackId, 
+				   &userdata, 
+				   &userdata_size);
+	MP4SetVerbosity(m_mp4file, verb);
 	aq[audio_offset].config = userdata;
 	aq[audio_offset].config_len = userdata_size;
+      }
+      plugin = check_for_audio_codec(aq[audio_offset].stream_type,
+				     aq[audio_offset].compressor,
+				     NULL,
+				     aq[audio_offset].type,
+				     aq[audio_offset].profile,
+				     aq[audio_offset].config,
+				     aq[audio_offset].config_len);
+      if (plugin != NULL) {
+	aq[audio_offset].fptr = NULL;
 	aq[audio_offset].sampling_freq = 
 	  MP4GetTrackTimeScale(m_mp4file, trackId);
-	aq[audio_offset].chans = -1;
+	aq[audio_offset].chans = MP4GetTrackAudioChannels(m_mp4file, trackId);
 	aq[audio_offset].enabled = 0;
 	aq[audio_offset].reference = NULL;
 	audio_offset++;

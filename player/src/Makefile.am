@@ -142,7 +142,6 @@ AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_D
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"  $(ADD_CFLAGS)
 
 libmp4player_la_LIBADD = \
-	$(top_builddir)/lib/mpeg2t/libmpeg2_transport.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
@@ -150,8 +149,8 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/player/lib/mp4util/libmp4util.la \
 	$(top_builddir)/player/lib/libhttp/libhttp.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
-	$(top_builddir)/lib/bitstream/libbitstream.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
+	$(top_builddir)/lib/mpeg2t/libmpeg2_transport.la \
 	$(top_builddir)/lib/rtp/libuclmmbase.la \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
 	$(top_builddir)/lib/mp4/libmp4.la \

@@ -104,6 +104,10 @@ SOURCE=.\h263.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\h264.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\mp3.cpp
 # End Source File
 # Begin Source File

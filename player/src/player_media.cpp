@@ -194,6 +194,7 @@ CPlayerMedia::~CPlayerMedia()
     free(m_audio_info);
     m_audio_info = NULL;
   }
+
   if (m_user_data) {
     free((void *)m_user_data);
     m_user_data = NULL;
@@ -425,6 +426,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
 }
 
 int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
+				       const char *stream_type,
 				       const char *compressor, 
 				       int type, 
 				       int profile, 
@@ -440,7 +442,8 @@ int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
 
   m_plugin = p;
   m_video_info = video;
-  m_plugin_data = (p->vc_create)(compressor, 
+  m_plugin_data = (p->vc_create)(stream_type,
+				 compressor, 
 				 type,
 				 profile, sdp_media,
 				 video,
@@ -489,6 +492,7 @@ int CPlayerMedia::get_plugin_status (char *buffer, uint32_t buflen)
 }
 
 int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
+				       const char *stream_type,
 				       const char *compressor, 
 				       int type, 
 				       int profile,
@@ -504,7 +508,8 @@ int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
 
   m_audio_info = audio;
   m_plugin = p;
-  m_plugin_data = (p->ac_create)(compressor,
+  m_plugin_data = (p->ac_create)(stream_type,
+				 compressor,
 				 type, 
 				 profile, 
 				 sdp_media,

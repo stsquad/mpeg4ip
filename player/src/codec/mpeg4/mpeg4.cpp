@@ -203,7 +203,8 @@ static int parse_vovod (iso_decode_t *iso,
   return havevol;
 }
 
-static codec_data_t *iso_create (const char *compressor, 
+static codec_data_t *iso_create (const char *stream_type,
+				 const char *compressor, 
 				 int type, 
 				 int profile, 
 				 format_list_t *media_fmt,
@@ -578,6 +579,7 @@ static const char *iso_compressors[] = {
 };
 
 static int iso_codec_check (lib_message_func_t message,
+			    const char *stream_type,
 			    const char *compressor,
 			    int type,
 			    int profile,
@@ -588,14 +590,16 @@ static int iso_codec_check (lib_message_func_t message,
 {
   int ret_val = -1;
 
-  if (compressor != NULL && 
-      (strcasecmp(compressor, "MP4 FILE") == 0)) {
-    if (type == MP4_MPEG4_VIDEO_TYPE || type == MP4_H263_VIDEO_TYPE) {
+  if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
+    if (strcasecmp(compressor, "mp4v") == 0 ||
+	strcasecmp(compressor, "encv") == 0 &&
+	(type == MP4_MPEG4_VIDEO_TYPE || type == MP4_H263_VIDEO_TYPE)) {
       ret_val =  1;
     }
   }
 
-  if (fptr != NULL) {
+  if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
+      fptr != NULL) {
     // find format. If matches, call parse_fmtp_for_mpeg4, look at
     // profile level.
 #if 1

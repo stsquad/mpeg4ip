@@ -42,8 +42,14 @@ typedef struct mpeg2t_frame_t {
   uint8_t *frame; // frame data
   uint32_t frame_len; // length of frame
   uint32_t pict_header_offset;
+  uint32_t seq_header_offset;
+  uint32_t nal_pic_param_offset; // h264
+  uint32_t flags;
 } mpeg2t_frame_t;
 
+#define HAVE_SEQ_HEADER 0x1
+#define HAVE_PICT_HEADER 0x2
+#define HAVE_PIC_PARAM_HEADER 0x4
 /*
  * PID list contains basic structure (mpeg2t_pid_t), with a type
  * field indicating which type to cast to
@@ -130,6 +136,11 @@ typedef struct mpeg2t_es_t {
   int report_psts;
   int frames_in_list;
 } mpeg2t_es_t;
+
+#define MPEG2T_STREAM_11172_VIDEO 0x01
+#define MPEG2T_STREAM_13818_VIDEO 0x02
+#define MPEG2T_STREAM_MPEG_VIDEO 0x03
+#define MPEG2T_STREAM_H264 0x1b
 
 typedef struct mpeg2t_t {
   mpeg2t_pas_t pas;

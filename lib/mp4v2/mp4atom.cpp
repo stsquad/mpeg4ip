@@ -73,9 +73,22 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
     pAtom = new MP4RootAtom();
   } else {
     switch((uint8_t)type[0]) {
+    case 'a':
+      if (ATOMID(type) == ATOMID("avc1")) {
+	pAtom = new MP4Avc1Atom();
+      } else if (ATOMID(type) == ATOMID("avcC")) {
+	pAtom = new MP4AvcCAtom();
+      } else if (ATOMID(type) == ATOMID("alis")) {
+	pAtom = new MP4UrlAtom("alis");
+      } else if (ATOMID(type) == ATOMID("alaw")) {
+	pAtom = new MP4SoundAtom("alaw");
+      }
+      break;
     case 'b':
       if (ATOMID(type) == ATOMID("bitr")) {
 	pAtom = new MP4BitrAtom();
+      } else if (ATOMID(type) == ATOMID("btrt")) {
+	pAtom = new MP4BtrtAtom();
       }
       break;
     case 'c':
@@ -154,6 +167,8 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4HntiAtom();
       } else if (ATOMID(type) == ATOMID("hinf")) {
 	pAtom = new MP4HinfAtom();
+      } else if (ATOMID(type) == ATOMID("h263")) {
+	pAtom = new MP4VideoAtom("h263");
       }
       break;
     case 'i':
@@ -167,6 +182,13 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4TrefTypeAtom(type);
       } else if (ATOMID(type) == ATOMID("ilst")) {
 	pAtom = new MP4IlstAtom();
+      } else if (ATOMID(type) == ATOMID("ima4")) {
+	pAtom = new MP4SoundAtom("ima4");
+      }
+      break;
+    case 'j':
+      if (ATOMID(type) == ATOMID("jpeg")) {
+	pAtom = new MP4VideoAtom("jpeg");
       }
       break;
     case 'm':
@@ -223,15 +245,17 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
     case 'r':
       if (ATOMID(type) == ATOMID("rtp ")) {
 	pAtom = new MP4RtpAtom();
+      } else if (ATOMID(type) == ATOMID("raw ")) {
+	pAtom = new MP4VideoAtom("raw ");
       }
       break;
     case 's':
       if (ATOMID(type) == ATOMID("s263"))  {
         pAtom = new MP4S263Atom();
       } else if (ATOMID(type) == ATOMID("samr")) {
-	pAtom = new MP4SamrAtom();
+	pAtom = new MP4AmrAtom("samr");
       } else if (ATOMID(type) == ATOMID("sawb")) {
-	pAtom = new MP4SawbAtom();
+	pAtom = new MP4AmrAtom("sawb");
       } else if (ATOMID(type) == ATOMID("schi")) {
 	pAtom = new MP4SchiAtom();
       } else if (ATOMID(type) == ATOMID("schm")) {
@@ -267,6 +291,8 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
       } else if (ATOMID(type) == ATOMID("skip")) {
 	pAtom = new MP4FreeAtom();
 	pAtom->SetType("skip");
+      } else if (ATOMID(type) == ATOMID("sowt")) {
+	pAtom = new MP4SoundAtom("sowt");
       }
       break;
     case 't':
@@ -300,6 +326,8 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4TrknAtom();
       } else if (ATOMID(type) == ATOMID("tmpo")) { // iTunes
 	pAtom = new MP4TmpoAtom();
+      } else if (ATOMID(type) == ATOMID("twos")) {
+	pAtom = new MP4SoundAtom("twos");
       }
       break;
     case 'u':
@@ -309,11 +337,20 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4UrlAtom();
       } else if (ATOMID(type) == ATOMID("urn ")) {
 	pAtom = new MP4UrnAtom();
+      } else if (ATOMID(type) == ATOMID("ulaw")) {
+	pAtom = new MP4SoundAtom("ulaw");
       }
       break;
     case 'v':
       if (ATOMID(type) == ATOMID("vmhd")) {
 	pAtom = new MP4VmhdAtom();
+      }
+      break;
+    case 'S':
+      if (ATOMID(type) == ATOMID("SVQ3")) {
+	pAtom = new MP4VideoAtom("SVQ3");
+      } else if (ATOMID(type) == ATOMID("SMI ")) {
+	pAtom = new MP4SmiAtom();
       }
       break;
     case 0251: { // copyright symbol 
@@ -426,9 +463,23 @@ MP4Atom* MP4Atom::ReadAtom(MP4File* pFile, MP4Atom* pParentAtom)
 			type, dataSize, dataSize));
 
 	if (pos + hdrSize + dataSize > pParentAtom->GetEnd()) {
-		VERBOSE_READ(pFile->GetVerbosity(), 
-			printf("ReadAtom: invalid atom size, extends outside parent atom\n"));
+		VERBOSE_ERROR(pFile->GetVerbosity(), 
+			printf("ReadAtom: invalid atom size, extends outside parent atom - skipping to end of %s \"%s\"\n", 
+			       pParentAtom->GetType(), type));
+		VERBOSE_READ(pFile->GetVerbosity(),
+			     printf("parent %s ("U64") pos "U64" hdr %d data "U64" sum "U64"\n",
+				    pParentAtom->GetType(),
+				    pParentAtom->GetEnd(),
+				    pos, 
+				    hdrSize, 
+				    dataSize,
+				    pos + hdrSize + dataSize));
+#if 0
 		throw new MP4Error("invalid atom size", "ReadAtom");
+#else
+		// skip to end of atom
+		dataSize = pParentAtom->GetEnd() - pos - hdrSize;
+#endif
 	}
 
 
@@ -656,11 +707,36 @@ void MP4Atom::ReadProperties(u_int32_t startIndex, u_int32_t count)
 
 void MP4Atom::ReadChildAtoms()
 {
+  bool this_is_udta = ATOMID(m_type) == ATOMID("udta");
+
 	VERBOSE_READ(GetVerbosity(), 
 		printf("ReadChildAtoms: of %s\n", m_type[0] ? m_type : "root"));
-
-	// read any child atoms
-	while (m_pFile->GetPosition() < m_end) {
+	for (u_int64_t position = m_pFile->GetPosition();
+	     position < m_end;
+	     position = m_pFile->GetPosition()) {
+	  // make sure that we have enough to read at least 8 bytes
+	  // size and type.
+	  if (m_end - position < 2 * sizeof(uint32_t)) {
+	    // if we're reading udta, it's okay to have 4 bytes of 0
+	    if (this_is_udta &&
+		m_end - position == sizeof(uint32_t)) {
+	      u_int32_t mbz = m_pFile->ReadUInt32();
+	      if (mbz != 0) {
+		VERBOSE_WARNING(GetVerbosity(),
+				printf("Error: In udta atom, end value is not zero %x\n", 
+				       mbz));
+	      }
+	      continue;
+	    }
+	    // otherwise, output a warning, but don't care
+	    VERBOSE_WARNING(GetVerbosity(),
+			    printf("Error: In %s atom, extra "D64" bytes at end of atom\n", 
+				   m_type, (m_end - position)));
+	    for (uint64_t ix = 0; ix < m_end - position; ix++) {
+	      m_pFile->ReadUInt8();
+	    }
+	    continue;
+	  }
 		MP4Atom* pChildAtom = MP4Atom::ReadAtom(m_pFile, this);
 
 		AddChildAtom(pChildAtom);
@@ -686,6 +762,7 @@ void MP4Atom::ReadChildAtoms()
 						GetType(), pChildAtom->GetType()));
 			}
 		}
+
 	}
 
 	// if mandatory child atom doesn't exist, print warning
@@ -876,6 +953,7 @@ void MP4Atom::Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits)
 	if (m_type[0] != '\0') {
 		Indent(pFile, indent);
 		fprintf(pFile, "type %s\n", m_type);
+		fflush(pFile);
 	}
 
 	u_int32_t i;

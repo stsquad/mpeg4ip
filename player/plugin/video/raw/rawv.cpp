@@ -26,7 +26,8 @@
 #include <mp4v2/mp4.h>
 
 
-static codec_data_t *rawv_create (const char *compressor, 
+static codec_data_t *rawv_create (const char *stream_type,
+				  const char *compressor, 
 				  int type, 
 				  int profile, 
 				  format_list_t *media_fmt,
@@ -116,6 +117,7 @@ static const char *rawv_compressors[] = {
 };
 
 static int rawv_codec_check (lib_message_func_t message,
+			     const char *stream_type,
 			     const char *compressor,
 			     int type,
 			     int profile,
@@ -124,8 +126,7 @@ static int rawv_codec_check (lib_message_func_t message,
 			     uint32_t userdata_size,
 			     CConfigSet *pConfig)
 {
-  if (compressor != NULL && 
-      (strcasecmp(compressor, "MP4 FILE") == 0)) {
+  if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
     if (type == MP4_YUV12_VIDEO_TYPE) {
       return 1;
     }

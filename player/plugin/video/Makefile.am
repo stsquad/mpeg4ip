@@ -8,5 +8,10 @@ ed2=
 else
 ed2=xvid
 endif
+if HAVE_FFMPEG
+ed3=ffmpeg
+else
+ed3=
+endif
 
-SUBDIRS = raw mpeg3 h261 $(ed1) $(ed2)
+SUBDIRS = raw mpeg3 h261 $(ed1) $(ed2) $(ed3)

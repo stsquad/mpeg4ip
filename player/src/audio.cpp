@@ -285,11 +285,11 @@ void audio_downconvert_chans_s16 (int16_t *to,
       if (src_chans > 4) {
 	l += from[4]; // add center to both l and r
 	r += from[4];
-	l /= 5;
-	r /= 5;
+	l /= 3;
+	r /= 3;
       } else {
-	l /= 4; // no center
-	r /= 4;
+	l /= 2; // no center
+	r /= 2;
       }
       *to++ = convert_s16(l);
       *to++ = convert_s16(r);

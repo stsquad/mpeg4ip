@@ -13,5 +13,5 @@
 #define MPEG2T_ST_MPEG_AUDIO_6_D 0xd
 #define MPEG2T_ST_MPEG2_AAC 0xf
 #define MPEG2T_ST_MPEG4_VIDEO 0x10
-
+#define MPEG2T_ST_H264_VIDEO  0x1b
 #endif

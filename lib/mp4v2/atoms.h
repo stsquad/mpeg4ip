@@ -168,7 +168,7 @@ public:
 
 class MP4UrlAtom : public MP4Atom {
 public:
-	MP4UrlAtom();
+	MP4UrlAtom(const char *type="url ");
 	void Read();
 	void Write();
 };
@@ -620,16 +620,49 @@ class MP4S263Atom : public MP4Atom {
   void Generate();
 };
  
-class MP4SamrAtom : public MP4Atom {
+class MP4AmrAtom : public MP4Atom {
  public:
-  MP4SamrAtom();
+  MP4AmrAtom(const char *type);
   void Generate();
 };
  
-class MP4SawbAtom : public MP4Atom {
+// H.264 atoms
+
+class MP4Avc1Atom : public MP4Atom {
  public:
-  MP4SawbAtom();
+  MP4Avc1Atom();
   void Generate();
 };
 
+class MP4AvcCAtom : public MP4Atom {
+ public:
+  MP4AvcCAtom();
+  void Generate();
+};
+
+class MP4BtrtAtom : public MP4Atom {
+ public:
+  MP4BtrtAtom();
+};
+
+class MP4SoundAtom : public MP4Atom {
+ public:
+  MP4SoundAtom(const char *atomid);
+  void Generate();
+  void Read();
+protected:
+  void AddProperties(u_int8_t version);
+};
+
+class MP4VideoAtom : public MP4Atom {
+ public:
+  MP4VideoAtom(const char *atomid);
+  void Generate();
+};
+
+class MP4SmiAtom : public MP4Atom {
+ public:
+  MP4SmiAtom(void);
+  void Read();
+};
 #endif /* __MP4_ATOMS_INCLUDED__ */

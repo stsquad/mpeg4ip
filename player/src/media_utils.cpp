@@ -174,7 +174,8 @@ static int create_media_from_sdp (CPlayerSession *psptr,
       fmt = sdp_media->fmt;
       codec = NULL;
       while (codec == NULL && fmt != NULL) {
-	codec = check_for_audio_codec(NULL, 
+	codec = check_for_audio_codec(STREAM_TYPE_RTP,
+				      NULL, 
 				      fmt,
 				      -1,
 				      -1,
@@ -193,6 +194,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
       } else {
 	// set up audio qualifier
 	aq[audio_offset].track_id = audio_offset;
+	aq[audio_offset].stream_type = STREAM_TYPE_RTP;
 	aq[audio_offset].compressor = NULL;
 	aq[audio_offset].type = -1;
 	aq[audio_offset].profile = -1;
@@ -207,7 +209,8 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 	fmt = sdp_media->fmt;
 	codec = NULL;
 	while (codec == NULL && fmt != NULL) {
-	  codec = check_for_video_codec(NULL, 
+	  codec = check_for_video_codec(STREAM_TYPE_RTP,
+					NULL, 
 					fmt,
 					-1,
 					-1,
@@ -225,6 +228,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 	  continue;
 	} else {
 	  vq[video_offset].track_id = video_offset;
+	  vq[video_offset].stream_type = STREAM_TYPE_RTP;
 	  vq[video_offset].compressor = NULL;
 	  vq[video_offset].type = -1;
 	  vq[video_offset].profile = -1;
@@ -674,21 +678,24 @@ int parse_name_for_session (CPlayerSession *psptr,
 				     have_audio_driver,
 				     cc_vft);
   } else if ((strcasecmp(suffix, ".mov") == 0) ||
-	     ((config.get_config_value(CONFIG_USE_OLD_MP4_LIB) != 0) &&
-	      (strcasecmp(suffix, ".mp4") == 0))){
-    err = create_media_for_qtime_file(psptr, 
+	     (strcasecmp(suffix, ".mp4") == 0) ||
+	     (strcasecmp(suffix, ".3gp") == 0) ||
+	     (strcasecmp(suffix, ".m4a") == 0)) {
+    if (config.get_config_value(CONFIG_USE_OLD_MP4_LIB) == 0) {
+      err = create_media_for_mp4_file(psptr, 
 				      name, 
 				      errmsg, 
 				      errlen,
-				      have_audio_driver);
-  } else if ((strcasecmp(suffix, ".mp4") == 0) ||
-	     (strcasecmp(suffix, ".m4a") == 0)) {
-    err = create_media_for_mp4_file(psptr, 
-				    name, 
-				    errmsg, 
-				    errlen,
-				    have_audio_driver,
-				    cc_vft);
+				      have_audio_driver,
+				      cc_vft);
+    } else err = -1;
+    if (err < 0) {
+      err = create_media_for_qtime_file(psptr, 
+					name, 
+					errmsg, 
+					errlen,
+					have_audio_driver);
+    }
   } else if (strcasecmp(suffix, ".avi") == 0) {
     err = create_media_for_avi_file(psptr, 
 				    name, 

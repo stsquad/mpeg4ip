@@ -35,7 +35,8 @@ static SConfigVariable MyConfigVariables[] = {
 
 //#define DEBUG_MPEG3_FRAME 1
 
-static codec_data_t *mpeg3_create (const char *compressor,
+static codec_data_t *mpeg3_create (const char *stream_type,
+				   const char *compressor,
 				   int type, 
 				   int profile, 
 				   format_list_t *media_fmt,
@@ -253,6 +254,7 @@ static int mpeg3_decode (codec_data_t *ptr,
 }
 
 static int mpeg3_codec_check (lib_message_func_t message,
+			      const char *stream_type,
 			     const char *compressor,
 			     int type,
 			     int profile,
@@ -264,22 +266,24 @@ static int mpeg3_codec_check (lib_message_func_t message,
   int retval = 1;
   if (pConfig->GetBoolValue(CONFIG_USE_MPEG3)) retval = 255;
 
-  if (fptr != NULL) {
+  if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
+      fptr != NULL) {
     if (strcmp(fptr->fmt, "32") == 0) {
       return retval;
     }
   }
-  if (compressor != NULL && strcmp(compressor, "MPEG FILE") == 0) {
+  if (strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) {
     return retval;
   }
-  if (compressor != NULL && strcmp(compressor, "MPEG2 TRANSPORT") == 0) {
+  if (strcasecmp(stream_type, STREAM_TYPE_MPEG2_TRANSPORT_STREAM) == 0) {
     if ((type == MPEG2T_ST_MPEG_VIDEO) ||
 	(type == MPEG2T_ST_11172_VIDEO)) 
       return retval;
   }
-  if (compressor != NULL && strcmp(compressor, "MP4 FILE") == 0) {
-    if (MP4_IS_MPEG1_VIDEO_TYPE(type) ||
-	MP4_IS_MPEG2_VIDEO_TYPE(type)) return retval;
+  if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
+    if (strcasecmp(compressor, "mp4v") == 0 &&
+	(MP4_IS_MPEG1_VIDEO_TYPE(type) ||
+	 MP4_IS_MPEG2_VIDEO_TYPE(type))) return retval;
   }
   return -1;
 }

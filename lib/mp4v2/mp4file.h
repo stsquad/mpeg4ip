@@ -46,10 +46,11 @@ public: /* equivalent to MP4 library API */
 
 	/* file operations */
 	void Read(const char* fileName);
-	void Create(const char* fileName, u_int32_t flags);
-	void CreateEx(const char* fileName, u_int32_t flags, char* majorBrand, 
-		      u_int32_t minorVersion, char** supportedBrands, 
-		      u_int32_t supportedBrandsCount);
+	void Create(const char* fileName, u_int32_t flags, 
+		    int add_ftyp = 1, int add_iods = 1,
+		    char* majorBrand = NULL, 
+		    u_int32_t minorVersion = 0, char** supportedBrands = NULL, 
+		    u_int32_t supportedBrandsCount = 0);
 	void Modify(const char* fileName);
 	void Optimize(const char* orgFileName, 
 		const char* newFileName = NULL);
@@ -224,6 +225,7 @@ public: /* equivalent to MP4 library API */
 	void SetAmrModeSet(
 			MP4TrackId trackId,
 			u_int16_t modeSet);
+	uint16_t GetAmrModeSet(MP4TrackId trackId);
 
 	MP4TrackId AddAmrAudioTrack(
 			u_int32_t timeScale,
@@ -232,7 +234,7 @@ public: /* equivalent to MP4 library API */
 			u_int8_t framesPerSample,
 			bool isAmrWB);
 
-	MP4TrackId AddVideoTrack(
+	MP4TrackId AddMP4VideoTrack(
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
 		u_int16_t width, 
@@ -274,13 +276,28 @@ public: /* equivalent to MP4 library API */
 			u_int8_t h263Profile,
 			u_int32_t avgBitrate,
 			u_int32_t maxBitrate);
-
+	MP4TrackId AddH264VideoTrack(
+				     u_int32_t timeScale,
+				     MP4Duration sampleDuration,
+				     u_int16_t width,
+				     u_int16_t height,
+				     uint8_t AVCProfileIndication,
+				     uint8_t profile_compat,
+				     uint8_t AVCLevelIndication,
+				     uint8_t sampleLenFieldSizeMinusOne);
+	bool AddH264SequenceParameterSet(MP4TrackId trackId,
+					 uint8_t *pSequence,
+					 uint16_t sequenceLen);
+	bool AddH264PictureParameterSet(MP4TrackId trackId,
+					uint8_t *pPicture,
+					uint16_t pictureLen);
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 
 	MP4SampleId GetTrackNumberOfSamples(MP4TrackId trackId);
 
 	const char* GetTrackType(MP4TrackId trackId);
 
+	const char *GetTrackMediaDataName(MP4TrackId trackId);
 	MP4Duration GetTrackDuration(MP4TrackId trackId);
 
 	u_int32_t GetTrackTimeScale(MP4TrackId trackId);
@@ -289,19 +306,30 @@ public: /* equivalent to MP4 library API */
 	// replacement to GetTrackAudioType and GetTrackVideoType	
 	u_int8_t GetTrackEsdsObjectTypeId(MP4TrackId trackId);
 
-	u_int8_t GetTrackAudioType(MP4TrackId trackId);
 	u_int8_t GetTrackAudioMpeg4Type(MP4TrackId trackId);
-	u_int8_t GetTrackVideoType(MP4TrackId trackId);
 
 	MP4Duration GetTrackFixedSampleDuration(MP4TrackId trackId);
 
 	float GetTrackVideoFrameRate(MP4TrackId trackId);
-
+	
+	int GetTrackAudioChannels(MP4TrackId trackId);
 	void GetTrackESConfiguration(MP4TrackId trackId, 
 		u_int8_t** ppConfig, u_int32_t* pConfigSize);
 	void SetTrackESConfiguration(MP4TrackId trackId, 
 		const u_int8_t* pConfig, u_int32_t configSize);
 
+	void GetTrackVideoMetadata(MP4TrackId trackId, 
+		u_int8_t** ppConfig, u_int32_t* pConfigSize);
+	void GetTrackH264ProfileLevel(MP4TrackId trackId,
+				      uint8_t *pProfile,
+				      uint8_t *pLevel);
+	bool GetTrackH264SeqPictHeaders(MP4TrackId trackId, 
+					uint8_t ***pSeqHeader,
+					uint32_t **pSeqHeaderSize,
+					uint8_t ***pPictHeader,
+					uint32_t **pPictHeaderSize);
+	void GetTrackH264LengthSize(MP4TrackId, 
+				    uint32_t *pLength);
 	const char* GetHintTrackSdp(MP4TrackId hintTrackId);
 	void SetHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
 	void AppendHintTrackSdp(MP4TrackId hintTrackId, const char* sdpString);
@@ -646,7 +674,6 @@ protected:
 	void FinishWrite();
 	void CacheProperties();
 	void RewriteMdat(FILE* pReadFile, FILE* pWriteFile);
-	MP4Atom* GetTrakDamrAtom(MP4TrackId trackId);
 	bool ShallHaveIods();
 
 	const char* TempFileName();
@@ -666,6 +693,12 @@ protected:
 	bool FindProperty(const char* name,
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
 
+	MP4TrackId AddVideoTrackDefault(
+		u_int32_t timeScale, 
+		MP4Duration sampleDuration,
+		u_int16_t width, 
+		u_int16_t height, 
+		const char *videoType);
 	void AddTrackToIod(MP4TrackId trackId);
 
 	void RemoveTrackFromIod(MP4TrackId trackId, bool shallHaveIods = true);
@@ -704,7 +737,7 @@ protected:
 		u_int8_t streamType,
 		u_int32_t bufferSize,
 		u_int32_t bitrate,
-		u_int8_t* pConfig,
+		const u_int8_t* pConfig,
 		u_int32_t configLength,
 		char* url);
 
@@ -762,6 +795,14 @@ protected:
 	u_int8_t	m_bufReadBits;
 	u_int8_t	m_numWriteBits;
 	u_int8_t	m_bufWriteBits;
+
+#ifndef _WIN32
+	char m_tempFileName[64];
+#else
+	char m_tempFileName[MAX_PATH + 3];
+#endif
+	char m_trakName[1024];
+	char *m_editName;
 };
 
 #endif /* __MP4_FILE_INCLUDED__ */

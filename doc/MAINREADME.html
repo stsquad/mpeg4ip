@@ -190,7 +190,7 @@ required.
 <p>
 As of release 1.1, mpeg4ip no longer includes a mpeg-4 encoder due to 
 licensing restrictions.  However, you can download either xvidcore-0.9.2, 
-xvidcore-1.0 or ffmpeg-0.4.8 and have mpeg-4 encoding.
+xvidcore-1.0 or ffmpeg-0.4.8 (or later) and have mpeg-4 encoding.
 <p>If you wish to make without mp4live, you can give the 
 <code>--disable-mp4live</code> or <code>--disable-server</code> arguments.  
 Neither the bootstrap or cvs_bootstrap scripts will allow you to build without
@@ -221,11 +221,21 @@ and <code>lame-devel-3.93.1-fr2.i386.rpm</code>.<br>
   <li><code>rpm -ivh lame*</code></li>
 </ol>
 <P>
-We also support ffmpeg as an optional mpeg4 encoder for mp4live.  To do this, 
+We also support ffmpeg as an optional mpeg4 encoder for mp4live.  There are 2 
+methods to do this, depending on version.
+<p>
+For version 0.4.8 or earlier,
 enter the argument<code>--enable-ffmpeg=&lt;directory&gt;</code> to the 
 bootstrap or cvs_bootstrap.  <code>&lt;directory&gt;</code> is required and 
 must be the absolute path to where the ffmpeg code has been compiled - do not 
-use ~.  We've tested with ffmpeg version 0.4.7 and 0.4.8.  See the 
+use ~.  
+<p>
+For version 0.4.9, we require you to install the ffmpeg libraries and include
+files.  When installing ffmpeg, use the additional <code>make installlib</code>
+command when installing.  mpeg4ip should automatically detect that the ffmpeg 
+library exists.
+<p>
+We've tested with ffmpeg version 0.4.7, 0.4.8 and 0.4.9-pre1.  See the 
 <a href="http://ffmpeg.sourceforge.net">ffmpeg</a> site for information on
 how to download.  CVS versions are not recommended.  If you would like to do
 mpeg2 encoding, you will need ffmpeg.
@@ -545,7 +555,7 @@ Right now, it works well enough for testing.
 If you ran 'make install' with the defaults, then all the MPEG4IP executables
 will end up in /usr/local/bin. 
 <P>
-For encoding tools, you get:<br>
+For server side (or content creation) tools, you get:<br>
 <table class='p' summary="encoding tool list">
 <tr>
   <td align="left">mp4live</td>     
@@ -560,12 +570,8 @@ For encoding tools, you get:<br>
   <td align="left">Vertically crops raw video to a new aspect ratio</td>
 </tr>
 <tr>
-  <td align="left">faac</td>        
-  <td align="left">Encodes raw audio into MPEG-4 AAC encoded audio</td>
-</tr>
-<tr>
   <td align="left">mp4venc</td>     
-  <td align="left">Encodes raw video into MPEG-4 encoded video using ISO codec</td>
+  <td align="left">Encodes raw video into MPEG-4 encoded video using ISO codec - not available on all systems</td>
 </tr>
 <tr>
   <td align="left">mp4creator</td>  
@@ -573,11 +579,7 @@ For encoding tools, you get:<br>
 </tr>
 <tr>
   <td align="left">xvidenc</td>     
-  <td align="left">Encodes raw video into MPEG-4 encoded video using the Xvid codec</td>
-</tr>
-<tr>
-  <td align="left">mp4encode</td>   
-  <td align="left">Front-end script to the above encoding tools</td>
+  <td align="left">Encodes raw video into MPEG-4 encoded video using the Xvid codec.  Not availble with xvid 1.0 (yet)</td>
 </tr>
 </table>
 <P>

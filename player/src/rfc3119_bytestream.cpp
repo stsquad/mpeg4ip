@@ -201,7 +201,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 {
   rtp_packet *pak;
   uint64_t pak_ts;
-  int adu_offset;
+  uint32_t adu_offset;
   adu_data_t *prev_adu;
   int thisAduSize;
 

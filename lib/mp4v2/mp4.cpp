@@ -58,20 +58,23 @@ extern "C" MP4FileHandle MP4Read(const char* fileName, u_int32_t verbosity)
 	}
 }
 
-extern "C" MP4FileHandle MP4CreateEx(const char* fileName,
-		u_int32_t verbosity, u_int32_t  flags,
-		char* majorBrand, u_int32_t minorVersion,
-		char** supportedBrands, u_int32_t supportedBrandsCount)
+extern "C" MP4FileHandle MP4Create (const char* fileName,
+				    u_int32_t verbosity, 
+				    u_int32_t  flags,
+				    int add_ftyp,
+				    int add_iods,
+				    char* majorBrand, 
+				    u_int32_t minorVersion,
+				    char** supportedBrands, 
+				    u_int32_t supportedBrandsCount)
 {
 	MP4File* pFile = NULL;
 	try {
 		pFile = new MP4File(verbosity);
 		// LATER useExtensibleFormat, moov first, then mvex's
-		if (!majorBrand) {
-			pFile->Create(fileName, flags);
-		} else {
-			pFile->CreateEx(fileName, flags, majorBrand, minorVersion, supportedBrands, supportedBrandsCount);
-                }
+		pFile->Create(fileName, flags, add_ftyp, add_iods,
+			      majorBrand, minorVersion, 
+			      supportedBrands, supportedBrandsCount);
 		return (MP4FileHandle)pFile;
 	}
 	catch (MP4Error* e) {
@@ -80,13 +83,6 @@ extern "C" MP4FileHandle MP4CreateEx(const char* fileName,
 		delete pFile;
 		return MP4_INVALID_FILE_HANDLE;
 	}
-}
-
-extern "C" MP4FileHandle MP4Create(const char* fileName, 
-				   u_int32_t verbosity, 
-				   u_int32_t flags)
-{
-	return MP4CreateEx(fileName, verbosity, flags, NULL, 0, NULL, 0 );
 }
 
 extern "C" MP4FileHandle MP4Modify(const char* fileName, 
@@ -682,6 +678,23 @@ extern "C" void MP4SetAmrModeSet(
 	}
 }
 
+extern "C" uint16_t MP4GetAmrModeSet(
+				     MP4FileHandle hFile,
+				     MP4TrackId trackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+		  return ((MP4File*)hFile)->
+				GetAmrModeSet(trackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return 0;
+}
+
 
 extern "C" MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, 
@@ -691,17 +704,22 @@ extern "C" MP4TrackId MP4AddVideoTrack(
 	u_int16_t height, 
 	u_int8_t videoType)
 {
-	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
-		try {
-			return ((MP4File*)hFile)->AddVideoTrack(
-				timeScale, sampleDuration, width, height, videoType);
-		}
-		catch (MP4Error* e) {
-			PRINT_ERROR(e);
-			delete e;
-		}
-	}
-	return MP4_INVALID_TRACK_ID;
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      MP4File *pFile = (MP4File *)hFile;
+
+      return pFile->AddMP4VideoTrack(timeScale, 
+				     sampleDuration, 
+				     width, 
+				     height, 
+				     videoType);
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return MP4_INVALID_TRACK_ID;
 }
 
 extern "C" MP4TrackId MP4AddEncVideoTrack(MP4FileHandle hFile, 
@@ -727,6 +745,80 @@ extern "C" MP4TrackId MP4AddEncVideoTrack(MP4FileHandle hFile,
   }
   return MP4_INVALID_TRACK_ID;
 }
+
+extern "C" MP4TrackId MP4AddH264VideoTrack(
+	MP4FileHandle hFile, 
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration,
+	u_int16_t width, 
+	u_int16_t height, 
+	uint8_t AVCProfileIndication,
+	uint8_t profile_compat,
+	uint8_t AVCLevelIndication,
+	uint8_t sampleLenFieldSizeMinusOne)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      MP4File *pFile = (MP4File *)hFile;
+
+      return pFile->AddH264VideoTrack(timeScale, 
+				      sampleDuration, 
+				      width, 
+				      height, 
+				      AVCProfileIndication,
+				      profile_compat,
+				      AVCLevelIndication,
+				      sampleLenFieldSizeMinusOne);
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return MP4_INVALID_TRACK_ID;
+}
+
+extern "C" bool MP4AddH264SequenceParameterSet (MP4FileHandle hFile,
+						MP4TrackId trackId,
+						uint8_t *pSequence,
+						uint16_t sequenceLen)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      MP4File *pFile = (MP4File *)hFile;
+
+      return pFile->AddH264SequenceParameterSet(trackId,
+						pSequence,
+						sequenceLen);
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+    return false;
+}
+extern "C" bool MP4AddH264PictureParameterSet (MP4FileHandle hFile,
+					       MP4TrackId trackId,
+					       uint8_t *pPict,
+						uint16_t pictLen)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      MP4File *pFile = (MP4File *)hFile;
+
+      return pFile->AddH264PictureParameterSet(trackId,
+					       pPict,
+					       pictLen);
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+    return false;
+}
+
 extern "C" MP4TrackId MP4AddH263VideoTrack(
 		MP4FileHandle hFile,
 		u_int32_t timeScale,
@@ -1335,6 +1427,21 @@ extern "C" const char* MP4GetTrackType(
 	}
 	return NULL;
 }
+extern "C" const char* MP4GetTrackMediaDataName(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackMediaDataName(trackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return NULL;
+}
+
 
 extern "C" MP4Duration MP4GetTrackDuration(
 	MP4FileHandle hFile, MP4TrackId trackId)
@@ -1382,25 +1489,6 @@ extern "C" bool MP4SetTrackTimeScale(
 	return false;
 }
 
-
-// This function should not be used anymore  
-// use MP4GetTrackEsdsObjectTypeId instead 
-extern "C" u_int8_t MP4GetTrackAudioType(
-     MP4FileHandle hFile, MP4TrackId trackId)
-{
-	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
-		try {
-		  
-		  return ((MP4File*)hFile)->GetTrackAudioType(trackId);
-		}
-		catch (MP4Error* e) {
-			PRINT_ERROR(e);
-			delete e;
-		}
-	}
-	return MP4_INVALID_AUDIO_TYPE;
-}
-
 extern "C" u_int8_t MP4GetTrackAudioMpeg4Type(
 	MP4FileHandle hFile, MP4TrackId trackId)
 {
@@ -1417,22 +1505,6 @@ extern "C" u_int8_t MP4GetTrackAudioMpeg4Type(
 }
 
 
-// This function should not be used anymore  
-// use MP4GetTrackEsdsObjectTypeId instead 
-extern "C" u_int8_t MP4GetTrackVideoType(
-	MP4FileHandle hFile, MP4TrackId trackId)
-{
-	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
-		try {
-			return ((MP4File*)hFile)->GetTrackVideoType(trackId);
-		}
-		catch (MP4Error* e) {
-			PRINT_ERROR(e);
-			delete e;
-		}
-	}
-	return MP4_INVALID_VIDEO_TYPE;
-}
 
 // Replacement to MP4GetTrackVideoType and MP4GetTrackAudioType
 // Basically does the same thing but with a more self-explanatory name
@@ -1471,14 +1543,34 @@ extern "C" u_int32_t MP4GetTrackBitRate(
 	MP4FileHandle hFile, MP4TrackId trackId)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+	  MP4File *pFile = (MP4File *)hFile;
 		try {
-			return ((MP4File*)hFile)->GetTrackIntegerProperty(trackId,
+		  return pFile->GetTrackIntegerProperty(trackId,
 				"mdia.minf.stbl.stsd.*.esds.decConfigDescr.avgBitrate");
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
 			delete e;
 		}
+		// if we're here, we can't get the bitrate from above - 
+		// lets calculate it
+		try {
+		  MP4Duration trackDur;
+		  trackDur = MP4GetTrackDuration(hFile, trackId);
+		  uint64_t msDuration = 
+		    pFile->ConvertFromTrackDuration(trackId, trackDur, 
+						    MP4_MSECS_TIME_SCALE);
+		  MP4Track *pTrack = pFile->GetTrack(trackId);
+		  uint64_t bytes = pTrack->GetTotalOfSampleSizes();
+		  bytes *= TO_U64(8 * 1000);
+		  bytes /= msDuration;
+		  return (uint32_t)bytes;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+		
 	}
 	return 0;
 }
@@ -1490,6 +1582,25 @@ extern "C" bool MP4GetTrackESConfiguration(
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
 			((MP4File*)hFile)->GetTrackESConfiguration(
+				trackId, ppConfig, pConfigSize);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	*ppConfig = NULL;
+	*pConfigSize = 0;
+	return false;
+}
+extern "C" bool MP4GetTrackVideoMetadata(
+	MP4FileHandle hFile, MP4TrackId trackId, 
+	u_int8_t** ppConfig, u_int32_t* pConfigSize)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->GetTrackVideoMetadata(
 				trackId, ppConfig, pConfigSize);
 			return true;
 		}
@@ -1521,6 +1632,64 @@ extern "C" bool MP4SetTrackESConfiguration(
 	return false;
 }
 
+extern "C" bool MP4GetTrackH264ProfileLevel (MP4FileHandle hFile, 
+					     MP4TrackId trackId,
+					     uint8_t *pProfile,
+					     uint8_t *pLevel)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      ((MP4File*)hFile)->GetTrackH264ProfileLevel(trackId, pProfile, pLevel);
+      return true;
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return false;
+}
+extern "C" bool MP4GetTrackH264SeqPictHeaders (MP4FileHandle hFile, 
+					       MP4TrackId trackId,
+					       uint8_t ***pSeqHeader,
+					       uint32_t **pSeqHeaderSize,
+					       uint8_t ***pPictHeader,
+					       uint32_t **pPictHeaderSize)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      ((MP4File*)hFile)->GetTrackH264SeqPictHeaders(trackId, 
+						    pSeqHeader,
+						    pSeqHeaderSize,
+						    pPictHeader,
+						    pPictHeaderSize);
+      return true;
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return false;
+}
+extern "C" bool MP4GetTrackH264LengthSize (MP4FileHandle hFile, 
+					   MP4TrackId trackId,
+					   uint32_t *pLength)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      ((MP4File*)hFile)->GetTrackH264LengthSize(trackId, 
+						pLength);
+      return true;
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return false;
+}
+  
 extern "C" MP4SampleId MP4GetTrackNumberOfSamples(
 	MP4FileHandle hFile, MP4TrackId trackId)
 {
@@ -1583,20 +1752,40 @@ extern "C" float MP4GetTrackVideoFrameRate(
 	return 0.0;
 }
 
+extern "C" int MP4GetTrackAudioChannels (MP4FileHandle hFile,
+					      MP4TrackId trackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackAudioChannels(trackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return -1;
+}
+
 // returns true if the track is a media track encrypted according to ismacryp
 extern "C" bool MP4IsIsmaCrypMediaTrack(
 	MP4FileHandle hFile, MP4TrackId trackId)
 {
+  bool retval = false;
+  uint32_t verb = MP4GetVerbosity(hFile);
+  MP4SetVerbosity(hFile, verb & ~(MP4_DETAILS_ERROR));
+
         if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
                try {
-                       return ((MP4File*)hFile)->IsIsmaCrypMediaTrack(trackId); 
+		 retval = ((MP4File*)hFile)->IsIsmaCrypMediaTrack(trackId); 
 	       }
                catch (MP4Error* e) {
                        PRINT_ERROR(e);
                        delete e;
                }
         }
-        return false;
+	MP4SetVerbosity(hFile, verb);
+        return retval;
 }
 
 
@@ -2688,7 +2877,9 @@ extern "C" bool MP4Make3GPCompliant(
 
 	try {
 		pFile = new MP4File(verbosity);
+		pFile->Modify(fileName);
 		pFile->Make3GPCompliant(fileName, majorBrand, minorVersion, supportedBrands, supportedBrandsCount, deleteIodsAtom);
+		pFile->Close();
 		delete pFile;
 		return true;
 	}

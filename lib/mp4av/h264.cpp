@@ -52,55 +52,94 @@ int32_t h264_se (CBitstream *bs)
   return (ret + 1) >> 1;
 }
 
+extern "C" bool h264_is_start_code (const uint8_t *pBuf) 
+{
+  if (pBuf[0] == 0 && 
+      pBuf[1] == 0 && 
+      ((pBuf[2] == 1) ||
+       ((pBuf[2] == 0) && pBuf[3] == 1))) {
+    return true;
+  }
+  return false;
+}
 
-extern "C" uint32_t h264_find_next_start_code (uint8_t *pBuf, 
+extern "C" uint32_t h264_find_next_start_code (const uint8_t *pBuf, 
 					       uint32_t bufLen)
 {
-  uint32_t val;
+  uint32_t val, temp;
   uint32_t offset;
 
   offset = 0;
-  if (pBuf[0] == 0 && pBuf[1] == 0 && pBuf[2] == 1) {
+  if (pBuf[0] == 0 && 
+      pBuf[1] == 0 && 
+      ((pBuf[2] == 1) ||
+       ((pBuf[2] == 0) && pBuf[3] == 1))) {
     pBuf += 3;
     offset = 3;
   }
   val = 0xffffffff;
   while (offset < bufLen - 3) {
     val <<= 8;
+    temp = val & 0xff000000;
     val &= 0x00ffffff;
     val |= *pBuf++;
     offset++;
     if (val == H264_START_CODE) {
+      if (temp == 0) return offset - 4;
       return offset - 3;
     }
   }
   return 0;
 }
 
-extern "C" uint8_t h264_nal_unit_type (uint8_t *buffer)
+extern "C" uint8_t h264_nal_unit_type (const uint8_t *buffer)
 {
-  return buffer[3] & 0x1f;
+  uint32_t offset;
+  if (buffer[2] == 1) offset = 3;
+  else offset = 4;
+  return buffer[offset] & 0x1f;
 }
 
 extern "C" int h264_nal_unit_type_is_slice (uint8_t type)
 {
-  if (type >= 1 && type <= 5) {
+  if (type >= H264_NAL_TYPE_NON_IDR_SLICE && 
+      type <= H264_NAL_TYPE_IDR_SLICE) {
     return true;
   }
   return false;
 }
 
-extern "C" uint8_t h264_nal_ref_idc (uint8_t *buffer)
+/*
+ * determine if the slice we decoded is a sync point
+ */
+extern "C" bool h264_slice_is_idr (h264_decode_t *dec) 
 {
-  return (buffer[3] >> 5) & 0x3;
+  if (dec->nal_unit_type != H264_NAL_TYPE_IDR_SLICE)
+    return false;
+  if (H264_TYPE_IS_I(dec->slice_type)) return true;
+  if (H264_TYPE_IS_SI(dec->slice_type)) return true;
+  return false;
 }
 
-int h264_read_seq_info (uint8_t *buffer, 
+extern "C" uint8_t h264_nal_ref_idc (const uint8_t *buffer)
+{
+  uint32_t offset;
+  if (buffer[2] == 1) offset = 3;
+  else offset = 4;
+  return (buffer[offset] >> 5) & 0x3;
+}
+
+int h264_read_seq_info (const uint8_t *buffer, 
 			uint32_t buflen, 
 			h264_decode_t *dec)
 {
   CBitstream bs;
-  bs.init(buffer, buflen * 8);
+  uint32_t header;
+
+  if (buffer[2] == 1) header = 4;
+  else header = 5;
+
+  bs.init(buffer + header, (buflen - header) * 8);
   //bs.set_verbose(true);
   try {
     bs.GetBits(8 + 1 + 1 + 1 + 5 + 8);
@@ -151,19 +190,22 @@ int h264_read_seq_info (uint8_t *buffer,
   }
   return 0;
 }
-int h264_read_slice_info (uint8_t *buffer, 
+int h264_read_slice_info (const uint8_t *buffer, 
 			  uint32_t buflen, 
 			  h264_decode_t *dec)
 {
+  uint32_t header;
+  if (buffer[2] == 1) header = 4;
+  else header = 5;
   CBitstream bs;
-  bs.init(buffer, buflen * 8);
+  bs.init(buffer + header, (buflen - header) * 8);
   try {
     dec->field_pic_flag = 0;
     dec->bottom_field_flag = 0;
     dec->delta_pic_order_cnt[0] = 0;
     dec->delta_pic_order_cnt[1] = 0;
     h264_ue(&bs); // first_mb_in_slice
-    h264_ue(&bs); // slice type
+    dec->slice_type = h264_ue(&bs); // slice type
     h264_ue(&bs); // pic_parameter_set
     dec->frame_num = bs.GetBits(dec->log2_max_frame_num_minus4 + 4);
     if (!dec->frame_mbs_only_flag) {
@@ -172,7 +214,7 @@ int h264_read_slice_info (uint8_t *buffer,
 	dec->bottom_field_flag = bs.GetBits(1);
       }
     }
-    if (dec->nal_unit_type == 5) {
+    if (dec->nal_unit_type == H264_NAL_TYPE_IDR_SLICE) {
       dec->idr_pic_id = h264_ue(&bs);
     }
     switch (dec->pic_order_cnt_type) {
@@ -197,35 +239,37 @@ int h264_read_slice_info (uint8_t *buffer,
   }
   return 0;
 }
-extern "C" int h264_detect_boundary (uint8_t *buffer, 
+extern "C" int h264_detect_boundary (const uint8_t *buffer, 
 				     uint32_t buflen, 
 				     h264_decode_t *decode)
 {
   uint8_t temp;
   h264_decode_t new_decode;
   int ret;
+
   memcpy(&new_decode, decode, sizeof(new_decode));
 
   temp = new_decode.nal_unit_type = h264_nal_unit_type(buffer);
   new_decode.nal_ref_idc = h264_nal_ref_idc(buffer);
   ret = 0;
   switch (temp) {
-  case 9:
-  case 10:
-  case 11:
+  case H264_NAL_TYPE_ACCESS_UNIT:
+  case H264_NAL_TYPE_END_OF_SEQ:
+  case H264_NAL_TYPE_END_OF_STREAM:
     ret = 1;
     break;
-  case 1:
-  case 2:
-  case 3:
-  case 4:
-  case 5:
+  case H264_NAL_TYPE_NON_IDR_SLICE:
+  case H264_NAL_TYPE_DP_A_SLICE:
+  case H264_NAL_TYPE_DP_B_SLICE:
+  case H264_NAL_TYPE_DP_C_SLICE:
+  case H264_NAL_TYPE_IDR_SLICE:
     // slice buffer - read the info into the new_decode, and compare.
-    if (h264_read_slice_info(buffer + 4, buflen - 4, &new_decode) < 0) {
+    if (h264_read_slice_info(buffer, buflen, &new_decode) < 0) {
       // need more memory
       return -1;
     }
-    if (decode->nal_unit_type > 5 || decode->nal_unit_type < 1) {
+    if (decode->nal_unit_type > H264_NAL_TYPE_IDR_SLICE || 
+	decode->nal_unit_type < H264_NAL_TYPE_NON_IDR_SLICE) {
       break;
     }
     if ((decode->frame_num != new_decode.frame_num) ||
@@ -262,8 +306,8 @@ extern "C" int h264_detect_boundary (uint8_t *buffer,
 	}
       }
     }
-    if (decode->nal_unit_type == 5 &&
-	new_decode.nal_unit_type == 5) {
+    if (decode->nal_unit_type == H264_NAL_TYPE_IDR_SLICE &&
+	new_decode.nal_unit_type == H264_NAL_TYPE_IDR_SLICE) {
       if (decode->idr_pic_id != new_decode.idr_pic_id) {
 	ret = 1;
 	break;
@@ -271,15 +315,27 @@ extern "C" int h264_detect_boundary (uint8_t *buffer,
     }
     break;
   case H264_NAL_TYPE_SEQ_PARAM:
-    if (h264_read_seq_info(buffer + 4, buflen - 4, &new_decode) < 0) {
+    if (h264_read_seq_info(buffer, buflen, &new_decode) < 0) {
       return -1;
     }
     // fall through
   default:
-    if (decode->nal_unit_type <= 5) ret = 1;
+    if (decode->nal_unit_type <= H264_NAL_TYPE_IDR_SLICE) ret = 1;
     else ret = 0;
   } 
   // other types (6, 7, 8, 
   memcpy(decode, &new_decode, sizeof(*decode));
+  return ret;
+}
+
+uint32_t h264_read_sei_value (const uint8_t *buffer, uint32_t *size) 
+{
+  uint32_t ret = 0;
+  *size = 1;
+  while (buffer[*size] == 0xff) {
+    ret += 255;
+    *size = *size + 1;
+  }
+  ret += *buffer;
   return ret;
 }

@@ -36,6 +36,13 @@ int process_mpeg2t_mpeg_video(mpeg2t_es_t *es_pid,
 			      const uint8_t *esptr, 
 			      uint32_t buflen);
 int mpeg2t_mpeg_video_info(mpeg2t_es_t *es_pid, char *buffer, size_t buflen);
+// mpeg2_video.c
+int process_mpeg2t_h264_video(mpeg2t_es_t *es_pid, 
+			      const uint8_t *esptr, 
+			      uint32_t buflen);
+int mpeg2t_h264_video_info(mpeg2t_es_t *es_pid, char *buffer, size_t buflen);
+
+
 
 void mpeg2t_malloc_es_work(mpeg2t_es_t *es_pid, uint32_t frame_len);
 void mpeg2t_finished_es_work(mpeg2t_es_t *es_pid, uint32_t frame_len);

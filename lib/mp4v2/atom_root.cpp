@@ -24,8 +24,8 @@
 MP4RootAtom::MP4RootAtom() 
 	: MP4Atom(NULL)
 {
-	ExpectChildAtom("ftyp", Required, OnlyOne);
 	ExpectChildAtom("moov", Required, OnlyOne);
+	ExpectChildAtom("ftyp", Optional, OnlyOne);
 	ExpectChildAtom("mdat", Optional, Many);
 	ExpectChildAtom("free", Optional, Many);
 	ExpectChildAtom("skip", Optional, Many);

@@ -220,7 +220,8 @@ const char* MP4Track::GetType()
 
 void MP4Track::SetType(const char* type) 
 {
-	m_pTypeProperty->SetValue(NormalizeTrackType(type));
+	m_pTypeProperty->SetValue(MP4NormalizeTrackType(type,
+							m_pFile->GetVerbosity()));
 }
 
 void MP4Track::ReadSample(
@@ -1379,39 +1380,6 @@ void MP4Track::RewriteChunk(MP4ChunkId chunkId,
 
 // map track type name aliases to official names
 
-const char* MP4Track::NormalizeTrackType(const char* type)
-{
-	if (!strcasecmp(type, "vide")
-	  || !strcasecmp(type, "video")
-	  || !strcasecmp(type, "mp4v")
-	  || !strcasecmp(type, "s263")	// 3GPP H.263
-	  || !strcasecmp(type, "encv")) {
-		return MP4_VIDEO_TRACK_TYPE;
-	}
-
-	if (!strcasecmp(type, "soun")
-	  || !strcasecmp(type, "sound")
-	  || !strcasecmp(type, "audio")
-	  || !strcasecmp(type, "enca") 
-	  || !strcasecmp(type, "samr")	// 3GPP AMR 
-	  || !strcasecmp(type, "sawb")	// 3GPP AMR/WB
-	  || !strcasecmp(type, "mp4a")) {
-		return MP4_AUDIO_TRACK_TYPE;
-	}
-
-	if (!strcasecmp(type, "sdsm")
-	  || !strcasecmp(type, "scene")
-	  || !strcasecmp(type, "bifs")) {
-		return MP4_SCENE_TRACK_TYPE;
-	}
-
-	if (!strcasecmp(type, "odsm")
-	  || !strcasecmp(type, "od")) {
-		return MP4_OD_TRACK_TYPE;
-	}
-
-	return type;
-}
 
 bool MP4Track::InitEditListProperties()
 {

@@ -298,9 +298,6 @@ static GtkWidget* CreateMp4TrackMenu(
 				case MP4_YUV12_VIDEO_TYPE:
 					trackName = "YUV12";
 					break;
-				case MP4_H264_VIDEO_TYPE:
-					trackName = "H264";
-					break;
 				case MP4_H263_VIDEO_TYPE:
 					trackName = "H263";
 					break;

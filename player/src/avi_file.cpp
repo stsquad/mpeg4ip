@@ -66,7 +66,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 
   const char *codec_name = AVI_video_compressor(avi);
   player_debug_message("Trying avi video codec %s", codec_name);
-  plugin = check_for_video_codec(codec_name, 
+  plugin = check_for_video_codec(STREAM_TYPE_AVI_FILE,
+				 codec_name, 
 				 NULL,
 				 -1,
 				 -1,
@@ -76,6 +77,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     video_count = 0;
   } else {
     vq.track_id = 1;
+    vq.stream_type = STREAM_TYPE_AVI_FILE;
     vq.compressor = codec_name;
     vq.type = -1;
     vq.profile = -1;
@@ -95,7 +97,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 
   if (AVI_audio_bytes(avi) != 0) {
     have_audio = 1;
-    plugin = check_for_audio_codec("AVI FILE",
+    plugin = check_for_audio_codec(STREAM_TYPE_AVI_FILE,
+				   NULL,
 				   NULL,
 				   AVI_audio_format(avi), 
 				   -1, 
@@ -104,7 +107,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     if (plugin != NULL) {
       audio_count = 1;
       aq.track_id = 1;
-      aq.compressor = "AVI_FILE";
+      aq.stream_type = STREAM_TYPE_AVI_FILE;
+      aq.compressor = NULL;
       aq.type = AVI_audio_format(avi);
       aq.profile = -1;
       aq.fptr = NULL;
@@ -151,7 +155,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 			 vinfo->width,
 			 vq.frame_rate);
 
-    plugin = check_for_video_codec(codec_name, 
+    plugin = check_for_video_codec(STREAM_TYPE_AVI_FILE,
+				   codec_name, 
 				   NULL,
 				   -1,
 				   -1,
@@ -159,6 +164,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 				   0);
     int ret;
     ret = mptr->create_video_plugin(plugin,
+				    STREAM_TYPE_AVI_FILE,
 				    codec_name,
 				    -1,
 				    -1,
@@ -187,7 +193,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     
   int seekable = 1;
   if (have_audio_driver > 0 && audio_count > 0 && aq.enabled != 0) {
-    plugin = check_for_audio_codec("AVI FILE",
+    plugin = check_for_audio_codec(STREAM_TYPE_AVI_FILE,
+				   NULL,
 				   NULL,
 				   aq.type,
 				   -1, 
@@ -207,6 +214,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   
     int ret;
     ret = mptr->create_audio_plugin(plugin, 
+				    aq.stream_type,
 				    aq.compressor,
 				    aq.type,
 				    aq.profile,

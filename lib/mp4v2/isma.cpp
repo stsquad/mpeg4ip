@@ -29,7 +29,7 @@
 
 #include "mp4common.h"
 
-static u_int8_t BifsV2Config[3] = {
+static const u_int8_t BifsV2Config[3] = {
 	0x00, 0x00, 0x60 // IsCommandStream = 1, PixelMetric = 1
 };
 
@@ -59,15 +59,25 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 	catch (MP4Error* e) {
 		delete e;
 	}
-	// Check whether it's an AMR-NB or AMR-WB trak
-        if ((MP4HaveTrackIntegerProperty(this, audioTrackId, "mdia.minf.stbl.stsd.sawb.damr.vendor"))  ||
-            (MP4HaveTrackIntegerProperty(this, audioTrackId, "mdia.minf.stbl.stsd.samr.damr.vendor"))) {
-		throw new MP4Error("can't make ISMA compliant when file contains an AMR track", "MakeIsmaCompliant");
+	const char *audio_media_data_name, *video_media_data_name;
+
+	audio_media_data_name = MP4GetTrackMediaDataName(this, audioTrackId);
+	if (!(ATOMID(audio_media_data_name) == ATOMID("mp4a") ||
+	      ATOMID(audio_media_data_name) == ATOMID("enca"))) {
+	  VERBOSE_ERROR(m_verbosity,
+			printf("MakeIsmaCompliant:can't make ISMA compliant when file contains an %s track\n", audio_media_data_name);
+			);
+	  return;
 	}
 	//
-	// Check whether it's an H.263 file
-        if (MP4HaveTrackIntegerProperty(this, videoTrackId, "mdia.minf.stbl.stsd.s263.d263.vendor")) {
-		throw new MP4Error("can't make ISMA compliant when file contains an H.263 track", "MakeIsmaCompliant");
+	// Note - might have to check for avc1 here...
+	video_media_data_name = MP4GetTrackMediaDataName(this, videoTrackId);
+	if (!(ATOMID(video_media_data_name) == ATOMID("mp4v") ||
+	      ATOMID(video_media_data_name) != ATOMID("encv"))) {
+	  VERBOSE_ERROR(m_verbosity,
+			printf("MakeIsmaCompliant:can't make ISMA compliant when file contains an %s track\n", audio_media_data_name);
+			);
+	  return;
 	}
 
 	m_useIsma = true;
@@ -551,7 +561,7 @@ MP4Descriptor* MP4File::CreateESD(
 	u_int8_t streamType,
 	u_int32_t bufferSize,
 	u_int32_t bitrate,
-	u_int8_t* pConfig,
+	const u_int8_t* pConfig,
 	u_int32_t configLength,
 	char* url)
 {
@@ -864,18 +874,18 @@ void MP4File::CreateIsmaSceneCommand(
 	u_int64_t* pNumBytes)
 {
 	// from ISMA 1.0 Tech Spec Appendix E
-	static u_int8_t bifsAudioOnly[] = {
+	static const u_int8_t bifsAudioOnly[] = {
 		0xC0, 0x10, 0x12, 
 		0x81, 0x30, 0x2A, 0x05, 0x6D, 0xC0
 	};
-	static u_int8_t bifsVideoOnly[] = {
+	static const u_int8_t bifsVideoOnly[] = {
 		0xC0, 0x10, 0x12, 
 		0x61, 0x04, 
 			0x1F, 0xC0, 0x00, 0x00, 
 			0x1F, 0xC0, 0x00, 0x00,
 		0x44, 0x28, 0x22, 0x82, 0x9F, 0x80
 	};
-	static u_int8_t bifsAudioVideo[] = {
+	static const u_int8_t bifsAudioVideo[] = {
 		0xC0, 0x10, 0x12, 
 		0x81, 0x30, 0x2A, 0x05, 0x6D, 0x26,
 		0x10, 0x41, 0xFC, 0x00, 0x00, 0x01, 0xFC, 0x00, 0x00,

@@ -1,3 +1,19 @@
+xx/xx/04 Version 1.2
+    Added 3GP, .mov support to mp4v2
+    Added ffmpeg decoder support (MPEG-2, H.264, MPEG-4, Sorenson, AMR)
+    Added H.264 support to mp4v2, mp4creator, player
+    Added --disable-xvid flag to bootstrap
+    Better checking for compile flags in configure
+    Fixes for gcc 3.4
+    Made mp4info work with most .mov files
+    Add baseline support for H.264 in transport streams
+    Changed player plugin format to pass what media we're looking from
+        (MP4 FILE, MPEG FILE, RTP, etc).
+    Fixed 5.1 downconvert to stereo
+    Mac OSX support for player
+    player support for 1:1 aspect ratio
+    Added AMR and H.263(rfc2429) hinters and RTP plugins
+
 05/17/04 version 1.1
     Added no-overwrite mode in mp4live
     if present, use libid3 to read ID tags

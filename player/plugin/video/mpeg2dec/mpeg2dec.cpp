@@ -27,7 +27,8 @@
 
 //#define DEBUG_MPEG2DEC_FRAME 1
 
-static codec_data_t *mpeg2dec_create (const char *compressor,
+static codec_data_t *mpeg2dec_create (const char *stream_type,
+				      const char *compressor,
 				      int type, 
 				      int profile, 
 				      format_list_t *media_fmt,
@@ -211,6 +212,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
 }
 
 static int mpeg2dec_codec_check (lib_message_func_t message,
+				 const char *stream_type,
 			     const char *compressor,
 			     int type,
 			     int profile,
@@ -221,22 +223,24 @@ static int mpeg2dec_codec_check (lib_message_func_t message,
 {
   int ret_val = 3;
 
-  if (fptr != NULL) {
+  if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
+      fptr != NULL) {
     if (strcmp(fptr->fmt, "32") == 0) {
       return ret_val;
     }
   }
-  if (compressor != NULL && strcmp(compressor, "MPEG FILE") == 0) {
+  if (strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) {
     return ret_val;
   }
-  if (compressor != NULL && strcmp(compressor, "MPEG2 TRANSPORT") == 0) {
+  if (strcasecmp(stream_type, STREAM_TYPE_MPEG2_TRANSPORT_STREAM) == 0) {
     if ((type == MPEG2T_ST_MPEG_VIDEO) ||
 	(type == MPEG2T_ST_11172_VIDEO)) 
       return ret_val;
   }
-  if (compressor != NULL && strcmp(compressor, "MP4 FILE") == 0) {
-    if (MP4_IS_MPEG1_VIDEO_TYPE(type) ||
-	MP4_IS_MPEG2_VIDEO_TYPE(type)) return ret_val;
+  if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
+    if (strcasecmp(compressor, "mp4v") == 0 &&
+	(MP4_IS_MPEG1_VIDEO_TYPE(type) ||
+	 MP4_IS_MPEG2_VIDEO_TYPE(type))) return ret_val;
   }
   return -1;
 }

@@ -59,13 +59,12 @@ void CAVMediaFlow::Start(void)
 		return;
 	}
 
+	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+	  m_audioSource = CreateAudioSource(m_pConfig, m_videoSource);
+	}
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) 
 	  && m_videoSource == NULL) {
 	  m_videoSource = CreateVideoSource(m_pConfig);
-	}
-
-	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
-	  m_audioSource = CreateAudioSource(m_pConfig, m_videoSource);
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
@@ -112,11 +111,11 @@ void CAVMediaFlow::Start(void)
 	if (m_videoSource && m_videoSource == m_audioSource) {
 		m_videoSource->Start();
 	} else {
-		if (m_videoSource) {
-			m_videoSource->StartVideo();
-		}
 		if (m_audioSource) {
 			m_audioSource->StartAudio();
+		}
+		if (m_videoSource) {
+			m_videoSource->StartVideo();
 		}
 	}
 
