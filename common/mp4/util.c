@@ -383,7 +383,7 @@ int quicktime_read_mp4_descr_length(quicktime_t *file)
 {
 	u_int8_t b;
 	u_int8_t numBytes = 0;
-	u_int32_t length;
+	u_int32_t length = 0;
 
 	do {
 		b = quicktime_read_char(file);
