@@ -1,7 +1,0 @@
-The QuickTime Streaming Server needs to be patched to be able to process RTP timestamp offsets in the hint track samples. This is only needed if the MPEG-4 video is using B-frames, and the decoder(s) used require that the RTP timestamps properly indicate the rendering time of the frame (aka composition timestamp, CTS).
-
-To apply this patch, 
-	cd /myqtss/src
-	patch -Np1 < QTHintTrack.patch
-
-where /myqtss/src is the root of your QTSS source tree
