@@ -57,5 +57,6 @@ rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CVideoProfile *pConfig,
 						 MediaType *pType,
 						 uint8_t *pPayload);
 
+void AddVideoProfileEncoderVariablesBase(CVideoProfile *pConfig);
 #endif /* __VIDEO_ENCODER_BASE_H__ */
 

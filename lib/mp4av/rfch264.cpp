@@ -166,7 +166,7 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
   uint32_t offset = 0;
   uint32_t remaining = sampleSize;
 #ifdef DEBUG_H264_HINT
-  printf("hint for sample %d\n", sampleId);
+  printf("hint for sample %d %u\n", sampleId, remaining);
 #endif
   MP4AddRtpVideoHint(mp4File, hintTrackId, isBFrame, renderingOffset);
 

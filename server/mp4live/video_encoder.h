@@ -192,6 +192,7 @@ CVideoEncoder* VideoEncoderCreate(CVideoProfile *vp,
 				  CVideoEncoder *next, 
 				  bool realTime = true);
 
+void AddVideoProfileEncoderVariables(CVideoProfile *pConfig);
 
 MediaType get_video_mp4_fileinfo(CVideoProfile *pConfig,
 				 bool *createIod,

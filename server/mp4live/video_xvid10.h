@@ -74,5 +74,6 @@ public:
 #endif
 };
 
+void AddXvid10ConfigVariables(CVideoProfile *pConfig);
 #endif /* __VIDEO_XVID10_H__ */
 

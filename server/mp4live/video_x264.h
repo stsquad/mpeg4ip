@@ -86,6 +86,9 @@ class CX264VideoEncoder : public CVideoEncoder {
 	uint8_t              *m_videoH264Pic;
 	uint32_t              m_videoH264PicSize;
 };
+
+void AddX264ConfigVariables(CVideoProfile *pConfig);
 #endif
+
 #endif /* __VIDEO_X264_H__ */
 

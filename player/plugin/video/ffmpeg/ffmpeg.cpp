@@ -194,7 +194,9 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
       ffmpeg_message(LOG_DEBUG, "ffmpeg", "sprop len %d", ud_size);
     }
     if (ud_size > 0) {
+      ffmpeg_message(LOG_DEBUG, "ffmpeg", "userdata len %d", ud_size);
       open_codec = ffmpeg_find_h264_size(ffmpeg, userdata, ud_size);
+      ffmpeg_message(LOG_DEBUG, "ffmpeg", "open codec is %d", open_codec);
       run_userdata = true;
     }
     break;
@@ -305,7 +307,7 @@ static void ffmpeg_do_pause (codec_data_t *ifptr)
   ffmpeg_codec_t *ffmpeg = (ffmpeg_codec_t *)ifptr;
   //mpeg2_reset(ffmpeg->m_decoder, 0);
   ffmpeg->m_did_pause = 1;
-  ffmpeg->m_got_i = 0;
+  ffmpeg->m_got_i = false;
   ffmpeg->have_cached_ts = false;
   MP4AV_clear_dts_from_pts(&ffmpeg->pts_to_dts);
 }
@@ -317,20 +319,39 @@ static int ffmpeg_frame_is_sync (codec_data_t *ifptr,
 {
   int ret;
   int ftype;
+  uint32_t offset;
   ffmpeg_codec_t *ffmpeg = (ffmpeg_codec_t *)ifptr;
   switch (ffmpeg->m_codecId) {
   case CODEC_ID_H264:
     // look for idr nal
+    do {
+      uint8_t nal_type = h264_nal_unit_type(buffer);
+      if (h264_nal_unit_type_is_slice(nal_type)) {
+	return nal_type == H264_NAL_TYPE_IDR_SLICE ? 1 : 0;
+      }
+      offset = h264_find_next_start_code(buffer, buflen);
+      buffer += offset;
+      buflen -= offset;
+    } while (offset != 0);
     break;
   case CODEC_ID_MPEG2VIDEO:
-  // this would be for mpeg2
+    // this would be for mpeg2
     ret = MP4AV_Mpeg3FindPictHdr(buffer, buflen, &ftype);
+    ffmpeg_message(LOG_ERR, "ffmpeg", "ret %u type %u", ret, ftype);
     if (ret >= 0 && ftype == 1) {
       return 1;
     }
     break;
-  default:
+  case CODEC_ID_MPEG4: {
+    uint8_t *vop = MP4AV_Mpeg4FindVop(buffer, buflen);
+    if (vop == NULL) return 0;
+    if (MP4AV_Mpeg4GetVopType(vop, buflen - (vop - buffer)) == VOP_TYPE_I)
+	return 1;
+  }    
     break;
+  default:
+    // for every other, return that it is sync
+    return 1;
   }
   return 0;
 }
@@ -367,6 +388,15 @@ static int ffmpeg_decode (codec_data_t *ptr,
       ffmpeg->m_codec_opened = true;
     }
   }
+
+  // look and see if we have read the I frame. 
+  if (ffmpeg->m_got_i == false) {
+    if (ffmpeg_frame_is_sync(ptr, buffer, buflen, NULL) == 0) {
+      return buflen;
+    }
+    ffmpeg->m_got_i = true;
+  }
+
   int ret;
   do {
     int local_got_picture;

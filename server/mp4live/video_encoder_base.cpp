@@ -96,6 +96,15 @@ CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp,
 	return NULL;
 }
 
+void AddVideoProfileEncoderVariablesBase (CVideoProfile *pConfig)
+{
+#ifdef HAVE_XVID10
+  AddXvid10ConfigVariables(pConfig);
+#endif
+#ifdef HAVE_X264
+  AddX264ConfigVariables(pConfig);
+#endif
+}
 MediaType get_video_mp4_fileinfo_base (CVideoProfile *pConfig,
 				       bool *createIod,
 				       bool *isma_compliant,

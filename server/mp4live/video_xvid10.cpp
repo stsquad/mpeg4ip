@@ -21,8 +21,30 @@
  */
 
 #include "mp4live.h"
-#include "video_xvid10.h"
 #include <mp4av.h>
+#include "video_encoder.h"
+#include "video_xvid10.h"
+
+static config_index_t CFG_XVID10_VIDEO_QUALITY;
+static config_index_t CFG_XVID10_USE_GMC;
+static config_index_t CFG_XVID10_USE_QPEL;
+static config_index_t CFG_XVID10_USE_LUMIMASK;
+static config_index_t CFG_XVID10_USE_INTERLACING;
+
+
+static SConfigVariable XvidEncoderVariables[] = {
+  CONFIG_INT(CFG_XVID10_VIDEO_QUALITY, "xvid10VideoQuality", 6),
+  CONFIG_BOOL(CFG_XVID10_USE_GMC, "xvid10UseGmc", false),
+  CONFIG_BOOL(CFG_XVID10_USE_QPEL, "xvid10UseQpel", false),
+  CONFIG_BOOL(CFG_XVID10_USE_LUMIMASK, "xvid10UseLumimask", false),
+  CONFIG_BOOL(CFG_XVID10_USE_INTERLACING, "xvid10UseInterlacing", false),
+};
+
+void AddXvid10ConfigVariables(CVideoProfile *pConfig) 
+{
+  pConfig->AddConfigVariables(XvidEncoderVariables,
+			      NUM_ELEMENTS_IN_ARRAY(XvidEncoderVariables));
+}
 
 CXvid10VideoEncoder::CXvid10VideoEncoder(CVideoProfile *vp, 
 					 CVideoEncoder *next, 

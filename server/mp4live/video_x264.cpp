@@ -25,6 +25,23 @@
 #include "mp4av.h"
 #include "mp4av_h264.h"
 
+//#define DEBUG_H264 1
+#define USE_OUR_YUV 1
+
+static config_index_t CFG_X264_USE_CABAC;
+static config_index_t CFG_X264_USE_CBR;
+
+static SConfigVariable X264EncoderVariables[] = {
+  CONFIG_BOOL(CFG_X264_USE_CABAC, "x264UseCabac", true),
+  CONFIG_BOOL(CFG_X264_USE_CBR, "x264UseCbr", true),
+};
+
+void AddX264ConfigVariables (CVideoProfile *pConfig)
+{
+  pConfig->AddConfigVariables(X264EncoderVariables,
+			      NUM_ELEMENTS_IN_ARRAY(X264EncoderVariables));
+}
+
 static void x264_log (void *p_unused, int ilevel, const char *fmt, va_list arg)
 {
   int level;
@@ -38,8 +55,6 @@ static void x264_log (void *p_unused, int ilevel, const char *fmt, va_list arg)
   library_message(level, "x264", fmt, arg);
 }
 
-//#define DEBUG_H264 1
-#define USE_OUR_YUV 1
 CX264VideoEncoder::CX264VideoEncoder(CVideoProfile *vp, 
 					 CVideoEncoder *next, 
 					 bool realTime) :
@@ -78,6 +93,7 @@ bool CX264VideoEncoder::Init (void)
   m_outfile = fopen("raw.h264", FOPEN_WRITE_BINARY);
 #endif
 
+
   x264_param_default(&m_param);
   m_param.i_width = Profile()->m_videoWidth;
   m_param.i_height = Profile()->m_videoHeight;
@@ -90,11 +106,11 @@ bool CX264VideoEncoder::Init (void)
 	  Profile()->GetFloatValue(CFG_VIDEO_KEY_FRAME_INTERVAL));
   m_param.i_bframe = 0;
   m_param.rc.i_bitrate = Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE);
-  m_param.rc.b_cbr = 1;
+  m_param.rc.b_cbr = Profile()->GetBoolValue(CFG_X264_USE_CBR) ? 1 : 0;
   //m_param.rc.b_stat_write = 0;
   //m_param.analyse.inter = 0;
   m_param.analyse.b_psnr = 0;
-  //m_param.b_cabac = 0;
+  m_param.b_cabac = Profile()->GetBoolValue(CFG_X264_USE_CABAC) ? 1 : 0;
   m_param.pf_log = x264_log;
   
   m_h = x264_encoder_open(&m_param);
@@ -130,6 +146,7 @@ bool CX264VideoEncoder::EncodeImage(
   if (m_vopBuffer == NULL) {
     m_vopBuffer = (u_int8_t*)malloc(Profile()->m_videoMaxVopSize);
     if (m_vopBuffer == NULL) {
+      error_message("Cannot malloc vop size");
       return false;
     }
   }

@@ -45,7 +45,7 @@ typedef struct ffmpeg_codec_t {
   bool m_codec_opened;
   bool m_video_initialized;
   int m_did_pause;
-  int m_got_i;
+  bool m_got_i;
   bool have_cached_ts;
   uint64_t cached_ts;
   mpeg3_pts_to_dts_t pts_convert;

@@ -622,8 +622,10 @@ void CMp4Recorder::WriteH264Frame (CMediaFrame *pFrame,
       break;
     }
 #ifdef DEBUG_H264
-    debug_message("h264 nal %d type %d write %d", 
-		  ix, mf->nal_bufs[ix].nal_type, write_it);
+    debug_message("%u h264 nal %d type %d %u write %d", 
+		  m_videoFrameNumber, ix, mf->nal_bufs[ix].nal_type, 
+		  mf->nal_bufs[ix].nal_length,
+		  write_it);
 #endif
     if (write_it) {
       // write length.
@@ -640,6 +642,9 @@ void CMp4Recorder::WriteH264Frame (CMediaFrame *pFrame,
       len_written += to_write;
     }
   }
+#ifdef DEBUG_H264
+  debug_message("%u h264 write %u", m_videoFrameNumber, len_written);
+#endif
   MP4WriteSample(m_mp4File, 
 		 m_videoTrackId,
 		 m_videoTempBuffer, 
@@ -1154,11 +1159,17 @@ void CMp4Recorder::DoStopRecord()
     m_prevTextFrame = NULL;
   }
     
+  // close the mp4 file
+  MP4Close(m_mp4File);
+  m_mp4File = NULL;
     
+  debug_message("done with writing last frame");
   bool optimize = false;
 
   // create hint tracks
   if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
+
+    m_mp4File = MP4Modify(m_mp4FileName, MP4_DETAILS_ERROR);
 
     if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_OPTIMIZE)) {
       optimize = true;
@@ -1191,10 +1202,10 @@ void CMp4Recorder::DoStopRecord()
 		  m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
       }
     }
+    MP4Close(m_mp4File);
+    m_mp4File = NULL;
   }
-  // close the mp4 file
-  MP4Close(m_mp4File);
-  m_mp4File = NULL;
+  debug_message("done with hint");
 
   // add ISMA style OD and Scene tracks
   if (m_stream != NULL) {

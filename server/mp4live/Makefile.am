@@ -109,6 +109,7 @@ libmp4live_la_SOURCES = \
 	video_encoder.h \
 	video_encoder_base.h \
 	video_encoder_base.cpp \
+	video_encoder_class.cpp \
 	audio_ffmpeg.cpp \
 	audio_ffmpeg.h \
 	video_ffmpeg.cpp \

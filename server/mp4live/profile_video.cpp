@@ -20,12 +20,15 @@
  */
 #define DECLARE_CONFIG_VARIABLES 1
 #include "profile_video.h"
+#undef DECLARE_CONFIG_VARIABLES
+#include "video_encoder.h"
 
 void CVideoProfile::LoadConfigVariables (void)
 {
   AddConfigVariables(VideoProfileConfigVariables, 
 		     NUM_ELEMENTS_IN_ARRAY(VideoProfileConfigVariables));
   // eventually will add interface to read each encoder's variables
+  AddVideoProfileEncoderVariables(this);
 }
 
 void CVideoProfile::Update (void) 
