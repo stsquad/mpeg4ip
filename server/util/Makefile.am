@@ -1,1 +1,1 @@
-SUBDIRS = mp4apkt mp4vpkt mp4dump mp4vhdr avi2raw 
+SUBDIRS = mp4apkt mp4vpkt mp4dump mp4vhdr mp4extract avi2raw lboxcrop
