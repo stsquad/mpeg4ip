@@ -175,8 +175,8 @@ AC_SUBST(SDL_CFLAGS)
 AC_SUBST(SDL_LIBS)
 
 dnl
-BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -pg"
-BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual -pg"
+BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations"
+BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual"
 AC_SUBST(BILLS_CWARNINGS)
 AC_SUBST(BILLS_CPPWARNINGS)
 dnl Now output the Makefile's

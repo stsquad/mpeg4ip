@@ -314,7 +314,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     } else {
       m_rtp_use_rtsp = 1;
       m_rtp_media_number_in_session = media_number_in_session;
-      snprintf(buffer, sizeof(buffer), "RTP/AVP/TCP;interleaved=%d-%d", 
+      snprintf(buffer, sizeof(buffer), "RTP/AVP/TCP;unicast;interleaved=%d-%d",
 	       media_number_in_session * 2, (media_number_in_session * 2) + 1);
     }
     memset(&cmd, 0, sizeof(rtsp_command_t));
@@ -779,7 +779,7 @@ static char *rtpinfo_parse_ssrc (char *transport, CPlayerMedia *m, int &end)
   }
   transport++;
   ADV_SPACE(transport);
-  transport = convert_number(transport, ssrc);
+  transport = convert_hex(transport, ssrc);
   ADV_SPACE(transport);
   if (*transport != '\0') {
     if (*transport == ',') {

@@ -380,7 +380,8 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 		trackIds[0] = Mp3Creator(mp4File, inFile);
 
 	} else if (!strcasecmp(extension, ".divx")
-	  || !strcasecmp(extension, ".mp4v")) {
+	  || !strcasecmp(extension, ".mp4v")
+	  || !strcasecmp(extension, ".cmp")) {
 		trackIds[0] = Mp4vCreator(mp4File, inFile);
 
 	} else {

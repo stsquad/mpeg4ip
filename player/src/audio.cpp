@@ -171,7 +171,7 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   if (m_first_filled != 0) {
     m_first_filled = 0;
   } else {
-    uint64_t diff;
+    int64_t diff;
     diff = ts - m_last_fill_timestamp;
     if (diff - m_msec_per_frame > m_msec_per_frame) {
       // have a hole here - don't want to resync
