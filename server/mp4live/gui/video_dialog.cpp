@@ -47,6 +47,7 @@ static GtkWidget *channel_label;
 static GtkWidget *channel_combo;
 static GtkWidget *track_label;
 static GtkWidget *track_menu;
+static GtkWidget *encoder_menu;
 static GtkWidget *size_menu;
 static GtkWidget *aspect_menu;
 static GtkObject *frame_rate_ntsc_adjustment;
@@ -73,31 +74,12 @@ static u_int32_t trackIndex;
 static u_int32_t trackNumber;	// how many tracks total
 static u_int32_t* trackValues = NULL;
 
-static u_int16_t mpeg4SizeWidthValues[] = {
-	128, 176, 320, 352, 352,
-	640, 704, 704, 720, 720, 768
-};
-static u_int16_t mpeg4SizeHeightValues[] = {
-	96, 144, 240, 288, 480,
-	480, 480, 576, 480, 576, 576
-};
-static char* mpeg4SizeNames[] = {
-	"128 x 96 SQCIF", 
-	"176 x 144 QCIF",
-	"320 x 240 SIF",
-	"352 x 288 CIF",
-	"352 x 480 Half D1",
-	"640 x 480 4SIF",
-	"704 x 480 D1",
-	"704 x 576 4CIF",
-	"720 x 480 NTSC CCIR601",
-	"720 x 576 PAL CCIR601",
-	"768 x 576 PAL SQ Pixel"
-}; 
-static u_int16_t* sizeWidthValues = mpeg4SizeWidthValues;
-static u_int16_t  sizeWidthValueCnt = sizeof(mpeg4SizeWidthValues) / sizeof(mpeg4SizeWidthValues[0]);
-static u_int16_t* sizeHeightValues = mpeg4SizeHeightValues;
-static u_int16_t  sizeHeightValueCnt = sizeof(mpeg4SizeWidthValues) / sizeof(mpeg4SizeWidthValues[0]);
+static uint32_t encoderIndex;
+static char **encoderNames = NULL;
+static u_int16_t* sizeWidthValues;
+static u_int16_t  sizeWidthValueCnt;
+static u_int16_t* sizeHeightValues;
+static u_int16_t  sizeHeightValueCnt;
 static u_int8_t sizeIndex;
 static u_int8_t sizeMaxIndex;
 
@@ -425,22 +407,39 @@ static void on_size_menu_activate(GtkWidget *widget, gpointer data)
 	sizeIndex = ((unsigned int)data) & 0xFF;
 }
 
-static void CreateSizeMenu()
+static void CreateSizeMenu(uint16_t width)
 {
-  char **names = mpeg4SizeNames;
+  char **names = NULL;
   
-  u_int16_t width = sizeWidthValues[sizeIndex];
+  switch (signalIndex) {
+  case 0:
+    // PAL
+    names = video_encoder_table[encoderIndex].sizeNamesPAL;
+    sizeWidthValues = video_encoder_table[encoderIndex].widthValuesPAL;
+    sizeWidthValueCnt = video_encoder_table[encoderIndex].numSizesPAL;
+    sizeHeightValues = video_encoder_table[encoderIndex].heightValuesPAL;
+    sizeHeightValueCnt = sizeWidthValueCnt;
+    break;
+  case 1:
+    // NTSC
+    names = video_encoder_table[encoderIndex].sizeNamesNTSC;
+    sizeWidthValues = video_encoder_table[encoderIndex].widthValuesNTSC;
+    sizeWidthValueCnt = video_encoder_table[encoderIndex].numSizesNTSC;
+    sizeHeightValues = video_encoder_table[encoderIndex].heightValuesNTSC;
+    sizeHeightValueCnt = sizeWidthValueCnt;
+    break;
+  case 2:
+    // Secam
+    names = video_encoder_table[encoderIndex].sizeNamesSecam;
+    sizeWidthValues = video_encoder_table[encoderIndex].widthValuesSecam;
+    sizeWidthValueCnt = video_encoder_table[encoderIndex].numSizesSecam;
+    sizeHeightValues = video_encoder_table[encoderIndex].heightValuesSecam;
+    sizeHeightValueCnt = sizeWidthValueCnt;
+    break;
+  };
+  if (names == NULL) return;
 
-  names = mpeg4SizeNames;
-  sizeWidthValues = mpeg4SizeWidthValues;
-  sizeWidthValueCnt = sizeof(mpeg4SizeWidthValues) / sizeof(mpeg4SizeWidthValues[0]);
-  sizeHeightValues = mpeg4SizeHeightValues;
-  sizeHeightValueCnt = sizeof(mpeg4SizeHeightValues) / sizeof(mpeg4SizeHeightValues[0]);
-  sizeMaxIndex = sizeWidthValueCnt;
-  if (signalIndex == 1) {
-    // NTSC can't support the two largest sizes
-    sizeMaxIndex -= 2;
-  }
+  sizeMaxIndex = sizeHeightValueCnt;
 	u_int8_t i;
 	for (i = 0; i < sizeMaxIndex; i++) {
 		if (sizeWidthValues[i] >= width) {
@@ -463,6 +462,12 @@ static void CreateSizeMenu()
 		sizeIndex,
 		GTK_SIGNAL_FUNC(on_size_menu_activate));
 }
+static void on_encoder_menu_activate (GtkWidget *widget, 
+				      gpointer data)
+{
+  encoderIndex = ((uint32_t) data) & 0xff;
+  CreateSizeMenu(sizeWidthValues[sizeIndex]);
+}
 
 void ChangeSignal(u_int8_t newIndex)
 {
@@ -470,8 +475,8 @@ void ChangeSignal(u_int8_t newIndex)
 
 	CreateChannelListMenu();
 	ChangeChannelList(0);
-	
-	CreateSizeMenu();
+
+	CreateSizeMenu(sizeWidthValues[sizeIndex]);
 
 	// change max frame rate spinner
 	if (signalIndex == 1) {
@@ -628,6 +633,11 @@ static bool ValidateAndSave(void)
 	MyConfig->SetIntegerValue(CONFIG_VIDEO_SOURCE_TRACK,
 		trackValues ? trackValues[trackIndex] : 0);
 
+	MyConfig->SetStringValue(CONFIG_VIDEO_ENCODING, 
+				 video_encoder_table[encoderIndex].encoding);
+	MyConfig->SetStringValue(CONFIG_VIDEO_ENCODER, 
+				 video_encoder_table[encoderIndex].encoder);
+
 	MyConfig->SetIntegerValue(CONFIG_VIDEO_RAW_WIDTH,
 		sizeWidthValues[sizeIndex]);
 
@@ -685,6 +695,7 @@ void CreateVideoDialog (void)
 	GtkWidget* label;
 	GtkWidget* button;
 	GtkObject* adjustment;
+	uint8_t i;
 
 	pVideoCaps = MyConfig->m_videoCapabilities;
 	default_file_audio_source = -1;
@@ -736,6 +747,11 @@ void CreateVideoDialog (void)
 	gtk_box_pack_start(GTK_BOX(vbox), track_label, FALSE, FALSE, 0);
 
 	label = gtk_label_new(" Output:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
+	label = gtk_label_new("   Encoder:");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
@@ -832,7 +848,7 @@ void CreateVideoDialog (void)
 		&trackValues);
 
 	trackIndex = 0; 
-	for (u_int8_t i = 0; i < trackNumber; i++) {
+	for (i = 0; i < trackNumber; i++) {
 		if (MyConfig->GetIntegerValue(CONFIG_VIDEO_SOURCE_TRACK)
 		   == trackValues[i]) {
 			trackIndex = i;
@@ -841,19 +857,8 @@ void CreateVideoDialog (void)
 	}
 
 	sizeIndex = 0; 
-	for (u_int8_t i = 0; i < sizeWidthValueCnt; i++) {
-		if (MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH)
-		    == sizeWidthValues[i]
-		  && MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT)
-		    == sizeHeightValues[i]) {
-			sizeIndex = i;
-			break;
-		}
-	}
-
 	size_menu = NULL;
-	CreateSizeMenu();
-
+	CreateSizeMenu(MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH));
 	signal_menu = CreateOptionMenu(
 		NULL,
 		signalNames, 
@@ -882,10 +887,26 @@ void CreateVideoDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
+	encoderIndex = 0;
+	encoderNames = (char **)malloc(video_encoder_table_size * sizeof(char *));
+	for (i = 0; i < video_encoder_table_size; i++) {
+	  if (strcasecmp(MyConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
+			 video_encoder_table[i].encoding) == 0) {
+	    encoderIndex = i;
+	  }
+	  encoderNames[i] = video_encoder_table[i].encoding;
+	}
+
+	encoder_menu = CreateOptionMenu(NULL, 
+					encoderNames,
+					video_encoder_table_size,
+					encoderIndex, 
+					GTK_SIGNAL_FUNC(on_encoder_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), encoder_menu, FALSE, FALSE, 0);
 	gtk_box_pack_start(GTK_BOX(vbox), size_menu, FALSE, FALSE, 0);
 
 	aspectIndex = 0; 
-	for (u_int8_t i = 0; i < sizeof(aspectValues) / sizeof(float); i++) {
+	for (i = 0; i < sizeof(aspectValues) / sizeof(float); i++) {
 		if (MyConfig->GetFloatValue(CONFIG_VIDEO_ASPECT_RATIO)
 		  == aspectValues[i]) {
 			aspectIndex = i;

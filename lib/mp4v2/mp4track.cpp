@@ -815,7 +815,9 @@ void MP4Track::GetSampleTimes(MP4SampleId sampleId,
 
 		if (sampleId <= sid + sampleCount - 1) {
 			if (pStartTime) {
-				*pStartTime = elapsed + ((sampleId - sid) * sampleDelta);
+			  *pStartTime = (sampleId - sid);
+			  *pStartTime *= sampleDelta;
+			  *pStartTime += elapsed;
 			}
 			if (pDuration) {
 				*pDuration = sampleDelta;

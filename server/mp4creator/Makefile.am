@@ -27,4 +27,4 @@ mp4creator_LDADD = \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la
 
-EXTRA_DIST = mp4creator60.dsp mp4creator60.dsw
+EXTRA_DIST = mp4creator60.dsp 

@@ -4,4 +4,4 @@ INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi
 LDADD = $(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	 -lm
-EXTRA_DIST = avi2raw60.dsp avi2raw60.dsw
+EXTRA_DIST = avi2raw60.dsp 

@@ -23,6 +23,7 @@
 
 #include "mp4live.h"
 #include "rtp_transmitter.h"
+#include "encoder-h261.h"
 
 //#define RTP_DEBUG 1
 CRtpTransmitter::CRtpTransmitter (CLiveConfig *pConfig) : CMediaSink()
@@ -84,7 +85,13 @@ CRtpTransmitter::CRtpTransmitter (CLiveConfig *pConfig) : CMediaSink()
 
   // Initialize Video portion of transmitter
   m_videoRtpDestination = NULL;
-  m_videoPayloadNumber = 96;
+
+  const char *encodingName = pConfig->GetStringValue(CONFIG_VIDEO_ENCODING);
+  if (strcasecmp(encodingName, VIDEO_ENCODING_H261) == 0) {
+    m_videoPayloadNumber = 31;
+  } else {
+    m_videoPayloadNumber = 96;
+  }
   m_videoTimeScale = 90000;
   m_haveVideoStartTimestamp = false;
   if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
@@ -284,6 +291,8 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 	  && m_videoRtpDestination) {
 		SendMpeg4VideoWith3016(pFrame);
 
+	} else if (pFrame->GetType() == H261VIDEOFRAME && m_videoRtpDestination) {
+	  SendH261Video(pFrame);
 	} else {
 	  if (pFrame->RemoveReference())
 		delete pFrame;
@@ -308,18 +317,26 @@ void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 	  diff = ourTs - m_nextAudioRtpTimestamp;
 
 	  if (diff > 1) {
-	    debug_message("Timestamp not consectutive error - timestamp %llu should be %u is %u", 
+	    debug_message("Timestamp not consecutive error - timestamp %llu should be %u is %u", 
 			  pFrame->GetTimestamp(),
-			  ourTs, m_nextAudioRtpTimestamp);
+			  m_nextAudioRtpTimestamp,
+			  ourTs);
 	    SendQueuedAudioFrames();
 	    newAudioQueueSize = m_audioQueueSize +=
 	      m_audioPayloadBytesPerPacket;
 	  }
 
 	}
-	m_nextAudioRtpTimestamp = 
-	  AudioTimestampToRtp(pFrame->GetTimestamp()) + 
-	  pFrame->GetDuration();
+	// save the next timestamp.
+	if (m_audioTimeScale == pFrame->GetDurationScale()) {
+	  m_nextAudioRtpTimestamp = 
+	    AudioTimestampToRtp(pFrame->GetTimestamp()) + 
+	    pFrame->GetDuration();
+	} else {
+	  m_nextAudioRtpTimestamp = 
+	    AudioTimestampToRtp(pFrame->GetTimestamp()) + 
+	    pFrame->ConvertDuration(m_audioTimeScale);
+	}
 
 	newAudioQueueSize +=
 		m_audioPayloadBytesPerFrame
@@ -557,6 +574,47 @@ void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
   if (pFrame->RemoveReference())
     delete pFrame;
 }
+
+void CRtpTransmitter::SendH261Video(CMediaFrame *pFrame)
+{
+  u_int32_t rtpTimestamp =
+    VideoTimestampToRtp(pFrame->GetTimestamp());
+  u_int64_t ntpTimestamp = 
+    TimestampToNtp(pFrame->GetTimestamp());
+
+  CRtpDestination *rdptr;
+  
+  rdptr = m_videoRtpDestination;
+  while (rdptr != NULL) {
+    rdptr->send_rtcp(rtpTimestamp, ntpTimestamp);
+    rdptr = rdptr->get_next();
+  }
+
+  pktbuf_t *pData = (pktbuf_t*)pFrame->GetData();
+  struct iovec iov[2];
+  while (pData != NULL) {
+    iov[0].iov_base = &pData->h261_rtp_hdr;
+    iov[0].iov_len = sizeof(uint32_t);
+    iov[1].iov_base = pData->data;
+    iov[1].iov_len = pData->len;
+    
+    rdptr = m_videoRtpDestination;
+    while (rdptr != NULL) {
+      rdptr->send_iov(iov, 2, rtpTimestamp, pData->next == NULL);
+      rdptr = rdptr->get_next();
+    }
+   
+    pktbuf_t *n = pData->next;
+#if 0
+    free(pData->data);
+    free(pData);
+#endif
+    pData = n;
+  }
+  if (pFrame->RemoveReference())
+    delete pFrame;
+}
+
 
 void CRtpTransmitter::SendMpeg4VideoWith3016(CMediaFrame* pFrame)
 {

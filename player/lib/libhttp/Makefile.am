@@ -15,4 +15,4 @@ check_PROGRAMS = http_test
 http_test_SOURCES = http_test.c
 http_test_LDADD = libhttp.la
 
-EXTRA_DIST = http_test60.dsp http_test60.dsw libhttp60.dsp 
+EXTRA_DIST = libhttp60.dsp 

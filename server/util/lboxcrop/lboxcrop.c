@@ -41,6 +41,12 @@ u_int8_t* planeBuf = NULL;
 /* forward declarations */
 static int cropPlane(u_int32_t inSize, u_int32_t outOffset, u_int32_t outSize);
 
+static const char *usage = 
+"\t--aspect <value>  - specify resulting aspect ratio\n"
+"\t--height <value>  - specify starting height\n"
+"\t--width <value>   - specify starting width\n"
+"\t--version <value> - display version information\n";
+
 /*
  * lboxcrop
  * required arg1 should be the raw input file to be cropped
@@ -50,8 +56,8 @@ int main(int argc, char** argv)
 {
 	/* variables controlable from command line */
 	float aspectRatio = 2.35;		/* --aspect=<float> */
-	u_int frameWidth = 320;			/* --width=<uint> */
-	u_int frameHeight = 240;		/* --height=<uint> */
+	u_int32_t frameWidth = 320;			/* --width=<uint> */
+	u_int32_t frameHeight = 240;		/* --height=<uint> */
 
 	/* internal variables */
 	char* inFileName = NULL;
@@ -136,8 +142,8 @@ int main(int argc, char** argv)
 	/* check that we have at least two non-option arguments */
 	if ((argc - optind) < 2) {
 		fprintf(stderr, 
-			"usage: %s <infile> <outfile>\n",
-			progName);
+			"usage: %s <infile> <outfile>\n%s",
+			progName, usage);
 		exit(1);
 	}
 
@@ -191,6 +197,12 @@ int main(int argc, char** argv)
 
 	printf("Input size %ux%u, output size %ux%u\n",
 		frameWidth, frameHeight, frameWidth, cropHeight);
+#if 0
+	printf("inYSize = %u outUVSze = %u\n",
+	       inYSize, inUVSize);
+	printf("outYStart/size = %u %u outUVStart/size = %u %u\n",
+	       outYStart, outYSize, outUVStart, outUVSize);
+#endif
 
 	planeBuf = (u_int8_t *)malloc(inYSize);
 
@@ -213,6 +225,7 @@ int main(int argc, char** argv)
 			rc = cropPlane(inUVSize, outUVStart, outUVSize);
 			switch (rc) {
 			case 0:
+			  goto done;
 			case -1:
 				goto read_error;
 			case -2:

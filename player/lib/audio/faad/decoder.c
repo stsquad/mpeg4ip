@@ -551,6 +551,7 @@ int FAADAPI faacDecDecode(faacDecHandle hDecoder,
     hDecoder->frameNum++;
     faad_byte_align(&hDecoder->ld);
 
+    //printf("processed %d bits\n", faad_get_processed_bits(&hDecoder->ld));
     *bytesconsumed = bit2byte(faad_get_processed_bits(&hDecoder->ld));
     if (hDecoder->frameNum > 2)
         *samples = 1024*mip->nch;

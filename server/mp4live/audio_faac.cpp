@@ -24,6 +24,38 @@
 #include "mp4.h"
 #include "mp4av.h"
 
+static const u_int32_t samplingRateAllValues[] = {
+	7350, 8000, 11025, 12000, 16000, 22050, 
+	24000, 32000, 44100, 48000, 64000, 88200, 96000
+};
+
+static const u_int32_t bitRateAllValues[] = {
+	8000, 16000, 24000, 32000, 40000, 48000, 
+	56000, 64000, 80000, 96000, 112000, 128000, 
+	144000, 160000, 192000, 224000, 256000, 320000
+};
+
+static uint32_t *faac_bitrates_for_samplerate (uint32_t samplerate, 
+					       uint8_t chans, 
+					       uint32_t *ret_size)
+{
+  uint32_t *ret = (uint32_t *)malloc(sizeof(bitRateAllValues));
+
+  memcpy(ret, bitRateAllValues, sizeof(bitRateAllValues));
+  *ret_size = NUM_ELEMENTS_IN_ARRAY(bitRateAllValues);
+  return ret;
+}
+
+audio_encoder_table_t faac_audio_encoder_table = {
+  "AAC", 
+  AUDIO_ENCODER_FAAC,
+  AUDIO_ENCODING_AAC,
+  samplingRateAllValues,
+  NUM_ELEMENTS_IN_ARRAY(samplingRateAllValues),
+  faac_bitrates_for_samplerate,
+  2
+};
+
 MediaType faac_mp4_fileinfo (CLiveConfig *pConfig,
 			     bool *mpeg4,
 			     bool *isma_compliant,

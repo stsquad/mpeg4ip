@@ -316,17 +316,11 @@ bool CAudioCapabilities::ProbeDevice()
 	m_canOpen = true;
 
 	// union of valid sampling rates for MP3 and AAC
-	static const u_int32_t allSamplingRates[] = {
-		7350, 8000, 11025, 12000, 16000, 22050, 
-		24000, 32000, 44100, 48000, 64000, 88200, 96000
-	};
-	static const u_int8_t numAllSamplingRates =
-		sizeof(allSamplingRates) / sizeof(u_int32_t);
 
 	// for all possible sampling rates
 	u_int8_t i;
-	for (i = 0; i < numAllSamplingRates; i++) {
-		u_int32_t targetRate = allSamplingRates[i];
+	for (i = 0; i < allSampleRateTableSize; i++) {
+		u_int32_t targetRate = allSampleRateTable[i];
 		u_int32_t samplingRate = targetRate;
 
 		// attempt to set sound card to this sampling rate
@@ -344,7 +338,7 @@ bool CAudioCapabilities::ProbeDevice()
 	}
 
 	// zero out remaining sampling rate entries
-	for (i = m_numSamplingRates; i < numAllSamplingRates; i++) {
+	for (i = m_numSamplingRates; i < allSampleRateTableSize; i++) {
 		m_samplingRates[i] = 0;
 	}
 

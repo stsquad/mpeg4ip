@@ -29,6 +29,42 @@
 #define ADTS_HEADER_MAX_SIZE 10 /* bytes */
 
 static u_int8_t firstHeader[ADTS_HEADER_MAX_SIZE];
+static u_int16_t OLD_MP4AV_AdtsGetFrameSize(u_int8_t* pHdr)
+{
+	/* extract the necessary fields from the header */
+	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
+	u_int16_t frameLength;
+
+	if (isMpeg4) {
+		frameLength = (((u_int16_t)pHdr[4]) << 5) | (pHdr[5] >> 3); 
+	} else { /* MPEG-2 */
+		frameLength = (((u_int16_t)(pHdr[3] & 0x3)) << 11) 
+			| (((u_int16_t)pHdr[4]) << 3) | (pHdr[5] >> 5); 
+	}
+
+	return frameLength;
+}
+static u_int16_t OLD_MP4AV_AdtsGetHeaderBitSize(u_int8_t* pHdr)
+{
+	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
+	u_int8_t hasCrc = !(pHdr[1] & 0x01);
+	u_int16_t hdrSize;
+
+	if (isMpeg4) {
+		hdrSize = 58;
+	} else {
+		hdrSize = 56;
+	}
+	if (hasCrc) {
+		hdrSize += 16;
+	}
+	return hdrSize;
+}
+
+static u_int16_t OLD_MP4AV_AdtsGetHeaderByteSize(u_int8_t* pHdr)
+{
+	return (OLD_MP4AV_AdtsGetHeaderBitSize(pHdr) + 7) / 8;
+}
 
 /* 
  * hdr must point to at least ADTS_HEADER_MAX_SIZE bytes of memory 
@@ -66,7 +102,11 @@ static bool LoadNextAdtsHeader(FILE* inFile, u_int8_t* hdr)
 					hdr[state] = b;
 					state = 2;
 					/* compute desired header size */
-					hdrByteSize = MP4AV_AdtsGetHeaderByteSize(hdr);
+					if (aacUseOldFile) {
+					  hdrByteSize = OLD_MP4AV_AdtsGetHeaderByteSize(hdr);
+					} else {
+					  hdrByteSize = MP4AV_AdtsGetHeaderByteSize(hdr);
+					}
 				} else {
 					state = 0;
 				}
@@ -103,11 +143,18 @@ static bool LoadNextAacFrame(FILE* inFile, u_int8_t* pBuf, u_int32_t* pBufSize, 
 	}
 	
 	/* get frame size from header */
-	frameSize = MP4AV_AdtsGetFrameSize(hdrBuf);
+	if (aacUseOldFile) {
+	  frameSize = OLD_MP4AV_AdtsGetFrameSize(hdrBuf);
+	  /* get header size in bits and bytes from header */
+	  hdrBitSize = OLD_MP4AV_AdtsGetHeaderBitSize(hdrBuf);
+	  hdrByteSize = OLD_MP4AV_AdtsGetHeaderByteSize(hdrBuf);
+	} else {
+	  frameSize = MP4AV_AdtsGetFrameSize(hdrBuf);
+	  /* get header size in bits and bytes from header */
+	  hdrBitSize = MP4AV_AdtsGetHeaderBitSize(hdrBuf);
+	  hdrByteSize = MP4AV_AdtsGetHeaderByteSize(hdrBuf);
+	}
 
-	/* get header size in bits and bytes from header */
-	hdrBitSize = MP4AV_AdtsGetHeaderBitSize(hdrBuf);
-	hdrByteSize = MP4AV_AdtsGetHeaderByteSize(hdrBuf);
 	
 	/* adjust the frame size to what remains to be read */
 	frameSize -= hdrByteSize;

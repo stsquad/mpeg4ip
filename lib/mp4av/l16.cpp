@@ -21,7 +21,7 @@
 
 #include <mp4av_common.h>
 
-//#define DEBUG_L16 1
+#define DEBUG_L16 1
 extern "C" bool L16Hinter (MP4FileHandle mp4file, 
 			   MP4TrackId trackid,
 			   uint16_t maxPayloadSize)

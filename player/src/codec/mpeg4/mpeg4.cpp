@@ -130,8 +130,10 @@ static int parse_vovod (iso_decode_t *iso,
     }
     uint32_t used;
     used = iso->m_pvodec->get_used_bytes();
+    if (used == 0) used += 4;
     bufptr += used;
-    len -= used;
+    if (len > used) len -= used;
+    else len = 0;
   } while (havevol == 0 && len > 0);
 
 

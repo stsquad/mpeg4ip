@@ -2,7 +2,7 @@
 #define _XVID_H_
 
 #ifndef _WIN32
-#include <config.h>
+#include <systems.h>
 #endif
 
 #ifdef __cplusplus
@@ -205,9 +205,9 @@ typedef struct
 
 #ifdef MPEG4IP
 	// [in] image ptr YUV planes
-	void* image_y;
-	void* image_u;
-	void* image_v;
+	const uint8_t* image_y;
+	const uint8_t* image_u;
+	const uint8_t* image_v;
 	int stride;				// [in] byte length of y scanline
 #endif
 

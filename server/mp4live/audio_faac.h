@@ -87,5 +87,6 @@ protected:
 	u_int32_t				m_aacFrameMaxSize;
 };
 
+extern audio_encoder_table_t faac_audio_encoder_table;
 #endif /* __AUDIO_FAAC_H__ */
 

@@ -7,7 +7,7 @@ GUILIBS = libmp4livepreview.la
 GUIADD = gui/libmp4livegui.la
 endif
 
-SUBDIRS = $(SUBD)
+SUBDIRS = $(SUBD) h261
 
 bin_PROGRAMS = mp4live
 
@@ -75,6 +75,9 @@ libmp4live_la_SOURCES = \
 
 mp4live_SOURCES = \
 	audio_encoder.cpp \
+	audio_encoder_tables.cpp \
+	video_encoder_tables.cpp \
+	video_encoder_tables.h \
 	mp4live.cpp \
 	mp4live.h 
 # LATER
@@ -96,7 +99,8 @@ INCLUDES=\
 	-I$(top_srcdir)/server/video/H26L \
 	-I$(top_srcdir)/common/video/libmpeg32 \
 	-I$(top_srcdir)/player/lib \
-	-I$(top_srcdir)/player/src
+	-I$(top_srcdir)/player/src \
+	-I./h261
 
 AM_CXXFLAGS = -DADD_XVID_ENCODER \
 	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER \
@@ -117,6 +121,7 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/rtp/libuclmmbase.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
+	./h261/libmp4live_h261.la \
 	-lpthread \
 	@SDL_LIBS@ \
 	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \

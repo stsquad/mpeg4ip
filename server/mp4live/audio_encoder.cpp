@@ -30,6 +30,11 @@
  * the mp4live library, write your own main, and go.
  * Just add the codecs you want before the call to the base routines
  */
+const uint32_t allSampleRateTable[] = {
+  7350, 8000, 11025, 12000, 16000, 22050, 
+  24000, 32000, 44100, 48000, 64000, 88200, 96000
+};
+const uint32_t allSampleRateTableSize = NUM_ELEMENTS_IN_ARRAY(allSampleRateTable);
 
 CAudioEncoder* AudioEncoderCreate(const char* encoderName)
 {

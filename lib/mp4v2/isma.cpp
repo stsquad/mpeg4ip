@@ -477,7 +477,7 @@ void MP4File::CreateIsmaIodFromParams(
     delete pVideoEsdProperty;
 
 	VERBOSE_ISMA(GetVerbosity(),
-		printf("OD data =\n"); MP4HexDump(pBytes, numBytes));
+		printf("OD data = %llu bytes\n", numBytes); MP4HexDump(pBytes, numBytes));
 
 	char* odCmdBase64 = MP4ToBase64(pBytes, numBytes);
 
@@ -672,11 +672,11 @@ void MP4File::CreateIsmaODUpdateCommandFromFileForStream(
 	u_int64_t* pNumBytes)
 {
 	MP4DescriptorProperty* pAudioEsd = NULL;
-	MP4Integer8Property* pAudioSLConfig = NULL;
+	MP4Integer8Property* pAudioSLConfigPredef = NULL;
 	MP4BitfieldProperty* pAudioAccessUnitEndFlag = NULL;
 	int oldAudioUnitEndFlagValue = 0;
 	MP4DescriptorProperty* pVideoEsd = NULL;
-	MP4Integer8Property* pVideoSLConfig = NULL;
+	MP4Integer8Property* pVideoSLConfigPredef = NULL;
 	MP4BitfieldProperty* pVideoAccessUnitEndFlag = NULL;
 	int oldVideoUnitEndFlagValue = 0;
 
@@ -690,13 +690,14 @@ void MP4File::CreateIsmaODUpdateCommandFromFileForStream(
 
 		// SL config needs to change from 2 (file) to 1 (null)
 		pAudioEsd->FindProperty("slConfigDescr.predefined", 
-			(MP4Property**)&pAudioSLConfig);
-		ASSERT(pAudioSLConfig);
+			(MP4Property**)&pAudioSLConfigPredef);
+		ASSERT(pAudioSLConfigPredef);
 #if 0
 		// changed 12/05/02 wmay
 		pAudioSLConfig->SetValue(1);
 #else
-		pAudioSLConfig->SetValue(0);
+		pAudioSLConfigPredef->SetValue(0);
+		//pAudioSLConfig->Mutate();
 #endif
 		pAudioEsd->FindProperty("slConfigDescr.useAccessUnitEndFlag",
 					(MP4Property **)&pAudioAccessUnitEndFlag);
@@ -715,13 +716,14 @@ void MP4File::CreateIsmaODUpdateCommandFromFileForStream(
 
 		// SL config needs to change from 2 (file) to 1 (null)
 		pVideoEsd->FindProperty("slConfigDescr.predefined", 
-			(MP4Property**)&pVideoSLConfig);
-		ASSERT(pVideoSLConfig);
+			(MP4Property**)&pVideoSLConfigPredef);
+		ASSERT(pVideoSLConfigPredef);
 #if 0
 		pVideoSLConfig->SetValue(1);
 		// changed 12/05/02 wmay
 #else
-		pVideoSLConfig->SetValue(0);
+		pVideoSLConfigPredef->SetValue(0);
+		//pVideoSLConfig->Mutate();
 #endif
 		pVideoEsd->FindProperty("slConfigDescr.useAccessUnitEndFlag",
 					(MP4Property **)&pVideoAccessUnitEndFlag);
@@ -732,16 +734,17 @@ void MP4File::CreateIsmaODUpdateCommandFromFileForStream(
 
 	CreateIsmaODUpdateCommandForStream(
 		pAudioEsd, pVideoEsd, ppBytes, pNumBytes);
-			
+	VERBOSE_ISMA(GetVerbosity(),
+		printf("After CreateImsaODUpdateCommandForStream len %llu =\n", *pNumBytes); MP4HexDump(*ppBytes, *pNumBytes));
 	// return SL config values to 2 (file)
-	if (pAudioSLConfig) {
-		pAudioSLConfig->SetValue(2);
+	if (pAudioSLConfigPredef) {
+		pAudioSLConfigPredef->SetValue(2);
 	}
 	if (pAudioAccessUnitEndFlag) {
 	  pAudioAccessUnitEndFlag->SetValue(oldAudioUnitEndFlagValue );
 	}
-	if (pVideoSLConfig) {
-		pVideoSLConfig->SetValue(2);
+	if (pVideoSLConfigPredef) {
+		pVideoSLConfigPredef->SetValue(2);
 	}
 	if (pVideoAccessUnitEndFlag) {
 	  pVideoAccessUnitEndFlag->SetValue(oldVideoUnitEndFlagValue );

@@ -41,6 +41,7 @@ public:
 
 	virtual bool GetReconstructedImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
+	virtual media_free_f GetMediaFreeFunction(void) { return NULL; };
 };
 
 CVideoEncoder* VideoEncoderCreate(const char* encoderName);
@@ -63,5 +64,27 @@ media_desc_t *create_video_sdp(CLiveConfig *pConfig,
 void create_mp4_video_hint_track(CLiveConfig *pConfig,
 				  MP4FileHandle mp4file,
 				  MP4TrackId trackId);
+
+typedef struct video_encoder_table_t {
+  char *encoding_name;
+  char *encoding;
+  char *encoder;
+  uint16_t numSizesNTSC;
+  uint16_t numSizesPAL;
+  uint16_t numSizesSecam;
+  uint16_t *widthValuesNTSC;
+  uint16_t *widthValuesPAL;
+  uint16_t *widthValuesSecam;
+  uint16_t *heightValuesNTSC;
+  uint16_t *heightValuesPAL;
+  uint16_t *heightValuesSecam;
+  char **sizeNamesNTSC;
+  char **sizeNamesPAL;
+  char **sizeNamesSecam;
+} video_encoder_table_t;
+
+extern const video_encoder_table_t video_encoder_table[];
+extern const uint32_t video_encoder_table_size;
+
 #endif /* __VIDEO_ENCODER_H__ */
 

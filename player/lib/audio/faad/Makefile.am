@@ -36,4 +36,4 @@ libfaad_la_SOURCES = \
 INCLUDES = -I$(top_srcdir)/include
 AM_CFLAGS = -O2 -Werror -Wall -fexceptions 
 
-EXTRA_DIST = COPYING libfaad60.dsp libfaad60.dsw README
+EXTRA_DIST = COPYING libfaad60.dsp README

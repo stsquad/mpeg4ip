@@ -29,7 +29,7 @@
 /*
  * ADTS Header: 
  *  MPEG-2 version 56 bits (byte aligned) 
- *  MPEG-4 version 58 bits (not byte aligned)
+ *  MPEG-4 version 56 bits (byte aligned) - note - changed for 0.99 version
  *
  * syncword						12 bits
  * id							1 bit
@@ -41,7 +41,6 @@
  * channel_configuraton			3 bits
  * original						1 bit
  * home							1 bit
- * emphasis						2 bits
  * copyright_id					1 bit
  * copyright_id_start			1 bit
  * aac_frame_length				13 bits
@@ -63,15 +62,11 @@ u_int32_t AdtsSamplingRates[NUM_ADTS_SAMPLING_RATES] = {
 extern "C" u_int16_t MP4AV_AdtsGetFrameSize(u_int8_t* pHdr)
 {
 	/* extract the necessary fields from the header */
-	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
-	u_int16_t frameLength;
+	uint16_t frameLength;
 
-	if (isMpeg4) {
-		frameLength = (((u_int16_t)pHdr[4]) << 5) | (pHdr[5] >> 3); 
-	} else { /* MPEG-2 */
-		frameLength = (((u_int16_t)(pHdr[3] & 0x3)) << 11) 
-			| (((u_int16_t)pHdr[4]) << 3) | (pHdr[5] >> 5); 
-	}
+	frameLength = (((u_int16_t)(pHdr[3] & 0x3)) << 11) 
+	  | (((u_int16_t)pHdr[4]) << 3) | (pHdr[5] >> 5); 
+
 	return frameLength;
 }
 
@@ -80,15 +75,11 @@ extern "C" u_int16_t MP4AV_AdtsGetFrameSize(u_int8_t* pHdr)
  */
 extern "C" u_int16_t MP4AV_AdtsGetHeaderBitSize(u_int8_t* pHdr)
 {
-	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
 	u_int8_t hasCrc = !(pHdr[1] & 0x01);
 	u_int16_t hdrSize;
 
-	if (isMpeg4) {
-		hdrSize = 58;
-	} else {
-		hdrSize = 56;
-	}
+	hdrSize = 56;
+
 	if (hasCrc) {
 		hdrSize += 16;
 	}
@@ -231,7 +222,7 @@ extern "C" bool MP4AV_AdtsMakeFrame(
 	u_int8_t** ppAdtsData,
 	u_int32_t* pAdtsDataLength)
 {
-	*pAdtsDataLength = (isMpeg2 ? 7 : 8) + dataLength;
+	*pAdtsDataLength = 7 + dataLength; // 56 bits only
 
 	CMemoryBitstream adts;
 
@@ -252,9 +243,7 @@ extern "C" bool MP4AV_AdtsMakeFrame(
 		adts.PutBits(channels, 3);		// channel_configuration
 		adts.PutBits(0, 1);				// original
 		adts.PutBits(0, 1);				// home
-		if (!isMpeg2) {
-			adts.PutBits(0, 2);				// emphasis
-		}
+
 		adts.PutBits(0, 1);				// copyright_id
 		adts.PutBits(0, 1);				// copyright_id_start
 		adts.PutBits(*pAdtsDataLength, 13);	// aac_frame_length

@@ -248,8 +248,8 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	if (foundVOSH == false) {
 	  fprintf(stderr, 
 		  "%s: no VOSH header found in MPEG-4 video.\n"
-		  "This can cause problems with players other than mp4player included\n"
-		  "with this package.\n", ProgName);
+		  "This can cause problems with players other than mp4player. \n",
+		  ProgName);
 	} else {
 	  if (VideoProfileLevelSpecified && 
 	      videoProfileLevel != VideoProfileLevel) {

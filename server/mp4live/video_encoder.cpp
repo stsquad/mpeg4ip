@@ -35,6 +35,8 @@
 #include "video_h26l.h"
 #endif
 
+#include "h261/encoder-h261.h"
+
 CVideoEncoder* VideoEncoderCreate(const char* encoderName)
 {
 	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
@@ -55,6 +57,10 @@ CVideoEncoder* VideoEncoderCreate(const char* encoderName)
 #else
 		error_message("H.26L encoder not available in this build");
 #endif
+	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_H261)) {
+
+	  return new CH261PixelEncoder();
+
 	} else {
 		error_message("unknown encoder specified");
 	}
@@ -81,6 +87,13 @@ MediaType get_video_mp4_fileinfo (CLiveConfig *pConfig,
       *mp4_video_type = MP4_MPEG4_VIDEO_TYPE;
     }
     return MPEG4VIDEOFRAME;
+  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_H261)) {
+      *createIod = false;
+      *isma_compliant = false;
+      *videoProfile = 0xff;
+      *videoConfig = NULL;
+      *videoConfigLen = 0;
+    return H261VIDEOFRAME;
   }
   return UNDEFINEDFRAME;
 }
@@ -96,43 +109,51 @@ media_desc_t *create_video_sdp(CLiveConfig *pConfig,
   format_list_t *sdpMediaVideoFormat;
   rtpmap_desc_t *sdpVideoRtpMap;
   char videoFmtpBuf[512];
+  MediaType mtype;
 
-  get_video_mp4_fileinfo(pConfig,
-			 createIod,
-			 isma_compliant,
-			 videoProfile,
-			 videoConfig,
-			 videoConfigLen,
-			 NULL);
+  mtype = get_video_mp4_fileinfo(pConfig,
+				 createIod,
+				 isma_compliant,
+				 videoProfile,
+				 videoConfig,
+				 videoConfigLen,
+				 NULL);
 
   sdpMediaVideo = MALLOC_STRUCTURE(media_desc_t);
   memset(sdpMediaVideo, 0, sizeof(*sdpMediaVideo));
 
-  sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, 
-			 strdup("a=mpeg4-esid:20"));
   sdpMediaVideoFormat = MALLOC_STRUCTURE(format_list_t);
-  sdpMediaVideo->fmt = sdpMediaVideoFormat;
   memset(sdpMediaVideoFormat, 0, sizeof(*sdpMediaVideoFormat));
-  sdpMediaVideoFormat->media = sdpMediaVideo;
-  sdpMediaVideoFormat->fmt = strdup("96");
-	
+  sdpMediaVideo->fmt = sdpMediaVideoFormat;
   sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
   memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
-  sdpVideoRtpMap->encode_name = strdup("MP4V-ES");
-  sdpVideoRtpMap->clock_rate = 90000;
-
+  sdpMediaVideoFormat->media = sdpMediaVideo;
   sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
 
-  char* sConfig = MP4BinaryToBase16(pConfig->m_videoMpeg4Config, 
+  if (mtype == MPEG4VIDEOFRAME) {
+    sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, 
+			   strdup("a=mpeg4-esid:20"));
+    sdpMediaVideoFormat->fmt = strdup("96");
+	
+    sdpVideoRtpMap->encode_name = strdup("MP4V-ES");
+    sdpVideoRtpMap->clock_rate = 90000;
+
+
+    char* sConfig = MP4BinaryToBase16(pConfig->m_videoMpeg4Config, 
 				    pConfig->m_videoMpeg4ConfigLength);
 
-  sprintf(videoFmtpBuf, 
-	  "profile-level-id=%u; config=%s;",
-	  pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_LEVEL_ID),
-	  sConfig); 
-  free(sConfig);
+    sprintf(videoFmtpBuf, 
+	    "profile-level-id=%u; config=%s;",
+	    pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_LEVEL_ID),
+	    sConfig); 
+    free(sConfig);
 
-  sdpMediaVideoFormat->fmt_param = strdup(videoFmtpBuf);
+    sdpMediaVideoFormat->fmt_param = strdup(videoFmtpBuf);
+  } else if (mtype == H261VIDEOFRAME) {
+    sdpMediaVideoFormat->fmt = strdup("31");
+    sdpVideoRtpMap->encode_name = strdup("h261");
+    sdpVideoRtpMap->clock_rate = 90000;
+  }
 
   return sdpMediaVideo;
 }

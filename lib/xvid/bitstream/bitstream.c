@@ -812,7 +812,11 @@ void BitstreamWriteVolHeader(Bitstream * const bs,
 	BitstreamPutBits(bs, 1, 8);			// video_object_type_indication
 										// 1 == simple profile
 	BitstreamPutBit(bs, 1);				// is_object_layer_identified 
+#if 0
 	BitstreamPutBits(bs, 2, 4);			// visual object layer ver id = 2 
+#else
+	BitstreamPutBits(bs, 1, 4);
+#endif
 	BitstreamPutBits(bs, 1, 3);			// visual object layer priority = 1 
 #else
 	BitstreamPutBits(bs, 0, 8);			// video_object_type_indication
@@ -852,7 +856,7 @@ void BitstreamWriteVolHeader(Bitstream * const bs,
 	
 	BitstreamPutBit(bs, pParam->global_flags & XVID_INTERLACING);		// interlace
 	BitstreamPutBit(bs, 1);		// obmc_disable (overlapped block motion compensation)
-#ifdef MPEG4IP
+#if 0 // def MPEG4IP
 	BitstreamPutBits(bs, 0, 2);		// sprite_usage
 #else
 	BitstreamPutBit(bs, 0);		// sprite_enable
@@ -878,13 +882,13 @@ void BitstreamWriteVolHeader(Bitstream * const bs,
 
 	}
 
-#ifdef MPEG4IP
+#if 0 //def MPEG4IP
 	BitstreamPutBit(bs, 0);		// quarter pixel
 #endif
 	BitstreamPutBit(bs, 1);		// complexity_estimation_disable
 	BitstreamPutBit(bs, 1);		// resync_marker_disable
 	BitstreamPutBit(bs, 0);		// data_partitioned
-#ifdef MPEG4IP
+#if 0 //def MPEG4IP
 	BitstreamPutBit(bs, 0);		// newpred
 	BitstreamPutBit(bs, 0);		// reduced resolution vop
 #endif

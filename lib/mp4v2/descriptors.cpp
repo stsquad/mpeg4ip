@@ -367,6 +367,12 @@ void MP4SLConfigDescriptor::Mutate()
 			// UseTimestampsFlag = 1
 			((MP4BitfieldProperty*)m_pProperties[6])->SetValue(1);
 		}
+	} else {
+#if 1
+	  for (i = 1; i <= 18; i++) {
+	    m_pProperties[i]->SetImplicit(false);
+	  }
+#endif
 	}
 
 	bool durationFlag = 

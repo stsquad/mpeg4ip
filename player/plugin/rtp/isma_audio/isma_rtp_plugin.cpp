@@ -405,7 +405,9 @@ static void process_packet_header (isma_rtp_data_t *iptr)
   iptr->m_header_bitstream.getbits(iptr->m_fmtp->index_length, &retvalue);
   get_au_header_bits(iptr);
 #ifdef DEBUG_ISMA_AAC
-  uint64_t msec = iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, pak->rtp_pak_ts, 1);
+  uint64_t msec = iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, pak->rtp_pak_ts, 
+					      pak->pd.rtp_pd_timestamp,
+					      1);
   isma_message(LOG_DEBUG, ismartp, 
 	       "1st - header len %u frame len %u ts %x %llu", 
 	       header_len, frame_len, pak->rtp_pak_ts, msec);
@@ -458,7 +460,10 @@ static void process_packet_header (isma_rtp_data_t *iptr)
     get_au_header_bits(iptr);
     ts += (iptr->m_rtp_ts_add * (1 + stride));
 #ifdef DEBUG_ISMA_AAC
-    msec = iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, pak->rtp_pak_ts, 1);
+    msec = iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, 
+				       pak->rtp_pak_ts, 
+				       pak->pd.rtp_pd_timestamp,
+				       1);
     isma_message(LOG_DEBUG, ismartp, 
 		 "Stride %d len %d ts %x %llu", 
 		 stride, frame_len, ts, msec);

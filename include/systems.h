@@ -248,6 +248,8 @@ char *strsep(char **strp, const char *delim);
 #define MALLOC_STRUCTURE(a) ((a *)malloc(sizeof(a)))
 
 #define CHECK_AND_FREE(a) if ((a) != NULL) { free((void *)(a)); (a) = NULL;}
+
+#define NUM_ELEMENTS_IN_ARRAY(name) ((sizeof((name))) / (sizeof(*(name))))
 #ifndef HAVE_GLIB_H
 typedef char gchar;
 typedef unsigned char guchar;

@@ -23,6 +23,70 @@
 #include "audio_lame.h"
 #include <mp4av.h>
 
+static const uint32_t lame_sample_rates[] = {
+  8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 
+};
+
+static int get_mpeg_type_for_samplerate (int sr)
+{
+  for (uint x = 0; x < 3; x++) {
+    for (uint y = 0; y < 4; y++) {
+      if (samplerate_table[x][y] == sr) {
+	return x;
+      }
+    }
+  }
+  return -1;
+}
+
+static uint32_t *lame_bitrate_for_samplerate (uint32_t samplerate, 
+					      uint8_t chans,
+					      uint32_t *ret_size)
+{
+  int ix = get_mpeg_type_for_samplerate(samplerate);
+  int iy;
+
+  if (ix < 0) {
+    return NULL;
+  }
+  uint32_t *ret = (uint32_t *)malloc(16 * sizeof(uint32_t));
+  *ret_size = 0;
+  lame_global_flags *lameParams;
+
+  for (iy = 0; iy < 16; iy++) {
+    if (bitrate_table[ix][iy] > 0) {
+      lameParams = lame_init();
+      lame_set_num_channels(lameParams, chans);
+      lame_set_in_samplerate(lameParams, samplerate);
+      lame_set_mode(lameParams,
+		    (chans == 1 ? MONO : STEREO));		
+      lame_set_quality(lameParams,2);
+      lame_set_bWriteVbrTag(lameParams,0);
+      lame_set_brate(lameParams,
+		     bitrate_table[ix][iy]);
+
+      if (lame_init_params(lameParams) != -1) {
+	if (lame_get_in_samplerate(lameParams) == lame_get_out_samplerate(lameParams)) {
+	  ret[*ret_size] = bitrate_table[ix][iy] * 1000;
+	  *ret_size = *ret_size + 1;
+	}
+      }
+      lame_close(lameParams);
+    }
+  }
+  return ret;
+}
+
+audio_encoder_table_t lame_audio_encoder_table =  {
+  "MP3",
+  AUDIO_ENCODER_LAME,
+  AUDIO_ENCODING_MP3,
+  lame_sample_rates,
+  NUM_ELEMENTS_IN_ARRAY(lame_sample_rates),
+  lame_bitrate_for_samplerate,
+  2
+};
+    
 MediaType lame_mp4_fileinfo (CLiveConfig *pConfig,
 			     bool *mpeg4,
 			     bool *isma_compliant,

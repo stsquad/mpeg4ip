@@ -285,8 +285,10 @@ bool CV4LVideoSource::InitDevice(void)
 				continue;
 			} 
 
-			error_message("Failed to allocate video capture buffer for %s", 
-				deviceName);
+			error_message("Failed to allocate video capture buffer for %s - frame %d max %d rc %d errno %d format %d", 
+				deviceName,
+				      i, m_videoMbuf.frames, 
+				      rc, errno, format);
 			goto failure;
 		}
 		if (i == 0) {
@@ -417,7 +419,7 @@ bool CV4LVideoSource::ReleaseFrame(int8_t frameNumber)
   Timestamp calc = GetTimestamp();
 
   if (calc > m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded) {
-    error_message("video frame delay past end of buffer - time is %llu should be %llu",
+    debug_message("video frame delay past end of buffer - time is %llu should be %llu",
 		  calc,
 		  m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded);
     m_videoCaptureStartTimestamp = calc;

@@ -164,6 +164,7 @@ protected:
 	void SendAudioJumboFrame(CMediaFrame* pFrame);
 	void SendQueuedAudioFrames(void);
 
+	void SendH261Video(CMediaFrame *pFrame);
 	void SendMpeg4VideoWith3016(CMediaFrame* pFrame);
 	void DoStartRtpDestination(uint32_t handle);
 	void DoStopRtpDestination(uint32_t handle);

@@ -41,7 +41,6 @@ EXTRA_DIST = \
 	btree.h \
 	cdecl_ext.h \
 	common60.dsp \
-	common60.dsw \
 	config_unix.h \
 	config_win32.h \
 	COPYRIGHT \

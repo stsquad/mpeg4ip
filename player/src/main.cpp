@@ -164,23 +164,23 @@ int process_sdl_key_events (CPlayerSession *psptr,
   case SDLK_3:
   case SDLK_4:
     if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
-      int newaspect = msg->sym- - SDLK_0;
+      int newaspect = msg->sym - SDLK_0;
       config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
       switch (newaspect) {
       case 1 : 
-	psptr->set_screen_size(screen_size/50,fullscreen,4,3);
+	psptr->set_screen_size(screen_size,fullscreen,4,3);
 	break;
       case 2 : 
-	psptr->set_screen_size(screen_size/50,fullscreen,16,9);
+	psptr->set_screen_size(screen_size,fullscreen,16,9);
 	break;
       case 3 : 
-	psptr->set_screen_size(screen_size/50,fullscreen,185,100);
+	psptr->set_screen_size(screen_size,fullscreen,185,100);
 	break;
       case 4 : 
-	psptr->set_screen_size(screen_size/50,fullscreen,235,100);
+	psptr->set_screen_size(screen_size,fullscreen,235,100);
 	break;
       default: 
-	psptr->set_screen_size(screen_size/50,fullscreen,0,0);
+	psptr->set_screen_size(screen_size,fullscreen,0,0);
 	newaspect = 0;
 	break;
       }

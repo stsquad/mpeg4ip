@@ -22,7 +22,7 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: config.c,v 1.10 2003/02/18 18:51:30 wmaycisco Exp $
+ * $Id: config.c,v 1.11 2003/04/09 00:44:38 wmaycisco Exp $
  */
 
 #include "all.h"
@@ -54,8 +54,10 @@ int get_adts_header(faacDecHandle hDecoder)
 
     if (hDecoder->frameNum) {
         faad_getbits(&hDecoder->ld, 16);
+#if 0
         if (p->fixed.ID == 0) /* MPEG2 AAC doesn't have this */
             faad_getbits(&hDecoder->ld, 2);
+#endif
     } else {
         /* Syncword found, proceed to read in the fixed ADTS header */
         p->fixed.ID = faad_get1bit(&hDecoder->ld); /* 0 -> MPEG4, 1 -> MPEG2 */
@@ -68,8 +70,10 @@ int get_adts_header(faacDecHandle hDecoder)
         p->fixed.channel_configuration = faad_getbits(&hDecoder->ld, 3);
         p->fixed.original_copy = faad_get1bit(&hDecoder->ld);
         p->fixed.home = faad_get1bit(&hDecoder->ld);
+#if 0
         if (p->fixed.ID == 0) /* MPEG2 AAC doesn't have this */
             p->fixed.emphasis = faad_getbits(&hDecoder->ld, 2);
+#endif
     }
 
     /* ...and the variable ADTS header */

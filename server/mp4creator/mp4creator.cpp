@@ -64,6 +64,7 @@ int main(int argc, char** argv)
 	char* usageString = 
 		"usage: %s <options> <mp4-file>\n"
 		"  Options:\n"
+	        "  -aac-old-file-format    Use old file format with 58 bit adts headers\n"
 		"  -create=<input-file>    Create track from <input-file>\n"
 		"    input files can be of type: .aac .mp3 .divx .mp4v .m4v .cmp .xvid\n"
 		"  -extract=<track-id>     Extract a track\n"
@@ -80,7 +81,7 @@ int main(int argc, char** argv)
 		"  -timescale=<ticks>      Time scale (ticks per second)\n"
 	        "  -use64bits              Use for large files\n"
 		"  -verbose[=[1-5]]        Enable debug messages\n"
-        "  -version                Display version information\n"
+                "  -version                Display version information\n"
 		;
 
 	bool doCreate = false;
@@ -105,6 +106,7 @@ int main(int argc, char** argv)
 	TimeScaleSpecified = false;
 	Mp4TimeScale = 90000;
 	VideoProfileLevelSpecified = false;
+	aacUseOldFile = false;
 
 	// begin processing command line
 	ProgName = argv[0];
@@ -113,6 +115,7 @@ int main(int argc, char** argv)
 		int c = -1;
 		int option_index = 0;
 		static struct option long_options[] = {
+		  { "aac-old-file-format", 0, 0, 'a' },
 			{ "create", 1, 0, 'c' },
 			{ "delete", 1, 0, 'd' },
 			{ "extract", 1, 0, 'e' },
@@ -132,13 +135,16 @@ int main(int argc, char** argv)
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "c:d:e:H::Ilm:Op:r:t:uv::V",
+		c = getopt_long_only(argc, argv, "ac:d:e:H::Ilm:Op:r:t:uv::V",
 			long_options, &option_index);
 
 		if (c == -1)
 			break;
 
 		switch (c) {
+		case 'a':
+		  aacUseOldFile = true;
+		  break;
 		case 'c':
 			doCreate = true;
 			inputFileName = optarg;
@@ -411,15 +417,28 @@ int main(int argc, char** argv)
 		} else {
 			CreateHintTrack(mp4File, hintTrackId, 
 				payloadName, doInterleave, maxPayloadSize);
+
+			uint32_t trackNum;
+
+			trackNum = MP4GetNumberOfTracks(mp4File);
+			for (uint32_t ix = 0; ix < trackNum; ix++) {
+			  MP4TrackId trackId = MP4FindTrackId(mp4File, ix);
+			
+			  const char *type =
+			    MP4GetTrackType(mp4File, trackId);
+			  if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
+			    allMpeg4Streams &=
+			      (MP4GetTrackAudioType(mp4File, trackId) == MP4_MPEG4_AUDIO_TYPE);
+			    
+			  } else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
+			    allMpeg4Streams &=
+			      (MP4GetTrackVideoType(mp4File, trackId) == MP4_MPEG4_VIDEO_TYPE);
+			  }
+			}
 		} 
 
 		MP4Close(mp4File);
-
-		if (doCreate) {
-			// this creates simple MPEG-4 OD and BIFS streams
-			MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
-		}
-
+		MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
 
 	} else if (doExtract) {
 		if (!mp4FileExists) {

@@ -2104,7 +2104,7 @@ u_int64_t MP4File::ConvertFromTrackTimestamp(
 	MP4Timestamp timeStamp,
 	u_int32_t timeScale)
 {
-	return MP4ConvertTime((u_int64_t)timeStamp, 
+	return MP4ConvertTime(timeStamp, 
 		GetTrackTimeScale(trackId), timeScale);
 }
 

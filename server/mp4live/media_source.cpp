@@ -215,7 +215,6 @@ bool CMediaSource::InitVideo(
   m_videoEncoder = 
     VideoEncoderCreate(m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
   m_videoDstType = m_videoEncoder->GetFrameType();
-  m_videoDstType = MPEG4VIDEOFRAME;
 
   if (!m_videoEncoder) {
     return false;
@@ -365,6 +364,7 @@ void CMediaSource::ProcessVideoYUVFrame(
 #endif
     return;
   }
+
   // if we're running in real-time mode
   if (m_sourceRealTime) {
 
@@ -543,11 +543,12 @@ void CMediaSource::ProcessVideoYUVFrame(
   if (m_pConfig->m_videoEncode) {
     if (m_videoDstPrevFrame) {
       CMediaFrame* pFrame = new CMediaFrame(
-					    MPEG4VIDEOFRAME, 
+					    m_videoEncoder->GetFrameType(),
 					    m_videoDstPrevFrame, 
 					    m_videoDstPrevFrameLength,
 					    dstPrevFrameTimestamp, 
 					    dstPrevFrameDuration);
+      pFrame->SetMediaFreeFunction(m_videoEncoder->GetMediaFreeFunction());
       ForwardFrame(pFrame);
     }
 
@@ -794,7 +795,7 @@ void CMediaSource::ProcessAudioFrame(
 				     bool resync)
 {
   Duration srcStartDuration;
-  //debug_message("audio - ts %llu bytes %d", srcFrameTimestamp, frameDataLength);
+  //  debug_message("audio - ts %llu bytes %d", srcFrameTimestamp, frameDataLength);
   if (m_audioSrcFrameNumber == 0) {
     if (!m_sourceVideo || m_videoSrcFrameNumber == 0) {
       m_encodingStartTimestamp = GetTimestamp();

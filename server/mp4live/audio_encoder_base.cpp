@@ -264,3 +264,12 @@ bool CAudioEncoder::DeinterleaveStereoSamples(
 	return true;
 }
 
+audio_encoder_table_t *get_audio_encoder_table_from_dialog_name (const char *name)
+{
+  for (uint32_t ix = 0; ix < audio_encoder_table_size; ix++) {
+    if (strcasecmp(name, audio_encoder_table[ix]->dialog_selection_name) == 0) {
+      return audio_encoder_table[ix];
+    }
+  }
+  return NULL;
+}

@@ -32,6 +32,12 @@ char* progName;
  * required arg1 should be the input RAW RGB24 file
  * required arg2 should be the output RAW YUV12 file
  */ 
+static const char *usage = 
+"\t--flip           - flip image\n"
+"\t--height <value> - specify height\n"
+"\t--width <value>  - specify width\n"
+"\t--version        - display version\n";
+
 int main(int argc, char** argv)
 {
 	/* variables controlable from command line */
@@ -49,6 +55,9 @@ int main(int argc, char** argv)
 	u_int8_t* uBuf = NULL;
 	u_int8_t* vBuf = NULL;
 	u_int32_t videoFramesWritten = 0;
+	bool gotheight, gotwidth;
+
+	gotheight = gotwidth = FALSE;
 
 	/* begin process command line */
 	progName = argv[0];
@@ -77,6 +86,7 @@ int main(int argc, char** argv)
 		case 'h': {
 			/* --height <pixels> */
 			u_int i;
+			gotheight = TRUE;
 			if (sscanf(optarg, "%u", &i) < 1) {
 				fprintf(stderr, 
 					"%s: bad height specified: %s\n",
@@ -94,6 +104,7 @@ int main(int argc, char** argv)
 		case 'w': {
 			/* -width <pixels> */
 			u_int i;
+			gotwidth = FALSE;
 			if (sscanf(optarg, "%u", &i) < 1) {
 				fprintf(stderr, 
 					"%s: bad width specified: %s\n",
@@ -109,7 +120,10 @@ int main(int argc, char** argv)
 			break;
 		}
 		case '?':
-			break;
+		  fprintf(stderr, 
+			  "usage: %s <rgb-file> <yuv-file>\n%s",
+			  progName, usage);
+		  return (0);
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n",
 			  progName, PACKAGE, VERSION);
@@ -123,11 +137,15 @@ int main(int argc, char** argv)
 	/* check that we have at least two non-option arguments */
 	if ((argc - optind) < 2) {
 		fprintf(stderr, 
-			"usage: %s <rgb-file> <yuv-file>\n",
-			progName);
+			"usage: %s <rgb-file> <yuv-file>\n%s",
+			progName, usage);
 		exit(1);
 	}
 
+	if (gotheight == FALSE || gotwidth == FALSE) {
+	  fprintf(stderr, "%s - you haven't specified height or width - going with %dx%d", 
+		  frameWidth, frameHeight);
+	}
 	/* point to the specified file names */
 	rgbFileName = argv[optind++];
 	yuvFileName = argv[optind++];

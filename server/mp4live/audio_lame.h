@@ -86,5 +86,7 @@ protected:
 	u_int32_t			m_mp3FrameMaxSize;
 };
 
+extern audio_encoder_table_t lame_audio_encoder_table;
+
 #endif /* __AUDIO_LAME_H__ */
 

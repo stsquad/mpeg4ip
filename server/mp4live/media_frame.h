@@ -41,8 +41,10 @@ typedef u_int16_t MediaType;
 #define MPEG4VIDEOFRAME		14
 #define H26LVIDEOFRAME          13
 #define RECONSTRUCTYUVVIDEOFRAME 	15
+#define H261VIDEOFRAME          16
 
 
+typedef void (*media_free_f)(void *);
 
 class CMediaFrame {
 public:
@@ -65,14 +67,22 @@ public:
 		m_timestamp = timestamp;
 		m_duration = duration;
 		m_durationScale = durationScale;
+		m_media_free = NULL;
 	}
 
 	~CMediaFrame() {
 	  if (m_refcnt != 0) abort();
-	  free(m_pData);
+	  if (m_media_free != NULL) {
+	    (m_media_free)(m_pData);
+	  } else {
+	    free(m_pData);
+	  }
 	  SDL_DestroyMutex(m_pMutex);
 	}
 
+	void SetMediaFreeFunction(media_free_f m) {
+	  m_media_free = m;
+	};
 	void AddReference(void) {
 		if (SDL_LockMutex(m_pMutex) == -1) {
 			debug_message("AddReference LockMutex error");
@@ -136,6 +146,7 @@ protected:
 	Timestamp	m_timestamp;
 	Duration 	m_duration;
 	u_int32_t	m_durationScale;
+	media_free_f    m_media_free;
 };
 
 #endif /* __MEDIA_FRAME_H__ */

@@ -54,12 +54,14 @@
 #define VIDEO_ENCODER_DIVX		"divx"
 #define VIDEO_ENCODER_H26L		"h26l"
 #define VIDEO_ENCODER_XVID		"xvid"
+#define VIDEO_ENCODER_H261              "h261"
 
 #define VIDEO_ENCODING_NONE		"None"
 #define VIDEO_ENCODING_YUV12	"YUV12"
 #define VIDEO_ENCODING_MPEG2	"MPEG2"
 #define VIDEO_ENCODING_MPEG4	"MPEG4"
 #define VIDEO_ENCODING_H26L		"H26L"
+#define VIDEO_ENCODING_H261     "H261"
 
 #define VIDEO_NTSC_FRAME_RATE	((float)29.97)
 #define VIDEO_PAL_FRAME_RATE	((float)25.00)

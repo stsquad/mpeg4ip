@@ -149,6 +149,23 @@ bool get_base_audio_rtp_info (CLiveConfig *pConfig,
 			      audio_set_rtp_header_f *audio_set_header,
 			      audio_set_rtp_jumbo_frame_f *audio_set_jumbo_frame,
 			      void **ud);
-			 
+
+typedef uint32_t *(*bitrates_for_samplerate_f)(uint32_t samplerate, uint8_t chans, uint32_t *ret_size);
+
+typedef struct audio_encoder_table_t {
+  char *dialog_selection_name;
+  char *audio_encoder;
+  char *audio_encoding;
+  const uint32_t *sample_rates;
+  uint32_t num_sample_rates;
+  bitrates_for_samplerate_f bitrates_for_samplerate;
+  uint32_t max_channels;
+} audio_encoder_table_t;
+
+extern audio_encoder_table_t *audio_encoder_table[];
+extern const uint32_t audio_encoder_table_size;
+extern const uint32_t allSampleRateTable[];
+extern const uint32_t allSampleRateTableSize;
+
 #endif /* __AUDIO_ENCODER_H__ */
 

@@ -449,7 +449,7 @@ void MP4File::WriteCountedString(char* string,
 		WriteUInt8(charLength);
 	} else {
 		if (charLength > 255) {
-			throw new MP4Error(ERANGE, "MP4WriteCountedString");
+			throw new MP4Error(ERANGE, "Length is %d", "MP4WriteCountedString", charLength);
 		}
 		WriteUInt8(charLength);
 	}

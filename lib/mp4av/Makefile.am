@@ -35,3 +35,8 @@ libmp4av_la_SOURCES = \
 	rfcisma.cpp
 
 EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp
+
+check_PROGRAMS = mpeg4_vol_decode
+mpeg4_vol_decode_SOURCES = mpeg4_vol_decode.cpp
+mpeg4_vol_decode_LDADD = libmp4av.la \
+	../mp4v2/libmp4v2.la

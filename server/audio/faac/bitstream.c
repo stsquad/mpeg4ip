@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bitstream.c,v 1.5 2002/02/27 20:05:25 wmaycisco Exp $
+ * $Id: bitstream.c,v 1.6 2003/04/09 00:44:41 wmaycisco Exp $
  */
 
 #include <stdlib.h>
@@ -226,8 +226,10 @@ static int WriteADTSHeader(faacEncHandle hEncoder,
 														configuration should be written */
 		PutBit(bitStream, 0, 1); /* original/copy */
 		PutBit(bitStream, 0, 1); /* home */
+#if 0
 		if (hEncoder->config.mpegVersion == 0)
 			PutBit(bitStream, 0, 2); /* emphasis */
+#endif
 
 		/* Variable ADTS header */
 		PutBit(bitStream, 0, 1); /* copyr. id. bit */
@@ -247,8 +249,10 @@ static int WriteADTSHeader(faacEncHandle hEncoder,
 		bits += ByteAlign(bitStream, writeFlag);
 	*/
 
+#if 0
 	if (hEncoder->config.mpegVersion == 0)
 		bits += 2; /* emphasis */
+#endif
 
 	return bits;
 }
