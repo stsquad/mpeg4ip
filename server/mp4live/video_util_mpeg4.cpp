@@ -38,7 +38,7 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 	bool want_vosh = true;			
 	bool want_vo = true;		
 	bool want_vol = true;	
-	bool want_short_time = false; 
+	bool want_short_time = true; 
 	bool want_variable_rate = true;
 	u_int8_t quant_type = 0; // H.263
 

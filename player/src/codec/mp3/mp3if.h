@@ -10,7 +10,6 @@
 
 #define m_vft c.v.audio_vft
 #define m_ifptr c.ifptr
-
 typedef struct mp3_codec_t {
   codec_data_t c;
 

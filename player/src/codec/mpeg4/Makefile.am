@@ -22,9 +22,10 @@ mpeg4_iso_plugin_la_LIBADD = \
 	$(top_builddir)/common/video/mpeg4/vtc/pezw/libobj_vtc_pezw.la \
 	$(top_builddir)/common/video/mpeg4/vtc/wavelet/libobj_vtc_wavelet.la \
 	$(top_builddir)/common/video/mpeg4/vtc/main/libobj_vtc_main_dec.la \
-	$(top_builddir)/common/video/mpeg4/tools/entropy/libobj_tools_entropy.la
+	$(top_builddir)/common/video/mpeg4/tools/entropy/libobj_tools_entropy.la \
+	$(top_builddir)/lib/mp4av/libmp4av.la
 
-INCLUDES = -I.. -I../.. -I../../../lib -I$(top_srcdir)/lib/SDL/include -I../../../../common/video/mpeg4 -I../../../../include -I../../../../lib
+INCLUDES = -I.. -I../.. -I../../../lib -I$(top_srcdir)/lib/SDL/include -I../../../../common/video/mpeg4 -I../../../../include -I../../../../lib -I$(top_srcdir)/lib/mp4v2
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

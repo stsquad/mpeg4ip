@@ -64,13 +64,27 @@ static void mpeg3_close (codec_data_t *ifptr)
 }
 
 
-
 static void mpeg3_do_pause (codec_data_t *ifptr)
 {
   mpeg3_codec_t *mpeg3 = (mpeg3_codec_t *)ifptr;
   mpeg3->m_did_pause = 1;
   mpeg3->m_got_i = 0;
   mpeg3->m_video->repeat_count = mpeg3->m_video->current_repeat = 0;
+}
+
+static int mpeg3_frame_is_sync (codec_data_t *ifptr, 
+				uint8_t *buffer, 
+				uint32_t buflen,
+				void *userdata)
+{
+  int ret;
+
+  ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen, NULL);
+  if (ret >= 0) {
+    mpeg3_do_pause(ifptr);
+    return 1;
+  }
+  return 0;
 }
 
 static int mpeg3_decode (codec_data_t *ptr,
@@ -93,7 +107,9 @@ static int mpeg3_decode (codec_data_t *ptr,
   buffer[buflen + 3] = 0;
 
 #if 0
-  if (mpeg3->m_did_pause != 0) {
+  mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "ts %llu", ts);
+  //if (mpeg3->m_did_pause != 0) 
+ {
     for (uint32_t ix = 0; ix < buflen + 3; ix++) {
       if (buffer[ix] == 0 &&
 	  buffer[ix + 1] == 0 &&
@@ -120,8 +136,10 @@ static int mpeg3_decode (codec_data_t *ptr,
 				    VIDEO_FORMAT_YUV);
       // Gross and disgusting, but it looks like it didn't clean up
       // properly - so just start from beginning of buffer and decode.
-    } else 
+    } else {
+      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "didnt find seq header in frame %llu", ts);
       return buflen;
+    }
     mpeg3->m_did_pause = 0;
   } else {
     if (mpeg3->m_did_pause) {
@@ -153,7 +171,11 @@ static int mpeg3_decode (codec_data_t *ptr,
     if (ret <= 0) {
       mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu - type %d", 
 			    ts, ftype);
+    } else {
+      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu - return %d", 
+			    ts, ret);
     }
+      
   }
 #endif
       
@@ -176,7 +198,9 @@ static int mpeg3_decode (codec_data_t *ptr,
 					 (const uint8_t *)y, 
 					 (const uint8_t *)u, 
 					 (const uint8_t *)v, 
-					 mpeg3->m_w, mpeg3->m_w / 2, ts);
+					 mpeg3->m_w, mpeg3->m_w / 2, 
+					 mpeg3->cached_ts);
+    mpeg3->cached_ts = ts;
   } else {
 #ifdef DEBUG_MPEG3_FRAME
     if (render == 0) {
@@ -185,6 +209,7 @@ static int mpeg3_decode (codec_data_t *ptr,
     mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu ret %d %p", 
 			  ts, ret, y);
 #endif
+    mpeg3->cached_ts = ts;
   }
     
 
@@ -215,4 +240,5 @@ VIDEO_CODEC_PLUGIN("mpeg3",
 		   mpeg3_do_pause,
 		   mpeg3_decode,
 		   mpeg3_close,
-		   mpeg3_codec_check);
+		   mpeg3_codec_check,
+		   mpeg3_frame_is_sync);

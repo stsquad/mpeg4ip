@@ -44,7 +44,8 @@
 #define CONFIG_RTP_DEBUG 18
 #define CONFIG_PLAY_AUDIO 19
 #define CONFIG_PLAY_VIDEO 20
-#define CONFIG_MAX 21
+#define CONFIG_RTP_BUFFER_TIME_MSEC 21
+#define CONFIG_MAX 22
 
 extern CConfig config;
 

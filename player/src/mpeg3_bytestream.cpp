@@ -36,10 +36,7 @@ CMpeg3VideoByteStream::CMpeg3VideoByteStream (mpeg3_t *file, int stream)
   : COurInByteStream("mpeg3 video")
 {
 #ifdef OUTPUT_TO_FILE
-  char buffer[80];
-  strcpy(buffer, type);
-  strcat(buffer, "raw.mp3v");
-  m_output_file = fopen(buffer, "w");
+  m_output_file = fopen("raw.mp3v", "w");
 #endif
   m_file = file;
   m_stream = stream;
@@ -186,10 +183,7 @@ CMpeg3AudioByteStream::CMpeg3AudioByteStream (mpeg3_t *file, int stream)
   : COurInByteStream("mpeg3 audio")
 {
 #ifdef OUTPUT_TO_FILE
-  char buffer[80];
-  strcpy(buffer, type);
-  strcat(buffer, "raw.mp3a");
-  m_output_file = fopen(buffer, "w");
+  m_output_file = fopen("raw.mp3a", "w");
 #endif
   m_file = file;
   m_stream = stream;
@@ -263,6 +257,9 @@ uint64_t CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer,
   if (m_buffer != NULL) {
     *buffer = m_buffer;
     *buflen = m_this_frame_size;
+#ifdef OUTPUT_TO_FILE
+    fwrite(m_buffer, m_this_frame_size, 1, m_output_file);
+#endif
   }
 
   if (m_samples_per_frame == 0) {

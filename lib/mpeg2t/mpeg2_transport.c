@@ -2,7 +2,7 @@
 #include "mpeg4ip.h"
 #include "mpeg2_transport.h"
 #include <assert.h>
-#include "mp4av.h"
+#include "mpeg2t_private.h"
 #define DEBUG 1
 #ifdef DEBUG
 #define CHECK_MP2T_HEADER assert(*pHdr == MPEG2T_SYNC_BYTE)
@@ -83,6 +83,10 @@ const uint8_t *mpeg2t_transport_payload_start (const uint8_t *pHdr,
     return pHdr + 4;
   }
   if (adaption_control == 3) {
+    if (pHdr[4] > 183) {
+      *payload_len = 0;
+      return NULL;
+    }
     *payload_len = 183 - pHdr[4];
     return pHdr + 5 + pHdr[4];
   }
@@ -223,7 +227,7 @@ static void create_es (mpeg2t_t *ptr,
       es->es_info_len = es_info_len;
     }
   }
-	   
+  es->work_max_size = 4096;
   add_to_pidQ(ptr, &es->pid);
 }
   
@@ -386,60 +390,55 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
   }
 }
 
-static int process_mpeg2t_mpeg_audio (mpeg2t_es_t *es_pid, 
-				      const uint8_t *esptr, 
-				      uint32_t buflen)
+static void clean_es_data (mpeg2t_es_t *es_pid) 
 {
-  const uint8_t *fptr;
-  uint32_t framesize;
-  uint8_t *frameptr;
-  mpeg2t_frame_t *p;
-  int ret;
-
-  if ((es_pid->stream_id & 0xe0) != 0xc0) {
-    printf("Illegal stream id %x in mpeg audio stream - PID %x\n",
-	   es_pid->stream_id, es_pid->pid.pid);
-    return -1;
-  }
-  ret = 0;
-  while (buflen > 0) {
-    if (es_pid->work == NULL) {
-      if (MP4AV_Mp3GetNextFrame(esptr, buflen, &fptr, &framesize, FALSE, TRUE)) {
-	buflen -= fptr - esptr;
-	frameptr = (uint8_t *)malloc(sizeof(mpeg2t_frame_t) + framesize);
-	if (frameptr == NULL) return ret;
-	es_pid->work = (mpeg2t_frame_t *)frameptr;
-	es_pid->work->next_frame = NULL;
-	es_pid->work->frame = frameptr + sizeof(mpeg2t_frame_t);
-	es_pid->work->frame_len = framesize;
-
-	memcpy(es_pid->work->frame, fptr, buflen);
-	es_pid->work_loaded = buflen;
-	buflen = 0;
-      } else {
-	return ret;
-      }
-    } else {
-      framesize = MIN(buflen, (es_pid->work->frame_len - es_pid->work_loaded));
-      memcpy(es_pid->work->frame + es_pid->work_loaded, esptr, framesize);
-      buflen -= framesize;
-      es_pid->work_loaded += framesize;
-    }
-    if (es_pid->work_loaded == es_pid->work->frame_len) {
-      if (es_pid->list == NULL) {
-	es_pid->list = es_pid->work;
-      } else {
-	p = es_pid->list;
-	while (p->next_frame != NULL) p = p->next_frame;
-	p->next_frame = es_pid->work;
-      }
+  switch (es_pid->stream_type) {
+  case 1:
+  case 2:
+    // mpeg1 or mpeg2 video
+    es_pid->work_state = 0;
+    es_pid->header = 0;
+    es_pid->work_loaded = 0;
+    es_pid->have_seq_header = 0;
+    break;
+  case 3:
+  case 4:
+    // mpeg1/mpeg2 audio (mp3 codec
+    if (es_pid->work != NULL ) {
+      free(es_pid->work);
       es_pid->work = NULL;
-      ret = 1;
     }
+    es_pid->work_loaded = 0;
+    es_pid->left = 0;
+    break;
+  case 0xf:
+    // aac
+    break;
   }
-  return ret;
+}  
+
+void mpeg2t_malloc_es_work (mpeg2t_es_t *es_pid, uint32_t frame_len)
+{
+  uint8_t *frameptr;
+
+  if (es_pid->work == NULL || es_pid->work->frame_len < frame_len) {
+    if (es_pid->work != NULL) {
+      free(es_pid->work);
+      es_pid->work = NULL;
+    }
+    frameptr = (uint8_t *)malloc(sizeof(mpeg2t_frame_t) + frame_len);
+    if (frameptr == NULL) return;
+    es_pid->work = (mpeg2t_frame_t *)frameptr;
+    es_pid->work->frame = frameptr + sizeof(mpeg2t_frame_t);
+    es_pid->work->frame_len = frame_len;
+  }
+  es_pid->work->next_frame = NULL;
+  es_pid->work->have_ps_ts = es_pid->have_ps_ts;
+  es_pid->work->ps_ts = es_pid->ps_ts;
+  es_pid->have_ps_ts = 0;
+  es_pid->work_loaded = 0;
 }
-    
+
 static int mpeg2t_process_es (mpeg2t_t *ptr, 
 			      mpeg2t_pid_t *ifptr,
 			      const uint8_t *buffer)
@@ -450,12 +449,25 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   mpeg2t_es_t *es_pid = (mpeg2t_es_t *)ifptr;
   int read_pes_options;
   uint8_t stream_id;
+  uint32_t nextcc, pakcc;
+  int ret;
+
+  nextcc = ifptr->lastcc;
+  nextcc = (nextcc + 1) & 0xf;
+  pakcc = mpeg2t_continuity_counter(buffer);
+  if (nextcc != pakcc) {
+    printf("cc error in PES %x should be %d is %d\n", 
+	   ifptr->pid, nextcc, pakcc);
+    clean_es_data(es_pid);
+  }
+  ifptr->lastcc = pakcc;
 
   buflen = 188;
   // process pas pointer
   esptr = mpeg2t_transport_payload_start(buffer, &buflen);
   if (esptr == NULL) return -1;
 
+  
   if (mpeg2t_payload_unit_start_indicator(buffer) != 0) {
     // start of PES packet
     if ((esptr[0] != 0) ||
@@ -494,31 +506,63 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     }
       
     if (read_pes_options) {
+      if (esptr[2] + 3 > buflen) {
+	return 0;
+      }
       //mpeg2t_read_pes_options(es_pid, esptr);
+      if (((esptr[1] & 0xc0) == 0x80) ||
+	  ((esptr[1] & 0xc0) == 0xc0)) {
+	// read presentation timestamp
+	uint64_t pts;
+#if 0
+	printf("Stream %x %02x %02x %02x\n", 
+	       stream_id, esptr[0], esptr[1], esptr[2]);
+	printf("PTS %02x %02x %02x %02x %02x\n", 
+	       esptr[3], esptr[4], esptr[5], esptr[6], esptr[7]);
+#endif
+	pts = ((esptr[3] >> 1) & 0x7);
+	pts <<= 8;
+	pts |= esptr[4];
+	pts <<= 7;
+	pts |= ((esptr[5] >> 1) & 0x7f);
+	pts <<= 8;
+	pts |= esptr[6];
+	pts <<= 7;
+	pts |= ((esptr[7] >> 1) & 0x7f);
+	es_pid->have_ps_ts = 1;
+	es_pid->ps_ts = pts;
+      }
       buflen -= esptr[2] + 3;
       esptr += esptr[2] + 3;
     }
   // process esptr, buflen
-    if (buflen == 0) return 0;
+    if (buflen == 0) {
+      es_pid->have_ps_ts = 0;
+      return 0;
+    }
   } else {
     // 0 in Payload start - process frame at start
     read_pes_options = 0;
   }
   // have start of data is at esptr, buflen data
+  ret = 0;
   switch (es_pid->stream_type) {
   case 1:
   case 2:
     // mpeg1 or mpeg2 video
+    ret = process_mpeg2t_mpeg_video(es_pid, esptr, buflen);
     break;
   case 3:
   case 4:
     // mpeg1/mpeg2 audio (mp3 codec
-    return (process_mpeg2t_mpeg_audio(es_pid, esptr, buflen));
+    ret = process_mpeg2t_mpeg_audio(es_pid, esptr, buflen);
+  break;
   case 0xf:
     // aac
     break;
   }
-  return 0;
+  es_pid->have_ps_ts = 0;
+  return ret;
 }
 			    
       
@@ -552,10 +596,12 @@ mpeg2t_es_t *mpeg2t_process_buffer (mpeg2t_t *ptr,
 
     // we have a complete buffer
     rpid = mpeg2t_pid(buffer);
+#if 0
     printf("Buffer- PID %x start %d cc %d\n",
 	   rpid, mpeg2t_payload_unit_start_indicator(buffer),
 	   mpeg2t_continuity_counter(buffer));
-    if (rpid == 0x1ff) {
+#endif
+    if (rpid == 0x1fff) {
       // just skip
     } else {
       // look up pid in table
@@ -593,6 +639,9 @@ mpeg2t_t *create_mpeg2_transport (void)
 
   ptr = MALLOC_STRUCTURE(mpeg2t_t);
   memset(ptr, 0, sizeof(ptr));
+  ptr->pas.pid.pak_type = MPEG2T_PAS_PAK;
+  ptr->pas.pid.next_pid = NULL;
+  ptr->pas.pid.pid = 0;
   ptr->pas.pid.collect_pes = 1;
   return (ptr);
 }

@@ -105,6 +105,7 @@ class CRtpByteStreamBase : public COurInByteStream
   uint64_t m_rtp_buffer_time;
   unsigned int m_rtp_pt;
   virtual int check_rtp_frame_complete_for_payload_type(void);
+  virtual void rtp_done_buffering(void) {};
   int m_rtp_rtpinfo_received;
   uint32_t m_rtptime_last;
   int m_doing_add;
@@ -115,6 +116,7 @@ class CRtpByteStreamBase : public COurInByteStream
   uint64_t m_last_realtime;
   format_list_t *m_fmt;
   int m_eof;
+  int m_rtpinfo_set_from_pak;
 };
 
 class CRtpByteStream : public CRtpByteStreamBase

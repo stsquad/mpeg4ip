@@ -1,0 +1,13 @@
+The following are some recommended background reading related to MPEG4IP:
+
+For a good overview of IP based multimedia:
+"Internetworking Multimedia"
+Jon Crowcroft, Mark Handley, Ian Wakeman
+Morgan Kauffman, 1999
+
+For a practical introduction to video coding:
+"Video Codec Design: Developing Image and Video Compression Systems"
+Iain Richardson
+John Wiley, 2002
+
+

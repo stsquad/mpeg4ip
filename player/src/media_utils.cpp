@@ -232,7 +232,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 	  video_offset++;
 	}
       } else {
-	player_error_message("Skipping media type %s", sdp_media->media);
+	player_error_message("Skipping media type `%s\'", sdp_media->media);
 	continue;
       }
     }

@@ -946,6 +946,12 @@ printf("%s\n", *argv);
   config.read_config_file();
   initialize_plugins();
 
+  if (config.get_config_value(CONFIG_RTP_BUFFER_TIME) != 2) {
+    config.set_config_value(CONFIG_RTP_BUFFER_TIME_MSEC, 
+			    config.get_config_value(CONFIG_RTP_BUFFER_TIME) * 1000);
+    config.set_config_value(CONFIG_RTP_BUFFER_TIME,
+			    config.get_config_default_value(CONFIG_RTP_BUFFER_TIME));
+  }
   const char *read;
   playlist = g_list_append(playlist, (void *)"");
   read = config.get_config_string(CONFIG_PREV_FILE_0);

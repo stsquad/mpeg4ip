@@ -8,6 +8,8 @@
 
 typedef struct mpeg2t_frame_t {
   struct mpeg2t_frame_t *next_frame;
+  int have_ps_ts;
+  uint64_t ps_ts;
   uint8_t *frame;
   uint32_t frame_len;
 } mpeg2t_frame_t;
@@ -54,9 +56,17 @@ typedef struct mpeg2t_es_t {
   uint8_t *es_data;
   uint8_t stream_id;
   mpeg2t_frame_t *work;
+  uint32_t work_max_size;
   int work_state;
   uint32_t work_loaded;
   mpeg2t_frame_t *list;
+  char left_buff[6];
+  int left;
+  int have_ps_ts;
+  uint64_t ps_ts;
+  uint32_t header;
+  int have_seq_header;
+  uint32_t seq_header_offset;
 } mpeg2t_es_t;
 
 typedef struct mpeg2t_t {

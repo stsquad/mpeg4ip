@@ -11,9 +11,10 @@ xvid_plugin_la_LIBADD = \
 	-lm \
 	$(top_builddir)/lib/xvid/libxvid.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
-	$(top_builddir)/lib/fposrec/libfposrec.la
+	$(top_builddir)/lib/fposrec/libfposrec.la \
+	$(top_builddir)/lib/mp4av/libmp4av.la
 
-INCLUDES = -I.. -I../.. -I../../../lib -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/xvid -I../../../../include -I../../../../lib -I$(top_srcdir)/player/src
+INCLUDES = -I.. -I../.. -I../../../lib -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/xvid -I../../../../include -I../../../../lib -I$(top_srcdir)/player/src -I$(top_srcdir)/lib/mp4v2
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

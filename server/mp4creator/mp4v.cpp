@@ -184,10 +184,10 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			exit(EXIT_MP4V_CREATOR);
 		}
 
-#ifdef MP4V_DEBUG
-		printf("objType %x objSize %u\n",
-			objType, objSize);
-#endif
+		if (Verbosity & MP4_DETAILS_SAMPLE) {
+			printf("MP4V type %x size %u\n",
+				objType, objSize);
+		}
 
 		if (objType == MP4AV_MPEG4_VOSH_START) {
 			MP4AV_Mpeg4ParseVosh(pObj, objSize, 
@@ -227,15 +227,20 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		// seen all vary dramatically, so until things become clearer
 		// we don't support these types of encoders
 		fprintf(stderr,	
-			"%s: variable rate video stream signalled, please specify average frame rate with -r option\n", ProgName);
+			"%s: variable rate video stream signalled,"
+			" please specify average frame rate with -r option\n",
+			 ProgName);
 		exit(EXIT_MP4V_CREATOR);
 	}
 
 	// create the new video track
 	MP4TrackId trackId = 
-		MP4AddVideoTrack(mp4File, 
-			Mp4TimeScale, mp4FrameDuration, 
-			frameWidth, frameHeight, 
+		MP4AddVideoTrack(
+			mp4File, 
+			Mp4TimeScale,
+			mp4FrameDuration, 
+			frameWidth, 
+			frameHeight, 
 			MP4_MPEG4_VIDEO_TYPE);
 
 	if (trackId == MP4_INVALID_TRACK_ID) {
@@ -314,6 +319,11 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			fprintf(stderr,	
 				"%s: buffer overflow, invalid video stream?\n", ProgName);
 			exit(EXIT_MP4V_CREATOR);
+		}
+
+		if (Verbosity & MP4_DETAILS_SAMPLE) {
+			printf("MP4V type %x size %u\n",
+				objType, objSize);
 		}
 	}
 

@@ -2,7 +2,10 @@ noinst_LTLIBRARIES = libmpeg2_transport.la
 libmpeg2_transport_la_LDFLAGS = -static
 libmpeg2_transport_la_SOURCES = \
 	mpeg2_transport.c \
-	mpeg2_transport.h
+	mpeg2_transport.h \
+	mpeg2t_mp3.c \
+	mpeg2t_private.h \
+	mpeg2t_video.c
 
 INCLUDES = -I$(top_builddir)/include -I$(top_builddir)/lib -I$(top_builddir)/lib/mp4av -I$(top_builddir)/lib/mp4v2
 AM_CFLAGS = -DIPTV_COMPATIBLE -D_REENTRANT @BILLS_CWARNINGS@

@@ -52,6 +52,7 @@ static config_variable_t configs[] = {
   { CONFIG_RTP_DEBUG, "RtpDebug", CONFIG_INT, LOG_ALERT, NULL},
   { CONFIG_PLAY_AUDIO, "PlayAudio", CONFIG_INT, 1, NULL },
   { CONFIG_PLAY_VIDEO, "PlayVideo", CONFIG_INT, 1, NULL },
+  { CONFIG_RTP_BUFFER_TIME_MSEC, "RtpBufferTimeMsec", CONFIG_INT, 2000, NULL },
 };
 
 CConfig config(configs, CONFIG_MAX);

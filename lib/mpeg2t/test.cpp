@@ -40,8 +40,11 @@ int main (int argc, char **argv)
 	mp3 = es_pid->list;
 	es_pid->list = NULL;
 	while (mp3 != NULL) {
-	  printf("Wrote mp3 frame\n");
-	  fwrite(mp3->frame, mp3->frame_len, 1, ofile);
+	  printf("Wrote %d frame psts len %d %d %llu %llx\n", 
+		 es_pid->stream_type,
+		 mp3->frame_len,
+		 mp3->have_ps_ts, mp3->ps_ts, mp3->ps_ts);
+	  //fwrite(mp3->frame, mp3->frame_len, 1, ofile);
 	  p = mp3;
 	  mp3 = mp3->next_frame;
 	  free(p);

@@ -29,6 +29,7 @@
 #include <mp4v2/mp4.h>
 #include <xvid.h>
 #include <divx4.h>
+#include <mp4av/mp4av.h>
 
 #define xvid_message (xvid->m_vft->log_msg)
 
@@ -193,6 +194,26 @@ static void xvid_do_pause (codec_data_t *ifptr)
     xvid->m_decodeState = XVID_STATE_WAIT_I;
 }
 
+static int xvid_frame_is_sync (codec_data_t *ptr,
+			       uint8_t *buffer, 
+			       uint32_t buflen,
+			       void *userdata)
+{
+  u_char vop_type;
+
+  while (buflen > 3 && 
+	 !(buffer[0] == 0 && buffer[1] == 0 && 
+	   buffer[2] == 1 && buffer[3] == MP4AV_MPEG4_VOP_START)) {
+    buffer++;
+    buflen--;
+  }
+
+  vop_type = MP4AV_Mpeg4GetVopType(buffer, buflen);
+
+  if (vop_type == 'I') return 1;
+  return 0;
+}
+
 static int xvid_decode (codec_data_t *ptr,
 			uint64_t ts, 
 			int from_rtp,
@@ -345,6 +366,7 @@ VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("xvid",
 				 xvid_decode,
 				 xvid_close,
 				 xvid_codec_check,
+				 xvid_frame_is_sync,
 				 xvid_file_check,
 				 xvid_file_next_frame,
 				 xvid_file_used_for_frame,

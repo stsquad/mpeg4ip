@@ -1100,6 +1100,53 @@ extern "C" bool MP4WriteSample(
 	return false;
 }
 
+extern "C" bool MP4CopySample(
+	MP4FileHandle srcFile,
+	MP4TrackId srcTrackId, 
+	MP4SampleId srcSampleId,
+	MP4FileHandle dstFile,
+	MP4TrackId dstTrackId)
+{
+	bool rc;
+	u_int8_t* pBytes = NULL; 
+	u_int32_t numBytes = 0;
+	MP4Duration sampleDuration;
+	MP4Duration renderingOffset;
+	bool isSyncSample;
+
+	// Note: we assume the caller is copying samples
+	// between compatible tracks, e.g. not copying audio
+	// into a video track
+
+	rc = MP4ReadSample(
+		srcFile,
+		srcTrackId,
+		srcSampleId,
+		&pBytes,
+		&numBytes,
+		NULL,
+		&sampleDuration,
+		&renderingOffset,
+		&isSyncSample);
+
+	if (!rc) {
+		return false;
+	}
+
+	rc = MP4WriteSample(
+		(MP4_IS_VALID_FILE_HANDLE(dstFile) ? dstFile : srcFile),
+		dstTrackId,
+		pBytes,
+		numBytes,
+		sampleDuration,
+		renderingOffset,		
+		isSyncSample);
+
+	free(pBytes);
+
+	return rc;
+}
+
 extern "C" u_int32_t MP4GetSampleSize(
 	MP4FileHandle hFile,
 	MP4TrackId trackId, 

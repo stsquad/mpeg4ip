@@ -48,5 +48,15 @@ class CMpeg3RtpByteStream : public CRtpByteStream
 			    void **ud);
   int skip_next_frame(uint64_t *ptr, int *hasSyncFrame,
 		      uint8_t **buffer, uint32_t *buflen);
+ protected:
+  void rtp_done_buffering(void);
+ private:
+  uint32_t m_rtp_frame_add;
+  uint16_t m_next_seq;
+  int m_prev_frame_type;
+  int m_have_prev_frame_type;
+  uint32_t m_prev_ts;
+  uint32_t calc_this_ts_from_future(int frame_type, uint32_t pak_ts);
+  
 };
 #endif

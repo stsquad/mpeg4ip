@@ -41,6 +41,7 @@ typedef struct mpeg3_codec_t {
   int m_video_initialized;
   int m_did_pause;
   int m_got_i;
+  uint64_t cached_ts;
 } mpeg3_codec_t;
   
 #endif

@@ -60,16 +60,27 @@ int main(int argc, char** argv)
 			{ "start", 1, 0, 's' },
 			{ "video", 0, 0, 'v' },
 			{ "version", 0, 0, 'V'},
+			{ "help", 0, 0, 'h'},
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "al:qs:vV",
+		c = getopt_long_only(argc, argv, "al:qs:vVh",
 			long_options, &option_index);
 
 		if (c == -1)
 			break;
 
 		switch (c) {
+		case 'h':
+		  fprintf(stderr, "%s - %s version %s\n", progName,
+			  PACKAGE, VERSION);
+		  fprintf(stderr, "options:\n");
+		  fprintf(stderr, " --audio - extract audio track\n");
+		  fprintf(stderr, " --length <length> - extract <length> secs\n");
+		  fprintf(stderr, " --quiet - quiet mode\n");
+		  fprintf(stderr, " --start <time> - extract from <start> time\n");
+		  fprintf(stderr, " --video - extract video track\n");
+		  return 0;
 		case 'a': {
 			extractVideo = FALSE;
 			break;

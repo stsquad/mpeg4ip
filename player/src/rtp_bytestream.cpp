@@ -173,10 +173,9 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   
   m_rtp_pt = rtp_pt;
   uint64_t temp;
-  temp = config.get_config_value(CONFIG_RTP_BUFFER_TIME);
+  temp = config.get_config_value(CONFIG_RTP_BUFFER_TIME_MSEC);
   if (temp > 0) {
     m_rtp_buffer_time = temp;
-    m_rtp_buffer_time *= M_LLU;
   } else {
     m_rtp_buffer_time = (ondemand ? 2 : 5)* M_LLU;
   }
@@ -371,8 +370,13 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
       if (check_rtp_frame_complete_for_payload_type()) {
 	head_ts = m_head->rtp_pak_ts;
 	tail_ts = m_tail->rtp_pak_ts;
+	if (head_ts > tail_ts &&
+	    ((head_ts & (1 << 31)) == (tail_ts & (1 << 31)))) {
+	  return 0;
+	}
 	uint64_t calc;
-	calc = (tail_ts - head_ts);
+	calc = tail_ts;
+	calc -= head_ts;
 	calc *= M_LLU;
 	calc /= m_rtptime_tickpersec;
 	if (calc > m_rtp_buffer_time) {
@@ -380,14 +384,18 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	    rtp_message(LOG_NOTICE, "Setting rtp seq and time from 1st pak");
 	    m_rtp_rtptime = m_head->rtp_pak_ts;
 	    m_rtp_rtpinfo_received = 1;
+	    m_rtpinfo_set_from_pak = 1;
+	  } else {
+	    m_rtpinfo_set_from_pak = 0;
 	  }
 	  m_buffering = 1;
 #if 1
 	  rtp_message(LOG_INFO, 
-		      "%s buffering complete - seq %d head %u tail %u "LLU, 
+		      "%s buffering complete - seq %d head %u tail %u "LLD, 
 		      m_name, m_head->rtp_pak_seq,
 		      head_ts, tail_ts, calc);
 #endif
+	  rtp_done_buffering();
 	  
 	}
       }

@@ -8,7 +8,7 @@ Here's a list of things that the authors are working on in the short-term:
 	Exploit P4 SSE2 more.
 
 * mp4player:
-	Codec plugins
+	mpeg2 transport streams
 
 Here's a list of things that we would like to do in the future,
 however we're happy to have volunteers do them also ;-)
@@ -18,7 +18,6 @@ however we're happy to have volunteers do them also ;-)
 * Update ISO MPEG-4 reference codec to latest version
 * RTP insertion/failover intermediary
 * RSVP support
-* Add the MPEG-4 CELP audio codec (low bitrate voice codec)
 * Port, port, port...
 
 Further suggestions are of course welcome, 

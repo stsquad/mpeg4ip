@@ -47,6 +47,7 @@
 
 #include <sys/global.hpp>
 #include <mp4v2/mp4.h>
+#include <mp4av/mp4av.h>
 
 #define iso_message (iso->m_vft->log_msg)
 static const char *mp4iso = "mp4iso";
@@ -220,6 +221,30 @@ static void iso_do_pause (codec_data_t *ptr)
   iso_decode_t *iso = (iso_decode_t *)ptr;
   if (iso->m_decodeState != DECODE_STATE_VOL_SEARCH)
     iso->m_decodeState = DECODE_STATE_WAIT_I;
+}
+static int iso_frame_is_sync (codec_data_t *ptr,
+			      uint8_t *buffer, 
+			      uint32_t buflen,
+			      void *userdata)
+{
+  u_char vop_type;
+
+  while (buflen > 3 && 
+	 !(buffer[0] == 0 && buffer[1] == 0 && 
+	   buffer[2] == 1 && buffer[3] == MP4AV_MPEG4_VOP_START)) {
+    buffer++;
+    buflen--;
+  }
+
+  vop_type = MP4AV_Mpeg4GetVopType(buffer, buflen);
+#if 0
+  {
+  iso_decode_t *iso = (iso_decode_t *)ptr;
+  iso_message(LOG_DEBUG, "iso", "return from get vop is %c %d", vop_type, vop_type);
+  }
+#endif
+  if (vop_type == 'I') return 1;
+  return 0;
 }
 
 static int iso_decode (codec_data_t *ptr, 
@@ -481,6 +506,7 @@ VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("MPEG4 ISO",
 				 iso_decode,
 				 iso_close,
 				 iso_codec_check,
+				 iso_frame_is_sync,
 				 mpeg4_iso_file_check,
 				 divx_file_next_frame,
 				 divx_file_used_for_frame,

@@ -33,6 +33,7 @@
 #include "ip_port.h"
 #include "codec_plugin.h"
 #include "audio.h"
+//#define DROP_PAKS 1
 /*
  * c routines for callbacks
  */
@@ -435,6 +436,7 @@ int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
   if (m_video_sync == NULL) return -1;
 
   m_plugin = p;
+  m_video_info = video;
   m_plugin_data = (p->vc_create)(sdp_media,
 				 video,
 				 user_data,
@@ -483,6 +485,7 @@ int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
   }
   if (m_audio_sync == NULL) return -1;
 
+  m_audio_info = audio;
   m_plugin = p;
   m_plugin_data = (p->ac_create)(sdp_media,
 				 audio,
@@ -1315,6 +1318,10 @@ int CPlayerMedia::recv_thread (void)
   return (0);
 }
 
+#ifdef DROP_PAKS
+static int dropcount = 0;
+#endif
+
 /*
  * CPlayerMedia::recv_callback - callback from RTP with valid data
  */
@@ -1330,6 +1337,15 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
       return;
     }
   }
+#if DROP_PAKS
+    if (e->type == RX_RTP && dropcount >= 50) {
+      xfree((rtp_packet *)e->data);
+      dropcount = 0;
+      return;
+    } else { 
+      dropcount++;
+    }
+#endif
   if (m_rtp_byte_stream != NULL) {
     m_rtp_byte_stream->recv_callback(session, e);
     return;

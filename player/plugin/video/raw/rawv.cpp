@@ -67,6 +67,14 @@ static void rawv_do_pause (codec_data_t *ifptr)
 {
 }
 
+static int rawv_video_frame_is_sync (codec_data_t *ptr,
+				     uint8_t *buffer, 
+				     uint32_t buflen,
+				     void *ud)
+{
+  return 1;
+}
+
 static int rawv_decode (codec_data_t *ptr,
 			uint64_t ts, 
 			int from_rtp,
@@ -137,4 +145,5 @@ VIDEO_CODEC_PLUGIN("rawv",
 		   rawv_do_pause,
 		   rawv_decode,
 		   rawv_close,
-		   rawv_codec_check);
+		   rawv_codec_check,
+		   rawv_video_frame_is_sync);

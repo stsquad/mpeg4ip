@@ -1,3 +1,3 @@
 SUBDIRS = encoding ietf mcast programs mp4v2
 
-EXTRA_DIST = MPEG4IP_Guide.pdf
+EXTRA_DIST = MPEG4IP_Guide.pdf ReadingList.txt

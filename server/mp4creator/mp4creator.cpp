@@ -24,7 +24,7 @@
 #include "mpeg4ip_getopt.h"
 
 // forward declarations
-void PrintTrackList(const char* mp4FileName, u_int32_t verbosity);
+void PrintTrackList(const char* mp4FileName);
 
 MP4TrackId* CreateMediaTracks(
 	MP4FileHandle mp4File, const char* inputFileName);
@@ -79,13 +79,13 @@ int main(int argc, char** argv)
 	bool doOptimize = false;
 	bool doInterleave = false;
 	char* mp4FileName = NULL;
-	u_int32_t verbosity = MP4_DETAILS_ERROR;
 	char* inputFileName = NULL;
 	char* payloadName = NULL;
 	MP4TrackId hintTrackId = MP4_INVALID_TRACK_ID;
 	MP4TrackId deleteTrackId = MP4_INVALID_TRACK_ID;
 	u_int16_t maxPayloadSize = 1460;
 
+	Verbosity = MP4_DETAILS_ERROR;
 	VideoFrameRate = 0;		// determine from input file
 	Mp4TimeScale = 90000;
 
@@ -182,21 +182,21 @@ int main(int argc, char** argv)
 			}
 			break;
 		case 'v':
-			verbosity |= (MP4_DETAILS_READ | MP4_DETAILS_WRITE);
+			Verbosity |= (MP4_DETAILS_READ | MP4_DETAILS_WRITE);
 			if (optarg) {
 				u_int32_t level;
 				if (sscanf(optarg, "%u", &level) == 1) {
 					if (level >= 2) {
-						verbosity |= MP4_DETAILS_TABLE;
+						Verbosity |= MP4_DETAILS_TABLE;
 					} 
 					if (level >= 3) {
-						verbosity |= MP4_DETAILS_SAMPLE;
+						Verbosity |= MP4_DETAILS_SAMPLE;
 					} 
 					if (level >= 4) {
-						verbosity |= MP4_DETAILS_HINT;
+						Verbosity |= MP4_DETAILS_HINT;
 					} 
 					if (level >= 5) {
-						verbosity = MP4_DETAILS_ALL;
+						Verbosity = MP4_DETAILS_ALL;
 					} 
 				}
 			}
@@ -239,6 +239,14 @@ int main(int argc, char** argv)
 	}
 
 	// consistency checks
+
+	if (!doList && !doCreate && !doHint && !doOptimize && !doDelete) {
+		fprintf(stderr, 
+			"%s: no operation specified\n",
+			 ProgName);
+		exit(EXIT_COMMAND_LINE);
+	}
+
 	if (doDelete && (doCreate || doHint)) {
 		fprintf(stderr, 
 			"%s: delete operation must be done separately\n",
@@ -250,7 +258,7 @@ int main(int argc, char** argv)
 
 	if (doList) {
 		// just want the track listing
-		PrintTrackList(mp4FileName, verbosity);
+		PrintTrackList(mp4FileName);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -262,7 +270,7 @@ int main(int argc, char** argv)
 	if (doCreate || doHint) {
 		if (!mp4FileExists) {
 			if (doCreate) {
-				mp4File = MP4Create(mp4FileName, verbosity);
+				mp4File = MP4Create(mp4FileName, Verbosity);
 				if (mp4File) {
 					MP4SetTimeScale(mp4File, Mp4TimeScale);
 				}
@@ -273,7 +281,7 @@ int main(int argc, char** argv)
 				exit(EXIT_CREATE_FILE);
 			}
 		} else {
-			mp4File = MP4Modify(mp4FileName, verbosity);
+			mp4File = MP4Modify(mp4FileName, Verbosity);
 		}
 
 		if (!mp4File) {
@@ -328,7 +336,7 @@ int main(int argc, char** argv)
 
 		if (doCreate) {
 			// this creates simple MPEG-4 OD and BIFS streams
-			MP4MakeIsmaCompliant(mp4FileName, verbosity, allMpeg4Streams);
+			MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
 		}
 
 
@@ -340,7 +348,7 @@ int main(int argc, char** argv)
 			exit(EXIT_CREATE_FILE);
 		}
 
-		mp4File = MP4Modify(mp4FileName, verbosity);
+		mp4File = MP4Modify(mp4FileName, Verbosity);
 		if (!mp4File) {
 			// mp4 library should have printed a message
 			exit(EXIT_CREATE_FILE);
@@ -354,7 +362,7 @@ int main(int argc, char** argv)
 	}
 
 	if (doOptimize) {
-		if (!MP4Optimize(mp4FileName, NULL, verbosity)) {
+		if (!MP4Optimize(mp4FileName, NULL, Verbosity)) {
 			// mp4 library should have printed a message
 			exit(EXIT_OPTIMIZE_FILE);
 		}
@@ -371,6 +379,21 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 		fprintf(stderr, 
 			"%s: can't open file %s: %s\n",
 			ProgName, inputFileName, strerror(errno));
+		exit(EXIT_CREATE_MEDIA);
+	}
+
+	struct stat s;
+	if (fstat(fileno(inFile), &s) < 0) {
+		fprintf(stderr, 
+			"%s: can't stat file %s: %s\n",
+			ProgName, inputFileName, strerror(errno));
+		exit(EXIT_CREATE_MEDIA);
+	}
+
+	if (s.st_size == 0) {
+		fprintf(stderr, 
+			"%s: file %s is empty\n",
+			ProgName, inputFileName);
 		exit(EXIT_CREATE_MEDIA);
 	}
 
@@ -485,9 +508,9 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 	}
 }
 
-void PrintTrackList(const char* mp4FileName, u_int32_t verbosity)
+void PrintTrackList(const char* mp4FileName)
 {
-	MP4FileHandle mp4File = MP4Read(mp4FileName, verbosity);
+	MP4FileHandle mp4File = MP4Read(mp4FileName, Verbosity);
 
 	if (!mp4File) {
 		fprintf(stderr, "%s: couldn't open %s: %s", 

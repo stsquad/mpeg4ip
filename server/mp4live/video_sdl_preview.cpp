@@ -109,6 +109,8 @@ void CSDLVideoPreview::DoStopPreview()
 	SDL_FreeSurface(m_sdlScreen);
 	m_sdlScreen = NULL;
 
+	SDL_Quit();
+
 	m_sink = false;
 }
 
