@@ -5,7 +5,6 @@ AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTRO
 INCLUDES = -I.. -I../../type -I../../tools -I../../../../../include
 
 noinst_LTLIBRARIES = libobj_sys_encoder.la
-libobj_sys_encoder_la_LDFLAGS = -static
 
 libobj_sys_encoder_la_SOURCES = \
 	blkenc.cpp \

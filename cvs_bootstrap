@@ -37,50 +37,53 @@ done
 #
 # Test for lame
 #
-have_lame=no
-if lame --version >/dev/null 2>/dev/null
-then
-   lamever=`lame --version | tr '.' ' '`
-   lameresult=`util/testlame.sh $lamever`
-   if test $lameresult = "yes"; then
-      have_lame=yes
-   fi
+target_system=`uname -s`
+if test $target_system = "Linux"; then
+
+    have_lame=no
+    if lame --version >/dev/null 2>/dev/null
+	then
+	lamever=`lame --version | tr '.' ' '`
+	lameresult=`util/testlame.sh $lamever`
+	if test $lameresult = "yes"; then
+	    have_lame=yes
+	fi
+    fi
+    have_faac=no
+    faac >/dev/null 2>testfaac
+    have_faac=`sh util/testfaac.sh testfaac`
+    rm -f testfaac
+
+    if test $have_faac = "no"; then
+	have_lame=no
+    fi
+
+    allargs="$@"
+
+    if test $have_lame = "no"; then
+	disabled_mp4live=no
+	while test $# -gt 0;
+	  do
+	  if test $1 = "--disable-server"; then
+	      disabled_mp4live=yes
+	  else
+	      if test $1 = "--disable-mp4live"; then
+		  disabled_mp4live=yes
+	      fi
+	  fi
+	  shift
+	done
+	if test $disabled_mp4live = no; then
+	    echo "Error - we cannot detect a valid version of lame or faac and you are trying"
+	    echo "to build mpeg4ip with mp4live."
+	    echo "To remedy this, either reexecute this program with either the"
+	    echo "--disable-mp4live or --disable-server options -OR-"
+	    echo "install lame at version 3.92 or greater from http://www.mp3dev.org"
+	    echo "and libfaac at verion 1.20 or greater from http://www.audiocoding.com"
+	    exit 1
+	fi
+    fi
 fi
-have_faac=no
-faac >/dev/null 2>testfaac
-have_faac=`sh util/testfaac.sh testfaac`
-rm -f testfaac
-
-if test $have_faac = "no"; then
-   have_lame=no
-fi
-
-allargs="$@"
-
-if test $have_lame = "no"; then
-   disabled_mp4live=no
-   while test $# -gt 0;
-   do
-      if test $1 = "--disable-server"; then
-         disabled_mp4live=yes
-      else
-         if test $1 = "--disable-mp4live"; then
-            disabled_mp4live=yes
-         fi
-      fi
-   shift
-   done
-   if test $disabled_mp4live = no; then
-      echo "Error - we cannot detect a valid version of lame or faac and you are trying"
-      echo "to build mpeg4ip with mp4live."
-      echo "To remedy this, either reexecute this program with either the"
-      echo "--disable-mp4live or --disable-server options -OR-"
-      echo "install lame at version 3.92 or greater from http://www.mp3dev.org"
-      echo "and libfaac at verion 1.20 or greater from http://www.audiocoding.com"
-      exit 1
-   fi
-fi
-
 
 set -x
 
@@ -119,13 +122,24 @@ autoconf || exit 1
 
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  
-aclocal || aclocal $ACLOCAL_FLAGS || aclocal -I doc || aclocal -I util || aclocal -I util $ACLOCAL_FLAGS 
+if `aclocal $ACLOCAL_FLAGS`; then
+echo
+else
+if `aclocal -I doc`; then
+ACLOCAL_FLAGS="-I doc $ACLOCAL_FLAGS"
+else
+if `aclocal -I util $ACLOCAL_FLAGS`; then
+ACLOCAL_FLAGS="-I util $ACLOCAL_FLAGS"
+fi
+fi
+fi
+
 libtoolize --force
 grep AM_PATH_GTK_2_0 aclocal.m4 || aclocal -I doc || exit 3
 autoheader || exit 1
 automake --add-missing --foreign || exit 1
 autoconf || exit 1
-[ ! -x configure ] || ./configure $allargs || exit 1
+[ ! -x configure ] || ./configure $allargs ACLOCAL_AMFLAGS="$ACLOCAL_FLAGS" || exit 1
 set +x
 
 # Now ready to run make

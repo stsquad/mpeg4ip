@@ -85,12 +85,18 @@ CMediaSource::~CMediaSource()
 bool CMediaSource::AddSink(CMediaSink* pSink) 
 {
   bool rc = false;
-
+  int i;
   if (SDL_LockMutex(m_pSinksMutex) == -1) {
     debug_message("AddSink LockMutex error");
     return rc;
   }
-  for (int i = 0; i < MAX_SINKS; i++) {
+  for (i = 0; i < MAX_SINKS; i++) {
+    if (m_sinks[i] == pSink) {
+      SDL_UnlockMutex(m_pSinksMutex);
+      return true;
+    }
+  }
+  for (i = 0; i < MAX_SINKS; i++) {
     if (m_sinks[i] == NULL) {
       m_sinks[i] = pSink;
       rc = true;

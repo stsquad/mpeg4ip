@@ -66,10 +66,10 @@
 #define VIDEO_NTSC_FRAME_RATE	((float)29.97)
 #define VIDEO_PAL_FRAME_RATE	((float)25.00)
 
-#define VIDEO_STD_ASPECT_RATIO 	((float)1.33)	// standard 4:3
+#define VIDEO_STD_ASPECT_RATIO 	((float)4.0 / 3.0)	// standard 4:3
 #define VIDEO_LB1_ASPECT_RATIO 	((float)2.35)	// typical "widescreen" format
 #define VIDEO_LB2_ASPECT_RATIO 	((float)1.85)	// alternate widescreen format
-#define VIDEO_LB3_ASPECT_RATIO 	((float)1.78)	// hdtv 16:9
+#define VIDEO_LB3_ASPECT_RATIO 	((float)16.0 / 9.0)	// hdtv 16:9
 
 #define MP3_MPEG1_SAMPLES_PER_FRAME	1152	// for MPEG-1 bitrates
 #define MP3_MPEG2_SAMPLES_PER_FRAME	576		// for MPEG-2 bitrates

@@ -4,7 +4,6 @@ AM_CXXFLAGS = -D__TRACE_AND_STATS -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROL
 
 INCLUDES = -I../include -I../main -I../pezw -I../wavelet -I../zte -I../ztq -I../../type -I../shape
 noinst_LTLIBRARIES = libobj_vtc_ztq.la
-libobj_vtc_ztq_la_LDFLAGS = -static
 
 libobj_vtc_ztq_la_SOURCES = \
 	decQM.cpp \

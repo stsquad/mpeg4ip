@@ -1,6 +1,5 @@
 SUBDIRS=doc
 lib_LTLIBRARIES = libmp4.la
-libmp4_la_LDFLAGS = -static
 
 INCLUDES = -I$(top_srcdir)/include
 

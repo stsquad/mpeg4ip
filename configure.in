@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.0RC2)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.0RC2.1 )
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -17,6 +17,14 @@ AC_CHECK_FILE(lib/SDL/sdl-config,,
 
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
+AC_MSG_CHECKING([libtool tag=C for nasm])
+if test -z "`./libtool --help | grep \"\\-\\-tag\"`"; then
+  AC_MSG_RESULT([no])
+else
+  LIBTOOL_C_TAG="--tag=CXX"
+  AC_SUBST(LIBTOOL_C_TAG)
+  AC_MSG_RESULT([yes])
+fi 
 AC_PROG_MAKE_SET
 AC_PROG_CC
 OBJC="???"
@@ -28,6 +36,7 @@ AC_PROG_INSTALL
 AC_PATH_XTRA
 AC_C_BIGENDIAN
 
+AC_SUBST(ACLOCAL_AMFLAGS)
 
 AS=gcc
 AC_SUBST(AS)
@@ -187,11 +196,11 @@ if test x$enable_mp4live = xyes; then
    case "$target" in
    *-*-linux*)
 	have_mp4live=true
-        AC_CHECK_HEADERS(linux/videodev2.h,
-			 [have_v4l2=true],
-			 [have_v4l2=false],
-                         [#include <sys/time.h>
-#include <linux/videodev.h>])
+	MY_CHECK_TYPEDEF_FROM_INCLUDE([struct v4l2_buffer test],
+				      [#include <sys/time.h>
+#include <linux/videodev.h>],
+				      [have_v4l2=true],
+				      [have_v4l2=false])
 	 AC_ARG_ENABLE(ffmpeg,
 		       [ --enable-ffmpeg=<directory>  enable ffmpeg for mp4live, and specify ffmpeg home directory],
 		       have_ffmpeg=true,
@@ -204,6 +213,11 @@ fi
 
 AM_CONDITIONAL(MP4LIVE, [test x$have_mp4live = xtrue])
 AM_CONDITIONAL(HAVE_V4L2, [test x$have_v4l2 = xtrue])
+
+if test x$have_v4l2 = xtrue; then
+  AC_DEFINE(HAVE_LINUX_VIDEODEV2_H, 1, [Define to 1 if you have the <linux/videodev2.h> header file.])
+fi
+
 if test x$have_ffmpeg = xtrue; then
       AC_MSG_NOTICE([have enable ffmpeg $enable_ffmpeg])
       FFMPEG_INC=-I${enable_ffmpeg}/libavcodec

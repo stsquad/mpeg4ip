@@ -3,7 +3,6 @@ AM_CFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -fexceptions @BILLS_CWARN
 AM_CXXFLAGS = -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -D_OBSS_
 
 noinst_LTLIBRARIES = libobj_type.la
-libobj_type_la_LDFLAGS = -static
 
 libobj_type_la_SOURCES = \
 	basic.cpp \

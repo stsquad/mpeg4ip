@@ -1,8 +1,6 @@
 
 noinst_LTLIBRARIES = libmp3utils.la
 
-libmp3utils_la_LDFLAGS = -static
-
 libmp3utils_la_SOURCES = \
 	BitVector.cpp \
 	BitVector.hh \

@@ -155,7 +155,7 @@ void initialize_plugins (void)
 #ifdef _WIN32
     handle = LoadLibrary(fname);
 #else
-    handle = dlopen(fname, RTLD_LAZY);
+    handle = dlopen(fname, RTLD_NOW);
 #endif
     if (handle != NULL) {
       cptr = (codec_plugin_t *)DLL_GET_SYM(handle, "mpeg4ip_codec_plugin");

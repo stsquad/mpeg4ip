@@ -467,12 +467,17 @@ synchronize the video and audio.
 Because of this, the first video frame is displayed for a longer duration
 before the video starts rolling. This duration is usually of the order of
 4 or 5 video frame times and generally unnoticable.
-
+<br>
 We've done our best to try to start the audio first, but since the video
 is already running in the preview (if turned on), the file recorder receives
 a bunch of video frames before the first audio frame propagates to the
 file recorder. Given this, the above algorithm seems to be a resonable
 solution.
+<p>
+Sometimes, you may experience a crash while changing the video parameters such
+as height/width or aspect ratio.  If this occurs, change the 
+<a href="#vheight">parameter </a> in your .mp4live_rc file, and restart 
+mp4live.
 <P>
 <a href="#top">Back to top</a>
 <P>
@@ -582,7 +587,7 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>videoRawPreview</td><td>bool</td><td>false</td><td>Show Raw Video Preview in Gui</tr>
 <tr align=center><td>videoEncodedPreview</td><td>bool</td><td>true</td><td>Show Encoded Video Preview in Gui</tr>
 <tr align=center><td>videoEncoding</td><td>string</td><td>MPEG4</td><td>Video Encoding Type</tr>
-<tr align=center><td>videoRawWidth</td><td>int</td><td>320</td><td>Width of output frame in pixels</tr>
+<tr align=center><td><a name="vheight">videoRawWidth</td><td>int</td><td>320</td><td>Width of output frame in pixels</tr>
 <tr align=center><td>videoRawHeight</td><td>int</td><td>240</td><td>Height of output frame in pixels</tr>
 <tr align=center><td>videoAspectRatio</td><td>float</td><td>1.33</td><td>Aspect ratio</tr>
 <tr align=center><td>videoFrameRate</td><td>float</td><td>29.97</td><td>Frame Rate</tr>

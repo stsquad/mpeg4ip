@@ -2,7 +2,6 @@ SUBDIRS = win32
 
 noinst_LTLIBRARIES = libuclmmbase.la
 
-libuclmmbase_la_LDFLAGS = -static
 
 libuclmmbase_la_SOURCES= \
 	asarray.c \

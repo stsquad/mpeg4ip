@@ -211,12 +211,12 @@ inline void mpeg3video_rgb16_mmx(unsigned char *lum,
 		);
 }
 
-static unsigned long long  mpeg3_MMX_U_80 = 0x0000008000800000;
-static unsigned long long  mpeg3_MMX_V_80 = 0x0000000000800080;
-static long long  mpeg3_MMX_U_COEF        = 0x00000058ffd30000;
-static long long  mpeg3_MMX_V_COEF        = 0x00000000ffea006f;
-static long long  mpeg3_MMX_601_Y_COEF    = 0x0000004800480048;
-static long long  mpeg3_MMX_601_Y_DIFF    = 0x0000000000000010;
+static uint64_t  mpeg3_MMX_U_80 = 0x0000008000800000LLU;
+static uint64_t  mpeg3_MMX_V_80 = 0x0000000000800080LLU;
+static int64_t  mpeg3_MMX_U_COEF        = 0x00000058ffd30000LL;
+static int64_t  mpeg3_MMX_V_COEF        = 0x00000000ffea006fLL;
+static int64_t  mpeg3_MMX_601_Y_COEF    = 0x0000004800480048LL;
+static int64_t  mpeg3_MMX_601_Y_DIFF    = 0x0000000000000010LL;
 
 inline void mpeg3_bgra32_mmx(unsigned long y, 
 		unsigned long u, 
@@ -301,10 +301,10 @@ asm(
 : "r" (&y), "r" (&u), "r" (&v), "r" (output));
 }
 
-static unsigned long long  mpeg3_MMX_U_80_RGB    = 0x0000000000800080;
-static unsigned long long  mpeg3_MMX_V_80_RGB    = 0x0000008000800000;
-static long long  mpeg3_MMX_U_COEF_RGB    = 0x00000000ffd30058;
-static long long  mpeg3_MMX_V_COEF_RGB    = 0x0000006fffea0000;
+static unsigned long long  mpeg3_MMX_U_80_RGB    = 0x0000000000800080LLU;
+static unsigned long long  mpeg3_MMX_V_80_RGB    = 0x0000008000800000LLU;
+static long long  mpeg3_MMX_U_COEF_RGB    = 0x00000000ffd30058LLU;
+static long long  mpeg3_MMX_V_COEF_RGB    = 0x0000006fffea0000LLU;
 
 inline void mpeg3_rgba32_mmx(unsigned long y, 
 		unsigned long u, 

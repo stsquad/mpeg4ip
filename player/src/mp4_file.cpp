@@ -321,6 +321,8 @@ int CMp4File::create_media (CPlayerSession *psptr,
   int ret_value = 0;
   
   video_count = 0;
+  uint32_t verb = MP4GetVerbosity(m_mp4file);
+  MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
   do {
     trackId = MP4FindTrackId(m_mp4file, video_count, MP4_VIDEO_TRACK_TYPE);
 
@@ -338,6 +340,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
     }
   } while (MP4_IS_VALID_TRACK_ID(trackId));
 
+  MP4SetVerbosity(m_mp4file, verb);
 
   if (video_count == 0 && audio_count == 0) {
     snprintf(errmsg, errlen, "No audio or video tracks in file");
@@ -467,11 +470,14 @@ int CMp4File::create_media (CPlayerSession *psptr,
   if (ret < 0) ret_value = -1;
 
   char *name;
+  verb = MP4GetVerbosity(m_mp4file);
+  MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
   if (MP4GetMetadataName(m_mp4file, &name) &&
       name != NULL) {
     psptr->set_session_desc(0, name);
     free(name);
   }
+  MP4SetVerbosity(m_mp4file, verb);
   
   return (ret_value);
 }

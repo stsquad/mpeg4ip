@@ -1,7 +1,6 @@
 SUBDIRS = x86_asm
 
 noinst_LTLIBRARIES = libxviddct.la
-libxviddct_la_LDFLAGS = -static
 
 AM_CFLAGS= -O3
 INCLUDES=-I$(top_builddir)/include

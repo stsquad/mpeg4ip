@@ -6,6 +6,7 @@ isma_rtp_plugin_la_SOURCES = \
 	isma_rtp_plugin.cpp isma_rtp_plugin.h
 isma_rtp_plugin_la_LIBADD = \
 	$(top_srcdir)/lib/mp4av/libmp4av.la \
+	$(top_srcdir)/player/lib/mp4util/libmp4util.la \
 	-lm 
 
 INCLUDES = -I$(top_srcdir)/player/src \

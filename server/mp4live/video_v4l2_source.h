@@ -25,7 +25,6 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <linux/videodev.h>
-
 #include "media_source.h"
 #include "video_encoder.h"
 

@@ -8,7 +8,6 @@ INCLUDES = \
 	-I../../sys
 
 noinst_LTLIBRARIES = libobj_tools_sadct.la
-libobj_tools_sadct_la_LDFLAGS = -static
 
 libobj_tools_sadct_la_SOURCES = \
    sadct.cpp

@@ -1,5 +1,4 @@
 noinst_LTLIBRARIES = libmpeg2_transport.la
-libmpeg2_transport_la_LDFLAGS = -static
 libmpeg2_transport_la_SOURCES = \
 	mpeg2_transport.c \
 	mpeg2_transport.h \

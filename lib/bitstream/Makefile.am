@@ -1,5 +1,4 @@
 noinst_LTLIBRARIES = libbitstream.la
-libbitstream_la_LDFLAGS = -static
 libbitstream_la_SOURCES = \
 	bitstream.cpp \
 	bitstream.h

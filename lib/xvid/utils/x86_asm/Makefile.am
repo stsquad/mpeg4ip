@@ -7,12 +7,11 @@ STRIP_FPIC = sh $(top_srcdir)/strip_fPIC.sh
 SUFFIXES = .asm
 
 .asm.lo:
-	$(LIBTOOL) --mode=compile $(STRIP_FPIC) $(NASM) @NASMFLAGS@ $<
+	$(LIBTOOL)  --mode=compile @LIBTOOL_C_TAG@ $(STRIP_FPIC) $(NASM) @NASMFLAGS@ $<
 
 ###########################################################################
 
 noinst_LTLIBRARIES = libxvidutilsx86.la
-libxvidutilsx86_la_LDFLAGS = -static
 
 ASMFILES = \
 	cpuid.asm \

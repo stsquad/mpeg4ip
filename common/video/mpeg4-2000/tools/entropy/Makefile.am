@@ -7,7 +7,6 @@ INCLUDES = \
 	-I../../type
 
 noinst_LTLIBRARIES = libobj_tools_entropy.la
-libobj_tools_entropy_la_LDFLAGS = -static
 
 libobj_tools_entropy_la_SOURCES = \
 	bitstrm.cpp \

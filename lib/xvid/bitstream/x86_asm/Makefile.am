@@ -7,7 +7,7 @@ STRIP_FPIC = sh $(top_srcdir)/strip_fPIC.sh
 SUFFIXES = .asm
 
 .asm.lo:
-	$(LIBTOOL) --mode=compile $(STRIP_FPIC) $(NASM) @NASMFLAGS@ $<
+	$(LIBTOOL)  --mode=compile @LIBTOOL_C_TAG@ $(STRIP_FPIC) $(NASM) @NASMFLAGS@ $<
 
 ###########################################################################
 
@@ -19,7 +19,5 @@ if USE_MMX
 EXTRA_libxvidbitstreamx86_la_SOURCES = cbp_mmx.asm
 libxvidbitstreamx86_la_LIBADD = cbp_mmx.lo
 endif
-
-libxvidbitstreamx86_la_LDFLAGS = -static
 
 EXTRA_DIST=cbp_mmx.asm

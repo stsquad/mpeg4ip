@@ -1,5 +1,4 @@
 noinst_LTLIBRARIES = libfposrec.la
-libfposrec_la_LDFLAGS = -static
 libfposrec_la_SOURCES = \
 	fposrec.cpp \
 	fposrec.h

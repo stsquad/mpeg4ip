@@ -22,23 +22,26 @@ void CPreviewAVMediaFlow::Start (void)
 void CPreviewAVMediaFlow::StartVideoPreview(void)
 {
 	if (m_pConfig == NULL) {
+	  debug_message("pconfig is null");
 		return;
 	}
 
 	if (!m_pConfig->IsCaptureVideoSource()) {
+	  debug_message("Not capture source");
 		return;
 	}
+
 
 	if (m_videoSource == NULL) {
           m_videoSource = CreateVideoSource(m_pConfig);
 	}
-
 	if (m_videoPreview == NULL) {
 		m_videoPreview = new CSDLVideoPreview();
+		m_videoSource->AddSink(m_videoPreview);
 		m_videoPreview->SetConfig(m_pConfig);
 		m_videoPreview->StartThread();
-
-		m_videoSource->AddSink(m_videoPreview);
+	} else {
+	  m_videoSource->AddSink(m_videoPreview);
 	}
 
 	m_videoSource->StartVideo();

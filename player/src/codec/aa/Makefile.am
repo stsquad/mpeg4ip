@@ -10,6 +10,7 @@ aac_plugin_la_SOURCES = \
 
 aac_plugin_la_LIBADD = \
 	$(top_builddir)/player/lib/audio/faad/libfaad.la \
+	$(top_builddir)/player/lib/mp4util/libmp4util.la \
 	-lm
 
 

@@ -572,6 +572,7 @@ static void on_aspect_menu_activate(GtkWidget *widget, gpointer data)
 
 static bool ValidateAndSave(void)
 {
+  bool resizewindow;
 	// if source has been modified
 	if (source_modified) {
 		// validate it
@@ -644,6 +645,10 @@ static bool ValidateAndSave(void)
 	MyConfig->SetStringValue(CONFIG_VIDEO_ENCODER, 
 				 video_encoder_table[encoderIndex].encoder);
 
+	resizewindow = sizeWidthValues[sizeIndex] != MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
+	resizewindow |= sizeHeightValues[sizeIndex] != MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+	resizewindow |= aspectValues[aspectIndex] != MyConfig->GetFloatValue(CONFIG_VIDEO_ASPECT_RATIO);
+	
 	MyConfig->SetIntegerValue(CONFIG_VIDEO_RAW_WIDTH,
 		sizeWidthValues[sizeIndex]);
 
@@ -665,7 +670,9 @@ static bool ValidateAndSave(void)
 
 	MyConfig->Update();
 
-	NewVideoWindow();
+	if (resizewindow) {
+	  NewVideoWindow();
+	}
 
 	// restart video source
 	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {

@@ -1374,6 +1374,13 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 
 	AVFlow = new CPreviewAVMediaFlow(pConfig);
 
+#if 0
+	argv = (char **)malloc(3 * sizeof(char *));
+	argv[0] = "mp4live";
+	argv[1] ="--sync";
+	argv[2] = NULL;
+	argc = 2;
+#endif
 	gtk_init(&argc, &argv);
 
 	// Setup main window

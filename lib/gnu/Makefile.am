@@ -2,7 +2,6 @@ noinst_LTLIBRARIES = libmpeg4ip_gnu.la
 
 INCLUDES = -I$(top_builddir)/include
 
-libmpeg4ip_gnu_la_LDFLAGS = -static
 libmpeg4ip_gnu_la_SOURCES = \
 	getopt.c \
 	getopt1.c \

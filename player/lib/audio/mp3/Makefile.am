@@ -1,6 +1,5 @@
 
 noinst_LTLIBRARIES = libourmp3.la
-libourmp3_la_LDFLAGS = -static
 libourmp3_la_SOURCES =		\
 	MPEGaudio.cpp		\
 	bitwindow.cpp		\

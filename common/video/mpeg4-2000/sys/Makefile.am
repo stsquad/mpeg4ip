@@ -7,7 +7,6 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -D__DOU
 INCLUDES = -I../type -I../tools -I../../../../include -Iencoder -Idecoder
 
 noinst_LTLIBRARIES = libobj_sys.la
-libobj_sys_la_LDFLAGS = -static
 
 libobj_sys_la_SOURCES = \
 	block.cpp \

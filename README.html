@@ -3,7 +3,7 @@
 <body bgcolor="#ffffff">
 <a NAME="top">
 <b><font color="#0000FF">MPEG4IP README</font></b><br>
-October 22, 2003
+November 13, 2003
 <P>
 <font face="Arial" color="#0000FF" size=-1>
 <b>
@@ -119,8 +119,7 @@ Please see the file <a href="COPYING">COPYING</a>.
 <a NAME="build">
 <b><font color="#0000FF">Building and Installing</font></b>
 <P>
-We are now (as of release 0.9.5) using make dist for our tarball.  To
-build, you should only have to issue the following:<br>
+We use make dist for our tarball.  To build, you should only have to issue the following:<br>
 <blockquote>
 <code>
 ./bootstrap &lt;params for configure&gt;<br>
@@ -129,12 +128,17 @@ make install (needs root privileges).<br>
 </code>
 </blockquote>
 <P>
-We no longer include lame or faac in our distribution; however, we require
-lame version 3.92 or later for mp4live and faac as of version 1.20.1.  This may change at some point, 
-but for now, it is required.  If you wish to make without mp4live, you 
-can give the <code>--disable-mp4live</code> or <code>--disable-server</code> arguments.  Neither
-the bootstrap or cvs_bootstrap scripts will allow you to build without
-lame installed or one of the above arguments.
+Mp4live will only build on Linux systems.  We no longer include lame or faac 
+in our distribution; however, mp4live requires lame version 3.92 or later and 
+faac as of version 1.20.1.  This may change at some point, but for now, it is 
+required. 
+<p>If you wish to make without mp4live, you can give the 
+<code>--disable-mp4live</code> or <code>--disable-server</code> arguments.  
+Neither the bootstrap or cvs_bootstrap scripts will allow you to build without
+lame installed or one of the above arguments on a Linux system.  Other systems
+will automatically detect that you are not building on Linux and will  not
+build mp4live.
+<p>
 You can download the sources from <a href="http://lame.sourceforge.net">here 
 (lame)</a> and <a href="http://www.audiocoding.com"> here (faac)</a>.  
 <P>Or you 
@@ -365,6 +369,36 @@ We've tested the latest build on OSX, and have some strange results
 at times.  Your mileage may vary.<br>
 */
 <P>
+<b>SuSE 9.0</b>
+<p>
+When building with SuSE 9.0, you need to install a number of packages before
+you start.  We tested this with SuSE 9.0 personal edition.  You should include
+all compiler packages.  I recommend to install them in this order:
+<p>
+<ul>
+<li>nasm - we installed nasm-0.98.38 in /usr (use the --prefix=/usr option to configure)
+<p>
+<li>pkgconfig - we installed pkgconfig-0.15.0 in /opt/gnome
+<li>glib - we installed glib-2.2.3 in /opt/gnome
+<li>atk - we installed atk-1.2.4 in /opt/gnome
+<li>pango - we installed pango-1.2.5 in /opt/gnome
+<li>gtk+ - we installed gtk+-2.2.4 in /opt/gnome
+</ul>
+<p>
+Be sure to install the GLIB/GTK family over the existing installs - for the most part, be sure to use configure --prefix=/opt/gnome.
+<p>
+If you want to run gmp4player with sound, you will need to disable the aRTs 
+sound server.  Start the Control Center, select Sound & Multimedia, then select
+Sound System.  Uncheck the box that says "Start aRts soundserver on KDE 
+startup", and hit Apply.  You will need to log out, then log back in.
+<p>
+If you have any other way to get sound with gmp4player without the above, let
+us know.
+<p>
+One note with SuSE 9.0 - it looks like they tried to install V4L2, but it does 
+not work.  They installed an incorrect version of videodev2.h.  We have not
+tried to install V4L2 on SuSE 9.0.
+<p>
 <b>Slackware</b>
 <P>
 When building on Slackware-8.0, you need to consider the following 
@@ -775,7 +809,11 @@ See the new <a href="player/src/README.html">README.html</a> in player/src.
 <b><font color="#0000FF">Known Problems</font></b>
 <P>
 <ul>
-
+<li> We do not support gcc 2.95.3.  There is a problem that makes it think
+that when a long is defined as an int, and time_t is defined as an int, that
+<code>&#037ld</code> should not be the correct format.  You can try to fix 
+these by removing the l when you get the warning.
+<p>
   <li> There have been some changes to the MPEG4 AAC DTS headers in the
   latest version of the MPEG4 specification.  This renders previous
   .aac files pretty much obsolete.  We have made this change to 

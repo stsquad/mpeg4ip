@@ -60,6 +60,7 @@ void CSDLVideoPreview::DoStartPreview()
 	}
 
 	if (!m_pConfig->m_videoPreviewWindowId) {
+	  debug_message("Start sdl preview with no window id");
 		return;
 	}
 

@@ -1,7 +1,6 @@
 SUBDIRS = x86_asm
 
 noinst_LTLIBRARIES = libxvidimage.la
-libxvidimage_la_LDFLAGS = -static
 
 AM_CFLAGS= -O3
 
