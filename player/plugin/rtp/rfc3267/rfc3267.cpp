@@ -20,7 +20,8 @@
  */
 
 #include "rfc3267.h"
-#include "rtp/rtp.h"
+#include "mp4av.h"
+#include "rtp.h"
 
 #define rfc3267_message iptr->m_vft->log_msg
 static const char *rfc3267rtp="rfc3267";

@@ -15,7 +15,9 @@ h264_rtp_plugin_la_LIBADD = \
 INCLUDES = -I$(top_srcdir)/player/src \
 	   -I$(top_srcdir)/player/lib \
 	   -I$(top_srcdir)/include \
-           -I$(top_srcdir)/lib
+           -I$(top_srcdir)/lib \
+           -I$(top_srcdir)/lib/rtp \
+           -I$(top_srcdir)/lib/sdp
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

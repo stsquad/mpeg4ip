@@ -12,7 +12,9 @@ INCLUDES = -I$(top_srcdir)/../mpeg4ip/player/src \
 	   -I$(top_srcdir)/../mpeg4ip/player/lib \
 	   -I$(top_srcdir)/../mpeg4ip/lib/SDL/include \
 	   -I$(top_srcdir)/../mpeg4ip/include \
-           -I$(top_srcdir)/../mpeg4ip/lib
+           -I$(top_srcdir)/../mpeg4ip/lib \
+           -I$(top_srcdir)/../mpeg4ip/lib/rtp \
+           -I$(top_srcdir)/../mpeg4ip/lib/sdp
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

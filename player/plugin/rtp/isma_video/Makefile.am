@@ -14,7 +14,9 @@ INCLUDES = -I$(top_srcdir)/player/src \
 	   -I$(top_srcdir)/lib/SDL/include \
 	   -I$(top_srcdir)/include \
            @ISMACRYP_INC@ \
-           -I$(top_srcdir)/lib
+           -I$(top_srcdir)/lib \
+           -I$(top_srcdir)/lib/rtp \
+           -I$(top_srcdir)/lib/sdp
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 

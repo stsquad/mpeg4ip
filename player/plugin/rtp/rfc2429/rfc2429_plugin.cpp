@@ -20,7 +20,7 @@
  */
 
 #include "rfc2429_plugin.h"
-#include "rtp/rtp.h"
+#include "rtp.h"
 //#define DEBUG_R2429
 
 #define r2429_message iptr->m_vft->log_msg

@@ -27,7 +27,9 @@ INCLUDES = -I$(top_srcdir)/player/src \
 	   -I$(top_srcdir)/player/lib \
 	   -I$(top_srcdir)/include \
            @ISMACRYP_INC@ \
-           -I$(top_srcdir)/lib
+           -I$(top_srcdir)/lib \
+           -I$(top_srcdir)/lib/sdp \
+           -I$(top_srcdir)/lib/rtp
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
