@@ -902,6 +902,9 @@ static bool isConfigObject(u_int objCode)
 	if (objCode == VO_SEQUENCE_START) {
 		return TRUE;
 	}
+	if (objCode == VO_START) {
+		return TRUE;
+	}
 	if (MIN_VID_OBJ_START <= objCode && objCode <= MAX_VID_OBJ_START) {
 		return TRUE;
 	}
