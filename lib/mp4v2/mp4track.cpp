@@ -52,6 +52,9 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 	m_chunkSamples = 0;
 	m_chunkDuration = 0;
 
+	// m_bytesPerSample should be set to 1, except for the
+	// quicktime audio constant bit rate samples, which have non-1 values
+	m_bytesPerSample = 1;
 	m_samplesPerChunk = 0;
 	m_durationPerChunk = 0;
 	m_isAmr = AMR_UNINITIALIZED;
@@ -205,6 +208,7 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 	if (!success) {
 		throw new MP4Error("invalid track", "MP4Track::MP4Track");
 	}
+	CalculateBytesPerSample();
 }
 
 MP4Track::~MP4Track()
@@ -369,7 +373,7 @@ void MP4Track::WriteSample(
 	if (m_isAmr == AMR_UNINITIALIZED ) {
 		// figure out if this is an AMR audio track
 		if (m_pTrakAtom->FindAtom("trak.mdia.minf.stbl.stsd.samr") ||
-				m_pTrakAtom->FindAtom("trak.mdia.minf.stbl.stsd.sawb")) {
+		    m_pTrakAtom->FindAtom("trak.mdia.minf.stbl.stsd.sawb")) {
 			m_isAmr = AMR_TRUE;
 			m_curMode = (pBytes[0] >> 3) & 0x000F;
 		} else {
@@ -410,8 +414,7 @@ void MP4Track::WriteSample(
 
 	UpdateSyncSamples(m_writeSampleId, isSyncSample);
 
-	if ((m_isAmr == AMR_FALSE) &&
-		IsChunkFull(m_writeSampleId)) {
+	if (IsChunkFull(m_writeSampleId)) {
 		WriteChunkBuffer();
 		m_curMode = curMode;
 	}
@@ -503,9 +506,10 @@ u_int32_t MP4Track::GetSampleSize(MP4SampleId sampleId)
 		m_pStszFixedSampleSizeProperty->GetValue(); 
 
 	if (fixedSampleSize != 0) {
-		return fixedSampleSize;
+	  return fixedSampleSize * m_bytesPerSample;
 	}
-	return m_pStszSampleSizeProperty->GetValue(sampleId - 1);
+	return m_bytesPerSample * 
+	  m_pStszSampleSizeProperty->GetValue(sampleId - 1);
 }
 
 u_int32_t MP4Track::GetMaxSampleSize()
@@ -514,7 +518,7 @@ u_int32_t MP4Track::GetMaxSampleSize()
 		m_pStszFixedSampleSizeProperty->GetValue(); 
 
 	if (fixedSampleSize != 0) {
-		return fixedSampleSize;
+		return fixedSampleSize * m_bytesPerSample;
 	}
 
 	u_int32_t maxSampleSize = 0;
@@ -526,17 +530,21 @@ u_int32_t MP4Track::GetMaxSampleSize()
 			maxSampleSize = sampleSize;
 		}
 	}
-	return maxSampleSize;
+	return maxSampleSize * m_bytesPerSample;
 }
 
 u_int64_t MP4Track::GetTotalOfSampleSizes()
 {
+  uint64_t retval;
 	u_int32_t fixedSampleSize = 
 		m_pStszFixedSampleSizeProperty->GetValue(); 
 
 	// if fixed sample size, just need to multiply by number of samples
 	if (fixedSampleSize != 0) {
-		return fixedSampleSize * GetNumberOfSamples();
+	  retval = m_bytesPerSample;
+	  retval *= fixedSampleSize;
+	  retval *= GetNumberOfSamples();
+	  return retval;
 	}
 
 	// else non-fixed sample size, sum them
@@ -547,11 +555,21 @@ u_int64_t MP4Track::GetTotalOfSampleSizes()
 			m_pStszSampleSizeProperty->GetValue(sid - 1);
 		totalSampleSizes += sampleSize;
 	}
-	return totalSampleSizes;
+	return totalSampleSizes * m_bytesPerSample;
 }
 
 void MP4Track::UpdateSampleSizes(MP4SampleId sampleId, u_int32_t numBytes)
 {
+  if (m_bytesPerSample > 1) {
+    if ((numBytes % m_bytesPerSample) != 0) {
+      // error
+      VERBOSE_ERROR(m_pFile->GetVerbosity(), 
+		    printf("UpdateSampleSize: numBytes %u not divisible by bytesPerSample %u sampleId %u\n", 
+			   numBytes, m_bytesPerSample, sampleId);
+		    );
+    }
+    numBytes /= m_bytesPerSample;
+  }
 	// for first sample
 	if (sampleId == 1) {
 		if (numBytes > 0) {
@@ -757,6 +775,9 @@ u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
 	u_int32_t stscIndex =
 		GetSampleStscIndex(sampleId);
 
+	// firstChunk is the chunk index of the first chunk with 
+	// samplesPerChunk samples in the chunk.  There may be multiples -
+	// ie: several chunks with the same number of samples per chunk.
 	u_int32_t firstChunk = 
 		m_pStscFirstChunkProperty->GetValue(stscIndex);
 
@@ -766,9 +787,12 @@ u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
 	u_int32_t samplesPerChunk = 
 		m_pStscSamplesPerChunkProperty->GetValue(stscIndex);
 
+	// chunkId tells which is the absolute chunk number that this sample
+	// is stored in.
 	MP4ChunkId chunkId = firstChunk +
 		((sampleId - firstSample) / samplesPerChunk);
 
+	// chunkOffset is the file offset (absolute) for the start of the chunk
 	u_int64_t chunkOffset = m_pChunkOffsetProperty->GetValue(chunkId - 1);
 
 	MP4SampleId firstSampleInChunk = 
@@ -1636,3 +1660,23 @@ MP4SampleId MP4Track::GetSampleIdFromEditTime(
 	return sampleId;
 }
 
+void MP4Track::CalculateBytesPerSample ()
+{
+  MP4Atom *pMedia = m_pTrakAtom->FindAtom("trak.mdia.minf.stbl.stsd");
+  MP4Atom *pMediaData;
+  const char *media_data_name;
+  if (pMedia == NULL) return;
+
+  if (pMedia->GetNumberOfChildAtoms() != 1) return;
+  
+  pMediaData = pMedia->GetChildAtom(0);
+  media_data_name = pMediaData->GetType();
+  if ((ATOMID(media_data_name) == ATOMID("twos")) ||
+      (ATOMID(media_data_name) == ATOMID("sowt"))) {
+    MP4IntegerProperty *chan, *sampleSize;
+    chan = (MP4IntegerProperty *)pMediaData->GetProperty(4);
+    sampleSize = (MP4IntegerProperty *)pMediaData->GetProperty(5);
+    m_bytesPerSample = chan->GetValue() * (sampleSize->GetValue() / 8);
+  }
+}
+  

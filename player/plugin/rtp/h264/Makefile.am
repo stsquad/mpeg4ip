@@ -10,6 +10,7 @@ h264_rtp_plugin_la_SOURCES = \
 h264_rtp_plugin_la_LIBADD = \
 	$(top_srcdir)/lib/mp4av/libmp4av.la \
 	$(top_srcdir)/player/lib/mp4util/libmp4util.la \
+	$(top_srcdir)/lib/gnu/libmpeg4ip_gnu.la \
 	-lm 
 
 INCLUDES = -I$(top_srcdir)/player/src \

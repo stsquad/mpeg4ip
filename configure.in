@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.1.6)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.1.7)
 
 dnl Checks for programs. 
 
@@ -75,6 +75,16 @@ AC_CHECK_SIZEOF(long)
 
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
+
+AC_LANG_PUSH(C++)
+AC_CHECK_HEADER(id3/tag.h, [have_id3_tag=true], [have_id3_tag=false])
+if test $have_id3_tag = true; then
+   dnl should check for libraries here
+   AC_DEFINE(HAVE_ID3_TAG_H, [1], [have id3/tag.h])
+fi
+AM_CONDITIONAL(HAVE_ID3_TAG, $have_id3_tag)
+AC_LANG_POP(C++)
+
 dnl Check for pre 1.0 API version of xvid
 AC_ARG_ENABLE(xvid,
 [  --disable-xvid         disable xvid link],
@@ -111,14 +121,6 @@ fi
 AM_CONDITIONAL(HAVE_XVID_1_0, $use_xvid10)
 AM_CONDITIONAL(NO_XVID, $no_xvid)
 
-AC_LANG_PUSH(C++)
-AC_CHECK_HEADER(id3/tag.h, [have_id3_tag=true], [have_id3_tag=false])
-if test $have_id3_tag = true; then
-   dnl should check for libraries here
-   AC_DEFINE(HAVE_ID3_TAG_H, [1], [have id3/tag.h])
-fi
-AM_CONDITIONAL(HAVE_ID3_TAG, $have_id3_tag)
-AC_LANG_POP(C++)
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
@@ -178,22 +180,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 dnl Checks for library functions.
 AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getopt_long_only getrusage socketpair strsep inet_ntoa)
 
-dnl MY_CHECK_TYPEDEF_FROM_INCLUDE(typedef, include files, define)
-dnl checks if typedef is in include files.  add define in acconfig.h
-AC_DEFUN([MY_CHECK_TYPEDEF_FROM_INCLUDE],
-[
-   AC_MSG_CHECKING([for $1])
-   AC_TRY_COMPILE([$2],
-	          [$1;],
-                  mpeg4ip_ok=yes, mpeg4ip_ok=no)
-   if test $mpeg4ip_ok = yes; then
-      $3
-      AC_MSG_RESULT([yes])
-   else
-      $4
-      AC_MSG_RESULT([no])
-   fi
-])
 
 AC_CHECK_TYPES([in_port_t, socklen_t], , , 
 	[#include <sys/types.h>
@@ -255,12 +241,6 @@ AC_DEFUN([MY_CHECK_CC_OPT_F_OR_M],
   fi
 ])
 
-AM_CONDITIONAL(HAVE_ALIGN_LOOPS, false)
-MY_CHECK_CC_OPT_F_OR_M(align-loops, ALIGN_LOOPS)
-AM_CONDITIONAL(HAVE_ALIGN_FUNCS, false)
-MY_CHECK_CC_OPT_F_OR_M(align-functions, ALIGN_FUNCS)
-AM_CONDITIONAL(HAVE_ALIGN_JUMPS, false)
-MY_CHECK_CC_OPT_F_OR_M(align-jumps, ALIGN_JUMPS)
 
 dnl Allow server build to be disabled
 AC_ARG_ENABLE(server, 
@@ -321,7 +301,6 @@ AC_ARG_ENABLE(mp4live,
 
 have_mp4live=false
 have_v4l2=false
-have_ffmpeg=false
 if test x$enable_mp4live = xyes; then
    case "$target" in
    *-*-linux*)
@@ -335,26 +314,15 @@ if test x$enable_mp4live = xyes; then
 			 esac],
 		      [disable_v4l2=no])
         if test x$disable_v4l2 = xno; then
-	MY_CHECK_TYPEDEF_FROM_INCLUDE([struct v4l2_buffer test],
-				      [#include <sys/time.h>
-#include <linux/videodev.h>],
-				      [have_v4l2=true],
-				      [have_v4l2=false])
+	  AC_CHECK_TYPE([struct v4l2_buffer], 
+                        [have_v4l2=true],
+	                [have_v4l2=false],
+		        [#include <sys/time.h>
+#include <linux/videodev.h>])
+
         else
             have_v4l2=false
         fi
-	saved_LIBS="$LIBS"
-	LIBS="$LIBS -lm -lz"
-	AC_CHECK_LIB(avcodec,
-		     avcodec_init,
-		     [have_ffmpeg=true],
-		     [have_ffmpeg=false])
-        LIBS=$saved_LIBS
-	have_ffmpeg_arg=false
-	AC_ARG_ENABLE(ffmpeg,
-		       [  --enable-ffmpeg=<directory>  enable ffmpeg for mp4live, and specify ffmpeg home directory],
-		       [have_ffmpeg_arg=true;have_ffmpeg=true],
-		       [have_ffmpeg_arg=false])
 	;;
     *)
 	;;
@@ -377,68 +345,50 @@ if test x$have_v4l2 = xtrue; then
   AC_DEFINE(HAVE_LINUX_VIDEODEV2_H, 1, [Define to 1 if you have the <linux/videodev2.h> header file.])
 fi
 
-AM_CONDITIONAL(HAVE_FFMPEG, [test x$have_ffmpeg = xtrue])
-if test x$have_ffmpeg = xtrue; then
-   if test x$have_ffmpeg_arg = xtrue; then
-      AC_MSG_NOTICE([have enable ffmpeg $enable_ffmpeg])
-      FFMPEG_INC=-I${enable_ffmpeg}
-      FFMPEG_LIB="${enable_ffmpeg}/libavcodec/libavcodec.a -lz"
-      saveCFLAGS="$CFLAGS"
-      CFLAGS="$CFLAGS $FFMPEG_INC"
-      MY_CHECK_TYPEDEF_FROM_INCLUDE([AVRational a],
-				    [#include <avcodec.h>],
-				    [have_avrational=true],
-				    [have_avrational=false])
-      CFLAGS=$saveCFLAGS
-   else
+dnl test for ffmpeg
+have_ffmpeg=false
+FFMPEG_INC=
+FFMPEG_LIB=
+AC_ARG_ENABLE(ffmpeg,
+	       [  --enable-ffmpeg=<directory>  enable ffmpeg for mp4live, and specify ffmpeg home directory],
+	       [have_ffmpeg_arg=true],
+	       [have_ffmpeg_arg=false])
+
+if test x$have_ffmpeg_arg = xtrue; then
+   AC_MSG_NOTICE([have enable ffmpeg $enable_ffmpeg])
+   FFMPEG_INC=-I${enable_ffmpeg}/libavcodec
+   FFMPEG_LIB="${enable_ffmpeg}/libavcodec/libavcodec.a -lz"
+   saveCFLAGS="$CFLAGS"
+   CFLAGS="$CFLAGS $FFMPEG_INC"
+   AC_CHECK_TYPES([AVRational], , , [#include <avcodec.h>])
+   CFLAGS=$saveCFLAGS
+   have_ffmpeg=true
+   AC_DEFINE(HAVE_FFMPEG, 1, [enable ffmpeg for mp4live])
+else
+   saved_LIBS="$LIBS"
+   LIBS="$LIBS -lm -lz"
+   AC_CHECK_LIB(avcodec, avcodec_init, [have_ffmpeg=true], [have_ffmpeg=false])
+   LIBS=$saved_LIBS
+   if test x$have_ffmpeg = xtrue; then
       AC_DEFINE(HAVE_FFMPEG_INSTALLED, 1, [defined if ffmpeg is installed])
       FFMPEG_INC=
       FFMPEG_LIB="-lavcodec -lz"
-      MY_CHECK_TYPEDEF_FROM_INCLUDE([AVRational a],
-				    [#include <ffmpeg/avcodec.h>],
-				    [have_avrational=true],
-				    [have_avrational=false])
+      AC_CHECK_TYPES([AVRational], , , [#include <ffmpeg/avcodec.h>])
+      AC_DEFINE(HAVE_FFMPEG, 1, [enable ffmpeg for mp4live])
    fi
-   if test x$have_avrational = xtrue; then
-     AC_DEFINE(HAVE_FFMPEG_RATIONAL, 1, [Define if ffmpeg has aspect ratio as rational])
-   fi
-   AC_SUBST(FFMPEG_INC)
-   AC_SUBST(FFMPEG_LIB)
-   AC_DEFINE(HAVE_FFMPEG, 1, [enable ffmpeg for mp4live])
 fi
-
+AC_SUBST(FFMPEG_INC)
+AC_SUBST(FFMPEG_LIB)
+AM_CONDITIONAL(HAVE_FFMPEG, [test x$have_ffmpeg = xtrue])
 
 AC_ARG_ENABLE(ipv6,
 [  --enable-ipv6          enable IPv6],
               enable_ipv6=yes)
 
-    if test x$enable_ipv6 = xyes; then
-       AC_DEFINE(HAVE_IPv6, 1, [enable IPv6 architecture])
-    fi
-
-dnl ### Checking for the existence of files
-dnl MY_CHECK_FILE(FILE, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
-
-AC_DEFUN([MY_CHECK_FILE],
-[
-dnl Do the transliteration at runtime so arg 1 can be a shell variable.
-ac_safe=`echo "$1" | sed 'y%./+-%__p_%'`
-AC_MSG_CHECKING([for $1])
-AC_CACHE_VAL(ac_cv_file_$ac_safe,
-  if test -r $1; then
-    eval "ac_cv_file_$ac_safe=yes"
-  else
-    eval "ac_cv_file_$ac_safe=no"
-  fi
-)dnl
-if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
-  AC_MSG_RESULT(yes)
-  ifelse([$2], , :, [$2])
-else
-  AC_MSG_RESULT(no)
-ifelse([$3], , , [$3])
+if test x$enable_ipv6 = xyes; then
+   AC_DEFINE(HAVE_IPv6, 1, [enable IPv6 architecture])
 fi
-])
+
 
 AC_ARG_ENABLE(ppc,
               [  --enable-ppc           use PPC assembly on ppc [default=yes]],
@@ -557,6 +507,13 @@ AC_SUBST(SUN_LIBS)
 
 dnl
 BILLS_CWARNINGS="-Wall -Werror"
+
+AM_CONDITIONAL(HAVE_ALIGN_LOOPS, false)
+MY_CHECK_CC_OPT_F_OR_M(align-loops, ALIGN_LOOPS)
+AM_CONDITIONAL(HAVE_ALIGN_FUNCS, false)
+MY_CHECK_CC_OPT_F_OR_M(align-functions, ALIGN_FUNCS)
+AM_CONDITIONAL(HAVE_ALIGN_JUMPS, false)
+MY_CHECK_CC_OPT_F_OR_M(align-jumps, ALIGN_JUMPS)
 
 MY_CHECK_CC_OPT_SET([-Wmissing-prototypes], BILLS_CWARNINGS, [c compiler])
 MY_CHECK_CC_OPT_SET([-Wmissing-declarations], BILLS_CWARNINGS, [c compiler])

@@ -346,6 +346,11 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4VmhdAtom();
       }
       break;
+    case 'y':
+      if (ATOMID(type) == ATOMID("yuv2")) {
+	pAtom = new MP4VideoAtom("yuv2");
+      }
+      break;
     case 'S':
       if (ATOMID(type) == ATOMID("SVQ3")) {
 	pAtom = new MP4VideoAtom("SVQ3");

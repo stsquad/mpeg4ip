@@ -33,7 +33,6 @@
 #include "our_config_file.h"
 #include "rtp_bytestream.h"
 #include "codec_plugin_private.h"
-#include <gnu/strcasestr.h>
 #include "mpeg3_file.h"
 #include "audio.h"
 #ifndef _WIN32

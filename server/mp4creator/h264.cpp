@@ -166,9 +166,10 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 	uint32_t offset;
 	if (nal.buffer[2] == 1) offset = 3;
 	else offset = 4;
-	AVCProfileIndication = nal.buffer[offset];
-	profile_compat = nal.buffer[offset + 1];
-	AVCLevelIndication = nal.buffer[offset + 2];
+	// skip the nal type byte
+	AVCProfileIndication = nal.buffer[offset + 1];
+	profile_compat = nal.buffer[offset + 2];
+	AVCLevelIndication = nal.buffer[offset + 3];
 	if (h264_read_seq_info(nal.buffer, nal.buffer_on, &h264_dec) == -1) {
 	  fprintf(stderr, "%s: Could not decode Sequence header\n", ProgName);
 	  return MP4_INVALID_TRACK_ID;

@@ -25,7 +25,6 @@
 #include "ourxvid.h"
 #include "codec_plugin.h"
 #include <mp4util/mpeg4_sdp.h>
-#include <gnu/strcasestr.h>
 #include <mp4v2/mp4.h>
 #include <xvid.h>
 #include <mp4av/mp4av.h>
@@ -308,10 +307,14 @@ static int xvid_decode (codec_data_t *ptr,
   int ret;
   xvid_codec_t *xvid = (xvid_codec_t *)ptr;
 
-  int buflen = blen;
+  int buflen = blen, used = 0;
 #if 0
-  xvid_message(LOG_DEBUG, "xvidif", "%u at %llu", 
-	       blen, ts);
+  uint8_t *vop = MP4AV_Mpeg4FindVop(buffer, blen);
+  u_char type = '?';
+  if (vop != NULL)
+    type = MP4AV_Mpeg4GetVopType(vop, blen);
+  xvid_message(LOG_DEBUG, "xvidif", "%u at %llu %c", 
+	       blen, ts, type);
 #endif
   if (xvid->m_decodeState == XVID_STATE_VO_SEARCH) {
     ret = look_for_vol(xvid, buffer, buflen);
@@ -344,10 +347,11 @@ static int xvid_decode (codec_data_t *ptr,
 #endif
     if (ret < 0 || ret > buflen) {
       buflen = 0;
-
+      used = blen;
     } else {
       buflen -= ret;
       buffer += ret;
+      used += ret;
     }
     // we could check for vol changes, etc here, if we wanted.
   } while (buflen > 4 && stats.type <= 0);
@@ -360,13 +364,12 @@ static int xvid_decode (codec_data_t *ptr,
 				  dec.output.stride[0],
 				  dec.output.stride[1],
 				  ts);
-    ret = blen - buflen;
   } 
 #if 0
     xvid->m_vft->log_msg(LOG_DEBUG, "xvid", "error returned %d", ret);
 #endif
     xvid->m_total_frames++;
-  return (ret);
+  return (used);
 }
 #if 0
 static int xvid_skip_frame (codec_data_t *ifptr)
@@ -412,12 +415,14 @@ static int xvid_codec_check (lib_message_func_t message,
     // profile level.
     if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
       if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0) {
-	fmtp_parse_t *fmtp;
 	media_desc_t *mptr = fptr->media;
 	if (find_unparsed_a_value(mptr->unparsed_a_lines, "a=x-mpeg4-simple-profile-decoder") != NULL) {
 	  // our own special code for simple profile decoder
 	  return 4;
 	}
+#if 1
+	// we don't handle b frames right, yet.
+	fmtp_parse_t *fmtp;
 	fmtp = parse_fmtp_for_mpeg4(fptr->fmt_param, message);
 	int retval = -1;
 	if (fmtp != NULL) {
@@ -439,6 +444,8 @@ static int xvid_codec_check (lib_message_func_t message,
 	  free_fmtp_parse(fmtp);
 	}
 	return retval;
+#endif 
+	return 4;
       }
     }
     return -1;

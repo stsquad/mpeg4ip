@@ -70,8 +70,26 @@ static codec_data_t *rawa_codec_create (const char *stream_type,
     rawa->m_freq = audio->freq;
     rawa->m_chans = audio->chans;
 #ifndef WORDS_BIGENDIAN
-    if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
+    if ((strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) ||
+	strcasecmp(stream_type, "QT FILE") == 0) {
       if (type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE)
+	rawa->m_convert_bytes = 1;
+      else if (strcasecmp(compressor, "raw ") == 0) {
+	rawa->m_bitsperchan = 8;
+      } else if (strcasecmp(compressor, "swot") == 0) {
+	rawa->m_convert_bytes = 1;
+      }
+    }
+    if (strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0)
+      rawa->m_convert_bytes = 1;
+    if (strcasecmp(stream_type, STREAM_TYPE_AVI_FILE) == 0) {
+      rawa->m_convert_bytes = 1;
+      rawa->m_bitsperchan = audio->bitspersample;
+    }
+#else
+    if ((strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) ||
+	strcasecmp(stream_type, "QT FILE") == 0) {
+      if (type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE)
 	rawa->m_convert_bytes = 1;
       else if (strcasecmp(compressor, "raw ") == 0) {
 	rawa->m_bitsperchan = 8;
@@ -79,19 +97,8 @@ static codec_data_t *rawa_codec_create (const char *stream_type,
 	rawa->m_convert_bytes = 1;
       }
     }
-    if (strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0)
-      rawa->m_convert_bytes = 1;
-    if (strcasecmp(stream_type, STREAM_TYPE_AVI_FILE) == 0) 
-      rawa->m_convert_bytes = 1;
-#else
-    if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
-      if (type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE)
-	rawa->m_convert_bytes = 1;
-      else if (strcasecmp(compressor, "raw ") == 0) {
-	rawa->m_bitsperchan = 8;
-      } else if (strcasecmp(compressor, "sowt") == 0) {
-	rawa->m_convert_bytes = 1;
-      }
+    if (strcasecmp(stream_type, STREAM_TYPE_AVI_FILE) == 0) {
+      rawa->m_bitsperchan = audio->bitspersample;
     }
 #endif
   }
@@ -259,7 +266,8 @@ static int rawa_codec_check (lib_message_func_t message,
 			     uint32_t userdata_size,
 			     CConfigSet *pConfig)
 {
-  if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
+  bool have_mp4_file = strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0;
+  if (have_mp4_file) {
     if ((type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE) ||
 	(type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE))
       return 1;

@@ -3,7 +3,6 @@
 #include "mp4live_common.h"
 #include "audio_oss_source.h"
 #include "signal.h"
-#include <gnu/strcasestr.h>
 
 int ReadConfigFile (const char *configFileName, 
 		    CLiveConfig *pConfig)

@@ -35,7 +35,6 @@
 #include "player_sdp.h"
 #include "ip_port.h"
 #include "player_rtsp.h"
-#include <gnu/strcasestr.h>
 
 
 #ifdef _WIN32

@@ -57,7 +57,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
   MP4FileHandle fh;
   CMp4File *Mp4File1;
 
-  fh = MP4Read(name, MP4_DETAILS_ERROR);
+  fh = MP4Read(name, MP4_DETAILS_ERROR); // | MP4_DETAILS_READ | MP4_DETAILS_SAMPLE);
   if (!MP4_IS_VALID_FILE_HANDLE(fh)) {
     snprintf(errmsg, errlen, "`%s\' is not an mp4 file", name);
     return -1;
@@ -488,7 +488,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
 	  MP4GetTrackTimeScale(m_mp4file, trackId);
 	MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
 	aq[audio_offset].chans = MP4GetTrackAudioChannels(m_mp4file, trackId);
-	MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
+	MP4SetVerbosity(m_mp4file, verb);
 	aq[audio_offset].enabled = 0;
 	aq[audio_offset].reference = NULL;
 	audio_offset++;

@@ -73,9 +73,9 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 	// Note - might have to check for avc1 here...
 	video_media_data_name = MP4GetTrackMediaDataName(this, videoTrackId);
 	if (!(ATOMID(video_media_data_name) == ATOMID("mp4v") ||
-	      ATOMID(video_media_data_name) != ATOMID("encv"))) {
+	      ATOMID(video_media_data_name) == ATOMID("encv"))) {
 	  VERBOSE_ERROR(m_verbosity,
-			printf("MakeIsmaCompliant:can't make ISMA compliant when file contains an %s track\n", audio_media_data_name);
+			printf("MakeIsmaCompliant:can't make ISMA compliant when file contains an %s track\n", video_media_data_name);
 			);
 	  return;
 	}

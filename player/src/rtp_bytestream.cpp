@@ -25,7 +25,9 @@
 #include <sdp/sdp.h> // for NTP_TO_UNIX_TIME
 #include "rtp_bytestream.h"
 #include "our_config_file.h"
+
 //#define DEBUG_RTP_PAKS 1
+//#define DEBUG_RTP_FRAMES 1
 //#define DEBUG_RTP_BCAST 1
 //#define DEBUG_RTP_WCLOCK 1
 //#define DEBUG_RTP_TS 1
@@ -816,7 +818,7 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
     // Still bytes in the buffer...
     *buffer = m_buffer + m_bytes_used;
     *buflen = diff;
-#ifdef DEBUG_RTP_PAKS
+#ifdef DEBUG_RTP_FRAMES
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
 #if 0
@@ -898,7 +900,7 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
 		  	(*buffer)[3],
 		  	(*buffer)[4]);
 #endif
-#ifdef DEBUG_RTP_PAKS
+#ifdef DEBUG_RTP_FRAMES
     rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif
   }
@@ -934,7 +936,7 @@ int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
 void CRtpByteStream::used_bytes_for_frame (uint32_t bytes)
 {
   m_bytes_used += bytes;
-#ifdef DEBUG_RTP_PAKS
+#ifdef DEBUG_RTP_FRAMES
   rtp_message(LOG_DEBUG, "%s Used %d bytes", m_name, bytes);
 #endif
 }
@@ -1029,7 +1031,7 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
     *buffer = (uint8_t *)m_working_pak->rtp_data + m_bytes_used;
     *buflen = diff;
     ts = m_ts;
-#ifdef DEBUG_RTP_PAKS
+#ifdef DEBUG_RTP_FRAMES
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
     return (m_last_realtime);
@@ -1045,7 +1047,7 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
     *buffer = (uint8_t *)m_working_pak->rtp_data + m_bytes_used;
     *buflen = m_working_pak->rtp_data_len;
     ts = m_working_pak->rtp_pak_ts;
-#ifdef DEBUG_RTP_PAKS
+#ifdef DEBUG_RTP_FRAMES
     rtp_message(LOG_DEBUG, "%s buffer seq %d ts %x len %d", m_name, 
 		m_working_pak->rtp_pak_seq, 
 		m_working_pak->rtp_pak_ts, m_buffer_len);

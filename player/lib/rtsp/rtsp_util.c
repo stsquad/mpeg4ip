@@ -387,19 +387,25 @@ struct in_addr rtsp_get_server_ip_address (rtsp_session_t *session)
 char  *rtsp_get_server_ip_address_string (rtsp_session_t *session)
 { 
   char *str = NULL;
-  
-#if 1
-	char *ret = inet_ntoa(session->parent->server_addr);
-	str = strdup(ret);
-#else
-  str = (char *)malloc(INET6_ADDRSTRLEN +1);
-  if ( inet_ntop(session->parent->addr_info->ai_family, 
-		 &(((struct sockaddr_in6 *)session->parent->addr_info->ai_addr))->sin6_addr, 
-		 str, 
-		 INET6_ADDRSTRLEN) != NULL) {
+  char *ret;
+
+#ifdef HAVE_IPv6
+  if (session->parent->addr_info->ai_family == AF_INET6) {
+    struct sockaddr_in6 *ip6_sock =
+      (struct sockaddr_in6 *)session->parent->addr_info->ai_addr;
+    str = (char *)malloc(INET6_ADDRSTRLEN +1);
+    if (inet_ntop(session->parent->addr_info->ai_family, 
+		   &ip6_sock->sin6_addr,
+		   str, 
+		   INET6_ADDRSTRLEN) != NULL) {
+    } else {
+      rtsp_debug(LOG_CRIT, "Could not translate IPv6 source address");
+      strcpy(str, "oops");
+    }
     return str; 
-  } 
-  strcpy(str, "oops");
+  }
 #endif
+  ret = inet_ntoa(session->parent->server_addr);
+  str = strdup(ret);
   return str; 
 }

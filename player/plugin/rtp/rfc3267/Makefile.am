@@ -9,6 +9,7 @@ rfc3267_plugin_la_SOURCES = \
 
 rfc3267_plugin_la_LIBADD = \
 	$(top_srcdir)/lib/mp4av/libmp4av.la \
+	$(top_srcdir)/lib/gnu/libmpeg4ip_gnu.la \
 	-lm 
 
 INCLUDES = -I$(top_srcdir)/player/src \
@@ -17,6 +18,7 @@ INCLUDES = -I$(top_srcdir)/player/src \
            -I$(top_srcdir)/lib/sdp \
            -I$(top_srcdir)/lib/rtp \
            -I$(top_srcdir)/lib/mp4v2 \
+           -I$(top_srcdir)/lib/gnu \
            -I$(top_srcdir)/lib/mp4av
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@

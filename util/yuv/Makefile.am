@@ -1,4 +1,4 @@
-bin_PROGRAMS = yuvdump
+bin_PROGRAMS = yuvdump sdl_pcm_play
 
 check_PROGRAMS = yuvcreate yuvdisp
 
@@ -8,6 +8,8 @@ yuvcreate_SOURCES = yuvcreate.cpp
 
 yuvdisp_SOURCES = yuvdisp.cpp
 
+sdl_pcm_play_SOURCES = sdlsoundplay.cpp 
+
 INCLUDES = -I. -I../../include
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@
@@ -16,6 +18,7 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
 LDADD = \
 	@SDL_LIBS@ \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
         -lm
 
 EXTRA_DIST=yuvdump60.dsp

@@ -86,7 +86,7 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
   m_avctx->frame_rate_base = 1;
   if (pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH) > 0 &&
       pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT) > 0) {
-#ifndef HAVE_FFMPEG_RATIONAL
+#ifndef HAVE_AVRATIONAL
     float asp = (float)pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH);
     asp /= (float)pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT);
     m_avctx->aspect_ratio = asp;

@@ -194,6 +194,10 @@ int gettimeofday(struct timeval *t, void *);
 #endif
 #include <sys/param.h>
 
+#ifndef HAVE_STRCASESTR
+#include "../lib/gnu/strcasestr.h"
+#endif
+
 #define OPEN_RDWR O_RDWR
 #define OPEN_CREAT O_CREAT 
 #define OPEN_RDONLY O_RDONLY

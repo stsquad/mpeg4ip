@@ -42,7 +42,9 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
 				       const uint8_t *userdata,
 				       uint32_t ud_size)
 {
-  if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
+  bool have_mp4_file = strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0;
+
+  if (have_mp4_file) {
     if (strcasecmp(compressor, "avc1") == 0) {
       return CODEC_ID_H264;
     }
@@ -53,6 +55,9 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
       if (MP4_IS_MPEG4_VIDEO_TYPE(type))
 	return CODEC_ID_MPEG4;
     }
+  }
+  if (have_mp4_file ||
+      strcasecmp(stream_type, "QT FILE") == 0) {
     if (strcasecmp(compressor, "h263") == 0 ||
 	strcasecmp(compressor, "s263") == 0) {
       return CODEC_ID_H263;
@@ -131,6 +136,7 @@ static bool ffmpeg_find_h264_size (ffmpeg_codec_t *ffmpeg,
   return false;
 }
 
+
 static codec_data_t *ffmpeg_create (const char *stream_type,
 				    const char *compressor,
 				    int type, 
@@ -163,6 +169,8 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
   bool run_userdata = false;
 
   switch (ffmpeg->m_codecId) {
+  case CODEC_ID_MJPEG:
+    break;
   case CODEC_ID_H264:
     // need to find height and width
     if (ud_size > 0) {
@@ -344,14 +352,43 @@ static int ffmpeg_decode (codec_data_t *ptr,
 				     aspect);
       ffmpeg->m_video_initialized = true;
     }
-    ffmpeg->m_vft->video_have_frame(ffmpeg->m_ifptr,
-				    ffmpeg->m_picture->data[0],
-				    ffmpeg->m_picture->data[1],
-				    ffmpeg->m_picture->data[2],
-				    ffmpeg->m_picture->linesize[0],
-				    ffmpeg->m_picture->linesize[1],
-				    ffmpeg->have_cached_ts ?
-				    ffmpeg->cached_ts : ts);
+    if (ffmpeg->m_c->pix_fmt != PIX_FMT_YUV420P) {
+      // convert the image from whatever it is to YUV 4:2:0
+      AVPicture from, to;
+      int ret;
+      // get the buffer to copy into (put it right into the ring buffer)
+      ret = ffmpeg->m_vft->video_get_buffer(ffmpeg->m_ifptr,
+					    &to.data[0],
+					    &to.data[1],
+					    &to.data[2]);
+      if (ret == 0) { 
+	return buflen;
+      }
+      // set up the AVPicture structures
+      to.linesize[0] = ffmpeg->m_c->width;
+      to.linesize[1] = ffmpeg->m_c->width / 2;
+      to.linesize[2] = ffmpeg->m_c->width / 2;
+      for (int ix = 0; ix < 4; ix++) {
+	from.data[ix] = ffmpeg->m_picture->data[ix];
+	from.linesize[ix] = ffmpeg->m_picture->linesize[ix];
+      }
+      
+      img_convert(&to, PIX_FMT_YUV420P,
+		  &from, ffmpeg->m_c->pix_fmt,
+		  ffmpeg->m_c->width, ffmpeg->m_c->height);
+      ffmpeg->m_vft->video_filled_buffer(ffmpeg->m_ifptr,
+					 ffmpeg->have_cached_ts ?
+					 ffmpeg->cached_ts : ts);
+    } else {
+      ffmpeg->m_vft->video_have_frame(ffmpeg->m_ifptr,
+				      ffmpeg->m_picture->data[0],
+				      ffmpeg->m_picture->data[1],
+				      ffmpeg->m_picture->data[2],
+				      ffmpeg->m_picture->linesize[0],
+				      ffmpeg->m_picture->linesize[1],
+				      ffmpeg->have_cached_ts ?
+				      ffmpeg->cached_ts : ts);
+    }
     ffmpeg->cached_ts = ts;
   } else {
     ffmpeg->cached_ts = ts;

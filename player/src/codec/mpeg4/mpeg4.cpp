@@ -40,7 +40,6 @@
 #include <sys/decoder/enhcbufdec.hpp>
 #include <sys/decoder/vopsedec.hpp>
 #include "mpeg4.h"
-#include <gnu/strcasestr.h>
 #ifndef __GLOBAL_VAR_
 #define __GLOBAL_VAR_
 #endif

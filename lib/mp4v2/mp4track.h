@@ -177,6 +177,7 @@ protected:
 
 	void WriteChunkBuffer();
 
+	void CalculateBytesPerSample();
 protected:
 	MP4File*	m_pFile;
 	MP4Atom* 	m_pTrakAtom;		// moov.trak[]
@@ -202,6 +203,8 @@ protected:
 	// controls for chunking
 	u_int32_t 	m_samplesPerChunk;
 	MP4Duration m_durationPerChunk;
+
+	u_int32_t       m_bytesPerSample;
 
 	// controls for AMR chunking
 	int		m_isAmr;

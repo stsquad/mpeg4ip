@@ -33,7 +33,6 @@
 #include <mp4util/mpeg4_audio_config.h>
 #include "our_config_file.h"
 #include "codec_plugin_private.h"
-#include <gnu/strcasestr.h>
 #include <mp4v2/mp4.h>
 
 static void close_qt_file (void *data)

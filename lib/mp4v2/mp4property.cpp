@@ -150,8 +150,12 @@ void MP4Integer8Property::Dump(FILE* pFile, u_int8_t indent,
 		return;
 	}
 	Indent(pFile, indent);
-	fprintf(pFile, "%s = %u (0x%02x)\n", 
-		m_name, m_values[index], m_values[index]);
+	if (index != 0) 
+	  fprintf(pFile, "%s[%u] = %u (0x%02x)\n", 
+		  m_name, index, m_values[index], m_values[index]);
+	else
+	  fprintf(pFile, "%s = %u (0x%02x)\n", 
+		  m_name, m_values[index], m_values[index]);
 	fflush(pFile);
 }
 
@@ -162,8 +166,12 @@ void MP4Integer16Property::Dump(FILE* pFile, u_int8_t indent,
 		return;
 	}
 	Indent(pFile, indent);
-	fprintf(pFile, "%s = %u (0x%04x)\n", 
-		m_name, m_values[index], m_values[index]);
+	if (index != 0) 
+	  fprintf(pFile, "%s[%u] = %u (0x%04x)\n", 
+		  m_name, index, m_values[index], m_values[index]);
+	else
+	  fprintf(pFile, "%s = %u (0x%04x)\n", 
+		  m_name, m_values[index], m_values[index]);
 	fflush(pFile);
 }
 
@@ -174,8 +182,12 @@ void MP4Integer24Property::Dump(FILE* pFile, u_int8_t indent,
 		return;
 	}
 	Indent(pFile, indent);
-	fprintf(pFile, "%s = %u (0x%06x)\n", 
-		m_name, m_values[index], m_values[index]);
+	if (index != 0) 
+	  fprintf(pFile, "%s[%u] = %u (0x%06x)\n", 
+		  m_name, index, m_values[index], m_values[index]);
+	else
+	  fprintf(pFile, "%s = %u (0x%06x)\n", 
+		  m_name, m_values[index], m_values[index]);
 	fflush(pFile);
 }
 
@@ -186,7 +198,11 @@ void MP4Integer32Property::Dump(FILE* pFile, u_int8_t indent,
 		return;
 	}
 	Indent(pFile, indent);
-	fprintf(pFile, "%s = %u (0x%08x)\n", 
+	if (index != 0) 
+	  fprintf(pFile, "%s[%u] = %u (0x%08x)\n", 
+		  m_name, index, m_values[index], m_values[index]);
+	else
+	  fprintf(pFile, "%s = %u (0x%08x)\n", 
 		m_name, m_values[index], m_values[index]);
 	fflush(pFile);
 }
@@ -198,9 +214,13 @@ void MP4Integer64Property::Dump(FILE* pFile, u_int8_t indent,
 		return;
 	}
 	Indent(pFile, indent);
-	fprintf(pFile, 
-		"%s = "U64" (0x%016"X64F")\n", 
-		m_name, m_values[index], m_values[index]);
+	if (index != 0) 
+	  fprintf(pFile, "%s[%u] = "U64" (0x%016"X64F")\n", 
+		  m_name, index, m_values[index], m_values[index]);
+	else
+	  fprintf(pFile, 
+		  "%s = "U64" (0x%016"X64F")\n", 
+		  m_name, m_values[index], m_values[index]);
 	fflush(pFile);
 }
 
@@ -234,9 +254,14 @@ void MP4BitfieldProperty::Dump(FILE* pFile, u_int8_t indent,
 	if (hexWidth == 0 || (m_numBits % 4)) {
 		hexWidth++;
 	}
+	if (index != 0) 
 	fprintf(pFile, 
-		"%s = "U64" (0x%0*"X64F") <%u bits>\n", 
-		m_name, m_values[index], (int)hexWidth, m_values[index], m_numBits);
+		"%s[%u] = "U64" (0x%0*"X64F") <%u bits>\n", 
+		m_name, index, m_values[index], (int)hexWidth, m_values[index], m_numBits);
+	else 
+	  fprintf(pFile, 
+		  "%s = "U64" (0x%0*"X64F") <%u bits>\n", 
+		  m_name, m_values[index], (int)hexWidth, m_values[index], m_numBits);
 	fflush(pFile);
 }
 
@@ -277,8 +302,12 @@ void MP4Float32Property::Dump(FILE* pFile, u_int8_t indent,
 		return;
 	}
 	Indent(pFile, indent);
-	fprintf(pFile, "%s = %f\n", 
-		m_name, m_values[index]);
+	if (index != 0) 
+  	  fprintf(pFile, "%s[%u] = %f\n", 
+		  m_name, index, m_values[index]);
+	else
+ 	  fprintf(pFile, "%s = %f\n", 
+		  m_name, m_values[index]);
 	fflush(pFile);
 }
 
@@ -376,10 +405,15 @@ void MP4StringProperty::Dump(FILE* pFile, u_int8_t indent,
 		return;
 	}
 	Indent(pFile, indent);
+	char indexd[32];
+	if (index != 0) {
+	  sprintf(indexd, "[%u]", index);
+	} else indexd[0] = '\0';
+
 	if (m_useUnicode) {
-		fprintf(pFile, "%s = %ls\n", m_name, (wchar_t*)m_values[index]);
+	  fprintf(pFile, "%s%s = %ls\n", m_name, indexd, (wchar_t*)m_values[index]);
 	} else {
-		fprintf(pFile, "%s = %s\n", m_name, m_values[index]);
+	  fprintf(pFile, "%s%s = %s\n", m_name, indexd, m_values[index]);
 	}
 	fflush(pFile);
 }
@@ -499,7 +533,9 @@ void MP4BytesProperty::Dump(FILE* pFile, u_int8_t indent,
 		return;
 	}
 	Indent(pFile, indent);
-	fprintf(pFile, "%s = <%u bytes> ", m_name, m_valueSizes[index]);
+	fputs(m_name, pFile);
+	if (index != 0) fprintf(pFile, "[%u]", index);
+	fprintf(pFile, " = <%u bytes> ", m_valueSizes[index]);
 	for (u_int32_t i = 0; i < m_valueSizes[index]; i++) {
 		if ((i % 16) == 0 && m_valueSizes[index] > 16) {
 			fprintf(pFile, "\n");
@@ -875,7 +911,10 @@ void MP4DescriptorProperty::Dump(FILE* pFile, u_int8_t indent,
 
 	if (m_name) {
 		Indent(pFile, indent);
-		fprintf(pFile, "%s\n", m_name);
+		if (index != 0) 
+		  fprintf(pFile, "%s[%u]\n", m_name, index);
+		else
+		  fprintf(pFile, "%s\n", m_name);
 		indent++;
 	}
 

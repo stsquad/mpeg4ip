@@ -25,7 +25,6 @@
 #include "ourxvid.h"
 #include "codec_plugin.h"
 #include <mp4util/mpeg4_sdp.h>
-#include <gnu/strcasestr.h>
 #include <mp4v2/mp4.h>
 #include <xvid.h>
 #include <mp4av/mp4av.h>
