@@ -19,25 +19,19 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __VIDEO_ENCODER_H__
-#define __VIDEO_ENCODER_H__
+#ifndef __MP4AV_MP3_INCLUDED__
+#define __MP4AV_MP3_INCLUDED__
 
-#include "media_codec.h"
+typedef u_int32_t MP4AV_Mp3Header;
 
-class CVideoEncoder : public CMediaCodec {
-public:
-	CVideoEncoder() { };
+u_int8_t MP4AV_Mp3GetHdrVersion(MP4AV_Mp3Header hdr);
+u_int8_t MP4AV_Mp3GetHdrLayer(MP4AV_Mp3Header hdr);
+u_int16_t MP4AV_Mp3GetHdrSamplingRate(MP4AV_Mp3Header hdr);
+u_int16_t MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3Header hdr);
+u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr);
+u_int16_t MP4AV_Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize);
+u_int8_t MP4AV_Mp3GetCrcSize(MP4AV_Mp3Header hdr);
+u_int8_t MP4AV_Mp3GetSideInfoSize(MP4AV_Mp3Header hdr);
+u_int8_t MP4AV_Mp3ToMp4AudioType(u_int8_t mpegVersion);
 
-	virtual bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-		bool wantKeyFrame = false) = NULL;
-
-	virtual bool GetEncodedImage(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
-
-	virtual bool GetReconstructedImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
-};
-
-#endif /* __VIDEO_ENCODER_H__ */
-
+#endif /* __MP4AV_MP3_INCLUDED__ */

@@ -130,3 +130,4 @@ pel_t PelY_18 (refpic_t *Pic, int y, int x);
 #endif
 
 #endif
+

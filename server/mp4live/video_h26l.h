@@ -19,25 +19,36 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __VIDEO_ENCODER_H__
-#define __VIDEO_ENCODER_H__
+#ifndef __VIDEO_H26L_H__
+#define __VIDEO_H26L_H__
 
-#include "media_codec.h"
+#include "video_encoder.h"
 
-class CVideoEncoder : public CMediaCodec {
+#include <h26l.h>
+
+class CH26LVideoEncoder : public CVideoEncoder {
 public:
-	CVideoEncoder() { };
+	CH26LVideoEncoder();
 
-	virtual bool EncodeImage(
+	bool Init(
+		CLiveConfig* pConfig, bool realTime = true);
+
+	bool EncodeImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-		bool wantKeyFrame = false) = NULL;
+		bool wantKeyFrame = false);
 
-	virtual bool GetEncodedImage(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
+	bool GetEncodedImage(
+		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
 
-	virtual bool GetReconstructedImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
+	bool GetReconstructedImage(
+		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV);
+
+	void Stop();
+
+protected:
+	u_int8_t*			m_vopBuffer;
+	u_int32_t			m_vopBufferLength;
 };
 
-#endif /* __VIDEO_ENCODER_H__ */
+#endif /* __VIDEO_H26L_H__ */
 

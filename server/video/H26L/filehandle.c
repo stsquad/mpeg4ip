@@ -100,11 +100,13 @@ int start_sequence()
   switch(input->of_mode)
   {
     case PAR_OF_26L:
+#ifndef H26L_LIB
       if ((out=fopen(input->outfile,"wb"))==NULL)
       {
           snprintf(errortext, ET_SIZE, "Error open file %s  \n",input->outfile);
           error(errortext,1);
       }
+#endif
       len = SequenceHeader(out);
       return 0;
     case PAR_OF_RTP:
@@ -153,8 +155,14 @@ int terminate_sequence()
         if (currStream->bits_to_go < 8)   // there are bits left in the last byte
           currStream->streamBuffer[currStream->byte_pos++] = currStream->byte_buf;
         // Write all remaining bits to output bitstream file
+#ifdef H26L_LIB
+        memcpy(&memout[memoutlength], currStream->streamBuffer, 
+			currStream->byte_pos);
+		memoutlength += currStream->byte_pos;
+#else
         fwrite (currStream->streamBuffer, 1, currStream->byte_pos, out);
         fclose(out);
+#endif
       }
       else
       {
@@ -376,7 +384,12 @@ int terminate_slice()
 
         bytes_written = currStream->byte_pos;
         stat->bit_ctr += 8*bytes_written;     // actually written bits
+#ifdef H26L_LIB
+        memcpy(&memout[memoutlength], currStream->streamBuffer, bytes_written);
+		memoutlength += bytes_written;
+#else
         fwrite (currStream->streamBuffer, 1, bytes_written, out);
+#endif
 
         currStream->stored_bits_to_go = 8; // store bits_to_go
         currStream->stored_byte_buf   = currStream->byte_buf;   // store current byte
@@ -417,7 +430,12 @@ int terminate_slice()
             bytes_written++;
             currStream->bits_to_go = 8;
         }
+#ifdef H26L_LIB
+        memcpy(&memout[memoutlength], currStream->streamBuffer, bytes_written);
+		memoutlength += bytes_written;
+#else
         fwrite (currStream->streamBuffer, 1, bytes_written, out);
+#endif
         stat->bit_ctr += 8*bytes_written;
 
         // Go back to the end of the stream
@@ -433,7 +451,13 @@ int terminate_slice()
         bytes_written = currStream->byte_pos - start_data; // number of written bytes
 
         stat->bit_ctr += 8*bytes_written;     // actually written bits
+#ifdef H26L_LIB
+        memcpy(&memout[memoutlength], currStream->streamBuffer+start_data, 
+			bytes_written);
+		memoutlength += bytes_written;
+#else
         fwrite ((currStream->streamBuffer+start_data), 1, bytes_written, out);
+#endif
       }
       return 0;
 

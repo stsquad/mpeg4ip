@@ -123,7 +123,9 @@ int encode_one_frame()
   init_frame();
 
   // Read one new frame
+#ifndef H26L_LIB
   read_one_new_frame();
+#endif
 
   if (img->type == B_IMG)
     Bframe_ctr++;
@@ -170,8 +172,11 @@ int encode_one_frame()
 #endif
   tot_time=tot_time + tmp_time;
 
+#ifndef H26L_LIB
   // Write reconstructed images
   write_reconstructed_image();
+#endif
+
 #ifdef _LEAKYBUCKET_
   // Store bits used for this frame and increment counter of no. of coded frames
   Bit_Buffer[total_frame_buffer] = stat->bit_ctr - stat->bit_ctr_n;

@@ -4,12 +4,12 @@ bin_PROGRAMS = mp4live
 
 mp4live_SOURCES = \
 	audio_encoder.h \
+	audio_source.cpp \
+	audio_source.h \
 	audio_faac.h \
 	audio_faac.cpp \
 	audio_lame.h \
 	audio_lame.cpp \
-	audio_source.cpp \
-	audio_source.h \
 	config_set.h \
 	mp4live.cpp \
 	mp4live.h \
@@ -38,12 +38,14 @@ mp4live_SOURCES = \
 	util.h \
 	util.cpp \
 	video_encoder.h \
-	video_ffmpeg.h \
-	video_ffmpeg.cpp \
 	video_preview.h \
 	video_preview.cpp \
 	video_source.cpp \
 	video_source.h \
+	video_ffmpeg.h \
+	video_ffmpeg.cpp \
+	video_h26l.h \
+	video_h26l.cpp \
 	video_xvid.h \
 	video_xvid.cpp
 
@@ -63,10 +65,11 @@ INCLUDES=\
 	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/server/video/ffmpeg \
 	-I$(top_srcdir)/common/video/xvid \
+	-I$(top_srcdir)/server/video/H26L \
 	-I$(top_srcdir)/player/lib
 
 AM_CXXFLAGS = -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER \
-	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER \
+	-DADD_LAME_ENCODER -DADD_FAAC_ENCODER -DADD_H26L_ENCODER \
 	-DTRANSCODER \
 	-D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
@@ -80,6 +83,7 @@ LDADD = \
 	$(top_builddir)/server/audio/lame/libmp3lame.a \
 	$(top_builddir)/server/video/ffmpeg/libffmpeg.la \
 	$(top_builddir)/common/video/xvid/libxvid.la \
+	$(top_builddir)/server/video/H26L/libh26lenc.la \
 	-lpthread \
 	$(top_builddir)/lib/SDL/src/libSDL.la \
 	@GTK_LIBS@ @GLIB_LIBS@

@@ -31,7 +31,7 @@ public:
 	virtual bool DecodeImage(
 		u_int8_t* pBuffer, u_int32_t bufferLength) = NULL;
 
-	virtual bool GetDecodedFrame(
+	virtual bool GetDecodedImage(
 		u_int8_t** ppY, u_int8_t** ppU, u_int8_t** ppV) = NULL;
 };
 

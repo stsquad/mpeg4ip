@@ -165,13 +165,17 @@ static void PrintAudioInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 		MP4_MPEG2_AAC_SSR_AUDIO_TYPE,	// 0x68
 		MP4_MPEG2_AUDIO_TYPE,			// 0x69
 		MP4_MPEG1_AUDIO_TYPE,			// 0x6B
+		MP4_PCM16_AUDIO_TYPE,			
+		MP4_VORBIS_AUDIO_TYPE,			
 	};
 	static const char* mpegAudioNames[] = {
 		"MPEG-2 AAC Main",
 		"MPEG-2 AAC LC",
 		"MPEG-2 AAC SSR",
 		"MPEG-2 (MP3)",
-		"MPEG-1 (MP3)"
+		"MPEG-1 (MP3)",
+		"PCM16",
+		"OGG VORBIS",
 	};
 	static u_int8_t numMpegAudioTypes = 
 		sizeof(mpegAudioTypes) / sizeof(u_int8_t);
@@ -250,6 +254,8 @@ static void PrintVideoInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 		MP4_MPEG2_442_VIDEO_TYPE,		// 0x65
 		MP4_MPEG1_VIDEO_TYPE,			// 0x6A
 		MP4_JPEG_VIDEO_TYPE,			// 0x6C
+		MP4_YUV12_VIDEO_TYPE,			
+		MP4_H26L_VIDEO_TYPE			
 	};
 	static const char* mpegVideoNames[] = {
 		"MPEG-2 Simple",
@@ -259,7 +265,9 @@ static void PrintVideoInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 		"MPEG-2 High",
 		"MPEG-2 4:2:2",
 		"MPEG-1",
-		"JPEG"
+		"JPEG",
+		"YUV12",
+		"H26L"
 	};
 	static u_int8_t numMpegVideoTypes = 
 		sizeof(mpegVideoTypes) / sizeof(u_int8_t);

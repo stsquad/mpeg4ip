@@ -33,32 +33,32 @@ static GtkWidget *video_dst_menu;
 static GtkWidget *audio_src_menu;
 static GtkWidget *audio_dst_menu;
 
-static int videoSrcValues[] = {
-	0
+static char* videoSrcValues[] = {
+	VIDEO_ENCODING_YUV12
 }; 
 static char* videoSrcNames[] = {
 	"Raw   "
 };
 static u_int8_t videoSrcIndex;
 
-static int videoDstValues[] = {
-	0, 1, 2
+static char* videoDstValues[] = {
+	VIDEO_ENCODING_NONE, VIDEO_ENCODING_MPEG4, VIDEO_ENCODING_H26L
 }; 
 static char* videoDstNames[] = {
 	"Nothing", "MPEG-4 ", "H.26L  "
 };
 static u_int8_t videoDstIndex;
 
-static int audioSrcValues[] = {
-	0
+static char* audioSrcValues[] = {
+	AUDIO_ENCODING_PCM16
 }; 
 static char* audioSrcNames[] = {
 	"Raw   "
 };
 static u_int8_t audioSrcIndex;
 
-static int audioDstValues[] = {
-	0, 1, 2
+static char* audioDstValues[] = {
+	AUDIO_ENCODING_NONE, AUDIO_ENCODING_AAC, AUDIO_ENCODING_MP3
 }; 
 static char* audioDstNames[] = {
 	"Nothing", "AAC    ", "MP3    "
@@ -120,7 +120,17 @@ static void Save()
 	MyConfig->SetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(file_entry)));
 
-	// TBD save
+	MyConfig->SetStringValue(CONFIG_TRANSCODE_SRC_VIDEO_ENCODING,
+		videoSrcValues[videoSrcIndex]);
+
+	MyConfig->SetStringValue(CONFIG_TRANSCODE_DST_VIDEO_ENCODING,
+		videoDstValues[videoDstIndex]);
+
+	MyConfig->SetStringValue(CONFIG_TRANSCODE_SRC_AUDIO_ENCODING,
+		audioSrcValues[audioSrcIndex]);
+
+	MyConfig->SetStringValue(CONFIG_TRANSCODE_DST_AUDIO_ENCODING,
+		audioDstValues[audioDstIndex]);
 
 	DisplayTranscodingSettings();
 }
@@ -252,6 +262,7 @@ void AddOkCancel(GtkWidget* dialog);
 void CreateTranscodingDialog(void) 
 {
 	GtkWidget *hbox, *label, *button;
+	char* encoding;
 
 	dialog = gtk_dialog_new();
 	gtk_signal_connect(GTK_OBJECT(dialog),
@@ -310,6 +321,14 @@ void CreateTranscodingDialog(void)
 	gtk_widget_show(label);
 
 	// video src
+	videoSrcIndex = 0;
+	encoding = MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_VIDEO_ENCODING);
+	for (u_int8_t i = 0; i < sizeof(videoSrcValues) / sizeof(char*); i++) {
+		if (!strcasecmp(encoding, videoSrcValues[i])) {
+			videoSrcIndex = i;
+			break;
+		}
+	}
 	video_src_menu = CreateOptionMenu(
 		NULL,
 		videoSrcNames, 
@@ -324,6 +343,14 @@ void CreateTranscodingDialog(void)
 	gtk_widget_show(label);
 
 	// video dst
+	videoDstIndex = 0;
+	encoding = MyConfig->GetStringValue(CONFIG_TRANSCODE_DST_VIDEO_ENCODING);
+	for (u_int8_t i = 0; i < sizeof(videoDstValues) / sizeof(char*); i++) {
+		if (!strcasecmp(encoding, videoDstValues[i])) {
+			videoDstIndex = i;
+			break;
+		}
+	}
 	video_dst_menu = CreateOptionMenu(
 		NULL,
 		videoDstNames, 
@@ -345,6 +372,14 @@ void CreateTranscodingDialog(void)
 	gtk_widget_show(label);
 
 	// audio src
+	audioSrcIndex = 0;
+	encoding = MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_AUDIO_ENCODING);
+	for (u_int8_t i = 0; i < sizeof(audioSrcValues) / sizeof(char*); i++) {
+		if (!strcasecmp(encoding, audioSrcValues[i])) {
+			audioSrcIndex = i;
+			break;
+		}
+	}
 	audio_src_menu = CreateOptionMenu(
 		NULL,
 		audioSrcNames, 
@@ -359,6 +394,14 @@ void CreateTranscodingDialog(void)
 	gtk_widget_show(label);
 
 	// audio dst
+	audioDstIndex = 0;
+	encoding = MyConfig->GetStringValue(CONFIG_TRANSCODE_DST_AUDIO_ENCODING);
+	for (u_int8_t i = 0; i < sizeof(audioDstValues) / sizeof(char*); i++) {
+		if (!strcasecmp(encoding, audioDstValues[i])) {
+			audioDstIndex = i;
+			break;
+		}
+	}
 	audio_dst_menu = CreateOptionMenu(
 		NULL,
 		audioDstNames, 

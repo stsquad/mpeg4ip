@@ -148,7 +148,7 @@ bool CLameAudioEncoder::EncodeSamples(
 	return true;
 }
 
-bool CLameAudioEncoder::GetEncodedFrame(
+bool CLameAudioEncoder::GetEncodedSamples(
 	u_int8_t** ppBuffer, u_int32_t* pBufferLength)
 {
 	u_int8_t* mp3Frame;

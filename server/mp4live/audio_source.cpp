@@ -26,7 +26,6 @@
 #ifdef ADD_LAME_ENCODER
 #include "audio_lame.h"
 #endif
-
 #ifdef ADD_FAAC_ENCODER
 #include "audio_faac.h"
 #endif
@@ -313,7 +312,7 @@ u_int16_t CAudioSource::ForwardEncodedFrames(void)
 	u_int32_t frameLength;
 	u_int16_t numForwarded = 0;
 
-	while (m_encoder->GetEncodedFrame(&pFrame, &frameLength)) {
+	while (m_encoder->GetEncodedSamples(&pFrame, &frameLength)) {
 		// sanity check
 		if (pFrame == NULL || frameLength == 0) {
 			break;

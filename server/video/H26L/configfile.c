@@ -123,8 +123,15 @@ void Configure (int ac, char *av[])
   int CLcount, ContentLen, NumberParams;
 
   memset (&configinput, 0, sizeof (InputParameters));
-  // Process default config file
 
+#ifdef H26L_LIB
+  if (ac > 0) {
+    ParseContent (av[0], strlen(av[0]));
+  } else {
+    printf("Warning: no configuration given\n");
+  }
+#else
+  // Process default config file
   printf ("Parsing Configfile %s", DEFAULTCONFIGFILENAME);
   content = GetConfigFileContent (DEFAULTCONFIGFILENAME);
   ParseContent (content, strlen(content));
@@ -196,6 +203,7 @@ void Configure (int ac, char *av[])
     }
   }
   printf ("\n");
+#endif /* H26L_LIB */
 }
 
 /*!
@@ -535,11 +543,13 @@ static void PatchInp ()
 
   // Open Files
 
+#ifndef H26L_LIB
   if ((p_in=fopen(input->infile,"rb"))==NULL)
   {
     snprintf(errortext, ET_SIZE, "Input file %s does not exist",input->infile);
     error (errortext, 500);
   }
+#endif
 
   if (strlen (input->ReconFile) > 0 && (p_dec=fopen(input->ReconFile, "wb"))==NULL)
   {

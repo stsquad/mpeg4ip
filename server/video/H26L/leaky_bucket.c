@@ -153,6 +153,7 @@ void PutBigDoubleWord(unsigned long dw, FILE *fp)
 
 void write_buffer(unsigned long NumberLeakyBuckets, unsigned long Rmin[], unsigned long Bmin[], unsigned long Fmin[])
 {
+#ifndef H26L_LIB
   FILE *outf;
   unsigned long iBucket;
         
@@ -175,6 +176,7 @@ void write_buffer(unsigned long NumberLeakyBuckets, unsigned long Rmin[], unsign
     printf(" %8ld %8ld %8ld \n", Rmin[iBucket], Bmin[iBucket], Fmin[iBucket]);
   }
   fclose(outf);
+#endif
 }
 
 /*!
@@ -320,3 +322,4 @@ void calc_buffer()
   return;
 }
 #endif
+

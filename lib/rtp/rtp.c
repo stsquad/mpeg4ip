@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.8 $ 
- * $Date: 2002/01/11 00:55:16 $
+ * $Revision: 1.9 $ 
+ * $Date: 2002/03/04 21:58:06 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -80,7 +80,7 @@ static int des_encrypt(struct rtp *session, unsigned char *data,
 
 #define MAX_DROPOUT    3000
 #define MAX_MISORDER   100
-#define MIN_SEQUENTIAL 1
+#define MIN_SEQUENTIAL 2
 
 /*
  * Definitions for the RTP/RTCP packets on the wire...
@@ -721,8 +721,6 @@ static void delete_source(struct rtp *session, uint32_t ssrc)
 	check_database(session);
 }
 
-#if 0
-// wmay - removed - let higher level app process sequence numbers
 static void init_seq(source *s, uint16_t seq)
 {
 	/* Taken from draft-ietf-avt-rtp-new-01.txt */
@@ -789,7 +787,6 @@ static int update_seq(source *s, uint16_t seq)
 	s->received++;
 	return 1;
 }
-#endif
 
 static double rtcp_interval(struct rtp *session)
 {
@@ -1412,6 +1409,12 @@ int rtp_process_recv_data (struct rtp *session,
 	  create_source(session, packet->rtp_pak_ssrc, FALSE);
 	  s = get_source(session, packet->rtp_pak_ssrc);
 	}
+	if (s->probation == -1) {
+	  s->probation = MIN_SEQUENTIAL;
+	  s->max_seq = packet->rtp_pak_seq - 1;
+	}
+	update_seq(s, packet->rtp_pak_seq);
+	  
 	process_rtp(session, curr_rtp_ts, packet, s);
 	return 0; /* We don't free "packet", that's done by the callback function... */
       } 
@@ -1420,8 +1423,7 @@ int rtp_process_recv_data (struct rtp *session,
 	  s->probation = MIN_SEQUENTIAL;
 	  s->max_seq   = packet->rtp_pak_seq - 1;
 	}
-	// wmay - if (update_seq(s, packet->seq))
-	if (1) {
+	if (update_seq(s, packet->rtp_pak_seq)) {
 	  process_rtp(session, curr_rtp_ts, packet, s);
 	  return 0;	/* we don't free "packet", that's done by the callback function... */
 	} else {

@@ -11,8 +11,7 @@ check_PROGRAMS = mp4vdec
 
 mp4vdec_SOURCES = decoder.cpp
 
-LDADD= \
-  ../../sys/decoder/libobj_sys_decoder.la \
+mp4vdec_LDADD= \
   ../../type/libobj_type.la \
   ../../sys/libobj_sys.la \
   ../../vtc/main/libobj_vtc_main_enc.la \
@@ -25,4 +24,5 @@ LDADD= \
   ../../vtc/main/libobj_vtc_main_dec.la \
   ../../vtc/ztq/libobj_vtc_ztq.la \
   ../../tools/entropy/libobj_tools_entropy.la \
+  ../../sys/decoder/libobj_sys_decoder.la \
   -lm

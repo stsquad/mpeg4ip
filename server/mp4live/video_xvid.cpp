@@ -63,6 +63,9 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	xvidEncParams.max_key_interval = (int) 
 		(m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) 
 		 * m_pConfig->GetIntegerValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
+	if (xvidEncParams.max_key_interval == 0) {
+		xvidEncParams.max_key_interval = 1;
+	} 
 	xvidEncParams.motion_search = (realTime ? 1 : 5);
 	xvidEncParams.quant_type = 1;
 	xvidEncParams.lum_masking = 0;
@@ -108,7 +111,7 @@ bool CXvidVideoEncoder::EncodeImage(
 	return true;
 }
 
-bool CXvidVideoEncoder::GetEncodedFrame(
+bool CXvidVideoEncoder::GetEncodedImage(
 	u_int8_t** ppBuffer, u_int32_t* pBufferLength)
 {
 	*ppBuffer = m_vopBuffer;

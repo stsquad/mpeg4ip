@@ -35,19 +35,20 @@
 #define AUDIO_ENCODER_FAAC		"faac"
 #define AUDIO_ENCODER_LAME		"lame"
 
-#define AUDIO_ENCODING_NONE		"none"
-#define AUDIO_ENCODING_PCM16	"pcm16"
-#define AUDIO_ENCODING_MP3		"mp3"
-#define AUDIO_ENCODING_AAC		"aac"
+#define AUDIO_ENCODING_NONE		"None"
+#define AUDIO_ENCODING_PCM16	"PCM16"
+#define AUDIO_ENCODING_MP3		"MP3"
+#define AUDIO_ENCODING_AAC		"AAC"
 
 #define VIDEO_ENCODER_FFMPEG	"ffmpeg"
 #define VIDEO_ENCODER_DIVX		"divx"
+#define VIDEO_ENCODER_H26L		"h26l"
 #define VIDEO_ENCODER_XVID		"xvid"
 
-#define VIDEO_ENCODING_NONE		"none"
-#define VIDEO_ENCODING_YUV12	"yuv12"
-#define VIDEO_ENCODING_MPEG4	"mpeg-4"
-#define VIDEO_ENCODING_H26L		"h26l"
+#define VIDEO_ENCODING_NONE		"None"
+#define VIDEO_ENCODING_YUV12	"YUV12"
+#define VIDEO_ENCODING_MPEG4	"MPEG4"
+#define VIDEO_ENCODING_H26L		"H26L"
 
 #define VIDEO_STD_ASPECT_RATIO 	((float)1.33)	// standard 4:3
 #define VIDEO_LB1_ASPECT_RATIO 	((float)2.35)	// typical "widescreen" format
@@ -299,7 +300,7 @@ static SConfigVariable MyConfigVariables[] = {
 		CONFIG_TYPE_STRING, AUDIO_ENCODING_PCM16, },
 
 	{ CONFIG_TRANSCODE_DST_AUDIO_ENCODING, "transcodeDstAudioEncoding",
-		CONFIG_TYPE_STRING, AUDIO_ENCODING_AAC, },
+		CONFIG_TYPE_STRING, AUDIO_ENCODING_NONE, },
 
 	{ CONFIG_TRANSCODE_SRC_VIDEO_ENCODING, "transcodeSrcVideoEncoding",
 		CONFIG_TYPE_STRING, VIDEO_ENCODING_YUV12, },

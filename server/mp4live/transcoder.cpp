@@ -29,7 +29,16 @@
 #ifdef ADD_XVID_ENCODER
 #include "video_xvid.h"
 #endif
+#ifdef ADD_H26L_ENCODER
+#include "video_h26l.h"
+#endif
 
+#ifdef ADD_LAME_ENCODER
+#include "audio_lame.h"
+#endif
+#ifdef ADD_FAAC_ENCODER
+#include "audio_faac.h"
+#endif
 
 int CTranscoder::ThreadMain(void) 
 {
@@ -123,50 +132,21 @@ void CTranscoder::DoStartTranscode()
 		m_dstMp4File = m_srcMp4File;
 	}
 
-	// TBD if we're transcoding video
-
-	// find raw video track
-	m_srcVideoTrackId = MP4FindTrackId(
-		m_srcMp4File, 0, MP4_VIDEO_TRACK_TYPE, MP4_YUV12_VIDEO_TYPE);
-
-	if (m_srcVideoTrackId == MP4_INVALID_TRACK_ID) {
-		error_message("can't find raw video track");
-		goto start_failure;
+	// check if user wants video transcoding
+	if (strcasecmp(m_pConfig->GetStringValue(
+	  CONFIG_TRANSCODE_DST_VIDEO_ENCODING), VIDEO_ENCODING_NONE)) {
+		if (!InitVideoTranscode()) {
+			goto start_failure;
+		}
 	}
 
-	m_srcVideoNumSamples =
-		MP4GetTrackNumberOfSamples(m_srcMp4File, m_srcVideoTrackId);
-
-	m_srcVideoWidth =
-		MP4GetTrackIntegerProperty(m_srcMp4File, m_srcVideoTrackId, 
-			"mdia.minf.stbl.stsd.mp4v.width");
-	m_srcVideoHeight =
-		MP4GetTrackIntegerProperty(m_srcMp4File, m_srcVideoTrackId, 
-			"mdia.minf.stbl.stsd.mp4v.height");
-
-	// TBD preview sink needs to know the video size
-
-	m_videoYSize = m_srcVideoWidth * m_srcVideoHeight;
-	m_videoUVSize = m_videoYSize / 4;
-	m_videoYUVSize = m_videoYSize + 2 * m_videoUVSize;
-
-	m_dstVideoTrackId = MP4AddVideoTrack(m_dstMp4File, 
-		MP4GetTrackTimeScale(m_srcMp4File, m_srcVideoTrackId),
-		MP4GetTrackFixedSampleDuration(m_srcMp4File, m_srcVideoTrackId),
-		m_srcVideoWidth,
-		m_srcVideoHeight,
-		MP4_MPEG4_VIDEO_TYPE);
-
-	// TBD ES Configuration
-	MP4SetTrackESConfiguration(m_dstMp4File, m_dstVideoTrackId,
-		m_pConfig->m_videoMpeg4Config, 
-		m_pConfig->m_videoMpeg4ConfigLength); 
-
-	if (!InitVideoEncoder()) {
-		goto start_failure;
+	// check if user wants audio transcoding
+	if (strcasecmp(m_pConfig->GetStringValue(
+	  CONFIG_TRANSCODE_DST_AUDIO_ENCODING), AUDIO_ENCODING_NONE)) {
+		if (!InitAudioTranscode()) {
+			goto start_failure;
+		}
 	}
-
-	// TBD if audio
 
 	m_transcode = true;
 	return;
@@ -181,70 +161,169 @@ start_failure:
 	return;
 }
 
-void CTranscoder::DoTranscode()
+bool CTranscoder::InitVideoTranscode()
 {
-	// do next N samples of video, audio
-	u_int32_t numSamples = 30; // TBD base it on src frame rate
+	// TBD CONFIG_TRANSCODE_SRC_VIDEO_ENCODING != VIDEO_ENCODING_YUV12
+	// TEMP find raw video track
+	m_srcVideoTrackId = MP4FindTrackId(
+		m_srcMp4File, 0, MP4_VIDEO_TRACK_TYPE, MP4_YUV12_VIDEO_TYPE);
 
-	if (m_srcVideoSampleId + numSamples > m_srcVideoNumSamples) {
-		numSamples = m_srcVideoNumSamples - m_srcVideoSampleId + 1;
+	// initialize decoder if needed
+	if (strcasecmp(m_pConfig->GetStringValue(
+	  CONFIG_TRANSCODE_SRC_VIDEO_ENCODING), VIDEO_ENCODING_YUV12)) {
+		if (!InitVideoDecoder()) {
+			return false;
+		}
 	}
- 
-	if (DoVideoTrack(m_srcVideoSampleId, numSamples) == false) {
-		DoStopTranscode();
+
+	if (m_srcVideoTrackId == MP4_INVALID_TRACK_ID) {
+		error_message("can't find raw video track");
+		return false;
 	}
 
-	m_srcVideoSampleId += numSamples;
+	m_srcVideoNumSamples =
+		MP4GetTrackNumberOfSamples(m_srcMp4File, m_srcVideoTrackId);
 
-	if (m_srcVideoSampleId >= m_srcVideoNumSamples) {
-		DoStopTranscode();
+	m_srcVideoWidth =
+		MP4GetTrackVideoWidth(m_srcMp4File, m_srcVideoTrackId);
+	m_srcVideoHeight =
+		MP4GetTrackVideoHeight(m_srcMp4File, m_srcVideoTrackId);
 
-		HintTrack(m_dstMp4FileName, m_dstVideoTrackId);
+	m_videoYSize = m_srcVideoWidth * m_srcVideoHeight;
+	m_videoUVSize = m_videoYSize / 4;
+	m_videoYUVSize = m_videoYSize + 2 * m_videoUVSize;
+
+	// TBD preview sink needs to be informed of the video size
+
+	const char* encoding =
+		m_pConfig->GetStringValue(CONFIG_TRANSCODE_DST_VIDEO_ENCODING);
+		
+	if (!strcasecmp(encoding, VIDEO_ENCODING_MPEG4)) {
+		m_videoDstType = MP4_MPEG4_VIDEO_TYPE;
+	} else if (!strcasecmp(encoding, VIDEO_ENCODING_H26L)) {
+		m_videoDstType = MP4_H26L_VIDEO_TYPE;
+	} else {
+		error_message("invalid transcoder dest encoding %s", encoding);
+		return false;
 	}
+
+	m_dstVideoTrackId = MP4AddVideoTrack(
+		m_dstMp4File, 
+		MP4GetTrackTimeScale(m_srcMp4File, m_srcVideoTrackId),
+		MP4GetTrackFixedSampleDuration(m_srcMp4File, m_srcVideoTrackId),
+		m_srcVideoWidth,
+		m_srcVideoHeight,
+		m_videoDstType);
+
+	// TBD ES Configuration
+	MP4SetTrackESConfiguration(
+		m_dstMp4File, 
+		m_dstVideoTrackId,
+		m_pConfig->m_videoMpeg4Config, 
+		m_pConfig->m_videoMpeg4ConfigLength); 
+
+	if (!InitVideoEncoder()) {
+		return false;
+	}
+
+	return true;
 }
 
-void CTranscoder::DoStopTranscode()
+bool CTranscoder::InitVideoDecoder()
 {
-	if (!m_transcode) {
-		return;
-	}
-
-	if (m_dstMp4File != m_srcMp4File) {
-		MP4Close(m_dstMp4File);
-		m_dstMp4File = NULL;
-	}
-	MP4Close(m_srcMp4File);
-	m_srcMp4File = NULL;
-
-	// TBD ISMA compliance?
-
-	if (m_videoEncoder) {
-		m_videoEncoder->Stop();
-	}
-	if (m_audioEncoder) {
-		m_audioEncoder->Stop();
-	}
-
-	m_transcode = false;
+	// TBD
+	return false;
 }
 
 bool CTranscoder::InitVideoEncoder()
 {
+	const char* encoding = 
+		m_pConfig->GetStringValue(CONFIG_TRANSCODE_DST_VIDEO_ENCODING);
 	const char* encoderName = 
 		m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER);
 
-	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
+	if (!strcasecmp(encoding, VIDEO_ENCODING_MPEG4)) {
+		if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
 #ifdef ADD_FFMPEG_ENCODER
-		m_videoEncoder = new CFfmpegVideoEncoder();
+			m_videoEncoder = new CFfmpegVideoEncoder();
 #else
-		error_message("ffmpeg encoder not available in this build");
+			error_message("ffmpeg encoder not available in this build");
+			return false;
+#endif
+		} else if (!strcasecmp(encoderName, VIDEO_ENCODER_XVID)) {
+#ifdef ADD_XVID_ENCODER
+			m_videoEncoder = new CXvidVideoEncoder();
+#else
+			error_message("xvid encoder not available in this build");
+			return false;
+#endif
+		} else {
+			error_message("unknown encoder specified");
+			return false;
+		}
+	} else if (!strcasecmp(encoding, VIDEO_ENCODING_H26L)) {
+#ifdef ADD_H26L_ENCODER
+			m_videoEncoder = new CH26LVideoEncoder();
+#else
+			error_message("H.26L encoder not available in this build");
+			return false;
+#endif
+	} else {
+		error_message("unknown encoding specified");
+		return false;
+	}
+
+	return m_videoEncoder->Init(m_pConfig);
+}
+
+bool CTranscoder::InitAudioTranscode()
+{
+	// TBD CONFIG_TRANSCODE_SRC_AUDIO_ENCODING != AUDIO_ENCODING_PCM16
+	// TEMP find raw audio track
+	m_srcAudioTrackId = MP4FindTrackId(
+		m_srcMp4File, 0, MP4_AUDIO_TRACK_TYPE, MP4_PCM16_AUDIO_TYPE);
+
+	if (m_srcAudioTrackId == MP4_INVALID_TRACK_ID) {
+		error_message("can't find raw audio track");
+		return false;
+	}
+
+	m_srcAudioNumSamples =
+		MP4GetTrackNumberOfSamples(m_srcMp4File, m_srcAudioTrackId);
+
+#ifdef TBD
+	m_dstAudioTrackId = MP4AddAudioTrack(
+		m_dstMp4File, 
+
+	MP4SetTrackESConfiguration(
+		m_dstMp4File, 
+		m_dstAudioTrackId,
+#endif
+
+	if (!InitAudioEncoder()) {
+		return false;
+	}
+
+	return true;
+}
+
+bool CTranscoder::InitAudioEncoder()
+{
+	const char* encoding = 
+		m_pConfig->GetStringValue(CONFIG_TRANSCODE_DST_AUDIO_ENCODING);
+
+	if (!strcasecmp(encoding, AUDIO_ENCODING_AAC)) {
+#ifdef ADD_FAAC_ENCODER
+		m_audioEncoder = new CFaacAudioEncoder();
+#else
+		error_message("faac encoder not available in this build");
 		return false;
 #endif
-	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_XVID)) {
-#ifdef ADD_XVID_ENCODER
-		m_videoEncoder = new CXvidVideoEncoder();
+	} else if (!strcasecmp(encoding, AUDIO_ENCODING_MP3)) {
+#ifdef ADD_LAME_ENCODER
+		m_audioEncoder = new CLameAudioEncoder();
 #else
-		error_message("xvid encoder not available in this build");
+		error_message("lame encoder not available in this build");
 		return false;
 #endif
 	} else {
@@ -252,7 +331,56 @@ bool CTranscoder::InitVideoEncoder()
 		return false;
 	}
 
-	return m_videoEncoder->Init(m_pConfig);
+	return m_audioEncoder->Init(m_pConfig);
+}
+
+void CTranscoder::DoTranscode()
+{
+	if (m_videoEncoder) {
+		u_int32_t numSamples = 30; // TBD base it on src frame rate
+
+		if (m_videoDstType == MP4_H26L_VIDEO_TYPE) {
+			numSamples = 1;
+		}
+
+		if (m_srcVideoSampleId + numSamples > m_srcVideoNumSamples) {
+			numSamples = m_srcVideoNumSamples - m_srcVideoSampleId + 1;
+		}
+	 
+		if (DoVideoTrack(m_srcVideoSampleId, numSamples) == false) {
+			DoStopTranscode();
+		}
+
+		m_srcVideoSampleId += numSamples;
+
+		if (m_srcVideoSampleId >= m_srcVideoNumSamples) {
+			DoStopTranscode();
+
+			if (m_videoDstType == MP4_MPEG4_VIDEO_TYPE) {
+				HintTrack(m_dstMp4FileName, m_dstVideoTrackId);
+			}
+		}
+	}
+
+	if (m_audioEncoder) {
+		u_int32_t numSamples = 30; // TBD base it on src sampling rate
+
+		if (m_srcAudioSampleId + numSamples > m_srcAudioNumSamples) {
+			numSamples = m_srcAudioNumSamples - m_srcAudioSampleId + 1;
+		}
+	 
+		if (DoAudioTrack(m_srcAudioSampleId, numSamples) == false) {
+			DoStopTranscode();
+		}
+
+		m_srcAudioSampleId += numSamples;
+
+		if (m_srcAudioSampleId >= m_srcAudioNumSamples) {
+			DoStopTranscode();
+
+			HintTrack(m_dstMp4FileName, m_dstAudioTrackId);
+		}
+	}
 }
 
 bool CTranscoder::DoVideoTrack(
@@ -262,6 +390,7 @@ bool CTranscoder::DoVideoTrack(
 	u_int8_t* pSample;
 	u_int32_t sampleSize;
 	MP4Duration sampleDuration;
+	CMediaFrame* pRawMediaFrame = NULL;
 
 	for (MP4SampleId sampleId = startSampleId; 
 	  sampleId < startSampleId + numSamples; sampleId++) {
@@ -286,45 +415,92 @@ bool CTranscoder::DoVideoTrack(
 			return false;
 		}
 
-		// call encoder
-		rc = m_videoEncoder->EncodeImage(
-			pSample, 
-			pSample + m_videoYSize,
-			pSample + m_videoYSize + m_videoUVSize);
+		if (m_videoDecoder) {
+			// call decoder
+			if (!m_videoDecoder->DecodeImage(pSample, sampleSize)) {
+				error_message("failed to decode video sample %u\n", sampleId);
+				return false;
+			}
+
+			u_int8_t* pY;
+			u_int8_t* pU;
+			u_int8_t* pV;
+		
+			m_videoDecoder->GetDecodedImage(&pY, &pU, &pV);
+
+			// cleanup pSample, no further use for it
+			free(pSample);
+			pSample = NULL;
+
+			// call encoder
+			rc = m_videoEncoder->EncodeImage(pY, pU, pV);
+
+			// TBD handle case where YUV planes are not sequential
+			pRawMediaFrame = new CMediaFrame(
+					CMediaFrame::RawYuvVideoFrame, 
+					pY,
+					m_videoYUVSize,
+					0, 
+					sampleDuration);
+		} else {
+			// call encoder
+			rc = m_videoEncoder->EncodeImage(
+				pSample, 
+				pSample + m_videoYSize,
+				pSample + m_videoYSize + m_videoUVSize);
+
+			pRawMediaFrame = new CMediaFrame(
+					CMediaFrame::RawYuvVideoFrame, 
+					pSample,
+					sampleSize,
+					0, 
+					sampleDuration);
+
+			// don't free pSample, delete pRawMediaFrame will now do that
+			pSample = NULL;
+		}
 
 		if (rc == false) {
-			debug_message("Can't encode image!");
+			error_message("failed to encode video sample %u\n", sampleId);
 			return false;
 		}
 
+		// get the resulting encoded image
 		u_int8_t* vopBuf;
 		u_int32_t vopBufLength;
 
-		m_videoEncoder->GetEncodedFrame(&vopBuf, &vopBufLength);
+		m_videoEncoder->GetEncodedImage(&vopBuf, &vopBufLength);
 
-		// TBD is IFrame
-		bool isIFrame = ((vopBuf[4] >> 6) == 0);
+		if (vopBufLength != 0) {
+			// determine if image was encoded as an I(ntra) frame
+			bool isIFrame = false;
+			if (m_videoDstType == MP4_MPEG4_VIDEO_TYPE) {
+				isIFrame = ((vopBuf[4] >> 6) == 0);
+			} else {
+				// TBD H.26L I frame
+			}
 
-		// write out encoded frame
-		rc = MP4WriteSample(
-			m_dstMp4File, 
-			m_dstVideoTrackId,
-			vopBuf,
-			vopBufLength,
-			sampleDuration,
-			0,
-			isIFrame);
+			// write out encoded frame
+			rc = MP4WriteSample(
+				m_dstMp4File, 
+				m_dstVideoTrackId,
+				vopBuf,
+				vopBufLength,
+				sampleDuration,
+				0,
+				isIFrame);
 
-		if (rc == false) {
-			error_message("failed to write video sample %u\n", sampleId);
-			return false;
+			if (rc == false) {
+				error_message("failed to write video sample %u\n", sampleId);
+				return false;
+			}
 		}
 
 		// forward for encoded preview
 		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
 			u_int8_t* reconstructed = 
 				(u_int8_t*)malloc(m_videoYUVSize);
-			// TBD error
+			// TBD malloc error
 
 			m_videoEncoder->GetReconstructedImage(
 				reconstructed,
@@ -343,17 +519,10 @@ bool CTranscoder::DoVideoTrack(
 
 		// forward for raw preview
 		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)) {
-			CMediaFrame* pFrame =
-				new CMediaFrame(CMediaFrame::RawYuvVideoFrame, 
-					pSample,
-					sampleSize,
-					0, 
-					sampleDuration);
-			ForwardFrame(pFrame);
-			delete pFrame;
-		} else {
-			free(pSample);
+			ForwardFrame(pRawMediaFrame);
 		}
+		delete pRawMediaFrame;
+		pRawMediaFrame = NULL;
 	}
 
 	return true;
@@ -391,6 +560,9 @@ bool CTranscoder::DoAudioTrack(
 		}
 
 #ifdef TBD
+		// need to deal with mismatch between raw samples 
+		// and number needed by audio encoder
+
 		// call encoder
 		rc = m_audioEncoder->EncodeSamples(
 			pSample, xxx);
@@ -403,7 +575,7 @@ bool CTranscoder::DoAudioTrack(
 		u_int8_t* frameBuf;
 		u_int32_t frameBufLength;
 
-		m_audioEncoder->GetEncodedFrame(&frameBuf, &frameBufLength);
+		m_audioEncoder->GetEncodedSamples(&frameBuf, &frameBufLength);
 
 		// write out encoded frame
 		rc = MP4WriteSample(
@@ -488,3 +660,29 @@ bool CTranscoder::HintTrack(const char* dstMp4FileName, MP4TrackId trackId)
 	}
 	return false;
 }
+
+void CTranscoder::DoStopTranscode()
+{
+	if (!m_transcode) {
+		return;
+	}
+
+	if (m_dstMp4File != m_srcMp4File) {
+		MP4Close(m_dstMp4File);
+		m_dstMp4File = NULL;
+	}
+	MP4Close(m_srcMp4File);
+	m_srcMp4File = NULL;
+
+	// TBD ISMA compliance?
+
+	if (m_videoEncoder) {
+		m_videoEncoder->Stop();
+	}
+	if (m_audioEncoder) {
+		m_audioEncoder->Stop();
+	}
+
+	m_transcode = false;
+}
+

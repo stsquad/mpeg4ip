@@ -66,7 +66,9 @@ static GtkWidget *transmit_settings_label;
 static GtkWidget *transmit_settings_button;
 
 static GtkWidget *transcode_enabled_button;
-static GtkWidget *transcode_settings_label;
+static GtkWidget *transcode_settings_label1;
+static GtkWidget *transcode_settings_label2;
+static GtkWidget *transcode_settings_label3;
 static GtkWidget *transcode_settings_button;
 
 static GtkWidget *start_button;
@@ -237,11 +239,35 @@ void DisplayRecordingSettings(void)
 
 void DisplayTranscodingSettings(void)
 {
+	char buffer[256];
+
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transcode_enabled_button),
 		MyConfig->GetBoolValue(CONFIG_TRANSCODE_ENABLE));
 
 	gtk_widget_set_sensitive(GTK_WIDGET(transcode_enabled_button),
 		MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE));
+
+	if (strcasecmp(MyConfig->GetStringValue(
+	  CONFIG_TRANSCODE_DST_VIDEO_ENCODING), VIDEO_ENCODING_NONE)) {
+		snprintf(buffer, sizeof(buffer), " %s to %s",
+			MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_VIDEO_ENCODING),
+			MyConfig->GetStringValue(CONFIG_TRANSCODE_DST_VIDEO_ENCODING));
+	} else {
+		buffer[0] = '\0';
+	}
+	gtk_label_set_text(GTK_LABEL(transcode_settings_label1), buffer);
+	gtk_widget_show(transcode_settings_label1);
+
+	if (strcasecmp(MyConfig->GetStringValue(
+	  CONFIG_TRANSCODE_DST_AUDIO_ENCODING), AUDIO_ENCODING_NONE)) {
+		snprintf(buffer, sizeof(buffer), " %s to %s",
+			MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_AUDIO_ENCODING),
+			MyConfig->GetStringValue(CONFIG_TRANSCODE_DST_AUDIO_ENCODING));
+	} else {
+		buffer[0] = '\0';
+	}
+	gtk_label_set_text(GTK_LABEL(transcode_settings_label2), buffer);
+	gtk_widget_show(transcode_settings_label2);
 }
 
 static void on_video_enabled_button (GtkWidget *widget, gpointer *data)
@@ -524,8 +550,8 @@ static gint status_timer (gpointer raw)
 		AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, &encodedFrames);
 		u_int32_t totalFrames = encodedFrames - StartEncodedFrameNumber;
 
-		snprintf(buffer, sizeof(buffer), " %u", (u_int32_t)
-			(((float)totalFrames / (float)duration_secs) + 0.5));
+		snprintf(buffer, sizeof(buffer), " %.2f", 
+			(float)totalFrames / (float)duration_secs);
 		gtk_label_set_text(GTK_LABEL(actual_fps), buffer);
 		gtk_widget_show(actual_fps);
 
@@ -963,7 +989,8 @@ static void LayoutTransmitFrame(GtkWidget* box)
 
 	// settings button
 	transmit_settings_button = gtk_button_new_with_label(" Settings... ");
-	gtk_box_pack_start(GTK_BOX(hbox), transmit_settings_button, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(hbox), 
+		transmit_settings_button, FALSE, FALSE, 5);
 	gtk_signal_connect(GTK_OBJECT(transmit_settings_button), 
 		"clicked",
 		GTK_SIGNAL_FUNC(on_transmit_settings_button),
@@ -980,17 +1007,18 @@ static void LayoutTranscodingFrame(GtkWidget* box)
 {
 	GtkWidget *frame;
 	GtkWidget *vbox, *hbox;
+	GtkWidget *vbox1, *vbox2;
 
 	frame = gtk_frame_new("Re-Encoding");
 	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(box), frame, FALSE, FALSE, 5);
 
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
 
 	// create first row, homogenous
-	hbox = gtk_hbox_new(TRUE, 1);
+	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 5);
   
@@ -1008,21 +1036,41 @@ static void LayoutTranscodingFrame(GtkWidget* box)
 	gtk_widget_show(hbox);
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
 
+	// secondary vbox for two labels
+	vbox1 = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(vbox1);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox1, TRUE, TRUE, 5);
+
 	// settings summary
-	transcode_settings_label = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(transcode_settings_label), 0.0, 0.5);
-	gtk_widget_show(transcode_settings_label);
-	gtk_box_pack_start(GTK_BOX(hbox), transcode_settings_label, TRUE, TRUE, 0);
+	transcode_settings_label1 = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(transcode_settings_label1), 0.0, 0.5);
+	gtk_box_pack_start(GTK_BOX(vbox1), 
+		transcode_settings_label1, TRUE, TRUE, 0);
+
+	transcode_settings_label2 = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(transcode_settings_label2), 0.0, 0.5);
+	gtk_box_pack_start(GTK_BOX(vbox1), 
+		transcode_settings_label2, TRUE, TRUE, 0);
+
+	// secondary vbox to match stacked labels
+	vbox2 = gtk_vbox_new(FALSE, 1);
+	gtk_widget_show(vbox2);
+	gtk_box_pack_start(GTK_BOX(hbox), vbox2, FALSE, FALSE, 5);
 
 	// settings button
 	transcode_settings_button = gtk_button_new_with_label(" Settings... ");
-	gtk_box_pack_start(GTK_BOX(hbox), transcode_settings_button, 
-		FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(vbox2), 
+		transcode_settings_button, FALSE, FALSE, 5);
 	gtk_signal_connect(GTK_OBJECT(transcode_settings_button), 
 		"clicked",
 		GTK_SIGNAL_FUNC(on_transcode_settings_button),
 		NULL);
 	gtk_widget_show(transcode_settings_button);
+
+	// empty label to get sizing correct
+	transcode_settings_label3 = gtk_label_new("");
+	gtk_box_pack_start(GTK_BOX(vbox2), 
+		transcode_settings_label3, TRUE, TRUE, 0);
 
 	// finalize
 	gtk_container_add(GTK_CONTAINER(frame), vbox);

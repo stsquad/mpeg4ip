@@ -97,7 +97,7 @@ bool CFaacAudioEncoder::EncodeSamples(
 	return true;
 }
 
-bool CFaacAudioEncoder::GetEncodedFrame(
+bool CFaacAudioEncoder::GetEncodedSamples(
 	u_int8_t** ppBuffer, u_int32_t* pBufferLength)
 {
 	*ppBuffer = m_aacFrameBuffer;

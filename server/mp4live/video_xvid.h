@@ -37,7 +37,7 @@ public:
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
 		bool wantKeyFrame = false);
 
-	bool GetEncodedFrame(
+	bool GetEncodedImage(
 		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
 
 	bool GetReconstructedImage(

@@ -615,6 +615,10 @@ extern ImageParameters *img;
 extern StatParameters *stat;
 extern SNRParameters *snr;
 
+#ifdef H26L_LIB
+extern byte* memout;
+extern int memoutlength;
+#endif
 
 // files
 FILE *p_dec,*p_dec_u,*p_dec_v;   //!< internal decoded image for debugging

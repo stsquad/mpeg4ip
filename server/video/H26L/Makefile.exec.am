@@ -1,12 +1,13 @@
 INCLUDES = -I$(top_srcdir)/include
 
-AM_CFLAGS = -DH26L_LIB -D_REENTRANT -O3 -Wcast-align 
+AM_CFLAGS = -D_REENTRANT -O3 -Wcast-align 
 
-lib_LTLIBRARIES = libh26lenc.la
+LDADD = -lm
 
-libh26lenc_la_SOURCES = \
-	h26l.h \
-	h26l.c \
+bin_PROGRAMS = h26lenc
+
+h26lenc_SOURCES = \
+	lencod.c \
 	b_frame.c \
 	b_frame.h \
 	biariencode.c \

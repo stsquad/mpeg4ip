@@ -25,6 +25,7 @@
 #include <mp4.h>
 #include "media_node.h"
 #include "video_encoder.h"
+#include "video_decoder.h"
 #include "audio_encoder.h"
 
 class CTranscoder : public CMediaSource {
@@ -44,6 +45,9 @@ public:
 		m_srcVideoSampleId = 1;
 
 		m_videoEncoder = NULL;
+		m_videoDecoder = NULL;
+
+		m_audioEncoder = NULL;
 	}
 
 	void StartTranscode(void) {
@@ -83,7 +87,12 @@ protected:
 	bool DoVideoTrack(MP4SampleId startSampleId, u_int32_t numSamples);
 	bool DoAudioTrack(MP4SampleId startSampleId, u_int32_t numSamples);
 
+	bool InitVideoTranscode(void);
+	bool InitVideoDecoder(void);
 	bool InitVideoEncoder(void);
+
+	bool InitAudioTranscode(void);
+	bool InitAudioEncoder(void);
 
 protected:
 	bool			m_transcode;
@@ -98,6 +107,7 @@ protected:
 	MP4TrackId		m_dstAudioTrackId;
 
 	CVideoEncoder*	m_videoEncoder;
+	CVideoDecoder*	m_videoDecoder;
 	u_int32_t		m_srcVideoNumSamples;
 	MP4SampleId		m_srcVideoSampleId;
 	u_int16_t		m_srcVideoWidth;
@@ -105,10 +115,12 @@ protected:
 	u_int32_t		m_videoYSize;
 	u_int32_t		m_videoUVSize;
 	u_int32_t		m_videoYUVSize;
+	u_int8_t		m_videoDstType;
 
 	CAudioEncoder*	m_audioEncoder;
 	u_int32_t		m_srcAudioNumSamples;
 	MP4SampleId		m_srcAudioSampleId;
+	u_int8_t		m_audioDstType;
 };
 
 #endif /* __MP4_TRANSCODER_H__ */

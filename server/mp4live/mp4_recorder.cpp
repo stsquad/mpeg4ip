@@ -236,6 +236,44 @@ void CMp4Recorder::DoStartRecord()
 				goto start_failure;
 			}
 
+			if (!strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+			  AUDIO_ENCODING_AAC)) {
+				// TEMP will soon be replaced by call to MP4AV_AacGetConfig()
+				/*
+				 * AudioObjectType 			5 bits
+				 * samplingFrequencyIndex 	4 bits
+				 * channelConfiguration 	4 bits
+				 * GA_SpecificConfig
+				 * 	FrameLengthFlag 		1 bit 1024 or 960
+				 * 	DependsOnCoreCoder		1 bit always 0
+				 * 	ExtensionFlag 			1 bit always 0
+				 */
+				u_int8_t aacConfigBuf[2];
+
+				aacConfigBuf[0] = 0x10;
+				aacConfigBuf[1] = 0;
+
+				static u_int16_t aacSamplingRates[] = {
+					96000, 88200, 64000, 48000, 44100, 32000,
+					24000, 22050, 16000, 12000, 11025,  8000, 7350
+				};
+
+				for (u_int8_t i = 0; i < 13; i++) {
+					if (aacSamplingRates[i] 
+					  == m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE)) {
+						aacConfigBuf[0] |= (i & 0xe) >> 1;
+						aacConfigBuf[1] |= (i & 0x1) << 7;
+						break;
+					}
+				}
+
+				aacConfigBuf[1] |= 
+					m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) << 3; 
+
+				MP4SetTrackESConfiguration(m_mp4File, m_encodedAudioTrackId,
+					aacConfigBuf, sizeof(aacConfigBuf));
+			}
+
 			if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
 				m_audioPayloadNumber = 0;	// dynamic payload
 

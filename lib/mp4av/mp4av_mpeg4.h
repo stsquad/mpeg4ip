@@ -19,25 +19,16 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __VIDEO_ENCODER_H__
-#define __VIDEO_ENCODER_H__
+#ifndef __MP4AV_MPEG4_INCLUDED__
+#define __MP4AV_MPEG4_INCLUDED__
 
-#include "media_codec.h"
+#define VOSH_START	0xB0
+#define VOL_START	0x20
+#define GOV_START	0xB3
+#define VOP_START	0xB6
 
-class CVideoEncoder : public CMediaCodec {
-public:
-	CVideoEncoder() { };
+u_int8_t MP4AV_Mpeg4VideoToSystemsProfileLevel(u_int8_t videoProfileLevel);
 
-	virtual bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-		bool wantKeyFrame = false) = NULL;
+u_char MP4AV_Mpeg4GetVopType(u_int8_t* pVopBuf, u_int32_t vopSize);
 
-	virtual bool GetEncodedImage(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
-
-	virtual bool GetReconstructedImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
-};
-
-#endif /* __VIDEO_ENCODER_H__ */
-
+#endif /* __MP4AV_MPEG4_INCLUDED__ */

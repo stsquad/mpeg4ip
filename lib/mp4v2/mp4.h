@@ -107,7 +107,8 @@ typedef u_int64_t	MP4Duration;
 #define MP4_MPEG2_AAC_AUDIO_TYPE		MP4_MPEG2_AAC_MAIN_AUDIO_TYPE
 #define MP4_MPEG4_AUDIO_TYPE			0x40
 #define MP4_PRIVATE_AUDIO_TYPE			0xC0
-#define MP4_PCM16_AUDIO_TYPE			0xD0	/* a private definition */
+#define MP4_PCM16_AUDIO_TYPE			0xE0	/* a private definition */
+#define MP4_VORBIS_AUDIO_TYPE			0xE1	/* a private definition */
 
 /* MP4 Video track types - see MP4AddVideoTrack() */
 #define MP4_INVALID_VIDEO_TYPE			0x00
@@ -121,8 +122,9 @@ typedef u_int64_t	MP4Duration;
 #define MP4_MPEG2_VIDEO_TYPE			MP4_MPEG2_MAIN_VIDEO_TYPE
 #define MP4_MPEG4_VIDEO_TYPE			0x20
 #define MP4_JPEG_VIDEO_TYPE				0x6C
-#define MP4_PRIVATE_VIDEO_TYPE			0xC1
-#define MP4_YUV12_VIDEO_TYPE			0xD1	/* a private definition */
+#define MP4_PRIVATE_VIDEO_TYPE			0xD0
+#define MP4_YUV12_VIDEO_TYPE			0xF0	/* a private definition */
+#define MP4_H26L_VIDEO_TYPE				0xF1	/* a private definition */
 
 
 /* MP4 API declarations */

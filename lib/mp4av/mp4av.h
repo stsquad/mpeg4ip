@@ -13,31 +13,24 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __VIDEO_ENCODER_H__
-#define __VIDEO_ENCODER_H__
+#ifndef __MP4AV_INCLUDED__
+#define __MP4AV_INCLUDED__ 
 
-#include "media_codec.h"
+#ifdef NODEBUG
+#define ASSERT(expr)
+#else
+#include <assert.h>
+#define ASSERT(expr)	assert(expr)
+#endif
 
-class CVideoEncoder : public CMediaCodec {
-public:
-	CVideoEncoder() { };
+#include <mp4.h>
+#include "mp4av_hinters.h"
 
-	virtual bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-		bool wantKeyFrame = false) = NULL;
-
-	virtual bool GetEncodedImage(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
-
-	virtual bool GetReconstructedImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
-};
-
-#endif /* __VIDEO_ENCODER_H__ */
+#endif /* __MP4AV_INCLUDED__ */ 
 

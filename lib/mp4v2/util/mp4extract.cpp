@@ -28,7 +28,8 @@ char* Mp4FileName;
 
 // forward declaration
 void PrintTrackList(MP4FileHandle mp4File);
-void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode);
+void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, 
+	bool sampleMode, char* dstFileName = NULL);
 
 
 int main(int argc, char** argv)
@@ -38,6 +39,7 @@ int main(int argc, char** argv)
 	bool doList = false;
 	bool doSamples = false;
 	MP4TrackId trackId = 0;
+	char* dstFileName = NULL;
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
 
 	/* begin processing command line */
@@ -111,10 +113,17 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 	
-	if (verbosity != 0)
-	  fprintf(stderr, "%s version %s\n", ProgName, VERSION);
+	if (verbosity) {
+		fprintf(stderr, "%s version %s\n", ProgName, VERSION);
+	}
+
 	/* point to the specified file names */
 	Mp4PathName = argv[optind++];
+
+	/* get dest file name for a single track */
+	if (trackId && (argc - optind) > 0) {
+		dstFileName = argv[optind++];
+	}
 
 	char* lastSlash = strrchr(Mp4PathName, '/');
 	if (lastSlash) {
@@ -154,7 +163,7 @@ int main(int argc, char** argv)
 			ExtractTrack(mp4File, trackId, doSamples);
 		}
 	} else {
-		ExtractTrack(mp4File, trackId, doSamples);
+		ExtractTrack(mp4File, trackId, doSamples, dstFileName);
 	}
 
 	MP4Close(mp4File);
@@ -174,13 +183,20 @@ void PrintTrackList(MP4FileHandle mp4File)
 	}
 }
 
-void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode)
+void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, 
+	bool sampleMode, char* dstFileName)
 {
 	char outFileName[PATH_MAX];
 	int outFd = -1;
 
 	if (!sampleMode) {
-		snprintf(outFileName, sizeof(outFileName), "%s.t%u", Mp4FileName, trackId);
+		if (dstFileName == NULL) {
+			snprintf(outFileName, sizeof(outFileName), 
+				"%s.t%u", Mp4FileName, trackId);
+		} else {
+			snprintf(outFileName, sizeof(outFileName), 
+				"%s", dstFileName);
+		}
 
 		outFd = open(outFileName, 
 			O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -232,14 +248,19 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode)
 				MP4GetTrackType(mp4File, trackId);
 
 			if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
-				u_int8_t* pConfig = NULL;
-				u_int32_t configSize;
+				u_int8_t videoType =
+					MP4GetTrackVideoType(mp4File, trackId);
 
-				MP4GetTrackESConfiguration(mp4File, trackId, 
-					&pConfig, &configSize);
-				write(outFd, pConfig, configSize);
+				if (videoType != MP4_YUV12_VIDEO_TYPE) {
+					u_int8_t* pConfig = NULL;
+					u_int32_t configSize;
 
-				free(pConfig);
+					MP4GetTrackESConfiguration(mp4File, trackId, 
+						&pConfig, &configSize);
+					write(outFd, pConfig, configSize);
+
+					free(pConfig);
+				}
 			}
 		}
 

@@ -30,9 +30,11 @@
 #ifdef ADD_FFMPEG_ENCODER
 #include "video_ffmpeg.h"
 #endif
-
 #ifdef ADD_XVID_ENCODER
 #include "video_xvid.h"
+#endif
+#ifdef ADD_H26L_ENCODER
+#include "video_h26l.h"
 #endif
 
 
@@ -456,6 +458,14 @@ bool CVideoSource::InitEncoder()
 		error_message("xvid encoder not available in this build");
 		return false;
 #endif
+	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_H26L)) {
+#ifdef ADD_H26L_ENCODER
+		error_message("H.26L encoder not feasible for real time encoding");
+		return false;
+#else
+		error_message("H.26L encoder not available in this build");
+		return false;
+#endif
 	} else {
 		error_message("unknown encoder specified");
 		return false;
@@ -600,7 +610,7 @@ void CVideoSource::ProcessVideo(void)
 			}
 
 			// hold onto this encoded vop until next one is ready
-			m_encoder->GetEncodedFrame(&m_prevVopBuf, &m_prevVopBufLength);
+			m_encoder->GetEncodedImage(&m_prevVopBuf, &m_prevVopBufLength);
 			m_prevVopTimestamp = frameTimestamp;
 
 			m_encodedFrameNumber++;
