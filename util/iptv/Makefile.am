@@ -15,4 +15,5 @@ iptv_prog_LDADD = \
 	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
 	$(top_builddir)/player/lib/libhttp/libhttp.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
         -lm

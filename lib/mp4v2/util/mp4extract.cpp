@@ -187,11 +187,7 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId,
 {
 	char outFileName[PATH_MAX];
 	int outFd = -1;
-	int openFlags = O_WRONLY | O_CREAT | O_TRUNC;
-
-#ifdef _WIN32
-	openFlags |= O_BINARY;
-#endif
+	int openFlags = O_WRONLY | O_TRUNC | OPEN_CREAT;
 
 	if (!sampleMode) {
 		if (dstFileName == NULL) {

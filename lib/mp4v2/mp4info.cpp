@@ -99,11 +99,8 @@ static char* PrintAudioInfo(
 		MP4GetTrackDuration(mp4File, trackId);
 
 	double msDuration =
-#ifdef _WIN32
-		(int64_t)
-#endif
-		MP4ConvertFromTrackDuration(mp4File, trackId, 
-			trackDuration, MP4_MSECS_TIME_SCALE);
+		UINT64_TO_DOUBLE(MP4ConvertFromTrackDuration(mp4File, trackId, 
+			trackDuration, MP4_MSECS_TIME_SCALE));
 
 	u_int32_t avgBitRate =
 		MP4GetTrackBitRate(mp4File, trackId);
@@ -201,11 +198,8 @@ static char* PrintVideoInfo(
 		MP4GetTrackDuration(mp4File, trackId);
 
 	double msDuration =
-#ifdef _WIN32
-		(int64_t)
-#endif
-		MP4ConvertFromTrackDuration(mp4File, trackId, 
-			trackDuration, MP4_MSECS_TIME_SCALE);
+		UINT64_TO_DOUBLE(MP4ConvertFromTrackDuration(mp4File, trackId, 
+			trackDuration, MP4_MSECS_TIME_SCALE));
 
 	u_int32_t avgBitRate =
 		MP4GetTrackBitRate(mp4File, trackId);

@@ -22,10 +22,10 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: config.c,v 1.8 2002/07/05 17:34:27 wmaycisco Exp $
+ * $Id: config.c,v 1.9 2003/01/23 22:33:51 wmaycisco Exp $
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_MEAN_AND_LEAN
 #include <windows.h>
 #endif

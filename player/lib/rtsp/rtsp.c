@@ -30,7 +30,7 @@ void free_rtsp_client (rtsp_client_t *rptr)
     rtsp_close_thread(rptr);
   } else {
     rtsp_close_socket(rptr);
-#ifdef _WINDOWS
+#ifdef _WIN32
     WSACleanup();
 #endif
   }
@@ -87,7 +87,7 @@ rtsp_client_t *rtsp_create_client (const char *url, int *err)
 {
   rtsp_client_t *info;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
   WORD wVersionRequested;
   WSADATA wsaData;
   int ret;

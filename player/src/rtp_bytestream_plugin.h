@@ -64,6 +64,8 @@ class CPluginRtpByteStream : public CRtpByteStreamBase
   };
   rtp_packet *get_next_pak(rtp_packet *current, int remove);
   void remove_from_list(rtp_packet *pak);
+  int check_rtp_frame_complete_for_payload_type(void) 
+    { return !have_no_data(); };
  protected:
   rtp_plugin_t *m_rtp_plugin;
   rtp_plugin_data_t *m_rtp_plugin_data;

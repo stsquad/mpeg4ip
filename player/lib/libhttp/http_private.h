@@ -76,7 +76,7 @@ void http_resp_clear(http_resp_t *rptr);
 #endif
 
 void http_debug(int loglevel, const char *fmt, ...)
-#ifndef _WINDOWS
+#ifndef _WIN32
      __attribute__((format(__printf__, 2, 3)));
 #endif
      ;

@@ -23,7 +23,7 @@
  */
 
 #include "systems.h"
-#ifndef _WINDOWS
+#ifndef _WIN32
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>

@@ -175,7 +175,7 @@ static int mpeg2t_thread_start_cmd (mpeg2t_client_t *info)
 {
   int ret;
   mpeg2t_message(LOG_DEBUG, "Processing start command");
-#ifdef _WINDOWS
+#ifdef _WIN32
   WORD wVersionRequested;
   WSADATA wsaData;
  
@@ -311,7 +311,7 @@ int mpeg2t_thread (void *data)
   }
 
   mpeg2t_close_thread(info);
-#ifdef _WINDOWS
+#ifdef _WIN32
   WSACleanup();
 #endif
   return 0;

@@ -212,81 +212,81 @@ RTSP_HEADER_FUNC(rtsp_header_blocksize)
 
 RTSP_HEADER_FUNC(rtsp_header_cache_control)
 {
-  DEC_DUP_WARN(cache_control, "Cache-control:");
+  DEC_DUP_WARN(cache_control, "Cache-control");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_content_enc)
 {
-  DEC_DUP_WARN(content_encoding, "Content-Encoding:");
+  DEC_DUP_WARN(content_encoding, "Content-Encoding");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_content_lang)
 {
-  DEC_DUP_WARN(content_language, "Content-Language:");
+  DEC_DUP_WARN(content_language, "Content-Language");
 }
 RTSP_HEADER_FUNC(rtsp_header_date)
 {
-  DEC_DUP_WARN(date, "Date:");
+  DEC_DUP_WARN(date, "Date");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_expires)
 {
-  DEC_DUP_WARN(expires, "Expires:");
+  DEC_DUP_WARN(expires, "Expires");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_from)
 {
-  DEC_DUP_WARN(from, "From:");
+  DEC_DUP_WARN(from, "From");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_ifmod)
 {
-  DEC_DUP_WARN(if_modified_since, "If-Modified-Since:");
+  DEC_DUP_WARN(if_modified_since, "If-Modified-Since");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_lastmod)
 {
-  DEC_DUP_WARN(last_modified, "Last-Modified:");
+  DEC_DUP_WARN(last_modified, "Last-Modified");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_proxyauth)
 {
-  DEC_DUP_WARN(proxy_authenticate, "Proxy-Authenticate:");
+  DEC_DUP_WARN(proxy_authenticate, "Proxy-Authenticate");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_proxyreq)
 {
-  DEC_DUP_WARN(proxy_require, "Proxy-Require:");
+  DEC_DUP_WARN(proxy_require, "Proxy-Require");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_referer)
 {
-  DEC_DUP_WARN(referer, "Referer:");
+  DEC_DUP_WARN(referer, "Referer");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_scale)
 {
-  DEC_DUP_WARN(scale, "Scale:");
+  DEC_DUP_WARN(scale, "Scale");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_server)
 {
-  DEC_DUP_WARN(server, "Server:");
+  DEC_DUP_WARN(server, "Server");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_unsup)
 {
-  DEC_DUP_WARN(unsupported, "Unsupported:");
+  DEC_DUP_WARN(unsupported, "Unsupported");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_uagent)
 {
-  DEC_DUP_WARN(user_agent, "User-Agent:");
+  DEC_DUP_WARN(user_agent, "User-Agent");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_via)
 {
-  DEC_DUP_WARN(via, "Via:");
+  DEC_DUP_WARN(via, "Via");
 }
 
 /*
@@ -300,47 +300,47 @@ static struct {
   void (*parse_routine)(const char *lptr, rtsp_decode_t *decode, int cont_line);
 } header_types[] =
 {
-#define HEAD_TYPE(a, b) { a, sizeof(a), b }
-  HEAD_TYPE("Allow:", rtsp_header_allow_public),
-  HEAD_TYPE("Public:", rtsp_header_allow_public),
-  HEAD_TYPE("Connection:", rtsp_header_connection),
-  HEAD_TYPE("Content-Base:", rtsp_header_content_base),
-  HEAD_TYPE("Content-Length:", rtsp_header_content_length),
-  HEAD_TYPE("Content-Location:", rtsp_header_content_loc),
-  HEAD_TYPE("Content-Type:", rtsp_header_content_type),
-  HEAD_TYPE("CSeq:", rtsp_header_cseq),
-  HEAD_TYPE("Location:", rtsp_header_location),
-  HEAD_TYPE("Range:", rtsp_header_range),
-  HEAD_TYPE("Retry-After:", rtsp_header_retry_after),
-  HEAD_TYPE("RTP-Info:", rtsp_header_rtp),
-  HEAD_TYPE("Session:", rtsp_header_session),
-  HEAD_TYPE("Set-Cookie:", rtsp_header_cookie),
-  HEAD_TYPE("Speed:", rtsp_header_speed),
-  HEAD_TYPE("Transport:", rtsp_header_transport),
-  HEAD_TYPE("WWW-Authenticate:", rtsp_header_www),
+#define HEAD_TYPE(a, b) { a, sizeof(a) - 1, b }
+  HEAD_TYPE("AlLow", rtsp_header_allow_public),
+  HEAD_TYPE("Public", rtsp_header_allow_public),
+  HEAD_TYPE("Connection", rtsp_header_connection),
+  HEAD_TYPE("Content-Base", rtsp_header_content_base),
+  HEAD_TYPE("Content-Length", rtsp_header_content_length),
+  HEAD_TYPE("Content-Location", rtsp_header_content_loc),
+  HEAD_TYPE("Content-Type", rtsp_header_content_type),
+  HEAD_TYPE("CSeq", rtsp_header_cseq),
+  HEAD_TYPE("Location", rtsp_header_location),
+  HEAD_TYPE("Range", rtsp_header_range),
+  HEAD_TYPE("Retry-After", rtsp_header_retry_after),
+  HEAD_TYPE("RTP-Info", rtsp_header_rtp),
+  HEAD_TYPE("Session", rtsp_header_session),
+  HEAD_TYPE("Set-Cookie", rtsp_header_cookie),
+  HEAD_TYPE("Speed", rtsp_header_speed),
+  HEAD_TYPE("Transport", rtsp_header_transport),
+  HEAD_TYPE("WWW-Authenticate", rtsp_header_www),
   // None of these are needed for client, but are included for completion
-  HEAD_TYPE("Accept:", rtsp_header_accept),
-  HEAD_TYPE("Accept-Encoding:", rtsp_header_accept_enc),
-  HEAD_TYPE("Accept-Language:", rtsp_header_accept_lang),
-  HEAD_TYPE("Authorization:", rtsp_header_auth),
-  HEAD_TYPE("Bandwidth:", rtsp_header_bandwidth),
-  HEAD_TYPE("Blocksize:", rtsp_header_blocksize),
-  HEAD_TYPE("Cache-Control:", rtsp_header_cache_control),
-  HEAD_TYPE("Content-Encoding:", rtsp_header_content_enc),
-  HEAD_TYPE("Content-Language:", rtsp_header_content_lang),
-  HEAD_TYPE("Date:", rtsp_header_date),
-  HEAD_TYPE("Expires:", rtsp_header_expires),
-  HEAD_TYPE("From:", rtsp_header_from),
-  HEAD_TYPE("If-Modified-Since:", rtsp_header_ifmod),
-  HEAD_TYPE("Last-Modified:", rtsp_header_lastmod),
-  HEAD_TYPE("Proxy-Authenticate:", rtsp_header_proxyauth),
-  HEAD_TYPE("Proxy-Require:", rtsp_header_proxyreq),
-  HEAD_TYPE("Referer:", rtsp_header_referer),
-  HEAD_TYPE("Scale:", rtsp_header_scale),
-  HEAD_TYPE("Server:", rtsp_header_server),
-  HEAD_TYPE("Unsupported:", rtsp_header_unsup),
-  HEAD_TYPE("User-Agent:", rtsp_header_uagent),
-  HEAD_TYPE("Via:", rtsp_header_via),
+  HEAD_TYPE("Accept", rtsp_header_accept),
+  HEAD_TYPE("Accept-Encoding", rtsp_header_accept_enc),
+  HEAD_TYPE("Accept-Language", rtsp_header_accept_lang),
+  HEAD_TYPE("Authorization", rtsp_header_auth),
+  HEAD_TYPE("Bandwidth", rtsp_header_bandwidth),
+  HEAD_TYPE("Blocksize", rtsp_header_blocksize),
+  HEAD_TYPE("Cache-Control", rtsp_header_cache_control),
+  HEAD_TYPE("Content-Encoding", rtsp_header_content_enc),
+  HEAD_TYPE("Content-Language", rtsp_header_content_lang),
+  HEAD_TYPE("Date", rtsp_header_date),
+  HEAD_TYPE("Expires", rtsp_header_expires),
+  HEAD_TYPE("From", rtsp_header_from),
+  HEAD_TYPE("If-Modified-Since", rtsp_header_ifmod),
+  HEAD_TYPE("Last-Modified", rtsp_header_lastmod),
+  HEAD_TYPE("Proxy-Authenticate", rtsp_header_proxyauth),
+  HEAD_TYPE("Proxy-Require", rtsp_header_proxyreq),
+  HEAD_TYPE("Referer", rtsp_header_referer),
+  HEAD_TYPE("Scale", rtsp_header_scale),
+  HEAD_TYPE("Server", rtsp_header_server),
+  HEAD_TYPE("Unsupported", rtsp_header_unsup),
+  HEAD_TYPE("User-Agent", rtsp_header_uagent),
+  HEAD_TYPE("Via", rtsp_header_via),
   { NULL, 0, NULL },
 };
 
@@ -365,16 +365,19 @@ static void rtsp_decode_header (const char *lptr,
   while (header_types[ix].val != NULL) {
     if (strncasecmp(lptr,
 		    header_types[ix].val,
-		    header_types[ix].val_length - 1) == 0) {
+		    header_types[ix].val_length) == 0) {
       after = lptr + header_types[ix].val_length;
-
       ADV_SPACE(after);
-      /*
-       * Call the correct parsing routine
-       */
-      (header_types[ix].parse_routine)(after, info->decode_response, 0);
-      *last_number = ix;
-      return;
+      if (*after == ':') {
+	after++;
+	ADV_SPACE(after);
+	/*
+	 * Call the correct parsing routine
+	 */
+	(header_types[ix].parse_routine)(after, info->decode_response, 0);
+	*last_number = ix;
+	return;
+      }
     }
     ix++;
   }
@@ -728,17 +731,11 @@ int rtsp_get_response (rtsp_client_t *info)
 	  }
 	  return (RTSP_RESPONSE_REDIRECT);
 	}
+      } else {
+	rtsp_debug(LOG_ERR, "Incorrect cseq in RTSP message - expected %d got %d", 
+		   info->next_cseq, decode->cseq);
       }
-#if 0
-      if (info->m_buffer_len != 0) {
-	// We have more in the buffer - see if it's what
-	// we need
-	// clear out last response
-	clear_decode_response(decode);
-	memset(decode, 0, sizeof(rtsp_decode_t));
-      }
-#endif
-    } while (info->m_buffer_len != 0);
+    } while (rtsp_bytes_in_buffer(info) > 0);
   } 
   return (RTSP_RESPONSE_RECV_ERROR);
 }

@@ -227,7 +227,7 @@ void CClientProcess::msg_send_thread (void)
 					   sizeof(param));
 			} else {
 				uint32_t msg_len;
-				const unsigned char *foo;
+				const void *foo;
 				foo = msg->get_message(msg_len);
 				if (msg_len > 0) {
 					memcpy(pmbox->to_gui_mbox,

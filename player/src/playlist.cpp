@@ -3,7 +3,7 @@
 
 CPlaylist::CPlaylist (const char *filename, const char **errmsg)
 {
-  #ifndef _WINDOWS
+  #ifndef _WIN32
   struct stat statbuf;
   if (stat(filename, &statbuf) != 0) {
     *errmsg = "File not found";

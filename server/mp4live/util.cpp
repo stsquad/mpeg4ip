@@ -20,51 +20,16 @@
  */
 
 #include "systems.h"
-#ifndef _WINDOWS
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdarg.h>
-#endif
 
 #include "util.h"
-
-#if _WIN32 && _DEBUG
-#include "SDL.h"
-#include "SDL_thread.h"
-
-SDL_mutex *outex;
-static int initialized = 0;
-static void init_local_mutex (void)
-{
-	outex = SDL_CreateMutex();
-	initialized = 1;
-}
-static void lock_mutex(void)
-{
-	SDL_mutexP(outex);
-} 
-static void unlock_mutex(void)
-{
-	SDL_mutexV(outex);
-}
-#endif
 
 void error_message (const char *fmt, ...)
 {
   va_list ap;
-#if _WIN32 && _DEBUG
-        char msg[512];
-
-		if (initialized) init_local_mutex();
-		lock_mutex();
-        va_start(ap, fmt);
-	_vsnprintf(msg, 512, fmt, ap);
-        va_end(ap);
-        OutputDebugString(msg);
-		OutputDebugString("\n");
-		unlock_mutex();
-#else
   struct timeval thistime;
   char buffer[80];
 
@@ -76,7 +41,6 @@ void error_message (const char *fmt, ...)
   vprintf(fmt, ap);
   va_end(ap);
   printf("\n");
-#endif
 }
 
 bool PrintDebugMessages = false;
@@ -88,18 +52,6 @@ void debug_message (const char *fmt, ...)
   }
 
   va_list ap;
-#if _WIN32 && _DEBUG
-       char msg[512];
-
-	   if (initialized) init_local_mutex();
-		lock_mutex();
-        va_start(ap, fmt);
-	_vsnprintf(msg, 512, fmt, ap);
-        va_end(ap);
-        OutputDebugString(msg);
-		OutputDebugString("\n");
-		unlock_mutex();
-#else
   struct timeval thistime;
   char buffer[80];
 
@@ -111,7 +63,6 @@ void debug_message (const char *fmt, ...)
   vprintf(fmt, ap);
   va_end(ap);
   printf("\n");
-#endif
 }
 
 void lib_message (int loglevel,
@@ -122,23 +73,6 @@ void lib_message (int loglevel,
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
-	if (IsDebuggerPresent()) {
-  char msg[512];
-
-  if (initialized == 0) init_local_mutex();
-  lock_mutex();
-  sprintf(msg, "%s:", lib);
-  OutputDebugString(msg);
-  //va_start(ap, fmt);
-  _vsnprintf(msg, 512, fmt, ap);
-  //va_end(ap);
-  OutputDebugString(msg);
-  OutputDebugString("\n");
-  unlock_mutex();
-  return;
-	}
-#endif
 
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
@@ -152,61 +86,12 @@ void lib_message (int loglevel,
   printf("\n");
 }
 
-#ifdef _WINDOWS
-#include <sys/timeb.h>
-
-int gettimeofday (struct timeval *t, void *foo)
-{
-	struct _timeb temp;
-	_ftime(&temp);
-	t->tv_sec = temp.time;
-	t->tv_usec = temp.millitm * 1000;
-	return (0);
-}
-
-char *strsep (char **sptr, const char *delim)
-{
-	char *start, *ret;
-	start = ret = *sptr;
-	if ((ret == NULL) || ret == '\0') {
-	   return (NULL);
-	}
-
-	while (*ret != '\0' &&
-		   strchr(delim, *ret) == NULL) {
-		ret++;
-	}
-	if (*ret == '\0') {
-		*sptr = NULL;
-	} else {
-	    *ret = '\0';
-	    ret++;
-	    *sptr = ret;
-	}
-	return (start);
-}
-
 void message (int loglevel, const char *lib, const char *fmt, ...)
 {
   va_list ap;
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
-  if (IsDebuggerPresent()) {
-       char msg[512];
-
-	   if (initialized == 0) init_local_mutex();
-		lock_mutex();
-        va_start(ap, fmt);
-	_vsnprintf(msg, 512, fmt, ap);
-        va_end(ap);
-        OutputDebugString(msg);
-	OutputDebugString("\n");
-	unlock_mutex();
-	return;
-  }
-#endif
 
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
@@ -219,7 +104,6 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
   va_end(ap);
   printf("\n");
 }
-#endif
 
 extern "C" char *get_host_ip_address (void)
 {

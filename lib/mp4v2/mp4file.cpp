@@ -1713,11 +1713,7 @@ float MP4File::GetTrackVideoFrameRate(MP4TrackId trackId)
 {
 	MP4SampleId numSamples =
 		GetTrackNumberOfSamples(trackId);
-#ifdef _WIN32
-	int64_t
-#else
 	u_int64_t 
-#endif
 		msDuration =
 		ConvertFromTrackDuration(trackId, 
 			GetTrackDuration(trackId), MP4_MSECS_TIME_SCALE);
@@ -1726,7 +1722,7 @@ float MP4File::GetTrackVideoFrameRate(MP4TrackId trackId)
 		return 0.0;
 	}
 
-	return ((double)numSamples / (double)msDuration) * MP4_MSECS_TIME_SCALE;
+	return ((double)numSamples / UINT64_TO_DOUBLE(msDuration)) * MP4_MSECS_TIME_SCALE;
 }
 
 void MP4File::GetTrackESConfiguration(MP4TrackId trackId, 

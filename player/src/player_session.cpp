@@ -85,7 +85,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
 CPlayerSession::~CPlayerSession ()
 {
   int hadthread = 0;
-#ifndef _WINDOWS
+#ifndef NEED_SDL_VIDEO_IN_MAIN_WINDOW
   if (m_sync_thread) {
     send_sync_thread_a_message(MSG_STOP_THREAD);
     SDL_WaitThread(m_sync_thread, NULL);
@@ -336,7 +336,7 @@ void CPlayerSession::set_up_sync_thread(void)
     media= media->get_next();
   }
   m_sync_sem = SDL_CreateSemaphore(0);
-#ifndef _WINDOWS
+#ifndef NEED_SDL_VIDEO_IN_MAIN_WINDOW
   m_sync_thread = SDL_CreateThread(c_sync_thread, this);
 #endif
 }
@@ -374,11 +374,7 @@ int CPlayerSession::play_all_media (int start_from_begin,
      * we were paused.  Continue.
      */
     m_play_start_time = m_current_time;
-#ifdef _WINDOWS
-	start_time = (double)(int64_t)m_current_time;
-#else
-    start_time = (double) m_current_time;
-#endif
+    start_time = UINT64_TO_DOUBLE(m_current_time);
     start_time /= 1000.0;
     player_debug_message("Restarting at " LLU ", %g", m_current_time, start_time);
   } else {
@@ -472,11 +468,11 @@ int CPlayerSession::pause_all_media (void)
   }
   m_sync_pause_done = 0;
   send_sync_thread_a_message(MSG_PAUSE_SESSION);
-#ifndef _WINDOWS
+#ifndef NEED_SDL_VIDEO_IN_MAIN_WINDOW
   do {
 #endif
     SDL_Delay(100);
-#ifndef _WINDOWS
+#ifndef NEED_SDL_VIDEO_IN_MAIN_WINDOW
   } while (m_sync_pause_done == 0);
 #endif
   m_paused = 1;

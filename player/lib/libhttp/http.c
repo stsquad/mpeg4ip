@@ -31,7 +31,7 @@
 http_client_t *http_init_connection (const char *name)
 {
   http_client_t *ptr;
-#ifdef _WINDOWS
+#ifdef _WIN32
 	WORD wVersionRequested;
 	WSADATA wsaData;
 	int ret;
@@ -77,7 +77,7 @@ void http_free_connection (http_client_t *ptr)
   FREE_CHECK(ptr, m_resource);
   FREE_CHECK(ptr, m_redir_location);
   free(ptr);
-#ifdef _WINDOWS
+#ifdef _WIN32
   WSACleanup();
 #endif
 }

@@ -183,11 +183,7 @@ CPlayerMedia::~CPlayerMedia()
     player_debug_message("Payload received: "LLU" bytes", m_rtp_data_received);
     div = m_rtp_packet_received / diff;
     player_debug_message("Packets per sec : %g", div);
-#ifdef _WINDOWS
-    div = (int64_t)m_rtp_data_received;
-#else
-	div = m_rtp_data_received;
-#endif
+    div = UINT64_TO_DOUBLE(m_rtp_data_received);
 	div *= 8.0;
 	div /= diff;
     media_message(LOG_INFO, "Bits per sec   : %g", div);
@@ -1254,7 +1250,7 @@ int CPlayerMedia::recv_thread (void)
     m_ports = NULL;
   }
 
-#ifdef _WINDOWS
+#ifdef _WIN32
   WORD wVersionRequested;
   WSADATA wsaData;
   int ret;

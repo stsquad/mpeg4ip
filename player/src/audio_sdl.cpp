@@ -415,7 +415,7 @@ int CSDLAudioSync::initialize_audio (int have_video)
       wanted.format = m_format;
       int sample_size;
       sample_size = m_buffer_size / (m_channels * m_bytes_per_sample);
-#ifndef _WINDOWS
+#ifndef _WIN32
       uint32_t ix;
       for (ix = 2; ix <= 0x8000; ix <<= 1) {
 	if ((sample_size & ~(ix - 1)) == 0) {

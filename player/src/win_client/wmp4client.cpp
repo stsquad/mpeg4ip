@@ -114,9 +114,9 @@ int main (int argc, char **argv)
 				break;
 			case MSG_SDL_KEY_EVENT:
 				uint32_t len;
-				const unsigned char *sdl_event = msg->get_message(len);
+				void *sdl_event = (void *)msg->get_message(len);
 				proc.send_message(GUI_MSG_SDL_KEY,
-								  (void *)sdl_event,
+								  sdl_event,
 								  len);
 				break;
 			}

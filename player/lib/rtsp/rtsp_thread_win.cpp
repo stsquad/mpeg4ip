@@ -17,7 +17,7 @@ int rtsp_thread_ipc_respond (rtsp_client_t *info, int msg)
 
 int rtsp_thread_ipc_receive (rtsp_client_t *info, char *msg, size_t msg_len)
 {
-	const unsigned char *ptr;
+	const void *ptr;
 	uint32_t len;
 	if (info->m_thread_info->msg == NULL) 
 		return -1;
@@ -78,8 +78,9 @@ int rtsp_thread_has_control_message (rtsp_client_t *info)
 int rtsp_thread_has_receive_data (rtsp_client_t *info)
 {
   rtsp_thread_info_t *tinfo = info->m_thread_info;
-  DWORD ret;
 #if 0
+  DWORD ret;
+
   if (tinfo->socket_event != NULL)
 	  return FALSE;
 
@@ -217,7 +218,6 @@ void rtsp_thread_close (rtsp_client_t *info)
 void rtsp_thread_set_nonblocking (rtsp_client_t *info)
 {
     rtsp_thread_info_t *tinfo = info->m_thread_info;
-	DWORD ret;
 	
 	tinfo->socket_event = CreateEvent(NULL,
 		TRUE, 

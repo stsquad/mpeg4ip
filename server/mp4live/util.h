@@ -50,15 +50,11 @@ extern "C" {
 #endif
 
 void error_message(const char *fmt, ...)
-#ifndef _WINDOWS
        __attribute__((format(__printf__, 1, 2)))
-#endif
 ;
 
 void debug_message(const char *fmt, ...)
-#ifndef _WINDOWS
        __attribute__((format(__printf__, 1, 2)))
-#endif
 	   ;
 
 void lib_message(int loglevel,
@@ -67,9 +63,7 @@ void lib_message(int loglevel,
 		 va_list ap);
 
 void message(int loglevel, const char *lib, const char *fmt, ...)
-#ifndef _WIN32
        __attribute__((format(__printf__, 3, 4)))
-#endif
 	   ;
 
 char *get_host_ip_address(void);

@@ -166,11 +166,7 @@ void CMpeg3VideoByteStream::play (uint64_t start)
   m_play_start_time = start;
 
   double ts;
-#ifdef _WIN32
-  ts = (int64_t)start;
-#else
-  ts = start;
-#endif
+  ts = UINT64_TO_DOUBLE(start);
   ts /= 1000.0;
 
   set_timebase(ts);
@@ -308,11 +304,7 @@ void CMpeg3AudioByteStream::play (uint64_t start)
 
   double ts;
 
-#if _WIN32
-  ts = (int64_t)start;
-#else
-  ts = start;
-#endif
+  ts = UINT64_TO_DOUBLE(start);
   ts /= 1000.0;
 
   set_timebase(ts);

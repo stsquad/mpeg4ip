@@ -24,10 +24,10 @@ Copyright (c)1997.
 
 ***************************************************************************/
 /*
- * $Id: nok_lt_prediction.c,v 1.7 2002/01/11 00:55:17 wmaycisco Exp $
+ * $Id: nok_lt_prediction.c,v 1.8 2003/01/23 22:33:51 wmaycisco Exp $
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_MEAN_AND_LEAN
 #include <windows.h>
 #endif
@@ -53,7 +53,7 @@ void nok_init_lt_pred(NOK_LT_PRED_STATUS **lt_status, int channels)
 
     for (ch = 0; ch < channels; ch++) {
         lt_status[ch]->buffer = AllocMemory(NOK_LT_BLEN*sizeof(float));
-#ifndef WIN32
+#ifndef _WIN32
         SetMemory(lt_status[ch]->buffer, 0, NOK_LT_BLEN*sizeof(float));
 #endif
     }

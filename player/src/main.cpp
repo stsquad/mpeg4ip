@@ -115,11 +115,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
       play_time = psptr->get_playing_time();
       double ptime, maxtime;
       play_time += 10 * M_LLU;
-      ptime = (double)
-#ifdef _WIN32
-		  (int64_t)
-#endif
-		  play_time;
+      ptime = UINT64_TO_DOUBLE(play_time);
       ptime /= 1000.0;
       maxtime = psptr->get_max_time();
       if (ptime < maxtime) {
@@ -134,11 +130,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
       double ptime;
       if (play_time >= 10 * M_LLU) {
 	play_time -= 10 * M_LLU;
-	ptime = (double)
-#ifdef _WIN32
-		(int64_t)
-#endif
-		play_time;
+	ptime = UINT64_TO_DOUBLE(play_time);
 	ptime /= 1000.0;
 	psptr->pause_all_media();
 	if (psptr->play_all_media(FALSE, ptime) < 0) return -1;
@@ -217,12 +209,12 @@ static int start_session (const char *name, int max_loop)
     session_paused = 0;
     int keep_going = 0;
     int paused = 0;
-#ifdef _WIN32
+#ifdef NEED_SDL_VIDEO_IN_MAIN_WINDOW
     int state = 0;
 #endif
     do {
       CMsg *msg;
-#ifdef _WIN32
+#ifdef NEED_SDL_VIDEO_IN_MAIN_WINDOW
       state = psptr->sync_thread(state);
 #else
       SDL_SemWaitTimeout(master_sem, 10000);

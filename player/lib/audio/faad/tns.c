@@ -22,10 +22,10 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: tns.c,v 1.6 2002/01/11 00:55:17 wmaycisco Exp $
+ * $Id: tns.c,v 1.7 2003/01/23 22:33:51 wmaycisco Exp $
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_MEAN_AND_LEAN
 #include <windows.h>
 #endif

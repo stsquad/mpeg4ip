@@ -53,8 +53,8 @@ CIpPort::CIpPort (in_port_t startport, in_port_t maxport)
       m_sock = -1;
     }
   } 
-      
-#if !defined(HAVE_SOCKLEN_T) || defined _WIN32
+ 
+#ifdef _WIN32
   int socklen;
 #else
   socklen_t socklen;

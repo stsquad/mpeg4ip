@@ -59,11 +59,7 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
 				       m_track, 
 				       trackDuration,
 				       MP4_MSECS_TIME_SCALE);
-#ifdef _WINDOWS
-  m_max_time = (int64_t)(max_ts);
-#else
-  m_max_time = max_ts;
-#endif
+  m_max_time = UINT64_TO_DOUBLE(max_ts);
   m_max_time /= 1000.0;
   mp4f_message(LOG_DEBUG, 
 	       "MP4 %s max time is "LLU" %g", type, max_ts, m_max_time);

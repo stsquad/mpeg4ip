@@ -22,10 +22,10 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: dolby_adapt.c,v 1.5 2002/01/11 00:55:17 wmaycisco Exp $
+ * $Id: dolby_adapt.c,v 1.6 2003/01/23 22:33:51 wmaycisco Exp $
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #endif
 #include <stdio.h>

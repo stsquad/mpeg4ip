@@ -462,7 +462,7 @@ static int avi_close_output_file(avi_t *AVI)
 
    if ( lseek(AVI->fdes,0,SEEK_SET)<0 ||
         write(AVI->fdes,AVI_header,HEADERBYTES)!=HEADERBYTES ||
-#ifndef _WINDOWS
+#ifndef _WIN32
         ftruncate(AVI->fdes,AVI->pos)<0
 #else
 		_chsize(AVI->fdes,AVI->pos)<0 
@@ -1211,7 +1211,7 @@ char *AVI_strerror()
       AVI_errno == AVI_ERR_CLOSE )
    {
       sprintf(error_string,"%s - %s",avi_errors[aerrno],
-#ifndef _WINDOWS
+#ifndef _WIN32
 			strerror(errno)
 #else
 			_strerror(NULL)

@@ -27,6 +27,7 @@
 #define HAVE_IN_PORT_T
 #define HAVE_SOCKLEN_T
 #include <win32_ver.h>
+#define NEED_SDL_VIDEO_IN_MAIN_THREAD
 #else
 #undef PACKAGE
 #undef VERSION
@@ -97,6 +98,7 @@ int gettimeofday(struct timeval *t, void *);
 #define LLD "%I64d"
 #define LLU "%I64u"
 #define LLX "%I64x"
+#define LLX16 "%016I64x"
 #define M_LLU 1000i64
 #define C_LLU 100i64
 #define I_LLU 1i64
@@ -123,6 +125,7 @@ int gettimeofday(struct timeval *t, void *);
 #define FOPEN_READ_BINARY "rb"
 #define FOPEN_WRITE_BINARY "wb"
 
+#define UINT64_TO_DOUBLE(a) ((double)((int64_t)(a)))
 #else /* UNIX */
 
 #define _FILE_OFFSET_BITS 64
@@ -168,6 +171,7 @@ int gettimeofday(struct timeval *t, void *);
 #define LLD "%lld"
 #define LLU "%llu"
 #define LLX "%llx"
+#define LLX16 "%016llx"
 #define M_LLU 1000LLU
 #define C_LLU 100LLU
 #define I_LLU 1LLU
@@ -181,6 +185,7 @@ int gettimeofday(struct timeval *t, void *);
 
 #define FOPEN_READ_BINARY "r"
 #define FOPEN_WRITE_BINARY "w"
+#define UINT64_TO_DOUBLE(a) ((double)(a))
 #endif /* define unix */
 
 #include <stdarg.h>

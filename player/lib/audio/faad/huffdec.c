@@ -24,10 +24,10 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: huffdec.c,v 1.5 2002/01/11 00:55:17 wmaycisco Exp $
+ * $Id: huffdec.c,v 1.6 2003/01/23 22:33:51 wmaycisco Exp $
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_MEAN_AND_LEAN
 #include <windows.h>
 #endif
@@ -744,7 +744,7 @@ static int huffspec(faacDecHandle hDecoder, Info *info, int nsect, byte *sect,
     quantPtr = quant;
     tmp_specPtr = tmp_spec;
 
-#ifndef WIN32
+#ifndef _WIN32
     SetMemory(quant, 0, LN2*sizeof(int));
 #endif
 

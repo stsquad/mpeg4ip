@@ -382,11 +382,7 @@ int CPlayerMedia::decode_thread (void)
 
     fps = frames_decoded;
     fps /= secs;
-    bps = 
-#ifdef _WIN32
-		(int64_t)
-#endif
-		bytes_decoded;
+    bps = UINT64_TO_DOUBLE(bytes_decoded);
     bps *= 8.0 / secs;
     media_message(LOG_NOTICE, "%s - bytes "LLU", seconds %g, fps %g bps "LLU,
 		  m_is_video ? "video" : "audio", 

@@ -27,7 +27,7 @@
 #include "our_config_file.h"
 //#define DEBUG_RTP_PAKS 1
 //#define DEBUG_RTP_BCAST 1
-//#define DEBUG_RTP_WCLOCK 1
+#define DEBUG_RTP_WCLOCK 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 #else

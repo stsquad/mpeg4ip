@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "codec_plugin.h"
-#ifdef _WINDOWS
+#ifdef _WIN32
 #include <windows.h>
 #include <mmsystem.h>
 #endif // __PC_COMPILER_

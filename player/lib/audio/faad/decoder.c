@@ -25,7 +25,7 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 
-#ifdef WIN32
+#ifdef _WIN32
 #define WIN32_MEAN_AND_LEAN
 #include <windows.h>
 #endif
@@ -126,7 +126,7 @@ faacDecHandle FAADAPI faacDecOpen(void)
     faacDecHandle hDecoder = NULL;
 
     hDecoder = (faacDecHandle)AllocMemory(sizeof(faacDecStruct));
-#ifndef WIN32
+#ifndef _WIN32
     SetMemory(hDecoder, 0, sizeof(faacDecStruct));
 #endif
 
@@ -161,7 +161,7 @@ faacDecHandle FAADAPI faacDecOpen(void)
         hDecoder->last_rstgrp_num[i] = 0;
         hDecoder->wnd_shape[i].prev_bk = 0;
 
-#ifndef WIN32 /* WIN32 API sets memory to 0 in allocation */
+#ifndef _WIN32 /* WIN32 API sets memory to 0 in allocation */
         SetMemory(hDecoder->coef[i],0,LN2*sizeof(Float));
         SetMemory(hDecoder->data[i],0,LN2*sizeof(Float));
         SetMemory(hDecoder->state[i],0,LN*sizeof(Float));

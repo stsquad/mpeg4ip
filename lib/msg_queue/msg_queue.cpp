@@ -27,7 +27,7 @@
 /*****************************************************************************
  * CMsg class methods.  Defines information about a single message
  *****************************************************************************/
-CMsg::CMsg (uint32_t value, unsigned char *msg, uint32_t msg_len)
+CMsg::CMsg (uint32_t value, void *msg, uint32_t msg_len)
 {
   m_value = value;
   m_msg_len = 0;
@@ -35,7 +35,7 @@ CMsg::CMsg (uint32_t value, unsigned char *msg, uint32_t msg_len)
   m_next = NULL;
 
   if (msg_len) {
-    m_msg = (unsigned char *)malloc(msg_len);
+    m_msg = malloc(msg_len);
 	if (m_msg) {
 		memcpy(m_msg, msg, msg_len);
 		m_msg_len = msg_len;
@@ -62,7 +62,7 @@ CMsg::~CMsg (void)
   }
 }
 
-const unsigned char *CMsg::get_message (uint32_t &len)
+const void *CMsg::get_message (uint32_t &len)
 {
   len = m_msg_len;
   return (m_msg);
@@ -92,7 +92,7 @@ CMsgQueue::~CMsgQueue (void)
 }
 
 int CMsgQueue::send_message (uint32_t msgval, 
-			     unsigned char *msg, 
+			     void *msg, 
 			     uint32_t msg_len, 
 			     SDL_sem *sem)
 {

@@ -59,7 +59,7 @@ typedef struct rtp_state_t {
 static int rtsp_thread_start_cmd (rtsp_client_t *info)
 {
   int ret;
-#ifdef _WINDOWS
+#ifdef _WIN32
   WORD wVersionRequested;
   WSADATA wsaData;
  
@@ -549,7 +549,7 @@ int rtsp_thread (void *data)
   }
   // exiting thread - get rid of the sockets.
   rtsp_thread_close(info);
-#ifdef _WINDOWS
+#ifdef _WIN32
   WSACleanup();
 #endif
   return 0;

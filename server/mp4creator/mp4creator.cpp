@@ -641,11 +641,7 @@ void ExtractTrack(
 	MP4TrackId trackId, 
 	const char* outputFileName)
 {
-	int openFlags = O_WRONLY | O_CREAT | O_TRUNC;
-
-#ifdef _WIN32
-	openFlags |= O_BINARY;
-#endif
+	int openFlags = O_WRONLY | O_TRUNC | OPEN_CREAT;
 
 	int outFd = open(outputFileName, openFlags, 0644);
 

@@ -281,7 +281,7 @@ extern int tns_max_bands_tbl[(1<<LEN_SAMP_IDX)][4];
 extern const int SampleRates[];
 extern int pred_max_bands_tbl[(1<<LEN_SAMP_IDX)];
 
-#ifdef WIN32
+#ifdef _WIN32
   #pragma pack(push, 8)
   #ifndef FAADAPI
     #define FAADAPI __stdcall

@@ -32,7 +32,7 @@ struct sdp_decode_info_ {
 
 void sdp_debug(int loglevel, const char *fmt, ...)
 
-#ifndef _WINDOWS
+#ifndef _WIN32
      __attribute__((format(__printf__, 2, 3)))
 #endif
      ;
