@@ -697,7 +697,8 @@ int parse_name_for_session (CPlayerSession *psptr,
 				    have_audio_driver,
 				    cc_vft);
   } else if (strcasecmp(suffix, ".mpeg") == 0 ||
-	     strcasecmp(suffix, ".mpg") == 0) {
+	     strcasecmp(suffix, ".mpg") == 0 ||
+	     strcasecmp(suffix, ".vob") == 0) {
 #ifdef _WIN32
 	  err = -1;
 #else

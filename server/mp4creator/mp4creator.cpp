@@ -1051,7 +1051,7 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
   }
 }
 
-void ExtractTrack( MP4FileHandle mp4File, MP4TrackId trackId, 
+void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId, 
 		   const char* outputFileName)
 {
   int openFlags = O_WRONLY | O_TRUNC | OPEN_CREAT;
@@ -1074,7 +1074,7 @@ void ExtractTrack( MP4FileHandle mp4File, MP4TrackId trackId,
     MP4GetTrackType(mp4File, trackId);
 
   if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
-    if (MP4_IS_MPEG4_VIDEO_TYPE(MP4GetTrackEsdsObjectTypeId(mp4File, trackId))) {
+    if (!MP4_IS_MPEG2_VIDEO_TYPE(MP4GetTrackEsdsObjectTypeId(mp4File, trackId))) {
       prependES = true;
     }
   } else if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {

@@ -100,7 +100,7 @@ const uint8_t *mpeg2t_transport_payload_start (const uint8_t *pHdr,
 {
   uint32_t adaption_control;
 #if DUMP_ADAPTION_CONTROL
-  int ix;
+  int ix, pid;
 #endif
   CHECK_MP2T_HEADER;
 
@@ -122,10 +122,12 @@ const uint8_t *mpeg2t_transport_payload_start (const uint8_t *pHdr,
     }
     *payload_len = 183 - pHdr[4];
 #if DUMP_ADAPTION_CONTROL
-    mpeg2t_message(LOG_ERR, "adaptation control - len %d", pHdr[4]);
+    pid = ((pHdr[1] << 8) | pHdr[2]) & 0x1fff;
+    mpeg2t_message(LOG_ERR, "pid %x adaptation control - len %d", 
+		   pid, pHdr[4]);
     for (ix = 0; ix < pHdr[4]; ix += 4) {
-      mpeg2t_message(LOG_DEBUG, "%d - %02x %02x %02x %02x", 
-		     ix, 
+      mpeg2t_message(LOG_ERR, "pid %x %d - %02x %02x %02x %02x", 
+		     pid, ix, 
 		     pHdr[4 + ix],
 		     pHdr[5 + ix],
 		     pHdr[6 + ix],
@@ -293,6 +295,7 @@ static void create_es (mpeg2t_t *ptr,
 		       uint32_t es_info_len)
 {
   mpeg2t_es_t *es;
+  uint32_t ix;
 
   mpeg2t_message(LOG_INFO, 
 		 "Adding ES PID %x stream type %d", pid, stream_type);
@@ -322,6 +325,14 @@ static void create_es (mpeg2t_t *ptr,
     if (es->es_data != NULL) {
       memcpy(es->es_data, es_data, es_info_len);
       es->es_info_len = es_info_len;
+    }
+    mpeg2t_message(LOG_ERR, "pid %x - es len %d", pid, es_info_len);
+    for (ix = 0; ix < es_info_len; ix += 4) {
+      mpeg2t_message(LOG_ERR, "%d - %02x %02x %02x %02x", 
+		     ix, es_data[ix], 
+		     es_data[ix + 1],
+		     es_data[ix + 2],
+		     es_data[ix + 3]);
     }
   }
   es->work_max_size = 4096;
@@ -419,6 +430,7 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
   int ret;
   uint8_t stream_type;
   uint16_t e_pid;
+  uint32_t ix;
 
   buflen = 188;
   // process pas pointer
@@ -481,7 +493,14 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
   if (len != 0) {
     // This is the prog info - we don't do anything with it yet.
     if (len > section_len) return 0;
-
+    mpeg2t_message(LOG_ERR, "have prog info len %d", len);
+    for (ix = 0; ix < len; ix += 4) {
+      mpeg2t_message(LOG_ERR, "%d - %02x %02x %02x %02x", 
+		     ix, pmapptr[ix], 
+		     pmapptr[ix + 1],
+		     pmapptr[ix + 2],
+		     pmapptr[ix + 3]);
+    }
     if (len == pmap_pid->prog_info_len) {
       // same length - do a compare
     } else {
@@ -650,6 +669,9 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   int have_psts;
   uint64_t pts;
   uint32_t offset;
+#ifdef DEBUG_MPEG2T
+  uint32_t ix;
+#endif
 
   if (es_pid->save_frames == 0 &&
       es_pid->report_psts == 0 &&
@@ -727,6 +749,8 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
       if (esptr[2] + 3 > buflen) {
 	return 0;
       }
+      mpeg2t_message(LOG_INFO, "pid %x pes bits %x %x", 
+		     es_pid->pid.pid, esptr[0], esptr[1]);
 #ifdef DEBUG_MPEG2T
       if ((esptr[1] & 0x20)) {
 	mpeg2t_message(LOG_INFO, "pid %x has ESCR", es_pid->pid.pid);
@@ -787,6 +811,14 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
       }
 #ifdef DEBUG_MPEG2T
       mpeg2t_message(LOG_INFO, "pid %x pes buflen %d\n", es_pid->pid.pid, esptr[2]);
+      for (ix = 0; ix < esptr[2]; ix += 4) {
+	mpeg2t_message(LOG_ERR, "pid %x %d - %02x %02x %02x %02x", 
+		       es_pid->pid.pid, ix, 
+		       esptr[3 + ix],
+		       esptr[4 + ix],
+		       esptr[5 + ix],
+		       esptr[6 + ix]);
+      }
 #endif
       buflen -= esptr[2] + 3;
       esptr += esptr[2] + 3;

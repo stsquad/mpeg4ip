@@ -425,7 +425,7 @@ int mpeg3video_set_mmx(mpeg3video_t *video, int use_mmx)
 	mpeg3video_init_scantables(video);
 	return 0;
 }
-
+#if 0
 int mpeg3video_read_frame(mpeg3video_t *video, 
 			  unsigned char *input,
 			  long input_size,
@@ -517,7 +517,7 @@ int mpeg3video_read_yuvframe(mpeg3video_t *video,
 	video->percentage_seek = -1;
 	return result;
 }
-
+#endif
 int mpeg3video_read_yuvframe_ptr(mpeg3video_t *video, 
 				 unsigned char *input,
 				 long input_size,

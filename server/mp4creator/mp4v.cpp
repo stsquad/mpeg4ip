@@ -396,8 +396,10 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	// now process the rest of the video stream
 	while (true) {
 		if (objType != MP4AV_MPEG4_VOP_START) {
-			// keep it in the buffer until a VOP comes along
-			pObj += objSize;
+		  // keep it in the buffer until a VOP comes along
+		  // Actually - do nothing, since we only want VOP
+		  // headers in the stream - wmay 6/2004
+		  //pObj += objSize;
 
 		} else { // we have a VOP
 			u_int32_t sampleSize = (pObj + objSize) - pCurrentSample;

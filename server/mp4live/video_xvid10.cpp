@@ -79,7 +79,15 @@ bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	memset(&xvid_gbl_init, 0, sizeof(xvid_gbl_init));
 	xvid_gbl_init.version = XVID_VERSION;
 	xvid_global(NULL, XVID_GBL_INIT, &xvid_gbl_init, NULL);
-
+	xvid_gbl_info_t xvid_info;
+	memset(&xvid_info, 0, sizeof(xvid_info));
+	xvid_info.version = XVID_VERSION;
+	xvid_global(NULL, XVID_GBL_INFO, &xvid_info, NULL);
+	debug_message("xvid info - vers %x build %s flags %x threads %d", 
+		      xvid_info.actual_version,
+		      xvid_info.build,
+		      xvid_info.cpu_flags, 
+		      xvid_info.num_threads);
 	xvid_enc_create_t enc_create;
 	memset(&enc_create, 0, sizeof(enc_create));
 	enc_create.version = XVID_VERSION;

@@ -2,17 +2,19 @@
 INCLUDES = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/lib/mp4v2 \
-	-I$(top_srcdir)/lib/avi
+	-I$(top_srcdir)/lib/avi \
+	-I$(top_srcdir)/lib/bitstream
 
 AM_CXXFLAGS = -DMPEG4IP @BILLS_CPPWARNINGS@
 
-lib_LTLIBRARIES = libmp4av.la
+lib_LTLIBRARIES = libmp4av.la libh264av.la
 
 include_HEADERS = \
 	mp4av_aac.h \
 	mp4av_adts.h \
 	mp4av_audio.h \
 	mp4av.h \
+	mp4av_h264.h \
 	mp4av_hinters.h \
 	mp4av_mp3.h \
 	mp4av_mpeg3.h \
@@ -37,9 +39,8 @@ libmp4av_la_SOURCES = \
         rfccrypto.cpp \
 	rfcisma.cpp
 
+libh264av_la_SOURCES = \
+	h264.cpp 
+
 EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp libmp4av.xcode/project.pbxproj
 
-check_PROGRAMS = mpeg4_vol_decode
-mpeg4_vol_decode_SOURCES = mpeg4_vol_decode.cpp
-mpeg4_vol_decode_LDADD = libmp4av.la \
-	../mp4v2/libmp4v2.la

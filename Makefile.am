@@ -1,12 +1,12 @@
 if SERVER
 if PLAYER
-SUBDIRS = include lib common player server util doc mpeg4ip.pbproj
+SUBDIRS = include lib common player server util doc 
 else
 SUBDIRS = include lib common server util doc
 endif
 else
 if PLAYER
-SUBDIRS = include lib common player util doc mpeg4ip.pbproj
+SUBDIRS = include lib common player util doc 
 else
 SUBDIRS = include lib util doc
 endif
@@ -16,7 +16,8 @@ EXTRA_DIST = bootstrap cvs_bootstrap encoding60.dsw README_FIRST \
 	strip_fPIC.sh depcomp README.html patch.osx faac_mpeg4ip_add.tar \
 	mp4liveOnDebian.FAQ \
 	mac_build_lib mac_build_tools \
-	index.html FEATURES.html suse90pro.installed
+	index.html FEATURES.html suse90pro.installed \
+	mpeg4ip.pbproj/project.pbxproj
 
 include_HEADERS = mpeg4ip_config.h
 

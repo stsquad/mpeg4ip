@@ -58,13 +58,13 @@ libmpeg3video_la_SOURCES = \
 	mpeg3video.c \
 	mpeg3video.h \
 	mpeg3videoprotos.h \
-	output.c \
 	reconstruct.c \
 	seek.c \
 	slice.c \
 	slice.h \
 	vlc.c \
-	vlc.h 
+	vlc.h \
+	output.c 
 
 EXTRA_DIST = worksheet.c libmpeg32video.dsp
 

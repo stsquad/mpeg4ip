@@ -32,7 +32,7 @@
 #include "mpeg2t_file.h"
 #include "mp4av.h"
 
-//#define DEBUG_MPEG2F_SEARCH 1
+#define DEBUG_MPEG2F_SEARCH 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(mpeg2f_message, "mpeg2f")
 #else
@@ -145,7 +145,9 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 
   int olddebuglevel;
   olddebuglevel = config.get_config_value(CONFIG_MPEG2T_DEBUG);
-  mpeg2t_set_loglevel(LOG_CRIT);
+  if (olddebuglevel != LOG_DEBUG)
+    mpeg2t_set_loglevel(LOG_CRIT);
+  mpeg2f_message(LOG_DEBUG, "starting mpeg2f");
   m_mpeg2t->save_frames_at_start = 1;
   /*
    * We need to determine which PIDs are present, and try to establish

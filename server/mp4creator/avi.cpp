@@ -351,6 +351,8 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 		0, 
 		true);
 
+	MP4Duration dur = mp4FrameDuration;
+
 	// process the rest of the frames
 	for (i = 1; i < numFrames; i++) {
 		// read the frame from the AVI file
@@ -365,18 +367,28 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 		}
 
 		// we mark random access points in MP4 files
+		// note - we will skip any extra information in the
+		// header - only VOPs are allowed to be written
+		// wmay - 6-2004
 		uint8_t *vophdr = MP4AV_Mpeg4FindVop(pFrameBuffer, frameSize);
 		
-		bool isIFrame = false;
 		if (vophdr != NULL) {
 		  int32_t diff = vophdr - pFrameBuffer;
-		  isIFrame = 
-		    MP4AV_Mpeg4GetVopType(vophdr, frameSize - diff) == 'I';
+		  frameSize -= diff;
+		  pFrameBuffer = vophdr;
+		  bool isIFrame = 
+		    MP4AV_Mpeg4GetVopType(pFrameBuffer, frameSize) == 'I';
+		  MP4WriteSample(mp4File, trackId, 
+				 pFrameBuffer, frameSize, dur, 0, isIFrame);
+		  dur = mp4FrameDuration;
+		} else {
+		  fprintf(stderr, 
+			  "Video frame %d does not have a VOP code - skipping\n",
+			  i + 1);
+		  dur += mp4FrameDuration;
 		}
 
 		// write the frame to the MP4 file
-		MP4WriteSample(mp4File, trackId, 
-			pFrameBuffer, frameSize, mp4FrameDuration, 0, isIFrame);
 	}
 
 	return trackId;

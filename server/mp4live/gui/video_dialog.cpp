@@ -351,11 +351,6 @@ static void on_source_list_changed(GtkWidget *widget, gpointer *data)
 }
 
 
-char* GetChannelName(size_t index, void* pUserData)
-{
-	return ((struct CHANLIST*)pUserData)[index].name;
-}
-
 static void CreateChannelCombo()
 {
   struct CHANLISTS* pChannelList = chanlists;
@@ -395,7 +390,7 @@ static void on_channel_list_menu_activate(GtkWidget *widget, gpointer data)
 	ChangeChannelList(GPOINTER_TO_UINT(data) & 0xFF);
 }
 
-char* GetChannelListName(size_t index, void* pUserData)
+char* GetChannelListName(uint32_t index, void* pUserData)
 {
 	return ((struct CHANLISTS*)pUserData)[index].name;
 }

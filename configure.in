@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.1.1)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.1.2)
 
 dnl Checks for programs. 
 
@@ -76,6 +76,19 @@ AC_CHECK_SIZEOF(long)
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
 dnl Check for pre 1.0 API version of xvid
+AC_ARG_ENABLE(xvid,
+[  --disable-xvid         disable xvid link],
+[ case "${enableval}" in
+  no)  disable_xvid=yes ;;
+  yes) disable_xvid=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-xvid]) ;;
+esac],
+  [disable_xvid=no])
+
+if test x$disable_xvid = xyes; then
+  use_xvid10=false
+  no_xvid=true
+else
 AC_MSG_CHECKING([for xvid.h, API version 3])
 AC_TRY_COMPILE([],
 	[#include <xvid.h>
@@ -94,8 +107,10 @@ else
       AC_DEFINE(HAVE_XVID10, [1], [have xvid.h with 1.0 API])
    fi
 fi
+fi
 AM_CONDITIONAL(HAVE_XVID_1_0, $use_xvid10)
 AM_CONDITIONAL(NO_XVID, $no_xvid)
+
 AC_LANG_PUSH(C++)
 AC_CHECK_HEADER(id3/tag.h, [have_id3_tag=true], [have_id3_tag=false])
 if test $have_id3_tag = true; then
@@ -318,9 +333,10 @@ if test x$enable_mp4live = xyes; then
 	              [  --disable-v4l2         disable V4L2 interface],
 		      [ case "${enableval}" in
 		        no)  disable_v4l2=yes ;;
+			yes) disable_v4l2=no ;;
 			 *) AC_MSG_ERROR(bad value ${enableval} for --disable-v4l2) ;;
 			 esac],
-		      disable_v4l2=no)
+		      [disable_v4l2=no])
         if test x$disable_v4l2 = xno; then
 	MY_CHECK_TYPEDEF_FROM_INCLUDE([struct v4l2_buffer test],
 				      [#include <sys/time.h>
@@ -407,9 +423,19 @@ AM_CONDITIONAL(USE_PPC, test x$test_use_ppc = xtrue)
 
 dnl read out glib and gtk paths and flags.  Will need to dummy this
 dnl out for a glibless system
+AC_ARG_ENABLE(gtk-glib,
+[  --disable-gtk-glib       disable gtk check],
+[ case "${enableval}" in
+  no) disable_gtk_glib=yes ;;
+  yes)  disable_gtk_glib=no ;;
+  *) AC_MSG_ERROR([bad valud ${enableval} for --disable-gtk-glib]) ;;
+esac],
+  [disable_gtk_glib=no])
+
 glib_gtk=no
-AM_PATH_GLIB_2_0(, [haveglib20=yes], [haveglib20=no])
-if test x$haveglib20 = xyes; then 
+if test x$disable_gtk_glib = xno; then
+  AM_PATH_GLIB_2_0(, [haveglib20=yes], [haveglib20=no])
+  if test x$haveglib20 = xyes; then 
    AM_PATH_GTK_2_0(, [havegtk20=yes], [havegtk20=no])
    if test x$havegtk20 = xyes; then 
       AC_DEFINE(HAVE_GTK_2_0, 1, [Have GTK 2.0 on system])
@@ -418,29 +444,27 @@ if test x$haveglib20 = xyes; then
    else
       haveglib20=no
    fi
-fi
-if test x$haveglib20 = xno; then 
+  fi
+  if test x$haveglib20 = xno; then 
    AM_PATH_GLIB(, [glib_gtk=yes], [glib_gtk=no])
    if test x$glib_gtk = xyes; then
       AM_PATH_GTK(, [glib_gtk=yes], [glib_gtk=no])
       AC_DEFINE(HAVE_GTK, 1, [Have GTK on system])
    fi
+  fi
+
+  dnl If we're going to check for GLIB, we most likely need the real path
+  dnl we need to save off the CFLAGS and CPPFLAGS for the AC_CHECK_HEADER
+  dnl command 
+  save_CFLAG="$CFLAGS"
+  save_CPPFLAG="$CPPFLAGS"
+  CFLAGS="$CFLAGS $GLIB_CFLAGS"
+  CPPFLAGS="$CPPFLAGS $GLIB_CFLAGS"
+  AC_CHECK_HEADERS(glib.h)
+  CFLAGS="$save_CFLAG"
+  CPPFLAGS="$save_CPPFLAG"
 fi
-
-
 AM_CONDITIONAL(NO_GLIB_GTK, test x$glib_gtk = xno)
-
-dnl If we're going to check for GLIB, we most likely need the real path
-dnl we need to save off the CFLAGS and CPPFLAGS for the AC_CHECK_HEADER
-dnl command 
-
-save_CFLAG="$CFLAGS"
-save_CPPFLAG="$CPPFLAGS"
-CFLAGS="$CFLAGS $GLIB_CFLAGS"
-CPPFLAGS="$CPPFLAGS $GLIB_CFLAGS"
-AC_CHECK_HEADERS(glib.h)
-CFLAGS="$save_CFLAG"
-CPPFLAGS="$save_CPPFLAG"
 
 AC_ARG_ENABLE(mmx,
               [  --enable-mmx           use MMX assembly on x86 [default=yes]],
@@ -570,7 +594,6 @@ AC_OUTPUT( \
 	lib/msg_queue/Makefile \
 	lib/sdp/Makefile \
 	lib/utils/Makefile \
-	mpeg4ip.pbproj/Makefile \
 	common/Makefile \
 	common/video/Makefile \
 	common/video/libmpeg32/Makefile \

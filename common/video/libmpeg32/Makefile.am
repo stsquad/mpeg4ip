@@ -37,3 +37,12 @@ EXTRA_DIST = mpeg3css_fake.c libmpeg32.dsp  \
 	libmpeg32.xcode/project.pbxproj
 
 
+check_PROGRAMS = mpeg_es_extract
+
+mpeg_es_extract_SOURCES = extract_es.c
+
+mpeg_es_extract_LDADD = \
+	libmpeg3.la libmpeg3util.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
+	$(top_builddir)/lib/mp4v2/libmp4v2.la \
+	$(top_builddir)/lib/mp4av/libmp4av.la	

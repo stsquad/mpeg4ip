@@ -65,7 +65,7 @@ class CV4L2VideoSource : public CMediaSource {
 
   typedef struct {
     void* start;
-    size_t length;
+    __u32 length;
   } capture_buffer_t;
 
   capture_buffer_t* m_buffers;
