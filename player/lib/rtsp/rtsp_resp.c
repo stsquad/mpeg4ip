@@ -395,7 +395,7 @@ static int rtsp_read_into_buffer (rtsp_client_t *cptr,
 {
   int ret;
 
-  ret = rtsp_receive_socket(cptr->server_socket,
+  ret = rtsp_receive_socket(cptr,
 			    cptr->m_resp_buffer + buffer_offset,
 			    RECV_BUFF_DEFAULT_LEN - buffer_offset,
 			    cptr->recv_timeout);
@@ -431,7 +431,7 @@ int rtsp_recv (rtsp_client_t *cptr,
     copied += mlen;
   }
   if (len > 0) {
-    result = rtsp_receive_socket(cptr->server_socket,
+    result = rtsp_receive_socket(cptr,
 				 buffer + copied,
 				 len,
 				 0);
@@ -663,7 +663,7 @@ int rtsp_get_response (rtsp_client_t *info)
 {
   int ret;
   rtsp_decode_t *decode;
-  bool response_okay;
+  int response_okay;
 
   while (1) {
     // In case we didn't get a response that we wanted.

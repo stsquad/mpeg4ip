@@ -54,7 +54,7 @@ int xvid_init(void *handle, int opt, void *param1, void *param2)
 		cpu_flags = init_param->cpu_flags;
 	else {
 
-#ifdef ARCH_X86
+#ifdef USE_MMX
 		cpu_flags = check_cpu_features();
 #else
 		cpu_flags = 0;

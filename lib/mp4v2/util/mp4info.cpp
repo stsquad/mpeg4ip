@@ -211,7 +211,7 @@ static void PrintAudioInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 			"mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.avgBitrate");
 
 	// type duration avgBitrate samplingFrequency
-	printf("%u\taudio\t%s, %.3f secs, %u Kbps, %u Hz\n", 
+	printf("%u\taudio\t%s, %.3f secs, %u kbps, %u Hz\n", 
 		trackId, 
 		typeName,
 		(float)msDuration / 1000.0, 
@@ -313,7 +313,7 @@ static void PrintVideoInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 		((float)numFrames / (float)msDuration) * 1000;
 
 	// type duration avgBitrate frameSize frameRate
-	printf("%u\tvideo\t%s, %.3f secs, %u Kbps, %ux%u @ %.2f fps\n", 
+	printf("%u\tvideo\t%s, %.3f secs, %u kbps, %ux%u @ %.2f fps\n", 
 		trackId, 
 		typeName,
 		(float)msDuration / 1000.0, 

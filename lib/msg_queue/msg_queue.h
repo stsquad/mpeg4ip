@@ -31,14 +31,19 @@
 class CMsg {
  public:
   CMsg(uint32_t value, unsigned char *msg = NULL, uint32_t msg_len = 0);
+  CMsg(uint32_t value, uint32_t param);
   ~CMsg(void);
   const unsigned char *get_message(uint32_t &len);
   CMsg *get_next(void) { return m_next; };
   void set_next (CMsg *next) { m_next = next; };
   uint32_t get_value(void) { return m_value;};
+  int has_param(void) { return m_has_param; };
+  uint32_t get_param (void) { return m_param; };
  private:
   CMsg *m_next;
   uint32_t m_value;
+  int m_has_param;
+  uint32_t m_param;
   uint32_t m_msg_len;
   unsigned char *m_msg;
 };
@@ -51,8 +56,12 @@ class CMsgQueue {
 		   unsigned char *msg = NULL,
 		   uint32_t msg_len = 0,
 		   SDL_sem *sem = NULL);
+  int send_message(uint32_t msgval,
+	  uint32_t param, 
+	  SDL_sem *sem = NULL);
   CMsg *get_message(void);
  private:
+  int send_message(CMsg *msg, SDL_sem *sem);
   CMsg *m_msg_queue;
   SDL_mutex *m_msg_queue_mutex;
 };

@@ -25,6 +25,11 @@
  */
 #include "systems.h"
 #include "config_file.h"
+#ifdef _WIN32
+
+#include <atlbase.h>
+#endif
+
 // Basic list of available config variables.  Future work could make this
 // dynamic, but I'm not going to bother right now...
 
@@ -250,4 +255,78 @@ void CConfig::write_config_file (const char *name)
   m_changed = 0;
 }
 
+#ifdef _WIN32
+#include <atlimpl.cpp>
+
+int CConfig::read_config_file(const char *reg_name, const char *config_section)
+{
+	LONG result;
+	char buff[1024];
+
+	CRegKey newrk;
+
+	snprintf(buff, sizeof(buff), "%s\\\\%s", reg_name, config_section);
+	result = newrk.Open(HKEY_CURRENT_USER, buff);
+	if (result != ERROR_SUCCESS) return -1;
+
+	for (uint32_t ix = 0; ix < m_config_max; ix++) {
+		if (m_config_var[ix].config_type == CONFIG_INT) {
+			DWORD temp;
+			result = newrk.QueryValue(temp, m_config_var[ix].config_name);
+			if (result == ERROR_SUCCESS) {
+				m_values[ix] = temp;
+			}
+		} else {
+			DWORD buflen;
+
+			result = newrk.QueryValue(buff, m_config_var[ix].config_name,
+									  &buflen);
+			if (result == ERROR_SUCCESS) {
+				char *str = strdup(buff);
+				this->set_config_string(m_config_var[ix].config_index,
+										str);
+			}
+		}
+	}
+	return 0;
+}
+
+#define FORCE_SET
+void CConfig::write_config_file (const char *reg_name, const char *config_section)
+{
+	LONG result;
+	char buff[1024];
+	CRegKey newrk;
+
+	snprintf(buff, sizeof(buff), "%s\\\\%s", reg_name, config_section);
+	result = newrk.Create(HKEY_CURRENT_USER, buff);
+	if (result != ERROR_SUCCESS) return;
+
+	for (uint32_t ix = 0; ix < m_config_max; ix++) {
+		if (m_config_var[ix].config_type == CONFIG_INT) {
+#ifdef FORCE_SET
+			newrk.SetValue(m_values[ix], m_config_var[ix].config_name);
+#else
+			if (m_values[ix] == m_config_var[ix].default_value) {
+				newrk.DeleteValue(m_config_var[ix].config_name);
+			} else {
+				newrk.SetValue(m_values[ix], m_config_var[ix].config_name);
+			}
+#endif
+		} else if (m_strings[ix] != NULL) {
+#ifdef FORCE_SET
+			newrk.SetValue(m_strings[ix], m_config_var[ix].config_name);
+#else
+			if (strcasecmp(m_strings[ix], m_config_var[ix].default_string) == 0) {
+				newrk.DeleteValue(m_config_var[ix].config_name);
+			} else {
+				newrk.SetValue(m_strings[ix], m_config_var[ix].config_name);
+			}
+#endif
+		}
+	}
+	newrk.Close();
+	m_changed = 0;
+}
+#endif
 /* end file config_file.cpp */

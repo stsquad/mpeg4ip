@@ -24,10 +24,6 @@
 #include "rtsp_private.h"
 #include <rtp/rtp.h>
 #include <rtp/memory.h>
-#include <sys/un.h>
-#ifdef HAVE_POLL
-#include <sys/poll.h>
-#endif
 
 typedef enum rtsp_rtp_state_t {
   RTP_DATA_UNKNOWN = 0,
@@ -55,20 +51,6 @@ typedef struct rtp_state_t {
   unsigned short rtp_len, rtp_len_gotten;
   unsigned char header[3];
 } rtp_state_t;
-
-/*
- * rtsp_thread_ipc_respond
- * respond with the message given
- */
-static int rtsp_thread_ipc_respond (rtsp_client_t *info,
-				    const unsigned char *msg,
-				    uint32_t len)
-{
-  size_t ret;
-  rtsp_debug(LOG_DEBUG, "Sending resp to thread %d - len %d", msg[0], len);
-  ret = send(COMM_SOCKET_THREAD, msg, len, 0);
-  return ret == len;
-}
 
 /*
  * rtsp_thread_start_cmd()
@@ -103,7 +85,8 @@ static int rtsp_thread_send_and_get (rtsp_client_t *info)
   rtsp_msg_send_and_get_t msg;
   int ret;
 
-  ret = recv(COMM_SOCKET_THREAD, (char *)&msg, sizeof(msg), 0);
+  ret = rtsp_thread_ipc_receive(info, (char *)&msg, sizeof(msg));
+  
   if (ret != sizeof(msg)) {
     rtsp_debug(LOG_DEBUG, "Send and get - recv %d", ret);
     return -1;
@@ -117,10 +100,10 @@ static int rtsp_msg_thread_perform_callback (rtsp_client_t *info)
 {
   rtsp_msg_callback_t callback;
   int ret;
-  int cbs;
+  size_t cbs;
 
-  cbs = sizeof(callback); 
-  ret = recv(COMM_SOCKET_THREAD, &callback, cbs, 0);
+  cbs = sizeof(callback);
+  ret = rtsp_thread_ipc_receive(info, (char *)&callback, cbs);
   if (ret != cbs) {
     rtsp_debug(LOG_ERR, "Perform callback msg - recvd %d instead of %d",
 	       ret, cbs); 
@@ -135,10 +118,10 @@ static int rtsp_msg_thread_set_rtp_callback (rtsp_client_t *info)
   rtsp_msg_rtp_callback_t callback;
   int interleave_num;
   int ret;
-  int cbs = sizeof(callback);
+  size_t cbs = sizeof(callback);
 
   rtsp_debug(LOG_DEBUG, "In rtsp_msg_thread_set_rtp_callback");
-  ret = recv(COMM_SOCKET_THREAD, &callback, cbs, 0);
+  ret = rtsp_thread_ipc_receive(info, (char *)&callback, cbs);
   if (ret != cbs) {
     rtsp_debug(LOG_ERR, "Perform callback msg - recvd %d instead of %d",
 	       ret, cbs);
@@ -261,9 +244,7 @@ static int rtsp_get_resp (rtsp_client_t *info,
       /*
        * Are they waiting ?  If so, pop them the return value
        */
-      rtsp_thread_ipc_respond(info,
-			      (const unsigned char *)&ret,
-			      sizeof(ret));
+      rtsp_thread_ipc_respond(info, ret);
       state->receiving_rtsp_response = 0;
     }
   }
@@ -283,7 +264,7 @@ static int check_rtsp_resp (rtsp_client_t *info,
     if (info->m_offset_on != 0) {
       move_end_of_buffer(info, blen);
     }
-    ret = rtsp_receive_socket(info->server_socket,
+    ret = rtsp_receive_socket(info,
 			      info->m_resp_buffer + blen,
 			      len - blen,
 			      0);
@@ -353,11 +334,11 @@ static int data_unknown (rtsp_client_t *info,
   if (info->m_offset_on != 0) {
     move_end_of_buffer(info, blen);
   }
-  blen = rtsp_receive_socket(info->server_socket,
+  blen = rtsp_receive_socket(info,
 			     info->m_resp_buffer + info->m_offset_on,
 			     RECV_BUFF_DEFAULT_LEN - info->m_offset_on,
 			     0);
-  if (blen < 0) return 0;
+  if (blen < 0) return -1;
   info->m_buffer_len += blen;
 
   blen = rtsp_bytes_in_buffer(info);
@@ -382,7 +363,7 @@ static int data_unknown (rtsp_client_t *info,
  * rtsp_thread() - rtsp thread handler - receives and
  * processes all data
  */
-static int rtsp_thread (void *data)
+int rtsp_thread (void *data)
 {
   rtsp_client_t *info = (rtsp_client_t *)data;
   int continue_thread;
@@ -394,63 +375,16 @@ static int rtsp_thread (void *data)
   rtp_state_t state;
 
 
-#ifdef HAVE_POLL
-  struct pollfd pollit[2];
-#else
-  int max_fd;
-  fd_set read_set;
-  struct timeval timeout;
-#endif
-
-#ifndef HAVE_SOCKETPAIR
-  struct sockaddr_un our_name, his_name;
-  int len;
-  //rtsp_debug(LOG_DEBUG, "rtsp_thread running");
-  COMM_SOCKET_THREAD = socket(AF_UNIX, SOCK_STREAM, 0);
-
-  memset(&our_name, 0, sizeof(our_name));
-  our_name.sun_family = AF_UNIX;
-  strcpy(our_name.sun_path, info->socket_name);
-  ret = bind(COMM_SOCKET_THREAD, (struct sockaddr *)&our_name, sizeof(our_name));
-  listen(COMM_SOCKET_THREAD, 1);
-  len = sizeof(his_name);
-  info->comm_socket_write_to = accept(COMM_SOCKET_THREAD, (struct sockaddr *)&his_name, &len);
-#else
-  info->comm_socket_write_to = info->comm_socket[0];
-#endif
   
   continue_thread = 0;
   memset(&state, sizeof(state), 0);
   state.rtp_ptr = NULL;
   state.state = RTP_DATA_UNKNOWN;
+  rtsp_thread_init_thread_info(info);
   
   while (continue_thread == 0) {
-#ifdef HAVE_POLL
-#define SERVER_SOCKET_HAS_DATA ((pollit[1].revents & (POLLIN | POLLPRI)) != 0)
-#define COMM_SOCKET_HAS_DATA   ((pollit[0].revents & (POLLIN | POLLPRI)) != 0)
-    pollit[0].fd = COMM_SOCKET_THREAD;
-    pollit[0].events = POLLIN | POLLPRI;
-    pollit[0].revents = 0;
-    pollit[1].fd = info->server_socket;
-    pollit[1].events = POLLIN | POLLPRI;
-    pollit[1].revents = 0;
-
-    ret = poll(pollit, info->server_socket == -1 ? 1 : 2, info->recv_timeout);
-    //    rtsp_debug(LOG_DEBUG, "poll ret %d", ret);
-#else
-#define SERVER_SOCKET_HAS_DATA (FD_ISSET(info->server_socket, &read_set))
-#define COMM_SOCKET_HAS_DATA   (FD_ISSET(COMM_SOCKET_THREAD, &read_set))
-    FD_ZERO(&read_set);
-    max_fd = COMM_SOCKET_THREAD;
-    if (info->server_socket != -1) {
-      FD_SET(info->server_socket, &read_set);
-      max_fd = MAX(info->server_socket, max_fd);
-    }
-    FD_SET(COMM_SOCKET_THREAD, &read_set);
-    timeout.tv_sec = info->recv_timeout / 1000;
-    timeout.tv_usec = (info->recv_timeout % 1000) * 1000;
-    ret = select(max_fd + 1, &read_set, NULL, NULL, &timeout);
-#endif
+	//  rtsp_debug(LOG_DEBUG, "thread waiting");
+    ret = rtsp_thread_wait_for_event(info);
     if (ret <= 0) {
       if (ret < 0) {
 	//rtsp_debug(LOG_ERR, "RTSP loop error %d errno %d", ret, errno);
@@ -470,33 +404,31 @@ static int rtsp_thread (void *data)
     /*
      * See if the communications socket for IPC has any data
      */
-    ret = COMM_SOCKET_HAS_DATA;
+	//rtsp_debug(LOG_DEBUG, "Thread checking control");
+    ret = rtsp_thread_has_control_message(info);
+    
     if (ret) {
       rtsp_msg_type_t msg_type;
       int read;
       /*
        * Yes - read the message type.
        */
-      read = recv(COMM_SOCKET_THREAD, (char *)&msg_type, sizeof(msg_type), 0);
+      read = rtsp_thread_get_control_message(info, &msg_type);
       if (read == sizeof(msg_type)) {
 	// received message
-	rtsp_debug(LOG_DEBUG, "Comm socket msg %d", msg_type);
+	//rtsp_debug(LOG_DEBUG, "Comm socket msg %d", msg_type);
 	switch (msg_type) {
 	case RTSP_MSG_QUIT:
 	  continue_thread = 1;
 	  break;
 	case RTSP_MSG_START:
 	  ret = rtsp_thread_start_cmd(info);
-	  rtsp_thread_ipc_respond(info,
-				  (const unsigned char *)&ret,
-				  sizeof(ret));
+	  rtsp_thread_ipc_respond(info, ret);
 	  break;
 	case RTSP_MSG_SEND_AND_GET:
 	  ret = rtsp_thread_send_and_get(info);
 	  if (ret < 0) {
-	    rtsp_thread_ipc_respond(info,
-				    (const unsigned char *)&ret,
-				    sizeof(ret));
+	    rtsp_thread_ipc_respond(info, ret);
 	  } else {
 	    // indicate we're supposed to receive...
 	    state.receiving_rtsp_response = 1;
@@ -504,16 +436,14 @@ static int rtsp_thread (void *data)
 	  break;
 	case RTSP_MSG_PERFORM_CALLBACK:
 	  ret = rtsp_msg_thread_perform_callback(info);
-	  rtsp_thread_ipc_respond(info,
-				  (const unsigned char *)&ret,
-				  sizeof(ret));
+	  rtsp_thread_ipc_respond(info, ret);
 	  break;
 	case RTSP_MSG_SET_RTP_CALLBACK:
 	  ret = rtsp_msg_thread_set_rtp_callback(info);
-	  rtsp_thread_ipc_respond(info,
-				  (const unsigned char *)&ret,
-				  sizeof(ret));
+	  rtsp_thread_ipc_respond(info, ret);
 	  break;
+	default:
+		rtsp_debug(LOG_ERR, "Unknown message %d received", msg_type);
 	}
       }
     }
@@ -521,8 +451,9 @@ static int rtsp_thread (void *data)
     /*
      * See if the data socket has any data
      */
+	//rtsp_debug(LOG_DEBUG, "Thread checking socket");
     if (info->server_socket != -1) {
-      ret = SERVER_SOCKET_HAS_DATA;
+      ret = rtsp_thread_has_receive_data(info);
       if (ret) {
 	state_cont = 0;
 	while (state_cont == 0) {
@@ -548,7 +479,7 @@ static int rtsp_thread (void *data)
 	      if (bytes != 0 && info->m_offset_on != 0) {
 		move_end_of_buffer(info, bytes);
 	      }
-	      ret = rtsp_receive_socket(info->server_socket,
+	      ret = rtsp_receive_socket(info,
 					info->m_resp_buffer + bytes,
 					4 - bytes,
 					0);
@@ -613,121 +544,16 @@ static int rtsp_thread (void *data)
   if (state.rtp_ptr != NULL) {
     xfree(state.rtp_ptr);
   }
-  rtsp_close_socket(info);
-#ifndef HAVE_SOCKETPAIR
-  closesocket(info->comm_socket_write_to);
-  info->comm_socket_write_to = -1;
-  unlink(info->socket_name);
-#endif
   // exiting thread - get rid of the sockets.
+  rtsp_thread_close(info);
 #ifdef _WINDOWS
   WSACleanup();
 #endif
   return 0;
 }
 
-/*
- * rtsp_create_thread - create the thread we need, along with the
- * communications socket.
- */
-int rtsp_create_thread (rtsp_client_t *info)
-{
-#ifdef HAVE_SOCKETPAIR
-  if (socketpair(PF_UNIX, SOCK_STREAM, 0, info->comm_socket) < 0) {
-    rtsp_debug(LOG_CRIT, "Couldn't create comm sockets - errno %d", errno);
-    return -1;
-  }
-#else
-  int ret;
-  struct sockaddr_un addr;
-  COMM_SOCKET_THREAD = -1;
-  COMM_SOCKET_CALLER = socket(AF_UNIX, SOCK_STREAM, 0);
-  snprintf(info->socket_name, sizeof(info->socket_name) - 1, "RTSPCLIENT%p", info);
-  unlink(info->socket_name);
-#endif
-  info->thread = SDL_CreateThread(rtsp_thread, info);
-  if (info->thread == NULL) {
-    rtsp_debug(LOG_CRIT, "Couldn't create comm thread");
-    return -1;
-  }
-#ifndef HAVE_SOCKETPAIR
-  addr.sun_family = AF_UNIX;
-  strcpy(addr.sun_path, info->socket_name);
-  ret = -1;
-  do {
-    ret = connect(COMM_SOCKET_CALLER, (struct sockaddr *)&addr, sizeof(addr));
-    if (ret == -1)
-      SDL_Delay(10);
-  } while (ret < 0);
-#endif
-  return 0;
-}
 
-/*
- * rtsp_thread_ipc_send - send message to rtsp thread
- */
-int rtsp_thread_ipc_send (rtsp_client_t *info,
-			  const unsigned char *msg,
-			  int len)
-{
-  int ret;
-  rtsp_debug(LOG_DEBUG, "Sending msg to thread %d - len %d", msg[0], len);
-  ret = send(COMM_SOCKET_CALLER, msg, len, 0);
-  return ret == len;
-}
 
-/*
- * rtsp_thread_ipc_send_wait
- * send a message, and wait for response
- * returns number of bytes we've received.
- */
-int rtsp_thread_ipc_send_wait (rtsp_client_t *info,
-			       const unsigned char *msg,
-			       int msg_len,
-			       char *return_msg,
-			       int return_msg_len)
-{
-  int read, ret;
-#ifdef HAVE_POLL
-  struct pollfd pollit;
-#else
-  fd_set read_set;
-  struct timeval timeout;
-#endif
-  SDL_LockMutex(info->msg_mutex);
-  ret = send(COMM_SOCKET_CALLER, msg, msg_len, 0);
-  if (ret != msg_len) {
-    SDL_UnlockMutex(info->msg_mutex);
-    return -1;
-  }
-#ifdef HAVE_POLL
-  pollit.fd = COMM_SOCKET_CALLER;
-  pollit.events = POLLIN | POLLPRI;
-  pollit.revents = 0;
-
-  ret = poll(&pollit, 1, 30 * 1000);
-  rtsp_debug(LOG_DEBUG, "return comm socket value %x", pollit.revents);
-#else
-  FD_ZERO(&read_set);
-  FD_SET(COMM_SOCKET_CALLER, &read_set);
-  timeout.tv_sec = 30;
-  timeout.tv_usec = 0;
-  ret = select(COMM_SOCKET_CALLER + 1, &read_set, NULL, NULL, &timeout);
-#endif
-
-  if (ret <= 0) {
-    if (ret < 0) {
-      //rtsp_debug(LOG_ERR, "RTSP loop error %d errno %d", ret, errno);
-    }
-    SDL_UnlockMutex(info->msg_mutex);
-    return -1;
-  }
-
-  read = recv(COMM_SOCKET_CALLER, return_msg, return_msg_len, 0);
-  SDL_UnlockMutex(info->msg_mutex);
-  rtsp_debug(LOG_DEBUG, "comm socket got return value of %d", read);
-  return (read);
-}
 
 int rtsp_thread_perform_callback (rtsp_client_t *info,
 				  rtsp_thread_callback_f func,
@@ -741,10 +567,9 @@ int rtsp_thread_perform_callback (rtsp_client_t *info,
   callback_body.body.ud = ud;
   
   ret = rtsp_thread_ipc_send_wait(info,
-				  (const unsigned char *)&callback_body,
+				  (unsigned char *)&callback_body,
 				  sizeof(callback_body),
-				  (char *)&callback_ret,
-				  sizeof(callback_ret));
+				  &callback_ret);
   if (ret != sizeof(callback_ret)) {
     return -1;
   }
@@ -767,10 +592,9 @@ int rtsp_thread_set_rtp_callback (rtsp_client_t *info,
   callback_body.body.interleave = rtp_interleave;
   
   ret = rtsp_thread_ipc_send_wait(info,
-				  (const unsigned char *)&callback_body,
+				  (unsigned char *)&callback_body,
 				  sizeof(callback_body),
-				  (char *)&callback_ret,
-				  sizeof(callback_ret));
+				  &callback_ret);
   if (ret != sizeof(callback_ret)) {
     return -1;
   }
@@ -798,19 +622,15 @@ rtsp_client_t *rtsp_create_client_for_rtp_tcp (const char *url,
   info = rtsp_create_client_common(url, err);
   if (info == NULL) return (NULL);
   info->msg_mutex = SDL_CreateMutex();
-  info->comm_socket[0] = -1;
-  info->comm_socket[1] = -1;
-  info->comm_socket_write_to = -1;
   if (rtsp_create_thread(info) != 0) {
     free_rtsp_client(info);
     return (NULL);
   }
   msg = RTSP_MSG_START;
   ret = rtsp_thread_ipc_send_wait(info,
-				  (const unsigned char *)&msg,
+				  (unsigned char *)&msg,
 				  sizeof(msg),
-				  (char *)&resp,
-				  sizeof(resp));
+				  &resp);
   if (ret < 0 || resp < 0) {
     free_rtsp_client(info);
     *err = resp;

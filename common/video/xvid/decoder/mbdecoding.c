@@ -885,15 +885,13 @@ int get_inter_coeff(BITREADER * bs, int *run, int *last)
 
 
 
-void get_intra_block(BITREADER * bs, int16_t * block, int direction) 
+void get_intra_block(BITREADER * bs, int16_t * block, int direction, int coeff) 
 {
 	const uint16_t * scan = scan_tables[ direction ];
-	int p;
 	int level;
 	int run;
 	int last;
 
-	p = 1;
 	do
 	{
 		level = get_intra_coeff(bs, &run, &last);
@@ -902,13 +900,13 @@ void get_intra_block(BITREADER * bs, int16_t * block, int direction)
 			DEBUG("fatal: invalid run");
 			break;
 		}
-		p += run;
-		block[ scan[p] ] = level;
+		coeff += run;
+		block[ scan[coeff] ] = level;
 		if (level < -127 || level > 127)
 		{
 			DEBUG1("warning: intra_overflow", level);
 		}
-		p++;
+		coeff++;
 	} while (!last);
 }
 

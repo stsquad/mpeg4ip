@@ -1,0 +1,356 @@
+Microsoft Developer Studio Workspace File, Format Version 6.00
+# WARNING: DO NOT EDIT OR DELETE THIS WORKSPACE FILE!
+
+###############################################################################
+
+Project: "SDL"=..\..\lib\SDL\VisualC\SDL\SDL60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "SDLmain"=..\..\lib\SDL\VisualC\SDLMain\SDLMain60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "bitstream"=..\..\lib\bitstream\bitstream60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "common"=..\..\lib\rtp\common60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libavi"=..\..\lib\avi\libavi60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libconfig_file"=..\..\lib\config_file\libconfig_file60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libfaad"=..\lib\audio\faad\libfaad60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libhttp"=..\lib\libhttp\libhttp60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libmissing60"=..\..\lib\gnu\libmissing60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libmp3"=..\lib\audio\mp3\libmp360.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libmp4"=..\..\lib\mp4\libmp460.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libmp4v2"=..\..\lib\mp4v2\libmp4v260.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libmpplayer"=.\libmpplayer60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name bitstream
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name common
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavi
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libfaad
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libhttp
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp3
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4v2
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libobj
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libourdivx
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name librtsp
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libsdp
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name need_for_win
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name SDL
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "libmsg_queue"=..\..\lib\msg_queue\libmsg_queue60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libobj"=..\..\common\video\mpeg4\libobj60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libourdivx"=..\lib\video\divx\libourdivx60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "librtsp"=..\lib\rtsp\librtsp60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libsdp"=..\..\lib\sdp\libsdp60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "mp4player"=.\mp4player60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libmpplayer
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name SDLmain
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libconfig_file
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmsg_queue
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing60
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "need_for_win"=..\..\lib\win32\need_for_win60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "wmp4client60"=.\win_client\wmp4client60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name SDLmain
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmpplayer
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libconfig_file
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmsg_queue
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing60
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "wmp4player60"=.\win_gui\wmp4player60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libconfig_file
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Global:
+
+Package=<5>
+{{{
+}}}
+
+Package=<3>
+{{{
+}}}
+
+###############################################################################
+

@@ -57,7 +57,6 @@ enum {
 	CONFIG_APP_DURATION_UNITS,
 
 	CONFIG_AUDIO_ENABLE,
-	CONFIG_AUDIO_ENCODE,
 	CONFIG_AUDIO_DEVICE_NAME,
 	CONFIG_AUDIO_MIXER_NAME,
 	CONFIG_AUDIO_CHANNELS,
@@ -65,7 +64,6 @@ enum {
 	CONFIG_AUDIO_BIT_RATE,
 
 	CONFIG_VIDEO_ENABLE,
-	CONFIG_VIDEO_ENCODE,
 	CONFIG_VIDEO_DEVICE_NAME,
 	CONFIG_VIDEO_INPUT,
 	CONFIG_VIDEO_SIGNAL,
@@ -85,10 +83,10 @@ enum {
 	CONFIG_VIDEO_PROFILE_LEVEL_ID,
 
 	CONFIG_RECORD_ENABLE,
-	CONFIG_RECORD_RAW,
-	CONFIG_RECORD_PCM_FILE_NAME,
-	CONFIG_RECORD_YUV_FILE_NAME,
-	CONFIG_RECORD_MP4,
+	CONFIG_RECORD_RAW_AUDIO,
+	CONFIG_RECORD_RAW_VIDEO,
+	CONFIG_RECORD_ENCODED_AUDIO,
+	CONFIG_RECORD_ENCODED_VIDEO,
 	CONFIG_RECORD_MP4_FILE_NAME,
 	CONFIG_RECORD_MP4_HINT_TRACKS,
 
@@ -101,6 +99,16 @@ enum {
 	CONFIG_RTP_DISABLE_TS_OFFSET,
 	CONFIG_RTP_USE_SSM,
 	CONFIG_SDP_FILE_NAME,
+
+	CONFIG_TRANSCODE_ENABLE,
+	CONFIG_TRANSCODE_SRC_FILE_NAME,
+	CONFIG_TRANSCODE_DST_FILE_NAME,
+	CONFIG_TRANSCODE_SRC_AUDIO_ENCODING,
+	CONFIG_TRANSCODE_DST_AUDIO_ENCODING,
+	CONFIG_TRANSCODE_SRC_AUDIO_DELETE,
+	CONFIG_TRANSCODE_SRC_VIDEO_ENCODING,
+	CONFIG_TRANSCODE_DST_VIDEO_ENCODING,
+	CONFIG_TRANSCODE_SRC_VIDEO_DELETE,
 };
 
 // normally this would be in a .cpp file
@@ -125,9 +133,6 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_AUDIO_ENABLE, "audioEnable", 
 		CONFIG_TYPE_BOOL, true, },
 
-	{ CONFIG_AUDIO_ENCODE, "audioEncode", 
-		CONFIG_TYPE_BOOL, true, },
-
 	{ CONFIG_AUDIO_DEVICE_NAME, "audioDevice", 
 		CONFIG_TYPE_STRING, "/dev/dsp", },
 
@@ -146,9 +151,6 @@ static SConfigVariable MyConfigVariables[] = {
 	// VIDEO
 
 	{ CONFIG_VIDEO_ENABLE, "videoEnable", 
-		CONFIG_TYPE_BOOL, true, },
-
-	{ CONFIG_VIDEO_ENCODE, "videoEncode", 
 		CONFIG_TYPE_BOOL, true, },
 
 	{ CONFIG_VIDEO_DEVICE_NAME, "videoDevice", 
@@ -207,16 +209,16 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_RECORD_ENABLE, "recordEnable", 
 		CONFIG_TYPE_BOOL, true, },
 
-	{ CONFIG_RECORD_RAW, "recordRaw", 
+	{ CONFIG_RECORD_RAW_AUDIO, "recordRawAudio", 
 		CONFIG_TYPE_BOOL, false, },
 
-	{ CONFIG_RECORD_PCM_FILE_NAME, "recordPcmFile", 
-		CONFIG_TYPE_STRING, "capture.pcm", },
+	{ CONFIG_RECORD_RAW_VIDEO, "recordRawVideo", 
+		CONFIG_TYPE_BOOL, false, },
 
-	{ CONFIG_RECORD_YUV_FILE_NAME, "recordYuvFile", 
-		CONFIG_TYPE_STRING, "capture.yuv", },
+	{ CONFIG_RECORD_ENCODED_AUDIO, "recordEncodedAudio", 
+		CONFIG_TYPE_BOOL, true, },
 
-	{ CONFIG_RECORD_MP4, "recordMp4", 
+	{ CONFIG_RECORD_ENCODED_VIDEO, "recordEncodedVideo", 
 		CONFIG_TYPE_BOOL, true, },
 
 	{ CONFIG_RECORD_MP4_FILE_NAME, "recordMp4File", 
@@ -254,29 +256,49 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_SDP_FILE_NAME, "sdpFile", 
 		CONFIG_TYPE_STRING, "capture.sdp", },
 
+	// Transcode
+
+	{ CONFIG_TRANSCODE_ENABLE, "transcodeEnable", 
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_TRANSCODE_SRC_FILE_NAME, "transcodeSrcFile",
+		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_TRANSCODE_DST_FILE_NAME, "transcodeDstFile",
+		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_TRANSCODE_SRC_AUDIO_ENCODING, "transcodeSrcAudioEncoding",
+		CONFIG_TYPE_STRING, "raw", },
+
+	{ CONFIG_TRANSCODE_DST_AUDIO_ENCODING, "transcodeDstAudioEncoding",
+		CONFIG_TYPE_STRING, "aac", },
+
+	{ CONFIG_TRANSCODE_SRC_AUDIO_DELETE, "transcodeSrcAudioDelete",
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_TRANSCODE_SRC_VIDEO_ENCODING, "transcodeSrcVideoEncoding",
+		CONFIG_TYPE_STRING, "raw", },
+
+	{ CONFIG_TRANSCODE_DST_VIDEO_ENCODING, "transcodeDstVideoEncoding",
+		CONFIG_TYPE_STRING, "mpeg4", },
+
+	{ CONFIG_TRANSCODE_SRC_VIDEO_DELETE, "transcodeSrcVideoDelete",
+		CONFIG_TYPE_BOOL, false, },
+
 };
 #endif /* DECLARE_CONFIG_VARIABLES */
 
 
 class CLiveConfig : public CConfigSet {
 public:
-	CLiveConfig(SConfigVariable* variables, config_index_t numVariables, const char* defaultFileName)
-	: CConfigSet(variables, numVariables, defaultFileName) {
-		m_appAutomatic = false;
-		m_videoCapabilities = NULL;
-		m_videoPreviewWindowId = 0;
-		m_videoMaxWidth = 768;
-		m_videoMaxHeight = 576;
-		m_videoNeedRgbToYuv = false;
-		m_videoMpeg4ConfigLength = 0;
-		m_videoMpeg4Config = NULL;
-	}
+	CLiveConfig(SConfigVariable* variables, 
+		config_index_t numVariables, const char* defaultFileName);
 
 	// recalculate derived values
-	void Regenerate(void) {
-		CalculateVideoFrameSize(this);
-		GenerateMpeg4VideoConfig(this);
-	}
+	void Update();
+	void UpdateVideo();
+	void UpdateAudio();
+	void UpdateRecord();
 
 public:
 	// command line configuration
@@ -284,14 +306,26 @@ public:
 
 	// derived, shared video configuration
 	CVideoCapabilities* m_videoCapabilities;
+	bool		m_videoEncode;
 	u_int32_t	m_videoPreviewWindowId;
 	u_int16_t	m_videoWidth;
 	u_int16_t	m_videoHeight;
 	u_int16_t	m_videoMaxWidth;
 	u_int16_t	m_videoMaxHeight;
+	u_int32_t	m_ySize;
+	u_int32_t	m_uvSize;
 	bool		m_videoNeedRgbToYuv;
 	u_int16_t	m_videoMpeg4ConfigLength;
 	u_int8_t*	m_videoMpeg4Config;
+	u_int32_t	m_videoMaxVopSize;
+
+	// derived, shared audio configuration
+	bool		m_audioEncode;
+	u_int32_t	m_audioMp3SampleRate;
+	u_int16_t	m_audioMp3SamplesPerFrame;
+
+	// derived, shared file configuration
+	u_int64_t	m_recordEstFileSize;
 };
 
 #endif /* __LIVE_CONFIG_H__ */

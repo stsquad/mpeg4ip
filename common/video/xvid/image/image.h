@@ -18,7 +18,7 @@ typedef struct
 
 void init_image(uint32_t cpu_flags);
 
-uint32_t image_create(IMAGE * image, uint32_t edged_width, uint32_t edged_height);
+int32_t image_create(IMAGE * image, uint32_t edged_width, uint32_t edged_height);
 void image_destroy(IMAGE * image, uint32_t edged_width, uint32_t edged_height);
 
 void image_swap(IMAGE * image1, IMAGE * image2);
@@ -28,10 +28,13 @@ void image_interpolate(const IMAGE * refn,
 					   IMAGE * refh, IMAGE * refv,	IMAGE * refhv, 
 					   uint32_t edged_width, uint32_t edged_height, uint32_t rounding);
 
-int image_input(IMAGE * image, uint32_t width, int height, uint32_t edged_width,
-			int8_t * src, int csp);
+int image_input(IMAGE * image, uint32_t width, int height, 
+#ifdef MPEG4IP
+			uint32_t raw_height,
+#endif
+			uint32_t edged_width, uint8_t * src, int csp);
 
 int image_output(IMAGE * image, uint32_t width, int height, uint32_t edged_width,
-			int8_t * dst, uint32_t dst_stride, int csp);
+			uint8_t * dst, uint32_t dst_stride, int csp);
 
 #endif /* _IMAGE_H_ */

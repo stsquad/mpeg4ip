@@ -37,7 +37,7 @@
 #include <sched.h>
 #include <sys/mman.h>
 
-#include "live_config.h"
+#include "mp4live_config.h"
 #include "util.h"
 
 #endif /* __MP4LIVE_H__ */

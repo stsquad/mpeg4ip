@@ -82,8 +82,12 @@ bool ValidateAddress(GtkWidget* widget)
 	const char* address = gtk_entry_get_text(GTK_ENTRY(widget));
 
 	struct in_addr in;
+	if (inet_pton(AF_INET, address, &in) > 0) {
+		return true;
+	}
 
-	if (inet_aton(address, &in) != 0) {
+	struct in6_addr in6;
+	if (inet_pton(AF_INET6, address, &in6) > 0) {
 		return true;
 	}
 

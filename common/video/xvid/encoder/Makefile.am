@@ -1,7 +1,11 @@
+if USE_MMX
 SUBDIRS = intel_mmx
+endif
 
 noinst_LTLIBRARIES = libxvidencoder.la
 libxvidencoder_la_LDFLAGS = -static
+
+AM_CFLAGS = -DPMVFAST
 
 libxvidencoder_la_SOURCES = \
 	bitwriter.h \
@@ -22,3 +26,7 @@ libxvidencoder_la_SOURCES = \
 	sad.h \
 	sad.c \
 	vlc_codes.h
+
+if USE_MMX
+libxvidencoder_la_LIBADD = intel_mmx/libxvidencodermmx.la
+endif

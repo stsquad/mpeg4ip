@@ -23,9 +23,7 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 
-#ifndef __BOOL__
-#define __BOOL__
-typedef int bool;
+#ifndef TRUE
 #define TRUE 1
 #define FALSE 0
 #endif
@@ -50,6 +48,9 @@ struct rtsp_session_ {
 /*
  * client main structure
  */
+
+typedef struct rtsp_thread_info_ rtsp_thread_info_t;
+
 struct rtsp_client_ {
   /*
    * Information about the server we're talking to.
@@ -58,14 +59,18 @@ struct rtsp_client_ {
   char *url;
   char *server_name;
   uint16_t redirect_count;
-  bool useTCP;
+  int useTCP;
   struct in_addr server_addr;
   uint16_t port;
 
   /*
    * Communications information - socket, receive buffer
    */
+#ifndef _WIN32
   int server_socket;
+#else
+  SOCKET server_socket;
+#endif
   int recv_timeout;
 
   /*
@@ -87,12 +92,8 @@ struct rtsp_client_ {
   } m_callback[MAX_RTP_THREAD_SESSIONS];
   SDL_Thread *thread;
   SDL_mutex *msg_mutex;
-  int comm_socket[2];
-  /*
-   * These are if we don't have socketpair
-   */
-  int comm_socket_write_to;
-  char socket_name[108];
+
+  rtsp_thread_info_t *m_thread_info;
 
   /*
    * receive buffer
@@ -101,6 +102,10 @@ struct rtsp_client_ {
   char m_resp_buffer[RECV_BUFF_DEFAULT_LEN + 1];
 
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void clear_decode_response(rtsp_decode_t *decode);
 
@@ -114,7 +119,7 @@ void rtsp_close_socket(rtsp_client_t *info);
 
 int rtsp_send(rtsp_client_t *info, const char *buff, uint32_t len);
 void rtsp_flush(rtsp_client_t *info);
-int rtsp_receive_socket(int rsocket, char *buffer, uint32_t len,
+int rtsp_receive_socket(rtsp_client_t *rptr, char *buffer, uint32_t len,
 			uint32_t msec_timeout);
 
 int rtsp_get_response(rtsp_client_t *info);
@@ -123,21 +128,35 @@ int rtsp_setup_redirect(rtsp_client_t *info);
 
 
 void rtsp_debug(int loglevel, const char *fmt, ...)
-#ifndef _WINDOWS
+#ifndef _WIN32
      __attribute__((format(__printf__, 2, 3)));
 #else
      ;
 #endif
 
-int rtsp_create_thread (rtsp_client_t *info);
+int rtsp_create_thread(rtsp_client_t *info);
+void rtsp_close_thread(rtsp_client_t *info);
+
+// Call these only from the rtsp thread
+int rtsp_thread(void *data); // don't call this...
+int rtsp_thread_ipc_respond(rtsp_client_t *info, int ret); // only from thread
+int rtsp_thread_ipc_receive(rtsp_client_t *info, char *buffer, size_t len);
+void rtsp_thread_init_thread_info(rtsp_client_t *info);
+int rtsp_thread_wait_for_event(rtsp_client_t *info);
+int rtsp_thread_has_control_message(rtsp_client_t *info);
+int rtsp_thread_get_control_message(rtsp_client_t *info, rtsp_msg_type_t *msg);
+int rtsp_thread_has_receive_data(rtsp_client_t *info);
+void rtsp_thread_close(rtsp_client_t *info);
+void rtsp_thread_set_nonblocking(rtsp_client_t *info);
+
+// Call these only from the server thread.
 int rtsp_thread_ipc_send (rtsp_client_t *info,
-			  const unsigned char *msg,
+			  unsigned char *msg,
 			  int len);
 int rtsp_thread_ipc_send_wait(rtsp_client_t *info,
-			      const unsigned char *msg,
+			      unsigned char *msg,
 			      int msg_len,
-			      char *return_msg,
-			      int return_msg_len);
+			      int *return_msg);
 
 int rtsp_send_and_get(rtsp_client_t *info,
 		      char *buffer,
@@ -147,4 +166,8 @@ int rtsp_recv(rtsp_client_t *cptr, char *buffer, uint32_t len);
 
 int rtsp_bytes_in_buffer(rtsp_client_t *cptr);
 
+
+#ifdef __cplusplus
+}
+#endif
 

@@ -86,7 +86,7 @@ static void on_sampling_rate_menu_activate (GtkWidget *widget, gpointer data)
 
 	// ensure that bit rate is consistent with new sampling rate
 	if (samplingRateIndex < 6) {
-		// MPEG 2 or 2.5 mode only goes up to 160 Kbps
+		// MPEG 2 or 2.5 mode only goes up to 160 kbps
 		if (bitRateIndex >= 14) {
 			ShowMessage("Change Sampling Rate",
 				"New sampling rate requires that bit rate be lowered");
@@ -157,6 +157,8 @@ static bool ValidateAndSave(void)
 	MyConfig->SetIntegerValue(CONFIG_AUDIO_BIT_RATE,
 		bitRateValues[bitRateIndex]);
 
+	MyConfig->Update();
+
 	DisplayAudioSettings();  // display settings in main window
 
 	return true;
@@ -215,7 +217,7 @@ void CreateAudioDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-	label = gtk_label_new(" Bit Rate (Kbps):");
+	label = gtk_label_new(" Bit Rate (kbps):");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);

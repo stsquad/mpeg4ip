@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../../include" /I "../../../lib/SDL/include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "IPTV_COMPATIBLE" /D "_REENTRANT" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../../include" /I "../../../lib/SDL/include" /I "../../../lib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "IPTV_COMPATIBLE" /D "_REENTRANT" /YX /FD /c
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /I "../../../include" /I "../../../lib/SDL/include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "IPTV_COMPATIBLE" /D "_REENTRANT" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /I "../../../include" /I "../../../lib/SDL/include" /I "../../../lib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "IPTV_COMPATIBLE" /D "_REENTRANT" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
 BSC32=bscmake.exe
@@ -103,6 +103,22 @@ SOURCE=.\rtsp_private.h
 # Begin Source File
 
 SOURCE=.\rtsp_resp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtsp_thread.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtsp_thread_ipc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtsp_thread_win.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtsp_thread_win.h
 # End Source File
 # Begin Source File
 

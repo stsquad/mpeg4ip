@@ -17,7 +17,7 @@ int get_dc_size_chrom(BITREADER * bs);
 int get_intra_coeff(BITREADER * bs, int *run, int *last);
 int get_inter_coeff(BITREADER * bs, int *run, int *last);
 
-void get_intra_block(BITREADER * bs, int16_t * block, int direction);
+void get_intra_block(BITREADER * bs, int16_t * block, int direction, int coeff);
 void get_inter_block(BITREADER * bs, int16_t * block);
 
 

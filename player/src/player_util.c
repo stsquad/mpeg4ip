@@ -59,7 +59,7 @@ void player_error_message (const char *fmt, ...)
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if _WIN32
+#if defined(_WIN32) && defined(_DEBUG)
   if (IsDebuggerPresent()) {
         char msg[512];
 
@@ -93,7 +93,7 @@ void player_debug_message (const char *fmt, ...)
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if _WIN32 
+#if defined(_WIN32) && defined(_DEBUG)
   if (IsDebuggerPresent()) {
        char msg[512];
 
@@ -128,7 +128,7 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if _WIN32
+#if defined(_WIN32) && defined(_DEBUG)
   if (IsDebuggerPresent()) {
        char msg[512];
 
@@ -164,7 +164,7 @@ void player_library_message (int loglevel,
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if _WIN32
+#if defined(_WIN32) && defined(_DEBUG)
 	if (IsDebuggerPresent()) {
   char msg[512];
 
@@ -193,7 +193,7 @@ void player_library_message (int loglevel,
   vprintf(fmt, ap);
   printf("\n");
 }
-  
+
 
 #ifndef HAVE_STRCASESTR
 char *strcasestr (const char *haystack, const char *needle)

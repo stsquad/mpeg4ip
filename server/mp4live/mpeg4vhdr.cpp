@@ -40,10 +40,17 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 	bool want_vol = true;	
 	bool want_short_time = false; 
 	bool want_variable_rate = true;
+	u_int8_t quant_type = 0; // H.263
 
 	if (!strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODER), 
 	  VIDEO_ENCODER_FFMPEG)) {
 		want_short_time = true;
+
+	} else if (!strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODER), 
+	  VIDEO_ENCODER_XVID)) {
+		// N.B. this needs to match video_source.cpp InitXvidEncoder()
+		// OPTION later might want this as a config variable
+		quant_type = 1;	// MPEG-4
 	}
 
 	BitBuffer config;
@@ -149,7 +156,13 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		/* 1 bit - not 8 bit pixels = 0 */
 		putbits(&config, 0, 1);
 		/* 1 bit - quant type = 0 */
-		putbits(&config, 0, 1);
+		putbits(&config, quant_type, 1);
+		if (quant_type) {
+			/* 1 bit - load intra quant mat = 0 */
+			putbits(&config, 0, 1);
+			/* 1 bit - load inter quant mat = 0 */
+			putbits(&config, 0, 1);
+		}
 		/* 1 bit - quarter pixel = 0 */
 		putbits(&config, 0, 1);
 		/* 1 bit - complexity estimation disable = 1 */

@@ -77,7 +77,9 @@ void CRawRecorder::DoStartRecord()
 				m_pConfig->GetStringValue(CONFIG_RECORD_YUV_FILE_NAME)); 
 		}
 	}
-	m_record = true;
+	if (m_pcmFile != -1 || m_yuvFile != -1) {
+		m_record = true;
+	}
 }
 
 void CRawRecorder::DoStopRecord()
@@ -104,18 +106,20 @@ void CRawRecorder::DoWriteFrame(CMediaFrame* pFrame)
 		return;
 	}
 
-	if (pFrame->GetType() == CMediaFrame::PcmAudioFrame 
-	  && m_pcmFile != -1) {
-		write(m_pcmFile, pFrame->GetData(), pFrame->GetDataLength());
+	if (m_record) {
+		if (pFrame->GetType() == CMediaFrame::PcmAudioFrame 
+		  && m_pcmFile != -1) {
+			write(m_pcmFile, pFrame->GetData(), pFrame->GetDataLength());
 
-	} else if (pFrame->GetType() == CMediaFrame::YuvVideoFrame 
-	  && m_yuvFile != -1) {
-		write(m_yuvFile, pFrame->GetData(), pFrame->GetDataLength());
-	} else {
-		debug_message("Raw recorder received unknown frame type %u",
-			pFrame->GetType());
+		} else if (pFrame->GetType() == CMediaFrame::RawYuvVideoFrame 
+		  && m_yuvFile != -1) {
+			write(m_yuvFile, pFrame->GetData(), pFrame->GetDataLength());
+		} else {
+			// debug_message("Raw recorder received unknown frame type %u",
+			//	pFrame->GetType());
+		}
 	}
-
+	
 	delete pFrame;
 }
 

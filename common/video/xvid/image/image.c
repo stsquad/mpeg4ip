@@ -1,7 +1,7 @@
 /**************************************************************************
  *
  *	XVID MPEG-4 VIDEO CODEC
- *	bitstream writer
+ *	image stuff
  *
  *	This program is an implementation of a part of one or more MPEG-4
  *	Video tools as specified in ISO/IEC 14496-2 standard.  Those intending
@@ -32,6 +32,8 @@
  *
  *	History:
  *
+ *	26.01.2002	rgb555, rgb565
+ *	07.01.2001	commented u,v interpolation (not required for uv-block-based)
  *  23.12.2001  removed #ifdefs, added function pointers + init_common()
  *	22.12.2001	cpu #ifdefs
  *  19.12.2001  image_dump(); useful for debugging
@@ -62,12 +64,16 @@ void init_image(uint32_t cpu_flags) {
 	interpolate_halfpel_v = interpolate_halfpel_v_c;
 	interpolate_halfpel_hv = interpolate_halfpel_hv_c;
 
+	rgb555_to_yuv = rgb555_to_yuv_c;
+	rgb565_to_yuv = rgb565_to_yuv_c;
 	rgb24_to_yuv = rgb24_to_yuv_c;
 	rgb32_to_yuv = rgb32_to_yuv_c;
 	yuv_to_yuv = yuv_to_yuv_c;
 	yuyv_to_yuv = yuyv_to_yuv_c;
 	uyvy_to_yuv = uyvy_to_yuv_c;
 
+	yuv_to_rgb555 = yuv_to_rgb555_c;
+	yuv_to_rgb565 = yuv_to_rgb565_c;
 	yuv_to_rgb24 = yuv_to_rgb24_c;
 	yuv_to_rgb32 = yuv_to_rgb32_c;
 	out_yuv = out_yuv_c;
@@ -105,7 +111,9 @@ void init_image(uint32_t cpu_flags) {
 #endif
 }
 
-uint32_t image_create(IMAGE * image, uint32_t edged_width, uint32_t edged_height)
+
+
+int32_t image_create(IMAGE * image, uint32_t edged_width, uint32_t edged_height)
 {
 	const uint32_t edged_width2 = edged_width / 2;
 	const uint32_t edged_height2 = edged_height / 2;
@@ -138,7 +146,6 @@ uint32_t image_create(IMAGE * image, uint32_t edged_width, uint32_t edged_height
 
 
 
-
 void image_destroy(IMAGE * image, uint32_t edged_width, uint32_t edged_height)
 {
 	const uint32_t edged_width2 = edged_width / 2;
@@ -147,6 +154,7 @@ void image_destroy(IMAGE * image, uint32_t edged_width, uint32_t edged_height)
 	free(image->u - (EDGE_SIZE2 * edged_width2 + EDGE_SIZE2));
 	free(image->v - (EDGE_SIZE2 * edged_width2 + EDGE_SIZE2));
 }
+
 
 void image_swap(IMAGE * image1, IMAGE * image2)
 {
@@ -300,6 +308,7 @@ void image_interpolate(const IMAGE * refn,
 		rounding);
 
 
+	/* uv-image-based compensation
 	offset = EDGE_SIZE2 * (edged_width / 2 + 1);
 
     interpolate_halfpel_h(
@@ -338,11 +347,16 @@ void image_interpolate(const IMAGE * refn,
 		refn->v - offset, 
 		edged_width / 2, edged_height / 2,
 		rounding);
+	*/
 }
 
 
-int image_input(IMAGE * image, uint32_t width, int height, uint32_t edged_width,
-			int8_t * src, int csp)
+int image_input(IMAGE * image, uint32_t width, int height, 
+#ifdef MPEG4IP
+			/* Note currently only implemented for yuv_to_yuv_c */
+			uint32_t raw_height,
+#endif
+			uint32_t edged_width, uint8_t * src, int csp)
 {
 
 /*	if (csp & XVID_CSP_VFLIP)
@@ -353,6 +367,17 @@ int image_input(IMAGE * image, uint32_t width, int height, uint32_t edged_width,
 
 	switch(csp & ~XVID_CSP_VFLIP)
 	{
+	case XVID_CSP_RGB555 :
+		rgb555_to_yuv(image->y, image->u, image->v, src, 
+						width, height, edged_width);
+		return 0;
+
+	case XVID_CSP_RGB565 :
+		rgb565_to_yuv(image->y, image->u, image->v, src, 
+						width, height, edged_width);
+		return 0;
+
+
 	case XVID_CSP_RGB24 :
 		rgb24_to_yuv(image->y, image->u, image->v, src, 
 						width, height, edged_width);
@@ -364,13 +389,23 @@ int image_input(IMAGE * image, uint32_t width, int height, uint32_t edged_width,
 		return 0;
 
 	case XVID_CSP_I420 :
+#ifdef MPEG4IP
+		yuv_to_yuv_clip_c(image->y, image->u, image->v, src, 
+						width, height, raw_height, edged_width);
+#else
 		yuv_to_yuv(image->y, image->u, image->v, src, 
 						width, height, edged_width);
+#endif
 		return 0;
 
 	case XVID_CSP_YV12 :	/* u/v swapped */
+#ifdef MPEG4IP
+		yuv_to_yuv_clip_c(image->y, image->u, image->v, src, 
+						width, height, raw_height, edged_width);
+#else
 		yuv_to_yuv(image->y, image->v, image->u, src, 
 						width, height, edged_width);
+#endif
 		return 0;
 
 	case XVID_CSP_YUY2 :
@@ -399,7 +434,7 @@ int image_input(IMAGE * image, uint32_t width, int height, uint32_t edged_width,
 
 
 int image_output(IMAGE * image, uint32_t width, int height, uint32_t edged_width,
-			int8_t * dst, uint32_t dst_stride,	int csp)
+			uint8_t * dst, uint32_t dst_stride,	int csp)
 {
 	if (csp & XVID_CSP_VFLIP)
 	{
@@ -408,6 +443,18 @@ int image_output(IMAGE * image, uint32_t width, int height, uint32_t edged_width
 
 	switch(csp & ~XVID_CSP_VFLIP)
 	{
+	case XVID_CSP_RGB555 :
+		yuv_to_rgb555(dst, dst_stride,
+				image->y, image->u, image->v, edged_width, edged_width / 2,
+				width, height);
+		return 0;
+
+	case XVID_CSP_RGB565 :
+		yuv_to_rgb565(dst, dst_stride,
+				image->y, image->u, image->v, edged_width, edged_width / 2,
+				width, height);
+		return 0;
+
 	case XVID_CSP_RGB24 :
 		yuv_to_rgb24(dst, dst_stride,
 				image->y, image->u, image->v, edged_width, edged_width / 2,

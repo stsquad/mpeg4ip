@@ -79,7 +79,7 @@ void BitstreamVolHeader(Bitstream * const bs,
 			25fps		res=25		inc=1
 			29.97fps	res=30000	inc=1001
 	*/
-	BitstreamPutBits(bs, 1, 16);
+	BitstreamPutBits(bs, 2, 16);
 
 	MARKER();
 
@@ -157,4 +157,3 @@ void BitstreamVopHeader(Bitstream * const bs,
 	if (prediction_type != I_VOP)
 		BitstreamPutBits(bs, fcode, 3);		// fixed_code = [1,4]
 }
-

@@ -1,0 +1,59 @@
+ 
+// Commands (ID_* and IDM_*) 
+HID_HTTP_EMERG                          0x1006D
+HID_HTTP_ALERT                          0x1006E
+HID_HTTP_CRIT                           0x1006F
+HID_HTTP_ERROR                          0x10070
+HID_HTTP_WARN                           0x10071
+HID_HTTP_NOTICE                         0x10072
+HID_HTTP_INFO                           0x10073
+HID_HTTP_DEBUG                          0x10074
+HID_RTSP_EMERG                          0x10075
+HID_RTSP_ALERT                          0x10076
+HID_RTSP_CRIT                           0x10077
+HID_RTSP_ERROR                          0x10078
+HID_RTSP_WARN                           0x10079
+HID_RTSP_NOTICE                         0x1007A
+HID_RTSP_INFO                           0x1007B
+HID_RTSP_DEBUG                          0x1007C
+HID_ENTER                               0x18003
+HID_MEDIA_VIDEO_50                      0x18006
+HID_MEDIA_VIDEO_100                     0x18007
+HID_MEDIA_VIDEO_200                     0x18008
+HID_VIDEO_FULLSCREEN                    0x18009
+HID_AUDIO_MUTE                          0x1800A
+HID_DEBUG_MPEG4ISOONLY                  0x1800B
+HID_RTP_DEBUG_EMERG                     0x1800D
+HID_RTP_DEBUG_ALERT                     0x1800E
+HID_RTP_DEBUG_CRIT                      0x1800F
+HID_RTP_DEBUG_ERROR                     0x18010
+HID_RTP_DEBUG_WARN                      0x18011
+HID_RTP_DEBUG_NOTICE                    0x18012
+HID_RTP_DEBUG_INFO                      0x18013
+HID_RTP_DEBUG_DEBUG                     0x18014
+HID_PAGE_UP                             0x18014
+HID_SDP_EMERG                           0x18015
+HID_PAGE_DOWN                           0x18015
+HID_SDP_ALERT                           0x18016
+HID_SPACE                               0x18016
+HID_SDP_CRIT                            0x18017
+HID_HOME                                0x18017
+HID_SDP_ERROR                           0x18018
+HID_END                                 0x18018
+HID_SDP_WARN                            0x18019
+HID_SDP_NOTICE                          0x1801A
+HID_SDP_INFO                            0x1801B
+HID_SDP_DEBUG                           0x1801C
+HID_RTP_OVER_RTSP                       0x1801D
+ 
+// Prompts (IDP_*) 
+ 
+// Resources (IDR_*) 
+HIDR_MAINFRAME                          0x20080
+HIDR_WMP4PLTYPE                         0x20081
+ 
+// Dialogs (IDD_*) 
+HIDD_ABOUTBOX                           0x20064
+HIDD_WMP4PLAYER_FORM                    0x20065
+ 
+// Frame Controls (IDW_*) 

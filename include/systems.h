@@ -140,6 +140,8 @@ int gettimeofday(struct timeval *t, void *);
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <syslog.h>
 #include <string.h>
 #include <ctype.h>

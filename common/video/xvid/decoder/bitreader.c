@@ -32,6 +32,7 @@
  *
  *	History:
  *
+ *	30.02.2002	intra_dc_threshold support
  *	04.12.2001	support for additional headers
  *	16.12.2001	inital version; (c)2001 peter ross <pross@cs.rmit.edu.au>
  *
@@ -65,6 +66,9 @@
 
 
 #define VIDOBJLAY_TYPE_SIMPLE			1
+//#define VIDOBJLAY_TYPE_SIMPLE_SCALABLE	2
+#define VIDOBJLAY_TYPE_CORE				3
+#define VIDOBJLAY_TYPE_MAIN				4
 
 
 //#define VIDOBJLAY_AR_SQUARE				1
@@ -96,13 +100,25 @@ static int __inline log2bin(int value)
 }
 
 
+static const uint32_t intra_dc_threshold_table[] =
+{
+	32,	/* never use */
+	13,
+	15,
+	17,
+	19,
+	21,
+	23,
+	1,
+};
+
 /*
 decode headers
 returns coding_type, or -1 if error
 */
 
 
-int bs_headers(BITREADER * bs, DECODER * dec, uint32_t * rounding, uint32_t * quant, uint32_t * fcode)
+int bs_headers(BITREADER * bs, DECODER * dec, uint32_t * rounding, uint32_t * quant, uint32_t * fcode, uint32_t * intra_dc_threshold)
 {
 	uint32_t vol_ver_id;
 	uint32_t time_inc_resolution;
@@ -171,10 +187,14 @@ int bs_headers(BITREADER * bs, DECODER * dec, uint32_t * rounding, uint32_t * qu
 			bs_skip(bs, 32);					// video_object_layer_start_code
 
 			bs_skip(bs, 1);									// random_accessible_vol
-			if (bs_show(bs, 8) != VIDOBJLAY_TYPE_SIMPLE &&	// video_object_type_indication
+
+			// video_object_type_indication
+			if (bs_show(bs, 8) != VIDOBJLAY_TYPE_SIMPLE &&
+				bs_show(bs, 8) != VIDOBJLAY_TYPE_CORE &&
+				bs_show(bs, 8) != VIDOBJLAY_TYPE_MAIN &&
 				bs_show(bs, 8) != 0)		// BUGGY DIVX
 			{
-				DEBUG("video_object_type_indication != simple");
+				DEBUG1("video_object_type_indication not supported", bs_show(bs, 8));
 				return -1;
 			}
 			bs_skip(bs, 8);
@@ -233,11 +253,18 @@ int bs_headers(BITREADER * bs, DECODER * dec, uint32_t * rounding, uint32_t * qu
 			MARKER();
 
 			time_inc_resolution = bs_get(bs, 16);	// vop_time_increment_resolution
-			dec->time_inc_bits = log2bin(time_inc_resolution);
-			if (dec->time_inc_bits == 0) {
+			time_inc_resolution--;
+			if (time_inc_resolution > 0)
+			{
+				dec->time_inc_bits = log2bin(time_inc_resolution);
+			}
+			else
+			{
+				// dec->time_inc_bits = 0;
+
+				// for "old" xvid compatibility, set time_inc_bits = 1
 				dec->time_inc_bits = 1;
 			}
-			// DEBUG1("tinc res", time_inc_resolution);
 
 			MARKER();
 
@@ -496,8 +523,9 @@ int bs_headers(BITREADER * bs, DECODER * dec, uint32_t * rounding, uint32_t * qu
 
 			if (dec->shape != VIDOBJLAY_SHAPE_BINARY_ONLY)
 			{
-				// DEBUG1("intra_dc_vlc_threshold", bs_show(bs,3));
-				bs_skip(bs, 3);		// TODO: intra_dc_vlc_threshold
+				// intra_dc_vlc_threshold
+				*intra_dc_threshold = intra_dc_threshold_table[ bs_get(bs,3) ];
+
 				/* if (interlaced)
 					{
 						bs_skip(bs, 1);		// top_field_first

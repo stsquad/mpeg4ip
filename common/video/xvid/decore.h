@@ -46,6 +46,10 @@ extern "C" {
 #define STDCALL
 #endif
 
+#if ((! defined(ARCH_IS_BIG_ENDIAN)) && (! defined (WIN32)) && (! defined (LINUX)) )
+#define ARCH_IS_BIG_ENDIAN
+#endif
+
 /**
  *
 **/
@@ -58,6 +62,10 @@ extern "C" {
 #define DEC_OPT_SETOUT		4 // set output mode
 #define DEC_OPT_FRAME		5
 #define DEC_OPT_FRAME_311	6
+#define DEC_OPT_GAMMA		7
+#define DEC_OPT_VERSION		8
+#define DEC_OPT_FRAME_45	9
+#define DEC_OPT_SETPP_ADV   	10 // advance (personalized) postprocessing settings
 
 // decore return values
 #define DEC_OK			0

@@ -26,19 +26,14 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <linux/videodev.h>
-#include <avcodec.h>			/* ffmpeg */
 
 #include "media_node.h"
+#include "video_encoder.h"
 
 #define NTSC_INT_FPS	30
 #define PAL_INT_FPS		25
 #define SECAM_INT_FPS	25
 #define MAX_INT_FPS		NTSC_INT_FPS
-
-// values for m_encoder, int versions of encoder string names
-#define USE_FFMPEG		1
-#define USE_DIVX		2
-#define USE_XVID		3
 
 void CalculateVideoFrameSize(CLiveConfig* pConfig);
 
@@ -46,21 +41,11 @@ class CVideoSource : public CMediaSource {
 public:
 	CVideoSource() : CMediaSource() {
 		m_capture = false;
-		m_preview = false;
 		m_videoDevice = -1;
 		m_videoMap = NULL;
 		m_videoFrameMap = NULL;
 		m_wantKeyFrame = false;
-		m_sdlScreen = NULL;
-		m_sdlImage = NULL;
-		m_maxVopSize = 128 * 1024;
 		m_encoder = 0;
-#ifdef ADD_DIVX_ENCODER
-		m_divxHandle = 1;
-#endif
-#ifdef ADD_XVID_ENCODER
-		m_xvidHandle = NULL;
-#endif
 	}
 
 	void StartCapture(void) {
@@ -70,16 +55,6 @@ public:
 
 	void StopCapture(void) {
 		m_myMsgQueue.send_message(MSG_STOP_CAPTURE,
-			NULL, 0, m_myMsgQueueSemaphore);
-	}
-
-	void StartPreview(void) {
-		m_myMsgQueue.send_message(MSG_START_PREVIEW,
-			 NULL, 0, m_myMsgQueueSemaphore);
-	}
-
-	void StopPreview(void) {
-		m_myMsgQueue.send_message(MSG_STOP_PREVIEW,
 			NULL, 0, m_myMsgQueueSemaphore);
 	}
 
@@ -98,17 +73,12 @@ public:
 protected:
 	static const int MSG_START_CAPTURE	= 1;
 	static const int MSG_STOP_CAPTURE	= 2;
-	static const int MSG_START_PREVIEW	= 3;
-	static const int MSG_STOP_PREVIEW	= 4;
-	static const int MSG_GENERATE_KEY_FRAME	= 5;
+	static const int MSG_GENERATE_KEY_FRAME	= 3;
 
 	int ThreadMain(void);
 
 	void DoStartCapture(void);
 	void DoStopCapture(void);
-
-	void DoStartPreview(void);
-	void DoStopPreview(void);
 
 	void DoGenerateKeyFrame(void);
 
@@ -118,14 +88,6 @@ protected:
 	void InitSizes(void);
 
 	bool InitEncoder(void);
-	bool InitFfmpegEncoder(void);
-	bool InitDivxEncoder(void);
-	bool InitXvidEncoder(void);
-
-	void StopEncoder(void);
-	void StopFfmpegEncoder(void);
-	void StopDivxEncoder(void);
-	void StopXvidEncoder(void);
 
 	void ProcessVideo(void);
 
@@ -136,24 +98,8 @@ protected:
 			&m_videoFrameMap[frameNumber]) == 0);
 	}
 
-	static void memcpy2to1(u_int8_t* dst, u_int16_t* src, u_int32_t dstsize) {
-		while (dstsize--) {
-			*dst++ = *src++;
-		}
-	}
-
-	static void imgcpy(u_int8_t* dst, u_int8_t* src, 
-		u_int16_t width, u_int16_t height, u_int16_t stride) {
-		for (u_int16_t i = 0; i < height; i++) {
-			memcpy(dst, src, width);
-			dst += width;
-			src += stride;
-		}
-	}
-
 protected:
 	bool				m_capture;
-	bool				m_preview;
 
 	int					m_videoDevice;
 	struct video_mbuf	m_videoMbuf;
@@ -180,33 +126,18 @@ protected:
 	u_int32_t			m_yRawSize;
 	u_int32_t			m_uvRawSize;
 	u_int32_t			m_yuvSize;
-	u_int32_t			m_ySize;
-	u_int32_t			m_uvSize;
 	u_int32_t			m_yOffset;
 	u_int32_t			m_uvOffset;
 
-	u_int32_t			m_maxVopSize;
+	u_int8_t*			m_prevYuvImage;
+	u_int8_t*			m_prevReconstructImage;
+	Timestamp			m_prevYuvImageTimestamp;
+
 	u_int8_t*			m_prevVopBuf;
 	u_int32_t			m_prevVopBufLength;
 	Timestamp			m_prevVopTimestamp;
 
-	u_int8_t			m_encoder;
-
-#ifdef ADD_FFMPEG_ENCODER
-	AVEncodeContext		m_avctx;
-#endif
-
-#ifdef ADD_DIVX_ENCODER
-	u_int32_t			m_divxHandle;
-#endif
-
-#ifdef ADD_XVID_ENCODER
-	void*				m_xvidHandle;
-#endif
-
-	SDL_Surface*		m_sdlScreen;
-	SDL_Rect			m_sdlScreenRect;
-	SDL_Overlay*		m_sdlImage;
+	CVideoEncoder*		m_encoder;
 };
 
 class CVideoCapabilities {

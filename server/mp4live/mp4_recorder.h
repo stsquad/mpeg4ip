@@ -34,10 +34,12 @@ public:
 		m_record = false;
 		m_mp4File = NULL;
 
-		m_audioTrack = 0;
-		m_audioHintTrack = 0;
-		m_videoTrack = 0;
-		m_videoHintTrack = 0;
+		m_rawAudioTrackId = MP4_INVALID_TRACK_ID;
+		m_encodedAudioTrackId = MP4_INVALID_TRACK_ID;
+		m_audioHintTrackId = MP4_INVALID_TRACK_ID;
+		m_rawVideoTrackId = MP4_INVALID_TRACK_ID;
+		m_encodedVideoTrackId = MP4_INVALID_TRACK_ID;
+		m_videoHintTrackId = MP4_INVALID_TRACK_ID;
 
 		m_videoTimeScale = 90000;
 		m_movieTimeScale = m_videoTimeScale;
@@ -78,30 +80,38 @@ protected:
 
 protected:
 	bool			m_record;
+	bool			m_canRecordAudio;	// used for sync'ed start of A/V
+
 	char*			m_mp4FileName;
 	MP4FileHandle	m_mp4File;
 	MP4TrackId		m_odTrack;
 	MP4TrackId		m_bifsTrack;
-	MP4TrackId		m_audioTrack;
-	MP4TrackId		m_audioHintTrack;
-	MP4TrackId		m_videoTrack;
-	MP4TrackId		m_videoHintTrack;
+	MP4TrackId		m_rawAudioTrackId;
+	MP4TrackId		m_encodedAudioTrackId;
+	MP4TrackId		m_audioHintTrackId;
+	MP4TrackId		m_rawVideoTrackId;
+	MP4TrackId		m_encodedVideoTrackId;
+	MP4TrackId		m_videoHintTrackId;
 
-	u_int32_t		m_audioFrameNum;
-	u_int16_t		m_audioFrameRate;
 	u_int8_t		m_audioHintBuf[4*1024];
 	u_int32_t 		m_audioHintBufLength;
 	u_int32_t		m_audioFramesThisHint;
 	u_int32_t		m_audioBytesThisHint;
 
-	u_int32_t		m_videoFrameNum;
+	u_int32_t		m_rawVideoFrameNum;
+	u_int32_t		m_encodedVideoFrameNum;
+
 	u_int8_t		m_videoHintBuf[4*1024];
 	u_int32_t 		m_videoHintBufLength;
 
 	u_int32_t		m_movieTimeScale;
-	u_int32_t		m_audioTimeScale;
-	u_int32_t		m_audioFrameDuration;	// in audioTimeScale ticks
+	u_int32_t		m_rawAudioTimeScale;
+	u_int32_t		m_encodedAudioTimeScale;
 	u_int32_t		m_videoTimeScale;
+
+	u_int32_t		m_rawAudioFrameNum;
+	u_int32_t		m_encodedAudioFrameNum;
+	u_int32_t		m_encodedAudioFrameDuration;	// in audioTimeScale ticks
 
 	u_int8_t		m_audioPayloadNumber;
 	u_int8_t		m_videoPayloadNumber;

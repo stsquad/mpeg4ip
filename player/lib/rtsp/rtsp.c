@@ -27,14 +27,7 @@
 void free_rtsp_client (rtsp_client_t *rptr)
 {
   if (rptr->thread != NULL) {
-#ifndef _WIN32
-    uint32_t msg = RTSP_MSG_QUIT;
-    rtsp_thread_ipc_send(rptr, (const unsigned char *)&msg, sizeof(msg));
-    SDL_WaitThread(rptr->thread, NULL);
-    closesocket(rptr->comm_socket[0]);
-    closesocket(rptr->comm_socket[1]);
-    rptr->thread = NULL;
-#endif
+    rtsp_close_thread(rptr);
   } else {
     rtsp_close_socket(rptr);
 #ifdef _WINDOWS
@@ -133,24 +126,19 @@ int rtsp_send_and_get (rtsp_client_t *info,
 
     ret = rtsp_get_response(info);
   } else {
-#ifndef _WIN32
-    rtsp_wrap_send_and_get_t msg;
+   rtsp_wrap_send_and_get_t msg;
     int ret_msg;
     msg.msg = RTSP_MSG_SEND_AND_GET;
     msg.body.buffer = buffer;
     msg.body.buflen = buflen;
     ret = rtsp_thread_ipc_send_wait(info,
-				    (const unsigned char *)&msg,
+				    (unsigned char *)&msg,
 				    sizeof(msg),
-				    (char *)&ret_msg,
-				    sizeof(ret_msg));
+				    &ret_msg);
     if (ret != sizeof(ret_msg)) {
       return (RTSP_RESPONSE_RECV_ERROR);
     }
     ret = ret_msg;
-#else
-	ret = -1;
-#endif
   }
   return ret;
 }

@@ -32,6 +32,7 @@
  *
  *	History:
  *
+ *	07.01.2002	init_common updated to reflect new transfer/interpolate8x8
  *	22.12.2001	acdc_predict()
  *
  *************************************************************************/
@@ -69,11 +70,14 @@ void init_common(uint32_t cpu_flags) {
 
 	transfer_8to16copy = transfer_8to16copy_c;
 	transfer_16to8copy = transfer_16to8copy_c;
-	transfer_8to8copy = transfer_8to8copy_c;
-	transfer_8to8add16 = transfer_8to8add16_c;
+	transfer_8to16sub = transfer_8to16sub_c;
 	transfer_16to8add = transfer_16to8add_c;
+	transfer8x8_copy = transfer8x8_copy_c;
 
-	compensate = compensate_c;
+	interpolate8x8_halfpel_h = interpolate8x8_halfpel_h_c;
+	interpolate8x8_halfpel_v = interpolate8x8_halfpel_v_c;
+	interpolate8x8_halfpel_hv = interpolate8x8_halfpel_hv_c;
+
 
 #ifdef USE_MMX
 	if((cpu_flags & XVID_CPU_MMX) > 0) {
@@ -87,18 +91,33 @@ void init_common(uint32_t cpu_flags) {
 		quant_inter = quant_inter_mmx;
 		dequant_inter = dequant_inter_mmx;
 
+		quant4_intra = quant4_intra_mmx;
+		dequant4_intra = dequant4_intra_mmx;
+		quant4_inter = quant4_inter_mmx;
+		dequant4_inter = dequant4_inter_mmx;
+
 		transfer_8to16copy = transfer_8to16copy_mmx;
 		transfer_16to8copy = transfer_16to8copy_mmx;
-		transfer_8to8copy = transfer_8to8copy_mmx;
-		transfer_8to8add16 = transfer_8to8add16_mmx;
+		transfer_8to16sub = transfer_8to16sub_mmx;
 		transfer_16to8add = transfer_16to8add_mmx;
+		transfer8x8_copy = transfer8x8_copy_mmx;
 
-		compensate = compensate_mmx;
+		interpolate8x8_halfpel_h = interpolate8x8_halfpel_h_mmx;
+		interpolate8x8_halfpel_v = interpolate8x8_halfpel_v_mmx;
+		interpolate8x8_halfpel_hv = interpolate8x8_halfpel_hv_mmx;
 	}
 
 	if((cpu_flags & XVID_CPU_MMXEXT) > 0) {
 		idct = idct_xmm;
+		interpolate8x8_halfpel_h = interpolate8x8_halfpel_h_xmm;
+		interpolate8x8_halfpel_v = interpolate8x8_halfpel_v_xmm;
 	}
+
+	if((cpu_flags & XVID_CPU_3DNOW) > 0) {
+		interpolate8x8_halfpel_h = interpolate8x8_halfpel_h_3dn;
+		interpolate8x8_halfpel_v = interpolate8x8_halfpel_v_3dn;
+	}
+
 #endif
 }
 
@@ -260,7 +279,7 @@ void predict_acdc(MACROBLOCK *pMBs,
 				uint32_t block, 
 				int16_t qcoeff[64],
 				uint32_t current_quant,
-				uint32_t iDcScaler,
+				int32_t iDcScaler,
 				int16_t predictors[8])
 {
     int16_t *left, *top, *diag, *current;

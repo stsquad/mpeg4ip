@@ -131,7 +131,7 @@ class CPlayerSession {
     {
       return (m_sync_thread_msg_queue.send_message(msgval, msg, msg_len, m_sync_sem));
     };
-  int sync_thread(void);
+  int sync_thread(int state);
   uint64_t get_current_time(void);
   void audio_is_ready (uint64_t latency, uint64_t time);
   void adjust_start_time(int64_t delta);
@@ -145,7 +145,7 @@ class CPlayerSession {
   int set_session_desc (int line, const char *desc);
   const char *get_session_desc(int line);
  private:
-  int process_sdl_events(int state);
+  void process_sdl_events(void);
   int process_msg_queue(int state);
   int sync_thread_init(void);
   int sync_thread_wait_sync(void);
@@ -193,5 +193,7 @@ class CPlayerSession {
   }
   media_close_callback_f m_media_close_callback;
 };
+
+int c_sync_thread(void *data);
 
 #endif

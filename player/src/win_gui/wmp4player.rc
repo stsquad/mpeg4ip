@@ -1,0 +1,529 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+// Generated Help ID header file
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "resource.hm"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#endif //_WIN32\r\n"
+    "#include ""res\\wmp4player.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""afxres.rc""         // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON    DISCARDABLE     "res\\wmp4player.ico"
+IDR_WMP4PLTYPE          ICON    DISCARDABLE     "res\\wmp4playerDoc.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU PRELOAD DISCARDABLE 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM "&Close...\tCtrl+C",           ID_FILE_CLOSE
+        MENUITEM SEPARATOR
+        MENUITEM "Recent File",                 ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
+    END
+    POPUP "&Media"
+    BEGIN
+        POPUP "Video"
+        BEGIN
+            MENUITEM "50 %",                        ID_MEDIA_VIDEO_50
+            MENUITEM "100 %",                       ID_MEDIA_VIDEO_100
+            MENUITEM "200%",                        ID_MEDIA_VIDEO_200
+            MENUITEM SEPARATOR
+            MENUITEM "Full Screen\tAlt+Enter",      ID_VIDEO_FULLSCREEN
+        END
+        POPUP "Audio"
+        BEGIN
+            MENUITEM "Mute",                        ID_AUDIO_MUTE
+        END
+    END
+    POPUP "Network"
+    BEGIN
+        MENUITEM "Use RTP over RTSP",           ID_RTP_OVER_RTSP
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&Help Topics",                ID_HELP_FINDER
+        POPUP "Debug"
+        BEGIN
+            MENUITEM "Use ISO Decoder",             ID_DEBUG_MPEG4ISOONLY
+            POPUP "HTTP library Debug"
+            BEGIN
+                MENUITEM "Emerg",                       ID_HTTP_EMERG
+                MENUITEM "Alert",                       ID_HTTP_ALERT
+                MENUITEM "Critical",                    ID_HTTP_CRIT
+                MENUITEM "Error",                       ID_HTTP_ERROR
+                MENUITEM "Warning",                     ID_HTTP_WARN
+                MENUITEM "Notice",                      ID_HTTP_NOTICE
+                MENUITEM "Info",                        ID_HTTP_INFO
+                MENUITEM "Debug",                       ID_HTTP_DEBUG
+            END
+            POPUP "RTP Library Debug"
+            BEGIN
+                MENUITEM "Emerg",                       ID_RTP_DEBUG_EMERG
+                MENUITEM "Alert",                       ID_RTP_DEBUG_ALERT
+                MENUITEM "Critical",                    ID_RTP_DEBUG_CRIT
+                MENUITEM "Error",                       ID_RTP_DEBUG_ERROR
+                MENUITEM "Warning",                     ID_RTP_DEBUG_WARN
+                MENUITEM "Notice",                      ID_RTP_DEBUG_NOTICE
+                MENUITEM "Info",                        ID_RTP_DEBUG_INFO
+                MENUITEM "Debug",                       ID_RTP_DEBUG_DEBUG
+            END
+            POPUP "RTSP Library Debug"
+            BEGIN
+                MENUITEM "Emerg",                       ID_RTSP_EMERG
+                MENUITEM "Alert",                       ID_RTSP_ALERT
+                MENUITEM "Critical",                    ID_RTSP_CRIT
+                MENUITEM "Error",                       ID_RTSP_ERROR
+                MENUITEM "Warning",                     ID_RTSP_WARN
+                MENUITEM "Notice",                      ID_RTSP_NOTICE
+                MENUITEM "Info",                        ID_RTSP_INFO
+                MENUITEM "Debug",                       ID_RTSP_DEBUG
+            END
+            POPUP "SDP Library Debug"
+            BEGIN
+                MENUITEM "Emerg",                       ID_SDP_EMERG
+                MENUITEM "Alert",                       ID_SDP_ALERT
+                MENUITEM "Critical",                    ID_SDP_CRIT
+                MENUITEM "Error",                       ID_SDP_ERROR
+                MENUITEM "Warning",                     ID_SDP_WARN
+                MENUITEM "Notice",                      ID_SDP_NOTICE
+                MENUITEM "Info",                        ID_SDP_INFO
+                MENUITEM "Debug",                       ID_SDP_DEBUG
+            END
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "&About wmp4player...",        ID_APP_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINFRAME ACCELERATORS PRELOAD MOVEABLE PURE 
+BEGIN
+    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
+    "N",            ID_FILE_NEW,            VIRTKEY, CONTROL, NOINVERT
+    "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL, NOINVERT
+    "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL, NOINVERT
+    "V",            ID_EDIT_PASTE,          VIRTKEY, CONTROL, NOINVERT
+    VK_BACK,        ID_EDIT_UNDO,           VIRTKEY, ALT, NOINVERT
+    VK_DELETE,      ID_EDIT_CUT,            VIRTKEY, SHIFT, NOINVERT
+    VK_END,         ID_END,                 VIRTKEY, NOINVERT
+    VK_F1,          ID_HELP,                VIRTKEY, NOINVERT
+    VK_F1,          ID_CONTEXT_HELP,        VIRTKEY, SHIFT, NOINVERT
+    VK_F6,          ID_NEXT_PANE,           VIRTKEY, NOINVERT
+    VK_F6,          ID_PREV_PANE,           VIRTKEY, SHIFT, NOINVERT
+    VK_HOME,        ID_HOME,                VIRTKEY, NOINVERT
+    VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
+    VK_INSERT,      ID_EDIT_PASTE,          VIRTKEY, SHIFT, NOINVERT
+    VK_NEXT,        ID_PAGE_DOWN,           VIRTKEY, NOINVERT
+    VK_PRIOR,       ID_PAGE_UP,             VIRTKEY, NOINVERT
+    VK_RETURN,      ID_ENTER,               VIRTKEY, NOINVERT
+    VK_SPACE,       ID_SPACE,               VIRTKEY, NOINVERT
+    "X",            ID_EDIT_CUT,            VIRTKEY, CONTROL, NOINVERT
+    "Z",            ID_EDIT_UNDO,           VIRTKEY, CONTROL, NOINVERT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOG DISCARDABLE  0, 0, 248, 113
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About wmp4player"
+FONT 8, "MS Sans Serif"
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,21,20
+    CTEXT           "wmp4player Version 1.0",IDC_VERSION_STRING,64,15,119,8,
+                    SS_NOPREFIX
+    CTEXT           "Copyright (C) 2002",IDC_STATIC,64,46,119,8,
+                    SS_CENTERIMAGE
+    DEFPUSHBUTTON   "OK",IDOK,94,85,50,14,WS_GROUP
+    LTEXT           "Static",IDC_STATIC,70,30,111,8
+END
+
+IDD_WMP4PLAYER_FORM DIALOGEX 0, 0, 255, 63
+STYLE DS_SETFOREGROUND | DS_3DLOOK | WS_CHILD
+FONT 8, "Book Antiqua"
+BEGIN
+    PUSHBUTTON      "Browse",IDC_BROWSE_BUTTON,223,1,26,13,0,0,
+                    HIDC_BROWSE_BUTTON
+    COMBOBOX        IDC_COMBO1,18,1,202,102,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Play:",IDC_STATIC,2,2,16,8
+    CONTROL         "Slider1",IDC_SLIDER1,"msctls_trackbar32",TBS_AUTOTICKS | 
+                    TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,4,35,246,12,
+                    WS_EX_TRANSPARENT
+    CONTROL         "PLAY_BUTTON",IDC_PLAY_BUTTON,"Button",BS_OWNERDRAW | 
+                    BS_BITMAP | WS_TABSTOP,11,18,13,11
+    CONTROL         "PAUSE_BUTTON",IDC_PAUSE_BUTTON,"Button",BS_OWNERDRAW | 
+                    BS_BITMAP | WS_TABSTOP,31,18,13,11
+    CONTROL         "STOP_BUTTON",IDC_STOP_BUTTON,"Button",BS_OWNERDRAW | 
+                    BS_BITMAP | WS_TABSTOP,51,18,13,11
+    CONTROL         "Slider2",IDC_SLIDER2,"msctls_trackbar32",TBS_BOTH | 
+                    TBS_NOTICKS | WS_TABSTOP,179,21,50,12
+    CONTROL         "MUTE_BUTTON",IDC_MUTE_BUTTON,"Button",BS_OWNERDRAW | 
+                    BS_BITMAP | WS_TABSTOP,158,21,13,11
+    GROUPBOX        "Volume",IDC_STATIC,153,14,77,22,BS_CENTER
+    CONTROL         145,IDC_STATIC,"Static",SS_BITMAP,46,49,171,11
+END
+
+
+#ifndef _MAC
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "\0"
+            VALUE "FileDescription", "wmp4player MFC Application\0"
+            VALUE "FileVersion", "1, 0, 0, 1\0"
+            VALUE "InternalName", "wmp4player\0"
+            VALUE "LegalCopyright", "Copyright (C) 2002\0"
+            VALUE "LegalTrademarks", "\0"
+            VALUE "OriginalFilename", "wmp4player.EXE\0"
+            VALUE "ProductName", "wmp4player Application\0"
+            VALUE "ProductVersion", "1, 0, 0, 1\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+#endif    // !_MAC
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 241
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 106
+    END
+
+    IDD_WMP4PLAYER_FORM, DIALOG
+    BEGIN
+        RIGHTMARGIN, 254
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+PLAY_BUTTONU            BITMAP  DISCARDABLE     "res\\play.bmp"
+PLAY_BUTTOND            BITMAP  DISCARDABLE     "res\\play_d.bmp"
+STOP_BUTTONU            BITMAP  DISCARDABLE     "res\\stop_u.bmp"
+PAUSE_BUTTONU           BITMAP  DISCARDABLE     "res\\pause_u.bmp"
+IDB_BANNER              BITMAP  DISCARDABLE     "res\\mpeg4ip-banner.bmp"
+PAUSE_BUTTOND           BITMAP  DISCARDABLE     "res\\paused.bmp"
+STOP_BUTTOND            BITMAP  DISCARDABLE     "res\\stopd.bmp"
+PLAY_BUTTON_DIS         BITMAP  DISCARDABLE     "res\\playdis.bmp"
+STOP_BUTTON_DIS         BITMAP  DISCARDABLE     "res\\stop_dis.bmp"
+PAUSE_BUTTON_DIS        BITMAP  DISCARDABLE     "res\\pause_dis.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE PRELOAD DISCARDABLE 
+BEGIN
+    IDR_MAINFRAME           "wmp4player\n\nWmp4pl\n\n\nWmp4player.Document\nWmp4pl Document\n"
+END
+
+STRINGTABLE PRELOAD DISCARDABLE 
+BEGIN
+    AFX_IDS_APP_TITLE       "wmp4player"
+    AFX_IDS_IDLEMESSAGE     "For Help, press F1"
+    AFX_IDS_HELPMODEMESSAGE "Select an object on which to get Help"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_INDICATOR_EXT        "EXT"
+    ID_INDICATOR_CAPS       "CAP"
+    ID_INDICATOR_NUM        "NUM"
+    ID_INDICATOR_SCRL       "SCRL"
+    ID_INDICATOR_OVR        "OVR"
+    ID_INDICATOR_REC        "REC"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_FILE_NEW             "Create a new document\nNew"
+    ID_FILE_OPEN            "Open an existing document\nOpen"
+    ID_FILE_CLOSE           "Close the active document\nClose"
+    ID_FILE_SAVE            "Save the active document\nSave"
+    ID_FILE_SAVE_AS         "Save the active document with a new name\nSave As"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_APP_ABOUT            "Display program information, version number and copyright\nAbout"
+    ID_APP_EXIT             "Quit the application; prompts to save documents\nExit"
+    ID_HELP_INDEX           "Opens Help\nHelp Topics"
+    ID_HELP_FINDER          "List Help topics\nHelp Topics"
+    ID_HELP_USING           "Display instructions about how to use help\nHelp"
+    ID_CONTEXT_HELP         "Display help for clicked on buttons, menus and windows\nHelp"
+    ID_HELP                 "Display help for current task or command\nHelp"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_FILE_MRU_FILE1       "Open this document"
+    ID_FILE_MRU_FILE2       "Open this document"
+    ID_FILE_MRU_FILE3       "Open this document"
+    ID_FILE_MRU_FILE4       "Open this document"
+    ID_FILE_MRU_FILE5       "Open this document"
+    ID_FILE_MRU_FILE6       "Open this document"
+    ID_FILE_MRU_FILE7       "Open this document"
+    ID_FILE_MRU_FILE8       "Open this document"
+    ID_FILE_MRU_FILE9       "Open this document"
+    ID_FILE_MRU_FILE10      "Open this document"
+    ID_FILE_MRU_FILE11      "Open this document"
+    ID_FILE_MRU_FILE12      "Open this document"
+    ID_FILE_MRU_FILE13      "Open this document"
+    ID_FILE_MRU_FILE14      "Open this document"
+    ID_FILE_MRU_FILE15      "Open this document"
+    ID_FILE_MRU_FILE16      "Open this document"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_NEXT_PANE            "Switch to the next window pane\nNext Pane"
+    ID_PREV_PANE            "Switch back to the previous window pane\nPrevious Pane"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_WINDOW_SPLIT         "Split the active window into panes\nSplit"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_EDIT_CLEAR           "Erase the selection\nErase"
+    ID_EDIT_CLEAR_ALL       "Erase everything\nErase All"
+    ID_EDIT_COPY            "Copy the selection and put it on the Clipboard\nCopy"
+    ID_EDIT_CUT             "Cut the selection and put it on the Clipboard\nCut"
+    ID_EDIT_FIND            "Find the specified text\nFind"
+    ID_EDIT_PASTE           "Insert Clipboard contents\nPaste"
+    ID_EDIT_REPEAT          "Repeat the last action\nRepeat"
+    ID_EDIT_REPLACE         "Replace specific text with different text\nReplace"
+    ID_EDIT_SELECT_ALL      "Select the entire document\nSelect All"
+    ID_EDIT_UNDO            "Undo the last action\nUndo"
+    ID_EDIT_REDO            "Redo the previously undone action\nRedo"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle StatusBar"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    AFX_IDS_SCSIZE          "Change the window size"
+    AFX_IDS_SCMOVE          "Change the window position"
+    AFX_IDS_SCMINIMIZE      "Reduce the window to an icon"
+    AFX_IDS_SCMAXIMIZE      "Enlarge the window to full size"
+    AFX_IDS_SCNEXTWINDOW    "Switch to the next document window"
+    AFX_IDS_SCPREVWINDOW    "Switch to the previous document window"
+    AFX_IDS_SCCLOSE         "Close the active window and prompts to save the documents"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    AFX_IDS_SCRESTORE       "Restore the window to normal size"
+    AFX_IDS_SCTASKLIST      "Activate Task List"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_MEDIA_VIDEO_50       "Decrease Video Size to 50%"
+    ID_MEDIA_VIDEO_100      "Show Normal Size Video"
+    ID_MEDIA_VIDEO_200      "Increase Video Size to 200%"
+    ID_VIDEO_FULLSCREEN     "Select Full Screen Mode"
+    ID_AUDIO_MUTE           "Mute Audio"
+    ID_DEBUG_MPEG4ISOONLY   "Force Using ISO Decoder for video decoding"
+    ID_RTP_DEBUG_EMERG      "Log RTP Emergency Events"
+    ID_RTP_DEBUG_ALERT      "Log RTP Alert Events"
+    ID_RTP_DEBUG_CRIT       "Log RTPCritical Events"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_RTP_DEBUG_ERROR      "Log RTP Error Events"
+    ID_RTP_DEBUG_WARN       "Log RTP Warning Events"
+    ID_RTP_DEBUG_NOTICE     "Log RTP Notice Events"
+    ID_RTP_DEBUG_INFO       "Log RTP Info Events"
+    ID_RTP_DEBUG_DEBUG      "Log RTP Debug Events"
+    ID_SDP_EMERG            "Log SDP Emergency Events"
+    ID_SDP_ALERT            "Log SDP Alert Events"
+    ID_SDP_CRIT             "Log SDP Critical Events"
+    ID_SDP_ERROR            "Log SDP Error Events"
+    ID_SDP_WARN             "Log SDP Warning Events"
+    ID_SDP_NOTICE           "Log SDP Notice Events"
+    ID_SDP_INFO             "Log SDP Info Events"
+    ID_SDP_DEBUG            "Log SDP Debug Events"
+    ID_RTP_OVER_RTSP        "Use RTP over RTSP"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_HTTP_EMERG           "Log HTTP Emergency Events"
+    ID_HTTP_ALERT           "Log HTTP Alert Events"
+    ID_HTTP_CRIT            "Log HTTP Critical Events"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    ID_HTTP_ERROR           "Log HTTP Error Events"
+    ID_HTTP_WARN            "Log HTTP Warning Events"
+    ID_HTTP_NOTICE          "Log HTTP Notice Events"
+    ID_HTTP_INFO            "Log HTTP Info Events"
+    ID_HTTP_DEBUG           "Log HTTP Debug Events"
+    ID_RTSP_EMERG           "Log RTSP Emergency Events"
+    ID_RTSP_ALERT           "Log RTSP Alert Events"
+    ID_RTSP_CRIT            "Log RTSP Critical Events"
+    ID_RTSP_ERROR           "Log RTSP Error Events"
+    ID_RTSP_WARN            "Log RTSP Warning Events"
+    ID_RTSP_NOTICE          "Log RTSP Notice Events"
+    ID_RTSP_INFO            "Log RTSP Info Events"
+    ID_RTSP_DEBUG           "Log RTSP Debug Events"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#endif //_WIN32
+#include "res\wmp4player.rc2"  // non-Microsoft Visual C++ edited resources
+#include "afxres.rc"         // Standard components
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

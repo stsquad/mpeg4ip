@@ -24,22 +24,17 @@
 
 #include <sys/mman.h>
 
-#ifdef ADD_FFMPEG_ENCODER
-#include <avcodec.h>
-#include <dsputil.h>
-#include <mpegvideo.h>
-#endif /* ADD_FFMPEG_ENCODER */
-
-#ifdef ADD_DIVX_ENCODER
-#include <encore.h>
-#endif /* ADD_DIVX_ENCODER */
-
-#ifdef ADD_XVID_ENCODER
-#include <xvid.h>
-#endif /* ADD_XVID_ENCODER */
-
 #include "video_source.h"
 #include "rgb2yuv.h"
+
+#ifdef ADD_FFMPEG_ENCODER
+#include "video_ffmpeg.h"
+#endif
+
+#ifdef ADD_XVID_ENCODER
+#include "video_xvid.h"
+#endif
+
 
 int CVideoSource::ThreadMain(void) 
 {
@@ -72,12 +67,6 @@ int CVideoSource::ThreadMain(void)
 					break;
 				case MSG_STOP_CAPTURE:
 					DoStopCapture();
-					break;
-				case MSG_START_PREVIEW:
-					DoStartPreview();
-					break;
-				case MSG_STOP_PREVIEW:
-					DoStopPreview();
 					break;
 				case MSG_GENERATE_KEY_FRAME:
 					DoGenerateKeyFrame();
@@ -113,14 +102,8 @@ void CVideoSource::DoStopCapture(void)
 	if (!m_capture) {
 		return;
 	}
-	if (m_preview) {
-		DoStopPreview();
-	}
 
-	// shutdown encoder
-	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
-		StopEncoder();
-	}
+	m_encoder->Stop();
 
 	// release device resources
 	munmap(m_videoMap, m_videoMbuf.size);
@@ -130,87 +113,6 @@ void CVideoSource::DoStopCapture(void)
 	m_videoDevice = -1;
 
 	m_capture = false;
-}
-
-void CVideoSource::DoStartPreview(void)
-{
-#ifndef NOGUI
-	if (m_preview) {
-		return;
-	}
-	if (!m_capture) {
-		DoStartCapture();
-		
-		if (!m_capture) {
-			return;
-		}
-	}
-
-	u_int32_t sdlVideoFlags = SDL_HWSURFACE;
-
-	if (m_pConfig->m_videoPreviewWindowId) {
-		char buffer[16];
-		snprintf(buffer, sizeof(buffer), "%u", 
-			m_pConfig->m_videoPreviewWindowId);
-		setenv("SDL_WINDOWID", buffer, 1);
-		setenv("SDL_VIDEO_CENTERED", "1", 1);
-		sdlVideoFlags |= SDL_NOFRAME;
-	}
-
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0) {
-		error_message("Could not init SDL video: %s", SDL_GetError());
-	}
-	char driverName[32];
-	if (!SDL_VideoDriverName(driverName, 1)) {
-		error_message("Could not init SDL video: %s", SDL_GetError());
-	}
-
-	m_sdlScreen = SDL_SetVideoMode(m_pConfig->m_videoWidth, 
-		m_pConfig->m_videoHeight, 32, sdlVideoFlags);
-
-	m_sdlScreenRect.x = 0;
-	m_sdlScreenRect.y = 0;
-	m_sdlScreenRect.w = m_pConfig->m_videoWidth;
-	m_sdlScreenRect.h = m_pConfig->m_videoHeight;
-
-	m_sdlImage = SDL_CreateYUVOverlay(m_pConfig->m_videoWidth, 
-		m_pConfig->m_videoHeight, SDL_YV12_OVERLAY, m_sdlScreen);
-
-	// currently we can only do one type of preview
-	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)
-	  && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
-		// so resolve any misconfiguration
-		m_pConfig->SetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW, false);
-	}
-
-	m_preview = true;
-#endif /* NOGUI */
-}
-
-void CVideoSource::DoStopPreview(void)
-{
-#ifndef NOGUI
-	if (!m_preview) {
-		return;
-	}
-
-	// do a final blit to set the screen to all black
-	SDL_LockYUVOverlay(m_sdlImage);
-	memset(m_sdlImage->pixels[0], 16, m_ySize);
-	memset(m_sdlImage->pixels[1], 128, m_uvSize);
-	memset(m_sdlImage->pixels[2], 128, m_uvSize);
-	SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
-	SDL_UnlockYUVOverlay(m_sdlImage);
-
-	SDL_FreeYUVOverlay(m_sdlImage);
-	SDL_FreeSurface(m_sdlScreen);
-	SDL_Quit();
-
-	m_sdlImage = NULL;
-	m_sdlScreen = NULL;
-
-	m_preview = false;
-#endif /* NOGUI */
 }
 
 void CVideoSource::DoGenerateKeyFrame(void)
@@ -235,12 +137,10 @@ bool CVideoSource::Init(void)
 
 	InitSizes();
 
-	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
-		if (!InitEncoder()) {
-			close(m_videoDevice);
-			m_videoDevice = -1;
-			return false;
-		}
+	if (!InitEncoder()) {
+		close(m_videoDevice);
+		m_videoDevice = -1;
+		return false;
 	}
 
 	m_rawFrameNumber = 0xFFFFFFFF;
@@ -249,6 +149,8 @@ bool CVideoSource::Init(void)
 	m_targetFrameDuration = TimestampTicks 
 		/ m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
 
+	m_prevYuvImage = NULL;
+	m_prevReconstructImage = NULL;
 	m_prevVopBuf = NULL;
 	m_prevVopBufLength = 0;
 
@@ -472,6 +374,9 @@ void CalculateVideoFrameSize(CLiveConfig* pConfig)
 
 	pConfig->m_videoWidth = pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
 	pConfig->m_videoHeight = frameHeight;
+
+	pConfig->m_ySize = pConfig->m_videoWidth * pConfig->m_videoHeight;
+	pConfig->m_uvSize = pConfig->m_ySize / 4;
 }
 
 void CVideoSource::InitSizes()
@@ -489,9 +394,7 @@ void CVideoSource::InitSizes()
 			- m_pConfig->m_videoHeight) / 2);
 	m_uvOffset = m_yOffset / 4;
 		
-	m_ySize = m_pConfig->m_videoWidth * m_pConfig->m_videoHeight;
-	m_uvSize = m_ySize / 4;
-	m_yuvSize = m_ySize + 2 * m_uvSize;
+	m_yuvSize = m_pConfig->m_ySize + 2 * m_pConfig->m_uvSize;
 }
 
 bool CVideoSource::InitEncoder()
@@ -500,168 +403,25 @@ bool CVideoSource::InitEncoder()
 		m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER);
 
 	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
-		m_encoder = USE_FFMPEG;
-		return InitFfmpegEncoder();
-	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_DIVX)) {
-		m_encoder = USE_DIVX;
-		return InitDivxEncoder();
+#ifdef ADD_FFMPEG_ENCODER
+		m_encoder = new CFfmpegVideoEncoder();
+#else
+		error_message("ffmpeg encoder not available in this build");
+		return false;
+#endif
 	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_XVID)) {
-		m_encoder = USE_XVID;
-		return InitXvidEncoder();
-	}
-
-	error_message("unknown encoder specified");
-	return false;
-}
-
-bool CVideoSource::InitFfmpegEncoder()
-{
-#ifdef ADD_FFMPEG_ENCODER
-	// use ffmpeg "divx" aka mpeg4 encoder
-	m_avctx.frame_number = 0;
-	m_avctx.width = m_pConfig->m_videoWidth;
-	m_avctx.height = m_pConfig->m_videoHeight;
-	m_avctx.rate = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
-	m_avctx.bit_rate = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
-	m_avctx.gop_size = m_avctx.rate * 2;
-	m_avctx.want_key_frame = 0;
-	m_avctx.flags = 0;
-	m_avctx.codec = &divx_encoder;
-	m_avctx.priv_data = malloc(m_avctx.codec->priv_data_size);
-	memset(m_avctx.priv_data, 0, m_avctx.codec->priv_data_size);
-
-	divx_encoder.init(&m_avctx);
-
-	return true;
-#else
-	error_message("ffmpeg encoder not available in this build\n");
-	return false;
-#endif /* ADD_FFMPEG_ENCODER */
-}
-
-bool CVideoSource::InitDivxEncoder()
-{
-#ifdef ADD_DIVX_ENCODER
-	// setup DivX Encore parameters
-	ENC_PARAM divxParams;
-
-	divxParams.x_dim = m_pConfig->m_videoWidth;
-	divxParams.raw_y_dim = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
-	divxParams.y_dim = m_pConfig->m_videoHeight;
-	divxParams.framerate = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
-	divxParams.bitrate = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE);
-	divxParams.rc_period = 2000;
-	divxParams.rc_reaction_period = 10;
-	divxParams.rc_reaction_ratio = 20;
-	divxParams.max_key_interval = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) * 2;
-	divxParams.search_range = 16;
-	divxParams.max_quantizer = 15;
-	divxParams.min_quantizer = 2;
-	divxParams.enable_8x8_mv = 0;
-
-	if (encore(m_divxHandle, ENC_OPT_INIT, &divxParams, NULL) != ENC_OK) {
-		error_message("Failed to initialize Divx encoder");
-		return false;
-	}
-
-	return true;
-#else
-	error_message("divx encoder not available in this build\n");
-	return false;
-#endif /* ADD_DIVX_ENCODER */
-}
-				
-bool CVideoSource::InitXvidEncoder()
-{
 #ifdef ADD_XVID_ENCODER
-	XVID_INIT_PARAM xvidInitParams;
-
-	memset(&xvidInitParams, 0, sizeof(xvidInitParams));
-
-	if (xvid_init(NULL, 0, &xvidInitParams, NULL) != XVID_ERR_OK) {
-		error_message("Failed to initialize Xvid");
-		return false;
-	}
-
-	debug_message("Xvid CPU flags %08x\n", xvidInitParams.cpu_flags);
-
-	XVID_ENC_PARAM xvidEncParams;
-
-	memset(&xvidEncParams, 0, sizeof(xvidEncParams));
-
-	xvidEncParams.width = m_pConfig->m_videoWidth;
-	xvidEncParams.height = m_pConfig->m_videoHeight;
-	xvidEncParams.fincr = 1001;
-	xvidEncParams.fbase = 
-		(int)(1001 * m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE));
-	xvidEncParams.bitrate = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
-	xvidEncParams.rc_period = 2000;
-	xvidEncParams.rc_reaction_period = 10;
-	xvidEncParams.rc_reaction_ratio = 20;
-	xvidEncParams.max_quantizer = 31;
-	xvidEncParams.min_quantizer = 1;
-	xvidEncParams.max_key_interval = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) * 2;
-	xvidEncParams.motion_search = 1;
-	xvidEncParams.quant_type = 1;
-	xvidEncParams.lum_masking = 1;
-
-	if (xvid_encore(NULL, XVID_ENC_CREATE, &xvidEncParams, NULL) != XVID_ERR_OK) {
-		error_message("Failed to initialize Xvid encoder");
-		return false;
-	}
-
-	m_xvidHandle = xvidEncParams.handle; 
-
-	return true;
+		m_encoder = new CXvidVideoEncoder();
 #else
-	error_message("xvid encoder not available in this build\n");
-	return false;
-#endif /* ADD_XVID_ENCODER */
-}
-
-void CVideoSource::StopEncoder()
-{
-	switch (m_encoder) {
-	case USE_FFMPEG:
-		StopFfmpegEncoder();
-		break;
-	case USE_DIVX:
-		StopDivxEncoder();
-		break;
-	case USE_XVID:
-		StopXvidEncoder();
-		break;
+		error_message("xvid encoder not available in this build");
+		return false;
+#endif
+	} else {
+		error_message("unknown encoder specified");
+		return false;
 	}
-}
 
-void CVideoSource::StopFfmpegEncoder()
-{
-#ifdef ADD_FFMPEG_ENCODER
-	divx_encoder.close(&m_avctx);
-	free(m_avctx.priv_data);
-#endif /* ADD_FFMPEG_ENCODER */
-}
-
-void CVideoSource::StopDivxEncoder()
-{
-#ifdef ADD_DIVX_ENCODER
-	encore(m_divxHandle, ENC_OPT_RELEASE, NULL, NULL);
-#endif /* ADD_DIVX_ENCODER */
-}
-
-void CVideoSource::StopXvidEncoder()
-{
-#ifdef ADD_XVID_ENCODER
-	xvid_encore(m_xvidHandle, XVID_ENC_DESTROY, NULL, NULL);
-#endif /* ADD_XVID_ENCODER */
+	return m_encoder->Init(m_pConfig);
 }
 
 int8_t CVideoSource::AcquireFrame(void)
@@ -689,6 +449,7 @@ void CVideoSource::ProcessVideo(void)
 	u_int8_t* yImage;
 	u_int8_t* uImage;
 	u_int8_t* vImage;
+	Duration prevFrameDuration = 0;
 
 	// for efficiency, process 1 second before returning to check for commands
 	for (int pass = 0; pass < m_rawFrameRate; pass++) {
@@ -711,21 +472,20 @@ void CVideoSource::ProcessVideo(void)
 			goto release;
 		}
 
-		// check if we are falling behind due to encoding speed
-		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
-			if (m_accumDrift >= m_maxDrift) {
-				if (m_accumDrift <= m_targetFrameDuration) {
-					m_accumDrift = 0;
-				} else {
-					m_accumDrift -= m_targetFrameDuration;
-				}
-
-				// skip this frame			
-				m_skippedFrames++;
-				goto release;
+		// check if we are falling behind
+		if (m_accumDrift >= m_maxDrift) {
+			if (m_accumDrift <= m_targetFrameDuration) {
+				m_accumDrift = 0;
+			} else {
+				m_accumDrift -= m_targetFrameDuration;
 			}
+
+			// skip this frame			
+			m_skippedFrames++;
+			goto release;
 		}
 
+		// perform colorspace conversion if necessary
 		if (m_pConfig->m_videoNeedRgbToYuv) {
 			yuvImage = (u_int8_t*)malloc(m_yuvRawSize);
 			if (yuvImage == NULL) {
@@ -749,234 +509,139 @@ void CVideoSource::ProcessVideo(void)
 		uImage = yuvImage + m_yRawSize + m_uvOffset;
 		vImage = uImage + m_uvRawSize;
 
-#ifndef NOGUI
-		if (m_preview && m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)) {
-			SDL_LockYUVOverlay(m_sdlImage);
-			memcpy(m_sdlImage->pixels[0], yImage, m_ySize);
-			memcpy(m_sdlImage->pixels[1], vImage, m_uvSize);
-			memcpy(m_sdlImage->pixels[2], uImage, m_uvSize);
-			SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
-			SDL_UnlockYUVOverlay(m_sdlImage);
-		}
-#endif
-
 		// encode video frame to MPEG-4
-		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
-
-			u_int8_t* vopBuf = (u_int8_t*)malloc(m_maxVopSize);
-			u_int32_t vopBufLength = 0;
-			if (vopBuf == NULL) {
-				debug_message("Can't malloc VOP buffer!");
-				goto release;
-			}
-
-#ifdef ADD_DIVX_ENCODER
-			ENC_RESULT divxResult;
-#endif
-
-#ifdef ADD_XVID_ENCODER
-			XVID_ENC_FRAME xvidFrame;
-			XVID_ENC_STATS xvidResult;
-#endif
+		if (m_pConfig->m_videoEncode) {
 
 			// call encoder
-			switch (m_encoder) {
-			case USE_FFMPEG: {
-#ifdef ADD_FFMPEG_ENCODER
-				u_int8_t* yuvPlanes[3];
-				yuvPlanes[0] = yImage;
-				yuvPlanes[1] = uImage;
-				yuvPlanes[2] = vImage;
-
-				m_avctx.want_key_frame = m_wantKeyFrame;
-
-				vopBufLength = divx_encoder.encode(&m_avctx, 
-					vopBuf, m_maxVopSize, yuvPlanes);
-
-				m_avctx.frame_number++;
-#endif /* ADD_FFMPEG_ENCODER */
-				break;
-			}
-			case USE_DIVX: {
-#ifdef ADD_DIVX_ENCODER
-				ENC_FRAME divxFrame;
-				divxFrame.image = yuvImage;
-				divxFrame.bitstream = vopBuf;
-				divxFrame.length = m_maxVopSize;
-
-				u_int32_t divxFlags =
-					(m_wantKeyFrame ? ENC_OPT_WANT_KEY_FRAME : 0);
-
-				if (encore(m_divxHandle, divxFlags, &divxFrame, &divxResult)
-				  != ENC_OK) {
-					debug_message("Divx can't encode frame!");
-					goto release;
-				}
-
-				vopBufLength = divxFrame.length;
-#endif /* ADD_DIVX_ENCODER */
-				break;
-			}
-			case USE_XVID: {
-#ifdef ADD_XVID_ENCODER
-				xvidFrame.image = yuvImage;
-				xvidFrame.bitstream = vopBuf;
-				xvidFrame.colorspace = XVID_CSP_YV12;
-				xvidFrame.quant = 4;
-				xvidFrame.intra = m_wantKeyFrame;
-
-				if (xvid_encore(m_xvidHandle, XVID_ENC_ENCODE, &xvidFrame, 
-				  &xvidResult) != XVID_ERR_OK) {
-					debug_message("Xvid can't encode frame!");
-					goto release;
-				}
-
-				vopBufLength = xvidFrame.length;
-#endif /* ADD_XVID_ENCODER */
-				break;
-			}
+			if (!m_encoder->EncodeImage(
+			  yImage, uImage, vImage, m_wantKeyFrame)) {
+				debug_message("Can't encode image!");
+				goto release;
 			}
 
 			// clear this flag
 			m_wantKeyFrame = false;
+		}
 
-			// if desired, preview reconstructed image
-#ifndef NOGUI
-			if (m_preview 
-			  && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
-				SDL_LockYUVOverlay(m_sdlImage);
+		// calculate frame duration
+		// making an adjustment to account 
+		// for any raw frames dropped by the driver
+		if (m_rawFrameNumber > 0) {
+			Duration elapsedTime = 
+				frameTimestamp - m_startTimestamp;
 
-				switch (m_encoder) {
-				case USE_FFMPEG:
-#ifdef ADD_FFMPEG_ENCODER
-					memcpy(m_sdlImage->pixels[0], 
-						((MpegEncContext*)m_avctx.priv_data)->
-							current_picture[0],
-						m_ySize);
-					memcpy(m_sdlImage->pixels[1], 
-						((MpegEncContext*)m_avctx.priv_data)->
-							current_picture[2],
-						m_uvSize);
-					memcpy(m_sdlImage->pixels[2], 
-						((MpegEncContext*)m_avctx.priv_data)->
-							current_picture[1],
-						m_uvSize);
-#endif /* ADD_FFMPEG_ENCODER */
-					break;
-				case USE_DIVX:
-#ifdef ADD_DIVX_ENCODER
-					memcpy2to1(m_sdlImage->pixels[0], 
-						(u_int16_t*)divxResult.reconstruct_y,
-						m_ySize);
-					memcpy2to1(m_sdlImage->pixels[1], 
-						(u_int16_t*)divxResult.reconstruct_v,
-						m_uvSize);
-					memcpy2to1(m_sdlImage->pixels[2], 
-						(u_int16_t*)divxResult.reconstruct_u,
-						m_uvSize);
-#endif /* ADD_DIVX_ENCODER */
-					break;
-				case USE_XVID:
-#ifdef ADD_XVID_ENCODER
-					imgcpy(m_sdlImage->pixels[0], 
-						xvidResult.image_y,
-						m_pConfig->m_videoWidth, 
-						m_pConfig->m_videoHeight,
-						xvidResult.stride_y);
-					imgcpy(m_sdlImage->pixels[1], 
-						xvidResult.image_u,
-						m_pConfig->m_videoWidth / 2, 
-						m_pConfig->m_videoHeight / 2,
-						xvidResult.stride_uv);
-					imgcpy(m_sdlImage->pixels[2], 
-						xvidResult.image_v,
-						m_pConfig->m_videoWidth / 2, 
-						m_pConfig->m_videoHeight / 2,
-						xvidResult.stride_uv);
-#endif /* ADD_XVID_ENCODER */
-					break;
-				}
+			prevFrameDuration = 
+				(m_skippedFrames + 1) * m_targetFrameDuration;
 
-				SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
-				SDL_UnlockYUVOverlay(m_sdlImage);
+			Duration elapsedDuration = 
+				m_elapsedDuration + prevFrameDuration;
+
+			Duration skew = elapsedTime - elapsedDuration;
+
+			if (skew > 0) {
+				prevFrameDuration += 
+					(skew / m_targetFrameDuration) * m_targetFrameDuration;
 			}
-#endif /* NOGUI */
 
-			// forward previously encoded vop to sinks
+			m_elapsedDuration += prevFrameDuration;
+		}
+
+		// forward encoded video to sinks
+		if (m_pConfig->m_videoEncode) {
 			if (m_prevVopBuf) {
-				// calculate frame duration
-				// making an adjustment to account 
-				// for any raw frames dropped by the driver
-
-				Duration elapsedTime = 
-					frameTimestamp - m_startTimestamp;
-
-				Duration frameDuration = 
-					(m_skippedFrames + 1) * m_targetFrameDuration;
-
-				Duration elapsedDuration = 
-					m_elapsedDuration + frameDuration;
-
-				Duration skew = elapsedTime - elapsedDuration;
-
-				if (skew > 0) {
-					frameDuration += 
-						(skew / m_targetFrameDuration) * m_targetFrameDuration;
-				}
-
 				CMediaFrame* pFrame = new CMediaFrame(
 					CMediaFrame::Mpeg4VideoFrame, 
 					m_prevVopBuf, 
 					m_prevVopBufLength,
 					m_prevVopTimestamp, 
-					frameDuration);
+					prevFrameDuration);
 				ForwardFrame(pFrame);
 				delete pFrame;
-
-				m_elapsedDuration += frameDuration;
 			}
 
 			// hold onto this encoded vop until next one is ready
-			m_prevVopBuf = vopBuf;
-			m_prevVopBufLength = vopBufLength;
+			m_encoder->GetEncodedFrame(&m_prevVopBuf, &m_prevVopBufLength);
 			m_prevVopTimestamp = frameTimestamp;
 
 			m_encodedFrameNumber++;
+		}
 
-			// reset skipped frames
-			m_skippedFrames = 0;
+		// forward raw video to sinks
+		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)
+		  || m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
 
-			// calculate how we're doing versus target frame rate
-			Duration encodingTime = GetTimestamp() - frameTimestamp;
-			if (encodingTime >= m_targetFrameDuration) {
-				m_accumDrift += encodingTime - m_targetFrameDuration;
+			if (m_prevYuvImage) {
+				CMediaFrame* pFrame =
+					new CMediaFrame(CMediaFrame::RawYuvVideoFrame, 
+						m_prevYuvImage, 
+						m_yuvSize,
+						m_prevYuvImageTimestamp, 
+						prevFrameDuration);
+				ForwardFrame(pFrame);
+				delete pFrame;
+			}
+
+			m_prevYuvImage = (u_int8_t*)malloc(m_yuvSize);
+			if (m_prevYuvImage == NULL) {
+				debug_message("Can't malloc YUV buffer!");
 			} else {
-				m_accumDrift -= m_targetFrameDuration - encodingTime;
-				if (m_accumDrift < 0) {
-					m_accumDrift = 0;
-				}
+				memcpy(m_prevYuvImage, 
+					yImage, 
+					m_pConfig->m_ySize);
+				memcpy(m_prevYuvImage + m_pConfig->m_ySize, 
+					uImage, 
+					m_pConfig->m_uvSize);
+				memcpy(m_prevYuvImage + m_pConfig->m_ySize 
+						+ m_pConfig->m_uvSize, 
+					vImage, 
+					m_pConfig->m_uvSize);
+
+				m_prevYuvImageTimestamp = frameTimestamp;
 			}
 		}
 
-		// if desired, forward raw video to sinks
-		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW)) {
-			u_int8_t* yuvBuf = (u_int8_t*)malloc(m_yuvSize);
-			if (yuvBuf == NULL) {
-				debug_message("Can't malloc YUV buffer!");
-				goto release;
+		// forward reconstructed video to sinks
+		if (m_pConfig->m_videoEncode
+		  && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
+
+			if (m_prevReconstructImage) {
+				CMediaFrame* pFrame =
+					new CMediaFrame(CMediaFrame::ReconstructYuvVideoFrame, 
+						m_prevReconstructImage, 
+						m_yuvSize,
+						m_prevVopTimestamp, 
+						prevFrameDuration);
+				ForwardFrame(pFrame);
+				delete pFrame;
 			}
 
-			memcpy(yuvBuf, yImage, m_ySize);
-			memcpy(yuvBuf + m_ySize, uImage, m_uvSize);
-			memcpy(yuvBuf + m_ySize + m_uvSize, vImage, m_uvSize);
+			m_prevReconstructImage = (u_int8_t*)malloc(m_yuvSize);
+			if (m_prevReconstructImage == NULL) {
+				debug_message("Can't malloc YUV buffer!");
+			} else {
+				m_encoder->GetReconstructedImage(
+					m_prevReconstructImage,
+					m_prevReconstructImage + m_pConfig->m_ySize,
+					m_prevReconstructImage + m_pConfig->m_ySize 
+						+ m_pConfig->m_uvSize);
+			}
+		}
 
-			CMediaFrame* pFrame =
-				new CMediaFrame(CMediaFrame::YuvVideoFrame, 
-					yuvBuf, m_yuvSize,
-					frameTimestamp, m_targetFrameDuration);
-			ForwardFrame(pFrame);
-			delete pFrame;
-		} 
+		// reset skipped frames
+		m_skippedFrames = 0;
+
+		// calculate how we're doing versus target frame rate
+		// this is used to decide if we need to drop frames
+		Duration encodingTime;
+		encodingTime = GetTimestamp() - frameTimestamp;
+		if (encodingTime >= m_targetFrameDuration) {
+			m_accumDrift += encodingTime - m_targetFrameDuration;
+		} else {
+			m_accumDrift -= m_targetFrameDuration - encodingTime;
+			if (m_accumDrift < 0) {
+				m_accumDrift = 0;
+			}
+		}
 
 release:
 		// release video frame buffer back to video capture device

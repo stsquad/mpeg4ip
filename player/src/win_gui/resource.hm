@@ -1,0 +1,4 @@
+// Microsoft Developer Studio generated Help ID include file.
+// Used by wmp4player.rc
+//
+#define HIDC_BROWSE_BUTTON              0x806503e8    // IDD_WMP4PLAYER_FORM

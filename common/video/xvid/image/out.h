@@ -12,6 +12,8 @@ typedef void (color_outFunc)(uint8_t *dst, int dst_stride,
 
 typedef color_outFunc* color_outFuncPtr;	
 
+extern color_outFuncPtr yuv_to_rgb555;
+extern color_outFuncPtr yuv_to_rgb565;
 extern color_outFuncPtr yuv_to_rgb24;
 extern color_outFuncPtr yuv_to_rgb32;
 extern color_outFuncPtr out_yuv;
@@ -21,6 +23,8 @@ extern color_outFuncPtr yuv_to_uyvy;
 /* plain c */
 void init_yuv_to_rgb(void);
 
+color_outFunc yuv_to_rgb555_c;
+color_outFunc yuv_to_rgb565_c;
 color_outFunc yuv_to_rgb24_c;
 color_outFunc yuv_to_rgb32_c;
 color_outFunc out_yuv_c;

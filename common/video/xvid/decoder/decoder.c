@@ -1,7 +1,7 @@
 /**************************************************************************
  *
  *	XVID MPEG-4 VIDEO CODEC
- *	read vol/vop headers
+ *	decoder main
  *
  *	This program is an implementation of a part of one or more MPEG-4
  *	Video tools as specified in ISO/IEC 14496-2 standard.  Those intending
@@ -49,7 +49,6 @@
 
 #include "mbdecoding.h"
 #include "mbdeprediction.h"
-#include "compensate_halfpel.h"
 #include "../common/common.h"
 #include "../common/timer.h"
 
@@ -58,24 +57,8 @@
 
 
 void init_decoder(uint32_t cpu_flags) {
-	
-	compensate_halfpel_h = compensate_halfpel_h_c;
-	compensate_halfpel_v = compensate_halfpel_v_c;
-	compensate_halfpel_hv = compensate_halfpel_hv_c;
-
-#ifdef USE_MMX
-	if((cpu_flags & XVID_CPU_MMX) > 0) {
-		compensate_halfpel_h = compensate_halfpel_h_mmx;
-		compensate_halfpel_v = compensate_halfpel_v_mmx;
-		compensate_halfpel_hv = compensate_halfpel_hv_mmx;
-	}
-
-	if((cpu_flags & XVID_CPU_3DNOW) > 0) {
-		compensate_halfpel_h = compensate_halfpel_h_3dn;
-		compensate_halfpel_v = compensate_halfpel_v_3dn;
-	}
-#endif
 }
+
 
 int decoder_create(XVID_DEC_PARAM * param)
 {
@@ -147,45 +130,55 @@ static const int32_t dquant_table[4] =
 
 // decode an intra macroblock
 
-void decoder_mbintra(DECODER * dec, MACROBLOCK * mb, int x, int y, uint32_t acpred_flag, uint32_t cbp, BITREADER * bs, int quant)
+void decoder_mbintra(DECODER * dec, MACROBLOCK * mb, int x, int y, uint32_t acpred_flag, uint32_t cbp, BITREADER * bs, int quant, int intra_dc_threshold)
 {
 	uint32_t k;
 
 	for (k = 0; k < 6; k++)
 	{
-		int dc_size;
-		int dc_dif;
 		uint32_t dcscalar;
 		int16_t block[64];
 		int16_t data[64];
 		int16_t predictors[8];
+		int start_coeff;
 
-		memset(block, 0, 64*sizeof(int16_t));		// clear
-
-		dc_size = k < 4 ?  get_dc_size_lum(bs) : get_dc_size_chrom(bs);
-		dc_dif = dc_size ? get_dc_dif(bs, dc_size) : 0 ;
-
-		if (dc_size > 8)
-		{
-			bs_skip(bs, 1);		// marker
-		}
-		
-		block[0] = dc_dif;
 		dcscalar = get_dc_scaler(mb->quant, k < 4);
 
 		start_timer();
 		predict_acdc(dec->mbs, x, y, dec->mb_width, k, block, mb->quant, dcscalar, predictors);
-		stop_prediction_timer();
-
 		if (!acpred_flag)
 		{
 			mb->acpred_directions[k] = 0;
+		}
+		stop_prediction_timer();
+
+		memset(block, 0, 64*sizeof(int16_t));		// clear
+
+		if (quant < intra_dc_threshold)
+		{
+			int dc_size;
+			int dc_dif;
+
+			dc_size = k < 4 ?  get_dc_size_lum(bs) : get_dc_size_chrom(bs);
+			dc_dif = dc_size ? get_dc_dif(bs, dc_size) : 0 ;
+
+			if (dc_size > 8)
+			{
+				bs_skip(bs, 1);		// marker
+			}
+		
+			block[0] = dc_dif;
+			start_coeff = 1;
+		}
+		else
+		{
+			start_coeff = 0;
 		}
 
 		start_timer();
 		if (cbp & (1 << (5-k)))			// coded
 		{
-			get_intra_block(bs, block, mb->acpred_directions[k]);
+			get_intra_block(bs, block, mb->acpred_directions[k], start_coeff);
 		}
 		stop_coding_timer();
 
@@ -228,58 +221,6 @@ void decoder_mbintra(DECODER * dec, MACROBLOCK * mb, int x, int y, uint32_t acpr
 
 
 
-/* compensate block
-   copy 8x8 block from ref to cur & add data (dct coeffs)
-*/
-
-static __inline void compensate_block(uint8_t * const cur,
-				     const uint8_t * const refn,
-				     uint32_t x, uint32_t y,
-					 const int32_t dx,  const int dy,
-					 const int16_t * data,
-					 uint32_t stride,
-					 int rounding)
-{
-	int32_t ddx, ddy;
-    
-	switch ( ((dx&1)<<1) + (dy&1) )   // ((dx%2)?2:0)+((dy%2)?1:0)
-    {
-    case 0:
-		ddx = dx/2;
-		ddy = dy/2;
-		transfer_8to8add16(cur + y*stride + x, refn + (y+ddy)*stride + x + ddx, data, stride);
-		break;
-
-    case 1:
-		ddx = dx/2;
-		ddy = (dy-1)/2;
-		compensate_halfpel_v(
-			cur + y*stride + x,
-			refn + (y+ddy)*stride + x + ddx, 
-			data, stride, rounding);
-		break;
-
-    case 2:
-		ddx = (dx-1)/2;
-		ddy = dy/2;
-		compensate_halfpel_h(
-			cur + y*stride + x,
-			refn + (y+ddy)*stride + x + ddx, 
-			data, stride, rounding);
-		break;
-
-    default:	// case 3
-		ddx = (dx-1)/2;
-		ddy = (dy-1)/2;
-		compensate_halfpel_hv(
-			cur + y*stride + x,
-			refn + (y+ddy)*stride + x + ddx, 
-			data, stride, rounding);
-		break;
-    }
-}
-
-
 
 #define SIGN(X) (((X)>0)?1:-1)
 #define ABS(X) (((X)>0)?(X):-(X))
@@ -291,6 +232,8 @@ static const uint32_t roundtab[16] =
 
 void decoder_mbinter(DECODER * dec, MACROBLOCK * mb, int x, int y, uint32_t acpred_flag, uint32_t cbp, BITREADER * bs, int quant, int rounding)
 {
+	const uint32_t stride = dec->edged_width;
+	const uint32_t stride2 = dec->edged_width / 2;
 	int uv_dx, uv_dy;
 	uint32_t k;
 
@@ -312,6 +255,15 @@ void decoder_mbinter(DECODER * dec, MACROBLOCK * mb, int x, int y, uint32_t acpr
 		uv_dy = (sum == 0 ? 0 : SIGN(sum) * (roundtab[ABS(sum) % 16] + (ABS(sum) / 16) * 2) );
 	}
 
+	start_timer();
+	interpolate8x8_switch(dec->cur.y, dec->refn.y, 16*x,     16*y    , mb->mvs[0].x, mb->mvs[0].y, stride,  rounding);
+	interpolate8x8_switch(dec->cur.y, dec->refn.y, 16*x + 8, 16*y    , mb->mvs[1].x, mb->mvs[1].y, stride,  rounding);
+	interpolate8x8_switch(dec->cur.y, dec->refn.y, 16*x,     16*y + 8, mb->mvs[2].x, mb->mvs[2].y, stride,  rounding);
+	interpolate8x8_switch(dec->cur.y, dec->refn.y, 16*x + 8, 16*y + 8, mb->mvs[3].x, mb->mvs[3].y, stride,  rounding);
+	interpolate8x8_switch(dec->cur.u, dec->refn.u, 8*x, 8*y, uv_dx, uv_dy, stride2, rounding);
+	interpolate8x8_switch(dec->cur.v, dec->refn.v, 8*x, 8*y, uv_dx, uv_dy, stride2, rounding);
+	stop_comp_timer();
+
 
 	for (k = 0; k < 6; k++)
 	{
@@ -320,8 +272,7 @@ void decoder_mbinter(DECODER * dec, MACROBLOCK * mb, int x, int y, uint32_t acpr
 		
 		if (cbp & (1 << (5-k)))			// coded
 		{
-			
-			memset(block, 0, 64*sizeof(int16_t));		// clear
+			memset(block, 0, 64 * sizeof(int16_t));		// clear
 
 			start_timer();
 			get_inter_block(bs, block);
@@ -341,35 +292,28 @@ void decoder_mbinter(DECODER * dec, MACROBLOCK * mb, int x, int y, uint32_t acpr
 			start_timer();
 			idct(data);
 			stop_idct_timer();
+
+			start_timer();
+			if (k < 4)
+			{
+				transfer_16to8add(dec->cur.y + (16*y + 4*(k&2))*stride + 16*x + 8*(k&1), data, stride);
+			}
+			else if (k == 4)
+			{
+				transfer_16to8add(dec->cur.u + 8*y*stride2 + 8*x, data, stride2);
+			}
+			else // k == 5
+			{
+				transfer_16to8add(dec->cur.v + 8*y*stride2 + 8*x, data, stride2);
+			}
+			stop_transfer_timer();
 		}
-		else
-		{
-			memset(data, 0, 64*sizeof(int16_t));		// clear
-		}
-		
-		start_timer();
-		if (k < 4)
-		{
-			compensate_block(dec->cur.y, dec->refn.y, 
-				                16*x + 8*(k&1), 16*y + 4*(k&2), mb->mvs[k].x, mb->mvs[k].y, data, dec->edged_width, rounding);
-		}
-		else if (k == 4)
-		{
-			compensate_block(dec->cur.u, dec->refn.u, 
-				                8*x, 8*y, uv_dx, uv_dy, data, dec->edged_width / 2, rounding);
-		} 
-		else		// if (k == 5)
-		{
-			compensate_block(dec->cur.v, dec->refn.v, 
-				                8*x, 8*y, uv_dx, uv_dy, data, dec->edged_width / 2, rounding);
-		}
-		stop_comp_timer();
 	}
 }
 
 
 
-void decoder_iframe(DECODER * dec, BITREADER * bs, int quant)
+void decoder_iframe(DECODER * dec, BITREADER * bs, int quant, int intra_dc_threshold)
 {
 	uint32_t x, y;
 
@@ -415,7 +359,7 @@ void decoder_iframe(DECODER * dec, BITREADER * bs, int quant)
 			mb->quant = quant;
 			
 
-			decoder_mbintra(dec, mb, x, y, acpred_flag, cbp, bs, quant);
+			decoder_mbintra(dec, mb, x, y, acpred_flag, cbp, bs, quant, intra_dc_threshold);
 		}
 	}
 }
@@ -462,7 +406,7 @@ void get_motion_vector(DECODER *dec, BITREADER *bs, int x, int y, int k, VECTOR 
 }
 
 
-void decoder_pframe(DECODER * dec, BITREADER * bs, int rounding, int quant, int fcode)
+void decoder_pframe(DECODER * dec, BITREADER * bs, int rounding, int quant, int fcode, int intra_dc_threshold)
 {
 	uint32_t x, y;
 
@@ -539,7 +483,7 @@ void decoder_pframe(DECODER * dec, BITREADER * bs, int rounding, int quant, int 
 				{
 					mb->mvs[0].x = mb->mvs[1].x = mb->mvs[2].x = mb->mvs[3].x = 0;
 					mb->mvs[0].y = mb->mvs[1].y = mb->mvs[2].y = mb->mvs[3].y = 0;
-					decoder_mbintra(dec, mb, x, y, acpred_flag, cbp, bs, quant);
+					decoder_mbintra(dec, mb, x, y, acpred_flag, cbp, bs, quant, intra_dc_threshold);
 					continue;
 				}
 
@@ -556,27 +500,27 @@ void decoder_pframe(DECODER * dec, BITREADER * bs, int rounding, int quant, int 
 
 				start_timer();
 
-				transfer_8to8copy(dec->cur.y + (16*y)*dec->edged_width + (16*x), 
+				transfer8x8_copy(dec->cur.y + (16*y)*dec->edged_width + (16*x), 
 								dec->refn.y + (16*y)*dec->edged_width + (16*x), 
 								dec->edged_width);
 
-				transfer_8to8copy(dec->cur.y + (16*y)*dec->edged_width + (16*x+8), 
+				transfer8x8_copy(dec->cur.y + (16*y)*dec->edged_width + (16*x+8), 
 								dec->refn.y + (16*y)*dec->edged_width + (16*x+8), 
 								dec->edged_width);
 
-				transfer_8to8copy(dec->cur.y + (16*y+8)*dec->edged_width + (16*x), 
+				transfer8x8_copy(dec->cur.y + (16*y+8)*dec->edged_width + (16*x), 
 								dec->refn.y + (16*y+8)*dec->edged_width + (16*x), 
 								dec->edged_width);
 					
-				transfer_8to8copy(dec->cur.y + (16*y+8)*dec->edged_width + (16*x+8), 
+				transfer8x8_copy(dec->cur.y + (16*y+8)*dec->edged_width + (16*x+8), 
 								dec->refn.y + (16*y+8)*dec->edged_width + (16*x+8), 
 								dec->edged_width);
 
-				transfer_8to8copy(dec->cur.u + (8*y)*dec->edged_width/2 + (8*x), 
+				transfer8x8_copy(dec->cur.u + (8*y)*dec->edged_width/2 + (8*x), 
 								dec->refn.u + (8*y)*dec->edged_width/2 + (8*x), 
 								dec->edged_width/2);
 
-				transfer_8to8copy(dec->cur.v + (8*y)*dec->edged_width/2 + (8*x), 
+				transfer8x8_copy(dec->cur.v + (8*y)*dec->edged_width/2 + (8*x), 
 								dec->refn.v + (8*y)*dec->edged_width/2 + (8*x), 
 								dec->edged_width/2);
 
@@ -593,19 +537,21 @@ int decoder_decode(DECODER * dec, XVID_DEC_FRAME * frame)
 	uint32_t rounding;
 	uint32_t quant;
 	uint32_t fcode;
+	uint32_t intra_dc_threshold;
 
 	start_global_timer();
 	
 	bs_init(&bs, frame->bitstream, frame->length);
 
-	switch (bs_headers(&bs, dec, &rounding, &quant, &fcode))
+	switch (bs_headers(&bs, dec, &rounding, &quant, &fcode, &intra_dc_threshold))
 	{
 	case P_VOP :
-		decoder_pframe(dec, &bs, rounding, quant, fcode);
+		decoder_pframe(dec, &bs, rounding, quant, fcode, intra_dc_threshold);
 		break;
 
 	case I_VOP :
-		decoder_iframe(dec, &bs, quant);
+		DEBUG1("",intra_dc_threshold);
+		decoder_iframe(dec, &bs, quant, intra_dc_threshold);
 		break;
 
 	case B_VOP :	// ignore

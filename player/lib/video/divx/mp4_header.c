@@ -126,6 +126,9 @@ int getvolhdr()
 			}
 
 			mp4_hdr.quant_type = getbits(1); // quant type
+			if (mp4_hdr.quant_type == 1) {
+			  getbits(2);
+			}
 #if 1
 			// wmay/dmackie - added 3/26/01
 			if (mp4_hdr.visual_object_layer_verid != 1)
@@ -135,6 +138,7 @@ int getvolhdr()
 			mp4_hdr.error_res_disable = getbits(1);
 			mp4_hdr.data_partitioning = getbits(1);
 			if (mp4_hdr.data_partitioning) {
+			  printf("Have data partitioning unsupported\n");
 #if 0
 				exit(102);
 #else
@@ -149,6 +153,7 @@ int getvolhdr()
 			mp4_hdr.scalability = getbits(1);
 
 			if(mp4_hdr.scalability)	{
+			  printf("Have scalability\n");
 #if 0
 				exit(103);
 #else

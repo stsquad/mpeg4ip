@@ -27,7 +27,7 @@ Upon success, the track id of the new track. Upon an error, MP4_INVALID_TRACK_ID
 
 .SH "DESCRIPTION"
 .LP 
-\fBMP4AddTrack\fR adds a user defined track to the mp4 file. Care should be taken to avoid any of the standardized track type names.
+\fBMP4AddTrack\fR adds a user defined track to the mp4 file. Care should be taken to avoid any of the standardized track type names. A useful convention is use only uppercase characters for user defined track types. The string should be exactly four characters in length, e.g. "MINE".
 .LP 
 Note this should not be used to add any of the known track types defined in the MP4 standard (ISO/IEC 14496\-1:2001).
 

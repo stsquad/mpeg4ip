@@ -79,14 +79,16 @@ protected:
 	int					m_audioDevice;
 	Timestamp			m_startTimestamp;
 	u_int32_t			m_frameNumber;
-	u_int16_t			m_samplesPerFrame;
-	Duration			m_frameDuration;
 	u_int16_t			m_maxPasses;
+	Duration			m_rawFrameDuration;
+	u_int16_t			m_rawSamplesPerFrame;
 	u_int16_t*			m_rawFrameBuffer;
 	u_int32_t			m_rawFrameSize;
 	u_int16_t*			m_leftBuffer;
 	u_int16_t*			m_rightBuffer;
 	lame_global_flags	m_lameParams;
+
+	Duration			m_mp3FrameDuration;
 	u_int32_t			m_mp3MaxFrameSize;
 	u_int8_t*			m_mp3FrameBuffer;
 	u_int32_t			m_mp3FrameBufferLength;

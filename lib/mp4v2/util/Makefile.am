@@ -16,3 +16,4 @@ mp4extract_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
 mp4info_SOURCES = mp4info.cpp
 mp4info_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
+

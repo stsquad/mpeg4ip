@@ -58,7 +58,7 @@
 #define MIN(X, Y) ((X)<(Y)?(X):(Y))
 #define MAX(X, Y) ((X)>(Y)?(X):(Y))
 
-#define TOOSMALL_LIMIT 8 /* skip blocks having a coefficient sum below this value */
+#define TOOSMALL_LIMIT 1 /* skip blocks having a coefficient sum below this value */
 
 /* this isnt pretty, but its better than 20 ifdefs */
 
@@ -202,7 +202,7 @@ uint8_t MBTransQuantInter(const MBParam *pParam,
 			stop_quant_timer();
 		}
 
-		if(sum * iQuant >= TOOSMALL_LIMIT) { // skip block ?
+		if(sum >= TOOSMALL_LIMIT) { // skip block ?
 
 			if (pParam->quant_type == 0)
 			{
@@ -250,4 +250,3 @@ uint8_t MBTransQuantInter(const MBParam *pParam,
 	}
     return cbp;
 }
-

@@ -1,7 +1,7 @@
 /**************************************************************************
  *
  *	XVID MPEG-4 VIDEO CODEC
- *	colorspace conversions
+ *	input colorspace conversions
  *
  *	This program is an implementation of a part of one or more MPEG-4
  *	Video tools as specified in ISO/IEC 14496-2 standard.  Those intending
@@ -32,6 +32,7 @@
  *
  *	History:
  *
+ *	26.02.2002	rgb555, rgb565
  *	24.11.2001	accuracy improvement to yuyv/vyuy conversion
  *	28.10.2001	total rewrite <pross@cs.rmit.edu.au>
  *
@@ -45,6 +46,8 @@
 
 
 // function pointers
+color_inFuncPtr rgb555_to_yuv;
+color_inFuncPtr rgb565_to_yuv;
 color_inFuncPtr rgb24_to_yuv;
 color_inFuncPtr rgb32_to_yuv;
 color_inFuncPtr yuv_to_yuv;
@@ -80,6 +83,176 @@ color_inFuncPtr uyvy_to_yuv;
 
 #define SCALEBITS 8
 #define FIX(x)		((int) ((x) * (1L<<SCALEBITS) + 0.5))
+
+
+
+
+/* rgb555 -> yuv 4:2:0 planar */
+void rgb555_to_yuv_c(uint8_t *y_out, uint8_t *u_out, uint8_t *v_out,
+					uint8_t *src, int width, int height, int y_stride)
+{
+	int32_t src_stride = width * 2;
+	uint32_t y_dif = y_stride - width;
+	uint32_t uv_dif = (y_stride - width) / 2;
+	uint32_t x, y;
+
+	if (height < 0)
+	{
+		height = -height;
+		src += (height - 1) * src_stride;
+		src_stride = -src_stride;
+	}
+
+	
+	for (y = height / 2; y; y--) 
+	{
+		// process one 2x2 block per iteration
+		for (x = 0; x < (uint32_t)width; x += 2)
+		{
+			int rgb, r, g, b, r4, g4, b4;
+
+			rgb = *(uint16_t*)(src+x*2);
+			b4 = b = (rgb << 3) & 0xf8;
+			g4 = g = (rgb >> 2) & 0xf8;
+			r4 = r = (rgb >> 7) & 0xf8;
+            y_out[0] =(uint8_t)((
+						  FIX(Y_R) * r 
+						+ FIX(Y_G) * g 
+						+ FIX(Y_B) * b) >> SCALEBITS) + Y_ADD;
+
+			rgb = *(uint16_t*)(src+x*2+src_stride);
+			b4 += b = (rgb << 3) & 0xf8;
+			g4 += g = (rgb >> 2) & 0xf8;
+			r4 += r = (rgb >> 7) & 0xf8;
+            y_out[y_stride] =(uint8_t)((
+						  FIX(Y_R) * r 
+						+ FIX(Y_G) * g 
+						+ FIX(Y_B) * b) >> SCALEBITS) + Y_ADD;
+
+			rgb = *(uint16_t*)(src+x*2+2);
+			b4 += b = (rgb << 3) & 0xf8;
+			g4 += g = (rgb >> 2) & 0xf8;
+			r4 += r = (rgb >> 7) & 0xf8;
+            y_out[1] =(uint8_t)((
+						  FIX(Y_R) * r 
+						+ FIX(Y_G) * g 
+						+ FIX(Y_B) * b) >> SCALEBITS) + Y_ADD;
+
+			rgb = *(uint16_t*)(src+x*2+src_stride+2);
+			b4 += b = (rgb << 3) & 0xf8;
+			g4 += g = (rgb >> 2) & 0xf8;
+			r4 += r = (rgb >> 7) & 0xf8;
+            y_out[y_stride + 1] =(uint8_t)((
+						  FIX(Y_R) * r 
+						+ FIX(Y_G) * g 
+						+ FIX(Y_B) * b) >> SCALEBITS) + Y_ADD;
+
+			*u_out++ = (uint8_t)((
+						- FIX(U_R) * r4 
+						- FIX(U_G) * g4
+						+ FIX(U_B) * b4) >> (SCALEBITS + 2)) + U_ADD;
+			
+			
+            *v_out++ = (uint8_t)((
+						  FIX(V_R) * r4
+						- FIX(V_G) * g4
+						- FIX(V_B) * b4) >> (SCALEBITS + 2)) + V_ADD; 
+
+			y_out += 2;
+		}
+		src += src_stride * 2;
+		y_out += y_dif + y_stride;
+		u_out += uv_dif;
+		v_out += uv_dif;
+	}
+}
+
+
+
+/* rgb565_to_yuv_c
+	NOTE:	identical to rgb555 except for shift/mask 
+			not tested */
+
+void rgb565_to_yuv_c(uint8_t *y_out, uint8_t *u_out, uint8_t *v_out,
+					uint8_t *src, int width, int height, int y_stride)
+{
+	int32_t src_stride = width * 2;
+
+	uint32_t y_dif = y_stride - width;
+	uint32_t uv_dif = (y_stride - width) / 2;
+	uint32_t x, y;
+
+	if (height < 0)
+	{
+		height = -height;
+		src += (height - 1) * src_stride;
+		src_stride = -src_stride;
+	}
+
+	
+	for (y = height / 2; y; y--) 
+	{
+		// process one 2x2 block per iteration
+		for (x = 0; x < (uint32_t)width; x += 2)
+		{
+			int rgb, r, g, b, r4, g4, b4;
+
+			rgb = *(uint16_t*)(src+x*2);
+			b4 = b = (rgb << 3) & 0xf8;
+			g4 = g = (rgb >> 3) & 0xfc;
+			r4 = r = (rgb >> 8) & 0xf8;
+            y_out[0] =(uint8_t)((
+						  FIX(Y_R) * r 
+						+ FIX(Y_G) * g 
+						+ FIX(Y_B) * b) >> SCALEBITS) + Y_ADD;
+
+			rgb = *(uint16_t*)(src+x*2+src_stride);
+			b4 += b = (rgb << 3) & 0xf8;
+			g4 += g = (rgb >> 3) & 0xfc;
+			r4 += r = (rgb >> 8) & 0xf8;
+            y_out[y_stride] =(uint8_t)((
+						  FIX(Y_R) * r 
+						+ FIX(Y_G) * g 
+						+ FIX(Y_B) * b) >> SCALEBITS) + Y_ADD;
+
+			rgb = *(uint16_t*)(src+x*2+2);
+			b4 += b = (rgb << 3) & 0xf8;
+			g4 += g = (rgb >> 3) & 0xfc;
+			r4 += r = (rgb >> 8) & 0xf8;
+            y_out[1] =(uint8_t)((
+						  FIX(Y_R) * r 
+						+ FIX(Y_G) * g 
+						+ FIX(Y_B) * b) >> SCALEBITS) + Y_ADD;
+
+			rgb = *(uint16_t*)(src+x*2+src_stride+2);
+			b4 += b = (rgb << 3) & 0xf8;
+			g4 += g = (rgb >> 3) & 0xfc;
+			r4 += r = (rgb >> 8) & 0xf8;
+            y_out[y_stride + 1] =(uint8_t)((
+						  FIX(Y_R) * r 
+						+ FIX(Y_G) * g 
+						+ FIX(Y_B) * b) >> SCALEBITS) + Y_ADD;
+
+			*u_out++ = (uint8_t)((
+						- FIX(U_R) * r4 
+						- FIX(U_G) * g4
+						+ FIX(U_B) * b4) >> (SCALEBITS + 2)) + U_ADD;
+			
+			
+            *v_out++ = (uint8_t)((
+						  FIX(V_R) * r4
+						- FIX(V_G) * g4
+						- FIX(V_B) * b4) >> (SCALEBITS + 2)) + V_ADD; 
+
+			y_out += 2;
+		}
+		src += src_stride * 2;
+		y_out += y_dif + y_stride;
+		u_out += uv_dif;
+		v_out += uv_dif;
+	}
+}
+
 
 
 
@@ -265,6 +438,40 @@ void yuv_to_yuv_c(uint8_t *y_out, uint8_t *u_out, uint8_t *v_out,
 	}
 }
 
+#ifdef MPEG4IP
+void yuv_to_yuv_clip_c(uint8_t *y_out, uint8_t *u_out, uint8_t *v_out,
+				uint8_t *src, int width, int height, int raw_height, int stride)
+{
+	uint32_t stride2 = stride >> 1;
+	uint32_t width2 = width >> 1;
+    uint32_t y;
+	uint32_t yoffset = ((raw_height - height) / 2) * width;
+
+	src += yoffset;
+
+	for (y = height; y; y--)	{
+	    memcpy(y_out, src, width);
+	    src += width;
+		y_out += stride;
+	}
+
+	src += yoffset + (yoffset / 4);
+
+	for (y = height >> 1; y; y--) {
+	    memcpy(u_out, src, width2);
+		src += width2;
+		u_out += stride2;
+	}
+
+	src += yoffset / 2;
+
+	for (y = height >> 1; y; y--) {
+	    memcpy(v_out, src, width2);
+		src += width2;
+		v_out+= stride2;
+	}
+}
+#endif
 
 
 /* yuyv (yuv2) packed -> yuv 4:2:0 planar

@@ -27,7 +27,7 @@
 #include <SDL_thread.h>
 #include <msg_queue.h>
 
-#include "live_config.h"
+#include "mp4live_config.h"
 #include "media_frame.h"
 
 class CMediaNode {

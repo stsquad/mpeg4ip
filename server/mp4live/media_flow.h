@@ -23,18 +23,23 @@
 #ifndef __MEDIA_FLOW_H__
 #define __MEDIA_FLOW_H__
 
-#include "live_config.h"
+#include "mp4live_config.h"
 #include "video_source.h"
 #include "audio_source.h"
+#ifdef DVLP
 #include "raw_recorder.h"
+#endif
+#include "video_preview.h"
 #include "mp4_recorder.h"
 #include "rtp_transmitter.h"
+#include "transcoder.h"
 
 // abstract parent class
 class CMediaFlow {
 public:
 	CMediaFlow(CLiveConfig* pConfig = NULL) {
 		m_pConfig = pConfig;
+		m_started = false;
 	}
 
 	virtual void Start() = NULL;
@@ -45,27 +50,33 @@ public:
 		m_pConfig = pConfig;
 	}
 
+	virtual bool GetStatus(u_int32_t valueName, void* pValue);
+
 protected:
 	CLiveConfig*		m_pConfig;
+	bool				m_started;
 };
 
 enum {
+	FLOW_STATUS_STARTED,
 	FLOW_STATUS_VIDEO_ENCODED_FRAMES
 };
 
-class CAVMediaFlow : public CMediaFlow {
+class CAVLiveMediaFlow : public CMediaFlow {
 public:
-	CAVMediaFlow(CLiveConfig* pConfig = NULL)
+	CAVLiveMediaFlow(CLiveConfig* pConfig = NULL)
 		: CMediaFlow(pConfig) {
-		m_started = false;
 		m_videoSource = NULL;
 		m_audioSource = NULL;
+#ifdef DVLP
 		m_rawRecorder = NULL;
+#endif
+		m_videoPreview = NULL;
 		m_mp4Recorder = NULL;
 		m_rtpTransmitter = NULL;
 	}
 
-	virtual ~CAVMediaFlow() {
+	virtual ~CAVLiveMediaFlow() {
 		Stop();
 	}
 
@@ -81,12 +92,40 @@ public:
 	bool GetStatus(u_int32_t valueName, void* pValue);
 
 protected:
-	bool				m_started;
+	void AddSink(CMediaSink* pSink);
+	void RemoveSink(CMediaSink* pSink);
+
+protected:
 	CVideoSource* 		m_videoSource;
 	CAudioSource*		m_audioSource;
+#ifdef DVLP
 	CRawRecorder*		m_rawRecorder;
+#endif
+	CVideoPreview*		m_videoPreview;
 	CMp4Recorder*		m_mp4Recorder;
 	CRtpTransmitter*	m_rtpTransmitter;
+};
+
+class CAVTranscodeMediaFlow : public CMediaFlow {
+public:
+	CAVTranscodeMediaFlow(CLiveConfig* pConfig = NULL)
+		: CMediaFlow(pConfig) {
+		m_transcoder = NULL;
+		m_videoPreview = NULL;
+	}
+
+	virtual ~CAVTranscodeMediaFlow() {
+		Stop();
+	}
+
+	void Start(void);
+	void Stop(void);
+
+	bool GetStatus(u_int32_t valueName, void* pValue);
+
+protected:
+	CTranscoder*		m_transcoder;
+	CVideoPreview*		m_videoPreview;
 };
 
 #endif /* __MEDIA_FLOW_H__ */

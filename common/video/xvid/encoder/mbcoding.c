@@ -304,4 +304,3 @@ void MBCoding(const MBParam * pParam, const MACROBLOCK *pMB,
     }
 
 }
-

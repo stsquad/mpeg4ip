@@ -304,7 +304,7 @@ int rtsp_send_setup (rtsp_client_t *info,
 /*
  * check_session - make sure that the session is correct for that command
  */
-static bool check_session (rtsp_session_t *session,
+static int check_session (rtsp_session_t *session,
 			   rtsp_command_t *cmd)
 {
   rtsp_session_t *sptr;

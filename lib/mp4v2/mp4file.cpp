@@ -305,7 +305,43 @@ void MP4File::RewriteMdat(FILE* pReadFile, FILE* pWriteFile)
 void MP4File::Open(const char* fmode)
 {
 	ASSERT(m_pFile == NULL);
+
+#ifdef O_LARGEFILE
+	// UGH! fopen doesn't open a file in 64-bit mode, period.
+	// So we need to use open() and then fdopen()
+	int fd;
+	int flags = O_LARGEFILE;
+
+	if (fmode[0] == 'w') {
+		flags |= O_CREAT | O_TRUNC | O_WRONLY;
+	} else if (strchr(fmode, '+')) {
+		flags |= O_CREAT | O_RDWR;
+	} else {
+		flags |= O_RDONLY;
+	}
+	fd = open(m_fileName, flags, 0666); 
+
+	if (fd >= 0) {
+		u_int8_t i;
+		char fdmode[4];
+
+		// fdopen gets upset about '+' in it's mode
+		// so eliminate them from fmode before calling fdopen()
+		for (i = 0; i < 3; i++) {
+			if (fmode[i] == '\0') {
+				break;
+			}
+			if (fmode[i] != '+') {
+				fdmode[i] = fmode[i];
+			}
+		}
+		fdmode[i] = '\0';
+
+		m_pFile = fdopen(fd, fdmode);
+	}
+#else
 	m_pFile = fopen(m_fileName, fmode);
+#endif
 	if (m_pFile == NULL) {
 		throw new MP4Error(errno, "failed", "MP4Open");
 	}
@@ -757,6 +793,13 @@ MP4TrackId MP4File::AddTrack(const char* type, u_int32_t timeScale)
 	// set track type
 	const char* normType = MP4Track::NormalizeTrackType(type);
 
+	// sanity check for user defined types
+	if (strlen(normType) > 4) {
+		VERBOSE_WARNING(m_verbosity, 
+			printf("AddTrack: type truncated to four characters\n"));
+		// StringProperty::SetValue() will do the actual truncation
+	}
+
 	MP4StringProperty* pStringProperty = NULL;
 	pTrakAtom->FindProperty(
 		"trak.mdia.hdlr.handlerType", (MP4Property**)&pStringProperty);
@@ -908,7 +951,7 @@ void MP4File::RemoveTrackReference(const char* trefName, MP4TrackId refTrackId)
 	for (u_int32_t i = 0; i < pCountProperty->GetValue(); i++) {
 		if (refTrackId == pTrackIdProperty->GetValue(i)) {
 			pTrackIdProperty->DeleteValue(i);
-			pCountProperty->SetValue(pCountProperty->GetValue() - 1);
+			pCountProperty->IncrementValue(-1);
 		}
 	}
 }
@@ -943,6 +986,8 @@ void MP4File::AddDataReference(MP4TrackId trackId, const char* url)
 MP4TrackId MP4File::AddSystemsTrack(const char* type)
 {
 	const char* normType = MP4Track::NormalizeTrackType(type); 
+
+	// TBD if user type, fix name to four chars, and warn
 
 	MP4TrackId trackId = AddTrack(type, MP4_MSECS_TIME_SCALE);
 

@@ -89,8 +89,9 @@ public:
 	static const u_int16_t PcmAudioFrame	=	1;
 	static const u_int16_t Mp3AudioFrame 	=	2;
 	static const u_int16_t AacAudioFrame 	=	3;
-	static const u_int16_t YuvVideoFrame 	=	4;
-	static const u_int16_t Mpeg4VideoFrame =	5;
+	static const u_int16_t RawYuvVideoFrame	=	4;
+	static const u_int16_t Mpeg4VideoFrame	=	5;
+	static const u_int16_t ReconstructYuvVideoFrame 	=	6;
 
 	// get methods for properties
 

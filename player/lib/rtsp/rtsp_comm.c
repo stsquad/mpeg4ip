@@ -33,11 +33,29 @@
  * port, server_addr, server_name be set.
  * returns 0 for success, -1 for failure
  */
+static int rtsp_get_server_address (rtsp_client_t *info)
+{
+  struct hostent *host;
+#ifdef _WIN32
+  info->server_addr.s_addr = inet_addr(info->server_name);
+  if (info->server_addr.s_addr != INADDR_NONE) return 0;
+#else
+  if (inet_aton(info->server_name, &info->server_addr) != 0) return 0;
+#endif
+  
+  host = gethostbyname(info->server_name);
+  if (host == NULL) {
+    rtsp_debug(LOG_CRIT, "Can't get server host name %s", info->server_name);
+    return (h_errno);
+  }
+  info->server_addr = *(struct in_addr *)host->h_addr;
+  return 0;
+}
+
 int rtsp_create_socket (rtsp_client_t *info)
 {
   struct sockaddr_in sockaddr;
   int result;
-  struct hostent *host;
 
   // Do we have a socket already - if so, go ahead
 
@@ -49,14 +67,14 @@ int rtsp_create_socket (rtsp_client_t *info)
     rtsp_debug(LOG_CRIT, "No server name in create socket");
     return (-1);
   }
-  host = gethostbyname(info->server_name);
-  if (host == NULL) {
-    rtsp_debug(LOG_CRIT, "Can't get server host name %s", info->server_name);
-    return (h_errno);
-  }
-  info->server_addr = *(struct in_addr *)host->h_addr;
-
+  result = rtsp_get_server_address(info);
+  if (result != 0) return -1;
+  
+#ifndef _WIN32
   info->server_socket = socket(AF_INET, SOCK_STREAM, 0);
+#else
+  info->server_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, 0);
+#endif
 
   if (info->server_socket == -1) {
     rtsp_debug(LOG_CRIT, "Couldn't create socket");
@@ -67,25 +85,39 @@ int rtsp_create_socket (rtsp_client_t *info)
   sockaddr.sin_family = AF_INET;
   sockaddr.sin_port = htons(info->port);
   sockaddr.sin_addr = info->server_addr;
-
+#ifndef _WIN32
   result = connect(info->server_socket,
 		   (struct sockaddr *)&sockaddr,
 		   sizeof(sockaddr));
+  if (result == -1)
+#else
+  result = WSAConnect(info->server_socket, 
+	                  (struct sockaddr *)&sockaddr,
+					  sizeof(sockaddr), 
+					  NULL, 
+					  NULL, 
+					  NULL, 
+					  NULL);
+  if (result != 0)
+#endif
 
-  if (result == -1) {
+  {
     rtsp_debug(LOG_CRIT, "Couldn't connect socket");
     return (-1);
   }
 
-#ifndef _WIN32
   if (info->thread != NULL) {
+#ifndef _WIN32
     result = fcntl(info->server_socket, F_GETFL);
     result = fcntl(info->server_socket, F_SETFL, result | O_NONBLOCK);
     if (result < 0) {
       rtsp_debug(LOG_ERR, "Couldn't create nonblocking %d", errno);
     }
-  }
+#else
+	rtsp_thread_set_nonblocking(info);
 #endif
+
+  }
 
   return (0);
 }
@@ -128,7 +160,7 @@ int rtsp_send (rtsp_client_t *info, const char *buff, uint32_t len)
  *   recv_buff_parsed - used by above routine in case we got more than
  *      1 response at a time.
  */
-int rtsp_receive_socket (int rsocket, char *buffer, uint32_t len,
+int rtsp_receive_socket (rtsp_client_t *info, char *buffer, uint32_t len,
 			 uint32_t msec_timeout)
 {
 
@@ -141,18 +173,20 @@ int rtsp_receive_socket (int rsocket, char *buffer, uint32_t len,
 #endif
 
   if (msec_timeout != 0) {
+	  if (info->thread != NULL) {
+	  } else {
 #ifdef HAVE_POLL
-    pollit.fd = rsocket;
+    pollit.fd = info->server_socket;
     pollit.events = POLLIN | POLLPRI;
     pollit.revents = 0;
 
     ret = poll(&pollit, 1, msec_timeout);
 #else
     FD_ZERO(&read_set);
-    FD_SET(rsocket, &read_set);
+    FD_SET(info->server_socket, &read_set);
     timeout.tv_sec = msec_timeout / 1000;
     timeout.tv_usec = (msec_timeout % 1000) * 1000;
-    ret = select(rsocket + 1, &read_set, NULL, NULL, &timeout);
+    ret = select(info->server_socket + 1, &read_set, NULL, NULL, &timeout);
 #endif
 
     if (ret <= 0) {
@@ -163,7 +197,27 @@ int rtsp_receive_socket (int rsocket, char *buffer, uint32_t len,
       return (-1);
     }
   }
-  ret = recv(rsocket, buffer, len, 0);
+  }
+  //rtsp_debug(LOG_DEBUG, "Calling recv");
+#ifndef _WIN32
+  ret = recv(info->server_socket, buffer, len, 0);
+#else 
+  {
+  WSABUF foo;
+  int val;
+  DWORD flag = 0;
+  DWORD bytes;
+  foo.buf = buffer;
+  foo.len = len;
+  val = WSARecv(info->server_socket, &foo, 1, &bytes, &flag, NULL, NULL);
+  if (val != 0) {
+	  //rtsp_debug(LOG_DEBUG, "error is %d", WSAGetLastError());
+	  return -1;
+  }
+  ret = bytes;
+  //rtsp_debug(LOG_DEBUG, "recvd %d bytes", ret);
+  }
+#endif
   return (ret);
 }
 

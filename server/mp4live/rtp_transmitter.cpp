@@ -63,7 +63,7 @@ void CRtpTransmitter::DoStartTransmit()
 
 	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
 		m_audioTimeScale = 
-			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+			m_pConfig->m_audioMp3SampleRate;
 
 		m_audioDestAddress = 
 			m_pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS); 
@@ -162,8 +162,8 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 	  && m_videoRtpSession) {
 		SendMpeg4VideoWith3016(pFrame);
 	} else {
-		debug_message("RTP transmitter received unknown frame type %u",
-			pFrame->GetType());
+		// debug_message("RTP transmitter received unknown frame type %u",
+		// 	pFrame->GetType());
 	}
 }
 

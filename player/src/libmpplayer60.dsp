@@ -149,10 +149,6 @@ SOURCE=.\player_session.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\player_util.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\playlist.cpp
 # End Source File
 # Begin Source File

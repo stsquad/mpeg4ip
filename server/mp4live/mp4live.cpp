@@ -102,7 +102,7 @@ int main(int argc, char** argv)
 
 	CVideoSource::InitialVideoProbe(pConfig);
 
-	pConfig->Regenerate();
+	pConfig->Update();
 
 	// attempt to exploit any real time features of the OS
 	// will probably only succeed if user has root privileges
@@ -178,7 +178,7 @@ int nogui_main(CLiveConfig* pConfig)
 		pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW);
 	pConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW, false);
 
-	CAVMediaFlow* pFlow = new CAVMediaFlow(pConfig);
+	CAVLiveMediaFlow* pFlow = new CAVLiveMediaFlow(pConfig);
 
 	pFlow->Start();
 

@@ -43,7 +43,7 @@ static __inline int64_t read_counter() {
 	return ts;
 }
 
-#elif defined(LINUX) || defined(DJGPP)
+#elif defined(__linux__) || defined(DJGPP)
 
 #include <stdio.h>
 #define DEBUG_WHERE		stdout
@@ -53,7 +53,7 @@ static __inline int64_t read_counter() {
 #define DEBUG3(S,A,B,C) fprintf(DEBUG_WHERE, "%s %i %x %x\n", (S), (A), (B), (C))
 #define DEBUG8(S,A,B,C,D,E,F,G,H)
 
-#if defined(LINUX)
+#if defined(__linux__)
 
 #include <stdint.h>
 

@@ -128,20 +128,6 @@ CPlayerMedia::~CPlayerMedia()
 {
   rtsp_decode_t *rtsp_decode;
 
-  if (m_recv_thread) {
-    m_rtp_msg_queue.send_message(MSG_STOP_THREAD);
-    SDL_WaitThread(m_recv_thread, NULL);
-    m_recv_thread = NULL;
-  }
-  if (m_decode_thread) {
-    m_decode_msg_queue.send_message(MSG_STOP_THREAD, 
-				    NULL, 
-				    0, 
-				    m_decode_thread_sem);
-    SDL_WaitThread(m_decode_thread, NULL);
-    m_decode_thread = NULL;
-  }
-
   if (m_rtsp_session) {
     // If control is aggregate, m_rtsp_session will be freed by
     // CPlayerSession
@@ -151,6 +137,23 @@ CPlayerMedia::~CPlayerMedia()
     }
     m_rtsp_session = NULL;
   }
+  
+  if (m_recv_thread) {
+    m_rtp_msg_queue.send_message(MSG_STOP_THREAD);
+    SDL_WaitThread(m_recv_thread, NULL);
+    m_recv_thread = NULL;
+  }
+
+  if (m_decode_thread) {
+    m_decode_msg_queue.send_message(MSG_STOP_THREAD, 
+				    NULL, 
+				    0, 
+				    m_decode_thread_sem);
+    SDL_WaitThread(m_decode_thread, NULL);
+    m_decode_thread = NULL;
+  }
+
+
     
   if (m_source_addr != NULL) free(m_source_addr);
   m_next = NULL;
@@ -395,7 +398,6 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     }
   } else {
     int ret;
-#ifndef _WIN32
     ret = rtsp_thread_set_rtp_callback(m_parent->get_rtsp_client(),
 				       c_rtp_packet_callback,
 				       c_rtp_periodic,
@@ -408,9 +410,6 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     ret = rtsp_thread_perform_callback(m_parent->get_rtsp_client(),
 				       c_init_rtp_tcp,
 				       this);
-#else
-	ret = -1;
-#endif
     if (ret < 0) {
       *errmsg = "Can't init RTP in RTSP thread";
       return -1;
@@ -493,11 +492,9 @@ int CPlayerMedia::do_play (double start_time_offset)
     }
     m_paused = 0;
     if (m_rtp_use_rtsp) {
-#ifndef _WIN32
       rtsp_thread_perform_callback(m_parent->get_rtsp_client(),
 				   c_rtp_start, 
 				   this);
-#endif
     } else {
       m_rtp_msg_queue.send_message(MSG_START_SESSION);
     }
@@ -1110,14 +1107,12 @@ void CPlayerMedia::rtp_end(void)
 
 int CPlayerMedia::rtcp_send_packet (char *buffer, int buflen)
 {
-#ifndef _WIN32
   if (config.get_config_value(CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP) != 0) {
     return rtsp_thread_send_rtcp(m_parent->get_rtsp_client(),
 				 m_rtp_media_number_in_session,
 				 buffer, 
 				 buflen);
   }
-#endif
   return buflen;
 }
 /****************************************************************************

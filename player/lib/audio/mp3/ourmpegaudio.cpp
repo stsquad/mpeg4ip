@@ -35,35 +35,27 @@ int MPEGaudio::findheader (unsigned char *frombuffer,
 			   uint32_t frombuffer_len,
 			   uint32_t *frameptr)
 {
-  uint32_t skipped;
-  //printf("Find header\n");
-  _orig_buflen = frombuffer_len;
-  while (frombuffer_len >= 4) {
-    if ((ntohs(*(uint16_t*)frombuffer) & 0xffe0) == 0xffe0) {
-      _buffer = frombuffer;
-      _buflen = frombuffer_len;
-      skipped = _orig_buflen - frombuffer_len;
-      //printf("skipped is %d\n", skipped);
-      if (loadheader()) {
-	/* Fill the buffer with new data */
-	if (frameptr != NULL) {
-	  if (frombuffer_len < framesize) {
-	    _buflen = _orig_buflen; // keep all bytes in frame
-	    skipped = 0;
-	    *frameptr = framesize;
-	    if(!fillbuffer(framesize))
-	      return -1;
-	  } else {
-	    *frameptr = framesize;
-	  }
+	uint32_t skipped;
+	//printf("Find header\n");
+	_orig_buflen = frombuffer_len;
+	while (frombuffer_len >= 4) {
+		if ((ntohs(*(uint16_t*)frombuffer) & 0xffe0) == 0xffe0) {
+			_buffer = frombuffer;
+			_buflen = frombuffer_len;
+			skipped = _orig_buflen - frombuffer_len;
+			//printf("skipped is %d\n", skipped);
+			if (loadheader()) {
+				/* Fill the buffer with new data */
+				if (frameptr != NULL) {
+					*frameptr = framesize;
+				}
+				return skipped;
+			}
+		}
+		frombuffer++;
+		frombuffer_len--;
 	}
-	return skipped;
-      }
-    }
-    frombuffer++;
-    frombuffer_len--;
-  }
-  return -1;
+	return -1;
 }
 
 int MPEGaudio::decodeFrame (unsigned char *tobuffer, 
@@ -75,16 +67,14 @@ int MPEGaudio::decodeFrame (unsigned char *tobuffer,
   _buflen = fromlen;
   _orig_buflen = fromlen;
   if (loadheader() == false) {
-#if 0
+#if 1
     printf("Couldn't load mp3 header - orig %d buflen %d\n", 
 	   _orig_buflen, _buflen);
 #endif
     return _orig_buflen - _buflen;
   }
 
-  _buffer += 4;
-  _buflen -= 4;
-
+ 
   /* Fill the buffer with new data */
   if(!fillbuffer(framesize-4))
     return false;

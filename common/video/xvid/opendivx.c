@@ -32,6 +32,7 @@
  *
  *	History:
  *
+ *	26.02.2001	fixed dec_csp bugs
  *	26.12.2001	xvid_init() support
  *	22.12.2001	removed some compiler warnings
  *	16.12.2001	inital version; (c)2001 peter ross <pross@cs.rmit.edu.au>
@@ -48,6 +49,7 @@
 #include "decoder/decoder.h"
 #include "encoder/encoder.h"
 
+#define EMULATED_DIVX_VERSION 20011001
 
 // decore
 
@@ -135,25 +137,32 @@ int xvid_to_opendivx_dec_csp(int csp)
 {
 	switch(csp)
 	{
+	case DEC_YV12 :
+		return XVID_CSP_YV12;
+	case DEC_420 :
+		return XVID_CSP_I420;
 	case DEC_YUY2 :
 		return XVID_CSP_YUY2;
 	case DEC_UYVY :
 		return XVID_CSP_UYVY;
-	case DEC_420 :
-		return XVID_CSP_I420;
 	case DEC_RGB32 :
 		return XVID_CSP_VFLIP | XVID_CSP_RGB32;
 	case DEC_RGB24 :
 		return XVID_CSP_VFLIP | XVID_CSP_RGB24;
-        case DEC_USER :
-                return XVID_CSP_USER;    
-	
-	/* case DEC_RGB555 :
 	case DEC_RGB565 :
+		return XVID_CSP_VFLIP | XVID_CSP_RGB565;
+	case DEC_RGB555 :
+		return XVID_CSP_VFLIP | XVID_CSP_RGB555;
 	case DEC_RGB32_INV :
+		return XVID_CSP_RGB32;
 	case DEC_RGB24_INV :
+		return XVID_CSP_RGB24;
+	case DEC_RGB565_INV :
+		return XVID_CSP_RGB565;
 	case DEC_RGB555_INV :
-	case DEC_RGB565_INV : */
+		return XVID_CSP_RGB555;
+	case DEC_USER :
+		return XVID_CSP_USER;    
 	default :
 		return -1;
 	}
@@ -236,7 +245,7 @@ int STDCALL decore(unsigned long key, unsigned long opt,
 				return DEC_EXIT;
 			}
 
-			dcur->xframe.colorspace = dparam->output_format;
+			dcur->xframe.colorspace = xvid_to_opendivx_dec_csp(dparam->output_format);
 
 			return DEC_OK;
 		}
@@ -277,6 +286,8 @@ int STDCALL decore(unsigned long key, unsigned long opt,
 		return DEC_EXIT;
 
 
+	case DEC_OPT_VERSION:
+		return EMULATED_DIVX_VERSION;
 	default :
 		return DEC_EXIT;
 	}
@@ -381,11 +392,15 @@ int encore(void * handle, int opt, void * param1, void * param2)
 				break;
 			}
 
-			if (opt == ENC_OPT_ENCODE_VBR)
+			if (opt == ENC_OPT_ENCODE_VBR)	
 			{
-				((Encoder *)handle)->bitrate = 0;
 				xframe.intra = eframe->intra;
 				xframe.quant = eframe->quant;
+			}
+			else
+			{
+				xframe.intra = -1;
+				xframe.quant = 0;
 			}
 			
 			xerr = encoder_encode((Encoder *) handle, &xframe, (eresult ? &xstats : NULL) );
@@ -393,7 +408,7 @@ int encore(void * handle, int opt, void * param1, void * param2)
 			if (eresult)
 			{
 				eresult->is_key_frame = xframe.intra;
-				eresult->quantizer = xframe.quant;
+				eresult->quantizer = xstats.quant;
 				eresult->total_bits = xframe.length * 8;
 				eresult->motion_bits = xstats.hlength * 8;
 				eresult->texture_bits = eresult->total_bits - eresult->motion_bits;

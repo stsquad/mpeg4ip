@@ -177,8 +177,8 @@ int CMP3Codec::decode (uint64_t ts,
       
     } else {
       m_resync_with_header = 1;
-      mp3_message(LOG_DEBUG, "decode problem %d - at %llu", 
-		  bits, m_current_time);
+      mp3_message(LOG_DEBUG, "decode problem %d - at "LLU", %d", 
+		  bits, m_current_time, buflen);
     }
   } catch (int err) {
 #ifdef DEBUG_SYNC
@@ -207,7 +207,11 @@ int CMP3Codec::skip_frame (uint64_t ts, unsigned char *buffer, uint32_t buflen)
     m_bytestream->used_bytes_for_frame(bytes);
   }
 
-  m_bytestream->used_bytes_for_frame(framesize);
+  if (framesize > buflen) {
+	  m_bytestream->used_bytes_for_frame(buflen);
+	  m_bytestream->used_bytes_for_frame(framesize - buflen);
+  } else
+     m_bytestream->used_bytes_for_frame(framesize);
   return (0);
 }
 /* end file mp3.cpp */

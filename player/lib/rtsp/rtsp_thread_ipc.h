@@ -2,8 +2,6 @@
 #ifndef __RTSP_THREAD_IPC_H__
 #define __RTSP_THREAD_IPC_H__ 1
 
-#define COMM_SOCKET_THREAD info->comm_socket_write_to
-#define COMM_SOCKET_CALLER info->comm_socket[1]
 
 #define RTSP_MSG_QUIT 1
 #define RTSP_MSG_START 2
@@ -11,6 +9,7 @@
 #define RTSP_MSG_PERFORM_CALLBACK 4
 #define RTSP_MSG_SET_RTP_CALLBACK 5
 #define RTSP_MSG_SEND_RTCP 6
+
 typedef uint32_t rtsp_msg_type_t;
 typedef int rtsp_msg_resp_t;
 

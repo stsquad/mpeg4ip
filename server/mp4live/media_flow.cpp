@@ -23,7 +23,23 @@
 #include "mp4live.h"
 #include "media_flow.h"
 
-void CAVMediaFlow::Start(void)
+// Generic Flow
+
+bool CMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
+{
+	switch (valueName) {
+	case FLOW_STATUS_STARTED:
+		*(u_int32_t*)pValue = m_started;
+		break;
+	default:
+		return false;
+	}
+	return true;
+}
+
+// Live Flow
+
+void CAVLiveMediaFlow::Start(void)
 {
 	if (m_started || m_pConfig == NULL) {
 		return;
@@ -44,46 +60,48 @@ void CAVMediaFlow::Start(void)
 		m_videoSource->StartCapture();
 	}
 
+#ifndef NOGUI
+	if (m_videoPreview == NULL) {
+		m_videoPreview = new CVideoPreview();
+		m_videoPreview->SetConfig(m_pConfig);
+		m_videoPreview->StartThread();
+		if (m_videoSource) {
+			m_videoSource->AddSink(m_videoPreview);
+		}
+	}
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+		m_videoPreview->StartPreview();
+	}
+#endif
+
 	if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
+#ifdef DVLP
 		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW)) {
 			m_rawRecorder = new CRawRecorder();
 			m_rawRecorder->SetConfig(m_pConfig);	
 			m_rawRecorder->StartThread();
-			if (m_audioSource) {
-				m_audioSource->AddSink(m_rawRecorder);
-			}
-			if (m_videoSource) {
-				m_videoSource->AddSink(m_rawRecorder);
-			}
+			AddSink(m_rawRecorder);
 		}
-		if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4)) {
-			m_mp4Recorder = new CMp4Recorder();
-			m_mp4Recorder->SetConfig(m_pConfig);	
-			m_mp4Recorder->StartThread();
-			if (m_audioSource) {
-				m_audioSource->AddSink(m_mp4Recorder);
-			}
-			if (m_videoSource) {
-				m_videoSource->AddSink(m_mp4Recorder);
-			}
-		}
+#endif /* DVLP */
+
+		m_mp4Recorder = new CMp4Recorder();
+		m_mp4Recorder->SetConfig(m_pConfig);	
+		m_mp4Recorder->StartThread();
+		AddSink(m_mp4Recorder);
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
 		m_rtpTransmitter = new CRtpTransmitter();
 		m_rtpTransmitter->SetConfig(m_pConfig);	
 		m_rtpTransmitter->StartThread();	
-		if (m_audioSource) {
-			m_audioSource->AddSink(m_rtpTransmitter);
-		}
-		if (m_videoSource) {
-			m_videoSource->AddSink(m_rtpTransmitter);
-		}
+		AddSink(m_rtpTransmitter);
 	}
 
+#ifdef DVLP
 	if (m_rawRecorder) {
 		m_rawRecorder->StartRecord();
 	}
+#endif
 	if (m_mp4Recorder) {
 		m_mp4Recorder->StartRecord();
 	}
@@ -100,10 +118,31 @@ void CAVMediaFlow::Start(void)
 	m_started = true;
 }
 
-void CAVMediaFlow::Stop(void)
+void CAVLiveMediaFlow::Stop(void)
 {
 	if (!m_started) {
 		return;
+	}
+
+#ifdef DVLP
+	if (m_rawRecorder) {
+		RemoveSink(m_rawRecorder);
+		m_rawRecorder->StopThread();
+		delete m_rawRecorder;
+		m_rawRecorder = NULL;
+	}
+#endif
+	if (m_mp4Recorder) {
+		RemoveSink(m_mp4Recorder);
+		m_mp4Recorder->StopThread();
+		delete m_mp4Recorder;
+		m_mp4Recorder = NULL;
+	}
+	if (m_rtpTransmitter) {
+		RemoveSink(m_rtpTransmitter);
+		m_rtpTransmitter->StopThread();
+		delete m_rtpTransmitter;
+		m_rtpTransmitter = NULL;
 	}
 
 	if (m_audioSource) {
@@ -111,35 +150,43 @@ void CAVMediaFlow::Stop(void)
 		delete m_audioSource;
 		m_audioSource = NULL;
 	}
-	if (m_videoSource) {
-		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
-			m_videoSource->RemoveAllSinks();
-		} else {
+	if (!m_pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+		if (m_videoSource) {
 			m_videoSource->StopThread();
 			delete m_videoSource;
 			m_videoSource = NULL;
 		}
-	}
-	if (m_rawRecorder) {
-		m_rawRecorder->StopThread();
-		delete m_rawRecorder;
-		m_rawRecorder = NULL;
-	}
-	if (m_mp4Recorder) {
-		m_mp4Recorder->StopThread();
-		delete m_mp4Recorder;
-		m_mp4Recorder = NULL;
-	}
-	if (m_rtpTransmitter) {
-		m_rtpTransmitter->StopThread();
-		delete m_rtpTransmitter;
-		m_rtpTransmitter = NULL;
+		if (m_videoPreview) {
+			m_videoPreview->StopThread();
+			delete m_videoPreview;
+			m_videoPreview = NULL;
+		}
 	}
 
 	m_started = false;
 }
 
-void CAVMediaFlow::StartVideoPreview(void)
+void CAVLiveMediaFlow::AddSink(CMediaSink* pSink)
+{
+	if (m_audioSource) {
+		m_audioSource->AddSink(pSink);
+	}
+	if (m_videoSource) {
+		m_videoSource->AddSink(pSink);
+	}
+}
+
+void CAVLiveMediaFlow::RemoveSink(CMediaSink* pSink)
+{
+	if (m_audioSource) {
+		m_audioSource->RemoveSink(pSink);
+	}
+	if (m_videoSource) {
+		m_videoSource->RemoveSink(pSink);
+	}
+}
+
+void CAVLiveMediaFlow::StartVideoPreview(void)
 {
 	if (m_pConfig == NULL) {
 		return;
@@ -150,10 +197,19 @@ void CAVMediaFlow::StartVideoPreview(void)
 		m_videoSource->StartThread();
 	}
 
-	m_videoSource->StartPreview();
+	if (m_videoPreview == NULL) {
+		m_videoPreview = new CVideoPreview();
+		m_videoPreview->SetConfig(m_pConfig);
+		m_videoPreview->StartThread();
+
+		m_videoSource->AddSink(m_videoPreview);
+	}
+
+	m_videoSource->StartCapture();
+	m_videoPreview->StartPreview();
 }
 
-void CAVMediaFlow::StopVideoPreview(void)
+void CAVLiveMediaFlow::StopVideoPreview(void)
 {
 	if (m_videoSource) {
 		if (!m_started) {
@@ -161,12 +217,22 @@ void CAVMediaFlow::StopVideoPreview(void)
 			delete m_videoSource;
 			m_videoSource = NULL;
 		} else {
-			m_videoSource->StopPreview();
+			m_videoSource->StopCapture();
+		}
+	}
+
+	if (m_videoPreview) {
+		if (!m_started) {
+			m_videoPreview->StopThread();
+			delete m_videoPreview;
+			m_videoPreview = NULL;
+		} else {
+			m_videoPreview->StopPreview();
 		}
 	}
 }
 
-void CAVMediaFlow::SetAudioInput(void)
+void CAVLiveMediaFlow::SetAudioInput(void)
 {
 	char* mixerName = 
 		m_pConfig->GetStringValue(CONFIG_AUDIO_MIXER_NAME);
@@ -184,7 +250,7 @@ void CAVMediaFlow::SetAudioInput(void)
 	close(mixer);
 }
 
-void CAVMediaFlow::SetAudioOutput(bool mute)
+void CAVLiveMediaFlow::SetAudioOutput(bool mute)
 {
 	static int muted = 0;
 	static int lastVolume;
@@ -213,7 +279,7 @@ void CAVMediaFlow::SetAudioOutput(bool mute)
 	close(mixer);
 }
 
-bool CAVMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
+bool CAVLiveMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
 {
 	switch (valueName) {
 	case FLOW_STATUS_VIDEO_ENCODED_FRAMES:
@@ -224,7 +290,88 @@ bool CAVMediaFlow::GetStatus(u_int32_t valueName, void* pValue)
 		}
 		break;
 	default:
-		return false;
+		return CMediaFlow::GetStatus(valueName, pValue);
 	}
 	return true;
 }
+
+
+// Transcode Flow
+
+void CAVTranscodeMediaFlow::Start(void)
+{
+	if (m_started || m_pConfig == NULL) {
+		return;
+	}
+
+	if (m_transcoder == NULL) {
+		m_transcoder = new CTranscoder();
+		m_transcoder->SetConfig(m_pConfig);
+		m_transcoder->StartThread();
+	}
+
+#ifndef NOGUI
+	if (m_videoPreview == NULL) {
+		m_videoPreview = new CVideoPreview();
+		m_videoPreview->SetConfig(m_pConfig);
+		m_videoPreview->StartThread();
+		if (m_transcoder) {
+			m_transcoder->AddSink(m_videoPreview);
+		}
+	}
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+		m_videoPreview->StartPreview();
+	}
+#endif
+
+	m_transcoder->StartTranscode();
+
+	m_started = true;
+}
+
+void CAVTranscodeMediaFlow::Stop(void)
+{
+	if (!m_started) {
+		return;
+	}
+
+	if (m_transcoder) {
+		m_transcoder->StopThread();
+		delete m_transcoder;
+		m_transcoder = NULL;
+	}
+
+#ifndef NOGUI
+	if (m_videoPreview) {
+		m_videoPreview->StopThread();
+		delete m_videoPreview;
+		m_videoPreview = NULL;
+	}
+#endif
+
+	m_started = false;
+}
+
+bool CAVTranscodeMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
+{
+	switch (valueName) {
+	case FLOW_STATUS_STARTED:
+		if (m_transcoder) {
+			*(u_int32_t*)pValue = m_transcoder->GetRunning();
+		} else {
+			*(u_int32_t*)pValue = false;
+		}
+		break;
+	case FLOW_STATUS_VIDEO_ENCODED_FRAMES:
+		if (m_transcoder) {
+			*(u_int32_t*)pValue = m_transcoder->GetNumEncodedFrames();
+		} else {
+			*(u_int32_t*)pValue = 0;
+		}
+		break;
+	default:
+		return CMediaFlow::GetStatus(valueName, pValue);
+	}
+	return true;
+}
+

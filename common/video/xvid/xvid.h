@@ -10,7 +10,7 @@ extern "C" {
 // ==========================================
 
 // API Version: 1.0
-#define API_VERSION (1 << 8) | (0)
+#define API_VERSION ((1 << 16) | (0))
 
 // cpu features
 #define XVID_CPU_MMX		0x00000001
@@ -19,7 +19,7 @@ extern "C" {
 #define XVID_CPU_SSE2		0x00000008
 #define XVID_CPU_3DNOW		0x00000010
 #define XVID_CPU_3DNOWEXT	0x00000020
-#define XVID_CPU_TSC		0x00000020
+#define XVID_CPU_TSC		0x00000040
 #define XVID_CPU_FORCE		0x80000000
 
 // colorspaces
@@ -96,6 +96,9 @@ int xvid_decore(void * handle,
 typedef struct
 {
 	int width, height;
+#ifdef MPEG4IP
+	int raw_height;		// height of raw image, >= height
+#endif
 	int fincr, fbase;	// frame increment, fbase. each frame = "fincr/fbase" seconds
 	int bitrate;		// the bitrate of the target encoded stream, in bits/second
 	int rc_period;		// the intended rate control averaging period

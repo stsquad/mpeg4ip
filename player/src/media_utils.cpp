@@ -370,6 +370,10 @@ static int create_media_for_http (CPlayerSession *psptr,
   http_resp = NULL;
   http_client = http_init_connection(name);
 
+  if (http_client == NULL) {
+    *errmsg = "Can't get http client";
+    return -1;
+  } 
   ret = http_get(http_client, NULL, &http_resp);
   if (ret > 0) {
     sdp_decode_info_t *sdp_info;

@@ -49,6 +49,7 @@ class CMpeg4Codec: public CVideoCodecBase {
   void do_pause(void);
  private:
   int parse_vovod(const char *config, int ascii, uint32_t len);
+  void error_return(uint32_t buflen);
   CVideoObjectDecoder *m_pvodec;
   int m_main_short_video_header;
   int m_nFrames;

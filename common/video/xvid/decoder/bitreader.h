@@ -27,8 +27,7 @@ BITREADER;
 
 
 // header stuff
-int bs_headers(BITREADER * bs, DECODER * dec, uint32_t * rounding, uint32_t * quant, uint32_t * fcode);
-
+int bs_headers(BITREADER * bs, DECODER * dec, uint32_t * rounding, uint32_t * quant, uint32_t * fcode, uint32_t * intra_dc_threshold);
 
 static void __inline bs_init(BITREADER * const bs, void * const bitstream, uint32_t length)
 {
@@ -37,13 +36,13 @@ static void __inline bs_init(BITREADER * const bs, void * const bitstream, uint3
 	bs->start = (uint32_t*)bitstream;
 
 	tmp = *(uint32_t *)bitstream;
-#ifndef BIG_ENDIAN
+#ifndef ARCH_IS_BIG_ENDIAN
 	BSWAP(tmp);
 #endif
 	bs->bufa = tmp;
 
 	tmp = *((uint32_t *)bitstream + 1);
-#ifndef BIG_ENDIAN
+#ifndef ARCH_IS_BIG_ENDIAN
 	BSWAP(tmp);
 #endif
 	bs->bufb = tmp;
@@ -89,7 +88,7 @@ static __inline void bs_skip(BITREADER * const bs, const uint32_t bits)
 
 		bs->bufa = bs->bufb;
 		tmp = *(uint32_t *)bs->tail;
-#ifndef BIG_ENDIAN
+#ifndef ARCH_IS_BIG_ENDIAN
 		BSWAP(tmp);
 #endif
 		bs->bufb = tmp;

@@ -394,7 +394,7 @@ static bool ValidateAndSave(void)
 	}
 
 	// if previewing, stop video source
-	AVFlow->StopVideoPreview();
+	AVLive->StopVideoPreview();
 
 	// copy new values to config
 
@@ -443,14 +443,14 @@ static bool ValidateAndSave(void)
 
 	// now put the new configuration into effect
 
-	MyConfig->Regenerate();
+	MyConfig->Update();
 
 	NewVideoWindow();
 
 	// if previewing, restart video source
 	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
 	  && MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
-		AVFlow->StartVideoPreview();
+		AVLive->StartVideoPreview();
 	}
 
 	// refresh display of settings in main window
@@ -541,7 +541,7 @@ void CreateVideoDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-	label = gtk_label_new(" Bit Rate (Kbps):");
+	label = gtk_label_new(" Bit Rate (kbps):");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
@@ -651,7 +651,7 @@ void CreateVideoDialog (void)
 
 	adjustment = gtk_adjustment_new(
 		MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE),
-		25, 2000, 50, 0, 0);
+		25, 4000, 50, 0, 0);
 	bit_rate_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 50, 0);
 	gtk_widget_show(bit_rate_spinner);
 	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_spinner, TRUE, TRUE, 0);

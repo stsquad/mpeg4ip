@@ -59,12 +59,14 @@ static VLCtable mcbpc_inter_tab[29] = {
     {5, 6}, {5, 9}, {5, 8}, {3, 7}, {2, 9}
 };
 
+#if 0
 static VLCtable mcbpc_sprite_tab[31] = {
     {1, 1}, {0, 12}, {2, 3}, {3, 5}, {4, 6}, {3, 3}, {12, 4}, {1, 9},
     {3, 4}, {1, 12}, {5, 7}, {4, 8}, {4, 9}, {7, 7}, {12, 5}, {0, 0},
     {2, 4}, {2, 12}, {4, 7}, {3, 8}, {3, 9}, {6, 7}, {12, 6}, {0, 0},
     {5, 6}, {3, 12}, {5, 8}, {3, 7}, {2, 9}, {5, 9}, {12, 7}
 };
+#endif
 
 /* CBPY. Straightforward indexing */
 
@@ -371,6 +373,8 @@ static VLCtable coeff_tab10[14] = {
 };
 
 
+
+#if 0
 
 /* RVLC tables */
 /* DCT coefficients. Four tables, two for last = 0, two for last = 1.
@@ -1118,5 +1122,7 @@ static VLCtable coeff_RVLCtab25[32] = {
     {0x3f7c, 15},
     {0x3f7d, 15}
 };
+
+#endif /* 0 */
 
 #endif /* _VLC_H */

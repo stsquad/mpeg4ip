@@ -56,7 +56,7 @@ static void c_get_more (void *ud,
 
   COurInByteStream *bs = (COurInByteStream *)ud;
 
-  bs->get_more_bytes(buffer, &ret, used, 0);
+  bs->get_more_bytes(buffer, &ret, used, 1);
   *buflen = ret;
 }
 static void c_just_fail (void *ud, 
@@ -207,6 +207,15 @@ void CMpeg4Codec::do_pause (void)
   m_decodeState = DECODE_STATE_WAIT_I;
 }
 
+void CMpeg4Codec::error_return (uint32_t buflen) 
+{
+	int bytes = m_pvodec->get_used_bytes();
+	if (bytes == 0) 
+		m_bytestream->used_bytes_for_frame(buflen);
+	else
+		m_bytestream->used_bytes_for_frame(bytes);
+}
+
 int CMpeg4Codec::decode (uint64_t ts, 
 			 int from_rtp, 
 			 unsigned char *buffer,
@@ -235,7 +244,7 @@ int CMpeg4Codec::decode (uint64_t ts,
     } catch (int err) {
       player_debug_message("Caught exception in VOL search %s", 
 			   m_bytestream->get_throw_error(err));
-      m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
+	  error_return(buflen);
       return (-1);
     }
     //      return(0);
@@ -259,7 +268,7 @@ int CMpeg4Codec::decode (uint64_t ts,
 	player_debug_message("Caught exception in WAIT_I %d", err);
 	//}
 #endif
-      m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
+	error_return(buflen);
       return (-1);
     }
     break;
@@ -272,18 +281,18 @@ int CMpeg4Codec::decode (uint64_t ts,
       // and determines that we're trying to read across bytestreams.
       // If we get this, we don't want to change anything - just fall up
       // to the decoder thread so it gives us a new timestamp.
+		error_return(buflen);
       if (m_bytestream->throw_error_minor(err) != 0) {
 	//player_debug_message("decode across ts");
-	m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
+		 
 	return (-1);
       }
       player_debug_message("Mpeg4 ncaught %s -> waiting for I", 
 			   m_bytestream->get_throw_error(err));
       m_decodeState = DECODE_STATE_WAIT_I;
-      m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
       return (-1);
     } catch (...) {
-	m_bytestream->used_bytes_for_frame(m_pvodec->get_used_bytes());
+		error_return(buflen);
 	m_decodeState = DECODE_STATE_WAIT_I;
 	return (-1);
     }

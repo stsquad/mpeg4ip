@@ -1,1 +1,1 @@
-SUBDIRS = mpeg4 
+SUBDIRS = mpeg4 xvid

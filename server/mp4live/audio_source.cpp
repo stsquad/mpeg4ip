@@ -89,7 +89,7 @@ void CAudioSource::DoStopCapture()
 		return;
 	}
 
-	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENCODE)) {
+	if (m_pConfig->m_audioEncode) {
 		// lame can be holding onto a few MP3 frames
 		// get them and forward them to sinks
 
@@ -107,6 +107,18 @@ void CAudioSource::DoStopCapture()
 	close(m_audioDevice);
 	m_audioDevice = -1;
 
+	free(m_rawFrameBuffer);
+	m_rawFrameBuffer = NULL;
+
+	free(m_leftBuffer);
+	m_leftBuffer = NULL;
+
+	free(m_rightBuffer);
+	m_rightBuffer = NULL;
+
+	free(m_mp3FrameBuffer);
+	m_mp3FrameBuffer = NULL;
+
 	m_capture = false;
 }
 
@@ -116,46 +128,94 @@ bool CAudioSource::Init(void)
 		return false;
 	}
 
-	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENCODE)) {
+	m_startTimestamp = 0;
+	m_frameNumber = 0;
+
+	if (m_pConfig->m_audioEncode) {
 		if (!InitEncoder()) {
-			close(m_audioDevice);
-			m_audioDevice = -1;
-			return false;
+			goto init_failure;
+		}
+
+		m_rawSamplesPerFrame = (u_int16_t)
+			((((float)m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) 
+			/ (float)m_pConfig->m_audioMp3SampleRate)
+			* m_pConfig->m_audioMp3SamplesPerFrame) 
+			+ 0.5);
+
+		m_mp3FrameDuration = 
+			(m_pConfig->m_audioMp3SamplesPerFrame * TimestampTicks) 
+			/ m_pConfig->m_audioMp3SampleRate;
+
+		m_mp3MaxFrameSize = 
+			(u_int)(1.25 * m_pConfig->m_audioMp3SamplesPerFrame) + 7200;
+
+		m_mp3FrameBufferSize = 2 * m_mp3MaxFrameSize;
+
+		m_mp3FrameBufferLength = 0;
+
+		m_mp3FrameBuffer = (u_int8_t*)malloc(m_mp3FrameBufferSize);
+
+		if (!m_mp3FrameBuffer) {
+			goto init_failure;
+		}
+
+		if (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 1) {
+			memset(m_rightBuffer, 0, m_rawFrameSize / 2);
+		}
+
+	} else {
+		m_rawSamplesPerFrame = 
+			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+	}
+
+	m_rawFrameSize = m_rawSamplesPerFrame
+		* m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) 
+		* sizeof(u_int16_t);
+
+	m_rawFrameBuffer = (u_int16_t*)malloc(m_rawFrameSize);
+
+	if (!m_rawFrameBuffer) {
+		goto init_failure;
+	}
+
+	if (m_pConfig->m_audioEncode) {
+		m_leftBuffer = (u_int16_t*)malloc(m_rawFrameSize / 2);
+		m_rightBuffer = (u_int16_t*)malloc(m_rawFrameSize / 2);
+
+		if (!m_leftBuffer || !m_rightBuffer) {
+			goto init_failure;
 		}
 	}
 
-	m_samplesPerFrame = MP3_SAMPLES_PER_FRAME;
-	m_rawFrameSize = m_samplesPerFrame 
-		* m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) 
-		* sizeof(u_int16_t);
-	m_frameDuration = (m_samplesPerFrame * TimestampTicks) 
-		/ m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+	m_rawFrameDuration = 
+		(m_rawSamplesPerFrame * TimestampTicks) 
+		/ m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE); 
+
 	// maximum number of passes in ProcessAudio, approx 1 sec.
-	m_maxPasses = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE)
-		/ m_samplesPerFrame;
-	m_startTimestamp = 0;
-	m_frameNumber = 0;
-	m_mp3MaxFrameSize = (u_int)(1.25 * m_samplesPerFrame) + 7200;
-	m_mp3FrameBufferSize = 2 * m_mp3MaxFrameSize;
-	m_mp3FrameBufferLength = 0;
-
-	m_rawFrameBuffer = (u_int16_t*)malloc(m_rawFrameSize);
-	m_leftBuffer = (u_int16_t*)malloc(m_samplesPerFrame * sizeof(u_int16_t));
-	m_rightBuffer = (u_int16_t*)malloc(m_samplesPerFrame * sizeof(u_int16_t));
-	m_mp3FrameBuffer = (u_int8_t*)malloc(m_mp3FrameBufferSize);
-
-	if (!m_rawFrameBuffer || !m_leftBuffer || !m_rightBuffer 
-	  || !m_mp3FrameBuffer) {
-		close(m_audioDevice);
-		m_audioDevice = -1;
-		return false;
-	}
-
-	if (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 1) {
-		memset(m_rightBuffer, 0, m_samplesPerFrame * sizeof(u_int16_t));
-	}
+	m_maxPasses = 
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) 
+		/ m_rawSamplesPerFrame;
 
 	return true;
+
+init_failure:
+	debug_message("audio initialization failed");
+
+	free(m_rawFrameBuffer);
+	m_rawFrameBuffer = NULL;
+
+	free(m_leftBuffer);
+	m_leftBuffer = NULL;
+
+	free(m_rightBuffer);
+	m_rightBuffer = NULL;
+
+	free(m_mp3FrameBuffer);
+	m_mp3FrameBuffer = NULL;
+
+	close(m_audioDevice);
+	m_audioDevice = -1;
+	return false;
 }
 
 bool CAudioSource::InitDevice(void)
@@ -216,6 +276,17 @@ bool CAudioSource::InitEncoder()
 
 	lame_init_params(&m_lameParams);
 
+	m_pConfig->m_audioMp3SampleRate = 
+		m_lameParams.out_samplerate;
+
+	if (m_pConfig->m_audioMp3SampleRate > 24000) {
+		m_pConfig->m_audioMp3SamplesPerFrame = 
+			MP3_MPEG1_SAMPLES_PER_FRAME;
+	} else {
+		m_pConfig->m_audioMp3SamplesPerFrame = 
+			MP3_MPEG2_SAMPLES_PER_FRAME;
+	}
+
 	return true;
 }
 
@@ -242,18 +313,18 @@ void CAudioSource::ProcessAudio(void)
 		}
 
 		if (m_startTimestamp == 0) {
-			m_startTimestamp = GetTimestamp() - m_frameDuration;
+			m_startTimestamp = GetTimestamp() - m_rawFrameDuration;
 		}
 
 		// encode audio frame to MP3
-		if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENCODE)) {
+		if (m_pConfig->m_audioEncode) {
 			u_int16_t* leftBuffer;
 
 			// de-interleave input if doing stereo
 			if (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 2) {
 				// de-interleave raw frame buffer
 				u_int16_t* s = m_rawFrameBuffer;
-				for (int i = 0; i < m_samplesPerFrame; i++) {
+				for (int i = 0; i < m_pConfig->m_audioMp3SamplesPerFrame; i++) {
 					m_leftBuffer[i] = *s++;
 					m_rightBuffer[i] = *s++;
 				}
@@ -266,7 +337,7 @@ void CAudioSource::ProcessAudio(void)
 			u_int32_t mp3DataLength = lame_encode_buffer(
 				&m_lameParams,
 				(short*)leftBuffer, (short*)m_rightBuffer, 
-				m_samplesPerFrame,
+				m_pConfig->m_audioMp3SamplesPerFrame,
 				(char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
 				m_mp3FrameBufferSize - m_mp3FrameBufferLength);
 
@@ -278,11 +349,11 @@ void CAudioSource::ProcessAudio(void)
 		}
 
 		// if desired, forward raw audio to sinks
-		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW)) {
+		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
 			CMediaFrame* pFrame =
 				new CMediaFrame(CMediaFrame::PcmAudioFrame, 
 					m_rawFrameBuffer, m_rawFrameSize,
-					0, m_frameDuration);
+					0, m_rawFrameDuration);
 			ForwardFrame(pFrame);
 			delete pFrame;
 
@@ -318,12 +389,12 @@ u_int16_t CAudioSource::ForwardCompletedFrames(void)
 
 		// forward the copy of the MP3 frame to sinks
 		Timestamp frameTimestamp = m_startTimestamp 
-			+ (m_frameNumber * m_frameDuration);
+			+ (m_frameNumber * m_mp3FrameDuration);
 
 		CMediaFrame* pFrame =
 			new CMediaFrame(CMediaFrame::Mp3AudioFrame, 
 				newMp3Frame, mp3FrameLength,
-				frameTimestamp, m_frameDuration);
+				frameTimestamp, m_mp3FrameDuration);
 		ForwardFrame(pFrame);
 		delete pFrame;
 

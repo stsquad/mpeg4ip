@@ -24,18 +24,25 @@
 #ifndef __GUI_PRIVATE_H__
 #define __GUI_PRIVATE_H__ 1
 
-#include "live_config.h"
+#include "mp4live_config.h"
 #include "media_flow.h" 
+#include "transcoder.h"
 
 // From gui_main.cpp
 extern CLiveConfig* MyConfig;
-extern CAVMediaFlow* AVFlow;
+extern CMediaFlow* AVFlow;
+extern CAVLiveMediaFlow* AVLive;
+extern CAVTranscodeMediaFlow* AVTranscode;
 
 void NewVideoWindow(void);
 void DisplayVideoSettings(void);
 void DisplayAudioSettings(void);
-void DisplayTransmitSettings(void);
 void DisplayRecordingSettings(void);
+void DisplayTransmitSettings(void);
+void DisplayTranscodingSettings(void);
+
+void DoStart(void);
+void DoStop(void);
 
 // From video_dialog.cpp
 void CreateVideoDialog(void);
@@ -48,5 +55,8 @@ void CreateRecordingDialog(void);
 
 // From transmit_dialog.cpp
 void CreateTransmitDialog(void);
+
+// From transcoding_dialog.cpp
+void CreateTranscodingDialog(void);
 
 #endif

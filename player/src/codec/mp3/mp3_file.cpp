@@ -170,7 +170,12 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
       if (bytes < 0) {
 	fbyte->used_bytes_for_frame(buflen);
       } else {
-	fbyte->used_bytes_for_frame(framesize);
+		  if (framesize > buflen) {
+			  fbyte->used_bytes_for_frame(buflen);
+			  fbyte->used_bytes_for_frame(framesize - buflen);
+		  } else {
+			fbyte->used_bytes_for_frame(framesize);
+		  }
 	if (first == 0) {
 	  first = 1;
 	  freq = mp3->getfrequency();

@@ -23,7 +23,8 @@
 #ifndef __MP3_H__
 #define __MP3_H__
 
-#define MP3_SAMPLES_PER_FRAME	1152
+#define MP3_MPEG1_SAMPLES_PER_FRAME	1152	// for MPEG-1 bitrates
+#define MP3_MPEG2_SAMPLES_PER_FRAME	576		// for MPEG-2 bitrates
 
 bool Mp3FindNextFrame(u_int8_t* src, u_int32_t srcLength,
 	u_int8_t** frame, u_int32_t* frameSize, bool allowLayer4);

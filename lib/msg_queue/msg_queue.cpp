@@ -32,6 +32,7 @@ CMsg::CMsg (uint32_t value, unsigned char *msg, uint32_t msg_len)
 {
   m_value = value;
   m_msg_len = 0;
+  m_has_param = 0;
   m_next = NULL;
 
   if (msg_len) {
@@ -43,6 +44,14 @@ CMsg::CMsg (uint32_t value, unsigned char *msg, uint32_t msg_len)
   } else {
 	m_msg = msg;
   }
+}
+
+CMsg::CMsg (uint32_t value, uint32_t param)
+{
+	m_value = value;
+	m_msg_len = 0;
+	m_has_param = 1;
+	m_param = param;
 }
 
 CMsg::~CMsg (void) 
@@ -90,6 +99,20 @@ int CMsgQueue::send_message (uint32_t msgval,
 
   if (newmsg == NULL) 
     return (-1);
+  return (send_message(newmsg, sem));
+}
+
+int CMsgQueue::send_message (uint32_t msgval, uint32_t param, SDL_sem *sem)
+{
+	CMsg *newmsg = new CMsg(msgval, param);
+
+	if (newmsg == NULL) return -1;
+
+	return (send_message(newmsg, sem));
+}
+
+int CMsgQueue::send_message(CMsg *newmsg, SDL_sem *sem)
+{
 
   SDL_mutexP(m_msg_queue_mutex);
   if (m_msg_queue == NULL) {

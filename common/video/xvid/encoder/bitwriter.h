@@ -99,7 +99,7 @@ static uint32_t __inline BitstreamLength(Bitstream * const bs)
     if (bs->pos)
     {
 		uint32_t b = bs->buf;
-#ifndef BIG_ENDIAN
+#ifndef ARCH_IS_BIG_ENDIAN
 		BSWAP(b);
 #endif
 		*bs->tail = b;
@@ -121,7 +121,7 @@ static void __inline BitstreamSkip(Bitstream * const bs, const uint32_t bits)
     if (bs->pos >= 32)
     {
 		uint32_t b = bs->buf;
-#ifndef BIG_ENDIAN
+#ifndef ARCH_IS_BIG_ENDIAN
 		BSWAP(b);
 #endif
 		*bs->tail++ = b;

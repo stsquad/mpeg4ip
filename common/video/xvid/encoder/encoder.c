@@ -38,6 +38,7 @@
  *
  *  Modifications:
  *
+ *  21.01.2002 new luminance masking code
  *   4. 1.2002 k-m-u-blks calculation fix
  *  27.12.2001 fixed ratecontrol/framerate problem
  *  23.12.2001 function pointers, added init_encoder()
@@ -84,6 +85,16 @@ static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits);
 static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool force_inter);
 
 #define MAX(a,b)      (((a) > (b)) ? (a) : (b))
+
+static int DQtab[4] = 
+{
+	-1, -2, 1, 2
+};
+
+static int iDQtab[5] = 
+{
+	1, 0, NO_CHANGE, 2, 3
+};
 
 // gruel's normalize code
 // should be moved to a seperate file
@@ -156,17 +167,28 @@ int adaptive_quantization(unsigned char* buf, int stride, int* intquant,
 	
 	static float *quant;
 	unsigned char *ptr;
-	float val;
-	
+	float *val;
+	float global = 0.;
+	uint32_t mid_range = 0;
+
 	const float DarkAmpl    = 14 / 2;
 	const float BrightAmpl  = 10 / 2;
 	const float DarkThres   = 70;
 	const float BrightThres = 200;
+
+	const float GlobalDarkThres = 60;
+	const float GlobalBrightThres = 170;
+
+	const float MidRangeThres = 20;
+	const float UpperLimit = 200;
+	const float LowerLimit = 25;
+
 	
 	if(!quant)
 		if(!(quant = (float *) malloc(mb_width*mb_height * sizeof(float))))
 			return -1;
 
+	val = (float *) malloc(mb_width*mb_height * sizeof(float));
 
     for(k = 0; k < mb_height; k++)
 	{
@@ -177,20 +199,35 @@ int adaptive_quantization(unsigned char* buf, int stride, int* intquant,
 			// calculate luminance-masking
 			ptr = &buf[16*k*stride+16*l];			// address of MB
 			
-			val = 0.;
+			val[k*mb_width+l] = 0.;
 			
 			for(i = 0; i < 16; i++)
 				for(j = 0; j < 16; j++)
-					val += ptr[i*stride+j];
-				val /= 256.;
-			   
-			   if(val < DarkThres)
-				   quant[k*mb_width+l] += DarkAmpl*(DarkThres-val)/DarkThres;
-			   else if (val>BrightThres)
-				   quant[k*mb_width+l] += BrightAmpl*(val-BrightThres)/(255-BrightThres);
+					val[k*mb_width+l] += ptr[i*stride+j];
+				val[k*mb_width+l] /= 256.;
+				global += val[k*mb_width+l];
+
+				if((val[k*mb_width+l] > LowerLimit) && (val[k*mb_width+l] < UpperLimit))
+					mid_range++;
 		}
 	}
-	
+
+	global /= mb_width*mb_height;
+
+	if((global < GlobalBrightThres) && (global > GlobalDarkThres)
+		|| (mid_range < MidRangeThres)) {
+		for(k = 0; k < mb_height; k++)
+		{
+			for(l = 0;l < mb_width; l++)        // do this for all macroblocks individually 
+			{
+				if(val[k*mb_width+l] < DarkThres)
+					quant[k*mb_width+l] += DarkAmpl*(DarkThres-val[k*mb_width+l])/DarkThres;
+				else if (val[k*mb_width+l]>BrightThres)
+					quant[k*mb_width+l] += BrightAmpl*(val[k*mb_width+l]-BrightThres)/(255-BrightThres);
+			}
+		}
+	}
+	free(val);
 	return normalize_quantizer_field(quant, intquant, mb_width*mb_height, min_quant, max_quant);
 }
 // ***********
@@ -268,6 +305,9 @@ int encoder_create(XVID_ENC_PARAM * pParam)
     ENC_CHECK(pParam->height > 0 && pParam->height <= 1280);
     ENC_CHECK(!(pParam->width % 2));
     ENC_CHECK(!(pParam->height % 2));
+#ifdef MPEG4IP
+    ENC_CHECK(!(pParam->raw_height % 2));
+#endif
 
 	if (pParam->fincr <= 0 || pParam->fbase <= 0)
 	{
@@ -291,7 +331,15 @@ int encoder_create(XVID_ENC_PARAM * pParam)
 		i--;
 	}
 
-	if (pParam->bitrate < 0)
+	if (pParam->fbase > 65535)
+	{
+		float div = (float)pParam->fbase / 65535;
+		pParam->fbase = (int)(pParam->fbase / div);
+		pParam->fincr = (int)(pParam->fincr / div);
+	}
+
+
+	if (pParam->bitrate <= 0)		// 0 is not allowed anymore
 		pParam->bitrate = 910000;
 
     if (pParam->rc_period <= 0)
@@ -315,8 +363,8 @@ int encoder_create(XVID_ENC_PARAM * pParam)
     if (pParam->max_quantizer < pParam->min_quantizer)
 		pParam->max_quantizer = pParam->min_quantizer;
 
-	if ((pParam->motion_search < 0) || (pParam->motion_search > 5))
-		pParam->motion_search = 5;
+	if ((pParam->motion_search < 0) || (pParam->motion_search > 6))
+		pParam->motion_search = 6;
 
     pEnc = (Encoder *) malloc(sizeof(Encoder));
     if (pEnc == NULL)
@@ -328,6 +376,9 @@ int encoder_create(XVID_ENC_PARAM * pParam)
 
     pEnc->mbParam.width = pParam->width;
     pEnc->mbParam.height = pParam->height;
+#ifdef MPEG4IP
+    pEnc->mbParam.raw_height = pParam->raw_height;
+#endif
 
 	pEnc->mbParam.mb_width = (pEnc->mbParam.width + 15) / 16;
 	pEnc->mbParam.mb_height = (pEnc->mbParam.height + 15) / 16;
@@ -418,9 +469,6 @@ int encoder_create(XVID_ENC_PARAM * pParam)
 
     pParam->handle = (void *)pEnc;
 
-	DEBUG1("x", pParam->bitrate * pParam->fincr / pParam->fbase);
-	DEBUG1("br",  pParam->bitrate);
-	DEBUG2("incr base",  pParam->fincr, pParam->fbase);
 	if (pParam->bitrate)
 	{
 		RateCtlInit(&(pEnc->rateCtlParam), pEnc->mbParam.quant,
@@ -452,7 +500,6 @@ int encoder_destroy(Encoder * pEnc)
     return XVID_ERR_OK;
 }
 
-
 int encoder_encode(Encoder * pEnc, XVID_ENC_FRAME * pFrame, XVID_ENC_STATS * pResult)
 {
     uint16_t x, y;
@@ -468,8 +515,11 @@ int encoder_encode(Encoder * pEnc, XVID_ENC_FRAME * pFrame, XVID_ENC_STATS * pRe
     ENC_CHECK(pFrame->image);
 
 	start_timer();
-	if (image_input(&pEnc->sCurrent, pEnc->mbParam.width, pEnc->mbParam.height, pEnc->mbParam.edged_width,
-					pFrame->image, pFrame->colorspace))
+	if (image_input(&pEnc->sCurrent, pEnc->mbParam.width, pEnc->mbParam.height,
+#ifdef MPEG4IP
+	  pEnc->mbParam.raw_height,
+#endif
+	  pEnc->mbParam.edged_width, pFrame->image, pFrame->colorspace))
 	{
 		return XVID_ERR_FORMAT;
 	}
@@ -477,7 +527,7 @@ int encoder_encode(Encoder * pEnc, XVID_ENC_FRAME * pFrame, XVID_ENC_STATS * pRe
 
     BitstreamInit(&bs, pFrame->bitstream);
 
-	if (pEnc->bitrate)
+	if (pFrame->quant == 0)
 	{
 		pEnc->mbParam.quant = RateCtlGetQ(&(pEnc->rateCtlParam), 0);
 	}
@@ -492,7 +542,7 @@ int encoder_encode(Encoder * pEnc, XVID_ENC_FRAME * pFrame, XVID_ENC_STATS * pRe
 		
 		pEnc->mbParam.quant = adaptive_quantization(pEnc->sCurrent.y, pEnc->mbParam.width,
 			temp_dquants, pFrame->quant, pFrame->quant,
-			MAX(pEnc->rateCtlParam.max_quant, pFrame->quant), pEnc->mbParam.mb_width, pEnc->mbParam.mb_height);
+			2*pFrame->quant, pEnc->mbParam.mb_width, pEnc->mbParam.mb_height);
 			
 		for (y = 0; y < pEnc->mbParam.mb_height; y++)
 		for (x = 0; x < pEnc->mbParam.mb_width; x++)
@@ -503,8 +553,9 @@ int encoder_encode(Encoder * pEnc, XVID_ENC_FRAME * pFrame, XVID_ENC_STATS * pRe
 		free(temp_dquants);
 	}
 
-
-    if (pEnc->bitrate || (pFrame->intra < 0))
+	
+//    if (pEnc->bitrate || (pFrame->intra < 0))
+	if ( pFrame->intra < 0 )
     {
 		if ((pEnc->iFrameNum == 0) || ((pEnc->iMaxKeyInterval > 0) 
 			&& (pEnc->iFrameNum >= pEnc->iMaxKeyInterval)) 
@@ -571,10 +622,8 @@ static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits)
     pEnc->mbParam.coding_type = I_VOP;
 
 #ifndef MPEG4IP
-	BitstreamVolHeader(bs, 
-		pEnc->mbParam.width, pEnc->mbParam.height, 
-		pEnc->mbParam.quant_type);
-#endif
+	BitstreamVolHeader(bs, pEnc->mbParam.width, pEnc->mbParam.height, pEnc->mbParam.quant_type);
+#endif 
 
 	BitstreamVopHeader(bs, I_VOP, pEnc->mbParam.rounding_type,
 			pEnc->mbParam.quant,
@@ -698,7 +747,8 @@ static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool forc
 					&pEnc->vInterHV, &pEnc->sCurrent, dct_codes,
 					pEnc->mbParam.width,
 					pEnc->mbParam.height,
-					pEnc->mbParam.edged_width);
+					pEnc->mbParam.edged_width,
+					pEnc->mbParam.rounding_type);
 				stop_comp_timer();
 
 				if (pEnc->lum_masking) {

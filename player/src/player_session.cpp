@@ -33,12 +33,6 @@
 /*
  * c callback for sync thread
  */
-static int c_sync_thread (void *data)
-{
-  CPlayerSession *p;
-  p = (CPlayerSession *)data;
-  return (p->sync_thread());
-}
 
 CPlayerSession::CPlayerSession (CMsgQueue *master_mq, 
 				SDL_sem *master_sem,
@@ -82,14 +76,11 @@ CPlayerSession::~CPlayerSession ()
     SDL_WaitThread(m_sync_thread, NULL);
     m_sync_thread = NULL;
   }
+#else
+  send_sync_thread_a_message(MSG_STOP_THREAD);
 #endif
 
-  while (m_my_media != NULL) {
-    CPlayerMedia *p;
-    p = m_my_media;
-    m_my_media = p->get_next();
-    delete p;
-  }
+
 
   if (session_control_is_aggregate()) {
     rtsp_command_t cmd;
@@ -107,7 +98,14 @@ CPlayerSession::~CPlayerSession ()
     free_rtsp_client(m_rtsp_client);
     m_rtsp_client = NULL;
   }
-  
+
+  while (m_my_media != NULL) {
+    CPlayerMedia *p;
+    p = m_my_media;
+    m_my_media = p->get_next();
+    delete p;
+  }  
+
   if (m_sdp_info) {
     free_session_desc(m_sdp_info);
     m_sdp_info = NULL;
@@ -180,11 +178,7 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
    * create RTSP session
    */
   if (use_tcp != 0) {
-#ifndef _WIN32
     m_rtsp_client = rtsp_create_client_for_rtp_tcp(url, &err);
-#else
-	m_rtsp_client = NULL;
-#endif
   } else {
     m_rtsp_client = rtsp_create_client(url, &err);
   }

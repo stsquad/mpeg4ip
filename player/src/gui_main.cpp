@@ -747,17 +747,17 @@ static gint main_timer (gpointer raw)
 	master_fullscreen = 0;
 	break;
       case SDLK_RETURN:
-	if ((msg->sym & (KMOD_LALT | KMOD_RALT)) != 0) {
+	if ((msg->mod & (KMOD_LALT | KMOD_RALT)) != 0) {
 	  master_fullscreen = 1;
 	}
 	break;
       case SDLK_c:
-	if ((msg->sym & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+	if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
 	  on_main_menu_close(NULL, 0);
 	}
 	break;
       case SDLK_x:
-	if ((msg->sym & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+	if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
 	  delete_event(NULL, 0);
 	}
 	break;

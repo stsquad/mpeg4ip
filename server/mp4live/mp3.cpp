@@ -64,14 +64,14 @@ static u_int16_t Mp3GetHdrSamplingWindow(u_int32_t hdr)
 
 	if (layer == 1) {
 		if (version == 3) {
-			samplingWindow = MP3_SAMPLES_PER_FRAME;
+			samplingWindow = MP3_MPEG1_SAMPLES_PER_FRAME;
 		} else {
-			samplingWindow = MP3_SAMPLES_PER_FRAME / 2;
+			samplingWindow = MP3_MPEG2_SAMPLES_PER_FRAME;
 		}
 	} else if (layer == 2) {
-		samplingWindow = MP3_SAMPLES_PER_FRAME;
+		samplingWindow = MP3_MPEG1_SAMPLES_PER_FRAME;
 	} else {
-		samplingWindow = MP3_SAMPLES_PER_FRAME / 3;
+		samplingWindow = MP3_MPEG1_SAMPLES_PER_FRAME / 3;
 	}
 
 	return samplingWindow;

@@ -62,123 +62,203 @@ void CMp4Recorder::DoStartRecord()
 		return;
 	}
 
+	// enable huge file mode in mp4 if estimated size goes over 1 GB
+	bool hugeFile = m_pConfig->m_recordEstFileSize > 1000000000;
+
 	m_mp4File = MP4Create(
 		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-		0 /* DEBUG MP4_DETAILS_ERROR | MP4_DETAILS_WRITE_ALL */);
+		MP4_DETAILS_ERROR /* DEBUG | MP4_DETAILS_WRITE_ALL */,
+		hugeFile);
 
 	if (!m_mp4File) {
 		return;
 	}
 
-	m_audioTimeScale = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
-	m_audioFrameDuration = MP3_SAMPLES_PER_FRAME;
+	m_canRecordAudio = true;
 
-	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+	m_rawAudioTimeScale = 
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+
+	m_encodedAudioTimeScale = 
+		m_pConfig->m_audioMp3SampleRate;
+	m_encodedAudioFrameDuration = 
+		m_pConfig->m_audioMp3SamplesPerFrame;
+
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
+	  && (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)
+	    || m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO))) {
 		m_movieTimeScale = m_videoTimeScale;
+
+	} else if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
+		m_movieTimeScale = m_encodedAudioTimeScale;
+
 	} else {
-		m_movieTimeScale = m_audioTimeScale;
+		m_movieTimeScale = m_rawAudioTimeScale;
 	}
 	MP4SetTimeScale(m_mp4File, m_movieTimeScale);
 
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		m_videoFrameNum = 1;
 
-		m_videoTrack = MP4AddVideoTrack(m_mp4File,
-			m_videoTimeScale,
-			MP4_INVALID_DURATION,
-			m_pConfig->m_videoWidth, 
-			m_pConfig->m_videoHeight,
-			MP4_MPEG4_VIDEO_TYPE);
+		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
+			m_rawVideoFrameNum = 1;
+			m_canRecordAudio = false;
 
-		if (m_videoTrack == MP4_INVALID_TRACK_ID) {
-			// TBD error
-		}
+			m_rawVideoTrackId = MP4AddVideoTrack(
+				m_mp4File,
+				m_videoTimeScale,
+				MP4_INVALID_DURATION,
+				m_pConfig->m_videoWidth, 
+				m_pConfig->m_videoHeight,
+				MP4_PRIVATE_VIDEO_TYPE);
 
-		MP4SetVideoProfileLevel(m_mp4File, 
-			m_pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID));
-
-		MP4SetTrackESConfiguration(m_mp4File, m_videoTrack,
-			m_pConfig->m_videoMpeg4Config, 
-			m_pConfig->m_videoMpeg4ConfigLength); 
-
-		if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
-			m_videoPayloadNumber = 0;	// dynamically assigned
-
-			m_videoHintTrack = MP4AddHintTrack(m_mp4File, m_videoTrack);
-
-			if (m_videoHintTrack == MP4_INVALID_TRACK_ID) {
-				// TBD error
+			if (m_rawVideoTrackId == MP4_INVALID_TRACK_ID) {
+				error_message("can't create raw video track");
+				goto start_failure;
 			}
 
-			MP4SetHintTrackRtpPayload(m_mp4File, m_videoHintTrack,
-			 	"MP4V-ES", &m_videoPayloadNumber,  
-				m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			MP4SetVideoProfileLevel(m_mp4File, 0xFF);
+		}
 
-			/* convert the mpeg4 configuration to ASCII form */
-			char* sConfig = BinaryToAscii(m_pConfig->m_videoMpeg4Config, 
+		if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
+			m_encodedVideoFrameNum = 1;
+			m_canRecordAudio = false;
+
+			m_encodedVideoTrackId = MP4AddVideoTrack(
+				m_mp4File,
+				m_videoTimeScale,
+				MP4_INVALID_DURATION,
+				m_pConfig->m_videoWidth, 
+				m_pConfig->m_videoHeight,
+				MP4_MPEG4_VIDEO_TYPE);
+
+			if (m_encodedVideoTrackId == MP4_INVALID_TRACK_ID) {
+				error_message("can't create encoded video track");
+				goto start_failure;
+			}
+
+			MP4SetVideoProfileLevel(m_mp4File, 
+				m_pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID));
+
+			MP4SetTrackESConfiguration(m_mp4File, m_encodedVideoTrackId,
+				m_pConfig->m_videoMpeg4Config, 
 				m_pConfig->m_videoMpeg4ConfigLength); 
 
-			/* create the appropriate SDP attribute */
-			if (sConfig) {
-				char sdpBuf[1024];
+			if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
+				m_videoPayloadNumber = 0;	// dynamically assigned
 
-				sprintf(sdpBuf,
-					"a=fmtp:%u profile-level-id=%u; config=%s;\n",
-						m_videoPayloadNumber,
-						m_pConfig->GetIntegerValue(
-							CONFIG_VIDEO_PROFILE_LEVEL_ID),
-						sConfig); 
+				m_videoHintTrackId = 
+					MP4AddHintTrack(m_mp4File, m_encodedVideoTrackId);
 
-				/* add this to the MP4 file's sdp atom */
-				MP4AppendHintTrackSdp(m_mp4File, m_videoHintTrack, sdpBuf);
+				if (m_videoHintTrackId == MP4_INVALID_TRACK_ID) {
+					error_message("can't create video hint track");
+					goto start_failure;
+				}
 
-				/* cleanup, don't want to leak memory */
-				free(sConfig);
+				MP4SetHintTrackRtpPayload(
+					m_mp4File, 
+					m_videoHintTrackId,
+					"MP4V-ES", 
+					&m_videoPayloadNumber,  
+					m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+
+				/* convert the mpeg4 configuration to ASCII form */
+				char* sConfig = BinaryToAscii(
+					m_pConfig->m_videoMpeg4Config, 
+					m_pConfig->m_videoMpeg4ConfigLength); 
+
+				/* create the appropriate SDP attribute */
+				if (sConfig) {
+					char sdpBuf[1024];
+
+					sprintf(sdpBuf,
+						"a=fmtp:%u profile-level-id=%u; config=%s;\n",
+							m_videoPayloadNumber,
+							m_pConfig->GetIntegerValue(
+								CONFIG_VIDEO_PROFILE_LEVEL_ID),
+							sConfig); 
+
+					/* add this to the MP4 file's sdp atom */
+					MP4AppendHintTrackSdp(m_mp4File, 
+						m_videoHintTrackId, 
+						sdpBuf);
+
+					/* cleanup, don't want to leak memory */
+					free(sConfig);
+				}
 			}
 		}
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
-		m_audioTrack = MP4AddAudioTrack(m_mp4File, 
-			m_audioTimeScale, 
-			m_audioFrameDuration,
-			MP4_MP3_AUDIO_TYPE);
 
-		if (m_audioTrack == MP4_INVALID_TRACK_ID) {
-			// TBD error
-		}
+		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
+			m_rawAudioFrameNum = 1;
 
-		MP4SetAudioProfileLevel(m_mp4File, 0xFE);
+			m_rawAudioTrackId = MP4AddAudioTrack(
+				m_mp4File, 
+				m_rawAudioTimeScale, 
+				0,
+				MP4_PRIVATE_AUDIO_TYPE);
 
-		m_audioFrameNum = 1;
-
-		m_audioFrameRate = 
-			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE)
-			/ MP3_SAMPLES_PER_FRAME;
-
-		if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
-			m_audioPayloadNumber = 0;	// dynamic payload
-
-			m_audioHintTrack = MP4AddHintTrack(m_mp4File, m_audioTrack);
-
-			if (m_audioHintTrack == MP4_INVALID_TRACK_ID) {
-				// TBD error
+			if (m_rawAudioTrackId == MP4_INVALID_TRACK_ID) {
+				error_message("can't create raw audio track");
+				goto start_failure;
 			}
 
-			MP4SetHintTrackRtpPayload(m_mp4File, m_audioHintTrack,
-			 	"MPA", &m_audioPayloadNumber,  
-				m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			MP4SetAudioProfileLevel(m_mp4File, 0xFF);
+		}
 
-			m_audioHintBufLength = 0;
-			m_audioFramesThisHint = 0;
-			m_audioBytesThisHint = 0;
+		if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
+			m_encodedAudioFrameNum = 1;
 
-			MP4AddRtpHint(m_mp4File, m_audioHintTrack);
-			MP4AddRtpPacket(m_mp4File, m_audioHintTrack, true);
+			m_encodedAudioTrackId = MP4AddAudioTrack(
+				m_mp4File, 
+				m_encodedAudioTimeScale, 
+				m_encodedAudioFrameDuration,
+				MP4_MP3_AUDIO_TYPE);
+
+			if (m_encodedAudioTrackId == MP4_INVALID_TRACK_ID) {
+				error_message("can't create encoded audio track");
+				goto start_failure;
+			}
+
+			MP4SetAudioProfileLevel(m_mp4File, 0xFE);
+
+			if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
+				m_audioPayloadNumber = 0;	// dynamic payload
+
+				m_audioHintTrackId = 
+					MP4AddHintTrack(m_mp4File, m_encodedAudioTrackId);
+
+				if (m_audioHintTrackId == MP4_INVALID_TRACK_ID) {
+					error_message("can't create audio hint track");
+					goto start_failure;
+				}
+
+				MP4SetHintTrackRtpPayload(
+					m_mp4File, 
+					m_audioHintTrackId,
+					"MPA", 
+					&m_audioPayloadNumber,  
+					m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+
+				m_audioHintBufLength = 0;
+				m_audioFramesThisHint = 0;
+				m_audioBytesThisHint = 0;
+
+				MP4AddRtpHint(m_mp4File, m_audioHintTrackId);
+				MP4AddRtpPacket(m_mp4File, m_audioHintTrackId, true);
+			}
 		}
 	}
 
 	m_record = true;
+	return;
+
+start_failure:
+	MP4Close(m_mp4File);
+	m_mp4File = NULL;
+	return;
 }
 
 void CMp4Recorder::DoStopRecord()
@@ -188,23 +268,25 @@ void CMp4Recorder::DoStopRecord()
 	}
 
 	// write out any remaining audio hint samples
-	if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
-		if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
-		  && m_audioFramesThisHint > 0) {
-			MP4WriteRtpHint(m_mp4File, m_audioHintTrack, 
-				m_audioFramesThisHint * m_audioFrameDuration);
-		}
+	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
+	  && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)
+	  && m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)
+	  && m_audioFramesThisHint > 0) {
+
+		MP4WriteRtpHint(m_mp4File, m_audioHintTrackId, 
+			m_audioFramesThisHint * m_encodedAudioFrameDuration);
 	}
 
 	MP4Close(m_mp4File);
 	m_mp4File = NULL;
 
-	debug_message("MP4 recorder wrote %u audio frames", m_audioFrameNum);
-	debug_message("MP4 recorder wrote %u video frames", m_videoFrameNum);
+	if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)
+	  || m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
 
-	MP4MakeIsmaCompliant(
-		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-		0, false);
+		MP4MakeIsmaCompliant(
+			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
+			0, false);
+	}
 
 	m_record = false;
 }
@@ -219,14 +301,27 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 		return;
 	}
 
-	if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame) {
-		// at start of recording wait for a video I frame
-		if (!m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
-		  || m_videoFrameNum > 1) {
+	if (pFrame->GetType() == CMediaFrame::PcmAudioFrame
+	  && m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
 
+		if (m_canRecordAudio) {
 			MP4WriteSample(
 				m_mp4File,
-				m_audioTrack,
+				m_rawAudioTrackId,
+				(u_int8_t*)pFrame->GetData(), 
+				pFrame->GetDataLength(),
+				pFrame->GetDataLength() / 4);
+
+			m_rawAudioFrameNum++;
+		}
+
+	} else if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame
+	  && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
+
+		if (m_canRecordAudio) {
+			MP4WriteSample(
+				m_mp4File,
+				m_encodedAudioTrackId,
 				(u_int8_t*)pFrame->GetData(), 
 				pFrame->GetDataLength());
 
@@ -234,23 +329,48 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 				Write2250Hints(pFrame);
 			}
 
-			m_audioFrameNum++;
+			m_encodedAudioFrameNum++;
 		}
-	} else if (pFrame->GetType() == CMediaFrame::Mpeg4VideoFrame) {
+
+	} else if (pFrame->GetType() == CMediaFrame::RawYuvVideoFrame
+	  && m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
+
+		// let audio record if raw is the only video being recorded
+		if (!m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
+			m_canRecordAudio = true;
+		}
+
+		MP4WriteSample(
+			m_mp4File,
+			m_rawVideoTrackId,
+			(u_int8_t*)pFrame->GetData(), 
+			pFrame->GetDataLength(),
+			ConvertVideoDuration(pFrame->GetDuration()));
+
+		m_rawVideoFrameNum++;
+
+	} else if (pFrame->GetType() == CMediaFrame::Mpeg4VideoFrame
+	  && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
+
 		u_int8_t* pSample = NULL;
 		u_int32_t sampleLength = 0;
-		Duration sampleDuration = ConvertVideoDuration(pFrame->GetDuration());
-		bool isIFrame = (CVideoSource::GetMpeg4VideoFrameType(pFrame) == 'I');
+		Duration sampleDuration = 
+			ConvertVideoDuration(pFrame->GetDuration());
+		bool isIFrame = 
+			(CVideoSource::GetMpeg4VideoFrameType(pFrame) == 'I');
 
-		if (m_videoFrameNum > 1 || isIFrame) {
+		if (m_encodedVideoFrameNum > 1 || isIFrame) {
 			pSample = (u_int8_t*)pFrame->GetData();
 			sampleLength = pFrame->GetDataLength();
+
+			m_canRecordAudio = true;
+
 		} // else waiting for I frame at start of recording
 
 		if (pSample != NULL) {
 			MP4WriteSample(
 				m_mp4File,
-				m_videoTrack,
+				m_encodedVideoTrackId,
 				pSample, 
 				sampleLength,
 				sampleDuration,
@@ -261,12 +381,8 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 				Write3016Hints(sampleLength, isIFrame, sampleDuration);
 			}
 
-			m_videoFrameNum++;
+			m_encodedVideoFrameNum++;
 		}
-
-	} else {
-		debug_message("MP4 recorder received unknown frame type %u",
-			pFrame->GetType());
 	}
 
 	delete pFrame;
@@ -281,8 +397,8 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 		  m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
 
 			// just add the mp3 frame to the current hint
-			MP4AddRtpSampleData(m_mp4File, m_audioHintTrack,
-				m_audioFrameNum, 0, frameLength);
+			MP4AddRtpSampleData(m_mp4File, m_audioHintTrackId,
+				m_encodedAudioFrameNum, 0, frameLength);
 
 			m_audioFramesThisHint++;
 			m_audioBytesThisHint += frameLength;
@@ -290,16 +406,16 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 
 		} else {
 			// write out current hint
-			MP4WriteRtpHint(m_mp4File, m_audioHintTrack, 
-				m_audioFramesThisHint * m_audioFrameDuration);
+			MP4WriteRtpHint(m_mp4File, m_audioHintTrackId, 
+				m_audioFramesThisHint * m_encodedAudioFrameDuration);
 
 			// start a new hint 
 			m_audioHintBufLength = 0;
 			m_audioFramesThisHint = 0;
 			m_audioBytesThisHint = 0;
 
-			MP4AddRtpHint(m_mp4File, m_audioHintTrack);
-			MP4AddRtpPacket(m_mp4File, m_audioHintTrack, true);
+			MP4AddRtpHint(m_mp4File, m_audioHintTrackId);
+			MP4AddRtpPacket(m_mp4File, m_audioHintTrackId, true);
 
 			// fall thru
 		}
@@ -312,11 +428,11 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 		// add the rfc2250 payload header
 		static u_int32_t zero32 = 0;
 
-		MP4AddRtpImmediateData(m_mp4File, m_audioHintTrack,
+		MP4AddRtpImmediateData(m_mp4File, m_audioHintTrackId,
 			(u_int8_t*)&zero32, sizeof(zero32));
 
-		MP4AddRtpSampleData(m_mp4File, m_audioHintTrack,
-			m_audioFrameNum, 0, frameLength);
+		MP4AddRtpSampleData(m_mp4File, m_audioHintTrackId,
+			m_encodedAudioFrameNum, 0, frameLength);
 
 		m_audioBytesThisHint += (frameLength + 4);
 	} else {
@@ -332,17 +448,17 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 			payloadHeader[2] = (frameOffset >> 8);
 			payloadHeader[3] = frameOffset & 0xFF;
 
-			MP4AddRtpImmediateData(m_mp4File, m_audioHintTrack,
+			MP4AddRtpImmediateData(m_mp4File, m_audioHintTrackId,
 				(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
 
-			MP4AddRtpSampleData(m_mp4File, m_audioHintTrack,
-				m_audioFrameNum, frameOffset, fragLength);
+			MP4AddRtpSampleData(m_mp4File, m_audioHintTrackId,
+				m_encodedAudioFrameNum, frameOffset, fragLength);
 
 			frameOffset += fragLength;
 
 			// if we're not at the last fragment
 			if (frameOffset < frameLength) {
-				MP4AddRtpPacket(m_mp4File, m_audioHintTrack, false);
+				MP4AddRtpPacket(m_mp4File, m_audioHintTrackId, false);
 			}
 		}
 
@@ -370,10 +486,10 @@ void CMp4Recorder::Write3016Hints(u_int32_t frameLength,
 	u_int32_t remaining = frameLength;
 
 	m_videoHintBufLength = 0;
-	MP4AddRtpHint(m_mp4File, m_videoHintTrack);
+	MP4AddRtpHint(m_mp4File, m_videoHintTrackId);
 
-	if (m_videoFrameNum == 1) {
-		MP4AddRtpESConfigurationPacket(m_mp4File, m_videoHintTrack);
+	if (m_encodedVideoFrameNum == 1) {
+		MP4AddRtpESConfigurationPacket(m_mp4File, m_videoHintTrackId);
 	}
 
 	while (remaining) {
@@ -387,15 +503,15 @@ void CMp4Recorder::Write3016Hints(u_int32_t frameLength,
 			payloadLength = m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
 		}
 
-		MP4AddRtpPacket(m_mp4File, m_videoHintTrack, isLastPacket);
+		MP4AddRtpPacket(m_mp4File, m_videoHintTrackId, isLastPacket);
 
-		MP4AddRtpSampleData(m_mp4File, m_videoHintTrack,
-			m_videoFrameNum, offset, payloadLength);
+		MP4AddRtpSampleData(m_mp4File, m_videoHintTrackId,
+			m_encodedVideoFrameNum, offset, payloadLength);
 
 		offset += payloadLength;
 		remaining -= payloadLength;
 	}
 
-	MP4WriteRtpHint(m_mp4File, m_videoHintTrack, frameDuration, isIFrame);
+	MP4WriteRtpHint(m_mp4File, m_videoHintTrackId, frameDuration, isIFrame);
 }
 

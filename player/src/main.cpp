@@ -165,7 +165,7 @@ static int start_session (const char *name, int max_loop)
   const char *errmsg;
   int ret = parse_name_for_session(psptr, name, &errmsg);
   if (ret < 0) {
-    player_debug_message(errmsg);
+    player_debug_message("%s %s", errmsg, name);
     delete psptr;
     return (1);
   }
@@ -186,14 +186,18 @@ static int start_session (const char *name, int max_loop)
       return (1);
     }
     session_paused = 0;
-#ifdef _WINDOWS
-    psptr->sync_thread();
-#else
     int keep_going = 0;
     int paused = 0;
+#ifdef _WIN32
+    int state = 0;
+#endif
     do {
       CMsg *msg;
+#ifdef _WIN32
+      state = psptr->sync_thread(state);
+#else
       SDL_SemWaitTimeout(master_sem, 10000);
+#endif
       while ((msg = master_queue.get_message()) != NULL) {
 	switch (msg->get_value()) {
 	case MSG_SESSION_FINISHED:
@@ -223,7 +227,6 @@ static int start_session (const char *name, int max_loop)
     if (loopcount != max_loop) {
       psptr->pause_all_media();
     }
-#endif
   }
   delete psptr;
   SDL_DestroySemaphore(master_sem);
@@ -264,12 +267,10 @@ int main (int argc, char **argv)
   }
 
   const char *suffix = strrchr(name, '.');
-  if (suffix == NULL) {
-    player_error_message("Suffix not found in %s", name);
-    return (-1);
-  }
-  if ((strcasecmp(suffix, ".mp4plist") == 0) ||
-      (strcasecmp(suffix, ".gmp4_playlist") == 0)) {
+
+  if ((suffix != NULL) && 
+	  ((strcasecmp(suffix, ".mp4plist") == 0) ||
+       (strcasecmp(suffix, ".gmp4_playlist") == 0))) {
     const char *errmsg = NULL;
     CPlaylist *list = new CPlaylist(name, &errmsg);
     if (errmsg != NULL) {

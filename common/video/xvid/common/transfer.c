@@ -32,6 +32,7 @@
  *
  *	History:
  *
+ *	07.01.2002	merge functions from compensate; rename functions
  *	22.12.2001	transfer_8to8add16 limit fix
  *	07.11.2001	initial version; (c)2001 peter ross <pross@cs.rmit.edu.au>
  *
@@ -40,15 +41,14 @@
 
 #include "common.h"
 
-
 // function pointers
-transfer_8to8copyFuncPtr transfer_8to8copy;
-transfer_8to8add16FuncPtr transfer_8to8add16;
+TRANSFER_8TO16COPY_PTR	transfer_8to16copy;
+TRANSFER_16TO8COPY_PTR	transfer_16to8copy;
 
-transfer_16to8FuncPtr transfer_16to8copy;
-transfer_16to8FuncPtr transfer_16to8add;
+TRANSFER_8TO16SUB_PTR	transfer_8to16sub;
+TRANSFER_16TO8ADD_PTR	transfer_16to8add;
 
-transfer_8to16copyFuncPtr transfer_8to16copy;
+TRANSFER8X8_COPY_PTR	transfer8x8_copy;
 
 
 
@@ -86,6 +86,31 @@ void transfer_16to8copy_c(uint8_t * const dst,
 }
 
 
+
+
+/*
+  perform motion compensation (and 8bit->16bit dct transfer)
+*/
+void transfer_8to16sub_c(int16_t * const dct,
+				uint8_t * const cur,
+				const uint8_t * ref,
+				const uint32_t stride)
+{
+	uint32_t i, j;
+
+	for (j = 0; j < 8; j++)
+	{
+		for (i = 0; i < 8; i++)
+		{
+			uint8_t c = cur[j * stride + i];
+			uint8_t r = ref[j * stride + i];
+			cur[j * stride + i] = r;
+			dct[j * 8 + i] = (int16_t)c - (int16_t)r;
+		}
+	}
+}
+
+
 void transfer_16to8add_c(uint8_t * const dst,
 					const int16_t * const src,
 					uint32_t stride)
@@ -108,9 +133,7 @@ void transfer_16to8add_c(uint8_t * const dst,
 
 
 
-
-
-void transfer_8to8copy_c(uint8_t * const dst,
+void transfer8x8_copy_c(uint8_t * const dst,
 					const uint8_t * const src,
 					const uint32_t stride)
 {
@@ -119,28 +142,6 @@ void transfer_8to8copy_c(uint8_t * const dst,
 	for (j = 0; j < 8; j++) {
 		for (i = 0; i < 8; i++) {
 			dst[j * stride + i] = src[j * stride + i];
-		}
-	}
-}
-
-
-
-void transfer_8to8add16_c(uint8_t * const dst,
-					const uint8_t * const src,
-					const int16_t * const data,
-					const uint32_t stride)
-{
-	uint32_t i, j;
-
-	for (j = 0; j < 8; j++) {
-		for (i = 0; i < 8; i++) {
-			int16_t pixel = src[j * stride + i] + data[j * 8 + i];
-			if (pixel < 0) {
-				pixel = 0;
-			} else if (pixel > 255) {
-				pixel = 255;
-			} 
-			dst[j * stride + i] = (uint8_t)pixel;
 		}
 	}
 }

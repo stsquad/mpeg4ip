@@ -144,6 +144,11 @@ uint64_t CMp4ByteStream::start_next_frame (unsigned char **buffer,
 
   read_frame(m_frame_on);
 
+#ifdef DEBUG_MP4_FRAME 
+  mp4f_message(LOG_DEBUG, "%s - Reading frame %d - len %u", 
+	       m_name, m_frame_on, m_this_frame_size);
+#endif
+
   m_frame_on++;
   if (buffer != NULL) {
     *buffer = m_buffer + m_byte_on;
@@ -270,7 +275,7 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 				    sampleTime,
 				    MP4_MSECS_TIME_SCALE);
   //if (isSyncSample == TRUE && m_has_video != 0 ) player_debug_message("%s has sync sample %llu", m_name, ts);
-#ifdef DEBUG_MP4_FRAME
+#if 0
   mp4f_message(LOG_DEBUG, "%s frame %u sample time "LLU " converts to time "LLU, 
 	       m_name, frame_to_read, sampleTime, ts);
 #endif

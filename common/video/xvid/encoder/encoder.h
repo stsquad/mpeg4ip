@@ -53,6 +53,10 @@ typedef struct
     uint32_t width;
     uint32_t height;
 
+#ifdef MPEG4IP
+	uint32_t raw_height;
+#endif
+
 	uint32_t edged_width;
 	uint32_t edged_height;
 	uint32_t mb_width;
@@ -144,16 +148,6 @@ Encoder;
 
 // indicates no quantizer changes in INTRA_Q/INTER_Q modes
 #define NO_CHANGE 64
-
-static int DQtab[4] = 
-{
-	-1, -2, 1, 2
-};
-
-static int iDQtab[5] = 
-{
-	1, 0, NO_CHANGE, 2, 3
-};
 
 void init_encoder(uint32_t cpu_flags);
 

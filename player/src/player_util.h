@@ -37,18 +37,18 @@ extern "C" {
 #endif
 
 void player_error_message(const char *fmt, ...)
-#ifndef _WINDOWS
+#ifndef _WIN32
        __attribute__((format(__printf__, 1, 2)))
 #endif
 ;
 
 void player_debug_message(const char *fmt, ...)
-#ifndef _WINDOWS
+#ifndef _WIN32
        __attribute__((format(__printf__, 1, 2)))
 #endif
 	   ;
 void message(int loglevel, const char *lib, const char *fmt, ...)
-#ifndef _WINDOWS
+#ifndef _WIN32
        __attribute__((format(__printf__, 3, 4)))
 #endif
 	   ;

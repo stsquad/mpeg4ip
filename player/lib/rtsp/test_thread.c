@@ -21,7 +21,8 @@
 /*
  * test.c - test program for rtsp library
  */
-#include "sdp.h"
+#include <SDL.h>
+#include <sdp/sdp.h>
 #include "rtsp_private.h"
 
 #if 0
@@ -35,23 +36,23 @@ static void local_error_msg (int loglevel,
 			     const char *fmt,
 			     va_list ap)
 {
-#if _WIN32 && _DEBUG
-  char msg[512];
-
-  if (initialized) init_local_mutex();
-  lock_mutex();
-  sprintf(msg, "%s:", lib);
-  OutputDebugString(msg);
-  va_start(ap, fmt);
-  _vsnprintf(msg, 512, fmt, ap);
-  va_end(ap);
-  OutputDebugString(msg);
-  OutputDebugString("\n");
-  unlock_mutex();
-#else
   struct timeval thistime;
   char buffer[80];
+#if _WIN32
+  if (IsDebuggerPresent()) {
+        char msg[512];
 
+		sprintf(msg, "%s-%d:", lib, loglevel);
+		OutputDebugString(msg);
+//        va_start(ap, fmt);
+	    _vsnprintf(msg, 512, fmt, ap);
+//        va_end(ap);
+        OutputDebugString(msg);
+		OutputDebugString("\n");
+		return;
+	}
+#define sleep(a) Sleep((a) * 1000)
+#endif
   gettimeofday(&thistime, NULL);
   strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
   printf("%s.%03ld-%s-%d: ",
@@ -61,12 +62,12 @@ static void local_error_msg (int loglevel,
 	 loglevel);
   vprintf(fmt, ap);
   printf("\n");
-#endif
+
 }
 
 static int callback (void *foo)
 {
-  printf("callback - SDL thread %d", SDL_ThreadID());
+  rtsp_debug(LOG_DEBUG, "callback - SDL thread %d\n", SDL_ThreadID());
   return (SDL_ThreadID());
 }
 
@@ -99,10 +100,10 @@ int main (int argc, char **argv)
   }
 
   ret = rtsp_thread_perform_callback(rtsp_client, callback, NULL);
-  printf("Return from callback is %d", ret);
+  rtsp_debug(LOG_DEBUG, "Return from callback is %d\n", ret);
   
   if (rtsp_send_describe(rtsp_client, &cmd, &decode) != RTSP_RESPONSE_GOOD) {
-    printf("Describe response not good\n");
+    rtsp_debug(LOG_CRIT, "Describe response not good\n");
     free_decode_response(decode);
     free_rtsp_client(rtsp_client);
     return(1);
@@ -110,14 +111,14 @@ int main (int argc, char **argv)
 
   sdpdecode = set_sdp_decode_from_memory(decode->body);
   if (sdpdecode == NULL) {
-    printf("Couldn't get sdp decode\n");
+    rtsp_debug(LOG_CRIT, "Couldn't get sdp decode\n");
     free_decode_response(decode);
     free_rtsp_client(rtsp_client);
     return(1);
   }
 
   if (sdp_decode(sdpdecode, &sdp, &dummy) != 0) {
-    printf("Couldn't decode sdp\n");
+    rtsp_debug(LOG_CRIT, "Couldn't decode sdp\n");
     free_decode_response(decode);
     free_rtsp_client(rtsp_client);
     return (1);
@@ -139,7 +140,7 @@ int main (int argc, char **argv)
 	    strcat(str, "/");
 	  }
 	  strcat(str, media->control_string);
-	  printf("converted %s %s to %s\n", decode->content_base,
+	  rtsp_debug(LOG_INFO, "converted %s %s to %s\n", decode->content_base,
 		 media->control_string,
 		 str);
 	  free(media->control_string);
@@ -165,7 +166,7 @@ int main (int argc, char **argv)
 			  &decode, 0);
 
   if (dummy != RTSP_RESPONSE_GOOD) {
-    printf("Response to setup is %d\n", dummy);
+    rtsp_debug(LOG_DEBUG, "Response to setup is %d\n", dummy);
     free_session_desc(sdp);
     free_decode_response(decode);
     free_rtsp_client(rtsp_client);
@@ -176,7 +177,7 @@ int main (int argc, char **argv)
   cmd.transport = NULL;
   dummy = rtsp_send_play(session, &cmd, &decode);
   if (dummy != RTSP_RESPONSE_GOOD) {
-    printf("response to play is %d\n", dummy);
+    rtsp_debug(LOG_INFO, "response to play is %d\n", dummy);
   } else {
     sleep(10);
   }
@@ -184,7 +185,7 @@ int main (int argc, char **argv)
   cmd.range = NULL;
   dummy = rtsp_send_pause(session, &cmd, &decode);
   if (dummy != RTSP_RESPONSE_GOOD) {
-    printf("response to pause is %d\n", dummy);
+    rtsp_debug(LOG_INFO, "response to pause is %d\n", dummy);
   } else {
     sleep(5);
   }
@@ -193,14 +194,14 @@ int main (int argc, char **argv)
   cmd.transport = NULL;
   dummy = rtsp_send_play(session, &cmd, &decode);
   if (dummy != RTSP_RESPONSE_GOOD) {
-    printf("response to play is %d\n", dummy);
+    rtsp_debug(LOG_INFO, "response to play is %d\n", dummy);
   } else {
     sleep(10);
   }
   free_decode_response(decode);
   cmd.transport = NULL;
   dummy = rtsp_send_teardown(session, NULL, &decode);
-  printf("Teardown response %d\n", dummy);
+  rtsp_debug(LOG_DEBUG, "Teardown response %d\n", dummy);
   free_session_desc(sdp);
   free_decode_response(decode);
   sleep(5);

@@ -5,6 +5,7 @@ librtsp_la_SOURCES = \
 	rtsp_comm.c \
 	rtsp_command.c \
 	rtsp_resp.c \
+	rtsp_thread_nx.c \
 	rtsp_thread.c \
 	rtsp_util.c 
 

@@ -634,11 +634,38 @@ Known Problems
   heard that a fix is available, so we're trying to track that down.
 
 * The player for windows is sketchy at best.  We have included project
-  files that should build, for both Dev Studio 5.0 and 6.0.  With 5.0,
-  the new version of SDL doesn't seem to want to link.
+  files that should build, for both Dev Studio 5.0 and 6.0. 
 
 * We recommend installing DirectX 8.1 or later.  If that is not possible, 
   and you have problems with video, try uncommenting out #define OLD_SURFACE
   in player/src/video.cpp.
+
+Windows GUI
+===========
+
+We've created a simple windows GUI.  It requires VC 6.0, and consists
+of 2 parts - wmp4player and wmp4client.  wmp4player contains the
+GUI, and wmp4client is basically mp4player that will communicate with
+wmp4player.
+
+VC 5.0 crashes right on startup - sorry.
+
+wmp4client is launched as a seperate process, due to SDL limitations.
+The 2 processes communicate using file maps in memory.  See the CMp4Process
+and CMP4If classes in wmp4player and CClientProcess in wmp4client.
+
+To create this, look for the player60.dsw in player/src directory. This
+will make all 3 executables (mp4player, wmp4player.exe and wmp4client.exe).
+
+To install wmp4player, put the wmp4player.exe, wmp4client.exe and
+SDL.dll in the same directory.  We will not be writing any installers.
+
+These programs will use the registry for storing information that
+Linux stores in .gmp4player_rc.  Look for the Software\Mpeg4ip\Config
+registry entry.  Our config file library is rigged to save this data
+there.  mp4player will still use a gmp4player_rc file.
+
+At this time, if it's broken, you're going to have to fix it.  The
+same goes with GUI "nits" - we're not GUI writers.
 
 === END OF README ===

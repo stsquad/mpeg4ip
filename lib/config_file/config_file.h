@@ -49,7 +49,13 @@ class CConfig {
   const char *get_config_string(uint32_t cindex);
   const char *get_config_default_string(uint32_t cindex);
   int read_config_file(const char *name = NULL);
+#ifdef _WIN32
+  int read_config_file(const char *reg_name, const char *config_section);
+#endif
   void write_config_file(const char *name = NULL);
+#ifdef _WIN32
+  void write_config_file(const char *reg_name, const char *config_section);
+#endif
   void set_config_value(uint32_t cindex, int value)
     {
       m_values[cindex] = value;
@@ -68,6 +74,7 @@ class CConfig {
       m_strings[from_index] = NULL;
       m_changed = 1;
     };
+  int changed (void) { return m_changed; };
  private:
   void init(void);
   char *find_name (char *ptr, uint32_t &index);
@@ -78,6 +85,7 @@ class CConfig {
   int *m_values;
   char **m_strings;
   int m_changed;
+
 };
 
 #endif

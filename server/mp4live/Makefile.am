@@ -6,9 +6,10 @@ mp4live_SOURCES = \
 	audio_source.cpp \
 	audio_source.h \
 	config_set.h \
-	live_config.h \
 	mp4live.cpp \
 	mp4live.h \
+	mp4live_config.h \
+	mp4live_config.cpp \
 	media_flow.h \
 	media_flow.cpp \
 	media_frame.h \
@@ -18,20 +19,30 @@ mp4live_SOURCES = \
 	mp4_recorder.cpp \
 	mp4_recorder.h \
 	mpeg4vhdr.cpp \
-	raw_recorder.cpp \
-	raw_recorder.h \
 	rgb2yuv.h \
 	rgb2yuv.cpp \
 	rtp_transmitter.cpp \
 	rtp_transmitter.h \
 	sdp_file.cpp \
 	timestamp.h \
+	transcoder.h \
+	transcoder.cpp \
 	tv_frequencies.cpp \
 	tv_frequencies.h \
 	util.c \
 	util.h \
+	video_encoder.h \
+	video_ffmpeg.h \
+	video_ffmpeg.cpp \
+	video_preview.h \
+	video_preview.cpp \
 	video_source.cpp \
-	video_source.h
+	video_source.h \
+	video_xvid.h \
+	video_xvid.cpp
+
+# Note that Divx and Xvid libraries have name conflict in their putvlc.c
+# code so don't attempt to link both at once. 
 
 INCLUDES=\
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ \
@@ -44,13 +55,12 @@ INCLUDES=\
 	-I$(top_srcdir)/lib \
 	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/server/video/ffmpeg \
-	-I$(top_srcdir)/server/video/divx \
 	-I$(top_srcdir)/common/video/xvid \
 	-I$(top_srcdir)/player/lib
 
-AM_CFLAGS= -DMPEG4IP -DADD_FFMPEG_ENCODER -D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
+AM_CFLAGS= -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER -D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
-AM_CXXFLAGS = -DMPEG4IP -DADD_FFMPEG_ENCODER -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
+AM_CXXFLAGS = -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
 LDADD = \
 	$(top_builddir)/server/mp4live/gui/liblive_gui.la \
@@ -59,8 +69,8 @@ LDADD = \
 	$(top_builddir)/lib/rtp/libuclmmbase.a \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/server/audio/lame/libmp3lame.a \
-	$(top_builddir)/server/video/divx/libdivxencore.la \
 	$(top_builddir)/server/video/ffmpeg/libffmpeg.la \
+	$(top_builddir)/common/video/xvid/libxvid.la \
 	-lpthread \
 	$(top_builddir)/lib/SDL/src/libSDL.la \
 	@GTK_LIBS@ @GLIB_LIBS@

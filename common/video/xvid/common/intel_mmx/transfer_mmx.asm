@@ -1,7 +1,7 @@
 ;/**************************************************************************
 ; *
 ; *	XVID MPEG-4 VIDEO CODEC
-; *	mmx 8bit<->16bit transfer
+; *	mmx 8bit<->16bit transfers
 ; *
 ; *	This program is an implementation of a part of one or more MPEG-4
 ; *	Video tools as specified in ISO/IEC 14496-2 standard.  Those intending
@@ -32,6 +32,7 @@
 ; *
 ; *	History:
 ; *
+; * 07.01.2002	merge functions from compensate_mmx; rename functions
 ; *	07.11.2001	initial version; (c)2001 peter ross <pross@cs.rmit.edu.au>
 ; *
 ; *************************************************************************/
@@ -136,6 +137,230 @@ transfer_16to8copy_mmx
 
 ;===========================================================================
 ;
+; void transfer_8to16sub_mmx(int16_t * const dct,
+;				uint8_t * const cur,
+;				const uint8_t * const ref,
+;				const uint32_t stride);
+;
+;===========================================================================
+;/**************************************************************************
+; *
+; *	History:
+; *
+; * 27.12.2001	renamed from 'compensate' to 'transfer_8to16sub'
+; * 02.12.2001  loop unrolled, code runs 10% faster now (Isibaar)
+; * 30.11.2001  16 pixels are processed per iteration (Isibaar)
+; * 30.11.2001	.text missing
+; *	06.11.2001	inital version; (c)2001 peter ross <pross@cs.rmit.edu.au>
+; *
+; *************************************************************************/
+
+align 16
+cglobal transfer_8to16sub_mmx
+transfer_8to16sub_mmx
+		push	esi
+		push	edi
+		push    ebx
+
+		mov	edi, [esp + 12 + 4]		; dct [out]
+		mov	edx, [esp + 12 + 8]		; cur [in/out]
+		mov	esi, [esp + 12 + 12]		; ref [in]
+		mov ecx, [esp + 12 + 16]		; stride [in]
+
+		mov eax, edx				; cur -> eax
+		mov ebx, esi				; ref -> ebx
+		add eax, ecx				; cur + stride
+		add ebx, ecx				; ref + stride
+		
+		shl ecx, 1
+				
+		pxor mm7, mm7			; mm7 = zero
+
+		movq mm0, [edx]			; mm01 = [cur]
+		movq mm1, mm0
+		
+		punpcklbw mm0, mm7
+		punpckhbw mm1, mm7
+		
+		movq mm4, [eax]
+		movq mm5, mm4
+
+		punpcklbw mm4, mm7
+		punpckhbw mm5, mm7
+
+		movq mm2, [esi]			; mm23 = [ref]
+		movq mm3, mm2
+
+		movq mm6, [ebx]
+
+		movq [edx], mm2			; [cur] = [ref]
+		movq [eax], mm6
+
+		punpcklbw mm2, mm7
+		punpckhbw mm3, mm7
+
+		psubsw mm0, mm2			; mm01 -= mm23
+
+		movq mm2, mm6
+
+		punpcklbw mm2, mm7
+		punpckhbw mm6, mm7
+
+		psubsw mm1, mm3
+
+		psubsw mm4, mm2
+		psubsw mm5, mm6
+
+		movq [edi], mm0			; dct[] = mm01
+		movq [edi + 8], mm1
+		movq [edi + 16], mm4
+		movq [edi + 24], mm5
+
+		add edx, ecx
+		add esi, ecx
+		add eax, ecx
+		add ebx, ecx
+
+		movq mm0, [edx]			; mm01 = [cur]
+		movq mm1, mm0
+		
+		punpcklbw mm0, mm7
+		punpckhbw mm1, mm7
+		
+		movq mm4, [eax]
+		movq mm5, mm4
+
+		punpcklbw mm4, mm7
+		punpckhbw mm5, mm7
+
+		movq mm2, [esi]			; mm23 = [ref]
+		movq mm3, mm2
+
+		movq mm6, [ebx]
+
+		movq [edx], mm2			; [cur] = [ref]
+		movq [eax], mm6
+
+		punpcklbw mm2, mm7
+		punpckhbw mm3, mm7
+
+		psubsw mm0, mm2			; mm01 -= mm23
+
+		movq mm2, mm6
+
+		punpcklbw mm2, mm7
+		punpckhbw mm6, mm7
+
+		psubsw mm1, mm3
+
+		psubsw mm4, mm2
+		psubsw mm5, mm6
+
+		movq [edi + 32], mm0			; dct[] = mm01
+		movq [edi + 40], mm1
+		movq [edi + 48], mm4
+		movq [edi + 56], mm5
+
+		add edx, ecx
+		add esi, ecx
+		add eax, ecx
+		add ebx, ecx
+
+		movq mm0, [edx]			; mm01 = [cur]
+		movq mm1, mm0
+		
+		punpcklbw mm0, mm7
+		punpckhbw mm1, mm7
+		
+		movq mm4, [eax]
+		movq mm5, mm4
+
+		punpcklbw mm4, mm7
+		punpckhbw mm5, mm7
+
+		movq mm2, [esi]			; mm23 = [ref]
+		movq mm3, mm2
+
+		movq mm6, [ebx]
+
+		movq [edx], mm2			; [cur] = [ref]
+		movq [eax], mm6
+
+		punpcklbw mm2, mm7
+		punpckhbw mm3, mm7
+
+		psubsw mm0, mm2			; mm01 -= mm23
+
+		movq mm2, mm6
+
+		punpcklbw mm2, mm7
+		punpckhbw mm6, mm7
+
+		psubsw mm1, mm3
+
+		psubsw mm4, mm2
+		psubsw mm5, mm6
+
+		movq [edi + 64], mm0			; dct[] = mm01
+		movq [edi + 72], mm1
+		movq [edi + 80], mm4
+		movq [edi + 88], mm5
+
+		add edx, ecx
+		add esi, ecx
+		add eax, ecx
+		add ebx, ecx
+
+		movq mm0, [edx]			; mm01 = [cur]
+		movq mm1, mm0
+		
+		punpcklbw mm0, mm7
+		punpckhbw mm1, mm7
+		
+		movq mm4, [eax]
+		movq mm5, mm4
+
+		punpcklbw mm4, mm7
+		punpckhbw mm5, mm7
+
+		movq mm2, [esi]			; mm23 = [ref]
+		movq mm3, mm2
+
+		movq mm6, [ebx]
+
+		movq [edx], mm2			; [cur] = [ref]
+		movq [eax], mm6
+
+		punpcklbw mm2, mm7
+		punpckhbw mm3, mm7
+
+		psubsw mm0, mm2			; mm01 -= mm23
+
+		movq mm2, mm6
+
+		punpcklbw mm2, mm7
+		punpckhbw mm6, mm7
+
+		psubsw mm1, mm3
+
+		psubsw mm4, mm2
+		psubsw mm5, mm6
+
+		movq [edi + 96], mm0			; dct[] = mm01
+		movq [edi + 104], mm1
+		movq [edi + 112], mm4
+		movq [edi + 120], mm5
+
+		pop ebx
+		pop edi
+		pop esi
+
+		ret
+
+
+
+;===========================================================================
+;
 ; void transfer_16to8add_mmx(uint8_t * const dst,
 ;						const int16_t * const src,
 ;						uint32_t stride);
@@ -182,18 +407,19 @@ transfer_16to8add_mmx
 
 		ret
 
+
 ;===========================================================================
 ;
-; (compensate)
-; void transfer_8to8copy_mmx(uint8_t * const dst,
+; void transfer8x8_copy_mmx(uint8_t * const dst,
 ;					const uint8_t * const src,
 ;					const uint32_t stride);
+;
 ;
 ;===========================================================================
 
 align 16
-cglobal transfer_8to8copy_mmx
-transfer_8to8copy_mmx
+cglobal transfer8x8_copy_mmx
+transfer8x8_copy_mmx
 		push	esi
 		push	edi
 
@@ -243,62 +469,5 @@ transfer_8to8copy_mmx
 
 		pop edi
 		pop esi
-
-		ret
-
-
-
-;===========================================================================
-;
-; (compensate)
-; void transfer_8to8add16_mmx(uint8_t * const dst,
-;						const int8_t * const src,
-;						const int16_t* const data,
-;						uint32_t stride);
-;
-;===========================================================================
-
-align 16
-cglobal transfer_8to8add16_mmx
-transfer_8to8add16_mmx
-
-		push	ecx
-		push	esi
-		push	edi
-
-		mov	edi, [esp + 12 + 4]		; dst
-		mov	esi, [esp + 12 + 8]		; src
-		mov edx, [esp + 12 + 12]		; data
-		mov ecx, [esp + 12 + 16]		; stride
-
-		pxor mm7, mm7
-
-		mov eax, 8
-
-.loop
-		movq mm0, [esi]
-		movq mm1, mm0
-		punpcklbw mm0, mm7		; mm01 = unpack([src])
-		punpckhbw mm1, mm7
-
-		movq mm2, [edx]			; mm23 = [data]
-		movq mm3, [edx + 8]
-
-		paddsw mm0, mm2			; mm01 += mm23
-		paddsw mm1, mm3
-
-		packuswb mm0, mm1		; [dst] = pack(mm01)
-		movq [edi], mm0
-
-		add edi, ecx
-		add esi, ecx
-		add edx, 16
-		
-		dec eax
-		jnz .loop
-
-		pop edi
-		pop esi
-		pop ecx
 
 		ret

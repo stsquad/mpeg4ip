@@ -23,10 +23,6 @@
  * config_file.cpp - a fairly simple config file reader.  It will read
  * either strings or ints out of .gmp4player_rc (or a specified file)
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
 #include "our_config_file.h"
 #include "player_util.h"
 
@@ -34,7 +30,6 @@
 
 // Basic list of available config variables.  Future work could make this
 // dynamic, but I'm not going to bother right now...
-
 static config_variable_t configs[] = {
   { CONFIG_USE_MPEG4_ISO_ONLY, "Mpeg4IsoOnly", CONFIG_INT, 0, NULL },
   { CONFIG_PREV_FILE_0, "File0", CONFIG_STRING, 0, NULL },

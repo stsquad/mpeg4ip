@@ -143,28 +143,20 @@ bool MPEGaudio::loadheader(void)
     flag = false;
     do
     {
-      if (fillbuffer(4) == false)
-	return false;
-#if 0
-        if( (c = mpeg->copy_byte()) < 0 )
-            break;
-#else
+		if (fillbuffer(4) == false)
+			return false;
         c = _buffer[0];
-#endif
+		
+		_buffer++;
+		_buflen--;
 
         if( c == 0xff )
         {
             while( ! flag )
             {
-#if 0
-	      if( (c = mpeg->copy_byte()) < 0 )
-                {
-                    flag = true;
-                    break;
-                }
-#else
-	      c = _buffer[1];
-#endif
+				c = _buffer[0];
+				_buflen--;
+				_buffer++;
                 if( (c & 0xe0) == 0xe0 )
                 {
                     flag = true;
@@ -172,26 +164,14 @@ bool MPEGaudio::loadheader(void)
                 }
                 else if( c != 0xff )
                 {
-#if 0
-                    break;
-#else
-		    return false;
-#endif
-                } else {
-		  _buflen--;
-		  _buffer++;
-		}
+					return false;
+                } 
             }
         } else {
-	  _buflen--;
-	  _buffer++;
-	}
+			return false;
+		}
     } while( ! flag );
 
-#if 0
-    if( c < 0 )
-        return false;
-#endif
 
 
     // Analyzing
@@ -211,7 +191,9 @@ bool MPEGaudio::loadheader(void)
 #if 0
     c = mpeg->copy_byte() >> 1;
 #else
-    c = _buffer[2] >> 1;
+    c = _buffer[0] >> 1;
+	_buffer++;
+	_buflen--;
 #endif
     padding = (c & 1);
     c >>= 1;
@@ -228,7 +210,9 @@ bool MPEGaudio::loadheader(void)
 #if 0
     c = ((unsigned int)mpeg->copy_byte()) >> 4;
 #else
-    c = _buffer[3] >> 4;
+    c = _buffer[0] >> 4;
+	_buffer++;
+	_buflen--;
 #endif
     extendedmode = c & 3;
     mode = (_mode) (c >> 2);
