@@ -46,14 +46,7 @@
  * conversions, and accommodated conversions involving +/- infinity,
  * NaN's, and denormalized numbers.
  *
- * $Id: portableio.h,v 1.2 2001/06/01 20:52:37 wmaycisco Exp $
- *
- * $Log: portableio.h,v $
- * Revision 1.2  2001/06/01 20:52:37  wmaycisco
- * Sync to our latest code base.
- *
- * Revision 1.1  2001/04/24 20:45:54  dmackie
- * Import of lame 3.70
+ * $Id: portableio.h,v 1.3 2001/06/01 22:30:46 wmaycisco Exp $
  *
  * Revision 1.1.1.1  1999/11/24 08:43:37  markt
  * initial checkin of LAME

@@ -20,10 +20,10 @@ origin_cvsroot=/vws/pan
 #
 # destination repository information.  See origin information for details
 #
-dest_dir=destination
-dest_name=wmay
-dest_host=171.71.97.173
-dest_cvsroot=/cvs
+dest_dir=sourceforge
+dest_name=wmaycisco
+dest_host=cvs.mpeg4ip.sourceforge.net
+dest_cvsroot=/cvsroot/mpeg4ip
 
 #
 # temp_dir is directory where we store files we create, logs
@@ -89,7 +89,7 @@ if test ! -d $origin_rep; then
     echo Checking out origin cvs repository $origin_CVSROOT >&6
     cd $origin_dir
     origin_dir=`pwd`
-    cvs -d $origin_CVSROOT checkout -ko $repository 1>&5 2>&5
+    cvs -d $origin_CVSROOT checkout -kk $repository 1>&5 2>&5
     cd $repository
     origin_rep=`pwd`
 else
@@ -98,7 +98,7 @@ else
     cd $repository
     origin_rep=`pwd`
     echo Updating origin cvs repository $origin_rep >&6
-    cvs update -ko -d 1>&5 2>&5
+    cvs update -kk -d 1>&5 2>&5
 fi
 
 cd $start_dir
@@ -117,7 +117,7 @@ if test ! -d $dest_rep; then
     echo Checking out destination cvs repository $dest_CVSROOT >&6
     cd $dest_dir
     dest_dir=`pwd`
-    cvs -d $dest_CVSROOT checkout -ko $repository 1>&5 2>&5
+    cvs -d $dest_CVSROOT checkout -kk $repository 1>&5 2>&5
     cd $repository
     dest_rep=`pwd`
 else
@@ -126,7 +126,7 @@ else
     cd $repository
     dest_rep=`pwd`
     echo Updating dest cvs repository $dest_rep >&6
-    cvs update -ko -d 1>&5 2>&5
+    cvs update -kk -d 1>&5 2>&5
 fi
 
 echo "Creating directory lists" >&5
@@ -237,6 +237,8 @@ EOF
       do
          if test ! -e $origin_dir/$dest_dir_on/$file; then
             echo $origin_dir/$dest_dir_on/$file no longer exists
+	    rm -f $file
+	    cvs $CVS_N remove $file 1>&5 2>&5
 	 fi
       done
    fi

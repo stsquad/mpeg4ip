@@ -41,14 +41,7 @@
  * conversions, and accommodated conversions involving +/- infinity,
  * NaN's, and denormalized numbers.
  *
- * $Id: ieeefloat.c,v 1.2 2001/06/01 20:52:37 wmaycisco Exp $
- *
- * $Log: ieeefloat.c,v $
- * Revision 1.2  2001/06/01 20:52:37  wmaycisco
- * Sync to our latest code base.
- *
- * Revision 1.1  2001/04/24 20:45:53  dmackie
- * Import of lame 3.70
+ * $Id: ieeefloat.c,v 1.3 2001/06/01 22:30:45 wmaycisco Exp $
  *
  * Revision 1.3  2000/02/21 23:05:05  markt
  * some 64bit DEC Alpha patches

@@ -26,13 +26,6 @@
 
 	Contains:	Implements Admin module
 
-	$Log: QTSSAdminModule.cpp,v $
-	Revision 1.3  2001/06/01 20:52:37  wmaycisco
-	Sync to our latest code base.
-	
-	Revision 1.1.1.1  2001/02/26 23:27:26  dmackie
-	Import of Apple Darwin Streaming Server 3 Public Preview
-	
 	Revision 1.7  2000/10/05 04:07:25  mythili
 	john added line to close session after sending 401 response
 	

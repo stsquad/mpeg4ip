@@ -2,24 +2,25 @@
  * FAAC - Freeware Advanced Audio Coder
  * Copyright (C) 2001 Menno Bakker
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bitstream.c,v 1.2 2001/06/01 20:52:37 wmaycisco Exp $
+ * $Id: bitstream.c,v 1.3 2001/06/01 22:30:45 wmaycisco Exp $
  */
 
 #include <stdlib.h>
+#include <assert.h>
 
 #include "coder.h"
 #include "channels.h"
@@ -104,7 +105,12 @@ int WriteBitstream(faacEncHandle hEncoder,
 	 * in MPEG4 the byte_alignment() is officially done before the new frame
 	 * instead of at the end. But this is basically the same.
 	 */
-	bits += ByteAlign(bitStream, 1);
+	assert(bitStream->numBit==bits);
+	bitStream->numBit=bits;
+    if (hEncoder->config.mpegVersion == 0)
+  	  bits += ByteAlign(bitStream, 1,2);
+
+	bits += ByteAlign(bitStream, 1,0);
 
 	return bits;
 }
@@ -177,7 +183,12 @@ static int CountBitstream(faacEncHandle hEncoder,
 	bits += LEN_SE_ID;
 
 	/* Now byte align the bitstream */
-	bits += ByteAlign(bitStream, 0);
+
+	bitStream->numBit=bits;
+    if (hEncoder->config.mpegVersion == 0)
+		bits += ByteAlign(bitStream, 0,2);
+
+	bits += ByteAlign(bitStream, 0,0);
 
 	hEncoder->usedBytes = bit2byte(bits);
 
@@ -795,20 +806,27 @@ int PutBit(BitStream *bitStream,
 	return 0;
 }
 
-static int ByteAlign(BitStream *bitStream, int writeFlag)
+static int ByteAlign(BitStream *bitStream, int writeFlag, int offset)
 {
 	int len, i,j;
 
-	len = BufferNumBit(bitStream);
-	   
-	j = (8 - (len%8))%8;
+	assert(offset<8);
+	assert(offset>=0);
 
-	if ((len % 8) == 0) j = 0;
+	len = BufferNumBit(bitStream);
+
+	j = (16+offset - (len%8))%8;
+
+	if ((len % 8) == offset) 
+		j = 0;
+
 	if (writeFlag) {
 		for( i=0; i<j; i++ ) {
 			PutBit(bitStream, 0, 1);
 		}
 	}
+	else
+		bitStream->numBit+=j;
+
 	return j;
 }
-

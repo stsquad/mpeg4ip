@@ -32,13 +32,6 @@
 
 	Change History (most recent first):
 
-	$Log: RelayPrefsSource.cpp,v $
-	Revision 1.3  2001/06/01 20:52:37  wmaycisco
-	Sync to our latest code base.
-	
-	Revision 1.1.1.1  2001/02/26 23:27:30  dmackie
-	Import of Apple Darwin Streaming Server 3 Public Preview
-	
 	Revision 1.2  2000/09/29 19:28:15  serenyi
 	Fixed yet more win32 issues
 	

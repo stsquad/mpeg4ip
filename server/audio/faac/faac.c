@@ -2,21 +2,21 @@
  * FAAC - Freeware Advanced Audio Coder
  * Copyright (C) 2001 Menno Bakker
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: faac.c,v 1.3 2001/06/01 20:52:37 wmaycisco Exp $
+ * $Id: faac.c,v 1.4 2001/06/01 22:30:45 wmaycisco Exp $
  */
 
 #ifdef _WIN32
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 	faacEncHandle hEncoder;
 	SNDFILE *infile;
 	SF_INFO sfinfo;
-	faacEncConfigurationPtr myFormat;
+	faacEncConfiguration myFormat;
 
 	unsigned long totalDesiredBitRate = 0;
 	int rawInput = 0;
@@ -74,7 +74,8 @@ int main(int argc, char *argv[])
 
 	/* get the default encoder configuration values */
 	hEncoder = faacEncOpen(44100, 2, &samplesInput, &maxBytesOutput);
-	myFormat = faacEncGetCurrentConfiguration(hEncoder);
+	memcpy(&myFormat, faacEncGetCurrentConfiguration(hEncoder),
+		sizeof(myFormat));
 	faacEncClose(hEncoder);
 	hEncoder = 0;
 
@@ -106,28 +107,28 @@ int main(int argc, char *argv[])
 				case 'p': case 'P':
 					if ((argv[i][2] == 'l') || (argv[i][2] == 'L')) {
 						if ((argv[i][3] == 'c') || (argv[i][2] == 'C')) {
-							myFormat->aacObjectType = LOW;
+							myFormat.aacObjectType = LOW;
 						} else if ((argv[i][3] == 't') || (argv[i][2] == 'T')) {
-							myFormat->aacObjectType = LTP;
+							myFormat.aacObjectType = LTP;
 						}
 					} else if ((argv[i][2] == 'm') || (argv[i][2] == 'M')) {
-						myFormat->aacObjectType = MAIN;
+						myFormat.aacObjectType = MAIN;
 					}
 				break;
 				case 'm': case 'M':
 					if (argv[i][2] == '4') {
-						myFormat->mpegVersion = MPEG4;
+						myFormat.mpegVersion = MPEG4;
 					} else {
-						myFormat->mpegVersion = MPEG2;
+						myFormat.mpegVersion = MPEG2;
 					}
 				break;
 				case 't': case 'T':
 					if ((argv[i][2] == 'n') || (argv[i][2] == 'N'))
-						myFormat->useTns = 1;
+						myFormat.useTns = 1;
 				break;
 				case 'n': case 'N':
 					if ((argv[i][2] == 'm') || (argv[i][2] == 'M'))
-						myFormat->allowMidside = 0;
+						myFormat.allowMidside = 0;
 				break;
 				case 'b': case 'B':
 					if ((argv[i][2] == 'r') || (argv[i][2] == 'R'))
@@ -135,16 +136,16 @@ int main(int argc, char *argv[])
 						unsigned int bitrate = atol(&argv[i][3]);
 						if (bitrate)
 						{
-							myFormat->bitRate = bitrate;
+							myFormat.bitRate = bitrate;
 						}
 					} else if ((argv[i][2] == 'w') || (argv[i][2] == 'W')) {
 						unsigned int bandwidth = atol(&argv[i][3]);
 						if (bandwidth)
 						{
-							myFormat->bandWidth = bandwidth;
+							myFormat.bandWidth = bandwidth;
 						}
 					} else if (isdigit(argv[i][2])) {
-						unsigned int bitrate = atol(&argv[i][3]);
+						unsigned int bitrate = atol(&argv[i][2]);
 						if (bitrate)
 						{
 							totalDesiredBitRate = bitrate * 1000;
@@ -209,10 +210,10 @@ int main(int argc, char *argv[])
 		&samplesInput, &maxBytesOutput);
 
 	if (totalDesiredBitRate) {
-		myFormat->bitRate = totalDesiredBitRate / sfinfo.channels;
+		myFormat.bitRate = totalDesiredBitRate / sfinfo.channels;
 	} 
 
-	if (!faacEncSetConfiguration(hEncoder, myFormat))
+	if (!faacEncSetConfiguration(hEncoder, &myFormat))
 		fprintf(stderr, "unsupported output format!\n");
 
 	pcmbuf = (short*)malloc(samplesInput*sizeof(short));
@@ -272,10 +273,11 @@ int main(int argc, char *argv[])
 		printf("Encoding %s took:\t%d:%.2d\t\n", argv[argc-2], nMins, nSecs);
 #else
 #ifdef __unix__
-		getrusage(RUSAGE_SELF, &usage);
-		totalSecs = usage.ru_utime.tv_sec;
-		mins = totalSecs/60;
-		printf("Encoding %s took: %i min, %.2f sec. of cpu-time\n", argv[argc-2], mins, totalSecs - (60 * mins));
+		if (getrusage(RUSAGE_SELF, &usage) == 0) {
+			totalSecs = usage.ru_utime.tv_sec;
+			mins = totalSecs/60;
+			printf("Encoding %s took: %i min, %.2f sec. of cpu-time\n", argv[argc-2], mins, totalSecs - (60 * mins));
+		}
 #else
 		totalSecs = (float)(clock())/(float)CLOCKS_PER_SEC;
 		mins = totalSecs/60;

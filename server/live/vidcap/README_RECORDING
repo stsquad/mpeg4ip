@@ -1,0 +1,150 @@
+
+Audio
+=====
+
+If you don't get sound when recording avi movies, double-check the
+mixer settings first.  The record source defaults to micro on many
+linux sound drivers, you probably have to change this to line-in with
+one of the available mixer tools.  Also keep in mind that ALSA has
+all mixer controls at 0 (i.e. muted) by default.
+
+/me uses kmix (because it doesn't need much space on the screen).
+The inputs where the sound cards record from have a red background
+color.  With the right mouse botton you'll get a menu where you can
+change the settings.  FreeBSD has a aumix version with X11 GUI in
+the ports collection which is very nice too.
+
+Note on stereo:  xanim seems not be able to playback stereo sound
+correctly.
+
+
+Video
+=====
+
+xawtv/streamer handle video recording with multiple threads:
+
+ - one thread records video (and does color space conversion
+   / compression, maybe this should be separated)
+ - one thread records audio (unless you do video only).
+ - one thread writes the movie data to the disk.
+ - one thread calls sync frequently to make the writeouts more
+   smoothly (more smaller chunks instead of few very big ones).
+
+
+There are buffer fifo's between the recording threads and the disk
+writer to avoid recording overruns due to a temporarely busy hard
+disk.
+
+If you see messages about a full fifo or about v4l(2) waiting for
+free buffers it is very likely that your hard disk is too slow,
+especially if you try to record uncompressed video.
+
+bttv 0.7.x allows you to use more than just two video buffers, you can
+configure the number at insmod time (gbuffers option).  Using more
+buffers (say 4-8 instead of just two which is the default) should help
+to reduce the number of dropped frames.
+
+If you want to record quicktime movies install the quicktime4linux
+libraries (http://heroines.sourceforge.net/quicktime.php3), then
+(re-)build xawtv.  The configure script should find the library
+automatically.
+
+
+Known problems (and workarounds)
+================================
+
+streamer/xawtv can't handle floating point frame rates (like 29.97).
+Bad luck for now [to be fixed].
+
+The timestamping for the video frames isn't very exact as it does
+_not_ come from the v4l(1) driver but is just a gettimeofday() call
+after receiving the video frame.  API design bug, needs fixing.
+With v4l2 xawtv uses the frame timestamps provided by the driver.
+
+
+Troubleshooting syncronisation problems
+=======================================
+
+If you are recording a movie with xawtv/stremaer you get a display
+like this on stderr:
+
+real: 3.638s   audio: 3.529s   video: 3.700s
+
+ - "real" is the real time, i.e. simply the number of seconds passed
+   since you've started recording.
+
+ - "audio" says how much audio data was recorded: simply the total
+   number of bytes divided by the data rate (bytes/second).
+
+ - "video" is the same for video: total frames divided by the
+   frames/second.
+
+Obviously these numbers should stay close together.  If audio and
+video run out of sync, you should be able to see whenever audio or
+video is wrong by comparing the two with the real time.
+
+The display says how much media data streamer/xawtv tried to put into
+the fifos.  Any data which get lost due to fifo overruns will *not* be
+taken into accout here, i.e. if you see "fifo full" error messages
+your movie will have bad syncronisation even if the display looks
+fine.  Possible fixes:  Try using more buffers.  Try recording
+compressed video.  Try tuning the hard disk using hdparm.  Buy a
+faster hard disk.  Buy a faster computer.
+
+If xawtv/streamer says "queueing frame twice" it has put a the same
+video frame twice into the output queue to avoid video running out of
+sync.  If this happens alot it indicates that either your computer
+can't keep up with compressing the frames or that your v4l device
+can't capture frames with the frame rate you are asking for.  A single
+message now and then is harmless.
+
+
+Read/Playback stuff
+===================
+
+avi format
+----------
+
+ * xanim plays everything without problems.
+ * QuickTime[tm] (MacOS) plays the uncompressed formats just
+   fine and complains about mjpeg/jpeg.
+ * Windows Media Player plays the uncompressed formats fine.
+   mjpeg/jpeg work too if a codec is installed (/me has a very
+   old one from MainConcept).
+ * avifile can't deal with the uncompressed video correctly.
+   mjpeg/jpeg doesn't work either for me as it seems not to
+   recognise the MainConcept codec, althought I've copied
+   stuff to /usr/lib/win32.  Maybe it works with another
+   one.
+ * MainActor (linux) can read the mjpeg but not the jpeg
+   compressed files.
+
+
+quicktime format
+----------------
+
+ * xmovie + broadcast2000 can read the files without problems
+   (not exactly surprising as they use the quicktime4linux
+   library too ...).
+ * QuickTime[tm] (MacOS/Windows) plays them without problems.
+ * xanim says it can't find any data in the mov file.  It used
+   to work with older versions of the quicktime4linux library
+   (before 64bit support was added), so I suspect xanim simply
+   can't deal with 64bit mov files.
+
+
+raw data
+--------
+
+ * ImageMagick can deal with this, you have to specify the image
+   format + size on the command line like this:
+	display -size 320x240 rgb:file.raw
+   It can handle multiple frames in one big file too.
+
+
+Have fun,
+
+  Gerd
+
+-- 
+Gerd Knorr <kraxel@bytesex.org>

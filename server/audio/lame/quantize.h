@@ -2,14 +2,7 @@
  * ISO MPEG Audio Subgroup Software Simulation Group (1996)
  * ISO 13818-3 MPEG-2 Audio Encoder - Lower Sampling Frequency Extension
  *
- * $Id: quantize.h,v 1.2 2001/06/01 20:52:37 wmaycisco Exp $
- *
- * $Log: quantize.h,v $
- * Revision 1.2  2001/06/01 20:52:37  wmaycisco
- * Sync to our latest code base.
- *
- * Revision 1.1  2001/04/24 20:45:54  dmackie
- * Import of lame 3.70
+ * $Id: quantize.h,v 1.3 2001/06/01 22:30:46 wmaycisco Exp $
  *
  * Revision 1.5  2000/03/21 23:02:17  markt
  * replaced all "gf." by gfp->

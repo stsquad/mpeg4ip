@@ -32,13 +32,6 @@
 
 	Change History (most recent first):
 
-	$Log: RelayPrefsSource.h,v $
-	Revision 1.3  2001/06/01 20:52:37  wmaycisco
-	Sync to our latest code base.
-	
-	Revision 1.1.1.1  2001/02/26 23:27:30  dmackie
-	Import of Apple Darwin Streaming Server 3 Public Preview
-	
 	Revision 1.1.1.1  2000/08/31 00:30:40  serenyi
 	Mothra Repository
 	

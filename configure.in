@@ -133,6 +133,7 @@ AC_OUTPUT( \
 	server/util/Makefile \
 	server/util/mp4encode/Makefile \
 	server/util/avi2raw/Makefile \
+	server/util/rgb2yuv/Makefile \
 	server/util/lboxcrop/Makefile \
 	server/util/mp4apkt/Makefile \
 	server/util/mp4vpkt/Makefile \
