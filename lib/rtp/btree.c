@@ -44,8 +44,8 @@ static int btree_count;
 static void
 btree_validate_node(btree_node_t *node, btree_node_t *parent)
 {
-	assert(node->magic  == BTREE_NODE_MAGIC);
-	assert(node->parent == parent);
+	ASSERT(node->magic  == BTREE_NODE_MAGIC);
+	ASSERT(node->parent == parent);
 	btree_count++;
 	if (node->left != NULL) {
 		btree_validate_node(node->left, node);
@@ -58,13 +58,13 @@ btree_validate_node(btree_node_t *node, btree_node_t *parent)
 static void
 btree_validate(btree_t *t)
 {
-	assert(t->magic == BTREE_MAGIC);
+	ASSERT(t->magic == BTREE_MAGIC);
 #ifdef DEBUG
 	btree_count = 0;
 	if (t->root != NULL) {
 		btree_validate_node(t->root, NULL);
 	}
-	assert(btree_count == t->count);
+	ASSERT(btree_count == t->count);
 #endif
 }
 
@@ -136,7 +136,7 @@ btree_insert_node(btree_t *tree, btree_node_t *z) {
         x = tree->root;
         while (x != NULL) {
                 y = x;
-                assert(z->key != x->key);
+                ASSERT(z->key != x->key);
                 if (z->key < x->key) {
                         x = x->left;
                 } else {

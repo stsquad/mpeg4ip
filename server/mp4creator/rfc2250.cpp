@@ -29,7 +29,7 @@
 void Rfc2250Hinter(
 	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId)
 {
-	u_int8_t payloadNumber = 14;
+	u_int8_t payloadNumber = 0; // use dynamic payload number
 
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
 		"MPA", &payloadNumber, 0);

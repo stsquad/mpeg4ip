@@ -826,11 +826,17 @@ static char *rtpinfo_parse_rtptime (char *rtpinfo,
 				    int &endofurl)
 {
   uint32_t rtptime;
+  int neg = 0;
   if (*rtpinfo != '=') {
     return (NULL);
   }
   rtpinfo++;
   ADV_SPACE(rtpinfo);
+  if (*rtpinfo == '-') {
+    neg = 1;
+    rtpinfo++;
+    ADV_SPACE(rtpinfo);
+  }
   rtpinfo = convert_number(rtpinfo, rtptime);
   ADV_SPACE(rtpinfo);
   if (*rtpinfo != '\0') {
@@ -840,6 +846,10 @@ static char *rtpinfo_parse_rtptime (char *rtpinfo,
       return (NULL);
     }
     rtpinfo++;
+  }
+  if (neg != 0) {
+    player_error_message("Warning - negative time returned in rtpinfo");
+    rtptime = 0 - rtptime;
   }
   m->set_rtp_rtptime(rtptime);
   return (rtpinfo);
@@ -1187,7 +1197,10 @@ int CPlayerMedia::recv_thread (void)
       }
       delete newmsg;
     }
-
+	if (receiving == 0) {
+		SDL_Delay(50);
+		continue;
+	}
     while (receiving == 1 && recv_thread_stop == 0) {
       if ((newmsg = m_rtp_msg_queue.get_message()) != NULL) {
 	//player_debug_message("recv thread message %d", newmsg->get_value());

@@ -103,18 +103,18 @@ static void mbus_validate(struct mbus *m)
 #ifdef DEBUG
 	int	i;
 
-	assert(m->num_other_addr <= m->max_other_addr);
-	assert(m->num_other_addr >= 0);
+	ASSERT(m->num_other_addr <= m->max_other_addr);
+	ASSERT(m->num_other_addr >= 0);
 	for (i = 0; i < m->num_other_addr; i++) {
-		assert(m->other_addr[i]  != NULL);
-		assert(m->other_hello[i] != NULL);
+		ASSERT(m->other_addr[i]  != NULL);
+		ASSERT(m->other_hello[i] != NULL);
 	}
 	for (i = m->num_other_addr + 1; i < m->max_other_addr; i++) {
-		assert(m->other_addr[i]  == NULL);
-		assert(m->other_hello[i] == NULL);
+		ASSERT(m->other_addr[i]  == NULL);
+		ASSERT(m->other_hello[i] == NULL);
 	}
 #endif
-	assert(m->magic == MBUS_MAGIC);
+	ASSERT(m->magic == MBUS_MAGIC);
 	xmemchk();
 }
 
@@ -123,21 +123,21 @@ static void mbus_msg_validate(struct mbus_msg *m)
 #ifdef DEBUG
 	int	i;
 
-	assert((m->num_cmds < MBUS_MAX_QLEN) && (m->num_cmds >= 0));
+	ASSERT((m->num_cmds < MBUS_MAX_QLEN) && (m->num_cmds >= 0));
 	for (i = 0; i < m->num_cmds; i++) {
-		assert(m->cmd_list[i] != NULL);
-		assert(m->arg_list[i] != NULL);
+		ASSERT(m->cmd_list[i] != NULL);
+		ASSERT(m->arg_list[i] != NULL);
 		if (i > 0) {
-			assert(m->idx_list[i] > m->idx_list[i-1]);
+			ASSERT(m->idx_list[i] > m->idx_list[i-1]);
 		}
 	}
 	for (i = m->num_cmds + 1; i < MBUS_MAX_QLEN; i++) {
-		assert(m->cmd_list[i] == NULL);
-		assert(m->arg_list[i] == NULL);
+		ASSERT(m->cmd_list[i] == NULL);
+		ASSERT(m->arg_list[i] == NULL);
 	}	
-	assert(m->dest != NULL);
+	ASSERT(m->dest != NULL);
 #endif
-	assert(m->magic == MBUS_MSG_MAGIC);
+	ASSERT(m->magic == MBUS_MSG_MAGIC);
 }
 
 static void store_other_addr(struct mbus *m, char *a)
@@ -267,7 +267,7 @@ static void mb_add_command(const char *cmnd, const char *args)
 {
 	int offset = strlen(cmnd) + strlen(args) + 5;
 
-	assert((mb_bufpos + offset - mb_buffer) < MBUS_BUF_SIZE);
+	ASSERT((mb_bufpos + offset - mb_buffer) < MBUS_BUF_SIZE);
 
 	sprintf(mb_bufpos, "%s (%s)\n", cmnd, args);
 	mb_bufpos += offset - 1; /* The -1 in offset means we're not NUL terminated - fix in mb_send */
@@ -282,16 +282,16 @@ static void mb_send(struct mbus *m)
 	mbus_validate(m);
 
 	*(mb_bufpos++) = '\0';
-	assert((mb_bufpos - mb_buffer) < MBUS_BUF_SIZE);
-	assert(strlen(mb_buffer) < MBUS_BUF_SIZE);
+	ASSERT((mb_bufpos - mb_buffer) < MBUS_BUF_SIZE);
+	ASSERT(strlen(mb_buffer) < MBUS_BUF_SIZE);
 
 	/* Pad to a multiple of 8 bytes, so the encryption can work... */
 	while (((mb_bufpos - mb_buffer) % 8) != 0) {
 		*(mb_bufpos++) = '\0';
 	}
 	len = mb_bufpos - mb_buffer;
-	assert(len < MBUS_BUF_SIZE);
-	assert(strlen(mb_buffer) < MBUS_BUF_SIZE);
+	ASSERT(len < MBUS_BUF_SIZE);
+	ASSERT(strlen(mb_buffer) < MBUS_BUF_SIZE);
 
 	xmemchk();
 	if (m->hashkey != NULL) {
@@ -304,9 +304,9 @@ static void mb_send(struct mbus *m)
 		/* Encrypt... */
 		memset(mb_cryptbuf, 0, MBUS_BUF_SIZE);
 		memcpy(mb_cryptbuf, mb_buffer, len);
-		assert((len % 8) == 0);
-		assert(len < MBUS_BUF_SIZE);
-		assert(m->encrkeylen == 8);
+		ASSERT((len % 8) == 0);
+		ASSERT(len < MBUS_BUF_SIZE);
+		ASSERT(m->encrkeylen == 8);
 		xmemchk();
 		qfDES_CBC_e(m->encrkey, mb_cryptbuf, len, initVec);
 		xmemchk();
@@ -471,7 +471,7 @@ struct mbus *mbus_init(void  (*cmd_handler)(char *src, char *cmd, char *arg, voi
 	}
 	m->addr = xstrdup(tmp);
 	mbus_parse_done(mp);
-	assert(m->addr != NULL);
+	ASSERT(m->addr != NULL);
 
 	gettimeofday(&(m->last_heartbeat), NULL);
 
@@ -519,7 +519,7 @@ void mbus_exit(struct mbus *m)
 {
         int i;
 
-        assert(m != NULL);
+        ASSERT(m != NULL);
 	mbus_validate(m);
 
 	mbus_qmsg(m, "()", "mbus.bye", "", FALSE);
@@ -571,7 +571,7 @@ void mbus_send(struct mbus *m)
 		/* more data piggybacked. However, if it's not complete it MUST be the last  */
 		/* in the list, or something has been reordered - which is bad.              */
 		if (!curr->complete) {
-			assert(curr->next == NULL);
+			ASSERT(curr->next == NULL);
 		}
 
 		if (curr->reliable) {
@@ -593,7 +593,7 @@ void mbus_send(struct mbus *m)
 		/* Create the message... */
 		mb_header(curr->seqnum, curr->comp_time.tv_sec, (char)(curr->reliable?'R':'U'), m->addr, curr->dest, -1);
 		for (i = 0; i < curr->num_cmds; i++) {
-			assert(m->index_sent == (curr->idx_list[i] - 1));
+			ASSERT(m->index_sent == (curr->idx_list[i] - 1));
 			m->index_sent = curr->idx_list[i];
 			mb_add_command(curr->cmd_list[i], curr->arg_list[i]);
 		}
@@ -634,7 +634,7 @@ void mbus_qmsg(struct mbus *m, const char *dest, const char *cmnd, const char *a
 		if (!curr->complete) {
 			/* This message is still open for new commands. It MUST be the last in the */
 			/* cmd_queue, else commands will be reordered.                             */
-			assert(curr->next == NULL);
+			ASSERT(curr->next == NULL);
 			if (mbus_addr_identical(curr->dest, dest) &&
 		            (curr->num_cmds < MBUS_MAX_QLEN) && ((curr->message_size + alen) < (MBUS_BUF_SIZE - 500))) {
 				curr->num_cmds++;
@@ -728,7 +728,7 @@ int mbus_recv(struct mbus *m, void *data, struct timeval *timeout)
 	loop_count = 0;
 	while (loop_count++ < 10) {
 		memset(buffer, 0, MBUS_BUF_SIZE);
-                assert(m->s != NULL);
+                ASSERT(m->s != NULL);
 		udp_fd_zero();
 		udp_fd_set(m->s);
 		t.tv_sec  = timeout->tv_sec;

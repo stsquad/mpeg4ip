@@ -301,7 +301,8 @@ typedef void *faacProgConfig;
 
 typedef struct faacDecConfiguration
 {
-	unsigned int dummy;
+  unsigned int defObjectType;
+  unsigned int defSampleRate;
 } faacDecConfiguration, *faacDecConfigurationPtr;
 
 typedef struct {
@@ -379,7 +380,7 @@ typedef struct {
 
 } faacDecStruct, *faacDecHandle;
 
-faacDecHandle FAADAPI faacDecOpen(int object_type, int sample_freq);
+faacDecHandle FAADAPI faacDecOpen(void);
 
 faacDecConfigurationPtr FAADAPI faacDecGetCurrentConfiguration(faacDecHandle hDecoder);
 
@@ -401,7 +402,8 @@ int FAADAPI faacDecDecode(faacDecHandle hDecoder,
 			  unsigned char *buffer,
 			  uint32_t buflen,
 			  unsigned long *bytesconsumed,
-			  short *sample_buffer);
+			  short *sample_buffer,
+			  unsigned long *samples);
 
 void FAADAPI faacDecClose(faacDecHandle hDecoder);
 

@@ -159,7 +159,7 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 		sdpMediaAudio.fmt = &sdpMediaAudioFormat;
 		memset(&sdpMediaAudioFormat, 0, sizeof(sdpMediaAudioFormat));
 		sdpMediaAudioFormat.media = &sdpMediaAudio;
-		sdpMediaAudioFormat.fmt = "14";
+		sdpMediaAudioFormat.fmt = "97";
 	
 		memset(&sdpAudioRtpMap, 0, sizeof(sdpAudioRtpMap));
 		sdpAudioRtpMap.encode_name = "MPA";

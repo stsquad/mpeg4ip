@@ -35,7 +35,7 @@ public:
 
 		m_audioDestAddress = NULL;
 		m_audioRtpSession = NULL;
-		m_audioPayloadNumber = 14;
+		m_audioPayloadNumber = 97;
 
 		m_videoDestAddress = NULL;
 		m_videoRtpSession = NULL;

@@ -157,7 +157,7 @@ void CMp4Recorder::DoStartRecord()
 			/ MP3_SAMPLES_PER_FRAME;
 
 		if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
-			m_audioPayloadNumber = 14;	// static payload for MPEG Audio
+			m_audioPayloadNumber = 0;	// dynamic payload
 
 			m_audioHintTrack = MP4AddHintTrack(m_mp4File, m_audioTrack);
 

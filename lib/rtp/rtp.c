@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.7 $ 
- * $Date: 2001/11/27 18:14:23 $
+ * $Revision: 1.8 $ 
+ * $Date: 2002/01/11 00:55:16 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -315,7 +315,7 @@ static int tv_gt(struct timeval a, struct timeval b)
 	if (a.tv_sec < b.tv_sec) {
 		return FALSE;
 	}
-	assert(a.tv_sec == b.tv_sec);
+	ASSERT(a.tv_sec == b.tv_sec);
 	return a.tv_usec > b.tv_usec;
 }
 
@@ -504,8 +504,8 @@ static const rtcp_rr* get_rr(struct rtp *session, uint32_t reporter_ssrc, uint32
 
 static void check_source(source *s)
 {
-	assert(s != NULL);
-	assert(s->magic == 0xc001feed);
+	ASSERT(s != NULL);
+	ASSERT(s->magic == 0xc001feed);
 }
 
 static void check_database(struct rtp *session)
@@ -518,8 +518,8 @@ static void check_database(struct rtp *session)
 	int	 	 source_count;
 	int		 chain;
 #endif
-	assert(session != NULL);
-	assert(session->magic == 0xfeedface);
+	ASSERT(session != NULL);
+	ASSERT(session->magic == 0xfeedface);
 #ifdef DEBUG
 	/* Check that we have a database entry for our ssrc... */
 	/* We only do this check if ssrc_count > 0 since it is */
@@ -531,7 +531,7 @@ static void check_database(struct rtp *session)
 				break;
 			}
 		}
-		assert(s != NULL);
+		ASSERT(s != NULL);
 	}
 
 	source_count = 0;
@@ -542,22 +542,26 @@ static void check_database(struct rtp *session)
 			check_source(s);
 			source_count++;
 			if (s->prev == NULL) {
-				assert(s == session->db[chain]);
+				ASSERT(s == session->db[chain]);
 			} else {
-				assert(s->prev->next == s);
+				ASSERT(s->prev->next == s);
 			}
 			if (s->next != NULL) {
-				assert(s->next->prev == s);
+				ASSERT(s->next->prev == s);
 			}
 			/* Check that the SR is for this source... */
 			if (s->sr != NULL) {
-				assert(s->sr->ssrc == s->ssrc);
+			  if (s->sr->ssrc != s->ssrc) {
+			    rtp_message(LOG_CRIT, "database error ssrc sr->ssrc is %d should be %d",
+					s->sr->ssrc, s->ssrc);
+				ASSERT(s->sr->ssrc == s->ssrc);
+			  }
 			}
 		}
 	}
 	/* Check that the number of entries in the hash table  */
 	/* matches session->ssrc_count                         */
-	assert(source_count == session->ssrc_count);
+	ASSERT(source_count == session->ssrc_count);
 #endif
 }
 
@@ -641,7 +645,7 @@ static void delete_source(struct rtp *session, uint32_t ssrc)
 	rtp_event	 event;
 	struct timeval	 event_ts;
 
-	assert(s != NULL);	/* Deleting a source which doesn't exist is an error... */
+	ASSERT(s != NULL);	/* Deleting a source which doesn't exist is an error... */
 
 	gettimeofday(&event_ts, NULL);
 
@@ -654,7 +658,7 @@ static void delete_source(struct rtp *session, uint32_t ssrc)
 			s->next->prev = NULL;
 		}
 	} else {
-		assert(s->prev != NULL);	/* Else it would be the first in the chain... */
+		ASSERT(s->prev != NULL);	/* Else it would be the first in the chain... */
 		s->prev->next = s->next;
 		if (s->next != NULL) {
 			s->next->prev = s->prev;
@@ -1188,7 +1192,7 @@ int rtp_set_my_ssrc(struct rtp *session, uint32_t ssrc)
  */
 int rtp_set_option(struct rtp *session, rtp_option optname, int optval)
 {
-	assert((optval == TRUE) || (optval == FALSE));
+	ASSERT((optval == TRUE) || (optval == FALSE));
 
 	switch (optname) {
 		case RTP_OPT_WEAK_VALIDATION:
@@ -2177,7 +2181,7 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 
 	check_database(session);
 
-	assert(data_len > 0);
+	ASSERT(data_len > 0);
 
 	buffer_len = data_len + 12 + (4 * cc);
 	if (extn != NULL) {
@@ -2194,7 +2198,7 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 		pad         = TRUE;
 		pad_len     = session->encryption_pad_length - (buffer_len % session->encryption_pad_length);
 		buffer_len += pad_len; 
-		assert((buffer_len % session->encryption_pad_length) == 0);
+		ASSERT((buffer_len % session->encryption_pad_length) == 0);
 	} else {
 		pad     = FALSE;
 		pad_len = 0;
@@ -2246,7 +2250,7 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 	/* Finally, encrypt if desired... */
 	if (session->encryption_enabled)
 	{
-		assert((buffer_len % session->encryption_pad_length) == 0);
+		ASSERT((buffer_len % session->encryption_pad_length) == 0);
 		(session->encrypt_func)(session, buffer + RTP_PACKET_HEADER_SIZE,
 					buffer_len, initVec); 
 	}
@@ -2414,7 +2418,7 @@ static uint8_t *format_rtcp_sr(uint8_t *buffer, int buflen, struct rtp *session,
 	rtcp_t		*packet = (rtcp_t *) buffer;
 	int		 remaining_length;
 
-	assert(buflen >= 28);	/* ...else there isn't space for the header and sender report */
+	ASSERT(buflen >= 28);	/* ...else there isn't space for the header and sender report */
 
 	packet->common.version = 2;
 	packet->common.p       = 0;
@@ -2445,7 +2449,7 @@ static uint8_t *format_rtcp_rr(uint8_t *buffer, int buflen, struct rtp *session)
 	rtcp_t		*packet = (rtcp_t *) buffer;
 	int		 remaining_length;
 
-	assert(buflen >= 8);	/* ...else there isn't space for the header */
+	ASSERT(buflen >= 8);	/* ...else there isn't space for the header */
 
 	packet->common.version = 2;
 	packet->common.p       = 0;
@@ -2498,7 +2502,7 @@ static uint8_t *format_rtcp_sdes(uint8_t *buffer, int buflen, uint32_t ssrc, str
 	size_t		 remaining_len;
         int              pad;
 
-	assert(buflen > (int) sizeof(rtcp_common));
+	ASSERT(buflen > (int) sizeof(rtcp_common));
 
 	common->version = 2;
 	common->p       = 0;
@@ -2584,8 +2588,8 @@ static uint8_t *format_rtcp_app(uint8_t *buffer, int buflen, uint32_t ssrc, rtcp
 	int          pkt_octets   = (app->length + 1) * 4;
 	int          data_octets  =  pkt_octets - 12;
 
-	assert(data_octets >= 0);          /* ...else not a legal APP packet.               */
-	assert(buflen      >  pkt_octets); /* ...else there isn't space for the APP packet. */
+	ASSERT(data_octets >= 0);          /* ...else not a legal APP packet.               */
+	ASSERT(buflen      >  pkt_octets); /* ...else there isn't space for the APP packet. */
 
 	/* Copy one APP packet from "app" to "packet". */
 	packet->version        =   RTP_VERSION;
@@ -2659,9 +2663,9 @@ static void send_rtcp(struct rtp *session,
 		while ((app = (*appcallback)(session, rtp_ts, RTP_MAX_PACKET_LEN - (ptr - buffer)))) {
 			lpt = ptr;
 			ptr = format_rtcp_app(ptr, RTP_MAX_PACKET_LEN - (ptr - buffer), rtp_my_ssrc(session), app);
-			assert(ptr > old_ptr);
+			ASSERT(ptr > old_ptr);
 			old_ptr = ptr;
-			assert(RTP_MAX_PACKET_LEN - (ptr - buffer) >= 0);
+			ASSERT(RTP_MAX_PACKET_LEN - (ptr - buffer) >= 0);
 		}
 	}
 
@@ -2679,7 +2683,7 @@ static void send_rtcp(struct rtp *session,
 				*(ptr++) = '\0';
 			}
 			*(ptr++) = (uint8_t) padlen;
-			assert(((ptr - buffer) % session->encryption_pad_length) == 0); 
+			ASSERT(((ptr - buffer) % session->encryption_pad_length) == 0); 
 
 			((rtcp_t *) lpt)->common.p = TRUE;
 			((rtcp_t *) lpt)->common.length = htons((int16_t)(((ptr - lpt) / 4) - 1));
@@ -2884,7 +2888,7 @@ static void rtp_send_bye_now(struct rtp *session)
 			common->p      = TRUE;
 			common->length = htons((int16_t)(((ptr - (uint8_t *) common) / 4) - 1));
 		}
-		assert(((ptr - buffer) % session->encryption_pad_length) == 0);
+		ASSERT(((ptr - buffer) % session->encryption_pad_length) == 0);
 		(session->encrypt_func)(session, buffer, ptr - buffer, initVec);
 	}
 	(session->rtcp_send)(session, buffer, ptr - buffer);

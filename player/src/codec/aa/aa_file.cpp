@@ -65,7 +65,7 @@ int create_media_for_aac_file (CPlayerSession *psptr,
    * least 1 frame to get the adts header.
    */
   faacDecHandle fInfo;
-  fInfo = faacDecOpen(AACMAIN, -1); // use defaults here...
+  fInfo = faacDecOpen(); // use defaults here...
 
   fbyte = new COurInByteStreamFile(name);
   if (fbyte == NULL) {

@@ -360,7 +360,7 @@ static void mbus_get_key(struct mbus_config *m, struct mbus_key *key, const char
 	int		 pos;
         int              linepos;
 
-	assert(m->cfg_locked);
+	ASSERT(m->cfg_locked);
 
 	if (lseek(m->cfgfd, 0, SEEK_SET) == -1) {
 		perror("Can't seek to start of config file");
@@ -401,7 +401,7 @@ static void mbus_get_key(struct mbus_config *m, struct mbus_key *key, const char
 			key->algorithm   = (char *) strdup(strtok(line+strlen(id), ",)"));
 			if (strcmp(key->algorithm, "NOENCR") != 0) {
 				key->key     = (char *) strtok(NULL  , ")");
-                                assert(key->key!=NULL);
+                                ASSERT(key->key!=NULL);
 				key->key_len = strlen(key->key);
 				tmp = (char *) xmalloc(key->key_len);
 				key->key_len = base64decode(key->key, key->key_len, tmp, key->key_len);
@@ -432,7 +432,7 @@ void mbus_get_encrkey(struct mbus_config *m, struct mbus_key *key)
 	int	 	 buflen = MBUS_BUF_SIZE;
 	char		*tmp;
 
-	assert(m->cfg_locked);
+	ASSERT(m->cfg_locked);
 	
 	/* Read the key from the registry... */
 	buffer = (char *) xmalloc(MBUS_BUF_SIZE);
@@ -442,8 +442,8 @@ void mbus_get_encrkey(struct mbus_config *m, struct mbus_key *key)
 		debug_msg("Unable to get encrkey: %s\n", buffer);
 		abort();
 	}
-	assert(type == REG_SZ);
-	assert(buflen > 0);
+	ASSERT(type == REG_SZ);
+	ASSERT(buflen > 0);
 
 	/* Parse the key... */
 	key->algorithm   = strdup(strtok(buffer+1, ",)"));
@@ -462,8 +462,8 @@ void mbus_get_encrkey(struct mbus_config *m, struct mbus_key *key)
 	mbus_get_key(m, key, "ENCRYPTIONKEY=(");
 #endif
 	if (strcmp(key->algorithm, "DES") == 0) {
-		assert(key->key != NULL);
-		assert(key->key_len == 8);
+		ASSERT(key->key != NULL);
+		ASSERT(key->key_len == 8);
 
 		/* check parity bits */
 		for (i = 0; i < 8; ++i) 
@@ -474,7 +474,7 @@ void mbus_get_encrkey(struct mbus_config *m, struct mbus_key *key)
 			j ^= j >> 2;
 			j ^= j >> 1;
 			j = (j & 1) ^ 1;
-			assert((key->key[i] & 0x01) == j);
+			ASSERT((key->key[i] & 0x01) == j);
 		}
 	}
 }
@@ -489,7 +489,7 @@ void mbus_get_hashkey(struct mbus_config *m, struct mbus_key *key)
 	int	 buflen = MBUS_BUF_SIZE;
 	char	*tmp;
 
-	assert(m->cfg_locked);
+	ASSERT(m->cfg_locked);
 	
 	/* Read the key from the registry... */
 	buffer = (char *) xmalloc(MBUS_BUF_SIZE);
@@ -499,8 +499,8 @@ void mbus_get_hashkey(struct mbus_config *m, struct mbus_key *key)
 		debug_msg("Unable to get encrkey: %s\n", buffer);
 		abort();
 	}
-	assert(type == REG_SZ);
-	assert(buflen > 0);
+	ASSERT(type == REG_SZ);
+	ASSERT(buflen > 0);
 
 	/* Parse the key... */
 	key->algorithm   = strdup(strtok(buffer+1, ","));
@@ -527,7 +527,7 @@ void mbus_get_net_addr(struct mbus_config *m, char *net_addr, uint16_t *net_port
 	int	 buflen = MBUS_BUF_SIZE;
 	uint32_t port;
 
-	assert(m->cfg_locked);
+	ASSERT(m->cfg_locked);
 	
 	/* Read the key from the registry... */
 	buffer = (char *) xmalloc(MBUS_BUF_SIZE);
@@ -538,8 +538,8 @@ void mbus_get_net_addr(struct mbus_config *m, char *net_addr, uint16_t *net_port
 		debug_msg("Unable to get address: %s\n", buffer);
 		strcpy(net_addr, MBUS_DEFAULT_NET_ADDR);
 	} else {
-		assert(type == REG_SZ);
-		assert(buflen > 0);
+		ASSERT(type == REG_SZ);
+		ASSERT(buflen > 0);
 		strncpy(net_addr, buffer, buflen);
 	}
 
@@ -550,8 +550,8 @@ void mbus_get_net_addr(struct mbus_config *m, char *net_addr, uint16_t *net_port
 		debug_msg("Unable to get port: %s\n", buffer);
 		*net_port  = MBUS_DEFAULT_NET_PORT;
 	} else {
-		assert(type == REG_DWORD);
-		assert(buflen == 4);
+		ASSERT(type == REG_DWORD);
+		ASSERT(buflen == 4);
 		*net_port = (uint16_t) port;
 	}
 
@@ -562,8 +562,8 @@ void mbus_get_net_addr(struct mbus_config *m, char *net_addr, uint16_t *net_port
 		debug_msg("Unable to get scope: %s\n", buffer);
 		*net_scope = MBUS_DEFAULT_SCOPE;
 	} else {
-		assert(type == REG_SZ);
-		assert(buflen > 0);
+		ASSERT(type == REG_SZ);
+		ASSERT(buflen > 0);
 		if (strncmp(buffer, SCOPE_HOSTLOCAL_NAME, strlen(SCOPE_HOSTLOCAL_NAME)) == 0) {
 			*net_scope = SCOPE_HOSTLOCAL;
 		} else if (strncmp(buffer, SCOPE_LINKLOCAL_NAME, strlen(SCOPE_LINKLOCAL_NAME)) == 0) {
@@ -586,7 +586,7 @@ void mbus_get_net_addr(struct mbus_config *m, char *net_addr, uint16_t *net_port
 	char            *addr;
 	uint16_t        port;
 
-	assert(m->cfg_locked);
+	ASSERT(m->cfg_locked);
 
 	addr = (char *)xmalloc(20);
 	memset(addr, 0, 20);
@@ -675,7 +675,7 @@ int mbus_get_version(struct mbus_config *m)
 	int		verl;
 	char		buffer[MBUS_BUF_SIZE];
 
-	assert(m->cfg_locked);
+	ASSERT(m->cfg_locked);
 	
 	/* Read the key from the registry... */
         verl = sizeof(&cver);
@@ -685,8 +685,8 @@ int mbus_get_version(struct mbus_config *m)
 		debug_msg("Unable to get version: %s\n", buffer);
 		return 0;
 	}
-	assert(type == REG_DWORD);
-	assert(verl == 4);
+	ASSERT(type == REG_DWORD);
+	ASSERT(verl == 4);
 	return cver;
 #else
 	struct stat	 s;
@@ -697,7 +697,7 @@ int mbus_get_version(struct mbus_config *m)
         int              linepos;
 	int		 version = 0;
 
-	assert(m->cfg_locked);
+	ASSERT(m->cfg_locked);
 
 	if (lseek(m->cfgfd, 0, SEEK_SET) == -1) {
 		perror("Can't seek to start of config file");

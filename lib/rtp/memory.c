@@ -2,8 +2,8 @@
  * FILE:    memory.c
  * AUTHORS:  Isidor Kouvelas / Colin Perkins / Mark Handley / Orion Hodson
  *
- * $Revision: 1.2 $
- * $Date: 2001/10/11 20:39:03 $
+ * $Revision: 1.3 $
+ * $Date: 2002/01/11 00:55:16 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -97,7 +97,7 @@ void xdoneinit(void)
 static int chk_header_okay(const chk_header *ch)
 {
         const uint8_t *tm; /* tail magic */
-        assert(ch != NULL);
+        ASSERT(ch != NULL);
 
         if (ch->key == MAGIC_MEMORY) {
                 fprintf(stderr, "ERROR: freed unit being checked\n");
@@ -434,8 +434,8 @@ _xmalloc(unsigned size, const char *filen, int line)
 
         p = (void*) malloc (size + sizeof(chk_header) + MAGIC_MEMORY_SIZE);
 
-	assert(p     != NULL);
-	assert(filen != NULL);
+	ASSERT(p     != NULL);
+	ASSERT(filen != NULL);
 
         /* Fix block header */
         ch = (chk_header*)p;
@@ -490,8 +490,8 @@ _xrealloc(void *p, unsigned size, const char *filen, int line)
         chk_header *ch;
         uint8_t    *t;
        
-        assert(p     != NULL);
-        assert(filen != NULL);
+        ASSERT(p     != NULL);
+        ASSERT(filen != NULL);
 	
         ch = ((chk_header*) p) - 1;
         m  = mem_item_find(ch->key);

@@ -43,13 +43,13 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib \
 	-I$(top_srcdir)/server/audio/lame \
-	-I$(top_srcdir)/server/video/divx \
 	-I$(top_srcdir)/server/video/ffmpeg \
+	-I$(top_srcdir)/server/video/divx \
 	-I$(top_srcdir)/player/lib
 
-AM_CFLAGS= -DMPEG4IP -D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
+AM_CFLAGS= -DMPEG4IP -DADD_FFMPEG_ENCODER -D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
-AM_CXXFLAGS = -DMPEG4IP -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
+AM_CXXFLAGS = -DMPEG4IP -DADD_FFMPEG_ENCODER -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
 LDADD = \
 	$(top_builddir)/server/mp4live/gui/liblive_gui.la \

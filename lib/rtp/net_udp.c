@@ -366,10 +366,10 @@ static int udp_send4(socket_udp *s, char *buffer, int buflen)
 {
 	struct sockaddr_in	s_in;
 	
-	assert(s != NULL);
-	assert(s->mode == IPv4);
-	assert(buffer != NULL);
-	assert(buflen > 0);
+	ASSERT(s != NULL);
+	ASSERT(s->mode == IPv4);
+	ASSERT(buffer != NULL);
+	ASSERT(buflen > 0);
 	
 	s_in.sin_family      = AF_INET;
 	s_in.sin_addr.s_addr = s->addr4.s_addr;
@@ -383,10 +383,10 @@ static int udp_send_iov4(socket_udp *s, struct iovec *iov, int count)
 	struct sockaddr_in	s_in;
 	struct msghdr 		msg;
 	
-	assert(s != NULL);
-	assert(s->mode == IPv4);
-	assert(iov != NULL);
-	assert(count > 0);
+	ASSERT(s != NULL);
+	ASSERT(s->mode == IPv4);
+	ASSERT(iov != NULL);
+	ASSERT(count > 0);
 	
 	s_in.sin_family      = AF_INET;
 	s_in.sin_addr.s_addr = s->addr4.s_addr;
@@ -417,7 +417,7 @@ static char *udp_host_addr4(void)
 		socket_error("Can't resolve IP address for %s", hname);
 		return NULL;
 	}
-	assert(hent->h_addrtype == AF_INET);
+	ASSERT(hent->h_addrtype == AF_INET);
 	memcpy(&iaddr.s_addr, hent->h_addr, sizeof(iaddr.s_addr));
 	strncpy(hname, inet_ntoa(iaddr), MAXHOSTNAMELEN);
 	return xstrdup(hname);
@@ -525,7 +525,7 @@ static socket_udp *udp_init6(const char *addr, const char *iface, uint16_t rx_po
 		}
 	}
 
-	assert(s != NULL);
+	ASSERT(s != NULL);
 
         s->addr = strdup(addr);
 	return s;
@@ -570,10 +570,10 @@ static int udp_send6(socket_udp *s, char *buffer, int buflen)
 #ifdef HAVE_IPv6
 	struct sockaddr_in6	s_in;
 	
-	assert(s != NULL);
-	assert(s->mode == IPv6);
-	assert(buffer != NULL);
-	assert(buflen > 0);
+	ASSERT(s != NULL);
+	ASSERT(s->mode == IPv6);
+	ASSERT(buffer != NULL);
+	ASSERT(buflen > 0);
 	
 	memset((char *)&s_in, 0, sizeof(s_in));
 	s_in.sin6_family = AF_INET6;
@@ -598,10 +598,10 @@ static int udp_send_iov6(socket_udp *s, struct iovec *iov, int count)
 	struct sockaddr_in6	s_in;
 	struct msghdr msg;
 	
-	assert(s != NULL);
-	assert(s->mode == IPv6);
-	assert(buffer != NULL);
-	assert(buflen > 0);
+	ASSERT(s != NULL);
+	ASSERT(s->mode == IPv6);
+	ASSERT(buffer != NULL);
+	ASSERT(buflen > 0);
 	
 	memset((char *)&s_in, 0, sizeof(s_in));
 	s_in.sin6_family = AF_INET6;
@@ -821,8 +821,8 @@ int udp_recv(socket_udp *s, char *buffer, int buflen)
 	/* we receive, this function becomes protocol independent.           */
 	int		len;
 
-	assert(buffer != NULL);
-	assert(buflen > 0);
+	ASSERT(buffer != NULL);
+	ASSERT(buflen > 0);
 
 	len = recvfrom(s->fd, buffer, buflen, 0, 0, 0);
 	if (len > 0) {

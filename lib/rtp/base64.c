@@ -62,7 +62,7 @@ int base64encode(const unsigned char *input, int input_length, unsigned char *ou
 	int	i = 0, j = 0;
 	int	pad;
 
-	assert(output_length >= (input_length * 4 / 3));
+	ASSERT(output_length >= (input_length * 4 / 3));
 
 	while (i < input_length) {
 		pad = 3 - (input_length - i);
@@ -107,8 +107,8 @@ int base64decode(const unsigned char *input, int input_length, unsigned char *ou
 	int		i = 0, j = 0, pad;
 	unsigned char	c[4];
 
-	assert(output_length >= (input_length * 3 / 4));
-	assert((input_length % 4) == 0);
+	ASSERT(output_length >= (input_length * 3 / 4));
+	ASSERT((input_length % 4) == 0);
 	while ((i + 3) < input_length) {
 		pad  = 0;
 		c[0] = char64(input[i  ]); pad += (c[0] == 0xff);

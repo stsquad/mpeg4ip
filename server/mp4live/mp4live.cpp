@@ -95,10 +95,6 @@ int main(int argc, char** argv)
 		}
 
 		pConfig->m_appAutomatic = automatic;
-
-#ifndef USE_DIVX_ENCODER
-		pConfig->SetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER, false);
-#endif
 	} 
 	catch (CConfigException* e) {
 		delete e;

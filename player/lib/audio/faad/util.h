@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: util.h,v 1.1 2001/06/28 23:54:22 wmaycisco Exp $
+ * $Id: util.h,v 1.2 2002/01/11 00:55:17 wmaycisco Exp $
  */
 
 #ifndef _UTIL_H_
@@ -31,7 +31,8 @@ int stringcmp(char const *str1, char const *str2, unsigned long len);
 #ifdef WIN32
 #define AllocMemory(size) LocalAlloc(LPTR, size)
 #define FreeMemory(block) LocalFree(block)
-#define SetMemory(block, value, size) FillMemory(block, size, value)
+//#define SetMemory(block, value, size) FillMemory(block, size, value)
+#define SetMemory(block, value, size) memset(block, value, size)
 #else
 #define AllocMemory(size) malloc(size)
 #define FreeMemory(block) free(block)

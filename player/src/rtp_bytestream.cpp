@@ -369,8 +369,8 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	  m_buffering = 1;
 #if 1
 	  rtp_message(LOG_INFO, 
-		      "buffering complete - seq %d head %u tail %u "LLU, 
-		      m_head->rtp_pak_seq,
+		      "%s buffering complete - seq %d head %u tail %u "LLU, 
+		      m_name, m_head->rtp_pak_seq,
 		      head_ts, tail_ts, calc);
 #endif
 	  
@@ -410,7 +410,8 @@ const char *CRtpByteStreamBase::get_throw_error (int error)
     break;
   }
   rtp_message(LOG_DEBUG, 
-	      "RTP bytestream base - unknown throw error %d", error);
+	      "%s RTP bytestream base - unknown throw error %d", 
+	      m_name, error);
   return "Unknown Error";
 }
 
@@ -483,11 +484,11 @@ uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer,
 	if ((seq != rpak->rtp_pak_seq) ||
 	    (ts != rpak->rtp_pak_ts)) {
 	  if (seq != rpak->rtp_pak_seq) {
-	    rtp_message(LOG_INFO, "Missing rtp sequence - should be %u is %u", 
-			seq, rpak->rtp_pak_seq);
+	    rtp_message(LOG_INFO, "%s missing rtp sequence - should be %u is %u", 
+			m_name, seq, rpak->rtp_pak_seq);
 	  } else {
-	    rtp_message(LOG_INFO, "Timestamp error - seq %u should be %x is %x", 
-			seq, ts, rpak->rtp_pak_ts);
+	    rtp_message(LOG_INFO, "%s timestamp error - seq %u should be %x is %x", 
+			m_name, seq, ts, rpak->rtp_pak_ts);
 	  }
 	  m_buffer_len = 0;
 	  ts = rpak->rtp_pak_ts;

@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.5 $
- *  $Date: 2001/12/11 18:12:04 $
+ *  $Revision: 1.6 $
+ *  $Date: 2002/01/11 00:55:16 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -111,8 +111,9 @@ typedef unsigned long	in_addr_t;
 //#define NEED_GETTIMEOFDAY
 
 #ifdef NDEBUG
-#define assert(x) if ((x) == 0) fprintf(stderr, "%s:%u: failed assertion\n", __FILE__, __LINE__)
+#define ASSERT(x) if ((x) == 0) fprintf(stderr, "%s:%u: failed assertion\n", __FILE__, __LINE__)
 #else
+#define ASSERT assert
 #include <assert.h>
 #endif
 

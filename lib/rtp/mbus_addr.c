@@ -47,8 +47,8 @@ int mbus_addr_match(const char *a, const char *b)
 	/* is a match if every word of address b is in address a.     */
 	const char	*y = NULL; 
 
-	assert(a != NULL);
-	assert(b != NULL);
+	ASSERT(a != NULL);
+	ASSERT(b != NULL);
 
 	/* Skip leading whitespace and '('... */
 	while (isspace((unsigned char)*a) || (*a == '(')) a++;

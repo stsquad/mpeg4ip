@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	ENC_FRAME encFrame;
 	ENC_RESULT encResult;
 	u_int32_t yuvSize;
-	u_int8_t encVopBuffer[64 * 1024];
+	u_int8_t encVopBuffer[128 * 1024];
 	u_int32_t frameNumber = 0;
 	time_t startTime;
 

@@ -60,7 +60,7 @@ struct mbus_parser *mbus_parse_init(char *str)
 
 void mbus_parse_done(struct mbus_parser *m)
 {
-	assert(m->magic == MBUS_PARSER_MAGIC);
+	ASSERT(m->magic == MBUS_PARSER_MAGIC);
 	xfree(m);
 }
 
@@ -74,7 +74,7 @@ int mbus_parse_lst(struct mbus_parser *m, char **l)
 	int instr = FALSE;
 	int inlst = FALSE;
 
-	assert(m->magic == MBUS_PARSER_MAGIC);
+	ASSERT(m->magic == MBUS_PARSER_MAGIC);
 
         while (isspace((unsigned char)*m->buffer)) {
                 m->buffer++;
@@ -110,7 +110,7 @@ int mbus_parse_lst(struct mbus_parser *m, char **l)
 
 int mbus_parse_str(struct mbus_parser *m, char **s)
 {
-	assert(m->magic == MBUS_PARSER_MAGIC);
+	ASSERT(m->magic == MBUS_PARSER_MAGIC);
 
         while (isspace((unsigned char)*m->buffer)) {
                 m->buffer++;
@@ -135,7 +135,7 @@ int mbus_parse_str(struct mbus_parser *m, char **s)
 
 int mbus_parse_sym(struct mbus_parser *m, char **s)
 {
-	assert(m->magic == MBUS_PARSER_MAGIC);
+	ASSERT(m->magic == MBUS_PARSER_MAGIC);
 
         while (isspace((unsigned char)*m->buffer)) {
                 m->buffer++;
@@ -159,7 +159,7 @@ int mbus_parse_int(struct mbus_parser *m, int *i)
 {
 	char	*p;
 
-	assert(m->magic == MBUS_PARSER_MAGIC);
+	ASSERT(m->magic == MBUS_PARSER_MAGIC);
 
         while (isspace((unsigned char)*m->buffer)) {
                 m->buffer++;
@@ -187,7 +187,7 @@ int mbus_parse_flt(struct mbus_parser *m, double *d)
 {
 	char	*p;
 
-	assert(m->magic == MBUS_PARSER_MAGIC);
+	ASSERT(m->magic == MBUS_PARSER_MAGIC);
 
         while (isspace((unsigned char)*m->buffer)) {
                 m->buffer++;
@@ -217,8 +217,8 @@ char *mbus_decode_str(char *s)
 	int	i, j;
 
 	/* Check that this an encoded string... */
-	assert(s[0]   == '\"');
-	assert(s[l-1] == '\"');
+	ASSERT(s[0]   == '\"');
+	ASSERT(s[l-1] == '\"');
 
 	for (i=1,j=0; i < l - 1; i++,j++) {
 		if (s[i] == '\\') {

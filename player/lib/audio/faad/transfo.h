@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: transfo.h,v 1.3 2001/06/28 23:54:22 wmaycisco Exp $
+ * $Id: transfo.h,v 1.4 2002/01/11 00:55:17 wmaycisco Exp $
  */
 
 #ifndef TRANSFORM_H
@@ -37,9 +37,9 @@ typedef struct {
 #define c_re(c)  ((c).re)
 #define c_im(c)  ((c).im)
 
-#define DEFINE_PFFTW(size)			\
- void pfftwi_##size(fftw_complex *input);	\
- void pfftw_##size(fftw_complex *input);	\
+#define DEFINE_PFFTW(size)          \
+ void pfftwi_##size(fftw_complex *input);   \
+ void pfftw_##size(fftw_complex *input);    \
  int  pfftw_permutation_##size(int i);
 
 DEFINE_PFFTW(16)
@@ -55,4 +55,4 @@ void IMDCT_Short(faacDecHandle hDecoder, fftw_real *data);
 void MDCT_Long(faacDecHandle hDecoder, fftw_real *data);
 void MDCT_Short(faacDecHandle hDecoder, fftw_real *data);
 
-#endif	  /*	TRANSFORM_H		*/
+#endif    /*    TRANSFORM_H     */

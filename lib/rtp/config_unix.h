@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.4 $
- *  $Date: 2001/11/13 23:58:16 $
+ *  $Revision: 1.5 $
+ *  $Date: 2002/01/11 00:55:16 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -162,10 +162,11 @@ typedef int	fd_t;
 #define min(a, b)	(((a) < (b))? (a): (b))
 #endif
 
-#ifdef NDEBUG
-#define assert(x) if ((x) == 0) fprintf(stderr, "%s:%u: failed assertion\n", __FILE__, __LINE__)
+#if 1
+#define ASSERT(x) if ((x) == 0) fprintf(stderr, "%s:%u: failed assertion\n", __FILE__, __LINE__)
 #else
 #include <assert.h>
+#define ASSERT assert
 #endif
 
 #ifdef Solaris

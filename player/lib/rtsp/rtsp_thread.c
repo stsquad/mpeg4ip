@@ -322,7 +322,7 @@ static int rtsp_thread (void *data)
 		     ((unsigned char *)rtp_ptr) + RTP_PACKET_HEADER_SIZE + rtp_len_gotten,
 		     rtp_len - rtp_len_gotten,
 		     0);
-	  rtsp_debug(LOG_DEBUG, "got %d more", ret);
+	  //rtsp_debug(LOG_DEBUG, "got %d more", ret);
 	  rtp_len_gotten += ret;
 	  if (rtp_len_gotten == rtp_len) {
 	    callback_for_rtp_packet(info, header[0], rtp_ptr, rtp_len);
@@ -349,7 +349,7 @@ static int rtsp_thread (void *data)
 	    ret = recv(info->server_socket, header, sizeof(header), 0);
 	    if (ret != sizeof(header)) continue;
 	    rtp_len = (header[1] << 8) | header[2];
-	    rtsp_debug(LOG_DEBUG, "RTP pak - %d len %d", header[0], rtp_len);
+	    //rtsp_debug(LOG_DEBUG, "RTP pak - %d len %d", header[0], rtp_len);
 	    /*
 	     * Start to receive the data packet - might not get the whole
 	     * thing
@@ -359,7 +359,7 @@ static int rtsp_thread (void *data)
 				  ((unsigned char *)rtp_ptr) + RTP_PACKET_HEADER_SIZE,
 				  rtp_len,
 				  0);
-	    rtsp_debug(LOG_DEBUG, "recvd %d", rtp_len_gotten);
+	    //rtsp_debug(LOG_DEBUG, "recvd %d", rtp_len_gotten);
 	    if (rtp_len_gotten == rtp_len) {
 	      callback_for_rtp_packet(info, header[0], rtp_ptr, rtp_len);
 	      rtp_ptr = NULL;

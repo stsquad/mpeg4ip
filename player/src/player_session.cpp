@@ -335,6 +335,11 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
       free_decode_response(decode);
       return (-1);
     }
+    if (decode->rtp_info == NULL) {
+      player_error_message("No rtp info field");
+    } else {
+      player_debug_message("rtp info is \'%s\'", decode->rtp_info);
+    }
     int ret = process_rtsp_rtpinfo(decode->rtp_info, this, NULL);
     free_decode_response(decode);
     if (ret < 0) {

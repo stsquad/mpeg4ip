@@ -176,7 +176,7 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
       if (m_fullscreen != 0) {
 	mask |= SDL_FULLSCREEN;
 #ifdef _WIN32
-	video_scale = MIN(video_scale, 2);
+	video_scale = 2;
 #endif
       }
       int w = m_width * video_scale / 2;
@@ -646,7 +646,7 @@ void CVideoSync::do_video_resize (void)
   if (m_fullscreen != 0) {
     mask |= SDL_FULLSCREEN;
 #ifdef _WIN32
-	video_scale = MIN(2, video_scale);
+	video_scale = 2;
 #endif
   }
 

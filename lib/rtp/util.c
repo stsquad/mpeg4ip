@@ -3,8 +3,8 @@
  * PROGRAM: RAT
  * AUTHOR: Isidor Kouvelas + Colin Perkins + Mark Handley + Orion Hodson
  * 
- * $Revision: 1.2 $
- * $Date: 2001/10/11 20:39:03 $
+ * $Revision: 1.3 $
+ * $Date: 2002/01/11 00:55:16 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -84,8 +84,8 @@ _block_alloc(unsigned int size, const char *filen, int line)
 	unsigned int 	*c;
 	char        	*p;
 
-	assert(size > 0);
-	assert(size < MAX_SIZE);
+	ASSERT(size > 0);
+	ASSERT(size < MAX_SIZE);
 
 	i = SIZE_TO_INDEX(size);
  
@@ -120,7 +120,7 @@ _block_alloc(unsigned int size, const char *filen, int line)
 #endif /* DEBUG_MEM */
 	c++;
 	*c = size;
-	assert(p != NULL);
+	ASSERT(p != NULL);
 	return (void*)p;
 }
 
@@ -136,13 +136,13 @@ block_trash_check()
                 n = 0;
                 while(b) {
                         b = b->next;
-                        assert(n++ < blocks_alloced);
+                        ASSERT(n++ < blocks_alloced);
                 }
         }
         for (i = 0; i<nblks_out; i++) {
                 c = (int*)blk_out[i].iov_base;
                 c++;
-                assert((unsigned int)*c == (unsigned int)blk_out[i].iov_len);
+                ASSERT((unsigned int)*c == (unsigned int)blk_out[i].iov_len);
         }
 #endif  /* DEBUG_MEM */
 }
@@ -152,9 +152,9 @@ block_check(char *p)
 {
 #ifdef DEBUG_MEM
         char *blk_base;
-        assert(p!=NULL);
+        ASSERT(p!=NULL);
         blk_base = p-8;
-        assert(get_blk_idx_from_ptr(blk_base) != -1);
+        ASSERT(get_blk_idx_from_ptr(blk_base) != -1);
 #endif /* DEBUG_MEM */
         UNUSED(p);
 }
@@ -176,7 +176,7 @@ _block_free(void *p, int size, int line)
         if (n == -1) {
                 debug_msg("Freeing block (addr 0x%x, %d bytes) that was not allocated with block_alloc(?)\n", (int)c, *(c+1));
                 xfree(c);
-                assert(n != -1);
+                ASSERT(n != -1);
         }
 #endif
 
@@ -186,7 +186,7 @@ _block_free(void *p, int size, int line)
 	c++;
 	if (size != *c) {
 		fprintf(stderr, "block_free: Incorrect block size given! %d %d\n", size, *c);
-		assert(size == *c);
+		ASSERT(size == *c);
 	}
  
 	i = SIZE_TO_INDEX(size);
@@ -196,7 +196,7 @@ _block_free(void *p, int size, int line)
         while(bp) {
                 if (bp == (block*)p) {
                         debug_msg("already freed line %d\n", *((int *)p+1));
-                        assert(0);
+                        ASSERT(0);
                 }
                 bp = bp->next;
                 n++;
@@ -210,7 +210,7 @@ _block_free(void *p, int size, int line)
 #ifdef DEBUG_MEM
         c--;
         i = get_blk_idx_from_ptr((char*)c);
-        assert(i != -1);
+        ASSERT(i != -1);
         memmove(blk_out+i, blk_out + i + 1, sizeof(struct iovec) * (nblks_out - i)); 
         nblks_out --;
 #endif /* DEBUG_MEM */
@@ -312,7 +312,7 @@ int strfind(const char *haystack, const char *needle_start, const char *needle_e
 	/* Paranoia check that memory between needle_start and needle_end */
 	/* is a valid string, and doesn't contain a zero byte.            */
 	for (n = needle_start; n != needle_end; n++) {
-		assert(*n != '\0');
+		ASSERT(*n != '\0');
 	}
 #endif
 

@@ -1,4 +1,5 @@
 /************************************************************************
+
 This software module was originally developed by
 Nokia in the course of development of the MPEG-2 AAC/MPEG-4 
 Audio standard ISO/IEC13818-7, 14496-1, 2 and 3.

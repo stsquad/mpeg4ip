@@ -9,7 +9,7 @@
  
 #ifndef HIDE_SOURCE_STRINGS
 static const char cvsid[] = 
-	"$Id: asarray.c,v 1.1 2001/08/01 00:34:01 wmaycisco Exp $";
+	"$Id: asarray.c,v 1.2 2002/01/11 00:55:16 wmaycisco Exp $";
 #endif /* HIDE_SOURCE_STRINGS */
 
 #include "config_unix.h"
@@ -90,7 +90,7 @@ asarray_remove(asarray *pa, const char *key)
                         xfree(e->value);
                         xfree(e);
                         pa->nitems[row]--;
-                        assert(pa->nitems[row] >= 0);
+                        ASSERT(pa->nitems[row] >= 0);
                         break;
                 } else {
                         t = &(*t)->next;
@@ -113,7 +113,7 @@ asarray_get_key_no(asarray *pa, int32_t index)
                 hash_tuple *t;
                 t = pa->table[row];
                 while(--index > 0) {
-                        assert(t->next != NULL);
+                        ASSERT(t->next != NULL);
                         t = t->next;
                 }
                 return t->key;
@@ -165,7 +165,7 @@ asarray_destroy(asarray **ppa)
         const char *key;
 
         pa = *ppa;
-        assert(pa != NULL);
+        ASSERT(pa != NULL);
 
         while ((key = asarray_get_key_no(pa, 0)) != NULL) {
                 asarray_remove(pa, key);

@@ -35,6 +35,11 @@
 #define SECAM_INT_FPS	25
 #define MAX_INT_FPS		NTSC_INT_FPS
 
+// values for m_encoder, int versions of encoder string names
+#define USE_FFMPEG		1
+#define USE_DIVX		2
+#define USE_XVID		3
+
 void CalculateVideoFrameSize(CLiveConfig* pConfig);
 
 class CVideoSource : public CMediaSource {
@@ -46,10 +51,16 @@ public:
 		m_videoMap = NULL;
 		m_videoFrameMap = NULL;
 		m_wantKeyFrame = false;
-		m_divxHandle = 1;
 		m_sdlScreen = NULL;
 		m_sdlImage = NULL;
 		m_maxVopSize = 128 * 1024;
+		m_encoder = 0;
+#ifdef ADD_DIVX_ENCODER
+		m_divxHandle = 1;
+#endif
+#ifdef ADD_XVID_ENCODER
+		m_xvidHandle = NULL;
+#endif
 	}
 
 	void StartCapture(void) {
@@ -105,7 +116,16 @@ protected:
 	bool InitDevice(void);
 	void InitSampleFrames(u_int16_t targetFps, u_int16_t rawFps);
 	void InitSizes(void);
+
 	bool InitEncoder(void);
+	bool InitFfmpegEncoder(void);
+	bool InitDivxEncoder(void);
+	bool InitXvidEncoder(void);
+
+	void StopEncoder(void);
+	void StopFfmpegEncoder(void);
+	void StopDivxEncoder(void);
+	void StopXvidEncoder(void);
 
 	void ProcessVideo(void);
 
@@ -161,9 +181,19 @@ protected:
 	u_int32_t			m_prevVopBufLength;
 	Timestamp			m_prevVopTimestamp;
 
-	u_int32_t			m_divxHandle;
+	u_int8_t			m_encoder;
 
+#ifdef ADD_FFMPEG_ENCODER
 	AVEncodeContext		m_avctx;
+#endif
+
+#ifdef ADD_DIVX_ENCODER
+	u_int32_t			m_divxHandle;
+#endif
+
+#ifdef ADD_XVID_ENCODER
+	void*				m_xvidHandle;
+#endif
 
 	SDL_Surface*		m_sdlScreen;
 	SDL_Rect			m_sdlScreenRect;

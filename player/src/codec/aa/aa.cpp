@@ -112,7 +112,11 @@ CAACodec::CAACodec (CAudioSync *a,
   }
 
   aa_message(LOG_INFO,"AAC object type is %d", m_object_type);
-  m_info = faacDecOpen(m_object_type, m_freq);
+  m_info = faacDecOpen();
+  faacDecConfiguration config;
+  config.defObjectType = m_object_type;
+  config.defSampleRate = m_freq;
+  faacDecSetConfiguration(m_info, &config);
   m_msec_per_frame = m_output_frame_size;
   m_msec_per_frame *= M_LLU;
   m_msec_per_frame /= m_freq;
@@ -226,11 +230,13 @@ int CAACodec::decode (uint64_t rtpts,
     }
 
     unsigned long bytes_consummed;
+    unsigned long samples;
     bits = faacDecDecode(m_info,
 			 buffer, 
 			 buflen,
 			 &bytes_consummed,
-			 (short *)buff);
+			 (short *)buff, 
+			 &samples);
     m_bytestream->used_bytes_for_frame(bytes_consummed);
     switch (bits) {
     case FAAD_OK_CHUPDATE:

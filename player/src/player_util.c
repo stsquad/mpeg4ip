@@ -32,7 +32,7 @@
 
 #include "player_util.h"
 
-#if _WIN32 && _DEBUG
+#if _WIN32
 #include "SDL.h"
 #include "SDL_thread.h"
 
@@ -56,7 +56,8 @@ static void unlock_mutex(void)
 void player_error_message (const char *fmt, ...)
 {
   va_list ap;
-#if _WIN32 && _DEBUG
+#if _WIN32
+  if (IsDebuggerPresent()) {
         char msg[512];
 
 		if (initialized == 0) init_local_mutex();
@@ -67,6 +68,8 @@ void player_error_message (const char *fmt, ...)
         OutputDebugString(msg);
 		OutputDebugString("\n");
 		unlock_mutex();
+		return;
+	}
 #else
   struct timeval thistime;
   time_t secs;
@@ -88,7 +91,8 @@ void player_error_message (const char *fmt, ...)
 void player_debug_message (const char *fmt, ...)
 {
   va_list ap;
-#if _WIN32 && _DEBUG
+#if _WIN32 
+  if (IsDebuggerPresent()) {
        char msg[512];
 
 	   if (initialized== 0) init_local_mutex();
@@ -99,6 +103,8 @@ void player_debug_message (const char *fmt, ...)
         OutputDebugString(msg);
 		OutputDebugString("\n");
 		unlock_mutex();
+		return;
+	}
 #else
   struct timeval thistime;
   time_t secs;
@@ -120,7 +126,8 @@ void player_debug_message (const char *fmt, ...)
 void message (int loglevel, const char *lib, const char *fmt, ...)
 {
   va_list ap;
-#if _WIN32 && _DEBUG
+#if _WIN32
+  if (IsDebuggerPresent()) {
        char msg[512];
 
 	   if (initialized == 0) init_local_mutex();
@@ -131,6 +138,8 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
         OutputDebugString(msg);
 	OutputDebugString("\n");
 	unlock_mutex();
+	return;
+  }
 #else
   struct timeval thistime;
   time_t secs;
@@ -154,7 +163,8 @@ void player_library_message (int loglevel,
 			     const char *fmt,
 			     va_list ap)
 {
-#if _WIN32 && _DEBUG
+#if _WIN32
+	if (IsDebuggerPresent()) {
   char msg[512];
 
   if (initialized == 0) init_local_mutex();
@@ -167,6 +177,8 @@ void player_library_message (int loglevel,
   OutputDebugString(msg);
   OutputDebugString("\n");
   unlock_mutex();
+  return;
+	}
 #else
   struct timeval thistime;
   time_t secs;

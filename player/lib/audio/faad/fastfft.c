@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: fastfft.c,v 1.3 2001/06/28 23:54:22 wmaycisco Exp $
+ * $Id: fastfft.c,v 1.4 2002/01/11 00:55:17 wmaycisco Exp $
  */
 
 #include "fastfft.h"
@@ -397,7 +397,7 @@ static fftw_complex PFFTW(W_512)[254] = {
 { -0.999698818696204, 0.0245412285229123 },
 };
 ///////////////////////////////////////////////////////////////
-// wmay - removed static
+
 void PFFTW(16) (fftw_complex * input) {
      fftw_real tmp332;
      fftw_real tmp331;
@@ -705,7 +705,6 @@ void PFFTW(16) (fftw_complex * input) {
      c_im(input[14]) = st8;
 }
 
-//wmay - removed static 
 void PFFTW(32) (fftw_complex * input) {
      fftw_real tmp714;
      fftw_real tmp713;
@@ -1498,7 +1497,6 @@ void  PFFTW(64)(fftw_complex *input)
      PFFTW(16)(input + 48);
 }
 
-// wmay - removed static
 void PFFTW(128)(fftw_complex *input)
 {
      PFFTW(twiddle_4)(input, PFFTW(W_128), 32);
@@ -1517,7 +1515,6 @@ void PFFTW(512)(fftw_complex *input)
      PFFTW(128)(input + 384);
 }
 ///////////////////////////////////////////////////////////////
-// wmay - removed static
 void PFFTWI(16) (fftw_complex * input) {
      fftw_real tmp333;
      fftw_real tmp332;
@@ -1827,7 +1824,6 @@ void PFFTWI(16) (fftw_complex * input) {
      c_im(input[2]) = st1;
 }
 
-// wmay - removed static
 void PFFTWI(32) (fftw_complex * input) {
      fftw_real tmp714;
      fftw_real tmp713;
@@ -2620,8 +2616,7 @@ void PFFTWI(64)(fftw_complex *input)
      PFFTWI(twiddle_4)(input, PFFTW(W_64), 16);
 }
 
-// wmay - removed static
-void PFFTWI(128)(fftw_complex *input) 
+void PFFTWI(128)(fftw_complex *input)
 {
      PFFTWI(32)(input );
      PFFTWI(32)(input + 32);
@@ -2640,239 +2635,236 @@ void PFFTWI(512)(fftw_complex *input)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// wmay - removed static
 void  PFFTW(twiddle_4) (fftw_complex * A, const fftw_complex * W, int iostride) {
      int i;
      fftw_complex *inout;
      inout = A;
      {
-	  fftw_real st1;
-	  fftw_real st2;
-	  fftw_real st3;
-	  fftw_real st4;
-	  fftw_real st5;
-	  fftw_real st6;
-	  fftw_real st7;
-	  fftw_real st8;
-	  st8 = c_re(inout[0]);
-	  st8 = st8 + c_re(inout[2 * iostride]);
-	  st7 = c_re(inout[iostride]);
-	  st7 = st7 + c_re(inout[3 * iostride]);
-	  st6 = st8 - st7;
-	  st8 = st8 + st7;
-	  st5 = c_im(inout[0]);
-	  st5 = st5 + c_im(inout[2 * iostride]);
-	  st4 = c_im(inout[iostride]);
-	  st4 = st4 + c_im(inout[3 * iostride]);
-	  st3 = st5 - st4;
-	  st5 = st5 + st4;
-	  st2 = c_im(inout[0]);
-	  st2 = st2 - c_im(inout[2 * iostride]);
-	  st1 = c_re(inout[iostride]);
-	  st1 = st1 - c_re(inout[3 * iostride]);
-	  st7 = st2 - st1;
-	  st1 = st1 + st2;
-	  st4 = c_re(inout[0]);
-	  st4 = st4 - c_re(inout[2 * iostride]);
-	  c_re(inout[2 * iostride]) = st6;
-	  st6 = c_im(inout[iostride]);
-	  st6 = st6 - c_im(inout[3 * iostride]);
-	  c_re(inout[0]) = st8;
-	  st8 = st4 - st6;
-	  st4 = st4 + st6;
-	  c_im(inout[0]) = st5;
-	  c_im(inout[2 * iostride]) = st3;
-	  c_im(inout[iostride]) = st7;
-	  c_im(inout[3 * iostride]) = st1;
-	  c_re(inout[3 * iostride]) = st8;
-	  c_re(inout[iostride]) = st4;
+      fftw_real st1;
+      fftw_real st2;
+      fftw_real st3;
+      fftw_real st4;
+      fftw_real st5;
+      fftw_real st6;
+      fftw_real st7;
+      fftw_real st8;
+      st8 = c_re(inout[0]);
+      st8 = st8 + c_re(inout[2 * iostride]);
+      st7 = c_re(inout[iostride]);
+      st7 = st7 + c_re(inout[3 * iostride]);
+      st6 = st8 - st7;
+      st8 = st8 + st7;
+      st5 = c_im(inout[0]);
+      st5 = st5 + c_im(inout[2 * iostride]);
+      st4 = c_im(inout[iostride]);
+      st4 = st4 + c_im(inout[3 * iostride]);
+      st3 = st5 - st4;
+      st5 = st5 + st4;
+      st2 = c_im(inout[0]);
+      st2 = st2 - c_im(inout[2 * iostride]);
+      st1 = c_re(inout[iostride]);
+      st1 = st1 - c_re(inout[3 * iostride]);
+      st7 = st2 - st1;
+      st1 = st1 + st2;
+      st4 = c_re(inout[0]);
+      st4 = st4 - c_re(inout[2 * iostride]);
+      c_re(inout[2 * iostride]) = st6;
+      st6 = c_im(inout[iostride]);
+      st6 = st6 - c_im(inout[3 * iostride]);
+      c_re(inout[0]) = st8;
+      st8 = st4 - st6;
+      st4 = st4 + st6;
+      c_im(inout[0]) = st5;
+      c_im(inout[2 * iostride]) = st3;
+      c_im(inout[iostride]) = st7;
+      c_im(inout[3 * iostride]) = st1;
+      c_re(inout[3 * iostride]) = st8;
+      c_re(inout[iostride]) = st4;
      }
      inout = inout + 1;
      i = iostride - 1;
      do {
-	  {
-	       fftw_real st1;
-	       fftw_real st2;
-	       fftw_real st3;
-	       fftw_real st4;
-	       fftw_real st5;
-	       fftw_real st6;
-	       fftw_real st7;
-	       fftw_real st8;
-	       st8 = c_re(inout[0]);
-	       st8 = st8 + c_re(inout[2 * iostride]);
-	       st7 = c_re(inout[iostride]);
-	       st7 = st7 + c_re(inout[3 * iostride]);
-	       st6 = st8 - st7;
-	       st5 = st6 * c_im(W[1]);
-	       st8 = st8 + st7;
-	       st6 = st6 * c_re(W[1]);
-	       st4 = c_im(inout[0]);
-	       st4 = st4 + c_im(inout[2 * iostride]);
-	       st3 = c_im(inout[iostride]);
-	       st3 = st3 + c_im(inout[3 * iostride]);
-	       st2 = st4 - st3;
-	       st1 = st2 * c_im(W[1]);
-	       st4 = st4 + st3;
-	       st2 = st2 * c_re(W[1]);
-	       st2 = st2 - st5;
-	       st6 = st6 + st1;
-	       st7 = c_re(inout[0]);
-	       st7 = st7 - c_re(inout[2 * iostride]);
-	       st5 = c_im(inout[iostride]);
-	       st5 = st5 - c_im(inout[3 * iostride]);
-	       c_re(inout[0]) = st8;
-	       st8 = st7 - st5;
-	       st3 = st8 * c_re(W[0]);
-	       st7 = st7 + st5;
-	       st8 = st8 * c_im(W[0]);
-	       st1 = c_re(inout[iostride]);
-	       c_re(inout[2 * iostride]) = st6;
-	       st6 = st7 * c_im(W[0]);
-	       st1 = st1 - c_re(inout[3 * iostride]);
-	       st7 = st7 * c_re(W[0]);
-	       st5 = c_im(inout[0]);
-	       st5 = st5 - c_im(inout[2 * iostride]);
-	       c_im(inout[0]) = st4;
-	       st4 = st1 + st5;
-	       c_im(inout[2 * iostride]) = st2;
-	       st2 = st4 * c_im(W[0]);
-	       st5 = st5 - st1;
-	       st4 = st4 * c_re(W[0]);
-	       st3 = st3 - st2;
-	       st1 = st5 * c_re(W[0]);
-	       st5 = st5 * c_im(W[0]);
-	       st4 = st4 + st8;
-	       st5 = st5 + st7;
-	       st1 = st1 - st6;
-	       c_re(inout[3 * iostride]) = st3;
-	       c_im(inout[3 * iostride]) = st4;
-	       c_re(inout[iostride]) = st5;
-	       c_im(inout[iostride]) = st1;
-	  }
-	  i = i - 1, inout = inout + 1, W = W + 2;
+      {
+           fftw_real st1;
+           fftw_real st2;
+           fftw_real st3;
+           fftw_real st4;
+           fftw_real st5;
+           fftw_real st6;
+           fftw_real st7;
+           fftw_real st8;
+           st8 = c_re(inout[0]);
+           st8 = st8 + c_re(inout[2 * iostride]);
+           st7 = c_re(inout[iostride]);
+           st7 = st7 + c_re(inout[3 * iostride]);
+           st6 = st8 - st7;
+           st5 = st6 * c_im(W[1]);
+           st8 = st8 + st7;
+           st6 = st6 * c_re(W[1]);
+           st4 = c_im(inout[0]);
+           st4 = st4 + c_im(inout[2 * iostride]);
+           st3 = c_im(inout[iostride]);
+           st3 = st3 + c_im(inout[3 * iostride]);
+           st2 = st4 - st3;
+           st1 = st2 * c_im(W[1]);
+           st4 = st4 + st3;
+           st2 = st2 * c_re(W[1]);
+           st2 = st2 - st5;
+           st6 = st6 + st1;
+           st7 = c_re(inout[0]);
+           st7 = st7 - c_re(inout[2 * iostride]);
+           st5 = c_im(inout[iostride]);
+           st5 = st5 - c_im(inout[3 * iostride]);
+           c_re(inout[0]) = st8;
+           st8 = st7 - st5;
+           st3 = st8 * c_re(W[0]);
+           st7 = st7 + st5;
+           st8 = st8 * c_im(W[0]);
+           st1 = c_re(inout[iostride]);
+           c_re(inout[2 * iostride]) = st6;
+           st6 = st7 * c_im(W[0]);
+           st1 = st1 - c_re(inout[3 * iostride]);
+           st7 = st7 * c_re(W[0]);
+           st5 = c_im(inout[0]);
+           st5 = st5 - c_im(inout[2 * iostride]);
+           c_im(inout[0]) = st4;
+           st4 = st1 + st5;
+           c_im(inout[2 * iostride]) = st2;
+           st2 = st4 * c_im(W[0]);
+           st5 = st5 - st1;
+           st4 = st4 * c_re(W[0]);
+           st3 = st3 - st2;
+           st1 = st5 * c_re(W[0]);
+           st5 = st5 * c_im(W[0]);
+           st4 = st4 + st8;
+           st5 = st5 + st7;
+           st1 = st1 - st6;
+           c_re(inout[3 * iostride]) = st3;
+           c_im(inout[3 * iostride]) = st4;
+           c_re(inout[iostride]) = st5;
+           c_im(inout[iostride]) = st1;
+      }
+      i = i - 1, inout = inout + 1, W = W + 2;
      } while (i > 0);
 }
 
-// wmay - removed static
 void PFFTWI(twiddle_4) (fftw_complex * A, const fftw_complex * W, int iostride) {
      int i;
      fftw_complex *inout;
      inout = A;
      {
-	  fftw_real st1;
-	  fftw_real st2;
-	  fftw_real st3;
-	  fftw_real st4;
-	  fftw_real st5;
-	  fftw_real st6;
-	  fftw_real st7;
-	  fftw_real st8;
-	  st8 = c_re(inout[0]);
-	  st8 = st8 + c_re(inout[2 * iostride]);
-	  st7 = c_re(inout[iostride]);
-	  st7 = st7 + c_re(inout[3 * iostride]);
-	  st6 = st8 - st7;
-	  st8 = st8 + st7;
-	  st5 = c_im(inout[0]);
-	  st5 = st5 + c_im(inout[2 * iostride]);
-	  st4 = c_im(inout[iostride]);
-	  st4 = st4 + c_im(inout[3 * iostride]);
-	  st3 = st5 - st4;
-	  st5 = st5 + st4;
-	  st2 = c_re(inout[iostride]);
-	  st2 = st2 - c_re(inout[3 * iostride]);
-	  st1 = c_im(inout[0]);
-	  st1 = st1 - c_im(inout[2 * iostride]);
-	  st7 = st2 + st1;
-	  st1 = st1 - st2;
-	  st4 = c_re(inout[0]);
-	  st4 = st4 - c_re(inout[2 * iostride]);
-	  c_re(inout[2 * iostride]) = st6;
-	  st6 = c_im(inout[iostride]);
-	  st6 = st6 - c_im(inout[3 * iostride]);
-	  c_re(inout[0]) = st8;
-	  st8 = st4 - st6;
-	  st4 = st4 + st6;
-	  c_im(inout[0]) = st5;
-	  c_im(inout[2 * iostride]) = st3;
-	  c_im(inout[iostride]) = st7;
-	  c_im(inout[3 * iostride]) = st1;
-	  c_re(inout[iostride]) = st8;
-	  c_re(inout[3 * iostride]) = st4;
+      fftw_real st1;
+      fftw_real st2;
+      fftw_real st3;
+      fftw_real st4;
+      fftw_real st5;
+      fftw_real st6;
+      fftw_real st7;
+      fftw_real st8;
+      st8 = c_re(inout[0]);
+      st8 = st8 + c_re(inout[2 * iostride]);
+      st7 = c_re(inout[iostride]);
+      st7 = st7 + c_re(inout[3 * iostride]);
+      st6 = st8 - st7;
+      st8 = st8 + st7;
+      st5 = c_im(inout[0]);
+      st5 = st5 + c_im(inout[2 * iostride]);
+      st4 = c_im(inout[iostride]);
+      st4 = st4 + c_im(inout[3 * iostride]);
+      st3 = st5 - st4;
+      st5 = st5 + st4;
+      st2 = c_re(inout[iostride]);
+      st2 = st2 - c_re(inout[3 * iostride]);
+      st1 = c_im(inout[0]);
+      st1 = st1 - c_im(inout[2 * iostride]);
+      st7 = st2 + st1;
+      st1 = st1 - st2;
+      st4 = c_re(inout[0]);
+      st4 = st4 - c_re(inout[2 * iostride]);
+      c_re(inout[2 * iostride]) = st6;
+      st6 = c_im(inout[iostride]);
+      st6 = st6 - c_im(inout[3 * iostride]);
+      c_re(inout[0]) = st8;
+      st8 = st4 - st6;
+      st4 = st4 + st6;
+      c_im(inout[0]) = st5;
+      c_im(inout[2 * iostride]) = st3;
+      c_im(inout[iostride]) = st7;
+      c_im(inout[3 * iostride]) = st1;
+      c_re(inout[iostride]) = st8;
+      c_re(inout[3 * iostride]) = st4;
      }
      inout = inout + 1;
      i = iostride - 1;
      do {
-	  {
-	       fftw_real st1;
-	       fftw_real st2;
-	       fftw_real st3;
-	       fftw_real st4;
-	       fftw_real st5;
-	       fftw_real st6;
-	       fftw_real st7;
-	       fftw_real st8;
-	       st8 = c_re(inout[2 * iostride]);
-	       st8 = st8 * c_re(W[1]);
-	       st7 = c_im(inout[2 * iostride]);
-	       st7 = st7 * c_im(W[1]);
-	       st8 = st8 - st7;
-	       st6 = st8 + c_re(inout[0]);
-	       st8 = c_re(inout[0]) - st8;
-	       st5 = c_re(inout[2 * iostride]);
-	       st5 = st5 * c_im(W[1]);
-	       st4 = c_im(inout[2 * iostride]);
-	       st4 = st4 * c_re(W[1]);
-	       st5 = st5 + st4;
-	       st3 = st5 + c_im(inout[0]);
-	       st5 = c_im(inout[0]) - st5;
-	       st2 = c_re(inout[iostride]);
-	       st2 = st2 * c_re(W[0]);
-	       st1 = c_im(inout[iostride]);
-	       st1 = st1 * c_im(W[0]);
-	       st2 = st2 - st1;
-	       st7 = c_re(inout[3 * iostride]);
-	       st7 = st7 * c_re(W[0]);
-	       st4 = c_im(inout[3 * iostride]);
-	       st4 = st4 * c_im(W[0]);
-	       st7 = st7 + st4;
-	       st1 = st2 + st7;
-	       st2 = st2 - st7;
-	       st4 = st6 - st1;
-	       st6 = st6 + st1;
-	       st7 = st2 + st5;
-	       st5 = st5 - st2;
-	       st1 = c_re(inout[iostride]);
-	       st1 = st1 * c_im(W[0]);
-	       st2 = c_im(inout[iostride]);
-	       st2 = st2 * c_re(W[0]);
-	       st1 = st1 + st2;
-	       c_re(inout[2 * iostride]) = st4;
-	       st4 = c_im(inout[3 * iostride]);
-	       st4 = st4 * c_re(W[0]);
-	       c_re(inout[0]) = st6;
-	       st6 = c_re(inout[3 * iostride]);
-	       st6 = st6 * c_im(W[0]);
-	       st4 = st4 - st6;
-	       c_im(inout[iostride]) = st7;
-	       st7 = st1 - st4;
-	       st1 = st1 + st4;
-	       c_im(inout[3 * iostride]) = st5;
-	       st5 = st8 - st7;
-	       st8 = st8 + st7;
-	       st2 = st1 + st3;
-	       st3 = st3 - st1;
-	       c_re(inout[iostride]) = st5;
-	       c_re(inout[3 * iostride]) = st8;
-	       c_im(inout[0]) = st2;
-	       c_im(inout[2 * iostride]) = st3;
-	  }
-	  i = i - 1, inout = inout + 1, W = W + 2;
+      {
+           fftw_real st1;
+           fftw_real st2;
+           fftw_real st3;
+           fftw_real st4;
+           fftw_real st5;
+           fftw_real st6;
+           fftw_real st7;
+           fftw_real st8;
+           st8 = c_re(inout[2 * iostride]);
+           st8 = st8 * c_re(W[1]);
+           st7 = c_im(inout[2 * iostride]);
+           st7 = st7 * c_im(W[1]);
+           st8 = st8 - st7;
+           st6 = st8 + c_re(inout[0]);
+           st8 = c_re(inout[0]) - st8;
+           st5 = c_re(inout[2 * iostride]);
+           st5 = st5 * c_im(W[1]);
+           st4 = c_im(inout[2 * iostride]);
+           st4 = st4 * c_re(W[1]);
+           st5 = st5 + st4;
+           st3 = st5 + c_im(inout[0]);
+           st5 = c_im(inout[0]) - st5;
+           st2 = c_re(inout[iostride]);
+           st2 = st2 * c_re(W[0]);
+           st1 = c_im(inout[iostride]);
+           st1 = st1 * c_im(W[0]);
+           st2 = st2 - st1;
+           st7 = c_re(inout[3 * iostride]);
+           st7 = st7 * c_re(W[0]);
+           st4 = c_im(inout[3 * iostride]);
+           st4 = st4 * c_im(W[0]);
+           st7 = st7 + st4;
+           st1 = st2 + st7;
+           st2 = st2 - st7;
+           st4 = st6 - st1;
+           st6 = st6 + st1;
+           st7 = st2 + st5;
+           st5 = st5 - st2;
+           st1 = c_re(inout[iostride]);
+           st1 = st1 * c_im(W[0]);
+           st2 = c_im(inout[iostride]);
+           st2 = st2 * c_re(W[0]);
+           st1 = st1 + st2;
+           c_re(inout[2 * iostride]) = st4;
+           st4 = c_im(inout[3 * iostride]);
+           st4 = st4 * c_re(W[0]);
+           c_re(inout[0]) = st6;
+           st6 = c_re(inout[3 * iostride]);
+           st6 = st6 * c_im(W[0]);
+           st4 = st4 - st6;
+           c_im(inout[iostride]) = st7;
+           st7 = st1 - st4;
+           st1 = st1 + st4;
+           c_im(inout[3 * iostride]) = st5;
+           st5 = st8 - st7;
+           st8 = st8 + st7;
+           st2 = st1 + st3;
+           st3 = st3 - st1;
+           c_re(inout[iostride]) = st5;
+           c_re(inout[3 * iostride]) = st8;
+           c_im(inout[0]) = st2;
+           c_im(inout[2 * iostride]) = st3;
+      }
+      i = i - 1, inout = inout + 1, W = W + 2;
      } while (i > 0);
 }
 //////////////////////////////////////////////////////////////////////
-// wmay - removed static
 int PFFTW(permutation_64)(int i)
 {
     int i1 = i % 4;
@@ -2883,7 +2875,6 @@ int PFFTW(permutation_64)(int i)
        return (i1 * 16 + ((i2 + 1) % 16));
 }
 
-// wmay - removed static
 int PFFTW(permutation_128)(int i)
 {
     int i1 = i % 4;
@@ -2894,7 +2885,6 @@ int PFFTW(permutation_128)(int i)
        return (i1 * 32 + ((i2 + 1) % 32));
 }
 
-// wmay - removed static
 int PFFTW(permutation_512)(int i)
 {
     int i1 = i % 4;
@@ -2907,12 +2897,12 @@ int PFFTW(permutation_512)(int i)
 /////////////////////////////////////////////////////////////////
 void MakeFFTOrder(faacDecHandle hDecoder)
 {
-	int i;
+    int i;
 
-	for (i=0 ; i < 512 ; i++)
-	{
-		if (i < 64)
-			hDecoder->unscambled64[i] = PFFTW(permutation_64)(i);
-		hDecoder->unscambled512[i] = PFFTW(permutation_512)(i);
-	}
+    for (i=0 ; i < 512 ; i++)
+    {
+        if (i < 64)
+            hDecoder->unscambled64[i] = PFFTW(permutation_64)(i);
+        hDecoder->unscambled512[i] = PFFTW(permutation_512)(i);
+    }
 }

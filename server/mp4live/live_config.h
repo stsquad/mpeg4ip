@@ -32,6 +32,10 @@
 #include "timestamp.h"
 #include "tv_frequencies.h"
 
+#define VIDEO_ENCODER_FFMPEG	"ffmpeg"
+#define VIDEO_ENCODER_DIVX		"divx"
+#define VIDEO_ENCODER_XVID		"xvid"
+
 #define VIDEO_STD_ASPECT_RATIO 	((float)1.33)	// standard 4:3
 #define VIDEO_LB1_ASPECT_RATIO 	((float)2.35)	// typical "widescreen" format
 #define VIDEO_LB2_ASPECT_RATIO 	((float)1.85)	// alternate widescreen format
@@ -71,7 +75,7 @@ enum {
 	CONFIG_VIDEO_PREVIEW,
 	CONFIG_VIDEO_RAW_PREVIEW,
 	CONFIG_VIDEO_ENCODED_PREVIEW,
-	CONFIG_VIDEO_USE_DIVX_ENCODER,
+	CONFIG_VIDEO_ENCODER,
 	CONFIG_VIDEO_RAW_WIDTH,
 	CONFIG_VIDEO_RAW_HEIGHT,
 	CONFIG_VIDEO_ASPECT_RATIO,
@@ -174,8 +178,8 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_VIDEO_ENCODED_PREVIEW, "videoEncodedPreview",
 		CONFIG_TYPE_BOOL, true, },
 
-	{ CONFIG_VIDEO_USE_DIVX_ENCODER, "videoUseDivxEncoder",
-		CONFIG_TYPE_BOOL, false, },
+	{ CONFIG_VIDEO_ENCODER, "videoEncoder",
+		CONFIG_TYPE_STRING, "ffmpeg", },
 
 	{ CONFIG_VIDEO_RAW_WIDTH, "videoRawWidth",
 		CONFIG_TYPE_INTEGER, (config_integer_t)320, },

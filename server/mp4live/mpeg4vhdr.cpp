@@ -38,9 +38,13 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 	bool want_vosh = false;			
 	bool want_vo = true;		
 	bool want_vol = true;	
-	bool want_short_time = 
-		!pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER);
+	bool want_short_time = false; 
 	bool want_variable_rate = true;
+
+	if (!strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODER), 
+	  VIDEO_ENCODER_DIVX)) {
+		want_short_time = true;
+	}
 
 	BitBuffer config;
 	init_putbits(&config, (5 + 9 + 20) * 8);
