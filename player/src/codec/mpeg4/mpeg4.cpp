@@ -269,20 +269,18 @@ static int iso_decode (codec_data_t *ptr,
 {
   Int iEof = 1;
   iso_decode_t *iso = (iso_decode_t *)ptr;
+  uint32_t used = 0;
 
   if (buflen <= 4) return -1;
 
-  //iso_message(LOG_DEBUG, "iso", "frame %d", iso->m_total_frames);
+  //  iso_message(LOG_DEBUG, "iso", "frame %d", iso->m_total_frames);
   iso->m_total_frames++;
   buffer[buflen] = 0;
   buffer[buflen + 1] = 0;
   buffer[buflen + 2] = 1;
 
-  iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)buffer, buflen + 3);
-
   switch (iso->m_decodeState) {
   case DECODE_STATE_VOL_SEARCH: {
-    uint32_t used = 0;
     if (buffer[0] == 0 &&
 	buffer[1] == 0 &&
 	(buffer[2] & 0xfc) == 0x80 &&
@@ -306,27 +304,30 @@ static int iso_decode (codec_data_t *ptr,
 	iso_message(LOG_ERR, mp4iso, "Couldn't decode h263 in vol search");
       }
       break; 
-    }
-    while (used < buflen && iso->m_decodeState == DECODE_STATE_VOL_SEARCH) {
-      try {
-	iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)buffer + used, buflen - used);
-	iso->m_pvodec->decodeVOLHead();
-	iso->m_pvodec->postVO_VOLHeadInit(iso->m_pvodec->getWidth(),
-					  iso->m_pvodec->getHeight(),
+    } else {
+      uint8_t *volhdr = MP4AV_Mpeg4FindVol(buffer, buflen);
+      if (volhdr != NULL) {
+	used = volhdr - buffer;
+	try {
+	  iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)volhdr, buflen - used);
+	  iso->m_pvodec->decodeVOLHead();
+	  iso->m_pvodec->postVO_VOLHeadInit(iso->m_pvodec->getWidth(),
+					    iso->m_pvodec->getHeight(),
 					  &iso->m_bSpatialScalability);
-	iso_message(LOG_INFO, mp4iso, "Found VOL");
+	  iso_message(LOG_INFO, mp4iso, "Found VOL");
 	
-	iso->m_vft->video_configure(iso->m_ifptr, 
-				    iso->m_pvodec->getWidth(),
-				    iso->m_pvodec->getHeight(),
-				    VIDEO_FORMAT_YUV);
+	  iso->m_vft->video_configure(iso->m_ifptr, 
+				      iso->m_pvodec->getWidth(),
+				      iso->m_pvodec->getHeight(),
+				      VIDEO_FORMAT_YUV);
 	
-	iso->m_decodeState = DECODE_STATE_WAIT_I;
-	used += iso->m_pvodec->get_used_bytes();
-      } catch (int err) {
-	iso_message(LOG_DEBUG, mp4iso, "Caught exception in VOL search %d", err);
-	if (err == 1) used = buflen;
-	else used += iso->m_pvodec->get_used_bytes();
+	  iso->m_decodeState = DECODE_STATE_WAIT_I;
+	  used += iso->m_pvodec->get_used_bytes();
+	} catch (int err) {
+	  iso_message(LOG_DEBUG, mp4iso, "Caught exception in VOL search %d", err);
+	  if (err == 1) used = buflen;
+	  else used += iso->m_pvodec->get_used_bytes();
+	}
       }
     }
     if (iso->m_decodeState != DECODE_STATE_WAIT_I) {
@@ -347,7 +348,12 @@ static int iso_decode (codec_data_t *ptr,
     }
     // else fall through
   }
-  case DECODE_STATE_WAIT_I:
+  case DECODE_STATE_WAIT_I: {
+    uint8_t *vophdr = MP4AV_Mpeg4FindVop(buffer, buflen);
+    if (vophdr != NULL) {
+      used = vophdr - buffer;
+    }
+    iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)buffer + used, buflen + 3 - used);
     try {
       iEof = iso->m_pvodec->decode(NULL, TRUE);
       if (iEof == -1) {
@@ -368,11 +374,20 @@ static int iso_decode (codec_data_t *ptr,
       //return (-1);
     }
     break;
+  }
   case DECODE_STATE_NORMAL:
     try {
       if (iso->m_short_header != 0) {
+	iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)buffer, buflen + 3);
 	iEof = iso->m_pvodec->h263_decode(TRUE);
       } else {
+	uint8_t *vophdr = MP4AV_Mpeg4FindVop(buffer, buflen);
+	if (vophdr != NULL && vophdr != buffer) {
+	  used = vophdr - buffer;
+	  buflen -= used;
+	  buffer = vophdr;
+	}
+	iso->m_pvodec->SetUpBitstreamBuffer((unsigned char *)buffer, buflen + 3);
 	iEof = iso->m_pvodec->decode(NULL, FALSE, FALSE);
       }
     } catch (int err) {
@@ -481,7 +496,7 @@ static int iso_decode (codec_data_t *ptr,
   } else {
     iso_message(LOG_DEBUG, mp4iso, "decode but no frame %llu", ts);
   }
-  return (iso->m_pvodec->get_used_bytes());
+  return (iso->m_pvodec->get_used_bytes() + used);
 }
 
 

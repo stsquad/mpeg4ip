@@ -65,7 +65,7 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
   if (type == NULL) {
     pAtom = new MP4RootAtom();
   } else {
-    switch(type[0]) {
+    switch((uint8_t)type[0]) {
     case 'c':
       if (ATOMID(type) == ATOMID("ctts")) {
 	pAtom = new MP4CttsAtom();
@@ -292,23 +292,31 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4VmhdAtom();
       }
       break;
-    case '©':
-      if (ATOMID(type) == ATOMID("©nam")) {
+    case 0251: { // copyright symbol 
+static const char name[5]={0251,'n', 'a', 'm', '\0'};
+static const char art[5]={0251,'A', 'R', 'T', '\0'};
+static const char wrt[5]={0251,'w', 'r', 't', '\0'};
+static const char alb[5]={0251,'a', 'l', 'b', '\0'};
+static const char day[5]={0251,'d', 'a', 'y', '\0'};
+static const char too[5]={0251,'t', 'o', 'o', '\0'};
+static const char cmt[5]={0251,'c', 'm', 't', '\0'};
+      if (ATOMID(type) == ATOMID(name)) {
  	pAtom = new MP4NamAtom();
-      } else if (ATOMID(type) == ATOMID("©ART")) { /* Apple iTunes */
+      } else if (ATOMID(type) == ATOMID(art)) { /* Apple iTunes */
  	pAtom = new MP4ArtAtom();
-      } else if (ATOMID(type) == ATOMID("©wrt")) { /* Apple iTunes */
+      } else if (ATOMID(type) == ATOMID(wrt)) { /* Apple iTunes */
  	pAtom = new MP4WrtAtom();
-      } else if (ATOMID(type) == ATOMID("©alb")) { /* Apple iTunes */
+      } else if (ATOMID(type) == ATOMID(alb)) { /* Apple iTunes */
  	pAtom = new MP4AlbAtom();
-      } else if (ATOMID(type) == ATOMID("©day")) { /* Apple iTunes */
+      } else if (ATOMID(type) == ATOMID(day)) { /* Apple iTunes */
  	pAtom = new MP4DayAtom();
-      } else if (ATOMID(type) == ATOMID("©too")) { /* Apple iTunes */
+      } else if (ATOMID(type) == ATOMID(too)) { /* Apple iTunes */
  	pAtom = new MP4TooAtom();
-      } else if (ATOMID(type) == ATOMID("©cmt")) { /* Apple iTunes */
+      } else if (ATOMID(type) == ATOMID(cmt)) { /* Apple iTunes */
  	pAtom = new MP4CmtAtom();
       }
       break;
+    }
     case '-':
       if (ATOMID(type) == ATOMID("----")) { /* Apple iTunes */
  	pAtom = new MP4DashAtom();

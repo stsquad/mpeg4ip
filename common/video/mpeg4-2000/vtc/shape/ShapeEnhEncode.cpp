@@ -80,7 +80,7 @@
  *****************************************************************************/
 
 #include <stdio.h>
-#include <malloc.h>
+//#include <malloc.h>
 #include <memory.h>
 #include <math.h>
 #include "dataStruct.hpp"

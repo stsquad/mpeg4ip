@@ -1,4 +1,4 @@
-/* $Id: download_filter.cpp,v 1.1 2003/05/05 21:23:56 wmaycisco Exp $ */
+/* $Id: download_filter.cpp,v 1.2 2003/11/18 18:48:13 wmaycisco Exp $ */
 /****************************************************************************/
 /*   MPEG4 Visual Texture Coding (VTC) Mode Software                        */
 /*                                                                          */
@@ -79,7 +79,7 @@
 #include "errorHandler.hpp"
 #include "msg.hpp"
 #include "bitpack.hpp"
-#include <malloc.h>
+//c#include <malloc.h>
 #include "download_filter.h"
 
 Void CVTCCommon::check_marker(Int marker_bit)

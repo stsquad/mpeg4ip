@@ -80,7 +80,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <malloc.h>
+//#include <malloc.h>
 #include "basic.hpp"
 #include "dataStruct.hpp"
 //#include "ShapeBaseCommon.h"

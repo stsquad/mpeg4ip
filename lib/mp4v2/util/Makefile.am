@@ -21,7 +21,7 @@ mp4trackdump_SOURCES = mp4trackdump.cpp
 mp4trackdump_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
 
-mp4tags_SOURCES = mp4trackdump.cpp
+mp4tags_SOURCES = mp4tags.cpp
 mp4tags_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
 
