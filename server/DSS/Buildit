@@ -67,9 +67,9 @@ case $PLAT in
 	Linux.i586 | \
 	Linux.i686)
         echo "Configuring for the "$OSNAME" "$HARDWARENAME" platform"
-		CPLUS='egcs'
-		CCOMP=egcs
-		LINKER='egcs'
+		CPLUS='gcc'
+		CCOMP=gcc
+		LINKER='gcc'
 		MACHDEFINES="-D_REENTRANT -D__linux__ -Wall -O3 -fomit-frame-pointer"
 		CFLAGSX='-pipe'
 		MAKEFLAGSX='-j4'
