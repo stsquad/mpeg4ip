@@ -117,6 +117,38 @@ void player_debug_message (const char *fmt, ...)
 #endif
 }
 
+void message (int loglevel, const char *lib, const char *fmt, ...)
+{
+  va_list ap;
+#if _WIN32 && _DEBUG
+       char msg[512];
+
+	   if (initialized) init_local_mutex();
+		lock_mutex();
+        va_start(ap, fmt);
+	_vsnprintf(msg, 512, fmt, ap);
+        va_end(ap);
+        OutputDebugString(msg);
+	OutputDebugString("\n");
+	unlock_mutex();
+#else
+  struct timeval thistime;
+  time_t secs;
+  char buffer[80];
+
+  gettimeofday(&thistime, NULL);
+  secs = thistime.tv_sec;
+  // To add date, add %a %b %d to strftime
+  strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
+  printf("%s.%03lu-%s-%d: ",
+	 buffer, (unsigned long)thistime.tv_usec / 1000, lib, loglevel);
+  va_start(ap, fmt);
+  vprintf(fmt, ap);
+  va_end(ap);
+  printf("\n");
+#endif
+}
+
 void player_library_message (int loglevel,
 			     const char *lib,
 			     const char *fmt,

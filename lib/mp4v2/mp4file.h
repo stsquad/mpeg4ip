@@ -140,6 +140,15 @@ public: /* equivalent to MP4 library API */
 	MP4SampleId GetSampleIdFromTime(MP4TrackId trackId, 
 		MP4Timestamp when, bool wantSyncSample = false);
 
+	MP4Timestamp GetSampleTime(
+		MP4TrackId trackId, MP4SampleId sampleId);
+
+	MP4Duration GetSampleDuration(
+		MP4TrackId trackId, MP4SampleId sampleId);
+
+	MP4Duration GetSampleRenderingOffset(
+		MP4TrackId trackId, MP4SampleId sampleId);
+
 	void ReadSample(
 		// input parameters
 		MP4TrackId trackId, 
@@ -257,6 +266,9 @@ public: /* equivalent to MP4 library API */
 		MP4SampleId sampleId,
 		u_int32_t dataOffset,
 		u_int32_t dataLength);
+
+	void AddRtpESConfigurationPacket(
+		MP4TrackId hintTrackId);
 
 	void WriteRtpHint(
 		MP4TrackId hintTrackId,
@@ -401,6 +413,7 @@ protected:
 protected:
 	char*			m_fileName;
 	FILE*			m_pFile;
+	u_int64_t		m_orgFileSize;
 	u_int64_t		m_fileSize;
 	MP4Atom*		m_pRootAtom;
 	MP4Integer32Array m_trakIds;

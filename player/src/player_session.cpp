@@ -377,9 +377,13 @@ int CPlayerSession::pause_all_media (void)
   }
   m_sync_pause_done = 0;
   send_sync_thread_a_message(MSG_PAUSE_SESSION);
+#ifndef _WINDOWS
   do {
+#endif
     SDL_Delay(100);
+#ifndef _WINDOWS
   } while (m_sync_pause_done == 0);
+#endif
   m_paused = 1;
   return (0);
 }

@@ -91,6 +91,7 @@ public:
 	MP4SampleId GetSampleIdFromTime(MP4Timestamp when, 
 		bool wantSyncSample = false);
 
+	MP4Duration	GetSampleRenderingOffset(MP4SampleId sampleId);
 	void		SetSampleRenderingOffset(MP4SampleId sampleId,
 					MP4Duration renderingOffset);
 
@@ -114,7 +115,6 @@ protected:
 	u_int32_t	GetSampleStscIndex(MP4SampleId sampleId);
 	u_int32_t	GetChunkStscIndex(MP4ChunkId chunkId);
 	u_int32_t	GetChunkSize(MP4ChunkId chunkId);
-	u_int32_t	GetSampleRenderingOffset(MP4SampleId sampleId);
 	u_int32_t	GetSampleCttsIndex(MP4SampleId sampleId, 
 					MP4SampleId* pFirstSampleId = NULL);
 	MP4SampleId	GetNextSyncSample(MP4SampleId sampleId);

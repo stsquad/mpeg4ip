@@ -47,12 +47,30 @@ void player_debug_message(const char *fmt, ...)
        __attribute__((format(__printf__, 1, 2)))
 #endif
 	   ;
+void message(int loglevel, const char *lib, const char *fmt, ...)
+#ifndef _WINDOWS
+       __attribute__((format(__printf__, 3, 4)))
+#endif
+	   ;
+
 void player_library_message(int loglevel,
 			    const char *lib,
 			    const char *fmt,
 			    va_list ap);
 char *strcasestr(const char *haystack, const char *needle);
-  
+
+#ifdef _WIN32
+#define DEFINE_MESSAGE_MACRO(funcname, libname) \
+static inline void funcname (int loglevel, const char *fmt, ...) \
+{ \
+	va_list ap; \
+	va_start(ap, fmt); \
+	player_library_message(loglevel, libname, fmt, ap); \
+	va_end(ap); \
+} 
+#else
+#define DEFINE_MESSAGE_MACRO(funcname, libname) 
+#endif
 #ifdef __cplusplus
 }
 #endif

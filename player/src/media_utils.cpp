@@ -90,6 +90,7 @@ static struct codec_list_t {
     {"mpeg4-simple-a2", AUDIO_AAC }, // between this and celp.
     {"MPEG4-GENERIC", AUDIO_MPEG4_GENERIC},
     {"mp3 ", AUDIO_MP3 },
+    {"mp3", AUDIO_MP3 },
     {"MPA", AUDIO_MP3 },
     {"wav ", AUDIO_WAV },
     {"ms", AUDIO_MP3 },	// apples mp3

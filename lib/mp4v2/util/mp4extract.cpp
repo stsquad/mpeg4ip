@@ -22,8 +22,9 @@
 #include "mp4.h"
 #include "mpeg4ip_getopt.h"
 
-char* progName;
-char* mp4FileName;
+char* ProgName;
+char* Mp4PathName;
+char* Mp4FileName;
 
 // forward declaration
 void PrintTrackList(MP4FileHandle mp4File);
@@ -40,7 +41,7 @@ int main(int argc, char** argv)
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
 
 	/* begin processing command line */
-	progName = argv[0];
+	ProgName = argv[0];
 	while (true) {
 		int c = -1;
 		int option_index = 0;
@@ -69,7 +70,7 @@ int main(int argc, char** argv)
 			if (sscanf(optarg, "%u", &trackId) != 1) {
 				fprintf(stderr, 
 					"%s: bad track-id specified: %s\n",
-					 progName, optarg);
+					 ProgName, optarg);
 				exit(1);
 			}
 			break;
@@ -91,26 +92,33 @@ int main(int argc, char** argv)
 			}
 			break;
 		case '?':
-			fprintf(stderr, usageString, progName);
+			fprintf(stderr, usageString, ProgName);
 			exit(0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
-				progName, c);
+				ProgName, c);
 		}
 	}
 
 	/* check that we have at least one non-option argument */
 	if ((argc - optind) < 1) {
-		fprintf(stderr, usageString, progName);
+		fprintf(stderr, usageString, ProgName);
 		exit(1);
 	}
 
 	/* point to the specified file names */
-	mp4FileName = argv[optind++];
+	Mp4PathName = argv[optind++];
+
+	char* lastSlash = strrchr(Mp4PathName, '/');
+	if (lastSlash) {
+		Mp4FileName = lastSlash + 1;
+	} else {
+		Mp4FileName = Mp4PathName; 
+	}
 
 	/* warn about extraneous non-option arguments */
 	if (optind < argc) {
-		fprintf(stderr, "%s: unknown options specified, ignoring: ", progName);
+		fprintf(stderr, "%s: unknown options specified, ignoring: ", ProgName);
 		while (optind < argc) {
 			fprintf(stderr, "%s ", argv[optind++]);
 		}
@@ -120,7 +128,7 @@ int main(int argc, char** argv)
 	/* end processing of command line */
 
 
-	MP4FileHandle mp4File = MP4Read(mp4FileName, verbosity);
+	MP4FileHandle mp4File = MP4Read(Mp4PathName, verbosity);
 
 	if (!mp4File) {
 		exit(1);
@@ -161,18 +169,17 @@ void PrintTrackList(MP4FileHandle mp4File)
 
 void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode)
 {
-	// TBD use just last component of mp4FileName for output file name
 	char outFileName[MAXPATHLEN];
 	int outFd = -1;
 
 	if (!sampleMode) {
-		snprintf(outFileName, MAXPATHLEN, "%s.t%u", mp4FileName, trackId);
+		snprintf(outFileName, MAXPATHLEN, "%s.t%u", Mp4FileName, trackId);
 
 		outFd = open(outFileName, 
 			O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (outFd == -1) {
 			fprintf(stderr, "%s: can't open %s: %s\n",
-				progName, outFileName, strerror(errno));
+				ProgName, outFileName, strerror(errno));
 			return;
 		}
 	}
@@ -193,28 +200,46 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode)
 		rc = MP4ReadSample(mp4File, trackId, sampleId, &pSample, &sampleSize);
 		if (rc == 0) {
 			fprintf(stderr, "%s: read sample %u for %s failed\n",
-				progName, sampleId, outFileName);
+				ProgName, sampleId, outFileName);
 			break;
 		}
 
 		if (sampleMode) {
 			snprintf(outFileName, MAXPATHLEN, "%s.t%u.s%u",
-				mp4FileName, trackId, sampleId);
+				Mp4FileName, trackId, sampleId);
 
 			outFd = open(outFileName, 
 				O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
 			if (outFd == -1) {
 				fprintf(stderr, "%s: can't open %s: %s\n",
-					progName, outFileName, strerror(errno));
+					ProgName, outFileName, strerror(errno));
 				break;
+			}
+		}
+
+		// in order to reconstruct video elementary stream
+		// need to prepend ES configuration info 
+		if (sampleId == 1 && !sampleMode) {
+			const char* trackType =
+				MP4GetTrackType(mp4File, trackId);
+
+			if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
+				u_int8_t* pConfig = NULL;
+				u_int32_t configSize;
+
+				MP4GetTrackESConfiguration(mp4File, trackId, 
+					&pConfig, &configSize);
+				write(outFd, pConfig, configSize);
+
+				free(pConfig);
 			}
 		}
 
 		rc = write(outFd, pSample, sampleSize);
 		if (rc == -1 || (u_int32_t)rc != sampleSize) {
 			fprintf(stderr, "%s: write to %s failed: %s\n",
-				progName, outFileName, strerror(errno));
+				ProgName, outFileName, strerror(errno));
 			break;
 		}
 

@@ -38,14 +38,25 @@ void Rfc3016Hinter(
 	/* get the mpeg4 video configuration */
 	u_int8_t* pConfig;
 	u_int32_t configSize;
-	u_int8_t profileLevel = 1;
+	u_int8_t systemsProfileLevel = 0xFE;
 
 	MP4GetTrackESConfiguration(mp4File, mediaTrackId, &pConfig, &configSize);
 
 	if (pConfig) {
-		/* TBD attempt to get profile-level from VOSH in ES Config */
-		/* TBD attempt to get profile from VOL in ES Config */
-		/* TBD attempt to get profile-level from iods */
+		// attempt to get a valid profile-level
+		static u_int8_t voshStartCode[4] = { 0x00, 0x00, 0x01, VOSH_START };
+		if (configSize >= 5 && !memcmp(pConfig, voshStartCode, 4)) {
+			systemsProfileLevel = 
+				Mp4vVideoToSystemsProfileLevel(pConfig[4]);
+		} 
+		if (systemsProfileLevel == 0xFE) {
+			u_int8_t iodProfileLevel = MP4GetVideoProfileLevel(mp4File);
+			if (iodProfileLevel > 0 && iodProfileLevel < 0xFE) {
+				systemsProfileLevel = iodProfileLevel;
+			} else {
+				systemsProfileLevel = 1;
+			}
+		} 
 
 		/* convert it into ASCII form */
 		char* sConfig = MP4BinaryToBase16(pConfig, configSize);
@@ -57,7 +68,7 @@ void Rfc3016Hinter(
 		sprintf(sdpBuf,
 			"a=fmtp:%u profile-level-id=%u; config=%s;\015\012",
 				payloadNumber,
-				profileLevel,
+				systemsProfileLevel,
 				sConfig); 
 
 		/* add this to the track's sdp */
@@ -65,6 +76,7 @@ void Rfc3016Hinter(
 
 		free(sConfig);
 		free(sdpBuf);
+
 	}
 
 	u_int32_t numSamples = MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
@@ -95,6 +107,10 @@ void Rfc3016Hinter(
 		bool isBFrame = (Mp4vGetVopType(pSampleBuffer, sampleSize) == 'B');
 
 		MP4AddRtpVideoHint(mp4File, hintTrackId, isBFrame, renderingOffset);
+
+		if (sampleId == 1) {
+			MP4AddRtpESConfigurationPacket(mp4File, hintTrackId);
+		}
 
 		u_int32_t offset = 0;
 		u_int32_t remaining = sampleSize;

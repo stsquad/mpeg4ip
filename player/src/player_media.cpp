@@ -55,9 +55,12 @@ static int c_decode_thread (void *data)
   return (media->decode_thread());
 }
 
-static void c_rtp_packet_callback (void *data, struct rtp_packet *pak, int len)
+static void c_rtp_packet_callback (void *data, 
+				   unsigned char interleaved, 
+				   struct rtp_packet *pak, 
+				   int len)
 {
-  ((CPlayerMedia *)data)->rtp_receive_packet(pak, len);
+  ((CPlayerMedia *)data)->rtp_receive_packet(interleaved, pak, len);
 }
 
 static int c_init_rtp_tcp (void *data)
@@ -915,6 +918,8 @@ int process_rtsp_rtpinfo (char *rtpinfo,
     return (0);
 
   do {
+    int no_mimes = 0;
+    ADV_SPACE(rtpinfo);
     if (media == NULL) {
       if (strncasecmp(rtpinfo, "url", strlen("url")) != 0) {
 	player_debug_message("Url not found");
@@ -929,15 +934,19 @@ int process_rtsp_rtpinfo (char *rtpinfo,
       rtpinfo++;
       ADV_SPACE(rtpinfo);
       char *url = rtpinfo;
-      while (*rtpinfo != '\0' && *rtpinfo != ';') {
+      while (*rtpinfo != '\0' && *rtpinfo != ';' && *rtpinfo != ',') {
 	rtpinfo++;
       }
-      if (rtpinfo == '\0') {
-	player_debug_message("early end");
-	return (-1);
+      if (*rtpinfo == '\0') {
+	no_mimes = 1;
+      } else {
+	if (*rtpinfo == ',') {
+	  no_mimes = 1;
+	}
+	*rtpinfo++ = '\0';
       }
-      *rtpinfo++ = '\0';
       char *temp = url;
+      player_debug_message("Processing url %s", temp);
       media = session->rtsp_url_to_media(url);
       if (media == NULL) {
 	player_debug_message("Can't find media from %s", url);
@@ -946,6 +955,7 @@ int process_rtsp_rtpinfo (char *rtpinfo,
       if (temp != url) 
 	free(url);
     }
+    if (no_mimes == 0) {
     int endofurl = 0;
     do {
       ADV_SPACE(rtpinfo);
@@ -969,6 +979,7 @@ int process_rtsp_rtpinfo (char *rtpinfo,
       }
     } while (endofurl == 0 && rtpinfo != NULL && *rtpinfo != '\0');
     media->set_rtp_rtpinfo();
+    }
     media = NULL;
   } while (rtpinfo != NULL && *rtpinfo != '\0');
 
@@ -979,12 +990,20 @@ int process_rtsp_rtpinfo (char *rtpinfo,
   return (1);
 }
 
-int CPlayerMedia::rtp_receive_packet (struct rtp_packet *pak, int len)
+int CPlayerMedia::rtp_receive_packet (unsigned char interleaved, 
+				      struct rtp_packet *pak, 
+				      int len)
 {
   int ret;
-  ret = rtp_process_recv_data(m_rtp_session, 0, pak, len);
-  if (ret < 0)
+  if ((interleaved & 1) == 0) {
+    ret = rtp_process_recv_data(m_rtp_session, 0, pak, len);
+    if (ret < 0)
+      xfree(pak);
+  } else {
+    rtp_process_ctrl(m_rtp_session, ((uint8_t *)(&pak->extn_type)) + sizeof(pak->extn_type), len);
     xfree(pak);
+    ret = 0;
+  }
   return ret;
 }
 

@@ -848,6 +848,15 @@ Void CVideoObjectEncoder::encode (
 
 Void CVideoObjectEncoder::codeVOHead ()
 {
+	m_pbitstrmOut -> putBits (START_CODE_PREFIX, NUMBITS_START_CODE_PREFIX, "VOSH_Start_Code");
+	m_pbitstrmOut -> putBits (SESSION_START_CODE, 8, "VOSH_Start_Code");
+	// Just signal Advanced Simple Profile @ L2 for now
+	m_pbitstrmOut -> putBits (0xF3, 8, "VOSH_Start_Code");
+
+	m_pbitstrmOut -> putBits (START_CODE_PREFIX, NUMBITS_START_CODE_PREFIX, "VO_Start_Code");
+	m_pbitstrmOut -> putBits (VISUAL_OBJ_START_CODE, 8, "Visual_Obj_Start_Code");
+	m_pbitstrmOut -> putBits (0x09, 8, "Visual_Object_Id");
+
 	m_pbitstrmOut -> putBits (START_CODE_PREFIX, NUMBITS_START_CODE_PREFIX, "VO_Start_Code");
 	m_pbitstrmOut -> putBits (VO_START_CODE, NUMBITS_VO_START_CODE, "VO_Start_Code");		//plus 3 bits
 	m_pbitstrmOut -> putBits (m_uiVOId, NUMBITS_VO_ID, "VO_Id");

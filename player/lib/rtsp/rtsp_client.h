@@ -126,7 +126,10 @@ typedef struct rtsp_session_ rtsp_session_t;
 
   struct rtp_packet;
   
-typedef void (*rtp_callback_f)(void *, struct rtp_packet *, int len);
+typedef void (*rtp_callback_f)(void *,
+			       unsigned char interleaved,
+			       struct rtp_packet *,
+			       int len);
 /*
  * free_decode_response - call this after the decode response has been
  * used.  It will free all memory under it.

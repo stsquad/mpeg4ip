@@ -569,6 +569,10 @@ int sdp_encode_one_to_file (session_desc_t *sptr,
   CHECK_RETURN(prepare_sdp_encode(&sdp));
   CHECK_RETURN(sdp_encode(sptr, &sdp));
   ofile = fopen(filename, append ? "a" : "w");
+  if (ofile == NULL) {
+    free(sdp.buffer);
+	return (-1);
+  }
   fputs(sdp.buffer, ofile);
   fclose(ofile);
   free(sdp.buffer);
@@ -585,6 +589,10 @@ int sdp_encode_list_to_file (session_desc_t *sptr,
   
   CHECK_RETURN(prepare_sdp_encode(&sdp));
   ofile = fopen(filename, append ? "a" : "w");
+  if (ofile == NULL) {
+    free(sdp.buffer);
+	return (-1);
+  }
   while (sptr != NULL) {
     sdp.used = 0;
     ret = sdp_encode(sptr, &sdp);

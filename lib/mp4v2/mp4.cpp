@@ -1063,6 +1063,60 @@ extern "C" MP4SampleId MP4GetSampleIdFromTime(
 	return MP4_INVALID_SAMPLE_ID;
 }
 
+extern "C" MP4Timestamp MP4GetSampleTime(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetSampleTime(
+				trackId, sampleId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_TIMESTAMP;
+}
+
+extern "C" MP4Duration MP4GetSampleDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetSampleDuration(
+				trackId, sampleId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_DURATION;
+}
+
+extern "C" MP4Duration MP4GetSampleRenderingOffset(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetSampleRenderingOffset(
+				trackId, sampleId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_DURATION;
+}
+
 extern "C" bool MP4SetSampleRenderingOffset(
 	MP4FileHandle hFile,
 	MP4TrackId trackId, 
@@ -1375,6 +1429,23 @@ extern "C" bool MP4AddRtpSampleData(
 		try {
 			((MP4File*)hFile)->AddRtpSampleData(
 				hintTrackId, sampleId, dataOffset, dataLength);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return false;
+}
+
+extern "C" bool MP4AddRtpESConfigurationPacket(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->AddRtpESConfigurationPacket(hintTrackId);
 			return true;
 		}
 		catch (MP4Error* e) {

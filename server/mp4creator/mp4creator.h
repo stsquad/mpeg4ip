@@ -54,7 +54,7 @@
 #endif
 
 MP4CREATOR_GLOBAL char* ProgName;
-MP4CREATOR_GLOBAL u_int32_t VideoFrameRate;
+MP4CREATOR_GLOBAL float VideoFrameRate;
 MP4CREATOR_GLOBAL u_int32_t MaxPayloadSize;
 
 #endif /* __MP4CREATOR_INCLUDED__ */

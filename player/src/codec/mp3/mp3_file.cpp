@@ -148,8 +148,9 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
   fbyte = new COurInByteStreamFile(name);
 
   MPEGaudio *mp3 = new MPEGaudio(c_read_byte, c_read_bytes, fbyte);
-
-  if (mp3->loadheader() == FALSE) {
+  try {
+    while (mp3->loadheader() == FALSE);
+  } catch (int err) {
     *errmsg = "Couldn't read MP3 header";
     delete mp3;
     delete mptr;

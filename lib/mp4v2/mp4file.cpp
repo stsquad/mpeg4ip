@@ -25,6 +25,7 @@ MP4File::MP4File(u_int32_t verbosity)
 {
 	m_fileName = NULL;
 	m_pFile = NULL;
+	m_orgFileSize = 0;
 	m_fileSize = 0;
 	m_pRootAtom = NULL;
 	m_odTrackId = MP4_INVALID_TRACK_ID;
@@ -314,9 +315,9 @@ void MP4File::Open(const char* fmode)
 		if (fstat(fileno(m_pFile), &s) < 0) {
 			throw new MP4Error(errno, "stat failed", "MP4Open");
 		}
-		m_fileSize = s.st_size;
+		m_orgFileSize = m_fileSize = s.st_size;
 	} else {
-		m_fileSize = 0;
+		m_orgFileSize = m_fileSize = 0;
 	}
 }
 
@@ -433,6 +434,18 @@ void MP4File::FinishWrite()
 
 	// ask root atom to write
 	m_pRootAtom->FinishWrite();
+
+	// check if file shrunk, e.g. we deleted a track
+	if (GetSize() < m_orgFileSize) {
+		// just use a free atom to mark unused space
+		// MP4Optimize() should be used to clean up this space
+		MP4Atom* pFreeAtom = MP4Atom::CreateAtom("free");
+		ASSERT(pFreeAtom);
+		pFreeAtom->SetFile(this);
+		pFreeAtom->SetSize(MAX(m_orgFileSize - (m_fileSize + 8), 0));
+		pFreeAtom->Write();
+		delete pFreeAtom;
+	}
 }
 
 MP4Duration MP4File::UpdateDuration(MP4Duration duration)
@@ -949,7 +962,6 @@ MP4TrackId MP4File::AddAudioTrack(u_int32_t timeScale,
 {
 	MP4TrackId trackId = AddTrack(MP4_AUDIO_TRACK_TYPE, timeScale);
 
-	AddTrackToIod(trackId);
 	AddTrackToOd(trackId);
 
 	SetTrackFloatProperty(trackId, "tkhd.volume", 1.0);
@@ -992,7 +1004,6 @@ MP4TrackId MP4File::AddVideoTrack(
 {
 	MP4TrackId trackId = AddTrack(MP4_VIDEO_TRACK_TYPE, timeScale);
 
-	AddTrackToIod(trackId);
 	AddTrackToOd(trackId);
 
 	SetTrackFloatProperty(trackId, "tkhd.width", width);
@@ -1215,6 +1226,31 @@ MP4SampleId MP4File::GetSampleIdFromTime(MP4TrackId trackId,
 {
 	return m_pTracks[FindTrackIndex(trackId)]->
 		GetSampleIdFromTime(when, wantSyncSample);
+}
+
+MP4Timestamp MP4File::GetSampleTime(
+	MP4TrackId trackId, MP4SampleId sampleId)
+{
+	MP4Timestamp timestamp;
+	m_pTracks[FindTrackIndex(trackId)]->
+		GetSampleTimes(sampleId, &timestamp, NULL);
+	return timestamp;
+}
+
+MP4Duration MP4File::GetSampleDuration(
+	MP4TrackId trackId, MP4SampleId sampleId)
+{
+	MP4Duration duration;
+	m_pTracks[FindTrackIndex(trackId)]->
+		GetSampleTimes(sampleId, NULL, &duration);
+	return duration; 
+}
+
+MP4Duration MP4File::GetSampleRenderingOffset(
+	MP4TrackId trackId, MP4SampleId sampleId)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->
+		GetSampleRenderingOffset(sampleId);
 }
 
 void MP4File::ReadSample(MP4TrackId trackId, MP4SampleId sampleId,
@@ -1683,6 +1719,19 @@ void MP4File::AddRtpSampleData(MP4TrackId hintTrackId,
 	}
 	((MP4RtpHintTrack*)pTrack)->AddSampleData(
 		sampleId, dataOffset, dataLength);
+}
+
+void MP4File::AddRtpESConfigurationPacket(MP4TrackId hintTrackId)
+{
+	ProtectWriteOperation("MP4AddRtpESConfigurationPacket");
+
+	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
+
+	if (strcmp(pTrack->GetType(), MP4_HINT_TRACK_TYPE)) {
+		throw new MP4Error("track is not a hint track", 
+			"MP4AddRtpESConfigurationPacket");
+	}
+	((MP4RtpHintTrack*)pTrack)->AddESConfigurationPacket();
 }
 
 void MP4File::WriteRtpHint(MP4TrackId hintTrackId,

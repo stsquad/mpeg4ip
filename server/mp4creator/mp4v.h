@@ -27,6 +27,8 @@
 #define GOV_START	0xB3
 #define VOP_START	0xB6
 
+u_int8_t Mp4vVideoToSystemsProfileLevel(u_int8_t videoProfileLevel);
+
 u_char Mp4vGetVopType(u_int8_t* pVopBuf, u_int32_t vopSize);
 
 #endif /* __MP4V_INCLUDED__ */

@@ -268,17 +268,8 @@ void RfcIsmaHinter(
 	ASSERT(maxLatency);
 
 	MP4Duration sampleDuration = 
-		MP4GetTrackFixedSampleDuration(mp4File, mediaTrackId);
-
-	if (sampleDuration == MP4_INVALID_DURATION) {
-		u_int8_t* pSample = NULL;
-		u_int32_t sampleSize = 0;
-
-		MP4ReadSample(mp4File, mediaTrackId, 1,
-			&pSample, &sampleSize, NULL, &sampleDuration);
-
-		free(pSample);
-	}
+		MP4GetSampleDuration(mp4File, mediaTrackId, 1);
+	ASSERT(sampleDuration != MP4_INVALID_DURATION);
 
 	u_int32_t samplesPerPacket = 0;
  

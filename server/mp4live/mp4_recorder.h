@@ -23,11 +23,7 @@
 #ifndef __MP4_RECORDER_H__
 #define __MP4_RECORDER_H__
 
-#ifdef MP4V2
 #include <mp4.h>
-#else
-#include <quicktime.h>
-#endif
 #include "media_node.h"
 
 #define RTP_HEADER_STD_SIZE 12
@@ -83,7 +79,6 @@ protected:
 protected:
 	bool			m_record;
 	char*			m_mp4FileName;
-#ifdef MP4V2
 	MP4FileHandle	m_mp4File;
 	MP4TrackId		m_odTrack;
 	MP4TrackId		m_bifsTrack;
@@ -91,45 +86,25 @@ protected:
 	MP4TrackId		m_audioHintTrack;
 	MP4TrackId		m_videoTrack;
 	MP4TrackId		m_videoHintTrack;
-#else
-	quicktime_t*	m_mp4File;
-	int				m_audioTrack;
-	int				m_audioHintTrack;
-	int				m_videoTrack;
-	int				m_videoHintTrack;
-#endif
 
 	u_int32_t		m_audioFrameNum;
 	u_int16_t		m_audioFrameRate;
 	u_int8_t		m_audioHintBuf[4*1024];
 	u_int32_t 		m_audioHintBufLength;
-	u_int32_t		m_audioRtpPktNum;
 	u_int32_t		m_audioFramesThisHint;
 	u_int32_t		m_audioBytesThisHint;
-	u_int32_t		m_audioBytesThisSec;
-	u_int32_t		m_audioFirstRtpPktThisSec;
-	u_int32_t		m_audioMaxRtpBytesPerSec;
 
 	u_int32_t		m_videoFrameNum;
 	u_int8_t		m_videoHintBuf[4*1024];
 	u_int32_t 		m_videoHintBufLength;
-	u_int32_t		m_videoRtpPktNum;
-	u_int32_t		m_videoBytesThisSec;
-	u_int32_t		m_videoFirstRtpPktThisSec;
-	u_int32_t		m_videoMaxRtpBytesPerSec;
 
 	u_int32_t		m_movieTimeScale;
 	u_int32_t		m_audioTimeScale;
 	u_int32_t		m_audioFrameDuration;	// in audioTimeScale ticks
 	u_int32_t		m_videoTimeScale;
 
-#ifdef MP4V2
 	u_int8_t		m_audioPayloadNumber;
 	u_int8_t		m_videoPayloadNumber;
-#else
-	u_int32_t		m_audioPayloadNumber;
-	u_int32_t		m_videoPayloadNumber;
-#endif
 };
 
 #endif /* __MP4_RECORDER_H__ */

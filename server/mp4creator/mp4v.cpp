@@ -277,6 +277,23 @@ static void ParseVol(u_int8_t* pVolBuf, u_int32_t volSize,
 	return;
 }
 
+static void ParseGov(u_int8_t* pGovBuf, u_int32_t govSize,
+	u_int8_t* pHours, u_int8_t* pMinutes, u_int8_t* pSeconds)
+{
+	CBitBuffer gov(pGovBuf, govSize);
+
+	try {
+		gov.GetBits(32);	// start code
+		*pHours = gov.GetBits(5);
+		*pMinutes = gov.GetBits(6);
+		gov.GetBits(1);		// marker bit
+		*pSeconds = gov.GetBits(6);
+	}
+	catch (...) {
+		fprintf(stderr, "%s: Warning, couldn't parse VOSH\n", ProgName);
+	}
+}
+
 static void ParseVop(u_int8_t* pVopBuf, u_int32_t vopSize,
 	u_char* pVopType, 
 	u_int8_t timeBits, u_int16_t timeTicks, u_int32_t* pVopTimeIncrement)
@@ -324,6 +341,113 @@ static void ParseVop(u_int8_t* pVopBuf, u_int32_t vopSize,
 	return;
 }
 
+// Map from ISO IEC 14496-2:2000 Appendix G 
+// to ISO IEC 14496-1:2001 8.6.4.2 Table 6
+u_int8_t Mp4vVideoToSystemsProfileLevel(u_int8_t videoProfileLevel)
+{
+	switch (videoProfileLevel) {
+	// Simple Profile
+	case 0x01: // L1
+		return 0x03;
+	case 0x02: // L2
+		return 0x02;
+	case 0x03: // L3
+		return 0x01;
+	// Simple Scalable Profile
+	case 0x11: // L1
+		return 0x05;
+	case 0x12: // L2
+		return 0x04;
+	// Core Profile
+	case 0x21: // L1
+		return 0x07;
+	case 0x22: // L2
+		return 0x06;
+	// Main Profile
+	case 0x32: // L2
+		return 0x0A;
+	case 0x33: // L3
+		return 0x09;
+	case 0x34: // L4
+		return 0x08;
+	// N-bit Profile
+	case 0x42: // L2
+		return 0x0B;
+	// Scalable Texture
+	case 0x51: // L1
+		return 0x12;
+	case 0x52: // L2
+		return 0x11;
+	case 0x53: // L3
+		return 0x10;
+	// Simple Face Animation Profile
+	case 0x61: // L1
+		return 0x14;
+	case 0x62: // L2
+		return 0x13;
+	// Simple FBA Profile
+	case 0x63: // L1
+	case 0x64: // L2
+		return 0xFE;
+	// Basic Animated Texture Profile
+	case 0x71: // L1
+		return 0x0F;
+	case 0x72: // L2
+		return 0x0E;
+	// Hybrid Profile
+	case 0x81: // L1
+		return 0x0D;
+	case 0x82: // L2
+		return 0x0C;
+	// Advanced Real Time Simple Profile
+	case 0x91: // L1
+	case 0x92: // L2
+	case 0x93: // L3
+	case 0x94: // L4
+	// Core Scalable Profile
+	case 0xA1: // L1
+	case 0xA2: // L2
+	case 0xA3: // L3
+	// Advanced Coding Efficiency Profle
+	case 0xB1: // L1
+	case 0xB2: // L2
+	case 0xB3: // L3
+	case 0xB4: // L4
+	// Advanced Core Profile
+	case 0xC1: // L1
+	case 0xC2: // L2
+	// Advanced Scalable Texture Profile
+	case 0xD1: // L1
+	case 0xD2: // L2
+	case 0xD3: // L3
+	// from draft amendments
+	// Simple Studio
+	case 0xE1: // L1
+	case 0xE2: // L2
+	case 0xE3: // L3
+	case 0xE4: // L4
+	// Core Studio Profile
+	case 0xE5: // L1
+	case 0xE6: // L2
+	case 0xE7: // L3
+	case 0xE8: // L4
+	// Advanced Simple Profile
+	case 0xF1: // L0
+	case 0xF2: // L1
+	case 0xF3: // L2
+	case 0xF4: // L3
+	case 0xF5: // L4
+	// Fine Granularity Scalable Profile
+	case 0xF6: // L0
+	case 0xF7: // L1
+	case 0xF8: // L2
+	case 0xF9: // L3
+	case 0xFA: // L4
+	default:
+		return 0xFE;
+	}
+}
+
 MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 {
 	bool rc; 
@@ -354,11 +478,11 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	MP4Timestamp currentSampleTime = 0;
 
 	// the last reference VOP 
-	MP4SampleId refVopId = MP4_INVALID_SAMPLE_ID;
+	MP4SampleId refVopId = 1;
 	MP4Timestamp refVopTime = 0;
 
 	// track configuration info
-	u_int8_t profileLevel = 0x03;
+	u_int8_t videoProfileLevel = 0x03;
 	u_int8_t timeBits = 15;
 	u_int16_t timeTicks = 30000;
 	u_int16_t frameDuration = 3000;
@@ -377,12 +501,17 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 
 		if (objType == VOSH_START) {
 			ParseVosh(pObj, objSize, 
-				&profileLevel);
+				&videoProfileLevel);
 
 		} else if (objType == VOL_START) {
 			ParseVol(pObj, objSize, 
 				&timeBits, &timeTicks, &frameDuration, 
 				&frameWidth, &frameHeight);
+
+#ifdef MP4V_DEBUG
+			printf("ParseVol: timeBits %u timeTicks %u frameDuration %u\n",
+				timeBits, timeTicks, frameDuration);
+#endif
 
 		} else if (objType == VOP_START) {
 			esConfigSize = pObj - pPreviousSample;
@@ -404,7 +533,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	bool isFixedFrameRate;
 
 	if (VideoFrameRate) {
-		mp4FrameDuration = mp4TimeScale / VideoFrameRate;
+		mp4FrameDuration = (u_int32_t)(((float)mp4TimeScale) / VideoFrameRate);
 		isFixedFrameRate = true;
 	} else {
 		if (frameDuration) {
@@ -431,12 +560,17 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	}
 
 	if (MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE) == 1) {
-		MP4SetVideoProfileLevel(mp4File, profileLevel);
+		MP4SetVideoProfileLevel(mp4File, 
+			Mp4vVideoToSystemsProfileLevel(videoProfileLevel));
 	}
 
 	if (esConfigSize) {
 		MP4SetTrackESConfiguration(mp4File, trackId, 
 			pPreviousSample, esConfigSize);
+
+		// move past ES config, so it doesn't go into first sample
+		pPreviousSample += esConfigSize;
+		previousSampleSize -= esConfigSize;
 	}
 
 	// now process the rest of the video stream
@@ -451,13 +585,19 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		}
 
 		if (objType != VOP_START) {
+			if (objType == GOV_START) {
+				u_int8_t govHours, govMinutes, govSeconds;
+
+				ParseGov(pObj, objSize, &govHours, &govMinutes, &govSeconds);
+
+#ifdef MP4V_DEBUG
+				printf("GOV %u:%u:%u\n", govHours, govMinutes, govSeconds);
+#endif
+				// refVopTime = gov time?
+			}
+
 			// keep it in the buffer until a VOP comes along
 			pObj += objSize;
-
-			// LATER if objType == GOV_START
-			// refVopTime = next vop time
-			// but typically it is an I frame which triggers
-			// the ref vop code anyway
 
 		} else { // we have a VOP
 			u_int32_t sampleSize = (pObj + objSize) - pCurrentSample;
@@ -472,6 +612,11 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 				currentSampleTime = refVopTime 
 					+ ((mp4TimeScale * vopTimeIncrement) / timeTicks);
 				mp4FrameDuration = currentSampleTime - previousSampleTime;
+
+#ifdef MP4V_DEBUG
+				printf("sample %u %c vopTimeIncrement %u\n"
+					sampleId + 1, vopType, vopTimeIncrement);
+#endif
 			} else {
 				currentSampleTime += mp4FrameDuration;
 			}
@@ -484,15 +629,22 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			if (!rc) {
 				fprintf(stderr,	
 					"%s: can't write video frame %u\n",
-					 ProgName, sampleId - 1);
+					 ProgName, sampleId);
 				exit(EXIT_MP4V_CREATOR);
 			}
+
+			sampleId++;
 
 			// deal with rendering time offsets 
 			// that can occur when B frames are being used 
 			// which is the case for all profiles except Simple Profile
 			if (vopType != 'B') {
-				if (profileLevel > 3 && refVopId != MP4_INVALID_SAMPLE_ID) {
+				if (videoProfileLevel > 3) {
+#ifdef MP4V_DEBUG
+					printf("sample %u renderingOffset %u\n",
+						refVopId, currentSampleTime - refVopTime);
+#endif
+
 					MP4SetSampleRenderingOffset(
 						mp4File, trackId, refVopId,
 						currentSampleTime - refVopTime);
@@ -503,7 +655,6 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			}
 
 			// move along
-			sampleId++;
 			u_int8_t* temp = pPreviousSample;
 			pPreviousSample = pCurrentSample;
 			previousSampleSize = sampleSize;
@@ -518,8 +669,6 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	rc = MP4WriteSample(mp4File, trackId, 
 		pPreviousSample, previousSampleSize,
 		0, 0, previousIsSyncSample);
-
-	// TBD final rendering offset?
 
 	return trackId;
 }

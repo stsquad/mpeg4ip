@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.4 $ 
- * $Date: 2001/10/16 17:21:22 $
+ * $Revision: 1.5 $ 
+ * $Date: 2001/11/01 19:07:02 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -1502,7 +1502,7 @@ static int validate_rtcp(uint8_t *packet, int len)
 			p = 1;
 		}
 		if (r->common.version != 2) {
-			debug_msg("Bogus RTCP packet: version number != 2 in sub-packet %d\n", pc);
+			debug_msg("Bogus RTCP packet: version number != 2 in sub-packet %d is %d\n", pc, r->common.version);
 			return FALSE;
 		}
 		l += (ntohs(r->common.length) + 1) * 4;
@@ -1759,7 +1759,7 @@ static void process_rtcp_app(struct rtp *session, rtcp_t *packet, struct timeval
 	}
 }
 
-static void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
+void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 {
 	/* This routine processes incoming RTCP packets */
 	rtp_event	 event;
@@ -1863,6 +1863,28 @@ static void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 				session->callback(session, &event);
 			}
 		} else {
+#if 0
+		  int ix;
+		  for (ix = 0; ix < buflen; ix += 16) {
+		    debug_msg("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+			      buffer[ix],
+			      buffer[ix + 1],
+			      buffer[ix + 2],
+			      buffer[ix + 3],
+			      buffer[ix + 4],
+			      buffer[ix + 5],
+			      buffer[ix + 6],
+			      buffer[ix + 7],
+			      buffer[ix + 8],
+			      buffer[ix + 9],
+			      buffer[ix + 10],
+			      buffer[ix + 11],
+			      buffer[ix + 12],
+			      buffer[ix + 13],
+			      buffer[ix + 14],
+			      buffer[ix + 15]);
+		  }
+#endif
 			debug_msg("Invalid RTCP packet discarded\n");
 			session->invalid_rtcp_count++;
 		}

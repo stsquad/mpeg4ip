@@ -44,11 +44,16 @@ public:
 
 	void Set(MP4SampleId sampleId,
 		u_int32_t sampleOffset, u_int16_t sampleLength);
+
+	void SetTrackReference(u_int8_t trackRefIndex);
 };
 
 class MP4RtpSampleDescriptionData : public MP4RtpData {
 public:
 	MP4RtpSampleDescriptionData();
+
+	void Set(u_int32_t sampleDescrIndex,
+		u_int32_t offset, u_int16_t length);
 };
 
 class MP4RtpPacket : public MP4Container {
@@ -125,6 +130,8 @@ public:
 
 	void AddSampleData(MP4SampleId sampleId,
 		 u_int32_t dataOffset, u_int32_t dataLength);
+
+	void AddESConfigurationPacket();
 
 	void WriteHint(MP4Duration duration, bool isSyncSample);
 

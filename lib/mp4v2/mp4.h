@@ -364,6 +364,21 @@ MP4SampleId MP4GetSampleIdFromTime(
 	MP4Timestamp when, 
 	bool wantSyncSample DEFAULT(false));
 
+MP4Timestamp MP4GetSampleTime(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId);
+
+MP4Duration MP4GetSampleDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId);
+
+MP4Duration MP4GetSampleRenderingOffset(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4SampleId sampleId);
+
 bool MP4SetSampleRenderingOffset(
 	MP4FileHandle hFile,
 	MP4TrackId trackId, 
@@ -431,6 +446,10 @@ bool MP4AddRtpSampleData(
 	MP4SampleId sampleId,
 	u_int32_t dataOffset,
 	u_int32_t dataLength);
+
+bool MP4AddRtpESConfigurationPacket(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId);
 
 bool MP4WriteRtpHint(
 	MP4FileHandle hFile,

@@ -62,6 +62,7 @@ Revision History:
 #define SESSION_START_CODE				0xB0
 #define SESSION_END_CODE				0xB1
 #define USER_DATA_START_CODE			0xB2
+#define VISUAL_OBJ_START_CODE			0xB5
 
 // VO overhead information
 #define NUMBITS_VO_START_CODE			3

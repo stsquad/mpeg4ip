@@ -169,21 +169,34 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 
 void CRtpTransmitter::SendMp3AudioWith2250(CMediaFrame* pFrame)
 {
-	// if this frame would overflow current rtp packet
-	if ((u_int16_t)(m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)
-	  - m_mp3QueueSize) < pFrame->GetDataLength() + mp3PayloadHeaderSize) {
+	if (m_mp3QueueCount > 0) {
+		if (m_mp3QueueSize + pFrame->GetDataLength() <=
+		  m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
 
-		// send queued frames
-		SendMp3QueuedFrames();
+			m_mp3Queue[m_mp3QueueCount++] = pFrame;
+			m_mp3QueueSize += pFrame->GetDataLength();
+
+			// if we fill the last slot in the queue
+			// send the packet
+			if (m_mp3QueueCount == mp3QueueMaxCount) {
+				SendMp3QueuedFrames();
+			}
+
+			return;
+
+		} else {
+			// send queued frames
+			SendMp3QueuedFrames();
+
+			// fall thru
+		}
 	}
 
-	// OPTION might want to treat greater than 1/2 payload size as jumbo
+	// by here m_mp3QueueCount == 0
 
 	if (pFrame->GetDataLength() + mp3PayloadHeaderSize 
-	  < m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
+	  <= m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
 
-		// by here we are guaranteed mp3 frame 
-		// will fit in packet so queue it up
 		m_mp3Queue[m_mp3QueueCount++] = pFrame;
 		m_mp3QueueSize += pFrame->GetDataLength() + mp3PayloadHeaderSize;
 
@@ -202,7 +215,7 @@ void CRtpTransmitter::SendMp3AudioWith2250(CMediaFrame* pFrame)
 
 void CRtpTransmitter::SendMp3QueuedFrames(void)
 {
-	struct iovec iov[2 * mp3QueueMaxCount];
+	struct iovec iov[mp3QueueMaxCount + 1];
 	static u_int32_t zero32 = 0;
 
 	if (m_mp3QueueCount == 0) {
@@ -219,11 +232,11 @@ void CRtpTransmitter::SendMp3QueuedFrames(void)
 	rtp_update(m_audioRtpSession);
 
 	// create the iovec list
-	for (int i = 0; i < 2 * m_mp3QueueCount; ) {
-		iov[i].iov_base = &zero32;
-		iov[i++].iov_len = 4;
-		iov[i].iov_base = m_mp3Queue[i/2]->GetData();
-		iov[i++].iov_len = m_mp3Queue[i/2]->GetDataLength();
+	iov[0].iov_base = &zero32;
+	iov[0].iov_len = 4;
+	for (int i = 0; i < m_mp3QueueCount; i++) {
+		iov[i+1].iov_base = m_mp3Queue[i]->GetData();
+		iov[i+1].iov_len = m_mp3Queue[i]->GetDataLength();
 	}
 
 	// send packet
@@ -231,7 +244,7 @@ void CRtpTransmitter::SendMp3QueuedFrames(void)
 		m_audioRtpSession,
 		rtpTimestamp,
 		m_audioPayloadNumber, 1, 0, NULL,
-		iov, 2 * m_mp3QueueCount,
+		iov, m_mp3QueueCount + 1,
 		NULL, 0, 0);
 
 	// delete all the pending media frames

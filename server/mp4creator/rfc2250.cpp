@@ -51,34 +51,46 @@ void Rfc2250Hinter(
 		u_int32_t sampleSize = 
 			MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
 
-		// sample won't fit in this packet
-		if (sampleSize + 4 > MaxPayloadSize - bytesThisHint) {
+		if (samplesThisHint > 0) {
+			if (bytesThisHint + sampleSize <= MaxPayloadSize) {
+				// add the mp3 frame to current hint
+				MP4AddRtpSampleData(mp4File, hintTrackId,
+					sampleId, 0, sampleSize);
 
-			MP4WriteRtpHint(mp4File, hintTrackId, 
-				samplesThisHint * sampleDuration);
+				samplesThisHint++;
+				bytesThisHint += sampleSize;
+				continue;
+			} else {
+				// write out current hint
+				MP4WriteRtpHint(mp4File, hintTrackId, 
+					samplesThisHint * sampleDuration);
 
-			// start a new hint 
-			samplesThisHint = 0;
-			bytesThisHint = 0;
+				// start a new hint 
+				samplesThisHint = 0;
+				bytesThisHint = 0;
 
-			MP4AddRtpHint(mp4File, hintTrackId);
-			MP4AddRtpPacket(mp4File, hintTrackId, true);
+				MP4AddRtpHint(mp4File, hintTrackId);
+				MP4AddRtpPacket(mp4File, hintTrackId, true);
 
-			// fall thru
+				// fall thru
+			}
 		}
 
-		// sample is less than remaining payload size
-		if (sampleSize + 4 <= MaxPayloadSize - bytesThisHint) {
+		ASSERT(samplesThisHint == 0);
+		
+		if (sampleSize + 4 <= MaxPayloadSize) {
+			// add rfc 2250 payload header
 			static u_int32_t zero32 = 0;
 
 			MP4AddRtpImmediateData(mp4File, hintTrackId,
 				(u_int8_t*)&zero32, sizeof(zero32));
+
+			// add the mp3 frame to current hint
 			MP4AddRtpSampleData(mp4File, hintTrackId,
 				sampleId, 0, sampleSize);
 
-			bytesThisHint += (sampleSize + 4);
-
-		} else { 
+			bytesThisHint += (4 + sampleSize);
+		} else {
 			// jumbo frame, need to fragment it
 			u_int16_t sampleOffset = 0;
 
@@ -110,9 +122,10 @@ void Rfc2250Hinter(
 			bytesThisHint = MaxPayloadSize;
 		}
 
-		samplesThisHint++;
+		samplesThisHint = 1;
 	}
 
+	// write out current (final) hint
 	MP4WriteRtpHint(mp4File, hintTrackId, 
 		samplesThisHint * sampleDuration);
 }

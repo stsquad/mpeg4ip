@@ -103,7 +103,7 @@ class CPlayerMedia {
   void rtp_periodic(void);
   void rtp_start(void);
   void rtp_end(void);
-  int rtp_receive_packet(struct rtp_packet *, int len);
+  int rtp_receive_packet(unsigned char interleaved, struct rtp_packet *, int len);
   int rtcp_send_packet(char *buffer, int buflen);
   int get_rtp_media_number (void) { return m_rtp_media_number_in_session; };
  private:

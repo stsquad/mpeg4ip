@@ -165,7 +165,7 @@ int main(int argc, char** argv)
 			payloadName = optarg;
 			break;
 		case 'r':
-			if (sscanf(optarg, "%u", &VideoFrameRate) != 1) {
+			if (sscanf(optarg, "%f", &VideoFrameRate) != 1) {
 				fprintf(stderr, 
 					"%s: bad rate specified: %s\n",
 					 ProgName, optarg);

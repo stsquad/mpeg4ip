@@ -857,7 +857,7 @@ u_int32_t MP4Track::GetSampleCttsIndex(MP4SampleId sampleId,
 	return 0; // satisfy MS compiler
 }
 
-u_int32_t MP4Track::GetSampleRenderingOffset(MP4SampleId sampleId)
+MP4Duration MP4Track::GetSampleRenderingOffset(MP4SampleId sampleId)
 {
 	if (m_pCttsCountProperty == NULL) {
 		return 0;
@@ -947,7 +947,7 @@ void MP4Track::SetSampleRenderingOffset(MP4SampleId sampleId,
 	}
 
 	u_int32_t sampleCount =
-		m_pCttsSampleCountProperty->GetValue();
+		m_pCttsSampleCountProperty->GetValue(cttsIndex);
 
 	// if this sample has it's own ctts entry
 	if (sampleCount == 1) {

@@ -155,9 +155,11 @@ static void callback_for_rtp_packet (rtsp_client_t *info,
 				     rtp_packet *rtp_ptr,
 				     unsigned short rtp_len)
 {
+  unsigned char  which = interleave;
   interleave /= 2;
   if (info->m_callback[interleave].rtp_callback_set) {
     (info->m_callback[interleave].rtp_callback)(info->m_callback[interleave].rtp_userdata,
+						which,
 						rtp_ptr,
 						rtp_len);
   } else {

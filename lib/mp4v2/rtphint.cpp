@@ -244,6 +244,54 @@ void MP4RtpHintTrack::AddSampleData(
 	m_pTrpy->IncrementValue(dataLength);
 }
 
+void MP4RtpHintTrack::AddESConfigurationPacket()
+{
+#ifdef NOTDEF
+	if (m_pHint == NULL) {
+		throw new MP4Error("no hint pending", 
+			"MP4RtpAddESConfigurationPacket");
+	}
+
+	u_int8_t pConfig = NULL;
+	u_int32_t configSize = 0;
+
+	m_pFile->GetTrackESConfiguration(m_pRefTrack->GetTrackId(),
+		&pConfig, &configSize);
+
+	if (pConfig == NULL) {
+		return;
+	}
+
+	if (configSize > m_maxPayloadSize) {
+		throw new MP4Error("ES configuration is too large for RTP payload",
+			"MP4RtpAddESConfigurationPacket");
+	}
+
+	AddPacket(true);
+
+	MP4RtpPacket* pPacket = m_pHint->GetCurrentPacket();
+	ASSERT(pPacket);
+	
+	// This is ugly!
+	// To get the ES configuration data somewhere known
+	// we create a sample data reference that points to 
+	// this hint track (not the media track)
+	// and this sample of the hint track 
+	// the offset into this sample needs to be filled in
+	// when WriteHint is called
+	MP4RtpSampleData* pData = new MP4RtpSampleData();
+	pData->SetTrackReference((u_int8_t)-1);
+	pData->Set(m_writeSampleId, 0, configSize);
+
+	pPacket->AddData(pData);
+
+	m_bytesThisHint += configSize;
+	m_bytesThisPacket += configSize;
+	m_pTpyl->IncrementValue(configSize);
+	m_pTrpy->IncrementValue(configSize);
+#endif
+}
+
 void MP4RtpHintTrack::WriteHint(MP4Duration duration, bool isSyncSample)
 {
 	if (m_pHint == NULL) {
@@ -564,6 +612,11 @@ void MP4RtpSampleData::Set(MP4SampleId sampleId,
 	((MP4Integer32Property*)m_pProperties[4])->SetValue(sampleOffset);
 }
 
+void MP4RtpSampleData::SetTrackReference(u_int8_t trackRefIndex)
+{
+	((MP4Integer8Property*)m_pProperties[1])->SetValue(trackRefIndex);
+}
+
 MP4RtpSampleDescriptionData::MP4RtpSampleDescriptionData()
 {
 	((MP4Integer8Property*)m_pProperties[0])->SetValue(3);
@@ -578,5 +631,13 @@ MP4RtpSampleDescriptionData::MP4RtpSampleDescriptionData()
 		new MP4Integer32Property("sampleDescriptionOffset"));
 	AddProperty( /* 5 */
 		new MP4Integer32Property("reserved"));
+}
+
+void MP4RtpSampleDescriptionData::Set(u_int32_t sampleDescrIndex,
+	u_int32_t offset, u_int16_t length)
+{
+	((MP4Integer16Property*)m_pProperties[2])->SetValue(length);
+	((MP4Integer32Property*)m_pProperties[3])->SetValue(sampleDescrIndex);
+	((MP4Integer32Property*)m_pProperties[4])->SetValue(offset);
 }
 

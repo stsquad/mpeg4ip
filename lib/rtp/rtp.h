@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.2 $ 
- * $Date: 2001/10/11 20:39:03 $
+ * $Revision: 1.3 $ 
+ * $Date: 2001/11/01 19:07:02 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -260,6 +260,7 @@ int rtp_process_recv_data(struct rtp *session,
 			  uint32_t curr_rtp_ts,
 			  rtp_packet *packet,
 			  int buflen);
+  void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen);
 
 #ifdef __cplusplus
 }
