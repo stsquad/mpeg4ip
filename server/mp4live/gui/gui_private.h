@@ -46,6 +46,9 @@ void DoStop(void);
 // From video_dialog.cpp
 void CreateVideoDialog(void);
 
+// From picture_dialog.cpp
+void CreatePictureDialog(void);
+
 // From audio_dialog.cpp
 void CreateAudioDialog(void);
 

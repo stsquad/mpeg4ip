@@ -286,6 +286,8 @@ bool CV4LVideoSource::InitDevice(void)
 		m_pConfig->m_videoNeedRgbToYuv = true;
 	}
 
+	SetPictureControls();
+
 	if (videoCapability.audios) {
 		SetVideoAudioMute(false);
 	}
@@ -341,6 +343,39 @@ void CV4LVideoSource::SetVideoAudioMute(bool mute)
 				m_pConfig->m_videoCapabilities->m_deviceName);
 		}
 	}
+}
+
+bool CV4LVideoSource::SetPictureControls()
+{
+	if (m_videoDevice == -1) {
+		return false;
+	}
+
+	struct video_picture videoPicture;
+	int rc;
+
+	rc = ioctl(m_videoDevice, VIDIOCGPICT, &videoPicture);
+
+	if (rc < 0) {
+		return false;
+	}
+
+	videoPicture.brightness = (u_int16_t)
+		((m_pConfig->GetIntegerValue(CONFIG_VIDEO_BRIGHTNESS) * 0xFFFF) / 100);
+	videoPicture.hue = (u_int16_t)
+		((m_pConfig->GetIntegerValue(CONFIG_VIDEO_HUE) * 0xFFFF) / 100);
+	videoPicture.colour = (u_int16_t)
+		((m_pConfig->GetIntegerValue(CONFIG_VIDEO_COLOR) * 0xFFFF) / 100);
+	videoPicture.contrast = (u_int16_t)
+		((m_pConfig->GetIntegerValue(CONFIG_VIDEO_CONTRAST) * 0xFFFF) / 100);
+
+	rc = ioctl(m_videoDevice, VIDIOCSPICT, &videoPicture);
+
+	if (rc < 0) {
+		return false;
+	}
+
+	return true;
 }
 
 int8_t CV4LVideoSource::AcquireFrame(void)

@@ -131,6 +131,10 @@ enum {
 	CONFIG_VIDEO_BIT_RATE,
 	CONFIG_VIDEO_PROFILE_ID,
 	CONFIG_VIDEO_PROFILE_LEVEL_ID,
+	CONFIG_VIDEO_BRIGHTNESS,
+	CONFIG_VIDEO_HUE,
+	CONFIG_VIDEO_COLOR,
+	CONFIG_VIDEO_CONTRAST,
 
 	CONFIG_RECORD_ENABLE,
 	CONFIG_RECORD_RAW_AUDIO,
@@ -310,6 +314,18 @@ static SConfigVariable MyConfigVariables[] = {
 
 	{ CONFIG_VIDEO_PROFILE_LEVEL_ID, "videoProfileLevelId",
 		CONFIG_TYPE_INTEGER, (config_integer_t)3, },
+
+	{ CONFIG_VIDEO_BRIGHTNESS, "videoBrightness",
+		CONFIG_TYPE_INTEGER, (config_integer_t)50, },
+
+	{ CONFIG_VIDEO_HUE, "videoHue",
+		CONFIG_TYPE_INTEGER, (config_integer_t)50, },
+
+	{ CONFIG_VIDEO_COLOR, "videoColor",
+		CONFIG_TYPE_INTEGER, (config_integer_t)50, },
+
+	{ CONFIG_VIDEO_CONTRAST, "videoContrast",
+		CONFIG_TYPE_INTEGER, (config_integer_t)50, },
 
 	// RECORD
 

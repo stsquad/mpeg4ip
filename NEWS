@@ -1,3 +1,21 @@
+xx/xx/02 Version 0.9.6
+    RTP plugins for player.
+    Converted libmpeg32 to use SDL mutexes instead of pthreads
+    H.263 (mpeg4 short headers) supported by ISO decoder in player
+    Mpeg2 transport stream reception in player
+    Work on SDL audio for smaller frame sizes
+    GLIB and GTK 2.0 detection and changes
+    Fixed some player RTP bugs:
+    - continue sending RTCP while paused.  This will keep RTSP session open
+    When have mpeg2 half-D1, convert to full-D1 for playback.
+    When receiving a forward stream from DSS, don't stop right away.
+    Fixed raw audio endianness in mp4live, raw audio.  Added raw audio hinting
+      to mp4creator (L16 format).
+    Added .mpg file to .mp4 conversion, hinting of mpeg1 and mpeg2
+      according to RFC 2250 (see note on quicktime compatibility in README).
+    Fixed BIFS/IOD according to ISMA Corrigenda
+    For SUN, fixed xvid to take correct WORDS_BIGENDIAN define from config.h
+
 07/15/02 Version 0.9.5
     Mpeg1/2 video codec, file playback and RFC 2250 streaming in player.
     IPv6 integration

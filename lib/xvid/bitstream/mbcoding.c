@@ -18,6 +18,14 @@ VLC DCT3Dinter[4096];
 
 static int16_t clip_table[4096];
 
+#ifdef MPEG4IP
+extern void h263_encode_coeff(
+	Bitstream *bs,
+	int16_t block[64],
+	const uint16_t *zigzag,
+	uint16_t intra);
+#endif
+
 void init_vlc_tables(void)
 {
 
@@ -251,7 +259,7 @@ static void CodeBlockIntra(const MBParam * pParam,
 		BitstreamPutBits(bs, mcbpc_inter_tab[mcbpc].code, mcbpc_inter_tab[mcbpc].len);
 	}
 
-#ifdef MPEG4IP_H263_NOACPRED
+#ifdef MPEG4IP
 	if ((pParam->global_flags & XVID_SHORT_HEADERS) == 0) {
 #endif
 		// ac prediction flag
@@ -259,7 +267,7 @@ static void CodeBlockIntra(const MBParam * pParam,
 			BitstreamPutBits(bs, 1, 1);
 		else
 			BitstreamPutBits(bs, 0, 1);
-#ifdef MPEG4IP_H263_NOACPRED
+#ifdef MPEG4IP
 	}
 #endif
 
@@ -282,8 +290,7 @@ static void CodeBlockIntra(const MBParam * pParam,
 #ifdef MPEG4IP
 		if ((pParam->global_flags & XVID_SHORT_HEADERS) != 0) {
 			// H.263
-#ifdef MPEG4IP_H263_DC
-			uint16_t dcq = qcoeff[i*64] + 129;
+			uint16_t dcq = qcoeff[i*64] & 0xFF;
 			if (dcq < 1) {
 				dcq = 1;
 			} else if (dcq == 128) {
@@ -291,30 +298,19 @@ static void CodeBlockIntra(const MBParam * pParam,
 			} else if (dcq > 254) {
 				dcq = 254;	/* need to clamp value */
 			} 
+			
+			// DEBUG
+			printf("xvid-h263 b %u start %u dc %d dccode %u\n",
+				i, BitstreamPos(bs), qcoeff[i*64], dcq);
+
 			BitstreamPutBits(bs, dcq, 8);
-#else
-			if (i < 4) {
-				BitstreamPutBits(bs,
-						 dcy_tab[qcoeff[i*64 + 0] + 255].code,
-						 dcy_tab[qcoeff[i*64 + 0] + 255].len);
-			} else {
-				BitstreamPutBits(bs,
-						 dcc_tab[qcoeff[i*64 + 0] + 255].code,
-						 dcc_tab[qcoeff[i*64 + 0] + 255].len);
-			}
-#endif
 
 			if (pMB->cbp & (1 << (5 - i))) {
 				bits = BitstreamPos(bs);
 
-				CodeCoeff(bs,
+				h263_encode_coeff(bs,
 					  &qcoeff[i*64],
-					  intra_table,
-#ifdef MPEG4IP_H263_NOACPRED
 					  scan_tables[0],
-#else
-					  scan_tables[pMB->acpred_directions[i]],
-#endif
 					  1);
 
 				pStat->iTextBits += BitstreamPos(bs) - bits;
@@ -406,7 +402,15 @@ static void CodeBlockInter(const MBParam * pParam,
 	// code block coeffs
 	for(i = 0; i < 6; i++)
 		if(pMB->cbp & (1 << (5 - i)))
+#ifdef MPEG4IP
+			if ((pParam->global_flags & XVID_SHORT_HEADERS) != 0) {
+				h263_encode_coeff(bs, &qcoeff[i*64], scan_tables[0], 0);
+			} else {
+				CodeCoeff(bs, &qcoeff[i*64], inter_table, scan_tables[0], 0);
+			}
+#else
 			CodeCoeff(bs, &qcoeff[i*64], inter_table, scan_tables[0], 0);
+#endif
 
 	bits = BitstreamPos(bs) - bits;
 	pStat->iTextBits += bits;

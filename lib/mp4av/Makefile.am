@@ -14,6 +14,7 @@ libmp4av_la_SOURCES = \
 	audio.cpp \
 	audio_hinters.cpp \
 	audio_hinters.h \
+	l16.cpp \
 	mp3.cpp \
 	mp4av_aac.h \
 	mp4av_adts.h \
@@ -32,5 +33,5 @@ libmp4av_la_SOURCES = \
 	rfc3016.cpp \
 	rfc3119.cpp \
 	rfcisma.cpp
-	
+
 EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp

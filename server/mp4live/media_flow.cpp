@@ -272,6 +272,13 @@ void CAVMediaFlow::StopVideoPreview(void)
 	}
 }
 
+void CAVMediaFlow::SetPictureControls(void)
+{
+	if (m_videoSource) {
+		m_videoSource->SetPictureControls();
+	}
+}
+
 void CAVMediaFlow::SetAudioInput(void)
 {
 	// if mixer is specified, then user takes responsibility for

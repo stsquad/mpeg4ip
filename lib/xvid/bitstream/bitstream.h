@@ -50,7 +50,7 @@
 
 #ifndef _BITSTREAM_H_
 #define _BITSTREAM_H_
-
+#include "config.h"
 #include "../portab.h"
 #include "../decoder.h"
 #include "../encoder.h"
@@ -143,13 +143,13 @@ static void __inline BitstreamInit(Bitstream * const bs,
 	bs->start = bs->tail = (uint32_t*)bitstream;
 
 	tmp = *(uint32_t *)bitstream;
-#ifndef ARCH_IS_BIG_ENDIAN
+#ifndef WORDS_BIGENDIAN
 	BSWAP(tmp);
 #endif
 	bs->bufa = tmp;
 
 	tmp = *((uint32_t *)bitstream + 1);
-#ifndef ARCH_IS_BIG_ENDIAN
+#ifndef WORDS_BIGENDIAN
 	BSWAP(tmp);
 #endif
 	bs->bufb = tmp;
@@ -157,6 +157,7 @@ static void __inline BitstreamInit(Bitstream * const bs,
 	bs->buf = 0;
 	bs->pos = 0;
 	bs->length = length;
+	//printf("Bitstream started - length %d\n", length);
 }
 
 
@@ -169,13 +170,13 @@ static void __inline BitstreamReset(Bitstream * const bs)
 	bs->tail = bs->start;
 
 	tmp = *bs->start;
-#ifndef ARCH_IS_BIG_ENDIAN
+#ifndef WORDS_BIGENDIAN
 	BSWAP(tmp);
 #endif
 	bs->bufa = tmp;
 
 	tmp = *(bs->start + 1);
-#ifndef ARCH_IS_BIG_ENDIAN
+#ifndef WORDS_BIGENDIAN
 	BSWAP(tmp);
 #endif
 	bs->bufb = tmp;
@@ -191,17 +192,26 @@ static uint32_t __inline BitstreamShowBits(Bitstream * const bs,
 										   const uint32_t bits)
 {
 	int nbit = (bits + bs->pos) - 32;
+	uint32_t ret_value;
 	if (nbit > 0) 
 	{
-		return ((bs->bufa & (0xffffffff >> bs->pos)) << nbit) |
+		ret_value =  ((bs->bufa & (0xffffffff >> bs->pos)) << nbit) |
 				(bs->bufb >> (32 - nbit));
 	}
 	else 
 	{
-		return (bs->bufa & (0xffffffff >> bs->pos)) >> (32 - bs->pos - bits);
+		ret_value = (bs->bufa & (0xffffffff >> bs->pos)) >> (32 - bs->pos - bits);
 	}
+	//printf("showbits %d %x\n", bits, ret_value);
+	return ret_value;
 }
 
+static __inline int Bitstream_byte_align_bits (Bitstream * const bs)
+{
+  int mod;
+  mod = bs->pos % 8;
+  return mod == 0 ? 0 : 8 - mod;
+}
 
 /* skip n bits forward in bitstream */
 
@@ -215,13 +225,14 @@ static __inline void BitstreamSkip(Bitstream * const bs, const uint32_t bits)
 
 		bs->bufa = bs->bufb;
 		tmp = *((uint32_t *)bs->tail + 2);
-#ifndef ARCH_IS_BIG_ENDIAN
+#ifndef WORDS_BIGENDIAN
 		BSWAP(tmp);
 #endif
 		bs->bufb = tmp;
 		bs->tail++;
 		bs->pos -= 32;
 	}
+	//printf("used %d\n", bits);
 }
 
 
@@ -256,7 +267,7 @@ static uint32_t __inline BitstreamLength(Bitstream * const bs)
     if (bs->pos)
     {
 		uint32_t b = bs->buf;
-#ifndef ARCH_IS_BIG_ENDIAN
+#ifndef WORDS_BIGENDIAN
 		BSWAP(b);
 #endif
 		*bs->tail = b;
@@ -277,7 +288,7 @@ static void __inline BitstreamForward(Bitstream * const bs, const uint32_t bits)
     if (bs->pos >= 32)
     {
 		uint32_t b = bs->buf;
-#ifndef ARCH_IS_BIG_ENDIAN
+#ifndef WORDS_BIGENDIAN
 		BSWAP(b);
 #endif
 		*bs->tail++ = b;
@@ -377,5 +388,6 @@ static void __inline BitstreamPad(Bitstream * const bs)
     }
 }
 #endif
+//extern const uint32_t intra_dc_threshold_table[];
 
 #endif /* _BITSTREAM_H_ */

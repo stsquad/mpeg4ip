@@ -97,12 +97,10 @@ CVideoObjectDecoder::~CVideoObjectDecoder ()
 }
 
 
-Int CVideoObjectDecoder::h263_decode ()
+Int CVideoObjectDecoder::h263_decode (bool read_header)
 {
-#if 0
-	static Bool first_time = TRUE;
 
-	if (!first_time) 
+	if (read_header != FALSE) 
 	{
 		while ( m_pbitstrmIn -> peekBits(NUMBITS_SHORT_HEADER_START_CODE) != SHORT_VIDEO_START_MARKER)
 		{
@@ -114,9 +112,6 @@ Int CVideoObjectDecoder::h263_decode ()
 	
 		video_plane_with_short_header(); 
 	}
-	else
-		first_time = FALSE;
-#endif
 
 	m_bUseGOV=FALSE; 
 	m_bLinkisBroken=FALSE;

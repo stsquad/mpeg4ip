@@ -54,7 +54,6 @@ static codec_data_t *rawa_codec_create (const char *compressor,
       media_fmt->rtpmap->encode_param : 1;
     if (strcasecmp(media_fmt->rtpmap->encode_name, "L16") == 0) {
       rawa->m_bitsperchan = 16;
-      rawa->m_convert_bytes = 1;
     } else if ((*media_fmt->rtpmap->encode_name == '1') &&
 	       (media_fmt->rtpmap->encode_name[1] == '0') ||
 	       (media_fmt->rtpmap->encode_name[1] == '1')) {
@@ -64,7 +63,17 @@ static codec_data_t *rawa_codec_create (const char *compressor,
       rawa->m_chans = media_fmt->rtpmap->encode_name[1] == '0' ? 2 : 1;
     } else
       rawa->m_bitsperchan = 8;
+#ifndef WORDS_BIGENDIAN
+    rawa->m_convert_bytes = 1;
+#endif
   } else {
+#ifndef WORDS_BIGENDIAN
+    if (type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE)
+      rawa->m_convert_bytes = 1;
+#else
+    if (type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE)
+      rawa->m_convert_bytes = 1;
+#endif
     rawa->m_freq = audio->freq;
     rawa->m_chans = audio->chans;
     rawa->m_bitsperchan = audio->bitspersample;
@@ -140,16 +149,23 @@ static int rawa_decode (codec_data_t *ptr,
 	calc /= rawa->m_freq;
 	calc /= ts;
 	calc /= 2;
+	if (calc == 0) calc = 1;
 	LOGIT(LOG_DEBUG, "rawaudio", "Channels is %d", calc);
 	rawa->m_chans = calc;
 	rawa->m_bitsperchan = 16;
       } 
     }
+    int audio_format;
+
+    if (rawa->m_bitsperchan == 16) {
+      audio_format = AUDIO_S16SYS;
+    } else {
+      audio_format = AUDIO_U8;
+    }
     rawa->m_vft->audio_configure(rawa->m_ifptr,
 				 rawa->m_freq, 
 				 rawa->m_chans, 
-				 rawa->m_bitsperchan == 16 ? AUDIO_S16SYS :
-				 AUDIO_U8, 
+				 audio_format,
 				 0);
     if (rawa->m_temp_buff != NULL) {
       rawa->m_vft->audio_load_buffer(rawa->m_ifptr,
@@ -211,7 +227,8 @@ static int rawa_codec_check (lib_message_func_t message,
   if (compressor != NULL && 
       strcasecmp(compressor, "MP4 FILE") == 0 &&
       type != -1) {
-    if (type == MP4_PCM16_AUDIO_TYPE)
+    if ((type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE) ||
+	(type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE))
       return 1;
   }
   if (compressor != NULL &&

@@ -211,12 +211,15 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 	/* get the ES configuration */
 	u_int8_t* pConfig = NULL;
 	u_int32_t configSize;
+	uint8_t channels;
 
 	MP4GetTrackESConfiguration(mp4File, mediaTrackId, &pConfig, &configSize);
 
 	if (!pConfig) {
 		return false;
 	}
+     
+	channels = MP4AV_AacConfigGetChannels(pConfig);
 
 	/* convert ES Config into ASCII form */
 	char* sConfig = 
@@ -249,9 +252,13 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 	}
 
 	u_int8_t payloadNumber = 0;
-
+	char buffer[10];
+	if (channels != 1) {
+	  snprintf(buffer, sizeof(buffer), "%u", channels);
+	}
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
-		"mpeg4-generic", &payloadNumber, 0);
+				  "mpeg4-generic", &payloadNumber, 0,
+				  channels != 1 ? buffer : NULL);
 
 	MP4Duration maxLatency;
 

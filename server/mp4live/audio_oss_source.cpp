@@ -170,9 +170,15 @@ bool COSSAudioSource::InitDevice(void)
 		return false;
 	}
 
-	int format = AFMT_S16_LE;
+#ifdef WORDS_BIGENDIAN
+#define OUR_FORMAT AFMT_S16_BE
+#else
+#define OUR_FORMAT AFMT_S16_LE
+#endif
+	int format = OUR_FORMAT;
+
 	rc = ioctl(m_audioDevice, SNDCTL_DSP_SETFMT, &format);
-	if (rc < 0 || format != AFMT_S16_LE) {
+	if (rc < 0 || format != OUR_FORMAT) {
 		error_message("Couldn't set format for %s", deviceName);
 		return false;
 	}

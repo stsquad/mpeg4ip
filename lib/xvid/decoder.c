@@ -182,9 +182,13 @@ void decoder_mbintra(DECODER * dec,
 		int16_t predictors[8];
 		int start_coeff;
 
-#ifdef MPEG4IP_H263_DC
+// DEBUG
+//printf("xvid mb %u %u b %u start %u ",
+//	y_pos, x_pos, i, BitstreamPos(bs));
+
+#ifdef MPEG4IP
 		if (dec->have_short_header) {
-			iDcScaler = 16;
+			iDcScaler = 8;
 		}
 #endif
 
@@ -196,14 +200,16 @@ void decoder_mbintra(DECODER * dec,
 		}
 		stop_prediction_timer();
 
-#ifdef MPEG4IP_H263_DC
+#ifdef MPEG4IP
 		if (dec->have_short_header) {
 			uint16_t dcq = BitstreamGetBits(bs, 8);
 			if (dcq == 255) {
 				dcq = 128;
 			}
-			block[i*64 + 0] = dcq - 129;
+			block[i*64] = dcq;
 			start_coeff = 1;
+
+			// TBD need H.263 VLC's
 		} else {
 #endif
 		if (quant < intra_dc_threshold)
@@ -226,7 +232,7 @@ void decoder_mbintra(DECODER * dec,
 		{
 			start_coeff = 0;
 		}
-#ifdef MPEG4IP_H263_DC
+#ifdef MPEG4IP
 		}
 #endif
 
@@ -236,6 +242,8 @@ void decoder_mbintra(DECODER * dec,
 			get_intra_block(bs, &block[i*64], pMB->acpred_directions[i], start_coeff);
 		}
 		stop_coding_timer();
+// DEBUG
+//printf("end %u\n", BitstreamPos(bs));
 
 		start_timer();
 		add_acdc(pMB, i, &block[i*64], iDcScaler, predictors);
@@ -405,11 +413,15 @@ static void decoder_iframe(DECODER * dec, Bitstream * bs, int quant, int intra_d
 			uint32_t cbpy;
 			uint32_t cbp;
 
+			// DEBUG
+			//printf("xvid mb %u %u 0x%08x, start %u\n",
+				//y, x, BitstreamShowBits(bs, 32), BitstreamPos(bs));
+
 			mcbpc = get_mcbpc_intra(bs);
 			mb->mode = mcbpc & 7;
 			cbpc = (mcbpc >> 4);
 
-#ifdef MPEG4IP_H263_NOACPRED
+#ifdef MPEG4IP
 			if (dec->have_short_header) {
 				acpred_flag = 0;
 			} else {
@@ -451,7 +463,6 @@ static void decoder_iframe(DECODER * dec, Bitstream * bs, int quant, int intra_d
 			decoder_mbintra(dec, mb, x, y, acpred_flag, cbp, bs, quant, intra_dc_threshold);
 		}
 	}
-
 }
 
 
@@ -540,7 +551,7 @@ void decoder_pframe(DECODER * dec, Bitstream * bs, int rounding, int quant, int 
 				
 				if (intra)
 				{
-#ifdef MPEG4IP_H263_NOACPRED
+#ifdef MPEG4IP
 					if (!dec->have_short_header) {
 						acpred_flag = BitstreamGetBit(bs);
 					}

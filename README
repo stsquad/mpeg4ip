@@ -402,6 +402,8 @@ mpeg4ip - top level project directory
         plugin - home of player plugins
             audio - audio plugins
                raw - raw audio plugin
+	    rtp - rtp bytestream plugins
+               isma_audio - isma audio format plugin
             video - video plugins
                raw - raw video plugin
                mpeg3 - mpeg1/2 video plugin
@@ -617,4 +619,12 @@ Known Problems
   A typical RRT between two hosts on a LAN is around 0.5 millisecond.  
   Measurements between Linux/Unix boxes have no such a problem. 
 
+* It appears that mpeg audio created and hinted with our mp4creator do not
+  work correctly with Quicktime when streaming.  This is most likely because 
+  we use a dynamic RTP payload number and a RTP TS frequency that matches 
+  the sampling frequency.  QT seems to only like an RTP payload of 14 and 
+  a RTP TS frequency of 90000. (This is with QT 6.0).
+
+  Neither QT or Real appear to understand mpeg1/2 or mp3 content in a .mp4
+  container file.
 === END OF README ===

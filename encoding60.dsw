@@ -276,6 +276,24 @@ Package=<4>
 
 ###############################################################################
 
+Project: "mp4info"=.\LIB\MP4V2\UTIL\mp4info.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libmp4v2_st
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing60
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "xvid_st"=.\lib\xvid\xvid_st.dsp - Package Owner=<4>
 
 Package=<5>

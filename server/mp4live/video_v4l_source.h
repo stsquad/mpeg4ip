@@ -48,6 +48,9 @@ public:
 		return 0.0;		// live capture device is inexhaustible
 	}
 
+	bool SetPictureControls();
+
+
 protected:
 	int ThreadMain(void);
 

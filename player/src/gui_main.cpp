@@ -1223,6 +1223,7 @@ printf("%s\n", *argv);
   gtk_combo_set_value_in_list(GTK_COMBO(combo), FALSE, FALSE);
   gtk_combo_disable_activate(GTK_COMBO(combo));
   gtk_combo_set_use_arrows_always(GTK_COMBO(combo), 1);
+  gtk_combo_set_case_sensitive(GTK_COMBO(combo), TRUE);
   gtk_box_pack_start(GTK_BOX(hbox), combo, TRUE, TRUE, 0);
   gtk_widget_show(combo);
 

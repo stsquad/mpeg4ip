@@ -93,7 +93,7 @@ public:
 	// Operations
 	Int decode (const CVOPU8YUVBA* pvopcBVOPQuant = NULL, /* strstreambuf* pistrm = NULL, */ Bool waitForI = FALSE, Bool drop = FALSE);
 	Int ReadNextVopPredType ();  //for Spatial Scalable Coding
-	Int h263_decode(); // [FDS]
+	Int h263_decode(bool first_time); // [FDS]
 
 	Void decodeInitSprite ();
 	Void decodeSpritePieces ();

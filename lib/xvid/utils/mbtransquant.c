@@ -120,9 +120,9 @@ void MBTransQuantIntra(const MBParam *pParam,
 
 		if (pParam->quant_type == H263_QUANT)
 		{
-#ifdef MPEG4IP_H263_DC
+#ifdef MPEG4IP
 			if ((pParam->global_flags & XVID_SHORT_HEADERS) != 0) {
-				iDcScaler = 16;
+				iDcScaler = 8;
 			}
 #endif
 			start_timer();

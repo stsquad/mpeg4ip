@@ -86,6 +86,12 @@ public:
 		m_otherTotalDrift += drift;
 	}
 
+	virtual bool SetPictureControls() {
+		// overridden by sources that can manipulate brightness, hue, etc.
+		// i.e. video capture cards
+		return false;
+	}
+
 protected:
 	// Video & Audio support
 	virtual void ProcessMedia();

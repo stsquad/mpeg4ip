@@ -1302,7 +1302,7 @@ int CPlayerMedia::recv_thread (void)
       retcode = rtp_recv(m_rtp_session, &timeout, 0);
       //      player_debug_message("rtp_recv return %d", retcode);
       // Run rtp periodic after each packet received or idle time.
-      if (m_paused == 0)
+      if (m_paused == 0 || m_stream_ondemand != 0)
 	rtp_periodic();
     }
     

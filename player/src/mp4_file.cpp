@@ -130,6 +130,12 @@ int CMp4File::create_video(CPlayerSession *psptr,
       if (mptr == NULL) {
 	return (-1);
       }
+      if (MP4_IS_MPEG2_VIDEO_TYPE(vq[ix].type) &&
+	  (vq[ix].h == 480 &&
+	   vq[ix].w == 352)) {
+	psptr->double_screen_width();
+      }
+						  
       video_info_t *vinfo;
       vinfo = (video_info_t *)malloc(sizeof(video_info_t));
       vinfo->height = vq[ix].h;
@@ -208,7 +214,8 @@ int CMp4File::create_audio(CPlayerSession *psptr,
       memset(ainfo, 0, sizeof(*ainfo));
 
       ainfo->freq = aq[ix].sampling_freq;
-      if (aq[ix].type == MP4_PCM16_AUDIO_TYPE) {
+      if ((aq[ix].type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE) ||
+	  (aq[ix].type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE)) {
 	ainfo->bitspersample = 16;
       }
 

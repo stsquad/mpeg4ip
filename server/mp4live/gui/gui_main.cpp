@@ -49,6 +49,7 @@ static GtkWidget *video_settings_label1;
 static GtkWidget *video_settings_label2;
 static GtkWidget *video_settings_label3;
 static GtkWidget *video_settings_button;
+static GtkWidget *picture_settings_button;
 
 static GtkWidget *audio_enabled_button;
 static GtkWidget *audio_mute_button;
@@ -163,6 +164,9 @@ void DisplayVideoSettings(void)
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(video_enabled_button),
 		MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE));
+  
+	gtk_widget_set_sensitive(GTK_WIDGET(picture_settings_button),
+		MyConfig->IsCaptureVideoSource());
   
 	gtk_toggle_button_set_active(
 		GTK_TOGGLE_BUTTON(video_none_preview_button), 
@@ -365,6 +369,11 @@ static void on_video_preview_button (GtkWidget *widget, gpointer *data)
 static void on_video_settings_button (GtkWidget *widget, gpointer *data)
 {
 	CreateVideoDialog();
+}
+
+static void on_picture_settings_button (GtkWidget *widget, gpointer *data)
+{
+	CreatePictureDialog();
 }
 
 static void on_audio_enabled_button (GtkWidget *widget, gpointer *data)
@@ -746,7 +755,7 @@ static void LayoutVideoFrame(GtkWidget* box)
 	// create first row
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
   
 	// enabled button
 	video_enabled_button = gtk_check_button_new_with_label("Enabled");
@@ -756,6 +765,15 @@ static void LayoutVideoFrame(GtkWidget* box)
 		GTK_SIGNAL_FUNC(on_video_enabled_button),
 		NULL);
 	gtk_widget_show(video_enabled_button);
+
+	// picture controls button
+	picture_settings_button = gtk_button_new_with_label(" Picture... ");
+	gtk_box_pack_start(GTK_BOX(hbox), picture_settings_button, FALSE, FALSE, 5);
+	gtk_signal_connect(GTK_OBJECT(picture_settings_button), 
+		"clicked",
+		GTK_SIGNAL_FUNC(on_picture_settings_button),
+		NULL);
+	gtk_widget_show(picture_settings_button);
 
 	// create second row
 	hbox = gtk_hbox_new(FALSE, 1);

@@ -380,18 +380,20 @@ void MBPrediction(MBParam *pParam,
 	MACROBLOCK *pMB = &mbs[x + y * mb_width];
 
 	if ((pMB->mode == MODE_INTRA) || (pMB->mode == MODE_INTRA_Q)) {
+#ifdef MPEG4IP
+		if ((pParam->global_flags & XVID_SHORT_HEADERS) != 0) {
+			for(j = 0; j < 6; j++) 
+			{
+				pMB->acpred_directions[j] = 0;
+			}
+			pMB->cbp = calc_cbp(qcoeff);
+
+		} else {
+#endif
 		
 		for(j = 0; j < 6; j++) 
 		{
-#ifdef MPEG4IP_H263_DC
-			if ((pParam->global_flags & XVID_SHORT_HEADERS) != 0) {
-				iDcScaler = 16;
-			} else {
-				iDcScaler = get_dc_scaler(iQuant, (j < 4) ? 1 : 0);
-			}
-#else
 			iDcScaler = get_dc_scaler(iQuant, (j < 4) ? 1 : 0);
-#endif
 
 			predict_acdc(mbs,
 				     x,
@@ -408,14 +410,9 @@ void MBPrediction(MBParam *pParam,
 				       &qcoeff[j*64],
 				       iDcScaler,
 				       predictors[j]);
-
 		}
 
-#ifdef MPEG4IP_H263_NOACPRED
-		if (S < 0 || (pParam->global_flags & XVID_SHORT_HEADERS) != 0)
-#else
 		if (S < 0)		// dont predict
-#endif
 		{			
 			for(j = 0; j < 6; j++) 
 			{
@@ -430,6 +427,9 @@ void MBPrediction(MBParam *pParam,
 			}
 		}
 		pMB->cbp = calc_cbp(qcoeff);
+#ifdef MPEG4IP
+		}
+#endif
 	}
 
 }

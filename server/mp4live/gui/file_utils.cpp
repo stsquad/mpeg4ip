@@ -332,9 +332,11 @@ static GtkWidget* CreateMp4TrackMenu(
 				case MP4_MPEG4_AUDIO_TYPE:
 					trackName = "AAC";
 					break;
-				case MP4_PCM16_AUDIO_TYPE:
-					trackName = "PCM16";
+				case MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE:
+					trackName = "PCM16 LITTLE ENDIAN";
 					break;
+				case MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE:
+				  trackName = "PCM16 BIG ENDIAN";
 				case MP4_AC3_AUDIO_TYPE:
 					trackName = "AC3";
 					break;

@@ -352,7 +352,7 @@ void xvid_file_used_for_frame (codec_data_t *your,
 {
   xvid_codec_t *xvid = (xvid_codec_t *)your;
   xvid->m_buffer_on += bytes;
-  xvid->m_vft->log_msg(LOG_DEBUG, "xvid", "used %u bytes", bytes);
+  //xvid->m_vft->log_msg(LOG_DEBUG, "xvid", "used %u bytes", bytes);
 }
 
 /*

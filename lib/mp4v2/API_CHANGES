@@ -1,3 +1,10 @@
+Changes from 0.9.5 to 0.9.6
+---------------------------
+Modified
+    MP4GetHintTrackRtpPayload
+    MP4SetHintTrackRtpPayload
+       get/set the encoding params (a=rtpmap <payloadname>/<timescale>[/<encoding params>])
+
 Changes from 0.9.4 to 0.9.5
 ---------------------------
 Added

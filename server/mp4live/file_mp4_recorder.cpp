@@ -170,7 +170,7 @@ void CMp4Recorder::DoStartRecord()
 				m_mp4File, 
 				m_audioTimeScale, 
 				0,
-				MP4_PCM16_AUDIO_TYPE);
+				MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE);
 
 			if (m_rawAudioTrackId == MP4_INVALID_TRACK_ID) {
 				error_message("can't create raw audio track");

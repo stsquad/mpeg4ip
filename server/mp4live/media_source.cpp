@@ -25,7 +25,7 @@
 #include "video_encoder.h"
 #include "video_util_rgb.h"
 #include <mp4av.h>
-
+#include "mpeg4ip_byteswap.h"
 
 CMediaSource::CMediaSource() 
 {
@@ -415,8 +415,6 @@ void CMediaSource::ProcessVideoYUVFrame(
 	u_int8_t* yImage = pY + m_videoSrcYCrop;
 	u_int8_t* uImage = pU + m_videoSrcUVCrop;
 	u_int8_t* vImage = pV + m_videoSrcUVCrop;
-
-	// Note: caller is responsible for adding any padding that is needed
 
 	// resize image if necessary
 	if (m_videoYResizer) {
@@ -876,6 +874,16 @@ pcmBufferCheck:
 			pcmForwardedData = pcmData;
 			pcmMalloced = false;
 		}
+#ifndef WORDS_BIGENDIAN
+		// swap byte ordering
+		uint16_t *pdata = (uint16_t *)pcmForwardedData;
+		for (uint32_t ix = 0; 
+		     ix < pcmDataLength; 
+		     ix += sizeof(uint16_t),pdata++) {
+		  uint16_t swap = *pdata;
+		  *pdata = B2N_16(swap);
+		}
+#endif
 
 		CMediaFrame* pFrame =
 			new CMediaFrame(

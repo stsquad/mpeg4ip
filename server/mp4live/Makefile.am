@@ -96,3 +96,4 @@ LDADD = \
 	@SDL_LIBS@ \
 	$(top_builddir)/lib/SDL/src/main/libSDLmain.a 
 
+EXTRA_DIST = INTERNALS

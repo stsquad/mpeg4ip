@@ -22,6 +22,7 @@
 #define MP4CREATOR_GLOBALS
 #include "mp4creator.h"
 #include "mpeg4ip_getopt.h"
+#include "mpeg.h"
 
 // forward declarations
 
@@ -509,6 +510,13 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 	  || !strcasecmp(extension, ".cmp")) {
 		trackIds[0] = Mp4vCreator(mp4File, inFile);
 
+	} else if ((strcasecmp(extension, ".mpg") == 0) ||
+		   (strcasecmp(extension, ".mpeg") == 0)) {
+	  fclose(inFile);
+	  inFile = NULL;
+
+	  pTrackIds = MpegCreator(mp4File, inputFileName);
+
 	} else {
 		fprintf(stderr, 
 			"%s: unknown file type\n", ProgName);
@@ -519,7 +527,7 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 		fclose(inFile);
 	}
 
-	if (pTrackIds[0] == MP4_INVALID_TRACK_ID) {
+	if (pTrackIds == NULL || pTrackIds[0] == MP4_INVALID_TRACK_ID) {
 		return NULL;
 	}
 
@@ -564,6 +572,10 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 					false, maxPayloadSize);
 			}
 			break;
+		case MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE:
+		case MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE:
+		  rc = L16Hinter(mp4File, mediaTrackId, maxPayloadSize);
+		  break;
 		default:
 			fprintf(stderr, 
 				"%s: can't hint non-MPEG4/non-MP3 audio type\n", ProgName);
@@ -571,11 +583,19 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 	} else if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
 		u_int8_t videoType = MP4GetTrackVideoType(mp4File, mediaTrackId);
 
-		if (videoType == MP4_MPEG4_VIDEO_TYPE) {
-			rc = MP4AV_Rfc3016Hinter(mp4File, mediaTrackId, maxPayloadSize);
-		} else {
-			fprintf(stderr, 
-				"%s: can't hint non-MPEG4 video type\n", ProgName);
+		switch (videoType) {
+		case MP4_MPEG4_VIDEO_TYPE:
+		  rc = MP4AV_Rfc3016Hinter(mp4File, mediaTrackId, maxPayloadSize);
+		  break;
+		case MP4_MPEG1_VIDEO_TYPE:
+		case MP4_MPEG2_SIMPLE_VIDEO_TYPE:
+		case MP4_MPEG2_MAIN_VIDEO_TYPE:
+		  rc = Mpeg12Hinter(mp4File, mediaTrackId, maxPayloadSize);
+		  break;
+		default:
+		  fprintf(stderr, 
+			  "%s: can't hint non-MPEG4 video type\n", ProgName);
+		  break;
 		}
 	} else {
 		fprintf(stderr, 

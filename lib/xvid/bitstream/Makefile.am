@@ -13,6 +13,8 @@ libxvidbitstream_la_SOURCES = \
 	bitstream.h \
 	cbp.c \
 	cbp.h \
+	h263.h \
+	h263.c \
 	mbcoding.c \
 	mbcoding.h \
 	vlc_codes.h \

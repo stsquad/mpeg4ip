@@ -24,7 +24,8 @@
 #include "rtp/rtp.h"
 //#define DEBUG_ISMA_AAC
 
-#define isma_message(loglevel, fmt...) iptr->m_vft->log_msg(loglevel, "ismartp", fmt)
+#define isma_message iptr->m_vft->log_msg
+static const char *ismartp="ismartp";
 
 static rtp_check_return_t check (lib_message_func_t msg, 
 				 format_list_t *fmt, 
@@ -101,11 +102,11 @@ rtp_plugin_data_t *isma_rtp_plugin_create (format_list_t *media_fmt,
     iptr->m_rtp_ts_add = audio_config.codec.aac.frame_len_1024 != 0 ? 1024 : 960;
   } else {
     iptr->m_rtp_ts_add = audio_config.codec.celp.samples_per_frame;
-    isma_message(LOG_DEBUG, "celp spf is %d", iptr->m_rtp_ts_add);
+    isma_message(LOG_DEBUG, ismartp, "celp spf is %d", iptr->m_rtp_ts_add);
   }
   iptr->m_rtp_ts_add = (iptr->m_rtp_ts_add * media_fmt->rtpmap->clock_rate) /
     audio_config.frequency;
-  isma_message(LOG_DEBUG, 
+  isma_message(LOG_DEBUG, ismartp,
 	       "Rtp ts add is %d (%d %d)", iptr->m_rtp_ts_add,
 	       media_fmt->rtpmap->clock_rate, 
 	       audio_config.frequency);
@@ -120,7 +121,7 @@ rtp_plugin_data_t *isma_rtp_plugin_create (format_list_t *media_fmt,
     iptr->m_min_header_bits++;
     iptr->m_min_first_header_bits++;
   }
-  isma_message(LOG_DEBUG, "min headers are %d %d", iptr->m_min_first_header_bits,
+  isma_message(LOG_DEBUG, ismartp, "min headers are %d %d", iptr->m_min_first_header_bits,
 	       iptr->m_min_header_bits);
 
   iptr->m_min_header_bits += iptr->m_fmtp.auxiliary_data_size_length;
@@ -186,9 +187,9 @@ static int insert_frame_data (isma_rtp_data_t *iptr,
     do {
       diff = frame_data->rtp_timestamp - p->rtp_timestamp;
       if (diff == 0) {
-	isma_message(LOG_ERR, "Duplicate timestamp of %x found in RTP packet",
+	isma_message(LOG_ERR, ismartp, "Duplicate timestamp of %x found in RTP packet",
 		     frame_data->rtp_timestamp);
-	isma_message(LOG_DEBUG, 
+	isma_message(LOG_DEBUG, ismartp,
 		     "Seq number orig %d new %d", 
 		     p->pak->rtp_pak_seq, frame_data->pak->rtp_pak_seq); 
 	// if fragmented frame, free all frag_data
@@ -282,32 +283,32 @@ static int process_fragment (isma_rtp_data_t *iptr,
     if (read_mBit == 1) {
       // get rid of frame_data - last frag seen but total length wrong
       cleanup_frag(iptr, frame_data);
-      isma_message(LOG_ERR, "Error processing frag: early mBit");
+      isma_message(LOG_ERR, ismartp, "Error processing frag: early mBit");
       return (1); 
     }
     if (pak == NULL) {
       cleanup_frag(iptr, frame_data);
-      isma_message(LOG_ERR, "Error processing frag: not enough packets");
+      isma_message(LOG_ERR, ismartp, "Error processing frag: not enough packets");
       return (1);
     }
     // check if ts and rtp seq numbers are ok, and lengths match
     if (ts != pak->rtp_pak_ts) {
       cleanup_frag(iptr, frame_data);
-      isma_message(LOG_ERR, 
+      isma_message(LOG_ERR, ismartp, 
 		   "Error processing frag: wrong ts: ts= %x, pak->ts = %x", 
 		   ts, pak->rtp_pak_ts);
       return (1);
     }
     if (seq != pak->rtp_pak_seq) {
       cleanup_frag(iptr, frame_data);
-      isma_message(LOG_ERR, "Error processing frag: wrong seq num");
+      isma_message(LOG_ERR, ismartp, "Error processing frag: wrong seq num");
       return (1);
     }
     // insert fragment info
     isma_frag_data_t *p = (isma_frag_data_t *)
       malloc(sizeof(isma_frag_data_t));
     if (p == NULL) {
-      isma_message(LOG_ERR, "Error processing frag: can't malloc");
+      isma_message(LOG_ERR, ismartp, "Error processing frag: can't malloc");
       iptr->m_vft->free_pak(pak);
       return (1);
     }
@@ -338,7 +339,7 @@ static int process_fragment (isma_rtp_data_t *iptr,
     }
     total_len += cur->frag_len;
 #ifdef DEBUG_ISMA_RTP_FRAGS
-    isma_message(LOG_DEBUG, 
+    isma_message(LOG_DEBUG, ismartp, 
 		 "rtp seq# %d, fraglen: %d, ts: %x", 
 		 pak->seq, cur->frag_len, pak->ts);
 #endif	
@@ -368,7 +369,7 @@ static void process_packet_header (isma_rtp_data_t *iptr)
     return;
   }
 #ifdef DEBUG_ISMA_AAC
-  isma_message(LOG_DEBUG, 
+  isma_message(LOG_DEBUG, ismartp, 
 	       "processing pak seq %d ts %x len %d", 
 	       pak->rtp_pak_seq, pak->rtp_pak_ts, pak->rtp_data_len);
 #endif
@@ -376,7 +377,7 @@ static void process_packet_header (isma_rtp_data_t *iptr)
   // length in bytes
   if (pak->rtp_data_len == 0) {
     iptr->m_vft->free_pak(pak);
-    isma_message(LOG_ERR, "RTP audio packet with data length of 0");
+    isma_message(LOG_ERR, ismartp, "RTP audio packet with data length of 0");
     return;
   }
 
@@ -384,7 +385,7 @@ static void process_packet_header (isma_rtp_data_t *iptr)
   if (header_len < iptr->m_min_first_header_bits) {
     // bye bye, frame...
     iptr->m_vft->free_pak(pak);
-    isma_message(LOG_ERR, "ISMA rtp - header len %d less than min %d", 
+    isma_message(LOG_ERR, ismartp, "ISMA rtp - header len %d less than min %d", 
 		 header_len, iptr->m_min_first_header_bits);
     return;
   }
@@ -397,7 +398,7 @@ static void process_packet_header (isma_rtp_data_t *iptr)
   get_au_header_bits(iptr);
 #ifdef DEBUG_ISMA_AAC
   uint64_t msec = iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, pak->rtp_pak_ts, 1);
-  isma_message(LOG_DEBUG, 
+  isma_message(LOG_DEBUG, ismartp, 
 	       "1st - header len %u frame len %u ts %x %llu", 
 	       header_len, frame_len, pak->rtp_pak_ts, msec);
 #endif
@@ -425,17 +426,17 @@ static void process_packet_header (isma_rtp_data_t *iptr)
   if ((iptr->m_fmtp.size_length % 8) != 0) frag_check++;
   if (frag_check > pak->rtp_data_len) {
 #ifdef DEBUG_ISMA_AAC
-    isma_message(LOG_DEBUG, "Frame is fragmented");
+    isma_message(LOG_DEBUG, ismartp, "Frame is fragmented");
 #endif
     frame_data->is_fragment = 1;
     int err = process_fragment(iptr, pak, frame_data);
     if (err == 1)
-      isma_message(LOG_ERR, "Error in processing the fragment");
+      isma_message(LOG_ERR, ismartp, "Error in processing the fragment");
     return; 
   }
   else {
 #ifdef DEBUG_ISMA_AAC
-    isma_message(LOG_DEBUG, "Frame is not fragmented");
+    isma_message(LOG_DEBUG, ismartp, "Frame is not fragmented");
 #endif
     frame_data->is_fragment = 0;
     frame_data->frag_data = NULL;
@@ -450,7 +451,7 @@ static void process_packet_header (isma_rtp_data_t *iptr)
     ts += (iptr->m_rtp_ts_add * (1 + stride));
 #ifdef DEBUG_ISMA_AAC
     msec = iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, pak->rtp_pak_ts, 1);
-    isma_message(LOG_DEBUG, 
+    isma_message(LOG_DEBUG, ismartp, 
 		 "Stride %d len %d ts %x %llu", 
 		 stride, frame_len, ts, msec);
 #endif
@@ -476,10 +477,10 @@ static void process_packet_header (isma_rtp_data_t *iptr)
     }
     if (last != NULL) {
       last->last_in_pak = 1;
-      isma_message(LOG_WARNING, "error at end - marked ts %x", last->rtp_timestamp);
+      isma_message(LOG_WARNING, ismartp, "error at end - marked ts %x", last->rtp_timestamp);
     } else {
       // Didn't find pak in list.  Weird
-      isma_message(LOG_ERR, 
+      isma_message(LOG_ERR, ismartp, 
 		   "Decoded packet with RTP timestamp %x and didn't"
 		   "see any good frames", pak->rtp_pak_ts);
       iptr->m_vft->free_pak(pak);
@@ -492,7 +493,7 @@ static void process_packet_header (isma_rtp_data_t *iptr)
     iptr->m_header_bitstream.getbits(iptr->m_fmtp.auxiliary_data_size_length, &aux_len);
     aux_len = (aux_len + 7) / 8;
 #ifdef DEBUG_ISMA_AAC
-    isma_message(LOG_DEBUG, "Adding %d bytes for aux data size", aux_len);
+    isma_message(LOG_DEBUG, ismartp, "Adding %d bytes for aux data size", aux_len);
 #endif
     isma_frame_data_t *p;
     p = iptr->m_frame_data_head;
@@ -516,7 +517,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
   if (iptr->m_frame_data_on != NULL) {
     uint32_t next_ts;
 #ifdef DEBUG_ISMA_AAC
-    isma_message(LOG_DEBUG, "Advancing to next pak data - old ts %x", 
+    isma_message(LOG_DEBUG, ismartp, "Advancing to next pak data - old ts %x", 
 		 iptr->m_frame_data_on->rtp_timestamp);
 #endif
     if (iptr->m_frame_data_on->last_in_pak != 0) {
@@ -533,7 +534,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 	  }
 	  q = q->frag_data_next;
 #ifdef DEBUG_ISMA_AAC
-	  isma_message(LOG_DEBUG, "removing pak - frag %d", pak->rtp_pak_seq);
+	  isma_message(LOG_DEBUG, ismartp, "removing pak - frag %d", pak->rtp_pak_seq);
 #endif
 	}
       } else {
@@ -541,7 +542,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 	iptr->m_frame_data_on->pak = NULL;
 	iptr->m_vft->free_pak(pak);
 #ifdef DEBUG_ISMA_AAC
-	isma_message(LOG_DEBUG, "removing pak %d", pak->rtp_pak_seq);
+	isma_message(LOG_DEBUG, ismartp, "removing pak %d", pak->rtp_pak_seq);
 #endif
       }
     }
@@ -585,7 +586,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 #ifdef DEBUG_ISMA_AAC
     else {
       // iptr->m_frame_data_head is correct
-      isma_message(LOG_DEBUG, "frame_data_head is correct");
+      isma_message(LOG_DEBUG, ismartp, "frame_data_head is correct");
     }
 #endif
   } else {
@@ -647,7 +648,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
     iptr->m_ts =  iptr->m_frame_data_on->rtp_timestamp;
   // We're going to have to handle wrap better...
 #ifdef DEBUG_ISMA_AAC
-  isma_message(LOG_DEBUG, "start next frame %p %d ts "LLX" "LLU, 
+  isma_message(LOG_DEBUG, ismartp, "start next frame %p %d ts "LLX" "LLU, 
 	       *buffer, *buflen, iptr->m_ts, timetick);
 #endif
   return (timetick);
@@ -676,7 +677,7 @@ static void flush_rtp_packets (rtp_plugin_data_t *pifptr)
     p = iptr->m_frame_data_head;
     while (p->frame_data_next != NULL) {
 #ifdef DEBUG_ISMA_AAC
-      isma_message(LOG_DEBUG, "reset removing pak %d", p->pak->rtp_pak_seq);
+      isma_message(LOG_DEBUG, ismartp, "reset removing pak %d", p->pak->rtp_pak_seq);
 #endif
       if (p->last_in_pak != 0) {
 	if (p->is_fragment == 1) {

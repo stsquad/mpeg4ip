@@ -6,6 +6,7 @@ libmp4livegui_la_SOURCES = \
 	gui_main.cpp \
 	gui_private.h \
 	audio_dialog.cpp \
+	picture_dialog.cpp \
 	recording_dialog.cpp \
 	transmit_dialog.cpp \
 	video_dialog.cpp \

@@ -312,6 +312,9 @@ libmp3lame.a:  $(OBJ) Makefile
 
 install: install-exec
 
+uninstall:
+	echo "Lame not uninstalled - please remove by hand"
+
 install-exec:
 	$(INSTALL) $(PGM) $(INSTALLBINDIR)
 #	@echo Installed $(PGM) in $(INSTALLBINDIR)

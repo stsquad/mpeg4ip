@@ -319,6 +319,7 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
 void CRtpByteStreamBase::remove_packet_rtp_queue (rtp_packet *pak, 
 						       int free)
 {
+  if (pak == NULL) return;
   SDL_LockMutex(m_rtp_packet_mutex);
   if ((m_head == pak) &&
       (m_head->rtp_next == NULL || m_head->rtp_next == m_head)) {
@@ -413,6 +414,10 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	    m_rtpinfo_set_from_pak = 1;
 	  } else {
 	    m_rtpinfo_set_from_pak = 0;
+#if 0
+	    // note - 9/11/2002 - wmay - this is incorrect - we may have
+	    // the base timestamp but it may not match what is in the 
+	    // RtpInfo field.  
 	    if (m_rtp_base_seq_set != 0 &&
 		m_rtp_base_seq == m_head->rtp_pak_seq &&
 		m_rtp_base_ts != m_head->rtp_pak_ts) {
@@ -420,6 +425,7 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 			  m_name, m_head->rtp_pak_ts, m_head->rtp_pak_seq);
 	      m_rtp_base_ts = m_head->rtp_pak_ts;
 	    }
+#endif
 	    //
 	  }
 	  m_buffering = 1;

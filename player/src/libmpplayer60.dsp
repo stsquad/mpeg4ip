@@ -312,18 +312,6 @@ SOURCE=.\video.h
 SOURCE=.\video_sdl.h
 # End Source File
 # End Group
-# Begin Group "codec/aa"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\aa\isma_rtp_bytestream.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\isma_rtp_bytestream.h
-# End Source File
-# End Group
 # Begin Group "codec/mp3"
 
 # PROP Default_Filter ""
@@ -336,5 +324,17 @@ SOURCE=.\codec\mp3\mp3_rtp_bytestream.cpp
 SOURCE=.\codec\mp3\mp3_rtp_bytestream.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\rtp_bytestream_plugin.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtp_bytestream_plugin.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\rtp_plugin.h
+# End Source File
 # End Target
 # End Project

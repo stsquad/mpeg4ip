@@ -13,31 +13,15 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
- *		Bill May 		wmay@cisco.com
+ *		Bill May  wmay@cisco.com
  */
 
-#ifndef __MP4LIVE_H__
-#define __MP4LIVE_H__
-#include "mpeg4ip.h"
-#include <sys/types.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/param.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <errno.h>
-#include <sched.h>
-#include <sys/mman.h>
+#ifndef __MP4CREATOR_MPEG_H__
+#define __MP4CREATOR_MPEG_H__
 
-#include "mp4live_config.h"
-#include "util.h"
+MP4TrackId *MpegCreator(MP4FileHandle mp4file, const char *fname);
 
-#endif /* __MP4LIVE_H__ */
+#endif

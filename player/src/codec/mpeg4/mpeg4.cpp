@@ -291,7 +291,7 @@ static int iso_decode (codec_data_t *ptr,
 				  VIDEO_FORMAT_YUV);
       iso->m_decodeState = DECODE_STATE_NORMAL;
       try {
-	iEof = iso->m_pvodec->h263_decode();
+	iEof = iso->m_pvodec->h263_decode(FALSE);
       } catch (...) {
 	iso_message(LOG_ERR, mp4iso, "Couldn't decode h263 in vol search");
       }
@@ -361,7 +361,7 @@ static int iso_decode (codec_data_t *ptr,
   case DECODE_STATE_NORMAL:
     try {
       if (iso->m_short_header != 0) {
-	iEof = iso->m_pvodec->h263_decode();
+	iEof = iso->m_pvodec->h263_decode(TRUE);
       } else {
 	iEof = iso->m_pvodec->decode(NULL, FALSE, FALSE);
       }

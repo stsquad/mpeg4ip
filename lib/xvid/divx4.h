@@ -1,13 +1,11 @@
 #ifndef _DIVX4_H_
 #define _DIVX4_H_
 
+#include "config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
-
-#if ((! defined(ARCH_IS_BIG_ENDIAN)) && (! defined (WIN32)) && (! defined (LINUX)) && (! defined(__linux)) )
-#define ARCH_IS_BIG_ENDIAN
-#endif
 
 
 /*********************************************************************************

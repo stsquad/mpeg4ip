@@ -79,6 +79,8 @@ public:
 	void StartVideoPreview(void);
 	void StopVideoPreview(void);
 
+	void SetPictureControls(void);
+
 	void SetAudioInput(void);
 	void SetAudioOutput(bool mute);
 

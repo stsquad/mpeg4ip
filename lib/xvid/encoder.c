@@ -681,6 +681,12 @@ static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits
 		{
 			MACROBLOCK *pMB = &pEnc->pMBs[x + y * pEnc->mbParam.mb_width];
 
+#ifdef MPEG4IP
+			if ((pEnc->mbParam.global_flags & XVID_SHORT_HEADERS) != 0) {
+				// DEBUG
+				printf("xvid I mb %u %u\n", y, x);
+			}
+#endif
 			CodeIntraMB(pEnc, pMB);
 
 			MBTransQuantIntra(&pEnc->mbParam, pMB, x, y, dct_codes, qcoeff, &pEnc->sCurrent);
@@ -806,6 +812,12 @@ static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool forc
 
 			if (!bIntra)
 			{
+#ifdef MPEG4IP
+				if ((pEnc->mbParam.global_flags & XVID_SHORT_HEADERS) != 0) {
+					// DEBUG
+					printf("xvid P INTER mb %u %u\n", y, x);
+				}
+#endif
 				start_timer();
 				MBMotionCompensation(pMB,
 						     x, y,
@@ -837,6 +849,12 @@ static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool forc
 			}
 			else 
 			{
+#ifdef MPEG4IP
+				if ((pEnc->mbParam.global_flags & XVID_SHORT_HEADERS) != 0) {
+					// DEBUG
+					printf("xvid P INTRA mb %u %u\n", y, x);
+				}
+#endif
 				CodeIntraMB(pEnc, pMB);
 				MBTransQuantIntra(&pEnc->mbParam, pMB, x, y, dct_codes, qcoeff, pCurrent);
 			}

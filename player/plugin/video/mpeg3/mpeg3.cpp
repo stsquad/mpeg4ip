@@ -250,6 +250,10 @@ static int mpeg3_codec_check (lib_message_func_t message,
 	(type == MPEG2T_ST_11172_VIDEO)) 
       return 1;
   }
+  if (compressor != NULL && strcmp(compressor, "MP4 FILE") == 0) {
+    if (MP4_IS_MPEG1_VIDEO_TYPE(type) ||
+	MP4_IS_MPEG2_VIDEO_TYPE(type)) return 1;
+  }
   return -1;
 }
 

@@ -26,7 +26,7 @@ libmpeg3video_la_LIBADD = \
 	mmxidct.lo \
      reconmmx.lo 
 else
-AM_CFLAGS = 
+AM_CFLAGS = -fomit-frame-pointer -malign-loops=2 -malign-jumps=2 -malign-functions=2
 EXTRA_libmpeg3video_la_SOURCES = 
 libmpeg3video_la_LIBADD = 
 

@@ -19,7 +19,7 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-// DEBUG #define MP4V_DEBUG 1
+//#define MP4V_DEBUG 1
 
 /* 
  * Notes:
@@ -203,6 +203,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	u_int16_t frameWidth = 320;
 	u_int16_t frameHeight = 240;
 	u_int32_t esConfigSize = 0;
+	u_char vopType = 0;
 
 	// start reading objects until we get the first VOP
 	while (LoadNextObject(inFile, pObj, &objSize, &objType)) {
@@ -300,7 +301,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		} else { // we have a VOP
 			u_int32_t sampleSize = (pObj + objSize) - pCurrentSample;
 
-			u_char vopType = MP4AV_Mpeg4GetVopType(pObj, objSize);
+			vopType = MP4AV_Mpeg4GetVopType(pObj, objSize);
 
 			rc = MP4WriteSample(mp4File, trackId, 
 				pCurrentSample, sampleSize,
@@ -320,10 +321,12 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			if (vopType != 'B') {
 				if (videoProfileLevel > 3) {
 #ifdef MP4V_DEBUG
-					printf("sample %u %c renderingOffset %d\n",
+					printf("sample %u %c renderingOffset %llu\n",
 						refVopId, vopType, currentSampleTime - refVopTime);
 #endif
 
+					// Note - this writes to the previous
+					// I or P frame
 					MP4SetSampleRenderingOffset(
 						mp4File, trackId, refVopId,
 						currentSampleTime - refVopTime);
@@ -356,6 +359,16 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			printf("MP4V type %x size %u\n",
 				objType, objSize);
 		}
+	}
+	// Left over at end - make sure we set the last P or I frame
+	// with the last time
+	if (videoProfileLevel > 3) {
+#ifdef MP4V_DEBUG
+	  printf("sample %u %c renderingOffset %llu\n",
+		 refVopId, vopType, currentSampleTime - refVopTime);
+#endif
+	  MP4SetSampleRenderingOffset(mp4File, trackId, refVopId,
+				      currentSampleTime - refVopTime);
 	}
 
 	return trackId;
