@@ -33,7 +33,6 @@ libmp4player_la_SOURCES = \
 	our_config_file.cpp \
 	player_media.cpp \
 	player_media_decode.cpp \
-	player_mem_bytestream.cpp \
 	player_sdp.c \
 	player_session.cpp \
 	player_util.c \

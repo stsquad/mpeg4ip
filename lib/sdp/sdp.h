@@ -187,7 +187,7 @@ typedef struct time_repeat_desc_t {
   struct time_repeat_desc_t *next;
   uint32_t repeat_interval;
   uint32_t active_duration;
-  size_t   offset_cnt;
+  uint32_t   offset_cnt;
   uint32_t offsets[MAX_REPEAT_OFFSETS];
 } time_repeat_desc_t;
 
@@ -293,7 +293,7 @@ void sdp_set_error_func(error_msg_func_t func);
 /* utils */
 format_list_t *add_format_to_list(media_desc_t *mptr, char *val);
 int add_string_to_list(string_list_t **list, char *val);
-void time_offset_to_str(uint32_t val, char *buff, size_t buflen);
+void time_offset_to_str(uint32_t val, char *buff, uint32_t buflen);
 format_list_t *find_format_in_line(format_list_t *head, char *lptr);
 void smpte_to_str(double value, uint16_t fps, char *buffer);
 

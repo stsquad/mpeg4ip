@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dibevents.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_dibevents.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -87,6 +87,26 @@ LONG
 						wParam = VK_LMENU;
 					break;
 			}
+#ifdef NO_GETKEYBOARDSTATE
+			/* this is the workaround for the missing ToAscii() and ToUnicode() in CE (not necessary at KEYUP!) */
+			if ( SDL_TranslateUNICODE ) {
+				MSG msg;
+
+				msg.hwnd = hwnd;
+				msg.message = msg;
+				msg.wParam = wParam;
+				msg.lParam = lParam;
+				msg.time = 0;
+				if ( TranslateMessage(&m) && PeekMessage(&msg, hwnd, 0, WM_USER, PM_NOREMOVE) && (m.message == WM_CHAR) ) {
+					GetMessage(&m, hwnd, 0, WM_USER);
+			    		wParam = m.wParam;
+				} else {
+					wParam = 0;
+				}
+			} else {
+				wParam = 0;
+			}
+#endif /* NO_GETKEYBOARDSTATE */
 			posted = SDL_PrivateKeyboard(SDL_PRESSED,
 				TranslateKey(wParam,HIWORD(lParam),&keysym,1));
 		}
@@ -303,14 +323,13 @@ int DIB_CreateWindow(_THIS)
 {
 #ifdef _WIN32_WCE
 	/* WinCE uses the UNICODE version */
-	int nLen = strlen(SDL_Appname);
-	LPWSTR lpszW = alloca((nLen+1)*2);
+	int nLen = strlen(SDL_Appname)+1;
+	LPWSTR lpszW = alloca(nLen*2);
 	MultiByteToWideChar(CP_ACP, 0, SDL_Appname, -1, lpszW, nLen);
 
 	SDL_RegisterApp("SDL_app", 0, 0);
-	SDL_Window = CreateWindow(lpszW, lpszW,
-                        (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX),
-                                 0, 0, 0, 0, NULL, NULL, SDL_Instance, NULL);
+	SDL_Window = CreateWindow(lpszW, lpszW, WS_VISIBLE,
+                                  0, 0, 0, 0, NULL, NULL, SDL_Instance, NULL);
 	if ( SDL_Window == NULL ) {
 		SDL_SetError("Couldn't create window");
 		return(-1);

@@ -325,7 +325,7 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
 #endif
 	} else {
       // let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
-      size_t bufsize = m_width * m_height * sizeof(Uint8);
+      uint32_t bufsize = m_width * m_height * sizeof(Uint8);
       memcpy(m_image->pixels[0], 
 	    m_y_buffer[m_play_index], 
 	    bufsize);

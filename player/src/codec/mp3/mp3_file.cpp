@@ -34,7 +34,7 @@ static unsigned char c_read_byte (void *userdata)
   return (fd->get());
 }
 
-static size_t c_read_bytes (unsigned char *b, size_t bytes, void *userdata)
+static uint32_t c_read_bytes (unsigned char *b, uint32_t bytes, void *userdata)
 {
   COurInByteStreamFile *fd = (COurInByteStreamFile *)userdata;
   return (fd->read(b, bytes));
@@ -137,7 +137,7 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
   int freq = 0, samplesperframe;
   int ret;
 
-  psptr->session_set_seekable(0);
+  psptr->session_set_seekable(1);
   mptr = new CPlayerMedia;
   if (mptr == NULL) {
     *errmsg = "Couldn't create media";
@@ -154,7 +154,7 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
     delete mptr;
     return (-1);
   }
-			
+
   freq = mp3->getfrequency();
   samplesperframe = 32;
   if (mp3->getlayer() == 3) {
@@ -168,11 +168,29 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
       samplesperframe *= 3;
     }
   }
+  // Get the number of frames in the file.
+  int framecount = 1;
+  int havelast = 0;
+  while (havelast == 0) {
+    try {
+      if (mp3->loadheader() != FALSE) {
+	framecount++;
+      } else {
+	havelast = 1;
+      }
+    } catch (...) {
+      havelast = 1;
+    }
+  }
   delete mp3;
 
   player_debug_message("freq %d samples %d fps %d", freq, samplesperframe, 
 		       freq / samplesperframe);
-  fbyte->config_for_file(freq / samplesperframe);
+  double maxtime;
+  maxtime = (double) samplesperframe * (double)framecount;
+  maxtime /= (double)freq;
+  player_debug_message("max playtime %g", maxtime);
+  fbyte->config_for_file(freq / samplesperframe, maxtime);
 
   *errmsg = "Can't create thread";
   ret =  mptr->create_from_file(psptr, fbyte, FALSE);

@@ -70,10 +70,17 @@ public:
 		// screen out undesirable values
 		// introduces small biases in the results
 
-		// stay away from 224.0.0
+		// stay away from 224.0.0.x
 		if ((mcast & 0x0FFFFF00) == 0) {
 			mcast |= 0x00000100;	// move to 224.0.1
 		} 
+
+		// stay out of SSM range 232.x.x.x
+		// user should explictly select this if they want SSM
+		if ((mcast & 0xFF000000) == 232) {
+			mcast |= 0x01000000;	// move to 233
+		}
+
 		// stay away from .0 .1 and .255
 		if ((mcast & 0xFF) == 0 || (mcast & 0xFF) == 1 
 		  || (mcast & 0xFF) == 255) {
@@ -84,12 +91,13 @@ public:
 	}
 
 	static u_int16_t GetRandomPortBlock(void) {
-		// Get random block of 4 port numbers between 32768 and 65532
-		// Conventional wisdom is that higher order bits of
-		// pseudo-random number generators are more random so we use those 
 		SeedRandom();
 
-		return (u_int16_t)(((random() >> 16) & 0x0000FFFC) | 0x00008000);
+		// Get random block of 4 port numbers between 6970 and 6999
+		// This is the IETF recommended range for firewall transversal
+		// Avoiding overlap, there are 7 choices, 70, 74, 78, 82, 86, 90, 94
+		return (u_int16_t)(6970 + (((random() >> 29) % 7) << 2));
+
 	}
 
 protected:

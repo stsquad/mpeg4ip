@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_video.h,v 1.2 2001/08/23 00:09:12 wmaycisco Exp $";
 #endif
 
 /* Header file for access to the SDL raw framebuffer window */
@@ -878,6 +878,10 @@ typedef enum {
  */
 extern DECLSPEC SDL_GrabMode SDL_WM_GrabInput(SDL_GrabMode mode);
 
+/* Not in public API at the moment - do not use! */
+extern DECLSPEC int SDL_SoftStretch(SDL_Surface *src, SDL_Rect *srcrect,
+                                    SDL_Surface *dst, SDL_Rect *dstrect);
+                    
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
 }

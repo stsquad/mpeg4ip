@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbelo.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_fbelo.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -419,5 +419,28 @@ int eloInitController(int fd) {
 		return 0;
 	}
 
+	return 1;
+}
+
+int eloReadPosition(_THIS, int fd, int* x, int* y, int* button_state, int* realx, int* realy) {
+        unsigned char buffer[ELO_PACKET_SIZE];
+        int pointer = 0;
+        int checksum = ELO_INIT_CHECKSUM;
+
+        while(pointer < ELO_PACKET_SIZE) {
+                if(eloGetPacket(buffer, &pointer, &checksum, fd)) {
+                        break;
+                }
+        }
+
+        if(!eloParsePacket(buffer, realx, realy, button_state)) {
+                return 0;
+        }
+
+        *x = *realx;
+        *y = *realy;
+
+        eloConvertXY(this, x, y);
+	
 	return 1;
 }

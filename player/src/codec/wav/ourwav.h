@@ -26,7 +26,6 @@
 #define __OURWAV_H__ 1
 #include "systems.h"
 #include "codec.h"
-#include "player_mem_bytestream.h"
 #include "audio.h"
 
 class CWavCodec : public CAudioCodecBase {
@@ -36,13 +35,14 @@ class CWavCodec : public CAudioCodecBase {
 	    format_list_t *media_desc,
 	    audio_info_t *audio,
 	    const unsigned char *userdata = NULL,
-	    size_t userdata_size = 0);
+	    uint32_t userdata_size = 0);
   ~CWavCodec();
   int decode(uint64_t rtptime, int fromrtp);
+  int skip_frame(uint64_t rtptime);
   void do_pause(void);
  private:
   SDL_AudioSpec *m_sdl_config;
-  size_t m_bytes_per_sample;
+  uint32_t m_bytes_per_sample;
 };
 
 #endif

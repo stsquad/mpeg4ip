@@ -56,7 +56,7 @@ CAudioSync::CAudioSync (CPlayerSession *psptr, int volume)
   m_resync_required = 1;
   m_dont_fill = 0;
   m_consec_no_buffers = 0;
-  SDL_Init(SDL_INIT_AUDIO);
+  //SDL_Init(SDL_INIT_AUDIO);
   m_audio_waiting_buffer = 0;
   m_audio_waiting = NULL; // will be set by decode thread
   m_eof_found = 0;
@@ -91,7 +91,7 @@ CAudioSync::~CAudioSync (void)
 void CAudioSync::set_config (int freq, 
 			     int channels, 
 			     int format, 
-			     size_t sample_size) 
+			     uint32_t sample_size) 
 {
   if (m_config_set != 0) 
     return;
@@ -149,7 +149,7 @@ unsigned char *CAudioSync::get_audio_buffer (void)
  */
 void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 {
-  size_t fill_index, temp2;
+  uint32_t fill_index, temp2;
   // m_dont_fill will be set when we have a pause
   if (m_dont_fill == 1) {
     return;
@@ -256,7 +256,7 @@ int CAudioSync::initialize_audio (int have_video)
       int sample_size;
       sample_size = m_buffer_size / (m_channels * m_bytes_per_sample);
 #ifndef _WINDOWS
-      size_t ix;
+      uint32_t ix;
       for (ix = 2; ix <= 0x8000; ix <<= 1) {
 	if ((sample_size & ~(ix - 1)) == 0) {
 	  break;
@@ -297,6 +297,8 @@ int CAudioSync::initialize_audio (int have_video)
 
       m_audio_initialized = 1;
       m_use_SDL_delay = SDL_HasAudioDelayMsec();
+      if (m_use_SDL_delay)
+	player_debug_message("Using delay measurement from SDL");
     } else {
       return 0; // check again pretty soon...
     }
@@ -379,7 +381,7 @@ uint64_t CAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 {
   int freed_buffer = 0;
-  size_t len = (size_t)ilen;
+  uint32_t len = (uint32_t)ilen;
   uint64_t time;
   int delay = 0;
 
@@ -406,7 +408,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
   }
 
   if ((m_first_time == 0) &&
-      (m_use_SDL_delay != 0)) {
+      (m_use_SDL_delay == 0)) {
     /*
      * If we're not the first time, see if we're about a frame or more
      * around the current time, with latency built in.  If not, skip
@@ -442,7 +444,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 	m_buffer_latency = 0; // recalculate...
 	m_first_time = 0;
 	m_play_sample_index = 0;
-	size_t diff;
+	uint32_t diff;
 	diff = m_buffer_size - m_play_sample_index;
 	if (m_samples_loaded >= diff) {
 	  m_samples_loaded -= diff;
@@ -458,6 +460,14 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
     }
   } else {
     time = m_buffer_time[m_play_index];
+    if (m_first_time == 0) {
+      if (m_play_sample_index != 0) {
+	uint64_t temp;
+	temp = (uint64_t) m_play_sample_index * (uint64_t)m_msec_per_frame;
+	temp /= (uint64_t) m_buffer_size;
+	time += temp;
+      }
+    }
   }
 
 
@@ -493,7 +503,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
   m_consec_no_buffers = 0;
 
   while (len > 0) {
-    size_t thislen;
+    uint32_t thislen;
     thislen = m_buffer_size - m_play_sample_index;
     if (len < thislen) thislen = len;
     SDL_MixAudio(stream, 
@@ -539,8 +549,10 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 
       if (time > index_time + ALLOWED_LATENCY || 
 	  time < index_time - ALLOWED_LATENCY) {
+#if DEBUG_SYNC
 	player_debug_message("potential change - index time %llu time %llu", 
 			     index_time, time);
+#endif
 	m_consec_wrong_latency++;
 	m_wrong_latency_total += time - index_time;
 	int64_t test;
@@ -548,6 +560,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 	if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {
 	  if (m_consec_wrong_latency > 3) {
 	    m_consec_wrong_latency = 0;
+	    m_wrong_latency_total = 0;
 	    m_psptr->adjust_start_time(test);
 	  }
 	} else {

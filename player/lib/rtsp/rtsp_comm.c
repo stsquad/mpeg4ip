@@ -80,7 +80,7 @@ int rtsp_create_socket (rtsp_client_t *info)
  * Outputs:
  *   0 - success, -1 failure
  */
-int rtsp_send (rtsp_client_t *info, const char *buff, size_t len)
+int rtsp_send (rtsp_client_t *info, const char *buff, uint32_t len)
 {
   int ret;
 
@@ -117,7 +117,7 @@ int rtsp_receive (rtsp_client_t *info)
   struct timeval timeout;
 #endif
   bool done;
-  size_t bufflen;
+  uint32_t bufflen;
   char *new;
 
   totcnt = 0;
@@ -200,7 +200,7 @@ int rtsp_receive (rtsp_client_t *info)
  * is large, and managed to have a \n where the buffer would fill, but still
  * had more data), we can use this routine to get more data.
  */
-int rtsp_receive_more (rtsp_client_t *info, size_t more_cnt)
+int rtsp_receive_more (rtsp_client_t *info, uint32_t more_cnt)
 {
   int ret;
 
@@ -210,7 +210,7 @@ int rtsp_receive_more (rtsp_client_t *info, size_t more_cnt)
   fd_set read_set;
   struct timeval timeout;
 #endif
-  size_t bufflen;
+  uint32_t bufflen;
 
   if (info->recv_buff_len < info->recv_buff_used + more_cnt) {
     char *new;

@@ -43,12 +43,13 @@ class CMpeg4Codec: public CVideoCodecBase {
 	      format_list_t *media_fmt,
 	      video_info_t *vinfo,
 	      const unsigned char *userdata = NULL,
-	      size_t ud_size = 0);
+	      uint32_t ud_size = 0);
   ~CMpeg4Codec();
   int decode(uint64_t ts, int fromrtp);
+  int skip_frame(uint64_t ts);
   void do_pause(void);
  private:
-  int parse_vovod(const char *config, int ascii, size_t len);
+  int parse_vovod(const char *config, int ascii, uint32_t len);
   CVideoObjectDecoder *m_pvodec;
   int m_main_short_video_header;
   int m_nFrames;
@@ -60,10 +61,10 @@ class CMpeg4Codec: public CVideoCodecBase {
   int m_cached_valid;
   uint64_t m_cached_time;
   uint64_t m_last_time;
-  size_t m_dropped_b_frames;
-  size_t m_num_wait_i;
-  size_t m_num_wait_i_frames;
-  size_t m_total_frames;
+  uint32_t m_dropped_b_frames;
+  uint32_t m_num_wait_i;
+  uint32_t m_num_wait_i_frames;
+  uint32_t m_total_frames;
 };
   
 #endif

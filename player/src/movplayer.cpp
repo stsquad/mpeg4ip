@@ -104,7 +104,7 @@ int main (int argc, char **argv)
 #if 0
     unsigned char buffer[8096];
     FILE *ofile = fopen("temp.aac", "w");
-    size_t retsize;
+    uint32_t retsize;
     for (long ix = 0; ix < audiolen; ix++) {
       retsize = quicktime_read_audio_frame(file, buffer, 0);
       //printf("Frame %ld - len %d", ix, retsize);

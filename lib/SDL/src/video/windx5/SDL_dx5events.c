@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5events.c,v 1.1 2001/08/01 00:34:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5events.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 /* CAUTION!!!!  If you modify this file, check ../windib/SDL_sysevents.c */
@@ -378,6 +378,20 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 				break;
 			case DIMOFS_Y:
 				yrel += (Sint16)ptrbuf[i].dwData;
+				break;
+			case DIMOFS_Z:
+				if ( xrel || yrel ) {
+					posted = SDL_PrivateMouseMotion(
+							0, 1, xrel, yrel);
+					xrel = 0;
+					yrel = 0;
+				}
+				if((int)ptrbuf[i].dwData > 0)
+					posted = SDL_PrivateMouseButton(
+							SDL_PRESSED, 4, 0, 0);
+				else if((int)ptrbuf[i].dwData < 0)
+					posted = SDL_PrivateMouseButton(
+							SDL_PRESSED, 5, 0, 0);
 				break;
 			case DIMOFS_BUTTON0:
 			case DIMOFS_BUTTON1:

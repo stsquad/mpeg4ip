@@ -29,7 +29,6 @@
 #include <faad/bits.h>
 
 #include "codec.h"
-#include "player_mem_bytestream.h"
 #include "audio.h"
 //#define DUMP_OUTPUT_TO_FILE 1
 class CAACodec : public CAudioCodecBase {
@@ -39,9 +38,11 @@ class CAACodec : public CAudioCodecBase {
 	   format_list_t *media_desc,
 	   audio_info_t *audio,
 	   const unsigned char *userdata = NULL,
-	   size_t userdata_size = 0);
+	   uint32_t userdata_size = 0);
   ~CAACodec();
   int decode(uint64_t rtptime, int fromrtp);
+  int skip_frame(uint64_t rtptime);
+  void skip_frame(void);
   void do_pause(void);
  private:
   faacDecHandle m_info;
@@ -51,7 +52,7 @@ class CAACodec : public CAudioCodecBase {
   uint64_t m_current_time;
   uint64_t m_last_rtp_ts;
   uint64_t m_msec_per_frame;
-  size_t m_current_frame;
+  uint32_t m_current_frame;
   SDL_AudioSpec m_obtained;
   int m_audio_inited;
   int m_faad_inited;

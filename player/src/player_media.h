@@ -142,7 +142,7 @@ class CPlayerMedia {
   CMsgQueue m_rtp_msg_queue;
 
   rtp_packet *m_head, *m_tail; // used when determining rtp protocol
-  size_t m_rtp_queue_len;
+  uint32_t m_rtp_queue_len;
   
   // from rtsp...
   int m_rtp_ssrc_set;

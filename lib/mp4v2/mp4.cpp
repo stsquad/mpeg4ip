@@ -23,12 +23,14 @@
 
 extern "C" MP4FileHandle MP4Open(char* fileName, char* mode)
 {
-	MP4File* pFile = new MP4File();
-	if (pFile->Open(fileName, mode) < 0) {
-		delete pFile;
-		return NULL;
+	MP4File* pFile;
+	try {
+ 		pFile = new MP4File(fileName, mode);
+		return (MP4FileHandle)pFile;
 	}
-	return (MP4FileHandle)pFile;
+	catch (MP4Error* e) {
+		return (MP4FileHandle)NULL;
+	}
 }
 
 extern "C" int MP4Read(MP4FileHandle pFile)

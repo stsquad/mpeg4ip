@@ -23,9 +23,8 @@
 #include "player_util.h"
 #include <SDL.h>
 
-COurInByteStreamMem::COurInByteStreamMem (const unsigned char *membuf, 
-					  size_t len) :
-  COurInByteStream()
+void COurInByteStreamMem::init (const unsigned char *membuf, 
+				uint32_t len)
 {
   m_frames = 0;
   m_memptr = membuf;
@@ -89,9 +88,9 @@ void COurInByteStreamMem::bookmark (int bSet)
   }
 }
 
-size_t COurInByteStreamMem::read (unsigned char *buffer, size_t bytes)
+ssize_t COurInByteStreamMem::read (unsigned char *buffer, size_t bytes)
 {
-  size_t diff = m_len - m_offset;
+  uint32_t diff = m_len - m_offset;
   if (diff < bytes) {
     bytes = diff;
   }
@@ -110,7 +109,7 @@ void COurInByteStreamMem::reset (void)
 }
 
 COurInByteStreamWav::COurInByteStreamWav (const unsigned char *membuf, 
-					  size_t len) :
+					  uint32_t len) :
   COurInByteStreamMem(membuf, len) 
 {
 }

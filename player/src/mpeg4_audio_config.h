@@ -36,7 +36,7 @@ typedef struct mpeg4_audio_config_t {
 } mpeg4_audio_config_t;
 
 void decode_mpeg4_audio_config(const unsigned char *buffer,
-			       size_t buf_len,
+			       uint32_t buf_len,
 			       mpeg4_audio_config_t *mptr);
 
 int audio_object_type_is_aac(mpeg4_audio_config_t *mptr);

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audiodev.c,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_audiodev.c,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
 #endif
 
 /* Get the name of the audio device we use for output */
@@ -39,7 +39,11 @@ static char rcsid =
 #include "SDL_audiodev_c.h"
 
 #ifndef _PATH_DEV_DSP
-#define _PATH_DEV_DSP	"/dev/dsp"
+#ifdef __OpenBSD__
+#define _PATH_DEV_DSP  "/dev/audio"
+#else
+#define _PATH_DEV_DSP  "/dev/dsp"
+#endif
 #endif
 #ifndef _PATH_DEV_DSP24
 #define _PATH_DEV_DSP24	"/dev/sound/dsp"

@@ -50,7 +50,7 @@ char *http_proxy_server=NULL;
 /* proxy server port number or 0 */
 int http_proxy_port=0;
 /* user agent id string */
-static char *http_user_agent="adlib/3 ($Date: 2001/08/03 22:45:49 $)";
+static char *http_user_agent="adlib/3 ($Date: 2001/08/23 00:09:19 $)";
 
 /*
  * read a line from file descriptor
@@ -334,11 +334,12 @@ http_retcode http_get(filename, pdata, plength, typebuf)
       return ERRNOLG;
     }
     if (plength) *plength=length;
-    if (!(*pdata=malloc(length))) {
+    if (!(*pdata=malloc(length + 1))) {
       close(fd);
       return ERRMEM;
     }
     n=http_read_buffer(fd,*pdata,length);
+    *(*pdata + length) = '\0';
     close(fd);
     if (n!=length) ret=ERRRDDT;
   } else if (ret>=0) close(fd);

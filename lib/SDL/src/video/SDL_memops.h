@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_memops.h,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_memops.h,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_memops_h
@@ -51,6 +51,17 @@ do {									  \
 		: "=&c" (u0), "=&D" (u1), "=&S" (u2)			  \
 		: "0" ((unsigned)(len)/4), "q" (len), "1" (dst),"2" (src) \
 		: "memory" );						  \
+} while(0)
+
+#define SDL_memcpy4(dst, src, len)				\
+do {								\
+	int ecx, edi, esi;					\
+	__asm__ __volatile__ (					\
+		"cld\n\t"					\
+		"rep ; movsl"					\
+		: "=&c" (ecx), "=&D" (edi), "=&S" (esi)		\
+		: "0" ((unsigned)(len)), "1" (dst), "2" (src)	\
+		: "memory" );					\
 } while(0)
 
 #define SDL_revcpy(dst, src, len)			\
@@ -104,9 +115,15 @@ do {								\
 #ifndef SDL_memcpy
 #define SDL_memcpy(dst, src, len)	memcpy(dst, src, len)
 #endif
+
+#ifndef SDL_memcpy4
+#define SDL_memcpy4(dst, src, len)	memcpy(dst, src, (len) << 2)
+#endif
+
 #ifndef SDL_revcpy
 #define SDL_revcpy(dst, src, len)	memmove(dst, src, len)
 #endif
+
 #ifndef SDL_memset4
 #define SDL_memset4(dst, val, len)		\
 do {						\

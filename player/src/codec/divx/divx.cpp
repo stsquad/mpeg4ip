@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "player_mem_bytestream.h"
+#include "our_bytestream_mem.h"
 
 #include "divx.h"
 #include "player_util.h"
@@ -49,7 +49,7 @@ CDivxCodec::CDivxCodec(CVideoSync *v,
 		       format_list_t *media_fmt,
 		       video_info_t *vinfo,
 		       const unsigned char *userdata,
-		       size_t ud_size) :
+		       uint32_t ud_size) :
   CVideoCodecBase(v, pbytestrm, media_fmt, vinfo, userdata, ud_size)
 {
   m_bytestream = pbytestrm;
@@ -121,10 +121,11 @@ static char tohex (char a)
 // that we need to get width/height/frame rate
 int CDivxCodec::parse_vovod (const char *vovod,
 			     int ascii,
-			     size_t len)
+			     uint32_t len)
 {
   unsigned char buffer[255];
-  CInByteStreamMem *membytestream = new CInByteStreamMem();
+  const char *bufptr;
+  COurInByteStreamMem *membytestream;
   int ret;
 
   if (ascii == 1) {
@@ -147,7 +148,7 @@ int CDivxCodec::parse_vovod (const char *vovod,
     unsigned char *write;
     write = buffer;
     // Convert the config= from ascii to binary
-    for (size_t ix = 0; ix < len; ix++) {
+    for (uint32_t ix = 0; ix < len; ix++) {
       *write = 0;
       *write = (tohex(*config)) << 4;
       config++;
@@ -156,11 +157,12 @@ int CDivxCodec::parse_vovod (const char *vovod,
       write++;
     }
     len /= 2;
-    membytestream->set_memory(buffer, len);
+    bufptr = (const char *)buffer;
   } else {
-    membytestream->set_memory((const unsigned char *)vovod, len);
+    bufptr = vovod;
   }
-
+  
+  membytestream = new COurInByteStreamMem(bufptr, len);
   // Temporary set of our bytestream
   CInByteStreamBase *orig_bytestream;
   orig_bytestream = m_bytestream;
@@ -293,4 +295,8 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
   return (-1);
 }
 
+int CDivxCodec::skip_frame (uint64_t ts)
+{
+  return (decode(ts, 0));
+}
 

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dmaaudio.c,v 1.1 2001/08/01 00:33:55 wmaycisco Exp $";
+ "@(#) $Id: SDL_dmaaudio.c,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -39,16 +39,11 @@ static char rcsid =
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#ifdef linux
-#include <linux/soundcard.h>
-#endif
-#ifdef __bsdi__
-#include <sys/soundcard.h>
-#endif
-#ifdef __FreeBSD__
-#include <machine/soundcard.h>
-#endif
-#ifdef __USLC__
+#ifdef OSS_USE_SOUNDCARD_H
+/* This is installed on some systems */
+#include <soundcard.h>
+#else
+/* This is recommended by OSS */
 #include <sys/soundcard.h>
 #endif
 
@@ -271,7 +266,6 @@ static int DMA_ReopenAudio(_THIS, const char *audiodev, int format, int stereo,
 		SDL_SetError("Couldn't open %s: %s", audiodev, strerror(errno));
 		return(-1);
 	}
-	ioctl(audio_fd, SNDCTL_DSP_RESET, 0);
 
 	/* Calculate the final parameters for this audio specification */
 	SDL_CalculateAudioSpec(spec);

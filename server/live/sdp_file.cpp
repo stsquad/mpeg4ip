@@ -78,6 +78,16 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	}
 	sdp.session_connect.used = 1;
 
+	// Since we don't do anything with RTCP RR's
+	// and they create unnecessary state in the routers
+	// tell clients not to generate them
+	struct bandwidth_t bandwidth;
+	memset(&bandwidth, 0, sizeof(bandwidth));
+	sdp.session_bandwidth = &bandwidth;
+	bandwidth.modifier = BANDWIDTH_MODIFIER_USER; 
+	bandwidth.bandwidth = 0;
+	bandwidth.user_band = "RR";
+
 	// if SSM, add source filter attribute
 	struct string_list_t sdpSourceFilter;
 	char sIncl[64];

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ggivideo.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_ggivideo.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
 #endif
 
 /* GGI-based SDL video driver implementation.
@@ -75,11 +75,13 @@ static void GGI_FreeHWSurface(_THIS, SDL_Surface *surface);
 static int GGI_Available(void)
 {
 	ggi_visual_t *vis;
-	
-	vis = ggiOpen(NULL);
-	if (vis != NULL) 
-	{
-		ggiClose(vis);
+
+	vis = NULL;
+	if (ggiInit() == 0) {
+		vis = ggiOpen(NULL);
+		if (vis != NULL) {
+			ggiClose(vis);
+		}
 	}
 	return (vis != NULL);
 }

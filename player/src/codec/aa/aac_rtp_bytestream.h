@@ -47,16 +47,16 @@ class CAacRtpByteStream : public CRtpByteStreamBase
   void bookmark(int Bset);
   void reset(void);
   uint64_t start_next_frame(void);
-  size_t read(unsigned char *buffer, size_t bytes);
-  size_t read(char *buffer, size_t bytes) {
+  ssize_t read(unsigned char *buffer, size_t bytes);
+  ssize_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
 
  private:
   char *m_frame_ptr;
-  size_t m_offset_in_frame;
-  size_t m_frame_len;
-  size_t m_bookmark_offset_in_frame;
+  uint32_t m_offset_in_frame;
+  uint32_t m_frame_len;
+  uint32_t m_bookmark_offset_in_frame;
 };
 
 CRtpByteStreamBase *create_aac_rtp_bytestream (format_list_t *media_fmt,

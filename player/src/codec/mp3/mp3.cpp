@@ -26,7 +26,7 @@ static unsigned char c_byte_get (void *ud)
   return bs->get();
 }
 
-static size_t c_byte_read (unsigned char *buffer, size_t readbytes, void *ud)
+static uint32_t c_byte_read (unsigned char *buffer, uint32_t readbytes, void *ud)
 {
   CInByteStreamBase *bs = (CInByteStreamBase *)ud;
   return bs->read(buffer, readbytes);
@@ -39,7 +39,7 @@ CMP3Codec::CMP3Codec (CAudioSync *a,
 		      format_list_t *media_fmt,
 		      audio_info_t *audio,
 		      const unsigned char *userdata,
-		      size_t userdata_size) : 
+		      uint32_t userdata_size) : 
   CAudioCodecBase(a, pbytestrm, media_fmt, audio, userdata, userdata_size)
 {
   m_bytestream = pbytestrm;
@@ -135,7 +135,7 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
       m_samplesperframe = samplesperframe;
       player_debug_message("chans %d freq %d samples %d", 
 			   m_chans, m_freq, samplesperframe);
-      m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16LSB, samplesperframe);
+      m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16SYS, samplesperframe);
       have_head = 1;
       m_audio_inited = 1;
       m_last_rtp_ts = rtpts - 1; // so we meet the critera below
@@ -195,5 +195,16 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
   return (bits);
 }
 
+int CMP3Codec::skip_frame (uint64_t ts)
+{
+  m_mp3_info->loadheader();
+  if (m_last_rtp_ts == ts) {
+    m_current_time += ((m_samplesperframe * 1000) / m_freq);
+  } else {
+    m_last_rtp_ts = ts;
+    m_current_time = ts;
+  }
+  return (0);
+}
 /* end file mp3.cpp */
 

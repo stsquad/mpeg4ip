@@ -36,7 +36,8 @@ CAviFile *Avifile1 = NULL;
  */
 int create_media_for_avi_file (CPlayerSession *psptr, 
 			       const char *name,
-			       const char **errmsg)
+			       const char **errmsg,
+			       int have_audio_driver)
 {
   avi_t *avi;
 
@@ -60,11 +61,14 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     return (-1);
   }
   int audio;
-  audio = Avifile1->create_audio(psptr);
-  if (audio < 0) {
-    *errmsg = "Internal avi error";
-    return (-1);
-  }
+  if (have_audio_driver > 0) {
+    audio = Avifile1->create_audio(psptr);
+    if (audio < 0) {
+      *errmsg = "Internal avi error";
+      return (-1);
+    }
+  } else
+    audio = 0;
   if (audio == 0 && video == 0) {
     *errmsg = "No valid codecs";
     return (-1);

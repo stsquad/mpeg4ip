@@ -27,24 +27,24 @@ class CBitstream {
  public:
   CBitstream(void) {};
   ~CBitstream (void) {};
-  void init(const unsigned char *buffer, size_t bit_len);
-  void init(const char *buffer, size_t bit_len) {
-    init((const unsigned char *)buffer, (size_t)bit_len);
+  void init(const unsigned char *buffer, uint32_t bit_len);
+  void init(const char *buffer, uint32_t bit_len) {
+    init((const unsigned char *)buffer, (uint32_t)bit_len);
   };
   void init(const char *buffer, int bit_len) {
-    init((const unsigned char *)buffer, (size_t)bit_len);
+    init((const unsigned char *)buffer, (uint32_t)bit_len);
   };
   void init(const unsigned char *buffer, int bit_len) {
-    init(buffer, (size_t)bit_len);
+    init(buffer, (uint32_t)bit_len);
   };
   void init(const char *buffer, unsigned short bit_len) {
-    init((const unsigned char *)buffer, (size_t)bit_len);
+    init((const unsigned char *)buffer, (uint32_t)bit_len);
   };
   void init(const unsigned char *buffer, unsigned short bit_len) {
-    init(buffer, (size_t)bit_len);
+    init(buffer, (uint32_t)bit_len);
   };
-  int getbits(size_t bits, uint32_t &retvalue);
-  int peekbits(size_t bits, uint32_t &retvalue) {
+  int getbits(uint32_t bits, uint32_t &retvalue);
+  int peekbits(uint32_t bits, uint32_t &retvalue) {
     int ret;
     bookmark(1);
     ret = getbits(bits, retvalue);
@@ -57,13 +57,13 @@ class CBitstream {
   };
   int byte_align(void);
  private:
-  size_t m_uNumOfBitsInBuffer;
+  uint32_t m_uNumOfBitsInBuffer;
   const unsigned char *m_chDecBuffer;
-  size_t m_chDecBufferSize;
+  uint32_t m_chDecBufferSize;
   int m_bBookmarkOn;
-  size_t m_uNumOfBitsInBuffer_bookmark;
+  uint32_t m_uNumOfBitsInBuffer_bookmark;
   const unsigned char *m_chDecBuffer_bookmark;
-  size_t m_chDecBufferSize_bookmark;
+  uint32_t m_chDecBufferSize_bookmark;
 };
 
 #endif

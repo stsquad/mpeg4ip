@@ -88,6 +88,19 @@ static struct codec_list_t {
     {NULL, -1},
   };
 
+static int do_we_have_audio (void) 
+{
+  char buffer[80];
+  if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+    return (0);
+  } 
+  if (SDL_AudioDriverName(buffer, sizeof(buffer)) == NULL) {
+    return (0);
+  }
+  return (1);
+}
+
+
 static int lookup_codec_by_name (const char *name,
 				 struct codec_list_t *codec_list, 
 				 int *val)
@@ -159,10 +172,12 @@ static int sdp_is_valid_codec (media_desc_t *media)
 static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
 						 const char *name,
 						 session_desc_t *sdp,
-						 const char **errmsg)
+						 const char **errmsg,
+						 int have_audio_driver)
 {
   int valid_count = 0;
   int invalid_count = 0;
+  int audio_but_no_driver = 0;
   int err;
   char buffer[80];
   // need to set range in player session...
@@ -183,6 +198,12 @@ static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
   for (sdp_media = psptr->get_sdp_info()->media;
        sdp_media != NULL;
        sdp_media = sdp_media->next) {
+
+    if ((strcmp(sdp_media->media, "audio") == 0) &&
+	(have_audio_driver == 0)) {
+      audio_but_no_driver = 1;
+      continue;
+    }
     if (sdp_is_valid_codec(sdp_media) >= 0) {
       CPlayerMedia *mptr = new CPlayerMedia;
       err = mptr->create_streaming(psptr, sdp_media, errmsg, 0);
@@ -200,6 +221,10 @@ static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
   if (valid_count == 0) {
     *errmsg = "No valid codecs";
     return (-1);
+  }
+  if (audio_but_no_driver > 0) {
+    *errmsg = "Not playing audio codecs - no driver";
+    return (1);
   }
   if (invalid_count > 0) {
     *errmsg = "Invalid codec - playing valid ones";
@@ -220,6 +245,7 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
   media_desc_t *sdp_media;
   int media_count = 0;
   int invalid_count = 0;
+  int have_audio_but_no_driver = 0;
   char buffer[80];
   /*
    * This will open the rtsp session
@@ -240,6 +266,11 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
   for (sdp_media = psptr->get_sdp_info()->media;
        sdp_media != NULL;
        sdp_media = sdp_media->next) {
+    if ((strcmp(sdp_media->media, "audio") == 0) && 
+	(do_we_have_audio() == 0)) {
+      have_audio_but_no_driver = 1;
+      continue;
+    }
     if (sdp_is_valid_codec(sdp_media) >= 0) {
       CPlayerMedia *mptr = new CPlayerMedia;
       err = mptr->create_streaming(psptr, sdp_media, errmsg, 1);
@@ -257,6 +288,10 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
     *errmsg = "No valid codecs";
     return (-1);
   }
+  if (have_audio_but_no_driver > 0) {
+    *errmsg = "Can't play audio - no audio driver";
+    return (1);
+  }
   if (invalid_count > 0) {
     *errmsg = "Invalid codec - playing valid ones";
     return (1);
@@ -273,7 +308,8 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
 static int create_from_sdp (CPlayerSession *psptr,
 			    const char *name,
 			    const char **errmsg,
-			    sdp_decode_info_t *sdp_info) 
+			    sdp_decode_info_t *sdp_info,
+			    int have_audio_driver) 
 {
   session_desc_t *sdp;
   int translated;
@@ -297,8 +333,8 @@ static int create_from_sdp (CPlayerSession *psptr,
   if (sdp->control_string != NULL) {
     // An on demand file... Just use the URL...
     err = create_media_for_streaming_ondemand(psptr,
-						  sdp->control_string,
-						  errmsg);
+					      sdp->control_string,
+					      errmsg);
     free_session_desc(sdp);
     free(sdp_info);
     return (err);
@@ -306,17 +342,19 @@ static int create_from_sdp (CPlayerSession *psptr,
   return (create_media_for_streaming_broadcast(psptr,
 					       name, 
 					       sdp,
-					       errmsg));
+					       errmsg,
+					       have_audio_driver));
 }
 
 static int create_media_from_sdp_file(CPlayerSession *psptr, 
 				      const char *name, 
-				      const char **errmsg)
+				      const char **errmsg,
+				      int have_audio_driver)
 {
   sdp_decode_info_t *sdp_info;
   sdp_info = set_sdp_decode_from_filename(name);
 
-  return (create_from_sdp(psptr, name, errmsg, sdp_info));
+  return (create_from_sdp(psptr, name, errmsg, sdp_info, have_audio_driver));
 }
 
 static int create_media_for_http (CPlayerSession *psptr,
@@ -349,8 +387,9 @@ static int create_media_for_http (CPlayerSession *psptr,
   }
   sdp_decode_info_t *sdp_info;
 
+  int have_audio_driver = do_we_have_audio();
   sdp_info = set_sdp_decode_from_memory(data);
-  ret = create_from_sdp(psptr, name, errmsg, sdp_info);
+  ret = create_from_sdp(psptr, name, errmsg, sdp_info, have_audio_driver);
   if (data) free(data);
   if (filename) free(filename);
   if (http_server) free(http_server);
@@ -394,29 +433,50 @@ int parse_name_for_session (CPlayerSession *psptr,
 
 #endif
   err = -1;
-  if (strstr(name, ".sdp") != NULL) {
-    err = create_media_from_sdp_file(psptr, name, errmsg);
-  } else if (strstr(name, ".aac") != NULL) {
-    err = create_media_for_aac_file(psptr, name, errmsg);
-  } else if ((strstr(name, ".mp4v") != NULL) ||
-	     (strstr(name, ".cmp") != NULL)) {
+
+  if ((strstr(name, ".mp4v") != NULL) ||
+      (strstr(name, ".cmp") != NULL)) {
     err = create_media_for_mpeg4_file(psptr, name, errmsg);
-  } else if ((strstr(name, ".mov") != NULL) ||
-	     (strstr(name, ".mp4") != NULL)) {
-    err = create_media_for_qtime_file(psptr, name, errmsg);
   } else if (strstr(name, ".divx") != NULL) {
     err = create_media_for_divx_file(psptr, name, errmsg);
-  } else if ((strstr(name, ".wav") != NULL) ||
-	     (strstr(name, ".WAV") != NULL)) {
-    err = create_media_for_wav_file(psptr, name, errmsg);
-  } else if (strstr(name, ".mp3") != NULL) {
-    player_debug_message("starting %s", name);
-    err = create_media_for_mp3_file(psptr, name, errmsg);
-  } else if (strstr(name, ".avi") != NULL) {
-    err = create_media_for_avi_file(psptr, name, errmsg);
   } else {
-    *errmsg = "Illegal or unknown file type";
-    player_error_message("Illegal or unknown file type - %s", name);
+    int have_audio_driver;
+
+    have_audio_driver = do_we_have_audio();
+
+    if (strstr(name, ".sdp") != NULL) {
+      err = create_media_from_sdp_file(psptr, name, errmsg, have_audio_driver);
+    } else if ((strstr(name, ".mov") != NULL) ||
+	       (strstr(name, ".mp4") != NULL)) {
+      err = create_media_for_qtime_file(psptr, name, errmsg, have_audio_driver);
+    } else if (strstr(name, ".avi") != NULL) {
+      err = create_media_for_avi_file(psptr, name, errmsg, have_audio_driver);
+    } else {
+      if (have_audio_driver != 0) {
+	if (strstr(name, ".aac") != NULL) {
+	  err = create_media_for_aac_file(psptr, name, errmsg);
+	} else if ((strstr(name, ".wav") != NULL) ||
+		   (strstr(name, ".WAV") != NULL)) {
+	  err = create_media_for_wav_file(psptr, name, errmsg);
+	} else if (strstr(name, ".mp3") != NULL) {
+	  err = create_media_for_mp3_file(psptr, name, errmsg);
+	} else {
+	  *errmsg = "Illegal or unknown file type";
+	  player_error_message("Illegal or unknown file type - %s", name);
+	}
+      } else {
+	if ((strstr(name, ".aac") != NULL) ||
+	    (strstr(name, ".wav") != NULL) ||
+	    (strstr(name, ".WAV") != NULL) ||
+	    (strstr(name, ".mp3") != NULL)) {
+	  *errmsg = "Cannot play audio files - no Audio driver";
+	} else {
+	  *errmsg = "Illegal or unknown file type";
+	  player_error_message("Illegal or unknown file type - %s", name);
+	}
+	player_debug_message("Cannot play audio files - %s", SDL_GetError());
+      }
+    }
   }
   if (err >= 0) {
     const char *temp;
@@ -438,7 +498,7 @@ CCodecBase *start_audio_codec (const char *codec_name,
 			       format_list_t *media_fmt,
 			       audio_info_t *aud,
 			       const unsigned char *userdata,
-			       size_t userdata_size)
+			       uint32_t userdata_size)
 {
   if (codec_name == NULL) {
     return (NULL);
@@ -476,7 +536,7 @@ static const char *profile_tag="profile-level-id=";
 
 int which_mpeg4_codec (format_list_t *fptr,
 		       const unsigned char *userdata,
-		       size_t userdata_size)
+		       uint32_t userdata_size)
 {
   
   if (fptr && fptr->fmt_param) {
@@ -502,7 +562,7 @@ CCodecBase *start_video_codec (const char *codec_name,
 			       format_list_t *media_fmt,
 			       video_info_t *vid,
 			       const unsigned char *userdata,
-			       size_t userdata_size)
+			       uint32_t userdata_size)
 {
   if (codec_name == NULL) {
     return (NULL);

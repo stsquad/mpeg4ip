@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11events.c,v 1.1 2001/08/01 00:34:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11events.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting X11 events into SDL events */
@@ -37,7 +37,9 @@ static char rcsid =
 #ifdef __SVR4
 #include <X11/Sunkeysym.h>
 #endif
+#include <sys/types.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "SDL.h"
 #include "SDL_syswm.h"
@@ -53,6 +55,9 @@ static char rcsid =
 #include "SDL_x11mouse_c.h"
 #include "SDL_x11events_c.h"
 
+
+/* Define this if you want to debug X11 events */
+/*#define DEBUG_XEVENTS*/
 
 /* The translation tables from an X11 keysym to a SDL keysym */
 static SDLKey ODD_keymap[256];
@@ -73,7 +78,7 @@ static int X11_KeyRepeat(Display *display, XEvent *event)
 		XPeekEvent(display, &peekevent);
 		if ( (peekevent.type == KeyPress) &&
 		     (peekevent.xkey.keycode == event->xkey.keycode) &&
-		     (peekevent.xkey.time == event->xkey.time) ) {
+		     ((peekevent.xkey.time-event->xkey.time) < 2) ) {
 			repeated = 1;
 			XNextEvent(display, &peekevent);
 		}
@@ -162,7 +167,7 @@ static int X11_DispatchEvent(_THIS)
 	    /* Gaining mouse coverage? */
 	    case EnterNotify: {
 #ifdef DEBUG_XEVENTS
-printf("EnterNotify!\n");
+printf("EnterNotify! (%d,%d)\n", xevent.xcrossing.x, xevent.xcrossing.y);
 if ( xevent.xcrossing.mode == NotifyGrab )
 printf("Mode: NotifyGrab\n");
 if ( xevent.xcrossing.mode == NotifyUngrab )
@@ -170,7 +175,13 @@ printf("Mode: NotifyUngrab\n");
 #endif
 		if ( (xevent.xcrossing.mode != NotifyGrab) &&
 		     (xevent.xcrossing.mode != NotifyUngrab) ) {
-			posted = SDL_PrivateAppActive(1, SDL_APPMOUSEFOCUS);
+			if ( this->input_grab == SDL_GRAB_OFF ) {
+				posted = SDL_PrivateAppActive(1, SDL_APPMOUSEFOCUS);
+			} else {
+				posted = SDL_PrivateMouseMotion(0, 0,
+						xevent.xcrossing.x,
+						xevent.xcrossing.y);
+			}
 		}
 	    }
 	    break;
@@ -178,7 +189,7 @@ printf("Mode: NotifyUngrab\n");
 	    /* Losing mouse coverage? */
 	    case LeaveNotify: {
 #ifdef DEBUG_XEVENTS
-printf("LeaveNotify!\n");
+printf("LeaveNotify! (%d,%d)\n", xevent.xcrossing.x, xevent.xcrossing.y);
 if ( xevent.xcrossing.mode == NotifyGrab )
 printf("Mode: NotifyGrab\n");
 if ( xevent.xcrossing.mode == NotifyUngrab )
@@ -186,7 +197,13 @@ printf("Mode: NotifyUngrab\n");
 #endif
 		if ( (xevent.xcrossing.mode != NotifyGrab) &&
 		     (xevent.xcrossing.mode != NotifyUngrab) ) {
-			posted = SDL_PrivateAppActive(0, SDL_APPMOUSEFOCUS);
+			if ( this->input_grab == SDL_GRAB_OFF ) {
+				posted = SDL_PrivateAppActive(0, SDL_APPMOUSEFOCUS);
+			} else {
+				posted = SDL_PrivateMouseMotion(0, 0,
+						xevent.xcrossing.x,
+						xevent.xcrossing.y);
+			}
 		}
 	    }
 	    break;
@@ -219,6 +236,9 @@ printf("FocusOut!\n");
 
 	    /* Generated upon EnterWindow and FocusIn */
 	    case KeymapNotify: {
+#ifdef DEBUG_XEVENTS
+printf("KeymapNotify!\n");
+#endif
 		X11_SetKeyboardState(SDL_Display, xevent.xkeymap.key_vector);
 	    }
 	    break;
@@ -238,6 +258,9 @@ printf("FocusOut!\n");
 					posted = X11_WarpedMotion(this,&xevent);
 				}
 			} else {
+#ifdef DEBUG_MOTION
+  printf("X11 motion: %d,%d\n", xevent.xmotion.x, xevent.xmotion.y);
+#endif
 				posted = SDL_PrivateMouseMotion(0, 0,
 						xevent.xmotion.x,
 						xevent.xmotion.y);
@@ -263,6 +286,10 @@ printf("FocusOut!\n");
 	    /* Key press? */
 	    case KeyPress: {
 		SDL_keysym keysym;
+
+#ifdef DEBUG_XEVENTS
+printf("KeyPress (X11 keycode = 0x%X)\n", xevent.xkey.keycode);
+#endif
 		posted = SDL_PrivateKeyboard(SDL_PRESSED,
 				X11_TranslateKey(SDL_Display, &xevent.xkey,
 						 xevent.xkey.keycode,
@@ -274,6 +301,9 @@ printf("FocusOut!\n");
 	    case KeyRelease: {
 		SDL_keysym keysym;
 
+#ifdef DEBUG_XEVENTS
+printf("KeyRelease (X11 keycode = 0x%X)\n", xevent.xkey.keycode);
+#endif
 		/* Check to see if this is a repeated key */
 		if ( ! X11_KeyRepeat(SDL_Display, &xevent) ) {
 			posted = SDL_PrivateKeyboard(SDL_RELEASED, 
@@ -317,16 +347,12 @@ printf("MapNotify!\n");
 
 		if ( SDL_VideoSurface &&
 		     (SDL_VideoSurface->flags & SDL_FULLSCREEN) ) {
-#ifdef GRAB_FULLSCREEN
 			X11_EnterFullScreen(this);
-#else
-			/* Queue entry into fullscreen mode */
-			switch_waiting = 0x01 | SDL_FULLSCREEN;
-			switch_time = SDL_GetTicks() + 1500;
-#endif
 		} else {
 			X11_GrabInputNoLock(this, this->input_grab);
 		}
+		X11_CheckMouseModeNoLock(this);
+
 		if ( SDL_VideoSurface ) {
 			X11_RefreshDisplay(this);
 		}
@@ -817,6 +843,10 @@ void X11_SetKeyboardState(Display *display, const char *key_vec)
 	KeyCode xcode[SDLK_LAST];
 	Uint8 new_kstate[SDLK_LAST];
 	Uint8 *kstate = SDL_GetKeyState(NULL);
+	SDLMod modstate;
+	Window junk_window;
+	int x, y;
+	unsigned int mask;
 
 	/* The first time the window is mapped, we initialize key state */
 	if ( ! key_vec ) {
@@ -824,11 +854,31 @@ void X11_SetKeyboardState(Display *display, const char *key_vec)
 		XQueryKeymap(display, keys_return);
 		gen_event = 0;
 	} else {
+#if 1 /* We no longer generate key down events, just update state */
+		gen_event = 0;
+#else
 		gen_event = 1;
+#endif
 	}
 
-	/* Zero the new state and generate it */
-	memset(new_kstate, 0, sizeof(new_kstate));
+	/* Get the keyboard modifier state */
+	modstate = 0;
+	get_modifier_masks(display);
+	if ( XQueryPointer(display, DefaultRootWindow(display),
+		&junk_window, &junk_window, &x, &y, &x, &y, &mask) ) {
+		if ( mask & LockMask ) {
+			modstate |= KMOD_CAPS;
+		}
+		if ( mask & mode_switch_mask ) {
+			modstate |= KMOD_MODE;
+		}
+		if ( mask & num_mask ) {
+			modstate |= KMOD_NUM;
+		}
+	}
+
+	/* Zero the new keyboard state and generate it */
+	memset(new_kstate, SDL_RELEASED, sizeof(new_kstate));
 	/*
 	 * An obvious optimisation is to check entire longwords at a time in
 	 * both loops, but we can't be sure the arrays are aligned so it's not
@@ -843,17 +893,47 @@ void X11_SetKeyboardState(Display *display, const char *key_vec)
 				SDL_keysym sk;
 				KeyCode kc = i << 3 | j;
 				X11_TranslateKey(display, NULL, kc, &sk);
-				new_kstate[sk.sym] = 1;
+				new_kstate[sk.sym] = SDL_PRESSED;
 				xcode[sk.sym] = kc;
 			}
 		}
 	}
 	for(i = SDLK_FIRST+1; i < SDLK_LAST; i++) {
-		int st;
-		SDL_keysym sk;
+		int state = new_kstate[i];
 
-		if(kstate[i] == new_kstate[i])
+		if ( state == SDL_PRESSED ) {
+			switch (i) {
+				case SDLK_LSHIFT:
+					modstate |= KMOD_LSHIFT;
+					break;
+				case SDLK_RSHIFT:
+					modstate |= KMOD_RSHIFT;
+					break;
+				case SDLK_LCTRL:
+					modstate |= KMOD_LCTRL;
+					break;
+				case SDLK_RCTRL:
+					modstate |= KMOD_RCTRL;
+					break;
+				case SDLK_LALT:
+					modstate |= KMOD_LALT;
+					break;
+				case SDLK_RALT:
+					modstate |= KMOD_RALT;
+					break;
+				case SDLK_LMETA:
+					modstate |= KMOD_LMETA;
+					break;
+				case SDLK_RMETA:
+					modstate |= KMOD_RMETA;
+					break;
+				default:
+					break;
+			}
+		}
+		if ( kstate[i] == state )
 			continue;
+
 		/*
 		 * Send a fake keyboard event correcting the difference between
 		 * SDL's keyboard state and the actual. Note that there is no
@@ -861,16 +941,31 @@ void X11_SetKeyboardState(Display *display, const char *key_vec)
 		 * keys are released when focus is lost only keypresses should
 		 * be sent here
 		 */
-		st = new_kstate[i] ? SDL_PRESSED : SDL_RELEASED;
-		memset(&sk, 0, sizeof(sk));
-		sk.sym = i;
-		sk.scancode = xcode[i];		/* only valid for key press */
 		if ( gen_event ) {
-			SDL_PrivateKeyboard(st, &sk);
+			SDL_keysym sk;
+			memset(&sk, 0, sizeof(sk));
+			sk.sym = i;
+			sk.scancode = xcode[i];	/* only valid for key press */
+			SDL_PrivateKeyboard(state, &sk);
 		} else {
-			kstate[i] = new_kstate[i];
+			kstate[i] = state;
 		}
 	}
+
+	/* Hack - set toggle key state */
+	if ( modstate & KMOD_CAPS ) {
+		kstate[SDLK_CAPSLOCK] = SDL_PRESSED;
+	} else {
+		kstate[SDLK_CAPSLOCK] = SDL_RELEASED;
+	}
+	if ( modstate & KMOD_NUM ) {
+		kstate[SDLK_NUMLOCK] = SDL_PRESSED;
+	} else {
+		kstate[SDLK_NUMLOCK] = SDL_RELEASED;
+	}
+
+	/* Set the final modifier state */
+	SDL_SetModState(modstate);
 }
 
 void X11_InitOSKeymap(_THIS)

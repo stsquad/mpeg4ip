@@ -29,7 +29,6 @@
 #include <mp3/MPEGaudio.h>
 #include "codec.h"
 #include "rtp_bytestream.h"
-#include "player_mem_bytestream.h"
 #include "audio.h"
 
 class COurMp3Loader;
@@ -41,9 +40,10 @@ class CMP3Codec : public CAudioCodecBase {
 	    format_list_t *media_desc,
 	    audio_info_t *audio,
 	    const unsigned char *userdata = NULL,
-	    size_t userdata_size = 0);
+	    uint32_t userdata_size = 0);
   ~CMP3Codec();
   int decode(uint64_t rtptime, int fromrtp);
+  int skip_frame(uint64_t rtptime);
   void do_pause(void);
   //  int read_byte(FILE_STREAM *fs, int *err);
   //void reset(void);
@@ -56,7 +56,7 @@ class CMP3Codec : public CAudioCodecBase {
   uint64_t m_first_time_offset;
   uint64_t m_current_time;
   uint64_t m_last_rtp_ts;
-  size_t m_current_frame;
+  uint32_t m_current_frame;
   int m_audio_inited;
   int m_freq;  // frequency
   int m_chans, m_samplesperframe;

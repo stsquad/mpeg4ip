@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbevents.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_fbevents.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting console events into SDL events */
@@ -247,8 +247,8 @@ int FB_OpenKeyboard(_THIS)
 {
 	/* Open only if not already opened */
  	if ( keyboard_fd < 0 ) {
-		char *tty0[] = { "/dev/tty0", "/dev/vc/0", NULL };
-		char *vcs[] = { "/dev/vc/%d", "/dev/tty%d", NULL };
+		static const char * const tty0[] = { "/dev/tty0", "/dev/vc/0", NULL };
+		static const char * const vcs[] = { "/dev/vc/%d", "/dev/tty%d", NULL };
 		int i, tty0_fd;
 
 		/* Try to query for a free virtual terminal */
@@ -311,7 +311,7 @@ int FB_OpenKeyboard(_THIS)
 
 static enum {
 	MOUSE_NONE = -1,
-	MOUSE_GPM,	/* Note: GPM uses the MSC protocol */
+	MOUSE_MSC,	/* Note: GPM uses the MSC protocol */
 	MOUSE_PS2,
 	MOUSE_IMPS2,
 	MOUSE_MS,
@@ -397,20 +397,60 @@ static int gpm_available(void)
 	return available;
 }
 
+
+/* rcg06112001 Set up IMPS/2 mode, if possible. This gives
+ *  us access to the mousewheel, etc. Returns zero if
+ *  writes to device failed, but you still need to query the
+ *  device to see which mode it's actually in.
+ */
+static int set_imps2_mode(int fd)
+{
+	/* If you wanted to control the mouse mode (and we do :)  ) ...
+		Set IMPS/2 protocol:
+			{0xf3,200,0xf3,100,0xf3,80}
+		Reset mouse device:
+			{0xFF}
+	*/
+	Uint8 set_imps2[] = {0xf3, 200, 0xf3, 100, 0xf3, 80};
+	Uint8 reset = 0xff;
+	fd_set fdset;
+	struct timeval tv;
+	int retval = 0;
+
+	if ( write(fd, &set_imps2, sizeof(set_imps2)) == sizeof(set_imps2) ) {
+		if (write(fd, &reset, sizeof (reset)) == sizeof (reset) ) {
+			retval = 1;
+		}
+	}
+
+	/* Get rid of any chatter from the above */
+	FD_ZERO(&fdset);
+	FD_SET(fd, &fdset);
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+	while ( select(fd+1, &fdset, 0, 0, &tv) > 0 ) {
+		char temp[32];
+		read(fd, temp, sizeof(temp));
+	}
+
+	return retval;
+}
+
+
 /* Returns true if the mouse uses the IMPS/2 protocol */
 static int detect_imps2(int fd)
 {
 	int imps2;
 
 	imps2 = 0;
+
 	if ( getenv("SDL_MOUSEDEV_IMPS2") ) {
 		imps2 = 1;
 	}
 	if ( ! imps2 ) {
-		unsigned char query_ps2 = 0xF2;
+		Uint8 query_ps2 = 0xF2;
 		fd_set fdset;
 		struct timeval tv;
-
 
 		/* Get rid of any mouse motion noise */
 		FD_ZERO(&fdset);
@@ -422,16 +462,10 @@ static int detect_imps2(int fd)
 			read(fd, temp, sizeof(temp));
 		}
 
-		/* Query for the type of mouse protocol */
-		if ( write(fd, &query_ps2, 1) == 1 ) {
-			unsigned char ch = 0;
+   		/* Query for the type of mouse protocol */
+   		if ( write(fd, &query_ps2, sizeof (query_ps2)) == sizeof (query_ps2)) {
+   			Uint8 ch = 0;
 
-			/* If you wanted to control the mouse mode:
-			   Set IMPS/2 protocol:
-				{0xf3,200,0xf3,100,0xf3,80}
-			   Reset mouse device:
-				{0xFF}
-			*/
 			/* Get the mouse protocol response */
 			do {
 				FD_ZERO(&fdset);
@@ -441,14 +475,14 @@ static int detect_imps2(int fd)
 				if ( select(fd+1, &fdset, 0, 0, &tv) < 1 ) {
 					break;
 				}
-			} while ( (read(fd, &ch, 1) == 1) &&
+			} while ( (read(fd, &ch, sizeof (ch)) == sizeof (ch)) &&
 			          ((ch == 0xFA) || (ch == 0xAA)) );
 
 			/* Experimental values (Logitech wheelmouse) */
 #ifdef DEBUG_MOUSE
 fprintf(stderr, "Last mouse mode: 0x%x\n", ch);
 #endif
-			if ( ch == 3 ) {
+			if ( (ch == 3) || (ch == 4) ) {
 				imps2 = 1;
 			}
 		}
@@ -458,6 +492,7 @@ fprintf(stderr, "Last mouse mode: 0x%x\n", ch);
 
 int FB_OpenMouse(_THIS)
 {
+	int i;
 	const char *mousedev;
 	const char *mousedrv;
 
@@ -488,6 +523,10 @@ fprintf(stderr, "Using ELO touchscreen\n");
 	/* STD MICE */
 
 	if ( mousedev == NULL ) {
+		/* FIXME someday... allow multiple mice in this driver */
+		static const char * const ps2mice[] = {
+		    "/dev/input/mice", "/dev/usbmouse", "/dev/psaux", NULL
+		};
 		/* First try to use GPM in repeater mode */
 		if ( mouse_fd < 0 ) {
 			if ( gpm_available() ) {
@@ -496,32 +535,29 @@ fprintf(stderr, "Using ELO touchscreen\n");
 #ifdef DEBUG_MOUSE
 fprintf(stderr, "Using GPM mouse\n");
 #endif
-					mouse_drv = MOUSE_GPM;
+					mouse_drv = MOUSE_MSC;
 				}
 			}
 		}
-		/* Now try to use the new HID unified mouse device */
-		if ( mouse_fd < 0 ) {
-			mouse_fd = open("/dev/input/mice", O_RDONLY, 0);
-			if ( mouse_fd >= 0 ) {
-				mouse_drv = MOUSE_IMPS2;
+		/* Now try to use a modern PS/2 mouse */
+		for ( i=0; (mouse_fd < 0) && ps2mice[i]; ++i ) {
+			mouse_fd = open(ps2mice[i], O_RDWR, 0);
+			if (mouse_fd < 0) {
+				mouse_fd = open(ps2mice[i], O_RDONLY, 0);
 			}
-		}
-		/* Now try to use a modern PS/2 port mouse */
-		if ( mouse_fd < 0 ) {
-			mouse_fd = open("/dev/psaux", O_RDWR, 0);
-			if ( mouse_fd < 0 ) {
-				mouse_fd = open("/dev/psaux", O_RDONLY, 0);
-			}
-			if ( mouse_fd >= 0 ) {
-				if ( detect_imps2(mouse_fd) ) {
+			if (mouse_fd >= 0) {
+				/* rcg06112001 Attempt to set IMPS/2 mode */
+				if ( i == 0 ) {
+					set_imps2_mode(mouse_fd);
+				}
+				if (detect_imps2(mouse_fd)) {
 #ifdef DEBUG_MOUSE
-fprintf(stderr, "Using IMPS/2 mouse\n");
+fprintf(stderr, "Using IMPS2 mouse\n");
 #endif
 					mouse_drv = MOUSE_IMPS2;
 				} else {
 #ifdef DEBUG_MOUSE
-fprintf(stderr, "Using PS/2 mouse\n");
+fprintf(stderr, "Using PS2 mouse\n");
 #endif
 					mouse_drv = MOUSE_PS2;
 				}
@@ -606,7 +642,7 @@ void FB_vgamousecallback(int button, int relative, int dx, int dy)
 	}
 }
 
-/* For now, use GPM, PS/2, and MS protocols
+/* For now, use MSC, PS/2, and MS protocols
    Driver adapted from the SVGAlib mouse driver code (taken from gpm, etc.)
  */
 static void handle_mouse(_THIS)
@@ -619,14 +655,15 @@ static void handle_mouse(_THIS)
 	int button = 0;
 	int dx = 0, dy = 0;
 	int packetsize = 0;
-
+	int realx, realy;
+	
 	/* Figure out the mouse packet size */
 	switch (mouse_drv) {
 		case MOUSE_NONE:
 			/* Ack! */
 			read(mouse_fd, mousebuf, BUFSIZ);
 			return;
-		case MOUSE_GPM:
+		case MOUSE_MSC:
 			packetsize = 5;
 			break;
 		case MOUSE_IMPS2:
@@ -647,6 +684,18 @@ static void handle_mouse(_THIS)
 			break;
 	}
 
+	/* Special handling for the quite sensitive ELO controller */
+	if (mouse_drv == MOUSE_ELO) {
+	
+	    /* try to read the next packet */
+	    if(eloReadPosition(this, mouse_fd, &dx, &dy, &button, &realx, &realy)) {
+		button = (button & 0x01) << 2;
+    		FB_vgamousecallback(button, relative, dx, dy);
+	    }
+	    
+	    return;
+	}
+	
 	/* Read as many packets as possible */
 	nread = read(mouse_fd, &mousebuf[start], BUFSIZ-start);
 	if ( nread < 0 ) {
@@ -660,8 +709,8 @@ static void handle_mouse(_THIS)
 		switch (mouse_drv) {
 			case MOUSE_NONE:
 				break;
-			case MOUSE_GPM:
-				/* GPM protocol has 0x80 in high byte */
+			case MOUSE_MSC:
+				/* MSC protocol has 0x80 in high byte */
 				if ( (mousebuf[i] & 0xF8) != 0x80 ) {
 					/* Go to next byte */
 					i -= (packetsize-1);
@@ -740,25 +789,25 @@ static void handle_mouse(_THIS)
 				dx =  (signed char)mousebuf[i+1];
 				dy = -(signed char)mousebuf[i+2];
 				break;
+			/*
 			case MOUSE_ELO:
-				/* ELO protocol has ELO_START_BYTE as first byte */
 				if ( mousebuf[i] != ELO_START_BYTE ) {
-					/* Go to next byte */
 					i -= (packetsize-1);
 					continue;
 				}
 
-				/* parse the packet */
 				if(!eloParsePacket(&(mousebuf[i]), &dx, &dy, &button)) {
-					break;
+					i -= (packetsize-1);
+					continue;
 				}
 				
 				button = (button & 0x01) << 2;
 
-				/* convert to screen coordinates */
 				eloConvertXY(this, &dx, &dy);
 				break;
+			*/
 
+			case MOUSE_ELO:
 			case NUM_MOUSE_DRVS:
 				/* Uh oh.. */
 				dx = 0;
@@ -776,7 +825,11 @@ static void handle_mouse(_THIS)
 	return;
 }
 
-/* Handle switching to another VC, returns when our VC is back */
+/* Handle switching to another VC, returns when our VC is back.
+   This isn't necessarily the best solution.  For SDL 1.3 we need
+   a way of notifying the application when we lose access to the
+   video hardware and when we regain it.
+ */
 static void switch_vt(_THIS, unsigned short which)
 {
 	struct vt_stat vtstate;
@@ -795,6 +848,7 @@ static void switch_vt(_THIS, unsigned short which)
 
 	/* Save the contents of the screen, and go to text mode */
 	SDL_mutexP(hw_lock);
+	wait_idle(this);
 	screen = SDL_VideoSurface;
 	screen_arealen = (screen->h*screen->pitch);
 	screen_contents = (Uint8 *)malloc(screen_arealen);
@@ -859,7 +913,9 @@ static void handle_keyboard(_THIS)
 		    case SDLK_F11:
 		    case SDLK_F12:
 			if ( SDL_GetModState() & KMOD_ALT ) {
-				switch_vt(this, (keysym.sym-SDLK_F1)+1);
+				if ( pressed ) {
+					switch_vt(this, (keysym.sym-SDLK_F1)+1);
+				}
 				break;
 			}
 			/* Fall through to normal processing */

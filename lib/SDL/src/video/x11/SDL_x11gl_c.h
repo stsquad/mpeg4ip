@@ -22,12 +22,15 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11gl_c.h,v 1.1 2001/08/01 00:34:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11gl_c.h,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 #ifdef HAVE_OPENGL
 #include <GL/glx.h>
 #include <dlfcn.h>
+#if defined(__OpenBSD__) && !defined(__ELF__)
+#define dlsym(x,y) dlsym(x, "_" y)
+#endif
 #endif
 #include "SDL_sysvideo.h"
 

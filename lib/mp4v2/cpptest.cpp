@@ -21,6 +21,68 @@
 
 #include "mp4.h"
 
+void mp4dump(int argc, char** argv)
+{
+	MP4File* pFile = new MP4File(argv[1], "r", MP4_DETAILS_ALL);
+	
+	if (pFile->Read() == 0) {
+		pFile->Dump();
+	}
+
+	delete pFile;
+}
+
+void mp4extract(int argc, char** argv)
+{
+	MP4File* pFile = new MP4File(argv[1], "r", MP4_DETAILS_FIND);
+
+	if (pFile->Read() != 0) {
+		return;
+	}
+
+	printf("movie duration is %u secs\n", 
+		MP4TOSECS(pFile->GetDuration()));
+
+	printf("video profileLevel id is %u\n",
+		pFile->GetVideoProfileLevel());
+
+	u_int8_t* pConfig;
+	u_int32_t configSize;
+	pFile->GetESConfiguration(2, &pConfig, &configSize);
+
+	printf("first video config is %u bytes long\n", configSize);
+
+#ifdef NOTDEF
+	// foreach video track
+	u_int32_t numVideoTracks = pFile->GetNumberOfTracks("video");
+
+	for (u_int32_t i = 0; i < numVideoTracks; i++) {
+
+		MP4TrackId videoTrack = pFile->FindTrack(i, "video");
+
+		int rawFd = open("extract1.yuv", O_CREAT | O_TRUNC);
+
+		u_int8_t* pFrame;
+		u_int32_t frameSize;
+
+		// get video decoder info
+		pFile->GetESConfigInfo(videoTrack, &pFrame, &frameSize);
+		write(rawFd, pFrame, frameSize);
+		free(pFrame);
+
+		// while there are video frames, read them, and write them raw
+		while (pFile->GetNextVideoFrame(&pFrame, &frameSize) == 0)) {
+			write(rawFd, pFrame, frameSize);
+			free(pFrame);
+		}
+	}
+
+	// foreach audio track
+#endif
+
+	delete pFile;
+}
+
 main(int argc, char** argv)
 {
 	if (argc < 2) {
@@ -28,16 +90,16 @@ main(int argc, char** argv)
 		exit(1);
 	}
 
-	MP4File* pFile = new MP4File();
-	
-	pFile->SetVerbosity(2);
+	try {
+		mp4dump(argc, argv);
 
-	pFile->Open(argv[1], "r");
+		mp4extract(argc, argv);
+	}
+	catch (MP4Error* e) {
+		e->Print();
+		exit(1);
+	}
 
-	pFile->Read();
-
-	pFile->Dump();
-
-	delete pFile;
+	exit(0);
 }
 

@@ -22,10 +22,6 @@
 #ifndef __MP4_ATOM_INCLUDED__
 #define __MP4_ATOM_INCLUDED__
 
-#include "mp4array.h"
-#include "mp4property.h"
-#include "mp4file.h"
-
 class MP4Atom;
 MP4ARRAY_DECL(MP4Atom, MP4Atom*);
 
@@ -132,23 +128,29 @@ public:
 		m_pChildAtoms.Add(pChildAtom);
 	}
 
-	MP4Property* FindProperty(char* string);
+	// TBD GetNumberOfChildAtoms(char* type = NULL);
+
+	u_int8_t GetDepth();
+
+	bool FindProperty(char* name, 
+		MP4Property** ppProperty, u_int32_t* pIndex);
 
 	void Skip();
 
 	virtual void Read();
-	virtual void Write();
+	virtual void Write(bool use64 = false);
 	virtual void Dump(FILE* pFile);
 
 protected:
 	void AddProperty(MP4Property* pProperty) {
-		ASSERT(FindProperty(pProperty->GetName()) == NULL);
+		ASSERT(pProperty);
 		m_pProperties.Add(pProperty);
+		pProperty->SetParentAtom(this);
 	}
 
 	void AddVersionAndFlags() {
 		AddProperty(new MP4Integer8Property("version"));
-		AddProperty(new MP4BytesProperty("flags", 3));
+		AddProperty(new MP4Integer24Property("flags"));
 	}
 
 	void AddReserved(char* name, u_int32_t size) {
@@ -163,16 +165,26 @@ protected:
 
 	MP4AtomInfo* FindAtomInfo(const char* name);
 
-	void ReadProperties(u_int32_t startIndex = 0);
+	bool FindContainedProperty(char* name, 
+		MP4Property** ppProperty, u_int32_t* pIndex);
+
+	void ReadProperties(
+		u_int32_t startIndex = 0, u_int32_t count = 0xFFFFFFFF);
 	void ReadChildAtoms();
 
-	void BeginWrite();
-	void EndWrite();
+	void BeginWrite(bool use64 = false);
+	void EndWrite(bool use64 = false);
 
-	/* debugging aids */
+	void WriteProperties(
+		u_int32_t startIndex = 0, u_int32_t count = 0xFFFFFFFF);
+	void WriteChildAtoms();
+
+	u_int8_t GetVersion();
+	u_int32_t GetFlags();
+	void SetFlags(u_int32_t flags);
+
+	/* debugging aid */
 	u_int32_t GetVerbosity();
-	u_int8_t GetDepth();
-	void Indent(FILE* pFile, u_int8_t depth);
 
 protected:
 	MP4File*	m_pFile;
@@ -191,7 +203,7 @@ protected:
 };
 
 inline u_int32_t ATOMID(const char* type) {
-	return type[0] << 24 | type[1] << 16 | type[2] << 8 | type[3];
+	return (type[0] << 24) | (type[1] << 16) | (type[2] << 8) | type[3];
 }
 
 class MP4RootAtom : public MP4Atom {

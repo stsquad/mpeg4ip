@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysvideo.h,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysvideo.h,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysvideo_h
@@ -63,7 +63,7 @@ typedef struct SDL_VideoDevice SDL_VideoDevice;
 #endif
 struct SDL_VideoDevice {
 	/* * * */
-	/* The name of this audio driver */
+	/* The name of this video driver */
 	const char *name;
 
 	/* * * */
@@ -331,6 +331,9 @@ extern VideoBootStrap X11_bootstrap;
 #ifdef ENABLE_DGA
 extern VideoBootStrap DGA_bootstrap;
 #endif
+#ifdef ENABLE_NANOX
+extern VideoBootStrap NX_bootstrap;
+#endif
 #ifdef ENABLE_FBCON
 extern VideoBootStrap FBCON_bootstrap;
 #endif
@@ -339,6 +342,9 @@ extern VideoBootStrap PS2GS_bootstrap;
 #endif
 #ifdef ENABLE_GGI
 extern VideoBootStrap GGI_bootstrap;
+#endif
+#ifdef ENABLE_VGL
+extern VideoBootStrap VGL_bootstrap;
 #endif
 #ifdef ENABLE_SVGALIB
 extern VideoBootStrap SVGALIB_bootstrap;
@@ -355,6 +361,12 @@ extern VideoBootStrap DIRECTX_bootstrap;
 #ifdef ENABLE_BWINDOW
 extern VideoBootStrap BWINDOW_bootstrap;
 #endif
+#ifdef ENABLE_DUMMYVIDEO
+extern VideoBootStrap DUMMY_bootstrap;
+#endif
+#ifdef ENABLE_PHOTON
+extern VideoBootStrap ph_bootstrap;
+#endif
 /* MacOS X gets the proper defines from configure */
 #if defined(macintosh) && !defined(MACOSX)
 #define ENABLE_TOOLBOX
@@ -368,10 +380,12 @@ extern VideoBootStrap TOOLBOX_bootstrap;
 #ifdef ENABLE_DRAWSPROCKET
 extern VideoBootStrap DSp_bootstrap;
 #endif
+#ifdef ENABLE_QUARTZ
+extern VideoBootStrap QZ_bootstrap;
+#endif
 #ifdef ENABLE_CYBERGRAPHICS
 extern VideoBootStrap CGX_bootstrap;
 #endif
-
 /* This is the current video device */
 extern SDL_VideoDevice *current_video;
 

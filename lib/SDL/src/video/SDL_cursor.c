@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_cursor.c,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_cursor.c,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 /* General cursor handling code for SDL */
@@ -245,15 +245,16 @@ void SDL_FreeCursor (SDL_Cursor *cursor)
 			SDL_SetCursor(SDL_defcursor);
 		}
 		if ( cursor != SDL_defcursor ) {
+			SDL_VideoDevice *video = current_video;
+			SDL_VideoDevice *this  = current_video;
+
 			if ( cursor->data ) {
 				free(cursor->data);
 			}
 			if ( cursor->save[0] ) {
 				free(cursor->save[0]);
 			}
-			if ( cursor->wm_cursor ) {
-				SDL_VideoDevice *video = current_video;
-				SDL_VideoDevice *this  = current_video;
+			if ( video && cursor->wm_cursor ) {
 				video->FreeWMCursor(this, cursor->wm_cursor);
 			}
 			free(cursor);
@@ -347,11 +348,11 @@ void SDL_MouseRect(SDL_Rect *area)
 	}
 	clip_diff = (area->x+area->w)-SDL_VideoSurface->w;
 	if ( clip_diff > 0 ) {
-		area->w -= clip_diff;
+		area->w = area->w < clip_diff ? 0 : area->w-clip_diff;
 	}
 	clip_diff = (area->y+area->h)-SDL_VideoSurface->h;
 	if ( clip_diff > 0 ) {
-		area->h -= clip_diff;
+		area->h = area->h < clip_diff ? 0 : area->h-clip_diff;
 	}
 }
 
@@ -723,7 +724,9 @@ void SDL_EraseCursor(SDL_Surface *screen)
 		SDL_Rect area;
 
 		SDL_MouseRect(&area);
-		video->UpdateRects(this, 1, &area);
+		if ( video->UpdateRects ) {
+			video->UpdateRects(this, 1, &area);
+		}
 	}
 }
 

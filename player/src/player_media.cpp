@@ -591,7 +591,7 @@ static char *transport_parse_server_port (char *transport, CPlayerMedia *m)
 static char *transport_parse_source (char *transport, CPlayerMedia *m)
 {
   char *ptr, *newone;
-  size_t addrlen;
+  uint32_t addrlen;
 
   if (*transport != '=') {
     return (NULL);
@@ -705,7 +705,7 @@ static char *rtpinfo_parse_rtptime (char *rtpinfo,
 }
 struct {
   const char *name;
-  size_t namelen;
+  uint32_t namelen;
   char *(*routine)(char *transport, CPlayerMedia *);
 } transport_types[] = 
 {
@@ -720,7 +720,7 @@ struct {
 
 int CPlayerMedia::process_rtsp_transport (char *transport)
 {
-  size_t protolen;
+  uint32_t protolen;
   int ix;
 
   if (transport == NULL) 
@@ -774,7 +774,7 @@ int CPlayerMedia::process_rtsp_transport (char *transport)
 
 struct {
   const char *name;
-  size_t namelen;
+  uint32_t namelen;
   char *(*routine)(char *transport, CPlayerMedia *, int &end_for_url);
 } rtpinfo_types[] = 
 {

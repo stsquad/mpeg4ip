@@ -95,6 +95,10 @@ int main(int argc, char** argv)
 		}
 
 		pConfig->m_appAutomatic = automatic;
+
+#ifndef USE_DIVX_ENCODER
+		pConfig->SetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER, false);
+#endif
 	} 
 	catch (CConfigException* e) {
 		delete e;
@@ -129,9 +133,11 @@ int main(int argc, char** argv)
 #endif /* _POSIX_MEMLOCK */
 	}
 
+#ifdef NOGUI
+	rc = nogui_main(pConfig);
+#else
 	if (headless) {
 		rc = nogui_main(pConfig);
-
 	} else {
 		// hand over control to GUI
 		try {
@@ -141,6 +147,7 @@ int main(int argc, char** argv)
 			rc = -1;
 		}
 	}
+#endif
 
 	// save any changes to user config file
 	if (configFileName == NULL) {

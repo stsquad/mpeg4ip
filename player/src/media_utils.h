@@ -39,7 +39,7 @@ CCodecBase *start_audio_codec(const char *codec_name,
 			      format_list_t *media_fmt,
 			      audio_info_t *aud,
 			      const unsigned char *userdata,
-			      size_t userdata_size);
+			      uint32_t userdata_size);
 
 CCodecBase *start_video_codec(const char *codec_name,
 			      CVideoSync *video_sync,
@@ -47,7 +47,7 @@ CCodecBase *start_video_codec(const char *codec_name,
 			      format_list_t *media_fmt,
 			      video_info_t *vid,
 			      const unsigned char *userdata,
-			      size_t userdata_size);
+			      uint32_t userdata_size);
 
 CRtpByteStreamBase *create_rtp_byte_stream_for_format(format_list_t *fmt,
 						      unsigned int rtp_proto,

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syssem.c,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_syssem.c,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -48,12 +48,13 @@ static char rcsid =
 #ifdef SDL_USE_PTHREADS
 
 #ifdef SDL_NO_PTHREAD_SEMAPHORES
-#include "generic/SDL_sem.c"
+#include "generic/SDL_syssem.c"
 #else
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>			/* For getpid() */
+#include <pthread.h>
 #include <semaphore.h>
 
 /* Wrapper around POSIX 1003.1b semaphores */

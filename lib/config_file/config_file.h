@@ -21,6 +21,7 @@
 
 #ifndef __CONFIG_FILE_H__
 #define __CONFIG_FILE_H__ 1
+#include "systems.h"
 
 typedef enum {
   CONFIG_INT,
@@ -29,7 +30,7 @@ typedef enum {
 
 
 typedef struct config_variable_t {
-  size_t config_index;
+  uint32_t config_index;
   const char *config_name;
   int config_type;
   int default_value;
@@ -38,29 +39,29 @@ typedef struct config_variable_t {
 
 class CConfig {
  public:
-  CConfig(const config_variable_t *foo, size_t max);
-  CConfig(const config_variable_t *foo, size_t max, const char *name);
+  CConfig(const config_variable_t *foo, uint32_t max);
+  CConfig(const config_variable_t *foo, uint32_t max, const char *name);
   ~CConfig(void);
-  int get_config_type(size_t index);
+  int get_config_type(uint32_t index);
   int get_config_value(int index);
-  int get_config_value(size_t index) { return get_config_value((int)index); };
-  int get_config_default_value(size_t index);
-  const char *get_config_string(size_t index);
-  const char *get_config_default_string(size_t index);
+  int get_config_value(uint32_t index) { return get_config_value((int)index); };
+  int get_config_default_value(uint32_t index);
+  const char *get_config_string(uint32_t index);
+  const char *get_config_default_string(uint32_t index);
   int read_config_file(const char *name = NULL);
   void write_config_file(const char *name = NULL);
-  void set_config_value(size_t index, int value)
+  void set_config_value(uint32_t index, int value)
     {
       m_values[index] = value;
       m_changed = 1;
     };
-  void set_config_string(size_t index, char *str)
+  void set_config_string(uint32_t index, char *str)
     {
       if (m_strings[index] != NULL) free(m_strings[index]);
       m_strings[index] = str;
       m_changed = 1;
     };
-  void move_config_strings(size_t dest_index, size_t from_index)
+  void move_config_strings(uint32_t dest_index, uint32_t from_index)
     {
       if (m_strings[dest_index] != NULL) free(m_strings[dest_index]);
       m_strings[dest_index] = m_strings[from_index];
@@ -69,10 +70,10 @@ class CConfig {
     };
  private:
   void init(void);
-  char *find_name (char *ptr, size_t &index);
+  char *find_name (char *ptr, uint32_t &index);
   void get_default_name(char *buffer);
   const config_variable_t *m_config_var;
-  size_t m_config_max;
+  uint32_t m_config_max;
   int *m_types;
   int *m_values;
   char **m_strings;

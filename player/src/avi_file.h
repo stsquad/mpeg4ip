@@ -28,8 +28,9 @@
 #include <SDL_thread.h>
 
 int create_media_for_avi_file (CPlayerSession *psptr,
-				 const char *name,
-				 const char **errmsg);
+			       const char *name,
+			       const char **errmsg,
+			       int have_audio_driver);
 
 /*
  * CAviFile contains access information for the avi bytestream

@@ -49,7 +49,7 @@ public:
 		m_divxHandle = 1;
 		m_sdlScreen = NULL;
 		m_sdlImage = NULL;
-		m_maxVopSize = 32 * 1024;
+		m_maxVopSize = 128 * 1024;
 	}
 
 	void StartCapture(void) {

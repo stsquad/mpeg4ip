@@ -40,14 +40,20 @@
 	if ((exprverbosity) & (verbosity)) { expr; }
 
 /* verbosity levels, inputs to SetVerbosity */
+#define MP4_DETAILS_ALL				0xFFFF
 #define MP4_DETAILS_ERROR			0x1
-#define MP4_DETAILS_READ			0x2
-#define MP4_DETAILS_READ_TABLE		0x4
+#define MP4_DETAILS_WARNING			0x2
+#define MP4_DETAILS_READ			0x4
+#define MP4_DETAILS_READ_TABLE		0x8
 #define MP4_DETAILS_READ_ALL		\
 	(MP4_DETAILS_READ | MP4_DETAILS_READ_TABLE)
+#define MP4_DETAILS_FIND			0x10
 
 #define VERBOSE_ERROR(verbosity, expr)		\
 	VERBOSE(MP4_DETAILS_ERROR, verbosity, expr)
+
+#define VERBOSE_WARNING(verbosity, expr)		\
+	VERBOSE(MP4_DETAILS_WARNING, verbosity, expr)
 
 #define VERBOSE_READ(verbosity, expr)		\
 	VERBOSE(MP4_DETAILS_READ, verbosity, expr)
@@ -55,6 +61,12 @@
 #define VERBOSE_READ_TABLE(verbosity, expr)	\
 	VERBOSE(MP4_DETAILS_READ_ALL, verbosity, expr)
 
+#define VERBOSE_FIND(verbosity, expr)		\
+	VERBOSE(MP4_DETAILS_FIND, verbosity, expr)
+
+inline void Indent(FILE* pFile, u_int8_t depth) {
+	fprintf(pFile, "%*c", depth, ' ');
+}
 
 class MP4Error {
 public:
@@ -99,7 +111,7 @@ public:
 
 inline void* MP4Malloc(size_t size) {
 	void* p = malloc(size);
-	if (!p) {
+	if (p == NULL && size > 0) {
 		throw new MP4Error(errno);
 	}
 	return p;
@@ -112,8 +124,12 @@ inline char* MP4Stralloc(char* s1) {
 }
 
 inline void* MP4Realloc(void* p, u_int32_t newSize) {
+	// workaround library bug
+	if (p == NULL && newSize == 0) {
+		return NULL;
+	}
 	p = realloc(p, newSize);
-	if (!p) {
+	if (p == NULL && newSize > 0) {
 		throw new MP4Error(errno);
 	}
 	return p;
@@ -122,5 +138,11 @@ inline void* MP4Realloc(void* p, u_int32_t newSize) {
 inline void MP4Free(void* p) {
 	free(p);
 }
+
+bool MP4NameFirstMatches(const char* s1, const char* s2);
+
+bool MP4NameFirstIndex(const char* s, u_int32_t* pIndex);
+
+char* MP4NameAfterFirst(char *s);
 
 #endif /* __MP4_UTIL_INCLUDED__ */

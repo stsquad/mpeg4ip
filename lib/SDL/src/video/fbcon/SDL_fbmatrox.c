@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbmatrox.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_fbmatrox.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
 #endif
 
 #include "SDL_types.h"
@@ -31,18 +31,6 @@ static char rcsid =
 #include "SDL_fbmatrox.h"
 #include "matrox_mmio.h"
 
-
-static int LockHWSurface(_THIS, SDL_Surface *surface)
-{
-	if ( surface == SDL_VideoSurface ) {
-		mga_waitidle();
-	}
-	return(0);
-}
-static void UnlockHWSurface(_THIS, SDL_Surface *surface)
-{
-	return;
-}
 
 /* Wait for vertical retrace - taken from the XFree86 Matrox driver */
 static void WaitVBL(_THIS)
@@ -60,6 +48,10 @@ static void WaitVBL(_THIS)
 	while ( mga_in32(0x1E20) < count )
 		;
 }
+static void WaitIdle(_THIS)
+{
+	mga_waitidle();
+}
 
 /* Sets video mem colorkey and accelerated blit function */
 static int SetHWColorKey(_THIS, SDL_Surface *surface, Uint32 key)
@@ -68,10 +60,12 @@ static int SetHWColorKey(_THIS, SDL_Surface *surface, Uint32 key)
 }
 
 /* Sets per surface hardware alpha value */
+#if 0
 static int SetHWAlpha(_THIS, SDL_Surface *surface, Uint8 value)
 {
 	return(0);
 }
+#endif
 
 static int FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 {
@@ -79,6 +73,11 @@ static int FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 	Uint32 fxbndry;
 	Uint32 ydstlen;
 	Uint32 fillop;
+
+	/* Don't blit to the display surface when switched away */
+	if ( dst == this->screen ) {
+		SDL_mutexP(hw_lock);
+	}
 
 	switch (dst->format->BytesPerPixel) {
 	    case 1:
@@ -89,8 +88,7 @@ static int FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 	}
 
 	/* Set up the X/Y base coordinates */
-	dstX = 0;
-	dstY = ((char *)dst->pixels - mapped_mem) / SDL_VideoSurface->pitch;
+	FB_dst_to_xy(this, dst, &dstX, &dstY);
 
 	/* Adjust for the current rectangle */
 	dstX += rect->x;
@@ -102,19 +100,6 @@ static int FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 	/* Set up the Y boundaries */
 	ydstlen = (rect->h | (dstY << 16));
 
-#if 0	/* This old way doesn't work on the Matrox G450 */
-	/* Set up for color fill operation */
-	fillop = MGADWG_TRAP | MGADWG_SOLID |
-	         MGADWG_ARZERO | MGADWG_SGNZERO | MGADWG_SHIFTZERO |
-	         MGADWG_BFCOL | MGADWG_BLK;
-
-	/* Execute the operations! */
-	mga_wait(4);
-	mga_out32(MGAREG_FCOL, color);
-	mga_out32(MGAREG_FXBNDRY, fxbndry);
-	mga_out32(MGAREG_YDSTLEN, ydstlen);
-	mga_out32(MGAREG_DWGCTL + MGAREG_EXEC, fillop);
-#else
 	/* Set up for color fill operation */
 	fillop = MGADWG_TRAP | MGADWG_SOLID |
 	         MGADWG_ARZERO | MGADWG_SGNZERO | MGADWG_SHIFTZERO;
@@ -125,21 +110,25 @@ static int FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 	mga_out32(MGAREG_FCOL, color);
 	mga_out32(MGAREG_FXBNDRY, fxbndry);
 	mga_out32(MGAREG_YDSTLEN + MGAREG_EXEC, ydstlen);
-#endif
 
+	FB_AddBusySurface(dst);
+
+	if ( dst == this->screen ) {
+		SDL_mutexV(hw_lock);
+	}
 	return(0);
 }
 
 static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
                        SDL_Surface *dst, SDL_Rect *dstrect)
 {
-	SDL_VideoDevice *this;
-	int bpp;
+	SDL_VideoDevice *this = current_video;
+	int pitch, w, h;
 	int srcX, srcY;
 	int dstX, dstY;
 	Uint32 sign;
-	Uint32 sstart, sstop;
-	int sskip;
+	Uint32 start, stop;
+	int skip;
 	Uint32 blitop;
 
 	/* FIXME: For now, only blit to display surface */
@@ -147,18 +136,23 @@ static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 		return(src->map->sw_blit(src, srcrect, dst, dstrect));
 	}
 
+	/* Don't blit to the display surface when switched away */
+	if ( dst == this->screen ) {
+		SDL_mutexP(hw_lock);
+	}
+
 	/* Calculate source and destination base coordinates (in pixels) */
-	this = current_video;
-	srcX= 0;	/* FIXME: Calculate this from memory offset */
-	srcY = ((char *)src->pixels - mapped_mem) / SDL_VideoSurface->pitch;
-	dstX = 0;	/* FIXME: Calculate this from memory offset */
-	dstY = ((char *)dst->pixels - mapped_mem) / SDL_VideoSurface->pitch;
+	w = dstrect->w;
+	h = dstrect->h;
+	FB_dst_to_xy(this, src, &srcX, &srcY);
+	FB_dst_to_xy(this, dst, &dstX, &dstY);
 
 	/* Adjust for the current blit rectangles */
 	srcX += srcrect->x;
 	srcY += srcrect->y;
 	dstX += dstrect->x;
 	dstY += dstrect->y;
+	pitch = dst->pitch/dst->format->BytesPerPixel;
 
 	/* Set up the blit direction (sign) flags */
 	sign = 0;
@@ -167,19 +161,21 @@ static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 	}
 	if ( srcY < dstY ) {
 		sign |= 4;
+		srcY += (h - 1);
+		dstY += (h - 1);
 	}
 
 	/* Set up the blit source row start, end, and skip (in pixels) */
-	bpp = src->format->BytesPerPixel;
-	sstop = sstart = ((srcY * SDL_VideoSurface->pitch)/bpp) + srcX;
+	stop = start = (srcY * pitch) + srcX;
 	if ( srcX < dstX ) {
-		sstart += (dstrect->w - 1);
+		start += (w - 1);
 	} else {
-		sstop += (dstrect->w - 1);
+		stop  += (w - 1);
 	}
-	sskip = src->pitch/bpp;
 	if ( srcY < dstY ) {
-		sskip = -sskip;
+		skip = -pitch;
+	} else {
+		skip = pitch;
 	}
 
 	/* Set up the blit operation */
@@ -207,13 +203,19 @@ static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 	}
 	mga_wait(7);
 	mga_out32(MGAREG_SGN, sign);
-	mga_out32(MGAREG_AR3, sstart);
-	mga_out32(MGAREG_AR0, sstop);
-	mga_out32(MGAREG_AR5, sskip);
-	mga_out32(MGAREG_FXBNDRY, (dstX | ((dstX + dstrect->w-1) << 16)));
-	mga_out32(MGAREG_YDSTLEN, (dstY << 16) | dstrect->h);
+	mga_out32(MGAREG_AR3, start);
+	mga_out32(MGAREG_AR0, stop);
+	mga_out32(MGAREG_AR5, skip);
+	mga_out32(MGAREG_FXBNDRY, (dstX | ((dstX + w-1) << 16)));
+	mga_out32(MGAREG_YDSTLEN, (dstY << 16) | h);
 	mga_out32(MGAREG_DWGCTL + MGAREG_EXEC, blitop);
 
+	FB_AddBusySurface(src);
+	FB_AddBusySurface(dst);
+
+	if ( dst == this->screen ) {
+		SDL_mutexV(hw_lock);
+	}
 	return(0);
 }
 
@@ -248,9 +250,8 @@ void FB_MatroxAccel(_THIS, __u32 card)
 {
 	/* We have hardware accelerated surface functions */
 	this->CheckHWBlit = CheckHWBlit;
-	this->LockHWSurface = LockHWSurface;
-	this->UnlockHWSurface = UnlockHWSurface;
 	wait_vbl = WaitVBL;
+	wait_idle = WaitIdle;
 
 	/* The Matrox has an accelerated color fill */
 	this->info.blit_fill = 1;

@@ -65,7 +65,7 @@ int CQTByteStreamBase::eof(void)
 void CQTByteStreamBase::check_for_end_of_frame (void)
 {
   if (m_byte_on >= m_this_frame_size) {
-    size_t next_frame;
+    uint32_t next_frame;
     next_frame = m_frame_in_buffer + 1;
 #if 0
     player_debug_message("%s - next frame %d %d", 
@@ -125,9 +125,10 @@ void CQTByteStreamBase::bookmark (int bSet)
   }
 }
 
-size_t CQTByteStreamBase::read (unsigned char *buffer, size_t bytestoread)
+ssize_t CQTByteStreamBase::read (unsigned char *buffer, size_t bytestoread)
 {
-  size_t inbuffer, readbytes = 0;
+  size_t inbuffer;
+  ssize_t readbytes = 0;
   do {
     if (m_eof) {
       throw("END OF DATA");
@@ -178,7 +179,7 @@ uint64_t CQTVideoByteStream::start_next_frame (void)
     player_debug_message("frame %d on %u %d", m_frame_on,
 			 m_byte_on, m_this_frame_size);
     if (m_byte_on != 0 && m_byte_on != m_this_frame_size) {
-      for (size_t ix = m_byte_on; ix < m_this_frame_size - 4; ix++) {
+      for (uint32_t ix = m_byte_on; ix < m_this_frame_size - 4; ix++) {
 	if ((m_buffer_on[ix] == 0) &&
 	    (m_buffer_on[ix + 1] == 0) &&
 	    (m_buffer_on[ix + 2] == 1)) {
@@ -221,9 +222,9 @@ uint64_t CQTVideoByteStream::start_next_frame (void)
  * tries to be smart about reading it 1 time if we've already read it
  * while bookmarking
  */
-void CQTVideoByteStream::read_frame (size_t frame_to_read)
+void CQTVideoByteStream::read_frame (uint32_t frame_to_read)
 {
-  size_t next_frame_size;
+  uint32_t next_frame_size;
 
   if (m_frame_in_buffer == frame_to_read) {
 #ifdef DEBUG_QTIME_VIDEO_FRAME
@@ -304,7 +305,7 @@ void CQTVideoByteStream::read_frame (size_t frame_to_read)
 void CQTVideoByteStream::set_start_time (uint64_t start)
 {
   m_play_start_time = start;
-  size_t ix;
+  uint32_t ix;
   long frame_start;
   int duration;
 
@@ -345,7 +346,7 @@ void CQTVideoByteStream::set_start_time (uint64_t start)
 void CQTVideoByteStream::config (long num_frames, float frate, int time_scale)
 {
   m_frames_max = num_frames;
-  m_frame_rate = (size_t)frate;
+  m_frame_rate = (uint32_t)frate;
   m_time_scale = time_scale;
 
   long start;
@@ -423,7 +424,7 @@ uint64_t CQTAudioByteStream::start_next_frame (void)
   return (ret);
 }
 
-void CQTAudioByteStream::read_frame (size_t frame_to_read)
+void CQTAudioByteStream::read_frame (uint32_t frame_to_read)
 {
 #ifdef DEBUG_QTIME_AUDIO_FRAME
   player_debug_message("audio read_frame %d", frame_to_read);
@@ -522,7 +523,7 @@ void CQTAudioByteStream::set_start_time (uint64_t start)
   player_debug_message("qtime audio frame " LLD, start);
 #endif
   // we've got the position;
-  audio_set_timebase((size_t)start);
+  audio_set_timebase((uint32_t)start);
   m_play_start_time = start;
 }
 

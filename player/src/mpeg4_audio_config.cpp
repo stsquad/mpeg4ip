@@ -43,11 +43,11 @@ int audio_object_type_is_aac (mpeg4_audio_config_t *mptr)
 }
 
 void decode_mpeg4_audio_config (const unsigned char *buffer, 
-			       size_t buf_len,
+			       uint32_t buf_len,
 			       mpeg4_audio_config_t *mptr)
 {
   CBitstream bit;
-  size_t ret;
+  uint32_t ret;
 
   player_debug_message("decoding audio config - len %d", buf_len);
   bit.init(buffer, buf_len * 8);

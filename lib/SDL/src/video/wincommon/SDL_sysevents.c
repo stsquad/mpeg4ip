@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysevents.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysevents.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -134,10 +134,10 @@ static void WIN_GetKeyboardState(void)
 		if ( keyboard[VK_RMENU] & 0x80) {
 			state |= KMOD_RALT;
 		}
-		if ( keyboard[VK_NUMLOCK] & 0x80) {
+		if ( keyboard[VK_NUMLOCK] & 0x01) {
 			state |= KMOD_NUM;
 		}
-		if ( keyboard[VK_CAPITAL] & 0x80) {
+		if ( keyboard[VK_CAPITAL] & 0x01) {
 			state |= KMOD_CAPS;
 		}
 	}
@@ -200,7 +200,7 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 		case WM_MOUSEMOVE: {
 			
 			/* Mouse is handled by DirectInput when fullscreen */
-			if ( SDL_VideoSurface && ! DIRECTX_FULLSCREEN() ) {
+			if ( SDL_VideoSurface && ! DINPUT_FULLSCREEN() ) {
 				Sint16 x, y;
 
 				/* mouse has entered the window */
@@ -243,7 +243,7 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 		case WM_MOUSELEAVE: {
 
 			/* Mouse is handled by DirectInput when fullscreen */
-			if ( SDL_VideoSurface && ! DIRECTX_FULLSCREEN() ) {
+			if ( SDL_VideoSurface && ! DINPUT_FULLSCREEN() ) {
 				/* mouse has left the window */
 				/* or */
 				/* Elvis has left the building! */
@@ -261,7 +261,7 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 		case WM_RBUTTONDOWN:
 		case WM_RBUTTONUP: {
 			/* Mouse is handled by DirectInput when fullscreen */
-			if ( SDL_VideoSurface && ! DIRECTX_FULLSCREEN() ) {
+			if ( SDL_VideoSurface && ! DINPUT_FULLSCREEN() ) {
 				Sint16 x, y;
 				Uint8 button, state;
 
@@ -320,6 +320,34 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 			}
 		}
 		return(0);
+
+
+#if (_WIN32_WINNT >= 0x0400) || (_WIN32_WINDOWS > 0x0400)
+		case WM_MOUSEWHEEL: 
+			if ( SDL_VideoSurface && ! DINPUT_FULLSCREEN() ) {
+				Sint16 x, y;
+				Uint8 button = 0;
+				int move = (short)HIWORD(wParam);
+				if(move > 0)
+					button = 4;
+				else if(move < 0)
+					button = 5;
+				if(button)
+				{
+					if ( mouse_relative ) {
+					/*	RJR: March 28, 2000
+						report internal mouse position if in relative mode */
+						x = 0; y = 0;
+					} else {
+						x = (Sint16)LOWORD(lParam);
+						y = (Sint16)HIWORD(lParam);
+					}
+					posted = SDL_PrivateMouseButton(
+								SDL_PRESSED, button, x, y);
+				}
+			}
+			return(0);
+#endif
 
 #ifdef WM_GETMINMAXINFO
 		/* This message is sent as a way for us to "check" the values
@@ -496,12 +524,12 @@ int SDL_RegisterApp(char *name, Uint32 style, void *hInst)
 #ifdef _WIN32_WCE
     {
 	/* WinCE uses the UNICODE version */
-	int nLen = strlen(name);
-	LPWSTR lpszW = alloca((nLen+1)*2);
+	int nLen = strlen(name)+1;
+	LPWSTR lpszW = alloca(nLen*2);
 	MultiByteToWideChar(CP_ACP, 0, name, -1, lpszW, nLen);
 	class.hIcon		= LoadImage(hInst, lpszW, IMAGE_ICON,
 	                                    0, 0, LR_DEFAULTCOLOR);
-	class.lpszMenuName	= lpszW;
+	class.lpszMenuName	= NULL;
 	class.lpszClassName	= lpszW;
     }
 #else

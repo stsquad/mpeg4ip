@@ -34,7 +34,7 @@ typedef struct isma_frame_data_t {
   struct isma_frame_data_t *frame_data_next;
   rtp_packet *pak;
   char *frame_ptr;
-  size_t frame_len;
+  uint32_t frame_len;
   int last_in_pak;
   uint32_t rtp_timestamp;
 } isma_frame_data_t;
@@ -62,22 +62,22 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   void reset(void);
   int have_no_data(void);
   uint64_t start_next_frame(void);
-  size_t read(unsigned char *buffer, size_t bytes);
-  size_t read(char *buffer, size_t bytes) {
+  ssize_t read(unsigned char *buffer, size_t bytes);
+  ssize_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
   void flush_rtp_packets(void);
  private:
   char *m_frame_ptr;
-  size_t m_offset_in_frame;
-  size_t m_frame_len;
-  size_t m_bookmark_offset_in_frame;
+  uint32_t m_offset_in_frame;
+  uint32_t m_frame_len;
+  uint32_t m_bookmark_offset_in_frame;
 #ifdef ISMA_RTP_DUMP_OUTPUT_TO_FILE
   FILE *m_outfile;
 #endif
   isma_frame_data_t *m_frame_data_head;
   isma_frame_data_t *m_frame_data_free;
-  size_t m_frame_data_max;
+  uint32_t m_frame_data_max;
   uint32_t m_rtp_ts_add;
   void process_packet_header(void);
   int insert_frame_data(isma_frame_data_t *pak);

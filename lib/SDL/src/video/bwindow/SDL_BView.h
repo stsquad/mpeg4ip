@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_BView.h,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_BView.h,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 /* This is the event handling and graphics update portion of SDL_BWin */
@@ -49,6 +49,10 @@ public:
 	virtual void SetXYOffset(int x, int y) {
 		xoff = x;
 		yoff = y;
+	}
+	virtual void GetXYOffset(int &x, int &y) {
+		x = xoff;
+		y = yoff;
 	}
 	/* The view changed size. If it means we're in fullscreen, we
 	 * draw a nice black box in the entire view to get black borders.
@@ -81,7 +85,7 @@ public:
 				dest.top    = updateRect.top + yoff;
 				dest.left   = updateRect.left + xoff;
 				dest.bottom = updateRect.bottom + yoff;
-				dest.right  = updateRect.right + xoff;;
+				dest.right  = updateRect.right + xoff;
 				DrawBitmap(image, updateRect, dest);
 			} else {
 				DrawBitmap(image, updateRect, updateRect);

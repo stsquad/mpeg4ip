@@ -35,6 +35,7 @@ COurInByteStreamFile::COurInByteStreamFile (const char *filename) :
   m_buffer_size = 1;
   m_orig_buffer = (unsigned char *)malloc(m_buffer_size_max);
   m_bookmark_buffer = (unsigned char *)malloc(m_buffer_size_max);
+  m_file_pos_head = m_file_pos_tail = NULL;
   read_frame();
 }
 
@@ -48,25 +49,112 @@ COurInByteStreamFile::~COurInByteStreamFile(void)
     free((void *)m_filename);
     m_filename = NULL;
   }
-  player_debug_message("File bytes " LLU ", frames "LLU", fps "LLU,
-		       m_total, m_frames, m_frame_per_sec);
-  if (m_frames > 0)
-    player_debug_message("bits per sec "LLU, 
-			 (m_total * 8 * m_frame_per_sec) / m_frames);
+  player_debug_message("File bytes " LLU, m_total);
+  while (m_file_pos_head != NULL) {
+    frame_file_pos_t *p = m_file_pos_head;
+    m_file_pos_head = m_file_pos_head->next;
+    free(p);
+  }
+  m_file_pos_tail = NULL;
 }
 
 void COurInByteStreamFile::set_start_time (uint64_t start) 
 {
-  m_frames = 0;
-  m_play_start_time = start;
+  if (start == 0) {
+    // reset it back to the beginning
+    m_frames = 0;
+    m_play_start_time = start;
+    reset();
+  } else {
+    // Non-zero start time - see if we have the time in our list.
+    long pos_to_set = 0;
+    uint32_t frames = 0;
+    uint64_t time;
+    m_bookmark_loaded = 0;
+    m_bookmark = 0;
+    time = 0;
+    if (m_file_pos_tail != NULL) {
+      // find closest
+      if (start < m_file_pos_tail->timestamp) {
+	frame_file_pos_t *p, *q;
+	p = NULL;
+	q = m_file_pos_head;
+	while (q->timestamp < start) {
+	  p = q;
+	  q = p->next;
+	}
+	if (p != NULL) {
+	  time = p->timestamp;
+	  pos_to_set = p->file_position;
+	  frames = p->frames;
+	}
+      } else {
+	// After last pointer.
+	time = m_file_pos_tail->timestamp;
+	pos_to_set = m_file_pos_tail->file_position;
+	frames = m_file_pos_tail->frames;
+      }
+    }
+    // seek to last known position
+    fseek(m_file, pos_to_set, SEEK_SET); 
+    read_frame();
+    // Read forward from there until we hit the time we want.
+    m_frames = frames;
+    m_play_start_time = time;
+    while (m_play_start_time < start) {
+      m_codec->skip_frame(time);
+      m_play_start_time = (m_frames * 1000) / m_frame_per_sec;
+      m_frames++;
+    }
+  }
 }
 
 uint64_t COurInByteStreamFile::start_next_frame (void) 
 {
   uint64_t ret;
   ret = (m_frames * 1000) / m_frame_per_sec;
+  if ((m_frames % m_frame_per_sec) == 0) {
+    // Create file position pointer for this timestamp.
+    frame_file_pos_t *newptr = NULL;
+    // Make sure we don't already have this one in the list
+    // only run through the list if current time is less than the
+    // tail pointer time.
+    if ((m_file_pos_tail != NULL) &&
+	(m_file_pos_tail->timestamp < ret)) {
+      newptr = m_file_pos_head;
+      while (newptr != NULL && newptr->timestamp != ret) {
+	newptr = newptr->next;
+      }
+    }
+    if (newptr == NULL) {
+      // Not in list - malloc, and add in sequential order.
+      newptr = (frame_file_pos_t *)malloc(sizeof(frame_file_pos_t));
+      newptr->timestamp = ret;
+      newptr->file_position = m_buffer_position + m_index;
+      newptr->frames = m_frames;
+      newptr->next = NULL;
+      if (m_file_pos_tail == NULL) {
+	// add at head
+	m_file_pos_tail = m_file_pos_head = newptr;
+      } else if (ret > m_file_pos_tail->timestamp) {
+	// add at end
+	m_file_pos_tail->next = newptr;
+	m_file_pos_tail = newptr;
+      } else {
+	// insert in the middle.
+	frame_file_pos_t *p, *q;
+	p = m_file_pos_head;
+	q = m_file_pos_head->next;
+	while (q->timestamp < ret) {
+	  p = q;
+	  q = q->next;
+	}
+	newptr->next = q;
+	p->next = newptr;
+      }
+    }
+  }
   m_frames++;
-  ret += m_play_start_time;
   return (ret);
 }
 
@@ -76,10 +164,12 @@ void COurInByteStreamFile::read_frame (void)
     if (m_bookmark_loaded) {
       m_buffer_on = m_bookmark_buffer;
       m_buffer_size = m_bookmark_loaded_size;
+      m_buffer_position = m_bookmark_loaded_position;
       m_index = 0;
       return;
     }
 	
+    m_bookmark_loaded_position = ftell(m_file);
     m_bookmark_loaded_size = m_buffer_size = 
 		fread(m_bookmark_buffer, 1, m_buffer_size_max, m_file);
     if (m_bookmark_loaded_size > 0) {
@@ -95,9 +185,11 @@ void COurInByteStreamFile::read_frame (void)
     m_bookmark_buffer = m_orig_buffer;
     m_orig_buffer = m_buffer_on;
     m_buffer_size = m_bookmark_loaded_size;
+    m_buffer_position = m_bookmark_loaded_position;
     m_index = 0;
     return;
   }
+  m_buffer_position = ftell(m_file);
   m_buffer_size = fread(m_orig_buffer, 1, m_buffer_size_max, m_file);
   m_buffer_on = m_orig_buffer;
   m_index = 0;
@@ -111,6 +203,9 @@ int COurInByteStreamFile::eof (void)
 unsigned char COurInByteStreamFile::get (void) 
 {
   unsigned char ret = m_buffer_on[m_index];
+  if (m_buffer_size == 0) {
+    throw "PAST EOF";
+  }
   m_index++;
   m_total++;
   if (m_index >= m_buffer_size) {
@@ -149,13 +244,17 @@ void COurInByteStreamFile::reset (void)
   read_frame();
 }
 
-size_t COurInByteStreamFile::read (unsigned char *buffer, size_t bytestoread) 
+ssize_t COurInByteStreamFile::read (unsigned char *buffer, size_t bytestoread) 
 {
   if (m_bookmark && bytestoread > m_buffer_size_max) {
     // Can't do this...
     return 0;
   }
-  size_t inbuffer, readbytes = 0;
+  size_t inbuffer;
+  ssize_t readbytes = 0;
+  if (m_buffer_size == 0) {
+    throw "PAST EOF";
+  }
   do {
     inbuffer = m_buffer_size - m_index;
     if (bytestoread < inbuffer)
@@ -167,9 +266,14 @@ size_t COurInByteStreamFile::read (unsigned char *buffer, size_t bytestoread)
     m_index += inbuffer;
     if (m_index >= m_buffer_size) {
       read_frame();
+      if (m_buffer_size == 0) {
+	throw "PAST EOF";
+      }
     }
     m_total += inbuffer;
   } while (bytestoread > 0 && m_buffer_size > 0);
 
   return (readbytes);
 }
+
+/* end file our_bytestream_file.cpp */

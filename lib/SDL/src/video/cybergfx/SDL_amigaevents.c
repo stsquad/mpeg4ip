@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_amigaevents.c,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_amigaevents.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting Amiga events into SDL events */
@@ -255,8 +255,8 @@ printf("MapNotify!\n");
 
 	    /* Have we been resized? */
 	    case IDCMP_NEWSIZE: 
-			SDL_PrivateResize(SDL_Window->Width,
-		                  SDL_Window->Height);
+			SDL_PrivateResize(SDL_Window->Width-SDL_Window->BorderLeft-SDL_Window->BorderRight,
+		                  SDL_Window->Height-SDL_Window->BorderTop-SDL_Window->BorderBottom);
 			break;
 
 	    /* Have we been requested to quit? */

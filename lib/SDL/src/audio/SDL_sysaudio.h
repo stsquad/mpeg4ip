@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysaudio.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysaudio.h,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysaudio_h
@@ -57,7 +57,8 @@ struct SDL_AudioDevice {
 	Uint8 *(*GetAudioBuf)(_THIS);
 	void (*WaitDone)(_THIS);
 	void (*CloseAudio)(_THIS);
-        int (*AudioDelayMsec)(_THIS);
+  int (*AudioDelayMsec)(_THIS);
+
 	/* * * */
 	/* Data common to all devices */
 
@@ -99,10 +100,8 @@ typedef struct AudioBootStrap {
 	SDL_AudioDevice *(*create)(int devindex);
 } AudioBootStrap;
 
-#if defined(unix) && \
-   !defined(linux) && !defined(__FreeBSD__) && !defined(__CYGWIN32__) \
-   && !defined(__bsdi__)
-extern AudioBootStrap AUDIO_bootstrap;
+#ifdef OPENBSD_AUDIO_SUPPORT
+extern AudioBootStrap OPENBSD_AUDIO_bootstrap;
 #endif
 #ifdef OSS_SUPPORT
 extern AudioBootStrap DSP_bootstrap;
@@ -110,6 +109,10 @@ extern AudioBootStrap DMA_bootstrap;
 #endif
 #ifdef ALSA_SUPPORT
 extern AudioBootStrap ALSA_bootstrap;
+#endif
+#if (defined(unix) && !defined(__CYGWIN32__)) && \
+    !defined(OSS_SUPPORT) && !defined(ALSA_SUPPORT)
+extern AudioBootStrap AUDIO_bootstrap;
 #endif
 #ifdef ARTSC_SUPPORT
 extern AudioBootStrap ARTSC_bootstrap;
@@ -126,14 +129,20 @@ extern AudioBootStrap DSOUND_bootstrap;
 #ifdef ENABLE_WINDIB
 extern AudioBootStrap WAVEOUT_bootstrap;
 #endif
+#ifdef _AIX
+extern AudioBootStrap Paud_bootstrap;
+#endif
 #ifdef __BEOS__
 extern AudioBootStrap BAUDIO_bootstrap;
 #endif
 #if defined(macintosh) || TARGET_API_MAC_CARBON
 extern AudioBootStrap SNDMGR_bootstrap;
 #endif
-#ifdef _AIX
-extern AudioBootStrap Paud_bootstrap;
+#ifdef ENABLE_AHI
+extern AudioBootStrap AHI_bootstrap;
+#endif
+#ifdef DISKAUD_SUPPORT
+extern AudioBootStrap DISKAUD_bootstrap;
 #endif
 
 /* This is the current audio device */

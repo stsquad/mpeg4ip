@@ -44,7 +44,7 @@ static const char *end4 = "\n\n";
  *    by 2, and adding to the return pointer will give the normal
  *    line seperator.
  */
-static const char *find_end_seperator (const char *ptr, size_t *len)
+static const char *find_end_seperator (const char *ptr, uint32_t *len)
 {
   while (*ptr != '\0') {
     if (*ptr == '\r') {
@@ -156,7 +156,7 @@ static void rtsp_header_rtp (char *lptr,
 {
   if (dec->rtp_info != NULL) {
     char *newrtp;
-    size_t len = strlen(dec->rtp_info);
+    uint32_t len = strlen(dec->rtp_info);
     len += strlen(lptr);
     len++;
     newrtp = malloc(len);
@@ -295,7 +295,7 @@ static void rtsp_header_via (char *lptr, rtsp_decode_t *dec)
  */
 static struct {
   const char *val;
-  size_t val_length;
+  uint32_t val_length;
   void (*parse_routine)(char *lptr, rtsp_decode_t *decode);
   int allow_crlf_violation;
 } header_types[] =
@@ -405,7 +405,7 @@ static void rtsp_decode_header (char *lptr,
 static int rtsp_parse_response (rtsp_client_t *info)
 {
   const char *seperator, *end_seperator;
-  size_t seperator_len, end_seperator_len;
+  uint32_t seperator_len, end_seperator_len;
   char *beg_line, *next_line;
   bool did_status_line, illegal_response;
   rtsp_decode_t *decode;
@@ -440,7 +440,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
 	resp_end = info->recv_buff + info->recv_buff_used;
 	if (decode->content_length != 0) {
 	  if (next_line + decode->content_length > resp_end) {
-	    size_t more_cnt;
+	    uint32_t more_cnt;
 
 	    more_cnt = next_line + decode->content_length - resp_end;
 	    ret = rtsp_receive_more(info, more_cnt);
@@ -456,7 +456,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
 	  next_line += decode->content_length;
 	} else if (decode->close_connection) {
 	  if (resp_end > next_line) {
-	    size_t len;
+	    uint32_t len;
 	    len = resp_end - next_line;
 	    decode->body = malloc(1 + len);
 	    memcpy(decode->body, next_line, len);

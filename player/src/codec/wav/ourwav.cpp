@@ -28,7 +28,7 @@ CWavCodec::CWavCodec (CAudioSync *a,
 		      format_list_t *media_fmt,
 		      audio_info_t *audio,
 		      const unsigned char *userdata,
-		      size_t userdata_size) : 
+		      uint32_t userdata_size) : 
   CAudioCodecBase(a, pbytestrm, media_fmt, audio, userdata, userdata_size)
 {
   
@@ -71,13 +71,13 @@ int CWavCodec::decode (uint64_t rtpts, int from_rtp)
     return (-1);
   }
 	
-  size_t bytes_to_copy;
+  uint32_t bytes_to_copy;
   bytes_to_copy = m_sdl_config->samples * 
     m_sdl_config->channels * 
     m_bytes_per_sample;
   int past_end = 0;
   try {
-    size_t ret;
+    uint32_t ret;
     ret = m_bytestream->read(buff, bytes_to_copy);
     if (ret < bytes_to_copy) {
       memset(&buff[ret], 0, bytes_to_copy - ret);
@@ -93,6 +93,10 @@ int CWavCodec::decode (uint64_t rtpts, int from_rtp)
   return (0);
 }
 
+int CWavCodec::skip_frame (uint64_t ts)
+{
+  return (decode(ts, 0));
+}
 /* end file ourwav.cpp */
 
 

@@ -31,6 +31,7 @@
 extern CLiveConfig* MyConfig;
 extern CAVMediaFlow* AVFlow;
 
+void NewVideoWindow(void);
 void DisplayVideoSettings(void);
 void DisplayAudioSettings(void);
 void DisplayTransmitSettings(void);

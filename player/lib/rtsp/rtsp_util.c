@@ -161,7 +161,7 @@ static int rtsp_set_and_decode_url (const char *url, rtsp_client_t *rptr)
 {
   const char *uptr;
   const char *nextslash, *nextcolon;
-  size_t hostlen;
+  uint32_t hostlen;
   struct hostent *host;
   
   if (rptr->url != NULL || rptr->server_name != NULL) {
@@ -344,8 +344,8 @@ int rtsp_setup_redirect (rtsp_client_t *info)
 /* return last occurrence of needle in haystack */
 static const char *my_strrstr (const char *haystack, const char *needle)
 {
-   size_t needle_len = strlen(needle);
-   size_t haystack_len = strlen(haystack);
+   uint32_t needle_len = strlen(needle);
+   uint32_t haystack_len = strlen(haystack);
 
    haystack_len -= needle_len;
    while (haystack_len > 0) {
@@ -366,15 +366,15 @@ static const char *my_strrstr (const char *haystack, const char *needle)
 static char *rm_rtsp_overlap (const char *control_string, const char *base_url)
 {
   char *str = NULL;
-  size_t cblen = 0; 
+  uint32_t cblen = 0; 
   char *file_ptr = strrchr(control_string, '/'); 
 
   if (file_ptr != NULL && file_ptr != control_string) {
     char *path = NULL;
     char *last_path_in_base = NULL;
-	size_t control_len = strlen(control_string);
-	size_t file_len = strlen(file_ptr);
-	size_t last_path_len = 0;
+	uint32_t control_len = strlen(control_string);
+	uint32_t file_len = strlen(file_ptr);
+	uint32_t last_path_len = 0;
 
     /* path will contain control str without /trackID = x at the end */
     path = (char *)malloc(control_len - file_len + 1);

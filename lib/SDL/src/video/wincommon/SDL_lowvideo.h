@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_lowvideo.h,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_lowvideo.h,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_lowvideo_h
@@ -35,10 +35,16 @@ static char rcsid =
 /* Hidden "this" pointer for the video functions */
 #define _THIS	SDL_VideoDevice *this
 
-#define DIRECTX_FULLSCREEN() 						\
+#define DDRAW_FULLSCREEN() 						\
 (									\
 	((SDL_VideoSurface->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN) && \
 	((SDL_VideoSurface->flags & SDL_OPENGL    ) != SDL_OPENGL    ) && \
+	(strcmp(this->name, "directx") == 0)				\
+)
+
+#define DINPUT_FULLSCREEN() 						\
+(									\
+	((SDL_VideoSurface->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN) && \
 	(strcmp(this->name, "directx") == 0)				\
 )
 

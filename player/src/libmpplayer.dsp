@@ -129,10 +129,6 @@ SOURCE=.\player_media_decode.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\player_mem_bytestream.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\player_sdp.c
 # End Source File
 # Begin Source File
@@ -226,10 +222,6 @@ SOURCE=.\our_msg_queue.h
 # Begin Source File
 
 SOURCE=.\player_media.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\player_mem_bytestream.h
 # End Source File
 # Begin Source File
 
@@ -346,6 +338,17 @@ SOURCE=.\codec\mpeg4\mpeg4_file.h
 # Begin Source File
 
 SOURCE=.\codec\wav\ourwav.cpp
+
+!IF  "$(CFG)" == "libmpplayer - Win32 Release"
+
+# SUBTRACT CPP /O<none> /YX
+
+!ELSEIF  "$(CFG)" == "libmpplayer - Win32 Debug"
+
+# SUBTRACT CPP /YX
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -354,6 +357,17 @@ SOURCE=.\codec\wav\ourwav.h
 # Begin Source File
 
 SOURCE=.\codec\wav\wav_file.cpp
+
+!IF  "$(CFG)" == "libmpplayer - Win32 Release"
+
+# SUBTRACT CPP /O<none> /YX
+
+!ELSEIF  "$(CFG)" == "libmpplayer - Win32 Debug"
+
+# SUBTRACT CPP /YX
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

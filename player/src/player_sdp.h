@@ -38,7 +38,7 @@ void create_rtsp_transport_from_sdp(session_desc_t *sdp,
 				    media_desc_t *media,
 				    uint16_t port,
 				    char *buffer,
-				    size_t buflen);
+				    uint32_t buflen);
 connect_desc_t *get_connect_desc_from_media(media_desc_t *media);
 range_desc_t *get_range_from_media(media_desc_t *media);
 range_desc_t *get_range_from_sdp(session_desc_t *sptr);
@@ -48,7 +48,7 @@ range_desc_t *get_range_from_sdp(session_desc_t *sptr);
     int profile_level_id;
     unsigned char *config_binary;
     char *config_ascii;
-    size_t config_binary_len;
+    uint32_t config_binary_len;
     int constant_size;
     int size_length;
     int index_length;

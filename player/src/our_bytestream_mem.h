@@ -30,7 +30,14 @@
 class COurInByteStreamMem : public COurInByteStream
 {
  public:
-  COurInByteStreamMem(const unsigned char *membuf, size_t len);
+  COurInByteStreamMem(const unsigned char *membuf, uint32_t len) :
+    COurInByteStream() {
+    init(membuf, len);
+  };
+  COurInByteStreamMem(const char *membuf, uint32_t len) :
+    COurInByteStream() {
+    init((const unsigned char *)membuf, len);
+  };
   ~COurInByteStreamMem();
   int eof(void);
   unsigned char get(void);
@@ -43,14 +50,15 @@ class COurInByteStreamMem : public COurInByteStream
   };
   uint64_t start_next_frame(void);
   double get_max_playtime (void) { return 0.0; };
-  size_t read(unsigned char *buffer, size_t read);
-  size_t read(char *buffer, size_t readbytes) {
+  ssize_t read(unsigned char *buffer, size_t read);
+  ssize_t read(char *buffer, size_t readbytes) {
     return (read((unsigned char *)buffer, readbytes));
   }
  protected:
   const unsigned char *m_memptr;
  private:
-  size_t m_offset, m_len, m_total, m_bookmark_total, m_bookmark_offset;
+  void init(const unsigned char *membuf, uint32_t len);
+  uint32_t m_offset, m_len, m_total, m_bookmark_total, m_bookmark_offset;
   uint64_t m_frames;
   uint64_t m_frame_per_sec;
   int m_bookmark_set;
@@ -60,7 +68,7 @@ class COurInByteStreamMem : public COurInByteStream
 class COurInByteStreamWav : public COurInByteStreamMem
 {
 public:
-  COurInByteStreamWav(const unsigned char *membuf, size_t len);
+  COurInByteStreamWav(const unsigned char *membuf, uint32_t len);
   ~COurInByteStreamWav();
 };
 

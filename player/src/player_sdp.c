@@ -36,7 +36,7 @@ void do_relative_url_to_absolute (char **control_string,
 				  int dontfree)
 {
   char *str;
-  size_t cblen;
+  uint32_t cblen;
 
   cblen = strlen(base_url);
   if (base_url[cblen - 1] != '/') cblen++;
@@ -96,10 +96,10 @@ void create_rtsp_transport_from_sdp (session_desc_t *sdp,
 				     media_desc_t *media,
 				     uint16_t port,
 				     char *buffer,
-				     size_t buflen)
+				     uint32_t buflen)
 {
 
-  size_t ret;
+  uint32_t ret;
 
   ret = snprintf(buffer, buflen, "%s;unicast;client_port=%d-%d",
 		 media->proto, port, port + 1);
@@ -219,7 +219,7 @@ static unsigned char to_hex (char *ptr)
 static char *fmtp_config (char *ptr, fmtp_parse_t *fptr)
 {
   char *iptr;
-  size_t len;
+  uint32_t len;
   unsigned char *bptr;
   
   iptr = ptr;
@@ -328,7 +328,7 @@ static char *fmtp_profile (char *ptr, fmtp_parse_t *fptr)
 
 struct {
   const char *name;
-  size_t namelen;
+  uint32_t namelen;
   char *(*routine)(char *, fmtp_parse_t *);
 } fmtp_types[] = 
 {

@@ -41,7 +41,7 @@ class CAudioSync {
   // APIs from  codec
   unsigned char *get_audio_buffer(void);
   void filled_audio_buffer(uint64_t ts, int resync);
-  void set_config(int freq, int channels, int format, size_t max_buffer_size);
+  void set_config(int freq, int channels, int format, uint32_t max_buffer_size);
   void set_eof(void) { m_eof_found = 1; };
   
   // APIs from sync task
@@ -59,8 +59,8 @@ class CAudioSync {
   void set_volume(int volume);
  private:
   int m_dont_fill;
-  size_t m_buffer_size;
-  size_t m_fill_index, m_play_index;
+  uint32_t m_buffer_size;
+  uint32_t m_fill_index, m_play_index;
   volatile int m_buffer_filled[DECODE_BUFFERS_MAX];
   uint64_t m_buffer_time[DECODE_BUFFERS_MAX];
   uint64_t m_last_fill_timestamp;
@@ -78,23 +78,23 @@ class CAudioSync {
   int m_audio_waiting_buffer;
   int m_eof_found;
   int m_use_SDL_delay;
-  size_t m_resync_buffer;
+  uint32_t m_resync_buffer;
   SDL_sem *m_sync_sem, *m_audio_waiting;
   CPlayerSession *m_psptr;
-  size_t m_skipped_buffers;
-  size_t m_didnt_fill_buffers;
+  uint32_t m_skipped_buffers;
+  uint32_t m_didnt_fill_buffers;
   int m_first_time;
   int m_first_filled;
-  size_t m_msec_per_frame;
+  uint32_t m_msec_per_frame;
   uint64_t m_buffer_latency;
   int m_consec_wrong_latency;
   int64_t m_wrong_latency_total;
   int m_volume;
   int m_do_sync;
-  size_t m_sample_size;
-  size_t m_play_sample_index;
-  size_t m_samples_loaded;
-  size_t m_bytes_per_sample;
+  uint32_t m_sample_size;
+  uint32_t m_play_sample_index;
+  uint32_t m_samples_loaded;
+  uint32_t m_bytes_per_sample;
 };
 
 #endif

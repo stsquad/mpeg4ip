@@ -48,7 +48,7 @@ CAACodec::CAACodec (CAudioSync *a,
 		    format_list_t *media_fmt,
 		    audio_info_t *audio,
 		    const unsigned char *userdata,
-		    size_t userdata_size) : 
+		    uint32_t userdata_size) : 
   CAudioCodecBase(a, pbytestrm, media_fmt, audio, userdata, userdata_size)
 {
   fmtp_parse_t *fmtp = NULL;
@@ -62,9 +62,6 @@ CAACodec::CAACodec (CAudioSync *a,
   m_audio_inited = 0;
   m_temp_buff = (unsigned char *)malloc(4096);
   // Use media_fmt to indicate that we're streaming.
-  // create a CInByteStreamMem that will be used to copy from the
-  // streaming packet for use locally.  This will allow us, if we need
-  // to skip, to get the next frame.
   if (media_fmt != NULL) {
     // haven't checked for null buffer
     // This is not necessarilly right - it is, for the most part, but
@@ -234,7 +231,7 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
 			       tempchans, m_chans);
 	  m_chans = tempchans;
 	}
-	m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16LSB, m_output_frame_size);
+	m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16SYS, m_output_frame_size);
 	unsigned char *now = m_audio_sync->get_audio_buffer();
 	if (now != NULL) {
 	  memcpy(now, buff, tempchans * m_output_frame_size * sizeof(int16_t));
@@ -279,6 +276,13 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     return (bits);
   }
   return (bits);
+}
+
+int CAACodec::skip_frame (uint64_t rtpts)
+{
+  // will want to do a bit more - especially if we can get the
+  // header.
+  return (decode(rtpts, 0));
 }
 
 /* end file aa.cpp */

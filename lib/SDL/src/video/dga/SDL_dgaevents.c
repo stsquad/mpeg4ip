@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dgaevents.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_dgaevents.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting DGA events into SDL events */
@@ -97,9 +97,11 @@ static int DGA_DispatchEvent(_THIS)
 void DGA_PumpEvents(_THIS)
 {
 	/* Keep processing pending events */
+	LOCK_DISPLAY();
 	while ( X11_Pending(DGA_Display) ) {
 		DGA_DispatchEvent(this);
 	}
+	UNLOCK_DISPLAY();
 }
 
 void DGA_InitOSKeymap(_THIS)

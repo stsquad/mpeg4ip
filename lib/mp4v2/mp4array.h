@@ -22,8 +22,6 @@
 #ifndef __MP4_ARRAY_INCLUDED__
 #define __MP4_ARRAY_INCLUDED__
 
-#include "mp4util.h"
-
 typedef u_int32_t MP4ArrayIndex;
 
 class MP4Array {
@@ -121,7 +119,9 @@ MP4ARRAY_DECL(MP4Integer32, u_int32_t)
 
 MP4ARRAY_DECL(MP4Integer64, u_int64_t)
 
-MP4ARRAY_DECL(MP4Float, float)
+MP4ARRAY_DECL(MP4Float32, float)
+
+MP4ARRAY_DECL(MP4Float64, double)
 
 MP4ARRAY_DECL(MP4String, char*)
 

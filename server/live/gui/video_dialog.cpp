@@ -57,37 +57,26 @@ static u_int8_t channelListIndex;
 static u_int8_t channelIndex;
 
 static u_int16_t sizeWidthValues[] = {
-	128, 
-#ifdef ENABLE_QSIF
-	160,
-#endif
-	176, 320, 352
-#ifdef LARGE_FRAME_SIZES
-	, 640, 704
-#endif
+	128, 176, 320, 352,
+	640, 704, 720, 720, 768
 };
 static u_int16_t sizeHeightValues[] = {
-	96, 
-#ifdef ENABLE_QSIF
-	120, 
-#endif
-	144, 240, 288
-#ifdef LARGE_FRAME_SIZES
-	, 480, 576
-#endif
+	96, 144, 240, 288,
+	480, 576, 480, 576, 576
 };
 static char* sizeNames[] = {
 	"128 x 96 SQCIF", 
-#ifdef ENABLE_QSIF
-	"160 x 120 QSIF", 
-#endif
-	"176 x 144 QCIF", 
-	"320 x 240 SIF", "352 x 288 CIF"
-#ifdef LARGE_FRAME_SIZES
-	, "640 x 480 4SIF", "704 x 576 4CIF"
-#endif
+	"176 x 144 QCIF",
+	"320 x 240 SIF",
+	"352 x 288 CIF",
+	"640 x 480 4SIF",
+	"704 x 576 4CIF",
+	"720 x 480 NTSC CCIR601",
+	"720 x 576 PAL CCIR601",
+	"768 x 576 PAL SQ Pixel"
 };
 static u_int8_t sizeIndex;
+static u_int8_t sizeMaxIndex;
 
 static float aspectValues[] = {
 	VIDEO_STD_ASPECT_RATIO, VIDEO_LB1_ASPECT_RATIO, VIDEO_LB2_ASPECT_RATIO
@@ -276,11 +265,39 @@ static void CreateChannelListMenu()
 		GTK_SIGNAL_FUNC(on_channel_list_menu_activate));
 }
 
+static void on_size_menu_activate(GtkWidget *widget, gpointer data)
+{
+	sizeIndex = ((unsigned int)data) & 0xFF;
+}
+
+static void CreateSizeMenu()
+{
+	sizeMaxIndex = sizeof(sizeNames) / sizeof(char*);
+	if (signalIndex == 1) {
+		// NTSC can't support the two largest sizes
+		sizeMaxIndex -= 2;
+	}
+
+	if (sizeIndex >= sizeMaxIndex) {
+		sizeIndex = sizeMaxIndex - 1;
+	}
+
+	size_menu = CreateOptionMenu(
+		size_menu,
+		sizeNames, 
+		sizeMaxIndex,
+		sizeIndex,
+		GTK_SIGNAL_FUNC(on_size_menu_activate));
+}
+
 void ChangeSignal(u_int8_t newIndex)
 {
 	signalIndex = newIndex;
+
 	CreateChannelListMenu();
 	ChangeChannelList(0);
+	
+	CreateSizeMenu();
 
 	// change max frame rate spinner
 	if (signalIndex == 1) {
@@ -362,11 +379,6 @@ static void SetAvailableSignals(void)
 	}
 }
 
-static void on_size_menu_activate(GtkWidget *widget, gpointer data)
-{
-	sizeIndex = ((unsigned int)data) & 0xFF;
-}
-
 static void on_aspect_menu_activate(GtkWidget *widget, gpointer data)
 {
 	aspectIndex = ((unsigned int)data) & 0xFF;
@@ -431,6 +443,8 @@ static bool ValidateAndSave(void)
 	// now put the new configuration into effect
 
 	MyConfig->Regenerate();
+
+	NewVideoWindow();
 
 	// if previewing, restart video source
 	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
@@ -547,7 +561,7 @@ void CreateVideoDialog (void)
 	gtk_box_pack_start(GTK_BOX(vbox), device_entry, TRUE, TRUE, 0);
 
 	// N.B. because of the dependencies of 
-	// input, signal, channel list, and channel
+	// input, signal, channel list, channel, and sizes
 	// order of operations is important here
 
 	channelIndex = 
@@ -559,11 +573,23 @@ void CreateVideoDialog (void)
 	inputIndex = 
 		MyConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
 
+
 	channel_combo = NULL;
 	CreateChannelCombo();
 
 	channel_list_menu = NULL;
 	CreateChannelListMenu();
+
+	sizeIndex = 0; 
+	for (u_int8_t i = 0; i < sizeof(sizeWidthValues) / sizeof(u_int16_t); i++) {
+		if (MyConfig->m_videoWidth == sizeWidthValues[i]) {
+			sizeIndex = i;
+			break;
+		}
+	}
+
+	size_menu = NULL;
+	CreateSizeMenu();
 
 	signal_menu = CreateOptionMenu(
 		NULL,
@@ -585,20 +611,6 @@ void CreateVideoDialog (void)
 
 	gtk_box_pack_start(GTK_BOX(vbox), channel_combo, TRUE, TRUE, 0);
 
-	// TBD limit choices based on video capabilities
-	sizeIndex = 0; 
-	for (u_int8_t i = 0; i < sizeof(sizeWidthValues) / sizeof(u_int16_t); i++) {
-		if (MyConfig->m_videoWidth == sizeWidthValues[i]) {
-			sizeIndex = i;
-			break;
-		}
-	}
-	size_menu = CreateOptionMenu(
-		NULL,
-		sizeNames, 
-		sizeof(sizeNames) / sizeof(char*),
-		sizeIndex,
-		GTK_SIGNAL_FUNC(on_size_menu_activate));
 	gtk_box_pack_start(GTK_BOX(vbox), size_menu, TRUE, TRUE, 0);
 
 	aspectIndex = 0; 
@@ -638,7 +650,7 @@ void CreateVideoDialog (void)
 
 	adjustment = gtk_adjustment_new(
 		MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE),
-		50, 1500, 50, 0, 0);
+		50, 2000, 50, 0, 0);
 	bit_rate_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 50, 0);
 	gtk_widget_show(bit_rate_spinner);
 	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_spinner, TRUE, TRUE, 0);

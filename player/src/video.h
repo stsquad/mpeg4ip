@@ -76,7 +76,7 @@ class CVideoSync {
   SDL_Overlay *m_image;
   SDL_Rect m_dstrect;
   SDL_sem *m_sync_sem;
-  size_t m_fill_index, m_play_index;
+  uint32_t m_fill_index, m_play_index;
   int m_decode_waiting;
   volatile int m_buffer_filled[MAX_VIDEO_BUFFERS];
   Uint8 *m_y_buffer[MAX_VIDEO_BUFFERS];
@@ -87,12 +87,12 @@ class CVideoSync {
   uint64_t m_next_time;
   SDL_sem *m_decode_sem;
   int m_dont_fill;
-  size_t m_consec_skipped;
-  size_t m_behind_frames;
-  size_t m_total_frames;
+  uint32_t m_consec_skipped;
+  uint32_t m_behind_frames;
+  uint32_t m_total_frames;
   uint64_t m_behind_time;
   uint64_t m_behind_time_max;
-  size_t m_skipped_render;
+  uint32_t m_skipped_render;
   uint64_t m_msec_per_frame;
   uint64_t m_first_frame_time;
   uint64_t m_first_frame_count;

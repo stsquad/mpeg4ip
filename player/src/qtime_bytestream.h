@@ -46,28 +46,28 @@ class CQTByteStreamBase : public COurInByteStream
   void bookmark(int bSet);
   virtual void reset(void) = 0;
   virtual uint64_t start_next_frame (void) = 0;
-  size_t read(unsigned char *buffer, size_t bytes);
-  size_t read (char *buffer, size_t bytes) {
+  ssize_t read(unsigned char *buffer, size_t bytes);
+  ssize_t read (char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
   void check_for_end_of_frame(void);
  protected:
-  virtual void read_frame(size_t frame) = 0;
+  virtual void read_frame(uint32_t frame) = 0;
   CQtimeFile *m_parent;
   int m_eof;
   int m_track;
-  size_t m_frame_on;
-  size_t m_frames_max;
-  size_t m_frame_rate;
-  size_t m_max_frame_size;
-  size_t m_frame_in_buffer;
-  size_t m_frame_in_bookmark;
+  uint32_t m_frame_on;
+  uint32_t m_frames_max;
+  uint32_t m_frame_rate;
+  uint32_t m_max_frame_size;
+  uint32_t m_frame_in_buffer;
+  uint32_t m_frame_in_bookmark;
   unsigned char *m_buffer;
   int m_bookmark;
   unsigned char *m_bookmark_buffer;
   unsigned char *m_buffer_on;
-  size_t m_byte_on, m_bookmark_byte_on;
-  size_t m_this_frame_size, m_bookmark_this_frame_size;
+  uint32_t m_byte_on, m_bookmark_byte_on;
+  uint32_t m_this_frame_size, m_bookmark_this_frame_size;
   uint64_t m_total, m_total_bookmark;
   int m_bookmark_read_frame;
   int m_bookmark_read_frame_size;
@@ -93,7 +93,7 @@ class CQTVideoByteStream : public CQTByteStreamBase
   double get_max_playtime(void);
   void config(long num_frames, float frate, int time_scale);
  protected:
-  void read_frame(size_t frame);
+  void read_frame(uint32_t frame);
  private:
   void video_set_timebase(long frame);
   int m_time_scale;
@@ -121,14 +121,13 @@ class CQTAudioByteStream : public CQTByteStreamBase
     ret /= m_frame_rate;
     return (ret);
   };
-  void config(long num_frames, size_t frate, int duration) {
+  void config(long num_frames, uint32_t frate, int duration) {
     m_frames_max = num_frames;
     m_frame_rate = frate;
     m_samples_per_frame = duration;
   };
  protected:
-  void read_frame(size_t frame);
-  size_t read_a_frame(unsigned char **ppbuff);
+  void read_frame(uint32_t frame);
  private:
   void audio_set_timebase(long frame);
   int m_samples_per_frame;

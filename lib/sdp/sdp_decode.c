@@ -216,7 +216,7 @@ void free_session_desc (session_desc_t *sptr)
  */
 static int get_next_line (char *lptr,
 			  sdp_decode_info_t *decode,
-			  size_t buflen)
+			  uint32_t buflen)
 {
   char tempchar;
   char *fret;
@@ -821,7 +821,7 @@ static int check_value_list_or_user (char *lptr,
 				     const char **list,
 				     char **user_value)
 {
-  size_t len;
+  uint32_t len;
   int cnt;
 
   cnt = 1;
@@ -977,7 +977,7 @@ static int sdp_decode_parse_a_str (int arg,
  */
 static struct {
   char *name;
-  size_t len;
+  uint32_t len;
   int have_colon;
   int remove_spaces_after_colon;
   int (*parse_routine)(int arg, char *lptr,

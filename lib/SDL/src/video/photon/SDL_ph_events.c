@@ -22,10 +22,12 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ph_events.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_ph_events.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting photon events into SDL events */
+
+#define DISABLE_X11
 
 #include <Ph.h>
 #include <stdio.h>

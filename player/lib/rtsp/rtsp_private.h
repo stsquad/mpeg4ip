@@ -66,9 +66,9 @@ struct rtsp_client_ {
   int server_socket;
   int recv_timeout;
   char *recv_buff;
-  size_t recv_buff_len;
-  size_t recv_buff_used;
-  size_t recv_buff_parsed;
+  uint32_t recv_buff_len;
+  uint32_t recv_buff_used;
+  uint32_t recv_buff_parsed;
 
   /*
    * rtsp information gleamed from other packets
@@ -89,10 +89,10 @@ void free_session_info(rtsp_session_t *session);
 int rtsp_create_socket(rtsp_client_t *info);
 void rtsp_close_socket(rtsp_client_t *info);
 
-int rtsp_send(rtsp_client_t *info, const char *buff, size_t len);
+int rtsp_send(rtsp_client_t *info, const char *buff, uint32_t len);
 void rtsp_flush(rtsp_client_t *info);
 int rtsp_receive(rtsp_client_t *info);
-int rtsp_receive_more(rtsp_client_t *info, size_t more_cnt);
+int rtsp_receive_more(rtsp_client_t *info, uint32_t more_cnt);
 
 int rtsp_get_response(rtsp_client_t *info);
 

@@ -28,7 +28,7 @@
 // Basic list of available config variables.  Future work could make this
 // dynamic, but I'm not going to bother right now...
 
-CConfig::CConfig(const config_variable_t *config, size_t max)
+CConfig::CConfig(const config_variable_t *config, uint32_t max)
 {
   m_config_var = config;
   m_config_max = max;
@@ -36,7 +36,7 @@ CConfig::CConfig(const config_variable_t *config, size_t max)
 }
 
 CConfig::CConfig (const config_variable_t *config, 
-		  size_t max, 
+		  uint32_t max, 
 		  const char *name)
 {
   m_config_var = config;
@@ -52,7 +52,7 @@ void CConfig::init (void)
   m_values = (int *)malloc(sizeof(int) * m_config_max);
   m_strings = (char **)malloc(sizeof(char *) * m_config_max);
 
-  for (size_t ix = 0; ix < m_config_max; ix++) {
+  for (uint32_t ix = 0; ix < m_config_max; ix++) {
     int index = m_config_var[ix].config_index;
     m_types[index] = m_config_var[ix].config_type;
     m_values[index] = m_config_var[ix].default_value;
@@ -70,7 +70,7 @@ CConfig::~CConfig(void)
   if (m_changed != 0) {
     write_config_file();
   }
-  for (size_t ix = 0; ix < m_config_max; ix++) {
+  for (uint32_t ix = 0; ix < m_config_max; ix++) {
     if (m_strings[ix] != NULL) {
       free(m_strings[ix]);
       m_strings[ix] = NULL;
@@ -84,7 +84,7 @@ CConfig::~CConfig(void)
   m_values = NULL;
 }
 
-int CConfig::get_config_type (size_t index)
+int CConfig::get_config_type (uint32_t index)
 {
   if (index < 0 || index >= m_config_max)
     return (-1);
@@ -93,7 +93,7 @@ int CConfig::get_config_type (size_t index)
 
 int CConfig::get_config_value (int ix)
 {
-  size_t index = ix;
+  uint32_t index = ix;
   if (index < 0 || index >= m_config_max)
     return (-1);
   if (m_types[index] != CONFIG_INT)
@@ -101,9 +101,9 @@ int CConfig::get_config_value (int ix)
   return (m_values[index]);
 }
 
-int CConfig::get_config_default_value (size_t index)
+int CConfig::get_config_default_value (uint32_t index)
 {
-  for (size_t ix = 0; ix < m_config_max; ix++) {
+  for (uint32_t ix = 0; ix < m_config_max; ix++) {
     if (index == m_config_var[ix].config_index) {
       if (m_config_var[ix].config_type == CONFIG_INT)
 	return (m_config_var[ix].default_value);
@@ -114,7 +114,7 @@ int CConfig::get_config_default_value (size_t index)
   return (-1);
 }
 
-const char *CConfig::get_config_string (size_t index)
+const char *CConfig::get_config_string (uint32_t index)
 {
   if (index < 0 || index >= m_config_max)
     return (NULL);
@@ -123,9 +123,9 @@ const char *CConfig::get_config_string (size_t index)
   return (m_strings[index]);
 }
 		
-const char *CConfig::get_config_default_string (size_t index)
+const char *CConfig::get_config_default_string (uint32_t index)
 {
-  for (size_t ix = 0; ix < m_config_max; ix++) {
+  for (uint32_t ix = 0; ix < m_config_max; ix++) {
     if (index == m_config_var[ix].config_index) {
       if (m_config_var[ix].config_type == CONFIG_STRING)
 	return (m_config_var[ix].default_string);
@@ -149,10 +149,10 @@ void CConfig::get_default_name (char *buffer)
 
 #define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
 
-char *CConfig::find_name (char *ptr, size_t &ix)
+char *CConfig::find_name (char *ptr, uint32_t &ix)
 {
   for (ix = 0; ix < m_config_max; ix++) {
-    size_t len;
+    uint32_t len;
     len = strlen(m_config_var[ix].config_name);
     if (strncasecmp(ptr, 
 		    m_config_var[ix].config_name, 
@@ -193,7 +193,7 @@ int CConfig::read_config_file (const char *name)
     ptr = buffer;
     ADV_SPACE(ptr);
     if (ptr != '\0') {
-      size_t index;
+      uint32_t index;
       ptr = find_name(ptr, index);
       if (ptr != NULL) {
 	ADV_SPACE(ptr);
@@ -224,8 +224,8 @@ void CConfig::write_config_file (const char *name)
   } 
   
   ofile = fopen(name, "w");
-  for (size_t ix = 0; ix < m_config_max; ix++) {
-    size_t index = m_config_var[ix].config_index;
+  for (uint32_t ix = 0; ix < m_config_max; ix++) {
+    uint32_t index = m_config_var[ix].config_index;
     if (m_config_var[ix].config_type == CONFIG_INT) {
       if (m_config_var[ix].default_value != m_values[index]) {
 	fprintf(ofile, 

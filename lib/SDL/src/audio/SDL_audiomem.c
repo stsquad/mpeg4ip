@@ -22,20 +22,19 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audiomem.c,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_audiomem.c,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
 #endif
 
 /* Functions to allocate audio buffer memory, shareable across threads
 	(necessary because SDL audio emulates threads with fork()
  */
 
+#include <stdlib.h>
 #ifdef FORK_HACK
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <stddef.h>
-#else
-#include <stdlib.h>
 #endif
 
 #include "SDL_audiomem.h"

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dspaudio.c,v 1.1 2001/08/01 00:33:55 wmaycisco Exp $";
+ "@(#) $Id: SDL_dspaudio.c,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -37,16 +37,11 @@ static char rcsid =
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#ifdef linux
-#include <linux/soundcard.h>
-#endif
-#ifdef __bsdi__
-#include <sys/soundcard.h>
-#endif
-#ifdef __FreeBSD__
-#include <machine/soundcard.h>
-#endif
-#ifdef __USLC__
+#ifdef OSS_USE_SOUNDCARD_H
+/* This is installed on some systems */
+#include <soundcard.h>
+#else
+/* This is recommended by OSS */
 #include <sys/soundcard.h>
 #endif
 
@@ -63,19 +58,16 @@ static char rcsid =
 
 /* Open the audio device for playback, and don't block if busy */
 /*#define USE_BLOCKING_WRITES*/
-#ifdef USE_BLOCKING_WRITES
-#define OPEN_FLAGS	O_WRONLY
-#else
 #define OPEN_FLAGS	(O_WRONLY|O_NONBLOCK)
-#endif
 
 /* Audio driver functions */
 static int DSP_OpenAudio(_THIS, SDL_AudioSpec *spec);
 static void DSP_WaitAudio(_THIS);
 static void DSP_PlayAudio(_THIS);
 static Uint8 *DSP_GetAudioBuf(_THIS);
-static void DSP_CloseAudio(_THIS);
 static int DSP_AudioDelayMsec(_THIS);
+static void DSP_CloseAudio(_THIS);
+
 /* Audio driver bootstrap functions */
 
 static int Audio_Available(void)
@@ -126,7 +118,7 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
 	this->GetAudioBuf = DSP_GetAudioBuf;
 	this->CloseAudio = DSP_CloseAudio;
 	this->AudioDelayMsec = DSP_AudioDelayMsec;
-
+	
 	this->free = Audio_DeleteDevice;
 
 	return this;
@@ -140,9 +132,6 @@ AudioBootStrap DSP_bootstrap = {
 /* This function waits until it is possible to write a full sound buffer */
 static void DSP_WaitAudio(_THIS)
 {
-#ifndef USE_BLOCKING_WRITES /* Not necessary because of blocking writes */
-	fd_set fdset;
-
 	/* Check to see if the thread-parent process is still alive */
 	{ static int cnt = 0;
 		/* Note that this only works with thread implementations 
@@ -155,6 +144,7 @@ static void DSP_WaitAudio(_THIS)
 		}
 	}
 
+#ifndef USE_BLOCKING_WRITES /* Not necessary when using blocking writes */
 	/* See if we need to use timed audio synchronization */
 	if ( frame_ticks ) {
 		/* Use timer for general audio synchronization */
@@ -166,7 +156,9 @@ static void DSP_WaitAudio(_THIS)
 		}
 	} else {
 		/* Use select() for audio synchronization */
+		fd_set fdset;
 		struct timeval timeout;
+
 		FD_ZERO(&fdset);
 		FD_SET(audio_fd, &fdset);
 		timeout.tv_sec = 10;
@@ -198,16 +190,24 @@ static void DSP_WaitAudio(_THIS)
 
 static void DSP_PlayAudio(_THIS)
 {
-	int written;
+	int written, p=0;
 
 	/* Write the audio data, checking for EAGAIN on broken audio drivers */
 	do {
-		written = write(audio_fd, mixbuf, mixlen);
-		if ( (written < 0) && ((errno == 0) || (errno == EAGAIN)) ) {
+		written = write(audio_fd, &mixbuf[p], mixlen-p);
+		if (written>0)
+		   p += written;
+		if (written == -1 && errno != 0 && errno != EAGAIN && errno != EINTR)
+		{
+		   /* Non recoverable error has occurred. It should be reported!!! */
+		   perror("audio");
+		   break;
+		}
+
+		if ( p < written || ((written < 0) && ((errno == 0) || (errno == EAGAIN))) ) {
 			SDL_Delay(1);	/* Let a little CPU time go by */
 		}
-	} while ( (written < 0) && 
-	          ((errno == 0) || (errno == EAGAIN) || (errno == EINTR)) );
+	} while ( p < written );
 
 	/* If timer synchronization is enabled, set the next write frame */
 	if ( frame_ticks ) {
@@ -218,7 +218,6 @@ static void DSP_PlayAudio(_THIS)
 	if ( written < 0 ) {
 		this->enabled = 0;
 	}
-
 #ifdef DEBUG_AUDIO
 	fprintf(stderr, "Wrote %d bytes of audio data\n", written);
 #endif
@@ -338,6 +337,18 @@ static int DSP_OpenAudio(_THIS, SDL_AudioSpec *spec)
 	}
 	mixbuf = NULL;
 
+#ifdef USE_BLOCKING_WRITES
+	/* Make the file descriptor use blocking writes with fcntl() */
+	{ long flags;
+		flags = fcntl(audio_fd, F_GETFL);
+		flags &= ~O_NONBLOCK;
+		if ( fcntl(audio_fd, F_SETFL, flags) < 0 ) {
+			SDL_SetError("Couldn't set audio blocking mode");
+			return(-1);
+		}
+	}
+#endif
+
 	/* Get a list of supported hardware formats */
 	if ( ioctl(audio_fd, SNDCTL_DSP_GETFMTS, &value) < 0 ) {
 		SDL_SetError("Couldn't get audio format list");
@@ -455,14 +466,14 @@ static int DSP_AudioDelayMsec (_THIS)
 {
   int odelay;
   ioctl(audio_fd, SNDCTL_DSP_GETODELAY, &odelay);
-  if (odelay > 0) {
+  if (odelay > 0) {		 
     /*
      * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)
      */
     odelay *= 1000;
     odelay /= this->spec.channels;
     if (!(this->spec.format == AUDIO_U8 ||
-	  this->spec.format == AUDIO_S8)) {
+ 	  this->spec.format == AUDIO_S8)) {
       odelay /= 2; // 2 bytes per sample
     }
     odelay /= this->spec.freq;

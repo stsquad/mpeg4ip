@@ -44,8 +44,8 @@ typedef struct rtsp_command_t {
   char *accept_encoding;
   char *accept_language;
   char *authorization;
-  size_t bandwidth;
-  size_t blocksize;
+  uint32_t bandwidth;
+  uint32_t blocksize;
   char *cachecontrol;
   char *conference;
   char *connection;
@@ -71,7 +71,7 @@ typedef struct rtsp_command_t {
  * User must call free_decode_response when completed
  */
 typedef struct rtsp_decode_t {
-  size_t content_length;
+  uint32_t content_length;
   uint32_t cseq;
   int close_connection;
   char retcode[4];         /* 3 byte return code - \0 delimited */

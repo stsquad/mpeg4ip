@@ -36,8 +36,8 @@
 
 typedef struct sdp_encode_t {
   char *buffer;
-  size_t used;
-  size_t buflen;
+  uint32_t used;
+  uint32_t buflen;
 } sdp_encode_t;
 
 static int prepare_sdp_encode (sdp_encode_t *se)
@@ -52,21 +52,21 @@ static int prepare_sdp_encode (sdp_encode_t *se)
 
 static int add_string_to_encode (sdp_encode_t *sptr, const char *buf)
 {
-  size_t len;
+  uint32_t len;
   char *temp;
   
   if (buf == NULL) return (EINVAL);
   len = strlen(buf);
   if (len == 0) return (0);
   
-  if (len + sptr->used > sptr->buflen) {
+  if (len + 1 + sptr->used > sptr->buflen) {
     temp = realloc(sptr->buffer, sptr->buflen + 1024);
     if (temp == NULL)
       return (ENOMEM);
     sptr->buffer = temp;
     sptr->buflen += 1024;
   }
-  memcpy(sptr->buffer + sptr->used, buf, len);
+  strcpy(sptr->buffer + sptr->used, buf);
   sptr->used += len;
   return (0);
 }
@@ -265,7 +265,7 @@ static int encode_time (session_time_desc_t *tptr, sdp_encode_t *se)
 {
   uint64_t start, end;
   time_repeat_desc_t *rptr;
-  size_t ix;
+  uint32_t ix;
   char buffer[80];
   
   while (tptr != NULL) {
@@ -301,7 +301,7 @@ static int encode_time_adj (time_adj_desc_t *aptr, sdp_encode_t *se)
 {
   uint64_t time;
   uint32_t offset;
-  size_t len;
+  uint32_t len;
   char buffer[40], *buff;
   int dohead;
 

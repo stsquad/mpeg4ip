@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_byteorder.h,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_byteorder.h,v 1.2 2001/08/23 00:09:12 wmaycisco Exp $";
 #endif
 
 /* Macros for determining the byte-order of this platform */
@@ -39,10 +39,11 @@ static char rcsid =
    script so that application code can use this too.  The "right" way would
    be to dynamically generate this file on install, but that's a lot of work.
  */
-#if  defined(__i386__) || defined(WIN32) || \
+#if  defined(__i386__) || defined(__ia64__) || defined(WIN32) || \
     (defined(__alpha__) || defined(__alpha)) || \
      defined(__arm__) || \
-    (defined(__mips__) && defined(__MIPSEL__))
+    (defined(__mips__) && defined(__MIPSEL__)) || \
+     defined(__LITTLE_ENDIAN__)
 #define SDL_BYTEORDER	SDL_LIL_ENDIAN
 #else
 #define SDL_BYTEORDER	SDL_BIG_ENDIAN

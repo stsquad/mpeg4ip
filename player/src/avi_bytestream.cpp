@@ -114,9 +114,10 @@ void CAviByteStreamBase::bookmark (int bSet)
   }
 }
 
-size_t CAviByteStreamBase::read (unsigned char *buffer, size_t bytestoread)
+ssize_t CAviByteStreamBase::read (unsigned char *buffer, size_t bytestoread)
 {
-  size_t inbuffer, readbytes = 0;
+  size_t inbuffer;
+  ssize_t readbytes = 0;
   do {
     inbuffer = m_this_frame_size - m_byte_on;
     if (inbuffer > bytestoread) {
@@ -171,7 +172,7 @@ uint64_t CAviVideoByteStream::start_next_frame (void)
  */
 void CAviVideoByteStream::read_frame (void)
 {
-  size_t next_frame_size;
+  uint32_t next_frame_size;
 
   if (m_bookmark_read_frame != 0) {
     // Had we already read it ?
@@ -228,7 +229,7 @@ void CAviVideoByteStream::set_start_time (uint64_t start)
   player_debug_message("avi video frame " LLD , start);
 #endif
   // we've got the position;
-  video_set_timebase((size_t)start);
+  video_set_timebase((uint32_t)start);
 }
 
 /**************************************************************************
@@ -366,7 +367,7 @@ void CAviAudioByteStream::set_start_time (uint64_t start)
   player_debug_message("qtime audio frame " LLD, start);
 #endif
   // we've got the position;
-  audio_set_timebase((size_t)start);
+  audio_set_timebase((uint32_t)start);
   m_play_start_time = start;
 }
 

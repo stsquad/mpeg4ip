@@ -32,6 +32,7 @@ typedef u_int32_t	MP4SampleId;
 #include "mp4array.h"
 #include "mp4file.h"
 #include "mp4property.h"
+#include "mp4descriptor.h"
 #include "mp4atom.h"
 
 #endif /* __MP4_COMMON_INCLUDED__ */

@@ -229,10 +229,10 @@ static SConfigVariable MyConfigVariables[] = {
 		CONFIG_TYPE_STRING, "224.1.2.3", },
 
 	{ CONFIG_RTP_AUDIO_DEST_PORT, "rtpAudioDestPort",
-		CONFIG_TYPE_INTEGER, (config_integer_t)32770, },
+		CONFIG_TYPE_INTEGER, (config_integer_t)6972, },
 
 	{ CONFIG_RTP_VIDEO_DEST_PORT, "rtpVideoDestPort",
-		CONFIG_TYPE_INTEGER, (config_integer_t)32768, },
+		CONFIG_TYPE_INTEGER, (config_integer_t)6970, },
 
 	{ CONFIG_RTP_PAYLOAD_SIZE, "rtpPayloadSize",
 		CONFIG_TYPE_INTEGER, (config_integer_t)1460, },
@@ -260,13 +260,8 @@ public:
 		m_appAutomatic = false;
 		m_videoCapabilities = NULL;
 		m_videoPreviewWindowId = 0;
-#ifdef LARGE_FRAME_SIZES
-		m_videoMaxWidth = 704;
+		m_videoMaxWidth = 768;
 		m_videoMaxHeight = 576;
-#else
-		m_videoMaxWidth = 352;
-		m_videoMaxHeight = 288;
-#endif
 		m_videoNeedRgbToYuv = false;
 		m_videoMpeg4ConfigLength = 0;
 		m_videoMpeg4Config = NULL;

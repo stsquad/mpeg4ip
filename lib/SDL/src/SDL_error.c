@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_error.c,v 1.1 2001/08/01 00:33:54 wmaycisco Exp $";
+ "@(#) $Id: SDL_error.c,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
 #endif
 
 /* Simple error handling in SDL */
@@ -46,6 +46,10 @@ static SDL_error SDL_global_error;
 
 #define SDL_GetErrBuf()	(&SDL_global_error)
 #endif /* DISABLE_THREADS */
+
+#ifdef __CYGWIN__
+#define DISABLE_STDIO
+#endif
 
 #define SDL_ERRBUFIZE	1024
 
@@ -120,6 +124,7 @@ void SDL_SetError (const char *fmt, ...)
 	}
 	va_end(ap);
 
+#ifndef DISABLE_STDIO
 	/* If we are in debug mode, print out an error message */
 #ifdef DEBUG_ERROR
 	fprintf(stderr, "SDL_SetError: %s\n", SDL_GetError());
@@ -128,6 +133,7 @@ void SDL_SetError (const char *fmt, ...)
 		fprintf(stderr, "SDL_SetError: %s\n", SDL_GetError());
 	}
 #endif
+#endif /* !DISABLE_STDIO */
 }
 
 /* Print out an integer value to a UNICODE buffer */

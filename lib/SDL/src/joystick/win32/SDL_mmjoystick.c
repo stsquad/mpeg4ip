@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_mmjoystick.c,v 1.1 2001/08/01 00:33:57 wmaycisco Exp $";
+ "@(#) $Id: SDL_mmjoystick.c,v 1.2 2001/08/23 00:09:15 wmaycisco Exp $";
 #endif
 
 /* Win32 MultiMedia Joystick driver, contributed by Andrei de A. Formiga */
@@ -235,7 +235,7 @@ void SDL_SYS_JoystickUpdate(SDL_Joystick *joystick)
 	transaxis = joystick->hwdata->transaxis;
 	for (i = 0; i < joystick->naxes; i++) {
 		if (joyinfo.dwFlags & flags[i]) {
-			value = (int)((float)(pos[i] + transaxis[i].offset) * transaxis[i].scale);
+			value = (int)(((float)pos[i] + transaxis[i].offset) * transaxis[i].scale);
 			change = (value - joystick->axes[i]);
 			if ( (change < -JOY_AXIS_THRESHOLD) || (change > JOY_AXIS_THRESHOLD) ) {
 				SDL_PrivateJoystickAxis(joystick, (Uint8)i, (Sint16)value);

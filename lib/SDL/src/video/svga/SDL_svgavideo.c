@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_svgavideo.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_svgavideo.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 /* SVGAlib based SDL video driver implementation.
@@ -32,6 +32,9 @@ static char rcsid =
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 
 #if defined(linux)
 #include <linux/vt.h>
@@ -77,7 +80,11 @@ static int SVGA_Available(void)
 {
 	/* Check to see if we are root and stdin is a virtual console */
 	int console;
+	
+	/* SVGALib 1.9.x+ doesn't require root (via /dev/svga) */
+	int svgalib2 = -1;
 
+	/* See if we are connected to a virtual terminal */
 	console = STDIN_FILENO;
 	if ( console >= 0 ) {
 		struct stat sb;
@@ -88,7 +95,14 @@ static int SVGA_Available(void)
 			console = -1;
 		}
 	}
-	return((geteuid() == 0) && (console >= 0));
+
+	/* See if SVGAlib 2.0 is available */
+	svgalib2 = open("/dev/svga", O_RDONLY);
+	if (svgalib2 != -1) {
+		close(svgalib2);
+	}
+
+	return(((svgalib2 != -1) || (geteuid() == 0)) && (console >= 0));
 }
 
 static void SVGA_DeleteDevice(SDL_VideoDevice *device)
@@ -370,6 +384,10 @@ SDL_Surface *SVGA_SetVideoMode(_THIS, SDL_Surface *current,
 
 	/* Set up the new mode framebuffer */
 	current->flags = (SDL_FULLSCREEN|SDL_HWSURFACE);
+	if ( bpp == 8 ) {
+		/* FIXME: What about DirectColor? */
+		current->flags |= SDL_HWPALETTE;
+	}
 	current->w = width;
 	current->h = height;
 	current->pitch = modeinfo->linewidth;

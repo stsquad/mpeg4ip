@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11mouse.c,v 1.1 2001/08/01 00:34:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11mouse.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -229,8 +229,21 @@ static void SetMouseAccel(_THIS, const char *accel_param)
 /* Check to see if we need to enter or leave mouse relative mode */
 void X11_CheckMouseModeNoLock(_THIS)
 {
+	char *env_override;
+	int enable_relative = 1;
+
+	/* Allow the user to override the relative mouse mode.
+	   They almost never want to do this, as it seriously affects
+	   applications that rely on continuous relative mouse motion.
+	*/
+	env_override = getenv("SDL_MOUSE_RELATIVE");
+	if ( env_override ) {
+		enable_relative = atoi(env_override);
+	}
+
 	/* If the mouse is hidden and input is grabbed, we use relative mode */
-	if ( !(SDL_cursorstate & CURSOR_VISIBLE) &&
+	if ( enable_relative &&
+	     !(SDL_cursorstate & CURSOR_VISIBLE) &&
 	     (this->input_grab != SDL_GRAB_OFF) &&
              (SDL_GetAppState() & SDL_APPACTIVE) ) {
 		if ( ! mouse_relative ) {

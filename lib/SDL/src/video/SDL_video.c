@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.c,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_video.c,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 /* The high-level video driver subsystem */
@@ -51,6 +51,9 @@ static VideoBootStrap *bootstrap[] = {
 #ifdef ENABLE_DGA
 	&DGA_bootstrap,
 #endif
+#ifdef ENABLE_NANOX
+	&NX_bootstrap,
+#endif
 #ifdef ENABLE_FBCON
 	&FBCON_bootstrap,
 #endif
@@ -59,6 +62,9 @@ static VideoBootStrap *bootstrap[] = {
 #endif
 #ifdef ENABLE_GGI
 	&GGI_bootstrap,
+#endif
+#ifdef ENABLE_VGL
+	&VGL_bootstrap,
 #endif
 #ifdef ENABLE_SVGALIB
 	&SVGALIB_bootstrap,
@@ -81,16 +87,21 @@ static VideoBootStrap *bootstrap[] = {
 #ifdef ENABLE_DRAWSPROCKET
 	&DSp_bootstrap,
 #endif
+#ifdef ENABLE_QUARTZ
+	&QZ_bootstrap,
+#endif
 #ifdef ENABLE_CYBERGRAPHICS
 	&CGX_bootstrap,
+#endif
+#ifdef ENABLE_DUMMYVIDEO
+	&DUMMY_bootstrap,
+#endif
+#ifdef ENABLE_PHOTON
+	&ph_bootstrap,
 #endif
 	NULL
 };
 SDL_VideoDevice *current_video = NULL;
-
-/* Places to store title and icon text for the app */
-static char *wm_title = NULL;
-static char *wm_icon  = NULL;
 
 /* Various local functions */
 int SDL_VideoInit(const char *driver_name, Uint32 flags);
@@ -563,6 +574,9 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 		/* These flags are for 2D video modes only */
 		flags &= ~(SDL_HWSURFACE|SDL_DOUBLEBUF);
 	}
+
+	/* Reset the keyboard here so event callbacks can run */
+	SDL_ResetKeyboard();
 
 	/* Clean up any previous video mode */
 	if ( SDL_PublicSurface != NULL ) {
@@ -1122,6 +1136,9 @@ int SDL_SetPalette(SDL_Surface *screen, int which,
 	int gotall;
 	int palsize;
 
+	if ( ! current_video ) {
+		return 0;
+	}
 	if ( screen != SDL_PublicSurface ) {
 	        /* only screens have physical palettes */
 	        which &= ~SDL_PHYSPAL;
@@ -1236,13 +1253,13 @@ void SDL_VideoQuit (void)
 			free(video->gamma);
 			video->gamma = NULL;
 		}
-		if ( wm_title != NULL ) {
-			free(wm_title);
-			wm_title = NULL;
+		if ( video->wm_title != NULL ) {
+			free(video->wm_title);
+			video->wm_title = NULL;
 		}
-		if ( wm_icon != NULL ) {
-			free(wm_icon);
-			wm_icon = NULL;
+		if ( video->wm_icon != NULL ) {
+			free(video->wm_icon);
+			video->wm_icon = NULL;
 		}
 
 		/* Finish cleaning up video subsystem */
@@ -1260,7 +1277,7 @@ int SDL_GL_LoadLibrary(const char *path)
 	int retval;
 
 	retval = -1;
-	if ( video->GL_LoadLibrary ) {
+	if ( video && video->GL_LoadLibrary ) {
 		retval = video->GL_LoadLibrary(this, path);
 	} else {
 		SDL_SetError("No dynamic GL support in video driver");
@@ -1348,8 +1365,10 @@ int SDL_GL_GetAttribute(SDL_GLattr attr, int* value)
 
 	if ( video->GL_GetAttribute ) {
 		retval = this->GL_GetAttribute(this, attr, value);
+	} else {
+		*value = 0;
+		SDL_SetError("GL_GetAttribute not supported");
 	}
-
 	return retval;
 }
 
@@ -1519,35 +1538,41 @@ void SDL_WM_SetCaption (const char *title, const char *icon)
 	SDL_VideoDevice *video = current_video;
 	SDL_VideoDevice *this  = current_video;
 
-	if ( title ) {
-		if ( wm_title ) {
-			free(wm_title);
+	if ( video ) {
+		if ( title ) {
+			if ( video->wm_title ) {
+				free(video->wm_title);
+			}
+			video->wm_title = (char *)malloc(strlen(title)+1);
+			if ( video->wm_title != NULL ) {
+				strcpy(video->wm_title, title);
+			}
 		}
-		wm_title = (char *)malloc(strlen(title)+1);
-		if ( wm_title != NULL ) {
-			strcpy(wm_title, title);
+		if ( icon ) {
+			if ( video->wm_icon ) {
+				free(video->wm_icon);
+			}
+			video->wm_icon = (char *)malloc(strlen(icon)+1);
+			if ( video->wm_icon != NULL ) {
+				strcpy(video->wm_icon, icon);
+			}
 		}
-	}
-	if ( icon ) {
-		if ( wm_icon ) {
-			free(wm_icon);
+		if ( (title || icon) && (video->SetCaption != NULL) ) {
+			video->SetCaption(this, video->wm_title,video->wm_icon);
 		}
-		wm_icon = (char *)malloc(strlen(icon)+1);
-		if ( wm_icon != NULL ) {
-			strcpy(wm_icon, icon);
-		}
-	}
-	if ( (title || icon) && video && (video->SetCaption != NULL) ) {
-		video->SetCaption(this, wm_title, wm_icon);
 	}
 }
 void SDL_WM_GetCaption (char **title, char **icon)
 {
-	if ( title ) {
-		*title = wm_title;
-	}
-	if ( icon ) {
-		*icon = wm_icon;
+	SDL_VideoDevice *video = current_video;
+
+	if ( video ) {
+		if ( title ) {
+			*title = video->wm_title;
+		}
+		if ( icon ) {
+			*icon = video->wm_icon;
+		}
 	}
 }
 
@@ -1677,10 +1702,10 @@ SDL_GrabMode SDL_WM_GrabInput(SDL_GrabMode mode)
 {
 	SDL_VideoDevice *video = current_video;
 
-    /* If the video isn't initialized yet, we can't do anything */
-    if ( ! video ) {
-        return SDL_GRAB_OFF;
-    }
+	/* If the video isn't initialized yet, we can't do anything */
+	if ( ! video ) {
+		return SDL_GRAB_OFF;
+	}
 
 	/* Return the current mode on query */
 	if ( mode == SDL_GRAB_QUERY ) {

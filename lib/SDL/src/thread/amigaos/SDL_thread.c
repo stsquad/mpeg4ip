@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_thread.c,v 1.1 2001/08/01 00:33:57 wmaycisco Exp $";
+ "@(#) $Id: SDL_thread.c,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 /* System independent thread management routines for SDL */
@@ -263,6 +263,18 @@ void SDL_WaitThread(SDL_Thread *thread, int *status)
 		SDL_DelThread(thread);
 		free(thread);
 	}
+}
+
+Uint32 SDL_GetThreadID(SDL_Thread *thread)
+{
+	Uint32 id;
+
+	if ( thread ) {
+		id = thread->threadid;
+	} else {
+		id = SDL_ThreadID();
+	}
+	return(id);
 }
 
 void SDL_KillThread(SDL_Thread *thread)

@@ -347,9 +347,10 @@ uint64_t CRtpByteStreamBase::start_next_frame (void)
   return (timetick);
 }
 
-size_t CRtpByteStreamBase::read (unsigned char *buffer, size_t bytes_to_read)
+ssize_t CRtpByteStreamBase::read (unsigned char *buffer, size_t bytes_to_read)
 {
-  size_t inbuffer, readbytes = 0;
+  size_t inbuffer;
+  ssize_t readbytes = 0;
 
   if (m_pak == NULL) {
     if (m_bookmark_set == 1) {

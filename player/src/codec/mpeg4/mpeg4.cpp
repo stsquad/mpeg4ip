@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "player_mem_bytestream.h"
+#include "our_bytestream_mem.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -53,7 +53,7 @@ CMpeg4Codec::CMpeg4Codec(CVideoSync *v,
 			 format_list_t *media_fmt,
 			 video_info_t *vinfo,
 			 const unsigned char *userdata,
-			 size_t ud_size) :
+			 uint32_t ud_size) :
   CVideoCodecBase(v, pbytestrm, media_fmt, vinfo, userdata, ud_size)
 {
   m_main_short_video_header = FALSE;
@@ -111,10 +111,11 @@ static char tohex (char a)
 // that we need to get width/height/frame rate
 int CMpeg4Codec::parse_vovod (const char *vovod,
 			      int ascii,
-			      size_t len)
+			      uint32_t len)
 {
   unsigned char buffer[255];
-  CInByteStreamMem *membytestream = new CInByteStreamMem();
+  const char *bufptr;
+  COurInByteStreamMem *membytestream;
 
   if (ascii == 1) {
     char *config = strstr(vovod, "config=");
@@ -136,7 +137,7 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
     unsigned char *write;
     write = buffer;
     // Convert the config= from ascii to binary
-    for (size_t ix = 0; ix < len; ix++) {
+    for (uint32_t ix = 0; ix < len; ix++) {
       *write = 0;
       *write = (tohex(*config)) << 4;
       config++;
@@ -145,14 +146,15 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
       write++;
     }
     len /= 2;
-    membytestream->set_memory(buffer, len);
+    bufptr = (const char *)&buffer[0];
   } else {
-    membytestream->set_memory((const unsigned char *)vovod, len);
+    bufptr = vovod;
   }
 
 
   // Create a byte stream to take from our buffer.
   // Temporary set of our bytestream
+  membytestream = new COurInByteStreamMem(bufptr, len);
   m_pvodec->set_byte_stream(membytestream);
 
   // Get the VOL header.  If we fail, set the bytestream back
@@ -364,3 +366,7 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
 }
 
 
+int CMpeg4Codec::skip_frame (uint64_t ts) 
+{
+  return (decode(ts, 0));
+}

@@ -24,22 +24,22 @@
 #ifndef __MSG_QUEUE_H__
 #define __MSG_QUEUE_H__ 1
 
-#include <stdlib.h>
+#include "systems.h"
 #include <SDL.h>
 #include <SDL_thread.h>
 
 class CMsg {
  public:
-  CMsg(size_t value, unsigned char *msg = NULL, size_t msg_len = 0);
+  CMsg(uint32_t value, unsigned char *msg = NULL, uint32_t msg_len = 0);
   ~CMsg(void);
-  const unsigned char *get_message(size_t &len);
+  const unsigned char *get_message(uint32_t &len);
   CMsg *get_next(void) { return m_next; };
   void set_next (CMsg *next) { m_next = next; };
-  size_t get_value(void) { return m_value;};
+  uint32_t get_value(void) { return m_value;};
  private:
   CMsg *m_next;
-  size_t m_value;
-  size_t m_msg_len;
+  uint32_t m_value;
+  uint32_t m_msg_len;
   unsigned char *m_msg;
 };
 
@@ -47,9 +47,9 @@ class CMsgQueue {
  public:
   CMsgQueue(void);
   ~CMsgQueue(void);
-  int send_message(size_t msgval,
+  int send_message(uint32_t msgval,
 		   unsigned char *msg = NULL,
-		   size_t msg_len = 0,
+		   uint32_t msg_len = 0,
 		   SDL_sem *sem = NULL);
   CMsg *get_message(void);
  private:

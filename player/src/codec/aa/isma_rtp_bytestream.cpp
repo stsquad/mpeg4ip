@@ -155,8 +155,8 @@ void CIsmaAudioRtpByteStream::bookmark (int bSet)
   }
 }
 
-size_t CIsmaAudioRtpByteStream::read (unsigned char *buffer, 
-				      size_t bytes_to_read)
+ssize_t CIsmaAudioRtpByteStream::read (unsigned char *buffer, 
+				       size_t bytes_to_read)
 {
   size_t inbuffer;
 
@@ -339,7 +339,7 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
   }
   if (m_fmtp.auxiliary_data_size_length > 0) {
     m_header_bitstream.byte_align();
-    size_t aux_len;
+    uint32_t aux_len;
     m_header_bitstream.getbits(m_fmtp.auxiliary_data_size_length, aux_len);
     aux_len = (aux_len + 7) / 8;
 #ifdef DEBUG_ISMA_AAC

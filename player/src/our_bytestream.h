@@ -30,6 +30,7 @@
 
 #include "systems.h"
 #include <tools/entropy/bytestrm.hpp>
+#include "codec/codec.h"
 
 class COurInByteStream : public CInByteStreamBase
 {
@@ -45,8 +46,11 @@ class COurInByteStream : public CInByteStreamBase
   virtual uint64_t start_next_frame (void) = 0;
   virtual double get_max_playtime (void) = 0;
   virtual void set_start_time(uint64_t start) { m_play_start_time = start; };
-
+  virtual ssize_t read(unsigned char *buffer, size_t bytes) = 0;
+  virtual ssize_t read(char *buffer, size_t bytes) = 0;
+  virtual void set_codec (CCodecBase *codec) { m_codec = codec; };
  protected:
   uint64_t m_play_start_time;
+  CCodecBase *m_codec;
 };
 #endif

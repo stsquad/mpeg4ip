@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_BWin.h,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_BWin.h,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_BWin_h
@@ -155,6 +155,16 @@ public:
 		}
 #endif
 		SDL_View->SetXYOffset(x, y);		
+	}
+	virtual void GetXYOffset(int &x, int &y) {
+#ifdef HAVE_OPENGL
+		if ( the_view == SDL_GLView ) {
+			x = 0;
+			y = 0;
+			return;
+		}
+#endif
+		SDL_View->GetXYOffset(x, y);
 	}
 	virtual bool BeginDraw(void) {
 		return(Lock());

@@ -39,7 +39,8 @@ CQtimeFile *QTfile1 = NULL;
  */
 int create_media_for_qtime_file (CPlayerSession *psptr, 
 				 const char *name,
-				 const char **errmsg)
+				 const char **errmsg,
+				 int have_audio_driver)
 {
   if (quicktime_check_sig(name) == 0) {
     *errmsg = "File is not quicktime";
@@ -59,19 +60,24 @@ int create_media_for_qtime_file (CPlayerSession *psptr,
     return (-1);
   }
   player_debug_message("create video returned %d", video);
-  int audio;
-  audio = QTfile1->create_audio(psptr);
-  if (audio < 0) {
-    *errmsg = "Internal quicktime error";
-    return (-1);
+  int audio = 0;
+  if (have_audio_driver > 0) {
+    audio = QTfile1->create_audio(psptr);
+    if (audio < 0) {
+      *errmsg = "Internal quicktime error";
+      return (-1);
+    }
+    player_debug_message("create audio returned %d", audio);
   }
-  player_debug_message("create audio returned %d", audio);
   if (audio == 0 && video == 0) {
     *errmsg = "No valid codecs";
     return (-1);
   }
   if (audio == 0 && QTfile1->get_audio_tracks() > 0) {
-    *errmsg = "Invalid Audio Codec";
+    if (have_audio_driver > 0) 
+      *errmsg = "Invalid Audio Codec";
+    else 
+      *errmsg = "No Audio driver - no sound";
     return (1);
   }
   if ((QTfile1->get_video_tracks() != 0) && video == 0) {

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_cgxmodes.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_cgxmodes.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
 #endif
 
 /* Utilities for getting and setting the X display mode */
@@ -74,6 +74,13 @@ static void get_real_resolution(_THIS, int* w, int* h)
 {
     *w = SDL_Display->Width;
     *h = SDL_Display->Height;
+}
+
+static void move_cursor_to(_THIS, int x, int y)
+{
+/*    XWarpPointer(SDL_Display, None, SDL_Root, 0, 0, 0, 0, x, y); */
+
+/* DA FARE! */
 }
 
 static void add_visual(_THIS, int depth, int class)

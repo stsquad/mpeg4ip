@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_yuv_sw.c,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_yuv_sw.c,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 /* This is the software implementation of the YUV video overlay support */
@@ -1299,6 +1299,9 @@ void SDL_FreeYUV_SW(_THIS, SDL_Overlay *overlay)
 
 	swdata = overlay->hwdata;
 	if ( swdata ) {
+		if ( swdata->stretch ) {
+			SDL_FreeSurface(swdata->stretch);
+		}
 		if ( swdata->pixels ) {
 			free(swdata->pixels);
 		}

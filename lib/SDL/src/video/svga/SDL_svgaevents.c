@@ -22,12 +22,13 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_svgaevents.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_svgaevents.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 /* Handle the event stream, converting X11 events into SDL events */
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <vga.h>
 #include <vgamouse.h>

@@ -133,6 +133,8 @@ int CPlayerMedia::decode_thread (void)
 	    }
 	    parse_decode_message(thread_stop, decoding);
 	  }
+	} else {
+	  m_byte_stream->set_codec(codec);
 	}
       } else {
 	codec->do_pause();

@@ -45,8 +45,8 @@ class CAviByteStreamBase : public COurInByteStream
   void bookmark(int bSet);
   virtual void reset(void) = 0;
   virtual uint64_t start_next_frame (void) = 0;
-  size_t read(unsigned char *buffer, size_t bytes);
-  size_t read (char *buffer, size_t bytes) {
+  ssize_t read(unsigned char *buffer, size_t bytes);
+  ssize_t read (char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
   void check_for_end_of_frame(void);
@@ -54,17 +54,17 @@ class CAviByteStreamBase : public COurInByteStream
   virtual void read_frame(void) = 0;
   CAviFile *m_parent;
   int m_eof;
-  size_t m_frame_on;
-  size_t m_frames_max;
-  size_t m_frame_rate;
-  size_t m_max_frame_size;
+  uint32_t m_frame_on;
+  uint32_t m_frames_max;
+  uint32_t m_frame_rate;
+  uint32_t m_max_frame_size;
   unsigned char *m_buffer;
   int m_bookmark;
   unsigned char *m_bookmark_buffer;
   unsigned char *m_buffer_on;
-  size_t m_byte_on, m_bookmark_byte_on;
-  size_t m_bookmark_frame_on;
-  size_t m_this_frame_size, m_bookmark_this_frame_size;
+  uint32_t m_byte_on, m_bookmark_byte_on;
+  uint32_t m_bookmark_frame_on;
+  uint32_t m_this_frame_size, m_bookmark_this_frame_size;
   uint64_t m_total, m_total_bookmark;
   int m_bookmark_read_frame;
   int m_bookmark_read_frame_size;
@@ -92,7 +92,7 @@ class CAviVideoByteStream : public CAviByteStreamBase
   };
   void config(long num_frames, float frate) {
     m_frames_max = num_frames;
-    m_frame_rate = (size_t)frate;
+    m_frame_rate = (uint32_t)frate;
   };
  protected:
   void read_frame(void);
@@ -124,12 +124,12 @@ class CAviAudioByteStream : public CAviByteStreamBase
   };
   void config(long num_frames, float frate, int duration) {
     m_frames_max = num_frames;
-    m_frame_rate = (size_t)frate;
+    m_frame_rate = (uint32_t)frate;
     m_samples_per_frame = duration;
   };
  protected:
   void read_frame(void);
-  size_t read_a_frame(unsigned char **ppbuff);
+  uint32_t read_a_frame(unsigned char **ppbuff);
  private:
   void audio_set_timebase(long frame);
   int m_add_len_to_stream;

@@ -39,7 +39,7 @@ static unsigned int msk[33] =
 };
 
 void CBitstream::init (const unsigned char *buffer, 
-		       size_t bit_len)
+		       uint32_t bit_len)
 {
   m_chDecBuffer = buffer;
   m_chDecBufferSize = bit_len;
@@ -62,7 +62,7 @@ void CBitstream::bookmark (int bSet)
   }
 }
 
-int CBitstream::getbits (size_t numBits, uint32_t &retData)
+int CBitstream::getbits (uint32_t numBits, uint32_t &retData)
 {
   if (numBits > 32) {
     return -1;
@@ -77,7 +77,7 @@ int CBitstream::getbits (size_t numBits, uint32_t &retData)
     retData = *m_chDecBuffer >> m_uNumOfBitsInBuffer;
     retData &= msk[numBits];
   } else {
-    size_t nbits;
+    uint32_t nbits;
     nbits = numBits - m_uNumOfBitsInBuffer;
     if (nbits == 32)
       retData = 0;

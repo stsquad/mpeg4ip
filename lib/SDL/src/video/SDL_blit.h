@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_blit.h,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_blit.h,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_blit_h
@@ -384,7 +384,7 @@ do {						\
 /* 8-times unrolled loop */
 #define DUFFS_LOOP8(pixel_copy_increment, width)			\
 { int n = (width+7)/8;							\
-	switch (width % 8) {						\
+	switch (width & 7) {						\
 	case 0: do {	pixel_copy_increment;				\
 	case 7:		pixel_copy_increment;				\
 	case 6:		pixel_copy_increment;				\
@@ -400,7 +400,7 @@ do {						\
 /* 4-times unrolled loop */
 #define DUFFS_LOOP4(pixel_copy_increment, width)			\
 { int n = (width+3)/4;							\
-	switch (width % 4) {						\
+	switch (width & 3) {						\
 	case 0: do {	pixel_copy_increment;				\
 	case 3:		pixel_copy_increment;				\
 	case 2:		pixel_copy_increment;				\

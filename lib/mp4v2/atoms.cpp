@@ -26,6 +26,38 @@
 #define Optional	false
 #define OnlyOne		true
 #define Many		false
+#define Counted		true
+
+/* PROPOSED */
+class MP4FtypAtom : public MP4Atom {
+public:
+	MP4FtypAtom() : MP4Atom("ftyp") {
+		AddProperty(
+			new MP4Integer32Property("majorBrand"));
+		AddProperty(
+			new MP4Integer32Property("minorVersion"));
+
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("compatibleBrandsCount"); 
+		pCount->SetImplicit();
+		AddProperty(pCount);
+
+		MP4TableProperty* pTable = 
+			new MP4TableProperty("compatibleBrands", pCount);
+		AddProperty(pTable);
+
+		pTable->AddProperty(
+			new MP4Integer32Property("brand"));
+	}
+	void Read() {
+		// table entry count computed from atom size
+		((MP4Integer32Property*)m_pProperties[2])->SetReadOnly(false);
+		((MP4Integer32Property*)m_pProperties[2])->SetValue((m_size - 8) / 4);
+		((MP4Integer32Property*)m_pProperties[2])->SetReadOnly(true);
+
+		MP4Atom::Read();
+	}
+};
 
 class MP4MdatAtom : public MP4Atom {
 public:
@@ -35,7 +67,7 @@ public:
 		Skip();
 	}
 	void Write() {
-		// TBD mdat atom with 64 bit size 
+		// LATER option to use64
 		MP4Atom::Write();
 	}
 };
@@ -52,14 +84,51 @@ public:
 
 class MP4MvhdAtom : public MP4Atom {
 public:
-	MP4MvhdAtom() : MP4Atom("mvhd") { }
+	MP4MvhdAtom() : MP4Atom("mvhd") {
+		AddVersionAndFlags();
+	}
+	void Read() {
+		/* read atom version */
+		ReadProperties(0, 1);
+
+		/* need to create the properties based on the atom version */
+		if (GetVersion() == 1) {
+			AddProperty(
+				new MP4Integer64Property("creationTime"));
+			AddProperty(
+				new MP4Integer64Property("modificationTime"));
+			AddProperty(
+				new MP4Integer32Property("timeScale"));
+			AddProperty(
+				new MP4Integer64Property("duration"));
+		} else {
+			AddProperty(
+				new MP4Integer32Property("creationTime"));
+			AddProperty(
+				new MP4Integer32Property("modificationTime"));
+			AddProperty(
+				new MP4Integer32Property("timeScale"));
+			AddProperty(
+				new MP4Integer32Property("duration"));
+		}
+		AddReserved("reserved", 76);
+		AddProperty(
+			new MP4Integer32Property("nextTrackId"));
+
+		/* now we can read the properties */
+		ReadProperties(1);
+
+		Skip();	// to end of atom
+	}
 };
 
 class MP4IodsAtom : public MP4Atom {
 public:
 	MP4IodsAtom() : MP4Atom("iods") {
 		AddVersionAndFlags();
-		AddProperty(new MP4IODescriptorProperty());
+		AddProperty(
+			new MP4DescriptorProperty(NULL, 
+				MP4IODescrTag, 0, Required, OnlyOne));
 	}
 };
 
@@ -79,11 +148,69 @@ public:
 	MP4TkhdAtom() : MP4Atom("tkhd") {
 		AddVersionAndFlags();
 	}
+	void Read() {
+		/* read atom version */
+		ReadProperties(0, 1);
+
+		/* need to create the properties based on the atom version */
+		if (GetVersion() == 1) {
+			AddProperty(
+				new MP4Integer64Property("creationTime"));
+			AddProperty(
+				new MP4Integer64Property("modificationTime"));
+			AddProperty(
+				new MP4Integer32Property("trackId"));
+			AddReserved("reserved1", 4);
+			AddProperty(
+				new MP4Integer64Property("duration"));
+		} else {
+			AddProperty(
+				new MP4Integer32Property("creationTime"));
+			AddProperty(
+				new MP4Integer32Property("modificationTime"));
+			AddProperty(
+				new MP4Integer32Property("trackId"));
+			AddReserved("reserved1", 4);
+			AddProperty(
+				new MP4Integer32Property("duration"));
+		}
+		AddReserved("reserved2", 60);
+
+		/* now we can read the properties */
+		ReadProperties(1);
+
+		Skip();	// to end of atom
+	}
 };
 
 class MP4TrefAtom : public MP4Atom {
 public:
 	MP4TrefAtom() : MP4Atom("tref") {
+		ExpectChildAtom("hint", Optional, OnlyOne);
+	}
+};
+
+class MP4HintAtom : public MP4Atom {
+public:
+	MP4HintAtom() : MP4Atom("hint") {
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
+		pCount->SetImplicit();
+		AddProperty(pCount);
+
+		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
+		AddProperty(pTable);
+
+		pTable->AddProperty(
+			new MP4Integer32Property("trackId"));
+	}
+	void Read() {
+		// table entry count computed from atom size
+		((MP4Integer32Property*)m_pProperties[0])->SetReadOnly(false);
+		((MP4Integer32Property*)m_pProperties[0])->SetValue(m_size / 4);
+		((MP4Integer32Property*)m_pProperties[0])->SetReadOnly(true);
+
+		MP4Atom::Read();
 	}
 };
 
@@ -104,12 +231,10 @@ public:
 
 	void Read() {
 		/* read atom version */
-		m_pProperties[0]->Read(m_pFile);
-		u_int8_t version = 
-			((MP4Integer8Property*)m_pProperties[0])->GetValue();
+		ReadProperties(0, 1);
 
 		/* need to create the properties based on the atom version */
-		if (version == 1) {
+		if (GetVersion() == 1) {
 			AddProperty(
 				new MP4Integer64Property("creationTime"));
 			AddProperty(
@@ -147,9 +272,37 @@ public:
 		AddProperty(
 			new MP4Integer32Property("handlerType"));
 		AddReserved("reserved2", 12);
-		// ??? QT says Pascal string, ISO says C string ???
 		AddProperty(
 			new MP4StringProperty("name"));
+	}
+	// There is a spec incompatiblity between QT and MP4
+	// QT says name field is a counted string
+	// MP4 says name field is a null terminated string
+	// Here we attempt to make all things work
+	void Read() {
+		u_int32_t numProps = m_pProperties.Size();
+
+		// read all the properties but the "name" field
+		ReadProperties(0, numProps - 1);
+
+		// take a peek at the next byte
+		u_int8_t strLength;
+		m_pFile->PeekBytes(&strLength, 1);
+
+		// if the value matches the remaining atom length
+		if (strLength + 1 == m_end - m_pFile->GetPosition()) {
+			// read a counted string
+			MP4StringProperty* pNameProp = 
+				(MP4StringProperty*)m_pProperties[numProps - 1];
+			pNameProp->SetCountedFormat(true);
+			ReadProperties(numProps - 1, 1);
+			pNameProp->SetCountedFormat(false);
+		} else {
+			// read a null terminated string
+			ReadProperties(numProps - 1, 1);
+		}
+
+		Skip();	// to end of atom
 	}
 };
 
@@ -253,6 +406,31 @@ public:
 		AddVersionAndFlags();
 		AddProperty(new MP4StringProperty("location"));
 	}
+	void Read() {
+		// read the version and flags properties
+		ReadProperties(0, 2);
+
+		// check if self-contained flag is set
+		if (!(GetFlags() & 1)) {
+			// if not then read url location
+			ReadProperties(2);
+		}
+
+		Skip();	// to end of atom
+	}
+	void Write() {
+		MP4StringProperty* pLocationProp =
+			(MP4StringProperty*)m_pProperties[2];
+
+		// if no url location has been set
+		// then set self-contained flag
+		if (pLocationProp->GetValue() == NULL) {
+			SetFlags(GetFlags() | 1);
+		}
+
+		// write atom as usual
+		MP4Atom::Write();
+	}
 };
 
 class MP4UrnAtom : public MP4Atom {
@@ -261,6 +439,18 @@ public:
 		AddVersionAndFlags();
 		AddProperty(new MP4StringProperty("name"));
 		AddProperty(new MP4StringProperty("location"));
+	}
+	void Read() {
+		// read the version, flags, and name properties
+		ReadProperties(0, 3);
+
+		// check if location is present
+		if (m_pFile->GetPosition() < m_end) {
+			// read it
+			ReadProperties(3);
+		}
+
+		Skip();	// to end of atom
 	}
 };
 
@@ -351,7 +541,9 @@ class MP4EsdsAtom : public MP4Atom {
 public:
 	MP4EsdsAtom() : MP4Atom("esds") {
 		AddVersionAndFlags();
-		AddProperty(new MP4ESDescriptorProperty());
+		AddProperty(
+			new MP4DescriptorProperty(NULL, 
+				MP4ESDescrTag, 0, Required, OnlyOne));
 	}
 };
 
@@ -411,6 +603,32 @@ public:
 		pTable->AddProperty(
 			new MP4Integer32Property("sampleSize"));
 	}
+	void Read() {
+		ReadProperties(0, 4);
+
+		u_int32_t sampleSize = 
+			((MP4Integer32Property*)m_pProperties[2])->GetValue();
+
+		// only attempt to read entries table if sampleSize is zero
+		// i.e sample size is not constant
+		if (sampleSize == 0) {
+			ReadProperties(4);
+		}
+
+		Skip();	// to end of atom
+	}
+	void Write() {
+		WriteProperties(0, 4);
+
+		u_int32_t sampleSize = 
+			((MP4Integer32Property*)m_pProperties[2])->GetValue();
+
+		// only attempt to write entries table if sampleSize is zero
+		// i.e sample size is not constant
+		if (sampleSize == 0) {
+			WriteProperties(4);
+		}
+	}
 };
 
 class MP4StscAtom : public MP4Atom {
@@ -431,6 +649,41 @@ public:
 			new MP4Integer32Property("samplesPerChunk"));
 		pTable->AddProperty(
 			new MP4Integer32Property("sampleDescriptionIndex"));
+
+		// As an optimization we add an implicit property to this table,
+		// "firstSample" that corresponds to the first sample of the firstChunk
+		MP4Integer32Property* pSample =
+			new MP4Integer32Property("firstSample");
+		pSample->SetImplicit();
+		pTable->AddProperty(pSample);
+	}
+
+	void Read() {
+		// Read as usual
+		MP4Atom::Read();
+
+		// Compute the firstSample values for later use
+		u_int32_t count = 
+			((MP4Integer32Property*)m_pProperties[2])->GetValue();
+
+		MP4Integer32Property* pFirstChunk = (MP4Integer32Property*)
+			((MP4TableProperty*)m_pProperties[3])->GetProperty(0);
+		MP4Integer32Property* pSamplesPerChunk = (MP4Integer32Property*)
+			((MP4TableProperty*)m_pProperties[3])->GetProperty(1);
+		MP4Integer32Property* pFirstSample = (MP4Integer32Property*)
+			((MP4TableProperty*)m_pProperties[3])->GetProperty(3);
+
+		MP4SampleId sampleId = 1;
+
+		for (u_int32_t i = 0; i < count; i++) {
+			pFirstSample->SetValue(sampleId, i);
+
+			if (i < count - 1) {
+				sampleId +=
+					(pFirstChunk->GetValue(i+1) - pFirstChunk->GetValue(i))
+					 * pSamplesPerChunk->GetValue(i);
+			}
+		}
 	}
 };
 
@@ -520,6 +773,14 @@ public:
 		pTable->AddProperty(
 			new MP4Integer16Property("priority"));
 	}
+	void Read() {
+		// table entry count computed from atom size
+		((MP4Integer32Property*)m_pProperties[0])->SetReadOnly(false);
+		((MP4Integer32Property*)m_pProperties[0])->SetValue((m_size - 4) / 2);
+		((MP4Integer32Property*)m_pProperties[0])->SetReadOnly(true);
+
+		MP4Atom::Read();
+	}
 };
 
 class MP4EdtsAtom : public MP4Atom {
@@ -537,11 +798,8 @@ public:
 
 	void Read() {
 		/* read atom version */
-		m_pProperties[0]->Read(m_pFile);
-		u_int8_t version = 
-			((MP4Integer8Property*)m_pProperties[0])->GetValue();
+		ReadProperties(0, 1);
 
-		/* need to create the properties based on the atom version */
 		MP4Integer32Property* pCount = 
 			new MP4Integer32Property("entryCount"); 
 		AddProperty(pCount);
@@ -549,7 +807,8 @@ public:
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
 
-		if (version == 1) {
+		/* need to create the properties based on the atom version */
+		if (GetVersion() == 1) {
 			pTable->AddProperty(
 				new MP4Integer64Property("segmentDuration"));
 			pTable->AddProperty(
@@ -565,7 +824,7 @@ public:
 		pTable->AddProperty(
 			new MP4Integer16Property("reserved"));
 
-		/* now we can read the properties */
+		/* now we can read the remaining properties */
 		ReadProperties(1);
 
 		Skip();	// to end of atom
@@ -576,12 +835,12 @@ class MP4UdtaAtom : public MP4Atom {
 public:
 	MP4UdtaAtom() : MP4Atom("udta") {
 		ExpectChildAtom("cprt", Optional, Many);
+		ExpectChildAtom("hnti", Optional, OnlyOne);
 	}
 
 	void Read() {
 		if (ATOMID(m_pParentAtom->GetType()) == ATOMID("trak")) {
 			ExpectChildAtom("hinf", Optional, OnlyOne);
-			ExpectChildAtom("hnti", Optional, OnlyOne);
 		}
 
 		MP4Atom::Read();
@@ -602,7 +861,38 @@ public:
 class MP4HntiAtom : public MP4Atom {
 public:
 	MP4HntiAtom() : MP4Atom("hnti") {
-		ExpectChildAtom("sdp ", Optional, OnlyOne);
+	}
+	void Read() {
+		MP4Atom* grandParent = m_pParentAtom->GetParentAtom();
+		ASSERT(grandParent);
+		if (ATOMID(grandParent->GetType()) == ATOMID("trak")) {
+			ExpectChildAtom("sdp ", Optional, OnlyOne);
+		} else {
+			ExpectChildAtom("rtp ", Optional, OnlyOne);
+		}
+
+		MP4Atom::Read();
+	}
+};
+
+class MP4RtpAtom : public MP4Atom {
+public:
+	MP4RtpAtom() : MP4Atom("rtp ") {
+		AddProperty(
+			new MP4Integer32Property("descriptionFormat"));
+		AddProperty(
+			new MP4StringProperty("sdpText"));
+	}
+	void Read() {
+		ReadProperties(0, 1);
+
+		/* read sdp string, length is implicit in size of atom */
+		u_int64_t size = m_end - m_pFile->GetPosition();
+		char* data = (char*)MP4Malloc(size + 1);
+		m_pFile->ReadBytes((u_int8_t*)data, size);
+		data[size] = '\0';
+		((MP4StringProperty*)m_pProperties[1])->SetValue(data);
+		MP4Free(data);
 	}
 };
 
@@ -610,13 +900,14 @@ class MP4SdpAtom : public MP4Atom {
 public:
 	MP4SdpAtom() : MP4Atom("sdp ") {
 		AddProperty(
-			new MP4StringProperty("string"));
+			new MP4StringProperty("sdpText"));
 	}
 	void Read() {
-		/* read sdp string */
-		char* data = (char*)MP4Malloc(m_size + 1);
-		m_pFile->ReadBytes((u_int8_t*)data, m_size);
-		data[m_size] = '\0';
+		/* read sdp string, length is implicit in size of atom */
+		u_int64_t size = m_end - m_pFile->GetPosition();
+		char* data = (char*)MP4Malloc(size + 1);
+		m_pFile->ReadBytes((u_int8_t*)data, size);
+		data[size] = '\0';
 		((MP4StringProperty*)m_pProperties[0])->SetValue(data);
 		MP4Free(data);
 	}
@@ -736,7 +1027,7 @@ public:
 		AddProperty( 
 			new MP4Integer32Property("payloadNumber"));
 		AddProperty( 
-			new MP4StringProperty("rtpMap", true));
+			new MP4StringProperty("rtpMap", Counted));
 	}
 };
 
@@ -753,7 +1044,9 @@ MP4Atom* MP4Atom::CreateAtom(char* type)
 {
 	MP4Atom* pAtom = NULL;
 
-	if (ATOMID(type) == ATOMID("mdat")) {
+	if (ATOMID(type) == ATOMID("ftyp")) {
+		pAtom = new MP4FtypAtom();
+	} else if (ATOMID(type) == ATOMID("mdat")) {
 		pAtom = new MP4MdatAtom();
 	} else if (ATOMID(type) == ATOMID("moov")) {
 		pAtom = new MP4MoovAtom();
@@ -831,6 +1124,8 @@ MP4Atom* MP4Atom::CreateAtom(char* type)
 		pAtom = new MP4CprtAtom();
 	} else if (ATOMID(type) == ATOMID("hnti")) {
 		pAtom = new MP4HntiAtom();
+	} else if (ATOMID(type) == ATOMID("rtp ")) {
+		pAtom = new MP4RtpAtom();
 	} else if (ATOMID(type) == ATOMID("sdp ")) {
 		pAtom = new MP4SdpAtom();
 	} else if (ATOMID(type) == ATOMID("hinf")) {
@@ -866,7 +1161,7 @@ MP4Atom* MP4Atom::CreateAtom(char* type)
 		pAtom->SetType("skip");
 	} else {
 		pAtom = new MP4Atom(type);
-		pAtom->SetUnknownType();
+		pAtom->SetUnknownType(true);
 	}
 
 	return pAtom;

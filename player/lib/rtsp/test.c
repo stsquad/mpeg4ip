@@ -87,7 +87,7 @@ int main (int argc, char **argv)
 	if (strncmp(media->control_string, "rtsp://", strlen("rtsp://")) != 0){
 	  // missing content base - make an absolute url
 	  char *str;
-	  size_t cblen;
+	  uint32_t cblen;
 	  cblen = strlen(decode->content_base);
 	  if (decode->content_base[cblen - 1] != '/') cblen++;
 	  str = malloc(strlen(media->control_string) + cblen);

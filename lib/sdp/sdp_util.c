@@ -130,7 +130,7 @@ int add_string_to_list (string_list_t **list, char *val)
  *   buff - buffer to store into
  *   buflen - length of buffer
  */
-void time_offset_to_str (uint32_t val, char *buff, size_t buflen)
+void time_offset_to_str (uint32_t val, char *buff, uint32_t buflen)
 {
   uint32_t div;
 
@@ -168,7 +168,7 @@ void time_offset_to_str (uint32_t val, char *buff, size_t buflen)
  */
 format_list_t *find_format_in_line (format_list_t *head, char *lptr)
 {
-  size_t len;
+  uint32_t len;
   
   while (head != NULL) {
     len = strlen(head->fmt);
@@ -186,7 +186,7 @@ void smpte_to_str (double value, uint16_t fps, char *buffer)
 {
   double div;
   unsigned int temp;
-  size_t index;
+  uint32_t index;
   if (fps == 0) fps = 30;
 
   temp = 0;

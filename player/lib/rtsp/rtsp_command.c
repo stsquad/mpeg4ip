@@ -32,8 +32,8 @@ static const char *UserAgent = "Cisco RTSP 1.0";
  * Builds a common header based on rtsp_command_t information.
  */
 static int rtsp_build_common (char *buffer,
-			      size_t maxlen,
-			      size_t *at,
+			      uint32_t maxlen,
+			      uint32_t *at,
 			      rtsp_client_t *info,
 			      rtsp_command_t *cmd,
 			      const char *session)
@@ -129,7 +129,7 @@ int rtsp_send_describe (rtsp_client_t *info,
 			rtsp_decode_t **decode_result)
 {
   char buffer[2048];
-  size_t maxlen, buflen;
+  uint32_t maxlen, buflen;
   int ret;
   rtsp_decode_t *decode;
 
@@ -199,7 +199,7 @@ int rtsp_send_setup (rtsp_client_t *info,
 		     int is_aggregate)
 {
   char buffer[2048], *temp;
-  size_t maxlen, buflen;
+  uint32_t maxlen, buflen;
   int ret;
   rtsp_decode_t *decode;
   rtsp_session_t *sptr;
@@ -349,7 +349,7 @@ static int rtsp_send_play_or_pause (const char *command,
 				    rtsp_decode_t **decode_result)
 {
   char buffer[2048];
-  size_t maxlen, buflen;
+  uint32_t maxlen, buflen;
   int ret;
   rtsp_decode_t *decode;
 
@@ -475,7 +475,7 @@ static int rtsp_send_teardown_common (rtsp_client_t *info,
 				      rtsp_decode_t **decode_result)
 {
   char buffer[2048];
-  size_t maxlen, buflen;
+  uint32_t maxlen, buflen;
   int ret;
   rtsp_decode_t *decode;
   

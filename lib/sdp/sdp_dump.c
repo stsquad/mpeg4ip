@@ -40,7 +40,7 @@ static void time_repeat_dump (time_repeat_desc_t *trptr)
   int morethan1;
   char buffer[80], *start;
   int cnt;
-  size_t ix;
+  uint32_t ix;
 
   morethan1 = trptr != NULL && trptr->next != NULL;
   cnt = 0;

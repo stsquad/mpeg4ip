@@ -162,7 +162,7 @@ uint64_t CAacRtpByteStream::start_next_frame (void)
 					   
 }
 
-size_t CAacRtpByteStream::read (unsigned char *buffer, size_t bytes_to_read)
+ssize_t CAacRtpByteStream::read (unsigned char *buffer, size_t bytes_to_read)
 {
   size_t inbuffer;
 

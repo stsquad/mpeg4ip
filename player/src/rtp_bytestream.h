@@ -59,14 +59,14 @@ class CRtpByteStreamBase : public COurInByteStream
   int have_no_data(void);
   uint64_t start_next_frame(void);
   double get_max_playtime (void) { return 0.0; };
-  size_t read(unsigned char *buffer, size_t bytes);
-  size_t read(char *buffer, size_t bytes) {
+  ssize_t read(unsigned char *buffer, size_t bytes);
+  ssize_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
 
   // various routines for RTP interface.
   void set_rtp_rtptime(uint32_t t) { m_rtp_rtptime = t;};
-  void set_skip_on_advance (size_t bytes_to_skip) {
+  void set_skip_on_advance (uint32_t bytes_to_skip) {
     m_skip_on_advance_bytes = bytes_to_skip;
   };
   void set_wallclock_offset (uint64_t wclock) {
@@ -91,7 +91,7 @@ class CRtpByteStreamBase : public COurInByteStream
   rtp_packet *m_bookmark_pak;
   int m_bookmark_offset_in_pak;
   int m_bookmark_set;
-  size_t m_skip_on_advance_bytes;
+  uint32_t m_skip_on_advance_bytes;
   uint32_t m_ts;
   uint64_t m_total;
   uint64_t m_total_book;

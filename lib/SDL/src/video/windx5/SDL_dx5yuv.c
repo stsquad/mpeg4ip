@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5yuv.c,v 1.1 2001/08/01 00:34:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5yuv.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 /* This is the DirectDraw implementation of YUV video overlays */
@@ -191,6 +191,7 @@ SDL_Overlay *DX5_CreateYUVOverlay(_THIS, int width, int height, Uint32 format, S
 	    case SDL_YV12_OVERLAY:
 	    case SDL_IYUV_OVERLAY:
 		overlay->planes = 3;
+		break;
 	    default:
 		overlay->planes = 1;
 		break;

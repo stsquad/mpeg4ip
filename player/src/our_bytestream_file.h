@@ -27,6 +27,15 @@
 #include "systems.h"
 #include "our_bytestream.h"
 
+typedef struct frame_file_pos_t
+{
+  struct frame_file_pos_t *next;
+  uint64_t timestamp;
+  long file_position;
+  uint32_t frames;
+} frame_file_pos_t;
+  
+  
 class COurInByteStreamFile : public COurInByteStream
 {
  public:
@@ -39,15 +48,16 @@ class COurInByteStreamFile : public COurInByteStream
   void reset(void);
   int have_no_data(void) { return eof(); };
   uint64_t start_next_frame(void);
-  double get_max_playtime (void) { return 0.0; };
+  double get_max_playtime (void) { return m_max_play_time; };
   void set_start_time(uint64_t start);
-  size_t read(unsigned char *buffer, size_t bytes);
-  size_t read(char *buffer, size_t bytes) {
+  ssize_t read(unsigned char *buffer, size_t bytes);
+  ssize_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
 	    
-  void config_for_file (uint64_t frame_per_sec) {
+  void config_for_file (uint64_t frame_per_sec, double max_time = 0.0) {
     m_frame_per_sec = frame_per_sec;
+    m_max_play_time = max_time;
   };
  private:
   void read_frame (void);
@@ -58,11 +68,14 @@ class COurInByteStreamFile : public COurInByteStream
   int m_bookmark_eofstate;
   uint64_t m_total, m_bookmark_total;
   unsigned char *m_buffer_on, *m_orig_buffer, *m_bookmark_buffer;
-  size_t m_buffer_size, m_bookmark_buffer_size;
-  size_t m_bookmark_loaded, m_bookmark_loaded_size;
-  size_t m_buffer_size_max;
-  size_t m_index, m_bookmark_index;
+  long m_buffer_position, m_bookmark_loaded_position;
+  uint32_t m_buffer_size, m_bookmark_buffer_size;
+  uint32_t m_bookmark_loaded, m_bookmark_loaded_size;
+  uint32_t m_buffer_size_max;
+  uint32_t m_index, m_bookmark_index;
   int m_bookmark;
+  frame_file_pos_t *m_file_pos_head, *m_file_pos_tail;
+  double m_max_play_time;
 };
 
 #endif

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysevents.cc,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysevents.cc,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 #include <support/UTF8.h>
@@ -262,7 +262,12 @@ void BE_PumpEvents(_THIS)
 
 	/* Check for mouse motion */
 	if ( point != last_point ) {
-		SDL_PrivateMouseMotion(0, 0, (int)point.x, (int)point.y);
+		int x, y;
+
+		SDL_Win->GetXYOffset(x, y);
+		x = (int)point.x - x;
+		y = (int)point.y - y;
+		SDL_PrivateMouseMotion(0, 0, x, y);
 	}
 	last_point = point;
 

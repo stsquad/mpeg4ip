@@ -21,16 +21,18 @@
 
 #include "mp4common.h"
 
-MP4File::MP4File()
+MP4File::MP4File(char* fileName, char* mode, u_int32_t verbosity)
 {
 	m_pFile = NULL;
 	m_pRootAtom = new MP4RootAtom();
-	m_verbosity = 0;
+	m_verbosity = verbosity;
 
 	m_numReadBits = 0;
 	m_bufReadBits = 0;
 	m_numWriteBits = 0;
 	m_bufWriteBits = 0;
+
+	Open(fileName, mode);
 }
 
 MP4File::~MP4File()
@@ -38,27 +40,23 @@ MP4File::~MP4File()
 	fclose(m_pFile);
 }
 
-int MP4File::Open(char* fileName, char* mode)
+void MP4File::Open(char* fileName, char* mode)
 {
-	if (m_pFile) {
-		fclose(m_pFile);
-	}
-
+	ASSERT(m_pFile == NULL);
 	m_pFile = fopen(fileName, mode);
 	if (m_pFile == NULL) {
 		VERBOSE_ERROR(m_verbosity, 
 			fprintf(stderr, "Open: failed: %s\n", strerror(errno)));
-		return -1;
+		throw MP4Error(errno, "MP4Open");
 	}
-
-	return 0;
 }
 
 int MP4File::Read()
 {
-	// TBD on file read, do we destroy previous info?
-
 	try {
+		delete m_pRootAtom;
+		m_pRootAtom = new MP4RootAtom();
+
 		u_int64_t fileSize = GetSize();
 
 		m_pRootAtom->SetFile(this);
@@ -139,7 +137,7 @@ u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes)
 {
 	ASSERT(m_pFile);
 	ASSERT(pBytes);
-	ASSERT(numBytes);
+	ASSERT(numBytes > 0);
 	WARNING(m_numReadBits > 0);
 
 	u_int32_t rc;
@@ -341,29 +339,32 @@ void MP4File::WriteFixed32(float value)
 	WriteUInt16(fPart);
 }
 
-char* MP4File::ReadPascalString()
+float MP4File::ReadFloat()
 {
-	u_int8_t length = ReadUInt8();
-	char* data = (char*)MP4Malloc(length + 1);
-	ReadBytes((u_int8_t*)data, length);
-	data[length] = '\0';
-	return data;
+	union {
+		float f;
+		u_int32_t i;
+	} u;
+
+	u.i = ReadUInt32();
+	return u.f;
 }
 
-void MP4File::WritePascalString(char* string)
+void MP4File::WriteFloat(float value)
 {
-	u_int32_t length = strlen(string);
-	if (length > 255) {
-		throw new MP4Error(ERANGE, "MP4WritePascalString");
-	}
-	WriteUInt8(length);
-	WriteBytes((u_int8_t*)string, length);
+	union {
+		float f;
+		u_int32_t i;
+	} u;
+
+	u.f = value;
+	WriteUInt32(u.i);
 }
 
-char* MP4File::ReadCString()
+char* MP4File::ReadString()
 {
 	u_int32_t length = 0;
-	u_int32_t alloced = 256;
+	u_int32_t alloced = 64;
 	char* data = (char*)MP4Malloc(alloced);
 
 	do {
@@ -374,13 +375,60 @@ char* MP4File::ReadCString()
 		length++;
 	} while (data[length - 1] != 0);
 
-	data = (char*)MP4Realloc(data, length - 1);
+	data = (char*)MP4Realloc(data, length);
 	return data;
 }
 
-void MP4File::WriteCString(char* string)
+void MP4File::WriteString(char* string)
 {
 	WriteBytes((u_int8_t*)string, strlen(string) + 1);
+}
+
+char* MP4File::ReadCountedString(u_int8_t charSize, bool allowExpandedCount)
+{
+	u_int32_t charLength;
+	if (allowExpandedCount) {
+		u_int8_t b;
+		charLength = 0;
+		do {
+			b = ReadUInt8();
+			charLength += b;
+		} while (b == 255);
+	} else {
+		charLength = ReadUInt8();
+	}
+
+	u_int32_t byteLength = charLength * charSize;
+	char* data = (char*)MP4Malloc(byteLength + 1);
+	if (byteLength > 0) {
+		ReadBytes((u_int8_t*)data, byteLength);
+	}
+	data[byteLength] = '\0';
+	return data;
+}
+
+void MP4File::WriteCountedString(char* string, 
+	u_int8_t charSize, bool allowExpandedCount)
+{
+	u_int32_t byteLength = strlen(string);
+	u_int32_t charLength = byteLength / charSize;
+
+	if (allowExpandedCount) {
+		do {
+			u_int8_t b = MIN(charLength, 255);
+			WriteUInt8(b);
+			charLength -= b;
+		} while (charLength);
+	} else {
+		if (charLength > 255) {
+			throw new MP4Error(ERANGE, "MP4WriteCountedString");
+		}
+		WriteUInt8(charLength);
+	}
+
+	if (byteLength > 0) {
+		WriteBytes((u_int8_t*)string, byteLength);
+	}
 }
 
 u_int64_t MP4File::ReadBits(u_int8_t numBits)
@@ -425,15 +473,14 @@ void MP4File::FlushWriteBits()
 u_int32_t MP4File::ReadMpegLength()
 {
 	u_int32_t length = 0;
-	u_int8_t temp;
 	u_int8_t numBytes = 0;
+	u_int8_t b;
 
 	do {
-		length <<= 7;
-		temp = ReadUInt8();
-		length |= temp & 0x7F;
+		b = ReadUInt8();
+		length = (length << 7) | (b & 0x7F);
 		numBytes++;
-	} while ((temp & 0x80) && numBytes < 4);
+	} while ((b & 0x80) && numBytes < 4);
 
 	return length;
 }
@@ -471,115 +518,240 @@ void MP4File::WriteMpegLength(u_int32_t value, bool compact)
 	} while (i > 0);
 }
 
-MP4Property* MP4File::FindProperty(char* name)
+bool MP4File::FindProperty(char* name, 
+	MP4Property** ppProperty, u_int32_t* pIndex)
 {
-	return m_pRootAtom->FindProperty(name);
+	return m_pRootAtom->FindProperty(name, ppProperty, pIndex);
 }
 
-// FindTrackProperty
-// FindSampleProperty
-
-MP4Property* MP4File::FindIntegerProperty(char* name)
+void MP4File::FindIntegerProperty(char* name, 
+	MP4Property** ppProperty, u_int32_t* pIndex)
 {
-	MP4Property* pProperty = FindProperty(name);
-	if (!pProperty) {
+	if (!FindProperty(name, ppProperty, pIndex)) {
 		throw new MP4Error("no such property", "MP4File::FindIntegerProperty");
 	}
-	switch (pProperty->GetType()) {
+
+	switch ((*ppProperty)->GetType()) {
 	case Integer8Property:
 	case Integer16Property:
+	case Integer24Property:
 	case Integer32Property:
 	case Integer64Property:
 		break;
 	default:
 		throw new MP4Error("type mismatch", "MP4File::FindIntegerProperty");
 	}
-	return pProperty;
 }
 
 u_int64_t MP4File::GetIntegerProperty(char* name)
 {
-	MP4Property* pProperty = FindIntegerProperty(name);
+	MP4Property* pProperty;
+	u_int32_t index;
+
+	FindIntegerProperty(name, &pProperty, &index);
+
 	switch (pProperty->GetType()) {
 	case Integer8Property:
-		return ((MP4Integer8Property*)pProperty)->GetValue();
+		return ((MP4Integer8Property*)pProperty)->GetValue(index);
 	case Integer16Property:
-		return ((MP4Integer16Property*)pProperty)->GetValue();
+		return ((MP4Integer16Property*)pProperty)->GetValue(index);
+	case Integer24Property:
+		return ((MP4Integer24Property*)pProperty)->GetValue(index);
 	case Integer32Property:
-		return ((MP4Integer32Property*)pProperty)->GetValue();
+		return ((MP4Integer32Property*)pProperty)->GetValue(index);
 	case Integer64Property:
-		return ((MP4Integer64Property*)pProperty)->GetValue();
+		return ((MP4Integer64Property*)pProperty)->GetValue(index);
 	}
 	ASSERT(FALSE);
 }
 
 void MP4File::SetIntegerProperty(char* name, u_int64_t value)
 {
-	MP4Property* pProperty = FindIntegerProperty(name);
+	MP4Property* pProperty;
+	u_int32_t index;
+
+	FindIntegerProperty(name, &pProperty, &index);
 
 	switch (pProperty->GetType()) {
 	case Integer8Property:
-		((MP4Integer8Property*)pProperty)->SetValue(value);
+		((MP4Integer8Property*)pProperty)->SetValue(value, index);
 		break;
 	case Integer16Property:
-		((MP4Integer16Property*)pProperty)->SetValue(value);
+		((MP4Integer16Property*)pProperty)->SetValue(value, index);
+		break;
+	case Integer24Property:
+		((MP4Integer24Property*)pProperty)->SetValue(value, index);
 		break;
 	case Integer32Property:
-		((MP4Integer32Property*)pProperty)->SetValue(value);
+		((MP4Integer32Property*)pProperty)->SetValue(value, index);
 		break;
 	case Integer64Property:
-		((MP4Integer64Property*)pProperty)->SetValue(value);
+		((MP4Integer64Property*)pProperty)->SetValue(value, index);
 		break;
 	default:
 		ASSERT(FALSE);
 	}
 }
 
-MP4StringProperty* MP4File::FindStringProperty(char* name)
+void MP4File::FindFloatProperty(char* name, 
+	MP4Property** ppProperty, u_int32_t* pIndex)
 {
-	MP4Property* pProperty = FindProperty(name);
-	if (!pProperty) {
+	if (!FindProperty(name, ppProperty, pIndex)) {
+		throw new MP4Error("no such property", "MP4File::FindFloatProperty");
+	}
+	if ((*ppProperty)->GetType() != Float32Property) {
+		throw new MP4Error("type mismatch", "MP4File::FindFloatProperty");
+	}
+}
+
+float MP4File::GetFloatProperty(char* name)
+{
+	MP4Property* pProperty;
+	u_int32_t index;
+
+	FindFloatProperty(name, &pProperty, &index);
+
+	return ((MP4Float32Property*)pProperty)->GetValue(index);
+}
+
+void MP4File::SetFloatProperty(char* name, float value)
+{
+	MP4Property* pProperty;
+	u_int32_t index;
+
+	FindFloatProperty(name, &pProperty, &index);
+
+	((MP4Float32Property*)pProperty)->SetValue(value, index);
+}
+
+void MP4File::FindStringProperty(char* name, 
+	MP4Property** ppProperty, u_int32_t* pIndex)
+{
+	if (!FindProperty(name, ppProperty, pIndex)) {
 		throw new MP4Error("no such property", "MP4File::FindStringProperty");
 	}
-	if (pProperty->GetType() != StringProperty) {
+	if ((*ppProperty)->GetType() != StringProperty) {
 		throw new MP4Error("type mismatch", "MP4File::FindStringProperty");
 	}
-	return (MP4StringProperty*)pProperty;
 }
 
 const char* MP4File::GetStringProperty(char* name)
 {
-	MP4StringProperty* pProperty = FindStringProperty(name);
-	return pProperty->GetValue();
+	MP4Property* pProperty;
+	u_int32_t index;
+
+	FindStringProperty(name, &pProperty, &index);
+
+	return ((MP4StringProperty*)pProperty)->GetValue(index);
 }
 
 void MP4File::SetStringProperty(char* name, char* value)
 {
-	MP4StringProperty* pProperty = FindStringProperty(name);
-	pProperty->SetValue(value);
+	MP4Property* pProperty;
+	u_int32_t index;
+
+	FindStringProperty(name, &pProperty, &index);
+
+	((MP4StringProperty*)pProperty)->SetValue(value, index);
 }
 
-MP4BytesProperty* MP4File::FindBytesProperty(char* name)
+void MP4File::FindBytesProperty(char* name, 
+	MP4Property** ppProperty, u_int32_t* pIndex)
 {
-	MP4Property* pProperty = FindProperty(name);
-	if (!pProperty) {
+	if (!FindProperty(name, ppProperty, pIndex)) {
 		throw new MP4Error("no such property", "MP4File::FindBytesProperty");
 	}
-	if (pProperty->GetType() != BytesProperty) {
+	if ((*ppProperty)->GetType() != BytesProperty) {
 		throw new MP4Error("type mismatch", "MP4File::FindBytesProperty");
 	}
-	return (MP4BytesProperty*)pProperty;
 }
 
 void MP4File::GetBytesProperty(char* name, 
 	u_int8_t** ppValue, u_int32_t* pValueSize)
 {
-	MP4BytesProperty* pProperty = FindBytesProperty(name);
-	pProperty->GetValue(ppValue, pValueSize);
+	MP4Property* pProperty;
+	u_int32_t index;
+
+	FindBytesProperty(name, &pProperty, &index);
+
+	((MP4BytesProperty*)pProperty)->GetValue(ppValue, pValueSize, index);
 }
 
-void MP4File::SetBytesProperty(char* name, u_int8_t* pValue, u_int32_t size)
+void MP4File::SetBytesProperty(char* name, 
+	u_int8_t* pValue, u_int32_t valueSize)
 {
-	MP4BytesProperty* pProperty = FindBytesProperty(name);
-	pProperty->SetValue(pValue, size);
+	MP4Property* pProperty;
+	u_int32_t index;
+
+	FindBytesProperty(name, &pProperty, &index);
+
+	((MP4BytesProperty*)pProperty)->SetValue(pValue, valueSize, index);
 }
+
+char* MP4File::MakeTrackName(MP4TrackId trackId, char* name)
+{
+	static char trackName[1024];
+	snprintf(trackName, sizeof(trackName), "moov.trak[%u].%s", trackId, name);
+	return trackName;
+}
+
+void MP4File::GetTrackBytesProperty(MP4TrackId trackId, char* name, 
+	u_int8_t** ppValue, u_int32_t* pValueSize)
+{
+	GetBytesProperty(MakeTrackName(trackId, name), ppValue, pValueSize);
+}
+
+void MP4File::SetTrackBytesProperty(MP4TrackId trackId, char* name, 
+	u_int8_t* pValue, u_int32_t valueSize)
+{
+	SetBytesProperty(MakeTrackName(trackId, name), pValue, valueSize);
+}
+
+// convenience functions
+
+MP4Duration MP4File::GetDuration()
+{
+	return GetIntegerProperty("moov.mvhd.duration");
+}
+
+u_int32_t MP4File::GetTimeScale()
+{
+	return GetIntegerProperty("moov.mvhd.timeScale");
+}
+
+u_int8_t MP4File::GetVideoProfileLevel()
+{
+	return GetIntegerProperty("moov.iods.visualProfileLevelId");
+}
+
+u_int8_t MP4File::GetAudioProfileLevel()
+{
+	return GetIntegerProperty("moov.iods.audioProfileLevelId");
+}
+
+void MP4File::SetVideoProfileLevel(u_int8_t value)
+{
+	SetIntegerProperty("moov.iods.visualProfileLevelId", value);
+}
+ 
+void MP4File::SetAudioProfileLevel(u_int8_t value)
+{
+	SetIntegerProperty("moov.iods.audioProfileLevelId", value);
+}
+ 
+void MP4File::GetESConfiguration(MP4TrackId trackId, 
+	u_int8_t** ppConfig, u_int32_t* pConfigSize)
+{
+	GetTrackBytesProperty(trackId, 
+		"mdia.minf.stbl.stsd.*[0].esds.decConfigDescr.decSpecificInfo.info",
+		ppConfig, pConfigSize);
+}
+
+void MP4File::SetESConfiguration(MP4TrackId trackId, 
+	u_int8_t* pConfig, u_int32_t configSize)
+{
+	SetTrackBytesProperty(trackId, 
+		"mdia.minf.stbl.stsd.*[0].esds.decConfigDescr.decSpecificInfo.info",
+		pConfig, configSize);
+}
+

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11modes.c,v 1.1 2001/08/01 00:34:00 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11modes.c,v 1.2 2001/08/23 00:09:18 wmaycisco Exp $";
 #endif
 
 /* Utilities for getting and setting the X display mode */
@@ -37,6 +37,7 @@ static char rcsid =
 #include "SDL_x11video.h"
 #include "SDL_x11wm_c.h"
 #include "SDL_x11modes_c.h"
+#include "SDL_x11image_c.h"
 
 
 #ifdef XFREE86_VM
@@ -77,8 +78,8 @@ static void restore_mode(_THIS)
 #ifdef XFREE86_VM
 static int cmpmodes(const void *va, const void *vb)
 {
-    XF86VidModeModeInfo *a = *(XF86VidModeModeInfo**)va;
-    XF86VidModeModeInfo *b = *(XF86VidModeModeInfo**)vb;
+    const XF86VidModeModeInfo *a = *(const XF86VidModeModeInfo**)va;
+    const XF86VidModeModeInfo *b = *(const XF86VidModeModeInfo**)vb;
     if(a->hdisplay > b->hdisplay)
         return -1;
     return b->vdisplay - a->vdisplay;
@@ -270,7 +271,7 @@ int X11_GetVideoModes(_THIS)
         }
         XFree(modes);
 
-        use_vidmode = 1;
+        use_vidmode = vm_major * 100 + vm_minor;
         save_mode(this);
     }
 #endif /* XFREE86_VM */
@@ -395,7 +396,7 @@ int X11_ResizeFullScreen(_THIS)
         set_best_resolution(this, current_w, current_h);
         move_cursor_to(this, 0, 0);
         get_real_resolution(this, &real_w, &real_h);
-        XResizeWindow(SDL_Display, FSwindow, real_w, real_h);
+        XMoveResizeWindow(SDL_Display, FSwindow, 0, 0, real_w, real_h);
         move_cursor_to(this, real_w/2, real_h/2);
 
         /* Center and reparent the drawing window */
@@ -424,85 +425,76 @@ int X11_EnterFullScreen(_THIS)
     Window tmpwin, *windows;
     int i, nwindows;
 #endif
+    int real_w, real_h;
 
     okay = 1;
-    if ( ! currently_fullscreen ) {
-        int real_w, real_h;
+    if ( currently_fullscreen ) {
+        return(okay);
+    }
 
-        /* Map the fullscreen window to blank the screen */
-        get_real_resolution(this, &real_w, &real_h);
-        XResizeWindow(SDL_Display, FSwindow, real_w, real_h);
-        XMapRaised(SDL_Display, FSwindow);
-        X11_WaitMapped(this, FSwindow);
+    /* Ungrab the input so that we can move the mouse around */
+    X11_GrabInputNoLock(this, SDL_GRAB_OFF);
+
+    /* Map the fullscreen window to blank the screen */
+    get_real_resolution(this, &real_w, &real_h);
+    XMoveResizeWindow(SDL_Display, FSwindow, 0, 0, real_w, real_h);
+    XMapRaised(SDL_Display, FSwindow);
+    X11_WaitMapped(this, FSwindow);
 
 #if 0 /* This seems to break WindowMaker in focus-follows-mouse mode */
-        /* Make sure we got to the top of the window stack */
-        if ( XQueryTree(SDL_Display, SDL_Root, &tmpwin, &tmpwin,
-                                &windows, &nwindows) && windows ) {
-            /* If not, try to put us there - if fail... oh well */
-            if ( windows[nwindows-1] != FSwindow ) {
-                tmpwin = windows[nwindows-1];
-                for ( i=0; i<nwindows; ++i ) {
-                    if ( windows[i] == FSwindow ) {
-                        memcpy(&windows[i], &windows[i+1],
-                               (nwindows-i-1)*sizeof(windows[i]));
-                        break;
-                    }
+    /* Make sure we got to the top of the window stack */
+    if ( XQueryTree(SDL_Display, SDL_Root, &tmpwin, &tmpwin,
+                            &windows, &nwindows) && windows ) {
+        /* If not, try to put us there - if fail... oh well */
+        if ( windows[nwindows-1] != FSwindow ) {
+            tmpwin = windows[nwindows-1];
+            for ( i=0; i<nwindows; ++i ) {
+                if ( windows[i] == FSwindow ) {
+                    memcpy(&windows[i], &windows[i+1],
+                           (nwindows-i-1)*sizeof(windows[i]));
+                    break;
                 }
-                windows[nwindows-1] = FSwindow;
-                XRestackWindows(SDL_Display, windows, nwindows);
-                XSync(SDL_Display, False);
             }
-            XFree(windows);
+            windows[nwindows-1] = FSwindow;
+            XRestackWindows(SDL_Display, windows, nwindows);
+            XSync(SDL_Display, False);
         }
+        XFree(windows);
+    }
 #else
-	XRaiseWindow(SDL_Display, FSwindow);
-#endif
-
-        /* Grab the mouse on the fullscreen window
-           The event handling will know when we become active, and then
-           enter fullscreen mode if we can't grab the mouse this time.
-         */
-#ifdef GRAB_FULLSCREEN
-        if ( (XGrabPointer(SDL_Display, FSwindow, True, 0,
-                          GrabModeAsync, GrabModeAsync,
-                          FSwindow, None, CurrentTime) != GrabSuccess) ||
-             (XGrabKeyboard(SDL_Display, WMwindow, True,
-                          GrabModeAsync, GrabModeAsync, CurrentTime) != 0) ) {
-#else
-        if ( XGrabPointer(SDL_Display, FSwindow, True, 0,
-                          GrabModeAsync, GrabModeAsync,
-                          FSwindow, None, CurrentTime) != GrabSuccess ) {
-#endif
-            /* We lost the grab, so try again later */
-            XUnmapWindow(SDL_Display, FSwindow);
-            X11_WaitUnmapped(this, FSwindow);
-            X11_QueueEnterFullScreen(this);
-            return(0);
-        }
-#ifdef GRAB_FULLSCREEN
-	SDL_PrivateAppActive(1, SDL_APPINPUTFOCUS);
+    XRaiseWindow(SDL_Display, FSwindow);
 #endif
 
 #ifdef XFREE86_VM
-        /* Save the current video mode */
-        if ( use_vidmode ) {
-            XVidMode(LockModeSwitch, (SDL_Display, SDL_Screen, True));
-        }
-#endif
-        currently_fullscreen = 1;
-
-        /* Set the new resolution */
-        okay = X11_ResizeFullScreen(this);
-        if ( ! okay ) {
-            X11_LeaveFullScreen(this);
-        }
-	/* Set the colormap */
-	if ( SDL_XColorMap ) {
-		XInstallColormap(SDL_Display, SDL_XColorMap);
-	}
+    /* Save the current video mode */
+    if ( use_vidmode ) {
+        XVidMode(LockModeSwitch, (SDL_Display, SDL_Screen, True));
     }
-    X11_GrabInputNoLock(this, this->input_grab | SDL_GRAB_FULLSCREEN);
+#endif
+    currently_fullscreen = 1;
+
+    /* Set the new resolution */
+    okay = X11_ResizeFullScreen(this);
+    if ( ! okay ) {
+        X11_LeaveFullScreen(this);
+    }
+    /* Set the colormap */
+    if ( SDL_XColorMap ) {
+        XInstallColormap(SDL_Display, SDL_XColorMap);
+    }
+    if ( okay )
+        X11_GrabInputNoLock(this, this->input_grab | SDL_GRAB_FULLSCREEN);
+
+    /* We may need to refresh the screen at this point (no backing store)
+       We also don't get an event, which is why we explicitly refresh. */
+    if ( this->screen ) {
+        if ( this->screen->flags & SDL_OPENGL ) {
+            SDL_PrivateExpose();
+        } else {
+            X11_RefreshDisplay(this);
+        }
+    }
+
     return(okay);
 }
 
@@ -518,9 +510,6 @@ int X11_LeaveFullScreen(_THIS)
 #endif
         XUnmapWindow(SDL_Display, FSwindow);
         X11_WaitUnmapped(this, FSwindow);
-#ifdef GRAB_FULLSCREEN
-        XUngrabKeyboard(SDL_Display, CurrentTime);
-#endif
         XSync(SDL_Display, True);   /* Flush spurious mode change events */
         currently_fullscreen = 0;
     }
@@ -530,5 +519,16 @@ int X11_LeaveFullScreen(_THIS)
        explicitly grabbed.
      */
     X11_GrabInputNoLock(this, this->input_grab & ~SDL_GRAB_FULLSCREEN);
+
+    /* We may need to refresh the screen at this point (no backing store)
+       We also don't get an event, which is why we explicitly refresh. */
+    if ( this->screen ) {
+        if ( this->screen->flags & SDL_OPENGL ) {
+            SDL_PrivateExpose();
+        } else {
+            X11_RefreshDisplay(this);
+        }
+    }
+
     return(0);
 }

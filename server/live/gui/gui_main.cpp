@@ -103,6 +103,35 @@ static void delete_event (GtkWidget *widget, gpointer *data)
 	gtk_main_quit();
 }
 
+void NewVideoWindow()
+{
+	// We use the Gtk Preview widget to get the right type of window created
+	// and then hand it over to SDL to actually do the blitting
+
+	if (video_preview != NULL) {
+		gtk_container_remove(GTK_CONTAINER(main_vbox1), 
+			GTK_WIDGET(video_preview));
+		video_preview = NULL;
+	}
+
+	video_preview = gtk_preview_new(GTK_PREVIEW_COLOR);
+
+	gtk_preview_size(GTK_PREVIEW(video_preview), 
+		MyConfig->m_videoWidth, MyConfig->m_videoHeight);
+
+	gtk_widget_show(video_preview);
+
+	gtk_box_pack_start(GTK_BOX(main_vbox1), video_preview, FALSE, FALSE, 5);
+
+	// Let video source know which window to draw into
+	gtk_widget_realize(video_preview);	// so XCreateWindow() is called
+
+	if (video_preview->window) {
+		MyConfig->m_videoPreviewWindowId = 
+			GDK_WINDOW_XWINDOW(video_preview->window);
+	}
+}
+
 void DisplayVideoSettings(void)
 {
 	char buffer[256];
@@ -883,22 +912,7 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 	gtk_box_pack_start(GTK_BOX(main_hbox), main_vbox2, TRUE, TRUE, 5);
 
 	// Video Preview
-	//
-	// We use the Gtk Preview widget to get the right type of window created
-	// and then hand it over to SDL to actually do the blitting
-
-	video_preview = gtk_preview_new(GTK_PREVIEW_COLOR);
-	gtk_preview_size(GTK_PREVIEW(video_preview), 
-		MyConfig->m_videoMaxWidth, MyConfig->m_videoMaxHeight);
-	gtk_widget_show(video_preview);
-	gtk_box_pack_start(GTK_BOX(main_vbox1), video_preview, FALSE, FALSE, 5);
-
-	// Let video source know which window to draw into
-	gtk_widget_realize(video_preview);	// so XCreateWindow() is called
-	if (video_preview->window) {
-		MyConfig->m_videoPreviewWindowId = 
-			GDK_WINDOW_XWINDOW(video_preview->window);
-	}
+	NewVideoWindow();
 	
 	// Video Frame
 	LayoutVideoFrame(main_vbox2);

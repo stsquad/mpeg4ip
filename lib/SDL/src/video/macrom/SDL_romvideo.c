@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_romvideo.c,v 1.1 2001/08/01 00:33:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_romvideo.c,v 1.2 2001/08/23 00:09:17 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -34,7 +34,7 @@ static char rcsid =
    is still at the back on MacOS X, which is where this code is needed.
  */
 #if USE_QUICKTIME
-#include <Movies.h>
+#include <QuickTime/Movies.h>
 #endif
 #else
 #include <LowMem.h>

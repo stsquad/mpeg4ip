@@ -24,19 +24,24 @@
 #ifndef __CODEC_H__
 #define __CODEC_H__ 1
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "systems.h"
 #include <sdp/sdp.h>
-#include "player_media.h"
-//#include "player_rtp_bytestream.h"
-#include "video.h"
+
+class CInByteStreamBase;
+class CAudioSync;
+class CVideoSync;
+struct audio_info_t;
+struct video_info_t;
 
 class CCodecBase {
  public:
-  CCodecBase() {};
+  CCodecBase(CInByteStreamBase *bs) { m_bytestream = bs; };
   virtual ~CCodecBase() {};
-  virtual int decode(uint64_t rtptime, int from_rtp) = 0;
+  virtual int decode(uint64_t timestamp, int from_rtp) = 0;
+  virtual int skip_frame(uint64_t timestamp) = 0;
   virtual void do_pause(void) = 0;
+ protected:
+  CInByteStreamBase *m_bytestream;
 };
 
 class CAudioCodecBase : public CCodecBase {
@@ -46,9 +51,8 @@ class CAudioCodecBase : public CCodecBase {
 		   format_list_t *media_fmt,
 		   audio_info_t *audio,
 		   const unsigned char *userdata = NULL,
-		   size_t userdata_size = 0) : CCodecBase() {
+		   uint32_t userdata_size = 0) : CCodecBase(pbytestream) {
     m_audio_sync = audio_sync;
-    m_bytestream = pbytestream;
     m_media_fmt = media_fmt;
     m_audio_info = audio;
     m_userdata = userdata;
@@ -56,11 +60,10 @@ class CAudioCodecBase : public CCodecBase {
   };
  protected:
   CAudioSync *m_audio_sync;
-  CInByteStreamBase *m_bytestream;
   format_list_t *m_media_fmt;
   audio_info_t *m_audio_info;
   const unsigned char *m_userdata;
-  size_t m_userdata_size;
+  uint32_t m_userdata_size;
 };
 
 class CVideoCodecBase : public CCodecBase {
@@ -70,9 +73,8 @@ class CVideoCodecBase : public CCodecBase {
 		   format_list_t *media_fmt,
 		   video_info_t *vid,
 		   const unsigned char *userdata = NULL,
-		   size_t userdata_size = 0) : CCodecBase() {
+		   uint32_t userdata_size = 0) : CCodecBase(pbytestream) {
     m_video_sync = video_sync;
-    m_bytestream = pbytestream;
     m_media_fmt = media_fmt;
     m_video_info = vid;
     m_userdata = userdata;
@@ -80,11 +82,10 @@ class CVideoCodecBase : public CCodecBase {
   };
  protected:
   CVideoSync *m_video_sync;
-  CInByteStreamBase *m_bytestream;
   format_list_t *m_media_fmt;
   video_info_t *m_video_info;
   const unsigned char *m_userdata;
-  size_t m_userdata_size;
+  uint32_t m_userdata_size;
 };
 
 #endif

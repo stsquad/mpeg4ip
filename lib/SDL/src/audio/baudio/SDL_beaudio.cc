@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_beaudio.cc,v 1.1 2001/08/01 00:33:55 wmaycisco Exp $";
+ "@(#) $Id: SDL_beaudio.cc,v 1.2 2001/08/23 00:09:13 wmaycisco Exp $";
 #endif
 
 /* Allow access to the audio stream on BeOS */
@@ -201,8 +201,12 @@ int BE_OpenAudio(_THIS, SDL_AudioSpec *spec)
 		                                                 NULL, _this);
 		SDL_UnmaskSignals(&omask);
 	}
-	audio_obj->Start();
-	audio_obj->SetHasData(true);
+	if ( audio_obj->Start() == B_NO_ERROR ) {
+		audio_obj->SetHasData(true);
+	} else {
+		SDL_SetError("Unable to start Be audio");
+		return(-1);
+	}
 
 	/* We're running! */
 	return(1);

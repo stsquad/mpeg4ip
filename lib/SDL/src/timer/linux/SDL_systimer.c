@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systimer.c,v 1.1 2001/08/01 00:33:58 wmaycisco Exp $";
+ "@(#) $Id: SDL_systimer.c,v 1.2 2001/08/23 00:09:16 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -35,6 +35,10 @@ static char rcsid =
 #include "SDL_error.h"
 #include "SDL_timer.h"
 #include "SDL_timer_c.h"
+
+#if _POSIX_THREAD_SYSCALL_SOFT
+#include <pthread.h>
+#endif
 
 #if defined(DISABLE_THREADS) || defined(FORK_HACK)
 #define USE_ITIMER
@@ -96,6 +100,9 @@ void SDL_Delay (Uint32 ms)
 	do {
 		errno = 0;
 
+#if _POSIX_THREAD_SYSCALL_SOFT
+		pthread_yield_np();
+#endif
 #ifdef USE_NANOSLEEP
 		tv.tv_sec = elapsed.tv_sec;
 		tv.tv_nsec = elapsed.tv_nsec;

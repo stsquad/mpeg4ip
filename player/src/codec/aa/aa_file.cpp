@@ -80,6 +80,11 @@ int create_media_for_aac_file (CPlayerSession *psptr,
     *errmsg = "Couldn't determine AAC frame rate";
     return (-1);
   } 
+#if 0
+  if (fInfo->adts_header) {
+    player_debug_message("detected adts header - making seekable");
+  }
+#endif
   faacDecClose(fInfo);
 
   fbyte->config_for_file(freq / 1024);

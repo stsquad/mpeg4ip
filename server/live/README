@@ -1,4 +1,4 @@
-August 1, 2001
+August 21, 2001
 
 MP4LIVE 
 =======
@@ -74,9 +74,12 @@ mp4live, please make sure you're able to playback and record with your sound
 card!
 
 You should definitely increase the number of capture buffers for the bttv 
-driver. By default it uses 2 buffers. You can increase this by editting 
-/etc/modules.conf and adding the line "add options bttv gbuffers=32" at 
-the end of the file.
+driver. This reduces the chance of dropping video frames due to transient
+delays in the system. By default bttv uses 2 buffers. You can increase this 
+by editting /etc/modules.conf and adding the line 
+"add options bttv gbuffers=32"
+at the end of the file. The value 32 is my recommendation but you can 
+experiment with other values if you are so inclined.
 
 Note there is currently no support for DV/mini-DV camcorders via FireWire. 
 You can of course still use these via their composite or S-Video outputs.
@@ -90,7 +93,7 @@ See the MPEG4IP README for general notes about the build environment.
 Assuming you've already done a build at the top level of mpeg4ip, and
 you're on a Linux system then mp4live should be built and waiting for you
 in this directory. If you've done a top level 'make install', the mp4live
-will be installed into '/usr/local/bin'. You can of course also issue 
+will be installed into '/usr/local/bin'. Of course, you can also issue 
 'make' and 'make install' from this directory as well.
 
 
@@ -124,6 +127,51 @@ it's a big win to change the "Aspect Ratio" in the Video Settings. This
 will cause the video to be automatically cropped so you don't waste precious 
 CPU time encoding the empty black bars at the top and bottom of the screen. 
 
+Network Transmission
+====================
+
+To use mp4live to transmit live audio/video to the network, follow these
+directions: 
+
+Select 'Enabled' in the Transmission section of the main window.
+
+By default, mp4live will multicast the media to IP address 224.1.2.3
+
+If you wish to change this, select the 'Settings...' button in the
+Transmission section of the main window. A dialog will appear that allows
+selection of the destination IP address (either unicast or multicast),
+the UDP port numbers used, the TTL used if multicasting, and the name of
+the .sdp file to generate (more about that in a minute). When you're done
+making changes, select 'OK'.
+
+When you press mp4live's 'Start' button, media transmission to the network 
+will begin. Also a small text file with extension .sdp will be created that 
+describes the media transmission for the player. The player needs the .sdp 
+file to be able to tune into the media streams. (Note the .sdp file can also
+be generated from the Transmission Settings dialog)
+
+The most convenient way to distribute the .sdp file is to have mp4live write
+it to a directory that is accessible from a web server (httpd) that is running
+on the same machine as mp4live. This allows the client to be started with
+the HTTP URL of the sdp file, and it will download the .sdp file via http
+and then use the information in the .sdp file to tune into the network
+transmission. E.g. 'gmp4player http://myserver/myprogram.sdp'
+
+You can of course distribute the .sdp file in a number of other ways, say
+ftp, or email. You would then start the player with the local file name 
+of the sdp file, e.g. 'gmp4player myprogram.sdp'
+
+
+Use with Darwin Streaming Server
+================================
+
+If you would like to use mp4live in conjunction with the Darwin Streaming
+Server, that is very easy to do. You can have mp4live both record and 
+transmit live media streams. When you record the .mp4 files, just ensure 
+that they are written to a directory that is accessible via the Darwin 
+Streaming Server. Once the recording is complete, it will be available 
+for on-demand playback.
+
 
 Advanced Usage
 ==============
@@ -156,20 +204,21 @@ invoking shell hanging. Use 'ps' to find any threads name 'lt-mp4live'
 and 'kill -9' them. Infrequently, the video capture card may not recover 
 from a crash. In that case, a system rebot is necessary.
 
+Using a system with a PCI instead of an AGP video display card can cause 
+video "tearing" with CIF or larger size images. I.e. the PCI bus quickly
+gets swamped moving raw video from the video capture card to the CPU, and 
+then from the CPU to the video display card. Having the AGP bus for the
+CPU to video display card transfer alleviates this problem. If someone is
+interested one could experiment with the video overlay capabilities of the
+Bt8x8 to bypass this problem, but it would require some rework of our code
+with respect to the video preview function.
+
 It took me awhile to figure this out so perhaps I can save some of you some
 time. If you use the Hauppage WinTV Go card you need to connect the mini-jack
 on the card to the line-in input on your sound card in order to get the
 audio signal from the TV tuner.
 
-I haven't been able to get either of my capture cards to handle 4CIF/4SIF 
-(SDTV, CCIR 601) sizes reliably even though the Bt8x8 can handle those sizes. 
-So in order to minimize complaints, I don't include those sizes in the 
-mp4live UI. There is a #ifdef LARGE_FRAME_SIZES that you can define if
-you want to experiment with these sizes.  You will of course need a very 
-fast machine to encode such sizes in real-time at any reasonable frame rate.
-
-There is no exploitation of the Pentium IV SSE2 instructions (MMX with
-128 bit operands), yet!
+There is no exploitation of the Pentium IV MMX/SSE instructions, yet!
 
 The number of video inputs, their names, and capabilities as reported 
 by the bttv driver (and hence mp4live's UI) is not accurate for all 

@@ -23,7 +23,9 @@
 #include "mp4live.h"
 
 #include <sys/mman.h>
+#ifdef ADD_DIVX_ENCODER
 #include <encore.h>		/* divx */
+#endif /* ADD_DIVX_ENCODER */
 #include <avcodec.h>	/* ffmpeg */
 #include <dsputil.h>	/* ffmpeg */
 #include <mpegvideo.h>	/* ffmpeg */
@@ -109,12 +111,17 @@ void CVideoSource::DoStopCapture(void)
 
 	// shutdown encoders
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
+#ifdef ADD_DIVX_ENCODER
 		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER)) {
 			encore(m_divxHandle, ENC_OPT_RELEASE, NULL, NULL);
-		} else { // ffmpeg
+		} else { 
+#endif /* ADD_DIVX_ENCODER */
+			// ffmpeg
 			divx_encoder.close(&m_avctx);
 			free(m_avctx.priv_data);
+#ifdef ADD_DIVX_ENCODER
 		}
+#endif /* ADD_DIVX_ENCODER */
 	}
 
 	// release device resources
@@ -129,6 +136,7 @@ void CVideoSource::DoStopCapture(void)
 
 void CVideoSource::DoStartPreview(void)
 {
+#ifndef NOGUI
 	if (m_preview) {
 		return;
 	}
@@ -159,11 +167,11 @@ void CVideoSource::DoStartPreview(void)
 		error_message("Could not init SDL video: %s", SDL_GetError());
 	}
 
-	m_sdlScreen = SDL_SetVideoMode(m_pConfig->m_videoMaxWidth, 
-		m_pConfig->m_videoMaxHeight, 32, sdlVideoFlags);
+	m_sdlScreen = SDL_SetVideoMode(m_pConfig->m_videoWidth, 
+		m_pConfig->m_videoHeight, 32, sdlVideoFlags);
 
-	m_sdlScreenRect.x = (m_sdlScreen->w - m_pConfig->m_videoWidth) / 2;
-	m_sdlScreenRect.y = (m_sdlScreen->h - m_pConfig->m_videoHeight) / 2;
+	m_sdlScreenRect.x = 0;
+	m_sdlScreenRect.y = 0;
 	m_sdlScreenRect.w = m_pConfig->m_videoWidth;
 	m_sdlScreenRect.h = m_pConfig->m_videoHeight;
 
@@ -178,10 +186,12 @@ void CVideoSource::DoStartPreview(void)
 	}
 
 	m_preview = true;
+#endif /* NOGUI */
 }
 
 void CVideoSource::DoStopPreview(void)
 {
+#ifndef NOGUI
 	if (!m_preview) {
 		return;
 	}
@@ -202,6 +212,7 @@ void CVideoSource::DoStopPreview(void)
 	m_sdlScreen = NULL;
 
 	m_preview = false;
+#endif /* NOGUI */
 }
 
 void CVideoSource::DoGenerateKeyFrame(void)
@@ -437,7 +448,7 @@ void CalculateVideoFrameSize(CLiveConfig* pConfig)
 	float aspectRatio = pConfig->GetFloatValue(CONFIG_VIDEO_ASPECT_RATIO);
 
 	// crop video to appropriate aspect ratio modulo 16 pixels
-	if ((u_int32_t)(aspectRatio - VIDEO_STD_ASPECT_RATIO) == 0) {
+	if ((aspectRatio - VIDEO_STD_ASPECT_RATIO) < 0.1) {
 		frameHeight = pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
 	} else {
 		frameHeight = (u_int16_t)(
@@ -484,6 +495,7 @@ void CVideoSource::InitSizes()
 
 bool CVideoSource::InitEncoder()
 {
+#ifdef ADD_DIVX_ENCODER
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER)) {
 		// setup DivX Encore parameters
 		ENC_PARAM divxParams;
@@ -511,7 +523,10 @@ bool CVideoSource::InitEncoder()
 			return false;
 		}
 				
-	} else { // use ffmpeg "divx" aka mpeg4 encoder
+	} else { 
+#endif /* ADD_DIVX_ENCODER */
+
+		// use ffmpeg "divx" aka mpeg4 encoder
 		m_avctx.frame_number = 0;
 		m_avctx.width = m_pConfig->m_videoWidth;
 		m_avctx.height = m_pConfig->m_videoHeight;
@@ -526,7 +541,10 @@ bool CVideoSource::InitEncoder()
 		m_avctx.priv_data = malloc(m_avctx.codec->priv_data_size);
 		memset(m_avctx.priv_data, 0, m_avctx.codec->priv_data_size);
 		divx_encoder.init(&m_avctx);
+
+#ifdef ADD_DIVX_ENCODER 
 	}
+#endif /* ADD_DIVX_ENCODER */
 
 	return true;
 }
@@ -615,6 +633,7 @@ void CVideoSource::ProcessVideo(void)
 		uImage = yuvImage + m_yRawSize + m_uvOffset;
 		vImage = uImage + m_uvRawSize;
 
+#ifndef NOGUI
 		if (m_preview && m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)) {
 			SDL_LockYUVOverlay(m_sdlImage);
 			memcpy(m_sdlImage->pixels[0], yImage, m_ySize);
@@ -623,6 +642,7 @@ void CVideoSource::ProcessVideo(void)
 			SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
 			SDL_UnlockYUVOverlay(m_sdlImage);
 		}
+#endif
 
 		// encode video frame to MPEG-4
 		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
@@ -634,9 +654,11 @@ void CVideoSource::ProcessVideo(void)
 				goto release;
 			}
 
+			// call encoder libraries
+
+#ifdef ADD_DIVX_ENCODER
 			ENC_RESULT divxResult;
 
-			// call encoder libraries
 			if (m_pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER)) {
 				ENC_FRAME divxFrame;
 				divxFrame.image = yuvImage;
@@ -652,7 +674,10 @@ void CVideoSource::ProcessVideo(void)
 					goto release;
 				}
 				vopBufLength = divxFrame.length;
-			} else { // ffmpeg
+			} else { 
+#endif /* ADD_DIVX_ENCODER */
+
+				// ffmpeg
 				u_int8_t* yuvPlanes[3];
 				yuvPlanes[0] = yImage;
 				yuvPlanes[1] = uImage;
@@ -664,16 +689,20 @@ void CVideoSource::ProcessVideo(void)
 					vopBuf, m_maxVopSize, yuvPlanes);
 
 				m_avctx.frame_number++;
+#ifdef ADD_DIVX_ENCODER
 			}
+#endif /* ADD_DIVX_ENCODER */
 
 			// clear this flag
 			m_wantKeyFrame = false;
 
 			// if desired, preview reconstructed image
+#ifndef NOGUI
 			if (m_preview 
 			  && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
 				SDL_LockYUVOverlay(m_sdlImage);
 
+#ifdef ADD_DIVX_ENCODER
 				if (m_pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER)) {
 					memcpy2to1(m_sdlImage->pixels[0], 
 						(u_int16_t*)divxResult.reconstruct_y,
@@ -684,7 +713,10 @@ void CVideoSource::ProcessVideo(void)
 					memcpy2to1(m_sdlImage->pixels[2], 
 						(u_int16_t*)divxResult.reconstruct_u,
 						m_uvSize);
-				} else { // ffmpeg
+				} else {
+#endif /* ADD_DIVX_ENCODER */
+
+					// ffmpeg
 					memcpy(m_sdlImage->pixels[0], 
 						((MpegEncContext*)m_avctx.priv_data)->current_picture[0],
 						m_ySize);
@@ -694,11 +726,15 @@ void CVideoSource::ProcessVideo(void)
 					memcpy(m_sdlImage->pixels[2], 
 						((MpegEncContext*)m_avctx.priv_data)->current_picture[1],
 						m_uvSize);
+
+#ifdef ADD_DIVX_ENCODER
 				}
+#endif /* ADD_DIVX_ENCODER */
 
 				SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
 				SDL_UnlockYUVOverlay(m_sdlImage);
 			}
+#endif /* NOGUI */
 
 			// forward previously encoded vop to sinks
 			if (m_prevVopBuf) {
