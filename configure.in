@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.2.2)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.2.3)
 
 dnl Checks for programs. 
 
@@ -139,6 +139,12 @@ AC_CHECK_LIB(a52,
 	     [have_a52=true],
              [have_a52=false])
 AM_CONDITIONAL(HAVE_A52DEC_LIB, $have_a52)
+AC_CHECK_LIB(mad,
+	     mad_decoder_init,
+	     [have_mad=true],
+	     [have_mad=false])
+AM_CONDITIONAL(HAVE_LIBMAD, $have_mad)
+
 have_mpeg2=true
 AC_CHECK_LIB(mpeg2,
 	     mpeg2_init,
@@ -638,6 +644,7 @@ AC_OUTPUT( \
 	player/plugin/audio/a52dec/Makefile \
 	player/plugin/audio/celp/Makefile \
 	player/plugin/audio/ffmpeg/Makefile \
+	player/plugin/audio/mad/Makefile \
 	player/plugin/audio/raw/Makefile \
 	player/plugin/rtp/Makefile \
 	player/plugin/rtp/h261/Makefile \

@@ -22,7 +22,7 @@
 #include "mpeg4ip.h"
 #include "mp4av_h264.h"
 #include "bitstream.h"
-//#define BOUND_VERBOSE
+//#define BOUND_VERBOSE 1
 
 static uint8_t exp_golomb_bits[256] = {
 8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 3, 
@@ -376,6 +376,11 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
     else ret = 0;
   } 
   // other types (6, 7, 8, 
+#ifdef BOUND_VERBOSE
+  if (ret == 0) {
+    printf("no change\n");
+  }
+#endif
   memcpy(decode, &new_decode, sizeof(*decode));
   return ret;
 }

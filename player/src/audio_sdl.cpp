@@ -152,6 +152,8 @@ int CSDLAudioSync::InitializeHardware (void)
 #endif
   int ret = Our_SDL_OpenAudio(&wanted, &m_obtained);
   if (ret < 0) {
+    audio_message(LOG_ERR, "Couldn't open audio %d channels - %s",
+		  wanted.channels, SDL_GetError());
     if (wanted.channels > 2) {
       wanted.channels = 2;
       ret = Our_SDL_OpenAudio(&wanted, &m_obtained);

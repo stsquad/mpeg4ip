@@ -19,7 +19,7 @@
  *           Bill May wmay@cisco.com
  */
 
-//#define H264_DEBUG 1
+//#define DEBUG_H264 1
 
 #include <mp4creator.h>
 #include <mp4av_h264.h>
@@ -72,18 +72,35 @@ static bool RefreshReader (nal_reader_t *nal,
 {
   uint32_t bytes_left;
   uint32_t bytes_read;
+#ifdef DEBUG_H264
+  printf("refresh - start %u buffer on %u size %u\n", 
+	 nal_start, nal->buffer_on, nal->buffer_size);
+#endif
   if (nal_start != 0) {
-    bytes_left = nal->buffer_size - nal_start;
-    if (bytes_left > 0) {
-      memmove(nal->buffer, 
-	      nal->buffer + nal_start,
-	      bytes_left);
-      nal->buffer_on -= bytes_left;
-    } else {
+    if (nal_start > nal->buffer_size) {
+#ifdef DEBUG_H264
+      printf("nal start is greater than buffer size\n");
+#endif
       nal->buffer_on = 0;
+    } else {
+      bytes_left = nal->buffer_size - nal_start;
+      if (bytes_left > 0) {
+	memmove(nal->buffer, 
+		nal->buffer + nal_start,
+		bytes_left);
+	nal->buffer_on -= nal_start;
+#ifdef DEBUG_H264
+	printf("move %u new on is %u\n", bytes_left, nal->buffer_on);
+#endif
+      } else {
+	nal->buffer_on = 0;
+      }
+      nal->buffer_size = bytes_left;
     }
-    nal->buffer_size = bytes_left;
   } else {
+    if (feof(nal->ifile)) {
+      return false;
+    }
     nal->buffer_size_max += 4096 * 4;
     nal->buffer = (uint8_t *)realloc(nal->buffer, nal->buffer_size_max);
   }
@@ -92,6 +109,10 @@ static bool RefreshReader (nal_reader_t *nal,
 		     nal->buffer_size_max - nal->buffer_size,
 		     nal->ifile);
   if (bytes_read == 0) return false;
+#ifdef DEBUG_H264
+  printf("read %u of %u\n", bytes_read, 
+	  nal->buffer_size_max - nal->buffer_size);
+#endif
   nal->buffer_size += bytes_read;
   return true;
 }
@@ -99,8 +120,14 @@ static bool RefreshReader (nal_reader_t *nal,
 static bool LoadNal (nal_reader_t *nal)
 {
   if (nal->buffer_on != 0 || nal->buffer_size == 0) {
-    if (RefreshReader(nal, nal->buffer_on) == false)
-      return false;
+    if (RefreshReader(nal, nal->buffer_on) == false) {
+#ifdef DEBUG_H264
+      printf("refresh returned 0 - buffer on is %u, size %u\n",
+	     nal->buffer_on, nal->buffer_size);
+#endif
+      if (nal->buffer_on >= nal->buffer_size) return false;
+      // continue
+    }
   }
   // find start code
   uint32_t start;
