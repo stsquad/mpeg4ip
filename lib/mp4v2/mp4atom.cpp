@@ -164,6 +164,49 @@ void MP4Atom::Skip() {
 	m_pFile->SetPosition(m_end);
 }
 
+bool MP4Atom::FindAtom(char* name)
+{
+	if (name == NULL) {
+		return false;
+	}
+
+	if (!strcmp(m_type, "")) {
+		return true;
+	}
+
+	// check that our atom name is specified as the first component
+	if (!MP4NameFirstMatches(m_type, name)) {
+		return false;
+	}
+
+	VERBOSE_FIND(m_pFile->GetVerbosity(),
+		printf("FindAtom: matched %s\n", name));
+
+	return true;
+
+	// TBD FindChildAtom
+}
+
+MP4Atom* MP4Atom::FindChildAtom(char* name)
+{
+	// check if we have an index, e.g. trak[1].mdia...
+	u_int32_t atomIndex = 0;
+	MP4NameFirstIndex(name, &atomIndex);
+
+	// need to get to the index'th child atom of the right type
+	for (u_int32_t i = 0; i < m_pChildAtoms.Size(); i++) {
+		if (MP4NameFirstMatches(m_pChildAtoms[i]->GetType(), name)) {
+			if (atomIndex == 0) {
+				// this is the one, ask it to match
+				return m_pChildAtoms[i];
+			}
+			atomIndex--;
+		}
+	}
+
+	return NULL;
+}
+
 bool MP4Atom::FindProperty(char *name, 
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {

@@ -72,11 +72,15 @@ public:
 	void DeleteTrack(MP4TrackId trackId);
 
 	u_int32_t GetNumTracks(char* type = NULL);
+
 	MP4TrackId FindTrackId(u_int16_t index, char* type = NULL);
 	u_int16_t FindTrackIndex(MP4TrackId trackId);
 
 	void SetTrackPosition(MP4SampleId sampleId);
-	void SetTrackTime(u_int64_t time);
+
+	void SetTrackTime(MPTimestamp when) {
+		SetTrackPosition(GetSampleIdFromTime(MP4Timestamp when));
+	}
 
 	/* track properties */
 
@@ -84,7 +88,7 @@ public:
 		MP4TrackId trackId, char* name);
 	float GetTrackFloatProperty(
 		MP4TrackId trackId, char* name);
-	char* GetTrackStringProperty(
+	const char* GetTrackStringProperty(
 		MP4TrackId trackId, char* name);
 	void GetTrackBytesProperty(
 		MP4TrackId trackId, char* name,
@@ -147,6 +151,13 @@ public:
 	void SetGraphicsProfileLevel(u_int8_t value);
 
 	/* track level convenience functions */
+
+	MP4TrackId AddAudioTrack(u_int32_t timeScale, u_int32_t sampleDuration);
+
+	MP4TrackId AddVideoTrack(u_int32_t timeScale, u_int32_t sampleDuration,
+		u_int16_t width, u_int16_t height);
+
+	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 
 	MP4Duration GetTrackDuration(MP4TrackId trackId);
 
@@ -216,6 +227,7 @@ protected:
 		MP4Property** ppProperty, u_int32_t* pIndex);
 
 	char* MakeTrackName(MP4TrackId trackId, char* name);
+	static const char* NormalizeTrackType(const char* type);
 
 protected:
 	FILE*			m_pFile;
@@ -228,17 +240,5 @@ protected:
 	u_int8_t	m_numWriteBits;
 	u_int8_t	m_bufWriteBits;
 };
-
-#ifdef NOTDEF
-	SetTimeScale
-
-	GetNumberOfTracks(char* type);
-
-	AddVideoTrack(w, h, fps, timeScale)
-	AddAudioTrack
-
-	WriteSample
-	WriteNextSample
-#endif
 
 #endif /* __MP4_FILE_INCLUDED__ */

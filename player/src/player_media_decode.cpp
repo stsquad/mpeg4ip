@@ -79,7 +79,6 @@ int CPlayerMedia::decode_thread (void)
   //  uint32_t msec_per_frame = 0;
   CCodecBase *codec = NULL;
   int ret = 0;
-
 #ifdef TIME_DECODE
   int64_t avg = 0, diff;
   int64_t max = 0;

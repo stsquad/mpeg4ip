@@ -83,7 +83,11 @@ int quicktime_read_hdlr(quicktime_t *file, quicktime_hdlr_t *hdlr)
 	hdlr->component_manufacturer = quicktime_read_int32(file);
 	hdlr->component_flags = quicktime_read_int32(file);
 	hdlr->component_flag_mask = quicktime_read_int32(file);
-	quicktime_read_pascal(file, hdlr->component_name);
+	if (file->use_mp4) {
+		// TBD read null terminated string
+	} else {
+		quicktime_read_pascal(file, hdlr->component_name);
+	}
 }
 
 int quicktime_write_hdlr(quicktime_t *file, quicktime_hdlr_t *hdlr)
@@ -101,14 +105,16 @@ int quicktime_write_hdlr(quicktime_t *file, quicktime_hdlr_t *hdlr)
 		for (i = 0; i < 3; i++) {
 			quicktime_write_int32(file, 0x00000000);
 		}
+		quicktime_write_data(file, hdlr->component_name, 
+			strlen(hdlr->component_name) + 1);
 	} else {
 		quicktime_write_char32(file, hdlr->component_type);
 		quicktime_write_char32(file, hdlr->component_subtype);
 		quicktime_write_int32(file, hdlr->component_manufacturer);
 		quicktime_write_int32(file, hdlr->component_flags);
 		quicktime_write_int32(file, hdlr->component_flag_mask);
+		quicktime_write_pascal(file, hdlr->component_name);
 	}
-	quicktime_write_pascal(file, hdlr->component_name);
 
 	quicktime_atom_write_footer(file, &atom);
 }

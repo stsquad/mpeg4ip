@@ -129,12 +129,12 @@ int CDivxCodec::parse_vovod (const char *vovod,
   int ret;
 
   if (ascii == 1) {
-    char *config = strstr(vovod, "config=");
+    const char *config = strcasestr(vovod, "config=");
     if (config == NULL) {
       return 0;
     }
     config += strlen("config=");
-    char *end;
+    const char *end;
     end = config;
     while (isxdigit(*end)) end++;
     if (config == end) {
@@ -252,6 +252,7 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
 	m_decodeState = DIVX_STATE_WAIT_I;
       return (-1);
     }
+    //player_debug_message("frame type %d", mp4_hdr.prediction_type);
     m_decodeState = DIVX_STATE_NORMAL;
     m_last_time = ts;
   } catch (const char *err) {

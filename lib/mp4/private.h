@@ -491,7 +491,7 @@ typedef struct {
 } quicktime_sdp_t;
 
 typedef struct {
-	quicktime_sdp_t		sdp;
+	char*				string;
 } quicktime_rtp_t;
 
 typedef struct {

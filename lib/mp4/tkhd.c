@@ -101,7 +101,11 @@ int quicktime_write_tkhd(quicktime_t *file, quicktime_tkhd_t *tkhd)
 	quicktime_atom_write_header(file, &atom, "tkhd");
 
 	quicktime_write_char(file, tkhd->version);
-	quicktime_write_int24(file, tkhd->flags);
+	if (file->use_mp4 && tkhd->flags != 0) {
+		quicktime_write_int24(file, 1);
+	} else {
+		quicktime_write_int24(file, tkhd->flags);
+	}
 	quicktime_write_int32(file, tkhd->creation_time);
 	quicktime_write_int32(file, tkhd->modification_time);
 	quicktime_write_int32(file, tkhd->track_id);

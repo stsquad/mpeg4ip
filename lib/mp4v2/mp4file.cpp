@@ -705,14 +705,26 @@ void MP4File::SetBytesProperty(char* name,
 MP4TrackId MP4File::AddTrack(char* type)
 {
 	MP4Atom* pTrakAtom = MP4Atom::CreateAtom("trak");
-	MP4Atom* pMoovAtom = m_pRootAtom->FindChildAtom("moov");
+
+	MP4Atom* pMoovAtom = m_pRootAtom->FindAtom("moov");
+
 	pTrakAtom->SetFile(this);
 	pTrakAtom->SetParentAtom(pMoovAtom);
 	pTrakAtom->Generate();
+
 	pMoovAtom->AddChildAtom(pTrakAtom);
+
 	MP4Track* pTrack = new MP4Track(this, pTrakAtom);
 	m_pTracks.Add(pTrack);
-	// TBD update moov.mvhd.nextTrackId
+
+	// allocate a new track id
+	MP4TrackId trackId = GetIntegerProperty("moov.mvhd.nextTrackId");
+	// TBD scan if nextTrackId is max'ed out
+	SetIntegerProperty("moov.mvhd.nextTrackId", trackId + 1);
+
+	// TBD do something with type
+
+	return trackId;
 }
 
 void MP4File::DeleteTrack(MP4TrackId trackId)
@@ -720,11 +732,17 @@ void MP4File::DeleteTrack(MP4TrackId trackId)
 	u_int16_t trackIndex = FindTrackIndex(trackId);
 	MP4Track* pTrack = m_pTracks[trackIndex];
 
-	// TBD remove moov.track[trackIndex]
-	MP4Atom* pMoovAtom = m_pRootAtom->FindChildAtom("moov");
+	MP4Atom* pTrakAtom = pTrack->GetTrakAtom();
+	ASSERT(pTrakAtom);
+
+	MP4Atom* pMoovAtom = m_pRootAtom->FindAtom("moov");
+	ASSERT(pMoovAtom);
+	pMoovAtom->DeleteChildAtom(pTrakAtom);
 
 	m_pTracks.Delete(trackIndex);
+
 	delete pTrack;
+	delete pTrakAtom;
 }
 
 u_int32_t MP4File::GetNumTracks(char* type)
@@ -780,32 +798,62 @@ char* MP4File::MakeTrackName(MP4TrackId trackId, char* name)
 	return trackName;
 }
 
-u_int64_t GetTrackIntegerProperty(MP4TrackId trackId, char* name)
+// map track type name aliases to official names
+
+const char* MP4File::NormalizeTrackType(const char* type)
+{
+	if (!strcasecmp(type, "video")
+	  || !strcasecmp(type, "mp4v") {
+		return "vide";
+	}
+
+	if (!strcasecmp(type, "sound")
+	  || !strcasecmp(type, "audio")
+	  || !strcasecmp(type, "mp4a") {
+		return "soun";
+	}
+
+	if (!strcasecmp(type, "scene")
+	  || !strcasecmp(type, "bifs") {
+		return "sdsm";
+	}
+
+	if (!strcasecmp(type, "od")) {
+		return "odsm";
+	}
+
+	return type;
+}
+
+u_int64_t MP4File::GetTrackIntegerProperty(MP4TrackId trackId, char* name)
 {
 	return GetIntegerProperty(MakeTrackName(trackId, name));
 }
 
-void SetTrackIntegerProperty(MP4TrackId trackId, char* name, int64_t value)
+void MP4File::SetTrackIntegerProperty(MP4TrackId trackId, char* name, 
+	int64_t value)
 {
 	SetIntegerProperty(MakeTrackName(trackId, name), value);
 }
 
-float GetTrackFloatProperty(MP4TrackId trackId, char* name)
+float MP4File::GetTrackFloatProperty(MP4TrackId trackId, char* name)
 {
 	return GetFloatProperty(MakeTrackName(trackId, name));
 }
 
-void SetTrackFloatProperty(MP4TrackId trackId, char* name, float value)
+void MP4File::SetTrackFloatProperty(MP4TrackId trackId, char* name, 
+	float value)
 {
 	SetFloatProperty(MakeTrackName(trackId, name), value);
 }
 
-char* GetTrackStringProperty(MP4TrackId trackId, char* name)
+const char* MP4File::GetTrackStringProperty(MP4TrackId trackId, char* name)
 {
-	return GetStringProperty(MakeTrackName(trackId, name), value);
+	return GetStringProperty(MakeTrackName(trackId, name));
 }
 
-void SetTrackStringProperty(MP4TrackId trackId, char* name, char* value)
+void MP4File::SetTrackStringProperty(MP4TrackId trackId, char* name,
+	char* value)
 {
 	SetStringProperty(MakeTrackName(trackId, name), value);
 }
@@ -888,12 +936,12 @@ void MP4File::SetGraphicsProfileLevel(u_int8_t value)
 
 // track level convenience functions
 
-u_int32_t GetTrackTimeScale(MP4TrackId trackId)
+u_int32_t MP4File::GetTrackTimeScale(MP4TrackId trackId)
 {
 	return GetTrackIntegerProperty(trackId, "mdia.mdhd.timeScale");
 }
 
-void SetTrackTimeScale(MP4TrackId trackId, u_int32_t value)
+void MP4File::SetTrackTimeScale(MP4TrackId trackId, u_int32_t value)
 {
 	SetTrackIntegerProperty(trackId, "mdia.mdhd.timeScale", value);
 }

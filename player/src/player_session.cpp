@@ -306,8 +306,10 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
     rtsp_decode_t *decode;
 
     memset(&cmd, 0, sizeof(rtsp_command_t));
-    sprintf(buffer, "npt=%g-%g", start_time, m_range->range_end);
-    cmd.range = buffer;
+    if (m_range != NULL) {
+      sprintf(buffer, "npt=%g-%g", start_time, m_range->range_end);
+      cmd.range = buffer;
+    }
     if (rtsp_send_aggregate_play(m_rtsp_client,
 				 m_sdp_info->control_string,
 				 &cmd,

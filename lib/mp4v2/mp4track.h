@@ -30,6 +30,9 @@ class MP4Track {
 public:
 	MP4Track(MP4File* pFile, MP4Atom* pTrakAtom);
 
+	MP4TrackId GetId();
+	bool IsType(char* type);
+
 protected:
 	MP4File*	m_pFile;
 	MP4Atom* 	m_pTrakAtom;		// moov.trak[]

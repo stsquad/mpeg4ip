@@ -179,4 +179,21 @@ char *strsep (char **sptr, const char *delim)
 	return (start);
 }
 #endif
+const char *strcasestr (const char *haystack, const char *needle)
+{
+  uint32_t nlen, hlen;
+  uint32_t ix;
+
+  if (needle == NULL || haystack == NULL) return (NULL);
+  nlen = strlen(needle);
+  hlen = strlen(haystack);
+ 
+  for (ix = 0; ix + nlen <= hlen; ix++) {
+    if (strncasecmp(needle, haystack + ix, nlen) == 0) {
+      return (haystack + ix);
+    }
+  }
+  return (NULL);
+}
+
 /* end file player_util.c */

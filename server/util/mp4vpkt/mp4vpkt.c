@@ -84,6 +84,7 @@ int main(int argc, char** argv)
 	u_int bFrameFrequency = 0;		/* --bfrequency=<uint> */
 	bool force = FALSE;				/* --force */
 	bool merge = FALSE;				/* --merge */
+	bool nohint = FALSE;			/* --nohint */
 	bool trace = FALSE;				/* --trace */
 	u_int dump = 0;					/* --dump or --dump=<uint>*/
 	bool mp4VideoPackets = FALSE;	/* --videopackets */
@@ -111,6 +112,7 @@ int main(int argc, char** argv)
 			{ "force", 0, 0, 'f' },
 			{ "height", 1, 0, 'h' },
 			{ "merge", 0, 0, 'm' },
+			{ "nohint", 0, 0, 'n' },
 			{ "outformat", 1, 0, 'o' },
 			{ "profile", 1, 0, 'p' },
 			{ "rate", 1, 0, 'r' },
@@ -121,7 +123,7 @@ int main(int argc, char** argv)
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "b:dfh:mo:p:r:s:tvw:",
+		c = getopt_long_only(argc, argv, "b:dfh:mno:p:r:s:tvw:",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -173,6 +175,10 @@ int main(int argc, char** argv)
 		}
 		case 'm': {
 			merge = TRUE;
+			break;
+		}
+		case 'n': {
+			nohint = TRUE;
 			break;
 		}
 		case 'p': {
@@ -335,8 +341,10 @@ int main(int argc, char** argv)
 	quicktime_set_iod_video_profile_level(qtFile, iodProfileLevel);
 
 	/* create video hint track */
-	hintTrack = quicktime_set_video_hint(qtFile, videoTrack, 
-		"MP4V-ES", &payloadNumber, maxPayloadSize); 
+	if (!nohint) {
+		hintTrack = quicktime_set_video_hint(qtFile, videoTrack, 
+			"MP4V-ES", &payloadNumber, maxPayloadSize); 
+	}
 
 	if (trace) {
 		fprintf(stdout, "  Sample  ObjName           ObjSize  RTP Pkts (num size)\n");
@@ -353,23 +361,25 @@ int main(int argc, char** argv)
 	u_char hintBuf[64*1024];	/* Should be big enough to handle a hint! */
 	u_int hintBufSize = 0;
 
-	/* initialize the first hint sample */
-	quicktime_init_hint_sample(hintBuf, &hintBufSize);
+	if (!nohint) {
+		/* initialize the first hint sample */
+		quicktime_init_hint_sample(hintBuf, &hintBufSize);
 
-	/*
-	 * add a sacrifical first packet to the first hint sample
-	 * this is sent before the first RTCP SR
-	 * which seems to be unfriendly to the client
-	 * the UCL RTP library at least seems to be unhappy about it
-	 */
-	quicktime_add_hint_packet(hintBuf, &hintBufSize, 
-		payloadNumber, rtpPktNum);
-	quicktime_add_hint_sample_data(hintBuf, &hintBufSize, 1, 0, 0);
-	rtpPktNum++;
+		/*
+		 * add a sacrifical first packet to the first hint sample
+		 * this is sent before the first RTCP SR
+		 * which seems to be unfriendly to the client
+		 * the UCL RTP library at least seems to be unhappy about it
+		 */
+		quicktime_add_hint_packet(hintBuf, &hintBufSize, 
+			payloadNumber, rtpPktNum);
+		quicktime_add_hint_sample_data(hintBuf, &hintBufSize, 1, 0, 0);
+		rtpPktNum++;
 
-	/* add a second packet to the first hint */
-	quicktime_add_hint_packet(hintBuf, &hintBufSize, 
-		payloadNumber, rtpPktNum);
+		/* add a second packet to the first hint */
+		quicktime_add_hint_packet(hintBuf, &hintBufSize, 
+			payloadNumber, rtpPktNum);
+	}
 
 	while (1) {
 		static bool starting = TRUE;
@@ -428,7 +438,7 @@ int main(int argc, char** argv)
 					sConfig = binaryToAscii(configObjBuf, configObjBufSize);
 
 					/* create the appropriate SDP attribute */
-					if (sConfig) {
+					if (!nohint && sConfig) {
 						sprintf(sdpBuf,
 							"a=fmtp:%u profile-level-id=%u; config=%s\015\012",
 							payloadNumber,
@@ -515,6 +525,8 @@ int main(int argc, char** argv)
 		}		
 		
 		/* now figure out what to put in the hint track */
+
+		if (!nohint) {
 
 		/* if object is a VOP (Video Object Plane), aka a frame */
 		if (objCode == VOP_START) {
@@ -684,6 +696,8 @@ int main(int argc, char** argv)
 			}
 		}
 
+		} /* !nohint */
+
 		if (trace) {
 			fprintf(stdout, "\n");
 		}
@@ -711,9 +725,11 @@ int main(int argc, char** argv)
 		fprintf(stdout, "\n");
 	}
 
-	/* record maximum bits per second in Quicktime file */
-	quicktime_set_video_hint_max_rate(qtFile, 1000, maxBytesPerSec * 8,
-		videoTrack, hintTrack);
+	if (!nohint) {
+		/* record maximum bits per second in Quicktime file */
+		quicktime_set_video_hint_max_rate(qtFile, 1000, maxBytesPerSec * 8,
+			videoTrack, hintTrack);
+	}
 
 	/* write out the Quicktime file */
 	quicktime_write(qtFile);

@@ -25,7 +25,7 @@
 int quicktime_hmhd_init(quicktime_hmhd_t *hmhd)
 {
 	hmhd->version = 0;
-	hmhd->flags = 1;
+	hmhd->flags = 0;
 	hmhd->maxPDUsize = 0;
 	hmhd->avgPDUsize = 0;
 	hmhd->maxbitrate = 0;

@@ -56,7 +56,7 @@ void mp4vextract(int argc, char** argv)
 
 	u_int8_t* pConfig;
 	u_int32_t configSize;
-	pFile->GetESConfiguration(2, &pConfig, &configSize);
+	pFile->GetTrackESConfiguration(2, &pConfig, &configSize);
 
 	printf("first video config is %u bytes long\n", configSize);
 

@@ -5,6 +5,7 @@ typedef struct http_client_ http_client_t;
 
 typedef struct http_resp_t {
   int ret_code;
+  const char *content_type;
   char *body;
   uint32_t body_len;
 } http_resp_t;

@@ -128,14 +128,23 @@ public:
 		m_pChildAtoms.Add(pChildAtom);
 	}
 
-	// TBD GetNumberOfChildAtoms(char* type = NULL);
-	// TBD FindChildAtom
-	// TBD DeleteChildAtom
+	void DeleteChildAtom(MP4Atom* pChildAtom) {
+		for (MP4ArrayIndex i = 0; i < m_pChildAtoms.Size(); i++) {
+			if (m_pChildAtoms[i] == pChildAtom) {
+				m_pChildAtoms.Delete(i);
+				return;
+			}
+		}
+	}
 
-	u_int8_t GetDepth();
+	// TBD GetNumberOfChildAtoms(char* name = NULL);
+
+	MP4Atom* FindAtom(char* name);
 
 	bool FindProperty(char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex);
+
+	u_int8_t GetDepth();
 
 	void Skip();
 
@@ -167,6 +176,8 @@ protected:
 	}
 
 	MP4AtomInfo* FindAtomInfo(const char* name);
+
+	MP4Atom* FindChildAtom(char* name);
 
 	bool FindContainedProperty(char* name, 
 		MP4Property** ppProperty, u_int32_t* pIndex);

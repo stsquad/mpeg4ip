@@ -98,12 +98,12 @@ int quicktime_write_udta(quicktime_t *file, quicktime_udta_t *udta)
 	 */
 	if (file->use_mp4) {
 		if (udta->copyright_len == 0
-		  && udta->hnti.rtp.sdp.string == NULL) {
+		  && udta->hnti.rtp.string == NULL) {
 			return;
 		}
 	} else {
 		if (udta->copyright_len + udta->name_len + udta->info_len == 0
-		  && udta->hnti.rtp.sdp.string == NULL) {
+		  && udta->hnti.rtp.string == NULL) {
 			return;
 		}
 	}
@@ -130,7 +130,7 @@ int quicktime_write_udta(quicktime_t *file, quicktime_udta_t *udta)
 		quicktime_write_udta_string(file, udta->info, udta->info_len);
 		quicktime_atom_write_footer(file, &subatom);
 	}
-	if (udta->hnti.rtp.sdp.string != NULL) {
+	if (udta->hnti.rtp.string != NULL) {
 		quicktime_write_hnti(file, &(udta->hnti));
 	}
 

@@ -151,7 +151,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
     vinfo->file_has_vol_header = 0;
 #if 1
     player_debug_message("video compressor is %s", codec_name);
-    if (strstr(m_name, ".mp4") != NULL && 
+    if (strcasestr(m_name, ".mp4") != NULL && 
 	strcasecmp(codec_name, "mp4v") == 0) {
       int profileID = quicktime_get_iod_video_profile_level(m_qtfile);
       player_debug_message("Got profile ID %d", profileID);

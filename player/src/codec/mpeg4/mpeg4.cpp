@@ -118,12 +118,12 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
   COurInByteStreamMem *membytestream;
 
   if (ascii == 1) {
-    char *config = strstr(vovod, "config=");
+    const char *config = strcasestr(vovod, "config=");
     if (config == NULL) {
       return 0;
     }
     config += strlen("config=");
-    char *end;
+    const char *end;
     end = config;
     while (isxdigit(*end)) end++;
     if (config == end) {

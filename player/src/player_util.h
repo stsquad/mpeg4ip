@@ -42,6 +42,8 @@ void player_library_message(int loglevel,
 			    const char *fmt,
 			    va_list ap);
   
+const char *strcasestr(const char *haystack, const char *needle);
+  
 #ifdef __cplusplus
 }
 #endif

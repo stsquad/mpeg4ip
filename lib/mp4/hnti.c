@@ -57,7 +57,7 @@ int quicktime_write_hnti(quicktime_t *file, quicktime_hnti_t *hnti)
 {
 	quicktime_atom_t atom;
 
-	if (hnti->rtp.sdp.string == NULL) {
+	if (hnti->rtp.string == NULL) {
 		return;
 	}
 

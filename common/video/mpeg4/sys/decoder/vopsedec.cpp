@@ -1304,11 +1304,11 @@ Bool CVideoObjectDecoder::decodeVOPHead ()
 				m_tModuloBaseDecd : m_tModuloBaseDisp);
 	//	Added for error resilient mode by Toshiba(1997-11-14)
 	UInt uiMarker = m_pbitstrmIn -> getBits (1);
-	assert(uiMarker == 1);
+	assert(uiMarker== 1);
 	//	End Toshiba(1997-11-14)
 	Time tVopIncr = m_pbitstrmIn -> getBits (m_iNumBitsTimeIncr);
 	uiMarker = m_pbitstrmIn->getBits (1); // marker bit
-	assert(uiMarker == 1);
+	assert(uiMarker ==1);
 	m_tOldModuloBaseDecd = m_tModuloBaseDecd;
 	m_tOldModuloBaseDisp = m_tModuloBaseDisp;
 	if (m_vopmd.vopPredType != BVOP ||

@@ -16,7 +16,7 @@
  * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *              Dave Mackie             dmackie@cisco.com
  */
 
 #include "quicktime.h"
@@ -24,47 +24,65 @@
 
 int quicktime_rtp_init(quicktime_rtp_t *rtp)
 {
-	quicktime_sdp_init(&(rtp->sdp));
+        rtp->string = NULL;
+}
+
+int quicktime_rtp_set(quicktime_rtp_t *rtp, char *string)
+{
+        free(rtp->string);
+        if (string != NULL) {
+                rtp->string = malloc(strlen(string) + 1);
+                strcpy(rtp->string, string);
+        } else {
+                rtp->string = NULL;
+        }
+}
+
+int quicktime_rtp_append(quicktime_rtp_t *rtp, char *appendString)
+{
+        char* newString = malloc(strlen(rtp->string) + strlen(appendString) + 1);
+
+        strcpy(newString, rtp->string);
+        strcat(newString, appendString);
+        free(rtp->string);
+        rtp->string = newString;
 }
 
 int quicktime_rtp_delete(quicktime_rtp_t *rtp)
 {
-	quicktime_sdp_delete(&(rtp->sdp));
+        free(rtp->string);
 }
 
 int quicktime_rtp_dump(quicktime_rtp_t *rtp)
 {
-	printf("   rtp\n");
-	quicktime_sdp_dump(&rtp->sdp);
+        printf("    rtp\n");
+        printf("     string %s\n", rtp->string);
 }
 
-int quicktime_read_rtp(quicktime_t *file, quicktime_rtp_t *rtp, quicktime_atom_t *parent_atom)
+int quicktime_read_rtp(quicktime_t *file, quicktime_rtp_t *rtp, 
+        quicktime_atom_t* rtp_atom)
 {
-	quicktime_atom_t leaf_atom;
-
-	do {
-		quicktime_atom_read_header(file, &leaf_atom);
-
-		if (quicktime_atom_is(&leaf_atom, "sdp ")) {
-			quicktime_read_sdp(file, &(rtp->sdp), &leaf_atom);
-		} else {
-			quicktime_atom_skip(file, &leaf_atom);
-		}
-	} while (quicktime_position(file) < parent_atom->end);
+        int rtpLen = rtp_atom->size - 12;
+        free(rtp->string);
+        rtp->string = malloc(rtpLen + 1);
+		quicktime_read_int32(file);	// skip the 'sdp '
+        quicktime_read_data(file, rtp->string, rtpLen);
+        rtp->string[rtpLen] = '\0';
 }
 
 int quicktime_write_rtp(quicktime_t *file, quicktime_rtp_t *rtp)
 {
-	quicktime_atom_t atom;
+        int i;
+        quicktime_atom_t atom;
 
-	if (rtp->sdp.string == NULL) {
-		return;
-	}
+        if (rtp->string == NULL) {
+                return;
+        }
 
-	quicktime_atom_write_header(file, &atom, "rtp ");
+        quicktime_atom_write_header(file, &atom, "rtp ");
 
-	quicktime_write_sdp(file, &(rtp->sdp));
+        quicktime_write_data(file, "sdp ", 4);
+        quicktime_write_data(file, rtp->string, strlen(rtp->string));
 
-	quicktime_atom_write_footer(file, &atom);
+        quicktime_atom_write_footer(file, &atom);
 }
-
