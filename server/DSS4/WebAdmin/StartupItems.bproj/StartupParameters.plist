@@ -1,0 +1,11 @@
+{
+  Description     = "QuickTime Streaming Server Admin";
+  Provides        = ("QuickTime Streaming Server Admin");
+  Requires        = ("Resolver");
+  OrderPreference = "None";
+  Messages =
+  {
+    start = "Starting QuickTime Streaming Server Admin";
+    stop  = "Stopping QuickTime Streaming Server Admin";
+  };
+}

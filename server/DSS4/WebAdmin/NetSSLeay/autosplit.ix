@@ -1,0 +1,20 @@
+# Index created by AutoSplit for blib/lib/Net/SSLeay.pm
+#    (file acts as timestamp)
+package Net::SSLeay;
+sub open_tcp_connection  ;
+sub ssl_read_all  ;
+sub ssl_write_all  ;
+sub ssl_read_until  ;
+sub ssl_read_CRLF  ;
+sub ssl_write_CRLF  ;
+sub dump_peer_certificate  ;
+sub randomize  ;
+sub sslcat  ;
+sub https_cat  ;
+sub set_server_cert_and_key  ;
+sub make_form  ;
+sub make_headers  ;
+sub do_https  ;
+sub get_https  ;
+sub post_https  ;
+1;

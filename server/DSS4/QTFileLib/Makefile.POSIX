@@ -1,0 +1,58 @@
+# Copyright (c) 1999 Apple Computer, Inc.  All rights reserved.
+#  
+
+NAME = QTFileLib
+C++ = $(CPLUS)
+CC = $(CCOMP)
+LINK = $(LINKER)
+CCFLAGS += $(COMPILER_FLAGS) $(INCLUDE_FLAG) ../PlatformHeader.h -g -Wall
+
+# OPTIMIZATION
+CCFLAGS += -O3
+
+# EACH DIRECTORY WITH HEADERS MUST BE APPENDED IN THIS MANNER TO THE CCFLAGS
+
+CCFLAGS += -I.
+CCFLAGS += -I../CommonUtilitiesLib
+CCFLAGS += -I../RTPMetaInfoLib
+
+C++FLAGS = $(CCFLAGS)
+
+CPPFILES = 	QTAtom.cpp\
+			QTAtom_dref.cpp \
+			QTAtom_elst.cpp\
+			QTAtom_hinf.cpp \
+			QTAtom_mdhd.cpp\
+			QTAtom_mvhd.cpp \
+			QTAtom_stco.cpp\
+			QTAtom_stsc.cpp \
+			QTAtom_stsd.cpp\
+			QTAtom_stss.cpp \
+			QTAtom_stsz.cpp\
+			QTAtom_stts.cpp \
+			QTAtom_tkhd.cpp\
+			QTAtom_tref.cpp \
+			QTFile.cpp\
+			QTFile_FileControlBlock.cpp \
+			QTHintTrack.cpp\
+			QTRTPFile.cpp \
+			QTTrack.cpp
+	
+
+all: libQTFileLib.a
+
+libQTFileLib.a: $(CFILES:.c=.o) $(CPPFILES:.cpp=.o)
+	ar -r libQTFileLib.a $(CFILES:.c=.o) $(CPPFILES:.cpp=.o)
+	ranlib libQTFileLib.a
+	
+clean:
+	rm -f $(CFILES:.c=.o) $(CPPFILES:.cpp=.o)
+
+.SUFFIXES: .cpp .c .o
+
+.cpp.o:
+	$(C++) -c -o $*.o $(DEFINES) $(C++FLAGS) $*.cpp
+
+.c.o:
+	$(CC) -c -o $*.o $(DEFINES) $(CCFLAGS) $*.c
+

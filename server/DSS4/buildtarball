@@ -1,0 +1,84 @@
+#!/bin/sh
+
+#Darwin BuildTarball script
+
+PLAT=`uname`
+
+case $PLAT in
+	"Darwin")
+        echo "Do not use this script for building on MacOS X."
+        echo "Use 'pbxbuild' command instead."
+        exit 1
+	;;
+			
+	*)
+        echo "Preparing for the Darwin "$PLAT" platform"
+	;;		
+esac
+
+echo removing DarwinStreamingSrvr4.0-$PLAT.tar.gz
+if rm -f DarwinStreamingSrvr4.0-$PLAT.tar.gz; 
+then :
+fi
+
+echo removing DarwinStreamingSrvr4.0-$PLAT
+if rm -rf DarwinStreamingSrvr4.0-$PLAT; 
+then :
+fi
+
+echo removing StreamingProxy-4.0-$PLAT.tar.gz
+if rm -f StreamingProxy-4.0-$PLAT.tar.gz; 
+then :
+fi
+
+echo removing StreamingProxy-4.0-$PLAT
+if rm -rf StreamingProxy-4.0-$PLAT 
+then :
+fi
+
+./Buildit clean
+./Buildit
+
+if [ ! -f DarwinStreamingServer ];
+then 
+	echo "DarwinStreamingServer failed to build!"
+	echo Done!
+	exit 1
+fi
+
+if [ ! -f PlaylistBroadcaster.tproj/PlaylistBroadcaster ];
+then 
+	echo "PlaylistBroadcaster failed to build!"
+	echo Done!
+	exit 1
+fi
+
+if [ ! -f MP3Broadcaster/MP3Broadcaster ];
+then 
+	echo "MP3Broadcaster failed to build!"
+	echo Done!
+	exit 1
+fi
+
+if [ ! -f qtpasswd.tproj/qtpasswd ];
+then 
+	echo "qtpasswd failed to build!"
+	echo Done!
+	exit 1
+fi
+
+./DSS_MakeRoot -f DarwinStreamingSrvr4.0-$PLAT
+tar cvf DarwinStreamingSrvr4.0-$PLAT.tar DarwinStreamingSrvr4.0-$PLAT
+gzip DarwinStreamingSrvr4.0-$PLAT.tar
+
+./DSS_MakeProxyRoot StreamingProxy-4.0-$PLAT
+tar cvf StreamingProxy-4.0-$PLAT.tar StreamingProxy-4.0-$PLAT
+gzip StreamingProxy-4.0-$PLAT.tar
+
+if [ ! -d SpamPro.tproj ];
+then 
+    echo "Warning: there is no SpamPro.tproj folder."
+fi
+
+echo Done!
+

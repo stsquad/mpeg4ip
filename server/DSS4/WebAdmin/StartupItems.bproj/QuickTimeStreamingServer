@@ -1,0 +1,13 @@
+#!/bin/sh
+
+. /etc/rc.common
+
+/bin/rm -f /Library/QuickTimeStreaming/Playlists/*/*.pid
+/bin/rm -f /Library/QuickTimeStreaming/Playlists/*/*.current
+/bin/rm -f /Library/QuickTimeStreaming/Playlists/*/*.upcoming
+
+if [ "${QTSSERVER}" = "-YES-" ]; then
+    ConsoleMessage "Starting QuickTime Streaming Server Admin"
+
+    /usr/sbin/streamingadminserver.pl
+fi

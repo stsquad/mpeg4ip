@@ -1,0 +1,164 @@
+#!/usr/bin/perl
+
+########################################################
+# package version = major, minor1, minor2, release
+my $QTSS_PACKAGEVERSION		= "4.0.0.0";
+my $QTSS_PACKAGENAME		= "QTSS.pkg";
+my $INSTALLED_PACKAGE_VERS	= "$3/Library/Receipts/".$QTSS_PACKAGENAME."/Contents/Resources/release_version";
+my $INSTALLED_OS_VERS		= "$3/System/Library/CoreServices/SystemVersion.plist";
+my $REQUIRED_OS_VERS		= "10.1.0";
+########################################################
+
+#exit 97; stop install with default err "This software cannot be installed on this computer."
+#exit 112; stop install with error string 16
+#exit 113; stop install with error string 17
+#exit 0; ok
+
+if( !open( THISPACKAGE, "$INSTALLED_PACKAGE_VERS" ) )
+{
+    exit 0;
+}
+else
+{
+    close( THISPACKAGE );
+    
+    #  only install on OS X
+    if ( SystemVersionPlistCheck ( $INSTALLED_OS_VERS, $REQUIRED_OS_VERS, "<" ) )
+	{
+		exit 113;
+	}
+
+    # make sure we don't stomp a newer version
+    if( ReleaseVersCheck( "$QTSS_PACKAGEVERSION", "<", "$INSTALLED_PACKAGE_VERS" ) )
+    {
+		exit 112;
+	}
+}
+exit 0;
+
+#####
+
+sub SystemVersionPlistCheck
+{
+     my $path            = $_[0];
+     my $version         = $_[1];
+     my $operator        = $_[2];
+
+     if (!$operator)
+     {
+         $operator = "==";
+     }
+
+     my $oldSeperator = $/;
+     $/ = \0;
+
+     open( PLIST, "$path") || do {
+         return 0;
+     };
+
+     $plistData = <PLIST>;
+     $plistData =~ /<dict>(.*?)<\/dict>/gis;
+
+     @items = split(/<key>/, $plistData);
+
+     shift @items;
+     foreach $item (@items) {
+         $item =~ /(.*?)<\/key>.*?<string>(.*?)<\/string>/gis;
+         $versiondata{ $1 } = $2;
+     }
+
+     close(PLIST);
+
+     $/ = $oldSeperator;
+
+     @cfBundleVersionArray = split(/\./, $versiondata{ProductVersion});
+     for ($i = 0; $i < 3; $i++) {
+         if(!$cfBundleVersionArray[$i]) {
+             $cfBundleVersionArray[$i] = '0';
+         }
+     }
+
+     @versionArray = split(/\./, $version);
+
+     my $actualVersion;
+
+     for ($i = 0; $i < 3; $i++) {
+         if (($cfBundleVersionArray[$i] != $versionArray[$i]) or ($i == 
+2)) {
+
+             $actualVersion = $cfBundleVersionArray[$i];
+             $version = $versionArray[$i];
+
+             last;
+         }
+     }
+
+     my $expression = '$actualVersion ' . $operator . ' $version';
+
+     if( eval ($expression) )
+     {
+         return 1;
+     }
+     else
+     {
+         return 0;
+     }
+
+}
+
+
+###
+# args: path, version number, operator: == > < >= <=
+sub ReleaseVersCheck
+{ 
+    my $installVersion  = $_[0];
+    my $operator        = $_[1];
+   	my $path            = $_[2];
+ 
+    if (!$operator)
+    {
+        $operator = "==";
+    }
+
+    open( PACKAGE, "$path" ) || do {
+        return 0;
+    };
+
+    foreach $line ( <PACKAGE> )
+    {
+        chomp $line;
+        ( $key, $value ) = split( /\t/, $line );
+
+        $installedVersiondata{ $key } = $value;
+    }
+
+    close( PACKAGE );
+
+    @installedVersionArray = ($installedVersiondata{ 'Major:' }, $installedVersiondata{ 'Minor1:' }, $installedVersiondata{ 'Minor2:' }, $installedVersiondata{ 'Release:' });
+
+    @newInstallArray = split(/\./, $installVersion);
+
+    my $newVersion;
+    
+    for ($i = 0; $i < 4; $i++) {
+        if (($installedVersionArray[$i] != $newInstallArray[$i]) or ($i == 3)) {
+     
+            $newVersion = $newInstallArray[$i];
+            $installedVersion = $installedVersionArray[$i];
+    
+            last;
+        }
+    }
+
+    my $expression = '$newVersion ' . $operator . ' $installedVersion';
+
+    if( eval ($expression) )
+    { 
+      	#failed
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
