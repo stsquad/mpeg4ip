@@ -135,7 +135,7 @@ static void ShowSourceSpecificSettings()
 
 static void SourceOssDevice()
 {
-	char *newSourceName =
+	const gchar *newSourceName =
 		gtk_entry_get_text(GTK_ENTRY(source_entry));
 
 	// don't probe the already open device!
@@ -170,7 +170,7 @@ static void SourceOssDevice()
 
 static void ChangeSource()
 {
-	char* new_source_name =
+	const gchar* new_source_name =
 		gtk_entry_get_text(GTK_ENTRY(source_entry));
 
 	if (!strcmp(new_source_name, source_name)) {

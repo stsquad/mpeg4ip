@@ -406,7 +406,7 @@ public:
 
 	// recalculate derived values
 	void Update();
-	void UpdateFileHistory(char* fileName);
+	void UpdateFileHistory(const char* fileName);
 	void UpdateVideo();
 	void CalculateVideoFrameSize();
 	void UpdateAudio();

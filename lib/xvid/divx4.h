@@ -179,9 +179,15 @@ typedef struct _ENC_FRAME_
     int quant;		// quantizer for this frame; only used in VBR modes
     int intra;		// force this frame to be intra/inter; only used in VBR 2-pass
     void *mvs;		// optional pointer to array of motion vectors
+#ifdef MPEG4IP
+  int general;
+#endif
 }
 ENC_FRAME;
 
+#ifdef MPEG4IP
+#define DEC_SHORT_HEADERS 1
+#endif
 /**
     Structure passed as a second optional argument when encoding a frame.
     On successful return its members are filled with parameters of encoded

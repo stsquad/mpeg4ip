@@ -37,13 +37,6 @@ extern "C" bool MP4AV_Rfc2250Hinter(
 		return false;
 	}
 
-	MP4TrackId hintTrackId =
-		MP4AddHintTrack(mp4File, mediaTrackId);
-
-	if (hintTrackId == MP4_INVALID_TRACK_ID) {
-		return false;
-	}
-
 	u_int32_t numSamples =
 		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
@@ -55,6 +48,13 @@ extern "C" bool MP4AV_Rfc2250Hinter(
 		MP4GetTrackFixedSampleDuration(mp4File, mediaTrackId);
 
 	if (sampleDuration == MP4_INVALID_DURATION) {
+		return false;
+	}
+
+	MP4TrackId hintTrackId =
+		MP4AddHintTrack(mp4File, mediaTrackId);
+
+	if (hintTrackId == MP4_INVALID_TRACK_ID) {
 		return false;
 	}
 

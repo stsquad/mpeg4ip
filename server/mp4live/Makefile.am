@@ -79,6 +79,7 @@ AM_CXXFLAGS = -DADD_XVID_ENCODER \
 	-D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
 LDADD = \
+	@GTK_LIBS@ @GLIB_LIBS@ \
 	$(top_builddir)/server/mp4live/gui/libmp4livegui.la \
 	$(top_builddir)/server/audio/faac/libfaac.la \
 	$(top_builddir)/server/audio/lame/libmp3lame.a \
@@ -93,6 +94,5 @@ LDADD = \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	-lpthread \
 	@SDL_LIBS@ \
-	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
-	@GTK_LIBS@ @GLIB_LIBS@
+	$(top_builddir)/lib/SDL/src/main/libSDLmain.a 
 

@@ -126,6 +126,10 @@ void BitstreamWriteVolHeader(Bitstream * const bs,
 
 void BitstreamWriteVopHeader(Bitstream * const bs,
 						const MBParam * pParam);
+#ifdef MPEG4IP
+void BitstreamWriteShortVopHeader(Bitstream * const bs, 
+				  const MBParam *pParam);
+#endif
 
 
 /* initialise bitstream structure */

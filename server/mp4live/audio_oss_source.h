@@ -69,7 +69,7 @@ protected:
 
 class CAudioCapabilities {
 public:
-	CAudioCapabilities(char* deviceName) {
+	CAudioCapabilities(const char* deviceName) {
 		m_deviceName = stralloc(deviceName);
 		m_canOpen = false;
 		m_numSamplingRates = 0;

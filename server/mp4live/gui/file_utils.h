@@ -32,7 +32,7 @@ void FileBrowser(
 GtkWidget* CreateTrackMenu(
 	GtkWidget* menu,
 	char type, 
-	char* source,
+	const char* source,
 	u_int32_t* pMenuIndex,
 	u_int32_t* pMenuNumber,
 	u_int32_t** ppMenuValues);
@@ -42,6 +42,6 @@ bool IsUrl(const char* name);
 bool IsMp4File(const char* name);
 bool IsMpeg2File(const char* name);
 
-int32_t FileDefaultAudio(char* fileName);
+int32_t FileDefaultAudio(const char* fileName);
 
 #endif /* __FILE_UTILS_INCLUDED__ */

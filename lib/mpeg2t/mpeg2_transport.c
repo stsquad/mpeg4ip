@@ -505,6 +505,7 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
  */
 static void clean_es_data (mpeg2t_es_t *es_pid) 
 {
+  es_pid->have_ps_ts = 0;
   switch (es_pid->stream_type) {
   case 1:
   case 2:
@@ -552,6 +553,7 @@ void mpeg2t_malloc_es_work (mpeg2t_es_t *es_pid, uint32_t frame_len)
   es_pid->work->next_frame = NULL;
   es_pid->work->have_ps_ts = es_pid->have_ps_ts;
   es_pid->work->ps_ts = es_pid->ps_ts;
+  es_pid->have_ps_ts = 0;
 }
 
 /*
@@ -713,6 +715,8 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	pts |= ((esptr[7] >> 1) & 0x7f);
 	es_pid->have_ps_ts = 1;
 	es_pid->ps_ts = (pts * M_LLU) / (90 * M_LLU); // give msec
+	mpeg2t_message(LOG_DEBUG, "pid %x psts "LLU, 
+		       es_pid->pid.pid, es_pid->ps_ts);
       }
       buflen -= esptr[2] + 3;
       esptr += esptr[2] + 3;
@@ -743,7 +747,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     // aac
     break;
   }
-  es_pid->have_ps_ts = 0;
+  //es_pid->have_ps_ts = 0;
   return ret;
 }
 			    

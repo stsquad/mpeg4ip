@@ -409,13 +409,6 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 {
 	int rc;
 
-	MP4TrackId hintTrackId =
-		MP4AddHintTrack(mp4File, mediaTrackId);
-
-	if (hintTrackId == MP4_INVALID_TRACK_ID) {
-		return false;
-	}
-
 	u_int32_t numSamples =
 		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
@@ -430,19 +423,26 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 		return false;
 	}
 
+	// choose 500 ms max latency
+	MP4Duration maxLatency = 
+		MP4GetTrackTimeScale(mp4File, mediaTrackId) / 2;
+	if (maxLatency == 0) {
+		return false;
+	}
+
+	MP4TrackId hintTrackId =
+		MP4AddHintTrack(mp4File, mediaTrackId);
+
+	if (hintTrackId == MP4_INVALID_TRACK_ID) {
+		return false;
+	}
+
 	doInterleave = interleave;
 
 	u_int8_t payloadNumber = 0;
 
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
 		"mpa-robust", &payloadNumber, 0);
-
-	// choose 500 ms max latency
-	MP4Duration maxLatency = 
-		MP4GetTrackTimeScale(mp4File, hintTrackId) / 2;
-	if (maxLatency == 0) {
-		return false;
-	}
 
 	// load mp3 frame information into memory
 	rc = GetFrameInfo(
@@ -452,6 +452,7 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 		&pAduOffsets);
 
 	if (!rc) {
+		MP4DeleteTrack(mp4File, hintTrackId);
 		return false;
 	}
  
@@ -477,7 +478,7 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 		// and then recompute samples per group to deal with rounding
 		samplesPerGroup = stride * samplesPerPacket;
 
-		MP4AV_AudioInterleaveHinter(
+		rc = MP4AV_AudioInterleaveHinter(
 			mp4File, 
 			mediaTrackId, 
 			hintTrackId,
@@ -488,7 +489,7 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 			MP4AV_Rfc3119Concatenator);
 
 	} else {
-		MP4AV_AudioConsecutiveHinter(
+		rc = MP4AV_AudioConsecutiveHinter(
 			mp4File, 
 			mediaTrackId, 
 			hintTrackId,
@@ -507,6 +508,11 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 	pFrameHeaders = NULL;
 	free(pAduOffsets);
 	pAduOffsets = NULL;
+
+	if (!rc) {
+		MP4DeleteTrack(mp4File, hintTrackId);
+		return false;
+	}
 
 	return true;
 }

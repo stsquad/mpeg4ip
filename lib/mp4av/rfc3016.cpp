@@ -32,6 +32,13 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 	MP4TrackId mediaTrackId, 
 	u_int16_t maxPayloadSize)
 {
+	u_int32_t numSamples = MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
+	u_int32_t maxSampleSize = MP4GetTrackMaxSampleSize(mp4File, mediaTrackId);
+	
+	if (numSamples == 0 || maxSampleSize == 0) {
+		return false;
+	}
+
 	MP4TrackId hintTrackId =
 		MP4AddHintTrack(mp4File, mediaTrackId);
 
@@ -72,6 +79,7 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 		/* convert it into ASCII form */
 		char* sConfig = MP4BinaryToBase16(pConfig, configSize);
 		if (sConfig == NULL) {
+			MP4DeleteTrack(mp4File, hintTrackId);
 			return false;
 		}
 
@@ -92,15 +100,9 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 
 	}
 
-	u_int32_t numSamples = MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
-	u_int32_t maxSampleSize = MP4GetTrackMaxSampleSize(mp4File, mediaTrackId);
-	
-	if (numSamples == 0 || maxSampleSize == 0) {
-		return false;
-	}
-
 	u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);
 	if (pSampleBuffer == NULL) {
+		MP4DeleteTrack(mp4File, hintTrackId);
 		return false;
 	}
 
@@ -118,6 +120,7 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 			&renderingOffset, &isSyncSample);
 
 		if (!rc) {
+			MP4DeleteTrack(mp4File, hintTrackId);
 			return false;
 		}
 

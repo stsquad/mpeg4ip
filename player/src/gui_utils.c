@@ -57,9 +57,13 @@ GtkWidget *CreateWidgetFromXpm (GtkWidget *window, gchar **xpm_data)
       printf("Error\n");
       return (NULL);
     }
+#ifdef HAVE_GTK_2_0
+    pixmap = gtk_image_new_from_pixmap(gdkpixmap, mask);
+#else
     pixmap = gtk_pixmap_new (gdkpixmap, mask);
     gdk_pixmap_unref (gdkpixmap);
     gdk_bitmap_unref (mask);
+#endif
     gtk_widget_show(pixmap);
     return pixmap;
 }

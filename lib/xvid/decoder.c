@@ -72,6 +72,9 @@
 int decoder_alloc(XVID_DEC_PARAM * param)
 {
   param->handle = xvid_malloc(sizeof(DECODER), CACHE_LINE);
+#ifdef MPEG4IP
+  memset(param->handle, 0, sizeof(DECODER));
+#endif
   if (param->handle == NULL) 
     return XVID_ERR_MEMORY;
   return XVID_ERR_OK;
@@ -387,7 +390,15 @@ static void decoder_iframe(DECODER * dec, Bitstream * bs, int quant, int intra_d
 			mb->mode = mcbpc & 7;
 			cbpc = (mcbpc >> 4);
 
+#ifdef MPEG4IP
+			if (dec->have_short_header) {
+				acpred_flag = 0;
+			} else {
+#endif
 			acpred_flag = BitstreamGetBit(bs);
+#ifdef MPEG4IP
+			}
+#endif
 
 			if (mb->mode == MODE_STUFFING)
 			{
@@ -677,6 +688,7 @@ int decoder_decode(DECODER * dec, XVID_DEC_FRAME * frame)
 
 }
 
+// entire function added for mpeg4ip
 int decoder_find_vol (DECODER * dec, 
 		      XVID_DEC_FRAME * frame, 
 		      XVID_DEC_PARAM * param)
@@ -687,11 +699,16 @@ int decoder_find_vol (DECODER * dec,
 	uint32_t fcode;
 	uint32_t intra_dc_threshold;
 	int ret;
+	int len = frame->length;
 
 	BitstreamInit(&bs, frame->bitstream, frame->length);
 
 	ret = BitstreamReadHeaders(&bs, dec, &rounding, &quant, &fcode, &intra_dc_threshold, 1);
-	frame->length = BitstreamPos(&bs) / 8;
+	if (dec->have_short_header) {
+	  frame->length = len;
+	} else {
+	  frame->length = len - (BitstreamPos(&bs) / 8);
+	}
 
 	if (ret > 0) {
 	  param->width = dec->width;
@@ -702,3 +719,4 @@ int decoder_find_vol (DECODER * dec,
 	if (ret < 0) return XVID_ERR_FORMAT;
 	return XVID_ERR_FAIL;
 }
+

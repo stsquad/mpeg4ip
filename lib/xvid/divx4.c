@@ -379,6 +379,11 @@ int encore(void * handle, int opt, void * param1, void * param2)
 			xframe.length = eframe->length;
 
 			xframe.general = XVID_HALFPEL | XVID_H263QUANT;
+#ifdef MPEG4IP
+			if (eframe->general & DEC_SHORT_HEADERS) {
+			  xframe.general |= XVID_SHORT_HEADERS;
+			}
+#endif
 
 			if(quality > 3)
 				xframe.general |= XVID_INTER4V;

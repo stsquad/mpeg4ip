@@ -52,6 +52,7 @@ int main(int argc, char** argv)
 	u_int frameHeight = 240;		/* --height=<uint> */
 	float frameRate = 30.0;			/* --rate=<float> */
 	u_int iFrameFrequency = 30;		/* --ifrequency=<uint> */
+	int short_headers = 0;                  /* --shortheaders */
 
 	/* internal variables */
 	char* rawFileName = NULL;
@@ -78,10 +79,11 @@ int main(int argc, char** argv)
 			{ "ifrequency", 1, 0, 'i' },
 			{ "rate", 1, 0, 'r' },
 			{ "width", 1, 0, 'w' },
+			{ "shortheaders", 0, 0, 's' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "b:h:i:r:w:",
+		c = getopt_long_only(argc, argv, "b:h:i:r:w:s",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -154,6 +156,9 @@ int main(int argc, char** argv)
 			}
 			break;
 		}
+		case 's':
+		  short_headers = 1;
+		  break;
 		case '?':
 			break;
 		default:
@@ -162,6 +167,43 @@ int main(int argc, char** argv)
 		}
 	}
 
+	if (short_headers) {
+	  switch (frameWidth) {
+	  case 128:
+	    if (frameHeight != 96) {
+	      fprintf(stderr, "Illegal height %d with width of 128 - must be 96\n", frameHeight);
+	      exit(-1);
+	    }
+	    break;
+	  case 176:
+	    if (frameHeight != 144) {
+	      fprintf(stderr, "Illegal height %d with width of 176 - must be 144\n", frameHeight);
+	      exit(-1);
+	    }
+	    break;
+	  case 352:
+	    if (frameHeight != 288) {
+	      fprintf(stderr, "Illegal height %d with width of 352 - must be 288\n", frameHeight);
+	      exit(-1);
+	    }
+	    break;
+	  case 704:
+	    if (frameHeight != 576) {
+	      fprintf(stderr, "Illegal height %d with width of 704 - must be 576\n", frameHeight);
+	      exit(-1);
+	    }
+	    break;
+	  case 1408:
+	    if (frameHeight != 1152) {
+	      fprintf(stderr, "Illegal height %d with width of 1408 - must be 1152\n", frameHeight);
+	      exit(-1);
+	    }
+	    break;
+	  default:
+	    fprintf(stderr, "Must have legal height/width for short headers\n");
+	    exit(-1);
+	  }
+	}
 	/* check that we have at least two non-option arguments */
 	if ((argc - optind) < 2) {
 		fprintf(stderr, 
@@ -235,7 +277,10 @@ int main(int argc, char** argv)
 	encFrame.quant = 0;
 	encFrame.intra = -1;
 	encFrame.mvs = NULL;
-
+	encFrame.general = 0;
+	if (short_headers) {
+	  encFrame.general |= DEC_SHORT_HEADERS;
+	}
 	startTime = time(0);
 
 	while (!feof(rawFile)) {

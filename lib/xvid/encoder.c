@@ -341,7 +341,7 @@ int encoder_encode(Encoder * pEnc, XVID_ENC_FRAME * pFrame, XVID_ENC_STATS * pRe
 	}
 
 #ifdef MPEG4IP
-	if (pEnc->iFrameNum == 0) {
+	if (pEnc->iFrameNum == 0 && (pEnc->mbParam.global_flags & XVID_SHORT_HEADERS) == 0) {
 		BitstreamWriteVoshHeader(&bs);
 		write_vol_header = 1;
 	}
@@ -656,13 +656,19 @@ static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits
 	pEnc->mbParam.coding_type = I_VOP;
 
 #ifdef MPEG4IP
-	if (vol_header) {
-		BitstreamWriteVolHeader(bs, &pEnc->mbParam);
-	}
+	if ((pEnc->mbParam.global_flags & XVID_SHORT_HEADERS) == 0) {
+	  if (vol_header) {
+	    BitstreamWriteVolHeader(bs, &pEnc->mbParam);
+	  }
 #else
-	BitstreamWriteVolHeader(bs, &pEnc->mbParam);
+	  BitstreamWriteVolHeader(bs, &pEnc->mbParam);
 #endif
-	BitstreamWriteVopHeader(bs, &pEnc->mbParam);
+	  BitstreamWriteVopHeader(bs, &pEnc->mbParam);
+#ifdef MPEG4IP
+	} else {
+	  BitstreamWriteShortVopHeader(bs, &pEnc->mbParam);
+	}
+#endif
 
 	*pBits = BitstreamPos(bs);
 
@@ -770,10 +776,18 @@ static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool forc
 
 	pEnc->mbParam.coding_type = P_VOP;
 
-	if(vol_header)
-		BitstreamWriteVolHeader(bs, &pEnc->mbParam);
+#ifdef MPEG4IP
+	if ((pEnc->mbParam.global_flags & XVID_SHORT_HEADERS) == 0) {
+#endif
+	  if(vol_header)
+	    BitstreamWriteVolHeader(bs, &pEnc->mbParam);
 
-	BitstreamWriteVopHeader(bs, &pEnc->mbParam);
+	  BitstreamWriteVopHeader(bs, &pEnc->mbParam);
+#ifdef MPEG4IP
+	} else {
+	  BitstreamWriteShortVopHeader(bs, &pEnc->mbParam);
+	}
+#endif
 
 	*pBits = BitstreamPos(bs);
 

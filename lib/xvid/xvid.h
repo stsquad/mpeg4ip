@@ -126,6 +126,9 @@ int xvid_decore(void * handle,
 #define XVID_ME_FULLSEARCH		0x00040000
 #define XVID_ME_PMVFAST			0x00080000
 #define XVID_ME_EPZS			0x00100000
+#ifdef MPEG4IP
+#define XVID_SHORT_HEADERS              0x00200000
+#endif
 
 #define PMV_HALFPELDIAMOND16 	0x00010000
 #define PMV_HALFPELREFINE16 	0x00020000

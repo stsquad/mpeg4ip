@@ -71,7 +71,8 @@ Void CVideoObjectPlane::allocate (CRct r, CPixel pxl)
 
 	// allocate pixels and initialize
 	if (m_rc.empty()) return;
-	m_ppxl = new CPixel [m_rc.area ()];
+	UInt area = m_rc.area();
+	m_ppxl = new CPixel [area];
 	for (UInt i = 0; i < m_rc.area (); i++)
 		m_ppxl [i] = pxl;
 //	memset (m_ppxl, pxl, m_rc.area () * sizeof (CPixel));

@@ -100,8 +100,6 @@ protected:
 		return true;
 	}
 
-	void PaceSource();
-
 	void ForwardFrame(CMediaFrame* pFrame);
 
 	void DoStopSource();
@@ -262,6 +260,7 @@ protected:
 	bool			m_videoWantKeyFrame;
 
 	// video timing info
+	Timestamp		m_videoStartTimestamp;
 	u_int32_t		m_videoSkippedFrames;
 	Duration		m_videoEncodingDrift;
 	Duration		m_videoEncodingMaxDrift;
@@ -307,6 +306,7 @@ protected:
 	CAudioEncoder*	m_audioEncoder;
 
 	// audio timing info
+	Timestamp		m_audioStartTimestamp;
 	Duration		m_audioSrcElapsedDuration;
 	Duration		m_audioDstElapsedDuration;
 };

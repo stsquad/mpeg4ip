@@ -59,7 +59,7 @@ void CLiveConfig::Update()
 	UpdateRecord();
 }
 
-void CLiveConfig::UpdateFileHistory(char* fileName)
+void CLiveConfig::UpdateFileHistory(const char* fileName)
 {
 	u_int8_t i;
 	u_int8_t end = NUM_FILE_HISTORY - 1;

@@ -137,7 +137,7 @@ bool IsMpeg2File(const char* fileName)
 		|| !strcmp(ext3, ".vob");
 }
 
-int32_t Mp4FileDefaultAudio(char* fileName)
+int32_t Mp4FileDefaultAudio(const char* fileName)
 {
 	MP4FileHandle mp4File = MP4Read(fileName);
 
@@ -156,7 +156,7 @@ int32_t Mp4FileDefaultAudio(char* fileName)
 	return trackId;
 }
 
-int32_t Mpeg2FileDefaultAudio(char* fileName)
+int32_t Mpeg2FileDefaultAudio(const char* fileName)
 {
 	mpeg3_t* mpeg2File = mpeg3_open(fileName);
 
@@ -174,7 +174,7 @@ int32_t Mpeg2FileDefaultAudio(char* fileName)
 	return 0; 
 }
 
-int32_t FileDefaultAudio(char* fileName)
+int32_t FileDefaultAudio(const char* fileName)
 {
 	if (IsMp4File(fileName)) {
 		return Mp4FileDefaultAudio(fileName);
@@ -196,7 +196,7 @@ static void on_track_menu_activate(GtkWidget *widget, gpointer data)
 static GtkWidget* CreateNullTrackMenu(
 	GtkWidget* menu,
 	char type,
-	char* source,
+	const char* source,
 	u_int32_t* pIndex,
 	u_int32_t* pNumber,
 	u_int32_t** ppValues)
@@ -235,7 +235,7 @@ static GtkWidget* CreateNullTrackMenu(
 static GtkWidget* CreateMp4TrackMenu(
 	GtkWidget* menu,
 	char type,
-	char* source,
+	const char* source,
 	u_int32_t* pIndex,
 	u_int32_t* pNumber,
 	u_int32_t** ppValues)
@@ -297,8 +297,14 @@ static GtkWidget* CreateMp4TrackMenu(
 				case MP4_YUV12_VIDEO_TYPE:
 					trackName = "YUV12";
 					break;
-				case MP4_H26L_VIDEO_TYPE:
-					trackName = "H26L";
+				case MP4_H264_VIDEO_TYPE:
+					trackName = "H264";
+					break;
+				case MP4_H263_VIDEO_TYPE:
+					trackName = "H263";
+					break;
+				case MP4_H261_VIDEO_TYPE:
+					trackName = "H261";
 					break;
 				}
 			
@@ -334,6 +340,12 @@ static GtkWidget* CreateMp4TrackMenu(
 					break;
 				case MP4_VORBIS_AUDIO_TYPE:
 					trackName = "Ogg Vorbis";
+					break;
+				case MP4_ALAW_AUDIO_TYPE:
+					trackName = "G711 aLaw";
+					break;
+				case MP4_ULAW_AUDIO_TYPE:
+					trackName = "G711 uLaw";
 					break;
 				}
 
@@ -376,7 +388,7 @@ static GtkWidget* CreateMp4TrackMenu(
 static GtkWidget* CreateMpeg2TrackMenu(
 	GtkWidget* menu,
 	char type,
-	char* source,
+	const char* source,
 	u_int32_t* pIndex,
 	u_int32_t* pNumber,
 	u_int32_t** ppValues)
@@ -461,7 +473,7 @@ static GtkWidget* CreateMpeg2TrackMenu(
 GtkWidget* CreateTrackMenu(
 	GtkWidget* menu,
 	char type, 
-	char* source,
+	const char* source,
 	u_int32_t* pMenuIndex,
 	u_int32_t* pMenuNumber,
 	u_int32_t** ppMenuValues)

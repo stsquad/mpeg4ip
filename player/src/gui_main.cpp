@@ -148,6 +148,9 @@ static void adjust_gui_for_play (void)
   gtk_widget_set_sensitive(play_button, 1);
   gtk_widget_set_sensitive(pause_button, 1);
   gtk_widget_set_sensitive(stop_button, 1);
+#ifdef HAVE_GTK_2_0
+  gtk_range_set_value(GTK_RANGE(time_slider), 0.0);
+#endif
   if (psptr->session_is_seekable()) {
     gtk_widget_set_sensitive(time_slider, 1);
   }
@@ -416,7 +419,7 @@ static void on_browse_button_clicked (GtkWidget *window, gpointer data)
 
 static void on_playlist_child_selected (GtkWidget *window, gpointer data)
 {
-  gchar *entry = 
+  const gchar *entry = 
     gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(combo)->entry));
   if (strcmp(entry, "") == 0) 
     return;
@@ -427,7 +430,7 @@ static void on_playlist_child_selected (GtkWidget *window, gpointer data)
 
 static void on_play_list_selected (GtkWidget *window, gpointer data)
 {
-  gchar *entry = gtk_entry_get_text(GTK_ENTRY(window));
+  const gchar *entry = gtk_entry_get_text(GTK_ENTRY(window));
   start_session_from_name(entry);
 }
 
@@ -544,9 +547,10 @@ static void volume_adjusted (int volume)
   master_volume = volume;
   config.set_config_value(CONFIG_VOLUME, master_volume);
   gtk_range_set_adjustment(GTK_RANGE(volume_slider), val);
+#ifndef HAVE_GTK_2_0
   gtk_range_slider_update(GTK_RANGE(volume_slider));
   gtk_range_clear_background(GTK_RANGE(volume_slider));
-  //gtk_range_draw_background(GTK_RANGE(volume_slider));
+#endif
    if (master_muted == 0 && psptr && psptr->session_has_audio()) {
      psptr->set_audio_volume(master_volume);
    }
@@ -669,22 +673,29 @@ static void on_video_fullscreen (GtkWidget *window, gpointer data)
   }
 }
 
-static void on_time_slider_pressed (GtkWidget *window, gpointer data)
+static int on_time_slider_pressed (GtkWidget *window, gpointer data)
 {
   time_slider_pressed = 1;
+  return (FALSE);
 }
 
-static void on_time_slider_adjusted (GtkWidget *window, gpointer data)
+static int on_time_slider_adjusted (GtkWidget *window, gpointer data)
 {
   double maxtime, newtime;
   time_slider_pressed = 0;
   if (psptr == NULL) 
-    return;
+    return FALSE;
   maxtime = psptr->get_max_time();
   if (maxtime == 0.0)
-    return;
-  GtkAdjustment *val = gtk_range_get_adjustment(GTK_RANGE(time_slider));
-  newtime = (maxtime * val->value) / 100.0;
+    return FALSE;
+  gdouble val;
+#ifdef HAVE_GTK_2_0
+  val = gtk_range_get_value(GTK_RANGE(time_slider));
+#else
+  GtkAdjustment *adj_val = gtk_range_get_adjustment(GTK_RANGE(time_slider));
+  val = adj_val->value;
+#endif
+  newtime = (maxtime * val) / 100.0;
   SDL_mutexP(command_mutex);
   if (play_state == PLAYING) {
     psptr->pause_all_media();
@@ -694,14 +705,10 @@ static void on_time_slider_adjusted (GtkWidget *window, gpointer data)
   if (ret == 0) 
     adjust_gui_for_play();
   SDL_mutexV(command_mutex);
-  if (ret == 0) {
-    gtk_range_set_adjustment(GTK_RANGE(time_slider), val);
-    gtk_range_slider_update(GTK_RANGE(time_slider));
-    gtk_range_clear_background(GTK_RANGE(time_slider));
-  //gtk_range_draw_background(GTK_RANGE(vol));
-  } else {
+  if (ret != 0) {
     close_session();
-  }
+  } 
+  return FALSE;
 }
 
 static void on_loop_enabled_button (GtkWidget *widget, gpointer *data)
@@ -734,6 +741,9 @@ static gint main_timer (gpointer raw)
       } else {
 	val = (playtime * 100.0) / val;
       }
+#ifdef HAVE_GTK_2_0
+      gtk_range_set_value(GTK_RANGE(time_slider), val);
+#else
       GtkAdjustment *adj = gtk_range_get_adjustment(GTK_RANGE(time_slider));
       adj->value = val;
       gtk_range_set_adjustment(GTK_RANGE(time_slider), adj);
@@ -741,6 +751,7 @@ static gint main_timer (gpointer raw)
       gtk_range_clear_background(GTK_RANGE(time_slider));
       gtk_range_draw_background(GTK_RANGE(time_slider));
       gtk_widget_show(time_slider);
+#endif
     }
     int hr, min, tot;
     tot = (int) playtime;
@@ -1018,7 +1029,11 @@ printf("%s\n", *argv);
   gtk_widget_show(main_vbox);
   // add stuff
   accel_group = gtk_accel_group_new();
+#ifdef HAVE_GTK_2_0
+  gtk_window_add_accel_group(GTK_WINDOW(main_window), accel_group);
+#else
   gtk_accel_group_attach(accel_group, GTK_OBJECT(main_window));
+#endif
   tooltips = gtk_tooltips_new();
 
   GtkWidget *menubar, *menu, *menuitem;
@@ -1240,7 +1255,9 @@ printf("%s\n", *argv);
   play_button = gtk_toggle_button_new();
   image = CreateWidgetFromXpm(main_window,xpm_play);
   gtk_container_add(GTK_CONTAINER(play_button), image);
-  gdk_pixmap_unref((GdkPixmap *)image);
+#if 0
+  //gdk_pixmap_unref((GdkPixmap *)image);
+#endif
   gtk_widget_show(play_button);
   gtk_signal_connect(GTK_OBJECT(play_button),
 		     "clicked",
@@ -1251,7 +1268,9 @@ printf("%s\n", *argv);
   pause_button = gtk_toggle_button_new();
   image = CreateWidgetFromXpm(main_window,xpm_pause);
   gtk_container_add(GTK_CONTAINER(pause_button), image);
+#if 0
   gdk_pixmap_unref((GdkPixmap *)image);
+#endif
   gtk_widget_show(pause_button);
   gtk_signal_connect(GTK_OBJECT(pause_button),
 		     "clicked",
@@ -1262,7 +1281,9 @@ printf("%s\n", *argv);
   stop_button = gtk_toggle_button_new();
   image = CreateWidgetFromXpm(main_window,xpm_stop);
   gtk_container_add(GTK_CONTAINER(stop_button), image);
+#if 0
   gdk_pixmap_unref((GdkPixmap *)image);
+#endif
   gtk_widget_show(stop_button);
   gtk_signal_connect(GTK_OBJECT(stop_button),
 		     "clicked",
@@ -1292,7 +1313,9 @@ printf("%s\n", *argv);
 			      master_muted == 0 ?
 			      xpm_speaker : xpm_speaker_muted);
   gtk_container_add(GTK_CONTAINER(speaker_button), image);
+#if 0
   gdk_pixmap_unref((GdkPixmap *)image);
+#endif
   gtk_widget_show(speaker_button);
   gtk_signal_connect(GTK_OBJECT(speaker_button),
 		     "clicked",
@@ -1313,21 +1336,27 @@ printf("%s\n", *argv);
   gtk_scale_set_digits(GTK_SCALE(vol),0);
   gtk_scale_set_draw_value(GTK_SCALE(vol), 0);
   gtk_range_set_adjustment ( GTK_RANGE( vol ), GTK_ADJUSTMENT(vol_adj));
+#ifdef HAVE_GTK_2_0
+  gtk_widget_set_size_request(GTK_WIDGET(vol), 100, -1);
+  gtk_range_set_update_policy(GTK_RANGE(vol), GTK_UPDATE_DISCONTINUOUS);
+#else
   gtk_range_slider_update ( GTK_RANGE( vol ) );
   gtk_range_clear_background ( GTK_RANGE( vol ) );
   //gtk_range_draw_background ( GTK_RANGE( vol ) );
+#endif
 
-#if 0
+#ifdef HAVE_GTK_2_0
   // We don't need this - I'm not 100% sure why, but we don't...
   gtk_signal_connect(vol_adj,
 		     "value_changed",
 		     GTK_SIGNAL_FUNC(on_volume_adjusted),
 		     vol);
-#endif
+#else
   gtk_signal_connect(GTK_OBJECT(vol), 
 		     "button_release_event",
 		     GTK_SIGNAL_FUNC(on_volume_adjusted),
 		     vol);
+#endif
   gtk_widget_show(vol);
   volume_slider = vol;
   gtk_box_pack_start(GTK_BOX(hbox2), vol, TRUE, TRUE, 0);
@@ -1373,15 +1402,16 @@ printf("%s\n", *argv);
 				  0.5);
   
   time_slider = gtk_hscale_new(GTK_ADJUSTMENT(time_slider_adj));
-  gtk_widget_ref(time_slider);
   gtk_range_set_update_policy(GTK_RANGE(time_slider), GTK_UPDATE_DELAYED);
   gtk_scale_set_digits(GTK_SCALE(time_slider),0);
   gtk_scale_set_draw_value(GTK_SCALE(time_slider), 0);
   gtk_range_set_adjustment(GTK_RANGE(time_slider), 
 			   GTK_ADJUSTMENT(time_slider_adj));
+#ifndef HAVE_GTK_2_0
   gtk_range_slider_update(GTK_RANGE(time_slider));
   gtk_range_clear_background(GTK_RANGE( time_slider));
-  //gtk_range_draw_background(GTK_RANGE(time_slider));
+#endif
+
   gtk_signal_connect(GTK_OBJECT(time_slider), 
 		     "button_release_event",
 		     GTK_SIGNAL_FUNC(on_time_slider_adjusted),

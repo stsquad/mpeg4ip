@@ -691,7 +691,7 @@ static void LoadConfig()
 {
 	AVFlow->StopVideoPreview();
 
-	char* configFileName =
+	const gchar* configFileName =
 		gtk_entry_get_text(GTK_ENTRY(config_file_entry));
 
 	MyConfig->ReadFromFile(configFileName);
@@ -715,7 +715,7 @@ static void on_load_config_button (GtkWidget *widget, gpointer *data)
 
 static void on_save_config_button (GtkWidget *widget, gpointer *data)
 {
-	char* configFileName =
+	const gchar* configFileName =
 		gtk_entry_get_text(GTK_ENTRY(config_file_entry));
 
 	MyConfig->WriteToFile(configFileName);

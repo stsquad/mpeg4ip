@@ -652,7 +652,9 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
   } else {
     if (rtp_pt == 14) {
       codec = MPEG4IP_AUDIO_MP3;
-    } else {
+    } else if (rtp_pt >= 0 && rtp_pt <= 23) {
+      codec = MPEG4IP_AUDIO_GENERIC;
+    }  else {
       codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
 				   audio_codecs);
       if (codec < 0) {

@@ -22,6 +22,9 @@ typedef struct
 	uint32_t top_field_first;
 	uint32_t alternate_vertical_scan;
 
+#ifdef MPEG4IP
+  int have_short_header;
+#endif
 	// image
 
 	uint32_t width;

@@ -186,7 +186,7 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 		fprintf(stderr,	
 			"%s: data in file doesn't appear to be valid audio\n",
 			 ProgName);
-		exit(EXIT_AAC_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	samplesPerSecond = MP4AV_AdtsGetSamplingRate(firstHeader);
@@ -214,7 +214,7 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 			fprintf(stderr,	
 				"%s: data in file doesn't appear to be valid audio\n",
 				 ProgName);
-			exit(EXIT_AAC_CREATOR);
+			return MP4_INVALID_TRACK_ID;
 		default:
 			ASSERT(false);
 		}
@@ -231,7 +231,7 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	
 			"%s: can't create audio track\n", ProgName);
-		exit(EXIT_AAC_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	if (MP4GetNumberOfTracks(mp4File, MP4_AUDIO_TRACK_TYPE) == 1) {
@@ -252,7 +252,8 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 	  pConfig, configLength)) {
 		fprintf(stderr,	
 			"%s: can't write audio configuration\n", ProgName);
-		exit(EXIT_AAC_CREATOR);
+		MP4DeleteTrack(mp4File, trackId);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	// parse the ADTS frames, and write the MP4 samples
@@ -264,7 +265,8 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 		if (!MP4WriteSample(mp4File, trackId, sampleBuffer, sampleSize)) {
 			fprintf(stderr,	
 				"%s: can't write audio frame %u\n", ProgName, sampleId);
-			exit(EXIT_AAC_CREATOR);
+			MP4DeleteTrack(mp4File, trackId);
+			return MP4_INVALID_TRACK_ID;
 		}
 		sampleId++;
 		sampleSize = sizeof(sampleBuffer);

@@ -165,7 +165,9 @@ char *CConfig::find_name (char *ptr, uint32_t &ix)
     len = strlen(m_config_var[ix].config_name);
     if (strncasecmp(ptr, 
 		    m_config_var[ix].config_name, 
-		    len) == 0) {
+		    len) == 0 &&
+	(isspace(*(ptr + len)) ||
+	 *(ptr + len) == '=')) {
       ptr += len;
       return (ptr);
     }

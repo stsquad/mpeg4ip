@@ -153,7 +153,6 @@ CPlayerMedia::~CPlayerMedia()
   }
 
   if (m_decode_thread) {
-    media_message(LOG_DEBUG, "decode thread %d", m_is_video);
     m_decode_msg_queue.send_message(MSG_STOP_THREAD, 
 				    NULL, 
 				    0, 
@@ -1390,8 +1389,21 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
 	  media_message(LOG_ERR, "Media %s, rtp payload type of %u, no rtp map",
 			m_media_info->media, payload_type);
 	  return (FALSE);
+	} else {
+	  // generic payload type.  between 0 and 23 are audio - most
+	  // are 8000
+	  // all video (above 25) are 90000
+	  tickpersec = 90000;
+	  if (payload_type >= 0 && payload_type <= 23) {
+	    tickpersec = 8000;
+	    if (payload_type == 6) {
+	      tickpersec = 16000;
+	    } else if (payload_type == 10 || payload_type == 11) {
+	      tickpersec = 44100;
+	    } else if (payload_type == 14) 
+	      tickpersec = 90000;
+	  }
 	}
-	tickpersec = 90000;
       }
 
       bs = 

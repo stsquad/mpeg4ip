@@ -28,6 +28,7 @@
 #include "audio_sdl.h"
 #include "player_util.h"
 #include <SDL_thread.h>
+#include "our_config_file.h"
 //#define DEBUG_SYNC 1
 //#define DEBUG_AUDIO_FILL 1
 //#define DEBUG_DELAY 1
@@ -122,6 +123,7 @@ void CSDLAudioSync::set_config (int freq,
     while ((temp & 0x1) == 0) temp >>= 1;
 
     sample_size = temp;
+    while (sample_size < 1024) sample_size *= 2;
   } 
   
   m_buffer_size = channels * sample_size * m_bytes_per_sample;
@@ -198,7 +200,6 @@ uint32_t CSDLAudioSync::load_audio_buffer (uint8_t *from,
 {
   uint8_t *to;
   uint32_t copied;
-  int64_t diff, calc;
 #ifdef DEBUG_AUDIO_FILL
   audio_message(LOG_DEBUG, "fill %d bytes at "LLU", offset %d", 
 		bytes, ts, m_buffer_offset_on);
@@ -210,13 +211,11 @@ uint32_t CSDLAudioSync::load_audio_buffer (uint8_t *from,
     }
     m_buffer_ts = ts;
   } else {
-    diff = ts - m_buffer_ts;
-    calc = m_buffer_offset_on * M_LLU;
-    calc /= m_bytes_per_sample;
-    calc /= m_freq;
-    if (diff > calc + 2) {
-      audio_message(LOG_DEBUG, "potential resync at ts "LLU" diff is "LLD" calc is "LLD, 
-		    ts, diff, calc);
+    int64_t check;
+    check = ts - m_loaded_next_ts;
+    if (check > m_msec_per_frame) {
+      audio_message(LOG_DEBUG, "potential resync at ts "LLU" should be ts "LLU,
+		    ts, m_loaded_next_ts);
       uint32_t left;
       left = m_buffer_size - m_buffer_offset_on;
       to = get_audio_buffer();
@@ -227,6 +226,11 @@ uint32_t CSDLAudioSync::load_audio_buffer (uint8_t *from,
       m_buffer_ts = ts;
     }
   }
+  m_loaded_next_ts = bytes * M_LLU;
+  m_loaded_next_ts /= m_bytes_per_sample;
+  m_loaded_next_ts /= m_freq;
+  m_loaded_next_ts += ts;
+
   while ( bytes > 0) {
     to = get_audio_buffer();
     if (to == NULL) {
@@ -399,6 +403,7 @@ int CSDLAudioSync::initialize_audio (int have_video)
     if (m_config_set) {
       SDL_AudioSpec wanted;
       m_do_sync = have_video;
+      memset(&wanted, 0, sizeof(wanted));
       wanted.freq = m_freq;
       wanted.channels = m_channels;
       wanted.format = m_format;
@@ -418,6 +423,9 @@ int CSDLAudioSync::initialize_audio (int have_video)
       m_sample_size = 4096;
 #endif
       if ((m_do_sync == 0) && m_sample_size < 4096)
+	m_sample_size = 4096;
+      if (config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER) > 0 &&
+	  m_sample_size > 4096) 
 	m_sample_size = 4096;
       wanted.samples = m_sample_size;
       wanted.callback = c_audio_callback;

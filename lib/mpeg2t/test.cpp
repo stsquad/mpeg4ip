@@ -10,6 +10,8 @@ int main (int argc, char **argv)
   int done_with_buf;
   mpeg2t_t *mpeg2t;
   mpeg2t_es_t *es_pid;
+  mpeg2t_pid_t *pidptr;
+
   //  int lastcc, ccset;
 
   mpeg2t_set_loglevel(LOG_DEBUG);
@@ -30,14 +32,15 @@ int main (int argc, char **argv)
     done_with_buf = 0;
 
     while (done_with_buf == 0) {
-      es_pid = mpeg2t_process_buffer(mpeg2t, ptr, buflen, &offset);
+      pidptr = mpeg2t_process_buffer(mpeg2t, ptr, buflen, &offset);
       ptr += offset;
       buflen -= offset;
       if (buflen < 188) {
 	done_with_buf = 1;
       }
-      if (es_pid != NULL) {
+      if (pidptr != NULL && pidptr->pak_type == MPEG2T_ES_PAK) {
 	mpeg2t_frame_t *mp3, *p;
+	es_pid = (mpeg2t_es_t *)pidptr;
 	mp3 = es_pid->list;
 	es_pid->list = NULL;
 	while (mp3 != NULL) {

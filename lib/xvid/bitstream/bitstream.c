@@ -112,6 +112,9 @@ int BitstreamReadHeaders(Bitstream * bs, DECODER * dec, uint32_t * rounding,
 	uint32_t time_inc_resolution;
 	uint32_t coding_type;
 	uint32_t start_code;
+#ifdef MPEG4IP
+	uint32_t width, height;
+#endif
 	
 	do
 	{
@@ -556,6 +559,74 @@ int BitstreamReadHeaders(Bitstream * bs, DECODER * dec, uint32_t * rounding,
 			// DEBUG("user_data");
 			BitstreamSkip(bs, 32);		// user_data_start_code
 		}
+#ifdef MPEG4IP
+		else if ((start_code & 0xfffffc03) == 0x00008002) {
+		  // Short video header.  Skip short_video_start_marker,
+		  // temporal reference, marker and zero bit
+		  uint8_t source_format;
+		  dec->have_short_header = 1;
+		  dec->shape = VIDOBJLAY_SHAPE_RECTANGULAR;
+		  dec->interlacing = 0;
+		  dec->quant_bits = 5;
+		  dec->quant_type = 0;
+		  dec->quarterpel = 0;
+		  *intra_dc_threshold = intra_dc_threshold_table[0];
+		  *rounding = 0;
+		  *fcode = 1;
+		  BitstreamSkip(bs, 22);
+		  BitstreamSkip(bs, 8 + 5);
+		  source_format = BitstreamGetBits(bs, 3);
+		  switch (source_format) {
+		  case 1: // sub-QCIF
+		    width = 128;
+		    height = 96;
+		    break;
+		  case 2: // QCIF
+		    width = 176;
+		    height = 144;
+		    break;
+		  case 3: // CIF
+		    width = 352;
+		    height = 288;
+		    break;
+		  case 4: // 4CIF
+		    width = 704;
+		    height = 576;
+		    break;
+		  case 5:
+		    width = 1408;
+		    height = 1152;
+		    break;
+		  default:
+		    DEBUG1("FATAL: illegal code in short video header", source_format);
+		    return -1;
+		  }
+		  if (findvol == 0) {
+		    if (width != dec->width || height != dec->height)
+		      {
+			DEBUG("FATAL: video dimension discrepancy ***");
+			DEBUG2("bitstream width/height", width, height);
+			DEBUG2("param width/height", dec->width, dec->height);
+			return -1;
+		      }
+		  } else {
+		    dec->width = width;
+		    dec->height = height;
+		    return 1;
+		  }
+		  if (BitstreamGetBit(bs)) {
+		    // P frame
+		    coding_type = P_VOP;
+		  } else {
+		    coding_type = I_VOP;
+		  }
+		  BitstreamSkip(bs, 4); // skip 4 reserved 0 bits
+		  *quant = BitstreamGetBits(bs, 5);
+		  BitstreamSkip(bs, 1);
+		  while (BitstreamGetBit(bs) == 1) BitstreamSkip(bs, 8); // pei and psupp
+		  return coding_type;
+		}
+#endif
 		else  // start_code == ?
 		{
 			if (BitstreamShowBits(bs, 24) == 0x000001)
@@ -766,3 +837,26 @@ void BitstreamWriteVopHeader(Bitstream * const bs,
 	if (pParam->coding_type != I_VOP)
 		BitstreamPutBits(bs, pParam->fixed_code, 3);		// fixed_code = [1,4]
 }
+
+#ifdef MPEG4IP
+void BitstreamWriteShortVopHeader(Bitstream * const bs,
+						const MBParam * pParam)
+{
+  int sfmat;
+    BitstreamPad(bs);
+    BitstreamPutBits(bs, 0x20, 22); // short_video_start_marker
+    BitstreamPutBits(bs, pParam->fincr, 8);
+    BitstreamPutBits(bs, 0x10, 5);
+    sfmat = 0;
+    if (pParam->width == 128) sfmat = 1;
+    else if (pParam->width == 176) sfmat = 2;
+    else if (pParam->width == 352) sfmat = 3;
+    else if (pParam->width == 704) sfmat = 4;
+    else if (pParam->width == 1408) sfmat = 5;
+    BitstreamPutBits(bs, sfmat, 3);
+    BitstreamPutBits(bs, pParam->coding_type == I_VOP ? 0 : 1, 1);
+    BitstreamPutBits(bs, 0, 4);
+    BitstreamPutBits(bs, pParam->quant, 5);
+    BitstreamPutBits(bs, 0, 2); // zero bit and pei
+}
+#endif

@@ -37,7 +37,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		fprintf(stderr,	
 			"%s: video compressor %s not recognized\n",
 			 ProgName, videoType);
-		exit(EXIT_AVI_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	double frameRate = AVI_video_frame_rate(aviFile);
@@ -45,7 +45,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	if (frameRate == 0) {
 		fprintf(stderr,	
 			"%s: no video frame rate in avi file\n", ProgName);
-		exit(EXIT_AVI_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 #ifdef _WIN32
@@ -57,15 +57,18 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		(MP4Duration)(Mp4TimeScale / frameRate);
 #endif
 
-	MP4TrackId trackId = MP4AddVideoTrack(mp4File,
-		Mp4TimeScale, mp4FrameDuration, 
-		AVI_video_width(aviFile), AVI_video_height(aviFile), 
+	MP4TrackId trackId = MP4AddVideoTrack(
+		mp4File,
+		Mp4TimeScale, 
+		mp4FrameDuration, 
+		AVI_video_width(aviFile), 
+		AVI_video_height(aviFile), 
 		MP4_MPEG4_VIDEO_TYPE);
 
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	
 			"%s: can't create video track\n", ProgName);
-		exit(EXIT_AVI_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	int32_t i;
@@ -89,7 +92,8 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	if (pFrameBuffer == NULL) {
 		fprintf(stderr,	
 			"%s: can't allocate memory\n", ProgName);
-		exit(EXIT_AVI_CREATOR);
+		MP4DeleteTrack(mp4File, trackId);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	AVI_seek_start(aviFile);
@@ -101,13 +105,15 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		fprintf(stderr,	
 			"%s: can't read video frame 1: %s\n",
 			ProgName, AVI_strerror());
-		exit(EXIT_AVI_CREATOR);
+		MP4DeleteTrack(mp4File, trackId);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	// find VOP start code in first sample
 	static u_int8_t vopStartCode[4] = { 
 		0x00, 0x00, 0x01, MP4AV_MPEG4_VOP_START 
 	};
+	u_int32_t vopStart = 0;
 
 	for (i = 0; i < frameSize - 4; i++) {
 		if (!memcmp(&pFrameBuffer[i], vopStartCode, 4)) {
@@ -115,6 +121,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 			// should be configuration info
 			MP4SetTrackESConfiguration(mp4File, trackId,
 				pFrameBuffer, i);
+			vopStart = i;
 		}
 	}
 
@@ -122,9 +129,15 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		MP4SetVideoProfileLevel(mp4File, 0x01);
 	}
 
-	// write out the first frame, including the initial configuration info
-	MP4WriteSample(mp4File, trackId, 
-		pFrameBuffer, frameSize, mp4FrameDuration, 0, true);
+	// write out the first frame, minus the initial configuration info
+	MP4WriteSample(
+		mp4File, 
+		trackId, 
+		&pFrameBuffer[vopStart], 
+		frameSize - vopStart, 
+		mp4FrameDuration, 
+		0, 
+		true);
 
 	// process the rest of the frames
 	for (i = 1; i < numFrames; i++) {
@@ -135,7 +148,8 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 			fprintf(stderr,	
 				"%s: can't read video frame %i: %s\n",
 				ProgName, i + 1, AVI_strerror());
-			exit(EXIT_AVI_CREATOR);
+			MP4DeleteTrack(mp4File, trackId);
+			return MP4_INVALID_TRACK_ID;
 		}
 
 		// we mark random access points in MP4 files
@@ -165,7 +179,7 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		fprintf(stderr,	
 			"%s: audio compressor 0x%x not recognized\n",
 			 ProgName, audioType);
-		exit(EXIT_AVI_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	u_int8_t temp[4];
@@ -177,7 +191,7 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		fprintf(stderr,	
 			"%s: can't read audio frame 0: %s\n",
 			ProgName, AVI_strerror());
-		exit(EXIT_AVI_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 	mp3header = BytesToInt32(temp);
 
@@ -186,7 +200,7 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		fprintf(stderr,	
 			"%s: data in file doesn't appear to be valid mp3 audio\n",
 			ProgName);
-		exit(EXIT_AVI_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	u_int16_t samplesPerSecond = 
@@ -201,7 +215,7 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		fprintf(stderr,	
 			"%s: data in file doesn't appear to be valid mp3 audio\n",
 			 ProgName);
-		exit(EXIT_AVI_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	MP4TrackId trackId = MP4AddAudioTrack(mp4File, 
@@ -210,7 +224,7 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	
 			"%s: can't create audio track\n", ProgName);
-		exit(EXIT_AVI_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	if (MP4GetNumberOfTracks(mp4File, MP4_AUDIO_TRACK_TYPE) == 1) {
@@ -239,7 +253,8 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	if (pFrameBuffer == NULL) {
 		fprintf(stderr,	
 			"%s: can't allocate memory\n", ProgName);
-		exit(EXIT_AVI_CREATOR);
+		MP4DeleteTrack(mp4File, trackId);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	AVI_seek_start(aviFile);
@@ -269,7 +284,8 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		  &pFrameBuffer[0], mp3FrameSize)) {
 			fprintf(stderr,	
 				"%s: can't write audio frame %u\n", ProgName, mp3FrameNumber);
-			exit(EXIT_AVI_CREATOR);
+			MP4DeleteTrack(mp4File, trackId);
+			return MP4_INVALID_TRACK_ID;
 		}
 	
 		mp3FrameNumber++;
@@ -288,20 +304,26 @@ MP4TrackId* AviCreator(MP4FileHandle mp4File, const char* aviFileName)
 		fprintf(stderr,	
 			"%s: can't open %s: %s\n",
 			ProgName, aviFileName, AVI_strerror());
-		exit(EXIT_AVI_CREATOR);
-	}
 
-	if (AVI_video_frames(aviFile) > 0) {
-		trackIds[numTracks++] = VideoCreator(mp4File, aviFile);
-	}
+	} else {
+		if (AVI_video_frames(aviFile) > 0) {
+			trackIds[numTracks] = VideoCreator(mp4File, aviFile);
+			if (trackIds[numTracks] != MP4_INVALID_TRACK_ID) {
+				numTracks++;
+			}
+		}
 
-	if (AVI_audio_bytes(aviFile) > 0) {
-		trackIds[numTracks++] = AudioCreator(mp4File, aviFile);
+		if (AVI_audio_bytes(aviFile) > 0) {
+			trackIds[numTracks] = AudioCreator(mp4File, aviFile);
+			if (trackIds[numTracks] != MP4_INVALID_TRACK_ID) {
+				numTracks++;
+			}
+		}
+
+		AVI_close(aviFile);
 	}
 
 	trackIds[numTracks] = MP4_INVALID_TRACK_ID;
-
-	AVI_close(aviFile);
 
 	return trackIds;
 }

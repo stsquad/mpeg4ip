@@ -40,7 +40,7 @@ CMediaSource::CMediaSource()
 	m_source = false;
 	m_sourceVideo = false;
 	m_sourceAudio = false;
-	m_maxAheadDuration = TimestampTicks / 2 ;	// 500 msec
+	m_maxAheadDuration = TimestampTicks / 20 ;	// 50 msec
 
 	m_videoSource = this;
 	m_videoSrcYImage = NULL;
@@ -177,25 +177,6 @@ Duration CMediaSource::GetElapsedDuration()
 		return m_audioSrcElapsedDuration;
 	}
 	return 0;
-}
-
-// slow down non-realtime sources, i.e. files
-// if any of the sinks require real-time semantics, i.e. RTP/UDP
-void CMediaSource::PaceSource()
-{
-	if (m_sourceRealTime || !m_sinkRealTime) {
-		return;
-	}
-
-	Duration realDuration =
-		GetTimestamp() - m_startTimestamp;
-
-	Duration aheadDuration =
-		GetElapsedDuration() - realDuration;
-
-	if (aheadDuration >= m_maxAheadDuration) {
-		SDL_Delay((aheadDuration - (m_maxAheadDuration / 2)) / 1000);
-	}
 }
 
 void CMediaSource::ForwardFrame(CMediaFrame* pFrame)
@@ -380,12 +361,15 @@ void CMediaSource::ProcessVideoYUVFrame(
 	u_int16_t uvStride,
 	Timestamp srcFrameTimestamp)
 {
-	if (m_videoSrcFrameNumber == 0 && m_audioSrcFrameNumber == 0) {
-		m_startTimestamp = srcFrameTimestamp;
+	if (m_videoSrcFrameNumber == 0) {
+		if (m_audioSrcFrameNumber == 0) {
+			m_startTimestamp = GetTimestamp();
+		}
+		m_videoStartTimestamp = srcFrameTimestamp;
 	}
 
 	m_videoSrcFrameNumber++;
-	m_videoSrcElapsedDuration = srcFrameTimestamp - m_startTimestamp;
+	m_videoSrcElapsedDuration = srcFrameTimestamp - m_videoStartTimestamp;
 
 	// drop src frames as needed to match target frame rate
 	if (m_videoDstElapsedDuration > m_videoSrcElapsedDuration) {
@@ -491,7 +475,7 @@ void CMediaSource::ProcessVideoYUVFrame(
 	}
 
 	Timestamp dstPrevFrameTimestamp =
-		m_startTimestamp + m_videoDstElapsedDuration;
+		m_videoStartTimestamp + m_videoDstElapsedDuration;
 
 	// calculate previous frame duration
 	Duration dstPrevFrameDuration = m_videoDstFrameDuration;
@@ -769,12 +753,15 @@ void CMediaSource::ProcessAudioFrame(
 	Timestamp srcFrameTimestamp,
 	bool resync)
 {
-	if (m_videoSrcFrameNumber == 0 && m_audioSrcFrameNumber == 0) {
-		m_startTimestamp = srcFrameTimestamp;
+	if (m_audioSrcFrameNumber == 0) {
+		if (m_videoSrcFrameNumber == 0) {
+			m_startTimestamp = GetTimestamp();
+		}
+		m_audioStartTimestamp = srcFrameTimestamp;
 	}
 
 	m_audioSrcFrameNumber++;
-	m_audioSrcElapsedDuration = srcFrameTimestamp - m_startTimestamp;
+	m_audioSrcElapsedDuration = srcFrameTimestamp - m_audioStartTimestamp;
 
 	if (resync) {
 		// flush preEncodingBuffer
@@ -867,7 +854,7 @@ pcmBufferCheck:
 		u_int32_t forwardedFrames;
 
 		ForwardEncodedAudioFrames(
-			m_startTimestamp 
+			m_audioStartTimestamp 
 				+ DstSamplesToTicks(m_audioDstSampleNumber),
 			&forwardedSamples,
 			&forwardedFrames);
@@ -895,7 +882,7 @@ pcmBufferCheck:
 				CMediaFrame::PcmAudioFrame, 
 				pcmForwardedData, 
 				pcmDataLength,
-				m_startTimestamp 
+				m_audioStartTimestamp 
 					+ DstSamplesToTicks(m_audioDstRawSampleNumber),
 				DstBytesToSamples(pcmDataLength),
 				m_audioDstSampleRate);
@@ -1099,7 +1086,7 @@ void CMediaSource::DoStopAudio()
 		u_int32_t forwardedFrames;
 
 		ForwardEncodedAudioFrames(
-			m_startTimestamp
+			m_audioStartTimestamp
 				+ DstSamplesToTicks(m_audioDstSampleNumber),
 			&forwardedSamples,
 			&forwardedFrames);

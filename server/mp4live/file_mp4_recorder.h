@@ -27,8 +27,6 @@
 #include <mp4av.h>
 #include "media_sink.h"
 
-#define RTP_HEADER_STD_SIZE 12
-
 class CMp4Recorder : public CMediaSink {
 public:
 	CMp4Recorder() {
@@ -40,6 +38,7 @@ public:
 
 		m_videoTimeScale = 90000;
 		m_movieTimeScale = m_videoTimeScale;
+		m_audioGapThresholdInSamples = 128;
 	}
 
 protected:
@@ -50,6 +49,7 @@ protected:
 	void DoWriteFrame(CMediaFrame* pFrame);
 
 protected:
+	bool			m_recordVideo;
 	bool			m_canRecordAudio;	// used for sync'ed start of A/V
 
 	char*			m_mp4FileName;
@@ -57,22 +57,25 @@ protected:
 
 	u_int32_t		m_movieTimeScale;
 	u_int32_t		m_videoTimeScale;
+	u_int32_t		m_audioTimeScale;
+	Timestamp		m_movieStartTimestamp;
+	u_int32_t		m_audioGapThresholdInSamples;
 
 	MP4TrackId		m_rawVideoTrackId;
-	u_int32_t		m_rawVideoFrameNum;
+	u_int32_t		m_rawVideoFrameNumber;
+	Timestamp		m_rawVideoStartTimestamp;
 
 	MP4TrackId		m_encodedVideoTrackId;
-	u_int32_t		m_encodedVideoFrameNum;
+	u_int32_t		m_encodedVideoFrameNumber;
+	Timestamp		m_encodedVideoStartTimestamp;
 
 	MP4TrackId		m_rawAudioTrackId;
-	u_int32_t		m_rawAudioTimeScale;
-	u_int32_t		m_rawAudioFrameNum;
+	u_int32_t		m_rawAudioFrameNumber;
 	Timestamp		m_rawAudioStartTimestamp;
 	Duration		m_rawAudioDuration;
 
 	MP4TrackId		m_encodedAudioTrackId;
-	u_int32_t		m_encodedAudioTimeScale;
-	u_int32_t		m_encodedAudioFrameNum;
+	u_int32_t		m_encodedAudioFrameNumber;
 	Timestamp		m_encodedAudioStartTimestamp;
 	Duration		m_encodedAudioDuration;
 };

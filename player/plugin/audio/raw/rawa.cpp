@@ -90,6 +90,7 @@ static void rawa_do_pause (codec_data_t *ifptr)
 {
   rawa_codec_t *rawa = (rawa_codec_t *)ifptr;
   rawa->m_resync = 1;
+  //LOGIT(LOG_DEBUG, "rawa", "do pause");
 }
 
 /*
@@ -153,7 +154,7 @@ static int rawa_decode (codec_data_t *ptr,
 				     rawa->m_temp_buffsize,
 				     0, 
 				     1);
-
+      rawa->m_resync = 0;
       if (ts == 0) rawa->m_bytes = rawa->m_temp_buffsize;
       free(rawa->m_temp_buff);
       rawa->m_temp_buff = NULL;
@@ -170,7 +171,7 @@ static int rawa_decode (codec_data_t *ptr,
     ts += calc;
     rawa->m_bytes += buflen;
   } else {
-    rawa->m_bytes = 0;
+    rawa->m_bytes = buflen;
     rawa->m_ts = ts;
   }
 

@@ -195,13 +195,13 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 	if (!GetMpegLayer(inFile, &mpegLayer)) {
 		fprintf(stderr,	
 			"%s: data in file doesn't appear to be MPEG audio\n", ProgName);
-		exit(EXIT_MP3_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 	if (mpegLayer == 0) {
 		fprintf(stderr,	
 			"%s: data in file appears to be AAC audio, use .aac extension\n",
 			 ProgName);
-		exit(EXIT_MP3_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	u_int16_t samplesPerSecond;
@@ -213,7 +213,7 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 		fprintf(stderr,	
 			"%s: data in file doesn't appear to be valid audio\n",
 			 ProgName);
-		exit(EXIT_MP3_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	u_int8_t audioType = MP4AV_Mp3ToMp4AudioType(mpegVersion);
@@ -223,7 +223,7 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 		fprintf(stderr,	
 			"%s: data in file doesn't appear to be valid audio\n",
 			 ProgName);
-		exit(EXIT_MP3_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	MP4TrackId trackId = 
@@ -233,7 +233,7 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	
 			"%s: can't create audio track\n", ProgName);
-		exit(EXIT_MP3_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	if (MP4GetNumberOfTracks(mp4File, MP4_AUDIO_TRACK_TYPE) == 1) {
@@ -248,7 +248,8 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 		if (!MP4WriteSample(mp4File, trackId, sampleBuffer, sampleSize)) {
 			fprintf(stderr,	
 				"%s: can't write audio frame %u\n", ProgName, sampleId);
-			exit(EXIT_MP3_CREATOR);
+			MP4DeleteTrack(mp4File, trackId);
+			return MP4_INVALID_TRACK_ID;
 		}
 		sampleId++;
 		sampleSize = sizeof(sampleBuffer);

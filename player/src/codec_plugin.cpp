@@ -300,7 +300,6 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
   vptr = video_codecs;
   
   while (vptr != NULL) {
-
     if (vptr->codec->c_raw_file_check != NULL) {
       if (config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) != 0 &&
 	  strcmp("MPEG4 ISO", vptr->codec->c_name) != 0 && 
@@ -339,10 +338,8 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
 
 	return 0;
       }
-      return -1;
-    } else {
-      vptr = vptr->next_codec;
-    }
+    } 
+    vptr = vptr->next_codec;
   }
   return -1;
 }

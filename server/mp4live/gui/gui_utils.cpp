@@ -129,7 +129,7 @@ GtkWidget *CreateMenuItem (GtkWidget *menu,
 				  "activate", 
 				  accel_group,
 				  key, 
-				  modifier,
+				  (GdkModifierType)modifier,
 				  GTK_ACCEL_VISIBLE);
     }
 

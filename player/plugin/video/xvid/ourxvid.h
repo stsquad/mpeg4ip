@@ -49,7 +49,7 @@ typedef struct xvid_codec_t {
   uint32_t m_frame_on;
   CFilePosRecorder *m_fpos;
   video_info_t *m_vinfo;
-
+  int m_short_headers;
   void *m_xvid_handle;
 } xvid_codec_t;
 

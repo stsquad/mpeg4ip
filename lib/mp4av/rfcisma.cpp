@@ -168,13 +168,6 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 {
 	// gather information, and check for validity
 
-	MP4TrackId hintTrackId =
-		MP4AddHintTrack(mp4File, mediaTrackId);
-
-	if (hintTrackId == MP4_INVALID_TRACK_ID) {
-		return false;
-	}
-
 	u_int32_t numSamples =
 		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
@@ -183,7 +176,7 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 	}
 
 	u_int32_t timeScale =
-		MP4GetTrackTimeScale(mp4File, hintTrackId);
+		MP4GetTrackTimeScale(mp4File, mediaTrackId);
 
 	if (timeScale == 0) {
 		return false;
@@ -246,6 +239,15 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 
 
 	// now add the hint track
+	MP4TrackId hintTrackId =
+		MP4AddHintTrack(mp4File, mediaTrackId);
+
+	if (hintTrackId == MP4_INVALID_TRACK_ID) {
+		free(sConfig);
+		free(sdpBuf);
+		return false;
+	}
+
 	u_int8_t payloadNumber = 0;
 
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
@@ -300,10 +302,12 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 		}
 	}
 
+	bool rc;
+
 	if (interleave) {
 		u_int32_t samplesPerGroup = maxLatency / sampleDuration;
 
-		MP4AV_AudioInterleaveHinter(
+		rc = MP4AV_AudioInterleaveHinter(
 			mp4File, 
 			mediaTrackId, 
 			hintTrackId,
@@ -314,7 +318,7 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 			MP4AV_RfcIsmaConcatenator);
 
 	} else {
-		MP4AV_AudioConsecutiveHinter(
+		rc = MP4AV_AudioConsecutiveHinter(
 			mp4File, 
 			mediaTrackId, 
 			hintTrackId,
@@ -326,6 +330,11 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 			MP4GetSampleSize,
 			MP4AV_RfcIsmaConcatenator,
 			MP4AV_RfcIsmaFragmenter);
+	}
+
+	if (!rc) {
+		MP4DeleteTrack(mp4File, hintTrackId);
+		return false;
 	}
 
 	return true;

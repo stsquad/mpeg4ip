@@ -251,11 +251,17 @@ static void CodeBlockIntra(const MBParam * pParam,
 		BitstreamPutBits(bs, mcbpc_inter_tab[mcbpc].code, mcbpc_inter_tab[mcbpc].len);
 	}
 
+#ifdef MPEG4IP
+	if ((pParam->global_flags & XVID_SHORT_HEADERS) == 0) {
+#endif
 	// ac prediction flag
 	if(pMB->acpred_directions[0])
 		BitstreamPutBits(bs, 1, 1);
 	else
 		BitstreamPutBits(bs, 0, 1);
+#ifdef MPEG4IP
+	}
+#endif
 
 	// write cbpy
 	BitstreamPutBits (bs, cbpy_tab[cbpy].code, cbpy_tab[cbpy].len);
@@ -286,11 +292,24 @@ static void CodeBlockIntra(const MBParam * pParam,
 		{
 			bits = BitstreamPos(bs);
 
+#ifdef MPEG4IP
+	if ((pParam->global_flags & XVID_SHORT_HEADERS) == 0) {
+			/* H.263 only does zigzag scan */
+			CodeCoeff(bs,
+				  &qcoeff[i*64],
+				  intra_table,
+				  scan_tables[0],
+				  1);
+	} else {
+#endif
 			CodeCoeff(bs,
 				  &qcoeff[i*64],
 				  intra_table,
 				  scan_tables[pMB->acpred_directions[i]],
 				  1);
+#ifdef MPEG4IP
+	}
+#endif
 
 			bits = BitstreamPos(bs) - bits;
 			pStat->iTextBits += bits;

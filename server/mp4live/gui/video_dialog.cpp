@@ -216,7 +216,7 @@ void CreateInputMenu(CVideoCapabilities* pNewVideoCaps)
 
 static void SourceV4LDevice()
 {
-	char *newSourceName =
+	const gchar *newSourceName =
 		gtk_entry_get_text(GTK_ENTRY(source_entry));
 
 	// don't probe the already open device!
@@ -268,7 +268,7 @@ static void on_no_default_file_audio_source (GtkWidget *widget, gpointer *data)
 
 static void ChangeSource()
 {
-	char* new_source_name =
+	const gchar* new_source_name =
 		gtk_entry_get_text(GTK_ENTRY(source_entry));
 
 	if (!strcmp(new_source_name, source_name)) {
@@ -592,7 +592,7 @@ static bool ValidateAndSave(void)
 
 	// extract channel index out of combo (not so simple)
 	GtkWidget* entry = GTK_COMBO(channel_combo)->entry;
-	char* channelName = gtk_entry_get_text(GTK_ENTRY(entry));
+	const gchar* channelName = gtk_entry_get_text(GTK_ENTRY(entry));
 	struct CHANNEL_LIST* pChannelList =
 		ListOfChannelLists[signalIndex];
 	for (int i = 0; i < pChannelList[channelListIndex].count; i++) {

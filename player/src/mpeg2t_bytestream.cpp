@@ -166,7 +166,7 @@ int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
   m_timestamp_loaded = 1;
   ts = fptr->ps_ts;
   if (m_have_prev_frame_type) {
-    if (fptr->frame_type < 3) {
+    if (fptr->frame_type == 3) {
       // B frame
       outts = ts + frame_time;
     } else {

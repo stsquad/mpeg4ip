@@ -590,4 +590,8 @@ Known Problems
   You can get around this error by rebuilding your libc, after changing the
   THREAD_SCHED_USECS to 20000 (or lower) from 200000 in thread_private.h.
 
+* If you're running on Linux, and trying to play a raw audio file, and 
+  notice that you get garbage, try setting the LimitAudioSdlBuffer config
+  variable to 1 in the .gmp4player_rc file.  This seems to occur on a 
+  Soundblaster Live, Red Hat 7.3 machine.
 === END OF README ===

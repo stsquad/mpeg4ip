@@ -346,30 +346,33 @@ int main(int argc, char** argv)
 			MP4TrackId* pCreatedTrackIds = 
 				CreateMediaTracks(mp4File, inputFileName);
 
-			if (pCreatedTrackIds) {
-				// decide if we can raise the ISMA compliance tag in SDP
-				// we do this if audio and/or video are MPEG-4
-				MP4TrackId* pTrackId = pCreatedTrackIds;
-
-				while (*pTrackId != MP4_INVALID_TRACK_ID) {				
-					const char *type =
-						MP4GetTrackType(mp4File, *pTrackId);
-
-					if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
-						allMpeg4Streams &=
-							(MP4GetTrackAudioType(mp4File, *pTrackId) 
-							== MP4_MPEG4_AUDIO_TYPE);
-
-					} else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
-						allMpeg4Streams &=
-							(MP4GetTrackVideoType(mp4File, *pTrackId)
-							== MP4_MPEG4_VIDEO_TYPE);
-					}
-					pTrackId++;
-				}
+			if (pCreatedTrackIds == NULL) {
+				MP4Close(mp4File);
+				exit(EXIT_CREATE_MEDIA);
 			}
 
-			if (pCreatedTrackIds && doHint) {
+			// decide if we can raise the ISMA compliance tag in SDP
+			// we do this if audio and/or video are MPEG-4
+			MP4TrackId* pTrackId = pCreatedTrackIds;
+
+			while (*pTrackId != MP4_INVALID_TRACK_ID) {				
+				const char *type =
+					MP4GetTrackType(mp4File, *pTrackId);
+
+				if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
+					allMpeg4Streams &=
+						(MP4GetTrackAudioType(mp4File, *pTrackId) 
+						== MP4_MPEG4_AUDIO_TYPE);
+
+				} else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
+					allMpeg4Streams &=
+						(MP4GetTrackVideoType(mp4File, *pTrackId)
+							== MP4_MPEG4_VIDEO_TYPE);
+				}
+				pTrackId++;
+			}
+
+			if (doHint) {
 				MP4TrackId* pTrackId = pCreatedTrackIds;
 
 				while (*pTrackId != MP4_INVALID_TRACK_ID) {
@@ -455,7 +458,7 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 		fprintf(stderr, 
 			"%s: can't open file %s: %s\n",
 			ProgName, inputFileName, strerror(errno));
-		exit(EXIT_CREATE_MEDIA);
+		return NULL;
 	}
 
 	struct stat s;
@@ -463,21 +466,21 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 		fprintf(stderr, 
 			"%s: can't stat file %s: %s\n",
 			ProgName, inputFileName, strerror(errno));
-		exit(EXIT_CREATE_MEDIA);
+		return NULL;
 	}
 
 	if (s.st_size == 0) {
 		fprintf(stderr, 
 			"%s: file %s is empty\n",
 			ProgName, inputFileName);
-		exit(EXIT_CREATE_MEDIA);
+		return NULL;
 	}
 
 	const char* extension = strrchr(inputFileName, '.');
 	if (extension == NULL) {
 		fprintf(stderr, 
 			"%s: no file type extension\n", ProgName);
-		exit(EXIT_CREATE_MEDIA);
+		return NULL;
 	}
 
 	static MP4TrackId trackIds[2] = {
@@ -509,11 +512,15 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 	} else {
 		fprintf(stderr, 
 			"%s: unknown file type\n", ProgName);
-		exit(EXIT_CREATE_MEDIA);
+		return NULL;
 	}
 
 	if (inFile) {
 		fclose(inFile);
+	}
+
+	if (pTrackIds[0] == MP4_INVALID_TRACK_ID) {
+		return NULL;
 	}
 
 	return pTrackIds;
@@ -522,11 +529,12 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 	const char* payloadName, bool interleave, u_int16_t maxPayloadSize)
 {
-	bool rc;
+	bool rc = false;
 
 	if (MP4GetTrackNumberOfSamples(mp4File, mediaTrackId) == 0) {
 		fprintf(stderr, 
 			"%s: couldn't create hint track, no media samples\n", ProgName);
+		MP4Close(mp4File);
 		exit(EXIT_CREATE_HINT);
 	}
 
@@ -559,7 +567,6 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 		default:
 			fprintf(stderr, 
 				"%s: can't hint non-MPEG4/non-MP3 audio type\n", ProgName);
-			exit(EXIT_CREATE_HINT);
 		}
 	} else if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
 		u_int8_t videoType = MP4GetTrackVideoType(mp4File, mediaTrackId);
@@ -569,17 +576,16 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 		} else {
 			fprintf(stderr, 
 				"%s: can't hint non-MPEG4 video type\n", ProgName);
-			exit(EXIT_CREATE_HINT);
 		}
 	} else {
 		fprintf(stderr, 
 			"%s: can't hint track type %s\n", ProgName, trackType);
-		exit(EXIT_CREATE_HINT);
 	}
 
 	if (!rc) {
 		fprintf(stderr, 
 			"%s: error hinting track %u\n", ProgName, mediaTrackId);
+		MP4Close(mp4File);
 		exit(EXIT_CREATE_HINT);
 	}
 }

@@ -245,7 +245,7 @@ static int xvid_decode (codec_data_t *ptr,
 		      &frame,
 		      &param);
 
-    if (ret > 0) {
+    if (ret == XVID_ERR_OK) {
 	xvid->m_decodeState = XVID_STATE_WAIT_I;
 	xvid->m_vft->video_configure(xvid->m_ifptr, 
 				     param.width,

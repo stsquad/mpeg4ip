@@ -219,6 +219,23 @@ void CRtpByteStreamBase::init (void)
 void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock, 
 					       uint32_t rtp_ts) 
 {
+  if (m_wallclock_offset_set == 1 &&
+      m_stream_ondemand == 0) {
+    int32_t rtp_ts_diff;
+    uint64_t wclock_diff;
+    uint64_t wclock_calc;
+    wclock_diff = wclock - m_wallclock_offset;
+    rtp_ts_diff = rtp_ts - m_wallclock_rtp_ts;
+    wclock_calc = rtp_ts_diff * M_LLU;
+    wclock_calc /= m_rtptime_tickpersec;
+    wclock_calc += m_wallclock_offset;
+    if (wclock_calc != wclock) {
+      rtp_message(LOG_DEBUG, 
+		  "%s - set wallclock - wclock should be "LLU" is "LLU, 
+		m_name, wclock_calc, wclock);
+    }
+    
+  }
   m_wallclock_offset_set = 1;
   SDL_LockMutex(m_rtp_packet_mutex);
   m_wallclock_offset = wclock;
@@ -650,6 +667,14 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
     m_bytes_used = 0;
     *buffer = m_buffer + m_bytes_used;
     *buflen = m_buffer_len - m_bytes_used;
+#if 0
+  rtp_message(LOG_DEBUG, "%s start %02x %02x %02x %02x %02x", m_name,
+		  	(*buffer)[0],
+		  	(*buffer)[1],
+		  	(*buffer)[2],
+		  	(*buffer)[3],
+		  	(*buffer)[4]);
+#endif
 #ifdef DEBUG_RTP_PAKS
     rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif

@@ -210,7 +210,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		if (pObj + objSize >= pCurrentSample + maxSampleSize) {
 			fprintf(stderr,	
 				"%s: buffer overflow, invalid video stream?\n", ProgName);
-			exit(EXIT_MP4V_CREATOR);
+			return MP4_INVALID_TRACK_ID;
 		}
 
 		if (Verbosity & MP4_DETAILS_SAMPLE) {
@@ -259,7 +259,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			"%s: variable rate video stream signalled,"
 			" please specify average frame rate with -r option\n",
 			 ProgName);
-		exit(EXIT_MP4V_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	// create the new video track
@@ -275,7 +275,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	
 			"%s: can't create video track\n", ProgName);
-		exit(EXIT_MP4V_CREATOR);
+		return MP4_INVALID_TRACK_ID;
 	}
 
 	if (MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE) == 1) {
@@ -310,7 +310,8 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 				fprintf(stderr,	
 					"%s: can't write video frame %u\n",
 					 ProgName, sampleId);
-				exit(EXIT_MP4V_CREATOR);
+				MP4DeleteTrack(mp4File, trackId);
+				return MP4_INVALID_TRACK_ID;
 			}
 
 			// deal with rendering time offsets 
@@ -347,7 +348,8 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 		if (pObj + objSize >= pCurrentSample + maxSampleSize) {
 			fprintf(stderr,	
 				"%s: buffer overflow, invalid video stream?\n", ProgName);
-			exit(EXIT_MP4V_CREATOR);
+			MP4DeleteTrack(mp4File, trackId);
+			return MP4_INVALID_TRACK_ID;
 		}
 
 		if (Verbosity & MP4_DETAILS_SAMPLE) {

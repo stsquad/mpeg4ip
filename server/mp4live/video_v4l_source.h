@@ -84,7 +84,7 @@ protected:
 
 class CVideoCapabilities {
 public:
-	CVideoCapabilities(char* deviceName) {
+	CVideoCapabilities(const char* deviceName) {
 		m_deviceName = stralloc(deviceName);
 		m_canOpen = false;
 		m_canCapture = false;

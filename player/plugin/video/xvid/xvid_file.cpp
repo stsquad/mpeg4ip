@@ -35,9 +35,14 @@ static int xvid_find_header (xvid_codec_t *xvid,
 {
   for (uint32_t ix = start_offset; ix + 4 < xvid->m_buffer_size; ix++) {
     if ((xvid->m_buffer[ix] == 0) &&
-	(xvid->m_buffer[ix + 1] == 0) &&
-	(xvid->m_buffer[ix + 2] == 1)) {
-      return ix;
+	(xvid->m_buffer[ix + 1] == 0)) {
+      if (xvid->m_buffer[ix + 2] == 1)
+	return ix;
+      if (((xvid->m_buffer[ix + 2] & 0xfc) == 0x80) && 
+	  ((xvid->m_buffer[ix + 3] & 0x3) == 0x02)) {
+	xvid->m_short_headers = 1;
+	return ix;
+      }
     }
   }
   return -1;
@@ -92,7 +97,8 @@ static int xvid_buffer_load (xvid_codec_t *xvid, uint8_t *ftype)
   xvid->m_buffer_on = next_hdr;
 
   // Is it a VOP header ?  If not, find the first VOP header
-  if (xvid->m_buffer[next_hdr + 3] != 0xb6) {
+  if (xvid->m_short_headers == 0 &&
+      xvid->m_buffer[next_hdr + 3] != 0xb6) {
     value = 0;
     do {
       // Increment when we've got a header pointed to by next_hdr
@@ -122,7 +128,10 @@ static int xvid_buffer_load (xvid_codec_t *xvid, uint8_t *ftype)
 
   // next_hdr contains the location of the first VOP.
   // Record the file type (top 2 bits) after 00 00 01 b6
-  *ftype = xvid->m_buffer[next_hdr + 4];
+  if (xvid->m_short_headers == 0) 
+    *ftype = (xvid->m_buffer[next_hdr + 4] >> 6) & 0x3;
+  else
+    *ftype = (xvid->m_buffer[next_hdr + 4] >> 1) & 0x1;
 
   // Find the next header.
   value = xvid_find_header(xvid, next_hdr + 4);
@@ -184,7 +193,8 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
    */
   len = strlen(name);
   if (!((strcasecmp(name + len - 5, ".divx") == 0) ||
-	(strcasecmp(name + len - 5, ".xvid") == 0))) {
+	(strcasecmp(name + len - 5, ".xvid") == 0) ||
+	(strcasecmp(name + len - 5, ".h263") == 0))) {
     return NULL;
   }
 
@@ -243,7 +253,7 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
 	xvid->m_buffer_on = xvid->m_buffer_size - 3;
     } else {
       // If we have an I_VOP, mark it.
-      if ((ftype & 0xc0) == 0) {
+      if (ftype == 0) {
 	calc = framecount * 1000;
 	
 	calc /= 30;
@@ -287,22 +297,33 @@ int xvid_file_next_frame (codec_data_t *your_data,
   next_hdr = xvid_find_header(xvid, xvid->m_buffer_on);
   if (next_hdr < 0) {
     next_hdr = xvid_reset_buffer(xvid);
-    if (next_hdr < 0) return 0;
+    if (next_hdr < 0) {
+      xvid->m_buffer_on = xvid->m_buffer_size;
+      return 0;
+    }
     next_hdr = xvid_find_header(xvid, next_hdr);
-    if (next_hdr < 0) return 0;
+    if (next_hdr < 0) {
+      xvid->m_buffer_on = xvid->m_buffer_size;
+      return 0;
+    }
   }
   xvid->m_buffer_on = next_hdr;
 
   value = 0;
-  // find first vop
-  while (xvid->m_buffer[next_hdr + 3] != 0xb6) {
-    value = xvid_find_header(xvid, next_hdr + 4);
-    if (value < 0) {
-      value = xvid_reset_buffer(xvid);
-      if (value < 0) return 0;
-      next_hdr = xvid_find_header(xvid, value - 4);
-    } else {
-      next_hdr = value;
+  // find first vop -short headers are always next frame
+  if (xvid->m_short_headers == 0) {
+    while (xvid->m_buffer[next_hdr + 3] != 0xb6) {
+      value = xvid_find_header(xvid, next_hdr + 4);
+      if (value < 0) {
+	value = xvid_reset_buffer(xvid);
+	if (value < 0) {
+	  xvid->m_buffer_on = xvid->m_buffer_size;
+	  return 0;
+	}
+	next_hdr = xvid_find_header(xvid, value - 4);
+      } else {
+	next_hdr = value;
+      }
     }
   }
 
@@ -331,6 +352,7 @@ void xvid_file_used_for_frame (codec_data_t *your,
 {
   xvid_codec_t *xvid = (xvid_codec_t *)your;
   xvid->m_buffer_on += bytes;
+  xvid->m_vft->log_msg(LOG_DEBUG, "xvid", "used %u bytes", bytes);
 }
 
 /*

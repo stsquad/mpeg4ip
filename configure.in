@@ -8,7 +8,7 @@ AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.5.1)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.5.2)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -49,7 +49,7 @@ AC_CHECK_LIB(sndfile, sf_open_read,
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
-AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h glib.h)
+AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h)
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
@@ -158,21 +158,46 @@ ifelse([$3], , , [$3])
 fi
 ])
 
+case $target in
+*powerpc*) 
+	AC_DEFINE(ARCH_PPC)
+	;;
+esac
+
 dnl read out glib and gtk paths and flags.  Will need to dummy this
 dnl out for a glibless system
-AM_PATH_GLIB()
-if test "$no_glib" != yes; then
-AM_PATH_GTK()
-if test "$no_gtk" = yes; then
-   no_glib_gtk=yes
-else
-   no_glib_gtk=no
+glib_gtk=no
+AM_PATH_GLIB_2_0(, [haveglib20=yes], [haveglib20=no])
+if test x$haveglib20 = xyes; then 
+   AM_PATH_GTK_2_0(, [havegtk20=yes], [havegtk20=no])
+   if test x$havegtk20 = xyes; then 
+      AC_DEFINE(HAVE_GTK_2_0)
+      glib_gtk=yes
+   else
+      haveglib20=no
+   fi
 fi
-else 
-   no_glib_gtk=yes
+if test x$haveglib20 = xno; then 
+   AM_PATH_GLIB(, [glib_gtk=yes], [glib_gtk=no])
+   if test x$glib_gtk = xyes; then
+      AM_PATH_GTK(, [glib_gtk=yes], [glib_gtk=no])
+   fi
 fi
 
-AM_CONDITIONAL(NO_GLIB_GTK, test x$no_glib_gtk = xyes)
+
+AM_CONDITIONAL(NO_GLIB_GTK, test x$glib_gtk = xno)
+
+dnl If we're going to check for GLIB, we most likely need the real path
+dnl we need to save off the CFLAGS and CPPFLAGS for the AC_CHECK_HEADER
+dnl command 
+
+save_CFLAG=$CFLAGS
+save_CPPFLAG="$CPPFLAGS"
+CFLAGS="$CFLAGS $GLIB_CFLAGS"
+CPPFLAGS="$CPPFLAGS $GLIB_CFLAGS"
+AC_CHECK_HEADER(glib.h)
+CFLAGS="$save_CFLAG"
+CPPFLAGS="$save_CPPFLAG"
 
 AC_ARG_ENABLE(mmx,
               [  --enable-mmx           use MMX assembly on x86 [default=yes]],

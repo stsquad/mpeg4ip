@@ -301,7 +301,7 @@ public:
 		return m_variables[iName].m_value.m_svalue;
 	}
 
-	inline void SetStringValue(const config_index_t iName, char* svalue) {
+	inline void SetStringValue(const config_index_t iName, const char* svalue) {
 #if CONFIG_SAFETY
 		CheckIName(iName);
 		CheckStringType(iName);
