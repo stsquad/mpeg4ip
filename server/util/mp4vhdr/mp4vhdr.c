@@ -269,7 +269,7 @@ int main(int argc, char** argv)
 
 	if (want_head) {
 		if (want_vosh) {
-			/* VOSH - Video Object Sequence Header */
+			/* VOSH - Visual Object Sequence Header */
 			u_int8_t voshStart[5] = { 
 				0x00, 0x00, 0x01, 0xB0,		/* VOSH start code */
 				/* profile_level_id, default is 3, Simple Profile @ Level 3 */
@@ -287,8 +287,10 @@ int main(int argc, char** argv)
 
 		if (want_vo) {
 			/* VO - Visual Object */
-			u_int8_t vo[4] = { 
-				0x00, 0x00, 0x01, 0x01	/* VO 1 */ 
+			u_int8_t vo[9] = { 
+				0x00, 0x00, 0x01, 0xB5,	/* VO */ 
+				0x08,					/* no verid, priority or signal type */
+				0x00, 0x00, 0x01, 0x01	/* video object 1 */ 
 			};
 
 			if (want_binary) {
