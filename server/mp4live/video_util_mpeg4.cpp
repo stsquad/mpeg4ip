@@ -21,22 +21,24 @@
 
 #include "mp4live.h"
 #include <mp4av.h>
+#include "profile_video.h"
 #include "video_encoder.h"
 
-void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
+void GenerateMpeg4VideoConfig(CVideoProfile *pConfig)
 {
-	
-  CVideoEncoder *pVidEncoder = VideoEncoderCreate(pConfig);
+  CVideoEncoder *pVidEncoder = VideoEncoderCreate(pConfig, 
+						  NULL, 
+						  false);
+
   CHECK_AND_FREE(pConfig->m_videoMpeg4Config);
   if (pVidEncoder) {
     if (pVidEncoder->CanGetEsConfig()) {
-      if (pVidEncoder->Init(pConfig, false) == false) {
+      if (pVidEncoder->Init() == false) {
 	error_message("Couldn't init encoder for VOL setting");
 	delete pVidEncoder;
 	return;
       }
-      if (pVidEncoder->GetEsConfig(pConfig, 
-				   &pConfig->m_videoMpeg4Config,
+      if (pVidEncoder->GetEsConfig(&pConfig->m_videoMpeg4Config,
 				   &pConfig->m_videoMpeg4ConfigLength)) {
 	delete pVidEncoder;
 	return;
@@ -62,8 +64,8 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		&pMpeg4Config,
 		&mpeg4ConfigLength,
 		1, // this should always indicate simple profile required
-		pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE),
-		pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS) == 0, 
+		pConfig->GetFloatValue(CFG_VIDEO_FRAME_RATE),
+		pConfig->GetIntegerValue(CFG_VIDEO_TIMEBITS) == 0, 
 		// short time - true if we haven't set the # of bits
 		true,	// variableRate
 		pConfig->m_videoWidth,

@@ -29,8 +29,27 @@
 #else
 #include "video_v4l_source.h"
 #endif
+#include "support.h"
+static GtkWidget *VideoProfileDialog = NULL;
+static const char **encoderNames = NULL;
+static u_int16_t* sizeWidthValues;
+static u_int16_t  sizeWidthValueCnt;
+static u_int16_t* sizeHeightValues;
+static u_int16_t  sizeHeightValueCnt;
+static u_int8_t sizeIndex;
+static u_int8_t sizeMaxIndex;
 
-
+static float aspectValues[] = {
+	VIDEO_STD_ASPECT_RATIO, VIDEO_LB1_ASPECT_RATIO, 
+	VIDEO_LB2_ASPECT_RATIO, VIDEO_LB3_ASPECT_RATIO
+}; 
+static const char* aspectNames[] = {
+	"Standard 4:3", "Letterbox 2.35", "Letterbox 1.85", "HDTV 16:9"
+};
+static const char *filterNames[] = {
+  VIDEO_FILTER_NONE, VIDEO_FILTER_DECIMATE, VIDEO_FILTER_DEINTERLACE,
+};
+#if 0
 static GtkWidget *dialog = NULL;
 
 static const char* source_type;
@@ -64,11 +83,11 @@ static GtkWidget *bit_rate_spinner;
 
 static CVideoCapabilities* pVideoCaps;
 
-static char** inputNames = NULL;
+static const char** inputNames = NULL;
 static u_int8_t inputIndex = 0;
 static u_int8_t inputNumber = 0;	// how many inputs total
 
-static char* signalNames[] = {
+static const char* signalNames[] = {
 	"PAL", "NTSC", "SECAM"
 };
 static u_int8_t signalIndex;
@@ -82,26 +101,9 @@ static u_int32_t trackNumber;	// how many tracks total
 static u_int32_t* trackValues = NULL;
 
 static uint32_t encoderIndex;
-static char **encoderNames = NULL;
-static u_int16_t* sizeWidthValues;
-static u_int16_t  sizeWidthValueCnt;
-static u_int16_t* sizeHeightValues;
-static u_int16_t  sizeHeightValueCnt;
-static u_int8_t sizeIndex;
-static u_int8_t sizeMaxIndex;
 
-static float aspectValues[] = {
-	VIDEO_STD_ASPECT_RATIO, VIDEO_LB1_ASPECT_RATIO, 
-	VIDEO_LB2_ASPECT_RATIO, VIDEO_LB3_ASPECT_RATIO
-}; 
-static char* aspectNames[] = {
-	"Standard 4:3", "Letterbox 2.35", "Letterbox 1.85", "HDTV 16:9"
-};
 static u_int8_t aspectIndex;
 
-static char *filterNames[] = {
-  VIDEO_FILTER_NONE, VIDEO_FILTER_DECIMATE, VIDEO_FILTER_DEINTERLACE,
-};
 static u_int8_t filterIndex;
 // forward declarations
 static void SetAvailableSignals(void);
@@ -185,7 +187,7 @@ void CreateInputMenu(CVideoCapabilities* pNewVideoCaps)
 	}
 
 	// create new menu item names
-	char** newInputNames = (char**)malloc(sizeof(char*) * newInputNumber);
+	const char** newInputNames = (const char**)malloc(sizeof(char*) * newInputNumber);
 
 	for (u_int8_t i = 0; i < newInputNumber; i++) {
 		char buf[64];
@@ -199,12 +201,11 @@ void CreateInputMenu(CVideoCapabilities* pNewVideoCaps)
 		input_menu,
 		newInputNames, 
 		newInputNumber,
-		inputIndex,
-		GTK_SIGNAL_FUNC(on_input_menu_activate));
+		inputIndex);
 
 	// free up old names
 	for (u_int8_t i = 0; i < inputNumber; i++) {
-		free(inputNames[i]);
+		free((void *)inputNames[i]);
 	}
 	free(inputNames);
 	inputNames = newInputNames;
@@ -404,70 +405,85 @@ static void CreateChannelListMenu()
 		GetChannelListName,
 		pChannelList,
 		0xFF,
-		channelListIndex,
-		GTK_SIGNAL_FUNC(on_channel_list_menu_activate));
+		channelListIndex);
 }
-
 static void on_size_menu_activate(GtkWidget *widget, gpointer data)
 {
 	sizeIndex = GPOINTER_TO_UINT(data) & 0xFF;
 }
+#endif
 
-static void CreateSizeMenu(uint16_t width)
+static void CreateSizeMenu(uint16_t width, uint16_t height)
 {
-  char **names = NULL;
+  const char **names = NULL;
+
+  uint32_t encoderIndex;
+  GtkWidget *encoderwidget = lookup_widget(VideoProfileDialog,
+					   "VideoProfileEncoder");
+  encoderIndex = gtk_option_menu_get_history(GTK_OPTION_MENU(encoderwidget));
+  uint signal = MyConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL);
   
-  switch (signalIndex) {
-  case 0:
+  if (signal == VIDEO_SIGNAL_PAL) {
     // PAL
     names = video_encoder_table[encoderIndex].sizeNamesPAL;
     sizeWidthValues = video_encoder_table[encoderIndex].widthValuesPAL;
     sizeWidthValueCnt = video_encoder_table[encoderIndex].numSizesPAL;
     sizeHeightValues = video_encoder_table[encoderIndex].heightValuesPAL;
     sizeHeightValueCnt = sizeWidthValueCnt;
-    break;
-  case 1:
+  } else if (signal == VIDEO_SIGNAL_NTSC) {
     // NTSC
     names = video_encoder_table[encoderIndex].sizeNamesNTSC;
     sizeWidthValues = video_encoder_table[encoderIndex].widthValuesNTSC;
     sizeWidthValueCnt = video_encoder_table[encoderIndex].numSizesNTSC;
     sizeHeightValues = video_encoder_table[encoderIndex].heightValuesNTSC;
     sizeHeightValueCnt = sizeWidthValueCnt;
-    break;
-  case 2:
+  } else {
     // Secam
     names = video_encoder_table[encoderIndex].sizeNamesSecam;
     sizeWidthValues = video_encoder_table[encoderIndex].widthValuesSecam;
     sizeWidthValueCnt = video_encoder_table[encoderIndex].numSizesSecam;
     sizeHeightValues = video_encoder_table[encoderIndex].heightValuesSecam;
     sizeHeightValueCnt = sizeWidthValueCnt;
-    break;
-  };
+  }
+
   if (names == NULL) return;
 
   sizeMaxIndex = sizeHeightValueCnt;
-	u_int8_t i;
-	for (i = 0; i < sizeMaxIndex; i++) {
-		if (sizeWidthValues[i] >= width) {
-			sizeIndex = i;
-			break;
-		}
-	}
-	if (i == sizeMaxIndex) {
-		sizeIndex = sizeMaxIndex - 1;
-	}
+  u_int8_t i;
+  for (i = 0; i < sizeMaxIndex; i++) {
+    if (sizeWidthValues[i] >= width &&
+	sizeWidthValues[i] >= height) {
+      sizeIndex = i;
+      break;
+    }
+  }
+  if (i == sizeMaxIndex) {
+    sizeIndex = sizeMaxIndex - 1;
+  }
 
-	if (sizeIndex >= sizeMaxIndex) {
-		sizeIndex = sizeMaxIndex - 1;
-	}
-
-	size_menu = CreateOptionMenu(
-		size_menu,
-		names, 
-		sizeMaxIndex,
-		sizeIndex,
-		GTK_SIGNAL_FUNC(on_size_menu_activate));
+  if (sizeIndex >= sizeMaxIndex) {
+    sizeIndex = sizeMaxIndex - 1;
+  }
+  GtkWidget *temp = lookup_widget(VideoProfileDialog, "VideoProfileSize");
+  CreateOptionMenu(temp,
+		   names, 
+		   sizeMaxIndex,
+		   sizeIndex);
 }
+
+
+void
+on_VideoProfileEncoder_changed         (GtkOptionMenu   *optionmenu,
+                                        gpointer         user_data)
+{
+  GtkWidget *size = lookup_widget(VideoProfileDialog, "VideoProfileSize");
+
+  sizeIndex = gtk_option_menu_get_history(GTK_OPTION_MENU(size));
+  CreateSizeMenu(sizeWidthValues[sizeIndex],
+		 sizeHeightValues[sizeIndex]);
+}
+
+#if 0
 static void on_encoder_menu_activate (GtkWidget *widget, 
 				      gpointer data)
 {
@@ -928,8 +944,7 @@ void CreateVideoDialog (void)
 	filter_menu = CreateOptionMenu(NULL,
 				       filterNames, 
 				       sizeof(filterNames) / sizeof(*filterNames),
-				       filterIndex,
-				       GTK_SIGNAL_FUNC(on_filter_menu_activate));
+				       filterIndex);
 
 	gtk_box_pack_start(GTK_BOX(vbox), filter_menu, FALSE, FALSE, 0);
 
@@ -940,7 +955,7 @@ void CreateVideoDialog (void)
 	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
 
 	encoderIndex = 0;
-	encoderNames = (char **)malloc(video_encoder_table_size * sizeof(char *));
+	encoderNames = (const char **)malloc(video_encoder_table_size * sizeof(char *));
 	for (i = 0; i < video_encoder_table_size; i++) {
 	  if ((strcasecmp(MyConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
 			  video_encoder_table[i].encoding) == 0) &&
@@ -954,8 +969,7 @@ void CreateVideoDialog (void)
 	encoder_menu = CreateOptionMenu(NULL, 
 					encoderNames,
 					video_encoder_table_size,
-					encoderIndex, 
-					GTK_SIGNAL_FUNC(on_encoder_menu_activate));
+					encoderIndex);
 	gtk_box_pack_start(GTK_BOX(vbox), encoder_menu, FALSE, FALSE, 0);
 	// size menu must be created after encoder index
 	sizeIndex = 0; 
@@ -965,9 +979,7 @@ void CreateVideoDialog (void)
 		NULL,
 		signalNames, 
 		sizeof(signalNames) / sizeof(char*),
-		signalIndex,
-		GTK_SIGNAL_FUNC(on_signal_menu_activate),
-		&signal_menu_items);
+		signalIndex);
 
 	gtk_box_pack_start(GTK_BOX(vbox), size_menu, FALSE, FALSE, 0);
 
@@ -983,8 +995,7 @@ void CreateVideoDialog (void)
 		NULL,
 		aspectNames, 
 		sizeof(aspectNames) / sizeof(char*),
-		aspectIndex,
-		GTK_SIGNAL_FUNC(on_aspect_menu_activate));
+		aspectIndex);
 	gtk_box_pack_start(GTK_BOX(vbox), aspect_menu, FALSE, FALSE, 0);
 
 	frame_rate_pal_adjustment = gtk_adjustment_new(
@@ -1027,6 +1038,383 @@ void CreateVideoDialog (void)
 	ShowSourceSpecificSettings();
 
 	gtk_widget_show(dialog);
+}
+#endif
+
+bool CreateNewProfile (GtkWidget *dialog,
+		       CVideoProfile *profile)
+{
+  GtkWidget *temp;
+  temp = lookup_widget(dialog, "VideoProfileName");
+  const char *name = gtk_entry_get_text(GTK_ENTRY(temp));
+  if (name == NULL || *name == '\0') return false;
+  profile->SetConfigName(name);
+  if (AVFlow->m_video_profile_list->FindProfile(name) != NULL) {
+    return false;
+  }
+  AVFlow->m_video_profile_list->AddEntryToList(profile);
+  return true;
+}
+  
+void
+on_VideoProfileDialog_response         (GtkWidget       *dialog,
+                                        gint             response_id,
+                                        gpointer         user_data)
+{
+  CVideoProfile *profile = (CVideoProfile *)user_data;
+  CVideoProfile *pass_profile = NULL;
+  GtkWidget *temp;
+  bool do_copy = true;
+  if (response_id == GTK_RESPONSE_OK) {
+    if (profile->GetName() == NULL) {
+      do_copy = CreateNewProfile(dialog, profile);
+      if (do_copy == false) {
+	delete profile;
+      } else {
+	pass_profile = profile;
+      }
+    } else {
+      debug_message("profile is %s", profile->GetName());
+    }
+    if (do_copy) {
+      temp = lookup_widget(dialog, "VideoProfileEncoder");
+      uint index = gtk_option_menu_get_history(GTK_OPTION_MENU(temp));
+      profile->SetStringValue(CFG_VIDEO_ENCODER,
+			      video_encoder_table[index].encoder);
+      profile->SetStringValue(CFG_VIDEO_ENCODING,
+			      video_encoder_table[index].encoding);
+      temp = lookup_widget(dialog, "VideoProfileSize");
+      index = gtk_option_menu_get_history(GTK_OPTION_MENU(temp));
+      profile->SetIntegerValue(CFG_VIDEO_WIDTH, sizeWidthValues[index]);
+      profile->SetIntegerValue(CFG_VIDEO_HEIGHT, sizeHeightValues[index]);
+
+      temp = lookup_widget(dialog, "VideoProfileBitRate");
+      profile->SetIntegerValue(CFG_VIDEO_BIT_RATE,
+			       gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(temp)));
+      temp = lookup_widget(dialog, "VideoProfileFrameRate");
+      profile->SetFloatValue(CFG_VIDEO_FRAME_RATE,
+			     gtk_spin_button_get_value_as_float(
+								GTK_SPIN_BUTTON(temp)));
+      // need to add filter and aspect ratio
+      temp = lookup_widget(dialog, "VideoProfileAspectRatio");
+      profile->SetFloatValue(CFG_VIDEO_CROP_ASPECT_RATIO,
+			     aspectValues[gtk_option_menu_get_history(GTK_OPTION_MENU(temp))]);
+      temp = lookup_widget(dialog, "VideoFilterMenu");
+      profile->SetStringValue(CFG_VIDEO_FILTER,
+			      filterNames[gtk_option_menu_get_history(GTK_OPTION_MENU(temp))]);
+
+      profile->WriteDefaultFile();
+    }
+  } else {
+    if (profile->GetName() == NULL) {
+      delete profile;
+    }
+  }
+  OnVideoProfileFinished(pass_profile);
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+}
+
+void CreateVideoProfileDialog(CVideoProfile *profile)
+{
+  GtkWidget *dialog_vbox4;
+  GtkWidget *VideoProfileTable;
+  GtkWidget *VideoProfileEncoder;
+  GtkWidget *VideoProfileSize;
+  GtkWidget *VideoProfileAspectRatio;
+  GtkWidget *label87;
+  GtkWidget *label88;
+  GtkWidget *label89;
+  GtkWidget *label93;
+  GtkWidget *VideoProfileName;
+  GtkWidget *label92;
+  GtkWidget *button15;
+  GtkWidget *alignment11;
+  GtkWidget *hbox59;
+  GtkWidget *image11;
+  GtkWidget *label95;
+  GtkWidget *label91;
+  GtkObject *VideoProfileBitRate_adj;
+  GtkWidget *VideoProfileBitRate;
+  GtkWidget *label90;
+  GtkObject *VideoProfileFrameRate_adj;
+  GtkWidget *VideoProfileFrameRate;
+  GtkWidget *label166;
+  GtkWidget *VideoFilterMenu;
+  GtkWidget *dialog_action_area3;
+  GtkWidget *cancelbutton3;
+  GtkWidget *okbutton3;
+  GtkTooltips *tooltips;
+  bool new_profile = profile == NULL;
+
+  if (new_profile) {
+    profile = new CVideoProfile(NULL, NULL);
+    profile->LoadConfigVariables();
+    profile->Initialize(false);
+  }
+
+  tooltips = gtk_tooltips_new();
+
+  VideoProfileDialog = gtk_dialog_new();
+  gtk_window_set_title(GTK_WINDOW(VideoProfileDialog), _("Video Profile"));
+  gtk_window_set_modal(GTK_WINDOW(VideoProfileDialog), TRUE);
+  gtk_window_set_resizable(GTK_WINDOW(VideoProfileDialog), FALSE);
+
+  dialog_vbox4 = GTK_DIALOG(VideoProfileDialog)->vbox;
+  gtk_widget_show(dialog_vbox4);
+
+  VideoProfileTable = gtk_table_new(8, 2, FALSE);
+  gtk_widget_show(VideoProfileTable);
+  gtk_box_pack_start(GTK_BOX(dialog_vbox4), VideoProfileTable, TRUE, TRUE, 0);
+  gtk_table_set_row_spacings(GTK_TABLE(VideoProfileTable), 3);
+
+  VideoProfileEncoder = gtk_option_menu_new();
+  gtk_widget_show(VideoProfileEncoder);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), VideoProfileEncoder, 1, 2, 1, 2,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_tooltips_set_tip(tooltips, VideoProfileEncoder, _("Select Encoder/Encoding"), NULL);
+
+  uint encoderIndex = 0;
+  uint i;
+  encoderNames = (const char **)malloc(video_encoder_table_size * sizeof(char *));
+  for (i = 0; i < video_encoder_table_size; i++) {
+    if ((strcasecmp(profile->GetStringValue(CFG_VIDEO_ENCODING),
+		    video_encoder_table[i].encoding) == 0) &&
+	(strcasecmp(profile->GetStringValue(CFG_VIDEO_ENCODER), 
+		    video_encoder_table[i].encoder) == 0)) {
+      encoderIndex = i;
+    }
+    encoderNames[i] = video_encoder_table[i].encoding_name;
+  }
+
+  CreateOptionMenu(VideoProfileEncoder, 
+		   encoderNames,
+		   video_encoder_table_size,
+		   encoderIndex);
+
+  VideoProfileSize = gtk_option_menu_new();
+  gtk_widget_show(VideoProfileSize);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), VideoProfileSize, 1, 2, 2, 3,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_tooltips_set_tip(tooltips, VideoProfileSize, _("Select Output Stream Size"), NULL);
+
+
+  VideoProfileAspectRatio = gtk_option_menu_new();
+  gtk_widget_show(VideoProfileAspectRatio);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), VideoProfileAspectRatio, 1, 2, 3, 4,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_tooltips_set_tip(tooltips, VideoProfileAspectRatio, _("Crop to Aspect Ratio"), NULL);
+
+  uint aspectIndex = 0; 
+  for (uint i = 0; i < NUM_ELEMENTS_IN_ARRAY(aspectValues); i++) {
+    if (profile->GetFloatValue(CFG_VIDEO_CROP_ASPECT_RATIO)
+	== aspectValues[i]) {
+      aspectIndex = i;
+      break;
+    }
+  }
+  CreateOptionMenu(VideoProfileAspectRatio, aspectNames,
+		   NUM_ELEMENTS_IN_ARRAY(aspectNames),
+		   aspectIndex);
+
+  label87 = gtk_label_new(_("Encoder:"));
+  gtk_widget_show(label87);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), label87, 0, 1, 1, 2,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label87), 0, 0.5);
+
+  label88 = gtk_label_new(_("Size:"));
+  gtk_widget_show(label88);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), label88, 0, 1, 2, 3,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label88), 0, 0.5);
+
+  label89 = gtk_label_new(_("Crop to Aspect Ratio:"));
+  gtk_widget_show(label89);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), label89, 0, 1, 3, 4,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label89), 0, 0.5);
+
+  label93 = gtk_label_new(_("Video Profile:"));
+  gtk_widget_show(label93);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), label93, 0, 1, 0, 1,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 8);
+  gtk_misc_set_alignment(GTK_MISC(label93), 0.05, 0.5);
+
+  VideoProfileName = gtk_entry_new();
+  gtk_widget_show(VideoProfileName);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), VideoProfileName, 1, 2, 0, 1,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+
+  if (new_profile == false) {
+    gtk_entry_set_text(GTK_ENTRY(VideoProfileName), profile->GetName());
+    gtk_widget_set_sensitive(VideoProfileName, false);
+  }
+    
+
+  label92 = gtk_label_new(_("Encoder Settings:"));
+  gtk_widget_show(label92);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), label92, 0, 1, 7, 8,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label92), 0, 0.5);
+
+  button15 = gtk_button_new();
+  gtk_widget_show(button15);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), button15, 1, 2, 7, 8,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_widget_set_sensitive(button15, FALSE);
+  gtk_tooltips_set_tip(tooltips, button15, _("Configure Encoder Specific Settings"), NULL);
+
+  alignment11 = gtk_alignment_new(0.5, 0.5, 0, 0);
+  gtk_widget_show(alignment11);
+  gtk_container_add(GTK_CONTAINER(button15), alignment11);
+
+  hbox59 = gtk_hbox_new(FALSE, 2);
+  gtk_widget_show(hbox59);
+  gtk_container_add(GTK_CONTAINER(alignment11), hbox59);
+
+  image11 = gtk_image_new_from_stock("gtk-preferences", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show(image11);
+  gtk_box_pack_start(GTK_BOX(hbox59), image11, FALSE, FALSE, 0);
+
+  label95 = gtk_label_new_with_mnemonic(_("Settings"));
+  gtk_widget_show(label95);
+  gtk_box_pack_start(GTK_BOX(hbox59), label95, FALSE, FALSE, 0);
+
+  label91 = gtk_label_new(_("Bit Rate(kbps):"));
+  gtk_widget_show(label91);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), label91, 0, 1, 6, 7,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label91), 0, 0.5);
+
+  VideoProfileBitRate_adj = gtk_adjustment_new(profile->GetIntegerValue(CFG_VIDEO_BIT_RATE), 25, 4000, 50, 1000, 1000);
+  VideoProfileBitRate = gtk_spin_button_new(GTK_ADJUSTMENT(VideoProfileBitRate_adj), 50, 0);
+  gtk_widget_show(VideoProfileBitRate);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), VideoProfileBitRate, 1, 2, 6, 7,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(GTK_EXPAND), 0, 0);
+  gtk_tooltips_set_tip(tooltips, VideoProfileBitRate, _("Enter Bit Rate"), NULL);
+
+  label90 = gtk_label_new(_("Frame Rate(fps):"));
+  gtk_widget_show(label90);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), label90, 0, 1, 5, 6,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label90), 0, 0.5);
+
+  VideoProfileFrameRate_adj = 
+    gtk_adjustment_new(profile->GetFloatValue(CFG_VIDEO_FRAME_RATE), 
+		       0, 
+		       MyConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) ==
+		       VIDEO_SIGNAL_NTSC ?
+		       VIDEO_NTSC_FRAME_RATE : VIDEO_PAL_FRAME_RATE, 
+		       1, 5, 5);
+  VideoProfileFrameRate = gtk_spin_button_new(GTK_ADJUSTMENT(VideoProfileFrameRate_adj), 1, 2);
+  gtk_widget_show(VideoProfileFrameRate);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), VideoProfileFrameRate, 1, 2, 5, 6,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_tooltips_set_tip(tooltips, VideoProfileFrameRate, _("Enter Frame Rate"), NULL);
+
+  label166 = gtk_label_new(_("Video Filter:"));
+  gtk_widget_show(label166);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), label166, 0, 1, 4, 5,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label166), 0, 0.5);
+
+  VideoFilterMenu = gtk_option_menu_new();
+  gtk_widget_show(VideoFilterMenu);
+  gtk_table_attach(GTK_TABLE(VideoProfileTable), VideoFilterMenu, 1, 2, 4, 5,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+
+  uint filterIndex = 0; 
+  for (i = 0; i < NUM_ELEMENTS_IN_ARRAY(filterNames); i++) {
+    if (strcasecmp(profile->GetStringValue(CFG_VIDEO_FILTER),
+		   filterNames[i]) == 0) {
+      filterIndex = i;
+      break;
+    }
+  }
+  CreateOptionMenu(VideoFilterMenu,
+		   filterNames,
+		   NUM_ELEMENTS_IN_ARRAY(filterNames), 
+		   filterIndex);
+
+  dialog_action_area3 = GTK_DIALOG(VideoProfileDialog)->action_area;
+  gtk_widget_show(dialog_action_area3);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(dialog_action_area3), GTK_BUTTONBOX_END);
+
+  cancelbutton3 = gtk_button_new_from_stock("gtk-cancel");
+  gtk_widget_show(cancelbutton3);
+  gtk_dialog_add_action_widget(GTK_DIALOG(VideoProfileDialog), cancelbutton3, GTK_RESPONSE_CANCEL);
+  GTK_WIDGET_SET_FLAGS(cancelbutton3, GTK_CAN_DEFAULT);
+
+  okbutton3 = gtk_button_new_from_stock("gtk-ok");
+  gtk_widget_show(okbutton3);
+  gtk_dialog_add_action_widget(GTK_DIALOG(VideoProfileDialog), okbutton3, GTK_RESPONSE_OK);
+  GTK_WIDGET_SET_FLAGS(okbutton3, GTK_CAN_DEFAULT);
+
+  g_signal_connect((gpointer) VideoProfileDialog, "response",
+                    G_CALLBACK(on_VideoProfileDialog_response),
+                    profile);
+  g_signal_connect((gpointer) VideoProfileEncoder, "changed",
+                    G_CALLBACK(on_VideoProfileEncoder_changed),
+                    NULL);
+#if 0
+  g_signal_connect((gpointer) no_filter, "activate",
+                    G_CALLBACK(on_no_filter_activate),
+                    NULL);
+  g_signal_connect((gpointer) interlace_filter1, "activate",
+                    G_CALLBACK(on_interlace_filter1_activate),
+                    NULL);
+#endif
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF(VideoProfileDialog, VideoProfileDialog, "VideoProfileDialog");
+  GLADE_HOOKUP_OBJECT_NO_REF(VideoProfileDialog, dialog_vbox4, "dialog_vbox4");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoProfileTable, "VideoProfileTable");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoProfileEncoder, "VideoProfileEncoder");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoProfileSize, "VideoProfileSize");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoProfileAspectRatio, "VideoProfileAspectRatio");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, label87, "label87");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, label88, "label88");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, label89, "label89");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, label93, "label93");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoProfileName, "VideoProfileName");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, label92, "label92");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, button15, "button15");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, alignment11, "alignment11");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, hbox59, "hbox59");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, image11, "image11");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, label95, "label95");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, label91, "label91");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoProfileBitRate, "VideoProfileBitRate");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, label90, "label90");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoProfileFrameRate, "VideoProfileFrameRate");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, label166, "label166");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, VideoFilterMenu, "VideoFilterMenu");
+  GLADE_HOOKUP_OBJECT_NO_REF(VideoProfileDialog, dialog_action_area3, "dialog_action_area3");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, cancelbutton3, "cancelbutton3");
+  GLADE_HOOKUP_OBJECT(VideoProfileDialog, okbutton3, "okbutton3");
+  GLADE_HOOKUP_OBJECT_NO_REF(VideoProfileDialog, tooltips, "tooltips");
+
+  CreateSizeMenu(profile->GetIntegerValue(CFG_VIDEO_WIDTH),
+		 profile->GetIntegerValue(CFG_VIDEO_HEIGHT));
+
+  //  return VideoProfileDialog;
+  gtk_widget_show(VideoProfileDialog);
 }
 
 /* end video_dialog.cpp */

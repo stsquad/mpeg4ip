@@ -21,11 +21,6 @@ int ReadConfigFile (const char *configFileName,
       pConfig->ReadDefaultFile();
     }
 
-    if (!pConfig->IsDefault(CONFIG_AUDIO_BIT_RATE_KBPS)) {
-      pConfig->SetIntegerValue(CONFIG_AUDIO_BIT_RATE,
-			       pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE_KBPS) * 1000);
-      pConfig->SetToDefault(CONFIG_AUDIO_BIT_RATE_KBPS);
-    }
     if (!pConfig->IsDefault(CONFIG_RTP_DEST_ADDRESS) &&
 	pConfig->IsDefault(CONFIG_RTP_AUDIO_DEST_ADDRESS)) {
       pConfig->SetStringValue(CONFIG_RTP_AUDIO_DEST_ADDRESS,
@@ -155,5 +150,16 @@ void InstallSignalHandler (CLiveConfig *pConfig,
 
   if (sigintset == false) {
     sigaction(SIGINT, &act, 0);
+  }
+}
+
+void GetHomeDirectory (char *base)
+{
+  const char *home;
+  home = getenv("HOME");
+  base[0] = '\0';
+  if (home) {
+    strcpy(base, home);
+    strcat(base, "/");
   }
 }

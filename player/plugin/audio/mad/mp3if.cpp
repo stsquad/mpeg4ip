@@ -31,7 +31,7 @@ static SConfigVariable MyConfigVariables[] = {
 
 #define mp3_message mp3->m_vft->log_msg
 
-//#define DEBUG_MAD 1
+#define DEBUG_MAD 1
 /*
  * Create CMP3Codec class
  */

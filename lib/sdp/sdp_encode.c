@@ -574,7 +574,7 @@ int sdp_encode_one_to_file (session_desc_t *sptr,
   CHECK_RETURN(sdp_encode(sptr, &sdp));
   ofile = fopen(filename, append ? "a" : "w");
   if (ofile == NULL) {
-    sdp_debug(LOG_CRIT, "Cannot open file %s", filename);
+    sdp_debug(LOG_EMERG, "Cannot open file %s", filename);
     free(sdp.buffer);
     return (-1);
   }

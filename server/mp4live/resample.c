@@ -286,7 +286,7 @@ resample_t st_resample_start(uint32_t inrate, uint32_t outrate)
  * Return number of samples processed.
  */
 int st_resample_flow (resample_t r, 
-		      int16_t *ibuf, 
+		      const int16_t *ibuf, 
 		      int16_t *obuf, 
 		      uint32_t *isamp, 
 		      uint32_t *osamp,

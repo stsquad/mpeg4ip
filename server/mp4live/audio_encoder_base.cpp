@@ -35,34 +35,39 @@
 #include "audio_ffmpeg.h"
 #endif
 
-CAudioEncoder* AudioEncoderBaseCreate(const char* encoderName)
+CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap,
+				      CAudioEncoder *next,
+				      u_int8_t srcChannels,
+				      u_int32_t srcSampleRate,
+				      bool realTime)
 {
-	if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
+  const char *encoderName = ap->GetStringValue(CFG_AUDIO_ENCODER);
+  if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
 #ifdef ADD_FAAC_ENCODER
-		return new CFaacAudioEncoder();
+    return new CFaacAudioEncoder(ap, next, srcChannels, srcSampleRate, realTime);
 #else
-		error_message("faac encoder not available in this build");
-		return false;
+    error_message("faac encoder not available in this build");
+    return false;
 #endif
-	} else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
+  } else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
 #ifdef ADD_LAME_ENCODER
-		return new CLameAudioEncoder();
+    return new CLameAudioEncoder(ap, next, srcChannels, srcSampleRate, realTime);
 #else
-		error_message("lame encoder not available in this build");
+    error_message("lame encoder not available in this build");
 #endif
-	} else if (strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG) == 0) {
+  } else if (strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG) == 0) {
 #ifdef HAVE_FFMPEG
-	  return new CFfmpegAudioEncoder();
+    return new CFfmpegAudioEncoder(ap, next, srcChannels, srcSampleRate, realTime);
 #else
-	  error_message("ffmpeg audio encoder not available in this build");
+    error_message("ffmpeg audio encoder not available in this build");
 #endif
-	} else {
-                error_message("unknown audio encoder (%s) specified",encoderName);
-	}
-	return NULL;
+  } else {
+    error_message("unknown audio encoder (%s) specified",encoderName);
+  }
+  return NULL;
 }
 
-MediaType get_base_audio_mp4_fileinfo (CLiveConfig *pConfig,
+MediaType get_base_audio_mp4_fileinfo (CAudioProfile *pConfig,
 				       bool *mpeg4,
 				       bool *isma_compliant,
 				       uint8_t *audioProfile,
@@ -70,7 +75,7 @@ MediaType get_base_audio_mp4_fileinfo (CLiveConfig *pConfig,
 				       uint32_t *audioConfigLen,
 				       uint8_t *mp4_audio_type)
 {
-  const char *encoderName = pConfig->GetStringValue(CONFIG_AUDIO_ENCODER);
+  const char *encoderName = pConfig->GetStringValue(CFG_AUDIO_ENCODER);
 
   if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
 #ifdef ADD_FAAC_ENCODER
@@ -113,14 +118,14 @@ MediaType get_base_audio_mp4_fileinfo (CLiveConfig *pConfig,
   return UNDEFINEDFRAME;
 }
 
-media_desc_t *create_base_audio_sdp (CLiveConfig *pConfig,
+media_desc_t *create_base_audio_sdp (CAudioProfile *pConfig,
 				bool *mpeg4,
 				bool *isma_compliant,
 				uint8_t *audioProfile,
 				uint8_t **audioConfig,
 				uint32_t *audioConfigLen)
 {
-  const char *encoderName = pConfig->GetStringValue(CONFIG_AUDIO_ENCODER);
+  const char *encoderName = pConfig->GetStringValue(CFG_AUDIO_ENCODER);
 
   if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
 #ifdef ADD_FAAC_ENCODER
@@ -160,29 +165,30 @@ media_desc_t *create_base_audio_sdp (CLiveConfig *pConfig,
   return NULL;
 }
 				
-void create_base_mp4_audio_hint_track (CLiveConfig *pConfig, 
+void create_base_mp4_audio_hint_track (CAudioProfile *pConfig, 
 				  MP4FileHandle mp4file,
-				  MP4TrackId trackId)
+				  MP4TrackId trackId,
+				       uint16_t mtu)
 {
-  const char *encodingName = pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+  const char *encodingName = pConfig->GetStringValue(CFG_AUDIO_ENCODING);
 
   if (!strcasecmp(encodingName, AUDIO_ENCODING_AAC)) {
     MP4AV_RfcIsmaHinter(mp4file, 
 			trackId, 
 			false, 
-			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			mtu);
   } else if (!strcasecmp(encodingName, AUDIO_ENCODING_MP3)) {
     MP4AV_Rfc2250Hinter(mp4file,
 			trackId,
 			false, 
-			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			mtu);
   } else if (!strcasecmp(encodingName, AUDIO_ENCODING_AMR)) {
     MP4AV_Rfc3267Hinter(mp4file, trackId, 
-			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			mtu);
   }
 }
 
-bool get_base_audio_rtp_info (CLiveConfig *pConfig,
+bool get_base_audio_rtp_info (CAudioProfile *pConfig,
 			 MediaType *audioFrameType,
 			 uint32_t *audioTimeScale,
 			 uint8_t *audioPayloadNumber,
@@ -196,7 +202,7 @@ bool get_base_audio_rtp_info (CLiveConfig *pConfig,
 			 audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
 			 void **ud)
 {
-  const char *encoderName = pConfig->GetStringValue(CONFIG_AUDIO_ENCODER);
+  const char *encoderName = pConfig->GetStringValue(CFG_AUDIO_ENCODER);
 
   if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
 #ifdef ADD_FAAC_ENCODER

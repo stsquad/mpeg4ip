@@ -111,7 +111,7 @@ int main(int argc, char** argv)
     "  -interleave             Use interleaved audio payload format, also -I\n"
     "  -list                   List tracks in mp4 file\n"
     "  -mpeg4-video-profile=<level> Mpeg4 video profile override\n"
-    "  -mtu=<size>             MTU for hint track\n"
+    "  -mtu=<size>             Maximum Payload size for RTP packets in hint track\n"
     "  -optimize               Optimize mp4 file layout\n"
     "  -payload=<payload>      Rtp payload type \n"
     "                          (use 3119 or mpa-robust for mp3 rfc 3119 support)\n"
@@ -1187,24 +1187,43 @@ static void extract_h264_track (MP4FileHandle mp4File,
     uint32_t nal_len;
     bool first = true;
     do {
-      if (buflen_size == 1) {
-	nal_len = pSample[read_offset];
+#if 0
+      printf("read offset %u buflen %u sample Size %u\n", 
+	     read_offset, buflen_size, sampleSize);
+#endif
+      if (read_offset + buflen_size >= sampleSize) {
+	fprintf(stderr, 
+		"extra bytes at end of sample %d - nal len size %u, %u bytes left", 
+		sampleId, buflen_size, sampleSize - read_offset);
+	read_offset = sampleSize;
       } else {
-	nal_len = (pSample[read_offset] << 8) | pSample[read_offset + 1];
-	if (buflen_size == 4) {
+	if (buflen_size == 1) {
+	  nal_len = pSample[read_offset];
+	} else {
+	  nal_len = (pSample[read_offset] << 8) | pSample[read_offset + 1];
+	  if (buflen_size == 4) {
 	  nal_len <<= 16;
 	  nal_len |= (pSample[read_offset + 2] << 8) | pSample[read_offset + 3];
+	  }
+	}
+	if (read_offset + nal_len > sampleSize) {
+	  fprintf(stderr, 
+		  "nal length past end of buffer - sample %u size %u frame offset %u left %u\n",
+		  sampleId, nal_len, read_offset, sampleSize - read_offset);
+	  read_offset = sampleSize;
+	} else {
+	  if (first) {
+	    write(outFd, header, 4);
+	    first = false;
+	  } else {
+	    write(outFd, header + 1, 3);
+	  }
+	  // printf("sample id %d size %u %x\n", sampleId, nal_len, nal_len);
+	  write(outFd, pSample + read_offset + buflen_size,
+		nal_len);
+	  read_offset += nal_len + buflen_size;
 	}
       }
-      if (first) {
-	write(outFd, header, 4);
-	first = false;
-      } else {
-	write(outFd, header + 1, 3);
-      }
-      write(outFd, pSample + read_offset + buflen_size,
-	     nal_len);
-      read_offset = nal_len + buflen_size;
     } while (read_offset < sampleSize);
     free(pSample);
   }

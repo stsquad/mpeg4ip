@@ -65,3 +65,75 @@ void debug_message (const char *fmt, ...)
   printf("\n");
 }
 
+bool ValidateIpAddress (const char *address)
+{
+  struct in_addr in;
+  if (inet_pton(AF_INET, address, &in) > 0) {
+    return true;
+  }
+  
+  struct in6_addr in6;
+  if (inet_pton(AF_INET6, address, &in6) > 0) {
+    return true;
+  }
+
+  // Might have a DNS address...
+  if (gethostbyname(address) != NULL) {
+    return true;
+  }
+  return false;
+}
+
+bool ValidateIpPort (in_port_t port)
+{
+  if (port < 1024 || port > 65534 || (port & 1)) {
+    return false;
+  }
+  return true;
+}
+
+static void SeedRandom(void) {
+  static bool once = false;
+  if (!once) {
+    srandom(time(NULL));
+    once = true;
+  }
+}
+
+in_addr_t GetRandomMcastAddress(void) 
+{
+  SeedRandom();
+
+  // pick a random number in the multicast range
+  u_int32_t mcast = ((random() & 0x0FFFFFFF) | 0xE0000000);
+  
+  // screen out undesirable values
+  // introduces small biases in the results
+  
+  // stay away from 224.0.0.x
+  if ((mcast & 0x0FFFFF00) == 0) {
+    mcast |= 0x00000100;	// move to 224.0.1
+  } 
+  
+  // stay out of SSM range 232.x.x.x
+  // user should explictly select this if they want SSM
+  if ((mcast & 0xFF000000) == 232) {
+    mcast |= 0x01000000;	// move to 233
+  }
+  
+  // stay away from .0 .1 and .255
+  if ((mcast & 0xFF) == 0 || (mcast & 0xFF) == 1 
+      || (mcast & 0xFF) == 255) {
+    mcast = (mcast & 0xFFFFFFF0) | 0x4;	// move to .4 or .244
+  }
+  
+  return htonl(mcast);
+}
+
+in_port_t GetRandomPort(void) 
+{
+  SeedRandom();
+
+  // Get random block of 4 port numbers above 20000
+  return (in_port_t)(20000 + ((random() >> 18) << 2));
+}

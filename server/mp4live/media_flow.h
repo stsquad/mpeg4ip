@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -26,10 +26,14 @@
 #include "mp4live_config.h"
 #include "media_source.h"
 #include "media_sink.h"
+#include "media_stream.h"
 
 class CRtpTransmitter;
 class CMp4Recorder;
-class CLoopFeederSink;
+class CVideoProfileList;
+class CAudioProfileList;
+class CVideoEncoder;
+class CAudioEncoder;
 
 // abstract parent class
 class CMediaFlow {
@@ -52,6 +56,7 @@ public:
 protected:
 	CLiveConfig*		m_pConfig;
 	bool				m_started;
+
 };
 
 enum {
@@ -65,24 +70,9 @@ enum {
 
 class CAVMediaFlow : public CMediaFlow {
 public:
-	CAVMediaFlow(CLiveConfig* pConfig = NULL)
-		: CMediaFlow(pConfig) {
-		m_videoSource = NULL;
-		m_audioSource = NULL;
-		m_mp4Recorder = NULL;
-		m_rtpTransmitter = NULL;
-		m_rawSink = NULL;
-		m_feederSink = NULL;
-	}
-
-	virtual ~CAVMediaFlow() {
-		Stop();
-		if (m_videoSource != NULL) {
-		  m_videoSource->StopThread();
-		  delete m_videoSource;
-		  m_videoSource = NULL;
-		}
-	}
+        CAVMediaFlow(CLiveConfig* pConfig = NULL);
+        
+	virtual ~CAVMediaFlow();
 
 	void Start(void);
 	void Stop(void);
@@ -102,20 +92,34 @@ public:
 	{
 		return m_videoSource;
 	}
-	
+	bool ReadStreams(void);
+	void ValidateAndUpdateStreams(void);
+	bool AddStream(const char *name);
+	bool DeleteStream(const char *name);
 protected:
-	void AddSink(CMediaSink* pSink);
-	void RemoveSink(CMediaSink* pSink);
-
+	//void AddSink(CMediaSink* pSink);
+	//void RemoveSink(CMediaSink* pSink);
+	void StartStreams(void);
 protected:
-	void CreateRtpTransmitter(void);
 	CMediaSource* 	m_videoSource;
 	CMediaSource*	m_audioSource;
+	uint32_t m_maxAudioSamplesPerFrame;
+ public:
+	CVideoProfileList *m_video_profile_list;
+	CAudioProfileList *m_audio_profile_list;
+	//CTextProfile *m_text_profile_list;
+	CMediaStreamList *m_stream_list;
+
+	CVideoEncoder *m_video_encoder_list;
+	CAudioEncoder *m_audio_encoder_list;
+
+ protected:
+	CVideoEncoder *FindOrCreateVideoEncoder(CVideoProfile *vp, 
+						bool create = true);
+	CAudioEncoder *FindOrCreateAudioEncoder(CAudioProfile *ap);
 
 	CMp4Recorder*		m_mp4Recorder;
-	CRtpTransmitter*	m_rtpTransmitter;
 	CMediaSink*		m_rawSink;
-	CLoopFeederSink*		m_feederSink;
 };
 
 #endif /* __MEDIA_FLOW_H__ */

@@ -48,7 +48,8 @@ extern "C" {
 			     int *have_mpeg2,
 			      uint32_t *height, uint32_t *width, 
 			      double *frame_rate, double *bitrate,
-			     double *aspect_ratio);
+			     double *aspect_ratio,
+			     uint8_t *profile_code);
 
   int MP4AV_Mpeg3PictHdrType(const uint8_t *pbuffer);
 
@@ -70,6 +71,8 @@ extern "C" {
 			      int frame_type,
 			      uint16_t temp_ref,
 			      uint64_t *return_value);
+  uint8_t mpeg2_profile_to_mp4_track_type (uint8_t profile);
+  const char *mpeg2_type(uint8_t profile);
 #ifdef __cplusplus
 }
 #endif

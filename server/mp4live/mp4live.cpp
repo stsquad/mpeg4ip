@@ -22,8 +22,8 @@
 #define DECLARE_CONFIG_VARIABLES 1
 #include <mp4.h>
 #include "mp4live.h"
+#undef DECLARE_CONFIG_VARIABLES
 #include "media_flow.h"
-#include "loop_source.h"
 
 #ifdef HAVE_LINUX_VIDEODEV2_H
 #include "video_v4l2_source.h"
@@ -32,9 +32,11 @@
 #endif
 
 #include "audio_oss_source.h"
+#include "audio_encoder.h"
 #include "mp4live_common.h"
 #include <getopt.h>
 #include <signal.h>
+#include "preview_flow.h"
 
 // InitializeConfigVariables - if you want to add configuration 
 // variables, you most likely want to add them here, before you
@@ -76,9 +78,6 @@ CMediaSource *CreateVideoSource (CLiveConfig *pConfig)
 #else
     vs = new CV4LVideoSource();
 #endif
-  } else if  (!strcasecmp(sourceType, "self"))
-  {
-  	vs = new CLoopSource(false);
   } else {
     error_message("unknown video source type %s", sourceType);
     return NULL;
@@ -103,11 +102,6 @@ CMediaSource *CreateAudioSource (CLiveConfig *pConfig,
 
     if (!strcasecmp(sourceType, AUDIO_SOURCE_OSS)) {
       audioSource = new COSSAudioSource(pConfig);
-    } else if  (!strcasecmp(sourceType, "self"))
-    {
-	audioSource = new CLoopSource(true);
-	audioSource->SetConfig(pConfig);
-	
     } else {
       error_message("unknown audio source type %s", sourceType);
       return NULL;
@@ -132,7 +126,7 @@ void InitialVideoProbe(CLiveConfig *pConfig)
 
 int main(int argc, char** argv)
 {
-	int rc;
+  int rc = 0;
 	char* configFileName = NULL;
 	bool automatic = false;
 	bool headless = false;
@@ -291,7 +285,9 @@ int main(int argc, char** argv)
 
 	// first case: just want to generate the SDP file
 	if (sdpOnly) {
+#ifdef TODO
 		rc = GenerateSdpFile(pConfig);
+#endif
 		delete pConfig;
 		exit(rc);
 	}
@@ -363,11 +359,18 @@ int nogui_main(CLiveConfig* pConfig)
 	// override any configured value of preview
 	bool previewValue =
 		pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW);
+	//#define TEST_PREVIEW 1
+#ifndef TEST_PREVIEW
 	pConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW, false);
 
 	CAVMediaFlow* pFlow = new CAVMediaFlow(pConfig);
+#else
+	CPreviewAVMediaFlow *pFlow = new CPreviewAVMediaFlow(pConfig);
+#endif
+	
 
 	pFlow->Start();
+	error_message("Started - wait");
 	stop_signal_received = 0;
 	maxduration = pConfig->GetIntegerValue(CONFIG_APP_DURATION)
 	  * pConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS);
@@ -375,11 +378,13 @@ int nogui_main(CLiveConfig* pConfig)
 	starttime = time(NULL);
 	do {
 	  sleep(1);
+#ifdef TEST_PREVIEW
+	  pFlow->ProcessSDLEvents();
+#endif
 	  nowtime = time(NULL);
 	  duration = difftime(nowtime, starttime);
 	} while (duration < maxduration && stop_signal_received == 0);
 
-	
 	pFlow->Stop();
 
 	delete pFlow;

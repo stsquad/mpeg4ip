@@ -148,6 +148,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
        double frame_rate;
        double bitrate;
        double aspect_ratio;
+       uint8_t profile;
        if (MP4AV_Mpeg3ParseSeqHdr(buffer, 
 				  buflen,
 				  &have_mpeg2, 
@@ -155,7 +156,8 @@ static int mpeg2dec_decode (codec_data_t *ptr,
 				  &width, 
 				  &frame_rate,
 				  &bitrate, 
-				  &aspect_ratio) < 0) {
+				  &aspect_ratio,
+				  &profile) < 0) {
 	 
 	 mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "pix w %u pix h %u", 
 				  sequence->pixel_width, 

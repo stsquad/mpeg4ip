@@ -31,6 +31,7 @@
 //#define DEBUG_TIMESTAMPS 1
 int CV4LVideoSource::ThreadMain(void) 
 {
+  m_v4l_mutex = SDL_CreateMutex();
 	while (true) {
 		int rc;
 
@@ -56,14 +57,10 @@ int CV4LVideoSource::ThreadMain(void)
 					delete pMsg;
 					return 0;
 				case MSG_NODE_START:
-				case MSG_SOURCE_START_VIDEO:
 					DoStartCapture();
 					break;
 				case MSG_NODE_STOP:
 					DoStopCapture();
-					break;
-				case MSG_SOURCE_KEY_FRAME:
-					DoGenerateKeyFrame();
 					break;
 				}
 
@@ -103,11 +100,10 @@ void CV4LVideoSource::DoStopCapture(void)
 		return;
 	}
 
-	DoStopVideo();
-
 	ReleaseDevice();
 
 	m_source = false;
+	SDL_DestroyMutex(m_v4l_mutex);
 }
 
 bool CV4LVideoSource::Init(void)
@@ -127,8 +123,7 @@ bool CV4LVideoSource::Init(void)
 	SetVideoSrcSize(
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT),
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
-		true);
+		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH));
 
 	m_maxPasses = (u_int8_t)(m_videoSrcFrameRate + 0.5);
 
@@ -438,6 +433,7 @@ bool CV4LVideoSource::SetPictureControls()
 int8_t CV4LVideoSource::AcquireFrame(Timestamp &frameTimestamp)
 {
 	int rc;
+	ReleaseFrames();
 	rc = ioctl(m_videoDevice, VIDIOCSYNC, &m_videoFrameMap[m_captureHead]);
 	if (rc != 0) {
 		return -1;
@@ -453,29 +449,67 @@ int8_t CV4LVideoSource::AcquireFrame(Timestamp &frameTimestamp)
 
 	return capturedFrame;
 }
-bool CV4LVideoSource::ReleaseFrame(int8_t frameNumber)
+
+void c_ReleaseFrame (void *f)
 {
-  Timestamp calc = GetTimestamp();
-
-  if (calc > m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded) {
-#ifdef DEBUG_TIMESTAMPS
-    debug_message("video frame delay past end of buffer - time is "U64" should be "U64,
-		  calc,
-		  m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded);
-#endif
-    m_videoCaptureStartTimestamp = calc;
-    m_videoFrameMapFrame[frameNumber] = 0;
-    m_videoFrameMapTimestamp[frameNumber] = calc;
+  yuv_media_frame_t *yuv = (yuv_media_frame_t *)f;
+  if (yuv->free_y) {
+    CHECK_AND_FREE(yuv->y);
   } else {
-    m_videoFrameMapFrame[frameNumber] = m_lastVideoFrameMapFrameLoaded + 1;
-    m_videoFrameMapTimestamp[frameNumber] =
-      CalculateVideoTimestampFromFrames(m_videoFrameMapFrame[frameNumber]);
+    CV4LVideoSource *s = (CV4LVideoSource *)yuv->hardware;
+    s->IndicateReleaseFrame(yuv->hardware_index);
   }
+  free(yuv);
+}
 
-  m_lastVideoFrameMapFrameLoaded = m_videoFrameMapFrame[frameNumber];
-  m_lastVideoFrameMapTimestampLoaded = m_videoFrameMapTimestamp[frameNumber];
-  return (ioctl(m_videoDevice, VIDIOCMCAPTURE, 
-		&m_videoFrameMap[frameNumber]) == 0);
+void CV4LVideoSource::ReleaseFrames (void)
+{
+  uint32_t index_mask = 1;
+  uint32_t released_mask;
+  uint32_t back_on_queue_mask = 0;
+
+  SDL_LockMutex(m_v4l_mutex);
+  released_mask = m_release_index_mask;
+  SDL_UnlockMutex(m_v4l_mutex);
+
+  m_release_index_mask = 0;
+
+  while (released_mask != 0) {
+    index_mask = 1 << m_encodeHead;
+    if ((index_mask & released_mask) != 0) {
+      back_on_queue_mask |= index_mask;
+      Timestamp calc = GetTimestamp();
+
+      if (calc > m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded) {
+#ifdef DEBUG_TIMESTAMPS
+	debug_message("video frame delay past end of buffer - time is "U64" should be "U64,
+		      calc,
+		      m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded);
+#endif
+	m_videoCaptureStartTimestamp = calc;
+	m_videoFrameMapFrame[m_encodeHead] = 0;
+	m_videoFrameMapTimestamp[m_encodeHead] = calc;
+      } else {
+	m_videoFrameMapFrame[m_encodeHead] = m_lastVideoFrameMapFrameLoaded + 1;
+	m_videoFrameMapTimestamp[m_encodeHead] =
+	  CalculateVideoTimestampFromFrames(m_videoFrameMapFrame[m_encodeHead]);
+      }
+
+      m_lastVideoFrameMapFrameLoaded = m_videoFrameMapFrame[m_encodeHead];
+      m_lastVideoFrameMapTimestampLoaded = m_videoFrameMapTimestamp[m_encodeHead];
+      ioctl(m_videoDevice, VIDIOCMCAPTURE, 
+	    &m_videoFrameMap[m_encodeHead]);
+      m_encodeHead = (m_encodeHead + 1) % m_videoMbuf.frames;
+    } else {
+      released_mask = 0;
+    }
+  }
+  if (back_on_queue_mask != 0) {
+    SDL_LockMutex(m_v4l_mutex);
+    m_release_index_mask &= ~back_on_queue_mask;
+    SDL_UnlockMutex(m_v4l_mutex);
+  }
+  
 }
 
 void CV4LVideoSource::ProcessVideo(void)
@@ -485,61 +519,74 @@ void CV4LVideoSource::ProcessVideo(void)
 	for (int pass = 0; pass < m_maxPasses; pass++) {
 
 		// get next frame from video capture device
-		m_encodeHead = AcquireFrame(frameTimestamp);
-		if (m_encodeHead == -1) {
-			continue;
-		}
+	  int8_t index;
+	  index = AcquireFrame(frameTimestamp);
+	  if (index == -1) {
+	    continue;
+	  }
 
 
-		u_int8_t* mallocedYuvImage = NULL;
-		u_int8_t* pY;
-		u_int8_t* pU;
-		u_int8_t* pV;
+	  u_int8_t* mallocedYuvImage = NULL;
+	  u_int8_t* pY;
+	  u_int8_t* pU;
+	  u_int8_t* pV;
+	  
+	  // perform colorspace conversion if necessary
+	  if (m_videoSrcType == RGBVIDEOFRAME) {
+	    mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
+	    
+	    pY = mallocedYuvImage;
+	    pU = pY + m_videoSrcYSize;
+	    pV = pU + m_videoSrcUVSize,
+	      
+	      RGB2YUV(
+		      m_videoSrcWidth,
+		      m_videoSrcHeight,
+		      (u_int8_t*)m_videoMap + m_videoMbuf.offsets[index],
+		      pY,
+		      pU,
+		      pV,
+		      1);
+	  } else {
+	    pY = (u_int8_t*)m_videoMap + m_videoMbuf.offsets[index];
+	    pU = pY + m_videoSrcYSize;
+	    pV = pU + m_videoSrcUVSize;
+	  }
 
-		// perform colorspace conversion if necessary
-		if (m_videoSrcType == RGBVIDEOFRAME) {
-			mallocedYuvImage = (u_int8_t*)Malloc(m_videoSrcYUVSize);
+	  if (m_decimate_filter) {
+	    video_filter_decimate(pY,
+				  m_videoSrcWidth,
+				  m_videoSrcHeight);
+	  }
+	  yuv_media_frame_t *yuv = MALLOC_STRUCTURE(yuv_media_frame_t);
+	  yuv->y = pY;
+	  yuv->u = pU;
+	  yuv->v = pV;
+	  yuv->y_stride = m_videoSrcWidth;
+	  yuv->uv_stride = m_videoSrcWidth >> 1;
+	  yuv->w = m_videoSrcWidth;
+	  yuv->h = m_videoSrcHeight;
+	  yuv->hardware = this;
+	  yuv->hardware_index = index;
+	  if (m_videoWantKeyFrame && frameTimestamp >= m_audioStartTimestamp) {
+	    yuv->force_iframe = true;
+	    m_videoWantKeyFrame = false;
+	    debug_message("Frame "U64" request key frame", frameTimestamp);
+	  } else 
+	    yuv->force_iframe = false;
+	  yuv->free_y = (mallocedYuvImage != NULL);
 
-			pY = mallocedYuvImage;
-			pU = pY + m_videoSrcYSize;
-			pV = pU + m_videoSrcUVSize,
-
-			RGB2YUV(
-				m_videoSrcWidth,
-				m_videoSrcHeight,
-				(u_int8_t*)m_videoMap + m_videoMbuf.offsets[m_encodeHead],
-				pY,
-				pU,
-				pV,
-				1);
-		} else {
-			pY = (u_int8_t*)m_videoMap + m_videoMbuf.offsets[m_encodeHead];
-			pU = pY + m_videoSrcYSize;
-			pV = pU + m_videoSrcUVSize;
-		}
-
-		if (m_decimate_filter) {
-		  video_filter_decimate(pY,
-					m_videoSrcWidth,
-					m_videoSrcHeight);
-		}
-		ProcessVideoYUVFrame(
-			pY, 
-			pU, 
-			pV,
-			m_videoSrcWidth,
-			m_videoSrcWidth >> 1,
-			frameTimestamp);
-
-		// release video frame buffer back to video capture device
-		if (ReleaseFrame(m_encodeHead)) {
-			m_encodeHead = (m_encodeHead + 1) % m_videoMbuf.frames;
-		} else {
-			debug_message("Couldn't release capture buffer!");
-		}
-		if (mallocedYuvImage != NULL) {
-		  free(mallocedYuvImage);
-		}
+	  CMediaFrame *frame = new CMediaFrame(YUVVIDEOFRAME,
+					       yuv,
+					       0,
+					       frameTimestamp);
+	  frame->SetMediaFreeFunction(c_ReleaseFrame);
+	  ForwardFrame(frame);
+    //debug_message("video source forward");
+    // enqueue the frame to video capture buffer
+	  if (mallocedYuvImage != NULL) {
+	    IndicateReleaseFrame(index);
+	  }
 	}
 }
 

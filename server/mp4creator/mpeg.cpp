@@ -48,8 +48,7 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
   h = mpeg2ps_get_video_stream_height(file, vstream);
   w = mpeg2ps_get_video_stream_width(file, vstream);
 
-  video_type = mpeg2ps_get_video_stream_type(file, vstream) == MPEG_VIDEO_MPEG2 ?
-    MP4_MPEG2_MAIN_VIDEO_TYPE : MP4_MPEG1_VIDEO_TYPE;
+  video_type = mpeg2ps_get_video_stream_mp4_type(file, vstream);
 
   if (doEncrypt) {
     // initialize session

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -28,220 +28,62 @@
 #include "mp4live_gui.h"
 #include "preview_flow.h"
 #include "gdk/gdkx.h"
+#include "support.h"
+#include "profile_video.h"
+#include "profile_audio.h"
 
+//#define HAVE_TEXT 1
 CLiveConfig* MyConfig;
 CPreviewAVMediaFlow* AVFlow;
 
 /* Local variables */
 static bool started = false;
 
-static GtkWidget *main_window;
-static GtkWidget *main_hbox;
-static GtkWidget *main_vbox1;
-static GtkWidget *main_vbox2;
-static GtkWidget *video_preview;
-
-static GtkWidget *video_enabled_button;
-static GSList	 *video_preview_radio_group;
-static GtkWidget *video_none_preview_button;
-static GtkWidget *video_raw_preview_button;
-static GtkWidget *video_encoded_preview_button;
-static GtkWidget *video_settings_label1;
-static GtkWidget *video_settings_label2;
-static GtkWidget *video_settings_label3;
-static GtkWidget *video_settings_button;
-static GtkWidget *picture_settings_button;
-
-static GtkWidget *audio_enabled_button;
-static GtkWidget *audio_mute_button;
-static GtkWidget *audio_settings_label1;
-static GtkWidget *audio_settings_label2;
-static GtkWidget *audio_settings_label3;
-static GtkWidget *audio_settings_button;
-
-static GtkWidget *record_enabled_button;
-static GtkWidget *record_settings_label;
-static GtkWidget *record_settings_button;
-
-static GtkWidget *transmit_enabled_button;
-static GtkWidget *transmit_settings_label;
-static GtkWidget *transmit_settings_button;
-
-static GtkWidget *start_button;
-static GtkWidget *start_button_label;
-static GtkWidget *duration_spinner;
-static GtkWidget *duration_units_menu;
-
-static GtkWidget *config_file_entry;
-static GtkWidget *load_config_button;
-static GtkWidget *save_config_button;
-
-static u_int32_t durationUnitsValues[] = {
-	1, 60, 3600, 3600*24, 3600*24*365
-};
-static char* durationUnitsNames[] = {
-	"Seconds", "Minutes", "Hours", "Days", "Years"
-};
-static u_int8_t durationUnitsIndex = 1;
-
-static GtkWidget *media_source_label;
-static GtkWidget *media_source;
-
-static GtkWidget *start_time_label;
-static GtkWidget *start_time;
-static GtkWidget *start_time_units;
-
-static GtkWidget *duration_label;
-static GtkWidget *duration;
-static GtkWidget *duration_units;
-
-static GtkWidget *current_time_label;
-static GtkWidget *current_time;
-static GtkWidget *current_time_units;
-
-static GtkWidget *finish_time_label;
-static GtkWidget *finish_time;
-static GtkWidget *finish_time_units;
-
-static GtkWidget *current_size_label;
-static GtkWidget *current_size;
-static GtkWidget *current_size_units;
-
-static GtkWidget *final_size_label;
-static GtkWidget *final_size;
-static GtkWidget *final_size_units;
-
-static GtkWidget *actual_fps_label;
-static GtkWidget *actual_fps;
-static GtkWidget *actual_fps_units;
-
+static GtkWidget *MainWindow;
+static GtkTooltips *tooltips;
+const char *SelectedStream;
 static Timestamp StartTime;
 static Timestamp StopTime;
 static Duration FlowDuration;
-static u_int32_t StartEncodedFrameNumber;
-static u_int64_t StartFileSize;
-static u_int64_t StopFileSize;
-SDL_mutex *dialog_mutex;
-/*
- * delete_event - called when window closed
- */
+static const u_int32_t durationUnitsValues[] = {
+  1, 60, 3600, 3600*24, 3600*24*365
+};
+//static u_int64_t StartFileSize;
+//static u_int64_t StopFileSize;
+
 static void delete_event (GtkWidget *widget, gpointer *data)
 {
   // stop the flow (which gets rid of the preview, before we gtk_main_quit
   AVFlow->Stop();
   delete AVFlow;
-  SDL_DestroyMutex(dialog_mutex);
+  //  SDL_DestroyMutex(dialog_mutex);
   gtk_main_quit();
 }
 
-void NewVideoWindow()
+CMediaStream *GetSelectedStream (void)
 {
-	// We use the Gtk Preview widget to get the right type of window created
-	// and then hand it over to SDL to actually do the blitting
-
-	if (video_preview != NULL) {
-		gtk_container_remove(GTK_CONTAINER(main_vbox1), 
-			GTK_WIDGET(video_preview));
-		video_preview = NULL;
-	}
-
-	video_preview = gtk_preview_new(GTK_PREVIEW_COLOR);
-
-	gtk_preview_size(GTK_PREVIEW(video_preview), 
-		MyConfig->m_videoWidth, MyConfig->m_videoHeight);
-
-	gtk_widget_show(video_preview);
-
-	gtk_box_pack_start(GTK_BOX(main_vbox1), video_preview, FALSE, FALSE, 5);
-
-	// Let video source know which window to draw into
-	gtk_widget_realize(video_preview);	// so XCreateWindow() is called
-
-	if (video_preview->window) {
-		MyConfig->m_videoPreviewWindowId = 
-			GDK_WINDOW_XWINDOW(video_preview->window);
-	}
+  return AVFlow->m_stream_list->FindStream(SelectedStream);
 }
 
-void DisplayVideoSettings(void)
+
+static void DisplayFinishTime (Timestamp t)
 {
-	char buffer[256];
+	time_t secs;
+	const struct tm *local;
+	char buffer[128];
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(video_enabled_button),
-		MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE));
-  
-	gtk_widget_set_sensitive(GTK_WIDGET(picture_settings_button),
-		MyConfig->IsCaptureVideoSource());
-  
-	gtk_toggle_button_set_active(
-		GTK_TOGGLE_BUTTON(video_none_preview_button), 
-		!MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW));
-
-	gtk_toggle_button_set_active(
-		GTK_TOGGLE_BUTTON(video_raw_preview_button), 
-		MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)
-		&& MyConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW));
-
-	gtk_toggle_button_set_active(
-		GTK_TOGGLE_BUTTON(video_encoded_preview_button), 
-		MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)
-		&& MyConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW));
-
-	snprintf(buffer, sizeof(buffer), " %s(%s) at %u kbps",
-		 MyConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
-		 MyConfig->GetStringValue(CONFIG_VIDEO_ENCODER),
-		 MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE));
-	gtk_label_set_text(GTK_LABEL(video_settings_label1), buffer);
-	gtk_widget_show(video_settings_label1);
-
-	snprintf(buffer, sizeof(buffer), " %u x %u @ %.2f fps", 
-		MyConfig->m_videoWidth,
-		MyConfig->m_videoHeight,
-		MyConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE));
-	gtk_label_set_text(GTK_LABEL(video_settings_label2), buffer);
-	gtk_widget_show(video_settings_label2);
+	secs = (time_t)GetSecsFromTimestamp(t);
+	local = localtime(&secs);
+	strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
+	GtkWidget *temp;
+	temp = lookup_widget(MainWindow, "EndTimeLabel");
+	gtk_label_set_text(GTK_LABEL(temp), buffer);
+	strftime(buffer, sizeof(buffer), "%p", local);
+	temp = lookup_widget(MainWindow, "EndTimeSuffix");
+	gtk_label_set_text(GTK_LABEL(temp), buffer);
 }
 
-void DisplayAudioSettings(void)
-{
-	char buffer[256];
- 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(audio_enabled_button),
-		MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE));
-  
-	snprintf(buffer, sizeof(buffer), " %s(%s) at %u bps",
-		 MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
-		 MyConfig->GetStringValue(CONFIG_AUDIO_ENCODER),
-		MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE));
-	gtk_label_set_text(GTK_LABEL(audio_settings_label1), buffer);
-	gtk_widget_show(audio_settings_label1);
-
-	snprintf(buffer, sizeof(buffer), " %s @ %u Hz",
-		(MyConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 2
-			? "Stereo" : "Mono"),
-		MyConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
-	gtk_label_set_text(GTK_LABEL(audio_settings_label2), buffer);
-	gtk_widget_show(audio_settings_label2);
-}
-
-void DisplayTransmitSettings (void)
-{
-	char buffer[256];
-	const char *addr = MyConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS);
-
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmit_enabled_button),
-		MyConfig->GetBoolValue(CONFIG_RTP_ENABLE));
-  
-	if (addr == NULL) {
-		gtk_label_set_text(GTK_LABEL(transmit_settings_label), 
-			"RTP/UDP to <Automatic Multicast>");
-	} else {
-		snprintf(buffer, sizeof(buffer), " RTP/UDP to %s", addr); 
-		gtk_label_set_text(GTK_LABEL(transmit_settings_label), buffer);
-	}
-	gtk_widget_show(transmit_settings_label);
-}
-
+#if 0
 void DisplayRecordingSettings(void)
 {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(record_enabled_button),
@@ -265,126 +107,7 @@ void DisplayRecordingSettings(void)
 	gtk_widget_show(record_settings_label);
 }
 
-void DisplayControlSettings(void)
-{
-	// duration
-	gtk_spin_button_set_value(
-		GTK_SPIN_BUTTON(duration_spinner),
-		(gfloat)MyConfig->GetIntegerValue(CONFIG_APP_DURATION));
 
-	// duration units
-	for (u_int8_t i = 0; 
-	  i < sizeof(durationUnitsValues) / sizeof(*durationUnitsValues); i++) {
-		if (MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS) 
-		  == durationUnitsValues[i]) {
-			durationUnitsIndex = i;
-			break;
-		}
-	}
-	gtk_option_menu_set_history(
-		GTK_OPTION_MENU(duration_units_menu), 
-		durationUnitsIndex);
-	gtk_widget_show(duration_units_menu);
-}
-
-void DisplayStatusSettings(void)
-{
-	// media source
-	char buffer[128];
-
-	buffer[0] = '\0';
-
-	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
-	  && MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
-	  && strcmp(MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME),
-		MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME))) {
-
-		snprintf(buffer, sizeof(buffer), "%s & %s",
-			MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME),
-			MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
-		gtk_label_set_text(GTK_LABEL(media_source), buffer);
-
-	} else if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		gtk_label_set_text(GTK_LABEL(media_source),
-			MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
-
-	} else if (MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
-		gtk_label_set_text(GTK_LABEL(media_source),
-			MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
-	}
-}
-
-void DisplayAllSettings()
-{
-	DisplayVideoSettings();
-	DisplayAudioSettings();
-	DisplayRecordingSettings();
-	DisplayTransmitSettings();
-	DisplayControlSettings();
-	DisplayStatusSettings();
-}
-
-void DisplayFinishTime(Timestamp t)
-{
-	time_t secs;
-	const struct tm *local;
-	char buffer[128];
-
-	secs = (time_t)GetSecsFromTimestamp(t);
-	local = localtime(&secs);
-	strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
-	gtk_label_set_text(GTK_LABEL(finish_time), buffer);
-	gtk_widget_show(finish_time);
-
-	strftime(buffer, sizeof(buffer), "%p", local);
-	gtk_label_set_text(GTK_LABEL(finish_time_units), buffer);
-	gtk_widget_show(finish_time_units);
-}
-
-static void on_video_enabled_button (GtkWidget *widget, gpointer *data)
-{
-	MyConfig->SetBoolValue(CONFIG_VIDEO_ENABLE,
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
-
-	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		AVFlow->StartVideoPreview();
-	} else {
-		AVFlow->StopVideoPreview();
-	}
-}
-
-static void on_video_preview_button (GtkWidget *widget, gpointer *data)
-{
-	MyConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW,
-		!gtk_toggle_button_get_active(
-			GTK_TOGGLE_BUTTON(video_none_preview_button)));
-
-	MyConfig->SetBoolValue(CONFIG_VIDEO_RAW_PREVIEW,
-		gtk_toggle_button_get_active(
-			GTK_TOGGLE_BUTTON(video_raw_preview_button)));
-
-	MyConfig->SetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW,
-		gtk_toggle_button_get_active(
-			GTK_TOGGLE_BUTTON(video_encoded_preview_button)));
-
-	MyConfig->UpdateVideo();
-}
-
-static void on_video_settings_button (GtkWidget *widget, gpointer *data)
-{
-	CreateVideoDialog();
-}
-
-static void on_picture_settings_button (GtkWidget *widget, gpointer *data)
-{
-	CreatePictureDialog();
-}
-
-static void on_audio_enabled_button (GtkWidget *widget, gpointer *data)
-{
-	MyConfig->SetBoolValue(CONFIG_AUDIO_ENABLE,
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
-}
 
 static void on_audio_mute_button (GtkWidget *widget, gpointer *data)
 {
@@ -392,77 +115,61 @@ static void on_audio_mute_button (GtkWidget *widget, gpointer *data)
 		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
-static void on_audio_settings_button (GtkWidget *widget, gpointer *data)
-{
-	CreateAudioDialog();
-}
+#endif
 
-static void on_record_enabled_button (GtkWidget *widget, gpointer *data)
-{
-	MyConfig->SetBoolValue(CONFIG_RECORD_ENABLE,
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
-}
-
-static void on_record_settings_button (GtkWidget *widget, gpointer *data)
-{
-	CreateRecordingDialog();
-}
-
-static void on_transmit_enabled_button (GtkWidget *widget, gpointer *data)
-{
-	MyConfig->SetBoolValue(CONFIG_RTP_ENABLE, 
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
-}
-
-static void on_transmit_settings_button (GtkWidget *widget, gpointer *data)
-{
-	CreateTransmitDialog();
-}
-
-static void LockoutChanges(bool lockout)
-{
-	gtk_widget_set_sensitive(GTK_WIDGET(video_enabled_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(video_settings_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(audio_enabled_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(audio_settings_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(record_enabled_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(record_settings_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(transmit_enabled_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(transmit_settings_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(duration_spinner), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(duration_units_menu), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(config_file_entry), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(load_config_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(save_config_button), !lockout);
+static const char *lockouts[] = {
+  "new1", 
+  "open1", 
+  "save1",
+  "generate_addresses",
+  "preferences1",
+  "AddStreamButton",
+  "DeleteStreamButton",
+  "StreamDescription",
+  "VideoEnabled",
+  "AudioEnabled",
+#ifdef HAVE_TEXT
+  "TextEnabled",
+#endif
+  "SourceOptionMenu", // not if we want to switch sources mid stream
+  "Duration", 
+  "DurationType",
+  NULL
+};
+ static void LockoutChanges (bool lockout)
+ {
+   GtkWidget *temp;
+   for (uint ix = 0; lockouts[ix] != NULL; ix++) {
+     temp = lookup_widget(MainWindow, lockouts[ix]);
+     gtk_widget_set_sensitive(GTK_WIDGET(temp), !lockout);
+   }
 }
 
 static guint status_timer_id;
-
-// forward declaration
-static void on_start_button (GtkWidget *widget, gpointer *data);
 
 static void status_start()
 {
 	time_t secs;
 	const struct tm *local;
 	char buffer[128];
+	GtkWidget *temp;
 
 	// start time
 	secs = (time_t)GetSecsFromTimestamp(StartTime);
 	local = localtime(&secs);
 	strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
-	gtk_label_set_text(GTK_LABEL(start_time), buffer);
-	gtk_widget_show(start_time);
-
+	temp = lookup_widget(MainWindow, "StartTimeLabel");
+	gtk_label_set_text(GTK_LABEL(temp), buffer);
 	strftime(buffer, sizeof(buffer), "%p", local);
-	gtk_label_set_text(GTK_LABEL(start_time_units), buffer);
-	gtk_widget_show(start_time_units);
+	temp = lookup_widget(MainWindow, "StartTimeSuffix");
+	gtk_label_set_text(GTK_LABEL(temp), buffer);
 
 	// finish time
 	if (StopTime) {
 		DisplayFinishTime(StopTime);
 	}
 
+#if 0
 	// file size
 	StartFileSize = 0;
 	StopFileSize = 0;
@@ -485,6 +192,7 @@ static void status_start()
 		gtk_label_set_text(GTK_LABEL(final_size_units), "MB");
 		gtk_widget_show(final_size_units);
 	}
+#endif
 }
 
 /*
@@ -495,42 +203,46 @@ static gint status_timer (gpointer raw)
 	time_t secs;
 	const struct tm *local;
 	char buffer[80];
+	GtkWidget *temp;
 
 	Timestamp now = GetTimestamp();
 	secs = (time_t)GetSecsFromTimestamp(now);
 	local = localtime(&secs);
 	strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
-	gtk_label_set_text(GTK_LABEL(current_time), buffer);
-	gtk_widget_show(current_time);
-
+	temp = lookup_widget(MainWindow, "CurrentTimeLabel");
+	gtk_label_set_text(GTK_LABEL(temp), buffer);
 	strftime(buffer, sizeof(buffer), "%p", local);
-	gtk_label_set_text(GTK_LABEL(current_time_units), buffer);
-	gtk_widget_show(current_time);
+	temp = lookup_widget(MainWindow, "CurrentTimeSuffix");
+	gtk_label_set_text(GTK_LABEL(temp), buffer);
 
 	time_t duration_secs = (time_t)GetSecsFromTimestamp(now - StartTime);
 
 	snprintf(buffer, sizeof(buffer), "%lu:%02lu:%02lu", 
 		duration_secs / 3600, (duration_secs % 3600) / 60, duration_secs % 60);
-	gtk_label_set_text(GTK_LABEL(duration), buffer);
-	gtk_widget_show(duration);
+	temp = lookup_widget(MainWindow, "CurrentDurationLabel");
+	gtk_label_set_text(GTK_LABEL(temp), buffer);
+	
+	CMediaStream *ms = GetSelectedStream();
 
-	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
+	if (ms->GetBoolValue(STREAM_RECORD)) {
 	  const char *fname;
-	  AVFlow->GetStatus(FLOW_STATUS_FILENAME, &fname);
-		struct stat stats;
-		if (stat(fname, &stats) == 0) {
-		  uint64_t size = stats.st_size;
-		  size /= TO_U64(1000000);
-		  snprintf(buffer, sizeof(buffer), " "U64, size);
-		} else {
-		  snprintf(buffer, sizeof(buffer), "BAD");
-		}
-		gtk_label_set_text(GTK_LABEL(current_size), buffer);
-		gtk_widget_show(current_size);
-		if (MyConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS) ==
-		    FILE_MP4_CREATE_NEW) {
-		  DisplayRecordingSettings();
-		}
+	  ms->GetStreamStatus(FLOW_STATUS_FILENAME, &fname);
+	  struct stat stats;
+	  if (stat(fname, &stats) == 0) {
+	    uint64_t size = stats.st_size;
+	    size /= TO_U64(1000000);
+	    snprintf(buffer, sizeof(buffer), " "U64"MB", size);
+	  } else {
+	    snprintf(buffer, sizeof(buffer), "BAD");
+	  }
+	  temp = lookup_widget(MainWindow, "StreamRecording");
+	  gtk_label_set_text(GTK_LABEL(temp), buffer);
+#if 0
+	  if (MyConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS) ==
+	      FILE_MP4_CREATE_NEW) {
+	    DisplayRecordingSettings();
+	  }
+#endif
 	}
 
 	if (!StopTime) {
@@ -543,19 +255,17 @@ static gint status_timer (gpointer raw)
 		}
 	}
 
-	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		u_int32_t encodedFrames;
-		AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, &encodedFrames);
-		u_int32_t totalFrames = encodedFrames - StartEncodedFrameNumber;
+	if (ms->GetBoolValue(STREAM_VIDEO_ENABLED)) {
+	  u_int32_t encodedFrames;
+	  ms->GetStreamStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, 
+			      &encodedFrames);
 
-		snprintf(buffer, sizeof(buffer), " %.2f", 
-			((float)totalFrames / (float)(now - StartTime)) * TimestampTicks);
-		gtk_label_set_text(GTK_LABEL(actual_fps), buffer);
-		gtk_widget_show(actual_fps);
-
-		gtk_label_set_text(GTK_LABEL(actual_fps_units), "fps");
-		gtk_widget_show(actual_fps_units);
+	  snprintf(buffer, sizeof(buffer), " %.2f fps", 
+		   ((float)encodedFrames / (float)(now - StartTime)) * TimestampTicks);
+	  temp = lookup_widget(MainWindow, "StreamFps");
+	  gtk_label_set_text(GTK_LABEL(temp), buffer);
 	}
+
 
 	bool stop = false;
 
@@ -585,15 +295,9 @@ static gint status_timer (gpointer raw)
 		} else {
 			// Make sure user knows that were done
 			char *notice;
+			
+			notice = "Completed";
 
-			if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)
-			  && MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
-				notice = "Recording and transmission completed";
-			} else if (MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
-				notice = "Transmission completed";
-			} else {
-				notice = "Recording completed";
-			}
 			ShowMessage("Completed", notice);
 		}
 
@@ -603,47 +307,78 @@ static gint status_timer (gpointer raw)
 	return (TRUE);  // keep timer going
 }
 
+static void ReadConfigFromWindow (void)
+{
+  GtkWidget *temp;
+  temp = lookup_widget(MainWindow, "Duration");
+
+  MyConfig->SetIntegerValue(CONFIG_APP_DURATION,
+			    gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(temp)));
+}
+
 void DoStart()
 {
-	if (!MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
-	  && !MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		ShowMessage("No Media", "Neither audio nor video are enabled");
-		return;
-	}
+  GtkWidget *temp;
+  ReadConfigFromWindow();
+  temp = lookup_widget(MainWindow, "Duration");
+  
+  if (!MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
+      && !MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+    ShowMessage("No Media", "Neither audio nor video are enabled");
+    return;
+  }
+  
+  // lock out change to settings while media is running
+  LockoutChanges(true);
+  GtkWidget *statusbar = lookup_widget(MainWindow, "statusbar1");
+  gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+  gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+		     0,
+		     "Starting");
+  
+  AVFlow->Start();
+  gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+  gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+		     0,
+		     "Started");
+  
+  StartTime = GetTimestamp(); 
+#if 0
+  if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+    if (MyConfig->IsCaptureVideoSource()) {
+      AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, 
+			&StartEncodedFrameNumber);
+    } else {
+      StartEncodedFrameNumber = 0;
+    }
+  }
+#endif
 
-	// lock out change to settings while media is running
-	LockoutChanges(true);
+  FlowDuration =
+    MyConfig->GetIntegerValue(CONFIG_APP_DURATION) *
+    MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS) * 
+    TimestampTicks;
+  debug_message(U64" %u dur %u units",
+		FlowDuration, 
+		MyConfig->GetIntegerValue(CONFIG_APP_DURATION),
+		durationUnitsValues[MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS)]); 
+		
 
-	AVFlow->Start();
-
-	StartTime = GetTimestamp(); 
-
-	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		if (MyConfig->IsCaptureVideoSource()) {
-			AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, 
-				&StartEncodedFrameNumber);
-		} else {
-			StartEncodedFrameNumber = 0;
-		}
-	}
-
-	FlowDuration =
-		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner))
-		* durationUnitsValues[durationUnitsIndex] * TimestampTicks;
-
-	if (MyConfig->IsFileVideoSource() && MyConfig->IsFileAudioSource()
-	  && !MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
-		// no real time constraints
-		StopTime = 0;
-	} else {
-		StopTime = StartTime + FlowDuration;
-	}
-
+#if 0
+  if (MyConfig->IsFileVideoSource() && MyConfig->IsFileAudioSource()
+      && !MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
+    // no real time constraints
+    StopTime = 0;
+  } else {
+    StopTime = StartTime + FlowDuration;
+  }
+#endif
+  StopTime = StartTime + FlowDuration;
 	status_start();
 
-	gtk_label_set_text(GTK_LABEL(start_button_label), "  Stop  ");
-
-	status_timer_id = gtk_timeout_add(1000, status_timer, main_window);
+	temp = lookup_widget(MainWindow, "StartButton");
+	gtk_button_set_label(GTK_BUTTON(temp), "Stop");
+	status_timer_id = gtk_timeout_add(1000, status_timer, MainWindow);
 
 	started = true;
 }
@@ -651,7 +386,7 @@ void DoStart()
 void DoStop()
 {
 	gtk_timeout_remove(status_timer_id);
-
+#if 0
 	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
 		char* notice = "CLOSING";
 
@@ -666,17 +401,29 @@ void DoStop()
 		gtk_label_set_text(GTK_LABEL(finish_time_units), "");
 		gtk_widget_show_now(finish_time_units);
 	}
-
+#endif
+	GtkWidget *statusbar = lookup_widget(MainWindow, "statusbar1");
+	gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+			   0,
+			   "Stopping - Closing recorded files");
+			  
 	AVFlow->Stop();
+	gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+			   0,
+			   "Session Finished");
 
+#if 0
 	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
 		DisplayFinishTime(GetTimestamp());
 	}
+#endif
 
 	// unlock changes to settings
 	LockoutChanges(false);
-
-	gtk_label_set_text(GTK_LABEL(start_button_label), "  Start  ");
+	GtkWidget *temp = lookup_widget(MainWindow, "StartButton");
+	gtk_button_set_label(GTK_BUTTON(temp), "Start");
 
 	started = false;
 }
@@ -690,24 +437,7 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 	}
 }
 
-#ifdef HAVE_GTK_2_0
-static void on_duration_changed(GtkWidget* widget, gpointer* data)
-{
-  gtk_spin_button_update(GTK_SPIN_BUTTON(duration_spinner));
-
-	MyConfig->SetIntegerValue(CONFIG_APP_DURATION,
-		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner)));
-	MyConfig->UpdateRecord();
-}
-#endif
-
-static void on_duration_units_menu_activate(GtkWidget *widget, gpointer data)
-{
-	durationUnitsIndex =  GPOINTER_TO_UINT(data) & 0xFF;;
-	MyConfig->SetIntegerValue(CONFIG_APP_DURATION_UNITS,
-		durationUnitsValues[durationUnitsIndex]);
-	MyConfig->UpdateRecord();
-}
+#if 0
 
 static void LoadConfig()
 {
@@ -751,718 +481,2455 @@ static void on_save_config_button (GtkWidget *widget, gpointer *data)
 
 static gfloat frameLabelAlignment = 0.025;
 
-static void LayoutVideoFrame(GtkWidget* box)
-{
-	GtkWidget *frame;
-	GtkWidget *vbox, *hbox, *vbox1, *vbox2;
-	GtkWidget *label;
-
-	frame = gtk_frame_new("Video");
-	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 5);
-
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-
-	// create first row
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
-  
-	// enabled button
-	video_enabled_button = gtk_check_button_new_with_label("Enabled");
-	gtk_box_pack_start(GTK_BOX(hbox), video_enabled_button, TRUE, TRUE, 5);
-	gtk_signal_connect(GTK_OBJECT(video_enabled_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_video_enabled_button),
-		NULL);
-	gtk_widget_show(video_enabled_button);
-
-	// picture controls button
-	picture_settings_button = gtk_button_new_with_label(" Picture... ");
-	gtk_box_pack_start(GTK_BOX(hbox), picture_settings_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(picture_settings_button), 
-		"clicked",
-		GTK_SIGNAL_FUNC(on_picture_settings_button),
-		NULL);
-	gtk_widget_show(picture_settings_button);
-
-	// create second row
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 5);
-
-	// preview label
-	label = gtk_label_new(" Preview:");
-	gtk_widget_show(label);
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
-
-	// none preview radio button
-	video_none_preview_button = gtk_radio_button_new_with_label(NULL, "None");
-	gtk_widget_show(video_none_preview_button);
-	gtk_box_pack_start(GTK_BOX(hbox), video_none_preview_button,
-		FALSE, FALSE, 0);
-
-	// raw preview radio button
-	video_preview_radio_group = 
-		gtk_radio_button_group(GTK_RADIO_BUTTON(video_none_preview_button));
-	video_raw_preview_button = 
-		gtk_radio_button_new_with_label(video_preview_radio_group, "Raw");
-	gtk_widget_show(video_raw_preview_button);
-	gtk_box_pack_start(GTK_BOX(hbox), video_raw_preview_button,
-		FALSE, FALSE, 0);
-
-	// encoded preview radio button
-	video_preview_radio_group = 
-		gtk_radio_button_group(GTK_RADIO_BUTTON(video_none_preview_button));
-	video_encoded_preview_button = 
-		gtk_radio_button_new_with_label(video_preview_radio_group, "Encoded");
-	gtk_widget_show(video_encoded_preview_button);
-	gtk_box_pack_start(GTK_BOX(hbox), video_encoded_preview_button,
-		FALSE, FALSE, 0);
-
-	gtk_signal_connect(GTK_OBJECT(video_none_preview_button), 
-		"toggled",
-		 GTK_SIGNAL_FUNC(on_video_preview_button),
-		 NULL);
-	gtk_signal_connect(GTK_OBJECT(video_raw_preview_button), 
-		"toggled",
-		 GTK_SIGNAL_FUNC(on_video_preview_button),
-		 NULL);
-	gtk_signal_connect(GTK_OBJECT(video_encoded_preview_button), 
-		"toggled",
-		 GTK_SIGNAL_FUNC(on_video_preview_button),
-		 NULL);
-
-	// create third row
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
-
-	// secondary vbox for two labels
-	vbox1 = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox1);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox1, TRUE, TRUE, 5);
-
-	video_settings_label1 = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(video_settings_label1), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox1), video_settings_label1, TRUE, TRUE, 0);
-
-	video_settings_label2 = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(video_settings_label2), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox1), video_settings_label2, TRUE, TRUE, 0);
-
-	// secondary vbox to match stacked labels
-	vbox2 = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox2);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox2, FALSE, FALSE, 5);
-
-	// settings button
-	video_settings_button = gtk_button_new_with_label(" Settings... ");
-	gtk_box_pack_start(GTK_BOX(vbox2), video_settings_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(video_settings_button), 
-		"clicked",
-		GTK_SIGNAL_FUNC(on_video_settings_button),
-		NULL);
-	gtk_widget_show(video_settings_button);
-
-	// empty label to get sizing correct
-	video_settings_label3 = gtk_label_new("");
-	gtk_box_pack_start(GTK_BOX(vbox2), video_settings_label3, TRUE, TRUE, 0);
-
-	gtk_container_add(GTK_CONTAINER(frame), vbox);
-	gtk_widget_show(frame);
-}
-
-static void LayoutAudioFrame(GtkWidget* box)
-{
-	GtkWidget *frame;
-	GtkWidget *vbox, *hbox, *vbox1, *vbox2;
-
-	frame = gtk_frame_new("Audio");
-	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 5);
-
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-
-	// create first row, homogenous
-	hbox = gtk_hbox_new(TRUE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 5);
-  
-	// enabled button
-	audio_enabled_button = gtk_check_button_new_with_label("Enabled");
-	gtk_box_pack_start(GTK_BOX(hbox), audio_enabled_button, TRUE, TRUE, 5);
-	gtk_signal_connect(GTK_OBJECT(audio_enabled_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_audio_enabled_button),
-		NULL);
-	gtk_widget_show(audio_enabled_button);
-
-	// mute button
-	audio_mute_button = gtk_check_button_new_with_label("Mute");
-	gtk_box_pack_start(GTK_BOX(hbox), audio_mute_button, TRUE, TRUE, 5);
-	gtk_signal_connect(GTK_OBJECT(audio_mute_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_audio_mute_button),
-		NULL);
-	gtk_widget_show(audio_mute_button);
-
-	// create second row
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
-
-	// settings summary
-
-	// secondary vbox for two labels
-	vbox1 = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox1);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox1, TRUE, TRUE, 5);
-
-	audio_settings_label1 = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(audio_settings_label1), 0.0, 0.5);
-	gtk_widget_show(audio_settings_label1);
-	gtk_box_pack_start(GTK_BOX(vbox1), audio_settings_label1, TRUE, TRUE, 0);
-
-	audio_settings_label2 = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(audio_settings_label2), 0.0, 0.5);
-	gtk_widget_show(audio_settings_label2);
-	gtk_box_pack_start(GTK_BOX(vbox1), audio_settings_label2, TRUE, TRUE, 0);
-
-	// secondary vbox to match stacked labels
-	vbox2 = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox2);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox2, FALSE, FALSE, 5);
-
-	// settings button
-	audio_settings_button = gtk_button_new_with_label(" Settings... ");
-	gtk_box_pack_start(GTK_BOX(vbox2), audio_settings_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(audio_settings_button), 
-		"clicked",
-		GTK_SIGNAL_FUNC(on_audio_settings_button),
-		NULL);
-	gtk_widget_show(audio_settings_button);
-
-	// empty label to get sizing correct
-	audio_settings_label3 = gtk_label_new("");
-	gtk_box_pack_start(GTK_BOX(vbox2), audio_settings_label3, TRUE, TRUE, 0);
-
-	// finalize
-	gtk_container_add(GTK_CONTAINER(frame), vbox);
-	gtk_widget_show(frame);
-}
-
-static void LayoutRecordingFrame(GtkWidget* box)
-{
-	GtkWidget *frame;
-	GtkWidget *vbox, *hbox;
-
-	frame = gtk_frame_new("Recording");
-	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 5);
-
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-
-	// create first row, homogenous
-	hbox = gtk_hbox_new(TRUE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 5);
-  
-	// enabled button
-	record_enabled_button = gtk_check_button_new_with_label("Enabled");
-	gtk_box_pack_start(GTK_BOX(hbox), record_enabled_button, TRUE, TRUE, 5);
-	gtk_signal_connect(GTK_OBJECT(record_enabled_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_record_enabled_button),
-		NULL);
-	gtk_widget_show(record_enabled_button);
-
-	// create second row
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
-
-	// settings summary
-	record_settings_label = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(record_settings_label), 0.0, 0.5);
-	gtk_widget_show(record_settings_label);
-	gtk_box_pack_start(GTK_BOX(hbox), record_settings_label, TRUE, TRUE, 0);
-
-	// settings button
-	record_settings_button = gtk_button_new_with_label(" Settings... ");
-	gtk_box_pack_start(GTK_BOX(hbox), record_settings_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(record_settings_button), 
-		"clicked",
-		GTK_SIGNAL_FUNC(on_record_settings_button),
-		NULL);
-	gtk_widget_show(record_settings_button);
-
-	// finalize
-	gtk_container_add(GTK_CONTAINER(frame), vbox);
-	gtk_widget_show(frame);
-}
-
-static void LayoutTransmitFrame(GtkWidget* box)
-{
-	GtkWidget *frame;
-	GtkWidget *vbox, *hbox;
-
-	frame = gtk_frame_new("Transmission");
-	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(box), frame, TRUE, TRUE, 5);
-
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-
-	// create first row, homogenous
-	hbox = gtk_hbox_new(TRUE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 5);
-  
-	// enabled button
-	transmit_enabled_button = gtk_check_button_new_with_label("Enabled");
-	gtk_box_pack_start(GTK_BOX(hbox), transmit_enabled_button, TRUE, TRUE, 5);
-	gtk_signal_connect(GTK_OBJECT(transmit_enabled_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_transmit_enabled_button),
-		NULL);
-	gtk_widget_show(transmit_enabled_button);
-
-	// create second row
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
-
-	// settings summary
-	transmit_settings_label = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(transmit_settings_label), 0.0, 0.5);
-	gtk_widget_show(transmit_settings_label);
-	gtk_box_pack_start(GTK_BOX(hbox), transmit_settings_label, TRUE, TRUE, 0);
-
-	// settings button
-	transmit_settings_button = gtk_button_new_with_label(" Settings... ");
-	gtk_box_pack_start(GTK_BOX(hbox), 
-		transmit_settings_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(transmit_settings_button), 
-		"clicked",
-		GTK_SIGNAL_FUNC(on_transmit_settings_button),
-		NULL);
-	gtk_widget_show(transmit_settings_button);
-
-	// finalize
-	gtk_container_add(GTK_CONTAINER(frame), vbox);
-	gtk_widget_show(frame);
-}
-
-// Control frame
-void LayoutControlFrame(GtkWidget* box)
-{
-	GtkWidget *frame;
-	GtkWidget *vbox;
-	GtkWidget *hbox;
-	GtkWidget *label;
-	GtkWidget *separator;
-	GtkObject* adjustment;
-
-	frame = gtk_frame_new("Control");
-	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_end(GTK_BOX(box), frame, FALSE, FALSE, 5);
-
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-	gtk_container_add(GTK_CONTAINER(frame), vbox);
-
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
-
-	label = gtk_label_new(" Duration:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
-
-	adjustment = gtk_adjustment_new(
-		MyConfig->GetIntegerValue(CONFIG_APP_DURATION),
-		1, 24 * 60 * 60, 1, 0, 0);
-	duration_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 1, 0);
-#ifdef HAVE_GTK_2_0
-	gtk_signal_connect(GTK_OBJECT(duration_spinner),
-		"value-changed",
-		GTK_SIGNAL_FUNC(on_duration_changed),
-		GTK_OBJECT(duration_spinner));
 #endif
-	gtk_widget_show(duration_spinner);
-	gtk_box_pack_start(GTK_BOX(hbox), duration_spinner, FALSE, FALSE, 5);
+/*
+ * fill_in_source - update the sources labels
+ */
+void fill_in_sources (void) 
+{
+  GtkWidget *temp;
+  char buffer[128];
 
-	durationUnitsIndex = 0; // temporary
-	duration_units_menu = CreateOptionMenu(NULL,
-		durationUnitsNames, 
-		sizeof(durationUnitsNames) / sizeof(char*),
-		durationUnitsIndex,
-		GTK_SIGNAL_FUNC(on_duration_units_menu_activate));
-	gtk_box_pack_start(GTK_BOX(hbox), duration_units_menu, FALSE, FALSE, 5);
+  temp = lookup_widget(MainWindow, "VideoSourceLabel");
+  snprintf(buffer, sizeof(buffer), "%s %ux%u", 
+	   MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME),
+	   MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
+	   MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT));
+  gtk_label_set_text(GTK_LABEL(temp), buffer);
 
-	// vertical separator
-	separator = gtk_vseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(hbox), separator, FALSE, FALSE, 0);
+  temp = lookup_widget(MainWindow, "AudioSourceLabel");
+  snprintf(buffer, sizeof(buffer), "%s, %u Hz, %s", 
+	   MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME),
+	   MyConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
+	   MyConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 1 ? 
+	   "mono" : "stereo");
+  gtk_label_set_text(GTK_LABEL(temp), buffer);
+  // need to do text
+}
+static const char *add_profile_string = "Add";
+static const char *customize_profile_string = "Customize";
 
-	start_button = gtk_button_new();
-	start_button_label = gtk_label_new("  Start  ");
-	gtk_misc_set_alignment(GTK_MISC(start_button_label), 0.5, 0.5);
-	gtk_container_add(GTK_CONTAINER(start_button), start_button_label);
-	gtk_widget_show(start_button_label);
-	gtk_box_pack_start(GTK_BOX(hbox), start_button, TRUE, TRUE, 5);
-	gtk_signal_connect(GTK_OBJECT(start_button), 
-		"clicked",
-		GTK_SIGNAL_FUNC(on_start_button),
-		NULL);
-	gtk_widget_show(start_button);
+// load_profiles will create a menu of the profiles - in alphabetical
+// order.  Should only be called at start, and if a profile is added
+static void load_profiles (GtkWidget *option_menu, 
+			   CConfigList *clist,
+			   const char ***pOptions,
+			   uint32_t *pCount)
+{
+  if (clist == NULL) return;
 
-	// separator
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
+  uint32_t count = clist->GetCount();
+  uint32_t count_on = 0;
+  const char **options = (const char **)malloc(sizeof(char *) * (count + 4));
+  *pOptions = options;
+  CConfigEntry *ce = clist->GetHead();
 
-	// second row
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
+  while (ce != NULL) {
+    const char *name = ce->GetName();
+    options[count_on++] = strdup(name);
+    ce = ce->GetNext();
+  }
+  // sort list in alphabetical order
+  for (uint32_t ix = 0; ix < count_on - 1; ix++) {
+    for (uint32_t jx = ix; jx < count_on; jx++) {
+      if (strcmp(options[ix], options[jx]) > 0) {
+	const char *temp = options[ix];
+	options[ix] = options[jx];
+	options[jx] = temp;
+      }
+    }
+  }
+  options[count_on++] = NULL; // add seperator
+  options[count_on++] = strdup(add_profile_string);
+  options[count_on++] = NULL;
+  options[count_on++] = strdup(customize_profile_string);
+  *pCount = count_on;
+  CreateOptionMenu(option_menu,
+		   options, 
+		   count_on,
+		   0);
+  // add seperator, add and customize
 
-	label = gtk_label_new(" Configuration File:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
-
-	config_file_entry = gtk_entry_new_with_max_length(256);
-	gtk_entry_set_text(GTK_ENTRY(config_file_entry), 
-		MyConfig->GetFileName());
-	gtk_widget_show(config_file_entry);
-	gtk_box_pack_start(GTK_BOX(hbox), config_file_entry, TRUE, TRUE, 5);
-	
-	// config file load button
-	load_config_button = gtk_button_new_with_label(" Load... ");
-	gtk_signal_connect(GTK_OBJECT(load_config_button),
-		 "clicked",
-		 GTK_SIGNAL_FUNC(on_load_config_button),
-		 NULL);
-	gtk_widget_show(load_config_button);
-	gtk_box_pack_start(GTK_BOX(hbox), load_config_button, FALSE, FALSE, 5);
-
-	// config file save button
-	save_config_button = gtk_button_new_with_label(" Save ");
-	gtk_signal_connect(GTK_OBJECT(save_config_button),
-		 "clicked",
-		 GTK_SIGNAL_FUNC(on_save_config_button),
-		 NULL);
-	gtk_widget_show(save_config_button);
-	gtk_box_pack_start(GTK_BOX(hbox), save_config_button, FALSE, FALSE, 5);
-
-	gtk_widget_show(frame); // show control frame
 }
 
-// Status frame
-void LayoutStatusFrame(GtkWidget* box)
+static const char **audio_profile_names = NULL;
+static uint32_t audio_profile_names_count = 0;
+static const char **video_profile_names = NULL;
+static uint32_t video_profile_names_count = 0;
+#ifdef HAVE_TEXT
+static const char **text_profile_names = NULL;
+static uint32_t text_profile_names_count = 0;
+#endif
+
+static void free_profile_names (const char **arr, uint32_t count)
 {
-	GtkWidget *frame;
-	GtkWidget *frame_vbox;
-	GtkWidget *vbox, *hbox;
-	GtkWidget *separator;
+  for (uint32_t ix = 0; ix < count; ix++) {
+    CHECK_AND_FREE(arr[ix]);
+  }
+  CHECK_AND_FREE((void *)arr);
+}
 
-	frame = gtk_frame_new("Status");
-	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_end(GTK_BOX(box), frame, FALSE, FALSE, 5);
+static uint32_t get_index_from_profile_list (const char **list,
+					     uint32_t count, 
+					     const char *name)
+{
+  for (uint32_t ix = 0; ix < count; ix++) {
+    if (strcmp(list[ix], name) == 0) {
+      return ix;
+    }
+  }
+  return 0;
+}
 
-	// frame vbox
-	frame_vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(frame_vbox);
-	gtk_container_add(GTK_CONTAINER(frame), frame_vbox);
+static void LoadAudioProfiles (void)
+{
+  free_profile_names(audio_profile_names, audio_profile_names_count);
+  load_profiles(lookup_widget(MainWindow, "AudioProfile"),
+		(CConfigList *)AVFlow->m_audio_profile_list, 
+		&audio_profile_names,
+		&audio_profile_names_count);
+}
 
-	// first row
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(frame_vbox), hbox, FALSE, FALSE, 2);
+static void LoadVideoProfiles (void) 
+{
+  free_profile_names(video_profile_names, video_profile_names_count);
+  load_profiles(lookup_widget(MainWindow, "VideoProfile"),
+		(CConfigList *)AVFlow->m_video_profile_list, 
+		&video_profile_names,
+		&video_profile_names_count);
+}
 
-	media_source_label = gtk_label_new(" Source:");
-	gtk_misc_set_alignment(GTK_MISC(media_source_label), 0.0, 0.5);
-	gtk_widget_show(media_source_label);
-	gtk_box_pack_start(GTK_BOX(hbox), media_source_label, TRUE, TRUE, 5);
+#ifdef HAVE_TEXT
+static void LoadTextProfiles (void)
+{
+  free_profile_names(text_profile_names, text_profile_names_count);
+#if 1
+  error_message("Must set up loadtextprofiles");
+#else
+  load_profiles(lookup_widget(MainWindow, "TextProfile"),
+		(CConfigList *)AVFlow->m_text_profile_list,
+		&text_profile_names,
+		&text_profile_names_count);
+#endif
+}
+#endif
 
-	media_source = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(media_source), 1.0, 0.5);
-	gtk_widget_show(media_source);
-	gtk_box_pack_start(GTK_BOX(hbox), media_source, TRUE, TRUE, 5);
+/*
+ * SetStreamTransmit - sets up information about the stream sdp
+ */
+static void SetStreamTransmit (CMediaStream *ms) 
+{
+  GtkWidget *temp;
+  bool is_set;
 
-	// separator
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(frame_vbox), separator, TRUE, TRUE, 0);
+  temp = lookup_widget(MainWindow, "StreamTransmit");
+  is_set = ms->GetBoolValue(STREAM_TRANSMIT);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(temp), is_set);
+  is_set = is_set && !started;
+  gtk_widget_set_sensitive(temp, !started);
 
-	// second row
+  temp = lookup_widget(MainWindow, "StreamSdpFileEntry");
+  gtk_entry_set_text(GTK_ENTRY(temp), ms->GetStringValue(STREAM_SDP_FILE_NAME));
 
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(frame_vbox), hbox, FALSE, FALSE, 2);
-
-	// vbox for time labels
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
-
-	start_time_label = gtk_label_new(" Start Time:");
-	gtk_misc_set_alignment(GTK_MISC(start_time_label), 0.0, 0.5);
-	gtk_widget_show(start_time_label);
-	gtk_box_pack_start(GTK_BOX(vbox), start_time_label, TRUE, TRUE, 0);
-
-	duration_label = gtk_label_new(" Current Duration:");
-	gtk_misc_set_alignment(GTK_MISC(duration_label), 0.0, 0.5);
-	gtk_widget_show(duration_label);
-	gtk_box_pack_start(GTK_BOX(vbox), duration_label, TRUE, TRUE, 0);
-
-	current_time_label = gtk_label_new(" Current Time:");
-	gtk_misc_set_alignment(GTK_MISC(current_time_label), 0.0, 0.5);
-	gtk_widget_show(current_time_label);
-	gtk_box_pack_start(GTK_BOX(vbox), current_time_label, TRUE, TRUE, 0);
-
-	finish_time_label = gtk_label_new(" Finish Time:");
-	gtk_misc_set_alignment(GTK_MISC(finish_time_label), 0.0, 0.5);
-	gtk_widget_show(finish_time_label);
-	gtk_box_pack_start(GTK_BOX(vbox), finish_time_label, TRUE, TRUE, 0);
-
-	// vbox for time values
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
-
-	start_time = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(start_time), 1.0, 0.5);
-	gtk_widget_show(start_time);
-	gtk_box_pack_start(GTK_BOX(vbox), start_time, TRUE, TRUE, 0);
-
-	duration = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(duration), 1.0, 0.5);
-	gtk_widget_show(duration);
-	gtk_box_pack_start(GTK_BOX(vbox), duration, TRUE, TRUE, 0);
-
-	current_time = gtk_label_new("                 ");
-	gtk_misc_set_alignment(GTK_MISC(current_time), 1.0, 0.5);
-	gtk_widget_show(current_time);
-	gtk_box_pack_start(GTK_BOX(vbox), current_time, TRUE, TRUE, 0);
-
-	finish_time = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(finish_time), 1.0, 0.5);
-	gtk_widget_show(finish_time);
-	gtk_box_pack_start(GTK_BOX(vbox), finish_time, TRUE, TRUE, 0);
-
-	// vbox for time units
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
-
-	start_time_units = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(start_time_units), 1.0, 0.5);
-	gtk_widget_show(start_time_units);
-	gtk_box_pack_start(GTK_BOX(vbox), start_time_units, TRUE, TRUE, 0);
-
-	duration_units = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(duration_units), 1.0, 0.5);
-	gtk_widget_show(duration_units);
-	gtk_box_pack_start(GTK_BOX(vbox), duration_units, TRUE, TRUE, 0);
-
-	current_time_units = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(current_time_units), 1.0, 0.5);
-	gtk_widget_show(current_time_units);
-	gtk_box_pack_start(GTK_BOX(vbox), current_time_units, TRUE, TRUE, 0);
-
-	finish_time_units = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(finish_time_units), 1.0, 0.5);
-	gtk_widget_show(finish_time_units);
-	gtk_box_pack_start(GTK_BOX(vbox), finish_time_units, TRUE, TRUE, 0);
-
-	// separator
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(frame_vbox), separator, TRUE, TRUE, 0);
-
-	// third row
-
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(frame_vbox), hbox, FALSE, FALSE, 2);
-
-	// vbox for size labels
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
-
-	current_size_label = gtk_label_new(" Current Size:");
-	gtk_misc_set_alignment(GTK_MISC(current_size_label), 0.0, 0.5);
-	gtk_widget_show(current_size_label);
-	gtk_box_pack_start(GTK_BOX(vbox), current_size_label, TRUE, TRUE, 0);
-
-	final_size_label = gtk_label_new(" Estimated Final Size:");
-	gtk_misc_set_alignment(GTK_MISC(final_size_label), 0.0, 0.5);
-	gtk_widget_show(final_size_label);
-	gtk_box_pack_start(GTK_BOX(vbox), final_size_label, TRUE, TRUE, 0);
-
-	// vbox for size values
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
-
-	current_size = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(current_size), 1.0, 0.5);
-	gtk_widget_show(current_size);
-	gtk_box_pack_start(GTK_BOX(vbox), current_size, TRUE, TRUE, 0);
-
-	final_size = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(final_size), 1.0, 0.5);
-	gtk_widget_show(final_size);
-	gtk_box_pack_start(GTK_BOX(vbox), final_size, TRUE, TRUE, 0);
-
-	// vbox for size units
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 5);
-
-	current_size_units = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(current_size_units), 1.0, 0.5);
-	gtk_widget_show(current_size_units);
-	gtk_box_pack_start(GTK_BOX(vbox), current_size_units, TRUE, TRUE, 0);
-
-	final_size_units = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(final_size_units), 1.0, 0.5);
-	gtk_widget_show(final_size_units);
-	gtk_box_pack_start(GTK_BOX(vbox), final_size_units, TRUE, TRUE, 0);
-
-	// separator
-	separator = gtk_hseparator_new();
-	gtk_widget_show(separator);
-	gtk_box_pack_start(GTK_BOX(frame_vbox), separator, TRUE, TRUE, 0);
-
-	// fourth row
-
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(frame_vbox), hbox, FALSE, FALSE, 2);
-
-	actual_fps_label = gtk_label_new(" Video Frame Rate:");
-	gtk_misc_set_alignment(GTK_MISC(actual_fps_label), 0.0, 0.5);
-	gtk_widget_show(actual_fps_label);
-	gtk_box_pack_start(GTK_BOX(hbox), actual_fps_label, TRUE, TRUE, 5);
-
-	actual_fps = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(actual_fps), 1.0, 0.5);
-	gtk_widget_show(actual_fps);
-	gtk_box_pack_start(GTK_BOX(hbox), actual_fps, FALSE, FALSE, 0);
-
-	actual_fps_units = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(actual_fps_units), 1.0, 0.5);
-	gtk_widget_show(actual_fps_units);
-	gtk_box_pack_start(GTK_BOX(hbox), actual_fps_units, FALSE, FALSE, 5);
-
-	gtk_widget_show(frame); // show control frame
+  gtk_widget_set_sensitive(temp, is_set);
+  temp = lookup_widget(MainWindow, "SDPFileOpenButton");
+  gtk_widget_set_sensitive(temp, is_set);
 }
 
 /*
- * Main routine - set up window
+ * SetStreamRecord - set the stream's record settings
  */
+static void SetStreamRecord (CMediaStream *ms) 
+{
+  GtkWidget *temp;
+  bool is_set;
+
+  temp = lookup_widget(MainWindow, "StreamRecord");
+  is_set = ms->GetBoolValue(STREAM_RECORD);
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(temp), is_set);
+  is_set = is_set && !started;
+  gtk_widget_set_sensitive(temp, !started);
+
+  temp = lookup_widget(MainWindow, "StreamRecordFileEntry");
+  gtk_entry_set_text(GTK_ENTRY(temp), 
+		     ms->GetStringValue(STREAM_RECORD_MP4_FILE_NAME));
+
+  gtk_widget_set_sensitive(temp, is_set);
+  temp = lookup_widget(MainWindow, "RecordFileOpenButton");
+  gtk_widget_set_sensitive(temp, is_set);
+}
+
+/*
+ * load_streams - load the streams into the stream view box
+ * only occurs at startup, or if a stream is added/deleted
+ */
+void load_streams (GtkTreeView *StreamTreeView = NULL,
+		   const char *selected_stream = NULL) 
+{
+  if (StreamTreeView == NULL) {
+    StreamTreeView = GTK_TREE_VIEW(lookup_widget(MainWindow, "StreamTreeView"));
+  }
+  GtkTreeSelection *select = gtk_tree_view_get_selection(StreamTreeView);
+
+  GtkListStore *store = gtk_list_store_new(1, G_TYPE_STRING);
+  GtkTreeIter iter;
+  GtkTreeIter selected_iter;
+  bool selected = false;
+
+  CMediaStream *ms = AVFlow->m_stream_list->GetHead();
+  while (ms != NULL) {
+    // Add the stream name to the list.
+    gtk_list_store_append(store, &iter);
+    // check if it should be highlighted
+    if (selected_stream == NULL) {
+      if (selected == false) {
+	selected_iter = iter;
+	selected = true;
+      }
+    } else {
+      if (strcmp(selected_stream, ms->GetName()) == 0) {
+	selected_iter = iter;
+	selected = true;
+      }
+    }
+    gtk_list_store_set(store, &iter, 
+		       0, ms->GetName(),
+		       -1);
+    ms = ms->GetNext();
+  }
+  gtk_tree_view_set_model(StreamTreeView, GTK_TREE_MODEL(store));
+  if (selected)
+    gtk_tree_selection_select_iter(select, &selected_iter);
+}
+
+/*
+ * OnStreamSelect - when a stream is selected, we need to change a lot
+ * of things
+ */
+static void OnSelectStream (const char *stream)
+{
+  CMediaStream *ms;
+
+  ms = AVFlow->m_stream_list->FindStream(stream);
+  if (ms == NULL) {
+    ms = AVFlow->m_stream_list->GetHead();
+  }
+
+  CHECK_AND_FREE(SelectedStream);
+  SelectedStream = strdup(ms->GetName());
+
+  GtkWidget *temp, *temp2;
+  const char *ptr;
+  char buffer[1024];
+
+  // Name, description
+  temp = lookup_widget(MainWindow, "StreamNameLabel");
+  gtk_label_set_text(GTK_LABEL(temp), SelectedStream);
+
+  temp = lookup_widget(MainWindow, "StreamDescription");
+  ptr = ms->GetStringValue(STREAM_DESCRIPTION);
+  gtk_entry_set_text(GTK_ENTRY(temp), ptr == NULL ? "" : ptr);
+
+  // transmit and mp4 file
+  SetStreamTransmit(ms);
+  SetStreamRecord(ms);
+
+  uint32_t index;
+
+  // Audio information - enabled, profile, change tooltip to reflect settings
+  temp = lookup_widget(MainWindow, "AudioEnabled");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(temp), 
+			       ms->GetBoolValue(STREAM_AUDIO_ENABLED));
+  index = get_index_from_profile_list(audio_profile_names, 
+				      audio_profile_names_count,
+				      ms->GetStringValue(STREAM_AUDIO_PROFILE));
+  temp = lookup_widget(MainWindow, "AudioProfile");
+  debug_message("audio profile %s index %u", ms->GetStringValue(STREAM_AUDIO_PROFILE), index);
+  gtk_option_menu_set_history(GTK_OPTION_MENU(temp), index);
+  bool enabled = ms->GetBoolValue(STREAM_AUDIO_ENABLED);
+  temp2 = lookup_widget(MainWindow, "StreamAudioInfo");
+  if (enabled == false) {
+    gtk_label_set_text(GTK_LABEL(temp2), "audio disabled");
+    gtk_tooltips_set_tip(tooltips, temp, "Select/Add/Customize Audio Profile", NULL);
+  } else {
+    CAudioProfile *ap = ms->GetAudioProfile();
+    debug_message("audio profile %s", ap->GetName());
+    float srate = ((float)ap->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE)) / 1000.0;
+    float sbit = ((float)ap->GetIntegerValue(CFG_AUDIO_BIT_RATE)) / 1000.0;
+    snprintf(buffer, sizeof(buffer), "%s %gKbps",
+	     ap->GetStringValue(CFG_AUDIO_ENCODING),
+				sbit);
+    gtk_label_set_text(GTK_LABEL(temp2), buffer);
+    snprintf(buffer, sizeof(buffer), 
+	     "Select/Add/Customize Audio Profile\n"
+	     "%s(%s), %s, %gKHz %gKbps", 
+	     ap->GetStringValue(CFG_AUDIO_ENCODING),
+	     ap->GetStringValue(CFG_AUDIO_ENCODER),
+	     ap->GetIntegerValue(CFG_AUDIO_CHANNELS) == 1 ? "mono" : "stereo",
+	     srate,
+	     sbit);
+    gtk_tooltips_set_tip(tooltips, temp, buffer, NULL);
+
+  }
+  enabled = enabled && !started;
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(MainWindow, "AudioTxAddrButton");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(MainWindow, "AudioTxAddrLabel");
+  if (enabled == false || ms->GetBoolValue(STREAM_TRANSMIT) == false) {
+    gtk_label_set_text(GTK_LABEL(temp), "disabled");
+  } else {
+    snprintf(buffer, sizeof(buffer), "%s:%u", 
+	     ms->GetStringValue(STREAM_AUDIO_DEST_ADDR), 
+	     ms->GetIntegerValue(STREAM_AUDIO_DEST_PORT));
+    gtk_label_set_text(GTK_LABEL(temp), buffer);
+  }
+
+  // Video Information
+  temp = lookup_widget(MainWindow, "VideoEnabled");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(temp), 
+			       ms->GetBoolValue(STREAM_VIDEO_ENABLED));
+  index = get_index_from_profile_list(video_profile_names, 
+				      video_profile_names_count,
+				      ms->GetStringValue(STREAM_VIDEO_PROFILE));
+  temp = lookup_widget(MainWindow, "VideoProfile");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(temp), index);
+  enabled = ms->GetBoolValue(STREAM_VIDEO_ENABLED);
+
+  temp2 = lookup_widget(MainWindow, "StreamVideoInfo");
+  if (enabled == false) {
+    gtk_label_set_text(GTK_LABEL(temp2), "video disabled");
+    gtk_tooltips_set_tip(tooltips, temp, "Select/Add/Customize Video Profile", NULL);
+  } else {
+    CVideoProfile *vp = ms->GetVideoProfile();
+    snprintf(buffer, sizeof(buffer), "%s %ux%u %uKbps",
+	     vp->GetStringValue(CFG_VIDEO_ENCODING),
+	     vp->m_videoWidth,
+	     vp->m_videoHeight,
+	     vp->GetIntegerValue(CFG_VIDEO_BIT_RATE));
+    gtk_label_set_text(GTK_LABEL(temp2), buffer);
+    snprintf(buffer, sizeof(buffer), "Select/Add/Customize Video Profile\n%s(%s) %uX%u %uKbps@%gfps",
+	     vp->GetStringValue(CFG_VIDEO_ENCODING),
+	     vp->GetStringValue(CFG_VIDEO_ENCODER),
+	     vp->m_videoWidth,
+	     vp->m_videoHeight,
+	     vp->GetIntegerValue(CFG_VIDEO_BIT_RATE),
+	     vp->GetFloatValue(CFG_VIDEO_FRAME_RATE));
+    gtk_tooltips_set_tip(tooltips, temp, buffer, NULL);
+	     
+  }
+
+  temp2 = lookup_widget(MainWindow, "StreamVideoPreview");
+  gtk_widget_set_sensitive(temp2, enabled);
+  if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+    const char *preview = 
+      MyConfig->GetStringValue(CONFIG_VIDEO_PREVIEW_STREAM);
+    if (preview != NULL) {
+      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(temp2),
+				   strcmp(preview, SelectedStream) == 0);
+    }
+  }
+  gtk_widget_set_sensitive(temp2, enabled);
+
+  enabled = enabled && !started;
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(MainWindow, "VideoTxAddrButton");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(MainWindow, "VideoTxAddrLabel");
+  if (enabled == false || ms->GetBoolValue(STREAM_TRANSMIT) == false) {
+    gtk_label_set_text(GTK_LABEL(temp), "disabled");
+  } else {
+    snprintf(buffer, sizeof(buffer), "%s:%u", 
+	     ms->GetStringValue(STREAM_VIDEO_DEST_ADDR), 
+	     ms->GetIntegerValue(STREAM_VIDEO_DEST_PORT));
+    gtk_label_set_text(GTK_LABEL(temp), buffer);
+  }
+
+}
+
+/****************************************************************************
+ * Main window routines called from other dialogs
+ ****************************************************************************/
+/*
+ * OnAudioProfileFinished and OnVideoProfileFinished get called
+ * when an audio or a video profile are updated.  This will change
+ * settings, as well as validating the information for the sources
+ */
+void OnAudioProfileFinished (CAudioProfile *p)
+{
+  if (p != NULL) {
+    CMediaStream *ms = GetSelectedStream();
+    ms->SetAudioProfile(p->GetName());
+    LoadAudioProfiles();
+  }
+  AVFlow->ValidateAndUpdateStreams();
+  fill_in_sources();
+  OnSelectStream(SelectedStream);
+}
+
+void OnVideoProfileFinished (CVideoProfile *p)
+{
+  if (p != NULL) {
+    // new video profile created - set the stream to it
+    CMediaStream *ms = GetSelectedStream();
+    ms->SetVideoProfile(p->GetName());
+    LoadVideoProfiles(); // have it appear in the list
+  }
+  AVFlow->ValidateAndUpdateStreams();
+  fill_in_sources();
+  OnSelectStream(SelectedStream);
+}
+
+void RefreshCurrentStream (void)
+{
+  OnSelectStream(SelectedStream);
+}
+
+// Top level menu handlers
+static void
+on_new1_activate                       (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+
+printf("on new\n");
+}
+
+
+static void
+on_open1_activate                      (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  printf("on_open1\n");
+}
+
+
+static void
+on_save1_activate                      (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  if (started == false) {
+    // read that info
+    ReadConfigFromWindow();
+  }
+
+  // need to read the information
+  GtkWidget *statusbar = lookup_widget(MainWindow, "statusbar1");
+  gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+  gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+		     0,
+		     "Writing Configuration and Stream Files");
+  MyConfig->WriteDefaultFile();
+  CMediaStream *ms = AVFlow->m_stream_list->GetHead();
+  while (ms != NULL) {
+    ms->WriteDefaultFile();
+    ms = ms->GetNext();
+  }
+    
+  gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+  gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+		     0,
+		     "Configuration and stream files written");
+}
+
+
+static void
+on_generate_addresses_activate         (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  printf("generate_addresses_activate\n");
+}
+
+
+static void
+on_preferences1_activate               (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  printf("on preferences active\n");
+}
+
+
+static void
+on_about1_activate                     (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  printf("on about active\n");
+}
+
+// Source Menu handlers
+static void RestoreSourceMenu (void)
+{
+  GtkWidget *wid = lookup_widget(MainWindow, "SourceOptionMenu");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(wid), 0);
+}
+
+static void
+on_VideoSourceMenu_activate            (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  RestoreSourceMenu();
+}
+
+
+static void
+on_Audio_SourceMenu_activate           (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  RestoreSourceMenu();
+}
+
+#ifdef HAVE_TEXT
+static void
+on_TextSourceMenu_activate             (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+  RestoreSourceMenu();
+}
+#endif
+
+// Add Stream Dialog
+static void
+on_AddStreamDialog_response            (GtkDialog       *dialog,
+                                        gint             response_id,
+                                        gpointer         user_data)
+{
+  printf("on add stream dialog - response %d\n", response_id);
+  if (GTK_RESPONSE_OK == response_id) {
+    GtkWidget *temp = lookup_widget(GTK_WIDGET(dialog), "AddStreamText");
+    
+    const char *stream_name = gtk_entry_get_text(GTK_ENTRY(temp));
+    if ((stream_name == NULL) || (*stream_name == '\0')) {
+      ShowMessage("Add Stream Error", "Must enter stream name");
+      return;
+    }
+
+    if (AVFlow->AddStream(stream_name) == false) {
+      ShowMessage("Not Added", "An Error as occurred\nStream has not been added");
+    } else {
+      load_streams(NULL, stream_name);
+      OnSelectStream(stream_name);
+    }
+  }
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+}
+
+// This is if they hit return from the AddStream text window
+static void on_AddStreamText_activate (GtkEntry *ent,
+				       gpointer user_data)
+{
+  on_AddStreamDialog_response(GTK_DIALOG(user_data),
+			      GTK_RESPONSE_OK,
+			      NULL);
+}
+
+
+// create the add stream dialog
+static void
+on_AddStreamButton_clicked             (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  printf("add stream\n");
+  GtkWidget *AddStreamDialog;
+  GtkWidget *dialog_vbox1;
+  GtkWidget *vbox20;
+  GtkWidget *AddStreamText;
+  GtkWidget *dialog_action_area1;
+  GtkWidget *cancelbutton1;
+  GtkWidget *okbutton1;
+  GtkTooltips *tooltips;
+
+  tooltips = gtk_tooltips_new();
+
+  AddStreamDialog = gtk_dialog_new();
+  gtk_window_set_title(GTK_WINDOW(AddStreamDialog), _("Add Stream"));
+  gtk_window_set_modal(GTK_WINDOW(AddStreamDialog), TRUE);
+  gtk_window_set_transient_for(GTK_WINDOW(AddStreamDialog), 
+			       GTK_WINDOW(MainWindow));
+  gtk_window_set_resizable(GTK_WINDOW(AddStreamDialog), FALSE);
+  gtk_dialog_set_has_separator(GTK_DIALOG(AddStreamDialog), FALSE);
+
+  dialog_vbox1 = GTK_DIALOG(AddStreamDialog)->vbox;
+  gtk_widget_show(dialog_vbox1);
+
+  vbox20 = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(vbox20);
+  gtk_box_pack_start(GTK_BOX(dialog_vbox1), vbox20, TRUE, TRUE, 0);
+
+  AddStreamText = gtk_entry_new();
+  gtk_widget_show(AddStreamText);
+  gtk_box_pack_start(GTK_BOX(vbox20), AddStreamText, FALSE, FALSE, 16);
+  gtk_tooltips_set_tip(tooltips, AddStreamText, _("Enter Stream Name"), NULL);
+  gtk_entry_set_width_chars(GTK_ENTRY(AddStreamText), 40);
+
+  dialog_action_area1 = GTK_DIALOG(AddStreamDialog)->action_area;
+  gtk_widget_show(dialog_action_area1);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(dialog_action_area1), GTK_BUTTONBOX_END);
+
+  cancelbutton1 = gtk_button_new_from_stock("gtk-cancel");
+  gtk_widget_show(cancelbutton1);
+  gtk_dialog_add_action_widget(GTK_DIALOG(AddStreamDialog), cancelbutton1, GTK_RESPONSE_CANCEL);
+  GTK_WIDGET_SET_FLAGS(cancelbutton1, GTK_CAN_DEFAULT);
+
+  okbutton1 = gtk_button_new_from_stock("gtk-ok");
+  gtk_widget_show(okbutton1);
+  gtk_dialog_add_action_widget(GTK_DIALOG(AddStreamDialog), okbutton1, GTK_RESPONSE_OK);
+  GTK_WIDGET_SET_FLAGS(okbutton1, GTK_CAN_DEFAULT);
+  
+  g_signal_connect((gpointer) AddStreamText, "activate",
+		   G_CALLBACK(on_AddStreamText_activate),
+		   AddStreamDialog);
+  g_signal_connect((gpointer) AddStreamDialog, "response",
+                    G_CALLBACK(on_AddStreamDialog_response),
+                    NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF(AddStreamDialog, AddStreamDialog, "AddStreamDialog");
+  GLADE_HOOKUP_OBJECT_NO_REF(AddStreamDialog, dialog_vbox1, "dialog_vbox1");
+  GLADE_HOOKUP_OBJECT(AddStreamDialog, vbox20, "vbox20");
+  GLADE_HOOKUP_OBJECT(AddStreamDialog, AddStreamText, "AddStreamText");
+  GLADE_HOOKUP_OBJECT_NO_REF(AddStreamDialog, dialog_action_area1, "dialog_action_area1");
+  GLADE_HOOKUP_OBJECT(AddStreamDialog, cancelbutton1, "cancelbutton1");
+  GLADE_HOOKUP_OBJECT(AddStreamDialog, okbutton1, "okbutton1");
+  GLADE_HOOKUP_OBJECT_NO_REF(AddStreamDialog, tooltips, "tooltips");
+
+  gtk_widget_grab_focus(AddStreamText);
+  gtk_widget_show(AddStreamDialog);
+
+}
+
+/*
+ * Delete Stream handlers and dialog
+ */
+static void
+on_DeleteStreamDialog_response         (GtkDialog       *dialog,
+                                        gint             response_id,
+                                        gpointer         user_data)
+{
+  if (GTK_RESPONSE_YES == response_id) {
+    if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+      const char *stream = 
+	MyConfig->GetStringValue(CONFIG_VIDEO_PREVIEW_STREAM);
+      if (strcmp(stream, SelectedStream) == 0) {
+	AVFlow->StopVideoPreview();
+	MyConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW, false);
+	MyConfig->SetStringValue(CONFIG_VIDEO_PREVIEW_STREAM, NULL);
+      }
+    }
+    if (AVFlow->DeleteStream(SelectedStream) == false) {
+      ShowMessage("Not Deleted", "An Error as occurred\nStream not deleted");
+    } else {
+      load_streams();
+      OnSelectStream(NULL);
+    }
+  }
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+}
+
+static void
+on_DeleteStreamButton_clicked          (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  GtkWidget *DeleteStreamDialog;
+  GtkWidget *dialog_vbox2;
+  GtkWidget *vbox21;
+  GtkWidget *label72;
+  GtkWidget *DeleteStreamLabel;
+  GtkWidget *label74;
+  GtkWidget *dialog_action_area2;
+  GtkWidget *cancelbutton2;
+  GtkWidget *DeleteStreamButton;
+
+  if (started) return;
+
+  if (AVFlow->m_stream_list->GetCount() == 1) {
+    ShowMessage("Delete Error", "Can not delete last stream");
+    return;
+  }
+
+  DeleteStreamDialog = gtk_dialog_new();
+  gtk_widget_set_size_request(DeleteStreamDialog, 236, -1);
+  gtk_window_set_title(GTK_WINDOW(DeleteStreamDialog), _("Delete Stream ?"));
+  gtk_window_set_modal(GTK_WINDOW(DeleteStreamDialog), TRUE);
+  gtk_window_set_transient_for(GTK_WINDOW(DeleteStreamDialog), 
+			       GTK_WINDOW(MainWindow));
+  gtk_window_set_resizable(GTK_WINDOW(DeleteStreamDialog), FALSE);
+  gtk_window_set_destroy_with_parent(GTK_WINDOW(DeleteStreamDialog), TRUE);
+  gtk_dialog_set_has_separator(GTK_DIALOG(DeleteStreamDialog), FALSE);
+
+  dialog_vbox2 = GTK_DIALOG(DeleteStreamDialog)->vbox;
+  gtk_widget_show(dialog_vbox2);
+
+  vbox21 = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(vbox21);
+  gtk_box_pack_start(GTK_BOX(dialog_vbox2), vbox21, TRUE, TRUE, 0);
+
+  label72 = gtk_label_new(_("You are about to delete stream:"));
+  gtk_widget_show(label72);
+  gtk_box_pack_start(GTK_BOX(vbox21), label72, FALSE, FALSE, 23);
+
+  DeleteStreamLabel = gtk_label_new(SelectedStream);
+  gtk_widget_show(DeleteStreamLabel);
+  gtk_box_pack_start(GTK_BOX(vbox21), DeleteStreamLabel, FALSE, FALSE, 1);
+
+  label74 = gtk_label_new(_("This operation cannot be\nreversed."));
+  gtk_widget_show(label74);
+  gtk_box_pack_start(GTK_BOX(vbox21), label74, FALSE, FALSE, 24);
+  gtk_label_set_justify(GTK_LABEL(label74), GTK_JUSTIFY_CENTER);
+
+  dialog_action_area2 = GTK_DIALOG(DeleteStreamDialog)->action_area;
+  gtk_widget_show(dialog_action_area2);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(dialog_action_area2), GTK_BUTTONBOX_END);
+
+  cancelbutton2 = gtk_button_new_from_stock("gtk-no");
+  gtk_widget_show(cancelbutton2);
+  gtk_dialog_add_action_widget(GTK_DIALOG(DeleteStreamDialog), cancelbutton2, GTK_RESPONSE_NO);
+  GTK_WIDGET_SET_FLAGS(cancelbutton2, GTK_CAN_DEFAULT);
+
+  DeleteStreamButton = gtk_button_new_from_stock("gtk-yes");
+  gtk_widget_show(DeleteStreamButton);
+  gtk_dialog_add_action_widget(GTK_DIALOG(DeleteStreamDialog), DeleteStreamButton, GTK_RESPONSE_YES);
+  GTK_WIDGET_SET_FLAGS(DeleteStreamButton, GTK_CAN_DEFAULT);
+
+  g_signal_connect((gpointer) DeleteStreamDialog, "response",
+                    G_CALLBACK(on_DeleteStreamDialog_response),
+                    NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  /*
+  GLADE_HOOKUP_OBJECT_NO_REF(DeleteStreamDialog, DeleteStreamDialog, "DeleteStreamDialog");
+  GLADE_HOOKUP_OBJECT_NO_REF(DeleteStreamDialog, dialog_vbox2, "dialog_vbox2");
+  GLADE_HOOKUP_OBJECT(DeleteStreamDialog, vbox21, "vbox21");
+  GLADE_HOOKUP_OBJECT(DeleteStreamDialog, label72, "label72");
+  GLADE_HOOKUP_OBJECT(DeleteStreamDialog, DeleteStreamLabel, "DeleteStreamLabel");
+  GLADE_HOOKUP_OBJECT(DeleteStreamDialog, label74, "label74");
+  GLADE_HOOKUP_OBJECT_NO_REF(DeleteStreamDialog, dialog_action_area2, "dialog_action_area2");
+  GLADE_HOOKUP_OBJECT(DeleteStreamDialog, cancelbutton2, "cancelbutton2");
+  GLADE_HOOKUP_OBJECT(DeleteStreamDialog, DeleteStreamButton, "DeleteStreamButton");
+  */
+  gtk_widget_grab_focus(cancelbutton2);
+  gtk_widget_show(DeleteStreamDialog);
+}
+
+// When the transmit enabled gets clicked
+static void
+on_StreamTransmit_toggled              (GtkToggleButton *togglebutton,
+                                        gpointer         user_data)
+{
+  if (started) return;
+  bool set = gtk_toggle_button_get_active(togglebutton);
+  CMediaStream *ms = GetSelectedStream();
+  if (ms == NULL) return;
+  ms->SetBoolValue(STREAM_TRANSMIT, set);
+  SetStreamTransmit(ms);
+}
+
+// When the record gets clicked
+static void
+on_StreamRecord_toggled                (GtkToggleButton *togglebutton,
+                                        gpointer         user_data)
+{
+  if (started) return;
+  bool set = gtk_toggle_button_get_active(togglebutton);
+  CMediaStream *ms = GetSelectedStream();
+  if (ms == NULL) return;
+  ms->SetBoolValue(STREAM_RECORD, set);
+  SetStreamRecord(ms);
+}
+
+// List of files, their stream configuration indexes
+static const struct {
+  config_index_t *pConfigIndex;
+  const char *header;
+  const char *widget;
+} FileOpenIndexes[] = {
+  { &STREAM_RECORD_MP4_FILE_NAME,
+    "MP4 File Name",
+    "StreamRecordFileEntry" },
+  { &STREAM_SDP_FILE_NAME,
+    "Select Stream SDP Output File",
+    "StreamSdpFileEntry"},
+};
+
+// The return from the browse button for SDP or mp4 file. 
+static void onFileOpenResponse (GtkDialog *sel,
+				gint response_id,
+				gpointer user_data)
+{
+  if (GTK_RESPONSE_OK == response_id) {
+    CMediaStream *ms = GetSelectedStream();
+    uint index = GPOINTER_TO_INT(user_data);
+    const char *name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(sel));
+    ms->SetStringValue(*FileOpenIndexes[index].pConfigIndex,
+		       name);
+    GtkWidget *wid = lookup_widget(MainWindow, 
+				   FileOpenIndexes[index].widget);
+    gtk_entry_set_text(GTK_ENTRY(wid), name);
+  }
+  gtk_widget_destroy(GTK_WIDGET(sel));
+}
+
+// create the file selection dialog for SDP file or mp4 file.
+static void
+on_FileOpenButton_clicked        (GtkButton       *button,
+				  gpointer         user_data)
+{
+  uint index = GPOINTER_TO_INT(user_data);
+  GtkWidget *FileSelection;
+  GtkWidget *FileOkayButton;
+  GtkWidget *cancel_button1;
+
+  FileSelection = 
+    gtk_file_selection_new(FileOpenIndexes[index].header);
+
+  gtk_container_set_border_width(GTK_CONTAINER (FileSelection), 10);
+  gtk_file_selection_hide_fileop_buttons(GTK_FILE_SELECTION (FileSelection));
+
+  CMediaStream *ms = GetSelectedStream();
+  gtk_file_selection_set_filename(GTK_FILE_SELECTION(FileSelection),
+				  ms->GetStringValue(*FileOpenIndexes[index].pConfigIndex));
+
+  FileOkayButton = GTK_FILE_SELECTION (FileSelection)->ok_button;
+  gtk_widget_show(FileOkayButton);
+  GTK_WIDGET_SET_FLAGS(FileOkayButton, GTK_CAN_DEFAULT);
+
+  cancel_button1 = GTK_FILE_SELECTION(FileSelection)->cancel_button;
+  gtk_widget_show(cancel_button1);
+  GTK_WIDGET_SET_FLAGS(cancel_button1, GTK_CAN_DEFAULT);
+ 
+  gtk_window_set_modal(GTK_WINDOW(FileSelection), true);
+  gtk_window_set_transient_for(GTK_WINDOW(FileSelection), 
+			       GTK_WINDOW(MainWindow));
+  g_signal_connect((gpointer) FileSelection, "response",
+		   G_CALLBACK (onFileOpenResponse),
+		   user_data);
+  gtk_widget_show(FileSelection);
+}
+
+// Stream video settings handlers
+static void
+on_VideoEnabled_toggled                (GtkToggleButton *togglebutton,
+                                        gpointer         user_data)
+{
+  if (started) 
+    return;
+  
+  CMediaStream *ms = GetSelectedStream();
+  if (ms == NULL) return;
+
+  ms->SetBoolValue(STREAM_VIDEO_ENABLED, 
+		   gtk_toggle_button_get_active(togglebutton));
+  OnSelectStream(SelectedStream);
+}
+
+static void
+on_VideoProfile_changed                (GtkOptionMenu   *optionmenu,
+                                        gpointer         user_data)
+{
+  if (started) {
+    OnSelectStream(SelectedStream);
+    return;
+  }
+
+  if (video_profile_names != NULL) {
+    CMediaStream *ms = GetSelectedStream();
+    if (ms == NULL) return;
+    const char *new_profile = 
+      video_profile_names[gtk_option_menu_get_history(optionmenu)];
+    if (strcmp(new_profile, add_profile_string) == 0) {
+      CreateVideoProfileDialog(NULL);
+    } else if (strcmp(new_profile, customize_profile_string) == 0) {
+      CreateVideoProfileDialog(ms->GetVideoProfile());
+    } else if (strcmp(new_profile, 
+		      ms->GetStringValue(STREAM_VIDEO_PROFILE)) != 0) {
+      ms->SetVideoProfile(new_profile);
+      AVFlow->ValidateAndUpdateStreams();
+      fill_in_sources();
+      if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+	AVFlow->StartVideoPreview();
+      }
+      OnSelectStream(SelectedStream);
+    }
+  }
+}
+
+// inpreview is required, because calling OnSelectStream may cause
+// other signals to be emited, calling this more than 1 time
+static bool inpreview = false;
+
+static void
+on_VideoPreview                        (GtkToggleButton *togglebutton,
+                                        gpointer         user_data)
+{
+  if (inpreview) return;
+  inpreview = true;
+
+  bool raw_toggled = (GPOINTER_TO_INT(user_data) == 0);
+  debug_message("onvideopreview %d", GPOINTER_TO_INT(user_data));
+  GtkWidget *raw, *stream;
+  raw = lookup_widget(MainWindow, "VideoSourcePreview");
+  stream = lookup_widget(MainWindow, "StreamVideoPreview");
+  bool raw_set, stream_set;
+  const char *stream_name;
+
+  raw_set = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(raw));
+  stream_set = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(stream));
+  debug_message("onvideopreview %d raw %d stream %d", 
+		GPOINTER_TO_INT(user_data),
+		raw_set, stream_set);
+
+  if (raw_set == false && stream_set == false) {
+    if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+      stream_name = MyConfig->GetStringValue(CONFIG_VIDEO_PREVIEW_STREAM);
+      if (raw_toggled == false &&
+	  stream_name && strcmp(stream_name, SelectedStream) != 0) {
+	// we're turning off for this preview
+	inpreview = false;
+	return;
+      }
+      
+    }
+    MyConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW, false);
+    AVFlow->StopVideoPreview();
+  } else {
+    // one or the other is on
+    if (raw_set == stream_set) {
+      // both are on - figure from userdata
+      if (raw_toggled) {
+	// we want raw
+	stream_set = false;
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(stream), false);
+      } else {
+	raw_set = false;
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(raw), false);
+      }
+    }
+    
+    if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW) == true) {
+      if (raw_set && raw_toggled == false) {
+	if (MyConfig->GetStringValue(CONFIG_VIDEO_PREVIEW_STREAM) == NULL) 
+	  inpreview = false;
+	  return;
+      } else {
+	stream_name = MyConfig->GetStringValue(CONFIG_VIDEO_PREVIEW_STREAM);
+	if (raw_toggled == false &&
+	    stream_name && strcmp(stream_name, SelectedStream) == 0) {
+	  inpreview = false;
+	  return;
+	}
+      }
+    }
+    MyConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW, true);
+    MyConfig->SetStringValue(CONFIG_VIDEO_PREVIEW_STREAM,
+			     raw_set  ? NULL : SelectedStream);
+    AVFlow->StartVideoPreview();
+  }
+  inpreview = false;
+}
+
+static void
+on_VideoTxAddrButton_clicked           (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  create_IpAddrDialog(GetSelectedStream(), false, true, false);
+}
+
+
+// Stream audio settings handlers
+static void
+on_AudioEnabled_toggled                (GtkToggleButton *togglebutton,
+                                        gpointer         user_data)
+{
+  CMediaStream *ms = GetSelectedStream();
+  if (ms == NULL) return;
+
+  ms->SetBoolValue(STREAM_AUDIO_ENABLED, 
+		   gtk_toggle_button_get_active(togglebutton));
+  OnSelectStream(SelectedStream);
+}
+
+
+static void
+on_AudioProfile_changed                (GtkOptionMenu   *optionmenu,
+                                        gpointer         user_data)
+{
+  if (started) {
+    OnSelectStream(SelectedStream);
+    return;
+  }
+
+  if (audio_profile_names != NULL) {
+    CMediaStream *ms = GetSelectedStream();
+    if (ms == NULL) return;
+    const char *new_profile = 
+      audio_profile_names[gtk_option_menu_get_history(optionmenu)];
+    if (strcmp(new_profile, add_profile_string) == 0) {
+      CreateAudioProfileDialog(NULL);
+    } else if (strcmp(new_profile, customize_profile_string) == 0) {
+      CreateAudioProfileDialog(ms->GetAudioProfile());
+    } else if (strcmp(new_profile, 
+		      ms->GetStringValue(STREAM_AUDIO_PROFILE)) != 0) {
+      debug_message("setting new media to %s", new_profile);
+      ms->SetAudioProfile(new_profile);
+      AVFlow->ValidateAndUpdateStreams();
+      fill_in_sources();
+      OnSelectStream(SelectedStream);
+    }
+  }
+}
+
+
+static void
+on_AudioTxAddrButton_clicked           (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  create_IpAddrDialog(GetSelectedStream(), true, false, false);
+}
+
+#ifdef HAVE_TEXT
+static void
+on_TextEnabled_toggled                 (GtkToggleButton *togglebutton,
+                                        gpointer         user_data)
+{
+  printf("text enabled\n");
+}
+
+
+static void
+on_TextProfile_changed                 (GtkOptionMenu   *optionmenu,
+                                        gpointer         user_data)
+{
+}
+
+
+static void
+on_TextTxAddrButton_clicked            (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  create_IpAddrDialog(GetSelectedStream(), false, false, true);
+}
+
+
+static void
+on_TextEntrySend_clicked               (GtkButton       *button,
+                                        gpointer         user_data)
+{
+
+}
+#endif
+
+
+// If they change the duration.  Don't know why we care.
+static void
+on_durationtype_activate               (GtkOptionMenu     *menu,
+                                        gpointer         user_data)
+{
+  MyConfig->SetIntegerValue(CONFIG_APP_DURATION_UNITS, 
+			    durationUnitsValues[gtk_option_menu_get_history(menu)]);
+}
+
+
+static void
+on_StartButton_toggled                 (GtkToggleButton *togglebutton,
+                                        gpointer         user_data)
+{
+  if (started == false) {
+    DoStart();
+  } else {
+    DoStop();
+  }
+  OnSelectStream(SelectedStream);
+}
+
+// Handler for when a stream is clicked.  Go through, and figure out
+// which one is selected.  We should get a valid stream name, which we
+// then switch to.
+static void on_StreamTree_select (GtkTreeSelection *selection,
+				  gpointer data)
+{
+  GtkTreeIter iter;
+  GtkTreeModel *model;
+  gchar *stream;
+
+  if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+    gtk_tree_model_get(model, &iter, 0, &stream, -1);
+    printf("select stream %s\n", stream);
+    OnSelectStream(stream);
+    g_free(stream);
+  }
+}
+
+static GtkWidget *create_MainWindow (void)
+{
+  GtkWidget *MainWindow;
+  GtkWidget *vbox1;
+  GtkWidget *menubar1;
+  GtkWidget *menuitem1;
+  GtkWidget *menuitem1_menu;
+  GtkWidget *new1;
+  GtkWidget *open1;
+  GtkWidget *save1;
+  GtkWidget *separatormenuitem1;
+  GtkWidget *quit1;
+  GtkWidget *menuitem2;
+  GtkWidget *menuitem2_menu;
+  GtkWidget *generate_addresses;
+  GtkWidget *separator1;
+  GtkWidget *preferences1;
+  GtkWidget *menuitem4;
+  GtkWidget *menuitem4_menu;
+  GtkWidget *about1;
+
+  GtkWidget *InputFrame;
+  GtkWidget *hbox97;
+  GtkWidget *vbox41;
+  GtkWidget *hbox100;
+  GtkWidget *label189;
+  GtkWidget *VideoSourceLabel;
+  GtkWidget *hbox101;
+  GtkWidget *label190;
+  GtkWidget *AudioSourceLabel;
+  GtkWidget *VideoSourcePreview;
+  GtkWidget *hbox98;
+  GtkWidget *SourceOptionMenu;
+  GtkWidget *menu14;
+  GtkWidget *Change;
+  GtkWidget *separator2;
+  GtkWidget *VideoSourceMenu;
+  GtkWidget *image27;
+  GtkWidget *Audio_SourceMenu;
+  GtkWidget *image28;
+#ifdef HAVE_TEXT
+  GtkWidget *TextSourceMenu;
+  GtkWidget *image29;
+#endif
+  GtkWidget *label184;
+  GtkWidget *vbox40;
+  GtkWidget *hbox99;
+
+
+  GtkWidget *StreamInfoFrame;
+  GtkWidget *hpaned1;
+  GtkWidget *StreamVbox;
+  GtkWidget *stream_label;
+  GtkWidget *StreamScrolledWindow;
+  GtkWidget *StreamTreeView;
+  GtkWidget *hbuttonbox1;
+  GtkWidget *AddStreamButton;
+  GtkWidget *image1;
+  GtkWidget *DeleteStreamButton;
+  GtkWidget *image2;
+  GtkWidget *StreamInfoVbox;
+  GtkWidget *StreamVideoInfo;
+  GtkWidget *StreamAudioInfo;
+  GtkWidget *hbox34;
+  GtkWidget *label47;
+  GtkWidget *StreamFps;
+  GtkWidget *hbox33;
+  GtkWidget *label45;
+  GtkWidget *StreamRecording;
+  GtkWidget *InfoVbox;
+  GtkWidget *StreamFrame;
+  GtkWidget *StreamFrameVbox;
+  GtkWidget *StreamNameHbox;
+  GtkWidget *label3;
+  GtkWidget *StreamNameLabel;
+  GtkWidget *StreamDescHbox;
+  GtkWidget *label31;
+  GtkWidget *StreamDescription;
+  GtkWidget *StreamTransmitHbox;
+  GtkWidget *StreamTransmit;
+  GtkWidget *StreamSdpFile;
+  GtkWidget *StreamSdpFileEntry;
+  GtkWidget *label30;
+  GtkWidget *SDPFileOpenButton;
+  GtkWidget *alignment22;
+  GtkWidget *hbox81;
+  GtkWidget *image22;
+  GtkWidget *label167;
+  GtkWidget *StreamRecordHbox;
+  GtkWidget *StreamRecord;
+  GtkWidget *RecordFileHbox;
+  GtkWidget *label4;
+  GtkWidget *StreamRecordFileEntry;
+  GtkWidget *RecordFileOpenButton;
+  GtkWidget *alignment23;
+  GtkWidget *hbox82;
+  GtkWidget *image23;
+  GtkWidget *label168;
+  GtkWidget *label2;
+  GtkWidget *VideoFrame;
+  GtkWidget *VideoFrameVbox;
+  GtkWidget *VideoFrameHbox1;
+  GtkWidget *VideoEnabled;
+  GtkWidget *hbox7;
+  GtkWidget *label6;
+  GtkWidget *VideoProfile;
+  GtkWidget *menu5;
+  GtkWidget *StreamVideoPreview;
+  GtkWidget *VideoTxTable;
+  GtkWidget *label124;
+  GtkWidget *VideoTxAddrLabel;
+  GtkWidget *VideoTxAddrButton;
+  GtkWidget *label5;
+  GtkWidget *AudioFrame;
+  GtkWidget *AudioFrameVbox;
+  GtkWidget *AudioFrameLine1;
+  GtkWidget *AudioEnabled;
+  GtkWidget *hbox15;
+  GtkWidget *label12;
+  GtkWidget *AudioProfile;
+  GtkWidget *menu6;
+  GtkWidget *AudioTxTable;
+  GtkWidget *label126;
+  GtkWidget *AudioTxAddrLabel;
+  GtkWidget *AudioTxAddrButton;
+  GtkWidget *label9;
+#ifdef HAVE_TEXT
+  GtkWidget *hbox102;
+  GtkWidget *label192;
+  GtkWidget *TextSourceLabel;
+  GtkWidget *StreamTextInfo;
+  GtkWidget *TextFrame;
+  GtkWidget *TextFrameVbox;
+  GtkWidget *TextFrameHbox1;
+  GtkWidget *TextEnabled;
+  GtkWidget *hbox17;
+  GtkWidget *label13;
+  GtkWidget *TextProfile;
+  GtkWidget *menu7;
+  GtkWidget *TextTxTable;
+  GtkWidget *label128;
+  GtkWidget *TextTxAddrLabel;
+  GtkWidget *TextTxAddrButton;
+  GtkWidget *label16;
+  GtkWidget *TextEntryFrame;
+  GtkWidget *TextEntryHbox;
+  GtkWidget *label51;
+  GtkWidget *TextEntry;
+  GtkWidget *TextEntrySend;
+  GtkWidget *label52;
+#endif
+  GtkWidget *label114;
+  GtkWidget *StatusFrame;
+  GtkWidget *StatusHbox;
+  GtkWidget *DurationHbox;
+  GtkObject *Duration_adj;
+  GtkWidget *Duration;
+  GtkWidget *DurationLabel;
+  GtkWidget *vbox37;
+  GtkWidget *DurationType;
+  GtkWidget *DurationMenu;
+  GtkWidget *menuitem23;
+  GtkWidget *menuitem24;
+  GtkWidget *menuitem25;
+  GtkWidget *menuitem26;
+  GtkWidget *menuitem27;
+  GtkWidget *vseparator1;
+  GtkWidget *TimeTable;
+  GtkWidget *label116;
+  GtkWidget *label117;
+  GtkWidget *label118;
+  GtkWidget *label119;
+  GtkWidget *CurrentDurationLabel;
+  GtkWidget *CurrentTimeLabel;
+  GtkWidget *EndTimeLabel;
+  GtkWidget *StartTimeSuffix;
+  GtkWidget *StartTimeLabel;
+  GtkWidget *label183;
+  GtkWidget *CurrentTimeSuffix;
+  GtkWidget *EndTimeSuffix;
+  GtkWidget *vseparator2;
+  GtkWidget *vbox34;
+  GtkWidget *StartButton;
+  GtkWidget *label164;
+  GtkWidget *statusbar1;
+  GtkAccelGroup *accel_group;
+  uint ix;
+
+  tooltips = gtk_tooltips_new();
+
+  accel_group = gtk_accel_group_new();
+
+  MainWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+
+  vbox1 = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(vbox1);
+  gtk_container_add(GTK_CONTAINER(MainWindow), vbox1);
+
+  menubar1 = gtk_menu_bar_new();
+  gtk_widget_show(menubar1);
+  gtk_box_pack_start(GTK_BOX(vbox1), menubar1, FALSE, FALSE, 0);
+
+  menuitem1 = gtk_menu_item_new_with_mnemonic(_("_File"));
+  gtk_widget_show(menuitem1);
+  gtk_container_add(GTK_CONTAINER(menubar1), menuitem1);
+
+  menuitem1_menu = gtk_menu_new();
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem1), menuitem1_menu);
+
+  new1 = gtk_image_menu_item_new_from_stock("gtk-new", accel_group);
+  gtk_widget_show(new1);
+  gtk_container_add(GTK_CONTAINER(menuitem1_menu), new1);
+
+  open1 = gtk_image_menu_item_new_from_stock("gtk-open", accel_group);
+  gtk_widget_show(open1);
+  gtk_container_add(GTK_CONTAINER(menuitem1_menu), open1);
+
+  save1 = gtk_image_menu_item_new_from_stock("gtk-save", accel_group);
+  gtk_widget_show(save1);
+  gtk_container_add(GTK_CONTAINER(menuitem1_menu), save1);
+
+  separatormenuitem1 = gtk_menu_item_new();
+  gtk_widget_show(separatormenuitem1);
+  gtk_container_add(GTK_CONTAINER(menuitem1_menu), separatormenuitem1);
+  gtk_widget_set_sensitive(separatormenuitem1, FALSE);
+
+  quit1 = gtk_image_menu_item_new_from_stock("gtk-quit", accel_group);
+  gtk_widget_show(quit1);
+  gtk_container_add(GTK_CONTAINER(menuitem1_menu), quit1);
+
+  menuitem2 = gtk_menu_item_new_with_mnemonic(_("_Edit"));
+  gtk_widget_show(menuitem2);
+  gtk_container_add(GTK_CONTAINER(menubar1), menuitem2);
+
+  menuitem2_menu = gtk_menu_new();
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem2), menuitem2_menu);
+
+  generate_addresses = gtk_menu_item_new_with_mnemonic(_("_Generate Addresses"));
+  gtk_widget_show(generate_addresses);
+  gtk_container_add(GTK_CONTAINER(menuitem2_menu), generate_addresses);
+
+  separator1 = gtk_menu_item_new();
+  gtk_widget_show(separator1);
+  gtk_container_add(GTK_CONTAINER(menuitem2_menu), separator1);
+  gtk_widget_set_sensitive(separator1, FALSE);
+
+  preferences1 = gtk_image_menu_item_new_from_stock("gtk-preferences", accel_group);
+  gtk_widget_show(preferences1);
+  gtk_container_add(GTK_CONTAINER(menuitem2_menu), preferences1);
+
+  menuitem4 = gtk_menu_item_new_with_mnemonic(_("_Help"));
+  gtk_widget_show(menuitem4);
+  gtk_container_add(GTK_CONTAINER(menubar1), menuitem4);
+
+  menuitem4_menu = gtk_menu_new();
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem4), menuitem4_menu);
+
+  about1 = gtk_menu_item_new_with_mnemonic(_("_About"));
+  gtk_widget_show(about1);
+  gtk_container_add(GTK_CONTAINER(menuitem4_menu), about1);
+
+  InputFrame = gtk_frame_new(NULL);
+  gtk_widget_show(InputFrame);
+  gtk_box_pack_start(GTK_BOX(vbox1), InputFrame, TRUE, TRUE, 0);
+
+  hbox97 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox97);
+  gtk_container_add(GTK_CONTAINER(InputFrame), hbox97);
+
+  vbox41 = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(vbox41);
+  gtk_box_pack_start(GTK_BOX(hbox97), vbox41, TRUE, TRUE, 0);
+
+  hbox100 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox100);
+  gtk_box_pack_start(GTK_BOX(vbox41), hbox100, FALSE, FALSE, 0);
+
+  label189 = gtk_label_new(_("Video Source: "));
+  gtk_widget_show(label189);
+  gtk_box_pack_start(GTK_BOX(hbox100), label189, FALSE, FALSE, 5);
+
+  VideoSourceLabel = gtk_label_new("");
+  gtk_widget_show(VideoSourceLabel);
+  gtk_box_pack_start(GTK_BOX(hbox100), VideoSourceLabel, FALSE, FALSE, 4);
+
+  hbox101 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox101);
+  gtk_box_pack_start(GTK_BOX(vbox41), hbox101, FALSE, FALSE, 0);
+
+  label190 = gtk_label_new(_("Audio Source: "));
+  gtk_widget_show(label190);
+  gtk_box_pack_start(GTK_BOX(hbox101), label190, FALSE, FALSE, 5);
+
+  AudioSourceLabel = gtk_label_new("");
+  gtk_widget_show(AudioSourceLabel);
+  gtk_box_pack_start(GTK_BOX(hbox101), AudioSourceLabel, FALSE, FALSE, 4);
+
+#ifdef HAVE_TEXT
+  hbox102 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox102);
+  gtk_box_pack_start(GTK_BOX(vbox41), hbox102, FALSE, FALSE, 0);
+
+  label192 = gtk_label_new(_("Text Source:   "));
+  gtk_widget_show(label192);
+  gtk_box_pack_start(GTK_BOX(hbox102), label192, FALSE, FALSE, 5);
+
+  TextSourceLabel = gtk_label_new("");
+  gtk_widget_show(TextSourceLabel);
+  gtk_box_pack_start(GTK_BOX(hbox102), TextSourceLabel, FALSE, FALSE, 6);
+#endif
+
+  vbox40 = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(vbox40);
+  gtk_box_pack_start(GTK_BOX(hbox97), vbox40, FALSE, TRUE, 0);
+
+  hbox99 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox99);
+  gtk_box_pack_start(GTK_BOX(vbox40), hbox99, FALSE, FALSE, 0);
+
+  VideoSourcePreview = gtk_check_button_new_with_mnemonic(_("Preview Video Source"));
+  gtk_widget_show(VideoSourcePreview);
+  gtk_box_pack_start(GTK_BOX(hbox99), VideoSourcePreview, TRUE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, VideoSourcePreview, _("Preview Raw Video"), NULL);
+
+  hbox98 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox98);
+  gtk_box_pack_start(GTK_BOX(vbox40), hbox98, FALSE, FALSE, 0);
+
+  SourceOptionMenu = gtk_option_menu_new();
+  gtk_widget_show(SourceOptionMenu);
+  gtk_box_pack_start(GTK_BOX(hbox98), SourceOptionMenu, TRUE, FALSE, 0);
+
+  menu14 = gtk_menu_new();
+  Change = gtk_menu_item_new_with_mnemonic(_("Change Source"));
+  gtk_widget_show(Change);
+  gtk_container_add(GTK_CONTAINER(menu14), Change);
+
+  separator2 = gtk_menu_item_new();
+  gtk_widget_show(separator2);
+  gtk_container_add(GTK_CONTAINER(menu14), separator2);
+  gtk_widget_set_sensitive(separator2, FALSE);
+
+  VideoSourceMenu = gtk_image_menu_item_new_with_mnemonic(_("Video Source"));
+  gtk_widget_show(VideoSourceMenu);
+  gtk_container_add(GTK_CONTAINER(menu14), VideoSourceMenu);
+
+  image27 = gtk_image_new_from_stock("gtk-preferences", GTK_ICON_SIZE_MENU);
+  gtk_widget_show(image27);
+  gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(VideoSourceMenu), image27);
+
+  Audio_SourceMenu = gtk_image_menu_item_new_with_mnemonic(_("Audio Source"));
+  gtk_widget_show(Audio_SourceMenu);
+  gtk_container_add(GTK_CONTAINER(menu14), Audio_SourceMenu);
+
+  image28 = gtk_image_new_from_stock("gtk-preferences", GTK_ICON_SIZE_MENU);
+  gtk_widget_show(image28);
+  gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(Audio_SourceMenu), image28);
+
+#ifdef HAVE_TEXT
+  TextSourceMenu = gtk_image_menu_item_new_with_mnemonic(_("Text Source"));
+  gtk_widget_show(TextSourceMenu);
+  gtk_container_add(GTK_CONTAINER(menu14), TextSourceMenu);
+
+  image29 = gtk_image_new_from_stock("gtk-preferences", GTK_ICON_SIZE_MENU);
+  gtk_widget_show(image29);
+  gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(TextSourceMenu), image29);
+#endif
+
+  gtk_option_menu_set_menu(GTK_OPTION_MENU(SourceOptionMenu), menu14);
+
+  label184 = gtk_label_new(_("Inputs"));
+  gtk_widget_show(label184);
+  gtk_frame_set_label_widget(GTK_FRAME(InputFrame), label184);
+
+  // stream frame
+  StreamInfoFrame = gtk_frame_new(NULL);
+  gtk_widget_show(StreamInfoFrame);
+  gtk_box_pack_start(GTK_BOX(vbox1), StreamInfoFrame, FALSE, FALSE, 0);
+
+  hpaned1 = gtk_hpaned_new();
+  gtk_widget_show(hpaned1);
+  gtk_container_add(GTK_CONTAINER(StreamInfoFrame), hpaned1);
+  gtk_paned_set_position(GTK_PANED(hpaned1), 175);
+
+  StreamVbox = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(StreamVbox);
+  gtk_paned_pack1(GTK_PANED(hpaned1), StreamVbox, FALSE, TRUE);
+  gtk_container_set_border_width(GTK_CONTAINER(StreamVbox), 4);
+
+  stream_label = gtk_label_new(_("Streams"));
+  gtk_widget_show(stream_label);
+  gtk_box_pack_start(GTK_BOX(StreamVbox), stream_label, FALSE, FALSE, 0);
+
+  StreamScrolledWindow = gtk_scrolled_window_new(NULL, NULL);
+  gtk_widget_show(StreamScrolledWindow);
+  gtk_box_pack_start(GTK_BOX(StreamVbox), StreamScrolledWindow, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(StreamScrolledWindow), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(StreamScrolledWindow), GTK_SHADOW_ETCHED_IN);
+
+  // tree view
+  StreamTreeView = gtk_tree_view_new();
+  gtk_widget_show(StreamTreeView);
+  gtk_container_add(GTK_CONTAINER(StreamScrolledWindow), StreamTreeView);
+  gtk_tooltips_set_tip(tooltips, StreamTreeView, _("Select stream to view information"), NULL);
+  gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(StreamTreeView), FALSE);
+  gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(StreamTreeView), TRUE);
+
+  GtkCellRenderer *rend = gtk_cell_renderer_text_new();
+  GtkTreeViewColumn *column;
+  column = gtk_tree_view_column_new_with_attributes("Stream",
+						    rend,
+						    "text", 0, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(StreamTreeView), column);
+
+  hbuttonbox1 = gtk_hbutton_box_new();
+  gtk_widget_show(hbuttonbox1);
+  gtk_box_pack_start(GTK_BOX(StreamVbox), hbuttonbox1, FALSE, TRUE, 0);
+
+  AddStreamButton = gtk_button_new();
+  gtk_widget_show(AddStreamButton);
+  gtk_container_add(GTK_CONTAINER(hbuttonbox1), AddStreamButton);
+  GTK_WIDGET_SET_FLAGS(AddStreamButton, GTK_CAN_DEFAULT);
+  gtk_tooltips_set_tip(tooltips, AddStreamButton, _("Add Stream"), NULL);
+
+  image1 = gtk_image_new_from_stock("gtk-add", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show(image1);
+  gtk_container_add(GTK_CONTAINER(AddStreamButton), image1);
+
+  DeleteStreamButton = gtk_button_new();
+  gtk_widget_show(DeleteStreamButton);
+  gtk_container_add(GTK_CONTAINER(hbuttonbox1), DeleteStreamButton);
+  gtk_widget_set_size_request(DeleteStreamButton, 38, 38);
+  GTK_WIDGET_SET_FLAGS(DeleteStreamButton, GTK_CAN_DEFAULT);
+  gtk_tooltips_set_tip(tooltips, DeleteStreamButton, _("Delete Stream"), NULL);
+
+  image2 = gtk_image_new_from_stock("gtk-delete", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show(image2);
+  gtk_container_add(GTK_CONTAINER(DeleteStreamButton), image2);
+
+  StreamInfoVbox = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(StreamInfoVbox);
+  gtk_box_pack_start(GTK_BOX(StreamVbox), StreamInfoVbox, FALSE, TRUE, 10);
+
+  StreamVideoInfo = gtk_label_new(_("video"));
+  gtk_widget_show(StreamVideoInfo);
+  gtk_box_pack_start(GTK_BOX(StreamInfoVbox), StreamVideoInfo, FALSE, FALSE, 0);
+
+  StreamAudioInfo = gtk_label_new(_("audio"));
+  gtk_widget_show(StreamAudioInfo);
+  gtk_box_pack_start(GTK_BOX(StreamInfoVbox), StreamAudioInfo, FALSE, FALSE, 0);
+
+#ifdef HAVE_TEXT
+  StreamTextInfo = gtk_label_new("");
+  gtk_widget_show(StreamTextInfo);
+  gtk_box_pack_start(GTK_BOX(StreamInfoVbox), StreamTextInfo, FALSE, FALSE, 0);
+#endif
+
+  hbox34 = gtk_hbox_new(TRUE, 0);
+  gtk_widget_show(hbox34);
+  gtk_box_pack_start(GTK_BOX(StreamInfoVbox), hbox34, FALSE, FALSE, 0);
+
+  label47 = gtk_label_new(_("FPS:"));
+  gtk_widget_show(label47);
+  gtk_box_pack_start(GTK_BOX(hbox34), label47, FALSE, FALSE, 0);
+  gtk_label_set_justify(GTK_LABEL(label47), GTK_JUSTIFY_RIGHT);
+
+  StreamFps = gtk_label_new("");
+  gtk_widget_show(StreamFps);
+  gtk_box_pack_start(GTK_BOX(hbox34), StreamFps, FALSE, FALSE, 0);
+
+  hbox33 = gtk_hbox_new(TRUE, 0);
+  gtk_widget_show(hbox33);
+  gtk_box_pack_start(GTK_BOX(StreamInfoVbox), hbox33, FALSE, FALSE, 0);
+
+  label45 = gtk_label_new(_("Recording:"));
+  gtk_widget_show(label45);
+  gtk_box_pack_start(GTK_BOX(hbox33), label45, FALSE, FALSE, 0);
+  gtk_label_set_justify(GTK_LABEL(label45), GTK_JUSTIFY_RIGHT);
+
+  StreamRecording = gtk_label_new("");
+  gtk_widget_show(StreamRecording);
+  gtk_box_pack_start(GTK_BOX(hbox33), StreamRecording, FALSE, FALSE, 0);
+
+  InfoVbox = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(InfoVbox);
+  gtk_paned_pack2(GTK_PANED(hpaned1), InfoVbox, TRUE, TRUE);
+  gtk_container_set_border_width(GTK_CONTAINER(InfoVbox), 4);
+
+  StreamFrame = gtk_frame_new(NULL);
+  gtk_widget_show(StreamFrame);
+  gtk_box_pack_start(GTK_BOX(InfoVbox), StreamFrame, TRUE, TRUE, 1);
+
+  StreamFrameVbox = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(StreamFrameVbox);
+  gtk_container_add(GTK_CONTAINER(StreamFrame), StreamFrameVbox);
+  gtk_container_set_border_width(GTK_CONTAINER(StreamFrameVbox), 2);
+
+  StreamNameHbox = gtk_hbox_new(FALSE, 1);
+  gtk_widget_show(StreamNameHbox);
+  gtk_box_pack_start(GTK_BOX(StreamFrameVbox), StreamNameHbox, TRUE, TRUE, 1);
+
+  label3 = gtk_label_new(_("Stream:"));
+  gtk_widget_show(label3);
+  gtk_box_pack_start(GTK_BOX(StreamNameHbox), label3, FALSE, FALSE, 0);
+
+  StreamNameLabel = gtk_label_new(_("StreamName"));
+  gtk_widget_show(StreamNameLabel);
+  gtk_box_pack_start(GTK_BOX(StreamNameHbox), StreamNameLabel, FALSE, FALSE, 4);
+
+  StreamDescHbox = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(StreamDescHbox);
+  gtk_box_pack_start(GTK_BOX(StreamFrameVbox), StreamDescHbox, TRUE, FALSE, 0);
+
+  label31 = gtk_label_new(_("Description: "));
+  gtk_widget_show(label31);
+  gtk_box_pack_start(GTK_BOX(StreamDescHbox), label31, FALSE, FALSE, 0);
+
+  StreamDescription = gtk_entry_new();
+  gtk_widget_show(StreamDescription);
+  gtk_box_pack_start(GTK_BOX(StreamDescHbox), StreamDescription, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, StreamDescription, _("Description for SDP, recorded file"), NULL);
+
+  StreamTransmitHbox = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(StreamTransmitHbox);
+  gtk_box_pack_start(GTK_BOX(StreamFrameVbox), StreamTransmitHbox, TRUE, FALSE, 0);
+
+  StreamTransmit = gtk_check_button_new_with_mnemonic(_("Transmit"));
+  gtk_widget_show(StreamTransmit);
+  gtk_box_pack_start(GTK_BOX(StreamTransmitHbox), StreamTransmit, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, StreamTransmit, _("Transmit Stream"), NULL);
+
+  StreamSdpFile = gtk_hbox_new(FALSE, 6);
+  gtk_widget_show(StreamSdpFile);
+  gtk_box_pack_start(GTK_BOX(StreamTransmitHbox), StreamSdpFile, TRUE, TRUE, 20);
+
+  label30 = gtk_label_new(_("SDP File:"));
+  gtk_widget_show(label30);
+  gtk_box_pack_start(GTK_BOX(StreamSdpFile), label30, FALSE, FALSE, 0);
+
+  StreamSdpFileEntry = gtk_entry_new();
+  gtk_widget_show(StreamSdpFileEntry);
+  gtk_box_pack_start(GTK_BOX(StreamSdpFile), StreamSdpFileEntry, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, StreamSdpFileEntry, _("SDP File Name"), NULL);
+
+  SDPFileOpenButton = gtk_button_new();
+  gtk_widget_show(SDPFileOpenButton);
+  gtk_box_pack_start(GTK_BOX(StreamSdpFile), SDPFileOpenButton, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, SDPFileOpenButton, _("Select SDP File"), NULL);
+
+  alignment22 = gtk_alignment_new(0.5, 0.5, 0, 0);
+  gtk_widget_show(alignment22);
+  gtk_container_add(GTK_CONTAINER(SDPFileOpenButton), alignment22);
+
+  hbox81 = gtk_hbox_new(FALSE, 2);
+  gtk_widget_show(hbox81);
+  gtk_container_add(GTK_CONTAINER(alignment22), hbox81);
+
+  image22 = gtk_image_new_from_stock("gtk-open", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show(image22);
+  gtk_box_pack_start(GTK_BOX(hbox81), image22, FALSE, FALSE, 0);
+
+  label167 = gtk_label_new_with_mnemonic(_("Select"));
+  gtk_widget_show(label167);
+  gtk_box_pack_start(GTK_BOX(hbox81), label167, FALSE, FALSE, 0);
+
+  StreamRecordHbox = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(StreamRecordHbox);
+  gtk_box_pack_start(GTK_BOX(StreamFrameVbox), StreamRecordHbox, TRUE, FALSE, 0);
+
+  StreamRecord = gtk_check_button_new_with_mnemonic(_("Record as MP4"));
+  gtk_widget_show(StreamRecord);
+  gtk_box_pack_start(GTK_BOX(StreamRecordHbox), StreamRecord, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, StreamRecord, _("Enable Recording for Stream"), NULL);
+
+  RecordFileHbox = gtk_hbox_new(FALSE, 6);
+  gtk_widget_show(RecordFileHbox);
+  gtk_box_pack_start(GTK_BOX(StreamRecordHbox), RecordFileHbox, TRUE, TRUE, 20);
+
+  label4 = gtk_label_new(_("File:"));
+  gtk_widget_show(label4);
+  gtk_box_pack_start(GTK_BOX(RecordFileHbox), label4, FALSE, FALSE, 0);
+
+  StreamRecordFileEntry = gtk_entry_new();
+  gtk_widget_show(StreamRecordFileEntry);
+  gtk_box_pack_start(GTK_BOX(RecordFileHbox), StreamRecordFileEntry, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, StreamRecordFileEntry, _("File to record to"), NULL);
+
+  RecordFileOpenButton = gtk_button_new();
+  gtk_widget_show(RecordFileOpenButton);
+  gtk_box_pack_start(GTK_BOX(RecordFileHbox), RecordFileOpenButton, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, RecordFileOpenButton, _("Select Record File"), NULL);
+
+  alignment23 = gtk_alignment_new(0.5, 0.5, 0, 0);
+  gtk_widget_show(alignment23);
+  gtk_container_add(GTK_CONTAINER(RecordFileOpenButton), alignment23);
+
+  hbox82 = gtk_hbox_new(FALSE, 2);
+  gtk_widget_show(hbox82);
+  gtk_container_add(GTK_CONTAINER(alignment23), hbox82);
+
+  image23 = gtk_image_new_from_stock("gtk-open", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show(image23);
+  gtk_box_pack_start(GTK_BOX(hbox82), image23, FALSE, FALSE, 0);
+
+  label168 = gtk_label_new_with_mnemonic(_("Select"));
+  gtk_widget_show(label168);
+  gtk_box_pack_start(GTK_BOX(hbox82), label168, FALSE, FALSE, 0);
+
+  label2 = gtk_label_new(_("Stream Information"));
+  gtk_widget_show(label2);
+  gtk_frame_set_label_widget(GTK_FRAME(StreamFrame), label2);
+
+  VideoFrame = gtk_frame_new(NULL);
+  gtk_widget_show(VideoFrame);
+  gtk_box_pack_start(GTK_BOX(InfoVbox), VideoFrame, TRUE, TRUE, 0);
+
+  VideoFrameVbox = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(VideoFrameVbox);
+  gtk_container_add(GTK_CONTAINER(VideoFrame), VideoFrameVbox);
+  gtk_container_set_border_width(GTK_CONTAINER(VideoFrameVbox), 2);
+
+  VideoFrameHbox1 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(VideoFrameHbox1);
+  gtk_box_pack_start(GTK_BOX(VideoFrameVbox), VideoFrameHbox1, TRUE, FALSE, 0);
+
+  VideoEnabled = gtk_check_button_new_with_mnemonic(_("Enabled"));
+  gtk_widget_show(VideoEnabled);
+  gtk_box_pack_start(GTK_BOX(VideoFrameHbox1), VideoEnabled, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, VideoEnabled, _("Enable Video For Stream"), NULL);
+
+  hbox7 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox7);
+  gtk_box_pack_start(GTK_BOX(VideoFrameHbox1), hbox7, TRUE, TRUE, 31);
+
+  label6 = gtk_label_new(_("Profile:"));
+  gtk_widget_show(label6);
+  gtk_box_pack_start(GTK_BOX(hbox7), label6, FALSE, FALSE, 0);
+
+  VideoProfile = gtk_option_menu_new();
+  gtk_widget_show(VideoProfile);
+  gtk_box_pack_start(GTK_BOX(hbox7), VideoProfile, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, VideoProfile, _("Select/Add/Customize Video Profile"), NULL);
+
+  menu5 = gtk_menu_new();
+
+  gtk_option_menu_set_menu(GTK_OPTION_MENU(VideoProfile), menu5);
+
+  StreamVideoPreview = gtk_check_button_new_with_mnemonic(_("Preview"));
+  gtk_widget_show(StreamVideoPreview);
+  gtk_box_pack_start(GTK_BOX(VideoFrameHbox1), StreamVideoPreview, FALSE, FALSE, 19);
+  gtk_tooltips_set_tip(tooltips, StreamVideoPreview, _("Enable Encoded Preview Window"), NULL);
+
+  VideoTxTable = gtk_table_new(1, 3, FALSE);
+  gtk_widget_show(VideoTxTable);
+  gtk_box_pack_start(GTK_BOX(VideoFrameVbox), VideoTxTable, TRUE, TRUE, 0);
+
+  label124 = gtk_label_new(_("Transmit Address:"));
+  gtk_widget_show(label124);
+  gtk_table_attach(GTK_TABLE(VideoTxTable), label124, 0, 1, 0, 1,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label124), 0, 0.5);
+
+  VideoTxAddrLabel = gtk_label_new("");
+  gtk_widget_show(VideoTxAddrLabel);
+  gtk_table_attach(GTK_TABLE(VideoTxTable), VideoTxAddrLabel, 1, 2, 0, 1,
+                 (GtkAttachOptions)(GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(VideoTxAddrLabel), 0, 0.5);
+
+  VideoTxAddrButton = gtk_button_new_with_mnemonic(_("Set Address"));
+  gtk_widget_show(VideoTxAddrButton);
+  gtk_table_attach(GTK_TABLE(VideoTxTable), VideoTxAddrButton, 2, 3, 0, 1,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 11, 0);
+  gtk_tooltips_set_tip(tooltips, VideoTxAddrButton, _("Set Transmission Address"), NULL);
+
+  label5 = gtk_label_new(_("Video Stream"));
+  gtk_widget_show(label5);
+  gtk_frame_set_label_widget(GTK_FRAME(VideoFrame), label5);
+
+  AudioFrame = gtk_frame_new(NULL);
+  gtk_widget_show(AudioFrame);
+  gtk_box_pack_start(GTK_BOX(InfoVbox), AudioFrame, TRUE, TRUE, 0);
+
+  AudioFrameVbox = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(AudioFrameVbox);
+  gtk_container_add(GTK_CONTAINER(AudioFrame), AudioFrameVbox);
+  gtk_container_set_border_width(GTK_CONTAINER(AudioFrameVbox), 2);
+
+  AudioFrameLine1 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(AudioFrameLine1);
+  gtk_box_pack_start(GTK_BOX(AudioFrameVbox), AudioFrameLine1, TRUE, FALSE, 0);
+
+  AudioEnabled = gtk_check_button_new_with_mnemonic(_("Enabled"));
+  gtk_widget_show(AudioEnabled);
+  gtk_box_pack_start(GTK_BOX(AudioFrameLine1), AudioEnabled, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, AudioEnabled, _("Enable Audio For Stream"), NULL);
+
+  hbox15 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox15);
+  gtk_box_pack_start(GTK_BOX(AudioFrameLine1), hbox15, TRUE, TRUE, 31);
+
+  label12 = gtk_label_new(_("Profile:"));
+  gtk_widget_show(label12);
+  gtk_box_pack_start(GTK_BOX(hbox15), label12, FALSE, FALSE, 0);
+
+  AudioProfile = gtk_option_menu_new();
+  gtk_widget_show(AudioProfile);
+  gtk_box_pack_start(GTK_BOX(hbox15), AudioProfile, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, AudioProfile, _("Select/Add/Customize Audio Profile"), NULL);
+
+  menu6 = gtk_menu_new();
+
+  gtk_option_menu_set_menu(GTK_OPTION_MENU(AudioProfile), menu6);
+
+  AudioTxTable = gtk_table_new(1, 3, FALSE);
+  gtk_widget_show(AudioTxTable);
+  gtk_box_pack_start(GTK_BOX(AudioFrameVbox), AudioTxTable, TRUE, TRUE, 2);
+
+  label126 = gtk_label_new(_("Transmit Address:"));
+  gtk_widget_show(label126);
+  gtk_table_attach(GTK_TABLE(AudioTxTable), label126, 0, 1, 0, 1,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label126), 0, 0.5);
+
+  AudioTxAddrLabel = gtk_label_new("");
+  gtk_widget_show(AudioTxAddrLabel);
+  gtk_table_attach(GTK_TABLE(AudioTxTable), AudioTxAddrLabel, 1, 2, 0, 1,
+                 (GtkAttachOptions)(GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(AudioTxAddrLabel), 0, 0.5);
+
+  AudioTxAddrButton = gtk_button_new_with_mnemonic(_("Set Address"));
+  gtk_widget_show(AudioTxAddrButton);
+  gtk_table_attach(GTK_TABLE(AudioTxTable), AudioTxAddrButton, 2, 3, 0, 1,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 11, 0);
+  gtk_tooltips_set_tip(tooltips, AudioTxAddrButton, _("Set Transmission Address"), NULL);
+
+  label9 = gtk_label_new(_("Audio Stream"));
+  gtk_widget_show(label9);
+  gtk_frame_set_label_widget(GTK_FRAME(AudioFrame), label9);
+
+#ifdef HAVE_TEXT
+  TextFrame = gtk_frame_new(NULL);
+  gtk_widget_show(TextFrame);
+  gtk_box_pack_start(GTK_BOX(InfoVbox), TextFrame, TRUE, TRUE, 0);
+
+  TextFrameVbox = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(TextFrameVbox);
+  gtk_container_add(GTK_CONTAINER(TextFrame), TextFrameVbox);
+  gtk_container_set_border_width(GTK_CONTAINER(TextFrameVbox), 2);
+
+  TextFrameHbox1 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(TextFrameHbox1);
+  gtk_box_pack_start(GTK_BOX(TextFrameVbox), TextFrameHbox1, TRUE, FALSE, 0);
+
+  TextEnabled = gtk_check_button_new_with_mnemonic(_("Enabled"));
+  gtk_widget_show(TextEnabled);
+  gtk_box_pack_start(GTK_BOX(TextFrameHbox1), TextEnabled, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, TextEnabled, _("Enable Text for Stream"), NULL);
+
+  hbox17 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox17);
+  gtk_box_pack_start(GTK_BOX(TextFrameHbox1), hbox17, TRUE, TRUE, 31);
+
+  label13 = gtk_label_new(_("Profile:"));
+  gtk_widget_show(label13);
+  gtk_box_pack_start(GTK_BOX(hbox17), label13, FALSE, FALSE, 0);
+
+  TextProfile = gtk_option_menu_new();
+  gtk_widget_show(TextProfile);
+  gtk_box_pack_start(GTK_BOX(hbox17), TextProfile, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, TextProfile, _("Select/Add/Customize Text Profile"), NULL);
+
+  menu7 = gtk_menu_new();
+
+  gtk_option_menu_set_menu(GTK_OPTION_MENU(TextProfile), menu7);
+
+  TextTxTable = gtk_table_new(1, 3, FALSE);
+  gtk_widget_show(TextTxTable);
+  gtk_box_pack_start(GTK_BOX(TextFrameVbox), TextTxTable, TRUE, TRUE, 2);
+
+  label128 = gtk_label_new(_("Transmit Address:"));
+  gtk_widget_show(label128);
+  gtk_table_attach(GTK_TABLE(TextTxTable), label128, 0, 1, 0, 1,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label128), 0, 0.5);
+
+  TextTxAddrLabel = gtk_label_new("");
+  gtk_widget_show(TextTxAddrLabel);
+  gtk_table_attach(GTK_TABLE(TextTxTable), TextTxAddrLabel, 1, 2, 0, 1,
+                 (GtkAttachOptions)(GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(TextTxAddrLabel), 0, 0.5);
+
+  TextTxAddrButton = gtk_button_new_with_mnemonic(_("Set Address"));
+  gtk_widget_show(TextTxAddrButton);
+  gtk_table_attach(GTK_TABLE(TextTxTable), TextTxAddrButton, 2, 3, 0, 1,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 11, 0);
+  gtk_tooltips_set_tip(tooltips, TextTxAddrButton, _("Set Transmission Address"), NULL);
+
+  label16 = gtk_label_new(_("Text Stream"));
+  gtk_widget_show(label16);
+  gtk_frame_set_label_widget(GTK_FRAME(TextFrame), label16);
+
+  TextEntryFrame = gtk_frame_new(NULL);
+  gtk_widget_show(TextEntryFrame);
+  gtk_box_pack_start(GTK_BOX(InfoVbox), TextEntryFrame, TRUE, TRUE, 0);
+
+  TextEntryHbox = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(TextEntryHbox);
+  gtk_container_add(GTK_CONTAINER(TextEntryFrame), TextEntryHbox);
+
+  label51 = gtk_label_new(_("Text:"));
+  gtk_widget_show(label51);
+  gtk_box_pack_start(GTK_BOX(TextEntryHbox), label51, FALSE, FALSE, 0);
+
+  TextEntry = gtk_entry_new();
+  gtk_widget_show(TextEntry);
+  gtk_box_pack_start(GTK_BOX(TextEntryHbox), TextEntry, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, TextEntry, _("Enter Text to send"), NULL);
+  gtk_widget_set_sensitive(TextEntry, FALSE);
+
+  TextEntrySend = gtk_button_new_with_mnemonic(_("Send"));
+  gtk_widget_show(TextEntrySend);
+  gtk_box_pack_start(GTK_BOX(TextEntryHbox), TextEntrySend, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive(TextEntrySend, FALSE);
+  gtk_tooltips_set_tip(tooltips, TextEntrySend, _("Send Text"), NULL);
+
+  label52 = gtk_label_new(_("Text Transmission"));
+  gtk_widget_show(label52);
+  gtk_frame_set_label_widget(GTK_FRAME(TextEntryFrame), label52);
+#endif
+  label114 = gtk_label_new(_("Outputs"));
+  gtk_widget_show(label114);
+  gtk_frame_set_label_widget(GTK_FRAME(StreamInfoFrame), label114);
+
+  StatusFrame = gtk_frame_new(NULL);
+  gtk_widget_show(StatusFrame);
+  gtk_box_pack_start(GTK_BOX(vbox1), StatusFrame, TRUE, TRUE, 0);
+
+  StatusHbox = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(StatusHbox);
+  gtk_container_add(GTK_CONTAINER(StatusFrame), StatusHbox);
+
+  DurationHbox = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(DurationHbox);
+  gtk_box_pack_start(GTK_BOX(StatusHbox), DurationHbox, FALSE, TRUE, 0);
+
+  DurationLabel = gtk_label_new(_("Duration:"));
+  gtk_widget_show(DurationLabel);
+  gtk_box_pack_start(GTK_BOX(DurationHbox), DurationLabel, FALSE, FALSE, 0);
+
+  Duration_adj = 
+    gtk_adjustment_new(MyConfig->GetIntegerValue(CONFIG_APP_DURATION), 
+		       1, 1e+11, 1, 10, 10);
+  Duration = gtk_spin_button_new(GTK_ADJUSTMENT(Duration_adj), 1, 0);
+  gtk_widget_show(Duration);
+  gtk_box_pack_start(GTK_BOX(DurationHbox), Duration, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, Duration, _("Enter Duration of Session"), NULL);
+  gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(Duration), TRUE);
+
+  vbox37 = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(vbox37);
+  gtk_box_pack_start(GTK_BOX(DurationHbox), vbox37, FALSE, FALSE, 2);
+
+  DurationType = gtk_option_menu_new();
+  gtk_widget_show(DurationType);
+  gtk_box_pack_start(GTK_BOX(vbox37), DurationType, TRUE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, DurationType, _("Select Duration Units"), NULL);
+
+  DurationMenu = gtk_menu_new();
+
+  menuitem23 = gtk_menu_item_new_with_mnemonic(_("Seconds"));
+  gtk_widget_show(menuitem23);
+  gtk_container_add(GTK_CONTAINER(DurationMenu), menuitem23);
+
+  menuitem24 = gtk_menu_item_new_with_mnemonic(_("Minutes"));
+  gtk_widget_show(menuitem24);
+  gtk_container_add(GTK_CONTAINER(DurationMenu), menuitem24);
+
+  menuitem25 = gtk_menu_item_new_with_mnemonic(_("Hours"));
+  gtk_widget_show(menuitem25);
+  gtk_container_add(GTK_CONTAINER(DurationMenu), menuitem25);
+
+  menuitem26 = gtk_menu_item_new_with_mnemonic(_("Days"));
+  gtk_widget_show(menuitem26);
+  gtk_container_add(GTK_CONTAINER(DurationMenu), menuitem26);
+
+  menuitem27 = gtk_menu_item_new_with_mnemonic(_("Years"));
+  gtk_widget_show(menuitem27);
+  gtk_container_add(GTK_CONTAINER(DurationMenu), menuitem27);
+
+  gtk_option_menu_set_menu(GTK_OPTION_MENU(DurationType), DurationMenu);
+  uint32_t dur = MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS);
+  for(ix = 0; ix < NUM_ELEMENTS_IN_ARRAY(durationUnitsValues); ix++) {
+    if(dur == durationUnitsValues[ix]) {
+      gtk_option_menu_set_history(GTK_OPTION_MENU(DurationType), 
+				  ix);
+    }
+  }
+
+  vseparator1 = gtk_vseparator_new();
+  gtk_widget_show(vseparator1);
+  gtk_box_pack_start(GTK_BOX(StatusHbox), vseparator1, FALSE, FALSE, 0);
+
+  TimeTable = gtk_table_new(4, 3, FALSE);
+  gtk_widget_show(TimeTable);
+  gtk_box_pack_start(GTK_BOX(StatusHbox), TimeTable, TRUE, TRUE, 0);
+
+  label116 = gtk_label_new(_("Start Time"));
+  gtk_widget_show(label116);
+  gtk_table_attach(GTK_TABLE(TimeTable), label116, 0, 1, 0, 1,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label116), 0, 0.5);
+
+  label117 = gtk_label_new(_("Current Duration:"));
+  gtk_widget_show(label117);
+  gtk_table_attach(GTK_TABLE(TimeTable), label117, 0, 1, 1, 2,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label117), 0, 0.5);
+
+  label118 = gtk_label_new(_("Current Time:"));
+  gtk_widget_show(label118);
+  gtk_table_attach(GTK_TABLE(TimeTable), label118, 0, 1, 2, 3,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label118), 0, 0.5);
+
+  label119 = gtk_label_new(_("End Time:"));
+  gtk_widget_show(label119);
+  gtk_table_attach(GTK_TABLE(TimeTable), label119, 0, 1, 3, 4,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label119), 0, 0.5);
+
+  CurrentDurationLabel = gtk_label_new("");
+  gtk_widget_show(CurrentDurationLabel);
+  gtk_table_attach(GTK_TABLE(TimeTable), CurrentDurationLabel, 1, 2, 1, 2,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_label_set_justify(GTK_LABEL(CurrentDurationLabel), GTK_JUSTIFY_RIGHT);
+
+  CurrentTimeLabel = gtk_label_new("");
+  gtk_widget_show(CurrentTimeLabel);
+  gtk_table_attach(GTK_TABLE(TimeTable), CurrentTimeLabel, 1, 2, 2, 3,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_label_set_justify(GTK_LABEL(CurrentTimeLabel), GTK_JUSTIFY_RIGHT);
+
+  EndTimeLabel = gtk_label_new("");
+  gtk_widget_show(EndTimeLabel);
+  gtk_table_attach(GTK_TABLE(TimeTable), EndTimeLabel, 1, 2, 3, 4,
+                 (GtkAttachOptions)(GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_label_set_justify(GTK_LABEL(EndTimeLabel), GTK_JUSTIFY_RIGHT);
+
+  StartTimeSuffix = gtk_label_new(_(""));
+  gtk_widget_show(StartTimeSuffix);
+  gtk_table_attach(GTK_TABLE(TimeTable), StartTimeSuffix, 2, 3, 0, 1,
+		 (GtkAttachOptions)(0),
+		 (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(StartTimeSuffix), 0, 0.5);
+
+  StartTimeLabel = gtk_label_new("");
+  gtk_widget_show(StartTimeLabel);
+  gtk_table_attach(GTK_TABLE(TimeTable), StartTimeLabel, 1, 2, 0, 1,
+                 (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                 (GtkAttachOptions)(0), 0, 0);
+  gtk_label_set_justify(GTK_LABEL(StartTimeLabel), GTK_JUSTIFY_RIGHT);
+
+  label183 = gtk_label_new("");
+  gtk_widget_show(label183);
+  gtk_table_attach(GTK_TABLE(TimeTable), label183, 2, 3, 1, 2,
+                  (GtkAttachOptions)(GTK_FILL),
+                  (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label183), 0, 0.5);
+
+  CurrentTimeSuffix = gtk_label_new("");
+  gtk_widget_show(CurrentTimeSuffix);
+  gtk_table_attach(GTK_TABLE(TimeTable), CurrentTimeSuffix, 2, 3, 2, 3,
+                  (GtkAttachOptions)(GTK_FILL),
+                  (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(CurrentTimeSuffix), 0, 0.5);
+
+  EndTimeSuffix = gtk_label_new("");
+  gtk_widget_show(EndTimeSuffix);
+  gtk_table_attach(GTK_TABLE(TimeTable), EndTimeSuffix, 2, 3, 3, 4,
+                  (GtkAttachOptions)(GTK_FILL),
+                  (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(EndTimeSuffix), 0, 0.5);
+
+
+  vseparator2 = gtk_vseparator_new();
+  gtk_widget_show(vseparator2);
+  gtk_box_pack_start(GTK_BOX(StatusHbox), vseparator2, FALSE, TRUE, 0);
+
+  vbox34 = gtk_vbox_new(FALSE, 0);
+  gtk_widget_show(vbox34);
+  gtk_box_pack_start(GTK_BOX(StatusHbox), vbox34, TRUE, TRUE, 0);
+
+  StartButton = gtk_toggle_button_new_with_mnemonic(_("Start"));
+  gtk_widget_show(StartButton);
+  gtk_box_pack_start(GTK_BOX(vbox34), StartButton, TRUE, FALSE, 0);
+  gtk_container_set_border_width(GTK_CONTAINER(StartButton), 3);
+  gtk_tooltips_set_tip(tooltips, StartButton, _("Start all Streams"), NULL);
+
+  label164 = gtk_label_new(_("Status"));
+  gtk_widget_show(label164);
+  gtk_frame_set_label_widget(GTK_FRAME(StatusFrame), label164);
+
+  statusbar1 = gtk_statusbar_new();
+  gtk_widget_show(statusbar1);
+  gtk_box_pack_start(GTK_BOX(vbox1), statusbar1, FALSE, FALSE, 0);
+
+  g_signal_connect((gpointer) MainWindow, "delete_event",
+                    G_CALLBACK(delete_event),
+                    NULL);
+  g_signal_connect((gpointer) new1, "activate",
+                    G_CALLBACK(on_new1_activate),
+                    NULL);
+  g_signal_connect((gpointer) open1, "activate",
+                    G_CALLBACK(on_open1_activate),
+                    NULL);
+  g_signal_connect((gpointer) save1, "activate",
+                    G_CALLBACK(on_save1_activate),
+                    NULL);
+  g_signal_connect((gpointer) quit1, "activate",
+                    G_CALLBACK(delete_event),
+                    NULL);
+  g_signal_connect((gpointer) generate_addresses, "activate",
+                    G_CALLBACK(on_generate_addresses_activate),
+                    NULL);
+  g_signal_connect((gpointer) preferences1, "activate",
+                    G_CALLBACK(on_preferences1_activate),
+                    NULL);
+  g_signal_connect((gpointer) about1, "activate",
+                    G_CALLBACK(on_about1_activate),
+                    NULL);
+  g_signal_connect((gpointer) VideoSourcePreview, "toggled",
+                    G_CALLBACK(on_VideoPreview),
+                    GINT_TO_POINTER(0));
+
+  g_signal_connect((gpointer) VideoSourceMenu, "activate",
+                    G_CALLBACK(on_VideoSourceMenu_activate),
+                    NULL);
+  g_signal_connect((gpointer) Audio_SourceMenu, "activate",
+                    G_CALLBACK(on_Audio_SourceMenu_activate),
+                    NULL);
+#ifdef HAVE_TEXT
+  g_signal_connect((gpointer) TextSourceMenu, "activate",
+                    G_CALLBACK(on_TextSourceMenu_activate),
+                    NULL);
+#endif
+
+  g_signal_connect((gpointer) AddStreamButton, "clicked",
+                    G_CALLBACK(on_AddStreamButton_clicked),
+                    NULL);
+  g_signal_connect((gpointer) DeleteStreamButton, "clicked",
+                    G_CALLBACK(on_DeleteStreamButton_clicked),
+                    NULL);
+  g_signal_connect((gpointer) StreamTransmit, "toggled",
+                    G_CALLBACK(on_StreamTransmit_toggled),
+                    NULL);
+  g_signal_connect((gpointer) StreamRecord, "toggled",
+                    G_CALLBACK(on_StreamRecord_toggled),
+                    NULL);
+  g_signal_connect((gpointer) RecordFileOpenButton, "clicked",
+                    G_CALLBACK(on_FileOpenButton_clicked),
+                    GINT_TO_POINTER(0));
+  g_signal_connect((gpointer) SDPFileOpenButton, "clicked",
+                    G_CALLBACK(on_FileOpenButton_clicked),
+                    GINT_TO_POINTER(1));
+  g_signal_connect((gpointer) VideoEnabled, "toggled",
+                    G_CALLBACK(on_VideoEnabled_toggled),
+                    NULL);
+  g_signal_connect((gpointer) VideoProfile, "changed",
+                    G_CALLBACK(on_VideoProfile_changed),
+                    NULL);
+  g_signal_connect((gpointer) StreamVideoPreview, "toggled",
+                            G_CALLBACK(on_VideoPreview),
+                            GINT_TO_POINTER(1));
+  g_signal_connect((gpointer) VideoTxAddrButton, "clicked",
+                    G_CALLBACK(on_VideoTxAddrButton_clicked),
+                    NULL);
+  g_signal_connect((gpointer) AudioEnabled, "toggled",
+                    G_CALLBACK(on_AudioEnabled_toggled),
+                    NULL);
+  g_signal_connect((gpointer) AudioProfile, "changed",
+                    G_CALLBACK(on_AudioProfile_changed),
+                    NULL);
+  g_signal_connect((gpointer) AudioTxAddrButton, "clicked",
+                    G_CALLBACK(on_AudioTxAddrButton_clicked),
+                    NULL);
+#ifdef HAVE_TEXT
+  g_signal_connect((gpointer) TextEnabled, "toggled",
+                    G_CALLBACK(on_TextEnabled_toggled),
+                    NULL);
+  g_signal_connect((gpointer) TextProfile, "changed",
+                    G_CALLBACK(on_TextProfile_changed),
+                    NULL);
+  g_signal_connect((gpointer) TextTxAddrButton, "clicked",
+                    G_CALLBACK(on_TextTxAddrButton_clicked),
+                    NULL);
+  g_signal_connect((gpointer) TextEntrySend, "clicked",
+                    G_CALLBACK(on_TextEntrySend_clicked),
+                    NULL);
+#endif
+  g_signal_connect((gpointer)DurationType, "changed", 
+		   G_CALLBACK(on_durationtype_activate), NULL);
+  g_signal_connect((gpointer) StartButton, "toggled",
+                    G_CALLBACK(on_StartButton_toggled),
+                    NULL);
+
+  GtkTreeSelection *select;
+  select = gtk_tree_view_get_selection(GTK_TREE_VIEW(StreamTreeView));
+  gtk_tree_selection_set_mode(select, GTK_SELECTION_SINGLE);
+  g_signal_connect(G_OBJECT(select), "changed",
+		   G_CALLBACK(on_StreamTree_select), NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF(MainWindow, MainWindow, "MainWindow");
+  GLADE_HOOKUP_OBJECT(MainWindow, vbox1, "vbox1");
+  GLADE_HOOKUP_OBJECT(MainWindow, menubar1, "menubar1");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem1, "menuitem1");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem1_menu, "menuitem1_menu");
+  GLADE_HOOKUP_OBJECT(MainWindow, new1, "new1");
+  GLADE_HOOKUP_OBJECT(MainWindow, open1, "open1");
+  GLADE_HOOKUP_OBJECT(MainWindow, save1, "save1");
+  GLADE_HOOKUP_OBJECT(MainWindow, separatormenuitem1, "separatormenuitem1");
+  GLADE_HOOKUP_OBJECT(MainWindow, quit1, "quit1");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem2, "menuitem2");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem2_menu, "menuitem2_menu");
+  GLADE_HOOKUP_OBJECT(MainWindow, generate_addresses, "generate_addresses");
+  GLADE_HOOKUP_OBJECT(MainWindow, separator1, "separator1");
+  GLADE_HOOKUP_OBJECT(MainWindow, preferences1, "preferences1");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem4, "menuitem4");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem4_menu, "menuitem4_menu");
+  GLADE_HOOKUP_OBJECT(MainWindow, about1, "about1");
+
+  GLADE_HOOKUP_OBJECT(MainWindow, InputFrame, "InputFrame");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox97, "hbox97");
+  GLADE_HOOKUP_OBJECT(MainWindow, vbox41, "vbox41");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox100, "hbox100");
+  GLADE_HOOKUP_OBJECT(MainWindow, label189, "label189");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoSourceLabel, "VideoSourceLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox101, "hbox101");
+  GLADE_HOOKUP_OBJECT(MainWindow, label190, "label190");
+  GLADE_HOOKUP_OBJECT(MainWindow, AudioSourceLabel, "AudioSourceLabel");
+#ifdef HAVE_TEXT
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox102, "hbox102");
+  GLADE_HOOKUP_OBJECT(MainWindow, label192, "label192");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextSourceLabel, "TextSourceLabel");
+#endif
+  GLADE_HOOKUP_OBJECT(MainWindow, vbox40, "vbox40");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox99, "hbox99");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoSourcePreview, "VideoSourcePreview");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox98, "hbox98");
+  GLADE_HOOKUP_OBJECT(MainWindow, SourceOptionMenu, "SourceOptionMenu");
+  GLADE_HOOKUP_OBJECT(MainWindow, menu14, "menu14");
+  GLADE_HOOKUP_OBJECT(MainWindow, Change, "Change");
+  GLADE_HOOKUP_OBJECT(MainWindow, separator2, "separator2");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoSourceMenu, "VideoSourceMenu");
+  GLADE_HOOKUP_OBJECT(MainWindow, image27, "image27");
+  GLADE_HOOKUP_OBJECT(MainWindow, Audio_SourceMenu, "Audio_SourceMenu");
+  GLADE_HOOKUP_OBJECT(MainWindow, image28, "image28");
+#ifdef HAVE_TEXT
+  GLADE_HOOKUP_OBJECT(MainWindow, TextSourceMenu, "TextSourceMenu");
+  GLADE_HOOKUP_OBJECT(MainWindow, image29, "image29");
+#endif
+
+  GLADE_HOOKUP_OBJECT(MainWindow, label184, "label184");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamInfoFrame, "StreamInfoFrame");
+  GLADE_HOOKUP_OBJECT(MainWindow, hpaned1, "hpaned1");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamVbox, "StreamVbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, stream_label, "stream_label");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamScrolledWindow, "StreamScrolledWindow");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamTreeView, "StreamTreeView");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbuttonbox1, "hbuttonbox1");
+  GLADE_HOOKUP_OBJECT(MainWindow, AddStreamButton, "AddStreamButton");
+  GLADE_HOOKUP_OBJECT(MainWindow, image1, "image1");
+  GLADE_HOOKUP_OBJECT(MainWindow, DeleteStreamButton, "DeleteStreamButton");
+  GLADE_HOOKUP_OBJECT(MainWindow, image2, "image2");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamInfoVbox, "StreamInfoVbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamVideoInfo, "StreamVideoInfo");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamAudioInfo, "StreamAudioInfo");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox34, "hbox34");
+  GLADE_HOOKUP_OBJECT(MainWindow, label47, "label47");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamFps, "StreamFps");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox33, "hbox33");
+  GLADE_HOOKUP_OBJECT(MainWindow, label45, "label45");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamRecording, "StreamRecording");
+  GLADE_HOOKUP_OBJECT(MainWindow, InfoVbox, "InfoVbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamFrame, "StreamFrame");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamFrameVbox, "StreamFrameVbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamNameHbox, "StreamNameHbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, label3, "label3");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamNameLabel, "StreamNameLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamDescHbox, "StreamDescHbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, label31, "label31");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamDescription, "StreamDescription");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamTransmitHbox, "StreamTransmitHbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamTransmit, "StreamTransmit");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamSdpFile, "StreamSdpFile");
+  GLADE_HOOKUP_OBJECT(MainWindow, label30, "label30");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamSdpFileEntry, "StreamSdpFileEntry");
+  GLADE_HOOKUP_OBJECT(MainWindow, SDPFileOpenButton, "SDPFileOpenButton");
+  GLADE_HOOKUP_OBJECT(MainWindow, alignment22, "alignment22");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox81, "hbox81");
+  GLADE_HOOKUP_OBJECT(MainWindow, image22, "image22");
+  GLADE_HOOKUP_OBJECT(MainWindow, label167, "label167");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamRecordHbox, "StreamRecordHbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamRecord, "StreamRecord");
+  GLADE_HOOKUP_OBJECT(MainWindow, RecordFileHbox, "RecordFileHbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, label4, "label4");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamRecordFileEntry, "StreamRecordFileEntry");
+  GLADE_HOOKUP_OBJECT(MainWindow, RecordFileOpenButton, "RecordFileOpenButton");
+  GLADE_HOOKUP_OBJECT(MainWindow, alignment23, "alignment23");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox82, "hbox82");
+  GLADE_HOOKUP_OBJECT(MainWindow, image23, "image23");
+  GLADE_HOOKUP_OBJECT(MainWindow, label168, "label168");
+  GLADE_HOOKUP_OBJECT(MainWindow, label2, "label2");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoFrame, "VideoFrame");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoFrameVbox, "VideoFrameVbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoFrameHbox1, "VideoFrameHbox1");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoEnabled, "VideoEnabled");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox7, "hbox7");
+  GLADE_HOOKUP_OBJECT(MainWindow, label6, "label6");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoProfile, "VideoProfile");
+  GLADE_HOOKUP_OBJECT(MainWindow, menu5, "menu5");
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamVideoPreview, "StreamVideoPreview");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoTxTable, "VideoTxTable");
+  GLADE_HOOKUP_OBJECT(MainWindow, label124, "label124");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoTxAddrLabel, "VideoTxAddrLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, VideoTxAddrButton, "VideoTxAddrButton");
+  GLADE_HOOKUP_OBJECT(MainWindow, label5, "label5");
+  GLADE_HOOKUP_OBJECT(MainWindow, AudioFrame, "AudioFrame");
+  GLADE_HOOKUP_OBJECT(MainWindow, AudioFrameVbox, "AudioFrameVbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, AudioFrameLine1, "AudioFrameLine1");
+  GLADE_HOOKUP_OBJECT(MainWindow, AudioEnabled, "AudioEnabled");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox15, "hbox15");
+  GLADE_HOOKUP_OBJECT(MainWindow, label12, "label12");
+  GLADE_HOOKUP_OBJECT(MainWindow, AudioProfile, "AudioProfile");
+  GLADE_HOOKUP_OBJECT(MainWindow, menu6, "menu6");
+  GLADE_HOOKUP_OBJECT(MainWindow, AudioTxTable, "AudioTxTable");
+  GLADE_HOOKUP_OBJECT(MainWindow, label126, "label126");
+  GLADE_HOOKUP_OBJECT(MainWindow, AudioTxAddrLabel, "AudioTxAddrLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, AudioTxAddrButton, "AudioTxAddrButton");
+  GLADE_HOOKUP_OBJECT(MainWindow, label9, "label9");
+#ifdef HAVE_TEXT
+  GLADE_HOOKUP_OBJECT(MainWindow, StreamTextInfo, "StreamTextInfo");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextSourceLabel, "TextSourceLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextFrame, "TextFrame");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextFrameVbox, "TextFrameVbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextFrameHbox1, "TextFrameHbox1");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextEnabled, "TextEnabled");
+  GLADE_HOOKUP_OBJECT(MainWindow, hbox17, "hbox17");
+  GLADE_HOOKUP_OBJECT(MainWindow, label13, "label13");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextProfile, "TextProfile");
+  GLADE_HOOKUP_OBJECT(MainWindow, menu7, "menu7");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextTxTable, "TextTxTable");
+  GLADE_HOOKUP_OBJECT(MainWindow, label128, "label128");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextTxAddrLabel, "TextTxAddrLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextTxAddrButton, "TextTxAddrButton");
+  GLADE_HOOKUP_OBJECT(MainWindow, label16, "label16");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextEntryFrame, "TextEntryFrame");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextEntryHbox, "TextEntryHbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, label51, "label51");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextEntry, "TextEntry");
+  GLADE_HOOKUP_OBJECT(MainWindow, TextEntrySend, "TextEntrySend");
+  GLADE_HOOKUP_OBJECT(MainWindow, label52, "label52");
+#endif
+  GLADE_HOOKUP_OBJECT(MainWindow, label114, "label114");
+  GLADE_HOOKUP_OBJECT(MainWindow, StatusFrame, "StatusFrame");
+  GLADE_HOOKUP_OBJECT(MainWindow, StatusHbox, "StatusHbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, DurationHbox, "DurationHbox");
+  GLADE_HOOKUP_OBJECT(MainWindow, DurationLabel, "DurationLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, Duration, "Duration");
+  GLADE_HOOKUP_OBJECT(MainWindow, vbox37, "vbox37");
+  GLADE_HOOKUP_OBJECT(MainWindow, DurationType, "DurationType");
+  GLADE_HOOKUP_OBJECT(MainWindow, DurationMenu, "DurationMenu");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem23, "menuitem23");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem24, "menuitem24");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem25, "menuitem25");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem26, "menuitem26");
+  GLADE_HOOKUP_OBJECT(MainWindow, menuitem27, "menuitem27");
+  GLADE_HOOKUP_OBJECT(MainWindow, vseparator1, "vseparator1");
+  GLADE_HOOKUP_OBJECT(MainWindow, TimeTable, "TimeTable");
+  GLADE_HOOKUP_OBJECT(MainWindow, label116, "label116");
+  GLADE_HOOKUP_OBJECT(MainWindow, label117, "label117");
+  GLADE_HOOKUP_OBJECT(MainWindow, label118, "label118");
+  GLADE_HOOKUP_OBJECT(MainWindow, label119, "label119");
+  GLADE_HOOKUP_OBJECT(MainWindow, CurrentDurationLabel, "CurrentDurationLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, CurrentTimeLabel, "CurrentTimeLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, EndTimeLabel, "EndTimeLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, StartTimeSuffix, "StartTimeSuffix");
+  GLADE_HOOKUP_OBJECT(MainWindow, StartTimeLabel, "StartTimeLabel");
+  GLADE_HOOKUP_OBJECT(MainWindow, label183, "label183");
+  GLADE_HOOKUP_OBJECT(MainWindow, CurrentTimeSuffix, "CurrentTimeSuffix");
+  GLADE_HOOKUP_OBJECT(MainWindow, EndTimeSuffix, "EndTimeSuffix");
+  GLADE_HOOKUP_OBJECT(MainWindow, vseparator2, "vseparator2");
+  GLADE_HOOKUP_OBJECT(MainWindow, vbox34, "vbox34");
+  GLADE_HOOKUP_OBJECT(MainWindow, StartButton, "StartButton");
+  GLADE_HOOKUP_OBJECT(MainWindow, label164, "label164");
+  GLADE_HOOKUP_OBJECT(MainWindow, statusbar1, "statusbar1");
+  GLADE_HOOKUP_OBJECT_NO_REF(MainWindow, tooltips, "tooltips");
+
+  gtk_widget_grab_focus(StartButton);
+  gtk_window_add_accel_group(GTK_WINDOW(MainWindow), accel_group);
+
+  return MainWindow;
+}
+
+
 int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 {
-	MyConfig = pConfig;
+  MyConfig = pConfig;
 
-	dialog_mutex = SDL_CreateMutex();
-	AVFlow = new CPreviewAVMediaFlow(pConfig);
+  AVFlow = new CPreviewAVMediaFlow(pConfig);
 
 #if 0
-	argv = (char **)malloc(3 * sizeof(char *));
-	argv[0] = "mp4live";
-	argv[1] ="--sync";
-	argv[2] = NULL;
-	argc = 2;
+  argv =(char **)malloc(3 * sizeof(char *));
+  argv[0] = "mp4live";
+  argv[1] ="--sync";
+  argv[2] = NULL;
+  argc = 2;
 #endif
-	gtk_init(&argc, &argv);
+#ifdef ENABLE_NLS
+  bindtextdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+  bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
+  textdomain(GETTEXT_PACKAGE);
+#endif
 
-	// Setup main window
-	main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_policy(GTK_WINDOW(main_window), FALSE, FALSE, TRUE);
+  gtk_set_locale();
+  gtk_init(&argc, &argv);
 
-	char buffer[80];
-	snprintf(buffer, sizeof(buffer), "cisco %s %s %s", argv[0], MPEG4IP_VERSION,
+  //  add_pixmap_directory(PACKAGE_DATA_DIR "/" PACKAGE "/pixmaps");
+
+  MainWindow = create_MainWindow();
+
+  char buffer[80];
+  snprintf(buffer, sizeof(buffer), "cisco %s %s %s", argv[0], MPEG4IP_VERSION,
 #ifdef HAVE_LINUX_VIDEODEV2_H
-		 "V4L2"
+	   "V4L2"
 #else
-		 "V4L"
+	   "V4L"
 #endif
-		 );
-	gtk_window_set_title(GTK_WINDOW(main_window), buffer);
-	gtk_signal_connect(GTK_OBJECT(main_window),
-		"delete_event",
-		GTK_SIGNAL_FUNC(delete_event),
-		NULL);
+	   );
+  gtk_window_set_title(GTK_WINDOW(MainWindow), buffer);
+  gtk_widget_show(MainWindow);
 
-	// main boxes
-	main_hbox = gtk_hbox_new(FALSE, 1);
-	gtk_container_set_border_width(GTK_CONTAINER(main_hbox), 4);
-	gtk_widget_show(main_hbox);
-	gtk_container_add(GTK_CONTAINER(main_window), main_hbox);
+  // main window created - fill in the settings
+  fill_in_sources();
+  LoadAudioProfiles();
+  LoadVideoProfiles();
+  load_streams();
+  OnSelectStream(NULL);
+  // "press" start button
+  if (MyConfig->m_appAutomatic) {
+    DoStart();
+  }
 
-	main_vbox1 = gtk_vbox_new(FALSE, 1);
-	gtk_container_set_border_width(GTK_CONTAINER(main_vbox1), 4);
-	gtk_widget_show(main_vbox1);
-	gtk_box_pack_start(GTK_BOX(main_hbox), main_vbox1, FALSE, FALSE, 5);
+  AVFlow->StartVideoPreview();
 
-	main_vbox2 = gtk_vbox_new(FALSE, 1);
-	gtk_container_set_border_width(GTK_CONTAINER(main_vbox2), 4);
-	gtk_widget_show(main_vbox2);
-	gtk_box_pack_start(GTK_BOX(main_hbox), main_vbox2, FALSE, FALSE, 5);
-
-	// Video Preview
-	NewVideoWindow();
-	
-	// Video Frame
-	LayoutVideoFrame(main_vbox2);
-
-	// Audio Frame
-	LayoutAudioFrame(main_vbox2);
-
-	// Recording Frame
-	LayoutRecordingFrame(main_vbox2);
-
-	// Transmission Frame
-	LayoutTransmitFrame(main_vbox2);
-
-	// Status frame
-	LayoutStatusFrame(main_vbox1);
-
-	// Control frame
-	LayoutControlFrame(main_vbox1);
-
-	DisplayAllSettings();
-
-	gtk_widget_show(main_window);
-
-	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		AVFlow->StartVideoPreview();
-	}
-
-	// "press" start button
-	if (MyConfig->m_appAutomatic) {
-		on_start_button(start_button, NULL);
-	}
-
-	gtk_main();
-	return 0;
+  gtk_main();
+  return 0;
 }
 
 /* end gui_main.cpp */

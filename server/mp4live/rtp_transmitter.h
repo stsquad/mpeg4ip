@@ -26,8 +26,7 @@
 
 #include <rtp/rtp.h>
 #include "media_sink.h"
-#include "audio_encoder.h"
-#include "video_encoder.h"
+
 
 // *****************************************************************************
 // Flags set by audio_queue_frame()
@@ -51,8 +50,7 @@
 class CRtpDestination
 {
  public:
-  CRtpDestination(uint32_t refNum,
-		  const char *destAddr, 
+  CRtpDestination(const char *destAddr, 
 		  in_port_t destPort,
 		  in_port_t srcPort,
 		  uint8_t payloadNumber,
@@ -68,9 +66,28 @@ class CRtpDestination
 	       int mbit);
   CRtpDestination *get_next(void) { return m_next;};
   void set_next (CRtpDestination *p) { m_next = p; };
-  uint32_t get_ref_num (void) { return m_refNum; } ;
+  void add_reference (void) {
+    SDL_LockMutex(m_ref_mutex);
+    m_reference++;
+    SDL_UnlockMutex(m_ref_mutex);
+  };
+  bool remove_reference (void) {
+    bool ret;
+    SDL_LockMutex(m_ref_mutex);
+    if (m_reference > 0) 
+      m_reference--;
+    ret = m_reference == 0;
+    SDL_UnlockMutex(m_ref_mutex);
+    return ret;
+  };
+  bool Matches (const char *dest_addr, 
+		in_port_t destPort) {
+    if (destPort != m_destPort) return false;
+    return strcasecmp(dest_addr, m_destAddr) == 0;
+  };
+  in_port_t get_source_port (void) { return m_srcPort; };
  protected:
-  uint32_t m_refNum;
+  SDL_mutex *m_ref_mutex;
   CRtpDestination *m_next;
   const char *m_destAddr;
   in_port_t m_destPort;
@@ -80,13 +97,38 @@ class CRtpDestination
   int m_mcast_ttl;
   float m_rtcp_bandwidth;
   struct rtp *m_rtpSession;
+  uint32_t m_reference;
 };
 
+typedef void (*video_rtp_transmitter_f)(CMediaFrame *pak, CRtpDestination *list,
+					uint32_t rtpTimestamp, uint16_t mtu);
+
+typedef int (*audio_queue_frame_f)(u_int32_t **frameno,
+					u_int32_t frameLength,
+					u_int8_t audioQueueCount,
+					u_int16_t audioQueueSize,
+					u_int32_t rtp_payload_size);
+typedef int (*audio_set_rtp_payload_f)(CMediaFrame** m_audioQueue,
+					int queue_cnt,
+					struct iovec *iov,
+					void *ud);
+
+typedef bool (*audio_set_rtp_header_f)(struct iovec *iov,
+				       int queue_cnt,
+				       void *ud);
+
+typedef bool (*audio_set_rtp_jumbo_frame_f)(struct iovec *iov,
+					    uint32_t dataOffset,
+					    uint32_t bufferLen,
+					    uint32_t rtpPayloadMax,
+					    bool &mbit,
+					    void *ud);
 #define DEFAULT_RTCP_BW (100.0)
 class CRtpTransmitter : public CMediaSink {
 public:
-        CRtpTransmitter(CLiveConfig *pConfig);
-	~CRtpTransmitter();
+  CRtpTransmitter(uint16_t mtu, 
+		  bool disable_ts_offset = false);
+	virtual ~CRtpTransmitter();
 	static void SeedRandom(void) {
 		static bool once = false;
 		if (!once) {
@@ -131,64 +173,51 @@ public:
 		return (u_int16_t)(20000 + ((random() >> 18) << 2));
 
 	}
-	void CreateVideoRtpDestination (uint32_t ref,
-					const char *destAddress,
-					in_port_t destPort,
-					in_port_t srcPort);
-	void CreateAudioRtpDestination (uint32_t ref,
-					const char *destAddress,
-					in_port_t destPort,
-					in_port_t srcPort);
+	void AddRtpDestination(const char *destAddress,
+			       in_port_t destPort,
+			       in_port_t srcPort,
+			       uint16_t max_ttl);
+
 	
 	static const uint32_t MSG_RTP_DEST_START = 8192;
 	static const uint32_t MSG_RTP_DEST_STOP  = MSG_RTP_DEST_START + 1;
 
-	void StartRtpDestination (uint32_t RtpDestinationHandle) {
+	void StartRtpDestination (const char *destAddr, 
+				  in_port_t destPort) {
 	  m_myMsgQueue.send_message(MSG_RTP_DEST_START, 
-				    RtpDestinationHandle,
-				    m_myMsgQueueSemaphore);
+				    destAddr, 
+				    strlen(destAddr) + 1,
+				    m_myMsgQueueSemaphore,
+				    destPort);
 	};
-	void StopRtpDestination (uint32_t RtpDestinationHandle) {
-	  m_myMsgQueue.send_message(MSG_RTP_DEST_STOP, 
-				    RtpDestinationHandle,
-				    m_myMsgQueueSemaphore);
+	void StopRtpDestination (const char *destAddr, 
+				 in_port_t destPort) {
+	  m_myMsgQueue.send_message(MSG_RTP_DEST_STOP,
+				    destAddr, 
+				    strlen(destAddr) + 1,
+				    m_myMsgQueueSemaphore,
+				    destPort);
 	};
 protected:
 	int ThreadMain(void);
 
 	void DoStartTransmit(void);
-	void DoStopTransmit(void);
-	void DoSendFrame(CMediaFrame* pFrame);
+	virtual void DoStopTransmit(void);
+	virtual void DoSendFrame(CMediaFrame* pFrame) = 0;
 
-	void SendAudioFrame(CMediaFrame* pFrame);
-	void OldSendAudioFrame(CMediaFrame* pFrame);
-	void SendAudioJumboFrame(CMediaFrame* pFrame);
-	void SendQueuedAudioFrames(void);
+	void DoStartRtpDestination(const char *destAddr, in_port_t port);
+	void DoStopRtpDestination(const char *destAddr, in_port_t port);
 
-	void DoStartRtpDestination(uint32_t handle);
-	void DoStopRtpDestination(uint32_t handle);
-
-	u_int32_t AudioTimestampToRtp(Timestamp t) {
-	  if (m_haveAudioStartTimestamp) {
-	    return (u_int32_t)(((t - m_audioStartTimestamp) 
-				* m_audioTimeScale) / TimestampTicks)
-	      + m_audioRtpTimestampOffset;
-	  } 
-	  m_audioStartTimestamp = t;
-	  m_haveAudioStartTimestamp = true;
-	  return m_audioRtpTimestampOffset;  
-	}
-
-	u_int32_t VideoTimestampToRtp(Timestamp t) {
-	  if (m_haveVideoStartTimestamp) {
-	    return (u_int32_t)(((t - m_videoStartTimestamp) 
-				* m_videoTimeScale) / TimestampTicks)
-	      + m_videoRtpTimestampOffset;
+	uint32_t TimestampToRtp (Timestamp t) {
+	  if (m_haveStartTimestamp) {
+	    return (u_int32_t)(((t - m_startTimestamp) 
+				* m_timeScale) / TimestampTicks)
+	      + m_rtpTimestampOffset;
 	  }
-	  m_videoStartTimestamp = t;
-	  m_haveVideoStartTimestamp = true;
-	  return m_videoRtpTimestampOffset;
-	}
+	  m_startTimestamp = t;
+	  m_haveStartTimestamp = true;
+	  return m_rtpTimestampOffset;
+	};
 
 	static const u_int32_t SECS_BETWEEN_1900_1970 = 2208988800U;
 
@@ -212,41 +241,67 @@ protected:
 	}
 
 protected:
-	bool m_haveAudioStartTimestamp;
-	bool m_haveVideoStartTimestamp;
-	Timestamp		m_audioStartTimestamp;
-	Timestamp		m_videoStartTimestamp;
+	bool m_haveStartTimestamp;
+	Timestamp		m_startTimestamp;
 
 	SDL_mutex *m_destListMutex;
-	CRtpDestination  *m_videoRtpDestination;
-	CRtpDestination  *m_audioRtpDestination;
+	CRtpDestination  *m_rtpDestination;
+	MediaType               m_frameType;
+	uint32_t m_timeScale;
+	u_int32_t		m_rtpTimestampOffset;
+	uint16_t m_mtu;
+	u_int8_t		m_payloadNumber;
 
-	MediaType               m_videoFrameType;
-	video_rtp_transmitter_f m_videoSendFunc;
-	u_int8_t		m_videoPayloadNumber;
-	u_int32_t		m_videoTimeScale;
-	u_int32_t		m_videoRtpTimestampOffset;
-	u_int16_t		m_videoSrcPort;
+};
 
-	MediaType		m_audioFrameType;
-	u_int8_t		m_audioPayloadNumber;
-	u_int32_t		m_audioTimeScale;
-	u_int32_t		m_audioRtpTimestampOffset;
-	u_int16_t		m_audioSrcPort;
-	u_int8_t		m_audioPayloadBytesPerPacket;
-	u_int8_t		m_audioPayloadBytesPerFrame;
-	u_int8_t		m_audioiovMaxCount;		// max number of iov segments
-	u_int32_t		*m_frameno;			// We need to count the frames
-	audio_queue_frame_f	m_audio_queue_frame;		// plugin function for queing
-	audio_set_rtp_payload_f	m_audio_set_rtp_payload;	// plugin function for rtp packing
-	audio_set_rtp_header_f  m_audio_set_rtp_header;
-	audio_set_rtp_jumbo_frame_f m_audio_set_rtp_jumbo_frame;
-	void *m_audio_rtp_userdata;
-	CMediaFrame**	m_audioQueue;
-	u_int8_t		m_audioQueueCount;	// number of frames
-	u_int8_t		m_audioQueueMaxCount;	// max number of frames
-	u_int16_t		m_audioQueueSize;	// bytes for RTP packet payload
-	uint32_t m_nextAudioRtpTimestamp;
+class CAudioProfile;
+class CAudioRtpTransmitter : public CRtpTransmitter
+{
+ public:
+  CAudioRtpTransmitter(CAudioProfile *ap, 
+		       uint16_t mtu, 
+		       bool disable_ts_offset);
+  ~CAudioRtpTransmitter();
+ protected:
+  void DoSendFrame(CMediaFrame* pFrame);
+  void DoStopTransmit(void);
+
+  void SendAudioFrame(CMediaFrame* pFrame);
+  void OldSendAudioFrame(CMediaFrame* pFrame);
+  void SendAudioJumboFrame(CMediaFrame* pFrame);
+  void SendQueuedAudioFrames(void);
+
+  CAudioProfile *m_audio_profile;
+  u_int32_t		m_audioRtpTimestampOffset;
+  u_int16_t		m_audioSrcPort;
+  u_int8_t		m_audioPayloadBytesPerPacket;
+  u_int8_t		m_audioPayloadBytesPerFrame;
+  u_int8_t		m_audioiovMaxCount;		// max number of iov segments
+  u_int32_t		*m_frameno;			// We need to count the frames
+  audio_queue_frame_f	m_audio_queue_frame;		// plugin function for queing
+  audio_set_rtp_payload_f	m_audio_set_rtp_payload;	// plugin function for rtp packing
+  audio_set_rtp_header_f  m_audio_set_rtp_header;
+  audio_set_rtp_jumbo_frame_f m_audio_set_rtp_jumbo_frame;
+  void *m_audio_rtp_userdata;
+  CMediaFrame**	m_audioQueue;
+  u_int8_t		m_audioQueueCount;	// number of frames
+  u_int8_t		m_audioQueueMaxCount;	// max number of frames
+  u_int16_t		m_audioQueueSize;	// bytes for RTP packet payload
+  uint32_t m_nextAudioRtpTimestamp;
+};
+
+class CVideoProfile;
+
+class CVideoRtpTransmitter : public CRtpTransmitter
+{
+ public:
+  CVideoRtpTransmitter(CVideoProfile *vp, 
+		       uint16_t mtu, bool disable_ts_offset);
+ protected:
+  void DoSendFrame(CMediaFrame* pFrame);
+  //  void DoStopTransmit(void); not needed as of now
+  
+  video_rtp_transmitter_f m_videoSendFunc;
 };
 
   

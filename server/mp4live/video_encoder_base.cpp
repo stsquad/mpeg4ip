@@ -44,12 +44,14 @@
 
 #include "h261/encoder-h261.h"
 #include "rtp_transmitter.h"
-CVideoEncoder* VideoEncoderCreateBase(CLiveConfig *pConfig)
+CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp,
+				      CVideoEncoder *next, 
+				      bool realTime)
 {
-  const char *encoderName = pConfig->GetStringValue(CONFIG_VIDEO_ENCODER);
+  const char *encoderName = vp->GetStringValue(CFG_VIDEO_ENCODER);
 	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
 #ifdef HAVE_FFMPEG
-		return new CFfmpegVideoEncoder();
+		return new CFfmpegVideoEncoder(vp, next, realTime);
 #else
 		error_message("ffmpeg encoder not available in this build");
 #endif
@@ -58,7 +60,7 @@ CVideoEncoder* VideoEncoderCreateBase(CLiveConfig *pConfig)
 #if defined(HAVE_XVID10) || defined(HAVE_XVID_H)
 
 #ifdef HAVE_XVID10
-	  return new CXvid10VideoEncoder();
+	  return new CXvid10VideoEncoder(vp, next, realTime);
 #else
 		return new CXvidVideoEncoder();
 #endif
@@ -67,14 +69,14 @@ CVideoEncoder* VideoEncoderCreateBase(CLiveConfig *pConfig)
 #endif
 	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_H26L)) {
 #ifdef ADD_H26L_ENCODER
-		return new CH26LVideoEncoder();
+		return new CH26LVideoEncoder(vp, next, realTime);
 #else
 		error_message("H.26L encoder not available in this build");
 #endif
 	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_H261)) {
 	  
 	  CH261PixelEncoder *ret;
-	  ret = new CH261PixelEncoder();
+	  ret = new CH261PixelEncoder(vp, next, realTime);
 	  return ret;
 
 	} else {
@@ -84,7 +86,7 @@ CVideoEncoder* VideoEncoderCreateBase(CLiveConfig *pConfig)
 	return NULL;
 }
 
-MediaType get_video_mp4_fileinfo_base (CLiveConfig *pConfig,
+MediaType get_video_mp4_fileinfo_base (CVideoProfile *pConfig,
 				       bool *createIod,
 				       bool *isma_compliant,
 				       uint8_t *videoProfile,
@@ -92,13 +94,14 @@ MediaType get_video_mp4_fileinfo_base (CLiveConfig *pConfig,
 				       uint32_t *videoConfigLen,
 				       uint8_t *mp4_video_type)
 {
-  const char *encodingName = pConfig->GetStringValue(CONFIG_VIDEO_ENCODING);
+  const char *encodingName = pConfig->GetStringValue(CFG_VIDEO_ENCODING);
   if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG4)) {
     *createIod = true;
     *isma_compliant = true;
     *videoProfile = pConfig->m_videoMpeg4ProfileId;
     *videoConfig = pConfig->m_videoMpeg4Config;
     *videoConfigLen = pConfig->m_videoMpeg4ConfigLength;
+
     if (mp4_video_type) {
       *mp4_video_type = MP4_MPEG4_VIDEO_TYPE;
     }
@@ -131,7 +134,7 @@ MediaType get_video_mp4_fileinfo_base (CLiveConfig *pConfig,
   return UNDEFINEDFRAME;
 }
 
-media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
+media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
 				    bool *createIod,
 				    bool *isma_compliant,
 				    uint8_t *videoProfile,
@@ -178,12 +181,12 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
     sdpVideoRtpMap->clock_rate = 90000;
 
 
-    char* sConfig = MP4BinaryToBase16(pConfig->m_videoMpeg4Config, 
-				    pConfig->m_videoMpeg4ConfigLength);
+    char* sConfig = MP4BinaryToBase16(*videoConfig,
+				      *videoConfigLen);
 
     sprintf(videoFmtpBuf, 
 	    "profile-level-id=%u; config=%s;",
-	    pConfig->m_videoMpeg4ProfileId,
+	    *videoProfile,
 	    sConfig); 
     free(sConfig);
 
@@ -206,7 +209,8 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
     sdpVideoRtpMap->encode_name = strdup("H263-2000");
     char cliprect[80];
     sprintf(cliprect, "a=cliprect:0,0,%d,%d",
- 	    pConfig->m_videoHeight, pConfig->m_videoWidth);
+ 	    pConfig->GetIntegerValue(CFG_VIDEO_HEIGHT), 
+	    pConfig->GetIntegerValue(CFG_VIDEO_WIDTH));
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, cliprect);
   }
 
@@ -214,24 +218,25 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
 }
 
 
-void create_mp4_video_hint_track_base (CLiveConfig *pConfig,
+void create_mp4_video_hint_track_base (CVideoProfile *pConfig,
 				       MP4FileHandle mp4file,
-				       MP4TrackId trackId)
+				       MP4TrackId trackId,
+				       uint16_t mtu)
 {
-  const char *encodingName = pConfig->GetStringValue(CONFIG_VIDEO_ENCODING);
+  const char *encodingName = pConfig->GetStringValue(CFG_VIDEO_ENCODING);
 
   if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG4)) {
     MP4AV_Rfc3016Hinter(mp4file, 
 			trackId,
-			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			mtu);
   } else if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG2)) {
     Mpeg12Hinter(mp4file, 
 		 trackId,
-		 pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+		 mtu);
   } else if (!strcasecmp(encodingName, VIDEO_ENCODING_H263)) {
     MP4AV_Rfc2429Hinter(mp4file, 
 			trackId, 
-			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			mtu);
   }
 
 }
@@ -522,11 +527,11 @@ static void H263SendVideoRfc2429 (CMediaFrame *pFrame, CRtpDestination *list,
     delete pFrame;
 }
  
-video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CLiveConfig *pConfig,
+video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CVideoProfile *pConfig,
 						       MediaType *pType,
 						       uint8_t *pPayload)
 {
-  const char *encodingName = pConfig->GetStringValue(CONFIG_VIDEO_ENCODING);
+  const char *encodingName = pConfig->GetStringValue(CFG_VIDEO_ENCODING);
   if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG4)) {
     *pType = MPEG4VIDEOFRAME;
     *pPayload = 96;

@@ -32,7 +32,7 @@
  */
 
 //static const char rcsid[] =
-//    "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/encoder-h261.h,v 1.4 2004/03/15 23:56:55 wmaycisco Exp $";
+//    "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/encoder-h261.h,v 1.5 2005/02/18 19:48:22 wmaycisco Exp $";
 
 #include "video_encoder.h"
 #include "crdef.h"
@@ -58,12 +58,14 @@ class CH261Encoder : public CVideoEncoder {
 	public:
 		void setq(int q);
 		MediaType GetFrameType (void) { return H261VIDEOFRAME; } ;
-		bool Init(CLiveConfig *pConfig, bool realTime = TRUE);
-		void Stop();
+		bool Init(void);
 		media_free_f GetMediaFreeFunction(void);
 	protected:
-		CH261Encoder();
-		virtual void encode(u_int8_t*, const u_int8_t *crvec);
+		CH261Encoder(CVideoProfile *vp,
+			     CVideoEncoder *next = NULL, 
+			     bool realTime = true);
+		void StopEncoder();
+		virtual void encode(const u_int8_t*, const u_int8_t *crvec);
 		void encode_blk(const short* blk, const char* lm);
 		virtual int flush(pktbuf_t* pb, int nbit, pktbuf_t* npb);
 		char* make_level_map(int q, u_int fthresh);
@@ -131,10 +133,12 @@ class CH261Encoder : public CVideoEncoder {
 
 class CH261PixelEncoder : public CH261Encoder, public ConditionalReplenisher {
 	public:
-		CH261PixelEncoder();
+		CH261PixelEncoder(CVideoProfile *vp,
+			     CVideoEncoder *next = NULL,
+				  bool realTime = true);
 		virtual ~CH261PixelEncoder() {};
 	bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
+		const u_int8_t* pY, const u_int8_t* pU, const u_int8_t* pV,
 		u_int32_t yStride, u_int32_t uvStride,
 		bool wantKeyFrame,
 		Duration elapsedDuration,

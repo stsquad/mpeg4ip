@@ -107,7 +107,7 @@ typedef struct mpeg2ps_stream_t
   int have_mpeg2;
   double bit_rate;
   uint64_t ticks_per_frame;
-
+  uint8_t mpeg2_profile;
 } mpeg2ps_stream_t;
 
 /*

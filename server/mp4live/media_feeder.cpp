@@ -45,6 +45,37 @@ bool CMediaFeeder::AddSink(CMediaSink* pSink)
   return rc;
 }
 
+void CMediaFeeder::StartSinks (void)
+{
+  if (SDL_LockMutex(m_pSinksMutex) == -1) {
+    debug_message("Start Sinks LockMutex error");
+    return;
+  }
+  for (int i = 0; i < MAX_SINKS; i++) {
+    if (m_sinks[i] != NULL) {
+      m_sinks[i]->Start();
+    }
+  }
+  if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
+    debug_message("UnlockMutex error");
+  }
+}  
+
+void CMediaFeeder::StopSinks (void)
+{
+  if (SDL_LockMutex(m_pSinksMutex) == -1) {
+    debug_message("Start Sinks LockMutex error");
+    return;
+  }
+  for (int i = 0; i < MAX_SINKS; i++) {
+    if (m_sinks[i] != NULL) {
+      m_sinks[i]->StopThread();
+    }
+  }
+  if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
+    debug_message("UnlockMutex error");
+  }
+}  
 void CMediaFeeder::RemoveSink(CMediaSink* pSink) 
 {
   if (SDL_LockMutex(m_pSinksMutex) == -1) {
@@ -95,6 +126,7 @@ void CMediaFeeder::ForwardFrame(CMediaFrame* pFrame)
       break;
     }
     m_sinks[i]->EnqueueFrame(pFrame);
+    //debug_message("forward frame type %d", pFrame->GetType());
   }
 
   if (SDL_UnlockMutex(m_pSinksMutex) == -1) {

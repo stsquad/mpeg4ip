@@ -41,16 +41,21 @@ void DisplayControlSettings(void);
 void DisplayStatusSettings(void);
 void DisplayAllSettings(void);
 
+void OnAudioProfileFinished(CAudioProfile *p);
+void OnVideoProfileFinished(CVideoProfile *p);
 void DoStart(void);
 void DoStop(void);
+void RefreshCurrentStream(void);
 
 // From video_dialog.cpp
+void CreateVideoProfileDialog(CVideoProfile *profile);
 void CreateVideoDialog(void);
 
 // From picture_dialog.cpp
 void CreatePictureDialog(void);
 
 // From audio_dialog.cpp
+void CreateAudioProfileDialog(CAudioProfile *profile);
 void CreateAudioDialog(void);
 
 // From recording_dialog.cpp
@@ -58,6 +63,10 @@ void CreateRecordingDialog(void);
 
 // From transmit_dialog.cpp
 void CreateTransmitDialog(void);
+void create_IpAddrDialog(CMediaStream *ms, 
+			 bool do_audio, 
+			 bool do_video, 
+			 bool do_text);
 
 // From transcoding_dialog.cpp
 void CreateTranscodingDialog(void);

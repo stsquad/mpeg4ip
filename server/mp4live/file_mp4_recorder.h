@@ -26,30 +26,14 @@
 #include <mp4.h>
 #include <mp4av.h>
 #include "media_sink.h"
+#include "media_stream.h"
 
 class CMp4Recorder : public CMediaSink {
 public:
-  CMp4Recorder() {
-    m_mp4File = NULL;
-
-    m_prevRawVideoFrame = NULL;
-    m_prevEncodedVideoFrame = NULL;
-    m_prevRawAudioFrame = NULL;
-    m_prevEncodedAudioFrame = NULL;
-
-    m_rawAudioTrackId = MP4_INVALID_TRACK_ID;
-    m_encodedAudioTrackId = MP4_INVALID_TRACK_ID;
-    m_rawVideoTrackId = MP4_INVALID_TRACK_ID;
-    m_encodedVideoTrackId = MP4_INVALID_TRACK_ID;
-
-    m_videoTimeScale = 90000;
-    m_movieTimeScale = m_videoTimeScale;
-
-    m_canRecordRawVideo = false;
-    m_canRecordEncodedVideo = false;
-    m_mp4FileName = NULL;
-    m_amrMode = 0;
-  }
+  CMp4Recorder(CMediaStream *stream) {
+    Init();
+    m_stream = stream;
+  };
 
   const char *GetRecordFileName(void) {
     if (m_mp4FileName == NULL) {
@@ -58,6 +42,28 @@ public:
     return m_mp4FileName;
   };
 protected:
+   void Init (void) {
+    m_mp4File = NULL;
+
+    m_prevVideoFrame = NULL;
+    m_prevAudioFrame = NULL;
+
+    m_audioTrackId = MP4_INVALID_TRACK_ID;
+    m_videoTrackId = MP4_INVALID_TRACK_ID;
+
+    m_videoTimeScale = 90000;
+    m_movieTimeScale = m_videoTimeScale;
+
+    m_canRecordVideo = false;
+    m_mp4FileName = NULL;
+    m_amrMode = 0;
+    m_stream = NULL;
+#ifndef WORDS_BIGENDIAN
+    m_convert_pcm = NULL;
+    m_convert_pcm_size = 0;
+#endif
+   };
+
   int ThreadMain(void);
 
   void DoStartRecord(void);
@@ -65,51 +71,47 @@ protected:
   void DoWriteFrame(CMediaFrame* pFrame);
 
 protected:
-  bool			m_recordVideo;
+  CMediaStream *m_stream;
+  CVideoProfile *m_video_profile;
+  CAudioProfile *m_audio_profile;
+  bool			m_canRecordVideo;
 
   const char*		m_mp4FileName;
   MP4FileHandle	m_mp4File;
 
-  CMediaFrame*          m_prevRawVideoFrame;
-  CMediaFrame*          m_prevEncodedVideoFrame;
-
-  CMediaFrame*          m_prevRawAudioFrame;
-  CMediaFrame*          m_prevEncodedAudioFrame;
+  CMediaFrame*          m_prevVideoFrame;
+  CMediaFrame*          m_prevAudioFrame;
 
   u_int32_t		m_movieTimeScale;
   u_int32_t		m_videoTimeScale;
   u_int32_t		m_audioTimeScale;
 
-  MP4TrackId		m_rawVideoTrackId;
-  u_int32_t		m_rawVideoFrameNumber;
-  Timestamp		m_rawVideoStartTimestamp;
+  bool                  m_recordVideo;
+  MP4TrackId		m_videoTrackId;
+  u_int32_t		m_videoFrameNumber;
+  Timestamp		m_videoStartTimestamp;
+  Duration              m_videoDurationTimescale;
+  MediaType               m_videoFrameType;
 
-  MP4TrackId		m_encodedVideoTrackId;
-  u_int32_t		m_encodedVideoFrameNumber;
-  Timestamp		m_encodedVideoStartTimestamp;
-  Duration              m_encodedVideoDurationTimescale;
-  MediaType               m_encodedVideoFrameType;
+  bool                  m_recordAudio;
+  MP4TrackId		m_audioTrackId;
+  u_int32_t		m_audioFrameNumber;
+  Timestamp		m_audioStartTimestamp;
+  MediaType             m_audioFrameType;
+  uint64_t              m_audioSamples;
+  Duration              m_audioDiffTicks;
+  Duration              m_audioDiffTicksTotal;
 
-  MP4TrackId		m_rawAudioTrackId;
-  u_int32_t		m_rawAudioFrameNumber;
-  Timestamp		m_rawAudioStartTimestamp;
-
-  MP4TrackId		m_encodedAudioTrackId;
-  u_int32_t		m_encodedAudioFrameNumber;
-  Timestamp		m_encodedAudioStartTimestamp;
-  MediaType             m_encodedAudioFrameType;
-  uint64_t              m_encodedAudioSamples;
-  Duration              m_encodedAudioDiffTicks;
-  Duration              m_encodedAudioDiffTicksTotal;
   bool                  m_makeIod;
   bool                  m_makeIsmaCompliant;
-
-  bool                  m_canRecordRawVideo;
-  bool                  m_canRecordEncodedVideo;
 
   uint16_t m_amrMode;
   void ProcessEncodedAudioFrame(CMediaFrame *pFrame);
   void ProcessEncodedVideoFrame(CMediaFrame *pFrame);
+#ifndef WORDS_BIGENDIAN
+  uint16_t *m_convert_pcm;
+  uint32_t  m_convert_pcm_size;
+#endif
 };
 
 #endif /* __FILE_MP4_RECORDER_H__ */

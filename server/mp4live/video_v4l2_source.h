@@ -34,6 +34,7 @@ class CV4L2VideoSource : public CMediaSource {
     m_videoDevice = -1;
     m_buffers = NULL;
     m_decimate_filter = false;
+    m_use_alternate_release = false;
   }
 
   static bool InitialVideoProbe(CLiveConfig* pConfig);
@@ -48,6 +49,14 @@ class CV4L2VideoSource : public CMediaSource {
 
   bool SetPictureControls();
 
+  void IndicateReleaseFrame(uint8_t index) {
+    // indicate which index needs to be released before next acquire
+    SDL_LockMutex(m_v4l_mutex);
+    m_release_index_mask |= (1 << index);
+    SDL_UnlockMutex(m_v4l_mutex);
+    SDL_SemPost(m_myMsgQueueSemaphore);
+  };
+
  protected:
   int ThreadMain(void);
   void DoStartCapture(void);
@@ -57,7 +66,7 @@ class CV4L2VideoSource : public CMediaSource {
   void ReleaseDevice(void);
   void ProcessVideo(void);
   int8_t AcquireFrame(Timestamp &frameTimestamp);
-  void ReleaseFrame(uint8_t index);
+  void ReleaseFrames(void);
   void SetVideoAudioMute(bool mute);
 
   u_int8_t m_maxPasses;
@@ -74,6 +83,9 @@ class CV4L2VideoSource : public CMediaSource {
   Timestamp m_videoCaptureStartTimestamp;
   float m_videoSrcFrameRate;
   bool m_decimate_filter;
+  SDL_mutex *m_v4l_mutex;
+  uint32_t m_release_index_mask;
+  bool m_use_alternate_release;
 };
 
 
@@ -134,7 +146,6 @@ class CVideoCapabilities {
   u_int8_t*	m_inputTunerSignalTypes;	// possible signal types from tuner
 
   bool		m_hasAudio;
-
  protected:
   bool ProbeDevice(void);
 };

@@ -387,11 +387,13 @@ static int ffmpeg_decode (codec_data_t *ptr,
 	int have_mpeg2;
 	uint32_t h, w;
 	double bitrate, aspect_ratio;
+	uint8_t profile;
 	MP4AV_Mpeg3ParseSeqHdr(buffer, buflen,
 			       &have_mpeg2,
 			       &h, &w, 
 			       &ffmpeg->pts_convert.frame_rate,
-			       &bitrate, &aspect_ratio);
+			       &bitrate, &aspect_ratio,
+			       &profile);
       }
 			       
       int ftype;

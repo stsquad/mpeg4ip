@@ -26,37 +26,145 @@
 #include "media_frame.h"
 #include <sdp.h>
 #include <mp4.h>
+#include "profile_video.h"
+#include "media_sink.h"
+#include "media_feeder.h"
+#include "video_util_resize.h"
 
 class CVideoEncoder : public CMediaCodec {
 public:
-	CVideoEncoder() { };
+  CVideoEncoder(CVideoProfile *vp,
+		CVideoEncoder *next,
+		bool realTime); 
+  
+  virtual bool Init(void) = 0;
+  void StartPreview(void) { m_preview = true; } ;
+  void StopPreview(void) { m_preview = false; } ;
+ public:
+  virtual bool CanGetEsConfig (void) { return false; };
+  virtual bool GetEsConfig(uint8_t **ppEsConfig,
+			   uint32_t *pEsConfigLen) { return false; };
+  void AddRtpDestination (CMediaStream *stream,
+			  uint16_t mtu,
+			  bool disable_ts_offset, 
+			  uint16_t max_ttl,
+			  in_port_t srcPort = 0) {
+    AddRtpDestInt(mtu, max_ttl, disable_ts_offset, 
+		  stream->GetStringValue(STREAM_VIDEO_DEST_ADDR),
+		  stream->GetIntegerValue(STREAM_VIDEO_DEST_PORT),
+		  srcPort);
+  };
+  CVideoEncoder *GetNext(void) {
+    return (CVideoEncoder *)CMediaCodec::GetNext();
+  };
+  uint32_t GetEncodedFrames (void) {
+    return m_videoDstFrameNumber;
+  };
 
-	virtual bool Init(CLiveConfig *pConfig, bool realTime = true) = 0;
+ protected:
+  // all the stuff from media
+  int ThreadMain(void);
+  CVideoProfile *Profile(void) { return (CVideoProfile *)m_pConfig; } ;
 
-	virtual bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-		u_int32_t yStride, u_int32_t uvStride,
-		bool wantKeyFrame,
-		Duration elapsedDuration,
-		Timestamp srcFrameTimestamp) = 0;
+  CRtpTransmitter *CreateRtpTransmitter(uint16_t mtu, bool disable_ts_offset) {
+    return new CVideoRtpTransmitter(Profile(), mtu, disable_ts_offset);
+  };
 
-	virtual bool GetEncodedImage(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength,
-		Timestamp *dts, Timestamp *pts) = 0;
+  // encoder specific routines.
 
-	virtual bool GetReconstructedImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = 0;
-	virtual media_free_f GetMediaFreeFunction(void) { return NULL; };
+  virtual bool EncodeImage(
+			   const u_int8_t* pY, 
+			   const u_int8_t* pU, 
+			   const u_int8_t* pV,
+			   u_int32_t yStride, u_int32_t uvStride,
+			   bool wantKeyFrame,
+			   Duration elapsedDuration,
+			   Timestamp srcFrameTimestamp) = 0;
+  
+  virtual bool GetEncodedImage(
+			       u_int8_t** ppBuffer, u_int32_t* pBufferLength,
+			       Timestamp *dts, Timestamp *pts) = 0;
+  
+  virtual bool GetReconstructedImage(
+				     u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = 0;
+  virtual media_free_f GetMediaFreeFunction(void) { return NULL; };
 
-	virtual bool CanGetEsConfig (void) { return false; };
-	virtual bool GetEsConfig(CLiveConfig *pConfig, uint8_t **ppEsConfig,
-				 uint32_t *pEsConfigLen) { return false; };
+  // processing routines
+  void ProcessVideoYUVFrame(CMediaFrame *frame);
+  void SetVideoSrcSize(
+		       u_int16_t srcWidth,
+		       u_int16_t srcHeight,
+		       u_int16_t srcStride,
+		       bool matchAspectRatios);
+  
+  void DestroyVideoResizer();
+  
+  void DoStopVideo();
+  inline Duration VideoDstFramesToDuration(void) {
+    double tempd;
+    tempd = m_videoDstFrameNumber;
+    tempd *= TimestampTicks;
+    tempd /= m_videoDstFrameRate;
+    return (Duration) tempd;
+  };
+  
+  u_int32_t		m_videoSrcFrameNumber;
+  u_int16_t		m_videoSrcWidth;
+  u_int16_t		m_videoSrcHeight;
+  u_int16_t		m_videoSrcAdjustedHeight;
+  float			m_videoSrcAspectRatio;
+  u_int32_t		m_videoSrcYUVSize;
+  u_int32_t		m_videoSrcYSize;
+  u_int16_t		m_videoSrcYStride;
+  u_int32_t		m_videoSrcUVSize;
+  u_int16_t		m_videoSrcUVStride;
+  u_int32_t		m_videoSrcYCrop;
+  u_int32_t		m_videoSrcUVCrop;
+
+  // video destination info
+  bool                    m_videoFilterInterlace;
+  MediaType		m_videoDstType;
+  float			m_videoDstFrameRate;
+  Duration		m_videoDstFrameDuration;
+  u_int32_t		m_videoDstFrameNumber;
+  u_int16_t		m_videoDstWidth;
+  u_int16_t		m_videoDstHeight;
+  float			m_videoDstAspectRatio;
+  u_int32_t		m_videoDstYUVSize;
+  u_int32_t		m_videoDstYSize;
+  u_int32_t		m_videoDstUVSize;
+
+  // video resizing info
+  bool			m_videoMatchAspectRatios;
+  image_t*		m_videoSrcYImage;
+  image_t*		m_videoDstYImage;
+  scaler_t*		m_videoYResizer;
+  image_t*		m_videoSrcUVImage;
+  image_t*		m_videoDstUVImage;
+  scaler_t*		m_videoUVResizer;
+
+  // video encoding info
+  bool			m_videoWantKeyFrame;
+
+  // video timing info
+  Timestamp		m_videoStartTimestamp;
+  //Duration		m_videoEncodingDrift;
+  //Duration		m_videoEncodingMaxDrift;
+  Duration		m_videoSrcElapsedDuration;
+  Duration		m_videoDstElapsedDuration;
+
+  // video previous frame info
+  u_int8_t*		m_videoDstPrevImage;
+  u_int8_t*		m_videoDstPrevReconstructImage;
+  bool m_preview;
 };
 
-CVideoEncoder* VideoEncoderCreate(CLiveConfig *pConfig);
+CVideoEncoder* VideoEncoderCreate(CVideoProfile *vp, 
+				  CVideoEncoder *next, 
+				  bool realTime = true);
 
 
-MediaType get_video_mp4_fileinfo(CLiveConfig *pConfig,
+MediaType get_video_mp4_fileinfo(CVideoProfile *pConfig,
 				 bool *createIod,
 				 bool *isma_compliant,
 				 uint8_t *videoProfile,
@@ -64,31 +172,30 @@ MediaType get_video_mp4_fileinfo(CLiveConfig *pConfig,
 				 uint32_t *videoConfigLen,
 				 uint8_t *mp4_video_type);
 
-media_desc_t *create_video_sdp(CLiveConfig *pConfig,
+media_desc_t *create_video_sdp(CVideoProfile *pConfig,
 			       bool *createIod,
 			       bool *isma_compliant,
 			       uint8_t *audioProfile,
 			       uint8_t **audioConfig,
 			       uint32_t *audioConfigLen);
 
-void create_mp4_video_hint_track(CLiveConfig *pConfig,
+void create_mp4_video_hint_track(CVideoProfile *pConfig,
 				  MP4FileHandle mp4file,
-				  MP4TrackId trackId);
+				  MP4TrackId trackId,
+				 uint16_t mtu);
 
 class CRtpDestination;
 
-typedef void (*video_rtp_transmitter_f)(CMediaFrame *pak, CRtpDestination *list,
-					uint32_t rtpTimestamp, uint16_t mtu);
 
-video_rtp_transmitter_f GetVideoRtpTransmitRoutine(CLiveConfig *pConfig,
+video_rtp_transmitter_f GetVideoRtpTransmitRoutine(CVideoProfile *vp,
 						   MediaType *pType,
 						   uint8_t *pPayload);
 
 
 typedef struct video_encoder_table_t {
-  char *encoding_name;
-  char *encoding;
-  char *encoder;
+  const char *encoding_name;
+  const char *encoding;
+  const char *encoder;
   uint16_t numSizesNTSC;
   uint16_t numSizesPAL;
   uint16_t numSizesSecam;
@@ -98,9 +205,9 @@ typedef struct video_encoder_table_t {
   uint16_t *heightValuesNTSC;
   uint16_t *heightValuesPAL;
   uint16_t *heightValuesSecam;
-  char **sizeNamesNTSC;
-  char **sizeNamesPAL;
-  char **sizeNamesSecam;
+  const char **sizeNamesNTSC;
+  const char **sizeNamesPAL;
+  const char **sizeNamesSecam;
 } video_encoder_table_t;
 
 extern const video_encoder_table_t video_encoder_table[];

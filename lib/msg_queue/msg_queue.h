@@ -29,7 +29,8 @@
 
 class CMsg {
  public:
-  CMsg(uint32_t value, void *msg = NULL, uint32_t msg_len = 0);
+  CMsg(uint32_t value, const void *msg = NULL, uint32_t msg_len = 0,
+       uint32_t param = 0);
   CMsg(uint32_t value, uint32_t param);
   ~CMsg(void);
   const void *get_message(uint32_t &len);
@@ -44,7 +45,7 @@ class CMsg {
   int m_has_param;
   uint32_t m_param;
   uint32_t m_msg_len;
-  void *m_msg;
+  const void *m_msg;
 };
 
 class CMsgQueue {
@@ -52,12 +53,13 @@ class CMsgQueue {
   CMsgQueue(void);
   ~CMsgQueue(void);
   int send_message(uint32_t msgval,
-		   void *msg = NULL,
+		   const void *msg = NULL,
 		   uint32_t msg_len = 0,
-		   SDL_sem *sem = NULL);
+		   SDL_sem *sem = NULL,
+		   uint32_t param = 0);
   int send_message(uint32_t msgval,
-	  uint32_t param, 
-	  SDL_sem *sem = NULL);
+		   uint32_t param, 
+		   SDL_sem *sem = NULL);
   int send_message(uint32_t msgval, SDL_sem *sem) {
     return send_message(msgval, NULL, 0, sem);
   };

@@ -28,7 +28,7 @@ static uint16_t h261SizeWidthValues[] = {
 static uint16_t h261SizeHeightValues[] = {
   144, 288
 };
-static char* h261SizeNames[] = {
+static const char* h261SizeNames[] = {
 	"176 x 144 QCIF",
 	"352 x 288 CIF",
 };
@@ -42,7 +42,7 @@ static u_int16_t mpeg4SizeHeightValues[] = {
 	96, 144, 240, 288, 480,
 	480, 480, 480, 576, 576, 576,
 };
-static  char* mpeg4SizeNames[] = {
+static const char* mpeg4SizeNames[] = {
 	"128 x 96 SQCIF", 
 	"176 x 144 QCIF",
 	"320 x 240 SIF",
@@ -65,7 +65,7 @@ static uint16_t h263SizeWidthValues[] = {
 static uint16_t h263SizeHeightValues[] = {
   96, 144, 288, 576, 1152,
 };
-static char *h263SizeNames[] = {
+static const char *h263SizeNames[] = {
   "128 x 93 SQCIF", 
   "176 x 144 QCIF", 
   "352 x 288 CIF", 

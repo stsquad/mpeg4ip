@@ -48,9 +48,9 @@ public:
 	bool GetReconstructedImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV);
 
-	void Stop();
 
 protected:
+	void StopEncoder(void);
 	void*				m_xvidHandle;
 	u_int8_t*			m_vopBuffer;
 	u_int32_t			m_vopBufferLength;

@@ -56,7 +56,7 @@ audio_encoder_table_t faac_audio_encoder_table = {
   2
 };
 
-MediaType faac_mp4_fileinfo (CLiveConfig *pConfig,
+MediaType faac_mp4_fileinfo (CAudioProfile *pConfig,
 			     bool *mpeg4,
 			     bool *isma_compliant,
 			     uint8_t *audioProfile,
@@ -72,12 +72,12 @@ MediaType faac_mp4_fileinfo (CLiveConfig *pConfig,
   MP4AV_AacGetConfiguration(audioConfig,
 			    audioConfigLen,
 			    MP4AV_AAC_LC_PROFILE,
-			    pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
-			    pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
+			    pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE),
+			    pConfig->GetIntegerValue(CFG_AUDIO_CHANNELS));
   return AACAUDIOFRAME;
 }
 
-media_desc_t *faac_create_audio_sdp (CLiveConfig *pConfig,
+media_desc_t *faac_create_audio_sdp (CAudioProfile *pConfig,
 				     bool *mpeg4,
 				     bool *isma_compliant,
 				     uint8_t *audioProfile,
@@ -106,7 +106,7 @@ media_desc_t *faac_create_audio_sdp (CLiveConfig *pConfig,
   sdpAudioRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
   memset(sdpAudioRtpMap, 0, sizeof(*sdpAudioRtpMap));
   sdpAudioRtpMap->clock_rate = 
-    pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+    pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
   sdpAudioRtpMap->encode_name = strdup("mpeg4-generic");
 	      
   char* sConfig = 
@@ -173,7 +173,7 @@ static bool faac_set_rtp_jumbo_frame (struct iovec *iov,
   return false;
 }
 
-bool faac_get_audio_rtp_info (CLiveConfig *pConfig,
+bool faac_get_audio_rtp_info (CAudioProfile *pConfig,
 			      MediaType *audioFrameType,
 			      uint32_t *audioTimeScale,
 			      uint8_t *audioPayloadNumber,
@@ -185,7 +185,7 @@ bool faac_get_audio_rtp_info (CLiveConfig *pConfig,
 			      void **ud)
 {
   *audioFrameType = AACAUDIOFRAME;
-  *audioTimeScale = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+  *audioTimeScale = pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
   *audioPayloadNumber = 97;
   *audioPayloadBytesPerPacket = 2;
   *audioPayloadBytesPerFrame = 2;
@@ -196,7 +196,12 @@ bool faac_get_audio_rtp_info (CLiveConfig *pConfig,
   return true;
 }
 
-CFaacAudioEncoder::CFaacAudioEncoder()
+CFaacAudioEncoder::CFaacAudioEncoder(CAudioProfile *profile,
+				     CAudioEncoder *next,
+				     u_int8_t srcChannels,
+				     u_int32_t srcSampleRate,
+				     bool realTime) :
+  CAudioEncoder(profile, next, srcChannels, srcSampleRate, realTime)
 {
   m_faacHandle = NULL;
   m_samplesPerFrame = 1024;
@@ -205,13 +210,11 @@ CFaacAudioEncoder::CFaacAudioEncoder()
   m_aacFrameMaxSize = 0;
 }
 
-bool CFaacAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
+bool CFaacAudioEncoder::Init(void)
 {
-  m_pConfig = pConfig;
-
   m_faacHandle = faacEncOpen(
-                             m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
-                             m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
+                             Profile()->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE),
+                             Profile()->GetIntegerValue(CFG_AUDIO_CHANNELS),
                              (unsigned long*)&m_samplesPerFrame,
                              (unsigned long*)&m_aacFrameMaxSize);
 
@@ -220,7 +223,7 @@ bool CFaacAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
   }
 
 
-  m_samplesPerFrame /= m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
+  m_samplesPerFrame /= Profile()->GetIntegerValue(CFG_AUDIO_CHANNELS);
 
   m_faacConfig = faacEncGetCurrentConfiguration(m_faacHandle);
 
@@ -247,11 +250,12 @@ bool CFaacAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
   m_faacConfig->outputFormat = 0;    // raw
 
   m_faacConfig->bitRate = 
-    m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE)
-    / m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
+    Profile()->GetIntegerValue(CFG_AUDIO_BIT_RATE)
+    / Profile()->GetIntegerValue(CFG_AUDIO_CHANNELS);
 
   faacEncSetConfiguration(m_faacHandle, m_faacConfig);
 
+  Initialize();
   return true;
 }
 
@@ -284,7 +288,7 @@ bool CFaacAudioEncoder::EncodeSamples(
   // allocate the AAC buffer
   m_aacFrameBuffer = (u_int8_t*)Malloc(m_aacFrameMaxSize);
   // check for channel mismatch between src and dst
-  if (numChannels != m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)) {
+  if (numChannels != Profile()->GetIntegerValue(CFG_AUDIO_CHANNELS)) {
     if (numChannels == 1) {
       // convert mono to stereo
       pInputBuffer = NULL;
@@ -313,7 +317,7 @@ bool CFaacAudioEncoder::EncodeSamples(
                          m_faacHandle,
                          (int32_t *)pInputBuffer,
                          numSamplesPerChannel
-                         * m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
+                         * Profile()->GetIntegerValue(CFG_AUDIO_CHANNELS),
                          m_aacFrameBuffer,
                          m_aacFrameMaxSize);
 
@@ -350,7 +354,7 @@ bool CFaacAudioEncoder::GetEncodedFrame(
   return true;
 }
 
-void CFaacAudioEncoder::Stop()
+void CFaacAudioEncoder::StopEncoder (void)
 {
   faacEncClose(m_faacHandle);
   m_faacHandle = NULL;

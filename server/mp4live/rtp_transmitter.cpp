@@ -24,175 +24,86 @@
 #include "mp4live.h"
 #include "rtp_transmitter.h"
 #include "encoder-h261.h"
+#include "audio_encoder.h"
+#include "video_encoder.h"
 
 //#define RTP_DEBUG 1
-CRtpTransmitter::CRtpTransmitter (CLiveConfig *pConfig) : CMediaSink()
+CRtpTransmitter::CRtpTransmitter (uint16_t mtu, bool disable_ts_offset) : CMediaSink()
 {
-  SetConfig(pConfig);
+  //SetConfig(pConfig);
 
   m_destListMutex = SDL_CreateMutex();
-  m_audioSrcPort = 0;
-  m_videoSrcPort = 0;
-  m_audioRtpDestination = NULL;
-  m_audioPayloadNumber = 97;
-  m_audioQueue = NULL;
-  m_haveAudioStartTimestamp = false;
-  m_audio_rtp_userdata = NULL;
-  m_audio_set_rtp_payload = NULL;	// plugin function to determind how to build RTP payload
-  m_audio_queue_frame = NULL;		// plugin function to determind how to queue frames for RTP
-  m_frameno = NULL;			// plugin will allocate counter space
-  m_audioiovMaxCount = 0;		// Max number of iov segments for send_iov
-  if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
-	  
-    if (m_audioSrcPort == 0) {
-      m_audioSrcPort = GetRandomPortBlock();
-    }
-    if (m_pConfig->GetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT) == 0) {
-      m_pConfig->SetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT,
-				 m_audioSrcPort + 2);
-    }
-    if (get_audio_rtp_info(m_pConfig,
-			   &m_audioFrameType,
-			   &m_audioTimeScale,
-			   &m_audioPayloadNumber, 
-			   &m_audioPayloadBytesPerPacket,
-			   &m_audioPayloadBytesPerFrame,
-			   &m_audioQueueMaxCount,
-			   &m_audioiovMaxCount,
-			   &m_audio_queue_frame,
-			   &m_audio_set_rtp_payload,
-			   &m_audio_set_rtp_header,
-			   &m_audio_set_rtp_jumbo_frame,
-			   &m_audio_rtp_userdata) == false) {
-      error_message("rtp transmitter: unknown audio encoding %s",
-		    m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING));
-    }
+  m_rtpDestination = NULL;
+  m_haveStartTimestamp = false;
 
-    if (m_audioiovMaxCount == 0)			// This is purely for backwards compability
-      m_audioiovMaxCount = m_audioQueueMaxCount;	// Can go away when lame and faac plugin sets this
-
-    if (m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET)) {
-      m_audioRtpTimestampOffset = 0;
-    } else {
-      m_audioRtpTimestampOffset = random();
-    }
-
-    m_audioQueueCount = 0;
-    m_audioQueueSize = 0;
-    
-    m_audioQueue = (CMediaFrame**)Malloc(m_audioQueueMaxCount * sizeof(CMediaFrame*));
-  }
-
-  // Initialize Video portion of transmitter
-  m_videoRtpDestination = NULL;
-
-  m_videoSendFunc = GetVideoRtpTransmitRoutine(pConfig, 
-					       &m_videoFrameType, 
-					       &m_videoPayloadNumber);
-  m_videoTimeScale = 90000;
-  m_haveVideoStartTimestamp = false;
-  if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-
-    if (m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET)) {
-      m_videoRtpTimestampOffset = 0;
-    } else {
-      m_videoRtpTimestampOffset = random();
-    }
-
-    if (m_videoSrcPort == 0) {
-      m_videoSrcPort = GetRandomPortBlock();
-    }
-    if (m_pConfig->GetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT) == 0) {
-      m_pConfig->SetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT,
-				 m_videoSrcPort + 2);
-    }
+  m_mtu = mtu;
+  if (disable_ts_offset) {
+    m_rtpTimestampOffset = 0;
+  } else {
+    m_rtpTimestampOffset = random();
   }
   
 }
 
 CRtpTransmitter::~CRtpTransmitter (void)
 {
-  CRtpDestination *p;
-  p = m_audioRtpDestination;
-  while (p != NULL) {
-    p = p->get_next();
-    delete m_audioRtpDestination;
-    m_audioRtpDestination = p;
-  }
-  p = m_videoRtpDestination;
-  while (p != NULL) {
-    p = p->get_next();
-    delete m_videoRtpDestination;
-    m_videoRtpDestination = p;
-  }
+  DoStopTransmit();
   SDL_DestroyMutex(m_destListMutex);
-  CHECK_AND_FREE(m_audio_rtp_userdata);
-  if (m_frameno != NULL) {
-	free (m_frameno);
-	m_frameno = NULL;		// Not strictly necessary
-  }
 }
 
-void CRtpTransmitter::CreateAudioRtpDestination (uint32_t ref,
-						 const char *destAddress,
-						 in_port_t destPort,
-						 in_port_t srcPort)
+void CRtpTransmitter::AddRtpDestination (const char *destAddress,
+					 in_port_t destPort,
+					 in_port_t srcPort,
+					 uint16_t max_ttl)
 {
-  CRtpDestination *adest, *p;
-  debug_message("Creating rtp destination %s %d %d %d", 
-		destAddress, destPort, ref, srcPort);
-  if (srcPort == 0) srcPort = m_audioSrcPort;
-  adest = new CRtpDestination(ref, 
-			      destAddress,
-			      destPort,
-			      srcPort,
-			      m_audioPayloadNumber,
-			      m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL),
+  CRtpDestination *dest, *p;
+  debug_message("Creating rtp destination %s %d %d", 
+		destAddress, destPort, srcPort);
+  if (srcPort == 0) srcPort = destPort;
+
+  dest = m_rtpDestination;
+  SDL_LockMutex(m_destListMutex);
+  while (dest != NULL) {
+    if (dest->Matches(destAddress, destPort)) {
+      if (srcPort != dest->get_source_port()) {
+	error_message("Try to create RTP destination to %s:%u with different source ports %u %u",
+		      destAddress, destPort, srcPort, dest->get_source_port());
+      } else {
+	dest->add_reference();
+	debug_message("adding reference");
+      }
+      SDL_UnlockMutex(m_destListMutex);
+      return;
+    }
+    dest = dest->get_next();
+  }
+  SDL_UnlockMutex(m_destListMutex);
+
+  dest = new CRtpDestination(destAddress,
+			     destPort,
+			     srcPort,
+			     m_payloadNumber,
+			     max_ttl,
 			      DEFAULT_RTCP_BW);
   SDL_LockMutex(m_destListMutex);
-  if (m_audioRtpDestination == NULL) {
-    m_audioRtpDestination = adest;
+  if (m_rtpDestination == NULL) {
+    m_rtpDestination = dest;
   } else {
-    p = m_audioRtpDestination;
+    p = m_rtpDestination;
     while (p->get_next() != NULL) {
       p = p->get_next();
     }
-    p->set_next(adest);
+    p->set_next(dest);
   }
   SDL_UnlockMutex(m_destListMutex);
 }
 
-void CRtpTransmitter::CreateVideoRtpDestination (uint32_t ref,
-						 const char *destAddress,
-						 in_port_t destPort,
-						 in_port_t srcPort)
-{
-  CRtpDestination *vdest, *p;
-  if (srcPort == 0) srcPort = m_audioSrcPort;
-  vdest = new CRtpDestination(ref, 
-			      destAddress,
-			      destPort,
-			      srcPort,
-			      m_videoPayloadNumber,
-			      m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL),
-			      DEFAULT_RTCP_BW);
-  SDL_LockMutex(m_destListMutex);
-  if (m_videoRtpDestination == NULL) {
-    m_videoRtpDestination = vdest;
-  } else {
-    p = m_videoRtpDestination;
-    while (p->get_next() != NULL) {
-      p = p->get_next();
-    }
-    p->set_next(vdest);
-  }
-  SDL_UnlockMutex(m_destListMutex);
-}
 
 int CRtpTransmitter::ThreadMain(void) 
 {
   CMsg* pMsg;
   bool stop = false;
+  uint32_t len;
   while (stop == false && SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
     pMsg = m_myMsgQueue.get_message();
     if (pMsg != NULL) {
@@ -212,10 +123,12 @@ int CRtpTransmitter::ThreadMain(void)
 	DoSendFrame((CMediaFrame*)pMsg->get_message(dontcare));
 	break;
       case MSG_RTP_DEST_START:
-	DoStartRtpDestination(pMsg->get_param());
+	DoStartRtpDestination((const char *)pMsg->get_message(len), 
+			      pMsg->get_param());
 	break;
       case MSG_RTP_DEST_STOP:
-	DoStopRtpDestination(pMsg->get_param());
+	DoStopRtpDestination((const char *)pMsg->get_message(len), 
+			     pMsg->get_param());
 	break;
       }
       
@@ -242,18 +155,10 @@ void CRtpTransmitter::DoStartTransmit()
     return;
   }
 
-  if (m_audioRtpDestination != NULL) {
-    m_audioRtpDestination->start();
-  }
-
-  if (m_videoRtpDestination != NULL) {
-    m_videoRtpDestination->start();
-  }
-
-  if (m_audioRtpDestination || m_videoRtpDestination) {
-    // automatic sdp file generation
-    GenerateSdpFile(m_pConfig);
-
+  CRtpDestination *dest = m_rtpDestination;
+  while (dest != NULL) {
+    dest->start();
+    dest = dest->get_next();
     m_sink = true;
   }
 }
@@ -264,64 +169,81 @@ void CRtpTransmitter::DoStopTransmit()
 		return;
 	}
 
-	if (m_audioRtpDestination) {
-	  // send any pending frames
-	  SendQueuedAudioFrames();
-
-	  delete m_audioRtpDestination;
-	  m_audioRtpDestination = NULL;
-	  free(m_audioQueue);
-	  m_audioQueue = NULL;
-	}
-
-	if (m_videoRtpDestination) {
-	  delete m_videoRtpDestination;
-	  m_videoRtpDestination = NULL;
+	while (m_rtpDestination != NULL) {
+	  CRtpDestination *dest = m_rtpDestination;
+	  m_rtpDestination = dest->get_next();
+	  delete dest;
 	}
 
 	m_sink = false;
 }
+void CAudioRtpTransmitter::DoStopTransmit(void)
+{
+	// send any pending frames
+	SendQueuedAudioFrames();
+	CRtpTransmitter::DoStopTransmit();
 
-void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
+}
+
+void CAudioRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 {
 	if (pFrame == NULL) {
 		return;
 	}
-	if (!m_sink) {
+	if (!m_sink || m_rtpDestination == NULL) {
 	  if (pFrame->RemoveReference())
 		delete pFrame;
 	  return;
 	}
 
-	if (pFrame->GetType() == m_audioFrameType && m_audioRtpDestination) {
-		SendAudioFrame(pFrame);
+  if (pFrame->GetType() == m_frameType) {
+    SendAudioFrame(pFrame);
+  } else {
+    if (pFrame->RemoveReference())
+      delete pFrame;
+  }
+}
 
-	} else if (pFrame->GetType() == m_videoFrameType 
-		   && m_videoRtpDestination) {
+void CVideoRtpTransmitter::DoSendFrame (CMediaFrame *pFrame)
+{
+  if (pFrame == NULL) {
+    return;
+  }
+  if (!m_sink || m_rtpDestination == NULL) {
+    debug_message("video frame, sink %d dest %p", m_sink, 
+		  m_rtpDestination);
+    if (pFrame->RemoveReference())
+      delete pFrame;
+    return;
+  }
+
+  if (pFrame->GetType() == m_frameType) {
 	  // Note - the below changed from the DTS to the PTS - this
 	  // is required for b-frames, or mpeg2
-	  u_int32_t rtpTimestamp =
-	    VideoTimestampToRtp(pFrame->GetPtsTimestamp());
-	  u_int64_t ntpTimestamp = 
-	    TimestampToNtp(pFrame->GetTimestamp());
+    //debug_message("video rtp has frame");
+    u_int32_t rtpTimestamp =
+      TimestampToRtp(pFrame->GetPtsTimestamp());
+    u_int64_t ntpTimestamp = 
+      TimestampToNtp(pFrame->GetTimestamp());
 	  
-	  CRtpDestination *rdptr;
+    CRtpDestination *rdptr;
 	  
-	  rdptr = m_videoRtpDestination;
-	  while (rdptr != NULL) {
-	    rdptr->send_rtcp(rtpTimestamp, ntpTimestamp);
-	    rdptr = rdptr->get_next();
-	  }
-	  (m_videoSendFunc)(pFrame, m_videoRtpDestination, rtpTimestamp, 
-			    m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
-	} else {
-	  if (pFrame->RemoveReference())
-		delete pFrame;
-	}
+    rdptr = m_rtpDestination;
+    while (rdptr != NULL) {
+      rdptr->send_rtcp(rtpTimestamp, ntpTimestamp);
+      rdptr = rdptr->get_next();
+    }
+    (m_videoSendFunc)(pFrame, m_rtpDestination, rtpTimestamp, 
+		      m_mtu);
+  } else {
+    // not the fame we want - okay for previews...
+    if (pFrame->RemoveReference())
+      delete pFrame;
+  }
 }
 
 // void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
-void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
+void CAudioRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 {
   //  debug_message("RTP Timestamp %u\tFrame Duration "U64,
   //                AudioTimestampToRtp(pFrame->GetTimestamp())
@@ -369,8 +291,7 @@ void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
           + pFrame->GetDataLength();
 
 	// if new queue size exceeds the RTP payload
-	if (newAudioQueueSize 
-	  > m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
+	if (newAudioQueueSize > m_mtu) {
 
 		// send anything that's pending
 		SendQueuedAudioFrames();
@@ -383,8 +304,7 @@ void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 	}
 
 	// if new data will fit into RTP payload
-	if (newAudioQueueSize 
-	  <= m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
+	if (newAudioQueueSize <= m_mtu) {
 
 		// add it to the queue
 		m_audioQueue[m_audioQueueCount++] = pFrame;
@@ -409,7 +329,7 @@ void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
  * #define IS_JUMBO	4
  * #define SEND_NOW	8
  */
-void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
+void CAudioRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
 {
 	if (m_audio_queue_frame != NULL) {
 
@@ -417,7 +337,7 @@ void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
 		int check_frame = m_audio_queue_frame(&m_frameno,
 			pFrame->GetDataLength(),
 			m_audioQueueCount, m_audioQueueSize,
-			(u_int32_t) m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+						      (u_int32_t) m_mtu);
 
 #ifdef RTP_DEBUG
 		fprintf(stderr,"Check Frame :");
@@ -465,7 +385,7 @@ void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
 	}
 }
 
-void CRtpTransmitter::SendQueuedAudioFrames(void)
+void CAudioRtpTransmitter::SendQueuedAudioFrames(void)
 {
 	struct iovec iov[m_audioiovMaxCount + 1];
 	int ix;
@@ -477,7 +397,7 @@ void CRtpTransmitter::SendQueuedAudioFrames(void)
 	}
 
 	u_int32_t rtpTimestamp =
-		AudioTimestampToRtp(m_audioQueue[0]->GetTimestamp());
+		TimestampToRtp(m_audioQueue[0]->GetTimestamp());
 	u_int64_t ntpTimestamp =
 		TimestampToNtp(m_audioQueue[0]->GetTimestamp());
 
@@ -488,7 +408,7 @@ void CRtpTransmitter::SendQueuedAudioFrames(void)
 		(u_int32_t)(ntpTimestamp >> 32),
 		(u_int32_t)ntpTimestamp);
 #endif
-	rdptr = m_audioRtpDestination;
+	rdptr = m_rtpDestination;
 	while (rdptr != NULL) {
 	  rdptr->send_rtcp(rtpTimestamp, ntpTimestamp);
 	  rdptr = rdptr->get_next();
@@ -523,7 +443,7 @@ void CRtpTransmitter::SendQueuedAudioFrames(void)
 	}
 		
 	// send packet
-	rdptr = m_audioRtpDestination;
+	rdptr = m_rtpDestination;
 	while (rdptr != NULL) {
 	  rdptr->send_iov(&iov[iov_start],
 			  iov_add + m_audioQueueCount,
@@ -543,10 +463,10 @@ void CRtpTransmitter::SendQueuedAudioFrames(void)
 	m_audioQueueSize = 0;
 }
 
-void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
+void CAudioRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
 {
   u_int32_t rtpTimestamp = 
-    AudioTimestampToRtp(pFrame->GetTimestamp());
+    TimestampToRtp(pFrame->GetTimestamp());
   u_int64_t ntpTimestamp =
     TimestampToNtp(pFrame->GetTimestamp());
   CRtpDestination *rdptr;
@@ -558,15 +478,14 @@ void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
 		(u_int32_t)(ntpTimestamp >> 32),
 		(u_int32_t)ntpTimestamp);
 #endif
-  rdptr = m_audioRtpDestination;
+  rdptr = m_rtpDestination;
   while (rdptr != NULL) {
     rdptr->send_rtcp(rtpTimestamp, ntpTimestamp);
     rdptr = rdptr->get_next();
   }
 
   u_int32_t dataOffset = 0;
-  u_int32_t spaceAvailable = 
-    m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
+  u_int32_t spaceAvailable = m_mtu;
 
 
   struct iovec iov[2];
@@ -584,7 +503,7 @@ void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
       iov_hdr = 1;
     }
     // send packet
-    rdptr = m_audioRtpDestination;
+    rdptr = m_rtpDestination;
     while (rdptr != NULL) {
       rdptr->send_iov(&iov[iov_start],
 		      1 + iov_hdr,
@@ -605,65 +524,117 @@ void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
 
 
 
-void CRtpTransmitter::DoStartRtpDestination (uint32_t handle)
+void CRtpTransmitter::DoStartRtpDestination (const char *destAddr,
+					     in_port_t destPort)
 {
   CRtpDestination *ptr;
 
-  ptr = m_videoRtpDestination;
+  ptr = m_rtpDestination;
   while (ptr != NULL) {
-    if (ptr->get_ref_num() == handle) {
+    if (ptr->Matches(destAddr, destPort)) {
       ptr->start();
-      return;
-    }
-    ptr = ptr->get_next();
-  }
-  ptr = m_audioRtpDestination;
-  while (ptr != NULL) {
-    if (ptr->get_ref_num() == handle) {
-      ptr->start();
-      debug_message("Starting rtp handle %d", handle);
       return;
     }
     ptr = ptr->get_next();
   }
 }
 
-void CRtpTransmitter::DoStopRtpDestination (uint32_t handle)
+void CRtpTransmitter::DoStopRtpDestination (const char *destAddr, 
+					    in_port_t destPort)
 {
   CRtpDestination *ptr, *q;
 
   q = NULL;
-  ptr = m_videoRtpDestination;
+  ptr = m_rtpDestination;
   while (ptr != NULL) {
-    if (ptr->get_ref_num() == handle) {
-      if (q == NULL) {
-	m_videoRtpDestination = ptr->get_next();
-      } else {
-	q->set_next(ptr->get_next());
+    if (ptr->Matches(destAddr, destPort)) {
+      if (ptr->remove_reference()) {
+	if (q == NULL) {
+	  m_rtpDestination = ptr->get_next();
+	} else {
+	  q->set_next(ptr->get_next());
+	}
+	delete ptr;
       }
-      delete ptr;
       return;
     }
     q = ptr;
     ptr = ptr->get_next();
   }
+}
 
-  q = NULL;
-  ptr = m_audioRtpDestination;
-  while (ptr != NULL) {
-    if (ptr->get_ref_num() == handle) {
-      if (q == NULL) {
-	m_audioRtpDestination = ptr->get_next();
-      } else {
-	q->set_next(ptr->get_next());
-      }
-      debug_message("Stopping rtp handle %d", handle);
-      delete ptr;
-      return;
+CAudioRtpTransmitter::CAudioRtpTransmitter (CAudioProfile *ap,
+					    uint16_t mtu,
+					    bool disable_ts_offset) :
+  CRtpTransmitter(mtu)
+{
+  m_audio_profile = ap;
+  m_payloadNumber = 97;
+  m_audioQueue = NULL;
+  m_audio_rtp_userdata = NULL;
+  m_audio_set_rtp_payload = NULL;	// plugin function to determind how to build RTP payload
+  m_audio_queue_frame = NULL;		// plugin function to determind how to queue frames for RTP
+  m_frameno = NULL;			// plugin will allocate counter space
+  m_audioiovMaxCount = 0;		// Max number of iov segments for send_iov
+	  
+  /*  if (m_audioSrcPort == 0) {
+    m_audioSrcPort = GetRandomPortBlock();
     }
-    q = ptr;
-    ptr = ptr->get_next();
-  }
+    if (m_pConfig->GetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT) == 0) {
+      m_pConfig->SetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT,
+				 m_audioSrcPort + 2);
+    }
+  */
+  if (get_audio_rtp_info(ap,
+			 &m_frameType,
+			 &m_timeScale,
+			 &m_payloadNumber, 
+			 &m_audioPayloadBytesPerPacket,
+			 &m_audioPayloadBytesPerFrame,
+			 &m_audioQueueMaxCount,
+			 &m_audioiovMaxCount,
+			 &m_audio_queue_frame,
+			 &m_audio_set_rtp_payload,
+			 &m_audio_set_rtp_header,
+			 &m_audio_set_rtp_jumbo_frame,
+			 &m_audio_rtp_userdata) == false) {
+      error_message("rtp transmitter: unknown audio encoding %s",
+		    ap->GetStringValue(CFG_AUDIO_ENCODING));
+    }
+
+    if (m_audioiovMaxCount == 0)			// This is purely for backwards compability
+      m_audioiovMaxCount = m_audioQueueMaxCount;	// Can go away when lame and faac plugin sets this
+
+    if (disable_ts_offset) {
+      m_audioRtpTimestampOffset = 0;
+    } else {
+      m_audioRtpTimestampOffset = random();
+    }
+
+    m_audioQueueCount = 0;
+    m_audioQueueSize = 0;
+    
+    m_audioQueue = (CMediaFrame**)Malloc(m_audioQueueMaxCount * sizeof(CMediaFrame*));
+}
+
+CAudioRtpTransmitter::~CAudioRtpTransmitter (void) 
+{
+  DoStopTransmit();
+  CHECK_AND_FREE(m_audio_rtp_userdata);
+  CHECK_AND_FREE(m_frameno);
+  CHECK_AND_FREE(m_audioQueue);
+}
+
+CVideoRtpTransmitter::CVideoRtpTransmitter (CVideoProfile *vp, 
+					    uint16_t mtu,
+					    bool disable_ts_offset) :
+  CRtpTransmitter(mtu, disable_ts_offset)
+{
+  m_videoSendFunc = GetVideoRtpTransmitRoutine(vp,
+					       &m_frameType, 
+					       &m_payloadNumber);
+  m_timeScale = 90000;
+
 }
 
 static void RtpCallback (struct rtp *session, rtp_event *e) 
@@ -675,8 +646,7 @@ static void RtpCallback (struct rtp *session, rtp_event *e)
   }
 }
 
-CRtpDestination::CRtpDestination (uint32_t ref_number,
-				  const char *destAddr, 
+CRtpDestination::CRtpDestination (const char *destAddr, 
 				  in_port_t destPort,
 				  in_port_t srcPort,
 				  uint8_t payloadNumber,
@@ -684,7 +654,6 @@ CRtpDestination::CRtpDestination (uint32_t ref_number,
 				  float rtcp_bandwidth)
 {
 
-  m_refNum = ref_number;
   m_destAddr = strdup(destAddr);
   m_destPort = destPort;
   m_srcPort = srcPort;
@@ -693,7 +662,20 @@ CRtpDestination::CRtpDestination (uint32_t ref_number,
   m_rtcp_bandwidth = rtcp_bandwidth;
   m_rtpSession = NULL;
   m_next = NULL;
+  m_ref_mutex = SDL_CreateMutex();
+  m_reference = 1;
 }
+
+CRtpDestination::~CRtpDestination (void)
+{
+  CHECK_AND_FREE(m_destAddr);
+  if (m_rtpSession != NULL) {
+    rtp_done(m_rtpSession);
+    m_rtpSession = NULL;
+  }
+  SDL_DestroyMutex(m_ref_mutex);
+}
+
 
 void CRtpDestination::start (void) 
 {
@@ -716,16 +698,6 @@ void CRtpDestination::start (void)
 }
 			  
 			  
-CRtpDestination::~CRtpDestination (void)
-{
-  CHECK_AND_FREE(m_destAddr);
-
-  if (m_rtpSession != NULL) {
-    rtp_done(m_rtpSession);
-    m_rtpSession = NULL;
-  }
-}
-
 void CRtpDestination::send_rtcp (u_int32_t rtpTimestamp,
 				 u_int64_t ntpTimestamp)
 {
@@ -741,7 +713,7 @@ int CRtpDestination::send_iov (struct iovec *piov,
 			       int mbit)
 {
   if (m_rtpSession != NULL) {
-    return rtp_send_data_iov(m_rtpSession,
+    int ret = rtp_send_data_iov(m_rtpSession,
 			     rtpTimestamp,
 			     m_payloadNumber,
 			     mbit, 
@@ -753,6 +725,9 @@ int CRtpDestination::send_iov (struct iovec *piov,
 			     0, 
 			     0,
 			     0);
+    //debug_message("sending iov %d", ret);
+    return ret;
+    
   }
   return -1;
 }

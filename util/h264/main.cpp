@@ -29,12 +29,27 @@ static uint8_t exp_golomb_bits[256] = {
 uint32_t h264_ue (CBitstream *bs)
 {
   uint32_t bits, read;
+  int bits_left;
   uint8_t coded;
-
+  bool done = false;
   bits = 0;
-  while ((read = bs->PeekBits(8)) == 0) {
-    bs->GetBits(8);
-    bits += 8;
+  // we want to read 8 bits at a time - if we don't have 8 bits, 
+  // read what's left, and shift.  The exp_golomb_bits calc remains the
+  // same.
+  while (done == false) {
+    bits_left = bs->bits_remain();
+    if (bits_left < 8) {
+      read = bs->PeekBits(bits_left) << (8 - bits_left);
+      done = true;
+    } else {
+      read = bs->PeekBits(8);
+      if (read == 0) {
+	bs->GetBits(8);
+	bits += 8;
+      } else {
+	done = true;
+      }
+    }
   }
   coded = exp_golomb_bits[read];
   bs->GetBits(coded);
@@ -170,7 +185,7 @@ static uint32_t calc_ceil_log2 (uint32_t val)
 void h264_parse_sequence_parameter_set (h264_decode_t *dec, CBitstream *bs)
 {
   uint32_t temp;
-  printf("   profile %x\n", bs->GetBits(8));
+  printf("   profile %d\n", bs->GetBits(8));
   printf("   constaint_set0_flag: %d\n", bs->GetBits(1));
   printf("   constaint_set1_flag: %d\n", bs->GetBits(1));
   printf("   constaint_set2_flag: %d\n", bs->GetBits(1));
@@ -215,7 +230,7 @@ void h264_parse_sequence_parameter_set (h264_decode_t *dec, CBitstream *bs)
   }
   printf("   direct_8x8_inference_flag: %u\n", bs->GetBits(1));
   temp = bs->GetBits(1);
-  printf("   frame_cropping_flag: %u\n", bs->GetBits(1));
+  printf("   frame_cropping_flag: %u\n", temp);
   if (temp) {
     printf("     frame_crop_left_offset: %u\n", h264_ue(bs));
     printf("     frame_crop_right_offset: %u\n", h264_ue(bs));

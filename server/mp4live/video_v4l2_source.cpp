@@ -29,11 +29,13 @@
 
 int CV4L2VideoSource::ThreadMain(void) 
 {
+  debug_message("v4l2 thread start");
+  m_v4l_mutex = SDL_CreateMutex();
   while (true) {
     int rc;
 
    if (m_source) {
-      rc = SDL_SemTryWait(m_myMsgQueueSemaphore);
+     rc = SDL_SemTryWait(m_myMsgQueueSemaphore);
     } else {
       rc = SDL_SemWait(m_myMsgQueueSemaphore);
     }
@@ -52,15 +54,14 @@ int CV4L2VideoSource::ThreadMain(void)
         case MSG_NODE_STOP_THREAD:
           DoStopCapture();	// ensure things get cleaned up
           delete pMsg;
+	  debug_message("v4l2 thread exit");
           return 0;
         case MSG_NODE_START:
           DoStartCapture();
+	  debug_message("v4l2 thread start capture");
           break;
         case MSG_NODE_STOP:
           DoStopCapture();
-          break;
-        case MSG_SOURCE_KEY_FRAME:
-          DoGenerateKeyFrame();
           break;
         }
         delete pMsg;
@@ -78,12 +79,15 @@ int CV4L2VideoSource::ThreadMain(void)
     }
   }
 
+  debug_message("v4l2 thread exit");
   return -1;
 }
 
 void CV4L2VideoSource::DoStartCapture(void)
 {
-  if (m_source) return;
+  if (m_source) {
+    return;
+  }
   if (!Init()) return;
   m_source = true;
 }
@@ -91,9 +95,10 @@ void CV4L2VideoSource::DoStartCapture(void)
 void CV4L2VideoSource::DoStopCapture(void)
 {
   if (!m_source) return;
-  DoStopVideo();
+  //  DoStopVideo();
   ReleaseDevice();
   m_source = false;
+  SDL_DestroyMutex(m_v4l_mutex);
 }
 
 bool CV4L2VideoSource::Init(void)
@@ -108,8 +113,7 @@ bool CV4L2VideoSource::Init(void)
   SetVideoSrcSize(
                   m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
                   m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT),
-                  m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH),
-                  true);
+                  m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH));
 
   m_maxPasses = (u_int8_t)(m_videoSrcFrameRate + 0.5);
 
@@ -285,8 +289,10 @@ bool CV4L2VideoSource::InitDevice(void)
   }
   
   // allocate the desired number of buffers
+  m_release_index_mask = 0;
   struct v4l2_requestbuffers reqbuf;
-  reqbuf.count = m_pConfig->GetIntegerValue(CONFIG_VIDEO_CAP_BUFF_COUNT);
+  reqbuf.count = MIN(m_pConfig->GetIntegerValue(CONFIG_VIDEO_CAP_BUFF_COUNT),
+		     32);
   reqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   reqbuf.memory = V4L2_MEMORY_MMAP;
   rc = ioctl(m_videoDevice, VIDIOC_REQBUFS, &reqbuf);
@@ -492,28 +498,91 @@ bool CV4L2VideoSource::SetPictureControls()
 int8_t CV4L2VideoSource::AcquireFrame(Timestamp &frameTimestamp)
 {
   struct v4l2_buffer buffer;
+
+  ReleaseFrames();
+  // if we're still waiting to release frames, there's no need
+  // to get another error
+
   buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  buffer.memory = V4L2_MEMORY_MMAP;
 
   int rc = ioctl(m_videoDevice, VIDIOC_DQBUF, &buffer);
   if (rc != 0) {
-    error_message("error %d errno %d", rc, errno);
+    error_message("error %d errno %d %s", rc, errno, strerror(errno));
     return -1;
   }
-
+  SDL_UnlockMutex(m_v4l_mutex);
+  //  debug_message("acq %d", buffer.index);
   frameTimestamp = GetTimestampFromTimeval(&(buffer.timestamp));
   return buffer.index;
 }
 
-void CV4L2VideoSource::ReleaseFrame(uint8_t index)
+void c_ReleaseFrame (void *f)
 {
-  struct v4l2_buffer buffer;
-  buffer.index = index;
-  buffer.memory = V4L2_MEMORY_MMAP;
-  buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  yuv_media_frame_t *yuv = (yuv_media_frame_t *)f;
+  if (yuv->free_y) {
+    CHECK_AND_FREE(yuv->y);
+  } else {
+    CV4L2VideoSource *s = (CV4L2VideoSource *)yuv->hardware;
+    s->IndicateReleaseFrame(yuv->hardware_index);
+  }
+  free(yuv);
+}
 
-  int rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
-  if (rc < 0) {
-    error_message("Could not enqueue buffer to video capture queue");
+/*
+ * Use the m_release_index_mask to indicate which indexes need to
+ * be released - note - there may be a problem if we don't release
+ * in order given.
+ */
+void CV4L2VideoSource::ReleaseFrames (void)
+{
+  uint8_t index = 0;
+  uint32_t index_mask = 1;
+  uint32_t released_mask;
+  int rc;
+
+  SDL_LockMutex(m_v4l_mutex);
+  released_mask = m_release_index_mask;
+  m_release_index_mask = 0;
+  SDL_UnlockMutex(m_v4l_mutex);
+
+  while (released_mask != 0 && index < 32) {
+    if ((index_mask & released_mask) != 0) {
+      struct v4l2_buffer buffer;
+      buffer.index = index;
+      buffer.memory = V4L2_MEMORY_MMAP;
+      buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+      // it appears that some cards, some drivers require a QUERYBUF
+      // before the QBUF.  This code is designed to do so, but only if
+      // we need to
+      if (m_use_alternate_release) {
+	rc = ioctl(m_videoDevice, VIDIOC_QUERYBUF, &buffer);
+	if (rc < 0) {
+	  error_message("Failed to query video capture buffer status");
+	}
+      }
+      rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
+      if (rc < 0) {
+	if (m_use_alternate_release) {
+	  error_message("Could not enqueue buffer to video capture queue");
+	} else {
+	  rc = ioctl(m_videoDevice, VIDIOC_QUERYBUF, &buffer);
+	  if (rc < 0) {
+	    error_message("Failed to query video capture buffer status");
+	  }
+	  rc = ioctl(m_videoDevice, VIDIOC_QBUF, &buffer);
+	  if (rc < 0) {
+	    error_message("Failed to query video capture buffer status");
+	  } else {
+	    m_use_alternate_release = true;
+	  }
+	}
+      }
+      //      debug_message("rel %d", index);
+    } 
+    index_mask <<= 1;
+    index++;
   }
 }
 
@@ -521,7 +590,7 @@ void CV4L2VideoSource::ProcessVideo(void)
 {
   // for efficiency, process ~1 second before returning to check for commands
   Timestamp frameTimestamp;
-  for (int pass = 0; pass < m_maxPasses; pass++) {
+  for (int pass = 0; pass < m_maxPasses && m_stop_thread == false; pass++) {
 
     // dequeue next frame from video capture buffer
     int index = AcquireFrame(frameTimestamp);
@@ -562,19 +631,34 @@ void CV4L2VideoSource::ProcessVideo(void)
 			    m_videoSrcHeight);
     }
 
-    ProcessVideoYUVFrame(
-                         pY, 
-                         pU, 
-                         pV,
-                         m_videoSrcWidth,
-                         m_videoSrcWidth >> 1,
-                         frameTimestamp);
+    yuv_media_frame_t *yuv = MALLOC_STRUCTURE(yuv_media_frame_t);
+    yuv->y = pY;
+    yuv->u = pU;
+    yuv->v = pV;
+    yuv->y_stride = m_videoSrcWidth;
+    yuv->uv_stride = m_videoSrcWidth >> 1;
+    yuv->w = m_videoSrcWidth;
+    yuv->h = m_videoSrcHeight;
+    yuv->hardware = this;
+    yuv->hardware_index = index;
+    if (m_videoWantKeyFrame && frameTimestamp >= m_audioStartTimestamp) {
+      yuv->force_iframe = true;
+      m_videoWantKeyFrame = false;
+      debug_message("Frame "U64" request key frame", frameTimestamp);
+    } else 
+      yuv->force_iframe = false;
+    yuv->free_y = (mallocedYuvImage != NULL);
 
+    CMediaFrame *frame = new CMediaFrame(YUVVIDEOFRAME,
+					 yuv,
+					 0,
+					 frameTimestamp);
+    frame->SetMediaFreeFunction(c_ReleaseFrame);
+    ForwardFrame(frame);
+    //debug_message("video source forward");
     // enqueue the frame to video capture buffer
-    ReleaseFrame(index);
-
     if (mallocedYuvImage != NULL) {
-      free(mallocedYuvImage);
+      IndicateReleaseFrame(index);
     }
   }
 }

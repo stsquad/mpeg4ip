@@ -256,13 +256,13 @@ see their documentation for that. (Basically, use their --enable-amr_wb and
 --enable-amr_nb code, get the code and unzip it in the correct sub-directory - 
 for the amr_float directory, you'll have to move the code from c-code to amr_float).
 <p>
-You may also want to build ffmpeg with the --enable-shared options (especially
-on Mac OS X systems).  If you do this, only libavcodec will build, but that 
-is all we require.
-<p>
-To build ffmpeg on Mac OS X, configure with --enable-shared.  Edit the 
+To build ffmpeg on Mac OS X, build with normal options.  Edit the 
 config.mak, and change LDFLAGS to a NULL string - i.e.<br>
-<code>LDFLAGS=</code><br>
+<code>LDFLAGS=</code><br>.
+<p>
+If you get an error when linking, remove the -mdynamic-no-pic from
+OPTFLAGS in config.mak, and rebuild ffmpeg entirely
+<p>
 You may also have to run <code>ranlib /usr/local/lib/libavcodec.a</code>
 after installing it, if you get an error that it (/usr/local/lib/libavcodec.a)
 is out of date.

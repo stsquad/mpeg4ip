@@ -104,8 +104,10 @@
 
 
 
-CH261Encoder::CH261Encoder() :
-	m_encoded_frame_buffer(0), m_pBufferCurrent(0), ngob_(12)
+CH261Encoder::CH261Encoder(CVideoProfile *vp,
+			   CVideoEncoder *next, 
+			   bool realTime) :
+  CVideoEncoder(vp, next, realTime), m_encoded_frame_buffer(0), m_pBufferCurrent(0), ngob_(12)
 {
   m_head = NULL;
   frame_data_ = NULL;
@@ -116,7 +118,7 @@ CH261Encoder::CH261Encoder() :
 		clm_[q] = 0;
 	}
 }
-void CH261Encoder::Stop(void)
+void CH261Encoder::StopEncoder (void)
 {
 	for (int q = 0; q < 32; ++q) {
 		if (llm_[q] != 0) delete[] llm_[q];
@@ -125,8 +127,11 @@ void CH261Encoder::Stop(void)
 	CHECK_AND_FREE(m_localbuffer);
 }
 
-CH261PixelEncoder::CH261PixelEncoder() : CH261Encoder(), 
-				       ConditionalReplenisher()
+CH261PixelEncoder::CH261PixelEncoder(CVideoProfile *vp,
+				     CVideoEncoder *next,
+				     bool realTime) : 
+  CH261Encoder(vp, next, realTime), 
+  ConditionalReplenisher()
 {
 	quant_required_ = 0;
 	setq(10);
@@ -547,7 +552,7 @@ media_free_f CH261Encoder::GetMediaFreeFunction(void)
   return (media_free_f)free_pktbuf_list;
 }
 
-void CH261Encoder::encode(uint8_t* vf, const u_int8_t *crvec)
+void CH261Encoder::encode(const uint8_t* vf, const u_int8_t *crvec)
 {
   pktbuf_t* pb = alloc_pktbuf(mtu_);
   if (m_head != NULL) {
@@ -577,7 +582,7 @@ void CH261Encoder::encode(uint8_t* vf, const u_int8_t *crvec)
 
 	int step = cif_ ? 1 : 2;
 
-	u_int8_t* frm = vf;
+	const u_int8_t* frm = vf;
 	for (u_int gob = 0; gob < ngob_; gob += step) {
 		u_int loff = loff_[gob];
 		u_int coff = coff_[gob];
@@ -645,9 +650,9 @@ void CH261Encoder::encode(uint8_t* vf, const u_int8_t *crvec)
 
 
 bool
-CH261PixelEncoder::EncodeImage(uint8_t *pY, 
-			       uint8_t *pU,
-			       uint8_t *pV,
+CH261PixelEncoder::EncodeImage(const uint8_t *pY, 
+			       const uint8_t *pU,
+			       const uint8_t *pV,
 			       uint32_t yStride,
 			       uint32_t uvStride,
 			       bool wantKeyFrame,
@@ -655,7 +660,7 @@ CH261PixelEncoder::EncodeImage(uint8_t *pY,
 			       Timestamp srcTimestamp)
 {
   uint32_t y;
-  uint8_t *pFrame;
+  const uint8_t *pFrame;
   // check if everything is all together
   m_srcFrameTimestamp = srcTimestamp;
   pFrame = pY;
@@ -892,9 +897,9 @@ CH261PixelEncoder::EncodeImage(uint8_t *pY,
     u_char* dest_lum = frame_data_;
     u_char* dest_cr = frame_data_+off;
     u_char* dest_cb = frame_data_+off+(off/4);
-    u_char* src_lum = pFrame;
-    u_char* src_cr = pFrame + off;
-    u_char* src_cb = pFrame + off + (off / 4);
+    const u_char* src_lum = pFrame;
+    const u_char* src_cr = pFrame + off;
+    const u_char* src_cb = pFrame + off + (off / 4);
 
     //debug_message("Sending start");
     for (y = 0; y < bh; y++) {
@@ -963,18 +968,18 @@ bool CH261PixelEncoder::GetReconstructedImage(uint8_t *pY,
   return true;
 }
 
-bool CH261Encoder::Init(CLiveConfig *pConfig, bool realTime)
+bool CH261Encoder::Init(void)
 {
   float value;
-  setq(pConfig->GetIntegerValue(CONFIG_VIDEO_H261_QUALITY));
-  m_bitRate = pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
+  setq(Profile()->GetIntegerValue(CFG_VIDEO_H261_QUALITY));
+  m_bitRate = Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) * 1000;
 
-  value = pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
+  value = Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE);
   value = value + 0.5;
   m_framerate = (uint8_t)value;
   m_bitsPerFrame = m_bitRate / m_framerate;
-  m_framesForQualityCheck = pConfig->GetIntegerValue(CONFIG_VIDEO_H261_QUALITY_ADJ_FRAMES);
-  size(pConfig->m_videoWidth, pConfig->m_videoHeight);
-  mtu_ = pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
+  m_framesForQualityCheck = Profile()->GetIntegerValue(CFG_VIDEO_H261_QUALITY_ADJ_FRAMES);
+  size(Profile()->m_videoWidth, Profile()->m_videoHeight);
+  //  mtu_ = Profile()->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
   return true;
 }

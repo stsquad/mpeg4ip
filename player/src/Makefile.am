@@ -35,11 +35,13 @@ libmp4decode_plugin_la_SOURCES = \
 
 if HAVE_MAC_OSX
   SDL_AUDIO_SRC = audio_macosx.cpp audio_macosx.h
-  SDL_AUDIO_LIB = $(top_builddir)/player/lib/audio/portaudio/libportaudio.la -framework CoreAudio -framework AudioToolbox
+  SDL_AUDIO_FLAGS = -framework CoreAudio -framework AudioToolbox 
+  SDL_AUDIO_LIB = $(top_builddir)/player/lib/audio/portaudio/libportaudio.la 
   SDL_AUDIO_INC =-I$(top_builddir)/player/lib/audio/portaudio
   ADD_CFLAGS=-Ddarwin -D_THREAD_SAFE -DNEED_SDL_VIDEO_IN_MAIN_THREAD
 else
   SDL_AUDIO_SRC = audio_sdl.cpp audio_sdl.h
+  SDL_AUDIO_FLAGS=
   SDL_AUDIO_LIB = $(top_builddir)/lib/SDLAudio/src/libmpeg4ipSDL.la 
   SDL_AUDIO_INC = -I$(top_builddir)/lib/SDLAudio/include
   ADD_CFLAGS=
@@ -159,9 +161,9 @@ libmp4player_la_LIBADD = \
 	@ISMACRYP_LIB@ \
 	$(top_builddir)/lib/utils/libutils.la
 
-mp4player_LDFLAGS = $(SDL_AUDIO_LIB)
+mp4player_LDFLAGS = $(SDL_AUDIO_FLAGS)
 mp4player_LDADD = \
-	-lm \
+	-lm $(SDL_AUDIO_LIB) \
 	libmp4player.la \
 	libmp4syncbase.la \
 	libmp4syncsdl.la \
@@ -171,7 +173,7 @@ mp4player_LDADD = \
 	@ISMACRYP_LIB@ \
 	@SDL_LIBS@ 
 
-gmp4player_LDFLAGS= $(SDL_AUDIO_LIB)
+gmp4player_LDFLAGS= $(SDL_AUDIO_FLAGS)
 gmp4player_LDADD = $(mp4player_LDADD) \
 	@GTK_LIBS@ @GLIB_LIBS@
 

@@ -753,7 +753,8 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 			       &sptr->w,
 			       &sptr->frame_rate,
 			       &sptr->bit_rate,
-			       NULL) < 0) {
+			       NULL,
+			       &sptr->mpeg2_profile) < 0) {
       mpeg2ps_message(LOG_ERR, "Can't parse sequence header in first frame - stream\n",
 	     sptr->m_stream_id);
       sptr->m_stream_id = 0;
@@ -1269,7 +1270,7 @@ const char *mpeg2ps_get_video_stream_name (mpeg2ps_t *ps, uint streamno)
     return 0;
   }
   if (ps->video_streams[streamno]->have_mpeg2) {
-    return "Mpeg-2";
+    return mpeg2_type(ps->video_streams[streamno]->mpeg2_profile);
   }
   return "Mpeg-1";
 }
@@ -1280,8 +1281,8 @@ mpeg2ps_video_type_t mpeg2ps_get_video_stream_type (mpeg2ps_t *ps,
   if (invalid_video_streamno(ps, streamno)) {
     return MPEG_AUDIO_UNKNOWN;
   }
-  return ps->video_streams[streamno]->have_mpeg2 ? MPEG_VIDEO_MPEG1 : 
-    MPEG_VIDEO_MPEG2;
+  return ps->video_streams[streamno]->have_mpeg2 ? MPEG_VIDEO_MPEG2 : 
+    MPEG_VIDEO_MPEG1;
 }
 
 uint32_t mpeg2ps_get_video_stream_width (mpeg2ps_t *ps, uint streamno)
@@ -1314,6 +1315,17 @@ double mpeg2ps_get_video_stream_framerate (mpeg2ps_t *ps, uint streamno)
     return 0;
   }
   return ps->video_streams[streamno]->frame_rate;
+}
+
+uint8_t mpeg2ps_get_video_stream_mp4_type (mpeg2ps_t *ps, uint streamno)
+{
+  if (invalid_video_streamno(ps, streamno)) {
+    return 0;
+  }
+  if (ps->video_streams[streamno]->have_mpeg2) {
+    return mpeg2_profile_to_mp4_track_type(ps->video_streams[streamno]->mpeg2_profile);
+  } 
+  return MP4_MPEG1_VIDEO_TYPE;
 }
 
 static bool invalid_audio_streamno (mpeg2ps_t *ps, uint streamno)

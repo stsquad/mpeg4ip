@@ -537,6 +537,7 @@ public: /* equivalent to MP4 library API */
 	/* iTunes metadata handling */
  protected:
 	bool CreateMetadataAtom(const char* name);
+	bool DeleteMetadataAtom(const char* name);
 	bool GetMetadataString(const char *atom, char **value);
 	bool SetMetadataString(const char *atom, const char *value);
  public:
@@ -583,6 +584,24 @@ public: /* equivalent to MP4 library API */
 	bool GetMetadataFreeForm(char *name, 
 				 u_int8_t** pValue, 
 				 u_int32_t* valueSize);
+
+	/* delete metadata */
+	bool DeleteMetadataName();
+	bool DeleteMetadataWriter();
+	bool DeleteMetadataAlbum();
+	bool DeleteMetadataArtist();
+	bool DeleteMetadataTool();
+	bool DeleteMetadataComment();
+	bool DeleteMetadataYear();
+	bool DeleteMetadataTrack();
+	bool DeleteMetadataDisk();
+	bool DeleteMetadataGenre();
+	bool DeleteMetadataGrouping();
+	bool DeleteMetadataTempo();
+	bool DeleteMetadataCompilation();
+	bool DeleteMetadataCoverArt();
+	bool DeleteMetadataFreeForm(char *name);
+
 	/* end of MP4 API */
 
 	/* "protected" interface to be used only by friends in library */

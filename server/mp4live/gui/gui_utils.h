@@ -56,19 +56,17 @@ GtkWidget *CreateMenuRadio (GtkWidget *menu,
                             gpointer data);
 
 GtkWidget *CreateOptionMenu(GtkWidget *old,
-			    char **names,
+			    const char **names,
 			    uint32_t max,
 			    uint32_t current_index,
-			    GtkSignalFunc on_activate,
-				GSList** menuItems = NULL);
+			    GSList** menuItems = NULL);
 
 GtkWidget *CreateOptionMenu(GtkWidget *old,
-				char* (*gather_func)(uint32_t index, void* pUserData),
-				void* pUserData,
+			    char* (*gather_func)(uint32_t index, void* pUserData),
+			    void* pUserData,
 			    uint32_t max,
 			    uint32_t current_index,
-			    GtkSignalFunc on_activate,
-				GSList** menuItems = NULL);
+			    GSList** menuItems = NULL);
   
 int GetNumberEntryValue(GtkWidget *entry, uint32_t *result);
   

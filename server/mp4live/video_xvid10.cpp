@@ -24,7 +24,10 @@
 #include "video_xvid10.h"
 #include <mp4av.h>
 
-CXvid10VideoEncoder::CXvid10VideoEncoder()
+CXvid10VideoEncoder::CXvid10VideoEncoder(CVideoProfile *vp, 
+					 CVideoEncoder *next, 
+					 bool realTime) :
+  CVideoEncoder(vp, next, realTime)
 {
 	m_xvidHandle = NULL;
 	m_vopBuffer = NULL;
@@ -38,25 +41,23 @@ CXvid10VideoEncoder::CXvid10VideoEncoder()
 	m_use_lumimask_plugin = false;
 }
 
-bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
+bool CXvid10VideoEncoder::Init(void)
 {
-	m_pConfig = pConfig;
-
 	xvid_gbl_init_t xvid_gbl_init;
 
-	m_video_quality = pConfig->GetIntegerValue(CONFIG_XVID10_VIDEO_QUALITY);
+	m_video_quality = Profile()->GetIntegerValue(CFG_XVID10_VIDEO_QUALITY);
 	if (m_video_quality > 6) m_video_quality = 6;
-	m_use_gmc = pConfig->GetBoolValue(CONFIG_XVID10_USE_GMC);
-	m_use_qpel = pConfig->GetBoolValue(CONFIG_XVID10_USE_QPEL);
-	m_use_interlacing = pConfig->GetBoolValue(CONFIG_XVID10_USE_INTERLACING);
+	m_use_gmc = Profile()->GetBoolValue(CFG_XVID10_USE_GMC);
+	m_use_qpel = Profile()->GetBoolValue(CFG_XVID10_USE_QPEL);
+	m_use_interlacing = Profile()->GetBoolValue(CFG_XVID10_USE_INTERLACING);
 	m_use_lumimask_plugin = 
-	  pConfig->GetBoolValue(CONFIG_XVID10_USE_LUMIMASK);
+	  Profile()->GetBoolValue(CFG_XVID10_USE_LUMIMASK);
 	m_use_par = 
-	  pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH) != 0 &&
-	  pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT) != 0;
+	  Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_WIDTH) != 0 &&
+	  Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_HEIGHT) != 0;
 	if (m_use_par) {
-	  int par_w = pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH);
-	  int par_h = pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT);
+	  int par_w = Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_WIDTH);
+	  int par_h = Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_HEIGHT);
 
 	  if (par_w > 255 || par_h > 255) {
 	    error_message("PAR parameters are > 255 - not used");
@@ -91,9 +92,9 @@ bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	xvid_enc_create_t enc_create;
 	memset(&enc_create, 0, sizeof(enc_create));
 	enc_create.version = XVID_VERSION;
-	enc_create.width = m_pConfig->m_videoWidth;
-	enc_create.height = m_pConfig->m_videoHeight;
-	enc_create.profile = m_pConfig->m_videoMpeg4ProfileId;
+	enc_create.width = Profile()->m_videoWidth;
+	enc_create.height = Profile()->m_videoHeight;
+	enc_create.profile = Profile()->m_videoMpeg4ProfileId;
        
 	xvid_enc_zone_t zones;
 	enc_create.zones = &zones;
@@ -107,7 +108,7 @@ bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	memset(&single, 0, sizeof(single));
 	single.version = XVID_VERSION;
 	single.bitrate = 
-	  m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
+	  Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) * 1000;
 
 	plugins[0].func = xvid_plugin_single;
 	plugins[0].param = &single;
@@ -120,21 +121,21 @@ bool CXvid10VideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	}
 	enc_create.plugins = plugins;
 	
-	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS) == 0) {
+	if (Profile()->GetIntegerValue(CFG_VIDEO_TIMEBITS) == 0) {
 	  enc_create.fincr = 1;
 	  enc_create.fbase = 
-	    (int)(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
+	    (int)(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) + 0.5);
 	} else {
 	  enc_create.fincr = 
-	    (int)(((double)m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS)) /
-		  m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE));
+	    (int)(((double)Profile()->GetIntegerValue(CFG_VIDEO_TIMEBITS)) /
+		  Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE));
 	  enc_create.fbase = 
-	    m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS);
+	    Profile()->GetIntegerValue(CFG_VIDEO_TIMEBITS);
 	}
 
 	enc_create.max_key_interval = (int)
-		(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) 
-		 * m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
+		(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) 
+		 * Profile()->GetFloatValue(CFG_VIDEO_KEY_FRAME_INTERVAL));
 	
 	// We may be able to do b-frames at some point - this means
 	// work in the rtp transmitter, as well as recording the pts
@@ -185,9 +186,9 @@ static struct {
 
 
 bool CXvid10VideoEncoder::EncodeImage(
-	u_int8_t* pY, 
-	u_int8_t* pU, 
-	u_int8_t* pV, 
+	const u_int8_t* pY, 
+	const u_int8_t* pU, 
+	const u_int8_t* pV, 
 	u_int32_t yStride,
 	u_int32_t uvStride,
 	bool wantKeyFrame,
@@ -197,7 +198,7 @@ bool CXvid10VideoEncoder::EncodeImage(
   m_srcFrameTimestamp = srcFrameTimestamp;
 	xvid_enc_frame_t 		xvidFrame;
 	CHECK_AND_FREE(m_vopBuffer);
-	m_vopBuffer = (u_int8_t*)malloc(m_pConfig->m_videoMaxVopSize);
+	m_vopBuffer = (u_int8_t*)malloc(Profile()->m_videoMaxVopSize);
 	if (m_vopBuffer == NULL) {
 		return false;
 	}
@@ -225,13 +226,13 @@ bool CXvid10VideoEncoder::EncodeImage(
 	}
 	  
 	xvidFrame.bitstream = m_vopBuffer;
-	xvidFrame.length = m_pConfig->m_videoMaxVopSize;
+	xvidFrame.length = Profile()->m_videoMaxVopSize;
 	xvidFrame.input.csp = XVID_CSP_PLANAR;
-	xvidFrame.input.plane[0] = pY;
+	xvidFrame.input.plane[0] = (void *)pY;
 	xvidFrame.input.stride[0] = yStride;
-	xvidFrame.input.plane[1] = pU;
+	xvidFrame.input.plane[1] = (void *)pU;
 	xvidFrame.input.stride[1] = uvStride;
-	xvidFrame.input.plane[2] = pV;
+	xvidFrame.input.plane[2] = (void *)pV;
 	xvidFrame.input.stride[2] = uvStride;
 	if (m_use_par) {
 	  xvidFrame.par = m_par;
@@ -286,24 +287,24 @@ bool CXvid10VideoEncoder::GetReconstructedImage(
 #if 0
 
 	imgcpy(pY, (u_int8_t*)m_m_xvidResult.image_y,
-		m_pConfig->m_videoWidth, 
-		m_pConfig->m_videoHeight,
+		Profile()->m_videoWidth, 
+		Profile()->m_videoHeight,
 		m_m_xvidResult.stride_y);
 
 	imgcpy(pU, (u_int8_t*)m_m_xvidResult.image_u,
-		m_pConfig->m_videoWidth / 2, 
-		m_pConfig->m_videoHeight / 2,
+		Profile()->m_videoWidth / 2, 
+		Profile()->m_videoHeight / 2,
 		m_m_xvidResult.stride_u);
 
 	imgcpy(pV, (u_int8_t*)m_m_xvidResult.image_v,
-		m_pConfig->m_videoWidth / 2, 
-		m_pConfig->m_videoHeight / 2,
+		Profile()->m_videoWidth / 2, 
+		Profile()->m_videoHeight / 2,
 		m_m_xvidResult.stride_u);
 	return true;
 #endif
 }
 
-void CXvid10VideoEncoder::Stop()
+void CXvid10VideoEncoder::StopEncoder (void)
 {
   CHECK_AND_FREE(m_vopBuffer);
   xvid_encore(m_xvidHandle, XVID_ENC_DESTROY, NULL, NULL);
@@ -320,11 +321,10 @@ void CXvid10VideoEncoder::Stop()
  * Ah - fun - pull the vol out of the encoder - hope it doesn't
  * change...
  */
-bool CXvid10VideoEncoder::GetEsConfig(CLiveConfig *pConfig, 
-				      uint8_t **ppEsConfig,
+bool CXvid10VideoEncoder::GetEsConfig(uint8_t **ppEsConfig,
 				      uint32_t *pEsConfigLen)
 {
-  uint8_t *yuvbuf = (uint8_t *)malloc(pConfig->m_yuvSize);
+  uint8_t *yuvbuf = (uint8_t *)malloc(Profile()->m_yuvSize);
 
   if (yuvbuf == NULL) {
     error_message("xvid - Can't malloc memory for YUV for VOL");
@@ -332,12 +332,12 @@ bool CXvid10VideoEncoder::GetEsConfig(CLiveConfig *pConfig,
   }
   // Create a dummy frame, and encode it, requesting an I frame
   // this should give us a VOL
-  memset(yuvbuf, 0, pConfig->m_yuvSize);
+  memset(yuvbuf, 0, Profile()->m_yuvSize);
   if (EncodeImage(yuvbuf,
-		  yuvbuf + pConfig->m_ySize,
-		  yuvbuf + pConfig->m_ySize + pConfig->m_uvSize,
-		  pConfig->m_videoWidth,
-		  pConfig->m_videoWidth / 2,
+		  yuvbuf + Profile()->m_ySize,
+		  yuvbuf + Profile()->m_ySize + Profile()->m_uvSize,
+		  Profile()->m_videoWidth,
+		  Profile()->m_videoWidth / 2,
 		  true,
 		  0, 
 		  0) == false &&

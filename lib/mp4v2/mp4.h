@@ -175,7 +175,7 @@ typedef u_int32_t	MP4EditId;
 
 #define MP4_IS_MPEG4_AAC_AUDIO_TYPE(mpeg4Type) \
 	(((mpeg4Type) >= MP4_MPEG4_AAC_MAIN_AUDIO_TYPE \
-		&& (mpeg4Type) <= MP4_MPEG4_AAC_LTP_AUDIO_TYPE) \
+		&& (mpeg4Type) <= MP4_MPEG4_AAC_HE_AUDIO_TYPE) \
 	  || (mpeg4Type) == MP4_MPEG4_AAC_SCALABLE_AUDIO_TYPE \
           || (mpeg4Type) == 17)
 
@@ -1081,42 +1081,57 @@ bool MP4GetMetadataByIndex(MP4FileHandle hFile, u_int32_t index,
 			   u_int8_t** ppValue, u_int32_t* pValueSize);
 bool MP4SetMetadataName(MP4FileHandle hFile, const char* value);
 bool MP4GetMetadataName(MP4FileHandle hFile, char** value);
+bool MP4DeleteMetadataName(MP4FileHandle hFile);
 bool MP4SetMetadataArtist(MP4FileHandle hFile, const char* value);
 bool MP4GetMetadataArtist(MP4FileHandle hFile, char** value);
+bool MP4DeleteMetadataArtist(MP4FileHandle hFile);
 bool MP4SetMetadataWriter(MP4FileHandle hFile, const char* value);
 bool MP4GetMetadataWriter(MP4FileHandle hFile, char** value);
+bool MP4DeleteMetadataWriter(MP4FileHandle hFile);
 bool MP4SetMetadataComment(MP4FileHandle hFile, const char* value);
 bool MP4GetMetadataComment(MP4FileHandle hFile, char** value);
+bool MP4DeleteMetadataComment(MP4FileHandle hFile);
 bool MP4SetMetadataTool(MP4FileHandle hFile, const char* value);
 bool MP4GetMetadataTool(MP4FileHandle hFile, char** value);
+bool MP4DeleteMetadataTool(MP4FileHandle hFile);
 bool MP4SetMetadataYear(MP4FileHandle hFile, const char* value);
 bool MP4GetMetadataYear(MP4FileHandle hFile, char** value);
+bool MP4DeleteMetadataYear(MP4FileHandle hFile);
 bool MP4SetMetadataAlbum(MP4FileHandle hFile, const char* value);
 bool MP4GetMetadataAlbum(MP4FileHandle hFile, char** value);
+bool MP4DeleteMetadataAlbum(MP4FileHandle hFile);
 bool MP4SetMetadataTrack(MP4FileHandle hFile,
 			 u_int16_t track, u_int16_t totalTracks);
 bool MP4GetMetadataTrack(MP4FileHandle hFile,
 			 u_int16_t* track, u_int16_t* totalTracks);
+bool MP4DeleteMetadataTrack(MP4FileHandle hFile);
 bool MP4SetMetadataDisk(MP4FileHandle hFile,
 			u_int16_t disk, u_int16_t totalDisks);
 bool MP4GetMetadataDisk(MP4FileHandle hFile,
 			u_int16_t* disk, u_int16_t* totalDisks);
+bool MP4DeleteMetadataDisk(MP4FileHandle hFile);
 bool MP4SetMetadataGenre(MP4FileHandle hFile, const char *genre);
 bool MP4GetMetadataGenre(MP4FileHandle hFile, char **genre);
+bool MP4DeleteMetadataGenre(MP4FileHandle hFile);
 bool MP4SetMetadataGrouping(MP4FileHandle hFile, const char *grouping);
 bool MP4GetMetadataGrouping(MP4FileHandle hFile, char **grouping);
+bool MP4DeleteMetadataGrouping(MP4FileHandle hFile);
 bool MP4SetMetadataTempo(MP4FileHandle hFile, u_int16_t tempo);
 bool MP4GetMetadataTempo(MP4FileHandle hFile, u_int16_t* tempo);
+bool MP4DeleteMetadataTempo(MP4FileHandle hFile);
 bool MP4SetMetadataCompilation(MP4FileHandle hFile, u_int8_t cpl);
 bool MP4GetMetadataCompilation(MP4FileHandle hFile, u_int8_t* cpl);
+bool MP4DeleteMetadataCompilation(MP4FileHandle hFile);
 bool MP4SetMetadataCoverArt(MP4FileHandle hFile,
 			    u_int8_t *coverArt, u_int32_t size);
 bool MP4GetMetadataCoverArt(MP4FileHandle hFile,
 			    u_int8_t **coverArt, u_int32_t* size);
+bool MP4DeleteMetadataCoverArt(MP4FileHandle hFile);
 bool MP4SetMetadataFreeForm(MP4FileHandle hFile, char *name,
 			    u_int8_t* pValue, u_int32_t valueSize);
 bool MP4GetMetadataFreeForm(MP4FileHandle hFile, char *name,
 			    u_int8_t** pValue, u_int32_t* valueSize);
+bool MP4DeleteMetadataFreeForm(MP4FileHandle hFile, char *name);
  
 
 /* time conversion utilties */

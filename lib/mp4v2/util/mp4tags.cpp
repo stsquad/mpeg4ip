@@ -34,8 +34,9 @@
 #define OPT_TRACKS  'T'
 #define OPT_WRITER  'w'    /* _composer_ */
 #define OPT_YEAR    'y'
+#define OPT_REMOVE  'r'
 
-#define OPT_STRING  "hvA:a:b:c:d:D:g:G:s:t:T:w:y:"
+#define OPT_STRING  "hvA:a:b:c:d:D:g:G:s:t:T:w:y:r:"
 
 static const char* help_text =
 "OPTION... FILE...\n"
@@ -56,6 +57,8 @@ static const char* help_text =
 "  -T, -tracks   NUM  Set the number of tracks\n"
 "  -w, -writer   STR  Set the composer information\n"
 "  -y, -year     NUM  Set the year\n"
+"  -r, -remove   STR  Remove tags by code (e.g. \"-r cs\"\n"
+"                     removes the comment and song tags)\n"
 "\n";
 
 
@@ -78,14 +81,18 @@ main(int argc, char** argv)
     { "tracks",  1, 0, OPT_TRACKS  },
     { "writer",  1, 0, OPT_WRITER  },
     { "year",    1, 0, OPT_YEAR    },
+    { "remove",  1, 0, OPT_REMOVE  },
     { NULL,      0, 0, 0 }
   };
 
   /* Sparse arrays of tag data: some space is wasted, but it's more
      convenient to say tags[OPT_SONG] than to enumerate all the
      metadata types (again) as a struct. */
-  char *tags[UCHAR_MAX] = { 0 };
-  int nums[UCHAR_MAX] = { 0 };
+  char *tags[UCHAR_MAX];
+  int nums[UCHAR_MAX];
+
+  memset(tags, 0, sizeof(tags));
+  memset(nums, 0, sizeof(nums));
 
   /* Any modifications requested? */
   int mods = 0;
@@ -161,6 +168,27 @@ main(int argc, char** argv)
       return 5;
     }
 
+    /* Remove any tags */
+    if( tags[OPT_REMOVE] ) {
+      for(const char *p = tags[OPT_REMOVE]; *p; p++ ) {
+        switch(*p) {
+        case OPT_ALBUM:   MP4DeleteMetadataAlbum(h); break;
+        case OPT_ARTIST:  MP4DeleteMetadataArtist(h); break;
+        case OPT_COMMENT: MP4DeleteMetadataComment(h); break;
+        case OPT_DISK:    MP4DeleteMetadataDisk(h); break;
+        case OPT_DISKS:   MP4DeleteMetadataDisk(h); break;
+        case OPT_GENRE:   MP4DeleteMetadataGenre(h); break;
+        case OPT_GROUPING:MP4DeleteMetadataGrouping(h); break;
+        case OPT_SONG:    MP4DeleteMetadataName(h); break;
+        case OPT_WRITER:  MP4DeleteMetadataWriter(h); break;
+        case OPT_YEAR:    MP4DeleteMetadataYear(h); break;
+        case OPT_TEMPO:   MP4DeleteMetadataTempo(h); break;
+        case OPT_TRACK:   MP4DeleteMetadataTrack(h); break;
+        case OPT_TRACKS:  MP4DeleteMetadataTrack(h); break;
+        }
+      }
+    }
+
     /* Track/disk numbers need to be set all at once, but we'd like to
        allow users to just specify -T 12 to indicate that all existing
        track numbers are out of 12.  This means we need to look up the
@@ -168,12 +196,14 @@ main(int argc, char** argv)
     uint16_t n0, m0, n1, m1;
 
     if (tags[OPT_TRACK] || tags[OPT_TRACKS]) {
+      n0 = m0 = 0;
       MP4GetMetadataTrack(h, &n0, &m0);
       n1 = tags[OPT_TRACK]? nums[OPT_TRACK] : n0;
       m1 = tags[OPT_TRACKS]? nums[OPT_TRACKS] : m0;
       MP4SetMetadataTrack(h, n1, m1);
     }
     if (tags[OPT_DISK] || tags[OPT_DISKS]) {
+      n0 = m0 = 0;
       MP4GetMetadataDisk(h, &n0, &m0);
       n1 = tags[OPT_DISK]? nums[OPT_DISK] : n0;
       m1 = tags[OPT_DISKS]? nums[OPT_DISKS] : m0;
@@ -196,6 +226,7 @@ main(int argc, char** argv)
         }
       }
     }
+
     MP4Close(h);
   } /* end while optind < argc */
 

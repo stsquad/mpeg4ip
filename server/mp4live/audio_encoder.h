@@ -26,48 +26,157 @@
 #include "media_frame.h"
 #include <sdp.h>
 #include <mp4.h>
+#include "profile_audio.h"
+#include "resampl.h"
 
 class CAudioEncoder : public CMediaCodec {
-public:
-	CAudioEncoder() { };
+ public:
+  CAudioEncoder(CAudioProfile *profile,
+		CAudioEncoder *next, 
+		u_int8_t srcChannels,
+		u_int32_t srcSampleRate,
+		bool realTime = true);
 
-	virtual u_int32_t GetSamplesPerFrame() = 0;
+  virtual u_int32_t GetSamplesPerFrame() = 0;
+	
+  virtual bool Init(void) = 0;
 
-	virtual bool EncodeSamples(
-		int16_t* pSamples, 
-		u_int32_t numSamplesPerChannel,
-		u_int8_t numChannels) = 0;
+  void AddRtpDestination (CMediaStream *stream,
+			  uint16_t mtu,
+			  bool disable_ts_offset,
+			  uint16_t max_ttl,
+			  in_port_t srcPort = 0) {
+    AddRtpDestInt(mtu, max_ttl, disable_ts_offset,
+		  stream->GetStringValue(STREAM_AUDIO_DEST_ADDR),
+		  stream->GetIntegerValue(STREAM_AUDIO_DEST_PORT),
+		  srcPort);
+  };
+ public:
+  // utility routines
 
-	virtual bool GetEncodedFrame(
-		u_int8_t** ppBuffer, 
-		u_int32_t* pBufferLength,
-		u_int32_t* pNumSamplesPerChannel) = 0;
+  static bool InterleaveStereoSamples(
+				      int16_t* pLeftBuffer, 
+				      int16_t* pRightBuffer, 
+				      u_int32_t numSamplesPerChannel,
+				      int16_t** ppDstBuffer);
+
+  static bool DeinterleaveStereoSamples(
+					int16_t* pSrcBuffer, 
+					u_int32_t numSamplesPerChannel,
+					int16_t** ppLeftBuffer, 
+					int16_t** ppRightBuffer); 
+  CAudioEncoder *GetNext(void) {
+    return (CAudioEncoder *)CMediaCodec::GetNext();
+  };
+ protected:
+  int ThreadMain(void);
+  CAudioProfile *Profile(void) { return (CAudioProfile *)m_pConfig; } ;
+
+  void Initialize(void);
+  virtual bool EncodeSamples(
+			     int16_t* pSamples, 
+			     u_int32_t numSamplesPerChannel,
+			     u_int8_t numChannels) = 0;
+
+  virtual bool GetEncodedFrame(
+			       u_int8_t** ppBuffer, 
+			       u_int32_t* pBufferLength,
+			       u_int32_t* pNumSamplesPerChannel) = 0;
+
+  CRtpTransmitter *CreateRtpTransmitter(uint16_t mtu, bool disable_ts) {
+    return new CAudioRtpTransmitter(Profile(), mtu, disable_ts);
+  };
+
+  void ProcessAudioFrame(CMediaFrame *frame);
+
+  void ResampleAudio(
+		     const u_int8_t* frameData,
+		     u_int32_t frameDataLength);
+
+  void ForwardEncodedAudioFrames(void);
+
+  void DoStopAudio();
+
+  // audio utility routines
+
+  inline Duration SrcSamplesToTicks(u_int64_t numSamples) {
+    return (numSamples * TimestampTicks) / m_audioSrcSampleRate;
+  }
+
+  inline Duration DstSamplesToTicks(u_int64_t numSamples) {
+    return (numSamples * TimestampTicks) / m_audioDstSampleRate;
+  }
+
+  inline u_int32_t SrcTicksToSamples(Duration duration) {
+    return (duration * m_audioSrcSampleRate) / TimestampTicks;
+  }
+
+  inline u_int32_t DstTicksToSamples(Duration duration) {
+    return (duration * m_audioDstSampleRate) / TimestampTicks;
+  }
+
+  inline u_int32_t SrcSamplesToBytes(u_int64_t numSamples) {
+    return (numSamples * m_audioSrcChannels * sizeof(u_int16_t));
+  }
+
+  inline u_int32_t DstSamplesToBytes(u_int64_t numSamples) {
+    return (numSamples * m_audioDstChannels * sizeof(u_int16_t));
+  }
+
+  inline u_int64_t SrcBytesToSamples(u_int32_t numBytes) {
+    return (numBytes / (m_audioSrcChannels * sizeof(u_int16_t)));
+  }
+
+  inline u_int64_t DstBytesToSamples(u_int32_t numBytes) {
+    return (numBytes / (m_audioDstChannels * sizeof(u_int16_t)));
+  }
 
 
-	// utility routines
+  void AddSilenceFrame(void);
 
-	static bool InterleaveStereoSamples(
-		int16_t* pLeftBuffer, 
-		int16_t* pRightBuffer, 
-		u_int32_t numSamplesPerChannel,
-		int16_t** ppDstBuffer);
+  // Audio encoding variables (timing, etc)
+	u_int8_t		m_audioSrcChannels;
+	u_int32_t		m_audioSrcSampleRate;
+	u_int32_t		m_audioSrcFrameNumber;
 
-	static bool DeinterleaveStereoSamples(
-		int16_t* pSrcBuffer, 
-		u_int32_t numSamplesPerChannel,
-		int16_t** ppLeftBuffer, 
-		int16_t** ppRightBuffer); 
+	// audio resampling info
+	resample_t              *m_audioResample;
+
+	// audio destination info
+	MediaType		m_audioDstType;
+	u_int8_t		m_audioDstChannels;
+	u_int32_t		m_audioDstSampleRate;
+	u_int16_t		m_audioDstSamplesPerFrame;
+	u_int64_t		m_audioDstSampleNumber;
+	u_int32_t		m_audioDstFrameNumber;
+
+	// audio encoding info
+	u_int8_t*		m_audioPreEncodingBuffer;
+	u_int32_t		m_audioPreEncodingBufferLength;
+	u_int32_t		m_audioPreEncodingBufferMaxLength;
+
+	// audio timing info
+	Timestamp		m_audioStartTimestamp;
+	Timestamp               m_audioEncodingStartTimestamp;
+	Duration		m_audioSrcElapsedDuration;
+	Duration		m_audioDstElapsedDuration;
+
+
 };
 
-CAudioEncoder* AudioEncoderCreate(const char* encoderName);
-media_desc_t *create_audio_sdp(CLiveConfig *pConfig,
+CAudioEncoder* AudioEncoderCreate(CAudioProfile *ap, 
+				  CAudioEncoder *next,
+				  u_int8_t srcChannels,
+				  u_int32_t srcSampleRate,
+				  bool realTime = true);
+media_desc_t *create_audio_sdp(CAudioProfile *pConfig,
 			       bool *mpeg4,
 			       bool *isma_compliant,
 			       uint8_t *audioProfile,
 			       uint8_t **audioConfig,
 			       uint32_t *audioConfigLen);
 
-MediaType get_audio_mp4_fileinfo(CLiveConfig *pConfig,
+MediaType get_audio_mp4_fileinfo(CAudioProfile *pConfig,
 				 bool *mpeg4,
 				 bool *isma_compliant,
 				 uint8_t *audioProfile,
@@ -75,32 +184,13 @@ MediaType get_audio_mp4_fileinfo(CLiveConfig *pConfig,
 				 uint32_t *audioConfigLen,
 				 uint8_t *mp4_audio_type);
 
-void create_mp4_audio_hint_track(CLiveConfig *pConfig, 
+void create_mp4_audio_hint_track(CAudioProfile *pConfig, 
 				 MP4FileHandle mp4file,
-				 MP4TrackId trackId);
+				 MP4TrackId trackId,
+				 uint16_t mtu);
 
-typedef int (*audio_queue_frame_f)(u_int32_t **frameno,
-					u_int32_t frameLength,
-					u_int8_t audioQueueCount,
-					u_int16_t audioQueueSize,
-					u_int32_t rtp_payload_size);
-typedef int (*audio_set_rtp_payload_f)(CMediaFrame** m_audioQueue,
-					int queue_cnt,
-					struct iovec *iov,
-					void *ud);
 
-typedef bool (*audio_set_rtp_header_f)(struct iovec *iov,
-				       int queue_cnt,
-				       void *ud);
-
-typedef bool (*audio_set_rtp_jumbo_frame_f)(struct iovec *iov,
-					    uint32_t dataOffset,
-					    uint32_t bufferLen,
-					    uint32_t rtpPayloadMax,
-					    bool &mbit,
-					    void *ud);
-
-bool get_audio_rtp_info (CLiveConfig *pConfig,
+bool get_audio_rtp_info (CAudioProfile *pConfig,
 			 MediaType *audioFrameType,
 			 uint32_t *audioTimeScale,
 			 uint8_t *audioPayloadNumber,
@@ -114,16 +204,20 @@ bool get_audio_rtp_info (CLiveConfig *pConfig,
 			 audio_set_rtp_jumbo_frame_f *audio_set_jumbo_frame,
 			 void **ud);
 
-CAudioEncoder* AudioEncoderBaseCreate(const char* encoderName);
+CAudioEncoder* AudioEncoderBaseCreate(CAudioProfile *ap, 
+				      CAudioEncoder *next, 
+				      u_int8_t srcChannels,
+				      u_int32_t srcSampleRate,
+				      bool realTime = true);
 
-media_desc_t *create_base_audio_sdp(CLiveConfig *pConfig,
+media_desc_t *create_base_audio_sdp(CAudioProfile *pConfig,
 				    bool *mpeg4,
 				    bool *isma_compliant,
 				    uint8_t *audioProfile,
 				    uint8_t **audioConfig,
 				    uint32_t *audioConfigLen);
 
-MediaType get_base_audio_mp4_fileinfo(CLiveConfig *pConfig,
+MediaType get_base_audio_mp4_fileinfo(CAudioProfile *pConfig,
 				      bool *mpeg4,
 				      bool *isma_compliant,
 				      uint8_t *audioProfile,
@@ -131,12 +225,13 @@ MediaType get_base_audio_mp4_fileinfo(CLiveConfig *pConfig,
 				      uint32_t *audioConfigLen,
 				      uint8_t *mp4_audio_type);
 
-void create_base_mp4_audio_hint_track(CLiveConfig *pConfig, 
+void create_base_mp4_audio_hint_track(CAudioProfile *pConfig, 
 				      MP4FileHandle mp4file,
-				      MP4TrackId trackId);
+				      MP4TrackId trackId,
+				      uint16_t mtu);
 
 
-bool get_base_audio_rtp_info (CLiveConfig *pConfig,
+bool get_base_audio_rtp_info (CAudioProfile *pConfig,
 			      MediaType *audioFrameType,
 			      uint32_t *audioTimeScale,
 			      uint8_t *audioPayloadNumber,

@@ -35,6 +35,7 @@ public:
 		m_myThread = NULL;
 		m_myMsgQueueSemaphore = NULL;
 		m_pConfig = NULL;
+		m_stop_thread = false;
 	}
 
 	static int StartThreadCallback(void* data) {
@@ -49,10 +50,14 @@ public:
 	}
 
 	void StopThread() {
+	  m_stop_thread = true;
 		if (m_myThread) {
+		  //debug_message("sending stop thread");
 			m_myMsgQueue.send_message(MSG_NODE_STOP_THREAD,
 						  m_myMsgQueueSemaphore);
+			//debug_message("waiting thread");
 			SDL_WaitThread(m_myThread, NULL);
+			//debug_message("done with thread");
 			m_myThread = NULL;
 			SDL_DestroySemaphore(m_myMsgQueueSemaphore);
 			m_myMsgQueueSemaphore = NULL;
@@ -60,11 +65,11 @@ public:
 	}
 
 	void Start(void) {
-		m_myMsgQueue.send_message(MSG_NODE_START,
-					  m_myMsgQueueSemaphore);
+	  m_myMsgQueue.send_message(MSG_NODE_START,
+				    m_myMsgQueueSemaphore);
 	}
 
-	void Stop(void) {
+	virtual void Stop(void) {
 		m_myMsgQueue.send_message(MSG_NODE_STOP,
 					  m_myMsgQueueSemaphore);
 	}
@@ -91,6 +96,7 @@ protected:
 	SDL_sem*			m_myMsgQueueSemaphore;
 
 	CLiveConfig*		m_pConfig;
+	volatile bool m_stop_thread;
 };
 
 #endif /* __MEDIA_NODE_H__ */

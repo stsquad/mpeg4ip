@@ -60,7 +60,8 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (const uint8_t *pbuffer,
 				       uint32_t *width,
 				       double *frame_rate,
 				       double *bitrate,
-				       double *aspect_ratio)
+				       double *aspect_ratio,
+				       uint8_t *mpeg2_profile)
 {
   uint32_t aspect_code;
   uint32_t framerate_code;
@@ -70,6 +71,8 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (const uint8_t *pbuffer,
   uint32_t scode, ix;
   int found = -1;
   *have_mpeg2 = 0;
+  if (mpeg2_profile != NULL) 
+    *mpeg2_profile = 0;
   buflen -= 6;
   bitrate_int = 0;
   for (ix = 0; ix < buflen; ix++, pbuffer++) {
@@ -113,6 +116,9 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (const uint8_t *pbuffer,
 	switch ((pbuffer[0] >> 4) & 0xf) {
 	case SEQ_ID:
 	  *have_mpeg2 = 1;
+	  if (mpeg2_profile != NULL) 
+	    *mpeg2_profile = ((pbuffer[0] & 0xf) << 4) | 
+	      ((pbuffer[1] >> 4) & 0xf);
 	  *height = ((pbuffer[1] & 0x1) << 13) | 
 	    ((pbuffer[2] & 0x80) << 5) |
 	    (*height & 0x0fff);
@@ -543,3 +549,103 @@ int mpeg3_find_dts_from_pts (mpeg3_pts_to_dts_t *ptr,
   ptr->last_dts = *return_value;
   return 0;
 }
+
+uint8_t mpeg2_profile_to_mp4_track_type (uint8_t profile)
+{
+  if (profile == 0) {
+    return MP4_MPEG2_VIDEO_TYPE;
+  }
+  if ((profile & 0x80) == 0) {
+    switch ((profile & 0x70) >> 4) {
+    case 5:
+      return MP4_MPEG2_SIMPLE_VIDEO_TYPE;
+    case 4:
+      return MP4_MPEG2_MAIN_VIDEO_TYPE;
+    case 3:
+      return MP4_MPEG2_SNR_VIDEO_TYPE;
+    case 2:
+      return MP4_MPEG2_SPATIAL_VIDEO_TYPE;
+    case 1:
+      return MP4_MPEG2_HIGH_VIDEO_TYPE;
+    default:
+      return MP4_MPEG2_VIDEO_TYPE;
+    }
+  } 
+  if (profile == 0x82 || profile == 0x85) {
+    return MP4_MPEG2_442_VIDEO_TYPE;
+  }
+  return MP4_MPEG2_VIDEO_TYPE;
+}
+
+static const char *profile_names[] = {
+  "Mpeg-2 High@<unk>",
+  "Mpeg-2 High@High",
+  "Mpeg-2 High@High 1440",
+  "Mpeg-2 High@Main",
+  "Mpeg-2 High@Low"
+  "Mpeg-2 Spatially Scalable@<unk>",
+  "Mpeg-2 Spatially Scalable@High",
+  "Mpeg-2 Spatially Scalable@High 1440",
+  "Mpeg-2 Spatially Scalable@Main",
+  "Mpeg-2 Spatially Scalable@Low",
+  "Mpeg-2 SNR Scalable@<unk>",
+  "Mpeg-2 SNR Scalable@High",
+  "Mpeg-2 SNR Scalable@High 1440",
+  "Mpeg-2 SNR Scalable@Main",
+  "Mpeg-2 SNR Scalable@Low",
+  "Mpeg-2 Main@High<unk>",
+  "Mpeg-2 Main@High",
+  "Mpeg-2 Main@High 1440",
+  "Mpeg-2 Main@Main",
+  "Mpeg-2 Main@Low",
+  "Mpeg-2 Simple@<unk>",
+  "Mpeg-2 Simple@High",
+  "Mpeg-2 Simple@High 1440",
+  "Mpeg-2 Simple@Main",
+  "Mpeg-2 Simple@Low", 
+};
+
+const char *mpeg2_type (uint8_t profile) 
+{
+  if (profile == 0) {
+    return "Mpeg-2";
+  }
+  
+  if ((profile & 0x80) == 0) {
+    uint8_t index;
+    index = ((profile & 0x70) >> 4);
+    if (index == 0 || index > 5) {
+      return "Mpeg-2 unknown profile";
+    }
+    index--;
+    index *= 5;
+    
+    uint8_t level = profile & 0xf;
+    if ((level & 1) != 0 ||
+	(level > 0xb)) {
+      // no change to index:
+      return profile_names[index];
+    }
+    level >>= 1;
+    level -= 2;
+    index += level;
+    return profile_names[index];
+  } 
+  if (profile == 0x82) 
+    return "Mpeg-2 4:2:2@High";
+  if (profile == 0x85) {
+    return "Mpeg-2 4:2:2@Main";
+  }
+  if (profile == 0x8a) 
+    return "Mpeg-2 Multiview@High";
+  if (profile == 0x8b) 
+    return "Mpeg-2 Multiview@High 1440";
+  if (profile == 0x8d) 
+    return "Mpeg-2 Multiview@Main";
+  if (profile == 0x8e) 
+    return "Mpeg-2 Multiview@Low";
+
+  return "Mpeg-2 unknown escape profile";
+}
+
+    

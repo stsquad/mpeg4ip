@@ -30,13 +30,13 @@
 #endif
 #include <sdp.h>
 
-media_desc_t *ffmpeg_create_audio_sdp(CLiveConfig *pConfig,
+media_desc_t *ffmpeg_create_audio_sdp(CAudioProfile *pConfig,
 				    bool *mpeg4,
 				    bool *isma_compliant,
 				    uint8_t *audioProfile,
 				    uint8_t **audioConfig,
 				    uint32_t *audioConfigLen);
-MediaType ffmpeg_mp4_fileinfo(CLiveConfig *pConfig,
+MediaType ffmpeg_mp4_fileinfo(CAudioProfile *pConfig,
 			    bool *mpeg4,
 			    bool *isma_compliant,
 			    uint8_t *audioProfile,
@@ -44,7 +44,7 @@ MediaType ffmpeg_mp4_fileinfo(CLiveConfig *pConfig,
 			    uint32_t *audioConfigLen,
 			    uint8_t *mp4AudioType);
 
-bool ffmpeg_get_audio_rtp_info(CLiveConfig *pConfig,
+bool ffmpeg_get_audio_rtp_info(CAudioProfile *pConfig,
 			       MediaType *audioFrameType,
 			       uint32_t *audioTimeScale,
 			       uint8_t *audioPayloadNumber,
@@ -58,11 +58,13 @@ bool ffmpeg_get_audio_rtp_info(CLiveConfig *pConfig,
 
 class CFfmpegAudioEncoder : public CAudioEncoder {
 public:
-	CFfmpegAudioEncoder();
-
-	bool Init(
-		CLiveConfig* pConfig, 
+	CFfmpegAudioEncoder(CAudioProfile *ap, 
+			    CAudioEncoder *next, 
+			    u_int8_t srcChannels,
+		u_int32_t srcSampleRate,
 		bool realTime = true);
+
+	bool Init(void);
 
 	MediaType GetFrameType(void) {
 		return m_media_frame;
@@ -80,9 +82,9 @@ public:
 		u_int32_t* pBufferLength,
 		u_int32_t* pNumSamplesPerChannel);
 
-	void Stop();
 
 protected:
+	void StopEncoder(void);
 	AVCodec *m_codec;
 	AVCodecContext *m_avctx;
 	MediaType m_media_frame;

@@ -57,15 +57,17 @@ class CTimestampPush {
 };
 
 class CFfmpegVideoEncoder : public CVideoEncoder {
-public:
-	CFfmpegVideoEncoder();
+ public:
+	CFfmpegVideoEncoder(CVideoProfile *vp, 
+			    CVideoEncoder *next, 
+			    bool realTime = true);
 
 	MediaType GetFrameType(void) { return m_media_frame;}
-	bool Init(
-		CLiveConfig* pConfig, bool realTime = true);
+	bool Init(void);
 
+ protected:
 	bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
+		const u_int8_t* pY, const u_int8_t* pU, const u_int8_t* pV,
 		u_int32_t yStride, u_int32_t uvStride,
 		bool wantKeyFrame,
 		Duration elapsedDuration,
@@ -78,10 +80,9 @@ public:
 	bool GetReconstructedImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV);
 
-	void Stop();
 	media_free_f GetMediaFreeFunction(void);
 
-protected:
+	void StopEncoder(void);
 //#define OUTPUT_RAW
 #ifdef OUTPUT_RAW
 	FILE *m_outfile;

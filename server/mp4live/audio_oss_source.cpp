@@ -22,7 +22,7 @@
 
 #include "mp4live.h"
 #include "audio_oss_source.h"
-
+#include "audio_encoder.h"
 //#define DEBUG_TIMESTAMPS 1
 
 COSSAudioSource::COSSAudioSource(CLiveConfig *pConfig) : CMediaSource() 
@@ -30,7 +30,6 @@ COSSAudioSource::COSSAudioSource(CLiveConfig *pConfig) : CMediaSource()
   SetConfig(pConfig);
 
   m_audioDevice = -1;
-  m_pcmFrameBuffer = NULL;
   m_prevTimestamp = 0;
   m_timestampOverflowArray = NULL;
   m_timestampOverflowArrayIndex = 0;
@@ -77,6 +76,7 @@ COSSAudioSource::COSSAudioSource(CLiveConfig *pConfig) : CMediaSource()
 
 int COSSAudioSource::ThreadMain(void) 
 {
+  debug_message("oss start");
   while (true) {
     int rc;
 
@@ -100,6 +100,7 @@ int COSSAudioSource::ThreadMain(void)
         case MSG_NODE_STOP_THREAD:
           DoStopCapture();	// ensure things get cleaned up
           delete pMsg;
+	  debug_message("oss stop thread");
           return 0;
         case MSG_NODE_START:
           DoStartCapture();
@@ -115,15 +116,18 @@ int COSSAudioSource::ThreadMain(void)
 
     if (m_source) {
       try {
+	//debug_message("processaudio");
         ProcessAudio();
       }
       catch (...) {
+	error_message("oss stop capture");
         DoStopCapture();	
         break;
       }
     }
   }
 
+  debug_message("oss thread exit");
   return -1;
 }
 
@@ -146,14 +150,12 @@ void COSSAudioSource::DoStopCapture()
     return;
   }
 
-  CMediaSource::DoStopAudio();
+  //  CMediaSource::DoStopAudio();
 
   close(m_audioDevice);
   m_audioDevice = -1;
 
   CHECK_AND_FREE(m_timestampOverflowArray);
-  free(m_pcmFrameBuffer);
-  m_pcmFrameBuffer = NULL;
 
   m_source = false;
 }
@@ -169,6 +171,8 @@ bool COSSAudioSource::Init(void)
   if (!InitDevice()) {
     return false;
   }
+
+  //#error we will have to remove this below - the sample rate will be
   rc = SetAudioSrc(
                    PCMAUDIOFRAME,
                    m_channelsConfigured,
@@ -179,7 +183,8 @@ bool COSSAudioSource::Init(void)
   }
 
   // for live capture we can match the source to the destination
-  m_audioSrcSamplesPerFrame = m_audioDstSamplesPerFrame;
+  //  m_audioSrcSamplesPerFrame = m_audioDstSamplesPerFrame;
+  // gets set 
   m_pcmFrameSize = 
     m_audioSrcSamplesPerFrame * m_audioSrcChannels * sizeof(u_int16_t);
 
@@ -194,25 +199,19 @@ bool COSSAudioSource::Init(void)
     memset(m_timestampOverflowArray, 0, array_size);
   }
     
-  m_pcmFrameBuffer = (u_int8_t*)malloc(m_pcmFrameSize);
-  if (!m_pcmFrameBuffer) {
-    goto init_failure;
-  }
-
   // maximum number of passes in ProcessAudio, approx 1 sec.
   m_maxPasses = m_audioSrcSampleRate / m_audioSrcSamplesPerFrame;
 
   return true;
 
+#if 0
  init_failure:
   debug_message("audio initialization failed");
-
-  free(m_pcmFrameBuffer);
-  m_pcmFrameBuffer = NULL;
 
   close(m_audioDevice);
   m_audioDevice = -1;
   return false;
+#endif
 }
 
 bool COSSAudioSource::InitDevice(void)
@@ -310,7 +309,7 @@ bool COSSAudioSource::InitDevice(void)
 #endif
 
   m_audioOssMaxBufferSize = info.fragstotal * info.fragsize;
-
+  debug_message("oss init done");
   return true;
 }
 
@@ -338,10 +337,11 @@ void COSSAudioSource::ProcessAudio(void)
     ioctl(m_audioDevice, SNDCTL_DSP_GETTRIGGER, &enablebits);
     enablebits |= PCM_ENABLE_INPUT;
     ioctl(m_audioDevice, SNDCTL_DSP_SETTRIGGER, &enablebits);
+    //debug_message("oss input enable");
   }
 
   // for efficiency, process 1 second before returning to check for commands
-  for (int pass = 0; pass < m_maxPasses; pass++) {
+  for (int pass = 0; pass < m_maxPasses && m_stop_thread == false; pass++) {
 
     audio_buf_info info;
     int rc = ioctl(m_audioDevice, SNDCTL_DSP_GETISPACE, &info);
@@ -351,13 +351,17 @@ void COSSAudioSource::ProcessAudio(void)
       error_message("Failed to query OSS GETISPACE");
       info.bytes = 0;
     }
+    //debug_message("reading %u", m_pcmFrameSize);
+    u_int8_t*     pcmFrameBuffer;
+    pcmFrameBuffer = (u_int8_t*)malloc(m_pcmFrameSize);
 
-    uint32_t bytesRead = read(m_audioDevice, m_pcmFrameBuffer, m_pcmFrameSize);
+    uint32_t bytesRead = read(m_audioDevice, pcmFrameBuffer, m_pcmFrameSize);
     if (bytesRead < m_pcmFrameSize) {
       debug_message("bad audio read");
+      free(pcmFrameBuffer);
       continue;
     }
-
+    //debug_message("oss read");
     Timestamp timestamp;
 
     if (info.bytes == m_audioOssMaxBufferSize) {
@@ -403,9 +407,16 @@ void COSSAudioSource::ProcessAudio(void)
       m_timestampOverflowArrayIndex = (m_timestampOverflowArrayIndex + 1) % 
 	m_audioOssMaxBufferFrames;
     }
-
-    ProcessAudioFrame(m_pcmFrameBuffer, m_pcmFrameSize, timestamp);
-
+    //debug_message("pcm forward %p %d", pcmFrameBuffer, m_pcmFrameSize);
+    if (m_audioSrcFrameNumber == 0 && m_videoSource != NULL) {
+      m_videoSource->RequestKeyFrame(timestamp);
+    }
+    m_audioSrcFrameNumber++;
+    CMediaFrame *frame = new CMediaFrame(PCMAUDIOFRAME,
+					 pcmFrameBuffer, 
+					 m_pcmFrameSize, 
+					 timestamp);
+    ForwardFrame(frame);
   }
 }
 
@@ -413,6 +424,10 @@ bool CAudioCapabilities::ProbeDevice()
 {
   int rc;
 
+  if (allSampleRateTableSize > NUM_ELEMENTS_IN_ARRAY(m_samplingRates)) {
+    error_message("Number of sample rates exceeds audio cap array");
+    return false;
+  }
   // open the audio device
   int audioDevice = open(m_deviceName, O_RDONLY);
   if (audioDevice < 0) {

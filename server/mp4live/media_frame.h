@@ -52,10 +52,13 @@ typedef void (*media_free_f)(void *);
 
 typedef struct yuv_media_frame_t {
   const uint8_t *y, *u, *v;
+  uint32_t w, h;
   uint16_t y_stride;
   uint16_t uv_stride;
   void *hardware;
   uint8_t  hardware_index;
+  bool free_y;
+  bool force_iframe;
 } yuv_media_frame_t;
 
 class CMediaFrame {

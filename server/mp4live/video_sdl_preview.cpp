@@ -42,7 +42,13 @@ int CSDLVideoPreview::ThreadMain(void)
 				break;
 			case MSG_SINK_FRAME:
 				uint32_t dontcare;
-				DoPreviewFrame((CMediaFrame*)pMsg->get_message(dontcare));
+				CMediaFrame *pFrame = 
+				  (CMediaFrame*)pMsg->get_message(dontcare);
+				if (pFrame != NULL) {
+				  DoPreviewFrame(pFrame);
+				  if (pFrame->RemoveReference())
+				    delete pFrame;
+				}
 				break;
 			}
 
@@ -59,41 +65,12 @@ void CSDLVideoPreview::DoStartPreview()
 		return;
 	}
 
-	if (!m_pConfig->m_videoPreviewWindowId) {
-	  debug_message("Start sdl preview with no window id");
-		return;
-	}
-
-	char buffer[16];
-	snprintf(buffer, sizeof(buffer), "%u", 
-		m_pConfig->m_videoPreviewWindowId);
-	setenv("SDL_WINDOWID", buffer, 1);
-	setenv("SDL_VIDEO_CENTERED", "1", 1);
-
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0) {
 		error_message("Could not init SDL video: %s", SDL_GetError());
 	}
 	char driverName[32];
 	if (!SDL_VideoDriverName(driverName, 1)) {
 		error_message("Could not init SDL video: %s", SDL_GetError());
-	}
-
-	m_sdlScreen = SDL_SetVideoMode(m_pConfig->m_videoWidth, 
-		m_pConfig->m_videoHeight, 32, SDL_HWSURFACE | SDL_NOFRAME);
-
-	m_sdlScreenRect.x = 0;
-	m_sdlScreenRect.y = 0;
-	m_sdlScreenRect.w = m_pConfig->m_videoWidth;
-	m_sdlScreenRect.h = m_pConfig->m_videoHeight;
-
-	m_sdlImage = SDL_CreateYUVOverlay(m_pConfig->m_videoWidth, 
-		m_pConfig->m_videoHeight, SDL_YV12_OVERLAY, m_sdlScreen);
-
-	// currently we can only do one type of preview
-	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)
-	  && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
-		// so resolve any misconfiguration
-		m_pConfig->SetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW, false);
 	}
 
 	m_sink = true;
@@ -104,12 +81,16 @@ void CSDLVideoPreview::DoStopPreview()
 	if (!m_sink) {
 		return;
 	}
+	
+	if (m_sdlImage != NULL) {
+	  SDL_FreeYUVOverlay(m_sdlImage);
+	  m_sdlImage = NULL;
+	}
 
-	SDL_FreeYUVOverlay(m_sdlImage);
-	m_sdlImage = NULL;
-
-	SDL_FreeSurface(m_sdlScreen);
-	m_sdlScreen = NULL;
+	if (SDL_FreeSurface != NULL) {
+	  SDL_FreeSurface(m_sdlScreen);
+	  m_sdlScreen = NULL;
+	}
 
 	SDL_Quit();
 
@@ -118,40 +99,90 @@ void CSDLVideoPreview::DoStopPreview()
 
 void CSDLVideoPreview::DoPreviewFrame(CMediaFrame* pFrame)
 {
-	if (pFrame == NULL) {
+	if (pFrame == NULL || pFrame->GetType() != YUVVIDEOFRAME) {
 		return;
 	}
+	yuv_media_frame_t *pYUV = (yuv_media_frame_t *)pFrame->GetData();
+	if (m_sdlImage == NULL ||
+	    (m_w != pYUV->w || m_h != pYUV->h)) {
+	  if (m_sdlImage != NULL) {
+	    SDL_FreeYUVOverlay(m_sdlImage);
+	    m_sdlImage = NULL;
+	  }
+	  if (m_sdlScreen != NULL) {
+	    SDL_FreeSurface(m_sdlScreen);
+	    m_sdlScreen = NULL;
+	  }
+	  m_w = pYUV->w;
+	  m_h = pYUV->h;
+	  debug_message("STarting preview %ux%u", m_w, m_h);
+	  m_sdlScreen = SDL_SetVideoMode(m_w,
+					 m_h, 32, 
+					 SDL_HWSURFACE);
 
-	if (m_sink) {
-		if ((pFrame->GetType() == YUVVIDEOFRAME 
-		    && m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW))
-		  || (pFrame->GetType() == RECONSTRUCTYUVVIDEOFRAME 
-		    && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW))) {
-
-			SDL_LockYUVOverlay(m_sdlImage);
-
-			u_int8_t* pImage = (u_int8_t*)pFrame->GetData();
-
-			memcpy(m_sdlImage->pixels[0], 
-				pImage, 
-				m_pConfig->m_ySize);
-
-			memcpy(m_sdlImage->pixels[2], 
-				pImage + m_pConfig->m_ySize, 
-				m_pConfig->m_uvSize);
-
-			memcpy(m_sdlImage->pixels[1], 
-				pImage + m_pConfig->m_ySize + m_pConfig->m_uvSize, 
-				m_pConfig->m_uvSize);
-
-			SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
-
-			SDL_UnlockYUVOverlay(m_sdlImage);
-
-			// TBD SDL_Delay(pFrame->GetDuration() / 1000);
-		}
+	  m_sdlScreenRect.x = 0;
+	  m_sdlScreenRect.y = 0;
+	  m_sdlScreenRect.w = m_w;
+	  m_sdlScreenRect.h = m_h;
+	  
+	  m_sdlImage = SDL_CreateYUVOverlay(m_w, m_h,
+					    SDL_YV12_OVERLAY, m_sdlScreen);
+	  
 	}
-	if (pFrame->RemoveReference())
-	  delete pFrame;
+	if (m_sink) {
+	  SDL_LockYUVOverlay(m_sdlImage);
+
+	  uint ix;
+	  uint8_t *to;
+	  const uint8_t *from;
+	  if (pYUV->y_stride != m_sdlImage->pitches[0]) {
+	    to = (uint8_t *)m_sdlImage->pixels[0];
+	    from = pYUV->y;
+	    for (ix = 0; ix < m_h; ix++) {
+	      memcpy(to, from, m_w);
+	      to += m_sdlImage->pitches[0];
+	      from += pYUV->y_stride;
+	    }
+	  } else {
+	    memcpy(m_sdlImage->pixels[0], 
+		   pYUV->y,
+		   m_w * m_h);
+	  }
+
+	  if (pYUV->uv_stride != m_sdlImage->pitches[1]) {
+	    // V
+	    to = (uint8_t *)m_sdlImage->pixels[1];
+	    from = pYUV->v;
+	    for (ix = 0; ix < m_h/2; ix++) {
+	      memcpy(to, from, m_w / 2);
+	      to += m_sdlImage->pitches[1];
+	      from += pYUV->uv_stride;
+	    }
+	  } else {
+	    memcpy(m_sdlImage->pixels[1],
+		   pYUV->v,
+		   m_w * m_h / 4);
+	  }
+	  if (pYUV->uv_stride != m_sdlImage->pitches[2]) {
+	    // u
+	    to = (uint8_t *)m_sdlImage->pixels[2];
+	    from = pYUV->u;
+	    for (ix = 0; ix < m_h/2; ix++) {
+	      memcpy(to, from, m_w / 2);
+	      to += m_sdlImage->pitches[2];
+	      from += pYUV->uv_stride;
+	    }
+	  } else {
+	    memcpy(m_sdlImage->pixels[2],
+		   pYUV->u,
+		   m_w * m_h / 4);
+	  }
+
+
+	  SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
+	  
+	  SDL_UnlockYUVOverlay(m_sdlImage);
+
+	}
 }
 

@@ -96,6 +96,7 @@ extern "C" {
   uint32_t mpeg2ps_get_video_stream_height(mpeg2ps_t *ps, uint streamno);
   double   mpeg2ps_get_video_stream_bitrate(mpeg2ps_t *ps, uint streamno);
   double   mpeg2ps_get_video_stream_framerate(mpeg2ps_t *ps, uint streamno);
+  uint8_t  mpeg2ps_get_video_stream_mp4_type(mpeg2ps_t *ps, uint streamno);
 
   /*
    * mpeg2ps_get_video_frame - get the next video frame

@@ -255,7 +255,8 @@ public:
 		  (SConfigVariable*)malloc(size);
 
 		memcpy(m_variables, variables, size);
-		m_defaultFileName = strdup(defaultFileName);
+		m_defaultFileName = defaultFileName == NULL ? NULL : 
+		  strdup(defaultFileName);
 		SetToDefaults();
 		m_unknown_head = NULL;
 	};
@@ -301,6 +302,7 @@ public:
 	};
 
 	const char* GetFileName() {
+	  if (m_fileName == NULL) return m_defaultFileName;
 		return m_fileName;
 	}
 
@@ -605,6 +607,15 @@ public:
 	    } else if (onlyHelp == false) {
 	      fprintf(stdout, "%s\n", m_variables[ix].m_sName);
 	    }
+	  }
+	};
+	void Dump (void) {
+	  fprintf(stdout, "File - %s\n", GetFileName());
+	  config_index_t ix;
+	  for (ix = 0; ix < m_numVariables; ix++) {
+	    fprintf(stdout, "%s:\t%s\n", 
+		    m_variables[ix].m_sName, 
+		    m_variables[ix].ToAscii());
 	  }
 	};
 

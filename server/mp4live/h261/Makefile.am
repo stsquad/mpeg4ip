@@ -12,6 +12,7 @@ libmp4live_h261_la_SOURCES = encoder-h261.cpp \
 
 INCLUDES = -I.. \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/lib/ \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/msg_queue \

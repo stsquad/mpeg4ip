@@ -151,7 +151,7 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	    uint32_t h, w;
 	    double frame_rate, bitrate;
 	    int have_mpeg2;
-
+	    uint8_t profile;
 	    if (MP4AV_Mpeg3ParseSeqHdr(es_pid->work->frame + es_pid->seq_header_offset,
 				       es_pid->work_loaded - es_pid->seq_header_offset,
 				       &have_mpeg2,
@@ -159,7 +159,8 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 				       &w, 
 				       &frame_rate,
 				       &bitrate, 
-				       NULL) >= 0) {
+				       NULL,
+				       &profile) >= 0) {
 	      mpeg2t_message(LOG_NOTICE, "Found seq header - h %d w %d fr %g offset %d len %d", 
 			     h, w, frame_rate, es_pid->seq_header_offset,
 			     es_pid->work_loaded);

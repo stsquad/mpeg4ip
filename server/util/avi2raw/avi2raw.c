@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 	int verbose = FALSE;
 	u_int32_t numBytes, totBytes = 0;
 	bool eliminate_short_frames = FALSE;
-
+	uint32_t short_frames_len;
 	/* begin process command line */
 	progName = argv[0];
 	while (1) {
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 		int option_index = 0;
 		static struct option long_options[] = {
 			{ "audio", 0, 0, 'a' },
-			{ "eliminate-short-frames", 0, 0, 'e'},
+			{ "eliminate-short-frames", optional_argument, 0, 'e'},
 			{ "length", 1, 0, 'l' },
 			{ "quiet", 0, 0, 'q' },
 			{ "start", 1, 0, 's' },
@@ -84,6 +84,7 @@ int main(int argc, char** argv)
 		  fprintf(stderr, " --quiet - quiet mode\n");
 		  fprintf(stderr, " --start <time> - extract from <start> time\n");
 		  fprintf(stderr, " --video - extract video track\n");
+		  fprintf(stderr, " --eliminate-short-frames <bytes> - eliminate short frames of bytes or less - default 4\n");
 		  return 0;
 		case 'a': {
 			extractVideo = FALSE;
@@ -91,6 +92,15 @@ int main(int argc, char** argv)
 		}
 		case 'e':
 		  eliminate_short_frames = TRUE;
+		  if (optarg) {
+		    if (optarg[0] == '=') optarg[0] = ' ';
+		    if (sscanf(optarg, "%u", &short_frames_len) != 1) {
+		      fprintf(stderr, "%s:bad eliminate length %s\n",
+			      progName, optarg);
+		    }
+		  } else {
+		    short_frames_len = 4;
+		  }
 		  break;
 		case 'l': {
 			/* --length=<secs> */
@@ -251,7 +261,7 @@ int main(int argc, char** argv)
 			 * insert a zero length frame occasionally
 			 * hence numBytes == 0, but we're not a EOF
 			 */
-			if ((eliminate_short_frames && numBytes > 4) ||
+			if ((eliminate_short_frames && numBytes > short_frames_len) ||
 			    (eliminate_short_frames == FALSE && numBytes)) {
 			  // test
 #ifdef DEBUG_H264

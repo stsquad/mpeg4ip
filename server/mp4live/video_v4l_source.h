@@ -51,6 +51,14 @@ public:
 
 	bool SetPictureControls();
 
+	void IndicateReleaseFrame(uint8_t index) {
+	  // indicate which index needs to be released before next acquire
+	  SDL_LockMutex(m_v4l_mutex);
+	  m_release_index_mask |= (1 << index);
+	  SDL_UnlockMutex(m_v4l_mutex);
+	  SDL_SemPost(m_myMsgQueueSemaphore);
+	};
+
 
 protected:
 	int ThreadMain(void);
@@ -67,7 +75,7 @@ protected:
 
 	int8_t AcquireFrame(Timestamp &frameTimestamp);
 
-	bool ReleaseFrame(int8_t frameNumber);
+	void ReleaseFrames(void);
 
 	void SetVideoAudioMute(bool mute);
 
@@ -96,6 +104,9 @@ protected:
 	Timestamp m_lastVideoFrameMapTimestampLoaded;
 	bool            m_cacheTimestamp;
 	bool m_decimate_filter;
+	SDL_mutex *m_v4l_mutex;
+	uint32_t m_release_index_mask;
+
 };
 
 class CVideoCapabilities {

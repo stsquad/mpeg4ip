@@ -28,14 +28,13 @@
 #include <linux/soundcard.h>
 
 #include "media_source.h"
-#include "audio_encoder.h"
+//#include "audio_encoder.h"
 
 class COSSAudioSource : public CMediaSource {
  public:
   COSSAudioSource(CLiveConfig *pConfig);
 
   ~COSSAudioSource() {
-    free(m_pcmFrameBuffer);
   }
 
   bool IsDone() {
@@ -65,7 +64,6 @@ class COSSAudioSource : public CMediaSource {
   int           m_audioOssMaxBufferFrames;
   Timestamp     *m_timestampOverflowArray;
   size_t        m_timestampOverflowArrayIndex;
-  u_int8_t*     m_pcmFrameBuffer;
   u_int32_t     m_pcmFrameSize;
   uint32_t      m_channelsConfigured;
 };
@@ -100,6 +98,23 @@ class CAudioCapabilities {
 
   u_int16_t	m_numSamplingRates;
   u_int32_t	m_samplingRates[16];
+  u_int32_t CheckSampleRate(u_int32_t rate) {
+    int32_t diff = 0x7fffffff;
+    u_int32_t ret_rate = m_samplingRates[0];
+    for (u_int16_t ix = 0; ix < m_numSamplingRates; ix++) {
+      if (rate == m_samplingRates[ix]) {
+	return rate;
+      }
+      int32_t calc;
+      calc = abs(m_samplingRates[ix] - rate);
+      if (calc < diff) {
+	diff = calc;
+	ret_rate = m_samplingRates[ix];
+      }
+    }
+    return ret_rate;
+  };
+      
  protected:
   bool ProbeDevice(void);
 };

@@ -36,15 +36,33 @@ static bool remove_unused_sei_messages (nal_reader_t *nal,
 					uint32_t header_size)
 {
   uint32_t buffer_on = header_size;
+  buffer_on++; // increment past SEI message header
+
   while (buffer_on < nal->buffer_on) {
     uint32_t payload_type, payload_size, start, size;
+    if (nal->buffer_on - buffer_on < 2) {
+      fprintf(stderr, "extra bytes after SEI message\n");
+      memset(nal->buffer + buffer_on, 0,
+	     nal->buffer_on - buffer_on); 
+      nal->buffer_on = buffer_on;
+      
+      return true;
+    }
     start = buffer_on;
     payload_type = h264_read_sei_value(nal->buffer + buffer_on,
 				       &size);
+#ifdef DEBUG_H264
+    printf("sei type %d size %d on %d\n", payload_type, 
+	   size, buffer_on);
+#endif
     buffer_on += size;
     payload_size = h264_read_sei_value(nal->buffer + buffer_on,
 				       &size);
     buffer_on += size + payload_size;
+#ifdef DEBUG_H264
+    printf("sei size %d size %d on %d nal %d\n",
+	   payload_size, size, buffer_on, nal->buffer_on);
+#endif
     if (buffer_on > nal->buffer_on) {
       fprintf(stderr, "Error decoding sei message\n");
       return false;
@@ -312,6 +330,10 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
       if (boundary && first == false) {
 	// write the previous sample
 	if (nal_buffer_size != 0) {
+#ifdef DEBUG_H264
+	  printf("sid %d writing %u\n", samplesWritten, 
+		 nal_buffer_size);
+#endif
 	  samplesWritten++;
  	  thisTime = samplesWritten;
 	  thisTime *= mp4FrameDuration;
@@ -417,6 +439,10 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 	memcpy(nal_buffer + nal_buffer_size + 4,
 	       nal.buffer + header_size,
 	       to_write);
+#ifdef DEBUG_H264
+	printf("copy nal - to_write %u offset %u total %u\n",
+	       to_write, nal_buffer_size, nal_buffer_size + 4 + to_write);
+#endif
 	nal_buffer_size += to_write + 4;
       }
 

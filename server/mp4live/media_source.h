@@ -43,25 +43,9 @@ public:
 
 	~CMediaSource();
 	
-
-	void GenerateKeyFrame(void) {
-		m_myMsgQueue.send_message(MSG_SOURCE_KEY_FRAME,
-					  m_myMsgQueueSemaphore);
-	}
-
 	virtual bool IsDone() = 0;
 
-	virtual Duration GetElapsedDuration();
-
 	virtual float GetProgress() = 0;
-
-	virtual u_int32_t GetNumEncodedVideoFrames() {
-		return m_videoEncodedFrames;
-	}
-
-	virtual u_int32_t GetNumEncodedAudioFrames() {
-		return m_audioDstFrameNumber;
-	}
 
 	void SetVideoSource(CMediaSource* source) {
 		m_videoSource = source;
@@ -74,6 +58,13 @@ public:
 	}
 
 	virtual bool CanShareSource(void) { return true; };
+	void SetAudioSrcSamplesPerFrame(uint32_t samples) {
+	  m_audioSrcSamplesPerFrame = samples;
+	};
+	void RequestKeyFrame (Timestamp t) {
+	  m_videoWantKeyFrame = true;
+	  m_audioStartTimestamp = t;
+	};
 protected:
 	// Video & Audio support
 	virtual bool IsEndOfVideo() { 
@@ -82,9 +73,6 @@ protected:
 	virtual bool IsEndOfAudio() {
 		return true;
 	}
-
-	void DoStopSource();
-
 
 	// Video
 
@@ -95,27 +83,7 @@ protected:
 	void SetVideoSrcSize(
 		u_int16_t srcWidth,
 		u_int16_t srcHeight,
-		u_int16_t srcStride,
-		bool matchAspectRatios = false);
-
-	void SetVideoSrcStride(
 		u_int16_t srcStride);
-
-	void ProcessVideoYUVFrame(
-		u_int8_t* pY,
-		u_int8_t* pU,
-		u_int8_t* pV,
-		u_int16_t yStride,
-		u_int16_t uvStride,
-		Timestamp frameTimestamp);
-
-	void DoGenerateKeyFrame() {
-          m_videoWantKeyFrame = true;
-	}
-
-	void DestroyVideoResizer();
-
-	void DoStopVideo();
 
 	// Audio
 
@@ -127,62 +95,19 @@ protected:
 		u_int8_t srcChannels,
 		u_int32_t srcSampleRate);
 
-	void ProcessAudioFrame(
-		u_int8_t* frameData,
-		u_int32_t frameDataLength,
-		Timestamp frameTimestamp);
-
-	void ResampleAudio(
-		u_int8_t* frameData,
-		u_int32_t frameDataLength);
-
-	void ForwardEncodedAudioFrames(void);
-
-	void DoStopAudio();
-
 	// audio utility routines
 
 	inline Duration SrcSamplesToTicks(u_int64_t numSamples) {
 		return (numSamples * TimestampTicks) / m_audioSrcSampleRate;
 	}
 
-	inline Duration DstSamplesToTicks(u_int64_t numSamples) {
-		return (numSamples * TimestampTicks) / m_audioDstSampleRate;
-	}
-
-	inline u_int32_t SrcTicksToSamples(Duration duration) {
-		return (duration * m_audioSrcSampleRate) / TimestampTicks;
-	}
-
-	inline u_int32_t DstTicksToSamples(Duration duration) {
-		return (duration * m_audioDstSampleRate) / TimestampTicks;
-	}
-
 	inline u_int32_t SrcSamplesToBytes(u_int64_t numSamples) {
 		return (numSamples * m_audioSrcChannels * sizeof(u_int16_t));
-	}
-
-	inline u_int32_t DstSamplesToBytes(u_int64_t numSamples) {
-		return (numSamples * m_audioDstChannels * sizeof(u_int16_t));
 	}
 
 	inline u_int64_t SrcBytesToSamples(u_int32_t numBytes) {
 		return (numBytes / (m_audioSrcChannels * sizeof(u_int16_t)));
 	}
-
-	inline u_int64_t DstBytesToSamples(u_int32_t numBytes) {
-		return (numBytes / (m_audioDstChannels * sizeof(u_int16_t)));
-	}
-
-	inline Duration VideoDstFramesToDuration(void) {
-	  double tempd;
-	  tempd = m_videoDstFrameNumber;
-	  tempd *= TimestampTicks;
-	  tempd /= m_videoDstFrameRate;
-	  return (Duration) tempd;
-	};
-
-	void AddSilenceFrame(void);
 
 protected:
 	static const uint32_t MSG_SOURCE	= 2048;
@@ -190,16 +115,11 @@ protected:
 
 	// generic media info
 	bool			m_source;
-	bool			m_sourceVideo;
-	bool			m_sourceAudio;
 	bool			m_sourceRealTime;
-	Timestamp		m_encodingStartTimestamp;
-        Duration                m_maxAheadDuration;
 
 	// video source info
 	CMediaSource*	m_videoSource; 
 	MediaType		m_videoSrcType;
-	u_int32_t		m_videoSrcFrameNumber;
 	u_int16_t		m_videoSrcWidth;
 	u_int16_t		m_videoSrcHeight;
 	u_int16_t		m_videoSrcAdjustedHeight;
@@ -209,81 +129,20 @@ protected:
 	u_int16_t		m_videoSrcYStride;
 	u_int32_t		m_videoSrcUVSize;
 	u_int16_t		m_videoSrcUVStride;
-	u_int32_t		m_videoSrcYCrop;
-	u_int32_t		m_videoSrcUVCrop;
 
 	// video destination info
 	bool                    m_videoFilterInterlace;
-	MediaType		m_videoDstType;
-	float			m_videoDstFrameRate;
-	Duration		m_videoDstFrameDuration;
-	u_int32_t		m_videoDstFrameNumber;
-	u_int32_t               m_videoEncodedFrames;
-	u_int16_t		m_videoDstWidth;
-	u_int16_t		m_videoDstHeight;
-	float			m_videoDstAspectRatio;
-	u_int32_t		m_videoDstYUVSize;
-	u_int32_t		m_videoDstYSize;
-	u_int32_t		m_videoDstUVSize;
 
 	// video resizing info
-	bool			m_videoMatchAspectRatios;
-	image_t*		m_videoSrcYImage;
-	image_t*		m_videoDstYImage;
-	scaler_t*		m_videoYResizer;
-	image_t*		m_videoSrcUVImage;
-	image_t*		m_videoDstUVImage;
-	scaler_t*		m_videoUVResizer;
-
-	// video encoding info
-	CVideoEncoder*	m_videoEncoder;
-#ifdef DEBUG_VCODEC_SHADOW
-	CVideoEncoder*	m_videoEncoderShadow;
-#endif
 	bool			m_videoWantKeyFrame;
+	Timestamp               m_audioStartTimestamp;
 
-	// video timing info
-	Timestamp		m_videoStartTimestamp;
-	//Duration		m_videoEncodingDrift;
-	//Duration		m_videoEncodingMaxDrift;
-	Duration		m_videoSrcElapsedDuration;
-	Duration		m_videoDstElapsedDuration;
-
-	// video previous frame info
-	u_int8_t*		m_videoDstPrevImage;
-	u_int8_t*		m_videoDstPrevReconstructImage;
 	// audio source info 
-	MediaType		m_audioSrcType;
 	u_int8_t		m_audioSrcChannels;
 	u_int32_t		m_audioSrcSampleRate;
 	u_int16_t		m_audioSrcSamplesPerFrame;
 	u_int64_t		m_audioSrcSampleNumber;
 	u_int32_t		m_audioSrcFrameNumber;
-
-	// audio resampling info
-	resample_t              *m_audioResample;
-
-	// audio destination info
-	MediaType		m_audioDstType;
-	u_int8_t		m_audioDstChannels;
-	u_int32_t		m_audioDstSampleRate;
-	u_int16_t		m_audioDstSamplesPerFrame;
-	u_int64_t		m_audioDstSampleNumber;
-	u_int32_t		m_audioDstFrameNumber;
-	u_int64_t		m_audioDstRawSampleNumber;
-	u_int32_t		m_audioDstRawFrameNumber;
-
-	// audio encoding info
-	u_int8_t*		m_audioPreEncodingBuffer;
-	u_int32_t		m_audioPreEncodingBufferLength;
-	u_int32_t		m_audioPreEncodingBufferMaxLength;
-	CAudioEncoder*	m_audioEncoder;
-
-	// audio timing info
-	Timestamp		m_audioStartTimestamp;
-	Timestamp               m_audioEncodingStartTimestamp;
-	Duration		m_audioSrcElapsedDuration;
-	Duration		m_audioDstElapsedDuration;
 };
 
 #endif /* __MEDIA_SOURCE_H__ */

@@ -27,7 +27,10 @@
 //#include <dsputil.h>
 //#include <mpegvideo.h>
 
-CFfmpegVideoEncoder::CFfmpegVideoEncoder()
+CFfmpegVideoEncoder::CFfmpegVideoEncoder(CVideoProfile *vp, 
+					 CVideoEncoder *next, 
+					 bool realTime) :
+  CVideoEncoder(vp, next, realTime)
 {
   m_codec = NULL;
   m_avctx = NULL;
@@ -40,21 +43,20 @@ CFfmpegVideoEncoder::CFfmpegVideoEncoder()
 #endif
 }
 
-bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
+bool CFfmpegVideoEncoder::Init (void)
 {
   avcodec_init();
   avcodec_register_all();
-  m_pConfig = pConfig;
 
   if (m_push != NULL) {
     delete m_push;
     m_push = NULL;
   }
   double rate;
-  rate = TimestampTicks / pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
+  rate = TimestampTicks / Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE);
 
   m_frame_time = (Duration)rate;
-  if (strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
+  if (strcasecmp(Profile()->GetStringValue(CFG_VIDEO_ENCODING),
 		 VIDEO_ENCODING_MPEG4) == 0) {
     m_push = new CTimestampPush(1);
     m_codec = avcodec_find_encoder(CODEC_ID_MPEG4);
@@ -62,7 +64,7 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 #ifdef OUTPUT_RAW
     m_outfile = fopen("raw.m4v", FOPEN_WRITE_BINARY);
 #endif
-  } else if (strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
+  } else if (strcasecmp(Profile()->GetStringValue(CFG_VIDEO_ENCODING),
 			VIDEO_ENCODING_H263) == 0) {
     m_push = new CTimestampPush(1);
     m_codec = avcodec_find_encoder(CODEC_ID_H263);
@@ -86,26 +88,33 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
   
   m_avctx = avcodec_alloc_context();
   m_picture = avcodec_alloc_frame();
-  m_avctx->width = m_pConfig->m_videoWidth;
-  m_avctx->height = m_pConfig->m_videoHeight;
+  m_avctx->width = Profile()->m_videoWidth;
+  m_avctx->height = Profile()->m_videoHeight;
   m_avctx->bit_rate = 
-    m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
-  m_avctx->frame_rate = (int)(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
+    Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) * 1000;
+  m_avctx->frame_rate = (int)(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) + 0.5);
   m_avctx->frame_rate_base = 1;
-  if (pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH) > 0 &&
-      pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT) > 0) {
+  if (Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_WIDTH) > 0 &&
+      Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_HEIGHT) > 0) {
 #ifndef HAVE_AVRATIONAL
-    float asp = (float)pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH);
-    asp /= (float)pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT);
+    float asp = (float)Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_WIDTH);
+    asp /= (float)Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_HEIGHT);
     m_avctx->aspect_ratio = asp;
 #else
     AVRational asp = 
-      {pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_WIDTH),
-       pConfig->GetIntegerValue(CONFIG_VIDEO_MPEG4_PAR_HEIGHT)};
+      {Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_WIDTH),
+       Profile()->GetIntegerValue(CFG_VIDEO_MPEG4_PAR_HEIGHT)};
     m_avctx->sample_aspect_ratio = asp;
 #endif
   }
-			       
+
+#if 0
+  debug_message("ffmpeg %u x %u bit rate %u media %d",
+		Profile()->m_videoWidth, 
+		Profile()->m_videoHeight, 
+		m_avctx->bit_rate,
+		m_media_frame);
+#endif
   
   if (m_media_frame == MPEG2VIDEOFRAME) {
     m_avctx->gop_size = 15;
@@ -114,19 +123,19 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
   } else {
     if (m_media_frame == H263VIDEOFRAME) {
       m_avctx->bit_rate = 
-	m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 800;
+	Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) * 800;
       m_avctx->bit_rate_tolerance = 
-	m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 200;
+	Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) * 200;
 #if 0
       // this makes file writing difficult
       m_avctx->rtp_mode = true;
       m_avctx->rtp_payload_size = 
-	m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
+	Profile()->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
 #endif
     } 
     m_key_frame_count = m_avctx->gop_size = (int)
-      ((m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE)+0.5)
-       * m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
+      ((Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE)+0.5)
+       * Profile()->GetFloatValue(CFG_VIDEO_KEY_FRAME_INTERVAL));
     m_avctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
     debug_message("key frame count is %d", m_key_frame_count);
   }
@@ -140,7 +149,9 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 }
 
 bool CFfmpegVideoEncoder::EncodeImage(
-	u_int8_t* pY, u_int8_t* pU, u_int8_t* pV, 
+				      const u_int8_t* pY, 
+				      const u_int8_t* pU, 
+				      const u_int8_t* pV, 
 	u_int32_t yStride, u_int32_t uvStride,
 	bool wantKeyFrame, 
 	Duration elapsedDuration,
@@ -148,12 +159,11 @@ bool CFfmpegVideoEncoder::EncodeImage(
 {
   m_push->Push(srcFrameTimestamp);
 	if (m_vopBuffer == NULL) {
-		m_vopBuffer = (u_int8_t*)malloc(m_pConfig->m_videoMaxVopSize);
+		m_vopBuffer = (u_int8_t*)malloc(Profile()->m_videoMaxVopSize);
 		if (m_vopBuffer == NULL) {
 			return false;
 		}
 	}
-
 	if (m_media_frame == H263VIDEOFRAME) {
 	  m_count++;
 	  if (m_count >= m_key_frame_count) {
@@ -161,20 +171,25 @@ bool CFfmpegVideoEncoder::EncodeImage(
 	    m_count = 0;
 	  }
 	}
-	if (wantKeyFrame) m_picture->key_frame = 1;
-	else m_picture->key_frame = 0;
+	if (wantKeyFrame) m_picture->pict_type = FF_I_TYPE; //m_picture->key_frame = 1;
+	else //m_picture->key_frame = 0;
+	  m_picture->pict_type = 0;
 
-	m_picture->data[0] = pY;
-	m_picture->data[1] = pU;
-	m_picture->data[2] = pV;
+	m_picture->data[0] = (uint8_t *)pY;
+	m_picture->data[1] = (uint8_t *)pU;
+	m_picture->data[2] = (uint8_t *)pV;
 	m_picture->linesize[0] = yStride;
 	m_picture->linesize[1] = uvStride;
 	m_picture->linesize[2] = uvStride;
 
+	if (m_picture->key_frame == 1) {
+	  debug_message("key frame "U64, srcFrameTimestamp);
+	}
+
 	
 	m_vopBufferLength = avcodec_encode_video(m_avctx, 
 						 m_vopBuffer, 
-						 m_pConfig->m_videoMaxVopSize, 
+						 Profile()->m_videoMaxVopSize, 
 						 m_picture);
 	//debug_message(U64" ffmpeg len %d", srcFrameTimestamp, m_vopBufferLength);
 #ifdef OUTPUT_RAW
@@ -231,30 +246,31 @@ bool CFfmpegVideoEncoder::GetReconstructedImage(
 {
 
 #if 1
-  if (m_avctx->coded_frame->linesize[0] == m_pConfig->m_videoWidth) {
+  if (m_avctx->coded_frame->linesize[0] == (int)Profile()->m_videoWidth) {
 	memcpy(pY, m_avctx->coded_frame->data[0],
-		m_pConfig->m_ySize);
+		Profile()->m_ySize);
 	memcpy(pU, m_avctx->coded_frame->data[1],
-		m_pConfig->m_uvSize);
+		Profile()->m_uvSize);
 	memcpy(pV, m_avctx->coded_frame->data[2],
-		m_pConfig->m_uvSize);
+		Profile()->m_uvSize);
   } else {
     const uint8_t *sY, *sU, *sV;
     sY = m_avctx->coded_frame->data[0];
     sU = m_avctx->coded_frame->data[1];
     sV = m_avctx->coded_frame->data[2];
+    if (sY == NULL) return false;
     uint16_t ix;
-    for (ix = 0; ix < m_pConfig->m_videoHeight; ix++) {
-      memcpy(pY, sY, m_pConfig->m_videoWidth);
-      pY += m_pConfig->m_videoWidth;
+    for (ix = 0; ix < Profile()->m_videoHeight; ix++) {
+      memcpy(pY, sY, Profile()->m_videoWidth);
+      pY += Profile()->m_videoWidth;
       sY += m_avctx->coded_frame->linesize[0];
     }
-    for (ix = 0; ix < m_pConfig->m_videoHeight / 2; ix++) {
-      memcpy(pU, sU, m_pConfig->m_videoWidth / 2);
-      pU += m_pConfig->m_videoWidth / 2;
+    for (ix = 0; ix < Profile()->m_videoHeight / 2; ix++) {
+      memcpy(pU, sU, Profile()->m_videoWidth / 2);
+      pU += Profile()->m_videoWidth / 2;
       sU += m_avctx->coded_frame->linesize[1];
-      memcpy(pV, sV, m_pConfig->m_videoWidth / 2);
-      pV += m_pConfig->m_videoWidth / 2;
+      memcpy(pV, sV, Profile()->m_videoWidth / 2);
+      pV += Profile()->m_videoWidth / 2;
       sV += m_avctx->coded_frame->linesize[2];
     }
   }
@@ -265,7 +281,7 @@ bool CFfmpegVideoEncoder::GetReconstructedImage(
 #endif
 }
 
-void CFfmpegVideoEncoder::Stop()
+void CFfmpegVideoEncoder::StopEncoder (void)
 {
   avcodec_close(m_avctx);
   CHECK_AND_FREE(m_YUV);
@@ -276,6 +292,10 @@ void CFfmpegVideoEncoder::Stop()
     fclose(m_outfile);
   }
 #endif
+  if (m_push != NULL) {
+    delete m_push;
+    m_push = NULL;
+  }
 	  
 }
 

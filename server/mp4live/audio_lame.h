@@ -26,13 +26,13 @@
 #include <lame/lame.h>
 #include <sdp.h>
 
-media_desc_t *lame_create_audio_sdp(CLiveConfig *pConfig,
+media_desc_t *lame_create_audio_sdp(CAudioProfile *pConfig,
 				    bool *mpeg4,
 				    bool *isma_compliant,
 				    uint8_t *audioProfile,
 				    uint8_t **audioConfig,
 				    uint32_t *audioConfigLen);
-MediaType lame_mp4_fileinfo(CLiveConfig *pConfig,
+MediaType lame_mp4_fileinfo(CAudioProfile *pConfig,
 			    bool *mpeg4,
 			    bool *isma_compliant,
 			    uint8_t *audioProfile,
@@ -40,7 +40,7 @@ MediaType lame_mp4_fileinfo(CLiveConfig *pConfig,
 			    uint32_t *audioConfigLen,
 			    uint8_t *mp4AudioType);
 
-bool lame_get_audio_rtp_info (CLiveConfig *pConfig,
+bool lame_get_audio_rtp_info (CAudioProfile *pConfig,
 			      MediaType *audioFrameType,
 			      uint32_t *audioTimeScale,
 			      uint8_t *audioPayloadNumber,
@@ -53,11 +53,13 @@ bool lame_get_audio_rtp_info (CLiveConfig *pConfig,
 
 class CLameAudioEncoder : public CAudioEncoder {
 public:
-	CLameAudioEncoder();
+	CLameAudioEncoder(CAudioProfile *ap,
+			  CAudioEncoder *next, 
+			  u_int8_t srcChannels, 
+			  u_int32_t srcSampleRate,
+			  bool realTime = true);
 
-	bool Init(
-		CLiveConfig* pConfig, 
-		bool realTime = true);
+	bool Init(void);
 
 	MediaType GetFrameType(void) {
 		return MP3AUDIOFRAME;
@@ -75,9 +77,9 @@ public:
 		u_int32_t* pBufferLength,
 		u_int32_t* pNumSamplesPerChannel);
 
-	void Stop();
 
 protected:
+	void StopEncoder(void);
 	lame_global_flags	*m_lameParams;
 	u_int32_t			m_samplesPerFrame;
 	u_int8_t*			m_mp3FrameBuffer;

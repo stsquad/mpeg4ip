@@ -29,6 +29,7 @@ public:
 	CSDLVideoPreview() : CMediaSink() {
 		m_sdlScreen = NULL;
 		m_sdlImage = NULL;
+		m_w = m_h = 0;
 	}
 
 protected:
@@ -42,6 +43,7 @@ protected:
 	SDL_Surface*	m_sdlScreen;
 	SDL_Rect		m_sdlScreenRect;
 	SDL_Overlay*	m_sdlImage;
+	uint32_t m_w, m_h;
 };
 
 #endif /* __VIDEO_SDL_PREVIEW_H__ */

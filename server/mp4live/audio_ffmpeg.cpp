@@ -134,15 +134,15 @@ static uint32_t *ffmpeg_amr_bitrate_for_samplerate (uint32_t samplerate,
  };
  
     
-MediaType ffmpeg_mp4_fileinfo (CLiveConfig *pConfig,
-			     bool *mpeg4,
-			     bool *isma_compliant,
-			     uint8_t *audioProfile,
-			     uint8_t **audioConfig,
-			     uint32_t *audioConfigLen,
-			     uint8_t *mp4AudioType)
+MediaType ffmpeg_mp4_fileinfo (CAudioProfile *pConfig,
+			       bool *mpeg4,
+			       bool *isma_compliant,
+			       uint8_t *audioProfile,
+			       uint8_t **audioConfig,
+			       uint32_t *audioConfigLen,
+			       uint8_t *mp4AudioType)
 {
-  const char *encodingName = pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+  const char *encodingName = pConfig->GetStringValue(CFG_AUDIO_ENCODING);
   if (!strcasecmp(encodingName, AUDIO_ENCODING_MP3)) {
     *mpeg4 = true; // legal in an mp4 - create an iod
     *isma_compliant = false;
@@ -162,7 +162,7 @@ MediaType ffmpeg_mp4_fileinfo (CLiveConfig *pConfig,
     if (mp4AudioType != NULL) {
 	*mp4AudioType = 0;
     }
-    if (pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) == 8000) {
+    if (pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE) == 8000) {
       return AMRNBAUDIOFRAME;
     } 
     return AMRWBAUDIOFRAME;
@@ -170,12 +170,12 @@ MediaType ffmpeg_mp4_fileinfo (CLiveConfig *pConfig,
   return UNDEFINEDFRAME;
 }
 
-media_desc_t *ffmpeg_create_audio_sdp (CLiveConfig *pConfig,
-				     bool *mpeg4,
-				     bool *isma_compliant,
-				     uint8_t *audioProfile,
-				     uint8_t **audioConfig,
-				     uint32_t *audioConfigLen)
+media_desc_t *ffmpeg_create_audio_sdp (CAudioProfile *pConfig,
+				       bool *mpeg4,
+				       bool *isma_compliant,
+				       uint8_t *audioProfile,
+				       uint8_t **audioConfig,
+				       uint32_t *audioConfigLen)
 {
   media_desc_t *sdpMediaAudio;
   format_list_t *sdpMediaAudioFormat;
@@ -197,12 +197,12 @@ media_desc_t *ffmpeg_create_audio_sdp (CLiveConfig *pConfig,
   memset(sdpAudioRtpMap, 0, sizeof(*sdpAudioRtpMap));
 
   if (type == MP3AUDIOFRAME) {
-    if (pConfig->GetBoolValue(CONFIG_RTP_USE_MP3_PAYLOAD_14)) {
+    if (pConfig->GetBoolValue(CFG_RTP_USE_MP3_PAYLOAD_14)) {
       sdpMediaAudioFormat->fmt = strdup("14");
       sdpAudioRtpMap->clock_rate = 90000;
     } else {
       sdpAudioRtpMap->clock_rate = 
-	pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+	pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
       sdpMediaAudioFormat->fmt = strdup("97");
       sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
 			     "a=mpeg4-esid:10");
@@ -289,7 +289,7 @@ static int ffmpeg_amr_set_rtp_payload(CMediaFrame** m_audioQueue,
   return true;
 }
 
-bool ffmpeg_get_audio_rtp_info (CLiveConfig *pConfig,
+bool ffmpeg_get_audio_rtp_info (CAudioProfile *pConfig,
 			      MediaType *audioFrameType,
 			      uint32_t *audioTimeScale,
 			      uint8_t *audioPayloadNumber,
@@ -301,16 +301,16 @@ bool ffmpeg_get_audio_rtp_info (CLiveConfig *pConfig,
 			      audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
 			      void **ud)
 {
-  const char *encodingName = pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+  const char *encodingName = pConfig->GetStringValue(CFG_AUDIO_ENCODING);
   if (!strcasecmp(encodingName, AUDIO_ENCODING_MP3)) {
 
     *audioFrameType = MP3AUDIOFRAME;
-    if (pConfig->GetBoolValue(CONFIG_RTP_USE_MP3_PAYLOAD_14)) {
+    if (pConfig->GetBoolValue(CFG_RTP_USE_MP3_PAYLOAD_14)) {
       *audioPayloadNumber = 14;
       *audioTimeScale = 90000;
     } else {
       *audioPayloadNumber = 97;
-      *audioTimeScale = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+      *audioTimeScale = pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
     }
     *audioPayloadBytesPerPacket = 4;
     *audioPayloadBytesPerFrame = 0;
@@ -322,7 +322,7 @@ bool ffmpeg_get_audio_rtp_info (CLiveConfig *pConfig,
     return true;
   }
   if (!strcasecmp(encodingName, AUDIO_ENCODING_AMR)) {
-    *audioTimeScale = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+    *audioTimeScale = pConfig->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
     if (*audioTimeScale == 8000) {
       *audioFrameType = AMRNBAUDIOFRAME;
     } else {
@@ -341,22 +341,25 @@ bool ffmpeg_get_audio_rtp_info (CLiveConfig *pConfig,
 	    
 }
 
-CFfmpegAudioEncoder::CFfmpegAudioEncoder()
+CFfmpegAudioEncoder::CFfmpegAudioEncoder(CAudioProfile *ap,
+					 CAudioEncoder *next, 
+					 u_int8_t srcChannels,
+					 u_int32_t srcSampleRate,
+					 bool realTime) :
+  CAudioEncoder(ap, next, srcChannels, srcSampleRate, realTime)
 {
 	m_FrameBuffer = NULL;
 	m_codec = NULL;
 	m_avctx = NULL;
 }
 
-bool CFfmpegAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
+bool CFfmpegAudioEncoder::Init (void)
 {
-  const char *encoding = pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
-  uint32_t samplingRate = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+  const char *encoding = Profile()->GetStringValue(CFG_AUDIO_ENCODING);
+  uint32_t samplingRate = Profile()->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
 
   avcodec_init();
   avcodec_register_all();
-
-  m_pConfig = pConfig;
 
   if (strcasecmp(encoding,AUDIO_ENCODING_MP3) == 0) {
     m_codec = avcodec_find_encoder(CODEC_ID_MP2);
@@ -386,7 +389,7 @@ bool CFfmpegAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
   case MP3AUDIOFRAME:
     m_avctx->codec_id = CODEC_ID_MP2;
     m_samplesPerFrame = 
-      MP4AV_Mp3GetSamplingWindow(m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+      MP4AV_Mp3GetSamplingWindow(Profile()->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE));
     m_FrameMaxSize = (u_int)(1.25 * m_samplesPerFrame) + 7200;
     break;
   case AMRNBAUDIOFRAME:
@@ -402,9 +405,9 @@ bool CFfmpegAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
     m_FrameMaxSize = 64;
     break;
   }
-  m_avctx->bit_rate = m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE);
-  m_avctx->sample_rate = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
-  m_avctx->channels = m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
+  m_avctx->bit_rate = Profile()->GetIntegerValue(CFG_AUDIO_BIT_RATE);
+  m_avctx->sample_rate = Profile()->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
+  m_avctx->channels = Profile()->GetIntegerValue(CFG_AUDIO_CHANNELS);
 
   if (avcodec_open(m_avctx, m_codec) < 0) {
     error_message("Couldn't open ffmpeg codec");
@@ -421,7 +424,7 @@ bool CFfmpegAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
   if (!m_FrameBuffer) {
     return false;
   }
-  
+  Initialize();
   return true;
 }
 
@@ -519,7 +522,7 @@ bool CFfmpegAudioEncoder::GetEncodedFrame(
 	return true;
 }
 
-void CFfmpegAudioEncoder::Stop()
+void CFfmpegAudioEncoder::StopEncoder(void)
 {
   avcodec_close(m_avctx);
   m_avctx = NULL;

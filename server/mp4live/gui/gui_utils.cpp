@@ -275,16 +275,14 @@ GtkWidget *CreateBarSubMenu (GtkWidget *menu, char *szName)
 }
 
 GtkWidget *CreateOptionMenu(GtkWidget *omenu,
-			    char* (*gather_func)(uint32_t index, void* pUserData),
-			     void* pUserData,
-			     uint32_t max,
-			     uint32_t current_index,
-			     GtkSignalFunc on_activate,
-				 GSList** menuItems)
+			    const char* (*gather_func)(uint32_t index, void* pUserData),
+			    void* pUserData,
+			    uint32_t max,
+			    uint32_t current_index,
+			    GSList** menuItems)
 {
   GtkWidget *menu;
   GtkWidget *menuitem;
-  GSList *group;
   uint32_t ix;
 
   if (omenu != NULL) {
@@ -296,42 +294,35 @@ GtkWidget *CreateOptionMenu(GtkWidget *omenu,
   }
 
   menu = gtk_menu_new();
-  group = NULL;
   
   for (ix = 0; ix < max; ix++) {
-	char* name = (gather_func)(ix, pUserData);
-	if (name == NULL) {
-		break;
-	}
-    menuitem = gtk_radio_menu_item_new_with_label(group, name);
-    group = gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
-    gtk_menu_append(GTK_MENU(menu), menuitem);
+    const char* name = (gather_func)(ix, pUserData);
+    if (name == NULL) {
+      menuitem = gtk_menu_item_new();
+      gtk_widget_set_sensitive(menuitem, FALSE);
+    } else {
+      menuitem = gtk_menu_item_new_with_mnemonic(name);
+    }
     gtk_widget_show(menuitem);
-    gtk_signal_connect(GTK_OBJECT(menuitem),
-		       "activate",
-		       GTK_SIGNAL_FUNC(on_activate),
-		       GINT_TO_POINTER(ix));
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
   }
   gtk_option_menu_set_menu(GTK_OPTION_MENU(omenu), menu);
+
   gtk_option_menu_set_history(GTK_OPTION_MENU(omenu), current_index);
   gtk_widget_show(omenu);
 
-  if (menuItems) {	
-  	*menuItems = group;
-  }
   return (omenu);
 }
 
-static char* GetArrayItem(uint32_t index, void* pUserData)
+static const char* GetArrayItem(uint32_t index, void* pUserData)
 {
-	return ((char**)pUserData)[index];
+	return ((const char**)pUserData)[index];
 }
 
 GtkWidget *CreateOptionMenu(GtkWidget *omenu,
-			     char **names,
+			     const char **names,
 			     uint32_t max,
 			     uint32_t current_index,
-			     GtkSignalFunc on_activate,
 				 GSList** menuItems)
 {
 	return CreateOptionMenu(
@@ -340,7 +331,6 @@ GtkWidget *CreateOptionMenu(GtkWidget *omenu,
 		(void*)names, 
 		max, 
 		current_index, 
-		on_activate, 
 		menuItems);
 }
 
@@ -388,7 +378,7 @@ int GetNumberEntryValue (GtkWidget *entry, uint32_t *result)
   text = gtk_entry_get_text(GTK_ENTRY(entry));
   *result = strtoul(text, &endptr, 10);
   if (*text != '\0' && endptr != NULL && *endptr == '\0') {
-    if (*result == ULONG_MAX && errno == ERANGE)
+    if (*result == UINT32_MAX && errno == ERANGE)
       return (0);
     return (1);
   }

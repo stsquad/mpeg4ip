@@ -22,4 +22,5 @@ void InitialVideoProbe(CLiveConfig *pConfig);
 void InstallSignalHandler(CLiveConfig *pConfig, 
 			  void (*sighandler)(int));
 
+void GetHomeDirectory (char *base);
 #endif

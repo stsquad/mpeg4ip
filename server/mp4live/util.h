@@ -63,5 +63,10 @@ void debug_message(const char *fmt, ...)
 }
 #endif
 
+bool ValidateIpAddress (const char *address);
+bool ValidateIpPort (in_port_t port);
+in_addr_t GetRandomMcastAddress(void);
+in_port_t GetRandomPort(void);
+
 extern bool PrintDebugMessages;
 #endif

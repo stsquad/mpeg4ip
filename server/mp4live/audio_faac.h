@@ -26,14 +26,14 @@
 #include <faac.h>
 #include <sdp.h>
 
-media_desc_t *faac_create_audio_sdp(CLiveConfig *pConfig,
+media_desc_t *faac_create_audio_sdp(CAudioProfile *pConfig,
 				    bool *mpeg4,
 				    bool *isma_compliant,
 				    uint8_t *audioProfile,
 				    uint8_t **audioConfig,
 				    uint32_t *audioConfigLen);
 
-MediaType faac_mp4_fileinfo(CLiveConfig *pConfig,
+MediaType faac_mp4_fileinfo(CAudioProfile *pConfig,
 			    bool *mpeg4,
 			    bool *isma_compliant,
 			    uint8_t *audioProfile,
@@ -41,7 +41,7 @@ MediaType faac_mp4_fileinfo(CLiveConfig *pConfig,
 			    uint32_t *audioConfigLen,
 			    uint8_t *mp4AudioType);
 
-bool faac_get_audio_rtp_info(CLiveConfig *pConfig,
+bool faac_get_audio_rtp_info(CAudioProfile *pConfig,
 			     MediaType *audioFrameType,
 			     uint32_t *audioTimeScale,
 			     uint8_t *audioPayloadNumber,
@@ -54,10 +54,12 @@ bool faac_get_audio_rtp_info(CLiveConfig *pConfig,
 
 class CFaacAudioEncoder : public CAudioEncoder {
 public:
-	CFaacAudioEncoder();
+	CFaacAudioEncoder(CAudioProfile *profile,
+			  CAudioEncoder *next, 
+			  u_int8_t srcChannels, u_int32_t srcSampleRate,
+			  bool realTime = true);
 
-	bool Init(
-		CLiveConfig* pConfig, bool realTime = true);
+	bool Init(void);
 
 	MediaType GetFrameType(void) {
 		return AACAUDIOFRAME;
@@ -75,9 +77,9 @@ public:
 		u_int32_t* pBufferLength,
 		u_int32_t* pNumSamplesPerChannel);
 
-	void Stop();
 
 protected:
+	void StopEncoder(void);
 	faacEncHandle			m_faacHandle;
 	faacEncConfigurationPtr	m_faacConfig;
 

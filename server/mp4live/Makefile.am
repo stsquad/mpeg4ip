@@ -55,14 +55,12 @@ libmp4live_la_SOURCES = \
 	audio_lame.h \
 	audio_oss_source.cpp \
 	audio_oss_source.h \
+	config_list.cpp \
+	config_list.h \
 	file_mp4_recorder.cpp \
 	file_mp4_recorder.h \
 	file_raw_sink.cpp \
 	file_raw_sink.h \
-	loop_feeder_sink.cpp \
-	loop_feeder_sink.h \
-	loop_source.cpp \
-	loop_source.h \
 	media_codec.h \
 	media_feeder.cpp \
 	media_feeder.h \
@@ -73,6 +71,8 @@ libmp4live_la_SOURCES = \
 	media_sink.h \
 	media_source.cpp \
 	media_source.h \
+	media_stream.cpp \
+	media_stream.h \
 	media_time.h \
 	mp4live_common.cpp \
 	mp4live_common.h \
@@ -80,8 +80,6 @@ libmp4live_la_SOURCES = \
 	mp4live_config.h \
 	profile_audio.cpp \
 	profile_audio.h \
-	profile_list.cpp \
-	profile_list.h \
 	profile_video.h \
 	profile_video.cpp \
 	resample.c \

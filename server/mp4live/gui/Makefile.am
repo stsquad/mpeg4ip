@@ -9,10 +9,10 @@ libmp4livegui_la_SOURCES = \
 	recording_dialog.cpp \
 	transmit_dialog.cpp \
 	video_dialog.cpp \
-	file_utils.h \
-	file_utils.cpp \
 	gui_utils.h \
-	gui_utils.cpp 
+	gui_utils.cpp \
+	support.cpp \
+	support.h
 
 INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I.. \

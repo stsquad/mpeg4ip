@@ -27,21 +27,23 @@
 /*****************************************************************************
  * CMsg class methods.  Defines information about a single message
  *****************************************************************************/
-CMsg::CMsg (uint32_t value, void *msg, uint32_t msg_len)
+CMsg::CMsg (uint32_t value, const void *msg, uint32_t msg_len, uint32_t param)
 {
   m_value = value;
   m_msg_len = 0;
-  m_has_param = 0;
+  m_has_param = (param != 0);
+  m_param = param;
   m_next = NULL;
 
   if (msg_len) {
-    m_msg = malloc(msg_len);
-	if (m_msg) {
-		memcpy(m_msg, msg, msg_len);
-		m_msg_len = msg_len;
-	}
+    void *temp = malloc(msg_len);
+    if (temp) {
+      memcpy(temp, msg, msg_len);
+      m_msg_len = msg_len;
+    }
+    m_msg = temp;
   } else {
-	m_msg = msg;
+    m_msg = msg;
   }
 }
 
@@ -57,7 +59,7 @@ CMsg::CMsg (uint32_t value, uint32_t param)
 CMsg::~CMsg (void) 
 {
   if (m_msg_len) {
-    free(m_msg);
+    free((void *)m_msg);
     m_msg = NULL;
   }
 }
@@ -92,11 +94,12 @@ CMsgQueue::~CMsgQueue (void)
 }
 
 int CMsgQueue::send_message (uint32_t msgval, 
-			     void *msg, 
+			     const void *msg, 
 			     uint32_t msg_len, 
-			     SDL_sem *sem)
+			     SDL_sem *sem,
+			     uint32_t param)
 {
-  CMsg *newmsg = new CMsg(msgval, msg, msg_len);
+  CMsg *newmsg = new CMsg(msgval, msg, msg_len, param);
 
   if (newmsg == NULL) 
     return (-1);

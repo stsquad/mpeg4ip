@@ -28,9 +28,11 @@
 #include <mp4.h>
 #include "video_encoder.h"
 
-CVideoEncoder* VideoEncoderCreateBase(CLiveConfig *pConfig);
+CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp, 
+				      CVideoEncoder *next, 
+				      bool realTime = true);
 
-MediaType get_video_mp4_fileinfo_base(CLiveConfig *pConfig,
+MediaType get_video_mp4_fileinfo_base(CVideoProfile *pConfig,
 				      bool *createIod,
 				      bool *isma_compliant,
 				      uint8_t *videoProfile,
@@ -38,19 +40,20 @@ MediaType get_video_mp4_fileinfo_base(CLiveConfig *pConfig,
 				      uint32_t *videoConfigLen,
 				      uint8_t *mp4_video_type);
 
-media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
+media_desc_t *create_video_sdp_base(CVideoProfile *pConfig,
 				    bool *createIod,
 				    bool *isma_compliant,
 				    uint8_t *audioProfile,
 				    uint8_t **audioConfig,
 				    uint32_t *audioConfigLen);
 
-void create_mp4_video_hint_track_base(CLiveConfig *pConfig,
+void create_mp4_video_hint_track_base(CVideoProfile *pConfig,
 				      MP4FileHandle mp4file,
-				      MP4TrackId trackId);
+				      MP4TrackId trackId,
+				      uint16_t mtu);
 
 
-video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CLiveConfig *pConfig,
+video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CVideoProfile *pConfig,
 						       MediaType *pType,
 						       uint8_t *pPayload);
 
