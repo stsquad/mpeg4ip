@@ -26,7 +26,7 @@
 #include "rtp_bytestream.h"
 #include "our_config_file.h"
 
-//#define DEBUG_RTP_PAKS 1
+#define DEBUG_RTP_PAKS 1
 //#define DEBUG_RTP_FRAMES 1
 //#define DEBUG_RTP_BCAST 1
 //#define DEBUG_RTP_WCLOCK 1
@@ -218,7 +218,7 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
 
   m_timescale = tps;
 
-  init();
+  reset();
 
   m_last_rtp_ts = 0;
   m_total =0;

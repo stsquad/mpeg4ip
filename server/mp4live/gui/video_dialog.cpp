@@ -903,17 +903,6 @@ void CreateVideoDialog (void)
 		}
 	}
 
-	sizeIndex = 0; 
-	size_menu = NULL;
-	CreateSizeMenu(MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH));
-	signal_menu = CreateOptionMenu(
-		NULL,
-		signalNames, 
-		sizeof(signalNames) / sizeof(char*),
-		signalIndex,
-		GTK_SIGNAL_FUNC(on_signal_menu_activate),
-		&signal_menu_items);
-
 	input_menu = NULL;
 	CreateInputMenu(pVideoCaps);
 	ChangeInput(inputIndex);
@@ -968,6 +957,18 @@ void CreateVideoDialog (void)
 					encoderIndex, 
 					GTK_SIGNAL_FUNC(on_encoder_menu_activate));
 	gtk_box_pack_start(GTK_BOX(vbox), encoder_menu, FALSE, FALSE, 0);
+	// size menu must be created after encoder index
+	sizeIndex = 0; 
+	size_menu = NULL;
+	CreateSizeMenu(MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH));
+	signal_menu = CreateOptionMenu(
+		NULL,
+		signalNames, 
+		sizeof(signalNames) / sizeof(char*),
+		signalIndex,
+		GTK_SIGNAL_FUNC(on_signal_menu_activate),
+		&signal_menu_items);
+
 	gtk_box_pack_start(GTK_BOX(vbox), size_menu, FALSE, FALSE, 0);
 
 	aspectIndex = 0; 
