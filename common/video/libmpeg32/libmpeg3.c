@@ -771,7 +771,7 @@ int mpeg3_set_frame(mpeg3_t *file,
 	if(file->total_vstreams)
 	{
 		file->vtrack[stream]->current_position = frame;
-		mpeg3video_seek_frame(file->vtrack[stream]->video, frame);
+		mpeg3vtrack_seek_frame(file->vtrack[stream], frame);
 		return 0;
 	}
 	return -1;
@@ -782,7 +782,7 @@ int mpeg3_seek_percentage(mpeg3_t *file, double percentage)
 	int i;
 	for(i = 0; i < file->total_vstreams; i++)
 	{
-		mpeg3video_seek_percentage(file->vtrack[i]->video, percentage);
+		mpeg3vtrack_seek_percentage(file->vtrack[i], percentage);
 	}
 
 	for(i = 0; i < file->total_astreams; i++)
@@ -1068,13 +1068,13 @@ int mpeg3_read_video_chunk(mpeg3_t *file,
 	int result = 0;
 	if(file->total_vstreams)
 	{
-		result = mpeg3video_read_raw(file->vtrack[stream]->video, output, size, max_size);
+		result = mpeg3vtrack_read_raw(file->vtrack[stream], output, size, max_size);
 		file->last_type_read = 2;
 		file->last_stream_read = stream;
 	}
 	return result;
 }
-#ifdef MPEG4IP
+
 int mpeg3_read_video_chunk_resize(mpeg3_t *file, 
 				  unsigned char **output, 
 				  long *size, 
@@ -1084,57 +1084,9 @@ int mpeg3_read_video_chunk_resize(mpeg3_t *file,
   int result = 0;
   if(file->total_vstreams)
     {
-      result = mpeg3video_read_raw_resize(file->vtrack[stream]->video, output, size, max_size);
+      result = mpeg3vtrack_read_raw_resize(file->vtrack[stream], output, size, max_size);
       file->last_type_read = 2;
       file->last_stream_read = stream;
     }
   return result;
 }
-
-
-int mpeg3_read_yuvframe_ptr_test(mpeg3_t *file,
-				 unsigned char *buffer,
-				 long size,
-				 char **y_output,
-				 char **u_output,
-				 char **v_output,
-				 int stream)
-{
-	int result = -1;
-	long used;
-	if(file->total_vstreams)
-	{
-	  mpeg3video_t *video;
-	  video = file->vtrack[stream]->video;
-	  
-	  if (video->decoder_initted == 0) {
-	    mpeg3bits_use_ptr_len(video->vstream, buffer, size);
-	    result = mpeg3video_get_header(video, 1);
-	    if (video->found_seqhdr != 0) {
-		mpeg3video_initdecoder(video);
-		video->decoder_initted = 1;
-		file->vtrack[stream]->width = video->horizontal_size;
-		file->vtrack[stream]->height = video->vertical_size;
-		file->vtrack[stream]->frame_rate = video->frame_rate;
-		used = video->vstream->input_ptr - video->vstream->orig_ptr;
-		buffer += used;
-		size -= used;
-	    } else {
-	      return -1;
-	    }
-	  }
-	    
-	  mpeg3bits_use_ptr_len(video->vstream, buffer, size);
-		result = mpeg3video_read_yuvframe_ptr(file->vtrack[stream]->video, 
-					file->vtrack[stream]->current_position, 
-					y_output,
-					u_output,
-					v_output);
-		file->last_type_read = 2;
-		file->last_stream_read = stream;
-		file->vtrack[stream]->current_position++;
-		mpeg3bits_use_demuxer(video->vstream);
-	}
-	return result;
-}
-#endif

@@ -161,7 +161,7 @@ int rtsp_send (rtsp_client_t *info, const char *buff, uint32_t len)
  *      1 response at a time.
  */
 int rtsp_receive_socket (rtsp_client_t *info, char *buffer, uint32_t len,
-			 uint32_t msec_timeout)
+			 uint32_t msec_timeout, int wait)
 {
 
   int ret;
@@ -172,9 +172,7 @@ int rtsp_receive_socket (rtsp_client_t *info, char *buffer, uint32_t len,
   struct timeval timeout;
 #endif
 
-  if (msec_timeout != 0) {
-	  if (info->thread != NULL) {
-	  } else {
+  if (msec_timeout != 0 && wait != 0) {
 #ifdef HAVE_POLL
     pollit.fd = info->server_socket;
     pollit.events = POLLIN | POLLPRI;
@@ -196,7 +194,6 @@ int rtsp_receive_socket (rtsp_client_t *info, char *buffer, uint32_t len,
       }
       return (-1);
     }
-  }
   }
   //rtsp_debug(LOG_DEBUG, "Calling recv");
 #ifndef _WIN32

@@ -120,7 +120,7 @@ void rtsp_close_socket(rtsp_client_t *info);
 int rtsp_send(rtsp_client_t *info, const char *buff, uint32_t len);
 void rtsp_flush(rtsp_client_t *info);
 int rtsp_receive_socket(rtsp_client_t *rptr, char *buffer, uint32_t len,
-			uint32_t msec_timeout);
+			uint32_t msec_timeout, int wait);
 
 int rtsp_get_response(rtsp_client_t *info);
 

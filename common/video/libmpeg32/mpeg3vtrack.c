@@ -14,6 +14,10 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	new_vtrack->demuxer = mpeg3_new_demuxer(file, 0, 1, stream_id);
 	if(new_vtrack->demuxer) mpeg3demux_copy_titles(new_vtrack->demuxer, demuxer);
 	new_vtrack->current_position = 0;
+	new_vtrack->percentage = -1;
+	new_vtrack->frame = -1;
+	new_vtrack->track_frame_buffer = NULL;
+	new_vtrack->track_frame_buffer_maxsize = 0;
 
 //printf("mpeg3_new_vtrack 1\n");
 // Copy pointers
@@ -40,7 +44,6 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	}
 
 //printf("mpeg3_new_vtrack 2\n");
-
 	return new_vtrack;
 }
 

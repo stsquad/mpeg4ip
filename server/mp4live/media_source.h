@@ -76,6 +76,16 @@ public:
 		return m_audioDstFrameNumber;
 	}
 
+	void SetVideoSource(CMediaSource* source) {
+		m_videoSource = source;
+	}
+
+	void AddEncodingDrift(Duration drift) {
+		// currently there is no thread contention
+		// for this function, so we omit a mutex
+		m_otherTotalDrift += drift;
+	}
+
 protected:
 	// Video & Audio support
 	virtual void ProcessMedia();
@@ -163,6 +173,7 @@ protected:
 	Duration		m_maxAheadDuration;
 
 	// video source info
+	CMediaSource*	m_videoSource; 
 	MediaType		m_videoSrcType;
 	u_int32_t		m_videoSrcFrameNumber;
 	u_int16_t		m_videoSrcWidth;
@@ -205,6 +216,8 @@ protected:
 	Duration		m_videoEncodingMaxDrift;
 	Duration		m_videoSrcElapsedDuration;
 	Duration		m_videoDstElapsedDuration;
+	Duration		m_otherTotalDrift;
+	Duration		m_otherLastTotalDrift;
 
 	// video previous frame info
 	u_int8_t*		m_videoDstPrevImage;

@@ -14,8 +14,11 @@ typedef struct
 	mpeg3video_t *video;
 	long current_position;  /* Number of next frame to be played */
 	long total_frames;     /* Total frames in the file */
-
-
+  unsigned char *track_frame_buffer;
+  long track_frame_buffer_size;
+  long track_frame_buffer_maxsize;
+  double percentage;
+  long frame;
 /* Pointer to master table of contents */
 	int64_t *frame_offsets;
 	int total_frame_offsets;

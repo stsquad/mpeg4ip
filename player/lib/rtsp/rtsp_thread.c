@@ -267,6 +267,7 @@ static int check_rtsp_resp (rtsp_client_t *info,
     ret = rtsp_receive_socket(info,
 			      info->m_resp_buffer + blen,
 			      len - blen,
+			      0,
 			      0);
     if (ret < 0) return 0;
     info->m_buffer_len += ret;
@@ -337,6 +338,7 @@ static int data_unknown (rtsp_client_t *info,
   blen = rtsp_receive_socket(info,
 			     info->m_resp_buffer + info->m_offset_on,
 			     RECV_BUFF_DEFAULT_LEN - info->m_offset_on,
+			     0,
 			     0);
   if (blen < 0) return -1;
   info->m_buffer_len += blen;
@@ -482,6 +484,7 @@ int rtsp_thread (void *data)
 	      ret = rtsp_receive_socket(info,
 					info->m_resp_buffer + bytes,
 					4 - bytes,
+					0,
 					0);
 	      if (ret < 0) {
 		state_cont = 1;

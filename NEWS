@@ -1,15 +1,16 @@
-xx/xx/02 Version 0.9.x
+05/08/02 Version 0.9.4
     Plugin concept for player codecs (also adds YUV/PCM output from mp4 file)
-    Show play time in GUI
+    Show play time in player GUI
     Enhance message box errors when starting player session
-    .avi file audio for PCM and mp3. (no seek).
-    Added L8 and L16 rtp support
+    Added .avi file audio for PCM and mp3. (no seek).
+    Added L8 and L16 rtp support to player
     Added RFC 3119 support to mp4player.
     Generate IOD in mp4live's SDP files (Envivio interoperability)
-    Updated to Xvid 4/12/02 snapshot, replaces divx and ffmpeg codecs
-    Added xvid to player, replaces OpenDivx.
-    Sndfile, DSS4 removed from repository. FAAC modified to work without
-    sndfile.
+    Integrated Xvid 4/12/02 snapshot:
+		Replaces OpenDivx and ffmpeg codecs for encoding
+		Replaces OpenDivx for decoding in player
+    OpenDivx, ffmpeg, sndfile, and DSS4 removed from distribution:
+		FAAC modified to work without sndfile.
 
 02/26/02 Version 0.9.3
     Added RFC 3119, MP3 robust RTP payload, support to mp4creator.

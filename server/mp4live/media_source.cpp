@@ -42,6 +42,7 @@ CMediaSource::CMediaSource()
 	m_sourceAudio = false;
 	m_maxAheadDuration = TimestampTicks / 2 ;	// 500 msec
 
+	m_videoSource = this;
 	m_videoSrcYImage = NULL;
 	m_videoDstYImage = NULL;
 	m_videoYResizer = NULL;
@@ -334,6 +335,8 @@ bool CMediaSource::InitVideo(
 	m_videoEncodingMaxDrift = m_videoDstFrameDuration;
 	m_videoSrcElapsedDuration = 0;
 	m_videoDstElapsedDuration = 0;
+	m_otherTotalDrift = 0;
+	m_otherLastTotalDrift = 0;
 
 	m_videoDstPrevImage = NULL;
 	m_videoDstPrevReconstructImage = NULL;
@@ -368,19 +371,29 @@ void CMediaSource::ProcessVideoFrame(
 	}
 
 	// if we're running in real-time mode
-	// check if we are falling behind due to encoding speed
-	if (m_sourceRealTime && m_videoEncodingDrift >= m_videoEncodingMaxDrift) {
-		if (m_videoEncodingDrift <= m_videoDstFrameDuration) {
-			m_videoEncodingDrift = 0;
-		} else {
-			m_videoEncodingDrift -= m_videoDstFrameDuration;
-		}
+	if (m_sourceRealTime) {
 
-		// skip this frame			
-		m_videoSkippedFrames++;
-		return;
+		// add any external drift (i.e. audio encoding drift)
+		// to our drift measurement
+		m_videoEncodingDrift += 
+			m_otherLastTotalDrift - m_otherTotalDrift;
+		m_otherLastTotalDrift = m_otherTotalDrift;
+
+		// check if we are falling behind
+		if (m_videoEncodingDrift >= m_videoEncodingMaxDrift) {
+			m_videoEncodingDrift -= m_videoDstFrameDuration;
+
+			if (m_videoEncodingDrift < 0) {
+				m_videoEncodingDrift = 0;
+			}
+
+			// skip this frame			
+			m_videoSkippedFrames++;
+			return;
+		}
 	}
 
+	// TEMP
 	if (m_videoSrcType != CMediaFrame::YuvVideoFrame
 	  && m_videoSrcType != CMediaFrame::RgbVideoFrame) {
 		debug_message("TBD implement video decoding");
@@ -588,9 +601,8 @@ void CMediaSource::ProcessVideoFrame(
 			(GetTimestamp() - encodingStartTimestamp) 
 			- m_videoDstFrameDuration;
 
-		m_videoEncodingDrift += drift;
-		if (m_videoEncodingDrift < 0) {
-			m_videoEncodingDrift = 0;
+		if (drift > 0) {
+			m_videoEncodingDrift += drift;
 		}
 	}
 
@@ -714,10 +726,13 @@ void CMediaSource::ProcessAudioFrame(
 	m_audioSrcFrameNumber++;
 	m_audioSrcElapsedDuration += SamplesToTicks(frameDuration);
 
+	// TEMP
 	if (m_audioSrcType != CMediaFrame::PcmAudioFrame) {
 		debug_message("TBD implement audio decoding");
 		return;
 	}
+
+	Duration encodingStartTimestamp = GetTimestamp();
 
 	bool pcmMalloced = false;
 	u_int8_t* pcmData = frameData;
@@ -780,6 +795,16 @@ void CMediaSource::ProcessAudioFrame(
 
 	if (pcmMalloced) {
 		free(pcmData);
+	}
+
+	if (m_sourceRealTime) {
+		Duration drift =
+			(GetTimestamp() - encodingStartTimestamp) 
+			- frameDuration;
+
+		if (drift > 0) {
+			// m_videoSource->AddEncodingDrift(drift);
+		}
 	}
 }
 

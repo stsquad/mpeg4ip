@@ -525,73 +525,22 @@ int mpeg3video_set_mmx(mpeg3video_t *video, int use_mmx)
 	return 0;
 }
 
-/* Read all the way up to and including the next picture start code */
-int mpeg3video_read_raw(mpeg3video_t *video, unsigned char *output, long *size, long max_size)
-{
-	u_int32_t code = 0;
-	mpeg3_bits_t *vstream = video->vstream;
-
-	*size = 0;
-	while(code != MPEG3_PICTURE_START_CODE && 
-		code != MPEG3_SEQUENCE_END_CODE &&
-		*size < max_size && 
-		!mpeg3bits_eof(vstream))
-	{
-		code <<= 8;
-		*output = mpeg3bits_getbyte_noptr(vstream);
-		code |= *output++;
-		(*size)++;
-	}
-	return mpeg3bits_eof(vstream);
-}
-
-int mpeg3video_read_raw_resize (mpeg3video_t *video,
-				unsigned char **optr,
-				long *size,
-				long *max_size)
-{
-	u_int32_t code = 0;
-	mpeg3_bits_t *vstream = video->vstream;
-	unsigned char *output = *optr + *size;
-
-	while(code != MPEG3_PICTURE_START_CODE && 
-		code != MPEG3_SEQUENCE_END_CODE &&
-		!mpeg3bits_eof(vstream))
-	{
-	  if (*size >= *max_size) {
-	    int diff = output - *optr;
-	    *max_size += 4096;
-	    *optr = realloc(*optr, *max_size);
-	    if (*optr == NULL) exit(1);
-	    output = *optr + diff;
-	  }
-	  
-
-	  code <<= 8;
-#if 1
-	  // can't do this yet - we're still reading from the demuxer...
-	  *output = mpeg3demux_read_char(vstream->demuxer);
-#else
-	  *output = mpeg3bits_getbyte_noptr(vstream);
-#endif
-	  code |= *output++;
-	  (*size)++;
-	}
-	return mpeg3bits_eof(vstream);
-}
-
 int mpeg3video_read_frame(mpeg3video_t *video, 
-		long frame_number, 
-		unsigned char **output_rows,
-		int in_x, 
-		int in_y, 
-		int in_w, 
-		int in_h, 
-		int out_w, 
-		int out_h, 
-		int color_model)
+			  unsigned char *input,
+			  long input_size,
+			  unsigned char **output_rows,
+			  int in_x, 
+			  int in_y, 
+			  int in_w, 
+			  int in_h, 
+			  int out_w, 
+			  int out_h, 
+			  int color_model)
 {
 	int result = 0;
+
+
+	mpeg3bits_use_ptr_len(video->vstream, input, input_size); 
 
 	video->want_yvu = 0;
 	video->output_rows = output_rows;
@@ -625,9 +574,6 @@ int mpeg3video_read_frame(mpeg3video_t *video,
 		video->y_table = mpeg3video_get_scaletable(video->in_h, video->out_h);
 	}
 
-//printf("mpeg3video_read_frame 3\n");
-	if(!result) result = mpeg3video_seek(video);
-
 //printf("mpeg3video_read_frame 4\n");
 	if(!result) result = mpeg3video_read_frame_backend(video, 0);
 
@@ -635,21 +581,23 @@ int mpeg3video_read_frame(mpeg3video_t *video,
 	if(video->output_src) mpeg3video_present_frame(video);
 
 //printf("mpeg3video_read_frame 6\n");
-	video->percentage_seek = -1;
 	return result;
 }
 
 int mpeg3video_read_yuvframe(mpeg3video_t *video, 
-					long frame_number, 
-					char *y_output,
-					char *u_output,
-					char *v_output,
-					int in_x,
-					int in_y,
-					int in_w,
-					int in_h)
+			     unsigned char *input,
+			     long input_size,
+			     char *y_output,
+			     char *u_output,
+			     char *v_output,
+			     int in_x,
+			     int in_y,
+			     int in_w,
+			     int in_h)
 {
 	int result = 0;
+
+	mpeg3bits_use_ptr_len(video->vstream, input, input_size); 
 
 	video->want_yvu = 1;
 	video->y_output = y_output;
@@ -659,8 +607,6 @@ int mpeg3video_read_yuvframe(mpeg3video_t *video,
 	video->in_y = in_y;
 	video->in_w = in_w;
 	video->in_h = in_h;
-
-	if(!result) result = mpeg3video_seek(video);
 
 	if(!result) result = mpeg3video_read_frame_backend(video, 0);
 
@@ -672,16 +618,17 @@ int mpeg3video_read_yuvframe(mpeg3video_t *video,
 }
 
 int mpeg3video_read_yuvframe_ptr(mpeg3video_t *video, 
-					long frame_number, 
-					char **y_output,
-					char **u_output,
-					char **v_output)
+				 unsigned char *input,
+				 long input_size,
+				 char **y_output,
+				 char **u_output,
+				 char **v_output)
 {
 	int result = 0;
 
-	video->want_yvu = 1;
+	mpeg3bits_use_ptr_len(video->vstream, input, input_size); 
 
-	if(!result) result = mpeg3video_seek(video);
+	video->want_yvu = 1;
 
 	if(!result) result = mpeg3video_read_frame_backend(video, 0);
 

@@ -387,14 +387,16 @@ static void rtsp_decode_header (const char *lptr,
     rtsp_debug(LOG_DEBUG, "Not processing response header: %s", lptr);
 }
 static int rtsp_read_into_buffer (rtsp_client_t *cptr,
-				  uint32_t buffer_offset)
+				  uint32_t buffer_offset,
+				  int wait)
 {
   int ret;
 
   ret = rtsp_receive_socket(cptr,
 			    cptr->m_resp_buffer + buffer_offset,
 			    RECV_BUFF_DEFAULT_LEN - buffer_offset,
-			    cptr->recv_timeout);
+			    cptr->recv_timeout, 
+			    wait);
 
   if (ret <= 0) return (ret);
 
@@ -430,6 +432,7 @@ int rtsp_recv (rtsp_client_t *cptr,
     result = rtsp_receive_socket(cptr,
 				 buffer + copied,
 				 len,
+				 0,
 				 0);
     if (result >= 0) {
       copied += result;
@@ -456,7 +459,7 @@ static int rtsp_save_and_read (rtsp_client_t *cptr)
   }
   
   cptr->m_offset_on = 0;  
-  ret = rtsp_read_into_buffer(cptr, cptr->m_buffer_len);
+  ret = rtsp_read_into_buffer(cptr, cptr->m_buffer_len, 0);
   if (ret > 0) {
     last_on += ret;
   }
@@ -475,7 +478,7 @@ static const char *rtsp_get_next_line (rtsp_client_t *cptr,
    */
   if (cptr->m_buffer_len <= 0) {
     cptr->m_offset_on = 0;
-    ret = rtsp_read_into_buffer(cptr, 0);
+    ret = rtsp_read_into_buffer(cptr, 0, 1);
     if (ret <= 0) {
       return (NULL);
     }
@@ -601,9 +604,11 @@ static int rtsp_parse_response (rtsp_client_t *info)
   } while (done == 0);
 
   if (decode->content_length != 0) {
+    rtsp_debug(LOG_DEBUG, "reading content length %d", decode->content_length);
     decode->body = malloc(decode->content_length + 1);
     decode->body[decode->content_length] = '\0';
     len = info->m_buffer_len - info->m_offset_on;
+    rtsp_debug(LOG_DEBUG, "Copied %d bytes from buffer", len);
     if (len < decode->content_length) {
       // not enough in memory - need to read
       memcpy(decode->body,
@@ -611,8 +616,11 @@ static int rtsp_parse_response (rtsp_client_t *info)
 	     len);
       while (len < decode->content_length) {
 	int left;
-	ret = rtsp_read_into_buffer(info, 0);
+	ret = rtsp_read_into_buffer(info, 0, 1);
+	
 	if (ret <= 0) {
+	  rtsp_debug(LOG_DEBUG, "Returned from rtsp_read_into_buffer - error %d", 
+		     ret);
 	  return (-1);
 	}
 	left = decode->content_length - len;

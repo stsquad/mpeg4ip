@@ -86,6 +86,8 @@ void CAVMediaFlow::Start(void)
 			m_audioSource->SetConfig(m_pConfig);
 			m_audioSource->StartThread();
 		}
+
+		m_audioSource->SetVideoSource(m_videoSource);
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
