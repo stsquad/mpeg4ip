@@ -211,11 +211,27 @@ u_int16_t Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize)
 
 	u_int8_t crcSize = isProtected ? 2 : 0;
 
+#ifdef LIVECASTER
+	return pFrame[4 + crcSize];
+#else
 	return (pFrame[4 + crcSize] << 1) | (pFrame[5 + crcSize] >> 7);
+#endif
 }
 
+u_int8_t Mp3GetCrcSize(u_int32_t hdr)
+{
+	return ((hdr & 0x00010000) ? 0 : 2);
+}
+
+// The side info can be:
+//  32 bytes for MPEG-1 stereo
+//  17 bytes for MPEG-1 mono
+//  9 bytes for MPEG-2 mono
 u_int8_t Mp3GetSideInfoSize(u_int32_t hdr)
 {
+#ifdef LIVECASTER
+	return 17;
+#else
 	u_int8_t layer = (hdr >> 17) & 0x3; 
 
 	// check that this is layer 3
@@ -252,6 +268,7 @@ u_int8_t Mp3GetSideInfoSize(u_int32_t hdr)
 		* (12 + 9 + 8 + 4 + 1 + 22 + 1 + 1 + 1);
 
 	return (bits + 7) / 8;
+#endif
 }
 
 /*

@@ -402,9 +402,9 @@ bool MP4GetHintTrackRtpPayload(
 bool MP4SetHintTrackRtpPayload(
 	MP4FileHandle hFile,
 	MP4TrackId hintTrackId,
-	const char* payloadName,
+	const char* pPayloadName,
 	u_int8_t* pPayloadNumber,
-	u_int16_t maxPayloadSize);
+	u_int16_t maxPayloadSize DEFAULT(0));
 
 const char* MP4GetSessionSdp(
 	MP4FileHandle hFile);

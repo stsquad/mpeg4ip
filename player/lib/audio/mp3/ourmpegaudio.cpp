@@ -31,7 +31,7 @@ int MPEGaudio::findheader (unsigned char *frombuffer,
   uint32_t skipped;
   _orig_buflen = frombuffer_len;
   while (frombuffer_len >= 4) {
-    if ((ntohs(*(uint16_t*)frombuffer) & 0xfff0) == 0xfff0) {
+    if ((ntohs(*(uint16_t*)frombuffer) & 0xffe0) == 0xffe0) {
       _buffer = frombuffer;
       _buflen = frombuffer_len;
       skipped = _orig_buflen - frombuffer_len;

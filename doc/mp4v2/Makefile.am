@@ -29,6 +29,7 @@ man_MANS = \
 	MP4FindTrackId.3 \
 	MP4FindTrackIndex.3 \
 	MP4GetDuration.3 \
+	MP4GetHintTrackRtpPayload.3 \
 	MP4GetHintTrackReferenceTrackId.3 \
 	MP4GetHintTrackSdp.3 \
 	MP4GetNumberOfTracks.3 \
@@ -61,6 +62,7 @@ man_MANS = \
 	MP4ReadRtpHint.3 \
 	MP4ReadRtpPacket.3 \
 	MP4ReadSample.3 \
+	MP4SetHintTrackRtpPayload.3 \
 	MP4SetHintTrackSdp.3 \
 	MP4SetRtpTimestampStart.3 \
 	MP4SetSampleRenderingOffset.3 \

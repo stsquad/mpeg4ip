@@ -15,10 +15,11 @@
 #include "MPEGaudio.h"
 
 // For header
-const int MPEGaudio::frequencies[2][3]=
+const int MPEGaudio::frequencies[9]=
 {
-  {44100,48000,32000}, // MPEG 1
-  {22050,24000,16000}  // MPEG 2
+  44100,48000,32000, // MPEG 1
+  22050,24000,16000,  // MPEG 2
+  11025,12000, 8000, // mpeg 2.5
 };
 
 const int MPEGaudio::bitrate[2][3][15]=

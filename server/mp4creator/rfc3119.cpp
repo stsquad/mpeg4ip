@@ -33,36 +33,21 @@ static bool doInterleave;
 static u_int32_t samplesPerPacket;
 static u_int32_t samplesPerGroup;
 static u_int32_t* pFrameHeaders = NULL;
-static u_int8_t* pSideInfoSizes = NULL;
 static u_int16_t* pAduOffsets = NULL;
 
 static void GetFrameInfo(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId,
 	u_int32_t** ppFrameHeaders,
-	u_int8_t** ppSideInfoSizes,
 	u_int16_t** ppAduOffsets)
 {
 	// allocate memory to hold the frame info that we need
 	u_int32_t numSamples =
 		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
-	if (ppFrameHeaders) {
-		*ppFrameHeaders = 
-			(u_int32_t*)calloc((numSamples + 2), sizeof(u_int32_t));
-		ASSERT(*ppFrameHeaders);
-	};
-
-	// The side info can be:
-	//  32 bytes for MPEG-1 stereo
-	//  17 bytes for MPEG-1 mono
-	//  9 bytes for MPEG-2 mono
-	// Typically a stream contains only one type of audio frames,
-	// but it is allowed to mix frame types, so we allow each audio frame
-	// to have it's own side info size
-	*ppSideInfoSizes = 
-		(u_int8_t*)calloc((numSamples + 2), sizeof(u_int8_t));
-	ASSERT(*ppSideInfoSizes);
+	*ppFrameHeaders = 
+		(u_int32_t*)calloc((numSamples + 2), sizeof(u_int32_t));
+	ASSERT(*ppFrameHeaders);
 
 	*ppAduOffsets = 
 		(u_int16_t*)calloc((numSamples + 2), sizeof(u_int16_t));
@@ -86,12 +71,7 @@ static void GetFrameInfo(
 			| (pSample[2] << 8) | pSample[3];
 
 		// store what we need
-		if (ppFrameHeaders) {
-			(*ppFrameHeaders)[sampleId] = mp3hdr;
-		}
-
-		(*ppSideInfoSizes)[sampleId] =
-			Mp3GetSideInfoSize(mp3hdr);
+		(*ppFrameHeaders)[sampleId] = mp3hdr;
 
 		(*ppAduOffsets)[sampleId] = 
 			Mp3GetAduOffset(pSample, sampleSize);
@@ -102,7 +82,8 @@ static void GetFrameInfo(
 
 static u_int16_t GetFrameHeaderSize(MP4SampleId sampleId)
 {
-	return 4 + pSideInfoSizes[sampleId];
+	return 4 + Mp3GetCrcSize(pFrameHeaders[sampleId]) 
+		+ Mp3GetSideInfoSize(pFrameHeaders[sampleId]);
 }
 
 static u_int16_t GetFrameDataSize(
@@ -182,11 +163,11 @@ static void AddFrameHeader(
 		MP4AddRtpImmediateData(mp4File, hintTrackId,
 			interleaveHeader, 4);
 
-		// add side info from current mp3 frame
+		// add crc and side info from current mp3 frame
 		MP4AddRtpSampleData(mp4File, hintTrackId,
-			sampleId, 4, pSideInfoSizes[sampleId]);
+			sampleId, 4, GetFrameHeaderSize(sampleId) - 4);
 	} else {
-		// add mp3 header and side info from current mp3 frame
+		// add mp3 header, crc, and side info from current mp3 frame
 		MP4AddRtpSampleData(mp4File, hintTrackId,
 			sampleId, 0, GetFrameHeaderSize(sampleId));
 	}
@@ -273,8 +254,6 @@ void Rfc3119Concatenator(
 
 		MP4AddRtpImmediateData(mp4File, hintTrackId,
 			(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
-printf("sampleId %u aduSize %u sideInfoSize %u\n",
-sampleId, aduSize, pSideInfoSizes[sampleId]);
 		// add the mp3 frame header and side info
 		AddFrameHeader(mp4File, mediaTrackId, hintTrackId, sampleId);
 
@@ -302,8 +281,6 @@ sampleId, aduSize, pSideInfoSizes[sampleId]);
 			MP4AddRtpSampleData(mp4File, hintTrackId,
 				sampleId - i, pDataOffsets[i], blockSize);
 
-printf("\t-%d offset %u size %u\n", 
-i, pDataOffsets[i], blockSize);
 			dataSize += blockSize;
 		}
 
@@ -441,8 +418,7 @@ void Rfc3119Hinter(
 	GetFrameInfo(
 		mp4File, 
 		mediaTrackId, 
-		(doInterleave ? &pFrameHeaders : NULL), 
-		&pSideInfoSizes, 
+		&pFrameHeaders, 
 		&pAduOffsets);
  
 	if (doInterleave) {
@@ -493,8 +469,6 @@ void Rfc3119Hinter(
 	// cleanup
 	free(pFrameHeaders);
 	pFrameHeaders = NULL;
-	free(pSideInfoSizes);
-	pSideInfoSizes = NULL;
 	free(pAduOffsets);
 	pAduOffsets = NULL;
 }

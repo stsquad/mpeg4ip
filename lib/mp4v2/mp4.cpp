@@ -1273,14 +1273,14 @@ extern "C" bool MP4GetHintTrackRtpPayload(
 extern "C" bool MP4SetHintTrackRtpPayload(
 	MP4FileHandle hFile,
 	MP4TrackId hintTrackId,
-	const char* payloadName,
+	const char* pPayloadName,
 	u_int8_t* pPayloadNumber,
 	u_int16_t maxPayloadSize)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
 			((MP4File*)hFile)->SetHintTrackRtpPayload(
-				hintTrackId, payloadName, pPayloadNumber, maxPayloadSize);
+				hintTrackId, pPayloadName, pPayloadNumber, maxPayloadSize);
 			return true;
 		}
 		catch (MP4Error* e) {

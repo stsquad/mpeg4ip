@@ -138,6 +138,7 @@ bool MPEGaudio::loadheader(void)
 {
     register unsigned char c;
     bool flag;
+    int sampling_freq;
 
     flag = false;
     do
@@ -164,7 +165,7 @@ bool MPEGaudio::loadheader(void)
 #else
 	      c = _buffer[1];
 #endif
-                if( (c & 0xf0) == 0xf0 )
+                if( (c & 0xe0) == 0xe0 )
                 {
                     flag = true;
                     break;
@@ -195,10 +196,17 @@ bool MPEGaudio::loadheader(void)
 
     // Analyzing
 
+    if ((c & 0x10) == 0)
+      _mpeg25 = true;
+    else 
+      _mpeg25 = false;
     c &= 0xf;
     protection = c & 1;
     layer = 4 - ((c >> 1) & 3);
-    version = (_mpegversion) ((c >> 3) ^ 1);
+    if (_mpeg25 == false)
+      version = (_mpegversion) ((c >> 3) ^ 1);
+    else 
+      version = mpeg2;
 
 #if 0
     c = mpeg->copy_byte() >> 1;
@@ -214,6 +222,8 @@ bool MPEGaudio::loadheader(void)
     bitrateindex = (int) c;
     if( bitrateindex == 15 )
         return false;
+    sampling_freq = frequency + version * 3;
+    if (_mpeg25) sampling_freq += 3;
 
 #if 0
     c = ((unsigned int)mpeg->copy_byte()) >> 4;
@@ -276,14 +286,14 @@ bool MPEGaudio::loadheader(void)
   if(layer==1)
   {
     framesize=(12000*bitrate[version][0][bitrateindex])/
-              frequencies[version][frequency];
+              frequencies[sampling_freq];
     if(frequency==frequency44100 && padding)framesize++;
     framesize<<=2;
   }
   else
   {
     framesize=(144000*bitrate[version][layer-1][bitrateindex])/
-      (frequencies[version][frequency]<<version);
+      (frequencies[sampling_freq]<<version);
     if(padding)framesize++;
     if(layer==3)
     {

@@ -221,7 +221,7 @@ protected:
 private:
     c_get_more_t m_get_more;
     void *m_userdata;
-  static const int bitrate[2][3][15],frequencies[2][3];
+  static const int bitrate[2][3][15],frequencies[9];
   static const REAL scalefactorstable[64];
   static const HUFFMANCODETABLE ht[HTN];
   static const REAL filter[512];
@@ -232,6 +232,7 @@ private:
   /*************************/
 private:
   int layer,protection,bitrateindex,padding,extendedmode;
+  bool _mpeg25;
   enum _mpegversion  {mpeg1,mpeg2}                               version;
   enum _mode    {fullstereo,joint,dual,single}                   mode;
   enum _frequency {frequency44100,frequency48000,frequency32000} frequency;
@@ -273,7 +274,12 @@ public:
 
   bool isstereo(void) { return inputstereo == 1; } ;
   int getlayer(void) { return layer; };
-  int getfrequency(void) {return frequencies[version][frequency]; } ;
+  int getfrequency(void) {
+    int index;
+    index = version * 3 + frequency;
+    if (_mpeg25) index += 3;
+    return frequencies[index];
+  } ;
   int getversion(void) { return version;};
   /*****************************/
   /* Loading MPEG-Audio stream */
