@@ -1,22 +1,17 @@
+MP4V2 LIBRARY INTERNALS
+12/11/01
 
-Three layers
+This document provides an overview of the interals of the mp4v2 library to aid those who wish to modify and extend it. Before reading this document, I recommend familiarizing yourself with the MP4 (or Quicktime) file format standard and the mp4v2 library API.
 
-Layer 0 - Infrastructure
-	mp4array.h mp4util mp4file_io
-	Avoidance of templates
+It is useful to think of the mp4v2 library as consisting of four layers: infrastructure, file format, generic tracks, type specific track helpers. A description of each layer follows.
 
-Layer 1 - Atoms, Properties, and Descriptors
-	Vast majority of the code
-	Syntax & local semantics
+The infrastructure layer provides basic file I/O, memory allocation, error handling, string utilities, and protected arrays. The source files for this layer are mp4file_io, mp4util, and mp4array. Note that the array classes uses preprocessor macros instead of C++ templates. The rationale for this is to increase portability given the sometimes incomplete support by some compilers for templates.
 
-	mp4atom is the base class of all atoms and has generic code that works
-	90% of the time, the atom specific code handles the other 10% 
+The file format layer provides the translation from the on-disk MP4 file format to in-memory C++ structures and back to disk. It is meant to exactly match the MP4 specification in syntax and semantics. It represents the majority of the code.
 
-	Essentially each atom has it's own source file atom_xxxx.cpp
-	with it's own class derived from MP4Atom
-	Average size of the source code to describe an atom, 
-	i.e. it's properties and child atoms, how to construct, read, and write it
-	is 20 lines.
+The three key structures at this layer are atoms, properties, and descriptors. 
+
+The mp4atom files contain the base class for all the atoms with generic functions that cover most cases. However, each atom has it's own subclass contained in file atom_<name>.cpp where <name> is the four letter name of the atom defined in the MP4 specification. Typically this file just specifies the properties of the atom or the possible child atoms in the case of a container atom. In more specialized cases the atom specific file provides routines to initialize, read, or write the atom.
 
 	Properties are the atomic pieces of information associated with atoms.
 	4 Property types - Integer, Float, String, Bytes

@@ -38,6 +38,11 @@
 #include <libhttp/http.h>
 #include <rtp/debug.h>
 
+/* ??? */
+#ifndef LOG_PRI
+#define LOG_PRI(p) ((p) & LOG_PRIMASK)
+#endif
+
 /* Local variables */
 static GtkWidget *main_window;
 static GtkWidget *main_vbox;
@@ -735,7 +740,7 @@ static gint main_timer (gpointer raw)
       msg = (sdl_event_msg_t *)newmsg->get_message(len);
       if (len != sizeof(*msg)) {
 	player_error_message("key event message is wrong size %d %d", 
-			     len, sizeof(msg));
+			     len, (int) sizeof(*msg));
 	break;
       }
       switch (msg->sym) {

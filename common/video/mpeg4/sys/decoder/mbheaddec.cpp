@@ -379,7 +379,7 @@ Void CVideoObjectDecoder::decodeMBTextureHeadOfBVOP (CMBMode* pmbmd, Int& iCurrQ
 	//Int iMCBPC = 0;
 	Int iCBPC = 0;
 	Int iCBPY = 0;
-	Int iMbType, uiCBPB = 0;
+	Int iMbType = -1, uiCBPB = 0;
 	if (m_pbitstrmIn->getBits (1) == 1)	 {					//MODB=1 colocated non-skip but curr skip
 		pmbmd->m_bSkip = TRUE;  
 		iMODB = 0;

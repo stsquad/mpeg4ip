@@ -2082,6 +2082,7 @@ case "$target" in
         ARCH=macosx
         CheckDummyVideo
         CheckDiskAudio
+	# CheckCARBON
         CheckQUARTZ
         CheckMacGL
         CheckPTHREAD

@@ -1,15 +1,17 @@
 man_MANS = \
 	MP4.3 \
-	MP4AddTrack.3 \
 	MP4AddAudioTrack.3 \
 	MP4AddHintTrack.3 \
 	MP4AddODTrack.3 \
+	MP4AddRtpESConfigurationPacket.3 \
 	MP4AddRtpHint.3 \
 	MP4AddRtpImmediateData.3 \
 	MP4AddRtpPacket.3 \
 	MP4AddRtpSampleData.3 \
+	MP4AddRtpVideoHint.3 \
 	MP4AddSceneTrack.3 \
 	MP4AddSystemsTrack.3 \
+	MP4AddTrack.3 \
 	MP4AddVideoTrack.3 \
 	MP4BinaryToBase16.3 \
 	MP4BinaryToBase64.3 \
@@ -25,7 +27,11 @@ man_MANS = \
 	MP4FindTrackId.3 \
 	MP4FindTrackIndex.3 \
 	MP4GetDuration.3 \
+	MP4GetHintTrackReferenceTrackId.3 \
 	MP4GetNumberOfTracks.3 \
+	MP4GetRtpHintNumberOfPackets.3 \
+	MP4GetRtpPacketBFrame.3 \
+	MP4GetRtpPacketTransmitOffset.3 \
 	MP4GetSampleDuration.3 \
 	MP4GetSampleIdFromTime.3 \
 	MP4GetSampleRenderingOffset.3 \

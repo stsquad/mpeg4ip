@@ -258,7 +258,9 @@ void CMp4ByteStream::get_more_bytes (unsigned char **buffer,
     throw THROW_MP4_END_OF_DATA;
   }
   uint32_t diff;
-  if (m_this_frame_size <= used) throw THROW_MP4_END_OF_FRAME;
+  if (m_this_frame_size < used) {
+    throw THROW_MP4_END_OF_FRAME;
+  }
   diff = m_this_frame_size - used;
   m_total += used;
   if (diff > 0) {

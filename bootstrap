@@ -80,7 +80,7 @@ fi
 
 for dir in /usr/local /usr/contrib /opt/gnome
 do
-   if test -e $dir/share/aclocal -a `which aclocal` != $dir/bin/aclocal
+   if test -d $dir/share/aclocal -a `which aclocal` != $dir/bin/aclocal
    then
      ACLOCAL_FLAGS="-I $dir/share/aclocal $ACLOCAL_FLAGS"
    fi

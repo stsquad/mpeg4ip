@@ -177,7 +177,8 @@ void CQTByteStreamBase::get_more_bytes (unsigned char **buffer,
   }
   uint32_t diff;
 
-  if (used >= m_this_frame_size) throw THROW_QTIME_END_OF_FRAME;
+  if (used > m_this_frame_size) 
+    throw THROW_QTIME_END_OF_FRAME;
   diff = m_this_frame_size - used;
   if (diff > 0) {
     memmove(m_buffer_on,

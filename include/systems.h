@@ -82,9 +82,7 @@ typedef int ssize_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
-char *strsep(char **strp, const char *delim); 
 int gettimeofday(struct timeval *t, void *);
-
 #ifdef __cplusplus
 }
 #endif
@@ -120,9 +118,6 @@ int gettimeofday(struct timeval *t, void *);
 #define FOPEN_READ_BINARY "rb"
 #define FOPEN_WRITE_BINARY "wb"
 
-#ifndef MIN
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#endif
 #else /* UNIX */
 
 #include <stdio.h>
@@ -187,5 +182,27 @@ typedef uint16_t in_port_t;
 typedef unsigned int socklen_t;
 #endif
 
+#ifdef sun
+#include <limits.h>
+#define u_int8_t uint8_t
+#define u_int16_t uint8_t
+#define u_int32_t uint32_t
+#define u_int64_t uint64_t
+#define __STRING(expr) #expr
+#endif
+
+#ifndef HAVE_STRSEP
+#ifdef __cplusplus
+extern "C" {
+#endif
+char *strsep(char **strp, const char *delim); 
+#ifdef __cplusplus
+}
+#endif
+#endif
+
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 #endif /* __SYSTEMS_H__ */

@@ -26,7 +26,7 @@ AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getrusage socketpair)
+AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getrusage socketpair strsep)
 
 dnl Add getopt libraries if we don't have them
 AM_CONDITIONAL(PROVIDE_GETOPTLONG, test x$ac_cv_func_getopt_long != xyes)
@@ -122,7 +122,7 @@ dnl out for a glibless system
 AM_PATH_GLIB()
 if test "$no_glib" != yes; then
 AM_PATH_GTK()
-if test "$no_gtk" == yes; then
+if test "$no_gtk" = yes; then
    no_glib_gtk=yes
 else
    no_glib_gtk=no
@@ -175,8 +175,8 @@ AC_SUBST(SDL_CFLAGS)
 AC_SUBST(SDL_LIBS)
 
 dnl
-BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations"
-BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Woverloaded-virtual"
+BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Wno-unknown-pragmas"
+BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Woverloaded-virtual -Wno-unknown-pragmas"
 AC_SUBST(BILLS_CWARNINGS)
 AC_SUBST(BILLS_CPPWARNINGS)
 dnl Now output the Makefile's

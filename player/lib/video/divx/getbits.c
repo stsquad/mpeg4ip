@@ -185,7 +185,7 @@ unsigned int showbits (int n)
 	unsigned char *v;
 	int rbit = 32 - ld->bitcnt;
 	unsigned int b;
-	if (ld->rdptr + ((ld->bitcnt + n) / 8) >= ld->endptr) {
+	if ((ld->rdptr + ((ld->bitcnt + n - 1) / 8)) >= ld->endptr) {
 	  // get more here...
 	  (ld->get_more)(ld->ud, &ld->rdptr,
 			 &ld->buflen, ld->incnt, ld->get);

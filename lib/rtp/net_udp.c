@@ -355,7 +355,7 @@ static void udp_exit4(socket_udp *s)
 			socket_error("setsockopt IP_DROP_MEMBERSHIP");
 			abort();
 		}
-		rtp_message(LOG_INFO,  "Dropped membership of multicast group\n");
+		rtp_message(LOG_INFO,  "Dropped membership of multicast group");
 	}
 	close(s->fd);
         free(s->addr);
@@ -392,13 +392,11 @@ static int udp_send_iov4(socket_udp *s, struct iovec *iov, int count)
 	s_in.sin_addr.s_addr = s->addr4.s_addr;
 	s_in.sin_port        = htons(s->tx_port);
 
+	memset(&msg, 0, sizeof(msg));
 	msg.msg_name 		 = (void *)&s_in;
 	msg.msg_namelen 	 = sizeof(s_in);
 	msg.msg_iov 		 = iov;
 	msg.msg_iovlen 		 = count;
-	msg.msg_control 	 = NULL;
-	msg.msg_controllen 	 = 0;
-	msg.msg_flags 		 = 0;
 
 	return sendmsg(s->fd, &msg, 0);
 }
