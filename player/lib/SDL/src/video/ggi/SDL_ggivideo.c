@@ -1,6 +1,6 @@
 /*
 	SDL - Simple DirectMedia Layer
-	Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+	Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ggivideo.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_ggivideo.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 /* GGI-based SDL video driver implementation.
@@ -126,13 +126,11 @@ static SDL_VideoDevice *GGI_CreateDevice(int devindex)
 	device->UnlockHWSurface = GGI_UnlockHWSurface;
 	device->FlipHWSurface = NULL;
 	device->FreeHWSurface = GGI_FreeHWSurface;
-	device->SetIcon = NULL;
 	device->SetCaption = NULL;
+	device->SetIcon = NULL;
+	device->IconifyWindow = NULL;
+	device->GrabInput = NULL;
 	device->GetWMInfo = NULL;
-	device->FreeWMCursor = GGI_FreeWMCursor;
-	device->CreateWMCursor = GGI_CreateWMCursor;
-	device->ShowWMCursor = GGI_ShowWMCursor;
-	device->WarpWMCursor = GGI_WarpWMCursor;
 	device->InitOSKeymap = GGI_InitOSKeymap;
 	device->PumpEvents = GGI_PumpEvents;
 
@@ -142,7 +140,8 @@ static SDL_VideoDevice *GGI_CreateDevice(int devindex)
 }
 
 VideoBootStrap GGI_bootstrap = {
-	"ggi", GGI_Available, GGI_CreateDevice
+	"ggi", "General Graphics Interface (GGI)",
+	GGI_Available, GGI_CreateDevice
 };
 
 
@@ -228,6 +227,7 @@ int GGI_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		
 		/* Fill in our hardware acceleration capabilities */
 	
+		this->info.wm_available = 0;
 		this->info.hw_available = 1;
 		this->info.video_mem = db->buffer.plb.stride * mode.virt.y;
 	}

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_events.c,v 1.1 2001/02/05 20:26:27 cahighlander Exp $";
+ "@(#) $Id: SDL_events.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* General event handling code for SDL */
@@ -35,8 +35,10 @@ static char rcsid =
 #include "SDL_mutex.h"
 #include "SDL_events.h"
 #include "SDL_events_c.h"
-#include "SDL_joystick_c.h"
 #include "SDL_timer_c.h"
+#ifndef DISABLE_JOYSTICK
+#include "SDL_joystick_c.h"
+#endif
 #ifndef ENABLE_X11
 #define DISABLE_X11
 #endif
@@ -375,17 +377,14 @@ int SDL_PollEvent (SDL_Event *event)
 
 int SDL_WaitEvent (SDL_Event *event)
 {
-	int first_time = 1;
-	do {
-		if ( ! first_time ) {
-			SDL_Delay(10);
-		} else {
-			first_time = 0;
-		}
+	while ( 1 ) {
 		SDL_PumpEvents();
-	} while ( !SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_ALLEVENTS) );
-
-	return(1);
+		switch(SDL_PeepEvents(event, 1, SDL_GETEVENT, SDL_ALLEVENTS)) {
+		    case -1: return -1; 
+		    case 1: return 1;
+		    case 0: SDL_Delay(10);
+		}
+	}
 }
 
 int SDL_PushEvent(SDL_Event *event)
@@ -401,6 +400,11 @@ void SDL_SetEventFilter (SDL_EventFilter filter)
 	SDL_EventOK = filter;
 	while ( SDL_PollEvent(&bitbucket) > 0 )
 		;
+}
+
+SDL_EventFilter SDL_GetEventFilter(void)
+{
+	return(SDL_EventOK);
 }
 
 Uint8 SDL_EventState (Uint8 type, int state)

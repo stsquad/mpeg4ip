@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,12 +22,11 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_wingl_c.h,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_wingl_c.h,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 /* WGL implementation of SDL OpenGL support */
 
-#include <windows.h>
 #include "SDL_sysvideo.h"
 
 
@@ -58,7 +57,7 @@ struct SDL_PrivateGLData {
 
 /* OpenGL functions */
 extern int WIN_GL_SetupWindow(_THIS);
-extern void WIN_GL_Shutdown(_THIS);
+extern void WIN_GL_ShutDown(_THIS);
 #ifdef HAVE_OPENGL
 extern int WIN_GL_MakeCurrent(_THIS);
 extern int WIN_GL_GetAttribute(_THIS, SDL_GLattr attrib, int* value);

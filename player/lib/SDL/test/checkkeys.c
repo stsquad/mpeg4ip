@@ -10,6 +10,39 @@
 
 #include "SDL.h"
 
+static void print_modifiers(void)
+{
+	int mod;
+	printf(" modifiers:");
+	mod = SDL_GetModState();
+	if(!mod) {
+		printf(" (none)");
+		return;
+	}
+	if(mod & KMOD_LSHIFT)
+		printf(" LSHIFT");
+	if(mod & KMOD_RSHIFT)
+		printf(" RSHIFT");
+	if(mod & KMOD_LCTRL)
+		printf(" LCTRL");
+	if(mod & KMOD_RCTRL)
+		printf(" RCTRL");
+	if(mod & KMOD_LALT)
+		printf(" LALT");
+	if(mod & KMOD_RALT)
+		printf(" RALT");
+	if(mod & KMOD_LMETA)
+		printf(" LMETA");
+	if(mod & KMOD_RMETA)
+		printf(" RMETA");
+	if(mod & KMOD_NUM)
+		printf(" NUM");
+	if(mod & KMOD_CAPS)
+		printf(" CAPS");
+	if(mod & KMOD_MODE)
+		printf(" MODE");
+}
+
 static void PrintKey(SDL_keysym *sym, int pressed)
 {
 	/* Print the keycode, name and state */
@@ -36,6 +69,7 @@ static void PrintKey(SDL_keysym *sym, int pressed)
 #endif
 		}
 	}
+	print_modifiers();
 	printf("\n");
 }
 

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_pixels.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_pixels.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* General (mostly internal) pixel/color manipulation routines for SDL */
@@ -269,25 +269,24 @@ void SDL_FreeFormat(SDL_PixelFormat *format)
  */
 void SDL_DitherColors(SDL_Color *colors, int bpp)
 {
-	int r, g, b, i;
+	int i;
+	if(bpp != 8)
+		return;		/* only 8bpp supported right now */
 
-	/* Calculate the dither values for each index */
-	switch (bpp) {
-		case 8:
-			for ( r=0; r<(1<<3); ++r ) {
-				for ( g=0; g<(1<<3); ++g ) {
-					for ( b=0; b<(1<<2); ++b ) {
-						i = ((r<<(3+2))|(g<<2)|b);
-						colors[i].r = r<<(8-3);
-						colors[i].g = g<<(8-3);
-						colors[i].b = b<<(8-2);
-					}
-				}
-			}
-			break;
-		default:
-			/* ?? */
-			break;
+	for(i = 0; i < 256; i++) {
+		int r, g, b;
+		/* map each bit field to the full [0, 255] interval,
+		   so 0 is mapped to (0, 0, 0) and 255 to (255, 255, 255) */
+		r = i & 0xe0;
+		r |= r >> 3 | r >> 6;
+		colors[i].r = r;
+		g = (i << 3) & 0xe0;
+		g |= g >> 3 | g >> 6;
+		colors[i].g = g;
+		b = i & 0x3;
+		b |= b << 2;
+		b |= b << 4;
+		colors[i].b = b;
 	}
 }
 /* 
@@ -419,15 +418,15 @@ void SDL_GetRGB(Uint32 pixel, SDL_PixelFormat *fmt, Uint8 *r,Uint8 *g,Uint8 *b)
 }
 
 /* Apply gamma to a set of colors - this is easy. :) */
-void SDL_ApplyGamma(Uint8 *gamma, SDL_Color *colors, SDL_Color *output,
+void SDL_ApplyGamma(Uint16 *gamma, SDL_Color *colors, SDL_Color *output,
 							int ncolors)
 {
 	int i;
 
 	for ( i=0; i<ncolors; ++i ) {
-		output[i].r = gamma[0*256 + colors[i].r];
-		output[i].g = gamma[1*256 + colors[i].g];
-		output[i].b = gamma[2*256 + colors[i].b];
+		output[i].r = gamma[0*256 + colors[i].r] >> 8;
+		output[i].g = gamma[1*256 + colors[i].g] >> 8;
+		output[i].b = gamma[2*256 + colors[i].b] >> 8;
 	}
 }
 

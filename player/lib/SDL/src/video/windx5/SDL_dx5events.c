@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5events.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_dx5events.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 /* CAUTION!!!!  If you modify this file, check ../windib/SDL_sysevents.c */
@@ -57,7 +57,7 @@ static int mouse_pressed;
 
 /* The translation table from a DirectInput scancode to an SDL keysym */
 static SDLKey DIK_keymap[256];
-static SDL_keysym *TranslateKey(UINT scancode, SDL_keysym *keysym);
+static SDL_keysym *TranslateKey(UINT scancode, SDL_keysym *keysym, int pressed);
 
 /* Convert a DirectInput return code to a text message */
 static void SetDIerror(char *function, int code)
@@ -279,10 +279,10 @@ static void handle_keyboard(const int numevents, DIDEVICEOBJECTDATA *keybuf)
 	for ( i=0; i<numevents; ++i ) {
 		if ( keybuf[i].dwData & 0x80 ) {
 			posted = SDL_PrivateKeyboard(SDL_PRESSED,
-				    TranslateKey(keybuf[i].dwOfs, &keysym));
+				    TranslateKey(keybuf[i].dwOfs, &keysym, 1));
 		} else {
 			posted = SDL_PrivateKeyboard(SDL_RELEASED,
-				    TranslateKey(keybuf[i].dwOfs, &keysym));
+				    TranslateKey(keybuf[i].dwOfs, &keysym, 0));
 		}
 	}
 }
@@ -443,14 +443,6 @@ LONG
 								SDL_DIdev[i]);
 				}
 				mouse_lost = 1;
-			}
-			if ( SDL_PublicSurface &&
-			     (SDL_PublicSurface->flags & SDL_FULLSCREEN) ) {
-				posted = SDL_PrivateAppActive((Uint8)active,
-					(SDL_APPMOUSEFOCUS|SDL_APPINPUTFOCUS));
-			} else {
-				posted = SDL_PrivateAppActive((Uint8)active,
-							SDL_APPINPUTFOCUS);
 			}
 		}
 		break;
@@ -720,17 +712,16 @@ void DX5_InitOSKeymap(_THIS)
 	DIK_keymap[DIK_LWIN] = SDLK_LMETA;
 	DIK_keymap[DIK_RWIN] = SDLK_RMETA;
 	DIK_keymap[DIK_APPS] = SDLK_MENU;
-
 }
 
-static SDL_keysym *TranslateKey(UINT scancode, SDL_keysym *keysym)
+static SDL_keysym *TranslateKey(UINT scancode, SDL_keysym *keysym, int pressed)
 {
 	/* Set the keysym information */
 	keysym->scancode = (unsigned char)scancode;
 	keysym->sym = DIK_keymap[scancode];
 	keysym->mod = KMOD_NONE;
 	keysym->unicode = 0;
-	if ( SDL_TranslateUNICODE ) { /* Someday use ToUnicode() */
+	if ( pressed && SDL_TranslateUNICODE ) { /* Someday use ToUnicode() */
 		UINT vkey;
 		BYTE keystate[256];
 		BYTE chars[2];

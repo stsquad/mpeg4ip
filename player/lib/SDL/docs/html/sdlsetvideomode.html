@@ -4,7 +4,8 @@
 >SDL_SetVideoMode</TITLE
 ><META
 NAME="GENERATOR"
-CONTENT="Modular DocBook HTML Stylesheet Version 1.57"><LINK
+CONTENT="Modular DocBook HTML Stylesheet Version 1.61
+"><LINK
 REL="HOME"
 TITLE="SDL Library Documentation"
 HREF="index.html"><LINK
@@ -72,7 +73,7 @@ NAME="SDLSETVIDEOMODE"
 ><DIV
 CLASS="REFNAMEDIV"
 ><A
-NAME="AEN423"
+NAME="AEN795"
 ></A
 ><H2
 >Name</H2
@@ -80,14 +81,14 @@ NAME="AEN423"
 ><DIV
 CLASS="REFSYNOPSISDIV"
 ><A
-NAME="AEN426"
+NAME="AEN798"
 ></A
 ><H2
 >Synopsis</H2
 ><DIV
 CLASS="FUNCSYNOPSIS"
 ><A
-NAME="AEN427"
+NAME="AEN799"
 ></A
 ><P
 ></P
@@ -111,7 +112,7 @@ CLASS="FSFUNC"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN433"
+NAME="AEN805"
 ></A
 ><H2
 >Description</H2
@@ -146,7 +147,7 @@ CLASS="STRUCTNAME"
 ><DIV
 CLASS="INFORMALTABLE"
 ><A
-NAME="AEN443"
+NAME="AEN815"
 ></A
 ><P
 ></P
@@ -204,7 +205,15 @@ CLASS="LITERAL"
 ><TD
 ALIGN="LEFT"
 VALIGN="TOP"
->Allow and video depth/pixel-format and emulated it if its not supported by the display.</TD
+>Normally, if a video surface of the requested depth (<TT
+CLASS="PARAMETER"
+><I
+>bpp</I
+></TT
+>) is not available, SDL will emulate one with a shadow surface. Passing <TT
+CLASS="LITERAL"
+>SDL_ANYFORMAT</TT
+> prevents this and causes SDL to use the video surface, regardless of its depth.</TD
 ></TR
 ><TR
 ><TD
@@ -320,6 +329,22 @@ CLASS="FUNCTION"
 >SDL_SetVideoMode</TT
 > can be called again with the new size.</TD
 ></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><TT
+CLASS="LITERAL"
+>SDL_NOFRAME</TT
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+>If possible, <TT
+CLASS="LITERAL"
+>SDL_NOFRAME</TT
+> causes SDL to create a window with no title bar or frame decoration. Fullscreen modes automatically have this flag set.</TD
+></TR
 ></TBODY
 ></TABLE
 ><P
@@ -352,7 +377,7 @@ CLASS="STRUCTFIELD"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN503"
+NAME="AEN882"
 ></A
 ><H2
 >Return Value</H2
@@ -365,7 +390,7 @@ CLASS="RETURNVALUE"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN507"
+NAME="AEN886"
 ></A
 ><H2
 >See Also</H2

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_blit_A.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_blit_A.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #include <stdio.h>
@@ -64,6 +64,9 @@ static void BlitNto1SurfaceAlpha(SDL_BlitInfo *info)
 		dG = dstfmt->palette->colors[*dst].g;
 		dB = dstfmt->palette->colors[*dst].b;
 		ALPHA_BLEND(sR, sG, sB, A, dR, dG, dB);
+		dR &= 0xff;
+		dG &= 0xff;
+		dB &= 0xff;
 		/* Pack RGB into 8bit pixel */
 		if ( palmap == NULL ) {
 		    *dst =((dR>>5)<<(3+2))|
@@ -114,6 +117,9 @@ static void BlitNto1PixelAlpha(SDL_BlitInfo *info)
 		dG = dstfmt->palette->colors[*dst].g;
 		dB = dstfmt->palette->colors[*dst].b;
 		ALPHA_BLEND(sR, sG, sB, sA, dR, dG, dB);
+		dR &= 0xff;
+		dG &= 0xff;
+		dB &= 0xff;
 		/* Pack RGB into 8bit pixel */
 		if ( palmap == NULL ) {
 		    *dst =((dR>>5)<<(3+2))|
@@ -166,6 +172,9 @@ static void BlitNto1SurfaceAlphaKey(SDL_BlitInfo *info)
 		    dG = dstfmt->palette->colors[*dst].g;
 		    dB = dstfmt->palette->colors[*dst].b;
 		    ALPHA_BLEND(sR, sG, sB, A, dR, dG, dB);
+		    dR &= 0xff;
+		    dG &= 0xff;
+		    dB &= 0xff;
 		    /* Pack RGB into 8bit pixel */
 		    if ( palmap == NULL ) {
 			*dst =((dR>>5)<<(3+2))|
@@ -244,7 +253,7 @@ static void BlitRGBtoRGBPixelAlpha(SDL_BlitInfo *info)
 		   it correctly. Also special-case alpha=0 for speed?
 		   Benchmark this! */
 		if(alpha == SDL_ALPHA_OPAQUE) {
-		    *dstp = s;
+		    *dstp = (s & 0x00ffffff) | (*dstp & 0xff000000);
 		} else {
 		    /*
 		     * take out the middle component (green), and process
@@ -349,7 +358,7 @@ static void BlitARGBto565PixelAlpha(SDL_BlitInfo *info)
 		   it correctly. Also special-case alpha=0 for speed?
 		   Benchmark this! */
 		if(alpha == (SDL_ALPHA_OPAQUE >> 3)) {
-		    *dstp = (s >> 8 & 0xf8) + (s >> 5 & 0x7e0)
+		    *dstp = (s >> 8 & 0xf800) + (s >> 5 & 0x7e0)
 			  + (s >> 3  & 0x1f);
 		} else {
 		    Uint32 d = *dstp;
@@ -357,7 +366,7 @@ static void BlitARGBto565PixelAlpha(SDL_BlitInfo *info)
 		     * convert source and destination to G0RAB65565
 		     * and blend all components at the same time
 		     */
-		    s = ((s & 0xfc00) << 11) + (s >> 8 & 0xf8)
+		    s = ((s & 0xfc00) << 11) + (s >> 8 & 0xf800)
 		      + (s >> 3 & 0x1f);
 		    d = (d | d << 16) & 0x07e0f81f;
 		    d += (s - d) * alpha >> 5;
@@ -392,7 +401,7 @@ static void BlitARGBto555PixelAlpha(SDL_BlitInfo *info)
 		   it correctly. Also special-case alpha=0 for speed?
 		   Benchmark this! */
 		if(alpha == (SDL_ALPHA_OPAQUE >> 3)) {
-		    *dstp = (s >> 9 & 0x7c) + (s >> 6 & 0x3e0)
+		    *dstp = (s >> 9 & 0x7c00) + (s >> 6 & 0x3e0)
 			  + (s >> 3  & 0x1f);
 		} else {
 		    Uint32 d = *dstp;
@@ -400,7 +409,7 @@ static void BlitARGBto555PixelAlpha(SDL_BlitInfo *info)
 		     * convert source and destination to G0RAB65565
 		     * and blend all components at the same time
 		     */
-		    s = ((s & 0xf800) << 10) + (s >> 9 & 0x7c)
+		    s = ((s & 0xf800) << 10) + (s >> 9 & 0x7c00)
 		      + (s >> 3 & 0x1f);
 		    d = (d | d << 16) & 0x03e07c1f;
 		    d += (s - d) * alpha >> 5;
@@ -598,7 +607,7 @@ SDL_loblit SDL_CalculateAlphaBlit(SDL_Surface *surface, int blit_index)
 	    if(sf->BytesPerPixel == 4 && sf->Amask == 0xff000000
 	       && sf->Gmask == 0xff00
 	       && ((sf->Rmask == 0xff && df->Rmask == 0x1f)
-		   || (sf->Gmask == 0xff && df->Gmask == 0x1f))) {
+		   || (sf->Bmask == 0xff && df->Bmask == 0x1f))) {
 		if(df->Gmask == 0x7e0)
 		    return BlitARGBto565PixelAlpha;
 		else if(df->Gmask == 0x3e0)

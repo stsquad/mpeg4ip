@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_RLEaccel.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_RLEaccel.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /*
@@ -413,7 +413,7 @@ static void RLEClipBlit(int w, Uint8 *srcbuf, SDL_Surface *dst,
 		    if(left - ofs > 0) {				   \
 			start = left - ofs;				   \
 			len -= start;					   \
-			if(len < 0)					   \
+			if(len <= 0)					   \
 			    goto nocopy ## bpp ## do_blit;		   \
 		    }							   \
 		    startcol = ofs + start;				   \
@@ -775,7 +775,7 @@ int SDL_RLEAlphaBlit(SDL_Surface *src, SDL_Rect *srcrect,
 		} while(--vskip);
 	    } else {
 		/* the 32/32 interleaved format */
-		vskip <<= 2;	/* opaque and translucent have same format */
+		vskip <<= 1;	/* opaque and translucent have same format */
 		do {
 		    ofs = 0;
 		    do {
@@ -1207,6 +1207,13 @@ static int RLEAlphaSurface(SDL_Surface *surface)
 #undef ADD_OPAQUE_COUNTS
 #undef ADD_TRANSL_COUNTS
 
+    /* Now that we have it encoded, release the original pixels */
+    if((surface->flags & SDL_PREALLOC) != SDL_PREALLOC
+       && (surface->flags & SDL_HWSURFACE) != SDL_HWSURFACE) {
+	free( surface->pixels );
+	surface->pixels = NULL;
+    }
+
     /* realloc the buffer to release unused memory */
     {
 	Uint8 *p = realloc(rlebuf, dst - rlebuf);
@@ -1360,7 +1367,8 @@ static int RLEColorkeySurface(SDL_Surface *surface)
 #undef ADD_COUNTS
 
 	/* Now that we have it encoded, release the original pixels */
-	if((surface->flags & SDL_PREALLOC) != SDL_PREALLOC) {
+	if((surface->flags & SDL_PREALLOC) != SDL_PREALLOC
+	   && (surface->flags & SDL_HWSURFACE) != SDL_HWSURFACE) {
 	    free( surface->pixels );
 	    surface->pixels = NULL;
 	}
@@ -1505,7 +1513,8 @@ void SDL_UnRLESurface(SDL_Surface *surface, int recode)
     if ( (surface->flags & SDL_RLEACCEL) == SDL_RLEACCEL ) {
 	surface->flags &= ~SDL_RLEACCEL;
 
-	if(recode && (surface->flags & SDL_PREALLOC) != SDL_PREALLOC) {
+	if(recode && (surface->flags & SDL_PREALLOC) != SDL_PREALLOC
+	   && (surface->flags & SDL_HWSURFACE) != SDL_HWSURFACE) {
 	    if((surface->flags & SDL_SRCCOLORKEY) == SDL_SRCCOLORKEY) {
 		SDL_Rect full;
 		unsigned alpha_flag;

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_amigamouse.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_amigamouse.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include "SDL_error.h"
@@ -44,12 +44,6 @@ WMcursor *amiga_CreateWMCursor(_THIS,
 		Uint8 *data, Uint8 *mask, int w, int h, int hot_x, int hot_y)
 {
 	return (WMcursor *)1; // Amiga has an Hardware cursor, so it's ok to return something unuseful but true
-}
-
-void *amiga_GetWMXCursor(WMcursor *cursor)
-{
-// Here maybe we'll have to add a pointer to the system cursor image.
-	return(NULL);
 }
 
 int amiga_ShowWMCursor(_THIS, WMcursor *cursor)

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbevents_c.h,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_fbevents_c.h,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include "SDL_fbvideo.h"
@@ -34,6 +34,9 @@ extern int FB_OpenKeyboard(_THIS);
 extern void FB_CloseKeyboard(_THIS);
 extern int FB_OpenMouse(_THIS);
 extern void FB_CloseMouse(_THIS);
+extern int FB_EnterGraphicsMode(_THIS);
+extern int FB_InGraphicsMode(_THIS);
+extern void FB_LeaveGraphicsMode(_THIS);
 
 extern void FB_InitOSKeymap(_THIS);
 extern void FB_PumpEvents(_THIS);

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_timer.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_timer.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_timer_h
@@ -111,7 +111,7 @@ extern DECLSPEC SDL_bool SDL_RemoveTimer(SDL_TimerID t);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
-};
+}
 #endif
 #include "close_code.h"
 

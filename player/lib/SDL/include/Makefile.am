@@ -14,6 +14,7 @@ libSDLinclude_HEADERS =		\
 	SDL_endian.h		\
 	SDL_error.h		\
 	SDL_events.h		\
+	SDL_getenv.h		\
 	SDL_joystick.h		\
 	SDL_keyboard.h		\
 	SDL_keysym.h		\

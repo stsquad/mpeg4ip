@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysaudio.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_sysaudio.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_sysaudio_h
@@ -43,6 +43,10 @@ struct SDL_AudioDevice {
 	/* * * */
 	/* The name of this audio driver */
 	const char *name;
+
+	/* * * */
+	/* The description of this audio driver */
+	const char *desc;
 
 	/* * * */
 	/* Public driver functions */
@@ -90,30 +94,43 @@ struct SDL_AudioDevice {
 
 typedef struct AudioBootStrap {
 	const char *name;
+	const char *desc;
 	int (*available)(void);
 	SDL_AudioDevice *(*create)(int devindex);
 } AudioBootStrap;
 
+#if defined(unix) && \
+   !defined(linux) && !defined(__FreeBSD__) && !defined(__CYGWIN32__) \
+   && !defined(__bsdi__)
+extern AudioBootStrap AUDIO_bootstrap;
+#endif
+#ifdef OSS_SUPPORT
+extern AudioBootStrap DSP_bootstrap;
+extern AudioBootStrap DMA_bootstrap;
+#endif
+#ifdef ALSA_SUPPORT
+extern AudioBootStrap ALSA_bootstrap;
+#endif
+#ifdef ARTSC_SUPPORT
+extern AudioBootStrap ARTSC_bootstrap;
+#endif
 #ifdef ESD_SUPPORT
 extern AudioBootStrap ESD_bootstrap;
 #endif
-#ifdef linux
-extern AudioBootStrap DMA_bootstrap;
-#endif
-#ifdef unix
-extern AudioBootStrap AUDIO_bootstrap;
-#endif
-#ifdef ENABLE_WINDIB
-extern AudioBootStrap WAVEOUT_bootstrap;
+#ifdef NAS_SUPPORT
+extern AudioBootStrap NAS_bootstrap;
 #endif
 #ifdef ENABLE_DIRECTX
 extern AudioBootStrap DSOUND_bootstrap;
 #endif
+#ifdef ENABLE_WINDIB
+extern AudioBootStrap WAVEOUT_bootstrap;
+#endif
 #ifdef __BEOS__
 extern AudioBootStrap BAUDIO_bootstrap;
 #endif
-#ifdef macintosh
-extern AudioBootStrap AUDIO_bootstrap;
+#if defined(macintosh) || TARGET_API_MAC_CARBON
+extern AudioBootStrap SNDMGR_bootstrap;
 #endif
 #ifdef _AIX
 extern AudioBootStrap Paud_bootstrap;

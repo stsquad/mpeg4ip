@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_joystick.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_joystick.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* This is the joystick API for Simple DirectMedia Layer */
@@ -82,14 +82,14 @@ int SDL_NumJoysticks(void)
 /*
  * Get the implementation dependent name of a joystick
  */
-const char *SDL_JoystickName(int index)
+const char *SDL_JoystickName(int device_index)
 {
-	if ( (index < 0) || (index >= SDL_numjoysticks) ) {
+	if ( (device_index < 0) || (device_index >= SDL_numjoysticks) ) {
 		SDL_SetError("There are %d joysticks available",
 		             SDL_numjoysticks);
 		return(NULL);
 	}
-	return(SDL_SYS_JoystickName(index));
+	return(SDL_SYS_JoystickName(device_index));
 }
 
 /*
@@ -99,12 +99,12 @@ const char *SDL_JoystickName(int index)
  *
  * This function returns a joystick identifier, or NULL if an error occurred.
  */
-SDL_Joystick *SDL_JoystickOpen(int index)
+SDL_Joystick *SDL_JoystickOpen(int device_index)
 {
 	int i;
 	SDL_Joystick *joystick;
 
-	if ( (index < 0) || (index >= SDL_numjoysticks) ) {
+	if ( (device_index < 0) || (device_index >= SDL_numjoysticks) ) {
 		SDL_SetError("There are %d joysticks available",
 		             SDL_numjoysticks);
 		return(NULL);
@@ -112,7 +112,7 @@ SDL_Joystick *SDL_JoystickOpen(int index)
 
 	/* If the joystick is already open, return it */
 	for ( i=0; SDL_joysticks[i]; ++i ) {
-		if ( index == SDL_joysticks[i]->index ) {
+		if ( device_index == SDL_joysticks[i]->index ) {
 			joystick = SDL_joysticks[i];
 			++joystick->ref_count;
 			return(joystick);
@@ -123,7 +123,7 @@ SDL_Joystick *SDL_JoystickOpen(int index)
 	joystick = (SDL_Joystick *)malloc((sizeof *joystick));
 	if ( joystick != NULL ) {
 		memset(joystick, 0, (sizeof *joystick));
-		joystick->index = index;
+		joystick->index = device_index;
 		if ( SDL_SYS_JoystickOpen(joystick) < 0 ) {
 			free(joystick);
 			joystick = NULL;
@@ -185,13 +185,13 @@ SDL_Joystick *SDL_JoystickOpen(int index)
 /*
  * Returns 1 if the joystick has been opened, or 0 if it has not.
  */
-int SDL_JoystickOpened(int index)
+int SDL_JoystickOpened(int device_index)
 {
 	int i, opened;
 
 	opened = 0;
 	for ( i=0; SDL_joysticks[i]; ++i ) {
-		if ( SDL_joysticks[i]->index == (Uint8)index ) {
+		if ( SDL_joysticks[i]->index == (Uint8)device_index ) {
 			opened = 1;
 			break;
 		}

@@ -4,7 +4,8 @@
 >SDL_ShowCursor</TITLE
 ><META
 NAME="GENERATOR"
-CONTENT="Modular DocBook HTML Stylesheet Version 1.57"><LINK
+CONTENT="Modular DocBook HTML Stylesheet Version 1.61
+"><LINK
 REL="HOME"
 TITLE="SDL Library Documentation"
 HREF="index.html"><LINK
@@ -72,7 +73,7 @@ NAME="SDLSHOWCURSOR"
 ><DIV
 CLASS="REFNAMEDIV"
 ><A
-NAME="AEN1695"
+NAME="AEN2117"
 ></A
 ><H2
 >Name</H2
@@ -80,14 +81,14 @@ NAME="AEN1695"
 ><DIV
 CLASS="REFSYNOPSISDIV"
 ><A
-NAME="AEN1698"
+NAME="AEN2120"
 ></A
 ><H2
 >Synopsis</H2
 ><DIV
 CLASS="FUNCSYNOPSIS"
 ><A
-NAME="AEN1699"
+NAME="AEN2121"
 ></A
 ><P
 ></P
@@ -111,40 +112,44 @@ CLASS="FSFUNC"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN1705"
+NAME="AEN2127"
 ></A
 ><H2
 >Description</H2
 ><P
->Toggle whether or not the cursor is shown on the screen.</P
+>Toggle whether or not the cursor is shown on the screen. Passing <TT
+CLASS="LITERAL"
+>SDL_ENABLE</TT
+> displays the cursor and passing <TT
+CLASS="LITERAL"
+>SDL_DISABLE</TT
+> hides it. The current state of the mouse cursor can be queried by passing <TT
+CLASS="LITERAL"
+>SDL_QUERY</TT
+>, either <TT
+CLASS="LITERAL"
+>SDL_DISABLE</TT
+> or <TT
+CLASS="LITERAL"
+>SDL_ENABLE</TT
+> will be returned.</P
 ><P
 >The cursor starts off displayed, but can be turned off.</P
 ></DIV
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN1709"
+NAME="AEN2136"
 ></A
 ><H2
 >Return Value</H2
 ><P
-><TT
-CLASS="FUNCTION"
->SDL_ShowCursor</TT
-> returns 
-<SPAN
-CLASS="RETURNVALUE"
->1</SPAN
-> if the cursor was being displayed before the 
-call, or <SPAN
-CLASS="RETURNVALUE"
->0</SPAN
-> if it was not.</P
+>Returns the current state of the cursor.</P
 ></DIV
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN1715"
+NAME="AEN2139"
 ></A
 ><H2
 >See Also</H2

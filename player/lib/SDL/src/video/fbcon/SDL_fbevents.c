@@ -1,6 +1,6 @@
 /*
 	SDL - Simple DirectMedia Layer
-	Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+	Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Library General Public
@@ -22,10 +22,10 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbevents.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_fbevents.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
-/* Handle the event stream, converting X11 events into SDL events */
+/* Handle the event stream, converting console events into SDL events */
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -36,6 +36,7 @@ static char rcsid =
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 
 /* For parsing /proc */
 #include <dirent.h>
@@ -54,9 +55,12 @@ static char rcsid =
 #include "SDL_fbevents_c.h"
 #include "SDL_fbkeys.h"
 
+#include "SDL_fbelo.h"
+
 #ifndef GPM_NODE_FIFO
 #define GPM_NODE_FIFO	"/dev/gpmdata"
 #endif
+
 
 /* The translation tables from a console scancode to a SDL keysym */
 #define NUM_VGAKEYMAPS	(1<<KG_CAPSSHIFT)
@@ -74,6 +78,11 @@ static void FB_vgainitkeymaps(int fd)
 {
 	struct kbentry entry;
 	int map, i;
+
+	/* Don't do anything if we are passed a closed keyboard */
+	if ( fd < 0 ) {
+		return;
+	}
 
 	/* Load all the keysym mappings */
 	for ( map=0; map<NUM_VGAKEYMAPS; ++map ) {
@@ -142,42 +151,41 @@ static void FB_vgainitkeymaps(int fd)
 	}
 }
 
-void FB_CloseKeyboard(_THIS)
+int FB_InGraphicsMode(_THIS)
 {
-	if ( keyboard_fd >= 0 ) {
-		if ( ioctl(keyboard_fd, KDSETMODE, KD_TEXT) < 0 ) {
-			perror("KDSETMODE");
-		}
-		if ( ioctl(keyboard_fd, KDSKBMODE, saved_kbd_mode) < 0 ) {
-			perror("KDSKBMODE");
-		}
-		tcsetattr(keyboard_fd, TCSAFLUSH, &saved_kbd_termios);
-		if ( keyboard_fd > 0 ) {
-			close(keyboard_fd);
-		}
-	}
-	keyboard_fd = -1;
+	return((keyboard_fd >= 0) && (saved_kbd_mode >= 0));
 }
 
-int FB_OpenKeyboard(_THIS)
+int FB_EnterGraphicsMode(_THIS)
 {
-	if ((keyboard_fd = open("/dev/tty", O_RDWR)) < 0) {
-		perror("Can't open /dev/tty\n");
-		keyboard_fd = -1;
-		return(-1);
-	}	
-	if ( keyboard_fd >= 0 ) {
-		struct termios keyboard_termios;
+	struct termios keyboard_termios;
 
-		/* Set medium-raw keyboard mode */
-		if ( ioctl(keyboard_fd, KDGKBMODE, &saved_kbd_mode) < 0 ) {
+	/* Set medium-raw keyboard mode */
+	if ( (keyboard_fd >= 0) && !FB_InGraphicsMode(this) ) {
+
+		/* Switch to the correct virtual terminal */
+		if ( current_vt > 0 ) {
+			struct vt_stat vtstate;
+
+			if ( ioctl(keyboard_fd, VT_GETSTATE, &vtstate) == 0 ) {
+				saved_vt = vtstate.v_active;
+			}
+			if ( ioctl(keyboard_fd, VT_ACTIVATE, current_vt) == 0 ) {
+				ioctl(keyboard_fd, VT_WAITACTIVE, current_vt);
+			}
+		}
+
+		/* Set the terminal input mode */
+		if ( tcgetattr(keyboard_fd, &saved_kbd_termios) < 0 ) {
+			SDL_SetError("Unable to get terminal attributes");
 			if ( keyboard_fd > 0 ) {
 				close(keyboard_fd);
 			}
 			keyboard_fd = -1;
 			return(-1);
 		}
-		if ( tcgetattr(keyboard_fd, &saved_kbd_termios) < 0 ) {
+		if ( ioctl(keyboard_fd, KDGKBMODE, &saved_kbd_mode) < 0 ) {
+			SDL_SetError("Unable to get current keyboard mode");
 			if ( keyboard_fd > 0 ) {
 				close(keyboard_fd);
 			}
@@ -191,23 +199,115 @@ int FB_OpenKeyboard(_THIS)
 		keyboard_termios.c_cc[VTIME] = 0;
 		if (tcsetattr(keyboard_fd, TCSAFLUSH, &keyboard_termios) < 0) {
 			FB_CloseKeyboard(this);
+			SDL_SetError("Unable to set terminal attributes");
 			return(-1);
 		}
+		/* This will fail if we aren't root or this isn't our tty */
 		if ( ioctl(keyboard_fd, KDSKBMODE, K_MEDIUMRAW) < 0 ) {
 			FB_CloseKeyboard(this);
+			SDL_SetError("Unable to set keyboard in raw mode");
 			return(-1);
 		}
 		if ( ioctl(keyboard_fd, KDSETMODE, KD_GRAPHICS) < 0 ) {
 			FB_CloseKeyboard(this);
+			SDL_SetError("Unable to set keyboard in graphics mode");
 			return(-1);
 		}
-
-		/* Set up keymap */
-		FB_vgainitkeymaps(keyboard_fd);
 	}
 	return(keyboard_fd);
 }
 
+void FB_LeaveGraphicsMode(_THIS)
+{
+	if ( FB_InGraphicsMode(this) ) {
+		ioctl(keyboard_fd, KDSETMODE, KD_TEXT);
+		ioctl(keyboard_fd, KDSKBMODE, saved_kbd_mode);
+		tcsetattr(keyboard_fd, TCSAFLUSH, &saved_kbd_termios);
+		saved_kbd_mode = -1;
+
+		/* Head back over to the original virtual terminal */
+		if ( saved_vt > 0 ) {
+			ioctl(keyboard_fd, VT_ACTIVATE, saved_vt);
+		}
+	}
+}
+
+void FB_CloseKeyboard(_THIS)
+{
+	if ( keyboard_fd >= 0 ) {
+		FB_LeaveGraphicsMode(this);
+		if ( keyboard_fd > 0 ) {
+			close(keyboard_fd);
+		}
+	}
+	keyboard_fd = -1;
+}
+
+int FB_OpenKeyboard(_THIS)
+{
+	/* Open only if not already opened */
+ 	if ( keyboard_fd < 0 ) {
+		char *tty0[] = { "/dev/tty0", "/dev/vc/0", NULL };
+		char *vcs[] = { "/dev/vc/%d", "/dev/tty%d", NULL };
+		int i, tty0_fd;
+
+		/* Try to query for a free virtual terminal */
+		tty0_fd = -1;
+		for ( i=0; tty0[i] && (tty0_fd < 0); ++i ) {
+			tty0_fd = open(tty0[i], O_WRONLY, 0);
+		}
+		if ( tty0_fd < 0 ) {
+			tty0_fd = dup(0); /* Maybe stdin is a VT? */
+		}
+		ioctl(tty0_fd, VT_OPENQRY, &current_vt);
+		close(tty0_fd);
+		if ( (geteuid() == 0) && (current_vt > 0) ) {
+			for ( i=0; vcs[i] && (keyboard_fd < 0); ++i ) {
+				char vtpath[12];
+
+				sprintf(vtpath, vcs[i], current_vt);
+				keyboard_fd = open(vtpath, O_RDWR, 0);
+#ifdef DEBUG_KEYBOARD
+				fprintf(stderr, "vtpath = %s, fd = %d\n",
+					vtpath, keyboard_fd);
+#endif /* DEBUG_KEYBOARD */
+
+				/* This needs to be our controlling tty
+				   so that the kernel ioctl() calls work
+				*/
+				if ( keyboard_fd >= 0 ) {
+					tty0_fd = open("/dev/tty", O_RDWR, 0);
+					if ( tty0_fd >= 0 ) {
+						ioctl(tty0_fd, TIOCNOTTY, 0);
+						close(tty0_fd);
+					}
+				}
+			}
+		}
+ 		if ( keyboard_fd < 0 ) {
+			/* Last resort, maybe our tty is a usable VT */
+			current_vt = 0;
+			keyboard_fd = open("/dev/tty", O_RDWR);
+ 		}
+#ifdef DEBUG_KEYBOARD
+		fprintf(stderr, "Current VT: %d\n", current_vt);
+#endif
+ 		saved_kbd_mode = -1;
+
+		/* Make sure that our input is a console terminal */
+		{ int dummy;
+		  if ( ioctl(keyboard_fd, KDGKBMODE, &dummy) < 0 ) {
+			close(keyboard_fd);
+			keyboard_fd = -1;
+			SDL_SetError("Unable to open a console terminal");
+		  }
+		}
+
+		/* Set up keymap */
+		FB_vgainitkeymaps(keyboard_fd);
+ 	}
+ 	return(keyboard_fd);
+}
 
 static enum {
 	MOUSE_NONE = -1,
@@ -216,12 +316,13 @@ static enum {
 	MOUSE_IMPS2,
 	MOUSE_MS,
 	MOUSE_BM,
+	MOUSE_ELO,
 	NUM_MOUSE_DRVS
 } mouse_drv = MOUSE_NONE;
 
 void FB_CloseMouse(_THIS)
 {
-	if ( mouse_fd >= 0 ) {
+	if ( mouse_fd > 0 ) {
 		close(mouse_fd);
 	}
 	mouse_fd = -1;
@@ -358,9 +459,34 @@ fprintf(stderr, "Last mouse mode: 0x%x\n", ch);
 int FB_OpenMouse(_THIS)
 {
 	const char *mousedev;
+	const char *mousedrv;
 
+	mousedrv = getenv("SDL_MOUSEDRV");
 	mousedev = getenv("SDL_MOUSEDEV");
 	mouse_fd = -1;
+
+	/* ELO TOUCHSCREEN SUPPORT */
+
+	if( (mousedrv != NULL) && (strcmp(mousedrv, "ELO") == 0) ) {
+		mouse_fd = open(mousedev, O_RDWR);
+		if ( mouse_fd >= 0 ) {
+			if(eloInitController(mouse_fd)) {
+#ifdef DEBUG_MOUSE
+fprintf(stderr, "Using ELO touchscreen\n");
+#endif
+   				mouse_drv = MOUSE_ELO;
+			}
+
+		}
+		else if ( mouse_fd < 0 ) {
+			mouse_drv = MOUSE_NONE;
+		}
+
+		return(mouse_fd);
+	}
+
+	/* STD MICE */
+
 	if ( mousedev == NULL ) {
 		/* First try to use GPM in repeater mode */
 		if ( mouse_fd < 0 ) {
@@ -374,7 +500,14 @@ fprintf(stderr, "Using GPM mouse\n");
 				}
 			}
 		}
-		/* First try to use a modern PS/2 port mouse */
+		/* Now try to use the new HID unified mouse device */
+		if ( mouse_fd < 0 ) {
+			mouse_fd = open("/dev/input/mice", O_RDONLY, 0);
+			if ( mouse_fd >= 0 ) {
+				mouse_drv = MOUSE_IMPS2;
+			}
+		}
+		/* Now try to use a modern PS/2 port mouse */
 		if ( mouse_fd < 0 ) {
 			mouse_fd = open("/dev/psaux", O_RDWR, 0);
 			if ( mouse_fd < 0 ) {
@@ -440,7 +573,7 @@ fprintf(stderr, "Using Microsoft mouse on %s\n", mousedev);
 
 static int posted = 0;
 
-void FB_vgamousecallback(int button, int dx, int dy)
+void FB_vgamousecallback(int button, int relative, int dx, int dy)
 {
 	int button_1, button_3;
 	int button_state;
@@ -449,7 +582,7 @@ void FB_vgamousecallback(int button, int dx, int dy)
 	Uint8 state;
 
 	if ( dx || dy ) {
-		posted += SDL_PrivateMouseMotion(0, 1, dx, dy);
+		posted += SDL_PrivateMouseMotion(0, relative, dx, dy);
 	}
 
 	/* Swap button 1 and 3 */
@@ -480,6 +613,8 @@ static void handle_mouse(_THIS)
 {
 	static int start = 0;
 	static unsigned char mousebuf[BUFSIZ];
+	static int relative = 1;
+
 	int i, nread;
 	int button = 0;
 	int dx = 0, dy = 0;
@@ -501,6 +636,10 @@ static void handle_mouse(_THIS)
 		case MOUSE_MS:
 		case MOUSE_BM:
 			packetsize = 3;
+			break;
+		case MOUSE_ELO:
+			packetsize = ELO_PACKET_SIZE;
+			relative = 0;
 			break;
 		case NUM_MOUSE_DRVS:
 			/* Uh oh.. */
@@ -601,13 +740,32 @@ static void handle_mouse(_THIS)
 				dx =  (signed char)mousebuf[i+1];
 				dy = -(signed char)mousebuf[i+2];
 				break;
+			case MOUSE_ELO:
+				/* ELO protocol has ELO_START_BYTE as first byte */
+				if ( mousebuf[i] != ELO_START_BYTE ) {
+					/* Go to next byte */
+					i -= (packetsize-1);
+					continue;
+				}
+
+				/* parse the packet */
+				if(!eloParsePacket(&(mousebuf[i]), &dx, &dy, &button)) {
+					break;
+				}
+				
+				button = (button & 0x01) << 2;
+
+				/* convert to screen coordinates */
+				eloConvertXY(this, &dx, &dy);
+				break;
+
 			case NUM_MOUSE_DRVS:
 				/* Uh oh.. */
 				dx = 0;
 				dy = 0;
 				break;
 		}
-		FB_vgamousecallback(button, dx, dy);
+		FB_vgamousecallback(button, relative, dx, dy);
 	}
 	if ( i < nread ) {
 		memcpy(mousebuf, &mousebuf[i], (nread-i));

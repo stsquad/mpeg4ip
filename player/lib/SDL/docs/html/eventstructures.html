@@ -4,7 +4,8 @@
 >SDL Event Structures.</TITLE
 ><META
 NAME="GENERATOR"
-CONTENT="Modular DocBook HTML Stylesheet Version 1.57"><LINK
+CONTENT="Modular DocBook HTML Stylesheet Version 1.61
+"><LINK
 REL="HOME"
 TITLE="SDL Library Documentation"
 HREF="index.html"><LINK
@@ -50,7 +51,7 @@ HREF="event.html"
 WIDTH="80%"
 ALIGN="center"
 VALIGN="bottom"
->Chapter 4. Events</TD
+>Chapter 8. Events</TD
 ><TD
 WIDTH="10%"
 ALIGN="right"
@@ -73,245 +74,88 @@ NAME="EVENTSTRUCTURES"
 >SDL Event Structures.</A
 ></H1
 ><DIV
-CLASS="INFORMALTABLE"
-><A
-NAME="AEN2779"
-></A
-><P
-></P
-><TABLE
-BORDER="0"
-CLASS="CALSTABLE"
-><TBODY
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
 ><A
 HREF="sdlevent.html"
 >SDL_Event</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->General event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; General event structure</DT
+><DT
 ><A
 HREF="sdlactiveevent.html"
 >SDL_ActiveEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Application visibility event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Application visibility event structure</DT
+><DT
 ><A
 HREF="sdlkeyboardevent.html"
 >SDL_KeyboardEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Keyboard event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Keyboard event structure</DT
+><DT
 ><A
 HREF="sdlmousemotionevent.html"
 >SDL_MouseMotionEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Mouse motion event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Mouse motion event structure</DT
+><DT
 ><A
 HREF="sdlmousebuttonevent.html"
 >SDL_MouseButtonEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Mouse button event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Mouse button event structure</DT
+><DT
 ><A
 HREF="sdljoyaxisevent.html"
 >SDL_JoyAxisEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Joystick axis motion event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Joystick axis motion event structure</DT
+><DT
 ><A
 HREF="sdljoybuttonevent.html"
 >SDL_JoyButtonEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Joystick button event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Joystick button event structure</DT
+><DT
 ><A
 HREF="sdljoyhatevent.html"
 >SDL_JoyHatEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Joystick hat position change event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Joystick hat position change event structure</DT
+><DT
 ><A
 HREF="sdljoyballevent.html"
 >SDL_JoyBallEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Joystick trackball motion event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Joystick trackball motion event structure</DT
+><DT
 ><A
 HREF="sdlresizeevent.html"
 >SDL_ResizeEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Window resize event structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Window resize event structure</DT
+><DT
 ><A
 HREF="sdlsyswmevent.html"
 >SDL_SysWMEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Unknown window events</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Platform-dependent window manager event.</DT
+><DT
 ><A
 HREF="sdluserevent.html"
 >SDL_UserEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->A user-defined event type</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; A user-defined event type</DT
+><DT
 ><A
 HREF="sdlquitevent.html"
 >SDL_QuitEvent</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Quit requested event</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Quit requested event</DT
+><DT
 ><A
 HREF="sdlkeysym.html"
 >SDL_keysym</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Keysym structure</TD
-><TD
->&nbsp;</TD
-></TR
-><TR
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
+> &#8212; Keysym structure</DT
+><DT
 ><A
 HREF="sdlkey.html"
 >SDLKey</A
-></TD
-><TD
-ALIGN="LEFT"
-VALIGN="TOP"
->Keysym definitions</TD
-><TD
->&nbsp;</TD
-></TR
-></TBODY
-></TABLE
-><P
-></P
+> &#8212; Keysym definitions.</DT
+></DL
 ></DIV
 ></DIV
 ><DIV

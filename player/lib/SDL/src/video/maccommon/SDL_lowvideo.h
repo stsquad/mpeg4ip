@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_lowvideo.h,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_lowvideo.h,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_lowvideo_h
@@ -38,9 +38,14 @@ static char rcsid =
 #endif
 
 #ifdef HAVE_OPENGL
+#ifdef MACOSX
+#include <OpenGL/gl.h> /* OpenGL.framework */
+#include <AGL/agl.h>   /* AGL.framework */
+#else
 #include <GL/gl.h>
 #include <agl.h>
-#endif
+#endif /* MACOSX */
+#endif /* HAVE_OPENGL */
 
 #include "SDL_video.h"
 #include "SDL_sysvideo.h"
@@ -61,14 +66,20 @@ struct SDL_PrivateVideoData {
 	CTabHandle SDL_CTab;
 	PaletteHandle SDL_CPal;
 
-	/* For saving and restoring the menu bar */
-	short mBarHeight;
+#if TARGET_API_MAC_CARBON
+	/* For entering and leaving fullscreen mode */
+	Ptr fullscreen_ctx;
+#endif
+
+	/* The current window document style */
+	int current_style;
 
 	/* Information about the last cursor position */
 	Point last_where;
 
-	/* Information about the last key modifiers */
+	/* Information about the last keys down */
 	EventModifiers last_mods;
+	KeyMap last_keys;
 
 	/* A handle to the Apple Menu */
 	MenuRef apple_menu;
@@ -86,9 +97,11 @@ struct SDL_PrivateVideoData {
 #define SDL_modelist		(this->hidden->SDL_modelist)
 #define SDL_CTab		(this->hidden->SDL_CTab)
 #define SDL_CPal		(this->hidden->SDL_CPal)
-#define mBarHeight		(this->hidden->mBarHeight)
+#define fullscreen_ctx		(this->hidden->fullscreen_ctx)
+#define current_style		(this->hidden->current_style)
 #define last_where		(this->hidden->last_where)
 #define last_mods		(this->hidden->last_mods)
+#define last_keys		(this->hidden->last_keys)
 #define apple_menu		(this->hidden->apple_menu)
 #define glContext		(this->hidden->appleGLContext)
 

@@ -190,6 +190,7 @@
 #define MGADWG_BU24BGR		( 0x0b << 25 )
 #define MGADWG_BU24RGB		( 0x0f << 25 )
 
+#define MGADWG_REPLACE		0x000C0000	/* From Linux kernel sources */
 #define MGADWG_PATTERN		( 0x01 << 29 )
 #define MGADWG_TRANSC		( 0x01 << 30 )
 #define MGADWG_NOCLIP		( 0x01 << 31 )

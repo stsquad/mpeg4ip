@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,18 +22,21 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_quit.c,v 1.1 2001/02/05 20:26:27 cahighlander Exp $";
+ "@(#) $Id: SDL_quit.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* General quit handling code for SDL */
 
 #include <stdio.h>
+#ifndef NO_SIGNAL_H
 #include <signal.h>
+#endif
 
 #include "SDL_events.h"
 #include "SDL_events_c.h"
 
 
+#ifndef NO_SIGNAL_H
 static void SDL_HandleSIG(int sig)
 {
 	/* Reset the signal handler */
@@ -42,10 +45,12 @@ static void SDL_HandleSIG(int sig)
 	/* Signal a quit interrupt */
 	SDL_PrivateQuit();
 }
+#endif /* NO_SIGNAL_H */
 
 /* Public functions */
 int SDL_QuitInit(void)
 {
+#ifndef NO_SIGNAL_H
 	void (*ohandler)(int);
 
 	/* Both SIGINT and SIGTERM are translated into quit interrupts */
@@ -55,6 +60,7 @@ int SDL_QuitInit(void)
 	ohandler = signal(SIGTERM, SDL_HandleSIG);
 	if ( ohandler != SIG_DFL )
 		signal(SIGTERM, ohandler);
+#endif /* NO_SIGNAL_H */
 
 	/* That's it! */
 	return(0);

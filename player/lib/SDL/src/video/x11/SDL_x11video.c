@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11video.c,v 1.1 2001/02/05 20:26:31 cahighlander Exp $";
+ "@(#) $Id: SDL_x11video.c,v 1.2 2001/04/10 22:23:50 cahighlander Exp $";
 #endif
 
 /* X11 based SDL video driver implementation.
@@ -82,7 +82,7 @@ static int X11_ToggleFullScreen(_THIS, int on);
 static void X11_UpdateMouse(_THIS);
 static int X11_SetColors(_THIS, int firstcolor, int ncolors,
 			 SDL_Color *colors);
-static int X11_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue);
+static int X11_SetGammaRamp(_THIS, Uint16 *ramp);
 static void X11_VideoQuit(_THIS);
 
 /* X11 driver bootstrap functions */
@@ -160,6 +160,7 @@ static SDL_VideoDevice *X11_CreateDevice(int devindex)
 	device->SetGamma = X11_SetVidModeGamma;
 	device->GetGamma = X11_GetVidModeGamma;
 	device->SetGammaRamp = X11_SetGammaRamp;
+	device->GetGammaRamp = NULL;
 #ifdef HAVE_OPENGL
 	device->GL_LoadLibrary = X11_GL_LoadLibrary;
 	device->GL_GetProcAddress = X11_GL_GetProcAddress;
@@ -167,8 +168,8 @@ static SDL_VideoDevice *X11_CreateDevice(int devindex)
 	device->GL_MakeCurrent = X11_GL_MakeCurrent;
 	device->GL_SwapBuffers = X11_GL_SwapBuffers;
 #endif
-	device->SetIcon = X11_SetIcon;
 	device->SetCaption = X11_SetCaption;
+	device->SetIcon = X11_SetIcon;
 	device->IconifyWindow = X11_IconifyWindow;
 	device->GrabInput = X11_GrabInput;
 	device->GetWMInfo = X11_GetWMInfo;
@@ -186,7 +187,8 @@ static SDL_VideoDevice *X11_CreateDevice(int devindex)
 }
 
 VideoBootStrap X11_bootstrap = {
-	"x11", X11_Available, X11_CreateDevice
+	"x11", "X Window System",
+	X11_Available, X11_CreateDevice
 };
 
 /* Shared memory information */
@@ -198,14 +200,19 @@ static int x_errhandler(Display *d, XErrorEvent *e)
 {
 #ifdef XFREE86_VM
 	extern int vm_error;
+#endif
+#ifdef XFREE86_DGAMOUSE
+	extern int dga_error;
+#endif
 
+#ifdef XFREE86_VM
 	/* VidMode errors are non-fatal. :) */
 	/* Are the errors offset by one from the error base?
 	   e.g. the error base is 143, the code is 148, and the
 	        actual error is XF86VidModeExtensionDisabled (4) ?
 	 */
         if ( (vm_error >= 0) &&
-	     (((e->error_code == BadRequest) && (e->request_code = vm_error)) ||
+	     (((e->error_code == BadRequest)&&(e->request_code == vm_error)) ||
 	      ((e->error_code > vm_error) &&
 	       (e->error_code <= (vm_error+XF86VidModeNumberErrors)))) ) {
 #ifdef XFREE86_DEBUG
@@ -215,9 +222,25 @@ printf("VidMode error: %s\n", errmsg);
 }
 #endif
         	return(0);
-        } else
+        }
+#endif /* XFREE86_VM */
+
+#ifdef XFREE86_DGAMOUSE
+	/* DGA errors can be non-fatal. :) */
+        if ( (dga_error >= 0) &&
+	     ((e->error_code > dga_error) &&
+	      (e->error_code <= (dga_error+XF86DGANumberErrors))) ) {
+#ifdef XFREE86_DEBUG
+{ char errmsg[1024];
+  XGetErrorText(d, e->error_code, errmsg, sizeof(errmsg));
+printf("DGA error: %s\n", errmsg);
+}
 #endif
-		return(X_handler(d,e));
+        	return(0);
+        }
+#endif /* XFREE86_DGAMOUSE */
+
+	return(X_handler(d,e));
 }
 
 /* X11 I/O error handler routine */
@@ -320,7 +343,7 @@ static void create_aux_windows(_THIS)
 
     XSelectInput(SDL_Display, WMwindow,
 		 FocusChangeMask | KeyPressMask | KeyReleaseMask
-		 | PropertyChangeMask | StructureNotifyMask);
+		 | PropertyChangeMask | StructureNotifyMask | KeymapStateMask);
 
     /* Set the class hints so we can get an icon (AfterStep) */
     {
@@ -381,11 +404,13 @@ static int X11_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	/* use default screen (from $DISPLAY) */
 	SDL_Screen = DefaultScreen(SDL_Display);
 
+#ifndef NO_SHARED_MEMORY
 	/* Check for MIT shared memory extension */
 	use_mitshm = 0;
 	if ( local_X11 ) {
 		use_mitshm = XShmQueryExtension(SDL_Display);
 	}
+#endif /* NO_SHARED_MEMORY */
 
 	/* See whether or not we need to swap pixels */
 	swap_pixels = 0;
@@ -535,6 +560,93 @@ static void X11_SetSizeHints(_THIS, int w, int h, Uint32 flags)
 		XSetWMNormalHints(SDL_Display, WMwindow, hints);
 		XFree(hints);
 	}
+
+	/* Respect the window caption style */
+	if ( flags & SDL_NOFRAME ) {
+		SDL_bool set;
+		Atom WM_HINTS;
+
+		/* We haven't modified the window manager hints yet */
+		set = SDL_FALSE;
+
+		/* First try to set MWM hints */
+		WM_HINTS = XInternAtom(SDL_Display, "_MOTIF_WM_HINTS", True);
+		if ( WM_HINTS != None ) {
+			/* Hints used by Motif compliant window managers */
+			struct {
+				unsigned long flags;
+				unsigned long functions;
+				unsigned long decorations;
+				long input_mode;
+				unsigned long status;
+			} MWMHints = { (1L << 1), 0, 0, 0, 0 };
+
+			XChangeProperty(SDL_Display, WMwindow,
+			                WM_HINTS, WM_HINTS, 32,
+			                PropModeReplace,
+					(unsigned char *)&MWMHints,
+					sizeof(MWMHints)/sizeof(long));
+			set = SDL_TRUE;
+		}
+		/* Now try to set KWM hints */
+		WM_HINTS = XInternAtom(SDL_Display, "KWM_WIN_DECORATION", True);
+		if ( WM_HINTS != None ) {
+			long KWMHints = 0;
+
+			XChangeProperty(SDL_Display, WMwindow,
+			                WM_HINTS, WM_HINTS, 32,
+			                PropModeReplace,
+					(unsigned char *)&KWMHints,
+					sizeof(KWMHints)/sizeof(long));
+			set = SDL_TRUE;
+		}
+		/* Now try to set GNOME hints */
+		WM_HINTS = XInternAtom(SDL_Display, "_WIN_HINTS", True);
+		if ( WM_HINTS != None ) {
+			long GNOMEHints = 0;
+
+			XChangeProperty(SDL_Display, WMwindow,
+			                WM_HINTS, WM_HINTS, 32,
+			                PropModeReplace,
+					(unsigned char *)&GNOMEHints,
+					sizeof(GNOMEHints)/sizeof(long));
+			set = SDL_TRUE;
+		}
+		/* Finally set the transient hints if necessary */
+		if ( ! set ) {
+			XSetTransientForHint(SDL_Display, WMwindow, SDL_Root);
+		}
+	} else {
+		SDL_bool set;
+		Atom WM_HINTS;
+
+		/* We haven't modified the window manager hints yet */
+		set = SDL_FALSE;
+
+		/* First try to unset MWM hints */
+		WM_HINTS = XInternAtom(SDL_Display, "_MOTIF_WM_HINTS", True);
+		if ( WM_HINTS != None ) {
+			XDeleteProperty(SDL_Display, WMwindow, WM_HINTS);
+			set = SDL_TRUE;
+		}
+		/* Now try to unset KWM hints */
+		WM_HINTS = XInternAtom(SDL_Display, "KWM_WIN_DECORATION", True);
+		if ( WM_HINTS != None ) {
+			XDeleteProperty(SDL_Display, WMwindow, WM_HINTS);
+			set = SDL_TRUE;
+		}
+		/* Now try to unset GNOME hints */
+		WM_HINTS = XInternAtom(SDL_Display, "_WIN_HINTS", True);
+		if ( WM_HINTS != None ) {
+			XDeleteProperty(SDL_Display, WMwindow, WM_HINTS);
+			set = SDL_TRUE;
+		}
+		/* Finally unset the transient hints if necessary */
+		if ( ! set ) {
+			/* NOTE: Does this work? */
+			XSetTransientForHint(SDL_Display, WMwindow, None);
+		}
+	}
 }
 
 static int X11_CreateWindow(_THIS, SDL_Surface *screen,
@@ -633,9 +745,7 @@ static int X11_CreateWindow(_THIS, SDL_Surface *screen,
 	    /* Initialize the colormap to the identity mapping */
 	    SDL_GetGammaRamp(0, 0, 0);
 	    this->screen = screen;
-	    X11_SetGammaRamp(this, &this->gamma[0*256],
-	                           &this->gamma[1*256],
-	                           &this->gamma[2*256]);
+	    X11_SetGammaRamp(this, this->gamma);
 	    this->screen = NULL;
 	} else {
 	    /* Create a read-only colormap for our window */
@@ -733,6 +843,9 @@ static int X11_CreateWindow(_THIS, SDL_Surface *screen,
 		}
 	}
 
+	/* Update the internal keyboard state */
+	X11_SetKeyboardState(SDL_Display, NULL);
+
 	/* Map them both and go fullscreen, if requested */
 	if ( ! SDL_windowid ) {
 		XMapWindow(SDL_Display, SDL_Window);
@@ -827,7 +940,7 @@ SDL_Surface *X11_SetVideoMode(_THIS, SDL_Surface *current,
 		current->pitch = SDL_CalculatePitch(current);
 		X11_ResizeImage(this, current, flags);
 	}
-	current->flags |= (flags&SDL_RESIZABLE);
+	current->flags |= (flags&(SDL_RESIZABLE|SDL_NOFRAME));
 
   done:
 	/* Release the event thread */
@@ -1058,7 +1171,7 @@ int X11_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
 	return nrej == 0;
 }
 
-int X11_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue)
+int X11_SetGammaRamp(_THIS, Uint16 *ramp)
 {
 	int i, ncolors;
 	XColor xcmap[256];
@@ -1074,9 +1187,9 @@ int X11_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue)
 	for ( i=0; i<ncolors; ++i ) {
 		Uint8 c = (256 * i / ncolors);
 		xcmap[i].pixel = SDL_MapRGB(this->screen->format, c, c, c);
-		xcmap[i].red   = (red[c]<<8)|red[c];
-		xcmap[i].green = (green[c]<<8)|green[c];
-		xcmap[i].blue  = (blue[c]<<8)|blue[c];
+		xcmap[i].red   = ramp[0*256+c];
+		xcmap[i].green = ramp[1*256+c];
+		xcmap[i].blue  = ramp[2*256+c];
 		xcmap[i].flags = (DoRed|DoGreen|DoBlue);
 	}
 	XStoreColors(GFX_Display, SDL_XColorMap, xcmap, ncolors);

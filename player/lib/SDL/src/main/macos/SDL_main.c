@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_main.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_main.c,v 1.2 2001/04/10 22:23:47 cahighlander Exp $";
 #endif
 
 /* This file takes care of command line argument parsing, and stdio redirection
@@ -33,13 +33,14 @@ static char rcsid =
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>	
-#if TARGET_API_MACOS_CARBON
+#if TARGET_API_MAC_CARBON
 #include <Carbon.h>
 #else
 #include <Dialogs.h>
 #include <Fonts.h>
 #include <Events.h>
 #include <Resources.h>
+#include <Folders.h>
 #endif
 
 /* Include the SDL main definition header */
@@ -57,6 +58,13 @@ static char rcsid =
 	/* In MPW, the qd global has been removed from the libraries */
 	QDGlobals qd;
 #endif
+
+/* Structure for keeping prefs in 1 variable */
+typedef struct {
+    Str255  command_line;
+    Str255  video_driver_name;
+    Boolean output_to_file;
+}  PrefsRecord;
 
 /* See if the command key is held down at startup */
 static Boolean CommandKeyIsDown(void)
@@ -150,165 +158,405 @@ static void cleanup_output(void)
 	}
 }
 
+static int getCurrentAppName (StrFileName name) {
+	
+    ProcessSerialNumber process;
+    ProcessInfoRec      process_info;
+    FSSpec              process_fsp;
+    
+    process.highLongOfPSN = 0;
+    process.lowLongOfPSN  = kCurrentProcess;
+    process_info.processInfoLength = sizeof (process_info);
+    process_info.processName    = NULL;
+    process_info.processAppSpec = &process_fsp;
+    
+    if ( noErr != GetProcessInformation (&process, &process_info) )
+       return 0;
+    
+    memcpy (name, process_fsp.name, process_fsp.name[0] + 1);
+    return 1;
+}
+
+static int getPrefsFile (FSSpec *prefs_fsp, int create) {
+
+    /* The prefs file name is the application name, possibly truncated, */
+    /* plus " Preferences */
+    
+    #define  SUFFIX   " Preferences"
+    #define  MAX_NAME 19             /* 31 - strlen (SUFFIX) */
+    
+    short  volume_ref_number;
+    long   directory_id;
+    StrFileName  prefs_name;
+    StrFileName  app_name;
+    
+    /* Get Preferences folder - works with Multiple Users */
+    if ( noErr != FindFolder ( kOnSystemDisk, kPreferencesFolderType, kDontCreateFolder,
+                               &volume_ref_number, &directory_id) )
+        exit (-1);
+    
+    if ( ! getCurrentAppName (app_name) )
+        exit (-1);
+    
+    /* Truncate if name is too long */
+    if (app_name[0] > MAX_NAME )
+        app_name[0] = MAX_NAME;
+        
+    memcpy (prefs_name + 1, app_name + 1, app_name[0]);    
+    memcpy (prefs_name + app_name[0] + 1, SUFFIX, strlen (SUFFIX));
+    prefs_name[0] = app_name[0] + strlen (SUFFIX);
+   
+    /* Make the file spec for prefs file */
+    if ( noErr != FSMakeFSSpec (volume_ref_number, directory_id, prefs_name, prefs_fsp) )
+        if ( !create )
+            return 0;
+        else {
+            /* Create the prefs file */
+            memcpy (prefs_fsp->name, prefs_name, prefs_name[0] + 1);
+            prefs_fsp->parID   = directory_id;
+            prefs_fsp->vRefNum = volume_ref_number;
+                
+            FSpCreateResFile (prefs_fsp, '????', 'pref', 0);
+            
+            if ( noErr != ResError () )
+                return 0;
+        }
+      
+    return 1;
+}
+
+static int readPrefsResource (PrefsRecord *prefs) {
+    
+    Handle prefs_handle;
+    
+    prefs_handle = Get1Resource( 'CLne', 128 );
+
+	if (prefs_handle != NULL) {
+		int offset = 0;
+		int j      = 0;
+		
+		HLock(prefs_handle);
+		
+		/* Get command line string */	
+		memcpy (prefs->command_line, *prefs_handle, (*prefs_handle)[0]+1);
+
+		/* Get video driver name */
+		offset += (*prefs_handle)[0] + 1;	
+		memcpy (prefs->video_driver_name, *prefs_handle + offset, (*prefs_handle)[offset] + 1);		
+		
+		/* Get save-to-file option (1 or 0) */
+		offset += (*prefs_handle)[offset] + 1;
+		prefs->output_to_file = (*prefs_handle)[offset];
+		
+		ReleaseResource( prefs_handle );
+    
+        return ResError() == noErr;
+    }
+
+    return 0;
+}
+
+static int writePrefsResource (PrefsRecord *prefs, short resource_file) {
+
+    Handle prefs_handle;
+    
+    UseResFile (resource_file);
+    
+    prefs_handle = Get1Resource ( 'CLne', 128 );
+    if (prefs_handle != NULL)
+        RemoveResource (prefs_handle);
+    
+    prefs_handle = NewHandle ( prefs->command_line[0] + prefs->video_driver_name[0] + 4 );
+    if (prefs_handle != NULL) {
+    
+        int offset;
+        
+        HLock (prefs_handle);
+        
+        /* Command line text */
+        offset = 0;
+        memcpy (*prefs_handle, prefs->command_line, prefs->command_line[0] + 1);
+        
+        /* Video driver name */
+        offset += prefs->command_line[0] + 1;
+        memcpy (*prefs_handle + offset, prefs->video_driver_name, prefs->video_driver_name[0] + 1);
+        
+        /* Output-to-file option */
+        offset += prefs->video_driver_name[0] + 1;
+        *( *((char**)prefs_handle) + offset)     = (char)prefs->output_to_file;
+        *( *((char**)prefs_handle) + offset + 1) = 0;
+              
+        AddResource   (prefs_handle, 'CLne', 128, "\pCommand Line");
+        WriteResource (prefs_handle);
+        UpdateResFile (resource_file);
+        DisposeHandle (prefs_handle);
+        
+        return ResError() == noErr;
+    }
+    
+    return 0;
+}
+
+static int readPreferences (PrefsRecord *prefs) {
+
+    int    no_error = 1;
+    FSSpec prefs_fsp;
+
+    /* Check for prefs file first */
+    if ( getPrefsFile (&prefs_fsp, 0) ) {
+    
+        short  prefs_resource;
+        
+        prefs_resource = FSpOpenResFile (&prefs_fsp, fsRdPerm);
+        if ( prefs_resource == -1 ) /* this shouldn't happen, but... */
+            return 0;
+    
+        UseResFile   (prefs_resource);
+        no_error = readPrefsResource (prefs);     
+        CloseResFile (prefs_resource);
+    }
+    
+    /* Fall back to application's resource fork (reading only, so this is safe) */
+    else {
+    
+          no_error = readPrefsResource (prefs);
+     }
+
+    return no_error;
+}
+
+static int writePreferences (PrefsRecord *prefs) {
+    
+    int    no_error = 1;
+    FSSpec prefs_fsp;
+    
+    /* Get prefs file, create if it doesn't exist */
+    if ( getPrefsFile (&prefs_fsp, 1) ) {
+    
+        short  prefs_resource;
+        
+        prefs_resource = FSpOpenResFile (&prefs_fsp, fsRdWrPerm);
+        if (prefs_resource == -1)
+            return 0;
+        no_error = writePrefsResource (prefs, prefs_resource);
+        CloseResFile (prefs_resource);
+    }
+    
+    return no_error;
+}
+
 /* This is where execution begins */
 int main(int argc, char *argv[])
 {
-	int nargs;
-	char **args;
-	short itemHit;
-	short	dummyType; /* MJS */
-	Rect	dummyRect; /* MJS */
-	Handle dummyHandle;
-	DialogPtr commandDialog, errorDialog;
-	Handle	commandLineHandle;
-	Boolean	captureFile = 1;
-	Str255	commandText;
-	char   *commandLine;
-	int     commandLineLen;
-	long	i;
-	
 
-	/* Hush little compiler don't you cry,
-	   Momma's gonna use argc, and I don't know why.
-	   La la la la la la la la...
-	 */
-	if ( argc > 1 ) {
-		/* Hum, command line arguments? */
-	}
+#pragma unused(argc, argv)
+	
+#define DEFAULT_ARGS "\p"                /* pascal string for default args */
+#define DEFAULT_VIDEO_DRIVER "\ptoolbox" /* pascal string for default video driver name */	
+#define DEFAULT_OUTPUT_TO_FILE 1         /* 1 == output to file, 0 == no output */
+
+#define VIDEO_ID_DRAWSPROCKET 1          /* these correspond to popup menu choices */
+#define VIDEO_ID_TOOLBOX      2
+
+    PrefsRecord prefs = { DEFAULT_ARGS, DEFAULT_VIDEO_DRIVER, DEFAULT_OUTPUT_TO_FILE }; 
+	
+	int     nargs;
+	char   **args;
+	char   *commandLine;
+	
+	StrFileName  appNameText;
+	int     videodriver     = VIDEO_ID_TOOLBOX;
+    int     settingsChanged = 0;
+    
+    long	i;
 
 	/* Kyle's SDL command-line dialog code ... */
 #if !TARGET_API_MAC_CARBON
-	InitGraf(&qd.thePort);
+	InitGraf    (&qd.thePort);
+	InitFonts   ();
+	InitWindows ();
+	InitMenus   ();
+	InitDialogs (nil);
 #endif
-	InitFonts();
-#if !TARGET_API_MAC_CARBON
-	InitWindows();
-	InitMenus();
-	InitDialogs(nil);
-#endif
-	InitCursor();
+	InitCursor ();
 	FlushEvents(everyEvent,0);
 #if !TARGET_API_MAC_CARBON
-	MaxApplZone();
+	MaxApplZone ();
 #endif
-	MoreMasters();	/* What is this?? */
-	MoreMasters();	/* What is this?? */
-
+	MoreMasters ();
+	MoreMasters ();
+#if 0
 	/* Intialize SDL, and put up a dialog if we fail */
-	if ( SDL_Init(0) < 0 ) {
+	if ( SDL_Init (0) < 0 ) {
+
 #define kErr_OK		1
 #define kErr_Text	2
-		errorDialog = GetNewDialog(1001, nil, (WindowPtr)-1);
-		DrawDialog( errorDialog );
-		GetDialogItem(errorDialog, kErr_Text, &dummyType, &dummyHandle, &dummyRect); /* MJS */
-		SetDialogItemText(dummyHandle, "\pError Initializing SDL");
-		SetPort( errorDialog );
+
+        DialogPtr errorDialog;
+        short	  dummyType;
+    	Rect	  dummyRect;
+	    Handle    dummyHandle;
+	    short     itemHit;
+	
+		errorDialog = GetNewDialog (1001, nil, (WindowPtr)-1);
+		DrawDialog (errorDialog);
+		
+		GetDialogItem (errorDialog, kErr_Text, &dummyType, &dummyHandle, &dummyRect);
+		SetDialogItemText (dummyHandle, "\pError Initializing SDL");
+		
+		SetPort (errorDialog);
 		do {
-			ModalDialog( nil, &itemHit);
-		} while ( itemHit != kErr_OK );
-		DisposeDialog( errorDialog );
-		exit(-1);
+			ModalDialog (nil, &itemHit);
+		} while (itemHit != kErr_OK);
+		
+		DisposeDialog (errorDialog);
+		exit (-1);
 	}
 	atexit(cleanup_output);
 	atexit(SDL_Quit);
+#endif
 
-	/* Set up SDL's QuickDraw environment */
+/* Set up SDL's QuickDraw environment  */
 #if !TARGET_API_MAC_CARBON
 	SDL_InitQuickDraw(&qd);
 #endif
 
-	commandLineHandle = Get1Resource( 'CLne', 128 );
-	if (commandLineHandle != NULL) {
-		HLock(commandLineHandle);
-		/* CLne resource consist of a pascal string and a boolean */
-		for ( i = 0; (i <= (*commandLineHandle)[0]) &&
-		            (i < GetHandleSize(commandLineHandle)); i++ ) {
-			commandText[i] = (*commandLineHandle)[i];
-		}
-		captureFile = (*commandLineHandle)[i];
-		ReleaseResource( commandLineHandle );
-	
-	} else {
-		commandText[0] = '\0';
-	}
+	 if ( readPreferences (&prefs) ) {
+		
+        if (memcmp (prefs.video_driver_name+1, "DSp", 3) == 0)
+            videodriver = 1;
+        else if (memcmp (prefs.video_driver_name+1, "toolbox", 7) == 0)
+            videodriver = 2;
+	 }
+	 	
 	if ( CommandKeyIsDown() ) {
+
 #define kCL_OK		1
 #define kCL_Cancel	2
 #define kCL_Text	3
 #define kCL_File	4
-		commandDialog = GetNewDialog( 1000, nil, (DialogPtr)-1 );
-		SetPort(commandDialog);
-		GetDialogItem(commandDialog, kCL_File, &dummyType, &dummyHandle, &dummyRect); /* MJS */
-		SetControlValue((ControlHandle)dummyHandle, true );
-		GetDialogItem(commandDialog, kCL_Text, &dummyType, &dummyHandle, &dummyRect);
-		SetDialogItemText(dummyHandle, commandText);
-		do {
-			ModalDialog(nil, &itemHit);
-			if ( itemHit == kCL_File ) {
-				GetDialogItem(commandDialog, kCL_File, &dummyType, &dummyHandle, &dummyRect); /* MJS */
-				SetControlValue((ControlHandle)dummyHandle, !GetControlValue((ControlHandle)dummyHandle) );
-			}
-		} while (itemHit != kCL_OK && itemHit != kCL_Cancel);
-		GetDialogItem(commandDialog, kCL_Text, &dummyType, &dummyHandle, &dummyRect); /* MJS */
-		GetDialogItemText(dummyHandle, commandText);
-		GetDialogItem(commandDialog, kCL_File, &dummyType, &dummyHandle, &dummyRect); /* MJS */
-		captureFile = GetControlValue((ControlHandle)dummyHandle);
-		DisposeDialog(commandDialog);
+#define kCL_Video   6
+       
+        DialogPtr commandDialog;
+        short	  dummyType;
+        Rect	  dummyRect;
+        Handle    dummyHandle;
+        short     itemHit;
 
-		if (itemHit == kCL_Cancel ) {
-			exit(0);
-		}
+        /* Assume that they will change settings, rather than do exhaustive check */
+        settingsChanged = 1;
+        
+        /* Create dialog and display it */
+        commandDialog = GetNewDialog (1000, nil, (DialogPtr)-1);
+        SetPort (commandDialog);
+            
+        /* Setup controls */
+        GetDialogItem   (commandDialog, kCL_File, &dummyType, &dummyHandle, &dummyRect); /* MJS */
+        SetControlValue ((ControlHandle)dummyHandle, prefs.output_to_file );
+
+        GetDialogItem     (commandDialog, kCL_Text, &dummyType, &dummyHandle, &dummyRect);
+        SetDialogItemText (dummyHandle, prefs.command_line);
+
+        GetDialogItem   (commandDialog, kCL_Video, &dummyType, &dummyHandle, &dummyRect);
+        SetControlValue ((ControlRef)dummyHandle, videodriver);
+
+        SetDialogDefaultItem (commandDialog, kCL_OK);
+        SetDialogCancelItem  (commandDialog, kCL_Cancel);
+
+        do {
+        		
+        	ModalDialog(nil, &itemHit); /* wait for user response */
+            
+            /* Toggle command-line output checkbox */	
+        	if ( itemHit == kCL_File ) {
+        		GetDialogItem(commandDialog, kCL_File, &dummyType, &dummyHandle, &dummyRect); /* MJS */
+        		SetControlValue((ControlHandle)dummyHandle, !GetControlValue((ControlHandle)dummyHandle) );
+        	}
+
+        } while (itemHit != kCL_OK && itemHit != kCL_Cancel);
+
+        /* Get control values, even if they did not change */
+        GetDialogItem     (commandDialog, kCL_Text, &dummyType, &dummyHandle, &dummyRect); /* MJS */
+        GetDialogItemText (dummyHandle, prefs.command_line);
+
+        GetDialogItem (commandDialog, kCL_File, &dummyType, &dummyHandle, &dummyRect); /* MJS */
+        prefs.output_to_file = GetControlValue ((ControlHandle)dummyHandle);
+
+        GetDialogItem (commandDialog, kCL_Video, &dummyType, &dummyHandle, &dummyRect);
+        videodriver = GetControlValue ((ControlRef)dummyHandle);
+
+        DisposeDialog (commandDialog);
+
+        if (itemHit == kCL_Cancel ) {
+        	exit (0);
+        }
+	}
+    
+    /* Set pseudo-environment variables for video driver, update prefs */
+	switch ( videodriver ) {
+	   case VIDEO_ID_DRAWSPROCKET: 
+	      putenv ("SDL_VIDEODRIVER=DSp");
+	      memcpy (prefs.video_driver_name, "\pDSp", 4);
+	      break;
+	   case VIDEO_ID_TOOLBOX:
+	      putenv ("SDL_VIDEODRIVER=toolbox");
+	      memcpy (prefs.video_driver_name, "\ptoolbox", 8);
+	      break;
 	}
 
-	/* Redirect standard I/O to files */
-	if ( captureFile ) {
-		freopen(STDOUT_FILE, "w", stdout);
-		freopen(STDERR_FILE, "w", stderr);
+    /* Redirect standard I/O to files */
+	if ( prefs.output_to_file ) {
+		freopen (STDOUT_FILE, "w", stdout);
+		freopen (STDERR_FILE, "w", stderr);
 	} else {
-		fclose(stdout);
-		fclose(stderr);
+		fclose (stdout);
+		fclose (stderr);
 	}
+   
+    if (settingsChanged) {
+        /* Save the prefs, even if they might not have changed (but probably did) */
+        if ( ! writePreferences (&prefs) )
+            fprintf (stderr, "WARNING: Could not save preferences!\n");
+    }
+   
+    getCurrentAppName (appNameText); /* check for error here ? */
 
-#if !defined(__MWERKS__) /* MJS */
-	/* Copy the command line to a C string */
-	commandLineLen = strlen(argv[0]) + 1 + commandText[0] + 1;
-	commandLine = (char *)malloc(commandLineLen);
-	if ( commandLine == NULL ) {
+    commandLine = (char*) malloc (appNameText[0] + prefs.command_line[0] + 2);
+    if ( commandLine == NULL ) {
+       exit(-1);
+    }
+
+    /* Rather than rewrite ParseCommandLine method, let's replace  */
+    /* any spaces in application name with underscores,            */
+    /* so that the app name is only 1 argument                     */   
+    for (i = 1; i < 1+appNameText[0]; i++)
+        if ( appNameText[i] == ' ' ) appNameText[i] = '_';
+
+    /* Copy app name & full command text to command-line C-string */      
+    memcpy (commandLine, appNameText + 1, appNameText[0]);
+    commandLine[appNameText[0]] = ' ';
+    memcpy (commandLine + appNameText[0] + 1, prefs.command_line + 1, prefs.command_line[0]);
+    commandLine[ appNameText[0] + 1 + prefs.command_line[0] ] = '\0';
+
+    /* Parse C-string into argv and argc */
+    nargs = ParseCommandLine (commandLine, NULL);
+    args = (char **)malloc((nargs+1)*(sizeof *args));
+    if ( args == NULL ) {
 		exit(-1);
 	}
-	strcpy(commandLine, argv[0]);
-	if ( commandText[0] ) {
-		strcat(commandLine, " ");
-		strncat(commandLine, (char *)&commandText[1], commandText[0]);
-	}
-	commandLine[commandLineLen-1] = '\0';
-#else /* MJS -> */
-	/* Just parse the whole command line */
-	commandLine = (char *)malloc(commandText[0]+1);
-	if ( commandLine == NULL ) {
-		exit(-1);
-	}
-	BlockMoveData(commandText+1, commandLine, commandText[0] + 1);
-	commandLine[commandText[0]] = 0;
-#endif /* <- MJS */
-
-	/* Parse it into argv and argc */
-	nargs = ParseCommandLine(commandLine, NULL);
-	args = (char **)malloc((nargs+1)*(sizeof *args));
-	if ( args == NULL ) {
-		exit(-1);
-	}
-	ParseCommandLine(commandLine, args);
-
+	ParseCommandLine (commandLine, args);
+        
 	/* Run the main application code */
 	SDL_main(nargs, args);
-	free(args);
-	free(commandLine);
-
+	free (args);
+	free (commandLine);
+   
+   	/* Remove useless stdout.txt and stderr.txt */
+   	cleanup_output ();
+   	
 	/* Exit cleanly, calling atexit() functions */
-	exit(0);
+	exit (0);    
 
 	/* Never reached, but keeps the compiler quiet */
-	return(0);
+	return (0);
 }
-

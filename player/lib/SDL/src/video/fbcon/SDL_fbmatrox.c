@@ -1,6 +1,6 @@
 /*
 	SDL - Simple DirectMedia Layer
-	Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+	Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbmatrox.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_fbmatrox.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include "SDL_types.h"
@@ -90,7 +90,7 @@ static int FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 
 	/* Set up the X/Y base coordinates */
 	dstX = 0;
-	dstY = ((caddr_t)dst->pixels - mapped_mem) / SDL_VideoSurface->pitch;
+	dstY = ((char *)dst->pixels - mapped_mem) / SDL_VideoSurface->pitch;
 
 	/* Adjust for the current rectangle */
 	dstX += rect->x;
@@ -102,6 +102,7 @@ static int FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 	/* Set up the Y boundaries */
 	ydstlen = (rect->h | (dstY << 16));
 
+#if 0	/* This old way doesn't work on the Matrox G450 */
 	/* Set up for color fill operation */
 	fillop = MGADWG_TRAP | MGADWG_SOLID |
 	         MGADWG_ARZERO | MGADWG_SGNZERO | MGADWG_SHIFTZERO |
@@ -113,6 +114,18 @@ static int FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 	mga_out32(MGAREG_FXBNDRY, fxbndry);
 	mga_out32(MGAREG_YDSTLEN, ydstlen);
 	mga_out32(MGAREG_DWGCTL + MGAREG_EXEC, fillop);
+#else
+	/* Set up for color fill operation */
+	fillop = MGADWG_TRAP | MGADWG_SOLID |
+	         MGADWG_ARZERO | MGADWG_SGNZERO | MGADWG_SHIFTZERO;
+
+	/* Execute the operations! */
+	mga_wait(5);
+	mga_out32(MGAREG_DWGCTL, fillop | MGADWG_REPLACE);
+	mga_out32(MGAREG_FCOL, color);
+	mga_out32(MGAREG_FXBNDRY, fxbndry);
+	mga_out32(MGAREG_YDSTLEN + MGAREG_EXEC, ydstlen);
+#endif
 
 	return(0);
 }
@@ -137,9 +150,9 @@ static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 	/* Calculate source and destination base coordinates (in pixels) */
 	this = current_video;
 	srcX= 0;	/* FIXME: Calculate this from memory offset */
-	srcY = ((caddr_t)src->pixels - mapped_mem) / SDL_VideoSurface->pitch;
+	srcY = ((char *)src->pixels - mapped_mem) / SDL_VideoSurface->pitch;
 	dstX = 0;	/* FIXME: Calculate this from memory offset */
-	dstY = ((caddr_t)dst->pixels - mapped_mem) / SDL_VideoSurface->pitch;
+	dstY = ((char *)dst->pixels - mapped_mem) / SDL_VideoSurface->pitch;
 
 	/* Adjust for the current blit rectangles */
 	srcX += srcrect->x;
@@ -253,6 +266,7 @@ void FB_MatroxAccel(_THIS, __u32 card)
 		this->SetHWColorKey = SetHWColorKey;
 	}
 
+#if 0 /* Not yet implemented? */
 	/* The Matrox G200/G400 has an accelerated alpha blit */
 	if ( (card == FB_ACCEL_MATROX_MGAG200)
 	  || (card == FB_ACCEL_MATROX_MGAG400)
@@ -260,4 +274,5 @@ void FB_MatroxAccel(_THIS, __u32 card)
 		this->info.blit_hw_A = 1;
 		this->SetHWAlpha = SetHWAlpha;
 	}
+#endif
 }

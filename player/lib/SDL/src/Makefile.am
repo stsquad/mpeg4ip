@@ -26,6 +26,9 @@ libSDL_la_LIBADD =		\
 	main/libarch.la		\
 	@SDL_EXTRALIBS@		\
 	@SYSTEM_LIBS@
+libSDL_la_DEPENDENCIES =	\
+	main/libarch.la		\
+	@SDL_EXTRALIBS@
 
 # The SDL library sources
 GENERAL_SRCS = 		\
@@ -33,5 +36,6 @@ GENERAL_SRCS = 		\
 	SDL_error.c		\
 	SDL_error_c.h		\
 	SDL_fatal.c		\
-	SDL_fatal.h
+	SDL_fatal.h		\
+	SDL_getenv.c
 

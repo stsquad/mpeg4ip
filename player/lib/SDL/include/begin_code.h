@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -53,9 +53,12 @@
    packing set to an alternate value, say for loading structures from disk.
    The packing is reset to the previous value in close_code.h
  */
-#if defined(_MSC_VER) || defined(__MWERKS__) || defined(__WATCOMC__)
+#if defined(_MSC_VER) || defined(__MWERKS__) || defined(__WATCOMC__) || defined(__BORLANDC__)
 #ifdef _MSC_VER
 #pragma warning(disable: 4103)
+#endif
+#ifdef __BORLANDC__
+#pragma nopackwarning
 #endif
 #pragma pack(push,4)
 #endif /* Compiler needs structure packing set */

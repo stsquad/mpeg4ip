@@ -928,7 +928,7 @@ _ConvertX86p32_8RGB332:
 	shr ecx,2		; We will draw 4 pixels at once
 	jnz .L1
 	
-	jmp SHORT .L2		; short jump out of range :(
+	jmp .L2			; short jump out of range :(
 	
 .L1:
 	mov eax,[esi]		; first pair of pixels
@@ -1007,7 +1007,7 @@ _ConvertX86p32_8RGB332:
 	dec ecx
 	jz .L2			; L1 out of range for short jump :(
 	
-	jmp SHORT .L1
+	jmp .L1
 .L2:
 	
 	pop ecx

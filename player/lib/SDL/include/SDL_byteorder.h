@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_byteorder.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_byteorder.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Macros for determining the byte-order of this platform */
@@ -37,10 +37,12 @@ static char rcsid =
 /* Pardon the mess, I'm trying to determine the endianness of this host.
    I'm doing it by preprocessor defines rather than some sort of configure
    script so that application code can use this too.  The "right" way would
-   be to dynamically generate this file on install, but that's alot of work.
+   be to dynamically generate this file on install, but that's a lot of work.
  */
-#if defined(__i386__) || defined(WIN32) || \
-    defined(__alpha__) || defined(__arm__)
+#if  defined(__i386__) || defined(WIN32) || \
+    (defined(__alpha__) || defined(__alpha)) || \
+     defined(__arm__) || \
+    (defined(__mips__) && defined(__MIPSEL__))
 #define SDL_BYTEORDER	SDL_LIL_ENDIAN
 #else
 #define SDL_BYTEORDER	SDL_BIG_ENDIAN

@@ -41,22 +41,4 @@ that while most of the APIs are frozen, things are still subject to
 change, and many of the known problems will be resolved before the
 final release comes out.
 
-Known bugs as of Sep 2000:
-
-No sound (Sound Manager calls not in Carbon).
-
-No joystick (no InputSprockets in Carbon).
-
-No CDROM.
-
-No mouse warping (existing warping code assumes ADB device calls not
-in Carbon).
-
-SDL Window opens up in back of all other windows.
-
-Backgrounding an SDL window causes program to crash immediately.
-
-A key up event gets auto-generated immediately after the key down
-event, so games such as Doom that need a key to be held down won't
-work without some trickery.
-
+Known bugs are listed in the file "BUGS"

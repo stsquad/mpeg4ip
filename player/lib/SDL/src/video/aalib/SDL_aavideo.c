@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_aavideo.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_aavideo.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* AAlib based SDL video driver implementation.
@@ -115,13 +115,11 @@ static SDL_VideoDevice *AA_CreateDevice(int devindex)
 	device->UnlockHWSurface = AA_UnlockHWSurface;
 	device->FlipHWSurface = NULL;
 	device->FreeHWSurface = AA_FreeHWSurface;
-	device->SetIcon = NULL;
 	device->SetCaption = NULL;
+	device->SetIcon = NULL;
+	device->IconifyWindow = NULL;
+	device->GrabInput = NULL;
 	device->GetWMInfo = NULL;
-	device->FreeWMCursor = AA_FreeWMCursor;
-	device->CreateWMCursor = AA_CreateWMCursor;
-	device->ShowWMCursor = AA_ShowWMCursor;
-	device->WarpWMCursor = AA_WarpWMCursor;
 	device->InitOSKeymap = AA_InitOSKeymap;
 	device->PumpEvents = AA_PumpEvents;
 
@@ -131,7 +129,8 @@ static SDL_VideoDevice *AA_CreateDevice(int devindex)
 }
 
 VideoBootStrap AALIB_bootstrap = {
-	"aalib", AA_Available, AA_CreateDevice
+	"aalib", "ASCII Art Library",
+	AA_Available, AA_CreateDevice
 };
 
 static void AA_ResizeHandler(aa_context *);

@@ -9,7 +9,11 @@
 #ifdef WIN32
 #include <windows.h>
 #endif
+#if defined(__APPLE__) && defined(__MACH__)
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 
 #define SHADED_CUBE
 
@@ -266,6 +270,7 @@ int RunGLTest( int argc, char* argv[],
 		exit(1);
 	}
 
+	printf("Screen BPP: %d\n", SDL_GetVideoSurface()->format->BitsPerPixel);
 	printf("\n");
 	printf( "Vendor     : %s\n", glGetString( GL_VENDOR ) );
 	printf( "Renderer   : %s\n", glGetString( GL_RENDERER ) );

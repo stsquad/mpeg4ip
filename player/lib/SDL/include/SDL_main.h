@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_main.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_main.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_main_h
@@ -59,9 +59,16 @@ extern C_LINKAGE int SDL_main(int argc, char *argv[]);
 #include "SDL_types.h"
 #include "begin_code.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* This should be called from your WinMain() function, if any */
 extern DECLSPEC int SDL_RegisterApp(char *name, Uint32 style, void *hInst);
 
+#ifdef __cplusplus
+}
+#endif
 #include "close_code.h"
 #endif
 
@@ -69,12 +76,19 @@ extern DECLSPEC int SDL_RegisterApp(char *name, Uint32 style, void *hInst);
 #if defined(macintosh)
 #include "begin_code.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Forward declaration so we don't need to include QuickDraw.h */
 struct QDGlobals;
 
 /* This should be called from your main() function, if any */
 extern DECLSPEC void SDL_InitQuickDraw(struct QDGlobals *the_qd);
 
+#ifdef __cplusplus
+}
+#endif
 #include "close_code.h"
 #endif
 

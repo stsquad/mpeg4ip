@@ -1,21 +1,15 @@
-.TH "SDL_WarpMouse" "3" "Thu 12 Oct 2000, 13:52" "SDL" "SDL API Reference" 
+.TH "SDL_WarpMouse" "3" "Mon 12 Mar 2001, 01:05" "SDL" "SDL API Reference" 
 .SH "NAME"
-SDL_WarpMouse\- Set the position of the mouse cursor
+SDL_WarpMouse\- Set the position of the mouse cursor\&.
 .SH "SYNOPSIS"
 .PP
 \fB#include "SDL\&.h"
 .sp
-\fBvoid \fBSDL_WarpMouse\fP\fR(\fBUint26 x, Uint16 y\fR);
+\fBvoid \fBSDL_WarpMouse\fP\fR(\fBUint16 x, Uint16 y\fR);
 .SH "DESCRIPTION"
 .PP
-Sets the position of the mouse to the \fBx\fR and \fBy\fR parameters\&.
-.PP
-.RS
-\fBNote:  
-.PP
-This causes a SDL_MOUSEMOTION event\&.
-.RE
+Set the position of the mouse cursor (generates a mouse motion event)\&.
 .SH "SEE ALSO"
 .PP
 \fI\fBSDL_MouseMotionEvent\fR\fR
-...\" created by instant / docbook-to-man, Thu 12 Oct 2000, 13:52
+...\" created by instant / docbook-to-man, Mon 12 Mar 2001, 01:05

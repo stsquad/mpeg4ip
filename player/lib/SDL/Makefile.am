@@ -25,12 +25,13 @@ EXTRA_DIST =		\
         README		\
         README-SDL.txt	\
         README.Win32	\
+        README.WinCE	\
         README.MacOS	\
         README.MacOSX	\
         VisualC.html	\
         VisualC.zip	\
-	CWprojects.sea.hqx \
-        MPWmake.sea.hqx	\
+        MPWmake.sea.bin	\
+	CWprojects.sea.bin \
         WhatsNew	\
         docs.html	\
         sdl.m4		\
@@ -49,10 +50,15 @@ rpm: $(PACKAGE)-$(VERSION).tar.gz
 	cp $(PACKAGE)-$(VERSION).tar.gz /usr/src/redhat/SOURCES
 	rpm -ba SDL.spec
 
+# Rule to rebuild the export lists for BeOS, MacOS and Win32.
+exports:
+	(cd src/main/beos/exports; $(MAKE))
+	(cd src/main/macos/exports; $(MAKE))
+	(cd src/main/win32/exports; $(MAKE))
+
 # Rule to force automake to rebuild the library
 changed:
-	find . -name '*.la' -print | xargs rm
-	make
+	@echo "This build target is no longer necessary"
 
 # Rule to install the libraries only - prevent rebuilding apps
 install-lib:
@@ -64,6 +70,7 @@ install-hook:
 
 # Grab the test programs for the distribution:
 dist-hook:
+	if test -f test/Makefile; then (cd test; make distclean); fi
 	cp -rp test $(distdir)
 	rm -rf `find $(distdir) -type d -name CVS -print`
 
@@ -73,6 +80,6 @@ snapshot:
 	cvs -d $(CVSROOT) login
 	cvs -d $(CVSROOT) checkout -r devel_1_1_0 SDL
 	(cd SDL && ./autogen.sh)
-	mv SDL SDL-1.1
-	tar zcvf $(HOME)/SDL-1.1.tar.gz SDL-1.1
-	rm -rf SDL-1.1
+	mv SDL SDL-1.2
+	tar zcvf $(HOME)/SDL-1.2.tar.gz SDL-1.2
+	rm -rf SDL-1.2

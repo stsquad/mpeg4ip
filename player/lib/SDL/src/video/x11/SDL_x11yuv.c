@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11yuv.c,v 1.1 2001/02/05 20:26:31 cahighlander Exp $";
+ "@(#) $Id: SDL_x11yuv.c,v 1.2 2001/04/10 22:23:50 cahighlander Exp $";
 #endif
 
 /* This is the XFree86 Xv extension implementation of YUV video overlays */
@@ -41,6 +41,11 @@ static char rcsid =
 #include "SDL_video.h"
 #include "SDL_x11yuv_c.h"
 #include "SDL_yuvfuncs.h"
+
+#define XFREE86_REFRESH_HACK
+#ifdef XFREE86_REFRESH_HACK
+#include "SDL_x11image_c.h"
+#endif
 
 /* Workaround when pitch != width */
 #define PITCH_WORKAROUND
@@ -65,7 +70,7 @@ SDL_Overlay *X11_CreateYUVOverlay(_THIS, int width, int height, Uint32 format, S
 	SDL_Overlay *overlay;
 	struct private_yuvhwdata *hwdata;
 	int xv_port;
-	int i, j;
+	int i, j, k;
 	int adaptors;
 	XvAdaptorInfo *ainfo;
 	XShmSegmentInfo *yuvshm;
@@ -76,7 +81,7 @@ SDL_Overlay *X11_CreateYUVOverlay(_THIS, int width, int height, Uint32 format, S
 	     (Success == XvQueryAdaptors(GFX_Display,
 	                                 RootWindow(GFX_Display, SDL_Screen),
 	                                 &adaptors, &ainfo)) ) {
-		for ( i=0; (i<adaptors) && (xv_port == -1); ++i ) {
+		for ( i=0; (i < adaptors) && (xv_port == -1); ++i ) {
 			/* Check to see if the visual can be used */
 			if ( BUGGY_XFREE86(<=, 4001) ) {
 				int visual_ok = 0;
@@ -97,10 +102,14 @@ SDL_Overlay *X11_CreateYUVOverlay(_THIS, int width, int height, Uint32 format, S
 				XvImageFormatValues *formats;
 				formats = XvListImageFormats(GFX_Display,
 				              ainfo[i].base_id, &num_formats);
-				for ( j=0; j<num_formats; ++j ) {
+				for ( j=0; (j < num_formats) && (xv_port == -1); ++j ) {
 					if ( (Uint32)formats[j].id == format ) {
-						xv_port = ainfo[i].base_id;
-						break;
+						for ( k=0; k < ainfo[i].num_ports; ++k ) {
+							if ( Success == XvGrabPort(GFX_Display, ainfo[i].base_id+k, CurrentTime) ) {
+								xv_port = ainfo[i].base_id+k;
+								break;
+							}
+						}
 					}
 				}
 			}
@@ -114,6 +123,7 @@ SDL_Overlay *X11_CreateYUVOverlay(_THIS, int width, int height, Uint32 format, S
 	/* Create the overlay structure */
 	overlay = (SDL_Overlay *)malloc(sizeof *overlay);
 	if ( overlay == NULL ) {
+		XvUngrabPort(GFX_Display, xv_port, CurrentTime);
 		SDL_OutOfMemory();
 		return(NULL);
 	}
@@ -132,6 +142,7 @@ SDL_Overlay *X11_CreateYUVOverlay(_THIS, int width, int height, Uint32 format, S
 	hwdata = (struct private_yuvhwdata *)malloc(sizeof *hwdata);
 	overlay->hwdata = hwdata;
 	if ( hwdata == NULL ) {
+		XvUngrabPort(GFX_Display, xv_port, CurrentTime);
 		SDL_OutOfMemory();
 		SDL_FreeYUVOverlay(overlay);
 		return(NULL);
@@ -180,7 +191,7 @@ SDL_Overlay *X11_CreateYUVOverlay(_THIS, int width, int height, Uint32 format, S
 		SDL_FreeYUVOverlay(overlay);
 		return(NULL);
 	}
-	yuvshm->shmaddr  = (caddr_t) shmat(yuvshm->shmid, 0, 0);
+	yuvshm->shmaddr  = (char *) shmat(yuvshm->shmid, 0, 0);
 	yuvshm->readOnly = False;
 	hwdata->image->data = yuvshm->shmaddr;
 
@@ -202,6 +213,14 @@ SDL_Overlay *X11_CreateYUVOverlay(_THIS, int width, int height, Uint32 format, S
 		overlay->pixels[i] = (Uint8 *)hwdata->image->data +
 		                              hwdata->image->offsets[i];
 	}
+
+#ifdef XFREE86_REFRESH_HACK
+	/* Work around an XFree86 X server bug (?)
+	   We can't perform normal updates in windows that have video
+	   being output to them.  See SDL_x11image.c for more details.
+	 */
+	X11_DisableAutoRefresh(this);
+#endif
 
 	/* We're all done.. */
 	return(overlay);
@@ -235,6 +254,7 @@ void X11_FreeYUVOverlay(_THIS, SDL_Overlay *overlay)
 
 	hwdata = overlay->hwdata;
 	if ( hwdata ) {
+		XvUngrabPort(GFX_Display, hwdata->port, CurrentTime);
 		if ( hwdata->yuvshm.shmaddr ) {
 			XShmDetach(GFX_Display, &hwdata->yuvshm);
 			shmdt(hwdata->yuvshm.shmaddr);
@@ -252,6 +272,9 @@ void X11_FreeYUVOverlay(_THIS, SDL_Overlay *overlay)
 		free(overlay->pixels);
 		overlay->pixels = NULL;
 	}
+#ifdef XFREE86_REFRESH_HACK
+	X11_EnableAutoRefresh(this);
+#endif
 }
 
 #endif /* XFREE86_XV */

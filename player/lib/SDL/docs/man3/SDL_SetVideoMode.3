@@ -1,4 +1,4 @@
-.TH "SDL_SetVideoMode" "3" "Thu 12 Oct 2000, 13:48" "SDL" "SDL API Reference" 
+.TH "SDL_SetVideoMode" "3" "Mon 12 Mar 2001, 01:04" "SDL" "SDL API Reference" 
 .SH "NAME"
 SDL_SetVideoMode\- Set up a video mode with the specified width, height and bits-per-pixel\&.
 .SH "SYNOPSIS"
@@ -24,7 +24,7 @@ Create the video surface in video memory
 Enables the use of asynchronous to the display surface\&. This will usually slow down blitting on single CPU machines, but may provide a speed increase on SMP systems\&.
 .TP 20
 \fBSDL_ANYFORMAT\fP
-Allow and video depth/pixel-format and emulated it if its not supported by the display\&.
+Normally, if a video surface of the requested depth (\fBbpp\fR) is not available, SDL will emulate one with a shadow surface\&. Passing \fBSDL_ANYFORMAT\fP prevents this and causes SDL to use the video surface, regardless of its depth\&.
 .TP 20
 \fBSDL_HWPALETTE\fP
 Give SDL exclusive palette access\&. Without this flag you may not always get the the colors you request with \fI\fBSDL_SetColors\fP\fR\&.
@@ -43,6 +43,9 @@ Create an OpenGL rendering context, like above, but allow normal blitting operat
 .TP 20
 \fBSDL_RESIZABLE\fP
 Create a resizable window\&. When the window is resized by the user a \fI\fBSDL_VIDEORESIZE\fP\fR event is generated and \fBSDL_SetVideoMode\fP can be called again with the new size\&.
+.TP 20
+\fBSDL_NOFRAME\fP
+If possible, \fBSDL_NOFRAME\fP causes SDL to create a window with no title bar or frame decoration\&. Fullscreen modes automatically have this flag set\&.
 .PP
 .RS
 \fBNote:  
@@ -55,4 +58,4 @@ The framebuffer surface, or \fBNULL\fR if it fails\&.
 .SH "SEE ALSO"
 .PP
 \fI\fBSDL_LockSurface\fP\fR, \fI\fBSDL_SetColors\fP\fR, \fI\fBSDL_Flip\fP\fR, \fI\fBSDL_Surface\fR\fR
-...\" created by instant / docbook-to-man, Thu 12 Oct 2000, 13:48
+...\" created by instant / docbook-to-man, Mon 12 Mar 2001, 01:04

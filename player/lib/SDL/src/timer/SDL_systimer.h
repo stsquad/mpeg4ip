@@ -24,7 +24,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systimer.h,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_systimer.h,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* The system dependent timer handling functions */

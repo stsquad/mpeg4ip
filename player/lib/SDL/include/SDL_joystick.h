@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_joystick.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_joystick.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Include file for SDL joystick event handling */
@@ -59,7 +59,7 @@ extern DECLSPEC int SDL_NumJoysticks(void);
  * This can be called before any joysticks are opened.
  * If no name can be found, this function returns NULL.
  */
-extern DECLSPEC const char *SDL_JoystickName(int index);
+extern DECLSPEC const char *SDL_JoystickName(int device_index);
 
 /*
  * Open a joystick for use - the index passed as an argument refers to
@@ -68,12 +68,12 @@ extern DECLSPEC const char *SDL_JoystickName(int index);
  *
  * This function returns a joystick identifier, or NULL if an error occurred.
  */
-extern DECLSPEC SDL_Joystick *SDL_JoystickOpen(int index);
+extern DECLSPEC SDL_Joystick *SDL_JoystickOpen(int device_index);
 
 /*
  * Returns 1 if the joystick has been opened, or 0 if it has not.
  */
-extern DECLSPEC int SDL_JoystickOpened(int index);
+extern DECLSPEC int SDL_JoystickOpened(int device_index);
 
 /*
  * Get the device index of an opened joystick.
@@ -164,7 +164,7 @@ extern DECLSPEC void SDL_JoystickClose(SDL_Joystick *joystick);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
-};
+}
 #endif
 #include "close_code.h"
 

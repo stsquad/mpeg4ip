@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -27,7 +27,10 @@
 #undef _begin_code_h
 
 /* Reset structure packing at previous byte alignment */
-#if defined(_MSC_VER) || defined(__MWERKS__) || defined(__WATCOMC__)
+#if defined(_MSC_VER) || defined(__MWERKS__) || defined(__WATCOMC__)  || defined(__BORLANDC__)
+#ifdef __BORLANDC__
+#pragma nopackwarning
+#endif
 #pragma pack(pop)
 #endif /* Compiler needs structure packing set */
 

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_error.c,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_error.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Simple error handling in SDL */
@@ -33,6 +33,7 @@ static char rcsid =
 #include <string.h>
 
 #include "SDL_types.h"
+#include "SDL_getenv.h"
 #include "SDL_error.h"
 #include "SDL_error_c.h"
 #ifndef DISABLE_THREADS
@@ -45,6 +46,8 @@ static SDL_error SDL_global_error;
 
 #define SDL_GetErrBuf()	(&SDL_global_error)
 #endif /* DISABLE_THREADS */
+
+#define SDL_ERRBUFIZE	1024
 
 /* Private functions */
 
@@ -261,7 +264,12 @@ Uint8 *SDL_GetErrorMsg(Uint8 *errstr, unsigned int maxlen)
 	unsigned int i;
 
 	/* Allocate the UNICODE buffer */
-	errstr16 = (Uint16 *)calloc(maxlen, (sizeof *errstr16));
+	errstr16 = (Uint16 *)malloc(maxlen * (sizeof *errstr16));
+	if ( ! errstr16 ) {
+		strncpy((char *)errstr, "Out of memory", maxlen);
+		errstr[maxlen-1] = '\0';
+		return(errstr);
+	}
 
 	/* Get the error message */
 	SDL_GetErrorMsgUNICODE(errstr16, maxlen);
@@ -280,9 +288,9 @@ Uint8 *SDL_GetErrorMsg(Uint8 *errstr, unsigned int maxlen)
 /* Available for backwards compatibility */
 char *SDL_GetError (void)
 {
-	static char errmsg[BUFSIZ];
+	static char errmsg[SDL_ERRBUFIZE];
 
-	return((char *)SDL_GetErrorMsg((unsigned char *)errmsg, BUFSIZ));
+	return((char *)SDL_GetErrorMsg((unsigned char *)errmsg, SDL_ERRBUFIZE));
 }
 
 void SDL_ClearError(void)

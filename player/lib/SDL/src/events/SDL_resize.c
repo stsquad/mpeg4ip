@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_resize.c,v 1.1 2001/02/05 20:26:27 cahighlander Exp $";
+ "@(#) $Id: SDL_resize.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Resize event handling code for SDL */
@@ -45,7 +45,8 @@ int SDL_PrivateResize(int w, int h)
 	SDL_Event events[32];
 
 	/* See if this event would change the video surface */
-	if ( (last_resize.w == w) && (last_resize.h == h) ) {
+	if ( !w || !h ||
+	     ((last_resize.w == w) && (last_resize.h == h)) ) {
 		return(0);
 	}
         last_resize.w = w;

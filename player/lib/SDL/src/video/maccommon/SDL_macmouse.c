@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_macmouse.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_macmouse.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include <stdlib.h>
@@ -87,20 +87,20 @@ WMcursor *Mac_CreateWMCursor(_THIS,
 	return(cursor);
 }
 
+int Mac_cursor_showing = 1;
+
 int Mac_ShowWMCursor(_THIS, WMcursor *cursor)
 {
-	static int cursor_shown = 1;
-
 	if ( cursor == NULL ) {
-		if ( cursor_shown ) {
+		if ( Mac_cursor_showing ) {
 			HideCursor();
-			cursor_shown = 0;
+			Mac_cursor_showing = 0;
 		}
 	} else {
 		SetCursor(&cursor->curs);
-		if ( ! cursor_shown ) {
+		if ( ! Mac_cursor_showing ) {
 			ShowCursor();
-			cursor_shown = 1;
+			Mac_cursor_showing = 1;
 		}
 	}
 	return(1);

@@ -1,4 +1,4 @@
-.TH "SDL_Overlay" "3" "Thu 12 Oct 2000, 13:51" "SDL" "SDL API Reference" 
+.TH "SDL_Overlay" "3" "Mon 12 Mar 2001, 01:04" "SDL" "SDL API Reference" 
 .SH "NAME"
 SDL_Overlay\- YUV video overlay
 .SH "STRUCTURE DEFINITION"
@@ -30,6 +30,9 @@ An array of pitches, one for each plane\&. Pitch is the length of a row in bytes
 .TP 20
 \fBpixels\fR
 An array of pointers to teh data of each plane\&. The overlay should be locked before these pointers are used\&.
+.TP 20
+\fBhw_overlay\fR
+This will be set to 1 if the overlay is hardware accelerated\&.
 .SH "DESCRIPTION"
 .PP
 A \fBSDL_Overlay\fR is similar to a \fI\fBSDL_Surface\fR\fR except it stores a YUV overlay\&. All the fields are read only, except for \fBpixels\fR which should be \fIlocked\fR before use\&. The \fBformat\fR field stores the format of the overlay which is one of the following: 
@@ -46,4 +49,4 @@ A \fBSDL_Overlay\fR is similar to a \fI\fBSDL_Surface\fR\fR except it stores a Y
 .SH "SEE ALSO"
 .PP
 \fI\fBSDL_CreateYUVOverlay\fP\fR, \fI\fBSDL_LockYUVOverlay\fP\fR, \fI\fBSDL_UnlockYUVOverlay\fP\fR, \fI\fBSDL_FreeYUVOverlay\fP\fR
-...\" created by instant / docbook-to-man, Thu 12 Oct 2000, 13:51
+...\" created by instant / docbook-to-man, Mon 12 Mar 2001, 01:04

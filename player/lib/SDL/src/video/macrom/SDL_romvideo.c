@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_romvideo.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_romvideo.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include <stdio.h>
@@ -30,6 +30,12 @@ static char rcsid =
 
 #if TARGET_API_MAC_CARBON
 #include <Carbon.h>
+/* The fullscreen code requires the QuickTime framework, and the window
+   is still at the back on MacOS X, which is where this code is needed.
+ */
+#if USE_QUICKTIME
+#include <Movies.h>
+#endif
 #else
 #include <LowMem.h>
 #include <Gestalt.h>
@@ -62,6 +68,7 @@ static int ROM_LockHWSurface(_THIS, SDL_Surface *surface);
 static void ROM_UnlockHWSurface(_THIS, SDL_Surface *surface);
 static void ROM_FreeHWSurface(_THIS, SDL_Surface *surface);
 
+#if !TARGET_API_MAC_CARBON /* This seems not to be available? -sts Aug 2000 */
 /* Saved state for the menu bar */
 static RgnHandle	gSaveGrayRgn = nil;
 static short		gSaveMenuBar = 0;
@@ -102,6 +109,7 @@ static pascal void SBShowHideControlStrip(Boolean showIt)
 	CallUniversalProc((UniversalProcPtr) procData, procInfo, 0x01, showIt);
 }
 #endif /* powerc */
+#endif /* !TARGET_API_MAC_CARBON */
 
 /* Macintosh toolbox driver bootstrap functions */
 
@@ -156,8 +164,10 @@ static SDL_VideoDevice *ROM_CreateDevice(int devindex)
 	device->GL_MakeCurrent = Mac_GL_MakeCurrent;
 	device->GL_SwapBuffers = Mac_GL_SwapBuffers;
 #endif
-	device->SetIcon = NULL;
 	device->SetCaption = Mac_SetCaption;
+	device->SetIcon = NULL;
+	device->IconifyWindow = NULL;
+	device->GrabInput = NULL;
 	device->GetWMInfo = NULL;
 	device->FreeWMCursor = Mac_FreeWMCursor;
 	device->CreateWMCursor = Mac_CreateWMCursor;
@@ -172,7 +182,8 @@ static SDL_VideoDevice *ROM_CreateDevice(int devindex)
 }
 
 VideoBootStrap TOOLBOX_bootstrap = {
-	"toolbox", ROM_Available, ROM_CreateDevice
+	"toolbox", "MacOS ROM Toolbox",
+	ROM_Available, ROM_CreateDevice
 };
 
 
@@ -429,8 +440,8 @@ CLEANUP:
 }
 
 /* Various screen update functions available */
-static void ROM_WindowUpdate(_THIS, int numrects, SDL_Rect *rects);
 static void ROM_DirectUpdate(_THIS, int numrects, SDL_Rect *rects);
+static void ROM_WindowUpdate(_THIS, int numrects, SDL_Rect *rects);
 
 static void ROM_UnsetVideoMode(_THIS, SDL_Surface *current)
 {
@@ -446,11 +457,14 @@ static void ROM_UnsetVideoMode(_THIS, SDL_Surface *current)
 			UnlockPixels(GetGWorldPixMap(memworld));
 			DisposeGWorld(memworld);
 		}
-		DisposeWindow(SDL_Window);
 		if ( (current->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
+#if USE_QUICKTIME
+			EndFullScreen(fullscreen_ctx, nil);
+			SDL_Window = nil;
+#else
 			ROM_ShowMenuBar(this);
+#endif
 		}
-		SDL_Window = nil;
 	}
 	current->pixels = NULL;
 	current->flags &= ~(SDL_HWSURFACE|SDL_FULLSCREEN);
@@ -459,7 +473,10 @@ static void ROM_UnsetVideoMode(_THIS, SDL_Surface *current)
 static SDL_Surface *ROM_SetVideoMode(_THIS, SDL_Surface *current,
 				int width, int height, int bpp, Uint32 flags)
 {
-	Rect wrect;
+	Rect wrect, orect;
+#if TARGET_API_MAC_CARBON
+	Rect tmprect;
+#endif
 
 	/* Free any previous video mode */
 	ROM_UnsetVideoMode(this, current);
@@ -469,26 +486,77 @@ static SDL_Surface *ROM_SetVideoMode(_THIS, SDL_Surface *current,
 	current->w = width;
 	current->h = height;
 	SetRect(&wrect, 0, 0, width, height);
-	OffsetRect(&wrect,
+	if ( SDL_Window ) {
+		/* If we recreate the window, don't move it around */
+#if TARGET_API_MAC_CARBON
+		orect = *GetWindowPortBounds(SDL_Window, &tmprect);
+#else
+		orect = SDL_Window->portRect;
+#endif
+		OffsetRect(&wrect, orect.left, orect.top);
+	} else {
+		/* Center the window the first time we show it */
+		OffsetRect(&wrect,
 		(SDL_modelist[0]->w-width)/2, (SDL_modelist[0]->h-height)/2);
+	}
 
+#if MACOSX && !USE_QUICKTIME
+	/* Hum.. fullscreen mode is broken */
+	flags &= ~SDL_FULLSCREEN;
+#endif
 	if ( (flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
+		/* Create the fullscreen window and use screen bits */
 		current->flags |= SDL_HWSURFACE|SDL_FULLSCREEN;
+		if ( SDL_Window ) {
+			DisposeWindow(SDL_Window);
+		}
+#if USE_QUICKTIME
+		BeginFullScreen(&fullscreen_ctx, nil, 0,0, &SDL_Window, nil, 0);
+#else
 		SDL_Window = NewCWindow(nil, &wrect, "\p", true, plainDBox,
 						(WindowPtr)-1, false, 0);
+		ROM_HideMenuBar(this);
+#endif
 		current->pitch = (**(**SDL_Display).gdPMap).rowBytes & 0x3FFF;
 		current->pixels = (**(**SDL_Display).gdPMap).baseAddr;
-		ROM_HideMenuBar(this);
 		this->UpdateRects = ROM_DirectUpdate;
 	} else {
 		GWorldPtr memworld;
 		PixMapHandle pixmap;
-#if TARGET_API_MAC_CARBON
-		Rect tmprect;
-#endif
+		int style;
 
-		SDL_Window = NewCWindow(nil, &wrect, "\p", true, noGrowDocProc,
-						(WindowPtr)-1, true, 0);
+		style = noGrowDocProc;
+		if ( flags & SDL_NOFRAME ) {
+			style = plainDBox;
+			current->flags |= SDL_NOFRAME;
+		} else
+		if ( flags & SDL_RESIZABLE ) {
+			style = zoomDocProc;
+			current->flags |= SDL_RESIZABLE;
+		}
+		if ( SDL_Window && (style == current_style) ) {
+			/* Resize existing window, if necessary */
+			if ( ((orect.right-orect.left) != width) ||
+			     ((orect.bottom-orect.top) != height) ) {
+				SizeWindow(SDL_Window, width, height, false);
+			}
+		} else {
+			/* Recreate the window in the new style */
+			if ( SDL_Window ) {
+				DisposeWindow(SDL_Window);
+			}
+			SDL_Window = NewCWindow(nil, &wrect, "\p", true,
+			                        style, (WindowPtr)-1, true, 0);
+
+			/* Set the window title, if any */
+			{ char *title;
+				SDL_WM_GetCaption(&title, NULL);
+				if ( title ) {
+					Mac_SetCaption(this, title, NULL);
+				}
+			}
+		}
+		current_style = style;
 		SetPalette(SDL_Window, SDL_CPal, false);
 		ActivatePalette(SDL_Window);
 		if ( NewGWorld(&memworld, 0,
@@ -520,6 +588,9 @@ static SDL_Surface *ROM_SetVideoMode(_THIS, SDL_Surface *current,
 		}
 	}
 	
+	if ( (flags & SDL_HWPALETTE) && (flags & SDL_FULLSCREEN) )
+	   current->flags |= SDL_HWPALETTE;
+	   
 	/* We're live! */
 	return(current);
 }
@@ -552,31 +623,40 @@ static void ROM_WindowUpdate(_THIS, int numrects, SDL_Rect *rects)
 {
 	GWorldPtr memworld;
 	GrafPtr saveport;
+	CGrafPtr thePort;
+	const BitMap *memBits;
+	const BitMap *winBits;
 	int i;
 	Rect update;
 	
 	/* Copy from the offscreen GWorld to the window port */
 	GetPort(&saveport);
 	SetPortWindowPort(SDL_Window);
+	thePort = GetWindowPort(SDL_Window);
 	memworld = (GWorldPtr)GetWRefCon(SDL_Window);
+#if TARGET_API_MAC_CARBON
+	memBits = GetPortBitMapForCopyBits((CGrafPtr) memworld);
+#else
+	memBits = &((GrafPtr)memworld)->portBits;
+#endif
+#if TARGET_API_MAC_CARBON
+	winBits = GetPortBitMapForCopyBits(thePort);
+#else
+	winBits = &SDL_Window->portBits;
+#endif
 	for ( i=0; i<numrects; ++i ) {
 		update.left = rects[i].x;
 		update.right = rects[i].x+rects[i].w;
 		update.top = rects[i].y;
 		update.bottom = rects[i].y+rects[i].h;
-		CopyBits(
-#if TARGET_API_MAC_CARBON
-			 GetPortBitMapForCopyBits((CGrafPtr) memworld),
-#else
-			 &((GrafPtr)memworld)->portBits,
-#endif
-#if TARGET_API_MAC_CARBON
-			 GetPortBitMapForCopyBits(GetWindowPort(SDL_Window)),
-#else
-			 &SDL_Window->portBits,
-#endif
+		CopyBits(memBits, winBits,
 			 &update, &update, srcCopy, nil);
 	}
+#if TARGET_API_MAC_CARBON
+	if ( QDIsPortBuffered(thePort) ) {
+		QDFlushPortBuffer(thePort, NULL);
+	}
+#endif
 	SetPort(saveport);
 }
 
@@ -605,7 +685,8 @@ static int ROM_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
 		(**cTab).ctTable[j].rgb.green = colors[i].g << 8 | colors[i].g;
 		(**cTab).ctTable[j].rgb.blue = colors[i].b << 8 | colors[i].b;
 	}
-	if ( (this->screen->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
+//	if ( (this->screen->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) 
+{
 		GDevice **odisplay;
 		odisplay = GetGDevice();
 		SetGDevice(SDL_Display);
@@ -621,6 +702,10 @@ void ROM_VideoQuit(_THIS)
 
 	/* Free current video mode */
 	ROM_UnsetVideoMode(this, this->screen);
+	if ( SDL_Window ) {
+		DisposeWindow(SDL_Window);
+		SDL_Window = nil;
+	}
 
 	/* Free palette and restore original one */
 	if ( SDL_CTab != nil ) {

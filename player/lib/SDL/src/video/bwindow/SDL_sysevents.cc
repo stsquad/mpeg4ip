@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysevents.cc,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_sysevents.cc,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #include <support/UTF8.h>
@@ -201,7 +201,7 @@ void BE_PumpEvents(_THIS)
 		B_TERTIARY_MOUSE_BUTTON, 
 		B_SECONDARY_MOUSE_BUTTON,
 	};
-	int    i, j;
+	unsigned int    i, j;
 
 	/* Check out the mouse buttons and position (slight race condition) */
 	if ( SDL_Win->Lock() ) {
@@ -281,7 +281,7 @@ void BE_PumpEvents(_THIS)
 
 void BE_InitOSKeymap(_THIS)
 {
-	int i;
+	unsigned int i;
 
 	/* Initialize all the key states as "up" */
 	key_flip = 0;

@@ -1,4 +1,4 @@
-.TH "SDL_GL_SetAttribute" "3" "Thu 12 Oct 2000, 13:49" "SDL" "SDL API Reference" 
+.TH "SDL_GL_SetAttribute" "3" "Mon 12 Mar 2001, 01:04" "SDL" "SDL API Reference" 
 .SH "NAME"
 SDL_GL_SetAttribute\- Set a special SDL/OpenGL attribute
 .SH "SYNOPSIS"
@@ -20,7 +20,7 @@ SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 5 );
 SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 5 );
 SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
 SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-if ( (screen=SDL_SetVideoMode(640, 480, 16, SDL_OPENGL | SDL_DOUBLEBUF)) == NULL ) {
+if ( (screen=SDL_SetVideoMode( 640, 480, 16, SDL_OPENGL )) == NULL ) {
   fprintf(stderr, "Couldn\&'t set GL mode: %s
 ", SDL_GetError());
   SDL_Quit();
@@ -28,7 +28,13 @@ if ( (screen=SDL_SetVideoMode(640, 480, 16, SDL_OPENGL | SDL_DOUBLEBUF)) == NULL
 }\fR
 .fi
 .PP
+.PP
+.RS
+\fBNote:  
+.PP
+The \fBSDL_DOUBLEBUF\fP flag is not required to enable double buffering when setting an OpenGL video mode\&. Double buffering is enabled or disabled using the SDL_GL_DOUBLEBUFFER attribute\&.
+.RE
 .SH "SEE ALSO"
 .PP
 \fI\fBSDL_GL_GetAttribute\fP\fR, \fIGL Attributes\fR
-...\" created by instant / docbook-to-man, Thu 12 Oct 2000, 13:49
+...\" created by instant / docbook-to-man, Mon 12 Mar 2001, 01:04

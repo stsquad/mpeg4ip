@@ -7,7 +7,7 @@ noinst_LTLIBRARIES = libvideo.la
 SUBDIRS = @VIDEO_SUBDIRS@
 DIST_SUBDIRS = x11 dga fbcon svga ggi aalib \
                wincommon windib windx5 \
-               maccommon macdsp macrom bwindow cybergfx
+               maccommon macdsp macrom bwindow photon cybergfx
 
 DRIVERS = @VIDEO_DRIVERS@
 
@@ -46,4 +46,4 @@ COMMON_SRCS =			\
 
 libvideo_la_SOURCES = $(COMMON_SRCS)
 libvideo_la_LIBADD = $(DRIVERS)
-
+libvideo_la_DEPENDENCIES = $(DRIVERS)

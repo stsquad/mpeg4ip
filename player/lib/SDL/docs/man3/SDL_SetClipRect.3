@@ -1,4 +1,4 @@
-.TH "SDL_SetClipRect" "3" "Thu 12 Oct 2000, 13:48" "SDL" "SDL API Reference" 
+.TH "SDL_SetClipRect" "3" "Mon 12 Mar 2001, 01:04" "SDL" "SDL API Reference" 
 .SH "NAME"
 SDL_SetClipRect\- Sets the clipping rectangle for a surface\&.
 .SH "SYNOPSIS"
@@ -13,4 +13,7 @@ Sets the clipping rectangle for a surface\&. When this surface is the destinatio
 The rectangle pointed to by \fBrect\fR will be clipped to the edges of the surface so that the clip rectangle for a surface can never fall outside the edges of the surface\&.
 .PP
 If \fBrect\fR is \fBNULL\fP the clipping rectangle will be set to the full size of the surface\&.
-...\" created by instant / docbook-to-man, Thu 12 Oct 2000, 13:48
+.SH "SEE ALSO"
+.PP
+\fI\fBSDL_GetClipRect\fP\fR, \fI\fBSDL_BlitSurface\fP\fR, \fI\fBSDL_Surface\fR\fR
+...\" created by instant / docbook-to-man, Mon 12 Mar 2001, 01:04

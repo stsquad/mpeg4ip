@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11modes.c,v 1.1 2001/02/05 20:26:31 cahighlander Exp $";
+ "@(#) $Id: SDL_x11modes.c,v 1.2 2001/04/10 22:23:50 cahighlander Exp $";
 #endif
 
 /* Utilities for getting and setting the X display mode */
@@ -103,16 +103,14 @@ static void set_best_resolution(_THIS, int width, int height)
     printf("Mode %d: %dx%d\n", i, modes[i]->hdisplay, modes[i]->vdisplay);
   }
 #endif
-            for ( i = nmodes-1; i >= 0 ; --i ) {
+            for ( i = nmodes-1; i > 0 ; --i ) {
                 if ( (modes[i]->hdisplay >= width) &&
                      (modes[i]->vdisplay >= height) )
                     break;
             }
-            if ( i >= 0 ) {
-                if ( (modes[i]->hdisplay != mode.hdisplay) ||
-                     (modes[i]->vdisplay != mode.vdisplay) ) {
-                    XVidMode(SwitchToMode, (SDL_Display, SDL_Screen, modes[i]));
-                }
+            if ( (modes[i]->hdisplay != mode.hdisplay) ||
+                 (modes[i]->vdisplay != mode.vdisplay) ) {
+                XVidMode(SwitchToMode, (SDL_Display, SDL_Screen, modes[i]));
             }
             XFree(modes);
         }
@@ -161,15 +159,35 @@ static void move_cursor_to(_THIS, int x, int y)
     XWarpPointer(SDL_Display, None, SDL_Root, 0, 0, 0, 0, x, y);
 }
 
-static void add_visual(_THIS, int depth, int class)
+static int add_visual(_THIS, int depth, int class)
 {
     XVisualInfo vi;
     if(XMatchVisualInfo(SDL_Display, SDL_Screen, depth, class, &vi)) {
 	int n = this->hidden->nvisuals;
-	this->hidden->visuals[n].depth = depth;
+	this->hidden->visuals[n].depth = vi.depth;
 	this->hidden->visuals[n].visual = vi.visual;
 	this->hidden->nvisuals++;
     }
+    return(this->hidden->nvisuals);
+}
+static int add_visual_byid(_THIS, const char *visual_id)
+{
+    XVisualInfo *vi, template;
+    int nvis;
+
+    if ( visual_id ) {
+        memset(&template, 0, (sizeof template));
+        template.visualid = strtol(visual_id, NULL, 0);
+        vi = XGetVisualInfo(SDL_Display, VisualIDMask, &template, &nvis);
+        if ( vi ) {
+	    int n = this->hidden->nvisuals;
+	    this->hidden->visuals[n].depth = vi->depth;
+	    this->hidden->visuals[n].visual = vi->visual;
+	    this->hidden->nvisuals++;
+            XFree(vi);
+        }
+    }
+    return(this->hidden->nvisuals);
 }
 
 /* Global for the error handler */
@@ -263,24 +281,26 @@ int X11_GetVideoModes(_THIS)
 	int use_directcolor = 1;
 	XPixmapFormatValues *pf;
 
-	this->hidden->nvisuals = 0;
 	/* Search for the visuals in deepest-first order, so that the first
 	   will be the richest one */
 	if ( getenv("SDL_VIDEO_X11_NODIRECTCOLOR") ) {
 		use_directcolor = 0;
 	}
-	for ( i=0; i<SDL_TABLESIZE(depth_list); ++i ) {
-		if ( depth_list[i] > 8 ) {
-			if ( use_directcolor ) {
-				add_visual(this, depth_list[i], DirectColor);
+	this->hidden->nvisuals = 0;
+	if ( ! add_visual_byid(this, getenv("SDL_VIDEO_X11_VISUALID")) ) {
+		for ( i=0; i<SDL_TABLESIZE(depth_list); ++i ) {
+			if ( depth_list[i] > 8 ) {
+				if ( use_directcolor ) {
+					add_visual(this, depth_list[i], DirectColor);
+				}
+				add_visual(this, depth_list[i], TrueColor);
+			} else {
+				add_visual(this, depth_list[i], PseudoColor);
+				add_visual(this, depth_list[i], StaticColor);
 			}
-			add_visual(this, depth_list[i], TrueColor);
-		} else {
-			add_visual(this, depth_list[i], PseudoColor);
-			add_visual(this, depth_list[i], StaticColor);
 		}
 	}
-	if(this->hidden->nvisuals == 0) {
+	if ( this->hidden->nvisuals == 0 ) {
 	    SDL_SetError("Found no sufficiently capable X11 visuals");
 	    return -1;
 	}
@@ -392,7 +412,9 @@ void X11_QueueEnterFullScreen(_THIS)
 {
     switch_waiting = 0x01 | SDL_FULLSCREEN;
     switch_time = SDL_GetTicks() + 1500;
+#if 0 /* This causes a BadMatch error if the window is iconified (not needed) */
     XSetInputFocus(SDL_Display, WMwindow, RevertToNone, CurrentTime);
+#endif
 }
 
 int X11_EnterFullScreen(_THIS)

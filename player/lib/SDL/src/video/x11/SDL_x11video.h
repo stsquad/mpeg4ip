@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11video.h,v 1.1 2001/02/05 20:26:31 cahighlander Exp $";
+ "@(#) $Id: SDL_x11video.h,v 1.2 2001/04/10 22:23:50 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_x11video_h
@@ -31,9 +31,14 @@ static char rcsid =
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
+#ifndef NO_SHARED_MEMORY
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
+#endif
+#ifdef XFREE86_DGAMOUSE
+#include <X11/extensions/xf86dga.h>
+#endif
 #ifdef XFREE86_VM
 #include <X11/extensions/xf86vmode.h>
 #ifdef XFREE86_VM_DYNAMIC_HACK
@@ -67,9 +72,11 @@ struct SDL_PrivateVideoData {
     /* Direct Graphics Access extension information */
     int using_dga;
 
+#ifndef NO_SHARED_MEMORY
     /* MIT shared memory extension information */
     int use_mitshm;
     XShmSegmentInfo shminfo;
+#endif
 
     /* The variables used for displaying graphics */
     XImage *Ximage;		/* The X image for our window */
@@ -100,7 +107,7 @@ struct SDL_PrivateVideoData {
 	Visual *visual;
 	int depth;		/* number of significant bits/pixel */
 	int bpp;		/* pixel quantum in bits */
-    } visuals[4];		/* at most entries for 8, 15, 16, 24 */
+    } visuals[2*5];		/* at most 2 entries for 8, 15, 16, 24, 32 */
     int nvisuals;
 
     Visual *vis;		/* current visual in use */

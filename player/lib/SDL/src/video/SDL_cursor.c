@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_cursor.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_cursor.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* General cursor handling code for SDL */
@@ -44,10 +44,10 @@ static char rcsid =
 #include "default_cursor.h"
 
 /* These are static for our cursor handling code */
-int SDL_cursorstate = CURSOR_VISIBLE;
-static SDL_Cursor *SDL_cursor = NULL;
+volatile int SDL_cursorstate = CURSOR_VISIBLE;
+SDL_Cursor *SDL_cursor = NULL;
 static SDL_Cursor *SDL_defcursor = NULL;
-static SDL_mutex *SDL_cursorlock = NULL;
+SDL_mutex *SDL_cursorlock = NULL;
 
 /* Public functions */
 void SDL_CursorQuit(void)
@@ -94,23 +94,28 @@ int SDL_CursorInit(Uint32 multithreaded)
 }
 
 /* Multi-thread support for cursors */
+#ifndef SDL_LockCursor
 void SDL_LockCursor(void)
 {
 	if ( SDL_cursorlock ) {
 		SDL_mutexP(SDL_cursorlock);
 	}
 }
+#endif
+#ifndef SDL_UnlockCursor
 void SDL_UnlockCursor(void)
 {
 	if ( SDL_cursorlock ) {
 		SDL_mutexV(SDL_cursorlock);
 	}
 }
+#endif
 
 /* Software cursor drawing support */
 SDL_Cursor * SDL_CreateCursor (Uint8 *data, Uint8 *mask, 
 					int w, int h, int hot_x, int hot_y)
 {
+	SDL_VideoDevice *video = current_video;
 	int savelen;
 	int i;
 	SDL_Cursor *cursor;
@@ -154,42 +159,60 @@ SDL_Cursor * SDL_CreateCursor (Uint8 *data, Uint8 *mask,
 	memset(cursor->save[0], 0, savelen*2);
 
 	/* If the window manager gives us a good cursor, we're done! */
-	{
-		SDL_VideoDevice *video = current_video;
-		SDL_VideoDevice *this  = current_video;
-		cursor->wm_cursor = video->CreateWMCursor(this, data, mask,
-	                                                  w, h, hot_x, hot_y);
+	if ( video->CreateWMCursor ) {
+		cursor->wm_cursor = video->CreateWMCursor(video, data, mask,
+							w, h, hot_x, hot_y);
+	} else {
+		cursor->wm_cursor = NULL;
 	}
 	return(cursor);
 }
 
+/* SDL_SetCursor(NULL) can be used to force the cursor redraw,
+   if this is desired for any reason.  This is used when setting
+   the video mode and when the SDL window gains the mouse focus.
+ */
 void SDL_SetCursor (SDL_Cursor *cursor)
 {
+	SDL_VideoDevice *video = current_video;
+	SDL_VideoDevice *this  = current_video;
+
+	/* Make sure that the video subsystem has been initialized */
+	if ( ! video ) {
+		return;
+	}
+
 	/* Prevent the event thread from moving the mouse */
 	SDL_LockCursor();
 
 	/* Set the new cursor */
-	if ( cursor != SDL_cursor ) {
+	if ( cursor && (cursor != SDL_cursor) ) {
 		/* Erase the current mouse position */
 		if ( SHOULD_DRAWCURSOR(SDL_cursorstate) ) {
 			SDL_EraseCursor(SDL_VideoSurface);
+		} else if ( video->MoveWMCursor ) {
+			/* If the video driver is moving the cursor directly,
+			   it needs to hide the old cursor before (possibly)
+			   showing the new one.  (But don't erase NULL cursor)
+			 */
+			if ( SDL_cursor ) {
+				video->ShowWMCursor(this, NULL);
+			}
 		}
-		if ( cursor ) {
-			SDL_cursor = cursor;
-		}
+		SDL_cursor = cursor;
 	}
 
 	/* Draw the new mouse cursor */
 	if ( SDL_cursor && (SDL_cursorstate&CURSOR_VISIBLE) ) {
 		/* Use window manager cursor if possible */
-		SDL_VideoDevice *video = current_video;
-		SDL_VideoDevice *this  = current_video;
 		if ( SDL_cursor->wm_cursor && 
 	             video->ShowWMCursor(this, SDL_cursor->wm_cursor) )
 			SDL_cursorstate &= ~CURSOR_USINGSW;
 		else {
 			SDL_cursorstate |= CURSOR_USINGSW;
-			video->ShowWMCursor(this, NULL);
+			if ( video->ShowWMCursor ) {
+				video->ShowWMCursor(this, NULL);
+			}
 			{ int x, y;
 				SDL_GetMouseState(&x, &y);
 				SDL_cursor->area.x = (x - SDL_cursor->hot_x);
@@ -198,8 +221,6 @@ void SDL_SetCursor (SDL_Cursor *cursor)
 			SDL_DrawCursor(SDL_VideoSurface);
 		}
 	} else {
-		SDL_VideoDevice *video = current_video;
-		SDL_VideoDevice *this  = current_video;
 		/* Erase window manager mouse (cursor not visible) */
 		if ( SDL_cursor && (SDL_cursorstate & CURSOR_USINGSW) ) {
 			SDL_EraseCursor(SDL_VideoSurface);
@@ -245,19 +266,25 @@ int SDL_ShowCursor (int toggle)
 	int showing;
 
 	showing = (SDL_cursorstate & CURSOR_VISIBLE);
-	if ( toggle ) {
-		SDL_cursorstate |= CURSOR_VISIBLE;
-	} else {
-		SDL_cursorstate &= ~CURSOR_VISIBLE;
-	}
-	if ( (SDL_cursorstate & CURSOR_VISIBLE) != showing ) {
-		SDL_VideoDevice *video = current_video;
-		SDL_VideoDevice *this  = current_video;
-
-		SDL_SetCursor(SDL_cursor);
-		if ( video->CheckMouseMode ) {
-			video->CheckMouseMode(this);
+	if ( toggle >= 0 ) {
+		SDL_LockCursor();
+		if ( toggle ) {
+			SDL_cursorstate |= CURSOR_VISIBLE;
+		} else {
+			SDL_cursorstate &= ~CURSOR_VISIBLE;
 		}
+		SDL_UnlockCursor();
+		if ( (SDL_cursorstate & CURSOR_VISIBLE) != showing ) {
+			SDL_VideoDevice *video = current_video;
+			SDL_VideoDevice *this  = current_video;
+
+			SDL_SetCursor(NULL);
+			if ( video && video->CheckMouseMode ) {
+				video->CheckMouseMode(this);
+			}
+		}
+	} else {
+		/* Query current state */ ;
 	}
 	return(showing ? 1 : 0);
 }
@@ -268,11 +295,20 @@ void SDL_WarpMouse (Uint16 x, Uint16 y)
 	SDL_VideoDevice *this  = current_video;
 
 	/* This generates a mouse motion event */
-	video->WarpWMCursor(this, x, y);
+	if ( video->WarpWMCursor ) {
+		video->WarpWMCursor(this, x, y);
+	} else {
+		x += (this->screen->offset % this->screen->pitch) /
+		      this->screen->format->BytesPerPixel;
+		y += (this->screen->offset / this->screen->pitch);
+		SDL_PrivateMouseMotion(0, 0, x, y);
+	}
 }
 
 void SDL_MoveCursor(int x, int y)
 {
+	SDL_VideoDevice *video = current_video;
+
 	/* Erase and update the current mouse position */
 	if ( SHOULD_DRAWCURSOR(SDL_cursorstate) ) {
 		/* Erase and redraw mouse cursor in new position */
@@ -282,6 +318,8 @@ void SDL_MoveCursor(int x, int y)
 		SDL_cursor->area.y = (y - SDL_cursor->hot_y);
 		SDL_DrawCursor(SDL_VideoSurface);
 		SDL_UnlockCursor();
+	} else if ( video->MoveWMCursor ) {
+		video->MoveWMCursor(video, x, y);
 	}
 }
 
@@ -294,7 +332,7 @@ void SDL_CursorPaletteChanged(void)
 	palette_changed = 1;
 }
 
-static void SDL_MouseRect(SDL_Rect *area)
+void SDL_MouseRect(SDL_Rect *area)
 {
 	int clip_diff;
 
@@ -541,19 +579,9 @@ static void SDL_ConvertCursorSave(SDL_Surface *screen, int w, int h)
 	RunBlit(&info);
 }
 
-void SDL_DrawCursor(SDL_Surface *screen)
+void SDL_DrawCursorNoLock(SDL_Surface *screen)
 {
 	SDL_Rect area;
-
-	/* Lock the screen if necessary */
-	if ( screen == NULL ) {
-		return;
-	}
-	if ( SDL_MUSTLOCK(screen) ) {
-		if ( SDL_LockSurface(screen) < 0 ) {
-			return;
-		}
-	}
 
 	/* Get the mouse rectangle, clipped to the screen */
 	SDL_MouseRect(&area);
@@ -594,26 +622,10 @@ void SDL_DrawCursor(SDL_Surface *screen)
 	} else {
 		SDL_DrawCursorSlow(screen, &area);
 	}
-
-	/* Unlock the screen and update if necessary */
-	if ( SDL_MUSTLOCK(screen) ) {
-		SDL_UnlockSurface(screen);
-	}
-	if ( (screen == SDL_VideoSurface) &&
-	     ((screen->flags & SDL_HWSURFACE) != SDL_HWSURFACE) ) {
-		SDL_VideoDevice *video = current_video;
-		SDL_VideoDevice *this  = current_video;
-
-		area.x = SDL_cursor->area.x;
-		area.y = SDL_cursor->area.y;
-		video->UpdateRects(this, 1, &area);
-	}
 }
 
-void SDL_EraseCursor(SDL_Surface *screen)
+void SDL_DrawCursor(SDL_Surface *screen)
 {
-	SDL_Rect area;
-
 	/* Lock the screen if necessary */
 	if ( screen == NULL ) {
 		return;
@@ -623,6 +635,31 @@ void SDL_EraseCursor(SDL_Surface *screen)
 			return;
 		}
 	}
+
+	SDL_DrawCursorNoLock(screen);
+
+	/* Unlock the screen and update if necessary */
+	if ( SDL_MUSTLOCK(screen) ) {
+		SDL_UnlockSurface(screen);
+	}
+	if ( (screen == SDL_VideoSurface) &&
+	     ((screen->flags & SDL_HWSURFACE) != SDL_HWSURFACE) ) {
+		SDL_VideoDevice *video = current_video;
+		SDL_VideoDevice *this  = current_video;
+		SDL_Rect area;
+
+		SDL_MouseRect(&area);
+
+		/* This can be called before a video mode is set */
+		if ( video->UpdateRects ) {
+			video->UpdateRects(this, 1, &area);
+		}
+	}
+}
+
+void SDL_EraseCursorNoLock(SDL_Surface *screen)
+{
+	SDL_Rect area;
 
 	/* Get the mouse rectangle, clipped to the screen */
 	SDL_MouseRect(&area);
@@ -659,6 +696,21 @@ void SDL_EraseCursor(SDL_Surface *screen)
 		SDL_ConvertCursorSave(screen, area.w, area.h);
 	  }
 	}
+}
+
+void SDL_EraseCursor(SDL_Surface *screen)
+{
+	/* Lock the screen if necessary */
+	if ( screen == NULL ) {
+		return;
+	}
+	if ( SDL_MUSTLOCK(screen) ) {
+		if ( SDL_LockSurface(screen) < 0 ) {
+			return;
+		}
+	}
+
+	SDL_EraseCursorNoLock(screen);
 
 	/* Unlock the screen and update if necessary */
 	if ( SDL_MUSTLOCK(screen) ) {
@@ -668,9 +720,9 @@ void SDL_EraseCursor(SDL_Surface *screen)
 	     ((screen->flags & SDL_HWSURFACE) != SDL_HWSURFACE) ) {
 		SDL_VideoDevice *video = current_video;
 		SDL_VideoDevice *this  = current_video;
+		SDL_Rect area;
 
-		area.x = SDL_cursor->area.x;
-		area.y = SDL_cursor->area.y;
+		SDL_MouseRect(&area);
 		video->UpdateRects(this, 1, &area);
 	}
 }

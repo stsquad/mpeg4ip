@@ -22,12 +22,14 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysevents.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_sysevents.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <windows.h>
 
+#include "SDL_getenv.h"
 #include "SDL_events.h"
 #include "SDL_video.h"
 #include "SDL_error.h"
@@ -43,6 +45,10 @@ static char rcsid =
 #include "wmmsg.h"
 #endif
 
+#ifdef _WIN32_WCE
+#define NO_GETKEYBOARDSTATE
+#endif
+
 /* The window we use for everything... */
 const char *SDL_Appname = NULL;
 HINSTANCE SDL_Instance = NULL;
@@ -55,7 +61,7 @@ int posted = 0;
 
 /* Functions called by the message processing function */
 LONG
-(*HandleMessage)(_THIS, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+(*HandleMessage)(_THIS, HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)=NULL;
 void (*WIN_RealizePalette)(_THIS);
 void (*WIN_PaletteChanged)(_THIS, HWND window);
 void (*WIN_SwapGamma)(_THIS);
@@ -101,6 +107,44 @@ static BOOL WINAPI WIN_TrackMouseEvent(TRACKMOUSEEVENT *ptme)
 }
 #endif /* WM_MOUSELEAVE */
 
+/* Function to retrieve the current keyboard modifiers */
+static void WIN_GetKeyboardState(void)
+{
+#ifndef NO_GETKEYBOARDSTATE
+	SDLMod state;
+	BYTE keyboard[256];
+
+	state = KMOD_NONE;
+	if ( GetKeyboardState(keyboard) ) {
+		if ( keyboard[VK_LSHIFT] & 0x80) {
+			state |= KMOD_LSHIFT;
+		}
+		if ( keyboard[VK_RSHIFT] & 0x80) {
+			state |= KMOD_RSHIFT;
+		}
+		if ( keyboard[VK_LCONTROL] & 0x80) {
+			state |= KMOD_LCTRL;
+		}
+		if ( keyboard[VK_RCONTROL] & 0x80) {
+			state |= KMOD_RCTRL;
+		}
+		if ( keyboard[VK_LMENU] & 0x80) {
+			state |= KMOD_LALT;
+		}
+		if ( keyboard[VK_RMENU] & 0x80) {
+			state |= KMOD_RALT;
+		}
+		if ( keyboard[VK_NUMLOCK] & 0x80) {
+			state |= KMOD_NUM;
+		}
+		if ( keyboard[VK_CAPITAL] & 0x80) {
+			state |= KMOD_CAPS;
+		}
+	}
+	SDL_SetModState(state);
+#endif /* !NO_GETKEYBOARDSTATE */
+}
+
 /* The main Win32 event handler */
 static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -120,30 +164,36 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
 		case WM_ACTIVATE: {
 			SDL_VideoDevice *this = current_video;
-			int active, minimized;
+			BOOL minimized;
+			Uint8 appstate;
 
 			minimized = HIWORD(wParam);
-			active = LOWORD(wParam);
-			if ( minimized && !active ) {
-				if ( SDL_GetAppState() & SDL_APPACTIVE ) {
-					WIN_SwapGamma(this);
-				}
-				posted = SDL_PrivateAppActive(0, SDL_APPACTIVE);
-			}
-			if ( !minimized && active ) {
+			if ( !minimized && (LOWORD(wParam) != WA_INACTIVE) ) {
+				/* Gain the following states */
+				appstate = SDL_APPACTIVE|SDL_APPINPUTFOCUS;
 				if ( this->input_grab != SDL_GRAB_OFF ) {
 					WIN_GrabInput(this, SDL_GRAB_ON);
 				}
-				if ( !(SDL_GetAppState() & SDL_APPACTIVE) ) {
+				if ( !(SDL_GetAppState()&SDL_APPINPUTFOCUS) ) {
 					WIN_SwapGamma(this);
 				}
-				posted = SDL_PrivateAppActive(1, SDL_APPACTIVE);
-			}
-			if ( !active ) {
+				posted = SDL_PrivateAppActive(1, appstate);
+				WIN_GetKeyboardState();
+			} else {
+				/* Lose the following states */
+				appstate = SDL_APPINPUTFOCUS;
+				if ( minimized ) {
+					appstate |= SDL_APPACTIVE;
+				}
 				if ( this->input_grab != SDL_GRAB_OFF ) {
 					WIN_GrabInput(this, SDL_GRAB_OFF);
 				}
+				if ( SDL_GetAppState() & SDL_APPINPUTFOCUS ) {
+					WIN_SwapGamma(this);
+				}
+				posted = SDL_PrivateAppActive(0, appstate);
 			}
+			return(0);
 		}
 		break;
 
@@ -241,6 +291,9 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 						button = 3;
 						state = SDL_RELEASED;
 						break;
+					default:
+						/* Eh? Unknown button? */
+						return(0);
 				}
 				if ( state == SDL_PRESSED ) {
 					/* Grab mouse so we get up events */
@@ -268,6 +321,7 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 		}
 		return(0);
 
+#ifdef WM_GETMINMAXINFO
 		/* This message is sent as a way for us to "check" the values
 		 * of a position change.  If we don't like it, we can adjust
 		 * the values before they are changed.
@@ -321,6 +375,7 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 			info->ptMaxTrackSize.y = height;
 		}
 		return(0);
+#endif /* WM_GETMINMAXINFO */
 
 		case WM_MOVE: {
 			SDL_VideoDevice *this = current_video;
@@ -338,8 +393,8 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 			if ( SDL_PublicSurface &&
 				(SDL_PublicSurface->flags & SDL_RESIZABLE) ) {
 				SDL_PrivateResize(LOWORD(lParam), HIWORD(lParam));
-				return(0);
 			}
+			return(0);
 		}
 		break;
 
@@ -382,6 +437,11 @@ static LONG CALLBACK WinMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 		}
 		return(0);
 
+		case WM_ERASEBKGND: {
+			/* Just do nothing */ ;
+		}
+		return(1);
+
 		case WM_CLOSE: {
 			if ( (posted = SDL_PrivateQuit()) )
 				PostQuitMessage(0);
@@ -413,15 +473,14 @@ int SDL_RegisterApp(char *name, Uint32 style, void *hInst)
 {
 	static int initialized = 0;
 	WNDCLASS class;
+#ifdef WM_MOUSELEAVE
 	HMODULE handle;
+#endif
 
 	/* Only do this once... */
 	if ( initialized ) {
 		return(0);
 	}
-
-	/* Prevent us from doing special message handling */
-	HandleMessage = NULL;
 
 	/* This function needs to be passed the correct process handle
 	   by the application.  The following call just returns a handle
@@ -434,13 +493,29 @@ int SDL_RegisterApp(char *name, Uint32 style, void *hInst)
 
 	/* Register the application class */
 	class.hCursor		= NULL;
+#ifdef _WIN32_WCE
+    {
+	/* WinCE uses the UNICODE version */
+	int nLen = strlen(name);
+	LPWSTR lpszW = alloca((nLen+1)*2);
+	MultiByteToWideChar(CP_ACP, 0, name, -1, lpszW, nLen);
+	class.hIcon		= LoadImage(hInst, lpszW, IMAGE_ICON,
+	                                    0, 0, LR_DEFAULTCOLOR);
+	class.lpszMenuName	= lpszW;
+	class.lpszClassName	= lpszW;
+    }
+#else
 	class.hIcon		= LoadImage(hInst, name, IMAGE_ICON,
-                                                        0, 0, LR_DEFAULTCOLOR);
+	                                    0, 0, LR_DEFAULTCOLOR);
 	class.lpszMenuName	= "(none)";
 	class.lpszClassName	= name;
-	class.hbrBackground	= GetStockObject(BLACK_BRUSH);
+#endif /* _WIN32_WCE */
+	class.hbrBackground	= NULL;
 	class.hInstance		= hInst ? hInst : GetModuleHandle(0);
-	class.style		= style | CS_OWNDC;
+	class.style		= style;
+#ifdef HAVE_OPENGL
+	class.style		|= CS_OWNDC;
+#endif
 	class.lpfnWndProc	= WinMessage;
 	class.cbWndExtra	= 0;
 	class.cbClsExtra	= 0;

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_memops.h,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_memops.h,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_memops_h
@@ -35,65 +35,68 @@ static char rcsid =
 #if defined(__GNUC__) && defined(i386)
 /* Thanks to Brennan "Bas" Underwood, for the inspiration. :)
  */
-#define SDL_memcpy(dst, src, len)					\
-{ int u0, u1, u2;							\
-	__asm__ __volatile__ (						\
-		"cld\n\t"						\
-		"rep ; movsl\n\t"					\
-		"testb $2,%b4\n\t"					\
-		"je 1f\n\t"						\
-		"movsw\n"						\
-		"1:\ttestb $1,%b4\n\t"					\
-		"je 2f\n\t"						\
-		"movsb\n"						\
-		"2:"							\
-		: "=&c" (u0), "=&D" (u1), "=&S" (u2)			\
-		: "0" ((len)/4), "q" (len), "1" (dst),"2" (src)		\
-		: "memory" );						\
-}
+#define SDL_memcpy(dst, src, len)					  \
+do {									  \
+	int u0, u1, u2;						  \
+	__asm__ __volatile__ (						  \
+		"cld\n\t"						  \
+		"rep ; movsl\n\t"					  \
+		"testb $2,%b4\n\t"					  \
+		"je 1f\n\t"						  \
+		"movsw\n"						  \
+		"1:\ttestb $1,%b4\n\t"					  \
+		"je 2f\n\t"						  \
+		"movsb\n"						  \
+		"2:"							  \
+		: "=&c" (u0), "=&D" (u1), "=&S" (u2)			  \
+		: "0" ((unsigned)(len)/4), "q" (len), "1" (dst),"2" (src) \
+		: "memory" );						  \
+} while(0)
 
-#define SDL_revcpy(dst, src, len)					\
-{ int u0, u1, u2;							\
-	char *dstp = (char *)(dst);					\
-	char *srcp = (char *)(src);					\
-	int n = (len);							\
-	if ( n >= 4 ) {							\
-	__asm__ __volatile__ (						\
-		"std\n\t"						\
-		"rep ; movsl\n\t"					\
-		: "=&c" (u0), "=&D" (u1), "=&S" (u2)			\
-		: "0" (n/4),						\
-		  "1" (dstp+(n-4)), "2" (srcp+(n-4))			\
-		: "memory" );						\
-	}								\
-	switch (n%4) {							\
-		case 3: dstp[2] = srcp[2];				\
-		case 2: dstp[1] = srcp[1];				\
-		case 1: dstp[0] = srcp[0];				\
-			break;						\
-		default:						\
-			break;						\
-	}								\
-}
+#define SDL_revcpy(dst, src, len)			\
+do {							\
+	int u0, u1, u2;					\
+	char *dstp = (char *)(dst);			\
+	char *srcp = (char *)(src);			\
+	int n = (len);					\
+	if ( n >= 4 ) {					\
+	__asm__ __volatile__ (				\
+		"std\n\t"				\
+		"rep ; movsl\n\t"			\
+		: "=&c" (u0), "=&D" (u1), "=&S" (u2)	\
+		: "0" (n >> 2),				\
+		  "1" (dstp+(n-4)), "2" (srcp+(n-4))	\
+		: "memory" );				\
+	}						\
+	switch (n & 3) {				\
+		case 3: dstp[2] = srcp[2];		\
+		case 2: dstp[1] = srcp[1];		\
+		case 1: dstp[0] = srcp[0];		\
+			break;				\
+		default:				\
+			break;				\
+	}						\
+} while(0)
 
-#define SDL_memmove(dst, src, len)					\
-{									\
-	if ( dst < src ) {						\
-		SDL_memcpy(dst, src, len);				\
-	} else {							\
-		SDL_revcpy(dst, src, len);				\
-	}								\
-}
+#define SDL_memmove(dst, src, len)			\
+do {							\
+	if ( (dst) < (src) ) {				\
+		SDL_memcpy((dst), (src), (len));	\
+	} else {					\
+		SDL_revcpy((dst), (src), (len));	\
+	}						\
+} while(0)
 
-#define SDL_memset4(dst, val, len)					\
-{ int u0, u1, u2;							\
-	__asm__ __volatile__ (						\
-		"cld\n\t"						\
-		"rep ; stosl\n\t"					\
-		: "=&D" (u0), "=&a" (u1), "=&c" (u2)			\
-		: "0" (dst), "1" (val), "2" (len/4)			\
-		: "memory" );						\
-}
+#define SDL_memset4(dst, val, len)				\
+do {								\
+	int u0, u1, u2;					\
+	__asm__ __volatile__ (					\
+		"cld\n\t"					\
+		"rep ; stosl\n\t"				\
+		: "=&D" (u0), "=&a" (u1), "=&c" (u2)		\
+		: "0" (dst), "1" (val), "2" ((Uint32)(len))	\
+		: "memory" );					\
+} while(0)
 
 #endif /* GNU C and x86 */
 
@@ -105,18 +108,20 @@ static char rcsid =
 #define SDL_revcpy(dst, src, len)	memmove(dst, src, len)
 #endif
 #ifndef SDL_memset4
-#define SDL_memset4(dst, val, len)					\
-{ int count = (len)/4;							\
-  int n = (count+3)/4;							\
-  Uint32 *p = (Uint32 *)(dst);						\
-        switch (count % 4) {						\
-        case 0: do {    *p++ = val;					\
-        case 3:         *p++ = val;					\
-        case 2:         *p++ = val;					\
-        case 1:         *p++ = val;					\
-	        } while ( --n > 0 );					\
-	}								\
-}
+#define SDL_memset4(dst, val, len)		\
+do {						\
+	unsigned _count = (len);		\
+	unsigned _n = (_count + 3) / 4;		\
+	Uint32 *_p = (Uint32 *)(dst);		\
+	Uint32 _val = (val);			\
+        switch (_count % 4) {			\
+        case 0: do {    *_p++ = _val;		\
+        case 3:         *_p++ = _val;		\
+        case 2:         *_p++ = _val;		\
+        case 1:         *_p++ = _val;		\
+		} while ( --_n );		\
+	}					\
+} while(0)
 #endif
 
 #endif /* _SDL_memops_h */

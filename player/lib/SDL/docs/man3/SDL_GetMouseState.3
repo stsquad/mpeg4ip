@@ -1,11 +1,11 @@
-.TH "SDL_GetMouseState" "3" "Thu 12 Oct 2000, 13:52" "SDL" "SDL API Reference" 
+.TH "SDL_GetMouseState" "3" "Mon 12 Mar 2001, 01:03" "SDL" "SDL API Reference" 
 .SH "NAME"
 SDL_GetMouseState\- Retrieve the current state of the mouse
 .SH "SYNOPSIS"
 .PP
 \fB#include "SDL\&.h"
 .sp
-\fBUint8\fBSDL_GetMouseState\fP\fR(\fBint *x, int *y\fR);
+\fBUint8 \fBSDL_GetMouseState\fP\fR(\fBint *x, int *y\fR);
 .SH "DESCRIPTION"
 .PP
 The current button state is returned as a button bitmask, which can be tested using the \fBSDL_BUTTON(X)\fP macros, and \fBx\fR and \fBy\fR are set to the current mouse cursor position\&. You can pass \fBNULL\fP for either \fBx\fR or \fBy\fR\&.
@@ -21,4 +21,4 @@ if(SDL_GetMouseState(NULL, NULL)&SDL_BUTTON(1))
 .SH "SEE ALSO"
 .PP
 \fI\fBSDL_GetRelativeMouseState\fP\fR, \fI\fBSDL_PumpEvents\fP\fR
-...\" created by instant / docbook-to-man, Thu 12 Oct 2000, 13:52
+...\" created by instant / docbook-to-man, Mon 12 Mar 2001, 01:03

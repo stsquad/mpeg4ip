@@ -3,6 +3,43 @@ This is a list of API changes in SDL's version history.
 
 Version 1.0:
 
+1.2.0:
+	Added SDL_VIDEOEXPOSE event to signal that the screen needs to
+	be redrawn.  This is currently only delivered to OpenGL windows
+	on X11, though it may be delivered in the future when the video
+	memory is lost under DirectX.
+
+1.1.8:
+	You can pass SDL_NOFRAME to SDL_VideoMode() to create a window
+	that has no title bar or frame decoration.  Fullscreen video
+	modes automatically have this flag set.
+
+	Added a function to query the clipping rectangle for a surface:
+		void SDL_GetClipRect(SDL_Surface *surface, SDL_Rect *rect)
+
+	Added a function to query the current event filter:
+		SDL_EventFilter SDL_GetEventFilter(void)
+
+	If you pass -1 to SDL_ShowCursor(), it won't change the current
+	cursor visibility state, but will still return it.
+
+	SDL_LockSurface() and SDL_UnlockSurface() are recursive, meaning
+	you can nest them as deep as you want, as long as each lock call
+	has a matching unlock call.  The surface remains locked until the
+	last matching unlock call.
+
+	Note that you may not blit to or from a locked surface.
+
+1.1.7:
+	The SDL_SetGammaRamp() and SDL_GetGammaRamp() functions now take
+	arrays of Uint16 values instead of Uint8 values.  For the most part,
+	you can just take your old values and shift them up 8 bits to get
+	new correct values for your gamma ramps.
+
+	You can pass SDL_RLEACCEL in flags passed to SDL_ConvertSurface()
+        and SDL will try to RLE accelerate colorkey and alpha blits in the
+	resulting surface.
+
 1.1.6:
 	Added a function to return the thread ID of a specific thread:
 		Uint32 SDL_GetThreadID(SDL_Thread *thread)

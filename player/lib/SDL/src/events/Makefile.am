@@ -7,6 +7,7 @@ noinst_LTLIBRARIES = libevents.la
 COMMON_SRCS =			\
 	SDL_events.c		\
 	SDL_events_c.h		\
+	SDL_expose.c		\
 	SDL_sysevents.h		\
 	SDL_quit.c		\
 	SDL_active.c		\

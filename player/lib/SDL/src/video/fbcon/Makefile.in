@@ -60,15 +60,18 @@ POST_UNINSTALL = :
 host_alias = @host_alias@
 host_triplet = @host@
 ARCH = @ARCH@
+ARTSCCONFIG = @ARTSCCONFIG@
 AS = @AS@
-AUDIO_ARCH = @AUDIO_ARCH@
-AUDIO_ARCH_LIB = @AUDIO_ARCH_LIB@
+AUDIO_DRIVERS = @AUDIO_DRIVERS@
+AUDIO_SUBDIRS = @AUDIO_SUBDIRS@
 CC = @CC@
 CXX = @CXX@
 DLLTOOL = @DLLTOOL@
 ESD_CFLAGS = @ESD_CFLAGS@
 ESD_CONFIG = @ESD_CONFIG@
 ESD_LIBS = @ESD_LIBS@
+JOYSTICK_DRIVERS = @JOYSTICK_DRIVERS@
+JOYSTICK_SUBDIRS = @JOYSTICK_SUBDIRS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LT_AGE = @LT_AGE@
@@ -101,7 +104,7 @@ noinst_LTLIBRARIES = libvideo_fbcon.la
 libvideo_fbcon_la_SOURCES = $(FBCON_SRCS)
 
 # The SDL framebuffer console video driver sources
-FBCON_SRCS =  	SDL_fbkeys.h			SDL_fbvideo.h			SDL_fbevents.c			SDL_fbevents_c.h		SDL_fb3dfx.c			SDL_fb3dfx.h			SDL_fbmatrox.c			SDL_fbmatrox.h			SDL_fbmouse.c			SDL_fbmouse_c.h			SDL_fbvideo.c			3dfx_mmio.h			3dfx_regs.h			matrox_mmio.h			matrox_regs.h
+FBCON_SRCS =  	SDL_fbkeys.h			SDL_fbvideo.h			SDL_fbelo.c 	SDL_fbelo.h 	SDL_fbevents.c			SDL_fbevents_c.h		SDL_fb3dfx.c			SDL_fb3dfx.h			SDL_fbmatrox.c			SDL_fbmatrox.h			SDL_fbmouse.c			SDL_fbmouse_c.h			SDL_fbvideo.c			3dfx_mmio.h			3dfx_regs.h			matrox_mmio.h			matrox_regs.h
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
@@ -118,7 +121,7 @@ X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 libvideo_fbcon_la_LDFLAGS = 
 libvideo_fbcon_la_LIBADD = 
-libvideo_fbcon_la_OBJECTS =  SDL_fbevents.lo SDL_fb3dfx.lo \
+libvideo_fbcon_la_OBJECTS =  SDL_fbelo.lo SDL_fbevents.lo SDL_fb3dfx.lo \
 SDL_fbmatrox.lo SDL_fbmouse.lo SDL_fbvideo.lo
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -240,7 +243,6 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
-
 info-am:
 info: info-am
 dvi-am:

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_events_c.h,v 1.1 2001/02/05 20:26:27 cahighlander Exp $";
+ "@(#) $Id: SDL_events_c.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Useful functions and variables from SDL_events.c */
@@ -58,6 +58,7 @@ extern int SDL_PrivateMouseMotion(Uint8 buttonstate, int relative,
 extern int SDL_PrivateMouseButton(Uint8 state, Uint8 button,Sint16 x,Sint16 y);
 extern int SDL_PrivateKeyboard(Uint8 state, SDL_keysym *key);
 extern int SDL_PrivateResize(int w, int h);
+extern int SDL_PrivateExpose(void);
 extern int SDL_PrivateQuit(void);
 extern int SDL_PrivateSysWMEvent(SDL_SysWMmsg *message);
 

@@ -50,6 +50,7 @@ _SDL_PollEvent
 _SDL_WaitEvent
 _SDL_PushEvent
 _SDL_SetEventFilter
+_SDL_GetEventFilter
 _SDL_EventState
 _SDL_NumJoysticks
 _SDL_JoystickName
@@ -147,6 +148,7 @@ _SDL_SaveBMP_RW
 _SDL_SetColorKey
 _SDL_SetAlpha
 _SDL_SetClipRect
+_SDL_GetClipRect
 _SDL_ConvertSurface
 _SDL_UpperBlit
 _SDL_LowerBlit

@@ -1,4 +1,4 @@
-.TH "SDL_BlitSurface" "3" "Thu 12 Oct 2000, 13:50" "SDL" "SDL API Reference" 
+.TH "SDL_BlitSurface" "3" "Mon 12 Mar 2001, 01:04" "SDL" "SDL API Reference" 
 .SH "NAME"
 SDL_BlitSurface\- This performs a fast blit from the source surface to the destination surface\&.
 .SH "SYNOPSIS"
@@ -16,9 +16,13 @@ If either \fBsrcrect\fR or \fBdstrect\fR are \fBNULL\fP, the entire surface (\fB
 .PP
 The final blit rectangle is saved in \fBdstrect\fR after all clipping is performed (\fBsrcrect\fR is not modified)\&.
 .PP
-The results of blitting operations vary greatly depending on whether \fBSDL_SRCAPLHA\fP is set or not\&. See \fISDL_SetAlpha\fR\&.
-.PP
 The blit function should not be called on a locked surface\&.
+.PP
+.RS
+\fBNote:  
+.PP
+The results of blitting operations vary greatly depending on whether \fBSDL_SRCAPLHA\fP is set or not\&. See \fISDL_SetAlpha\fR\&.
+.RE
 .SH "RETURN VALUE"
 .PP
 If the blit is successful, it returns \fB0\fR, otherwise it returns \fB-1\fR\&.
@@ -38,4 +42,4 @@ If either of the surfaces were in video memory, and the blit returns \fB-2\fR, t
 .SH "SEE ALSO"
 .PP
 \fI\fBSDL_LockSurface\fP\fR, \fI\fBSDL_FillRect\fP\fR, \fI\fBSDL_Surface\fR\fR, \fI\fBSDL_Rect\fR\fR
-...\" created by instant / docbook-to-man, Thu 12 Oct 2000, 13:50
+...\" created by instant / docbook-to-man, Mon 12 Mar 2001, 01:04

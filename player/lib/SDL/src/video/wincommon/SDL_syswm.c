@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syswm.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $"
+ "@(#) $Id: SDL_syswm.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $"
 #endif
 
 #include <stdio.h>
@@ -35,6 +35,10 @@ static char rcsid =
 #include "SDL_syswm.h"
 #include "SDL_syswm_c.h"
 #include "SDL_pixels_c.h"
+
+#ifdef _WIN32_WCE
+#define DISABLE_ICON_SUPPORT
+#endif
 
 /*	RJR: March 28, 2000
 	we need "SDL_cursor_c.h" for mods to WIN_GrabInput */
@@ -51,10 +55,13 @@ HICON   screen_icn = NULL;
 */
 void WIN_SetWMIcon(_THIS, SDL_Surface *icon, Uint8 *mask)
 {
+#ifdef DISABLE_ICON_SUPPORT
+	return;
+#else
 	SDL_Palette *pal_256;
 	SDL_Surface *icon_256;
 	Uint8 *pdata, *pwin32;
-	Uint8 *mdata, *mwin32, m;
+	Uint8 *mdata, *mwin32, m = 0;
 	int icon_len;
 	int icon_plen;
 	int icon_mlen;
@@ -199,11 +206,20 @@ void WIN_SetWMIcon(_THIS, SDL_Surface *icon, Uint8 *mask)
 	} else {
 		SetClassLong(SDL_Window, GCL_HICON, (LONG)screen_icn);
 	}
+#endif /* DISABLE_ICON_SUPPORT */
 }
 
 void WIN_SetWMCaption(_THIS, const char *title, const char *icon)
 {
+#ifdef _WIN32_WCE
+	/* WinCE uses the UNICODE version */
+	int nLen = strlen(title);
+	LPWSTR lpszW = alloca((nLen+1)*2);
+	MultiByteToWideChar(CP_ACP, 0, title, -1, lpszW, nLen);
+	SetWindowText(SDL_Window, lpszW);
+#else
 	SetWindowText(SDL_Window, title);
+#endif
 }
 
 int WIN_IconifyWindow(_THIS)

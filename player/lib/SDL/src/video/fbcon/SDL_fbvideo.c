@@ -1,6 +1,6 @@
 /*
 	SDL - Simple DirectMedia Layer
-	Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+	Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbvideo.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_fbvideo.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 /* Framebuffer console based SDL video driver implementation.
@@ -30,6 +30,7 @@ static char rcsid =
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -49,10 +50,16 @@ static char rcsid =
 #include "SDL_fb3dfx.h"
 #include "SDL_fbmatrox.h"
 
-/* Fix for broken 2.0.4-test1-ruby fb.h */
-typedef struct fb_var_screeninfo fb_var_screeninfo;
-typedef struct fb_fix_screeninfo fb_fix_screeninfo;
-typedef struct fb_cmap fb_cmap;
+#if defined(i386) && defined(FB_TYPE_VGA_PLANES)
+#define VGA16_FBCON_SUPPORT
+#ifndef FB_AUX_VGA_PLANES_VGA4
+#define FB_AUX_VGA_PLANES_VGA4	0
+#endif
+static inline void outb (unsigned char value, unsigned short port)
+{
+  __asm__ __volatile__ ("outb %b0,%w1"::"a" (value), "Nd" (port));
+} 
+#endif /* FB_TYPE_VGA_PLANES */
 
 /* A list of video resolutions that we query for (sorted largest to smallest) */
 static SDL_Rect checkres[] = {
@@ -119,11 +126,14 @@ static struct {
 static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat);
 static SDL_Rect **FB_ListModes(_THIS, SDL_PixelFormat *format, Uint32 flags);
 static SDL_Surface *FB_SetVideoMode(_THIS, SDL_Surface *current, int width, int height, int bpp, Uint32 flags);
+#ifdef VGA16_FBCON_SUPPORT
+static SDL_Surface *FB_SetVGA16Mode(_THIS, SDL_Surface *current, int width, int height, int bpp, Uint32 flags);
+#endif
 static int FB_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors);
 static void FB_VideoQuit(_THIS);
 
 /* Hardware surface functions */
-static int FB_InitHWSurfaces(_THIS, caddr_t base, int size);
+static int FB_InitHWSurfaces(_THIS, char *base, int size);
 static void FB_FreeHWSurfaces(_THIS);
 static int FB_AllocHWSurface(_THIS, SDL_Surface *surface);
 static int FB_LockHWSurface(_THIS, SDL_Surface *surface);
@@ -142,8 +152,13 @@ static void FB_RestorePalette(_THIS);
 static int FB_Available(void)
 {
 	int console;
+	const char *SDL_fbdev;
 
-	console = open("/dev/fb0", O_RDWR, 0);
+	SDL_fbdev = getenv("SDL_FBDEV");
+	if ( SDL_fbdev == NULL ) {
+		SDL_fbdev = "/dev/fb0";
+	}
+	console = open(SDL_fbdev, O_RDWR, 0);
 	if ( console >= 0 ) {
 		close(console);
 	}
@@ -176,6 +191,8 @@ static SDL_VideoDevice *FB_CreateDevice(int devindex)
 	}
 	memset(this->hidden, 0, (sizeof *this->hidden));
 	wait_vbl = FB_WaitVBL;
+	mouse_fd = -1;
+	keyboard_fd = -1;
 
 	/* Set the function pointers */
 	this->VideoInit = FB_VideoInit;
@@ -193,13 +210,11 @@ static SDL_VideoDevice *FB_CreateDevice(int devindex)
 	this->UnlockHWSurface = FB_UnlockHWSurface;
 	this->FlipHWSurface = FB_FlipHWSurface;
 	this->FreeHWSurface = FB_FreeHWSurface;
-	this->SetIcon = NULL;
 	this->SetCaption = NULL;
+	this->SetIcon = NULL;
+	this->IconifyWindow = NULL;
+	this->GrabInput = NULL;
 	this->GetWMInfo = NULL;
-	this->FreeWMCursor = FB_FreeWMCursor;
-	this->CreateWMCursor = FB_CreateWMCursor;
-	this->ShowWMCursor = FB_ShowWMCursor;
-	this->WarpWMCursor = FB_WarpWMCursor;
 	this->InitOSKeymap = FB_InitOSKeymap;
 	this->PumpEvents = FB_PumpEvents;
 
@@ -209,7 +224,8 @@ static SDL_VideoDevice *FB_CreateDevice(int devindex)
 }
 
 VideoBootStrap FBCON_bootstrap = {
-	"fbcon", FB_Available, FB_CreateDevice
+	"fbcon", "Linux Framebuffer Console",
+	FB_Available, FB_CreateDevice
 };
 
 static int FB_CheckMode(_THIS, struct fb_var_screeninfo *vinfo,
@@ -322,6 +338,7 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		return(-1);
 	}
 
+#ifndef DISABLE_THREADS
 	/* Create the hardware surface lock mutex */
 	hw_lock = SDL_CreateMutex();
 	if ( hw_lock == NULL ) {
@@ -329,12 +346,36 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		FB_VideoQuit(this);
 		return(-1);
 	}
+#endif
 
 	/* Get the type of video hardware */
 	if ( ioctl(console_fd, FBIOGET_FSCREENINFO, &finfo) < 0 ) {
 		SDL_SetError("Couldn't get console hardware info");
 		FB_VideoQuit(this);
 		return(-1);
+	}
+	switch (finfo.type) {
+		case FB_TYPE_PACKED_PIXELS:
+			/* Supported, no worries.. */
+			break;
+#ifdef VGA16_FBCON_SUPPORT
+		case FB_TYPE_VGA_PLANES:
+			/* VGA16 is supported, but that's it */
+			if ( finfo.type_aux == FB_AUX_VGA_PLANES_VGA4 ) {
+				if ( ioperm(0x3b4, 0x3df - 0x3b4 + 1, 1) < 0 ) {
+					SDL_SetError("No I/O port permissions");
+					FB_VideoQuit(this);
+					return(-1);
+				}
+				this->SetVideoMode = FB_SetVGA16Mode;
+				break;
+			}
+			/* Fall through to unsupported case */
+#endif /* VGA16_FBCON_SUPPORT */
+		default:
+			SDL_SetError("Unsupported console hardware");
+			FB_VideoQuit(this);
+			return(-1);
 	}
 	switch (finfo.visual) {
 		case FB_VISUAL_TRUECOLOR:
@@ -362,7 +403,7 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	mapped_memlen = finfo.smem_len+mapped_offset;
 	mapped_mem = mmap(NULL, mapped_memlen,
 	                  PROT_READ|PROT_WRITE, MAP_SHARED, console_fd, 0);
-	if ( mapped_mem == (caddr_t)-1 ) {
+	if ( mapped_mem == (char *)-1 ) {
 		SDL_SetError("Unable to memory map the video hardware");
 		mapped_mem = NULL;
 		FB_VideoQuit(this);
@@ -376,6 +417,10 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		return(-1);
 	}
 	vformat->BitsPerPixel = vinfo.bits_per_pixel;
+	if ( vformat->BitsPerPixel < 8 ) {
+		/* Assuming VGA16, we handle this via a shadow framebuffer */
+		vformat->BitsPerPixel = 8;
+	}
 	for ( i=0; i<vinfo.red.length; ++i ) {
 		vformat->Rmask <<= 1;
 		vformat->Rmask |= (0x00000001<<vinfo.red.offset);
@@ -402,7 +447,7 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		mapped_iolen = finfo.mmio_len;
 		mapped_io = mmap(NULL, mapped_iolen, PROT_READ|PROT_WRITE,
 		                 MAP_SHARED, console_fd, mapped_memlen);
-		if ( mapped_io == (caddr_t)-1 ) {
+		if ( mapped_io == (char *)-1 ) {
 			/* Hmm, failed to memory map I/O registers */
 			mapped_io = NULL;
 		}
@@ -416,7 +461,7 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		SDL_nummodes[i] = 0;
 		SDL_modelist[i] = NULL;
 		for ( j=0; j<(sizeof(checkres)/sizeof(checkres[0])); ++j ) {
-			int w, h;
+			unsigned int w, h;
 
 			/* See if we are querying for the current mode */
 			w = checkres[j].w;
@@ -435,6 +480,7 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	}
 
 	/* Fill in our hardware acceleration capabilities */
+	this->info.wm_available = 0;
 	this->info.hw_available = 1;
 	this->info.video_mem = finfo.smem_len/1024;
 	if ( mapped_io ) {
@@ -467,7 +513,6 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 
 	/* Enable mouse and keyboard support */
 	if ( FB_OpenKeyboard(this) < 0 ) {
-		SDL_SetError("Unable to open keyboard");
 		FB_VideoQuit(this);
 		return(-1);
 	}
@@ -486,13 +531,16 @@ static int FB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	return(0);
 }
 
-SDL_Rect **FB_ListModes(_THIS, SDL_PixelFormat *format, Uint32 flags)
+static SDL_Rect **FB_ListModes(_THIS, SDL_PixelFormat *format, Uint32 flags)
 {
 	return(SDL_modelist[((format->BitsPerPixel+7)/8)-1]);
 }
 
 /* Various screen update functions available */
 static void FB_DirectUpdate(_THIS, int numrects, SDL_Rect *rects);
+#ifdef VGA16_FBCON_SUPPORT
+static void FB_VGA16Update(_THIS, int numrects, SDL_Rect *rects);
+#endif
 
 #ifdef FBCON_DEBUG
 static void print_vinfo(struct fb_var_screeninfo *vinfo)
@@ -525,9 +573,131 @@ static void print_vinfo(struct fb_var_screeninfo *vinfo)
 	fprintf(stderr, "\tblue: %d/%d\n", vinfo->blue.length, vinfo->blue.offset);
 	fprintf(stderr, "\talpha: %d/%d\n", vinfo->transp.length, vinfo->transp.offset);
 }
+static void print_finfo(struct fb_fix_screeninfo *finfo)
+{
+	fprintf(stderr, "Printing finfo:\n");
+	fprintf(stderr, "\tsmem_start = %p\n", (char *)finfo->smem_start);
+	fprintf(stderr, "\tsmem_len = %d\n", finfo->smem_len);
+	fprintf(stderr, "\ttype = %d\n", finfo->type);
+	fprintf(stderr, "\ttype_aux = %d\n", finfo->type_aux);
+	fprintf(stderr, "\tvisual = %d\n", finfo->visual);
+	fprintf(stderr, "\txpanstep = %d\n", finfo->xpanstep);
+	fprintf(stderr, "\typanstep = %d\n", finfo->ypanstep);
+	fprintf(stderr, "\tywrapstep = %d\n", finfo->ywrapstep);
+	fprintf(stderr, "\tline_length = %d\n", finfo->line_length);
+	fprintf(stderr, "\tmmio_start = %p\n", (char *)finfo->mmio_start);
+	fprintf(stderr, "\tmmio_len = %d\n", finfo->mmio_len);
+	fprintf(stderr, "\taccel = %d\n", finfo->accel);
+}
 #endif
 
-SDL_Surface *FB_SetVideoMode(_THIS, SDL_Surface *current,
+static int choose_fbmodes_mode(struct fb_var_screeninfo *vinfo)
+{
+	int matched;
+	FILE *fbmodes;
+
+	matched = 0;
+	fbmodes = fopen("/etc/fb.modes", "r");
+	if ( fbmodes ) {
+		/* FIXME: Parse the mode definition file */
+		fclose(fbmodes);
+	}
+	return(matched);
+}
+
+static int choose_vesa_mode(struct fb_var_screeninfo *vinfo)
+{
+	int matched;
+	int i;
+
+	/* Check for VESA timings */
+	matched = 0;
+	for ( i=0; i<(sizeof(vesa_timings)/sizeof(vesa_timings[0])); ++i ) {
+		if ( (vinfo->xres == vesa_timings[i].xres) &&
+		     (vinfo->yres == vesa_timings[i].yres) ) {
+#ifdef FBCON_DEBUG
+			fprintf(stderr, "Using VESA timings for %dx%d\n",
+						vinfo->xres, vinfo->yres);
+#endif
+			if ( vesa_timings[i].pixclock ) {
+				vinfo->pixclock = vesa_timings[i].pixclock;
+			}
+			vinfo->left_margin = vesa_timings[i].left;
+			vinfo->right_margin = vesa_timings[i].right;
+			vinfo->upper_margin = vesa_timings[i].upper;
+			vinfo->lower_margin = vesa_timings[i].lower;
+			vinfo->hsync_len = vesa_timings[i].hslen;
+			vinfo->vsync_len = vesa_timings[i].vslen;
+			vinfo->sync = vesa_timings[i].sync;
+			vinfo->vmode = vesa_timings[i].vmode;
+			matched = 1;
+			break;
+		}
+	}
+	return(matched);
+}
+
+#ifdef VGA16_FBCON_SUPPORT
+static SDL_Surface *FB_SetVGA16Mode(_THIS, SDL_Surface *current,
+				int width, int height, int bpp, Uint32 flags)
+{
+	struct fb_fix_screeninfo finfo;
+	struct fb_var_screeninfo vinfo;
+
+	/* Set the terminal into graphics mode */
+	if ( FB_EnterGraphicsMode(this) < 0 ) {
+		return(NULL);
+	}
+
+	/* Restore the original palette */
+	FB_RestorePalette(this);
+
+	/* Set the video mode and get the final screen format */
+	if ( ioctl(console_fd, FBIOGET_VSCREENINFO, &vinfo) < 0 ) {
+		SDL_SetError("Couldn't get console screen info");
+		return(NULL);
+	}
+	cache_vinfo = vinfo;
+#ifdef FBCON_DEBUG
+	fprintf(stderr, "Printing actual vinfo:\n");
+	print_vinfo(&vinfo);
+#endif
+	if ( ! SDL_ReallocFormat(current, bpp, 0, 0, 0, 0) ) {
+		return(NULL);
+	}
+    current->format->palette->ncolors = 16;
+
+	/* Get the fixed information about the console hardware.
+	   This is necessary since finfo.line_length changes.
+	 */
+	if ( ioctl(console_fd, FBIOGET_FSCREENINFO, &finfo) < 0 ) {
+		SDL_SetError("Couldn't get console hardware info");
+		return(NULL);
+	}
+#ifdef FBCON_DEBUG
+	fprintf(stderr, "Printing actual finfo:\n");
+	print_finfo(&finfo);
+#endif
+
+	/* Save hardware palette, if needed */
+	FB_SavePalette(this, &finfo, &vinfo);
+
+	/* Set up the new mode framebuffer */
+	current->flags = SDL_FULLSCREEN;
+	current->w = vinfo.xres;
+	current->h = vinfo.yres;
+	current->pitch = current->w;
+	current->pixels = malloc(current->h*current->pitch);
+
+	/* Set the update rectangle function */
+	this->UpdateRects = FB_VGA16Update;
+
+	/* We're done */
+	return(current);
+}
+#endif /* VGA16_FBCON_SUPPORT */
+
+static SDL_Surface *FB_SetVideoMode(_THIS, SDL_Surface *current,
 				int width, int height, int bpp, Uint32 flags)
 {
 	struct fb_fix_screeninfo finfo;
@@ -536,8 +706,13 @@ SDL_Surface *FB_SetVideoMode(_THIS, SDL_Surface *current,
 	Uint32 Rmask;
 	Uint32 Gmask;
 	Uint32 Bmask;
-	caddr_t surfaces_mem;
+	char *surfaces_mem;
 	int surfaces_len;
+
+	/* Set the terminal into graphics mode */
+	if ( FB_EnterGraphicsMode(this) < 0 ) {
+		return(NULL);
+	}
 
 	/* Restore the original palette */
 	FB_RestorePalette(this);
@@ -551,54 +726,38 @@ SDL_Surface *FB_SetVideoMode(_THIS, SDL_Surface *current,
 	fprintf(stderr, "Printing original vinfo:\n");
 	print_vinfo(&vinfo);
 #endif
-	vinfo.activate = FB_ACTIVATE_NOW;
-	vinfo.accel_flags = 0;
-	vinfo.bits_per_pixel = bpp;
-	vinfo.xres = width;
-	vinfo.xres_virtual = width;
-	vinfo.yres = height;
-	if ( flags & SDL_DOUBLEBUF ) {
-		vinfo.yres_virtual = height*2;
-	} else {
-		vinfo.yres_virtual = height;
-	}
-	vinfo.xoffset = 0;
-	vinfo.yoffset = 0;
-	vinfo.red.length = vinfo.red.offset = 0;
-	vinfo.green.length = vinfo.green.offset = 0;
-	vinfo.blue.length = vinfo.blue.offset = 0;
-	vinfo.transp.length = vinfo.transp.offset = 0;
-	/* FIXME: Detect current video mode */
-	/* Check for VESA timings (FIXME: allow modelines?) */
-	for ( i=0; i<(sizeof(vesa_timings)/sizeof(vesa_timings[0])); ++i ) {
-		if ( (vinfo.xres == vesa_timings[i].xres) &&
-		     (vinfo.yres == vesa_timings[i].yres) ) {
-#ifdef FBCON_DEBUG
-	fprintf(stderr, "Using VESA timings for %dx%d\n",vinfo.xres,vinfo.yres);
-#endif
-			if ( vesa_timings[i].pixclock ) {
-				vinfo.pixclock = vesa_timings[i].pixclock;
-			}
-			vinfo.left_margin = vesa_timings[i].left;
-			vinfo.right_margin = vesa_timings[i].right;
-			vinfo.upper_margin = vesa_timings[i].upper;
-			vinfo.lower_margin = vesa_timings[i].lower;
-			vinfo.hsync_len = vesa_timings[i].hslen;
-			vinfo.vsync_len = vesa_timings[i].vslen;
-			vinfo.sync = vesa_timings[i].sync;
-			vinfo.vmode = vesa_timings[i].vmode;
-			break;
+	if ( (vinfo.xres != width) || (vinfo.yres != height) ||
+	     (vinfo.bits_per_pixel != bpp) || (flags & SDL_DOUBLEBUF) ) {
+		vinfo.activate = FB_ACTIVATE_NOW;
+		vinfo.accel_flags = 0;
+		vinfo.bits_per_pixel = bpp;
+		vinfo.xres = width;
+		vinfo.xres_virtual = width;
+		vinfo.yres = height;
+		if ( flags & SDL_DOUBLEBUF ) {
+			vinfo.yres_virtual = height*2;
+		} else {
+			vinfo.yres_virtual = height;
 		}
-	}
+		vinfo.xoffset = 0;
+		vinfo.yoffset = 0;
+		vinfo.red.length = vinfo.red.offset = 0;
+		vinfo.green.length = vinfo.green.offset = 0;
+		vinfo.blue.length = vinfo.blue.offset = 0;
+		vinfo.transp.length = vinfo.transp.offset = 0;
+		if ( ! choose_fbmodes_mode(&vinfo) ) {
+			choose_vesa_mode(&vinfo);
+		}
 #ifdef FBCON_DEBUG
-	fprintf(stderr, "Printing wanted vinfo:\n");
-	print_vinfo(&vinfo);
+		fprintf(stderr, "Printing wanted vinfo:\n");
+		print_vinfo(&vinfo);
 #endif
-	if ( ioctl(console_fd, FBIOPUT_VSCREENINFO, &vinfo) < 0 ) {
-		vinfo.yres_virtual = height;
 		if ( ioctl(console_fd, FBIOPUT_VSCREENINFO, &vinfo) < 0 ) {
-			SDL_SetError("Couldn't set console screen info");
-			return(NULL);
+			vinfo.yres_virtual = height;
+			if ( ioctl(console_fd, FBIOPUT_VSCREENINFO, &vinfo) < 0 ) {
+				SDL_SetError("Couldn't set console screen info");
+				return(NULL);
+			}
 		}
 	}
 	cache_vinfo = vinfo;
@@ -658,15 +817,15 @@ SDL_Surface *FB_SetVideoMode(_THIS, SDL_Surface *current,
 		if ( vinfo.yres_virtual == (height*2) ) {
 			current->flags |= SDL_DOUBLEBUF;
 			flip_page = 0;
-			flip_address[0] = (caddr_t)current->pixels;
-			flip_address[1] = (caddr_t)current->pixels+
-			                           current->h*current->pitch;
+			flip_address[0] = (char *)current->pixels;
+			flip_address[1] = (char *)current->pixels+
+			                          current->h*current->pitch;
 			FB_FlipHWSurface(this, current);
 		}
 	}
 
 	/* Set up the information for hardware surfaces */
-	surfaces_mem = (caddr_t)current->pixels +
+	surfaces_mem = (char *)current->pixels +
 	                        vinfo.yres_virtual*current->pitch;
 	surfaces_len = (mapped_memlen-(surfaces_mem-mapped_mem));
 	FB_FreeHWSurfaces(this);
@@ -680,7 +839,7 @@ SDL_Surface *FB_SetVideoMode(_THIS, SDL_Surface *current,
 }
 
 #ifdef FBCON_DEBUG
-static void FB_DumpHWSurfaces(_THIS)
+void FB_DumpHWSurfaces(_THIS)
 {
 	vidmem_bucket *bucket;
 
@@ -708,7 +867,7 @@ static void FB_DumpHWSurfaces(_THIS)
 }
 #endif
 
-static int FB_InitHWSurfaces(_THIS, caddr_t base, int size)
+static int FB_InitHWSurfaces(_THIS, char *base, int size)
 {
 	surfaces.prev = NULL;
 	surfaces.used = 0;
@@ -811,7 +970,7 @@ static void FB_FreeHWSurface(_THIS, SDL_Surface *surface)
 
 	/* Look for the bucket in the current list */
 	for ( bucket=&surfaces; bucket; bucket=bucket->next ) {
-		if ( bucket->base == (caddr_t)surface->pixels ) {
+		if ( bucket->base == (char *)surface->pixels ) {
 			break;
 		}
 	}
@@ -869,7 +1028,7 @@ static void FB_UnlockHWSurface(_THIS, SDL_Surface *surface)
 
 static void FB_WaitVBL(_THIS)
 {
-#ifdef FBIOWAITRETRACE
+#ifdef FBIOWAITRETRACE /* Heheh, this didn't make it into the main kernel */
 	ioctl(console_fd, FBIOWAITRETRACE, 0);
 #endif
 	return;
@@ -895,6 +1054,175 @@ static void FB_DirectUpdate(_THIS, int numrects, SDL_Rect *rects)
 	/* The application is already updating the visible video memory */
 	return;
 }
+
+#ifdef VGA16_FBCON_SUPPORT
+/* Code adapted with thanks from the XFree86 VGA16 driver! :) */
+#define writeGr(index, value) \
+outb(index, 0x3CE);           \
+outb(value, 0x3CF);
+#define writeSeq(index, value) \
+outb(index, 0x3C4);            \
+outb(value, 0x3C5);
+
+static void FB_VGA16Update(_THIS, int numrects, SDL_Rect *rects)
+{
+    SDL_Surface *screen;
+    int width, height, FBPitch, left, i, j, SRCPitch, phase;
+    register Uint32 m;
+    Uint8  s1, s2, s3, s4;
+    Uint32 *src, *srcPtr;
+    Uint8  *dst, *dstPtr;
+
+    screen = this->screen;
+    FBPitch = screen->w >> 3;
+    SRCPitch = screen->pitch >> 2;
+
+    writeGr(0x03, 0x00);
+    writeGr(0x05, 0x00);
+    writeGr(0x01, 0x00);
+    writeGr(0x08, 0xFF);
+
+    while(numrects--) {
+	left = rects->x & ~7;
+        width = (rects->w + 7) >> 3;
+        height = rects->h;
+        src = (Uint32*)screen->pixels + (rects->y * SRCPitch) + (left >> 2); 
+        dst = (Uint8*)mapped_mem + (rects->y * FBPitch) + (left >> 3);
+
+	if((phase = (long)dst & 3L)) {
+	    phase = 4 - phase;
+	    if(phase > width) phase = width;
+	    width -= phase;
+	}
+
+        while(height--) {
+	    writeSeq(0x02, 1 << 0);
+	    dstPtr = dst;
+	    srcPtr = src;
+	    i = width;
+	    j = phase;
+	    while(j--) {
+		m = (srcPtr[1] & 0x01010101) | ((srcPtr[0] & 0x01010101) << 4);
+ 		*dstPtr++ = (m >> 24) | (m >> 15) | (m >> 6) | (m << 3);
+		srcPtr += 2;
+	    }
+	    while(i >= 4) {
+		m = (srcPtr[1] & 0x01010101) | ((srcPtr[0] & 0x01010101) << 4);
+ 		s1 = (m >> 24) | (m >> 15) | (m >> 6) | (m << 3);
+		m = (srcPtr[3] & 0x01010101) | ((srcPtr[2] & 0x01010101) << 4);
+ 		s2 = (m >> 24) | (m >> 15) | (m >> 6) | (m << 3);
+		m = (srcPtr[5] & 0x01010101) | ((srcPtr[4] & 0x01010101) << 4);
+ 		s3 = (m >> 24) | (m >> 15) | (m >> 6) | (m << 3);
+		m = (srcPtr[7] & 0x01010101) | ((srcPtr[6] & 0x01010101) << 4);
+ 		s4 = (m >> 24) | (m >> 15) | (m >> 6) | (m << 3);
+		*((Uint32*)dstPtr) = s1 | (s2 << 8) | (s3 << 16) | (s4 << 24);
+		srcPtr += 8;
+		dstPtr += 4;
+		i -= 4;
+	    }
+	    while(i--) {
+		m = (srcPtr[1] & 0x01010101) | ((srcPtr[0] & 0x01010101) << 4);
+ 		*dstPtr++ = (m >> 24) | (m >> 15) | (m >> 6) | (m << 3);
+		srcPtr += 2;
+	    }
+
+	    writeSeq(0x02, 1 << 1);
+	    dstPtr = dst;
+	    srcPtr = src;
+	    i = width;
+	    j = phase;
+	    while(j--) {
+		m = (srcPtr[1] & 0x02020202) | ((srcPtr[0] & 0x02020202) << 4);
+ 		*dstPtr++ = (m >> 25) | (m >> 16) | (m >> 7) | (m << 2);
+		srcPtr += 2;
+	    }
+	    while(i >= 4) {
+		m = (srcPtr[1] & 0x02020202) | ((srcPtr[0] & 0x02020202) << 4);
+ 		s1 = (m >> 25) | (m >> 16) | (m >> 7) | (m << 2);
+		m = (srcPtr[3] & 0x02020202) | ((srcPtr[2] & 0x02020202) << 4);
+ 		s2 = (m >> 25) | (m >> 16) | (m >> 7) | (m << 2);
+		m = (srcPtr[5] & 0x02020202) | ((srcPtr[4] & 0x02020202) << 4);
+ 		s3 = (m >> 25) | (m >> 16) | (m >> 7) | (m << 2);
+		m = (srcPtr[7] & 0x02020202) | ((srcPtr[6] & 0x02020202) << 4);
+ 		s4 = (m >> 25) | (m >> 16) | (m >> 7) | (m << 2);
+		*((Uint32*)dstPtr) = s1 | (s2 << 8) | (s3 << 16) | (s4 << 24);
+		srcPtr += 8;
+		dstPtr += 4;
+		i -= 4;
+	    }
+	    while(i--) {
+		m = (srcPtr[1] & 0x02020202) | ((srcPtr[0] & 0x02020202) << 4);
+ 		*dstPtr++ = (m >> 25) | (m >> 16) | (m >> 7) | (m << 2);
+		srcPtr += 2;
+	    }
+
+	    writeSeq(0x02, 1 << 2);
+	    dstPtr = dst;
+	    srcPtr = src;
+	    i = width;
+	    j = phase;
+	    while(j--) {
+		m = (srcPtr[1] & 0x04040404) | ((srcPtr[0] & 0x04040404) << 4);
+ 		*dstPtr++ = (m >> 26) | (m >> 17) | (m >> 8) | (m << 1);
+		srcPtr += 2;
+	    }
+	    while(i >= 4) {
+		m = (srcPtr[1] & 0x04040404) | ((srcPtr[0] & 0x04040404) << 4);
+ 		s1 = (m >> 26) | (m >> 17) | (m >> 8) | (m << 1);
+		m = (srcPtr[3] & 0x04040404) | ((srcPtr[2] & 0x04040404) << 4);
+ 		s2 = (m >> 26) | (m >> 17) | (m >> 8) | (m << 1);
+		m = (srcPtr[5] & 0x04040404) | ((srcPtr[4] & 0x04040404) << 4);
+ 		s3 = (m >> 26) | (m >> 17) | (m >> 8) | (m << 1);
+		m = (srcPtr[7] & 0x04040404) | ((srcPtr[6] & 0x04040404) << 4);
+ 		s4 = (m >> 26) | (m >> 17) | (m >> 8) | (m << 1);
+		*((Uint32*)dstPtr) = s1 | (s2 << 8) | (s3 << 16) | (s4 << 24);
+		srcPtr += 8;
+		dstPtr += 4;
+		i -= 4;
+	    }
+	    while(i--) {
+		m = (srcPtr[1] & 0x04040404) | ((srcPtr[0] & 0x04040404) << 4);
+ 		*dstPtr++ = (m >> 26) | (m >> 17) | (m >> 8) | (m << 1);
+		srcPtr += 2;
+	    }
+	    
+	    writeSeq(0x02, 1 << 3);
+	    dstPtr = dst;
+	    srcPtr = src;
+	    i = width;
+	    j = phase;
+	    while(j--) {
+		m = (srcPtr[1] & 0x08080808) | ((srcPtr[0] & 0x08080808) << 4);
+ 		*dstPtr++ = (m >> 27) | (m >> 18) | (m >> 9) | m;
+		srcPtr += 2;
+	    }
+	    while(i >= 4) {
+		m = (srcPtr[1] & 0x08080808) | ((srcPtr[0] & 0x08080808) << 4);
+ 		s1 = (m >> 27) | (m >> 18) | (m >> 9) | m;
+		m = (srcPtr[3] & 0x08080808) | ((srcPtr[2] & 0x08080808) << 4);
+ 		s2 = (m >> 27) | (m >> 18) | (m >> 9) | m;
+		m = (srcPtr[5] & 0x08080808) | ((srcPtr[4] & 0x08080808) << 4);
+ 		s3 = (m >> 27) | (m >> 18) | (m >> 9) | m;
+		m = (srcPtr[7] & 0x08080808) | ((srcPtr[6] & 0x08080808) << 4);
+ 		s4 = (m >> 27) | (m >> 18) | (m >> 9) | m;
+		*((Uint32*)dstPtr) = s1 | (s2 << 8) | (s3 << 16) | (s4 << 24);
+		srcPtr += 8;
+		dstPtr += 4;
+		i -= 4;
+	    }
+	    while(i--) {
+		m = (srcPtr[1] & 0x08080808) | ((srcPtr[0] & 0x08080808) << 4);
+ 		*dstPtr++ = (m >> 27) | (m >> 18) | (m >> 9) | m;
+		srcPtr += 2;
+	    }
+
+            dst += FBPitch;
+            src += SRCPitch;
+        }
+        rects++;
+    }
+}
+#endif /* VGA16_FBCON_SUPPORT */
 
 void FB_SavePaletteTo(_THIS, int palette_len, __u16 *area)
 {
@@ -996,12 +1324,15 @@ static int FB_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
 	cmap.blue = b;
 	cmap.transp = NULL;
 
-	if( (ioctl(console_fd, FBIOPUTCMAP, &cmap) < 0) &&
+	if( (ioctl(console_fd, FBIOPUTCMAP, &cmap) < 0) ||
 	    !(this->screen->flags & SDL_HWPALETTE) ) {
 	        colors = this->screen->format->palette->colors;
 		ncolors = this->screen->format->palette->ncolors;
 		cmap.start = 0;
 		cmap.len = ncolors;
+		memset(r, 0, sizeof(r));
+		memset(g, 0, sizeof(g));
+		memset(b, 0, sizeof(b));
 		if ( ioctl(console_fd, FBIOGETCMAP, &cmap) == 0 ) {
 			for ( i=ncolors-1; i>=0; --i ) {
 				colors[i].r = (r[i]>>8);
@@ -1017,13 +1348,13 @@ static int FB_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
 /* Note:  If we are terminated, this could be called in the middle of
    another SDL video routine -- notably UpdateRects.
 */
-void FB_VideoQuit(_THIS)
+static void FB_VideoQuit(_THIS)
 {
 	int i, j;
 
 	if ( this->screen ) {
 		/* Clear screen and tell SDL not to free the pixels */
-		if ( this->screen->pixels ) {
+		if ( this->screen->pixels && FB_InGraphicsMode(this) ) {
 #ifdef __powerpc__	/* SIGBUS when using memset() ?? */
 			Uint8 *rowp = (Uint8 *)this->screen->pixels;
 			int left = this->screen->pitch*this->screen->h;
@@ -1031,12 +1362,16 @@ void FB_VideoQuit(_THIS)
 #else
 			memset(this->screen->pixels,0,this->screen->h*this->screen->pitch);
 #endif
+		}
+		/* This test fails when using the VGA16 shadow memory */
+		if ( ((char *)this->screen->pixels >= mapped_mem) &&
+		     ((char *)this->screen->pixels < (mapped_mem+mapped_memlen)) ) {
 			this->screen->pixels = NULL;
 		}
 	}
 
 	/* Clear the lock mutex */
-	if ( hw_lock != NULL ) {
+	if ( hw_lock ) {
 		SDL_DestroyMutex(hw_lock);
 		hw_lock = NULL;
 	}
@@ -1068,8 +1403,10 @@ void FB_VideoQuit(_THIS)
 		}
 
 		/* Restore the original video mode and palette */
-		FB_RestorePalette(this);
-		ioctl(console_fd, FBIOPUT_VSCREENINFO, &saved_vinfo);
+		if ( FB_InGraphicsMode(this) ) {
+			FB_RestorePalette(this);
+			ioctl(console_fd, FBIOPUT_VSCREENINFO, &saved_vinfo);
+		}
 
 		/* We're all done with the framebuffer */
 		close(console_fd);

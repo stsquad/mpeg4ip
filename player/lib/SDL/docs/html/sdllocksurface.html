@@ -4,7 +4,8 @@
 >SDL_LockSurface</TITLE
 ><META
 NAME="GENERATOR"
-CONTENT="Modular DocBook HTML Stylesheet Version 1.57"><LINK
+CONTENT="Modular DocBook HTML Stylesheet Version 1.61
+"><LINK
 REL="HOME"
 TITLE="SDL Library Documentation"
 HREF="index.html"><LINK
@@ -72,7 +73,7 @@ NAME="SDLLOCKSURFACE"
 ><DIV
 CLASS="REFNAMEDIV"
 ><A
-NAME="AEN1056"
+NAME="AEN1435"
 ></A
 ><H2
 >Name</H2
@@ -80,14 +81,14 @@ NAME="AEN1056"
 ><DIV
 CLASS="REFSYNOPSISDIV"
 ><A
-NAME="AEN1059"
+NAME="AEN1438"
 ></A
 ><H2
 >Synopsis</H2
 ><DIV
 CLASS="FUNCSYNOPSIS"
 ><A
-NAME="AEN1060"
+NAME="AEN1439"
 ></A
 ><P
 ></P
@@ -111,7 +112,7 @@ CLASS="FSFUNC"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN1066"
+NAME="AEN1445"
 ></A
 ><H2
 >Description</H2
@@ -173,11 +174,37 @@ surface at any time, and the pixel format of the surface will not change. </P
 ><P
 >No operating system or library calls should be made between lock/unlock
 pairs, as critical system locks may be held during this time.</P
+><P
+>It should be noted, that since SDL 1.1.8 surface locks are recursive. This means that you can lock a surface multiple times, but each lock must have a match unlock.
+<PRE
+CLASS="PROGRAMLISTING"
+>    .
+    .
+    SDL_LockSurface( surface );
+    .
+    /* Surface is locked */
+    /* Direct pixel access on surface here */
+    .
+    SDL_LockSurface( surface );
+    .
+    /* More direct pixel access on surface */
+    .
+    SDL_UnlockSurface( surface );
+    /* Surface is still locked */
+    /* Note: Is versions &#60; 1.1.8, the surface would have been */
+    /* no longer locked at this stage                         */
+    .
+    SDL_UnlockSurface( surface );
+    /* Surface is now unlocked */
+    .
+    .</PRE
+>
+ </P
 ></DIV
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN1082"
+NAME="AEN1463"
 ></A
 ><H2
 >Return Value</H2
@@ -197,7 +224,7 @@ CLASS="RETURNVALUE"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN1088"
+NAME="AEN1469"
 ></A
 ><H2
 >See Also</H2

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #include <windows.h>
 #include <malloc.h>		/* For _alloca() */
@@ -152,7 +153,7 @@ int console_main(int argc, char *argv[])
 	appname = bufp;
 
 	/* Load SDL dynamic link library */
-	if ( SDL_Init(0) < 0 ) {
+	if ( SDL_Init(SDL_INIT_NOPARACHUTE) < 0 ) {
 		ShowError("WinMain() error", SDL_GetError());
 		return(FALSE);
 	}

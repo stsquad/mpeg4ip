@@ -5,13 +5,16 @@ All:
 	raw audio buffer size be a power of two, and can hopefully be fixed.
 	This means 8 KHz audio converted to 22 KHz ends up being 16 KHz. :-/
 
+	When the implementation is writing directly to video memory the mouse
+	cursor doesn't work properly.  Applications which do this should use
+	their own mouse cursor and call SDL_ShowCursor(0) to hide the system
+	cursor.
+
 Linux:
 	Wide UNICODE character input (Kanji, etc.) is not yet supported.
 	It requires handling of keyboard mapping events and using the XIM
 	input translation extension.  I will implement it as requested.
 	Latin-1 keyboard input works fine.
-
-	The fbcon driver doesn't properly restore the screen contents.
 
 	The AAlib, GGI, and SVGAlib video drivers are not heavily tested.
 
@@ -53,8 +56,6 @@ MacOS:
 	isn't implemented and mixer routines may not call malloc() or free()
 	because they are called at interrupt time.
 
-	Joystick support hasn't been fully tested.
-
 	SDL_WM_GrabInput() is not implemented.
 	Does anyone know how to do this?  SDL_WM_GrabInput() is designed
 	to prevent the user from switching input and mouse focus away from
@@ -64,7 +65,29 @@ MacOS:
 
 	SDL_AddTimer() and SDL_RemoveTimer() haven't been implemented yet.
 
-	MacOSX doesn't support sound, joysticks or CD-ROM functions yet
+	Not all of the keys are properly recognized on the keyboard.
+
+MacOS X:
+	Fullscreen mode doesn't work - it requires the QuickTime framework
+	and that the new SDL window gets raised to the top of the Z order.
+
+	Palette handling isn't implemented in windowed mode yet.
+
+	Native sound and video routines are not finished, though Carbon
+	seems to work fairly well.
+
+	Joysticks and CD-ROM functions are not implemented yet.
+
+	SDL_WM_GrabInput() is not implemented.
+	Does anyone know how to do this?  SDL_WM_GrabInput() is designed
+	to prevent the user from switching input and mouse focus away from
+	the SDL application.
+
+	Continuous relative mouse motion is not implemented.
+
+	Not all of the keys are properly recognized on the keyboard.
+
+	MacOS X seems to have a broken pthread_cancel() implementation.
 
 FreeBSD:
 	pthread_cancel() isn't supported by FreeBSD 3.X, so threads don't
@@ -78,6 +101,8 @@ FreeBSD:
 	Latin-1 keyboard input works fine.
 
 Solaris:
+	The joystick functions are not implemented yet.
+
 	Wide UNICODE character input (Kanji, etc.) is not yet supported.
 	It requires handling of keyboard mapping events and using the XIM
 	input translation extension.  I will implement it as requested.
@@ -85,6 +110,8 @@ Solaris:
 
 IRIX:
 	The CD-ROM handling doesn't work completely.
+
+	The joystick functions are not implemented yet.
 
 	Wide UNICODE character input (Kanji, etc.) is not yet supported.
 	It requires handling of keyboard mapping events and using the XIM
@@ -99,12 +126,22 @@ OpenBSD:  -= NOT YET SUPPORTED =-
 	input translation extension.  I will implement it as requested.
 	Latin-1 keyboard input works fine.
 
+OSF/Tru64:  -= NOT YET SUPPORTED =-
+	The audio functions are not implemented yet.
+
+	Joysticks and CD-ROM functions are not implemented yet.
+
+	Wide UNICODE character input (Kanji, etc.) is not yet supported.
+	It requires handling of keyboard mapping events and using the XIM
+	input translation extension.  I will implement it as requested.
+	Latin-1 keyboard input works fine.
+
 AIX:  -= NOT YET SUPPORTED =-
 	This port has only been tested with AIX 4.3.3
 
 	The OpenGL support doesn't work yet.
 
-	The joystick support isn't implemented yet.
+	The joystick subsystem isn't implemented yet.
 
 	Endian detection doesn't work yet - needs a unique CPP symbol.
 
@@ -116,6 +153,29 @@ AIX:  -= NOT YET SUPPORTED =-
 	The AIX port was done by Carsten.Griwodz@KOM.tu-darmstadt.de
 	More information on this port is available at:
 	http://www.kom.e-technik.tu-darmstadt.de/~griff/SDL/
+
+QNX:  -= NOT YET SUPPORTED =-
+	Configuration doesn't work right, Makefiles still need to be
+	tweaked (need to add libraries to any apps that use sdl_config
+	to figure out what libs they need).
+ 
+	Only static libraries are being made, no shared ones.
+ 
+	The only hardware surface is the primary view surface.
+ 
+	Mouse events don't seem to be working right.
+ 
+	Fullscreen doesn't display correctly.
+ 
+	The software surfaces could use some speed up.
+ 
+	Many of the test apps segment violate on exit, and I'm not sure
+	they're all working either
+ 
+	It doesn't look like the OpenGL stuff is there. (did a grep for
+	PdCreateOpenGLContext, nothing found).
+ 
+	The mouse cursor doesn't look right.
 
 AmigaOS:  -= NOT YET SUPPORTED =-
 	The OpenGL support isn't implemented yet.
@@ -130,7 +190,7 @@ AmigaOS:  -= NOT YET SUPPORTED =-
 	Audio can work, but isn't completely integrated in the CVS
 	version of SDL.
 
-	The joystick support isn't implemented yet.
+	The joystick subsystem isn't implemented yet.
 
 	There's some confusion about the multi-threaded synchronization
 	primitives on AmigaOS, so mutexes and semaphores aren't correctly

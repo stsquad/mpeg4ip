@@ -4,10 +4,11 @@
 ></TITLE
 ><META
 NAME="GENERATOR"
-CONTENT="Modular DocBook HTML Stylesheet Version 1.57"><LINK
+CONTENT="Modular DocBook HTML Stylesheet Version 1.61
+"><LINK
 REL="NEXT"
-TITLE="Introduction"
-HREF="intro.html"></HEAD
+TITLE="SDL Guide"
+HREF="guide.html"></HEAD
 ><BODY
 CLASS="BOOK"
 BGCOLOR="#FFF8DC"
@@ -28,14 +29,140 @@ CLASS="TOC"
 >Table of Contents</B
 ></DT
 ><DT
+>I. <A
+HREF="guide.html"
+>SDL Guide</A
+></DT
+><DD
+><DL
+><DT
 ><A
-HREF="intro.html"
+HREF="guidepreface.html"
+>Preface</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="guidepreface.html#GUIDEABOUTSDL"
+>About SDL</A
+></DT
+><DT
+><A
+HREF="guideaboutsdldoc.html"
+>About SDLdoc</A
+></DT
+><DT
+><A
+HREF="guidecredits.html"
+>Credits</A
+></DT
+></DL
+></DD
+><DT
+>1. <A
+HREF="guidethebasics.html"
+>The Basics</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="guidethebasics.html#GUIDEINTRODUCTION"
 >Introduction</A
 ></DT
 ><DT
->1. <A
+><A
+HREF="guidebasicsinit.html"
+>Initializing SDL</A
+></DT
+></DL
+></DD
+><DT
+>2. <A
+HREF="guidevideo.html"
+>Graphics and Video</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="guidevideo.html#GUIDEVIDEOOPENGL"
+>Using OpenGL With SDL</A
+></DT
+></DL
+></DD
+><DT
+>3. <A
+HREF="guideinput.html"
+>Input handling</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="guideinput.html#GUIDEINPUTJOYSTICK"
+>Handling Joysticks</A
+></DT
+><DT
+><A
+HREF="guideinputkeyboard.html"
+>Handling the Keyboard</A
+></DT
+></DL
+></DD
+><DT
+>4. <A
+HREF="guideexamples.html"
+>Examples</A
+></DT
+><DD
+><DL
+><DT
+><A
+HREF="guideexamples.html#AEN297"
+>Introduction</A
+></DT
+><DT
+><A
+HREF="guidevideoexamples.html"
+>Video Examples</A
+></DT
+><DT
+><A
+HREF="guideeventexamples.html"
+>Event Examples</A
+></DT
+><DT
+><A
+HREF="guideaudioexamples.html"
+>Audio Examples</A
+></DT
+><DT
+><A
+HREF="guidecdromexamples.html"
+>CDROM Examples</A
+></DT
+><DT
+><A
+HREF="guidetimeexamples.html"
+>Time Examples</A
+></DT
+></DL
+></DD
+></DL
+></DD
+><DT
+>II. <A
+HREF="reference.html"
+>SDL Reference</A
+></DT
+><DD
+><DL
+><DT
+>5. <A
 HREF="general.html"
->Setup and initialization</A
+>General</A
 ></DT
 ><DD
 ><DL
@@ -67,7 +194,7 @@ HREF="sdlwasinit.html"
 ></DL
 ></DD
 ><DT
->2. <A
+>6. <A
 HREF="video.html"
 >Video</A
 ></DT
@@ -83,6 +210,11 @@ HREF="sdlgetvideosurface.html"
 HREF="sdlgetvideoinfo.html"
 >SDL_GetVideoInfo</A
 > &#8212; returns a pointer to information about the video hardware</DT
+><DT
+><A
+HREF="sdlvideodrivername.html"
+>SDL_VideoDriverName</A
+> &#8212; Obtain the name of the video driver</DT
 ><DT
 ><A
 HREF="sdllistmodes.html"
@@ -204,12 +336,17 @@ RLE acceleration.</DT
 ><A
 HREF="sdlsetalpha.html"
 >SDL_SetAlpha</A
-> &#8212; Abjust the alpha properties of a surface</DT
+> &#8212; Adjust the alpha properties of a surface</DT
 ><DT
 ><A
 HREF="sdlsetcliprect.html"
 >SDL_SetClipRect</A
 > &#8212; Sets the clipping rectangle for a surface.</DT
+><DT
+><A
+HREF="sdlgetcliprect.html"
+>SDL_GetClipRect</A
+> &#8212; Gets the clipping rectangle for a surface.</DT
 ><DT
 ><A
 HREF="sdlconvertsurface.html"
@@ -358,7 +495,7 @@ HREF="sdloverlay.html"
 ></DL
 ></DD
 ><DT
->3. <A
+>7. <A
 HREF="wm.html"
 >Window Management</A
 ></DT
@@ -397,7 +534,7 @@ HREF="sdlwmgrabinput.html"
 ></DL
 ></DD
 ><DT
->4. <A
+>8. <A
 HREF="event.html"
 >Events</A
 ></DT
@@ -405,7 +542,7 @@ HREF="event.html"
 ><DL
 ><DT
 ><A
-HREF="event.html#AEN2763"
+HREF="event.html#AEN3194"
 >Introduction</A
 ></DT
 ><DT
@@ -413,184 +550,15 @@ HREF="event.html#AEN2763"
 HREF="eventstructures.html"
 >SDL Event Structures.</A
 ></DT
-><DD
-><DL
-><DT
-><A
-HREF="sdlevent.html"
->SDL_Event</A
-> &#8212; General event structure</DT
-><DT
-><A
-HREF="sdlactiveevent.html"
->SDL_ActiveEvent</A
-> &#8212; Application visibility event structure</DT
-><DT
-><A
-HREF="sdlkeyboardevent.html"
->SDL_KeyboardEvent</A
-> &#8212; Keyboard event structure</DT
-><DT
-><A
-HREF="sdlmousemotionevent.html"
->SDL_MouseMotionEvent</A
-> &#8212; Mouse motion event structure</DT
-><DT
-><A
-HREF="sdlmousebuttonevent.html"
->SDL_MouseButtonEvent</A
-> &#8212; Mouse button event structure</DT
-><DT
-><A
-HREF="sdljoyaxisevent.html"
->SDL_JoyAxisEvent</A
-> &#8212; Joystick axis motion event structure</DT
-><DT
-><A
-HREF="sdljoybuttonevent.html"
->SDL_JoyButtonEvent</A
-> &#8212; Joystick button event structure</DT
-><DT
-><A
-HREF="sdljoyhatevent.html"
->SDL_JoyHatEvent</A
-> &#8212; Joystick hat position change event structure</DT
-><DT
-><A
-HREF="sdljoyballevent.html"
->SDL_JoyBallEvent</A
-> &#8212; Joystick trackball motion event structure</DT
-><DT
-><A
-HREF="sdlresizeevent.html"
->SDL_ResizeEvent</A
-> &#8212; Window resize event structure</DT
-><DT
-><A
-HREF="sdlsyswmevent.html"
->SDL_SysWMEvent</A
-> &#8212; Platform-dependent window manager event.</DT
-><DT
-><A
-HREF="sdluserevent.html"
->SDL_UserEvent</A
-> &#8212; A user-defined event type</DT
-><DT
-><A
-HREF="sdlquitevent.html"
->SDL_QuitEvent</A
-> &#8212; Quit requested event</DT
-><DT
-><A
-HREF="sdlkeysym.html"
->SDL_keysym</A
-> &#8212; Keysym structure</DT
-><DT
-><A
-HREF="sdlkey.html"
->SDLKey</A
-> &#8212; Keysym definitions.</DT
-></DL
-></DD
 ><DT
 ><A
 HREF="eventfunctions.html"
 >Event Functions.</A
 ></DT
-><DD
-><DL
-><DT
-><A
-HREF="sdlpumpevents.html"
->SDL_PumpEvents</A
-> &#8212; Pumps the event loop, gathering events from the input devices.</DT
-><DT
-><A
-HREF="sdlpeepevents.html"
->SDL_PeepEvents</A
-> &#8212; Checks the event queue for messages and optionally returns them.</DT
-><DT
-><A
-HREF="sdlpollevent.html"
->SDL_PollEvent</A
-> &#8212; Polls for currently pending events.</DT
-><DT
-><A
-HREF="sdlwaitevent.html"
->SDL_WaitEvent</A
-> &#8212; Waits indefinitely for the next available event.</DT
-><DT
-><A
-HREF="sdlpushevent.html"
->SDL_PushEvent</A
-> &#8212; Pushes an event onto the event queue</DT
-><DT
-><A
-HREF="sdlseteventfilter.html"
->SDL_SetEventFilter</A
-> &#8212; Sets up a filter to process all events before they are posted 
-to the event queue.</DT
-><DT
-><A
-HREF="sdleventstate.html"
->SDL_EventState</A
-> &#8212; This function allows you to set the state of processing certain events.</DT
-><DT
-><A
-HREF="sdlgetkeystate.html"
->SDL_GetKeyState</A
-> &#8212; Get a snapshot of the current keyboard state</DT
-><DT
-><A
-HREF="sdlgetmodstate.html"
->SDL_GetModState</A
-> &#8212; Get the state of modifier keys.</DT
-><DT
-><A
-HREF="sdlsetmodstate.html"
->SDL_SetModState</A
-> &#8212; Set the current key modifier state</DT
-><DT
-><A
-HREF="sdlgetkeyname.html"
->SDL_GetKeyName</A
-> &#8212; Get the name of an SDL virtual keysym</DT
-><DT
-><A
-HREF="sdlenableunicode.html"
->SDL_EnableUNICODE</A
-> &#8212; Enable UNICODE translation</DT
-><DT
-><A
-HREF="sdlenablekeyrepeat.html"
->SDL_EnableKeyRepeat</A
-> &#8212; Set keyboard repeat rate.</DT
-><DT
-><A
-HREF="sdlgetmousestate.html"
->SDL_GetMouseState</A
-> &#8212; Retrieve the current state of the mouse</DT
-><DT
-><A
-HREF="sdlgetrelativemousestate.html"
->SDL_GetRelativeMouseState</A
-> &#8212; Retrieve the current state of the mouse</DT
-><DT
-><A
-HREF="sdlgetappstate.html"
->SDL_GetAppState</A
-> &#8212; Get the state of the application</DT
-><DT
-><A
-HREF="sdljoystickeventstate.html"
->SDL_JoystickEventState</A
-> &#8212; Enable/disable joystick event polling</DT
-></DL
-></DD
 ></DL
 ></DD
 ><DT
->5. <A
+>9. <A
 HREF="joystick.html"
 >Joystick</A
 ></DT
@@ -625,7 +593,7 @@ HREF="sdljoystickindex.html"
 ><A
 HREF="sdljoysticknumaxes.html"
 >SDL_JoystickNumAxes</A
-> &#8212; Get the number of joysitck axes</DT
+> &#8212; Get the number of joystick axes</DT
 ><DT
 ><A
 HREF="sdljoysticknumballs.html"
@@ -634,8 +602,8 @@ HREF="sdljoysticknumballs.html"
 ><DT
 ><A
 HREF="sdljoysticknumhats.html"
->SDL_JoystickNumAxes</A
-> &#8212; Get the number of joysitck axes</DT
+>SDL_JoystickNumHats</A
+> &#8212; Get the number of joystick hats</DT
 ><DT
 ><A
 HREF="sdljoysticknumbuttons.html"
@@ -674,7 +642,7 @@ HREF="sdljoystickclose.html"
 ></DL
 ></DD
 ><DT
->6. <A
+>10. <A
 HREF="audio.html"
 >Audio</A
 ></DT
@@ -748,7 +716,7 @@ HREF="sdlcloseaudio.html"
 ></DL
 ></DD
 ><DT
->7. <A
+>11. <A
 HREF="cdrom.html"
 >CD-ROM</A
 ></DT
@@ -822,7 +790,7 @@ HREF="sdlcdtrack.html"
 ></DL
 ></DD
 ><DT
->8. <A
+>12. <A
 HREF="thread.html"
 >Multi-threaded Programming</A
 ></DT
@@ -944,7 +912,7 @@ HREF="sdlcondwaittimeout.html"
 ></DL
 ></DD
 ><DT
->9. <A
+>13. <A
 HREF="time.html"
 >Time</A
 ></DT
@@ -984,6 +952,8 @@ elapsed.</DT
 ></DL
 ></DD
 ></DL
+></DD
+></DL
 ></DIV
 ><DIV
 CLASS="LOT"
@@ -994,14 +964,34 @@ CLASS="LOT"
 >List of Tables</B
 ></DT
 ><DT
->4-1. <A
-HREF="sdlkey.html#AEN3811"
+>8-1. <A
+HREF="sdlkey.html#AEN4177"
 >SDL Keysym definitions</A
 ></DT
 ><DT
->4-2. <A
-HREF="sdlkey.html#AEN4355"
+>8-2. <A
+HREF="sdlkey.html#SDLMOD"
 >SDL modifier definitions</A
+></DT
+></DL
+></DIV
+><DIV
+CLASS="LOT"
+><DL
+CLASS="LOT"
+><DT
+><B
+>List of Examples</B
+></DT
+><DT
+>2-1. <A
+HREF="guidevideo.html#AEN87"
+>gl.c - SDL OpenGL Example</A
+></DT
+><DT
+>3-1. <A
+HREF="guideinputkeyboard.html#AEN282"
+>keys.c - Key event information</A
 ></DT
 ></DL
 ></DIV
@@ -1031,7 +1021,7 @@ WIDTH="33%"
 ALIGN="right"
 VALIGN="top"
 ><A
-HREF="intro.html"
+HREF="guide.html"
 >Next</A
 ></TD
 ></TR
@@ -1050,7 +1040,7 @@ VALIGN="top"
 WIDTH="33%"
 ALIGN="right"
 VALIGN="top"
->Introduction</TD
+>SDL Guide</TD
 ></TR
 ></TABLE
 ></DIV

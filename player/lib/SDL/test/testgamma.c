@@ -9,17 +9,17 @@
 #include "SDL.h"
 
 /* Turn a normal gamma value into an appropriate gamma ramp */
-void CalculateGamma(double gamma, Uint8 *ramp)
+void CalculateGamma(double gamma, Uint16 *ramp)
 {
 	int i, value;
 
 	gamma = 1.0 / gamma;
 	for ( i=0; i<256; ++i ) {
-		value = (int)(pow((double)i/256.0, gamma)*256.0 + 0.5);
-		if ( value > 255 ) {
-			value = 255;
+		value = (int)(pow((double)i/256.0, gamma)*65535.0 + 0.5);
+		if ( value > 65535 ) {
+			value = 65535;
 		}
-		ramp[i] = (Uint8)value;
+		ramp[i] = (Uint16)value;
 	}
 }
 
@@ -71,8 +71,8 @@ int main(int argc, char *argv[])
 	int i;
 	int w, h, bpp;
 	Uint32 flags;
-	Uint8 ramp[256];
-	Uint8 red_ramp[256];
+	Uint16 ramp[256];
+	Uint16 red_ramp[256];
 	Uint32 then, timeout;
 
 	/* Check command line arguments */
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Perform a gamma flash to red using color ramps */
-	while ( gamma < 30.0 ) {
+	while ( gamma < 10.0 ) {
 		/* Increase the red gamma and decrease everything else... */
 		gamma += 0.1f;
 		CalculateGamma(gamma, red_ramp);
@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
 	SDL_SetGammaRamp(red_ramp, ramp, ramp);
 
 	/* Now fade out to black */
-	for ( i=red_ramp[0]; i >= 0; --i ) {
+	for ( i=(red_ramp[0] >> 8); i >= 0; --i ) {
 		memset(red_ramp, i, sizeof(red_ramp));
 		SDL_SetGammaRamp(red_ramp, NULL, NULL);
 	}

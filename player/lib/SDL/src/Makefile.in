@@ -62,15 +62,18 @@ POST_UNINSTALL = :
 host_alias = @host_alias@
 host_triplet = @host@
 ARCH = @ARCH@
+ARTSCCONFIG = @ARTSCCONFIG@
 AS = @AS@
-AUDIO_ARCH = @AUDIO_ARCH@
-AUDIO_ARCH_LIB = @AUDIO_ARCH_LIB@
+AUDIO_DRIVERS = @AUDIO_DRIVERS@
+AUDIO_SUBDIRS = @AUDIO_SUBDIRS@
 CC = @CC@
 CXX = @CXX@
 DLLTOOL = @DLLTOOL@
 ESD_CFLAGS = @ESD_CFLAGS@
 ESD_CONFIG = @ESD_CONFIG@
 ESD_LIBS = @ESD_LIBS@
+JOYSTICK_DRIVERS = @JOYSTICK_DRIVERS@
+JOYSTICK_SUBDIRS = @JOYSTICK_SUBDIRS@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 LT_AGE = @LT_AGE@
@@ -120,9 +123,11 @@ libSDL_la_LDFLAGS =          -release $(LT_RELEASE)		-version-info $(LT_CURRENT)
 
 libSDL_la_LIBADD =  	main/libarch.la			@SDL_EXTRALIBS@			@SYSTEM_LIBS@
 
+libSDL_la_DEPENDENCIES =  	main/libarch.la			@SDL_EXTRALIBS@
+
 
 # The SDL library sources
-GENERAL_SRCS =  	SDL.c				SDL_error.c			SDL_error_c.h			SDL_fatal.c			SDL_fatal.h
+GENERAL_SRCS =  	SDL.c				SDL_error.c			SDL_error_c.h			SDL_fatal.c			SDL_fatal.h			SDL_getenv.c
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
@@ -137,8 +142,7 @@ X_CFLAGS = @X_CFLAGS@
 X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
-libSDL_la_DEPENDENCIES =  main/libarch.la
-libSDL_la_OBJECTS =  SDL.lo SDL_error.lo SDL_fatal.lo
+libSDL_la_OBJECTS =  SDL.lo SDL_error.lo SDL_fatal.lo SDL_getenv.lo
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -345,7 +349,6 @@ distdir: $(DISTFILES)
 	      || exit 1; \
 	  fi; \
 	done
-
 info-am:
 info: info-recursive
 dvi-am:

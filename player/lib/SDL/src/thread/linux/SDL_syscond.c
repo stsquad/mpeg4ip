@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syscond.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_syscond.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #ifdef linux
@@ -53,7 +53,7 @@ static char rcsid =
 #include "SDL_sysmutex_c.h"
 
 
-#ifdef PTHREAD_NO_RECURSIVE_MUTEX
+#if defined(PTHREAD_NO_RECURSIVE_MUTEX) && !defined(__bsdi__)
 #error You need to use the generic condition variable implementation
 #endif
 

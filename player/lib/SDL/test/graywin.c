@@ -8,6 +8,12 @@
 
 #include "SDL.h"
 
+#ifdef TEST_VGA16 /* Define this if you want to test VGA 16-color video modes */
+#define NUM_COLORS	16
+#else
+#define NUM_COLORS	256
+#endif
+
 /* Draw a randomly sized and colored box centered about (X,Y) */
 void DrawBox(SDL_Surface *screen, int X, int Y)
 {
@@ -26,7 +32,7 @@ void DrawBox(SDL_Surface *screen, int X, int Y)
 	area.h = (rand()%480);
 	area.x = X-(area.w/2);
 	area.y = Y-(area.h/2);
-	color = (rand()%256);
+	color = (rand()%NUM_COLORS);
 
 	/* Do it! */
 	SDL_FillRect(screen, &area, color);
@@ -37,7 +43,7 @@ SDL_Surface *CreateScreen(Uint16 w, Uint16 h, Uint8 bpp, Uint32 flags)
 {
 	SDL_Surface *screen;
 	int i;
-	SDL_Color palette[256];
+	SDL_Color palette[NUM_COLORS];
 	Uint8 *buffer;
 
 	/* Set the video mode */
@@ -51,12 +57,12 @@ SDL_Surface *CreateScreen(Uint16 w, Uint16 h, Uint8 bpp, Uint32 flags)
 		(screen->flags & SDL_FULLSCREEN) ? "fullscreen" : "windowed");
 
 	/* Set a gray colormap, reverse order from white to black */
-	for ( i=0; i<256; ++i ) {
-		palette[i].r = 255-i;
-		palette[i].g = 255-i;
-		palette[i].b = 255-i;
+	for ( i=0; i<NUM_COLORS; ++i ) {
+		palette[i].r = (NUM_COLORS-1)-i * (256 / NUM_COLORS);
+		palette[i].g = (NUM_COLORS-1)-i * (256 / NUM_COLORS);
+		palette[i].b = (NUM_COLORS-1)-i * (256 / NUM_COLORS);
 	}
-	SDL_SetColors(screen, palette, 0, 256);
+	SDL_SetColors(screen, palette, 0, NUM_COLORS);
 
 	/* Set the surface pixels and refresh! */
 	if ( SDL_LockSurface(screen) < 0 ) {
@@ -66,7 +72,7 @@ SDL_Surface *CreateScreen(Uint16 w, Uint16 h, Uint8 bpp, Uint32 flags)
 	}
 	buffer = (Uint8 *)screen->pixels;
 	for ( i=0; i<screen->h; ++i ) {
-		memset(buffer,(i*255)/screen->h, screen->w);
+		memset(buffer,(i*(NUM_COLORS-1))/screen->h, screen->w);
 		buffer += screen->pitch;
 	}
 	SDL_UnlockSurface(screen);
@@ -81,6 +87,7 @@ int main(int argc, char *argv[])
 	Uint32 videoflags;
 	int    done;
 	SDL_Event event;
+	int width, height, bpp;
 
 	/* Initialize SDL */
 	if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
@@ -89,14 +96,32 @@ int main(int argc, char *argv[])
 	}
 
 	/* See if we try to get a hardware colormap */
+	width = 640;
+	height = 480;
+	bpp = 8;
 	videoflags = SDL_SWSURFACE;
 	while ( argc > 1 ) {
 		--argc;
+		if ( argv[argc-1] && (strcmp(argv[argc-1], "-width") == 0) ) {
+			width = atoi(argv[argc]);
+			--argc;
+		} else
+		if ( argv[argc-1] && (strcmp(argv[argc-1], "-height") == 0) ) {
+			height = atoi(argv[argc]);
+			--argc;
+		} else
+		if ( argv[argc-1] && (strcmp(argv[argc-1], "-bpp") == 0) ) {
+			bpp = atoi(argv[argc]);
+			--argc;
+		} else
 		if ( argv[argc] && (strcmp(argv[argc], "-hw") == 0) ) {
 			videoflags |= SDL_HWSURFACE;
 		} else
-		if ( argv[argc] && (strcmp(argv[argc], "-warp") == 0) ) {
+		if ( argv[argc] && (strcmp(argv[argc], "-hwpalette") == 0) ) {
 			videoflags |= SDL_HWPALETTE;
+		} else
+		if ( argv[argc] && (strcmp(argv[argc], "-noframe") == 0) ) {
+			videoflags |= SDL_NOFRAME;
 		} else
 		if ( argv[argc] && (strcmp(argv[argc], "-fullscreen") == 0) ) {
 			videoflags |= SDL_FULLSCREEN;
@@ -107,8 +132,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* Set 640x480x8 video mode */
-	screen = CreateScreen(640, 480, 8, videoflags);
+	/* Set a video mode */
+	screen = CreateScreen(width, height, bpp, videoflags);
 	if ( screen == NULL ) {
 		exit(2);
 	}

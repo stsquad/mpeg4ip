@@ -34,7 +34,7 @@ not, write to the Free Software Foundation, Inc., 675 Mass Ave,
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: clone.S,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: clone.S,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 Cambridge, MA 02139, USA.  */
 

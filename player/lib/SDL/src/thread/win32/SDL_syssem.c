@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syssem.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_syssem.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* Semaphore functions using the Win32 API */
@@ -34,6 +34,52 @@ static char rcsid =
 #include "SDL_error.h"
 #include "SDL_thread.h"
 
+#if defined(_WIN32_WCE) && (_WIN32_WCE < 300)
+
+/* No semaphores on Windows CE earlier than 3.0, hmm... */
+
+/* Create a semaphore */
+SDL_sem *SDL_CreateSemaphore(Uint32 initial_value)
+{
+	SDL_SetError("Semaphores not supported on WinCE");
+	return(NULL);
+}
+
+/* Free the semaphore */
+void SDL_DestroySemaphore(SDL_sem *sem)
+{
+	return;
+}
+
+int SDL_SemWaitTimeout(SDL_sem *sem, Uint32 timeout)
+{
+	SDL_SetError("Semaphores not supported on WinCE");
+	return(-1);
+}
+
+int SDL_SemTryWait(SDL_sem *sem)
+{
+	return SDL_SemWaitTimeout(sem, 0);
+}
+
+int SDL_SemWait(SDL_sem *sem)
+{
+	return SDL_SemWaitTimeout(sem, SDL_MUTEX_MAXWAIT);
+}
+
+/* Returns the current count of the semaphore */
+Uint32 SDL_SemValue(SDL_sem *sem)
+{
+	return(0);
+}
+
+int SDL_SemPost(SDL_sem *sem)
+{
+	SDL_SetError("Semaphores not supported on WinCE");
+	return(-1);
+}
+
+#else
 
 struct SDL_semaphore {
 	HANDLE id;
@@ -47,7 +93,7 @@ SDL_sem *SDL_CreateSemaphore(Uint32 initial_value)
 	SDL_sem *sem;
 
 	/* Allocate sem memory */
-	sem = (SDL_sem *)calloc(1, sizeof(*sem));
+	sem = (SDL_sem *)malloc(sizeof(*sem));
 	if ( sem ) {
 		/* Create the semaphore, with max value 32K */
 		sem->id = CreateSemaphore(NULL, initial_value, 32*1024, NULL);
@@ -145,3 +191,5 @@ int SDL_SemPost(SDL_sem *sem)
 	}
 	return 0;
 }
+
+#endif /* _WIN32_WCE */

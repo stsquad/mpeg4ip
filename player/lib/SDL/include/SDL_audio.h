@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_audio.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Access to the raw audio mixing buffer for the SDL library */
@@ -103,12 +103,13 @@ typedef struct SDL_AudioCVT {
 
 /* These functions are used internally, and should not be used unless you
  * have a specific need to specify the audio driver you want to use.
+ * You should normally use SDL_Init() or SDL_InitSubSystem().
  */
 extern DECLSPEC int SDL_AudioInit(const char *driver_name);
 extern DECLSPEC void SDL_AudioQuit(void);
 
 /* This function fills the given character buffer with the name of the
- * audio driver, and returns a pointer to it if the audio driver has
+ * current audio driver, and returns a pointer to it if the audio driver has
  * been initialized.  It returns NULL if no driver has been initialized.
  */
 extern DECLSPEC char *SDL_AudioDriverName(char *namebuf, int maxlen);
@@ -252,7 +253,7 @@ extern DECLSPEC void SDL_CloseAudio(void);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
-};
+}
 #endif
 #include "close_code.h"
 

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dgavideo.h,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_dgavideo.h,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_dgavideo_h
@@ -58,7 +58,6 @@ struct SDL_PrivateVideoData {
 	Display *DGA_Display;
 	Colormap DGA_colormap;
 	int visualClass;
-	Uint8 *gamma_ramps[3];
 
 #define NUM_MODELISTS	4		/* 8, 16, 24, and 32 bits-per-pixel */
 	int SDL_nummodes[NUM_MODELISTS];
@@ -69,6 +68,7 @@ struct SDL_PrivateVideoData {
 	int memory_pitch;
 	SDL_mutex *hw_lock;
 	int sync_needed;
+	int was_flipped;
 
 	/* Information for hardware surfaces */
 	vidmem_bucket surfaces;
@@ -77,6 +77,7 @@ struct SDL_PrivateVideoData {
 
 	/* Information for double-buffering */
 	int flip_page;
+	int flip_yoffset[2];
 	Uint8 *flip_address[2];
 
 	/* Used to handle DGA events */
@@ -90,14 +91,15 @@ struct SDL_PrivateVideoData {
 #define memory_base		(this->hidden->memory_base)
 #define memory_pitch		(this->hidden->memory_pitch)
 #define flip_page		(this->hidden->flip_page)
+#define flip_yoffset		(this->hidden->flip_yoffset)
 #define flip_address		(this->hidden->flip_address)
 #define sync_needed		(this->hidden->sync_needed)
+#define was_flipped		(this->hidden->was_flipped)
 #define SDL_nummodes		(this->hidden->SDL_nummodes)
 #define SDL_modelist		(this->hidden->SDL_modelist)
 #define surfaces		(this->hidden->surfaces)
 #define surfaces_memtotal	(this->hidden->surfaces_memtotal)
 #define surfaces_memleft	(this->hidden->surfaces_memleft)
-#define xgamma			(this->hidden->gamma_ramps)
 #define hw_lock			(this->hidden->hw_lock)
 #define DGA_event_base		(this->hidden->event_base)
 

@@ -4,7 +4,8 @@
 >SDL_EnableKeyRepeat</TITLE
 ><META
 NAME="GENERATOR"
-CONTENT="Modular DocBook HTML Stylesheet Version 1.57"><LINK
+CONTENT="Modular DocBook HTML Stylesheet Version 1.61
+"><LINK
 REL="HOME"
 TITLE="SDL Library Documentation"
 HREF="index.html"><LINK
@@ -72,7 +73,7 @@ NAME="SDLENABLEKEYREPEAT"
 ><DIV
 CLASS="REFNAMEDIV"
 ><A
-NAME="AEN4889"
+NAME="AEN5217"
 ></A
 ><H2
 >Name</H2
@@ -80,14 +81,14 @@ NAME="AEN4889"
 ><DIV
 CLASS="REFSYNOPSISDIV"
 ><A
-NAME="AEN4892"
+NAME="AEN5220"
 ></A
 ><H2
 >Synopsis</H2
 ><DIV
 CLASS="FUNCSYNOPSIS"
 ><A
-NAME="AEN4893"
+NAME="AEN5221"
 ></A
 ><P
 ></P
@@ -111,12 +112,32 @@ CLASS="FSFUNC"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN4899"
+NAME="AEN5227"
 ></A
 ><H2
 >Description</H2
 ><P
->Enables or disables the keyboard repeat rate.</P
+>Enables or disables the keyboard repeat rate. <TT
+CLASS="PARAMETER"
+><I
+>delay</I
+></TT
+> specifies how long the key must be pressed before it begins repeating, it then repeats at the speed specified by <TT
+CLASS="PARAMETER"
+><I
+>interval</I
+></TT
+>. Both <TT
+CLASS="PARAMETER"
+><I
+>delay</I
+></TT
+> and <TT
+CLASS="PARAMETER"
+><I
+>interval</I
+></TT
+> are expressed in milliseconds.</P
 ><P
 >Setting <TT
 CLASS="PARAMETER"
@@ -134,7 +155,7 @@ CLASS="SYMBOL"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN4906"
+NAME="AEN5238"
 ></A
 ><H2
 >Return Value</H2

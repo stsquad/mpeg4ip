@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_rwops.c,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_rwops.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* This file provides a general interface for SDL to read and write
@@ -144,6 +144,50 @@ static int mem_close(SDL_RWops *context)
 static int in_sdl = 0;
 #endif
 
+#ifdef macintosh
+/*
+ * translate unix-style slash-separated filename to mac-style colon-separated
+ * name; return malloced string
+ */
+static char *unix_to_mac(const char *file)
+{
+	int flen = strlen(file);
+	char *path = malloc(flen + 2);
+	const char *src = file;
+	char *dst = path;
+	if(*src == '/') {
+		/* really depends on filesystem layout, hope for the best */
+		src++;
+	} else {
+		/* Check if this is a MacOS path to begin with */
+		if(*src != ':')
+			*dst++ = ':';   /* relative paths begin with ':' */
+	}
+	while(src < file + flen) {
+		const char *end = strchr(src, '/');
+		int len;
+		if(!end)
+			end = file + flen; /* last component */
+		len = end - src;
+		if(len == 0 || (len == 1 && src[0] == '.')) {
+			/* remove repeated slashes and . */
+		} else {
+			if(len == 2 && src[0] == '.' && src[1] == '.') {
+				/* replace .. with the empty string */
+			} else {
+				memcpy(dst, src, len);
+				dst += len;
+			}
+			if(end < file + flen)
+				*dst++ = ':';
+		}
+		src = end + 1;
+	}
+	*dst++ = '\0';
+	return path;
+}
+#endif /* macintosh */
+
 SDL_RWops *SDL_RWFromFile(const char *file, const char *mode)
 {
 	FILE *fp;
@@ -152,76 +196,10 @@ SDL_RWops *SDL_RWFromFile(const char *file, const char *mode)
 	rwops = NULL;
 
 #ifdef macintosh
-	/* Simple path translation for MacOS classic.
-	   Pretty much all other platforms support '/' as a path separator.
-	   This assumes that we're translating _to_ MacOS pathnames
-	*/
-	{ char *path, *p;
-
-	  /* Allocate memory for the new path */
-	  path = (char *)malloc(1+strlen(file)+1);
-	  if ( ! path ) {
-		SDL_OutOfMemory();
-		return(NULL);
-	  }
-
-	  if ( *file == '/' ) { /* Uh, oh, depends on filesystem layout.. */
-		strcpy(path, file+1);
-	  } else {              /* Relative to current path */
-		/* If a MacOS path is passed, we don't want to add a ':' */
-		if ( *file != ':' ) {
-			sprintf(path, ":%s", file);
-		} else {
-			sprintf(path, "%s", file); 
-		}
-	  }
-
-	  /* Turn "../" into ':' */
-	  p = path;
-	  while ( (p=strstr(p, "../")) != NULL ) {
-		*p++ = ':';
-		strcpy (p, p+2);
-	  }
-
-	  /* Turn '/' into ':' */
-	  for ( p = path; *p; ++p ) {
-		if ( *p == '/' ) {
-			*p = ':';
-		}
-	  }
-
-	  /* This last bit of code strips out all substrings
-	     like ":<dir>:" from the string ":<dir>::"
-	  */
-	  do {
-	 	char *mark;
-
-		/* skip all leading ':' */
-		p = path;
-		while (*p == ':')
-			p++;
-
-		/* find the end of ':<dir>::' string */
-	 	if ( (p = strstr(p, "::")) == NULL)
-			break;
-
-		/* mark end of match */
-		mark = p + 1;
-
-	  	/* back up one directory to beginning of match */
-	  	while ( *--p != ':' ) {
-	  		if ( p < path ) { /* Logic error... */
-				SDL_SetError("Malformed path on MacOS");
-				return(NULL);
-			}
-		}
-		/* remove match */
-		strcpy (p,mark);
-
-	  } while (1);
-
-	  fp = fopen(path, mode);
-	  free(path);
+	{
+		char *mpath = unix_to_mac(file);
+		fp = fopen(mpath, mode);
+		free(mpath);
 	}
 #else
 	fp = fopen(file, mode);

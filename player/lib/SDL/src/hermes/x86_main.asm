@@ -43,6 +43,9 @@ _ConvertX86:
 	push ebp
 	mov ebp,esp
 
+; Save the registers used by the blitters, necessary for optimized code
+	pusha
+
 	mov eax,[ebp+8]
 
         cmp dword [eax+4],BYTE 0
@@ -65,6 +68,8 @@ _x86return:
 	dec dword  [ebp+8]
 	jnz y_loop
 
+; Restore the registers used by the blitters, necessary for optimized code
+	popa
 	
 	pop ebp
 

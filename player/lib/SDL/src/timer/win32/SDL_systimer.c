@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systimer.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_systimer.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #include <windows.h>
@@ -31,6 +31,11 @@ static char rcsid =
 #include "SDL_timer.h"
 #include "SDL_timer_c.h"
 #include "SDL_error.h"
+
+#ifdef _WIN32_WCE
+#define USE_GETTICKCOUNT
+#define USE_SETTIMER
+#endif
 
 #define TIME_WRAP_VALUE	(~(DWORD)0)
 
@@ -69,6 +74,61 @@ void SDL_Delay(Uint32 ms)
 	Sleep(ms);
 }
 
+#ifdef USE_SETTIMER
+
+static UINT WIN_timer;
+
+int SDL_SYS_TimerInit(void)
+{
+	return(0);
+}
+
+void SDL_SYS_TimerQuit(void)
+{
+	return;
+}
+
+/* Forward declaration because this is called by the timer callback */
+int SDL_SYS_StartTimer(void);
+
+static VOID CALLBACK TimerCallbackProc(HWND hwnd, UINT uMsg, UINT idEvent, DWORD dwTime)
+{
+	Uint32 ms;
+
+	ms = SDL_alarm_callback(SDL_alarm_interval);
+	if ( ms != SDL_alarm_interval ) {
+		KillTimer(NULL, idEvent);
+		if ( ms ) {
+			SDL_alarm_interval = ROUND_RESOLUTION(ms);
+			SDL_SYS_StartTimer();
+		} else {
+			SDL_alarm_interval = 0;
+		}
+	}
+}
+
+int SDL_SYS_StartTimer(void)
+{
+	int retval;
+
+	WIN_timer = SetTimer(NULL, 0, SDL_alarm_interval, TimerCallbackProc);
+	if ( WIN_timer ) {
+		retval = 0;
+	} else {
+		retval = -1;
+	}
+	return retval;
+}
+
+void SDL_SYS_StopTimer(void)
+{
+	if ( WIN_timer ) {
+		KillTimer(NULL, WIN_timer);
+		WIN_timer = 0;
+	}
+}
+
+#else /* !USE_SETTIMER */
 
 /* Data to handle a single periodic alarm */
 static UINT timerID = 0;
@@ -78,6 +138,7 @@ static void CALLBACK HandleAlarm(UINT uID,  UINT uMsg, DWORD dwUser,
 {
 	SDL_ThreadedTimerCheck();
 }
+
 
 int SDL_SYS_TimerInit(void)
 {
@@ -116,3 +177,5 @@ void SDL_SYS_StopTimer(void)
 {
 	return;
 }
+
+#endif /* USE_SETTIMER */

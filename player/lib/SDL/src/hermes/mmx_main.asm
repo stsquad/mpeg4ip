@@ -34,6 +34,9 @@ _ConvertMMX:
 	push ebp
 	mov ebp,esp
 
+; Save the registers used by the blitters, necessary for optimized code
+	pusha
+
 	mov eax,[ebp+8]
 
         cmp dword [eax+4],BYTE 0
@@ -57,6 +60,9 @@ _mmxreturn:
 	jnz y_loop
 
 	
+; Restore the registers used by the blitters, necessary for optimized code
+	popa
+
 	pop ebp
 
 endconvert:

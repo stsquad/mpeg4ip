@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -124,17 +124,21 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dspvideo.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_dspvideo.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
 
+#if TARGET_API_MAC_CARBON
+#include <Carbon.h>
+#else
 #include <LowMem.h>
 #include <Gestalt.h>
 #include <Devices.h>
 #include <DiskInit.h>
 #include <QDOffscreen.h>
+#endif
 
 #include "SDL_video.h"
 #include "SDL_blit.h"
@@ -180,18 +184,21 @@ static int DSp_FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
    static void DSp_GL_SwapBuffers (_THIS);
 #endif
 
-#ifndef TARGET_OS_CARBON
+#if ! TARGET_API_MAC_CARBON
 
+    #define GetPortPixRowBytes(x)  ( (*(x->portPixMap))->rowBytes )
    #define GetGDevPixMap(x) ((**(x)).gdPMap)   
    #define GetPortPixMap(x) ((*(x)).portPixMap)
    
    #define GetPixDepth(y)    ((**(y)).pixelSize)
-   #define GetPixRowBytes(y) ((**(y)).rowBytes)
-   #define GetPixBaseAddr(y) ((**(y)).baseAddr)
+   //#define GetPixRowBytes(y) ((**(y)).rowBytes)
+   //#define GetPixBaseAddr(y) ((**(y)).baseAddr)
    #define GetPixCTab(y)     ((**(y)).pmTable)
+    #define GetPortBitMapForCopyBits(x) (&(((GrafPtr)(x))->portBits))
    
 #else
-
+    #define GetPortPixRowBytes(x) (GetPixRowBytes(GetPortPixMap(x)) )
+    #define GetGDevPixMap(x) ((**(x)).gdPMap)
 
 #endif
 
@@ -292,9 +299,11 @@ static SDL_VideoDevice *DSp_CreateDevice(int devindex)
 	device->GL_MakeCurrent  = Mac_GL_MakeCurrent;
 	device->GL_SwapBuffers  = DSp_GL_SwapBuffers;
 #endif
-	device->SetIcon         = NULL;
-	device->SetCaption      = NULL;
-	device->GetWMInfo       = NULL;
+	device->SetCaption = NULL;
+	device->SetIcon = NULL;
+	device->IconifyWindow = NULL;
+	device->GrabInput = NULL;
+	device->GetWMInfo = NULL;
 	device->FreeWMCursor    = Mac_FreeWMCursor;
 	device->CreateWMCursor  = Mac_CreateWMCursor;
 	device->ShowWMCursor    = Mac_ShowWMCursor;
@@ -311,7 +320,8 @@ static SDL_VideoDevice *DSp_CreateDevice(int devindex)
 }
 
 VideoBootStrap DSp_bootstrap = {
-	"DSp", DSp_Available, DSp_CreateDevice
+	"DSp", "MacOS DrawSprocket",
+	DSp_Available, DSp_CreateDevice
 };
 
 /* Use DSp/Display Manager to build mode list for given screen */
@@ -323,12 +333,17 @@ static SDL_Rect**  DSp_BuildModeList (const GDHandle gDevice)
 	SDL_Rect temp_list [16];
 	SDL_Rect **mode_list;
 	int width, height, i, j;
-		
-	/* Ask Display Manager for integer id of screen device */
+        
+        #if TARGET_API_MAC_OSX		
+	
+        displayID = 0;
+        
+        #else
+        /* Ask Display Manager for integer id of screen device */
 	if ( DMGetDisplayIDByGDevice (gDevice, &displayID, SDL_TRUE) != noErr ) {
 		return NULL;
 	}
-	
+	#endif
 	/* Get the first possible DSp context on this device */
 	if ( DSpGetFirstContext (displayID, &context) != noErr ) {
 		return NULL;
@@ -429,6 +444,13 @@ static void DSp_IsHWAvailable (_THIS, SDL_PixelFormat *vformat)
 
 static int DSp_GetMainDevice (_THIS, GDHandle *device)
 {
+    
+#if TARGET_API_MAC_OSX
+        /* DSpUserSelectContext not available on OS X */
+        *device = GetMainDevice();
+        return 0;
+#else
+        
 	DSpContextAttributes attrib;
 	DSpContextReference  context;
 	DisplayIDType        display_id;
@@ -479,6 +501,7 @@ static int DSp_GetMainDevice (_THIS, GDHandle *device)
 
 	*device = main_device;
 	return (0);
+#endif
 }
 
 static int DSp_VideoInit(_THIS, SDL_PixelFormat *vformat)
@@ -511,7 +534,7 @@ static int DSp_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		return (-1);
 
 	/* Determine pixel format */
-	vformat->BitsPerPixel = GetPixDepth (GetGDevPixMap(SDL_Display));
+    vformat->BitsPerPixel = GetPixDepth ( (**SDL_Display).gdPMap );
 	dsp_old_depth = vformat->BitsPerPixel;
 		
 	switch (vformat->BitsPerPixel) {
@@ -540,7 +563,7 @@ static int DSp_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	/* Check for VRAM and AGP GWorlds for HW Blitting */
 	DSp_IsHWAvailable (this, vformat);
 	
-	this->info.wm_available = SDL_FALSE;
+	this->info.wm_available = 0;
 
 	if (dsp_vram_available || dsp_agp_available) {
     
@@ -592,12 +615,14 @@ static void DSp_DirectUpdate(_THIS, int numrects, SDL_Rect *rects);
 
 static volatile unsigned int retrace_count = 0; /* -dw- need volatile because it updates asychronously */
 
+#if ! TARGET_API_MAC_OSX
 Boolean DSp_VBLProc ( DSpContextReference context, void *ref_con )
 {
 	retrace_count++;
 	
 	return 1; /* Darrell, is this right? */
 }
+#endif
 
 static void DSp_SetHWError (OSStatus err, int is_agp)
 {
@@ -666,7 +691,7 @@ static int DSp_ConfirmSwitch () {
 
    } while ( item != bCancel && item != bOK && err != noErr);
 
-  CloseDialog (dialog);
+  DisposeWindow (dialog);
   SetPort (savePort);
   
   SetEventMask(everyEvent - autoKeyMask);
@@ -732,7 +757,7 @@ static SDL_Surface *DSp_SetVideoMode(_THIS,
 	double_buf = (flags & SDL_DOUBLEBUF) != 0;
 	hw_surface = (flags & SDL_HWSURFACE) != 0;
 	use_dsp_back_buffer = !dsp_vram_available || !hw_surface ;
-      
+	
 	current->flags |= SDL_FULLSCREEN;
 
 rebuild:  
@@ -753,7 +778,14 @@ rebuild:
 	attrib.colorNeeds           = kDSpColorNeeds_Require;
 	attrib.colorTable           = 0;
 	attrib.pageCount            = page_count;
-	
+        #if TARGET_API_MAC_OSX
+        
+        if ( DSpFindBestContext (&attrib, &dsp_context) != noErr ) {
+            SDL_SetError ("DrawSprocket couldn't find a context");
+            return NULL;
+        }
+        
+        #else
 	if ( noErr != DMGetDisplayIDByGDevice (SDL_Display, &display_id, SDL_FALSE) ) {
 		SDL_SetError ("Display Manager couldn't associate GDevice with display_id");
 		return NULL;
@@ -762,7 +794,8 @@ rebuild:
 		SDL_SetError ("DrawSprocket couldn't find a suitable context on given display");
 		return NULL;
 	}
-			
+	
+        #endif		
 	if ( DSpContext_Reserve (dsp_context, &attrib) != noErr ) {
 		SDL_SetError ("DrawSprocket couldn't get the needed resources to build the display");
 		return NULL;
@@ -850,22 +883,28 @@ rebuild:
 	   goto  rebuild;
     }
 	   	
-	current->pitch  = GetPixRowBytes(GetPortPixMap(dsp_back_buffer)) & 0x3FFF;
+    current->pitch  = GetPortPixRowBytes(dsp_back_buffer) & 0x3FFF;
 	current->pixels = GetPixBaseAddr(GetPortPixMap(dsp_back_buffer));
 	
 	current->w = width;
 	current->h = height;
 	
+    #if ! TARGET_API_MAC_OSX
+        
 	if (use_dsp_back_buffer) {
 	   
 	   DSpContext_GetMonitorFrequency (dsp_context, &freq);
 	   DSpContext_SetMaxFrameRate     (dsp_context, freq >> 16);
 	}
 	
-	/* is SDL_HWSURFACE set if SDL_OPENGL is set? */
+    
 	if ( (current->flags & SDL_HWSURFACE) || (current->flags & SDL_OPENGL) )
 		DSpContext_SetVBLProc (dsp_context, DSp_VBLProc, NULL);
-		
+    #endif
+	
+	if (bpp == 8)	
+	   current->flags |= SDL_HWPALETTE;
+	
 	if (flags & SDL_OPENGL) {
 		   
 	   Rect rect;
@@ -896,9 +935,7 @@ rebuild:
 	      SDL_SetError ("DSp_SetVideoMode : could not create OpenGL context.");
 	      return NULL;
 	   }
-	   
-	   
-	   	   	   
+	   	   	   	   
 	   current->flags |= SDL_OPENGL;	
 	}
 	
@@ -941,8 +978,8 @@ static int DSp_MakeHWMask (_THIS, SDL_Surface *surface)
                  
     RGBBackColor (&(surface->hwdata->trans));
     
-    CopyBits ( &(((GrafPtr)(surface->hwdata->offscreen))->portBits),
-    	       &(((GrafPtr)(surface->hwdata->mask))->portBits),
+    CopyBits ( GetPortBitMapForCopyBits(surface->hwdata->offscreen),
+                 GetPortBitMapForCopyBits(surface->hwdata->mask),
     	       &rect, &rect, transparent, NULL );
         
     SetGWorld (surface->hwdata->mask, SDL_Display);    
@@ -1103,9 +1140,9 @@ static int DSp_HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 	     
 	     OpColor (&(src->hwdata->alpha));	           
     
-	     CopyDeepMask ( &(((GrafPtr)(src->hwdata->offscreen))->portBits),
-	                    &(((GrafPtr)(src->hwdata->mask))->portBits),
-	                    &(((GrafPtr)(dst->hwdata->offscreen))->portBits),
+         CopyDeepMask ( GetPortBitMapForCopyBits(src->hwdata->offscreen),
+                        GetPortBitMapForCopyBits(src->hwdata->mask),
+                        GetPortBitMapForCopyBits(dst->hwdata->offscreen),
 	                    &src_rect, &src_rect, &dst_rect,
 	                    blend,
 	                    NULL );                	                    
@@ -1126,8 +1163,8 @@ static int DSp_HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
     	    mode = srcCopy;   	    
     	}            
     	
-    	CopyBits ( &(((GrafPtr)(src->hwdata->offscreen))->portBits),
-    	           &(((GrafPtr)(dst->hwdata->offscreen))->portBits),
+        CopyBits ( GetPortBitMapForCopyBits(src->hwdata->offscreen),
+                   GetPortBitMapForCopyBits(dst->hwdata->offscreen),
     	           &src_rect, &dst_rect, mode, NULL );
     }	
 #else
@@ -1183,14 +1220,17 @@ static int DSp_FlipHWSurface(_THIS, SDL_Surface *surface)
   		/* wait for retrace */
   		/* I have tried doing the swap in interrupt routine (VBL Proc) to do */
   		/* it asynchronously, but apparently CopyBits isn't interrupt safe  */		   
+        
+            #if ! TARGET_API_MAC_OSX
 		#ifndef DSP_NO_SYNC_VBL
     		old_count = retrace_count;
     		while (old_count == retrace_count)
     			  ;
 		#endif				  
+            #endif
   		
-  		CopyBits ( &(((GrafPtr)dsp_back_buffer)->portBits),
-  			   &(((GrafPtr)dsp_front_buffer)->portBits),
+          CopyBits ( GetPortBitMapForCopyBits(dsp_back_buffer),
+                      GetPortBitMapForCopyBits(dsp_front_buffer),
   			   &rect, &rect, srcCopy, NULL );
   	
   		SetPort ((GrafPtr)save_port);
@@ -1200,7 +1240,7 @@ static int DSp_FlipHWSurface(_THIS, SDL_Surface *surface)
 		Boolean busy_flag;
 		DSpContext_SwapBuffers (dsp_context, NULL, &busy_flag); /* this  waits for VBL */
 		DSpContext_GetBackBuffer (dsp_context, kDSpBufferKind_Normal, &dsp_back_buffer);
-		surface->pixels = (*(dsp_back_buffer->portPixMap))->baseAddr;
+        surface->pixels =  GetPixBaseAddr( GetPortPixMap(dsp_back_buffer) );
 	}
 	return(0);
 }
@@ -1225,6 +1265,7 @@ static void DSp_DirectUpdate(_THIS, int numrects, SDL_Rect *sdl_rects)
 
 static void DSp_DSpUpdate(_THIS, int numrects, SDL_Rect *sdl_rects)
 {
+#if ! TARGET_API_MAC_OSX /* Unsupported DSp in here */
 	int i;
 	Rect rect;
 	
@@ -1237,6 +1278,7 @@ static void DSp_DSpUpdate(_THIS, int numrects, SDL_Rect *sdl_rects)
 		
 		DSpContext_InvalBackBufferRect (dsp_context, &rect);		
 	}
+#endif
 }
 
 static int DSp_CreatePalette(_THIS) {

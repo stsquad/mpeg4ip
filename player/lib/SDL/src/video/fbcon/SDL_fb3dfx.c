@@ -1,6 +1,6 @@
 /*
 	SDL - Simple DirectMedia Layer
-	Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+	Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fb3dfx.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_fb3dfx.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include "SDL_types.h"
@@ -65,12 +65,12 @@ static int SetHWColorKey(_THIS, SDL_Surface *surface, Uint32 key)
 static int FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 {
 	int bpp;
-	caddr_t dst_base;
+	char *dst_base;
 	Uint32 format;
 	int dstX, dstY;
 
 	/* Set the destination pixel format */
-	dst_base = (caddr_t)((caddr_t)dst->pixels - mapped_mem);
+	dst_base = (char *)((char *)dst->pixels - mapped_mem);
 	bpp = dst->format->BitsPerPixel;
 	format = dst->pitch | ((bpp+((bpp==8) ? 0 : 8)) << 13);
 
@@ -96,8 +96,8 @@ static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 	int bpp;
 	Uint32 src_format;
 	Uint32 dst_format;
-	caddr_t src_base;
-	caddr_t dst_base;
+	char *src_base;
+	char *dst_base;
 	int srcX, srcY;
 	int dstX, dstY;
 	Uint32 blitop;
@@ -105,10 +105,10 @@ static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 
 	/* Set the source and destination pixel format */
 	this = current_video;
-	src_base = (caddr_t)((caddr_t)src->pixels - mapped_mem);
+	src_base = (char *)((char *)src->pixels - mapped_mem);
 	bpp = src->format->BitsPerPixel;
 	src_format = src->pitch | ((bpp+((bpp==8) ? 0 : 8)) << 13);
-	dst_base = (caddr_t)((caddr_t)dst->pixels - mapped_mem);
+	dst_base = (char *)((char *)dst->pixels - mapped_mem);
 	bpp = dst->format->BitsPerPixel;
 	dst_format = dst->pitch | ((bpp+((bpp==8) ? 0 : 8)) << 13);
 

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,10 +22,12 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_wingl.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_wingl.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 /* WGL implementation of SDL OpenGL support */
+
+#include <windows.h>
 
 #include "SDL_error.h"
 #include "SDL_lowvideo.h"
@@ -71,10 +73,10 @@ int WIN_GL_SetupWindow(_THIS)
 	GL_pfd.cGreenBits = this->gl_config.green_size;
 	GL_pfd.cBlueBits = this->gl_config.blue_size;
 	GL_pfd.cAlphaBits = this->gl_config.alpha_size;
-	GL_pfd.cAccumRedBits = this->gl_config.red_size;
-	GL_pfd.cAccumGreenBits = this->gl_config.green_size;
-	GL_pfd.cAccumBlueBits = this->gl_config.blue_size;
-	GL_pfd.cAccumAlphaBits = this->gl_config.alpha_size;
+	GL_pfd.cAccumRedBits = this->gl_config.accum_red_size;
+	GL_pfd.cAccumGreenBits = this->gl_config.accum_green_size;
+	GL_pfd.cAccumBlueBits = this->gl_config.accum_blue_size;
+	GL_pfd.cAccumAlphaBits = this->gl_config.accum_alpha_size;
 	GL_pfd.cAccumBits =
 		(GL_pfd.cAccumRedBits + GL_pfd.cAccumGreenBits +
 		 GL_pfd.cAccumBlueBits + GL_pfd.cAccumAlphaBits);

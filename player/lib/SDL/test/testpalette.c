@@ -294,9 +294,9 @@ int main(int argc, char **argv)
 
 	    } else if(gamma_ramp) {
 		/* Fade using gamma ramp (better) */
-		Uint8 ramp[256];
+		Uint16 ramp[256];
 		for(i = 0; i < 256; i++)
-		    ramp[i] = i * fade_level / fade_max;
+		    ramp[i] = (i * fade_level / fade_max) << 8;
 		if(SDL_SetGammaRamp(ramp, ramp, ramp) < 0)
 		    sdlerr("setting gamma ramp");
 

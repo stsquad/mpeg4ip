@@ -24,7 +24,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_timer.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_timer.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #include <stdlib.h>
@@ -106,6 +106,7 @@ void SDL_TimerQuit(void)
 		SDL_DestroyMutex(SDL_timer_mutex);
 	}
 	SDL_timer_started = 0;
+	SDL_timer_threaded = 0;
 }
 
 void SDL_ThreadedTimerCheck(void)
@@ -169,7 +170,11 @@ SDL_TimerID SDL_AddTimer(Uint32 interval, SDL_NewTimerCallback callback, void *p
 {
 	SDL_TimerID t;
 	if ( ! SDL_timer_mutex ) {
-		SDL_SetError("You must call SDL_Init(SDL_INIT_TIMER) first");
+		if ( SDL_timer_started ) {
+			SDL_SetError("This platform doesn't support multiple timers");
+		} else {
+			SDL_SetError("You must call SDL_Init(SDL_INIT_TIMER) first");
+		}
 		return NULL;
 	}
 	if ( ! SDL_timer_threaded ) {

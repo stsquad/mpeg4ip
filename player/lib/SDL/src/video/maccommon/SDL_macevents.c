@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_macevents.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_macevents.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include <stdio.h>
@@ -46,6 +46,11 @@ static char rcsid =
 #include "SDL_sysevents.h"
 #include "SDL_macevents_c.h"
 #include "SDL_mackeys.h"
+#include "SDL_macmouse_c.h"
+
+/* Define this to be able to collapse SDL windows.
+#define USE_APPEARANCE_MANAGER
+ */
 
 /* Macintosh resource constants */
 #define mApple	128			/* Apple menu resource */
@@ -56,35 +61,44 @@ static void Mac_DoAppleMenu(_THIS, long item);
 
 /* The translation table from a macintosh key scancode to a SDL keysym */
 static SDLKey MAC_keymap[256];
-static SDL_keysym *TranslateKey(EventRecord *ev,SDL_keysym *keysym,int pressed);
+static SDL_keysym *TranslateKey(int scancode, int modifiers,
+                                SDL_keysym *keysym, int pressed);
 
 /* Handle activation and deactivation  -- returns whether an event was posted */
 static int Mac_HandleActivate(int activate)
 {
 	if ( activate ) {
-		if ( !(SDL_cursorstate & CURSOR_VISIBLE) ) {
-			HideCursor();
-		}
+		/* Show the current SDL application cursor */
 		SDL_SetCursor(NULL);
+
+		/* put our mask back case it changed during context switch */
+		SetEventMask(everyEvent - autoKeyMask);
 	} else {
-		if ( !(SDL_cursorstate & CURSOR_VISIBLE) ) {
-			ShowCursor();
-		}
 #if TARGET_API_MAC_CARBON
-		SetCursor(GetQDGlobalsArrow(NULL));
+		{ Cursor cursor;
+			SetCursor(GetQDGlobalsArrow(&cursor));
+		}
 #else
 		SetCursor(&theQD->arrow);
 #endif
+		if ( ! Mac_cursor_showing ) {
+			ShowCursor();
+			Mac_cursor_showing = 1;
+		}
 	}
-	return(SDL_PrivateAppActive(activate, SDL_APPACTIVE));
+	return(SDL_PrivateAppActive(activate, SDL_APPINPUTFOCUS));
 }
 
 static void myGlobalToLocal(_THIS, Point *pt)
 {
 	if ( SDL_VideoSurface && !(SDL_VideoSurface->flags&SDL_FULLSCREEN) ) {
-		WindowPtr saveport;
+		GrafPtr saveport;
 		GetPort(&saveport);
+#if TARGET_API_MAC_CARBON
+		SetPort(GetWindowPort(SDL_Window));
+#else
 		SetPort(SDL_Window);
+#endif
 		GlobalToLocal(pt);
 		SetPort(saveport);
 	}
@@ -96,7 +110,21 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 	int i;
 	EventRecord event;
 
+#if TARGET_API_MAC_CARBON
+	/* There's no GetOSEvent() in the Carbon API. *sigh* */
 #define cooperative_multitasking 1
+#else
+	int cooperative_multitasking;
+	/* If we're running fullscreen, we can hog the MacOS events,
+	   otherwise we had better play nicely with the other apps.
+	*/
+	if ( this->screen && (this->screen->flags & SDL_FULLSCREEN) ) {
+		cooperative_multitasking = 0;
+	} else {
+		cooperative_multitasking = 1;
+	}
+#endif
+
 	/* If we call WaitNextEvent(), MacOS will check other processes
 	 * and allow them to run, and perform other high-level processing.
 	 */
@@ -111,57 +139,16 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 		}
 		WaitNextEvent(everyEvent, &event, wait_time, nil);
 	} else {
+#if ! TARGET_API_MAC_CARBON
 		GetOSEvent(everyEvent, &event);
+#endif
 	}
 
-	/* Check for special non-event keys */
-	/* FIXME: these key events are delivered even when in background */
-	if ( event.modifiers != last_mods ) {
-		static struct {
-			EventModifiers mask;
-			SDLKey key;
-		} mods[] = {
-			{ cmdKey,		SDLK_LMETA },
-			{ shiftKey,		SDLK_LSHIFT },
-			{ rightShiftKey,	SDLK_RSHIFT },
-			{ alphaLock,		SDLK_CAPSLOCK },
-			{ optionKey,		SDLK_LALT },
-			{ rightOptionKey,	SDLK_RALT },
-			{ controlKey,		SDLK_LCTRL },
-			{ rightControlKey,	SDLK_RCTRL },
-			{ 0,			0 }
-		};
-		SDL_keysym keysym;
-		Uint8 mode;
-		EventModifiers mod, mask;
-		
-
-		/* Set up the keyboard event */
-		keysym.scancode = 0;
-		keysym.sym = SDLK_UNKNOWN;
-		keysym.mod = KMOD_NONE;
-		keysym.unicode = 0;
-
-		/* See what has changed, and generate events */
-		mod = event.modifiers;
-		for ( i=0; mods[i].mask; ++i ) {
-			mask = mods[i].mask;
-			if ( (mod&mask) != (last_mods&mask) ) {
-				keysym.sym = mods[i].key;
-				if ( (mod&mask) ||
-				     (mods[i].key == SDLK_CAPSLOCK) ) {
-					mode = SDL_PRESSED;
-				} else {
-					mode = SDL_RELEASED;
-				}
-				SDL_PrivateKeyboard(mode, &keysym);
-			}
-		}
-
-		/* Save state for next time */
-		last_mods = mod;
-	}
-
+#if TARGET_API_MAC_CARBON
+	/* for some reason, event.where isn't set ? */
+	GetGlobalMouse ( &event.where );
+#endif
+    
 	/* Check for mouse motion */
 	if ( (event.where.h != last_where.h) ||
 	     (event.where.v != last_where.v) ) {
@@ -171,12 +158,109 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 		SDL_PrivateMouseMotion(0, 0, pt.h, pt.v);
 	}
 
+	/* Check the current state of the keyboard */
+	if ( SDL_GetAppState() & SDL_APPINPUTFOCUS ) {
+		KeyMap keys;
+
+		/* Check for special non-event keys */
+		if ( event.modifiers != last_mods ) {
+			static struct {
+				EventModifiers mask;
+				SDLKey key;
+			} mods[] = {
+				{ alphaLock,		SDLK_CAPSLOCK },
+#if 0 /* These are handled below in the GetKeys() code */
+				{ cmdKey,		SDLK_LMETA },
+				{ shiftKey,		SDLK_LSHIFT },
+				{ rightShiftKey,	SDLK_RSHIFT },
+				{ optionKey,		SDLK_LALT },
+				{ rightOptionKey,	SDLK_RALT },
+				{ controlKey,		SDLK_LCTRL },
+				{ rightControlKey,	SDLK_RCTRL },
+#endif /* 0 */
+				{ 0,			0 }
+			};
+			SDL_keysym keysym;
+			Uint8 mode;
+			EventModifiers mod, mask;
+		
+
+			/* Set up the keyboard event */
+			keysym.scancode = 0;
+			keysym.sym = SDLK_UNKNOWN;
+			keysym.mod = KMOD_NONE;
+			keysym.unicode = 0;
+
+			/* See what has changed, and generate events */
+			mod = event.modifiers;
+			for ( i=0; mods[i].mask; ++i ) {
+				mask = mods[i].mask;
+				if ( (mod&mask) != (last_mods&mask) ) {
+					keysym.sym = mods[i].key;
+					if ( (mod&mask) ||
+					     (mods[i].key == SDLK_CAPSLOCK) ) {
+						mode = SDL_PRESSED;
+					} else {
+						mode = SDL_RELEASED;
+					}
+					SDL_PrivateKeyboard(mode, &keysym);
+				}
+			}
+
+			/* Save state for next time */
+			last_mods = mod;
+		}
+
+		/* Check for normal event keys, but we have to scan the
+		   actual keyboard state because on MacOS X a keydown event
+		   is immediately followed by a keyup event.
+		*/
+		GetKeys(keys);
+		if ( (keys[0] != last_keys[0]) || (keys[1] != last_keys[1]) ||
+		     (keys[2] != last_keys[2]) || (keys[3] != last_keys[3]) ) {
+			SDL_keysym keysym;
+			int old_bit, new_bit;
+
+#ifdef DEBUG_KEYBOARD
+			fprintf(sterr, "New keys: 0x%x 0x%x 0x%x 0x%x\n",
+				new_keys[0], new_keys[1],
+				new_keys[2], new_keys[3]);
+#endif
+			for ( i=0; i<128; ++i ) {
+				old_bit = (((Uint8 *)last_keys)[i/8]>>(i%8)) & 0x01;
+				new_bit = (((Uint8 *)keys)[i/8]>>(i%8)) & 0x01;
+				if ( old_bit != new_bit ) {
+					/* Post the keyboard event */
+#ifdef DEBUG_KEYBOARD
+					fprintf(stderr,"Scancode: 0x%2.2X\n",i);
+#endif
+					SDL_PrivateKeyboard(new_bit,
+				            TranslateKey(i, event.modifiers,
+				                         &keysym, new_bit));
+				}
+			}
+
+			/* Save state for next time */
+			last_keys[0] = keys[0];
+			last_keys[1] = keys[1];
+			last_keys[2] = keys[2];
+			last_keys[3] = keys[3];
+		}
+	}
+
+	/* Handle normal events */
 	switch (event.what) {
 	  case mouseDown: {
 		WindowRef win;
 		short area;
 				
 		area = FindWindow(event.where, &win);
+		/* Support switching between the SIOUX console
+		   and SDL_Window by clicking in the window.
+		 */
+		if ( win && (win != FrontWindow()) ) {
+			SelectWindow(win);
+		} 
 		switch (area) {
 		  case inMenuBar: /* Only the apple menu exists */
 			Mac_DoAppleMenu(this, MenuSelect(event.where));
@@ -209,8 +293,6 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 					1,event.where.h,event.where.v);
 			}
 			break;
-#ifdef USE_APPEARANCE_MANAGER
-		  /* FIXME: There's no grow box by default, how to add? */
 		  case inGrow: {
 			int newSize;
 
@@ -219,38 +301,37 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 			     ! (SDL_PublicSurface->flags & SDL_RESIZABLE) ) {
 				break;
 			}
+#if TARGET_API_MAC_CARBON
+			newSize = GrowWindow(win, event.where, NULL);
+#else
 			newSize = GrowWindow(win, event.where, &theQD->screenBits.bounds);
+#endif
 			if ( newSize ) {
-				SizeWindow ( win, LoWord (newSize), HiWord (newSize), 1 );
+#if !TARGET_API_MAC_CARBON
 				EraseRect ( &theQD->screenBits.bounds );
-// The next comment not sure because it produces some strange results
-//				int noerr;
-/*				noerr = aglSetDrawable(glContext, (AGLDrawable)SDL_Window);
-				if(!noerr) {
-					SDL_SetError("Unable to bind GL context to window");
-					return(-1);
-				}
-				Mac_GL_MakeCurrent ( this );
-*/
+#endif
+				SizeWindow ( win, LoWord (newSize), HiWord (newSize), 1 );
 				SDL_PrivateResize ( LoWord (newSize), HiWord (newSize) );
 			}
 		  	} break;
-		  /* FIXME: There's no zoom box by default, how to add? */
 		  case inZoomIn:
-			if ( TrackBox (win, event.where, area )) {
-				EraseRect ( &theQD->screenBits.bounds );
-				ZoomWindow ( win, area, 0);
-				// There should be something done like in inGrow case, but...
-			}
-			break;
-		  /* FIXME: There's no zoom box by default, how to add? */
 		  case inZoomOut:
 			if ( TrackBox (win, event.where, area )) {
+				Rect rect;
+#if !TARGET_API_MAC_CARBON
 				EraseRect ( &theQD->screenBits.bounds );
+#endif
 				ZoomWindow ( win, area, 0);
-				// There should be something done like in inGrow case, but...
+				if ( area == inZoomIn ) {
+					GetWindowUserState(SDL_Window, &rect);
+				} else {
+					GetWindowStandardState(SDL_Window, &rect);
+				}
+				SDL_PrivateResize (rect.right-rect.left,
+				                   rect.bottom-rect.top);
 			}
 			break;
+#if TARGET_API_MAC_CARBON
 		  case inCollapseBox:
 			if ( TrackBox (win, event.where, area )) {
 				if ( IsWindowCollapsable(win) ) {
@@ -259,7 +340,7 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 				}
 			}
 			break;
-#endif /* USE_APPEARANCE_MANAGER */
+#endif /* TARGET_API_MAC_CARBON */
 		  case inSysWindow:
 #if TARGET_API_MAC_CARBON
 			/* Never happens in Carbon? */
@@ -288,20 +369,24 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 		}
 	  }
 	  break;
+#if 0 /* Handled above the switch statement */
 	  case keyDown: {
 		SDL_keysym keysym;
 
 		SDL_PrivateKeyboard(SDL_PRESSED,
-			TranslateKey(&event, &keysym, 1));
+			TranslateKey((event.message&keyCodeMask)>>8
+		                     event.modifiers, &keysym, 1));
 	  }
 	  break;
 	  case keyUp: {
 		SDL_keysym keysym;
 
 		SDL_PrivateKeyboard(SDL_RELEASED,
-			TranslateKey(&event, &keysym, 0));
+			TranslateKey((event.message&keyCodeMask)>>8
+		                     event.modifiers, &keysym, 0));
 	  }
 	  break;
+#endif
 	  case updateEvt: {
 		BeginUpdate(SDL_Window);
 		if ( (SDL_VideoSurface->flags & SDL_HWSURFACE) ==
@@ -309,6 +394,12 @@ static int Mac_HandleEvents(_THIS, int wait4it)
 			SDL_UpdateRect(SDL_VideoSurface, 0, 0, 0, 0);
 		}
 		EndUpdate(SDL_Window);
+	  }
+	  /* If this was an update event for the SIOUX console, we return 0
+             in order to stop an endless series of updates being triggered.
+	  */
+	  if ( (WindowRef) event.message != SDL_Window ) {
+		return 0;
 	  }
 	  break;
 	  case activateEvt: {
@@ -368,6 +459,13 @@ void Mac_InitOSKeymap(_THIS)
 	/* Map the MAC keysyms */
 	for ( i=0; i<SDL_TABLESIZE(MAC_keymap); ++i )
 		MAC_keymap[i] = SDLK_UNKNOWN;
+
+	/* Wierd, these keys are on my iBook under MacOS X */
+	MAC_keymap[MK_IBOOK_ENTER] = SDLK_KP_ENTER;
+	MAC_keymap[MK_IBOOK_RIGHT] = SDLK_RIGHT;
+	MAC_keymap[MK_IBOOK_DOWN] = SDLK_DOWN;
+	MAC_keymap[MK_IBOOK_UP] = SDLK_UP;
+	MAC_keymap[MK_IBOOK_LEFT] = SDLK_LEFT;
 
 	/* Defined MAC_* constants */
 	MAC_keymap[MK_ESCAPE] = SDLK_ESCAPE;
@@ -446,7 +544,7 @@ void Mac_InitOSKeymap(_THIS)
 	MAC_keymap[MK_KP5] = SDLK_KP5;
 	MAC_keymap[MK_KP6] = SDLK_KP6;
 	MAC_keymap[MK_KP_PLUS] = SDLK_KP_PLUS;
-	//MAC_keymap[MK_LSHIFT] = SDLK_LSHIFT;
+	MAC_keymap[MK_LSHIFT] = SDLK_LSHIFT;
 	MAC_keymap[MK_z] = SDLK_z;
 	MAC_keymap[MK_x] = SDLK_x;
 	MAC_keymap[MK_c] = SDLK_c;
@@ -457,7 +555,9 @@ void Mac_InitOSKeymap(_THIS)
 	MAC_keymap[MK_COMMA] = SDLK_COMMA;
 	MAC_keymap[MK_PERIOD] = SDLK_PERIOD;
 	MAC_keymap[MK_SLASH] = SDLK_SLASH;
+#if 0	/* These are the same as the left versions - use left by default */
 	MAC_keymap[MK_RSHIFT] = SDLK_RSHIFT;
+#endif
 	MAC_keymap[MK_UP] = SDLK_UP;
 	MAC_keymap[MK_KP1] = SDLK_KP1;
 	MAC_keymap[MK_KP2] = SDLK_KP2;
@@ -467,9 +567,11 @@ void Mac_InitOSKeymap(_THIS)
 	MAC_keymap[MK_LALT] = SDLK_LALT;
 	MAC_keymap[MK_LMETA] = SDLK_LMETA;
 	MAC_keymap[MK_SPACE] = SDLK_SPACE;
+#if 0	/* These are the same as the left versions - use left by default */
 	MAC_keymap[MK_RMETA] = SDLK_RMETA;
 	MAC_keymap[MK_RALT] = SDLK_RALT;
 	MAC_keymap[MK_RCTRL] = SDLK_RCTRL;
+#endif
 	MAC_keymap[MK_LEFT] = SDLK_LEFT;
 	MAC_keymap[MK_DOWN] = SDLK_DOWN;
 	MAC_keymap[MK_RIGHT] = SDLK_RIGHT;
@@ -477,10 +579,11 @@ void Mac_InitOSKeymap(_THIS)
 	MAC_keymap[MK_KP_PERIOD] = SDLK_KP_PERIOD;
 }
 
-static SDL_keysym *TranslateKey(EventRecord *ev,SDL_keysym *keysym,int pressed)
+static SDL_keysym *TranslateKey(int scancode, int modifiers,
+                                SDL_keysym *keysym, int pressed)
 {
 	/* Set the keysym information */
-	keysym->scancode = (ev->message&keyCodeMask)>>8;
+	keysym->scancode = scancode;
 	keysym->sym = MAC_keymap[keysym->scancode];
 	keysym->mod = KMOD_NONE;
 	keysym->unicode = 0;
@@ -496,7 +599,7 @@ static SDL_keysym *TranslateKey(EventRecord *ev,SDL_keysym *keysym,int pressed)
 			state = 0;
 		}
 		keysym->unicode = KeyTranslate(keymap,
-			keysym->scancode|ev->modifiers, &state) & 0xFFFF;
+			keysym->scancode|modifiers, &state) & 0xFFFF;
 	}
 	return(keysym);
 }

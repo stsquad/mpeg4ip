@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syssem.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_syssem.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #include <stdlib.h>
@@ -53,12 +53,28 @@ static char rcsid =
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>			/* For getpid() */
 #include <semaphore.h>
 
 /* Wrapper around POSIX 1003.1b semaphores */
 
+#ifdef MACOSX
+#define USE_NAMED_SEMAPHORES
+/* Broken sem_getvalue() in MacOS X Public Beta */
+#define BROKEN_SEMGETVALUE
+#endif /* MACOSX */
+
 struct SDL_semaphore {
-	sem_t sem;
+	sem_t *sem;
+#ifndef USE_NAMED_SEMAPHORES
+	sem_t sem_data;
+#endif
+#ifdef BROKEN_SEMGETVALUE
+	/* This is a little hack for MacOS X -
+	   It's not thread-safe, but it's better than nothing
+	 */
+	int sem_value;
+#endif
 };
 
 /* Create a semaphore, initialized with value */
@@ -66,11 +82,34 @@ SDL_sem *SDL_CreateSemaphore(Uint32 initial_value)
 {
 	SDL_sem *sem = (SDL_sem *) malloc(sizeof(SDL_sem));
 	if ( sem ) {
-		if ( sem_init(&sem->sem, 0, initial_value) < 0 ) {
+#ifdef USE_NAMED_SEMAPHORES
+		static int semnum = 0;
+		char name[32];
+
+		sprintf(name, "/SDL_sem-%d-%4.4d", getpid(), semnum++);
+		sem->sem = sem_open(name, O_CREAT, 0600, initial_value);
+		if ( sem->sem == (sem_t *)SEM_FAILED ) {
+			SDL_SetError("sem_open(%s) failed", name);
+			free(sem);
+			sem = NULL;
+		} else {
+			sem_unlink(name);
+		}
+#else
+		if ( sem_init(&sem->sem_data, 0, initial_value) < 0 ) {
 			SDL_SetError("sem_init() failed");
 			free(sem);
 			sem = NULL;
+		} else {
+			sem->sem = &sem->sem_data;
 		}
+#endif /* USE_NAMED_SEMAPHORES */
+
+#ifdef BROKEN_SEMGETVALUE
+		if ( sem ) {
+			sem->sem_value = initial_value;
+		}
+#endif /* BROKEN_SEMGETVALUE */
 	} else {
 		SDL_OutOfMemory();
 	}
@@ -80,7 +119,11 @@ SDL_sem *SDL_CreateSemaphore(Uint32 initial_value)
 void SDL_DestroySemaphore(SDL_sem *sem)
 {
 	if ( sem ) {
-		sem_destroy(&sem->sem);
+#ifdef USE_NAMED_SEMAPHORES
+		sem_close(sem->sem);
+#else
+		sem_destroy(sem->sem);
+#endif
 		free(sem);
 	}
 }
@@ -94,7 +137,10 @@ int SDL_SemTryWait(SDL_sem *sem)
 		return -1;
 	}
 	retval = SDL_MUTEX_TIMEDOUT;
-	if ( sem_trywait(&sem->sem) == 0 ) {
+	if ( sem_trywait(sem->sem) == 0 ) {
+#ifdef BROKEN_SEMGETVALUE
+		--sem->sem_value;
+#endif
 		retval = 0;
 	}
 	return retval;
@@ -109,7 +155,10 @@ int SDL_SemWait(SDL_sem *sem)
 		return -1;
 	}
 
-	retval = sem_wait(&sem->sem);
+#ifdef BROKEN_SEMGETVALUE
+	--sem->sem_value;
+#endif
+	retval = sem_wait(sem->sem);
 	if ( retval < 0 ) {
 		SDL_SetError("sem_wait() failed");
 	}
@@ -150,7 +199,11 @@ Uint32 SDL_SemValue(SDL_sem *sem)
 {
 	int ret = 0;
 	if ( sem ) {
-		sem_getvalue(&sem->sem, &ret);
+#ifdef BROKEN_SEMGETVALUE
+		ret = sem->sem_value;
+#else
+		sem_getvalue(sem->sem, &ret);
+#endif
 		if ( ret < 0 ) {
 			ret = 0;
 		}
@@ -167,7 +220,10 @@ int SDL_SemPost(SDL_sem *sem)
 		return -1;
 	}
 
-	retval = sem_post(&sem->sem);
+#ifdef BROKEN_SEMGETVALUE
+	++sem->sem_value;
+#endif
+	retval = sem_post(sem->sem);
 	if ( retval < 0 ) {
 		SDL_SetError("sem_post() failed");
 	}
@@ -345,14 +401,14 @@ Uint32 SDL_SemValue(SDL_sem *sem)
 	value = 0;
 	if ( sem ) {
 	  tryagain:
-#ifdef __GNU_LIBRARY__
+#ifdef _SGI_SOURCE
+		semval = semctl(sem->id, 0, GETVAL);
+#else
 		{
 		union semun arg;
 		arg.val = 0;
 		semval = semctl(sem->id, 0, GETVAL, arg);
 		}
-#else
-		semval = semctl(sem->id, 0, GETVAL);
 #endif
 		if ( semval < 0 ) {
 			if ( errno == EINTR ) {

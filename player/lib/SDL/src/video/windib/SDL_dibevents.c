@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,12 +22,11 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dibevents.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_dibevents.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <signal.h>
 #include <windows.h>
 
 #include "SDL_events.h"
@@ -43,9 +42,13 @@ static char rcsid =
 #define WM_APP	0x8000
 #endif
 
+#ifdef _WIN32_WCE
+#define NO_GETKEYBOARDSTATE
+#endif
+
 /* The translation table from a Microsoft VK keysym to a SDL keysym */
 static SDLKey VK_keymap[SDLK_LAST];
-static SDL_keysym *TranslateKey(UINT vkey, UINT scancode, SDL_keysym *keysym);
+static SDL_keysym *TranslateKey(UINT vkey, UINT scancode, SDL_keysym *keysym, int pressed);
 
 /* Masks for processing the windows KEYDOWN and KEYUP messages */
 #define REPEATED_KEYMASK	(1<<30)
@@ -58,15 +61,6 @@ LONG
 	extern int posted;
 
 	switch (msg) {
-		case WM_ACTIVATEAPP: {
-			int active;
-
-			active = (wParam && (GetForegroundWindow() == hwnd));
-			posted = SDL_PrivateAppActive((Uint8)active,
-						SDL_APPINPUTFOCUS);
-		}
-		break;
-
 		case WM_SYSKEYDOWN:
 		case WM_KEYDOWN: {
 			SDL_keysym keysym;
@@ -94,7 +88,7 @@ LONG
 					break;
 			}
 			posted = SDL_PrivateKeyboard(SDL_PRESSED,
-				  TranslateKey(wParam,HIWORD(lParam),&keysym));
+				TranslateKey(wParam,HIWORD(lParam),&keysym,1));
 		}
 		return(0);
 
@@ -121,7 +115,7 @@ LONG
 					break;
 			}
 			posted = SDL_PrivateKeyboard(SDL_RELEASED,
-				  TranslateKey(wParam,HIWORD(lParam),&keysym));
+				TranslateKey(wParam,HIWORD(lParam),&keysym,0));
 		}
 		return(0);
 
@@ -279,20 +273,20 @@ void DIB_InitOSKeymap(_THIS)
 	VK_keymap[VK_SNAPSHOT] = SDLK_PRINT;
 	VK_keymap[VK_CANCEL] = SDLK_BREAK;
 	VK_keymap[VK_APPS] = SDLK_MENU;
-
-	/* Set the numlock state */
-	if ( GetKeyState(VK_NUMLOCK) )
-		SDL_SetModState(SDL_GetModState()|KMOD_NUM);
 }
 
-static SDL_keysym *TranslateKey(UINT vkey, UINT scancode, SDL_keysym *keysym)
+static SDL_keysym *TranslateKey(UINT vkey, UINT scancode, SDL_keysym *keysym, int pressed)
 {
 	/* Set the keysym information */
 	keysym->scancode = (unsigned char) scancode;
 	keysym->sym = VK_keymap[vkey];
 	keysym->mod = KMOD_NONE;
 	keysym->unicode = 0;
-	if ( SDL_TranslateUNICODE ) { /* Someday use ToUnicode() */
+	if ( pressed && SDL_TranslateUNICODE ) { /* Someday use ToUnicode() */
+#ifdef NO_GETKEYBOARDSTATE
+		/* Uh oh, better hope the vkey is close enough.. */
+		keysym->unicode = vkey;
+#else
 		BYTE keystate[256];
 		BYTE chars[2];
 
@@ -300,12 +294,29 @@ static SDL_keysym *TranslateKey(UINT vkey, UINT scancode, SDL_keysym *keysym)
 		if ( ToAscii(vkey,scancode,keystate,(WORD *)chars,0) == 1 ) {
 			keysym->unicode = chars[0];
 		}
+#endif /* NO_GETKEYBOARDSTATE */
 	}
 	return(keysym);
 }
 
 int DIB_CreateWindow(_THIS)
 {
+#ifdef _WIN32_WCE
+	/* WinCE uses the UNICODE version */
+	int nLen = strlen(SDL_Appname);
+	LPWSTR lpszW = alloca((nLen+1)*2);
+	MultiByteToWideChar(CP_ACP, 0, SDL_Appname, -1, lpszW, nLen);
+
+	SDL_RegisterApp("SDL_app", 0, 0);
+	SDL_Window = CreateWindow(lpszW, lpszW,
+                        (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX),
+                                 0, 0, 0, 0, NULL, NULL, SDL_Instance, NULL);
+	if ( SDL_Window == NULL ) {
+		SDL_SetError("Couldn't create window");
+		return(-1);
+	}
+	ShowWindow(SDL_Window, SW_HIDE);
+#else
 	SDL_RegisterApp("SDL_app", CS_BYTEALIGNCLIENT, 0);
 	if ( SDL_windowid ) {
 		SDL_Window = (HWND)strtol(SDL_windowid, NULL, 0);
@@ -319,6 +330,8 @@ int DIB_CreateWindow(_THIS)
 		}
 		ShowWindow(SDL_Window, SW_HIDE);
 	}
+#endif /* _WIN32_WCE */
+
 	return(0);
 }
 

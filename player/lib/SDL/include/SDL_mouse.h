@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_mouse.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_mouse.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Include file for SDL mouse event handling */
@@ -108,7 +108,8 @@ extern DECLSPEC void SDL_FreeCursor(SDL_Cursor *cursor);
  * Toggle whether or not the cursor is shown on the screen.
  * The cursor start off displayed, but can be turned off.
  * SDL_ShowCursor() returns 1 if the cursor was being displayed
- * before the call, or 0 if it was not.
+ * before the call, or 0 if it was not.  You can query the current
+ * state by passing a 'toggle' value of -1.
  */
 extern DECLSPEC int SDL_ShowCursor(int toggle);
 
@@ -128,7 +129,7 @@ extern DECLSPEC int SDL_ShowCursor(int toggle);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
-};
+}
 #endif
 #include "close_code.h"
 

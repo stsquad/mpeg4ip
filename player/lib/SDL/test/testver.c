@@ -20,6 +20,11 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
 	fprintf(stderr, "SDL initialized\n");
 #endif
+#if SDL_VERSION_ATLEAST(1, 2, 0)
+	printf("Compiled with SDL 1.2 or newer\n");
+#else
+	printf("Compiled with SDL older than 1.2\n");
+#endif
 	SDL_VERSION(&compiled);
 	printf("Compiled version: %d.%d.%d\n",
 			compiled.major, compiled.minor, compiled.patch);

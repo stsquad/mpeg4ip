@@ -66,9 +66,13 @@
 #define FIELD_OFFSET(type, field)    ((LONG)&(((type *)0)->field))
 #endif
 
-/* DirectX 6.0 header includes
-   (if it isn't included, I haven't tested it yet)
+/* DirectX headers (if it isn't included, I haven't tested it yet)
  */
+/* We need these defines to mark what version of DirectX API we use */
+#define DIRECTDRAW_VERSION  0x0700
+#define DIRECTSOUND_VERSION 0x0500
+#define DIRECTINPUT_VERSION 0x0500
+
 #ifdef __GNUC__
 #define NONAMELESSUNION
 #endif

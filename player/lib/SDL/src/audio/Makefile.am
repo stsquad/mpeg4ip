@@ -3,17 +3,20 @@
 
 noinst_LTLIBRARIES = libaudio.la
 
-EXTRA_SUBDIRS = aix amigaos beos irix linux macos openbsd solaris win32
+# Define which subdirectories need to be built
+SUBDIRS = @AUDIO_SUBDIRS@
+DIST_SUBDIRS = alsa arts baudio dma dmedia dsp esd macrom nas nto \
+               paudio sun ums windib windx5
 
-SUBDIRS = @AUDIO_ARCH@
-
-DIST_SUBDIRS = $(EXTRA_SUBDIRS)
+DRIVERS = @AUDIO_DRIVERS@
 
 # Include the architecture-independent sources
 COMMON_SRCS =			\
 	SDL_audio.c		\
 	SDL_audio_c.h		\
 	SDL_audiocvt.c		\
+	SDL_audiodev.c		\
+	SDL_audiodev_c.h	\
 	SDL_audiomem.c		\
 	SDL_audiomem.h		\
 	SDL_mixer.c		\
@@ -22,4 +25,5 @@ COMMON_SRCS =			\
 	SDL_wave.h
 
 libaudio_la_SOURCES = $(COMMON_SRCS)
-libaudio_la_LIBADD = @AUDIO_ARCH_LIB@
+libaudio_la_LIBADD = $(DRIVERS)
+libaudio_la_DEPENDENCIES = $(DRIVERS)

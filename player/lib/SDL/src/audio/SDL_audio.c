@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,13 +22,12 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
 #include <stdlib.h>
 #include <stdio.h>
-#include <signal.h>
 #include <string.h>
 
 #include "SDL.h"
@@ -39,17 +38,28 @@ static char rcsid =
 #include "SDL_audiomem.h"
 #include "SDL_sysaudio.h"
 
-
 /* Available audio drivers */
 static AudioBootStrap *bootstrap[] = {
-#ifdef unix
+#if defined(unix) && \
+   !defined(linux) && !defined(__FreeBSD__) && !defined(__CYGWIN32__) \
+   && !defined(__bsdi__)
 	&AUDIO_bootstrap,
 #endif
-#ifdef linux
+#ifdef OSS_SUPPORT
+	&DSP_bootstrap,
 	&DMA_bootstrap,
+#endif
+#ifdef ALSA_SUPPORT
+	&ALSA_bootstrap,
+#endif
+#ifdef ARTSC_SUPPORT
+	&ARTSC_bootstrap,
 #endif
 #ifdef ESD_SUPPORT
 	&ESD_bootstrap,
+#endif
+#ifdef NAS_SUPPORT
+	&NAS_bootstrap,
 #endif
 #ifdef ENABLE_DIRECTX
 	&DSOUND_bootstrap,
@@ -60,8 +70,8 @@ static AudioBootStrap *bootstrap[] = {
 #ifdef __BEOS__
 	&BAUDIO_bootstrap,
 #endif
-#if defined(macintosh) && !TARGET_API_MAC_CARBON
-	&AUDIO_bootstrap,
+#if defined(macintosh) || TARGET_API_MAC_CARBON
+	&SNDMGR_bootstrap,
 #endif
 #ifdef _AIX
 	&Paud_bootstrap,
@@ -205,9 +215,11 @@ int SDL_AudioInit(const char *driver_name)
 #endif /* unix */
 	if ( audio == NULL ) {
 		if ( driver_name != NULL ) {
+#if 0	/* This will be replaced with a better driver selection API */
 			if ( strrchr(driver_name, ':') != NULL ) {
 				idx = atoi(strrchr(driver_name, ':')+1);
 			}
+#endif
 			for ( i=0; bootstrap[i]; ++i ) {
 				if (strncmp(bootstrap[i]->name, driver_name,
 				            strlen(bootstrap[i]->name)) == 0) {

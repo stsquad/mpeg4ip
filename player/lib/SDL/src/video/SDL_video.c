@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_video.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* The high-level video driver subsystem */
@@ -53,6 +53,9 @@ static VideoBootStrap *bootstrap[] = {
 #endif
 #ifdef ENABLE_FBCON
 	&FBCON_bootstrap,
+#endif
+#ifdef ENABLE_PS2GS
+	&PS2GS_bootstrap,
 #endif
 #ifdef ENABLE_GGI
 	&GGI_bootstrap,
@@ -88,7 +91,6 @@ SDL_VideoDevice *current_video = NULL;
 /* Places to store title and icon text for the app */
 static char *wm_title = NULL;
 static char *wm_icon  = NULL;
-static int offset_x, offset_y;
 
 /* Various local functions */
 int SDL_VideoInit(const char *driver_name, Uint32 flags);
@@ -96,7 +98,9 @@ void SDL_VideoQuit(void);
 void SDL_GL_UpdateRectsLock(SDL_VideoDevice* this, int numrects, SDL_Rect* rects);
 
 static SDL_GrabMode SDL_WM_GrabInputOff(void);
+#ifdef HAVE_OPENGL
 static int lock_count = 0;
+#endif
 
 
 /*
@@ -129,9 +133,11 @@ int SDL_VideoInit (const char *driver_name, Uint32 flags)
 	index = 0;
 	video = NULL;
 	if ( driver_name != NULL ) {
+#if 0	/* This will be replaced with a better driver selection API */
 		if ( strrchr(driver_name, ':') != NULL ) {
 			index = atoi(strrchr(driver_name, ':')+1);
 		}
+#endif
 		for ( i=0; bootstrap[i]; ++i ) {
 			if ( strncmp(bootstrap[i]->name, driver_name,
 			             strlen(bootstrap[i]->name)) == 0 ) {
@@ -209,6 +215,10 @@ int SDL_VideoInit (const char *driver_name, Uint32 flags)
 	}
 	SDL_PublicSurface = NULL;	/* Until SDL_SetVideoMode() */
 
+#if 0 /* Don't change the current palette - may be used by other programs.
+       * The application can't do anything with the display surface until
+       * a video mode has been set anyway. :)
+       */
 	/* If we have a palettized surface, create a default palette */
 	if ( SDL_VideoSurface->format->palette ) {
 	        SDL_PixelFormat *vf = SDL_VideoSurface->format;
@@ -216,6 +226,7 @@ int SDL_VideoInit (const char *driver_name, Uint32 flags)
 		video->SetColors(video,
 				 0, vf->palette->ncolors, vf->palette->colors);
 	}
+#endif
 	video->info.vfmt = SDL_VideoSurface->format;
 
 	/* Start the event loop */
@@ -298,18 +309,19 @@ SDL_Rect ** SDL_ListModes (SDL_PixelFormat *format, Uint32 flags)
  * one used when setting the video mode, SDL_SetVideoMode() will succeed,
  * but will emulate the requested bits-per-pixel with a shadow surface.
  */
+static Uint8 SDL_closest_depths[4][8] = {
+	/* 8 bit closest depth ordering */
+	{ 0, 8, 16, 15, 32, 24, 0, 0 },
+	/* 15,16 bit closest depth ordering */
+	{ 0, 16, 15, 32, 24, 8, 0, 0 },
+	/* 24 bit closest depth ordering */
+	{ 0, 24, 32, 16, 15, 8, 0, 0 },
+	/* 32 bit closest depth ordering */
+	{ 0, 32, 16, 15, 24, 8, 0, 0 }
+};
+
 int SDL_VideoModeOK (int width, int height, int bpp, Uint32 flags) 
 {
-	Uint8 bit_depths[4][7] = {
-		/* 8 bit closest depth ordering */
-		{ 0, 8, 16, 15, 32, 24, 0 },
-		/* 15,16 bit closest depth ordering */
-		{ 0, 16, 15, 32, 24, 8, 0 },
-		/* 24 bit closest depth ordering */
-		{ 0, 24, 32, 16, 15, 8, 0 },
-		/* 32 bit closest depth ordering */
-		{ 0, 32, 16, 15, 24, 8, 0 }
-	};
 	int table, b, i;
 	int supported;
 	SDL_PixelFormat format;
@@ -327,9 +339,10 @@ int SDL_VideoModeOK (int width, int height, int bpp, Uint32 flags)
 	memset(&format, 0, sizeof(format));
 	supported = 0;
 	table = ((bpp+7)/8)-1;
-	bit_depths[table][0] = bpp;
-	for ( b = 0; !supported && bit_depths[table][b]; ++b ) {
-		format.BitsPerPixel = bit_depths[table][b];
+	SDL_closest_depths[table][0] = bpp;
+	SDL_closest_depths[table][7] = 0;
+	for ( b = 0; !supported && SDL_closest_depths[table][b]; ++b ) {
+		format.BitsPerPixel = SDL_closest_depths[table][b];
 		sizes = SDL_ListModes(&format, flags);
 		if ( sizes == (SDL_Rect **)0 ) {
 			/* No sizes supported at this bit-depth */
@@ -354,7 +367,7 @@ int SDL_VideoModeOK (int width, int height, int bpp, Uint32 flags)
 	}
 	if ( supported ) {
 		--b;
-		return(bit_depths[table][b]);
+		return(SDL_closest_depths[table][b]);
 	} else {
 		return(0);
 	}
@@ -365,11 +378,13 @@ int SDL_VideoModeOK (int width, int height, int bpp, Uint32 flags)
  */
 static int SDL_GetVideoMode (int *w, int *h, int *BitsPerPixel, Uint32 flags)
 {
-	SDL_Rect **modes;
-	int i, okay;
-	Uint8 native_bpp;
+	int table, b, i;
+	int supported;
+	int native_bpp;
+	SDL_PixelFormat format;
+	SDL_Rect **sizes;
 
-	/* Try the original video mode */
+	/* Try the original video mode, get the closest depth */
 	native_bpp = SDL_VideoModeOK(*w, *h, *BitsPerPixel, flags);
 	if ( native_bpp == *BitsPerPixel ) {
 		return(1);
@@ -379,45 +394,46 @@ static int SDL_GetVideoMode (int *w, int *h, int *BitsPerPixel, Uint32 flags)
 		return(1);
 	}
 
-	/* Enumerate the native video modes, looking for a good size */
-	native_bpp = SDL_VideoSurface->format->BitsPerPixel;
-	okay = 1;
-	modes = SDL_ListModes(SDL_VideoSurface->format, flags);
-
-	/* Check to see if the requested mode is available */
-	if ( okay && (modes == (SDL_Rect **)-1) ) {
-		/* Uh oh, supports any size, but bit depth failed above (??) */
-		SDL_SetError("No video modes supported. (??)");
-		okay = 0;
+	/* No exact size match at any depth, look for closest match */
+	memset(&format, 0, sizeof(format));
+	supported = 0;
+	table = ((*BitsPerPixel+7)/8)-1;
+	SDL_closest_depths[table][0] = *BitsPerPixel;
+	SDL_closest_depths[table][7] = SDL_VideoSurface->format->BitsPerPixel;
+	for ( b = 0; !supported && SDL_closest_depths[table][b]; ++b ) {
+		format.BitsPerPixel = SDL_closest_depths[table][b];
+		sizes = SDL_ListModes(&format, flags);
+		if ( sizes == (SDL_Rect **)0 ) {
+			/* No sizes supported at this bit-depth */
+			continue;
+		}
+		for ( i=0; sizes[i]; ++i ) {
+			if ((sizes[i]->w < *w) || (sizes[i]->h < *h)) {
+				if ( i > 0 ) {
+					--i;
+					*w = sizes[i]->w;
+					*h = sizes[i]->h;
+					*BitsPerPixel = SDL_closest_depths[table][b];
+					supported = 1;
+				} else {
+					/* Largest mode too small... */;
+				}
+				break;
+			}
+		}
+		if ( (i > 0) && ! sizes[i] ) {
+			/* The smallest mode was larger than requested, OK */
+			--i;
+			*w = sizes[i]->w;
+			*h = sizes[i]->h;
+			*BitsPerPixel = SDL_closest_depths[table][b];
+			supported = 1;
+		}
 	}
-	if ( okay && (modes == (SDL_Rect **)0) ) {
-		/* Uh oh, no modes supported at native format (??) */
-		SDL_SetError("No video modes supported. (??)");
-		okay = 0;
+	if ( ! supported ) {
+		SDL_SetError("No video mode large enough for %dx%d", *w, *h);
 	}
-	if ( okay && ((modes[0]->w < *w) || (modes[0]->h < *h)) ) {
-		SDL_SetError(
-		"Biggest mode (%dx%d) is smaller than desired (%dx%d)",
-					modes[0]->w, modes[0]->h, *w, *h);
-		okay = 0;
-	}
-	if ( ! okay ) {
-		return(0);
-	}
-
-	/* Look for the closest sized mode at native bitdepth */
-	for ( i=0; modes[i] && (modes[i]->w > *w) && (modes[i]->h > *h); ++i ) {
-		/* keep looking */;
-	}
-	if ( ! modes[i] || (modes[i]->w < *w) || (modes[i]->h < *h) ) {
-		--i;	/* We went too far */
-	}
-
-	/* We found the smallest mode >= width x height */
-	*w = modes[i]->w;
-	*h = modes[i]->h;
-	*BitsPerPixel = native_bpp;
-	return(1);
+	return(supported);
 }
 
 /* This should probably go somewhere else -- like SDL_surface.c */
@@ -473,6 +489,10 @@ static void SDL_CreateShadowSurface(int depth)
 	/* If the video surface is resizable, the shadow should say so */
 	if ( (SDL_VideoSurface->flags & SDL_RESIZABLE) == SDL_RESIZABLE ) {
 		SDL_ShadowSurface->flags |= SDL_RESIZABLE;
+	}
+	/* If the video surface has no frame, the shadow should say so */
+	if ( (SDL_VideoSurface->flags & SDL_NOFRAME) == SDL_NOFRAME ) {
+		SDL_ShadowSurface->flags |= SDL_NOFRAME;
 	}
 	/* If the video surface is fullscreen, the shadow should say so */
 	if ( (SDL_VideoSurface->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
@@ -539,6 +559,10 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 	}
 
 	is_opengl = ( ( flags & SDL_OPENGL ) == SDL_OPENGL );
+	if ( is_opengl ) {
+		/* These flags are for 2D video modes only */
+		flags &= ~(SDL_HWSURFACE|SDL_DOUBLEBUF);
+	}
 
 	/* Clean up any previous video mode */
 	if ( SDL_PublicSurface != NULL ) {
@@ -571,17 +595,46 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 	if ( mode ) { /* Prevent resize events from mode change */
 	    SDL_PrivateResize(mode->w, mode->h);
         }
-	SDL_VideoSurface = mode;
+	/*
+	 * rcg11292000
+	 * If you try to set an SDL_OPENGL surface, and fail to find a
+	 * matching  visual, then the next call to SDL_SetVideoMode()
+	 * will segfault, since  we no longer point to a dummy surface,
+	 * but rather NULL.
+	 * Sam 11/29/00
+	 * WARNING, we need to make sure that the previous mode hasn't
+	 * already been freed by the video driver.  What do we do in
+	 * that case?  Should we call SDL_VideoInit() again?
+	 */
+	SDL_VideoSurface = (mode != NULL) ? mode : prev_mode;
+
 	if ( (mode != NULL) && (!is_opengl) ) {
+		/* Sanity check */
 		if ( (mode->w < width) || (mode->h < height) ) {
 			SDL_SetError("Video mode smaller than requested");
 			return(NULL);
 		}
+
+		/* If we have a palettized surface, create a default palette */
+		if ( mode->format->palette ) {
+	        	SDL_PixelFormat *vf = mode->format;
+			SDL_DitherColors(vf->palette->colors, vf->BitsPerPixel);
+			video->SetColors(this, 0, vf->palette->ncolors,
+			                           vf->palette->colors);
+		}
+
+		/* Clear the surface to black */
+		video->offset_x = 0;
+		video->offset_y = 0;
 		mode->offset = 0;
-		offset_x = (mode->w-width)/2;
-		offset_y = (mode->h-height)/2;
-		mode->offset = offset_y*mode->pitch +
-				offset_x*mode->format->BytesPerPixel;
+		SDL_SetClipRect(mode, NULL);
+		SDL_ClearSurface(mode);
+
+		/* Now adjust the offsets to match the desired mode */
+		video->offset_x = (mode->w-width)/2;
+		video->offset_y = (mode->h-height)/2;
+		mode->offset = video->offset_y*mode->pitch +
+				video->offset_x*mode->format->BytesPerPixel;
 #ifdef DEBUG_VIDEO
   fprintf(stderr,
 	"Requested mode: %dx%dx%d, obtained mode %dx%dx%d (offset %d)\n",
@@ -591,7 +644,6 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 		mode->w = width;
 		mode->h = height;
 		SDL_SetClipRect(mode, NULL);
-		SDL_ClearSurface(mode);
 	}
 	SDL_ResetCursor();
 	SDL_UnlockCursor();
@@ -601,21 +653,55 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 		return(NULL);
 	}
 
-	/* If we have a palettized surface, create a default palette */
-	if ( SDL_VideoSurface->format->palette ) {
-	        SDL_PixelFormat *vf = SDL_VideoSurface->format;
-		SDL_DitherColors(vf->palette->colors, vf->BitsPerPixel);
-		video->SetColors(this,
-				0, vf->palette->ncolors, vf->palette->colors);
+	/* If there is no window manager, set the SDL_NOFRAME flag */
+	if ( ! video->info.wm_available ) {
+		mode->flags |= SDL_NOFRAME;
 	}
-	video->info.vfmt = SDL_VideoSurface->format;
 
+	/* Reset the mouse cursor and grab for new video mode */
+	SDL_SetCursor(NULL);
+	if ( video->UpdateMouse ) {
+		video->UpdateMouse(this);
+	}
+	SDL_WM_GrabInput(saved_grab);
+	SDL_GetRelativeMouseState(NULL, NULL); /* Clear first large delta */
+
+	/* If we're running OpenGL, make the context current */
+	if ( (video->screen->flags & SDL_OPENGL) &&
+	      video->GL_MakeCurrent ) {
+		if ( video->GL_MakeCurrent(this) < 0 ) {
+			return(NULL);
+		}
+	}
+
+	/* Set up a fake SDL surface for OpenGL "blitting" */
 	if ( (flags & SDL_OPENGLBLIT) == SDL_OPENGLBLIT ) {
+		/* Load GL functions for performing the texture updates */
+#ifdef HAVE_OPENGL
+#define SDL_PROC(ret,func,params) \
+do { \
+	video->func = SDL_GL_GetProcAddress(#func); \
+	if ( ! video->func ) { \
+		SDL_SetError("Couldn't load GL function: %s\n", #func); \
+		return(NULL); \
+	} \
+} while ( 0 );
+#include "SDL_glfuncs.h"
+#undef SDL_PROC	
+
+		/* Create a software surface for blitting */
 #ifdef GL_VERSION_1_2
-		if ( bpp == 16 )
+		/* If the implementation either supports the packed pixels
+		   extension, or implements the core OpenGL 1.2 API, it will
+		   support the GL_UNSIGNED_SHORT_5_6_5 texture format.
+		 */
+		if ( (bpp == 16) &&
+		     (strstr((const char *)video->glGetString(GL_EXTENSIONS),
+		                           "GL_EXT_packed_pixels") ||
+		     (strncmp((const char *)video->glGetString(GL_VERSION),
+		              "1.2", 3) == 0)) )
 		{
 			video->is_32bit = 0;
-			/* TODO: free Surface */
 			SDL_VideoSurface = SDL_CreateRGBSurface(
 				flags, 
 				width, 
@@ -626,11 +712,11 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 				31,
 				0
 				);
-			SDL_VideoSurface->flags = flags;
-		} else {
+		}
+		else
 #endif /* OpenGL 1.2 */
+		{
 			video->is_32bit = 1;
-			/* TODO: free Surface */
 			SDL_VideoSurface = SDL_CreateRGBSurface(
 				flags, 
 				width, 
@@ -648,9 +734,38 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 				0x000000FF
 #endif
 				);
-			SDL_VideoSurface->flags = flags;
-#ifdef GL_VERSION_1_2
 		}
+		if ( ! SDL_VideoSurface ) {
+			return(NULL);
+		}
+		SDL_VideoSurface->flags = mode->flags | SDL_OPENGLBLIT;
+
+		/* Free the original video mode surface (is this safe?) */
+		SDL_FreeSurface(mode);
+
+                /* Set the surface completely opaque & white by default */
+		memset( SDL_VideoSurface->pixels, 255, SDL_VideoSurface->h * SDL_VideoSurface->pitch );
+		video->glGenTextures( 1, &video->texture );
+		video->glBindTexture( GL_TEXTURE_2D, video->texture );
+		video->glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			video->is_32bit ? GL_RGBA : GL_RGB,
+			256,
+			256,
+			0,
+			video->is_32bit ? GL_RGBA : GL_RGB,
+#ifdef GL_VERSION_1_2
+			video->is_32bit ? GL_UNSIGNED_BYTE : GL_UNSIGNED_SHORT_5_6_5,
+#else
+			GL_UNSIGNED_BYTE,
+#endif
+			NULL);
+
+		video->UpdateRects = SDL_GL_UpdateRectsLock;
+#else
+		SDL_SetError("Somebody forgot to #define HAVE_OPENGL");
+		return(NULL);
 #endif
 	}
 
@@ -681,59 +796,7 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 	} else {
 		SDL_PublicSurface = SDL_VideoSurface;
 	}
-
-	/* Reset the mouse cursor and grab for new video mode */
-	SDL_SetCursor(SDL_GetCursor());
-	if ( video->UpdateMouse ) {
-		video->UpdateMouse(this);
-	}
-	SDL_WM_GrabInput(saved_grab);
-	SDL_GetRelativeMouseState(NULL, NULL); /* Clear first large delta */
-
-	/* Make the current context active, if necessary */
-	if ( (video->screen->flags & SDL_OPENGL) && video->GL_MakeCurrent ) {
-		if ( video->GL_MakeCurrent(this) < 0 ) {
-			return(NULL);
-		}
-	}
-
-	if ( (flags & SDL_OPENGLBLIT) == SDL_OPENGLBLIT ) {
-#ifdef HAVE_OPENGL
-#define SDL_PROC(ret,func,params) \
-do { \
-	video->func = SDL_GL_GetProcAddress(#func); \
-	if ( ! video->func ) { \
-		SDL_SetError("Couldn't load GL function: %s\n", #func); \
-		return(NULL); \
-	} \
-} while ( 0 );
-#include "SDL_glfuncs.h"
-#undef SDL_PROC	
-                /* Set the surface completely opaque & white by default */
-		memset( SDL_VideoSurface->pixels, 255, SDL_VideoSurface->h * SDL_VideoSurface->pitch );
-		video->glGenTextures( 1, &video->texture );
-		video->glBindTexture( GL_TEXTURE_2D, video->texture );
-		video->glTexImage2D(
-			GL_TEXTURE_2D,
-			0,
-			video->is_32bit ? GL_RGBA : GL_RGB,
-			256,
-			256,
-			0,
-			video->is_32bit ? GL_RGBA : GL_RGB,
-#ifdef GL_VERSION_1_2
-			video->is_32bit ? GL_UNSIGNED_BYTE : GL_UNSIGNED_SHORT_5_6_5,
-#else
-			GL_UNSIGNED_BYTE,
-#endif
-			NULL);
-
-		video->UpdateRects = SDL_GL_UpdateRectsLock;
-#else
-		SDL_SetError("Somebody forgot to #define HAVE_OPENGL");
-		return(NULL);
-#endif
-	}
+	video->info.vfmt = SDL_VideoSurface->format;
 
 	/* We're done! */
 	return(SDL_PublicSurface);
@@ -746,9 +809,18 @@ SDL_Surface * SDL_DisplayFormat (SDL_Surface *surface)
 {
 	Uint32 flags;
 
+	if ( ! SDL_PublicSurface ) {
+		SDL_SetError("No video mode has been set");
+		return(NULL);
+	}
 	/* Set the flags appropriate for copying to display surface */
 	flags  = (SDL_PublicSurface->flags&SDL_HWSURFACE);
+#ifdef AUTORLE_DISPLAYFORMAT
 	flags |= (surface->flags & (SDL_SRCCOLORKEY|SDL_SRCALPHA));
+	flags |= SDL_RLEACCELOK;
+#else
+	flags |= surface->flags & (SDL_SRCCOLORKEY|SDL_SRCALPHA|SDL_RLEACCELOK);
+#endif
 	return(SDL_ConvertSurface(surface, SDL_PublicSurface->format, flags));
 }
 
@@ -758,49 +830,55 @@ SDL_Surface * SDL_DisplayFormat (SDL_Surface *surface)
  */
 SDL_Surface *SDL_DisplayFormatAlpha(SDL_Surface *surface)
 {
-    SDL_PixelFormat *vf = SDL_PublicSurface->format;
-    SDL_PixelFormat *f;
-    SDL_Surface *s;
-    Uint32 flags;
+	SDL_PixelFormat *vf;
+	SDL_PixelFormat *format;
+	SDL_Surface *converted;
+	Uint32 flags;
+	/* default to ARGB8888 */
+	Uint32 amask = 0xff000000;
+	Uint32 rmask = 0x00ff0000;
+	Uint32 gmask = 0x0000ff00;
+	Uint32 bmask = 0x000000ff;
 
-    /* default to ARGB8888 */
-    Uint32 amask = 0xff000000;
-    Uint32 rmask = 0x00ff0000;
-    Uint32 gmask = 0x0000ff00;
-    Uint32 bmask = 0x000000ff;
-
-    switch(vf->BytesPerPixel) {
-    case 2:
-	/* For XGY5[56]5, use, AXGY8888, where {X, Y} = {R, B}.
-	   For anything else (like ARGB4444) it doesn't matter since we
-	   have no special code for it anyway */
-	if(vf->Rmask == 0x1f && (vf->Bmask == 0xf800 || vf->Bmask == 0x7c00)) {
-	    rmask = 0xff;
-	    bmask = 0xff0000;
+	if ( ! SDL_PublicSurface ) {
+		SDL_SetError("No video mode has been set");
+		return(NULL);
 	}
-	break;
+	vf = SDL_PublicSurface->format;
 
-    case 3:
-    case 4:
-	/* Keep the video format, as long as the high 8 bits are
-	   unused or alpha */
-	if(vf->Rmask == 0xff && vf->Bmask == 0xff0000) {
-	    rmask = 0xff;
-	    bmask = 0xff0000;
+	switch(vf->BytesPerPixel) {
+	    case 2:
+		/* For XGY5[56]5, use, AXGY8888, where {X, Y} = {R, B}.
+		   For anything else (like ARGB4444) it doesn't matter
+		   since we have no special code for it anyway */
+		if ( (vf->Rmask == 0x1f) &&
+		     (vf->Bmask == 0xf800 || vf->Bmask == 0x7c00)) {
+			rmask = 0xff;
+			bmask = 0xff0000;
+		}
+		break;
+
+	    case 3:
+	    case 4:
+		/* Keep the video format, as long as the high 8 bits are
+		   unused or alpha */
+		if ( (vf->Rmask == 0xff) && (vf->Bmask == 0xff0000) ) {
+			rmask = 0xff;
+			bmask = 0xff0000;
+		}
+		break;
+
+	    default:
+		/* We have no other optimised formats right now. When/if a new
+		   optimised alpha format is written, add the converter here */
+		break;
 	}
-	break;
-
-    default:
-	/* We have no other optimised formats right now. When/if a new
-	   optimised alpha format is written, add the converter here. */
-	break;
-    }
-    f = SDL_AllocFormat(32, rmask, gmask, bmask, amask);
-    flags = SDL_PublicSurface->flags & SDL_HWSURFACE;
-    flags |= surface->flags & (SDL_SRCCOLORKEY | SDL_SRCALPHA);
-    s = SDL_ConvertSurface(surface, f, flags);
-    SDL_FreeFormat(f);
-    return s;
+	format = SDL_AllocFormat(32, rmask, gmask, bmask, amask);
+	flags = SDL_PublicSurface->flags & SDL_HWSURFACE;
+	flags |= surface->flags & (SDL_SRCALPHA | SDL_RLEACCELOK);
+	converted = SDL_ConvertSurface(surface, format, flags);
+	SDL_FreeFormat(format);
+	return(converted);
 }
 
 /*
@@ -875,13 +953,13 @@ void SDL_UpdateRects (SDL_Surface *screen, int numrects, SDL_Rect *rects)
 		/* Update the video surface */
 		if ( screen->offset ) {
 			for ( i=0; i<numrects; ++i ) {
-				rects[i].x += offset_x;
-				rects[i].y += offset_y;
+				rects[i].x += video->offset_x;
+				rects[i].y += video->offset_y;
 			}
 			video->UpdateRects(this, numrects, rects);
 			for ( i=0; i<numrects; ++i ) {
-				rects[i].x -= offset_x;
-				rects[i].y -= offset_y;
+				rects[i].x -= video->offset_x;
+				rects[i].y -= video->offset_y;
 			}
 		} else {
 			video->UpdateRects(this, numrects, rects);
@@ -1387,6 +1465,7 @@ void SDL_GL_Lock()
 		this->glDisable(GL_DEPTH_TEST);
 		this->glDisable(GL_SCISSOR_TEST);	
 		this->glDisable(GL_STENCIL_TEST);
+		this->glDisable(GL_CULL_FACE);
 
 		this->glBindTexture( GL_TEXTURE_2D, this->texture );
 		this->glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
@@ -1398,7 +1477,8 @@ void SDL_GL_Lock()
 		this->glPixelStorei( GL_UNPACK_ROW_LENGTH, this->screen->pitch / this->screen->format->BytesPerPixel );
 		this->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		(this->glColor4f)(1.0, 1.0, 1.0, 1.0);		/* Solaris workaround */
-	
+
+		this->glViewport(0, 0, this->screen->w, this->screen->h);
 		this->glMatrixMode(GL_PROJECTION);
 		this->glPushMatrix();
 		this->glLoadIdentity();
@@ -1457,7 +1537,7 @@ void SDL_WM_SetCaption (const char *title, const char *icon)
 			strcpy(wm_icon, icon);
 		}
 	}
-	if ( (title || icon) && (video->SetCaption != NULL) ) {
+	if ( (title || icon) && video && (video->SetCaption != NULL) ) {
 		video->SetCaption(this, wm_title, wm_icon);
 	}
 }
@@ -1695,7 +1775,7 @@ int SDL_GetWMInfo (SDL_SysWMinfo *info)
 	SDL_VideoDevice *video = current_video;
 	SDL_VideoDevice *this  = current_video;
 
-	if ( video->GetWMInfo ) {
+	if ( video && video->GetWMInfo ) {
 		return(video->GetWMInfo(this, info));
 	} else {
 		return(0);

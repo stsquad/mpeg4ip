@@ -178,6 +178,10 @@ int FilterEvents(const SDL_Event *event)
 			}
 			return(0);
 
+		/* Pass the video resize event through .. */
+		case SDL_VIDEORESIZE:
+			return(1);
+
 		/* This is important!  Queue it if we want to quit. */
 		case SDL_QUIT:
 			if ( ! reallyquit ) {
@@ -200,18 +204,56 @@ int FilterEvents(const SDL_Event *event)
 	}
 }
 
-int main(int argc, char *argv[])
+static Uint8  video_bpp;
+static Uint32 video_flags;
+
+int SetVideoMode(int w, int h)
 {
 	SDL_Surface *screen;
+	int i;
+	Uint8 *buffer;
+	SDL_Color palette[256];
+
+	screen = SDL_SetVideoMode(w, h, video_bpp, video_flags);
+	if (  screen == NULL ) {
+		fprintf(stderr, "Couldn't set %dx%dx%d video mode: %s\n",
+					w, h, video_bpp, SDL_GetError());
+		return(-1);
+	}
+	printf("Running in %s mode\n", screen->flags & SDL_FULLSCREEN ?
+						"fullscreen" : "windowed");
+
+	/* Set the surface pixels and refresh! */
+	for ( i=0; i<256; ++i ) {
+		palette[i].r = 255-i;
+		palette[i].g = 255-i;
+		palette[i].b = 255-i;
+	}
+	SDL_SetColors(screen, palette, 0, 256);
+	if ( SDL_LockSurface(screen) < 0 ) {
+		fprintf(stderr, "Couldn't lock display surface: %s\n",
+							SDL_GetError());
+		return(-1);
+	}
+	buffer = (Uint8 *)screen->pixels;
+	for ( i=0; i<screen->h; ++i ) {
+		memset(buffer,(i*255)/screen->h,
+				screen->w*screen->format->BytesPerPixel);
+		buffer += screen->pitch;
+	}
+	SDL_UnlockSurface(screen);
+	SDL_UpdateRect(screen, 0, 0, 0, 0);
+
+	return(0);
+}
+
+int main(int argc, char *argv[])
+{
 	SDL_Event event;
 	char *title;
 	SDL_Surface *icon;
 	Uint8 *icon_mask;
-	int i, parsed;
-	Uint8 *buffer;
-	SDL_Color palette[256];
-	Uint8  video_bpp;
-	Uint32 video_flags;
+	int parsed;
 
 	if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
 		fprintf(stderr,
@@ -227,6 +269,16 @@ int main(int argc, char *argv[])
 	while ( parsed ) {
 		if ( (argc >= 2) && (strcmp(argv[1], "-fullscreen") == 0) ) {
 			video_flags |= SDL_FULLSCREEN;
+			argc -= 1;
+			argv += 1;
+		} else
+		if ( (argc >= 2) && (strcmp(argv[1], "-resize") == 0) ) {
+			video_flags |= SDL_RESIZABLE;
+			argc -= 1;
+			argv += 1;
+		} else
+		if ( (argc >= 2) && (strcmp(argv[1], "-noframe") == 0) ) {
+			video_flags |= SDL_NOFRAME;
 			argc -= 1;
 			argv += 1;
 		} else
@@ -262,14 +314,9 @@ int main(int argc, char *argv[])
 		printf("No window title was set!\n");
 
 	/* Initialize the display */
-	screen = SDL_SetVideoMode(640, 480, video_bpp, video_flags);
-	if (  screen == NULL ) {
-		fprintf(stderr, "Couldn't set 640x480x%d video mode: %s\n",
-						video_bpp, SDL_GetError());
-		exit(1);
+	if ( SetVideoMode(640, 480) < 0 ) {
+		return(1);
 	}
-	printf("Running in %s mode\n", screen->flags & SDL_FULLSCREEN ?
-						"fullscreen" : "windowed");
 
 	/* Set an event filter that discards everything but QUIT */
 	SDL_SetEventFilter(FilterEvents);
@@ -277,30 +324,14 @@ int main(int argc, char *argv[])
 	/* Ignore key up events, they don't even get filtered */
 	SDL_EventState(SDL_KEYUP, SDL_IGNORE);
 
-	/* Set the surface pixels and refresh! */
-	for ( i=0; i<256; ++i ) {
-		palette[i].r = 255-i;
-		palette[i].g = 255-i;
-		palette[i].b = 255-i;
-	}
-	SDL_SetColors(screen, palette, 0, 256);
-	if ( SDL_LockSurface(screen) < 0 ) {
-		fprintf(stderr, "Couldn't lock display surface: %s\n",
-							SDL_GetError());
-		exit(2);
-	}
-	buffer = (Uint8 *)screen->pixels;
-	for ( i=0; i<screen->h; ++i ) {
-		memset(buffer,(i*255)/screen->h,
-				screen->w*screen->format->BytesPerPixel);
-		buffer += screen->pitch;
-	}
-	SDL_UnlockSurface(screen);
-	SDL_UpdateRect(screen, 0, 0, 0, 0);
-
 	/* Loop, waiting for QUIT */
 	while ( SDL_WaitEvent(&event) ) {
 		switch (event.type) {
+			case SDL_VIDEORESIZE:
+				printf("Got a resize event: %dx%d\n",
+				       event.resize.w, event.resize.h);
+				SetVideoMode(event.resize.w, event.resize.h);
+				break;
 			case SDL_USEREVENT:
 				printf("Handling internal quit request\n");
 				/* Fall through to the quit handler */

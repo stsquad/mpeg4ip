@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_version.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_version.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* This header defines the current SDL version */
@@ -33,12 +33,16 @@ static char rcsid =
 #include "SDL_types.h"
 
 #include "begin_code.h"
+/* Set up for C function definitions, even when using C++ */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Printable format: "%d.%d.%d", MAJOR, MINOR, PATCHLEVEL
 */
 #define SDL_MAJOR_VERSION	1
-#define SDL_MINOR_VERSION	1
-#define SDL_PATCHLEVEL		6
+#define SDL_MINOR_VERSION	2
+#define SDL_PATCHLEVEL		0
 
 typedef struct {
 	Uint8 major;
@@ -63,12 +67,24 @@ typedef struct {
 #define SDL_VERSIONNUM(X, Y, Z)						\
 	(X)*1000 + (Y)*100 + (Z)
 
+/* This is the version number macro for the current SDL version */
+#define SDL_COMPILEDVERSION \
+	SDL_VERSIONNUM(SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL)
+
+/* This macro will evaluate to true if compiled with SDL at least X.Y.Z */
+#define SDL_VERSION_ATLEAST(X, Y, Z) \
+	(SDL_COMPILEDVERSION >= SDL_VERSIONNUM(X, Y, Z))
+
 /* This function gets the version of the dynamically linked SDL library.
    it should NOT be used to fill a version structure, instead you should
    use the SDL_Version() macro.
  */
 extern DECLSPEC const SDL_version * SDL_Linked_Version(void);
 
+/* Ends C function definitions when using C++ */
+#ifdef __cplusplus
+}
+#endif
 #include "close_code.h"
 
 #endif /* _SDL_version_h */

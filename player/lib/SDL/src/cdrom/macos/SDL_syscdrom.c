@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syscdrom.c,v 1.1 2001/02/05 20:26:27 cahighlander Exp $";
+ "@(#) $Id: SDL_syscdrom.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* MacOS functions for system-level CD-ROM audio control */
@@ -34,6 +34,11 @@ static char rcsid =
 #include "SDL_cdrom.h"
 #include "SDL_syscdrom.h"
 #include "SDL_syscdrom_c.h"
+
+/* Added by Matt Slot */
+#if !defined(LMGetUnitTableEntryCount)
+  #define LMGetUnitTableEntryCount()   *(short *)0x01D2
+#endif
 
 /* The maximum number of CD-ROM drives we'll detect */
 #define MAX_DRIVES	26	

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysjoystick.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_sysjoystick.c,v 1.2 2001/04/10 22:23:47 cahighlander Exp $";
 #endif
 
 /* This is the system specific header for the SDL joystick API */
@@ -101,6 +101,17 @@ struct joystick_hwdata {
 #endif
 };
 
+static char *mystrdup(const char *string)
+{
+	char *newstring;
+
+	newstring = (char *)malloc(strlen(string)+1);
+	if ( newstring ) {
+		strcpy(newstring, string);
+	}
+	return(newstring);
+}
+
 #ifdef USE_INPUT_EVENTS
 #define test_bit(nr, addr) \
 	(((1UL << ((nr) & 31)) & (((const unsigned int *) addr)[(nr) >> 5])) != 0)
@@ -154,7 +165,7 @@ int SDL_SYS_JoystickInit(void)
 			fd = open(path, O_RDONLY, 0);
 			if ( fd >= 0 ) {
 				/* Assume the user knows what they're doing. */
-				SDL_joylist[numjoysticks]=strdup(path);
+				SDL_joylist[numjoysticks] = mystrdup(path);
 				if ( SDL_joylist[numjoysticks] ) {
 					dev_nums[numjoysticks] = sb.st_rdev;
 					++numjoysticks;
@@ -202,7 +213,7 @@ int SDL_SYS_JoystickInit(void)
 				close(fd);
 
 				/* We're fine, add this joystick */
-				SDL_joylist[numjoysticks]=strdup(path);
+				SDL_joylist[numjoysticks] = mystrdup(path);
 				if ( SDL_joylist[numjoysticks] ) {
 					dev_nums[numjoysticks] = sb.st_rdev;
 					++numjoysticks;
@@ -483,7 +494,7 @@ int SDL_SYS_JoystickOpen(SDL_Joystick *joystick)
 	return(0);
 }
 
-static inline
+static __inline__
 void HandleHat(SDL_Joystick *stick, Uint8 hat, int axis, int value)
 {
 	struct hwdata_hat *the_hat;
@@ -511,7 +522,7 @@ void HandleHat(SDL_Joystick *stick, Uint8 hat, int axis, int value)
 }
 
 /* This was necessary for the Wingman Extreme Analog joystick */
-static inline
+static __inline__
 void HandleAnalogHat(SDL_Joystick *stick, Uint8 hat, int value)
 {
 	const Uint8 position_map[] = {
@@ -524,7 +535,7 @@ void HandleAnalogHat(SDL_Joystick *stick, Uint8 hat, int value)
 	SDL_PrivateJoystickHat(stick, hat, position_map[(value/16000)+2]);
 }
 
-static inline
+static __inline__
 void HandleBall(SDL_Joystick *stick, Uint8 ball, int axis, int value)
 {
 	stick->hwdata->balls[ball].axis[axis] += value;
@@ -535,7 +546,7 @@ void HandleBall(SDL_Joystick *stick, Uint8 ball, int axis, int value)
  * but instead should call SDL_PrivateJoystick*() to deliver events
  * and update joystick device state.
  */
-static inline void JS_HandleEvents(SDL_Joystick *joystick)
+static __inline__ void JS_HandleEvents(SDL_Joystick *joystick)
 {
 	struct js_event events[32];
 	int i, len;
@@ -589,7 +600,7 @@ static inline void JS_HandleEvents(SDL_Joystick *joystick)
 	}
 }
 #ifdef USE_INPUT_EVENTS
-static inline int EV_AxisCorrect(SDL_Joystick *joystick, int which, int value)
+static __inline__ int EV_AxisCorrect(SDL_Joystick *joystick, int which, int value)
 {
 	struct axis_correct *correct;
 
@@ -616,7 +627,7 @@ static inline int EV_AxisCorrect(SDL_Joystick *joystick, int which, int value)
 	return value;
 }
 
-static inline void EV_HandleEvents(SDL_Joystick *joystick)
+static __inline__ void EV_HandleEvents(SDL_Joystick *joystick)
 {
 	struct input_event events[32];
 	int i, len;

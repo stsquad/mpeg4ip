@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysmouse.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_sysmouse.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include <stdlib.h>
@@ -35,6 +35,9 @@ static char rcsid =
 #include "SDL_cursor_c.h"
 #include "SDL_lowvideo.h"
 
+#ifdef _WIN32_WCE
+#define USE_STATIC_CURSOR
+#endif
 
 HCURSOR	SDL_hcursor = NULL;		/* Exported for SDL_eventloop.c */
 
@@ -45,8 +48,10 @@ HCURSOR	SDL_hcursor = NULL;		/* Exported for SDL_eventloop.c */
 */
 struct WMcursor {
 	HCURSOR curs;
+#ifndef USE_STATIC_CURSOR
 	Uint8 *ands;
 	Uint8 *xors;
+#endif
 };
 
 /* Convert bits to padded bytes */
@@ -73,6 +78,7 @@ static void PrintBITMAP(FILE *out, char *bits, int w, int h)
 }
 #endif
 
+#ifndef USE_STATIC_CURSOR
 /* Local functions to convert the SDL cursor mask into Windows format */
 static void memnot(Uint8 *dst, Uint8 *src, int len)
 {
@@ -84,21 +90,34 @@ static void memxor(Uint8 *dst, Uint8 *src1, Uint8 *src2, int len)
 	while ( len-- > 0 )
 		*dst++ = (*src1++)^(*src2++);
 }
+#endif /* !USE_STATIC_CURSOR */
 
 void WIN_FreeWMCursor(_THIS, WMcursor *cursor)
 {
+#ifndef USE_STATIC_CURSOR
 	if ( cursor->curs != NULL )
 		DestroyCursor(cursor->curs);
 	if ( cursor->ands != NULL )
 		free(cursor->ands);
 	if ( cursor->xors != NULL )
 		free(cursor->xors);
+#endif /* !USE_STATIC_CURSOR */
 	free(cursor);
 }
 
 WMcursor *WIN_CreateWMCursor(_THIS,
 		Uint8 *data, Uint8 *mask, int w, int h, int hot_x, int hot_y)
 {
+#ifdef USE_STATIC_CURSOR
+	WMcursor *cursor;
+
+	/* Allocate the cursor */
+	cursor = (WMcursor *)malloc(sizeof(*cursor));
+	if ( cursor ) {
+		cursor->curs = LoadCursor(NULL, IDC_ARROW);
+	}
+	return(cursor);
+#else
 	WMcursor *cursor;
 	int allowed_x;
 	int allowed_y;
@@ -165,6 +184,7 @@ WMcursor *WIN_CreateWMCursor(_THIS,
 		return(NULL);
 	}
 	return(cursor);
+#endif /* USE_STATIC_CURSOR */
 }
 
 int WIN_ShowWMCursor(_THIS, WMcursor *cursor)

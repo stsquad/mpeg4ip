@@ -1,6 +1,6 @@
-.TH "SDL_SetAlpha" "3" "Sat 21 Oct 2000, 18:49" "SDL" "SDL API Reference" 
+.TH "SDL_SetAlpha" "3" "Mon 12 Mar 2001, 01:04" "SDL" "SDL API Reference" 
 .SH "NAME"
-SDL_SetAlpha\- Abjust the alpha properties of a surface
+SDL_SetAlpha\- Adjust the alpha properties of a surface
 .SH "SYNOPSIS"
 .PP
 \fB#include "SDL\&.h"
@@ -36,7 +36,7 @@ RGB->RGBA with \fBSDL_SRCALPHA\fP
 The source is alpha-blended with the destination using the per-surface alpha value\&. If \fBSDL_SRCCOLORKEY\fPliteral> is set, only the pixels not matching the colorkey value are copied\&.
 .TP 20
 RGB->RGBA without \fBSDL_SRCALPHA\fP
-The RGB data is copied from the source and the destination alpha is zera to opaque\&. If \fBSDL_SRCCOLORKEY\fP is set, only the pixels not matching the colorkey value are copied\&.
+The RGB data is copied from the source and the destination alpha is zero to opaque\&. If \fBSDL_SRCCOLORKEY\fP is set, only the pixels not matching the colorkey value are copied\&.
 .TP 20
 RGBA->RGBA with \fBSDL_SRCALPHA\fP
 The source is alpha-blended with the destination using the source alpha channel\&. The alpha channel in the destination surface is left untouched\&. \fBSDL_SRCCOLORKEY\fP is ignored\&.
@@ -52,4 +52,4 @@ The RGB data is copied from the source\&. If \fBSDL_SRCCOLORKEY\fP is set, only 
 .SH "SEE ALSO"
 .PP
 \fI\fBSDL_MapRGBA\fP\fR, \fI\fBSDL_GetRGBA\fP\fR, \fI\fBSDL_DisplayFormatAlpha\fP\fR, \fI\fBSDL_BlitSurface\fP\fR
-...\" created by instant / docbook-to-man, Sat 21 Oct 2000, 18:49
+...\" created by instant / docbook-to-man, Mon 12 Mar 2001, 01:04

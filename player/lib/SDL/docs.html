@@ -16,6 +16,61 @@ be found at the <A HREF="http://www.libsdl.org/"> main SDL page</A>.
 Major changes since SDL 1.0.0:
 </H2>
 <UL>
+	<LI> 1.2.0: Added initial support for HP-UX (thanks Stephanie)
+	<LI> 1.2.0: Added initial support for BSDI (thanks Kurt)
+	<LI> 1.2.0: Fixed blitting 32-bit ARGB images to SDL_OPENGLBLIT screens
+	<LI> 1.2.0: Fixed automake build dependencies (thanks Markus!)
+	<LI> 1.2.0: Added 24 bpp support to software YUV display functions
+	<LI> 1.2.0: Don't bomb trying to get DGA mouse on XFree86 4.0
+	<LI> 1.2.0: Added initial support for OSF/Tru64 (thanks Anders)
+	<LI> 1.1.8: Fixed joystick hat motion on MacOS
+	<LI> 1.1.8: Don't detect mouse and keyboard as joystick on MacOS
+	<LI> 1.1.8: Check for OpenGL 1.2 before using 16-bit SDL_OPENGLBLIT
+	<LI> 1.1.8: Added support for /dev/sound/* in Linux 2.4
+	<LI> 1.1.8: Fixed crash when blitting to RLE encoded surfaces
+	<LI> 1.1.8: Fixed 8-bit audio on MacOS X
+	<LI> 1.1.8: Fixed keyboard handling on MacOS X and MacOS classic
+	<LI> 1.1.8: Fixed mouse cursor visibility when switching apps on MacOS
+	<LI> 1.1.8: Implemented semaphore support on MacOS X
+	<LI> 1.1.8: Worked around broken sem_getvalue() on MacOS X
+	<LI> 1.1.8: Fixed 16-bit big-endian audio on MacOS X and MacOS classic
+	<LI> 1.1.8: Fixed mutex locking on Linux glibc 2.0
+	<LI> 1.1.8: SDL_Quit() removes the parachute signal handlers
+	<LI> 1.1.8: Added NAS audio server support (thanks Erik!)
+	<LI> 1.1.8: Added SDL_NOFRAME for frameless windows (thanks Andreas)
+	<LI> 1.1.8: Added support for resizable windows on MacOS
+	<LI> 1.1.8: Added a function to query the surface clip rectangle
+	<LI> 1.1.8: Added a function to query the current event filter
+	<LI> 1.1.8: The X11 XVideo adapter is now locked (thanks Jeffrey)
+	<LI> 1.1.8: Improved the speed of fullscreen OpenGL on Windows
+	<LI> 1.1.8: Added ELO touchscreen support for fbcon (thanks Alex)
+	<LI> 1.1.8: Added accelerated MacOS X OpenGL support
+	<LI> 1.1.8: Surface lock and unlock operations can now be nested
+	<LI> 1.1.8: Optimized fillrect for PPC video memory (thanks Mattias)
+	<LI> 1.1.8: Work around "blackout" problem with XVideo acceleration
+	<LI> 1.1.8: Obtain correct key state on X11 focus (thanks Mattias)
+	<LI> 1.1.8: Fixed keyboard handling on the framebuffer console
+	<LI> 1.1.8: Added basic support for VGA16 framebuffer console
+	<LI> 1.1.8: Open a new virtual terminal if possible on fbcon
+	<LI> 1.1.8: Fixed default audio driver on FreeBSD (thanks Maxim)
+	<LI> 1.1.8: Fixed joystick crash on Windows (thanks Pete)
+	<LI> 1.1.7: Expanded documentation from the SDL Documentation Project
+	<LI> 1.1.7: Report X11 client message events if SYSWMEVENTS enabled
+	<LI> 1.1.7: Added support for a single hat on Windows joysticks
+	<LI> 1.1.7: The gamma ramp routines now take arrays of Uint16 values
+	<LI> 1.1.7: Added initial support for QNX RTP (thanks Patrick)
+	<LI> 1.1.7: Added ALSA sound driver (thanks Patrick Trainor)
+	<LI> 1.1.7: Added aRts UNIX sound driver (thanks Neil Stevens)
+	<LI> 1.1.7: Get keyboard modifier state on input focus on Win32
+	<LI> 1.1.7: SDL_ConvertSurface() now accepts SDL_RLEACCEL as a flag
+	<LI> 1.1.7: Added initial UnixWare 7 support (thanks rr)
+	<LI> 1.1.7: Added working YUY -> RGB conversion code (thanks Eugene)
+	<LI> 1.1.7: Fixed video initialization crash on IRIX
+	<LI> 1.1.7: Fixed MacOS fullscreen palette code (thanks Darrell)
+	<LI> 1.1.7: Fixed background brush flicker on Win32 (thanks Gautier)
+	<LI> 1.1.7: Fixed incorrect pitch when switching to window on Win32
+	<LI> 1.1.7: Fixed memory leak when switching video modes on Win32
+	<LI> 1.1.7: Init of fbcon shouldn't automatically set graphics mode
 	<LI> 1.1.6: Allow SDL_VIDEO_INIT when built without thread support
 	<LI> 1.1.6: Fixed palette problems with non-X11 fullscreen displays
 	<LI> 1.1.6: Fixed Win32 crash with SDL_OPENGLBLIT and GL functions

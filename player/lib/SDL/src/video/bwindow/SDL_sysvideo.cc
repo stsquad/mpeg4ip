@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysvideo.cc,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_sysvideo.cc,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* BWindow based framebuffer implementation */
@@ -144,7 +144,8 @@ static SDL_VideoDevice *BE_CreateDevice(int devindex)
 }
 
 VideoBootStrap BWINDOW_bootstrap = {
-	"bwindow", BE_Available, BE_CreateDevice
+	"bwindow", "BDirectWindow graphics",
+	BE_Available, BE_CreateDevice
 };
 
 static inline int ColorSpaceToBitsPerPixel(uint32 colorspace)
@@ -362,7 +363,6 @@ static int BE_ToggleFullScreen(_THIS, int fullscreen)
 	BScreen bscreen;
 	BRect bounds;
 	display_mode mode;
-	uint32 i, nmodes;
 	int width, height, bpp;
 
 	SDL_Win->SetFullScreen(fullscreen);
@@ -382,7 +382,6 @@ static int BE_ToggleFullScreen(_THIS, int fullscreen)
 
 	/* Set the appropriate video mode */
 	if ( fullscreen ) {
-		rgb_color black;
 		bpp = _this->screen->format->BitsPerPixel;
 		bscreen.GetMode(&mode);
 		if ( (bpp != ColorSpaceToBitsPerPixel(mode.space)) ||
@@ -445,7 +444,6 @@ SDL_Surface *BE_SetVideoMode(_THIS, SDL_Surface *current,
 {
 	BScreen bscreen;
 	display_mode mode;
-	uint32 i, nmodes;
 	BBitmap *bbitmap;
 	BRect bounds;
 	int needs_unlock;
@@ -488,12 +486,18 @@ SDL_Surface *BE_SetVideoMode(_THIS, SDL_Surface *current,
 	} else {
 		SDL_Win->SetFullScreen(0);
 	}
-	if(flags & SDL_RESIZABLE && !(flags & SDL_OPENGL))  {
-		current->flags |= SDL_RESIZABLE;
-		/* We don't want opaque resizing (TM). :-) */
-		SDL_Win->SetFlags(B_OUTLINE_RESIZE);
+	SDL_Win->SetType(B_TITLED_WINDOW);
+	if ( flags & SDL_NOFRAME ) {
+		current->flags |= SDL_NOFRAME;
+		SDL_Win->SetLook(B_NO_BORDER_WINDOW_LOOK);
 	} else {
-		SDL_Win->SetFlags(B_NOT_RESIZABLE|B_NOT_ZOOMABLE);
+		if ( (flags & SDL_RESIZABLE) && !(flags & SDL_OPENGL) )  {
+			current->flags |= SDL_RESIZABLE;
+			/* We don't want opaque resizing (TM). :-) */
+			SDL_Win->SetFlags(B_OUTLINE_RESIZE);
+		} else {
+			SDL_Win->SetFlags(B_NOT_RESIZABLE|B_NOT_ZOOMABLE);
+		}
 	}
 
 	if ( flags & SDL_OPENGL ) {

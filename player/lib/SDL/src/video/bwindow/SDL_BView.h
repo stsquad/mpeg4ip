@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_BView.h,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_BView.h,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* This is the event handling and graphics update portion of SDL_BWin */
@@ -47,7 +47,6 @@ public:
 	}
 	/* Set drawing offsets for fullscreen mode */
 	virtual void SetXYOffset(int x, int y) {
-		BRect bounds;
 		xoff = x;
 		yoff = y;
 	}

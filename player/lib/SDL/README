@@ -3,7 +3,7 @@
 
                                   (SDL)
 
-                                Version 1.1
+                                Version 1.2
 
 ---
 http://www.libsdl.org/
@@ -12,20 +12,18 @@ This is the Simple DirectMedia Layer, a generic API that provides low
 level access to audio, keyboard, mouse, joystick, 3D hardware via OpenGL,
 and 2D framebuffer across multiple platforms.
 
-The current version supports Linux X11, Linux framebuffer console,
-Win32 GDI, Win32 DirectX, BeOS BDirectWindow, MacOS toolkit, MacOS
-sprockets, FreeBSD 4.X X11, Solaris 2.X X11, and IRIX 6.X X11.
+SDL is written in C, but works with C++ natively, and has bindings to
+several other languages, including Ada, Eiffel, ML, Perl, and Python. 
 
-The code contains support for Linux SVGAlib, Linux GGI, Linux AAlib,
-Linux DGA 2.0, OpenBSD X11, and AIX X11, but they are not yet officially
-supported.
-
-If you have a newer PC, SDL may be able to take advantage of MMX blit
-acceleration using assembly routines from the Hermes blit library. :)
+The current version supports Linux, Windows, BeOS, MacOS, MacOS X,
+FreeBSD, Solaris, and IRIX.  The code contains support for Windows CE,
+OpenBSD, NetBSD, AIX, OSF/Tru64, and QNX, but these are not yet
+officially supported.
 
 This library is distributed under GNU LGPL version 2, which can be
-found in the file  "COPYING".  I reserve the right to place future
-versions of this library under a different license.
+found in the file  "COPYING".  This license allows you to use SDL
+freely in commercial programs as long as you link with the dynamic
+library.
 
 The best way to learn how to use SDL is to check out the header files in
 the "include" subdirectory and the programs in the "test" subdirectory.
@@ -34,8 +32,13 @@ More documentation is available in HTML format in "./docs/index.html"
 
 The test programs in the "test" subdirectory are in the public domain.
 
-March 1, 2000
---
-Written by:
+Frequently asked questions are answered online:
+	http://www.libsdl.org/faqs.html
+
+If you need help with the library, or just want to discuss SDL related
+issues, you can join the developers mailing list:
+	http://www.libsdl.org/mailing-list.html
+
+Enjoy!
 	Sam Lantinga				(slouken@libsdl.org)
 

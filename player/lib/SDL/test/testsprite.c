@@ -112,7 +112,8 @@ Uint32 FastestFlags(Uint32 flags)
 		/* Direct hardware blitting without double-buffering
 		   causes really bad flickering.
 		 */
-		if ( info->video_mem > 640*480 ) {
+		SDL_Surface *screen = SDL_GetVideoSurface();
+		if ( info->video_mem > (screen->h*screen->pitch) ) {
 			flags |= SDL_DOUBLEBUF;
 		} else {
 			flags &= ~SDL_HWSURFACE;
@@ -127,6 +128,7 @@ int main(int argc, char *argv[])
 {
 	SDL_Surface *screen;
 	Uint8 *mem;
+	int width, height;
 	Uint8  video_bpp;
 	Uint32 videoflags;
 	Uint32 background;
@@ -143,9 +145,19 @@ int main(int argc, char *argv[])
 
 	numsprites = NUM_SPRITES;
 	videoflags = SDL_SWSURFACE|SDL_ANYFORMAT;
+	width = 640;
+	height = 480;
 	video_bpp = 8;
 	while ( argc > 1 ) {
 		--argc;
+		if ( strcmp(argv[argc-1], "-width") == 0 ) {
+			width = atoi(argv[argc]);
+			--argc;
+		} else
+		if ( strcmp(argv[argc-1], "-height") == 0 ) {
+			height = atoi(argv[argc]);
+			--argc;
+		} else
 		if ( strcmp(argv[argc-1], "-bpp") == 0 ) {
 			video_bpp = atoi(argv[argc]);
 			videoflags &= ~SDL_ANYFORMAT;
@@ -173,10 +185,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* Set 640x480 video mode */
-	if ( (screen=SDL_SetVideoMode(640,480,video_bpp,videoflags)) == NULL ) {
-		fprintf(stderr, "Couldn't set 640x480 video mode: %s\n",
-								SDL_GetError());
+	/* Set video mode */
+	screen = SDL_SetVideoMode(width, height, video_bpp, videoflags);
+	if ( ! screen ) {
+		fprintf(stderr, "Couldn't set %dx%d video mode: %s\n",
+					width, height, SDL_GetError());
 		exit(2);
 	}
 

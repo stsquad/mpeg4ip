@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,10 +22,26 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fatal.c,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_fatal.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* General fatal signal handling code for SDL */
+
+#ifdef NO_SIGNAL_H
+
+/* No signals on this platform, nothing to do.. */
+
+void SDL_InstallParachute(void)
+{
+	return;
+}
+
+void SDL_UninstallParachute(void)
+{
+	return;
+}
+
+#else
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -79,32 +95,33 @@ static void SDL_Parachute(int sig)
 	exit(-sig);
 }
 
+static int SDL_fatal_signals[] = {
+	SIGSEGV,
+#ifdef SIGBUS
+	SIGBUS,
+#endif
+#ifdef SIGFPE
+	SIGFPE,
+#endif
+#ifdef SIGQUIT
+	SIGQUIT,
+#endif
+#ifdef SIGPIPE
+	SIGPIPE,
+#endif
+	0
+};
+
 void SDL_InstallParachute(void)
 {
 	int i;
-	int fatal_signals[] = {
-		SIGSEGV,
-#ifdef SIGBUS
-		SIGBUS,
-#endif
-#ifdef SIGFPE
-		SIGFPE,
-#endif
-#ifdef SIGQUIT
-		SIGQUIT,
-#endif
-#ifdef SIGPIPE
-		SIGPIPE,
-#endif
-		0
-	};
 	void (*ohandler)(int);
 
 	/* Set a handler for any fatal signal not already handled */
-	for ( i=0; fatal_signals[i]; ++i ) {
-		ohandler = signal(fatal_signals[i], SDL_Parachute);
+	for ( i=0; SDL_fatal_signals[i]; ++i ) {
+		ohandler = signal(SDL_fatal_signals[i], SDL_Parachute);
 		if ( ohandler != SIG_DFL ) {
-			signal(fatal_signals[i], ohandler);
+			signal(SDL_fatal_signals[i], ohandler);
 		}
 	}
 #ifdef SIGALRM
@@ -126,3 +143,18 @@ void SDL_InstallParachute(void)
 	return;
 }
 
+void SDL_UninstallParachute(void)
+{
+	int i;
+	void (*ohandler)(int);
+
+	/* Remove a handler for any fatal signal handled */
+	for ( i=0; SDL_fatal_signals[i]; ++i ) {
+		ohandler = signal(SDL_fatal_signals[i], SIG_DFL);
+		if ( ohandler != SDL_Parachute ) {
+			signal(SDL_fatal_signals[i], ohandler);
+		}
+	}
+}
+
+#endif /* NO_SIGNAL_H */

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_yuv.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_yuv.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* This is the implementation of the YUV video surface support */
@@ -30,6 +30,7 @@ static char rcsid =
 #include <stdlib.h>
 #include <string.h>
 
+#include "SDL_getenv.h"
 #include "SDL_video.h"
 #include "SDL_sysvideo.h"
 #include "SDL_yuvfuncs.h"
@@ -47,11 +48,13 @@ SDL_Overlay *SDL_CreateYUVOverlay(int w, int h, Uint32 format,
 	overlay = NULL;
 
 	/* Display directly on video surface, if possible */
+#if 0
 	if ( (display == SDL_PublicSurface) &&
 	     ((SDL_VideoSurface->format->BytesPerPixel == 2) ||
 	      (SDL_VideoSurface->format->BytesPerPixel == 4)) ) {
 		display = SDL_VideoSurface;
 	}
+#endif
         yuv_hwaccel = getenv("SDL_VIDEO_YUV_HWACCEL");
 	if ( ((display == SDL_VideoSurface) && video->CreateYUVOverlay) &&
 	     (!yuv_hwaccel || (atoi(yuv_hwaccel) > 0)) ) {

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,11 +22,12 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_mmjoystick.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_mmjoystick.c,v 1.2 2001/04/10 22:23:47 cahighlander Exp $";
 #endif
 
 /* Win32 MultiMedia Joystick driver, contributed by Andrei de A. Formiga */
 
+#include <stdlib.h>
 #include <stdio.h>		/* For the definition of NULL */
 
 #include "SDL_error.h"
@@ -78,7 +79,7 @@ int SDL_SYS_JoystickInit(void)
 	int	i;
 	int maxdevs;
 	int numdevs;
-	JOYINFO	joyinfo;
+	JOYINFOEX joyinfo;
 	JOYCAPS	joycaps;
 	MMRESULT result;
 
@@ -92,7 +93,7 @@ int SDL_SYS_JoystickInit(void)
 	SYS_JoystickID[1] = JOYSTICKID2;
 
 	for ( i = 0; (i < maxdevs); ++i ) {
-		result = joyGetPos(SYS_JoystickID[i], &joyinfo);
+		result = joyGetPosEx(SYS_JoystickID[i], &joyinfo);
 		if ( result == JOYERR_NOERROR ) {
 			result = joyGetDevCaps(SYS_JoystickID[i], &joycaps, sizeof(joycaps));
 			if ( result == JOYERR_NOERROR ) {
@@ -163,11 +164,37 @@ int SDL_SYS_JoystickOpen(SDL_Joystick *joystick)
 		}
 	}
 
-	/* fill nbuttons and naxes fields */
+	/* fill nbuttons, naxes, and nhats fields */
 	joystick->nbuttons = SYS_Joystick[index].wNumButtons;
 	joystick->naxes = SYS_Joystick[index].wNumAxes;
-
+	if ( SYS_Joystick[index].wCaps & JOYCAPS_HASPOV ) {
+		joystick->nhats = 1;
+	} else {
+		joystick->nhats = 0;
+	}
 	return(0);
+}
+
+static Uint8 TranslatePOV(DWORD value)
+{
+	Uint8 pos;
+
+	pos = SDL_HAT_CENTERED;
+	if ( value != JOY_POVCENTERED ) {
+		if ( (value > JOY_POVLEFT) || (value < JOY_POVRIGHT) ) {
+			pos |= SDL_HAT_UP;
+		}
+		if ( (value > JOY_POVFORWARD) && (value < JOY_POVBACKWARD) ) {
+			pos |= SDL_HAT_RIGHT;
+		}
+		if ( (value > JOY_POVRIGHT) && (value < JOY_POVLEFT) ) {
+			pos |= SDL_HAT_DOWN;
+		}
+		if ( value > JOY_POVBACKWARD ) {
+			pos |= SDL_HAT_LEFT;
+		}
+	}
+	return(pos);
 }
 
 /* Function to update the state of a joystick - called as a device poll.
@@ -180,14 +207,17 @@ void SDL_SYS_JoystickUpdate(SDL_Joystick *joystick)
 	MMRESULT result;
 	int i;
 	DWORD flags[MAX_AXES] = { JOY_RETURNX, JOY_RETURNY, JOY_RETURNZ, 
-							  JOY_RETURNR, JOY_RETURNU, JOY_RETURNV };
+				  JOY_RETURNR, JOY_RETURNU, JOY_RETURNV };
 	DWORD pos[MAX_AXES];
 	struct _transaxis *transaxis;
 	int value, change;
 	JOYINFOEX joyinfo;
 
 	joyinfo.dwSize = sizeof(joyinfo);
-	joyinfo.dwFlags = JOY_RETURNALL;
+	joyinfo.dwFlags = JOY_RETURNALL|JOY_RETURNPOVCTS;
+	if ( ! joystick->hats ) {
+		joyinfo.dwFlags &= ~(JOY_RETURNPOV|JOY_RETURNPOVCTS);
+	}
 	result = joyGetPosEx(joystick->hwdata->id, &joyinfo);
 	if ( result != JOYERR_NOERROR ) {
 		SetMMerror("joyGetPosEx", result);
@@ -227,7 +257,16 @@ void SDL_SYS_JoystickUpdate(SDL_Joystick *joystick)
 			}
 		}
 	}
-	return;
+
+	/* joystick hat events */
+	if ( joyinfo.dwFlags & JOY_RETURNPOV ) {
+		Uint8 pos;
+
+		pos = TranslatePOV(joyinfo.dwPOV);
+		if ( pos != joystick->hats[0] ) {
+			SDL_PrivateJoystickHat(joystick, 0, pos);
+		}
+	}
 }
 
 /* Function to close a joystick after use */

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_cgxvideo.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_cgxvideo.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 /* CGX based SDL video driver implementation.
@@ -192,8 +192,8 @@ static SDL_VideoDevice *CGX_CreateDevice(int devindex)
 	device->GL_MakeCurrent = X11_GL_MakeCurrent;
 	device->GL_SwapBuffers = X11_GL_SwapBuffers;
 #endif
-	device->SetIcon = CGX_SetIcon;
 	device->SetCaption = CGX_SetCaption;
+	device->SetIcon = CGX_SetIcon;
 	device->IconifyWindow = NULL; /* CGX_IconifyWindow; */
 	device->GrabInput = NULL /* CGX_GrabInput*/; 
 	device->GetWMInfo = CGX_GetWMInfo;
@@ -211,7 +211,8 @@ static SDL_VideoDevice *CGX_CreateDevice(int devindex)
 }
 
 VideoBootStrap CGX_bootstrap = {
-	"CGX", CGX_Available, CGX_CreateDevice
+	"CGX", "Amiga CyberGFX video",
+	CGX_Available, CGX_CreateDevice
 };
 
 

@@ -3,7 +3,7 @@
 
 noinst_LTLIBRARIES = libcdrom.la
 
-ARCH_SUBDIRS = dummy beos freebsd linux macos openbsd win32
+ARCH_SUBDIRS = dummy beos freebsd linux macos openbsd qnx win32
 
 # Include the architecture-independent sources
 COMMON_SRCS = SDL_cdrom.c SDL_syscdrom.h

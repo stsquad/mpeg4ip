@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_events.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_events.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Include file for SDL event handling */
@@ -61,7 +61,7 @@ enum { SDL_NOEVENT = 0,			/* Unused (do not remove) */
        SDL_EVENT_RESERVEDA,		/* Reserved for future use.. */
        SDL_EVENT_RESERVEDB,		/* Reserved for future use.. */
        SDL_VIDEORESIZE,			/* User resized video mode */
-       SDL_EVENT_RESERVED1,		/* Reserved for future use.. */
+       SDL_VIDEOEXPOSE,			/* Screen needs to be redrawn */
        SDL_EVENT_RESERVED2,		/* Reserved for future use.. */
        SDL_EVENT_RESERVED3,		/* Reserved for future use.. */
        SDL_EVENT_RESERVED4,		/* Reserved for future use.. */
@@ -99,6 +99,7 @@ enum {
 	                          SDL_EVENTMASK(SDL_JOYBUTTONDOWN)|
 	                          SDL_EVENTMASK(SDL_JOYBUTTONUP),
 	SDL_VIDEORESIZEMASK	= SDL_EVENTMASK(SDL_VIDEORESIZE),
+	SDL_VIDEOEXPOSEMASK	= SDL_EVENTMASK(SDL_VIDEOEXPOSE),
 	SDL_QUITMASK		= SDL_EVENTMASK(SDL_QUIT),
 	SDL_SYSWMEVENTMASK	= SDL_EVENTMASK(SDL_SYSWMEVENT)
 };
@@ -186,6 +187,11 @@ typedef struct {
 	int h;		/* New height */
 } SDL_ResizeEvent;
 
+/* The "screen redraw" event */
+typedef struct {
+	Uint8 type;	/* SDL_VIDEOEXPOSE */
+} SDL_ExposeEvent;
+
 /* The "quit requested" event */
 typedef struct {
 	Uint8 type;	/* SDL_QUIT */
@@ -219,6 +225,7 @@ typedef union {
 	SDL_JoyHatEvent jhat;
 	SDL_JoyButtonEvent jbutton;
 	SDL_ResizeEvent resize;
+	SDL_ExposeEvent expose;
 	SDL_QuitEvent quit;
 	SDL_UserEvent user;
 	SDL_SysWMEvent syswm;
@@ -298,6 +305,12 @@ typedef int (*SDL_EventFilter)(const SDL_Event *event);
 extern DECLSPEC void SDL_SetEventFilter(SDL_EventFilter filter);
 
 /*
+  Return the current event filter - can be used to "chain" filters.
+  If there is no event filter set, this function returns NULL.
+*/
+extern DECLSPEC SDL_EventFilter SDL_GetEventFilter(void);
+
+/*
   This function allows you to set the state of processing certain events.
   If 'state' is set to SDL_IGNORE, that event will be automatically dropped
   from the event queue and will not event be filtered.
@@ -307,13 +320,14 @@ extern DECLSPEC void SDL_SetEventFilter(SDL_EventFilter filter);
 */
 #define SDL_QUERY	-1
 #define SDL_IGNORE	 0
+#define SDL_DISABLE	 0
 #define SDL_ENABLE	 1
 extern DECLSPEC Uint8 SDL_EventState(Uint8 type, int state);
 
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
-};
+}
 #endif
 #include "close_code.h"
 

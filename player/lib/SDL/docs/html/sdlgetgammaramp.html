@@ -4,7 +4,8 @@
 >SDL_GetGammaRamp</TITLE
 ><META
 NAME="GENERATOR"
-CONTENT="Modular DocBook HTML Stylesheet Version 1.57"><LINK
+CONTENT="Modular DocBook HTML Stylesheet Version 1.61
+"><LINK
 REL="HOME"
 TITLE="SDL Library Documentation"
 HREF="index.html"><LINK
@@ -72,7 +73,7 @@ NAME="SDLGETGAMMARAMP"
 ><DIV
 CLASS="REFNAMEDIV"
 ><A
-NAME="AEN762"
+NAME="AEN1141"
 ></A
 ><H2
 >Name</H2
@@ -80,14 +81,14 @@ NAME="AEN762"
 ><DIV
 CLASS="REFSYNOPSISDIV"
 ><A
-NAME="AEN765"
+NAME="AEN1144"
 ></A
 ><H2
 >Synopsis</H2
 ><DIV
 CLASS="FUNCSYNOPSIS"
 ><A
-NAME="AEN766"
+NAME="AEN1145"
 ></A
 ><P
 ></P
@@ -102,7 +103,7 @@ CLASS="FUNCDEF"
 CLASS="FSFUNC"
 >SDL_GetGammaRamp</B
 ></CODE
->(Uint8 *redtable, Uint8 *greentable, Uint8 *bluetable);</CODE
+>(Uint16 *redtable, Uint16 *greentable, Uint16 *bluetable);</CODE
 ></P
 ><P
 ></P
@@ -111,20 +112,20 @@ CLASS="FSFUNC"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN772"
+NAME="AEN1151"
 ></A
 ><H2
 >Description</H2
 ><P
 >Gets the gamma translation lookup tables currently used by the display.
-Each table is an array of 256 Uint8 values.</P
+Each table is an array of 256 Uint16 values.</P
 ><P
 >Not all display hardware is able to change gamma.</P
 ></DIV
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN776"
+NAME="AEN1155"
 ></A
 ><H2
 >Return Value</H2
@@ -134,7 +135,7 @@ NAME="AEN776"
 ><DIV
 CLASS="REFSECT1"
 ><A
-NAME="AEN779"
+NAME="AEN1158"
 ></A
 ><H2
 >See Also</H2

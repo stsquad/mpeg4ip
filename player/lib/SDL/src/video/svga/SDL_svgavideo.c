@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_svgavideo.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_svgavideo.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 /* SVGAlib based SDL video driver implementation.
@@ -133,13 +133,11 @@ static SDL_VideoDevice *SVGA_CreateDevice(int devindex)
 	device->UnlockHWSurface = SVGA_UnlockHWSurface;
 	device->FlipHWSurface = NULL;
 	device->FreeHWSurface = SVGA_FreeHWSurface;
-	device->SetIcon = NULL;
 	device->SetCaption = NULL;
+	device->SetIcon = NULL;
+	device->IconifyWindow = NULL;
+	device->GrabInput = NULL;
 	device->GetWMInfo = NULL;
-	device->FreeWMCursor = SVGA_FreeWMCursor;
-	device->CreateWMCursor = SVGA_CreateWMCursor;
-	device->ShowWMCursor = SVGA_ShowWMCursor;
-	device->WarpWMCursor = SVGA_WarpWMCursor;
 	device->InitOSKeymap = SVGA_InitOSKeymap;
 	device->PumpEvents = SVGA_PumpEvents;
 
@@ -149,7 +147,8 @@ static SDL_VideoDevice *SVGA_CreateDevice(int devindex)
 }
 
 VideoBootStrap SVGALIB_bootstrap = {
-	"svgalib", SVGA_Available, SVGA_CreateDevice
+	"svgalib", "SVGAlib",
+	SVGA_Available, SVGA_CreateDevice
 };
 
 static int SVGA_AddMode(_THIS, int mode, int actually_add, int force)
@@ -168,17 +167,14 @@ static int SVGA_AddMode(_THIS, int mode, int actually_add, int force)
 
 			/* Add the mode, sorted largest to smallest */
 			b = 0;
-//printf("Level %d: ", i);
 			j = 0;
 			while ( (SDL_modelist[i][j]->w > modeinfo->width) ||
 			        (SDL_modelist[i][j]->h > modeinfo->height) ) {
-//printf("%dx%d ", SDL_modelist[i][j]->w, SDL_modelist[i][j]->h);
 				++j;
 			}
 			/* Skip modes that are already in our list */
 			if ( (SDL_modelist[i][j]->w == modeinfo->width) &&
 			     (SDL_modelist[i][j]->h == modeinfo->height) ) {
-//printf("%dx%d -- skipped\n", SDL_modelist[i][j]->w, SDL_modelist[i][j]->h);
 				return(0);
 			}
 			/* Insert the new mode */
@@ -187,7 +183,6 @@ static int SVGA_AddMode(_THIS, int mode, int actually_add, int force)
 			SDL_modelist[i][j]->w = modeinfo->width;
 			SDL_modelist[i][j]->h = modeinfo->height;
 			SDL_vgamode[i][j] = mode;
-//printf("^%dx%d %d^ ", SDL_modelist[i][j]->w, SDL_modelist[i][j]->h, modeinfo->colors);
 			/* Everybody scoot down! */
 			if ( saved_rect[b].w && saved_rect[b].h ) {
 			    for ( ++j; SDL_modelist[i][j]->w; ++j ) {
@@ -196,13 +191,10 @@ static int SVGA_AddMode(_THIS, int mode, int actually_add, int force)
 				*SDL_modelist[i][j] = saved_rect[b];
 				SDL_vgamode[i][j] = saved_mode[b];
 				b = !b;
-//printf("%dx%d ", SDL_modelist[i][j]->w, SDL_modelist[i][j]->h);
 			    }
 			    *SDL_modelist[i][j] = saved_rect[b];
 			    SDL_vgamode[i][j] = saved_mode[b];
-//printf("%dx%d ", SDL_modelist[i][j]->w, SDL_modelist[i][j]->h);
 			}
-//printf("\n");
 		} else {
 			++SDL_nummodes[i];
 		}
@@ -214,6 +206,7 @@ static void SVGA_UpdateVideoInfo(_THIS)
 {
 	vga_modeinfo *modeinfo;
 
+	this->info.wm_available = 0;
 	this->info.hw_available = 1;
 	modeinfo = vga_getmodeinfo(vga_getcurrentmode());
 	this->info.video_mem = (modeinfo->maxpixels/1024);
@@ -221,8 +214,9 @@ static void SVGA_UpdateVideoInfo(_THIS)
 		this->info.video_mem *= modeinfo->bytesperpixel;
 	}
 	/* FIXME: Add hardware accelerated blit information */
-//printf("Video memory available: %dK\n", this->info->video_mem);
-//printf("Hardware accelerated blit: %savailable\n", modeinfo->haveblit ? "" : "not ");
+#if 0
+printf("Hardware accelerated blit: %savailable\n", modeinfo->haveblit ? "" : "not ");
+#endif
 }
 
 int SVGA_VideoInit(_THIS, SDL_PixelFormat *vformat)
@@ -244,6 +238,7 @@ int SVGA_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		SDL_SetError("Unable to initialize SVGAlib");
 		return(-1);
 	}
+	vga_setmode(TEXT);
 
 	/* Enable mouse and keyboard support */
 	vga_setmousesupport(1);
@@ -253,8 +248,8 @@ int SVGA_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		return(-1);
 	}
 	if ( SVGA_initkeymaps(keyboard) < 0 ) {
-        return(-1);
-    }
+		return(-1);
+	}
 	keyboard_seteventhandler(SVGA_keyboardcallback);
 
 	/* Determine the screen depth (use default 8-bit depth) */
@@ -302,6 +297,7 @@ int SVGA_VideoInit(_THIS, SDL_PixelFormat *vformat)
 		}
 	}
 	SVGA_AddMode(this, G320x200x256, 1, 1);
+
 	/* Free extra (duplicated) modes */
 	for ( i=0; i<NUM_MODELISTS; ++i ) {
 		j = 0;
@@ -309,7 +305,6 @@ int SVGA_VideoInit(_THIS, SDL_PixelFormat *vformat)
 			j++;
 		}
 		while ( SDL_modelist[i][j] ) {
-//printf("Freeing unused mode in level %d\n", i);
 			free(SDL_modelist[i][j]);
 			SDL_modelist[i][j] = NULL;
 			j++;
@@ -339,11 +334,6 @@ SDL_Surface *SVGA_SetVideoMode(_THIS, SDL_Surface *current,
 	int vgamode;
 	vga_modeinfo *modeinfo;
 
-#if defined(linux)
-	/* Since SVGAlib 1.40 leaks the mouse here, we have to close it */
-	mouse_close();
-#endif /* linux */
-
 	/* Try to set the requested linear video mode */
 	bpp = (bpp+7)/8-1;
 	for ( mode=0; SDL_modelist[bpp][mode]; ++mode ) {
@@ -356,7 +346,6 @@ SDL_Surface *SVGA_SetVideoMode(_THIS, SDL_Surface *current,
 		SDL_SetError("Couldn't find requested mode in list");
 		return(NULL);
 	}
-//printf("Setting video mode %d\n", SDL_vgamode[bpp][mode]);
 	vga_setmode(SDL_vgamode[bpp][mode]);
 	vga_setpage(0);
 
@@ -385,7 +374,6 @@ SDL_Surface *SVGA_SetVideoMode(_THIS, SDL_Surface *current,
 	current->h = height;
 	current->pitch = modeinfo->linewidth;
 	current->pixels = vga_getgraphmem();
-//printf("Set mode %dx%dx%d with pitch %d and pixels %p\n", current->w, current->h, current->format->BitsPerPixel, current->pitch, current->pixels);
 
 	/* Set the blit function */
 	this->UpdateRects = SVGA_DirectUpdate;

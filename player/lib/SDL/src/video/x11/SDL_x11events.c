@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,12 +22,14 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11events.c,v 1.1 2001/02/05 20:26:31 cahighlander Exp $";
+ "@(#) $Id: SDL_x11events.c,v 1.2 2001/04/10 22:23:50 cahighlander Exp $";
 #endif
 
 /* Handle the event stream, converting X11 events into SDL events */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <setjmp.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -55,7 +57,8 @@ static char rcsid =
 /* The translation tables from an X11 keysym to a SDL keysym */
 static SDLKey ODD_keymap[256];
 static SDLKey MISC_keymap[256];
-SDL_keysym *X11_TranslateKey(XKeyEvent *xkey, SDL_keysym *keysym);
+SDL_keysym *X11_TranslateKey(Display *display, XKeyEvent *xkey, KeyCode kc,
+			     SDL_keysym *keysym);
 
 /* Check to see if this is a repeated key.
    (idea shamelessly lifted from GII -- thanks guys! :)
@@ -85,7 +88,7 @@ static int X11_KeyRepeat(Display *display, XEvent *event)
 */
 #define MOUSE_FUDGE_FACTOR	8
 
-static inline int X11_WarpedMotion(_THIS, XEvent *xevent)
+static __inline__ int X11_WarpedMotion(_THIS, XEvent *xevent)
 {
 	int w, h, i;
 	int deltax, deltay;
@@ -214,6 +217,12 @@ printf("FocusOut!\n");
 	    }
 	    break;
 
+	    /* Generated upon EnterWindow and FocusIn */
+	    case KeymapNotify: {
+		X11_SetKeyboardState(SDL_Display, xevent.xkeymap.key_vector);
+	    }
+	    break;
+
 	    /* Mouse motion? */
 	    case MotionNotify: {
 		if ( SDL_VideoSurface ) {
@@ -255,7 +264,9 @@ printf("FocusOut!\n");
 	    case KeyPress: {
 		SDL_keysym keysym;
 		posted = SDL_PrivateKeyboard(SDL_PRESSED,
-				X11_TranslateKey(&xevent.xkey, &keysym));
+				X11_TranslateKey(SDL_Display, &xevent.xkey,
+						 xevent.xkey.keycode,
+						 &keysym));
 	    }
 	    break;
 
@@ -266,7 +277,9 @@ printf("FocusOut!\n");
 		/* Check to see if this is a repeated key */
 		if ( ! X11_KeyRepeat(SDL_Display, &xevent) ) {
 			posted = SDL_PrivateKeyboard(SDL_RELEASED, 
-				X11_TranslateKey(&xevent.xkey, &keysym));
+				X11_TranslateKey(SDL_Display, &xevent.xkey,
+						 xevent.xkey.keycode,
+						 &keysym));
 		}
 	    }
 	    break;
@@ -320,39 +333,67 @@ printf("MapNotify!\n");
 	    }
 	    break;
 
-	    /* Have we been resized? */
+	    /* Have we been resized or moved? */
 	    case ConfigureNotify: {
 #ifdef DEBUG_XEVENTS
 printf("ConfigureNotify! (resize: %dx%d)\n", xevent.xconfigure.width, xevent.xconfigure.height);
 #endif
-		/* FIXME: Find a better fix for the bug with KDE 1.2 */
-		if ( ! ((xevent.xconfigure.width == 32) &&
-		        (xevent.xconfigure.height == 32)) ) {
-			SDL_PrivateResize(xevent.xconfigure.width,
-			                  xevent.xconfigure.height);
+		if ( SDL_VideoSurface ) {
+		    if ((xevent.xconfigure.width != SDL_VideoSurface->w) ||
+		        (xevent.xconfigure.height != SDL_VideoSurface->h)) {
+			/* FIXME: Find a better fix for the bug with KDE 1.2 */
+			if ( ! ((xevent.xconfigure.width == 32) &&
+			        (xevent.xconfigure.height == 32)) ) {
+				SDL_PrivateResize(xevent.xconfigure.width,
+				                  xevent.xconfigure.height);
+			}
+		    } else {
+			/* OpenGL windows need to know about the change */
+			if ( SDL_VideoSurface->flags & SDL_OPENGL ) {
+				SDL_PrivateExpose();
+			}
+		    }
 		}
 	    }
 	    break;
 
-	    /* Have we been requested to quit? */
+	    /* Have we been requested to quit (or another client message?) */
 	    case ClientMessage: {
 		if ( (xevent.xclient.format == 32) &&
 		     (xevent.xclient.data.l[0] == WM_DELETE_WINDOW) )
 		{
 			posted = SDL_PrivateQuit();
+		} else
+		if ( SDL_ProcessEvents[SDL_SYSWMEVENT] == SDL_ENABLE ) {
+			SDL_SysWMmsg wmmsg;
+
+			SDL_VERSION(&wmmsg.version);
+			wmmsg.subsystem = SDL_SYSWM_X11;
+			wmmsg.event.xevent = xevent;
+			posted = SDL_PrivateSysWMEvent(&wmmsg);
 		}
 	    }
 	    break;
 
 	    /* Do we need to refresh ourselves? */
 	    case Expose: {
+#ifdef DEBUG_XEVENTS
+printf("Expose (count = %d)\n", xevent.xexpose.count);
+#endif
 		if ( SDL_VideoSurface && (xevent.xexpose.count == 0) ) {
-			X11_RefreshDisplay(this);
+			if ( SDL_VideoSurface->flags & SDL_OPENGL ) {
+				SDL_PrivateExpose();
+			} else {
+				X11_RefreshDisplay(this);
+			}
 		}
 	    }
 	    break;
 
 	    default: {
+#ifdef DEBUG_XEVENTS
+printf("Unhandled event %d\n", xevent.type);
+#endif
 		/* Only post the event if we're watching for it */
 		if ( SDL_ProcessEvents[SDL_SYSWMEVENT] == SDL_ENABLE ) {
 			SDL_SysWMmsg wmmsg;
@@ -544,15 +585,16 @@ void X11_InitKeymap(void)
 	MISC_keymap[XK_Hyper_R&0xFF] = SDLK_MENU;   /* Windows "Menu" key */
 }
 
-SDL_keysym *X11_TranslateKey(XKeyEvent *xkey, SDL_keysym *keysym)
+SDL_keysym *X11_TranslateKey(Display *display, XKeyEvent *xkey, KeyCode kc,
+			     SDL_keysym *keysym)
 {
 	KeySym xsym;
 
 	/* Get the raw keyboard scancode */
-	keysym->scancode = xkey->keycode;
-	xsym = XLookupKeysym(xkey, 0);
+	keysym->scancode = kc;
+	xsym = XKeycodeToKeysym(display, kc, 0);
 #ifdef DEBUG_KEYS
-	fprintf(stderr, "Translating key 0x%.4x (%d)\n", xsym, xkey->keycode);
+	fprintf(stderr, "Translating key 0x%.4x (%d)\n", xsym, kc);
 #endif
 	/* Get the translated SDL virtual keysym */
 	keysym->sym = SDLK_UNKNOWN;
@@ -593,12 +635,13 @@ SDL_keysym *X11_TranslateKey(XKeyEvent *xkey, SDL_keysym *keysym)
 				break;
 			default:
 				fprintf(stderr,
-			"X11: Unknown xsym, sym = 0x%.4x\n", (unsigned int)xsym);
+					"X11: Unknown xsym, sym = 0x%04x\n",
+					(unsigned int)xsym);
 				break;
 		}
 	} else {
 		/* X11 doesn't know how to translate the key! */
-		switch (xkey->keycode) {
+		switch (kc) {
 			/* Caution:
 			   These keycodes are from the Microsoft Keyboard
 			 */
@@ -612,8 +655,10 @@ SDL_keysym *X11_TranslateKey(XKeyEvent *xkey, SDL_keysym *keysym)
 				keysym->sym = SDLK_MENU;
 				break;
 			default:
-				fprintf(stderr,
-			"X11: Unknown key, keycode = %d\n", xkey->keycode);
+				/*
+				 * no point in an error message; happens for
+				 * several keys when we get a keymap notify
+				 */
 				break;
 		}
 	}
@@ -621,19 +666,215 @@ SDL_keysym *X11_TranslateKey(XKeyEvent *xkey, SDL_keysym *keysym)
 
 	/* If UNICODE is on, get the UNICODE value for the key */
 	keysym->unicode = 0;
-	if ( SDL_TranslateUNICODE ) {
+	if ( SDL_TranslateUNICODE && xkey ) {
 		static XComposeStatus state;
 		/* Until we handle the IM protocol, use XLookupString() */
 		unsigned char keybuf[32];
+
+#define BROKEN_XFREE86_INTERNATIONAL_KBD
+/* This appears to be a magical flag that is used with AltGr on
+   international keyboards to signal alternate key translations.
+   The flag doesn't show up when in fullscreen mode (?)
+   FIXME:  Check to see if this code is safe for other servers.
+*/
+#ifdef BROKEN_XFREE86_INTERNATIONAL_KBD
+		/* Work around what appears to be a bug in XFree86 */
+		if ( SDL_GetModState() & KMOD_MODE ) {
+			xkey->state |= (1<<13);
+		}
+#endif
+		/* Look up the translated value for the key event */
 		if ( XLookupString(xkey, (char *)keybuf, sizeof(keybuf),
 							NULL, &state) ) {
+			/*
+			 * FIXME,: XLookupString() may yield more than one
+			 * character, so we need a mechanism to allow for
+			 * this (perhaps generate null keypress events with
+			 * a unicode value)
+			 */
 			keysym->unicode = keybuf[0];
 		}
 	}
 	return(keysym);
 }
 
+/* X11 modifier masks for various keys */
+static unsigned meta_l_mask, meta_r_mask, alt_l_mask, alt_r_mask;
+static unsigned num_mask, mode_switch_mask;
+
+static void get_modifier_masks(Display *display)
+{
+	static unsigned got_masks;
+	int i, j;
+	XModifierKeymap *xmods;
+	unsigned n;
+
+	if(got_masks)
+		return;
+
+	xmods = XGetModifierMapping(display);
+	n = xmods->max_keypermod;
+	for(i = 3; i < 8; i++) {
+		for(j = 0; j < n; j++) {
+			KeyCode kc = xmods->modifiermap[i * n + j];
+			KeySym ks = XKeycodeToKeysym(display, kc, 0);
+			unsigned mask = 1 << i;
+			switch(ks) {
+			case XK_Num_Lock:
+				num_mask = mask; break;
+			case XK_Alt_L:
+				alt_l_mask = mask; break;
+			case XK_Alt_R:
+				alt_r_mask = mask; break;
+			case XK_Meta_L:
+				meta_l_mask = mask; break;
+			case XK_Meta_R:
+				meta_r_mask = mask; break;
+			case XK_Mode_switch:
+				mode_switch_mask = mask; break;
+			}
+		}
+	}
+	XFreeModifiermap(xmods);
+	got_masks = 1;
+}
+
+
+/*
+ * This function is semi-official; it is not officially exported and should
+ * not be considered part of the SDL API, but may be used by client code
+ * that *really* needs it (including legacy code).
+ * It is slow, though, and should be avoided if possible.
+ *
+ * Note that it isn't completely accurate either; in particular, multi-key
+ * sequences (dead accents, compose key sequences) will not work since the
+ * state has been irrevocably lost.
+ */
+Uint16 X11_KeyToUnicode(SDLKey keysym, SDLMod modifiers)
+{
+	struct SDL_VideoDevice *this = current_video;
+	char keybuf[32];
+	int i;
+	KeySym xsym = 0;
+	XKeyEvent xkey;
+	Uint16 unicode;
+
+	if ( !this || !SDL_Display ) {
+		return 0;
+	}
+
+	memset(&xkey, 0, sizeof(xkey));
+	xkey.display = SDL_Display;
+
+	xsym = keysym;		/* last resort if not found */
+	for (i = 0; i < 256; ++i) {
+		if ( MISC_keymap[i] == keysym ) {
+			xsym = 0xFF00 | i;
+			break;
+		} else if ( ODD_keymap[i] == keysym ) {
+			xsym = 0xFE00 | i;
+			break;
+		}
+	}
+
+	xkey.keycode = XKeysymToKeycode(xkey.display, xsym);
+
+	get_modifier_masks(SDL_Display);
+	if(modifiers & KMOD_SHIFT)
+		xkey.state |= ShiftMask;
+	if(modifiers & KMOD_CAPS)
+		xkey.state |= LockMask;
+	if(modifiers & KMOD_CTRL)
+		xkey.state |= ControlMask;
+	if(modifiers & KMOD_MODE)
+		xkey.state |= mode_switch_mask;
+	if(modifiers & KMOD_LALT)
+		xkey.state |= alt_l_mask;
+	if(modifiers & KMOD_RALT)
+		xkey.state |= alt_r_mask;
+	if(modifiers & KMOD_LMETA)
+		xkey.state |= meta_l_mask;
+	if(modifiers & KMOD_RMETA)
+		xkey.state |= meta_r_mask;
+	if(modifiers & KMOD_NUM)
+		xkey.state |= num_mask;
+
+	unicode = 0;
+	if ( XLookupString(&xkey, keybuf, sizeof(keybuf), NULL, NULL) )
+		unicode = (unsigned char)keybuf[0];
+	return(unicode);
+}
+
+/*
+ * Called when focus is regained, to read the keyboard state and generate
+ * synthetic keypress/release events.
+ * key_vec is a bit vector of keycodes (256 bits)
+ */
+void X11_SetKeyboardState(Display *display, const char *key_vec)
+{
+	char keys_return[32];
+	int i, gen_event;
+	KeyCode xcode[SDLK_LAST];
+	Uint8 new_kstate[SDLK_LAST];
+	Uint8 *kstate = SDL_GetKeyState(NULL);
+
+	/* The first time the window is mapped, we initialize key state */
+	if ( ! key_vec ) {
+		key_vec = keys_return;
+		XQueryKeymap(display, keys_return);
+		gen_event = 0;
+	} else {
+		gen_event = 1;
+	}
+
+	/* Zero the new state and generate it */
+	memset(new_kstate, 0, sizeof(new_kstate));
+	/*
+	 * An obvious optimisation is to check entire longwords at a time in
+	 * both loops, but we can't be sure the arrays are aligned so it's not
+	 * worth the extra complexity
+	 */
+	for(i = 0; i < 32; i++) {
+		int j;
+		if(!key_vec[i])
+			continue;
+		for(j = 0; j < 8; j++) {
+			if(key_vec[i] & (1 << j)) {
+				SDL_keysym sk;
+				KeyCode kc = i << 3 | j;
+				X11_TranslateKey(display, NULL, kc, &sk);
+				new_kstate[sk.sym] = 1;
+				xcode[sk.sym] = kc;
+			}
+		}
+	}
+	for(i = SDLK_FIRST+1; i < SDLK_LAST; i++) {
+		int st;
+		SDL_keysym sk;
+
+		if(kstate[i] == new_kstate[i])
+			continue;
+		/*
+		 * Send a fake keyboard event correcting the difference between
+		 * SDL's keyboard state and the actual. Note that there is no
+		 * way to find out the scancode for key releases, but since all
+		 * keys are released when focus is lost only keypresses should
+		 * be sent here
+		 */
+		st = new_kstate[i] ? SDL_PRESSED : SDL_RELEASED;
+		memset(&sk, 0, sizeof(sk));
+		sk.sym = i;
+		sk.scancode = xcode[i];		/* only valid for key press */
+		if ( gen_event ) {
+			SDL_PrivateKeyboard(st, &sk);
+		} else {
+			kstate[i] = new_kstate[i];
+		}
+	}
+}
+
 void X11_InitOSKeymap(_THIS)
 {
 	X11_InitKeymap();
 }
+

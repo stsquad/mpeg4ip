@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_yuv_sw.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_yuv_sw.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* This is the software implementation of the YUV video overlay support */
@@ -225,6 +225,90 @@ static void Color16DitherYV12Mod1X( int *colortab, Uint32 *rgb_2_pix,
     }
 }
 
+static void Color24DitherYV12Mod1X( int *colortab, Uint32 *rgb_2_pix,
+                                    unsigned char *lum, unsigned char *cr,
+                                    unsigned char *cb, unsigned char *out,
+                                    int rows, int cols, int mod )
+{
+    unsigned int value;
+    unsigned char* row1;
+    unsigned char* row2;
+    unsigned char* lum2;
+    int x, y;
+    int cr_r;
+    int crb_g;
+    int cb_b;
+    int cols_2 = cols / 2;
+
+    row1 = out;
+    row2 = row1 + cols*3 + mod*3;
+    lum2 = lum + cols;
+
+    mod += cols + mod;
+    mod *= 3;
+
+    y = rows / 2;
+    while( y-- )
+    {
+        x = cols_2;
+        while( x-- )
+        {
+            register int L;
+
+            cr_r   = 0*768+256 + colortab[ *cr + 0*256 ];
+            crb_g  = 1*768+256 + colortab[ *cr + 1*256 ]
+                               + colortab[ *cb + 2*256 ];
+            cb_b   = 2*768+256 + colortab[ *cb + 3*256 ];
+            ++cr; ++cb;
+
+            L = *lum++;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            *row1++ = (value      ) & 0xFF;
+            *row1++ = (value >>  8) & 0xFF;
+            *row1++ = (value >> 16) & 0xFF;
+
+            L = *lum++;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            *row1++ = (value      ) & 0xFF;
+            *row1++ = (value >>  8) & 0xFF;
+            *row1++ = (value >> 16) & 0xFF;
+
+
+            /* Now, do second row.  */
+
+            L = *lum2++;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            *row2++ = (value      ) & 0xFF;
+            *row2++ = (value >>  8) & 0xFF;
+            *row2++ = (value >> 16) & 0xFF;
+
+            L = *lum2++;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            *row2++ = (value      ) & 0xFF;
+            *row2++ = (value >>  8) & 0xFF;
+            *row2++ = (value >> 16) & 0xFF;
+        }
+
+        /*
+         * These values are at the start of the next line, (due
+         * to the ++'s above),but they need to be at the start
+         * of the line after that.
+         */
+        lum  += cols;
+        lum2 += cols;
+        row1 += mod;
+        row2 += mod;
+    }
+}
+
 static void Color32DitherYV12Mod1X( int *colortab, Uint32 *rgb_2_pix,
                                     unsigned char *lum, unsigned char *cr,
                                     unsigned char *cb, unsigned char *out,
@@ -373,6 +457,104 @@ static void Color16DitherYV12Mod2X( int *colortab, Uint32 *rgb_2_pix,
     }
 }
 
+static void Color24DitherYV12Mod2X( int *colortab, Uint32 *rgb_2_pix,
+                                    unsigned char *lum, unsigned char *cr,
+                                    unsigned char *cb, unsigned char *out,
+                                    int rows, int cols, int mod )
+{
+    unsigned int value;
+    unsigned char* row1 = out;
+    const int next_row = (cols*2 + mod) * 3;
+    unsigned char* row2 = row1 + 2*next_row;
+    unsigned char* lum2;
+    int x, y;
+    int cr_r;
+    int crb_g;
+    int cb_b;
+    int cols_2 = cols / 2;
+
+    lum2 = lum + cols;
+
+    mod = next_row*3 + mod*3;
+
+    y = rows / 2;
+    while( y-- )
+    {
+        x = cols_2;
+        while( x-- )
+        {
+            register int L;
+
+            cr_r   = 0*768+256 + colortab[ *cr + 0*256 ];
+            crb_g  = 1*768+256 + colortab[ *cr + 1*256 ]
+                               + colortab[ *cb + 2*256 ];
+            cb_b   = 2*768+256 + colortab[ *cb + 3*256 ];
+            ++cr; ++cb;
+
+            L = *lum++;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            row1[0+0] = row1[3+0] = row1[next_row+0] = row1[next_row+3+0] =
+                     (value      ) & 0xFF;
+            row1[0+1] = row1[3+1] = row1[next_row+1] = row1[next_row+3+1] =
+                     (value >>  8) & 0xFF;
+            row1[0+2] = row1[3+2] = row1[next_row+2] = row1[next_row+3+2] =
+                     (value >> 16) & 0xFF;
+            row1 += 2*3;
+
+            L = *lum++;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            row1[0+0] = row1[3+0] = row1[next_row+0] = row1[next_row+3+0] =
+                     (value      ) & 0xFF;
+            row1[0+1] = row1[3+1] = row1[next_row+1] = row1[next_row+3+1] =
+                     (value >>  8) & 0xFF;
+            row1[0+2] = row1[3+2] = row1[next_row+2] = row1[next_row+3+2] =
+                     (value >> 16) & 0xFF;
+            row1 += 2*3;
+
+
+            /* Now, do second row. */
+
+            L = *lum2++;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            row2[0+0] = row2[3+0] = row2[next_row+0] = row2[next_row+3+0] =
+                     (value      ) & 0xFF;
+            row2[0+1] = row2[3+1] = row2[next_row+1] = row2[next_row+3+1] =
+                     (value >>  8) & 0xFF;
+            row2[0+2] = row2[3+2] = row2[next_row+2] = row2[next_row+3+2] =
+                     (value >> 16) & 0xFF;
+            row2 += 2*3;
+
+            L = *lum2++;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            row2[0+0] = row2[3+0] = row2[next_row+0] = row2[next_row+3+0] =
+                     (value      ) & 0xFF;
+            row2[0+1] = row2[3+1] = row2[next_row+1] = row2[next_row+3+1] =
+                     (value >>  8) & 0xFF;
+            row2[0+2] = row2[3+2] = row2[next_row+2] = row2[next_row+3+2] =
+                     (value >> 16) & 0xFF;
+            row2 += 2*3;
+        }
+
+        /*
+         * These values are at the start of the next line, (due
+         * to the ++'s above),but they need to be at the start
+         * of the line after that.
+         */
+        lum  += cols;
+        lum2 += cols;
+        row1 += mod;
+        row2 += mod;
+    }
+}
+
 static void Color32DitherYV12Mod2X( int *colortab, Uint32 *rgb_2_pix,
                                     unsigned char *lum, unsigned char *cr,
                                     unsigned char *cb, unsigned char *out,
@@ -455,22 +637,16 @@ static void Color16DitherYUY2Mod1X( int *colortab, Uint32 *rgb_2_pix,
                                     unsigned char *cb, unsigned char *out,
                                     int rows, int cols, int mod )
 {
-    unsigned short* row1;
-    unsigned short* row2;
-    unsigned char* lum2;
+    unsigned short* row;
     int x, y;
     int cr_r;
     int crb_g;
     int cb_b;
     int cols_2 = cols / 2;
 
-    row1 = (unsigned short*) out;
-    row2 = row1 + cols + mod;
-    lum2 = lum + cols;
+    row = (unsigned short*) out;
 
-    mod += cols + mod;
-
-    y = rows / 2;
+    y = rows;
     while( y-- )
     {
         x = cols_2;
@@ -485,38 +661,68 @@ static void Color16DitherYUY2Mod1X( int *colortab, Uint32 *rgb_2_pix,
             cr += 4; cb += 4;
 
             L = *lum; lum += 2;
-            *row1++ = (rgb_2_pix[ L + cr_r ] |
+            *row++ = (rgb_2_pix[ L + cr_r ] |
                        rgb_2_pix[ L + crb_g ] |
                        rgb_2_pix[ L + cb_b ]);
 
             L = *lum; lum += 2;
-            *row1++ = (rgb_2_pix[ L + cr_r ] |
+            *row++ = (rgb_2_pix[ L + cr_r ] |
                        rgb_2_pix[ L + crb_g ] |
                        rgb_2_pix[ L + cb_b ]);
 
-
-            /* Now, do second row.  */
-
-            L = *lum2; lum2 += 2;
-            *row2++ = (rgb_2_pix[ L + cr_r ] |
-                       rgb_2_pix[ L + crb_g ] |
-                       rgb_2_pix[ L + cb_b ]);
-
-            L = *lum2; lum2 += 2;
-            *row2++ = (rgb_2_pix[ L + cr_r ] |
-                       rgb_2_pix[ L + crb_g ] |
-                       rgb_2_pix[ L + cb_b ]);
         }
 
-        /*
-         * These values are at the start of the next line, (due
-         * to the ++'s above),but they need to be at the start
-         * of the line after that.
-         */
-        lum  += cols*4;
-        lum2 += cols*4;
-        row1 += mod;
-        row2 += mod;
+        row += mod;
+    }
+}
+
+static void Color24DitherYUY2Mod1X( int *colortab, Uint32 *rgb_2_pix,
+                                    unsigned char *lum, unsigned char *cr,
+                                    unsigned char *cb, unsigned char *out,
+                                    int rows, int cols, int mod )
+{
+    unsigned int value;
+    unsigned char* row;
+    int x, y;
+    int cr_r;
+    int crb_g;
+    int cb_b;
+    int cols_2 = cols / 2;
+
+    row = (unsigned char*) out;
+    mod *= 3;
+    y = rows;
+    while( y-- )
+    {
+        x = cols_2;
+        while( x-- )
+        {
+            register int L;
+
+            cr_r   = 0*768+256 + colortab[ *cr + 0*256 ];
+            crb_g  = 1*768+256 + colortab[ *cr + 1*256 ]
+                               + colortab[ *cb + 2*256 ];
+            cb_b   = 2*768+256 + colortab[ *cb + 3*256 ];
+            cr += 4; cb += 4;
+
+            L = *lum; lum += 2;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            *row++ = (value      ) & 0xFF;
+            *row++ = (value >>  8) & 0xFF;
+            *row++ = (value >> 16) & 0xFF;
+
+            L = *lum; lum += 2;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            *row++ = (value      ) & 0xFF;
+            *row++ = (value >>  8) & 0xFF;
+            *row++ = (value >> 16) & 0xFF;
+
+        }
+        row += mod;
     }
 }
 
@@ -525,22 +731,15 @@ static void Color32DitherYUY2Mod1X( int *colortab, Uint32 *rgb_2_pix,
                                     unsigned char *cb, unsigned char *out,
                                     int rows, int cols, int mod )
 {
-    unsigned int* row1;
-    unsigned int* row2;
-    unsigned char* lum2;
+    unsigned int* row;
     int x, y;
     int cr_r;
     int crb_g;
     int cb_b;
     int cols_2 = cols / 2;
 
-    row1 = (unsigned int*) out;
-    row2 = row1 + cols + mod;
-    lum2 = lum + cols;
-
-    mod += cols + mod;
-
-    y = rows / 2;
+    row = (unsigned int*) out;
+    y = rows;
     while( y-- )
     {
         x = cols_2;
@@ -555,38 +754,18 @@ static void Color32DitherYUY2Mod1X( int *colortab, Uint32 *rgb_2_pix,
             cr += 4; cb += 4;
 
             L = *lum; lum += 2;
-            *row1++ = (rgb_2_pix[ L + cr_r ] |
+            *row++ = (rgb_2_pix[ L + cr_r ] |
                        rgb_2_pix[ L + crb_g ] |
                        rgb_2_pix[ L + cb_b ]);
 
             L = *lum; lum += 2;
-            *row1++ = (rgb_2_pix[ L + cr_r ] |
+            *row++ = (rgb_2_pix[ L + cr_r ] |
                        rgb_2_pix[ L + crb_g ] |
                        rgb_2_pix[ L + cb_b ]);
 
 
-            /* Now, do second row.  */
-
-            L = *lum2; lum2 += 2;
-            *row2++ = (rgb_2_pix[ L + cr_r ] |
-                       rgb_2_pix[ L + crb_g ] |
-                       rgb_2_pix[ L + cb_b ]);
-
-            L = *lum2; lum2 += 2;
-            *row2++ = (rgb_2_pix[ L + cr_r ] |
-                       rgb_2_pix[ L + crb_g ] |
-                       rgb_2_pix[ L + cb_b ]);
         }
-
-        /*
-         * These values are at the start of the next line, (due
-         * to the ++'s above),but they need to be at the start
-         * of the line after that.
-         */
-        lum  += cols*4;
-        lum2 += cols*4;
-        row1 += mod;
-        row2 += mod;
+        row += mod;
     }
 }
 
@@ -600,21 +779,15 @@ static void Color16DitherYUY2Mod2X( int *colortab, Uint32 *rgb_2_pix,
                                     unsigned char *cb, unsigned char *out,
                                     int rows, int cols, int mod )
 {
-    unsigned int* row1 = (unsigned int*) out;
+    unsigned int* row = (unsigned int*) out;
     const int next_row = cols+(mod/2);
-    unsigned int* row2 = row1 + 2*next_row;
-    unsigned char* lum2;
     int x, y;
     int cr_r;
     int crb_g;
     int cb_b;
     int cols_2 = cols / 2;
 
-    lum2 = lum + cols;
-
-    mod = (next_row * 3) + (mod/2);
-
-    y = rows / 2;
+    y = rows;
     while( y-- )
     {
         x = cols_2;
@@ -629,42 +802,75 @@ static void Color16DitherYUY2Mod2X( int *colortab, Uint32 *rgb_2_pix,
             cr += 4; cb += 4;
 
             L = *lum; lum += 2;
-            row1[0] = row1[next_row] = (rgb_2_pix[ L + cr_r ] |
+            row[0] = row[next_row] = (rgb_2_pix[ L + cr_r ] |
                                         rgb_2_pix[ L + crb_g ] |
                                         rgb_2_pix[ L + cb_b ]);
-            row1++;
+            row++;
 
             L = *lum; lum += 2;
-            row1[0] = row1[next_row] = (rgb_2_pix[ L + cr_r ] |
+            row[0] = row[next_row] = (rgb_2_pix[ L + cr_r ] |
                                         rgb_2_pix[ L + crb_g ] |
                                         rgb_2_pix[ L + cb_b ]);
-            row1++;
+            row++;
 
-
-            /* Now, do second row. */
-
-            L = *lum2; lum2 += 2;
-            row2[0] = row2[next_row] = (rgb_2_pix[ L + cr_r ] |
-                                        rgb_2_pix[ L + crb_g ] |
-                                        rgb_2_pix[ L + cb_b ]);
-            row2++;
-
-            L = *lum2; lum2 += 2;
-            row2[0] = row2[next_row] = (rgb_2_pix[ L + cr_r ] |
-                                        rgb_2_pix[ L + crb_g ] |
-                                        rgb_2_pix[ L + cb_b ]);
-            row2++;
         }
+        row += next_row;
+    }
+}
 
-        /*
-         * These values are at the start of the next line, (due
-         * to the ++'s above),but they need to be at the start
-         * of the line after that.
-         */
-        lum  += cols*4;
-        lum2 += cols*4;
-        row1 += mod;
-        row2 += mod;
+static void Color24DitherYUY2Mod2X( int *colortab, Uint32 *rgb_2_pix,
+                                    unsigned char *lum, unsigned char *cr,
+                                    unsigned char *cb, unsigned char *out,
+                                    int rows, int cols, int mod )
+{
+    unsigned int value;
+    unsigned char* row = out;
+    const int next_row = (cols*2 + mod) * 3;
+    int x, y;
+    int cr_r;
+    int crb_g;
+    int cb_b;
+    int cols_2 = cols / 2;
+    y = rows;
+    while( y-- )
+    {
+        x = cols_2;
+        while( x-- )
+        {
+            register int L;
+
+            cr_r   = 0*768+256 + colortab[ *cr + 0*256 ];
+            crb_g  = 1*768+256 + colortab[ *cr + 1*256 ]
+                               + colortab[ *cb + 2*256 ];
+            cb_b   = 2*768+256 + colortab[ *cb + 3*256 ];
+            cr += 4; cb += 4;
+
+            L = *lum; lum += 2;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            row[0+0] = row[3+0] = row[next_row+0] = row[next_row+3+0] =
+                     (value      ) & 0xFF;
+            row[0+1] = row[3+1] = row[next_row+1] = row[next_row+3+1] =
+                     (value >>  8) & 0xFF;
+            row[0+2] = row[3+2] = row[next_row+2] = row[next_row+3+2] =
+                     (value >> 16) & 0xFF;
+            row += 2*3;
+
+            L = *lum; lum += 2;
+            value = (rgb_2_pix[ L + cr_r ] |
+                     rgb_2_pix[ L + crb_g ] |
+                     rgb_2_pix[ L + cb_b ]);
+            row[0+0] = row[3+0] = row[next_row+0] = row[next_row+3+0] =
+                     (value      ) & 0xFF;
+            row[0+1] = row[3+1] = row[next_row+1] = row[next_row+3+1] =
+                     (value >>  8) & 0xFF;
+            row[0+2] = row[3+2] = row[next_row+2] = row[next_row+3+2] =
+                     (value >> 16) & 0xFF;
+            row += 2*3;
+
+        }
+        row += next_row;
     }
 }
 
@@ -673,21 +879,15 @@ static void Color32DitherYUY2Mod2X( int *colortab, Uint32 *rgb_2_pix,
                                     unsigned char *cb, unsigned char *out,
                                     int rows, int cols, int mod )
 {
-    unsigned int* row1 = (unsigned int*) out;
+    unsigned int* row = (unsigned int*) out;
     const int next_row = cols*2+mod;
-    unsigned int* row2 = row1 + 2*next_row;
-    unsigned char* lum2;
     int x, y;
     int cr_r;
     int crb_g;
     int cb_b;
     int cols_2 = cols / 2;
-
-    lum2 = lum + cols;
-
-    mod = (next_row * 3) + mod;
-
-    y = rows / 2;
+    mod+=mod;
+    y = rows;
     while( y-- )
     {
         x = cols_2;
@@ -702,46 +902,23 @@ static void Color32DitherYUY2Mod2X( int *colortab, Uint32 *rgb_2_pix,
             cr += 4; cb += 4;
 
             L = *lum; lum += 2;
-            row1[0] = row1[1] = row1[next_row] = row1[next_row+1] =
+            row[0] = row[1] = row[next_row] = row[next_row+1] =
                                        (rgb_2_pix[ L + cr_r ] |
                                         rgb_2_pix[ L + crb_g ] |
                                         rgb_2_pix[ L + cb_b ]);
-            row1 += 2;
+            row += 2;
 
             L = *lum; lum += 2;
-            row1[0] = row1[1] = row1[next_row] = row1[next_row+1] =
+            row[0] = row[1] = row[next_row] = row[next_row+1] =
                                        (rgb_2_pix[ L + cr_r ] |
                                         rgb_2_pix[ L + crb_g ] |
                                         rgb_2_pix[ L + cb_b ]);
-            row1 += 2;
+            row += 2;
 
 
-            /* Now, do second row. */
-
-            L = *lum2; lum2 += 2;
-            row2[0] = row2[1] = row2[next_row] = row2[next_row+1] =
-                                       (rgb_2_pix[ L + cr_r ] |
-                                        rgb_2_pix[ L + crb_g ] |
-                                        rgb_2_pix[ L + cb_b ]);
-            row2 += 2;
-
-            L = *lum2; lum2 += 2;
-            row2[0] = row2[1] = row2[next_row] = row2[next_row+1] =
-                                       (rgb_2_pix[ L + cr_r ] |
-                                        rgb_2_pix[ L + crb_g ] |
-                                        rgb_2_pix[ L + cb_b ]);
-            row2 += 2;
         }
 
-        /*
-         * These values are at the start of the next line, (due
-         * to the ++'s above),but they need to be at the start
-         * of the line after that.
-         */
-        lum  += cols*4;
-        lum2 += cols*4;
-        row1 += mod;
-        row2 += mod;
+        row += next_row;
     }
 }
 
@@ -786,8 +963,9 @@ SDL_Overlay *SDL_CreateYUV_SW(_THIS, int width, int height, Uint32 format, SDL_S
 
 	/* Only RGB packed pixel conversion supported */
 	if ( (display->format->BytesPerPixel != 2) &&
+	     (display->format->BytesPerPixel != 3) &&
 	     (display->format->BytesPerPixel != 4) ) {
-		SDL_SetError("Can't use YUV data on non 16/32 bit surfaces");
+		SDL_SetError("Can't use YUV data on non 16/24/32 bit surfaces");
 		return(NULL);
 	}
 
@@ -795,11 +973,9 @@ SDL_Overlay *SDL_CreateYUV_SW(_THIS, int width, int height, Uint32 format, SDL_S
 	switch (format) {
 	    case SDL_YV12_OVERLAY:
 	    case SDL_IYUV_OVERLAY:
-#if 1 /* These converters are broken (need to use second row of chroma) */
 	    case SDL_YUY2_OVERLAY:
 	    case SDL_UYVY_OVERLAY:
 	    case SDL_YVYU_OVERLAY:
-#endif
 		break;
 	    default:
 		SDL_SetError("Unsupported YUV format");
@@ -909,7 +1085,8 @@ SDL_Overlay *SDL_CreateYUV_SW(_THIS, int width, int height, Uint32 format, SDL_S
 	    case SDL_IYUV_OVERLAY:
 		cpu_mmx = CPU_Flags() & MMX_CPU;
 		if ( display->format->BytesPerPixel == 2 ) {
-#if defined(i386) && defined(__GNUC__) /* inline assembly functions */
+#if defined(i386) && defined(__GNUC__) && defined(USE_ASMBLIT)
+			/* inline assembly functions */
 			if ( cpu_mmx && (Rmask == 0xF800) &&
 			                (Gmask == 0x07E0) &&
 				        (Bmask == 0x001F) &&
@@ -924,8 +1101,14 @@ SDL_Overlay *SDL_CreateYUV_SW(_THIS, int width, int height, Uint32 format, SDL_S
 			swdata->Display1X = Color16DitherYV12Mod1X;
 #endif
 			swdata->Display2X = Color16DitherYV12Mod2X;
-		} else {
-#if defined(i386) && defined(__GNUC__) /* inline assembly functions */
+		}
+		if ( display->format->BytesPerPixel == 3 ) {
+			swdata->Display1X = Color24DitherYV12Mod1X;
+			swdata->Display2X = Color24DitherYV12Mod2X;
+		}
+		if ( display->format->BytesPerPixel == 4 ) {
+#if defined(i386) && defined(__GNUC__) && defined(USE_ASMBLIT)
+			/* inline assembly functions */
 			if ( cpu_mmx && (Rmask == 0x00FF0000) &&
 			                (Gmask == 0x0000FF00) &&
 				        (Bmask == 0x000000FF) && 
@@ -948,7 +1131,12 @@ SDL_Overlay *SDL_CreateYUV_SW(_THIS, int width, int height, Uint32 format, SDL_S
 		if ( display->format->BytesPerPixel == 2 ) {
 			swdata->Display1X = Color16DitherYUY2Mod1X;
 			swdata->Display2X = Color16DitherYUY2Mod2X;
-		} else {
+		}
+		if ( display->format->BytesPerPixel == 3 ) {
+			swdata->Display1X = Color24DitherYUY2Mod1X;
+			swdata->Display2X = Color24DitherYUY2Mod2X;
+		}
+		if ( display->format->BytesPerPixel == 4 ) {
 			swdata->Display1X = Color32DitherYUY2Mod1X;
 			swdata->Display2X = Color32DitherYUY2Mod2X;
 		}

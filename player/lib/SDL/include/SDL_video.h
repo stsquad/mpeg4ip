@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.h,v 1.1 2001/02/05 20:26:26 cahighlander Exp $";
+ "@(#) $Id: SDL_video.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Header file for access to the SDL raw framebuffer window */
@@ -110,13 +110,15 @@ typedef struct SDL_Surface {
 	/* clipping information */
 	SDL_Rect clip_rect;			/* Read-only */
 	Uint32 unused1;				/* for binary compatibility */
-	Uint32 unused2;				/* for binary compatibility */
+
+	/* Allow recursive locks */
+	Uint32 locked;				/* Private */
 
 	/* info for fast blit mapping to other surfaces */
 	struct SDL_BlitMap *map;		/* Private */
 
-        /* format version, bumped at every change to invalidate blit maps */
-        unsigned int format_version;		/* Private */
+	/* format version, bumped at every change to invalidate blit maps */
+	unsigned int format_version;		/* Private */
 
 	/* Reference count -- used when freeing surface */
 	int refcount;				/* Read-mostly */
@@ -135,11 +137,12 @@ typedef struct SDL_Surface {
 #define SDL_OPENGL      0x00000002      /* Create an OpenGL rendering context */
 #define SDL_OPENGLBLIT	0x0000000A	/* Create an OpenGL rendering context and use it for blitting */
 #define SDL_RESIZABLE	0x00000010	/* This video mode may be resized */
+#define SDL_NOFRAME	0x00000020	/* No window caption or edge frame */
 /* Used internally (read-only) */
 #define SDL_HWACCEL	0x00000100	/* Blit uses hardware acceleration */
 #define SDL_SRCCOLORKEY	0x00001000	/* Blit uses a source color key */
 #define SDL_RLEACCELOK	0x00002000	/* Private flag */
-#define SDL_RLEACCEL	0x00004000	/* Colorkey blit is RLE accelerated */
+#define SDL_RLEACCEL	0x00004000	/* Surface is RLE encoded */
 #define SDL_SRCALPHA	0x00010000	/* Blit uses source alpha blending */
 #define SDL_PREALLOC	0x01000000	/* Surface uses preallocated memory */
 
@@ -223,6 +226,7 @@ typedef enum {
 
 /* These functions are used internally, and should not be used unless you
  * have a specific need to specify the video driver you want to use.
+ * You should normally use SDL_Init() or SDL_InitSubSystem().
  *
  * SDL_VideoInit() initializes the video subsystem -- sets up a connection
  * to the window manager, etc, and determines the current video mode and
@@ -323,7 +327,22 @@ extern DECLSPEC SDL_Rect ** SDL_ListModes(SDL_PixelFormat *format, Uint32 flags)
  * memory while the monitor is refreshing.  It should only be used by 
  * applications that redraw the entire screen on every update.
  *
+ * If SDL_RESIZABLE is set in 'flags', the SDL library will allow the
+ * window manager, if any, to resize the window at runtime.  When this
+ * occurs, SDL will send a SDL_VIDEORESIZE event to you application,
+ * and you must respond to the event by re-calling SDL_SetVideoMode()
+ * with the requested size (or another size that suits the application).
+ *
+ * If SDL_NOFRAME is set in 'flags', the SDL library will create a window
+ * without any title bar or frame decoration.  Fullscreen video modes have
+ * this flag set automatically.
+ *
  * This function returns the video framebuffer surface, or NULL if it fails.
+ *
+ * If you rely on functionality provided by certain video flags, check the
+ * flags of the returned surface to make sure that functionality is available.
+ * SDL will fall back to reduced functionality if the exact flags you wanted
+ * are not available.
  */
 extern DECLSPEC SDL_Surface *SDL_SetVideoMode
 			(int width, int height, int bpp, Uint32 flags);
@@ -363,26 +382,28 @@ extern DECLSPEC int SDL_SetGamma(float red, float green, float blue);
 
 /*
  * Set the gamma translation table for the red, green, and blue channels
- * of the video hardware.  Each table is an array of 256 8-bit quantities,
+ * of the video hardware.  Each table is an array of 256 16-bit quantities,
  * representing a mapping between the input and output for that channel.
+ * The input is the index into the array, and the output is the 16-bit
+ * gamma value at that index, scaled to the output color precision.
  * 
  * You may pass NULL for any of the channels to leave it unchanged.
  * If the call succeeds, it will return 0.  If the display driver or
  * hardware does not support gamma translation, or otherwise fails,
  * this function will return -1.
  */
-extern DECLSPEC int SDL_SetGammaRamp(Uint8 *red, Uint8 *green, Uint8 *blue);
+extern DECLSPEC int SDL_SetGammaRamp(Uint16 *red, Uint16 *green, Uint16 *blue);
 
 /*
  * Retrieve the current values of the gamma translation tables.
  * 
- * You must pass in valid pointers to arrays of 256 8-bit quantities.
+ * You must pass in valid pointers to arrays of 256 16-bit quantities.
  * Any of the pointers may be NULL to ignore that channel.
  * If the call succeeds, it will return 0.  If the display driver or
  * hardware does not support gamma translation, or otherwise fails,
  * this function will return -1.
  */
-extern DECLSPEC int SDL_GetGammaRamp(Uint8 *red, Uint8 *green, Uint8 *blue);
+extern DECLSPEC int SDL_GetGammaRamp(Uint16 *red, Uint16 *green, Uint16 *blue);
 
 /*
  * Sets a portion of the colormap for the given 8-bit surface.  If 'surface'
@@ -575,12 +596,21 @@ extern DECLSPEC int SDL_SetAlpha(SDL_Surface *surface, Uint32 flag, Uint8 alpha)
 extern DECLSPEC SDL_bool SDL_SetClipRect(SDL_Surface *surface, SDL_Rect *rect);
 
 /*
+ * Gets the clipping rectangle for the destination surface in a blit.
+ * 'rect' must be a pointer to a valid rectangle which will be filled
+ * with the correct values.
+ */
+extern DECLSPEC void SDL_GetClipRect(SDL_Surface *surface, SDL_Rect *rect);
+
+/*
  * Creates a new surface of the specified format, and then copies and maps 
  * the given surface to it so the blit of the converted surface will be as 
  * fast as possible.  If this function fails, it returns NULL.
  *
  * The 'flags' parameter is passed to SDL_CreateRGBSurface() and has those 
- * semantics.
+ * semantics.  You can also pass SDL_RLEACCEL in the flags parameter and
+ * SDL will try to RLE accelerate colorkey and alpha blits in the resulting
+ * surface.
  *
  * This function is used internally by SDL_DisplayFormat().
  */
@@ -596,6 +626,49 @@ extern DECLSPEC SDL_Surface *SDL_ConvertSurface
  * If the blit is successful, it returns 0, otherwise it returns -1.
  *
  * The blit function should not be called on a locked surface.
+ *
+ * The blit semantics for surfaces with and without alpha and colorkey
+ * are defined as follows:
+ *
+ * RGBA->RGB:
+ *     SDL_SRCALPHA set:
+ * 	alpha-blend (using alpha-channel).
+ * 	SDL_SRCCOLORKEY ignored.
+ *     SDL_SRCALPHA not set:
+ * 	copy RGB.
+ * 	if SDL_SRCCOLORKEY set, only copy the pixels matching the
+ * 	RGB values of the source colour key, ignoring alpha in the
+ * 	comparison.
+ * 
+ * RGB->RGBA:
+ *     SDL_SRCALPHA set:
+ * 	alpha-blend (using the source per-surface alpha value);
+ * 	set destination alpha to opaque.
+ *     SDL_SRCALPHA not set:
+ * 	copy RGB, set destination alpha to opaque.
+ *     both:
+ * 	if SDL_SRCCOLORKEY set, only copy the pixels matching the
+ * 	source colour key.
+ * 
+ * RGBA->RGBA:
+ *     SDL_SRCALPHA set:
+ * 	alpha-blend (using the source alpha channel) the RGB values;
+ * 	leave destination alpha untouched. [Note: is this correct?]
+ * 	SDL_SRCCOLORKEY ignored.
+ *     SDL_SRCALPHA not set:
+ * 	copy all of RGBA to the destination.
+ * 	if SDL_SRCCOLORKEY set, only copy the pixels matching the
+ * 	RGB values of the source colour key, ignoring alpha in the
+ * 	comparison.
+ * 
+ * RGB->RGB: 
+ *     SDL_SRCALPHA set:
+ * 	alpha-blend (using the source per-surface alpha value).
+ *     SDL_SRCALPHA not set:
+ * 	copy RGB.
+ *     both:
+ * 	if SDL_SRCCOLORKEY set, only copy the pixels matching the
+ * 	source colour key.
  *
  * If either of the surfaces were in video memory, and the blit returns -2,
  * the video memory was lost, so it should be reloaded with artwork and 
@@ -738,6 +811,10 @@ extern DECLSPEC int SDL_GL_GetAttribute(SDL_GLattr attr, int* value);
  */
 extern DECLSPEC void SDL_GL_SwapBuffers(void);
 
+/*
+ * Internal functions that should not be called unless you have read
+ * and understood the source code for these functions.
+ */
 extern DECLSPEC void SDL_GL_UpdateRects(int numrects, SDL_Rect* rects);
 extern DECLSPEC void SDL_GL_Lock(void);
 extern DECLSPEC void SDL_GL_Unlock(void);
@@ -803,7 +880,7 @@ extern DECLSPEC SDL_GrabMode SDL_WM_GrabInput(SDL_GrabMode mode);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
-};
+}
 #endif
 #include "close_code.h"
 

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbvideo.h,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_fbvideo.h,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_fbvideo_h
@@ -44,7 +44,7 @@ static char rcsid =
 typedef struct vidmem_bucket {
 	struct vidmem_bucket *prev;
 	unsigned int used;
-	caddr_t base;
+	char *base;
 	unsigned int size;
 	struct vidmem_bucket *next;
 } vidmem_bucket;
@@ -63,19 +63,21 @@ struct SDL_PrivateVideoData {
 	int saved_cmaplen;
 	__u16 *saved_cmap;
 
+	int current_vt;
+	int saved_vt;
 	int keyboard_fd;
 	int saved_kbd_mode;
 	struct termios saved_kbd_termios;
 
 	int mouse_fd;
 
-	caddr_t mapped_mem;
+	char *mapped_mem;
 	int mapped_memlen;
 	int mapped_offset;
-	caddr_t mapped_io;
+	char *mapped_io;
 	long mapped_iolen;
 	int flip_page;
-	caddr_t flip_address[2];
+	char *flip_address[2];
 
 #define NUM_MODELISTS	4		/* 8, 16, 24, and 32 bits-per-pixel */
 	int SDL_nummodes[NUM_MODELISTS];
@@ -91,6 +93,8 @@ struct SDL_PrivateVideoData {
 };
 /* Old variable names */
 #define console_fd		(this->hidden->console_fd)
+#define current_vt		(this->hidden->current_vt)
+#define saved_vt		(this->hidden->saved_vt)
 #define keyboard_fd		(this->hidden->keyboard_fd)
 #define saved_kbd_mode		(this->hidden->saved_kbd_mode)
 #define saved_kbd_termios	(this->hidden->saved_kbd_termios)

@@ -8,6 +8,8 @@ libvideo_fbcon_la_SOURCES = $(FBCON_SRCS)
 FBCON_SRCS = 			\
 	SDL_fbkeys.h		\
 	SDL_fbvideo.h		\
+	SDL_fbelo.c \
+	SDL_fbelo.h \
 	SDL_fbevents.c		\
 	SDL_fbevents_c.h	\
 	SDL_fb3dfx.c		\

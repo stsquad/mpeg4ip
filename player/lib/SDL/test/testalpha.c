@@ -103,7 +103,7 @@ SDL_Surface *CreateLight(SDL_Surface *screen, int radius)
 static Uint32 flashes = 0;
 static Uint32 flashtime = 0;
 
-void FlashLight(SDL_Surface *screen, SDL_Surface *light, Uint16 x, Uint16 y)
+void FlashLight(SDL_Surface *screen, SDL_Surface *light, int x, int y)
 {
 	SDL_Rect position;
 	Uint32   ticks1;
@@ -200,7 +200,7 @@ void AttractSprite(Uint16 x, Uint16 y)
 void MoveSprite(SDL_Surface *screen, SDL_Surface *light)
 {
 	SDL_Rect updates[2];
-	Uint8    alpha;
+	int alpha;
 
 	/* Erase the sprite if it was visible */
 	if ( sprite_visible ) {
@@ -236,13 +236,13 @@ void MoveSprite(SDL_Surface *screen, SDL_Surface *light)
 
 	/* Update transparency (fade in and out) */
 	alpha = sprite->format->alpha;
-	if ( ((int)alpha+alpha_vel) < 0 ) {
+	if ( (alpha+alpha_vel) < 0 ) {
 		alpha_vel = -alpha_vel;
 	} else
-	if ( ((int)alpha+alpha_vel) > 255 ) {
+	if ( (alpha+alpha_vel) > 255 ) {
 		alpha_vel = -alpha_vel;
 	}
-	SDL_SetAlpha(sprite, SDL_SRCALPHA, alpha+alpha_vel);
+	SDL_SetAlpha(sprite, SDL_SRCALPHA, (Uint8)(alpha+alpha_vel));
 
 	/* Save the area behind the sprite */
 	updates[1] = position;
@@ -324,8 +324,8 @@ int main(int argc, char *argv[])
 
 	/* Set 640x480 video mode */
 	if ( (screen=SDL_SetVideoMode(640,480,video_bpp,videoflags)) == NULL ) {
-		fprintf(stderr, "Couldn't set 640x480x8 video mode: %s\n",
-								SDL_GetError());
+		fprintf(stderr, "Couldn't set 640x480x%d video mode: %s\n",
+						video_bpp, SDL_GetError());
 		exit(2);
 	}
 

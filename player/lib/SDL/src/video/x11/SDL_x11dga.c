@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11dga.c,v 1.1 2001/02/05 20:26:31 cahighlander Exp $";
+ "@(#) $Id: SDL_x11dga.c,v 1.2 2001/04/10 22:23:50 cahighlander Exp $";
 #endif
 
 /* This is currently only used to enable DGA mouse.
@@ -34,14 +34,13 @@ static char rcsid =
 #include "SDL_video.h"
 #include "SDL_cursor_c.h"
 #include "SDL_x11dga_c.h"
-#ifdef XFREE86_DGAMOUSE
-#include <X11/extensions/xf86dga.h>
-#endif
+
+/* Global for the error handler */
+int dga_event, dga_error = -1;
 
 void X11_EnableDGAMouse(_THIS)
 {
 #ifdef XFREE86_DGAMOUSE
-    int dga_event, dga_error;
     int dga_major, dga_minor;
     int use_dgamouse;
     const char *env_use_dgamouse;

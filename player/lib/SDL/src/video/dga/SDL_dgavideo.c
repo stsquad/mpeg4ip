@@ -1,6 +1,6 @@
 /*
 	SDL - Simple DirectMedia Layer
-	Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+	Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
 	This library is free software; you can redistribute it and/or
 	modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dgavideo.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_dgavideo.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 /* DGA 2.0 based SDL video driver implementation.
@@ -32,6 +32,10 @@ static char rcsid =
 #include <string.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/xf86dga.h>
+
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
 
 #include "SDL.h"
 #include "SDL_error.h"
@@ -50,8 +54,7 @@ static SDL_Rect **DGA_ListModes(_THIS, SDL_PixelFormat *format, Uint32 flags);
 static SDL_Surface *DGA_SetVideoMode(_THIS, SDL_Surface *current, int width, int height, int bpp, Uint32 flags);
 static int DGA_SetColors(_THIS, int firstcolor, int ncolors,
 			 SDL_Color *colors);
-static int DGA_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue);
-static int DGA_GetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue);
+static int DGA_SetGammaRamp(_THIS, Uint16 *ramp);
 static void DGA_VideoQuit(_THIS);
 
 /* Hardware surface functions */
@@ -109,59 +112,58 @@ static void DGA_DeleteDevice(SDL_VideoDevice *device)
 
 static SDL_VideoDevice *DGA_CreateDevice(int devindex)
 {
-	SDL_VideoDevice *this;
+	SDL_VideoDevice *device;
 
 	/* Initialize all variables that we clean on shutdown */
-	this = (SDL_VideoDevice *)malloc(sizeof(SDL_VideoDevice));
-	if ( this ) {
-		memset(this, 0, (sizeof *this));
-		this->hidden = (struct SDL_PrivateVideoData *)
-				malloc((sizeof *this->hidden));
+	device = (SDL_VideoDevice *)malloc(sizeof(SDL_VideoDevice));
+	if ( device ) {
+		memset(device, 0, (sizeof *device));
+		device->hidden = (struct SDL_PrivateVideoData *)
+				malloc((sizeof *device->hidden));
 	}
-	if ( (this == NULL) || (this->hidden == NULL) ) {
+	if ( (device == NULL) || (device->hidden == NULL) ) {
 		SDL_OutOfMemory();
-		if ( this ) {
-			free(this);
+		if ( device ) {
+			free(device);
 		}
 		return(0);
 	}
-	memset(this->hidden, 0, (sizeof *this->hidden));
+	memset(device->hidden, 0, (sizeof *device->hidden));
 
 	/* Set the function pointers */
-	this->VideoInit = DGA_VideoInit;
-	this->ListModes = DGA_ListModes;
-	this->SetVideoMode = DGA_SetVideoMode;
-	this->SetColors = DGA_SetColors;
-	this->UpdateRects = NULL;
-	this->VideoQuit = DGA_VideoQuit;
-	this->AllocHWSurface = DGA_AllocHWSurface;
-	this->CheckHWBlit = DGA_CheckHWBlit;
-	this->FillHWRect = DGA_FillHWRect;
-	this->SetHWColorKey = NULL;
-	this->SetHWAlpha = NULL;
-	this->LockHWSurface = DGA_LockHWSurface;
-	this->UnlockHWSurface = DGA_UnlockHWSurface;
-	this->FlipHWSurface = DGA_FlipHWSurface;
-	this->FreeHWSurface = DGA_FreeHWSurface;
-	this->SetGammaRamp = DGA_SetGammaRamp;
-	this->GetGammaRamp = DGA_GetGammaRamp;
-	this->SetIcon = NULL;
-	this->SetCaption = NULL;
-	this->GetWMInfo = NULL;
-	this->FreeWMCursor = DGA_FreeWMCursor;
-	this->CreateWMCursor = DGA_CreateWMCursor;
-	this->ShowWMCursor = DGA_ShowWMCursor;
-	this->WarpWMCursor = DGA_WarpWMCursor;
-	this->InitOSKeymap = DGA_InitOSKeymap;
-	this->PumpEvents = DGA_PumpEvents;
+	device->VideoInit = DGA_VideoInit;
+	device->ListModes = DGA_ListModes;
+	device->SetVideoMode = DGA_SetVideoMode;
+	device->SetColors = DGA_SetColors;
+	device->UpdateRects = NULL;
+	device->VideoQuit = DGA_VideoQuit;
+	device->AllocHWSurface = DGA_AllocHWSurface;
+	device->CheckHWBlit = DGA_CheckHWBlit;
+	device->FillHWRect = DGA_FillHWRect;
+	device->SetHWColorKey = NULL;
+	device->SetHWAlpha = NULL;
+	device->LockHWSurface = DGA_LockHWSurface;
+	device->UnlockHWSurface = DGA_UnlockHWSurface;
+	device->FlipHWSurface = DGA_FlipHWSurface;
+	device->FreeHWSurface = DGA_FreeHWSurface;
+	device->SetGammaRamp = DGA_SetGammaRamp;
+	device->GetGammaRamp = NULL;
+	device->SetCaption = NULL;
+	device->SetIcon = NULL;
+	device->IconifyWindow = NULL;
+	device->GrabInput = NULL;
+	device->GetWMInfo = NULL;
+	device->InitOSKeymap = DGA_InitOSKeymap;
+	device->PumpEvents = DGA_PumpEvents;
 
-	this->free = DGA_DeleteDevice;
+	device->free = DGA_DeleteDevice;
 
-	return this;
+	return device;
 }
 
 VideoBootStrap DGA_bootstrap = {
-	"dga", DGA_Available, DGA_CreateDevice
+	"dga", "XFree86 DGA 2.0",
+	DGA_Available, DGA_CreateDevice
 };
 
 static int DGA_AddMode(_THIS, int bpp, int w, int h)
@@ -434,12 +436,6 @@ SDL_Surface *DGA_SetVideoMode(_THIS, SDL_Surface *current,
 		XFreeColormap(DGA_Display, DGA_colormap);
 		DGA_colormap = 0;
 	}
-	for ( i=0; i<3; ++i ) {
-		if ( xgamma[i] ) {
-			free(xgamma[i]);
-			xgamma[i] = NULL;
-		}
-	}
 
 	/* Search for a matching video mode */
 	modes = XDGAQueryModes(DGA_Display, DGA_Screen, &num_modes);
@@ -499,22 +495,10 @@ SDL_Surface *DGA_SetVideoMode(_THIS, SDL_Surface *current,
 		if ( DGA_visualClass == PseudoColor ) {
 			current->flags |= SDL_HWPALETTE;
 		} else {
-			Uint8 ramp[256];
-
-			/* Allocate memory for the gamma ramps */
-			for ( i=0; i<3; ++i ) {
-				xgamma[i] = (Uint8 *)malloc(256);
-				if ( ! xgamma[i] ) {
-		    			SDL_OutOfMemory();
-		    			return(NULL);
-				}
-			}
-			/* Set the default gamma ramp - identity gamma (1.0) */
-			for ( i=0; i<256; ++i ) {
-				ramp[i] = i;
-			}
-			this->screen = current;
-			DGA_SetGammaRamp(this, ramp, ramp, ramp);
+	    		/* Initialize the colormap to the identity mapping */
+	    		SDL_GetGammaRamp(0, 0, 0);
+	    		this->screen = current;
+	    		DGA_SetGammaRamp(this, this->gamma);
 			this->screen = NULL;
 		}
 	} else {
@@ -536,6 +520,8 @@ SDL_Surface *DGA_SetVideoMode(_THIS, SDL_Surface *current,
 		if ( mode->mode.imageHeight >= (current->h*2) ) {
 			current->flags |= SDL_DOUBLEBUF;
 			flip_page = 0;
+			flip_yoffset[0] = 0;
+			flip_yoffset[1] = current->h;
 			flip_address[0] = memory_base;
 			flip_address[1] = memory_base+screen_len;
 			surfaces_mem += screen_len;
@@ -740,10 +726,14 @@ static void DGA_FreeHWSurface(_THIS, SDL_Surface *surface)
 	surface->pixels = NULL;
 }
 
-static inline void dst_to_xy(_THIS, SDL_Surface *dst, int *x, int *y)
+static __inline__ void dst_to_xy(_THIS, SDL_Surface *dst, int *x, int *y)
 {
 	*x = (long)((Uint8 *)dst->pixels - memory_base)%memory_pitch;
 	*y = (long)((Uint8 *)dst->pixels - memory_base)/memory_pitch;
+	if ( dst == this->screen ) {
+		*x += this->offset_x;
+		*y += this->offset_y;
+	}
 }
 
 static int DGA_FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
@@ -751,6 +741,12 @@ static int DGA_FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 	int x, y;
 	unsigned int w, h;
 
+	/* Don't fill the visible part of the screen, wait until flipped */
+	if ( was_flipped && (dst == this->screen) ) {
+		while ( XDGAGetViewportStatus(DGA_Display, DGA_Screen) )
+			/* Keep waiting for the hardware ... */ ;
+		was_flipped = 0;
+	}
 	dst_to_xy(this, dst, &x, &y);
 	x += rect->x;
 	y += rect->y;
@@ -761,6 +757,7 @@ static int DGA_FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
 #endif
 	XDGAFillRectangle(DGA_Display, DGA_Screen, x, y, w, h, color);
 	sync_needed++;
+	XFlush(DGA_Display);
 	return(0);
 }
 
@@ -773,6 +770,12 @@ static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 	unsigned int w, h;
 
 	this = current_video;
+	/* Don't blit to the visible part of the screen, wait until flipped */
+	if ( was_flipped && (dst == this->screen) ) {
+		while ( XDGAGetViewportStatus(DGA_Display, DGA_Screen) )
+			/* Keep waiting for the hardware ... */ ;
+		was_flipped = 0;
+	}
 	dst_to_xy(this, src, &srcx, &srcy);
 	srcx += srcrect->x;
 	srcy += srcrect->y;
@@ -792,6 +795,7 @@ static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 			srcx, srcy, w, h, dstx, dsty);
 	}
 	sync_needed++;
+	XFlush(DGA_Display);
 	return(0);
 }
 
@@ -822,14 +826,24 @@ static int DGA_CheckHWBlit(_THIS, SDL_Surface *src, SDL_Surface *dst)
 	return(accelerated);
 }
 
+static __inline__ void DGA_WaitHardware(_THIS)
+{
+	if ( sync_needed ) {
+		XDGASync(DGA_Display, DGA_Screen);
+		sync_needed = 0;
+	}
+	if ( was_flipped ) {
+		while ( XDGAGetViewportStatus(DGA_Display, DGA_Screen) )
+			/* Keep waiting for the hardware ... */ ;
+		was_flipped = 0;
+	}
+}
+
 static int DGA_LockHWSurface(_THIS, SDL_Surface *surface)
 {
 	if ( surface == SDL_VideoSurface ) {
 		SDL_mutexP(hw_lock);
-		if ( sync_needed ) {
-			XDGASync(DGA_Display, DGA_Screen);
-			sync_needed = 0;
-		}
+		DGA_WaitHardware(this);
 	}
 	return(0);
 }
@@ -842,13 +856,12 @@ static void DGA_UnlockHWSurface(_THIS, SDL_Surface *surface)
 
 static int DGA_FlipHWSurface(_THIS, SDL_Surface *surface)
 {
-	int yoffset;
-
 	/* Wait for vertical retrace and then flip display */
-	yoffset = flip_page*surface->h;
-	while ( XDGAGetViewportStatus(DGA_Display, DGA_Screen) )
-		/* Keep waiting for the hardware ... */ ;
-	XDGASetViewport(DGA_Display, DGA_Screen, 0, yoffset, XDGAFlipRetrace);
+	DGA_WaitHardware(this);
+	XDGASetViewport(DGA_Display, DGA_Screen,
+	                0, flip_yoffset[flip_page], XDGAFlipRetrace);
+	XFlush(DGA_Display);
+	was_flipped = 1;
 	flip_page = !flip_page;
 
 	surface->pixels = flip_address[flip_page];
@@ -885,7 +898,7 @@ static int DGA_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
 	return(1);
 }
 
-int DGA_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue)
+int DGA_SetGammaRamp(_THIS, Uint16 *ramp)
 {
 	int i, ncolors;
 	XColor xcmap[256];
@@ -894,17 +907,6 @@ int DGA_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue)
 	if ( DGA_visualClass != DirectColor ) {
 	    SDL_SetError("Gamma correction not supported on this visual");
 	    return(-1);
-	}
-
-	/* Save the gamma ramp for later retrieval */
-	if ( red ) {
-		memcpy(xgamma[0], red, 256);
-	}
-	if ( green ) {
-		memcpy(xgamma[1], green, 256);
-	}
-	if ( blue ) {
-		memcpy(xgamma[2], blue, 256);
 	}
 
 	/* Calculate the appropriate palette for the given gamma ramp */
@@ -916,34 +918,13 @@ int DGA_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue)
 	for ( i=0; i<ncolors; ++i ) {
 		Uint8 c = (256 * i / ncolors);
 		xcmap[i].pixel = SDL_MapRGB(this->screen->format, c, c, c);
-		xcmap[i].red   = (xgamma[0][c]<<8)|xgamma[0][c];
-		xcmap[i].green = (xgamma[1][c]<<8)|xgamma[1][c];
-		xcmap[i].blue  = (xgamma[2][c]<<8)|xgamma[2][c];
+		xcmap[i].red   = ramp[0*256+c];
+		xcmap[i].green = ramp[1*256+c];
+		xcmap[i].blue  = ramp[2*256+c];
 		xcmap[i].flags = (DoRed|DoGreen|DoBlue);
 	}
 	XStoreColors(DGA_Display, DGA_colormap, xcmap, ncolors);
 	XSync(DGA_Display, False);
-	return(0);
-}
-
-int DGA_GetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue)
-{
-	/* See if actually setting the gamma is supported */
-	if ( DGA_visualClass != DirectColor ) {
-	    SDL_SetError("Gamma correction not supported on this visual");
-	    return(-1);
-	}
-
-	/* Retrieve the gamma ramp for the application */
-	if ( red ) {
-		memcpy(red, xgamma[0], 256);
-	}
-	if ( green ) {
-		memcpy(green, xgamma[1], 256);
-	}
-	if ( blue ) {
-		memcpy(blue, xgamma[2], 256);
-	}
 	return(0);
 }
 

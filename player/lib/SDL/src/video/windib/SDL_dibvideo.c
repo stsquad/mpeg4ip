@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dibvideo.c,v 1.1 2001/02/05 20:26:30 cahighlander Exp $";
+ "@(#) $Id: SDL_dibvideo.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 #include <stdio.h>
@@ -48,6 +48,11 @@ static char rcsid =
 #include "SDL_dibevents_c.h"
 #include "SDL_wingl_c.h"
 
+#ifdef _WIN32_WCE
+#define NO_GETDIBITS
+#define NO_CHANGEDISPLAYSETTINGS
+#define NO_GAMMA_SUPPORT
+#endif
 
 /* Initialization/Query functions */
 static int DIB_VideoInit(_THIS, SDL_PixelFormat *vformat);
@@ -58,8 +63,10 @@ static int DIB_SetColors(_THIS, int firstcolor, int ncolors,
 static void DIB_CheckGamma(_THIS);
 static void DIB_SwapGamma(_THIS);
 static void DIB_QuitGamma(_THIS);
-static int DIB_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue);
-static int DIB_GetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue);
+#ifndef NO_GAMMA_SUPPORT
+static int DIB_SetGammaRamp(_THIS, Uint16 *ramp);
+static int DIB_GetGammaRamp(_THIS, Uint16 *ramp);
+#endif
 static void DIB_VideoQuit(_THIS);
 
 /* Hardware surface functions */
@@ -135,8 +142,10 @@ static SDL_VideoDevice *DIB_CreateDevice(int devindex)
 	device->UnlockHWSurface = DIB_UnlockHWSurface;
 	device->FlipHWSurface = NULL;
 	device->FreeHWSurface = DIB_FreeHWSurface;
+#ifndef NO_GAMMA_SUPPORT
 	device->SetGammaRamp = DIB_SetGammaRamp;
 	device->GetGammaRamp = DIB_GetGammaRamp;
+#endif
 #ifdef HAVE_OPENGL
         device->GL_LoadLibrary = WIN_GL_LoadLibrary;
         device->GL_GetProcAddress = WIN_GL_GetProcAddress;
@@ -144,8 +153,8 @@ static SDL_VideoDevice *DIB_CreateDevice(int devindex)
         device->GL_MakeCurrent = WIN_GL_MakeCurrent;
         device->GL_SwapBuffers = WIN_GL_SwapBuffers;
 #endif
-	device->SetIcon = WIN_SetWMIcon;
 	device->SetCaption = WIN_SetWMCaption;
+	device->SetIcon = WIN_SetWMIcon;
 	device->IconifyWindow = WIN_IconifyWindow;
 	device->GrabInput = WIN_GrabInput;
 	device->GetWMInfo = WIN_GetWMInfo;
@@ -171,9 +180,11 @@ static SDL_VideoDevice *DIB_CreateDevice(int devindex)
 }
 
 VideoBootStrap WINDIB_bootstrap = {
-	"windib", DIB_Available, DIB_CreateDevice
+	"windib", "Win95/98/NT/2000 GDI",
+	DIB_Available, DIB_CreateDevice
 };
 
+#ifndef NO_CHANGEDISPLAYSETTINGS
 
 static int cmpmodes(const void *va, const void *vb)
 {
@@ -230,6 +241,8 @@ static int DIB_AddMode(_THIS, int bpp, int w, int h)
 	return(0);
 }
 
+#endif /* !NO_CHANGEDISPLAYSETTINGS */
+
 static HPALETTE DIB_CreatePalette(int bpp)
 {
 /*	RJR: March 28, 2000
@@ -264,8 +277,10 @@ static HPALETTE DIB_CreatePalette(int bpp)
 
 int DIB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 {
+#ifndef NO_CHANGEDISPLAYSETTINGS
 	int i;
 	DEVMODE settings;
+#endif
 
 	/* Create the window */
 	if ( DIB_CreateWindow(this) < 0 ) {
@@ -301,6 +316,7 @@ int DIB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	/* See if gamma is supported on this screen */
 	DIB_CheckGamma(this);
 
+#ifndef NO_CHANGEDISPLAYSETTINGS
 	/* Query for the list of available video modes */
 	for ( i=0; EnumDisplaySettings(NULL, i, &settings); ++i ) {
 		DIB_AddMode(this, settings.dmBitsPerPel,
@@ -312,6 +328,7 @@ int DIB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 			qsort(SDL_modelist[i], SDL_nummodes[i], sizeof *SDL_modelist[i], cmpmodes);
 		}
 	}
+#endif /* !NO_CHANGEDISPLAYSETTINGS */
 
 	/* Grab an identity palette if we are in a palettized mode */
 	if ( vformat->BitsPerPixel <= 8 ) {
@@ -330,11 +347,15 @@ int DIB_VideoInit(_THIS, SDL_PixelFormat *vformat)
 /* We support any format at any dimension */
 SDL_Rect **DIB_ListModes(_THIS, SDL_PixelFormat *format, Uint32 flags)
 {
+#ifdef NO_CHANGEDISPLAYSETTINGS
+	return((SDL_Rect **)-1);
+#else
 	if ( (flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
 		return(SDL_modelist[((format->BitsPerPixel+7)/8)-1]);
 	} else {
 		return((SDL_Rect **)-1);
 	}
+#endif
 }
 
 
@@ -347,6 +368,18 @@ SDL_Rect **DIB_ListModes(_THIS, SDL_PixelFormat *format, Uint32 flags)
 */
 static int DIB_SussScreenDepth()
 {
+#ifdef NO_GETDIBITS
+	int depth;
+	HDC hdc;
+
+	hdc = GetDC(SDL_Window);
+	depth = GetDeviceCaps(hdc, PLANES) * GetDeviceCaps(hdc, BITSPIXEL);
+	ReleaseDC(SDL_Window, hdc);
+	if ( depth == 16 ) {
+		depth = 15;	/* GDI defined as RGB 555 */
+	}
+	return(depth);
+#else
     int dib_size;
     LPBITMAPINFOHEADER dib_hdr;
     HDC hdc;
@@ -390,6 +423,7 @@ static int DIB_SussScreenDepth()
         }
     }
     return 0;    /* poo. */
+#endif /* NO_GETDIBITS */
 }
 
 
@@ -402,6 +436,12 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 	SDL_Surface *video;
 	Uint32 prev_flags;
 	DWORD style;
+	const DWORD directstyle =
+			(WS_POPUP);
+	const DWORD windowstyle = 
+			(WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX);
+	const DWORD resizestyle =
+			(WS_THICKFRAME|WS_MAXIMIZEBOX);
 	int binfo_size;
 	BITMAPINFO *binfo;
 	HDC hdc;
@@ -412,6 +452,11 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 
 	/* See whether or not we should center the window */
 	was_visible = IsWindowVisible(SDL_Window);
+
+	/* Clean up any GL context that may be hanging around */
+	if ( current->flags & SDL_OPENGL ) {
+		WIN_GL_ShutDown(this);
+	}
 
 	/* Recalculate the bitmasks if necessary */
 	if ( bpp == current->format->BitsPerPixel ) {
@@ -460,6 +505,7 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 	video->h = height;
 	video->pitch = SDL_CalculatePitch(video);
 
+#ifndef NO_CHANGEDISPLAYSETTINGS
 	/* Set fullscreen mode if appropriate */
 	if ( (flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
 		DEVMODE settings;
@@ -486,19 +532,32 @@ SDL_Surface *DIB_SetVideoMode(_THIS, SDL_Surface *current,
 			}
 		}
 	}
+#endif /* !NO_CHANGEDISPLAYSETTINGS */
 
+	style = GetWindowLong(SDL_Window, GWL_STYLE);
+	style &= ~(resizestyle|WS_MAXIMIZE);
 	if ( (video->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
-                style = (WS_POPUP|WS_CLIPCHILDREN|WS_CLIPSIBLINGS|WS_MAXIMIZE);
+		style &= ~windowstyle;
+		style |= directstyle;
 	} else {
+#ifndef NO_CHANGEDISPLAYSETTINGS
 		if ( (prev_flags & SDL_FULLSCREEN) == SDL_FULLSCREEN ) {
 			ChangeDisplaySettings(NULL, 0);
 		}
-		style = (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX);
-		if ( flags & SDL_RESIZABLE ) {
-			style |= WS_THICKFRAME|WS_MAXIMIZEBOX;
-			video->flags |= SDL_RESIZABLE;
-			if (IsZoomed(SDL_Window)) style |= WS_MAXIMIZE;
+#endif
+		if ( flags & SDL_NOFRAME ) {
+			style &= ~windowstyle;
+			style |= directstyle;
+			video->flags |= SDL_NOFRAME;
+		} else {
+			style &= ~directstyle;
+			style |= windowstyle;
+			if ( flags & SDL_RESIZABLE ) {
+				style |= resizestyle;
+				video->flags |= SDL_RESIZABLE;
+			}
 		}
+		if (IsZoomed(SDL_Window)) style |= WS_MAXIMIZE;
 	}
 	SetWindowLong(SDL_Window, GWL_STYLE, style);
 
@@ -693,6 +752,7 @@ int DIB_SetColors(_THIS, int firstcolor, int ncolors, SDL_Color *colors)
 
 static void DIB_CheckGamma(_THIS)
 {
+#ifndef NO_GAMMA_SUPPORT
 	HDC hdc;
 	WORD ramp[3*256];
 
@@ -703,35 +763,33 @@ static void DIB_CheckGamma(_THIS)
 		this->SetGammaRamp = NULL;
 	}
 	ReleaseDC(SDL_Window, hdc);
+#endif /* !NO_GAMMA_SUPPORT */
 }
 static void DIB_SwapGamma(_THIS)
 {
+#ifndef NO_GAMMA_SUPPORT
 	HDC hdc;
 
 	if ( gamma_saved ) {
 		hdc = GetDC(SDL_Window);
-		if ( SDL_GetAppState() & SDL_APPACTIVE ) {
+		if ( SDL_GetAppState() & SDL_APPINPUTFOCUS ) {
 			/* About to leave active state, restore gamma */
 			SetDeviceGammaRamp(hdc, gamma_saved);
 		} else {
 			/* About to enter active state, set game gamma */
-			int i;
-			WORD game_gamma[3*256];
-
-			for ( i=0; i<SDL_TABLESIZE(game_gamma); ++i ) {
-			    game_gamma[i] = (this->gamma[i]<<8)|this->gamma[i];
-			}
 			GetDeviceGammaRamp(hdc, gamma_saved);
-			SetDeviceGammaRamp(hdc, game_gamma);
+			SetDeviceGammaRamp(hdc, this->gamma);
 		}
 		ReleaseDC(SDL_Window, hdc);
 	}
+#endif /* !NO_GAMMA_SUPPORT */
 }
 static void DIB_QuitGamma(_THIS)
 {
+#ifndef NO_GAMMA_SUPPORT
 	if ( gamma_saved ) {
 		/* Restore the original gamma if necessary */
-		if ( SDL_GetAppState() & SDL_APPACTIVE ) {
+		if ( SDL_GetAppState() & SDL_APPINPUTFOCUS ) {
 			HDC hdc;
 
 			hdc = GetDC(SDL_Window);
@@ -743,24 +801,28 @@ static void DIB_QuitGamma(_THIS)
 		free(gamma_saved);
 		gamma_saved = 0;
 	}
+#endif /* !NO_GAMMA_SUPPORT */
 }
 
-static int DIB_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue)
+#ifndef NO_GAMMA_SUPPORT
+
+static int DIB_SetGammaRamp(_THIS, Uint16 *ramp)
 {
 	HDC hdc;
-	int i;
-	WORD ramp[3*256];
 	BOOL succeeded;
 
-	/* Set the gamma ramp */
-	for ( i=0; i<256; ++i ) {
-		ramp[0*256+i] = (red[i] << 8) | red[i];
-		ramp[1*256+i] = (green[i] << 8) | green[i];
-		ramp[2*256+i] = (blue[i] << 8) | blue[i];
-	}
-
 	/* Set the ramp for the display */
-	if ( SDL_GetAppState() & SDL_APPACTIVE ) {
+	if ( ! gamma_saved ) {
+		gamma_saved = (WORD *)malloc(3*256*sizeof(*gamma_saved));
+		if ( ! gamma_saved ) {
+			SDL_OutOfMemory();
+			return -1;
+		}
+		hdc = GetDC(SDL_Window);
+		GetDeviceGammaRamp(hdc, gamma_saved);
+		ReleaseDC(SDL_Window, hdc);
+	}
+	if ( SDL_GetAppState() & SDL_APPINPUTFOCUS ) {
 		hdc = GetDC(SDL_Window);
 		succeeded = SetDeviceGammaRamp(hdc, ramp);
 		ReleaseDC(SDL_Window, hdc);
@@ -770,27 +832,19 @@ static int DIB_SetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue)
 	return succeeded ? 0 : -1;
 }
 
-static int DIB_GetGammaRamp(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue)
+static int DIB_GetGammaRamp(_THIS, Uint16 *ramp)
 {
 	HDC hdc;
-	int i;
-	WORD ramp[3*256];
 	BOOL succeeded;
 
 	/* Get the ramp from the display */
 	hdc = GetDC(SDL_Window);
 	succeeded = GetDeviceGammaRamp(hdc, ramp);
 	ReleaseDC(SDL_Window, hdc);
-	if ( succeeded ) {
-		/* Set the gamma ramp */
-		for ( i=0; i<256; ++i ) {
-			red[i] = (ramp[0*256+i] >> 8);
-			green[i] = (ramp[1*256+i] >> 8);
-			blue[i] = (ramp[2*256+i] >> 8);
-		}
-	}
 	return succeeded ? 0 : -1;
 }
+
+#endif /* !NO_GAMMA_SUPPORT */
 
 void DIB_VideoQuit(_THIS)
 {
@@ -798,8 +852,13 @@ void DIB_VideoQuit(_THIS)
 	if ( SDL_Window ) {
 		/* Delete the screen bitmap (also frees screen->pixels) */
 		if ( this->screen ) {
+#ifndef NO_CHANGEDISPLAYSETTINGS
 			if ( this->screen->flags & SDL_FULLSCREEN ) {
 				ChangeDisplaySettings(NULL, 0);
+			}
+#endif
+			if ( this->screen->flags & SDL_OPENGL ) {
+				WIN_GL_ShutDown(this);
 			}
 			this->screen->pixels = NULL;
 		}

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,21 +22,50 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_cursor_c.h,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_cursor_c.h,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* Useful variables and functions from SDL_cursor.c */
+#include "SDL_mouse.h"
 
 extern int  SDL_CursorInit(Uint32 flags);
-extern void SDL_LockCursor(void);
-extern void SDL_UnlockCursor(void);
 extern void SDL_CursorPaletteChanged(void);
 extern void SDL_DrawCursor(SDL_Surface *screen);
+extern void SDL_DrawCursorNoLock(SDL_Surface *screen);
 extern void SDL_EraseCursor(SDL_Surface *screen);
+extern void SDL_EraseCursorNoLock(SDL_Surface *screen);
 extern void SDL_UpdateCursor(SDL_Surface *screen);
 extern void SDL_ResetCursor(void);
 extern void SDL_MoveCursor(int x, int y);
 extern void SDL_CursorQuit(void);
+
+#define INLINE_MOUSELOCK
+#ifdef INLINE_MOUSELOCK
+/* Inline (macro) versions of the mouse lock functions */
+#include "SDL_mutex.h"
+
+extern SDL_mutex *SDL_cursorlock;
+
+#define SDL_LockCursor()						\
+	do {								\
+		if ( SDL_cursorlock ) {					\
+			SDL_mutexP(SDL_cursorlock);			\
+		}							\
+	} while ( 0 )
+#define SDL_UnlockCursor()						\
+	do {								\
+		if ( SDL_cursorlock ) {					\
+			SDL_mutexV(SDL_cursorlock);			\
+		}							\
+	} while ( 0 )
+#else
+extern void SDL_LockCursor(void);
+extern void SDL_UnlockCursor(void);
+#endif /* INLINE_MOUSELOCK */
+
+/* Only for low-level mouse cursor drawing */
+extern SDL_Cursor *SDL_cursor;
+extern void SDL_MouseRect(SDL_Rect *area);
 
 /* State definitions for the SDL cursor */
 #define CURSOR_VISIBLE	0x01
@@ -45,5 +74,4 @@ extern void SDL_CursorQuit(void);
 			(((X)&(CURSOR_VISIBLE|CURSOR_USINGSW)) ==  	\
 					(CURSOR_VISIBLE|CURSOR_USINGSW))
 
-extern int SDL_cursorstate;
-
+extern volatile int SDL_cursorstate;

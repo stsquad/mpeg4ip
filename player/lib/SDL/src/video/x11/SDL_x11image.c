@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11image.c,v 1.1 2001/02/05 20:26:31 cahighlander Exp $";
+ "@(#) $Id: SDL_x11image.c,v 1.2 2001/04/10 22:23:50 cahighlander Exp $";
 #endif
 
 #include <stdlib.h>
@@ -31,9 +31,18 @@ static char rcsid =
 #include "SDL_endian.h"
 #include "SDL_x11image_c.h"
 
+#if defined(__USLC__)
+#ifdef HAVE_KSTAT
+#undef HAVE_KSTAT
+#endif
+#include <unistd.h>
+#endif
+
 #ifdef HAVE_KSTAT
 #include <kstat.h>
 #endif
+
+#ifndef NO_SHARED_MEMORY
 
 /* Shared memory information */
 extern int XShmQueryExtension(Display *dpy);	/* Not in X11 headers */
@@ -49,6 +58,7 @@ static int shm_errhandler(Display *d, XErrorEvent *e)
         } else
 		return(X_handler(d,e));
 }
+#endif /* ! NO_SHARED_MEMORY */
 
 /* Various screen update functions available */
 static void X11_NormalUpdate(_THIS, int numrects, SDL_Rect *rects);
@@ -56,6 +66,9 @@ static void X11_MITSHMUpdate(_THIS, int numrects, SDL_Rect *rects);
 
 int X11_SetupImage(_THIS, SDL_Surface *screen)
 {
+#ifdef NO_SHARED_MEMORY
+	screen->pixels = malloc(screen->h*screen->pitch);
+#else
 	/* Allocate shared memory if possible */
 	if ( use_mitshm ) {
 		shminfo.shmid = shmget(IPC_PRIVATE, screen->h*screen->pitch,
@@ -86,11 +99,23 @@ int X11_SetupImage(_THIS, SDL_Surface *screen)
 	} else {
 		screen->pixels = malloc(screen->h*screen->pitch);
 	}
+#endif /* NO_SHARED_MEMORY */
 	if ( screen->pixels == NULL ) {
 		SDL_OutOfMemory();
 		return(-1);
 	}
 
+#ifdef NO_SHARED_MEMORY
+	{
+ 	        int bpp = screen->format->BytesPerPixel;
+		SDL_Ximage = XCreateImage(SDL_Display, SDL_Visual,
+					  this->hidden->depth, ZPixmap, 0,
+					  (char *)screen->pixels, 
+					  screen->w, screen->h,
+					  (bpp == 3) ? 32 : bpp * 8,
+					  0);
+	}
+#else
 	if ( use_mitshm ) {
 		SDL_Ximage = XShmCreateImage(SDL_Display, SDL_Visual,
 					     this->hidden->depth, ZPixmap,
@@ -105,23 +130,31 @@ int X11_SetupImage(_THIS, SDL_Surface *screen)
 					  (bpp == 3) ? 32 : bpp * 8,
 					  0);
 	}
+#endif /* NO_SHARED_MEMORY */
 	if ( SDL_Ximage == NULL ) {
 		SDL_SetError("Couldn't create XImage");
+#ifndef NO_SHARED_MEMORY
 		if ( use_mitshm ) {
 			XShmDetach(SDL_Display, &shminfo);
 			XSync(SDL_Display, False);
 			shmdt(shminfo.shmaddr);
 			screen->pixels = NULL;
 		}
+#endif /* ! NO_SHARED_MEMORY */
 		return(-1);
 	}
+	screen->pitch = SDL_Ximage->bytes_per_line;
 
 	/* Determine what blit function to use */
+#ifdef NO_SHARED_MEMORY
+	this->UpdateRects = X11_NormalUpdate;
+#else
 	if ( use_mitshm ) {
 		this->UpdateRects = X11_MITSHMUpdate;
 	} else {
 		this->UpdateRects = X11_NormalUpdate;
 	}
+#endif
 	return(0);
 }
 
@@ -129,11 +162,13 @@ void X11_DestroyImage(_THIS, SDL_Surface *screen)
 {
 	if ( SDL_Ximage ) {
 		XDestroyImage(SDL_Ximage);
+#ifndef NO_SHARED_MEMORY
 		if ( use_mitshm ) {
 			XShmDetach(SDL_Display, &shminfo);
 			XSync(SDL_Display, False);
 			shmdt(shminfo.shmaddr);
 		}
+#endif /* ! NO_SHARED_MEMORY */
 		SDL_Ximage = NULL;
 	}
 	if ( screen ) {
@@ -149,14 +184,14 @@ static int num_CPU(void)
        if(!num_cpus) {
 #ifdef linux
            char line[BUFSIZ];
-           FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
-           if ( cpuinfo ) {
-               while ( fgets(line, sizeof(line)-1, cpuinfo) ) {
-                   if (!strncmp(line, "processor", strlen("processor"))) {
+           FILE *pstat = fopen("/proc/stat", "r");
+           if ( pstat ) {
+               while ( fgets(line, sizeof(line), pstat) ) {
+                   if (memcmp(line, "cpu", 3) == 0 && line[3] != ' ') {
                        ++num_cpus;
                    }
                }
-               fclose(cpuinfo);
+               fclose(pstat);
            }
 #elif defined(HAVE_KSTAT)
            kstat_ctl_t *kc = kstat_open();
@@ -166,11 +201,17 @@ static int num_CPU(void)
                if((ks = kstat_lookup(kc, "unix", -1, "system_misc"))
                   && kstat_read(kc, ks, NULL) != -1
                   && (kn = kstat_data_lookup(ks, "ncpus")))
-                   num_cpus = kn->value.i32;
+#ifdef KSTAT_DATA_UINT32
+                   num_cpus = kn->value.ui32;
+#else
+                   num_cpus = kn->value.ul; /* needed in solaris <2.6 */
+#endif
                kstat_close(kc);
            }
+#elif defined(__USLC__)
+           num_cpus = (int)sysconf(_SC_NPROCESSORS_CONF);
 #endif
-           if ( num_cpus == 0 ) {
+           if ( num_cpus <= 0 ) {
                num_cpus = 1;
            }
        }
@@ -345,6 +386,7 @@ static void X11_NormalUpdate(_THIS, int numrects, SDL_Rect *rects)
 
 static void X11_MITSHMUpdate(_THIS, int numrects, SDL_Rect *rects)
 {
+#ifndef NO_SHARED_MEMORY
 	int i;
 
 	for ( i=0; i<numrects; ++i ) {
@@ -362,19 +404,42 @@ static void X11_MITSHMUpdate(_THIS, int numrects, SDL_Rect *rects)
 	} else {
 		XSync(GFX_Display, False);
 	}
+#endif /* ! NO_SHARED_MEMORY */
+}
+
+/* There's a problem with the automatic refreshing of the display.
+   Even though the XVideo code uses the GFX_Display to update the
+   video memory, it appears that updating the window asynchronously
+   from a different thread will cause "blackouts" of the window.
+   This is a sort of a hacked workaround for the problem.
+*/
+static int enable_autorefresh = 1;
+
+void X11_DisableAutoRefresh(_THIS)
+{
+	--enable_autorefresh;
+}
+
+void X11_EnableAutoRefresh(_THIS)
+{
+	++enable_autorefresh;
 }
 
 void X11_RefreshDisplay(_THIS)
 {
 	/* Don't refresh a display that doesn't have an image (like GL) */
-	if ( ! SDL_Ximage ) {
+	if ( ! SDL_Ximage || (enable_autorefresh <= 0) ) {
 		return;
 	}
+#ifndef NO_SHARED_MEMORY
 	if ( this->UpdateRects == X11_MITSHMUpdate ) {
 		XShmPutImage(SDL_Display, SDL_Window, SDL_GC, SDL_Ximage,
 				0, 0, 0, 0, this->screen->w, this->screen->h,
 				False);
 	} else {
+#else
+	{
+#endif /* ! NO_SHARED_MEMORY */
 		/* Check for endian-swapped X server, swap if necessary */
 		if ( swap_pixels &&
 		     ((this->screen->format->BytesPerPixel%2) == 0) ) {

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_blit.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_blit.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #include <stdio.h>
@@ -71,6 +71,12 @@ static int SDL_SoftBlit(SDL_Surface *src, SDL_Rect *srcrect,
 		}
 	}
 
+	/* Unencode the destination if it's RLE encoded */
+	if ( dst->flags & SDL_RLEACCEL ) {
+		SDL_UnRLESurface(dst, 1);
+		dst->flags |= SDL_RLEACCEL;	/* save accel'd state */
+	}
+
 	/* Set up source and destination buffer pointers, and BLIT! */
 	if ( okay  && srcrect->w && srcrect->h ) {
 		SDL_BlitInfo info;
@@ -99,12 +105,18 @@ static int SDL_SoftBlit(SDL_Surface *src, SDL_Rect *srcrect,
 		RunBlit(&info);
 	}
 
+	/* Re-encode the destination if it's RLE encoded */
+	if ( dst->flags & SDL_RLEACCEL ) {
+	        dst->flags &= ~SDL_RLEACCEL; /* stop lying */
+		SDL_RLESurface(dst);
+	}
+
 	/* We need to unlock the surfaces if they're locked */
 	if ( dst_locked ) {
 		SDL_VideoDevice *video = current_video;
 		SDL_VideoDevice *this  = current_video;
 		video->UnlockHWSurface(this, dst);
-	}
+	} else
 	if ( src_locked ) {
 		SDL_VideoDevice *video = current_video;
 		SDL_VideoDevice *this  = current_video;

@@ -50,7 +50,10 @@
 	SDL_WaitEvent
 	SDL_PushEvent
 	SDL_SetEventFilter
+	SDL_GetEventFilter
 	SDL_EventState
+	SDL_putenv
+	SDL_getenv
 	SDL_NumJoysticks
 	SDL_JoystickName
 	SDL_JoystickOpen
@@ -145,6 +148,7 @@
 	SDL_SetColorKey
 	SDL_SetAlpha
 	SDL_SetClipRect
+	SDL_GetClipRect
 	SDL_ConvertSurface
 	SDL_UpperBlit
 	SDL_LowerBlit

@@ -1,4 +1,4 @@
-.TH "SDL_PixelFormat" "3" "Thu 12 Oct 2000, 13:50" "SDL" "SDL API Reference" 
+.TH "SDL_PixelFormat" "3" "Mon 12 Mar 2001, 01:04" "SDL" "SDL API Reference" 
 .SH "NAME"
 SDL_PixelFormat\- Stores surface format information
 .SH "STRUCTURE DEFINITION"
@@ -74,7 +74,7 @@ if(fmt->BitsPerPixel!=8){
 SDL_LockSurface(surface);
 
 /* Get the topleft pixel */
-index=(Uint8 *)surface->pixels;
+index=*(Uint8 *)surface->pixels;
 color=fmt->palette->colors[index];
 
 /* Unlock the surface */
@@ -137,4 +137,4 @@ printf("Pixel Color -> R: %d,  G: %d,  B: %d,  A: %d
 .SH "SEE ALSO"
 .PP
 \fI\fBSDL_Surface\fR\fR, \fI\fBSDL_MapRGB\fP\fR
-...\" created by instant / docbook-to-man, Thu 12 Oct 2000, 13:50
+...\" created by instant / docbook-to-man, Mon 12 Mar 2001, 01:04

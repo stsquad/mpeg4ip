@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syscdrom.c,v 1.1 2001/02/05 20:26:27 cahighlander Exp $";
+ "@(#) $Id: SDL_syscdrom.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
 #endif
 
 /* Functions for system-level CD-ROM audio control */
@@ -36,7 +36,7 @@ static char rcsid =
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#ifdef linux
+#ifdef __linux__
 #include <linux/cdrom.h>
 #endif
 #ifdef __SVR4
@@ -49,7 +49,11 @@ static char rcsid =
 #endif
 
 #ifdef USE_MNTENT
+#if defined(__USLC__)
+#include <sys/mntent.h>
+#else
 #include <mntent.h>
+#endif
 
 #ifndef _PATH_MNTTAB
 #ifdef MNTTAB
@@ -383,7 +387,11 @@ static int SDL_SYS_CDGetTOC(SDL_CD *cdrom)
 								&entry) < 0 ) {
 				break;
 			} else {
-				cdrom->track[i].type = entry.cdte_ctrl;
+				if ( entry.cdte_ctrl & CDROM_DATA_TRACK ) {
+					cdrom->track[i].type = SDL_DATA_TRACK;
+				} else {
+					cdrom->track[i].type = SDL_AUDIO_TRACK;
+				}
 				cdrom->track[i].offset = MSF_TO_FRAMES(
 						entry.cdte_addr.msf.minute,
 						entry.cdte_addr.msf.second,

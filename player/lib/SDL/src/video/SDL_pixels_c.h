@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_pixels_c.h,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_pixels_c.h,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* Useful functions and variables from SDL_pixel.c */
@@ -46,7 +46,5 @@ extern void SDL_FreeBlitMap(SDL_BlitMap *map);
 /* Miscellaneous functions */
 extern Uint16 SDL_CalculatePitch(SDL_Surface *surface);
 extern void SDL_DitherColors(SDL_Color *colors, int bpp);
-extern void SDL_GetRGB(Uint32 pixel, SDL_PixelFormat *fmt,
-					Uint8 *r, Uint8 *g, Uint8 *b);
 extern Uint8 SDL_FindColor(SDL_Palette *pal, Uint8 r, Uint8 g, Uint8 b);
-extern void SDL_ApplyGamma(Uint8 *gamma, SDL_Color *colors, SDL_Color *output, int ncolors);
+extern void SDL_ApplyGamma(Uint16 *gamma, SDL_Color *colors, SDL_Color *output, int ncolors);

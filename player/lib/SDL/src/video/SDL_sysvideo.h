@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysvideo.h,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_sysvideo.h,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_sysvideo_h
@@ -39,13 +39,19 @@ static char rcsid =
 
 /* OpenGL is pretty much available on all Windows systems */
 #ifdef WIN32
+#ifndef _WIN32_WCE
 #define HAVE_OPENGL
-#include <windows.h>	/* needed for <GL/gl.h> */
+#endif
+#include <windows.h>
 #endif
 
 #ifdef HAVE_OPENGL
+#ifdef MACOSX
+#include <OpenGL/gl.h>  /* OpenGL.framework */
+#else
 #include <GL/gl.h>
-#endif
+#endif /* MACOSX */
+#endif /* HAVE_OPENGL */
 
 /* The SDL video driver */
 typedef struct SDL_VideoDevice SDL_VideoDevice;
@@ -157,7 +163,7 @@ struct SDL_VideoDevice {
 	/* * * */
 	/* Gamma support */
 
-	Uint8 *gamma;
+	Uint16 *gamma;
 
 	/* Set the gamma correction directly (emulated with gamma ramps) */
 	int (*SetGamma)(_THIS, float red, float green, float blue);
@@ -166,10 +172,10 @@ struct SDL_VideoDevice {
 	int (*GetGamma)(_THIS, float *red, float *green, float *blue);
 
 	/* Set the gamma ramp */
-	int (*SetGammaRamp)(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue);
+	int (*SetGammaRamp)(_THIS, Uint16 *ramp);
 
 	/* Get the gamma ramp */
-	int (*GetGammaRamp)(_THIS, Uint8 *red, Uint8 *green, Uint8 *blue);
+	int (*GetGammaRamp)(_THIS, Uint16 *ramp);
 
 	/* * * */
 	/* OpenGL support */
@@ -206,11 +212,11 @@ struct SDL_VideoDevice {
 	/* * * */
 	/* Window manager functions */
 
-	/* Set the window icon image */
-	void (*SetIcon)(_THIS, SDL_Surface *icon, Uint8 *mask);
-
 	/* Set the title and icon text */
 	void (*SetCaption)(_THIS, const char *title, const char *icon);
+
+	/* Set the window icon image */
+	void (*SetIcon)(_THIS, SDL_Surface *icon, Uint8 *mask);
 
 	/* Iconify the window.
 	   This function returns 1 if there is a window manager and the
@@ -227,18 +233,25 @@ struct SDL_VideoDevice {
 	/* * * */
 	/* Cursor manager functions */
 
-	/* Free a window manager cursor */
+	/* Free a window manager cursor
+	   This function can be NULL if CreateWMCursor is also NULL.
+	 */
 	void (*FreeWMCursor)(_THIS, WMcursor *cursor);
 
-	/* Create a black/white window manager cursor */
+	/* If not NULL, create a black/white window manager cursor */
 	WMcursor *(*CreateWMCursor)(_THIS,
 		Uint8 *data, Uint8 *mask, int w, int h, int hot_x, int hot_y);
 
-	/* Show or the specified cursor, or hide if NULL */
+	/* Show the specified cursor, or hide if cursor is NULL */
 	int (*ShowWMCursor)(_THIS, WMcursor *cursor);
 
-	/* Warp the window manager cursor to (x,y) */
+	/* Warp the window manager cursor to (x,y)
+	   If NULL, a mouse motion event is posted internally.
+	 */
 	void (*WarpWMCursor)(_THIS, Uint16 x, Uint16 y);
+
+	/* If not NULL, this is called when a mouse motion event occurs */
+	void (*MoveWMCursor)(_THIS, int x, int y);
 
 	/* Determine whether the mouse should be in relative mode or not.
 	   This function is called when the input grab state or cursor
@@ -307,6 +320,7 @@ struct SDL_VideoDevice {
 
 typedef struct VideoBootStrap {
 	const char *name;
+	const char *desc;
 	int (*available)(void);
 	SDL_VideoDevice *(*create)(int devindex);
 } VideoBootStrap;
@@ -319,6 +333,9 @@ extern VideoBootStrap DGA_bootstrap;
 #endif
 #ifdef ENABLE_FBCON
 extern VideoBootStrap FBCON_bootstrap;
+#endif
+#ifdef ENABLE_PS2GS
+extern VideoBootStrap PS2GS_bootstrap;
 #endif
 #ifdef ENABLE_GGI
 extern VideoBootStrap GGI_bootstrap;

@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,13 +22,14 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systimer.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_systimer.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 #include <be/kernel/OS.h>
 
 #include "SDL_thread.h"
 #include "SDL_timer.h"
+#include "SDL_error.h"
 #include "SDL_timer_c.h"
 
 static bigtime_t start;
@@ -55,8 +56,6 @@ static SDL_Thread *timer = NULL;
 
 static int RunTimer(void *unused)
 {
-	Uint32 ms;
-
 	while ( timer_alive ) {
 		if ( SDL_timer_running ) {
 			SDL_ThreadedTimerCheck();

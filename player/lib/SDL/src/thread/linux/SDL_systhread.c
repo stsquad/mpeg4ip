@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systhread.c,v 1.1 2001/02/05 20:26:28 cahighlander Exp $";
+ "@(#) $Id: SDL_systhread.c,v 1.2 2001/04/10 22:23:48 cahighlander Exp $";
 #endif
 
 /* Linux thread management routines for SDL */
@@ -61,11 +61,13 @@ void SDL_SYS_KillThread(SDL_Thread *thread)
 
 #include <signal.h>
 
+#if !defined(MACOSX) /* pthread_sigmask seems to be missing on MacOS X? */
 /* List of signals to mask in the subthreads */
 static int sig_list[] = {
 	SIGHUP, SIGINT, SIGQUIT, SIGPIPE, SIGALRM, SIGTERM, SIGCHLD, SIGWINCH,
 	SIGVTALRM, SIGPROF, 0
 };
+#endif /* !MACOSX */
 
 #ifdef SDL_USE_PTHREADS
 
@@ -100,21 +102,23 @@ int SDL_SYS_CreateThread(SDL_Thread *thread, void *args)
 
 void SDL_SYS_SetupThread(void)
 {
+#if !defined(MACOSX) /* pthread_sigmask seems to be missing on MacOS X? */
 	int i;
 	sigset_t mask;
 
-#if !defined(macintosh) /* pthread_sigmask seems to be missing on MacOS X? */
 	/* Mask asynchronous signals for this thread */
 	sigemptyset(&mask);
 	for ( i=0; sig_list[i]; ++i ) {
 		sigaddset(&mask, sig_list[i]);
 	}
 	pthread_sigmask(SIG_BLOCK, &mask, 0);
-#endif
+#endif /* !MACOSX */
 
 #ifdef PTHREAD_CANCEL_ASYNCHRONOUS
 	/* Allow ourselves to be asynchronously cancelled */
-	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, 0);
+	{ int oldstate;
+		pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldstate);
+	}
 #endif
 }
 

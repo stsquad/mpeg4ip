@@ -1,6 +1,6 @@
 /*
     SDL - Simple DirectMedia Layer
-    Copyright (C) 1997, 1998, 1999, 2000  Sam Lantinga
+    Copyright (C) 1997, 1998, 1999, 2000, 2001  Sam Lantinga
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dgaevents.c,v 1.1 2001/02/05 20:26:29 cahighlander Exp $";
+ "@(#) $Id: SDL_dgaevents.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
 #endif
 
 /* Handle the event stream, converting DGA events into SDL events */
@@ -39,7 +39,8 @@ static char rcsid =
 /* Heheh we're using X11 event code */
 extern int X11_Pending(Display *display);
 extern void X11_InitKeymap(void);
-extern SDL_keysym *X11_TranslateKey(XKeyEvent *xkey, SDL_keysym *keysym);
+extern SDL_keysym *X11_TranslateKey(Display *display, XKeyEvent *xkey,
+				    KeyCode kc, SDL_keysym *keysym);
 
 static int DGA_DispatchEvent(_THIS)
 {
@@ -83,7 +84,9 @@ static int DGA_DispatchEvent(_THIS)
 
 		XDGAKeyEventToXKeyEvent(&xevent.xkey, &xkey);
 		posted = SDL_PrivateKeyboard((xevent.type == KeyPress), 
-					X11_TranslateKey(&xkey, &keysym));
+					X11_TranslateKey(DGA_Display,
+							 &xkey, xkey.keycode,
+							 &keysym));
 	    }
 	    break;
 
