@@ -1,5 +1,0 @@
-Note that this utility is deprecated in favor of a new utility,
-mpeg4ip/server/mp4creator, that uses the new mp4 library.
-
-Note also that the mp3 hinting is buggy and does not comply with RFC 2250.
-This problem is fixed in the new utility, mp4creator.
