@@ -29,9 +29,9 @@
 #include "codec/aa/aa_file.h"
 #include "codec/mpeg4/mpeg4.h"
 #include "codec/mpeg4/mpeg4_file.h"
+#if 0
 #include "codec/divx/divx.h"
 #include "codec/divx/divx_file.h"
-#if 0
 #include "codec/mp3/mp3.h"
 #include "codec/mp3/mp3_file.h"
 #endif
@@ -45,8 +45,10 @@ CIpPort *global_invalid_ports = NULL;
 
 enum {
   VIDEO_MPEG4_ISO,
+#if 0
   VIDEO_DIVX,
   VIDEO_MPEG4_ISO_OR_DIVX,
+#endif
 };
 
 enum {
@@ -63,8 +65,12 @@ static struct codec_list_t {
   {"mp4 ", VIDEO_MPEG4_ISO},
   {"mp4v", VIDEO_MPEG4_ISO},
   {"MPG4", VIDEO_MPEG4_ISO},
+#if 0
   {"MP4V-ES", VIDEO_MPEG4_ISO_OR_DIVX},
   {"divx", VIDEO_DIVX},
+#else
+  {"MP4V-ES", VIDEO_MPEG4_ISO},
+#endif
   {NULL, -1},
 },
   audio_codecs[] = {
@@ -269,10 +275,10 @@ int parse_name_for_session (CPlayerSession *psptr,
 	     (strstr(name, ".mp4") != NULL)) {
     err = create_media_for_qtime_file(psptr, name, errmsg);
     return (err);
+#if 0
   } else if (strstr(name, ".divx") != NULL) {
     err = create_media_for_divx_file(psptr, name, errmsg);
     return (err);
-#if 0
   } else if (strstr(name, ".mp3") != NULL) {
     err = create_media_for_mp3_file(psptr, name, errmsg);
     return (err);
@@ -321,13 +327,16 @@ CCodecBase *start_audio_codec (const char *codec_name,
   return (NULL);
 }
 
+#if 0
 static const char *profile_tag="profile-level-id=";
+#endif
 
 int which_mpeg4_codec (format_list_t *fptr,
 		       const unsigned char *userdata,
 		       size_t userdata_size)
 {
   
+#if 0
   if (fptr && fptr->fmt_param) {
     char *config = strstr(fptr->fmt_param, profile_tag);
     if (config != NULL) {
@@ -339,6 +348,7 @@ int which_mpeg4_codec (format_list_t *fptr,
 	return (VIDEO_DIVX);
     }
   }
+#endif
   return (VIDEO_MPEG4_ISO);
 }
 /*
@@ -359,9 +369,11 @@ CCodecBase *start_video_codec (const char *codec_name,
   int val;
 
   if (lookup_codec_by_name(codec_name, video_codecs, &val) == 0) {
+#if 0
     if (val == VIDEO_MPEG4_ISO_OR_DIVX) {
       val = which_mpeg4_codec(media_fmt, userdata, userdata_size);
     }
+#endif
     if (val == VIDEO_MPEG4_ISO) {
       player_debug_message("Starting MPEG4 iso reference codec");
       return (new CMpeg4Codec(video_sync, 
@@ -371,6 +383,7 @@ CCodecBase *start_video_codec (const char *codec_name,
 			      userdata, 
 			      userdata_size));
     }
+#if 0
     if (val == VIDEO_DIVX) {
       player_debug_message("Starting MPEG4 divx codec");
       return (new CDivxCodec(video_sync,
@@ -380,6 +393,7 @@ CCodecBase *start_video_codec (const char *codec_name,
 			     userdata, 
 			     userdata_size));
     }
+#endif
   }
   return (NULL);
 }
