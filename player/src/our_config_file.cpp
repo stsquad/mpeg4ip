@@ -54,6 +54,7 @@ static config_variable_t configs[] = {
   { CONFIG_USE_RTP_OVER_RTSP, "UseRtpOverRtsp", CONFIG_INT, 0, NULL},
   { CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP, "SendRtcpInRtpOverRtsp", CONFIG_INT, 0, NULL},
   { CONFIG_PREV_DIRECTORY, "PrevDirectory", CONFIG_STRING, 0, NULL},
+  { CONFIG_RTP_DEBUG, "RtpDebug", CONFIG_INT, LOG_ALERT, NULL},
 };
 
 CConfig config(configs, CONFIG_MAX);

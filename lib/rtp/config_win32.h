@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.2 $
- *  $Date: 2001/10/11 20:39:03 $
+ *  $Revision: 1.3 $
+ *  $Date: 2001/11/14 00:54:14 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -216,4 +216,12 @@ void ShowMessage(int level, char *msg);
 #define M_PI		3.14159265358979323846
 
 #endif 
+#define LOG_EMERG 0
+#define LOG_ALERT 1
+#define LOG_CRIT 2
+#define LOG_ERR 3
+#define LOG_WARNING 4
+#define LOG_NOTICE 5
+#define LOG_INFO 6
+#define LOG_DEBUG 7
 #endif

@@ -7,8 +7,8 @@
  *          Orion Hodson
  *          Jerry Isdale
  * 
- * $Revision: 1.3 $
- * $Date: 2001/11/13 23:58:16 $
+ * $Revision: 1.4 $
+ * $Date: 2001/11/14 00:54:14 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -43,6 +43,7 @@
 
 #include "config_unix.h"
 #include "config_win32.h"
+#include "gettimeofday.h"
 #include "debug.h"
 
 void _dprintf(const char *format, ...)

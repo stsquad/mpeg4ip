@@ -36,6 +36,7 @@
 #include "our_config_file.h"
 #include "playlist.h"
 #include <libhttp/http.h>
+#include <rtp/debug.h>
 
 /* Local variables */
 static GtkWidget *main_window;
@@ -546,6 +547,13 @@ static void on_debug_rtsp (GtkWidget *window, gpointer data)
   config.set_config_value(CONFIG_RTSP_DEBUG, LOG_PRI(loglevel));
 }
   
+static void on_debug_rtp (GtkWidget *window, gpointer data)
+{
+  int loglevel = GPOINTER_TO_INT(data);
+  rtp_set_loglevel(LOG_PRI(loglevel));
+  config.set_config_value(CONFIG_RTP_DEBUG, LOG_PRI(loglevel));
+}
+
 static void on_debug_sdp (GtkWidget *window, gpointer data)
 {
   int loglevel = GPOINTER_TO_INT(data);
@@ -758,6 +766,8 @@ int main (int argc, char **argv)
   master_volume = config.get_config_value(CONFIG_VOLUME);
   rtsp_set_error_func(player_library_message);
   rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
+  rtp_set_error_msg_func(player_library_message);
+  rtp_set_loglevel(config.get_config_value(CONFIG_RTP_DEBUG));
   sdp_set_error_func(player_library_message);
   sdp_set_loglevel(config.get_config_value(CONFIG_SDP_DEBUG));
   http_set_error_func(player_library_message);
@@ -902,6 +912,10 @@ int main (int argc, char **argv)
 			"RTSP library", 
 			config.get_config_value(CONFIG_RTSP_DEBUG),
 			GTK_SIGNAL_FUNC(on_debug_rtsp));
+  CreateLogLevelSubmenu(debugsub, 
+			"RTP library", 
+			config.get_config_value(CONFIG_RTP_DEBUG),
+			GTK_SIGNAL_FUNC(on_debug_rtp));
   CreateLogLevelSubmenu(debugsub, 
 			"SDP library", 
 			config.get_config_value(CONFIG_SDP_DEBUG),

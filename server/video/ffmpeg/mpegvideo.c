@@ -109,6 +109,12 @@ int MPV_common_init(MpegEncContext *s)
 #ifdef HAVE_MMX
     MPV_common_init_mmx(s);
 #endif
+
+	s->time_increment_bits = 1;
+	while (s->frame_rate > (1 << s->time_increment_bits)) {
+		s->time_increment_bits++;
+	}
+
     s->mb_width = (s->width + 15) / 16;
     s->mb_height = (s->height + 15) / 16;
     s->linesize = s->mb_width * 16 + 2 * EDGE_WIDTH;

@@ -32,6 +32,7 @@
 #include <rtp/rtp.h>
 #include "our_bytestream.h"
 #include "our_msg_queue.h"
+#include "player_util.h"
 
 class CPlayerSession;
 class CAudioSync;

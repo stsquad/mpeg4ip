@@ -27,6 +27,7 @@
 #include "systems.h"
 #include <faad/all.h>
 #include <faad/bits.h>
+#include "player_util.h"
 
 #include "codec.h"
 #include "audio.h"
