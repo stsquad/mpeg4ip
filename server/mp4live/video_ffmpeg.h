@@ -78,7 +78,7 @@ public:
 	media_free_f GetMediaFreeFunction(void);
 
 protected:
-#define OUTPUT_RAW
+//#define OUTPUT_RAW
 #ifdef OUTPUT_RAW
 	FILE *m_outfile;
 #endif
