@@ -30,6 +30,16 @@
 #include "mpeg.h"
 
 // forward declarations
+// AMR defines
+#define AMR_TYPE_NONE 0
+#define AMR_TYPE_AMR 1
+#define AMR_TYPE_AMRWB 2
+
+#define AMR_MAGIC_LEN_AMR 6
+#define AMR_MAGIC_AMR "#!AMR\n"
+
+#define AMR_MAGIC_LEN_AMRWB 9
+#define AMR_MAGIC_AMRWB "#!AMR-WB\n"
 
 MP4TrackId* CreateMediaTracks(
 			      MP4FileHandle mp4File, 
@@ -62,7 +72,8 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
 
 MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
 
-MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
+MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
+		       bool doVariableRate);
 
 MP4TrackId AmrCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
 
@@ -74,6 +85,7 @@ u_int8_t h263Profile = 0;
 u_int8_t h263Level = 10;
 u_int8_t H263CbrTolerance = 0;
 bool setBitrates = false;
+static bool allowVariableFrameRate = false;
 
 // main routine
 int main(int argc, char** argv)
@@ -83,13 +95,13 @@ int main(int argc, char** argv)
     "  Options:\n"
     "  -aac-old-file-format    Use old file format with 58 bit adts headers\n"
     "  -aac-profile=[2|4]      Force AAC to mpeg2 or mpeg4 profile\n"
-    "  -calcH263Bitrates           Calculate and add bitrate information\n"
+    "  -calcH263Bitrates       Calculate and add bitrate information\n"
     "  -create=<input-file>    Create track from <input-file>\n"
-    "    input files can be of type: .aac .mp3 .divx .mp4v .m4v .cmp .xvid\n"
+    "    input files can be of type: .263 .aac .amr .mp3 .divx .mp4v .m4v .cmp .xvid\n"
     "  -extract=<track-id>     Extract a track\n"
     "  -encrypt[=<track-id>]   Encrypt a track, also -E\n"
     "  -delete=<track-id>      Delete a track\n"
-    "  -force3GPCompliance         Force making the file 3GP compliant. This disables ISMA compliance.\n"
+    "  -force3GPCompliance     Force making the file 3GP compliant. This disables ISMA compliance.\n"
     "  -forceH263Profile=<profile> Force using H.263 Profile <profile> (default is 0)\n"
     "  -forceH263Level=<level>     Force using H.263 level <level> (default is 10)\n"
     "  -H263CbrTolerance=<value>   Define H.263 CBR tolerance of [value] (default: 10%)\n"
@@ -105,6 +117,7 @@ int main(int argc, char** argv)
     "  -timescale=<ticks>      Time scale (ticks per second)\n"
     "  -use64bits              Use for large files\n"
     "  -use64bitstime          Use for 64 Bit times (not QT player compatible)\n"
+    "  -variable-frame-rate    Enable variable frame rate for mpeg4 video\n"
     "  -verbose[=[1-5]]        Enable debug messages\n"
     "  -version                Display version information\n"
     ;
@@ -168,12 +181,13 @@ int main(int argc, char** argv)
       { "timescale", 1, 0, 't' },
       { "use64bits", 0, 0, 'u' },
       { "use64bitstime", 0, 0, 'U' },
+      { "variable-frame-rate", 0, 0, 'Z'},
       { "verbose", 2, 0, 'v' },
       { "version", 0, 0, 'V' },
       { NULL, 0, 0, 0 }
     };
 
-    c = getopt_long_only(argc, argv, "ac:Cd:e:E::GH::IlL:m:Op:P:r:t:T:uUv::V",
+    c = getopt_long_only(argc, argv, "ac:Cd:e:E::GH::IlL:m:Op:P:r:t:T:uUv::VZ",
 			 long_options, &option_index);
 
     if (c == -1)
@@ -268,6 +282,14 @@ int main(int argc, char** argv)
     case 'l':
       doList = true;
       break;
+    case 'L':
+      if (!optarg || (sscanf(optarg, "%hhu", &h263Level) != 1)) {
+        fprintf(stderr,
+		"%s: bad h263Level specified: %s\n",
+		ProgName, optarg ? optarg : "<none>");
+	exit(EXIT_COMMAND_LINE);
+      }
+      break;
     case 'm':
       u_int32_t mtu;
       if (optarg == NULL) {
@@ -302,6 +324,14 @@ int main(int argc, char** argv)
     case 'p':
       payloadName = optarg;
       break;
+    case 'P':
+      if (!optarg || (sscanf(optarg, "%hhu", &h263Profile) != 1)) {
+        fprintf(stderr,
+		"%s: bad h263Profile specifed: %s\n",
+		ProgName, optarg ? optarg : "<none>");
+	exit(EXIT_COMMAND_LINE);
+      }
+      break;
     case 'r':
       if (optarg == NULL) {
 	fprintf(stderr, "%s:no rate specifed\n", ProgName);
@@ -326,6 +356,14 @@ int main(int argc, char** argv)
 	exit(EXIT_COMMAND_LINE);
       }
       TimeScaleSpecified = true;
+      break;
+    case 'T':
+      if (!optarg || (sscanf(optarg, "%hhu", &H263CbrTolerance) != 1)) {
+        fprintf(stderr,
+		"%s: bad H263CbrTolerance specified: %s\n",
+		ProgName, optarg ? optarg : "<none>");
+	exit(EXIT_COMMAND_LINE);
+      }
       break;
     case 'u':
       createFlags |= MP4_CREATE_64BIT_DATA;
@@ -360,6 +398,9 @@ int main(int argc, char** argv)
       fprintf(stderr, "%s - %s version %s\n", 
 	      ProgName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
       exit(EXIT_SUCCESS);
+    case 'Z':
+      allowVariableFrameRate = true;
+      break;
     default:
       fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
 	      ProgName, c);
@@ -840,7 +881,7 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName,
 	     || !strcasecmp(extension, ".m4v")
 	     || !strcasecmp(extension, ".xvid")
 	     || !strcasecmp(extension, ".cmp")) {
-    trackIds[0] = Mp4vCreator(mp4File, inFile, doEncrypt);
+    trackIds[0] = Mp4vCreator(mp4File, inFile, doEncrypt, allowVariableFrameRate);
 
   } else if ((strcasecmp(extension, ".mpg") == 0) ||
 	     (strcasecmp(extension, ".mpeg") == 0)) {
@@ -1055,8 +1096,9 @@ void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId,
 		   const char* outputFileName)
 {
   int openFlags = O_WRONLY | O_TRUNC | OPEN_CREAT;
-
+  u_int8_t amrType = AMR_TYPE_NONE;
   int outFd = open(outputFileName, openFlags, 0644);
+
 
   if (outFd == -1) {
     fprintf(stderr, "%s: can't open %s: %s\n",
@@ -1080,6 +1122,32 @@ void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId,
   } else if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
     if (MP4_IS_AAC_AUDIO_TYPE(MP4GetTrackEsdsObjectTypeId(mp4File, trackId))) {
       prependADTS = true;
+    }
+    // Find out whether this track is an AMR/WB track...
+    if (MP4HaveTrackIntegerProperty(mp4File, trackId, 
+				    "mdia.minf.stbl.stsd.sawb.damr.vendor")) {
+      amrType = AMR_TYPE_AMRWB;
+    } else if (MP4HaveTrackIntegerProperty(mp4File, trackId, 
+					   "mdia.minf.stbl.stsd.samr.damr.vendor")) {
+      amrType = AMR_TYPE_AMR;
+    }
+    switch (amrType) {
+    case AMR_TYPE_AMR:
+      if (write(outFd, AMR_MAGIC_AMR, AMR_MAGIC_LEN_AMR) != AMR_MAGIC_LEN_AMR) {
+        fprintf(stderr, "%s: can't write to file: %s\n",
+		ProgName, strerror(errno));
+        return;
+      }
+      break;
+    case AMR_TYPE_AMRWB:
+      if (write(outFd, AMR_MAGIC_AMRWB, AMR_MAGIC_LEN_AMRWB) != AMR_MAGIC_LEN_AMRWB) {
+        fprintf(stderr, "%s: can't write to file: %s\n",
+		ProgName, strerror(errno));
+        return;
+      }
+      break;
+    default:
+      break;
     }
   }
 
@@ -1125,12 +1193,15 @@ void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId,
 	u_int8_t* pConfig = NULL;
 	u_int32_t configSize = 0;
 	
-	MP4GetTrackESConfiguration(mp4File, trackId, 
-				   &pConfig, &configSize);
-				
-	write(outFd, pConfig, configSize);
+	if (MP4GetTrackESConfiguration(mp4File, trackId, 
+				       &pConfig, &configSize)) {
+			
+	  if (configSize != 0) {
+	    write(outFd, pConfig, configSize);
+	  }
+	  CHECK_AND_FREE(pConfig);
+	}
 
-	free(pConfig);
       }
     }
 

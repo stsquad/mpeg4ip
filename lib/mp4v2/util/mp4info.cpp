@@ -87,47 +87,47 @@ int main(int argc, char** argv)
 		  char *value;
 		  uint16_t numvalue, numvalue2;
 		  if (MP4GetMetadataName(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, "Metadata Name: %s\n", value);
+		    fprintf(stdout, " Metadata Name: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataArtist(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, "Metadata Artist: %s\n", value);
+		    fprintf(stdout, " Metadata Artist: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataWriter(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, "Metadata Writer: %s\n", value);
+		    fprintf(stdout, " Metadata Writer: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataComment(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, "Metadata Comment: %s\n", value);
+		    fprintf(stdout, " Metadata Comment: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataTool(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, "Metadata Tool: %s\n", value);
+		    fprintf(stdout, " Metadata Tool: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataYear(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, "Metadata Year: %s\n", value);
+		    fprintf(stdout, " Metadata Year: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataAlbum(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, "Metadata Album: %s\n", value);
+		    fprintf(stdout, " Metadata Album: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataTrack(mp4file, &numvalue, &numvalue2)) {
-		    fprintf(stdout, "Metadata track: %u of %u\n", numvalue,
+		    fprintf(stdout, " Metadata track: %u of %u\n", numvalue,
 			    numvalue2);
 		  }
 		  if (MP4GetMetadataDisk(mp4file, &numvalue, &numvalue2)) {
-		    fprintf(stdout, "Metadata Disk: %u of %u\n", numvalue,
+		    fprintf(stdout, " Metadata Disk: %u of %u\n", numvalue,
 			    numvalue2);
 		  }
 		  if (MP4GetMetadataGenre(mp4file, &value) && value != NULL) {
-		    fprintf(stdout, "Metadata Genre: %s\n", value);
+		    fprintf(stdout, " Metadata Genre: %s\n", value);
 		    free(value);
 		  }
 		  if (MP4GetMetadataTempo(mp4file, &numvalue)) {
-		    fprintf(stdout, "Metadata Tempo: %u\n", numvalue);
+		    fprintf(stdout, " Metadata Tempo: %u\n", numvalue);
 		  }
 		  MP4Close(mp4file);
 		}
