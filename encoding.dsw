@@ -26,6 +26,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name gnugetopt
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -40,6 +43,9 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name gnugetopt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing
     End Project Dependency
 }}}
 
@@ -56,18 +62,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libsndfile
     End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "gnugetopt"=.\lib\gnu\getopt\gnugetopt.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
 }}}
 
 ###############################################################################
@@ -95,11 +89,29 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name gnugetopt
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing
+    End Project Dependency
 }}}
 
 ###############################################################################
 
 Project: "libavi_st"=.\lib\avi\libavi_st.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libmissing
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "libmissing"=.\LIB\GNU\libmissing.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -188,6 +200,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name need_for_win_st
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -209,6 +224,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name need_for_win_st
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -226,6 +244,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name gnugetopt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmissing
     End Project Dependency
 }}}
 
