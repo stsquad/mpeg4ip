@@ -151,9 +151,9 @@ We no longer include a mpeg-4 encoder native with the package.  You will
 have to download ffmpeg or xvid if you want to encode with mpeg-4.
 <P>
 By far the easiest route is to use a Linux distribution that already has a
-2.4 kernel, the bttv driver, and the associated i2c module built into it.
-However, this will not get you good long term audio and video lip sync.  See
-the <a href="Building_mpeg4ip_with_V4L2_support.html">instructions</a> on
+2.6 kernel and the bttv driver, and the associated i2c module built into it.
+<p>
+See the <a href="Building_mpeg4ip_with_V4L2_support.html">instructions</a> on
 how to build your own kernel with V4L2 included. 
 <P>
 I've had many headaches with sound cards under Linux. Before you start using 
@@ -187,7 +187,7 @@ you've got the system working, disabling preview is a good idea.
 <P>
 The AAC audio encoder is somewhat slower than the MP3 audio encoder so 
 you may see lower video frame rates and greater sensitivity to CPU load 
-if you are using AAC.
+if you are using AAC. (2004 note - not so much any more).
 <P>
 Linux supports the POSIX soft real-time extensions and mp4live will attempt
 to use these to give it priority over non-real time processes. Typically

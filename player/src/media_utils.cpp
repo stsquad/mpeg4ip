@@ -40,6 +40,7 @@
 #include "mpeg2t_file.h"
 #endif
 #include "our_bytestream_file.h"
+#include <rtp/net_udp.h>
  /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve

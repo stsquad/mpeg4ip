@@ -8,7 +8,7 @@
 <div id="top">
 <h1>MPEG4IP README</h1> </div>
 <p>
-May 11, 2004
+December 1, 2004
 <P>
 <b>
 <a href="#Project">MPEG4IP Project </a>
@@ -25,6 +25,7 @@ May 11, 2004
 <br><a href="#latency">Latency in mpeg4ip</a>
 <br><a href="#player">Player Information</a>
 <br><a href="#problems">Known Problems</a>
+<br><a href="#contrib">Contributing Back</a>
 </b>
 <P>
 <div id="Project">
@@ -159,6 +160,10 @@ forums for more information
 <h2>Building and Installing</h2>
 </div>
 <P>
+Please read this section completely before building, or you may have to do
+it twice; mpeg4ip has a number of optional packages that should be installed
+before starting the build process.
+<p>
 If you are building on Windows, please see these <a href="#windoze">instructions.</a>
 <p>
 On a linux or unix base system, you should only have to issue the following:<br>
@@ -199,6 +204,8 @@ As of release 1.1, mpeg4ip no longer includes a mpeg-4 encoder that works
 with mp4live due to licensing restrictions.  However, you can download either
  xvidcore-0.9.2, xvidcore-1.0 or ffmpeg-0.4.8 (or later) and have mpeg-4 
 encoding.
+<p>The developer's preference is ffmpeg, since this will activate mpeg-2, mpeg-4
+and H.263 encoding, as well as a number of decoding options.
 <p>If you wish to build mpeg4ip without mp4live, you can give the 
 <code>--disable-mp4live</code> or <code>--disable-server</code> arguments.  
 Neither the bootstrap or cvs_bootstrap scripts will allow you to build without
@@ -229,7 +236,7 @@ and <code>lame-devel-3.93.1-fr2.i386.rpm</code>.<br>
   <li><code>rpm -ivh lame*</code></li>
 </ol>
 <P>
-We also support ffmpeg as an optional audio and video encoder for mp4live, and will use
+We support ffmpeg as an optional audio and video encoder for mp4live, and will use
 the decoding library of ffmpeg as both audio and video plugins for the player. 
 There are 2 methods to do this, depending on version.
 <p>
@@ -253,7 +260,7 @@ You may also want to build ffmpeg with the --enable-shared options (especially
 on Mac OS X systems).  If you do this, only libavcodec will build, but that 
 is all we require.
 <p>
-To build ffmpeg Mac OS X, configure with --enable-shared.  Edit the 
+To build ffmpeg on Mac OS X, configure with --enable-shared.  Edit the 
 config.mak, and change LDFLAGS to a NULL string - i.e.<br>
 <code>LDFLAGS=</code><br>
 You may also have to run <code>ranlib /usr/local/lib/libavcodec.a</code>
@@ -280,7 +287,7 @@ We also will use the following libraries if you have them installed:
 <li>libmpeg2 - mpeg2 decoding library</li>
 </ul> 
 <p>
-We recommend libmpeg2 if you want to decode mpeg2.
+We highly recommend libmpeg2 if you want to decode mpeg2.
 <p>
 If you don't have root privileges, but still wish to install the 
 distribution to a directory to which you do have write permission,
@@ -296,8 +303,11 @@ then here is an example of how to do that:
 </kbd>
 </div>
 </blockquote>
+<p>
+You will also have to add ~/bin to your path, and ~/lib to your LD_LIBRARY_PATH
 <P>
-If this process works for you, you can skip down to the next section on 
+If this process works for you, you can skip down to the <a href="#config">next 
+section</a> on 
 Bootstrap Options.  If this does not work, or you have downloaded 
 from CVS, the below applies.
 <P>
@@ -330,7 +340,7 @@ If you don't have these tools and are trying to compile from CVS, don't
 complain - update to these tools, then let us know.  There may be problems or
 warnings with later tools - we don't keep up with the latest and greatest 
 tools most of the time.  Please try to fix these yourself before 
-continuing.
+continuing, and <a href="#contrib">feed back</a> the changes using the Sourceforge forums.
 <P>
 Be sure to read the OS specific section later before continuing here.
 <P>
@@ -842,6 +852,10 @@ Here are the citations:
 ISO/IEC 14496-1:2001 MPEG-4 Systems (includes MP4 file format)<br>
 ISO/IEC 14496-2:2000 MPEG-4 Video<br>
 ISO/IEC 14496-3:1999 MPEG-4 Audio (includes AAC)<br>
+ISO/IEC 14496-10:2004 Advanced Video Codec<br>
+ISO/IEC 14496-12:2004 ISO base media file format<br>
+ISO/IEC 14496-14:2004 MP4 File Format<br>
+ISO/IEC 14496-15:2004 AVC file format<br>
 ISO/IEC 11172-3:1993 MPEG-1 Audio (includes MP3)<br>
 ISO/IEC 13818-3:1998 MPEG-2 Audio (includes extensions to MP3)<br>
 ISO/IEC 13818-7:1997 MPEG-2 AAC<br>
@@ -865,16 +879,22 @@ In the US, ANSI is the representative body, and provides an online store under <
 <tr>
   <td align="left" valign="top">IETF RFC 2250</td>
   <td align="left" valign="top">RTP Payload for MPEG-1/2<br>
-  <i>Note: we're just using the audio part for MP3 (and video reception for the player).</i></td>
+</td>
+</tr>
+<tr>
+  <td align="left" valign="top">IETF RFC 3016</td> 
+  <td align="left" valign="top">RTP Payload for MPEG-4 Audio/Visual<br>
+    <i>Note: we're implementing the MPEG-4 video part</i></td>
 </tr>
 <tr>
   <td align="left" valign="top">IETF RFC 3119</td> 
   <td align="left" valign="top">A More Loss-Tolerant RTP Payload Format for MP3 Audio</td>
 </tr>
 <tr>
-  <td align="left" valign="top">IETF RFC 3016</td> 
-  <td align="left" valign="top">RTP Payload for MPEG-4 Audio/Visual<br>
-    <i>Note: we're implementing the MPEG-4 video part</i></td>
+  <td align="left" valign="top">IETF RFC 3267</td> 
+  <td align="left" valign="top">RTP Payload for Tranport and <br>File Storage
+    Format for the Adaptive Multi-Rate (AMR)<br> and Adaptive Multi-Rate
+                     Wideband (AMR-WB) Audio Codecs</td>
 </tr>
 <tr>
   <td align="left" valign="top">IETF RFC 3640</td> 
@@ -883,10 +903,10 @@ In the US, ANSI is the representative body, and provides an online store under <
 </tr>
 </table>
 <P>
-The IETF RFCs can be found in doc/ietf
+The IETF RFCs can be found in doc/ietf, or online at the <a href="http://ietf.org/rfc">ietf</a>
 <P>
 
-Note the MP4 file format is derived from Apple's QuickTime file format.
+The MP4 file format is derived from Apple's QuickTime file format.
 That specification is Apple Computer QuickTime File Format, June 28 2000 
 and is available through the 
 <a href="http://developer.apple.com/quicktime/">QT developer site</a>.
@@ -999,11 +1019,6 @@ these by removing the l when you get the warning.
   DirectX 8.1 or later.  If that is not possible, and you have problems 
   with video, try uncommenting out <code>#define OLD_SURFACE</code> in player/src/video.cpp.
 </li>
-<li>In the windows version, the ISO mpeg4 decoder to the player has been 
-disabled.  This has the affect that only simple profile video can be played.
-This is due to a problem in initializing the CVideoDecoder class in the
-ISO plugin.  The value of p_mbitStrmIn, although properly running through
-the constructor does not get set.</li>
   <li> If you have problems with choppy playback, and you're using Windows 98, 
   forget about it.  The timer tick time is too slow (55 msec) for us to
   use effectively.  Try Quicktime or Real with Envivio, or update to a
@@ -1055,7 +1070,9 @@ the constructor does not get set.</li>
 </li>
 </ul>
 <P>
-<b>Contributing Back</b>
+<div id="contrib">
+<H2>Contributing Back</h2>
+</div>
 <P>
 We welcome all contributions back to mpeg4ip.  Email is the best way to 
 accomplish this. 

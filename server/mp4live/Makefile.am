@@ -150,4 +150,4 @@ mp4live_LDADD = \
 	-lpthread \
 	@SDL_LIBS@ $(GUILIBS) @FFMPEG_LIB@ @LIBVORBIS_LIB@ $(XVID_LIB) 
 
-EXTRA_DIST = $(ed1) $(ed2)
+EXTRA_DIST = $(ed1) $(ed2) README_MULTIOUTPUT.txt
