@@ -44,7 +44,7 @@ class CPlayerMedia;
 class CAudioSync;
 class CVideoSync;
 
-typedef void (*media_close_callback_f)(void);
+typedef void (*media_close_callback_f)(void *);
 
 class CPlayerSession {
  public:
@@ -126,8 +126,10 @@ class CPlayerSession {
   session_state_t get_session_state(void) {
     return (m_session_state);
   }
-  void set_media_close_callback (media_close_callback_f mccf) {
+  void set_media_close_callback (media_close_callback_f mccf,
+				 void *mccd) {
     m_media_close_callback = mccf;
+    m_media_close_callback_data = mccd;
   }
   int session_is_network (int &on_demand, int &rtp_over_rtsp) {
     if (m_streaming == 0) {
@@ -212,6 +214,7 @@ class CPlayerSession {
   #define SESSION_DESC_COUNT 4
   const char *m_session_desc[SESSION_DESC_COUNT];
   media_close_callback_f m_media_close_callback;
+  void *m_media_close_callback_data;
   int m_streaming_media_set_up;
   CIpPort *m_unused_ports;
   int m_rtp_over_rtsp;

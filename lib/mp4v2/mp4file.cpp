@@ -2171,7 +2171,7 @@ char* MP4File::MakeTrackEditName(
 	static char editName[1024];
 	snprintf(editName, sizeof(editName), 
 		"%s.edts.elst.entries[%u].%s", 
-		trakName, editId, name);
+		trakName, editId - 1, name);
 	return editName;
 }
 
@@ -2179,6 +2179,7 @@ MP4EditId MP4File::AddTrackEdit(
 	MP4TrackId trackId,
 	MP4EditId editId)
 {
+	ProtectWriteOperation("AddTrackEdit");
 	return m_pTracks[FindTrackIndex(trackId)]->AddEdit(editId);
 }
 
@@ -2186,6 +2187,7 @@ void MP4File::DeleteTrackEdit(
 	MP4TrackId trackId,
 	MP4EditId editId)
 {
+	ProtectWriteOperation("DeleteTrackEdit");
 	m_pTracks[FindTrackIndex(trackId)]->DeleteEdit(editId);
 }
 
@@ -2195,7 +2197,21 @@ u_int32_t MP4File::GetTrackNumberOfEdits(
 	return GetTrackIntegerProperty(trackId, "edts.elst.entryCount");
 }
 
+MP4Duration MP4File::GetTrackEditTotalDuration(
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->GetEditTotalDuration(editId);
+}
+
 MP4Timestamp MP4File::GetTrackEditStart(
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->GetEditStart(editId);
+}
+
+MP4Timestamp MP4File::GetTrackEditMediaStart(
 	MP4TrackId trackId,
 	MP4EditId editId)
 {
@@ -2203,7 +2219,7 @@ MP4Timestamp MP4File::GetTrackEditStart(
 		MakeTrackEditName(trackId, editId, "mediaTime"));
 }
 
-void MP4File::SetTrackEditStart(
+void MP4File::SetTrackEditMediaStart(
 	MP4TrackId trackId,
 	MP4EditId editId,
 	MP4Timestamp startTime)
@@ -2252,11 +2268,10 @@ void MP4File::SetTrackEditDwell(
 MP4SampleId MP4File::GetSampleIdFromEditTime(
 	MP4TrackId trackId,
 	MP4Timestamp when,
-	bool wantSyncSample,
-	MP4Timestamp* pStartTime, 
+	MP4Timestamp* pStartTime,
 	MP4Duration* pDuration)
 {
 	return m_pTracks[FindTrackIndex(trackId)]->GetSampleIdFromEditTime(
-		when, wantSyncSample, pStartTime, pDuration);
+		when, pStartTime, pDuration);
 }
 

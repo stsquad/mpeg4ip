@@ -83,7 +83,7 @@ static int c_rtp_periodic (void *data)
   return 0;
 }
 
-static int c_rtcp_send_packet (void *ud, char *buffer, int buflen)
+static int c_rtcp_send_packet (void *ud, uint8_t *buffer, int buflen)
 {
   return ((CPlayerMedia *)ud)->rtcp_send_packet(buffer, buflen);
 }
@@ -476,6 +476,15 @@ void CPlayerMedia::set_plugin_data (const codec_plugin_t *p,
     d->v.audio_vft = a;
   }
     
+}
+
+int CPlayerMedia::get_plugin_status (char *buffer, uint32_t buflen)
+{
+  if (m_plugin == NULL) return -1;
+
+  if (m_plugin->c_print_status == NULL) return -1;
+
+  return ((m_plugin->c_print_status)(m_plugin_data, buffer, buflen));
 }
 
 int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
@@ -1182,7 +1191,7 @@ void CPlayerMedia::rtp_end(void)
   m_rtp_session = NULL;
 }
 
-int CPlayerMedia::rtcp_send_packet (char *buffer, int buflen)
+int CPlayerMedia::rtcp_send_packet (uint8_t *buffer, int buflen)
 {
   if (config.get_config_value(CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP) != 0) {
     return rtsp_thread_send_rtcp(m_parent->get_rtsp_client(),

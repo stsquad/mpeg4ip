@@ -32,7 +32,6 @@ char* Mp4PathName;
 char* Mp4FileName;
 
 // forward declaration
-void PrintTrackList(MP4FileHandle mp4File);
 void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, 
 	bool sampleMode, MP4SampleId sampleId, char* dstFileName = NULL);
 
@@ -163,7 +162,7 @@ int main(int argc, char** argv)
 	}
 
 	if (doList) {
-		PrintTrackList(mp4File);
+		MP4Info(mp4File);
 		exit(0);
 	}
 
@@ -181,18 +180,6 @@ int main(int argc, char** argv)
 	MP4Close(mp4File);
 
 	return(0);
-}
-
-void PrintTrackList(MP4FileHandle mp4File)
-{
-	u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
-
-	printf("Id\tType\n");
-	for (u_int32_t i = 0; i < numTracks; i++) {
-		MP4TrackId trackId = MP4FindTrackId(mp4File, i);
-		const char* trackType = MP4GetTrackType(mp4File, trackId);
-		printf("%u\t%s\n", trackId, trackType);
-	}
 }
 
 void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, 

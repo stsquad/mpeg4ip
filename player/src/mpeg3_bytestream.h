@@ -27,7 +27,7 @@
 #include "libmpeg3.h"
 #include "our_bytestream.h"
 #include "player_util.h"
-#define OUTPUT_TO_FILE 1
+//#define OUTPUT_TO_FILE 1
 
 /*
  * CMp4ByteStreamBase provides base class access to quicktime files.

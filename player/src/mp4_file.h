@@ -41,7 +41,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 			       control_callback_vft_t *);
 
 /*
- * CQtimeFile contains access information for the quicktime bytestream
+ * CMp4File contains access information for the mp4 bytestream
  * classes.  It will provide mutual exclusion, so bytestreams in different
  * threads don't overlap
  */
@@ -58,9 +58,9 @@ class CMp4File {
   int get_illegal_video_codec (void) { return m_illegal_video_codec;};
   int have_audio (void) { return m_have_audio; };
   int create_video(CPlayerSession *psptr, video_query_t *vq, int video_offset,
-		   char *errmsg, uint32_t errlen);
+		   char *errmsg, uint32_t errlen, int &start_desc);
   int create_audio(CPlayerSession *psptr, audio_query_t *vq, int audio_offset,
-		   char *errmsg, uint32_t errlen);
+		   char *errmsg, uint32_t errlen, int &start_desc);
  private:
   MP4FileHandle m_mp4file;
   SDL_mutex *m_file_mutex;

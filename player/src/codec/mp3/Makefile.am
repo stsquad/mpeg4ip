@@ -26,3 +26,5 @@ INCLUDES = -I.. -I../..  -I../../../lib -I../../../lib/audio -I$(top_srcdir)/lib
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
+
+EXTRA_DIST = mp3_plugin60.dsp

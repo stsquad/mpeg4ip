@@ -84,6 +84,9 @@
 #define VERBOSE_ISMA(verbosity, expr)		\
 	VERBOSE(MP4_DETAILS_ISMA, verbosity, expr)
 
+#define VERBOSE_EDIT(verbosity, expr)		\
+	VERBOSE(MP4_DETAILS_EDIT, verbosity, expr)
+
 inline void Indent(FILE* pFile, u_int8_t depth) {
 	fprintf(pFile, "%*c", depth, ' ');
 }

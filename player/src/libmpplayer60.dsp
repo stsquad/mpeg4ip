@@ -89,6 +89,10 @@ SOURCE=.\audio.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\audio_sdl.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\avi_bytestream.cpp
 # End Source File
 # Begin Source File
@@ -114,6 +118,18 @@ SOURCE=.\mp4_bytestream.cpp
 # Begin Source File
 
 SOURCE=.\mp4_file.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg3_bytestream.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg3_file.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg3_rtp_bytestream.cpp
 # End Source File
 # Begin Source File
 
@@ -153,6 +169,10 @@ SOURCE=.\qtime_file.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\rfc3119_bytestream.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\rtp_bytestream.cpp
 # End Source File
 # Begin Source File
@@ -163,6 +183,10 @@ SOURCE=.\sync.cpp
 
 SOURCE=.\video.cpp
 # End Source File
+# Begin Source File
+
+SOURCE=.\video_sdl.cpp
+# End Source File
 # End Group
 # Begin Group "include"
 
@@ -170,6 +194,10 @@ SOURCE=.\video.cpp
 # Begin Source File
 
 SOURCE=.\audio.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\audio_sdl.h
 # End Source File
 # Begin Source File
 
@@ -206,6 +234,18 @@ SOURCE=.\mp4_bytestream.h
 # Begin Source File
 
 SOURCE=.\mp4_file.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg3_bytestream.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg3_file.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg3_rtp_bytestream.h
 # End Source File
 # Begin Source File
 
@@ -257,11 +297,19 @@ SOURCE=.\qtime_file.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\rfc3119_bytestream.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\rtp_bytestream.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\video.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\video_sdl.h
 # End Source File
 # End Group
 # Begin Group "codec/aa"
@@ -288,53 +336,5 @@ SOURCE=.\codec\mp3\mp3_rtp_bytestream.cpp
 SOURCE=.\codec\mp3\mp3_rtp_bytestream.h
 # End Source File
 # End Group
-# Begin Source File
-
-SOURCE=.\audio_sdl.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\audio_sdl.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg3_bytestream.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg3_bytestream.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg3_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg3_file.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg3_rtp_bytestream.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg3_rtp_bytestream.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\rfc3119_bytestream.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\rfc3119_bytestream.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\video_sdl.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\video_sdl.h
-# End Source File
 # End Target
 # End Project

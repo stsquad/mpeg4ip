@@ -216,10 +216,10 @@ void nec_abs_excitation_generation(
 
    c_subframe++;
 
-   free( CoreExcitation );
-   free( PreStageExcitation );
-   free( num_pulse );
-   free( pre_indices );
-   free( acbexc );
-   free( mpexc );
+   FREE( CoreExcitation );
+   FREE( PreStageExcitation );
+   FREE( num_pulse );
+   FREE( pre_indices );
+   FREE( acbexc );
+   FREE( mpexc );
 }

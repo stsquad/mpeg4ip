@@ -408,6 +408,7 @@ AUDIO_CODEC_PLUGIN("celp",
 		   celp_codec_create,
 		   celp_do_pause,
 		   celp_decode,
+		   NULL,
 		   celp_close,
 		   celp_codec_check);
 /* end file aa.cpp */

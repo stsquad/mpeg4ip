@@ -144,6 +144,7 @@ VIDEO_CODEC_PLUGIN("rawv",
 		   rawv_create,
 		   rawv_do_pause,
 		   rawv_decode,
+		   NULL, 
 		   rawv_close,
 		   rawv_codec_check,
 		   rawv_video_frame_is_sync);

@@ -38,7 +38,7 @@ Copyright (c)1996.
 #include "nec_gain_wb_4m7b2d.tbl"
 #include "nec_exc_proto.h"
 #include "nec_abs_const.h"
-
+#include "bitstream.h"
 #define NEC_GAIN_DIM	2
 
 void nec_dec_gain(
@@ -108,6 +108,6 @@ void nec_dec_gain(
    *g_ac = gcb[NEC_GAIN_DIM*ga_idx+0] * renorm * ivnorm1;
    *g_ec = gcb[NEC_GAIN_DIM*ga_idx+1] * renorm * ivnorm2;
 
-   free( par );
+  FREE( par );
 }
 

@@ -91,8 +91,8 @@ void nec_dec_acb(
    *int_part = nec_acb_generation(ac_idx_opt,len_sf,mem_ac,zero,ac,1.0,0, 
 				  SampleRateMode);
 
-   free( zero );
-   free( mem_ac );
+  FREE( zero );
+  FREE( mem_ac );
 }
 
 void nec_pitch_enhancement(
@@ -150,5 +150,5 @@ void nec_pitch_enhancement(
       }
    }
 
-   free( mem_ac );
+  FREE( mem_ac );
 }

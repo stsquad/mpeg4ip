@@ -39,7 +39,7 @@ extern "C" bool MP4AV_Mpeg4ParseVosh(
 		vosh.GetBits(32);				// start code
 		*pProfileLevel = vosh.GetBits(8);
 	}
-	catch (...) {
+	catch (int e) {
 		return false;
 	}
 
@@ -70,7 +70,7 @@ extern "C" bool MP4AV_Mpeg4CreateVosh(
 		*ppBytes = vosh.GetBuffer();
 		*pNumBytes = vosh.GetNumberOfBytes();
 	}
-	catch (...) {
+	catch (int e) {
 		return false;
 	}
 
@@ -103,7 +103,7 @@ extern "C" bool MP4AV_Mpeg4CreateVo(
 		*ppBytes = vo.GetBuffer();
 		*pNumBytes = vo.GetNumberOfBytes();
 	}
-	catch (...) {
+	catch (int e) {
 		return false;
 	}
 
@@ -190,7 +190,7 @@ extern "C" bool MP4AV_Mpeg4ParseVol(
 		}
 		// there's more, but we don't need it
 	}
-	catch (...) {
+	catch (int e) {
 		return false;
 	}
 
@@ -331,7 +331,7 @@ extern "C" bool MP4AV_Mpeg4CreateVol(
 		*ppBytes = vol.GetBuffer();
 		*pNumBytes = vol.GetBitPosition() >> 3;
 	}
-	catch (...) {
+	catch (int e) {
 		return false;
 	}
 
@@ -356,7 +356,7 @@ extern "C" bool MP4AV_Mpeg4ParseGov(
 		gov.SkipBits(1);		// marker bit
 		*pSeconds = gov.GetBits(6);
 	}
-	catch (...) {
+	catch (int e) {
 		return false;
 	}
 
@@ -409,7 +409,7 @@ extern "C" bool MP4AV_Mpeg4ParseVop(
 		u_int16_t numTicks = vop.GetBits(timeBits);
 		*pVopTimeIncrement = (numSecs * timeTicks) + numTicks; 
 	}
-	catch (...) {
+	catch (int e) {
 		return false;
 	}
 

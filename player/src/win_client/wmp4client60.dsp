@@ -54,6 +54,11 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
 # ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /subsystem:windows /machine:I386 /nodefaultlib:"libc.lib" /out:"Release/wmp4client.exe"
+# Begin Special Build Tool
+SOURCE="$(InputPath)"
+PostBuild_Desc=Copying to player\src
+PostBuild_Cmds=copy Release\wmp4client.exe ..
+# End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "wmp4client60 - Win32 Debug"
 

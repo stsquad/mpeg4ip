@@ -43,7 +43,7 @@ derivative works. Copyright 1996.
 #include <assert.h>
 #include "phi_excq.h"
 #include "phi_xits.h"
-
+#include "bitstream.h"
 /*======================================================================*/
 /* Function Definition:  perceptual_weighting                           */
 /*======================================================================*/
@@ -139,7 +139,7 @@ float *vp                /* In:     Filter states                       */
     /*==================================================================*/
     /* Free temp states                                                 */
     /*==================================================================*/
-    free(vpp);
+   FREE(vpp);
     
     return;
 }
@@ -228,9 +228,9 @@ float *a_gamma          /* In:     Array of the filter coefficients     */
     }
     
     /*==================================================================*/
-    /* Free temp states                                                 */
+    /*FREE temp states                                                 */
     /*==================================================================*/
-    free(vpp);
+   FREE(vpp);
     
     return;
 }
@@ -401,10 +401,10 @@ long   *gid             /* Out:    The gain index                       */
     *gid = i == 1 ? (long)j : (((long)(-j - 1)) & 63);
 
     /*==================================================================*/
-    /* Free temp states                                                 */
+    /*FREE temp states                                                 */
     /*==================================================================*/
-    free(y);
-    free(yp);
+   FREE(y);
+   FREE(yp);
 
     return;
 }
@@ -591,7 +591,7 @@ long  *pos              /* Out:   Pulse amplitudes  +/- 1               */
 	    }
 	}
     }
-    free(d_tmp);
+   FREE(d_tmp);
     return;
 }
 
@@ -731,9 +731,9 @@ long  *pi               /* Out:   Result: Preselected Codebook Indices  */
     }
     
     /*==================================================================*/
-    /* Free rfp                                                         */
+    /*FREE rfp                                                         */
     /*==================================================================*/
-    free(rfp);
+   FREE(rfp);
     return;
 }
 
@@ -828,9 +828,9 @@ long  n                 /* In:  Subframe index, 0 to n_subframes-1      */
     gp = *gain;
 
     /*==================================================================*/
-    /* Free temp states                                                 */
+    /*FREE temp states                                                 */
     /*==================================================================*/
-    free(y);
+   FREE(y);
 
     return;
 }

@@ -31,7 +31,15 @@
 #include "avi_file.h"
 #include "codec_plugin_private.h"
 
-CAviFile *Avifile1 = NULL;
+static void close_avi_file (void *data)
+{
+  CAviFile *Avifile1 = (CAviFile *)data;
+  if (Avifile1 != NULL) {
+    delete Avifile1;
+    Avifile1 = NULL;
+  }
+}
+
 /*
  * Create the media for the quicktime file, and set up some session stuff.
  */
@@ -42,6 +50,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 			       int have_audio_driver,
 			       control_callback_vft_t *cc_vft)
 {
+  CAviFile *Avifile1 = NULL;
   avi_t *avi;
   CPlayerMedia *mptr;
   avi = AVI_open_input_file(name, 1);
@@ -49,11 +58,6 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     snprintf(errmsg, errlen, AVI_strerror());
     player_error_message(errmsg);
     return (-1);
-  }
-
-  if (Avifile1 != NULL) {
-    delete Avifile1;
-    Avifile1 = NULL;
   }
 
   int video_count = 1;
@@ -130,6 +134,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   }
   
   Avifile1 = new CAviFile(name, avi, vq.enabled, audio_count);
+  psptr->set_media_close_callback(close_avi_file, Avifile1);
 
   if (video_count != 0 && vq.enabled) {
     mptr = new CPlayerMedia(psptr);

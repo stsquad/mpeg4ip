@@ -299,7 +299,7 @@ int main(int argc, char** argv)
 
 	if (doList) {
 		// just want the track listing
-		char* info = MP4Info(mp4FileName);
+		char* info = MP4FileInfo(mp4FileName);
 
 		if (!info) {
 			fprintf(stderr, 

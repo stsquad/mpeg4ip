@@ -214,10 +214,10 @@ void nec_bws_excitation_generation(
 
    c_subframe++;
    
-   free( acbexc );
-   free( mpexc );
-   free( mpexc_8 );
-   free( excitation );
+  FREE( acbexc );
+  FREE( mpexc );
+  FREE( mpexc_8 );
+  FREE( excitation );
 
 }
 

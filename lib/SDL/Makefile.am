@@ -4,7 +4,7 @@
 AUTOMAKE_OPTIONS = 1.4
 
 ## Any directories that you want built and installed should go here.
-SUBDIRS = src include docs
+SUBDIRS = src include docs VisualC
 
 ## Any directories you want a part of the distribution should be listed
 ## here, as well as have a Makefile generated at the end of configure.in

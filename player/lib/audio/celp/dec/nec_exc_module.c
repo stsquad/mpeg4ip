@@ -68,8 +68,8 @@ void nec_lpc2par( float a[], float rc[], long m )
 	 tmp_fa[k] = (b[k] - b[mr] * b[mr - k - 1]) / d;
    }
 
-   free( tmp_fa );
-   free( b );
+  FREE ( tmp_fa );
+  FREE ( b );
 }
 
 void nec_zero_filt(
@@ -102,9 +102,9 @@ void nec_zero_filt(
    for ( i = 0; i < order; i++ ) zero1[i] = zero2[i] = 0.0;
    nec_pw_filt(y, syn, order, g_den, g_num, zero1, zero2, len);
 
-   free( syn );
-   free( zero1 );
-   free( zero2 );
+  FREE( syn );
+  FREE( zero1 );
+  FREE( zero2 );
 }
 
 void nec_pw_imprs(
@@ -126,7 +126,7 @@ void nec_pw_imprs(
    for ( i = 0; i < n; i++ ) in[i] = 0.0;
    in[0] = 1.0;
    nec_zero_filt( in, y, a, g_den, g_num, m, n );
-   free( in );
+  FREE( in );
 }
 
 void nec_comb_filt(
@@ -378,11 +378,11 @@ void nec_mk_target(
       target[i] = cur_wsp[i] - fk[i];
    }
 
-   free( xr );
-   free( xr1 );
-   free( fk );
-   free( cur_wsp );
-   free( pmw );
-   free( pmw1 );
-   free( pmw2 );
+  FREE( xr );
+  FREE( xr1 );
+  FREE( fk );
+  FREE( cur_wsp );
+  FREE( pmw );
+  FREE( pmw1 );
+  FREE( pmw2 );
 }

@@ -120,12 +120,12 @@ void nec_bws_mp_dec(
    nec_bws_gain_dec( vu_flag, qxnorm, alpha, ac, comb_exc,
 		len_sf, ga_idx, lpc_order, gainbit, g_ac, g_ec ,g_mp8);
 
-   free( bit_pos );
-   free( num_pos );
-   free( chn_pos );
-   free( pul_loc );
-   free( tmp_exc );
-   free( sgn );
+  FREE( bit_pos );
+  FREE( num_pos );
+  FREE( chn_pos );
+  FREE( pul_loc );
+  FREE( tmp_exc );
+  FREE( sgn );
 }
 
 

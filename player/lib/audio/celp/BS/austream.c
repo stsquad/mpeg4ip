@@ -35,7 +35,7 @@ Copyright (c) 1999.
 
 Source file: austream.c
 
-$Id: austream.c,v 1.1 2002/05/13 18:57:41 wmaycisco Exp $
+$Id: austream.c,v 1.2 2002/07/15 22:44:57 wmaycisco Exp $
 
 Authors:
 HP    Heiko Purnhagen, Uni Hannover <purnhage@tnt.uni-hannover.de>
@@ -61,7 +61,7 @@ Changes:
 
 #include "austream.h"
 #include "common_m4a.h"
-
+#include "bitstream.h"
 
 /* ---------- declarations ---------- */
 
@@ -191,14 +191,14 @@ AuStream *AuOpenRead (
     s->f = fopen(streamName,"rb");
   if (s->f==NULL) {
     CommonWarning("AuOpenRead: Can not open \"%s\"",streamName);
-    free(s);
+ FREE(s);
     return NULL;
   }
 
   h = getint(s);
   if (h!=0x2e736e64) {		/* magic string: .snd */
     CommonWarning("AuOpenRead: Wrong magic string in \"%s\"",streamName);
-    free(s);
+ FREE(s);
     return NULL;
   }
   ofs = getint(s);
@@ -211,7 +211,7 @@ AuStream *AuOpenRead (
       s->eof = 1;
   if (s->eof || nchan<1 || formc!=3) {
     CommonWarning("AuOpenRead: Unsupported audio format in \"%s\"",streamName);
-    free(s);
+ FREE(s);
     return NULL;
   }
 
@@ -258,7 +258,7 @@ AuStream *AuOpenWrite (
     s->f = fopen(streamName,"wb");
   if (s->f==NULL) {
     CommonWarning("AuOpenWrite: Can not open \"%s\"",streamName);
-    free(s);
+ FREE(s);
     return NULL;
   }
 
@@ -272,7 +272,7 @@ AuStream *AuOpenWrite (
 
   if (s->eof) {
     CommonWarning("AuOpenWrite: Can not write to \"%s\"",streamName);
-    free(s);
+ FREE(s);
     return NULL;
   }
 
@@ -343,7 +343,7 @@ void AuClose (
 
   if (stream->f!=stdin && stream->f!=stdout)
     fclose(stream->f);
-  free(stream);
+free(stream);
 }
 
 

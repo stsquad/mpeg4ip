@@ -8,7 +8,7 @@ the course of development of the MPEG-4 Audio (ISO/IEC 14496-3). This
 software module is an implementation of a part of one or more MPEG-4
 Audio (ISO/IEC 14496-3) tools as specified by the MPEG-4 Audio
 (ISO/IEC 14496-3). ISO/IEC gives users of the MPEG-4 Audio (ISO/IEC
-14496-3) free license to this software module or modifications thereof
+14496-3) FREE license to this software module or modifications thereof
 for use in hardware or software products claiming conformance to the
 MPEG-4 Audio (ISO/IEC 14496-3). Those intending to use this software
 module in hardware or software products are advised that its use may
@@ -471,8 +471,8 @@ void        *InstanceContext	   /* In: pointer to instance context */
 	    /* -------------------------------------------------------------*/
 	    /* Free   Arrays for subframe processing                        */
 	    /* -------------------------------------------------------------*/
-	    free ( syn_speech );
-	    free ( cbk_sig );
+	    FREE ( syn_speech );
+	    FREE ( cbk_sig );
 	}    
       } 
 
@@ -581,7 +581,7 @@ void        *InstanceContext	   /* In: pointer to instance context */
 	      OutputSignal[0][sbfrm_ctr*sbfrm_size_bws+kk] = syn_sig[kk];
 	  }
 	}
-	free( syn_sig );
+	FREE( syn_sig );
       } else {
         if(( syn_sig = (float *)malloc((unsigned int)sbfrm_size * sizeof(float))) == NULL ){
 	  fprintf(stderr, "MALLOC FAILURE in abs_decoder  \n");
@@ -605,35 +605,35 @@ void        *InstanceContext	   /* In: pointer to instance context */
 	      OutputSignal[0][sbfrm_ctr*sbfrm_size+kk] = syn_sig[kk];
 	  }
 	}
-	free( syn_sig );
+	FREE( syn_sig );
       }
 
-      free ( dec_sig );
-      free ( bws_mp_sig );
-      free ( acb_delay );
-      free ( adaptive_gain );
+     FREE ( dec_sig );
+      FREE ( bws_mp_sig );
+      FREE ( acb_delay );
+      FREE ( adaptive_gain );
       if (BandwidthScalabilityMode == ON) {
-	free ( dec_sig_bws );
-	free ( bws_delay );
-	free ( bws_adpt_gain );
+	FREE ( dec_sig_bws );
+	FREE ( bws_delay );
+	FREE ( bws_adpt_gain );
       }
     }
 
     /* -----------------------------------------------------------------*/
     /* Free   Arrays for Frame processing                               */
     /* -----------------------------------------------------------------*/
-    free ( int_ap );
-    free ( shape_indices );
-    free ( gain_indices );
-    free ( indices );
+    FREE ( int_ap );
+    FREE ( shape_indices );
+    FREE ( gain_indices );
+    FREE ( indices );
     
     if (SampleRateMode == fs8kHz) {
       if ( BandwidthScalabilityMode == ON ) {
-	free ( int_ap_bws );
-	free ( shape_indices_bws );
-	free ( gain_indices_bws );
-	free ( indices_bws );
-	free ( bws_nb_acb_index );
+	FREE ( int_ap_bws );
+	FREE ( shape_indices_bws );
+	FREE ( gain_indices_bws );
+	FREE ( indices_bws );
+	FREE ( bws_nb_acb_index );
       }
     }
 
@@ -1224,7 +1224,7 @@ void celp_close_decoder
   if (ExcitationMode == MultiPulseExc)
   {
     if (prev_Qlsp_coefficients != NULL) {
-      free(prev_Qlsp_coefficients);
+      FREE(prev_Qlsp_coefficients);
       prev_Qlsp_coefficients = NULL;
     }
 
@@ -1232,11 +1232,11 @@ void celp_close_decoder
 	if (BandwidthScalabilityMode == ON)
 	{
 	  if (buf_Qlsp_coefficients_bws != NULL) {
-	    free(buf_Qlsp_coefficients_bws);
+	    FREE(buf_Qlsp_coefficients_bws);
 	    buf_Qlsp_coefficients_bws = NULL;
 	  }
 	  if (prev_Qlsp_coefficients_bws != NULL) {
-	    free(prev_Qlsp_coefficients_bws);
+	    FREE(prev_Qlsp_coefficients_bws);
 	    prev_Qlsp_coefficients_bws = NULL;
 	  }
 	}
@@ -1255,10 +1255,10 @@ void celp_close_decoder
     /* -----------------------------------------------------------------*/
     InstCtxt = (INST_CONTEXT_LPC_DEC_TYPE *)*InstanceContext;
     if (InstCtxt->PHI_Priv != NULL) {
-      free(InstCtxt->PHI_Priv);
+      FREE(InstCtxt->PHI_Priv);
       InstCtxt->PHI_Priv = NULL;
     }
-    free(InstCtxt);
+    FREE(InstCtxt);
     *InstanceContext = NULL;
 
 }

@@ -15,4 +15,4 @@ AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 
-EXTRA_DIST = celp_file.cpp
+EXTRA_DIST = celp_file.cpp celp_plugin.dsp

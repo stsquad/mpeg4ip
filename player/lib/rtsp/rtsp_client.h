@@ -165,7 +165,7 @@ int rtsp_thread_set_rtp_callback(rtsp_client_t *info,
 				 void *ud);
   int rtsp_thread_send_rtcp(rtsp_client_t *info,
 			    int interleave,
-			    char *buffer,
+			    uint8_t *buffer,
 			    int buflen);
 /*
  * rtsp message function error messages

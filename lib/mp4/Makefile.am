@@ -1,3 +1,4 @@
+SUBDIRS=doc
 lib_LTLIBRARIES = libmp4.la
 libmp4_la_LDFLAGS = -static
 
@@ -65,3 +66,5 @@ libmp4_la_SOURCES = \
 	quicktime.h \
 	rtphint.h \
 	sizes.h
+
+EXTRA_DIST=libmp460.dsp libmp4_st60.dsp README README_ORIGINAL

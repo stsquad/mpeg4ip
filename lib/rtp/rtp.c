@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.16 $ 
- * $Date: 2002/07/05 17:34:27 $
+ * $Revision: 1.17 $ 
+ * $Date: 2002/07/15 22:44:56 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -75,15 +75,15 @@ typedef struct {
 
 static int rijndael_initialize(struct rtp *session, u_char *hash, int hash_len);
 
-static int rijndael_decrypt(void *ifptr, unsigned char *data,
+static int rijndael_decrypt(void *ifptr, uint8_t *data,
 		    unsigned int *size);
-static int rijndael_encrypt(void *ifptr, unsigned char *data,
+static int rijndael_encrypt(void *ifptr, uint8_t *data,
 	    unsigned int *size);
 
 static int des_initialize(struct rtp *session, u_char *hash, int hash_len);
-static int des_decrypt(void *ifptr, unsigned char *data,
+static int des_decrypt(void *ifptr, uint8_t *data,
 	       unsigned int *size);
-static int des_encrypt(void *ifptr, unsigned char *data,
+static int des_encrypt(void *ifptr, uint8_t *data,
 	       unsigned int *size);
 
 #define MAX_DROPOUT    3000
@@ -224,7 +224,7 @@ typedef struct {
  * typedef int (*rtp_decrypt_func)(struct rtp *, unsigned char *data,
  *				unsigned int size);
  */
-typedef int (*rtcp_send_f)(struct rtp *s, char *buffer, int buflen);
+typedef int (*rtcp_send_f)(struct rtp *s, uint8_t *buffer, int buflen);
 
 /*
  * The "struct rtp" defines an RTP session.
@@ -1006,12 +1006,12 @@ struct rtp *rtp_init(const char *addr,
 	return rtp_init_if(addr, NULL, rx_port, tx_port, ttl, rtcp_bw, callback, userdata, 0);
 }
 
-static int rtcp_local_send (struct rtp *session, char *buffer, int buflen)
+static int rtcp_local_send (struct rtp *session, uint8_t *buffer, int buflen)
 {
   return (session->rtcp_send_packet)(session->userdata, buffer, buflen);
 }
 
-static int rtcp_udp_send (struct rtp *session, char *buffer, int buflen)
+static int rtcp_udp_send (struct rtp *session, uint8_t *buffer, int buflen)
 {
   return (udp_send(session->rtcp_socket, buffer, buflen));
 }
@@ -1868,7 +1868,7 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 						rtp_message(LOG_WARNING, "RTCP packet with unknown type (%d) ignored.", packet->common.pt);
 						break;
 				}
-				packet = (rtcp_t *) ((char *) packet + (4 * (ntohs(packet->common.length) + 1)));
+				packet = (rtcp_t *) ((uint8_t *) packet + (4 * (ntohs(packet->common.length) + 1)));
 				first  = FALSE;
 			}
 			if (session->avg_rtcp_size < 0) {
@@ -2191,10 +2191,10 @@ const rtcp_rr *rtp_get_rr(struct rtp *session, uint32_t reporter, uint32_t repor
  * 
  * Return value: Number of bytes transmitted.
  **/
-int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m, 
+int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, 
 		  int cc, uint32_t* csrc, 
-                  char *data, int data_len, 
-		  char *extn, uint16_t extn_len, uint16_t extn_type)
+                  uint8_t *data, int data_len, 
+		  uint8_t *extn, uint16_t extn_len, uint16_t extn_type)
 {
 	int		 buffer_len, i, rc, pad, pad_len;
 	int malloc_len;
@@ -2270,7 +2270,7 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 		for (i = 0; i < pad_len; i++) {
 			buffer[buffer_len + RTP_PACKET_HEADER_SIZE - pad_len + i] = 0;
 		}
-		buffer[buffer_len + RTP_PACKET_HEADER_SIZE - 1] = (char) pad_len;
+		buffer[buffer_len + RTP_PACKET_HEADER_SIZE - 1] = (uint8_t) pad_len;
 	}
 #if 0	
 	{
@@ -2307,7 +2307,7 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 }
 
 #ifndef _WIN32
-int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, char pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, char *extn, uint16_t extn_len, uint16_t extn_type)
+int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, uint8_t *extn, uint16_t extn_len, uint16_t extn_type)
 {
 	int		 buffer_len, i, rc;
 	uint8_t		*buffer;
@@ -3241,7 +3241,7 @@ static int des_initialize(struct rtp *session, u_char *hash, int hashlen)
 }
 
 //static
-int des_encrypt(void *ifptr, unsigned char *data,
+int des_encrypt(void *ifptr, uint8_t *data,
 		unsigned int *size)
 {
   struct rtp *session = (struct rtp *)ifptr;
@@ -3253,7 +3253,7 @@ int des_encrypt(void *ifptr, unsigned char *data,
 }
 
 //static 
-int des_decrypt(void *ifptr, unsigned char *data,
+int des_decrypt(void *ifptr, uint8_t *data,
 		unsigned int *size)
 {
   struct rtp *session = (struct rtp *)ifptr;
@@ -3299,7 +3299,7 @@ static int rijndael_initialize(struct rtp *session, u_char *hash, int hash_len)
     return TRUE;
 }
 
-static int rijndael_encrypt(void *ifptr, unsigned char *data,
+static int rijndael_encrypt(void *ifptr, uint8_t *data,
 			    unsigned int *size)
 {
   struct rtp *session = (struct rtp *)ifptr;
@@ -3316,7 +3316,7 @@ static int rijndael_encrypt(void *ifptr, unsigned char *data,
 	return rc;
 }
 
-static int rijndael_decrypt(void *ifptr, unsigned char *data,
+static int rijndael_decrypt(void *ifptr, uint8_t *data,
 			    unsigned int *size)
 {
   struct rtp *session = (struct rtp *)ifptr;

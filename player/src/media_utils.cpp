@@ -40,6 +40,7 @@
 #include "mpeg3_rtp_bytestream.h"
 #include "mpeg3_file.h"
 #include "audio.h"
+#include "mpeg2t.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -505,6 +506,12 @@ int parse_name_for_session (CPlayerSession *psptr,
     err = create_media_for_http(psptr, name, errmsg, errlen, cc_vft);
     return (err);
   }    
+#if 0
+  if (strncmp(name, "mpeg2t://", strlen("mpeg2t://")) == 0) {
+    err = create_mpeg2t_session(psptr, name, errmsg, errlen, cc_vft);
+    return (err);
+  }
+#endif
 #ifndef _WINDOWS
   struct stat statbuf;
   if (stat(name, &statbuf) != 0) {

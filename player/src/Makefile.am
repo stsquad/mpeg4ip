@@ -57,6 +57,13 @@ libmp4player_la_SOURCES = \
 	ip_port.h \
 	media_utils.cpp \
 	media_utils.h \
+	mpeg2t.h \
+	mpeg2t_private.h \
+	mpeg2t_thread.cpp \
+	mpeg2t_thread.h \
+	mpeg2t_thread_ipc.h \
+	mpeg2t_thread_nx.cpp \
+	mpeg2t_thread_nx.h \
 	mpeg3_bytestream.cpp \
 	mpeg3_bytestream.h \
 	mpeg3_file.cpp \
@@ -121,6 +128,7 @@ AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DPLAYE
 libmp4player_la_LIBADD = \
 	codec/aa/libaa.la \
 	codec/mp3/libmp3.la \
+	$(top_builddir)/lib/mpeg2t/libmpeg2_transport.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
@@ -156,5 +164,6 @@ EXTRA_DIST = \
 	libmpplayer60.dsp \
 	mp4player60.dsp \
 	mp4player60.dsw \
-	player60.dsw 
+	player60.dsw \
+	wmp4player60.dsp
 

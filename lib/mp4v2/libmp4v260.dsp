@@ -390,6 +390,10 @@ SOURCE=.\mp4file_io.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\mp4info.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\mp4property.cpp
 # End Source File
 # Begin Source File

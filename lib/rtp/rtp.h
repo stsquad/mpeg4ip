@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.8 $ 
- * $Date: 2002/07/05 17:34:27 $
+ * $Revision: 1.9 $ 
+ * $Date: 2002/07/15 22:44:57 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -54,8 +54,8 @@ extern "C" {
 #endif
 
   // moved here by nori
-typedef int (*rtp_encrypt_func)(void *, unsigned char *, unsigned int *);
-typedef int (*rtp_decrypt_func)(void *, unsigned char *, unsigned int *);
+typedef int (*rtp_encrypt_func)(void *, uint8_t *, unsigned int *);
+typedef int (*rtp_decrypt_func)(void *, uint8_t *, unsigned int *);
 
 struct rtp;
 
@@ -66,9 +66,9 @@ typedef struct rtp *rtp_t;
 typedef struct rtp_packet_data {
   struct rtp_packet *rtp_pd_next, *rtp_pd_prev;
   uint32_t	*rtp_pd_csrc;
-  char		*rtp_pd_data;
+  uint8_t	*rtp_pd_data;
   int		 rtp_pd_data_len;
-  unsigned char	*rtp_pd_extn;
+  uint8_t	*rtp_pd_extn;
   uint16_t	 rtp_pd_extn_len; /* Size of the extension in 32 bit words minus one */
   uint16_t	 rtp_pd_extn_type;/* Extension type field in the RTP packet header   */
   int            rtp_pd_buflen; /* received buffer len (w/rtp header) */
@@ -196,7 +196,7 @@ typedef struct {
 /* Callback types */
 typedef void (*rtp_callback)(struct rtp *session, rtp_event *e);
 typedef rtcp_app* (*rtcp_app_callback)(struct rtp *session, uint32_t rtp_ts, int max_size);
-  typedef int (*rtcp_send_packet_t)(void *userdata, char *buffer, int buflen);
+  typedef int (*rtcp_send_packet_t)(void *userdata, uint8_t *buffer, int buflen);
 
 /* SDES packet types... */
 typedef enum  {
@@ -247,12 +247,12 @@ int 		 rtp_recv(struct rtp *session,
 			  struct timeval *timeout, uint32_t curr_rtp_ts);
   void rtp_recv_data(struct rtp *session, uint32_t curr_rtp_ts);
 int 		 rtp_send_data(struct rtp *session, 
-			       uint32_t rtp_ts, char pt, int m, 
+			       uint32_t rtp_ts, int8_t pt, int m, 
 			       int cc, uint32_t csrc[], 
-                               char *data, int data_len, 
-			       char *extn, uint16_t extn_len, uint16_t extn_type);
+                               uint8_t *data, int data_len, 
+			       uint8_t *extn, uint16_t extn_len, uint16_t extn_type);
 #ifndef _WIN32
-int            rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, char pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, char *extn, uint16_t extn_len, uint16_t extn_type);
+int            rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, uint8_t *extn, uint16_t extn_len, uint16_t extn_type);
 #endif
 void 		 rtp_send_ctrl(struct rtp *session, uint32_t rtp_ts, 
 			       rtcp_app_callback appcallback);

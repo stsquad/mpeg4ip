@@ -261,6 +261,10 @@ typedef int (*c_video_frame_is_sync_f)(codec_data_t *ptr,
 				       uint8_t *buffer,
 				       uint32_t buflen,
 				       void *userdata);
+
+typedef int (*c_print_status_f)(codec_data_t *ptr, 
+				char *buffer, 
+				uint32_t buflen);
 /*
  * c_compress_check_f - see if a plugin can decode the bit stream
  *  note - create function from above must be called afterwards
@@ -350,6 +354,7 @@ typedef struct codec_plugin_t {
   c_raw_file_skip_frame_f c_skip_frame;
   c_raw_file_has_eof_f    c_raw_file_has_eof;
   c_video_frame_is_sync_f c_video_frame_is_sync;
+  c_print_status_f        c_print_status;
 } codec_plugin_t;
 
 #ifdef _WIN32
@@ -368,6 +373,7 @@ typedef struct codec_plugin_t {
                            create, \
 			   do_pause, \
                            decode, \
+                           print_status, \
 			   close,\
 			   compress_check) \
 extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
@@ -380,7 +386,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    decode, \
    close,\
    compress_check, \
-   NULL, NULL, NULL, NULL, NULL, NULL, NULL, \
+   NULL, NULL, NULL, NULL, NULL, NULL, NULL, print_status, \
 }; }
 
 /*
@@ -390,6 +396,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
                                          create, \
 			                 do_pause, \
                                          decode, \
+                                         print_status, \
 			                 close,\
 			                 compress_check, \
 			                 raw_file_check, \
@@ -412,7 +419,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    raw_file_used_for_frame, \
    raw_file_seek_to, \
    NULL, \
-   raw_file_has_eof, NULL, \
+   raw_file_has_eof, NULL, print_status, \
 }; }
 
 /*
@@ -422,6 +429,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
                            create, \
 			   do_pause, \
                            decode, \
+                           print_status, \
 			   close,\
 			   compress_check,\
 			   video_frame_is_sync) \
@@ -435,7 +443,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    decode, \
    close,\
    compress_check, \
-   NULL, NULL, NULL, NULL, NULL, NULL, video_frame_is_sync, \
+   NULL, NULL, NULL, NULL, NULL, NULL, video_frame_is_sync, print_status, \
 }; }
 
 /*
@@ -445,6 +453,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
                                          create, \
 			                 do_pause, \
                                          decode, \
+                                         print_status, \
 			                 close,\
 			                 compress_check, \
                                          video_frame_is_sync, \
@@ -471,6 +480,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    raw_file_skip_frame,\
    raw_file_has_eof, \
    video_frame_is_sync, \
+   print_status, \
 }; }
      
      

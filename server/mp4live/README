@@ -1,4 +1,4 @@
-June 6, 2002 - Dave Mackie
+July 15, 2002 - Dave Mackie
 
 MP4LIVE 
 =======
@@ -97,7 +97,13 @@ Tips
 ====
 
 I suggest you disable any fancy, computationally intensive screensavers 
-when using mp4live to capture long programs.
+when using mp4live to capture long programs. Along the same lines, don't
+run any programs that make large resource demands (CPU, bus, disk, network)
+while mp4live is running.
+
+The AAC audio encoder is noticeably slower than the MP3 audio encoder so 
+you will see lower video frame rates and greater sensitivity to CPU load 
+if you are using AAC.
 
 Linux supports the POSIX soft real-time extensions and mp4live will attempt
 to use these to give it priority over non-real time processes. Typically

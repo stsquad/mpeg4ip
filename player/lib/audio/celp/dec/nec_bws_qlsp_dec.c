@@ -135,8 +135,8 @@ void nec_bws_lsp_decoder(
       for ( i = 0; i < lpc_order; i++ ) blsp[k][i] = blsp[k-1][i];
    }
 
-   free( tlsp );
-   free( vec_hat );
+  FREE( tlsp );
+  FREE( vec_hat );
 
 }
 

@@ -137,12 +137,12 @@ void nec_enh_mp_position(
 	 pos[i*len+j] = chn_pos[i*len+j];
    }
 
-   free( bit_pos_org );
-   free( chn_pos_org );
-   free( chn_ctr );
-   free( ctr_tmp );
-   free( bit_pos );
-   free( chn_pos );
+  FREE( bit_pos_org );
+  FREE( chn_pos_org );
+  FREE( chn_ctr );
+  FREE( ctr_tmp );
+  FREE( bit_pos );
+  FREE( chn_pos );
 
 }
 
@@ -253,8 +253,8 @@ static long nec_pulse_bit(
    }
 
    if ( err_flg == 1 ) {
-      free(tbit);
-      free(nbit);
+     FREE(tbit);
+     FREE(nbit);
       return -1;
    }
    ttl_bit = 0;
@@ -262,8 +262,8 @@ static long nec_pulse_bit(
       ttl_bit += tbit[i];
       bit[i] = tbit[i];
    }
-   free(tbit);
-   free(nbit);
+  FREE(tbit);
+  FREE(nbit);
    return ttl_bit;
 }
 
@@ -314,5 +314,5 @@ static void nec_pulse_pos(
 	 }
       }
    }
-   free(ch_num);
+  FREE(ch_num);
 }

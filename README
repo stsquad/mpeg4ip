@@ -85,13 +85,23 @@ Please see the file "COPYING".
 Building and Installing
 =======================
 
-This package uses GNU autoconf, automake, and libtool. It attempts to 
-follow the GNU conventions for open source packages. This is complicated
-by the fact that we build on many other packages. Where the package was 
-already using the GNU tools, we left things alone. Where the package was 
-using it's own Makefile, we left things alone if it was a complicated 
-Makefile. If it was straightforward we replaced it with an equivalent 
-automake file.
+We are now (as of release 0.9.5) using make dist for our tarball.  To
+build, you should only have to issue the following:
+   ./bootstrap <params for configure>
+   make
+   make install (needs root privileges).
+
+If this works for you, you can skip down to the next section on 
+Configure Script Options.  If this does not work, or you have downloaded 
+from CVS, the below applies.
+
+We've built the distribution using GNU autoconf, automake and libtool.
+We have attempted to follow the GNU conventions for open source packages. 
+This is complicated by the fact that we build on many other packages. Where 
+the package was already using the GNU tools, we left things alone. Where 
+the package was using it's own Makefile, we left things alone if it was a 
+complicated Makefile. If it was straightforward we replaced it with an 
+equivalent automake file.
 
 If you have to install any of these tools (for example, automake is
 not included with Mac OS X), find out where the others are installed
@@ -115,11 +125,20 @@ When you find problems please be sure to use the SourceForge site to tell
 us what you encountered, and hopefully how you fixed it.
 
 To build:
-    ./bootstrap
+    ./cvs_bootstrap <arguments to pass to configure scripts>
     make
     make install (optional, typically need root privileges)
 
 The bootstrap script will pass any arguments to the configure scripts.
+
+For the curious, the bootstrap script invokes the configure scripts of 
+the included packages that have them, and then our own top level configure 
+script is generated and run. At the end of this process all the Makefile's
+are ready, and setup in the correct hierarchy. If this doesn't work for you,
+you're free to hack as needed ;-)  
+
+Configure Script Options
+========================
 
 Two options of potential interest are "--disable-server" and "--disable-player"
 which disable the building of the server and player respectively. By
@@ -133,11 +152,8 @@ If your CPU doesn't support MMX instructions you will want to disable
 this feature.  The configure script will also check for the minimum
 version of nasm supported; we require 0.98.19 or greater.
 
-For the curious, the bootstrap script invokes the configure scripts of 
-the included packages that have them, and then our own top level configure 
-script is generated and run. At the end of this process all the Makefile's
-are ready, and setup in the correct hierarchy. If this doesn't work for you,
-you're free to hack as needed ;-)  
+Darwin Quicktime Streaming Server
+=================================
 
 Please note that the Apple Darwin Quicktime Streaming Server is NOT distributed
 with mpeg4ip. It can be downloaded from Apple, http://www.apple.com/ as either
@@ -178,7 +194,7 @@ linux, freeBSD, BSD/OS, Solaris, Mac OS X and windows.  For all varieties
 of *nux, X11 is required.
 
 To date we've built on Red Hat Linux 6.1, 6.2, 7.0, 7.1, and 7.2 with
-the native compilers, and on 7.1 and 7.2 with gcc 3.0.  
+the native compilers, on 7.1 and 7.2 with gcc 3.0, and on 7.3 with gcc 3.1.  
 
 Windows
 -------
@@ -188,14 +204,25 @@ to install nasm in the VC98/bin directory before compiling.  You should
 get nasm-0.98.22-win32.zip from the nasm web site.  You will need to 
 rename nasmw.exe to nasm.exe.  We recommend getting Service Pack 5.
 
+Use the encoding60.dsw project for encoding tools, and the 
+player/src/player60.dsw for the player.
+
 We recommend installing DirectX 8.1 or later.  If that is not possible, 
 and you have problems with video, try uncommenting out #define OLD_SURFACE
-in player/src/video.cpp.
+in player/src/video.cpp. Other than that, you'll have to figure it
+out yourself - libsdl.org is a good resource.
 
 To run mp4player other than in Visual Studio, install both mp4player.exe 
 and SDL.DLL into a directory on your Window's path (install them into
 the same directory).   You will also need to install all the plugin
-.dlls.
+.dlls into the same directory as well.  Look for the *_plugin projects
+in player60.dsw.
+
+In encoding60.dsw and player60.dsw, if you do a batch build, you will
+see several projects that do not build correctly - these are Lame
+with GTK, and common with IPv6.  This is as designed.  If you want
+these to build, please see the appropriate package creator for the
+correct steps - they are not supported in mpeg4ip.
 
 For windows GUI player, see below section.
 
@@ -277,7 +304,6 @@ If you had already installed lame, the previous excutables will not be
 replaced by this one in spite of their versions. If you want to update 
 lame, you need to perform it by yourself.
 
-
 A few debugging tools are also included:
 
 mp4extract  Utility to extract tracks from an MP4 file
@@ -285,7 +311,6 @@ mp4dump     Utility to dump MP4 file meta-information in text form
 mp4info     Utility to display MP4 file summary
 avidump     Utility to display AVI file summary
 yuvdump     Utility to display a raw video file on the screen
-
 
 For playback, you get:
 
@@ -301,16 +326,21 @@ PlaylistBroadcaster      Provides multicast playlist service for MP4 files
 Executable Notes
 ================
 
-FAAC
-====
+FAAC and FAAD
+=============
 In our desire to make the package smaller, we have removed SNDFILE.
 This has the effect of allowing FAAC to only encode raw PCM files,
-unless bootstrap detects that SNDFILE is installed.
+unless bootstrap detects that SNDFILE is installed.  We do not have
+the complete version of FAAD, so the faad standalone decoder will not
+build.
 
 If the existing translation behaviour of FAAC is required, please
 obtain SNDFILE and install it, then re-run bootstrap and make for
 *nux base platforms.  For windows based platforms, obtain a fresh
 copy of faac and use it instead of the one in our package.
+
+An even better idea would be to obtain the complete faac/faad package
+from www.audiocoding.com.
 
 Directory Structure
 ===================
@@ -332,7 +362,7 @@ mpeg4ip - top level project directory
 
     common - shared code
         video 
-	    libmpeg3 - mpeg1/2 encoder/decoder
+	    libmpeg32 - mpeg1/2 encoder/decoder
             mpeg4 - ISO MPEG-4 video encoder/decoder
 
     lib - project wide libraries
@@ -344,8 +374,9 @@ mpeg4ip - top level project directory
             getopt - gnu getopt routines
         mp4 - MP4 (aka MOV/Quicktime) file format library
         mp4v2 - new MP4 library written from scratch
-			test - contains some test programs
+            test - contains some test programs
             util - contains new mp4dump and mp4extract utilities
+	mpeg2t - mpeg2 transport stream utilities
         msg_queue - SDL based Inter-thread messages utlity
         rtp - UCL RTP 
         sdp - Our own SDP
@@ -364,6 +395,7 @@ mpeg4ip - top level project directory
                raw - raw audio plugin
             video - video plugins
                raw - raw video plugin
+               mpeg3 - mpeg1/2 video plugin
  	       xvid - xvid video plugin
         src - the player executable
             codec - 
@@ -536,11 +568,9 @@ Known Problems
   heard that a fix is available, so we're trying to track that down.
 
 * The player for windows is sketchy at best.  We have included project
-  files that should build for Dev Studio 6.0. 
-
-* We recommend installing DirectX 8.1 or later.  If that is not possible, 
-  and you have problems with video, try uncommenting out #define OLD_SURFACE
-  in player/src/video.cpp.
+  files that should build for Dev Studio 6.0.  We recommend installing 
+  DirectX 8.1 or later.  If that is not possible, and you have problems 
+  with video, try uncommenting out #define OLD_SURFACE in player/src/video.cpp.
 
 * Mac OSX player sometimes will lock up, or stop playing video while
   continuing the audio - we need someone to help us add the sound buffer 

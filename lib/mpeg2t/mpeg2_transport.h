@@ -88,7 +88,7 @@ const uint8_t *mpeg2t_transport_payload_start(const uint8_t *pHdr,
 					      uint32_t *payload_len);
 
 mpeg2t_t *create_mpeg2_transport(void);
-mpeg2t_es_t *mpeg2t_process_buffer(mpeg2t_t *ptr, 
+mpeg2t_pid_t *mpeg2t_process_buffer(mpeg2t_t *ptr, 
 				   const uint8_t *buffer, 
 				   uint32_t buflen,
 				   uint32_t *buflen_used);

@@ -2522,4 +2522,7 @@ src/file/Makefile
 src/hermes/Makefile
 sdl-config
 SDL.spec
+VisualC/Makefile 
+VisualC/SDL/Makefile
+VisualC/SDLMain/Makefile
 ], [chmod +x sdl-config])

@@ -38,7 +38,7 @@ Copyright (c) 1996, 1997, 1998.
 
 Header file: bitstream.h
 
-$Id: bitstream.h,v 1.1 2002/05/13 18:57:42 wmaycisco Exp $
+$Id: bitstream.h,v 1.2 2002/07/15 22:44:57 wmaycisco Exp $
 
 Required modules:
 common.o		common module
@@ -122,7 +122,7 @@ Format of a bit stream file:
 extern "C" {
 #endif
 
-
+#define FREE(x) { if (x != NULL) free(x); x=NULL; }
 /* BsInit() */
 /* Init bit stream module. */
 

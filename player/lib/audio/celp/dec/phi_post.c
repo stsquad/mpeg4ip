@@ -39,7 +39,7 @@ derivative works. Copyright 1996.
 #include <stdlib.h>
 #include <math.h>
 #include "phi_post.h"
-
+#include "bitstream.h"
 /*======================================================================*/
 /*     L O C A L     D A T A     D E F I N I T I O N S                  */
 /*======================================================================*/
@@ -102,10 +102,10 @@ PHI_ClosePostProcessor
 PHI_PRIV_TYPE *PHI_Priv         /* In/Out: private data (instance context)*/
 )
 {
-    free (PHI_Priv->PHI_P1_states);
-    free (PHI_Priv->PHI_P2_states);
-    free (PHI_Priv->PHI_g1);
-    free (PHI_Priv->PHI_g2);
+   FREE (PHI_Priv->PHI_P1_states);
+   FREE (PHI_Priv->PHI_P2_states);
+   FREE (PHI_Priv->PHI_g1);
+   FREE (PHI_Priv->PHI_g2);
 }
 
 

@@ -1,0 +1,26 @@
+July 15, 2002.
+
+Hi - welcome to mpeg4ip.
+
+If you're trying to build, you can't just run the ./configure 
+script.
+
+Instead, run the ./bootstrap script.
+
+The reason for this is the mpeg4ip requires a modified SDL package, 
+which is included, but must be configured before the rest of the
+mpeg4ip package.
+
+Then come on over to the README, COPYING, NEWS and the rest of the 
+documentation in the doc directory, including:
+
+   doc/MPEG4IP_Guide.pdf - everwicked's guide to mpeg4ip
+   doc/encoding - how to encode using mpeg4ip
+   doc/ietf     - IETF standards and proposed standards we are using.
+   doc/mcast    - using mpeg4ip to multicast
+   doc/mp4v2    - manual pages for mp4v2 library
+   server/mp4live/README - README for mp4live 
+
+If you have questions, please try the SourceForge forums - please
+do not email us directly.
+

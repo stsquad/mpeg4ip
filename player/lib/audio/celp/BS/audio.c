@@ -35,7 +35,7 @@ Copyright (c) 1996, 1999.
 
 Source file: audio.c
 
-$Id: audio.c,v 1.1 2002/05/13 18:57:41 wmaycisco Exp $
+$Id: audio.c,v 1.2 2002/07/15 22:44:57 wmaycisco Exp $
 
 Required libraries:
 libtsp.a		AFsp audio file library
@@ -77,7 +77,7 @@ Changes:
 #include "audio.h"		/* audio i/o module */
 #include "common_m4a.h"		/* common module */
 #include "austream.h"		/* audio i/o streams (.au format) */
-
+#include "bitstream.h"
 
 /* ---------- declarations ---------- */
 
@@ -225,7 +225,7 @@ AudioFile *AudioOpenRead (
 
   if (as==NULL && af==NULL) {
     CommonWarning("AudioOpenRead: error opening audio file %s",fileName);
-    free(file);
+   FREE(file);
     return (AudioFile*)NULL;
   }
 
@@ -345,7 +345,7 @@ AudioFile *AudioOpenWrite (
 
   if (as==NULL && af==NULL) {
     CommonWarning("AudioOpenWrite: error opening audio file %s",fileName);
-    free(file);
+   FREE(file);
     return (AudioFile*)NULL;
   }
 
@@ -591,7 +591,7 @@ void AudioClose (
 #endif
   if (file->stream)
     AuClose(file->stream);
-  free(file);
+ FREE(file);
 }
 
 

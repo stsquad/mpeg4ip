@@ -25,7 +25,7 @@ void CMemoryBitstream::AllocBytes(u_int32_t numBytes)
 {
 	m_pBuf = (u_int8_t*)calloc(numBytes, 1);
 	if (!m_pBuf) {
-		throw;
+		throw ENOMEM;
 	}
 	m_bitPos = 0;
 	m_numBits = numBytes << 3;
@@ -43,7 +43,7 @@ void CMemoryBitstream::PutBytes(u_int8_t* pBytes, u_int32_t numBytes)
 	u_int32_t numBits = numBytes << 3;
 
 	if (numBits + m_bitPos > m_numBits) {
-		throw;
+		throw EIO;
 	}
 
 	if ((m_bitPos & 7) == 0) {
@@ -59,10 +59,10 @@ void CMemoryBitstream::PutBytes(u_int8_t* pBytes, u_int32_t numBytes)
 void CMemoryBitstream::PutBits(u_int32_t bits, u_int32_t numBits)
 {
 	if (numBits + m_bitPos > m_numBits) {
-		throw;
+		throw EIO;
 	}
 	if (numBits > 32) {
-		throw;
+		throw EIO;
 	}
 
 	for (int8_t i = numBits - 1; i >= 0; i--) {
@@ -74,10 +74,10 @@ void CMemoryBitstream::PutBits(u_int32_t bits, u_int32_t numBits)
 u_int32_t CMemoryBitstream::GetBits(u_int32_t numBits)
 {
 	if (numBits + m_bitPos > m_numBits) {
-		throw;
+		throw EIO;
 	}
 	if (numBits > 32) {
-		throw;
+		throw EIO;
 	}
 
 	u_int32_t bits = 0;

@@ -144,11 +144,11 @@ static int rtsp_msg_thread_set_rtp_callback (rtsp_client_t *info)
 
 int rtsp_thread_send_rtcp (rtsp_client_t *info,
 			   int interleave,
-			   char *buffer,
+			   uint8_t *buffer,
 			   int buflen)
 {
   int ret;
-  char buff[4];
+  uint8_t buff[4];
 
   buff[0] = '$';
   buff[1] = (interleave * 2) + 1;

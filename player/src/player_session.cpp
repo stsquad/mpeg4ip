@@ -70,6 +70,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
     m_session_desc[ix] = NULL;
   }
   m_media_close_callback = NULL;
+  m_media_close_callback_data = NULL;
   m_streaming_media_set_up = 0;
   m_unused_ports = NULL;
   m_first_time_played = 0;
@@ -152,7 +153,7 @@ CPlayerSession::~CPlayerSession ()
   }
   
   if (m_media_close_callback != NULL) {
-    m_media_close_callback();
+    m_media_close_callback(m_media_close_callback_data);
   }
 
   while (m_unused_ports != NULL) {

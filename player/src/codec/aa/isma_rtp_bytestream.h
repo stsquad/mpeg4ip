@@ -35,14 +35,14 @@
 typedef struct isma_frag_data_t {
   struct isma_frag_data_t *frag_data_next;
   rtp_packet *pak;
-  char *frag_ptr;
+  uint8_t *frag_ptr;
   uint32_t frag_len;
 } isma_frag_data_t;
 
 typedef struct isma_frame_data_t {
   struct isma_frame_data_t *frame_data_next;
   rtp_packet *pak;
-  char *frame_ptr;
+  uint8_t *frame_ptr;
   uint32_t frame_len;
   int last_in_pak;
   uint32_t rtp_timestamp;

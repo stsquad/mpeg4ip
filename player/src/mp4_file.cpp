@@ -34,12 +34,12 @@
 #include "our_config_file.h"
 #include "codec_plugin_private.h"
 
-CMp4File *Mp4File1 = NULL;
 /*
  * Create the media for the quicktime file, and set up some session stuff.
  */
-static void close_mp4_file (void)
+static void close_mp4_file (void *data)
 {
+  CMp4File *Mp4File1 = (CMp4File *)data;
   if (Mp4File1 != NULL) {
     delete Mp4File1;
     Mp4File1 = NULL;
@@ -54,8 +54,7 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
 			       control_callback_vft_t *cc_vft)
 {
   MP4FileHandle fh;
-
-  psptr->set_media_close_callback(close_mp4_file);
+  CMp4File *Mp4File1;
 
   fh = MP4Read(name, MP4_DETAILS_ERROR);
   if (!MP4_IS_VALID_FILE_HANDLE(fh)) {
@@ -63,10 +62,9 @@ int create_media_for_mp4_file (CPlayerSession *psptr,
     return -1;
   }
 
-  close_mp4_file();
-
   Mp4File1 = new CMp4File(fh);
   // quicktime is searchable...
+  psptr->set_media_close_callback(close_mp4_file, (void *)Mp4File1);
   psptr->session_set_seekable(1);
 
   int ret;
@@ -118,7 +116,8 @@ int CMp4File::create_video(CPlayerSession *psptr,
 			   video_query_t *vq, 
 			   int video_offset,
 			   char *errmsg, 
-			   uint32_t errlen)
+			   uint32_t errlen,
+			   int &start_desc)
 {
   int ix;
   CPlayerMedia *mptr;
@@ -166,6 +165,16 @@ int CMp4File::create_video(CPlayerSession *psptr,
       if (ret != 0) {
 	return (-1);
       }
+      char *mp4info = MP4Info(m_mp4file, vq[ix].track_id);
+      char *temp = mp4info;
+      while (*temp != '\0') {
+	if (isspace(*temp)) *temp = ' ';
+	if (!isprint(*temp)) *temp = '*';
+	temp++;
+      }
+      psptr->set_session_desc(start_desc, mp4info);
+      free(mp4info);
+      start_desc++;
     } else {
       if (vq[ix].config != NULL) free((void *)vq[ix].config);
     }
@@ -177,7 +186,8 @@ int CMp4File::create_audio(CPlayerSession *psptr,
 			   audio_query_t *aq, 
 			   int audio_offset,
 			   char *errmsg,
-			   uint32_t errlen)
+			   uint32_t errlen,
+			   int &start_desc)
 {
   int ix;
   CPlayerMedia *mptr;
@@ -226,6 +236,16 @@ int CMp4File::create_audio(CPlayerSession *psptr,
       if (ret != 0) {
 	return (-1);
       }
+      char *mp4info = MP4Info(m_mp4file, aq[ix].track_id);
+      char *temp = mp4info;
+      while (*temp != '\0') {
+	if (isspace(*temp)) *temp = ' ';
+	if (!isprint(*temp)) *temp = '*';
+	temp++;
+      }
+      psptr->set_session_desc(start_desc, mp4info);
+      free(mp4info);
+      start_desc++;
     } else {
       if (aq[ix].config != NULL) free((void *)aq[ix].config);
     }
@@ -382,7 +402,8 @@ int CMp4File::create_media (CPlayerSession *psptr,
   }
 
   int ret;
-  ret = create_video(psptr, vq, video_offset, errmsg, errlen);
+  int start_desc = 1;
+  ret = create_video(psptr, vq, video_offset, errmsg, errlen,start_desc);
   free(vq);
 
   if (ret < 0) {
@@ -390,7 +411,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
     return -1;
   }
  
-  ret = create_audio(psptr, aq, audio_offset, errmsg, errlen);
+  ret = create_audio(psptr, aq, audio_offset, errmsg, errlen, start_desc);
   free(aq);
 
   if (ret < 0) ret_value = -1;

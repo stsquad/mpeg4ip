@@ -86,7 +86,7 @@ Name:       libmpeg3
 Version:    1.5
 Origin:     http://heroinewarrior.com/libmpeg3.php3
 Authors:    Heroine Virtual 
-Directory:  lib/libmpeg3
+Directory:  lib/libmpeg32
 License:    GNU General Public License (GPL), version 2 1991
 Notes:      Use may require payment of patent royalties
 

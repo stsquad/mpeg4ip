@@ -1,7 +1,7 @@
 .TH "MP4" "3" "Version 0.9" "Cisco Systems Inc." "MP4 File Format Library"
 .SH "NAME"
 .LP 
-\fBMP4GetSampleIdFromTime\fR \- Get the closest sample of a track to a specified time
+\fBMP4GetSampleIdFromTime\fR \- Get the sample id of a specified time
 .SH "SYNTAX"
 .LP 
 #include <mp4.h>
@@ -34,16 +34,17 @@ Specifies if the returned sample id must correspond to a sample whose sync/rando
 
 .SH "RETURN VALUES"
 .LP 
-Upon success, the sample id with the start time closest to the specified time. Upon an error, MP4_INVALID_SAMPLE_ID.
+Upon success, the sample id that occurs at the specified time. Upon an error, MP4_INVALID_SAMPLE_ID.
 .SH "DESCRIPTION"
 .LP 
-\fBMP4GetSampleIdFromTime\fR returns the sample id of the track sample with the start time that is closest to the specified time. The specified time should be in the track time scale. See MP4ConvertToTrackTimestamp() for how to map a time value to this time scale.
+\fBMP4GetSampleIdFromTime\fR returns the sample id of the track sample in which the specified time occurs. 
 .LP 
-Closest in this case is taken to be the start time with the smallest positive difference with the given time. I.e. samples that start before the given time are excluded. If the alternative behavior is desired, then all the calling application needs to do is subtract one from the returned sample id. 
+The specified time should be in the track time scale. See MP4ConvertToTrackTimestamp() for how to map a time value to this time scale.
+.LP 
+It is wise to use MP4GetSampleTime() with the returned sample id so one can adjust for any difference between the specified time and the actual start time of the sample.
 .LP 
 If the calling application needs a sample that can be accessed randomly then the 'wantSyncSample' argument should be set to true. This could be the case for a player that is implementing a positioning function and needs to be able to start decoding a track from the returned sample id.
-.LP 
-It is wise to use MP4GetSampleTime() with the returned sample id and adjust for any difference between the specified time and the actual time of the sample.
+
 .SH "SEE ALSO"
 .LP 
-MP4(3)
+MP4(3) MP4GetSampleIdFromEditTime(3)

@@ -49,4 +49,4 @@ libfaac_la_SOURCES = \
 	util.h \
 	util.c
 
-EXTRA_DIST = COPYING libfaac.pdf 
+EXTRA_DIST = COPYING libfaac.pdf faac60.dsp faac60.dsw

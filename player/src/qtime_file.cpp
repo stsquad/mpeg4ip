@@ -36,9 +36,9 @@
 #include <gnu/strcasestr.h>
 #include <mp4v2/mp4.h>
 
-CQtimeFile *QTfile1 = NULL;
-static void close_qt_file (void)
+static void close_qt_file (void *data)
 {
+  CQtimeFile *QTfile1 = (CQtimeFile *)data;
   if (QTfile1 != NULL) {
     delete QTfile1;
     QTfile1 = NULL;
@@ -53,16 +53,17 @@ int create_media_for_qtime_file (CPlayerSession *psptr,
 				 uint32_t errlen,
 				 int have_audio_driver)
 {
+  CQtimeFile *QTfile1;
   if (quicktime_check_sig(name) == 0) {
     snprintf(errmsg, errlen, "File %s is not a quicktime file", name);
     player_error_message(errmsg);
     return (-1);
   }
  
-  psptr->set_media_close_callback(close_qt_file);
 
   QTfile1 = new CQtimeFile(name);
   // quicktime is searchable...
+  psptr->set_media_close_callback(close_qt_file, QTfile1);
   psptr->session_set_seekable(1);
 
   int video;

@@ -36,7 +36,7 @@ Copyright (c)1997.
 
 #include "nec_gain_4m4b1d.tbl"
 #include "nec_exc_proto.h"
-
+#include "bitstream.h"
 #define NEC_ENH_GAIN_BIT	4
 
 void nec_enh_gain_dec(
@@ -92,6 +92,6 @@ void nec_enh_gain_dec(
    *g_ac = 1.0;
    *g_ec  = nec_egc[vu_flag][ga_idx] * renorm * ivnorm2;
 
-   free( par );
+   FREE( par );
 }
 

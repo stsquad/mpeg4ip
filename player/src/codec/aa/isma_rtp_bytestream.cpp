@@ -375,7 +375,7 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
     remove_packet_rtp_queue(pak, 1);
     return;
   }
-  char *frame_ptr;
+  uint8_t *frame_ptr;
   isma_frame_data_t *frame_data;
   uint32_t ts;
   ts = pak->rtp_pak_ts;
@@ -595,7 +595,7 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (uint8_t **buffer,
       *buffer = m_frag_reass_buffer;
       *buflen = m_frag_reass_size;
     } else { 
-      *buffer = (uint8_t *)m_frame_data_on->frame_ptr;
+      *buffer = m_frame_data_on->frame_ptr;
       *buflen = m_frame_data_on->frame_len;
     }
   } else {

@@ -23,7 +23,7 @@
 #define __CONFIG_FILE_H__ 1
 #include "systems.h"
 
-typedef enum {
+enum {
   CONFIG_INT,
   CONFIG_STRING,
 };

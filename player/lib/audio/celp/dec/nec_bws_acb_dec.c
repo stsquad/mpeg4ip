@@ -33,6 +33,7 @@ Copyright (c)1996.
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "bitstream.h"
 
 #include "nec_abs_const.h"
 #include "nec_exc_proto.h"
@@ -78,8 +79,8 @@ void nec_bws_acb_dec(
 
    *int_part = nec_acb_generation_16(ac_idx_opt,len_sf,mem_ac,zero,ac,1.0,0);
 
-   free( zero );
-   free( mem_ac );
+  FREE( zero );
+  FREE( mem_ac );
 }
 
 void nec_bws_pitch_enhancement(
@@ -128,5 +129,5 @@ void nec_bws_pitch_enhancement(
       }
    }
 
-   free( mem_ac );
+  FREE( mem_ac );
 }

@@ -38,7 +38,7 @@ Copyright (c) 1996, 1997, 1998.
 
 Source file: bitstream.c
 
-$Id: bitstream.c,v 1.1 2002/05/13 18:57:42 wmaycisco Exp $
+$Id: bitstream.c,v 1.2 2002/07/15 22:44:57 wmaycisco Exp $
 
 Required modules:
 common.o		common module
@@ -390,7 +390,7 @@ BsBitStream *BsOpenFileRead (
 		  fileName);
     BsFreeBuffer(stream->buffer[0]);
     BsFreeBuffer(stream->buffer[1]);
-    free(stream);
+   FREE(stream);
     return NULL;
   }
 
@@ -503,7 +503,7 @@ BsBitStream *BsOpenFileWrite (
     CommonWarning("BsOpenFileWrite: error opening bit stream file %s",
 		  fileName);
     BsFreeBuffer(stream->buffer[0]);
-    free(stream);
+   FREE(stream);
     return NULL;
   }
 
@@ -672,7 +672,7 @@ static void BsRemoveBufferOffset (BsBitBuffer *buffer, long startPosBit)
   /* memcpy the offset free data from help buffer to buffer */
   memcpy(buffer->data, helpBuffer->data, bit2byte(buffer->size));
 
-  /* free help buffer */
+  /*FREE help buffer */
   BsFreeBuffer(helpBuffer);
 
   buffer->numBit = bitsToCopy;
@@ -751,8 +751,8 @@ int BsCloseRemove (
   }
 
   if (stream->info != NULL)
-    free(stream->info);
-  free(stream);
+   FREE(stream->info);
+ FREE(stream);
   return returnFlag;
 }
 
@@ -1493,7 +1493,7 @@ BsBitBuffer *BsAllocBuffer (
 
 
 /* BsFreeBuffer() */
-/* Free bit buffer. */
+/*FREE bit buffer. */
 
 void BsFreeBuffer (
   BsBitBuffer *buffer)		/* in: bit buffer */
@@ -1502,8 +1502,8 @@ void BsFreeBuffer (
     printf("BsFreeBuffer: size=%ld  bufAddr=0x%lx\n",
 	   buffer->size,(unsigned long)buffer);
 
-  free(buffer->data);
-  free(buffer);
+ FREE(buffer->data);
+ FREE(buffer);
 }
 
 

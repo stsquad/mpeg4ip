@@ -240,6 +240,7 @@ VIDEO_CODEC_PLUGIN("mpeg3",
 		   mpeg3_create,
 		   mpeg3_do_pause,
 		   mpeg3_decode,
+		   NULL,
 		   mpeg3_close,
 		   mpeg3_codec_check,
 		   mpeg3_frame_is_sync);

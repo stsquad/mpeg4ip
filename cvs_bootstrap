@@ -1,0 +1,84 @@
+#!/bin/sh
+#
+# Bootstrap development of mpeg4ip with GNU autoconf, automake, and libtool
+# Assumes tools are available on the system
+#
+
+# Check that we can find libtool
+# Frequently it hasn't been installed
+if glibtool --version > /dev/null 2> /dev/null
+then 
+    libtool=glibtool
+    if libtoolize --version > /dev/null
+    then
+	echo "Found link for libtoolize"
+    else 
+	echo "Need a link for libtoolize to glibtoolize"
+	echo "Please see readme for how to make on OS X"
+	exit 1
+    fi
+elif libtool --version >/dev/null
+then libtool=libtool
+else echo "libtool does not appear to be installed."
+     echo "Please install it and then rerun this script."
+     exit 1
+fi
+
+for tool in aclocal autoheader autoconf automake
+do 
+  if $tool --version >/dev/null 
+  then :
+  else echo "$tool does not appear to be installed."
+       echo "Please install it and then rerun this script."
+       exit 1
+  fi
+done
+
+set -x
+
+# if src tree is created via cvs export to tar.gz
+# then empty directories in the repository are pruned
+# this code recreates the empty directories
+# if src tree is checked out directly via cvs, this is a no-op
+mkdir -p ./config || exit 1
+
+for dir in /usr/local /usr/contrib /opt/gnome /usr
+do
+   if test -d $dir/share/aclocal -a `which aclocal` != $dir/bin/aclocal
+   then
+     ACLOCAL_FLAGS="-I $dir/share/aclocal $ACLOCAL_FLAGS"
+   fi
+done
+
+pwd=`pwd`
+for	dir \
+in	$pwd/lib/SDL 
+do	cd $dir
+	aclocal || aclocal $ACLOCAL_FLAGS || exit 3
+	libtoolize --force
+	automake --add-missing --foreign || exit 1
+	autoconf || exit 1
+	./configure "$@" || exit 1
+done
+
+cd $pwd
+cd lib/rtp
+aclocal || aclocal $ACLOCAL_FLAGS || exit 3
+libtoolize --force
+autoheader
+automake --add-missing --foreign || exit 1
+autoconf || exit 1
+./configure "$@" || exit 1
+
+cd $pwd 
+# top level - we're using autoheader, which needs to be after aclocal  
+aclocal || aclocal $ACLOCAL_FLAGS || aclocal -I util || aclocal -I util $ACLOCAL_FLAGS || exit 3
+libtoolize --force
+autoheader || exit 1
+automake --add-missing --foreign || exit 1
+autoconf || exit 1
+[ ! -x configure ] || ./configure "$@" || exit 1
+set +x
+
+# Now ready to run make
+echo "ready to make"

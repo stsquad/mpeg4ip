@@ -66,6 +66,7 @@ derivative works. Copyright 1996.
 #define NEC_LSP_MINWIDTH_FRQ16	0.028
 #define NEC_MAX_LSPVQ_ORDER	20
 
+
 #define DEBUG_YM        /* flag for halting LPC analysis : '98/11/27 */
 
 /*======================================================================*/
@@ -662,32 +663,32 @@ PHI_PRIV_TYPE *PHI_Priv		/* In/Out: PHI private data (instance context) */
 {
 
     /* -----------------------------------------------------------------*/
-    /* Free the arrays that were malloc'd                               */       
+    /*FREE the arrays that were malloc'd                               */
     /* -----------------------------------------------------------------*/
     
-    free(PHI_Priv->next_uq_lsf_16);
-    free(PHI_Priv->current_uq_lsf_16);
-    free(PHI_Priv->previous_uq_lsf_16);
+  FREE(PHI_Priv->next_uq_lsf_16);
+  FREE(PHI_Priv->current_uq_lsf_16);
+  FREE(PHI_Priv->previous_uq_lsf_16);
 
-    free(PHI_Priv->next_q_lsf_16);
-    free(PHI_Priv->current_q_lsf_16);
-    free(PHI_Priv->previous_q_lsf_16);
+  FREE(PHI_Priv->next_q_lsf_16);
+  FREE(PHI_Priv->current_q_lsf_16);
+  FREE(PHI_Priv->previous_q_lsf_16);
 
-    free(PHI_Priv->previous_q_lsf_int_16);
-    free(PHI_Priv->previous_q_lsf_int_8);
+  FREE(PHI_Priv->previous_q_lsf_int_16);
+  FREE(PHI_Priv->previous_q_lsf_int_8);
 
-    free(PHI_Priv->next_uq_lsf_8);
-    free(PHI_Priv->current_uq_lsf_8);
-    free(PHI_Priv->previous_uq_lsf_8);
+  FREE(PHI_Priv->next_uq_lsf_8);
+  FREE(PHI_Priv->current_uq_lsf_8);
+  FREE(PHI_Priv->previous_uq_lsf_8);
 
-    free(PHI_Priv->next_q_lsf_8);
-    free(PHI_Priv->current_q_lsf_8);
-    free(PHI_Priv->previous_q_lsf_8);
+  FREE(PHI_Priv->next_q_lsf_8);
+  FREE(PHI_Priv->current_q_lsf_8);
+  FREE(PHI_Priv->previous_q_lsf_8);
 
-    free(PHI_Priv->PHI_mem_i);
-    free(PHI_Priv->PHI_prev_lar);
-    free(PHI_Priv->PHI_prev_indices);
-    free(PHI_Priv->PHI_current_lar);
+  FREE(PHI_Priv->PHI_mem_i);
+  FREE(PHI_Priv->PHI_prev_lar);
+  FREE(PHI_Priv->PHI_prev_indices);
+  FREE(PHI_Priv->PHI_current_lar);
 
 }
 
@@ -702,9 +703,9 @@ PHI_PRIV_TYPE *PHI_Priv		/* In/Out: PHI private data (instance context) */
 )
 {
     /* -----------------------------------------------------------------*/
-    /* Free the arrays that were malloc'd                               */       
+    /*FREE the arrays that were malloc'd                               */
     /* -----------------------------------------------------------------*/
-    free(PHI_Priv->PHI_mem_i);
+  FREE(PHI_Priv->PHI_mem_i);
 }
 
 /*======================================================================*/
@@ -716,20 +717,20 @@ PHI_PRIV_TYPE *PHI_Priv		/* In/Out: PHI private data (instance context) */
 )
 {
     /* -----------------------------------------------------------------*/
-    /* Free the arrays that were malloc'd                               */       
+    /*FREE the arrays that were malloc'd                               */
     /* -----------------------------------------------------------------*/
      
-    free(PHI_Priv->next_q_lsf_16_dec);
-    free(PHI_Priv->current_q_lsf_16_dec);
-    free(PHI_Priv->previous_q_lsf_16_dec);
+  FREE(PHI_Priv->next_q_lsf_16_dec);
+  FREE(PHI_Priv->current_q_lsf_16_dec);
+  FREE(PHI_Priv->previous_q_lsf_16_dec);
 
-    free(PHI_Priv->next_q_lsf_8_dec);
-    free(PHI_Priv->current_q_lsf_8_dec);
-    free(PHI_Priv->previous_q_lsf_8_dec);
+  FREE(PHI_Priv->next_q_lsf_8_dec);
+  FREE(PHI_Priv->current_q_lsf_8_dec);
+  FREE(PHI_Priv->previous_q_lsf_8_dec);
 
-    free(PHI_Priv->PHI_mem_s);
-    free(PHI_Priv->PHI_dec_prev_lar);
-    free(PHI_Priv->PHI_dec_current_lar);
+  FREE(PHI_Priv->PHI_mem_s);
+  FREE(PHI_Priv->PHI_dec_prev_lar);
+  FREE(PHI_Priv->PHI_dec_current_lar);
 
 }
 
@@ -842,12 +843,12 @@ long  lpc_order                 /* In:  Order of LPC                    */
     }    
 
     /*------------------------------------------------------------------*/
-    /* Free the arrays that were malloced                               */
+    /*FREE the arrays that were malloced                               */
     /*------------------------------------------------------------------*/
-    free(LpcAnalysisBlock);
-    free(reflection_coeffs);
-    free(acf);
-    free(apars);
+  FREE(LpcAnalysisBlock);
+  FREE(reflection_coeffs);
+  FREE(acf);
+  FREE(apars);
 }
 
 /*======================================================================*/
@@ -959,7 +960,7 @@ PHI_PRIV_TYPE *PHI_Priv		/* In/Out: PHI private data (instance context) */
     	PHI_Priv->PHI_dec_prev_interpolation_flag = interpolation_flag;
 
     	/* -----------------------------------------------------------------*/
-    	/* Free the malloc'd arrays                                         */
+    	/*FREE the malloc'd arrays                                         */
     	/* -----------------------------------------------------------------*/
     	free(int_lsf);
     	free(tmp_lpc_coefficients);
@@ -1078,10 +1079,10 @@ PHI_PRIV_TYPE *PHI_Priv		/* In/Out: PHI private data (instance context) */
 	    PHI_Priv->PHI_dec_prev_interpolation_flag = interpolation_flag;
     
 	    /* -----------------------------------------------------------------*/
-	    /* Free the malloc'd arrays                                         */
+	    /*FREE the malloc'd arrays                                         */
 	    /* -----------------------------------------------------------------*/
-	    free(int_lsf);
-	    free(tmp_lpc_coefficients);
+	  FREE(int_lsf);
+	  FREE(tmp_lpc_coefficients);
 	
 	}
 	else
@@ -1183,10 +1184,10 @@ PHI_PRIV_TYPE *PHI_Priv		/* In/Out: PHI private data (instance context) */
 	    PHI_Priv->PHI_dec_prev_interpolation_flag = interpolation_flag;
     
 	    /* -----------------------------------------------------------------*/
-	    /* Free the malloc'd arrays                                         */
+	    /*FREE the malloc'd arrays                                         */
 	    /* -----------------------------------------------------------------*/
-	    free (int_lsf);
-	    free (tmp_lpc_coefficients);
+	  FREE (int_lsf);
+	  FREE (tmp_lpc_coefficients);
 
 	}
     
@@ -1445,12 +1446,12 @@ PHI_PRIV_TYPE *PHI_Priv	      /* In/Out: PHI private data (instance context) */
 
 
 	    /* -----------------------------------------------------------------*/
-	    /* Free the malloc'd arrays                                         */
+	    /*FREE the malloc'd arrays                                         */
 	    /* -----------------------------------------------------------------*/
-	    free(int_lsf);
-	    free(next_codes);
-	    free(current_codes);
-	    free(tmp_lpc_coefficients);		
+	  FREE(int_lsf);
+	  FREE(next_codes);
+	  FREE(current_codes);
+	  FREE(tmp_lpc_coefficients);		
     }
     else
     {
@@ -1749,7 +1750,7 @@ PHI_PRIV_TYPE *PHI_Priv	      /* In/Out: PHI private data (instance context) */
 		}
 	
 		/* -----------------------------------------------------------------*/
-		/* Free the malloc'd arrays                                         */
+		/*FREE the malloc'd arrays                                         */
 		/* -----------------------------------------------------------------*/
 		free(int_lsf);
 		free(next_codes);
@@ -1992,7 +1993,7 @@ PHI_PRIV_TYPE *PHI_Priv	      /* In/Out: PHI private data (instance context) */
 		}
 	
 		/* -----------------------------------------------------------------*/
-		/* Free the malloc'd arrays                                         */
+		/*FREE the malloc'd arrays                                         */
 		/* -----------------------------------------------------------------*/
 		free(int_lsf);
 		free(next_codes);
@@ -2173,8 +2174,8 @@ float rfc[]             /* Out: Reflection coefficients [0..P-1]        */
         if (fabs((double)rfc[k]) >= 1.0)
         {
             printf("FATAL ERROR: [%d] Unstable filter \n", k);
-            free(temp1);
-            free(temp2);
+          FREE(temp1);
+          FREE(temp2);
             exit(1);
         }
         else
@@ -2191,10 +2192,10 @@ float rfc[]             /* Out: Reflection coefficients [0..P-1]        */
         }
     }
     /*==================================================================*/
-    /* Free memory                                                      */
+    /*FREE memory                                                      */
     /*==================================================================*/
-    free (temp1);
-    free (temp2);
+  FREE (temp1);
+  FREE (temp2);
 }
 
 /*======================================================================*/
@@ -2233,7 +2234,7 @@ float aq[]              /* Out: a-parameters [0..P-1]                   */
             temp[j] = aq[j];
         }
     }
-    free(temp);
+  FREE(temp);
 }
 
 /*======================================================================*/
@@ -2738,11 +2739,11 @@ static void mod_nb_abs_lsp_quantizer (
     for(i=0;i<lpc_order;i++) current_Qlsp[i] = Qlsp_coefficients[i]*PAN_PI;
 
 
-    free(lsp_coefficients);
-    free(Qlsp_coefficients);
-    free(prev_Qlsp_coefficients);
-    free(lsp_weight);
-    free(d_lsp);
+  FREE(lsp_coefficients);
+  FREE(Qlsp_coefficients);
+  FREE(prev_Qlsp_coefficients);
+  FREE(lsp_weight);
+  FREE(d_lsp);
 }
 
 /*======================================================================*/
@@ -2807,9 +2808,9 @@ static void mod_nb_abs_lsp_decode(
     for(i=0;i<lpc_order;i++) printf("%7.5f ", Qlsp_coefficients[i]);
     printf("\n");
 */
-    free(Qlsp_coefficients);
-    free(prev_Qlsp_coefficients);
-    free(tmp_lsp_coefficients);
+  FREE(Qlsp_coefficients);
+  FREE(prev_Qlsp_coefficients);
+  FREE(tmp_lsp_coefficients);
 }
 
 /*======================================================================*/
@@ -2887,8 +2888,8 @@ static void mod_nec_bws_lsp_decoder(
       for ( i = 0; i < lpc_order; i++ ) blsp[k][i] = blsp[k-1][i];
    }
 
-   free( tlsp );
-   free( vec_hat );
+ FREE( tlsp );
+ FREE( vec_hat );
 
 }
 
@@ -3111,12 +3112,12 @@ static void mod_nec_bws_lsp_quantizer(
    indices[4] = cand2[2][cidx%2];
    indices[5] = cand2[3][cidx%2];
 
-   free( qqlsp );
-   free( tlsp );
-   free( error );
-   free( error2 );
-   free( vec_hat );
-   free( weight );
+ FREE( qqlsp );
+ FREE( tlsp );
+ FREE( error );
+ FREE( error2 );
+ FREE( vec_hat );
+ FREE( weight );
 
 }
 
@@ -3155,7 +3156,7 @@ static void mod_nec_psvq( float vector[], float p[], float cb[],
       }
       dist[code[k]] = 1.0e30;
    }
-   free( dist );
+ FREE( dist );
 
 }
 
@@ -3344,12 +3345,12 @@ static float lagWin_20[21] = {
     }    
 
     /*------------------------------------------------------------------*/
-    /* Free the arrays that were malloced                               */
+    /*FREE the arrays that were malloced                               */
     /*------------------------------------------------------------------*/
-    free(LpcAnalysisBlock);
-    free(reflection_coeffs);
-    free(acf);
-    free(apars);
+  FREE(LpcAnalysisBlock);
+  FREE(reflection_coeffs);
+  FREE(acf);
+  FREE(apars);
 }
 
 /*======================================================================*/
@@ -3468,11 +3469,11 @@ static void mod_wb_celp_lsp_quantizer (
 */
     for(i=0;i<lpc_order;i++) current_Qlsp[i] = Qlsp_coefficients[i]*PAN_PI;
 
-    free(lsp_coefficients);
-    free(Qlsp_coefficients);
-    free(prev_Qlsp_coefficients);
-    free(lsp_weight);
-    free(d_lsp);
+  FREE(lsp_coefficients);
+  FREE(Qlsp_coefficients);
+  FREE(prev_Qlsp_coefficients);
+  FREE(lsp_weight);
+  FREE(d_lsp);
 }
 
 /*======================================================================*/
@@ -3557,9 +3558,9 @@ static void mod_wb_celp_lsp_decode(
 */
     for(i=0;i<lpc_order;i++) current_Qlsp[i] = Qlsp_coefficients[i]*PAN_PI;
 
-    free(Qlsp_coefficients);
-    free(prev_Qlsp_coefficients);
-    free(tmp_lsp_coefficients);
+  FREE(Qlsp_coefficients);
+  FREE(prev_Qlsp_coefficients);
+  FREE(tmp_lsp_coefficients);
 }
 
 /*======================================================================*/

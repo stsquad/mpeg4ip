@@ -1,3 +1,4 @@
+SUBDIRS = win32
 
 noinst_LTLIBRARIES = libuclmmbase.la
 
@@ -36,17 +37,23 @@ EXTRA_DIST = \
 	base64.h \
 	bills_srtp.h \
 	bittypes.h \
+	boxes-fst.dat \
 	btree.h \
 	cdecl_ext.h \
+	common60.dsp \
+	common60.dsw \
 	config_unix.h \
 	config_win32.h \
+	COPYRIGHT \
 	crypt_random.h \
 	debug.h \
 	drand48.h \
+	gettimeofday.c \
 	gettimeofday.h \
 	hmac.h \
 	inet_ntop.h \
 	inet_pton.h \
+	install-sh \
 	mbus_addr.h \
 	mbus_config.h \
 	mbus.h \
@@ -67,9 +74,14 @@ EXTRA_DIST = \
 	test_md5.h \
 	test_memory.h \
 	test_net_udp.h \
+	test_rtp_encrypt.txt \
 	util.h \
 	vsnprintf.h \
-	boxes-fst.dat
+	MODS \
+	README \
+	README.qfdes \
+	VERSION \
+	test-libcommon
 
 version.h: VERSION
 	sed -e 's/.*/#define CCL_VERSION "v&"/' $? > version.h

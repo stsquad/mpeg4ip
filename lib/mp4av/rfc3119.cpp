@@ -215,7 +215,7 @@ static void CollectAduDataBlocks(
 		numBlocks++;
 
 		if (sid == 0 || numBlocks > maxBlocks) {
-			throw;	// media bitstream error
+			throw EIO;	// media bitstream error
 		}
 
 		(*ppOffsets)[numBlocks-1] = GetFrameHeaderSize(sid);

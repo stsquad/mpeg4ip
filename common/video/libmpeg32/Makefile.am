@@ -34,5 +34,5 @@ libmpeg3_la_SOURCES = \
 	workarounds.h \
 	mpeg3private.inc
 
-EXTRA_DIST = mpeg3css_fake.c 
+EXTRA_DIST = mpeg3css_fake.c libmpeg32.dsp  libmpeg32util.dsp
 

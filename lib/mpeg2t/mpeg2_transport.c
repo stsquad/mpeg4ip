@@ -234,7 +234,7 @@ static void create_es (mpeg2t_t *ptr,
   add_to_pidQ(ptr, &es->pid);
 }
   
-static void mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
+static int mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
 {
   uint32_t buflen;
   uint32_t section_len;
@@ -248,25 +248,25 @@ static void mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
   // process pas pointer
   pasptr = mpeg2t_transport_payload_start(buffer, &buflen);
 
-  if (pasptr == NULL) return;
+  if (pasptr == NULL) return 0;
 
   if (mpeg2t_payload_unit_start_indicator(buffer) == 0) {
     ret = mpeg2t_join_pak(&ptr->pas.pid, 
 			  pasptr,
 			  buflen,
 			  mpeg2t_continuity_counter(buffer));
-    if (ret <= 0) return; // not done, or bad
+    if (ret <= 0) return 0; // not done, or bad
     pasptr = ptr->pas.pid.data;
     section_len = ptr->pas.pid.data_len;
   } else {
     if (*pasptr + 1 > buflen) 
-      return;
+      return 0;
     buflen -= *pasptr + 1;
     pasptr += *pasptr + 1; // go through the pointer field
     
     if (*pasptr != 0 || (pasptr[1] & 0xc0) != 0x80) {
       mpeg2t_message(LOG_ERR, "PAS field not 0");
-      return;
+      return 0;
     }
     section_len = ((pasptr[1] << 8) | pasptr[2]) & 0x3ff; 
     // remove table_id, section length fields
@@ -278,7 +278,7 @@ static void mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
 			    buflen,
 			    section_len,
 			    mpeg2t_continuity_counter(buffer));
-      return;
+      return 0;
     }
     // At this point, pasptr points to transport_stream_id
   }
@@ -296,9 +296,10 @@ static void mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
       }
     }
   }
+  return 1;
 }
 
-static void mpeg2t_process_pmap (mpeg2t_t *ptr, 
+static int mpeg2t_process_pmap (mpeg2t_t *ptr, 
 				mpeg2t_pid_t *ifptr,
 				const uint8_t *buffer)
 {
@@ -315,24 +316,24 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
   buflen = 188;
   // process pas pointer
   pmapptr = mpeg2t_transport_payload_start(buffer, &buflen);
-  if (pmapptr == NULL) return;
+  if (pmapptr == NULL) return 0;
 
   if (mpeg2t_payload_unit_start_indicator(buffer) == 0) {
     ret = mpeg2t_join_pak(ifptr, 
 			  pmapptr,
 			  buflen,
 			  mpeg2t_continuity_counter(buffer));
-    if (ret <= 0) return;
+    if (ret <= 0) return 0;
     pmapptr = ifptr->data;
     section_len = ifptr->data_len;
   } else {
     if (*pmapptr + 1 > buflen) 
-      return;
+      return 0;
     buflen -= *pmapptr + 1;
     pmapptr += *pmapptr + 1; // go through the pointer field
     if (*pmapptr != 2 || (pmapptr[1] & 0xc0) != 0x80) {
       mpeg2t_message(LOG_ERR, "PMAP start field not 2");
-      return;
+      return 0;
     }
     section_len = ((pmapptr[1] << 8) | pmapptr[2]) & 0x3ff; 
     pmapptr += 3;
@@ -344,7 +345,7 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
 			    buflen,
 			    section_len,
 			    mpeg2t_continuity_counter(buffer));
-      return;
+      return 0;
     }
     // pmapptr points to program number
   }
@@ -355,7 +356,7 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
     mpeg2t_message(LOG_ERR, 
 		   "Prog Map error - program number doesn't match - pid %x orig %x from pak %x", 
 		   pmap_pid->pid.pid, pmap_pid->program_number, prog_num);
-    return;
+    return 0;
   }
   pmap_pid->version_number = (pmapptr[2] >> 1) & 0x1f;
 
@@ -369,7 +370,7 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
   pmapptr += 2;
   section_len -= 2;
   if (len != 0) {
-    if (len > section_len) return;
+    if (len > section_len) return 0;
 
     if (len == pmap_pid->prog_info_len) {
       // same length - do a compare
@@ -384,7 +385,7 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
     stream_type = pmapptr[0];
     e_pid = ((pmapptr[1] << 8) | pmapptr[2]) & 0x1fff;
     es_len = ((pmapptr[3] << 8) | pmapptr[4]) & 0xfff;
-    if (es_len + len > section_len) return;
+    if (es_len + len > section_len) return 0;
     if (mpeg2t_lookup_pid(ptr, e_pid) == NULL) {
       mpeg2t_message(LOG_INFO, "Creating es pid %x", e_pid);
       create_es(ptr, e_pid, stream_type, &pmapptr[5], es_len);
@@ -393,6 +394,7 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
     len += 5 + es_len;
     pmapptr += 5 + es_len;
   }
+  return 1;
 }
 
 static void clean_es_data (mpeg2t_es_t *es_pid) 
@@ -595,16 +597,17 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 }
 			    
       
-mpeg2t_es_t *mpeg2t_process_buffer (mpeg2t_t *ptr, 
-				    const uint8_t *buffer, 
-				    uint32_t buflen,
-				    uint32_t *buflen_used)
+mpeg2t_pid_t *mpeg2t_process_buffer (mpeg2t_t *ptr, 
+				     const uint8_t *buffer, 
+				     uint32_t buflen,
+				     uint32_t *buflen_used)
 {
   uint32_t offset;
   uint32_t remaining;
   uint32_t used;
   uint16_t rpid;
   mpeg2t_pid_t *pidptr;
+  int ret;
 
   used = 0;
   remaining = buflen;
@@ -639,15 +642,23 @@ mpeg2t_es_t *mpeg2t_process_buffer (mpeg2t_t *ptr,
 	// okay - we've got a valid pid ptr
 	switch (pidptr->pak_type) {
 	case MPEG2T_PAS_PAK:
-	  mpeg2t_process_pas(ptr, buffer);
+	  ret = mpeg2t_process_pas(ptr, buffer);
+	  if (ret > 0) {
+	    *buflen_used = used + 188;
+	    return pidptr;
+	  }
 	  break;
 	case MPEG2T_PROG_MAP_PAK:
-	  mpeg2t_process_pmap(ptr, pidptr, buffer);
+	  ret = mpeg2t_process_pmap(ptr, pidptr, buffer);
+	  if (ret > 0) {
+	    *buflen_used = used + 188;
+	    return pidptr;
+	  }
 	  break;
 	case MPEG2T_ES_PAK:
 	  if (mpeg2t_process_es(ptr, pidptr, buffer) > 0) {
 	    *buflen_used = used + 188;
-	    return (mpeg2t_es_t *)pidptr;
+	    return pidptr;
 	  }
 	  break;
 	}

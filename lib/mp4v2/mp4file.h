@@ -372,7 +372,15 @@ public: /* equivalent to MP4 library API */
 		MP4TrackId trackId,
 		MP4EditId editId);
 
-	void SetTrackEditStart(
+	MP4Duration GetTrackEditTotalDuration(
+		MP4TrackId trackId,
+		MP4EditId editId);
+
+	MP4Timestamp GetTrackEditMediaStart(
+		MP4TrackId trackId,
+		MP4EditId editId);
+
+	void SetTrackEditMediaStart(
 		MP4TrackId trackId,
 		MP4EditId editId,
 		MP4Timestamp startTime);
@@ -398,8 +406,7 @@ public: /* equivalent to MP4 library API */
 	MP4SampleId GetSampleIdFromEditTime(
 		MP4TrackId trackId,
 		MP4Timestamp when,
-		bool wantSyncSample = false,
-		MP4Timestamp* pStartTime = NULL, 
+		MP4Timestamp* pStartTime = NULL,
 		MP4Duration* pDuration = NULL);
 
 	/* end of MP4 API */

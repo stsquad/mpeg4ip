@@ -52,6 +52,5 @@ libmpeg3video_la_SOURCES = \
 	vlc.c \
 	vlc.h 
 
-EXTRA_DIST = worksheet.c
-
+EXTRA_DIST = worksheet.c libmpeg32video.dsp
 

@@ -362,7 +362,7 @@ static void udp_exit4(socket_udp *s)
 	free(s);
 }
 
-static int udp_send4(socket_udp *s, char *buffer, int buflen)
+static int udp_send4(socket_udp *s, uint8_t *buffer, int buflen)
 {
 	struct sockaddr_in	s_in;
 	
@@ -565,7 +565,7 @@ static void udp_exit6(socket_udp *s)
 #endif  /* HAVE_IPv6 */
 }
 
-static int udp_send6(socket_udp *s, char *buffer, int buflen)
+static int udp_send6(socket_udp *s, uint8_t *buffer, int buflen)
 {
 #ifdef HAVE_IPv6
 	struct sockaddr_in6	s_in;
@@ -779,7 +779,7 @@ void udp_exit(socket_udp *s)
  * 
  * Return value: 0 on success, -1 on failure.
  **/
-int udp_send(socket_udp *s, char *buffer, int buflen)
+int udp_send(socket_udp *s, uint8_t *buffer, int buflen)
 {
 	switch (s->mode) {
 	case IPv4 : return udp_send4(s, buffer, buflen);
@@ -811,7 +811,7 @@ int udp_send_iov(socket_udp *s, struct iovec *iov, int count)
  *
  * Return value: number of bytes read, returns 0 if no data is available.
  **/
-int udp_recv(socket_udp *s, char *buffer, int buflen)
+int udp_recv(socket_udp *s, uint8_t *buffer, int buflen)
 {
 	/* Reads data into the buffer, returning the number of bytes read.   */
 	/* If no data is available, this returns the value zero immediately. */

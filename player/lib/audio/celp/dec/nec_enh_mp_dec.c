@@ -119,11 +119,11 @@ void nec_enh_mp_dec(
    nec_enh_gain_dec( vu_flag, qxnorm, alpha, comb_exc,
 		    len_sf, ga_idx, lpc_order, gainbit, g_ac, g_ec );
 
-   free( bit_pos );
-   free( num_pos );
-   free( chn_pos );
-   free( pul_loc );
-   free( tmp_exc );
-   free( sgn );
+   FREE( bit_pos );
+   FREE( num_pos );
+   FREE( chn_pos );
+   FREE( pul_loc );
+   FREE( tmp_exc );
+   FREE( sgn );
 }
 

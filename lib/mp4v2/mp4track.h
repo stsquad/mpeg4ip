@@ -107,9 +107,14 @@ public:
 	void		DeleteEdit(
 		MP4EditId editId);
 
+	MP4Timestamp GetEditStart(
+		MP4EditId editId);
+
+	MP4Timestamp GetEditTotalDuration(
+		MP4EditId editId);
+
 	MP4SampleId GetSampleIdFromEditTime(
-		MP4Timestamp when, 
-		bool wantSyncSample = false,
+		MP4Timestamp editWhen, 
 		MP4Timestamp* pStartTime = NULL, 
 		MP4Duration* pDuration = NULL);
 
@@ -135,6 +140,8 @@ public:
 		u_int8_t* pChunk, u_int32_t chunkSize);
 
 protected:
+	bool		InitEditListProperties();
+
 	FILE*		GetSampleFile(MP4SampleId sampleId);
 	u_int64_t	GetSampleFileOffset(MP4SampleId sampleId);
 	u_int32_t	GetSampleStscIndex(MP4SampleId sampleId);

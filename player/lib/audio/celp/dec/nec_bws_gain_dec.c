@@ -40,7 +40,7 @@ Copyright (c)1996.
 #define NEC_GAIN_A_BIT	4
 #define NEC_GAIN_B_BIT	7
 #define NEC_GAIN_DIM	2
-
+#define FREE(x) { if (x != NULL) free(x); x=NULL;  }
 void nec_bws_gain_dec(
 		  long	vu_flag,	/* input */
 		  float	qxnorm,		/* input */
@@ -114,6 +114,6 @@ void nec_bws_gain_dec(
    *g_mp8 = nec_gc_sq[vu_flag][qga_idx];
    *g_ec  = nec_gc[vu_flag][NEC_GAIN_DIM*qgc_idx+1] * renorm * ivnorm2;
 
-   free( par );
+  FREE( par );
 }
 

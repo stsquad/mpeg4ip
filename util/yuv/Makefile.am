@@ -19,3 +19,4 @@ LDADD = \
 	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
         -lm
 
+EXTRA_DIST=yuvdump60.dsp

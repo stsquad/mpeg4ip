@@ -262,7 +262,7 @@ extern "C" bool MP4AV_AdtsMakeFrame(
 		// copy audio frame data
 		adts.PutBytes(pData, dataLength);
 	}
-	catch (...) {
+	catch (int e) {
 		return false;
 	}
 

@@ -45,7 +45,8 @@
 #define CONFIG_PLAY_AUDIO 19
 #define CONFIG_PLAY_VIDEO 20
 #define CONFIG_RTP_BUFFER_TIME_MSEC 21
-#define CONFIG_MAX 22
+#define CONFIG_MPEG2T_PAM_WAIT_SECS 22
+#define CONFIG_MAX 23
 
 extern CConfig config;
 

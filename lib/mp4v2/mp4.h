@@ -100,6 +100,28 @@ typedef u_int32_t	MP4EditId;
 #define MP4_IPMP_TRACK_TYPE		"ipsm"
 #define MP4_MPEGJ_TRACK_TYPE	"mjsm"
 
+#define MP4_IS_VIDEO_TRACK_TYPE(type) \
+	(!strcasecmp(type, MP4_VIDEO_TRACK_TYPE))
+
+#define MP4_IS_AUDIO_TRACK_TYPE(type) \
+	(!strcasecmp(type, MP4_AUDIO_TRACK_TYPE))
+
+#define MP4_IS_OD_TRACK_TYPE(type) \
+	(!strcasecmp(type, MP4_OD_TRACK_TYPE))
+
+#define MP4_IS_SCENE_TRACK_TYPE(type) \
+	(!strcasecmp(type, MP4_SCENE_TRACK_TYPE))
+
+#define MP4_IS_HINT_TRACK_TYPE(type) \
+	(!strcasecmp(type, MP4_HINT_TRACK_TYPE))
+
+#define MP4_IS_SYSTEMS_TRACK_TYPE(type) \
+	(!strcasecmp(type, MP4_CLOCK_TRACK_TYPE) \
+	|| !strcasecmp(type, MP4_MPEG7_TRACK_TYPE) \
+	|| !strcasecmp(type, MP4_OCI_TRACK_TYPE) \
+	|| !strcasecmp(type, MP4_IPMP_TRACK_TYPE) \
+	|| !strcasecmp(type, MP4_MPEGJ_TRACK_TYPE))
+
 /* MP4 Audio track types - see MP4AddAudioTrack()*/
 #define MP4_INVALID_AUDIO_TYPE			0x00
 #define MP4_MPEG1_AUDIO_TYPE			0x6B
@@ -214,7 +236,12 @@ bool MP4Dump(
 	bool dumpImplicits DEFAULT(0));
 
 char* MP4Info(
-	const char* fileName);
+	MP4FileHandle hFile, 
+	MP4TrackId trackId DEFAULT(MP4_INVALID_TRACK_ID));
+
+char* MP4FileInfo(
+	const char* fileName,
+	MP4TrackId trackId DEFAULT(MP4_INVALID_TRACK_ID));
 
 /* file properties */
 
@@ -320,6 +347,17 @@ MP4TrackId MP4AddVideoTrack(
 MP4TrackId MP4AddHintTrack(
 	MP4FileHandle hFile, 
 	MP4TrackId refTrackId);
+
+MP4TrackId MP4CloneTrack(
+	MP4FileHandle srcFile, 
+	MP4TrackId srcTrackId,
+	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE));
+
+MP4TrackId MP4CopyTrack(
+	MP4FileHandle srcFile, 
+	MP4TrackId srcTrackId,
+	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE), 
+	bool applyEdits DEFAULT(false));
 
 bool MP4DeleteTrack(
 	MP4FileHandle hFile, 
@@ -503,8 +541,18 @@ bool MP4CopySample(
 	MP4FileHandle srcFile,
 	MP4TrackId srcTrackId, 
 	MP4SampleId srcSampleId,
+	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE),
+	MP4TrackId dstTrackId DEFAULT(MP4_INVALID_TRACK_ID),
+	MP4Duration dstSampleDuration DEFAULT(MP4_INVALID_DURATION));
+
+/* Note this function is not yet implemented */
+bool MP4ReferenceSample(
+	MP4FileHandle srcFile,
+	MP4TrackId srcTrackId, 
+	MP4SampleId srcSampleId,
 	MP4FileHandle dstFile,
-	MP4TrackId dstTrackId);
+	MP4TrackId dstTrackId,
+	MP4Duration dstSampleDuration DEFAULT(MP4_INVALID_DURATION));
 
 u_int32_t MP4GetSampleSize(
 	MP4FileHandle hFile,
@@ -687,12 +735,19 @@ char* MP4MakeIsmaSdpIod(
 	u_int32_t audioConfigLength,
 	u_int32_t verbosity DEFAULT(0));
 
-/* edit list - NOTE this section of functionality is not yet complete */
+/* edit list */
+
+/* NOTE this section of functionality 
+ * has not yet been fully tested 
+ */
 
 MP4EditId MP4AddTrackEdit(
 	MP4FileHandle hFile,
 	MP4TrackId trackId,
-	MP4EditId editId DEFAULT(MP4_INVALID_EDIT_ID));
+	MP4EditId editId DEFAULT(MP4_INVALID_EDIT_ID),
+	MP4Timestamp startTime DEFAULT(0),
+	MP4Duration duration DEFAULT(0),
+	bool dwell DEFAULT(false));
 
 bool MP4DeleteTrackEdit(
 	MP4FileHandle hFile,
@@ -708,7 +763,17 @@ MP4Timestamp MP4GetTrackEditStart(
 	MP4TrackId trackId,
 	MP4EditId editId);
 
-bool MP4SetTrackEditStart(
+MP4Duration MP4GetTrackEditTotalDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId DEFAULT(MP4_INVALID_EDIT_ID));
+
+MP4Timestamp MP4GetTrackEditMediaStart(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId);
+
+bool MP4SetTrackEditMediaStart(
 	MP4FileHandle hFile,
 	MP4TrackId trackId,
 	MP4EditId editId,
@@ -754,7 +819,8 @@ MP4SampleId MP4GetSampleIdFromEditTime(
 	MP4FileHandle hFile,
 	MP4TrackId trackId, 
 	MP4Timestamp when, 
-	bool wantSyncSample DEFAULT(false));
+	MP4Timestamp* pStartTime DEFAULT(NULL), 
+	MP4Duration* pDuration DEFAULT(NULL));
 
 /* time conversion utilties */
 

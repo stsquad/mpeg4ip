@@ -8,11 +8,14 @@ AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.4.9)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.5)
 
-AC_CONFIG_SUBDIRS(lib/SDL lib/rtp)
+AC_CONFIG_SUBDIRS(lib/rtp)
 
 dnl Checks for programs.
+AC_CHECK_FILE(lib/SDL/sdl-config,,
+	      AC_MSG_ERROR([Configure for SDL needs to run first - either run bootstrap or run lib/SDL/configure]))
+
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 AC_PROG_MAKE_SET
@@ -24,7 +27,6 @@ AC_C_INLINE
 AC_C_CONST
 AC_PROG_INSTALL
 AC_PATH_XTRA
-
 AC_C_BIGENDIAN
 
 AS=gcc
@@ -272,6 +274,7 @@ AC_OUTPUT( \
 	lib/fposrec/Makefile \
 	lib/gnu/Makefile \
 	lib/mp4/Makefile \
+	lib/mp4/doc/Makefile \
 	lib/mp4v2/Makefile \
 	lib/mp4v2/test/Makefile \
 	lib/mp4v2/util/Makefile \
@@ -296,9 +299,6 @@ AC_OUTPUT( \
 	mpeg4ip.pbproj/Makefile \
 	common/Makefile \
 	common/video/Makefile \
-	common/video/libmpeg3/Makefile \
-	common/video/libmpeg3/audio/Makefile \
-	common/video/libmpeg3/video/Makefile \
 	common/video/libmpeg32/Makefile \
 	common/video/libmpeg32/video/Makefile \
 	server/Makefile \

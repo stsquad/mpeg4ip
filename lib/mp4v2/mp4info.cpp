@@ -90,7 +90,10 @@ static char* PrintAudioInfo(
 	MP4Duration trackDuration =
 		MP4GetTrackDuration(mp4File, trackId);
 
-	u_int64_t msDuration =
+	double msDuration =
+#ifdef _WIN32
+		(int64_t)
+#endif
 		MP4ConvertFromTrackDuration(mp4File, trackId, 
 			trackDuration, MP4_MSECS_TIME_SCALE);
 
@@ -98,19 +101,13 @@ static char* PrintAudioInfo(
 		MP4GetTrackBitRate(mp4File, trackId);
 
 	char *sInfo = (char*)MP4Malloc(256);
-	double duration;
-	duration = 
-#ifdef _WIN32
-		(int64_t)
-#endif
-		msDuration;
 
 	// type duration avgBitrate samplingFrequency
 	sprintf(sInfo,	
 		"%u\taudio\t%s, %.3f secs, %u kbps, %u Hz\n", 
 		trackId, 
 		typeName,
-		duration / 1000.0, 
+		msDuration / 1000.0, 
 		(avgBitRate + 500) / 1000, 
 		timeScale);
 
@@ -191,7 +188,10 @@ static char* PrintVideoInfo(
 	MP4Duration trackDuration =
 		MP4GetTrackDuration(mp4File, trackId);
 
-	u_int64_t msDuration =
+	double msDuration =
+#ifdef _WIN32
+		(int64_t)
+#endif
 		MP4ConvertFromTrackDuration(mp4File, trackId, 
 			trackDuration, MP4_MSECS_TIME_SCALE);
 
@@ -207,18 +207,13 @@ static char* PrintVideoInfo(
 	float fps = MP4GetTrackVideoFrameRate(mp4File, trackId);
 
 	char *sInfo = (char*)MP4Malloc(256);
-	double duration;
-	duration = 
-#ifdef _WIN32
-		(int64_t)
-#endif	
-		msDuration;
+
 	// type duration avgBitrate frameSize frameRate
 	sprintf(sInfo, 
 		"%u\tvideo\t%s, %.3f secs, %u kbps, %ux%u @ %.2f fps\n", 
 		trackId, 
 		typeName,
-		duration / 1000.0, 
+		msDuration / 1000.0, 
 		(avgBitRate + 500) / 1000,
 		width,	
 		height,
@@ -251,65 +246,89 @@ static char* PrintHintInfo(
 	return sInfo;
 }
 
-extern "C" char* MP4Info(
-	const char* fileName)
+static char* PrintTrackInfo(
+	MP4FileHandle mp4File,
+	MP4TrackId trackId)
 {
-	try {
-		MP4FileHandle mp4File = 
-			MP4Read(fileName);
+	char* trackInfo = NULL;
 
-		if (!mp4File) {
-			return NULL;
+	const char* trackType = 
+		MP4GetTrackType(mp4File, trackId);
+
+	if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
+		trackInfo = PrintAudioInfo(mp4File, trackId);
+	} else if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
+		trackInfo = PrintVideoInfo(mp4File, trackId);
+	} else if (!strcmp(trackType, MP4_HINT_TRACK_TYPE)) {
+		trackInfo = PrintHintInfo(mp4File, trackId);
+	} else {
+		trackInfo = (char*)MP4Malloc(256);
+		if (!strcmp(trackType, MP4_OD_TRACK_TYPE)) {
+			sprintf(trackInfo, 
+				"%u\tod\tObject Descriptors\n", 
+				trackId);
+		} else if (!strcmp(trackType, MP4_SCENE_TRACK_TYPE)) {
+			sprintf(trackInfo,
+				"%u\tscene\tBIFS\n", 
+				trackId);
+		} else {
+			sprintf(trackInfo,
+					"%u\t%s\n", 
+					trackId, trackType);
 		}
+	}
 
-		char* fileInfo = (char*)MP4Calloc(4*1024);
+	return trackInfo;
+}
 
-		sprintf(fileInfo, "Track\tType\tInfo\n");
+extern "C" char* MP4Info(
+	MP4FileHandle mp4File,
+	MP4TrackId trackId)
+{
+	char* info = NULL;
 
-		u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
+	if (MP4_IS_VALID_FILE_HANDLE(mp4File)) {
+		try {
+			if (trackId == MP4_INVALID_TRACK_ID) {
+				info = (char*)MP4Calloc(4*1024);
 
-		for (u_int32_t i = 0; i < numTracks; i++) {
-			MP4TrackId trackId = 
-				MP4FindTrackId(mp4File, i);
-			const char* trackType = 
-				MP4GetTrackType(mp4File, trackId);
-			char* trackInfo = NULL;
+				sprintf(info, "Track\tType\tInfo\n");
 
-			if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
-				trackInfo = PrintAudioInfo(mp4File, trackId);
-			} else if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
-				trackInfo = PrintVideoInfo(mp4File, trackId);
-			} else if (!strcmp(trackType, MP4_HINT_TRACK_TYPE)) {
-				trackInfo = PrintHintInfo(mp4File, trackId);
-			} else {
-				trackInfo = (char*)MP4Malloc(256);
-				if (!strcmp(trackType, MP4_OD_TRACK_TYPE)) {
-					sprintf(trackInfo, 
-						"%u\tod\tObject Descriptors\n", 
-						trackId);
-				} else if (!strcmp(trackType, MP4_SCENE_TRACK_TYPE)) {
-					sprintf(trackInfo,
-						"%u\tscene\tBIFS\n", 
-						trackId);
-				} else {
-					sprintf(trackInfo,
-						"%u\t%s\n", 
-						trackId, trackType);
+				u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
+
+				for (u_int32_t i = 0; i < numTracks; i++) {
+					trackId = MP4FindTrackId(mp4File, i);
+					char* trackInfo = PrintTrackInfo(mp4File, trackId);
+					strcat(info, trackInfo);
+					MP4Free(trackInfo);
 				}
+			} else {
+				info = PrintTrackInfo(mp4File, trackId);
 			}
-
-			strcat(fileInfo, trackInfo);
-			MP4Free(trackInfo);
 		}
-
-		MP4Close(mp4File);
-
-		return fileInfo;	// caller should free this
-	}
-	catch (MP4Error* e) {
-		delete e;
+		catch (MP4Error* e) {
+			delete e;
+		}
 	}
 
-	return NULL;
+	return info;
+}
+
+extern "C" char* MP4FileInfo(
+	const char* fileName,
+	MP4TrackId trackId)
+{
+	MP4FileHandle mp4File = 
+		MP4Read(fileName);
+
+	if (!mp4File) {
+		return NULL;
+	}
+
+	char* info = MP4Info(mp4File, trackId);
+
+	MP4Close(mp4File);
+
+	return info;	// caller should free this
 }
 

@@ -17,3 +17,4 @@ mp4info_SOURCES = mp4info.cpp
 mp4info_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
 
+EXTRA_DIST = mp4dump60.dsp mp4dump60.dsw mp4extract60.dsp mp4extract60.dsw

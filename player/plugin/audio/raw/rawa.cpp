@@ -232,6 +232,7 @@ AUDIO_CODEC_PLUGIN("rawa",
 		   rawa_codec_create,
 		   rawa_do_pause,
 		   rawa_decode,
+		   NULL,
 		   rawa_close,
 		   rawa_codec_check);
 /* end file rawa.cpp */

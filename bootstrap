@@ -24,16 +24,6 @@ else echo "libtool does not appear to be installed."
      exit 1
 fi
 
-for tool in aclocal autoheader autoconf automake
-do 
-  if $tool --version >/dev/null 
-  then :
-  else echo "$tool does not appear to be installed."
-       echo "Please install it and then rerun this script."
-       exit 1
-  fi
-done
-
 set -x
 
 # if src tree is created via cvs export to tar.gz
@@ -42,42 +32,12 @@ set -x
 # if src tree is checked out directly via cvs, this is a no-op
 mkdir -p ./config || exit 1
 
-for dir in /usr/local /usr/contrib /opt/gnome /usr
-do
-   if test -d $dir/share/aclocal -a `which aclocal` != $dir/bin/aclocal
-   then
-     ACLOCAL_FLAGS="-I $dir/share/aclocal $ACLOCAL_FLAGS"
-   fi
-done
-
 pwd=`pwd`
 for	dir \
-in	$pwd/lib/SDL 
+in	$pwd/lib/SDL $pwd
 do	cd $dir
-	aclocal || aclocal $ACLOCAL_FLAGS || exit 3
-	libtoolize --force
-	automake --add-missing --foreign || exit 1
-	autoconf || exit 1
 	./configure "$@" || exit 1
 done
-
-cd $pwd
-cd lib/rtp
-aclocal || aclocal $ACLOCAL_FLAGS || exit 3
-libtoolize --force
-autoheader
-automake --add-missing --foreign || exit 1
-autoconf || exit 1
-./configure "$@" || exit 1
-
-cd $pwd 
-# top level - we're using autoheader, which needs to be after aclocal  
-aclocal || aclocal $ACLOCAL_FLAGS || aclocal -I util || aclocal -I util $ACLOCAL_FLAGS || exit 3
-libtoolize --force
-autoheader || exit 1
-automake --add-missing --foreign || exit 1
-autoconf || exit 1
-[ ! -x configure ] || ./configure "$@" || exit 1
 set +x
 
 # Now ready to run make

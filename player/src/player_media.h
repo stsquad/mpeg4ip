@@ -108,6 +108,7 @@ class CPlayerMedia {
 			codec_data_t *d, 
 			video_vft_t *v, 
 			audio_vft_t *a);
+  int get_plugin_status(char *buffer, uint32_t buflen);
   void set_user_data (const uint8_t *udata, int length) {
     m_user_data = udata;
     m_user_data_size = length;
@@ -118,7 +119,7 @@ class CPlayerMedia {
   void rtp_start(void);
   void rtp_end(void);
   int rtp_receive_packet(unsigned char interleaved, struct rtp_packet *, int len);
-  int rtcp_send_packet(char *buffer, int buflen);
+  int rtcp_send_packet(uint8_t *buffer, int buflen);
   int get_rtp_media_number (void) { return m_rtp_media_number_in_session; };
  private:
   int create_common(int is_video, char *errmsg, uint32_t errlen);

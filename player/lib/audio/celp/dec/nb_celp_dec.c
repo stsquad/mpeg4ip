@@ -166,9 +166,9 @@ void nb_abs_lpc_decode(
 
     pan_mv_fdata(prev_Qlsp_coefficients, Qlsp_coefficients, lpc_order);
 
-    free(Qlsp_coefficients);
-    free(int_Qlsp_coefficients);
-    free(tmp_lpc_coefficients);
+  FREE(Qlsp_coefficients);
+  FREE(int_Qlsp_coefficients);
+  FREE(tmp_lpc_coefficients);
 }
 
 void bws_lpc_decoder(
@@ -219,9 +219,9 @@ void bws_lpc_decoder(
         
         pan_mv_fdata(prev_Qlsp_coefficients_16, Qlsp_coefficients_16, lpc_order_16);
         
-        free(Qlsp_coefficients_16);
-        free(int_Qlsp_coefficients_16);
-        free(tmp_lpc_coefficients_16);
+       FREE(Qlsp_coefficients_16);
+       FREE(int_Qlsp_coefficients_16);
+       FREE(tmp_lpc_coefficients_16);
         
         return;
 }       
@@ -287,7 +287,7 @@ void nb_abs_excitation_generation(
 	postfilter,
         SampleRateMode		     );
 
-    free(tmp_lpc_coefficients);
+    if ( tmp_lpc_coefficients != NULL)FREE(tmp_lpc_coefficients);
 
 }
 
@@ -341,7 +341,7 @@ void bws_excitation_generation(
 	bws_mp_exc,
         acb_indx_8, postfilter );
 
-    free(tmp_lpc_coefficients);
+   FREE(tmp_lpc_coefficients);
 
 }
 
@@ -377,7 +377,7 @@ void nb_abs_postprocessing(
 		adaptive_gain /* input */
 			     );
 
-    free(tmp_lpc_coefficients);
+   FREE(tmp_lpc_coefficients);
 
 }
 
@@ -472,9 +472,9 @@ void wb_celp_lsp_decode(
 
     pan_mv_fdata(prev_Qlsp_coefficients, Qlsp_coefficients, lpc_order);
 
-    free(Qlsp_coefficients);
-    free(int_Qlsp_coefficients);
-    free(tmp_lpc_coefficients);
+   FREE(Qlsp_coefficients);
+   FREE(int_Qlsp_coefficients);
+   FREE(tmp_lpc_coefficients);
 }
 
 

@@ -226,11 +226,11 @@ PHI_PRIV_TYPE * PHI_Priv        /* In/Out: private data (instance context)*/
     PHI_Priv->PHI_sfrm_ctr++;
 
     /*==================================================================*/
-    /* Free temp states                                                 */
+    /*FREE temp states                                                 */
     /*==================================================================*/
-    free(amp);
-    free(acbk_contrib);
-    free(fcbk_contrib);
+   FREE(amp);
+   FREE(acbk_contrib);
+   FREE(fcbk_contrib);
     
     /*==================================================================*/
     /* Return to main                                                   */
@@ -245,7 +245,7 @@ void PHI_close_excitation_generation(
      PHI_PRIV_TYPE * PHI_Priv        /* In: private data (instance context)*/
 )
 {
-    free (PHI_Priv->PHI_adaptive_cbk);
+   FREE (PHI_Priv->PHI_adaptive_cbk);
 }
 
 /*======================================================================*/

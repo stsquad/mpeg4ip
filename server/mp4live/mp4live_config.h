@@ -81,7 +81,6 @@ class CLiveConfig;
 // some configuration utility routines
 void CalculateVideoFrameSize(CLiveConfig* pConfig);
 void GenerateMpeg4VideoConfig(CLiveConfig* pConfig);
-char* BinaryToAscii(u_int8_t* buf, u_int32_t bufSize);
 bool GenerateSdpFile(CLiveConfig* pConfig);
 
 enum {
