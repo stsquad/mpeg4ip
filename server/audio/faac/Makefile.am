@@ -15,7 +15,8 @@ endif
 LDADD = $(LD_E1) \
 	libfaac.la -lm
 
-lib_LTLIBRARIES = libfaac.la
+noinst_LTLIBRARIES = libfaac.la
+libfaac_la_LDFLAGS=-static
 
 libfaac_la_SOURCES = \
 	aacquant.h \

@@ -28,6 +28,7 @@ class CSDLVideoPreview : public CMediaSink {
 public:
 	CSDLVideoPreview() : CMediaSink() {
 		m_sdlScreen = NULL;
+		m_sdlImage = NULL;
 	}
 
 protected:

@@ -91,6 +91,7 @@ class CSDLAudioSync : public CAudioSync {
   int64_t m_wrong_latency_total;
   int m_volume;
   int m_do_sync;
+  int m_load_audio_do_next_resync;
   uint32_t m_sample_size;
   uint32_t m_play_sample_index;
   uint32_t m_samples_loaded;

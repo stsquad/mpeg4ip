@@ -75,6 +75,8 @@ CSDLAudioSync::CSDLAudioSync (CPlayerSession *psptr, int volume) :
   m_first_time = 1;
   m_first_filled = 1;
   m_buffer_offset_on = 0;
+  m_buffer_ts = 0;
+  m_load_audio_do_next_resync = 0;
 }
 
 /*
@@ -183,14 +185,34 @@ uint32_t CSDLAudioSync::load_audio_buffer (unsigned char *from,
 {
   unsigned char *to;
   uint32_t copied;
-
+  int64_t diff, calc;
 #ifdef DEBUG_AUDIO_FILL
   audio_message(LOG_DEBUG, "fill %d bytes at "LLU", offset %d", 
 		bytes, ts, m_buffer_offset_on);
 #endif
   copied = 0;
   if (m_buffer_offset_on == 0) {
+    if (m_buffer_ts != 0 && m_buffer_ts != ts) {
+      m_load_audio_do_next_resync = 1;
+    }
     m_buffer_ts = ts;
+  } else {
+    diff = ts - m_buffer_ts;
+    calc = m_buffer_offset_on * M_LLU;
+    calc /= m_bytes_per_sample;
+    calc /= m_freq;
+    if (diff > calc + 2) {
+      audio_message(LOG_DEBUG, "potential resync at ts "LLU" diff is "LLD" calc is "LLD, 
+		    ts, diff, calc);
+      uint32_t left;
+      left = m_buffer_size - m_buffer_offset_on;
+      to = get_audio_buffer();
+      memset(to + m_buffer_offset_on, 0, left);
+      filled_audio_buffer(m_buffer_ts, 0);
+      m_buffer_offset_on = 0;
+      m_load_audio_do_next_resync = 1;
+      m_buffer_ts = ts;
+    }
   }
   while ( bytes > 0) {
     to = get_audio_buffer();
@@ -211,9 +233,10 @@ uint32_t CSDLAudioSync::load_audio_buffer (unsigned char *from,
     m_buffer_offset_on += copy;
     if (m_buffer_offset_on >= m_buffer_size) {
       m_buffer_offset_on = 0;
-      filled_audio_buffer(m_buffer_ts, resync);
+      filled_audio_buffer(m_buffer_ts, resync | m_load_audio_do_next_resync);
       m_buffer_ts += m_msec_per_frame;
       resync = 0;
+      m_load_audio_do_next_resync = 0;
     }
   }
   return (copied);

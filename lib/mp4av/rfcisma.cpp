@@ -58,7 +58,7 @@ bool MP4AV_RfcIsmaConcatenator(
 
 	u_int8_t payloadHeader[2];
 
-	u_int16_t numHdrBits = samplesThisHint * auPayloadHdrSize;
+	u_int16_t numHdrBits = samplesThisHint * auPayloadHdrSize * 8;
 	payloadHeader[0] = numHdrBits >> 8;
 	payloadHeader[1] = numHdrBits & 0xFF;
 
