@@ -25,4 +25,4 @@ EXTRA_DIST =			\
 	README.LIB 		\
 	libmp360.dsp 
 
-AM_CXXFLAGS = -D_REENTRANT -Werror -Wall -fexceptions -I$(top_srcdir)/include
+AM_CXXFLAGS = -D_REENTRANT @BILLS_CPPWARNINGS@ -fexceptions -I$(top_srcdir)/include

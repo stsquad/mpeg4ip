@@ -55,8 +55,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   CPlayerMedia *mptr;
   avi = AVI_open_input_file(name, 1);
   if (avi == NULL) {
-    snprintf(errmsg, errlen, AVI_strerror());
-    player_error_message(errmsg);
+    snprintf(errmsg, errlen, "%s", AVI_strerror());
+    player_error_message("%s", AVI_strerror());
     return (-1);
   }
 

@@ -25,13 +25,13 @@
 #ifndef __MP4_BYTESTREAM_H__
 #define __MP4_BYTESTREAM_H__
 #include <mp4.h>
-#ifdef ISMACRYP
 #include <ismacryplib.h>
-#endif
 #include "our_bytestream.h"
 #include "mp4_file.h"
 #include "player_util.h"
+//Uncomment these #defines to dump buffers to file.
 //#define OUTPUT_TO_FILE 1
+//#define ISMACRYP_DEBUG 1
 
 /*
  * CMp4ByteStreamBase provides base class access to quicktime files.
@@ -58,12 +58,18 @@ class CMp4ByteStream : public COurInByteStream
   double get_max_playtime(void);
 
   void play(uint64_t start);
-#ifdef ISMACRYP
+
   u_int8_t *get_buffer() {return m_buffer; }
-  void set_buffer(u_int8_t *buffer) {memcpy(m_buffer, buffer, sizeof(buffer));}
+  void set_buffer(u_int8_t *buffer) {
+    memset(m_buffer, 0, m_max_frame_size * sizeof(u_int8_t));
+  }
   uint32_t get_this_frame_size() {return m_this_frame_size;}
   void set_this_frame_size(uint32_t frame_size)
     {m_this_frame_size = frame_size;}
+#ifdef ISMACRYP_DEBUG
+  FILE *my_enc_file;
+  FILE *my_unenc_file;
+  FILE *my_unenc_file2;
 #endif
  private:
 #ifdef OUTPUT_TO_FILE
@@ -118,7 +124,6 @@ class CMp4AudioByteStream : public CMp4ByteStream
 
 };
 
-#ifdef ISMACRYP
 /*
  * CMp4EncVideoByteStream is for encrypted video streams.  
  * It is inherited from CMp4VideoByteStreamBase.
@@ -126,18 +131,29 @@ class CMp4AudioByteStream : public CMp4ByteStream
 class CMp4EncVideoByteStream : public CMp4VideoByteStream
 {
  public:
-  CMp4EncVideoByteStream(CMp4File *parent,
-			 MP4TrackId track) :
+  CMp4EncVideoByteStream(CMp4File   *parent,
+			 MP4TrackId track,
+                         uint64_t   IVLength ) :
     CMp4VideoByteStream(parent, track) {
-    if (ismacrypInitSession(&m_ismaCryptSId) != 0) {
-      // error
-      printf("can't initialize video ismacryp session\n");
+    ismacryp_rc_t rc = ismacrypInitSession(&m_ismaCryptSId,KeyTypeVideo);
+
+    if (rc != ismacryp_rc_ok ) {
+      player_error_message("can't initialize video ismacryp session rc: %u\n", rc);
+    }
+    else {
+       rc = ismacrypSetIVLength(m_ismaCryptSId, (uint8_t)IVLength);
+       if( rc != ismacryp_rc_ok )
+         player_error_message(
+          "can't set IV length for ismacryp decode session %d, rc: %u\n",
+          m_ismaCryptSId, rc);
     }
   };
   ~CMp4EncVideoByteStream() {
-    if (ismacrypEndSession(m_ismaCryptSId) != 0) {
-       // error
-       printf("could not end the video ismacryp session\n");
+    ismacryp_rc_t rc = ismacrypEndSession(m_ismaCryptSId);
+    if (rc != ismacryp_rc_ok ) {
+       player_error_message(
+          "could not end video ismacryp session %d, rc: %u\n",
+          m_ismaCryptSId, rc);
      }
   }
   uint64_t start_next_frame(uint8_t **buffer,
@@ -154,26 +170,37 @@ class CMp4EncVideoByteStream : public CMp4VideoByteStream
 class CMp4EncAudioByteStream : public CMp4AudioByteStream
 {
  public:
-  CMp4EncAudioByteStream(CMp4File *parent,
-			 MP4TrackId track) :
+  CMp4EncAudioByteStream(CMp4File   *parent,
+			 MP4TrackId track,
+                         uint64_t   IVLength ) :
     CMp4AudioByteStream(parent, track) {
-    if (ismacrypInitSession(&m_ismaCryptSId) != 0) {
-	  // error
-      printf("can't initialize audio ismacryp session\n");
-    }};
-  ~CMp4EncAudioByteStream() {
-    if (ismacrypEndSession(m_ismaCryptSId) != 0) {
-      // error
-      printf("could not end the audio ismacryp session\n");
+    ismacryp_rc_t rc = ismacrypInitSession(&m_ismaCryptSId,KeyTypeAudio);
+    if ( rc != ismacryp_rc_ok ) {
+      player_error_message("can't initialize audio ismacryp session rc: %u\n", rc);
     }
-  }
+    else {
+       rc = ismacrypSetIVLength(m_ismaCryptSId, (uint8_t)IVLength);
+       if( rc != ismacryp_rc_ok )
+         player_error_message(
+          "can't set IV length for ismacryp decode session %d, rc: %u\n",
+          m_ismaCryptSId, rc);
+    }
+  };
+  ~CMp4EncAudioByteStream() {
+    ismacryp_rc_t rc = ismacrypEndSession(m_ismaCryptSId);
+    if ( rc != ismacryp_rc_ok) {
+       player_error_message(
+          "could not end audio ismacryp session %d, rc: %u\n",
+          m_ismaCryptSId, rc);
+    }
+  };
   uint64_t start_next_frame(uint8_t **buffer,
 			    uint32_t *buflen,
 			    void **ud); 
+
   ismacryp_session_id_t m_ismaCryptSId; // eventually make it private
                                         // and add accessor function
 };
-#endif
 
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(mp4f_message, "mp4file")

@@ -27,7 +27,6 @@
 MP4SinfAtom::MP4SinfAtom() 
 	: MP4Atom("sinf") 
 {
-	AddVersionAndFlags();
 	ExpectChildAtom("frma", Required, OnlyOne);
 	ExpectChildAtom("schm", Required, OnlyOne);
 	ExpectChildAtom("schi", Required, OnlyOne);

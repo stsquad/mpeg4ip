@@ -43,9 +43,7 @@
  */
 #ifdef _WIN32
 #define LIBRARY_HANDLE    HINSTANCE
-#define DLL_GET_SYM       GetProcAddress
-#define DLL_CLOSE         FreeLibrary
-#define DLL_ERROR         GetLastError
+#define FILE_HANDLE       void *
 #define PLAYER_PLUGIN_DIR "."
 typedef struct dir_list_t {
   WIN32_FIND_DATA dptr;
@@ -53,10 +51,14 @@ typedef struct dir_list_t {
 } dir_list_t;
 
 #else
+#ifdef HAVE_MACOSX
+#include <mach-o/dyld.h>
+#define LIBRARY_HANDLE NSModule
+#define FILE_HANDLE NSObjectFileImage
+#else
 #define LIBRARY_HANDLE    void *
-#define DLL_GET_SYM       dlsym
-#define DLL_CLOSE         dlclose
-#define DLL_ERROR         dlerror
+#define FILE_HANDLE       void *
+#endif
 // PLAYER_PLUGIN_DIR is set via configure.in
 typedef struct dir_list_t {
   DIR *dptr;
@@ -67,21 +69,16 @@ typedef struct dir_list_t {
 /*
  * codec_plugin_list_t is how we store the codec links
  */
-typedef struct codec_plugin_list_t {
-  struct codec_plugin_list_t *next_codec;
+typedef struct plugin_list_t {
+  struct plugin_list_t *next_plugin;
+  FILE_HANDLE    file_handle;
   LIBRARY_HANDLE dl_handle;
+  bool codec_is_audio;
   codec_plugin_t *codec;
-} codec_plugin_list_t;
-
-static codec_plugin_list_t *audio_codecs, *video_codecs;
-
-typedef struct rtp_plugin_list_t {
-  struct rtp_plugin_list_t *next_rtp_plugin;
-  LIBRARY_HANDLE dl_handle;
   rtp_plugin_t *rtp_plugin;
-} rtp_plugin_list_t;
+} plugin_list_t;
 
-static rtp_plugin_list_t *rtp_plugins;
+static plugin_list_t *plugins;
 
 static void close_file_search (dir_list_t *ptr)
 {
@@ -95,7 +92,7 @@ static void close_file_search (dir_list_t *ptr)
  * any .so files.  In windows, we've already started looking for .dll
  */
 static const char *find_next_file (dir_list_t *ptr,
-				   const char *name)
+				   const char *dirname)
 {
 #ifndef _WIN32
   struct dirent *fptr;
@@ -104,8 +101,16 @@ static const char *find_next_file (dir_list_t *ptr,
     int len = strlen(fptr->d_name);
     if (len > 3 && strcmp(fptr->d_name + len - 3, ".so") == 0) {
       sprintf(ptr->fname, "%s/%s", 
-	      name, fptr->d_name);
-      return (ptr->fname);
+	      dirname, fptr->d_name);
+#ifdef HAVE_MACOSX
+      struct stat statbuf;
+      if (lstat(ptr->fname, &statbuf) == 0 &&
+	  S_ISREG(statbuf.st_mode) &&
+	  !S_ISLNK(statbuf.st_mode))
+	return (ptr->fname);
+#else
+	return (ptr->fname);
+#endif
     }
   }
   return NULL;
@@ -121,17 +126,74 @@ static const char *find_next_file (dir_list_t *ptr,
  * start directory search for plugin files
  */
 static const char *get_first_file (dir_list_t *ptr, 
-				   const char *name)
+				   const char *dirname)
 {
 #ifndef _WIN32
-  ptr->dptr = opendir(name);
+  ptr->dptr = opendir(dirname);
   if (ptr->dptr == NULL) 
     return NULL;
-  return (find_next_file(ptr, name));
+  return (find_next_file(ptr, dirname));
 #else
   ptr->shandle = FindFirstFile("*.dll", &ptr->dptr);
   if (ptr->shandle == INVALID_HANDLE_VALUE) return NULL;
   return ptr->dptr.cFileName;
+#endif
+}
+static bool open_library (plugin_list_t *p, const char *fname)
+{
+#ifdef _WIN32
+    p->dl_handle = LoadLibrary(fname);
+#else
+#ifdef HAVE_MACOSX
+    NSObjectFileImageReturnCode ret;
+    ret = NSCreateObjectFileImageFromFile(fname, &p->file_handle);
+    if (ret != NSObjectFileImageSuccess) {
+      player_error_message("error on file %s", fname);
+      return false;
+    }
+    p->dl_handle = NSLinkModule(p->file_handle, fname, 
+				NSLINKMODULE_OPTION_BINDNOW |
+				NSLINKMODULE_OPTION_PRIVATE |
+				NSLINKMODULE_OPTION_RETURN_ON_ERROR);
+#else
+    p->dl_handle = dlopen(fname, RTLD_NOW | RTLD_LOCAL);
+#endif
+#endif
+    return p->dl_handle != NULL;
+}
+
+static const char *get_open_error (plugin_list_t *p) 
+{
+#ifdef _WIN32
+  return "stupid, stupid windows";
+#else
+  return dlerror();
+#endif
+}
+
+static void *get_symbol_address (plugin_list_t *p, const char *symbol)
+{
+#ifdef _WIN32
+  return GetProcAddress(p->dl_handle, symbol);
+#else 
+#ifdef HAVE_MACOSX
+  NSSymbol sym;
+  sym = NSLookupSymbolInModule(p->dl_handle, symbol);
+  if (sym == NULL) return NULL;
+  return NSAddressOfSymbol(sym);
+#else
+    
+  return dlsym(p->dl_handle, symbol);
+#endif
+#endif
+}
+
+static void close_library (plugin_list_t *p)
+{
+#ifdef _WIN32
+  FreeLibrary(p->dl_handle);
+#else
+  dlclose(p->dl_handle);
 #endif
 }
 
@@ -141,80 +203,60 @@ static const char *get_first_file (dir_list_t *ptr,
  */
 void initialize_plugins (void)
 {
-  LIBRARY_HANDLE handle;
   codec_plugin_t *cptr;
   rtp_plugin_t *rptr;
   dir_list_t dir;
   const char *fname;
 
-  audio_codecs = video_codecs = NULL;
-  rtp_plugins = NULL;
+  plugins = NULL;
   fname = get_first_file(&dir, PLAYER_PLUGIN_DIR);
-
+  plugin_list_t *p;
+  
+  p = NULL;
   while (fname != NULL) {
-#ifdef _WIN32
-    handle = LoadLibrary(fname);
-#else
-    handle = dlopen(fname, RTLD_NOW);
-#endif
-    if (handle != NULL) {
-      cptr = (codec_plugin_t *)DLL_GET_SYM(handle, "mpeg4ip_codec_plugin");
+    if (p == NULL) {
+      p = MALLOC_STRUCTURE(plugin_list_t);
+      memset(p, 0, sizeof(*p));
+      if (p == NULL) exit(-1);
+    }
+
+    if (open_library(p, fname)) {
+      cptr = (codec_plugin_t *)get_symbol_address(p, "mpeg4ip_codec_plugin");
       if (cptr == NULL) {
-	cptr = (codec_plugin_t *)DLL_GET_SYM(handle, "_mpeg4ip_codec_plugin");
+	cptr = (codec_plugin_t *)get_symbol_address(p, "_mpeg4ip_codec_plugin");
       }
       if (cptr != NULL) {
 	if (strcmp(cptr->c_version, PLUGIN_VERSION) == 0) {
-	  codec_plugin_list_t *p;
-	  p = (codec_plugin_list_t *)malloc(sizeof(codec_plugin_list_t));
-	  if (p == NULL) exit(-1);
-			  
-	  p->codec = cptr;
-	  p->dl_handle = handle;
-	  p->next_codec = NULL;
-			  
+	  bool add = true;
 	  if (strcmp(cptr->c_type, "audio") == 0) {
-	    p->next_codec = audio_codecs;
-	    audio_codecs = p;
+	    p->codec = cptr;
+	    p->codec_is_audio = true;
 	    message(LOG_INFO, "plugin", "Adding audio plugin %s %s", 
 		    cptr->c_name, fname);
 	  } else if (strcmp(cptr->c_type, "video") == 0) {
-	    p->next_codec = video_codecs;
-	    video_codecs = p;
+	    p->codec = cptr;
+	    p->codec_is_audio = false;
 	    message(LOG_INFO, "plugin", "Adding video plugin %s %s", 
 		    cptr->c_name, fname);
 	  } else {
-	    free(p);
-	    p = NULL;
+	    add = false;
 	    message(LOG_CRIT, "plugin", "Unknown plugin type %s in plugin %s", 
 		    cptr->c_type, fname);
 	  }
-	  if (p != NULL) {
-	    if (p->codec->c_variable_list != NULL &&
-		p->codec->c_variable_list_count > 0) {
-	      config.AddConfigVariables(p->codec->c_variable_list,
-					p->codec->c_variable_list_count);
-	    }
-	  }
+
 	      
 	} else {
 	  message(LOG_ERR, "plugin", "Plugin %s(%s) has wrong version %s", 
 		  fname, cptr->c_type, cptr->c_version);
 	}
       }
-      rptr = (rtp_plugin_t *)DLL_GET_SYM(handle, RTP_PLUGIN_EXPORT_NAME_STR);
+      rptr = (rtp_plugin_t *)get_symbol_address(p, RTP_PLUGIN_EXPORT_NAME_STR);
       if (rptr == NULL) {
-	rptr = (rtp_plugin_t *)DLL_GET_SYM(handle, "_" RTP_PLUGIN_EXPORT_NAME_STR);
+	rptr = (rtp_plugin_t *)get_symbol_address(p, "_" RTP_PLUGIN_EXPORT_NAME_STR);
       }
       if (rptr != NULL) {
 	if (strcmp(rptr->version, RTP_PLUGIN_VERSION) == 0) {
-	  rtp_plugin_list_t *p;
-	  p = MALLOC_STRUCTURE(rtp_plugin_list_t);
-	  if (p == NULL) exit(-1);
-			  
 	  p->rtp_plugin = rptr;
-	  p->dl_handle = handle;
-	  p->next_rtp_plugin = rtp_plugins;
-	  rtp_plugins = p;
 	  message(LOG_INFO, "plugin", "Adding RTP plugin %s %s", 
 		  rptr->name, fname);
 	} else {
@@ -228,7 +270,19 @@ void initialize_plugins (void)
       }
     } else {
       message(LOG_ERR, "plugin", "Can't dlopen plugin %s - %s", fname,
-	      DLL_ERROR());
+	      get_open_error(p));
+    }
+    if (p->codec != NULL || p->rtp_plugin != NULL) {
+      if (p->codec != NULL) {
+	if (p->codec->c_variable_list != NULL &&
+	    p->codec->c_variable_list_count > 0) {
+	  config.AddConfigVariables(p->codec->c_variable_list,
+				    p->codec->c_variable_list_count);
+	}
+      }
+      p->next_plugin = plugins;
+      plugins = p;
+      p = NULL; // so we add a new one    } 
     }
     fname = find_next_file(&dir, PLAYER_PLUGIN_DIR);
   }
@@ -246,14 +300,16 @@ codec_plugin_t *check_for_audio_codec (const char *compressor,
 				       const uint8_t *userdata,
 				       uint32_t userdata_size)
 {
-  codec_plugin_list_t *aptr;
+  plugin_list_t *aptr;
   int best_value = 0;
   codec_plugin_t *ret;
 
   ret = NULL;
-  aptr = audio_codecs;
+  aptr = plugins;
   while (aptr != NULL) {
-    if (aptr->codec->c_compress_check != NULL) {
+    if (aptr->codec != NULL &&
+	aptr->codec_is_audio &&
+	aptr->codec->c_compress_check != NULL) {
       int temp;
       temp = (aptr->codec->c_compress_check)(message,
 					     compressor,
@@ -268,7 +324,7 @@ codec_plugin_t *check_for_audio_codec (const char *compressor,
 	ret = aptr->codec;
       }
     }
-    aptr = aptr->next_codec;
+    aptr = aptr->next_plugin;
   }
   if (ret != NULL) {
     message(LOG_DEBUG, "plugin", 
@@ -288,14 +344,16 @@ codec_plugin_t *check_for_video_codec (const char *compressor,
 				       const uint8_t *userdata,
 				       uint32_t userdata_size)
 {
-  codec_plugin_list_t *vptr;
+  plugin_list_t *vptr;
   int best_value = 0;
   codec_plugin_t *ret;
 
   ret = NULL;
-  vptr = video_codecs;
+  vptr = plugins;
   while (vptr != NULL) {
-    if (vptr->codec->c_compress_check != NULL) {
+    if (vptr->codec && 
+	vptr->codec_is_audio == false &&
+	vptr->codec->c_compress_check != NULL) {
       int temp;
       temp = (vptr->codec->c_compress_check)(message,
 					     compressor,
@@ -310,7 +368,7 @@ codec_plugin_t *check_for_video_codec (const char *compressor,
 	ret = vptr->codec;
       }
     }
-    vptr = vptr->next_codec;
+    vptr = vptr->next_plugin;
   }
   if (ret != NULL) {
     message(LOG_DEBUG, "plugin", 
@@ -323,24 +381,24 @@ rtp_check_return_t check_for_rtp_plugins (format_list_t *fptr,
 					  uint8_t rtp_payload_type,
 					  rtp_plugin_t **rtp_plugin)
 {
-  rtp_plugin_list_t *r;
+  plugin_list_t *r;
   rtp_plugin_t *rptr;
   rtp_check_return_t ret;
 
   *rtp_plugin = NULL;
-  r = rtp_plugins;
+  r = plugins;
 
   while (r != NULL) {
     rptr = r->rtp_plugin;
 
-    if (rptr->rtp_plugin_check != NULL) {
+    if (rptr && rptr->rtp_plugin_check != NULL) {
       ret = (rptr->rtp_plugin_check)(message, fptr, rtp_payload_type, &config);
       if (ret != RTP_PLUGIN_NO_MATCH) {
 	*rtp_plugin = rptr;
 	return ret;
       }
     }
-    r = r->next_rtp_plugin;
+    r = r->next_plugin;
   }
 
   return RTP_PLUGIN_NO_MATCH;
@@ -354,7 +412,7 @@ rtp_check_return_t check_for_rtp_plugins (format_list_t *fptr,
 int video_codec_check_for_raw_file (CPlayerSession *psptr,
 				    const char *name)
 {
-  codec_plugin_list_t *vptr;
+  plugin_list_t *vptr;
   codec_data_t *cifptr;
   char *desc[4];
   double maxtime;
@@ -364,10 +422,12 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
   desc[2] = NULL;
   desc[3] = NULL;
 
-  vptr = video_codecs;
+  vptr = plugins;
   
   while (vptr != NULL) {
-    if (vptr->codec->c_raw_file_check != NULL) {
+    if (vptr->codec != NULL &&
+	vptr->codec_is_audio == false &&
+	vptr->codec->c_raw_file_check != NULL) {
       cifptr = vptr->codec->c_raw_file_check(message,
 					     name,
 					     &maxtime,
@@ -400,7 +460,7 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
 	return 0;
       }
     } 
-    vptr = vptr->next_codec;
+    vptr = vptr->next_plugin;
   }
   return -1;
 }
@@ -413,7 +473,7 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
 int audio_codec_check_for_raw_file (CPlayerSession *psptr,
 				    const char *name)
 {
-  codec_plugin_list_t *aptr;
+  plugin_list_t *aptr;
   codec_data_t *cifptr;
   char *desc[4];
   double maxtime;
@@ -423,10 +483,12 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
   desc[2] = NULL;
   desc[3] = NULL;
 
-  aptr = audio_codecs;
+  aptr = plugins;
   while (aptr != NULL) {
 
-    if (aptr->codec->c_raw_file_check != NULL) {
+    if (aptr->codec != NULL &&
+	aptr->codec_is_audio &&
+	aptr->codec->c_raw_file_check != NULL) {
       player_debug_message("Trying raw file codec %s", aptr->codec->c_name);
       cifptr = aptr->codec->c_raw_file_check(message,
 					     name,
@@ -458,7 +520,7 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
       }
     }
 					   
-    aptr = aptr->next_codec;
+    aptr = aptr->next_plugin;
   }
   return -1;
 }
@@ -469,25 +531,13 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
  */
 void close_plugins (void) 
 {
-  codec_plugin_list_t *p;
-  rtp_plugin_list_t *r;
-  while (audio_codecs != NULL) {
-    p = audio_codecs;
-    DLL_CLOSE(p->dl_handle);
-    audio_codecs = audio_codecs->next_codec;
+  plugin_list_t *p;
+
+  while (plugins != NULL) {
+    p = plugins;
+    close_library(p);
+    plugins = plugins->next_plugin;
     free(p);
-  }
-  while (video_codecs != NULL) {
-    p = video_codecs;
-    DLL_CLOSE(p->dl_handle);
-    video_codecs = video_codecs->next_codec;
-    free(p);
-  }
-  while (rtp_plugins != NULL) {
-    r = rtp_plugins;
-    DLL_CLOSE(r->dl_handle);
-    rtp_plugins = r->next_rtp_plugin;
-    free(r);
   }
 }
 

@@ -70,8 +70,8 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid)
 
 int main(int argc, char** argv)
 {
-  char* usageString = 
-    "usage: %s [-l] [-t <track-id>] [-s <sample-id>] [-v [<level>]] <file-name>\n";
+  const char* usageString = 
+    "[-l] [-t <track-id>] [-s <sample-id>] [-v [<level>]] <file-name>\n";
   MP4TrackId trackId = MP4_INVALID_TRACK_ID;
   MP4SampleId sampleId = MP4_INVALID_SAMPLE_ID;
   u_int32_t verbosity = MP4_DETAILS_ERROR;
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
       }
       break;
     case '?':
-      fprintf(stderr, usageString, ProgName);
+      fprintf(stderr, "usage: %s %s", ProgName, usageString);
       exit(0);
     case 'V':
       fprintf(stderr, "%s - %s version %s\n", 
@@ -143,7 +143,7 @@ int main(int argc, char** argv)
 
   /* check that we have at least one non-option argument */
   if ((argc - optind) < 1) {
-    fprintf(stderr, usageString, ProgName);
+    fprintf(stderr, "usage: %s %s", ProgName, usageString);
     exit(1);
   }
 	

@@ -24,7 +24,11 @@
 
 #include "video_encoder.h"
 
+#ifdef HAVE_XVID_H
 #include <xvid.h>
+#else
+#include "../../lib/xvid/xvid.h"
+#endif
 
 class CXvidVideoEncoder : public CVideoEncoder {
 public:

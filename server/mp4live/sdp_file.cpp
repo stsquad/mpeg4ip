@@ -70,6 +70,12 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 	  } else if (inet_pton(AF_INET6, sAudioDestAddr, &in6)) {
 	    sdp->session_connect.conn_type = strdup("IP6");
 	    destIsMcast = IN6_IS_ADDR_MULTICAST(&in6);
+	  } else {
+	    // this is bad - but will work for now
+	    // we have a domain name, or something like it.
+	    sdp->session_connect.conn_type = strdup("IP4");
+	    destIsMcast = false;
+	    destIsSSMcast = false;
 	  }
 
 	// c=
@@ -141,6 +147,11 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 	      } else if (inet_pton(AF_INET6, sAudioDestAddr, &in6)) {
 		sdpMediaAudio->media_connect.conn_type = strdup("IP6");
 		destIsMcast = IN6_IS_ADDR_MULTICAST(&in6);
+	      } else {
+		// this is bad - but will work for now
+		// we have a domain name, or something like it.
+		sdpMediaAudio->media_connect.conn_type = strdup("IP4");
+		destIsMcast = false;
 	      }
 	      // c=
 	      sdpMediaAudio->media_connect.conn_addr = strdup(sAudioDestAddr);
@@ -200,6 +211,11 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 	      } else if (inet_pton(AF_INET6, sVideoDestAddr, &in6)) {
 		sdpMediaVideo->media_connect.conn_type = strdup("IP6");
 		destIsMcast = IN6_IS_ADDR_MULTICAST(&in6);
+	      } else {
+		// this is bad - but will work for now
+		// we have a domain name, or something like it.
+		sdpMediaVideo->media_connect.conn_type = strdup("IP4");
+		destIsMcast = false;
 	      }
 	      // c=
 	      sdpMediaVideo->media_connect.conn_addr = strdup(sVideoDestAddr);

@@ -13,7 +13,7 @@ static int c_msg_send (void *ud)
 	return 0;
 }
 
-CClientProcess::CClientProcess(void)
+CClientProcess::CClientProcess()
 {
 	m_map_file = NULL;
 	m_map_file_read = NULL;
@@ -25,6 +25,7 @@ CClientProcess::CClientProcess(void)
 	m_msg_queue_sem = NULL;
 	m_send_thread = NULL;
 	m_stop_send_thread = 0;
+	m_debugging = 0;
 }
 
 #define CLOSE_AND_CLEAR(a) if ((a) != NULL) { CloseHandle(a); (a) = NULL; }
@@ -48,8 +49,10 @@ CClientProcess::~CClientProcess(void)
 	CLOSE_AND_CLEAR(m_to_gui_event);
 	CLOSE_AND_CLEAR(m_to_gui_resp_event);
 }
-int CClientProcess::enable_communication(void)
+int CClientProcess::enable_communication(int debugging)
 {
+    m_debugging = debugging;
+	if (m_debugging) return 0;
 	m_map_file = OpenFileMapping(FILE_MAP_ALL_ACCESS, 
 		FALSE,                    
 		"MP4ThreadToEventFileMap");
@@ -108,6 +111,7 @@ void CClientProcess::initial_response (int code,
 {
 	char temp;
 	int len;
+	if (m_debugging) return;
 	if (errmsg == NULL) {
 		temp = '\0';
 		errmsg = &temp;
@@ -137,6 +141,7 @@ int CClientProcess::receive_messages (CPlayerSession *psptr)
 	int retval;
 	int our_ret = 0;
 
+	if (m_debugging) return our_ret;
 	retval = WaitForSingleObject(m_from_gui_event, 0);
 	if (retval == WAIT_OBJECT_0) {
 		msg_mbox_t *msg_mbox = (msg_mbox_t *)m_map_file_read;
@@ -219,6 +224,7 @@ void CClientProcess::msg_send_thread (void)
 		SDL_SemWait(m_msg_queue_sem);
 		if (m_stop_send_thread != 0) return;
 		while ((msg = m_msg_queue.get_message()) != NULL) {
+			if (m_debugging == 0) {
 			pmbox->to_gui_command = msg->get_value();
 			if (msg->has_param()) {
 				uint32_t param = msg->get_param();
@@ -243,6 +249,7 @@ void CClientProcess::msg_send_thread (void)
 			WaitForSingleObject(m_to_gui_resp_event, 2 * 1000);
 			if (pmbox->from_gui_response != MBOX_RESP_EMPTY) {
 				
+			}
 			}
 			delete msg;
 		}

@@ -27,5 +27,5 @@ INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/common/video/libmpeg32 \
 	-I$(top_srcdir)/player/lib
 
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
 

@@ -30,6 +30,7 @@
 #define XVID_STATE_NORMAL 1
 #define XVID_STATE_WAIT_I 2
 
+DECLARE_CONFIG(CONFIG_USE_XVID);
 
 typedef struct xvid_codec_t {
   codec_data_t c;

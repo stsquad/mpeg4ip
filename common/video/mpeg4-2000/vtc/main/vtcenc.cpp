@@ -716,14 +716,18 @@ Void CVTCEncoder::TextureSpatialLayerSQNSC_enc(Int spa_lev)
 
 Void CVTCEncoder::TextureSpatialLayerSQ_enc(Int spa_lev, FILE *bitfile)
 {
-	Char fname[100]; // hjlee
+  //	Char fname[100]; // hjlee
 
   /*------- AC: Open and initialize bitstream file -------*/
   if (mzte_codec.m_iSingleBitFile==0)
   {
+    abort();
+#if 0
+    this is bad
     sprintf(fname,mzte_codec.m_cBitFileAC,spa_lev,0);
     if ((bitfile=fopen(fname,"wb"))==NULL)
       errorHandler("Can't open file '%s' for writing.",fname);
+#endif
   }
   
   /* initialize the buffer */
@@ -982,8 +986,12 @@ Void CVTCEncoder::textureLayerMQ_Enc(FILE *bitfile)
 	/*------- AC: Open and initialize bitstream file -------*/
 	if (mzte_codec.m_iSingleBitFile==0)
 	{
+#if 0
+	  // wmay - this is bad
 	  sprintf(fname,mzte_codec.m_cBitFileAC,
 		  mzte_codec.m_iCurSpatialLev, mzte_codec.m_iCurSNRLev);
+#endif
+	  abort();
 	  if ((bitfile=fopen(fname,"wb"))==NULL)
 	    errorHandler("Can't open file '%s' for writing.",fname);
 	}

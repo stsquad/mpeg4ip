@@ -4,13 +4,14 @@ bin_PROGRAMS = h264_parse
 h264_parse_SOURCES = \
 	main.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mp4av 
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/lib -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/bitstream
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ 
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ 
 
 h264_parse_LDADD = \
+	-lm \
 	$(top_builddir)/lib/bitstream/libbitstream.la \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \

@@ -37,7 +37,7 @@
 #define OPT_STRING  "hvA:a:b:c:d:D:g:s:t:T:w:y:"
 
 static const char* help_text =
-"Usage: %s OPTION... FILE...\n"
+"OPTION... FILE...\n"
 "Adds or modifies iTunes-compatible tags on MP4 files.\n"
 "\n"
 "  -h, -help         Display this help text and exit\n"
@@ -99,7 +99,7 @@ main(int argc, char** argv)
 
       /* Help and version requests handled here. */
     case OPT_HELP:
-      fprintf(stderr, help_text, argv[0]);
+      fprintf(stderr, "usage %s %s", argv[0], help_text);
       return 0;
     case OPT_VERSION:
       fprintf(stderr, "%s - %s version %s\n", argv[0], MPEG4IP_PACKAGE, 
@@ -132,7 +132,7 @@ main(int argc, char** argv)
     fprintf(stderr, 
             "%s: You must specify at least one MP4 file.\n", 
             argv[0]);
-    fprintf(stderr, help_text, argv[0]);
+    fprintf(stderr, "usage %s %s", argv[0], help_text);
     return 3;
   }
 
@@ -143,7 +143,7 @@ main(int argc, char** argv)
     fprintf(stderr, 
             "%s: You must specify at least one tag modification.\n", 
             argv[0]);
-    fprintf(stderr, help_text, argv[0]);
+    fprintf(stderr, "usage %s %s", argv[0], help_text);
     return 4;
   }
 

@@ -33,8 +33,13 @@ if USE_MPEG4IP_XVID
   XVID_LIB=$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la
   XVID_INC=-I$(top_srcdir)/lib/xvid
 else
+if HAVE_XVID_1_0
+  XVID_LIB=$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la
+  XVID_INC=-I$(top_srcdir)/lib/xvid
+else
   XVID_LIB=-lxvidcore
   XVID_INC=
+endif
 endif
 
 libmp4live_la_LDFLAGS = -static

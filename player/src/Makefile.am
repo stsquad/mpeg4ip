@@ -37,9 +37,9 @@ libmp4syncbase_la_SOURCES = \
 
 if HAVE_MAC_OSX
   SDL_AUDIO_SRC = audio_macosx.cpp audio_macosx.h
-  SDL_AUDIO_LIB =
-  SDL_AUDIO_INC =
-  ADD_CFLAGS=-Ddarwin -D_THREAD_SAFE -DNEED_SDL_VIDEO_IN_MAIN_THREAD 
+  SDL_AUDIO_LIB = $(top_builddir)/player/lib/audio/portaudio/libportaudio.la -framework CoreAudio -framework AudioToolbox
+  SDL_AUDIO_INC =-I$(top_builddir)/player/lib/audio/portaudio
+  ADD_CFLAGS=-Ddarwin -D_THREAD_SAFE -DNEED_SDL_VIDEO_IN_MAIN_THREAD
 else
   SDL_AUDIO_SRC = audio_sdl.cpp audio_sdl.h
   SDL_AUDIO_LIB = $(top_builddir)/lib/SDLAudio/src/libmpeg4ipSDL.la 
@@ -135,7 +135,7 @@ gmp4player_SOURCES = \
 	gui_utils.h \
 	gui_xpm.h
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio $(SDL_AUDIO_INC) -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@ 
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio $(SDL_AUDIO_INC) -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYP_INC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 -I$(top_srcdir)/lib/sdp -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/utils @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@ 
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\" $(ADD_CFLAGS)
 
@@ -157,10 +157,11 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/fposrec/libfposrec.la \
-	@ISMACRYPLIB@ \
 	$(top_builddir)/lib/avi/libavi.la  \
+	@ISMACRYP_LIB@ \
 	$(top_builddir)/lib/utils/libutils.la
 
+mp4player_LDFLAGS = $(SDL_AUDIO_LIB)
 mp4player_LDADD = \
 	-lm \
 	libmp4player.la \
@@ -168,10 +169,10 @@ mp4player_LDADD = \
 	libmp4syncsdl.la \
 	libmp4syncbase.la \
 	libmp4playerutils.la \
-	@SDL_LIBS@  \
-	$(SDL_AUDIO_LIB)
+	@ISMACRYP_LIB@ \
+	@SDL_LIBS@ 
 
-
+gmp4player_LDFLAGS= $(SDL_AUDIO_LIB)
 gmp4player_LDADD = $(mp4player_LDADD) \
 	@GTK_LIBS@ @GLIB_LIBS@
 

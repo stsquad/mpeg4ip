@@ -28,7 +28,7 @@
 #define __AUDIO_SDL_H__ 1
 
 #include "audio.h"
-
+#include <portaudio.h>
 #define DECODE_BUFFERS_MAX 32
 
 class CSDLAudioSync : public CAudioSync {
@@ -50,7 +50,8 @@ class CSDLAudioSync : public CAudioSync {
   int is_audio_ready(uint64_t &disptime);
   uint64_t check_audio_sync(uint64_t current_time, int &have_eof);
   void play_audio(void);
-  void audio_callback(Uint8 *stream, int len);
+  int audio_callback(void *stream, unsigned long len,
+		      PaTimestamp outtime);
   void flush_sync_buffers(void);
   void flush_decode_buffers(void);
 
@@ -59,7 +60,6 @@ class CSDLAudioSync : public CAudioSync {
   void set_volume(int volume);
 
  private:
-  void audio_convert_data(void *from, uint32_t len);
   volatile int m_dont_fill;
   uint64_t m_buffer_ts;
   uint32_t m_buffer_offset_on;
@@ -74,8 +74,6 @@ class CSDLAudioSync : public CAudioSync {
   int m_config_set;
   int m_audio_initialized;
   int m_freq;
-  int m_channels;
-  audio_format_t m_format;
   int m_resync_required;
   int m_audio_paused;
   int m_consec_no_buffers;
@@ -101,8 +99,12 @@ class CSDLAudioSync : public CAudioSync {
   uint32_t m_bytes_per_sample_output;
   uint64_t m_loaded_next_ts;
   int m_silence;
-  void *m_convert_buffer;
-  int16_t *m_fmt_buffer;
+  PortAudioStream *m_pa_stream;
+  SDL_mutex *m_pa_mutex;
+
+  int m_have_buffer_latency;
+  uint64_t m_first_outtime;
+  uint64_t m_first_currtime;
 };
 
 #endif

@@ -959,7 +959,7 @@ void mpeg2t_check_streams (video_query_t **pvq,
 	    snprintf(errmsg, errlen, 
 		     "Can't find video plugin for stream type %d",
 		     es_pid->stream_type);
-	    mpeg2t_message(LOG_ERR, errmsg);
+	    mpeg2t_message(LOG_ERR, "%s", errmsg);
 	  } else {
 	    vq[vid_cnt].track_id = pid_ptr->pid;
 	    vq[vid_cnt].compressor = "MPEG2 TRANSPORT";
@@ -997,7 +997,7 @@ void mpeg2t_check_streams (video_query_t **pvq,
 	    snprintf(errmsg, errlen, 
 		     "Can't find audio plugin for stream type %d",
 		     es_pid->stream_type);
-	    mpeg2t_message(LOG_ERR, errmsg);
+	    mpeg2t_message(LOG_ERR, "%s", errmsg);
 	  } else {
 	    aq[aud_cnt].track_id = pid_ptr->pid;
 	    aq[aud_cnt].compressor = "MPEG2 TRANSPORT";

@@ -17,6 +17,7 @@
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
+ *		Mark Baugher		mbaugher@cisco.com
  */
 
 #ifndef __MP4AV_HINTERS_INCLUDED__
@@ -48,10 +49,28 @@ bool MP4AV_RfcIsmaHinter(
 	bool interleave DEFAULT_PARM(false),
 	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
 
+bool MP4AV_RfcIsmaConcatenator(
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId, 
+	MP4TrackId hintTrackId,
+	u_int8_t samplesThisHint, 
+	MP4SampleId* pSampleIds, 
+	MP4Duration hintDuration,
+	u_int16_t maxPayloadSize);
+
+bool MP4AV_RfcIsmaFragmenter(
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId, 
+	MP4TrackId hintTrackId,
+	MP4SampleId sampleId, 
+	u_int32_t sampleSize, 
+	MP4Duration sampleDuration,
+	u_int16_t maxPayloadSize);
 
 // Video Hinters
 MP4TrackId MP4AV_Rfc3016_HintTrackCreate(MP4FileHandle mp4File,
- 				         MP4TrackId mediaTrackId);
+                                         MP4TrackId mediaTrackId);
+
 void MP4AV_Rfc3016_HintAddSample (
 				  MP4FileHandle mp4File,
 				  MP4TrackId hintTrackId,
@@ -69,12 +88,46 @@ bool MP4AV_Rfc3016Hinter(
 	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
 
 bool L16Hinter(MP4FileHandle mp4File,
-	       MP4TrackId mediaTrackID,
+	        MP4TrackId mediaTrackID,
 	       uint16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
 
 bool Mpeg12Hinter(MP4FileHandle mp4File,
 		  MP4TrackId mediaTrackID,
 		  uint16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE));
+
+// This struct is used to pass ISMACRYP protocol parameters
+// to the ISMACRYP hinters, MP4AV_RfcCryptoAudioHinter and
+// MP4AV_RfcCryptoVideoHinter.
+typedef struct ismacryp_session_params {
+u_int8_t   key_count;
+u_int8_t   key_ind_len;
+u_int8_t   key_ind_perau;
+u_int8_t   key_life;
+u_int8_t   key_len;
+u_int8_t   salt_len;
+u_int8_t   selective_enc;
+u_int8_t   delta_iv_len;
+u_int8_t   iv_len;
+u_int32_t  scheme;
+u_int8_t   *key;
+u_int8_t   *salt;
+} mp4av_ismacrypParams;
+
+bool MP4AV_RfcCryptoAudioHinter(
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId, 
+        mp4av_ismacrypParams *icPp,
+	bool interleave DEFAULT_PARM(false),
+	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE),
+	char* PayloadMIMEType DEFAULT_PARM(""));
+
+bool MP4AV_RfcCryptoVideoHinter(
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId, 
+        mp4av_ismacrypParams *icPp,
+	u_int16_t maxPayloadSize DEFAULT_PARM(MP4AV_DFLT_PAYLOAD_SIZE),
+	char* PayloadMIMEType DEFAULT_PARM(""));
+
 #ifdef __cplusplus
 }
 #endif

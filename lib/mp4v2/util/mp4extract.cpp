@@ -37,8 +37,8 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId,
 
 int main(int argc, char** argv)
 {
-	char* usageString = 
-		"usage: %s [-l] [-t <track-id>] [-s <sample-id>] [-v [<level>]] <file-name>\n";
+	const char* usageString = 
+		"[-l] [-t <track-id>] [-s <sample-id>] [-v [<level>]] <file-name>\n";
 	bool doList = false;
 	bool doSamples = false;
 	MP4TrackId trackId = MP4_INVALID_TRACK_ID;
@@ -110,7 +110,7 @@ fprintf(stderr, "from the source file\n");
 			}
 			break;
 		case '?':
-			fprintf(stderr, usageString, ProgName);
+			fprintf(stderr, "usage: %s %s", ProgName, usageString);
 			exit(0);
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n", 
@@ -124,7 +124,7 @@ fprintf(stderr, "from the source file\n");
 
 	/* check that we have at least one non-option argument */
 	if ((argc - optind) < 1) {
-		fprintf(stderr, usageString, ProgName);
+		fprintf(stderr, "usage: %s %s", ProgName, usageString);
 		exit(1);
 	}
 	

@@ -323,7 +323,8 @@ static int aac_codec_check (lib_message_func_t message,
   if (fptr != NULL && 
       fptr->rtpmap != NULL &&
       fptr->rtpmap->encode_name != NULL) {
-    if (strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) {
+    if ((strcasecmp(fptr->rtpmap->encode_name, "mpeg4-generic") != 0) &&
+        (strcasecmp(fptr->rtpmap->encode_name, "enc-mpeg4-generic") != 0)) {
       return -1;
     }
     if (userdata == NULL) {

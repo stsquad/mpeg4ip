@@ -385,7 +385,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
     if (m_recv_thread == NULL) {
       snprintf(errmsg, errlen, "Couldn't create media %s RTP recv thread",
 	       m_media_info->media);
-      media_message(LOG_ERR, errmsg);
+      media_message(LOG_ERR, "%s", errmsg);
       return (-1);
     }
     while (m_rtp_inited == 0) {
@@ -393,7 +393,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
     }
     if (m_rtp_session == NULL) {
       snprintf(errmsg, errlen, "Could not start RTP - check debug log");
-      media_message(LOG_ERR, errmsg);
+      media_message(LOG_ERR, "%s", errmsg);
       return (-1);
     }
   } else {
@@ -418,7 +418,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
   if (m_rtp_session == NULL) {
     snprintf(errmsg, errlen, "Couldn't create RTP session for media %s",
 	     m_media_info->media);
-    media_message(LOG_ERR, errmsg);
+    media_message(LOG_ERR, "%s", errmsg);
     return (-1);
   }
   return (0);

@@ -33,9 +33,7 @@
 #include <mp4util/mpeg4_audio_config.h>
 #include "our_config_file.h"
 #include "codec_plugin_private.h"
-#ifdef ISMACRYP
 #include <ismacryplib.h>
-#endif
 
 /*
  * Create the media for the quicktime file, and set up some session stuff.
@@ -162,24 +160,17 @@ int CMp4File::create_video(CPlayerSession *psptr,
       }
 
       CMp4VideoByteStream *vbyte;
-
-#ifdef ISMACRYP
+      uint64_t IVLength;
+     
       /* check if ismacryp */
-      printf("checking for encryption\n");
-      if (MP4GetTrackIntegerProperty(m_mp4file, vq[ix].track_id,
-			    "mdia.minf.stbl.stsd.encv.sinf.frma.data-format") 
-	  != (u_int64_t)-1) {
-	printf("encrypted video\n");
-	vbyte = new CMp4EncVideoByteStream(this, vq[ix].track_id);
-	printf("bytestream has been created\n");
-	// TODO: add the code to end the session in the right place
+      if (MP4IsIsmaCrypMediaTrack(m_mp4file, vq[ix].track_id)) {
+        IVLength = MP4GetTrackIntegerProperty(m_mp4file,
+                    vq[ix].track_id, "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length");
+	vbyte = new CMp4EncVideoByteStream(this, vq[ix].track_id,IVLength);
       } else {
-	printf("not encrypted video\n");
 	vbyte = new CMp4VideoByteStream(this, vq[ix].track_id);
       }
-#else
-      vbyte = new CMp4VideoByteStream(this, vq[ix].track_id);
-#endif
+
       if (vbyte == NULL) {
 	delete mptr;
 	return (-1);
@@ -214,6 +205,7 @@ int CMp4File::create_audio(CPlayerSession *psptr,
 			   int &start_desc)
 {
   int ix;
+  uint64_t IVLength;
   CPlayerMedia *mptr;
   codec_plugin_t *plugin;
   for (ix = 0; ix < audio_offset; ix++) {
@@ -224,23 +216,15 @@ int CMp4File::create_audio(CPlayerSession *psptr,
 	return (-1);
       }
 
-#ifdef ISMACRYP
       /* check if ismacryp */
-      printf("checking for encryption\n");
-      if (MP4GetTrackIntegerProperty(m_mp4file, aq[ix].track_id,
-			    "mdia.minf.stbl.stsd.enca.sinf.frma.data-format") 
-	  != (u_int64_t)-1) {
-	printf("encrypted audio\n");
-	abyte = new CMp4EncAudioByteStream(this, aq[ix].track_id);
-	printf("bytestream has been created\n");
-	// TODO: add the code to end the session in the right place
+      if (MP4IsIsmaCrypMediaTrack(m_mp4file, aq[ix].track_id)) {
+        IVLength = MP4GetTrackIntegerProperty(m_mp4file,
+                    aq[ix].track_id, "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.IV-length");
+	abyte = new CMp4EncAudioByteStream(this, aq[ix].track_id, IVLength);
       } else {
-	printf("not encrypted audio\n");
 	abyte = new CMp4AudioByteStream(this, aq[ix].track_id);
       }
-#else 
-      abyte = new CMp4AudioByteStream(this, aq[ix].track_id);
-#endif
+
       audio_info_t *ainfo;
       ainfo = (audio_info_t *)malloc(sizeof(audio_info_t));
       memset(ainfo, 0, sizeof(*ainfo));
@@ -427,6 +411,10 @@ int CMp4File::create_media (CPlayerSession *psptr,
       ret_value = 1;
   }
 
+  if (video_offset == 0 && audio_offset == 0) {
+    snprintf(errmsg, errlen, "No playable codecs in mp4 file");
+    return -1;
+  }
   if (cc_vft && cc_vft->media_list_query != NULL) {
     (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq);
   } else {
@@ -438,20 +426,20 @@ int CMp4File::create_media (CPlayerSession *psptr,
     }
   }
 
-  int ret;
+  int vidret, audret;
   int start_desc = 1;
-  ret = create_video(psptr, vq, video_offset, errmsg, errlen,start_desc);
+  vidret = create_video(psptr, vq, video_offset, errmsg, errlen,start_desc);
   free(vq);
 
-  if (ret < 0) {
+  if (vidret < 0) {
     free(aq);
     return -1;
   }
  
-  ret = create_audio(psptr, aq, audio_offset, errmsg, errlen, start_desc);
+  audret = create_audio(psptr, aq, audio_offset, errmsg, errlen, start_desc);
   free(aq);
 
-  if (ret < 0) ret_value = -1;
+  if (audret < 0) ret_value = -1;
 
   char *name;
   verb = MP4GetVerbosity(m_mp4file);

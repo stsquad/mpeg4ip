@@ -39,6 +39,7 @@ typedef struct fmtp_parse_t {
   int auxiliary_data_size_length;
   int bitrate;
   int profile;
+  int ISMACrypIVDeltaLength;
 } fmtp_parse_t;
   
 

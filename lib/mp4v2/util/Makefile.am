@@ -1,7 +1,7 @@
 
 INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/mp4v2
 
-AM_CXXFLAGS = -Wall
+AM_CXXFLAGS = @BILLS_CPPWARNINGS@
 
 bin_PROGRAMS = mp4dump mp4extract mp4info mp4trackdump mp4tags
 

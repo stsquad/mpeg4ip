@@ -46,8 +46,5 @@
 #include "odcommands.h"
 
 #include "rtphint.h"
-#ifdef ISMACRYP
-#include <ismacryplib.h>
-#endif
 
 #endif /* __MP4_COMMON_INCLUDED__ */

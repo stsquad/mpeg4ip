@@ -62,23 +62,30 @@ void set_configs (void)
 
 int main (int argc, char **argv)
 {
-	CClientProcess proc;
 	SDL_sem *master_sem;
+	CClientProcess proc;
 	CMsgQueue master_queue;
 	char errmsg[512];
-	config.InitializeIndexes();
-	config.ReadVariablesFromRegistry("Software\\Mpeg4ip", "Config");
 
+	argv++;
+	argc--;
+	int deb = 0;
+	if (*argv[0] == '-') {
+		argv++;
+		argc--;
+		deb = 1;
+	}
+	
 	open_output("wmp4player.log");
-	if (proc.enable_communication() < 0) {
+	if (proc.enable_communication(deb) < 0) {
 		printf("Could not enable communications\n");
 		Sleep(10 * 1000);
 		close_output();
 		return -1;
 	}
 	initialize_plugins();
-	argv++;
-	argc--;
+	config.InitializeIndexes();
+	config.ReadVariablesFromRegistry("Software\\Mpeg4ip", "Config");
 
 	psptr = NULL;
 	master_sem = NULL;
@@ -92,7 +99,7 @@ int main (int argc, char **argv)
 	
 		master_sem = SDL_CreateSemaphore(0);
 		psptr = new CPlayerSession(&master_queue, master_sem,
-								   *argv);
+								   *argv, NULL);
 		int ret = -1;
 		errmsg[0] = '\0';
 		if (psptr != NULL) {
@@ -156,8 +163,9 @@ int main (int argc, char **argv)
 	}
 	  // remove invalid global ports
 	
-	close_plugins();
+
 	config.WriteVariablesToRegistry("Software\\Mpeg4ip", "Config");
+	close_plugins();
 	close_output();
 	return 0;
 }

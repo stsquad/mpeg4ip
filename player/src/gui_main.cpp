@@ -765,6 +765,31 @@ static void on_debug_mpeg4isoonly (GtkWidget *window, gpointer data)
     ShowMessage("Error", "Mpeg4IsoOnly config variable not loaded");
   }
 }
+static void on_debug_oldxvid (GtkWidget *window, gpointer data)
+{
+  GtkCheckMenuItem *checkmenu;
+  config_index_t old_xvid = config.FindIndexByName("UseOldXvid");
+  if (old_xvid == UINT32_MAX) {
+    ShowMessage("Error", "UseOldXvid config variable not loaded");
+  } else {
+    checkmenu = GTK_CHECK_MENU_ITEM(window);
+    config.SetBoolValue(old_xvid, 
+			checkmenu->active == FALSE ? 0 : 1);
+  }
+}
+static void on_debug_usempeg3 (GtkWidget *window, gpointer data)
+{
+  GtkCheckMenuItem *checkmenu;
+  config_index_t mpeg3 = config.FindIndexByName("UseMpeg3");
+  if (mpeg3 == UINT32_MAX) {
+    ShowMessage("Error", "UseMpeg3 config variable not loaded");
+  } else {
+    checkmenu = GTK_CHECK_MENU_ITEM(window);
+    config.SetBoolValue(mpeg3, 
+			checkmenu->active == FALSE ? 0 : 1);
+  }
+}
+
 static void on_debug_use_old_mp4_lib (GtkWidget *window, gpointer data)
 {
   GtkCheckMenuItem *checkmenu;
@@ -1088,7 +1113,7 @@ static gint main_timer (gpointer raw)
 	master_fullscreen = 0;
 	break;
       case SDLK_RETURN:
-	if ((msg->mod & (KMOD_LALT | KMOD_RALT)) != 0) {
+	if ((msg->mod & (KMOD_ALT | KMOD_META)) != 0) {
 	  master_fullscreen = 1;
 	}
 	break;
@@ -1098,12 +1123,12 @@ static gint main_timer (gpointer raw)
 	}
 	break;
       case SDLK_x:
-	if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+	if ((msg->mod & KMOD_CTRL) != 0) {
 	  delete_event(NULL, 0);
 	}
 	break;
       case SDLK_s:
-	if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+	if ((msg->mod & KMOD_CTRL) != 0) {
 	  on_menu_seek(NULL, NULL);
 	}
 	break;
@@ -1213,7 +1238,7 @@ static gint main_timer (gpointer raw)
       case SDLK_2:
       case SDLK_3:
       case SDLK_4:
-	if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+	if ((msg->mod & KMOD_CTRL) != 0) {
 	  set_aspect_ratio(msg->sym - SDLK_0);
 	}
         break;
@@ -1484,6 +1509,23 @@ printf("%s\n", *argv);
 			       GTK_SIGNAL_FUNC(on_debug_mpeg4isoonly),
 			       NULL,
 			       config.GetBoolValue(iso_check));
+  }
+  config_index_t old_xvid;
+  old_xvid = config.FindIndexByName("UseOldXvid");
+  if (old_xvid != UINT32_MAX) {
+    menuitem = CreateMenuCheck(debugsub, 
+			       "Use Old Xvid",
+			       GTK_SIGNAL_FUNC(on_debug_oldxvid),
+			       NULL,
+			       config.GetBoolValue(old_xvid));
+  }
+  old_xvid = config.FindIndexByName("UseMpeg3");
+  if (old_xvid != UINT32_MAX) {
+    menuitem = CreateMenuCheck(debugsub,
+			       "Use libmpeg3",
+			       GTK_SIGNAL_FUNC(on_debug_usempeg3),
+			       NULL,
+			       config.GetBoolValue(old_xvid));
   }
 
   menuitem = CreateMenuCheck(debugsub, 

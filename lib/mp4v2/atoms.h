@@ -443,7 +443,6 @@ public:
 	void Write();
 };
 
-// ismacrypt
 class MP4EncaAtom : public MP4Atom {
 public:
         MP4EncaAtom();

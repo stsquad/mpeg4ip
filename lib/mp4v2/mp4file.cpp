@@ -841,12 +841,6 @@ void MP4File::SetBytesProperty(const char* name,
 
 MP4TrackId MP4File::AddTrack(const char* type, u_int32_t timeScale)
 {
-#if 0
-        ismacryp_rc_t rc = error1;
-        ismacryp_session_id_t mySession1 = 7;
-        rc=ismacrypInitSession(&mySession1);
-#endif
-
 	ProtectWriteOperation("AddTrack");
 
 	// create and add new trak atom
@@ -1178,20 +1172,18 @@ MP4TrackId MP4File::AddAudioTrack(
 	return trackId;
 }
 
-#ifdef ISMACRYP
 MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale, 
 				     MP4Duration sampleDuration, 
 				     u_int8_t audioType,
-				     ismacryp_session_id_t ismaCryptSId)
+				     u_int32_t scheme_type,
+				     u_int16_t scheme_version,
+                                     u_int8_t  key_ind_len,
+                                     u_int8_t  iv_len,
+                                     bool      selective_enc,
+                                     char      *kms_uri
+                                     )
 {
-  ismacryp_scheme_t scheme_type;
-  ismacryp_schemeversion_t scheme_version;
   u_int32_t original_fmt = 0;
-  u_int8_t key_ind_len = 0;
-  u_int8_t iv_len = 0;
-  bool selective_enc = FALSE;
-  char *kms_uri = NULL;
-  /**/
 
   MP4TrackId trackId = AddTrack(MP4_AUDIO_TRACK_TYPE, timeScale);
 
@@ -1218,26 +1210,14 @@ MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale,
 			  "mdia.minf.stbl.stsd.enca.sinf.frma.data-format", 
 			  original_fmt);
 
-  if (ismacrypGetScheme(ismaCryptSId, &scheme_type) != 0) {
-    throw new MP4Error("can't get the ismacryp scheme type", "AddEncAudioTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.enca.sinf.schm.scheme_type", 
 			  scheme_type);
 
-  if (ismacrypGetSchemeVersion(ismaCryptSId, &scheme_version) != 0) {
-    throw new MP4Error("can't get the ismacryp scheme version", "AddEncAudioTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.enca.sinf.schm.scheme_version", 
 			  scheme_version);
   
-  if (ismacrypGetKMSUri(ismaCryptSId, &kms_uri) != 0) {
-    if (kms_uri != NULL) {
-      free(kms_uri);
-    }
-    throw new MP4Error("can't get the ismacryp KMS URI", "AddEncAudioTrack");
-  }
   SetTrackStringProperty(trackId,
 			 "mdia.minf.stbl.stsd.enca.sinf.schi.iKMS.kms_URI", 
 			 kms_uri);
@@ -1245,23 +1225,14 @@ MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale,
     free(kms_uri);
   }  
 
-  if (ismacrypGetSelectiveEncryption(ismaCryptSId, &selective_enc) != 0) {
-    throw new MP4Error("can't get the ismacryp selective encryption flag", "AddEncAudioTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.selective-encryption", 
 			  selective_enc);
 
-  if (ismacrypGetKeyIndicatorLength(ismaCryptSId, &key_ind_len) != 0) {
-    throw new MP4Error("can't get the ismacryp key indicator length", "AddEncAudioTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.key-indicator-length", 
 			  key_ind_len);
 
-  if (ismacrypGetIVLength(ismaCryptSId, &iv_len) != 0) {
-    throw new MP4Error("can't get the ismacryp IV length", "AddEncAudioTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.enca.sinf.schi.iSFM.IV-length", 
 			  iv_len);
@@ -1294,7 +1265,6 @@ MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale,
 
   return trackId;
 }
-#endif
 
 MP4TrackId MP4File::AddVideoTrack(
 	u_int32_t timeScale, 
@@ -1355,22 +1325,20 @@ MP4TrackId MP4File::AddVideoTrack(
 	return trackId;
 }
 
-#ifdef ISMACRYP
 MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale, 
 				     MP4Duration sampleDuration, 
 				     u_int16_t width, 
 				     u_int16_t height, 
-				     ismacryp_session_id_t ismaCryptSId,
-				     u_int8_t videoType)
+				     u_int8_t videoType,
+				     u_int32_t scheme_type,
+				     u_int16_t scheme_version, 
+				     u_int8_t key_ind_len,
+                                     u_int8_t iv_len,
+                                     bool selective_enc,
+                                     char *kms_uri
+                                     )
 {
-  ismacryp_scheme_t scheme_type;
-  ismacryp_schemeversion_t scheme_version;
   u_int32_t original_fmt = 0;
-  u_int8_t key_ind_len = 0;
-  u_int8_t iv_len = 0;
-  bool selective_enc = FALSE;
-  char *kms_uri = NULL;
-  /**/
 
   MP4TrackId trackId = AddTrack(MP4_VIDEO_TRACK_TYPE, timeScale);
 
@@ -1403,26 +1371,14 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
 			  "mdia.minf.stbl.stsd.encv.sinf.frma.data-format", 
 			  original_fmt);
 
-  if (ismacrypGetScheme(ismaCryptSId, &scheme_type) != 0) {
-    throw new MP4Error("can't get the ismacryp scheme type", "AddEncVideoTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.encv.sinf.schm.scheme_type", 
 			  scheme_type);
 
-  if (ismacrypGetSchemeVersion(ismaCryptSId, &scheme_version) != 0) {
-    throw new MP4Error("can't get the ismacryp scheme version", "AddEncVideoTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.encv.sinf.schm.scheme_version", 
 			  scheme_version);
   
-  if (ismacrypGetKMSUri(ismaCryptSId, &kms_uri) != 0) {
-    if (kms_uri != NULL) {
-      free(kms_uri);
-    }
-    throw new MP4Error("can't get the ismacryp KMS URI", "AddEncVideoTrack");
-  }
   SetTrackStringProperty(trackId,
 			 "mdia.minf.stbl.stsd.encv.sinf.schi.iKMS.kms_URI", 
 			 kms_uri);
@@ -1430,23 +1386,14 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
     free(kms_uri);
   }  
 
-  if (ismacrypGetSelectiveEncryption(ismaCryptSId, &selective_enc) != 0) {
-    throw new MP4Error("can't get the ismacryp selective encryption flag", "AddEncVideoTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.selective-encryption", 
 			  selective_enc);
 
-  if (ismacrypGetKeyIndicatorLength(ismaCryptSId, &key_ind_len) != 0) {
-    throw new MP4Error("can't get the ismacryp key indicator length", "AddEncVideoTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.key-indicator-length", 
 			  key_ind_len);
 
-  if (ismacrypGetIVLength(ismaCryptSId, &iv_len) != 0) {
-    throw new MP4Error("can't get the ismacryp IV length", "AddEncVideoTrack");
-  }
   SetTrackIntegerProperty(trackId,
 			  "mdia.minf.stbl.stsd.encv.sinf.schi.iSFM.IV-length", 
 			  iv_len);
@@ -1480,7 +1427,6 @@ MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale,
 
   return trackId;
 }
-#endif
 
 MP4TrackId MP4File::AddHintTrack(MP4TrackId refTrackId)
 {
@@ -2026,6 +1972,18 @@ float MP4File::GetTrackVideoFrameRate(MP4TrackId trackId)
 
 	return ((double)numSamples / UINT64_TO_DOUBLE(msDuration)) * MP4_MSECS_TIME_SCALE;
 }
+
+// true if media track encrypted according to ismacryp
+bool MP4File::IsIsmaCrypMediaTrack(MP4TrackId trackId)
+{
+    if (GetTrackIntegerProperty(trackId,
+			        "mdia.minf.stbl.stsd.*.sinf.frma.data-format")
+	!= (u_int64_t)-1) {
+	return true;
+    }
+    return false;
+}
+
 
 void MP4File::GetTrackESConfiguration(MP4TrackId trackId, 
 	u_int8_t** ppConfig, u_int32_t* pConfigSize)

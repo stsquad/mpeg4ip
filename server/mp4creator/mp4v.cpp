@@ -16,7 +16,8 @@
  * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Dave Mackie		   dmackie@cisco.com
+ *              Alix Marchandise-Franquet  alix@cisco.com
  */
 
 //#define MP4V_DEBUG 1
@@ -242,7 +243,9 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 			// ready to set up mp4 track
 			break;
 		} 
-		pObj += objSize;
+		if (objType != MP4AV_MPEG4_USER_DATA_START) {
+		  pObj += objSize;
+		}
 	}
 
 	if (foundVOSH == false) {
@@ -294,24 +297,70 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 		return MP4_INVALID_TRACK_ID;
 	}
 
+	ismacryp_session_id_t ismaCrypSId;
+        mp4v2_ismacrypParams *icPp =  (mp4v2_ismacrypParams *) malloc(sizeof(mp4v2_ismacrypParams));
+        memset(icPp, 0, sizeof(mp4v2_ismacrypParams));
+
+
+	// initialize ismacryp session if encrypting
+	if (doEncrypt) {
+
+	  if (ismacrypInitSession(&ismaCrypSId,KeyTypeVideo) != 0) {
+	    fprintf(stderr, "%s: could not initialize the ISMAcryp session\n",
+		    ProgName);
+	    return MP4_INVALID_TRACK_ID;
+	  }
+          if (ismacrypGetScheme(ismaCrypSId, &(icPp->scheme_type)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp scheme type. sid %d\n", 
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetSchemeVersion(ismaCrypSId, &(icPp->scheme_version)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp scheme ver. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetKMSUri(ismaCrypSId, &(icPp->kms_uri)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp kms uri. sid %d\n",
+                     ProgName, ismaCrypSId);
+             if (icPp->kms_uri != NULL) free(icPp->kms_uri);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if ( ismacrypGetSelectiveEncryption(ismaCrypSId, &(icPp->selective_enc)) != ismacryp_rc_ok ) {
+             fprintf(stderr, "%s: could not get ismacryp selec enc. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetKeyIndicatorLength(ismaCrypSId, &(icPp->key_ind_len)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp key ind len. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetIVLength(ismaCrypSId, &(icPp->iv_len)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp iv len. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+	}
+
 	// create the new video track
 	MP4TrackId trackId;
 	if (doEncrypt) {
-#ifdef ISMACRYP
 		trackId = 
 		MP4AddEncVideoTrack(
 			mp4File, 
 			Mp4TimeScale,
 			mp4FrameDuration, 
 			frameWidth, 
-			frameHeight, 
+			frameHeight,
+                        icPp,
 			MP4_MPEG4_VIDEO_TYPE);
-#else
-		trackId = MP4_INVALID_TRACK_ID;
-		fprintf(stderr,
-	       "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
-			ProgName);
-#endif
 	} else {
 		trackId = 
 		MP4AddVideoTrack(
@@ -355,20 +404,27 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 
 			vopType = MP4AV_Mpeg4GetVopType(pObj, objSize);
 
-#ifdef ISMACRYP
 			 if (doEncrypt) {
-			   if (ismacrypEncryptSample(ismaCryptSId, sampleSize, 
-						     sampleBuffer) != 0) {
+			   u_int8_t* encSampleData = NULL;
+			   u_int32_t encSampleLen = 0; 
+			   if (ismacrypEncryptSampleAddHeader(ismaCrypSId, sampleSize, 
+							      sampleBuffer, &encSampleLen, 
+							      &encSampleData) != 0) {
 			     fprintf(stderr,	
-				     "%s: can't encrypt video sample %u\n", 
+				     "%s: can't encrypt video sample and add header %u\n", 
 				     ProgName, sampleId);
 			   }
+			   rc = MP4WriteSample(mp4File, trackId, 
+					       encSampleData, encSampleLen,
+					       mp4FrameDuration, 0, vopType == 'I');
+			   if (encSampleData != NULL) {
+			     free(encSampleData);
+			   }
+			 } else {
+			   rc = MP4WriteSample(mp4File, trackId, 
+					       pCurrentSample, sampleSize,
+					       mp4FrameDuration, 0, vopType == 'I');
 			 }
-#endif
-
-			rc = MP4WriteSample(mp4File, trackId, 
-				pCurrentSample, sampleSize,
-				mp4FrameDuration, 0, vopType == 'I');
 
 			if (!rc) {
 				fprintf(stderr,	
@@ -444,6 +500,15 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 #endif
 	  MP4SetSampleRenderingOffset(mp4File, trackId, refVopId,
 				      currentSampleTime - refVopTime);
+	}
+
+	// terminate session if encrypting
+	if (doEncrypt) {
+	  if (ismacrypEndSession(ismaCrypSId) != 0) {
+	    fprintf(stderr, 
+		    "%s: could not end the ISMAcryp session\n",
+		    ProgName);
+	  }
 	}
 
 	return trackId;

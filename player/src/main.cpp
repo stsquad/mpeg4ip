@@ -35,6 +35,7 @@
 #include <rtp/debug.h>
 #include <libhttp/http.h>
 #include "video.h"
+#include "video_sdl.h"
 
 static int session_paused;
 static int screen_size = 2;
@@ -71,14 +72,15 @@ int process_sdl_key_events (CPlayerSession *psptr,
 {
   int volume;
   uint64_t play_time;
+  //printf("key %d mod %x\n", msg->sym, msg->mod);
   switch (msg->sym) {
   case SDLK_c:
-    if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+    if ((msg->mod & KMOD_CTRL) != 0) {
       return 0;
     }
     break;
   case SDLK_x:
-    if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+    if ((msg->mod & KMOD_CTRL) != 0) {
       return -1;
     }
   case SDLK_UP:
@@ -151,7 +153,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
     }
     break;
   case SDLK_RETURN:
-    if ((msg->mod & (KMOD_LALT | KMOD_RALT)) != 0) {
+    if ((msg->mod & (KMOD_ALT | KMOD_META)) != 0) {
 		fullscreen = 1;
 	}
 	break;
@@ -164,7 +166,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
   case SDLK_2:
   case SDLK_3:
   case SDLK_4:
-    if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+    if ((msg->mod & KMOD_CTRL) != 0) {
       int newaspect = msg->sym - SDLK_0;
       config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
       switch (newaspect) {
@@ -218,6 +220,7 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
   }
   
   char errmsg[512];
+  errmsg[0] = '\0';
   int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg), NULL);
   if (ret < 0) {
     player_debug_message("%s %s", errmsg, name);
@@ -226,7 +229,7 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
   }
 
   if (ret > 0) {
-    player_debug_message(errmsg);
+    player_debug_message("%s", errmsg);
   }
 
   psptr->set_up_sync_thread();
@@ -341,17 +344,23 @@ int main (int argc, char **argv)
 
   const char *suffix = strrchr(name, '.');
 
-  if ((suffix != NULL) && 
+    void *persist = NULL;
+#ifdef _darwin
+ CSDLVideo *sdl_video = new CSDLVideo();
+  sdl_video->set_image_size(720, 480, 1.0);
+  sdl_video->set_screen_size(0, 2);
+  persist = sdl_video;
+#endif
+   if ((suffix != NULL) && 
 	  ((strcasecmp(suffix, ".mp4plist") == 0) ||
 	   (strcasecmp(suffix, ".mxu") == 0) ||
        (strcasecmp(suffix, ".gmp4_playlist") == 0))) {
     const char *errmsg = NULL;
     CPlaylist *list = new CPlaylist(name, &errmsg);
     if (errmsg != NULL) {
-      player_error_message(errmsg);
+      player_error_message("%s", errmsg);
       return (-1);
     }
-    void *persist = NULL;
     for (int loopcount = 0; loopcount < max_loop; loopcount++) {
       const char *start = list->get_first();
       do {
@@ -365,13 +374,13 @@ int main (int argc, char **argv)
 	start = list->get_next();
       } while (start != NULL);
     }
-    if (persist != NULL) {
-      DestroyVideoPersistence(persist);
-    }
   } else {
-    start_session(name, max_loop);
+    start_session(name, max_loop, 0, persist);
   }
   // remove invalid global ports
+  if (persist != NULL) {
+    DestroyVideoPersistence(persist);
+  }
   close_plugins();
 
   return(0); 

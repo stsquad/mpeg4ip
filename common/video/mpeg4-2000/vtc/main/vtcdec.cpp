@@ -786,15 +786,19 @@ Void CVTCDecoder::TextureSpatialLayerSQNSC_dec(Int spa_lev)
 Void CVTCDecoder::TextureSpatialLayerSQ_dec(Int spa_lev,FILE *bitfile)
 {
   Int texture_spatial_layer_start_code,texture_spatial_layer_id;
-  Char fname[100]; // hjlee
+  //  Char fname[100]; // hjlee
 
   /*------- AC: Open and initialize bitstream file -------*/
   if (mzte_codec.m_iSingleBitFile==0)
   {
+    abort();
+#if 0
+      // wmay - this is bad - really bad
     sprintf(fname,mzte_codec.m_cBitFileAC,spa_lev,0);
     if ((bitfile=fopen(fname,"rb"))==NULL)
       errorHandler("Can't open file '%s' for reading.",fname);
     init_bit_packing_fp(bitfile,1);
+#endif
   }
   else
     init_bit_packing_fp(bitfile,0);
@@ -1056,8 +1060,12 @@ Void CVTCDecoder::textureLayerMQ_Dec(FILE *bitfile,
 		/*------- AC: Open and initialize bitstream file -------*/
 		if (mzte_codec.m_iSingleBitFile==0)
 		{
+		  abort();
+#if 0
+		  // this is bad - really bad code
 			sprintf(fname,mzte_codec.m_cBitFileAC,
 			  mzte_codec.m_iCurSpatialLev,mzte_codec.m_iCurSNRLev);
+#endif
 		    if ((bitfile=fopen(fname,"rb"))==NULL)
 			 errorHandler("Can't open file '%s' for reading.",fname);
 	  

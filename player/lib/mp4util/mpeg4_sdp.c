@@ -207,6 +207,52 @@ FMTP_PARSE_FUNC(fmtp_mode)
   return (fmtp_advance_to_next(ptr));
 }
 
+FMTP_PARSE_FUNC(fmtp_cryptosuite)
+{
+  // just ignore it
+  return (fmtp_advance_to_next(ptr));
+}
+
+FMTP_PARSE_FUNC(fmtp_ivlength)
+{
+  // just ignore it
+  return (fmtp_advance_to_next(ptr));
+}
+
+FMTP_PARSE_FUNC(fmtp_ivdeltalength)
+{
+  char *ret;
+  ret = fmtp_parse_number(ptr, &fptr->ISMACrypIVDeltaLength);
+  if (ret == NULL) {
+    ret = fmtp_advance_to_next(ptr);
+  }
+  return (ret);
+}
+
+FMTP_PARSE_FUNC(fmtp_selectiveencryption)
+{
+  // just ignore it
+  return (fmtp_advance_to_next(ptr));
+}
+
+FMTP_PARSE_FUNC(fmtp_keyindicatorlength)
+{
+  // just ignore it
+  return (fmtp_advance_to_next(ptr));
+}
+
+FMTP_PARSE_FUNC(fmtp_keyindicatorperau)
+{
+  // just ignore it
+  return (fmtp_advance_to_next(ptr));
+}
+
+FMTP_PARSE_FUNC(fmtp_key)
+{
+  // just ignore it
+  return (fmtp_advance_to_next(ptr));
+}
+
 struct {
   const char *name;
   uint32_t namelen;
@@ -226,6 +272,13 @@ struct {
   TTYPE("bitrate", fmtp_bitrate),
   TTYPE("profile", fmtp_profile),
   TTYPE("mode", fmtp_mode),
+  TTYPE("ISMACrypCryptoSuite", fmtp_cryptosuite),
+  TTYPE("ISMACrypIVLength", fmtp_ivlength),
+  TTYPE("ISMACrypIVDeltaLength", fmtp_ivdeltalength),
+  TTYPE("ISMACrypSelectiveEncryption", fmtp_selectiveencryption),
+  TTYPE("ISMACrypKeyIndicatorLength", fmtp_keyindicatorlength),
+  TTYPE("ISMACrypKeyIndicatorPerAU", fmtp_keyindicatorperau),
+  TTYPE("ISMACrypKey", fmtp_key),
   {NULL, 0, NULL},
 }; 
 

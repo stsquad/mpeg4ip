@@ -1,17 +1,32 @@
 libdir = @PLAYER_PLUGIN_DIR@
 
-lib_LTLIBRARIES = isma_rtp_plugin.la
+lib_LTLIBRARIES = isma_rtp_plugin.la \
+                  isma_enc_rtp_plugin.la
+
 isma_rtp_plugin_la_LDFLAGS = -module
+isma_enc_rtp_plugin_la_LDFLAGS = -module
+
 isma_rtp_plugin_la_SOURCES = \
 	isma_rtp_plugin.cpp isma_rtp_plugin.h
+
+isma_enc_rtp_plugin_la_SOURCES = \
+        isma_enc_rtp_plugin.cpp isma_enc_rtp_plugin.h
+
 isma_rtp_plugin_la_LIBADD = \
 	$(top_srcdir)/lib/mp4av/libmp4av.la \
 	$(top_srcdir)/player/lib/mp4util/libmp4util.la \
 	-lm 
 
+isma_enc_rtp_plugin_la_LIBADD = \
+        $(top_srcdir)/lib/mp4av/libmp4av.la \
+        $(top_srcdir)/player/lib/mp4util/libmp4util.la \
+        @ISMACRYP_LIB@ \
+        -lm
+
 INCLUDES = -I$(top_srcdir)/player/src \
 	   -I$(top_srcdir)/player/lib \
 	   -I$(top_srcdir)/include \
+           @ISMACRYP_INC@ \
            -I$(top_srcdir)/lib
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@

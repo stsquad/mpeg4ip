@@ -4,7 +4,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/avi
 
-AM_CXXFLAGS = -DMPEG4IP -fexceptions -Wall
+AM_CXXFLAGS = -DMPEG4IP @BILLS_CPPWARNINGS@
 
 lib_LTLIBRARIES = libmp4av.la
 
@@ -34,6 +34,7 @@ libmp4av_la_SOURCES = \
 	rfc2250.cpp \
 	rfc3016.cpp \
 	rfc3119.cpp \
+        rfccrypto.cpp \
 	rfcisma.cpp
 
 EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp libmp4av.xcode/project.pbxproj

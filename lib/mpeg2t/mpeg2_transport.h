@@ -29,6 +29,8 @@
 
 /*
  * mpeg2t_frame_t - how we'll pass frames back when we've stored them
+ * These are malloced in 1 chunk - the frame pointer points right
+ * to the end of the structure.
  */
 typedef struct mpeg2t_frame_t {
   struct mpeg2t_frame_t *next_frame;

@@ -10,7 +10,7 @@ class CClientProcess {
 public:
 	CClientProcess(void);
 	~CClientProcess(void);
-	int enable_communication(void);
+	int enable_communication(int debugging = 0);
 	void initial_response(int code, CPlayerSession *psptr, const char *errmsg);
 	int receive_messages(CPlayerSession *psptr);
 	int send_message(uint32_t to_command,
@@ -37,4 +37,5 @@ private:
 	SDL_sem *m_msg_queue_sem;
 	SDL_Thread *m_send_thread;
 	volatile int m_stop_send_thread;
+	int m_debugging;
 };

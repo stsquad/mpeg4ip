@@ -59,12 +59,12 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
        */
       if ((es_pid->header & 0xffffff00) == 0x00000100) {
 	// have first header.
-	if (es_pid->work == NULL) {
-	  if (es_pid->work_max_size < 4096) es_pid->work_max_size = 4096;
+	if (es_pid->work_max_size < 4096) es_pid->work_max_size = 4096;
 
-	  mpeg2t_malloc_es_work(es_pid, es_pid->work_max_size);
-	  if (es_pid->work == NULL) return framesfinished;
-	}
+	// always do this in state 0 to get the psts at the start
+	mpeg2t_malloc_es_work(es_pid, es_pid->work_max_size);
+	if (es_pid->work == NULL) return framesfinished;
+
 	// Store header
 	es_pid->work->frame[0] = 0;
 	es_pid->work->frame[1] = 0;

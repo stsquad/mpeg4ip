@@ -103,7 +103,7 @@ void CPlayerSession::process_sdl_events (void)
 	}
 	break;
       case SDLK_RETURN:
-	if ((event.key.keysym.mod & (KMOD_LALT | KMOD_RALT)) != 0) {
+	if ((event.key.keysym.mod & (KMOD_ALT | KMOD_META)) != 0) {
 	  // alt-enter - full screen
 	  if (m_video_sync &&
 	      m_video_sync->get_fullscreen() == 0) {

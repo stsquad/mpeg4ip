@@ -386,7 +386,7 @@ int http_get_response (http_client_t *cptr,
     if (*p == '\0') {
       done = 1;
     } else {
-      http_debug(LOG_DEBUG, p);
+      http_debug(LOG_DEBUG, "%s", p);
       // we have a header.  See if we want to process it...
       http_decode_header(cptr, p);
     }

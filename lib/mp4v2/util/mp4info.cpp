@@ -25,8 +25,8 @@
 
 int main(int argc, char** argv)
 {
-	char* usageString = 
-		"usage: %s <file-name>\n";
+	const char* usageString = 
+		"<file-name>\n";
 
 	/* begin processing command line */
 	char* ProgName = argv[0];
@@ -46,7 +46,7 @@ int main(int argc, char** argv)
 
 		switch (c) {
 		case '?':
-			fprintf(stderr, usageString, ProgName);
+			fprintf(stderr, "usage: %s %s", ProgName, usageString);
 			exit(0);
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n", ProgName, 
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 
 	/* check that we have at least one non-option argument */
 	if ((argc - optind) < 1) {
-		fprintf(stderr, usageString, ProgName);
+		fprintf(stderr, "usage: %s %s", ProgName, usageString);
 		exit(1);
 	}
 

@@ -59,7 +59,7 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PostBuild_Desc=Copying SDL
-PostBuild_Cmds=copy ..\..\lib\SDL_VisualC\Release\SDL.dll
+PostBuild_Cmds=copy ..\..\SDL\lib\SDL.dll
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "wmp4player60 - Win32 Debug"

@@ -1353,7 +1353,7 @@ const char* MP4Track::NormalizeTrackType(const char* type)
 	if (!strcasecmp(type, "soun")
 	  || !strcasecmp(type, "sound")
 	  || !strcasecmp(type, "audio")
-	  || !strcasecmp(type, "enca")  // ismacrypt 
+	  || !strcasecmp(type, "enca") 
 	  || !strcasecmp(type, "mp4a")) {
 		return MP4_AUDIO_TRACK_TYPE;
 	}

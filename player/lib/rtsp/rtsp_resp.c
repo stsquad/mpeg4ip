@@ -564,7 +564,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
     }
   } while (*lptr == '\0');
 
-  rtsp_debug(LOG_DEBUG, lptr);
+  rtsp_debug(LOG_DEBUG, "%s", lptr);
   if (strncasecmp(lptr, "RTSP/1.0", strlen("RTSP/1.0")) != 0) {
     rtsp_debug(LOG_INFO, "RTSP/1.0 not found");
     return RTSP_RESPONSE_MALFORM_HEADER;
@@ -602,7 +602,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
     if (*lptr == '\0') {
       done = 1;
     } else {
-      rtsp_debug(LOG_DEBUG, lptr);
+      rtsp_debug(LOG_DEBUG, "%s", lptr);
       rtsp_decode_header(lptr, info, &last_header);
     }
   } while (done == 0);

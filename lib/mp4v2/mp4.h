@@ -25,9 +25,6 @@
 
 /* include system and project specific headers */
 #include "mpeg4ip.h"
-#ifdef ISMACRYP
-#include "../ismacryp/ismacryplib.h"
-#endif
 
 #include <math.h>	/* to define float HUGE_VAL and/or NAN */
 #ifndef NAN
@@ -408,14 +405,22 @@ MP4TrackId MP4AddAudioTrack(
 	MP4Duration sampleDuration,
 	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
 
-#ifdef ISMACRYP
+typedef struct mp4v2_ismacryp_session_params {
+  u_int32_t  scheme_type;
+  u_int16_t  scheme_version;
+  u_int8_t  key_ind_len;
+  u_int8_t  iv_len;
+  u_int8_t  selective_enc;
+  char      *kms_uri;
+} mp4v2_ismacrypParams;
+
+
 MP4TrackId MP4AddEncAudioTrack(
 	MP4FileHandle hFile, 
 	u_int32_t timeScale, 
 	MP4Duration sampleDuration,
-	ismacryp_session_id_t ismaCryptSId,
+        mp4v2_ismacrypParams *icPp,
 	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
-#endif
 
 MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, 
@@ -425,16 +430,14 @@ MP4TrackId MP4AddVideoTrack(
 	u_int16_t height,
 	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
 
-#ifdef ISMACRYP
 MP4TrackId MP4AddEncVideoTrack(
 	MP4FileHandle hFile, 
 	u_int32_t timeScale, 
 	MP4Duration sampleDuration,
 	u_int16_t width, 
 	u_int16_t height,
-	ismacryp_session_id_t ismaCryptSId, 
+        mp4v2_ismacrypParams *icPp,
 	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
-#endif
 
 MP4TrackId MP4AddHintTrack(
 	MP4FileHandle hFile, 
@@ -447,9 +450,11 @@ MP4TrackId MP4CloneTrack(
 	MP4TrackId dstHintTrackReferenceTrack DEFAULT(MP4_INVALID_TRACK_ID));
 
 MP4TrackId MP4EncAndCloneTrack(
-	MP4FileHandle srcFile, 
-	MP4TrackId srcTrackId,
-	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE));
+        MP4FileHandle srcFile,
+        MP4TrackId srcTrackId,
+        mp4v2_ismacrypParams *icPp,
+        MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE),
+        MP4TrackId dstHintTrackReferenceTrack DEFAULT(MP4_INVALID_TRACK_ID));
 
 MP4TrackId MP4CopyTrack(
 	MP4FileHandle srcFile, 
@@ -458,14 +463,17 @@ MP4TrackId MP4CopyTrack(
 	bool applyEdits DEFAULT(false),
 	MP4TrackId dstHintTrackReferenceTrack DEFAULT(MP4_INVALID_TRACK_ID));
 
-#ifdef ISMACRYP
+typedef u_int32_t (*encryptFunc_t)(u_int32_t, u_int32_t, u_int8_t*, u_int32_t*, u_int8_t **);
+
 MP4TrackId MP4EncAndCopyTrack(
 	MP4FileHandle srcFile, 
 	MP4TrackId srcTrackId,
-	ismacryp_session_id_t ismaCryptSId,
+        mp4v2_ismacrypParams *icPp,
+        encryptFunc_t encfcnp,
+        u_int32_t encfcnparam1,
 	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE),
-	bool applyEdits DEFAULT(false));
-#endif
+	bool applyEdits DEFAULT(false),
+	MP4TrackId dstHintTrackReferenceTrack DEFAULT(MP4_INVALID_TRACK_ID));
 
 bool MP4DeleteTrack(
 	MP4FileHandle hFile, 
@@ -561,6 +569,10 @@ u_int16_t MP4GetTrackVideoHeight(
 float MP4GetTrackVideoFrameRate(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
+
+bool MP4IsIsmaCrypMediaTrack(
+        MP4FileHandle hFile,
+        MP4TrackId trackId);
 
 /* generic track properties */
 
@@ -659,16 +671,15 @@ bool MP4CopySample(
 	MP4TrackId dstTrackId DEFAULT(MP4_INVALID_TRACK_ID),
 	MP4Duration dstSampleDuration DEFAULT(MP4_INVALID_DURATION));
 
-#ifdef ISMACRYP
 bool MP4EncAndCopySample(
 	MP4FileHandle srcFile,
 	MP4TrackId srcTrackId, 
 	MP4SampleId srcSampleId,
-	ismacryp_session_id_t ismaCryptSId,
+        encryptFunc_t encfcnp,
+        u_int32_t encfcnparam1,
 	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE),
 	MP4TrackId dstTrackId DEFAULT(MP4_INVALID_TRACK_ID),
 	MP4Duration dstSampleDuration DEFAULT(MP4_INVALID_DURATION));
-#endif
 
 /* Note this function is not yet implemented */
 bool MP4ReferenceSample(

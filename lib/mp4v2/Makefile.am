@@ -1,14 +1,10 @@
 SUBDIRS = . test util
 
-INCLUDES = -I$(top_srcdir)/include \
-           @ISMACRYPINC@
+INCLUDES = -I$(top_srcdir)/include
 
 AM_CXXFLAGS = @BILLS_CPPWARNINGS@
 
 lib_LTLIBRARIES = libmp4v2.la 
-
-libmp4v2_la_LIBADD = \
-         @ISMACRYPLIB@
 
 include_HEADERS = mp4.h
 

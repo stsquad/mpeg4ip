@@ -31,7 +31,11 @@
 #include <fcntl.h>
 #include <math.h>
 #include <time.h>
+#ifndef HAVE_XVID_H
+#include "../../../lib/xvid/xvid.h"
+#else
 #include <xvid.h>
+#endif
 #include <mp4av.h>
 /* globals */
 char* progName;

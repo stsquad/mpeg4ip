@@ -549,6 +549,11 @@ void mpeg2t_malloc_es_work (mpeg2t_es_t *es_pid, uint32_t frame_len)
 {
   uint8_t *frameptr;
 
+#if 0
+  mpeg2t_message(LOG_DEBUG, "es %x malloc %d", es_pid->pid.pid,
+		 es_pid->have_ps_ts);
+#endif
+
   if (es_pid->work == NULL || es_pid->work->frame_len < frame_len) {
     if (es_pid->work != NULL) {
       free(es_pid->work);
@@ -657,7 +662,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   pakcc = mpeg2t_continuity_counter(buffer);
   if (nextcc != pakcc) {
     // Note - this message will occur for the first packet
-    mpeg2t_message(LOG_ERR, "cc error in PES %x should be %d is %d", 
+    mpeg2t_message(LOG_ERR, "cc error in PID %x should be %d is %d", 
 	   ifptr->pid, nextcc, pakcc);
     clean_es_data(es_pid);
   }
@@ -754,7 +759,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
       return 0;
     }
     mpeg2t_message(LOG_DEBUG, 
-		   "%x PES start stream id %02x len %d (%d)", ifptr->pid, 
+		   "%x PES start stream id %02x len %u (%u)", ifptr->pid, 
 		   stream_id, pes_len, buflen);
   } else {
     // 0 in Payload start - process frame at start

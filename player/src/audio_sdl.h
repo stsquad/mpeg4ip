@@ -59,7 +59,6 @@ class CSDLAudioSync : public CAudioSync {
   void set_volume(int volume);
 
  private:
-  void audio_convert_data(void *from, uint32_t len);
   volatile int m_dont_fill;
   uint64_t m_buffer_ts;
   uint32_t m_buffer_offset_on;
@@ -74,8 +73,6 @@ class CSDLAudioSync : public CAudioSync {
   int m_config_set;
   int m_audio_initialized;
   int m_freq;
-  int m_channels;
-  audio_format_t m_format;
   int m_resync_required;
   int m_audio_paused;
   int m_consec_no_buffers;
@@ -101,8 +98,6 @@ class CSDLAudioSync : public CAudioSync {
   uint32_t m_bytes_per_sample_output;
   uint64_t m_loaded_next_ts;
   int m_silence;
-  void *m_convert_buffer;
-  int16_t *m_fmt_buffer;
 };
 
 #endif

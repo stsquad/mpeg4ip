@@ -21,7 +21,7 @@
 /*
  * ourxvid.cpp - plugin interface with xvid decoder.
  */
-
+#define DECLARE_CONFIG_VARIABLES
 #include "ourxvid.h"
 #include "codec_plugin.h"
 #include <mp4util/mpeg4_sdp.h>
@@ -35,6 +35,11 @@
 #include <mp4av/mp4av.h>
 
 #define xvid_message (xvid->m_vft->log_msg)
+#ifndef HAVE_XVID_H
+static SConfigVariable MyConfigVariables[] = {
+  CONFIG_BOOL(CONFIG_USE_XVID, "UseOldXvid", false),
+};
+#endif
 
 // Convert a hex character to it's decimal value.
 static uint8_t tohex (char a)
@@ -364,12 +369,18 @@ static int xvid_codec_check (lib_message_func_t message,
 			     uint32_t userdata_size,
 			     CConfigSet *pConfig)
 {
+  int retval;
+#ifndef HAVE_XVID_H
+  retval = pConfig->GetBoolValue(CONFIG_USE_XVID) ? 255 : 3;
+#else
+  retval = 3;
+#endif
   if (compressor != NULL && 
       (strcasecmp(compressor, "MP4 FILE") == 0)) {
     if ((type == MP4_MPEG4_VIDEO_TYPE) &&
 	((profile >= MPEG4_SP_L1 && profile <= MPEG4_SP_L3) ||
 	 (profile == MPEG4_SP_L0))) {
-      return 3;
+      return retval;
     }
     return -1;
   }
@@ -382,15 +393,15 @@ static int xvid_codec_check (lib_message_func_t message,
 	media_desc_t *mptr = fptr->media;
 	if (find_unparsed_a_value(mptr->unparsed_a_lines, "a=x-mpeg4-simple-profile-decoder") != NULL) {
 	  // our own special code for simple profile decoder
-	  return 3;
+	  return retval;
 	}
 	fmtp = parse_fmtp_for_mpeg4(fptr->fmt_param, message);
-	int retval = -1;
+	int retvl = -1;
 	if (fmtp != NULL) {
 	  int profile = fmtp->profile_level_id;
 	  if ((profile >= MPEG4_SP_L1 && profile <= MPEG4_SP_L3) || 
 	      (profile == MPEG4_SP_L0)) {
-	    retval = 3;
+	    retvl = retval;
 	  } else if (fmtp->config_binary != NULL) {
 	    // see if they indicate simple tools in VOL
 	    uint8_t *volptr;
@@ -399,12 +410,12 @@ static int xvid_codec_check (lib_message_func_t message,
 	    if (volptr != NULL && 
 		((volptr[4] & 0x7f) == 0) &&
 		((volptr[5] & 0x80) == 0x80)) {
-	      retval = 3;
+	      retvl = retval;
 	    }
 	  }
 	  free_fmtp_parse(fmtp);
 	}
-	return retval;
+	return retvl;
       }
     }
     return -1;
@@ -414,7 +425,7 @@ static int xvid_codec_check (lib_message_func_t message,
     const char **lptr = xvid_compressors;
     while (*lptr != NULL) {
       if (strcasecmp(*lptr, compressor) == 0) {
-	return 3;
+	return retval;
       }
       lptr++;
     }
@@ -422,6 +433,25 @@ static int xvid_codec_check (lib_message_func_t message,
   return -1;
 }
 
+#ifndef HAVE_XVID_H
+VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("xvid", 
+				 xvid_create,
+				 xvid_do_pause,
+				 xvid_decode,
+				 NULL,
+				 xvid_close,
+				 xvid_codec_check,
+				 xvid_frame_is_sync,
+				 xvid_file_check,
+				 xvid_file_next_frame,
+				 xvid_file_used_for_frame,
+				 xvid_file_seek_to,
+				 xvid_skip_frame,
+				 xvid_file_eof,
+				 MyConfigVariables,
+				 sizeof(MyConfigVariables) /
+				 sizeof(*MyConfigVariables));
+#else
 VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("xvid", 
 				 xvid_create,
 				 xvid_do_pause,
@@ -438,3 +468,4 @@ VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("xvid",
 				 xvid_file_eof,
 				 NULL,
 				 0);
+#endif

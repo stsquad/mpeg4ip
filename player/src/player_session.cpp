@@ -62,7 +62,6 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_session_state = SESSION_PAUSED;
   m_screen_pos_x = 0;
   m_screen_pos_y = 0;
-  m_clock_wrapped = -1;
   m_hardware_error = 0;
   m_fullscreen = 0;
   m_pixel_height = -1;
@@ -275,7 +274,7 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
   if (dummy != 1) {
     snprintf(errmsg, errlen, "Incorrect number of sessions in sdp decode %d",
 	     dummy);
-    player_error_message(errmsg);
+    player_error_message("%s", errmsg);
     free_decode_response(decode);
     return (-1);
   }
@@ -653,9 +652,6 @@ void CPlayerSession::audio_is_ready (uint64_t latency, uint64_t time)
   sync_message(LOG_DEBUG, "Aisready "U64, m_start);
   m_start -= time;
   m_latency = latency;
-  if (latency != 0) {
-    m_clock_wrapped = -1;
-  }
   sync_message(LOG_DEBUG, "Audio is ready "U64" - latency "U64, time, latency);
   sync_message(LOG_DEBUG, "m_start is "X64, m_start);
   m_waiting_for_audio = 0;
@@ -665,7 +661,6 @@ void CPlayerSession::audio_is_ready (uint64_t latency, uint64_t time)
 void CPlayerSession::adjust_start_time (int64_t time)
 {
   m_start -= time;
-  m_clock_wrapped = -1;
 #if 0
   sync_message(LOG_INFO, "Adjusting start time "D64 " to " U64, time,
 	       get_current_time());
@@ -685,27 +680,6 @@ uint64_t CPlayerSession::get_current_time (void)
     return 0;
   }
   current_time = get_time_of_day();
-#if 0
-  sync_message(LOG_DEBUG, "current time "X64" m_start "X64, 
-	       current_time, m_start);
-  if (current_time < m_start) {
-    if (m_clock_wrapped == -1) {
-      return (0);
-    } else {
-      m_clock_wrapped = 1;
-    }
-  } else{
-    if (m_clock_wrapped > 0) {
-      uint64_t temp;
-      temp = 1;
-      temp <<= 32;
-      temp /= 1000;
-      current_time += temp;
-    } else {
-      m_clock_wrapped = 0;
-    }
-  }
-#endif
   //if (current_time < m_start) return 0;
   m_current_time = current_time - m_start;
   if (m_current_time >= m_latency) m_current_time -= m_latency;

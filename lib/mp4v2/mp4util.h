@@ -91,11 +91,18 @@ inline void Indent(FILE* pFile, u_int8_t depth) {
 	fprintf(pFile, "%*c", depth, ' ');
 }
 
-inline void MP4Printf(const char* fmt, ...) {
+static inline void MP4Printf(const char* fmt, ...) 
+#ifndef _WIN32
+ __attribute__((format(__printf__, 1, 2)))
+#endif
+;
+
+static inline void MP4Printf(const char* fmt, ...) 
+{
 	va_list ap;
 	va_start(ap, fmt);
 	// TBD API call to set error_msg_func instead of just printf
-	fprintf(stdout, fmt, ap);
+	vprintf(fmt, ap);
 	va_end(ap);
 }
 

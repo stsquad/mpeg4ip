@@ -215,7 +215,6 @@ class CPlayerSession {
   uint64_t m_current_time; // current time playing
   uint64_t m_start;
   uint64_t m_latency;
-  int m_clock_wrapped;
   uint64_t m_play_start_time;
   session_desc_t *m_sdp_info;
   rtsp_client_t *m_rtsp_client;

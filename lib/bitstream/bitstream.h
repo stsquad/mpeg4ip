@@ -79,7 +79,7 @@ class CBitstream {
  private:
   uint32_t m_uNumOfBitsInBuffer;
   const uint8_t *m_chDecBuffer;
-  unsigned char m_chDecData;
+  uint8_t m_chDecData, m_chDecData_bookmark;
   uint32_t m_chDecBufferSize;
   int m_bBookmarkOn;
   uint32_t m_uNumOfBitsInBuffer_bookmark;

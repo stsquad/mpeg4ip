@@ -37,7 +37,8 @@ void CreateHintTrack(
 		     MP4TrackId mediaTrackId,
 		     const char* payloadName, 
 		     bool interleave, 
-		     u_int16_t maxPayloadSize);
+		     u_int16_t maxPayloadSize,
+		     bool doEncrypt);
 
 void ExtractTrack(
 		  MP4FileHandle mp4File, 
@@ -60,12 +61,6 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
 // main routine
 int main(int argc, char** argv)
 {
-#ifdef ISMACRYP
-  printf("using ismacrypt\n");
-#else
-  //  printf("not using ismacrypt\n");
-#endif
-
   char* usageString = 
     "usage: %s <options> <mp4-file>\n"
     "  Options:\n"
@@ -74,7 +69,7 @@ int main(int argc, char** argv)
     "  -create=<input-file>    Create track from <input-file>\n"
     "    input files can be of type: .aac .mp3 .divx .mp4v .m4v .cmp .xvid\n"
     "  -extract=<track-id>     Extract a track\n"
-    //"  -encrypt[=<track-id>]   Encrypt a track, also -E\n"
+    "  -encrypt[=<track-id>]   Encrypt a track, also -E\n"
     "  -delete=<track-id>      Delete a track\n"
     "  -hint[=<track-id>]      Create hint track, also -H\n"
     "  -interleave             Use interleaved audio payload format, also -I\n"
@@ -203,7 +198,12 @@ int main(int argc, char** argv)
     case 'E':
       doEncrypt = true;
       if (optarg) {
-	if (sscanf(optarg, "%u", &encryptTrackId) != 1) {
+        // if the short version of option is given, optarg has 
+        // an = at the beginning. this causes sscanf to fail. 
+        // if the long version of the option is given, there 
+        // is no =
+        if ( optarg[0] == '=' ) optarg[0] = ' ';
+	if (sscanf(optarg, "%d", &encryptTrackId) != 1) {
 	  fprintf(stderr, 
 		  "%s: bad track-id specified: %s\n",
 		  ProgName, optarg);
@@ -214,6 +214,11 @@ int main(int argc, char** argv)
     case 'H':
       doHint = true;
       if (optarg) {
+        // if the short version of option is given, optarg has 
+        // an = at the beginning. this causes sscanf to fail. 
+        // if the long version of the option is given, there 
+        // is no =
+        if ( optarg[0] == '=' ) optarg[0] = ' ';
 	if (sscanf(optarg, "%u", &hintTrackId) != 1) {
 	  fprintf(stderr, 
 		  "%s: bad track-id specified: %s\n",
@@ -292,7 +297,7 @@ int main(int argc, char** argv)
       break;
     case 'U':
       createFlags |= MP4_CREATE_64BIT_TIME;
-      break;
+      break;  
     case 'v':
       Verbosity |= (MP4_DETAILS_READ | MP4_DETAILS_WRITE);
       if (optarg) {
@@ -409,18 +414,6 @@ int main(int argc, char** argv)
 
   MP4FileHandle mp4File;
 
-#ifdef ISMACRYP
-  // initialize session if encrypting
-  if (doEncrypt) {
-    if (ismacrypInitSession(&ismaCryptSId) != 0) {
-      fprintf(stderr, 
-	      "%s: could not initialize the ISMAcrypt session\n",
-	      ProgName);
-      exit(EXIT_ISMACRYP_INIT);
-    }
-  }
-#endif
-
   if (doCreate || doHint) {
     if (!mp4FileExists) {
       if (doCreate) {
@@ -489,19 +482,16 @@ int main(int argc, char** argv)
 		  pTrackId = pCreatedTrackIds;
 
 	while (*pTrackId != MP4_INVALID_TRACK_ID) {
-	  CreateHintTrack(mp4File, *pTrackId, 
-			  payloadName, doInterleave, maxPayloadSize);
+	  CreateHintTrack(mp4File, *pTrackId, payloadName, 
+			  doInterleave, maxPayloadSize, doEncrypt);
 	  pTrackId++;
 	}
       }
     } else if (doHint) {
-      // note: need make sure we handle the hinting of encrypted files
-      if (doEncrypt) {
-	printf("can't hint an encrypted file yet, won't encrypt for now.\n");
-	// do something here
-      }
-      CreateHintTrack(mp4File, hintTrackId, 
-		      payloadName, doInterleave, maxPayloadSize);
+      // in this case, we only hint the track specified in the command line
+
+      CreateHintTrack(mp4File, hintTrackId, payloadName, 
+		      doInterleave, maxPayloadSize, doEncrypt);
 
       uint32_t trackNum;
 
@@ -523,6 +513,7 @@ int main(int argc, char** argv)
 	}
       }
     }
+
     char *buffer;
     char *value;
     uint32_t newverbosity;
@@ -547,9 +538,7 @@ int main(int argc, char** argv)
     MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
 
   } else if (doEncrypt) { 
-    // just encrypting, not creating nor hinting
-    // make sure don't encrypt file that is already encrypted
-    // if not hinted and !doHint
+    // just encrypting, not creating nor hinting, but may already be hinted
     if (!mp4FileExists) {
       fprintf(stderr,
 	      "%s: can't encrypt track in file that doesn't exist\n", 
@@ -576,26 +565,94 @@ int main(int argc, char** argv)
     u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
     for (u_int32_t i = 0; i < numTracks; i++) {
       MP4TrackId curTrackId = MP4FindTrackId(mp4File, i);
-      // encrypt if the trackid was specified as an argument to -encrypt
-      // or if no arg were specified (i.e. encrypt all tracks)
-      if ((curTrackId == encryptTrackId) || 
-	  (encryptTrackId == MP4_INVALID_TRACK_ID)) {
-#ifdef ISMACRYP 
-	MP4EncAndCopyTrack(mp4File, curTrackId, ismaCryptSId, outputFile);  
-#else
+      const char *type = MP4GetTrackType(mp4File, curTrackId);
+      // encrypt only the specified track
+      // if no track was specified in the command-line, encrypt all
+      // audio and video tracks 
+      // hint tracks are removed, so need to rehint afterwards
+      // if the track is already encrypted, just copy it
+      if (((curTrackId == encryptTrackId) 
+	  || ((encryptTrackId == MP4_INVALID_TRACK_ID) 
+	      && !strcmp(type, MP4_AUDIO_TRACK_TYPE))
+	  || ((encryptTrackId == MP4_INVALID_TRACK_ID) 
+	      && !strcmp(type, MP4_VIDEO_TRACK_TYPE)))
+	  && !(MP4IsIsmaCrypMediaTrack(mp4File,curTrackId))){
 
-	fprintf(stderr,
-	      "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n", 
-	      ProgName);
-#endif
+	ismacryp_session_id_t ismaCrypSId;
+        ismacryp_keytype_t key_type;
+
+        if ( !strcmp(type, MP4_VIDEO_TRACK_TYPE) ) { 
+           key_type = KeyTypeVideo;
+        }
+        else {
+           if ( !strcmp(type, MP4_AUDIO_TRACK_TYPE) ) 
+              key_type = KeyTypeAudio;
+           else
+              key_type = KeyTypeOther;
+        }
+
+	if (ismacrypInitSession(&ismaCrypSId, key_type) != ismacryp_rc_ok) {
+	  fprintf(stderr, 
+		  "%s: could not initialize the ISMAcryp session\n", ProgName);
+	  exit(EXIT_ISMACRYP_INIT);
+	}
+        mp4v2_ismacrypParams *icPp =  (mp4v2_ismacrypParams *) malloc(sizeof(mp4v2_ismacrypParams));
+        memset(icPp, 0, sizeof(mp4v2_ismacrypParams));
+
+        if (ismacrypGetScheme(ismaCrypSId, &(icPp->scheme_type)) != ismacryp_rc_ok) {
+	  fprintf(stderr, 
+             "%s: could not get ismacryp scheme type. sid %d\n", ProgName, ismaCrypSId);
+	  ismacrypEndSession(ismaCrypSId);
+	  exit(EXIT_ISMACRYP_END);
+        }
+        if (ismacrypGetSchemeVersion(ismaCrypSId, &(icPp->scheme_version)) != ismacryp_rc_ok) {
+	  fprintf(stderr, 
+            "%s: could not get ismacryp scheme ver. sid %d\n", ProgName, ismaCrypSId);
+	  ismacrypEndSession(ismaCrypSId);
+	  exit(EXIT_ISMACRYP_END);
+        }
+        if (ismacrypGetKMSUri(ismaCrypSId, &(icPp->kms_uri)) != ismacryp_rc_ok) {
+	  fprintf(stderr, 
+            "%s: could not get ismacryp kms uri. sid %d\n", ProgName, ismaCrypSId);
+          if (icPp->kms_uri != NULL) free(icPp->kms_uri);
+	  ismacrypEndSession(ismaCrypSId);
+	  exit(EXIT_ISMACRYP_END);
+        }
+       if ( ismacrypGetSelectiveEncryption(ismaCrypSId, &(icPp->selective_enc)) != ismacryp_rc_ok ) {
+	  fprintf(stderr, 
+            "%s: could not get ismacryp selec enc. sid %d\n", ProgName, ismaCrypSId);
+	  ismacrypEndSession(ismaCrypSId);
+	  exit(EXIT_ISMACRYP_END);
+        }
+        if (ismacrypGetKeyIndicatorLength(ismaCrypSId, &(icPp->key_ind_len)) != ismacryp_rc_ok) {
+	  fprintf(stderr, 
+            "%s: could not get ismacryp key ind len. sid %d\n", ProgName, ismaCrypSId);
+	  ismacrypEndSession(ismaCrypSId);
+	  exit(EXIT_ISMACRYP_END);
+        }
+        if (ismacrypGetIVLength(ismaCrypSId, &(icPp->iv_len)) != ismacryp_rc_ok) {
+	  fprintf(stderr, 
+            "%s: could not get ismacryp iv len. sid %d\n", ProgName, ismaCrypSId);
+	  ismacrypEndSession(ismaCrypSId);
+	  exit(EXIT_ISMACRYP_END);
+        }
+ 
+	//MP4EncAndCopyTrack(mp4File, curTrackId, ismaCrypSId, outputFile);
+	MP4EncAndCopyTrack(mp4File, curTrackId, icPp,
+                              ismacrypEncryptSampleAddHeader2,
+                              (u_int32_t) ismaCrypSId,
+                              outputFile);
+
+	if (ismacrypEndSession(ismaCrypSId) != ismacryp_rc_ok) {
+	  fprintf(stderr, 
+		  "%s: could not end the ISMAcryp session\n", ProgName);
+	  exit(EXIT_ISMACRYP_END);
+	}
       } else {
 	MP4CopyTrack(mp4File, curTrackId, outputFile);
       }
     }
 
-    // if already hinted then need to rehint - for now don't handle
-    // hinting of encrypted files, so just remove hint tracks
-    
     MP4Close(mp4File);
     MP4Close(outputFile);
     bool allMpeg4Streams = true;
@@ -654,17 +711,6 @@ int main(int argc, char** argv)
     }
   }
 
-#ifdef ISMACRYP
-  // terminate session if encrypting
-  if (doEncrypt) {
-    if (ismacrypEndSession(ismaCryptSId) != 0) {
-      fprintf(stderr, 
-	      "%s: could not end the ISMAcrypt session\n",
-	      ProgName);
-      exit(EXIT_ISMACRYP_END);
-    }
-  }
-#endif
  return(EXIT_SUCCESS);
 }
 
@@ -754,9 +800,10 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName,
 
 void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 		     const char* payloadName, bool interleave, 
-		     u_int16_t maxPayloadSize)
+		     u_int16_t maxPayloadSize, bool doEncrypt)
 {
-  bool rc = false;
+
+  bool rc = FALSE;
 
   if (MP4GetTrackNumberOfSamples(mp4File, mediaTrackId) == 0) {
     fprintf(stderr, 
@@ -767,8 +814,110 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 
   // vector out to specific hinters
   const char* trackType = MP4GetTrackType(mp4File, mediaTrackId);
-  
-  if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
+
+  if (doEncrypt || MP4IsIsmaCrypMediaTrack(mp4File, mediaTrackId)) {
+
+    ismacryp_session_id_t icSID;
+    mp4av_ismacrypParams *icPp =  (mp4av_ismacrypParams *) malloc(sizeof(mp4av_ismacrypParams));
+    memset(icPp, 0, sizeof(mp4av_ismacrypParams));
+
+    if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
+       if (ismacrypInitSession(&icSID, KeyTypeAudio) != 0) {
+          fprintf(stderr, 
+	      "%s: can't hint, error in init ismacryp session\n", ProgName);
+          goto quit_error;
+       }
+    }
+    else if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
+       if (ismacrypInitSession(&icSID, KeyTypeVideo) != 0) {
+          fprintf(stderr, 
+	      "%s: can't hint, error in init ismacryp session\n", ProgName);
+          goto quit_error;
+       }
+    }
+    else {
+      fprintf(stderr, 
+	      "%s: can't hint track type %s\n", ProgName, trackType);
+      goto quit_error;
+    }
+    
+    // get all the ismacryp parameters needed by the hinters:
+    if (ismacrypGetKeyCount(icSID, &(icPp->key_count)) != 0) {
+      fprintf(stderr, 
+	      "%s: can't hint, error getting key count for session %d\n", 
+               ProgName, icSID);
+      goto quit_error;
+    }
+    if (ismacrypGetKeyIndicatorLength(icSID, &(icPp->key_ind_len)) != 0) {
+      fprintf(stderr, 
+	      "%s: can't hint, error getting key ind len for session %d\n", 
+               ProgName, icSID);
+      goto quit_error;
+    }
+
+    if (ismacrypGetKeyIndPerAU(icSID, &(icPp->key_ind_perau)) != 0) {
+      fprintf(stderr, 
+	      "%s: can't hint, error getting key ind per au for session %d\n", 
+               ProgName, icSID);
+      goto quit_error;
+    }
+    if (ismacrypGetSelectiveEncryption(icSID, &(icPp->selective_enc)) != 0) {
+      fprintf(stderr, 
+	      "%s: can't hint, error getting selective enc for session %d\n", 
+               ProgName, icSID);
+      goto quit_error;
+    }
+    if (ismacrypGetDeltaIVLength(icSID, &(icPp->delta_iv_len)) != 0) {
+      fprintf(stderr, 
+	      "%s: can't hint, error getting delta iv len for session %d\n", 
+               ProgName, icSID);
+      goto quit_error;
+    }
+    if (ismacrypGetIVLength(icSID, &(icPp->iv_len)) != 0) {
+      fprintf(stderr, 
+	      "%s: can't hint, error getting iv len for session %d\n", 
+               ProgName, icSID);
+      goto quit_error;
+    }
+    if (ismacrypGetScheme(icSID, (ismacryp_scheme_t *) &(icPp->scheme)) != 0) {
+      fprintf(stderr, 
+	      "%s: can't hint, error getting scheme for session %d\n", 
+               ProgName, icSID);
+      goto quit_error;
+    }
+    if (ismacrypGetKey(icSID, 1,&(icPp->key_len),&(icPp->salt_len),
+                       &(icPp->key),&(icPp->salt),&(icPp->key_life)) != 0) {
+      fprintf(stderr, 
+	      "%s: can't hint, error getting scheme for session %d\n", 
+               ProgName, icSID);
+      goto quit_error;
+    }
+
+    goto ok_continue;
+    quit_error:
+    ismacrypEndSession(icSID);
+    MP4Close(mp4File);
+    exit(EXIT_CREATE_HINT);
+    ok_continue:
+
+    if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
+      rc = MP4AV_RfcCryptoAudioHinter(mp4File, mediaTrackId, 
+                                      icPp, 
+				      interleave, maxPayloadSize, 
+				      "enc-mpeg4-generic");
+      ismacrypEndSession(icSID);
+    } else if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
+      rc = MP4AV_RfcCryptoVideoHinter(mp4File, mediaTrackId, 
+                                      icPp, 
+                                      maxPayloadSize,
+				      "enc-mpeg4-generic");
+      ismacrypEndSession(icSID);
+    } else {
+      fprintf(stderr, 
+	      "%s: can't hint track type %s\n", ProgName, trackType);
+    }
+  }
+  else if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
     u_int8_t audioType = MP4GetTrackEsdsObjectTypeId(mp4File, mediaTrackId);
 
     switch (audioType) {

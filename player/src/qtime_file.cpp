@@ -56,7 +56,7 @@ int create_media_for_qtime_file (CPlayerSession *psptr,
   CQtimeFile *QTfile1;
   if (quicktime_check_sig(name) == 0) {
     snprintf(errmsg, errlen, "File %s is not a quicktime file", name);
-    player_error_message(errmsg);
+    player_error_message("%s", errmsg);
     return (-1);
   }
  

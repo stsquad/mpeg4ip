@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<HTML lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<title>MPEG4IP Feature List</title></head>
+<body>
+<p>
+<div id="top">
+<h1>MPEG4IP Feature List</h1> </div>
+<p>
+<b>
+<a href="#player">Player Features </a>
+<br><a href="#mp4live">Mp4live Features</a>
+<br><a href="#mp4f">Mp4 File Format Features</a>
+<br><a href="#enc">Encoding Tools</a>
+</b>
+<p>
+<div id="player">
+<h2>Player Features</h2>
+</div>
+<p>
+The mpeg4ip player supports the following:
+<p>
+File formats:
+<br> avi, mp4, limited .mov, .mpg (transport and program streams), 
+.wav, raw aac, raw mp3, raw mp4v
+<p>
+Video codecs: 
+<br>mpeg-4 (xvid, xvid-1.0, ISO reference), mpeg1/2 (libmpeg3, 
+mpeg2dec), H.261, YUV (i420 raw)
+<p>
+Audio Codecs: 
+<br>aac (faad, faad2 with seperate download), mp3, celp, 
+  ac3 (with seperate download), raw PCM 
+<p>
+Streaming capability: 
+<br>RTSP, SDP, RTP (rfc 1890 for raw audio, 2250 for mpeg1/2 
+audio and video, 3016 for mpeg4 video, 3119 for mp3, 3640 for aac/celp audio), mpeg2
+transport streams (mpeg2 video, mp3 and ac3 audio), both multicast and streaming.
+<p>
+Supports http fetch of sdp files.
+<p>
+Other features:
+<br>1/2, double and full screen video, change aspect ratio of video
+<br>Audio should be able to convert channels and format to match
+any hardware, but not frequency.
+<p>
+<a href="#top">Back to top</a>
+<p>
+<div id="mp4live">
+<h2>Mp4live Features</h2>
+</div>
+<p>
+Mp4live supports the following:
+<p>
+Video Encoders:
+<br>mpeg4 (xvid, xvid-0.9.2 with seperate download, ffmpeg with seperate download), 
+H.261, mpeg2 (with ffmpeg download)
+<p>
+Audio Encoders:
+<br>AAC (faac, with required download), MP3 (lame, with required download)
+<p>
+Video Filters:
+<br>de-interlace (Y only), decimate
+<p>
+Video Input Interface:
+<br>V4L, V4L2 (recommended)
+<p>
+Audio Input Interface:
+<br>OSS
+<p>
+Recording Options: (mp4 file format)
+<br>
+Mpeg4 video, Mpeg2 video, Mp3 audio, AAC audio, raw audio (PCM) and video
+(YUV)
+<p>
+Transmission Options: (RTP, multicast or unicast)
+<br>
+mpeg4 video (RFC 3016), mpeg2 video (rfc 2250), aac audio (rfc 3460), 
+mp3 audio (rfc 2250)
+<a href="#top">Back to top</a>
+<p>
+<div id="mp4f">
+<h2>Mp4 File Format Features</h2>
+</div>
+<p>
+Mp4 File format features consist of a mp4 file library and a series
+of utility functions.
+<ul>
+<li>mp4creator - this utility will:
+<ul>
+<li>create mpeg4 files from elementary streams (mp3, aac, mp4v, avi and .mpg 
+files)</li>
+<li>hint mpeg1/2/4 video, mp3 audio (rfc 2250 and 3119) and aac audio</li>
+<li>extract elementary streams from mp4 files (adding headers, if needed)</li>
+</ul>
+</li>
+<li>mp4info - display information about tracks in mp4 file</li>
+<li>mp4dump - dumps contents from mp4 files</li>
+<li>mp4trackdump - dumps track information</li>
+<li>mp4tags - sets iTunes tag information</li>
+</ul>
+<P>
+<a href="#top">Back to top</a>
+<p>
+<div id="enc">
+<h2>Encoding Tools</h2>
+</div>
+<p>
+Because of other projects (lame, faac, ffmpeg) provide good command
+line tools, we only support xvidenc, which will encode mpeg4 video.
+<p>
+We do support the following:
+<ul>
+<li>lboxcrop - vertically crop raw video</li>
+<li>rgb2yuv - convert RGB to YUV files</li>
+<li>avi2raw - dump elementary streams from avi files</li>
+</ul>
+<P>
+<a href="#top">Back to top</a>
+<p>
+<div id="other">
+<h2>Other Tools</h2>
+</div>
+<p>
+Mpeg4ip includes a number of debugging tools.  These include:
+<ul>
+<li>yuvdump - display raw YUV file</li>
+<li>avidump - display information about avi files</li>
+<li>mpeg4vol - decodes an mpeg4 vol from command line or mp4 file</li>
+<li>mpeg2video_parse - displays frame information about mpeg2 video elementary stream</li>
+<li>h264_parse - displays information about h.264 elementary stream</li>
+</ul>
+<p>
+=== END OF FEATURES ===
+<P>
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
+</body>
+</html>

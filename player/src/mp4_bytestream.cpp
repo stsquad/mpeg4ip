@@ -36,6 +36,11 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
 				int has_video)
   : COurInByteStream(type)
 {
+#ifdef ISMACRYP_DEBUG
+  my_enc_file = fopen("encbuffer.raw", "w");
+  my_unenc_file = fopen("unencbuffer.raw", "w");
+  my_unenc_file2 = fopen("unencbuffer2.raw", "w");
+#endif
 #ifdef OUTPUT_TO_FILE
   char buffer[80];
   strcpy(buffer, type);
@@ -48,7 +53,7 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
   m_eof = 0;
   MP4FileHandle fh = parent->get_file();
   m_frames_max = MP4GetTrackNumberOfSamples(fh, m_track);
-  m_max_frame_size = MP4GetTrackMaxSampleSize(fh, m_track) + 4;
+  m_max_frame_size = MP4GetTrackMaxSampleSize(fh, m_track) + 4; 
   m_buffer = (u_int8_t *) malloc(m_max_frame_size * sizeof(u_int8_t));
   m_has_video = has_video;
   m_frame_in_buffer = 0xffffffff;
@@ -75,7 +80,12 @@ CMp4ByteStream::~CMp4ByteStream()
 #ifdef OUTPUT_TO_FILE
   fclose(m_output_file);
 #endif
-}
+#ifdef ISMACRYP_DEBUG
+  fclose(my_enc_file);
+  fclose(my_unenc_file);
+  fclose(my_unenc_file2);
+#endif
+} 
 
 int CMp4ByteStream::eof(void)
 {
@@ -286,23 +296,41 @@ double CMp4ByteStream::get_max_playtime (void)
   return (m_max_time);
 };
 
-#ifdef ISMACRYP
 uint64_t CMp4EncAudioByteStream::start_next_frame (uint8_t **buffer, 
 						   uint32_t *buflen,
 						   void **ud)
 {
   uint64_t ret = CMp4AudioByteStream::start_next_frame(buffer, buflen, ud);
-  printf("decrypting audio frame\n");
-  u_int8_t *temp_buffer = CMp4ByteStream::get_buffer();
-  uint32_t temp_this_frame_size = CMp4ByteStream::get_this_frame_size();
-  if (ismacrypDecryptSample(m_ismaCryptSId, temp_this_frame_size, temp_buffer) 
-      != 0) {
-    // error
-  }
-  CMp4ByteStream::set_buffer(temp_buffer);
-  CMp4ByteStream::set_this_frame_size(temp_this_frame_size);
+  u_int8_t *temp_buffer = NULL;
+  u_int32_t temp_this_frame_size = 0;
+#ifdef ISMACRYP_DEBUG
+  fwrite(*buffer, *buflen, 1, my_enc_file);
+#endif
+  ismacryp_rc_t ismacryprc;
+  ismacryprc = ismacrypDecryptSampleRemoveHeader(m_ismaCryptSId, 
+					*buflen,
+					*buffer,
+					&temp_this_frame_size,
+					&temp_buffer);
 
-  
+  if ( ismacryprc != ismacryp_rc_ok ) {
+    mp4f_message(LOG_ERR, "%s  1. decrypt error code:  %u" ,
+	       m_name, ismacryprc);
+    CHECK_AND_FREE(temp_buffer);
+    // can't copy anything to buffer in this case.
+    return ret; 
+  }
+
+#ifdef ISMACRYP_DEBUG
+  fwrite(temp_buffer, temp_this_frame_size, 1, my_unenc_file);
+#endif
+  *buflen = temp_this_frame_size;
+  memset(*buffer, 0, *buflen * sizeof(u_int8_t));
+  memcpy(*buffer, temp_buffer, temp_this_frame_size);
+#ifdef ISMACRYP_DEBUG
+  fwrite(*buffer, *buflen, 1, my_unenc_file2);
+#endif
+  CHECK_AND_FREE(temp_buffer);
   return ret; 
 }
 
@@ -311,19 +339,28 @@ uint64_t CMp4EncVideoByteStream::start_next_frame (uint8_t **buffer,
 						   void **ud)
 {
   uint64_t ret = CMp4VideoByteStream::start_next_frame(buffer, buflen, ud);
-  printf("decrypting video frame\n");
-  u_int8_t *temp_buffer = CMp4ByteStream::get_buffer();
-  uint32_t temp_this_frame_size = CMp4ByteStream::get_this_frame_size();
-  if (ismacrypDecryptSample(m_ismaCryptSId, temp_this_frame_size, temp_buffer) 
-      != 0) {
-    // error
-  }
-  CMp4ByteStream::set_buffer(temp_buffer);
-  CMp4ByteStream::set_this_frame_size(temp_this_frame_size);
+  u_int8_t *temp_buffer = NULL;
+  u_int32_t temp_this_frame_size = 0;
+  ismacryp_rc_t ismacryprc;
+  ismacryprc = ismacrypDecryptSampleRemoveHeader(m_ismaCryptSId, 
+					*buflen,
+					*buffer,
+					&temp_this_frame_size,
+					&temp_buffer);
 
-  
+  if (ismacryprc != ismacryp_rc_ok ) {
+    mp4f_message(LOG_ERR, "%s  2. decrypt error code:  %u" ,
+	       m_name, ismacryprc);
+    CHECK_AND_FREE(temp_buffer);
+    // can't copy anything to buffer in this case.
+    return ret; 
+  }
+
+  *buflen = temp_this_frame_size;
+  memset(*buffer, 0, *buflen * sizeof(u_int8_t));
+  memcpy(*buffer, temp_buffer, temp_this_frame_size);
+  CHECK_AND_FREE(temp_buffer);
   return ret; 
 }
-#endif
 
 /* end file qtime_bytestream.cpp */

@@ -148,7 +148,7 @@ int http_get (http_client_t *cptr,
       buffer_len = 0;
       ret = http_build_header(header_buffer, 4096, &buffer_len, cptr, "GET",
 			      NULL, NULL);
-      http_debug(LOG_DEBUG, header_buffer);
+      http_debug(LOG_DEBUG, "%s", header_buffer);
       if (send(cptr->m_server_socket,
 	       header_buffer,
 	       buffer_len,
@@ -192,7 +192,7 @@ int http_post (http_client_t *cptr,
     http_debug(LOG_ERR, "Could not build header");
     return -1;
   }
-  http_debug(LOG_DEBUG, header_buffer);
+  http_debug(LOG_DEBUG, "%s", header_buffer);
   if (send(cptr->m_server_socket,
 	   header_buffer,
 	   buffer_len,
@@ -208,7 +208,7 @@ int http_post (http_client_t *cptr,
   do {
     ret = http_get_response(cptr, resp);
     http_debug(LOG_INFO, "Response %d", (*resp)->ret_code);
-    http_debug(LOG_DEBUG, (*resp)->body);
+    http_debug(LOG_DEBUG, "%s", (*resp)->body);
     if (ret < 0) return (ret);
     switch ((*resp)->ret_code / 100) {
     default:
@@ -229,7 +229,7 @@ int http_post (http_client_t *cptr,
       buffer_len = 0;
       ret = http_build_header(header_buffer, 4096, &buffer_len, cptr, "POST",
 			      "Content-type: application/x-www-form-urlencoded",  body);
-      http_debug(LOG_DEBUG, header_buffer);
+      http_debug(LOG_DEBUG, "%s", header_buffer);
       if (send(cptr->m_server_socket,
 	       header_buffer,
 	       buffer_len,

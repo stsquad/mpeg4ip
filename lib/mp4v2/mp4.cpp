@@ -569,17 +569,20 @@ extern "C" MP4TrackId MP4AddAudioTrack(
 	return MP4_INVALID_TRACK_ID;
 }
 
-#ifdef ISMACRYP
 extern "C" MP4TrackId MP4AddEncAudioTrack(MP4FileHandle hFile, 
 					  u_int32_t timeScale, 
 					  MP4Duration sampleDuration,
-					  ismacryp_session_id_t ismaCryptSId,
-					  u_int8_t audioType)
+                                          mp4v2_ismacrypParams *icPp,
+					  u_int8_t audioType
+                                          )
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
       return ((MP4File*)hFile)->
-	AddEncAudioTrack(timeScale, sampleDuration, audioType, ismaCryptSId);
+	AddEncAudioTrack(timeScale, sampleDuration, audioType,
+                         icPp->scheme_type, icPp->scheme_version, 
+                         icPp->key_ind_len, icPp->iv_len, 
+                         icPp->selective_enc, icPp->kms_uri);
     }
     catch (MP4Error* e) {
       PRINT_ERROR(e);
@@ -588,7 +591,6 @@ extern "C" MP4TrackId MP4AddEncAudioTrack(MP4FileHandle hFile,
   }
   return MP4_INVALID_TRACK_ID;
 }
-#endif
 
 extern "C" MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, 
@@ -611,20 +613,21 @@ extern "C" MP4TrackId MP4AddVideoTrack(
 	return MP4_INVALID_TRACK_ID;
 }
 
-#ifdef ISMACRYP
 extern "C" MP4TrackId MP4AddEncVideoTrack(MP4FileHandle hFile, 
 					  u_int32_t timeScale, 
 					  MP4Duration sampleDuration,
 					  u_int16_t width, 
 					  u_int16_t height, 
-					  ismacryp_session_id_t ismaCryptSId, 
-					  u_int8_t videoType)
+                                          mp4v2_ismacrypParams *icPp,
+					  u_int8_t videoType )
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
     try {
       return ((MP4File*)hFile)->AddEncVideoTrack(timeScale, sampleDuration, 
 						 width, height, videoType,
-						 ismaCryptSId);
+                                                 icPp->scheme_type, icPp->scheme_version, 
+                                                 icPp->key_ind_len, icPp->iv_len, 
+                                                 icPp->selective_enc, icPp->kms_uri);
     }
     catch (MP4Error* e) {
       PRINT_ERROR(e);
@@ -633,7 +636,6 @@ extern "C" MP4TrackId MP4AddEncVideoTrack(MP4FileHandle hFile,
   }
   return MP4_INVALID_TRACK_ID;
 }
-#endif
 
 extern "C" MP4TrackId MP4AddHintTrack(
 	MP4FileHandle hFile, MP4TrackId refTrackId)
@@ -776,11 +778,13 @@ extern "C" MP4TrackId MP4CloneTrack(
 	return dstTrackId;
 }
 
-#ifdef ISMACRYP
 // Given a track, make an encrypted clone of it in the dest. file
-extern "C" MP4TrackId MP4EncAndCloneTrack(MP4FileHandle srcFile, 
-					  MP4TrackId srcTrackId,
-					  MP4FileHandle dstFile)
+extern "C" MP4TrackId MP4EncAndCloneTrack(MP4FileHandle srcFile,
+                                          MP4TrackId srcTrackId,
+                                          mp4v2_ismacrypParams *icPp,
+					  MP4FileHandle dstFile,
+					  MP4TrackId dstHintTrackReferenceTrack
+                                          )
 {
   MP4TrackId dstTrackId = MP4_INVALID_TRACK_ID;
 
@@ -803,8 +807,10 @@ extern "C" MP4TrackId MP4EncAndCloneTrack(MP4FileHandle srcFile,
 								    srcTrackId),
 				     MP4GetTrackVideoWidth(srcFile, srcTrackId),
 				     MP4GetTrackVideoHeight(srcFile, srcTrackId),
+                                     icPp,
 				     MP4GetTrackEsdsObjectTypeId(srcFile, 
-								 srcTrackId));
+								 srcTrackId)
+                                     );
 
   } else if (MP4_IS_AUDIO_TRACK_TYPE(trackType)) {
     MP4SetAudioProfileLevel(dstFile, MP4GetAudioProfileLevel(srcFile));
@@ -812,8 +818,10 @@ extern "C" MP4TrackId MP4EncAndCloneTrack(MP4FileHandle srcFile,
 				     MP4GetTrackTimeScale(srcFile, srcTrackId),
 				     MP4GetTrackFixedSampleDuration(srcFile, 
 								    srcTrackId),
+                                     icPp,
 				     MP4GetTrackEsdsObjectTypeId(srcFile, 
-								 srcTrackId));
+								 srcTrackId)
+                                     );
 
   } else if (MP4_IS_OD_TRACK_TYPE(trackType)) {
     dstTrackId = MP4AddODTrack(dstFile);
@@ -822,10 +830,13 @@ extern "C" MP4TrackId MP4EncAndCloneTrack(MP4FileHandle srcFile,
     dstTrackId = MP4AddSceneTrack(dstFile);
     
   } else if (MP4_IS_HINT_TRACK_TYPE(trackType)) {
-    dstTrackId = MP4AddHintTrack(dstFile,
+     if (dstHintTrackReferenceTrack == MP4_INVALID_TRACK_ID) {
+         dstTrackId = MP4_INVALID_TRACK_ID;
+    } else {	 
+         dstTrackId = MP4AddHintTrack(dstFile,
 				 MP4GetHintTrackReferenceTrackId(srcFile, 
 								 srcTrackId));
-
+    }
   } else if (MP4_IS_SYSTEMS_TRACK_TYPE(trackType)) {
     dstTrackId = MP4AddSystemsTrack(dstFile, trackType);
     
@@ -858,10 +869,41 @@ extern "C" MP4TrackId MP4EncAndCloneTrack(MP4FileHandle srcFile,
       free(pConfig);
     }
 
+  // Bill's change to MP4CloneTrack
+  if (MP4_IS_HINT_TRACK_TYPE(trackType)) {
+    // probably not exactly what is wanted
+    // but caller can adjust later to fit their desires
+
+    char* payloadName = NULL;
+    char *encodingParms = NULL;
+    u_int8_t payloadNumber;
+    u_int16_t maxPayloadSize;
+
+    MP4GetHintTrackRtpPayload(
+                               srcFile,
+			       srcTrackId,
+			       &payloadName,
+			       &payloadNumber,
+			       &maxPayloadSize,
+			       &encodingParms);
+
+       MP4SetHintTrackRtpPayload(
+		                 dstFile,
+			         dstTrackId,
+			         payloadName,
+			         &payloadNumber,
+			         maxPayloadSize,
+			         encodingParms);	
+#if 0
+      MP4SetHintTrackSdp(
+                         dstFile,
+                         dstTrackId,
+                         MP4GetHintTrackSdp(srcFile, srcTrackId));
+#endif
+   }
+
   return dstTrackId;
 }
-#endif
-
 extern "C" MP4TrackId MP4CopyTrack(MP4FileHandle srcFile, 
 				   MP4TrackId srcTrackId,
 				   MP4FileHandle dstFile, 
@@ -947,21 +989,25 @@ extern "C" MP4TrackId MP4CopyTrack(MP4FileHandle srcFile,
   return dstTrackId;
 }
 
-
-#ifdef ISMACRYP
 // Given a source track in a source file, make an encrypted copy of 
 // the track in the destination file, including sample encryption
 extern "C" MP4TrackId MP4EncAndCopyTrack(MP4FileHandle srcFile, 
-				      MP4TrackId srcTrackId,
-				      ismacryp_session_id_t ismaCryptSId,
-				      MP4FileHandle dstFile,
-				      bool applyEdits)
+					 MP4TrackId srcTrackId,
+                                         mp4v2_ismacrypParams *icPp,
+                                         encryptFunc_t encfcnp,
+                                         u_int32_t encfcnparam1,
+					 MP4FileHandle dstFile,
+					 bool applyEdits,
+					 MP4TrackId dstHintTrackReferenceTrack
+                                         )
 {
   bool copySamples = true;	// LATER allow false => reference samples
 
   MP4TrackId dstTrackId =
-    MP4EncAndCloneTrack(srcFile, srcTrackId, dstFile);
-
+     MP4EncAndCloneTrack(srcFile, srcTrackId,
+                        icPp,
+                        dstFile, dstHintTrackReferenceTrack);
+  
   if (dstTrackId == MP4_INVALID_TRACK_ID) {
     return dstTrackId;
   }
@@ -1012,7 +1058,8 @@ extern "C" MP4TrackId MP4EncAndCopyTrack(MP4FileHandle srcFile,
       rc = MP4EncAndCopySample(srcFile,
 			 srcTrackId,
 			 sampleId,
-			 ismaCryptSId,
+			 encfcnp,
+                         encfcnparam1,
 			 dstFile,
 			 dstTrackId,
 			 sampleDuration);
@@ -1035,7 +1082,6 @@ extern "C" MP4TrackId MP4EncAndCopyTrack(MP4FileHandle srcFile,
 
   return dstTrackId;
 }
-#endif
 
 extern "C" bool MP4DeleteTrack(
 	MP4FileHandle hFile, 
@@ -1368,6 +1414,23 @@ extern "C" float MP4GetTrackVideoFrameRate(
 	return 0.0;
 }
 
+// returns true if the track is a media track encrypted according to ismacryp
+extern "C" bool MP4IsIsmaCrypMediaTrack(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+        if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+               try {
+                       return ((MP4File*)hFile)->IsIsmaCrypMediaTrack(trackId); 
+	       }
+               catch (MP4Error* e) {
+                       PRINT_ERROR(e);
+                       delete e;
+               }
+        }
+        return false;
+}
+
+
 /* generic track properties */
 
 extern "C" u_int64_t MP4GetTrackIntegerProperty(
@@ -1673,12 +1736,12 @@ extern "C" bool MP4CopySample(
 	return rc;
 }
 
-#ifdef ISMACRYP
 extern "C" bool MP4EncAndCopySample(
 	MP4FileHandle srcFile,
 	MP4TrackId srcTrackId, 
 	MP4SampleId srcSampleId,
-	ismacryp_session_id_t ismaCryptSId,
+        encryptFunc_t encfcnp,
+        u_int32_t encfcnparam1,
 	MP4FileHandle dstFile,
 	MP4TrackId dstTrackId,
 	MP4Duration dstSampleDuration)
@@ -1686,6 +1749,8 @@ extern "C" bool MP4EncAndCopySample(
 	bool rc;
 	u_int8_t* pBytes = NULL; 
 	u_int32_t numBytes = 0;
+	u_int8_t* encSampleData = NULL;
+	u_int32_t encSampleLength = 0;
 	MP4Duration sampleDuration;
 	MP4Duration renderingOffset;
 	bool isSyncSample;
@@ -1720,26 +1785,32 @@ extern "C" bool MP4EncAndCopySample(
 		sampleDuration = dstSampleDuration;
 	}
 
-	if (ismacrypEncryptSample(ismaCryptSId, numBytes, 
-				  pBytes) != 0) {
-	  fprintf(stderr,	
-		  "Can't encrypt the sample %u\n", srcSampleId);
-	}
+        //if (ismacrypEncryptSampleAddHeader(ismaCryptSId, numBytes, pBytes,
+        //                        &encSampleLength, &encSampleData) != 0) {
+        if (encfcnp(encfcnparam1, numBytes, pBytes,
+				&encSampleLength, &encSampleData) != 0) {
+		fprintf(stderr,
+			"Can't encrypt the sample and add its header %u\n",
+			srcSampleId);
+	}	
 
 	rc = MP4WriteSample(
 		dstFile,
-		dstTrackId,
-		pBytes,
-		numBytes,
-		sampleDuration,
-		renderingOffset,		
-		isSyncSample);
-
+                dstTrackId,
+                encSampleData,
+                encSampleLength,
+                sampleDuration,
+                renderingOffset,
+                isSyncSample);
+		
 	free(pBytes);
 
+	if (encSampleData != NULL) {
+	          free(encSampleData);
+        }
+	
 	return rc;
 }
-#endif
 
 extern "C" bool MP4ReferenceSample(
 	MP4FileHandle srcFile,

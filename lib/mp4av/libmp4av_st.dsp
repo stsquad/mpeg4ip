@@ -129,6 +129,10 @@ SOURCE=.\rfc3119.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\rfccrypto.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\rfcisma.cpp
 # End Source File
 # End Group

@@ -735,7 +735,7 @@ mpeg4-2000 -  ISO MPEG-4 video encoder/decoder<br>
 <b>server</b> - server specific code<br>
         |-&gt; audio<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
-            faac - AAC encoder program<br>
+            faac - AAC encoder program (obsolete)<br>
         |-&gt; mp4creator - create and hint A/V tracks to an mp4 file<br>
         |-&gt; mp4live - mp4 live encoding interface<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
@@ -852,7 +852,8 @@ at mp4live, in the kernel IP transmit stack, in the network, in the
 kernel IP receive stack and in the player.
 <P>
 Mp4live has very little latency.  There is no latency from when the video frame
-is encoded.  In audio, it tends to be 3-4 audio frames (if using AAC, frames 
+is encoded with mpeg4.  With MPEG-2, the B frames require a 2 frame latency
+period.  In audio, it tends to be 3-4 audio frames (if using AAC, frames 
 tend to be 1024 samples.  MP3 tends to be 1152 samples, but can change based on
 sampling frequency and bit rate.  Samples can be converted to seconds by
 dividing by the sample rate).
@@ -863,6 +864,9 @@ trace of DSS output and you'll see what I mean).
 <P>
 Network latency can occur, as well.  Collisions, etc, can happen, especially
 if server and player are not on the same network.
+<p>
+If you're using a streaming server as a relay, latency can be introduced
+there, as well.
 <P>
 Finally, the player has latency as well.  For streaming, we tend to buffer
 2 seconds for each stream.  This is changeable by setting the 

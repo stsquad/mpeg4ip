@@ -24,7 +24,7 @@
 
 int main(int argc, char** argv)
 {
-	char* usageString = "usage: %s [-verbose=[<level>]] <file-name>\n";
+	char* usageString = "[-verbose=[<level>]] <file-name>\n";
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
 	bool dumpImplicits = false;
 
@@ -61,7 +61,7 @@ int main(int argc, char** argv)
 			}
 			break;
 		case '?':
-			fprintf(stderr, usageString, progName);
+			fprintf(stderr, "usage: %s %s", progName, usageString);
 			exit(0);
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n", 
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 
 	/* check that we have at least one non-option argument */
 	if ((argc - optind) < 1) {
-		fprintf(stderr, usageString, progName);
+		fprintf(stderr, "usage: %s %s", progName, usageString);
 		exit(1);
 	}
 

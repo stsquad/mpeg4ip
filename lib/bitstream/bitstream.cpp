@@ -25,7 +25,7 @@
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
 #endif
 
-static unsigned int msk[33] =
+static uint32_t msk[33] =
 {
   0x00000000, 0x00000001, 0x00000003, 0x00000007,
   0x0000000f, 0x0000001f, 0x0000003f, 0x0000007f,
@@ -57,10 +57,12 @@ void CBitstream::bookmark (int bSet)
     m_chDecBuffer_bookmark = m_chDecBuffer;
     m_chDecBufferSize_bookmark = m_chDecBufferSize;
     m_bBookmarkOn = 1;
+    m_chDecData_bookmark = m_chDecData;
   } else {
     m_uNumOfBitsInBuffer = m_uNumOfBitsInBuffer_bookmark;
     m_chDecBuffer = m_chDecBuffer_bookmark;
     m_chDecBufferSize = m_chDecBufferSize_bookmark;
+    m_chDecData = m_chDecData_bookmark;
     m_bBookmarkOn = 0;
   }
 }

@@ -116,6 +116,7 @@ void CMpeg2fByteStream::play (uint64_t start_time)
 {
   m_play_start_time = start_time;
   m_file->seek_to(start_time);
+  mpeg2t_clear_frames(m_es_pid);
 }
 
 uint64_t CMpeg2fByteStream::start_next_frame (uint8_t **buffer, 
@@ -134,7 +135,7 @@ uint64_t CMpeg2fByteStream::start_next_frame (uint8_t **buffer,
     m_file->get_frame_for_pid(m_es_pid);
     m_frame = mpeg2t_get_es_list_head(m_es_pid);
     if (m_frame == NULL) {
-      player_debug_message("%s no frame", m_name);
+      player_debug_message("%s no frame %d", m_name, m_file->eof());
       return 0;
     }
   }

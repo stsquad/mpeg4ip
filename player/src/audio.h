@@ -58,9 +58,14 @@ class CAudioSync {
   virtual void set_wait_sem(SDL_sem *p) {m_audio_waiting = p; } ;
   virtual void set_volume(int volume);
  protected:
+  void audio_convert_data(void *from, uint32_t len);
   SDL_sem *m_audio_waiting;
   CPlayerSession *m_psptr;
   int m_eof;
+  int m_channels, m_got_channels;
+  audio_format_t m_format;
+  void *m_convert_buffer;
+  int16_t *m_fmt_buffer;
 };
 
 CAudioSync *create_audio_sync(CPlayerSession *, int volume);

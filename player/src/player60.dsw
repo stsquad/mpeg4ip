@@ -102,6 +102,48 @@ Package=<4>
 
 ###############################################################################
 
+Project: "ismacryp_rtp_audio"=..\plugin\rtp\isma_audio\ismacryp_rtp_audio.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libismacryp
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name bitstream
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4util
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ismacryp_rtp_video_plugin"=..\PLUGIN\RTP\ISMA_VIDEO\ismacryp_rtp_video_plugin.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name bitstream
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libismacryp
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4util
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "libavi"=..\..\lib\avi\libavi60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -151,6 +193,18 @@ Package=<4>
 ###############################################################################
 
 Project: "libhttp"=..\lib\libhttp\libhttp60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libismacryp"=..\..\LIB\ISMACRYP\libismacryp.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -335,6 +389,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libmpeg32util
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libismacryp
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -455,6 +512,30 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name SDLaudio
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ismacryp_rtp_audio
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name aac_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name celp_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name isma_audio_rtp_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ismacryp_rtp_video_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mp3_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mpeg3_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name xvid_plugin
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -523,6 +604,30 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name SDLaudio
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ismacryp_rtp_video_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name aac_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name celp_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name isma_audio_rtp_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ismacryp_rtp_audio
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mp3_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mpeg3_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name xvid_plugin
     End Project Dependency
 }}}
 

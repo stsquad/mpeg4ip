@@ -26,11 +26,55 @@
 
 #include <mp4creator.h>
 #include <avilib.h>
+static void set_es_config (MP4FileHandle mp4File, 
+			   MP4TrackId trackId, 
+			   uint8_t *pBuffer, 
+			   uint32_t len)
+{
+  uint8_t *outbuf = (uint8_t *)malloc(len);
+  uint8_t *in, *out;
+  uint32_t ix;
+  uint32_t code = 0;
+  uint32_t outlen;
+
+  memcpy(outbuf, pBuffer, 4);
+  outlen = 4;
+  len -= 4;
+  in = pBuffer + 4;
+  out = outbuf + 4;
+  bool skip = false;
+
+  for (ix = 0; ix < len; ix++) {
+    code <<= 8;
+    code |= *in;
+    if (code == MP4AV_MPEG4_USER_DATA_START) {
+      skip = true;
+    } else {
+      if ((code & 0xffffff00) == (MP4AV_MPEG4_SYNC << 8)) {
+	skip = false;
+      }
+      if (skip == false) {
+	*out++ = *in;
+	outlen++;
+      }
+    }
+    in++;
+  }
+  if (skip) {
+    outlen -= 3; // we wrote 00 00 01 before skip
+  }
+      
+  MP4SetTrackESConfiguration(mp4File, trackId,
+			     outbuf, outlen);
+}
 
 static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEncrypt)
 {
 	char* videoType = AVI_video_compressor(aviFile);
 	u_int8_t videoProfileLevel = MPEG4_SP_L3;
+        ismacryp_session_id_t ismaCrypSId;
+        mp4v2_ismacrypParams *icPp =  (mp4v2_ismacrypParams *) malloc(sizeof(mp4v2_ismacrypParams));
+        memset(icPp, 0, sizeof(mp4v2_ismacrypParams));
 
 	if (strcasecmp(videoType, "divx")
 	  && strcasecmp(videoType, "dx50")
@@ -39,6 +83,52 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 			"%s: video compressor %s not recognized\n",
 			 ProgName, videoType);
 		return MP4_INVALID_TRACK_ID;
+	}
+
+	if (doEncrypt) {
+	  if (ismacrypInitSession(&ismaCrypSId, KeyTypeAudio) != 0) {
+	    fprintf(stderr, "%s: could not initialize the ISMAcryp session\n",
+		    ProgName);
+	    return MP4_INVALID_TRACK_ID;
+	  }
+
+          if (ismacrypGetScheme(ismaCrypSId, &(icPp->scheme_type)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp scheme type. sid %d\n", 
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetSchemeVersion(ismaCrypSId, &(icPp->scheme_version)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp scheme ver. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetKMSUri(ismaCrypSId, &(icPp->kms_uri)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp kms uri. sid %d\n",
+                     ProgName, ismaCrypSId);
+             if (icPp->kms_uri != NULL) free(icPp->kms_uri);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if ( ismacrypGetSelectiveEncryption(ismaCrypSId, &(icPp->selective_enc)) != ismacryp_rc_ok ) {
+             fprintf(stderr, "%s: could not get ismacryp selec enc. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetKeyIndicatorLength(ismaCrypSId, &(icPp->key_ind_len)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp key ind len. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetIVLength(ismaCrypSId, &(icPp->iv_len)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp iv len. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
 	}
 
 	double frameRate = AVI_video_frame_rate(aviFile);
@@ -60,20 +150,14 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 
 	MP4TrackId trackId;
 	if (doEncrypt) {
-#ifdef ISMACRYP
 	  trackId = MP4AddEncVideoTrack(
 				     mp4File,
 				     Mp4TimeScale, 
 				     mp4FrameDuration, 
 				     AVI_video_width(aviFile), 
 				     AVI_video_height(aviFile), 
+                                     icPp,
 				     MP4_MPEG4_VIDEO_TYPE);
-#else
-	  trackId = MP4_INVALID_TRACK_ID;
-	  fprintf(stderr,
-	     "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
-		  ProgName);
-#endif
 	} else {
 	  trackId = MP4AddVideoTrack(
 				     mp4File,
@@ -248,8 +332,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 				     pFrameBuffer, vopStart + 1);
 	}
 #else
-	MP4SetTrackESConfiguration(mp4File, trackId,
-				   pFrameBuffer, vopStart + 1);
+	set_es_config(mp4File, trackId, pFrameBuffer, vopStart + 1);
 #endif
 	if (MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE) == 1) {
 	  if (VideoProfileLevelSpecified) {
@@ -308,6 +391,9 @@ static inline u_int32_t BytesToInt32(u_int8_t* pBytes)
 static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEncrypt)
 {
 	int32_t audioType = AVI_audio_format(aviFile);
+        ismacryp_session_id_t ismaCrypSId;
+        mp4v2_ismacrypParams *icPp =  (mp4v2_ismacrypParams *) malloc(sizeof(mp4v2_ismacrypParams));
+        memset(icPp, 0, sizeof(mp4v2_ismacrypParams));
 
 	// Check for MP3 audio type
 	if (audioType != 0x55) {
@@ -315,6 +401,52 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 			"%s: audio compressor 0x%x not recognized\n",
 			 ProgName, audioType);
 		return MP4_INVALID_TRACK_ID;
+	}
+
+	if (doEncrypt) {
+	  if (ismacrypInitSession(&ismaCrypSId, KeyTypeAudio) != 0) {
+	    fprintf(stderr, "%s: could not initialize the ISMAcryp session\n",
+		    ProgName);
+	    return MP4_INVALID_TRACK_ID;
+	  }
+
+          if (ismacrypGetScheme(ismaCrypSId, &(icPp->scheme_type)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp scheme type. sid %d\n", 
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetSchemeVersion(ismaCrypSId, &(icPp->scheme_version)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp scheme ver. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetKMSUri(ismaCrypSId, &(icPp->kms_uri)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp kms uri. sid %d\n",
+                     ProgName, ismaCrypSId);
+             if (icPp->kms_uri != NULL) free(icPp->kms_uri);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if ( ismacrypGetSelectiveEncryption(ismaCrypSId, &(icPp->selective_enc)) != ismacryp_rc_ok ) {
+             fprintf(stderr, "%s: could not get ismacryp selec enc. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetKeyIndicatorLength(ismaCrypSId, &(icPp->key_ind_len)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp key ind len. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
+          if (ismacrypGetIVLength(ismaCrypSId, &(icPp->iv_len)) != ismacryp_rc_ok) {
+             fprintf(stderr, "%s: could not get ismacryp iv len. sid %d\n",
+                     ProgName, ismaCrypSId);
+             ismacrypEndSession(ismaCrypSId);
+             return MP4_INVALID_TRACK_ID;
+          }
 	}
 
 	u_int8_t temp[4];
@@ -356,15 +488,10 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 	
 	MP4TrackId trackId;
 	if (doEncrypt) {
-#ifdef ISMACRYP
 	  trackId = MP4AddEncAudioTrack(mp4File, samplesPerSecond, 
-				     samplesPerFrame, mp4AudioType);
-#else
-	  trackId = MP4_INVALID_TRACK_ID;
-	  fprintf(stderr,
-	      "%s: enable ismacrypt to encrypt (--enable-ismacrypt=<path>)\n",
-		  ProgName);
-#endif
+				     samplesPerFrame, 
+                                     icPp,
+                                     mp4AudioType);
 	} else {
 	   trackId = MP4AddAudioTrack(mp4File, samplesPerSecond, 
 				     samplesPerFrame, mp4AudioType);

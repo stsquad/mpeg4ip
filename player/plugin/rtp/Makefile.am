@@ -1,1 +1,1 @@
-SUBDIRS=isma_audio h261
+SUBDIRS=isma_audio h261 isma_video

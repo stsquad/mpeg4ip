@@ -321,7 +321,7 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 	    is_seekable = false;
 	  } else {
 #ifdef DEBUG_MPEG2F_SEARCH
-	    mpeg2f_message("pid %x psts "U64" %d", 
+	    mpeg2f_message(LOG_DEBUG, "pid %x psts "U64" %d", 
 			       pidptr->pid, es_pid->ps_ts, 
 			       es_pid->is_video);
 #endif
@@ -338,12 +338,16 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 
   // Now, we'll go to close to the end of the file, and look for a 
   // final PSTS.  This gives us a rough estimate of the elapsed time
-  fseek(m_ifile, 0 - (m_buffer_size_max * 2), SEEK_END);
+  long seek_offset;
+  seek_offset = 0;
+  seek_offset -= (m_buffer_size_max) * 2;
+
+  fseek(m_ifile, seek_offset, SEEK_END);
   m_buffer_on = m_buffer_size = 0;
   uint64_t max_psts;
   max_psts = m_start_psts;
   do {
-    while (m_buffer_on < m_buffer_size) {
+    while (m_buffer_on + 188 <= m_buffer_size) {
       
       pidptr = mpeg2t_process_buffer(m_mpeg2t, 
 				     &m_buffer[m_buffer_on],
@@ -358,9 +362,15 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 	}
       }
     }
-    m_buffer_size = fread(m_buffer, 1, m_buffer_size_max, m_ifile);
+    if (m_buffer_size > m_buffer_on) {
+      memmove(m_buffer, m_buffer + m_buffer_on, m_buffer_size - m_buffer_on);
+    }
+    m_buffer_on = m_buffer_size - m_buffer_on;
+    m_buffer_size = fread(m_buffer + m_buffer_on, 1, 
+			  m_buffer_size_max - m_buffer_on, m_ifile);
+    m_buffer_size += m_buffer_on;
     m_buffer_on = 0;
-  } while (m_buffer_size > 0) ;
+  } while (m_buffer_size > 188) ;
 #ifdef DEBUG_MPEG2F_SEARCH
   player_debug_message("last psts is "U64" "U64, max_psts,
 		       (max_psts - m_start_psts) / TO_U64(90000));
@@ -593,7 +603,7 @@ int CMpeg2tFile::create_media (char *errmsg, uint32_t errlen,
 int CMpeg2tFile::eof (void)
 {
   int ret;
-  if (m_buffer_on < m_buffer_size) return 0;
+  if (m_buffer_on + 188 <= m_buffer_size) return 0;
 
   lock_file_mutex();
   ret = feof(m_ifile);
@@ -612,7 +622,7 @@ void CMpeg2tFile::get_frame_for_pid (mpeg2t_es_t *es_pid)
   uint32_t buflen_used;
 
   lock_file_mutex();
-  while (!feof(m_ifile)) {
+  do {
     while (m_buffer_on + 188 < m_buffer_size) {
       pidptr = mpeg2t_process_buffer(m_mpeg2t, 
 				     &m_buffer[m_buffer_on],
@@ -624,17 +634,20 @@ void CMpeg2tFile::get_frame_for_pid (mpeg2t_es_t *es_pid)
 	return;
       }
     }
-    if (m_buffer_on < m_buffer_size) {
-      memmove(m_buffer, m_buffer + m_buffer_on, m_buffer_size - m_buffer_on);
-      m_buffer_on = m_buffer_size - m_buffer_on;
-    } else {
+    if (!feof(m_ifile)) {
+      if (m_buffer_on < m_buffer_size) {
+	memmove(m_buffer, m_buffer + m_buffer_on, m_buffer_size - m_buffer_on);
+	m_buffer_on = m_buffer_size - m_buffer_on;
+      } else {
+	m_buffer_on = 0;
+      }
+      m_buffer_size = fread(m_buffer + m_buffer_on, 1, 
+			    m_buffer_size_max - m_buffer_on, m_ifile);
+      m_buffer_size += m_buffer_on;
       m_buffer_on = 0;
     }
-    m_buffer_size = fread(m_buffer + m_buffer_on, 1, 
-			  m_buffer_size_max - m_buffer_on, m_ifile);
-    m_buffer_size += m_buffer_on;
-    m_buffer_on = 0;
-  }
+  } while (!feof(m_ifile));
+
   unlock_file_mutex();
 }
 
@@ -682,7 +695,7 @@ void CMpeg2tFile::seek_to (uint64_t ts_in_msec)
     return;
   }
 #ifdef DEBUG_MPEG2F_SEARCH
-  mpeg2f_message("Looking for pts "U64" found "U64, 
+  mpeg2f_message(LOG_DEBUG, "Looking for pts "U64" found "U64, 
 		       pts_seeked, start_pos->timestamp);
 #endif
 

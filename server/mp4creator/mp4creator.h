@@ -16,7 +16,8 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Dave Mackie		  dmackie@cisco.com
+ *              Alix Marchandise-Franquet alix@cisco.com
  */
 
 #ifndef __MP4CREATOR_INCLUDED__
@@ -25,9 +26,7 @@
 #include <mpeg4ip.h>
 #include <mp4.h>
 #include <mp4av.h>
-#ifdef ISMACRYP
 #include <ismacryplib.h>
-#endif
 
 #ifdef NODEBUG
 #define ASSERT(expr)
@@ -45,10 +44,8 @@
 #define EXIT_OPTIMIZE_FILE	5
 #define EXIT_EXTRACT_TRACK	6	
 #define EXIT_INFO		7
-#ifdef ISMACRYP
 #define EXIT_ISMACRYP_INIT     8
 #define EXIT_ISMACRYP_END      9
-#endif
 
 // global variables
 #ifdef MP4CREATOR_GLOBALS
@@ -65,8 +62,5 @@ MP4CREATOR_GLOBAL bool TimeScaleSpecified;
 MP4CREATOR_GLOBAL bool VideoProfileLevelSpecified;
 MP4CREATOR_GLOBAL int VideoProfileLevel;
 MP4CREATOR_GLOBAL bool aacUseOldFile;
-#ifdef ISMACRYP
-MP4CREATOR_GLOBAL ismacryp_session_id_t ismaCryptSId;
-#endif
 MP4CREATOR_GLOBAL int aacProfileLevel;
 #endif /* __MP4CREATOR_INCLUDED__ */

@@ -26,7 +26,6 @@
 MP4SchiAtom::MP4SchiAtom() 
 	: MP4Atom("schi") 
 {
-	AddVersionAndFlags();
 	// not sure if this is child atoms or table of boxes
 	// get clarification on spec 9.1.2.5
 	ExpectChildAtom("iKMS", Required, OnlyOne);

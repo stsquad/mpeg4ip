@@ -86,6 +86,8 @@ CSDLVideo::CSDLVideo(int initial_x, int initial_y)
     m_video_bpp = 16;
     break;
   }
+  m_old_win_w = m_old_win_h = 0;
+  m_old_w = m_old_h = 0;
   SDL_ShowCursor(SDL_DISABLE);
 }
 
@@ -167,10 +169,16 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
     // this case is when we set it from the aspect ratio defined.
     if (m_aspect_ratio != 0.0 && m_aspect_ratio != 1.0) {
       double win_wf = m_aspect_ratio;
+      int win_wtest;
       win_wf *= win_h;
-      video_message(LOG_INFO, "aspect ration %g %g %d %d", 
+      video_message(LOG_INFO, "aspect ratio %g %g %d %d", 
 		    m_aspect_ratio, win_wf, win_w, win_h);
-      win_w = (int)win_wf;
+      win_wtest = (int)win_wf;
+      if (win_wtest > win_w) {
+	win_w = win_wtest;
+      } else {
+	video_message(LOG_ERR, "aspect ratio width less than orig");
+      }
     }
   }
   if (fullscreen == 1) {
@@ -178,7 +186,6 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
     if (max_height > 0 && win_h > max_height) win_h = max_height;
   }
 
-  m_fullscreen = fullscreen;
   m_video_scale = video_scale;
 
 #ifdef OLD_SURFACE
@@ -196,6 +203,14 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
   video_message(LOG_DEBUG, "Setting video mode %d %d %x %g", 
 		win_w, win_h, mask, m_aspect_ratio);
 
+  if (win_w == m_old_win_w &&
+      win_h == m_old_win_h &&
+      m_image_w == m_old_w &&
+      m_image_h == m_old_h &&
+      m_fullscreen == fullscreen) {
+    return;
+  }
+  m_fullscreen = fullscreen;
   if (m_image) {
     SDL_FreeYUVOverlay(m_image);
     m_image = NULL;
@@ -255,9 +270,13 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
 				   SDL_YV12_OVERLAY, 
 				   m_screen);
     }
-  if (strlen(m_name) != 0) {
+  if (m_name && strlen(m_name) != 0) {
     SDL_WM_SetCaption(m_name, NULL);
   }
+  m_old_win_w = win_w;
+  m_old_win_h = win_h;
+  m_old_w = m_image_w;
+  m_old_h = m_image_h;
 }
 
 /*
@@ -268,6 +287,7 @@ void CSDLVideo::display_image (uint8_t *y, uint8_t *u, uint8_t *v)
 {
   unsigned int ix;
   uint8_t *to, *from;
+
   if (SDL_LockYUVOverlay(m_image)) {
     video_message(LOG_ERR, "Failed to lock image");
     return;
@@ -402,11 +422,15 @@ CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr,
   m_behind_time_max = 0;
   m_skipped_render = 0;
   m_video_scale = 2;
-  m_msec_per_frame = 0;
+  m_last_filled_time = MAX_UINT64;
+  m_msec_per_frame = 100;
   m_consec_skipped = 0;
   m_fullscreen = 0;
   m_filled_frames = 0;
   video_message(LOG_DEBUG, "vp is %p", video_persistence);
+#ifdef WRITE_YUV
+  m_outfile = fopen("raw.yuv", FOPEN_WRITE_BINARY);
+#endif
 }
 
 CSDLVideoSync::~CSDLVideoSync (void)
@@ -433,6 +457,11 @@ CSDLVideoSync::~CSDLVideoSync (void)
       m_v_buffer[ix] = NULL;
     }
   }
+#ifdef WRITE_YUV
+  if (m_outfile != NULL) {
+    fclose(m_outfile);
+  }
+#endif
 }
 
 /*
@@ -507,10 +536,22 @@ void CSDLVideoSync::play_video (void)
  * video frame (if the timing is right
  */
 int64_t CSDLVideoSync::play_video_at (uint64_t current_time, 
-				   int &have_eof)
+				      int &have_eof)
 {
   uint64_t play_this_at;
+  int64_t ret_value;
+  bool done = false;
+  bool used_frame = false;
+#ifdef VIDEO_SYNC_FILL
+  uint32_t temp = 0;
+#endif
+  ret_value = 0;
 
+  while (done == false) {
+
+  // This needs to be re-written to get rid of all the old frames
+  //before signaling the other threads that it's ready.
+  
   /*
    * m_buffer_filled is ring buffer of YUV data from decoders, with
    * timestamps.
@@ -520,11 +561,13 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
     /*
      * If we have end of file, indicate it
      */
+    done = true;
     if (m_eof_found != 0) {
       have_eof = 1;
-      return (-1);
+      ret_value = -1;
     }
-    return 10;
+    ret_value = 10;
+    continue;
   }
   
   /*
@@ -532,11 +575,13 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
    */
   play_this_at = m_play_this_at[m_play_index];
   if (play_this_at > current_time) {
-    return (play_this_at - current_time);
+    ret_value = play_this_at - current_time;
+    done = true;
+    continue;
   }
 #if VIDEO_SYNC_PLAY
-  video_message(LOG_DEBUG, "play "U64" at "U64 " %d", play_this_at, current_time,
-		       m_play_index);
+  video_message(LOG_DEBUG, "play "U64" at "U64 " %d "U64, play_this_at, current_time,
+		m_play_index, m_msec_per_frame);
 #endif
 
   /*
@@ -560,22 +605,17 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
    * If we're within 1/2 of the frame time, go ahead and display
    * this frame
    */
-#define CHECK_SYNC_TIME 1
-#ifdef CHECK_SYNC_TIME
-  int showed = 0;
+  if ((play_this_at + m_msec_per_frame) > current_time) {
+#if 0
   if ((m_msec_per_frame == 0) || 
       ((play_this_at + m_msec_per_frame) > current_time) ||
       (m_consec_skipped > 10)) {
-#else
-    {
 #endif
-      showed = 1;
       m_consec_skipped = 0;
       m_sdl_video->display_image(m_y_buffer[m_play_index],
 				 m_u_buffer[m_play_index],
 				 m_v_buffer[m_play_index]);
   } 
-#ifdef CHECK_SYNC_TIME
 else {
 #ifdef VIDEO_SYNC_PLAY
     video_message(LOG_DEBUG, "Video lagging current time "U64" "U64" "U64, 
@@ -587,21 +627,20 @@ else {
     m_skipped_render++;
     m_consec_skipped++;
   }
-#endif
   /*
    * Advance the ring buffer, indicating that the decoder can fill this
    * buffer.
    */
   m_buffer_filled[m_play_index] = 0;
 #ifdef VIDEO_SYNC_FILL
-  uint32_t temp;
   temp = m_play_index;
 #endif
   m_play_index++;
   m_play_index %= MAX_VIDEO_BUFFERS;
   m_total_frames++;
-
-  if (m_decode_waiting) {
+  used_frame = true;
+  }
+  if (used_frame && m_decode_waiting) {
     // If the decode thread is waiting, signal it.
     m_decode_waiting = 0;
     SDL_SemPost(m_decode_sem);
@@ -610,6 +649,8 @@ else {
 #endif
   }
 
+  return ret_value;
+#if 0
   // Try to return the next time we want to play - it's probably not
   // accurate, but it should be okay - the sync task looks every 10 msec
   // or so, anyway.
@@ -627,6 +668,7 @@ else {
    */
   m_msec_per_frame = 0;
   return (10);
+#endif
 }
 
 /*
@@ -669,11 +711,19 @@ void CSDLVideoSync::filled_video_buffers (uint64_t time)
   m_play_this_at[m_fill_index] = time;
   m_buffer_filled[m_fill_index] = 1;
   ix = m_fill_index;
+#ifdef WRITE_YUV
+  fwrite(m_y_buffer[ix], m_width * m_height, 1, m_outfile);
+  fwrite(m_u_buffer[ix], (m_width * m_height) / 4, 1, m_outfile);
+  fwrite(m_v_buffer[ix], (m_width * m_height) / 4, 1, m_outfile);
+#endif
   m_fill_index++;
   m_fill_index %= MAX_VIDEO_BUFFERS;
   m_filled_frames++;
-  if (m_msec_per_frame == 0) {
-    m_msec_per_frame = time - m_last_filled_time;
+  //  if (m_msec_per_frame == 0 && m_last_filled_time != MAX_UINT64) {
+  uint64_t temp;
+  temp = time - m_last_filled_time;
+  if (temp != 0) {
+    m_msec_per_frame = MIN(temp, m_msec_per_frame);
   }
   m_last_filled_time = time;
   m_psptr->wake_sync_thread();
@@ -761,11 +811,18 @@ void CSDLVideoSync::set_video_frame(const uint8_t *y,
    */
   m_buffer_filled[m_fill_index] = 1;
   ix = m_fill_index;
+#ifdef WRITE_YUV
+  fwrite(m_y_buffer[ix], m_width * m_height, 1, m_outfile);
+  fwrite(m_u_buffer[ix], (m_width * m_height) / 4, 1, m_outfile);
+  fwrite(m_v_buffer[ix], (m_width * m_height) / 4, 1, m_outfile);
+#endif
   m_fill_index++;
   m_fill_index %= MAX_VIDEO_BUFFERS;
   m_filled_frames++;
-  if (m_msec_per_frame == 0) {
-    m_msec_per_frame = time - m_last_filled_time;
+  uint64_t temp;
+  temp = time - m_last_filled_time;
+  if (temp != 0) {
+    m_msec_per_frame = MIN(temp, m_msec_per_frame);
   }
   m_last_filled_time = time;
   m_psptr->wake_sync_thread();

@@ -219,6 +219,7 @@ bool CFaacAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
     return false;
   }
 
+
   m_samplesPerFrame /= m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
 
   m_faacConfig = faacEncGetCurrentConfiguration(m_faacHandle);

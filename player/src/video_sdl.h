@@ -51,7 +51,8 @@ class CSDLVideo {
   SDL_Rect m_dstrect;
   int m_video_bpp;
   const char *m_name;
-  unsigned int m_image_w, m_image_h;
+  unsigned int m_image_w, m_image_h, m_old_w, m_old_h;
+  int m_old_win_w, m_old_win_h;
   double m_aspect_ratio;
   int m_pixel_width;
   int m_pixel_height;
@@ -112,6 +113,10 @@ class CSDLVideoSync : public CVideoSync {
   int m_pixel_height;
   int m_max_width;
   int m_max_height;
+  //#define WRITE_YUV 1
+#ifdef WRITE_YUV
+  FILE *m_outfile;
+#endif
 };
 
 /* frame doublers */

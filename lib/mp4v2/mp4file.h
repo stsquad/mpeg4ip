@@ -192,13 +192,16 @@ public: /* equivalent to MP4 library API */
 		MP4Duration sampleDuration,
 		u_int8_t audioType);
 
-#ifdef ISMACRYP
-	MP4TrackId AddEncAudioTrack( // ismacrypt
+	MP4TrackId AddEncAudioTrack( // ismacryp
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
-		u_int8_t audioType,
-		ismacryp_session_id_t ismaCryptSId);
-#endif
+		u_int8_t  audioType,
+                u_int32_t scheme_type,
+                u_int16_t scheme_version,
+                u_int8_t  key_ind_len,
+                u_int8_t  iv_len, 
+                bool      selective_enc,
+                char      *kms_uri);
 
 	MP4TrackId AddVideoTrack(
 		u_int32_t timeScale, 
@@ -207,15 +210,19 @@ public: /* equivalent to MP4 library API */
 		u_int16_t height, 
 		u_int8_t videoType);
 
-#ifdef ISMACRYP	
-	MP4TrackId AddEncVideoTrack( // ismacrypt
+	MP4TrackId AddEncVideoTrack( // ismacryp
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
 		u_int16_t width, 
 		u_int16_t height, 
-		ismacryp_session_id_t ismaCryptSId,
-		u_int8_t videoType);
-#endif
+		u_int8_t  videoType,
+                u_int32_t scheme_type,
+                u_int16_t scheme_version,
+                u_int8_t  key_ind_len,
+                u_int8_t  iv_len,
+                bool      selective_enc,
+                char      *kms_uri);
+
 
 	MP4TrackId AddHintTrack(MP4TrackId refTrackId);
 
@@ -250,6 +257,9 @@ public: /* equivalent to MP4 library API */
 
 	// ISMA specific functions
 
+       // true if media track encrypted according to ismacryp
+       bool IsIsmaCrypMediaTrack(MP4TrackId trackId);
+	
 	void MakeIsmaCompliant(bool addIsmaComplianceSdp = true);
 
 	void CreateIsmaIodFromParams(

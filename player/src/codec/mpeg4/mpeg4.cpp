@@ -604,7 +604,8 @@ static int iso_codec_check (lib_message_func_t message,
     }
 #endif
     if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
-      if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0) {
+      if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0 || 
+          strcasecmp(fptr->rtpmap->encode_name, "enc-mpeg4-generic") == 0) {
 	ret_val =  1;
       }
     }
