@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.1 $ 
- * $Date: 2001/02/05 20:26:34 $
+ * $Revision: 1.2 $ 
+ * $Date: 2001/03/07 20:08:39 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -38,6 +38,12 @@
 
 #ifndef __RTP_H__
 #define __RTP_H__
+
+#include "config_unix.h"
+#include "config_win32.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define RTP_VERSION 2
 // wmay - added next, prev pointers to rtp packet
@@ -215,4 +221,7 @@ int		 rtp_get_ttl(struct rtp *session);
 
 int              rtp_set_my_ssrc(struct rtp *session, uint32_t ssrc);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* __RTP_H__ */

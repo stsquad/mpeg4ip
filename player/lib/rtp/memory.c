@@ -2,8 +2,8 @@
  * FILE:    memory.c
  * AUTHORS:  Isidor Kouvelas / Colin Perkins / Mark Handley / Orion Hodson
  *
- * $Revision: 1.1 $
- * $Date: 2001/02/05 20:26:34 $
+ * $Revision: 1.2 $
+ * $Date: 2001/03/07 20:08:39 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -389,6 +389,7 @@ _xmalloc(unsigned size, const char *filen, int line)
         ch->magic = MAGIC_MEMORY;
 
         /* Fill allocated memory with random numbers */
+#if 0
         for (j = (uint32_t*)((chk_header *)p + 1); size > 4; size -= 4) {
                 *j++ = rand();
         }
@@ -398,7 +399,10 @@ _xmalloc(unsigned size, const char *filen, int line)
         
         /* Fix block tail */
         memcpy(t, &ch->magic, MAGIC_MEMORY_SIZE);
-
+#else
+		memset(p + sizeof(chk_header), 0, size);
+		memcpy(p + sizeof(chk_header) + size, &ch->magic, MAGIC_MEMORY_SIZE);
+#endif
         /* Check set up okay */
         if (chk_header_okay(ch) == FALSE) {
                 fprintf(stderr, "Implementation Error\n");
