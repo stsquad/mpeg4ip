@@ -27,7 +27,7 @@
 #include <mp4creator.h>
 #include <avilib.h>
 
-static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
+static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEncrypt)
 {
 	char* videoType = AVI_video_compressor(aviFile);
 	u_int8_t videoProfileLevel = 0x03;
@@ -58,13 +58,24 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		(MP4Duration)(Mp4TimeScale / frameRate);
 #endif
 
-	MP4TrackId trackId = MP4AddVideoTrack(
-		mp4File,
-		Mp4TimeScale, 
-		mp4FrameDuration, 
-		AVI_video_width(aviFile), 
-		AVI_video_height(aviFile), 
-		MP4_MPEG4_VIDEO_TYPE);
+	MP4TrackId trackId;
+	if (doEncrypt) {
+	  trackId = MP4AddEncVideoTrack(
+				     mp4File,
+				     Mp4TimeScale, 
+				     mp4FrameDuration, 
+				     AVI_video_width(aviFile), 
+				     AVI_video_height(aviFile), 
+				     MP4_MPEG4_VIDEO_TYPE);
+	} else {
+	  trackId = MP4AddVideoTrack(
+				     mp4File,
+				     Mp4TimeScale, 
+				     mp4FrameDuration, 
+				     AVI_video_width(aviFile), 
+				     AVI_video_height(aviFile), 
+				     MP4_MPEG4_VIDEO_TYPE);
+	}
 
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	
@@ -282,7 +293,7 @@ static inline u_int32_t BytesToInt32(u_int8_t* pBytes)
 		| (pBytes[2] << 8) | pBytes[3];
 }
 
-static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
+static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEncrypt)
 {
 	int32_t audioType = AVI_audio_format(aviFile);
 
@@ -330,8 +341,15 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		return MP4_INVALID_TRACK_ID;
 	}
 
-	MP4TrackId trackId = MP4AddAudioTrack(mp4File, 
-		samplesPerSecond, samplesPerFrame, mp4AudioType);
+	
+	MP4TrackId trackId;
+	if (doEncrypt) {
+	  trackId = MP4AddEncAudioTrack(mp4File, samplesPerSecond, 
+				     samplesPerFrame, mp4AudioType);
+	} else {
+	   trackId = MP4AddAudioTrack(mp4File, samplesPerSecond, 
+				     samplesPerFrame, mp4AudioType);
+	}
 
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	
@@ -406,7 +424,8 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	return trackId;
 }
 
-MP4TrackId* AviCreator(MP4FileHandle mp4File, const char* aviFileName)
+MP4TrackId* AviCreator(MP4FileHandle mp4File, const char* aviFileName, 
+		       bool doEncrypt)
 {
 	static MP4TrackId trackIds[3];
 	u_int8_t numTracks = 0;
@@ -419,14 +438,16 @@ MP4TrackId* AviCreator(MP4FileHandle mp4File, const char* aviFileName)
 
 	} else {
 		if (AVI_video_frames(aviFile) > 0) {
-			trackIds[numTracks] = VideoCreator(mp4File, aviFile);
+			trackIds[numTracks] = VideoCreator(mp4File, aviFile, 
+							   doEncrypt);
 			if (trackIds[numTracks] != MP4_INVALID_TRACK_ID) {
 				numTracks++;
 			}
 		}
 
 		if (AVI_audio_bytes(aviFile) > 0) {
-			trackIds[numTracks] = AudioCreator(mp4File, aviFile);
+			trackIds[numTracks] = AudioCreator(mp4File, aviFile, 
+							   doEncrypt);
 			if (trackIds[numTracks] != MP4_INVALID_TRACK_ID) {
 				numTracks++;
 			}

@@ -16,7 +16,8 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Dave Mackie			dmackie@cisco.com
+ *		Alix Marchandise-Franquet	alix@cisco.com
  */
 
 #ifndef __MP4_FILE_INCLUDED__
@@ -193,7 +194,19 @@ public: /* equivalent to MP4 library API */
 		MP4Duration sampleDuration,
 		u_int8_t audioType);
 
+	MP4TrackId AddEncAudioTrack( // ismacrypt
+		u_int32_t timeScale, 
+		MP4Duration sampleDuration,
+		u_int8_t audioType);
+
 	MP4TrackId AddVideoTrack(
+		u_int32_t timeScale, 
+		MP4Duration sampleDuration,
+		u_int16_t width, 
+		u_int16_t height, 
+		u_int8_t videoType);
+	
+	MP4TrackId AddEncVideoTrack( // ismacrypt
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
 		u_int16_t width, 
@@ -210,6 +223,9 @@ public: /* equivalent to MP4 library API */
 
 	u_int32_t GetTrackTimeScale(MP4TrackId trackId);
 	void SetTrackTimeScale(MP4TrackId trackId, u_int32_t value);
+
+	// replacement to GetTrackAudioType and GetTrackVideoType	
+	u_int8_t GetTrackEsdsObjectTypeId(MP4TrackId trackId);
 
 	u_int8_t GetTrackAudioType(MP4TrackId trackId);
 	u_int8_t GetTrackAudioMpeg4Type(MP4TrackId trackId);

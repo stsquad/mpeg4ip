@@ -16,7 +16,8 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Dave Mackie			dmackie@cisco.com
+ *		Alix Marchandise-Franquet	alix@cisco.com
  */
 
 #include "mp4common.h"
@@ -1344,13 +1345,15 @@ const char* MP4Track::NormalizeTrackType(const char* type)
 {
 	if (!strcasecmp(type, "vide")
 	  || !strcasecmp(type, "video")
-	  || !strcasecmp(type, "mp4v")) {
+	  || !strcasecmp(type, "mp4v")
+	  || !strcasecmp(type, "encv")) {
 		return MP4_VIDEO_TRACK_TYPE;
 	}
 
 	if (!strcasecmp(type, "soun")
 	  || !strcasecmp(type, "sound")
 	  || !strcasecmp(type, "audio")
+	  || !strcasecmp(type, "enca")  // ismacrypt 
 	  || !strcasecmp(type, "mp4a")) {
 		return MP4_AUDIO_TRACK_TYPE;
 	}

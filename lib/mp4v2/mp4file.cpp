@@ -16,7 +16,8 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Dave Mackie		  dmackie@cisco.com
+ *              Alix Marchandise-Franquet alix@cisco.com
  */
 
 #include "mp4common.h"
@@ -1154,6 +1155,56 @@ MP4TrackId MP4File::AddAudioTrack(
 	return trackId;
 }
 
+MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale, 
+				     MP4Duration sampleDuration, 
+				     u_int8_t audioType)
+{
+  MP4TrackId trackId = AddTrack(MP4_AUDIO_TRACK_TYPE, timeScale);
+
+  AddTrackToOd(trackId);
+
+  SetTrackFloatProperty(trackId, "tkhd.volume", 1.0);
+
+  InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "smhd", 0);
+
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "enca");
+
+  // stsd is a unique beast in that it has a count of the number 
+  // of child atoms that needs to be incremented after we add the enca atom
+  MP4Integer32Property* pStsdCountProperty;
+  FindIntegerProperty(
+		      MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
+		      (MP4Property**)&pStsdCountProperty);
+  pStsdCountProperty->IncrementValue();
+
+  SetTrackIntegerProperty(trackId, 
+			  "mdia.minf.stbl.stsd.enca.timeScale", timeScale);
+
+  SetTrackIntegerProperty(trackId, 
+			  "mdia.minf.stbl.stsd.enca.esds.ESID", 
+#if 0
+			  // note - for a file, these values need to 
+			  // be 0 - wmay - 04/16/2003
+			  trackId
+#else
+			  0
+#endif
+			  );
+
+  SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.enca.esds.decConfigDescr.objectTypeId", 
+			  audioType);
+
+  SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.enca.esds.decConfigDescr.streamType", 
+			  MP4AudioStreamType);
+
+  m_pTracks[FindTrackIndex(trackId)]->
+    SetFixedSampleDuration(sampleDuration);
+
+  return trackId;
+}
+
 MP4TrackId MP4File::AddVideoTrack(
 	u_int32_t timeScale, 
 	MP4Duration sampleDuration, 
@@ -1211,6 +1262,64 @@ MP4TrackId MP4File::AddVideoTrack(
 		SetFixedSampleDuration(sampleDuration);
 
 	return trackId;
+}
+
+MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale, 
+				     MP4Duration sampleDuration, 
+				     u_int16_t width, 
+				     u_int16_t height, 
+				     u_int8_t videoType)
+{
+  MP4TrackId trackId = AddTrack(MP4_VIDEO_TRACK_TYPE, timeScale);
+
+  AddTrackToOd(trackId);
+
+  SetTrackFloatProperty(trackId, "tkhd.width", width);
+  SetTrackFloatProperty(trackId, "tkhd.height", height);
+
+  InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd", 0);
+
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "encv");
+
+  // stsd is a unique beast in that it has a count of the number 
+  // of child atoms that needs to be incremented after we add the encv atom
+  MP4Integer32Property* pStsdCountProperty;
+  FindIntegerProperty(
+		      MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
+		      (MP4Property**)&pStsdCountProperty);
+  pStsdCountProperty->IncrementValue();
+
+  SetTrackIntegerProperty(trackId, 
+			  "mdia.minf.stbl.stsd.encv.width", width);
+  SetTrackIntegerProperty(trackId, 
+			  "mdia.minf.stbl.stsd.encv.height", height);
+
+  SetTrackIntegerProperty(trackId, 
+			  "mdia.minf.stbl.stsd.encv.esds.ESID", 
+#if 0
+			  // note - for a file, these values need to 
+			  // be 0 - wmay - 04/16/2003
+			  trackId
+#else
+			  0
+#endif
+			  );
+
+  SetTrackIntegerProperty(trackId, 
+		  "mdia.minf.stbl.stsd.encv.esds.decConfigDescr.objectTypeId", 
+			  videoType);
+
+  SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.encv.esds.decConfigDescr.streamType", 
+			  MP4VisualStreamType);
+
+  SetTrackIntegerProperty(trackId, 
+			  "mdia.minf.stbl.stsz.sampleSize", sampleDuration);
+
+  m_pTracks[FindTrackIndex(trackId)]->
+    SetFixedSampleDuration(sampleDuration);
+
+  return trackId;
 }
 
 MP4TrackId MP4File::AddHintTrack(MP4TrackId refTrackId)
@@ -1292,11 +1401,11 @@ u_int32_t MP4File::GetNumberOfTracks(const char* type, u_int8_t subType)
 		if (!strcmp(normType, m_pTracks[i]->GetType())) {
 			if (subType) {
 				if (normType == MP4_AUDIO_TRACK_TYPE) {
-					if (subType != GetTrackAudioType(m_pTracks[i]->GetId())) {
+					if (subType != GetTrackEsdsObjectTypeId(m_pTracks[i]->GetId())) {
 						continue;
 					}
 				} else if (normType == MP4_VIDEO_TRACK_TYPE) {
-					if (subType != GetTrackVideoType(m_pTracks[i]->GetId())) {
+					if (subType != GetTrackEsdsObjectTypeId(m_pTracks[i]->GetId())) {
 						continue;
 					}
 				} 
@@ -1345,43 +1454,43 @@ MP4TrackId MP4File::AllocTrackId()
 	return MP4_INVALID_TRACK_ID;		// to keep MSVC happy
 }
 
-MP4TrackId MP4File::FindTrackId(
-	u_int16_t trackIndex, const char* type, u_int8_t subType)
+MP4TrackId MP4File::FindTrackId(u_int16_t trackIndex, 
+				const char* type, u_int8_t subType)
 {
-	if (type == NULL) {
-		return m_pTracks[trackIndex]->GetId();
+  if (type == NULL) {
+    return m_pTracks[trackIndex]->GetId();
+  } 
+
+  u_int32_t typeSeen = 0;
+  const char* normType = MP4Track::NormalizeTrackType(type);
+
+  for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
+    if (!strcmp(normType, m_pTracks[i]->GetType())) {
+      if (subType) {
+	if (normType == MP4_AUDIO_TRACK_TYPE) {
+	  if (subType != GetTrackEsdsObjectTypeId(m_pTracks[i]->GetId())) {
+	    continue;
+	  }
+	} else if (normType == MP4_VIDEO_TRACK_TYPE) {
+	  if (subType != GetTrackEsdsObjectTypeId(m_pTracks[i]->GetId())) {
+	    continue;
+	  }
 	} 
+	// else unknown subtype, ignore it
+      }
 
-	u_int32_t typeSeen = 0;
-	const char* normType = MP4Track::NormalizeTrackType(type);
+      if (trackIndex == typeSeen) {
+	return m_pTracks[i]->GetId();
+      }
 
-	for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
-		if (!strcmp(normType, m_pTracks[i]->GetType())) {
-			if (subType) {
-				if (normType == MP4_AUDIO_TRACK_TYPE) {
-					if (subType != GetTrackAudioType(m_pTracks[i]->GetId())) {
-						continue;
-					}
-				} else if (normType == MP4_VIDEO_TRACK_TYPE) {
-					if (subType != GetTrackVideoType(m_pTracks[i]->GetId())) {
-						continue;
-					}
-				} 
-				// else unknown subtype, ignore it
-			}
+      typeSeen++;
+    }
+  }
 
-			if (trackIndex == typeSeen) {
-				return m_pTracks[i]->GetId();
-			}
-
-			typeSeen++;
-		}
-	}
-
-	throw new MP4Error("Track index doesn't exist - track %d type %s", 
-			   "FindTrackId", 
-			   trackIndex, type); 
-	return MP4_INVALID_TRACK_ID; // satisfy MS compiler
+  throw new MP4Error("Track index doesn't exist - track %d type %s", 
+		     "FindTrackId", 
+		     trackIndex, type); 
+  return MP4_INVALID_TRACK_ID; // satisfy MS compiler
 }
 
 u_int16_t MP4File::FindTrackIndex(MP4TrackId trackId)
@@ -1690,16 +1799,24 @@ MP4Duration MP4File::GetTrackDuration(MP4TrackId trackId)
 	return GetTrackIntegerProperty(trackId, "mdia.mdhd.duration");
 }
 
+// now GetTrackEsdsObjectTypeId 
 u_int8_t MP4File::GetTrackAudioType(MP4TrackId trackId)
 {
+        return GetTrackIntegerProperty(trackId,
+                "mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.objectTypeId");
+}
+
+u_int8_t MP4File::GetTrackEsdsObjectTypeId(MP4TrackId trackId)
+{
+	// changed mp4a to * to handle enca case
 	return GetTrackIntegerProperty(trackId, 
-		"mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.objectTypeId");
+		"mdia.minf.stbl.stsd.*.esds.decConfigDescr.objectTypeId");
 }
 
 u_int8_t MP4File::GetTrackAudioMpeg4Type(MP4TrackId trackId)
 {
 	// verify that track is an MPEG-4 audio track 
-	if (GetTrackAudioType(trackId) != MP4_MPEG4_AUDIO_TYPE) {
+	if (GetTrackEsdsObjectTypeId(trackId) != MP4_MPEG4_AUDIO_TYPE) {
 		return MP4_MPEG4_INVALID_AUDIO_TYPE;
 	}
 
@@ -1722,6 +1839,7 @@ u_int8_t MP4File::GetTrackAudioMpeg4Type(MP4TrackId trackId)
 	return mpeg4Type;
 }
 
+// replaced with GetTrackEsdsObjectTypeId
 u_int8_t MP4File::GetTrackVideoType(MP4TrackId trackId)
 {
 	return GetTrackIntegerProperty(trackId, 

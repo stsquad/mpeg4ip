@@ -52,6 +52,7 @@ static struct codec_list_t {
 } video_codecs[] = {
   {"mp4 ", VIDEO_MPEG4_ISO},
   {"mp4v", VIDEO_MPEG4_ISO},
+  {"encv", VIDEO_MPEG4_ISO},
   {"MPG4", VIDEO_MPEG4_ISO},
   {"MP4V-ES", VIDEO_MPEG4_ISO_OR_DIVX},
   {"MPEG4-GENERIC", VIDEO_DIVX},

@@ -134,7 +134,8 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
     int type = -1;
 
     if (strcasestr(m_name, ".mp4") != NULL && 
-	strcasecmp(codec_name, "mp4v") == 0) {
+	(strcasecmp(codec_name, "mp4v") == 0 
+	 || strcasecmp(codec_name, "encv") == 0)) {
       profileID = quicktime_get_iod_video_profile_level(m_qtfile);
       codec_name = "mpeg4";
       type = MP4_MPEG4_VIDEO_TYPE;

@@ -320,7 +320,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
 
   for (ix = 0, video_offset = 0; ix < video_count; ix++) {
     trackId = MP4FindTrackId(m_mp4file, ix, MP4_VIDEO_TRACK_TYPE);
-    uint8_t video_type = MP4GetTrackVideoType(m_mp4file, trackId);
+    uint8_t video_type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
     uint8_t profileID = MP4GetVideoProfileLevel(m_mp4file);
     mp4f_message(LOG_DEBUG, "MP4 - got track %x profile ID %d", 
 		 trackId, profileID);
@@ -367,7 +367,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
       uint8_t *userdata = NULL;
       u_int32_t userdata_size;
 
-      audio_type = MP4GetTrackAudioType(m_mp4file, trackId);
+      audio_type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
       profile = MP4GetAudioProfileLevel(m_mp4file);
       MP4GetTrackESConfiguration(m_mp4file, 
 				 trackId, 

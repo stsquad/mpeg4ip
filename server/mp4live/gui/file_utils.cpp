@@ -277,7 +277,8 @@ static GtkWidget* CreateMp4TrackMenu(
 
 			if (trackType == MP4_VIDEO_TRACK_TYPE) {
 				u_int8_t videoType =
-					MP4GetTrackVideoType(mp4File, trackId);
+					MP4GetTrackEsdsObjectTypeId(mp4File, 
+								    trackId);
 
 				switch (videoType) {
 				case MP4_MPEG1_VIDEO_TYPE:
@@ -319,7 +320,8 @@ static GtkWidget* CreateMp4TrackMenu(
 
 			} else { // audio
 				u_int8_t audioType =
-					MP4GetTrackAudioType(mp4File, trackId);
+					MP4GetTrackEsdsObjectTypeId(mp4File, 
+								    trackId);
 
 				switch (audioType) {
 				case MP4_MPEG1_AUDIO_TYPE:

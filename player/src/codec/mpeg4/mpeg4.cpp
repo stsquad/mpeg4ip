@@ -494,7 +494,8 @@ static int iso_skip_frame (codec_data_t *iso)
 }
 static const char *iso_compressors[] = {
   "mp4 ", 
-  "mp4v", 
+  "mp4v",
+  "encv",
   "divx", 
   "dvx1", 
   "div4", 

@@ -350,6 +350,7 @@ static int celp_decode (codec_data_t *ptr,
 static const char *celp_compressors[] = {
   "celp ",
   "mp4a",
+  "enca",
   NULL
 };
 

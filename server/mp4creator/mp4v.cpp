@@ -172,7 +172,7 @@ static int LoadNextObject(FILE* inFile,
 	}
 }
 
-MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
+MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 {
 	bool rc; 
 
@@ -295,7 +295,18 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	}
 
 	// create the new video track
-	MP4TrackId trackId = 
+	MP4TrackId trackId;
+	if (doEncrypt) {
+		trackId = 
+		MP4AddEncVideoTrack(
+			mp4File, 
+			Mp4TimeScale,
+			mp4FrameDuration, 
+			frameWidth, 
+			frameHeight, 
+			MP4_MPEG4_VIDEO_TYPE);
+	} else {
+		trackId = 
 		MP4AddVideoTrack(
 			mp4File, 
 			Mp4TimeScale,
@@ -303,6 +314,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 			frameWidth, 
 			frameHeight, 
 			MP4_MPEG4_VIDEO_TYPE);
+	}
 
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	

@@ -18,14 +18,19 @@ libmp4v2_la_SOURCES = \
 	atom_drep.cpp \
 	atom_edts.cpp \
 	atom_elst.cpp \
+	atom_enca.cpp \
+	atom_encv.cpp \
 	atom_esds.cpp \
 	atom_free.cpp \
+	atom_frma.cpp \
 	atom_ftyp.cpp \
 	atom_hdlr.cpp \
 	atom_hinf.cpp \
 	atom_hmhd.cpp \
 	atom_hnti.cpp \
 	atom_iods.cpp \
+	atom_iKMS.cpp \
+	atom_iSFM.cpp \
 	atom_maxr.cpp \
 	atom_mdat.cpp \
 	atom_mdhd.cpp \
@@ -45,8 +50,11 @@ libmp4v2_la_SOURCES = \
 	atom_pmax.cpp \
 	atom_root.cpp \
 	atom_rtp.cpp \
+	atom_schi.cpp \
+	atom_schm.cpp \
 	atom_sdp.cpp \
 	atoms.h \
+	atom_sinf.cpp \
 	atom_smhd.cpp \
 	atom_snro.cpp \
 	atom_stbl.cpp \

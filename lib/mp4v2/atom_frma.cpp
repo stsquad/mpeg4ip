@@ -13,15 +13,20 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Bill May  wmay@cisco.com
+ *		Alix Marchandise-Franquet alix@cisco.com
+ *
+ * Add the OriginalFormatBox for ISMACrypt 
+ * contains the original format of the data (i.e. decrypted format)
  */
 
-#ifndef __MP4CREATOR_MPEG_H__
-#define __MP4CREATOR_MPEG_H__
+#include "mp4common.h"
 
-MP4TrackId *MpegCreator(MP4FileHandle mp4file, const char *fname, bool doEncrypt);
-
-#endif
+MP4FrmaAtom::MP4FrmaAtom() 
+	: MP4Atom("frma") 
+{
+        AddProperty( /* 0 */
+                new MP4Integer32Property("data-format"));			
+}

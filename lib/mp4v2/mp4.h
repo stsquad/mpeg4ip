@@ -16,7 +16,8 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Dave Mackie			dmackie@cisco.com
+ *		Alix Marchandise-Franquet	alix@cisco.com
  */
 
 #ifndef __MP4_INCLUDED__
@@ -342,7 +343,21 @@ MP4TrackId MP4AddAudioTrack(
 	MP4Duration sampleDuration,
 	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
 
+MP4TrackId MP4AddEncAudioTrack(
+	MP4FileHandle hFile, 
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration,
+	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
+
 MP4TrackId MP4AddVideoTrack(
+	MP4FileHandle hFile, 
+	u_int32_t timeScale, 
+	MP4Duration sampleDuration,
+	u_int16_t width, 
+	u_int16_t height,
+	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
+
+MP4TrackId MP4AddEncVideoTrack(
 	MP4FileHandle hFile, 
 	u_int32_t timeScale, 
 	MP4Duration sampleDuration,
@@ -359,7 +374,18 @@ MP4TrackId MP4CloneTrack(
 	MP4TrackId srcTrackId,
 	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE));
 
+MP4TrackId MP4EncAndCloneTrack(
+	MP4FileHandle srcFile, 
+	MP4TrackId srcTrackId,
+	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE));
+
 MP4TrackId MP4CopyTrack(
+	MP4FileHandle srcFile, 
+	MP4TrackId srcTrackId,
+	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE), 
+	bool applyEdits DEFAULT(false));
+
+MP4TrackId MP4EncAndCopyTrack(
 	MP4FileHandle srcFile, 
 	MP4TrackId srcTrackId,
 	MP4FileHandle dstFile DEFAULT(MP4_INVALID_FILE_HANDLE), 
@@ -405,6 +431,7 @@ bool MP4SetTrackTimeScale(
 	MP4TrackId trackId, 
 	u_int32_t value);
 
+// Should not be used, replace with MP4GetTrackEsdsObjectTypeId
 u_int8_t MP4GetTrackAudioType(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
@@ -413,7 +440,12 @@ u_int8_t MP4GetTrackAudioMpeg4Type(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 
+// Should not be used, replace with MP4GetTrackEsdsObjectTypeId
 u_int8_t MP4GetTrackVideoType(
+	MP4FileHandle hFile, 
+	MP4TrackId trackId);
+
+u_int8_t MP4GetTrackEsdsObjectTypeId(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 
@@ -426,7 +458,7 @@ u_int32_t MP4GetTrackBitRate(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 
-void MP4GetTrackESConfiguration(
+bool MP4GetTrackESConfiguration(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId, 
 	u_int8_t** ppConfig, 

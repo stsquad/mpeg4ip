@@ -13,15 +13,22 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Bill May  wmay@cisco.com
+ *		Alix Marchandise-Franquet alix@cisco.com
+ *
+ * ISMAKMSBox for ISMACrypt
+ * Do we care about the string length? Do we need to handle the null-term
+ * issue like in the hdlr atom?
  */
 
-#ifndef __MP4CREATOR_MPEG_H__
-#define __MP4CREATOR_MPEG_H__
+#include "mp4common.h"
 
-MP4TrackId *MpegCreator(MP4FileHandle mp4file, const char *fname, bool doEncrypt);
-
-#endif
+MP4IKMSAtom::MP4IKMSAtom() 
+	: MP4Atom("iKMS") 
+{
+	AddVersionAndFlags(); /* 0, 1 */
+	MP4StringProperty* pProp = new MP4StringProperty("kms_URI");
+	AddProperty(pProp); /* 2 */
+}

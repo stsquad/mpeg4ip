@@ -443,4 +443,47 @@ public:
 	void Write();
 };
 
+// ismacrypt
+class MP4EncaAtom : public MP4Atom {
+public:
+        MP4EncaAtom();
+        void Generate();
+};
+
+class MP4EncvAtom : public MP4Atom {
+public:
+        MP4EncvAtom();
+        void Generate();
+};
+
+class MP4FrmaAtom : public MP4Atom {
+public:
+        MP4FrmaAtom();
+};
+
+class MP4IKMSAtom : public MP4Atom {
+public:
+        MP4IKMSAtom();
+};
+
+class MP4ISFMAtom : public MP4Atom {
+public:
+        MP4ISFMAtom();
+};
+
+class MP4SchiAtom : public MP4Atom {
+public:
+        MP4SchiAtom();
+};
+
+class MP4SchmAtom : public MP4Atom {
+public:
+        MP4SchmAtom();
+};
+
+class MP4SinfAtom : public MP4Atom {
+public:
+        MP4SinfAtom();
+};
+
 #endif /* __MP4_ATOMS_INCLUDED__ */

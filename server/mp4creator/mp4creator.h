@@ -58,4 +58,5 @@ MP4CREATOR_GLOBAL bool TimeScaleSpecified;
 MP4CREATOR_GLOBAL bool VideoProfileLevelSpecified;
 MP4CREATOR_GLOBAL int VideoProfileLevel;
 MP4CREATOR_GLOBAL bool aacUseOldFile;
+MP4CREATOR_GLOBAL int aacProfileLevel;
 #endif /* __MP4CREATOR_INCLUDED__ */

@@ -188,7 +188,7 @@ static bool GetMpegLayer(FILE* inFile, u_int8_t* pLayer)
 	return true;
 }
 
-MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
+MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 {
 	u_int8_t mpegLayer;
 
@@ -230,15 +230,29 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 	MP4Duration duration;
 	if (TimeScaleSpecified && Mp4TimeScale == 90000) {
 	  duration = (90000 * samplesPerFrame) / samplesPerSecond;
-	  trackId = 
-	    MP4AddAudioTrack(mp4File, 
-			     90000,
-			     duration, 
-			     audioType);
+	  if (doEncrypt) {
+	    trackId = 
+	      MP4AddEncAudioTrack(mp4File, 
+			       90000,
+			       duration, 
+			       audioType);
+	  } else {
+	    trackId = 
+	      MP4AddAudioTrack(mp4File, 
+			       90000,
+			       duration, 
+			       audioType);
+	  }
 	} else {
-	  trackId = 
-	    MP4AddAudioTrack(mp4File, 
-			     samplesPerSecond, samplesPerFrame, audioType);
+	  if (doEncrypt) {
+	    trackId = 
+	      MP4AddEncAudioTrack(mp4File, 
+			       samplesPerSecond, samplesPerFrame, audioType);
+	  } else {
+	    trackId = 
+	      MP4AddAudioTrack(mp4File, 
+			       samplesPerSecond, samplesPerFrame, audioType);
+	  }
 	}
 
 	if (trackId == MP4_INVALID_TRACK_ID) {

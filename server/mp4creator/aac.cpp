@@ -16,8 +16,10 @@
  * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Dave Mackie			dmackie@cisco.com
+ *		Alix Marchandise-Franquet	alix@cisco.com
  */
+
 
 /* 
  * Notes:
@@ -221,7 +223,7 @@ static bool GetFirstHeader(FILE* inFile)
 	return true;
 }
 
-MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
+MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 {
 	// collect all the necessary meta information
 	u_int32_t samplesPerSecond;
@@ -239,6 +241,15 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 	samplesPerSecond = MP4AV_AdtsGetSamplingRate(firstHeader);
 	mpegVersion = MP4AV_AdtsGetVersion(firstHeader);
 	profile = MP4AV_AdtsGetProfile(firstHeader);
+	if (aacProfileLevel == 2) {
+	  if (profile > MP4_MPEG4_AAC_SSR_AUDIO_TYPE) {
+	    fprintf(stderr, "Can't convert profile to mpeg2\nDo not contact project creators for help\n");
+	    return MP4_INVALID_TRACK_ID;
+	  }
+	  mpegVersion = 1;
+	} else if (aacProfileLevel == 4) {
+	  mpegVersion = 0;
+	}
 	channelConfig = MP4AV_AdtsGetChannels(firstHeader);
 
 	u_int8_t audioType = MP4_INVALID_AUDIO_TYPE;
@@ -271,9 +282,14 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 	}
 
 	// add the new audio track
-	MP4TrackId trackId = 
-		MP4AddAudioTrack(mp4File, 
-			samplesPerSecond, 1024, audioType);
+	MP4TrackId trackId;
+	if (doEncrypt) {
+		trackId = MP4AddEncAudioTrack(mp4File, 
+				samplesPerSecond, 1024, audioType);
+	} else {	
+              	trackId = MP4AddAudioTrack(mp4File,
+                    		samplesPerSecond, 1024, audioType);
+	}
 
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	
@@ -284,7 +300,7 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 	if (MP4GetNumberOfTracks(mp4File, MP4_AUDIO_TRACK_TYPE) == 1) {
 		MP4SetAudioProfileLevel(mp4File, 0x0F);
 	}
-
+	
 	u_int8_t* pConfig = NULL;
 	u_int32_t configLength = 0;
 

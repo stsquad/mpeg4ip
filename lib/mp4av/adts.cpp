@@ -130,6 +130,7 @@ extern "C" bool MP4AV_AdtsMakeFrameFromMp4Sample(
 	MP4FileHandle mp4File,
 	MP4TrackId trackId,
 	MP4SampleId sampleId,
+	int force_profile,
 	u_int8_t** ppAdtsData,
 	u_int32_t* pAdtsDataLength)
 {
@@ -147,14 +148,28 @@ extern "C" bool MP4AV_AdtsMakeFrameFromMp4Sample(
 		lastMp4File = mp4File;
 		lastMp4TrackId = trackId;
 
-		u_int8_t audioType = MP4GetTrackAudioType(mp4File, trackId);
+		u_int8_t audioType = MP4GetTrackEsdsObjectTypeId(mp4File, 
+								 trackId);
 
 		if (MP4_IS_MPEG2_AAC_AUDIO_TYPE(audioType)) {
 			isMpeg2 = true;
 			profile = audioType - MP4_MPEG2_AAC_MAIN_AUDIO_TYPE;
+			if (force_profile == 4) {
+			  isMpeg2 = false;
+			  // profile remains the same
+			}
 		} else if (audioType == MP4_MPEG4_AUDIO_TYPE) {
 			isMpeg2 = false;
 			profile = MP4GetTrackAudioMpeg4Type(mp4File, trackId) - 1;
+			if (force_profile == 2) {
+			  if (profile > MP4_MPEG4_AAC_SSR_AUDIO_TYPE) {
+			    // they can't use these profiles for mpeg2.
+			    lastMp4File = MP4_INVALID_FILE_HANDLE;
+			    lastMp4TrackId =MP4_INVALID_TRACK_ID;
+			    return false;
+			  }
+			  isMpeg2 = true;
+			}
 		} else {
 			lastMp4File = MP4_INVALID_FILE_HANDLE;
 			lastMp4TrackId = MP4_INVALID_TRACK_ID;

@@ -23,7 +23,8 @@
 
 static MP4TrackId VideoCreate (MP4FileHandle mp4file, 
 			       mpeg3_t *file, 
-			       int vstream)
+			       int vstream,
+			       bool doEncrypt)
 {
   double frame_rate = mpeg3_frame_rate(file, vstream);
   uint8_t video_type;
@@ -44,12 +45,22 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
   video_type = mpeg3_video_layer(file, vstream) == 2 ?
     MP4_MPEG2_MAIN_VIDEO_TYPE : MP4_MPEG1_VIDEO_TYPE;
 
-  id = MP4AddVideoTrack(mp4file, 
-			Mp4TimeScale, 
-			mp4FrameDuration,
-			w, 
-			h, 
-			video_type);
+  if (doEncrypt) {
+    id = MP4AddEncVideoTrack(mp4file, 
+			     Mp4TimeScale, 
+			     mp4FrameDuration,
+			     w, 
+			     h, 
+			     video_type);
+  } else {
+    id = MP4AddVideoTrack(mp4file, 
+			  Mp4TimeScale, 
+			  mp4FrameDuration,
+			  w, 
+			  h, 
+			  video_type);
+  }
+
   //printf("duration %llu w %d h %d type %x\n", mp4FrameDuration, w, h, video_type);
   if (MP4GetNumberOfTracks(mp4file, MP4_VIDEO_TRACK_TYPE) == 1) {
     MP4SetVideoProfileLevel(mp4file, 0xfe); // undefined profile
@@ -99,7 +110,8 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
 
 static MP4TrackId AudioCreate (MP4FileHandle mp4file, 
 			       mpeg3_t *file, 
-			       int astream)
+			       int astream,
+			       bool doEncrypt)
 {
   uint16_t freq;
   int type;
@@ -146,10 +158,18 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
   }
 
   MP4Duration duration = (90000 * samples_per_frame) / freq;
-  id = MP4AddAudioTrack(mp4file, 
-			90000, 
-			duration,
-			audioType);
+
+  if (doEncrypt) {
+    id = MP4AddEncAudioTrack(mp4file, 
+			     90000, 
+			     duration,
+			     audioType);
+  } else {
+    id = MP4AddAudioTrack(mp4file, 
+			  90000, 
+			  duration,
+			  audioType);
+  }
   
   if (id == MP4_INVALID_TRACK_ID) {
     fprintf(stderr, 
@@ -182,7 +202,7 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
   return id;
 }
 
-MP4TrackId *MpegCreator (MP4FileHandle mp4file, const char *fname)
+MP4TrackId *MpegCreator (MP4FileHandle mp4file, const char *fname, bool doEncrypt)
 {
 
   mpeg3_t *file;
@@ -206,10 +226,10 @@ MP4TrackId *MpegCreator (MP4FileHandle mp4file, const char *fname)
   }
 
   for (ix = 0; ix < video_streams; ix++) {
-    pTrackId[ix] = VideoCreate(mp4file, file, ix);
+    pTrackId[ix] = VideoCreate(mp4file, file, ix, doEncrypt);
   }
   for (ix = 0; ix < audio_streams; ix++) {
-    pTrackId[ix + video_streams] = AudioCreate(mp4file, file, ix);
+    pTrackId[ix + video_streams] = AudioCreate(mp4file, file, ix, doEncrypt);
   }
   return pTrackId;
 }

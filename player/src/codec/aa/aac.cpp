@@ -290,6 +290,7 @@ static int aac_decode (codec_data_t *ptr,
 static const char *aac_compressors[] = {
   "aac ",
   "mp4a",
+  "enca",
   NULL
 };
 

@@ -16,7 +16,8 @@
  * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Dave Mackie		  dmackie@cisco.com
+ *              Alix Marchandise-Franquet alix@cisco.com
  */
 
 #include "mp4common.h"
@@ -690,9 +691,10 @@ void MP4File::CreateIsmaODUpdateCommandFromFileForStream(
 	MP4IntegerProperty* pVideoEsdId = NULL;
 
 	if (audioTrackId != MP4_INVALID_TRACK_ID) {
+		// changed mp4a to * to handle enca case
 		MP4Atom* pEsdsAtom = 
 			FindAtom(MakeTrackName(audioTrackId, 
-				"mdia.minf.stbl.stsd.mp4a.esds"));
+				"mdia.minf.stbl.stsd.*.esds"));
 		ASSERT(pEsdsAtom);
 
 		pAudioEsd = (MP4DescriptorProperty*)(pEsdsAtom->GetProperty(2));
@@ -717,9 +719,10 @@ void MP4File::CreateIsmaODUpdateCommandFromFileForStream(
 	}
 
 	if (videoTrackId != MP4_INVALID_TRACK_ID) {
+	  // changed mp4v to * to handle encv case
 		MP4Atom* pEsdsAtom = 
 			FindAtom(MakeTrackName(videoTrackId, 
-				"mdia.minf.stbl.stsd.mp4v.esds"));
+				"mdia.minf.stbl.stsd.*.esds"));
 		ASSERT(pEsdsAtom);
 
 		pVideoEsd = (MP4DescriptorProperty*)(pEsdsAtom->GetProperty(2));

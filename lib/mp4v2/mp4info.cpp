@@ -16,7 +16,8 @@
  * Copyright (C) Cisco Systems Inc. 2001-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Dave Mackie		dmackie@cisco.com
+ *		Dave Mackie		  dmackie@cisco.com
+ *		Alix Marchandise-Franquet alix@cisco.com
  */
 
 #include "mp4common.h"
@@ -73,7 +74,7 @@ static char* PrintAudioInfo(
 		sizeof(mpegAudioTypes) / sizeof(u_int8_t);
 
 	u_int8_t type =
-		MP4GetTrackAudioType(mp4File, trackId);
+		MP4GetTrackEsdsObjectTypeId(mp4File, trackId);
 	const char* typeName = "Unknown";
 
 	if (type == MP4_MPEG4_AUDIO_TYPE) {
@@ -175,7 +176,7 @@ static char* PrintVideoInfo(
 		sizeof(mpegVideoTypes) / sizeof(u_int8_t);
 
 	u_int8_t type =
-		MP4GetTrackVideoType(mp4File, trackId);
+		MP4GetTrackEsdsObjectTypeId(mp4File, trackId);
 	const char* typeName = "Unknown";
 
 	if (type == MP4_MPEG4_VIDEO_TYPE) {

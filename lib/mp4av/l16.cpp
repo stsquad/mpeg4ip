@@ -58,7 +58,7 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
   }
 #endif
 
-  audioType = MP4GetTrackAudioType(mp4file, trackid);
+  audioType = MP4GetTrackEsdsObjectTypeId(mp4file, trackid);
 
   if (audioType != MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE) return false;
 

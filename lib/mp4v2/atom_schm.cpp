@@ -13,15 +13,23 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *		Bill May  wmay@cisco.com
+ *              Alix Marchandise-Franquet alix@cisco.com
+ *
+ * Add the SchemeTypeBox for ISMACrypt
  */
 
-#ifndef __MP4CREATOR_MPEG_H__
-#define __MP4CREATOR_MPEG_H__
+#include "mp4common.h"
 
-MP4TrackId *MpegCreator(MP4FileHandle mp4file, const char *fname, bool doEncrypt);
-
-#endif
+MP4SchmAtom::MP4SchmAtom() 
+	: MP4Atom("schm") 
+{
+	AddVersionAndFlags(); /* 0, 1 */
+	AddProperty( /* 2 */
+                new MP4Integer32Property("scheme_type"));
+	AddProperty( /* 3 */
+	        new MP4Integer32Property("scheme_version"));
+	// browser URI if flags set, TODO
+}
