@@ -2,19 +2,31 @@
 # mp4encode <file-prefix>
 
 # Initialize default values for options
-let bfrequency=2
 let videoWidth=320
 let videoHeight=240
+let bitRate=500
+
+# For Divx encoder, this generates 1 I frame every second (the rest being P's)
+let ifrequency=30
+# For ISO encoder, these default values yield I P B B P B B ... for every 1 second
+let pfrequency=9
+let bfrequency=2
 let fps=30
 
+let use_divx=0
+
 # Process any command line options
-while getopts "b:h:r:w:" opt; do
+while getopts "b:B:dh:I:P:r:w:" opt; do
 	case $opt in
-		b ) let bfrequency=$OPTARG ;;
+		b ) let bitrate=$OPTARG ;;
+		B ) let bfrequency=$OPTARG ;;
+		d ) let use_divx=1 ;;
 		h ) let videoHeight=$OPTARG ;;
+		I ) let ifrequency=$OPTARG ;;
+		P ) let pfrequency=$OPTARG ;;
 		r ) let fps=$OPTARG ;;
 		w ) let videoWidth=$OPTARG ;;
-		\? ) echo "usage: $0 [-b bframe_frequency] [-h height] [-r rate] [-w width] file_prefix"
+		\? ) echo "usage: $0 [-b bframe_frequency] [-d] [-h height] [-r rate] [-w width] file_prefix"
 			exit 1 ;;
 	esac
 done
@@ -28,12 +40,13 @@ here=`pwd`
 set -o xtrace
 
 # Create output directories for video encoder if necessary
-if [ ! -d mp4vout ]; then
-	mkdir mp4vout
-fi
-
-if [ ! -d yuvout ]; then
-	mkdir yuvout
+if [ $use_divx = 0 ]; then 
+	if [ ! -d mp4vout ]; then
+		mkdir mp4vout
+	fi
+	if [ ! -d yuvout ]; then
+		mkdir yuvout
+	fi
 fi
 
 date
@@ -44,17 +57,23 @@ if [ ! -f $prefix.yuv ] || [ $prefix.avi -nt $prefix.yuv ]; then
 	avi2raw -v $prefix.avi $prefix.yuv
 fi
 
-# Create video encoder parameters file from template
 numbytes=`wc -c ${prefix}.yuv | sed -e "s/${prefix}.yuv//"`
 let numframes=$((${numbytes}/${rawframesize}))
 let lastframe=${numframes}-1
-sed -e "s?BASEDIR?${here}?" -e "s/FILEPREFIX/${prefix}/" -e "s/LASTFRAME/${lastframe}/" -e "s/FRAMEWIDTH/${videoWidth}/" -e "s/FRAMEHEIGHT/${videoHeight}/" -e "s/FRAMERATE/${fps}/" -e "s/BFREQUENCY/${bfrequency}/" template.par > ${prefix}.par 
 
 date
 echo "Encoding ${numframes} frames of video"
-mp4venc ${prefix}.par
-mv ./mp4vout/01/${prefix}.cmp ./${prefix}.mp4v
-rm ./yuvout/01/${prefix}.yuv
+
+if [ $use_divx = 1 ]; then 
+	divxenc -b ${bitRate} -h ${videoHeight} -w ${videoWidth} -r ${fps} -i ${ifrequency} ${prefix}.yuv ${prefix}.divx
+else
+# Create video encoder parameters file from template
+	sed -e "s?BASEDIR?${here}?" -e "s/FILEPREFIX/${prefix}/" -e "s/LASTFRAME/${lastframe}/" -e "s/FRAMEWIDTH/${videoWidth}/" -e "s/FRAMEHEIGHT/${videoHeight}/" -e "s/FRAMERATE/${fps}/" -e "s/BFREQUENCY/${bfrequency}/" -e "s/PFREQUENCY/${pfrequency}/" template.par > ${prefix}.par 
+
+	mp4venc ${prefix}.par
+	mv ./mp4vout/01/${prefix}.cmp ./${prefix}.mp4v
+	rm ./yuvout/01/${prefix}.yuv
+fi
 
 date
 if [ ! -f $prefix.pcm ] || [ $prefix.avi -nt $prefix.pcm ]; then
@@ -67,21 +86,29 @@ echo "Encoding audio"
 faac -r -pLOW -b64 ${prefix}.pcm
 
 date
-rm -f ${prefix}.mov
+rm -f ${prefix}.mp4
 
 echo "Packetizing video"
-mp4vpkt -t -d -bfrequency=${bfrequency} -height=${videoHeight} -width=${videoWidth} -rate=${fps} ${prefix}.mp4v ${prefix}.mov > ${prefix}_vpkt.out
+if [ $use_divx -eq 1 ]; then
+	mp4vpkt -t -d -height=${videoHeight} -width=${videoWidth} -rate=${fps} -profile="simple@L3" ${prefix}.divx ${prefix}.mp4 > ${prefix}_vpkt.out
+else
+	mp4vpkt -t -d -bfrequency=${bfrequency} -height=${videoHeight} -width=${videoWidth} -rate=${fps} -profile="main@L2" ${prefix}.mp4v ${prefix}.mp4 > ${prefix}_vpkt.out
+fi
 
 echo "Packetizing audio with video"
-mp4apkt -t -d -merge ${prefix}.aac ${prefix}.mov > ${prefix}_avpkt.out
+mp4apkt -t -d -merge ${prefix}.aac ${prefix}.mp4 > ${prefix}_avpkt.out
 
 set +o xtrace
 
 date
-echo "Finished, results are in $prefix.mov"
+echo "Finished, results are in $prefix.mp4"
 
 # Print some interesting statistics
-numbytes=`wc -c ${prefix}.mp4v | sed -e "s/${prefix}.mp4v//"` 
+if [ $use_divx -eq 1 ]; then
+	numbytes=`wc -c ${prefix}.divx | sed -e "s/${prefix}.divx//"` 
+else
+	numbytes=`wc -c ${prefix}.mp4v | sed -e "s/${prefix}.mp4v//"` 
+fi
 let videoRate="((${numbytes} / ${numframes}) * ${fps} * 8) / 1000"
 
 numbytes=`wc -c ${prefix}.aac | sed -e "s/${prefix}.aac//"` 

@@ -101,7 +101,7 @@ Texture.QuantMatrix.Inter [0] = {}		// { insert 64 comma-separated values }
 
 Motion.RoundingControl.Enable [0] = 1
 Motion.RoundingControl.StartValue [0] = 0
-Motion.PBetweenICount [0] = 9
+Motion.PBetweenICount [0] = PFREQUENCY
 Motion.BBetweenPCount [0] = BFREQUENCY
 Motion.SearchRange [0] = 16
 Motion.SearchRange.DirectMode [0] = 2		// half-pel units
