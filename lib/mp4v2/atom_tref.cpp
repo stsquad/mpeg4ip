@@ -24,6 +24,9 @@
 MP4TrefAtom::MP4TrefAtom() 
 	: MP4Atom("tref")
 {
+	ExpectChildAtom("dpnd", Optional, OnlyOne);
 	ExpectChildAtom("hint", Optional, OnlyOne);
+	ExpectChildAtom("ipir", Optional, OnlyOne);
 	ExpectChildAtom("mpod", Optional, OnlyOne);
+	ExpectChildAtom("sync", Optional, OnlyOne);
 }

@@ -1,24 +1,24 @@
-# Microsoft Developer Studio Project File - Name="libmpplayer" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="libmp4v2" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 5.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Static Library" 0x0104
 
-CFG=libmpplayer - Win32 Debug
+CFG=libmp4v2 - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "libmpplayer.mak".
+!MESSAGE NMAKE /f "libmp4v2.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "libmpplayer.mak" CFG="libmpplayer - Win32 Debug"
+!MESSAGE NMAKE /f "libmp4v2.mak" CFG="libmp4v2 - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "libmpplayer - Win32 Release" (based on "Win32 (x86) Static Library")
-!MESSAGE "libmpplayer - Win32 Debug" (based on "Win32 (x86) Static Library")
+!MESSAGE "libmp4v2 - Win32 Release" (based on "Win32 (x86) Static Library")
+!MESSAGE "libmp4v2 - Win32 Debug" (based on "Win32 (x86) Static Library")
 !MESSAGE 
 
 # Begin Project
@@ -26,7 +26,7 @@ CFG=libmpplayer - Win32 Debug
 # PROP Scc_LocalPath ""
 CPP=cl.exe
 
-!IF  "$(CFG)" == "libmpplayer - Win32 Release"
+!IF  "$(CFG)" == "libmp4v2 - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -40,7 +40,7 @@ CPP=cl.exe
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../common/video/mpeg4 ./codec ./codec/mpeg4 ../lib ../lib/audio ../lib/SDL/include ../../common/mp4 ../../include" /I "../../common/mp4" /I "../../common/lib" /I "../../lib/mp4" /I "." /I "../../lib/mp4v2" /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../../lib/SDL/include" /I "../../include" /I "../lib/video/divx" /I "../../lib" /I "../../lib/avi" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -48,21 +48,21 @@ LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
 
-!ELSEIF  "$(CFG)" == "libmpplayer - Win32 Debug"
+!ELSEIF  "$(CFG)" == "libmp4v2 - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
 # PROP BASE Output_Dir "Debug"
 # PROP BASE Intermediate_Dir "Debug"
 # PROP BASE Target_Dir ""
-# PROP Use_MFC 2
+# PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "../../lib/mp4" /I "." /I "../../lib/mp4v2" /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../../lib/SDL/include" /I "../../include" /I "../lib/video/divx" /I "../../lib" /I "../../lib/avi" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /D "_AFXDLL" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -74,340 +74,382 @@ LIB32=link.exe -lib
 
 # Begin Target
 
-# Name "libmpplayer - Win32 Release"
-# Name "libmpplayer - Win32 Debug"
+# Name "libmp4v2 - Win32 Release"
+# Name "libmp4v2 - Win32 Debug"
 # Begin Group "source"
 
-# PROP Default_Filter ""
+# PROP Default_Filter ".c, .cpp"
 # Begin Source File
 
-SOURCE=.\audio.cpp
+SOURCE=.\atom_co64.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\avi_bytestream.cpp
+SOURCE=.\atom_cprt.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\avi_file.cpp
+SOURCE=.\atom_ctts.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\frame_doubler.cpp
+SOURCE=.\atom_dimm.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\ip_port.cpp
+SOURCE=.\atom_dinf.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\media_utils.cpp
+SOURCE=.\atom_dmax.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\mp4_bytestream.cpp
+SOURCE=.\atom_dmed.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\mp4_file.cpp
+SOURCE=.\atom_dref.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\mpeg4_audio_config.cpp
+SOURCE=.\atom_drep.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\our_bytestream_file.cpp
+SOURCE=.\atom_edts.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\our_bytestream_mem.cpp
+SOURCE=.\atom_elst.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\our_config_file.cpp
+SOURCE=.\atom_esds.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\player_media.cpp
+SOURCE=.\atom_free.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\player_media_decode.cpp
+SOURCE=.\atom_ftyp.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\player_sdp.c
+SOURCE=.\atom_hdlr.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\player_session.cpp
+SOURCE=.\atom_hinf.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\player_util.c
+SOURCE=.\atom_hmhd.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\playlist.cpp
+SOURCE=.\atom_hnti.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\qtime_bytestream.cpp
+SOURCE=.\atom_iods.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\qtime_file.cpp
+SOURCE=.\atom_maxr.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\rtp_bytestream.cpp
+SOURCE=.\atom_mdat.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\sync.cpp
+SOURCE=.\atom_mdhd.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\video.cpp
+SOURCE=.\atom_mdia.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_mfhd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_minf.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_moof.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_moov.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_mp4a.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_mp4s.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_mp4v.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_mvex.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_mvhd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_nmhd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_nump.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_payt.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_pmax.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_root.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_rtp.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_sdp.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_smhd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_stbl.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_stco.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_stdp.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_stsc.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_stsd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_stsh.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_stss.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_stsz.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_stts.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_tfhd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_tkhd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_tmax.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_tmin.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_tpyl.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_traf.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_trak.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_tref.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_treftype.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_trex.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_trpy.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_trun.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_udta.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_url.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_urn.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\atom_vmhd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\descriptors.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\isma.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4atom.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4descriptor.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4file.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4file_io.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4property.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4track.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4util.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\ocidescriptors.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\odcommands.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\qosqualifiers.cpp
 # End Source File
 # End Group
 # Begin Group "include"
 
-# PROP Default_Filter ""
+# PROP Default_Filter ".h"
 # Begin Source File
 
-SOURCE=.\audio.h
+SOURCE=.\atoms.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\avi_bytestream.h
+SOURCE=.\descriptors.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\avi_file.h
+SOURCE=.\mp4.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\codec\codec.h
+SOURCE=.\mp4array.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\ip_port.h
+SOURCE=.\mp4atom.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\media_utils.h
+SOURCE=.\mp4common.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\mp4_bytestream.h
+SOURCE=.\mp4descriptor.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\mp4_file.h
+SOURCE=.\mp4file.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\mpeg4_audio_config.h
+SOURCE=.\mp4property.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\msg_queue.h
+SOURCE=.\mp4track.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\our_bytestream.h
+SOURCE=.\mp4util.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\our_bytestream_file.h
+SOURCE=.\ocidescriptors.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\our_bytestream_mem.h
+SOURCE=.\odcommands.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\our_config_file.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\our_msg_queue.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\player_media.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\player_sdp.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\player_session.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\player_util.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\playlist.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\qtime_bytestream.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\qtime_file.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\rtp_bytestream.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\video.h
-# End Source File
-# End Group
-# Begin Group "codec/aa"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\aa\aa.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\aa.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\aa_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\aa_file.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\aac_rtp_bytestream.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\aac_rtp_bytestream.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\isma_rtp_bytestream.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\isma_rtp_bytestream.h
-# End Source File
-# End Group
-# Begin Group "codec/divx"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\divx\divx.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\divx\divx.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\divx\divx_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\divx\divx_file.h
-# End Source File
-# End Group
-# Begin Group "codec/mpeg4"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\mpeg4\mpeg4.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mpeg4\mpeg4.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mpeg4\mpeg4_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mpeg4\mpeg4_file.h
-# End Source File
-# End Group
-# Begin Group "codec/wav"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\wav\ourwav.cpp
-
-!IF  "$(CFG)" == "libmpplayer - Win32 Release"
-
-# SUBTRACT CPP /O<none> /YX
-
-!ELSEIF  "$(CFG)" == "libmpplayer - Win32 Debug"
-
-# SUBTRACT CPP /YX
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\wav\ourwav.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\wav\wav_file.cpp
-
-!IF  "$(CFG)" == "libmpplayer - Win32 Release"
-
-# SUBTRACT CPP /O<none> /YX
-
-!ELSEIF  "$(CFG)" == "libmpplayer - Win32 Debug"
-
-# SUBTRACT CPP /YX
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\wav\wav_file.h
-# End Source File
-# End Group
-# Begin Group "codec/mp3"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3_file.h
+SOURCE=.\qosqualifiers.h
 # End Source File
 # End Group
 # End Target

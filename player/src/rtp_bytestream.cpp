@@ -253,7 +253,7 @@ void CRtpByteStreamBase::check_for_end_of_pak (int nothrow)
   m_pak = NULL;
   init();
   if (nothrow == 0) {
-    throw err;
+    throw ((int)err);
   }
 }
 

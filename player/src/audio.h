@@ -28,7 +28,6 @@
 #define __AUDIO_H__ 1
 
 #include "systems.h"
-#include <SDL.h>
 #include "player_session.h"
 
 #define DECODE_BUFFERS_MAX 32
@@ -54,7 +53,6 @@ class CAudioSync {
   void flush_decode_buffers(void);
 
   // Initialization, other APIs
-  void set_sync_sem(SDL_sem *p) {m_sync_sem = p; } ;
   void set_wait_sem(SDL_sem *p) {m_audio_waiting = p; } ;
   void set_volume(int volume);
  private:
@@ -79,7 +77,7 @@ class CAudioSync {
   int m_eof_found;
   int m_use_SDL_delay;
   uint32_t m_resync_buffer;
-  SDL_sem *m_sync_sem, *m_audio_waiting;
+  SDL_sem *m_audio_waiting;
   CPlayerSession *m_psptr;
   uint32_t m_skipped_buffers;
   uint32_t m_didnt_fill_buffers;

@@ -26,6 +26,8 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 #include "player_util.h"
+#include "audio.h"
+#include "video.h"
 //#define DEBUG_SYNC_STATE 1
 //#define DEBUG_SYNC_MSGS 1
 //#define DEBUG_SYNC_SDL_EVENTS 1
@@ -356,7 +358,7 @@ int CPlayerSession::sync_thread_playing (void)
 	if (video_status > 0 || audio_resync_time != 0) {
 	  if (audio_resync_time != 0) {
 	    int64_t diff = audio_resync_time - m_current_time;
-	    delay = min(diff, video_status);
+	    delay = (int)min(diff, video_status);
 	  }
 	  if (delay < 9) {
 	    wait_for_signal = 0;
@@ -372,7 +374,7 @@ int CPlayerSession::sync_thread_playing (void)
 	} 
 	if (video_status >= 9) {
 	  wait_for_signal = 1;
-	  delay = video_status;
+	  delay = (int)video_status;
 	} else {
 	  wait_for_signal = 0;
 	}
@@ -384,7 +386,7 @@ int CPlayerSession::sync_thread_playing (void)
 	if (audio_resync_time != 0) {
 	  if (audio_resync_time - m_current_time > 10) {
 	    wait_for_signal = 1;
-	    delay = audio_resync_time - m_current_time;
+	    delay = (int)(audio_resync_time - m_current_time);
 	  } else {
 	    wait_for_signal = 0;
 	  }

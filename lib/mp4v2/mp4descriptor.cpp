@@ -45,7 +45,15 @@ void MP4Descriptor::Generate()
 void MP4Descriptor::Read(MP4File* pFile)
 {
 	ReadHeader(pFile);
-	ReadProperties(pFile);
+
+	ReadProperties(pFile, 0, m_readMutatePoint);
+
+	Mutate();
+
+	ReadProperties(pFile, m_readMutatePoint);
+
+	// flush any leftover read bits
+	pFile->FlushReadBits();
 }
 
 void MP4Descriptor::ReadHeader(MP4File* pFile)
@@ -65,12 +73,12 @@ void MP4Descriptor::ReadHeader(MP4File* pFile)
 	m_start = pFile->GetPosition();
 
 	VERBOSE_READ(pFile->GetVerbosity(),
-		printf("ReadDescriptor: tag %u data size %u (0x%x)\n", 
+		printf("ReadDescriptor: tag 0x%02x data size %u (0x%x)\n", 
 			m_tag, m_size, m_size));
 }
 
 void MP4Descriptor::ReadProperties(MP4File* pFile, 
-	u_int32_t propStartIndex = 0, u_int32_t propCount = 0xFFFFFFFF)
+	u_int32_t propStartIndex, u_int32_t propCount)
 {
 	u_int32_t numProperties = MIN(propCount, 
 		m_pProperties.Size() - propStartIndex);
@@ -89,6 +97,14 @@ void MP4Descriptor::ReadProperties(MP4File* pFile,
 		} else if (remaining >= 0) {
 			m_pProperties[i]->Read(pFile);
 
+			if (m_pProperties[i]->GetType() == TableProperty) {
+				VERBOSE_READ_TABLE(pFile->GetVerbosity(), 
+					printf("Read: "); m_pProperties[i]->Dump(stdout, true));
+			} else {
+				VERBOSE_READ(pFile->GetVerbosity(), 
+					printf("Read: "); m_pProperties[i]->Dump(stdout, true));
+			}
+
 		} else {
 			VERBOSE_ERROR(pFile->GetVerbosity(),
 				printf("Overran descriptor, tag %u data size %u property %u\n",
@@ -101,7 +117,7 @@ void MP4Descriptor::ReadProperties(MP4File* pFile,
 
 void MP4Descriptor::Write(MP4File* pFile)
 {
-	// call virtual function to adapt properties before wrting
+	// call virtual function to adapt properties before writing
 	Mutate();
 
 	u_int32_t numProperties = m_pProperties.Size();
@@ -121,6 +137,9 @@ void MP4Descriptor::Write(MP4File* pFile)
 		m_pProperties[i]->Write(pFile);
 	}
 
+	// align with byte boundary (rarely necessary)
+	pFile->PadWriteBits();
+
 	// go back and write correct length
 	u_int64_t endPos = pFile->GetPosition();
 	pFile->SetPosition(lengthPos);
@@ -128,7 +147,7 @@ void MP4Descriptor::Write(MP4File* pFile)
 	pFile->SetPosition(endPos);
 }
 
-void MP4Descriptor::Dump(FILE* pFile)
+void MP4Descriptor::Dump(FILE* pFile, bool dumpImplicits)
 {
 	// call virtual function to adapt properties before dumping
 	Mutate();
@@ -140,7 +159,7 @@ void MP4Descriptor::Dump(FILE* pFile)
 		return;
 	}
 	for (u_int32_t i = 0; i < numProperties; i++) {
-		m_pProperties[i]->Dump(pFile);
+		m_pProperties[i]->Dump(pFile, dumpImplicits);
 	}
 }
 

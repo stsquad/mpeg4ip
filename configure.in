@@ -36,7 +36,7 @@ AC_DEFUN(MY_CHECK_TYPEDEF_FROM_INCLUDE,
 [
    AC_MSG_CHECKING([for $1])
    AC_TRY_COMPILE([$2],
-	          [$1 temp;],
+	          [$1;],
                   mpeg4ip_ok=yes, mpeg4ip_ok=no)
    if test $mpeg4ip_ok = yes; then
       AC_DEFINE($3)
@@ -46,10 +46,13 @@ AC_DEFUN(MY_CHECK_TYPEDEF_FROM_INCLUDE,
    fi
 ])
 
-MY_CHECK_TYPEDEF_FROM_INCLUDE([in_port_t], [#include <netinet/in.h>], [HAVE_IN_PORT_T])
-MY_CHECK_TYPEDEF_FROM_INCLUDE([socklen_t], 
+MY_CHECK_TYPEDEF_FROM_INCLUDE([in_port_t temp], [#include <netinet/in.h>], [HAVE_IN_PORT_T])
+MY_CHECK_TYPEDEF_FROM_INCLUDE([socklen_t temp], 
 	[#include <sys/types.h>
 	 #include <sys/socket.h>], HAVE_SOCKLEN_T)
+MY_CHECK_TYPEDEF_FROM_INCLUDE([fpos_t foo; foo.__pos = 0;],
+	[#include <stdio.h>],
+	[HAVE_FPOS_T_POS])
 
 dnl Allow server build to be disabled
 AC_ARG_ENABLE(server, 

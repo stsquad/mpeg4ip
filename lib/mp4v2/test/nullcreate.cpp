@@ -46,16 +46,18 @@ main(int argc, char** argv)
 	MP4SetGraphicsProfileLevel(mp4File, 1);
 
 	MP4TrackId odTrackId = 
-		MP4AddObjectDescriptionTrack(mp4File);
+		MP4AddODTrack(mp4File);
 
 	MP4TrackId bifsTrackId = 
-		MP4AddSceneDescriptionTrack(mp4File);
+		MP4AddSceneTrack(mp4File);
 
 	MP4TrackId videoTrackId = 
 		MP4AddVideoTrack(mp4File, 90000, 3000, 320, 240);
 
 	MP4TrackId audioTrackId = 
 		MP4AddAudioTrack(mp4File, 44100, 1152);
+
+	MP4MakeIsmaCompliant(mp4File);
 
 	printf("Added tracks\n");
 	MP4Dump(mp4File);

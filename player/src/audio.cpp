@@ -230,7 +230,7 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 
   // Check this - we might not want to do this unless we're resyncing
   if (resync)
-    SDL_SemPost(m_sync_sem);
+    m_psptr->wake_sync_thread();
 #ifdef DEBUG_AUDIO_FILL
   player_debug_message("Filling " LLU " %u %u", 
 		       ts, fill_index, m_samples_loaded);
@@ -390,7 +390,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
     if (m_resync_buffer == m_play_index) {
       SDL_PauseAudio(1);
       m_audio_paused = 1;
-      SDL_SemPost(m_sync_sem);
+      m_psptr->wake_sync_thread();
 #ifdef DEBUG_SYNC
       player_debug_message("sempost");
 #endif
@@ -476,7 +476,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
     if (m_eof_found) {
       SDL_PauseAudio(1);
       m_audio_paused = 1;
-      SDL_SemPost(m_sync_sem);
+      m_psptr->wake_sync_thread();
       return;
     }
 #ifdef DEBUG_SYNC
@@ -489,7 +489,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       m_audio_paused = 1;
       m_resync_required = 1;
       m_resync_buffer = m_play_index;
-      SDL_SemPost(m_sync_sem);
+      m_psptr->wake_sync_thread();
     }
     if (m_audio_waiting_buffer) {
       m_audio_waiting_buffer = 0;

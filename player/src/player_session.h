@@ -31,8 +31,6 @@
 #include <rtsp/rtsp_client.h>
 #include <sdp/sdp.h>
 #include "player_media.h"
-#include "audio.h"
-#include "video.h"
 #include "our_msg_queue.h"
 
 typedef enum {
@@ -41,6 +39,9 @@ typedef enum {
   SESSION_PLAYING,
   SESSION_DONE
 } session_state_t;
+
+class CAudioSync;
+class CVideoSync;
 
 class CPlayerSession {
  public:
@@ -129,7 +130,15 @@ class CPlayerSession {
   /*
    * Non-API routines - used for c interfaces, for sync task APIs.
    */
-  SDL_sem *get_sync_sem(void) { return m_sync_sem; };
+  void wake_sync_thread (void) {
+    SDL_SemPost(m_sync_sem);
+  }
+  int send_sync_thread_a_message(uint32_t msgval,
+				 unsigned char *msg = NULL,
+				 uint32_t msg_len = 0)
+    {
+      return (m_sync_thread_msg_queue.send_message(msgval, msg, msg_len, m_sync_sem));
+    };
   int sync_thread(void);
   uint64_t get_current_time(void);
   void audio_is_ready (uint64_t latency, uint64_t time);

@@ -1,69 +1,33 @@
 
-mp4file.cpp TBD's
-
 Finish testing mp4live writing
-
-OD Track samples
-
-Static version of library only
-
----
-
-dump - don't print out implicits?
-
-FinishWrite
-	esds - maxBitrate, avgBitrate
-	hmhd
-
-MP4Clone 
-	Interleaving of existing and new samples on writing
-	Rewriting of chunk offset atom to reflect moves
-
-Unclear if stsd.mp4?.esds.ESID should be set in file - email singer
-
-Option to use dref to separate meta info file from media data file
-
-Effects of edit lists on reading samples
-
-Wrap printf's for verbosity - see example is player/lib/http/http_util.c
-
-Better linkage between tables and their count properties
-
-MP4 v2 new atom types traf, etc.
-
-Add isma bifs 
 
 Add rtp hint helpers
 
 Finish adapting mp4live to new library - hinting
 
-Write mp4creator
-
-Write mp4broadcaster
+FinishWrite
+	esds - maxBitrate, avgBitrate
+	hmhd
 
 ---
 
-	As part of xxx() do 
+Write mp4creator
 
-	MP4Descriptor* pDescriptor = CreateODCommand(MP4ESUpdateODCommandTag);
-	pDescriptor->Generate();
+MP4Clone 
+	Interleaving of existing and new samples on writing
+	Rewriting of chunk offset atom to reflect moves
 
-	MP4BitfieldProperty* pOdIdProperty = NULL;
-	pDescriptor->FindProperty("objectDescriptorId", &pOdIdProperty);
-	ASSERT(pOdIdProperty);
-	pOdIdProperty->SetValue(
-		GetIntegerProperty("moov.iods.objectDescriptorId"));
+MP4Optimize
 
-	MP4Integer16Property* pRefIndexProperty = NULL;
-	pDescriptor->FindProperty("xxx.refIndex", &pProperty);
-	ASSERT(pRefIndexProperty);
-	pRefIndexProperty->SetValue(x, y);
-		Ref to ESIDS's - last tref.mpod index
+Wrap printf's for verbosity - see example is player/lib/http/http_util.c
 
-	u_int64_t start = GetPosition();
-	pDescriptor->Write(this);
-	u_int64_t end = GetPosition();
-	u_int32_t descrSize = (u_int32_t)(end - start);
+Effects of edit lists on reading samples
 
-	WriteSample(m_odTrackId, NULL, descrSize, 0);
+MP4 v2 new atom types traf, etc.
+
+Option to use dref to separate meta info file from media data file
+
+Write mp4broadcaster
+
+Unclear if stsd.mp4?.esds.ESID should be set in file - email singer
 

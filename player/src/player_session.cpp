@@ -27,6 +27,8 @@
 #include "player_media.h"
 #include "player_sdp.h"
 #include "player_util.h"
+#include "audio.h"
+#include "video.h"
 
 /*
  * c callback for sync thread
@@ -75,7 +77,7 @@ CPlayerSession::~CPlayerSession ()
 {
 #ifndef _WINDOWS
   if (m_sync_thread) {
-    m_sync_thread_msg_queue.send_message(MSG_STOP_THREAD, NULL, 0, m_sync_sem);
+    send_sync_thread_a_message(MSG_STOP_THREAD);
     SDL_WaitThread(m_sync_thread, NULL);
     m_sync_thread = NULL;
   }
@@ -252,7 +254,7 @@ void CPlayerSession::set_up_sync_thread(void)
   media = m_my_media;
   while (media != NULL) {
     if (media->is_video()) {
-      m_video_sync = new CVideoSync();
+      m_video_sync = new CVideoSync(this);
       media->set_video_sync(m_video_sync);
     } else {
       m_audio_sync = new CAudioSync(this, m_audio_volume);
@@ -297,7 +299,7 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
   }
   m_paused = 0;
 
-  m_sync_thread_msg_queue.send_message(MSG_START_SESSION, NULL, 0, m_sync_sem);
+  send_sync_thread_a_message(MSG_START_SESSION);
   // If we're doing aggregate rtsp, send the play command...
 
   if (session_control_is_aggregate()) {
@@ -365,7 +367,7 @@ int CPlayerSession::pause_all_media (void)
     p = p->get_next();
   }
   m_sync_pause_done = 0;
-  m_sync_thread_msg_queue.send_message(MSG_PAUSE_SESSION, NULL, 0, m_sync_sem);
+  send_sync_thread_a_message(MSG_PAUSE_SESSION);
   do {
     SDL_Delay(100);
   } while (m_sync_pause_done == 0);
@@ -420,10 +422,7 @@ void CPlayerSession::set_screen_size (int scaletimes2, int fullscreen)
   if (m_video_sync) {
     m_video_sync->set_screen_size(scaletimes2);
     m_video_sync->set_fullscreen(fullscreen);
-    m_sync_thread_msg_queue.send_message(MSG_SYNC_RESIZE_SCREEN, 
-					 NULL, 
-					 0, 
-					 m_sync_sem);
+    send_sync_thread_a_message(MSG_SYNC_RESIZE_SCREEN);
   }
 }
 double CPlayerSession::get_max_time (void)

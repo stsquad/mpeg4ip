@@ -27,12 +27,12 @@ MP4TrefTypeAtom::MP4TrefTypeAtom(char* type)
 	MP4Integer32Property* pCount = 
 		new MP4Integer32Property("entryCount"); 
 	pCount->SetImplicit();
-	AddProperty(pCount);
+	AddProperty(pCount); /* 0 */
 
 	MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
-	AddProperty(pTable);
+	AddProperty(pTable); /* 1 */
 
-	pTable->AddProperty(
+	pTable->AddProperty( /* 1, 0 */
 		new MP4Integer32Property("trackId"));
 }
 

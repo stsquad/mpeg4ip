@@ -26,7 +26,7 @@ COurInByteStreamFile::COurInByteStreamFile (const char *filename) :
   COurInByteStream()
 {
   m_filename = strdup(filename);
-  m_file = fopen(m_filename, "rb");
+  m_file = fopen(m_filename, FOPEN_READ_BINARY);
   m_frames = 0;
   m_total = 0;
   m_bookmark_loaded = 0;

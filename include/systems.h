@@ -60,6 +60,8 @@ typedef int ssize_t;
 
 #include <io.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #define write _write
 #define lseek _lseek
 #define close _close
@@ -67,6 +69,7 @@ typedef int ssize_t;
 #define O_RDWR _O_RDWR
 #define O_CREAT _O_CREAT
 #define O_RDONLY _O_RDONLY
+
 
 #define IOSBINARY ios::binary
 
@@ -95,6 +98,18 @@ int gettimeofday(struct timeval *t, void *);
 #define LOG_INFO 6
 #define LOG_DEBUG 7
 
+#if     !__STDC__ && _INTEGRAL_MAX_BITS >= 64
+#define VAR_TO_FPOS(fpos, var) (fpos) = (var)
+#define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)(_FPOSOFF(fpos))
+#else
+#define VAR_TO_FPOS(fpos, var) (fpos).lopart = ((var) & UINT_MAX); (fpos).hipart = ((var) >> 32)
+#define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)((uint64_t)((fpos).hipart ) << 32 | (fpos).lopart)
+#endif
+
+#define __STRING(expr) #expr
+
+#define FOPEN_READ_BINARY "rb"
+#define FOPEN_WRITE_BINARY "wb"
 #else /* UNIX */
 
 #include <stdlib.h>
@@ -130,7 +145,17 @@ int gettimeofday(struct timeval *t, void *);
 #define LLX "%llx"
 #define M_LLU 1000LLU
 #define I_LLU 1LLU
+#ifdef HAVE_FPOS_T_POS
+#define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)((fpos).__pos)
+#define VAR_TO_FPOS(fpos, var) (fpos).__pos = (var)
+#else
+#define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)(fpos)
+#define VAR_TO_FPOS(fpos, var) (fpos) = (var)
 #endif
+
+#define FOPEN_READ_BINARY "r"
+#define FOPEN_WRITE_BINARY "w"
+#endif /* define unix */
 
 #include <stdarg.h>
 typedef void (*error_msg_func_t)(int loglevel,
@@ -145,5 +170,6 @@ typedef uint16_t in_port_t;
 #ifndef HAVE_SOCKLEN_T
 typedef unsigned int socklen_t;
 #endif
+
 
 #endif /* __SYSTEMS_H__ */

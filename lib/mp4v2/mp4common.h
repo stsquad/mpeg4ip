@@ -35,5 +35,8 @@
 
 #include "atoms.h"
 #include "descriptors.h"
+#include "ocidescriptors.h"
+#include "qosqualifiers.h"
+#include "odcommands.h"
 
 #endif /* __MP4_COMMON_INCLUDED__ */

@@ -26,6 +26,7 @@ class MP4Descriptor {
 public:
 	MP4Descriptor(u_int8_t tag = 0) {
 		m_tag = tag;
+		m_readMutatePoint = 0;
 	}
 	virtual ~MP4Descriptor() { }
 
@@ -52,7 +53,11 @@ public:
 	virtual void Generate();
 	virtual void Read(MP4File* pFile);
 	virtual void Write(MP4File* pFile);
-	virtual void Dump(FILE* pFile);
+	virtual void Dump(FILE* pFile, bool dumpImplicits);
+
+	MP4Property* GetProperty(u_int32_t index) {
+		return m_pProperties[index];
+	}
 
 	bool FindProperty(char* name, 
 	  MP4Property** ppProperty, u_int32_t* pIndex = NULL) {
@@ -60,6 +65,10 @@ public:
 	}
 
 protected:
+	void SetReadMutate(u_int32_t propIndex) {
+		m_readMutatePoint = propIndex;
+	}
+
 	void ReadHeader(MP4File* pFile);
 	void ReadProperties(MP4File* pFile,
 		u_int32_t startIndex = 0, u_int32_t count = 0xFFFFFFFF);
@@ -77,6 +86,7 @@ protected:
 	u_int64_t			m_start;
 	u_int32_t			m_size;
 	MP4PropertyArray	m_pProperties;
+	u_int32_t			m_readMutatePoint;
 };
 
 #endif /* __MP4_DESCRIPTOR_INCLUDED__ */

@@ -2,7 +2,7 @@ SUBDIRS = . test util
 
 INCLUDES = -I$(top_srcdir)/include
 
-AM_CXXFLAGS = -Wall
+AM_CXXFLAGS = -Wall 
 
 lib_LTLIBRARIES = libmp4v2.la
 
@@ -91,5 +91,12 @@ libmp4v2_la_SOURCES = \
 	atom_urn.cpp \
 	atom_vmhd.cpp \
 	descriptors.h \
-	descriptors.cpp
+	descriptors.cpp \
+	ocidescriptors.h \
+	ocidescriptors.cpp \
+	qosqualifiers.h \
+	qosqualifiers.cpp \
+	odcommands.h \
+	odcommands.cpp \
+	isma.cpp
 

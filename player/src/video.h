@@ -31,9 +31,11 @@
 
 #define MAX_VIDEO_BUFFERS 16
 
+class CPlayerSession;
+
 class CVideoSync {
  public:
-  CVideoSync(void);
+  CVideoSync(CPlayerSession *ptptr);
   ~CVideoSync(void);
   int initialize_video(const char *name, int x, int y);  // from sync task
   int is_video_ready(uint64_t &disptime);  // from sync task
@@ -52,7 +54,6 @@ class CVideoSync {
 		      uint64_t &current_time);
   void config (int w, int h, int frame_rate); // from codec
   void set_wait_sem (SDL_sem *p) { m_decode_sem = p; };  // from set up
-  void set_sync_sem (SDL_sem *p) {m_sync_sem = p;};      // from set up
   void flush_decode_buffers(void);    // from decoder task in response to stop
   void flush_sync_buffers(void);      // from sync task in response to stop
   void play_video(void);
@@ -63,6 +64,7 @@ class CVideoSync {
   void do_video_resize(void); // from sync
   uint64_t get_video_msec_per_frame (void) { return m_msec_per_frame; };
  private:
+  CPlayerSession *m_psptr;
   int m_eof_found;
   int m_video_bpp;
   int m_video_scale;
@@ -75,7 +77,6 @@ class CVideoSync {
   SDL_Surface *m_screen;
   SDL_Overlay *m_image;
   SDL_Rect m_dstrect;
-  SDL_sem *m_sync_sem;
   uint32_t m_fill_index, m_play_index;
   int m_decode_waiting;
   volatile int m_buffer_filled[MAX_VIDEO_BUFFERS];

@@ -383,7 +383,7 @@ int main(int argc, char** argv)
 
 	while (1) {
 		static bool starting = TRUE;
-		static u_char objBuf[64*1024]; /* 64K is max for a compliant bitstream */
+		static u_char objBuf[256*1024]; 
 		u_int objBufSize = sizeof(objBuf);
 		static u_char configObjBuf[4*1024]; 	
 		static u_int configObjBufSize = 0;

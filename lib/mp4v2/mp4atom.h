@@ -161,6 +161,10 @@ public:
 		return m_pChildAtoms.Size();
 	}
 
+	MP4Property* GetProperty(u_int32_t index) {
+		return m_pProperties[index];
+	}
+
 	MP4Atom* FindAtom(char* name);
 
 	bool FindProperty(char* name, 
@@ -175,7 +179,7 @@ public:
 	virtual void BeginWrite(bool use64 = false);
 	virtual void Write();
 	virtual void FinishWrite(bool use64 = false);
-	virtual void Dump(FILE* pFile);
+	virtual void Dump(FILE* pFile, bool dumpImplicits);
 
 protected:
 	void AddProperty(MP4Property* pProperty) {

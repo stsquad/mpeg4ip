@@ -200,15 +200,16 @@ MP4Atom* MP4Atom::CreateAtom(char* type)
 
 void MP4Atom::Generate()
 {
+	u_int32_t i;
 
 	// for all properties
-	for (u_int32_t i = 0; i < m_pProperties.Size(); i++) {
+	for (i = 0; i < m_pProperties.Size(); i++) {
 		// ask it to self generate
 		m_pProperties[i]->Generate();
 	}
 
 	// for all mandatory, single child atom types
-	for (u_int32_t i = 0; i < m_pChildAtomInfos.Size(); i++) {
+	for (i = 0; i < m_pChildAtomInfos.Size(); i++) {
 		if (m_pChildAtomInfos[i]->m_mandatory
 		  && m_pChildAtomInfos[i]->m_onlyOne) {
 
@@ -334,7 +335,8 @@ void MP4Atom::Read()
 	Skip();	// to end of atom
 }
 
-void MP4Atom::Skip() {
+void MP4Atom::Skip()
+{
 	if (m_pFile->GetPosition() != m_end) {
 		VERBOSE_READ(m_pFile->GetVerbosity(),
 			printf("Skip: "LLU" bytes\n", m_end - m_pFile->GetPosition()));
@@ -430,9 +432,9 @@ bool MP4Atom::FindContainedProperty(char *name,
 	MP4Property** ppProperty, u_int32_t* pIndex)
 {
 	u_int32_t numProperties = m_pProperties.Size();
-
+	u_int32_t i;
 	// check all of our properties
-	for (u_int32_t i = 0; i < numProperties; i++) {
+	for (i = 0; i < numProperties; i++) {
 		if (m_pProperties[i]->FindProperty(name, ppProperty, pIndex)) {
 			return true;
 		}
@@ -447,7 +449,7 @@ bool MP4Atom::FindContainedProperty(char *name,
 	MP4NameFirstIndex(name, &atomIndex);
 
 	// need to get to the index'th child atom of the right type
-	for (u_int32_t i = 0; i < m_pChildAtoms.Size(); i++) {
+	for (i = 0; i < m_pChildAtoms.Size(); i++) {
 		if (MP4NameFirstMatches(m_pChildAtoms[i]->GetType(), name)) {
 			if (atomIndex == 0) {
 				// this is the one, ask it to match
@@ -482,10 +484,10 @@ void MP4Atom::ReadProperties(u_int32_t startIndex, u_int32_t count)
 
 		if (m_pProperties[i]->GetType() == TableProperty) {
 			VERBOSE_READ_TABLE(GetVerbosity(), 
-				printf("Read: "); m_pProperties[i]->Dump(stdout));
-		} else {
+				printf("Read: "); m_pProperties[i]->Dump(stdout, true));
+		} else if (m_pProperties[i]->GetType() != DescriptorProperty) {
 			VERBOSE_READ(GetVerbosity(), 
-				printf("Read: "); m_pProperties[i]->Dump(stdout));
+				printf("Read: "); m_pProperties[i]->Dump(stdout, true));
 		}
 	}
 }
@@ -612,10 +614,10 @@ void MP4Atom::WriteProperties(u_int32_t startIndex, u_int32_t count)
 
 		if (m_pProperties[i]->GetType() == TableProperty) {
 			VERBOSE_WRITE_TABLE(GetVerbosity(), 
-				printf("Write: "); m_pProperties[i]->Dump(stdout));
+				printf("Write: "); m_pProperties[i]->Dump(stdout, false));
 		} else {
 			VERBOSE_WRITE(GetVerbosity(), 
-				printf("Write: "); m_pProperties[i]->Dump(stdout));
+				printf("Write: "); m_pProperties[i]->Dump(stdout, false));
 		}
 	}
 }
@@ -644,7 +646,7 @@ void MP4Atom::SetVersion(u_int8_t version)
 	if (strcmp("version", m_pProperties[0]->GetName())) {
 		return;
 	}
-	return ((MP4Integer8Property*)m_pProperties[0])->SetValue(version);
+	((MP4Integer8Property*)m_pProperties[0])->SetValue(version);
 }
 
 u_int32_t MP4Atom::GetFlags()
@@ -660,10 +662,10 @@ void MP4Atom::SetFlags(u_int32_t flags)
 	if (strcmp("flags", m_pProperties[1]->GetName())) {
 		return;
 	}
-	return ((MP4Integer24Property*)m_pProperties[1])->SetValue(flags);
+	((MP4Integer24Property*)m_pProperties[1])->SetValue(flags);
 }
 
-void MP4Atom::Dump(FILE* pFile)
+void MP4Atom::Dump(FILE* pFile, bool dumpImplicits)
 {
 	u_int32_t depth = GetDepth();
 
@@ -686,13 +688,13 @@ void MP4Atom::Dump(FILE* pFile)
 			continue;
 		}
 
-		m_pProperties[i]->Dump(pFile);
+		m_pProperties[i]->Dump(pFile, dumpImplicits);
 	}
 
 	// dump our children
 	size = m_pChildAtoms.Size();
-	for (u_int32_t i = 0; i < size; i++) {
-		m_pChildAtoms[i]->Dump(pFile);
+	for (i = 0; i < size; i++) {
+		m_pChildAtoms[i]->Dump(pFile, dumpImplicits);
 	}
 }
 

@@ -21,12 +21,13 @@
 /*
  * qtime_bytestream.cpp - convert quicktime file to a bytestream
  */
-#define DEBUG_MP4_FRAME 1
 
 #include "systems.h"
 #include "player_session.h"
 #include "player_media.h"
 #include "mp4_bytestream.h"
+
+//#define DEBUG_MP4_FRAME 1
 
 /**************************************************************************
  * Quicktime stream base class functions
@@ -48,6 +49,7 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
   m_parent = parent;
   m_eof = 0;
   MP4FileHandle fh = parent->get_file();
+  m_frames_max = MP4GetNumberOfTrackSamples(fh, m_track);
   m_max_frame_size = MP4GetMaxSampleSize(fh, m_track);
   m_buffer = (u_int8_t *) malloc(m_max_frame_size * sizeof(u_int8_t));
   m_bookmark_buffer = (u_int8_t *)malloc(m_max_frame_size * sizeof(char));
@@ -62,7 +64,11 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
 				       m_track, 
 				       trackDuration,
 				       MP4_MSECS_TIME_SCALE);
+#ifdef _WINDOWS
+  m_max_time = (int64_t)(max_ts);
+#else
   m_max_time = max_ts;
+#endif
   m_max_time /= 1000.0;
   player_debug_message("MP4 %s max time is %llu %g", type, max_ts, m_max_time);
   read_frame(1);

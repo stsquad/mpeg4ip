@@ -82,9 +82,13 @@ public:
 	virtual void SetCount(u_int32_t count) = NULL;
 
 	virtual void Generate() { /* default is a no-op */ };
+
 	virtual void Read(MP4File* pFile, u_int32_t index = 0) = NULL;
+
 	virtual void Write(MP4File* pFile, u_int32_t index = 0) = NULL;
-	virtual void Dump(FILE* pFile, u_int32_t index = 0) = NULL;
+
+	virtual void Dump(FILE* pFile, 
+		bool dumpImplicits, u_int32_t index = 0) = NULL;
 
 	virtual bool FindProperty(char* name,
 	  MP4Property** ppProperty, u_int32_t* pIndex = NULL);
@@ -162,8 +166,7 @@ public:
 			} \
 			pFile->WriteUInt##xsize(m_values[index]); \
 		} \
-		\
-		void Dump(FILE* pFile, u_int32_t index = 0); \
+		void Dump(FILE* pFile, bool dumpImplicits, u_int32_t index = 0); \
 	\
 	protected: \
 		MP4Integer##isize##Array m_values; \
@@ -196,7 +199,7 @@ public:
 
 	void Read(MP4File* pFile, u_int32_t index = 0);
 	void Write(MP4File* pFile, u_int32_t index = 0);
-	void Dump(FILE* pFile, u_int32_t index = 0);
+	void Dump(FILE* pFile, bool dumpImplicits, u_int32_t index = 0);
 
 protected:
 	u_int8_t m_numBits;
@@ -258,7 +261,7 @@ public:
 
 	void Read(MP4File* pFile, u_int32_t index = 0);
 	void Write(MP4File* pFile, u_int32_t index = 0);
-	void Dump(FILE* pFile, u_int32_t index = 0);
+	void Dump(FILE* pFile, bool dumpImplicits, u_int32_t index = 0);
 
 protected:
 	bool m_useFixed16Format;
@@ -358,7 +361,7 @@ public:
 
 	void Read(MP4File* pFile, u_int32_t index = 0);
 	void Write(MP4File* pFile, u_int32_t index = 0);
-	void Dump(FILE* pFile, u_int32_t index = 0);
+	void Dump(FILE* pFile, bool dumpImplicits, u_int32_t index = 0);
 
 protected:
 	bool m_useCountedFormat;
@@ -438,7 +441,7 @@ public:
 
 	void Read(MP4File* pFile, u_int32_t index = 0);
 	void Write(MP4File* pFile, u_int32_t index = 0);
-	void Dump(FILE* pFile, u_int32_t index = 0);
+	void Dump(FILE* pFile, bool dumpImplicits, u_int32_t index = 0);
 
 protected:
 	MP4Integer32Array	m_valueSizes;
@@ -496,7 +499,7 @@ public:
 
 	void Read(MP4File* pFile, u_int32_t index = 0);
 	void Write(MP4File* pFile, u_int32_t index = 0);
-	void Dump(FILE* pFile, u_int32_t index = 0);
+	void Dump(FILE* pFile, bool dumpImplicits, u_int32_t index = 0);
 
 	bool FindProperty(char* name,
 		MP4Property** ppProperty, u_int32_t* pIndex);
@@ -519,8 +522,7 @@ public:
 	  u_int8_t tagsStart = 0, u_int8_t tagsEnd = 0,
 	  bool mandatory = false, bool onlyOne = false)
 		: MP4Property(name) { 
-		m_tagsStart = tagsStart;
-		m_tagsEnd = tagsEnd;
+		SetTags(tagsStart, tagsEnd);
 		m_sizeLimit = 0;
 		m_mandatory = mandatory;
 		m_onlyOne = onlyOne;
@@ -540,7 +542,12 @@ public:
 		return m_pDescriptors.Size();
 	}
 	void SetCount(u_int32_t count) {
-		return m_pDescriptors.Resize(count);
+		m_pDescriptors.Resize(count);
+	}
+
+	void SetTags(u_int8_t tagsStart, u_int8_t tagsEnd = 0) {
+		m_tagsStart = tagsStart;
+		m_tagsEnd = tagsEnd ? tagsEnd : tagsStart;
 	}
 
 	MP4Descriptor* AddDescriptor(u_int8_t tag);
@@ -548,7 +555,7 @@ public:
 	void Generate();
 	void Read(MP4File* pFile, u_int32_t index = 0);
 	void Write(MP4File* pFile, u_int32_t index = 0);
-	void Dump(FILE* pFile, u_int32_t index = 0);
+	void Dump(FILE* pFile, bool dumpImplicits, u_int32_t index = 0);
 
 	bool FindProperty(char* name,
 		MP4Property** ppProperty, u_int32_t* pIndex);

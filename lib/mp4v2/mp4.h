@@ -133,15 +133,22 @@ MP4FileHandle MP4Read(const char* fileName,
 
 MP4FileHandle MP4Create(const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
-	bool use64bits DEFAULT(0));
+	bool use64bits DEFAULT(0),
+	bool useExtensibleFormat DEFAULT(0));
 
 MP4FileHandle MP4Clone(const char* existingFileName, 
 	const char* newFileName, 
 	u_int32_t verbosity DEFAULT(0));
 
+bool MP4Optimize(const char* existingFileName, 
+	const char* newFileName, 
+	u_int32_t verbosity DEFAULT(0));
+
 int MP4Close(MP4FileHandle hFile);
 
-int MP4Dump(MP4FileHandle hFile, FILE* pDumpFile DEFAULT(NULL));
+int MP4Dump(MP4FileHandle hFile, 
+	FILE* pDumpFile DEFAULT(NULL), 
+	bool dumpImplicits DEFAULT(0));
 
 /* file properties */
 
@@ -212,10 +219,10 @@ MP4TrackId MP4AddTrack(
 MP4TrackId MP4AddSystemsTrack(
 	MP4FileHandle hFile, char* type);
 
-MP4TrackId MP4AddObjectDescriptionTrack(
+MP4TrackId MP4AddODTrack(
 	MP4FileHandle hFile);
 
-MP4TrackId MP4AddSceneDescriptionTrack(
+MP4TrackId MP4AddSceneTrack(
 	MP4FileHandle hFile);
 
 MP4TrackId MP4AddAudioTrack(
@@ -352,6 +359,17 @@ MP4SampleId MP4GetSampleIdFromTime(
 	MP4TrackId trackId, 
 	MP4Timestamp when, 
 	bool wantSyncSample DEFAULT(false));
+
+/* specialized operations */
+
+/* 
+ * note this operation should be done 
+ * after media tracks have been created
+ * but before media samples are written
+ */
+bool MP4MakeIsmaCompliant(
+	MP4FileHandle hFile);
+
 
 /* time conversion utilties */
 

@@ -68,6 +68,7 @@ public:
 	void FinishWrite();
 
 	u_int32_t	GetTimeScale();
+	u_int32_t	GetNumberOfSamples();
 	u_int32_t	GetSampleSize(MP4SampleId sampleId);
 	u_int32_t	GetMaxSampleSize();
 

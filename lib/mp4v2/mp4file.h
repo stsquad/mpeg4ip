@@ -28,6 +28,7 @@ class MP4Property;
 class MP4Float32Property;
 class MP4StringProperty;
 class MP4BytesProperty;
+class MP4Descriptor;
 
 class MP4File {
 public:
@@ -38,7 +39,7 @@ public:
 	void Read(const char* fileName);
 	void Create(const char* fileName, bool use64bits);
 	void Clone(const char* existingFileName, const char* newFileName);
-	void Dump(FILE* pDumpFile = NULL);
+	void Dump(FILE* pDumpFile = NULL, bool dumpImplicits = false);
 	void Close();
 
 	/* library property per file */
@@ -157,9 +158,9 @@ public:
 
 	MP4TrackId AddSystemsTrack(char* type);
 
-	MP4TrackId AddObjectDescriptionTrack();
+	MP4TrackId AddODTrack();
 
-	MP4TrackId AddSceneDescriptionTrack();
+	MP4TrackId AddSceneTrack();
 
 	MP4TrackId AddAudioTrack(u_int32_t timeScale, u_int32_t sampleDuration,
 		u_int8_t audioType);
@@ -214,14 +215,16 @@ public:
 		u_int64_t duration,
 		u_int32_t timeScale);
 
+	// specialized operations
+
+	void MakeIsmaCompliant();
+
 	/* "protected" interface to be used only by friends in library */
 
 	u_int64_t GetPosition();
 	void SetPosition(u_int64_t pos);
 
-	u_int64_t GetSize() {
-		return m_fileSize;
-	}
+	u_int64_t GetSize();
 
 	u_int32_t ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, 
 		FILE* pFile = NULL);
@@ -238,9 +241,14 @@ public:
 	char* ReadCountedString(
 		u_int8_t charSize = 1, bool allowExpandedCount = false);
 	u_int64_t ReadBits(u_int8_t numBits);
+	void FlushReadBits();
 	u_int32_t ReadMpegLength();
 
 	u_int32_t PeekBytes(u_int8_t* pBytes, u_int32_t numBytes);
+
+	void EnableWriteBuffer();
+	void GetWriteBuffer(u_int8_t** ppBytes, u_int64_t* pNumBytes);
+	void DisableWriteBuffer();
 
 	void WriteBytes(u_int8_t* pBytes, u_int32_t numBytes);
 	void WriteUInt(u_int64_t value, u_int8_t size);
@@ -256,6 +264,7 @@ public:
 	void WriteCountedString(char* string, 
 		u_int8_t charSize = 1, bool allowExpandedCount = false);
 	void WriteBits(u_int64_t bits, u_int8_t numBits);
+	void PadWriteBits(u_int8_t pad = 0);
 	void FlushWriteBits();
 	void WriteMpegLength(u_int32_t value, bool compact = false);
 
@@ -289,12 +298,28 @@ protected:
 		MP4Property** ppProperty, u_int32_t* pIndex = NULL);
 
 	void AddTrackToIod(MP4TrackId trackId);
+
 	void AddTrackToOd(MP4TrackId trackId);
+
+	void GetTrackReferenceProperties(char* trefName,
+		MP4Property** ppCountProperty, MP4Property** ppTrackIdProperty);
+
 	void AddTrackReference(char* trefName, MP4TrackId refTrackId);
+
+	u_int32_t FindTrackReference(char* trefName, MP4TrackId refTrackId);
 
 	char* MakeTrackName(MP4TrackId trackId, char* name);
 
 	u_int8_t ConvertTrackTypeToStreamType(const char* trackType);
+
+	void WriteIsmaODUpdateCommand(MP4TrackId odTrackId,
+		MP4TrackId audioTrackId, MP4TrackId videoTrackId);
+
+	void WriteODCommand(MP4TrackId odTrackId,
+		MP4Descriptor* pDescriptor);
+
+	void WriteIsmaSceneCommand(MP4TrackId sceneTrackId,
+		MP4TrackId audioTrackId, MP4TrackId videoTrackId);
 
 protected:
 	char*			m_fileName;
@@ -307,6 +332,7 @@ protected:
 	u_int32_t		m_verbosity;
 	char			m_mode;
 	bool			m_use64bits;
+	bool			m_useIsma;
 
 	// cached properties
 	MP4IntegerProperty*		m_pModificationProperty;
@@ -314,8 +340,13 @@ protected:
 	MP4IntegerProperty*		m_pDurationProperty;
 
 	// used when cloning
-	char*			m_mdatFileName;
-	FILE*			m_pMdatFile;
+	char*		m_mdatFileName;
+	FILE*		m_pMdatFile;
+
+	// write buffering
+	u_int8_t*	m_writeBuffer;
+	u_int64_t	m_writeBufferSize;
+	u_int64_t	m_writeBufferMaxSize;
 
 	// bit read/write buffering
 	u_int8_t	m_numReadBits;

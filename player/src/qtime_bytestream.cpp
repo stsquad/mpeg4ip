@@ -343,8 +343,7 @@ void CQTVideoByteStream::set_start_time (uint64_t start)
       }
     } else {
       m_parent->unlock_file_mutex();
-      ix = start * m_frame_rate;
-      ix /= 1000;
+      ix = (uint32_t)((start * m_frame_rate) / 1000);
       video_set_timebase(ix);
       return;
     }

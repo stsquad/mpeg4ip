@@ -32,10 +32,15 @@ MP4File::MP4File(u_int32_t verbosity)
 	m_verbosity = verbosity;
 	m_mode = 0;
 	m_use64bits = false;
+	m_useIsma = false;
 
 	m_pModificationProperty = NULL;
 	m_pTimeScaleProperty = NULL;
 	m_pDurationProperty = NULL;
+
+	m_writeBuffer = NULL;
+	m_writeBufferSize = 0;
+	m_writeBufferMaxSize = 0;
 
 	m_numReadBits = 0;
 	m_bufReadBits = 0;
@@ -117,7 +122,8 @@ void MP4File::Clone(const char* existingFileName, const char* newFileName)
 void MP4File::Open()
 {
 	ASSERT(m_pFile == NULL);
-	m_pFile = fopen(m_fileName, m_mode == 'r' ? "r" : "w");
+	m_pFile = fopen(m_fileName, 
+					m_mode == 'r' ? FOPEN_READ_BINARY : FOPEN_WRITE_BINARY);
 	if (m_pFile == NULL) {
 		throw new MP4Error(errno, "failed", "MP4Open");
 	}
@@ -236,14 +242,14 @@ void MP4File::FinishWrite()
 	m_pRootAtom->Write();
 }
 
-void MP4File::Dump(FILE* pDumpFile)
+void MP4File::Dump(FILE* pDumpFile, bool dumpImplicits)
 {
 	if (pDumpFile == NULL) {
 		pDumpFile = stdout;
 	}
 
 	fprintf(pDumpFile, "Dumping %s meta-information...\n", m_fileName);
-	m_pRootAtom->Dump(pDumpFile);
+	m_pRootAtom->Dump(pDumpFile, dumpImplicits);
 }
 
 void MP4File::Close()
@@ -519,35 +525,67 @@ void MP4File::AddTrackToOd(MP4TrackId trackId)
 	AddTrackReference(MakeTrackName(m_odTrackId, "tref.mpod"), trackId);
 }
 
-void MP4File::AddTrackReference(char* trefName, MP4TrackId refTrackId)
+void MP4File::GetTrackReferenceProperties(char* trefName,
+	MP4Property** ppCountProperty, MP4Property** ppTrackIdProperty)
 {
 	char propName[1024];
 
 	snprintf(propName, sizeof(propName), "%s.%s", trefName, "entryCount");
-	MP4Integer32Property* pCountProperty = NULL;
-	m_pRootAtom->FindProperty(propName,
-		(MP4Property**)&pCountProperty);
-	ASSERT(pCountProperty);
+	m_pRootAtom->FindProperty(propName, ppCountProperty);
+	ASSERT(*ppCountProperty);
 
 	snprintf(propName, sizeof(propName), "%s.%s", trefName, "entries.trackId");
+	m_pRootAtom->FindProperty(propName, ppTrackIdProperty);
+	ASSERT(*ppTrackIdProperty);
+}
+
+void MP4File::AddTrackReference(char* trefName, MP4TrackId refTrackId)
+{
+	MP4Integer32Property* pCountProperty = NULL;
 	MP4Integer32Property* pTrackIdProperty = NULL;
-	m_pRootAtom->FindProperty(propName,
+
+	GetTrackReferenceProperties(trefName,
+		(MP4Property**)&pCountProperty, 
 		(MP4Property**)&pTrackIdProperty);
-	ASSERT(pTrackIdProperty);
 
 	pTrackIdProperty->AddValue(refTrackId);
 	pCountProperty->IncrementValue();
+}
+
+u_int32_t MP4File::FindTrackReference(char* trefName, MP4TrackId refTrackId)
+{
+	MP4Integer32Property* pCountProperty = NULL;
+	MP4Integer32Property* pTrackIdProperty = NULL;
+
+	GetTrackReferenceProperties(trefName, 
+		(MP4Property**)&pCountProperty, 
+		(MP4Property**)&pTrackIdProperty);
+
+	for (u_int32_t i = 0; i < pCountProperty->GetValue(); i++) {
+		if (refTrackId == pTrackIdProperty->GetValue(i)) {
+			return i + 1;	// N.B. 1 not 0 based index
+		}
+	}
+	return 0;
 }
 
 MP4TrackId MP4File::AddSystemsTrack(char* type)
 {
 	const char* normType = MP4Track::NormalizeTrackType(type); 
 
-	MP4TrackId trackId = AddTrack(type);
+	MP4TrackId trackId = AddTrack(type, 1000);
 
 	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "nmhd", 0);
 
 	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4s");
+
+	// stsd is a unique beast in that it has a count of the number 
+	// of child atoms that needs to be incremented after we add the mp4s atom
+	MP4Integer32Property* pStsdCountProperty;
+	FindIntegerProperty(
+		MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
+		(MP4Property**)&pStsdCountProperty);
+	pStsdCountProperty->IncrementValue();
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4s.esds.ESID", trackId);
@@ -563,7 +601,7 @@ MP4TrackId MP4File::AddSystemsTrack(char* type)
 	return trackId;
 }
 
-MP4TrackId MP4File::AddObjectDescriptionTrack()
+MP4TrackId MP4File::AddODTrack()
 {
 	// until a demonstrated need emerges
 	// we limit ourselves to one object description track
@@ -584,7 +622,7 @@ MP4TrackId MP4File::AddObjectDescriptionTrack()
 	return m_odTrackId;
 }
 
-MP4TrackId MP4File::AddSceneDescriptionTrack()
+MP4TrackId MP4File::AddSceneTrack()
 {
 	MP4TrackId trackId = AddSystemsTrack(MP4_SCENE_TRACK_TYPE);
 
@@ -607,6 +645,14 @@ MP4TrackId MP4File::AddAudioTrack(u_int32_t timeScale,
 	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "smhd", 0);
 
 	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4a");
+
+	// stsd is a unique beast in that it has a count of the number 
+	// of child atoms that needs to be incremented after we add the mp4a atom
+	MP4Integer32Property* pStsdCountProperty;
+	FindIntegerProperty(
+		MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
+		(MP4Property**)&pStsdCountProperty);
+	pStsdCountProperty->IncrementValue();
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4a.timeScale", timeScale);
@@ -643,8 +689,14 @@ MP4TrackId MP4File::AddVideoTrack(
 	InsertAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd", 0);
 
 	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4v");
-	// TBD need to increment mdia.minf.stbl.stsd.entryCount
-	// for this and other track types
+
+	// stsd is a unique beast in that it has a count of the number 
+	// of child atoms that needs to be incremented after we add the mp4v atom
+	MP4Integer32Property* pStsdCountProperty;
+	FindIntegerProperty(
+		MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
+		(MP4Property**)&pStsdCountProperty);
+	pStsdCountProperty->IncrementValue();
 
 	SetTrackIntegerProperty(trackId, 
 		"mdia.minf.stbl.stsd.mp4v.width", width);
@@ -781,6 +833,7 @@ MP4TrackId MP4File::FindTrackId(u_int16_t trackIndex, char* type)
 			}
 		}
 		throw new MP4Error("Track index doesn't exist", "FindTrackId"); 
+		return MP4_INVALID_TRACK_ID; // satisfy MS compiler
 	}
 }
 
@@ -793,6 +846,7 @@ u_int16_t MP4File::FindTrackIndex(MP4TrackId trackId)
 	}
 	
 	throw new MP4Error("Track id doesn't exist", "FindTrackIndex"); 
+	return (u_int16_t)-1; // satisfy MS compiler
 }
 
 u_int16_t MP4File::FindTrakAtomIndex(MP4TrackId trackId)
@@ -806,6 +860,7 @@ u_int16_t MP4File::FindTrakAtomIndex(MP4TrackId trackId)
 	}
 
 	throw new MP4Error("Track id doesn't exist", "FindTrakAtomIndex"); 
+	return (u_int16_t)-1; // satisfy MS compiler
 }
 
 u_int32_t MP4File::GetSampleSize(MP4TrackId trackId, MP4SampleId sampleId)
@@ -986,7 +1041,7 @@ void MP4File::SetGraphicsProfileLevel(u_int8_t value)
 
 MP4SampleId MP4File::GetNumberOfTrackSamples(MP4TrackId trackId)
 {
-	return GetTrackIntegerProperty(trackId, "mdia.minf.stbl.stsz.sampleCount");
+	return m_pTracks[FindTrackIndex(trackId)]->GetNumberOfSamples();
 }
 
 const char* MP4File::GetTrackType(MP4TrackId trackId)
@@ -1113,3 +1168,4 @@ u_int8_t MP4File::ConvertTrackTypeToStreamType(const char* trackType)
 
 	return streamType;
 }
+

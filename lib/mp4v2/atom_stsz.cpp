@@ -24,19 +24,19 @@
 MP4StszAtom::MP4StszAtom() 
 	: MP4Atom("stsz") 
 {
-	AddVersionAndFlags();
+	AddVersionAndFlags(); /* 0, 1 */
 
-	AddProperty(
+	AddProperty( /* 2 */
 		new MP4Integer32Property("sampleSize")); 
 
 	MP4Integer32Property* pCount = 
 		new MP4Integer32Property("sampleCount"); 
-	AddProperty(pCount);
+	AddProperty(pCount); /* 3 */
 
 	MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
-	AddProperty(pTable);
+	AddProperty(pTable); /* 4 */
 
-	pTable->AddProperty(
+	pTable->AddProperty( /* 4/0 */
 		new MP4Integer32Property("sampleSize"));
 }
 
@@ -47,11 +47,27 @@ void MP4StszAtom::Read()
 	u_int32_t sampleSize = 
 		((MP4Integer32Property*)m_pProperties[2])->GetValue();
 
+	u_int32_t sampleCount = 
+		((MP4Integer32Property*)m_pProperties[3])->GetValue();
+
+	// common mistake
+	if (sampleSize && sampleCount) {
+		VERBOSE_READ(m_pFile->GetVerbosity(),
+			printf("Warning: stsz sampleCount %u "
+				"is inconsistent with non-zero sample size.\n",
+				sampleCount));
+
+		// fixup
+		((MP4Integer32Property*)m_pProperties[3])->SetReadOnly(false);
+		((MP4Integer32Property*)m_pProperties[3])->SetValue(0);
+		((MP4Integer32Property*)m_pProperties[3])->SetReadOnly(true);
+	}
+
 	// only attempt to read entries table if sampleSize is zero
 	// i.e sample size is not constant
-	if (sampleSize == 0) {
-		ReadProperties(4);
-	}
+	m_pProperties[4]->SetImplicit(sampleSize != 0);
+
+	ReadProperties(4);
 
 	Skip();	// to end of atom
 }

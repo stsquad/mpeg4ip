@@ -29,7 +29,7 @@ main(int argc, char** argv)
 		exit(1);
 	}
 
-	MP4Dump(mp4File, stdout);
+	MP4Dump(mp4File, stdout, 0);
 
 	MP4Close(mp4File);
 

@@ -21,24 +21,53 @@
 
 #include "mp4common.h"
 
+#ifdef HAVE_FPOS_T_POS
+#define FPOS_TO_UINT64(x)		((u_int64_t)((x).__pos))
+#define UINT64_TO_FPOS(x, y)	((x).__pos = (y))
+#else 
+#define FPOS_TO_UINT64(x)		((u_int64_t)(x))
+#define UINT64_TO_FPOS(x, y)	((x) = (fpos)(y))
+#endif
+
 // MP4File low level IO support
 
 u_int64_t MP4File::GetPosition()
 {
-	fpos_t fpos;
-	if (fgetpos(m_pFile, &fpos) < 0) {
-		throw new MP4Error(errno, "MP4GetPosition");
+	if (m_writeBuffer == NULL) {
+		fpos_t fpos;
+		if (fgetpos(m_pFile, &fpos) < 0) {
+			throw new MP4Error(errno, "MP4GetPosition");
+		}
+		return FPOS_TO_UINT64(fpos);
+	} else {
+		return m_writeBufferSize;
 	}
-	return fpos.__pos;
 }
 
 void MP4File::SetPosition(u_int64_t pos)
 {
-	fpos_t fpos;
-	fpos.__pos = pos;
-	if (fsetpos(m_pFile, &fpos) < 0) {
-		throw new MP4Error(errno, "MP4SetPosition");
+	if (m_writeBuffer == NULL) {
+		fpos_t fpos;
+		VAR_TO_FPOS(fpos, pos);
+		if (fsetpos(m_pFile, &fpos) < 0) {
+			throw new MP4Error(errno, "MP4SetPosition");
+		}
+	} else {
+		m_writeBufferSize = pos;
 	}
+}
+
+u_int64_t MP4File::GetSize()
+{
+	if (m_mode == 'w') {
+		// we're always positioned at the end of file in write mode
+		// except for short intervals in FinishWrite routines
+		// so we rely on the faster approach of GetPosition()
+		// instead of flushing to disk, and then stat'ing the file
+		m_fileSize = GetPosition();
+	} // else read mode, fileSize was determined at Open()
+
+	return m_fileSize;
 }
 
 u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
@@ -74,6 +103,25 @@ u_int32_t MP4File::PeekBytes(u_int8_t* pBytes, u_int32_t numBytes)
 	return numBytes;
 }
 
+void MP4File::EnableWriteBuffer() {
+	ASSERT(m_writeBuffer == NULL);
+	m_writeBufferSize = 0;
+	m_writeBufferMaxSize = 1024;
+	m_writeBuffer = (u_int8_t*)MP4Malloc(m_writeBufferMaxSize);
+}
+
+void MP4File::GetWriteBuffer(u_int8_t** ppBytes, u_int64_t* pNumBytes) {
+	*ppBytes = m_writeBuffer;
+	*pNumBytes = m_writeBufferSize;
+}
+
+void MP4File::DisableWriteBuffer() {
+	MP4Free(m_writeBuffer);
+	m_writeBuffer = NULL;
+	m_writeBufferSize = 0;
+	m_writeBufferMaxSize = 0;
+}
+
 void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes)
 {
 	ASSERT(m_pFile);
@@ -85,12 +133,20 @@ void MP4File::WriteBytes(u_int8_t* pBytes, u_int32_t numBytes)
 		return;
 	}
 
-	u_int32_t rc;
-	rc = fwrite(pBytes, 1, numBytes, m_pFile);
-	if (rc != numBytes) {
-		throw new MP4Error(errno, "MP4WriteBytes");
+	if (m_writeBuffer == NULL) {
+		u_int32_t rc = fwrite(pBytes, 1, numBytes, m_pFile);
+		if (rc != numBytes) {
+			throw new MP4Error(errno, "MP4WriteBytes");
+		}
+	} else {
+		if (numBytes + m_writeBufferSize > m_writeBufferMaxSize) {
+			m_writeBufferMaxSize = 2 * (numBytes + m_writeBufferSize);
+			m_writeBuffer = (u_int8_t*)
+				MP4Realloc(m_writeBuffer, m_writeBufferMaxSize);
+		}
+		memcpy(&m_writeBuffer[m_writeBufferSize], pBytes, numBytes);
+		m_writeBufferSize += numBytes;
 	}
-	m_fileSize += numBytes;
 }
 
 u_int64_t MP4File::ReadUInt(u_int8_t size)
@@ -373,15 +429,30 @@ u_int64_t MP4File::ReadBits(u_int8_t numBits)
 	return bits;
 }
 
+void MP4File::FlushReadBits()
+{
+	// eat any remaining bits in the read buffer
+	m_numReadBits = 0;
+}
+
 void MP4File::WriteBits(u_int64_t bits, u_int8_t numBits)
 {
 	ASSERT(numBits <= 64);
 
 	for (u_int8_t i = numBits; i > 0; i--) {
-		m_bufWriteBits |= ((bits >> (i - 1)) & 1) << (8 - m_numWriteBits++);
+		m_bufWriteBits |= 
+			(((bits >> (i - 1)) & 1) << (8 - ++m_numWriteBits));
+	
 		if (m_numWriteBits == 8) {
 			FlushWriteBits();
 		}
+	}
+}
+
+void MP4File::PadWriteBits(u_int8_t pad)
+{
+	if (m_numWriteBits) {
+		WriteBits(pad ? 0xFF : 0x00, 8 - m_numWriteBits);
 	}
 }
 

@@ -21,85 +21,102 @@
 
 #include "mp4common.h"
 
-MP4IODescriptor::MP4IODescriptor(u_int8_t tag)
-	: MP4Descriptor(tag)
+MP4IODescriptor::MP4IODescriptor()
+	: MP4Descriptor(MP4IODescrTag)
 {
 	/* N.B. other member functions depend on the property indicies */
 	AddProperty( /* 0 */
 		new MP4BitfieldProperty("objectDescriptorId", 10));
 	AddProperty( /* 1 */
 		new MP4BitfieldProperty("URLFlag", 1));
-	if (tag == MP4IODescrTag) {
-		AddProperty( /* 2 */
-			new MP4BitfieldProperty("includeInlineProfileLevelFlag", 1));
-		AddProperty( /* 3 */
-			new MP4BitfieldProperty("reserved", 4));
-	} else { // tag == MP4ODescrTag
-		AddProperty( /* 2 */
-			new MP4BitfieldProperty("reserved", 5));
-	}
-	AddProperty( /* 4 / 3 */
+	AddProperty( /* 2 */
+		new MP4BitfieldProperty("includeInlineProfileLevelFlag", 1));
+	AddProperty( /* 3 */
+		new MP4BitfieldProperty("reserved", 4));
+	AddProperty( /* 4 */
 		new MP4StringProperty("URL", Counted));
-	if (tag == MP4IODescrTag) {
-		AddProperty( /* 5 */
-			new MP4Integer8Property("ODProfileLevelId"));
-		AddProperty( /* 6 */
-			new MP4Integer8Property("sceneProfileLevelId"));
-		AddProperty( /* 7 */
-			new MP4Integer8Property("audioProfileLevelId"));
-		AddProperty( /* 8 */
-			new MP4Integer8Property("visualProfileLevelId"));
-		AddProperty( /* 9 */
-			new MP4Integer8Property("graphicsProfileLevelId"));
-	}
-	AddProperty( /* 10 / 4 */ 
+	AddProperty( /* 5 */
+		new MP4Integer8Property("ODProfileLevelId"));
+	AddProperty( /* 6 */
+		new MP4Integer8Property("sceneProfileLevelId"));
+	AddProperty( /* 7 */
+		new MP4Integer8Property("audioProfileLevelId"));
+	AddProperty( /* 8 */
+		new MP4Integer8Property("visualProfileLevelId"));
+	AddProperty( /* 9 */
+		new MP4Integer8Property("graphicsProfileLevelId"));
+	AddProperty( /* 10 */ 
 		new MP4DescriptorProperty("esIds", 
 			MP4ESIDIncDescrTag, 0, Required, Many));
-	AddProperty( /* 11 / 5 */ 
+	AddProperty( /* 11 */ 
 		new MP4DescriptorProperty("ociDescr", 
 			MP4OCIDescrTagsStart, MP4OCIDescrTagsEnd, Optional, Many));
-	AddProperty( /* 12 / 6 */
+	AddProperty( /* 12 */
 		new MP4DescriptorProperty("ipmpDescrPtr",
 			MP4IPMPPtrDescrTag, 0, Optional, Many));
-
-	AddProperty( /* 13 / 7 */
+	AddProperty( /* 13 */
 		new MP4DescriptorProperty("extDescr",
 			MP4ExtDescrTagsStart, MP4ExtDescrTagsEnd, Optional, Many));
+
+	SetReadMutate(2);
 }
 
 void MP4IODescriptor::Generate()
 {
 	((MP4BitfieldProperty*)m_pProperties[0])->SetValue(1);
-}
-
-void MP4IODescriptor::Read(MP4File* pFile)
-{
-	ReadHeader(pFile);
-
-	/* read the first two properties */
-	ReadProperties(pFile, 0, 2);
-
-	/* which allows us to reconfigure ourselves */
-	Mutate();
-
-	/* and read the remaining properties */
-	ReadProperties(pFile, 2);
+	((MP4BitfieldProperty*)m_pProperties[3])->SetValue(0xF);
 }
 
 void MP4IODescriptor::Mutate()
 {
 	bool urlFlag = ((MP4BitfieldProperty*)m_pProperties[1])->GetValue();
 
-	if (m_tag == MP4IODescrTag) {
-		m_pProperties[4]->SetImplicit(!urlFlag);
-		for (u_int32_t i = 5; i <= 12; i++) {
-			m_pProperties[i]->SetImplicit(urlFlag);
-		}
-	} else { // m_tag == MP4ODescrTag
-		m_pProperties[3]->SetImplicit(!urlFlag);
-		for (u_int32_t i = 4; i <= 6; i++) {
-			m_pProperties[i]->SetImplicit(urlFlag);
-		}
+	m_pProperties[4]->SetImplicit(!urlFlag);
+	for (u_int32_t i = 5; i <= 12; i++) {
+		m_pProperties[i]->SetImplicit(urlFlag);
+	}
+}
+
+MP4ODescriptor::MP4ODescriptor()
+	: MP4Descriptor(MP4ODescrTag)
+{
+	/* N.B. other member functions depend on the property indicies */
+	AddProperty( /* 0 */
+		new MP4BitfieldProperty("objectDescriptorId", 10));
+	AddProperty( /* 1 */
+		new MP4BitfieldProperty("URLFlag", 1));
+	AddProperty( /* 2 */
+		new MP4BitfieldProperty("reserved", 5));
+	AddProperty( /* 3 */
+		new MP4StringProperty("URL", Counted));
+	AddProperty( /* 4 */ 
+		new MP4DescriptorProperty("esIds", 
+			MP4ESIDIncDescrTag, 0, Required, Many));
+	AddProperty( /* 5 */ 
+		new MP4DescriptorProperty("ociDescr", 
+			MP4OCIDescrTagsStart, MP4OCIDescrTagsEnd, Optional, Many));
+	AddProperty( /* 6 */
+		new MP4DescriptorProperty("ipmpDescrPtr",
+			MP4IPMPPtrDescrTag, 0, Optional, Many));
+	AddProperty( /* 7 */
+		new MP4DescriptorProperty("extDescr",
+			MP4ExtDescrTagsStart, MP4ExtDescrTagsEnd, Optional, Many));
+
+	SetReadMutate(2);
+}
+
+void MP4ODescriptor::Generate()
+{
+	((MP4BitfieldProperty*)m_pProperties[2])->SetValue(0x1F);
+}
+
+void MP4ODescriptor::Mutate()
+{
+	bool urlFlag = ((MP4BitfieldProperty*)m_pProperties[1])->GetValue();
+
+	m_pProperties[3]->SetImplicit(!urlFlag);
+	for (u_int32_t i = 4; i <= 6; i++) {
+		m_pProperties[i]->SetImplicit(urlFlag);
 	}
 }
 
@@ -164,20 +181,8 @@ MP4ESDescriptor::MP4ESDescriptor()
 	AddProperty( /* 16 */
 		new MP4DescriptorProperty("extDescr",
 			MP4ExtDescrTagsStart, MP4ExtDescrTagsEnd, Optional, Many));
-}
 
-void MP4ESDescriptor::Read(MP4File* pFile)
-{
-	ReadHeader(pFile);
-
-	/* read the first five properties */
-	ReadProperties(pFile, 0, 5);
-
-	/* which allows us to reconfigure ourselves */
-	Mutate();
-
-	/* and read the remaining properties */
-	ReadProperties(pFile, 5);
+	SetReadMutate(5);
 }
 
 void MP4ESDescriptor::Mutate()
@@ -328,11 +333,12 @@ void MP4SLConfigDescriptor::Read(MP4File* pFile)
 
 void MP4SLConfigDescriptor::Mutate()
 {
+	u_int32_t i;
 	u_int8_t predefined = 
 		((MP4Integer8Property*)m_pProperties[0])->GetValue();
 	if (predefined) {
 		// everything else is implicit
-		for (u_int32_t i = 1; i < m_pProperties.Size(); i++) {
+		for (i = 1; i < m_pProperties.Size(); i++) {
 			m_pProperties[i]->SetImplicit(true);
 		}
 		return;
@@ -341,14 +347,14 @@ void MP4SLConfigDescriptor::Mutate()
 	bool durationFlag = 
 		((MP4BitfieldProperty*)m_pProperties[8])->GetValue();
 
-	for (u_int32_t i = 19; i <= 21; i++) {
+	for (i = 19; i <= 21; i++) {
 		m_pProperties[i]->SetImplicit(!durationFlag);
 	}
 
 	bool useTimeStampsFlag = 
 		((MP4BitfieldProperty*)m_pProperties[6])->GetValue();
 
-	for (u_int32_t i = 22; i <= 23; i++) {
+	for (i = 22; i <= 23; i++) {
 		m_pProperties[i]->SetImplicit(!useTimeStampsFlag);
 
 		u_int8_t timeStampLength = MIN(64,
@@ -356,6 +362,10 @@ void MP4SLConfigDescriptor::Mutate()
 
 		((MP4BitfieldProperty*)m_pProperties[i])->SetNumBits(timeStampLength);
 		
+		// handle a nonsensical situation gracefully
+		if (timeStampLength == 0) {
+			m_pProperties[i]->SetImplicit(true);
+		}
 	}
 }
 
@@ -462,82 +472,6 @@ void MP4IPMPDescriptor::Read(MP4File* pFile)
 	ReadProperties(pFile);
 }
 
-MP4QosDescriptor::MP4QosDescriptor()
-	: MP4Descriptor(MP4QosDescrTag)
-{
-	AddProperty( /* 0 */
-		new MP4Integer8Property("predefined"));
-	AddProperty( /* 1 */
-		new MP4QosQualifierProperty("qualifiers",
-			MP4QosTagsStart, MP4QosTagsEnd, Optional, Many));
-}
-
-MP4MaxDelayQosQualifier::MP4MaxDelayQosQualifier()
-	: MP4QosQualifier(MP4MaxDelayQosTag)
-{
-	AddProperty( /* 0 */
-		new MP4Integer32Property("maxDelay"));
-}
-
-MP4PrefMaxDelayQosQualifier::MP4PrefMaxDelayQosQualifier()
-	: MP4QosQualifier(MP4PrefMaxDelayQosTag)
-{
-	AddProperty( /* 0 */
-		new MP4Integer32Property("prefMaxDelay"));
-}
-
-MP4LossProbQosQualifier::MP4LossProbQosQualifier()
-	: MP4QosQualifier(MP4LossProbQosTag)
-{
-	AddProperty( /* 0 */
-		new MP4Float32Property("lossProb"));
-}
-
-MP4MaxGapLossQosQualifier::MP4MaxGapLossQosQualifier()
-	: MP4QosQualifier(MP4MaxGapLossQosTag)
-{
-	AddProperty( /* 0 */
-		new MP4Integer32Property("maxGapLoss"));
-}
-
-MP4MaxAUSizeQosQualifier::MP4MaxAUSizeQosQualifier()
-	: MP4QosQualifier(MP4MaxAUSizeQosTag)
-{
-	AddProperty( /* 0 */
-		new MP4Integer32Property("maxAUSize"));
-}
-
-MP4AvgAUSizeQosQualifier::MP4AvgAUSizeQosQualifier()
-	: MP4QosQualifier(MP4AvgAUSizeQosTag)
-{
-	AddProperty( /* 0 */
-		new MP4Integer32Property("avgAUSize"));
-}
-
-MP4MaxAURateQosQualifier::MP4MaxAURateQosQualifier()
-	: MP4QosQualifier(MP4MaxAURateQosTag)
-{
-	AddProperty( /* 0 */
-		new MP4Integer32Property("maxAURate"));
-}
-
-MP4UnknownQosQualifier::MP4UnknownQosQualifier()
-	: MP4QosQualifier()
-{
-	AddProperty( /* 0 */
-		new MP4BytesProperty("data"));
-}
-
-void MP4UnknownQosQualifier::Read(MP4File* pFile)
-{
-	ReadHeader(pFile);
-
-	/* byte properties need to know how long they are before reading */
-	((MP4BytesProperty*)m_pProperties[0])->SetValueSize(m_size);
-
-	ReadProperties(pFile);
-}
-
 MP4RegistrationDescriptor::MP4RegistrationDescriptor()
 	: MP4Descriptor(MP4RegistrationDescrTag)
 {
@@ -574,262 +508,6 @@ MP4ExtProfileLevelDescriptor::MP4ExtProfileLevelDescriptor()
 		new MP4Integer8Property("graphicsProfileLevelIndication"));
 	AddProperty( /* 6 */
 		new MP4Integer8Property("MPEGJProfileLevelIndication"));
-}
-
-MP4ContentClassDescriptor::MP4ContentClassDescriptor()
-	: MP4Descriptor()
-{
-	AddProperty( /* 0 */
-		new MP4Integer32Property("classificationEntity"));
-	AddProperty( /* 1 */
-		new MP4Integer16Property("classificationTable"));
-	AddProperty( /* 2 */
-		new MP4BytesProperty("contentClassificationData"));
-}
-
-void MP4ContentClassDescriptor::Read(MP4File* pFile)
-{
-	ReadHeader(pFile);
-
-	/* byte properties need to know how long they are before reading */
-	((MP4BytesProperty*)m_pProperties[2])->SetValueSize(m_size - 6);
-
-	ReadProperties(pFile);
-}
-
-MP4KeywordDescriptor::MP4KeywordDescriptor()
-	: MP4Descriptor()
-{
-	AddProperty( /* 0 */
-		new MP4BytesProperty("languageCode", 3));
-	AddProperty( /* 1 */
-		new MP4BitfieldProperty("isUTF8String", 1));
-	AddProperty( /* 2 */
-		new MP4BitfieldProperty("reserved", 7));
-	MP4Integer8Property* pCount = 
-		new MP4Integer8Property("keywordCount");
-	AddProperty(pCount); /* 3 */
-
-	MP4TableProperty* pTable = new MP4TableProperty("keywords", pCount);
-	AddProperty(pTable); /* 4 */
-
-	pTable->AddProperty(
-		new MP4StringProperty("string", Counted));
-}
-
-void MP4KeywordDescriptor::Read(MP4File* pFile)
-{
-	ReadHeader(pFile);
-	ReadProperties(pFile, 0, 2);
-	Mutate();
-	ReadProperties(pFile, 2);
-}
-
-void MP4KeywordDescriptor::Mutate()
-{
-	bool utf8Flag = ((MP4BitfieldProperty*)m_pProperties[1])->GetValue();
-	MP4Property* pProperty =
-		((MP4TableProperty*)m_pProperties[4])->GetProperty(0);
-	ASSERT(pProperty);
-	((MP4StringProperty*)pProperty)->SetUnicode(!utf8Flag);
-}
-
-MP4RatingDescriptor::MP4RatingDescriptor()
-	: MP4Descriptor()
-{
-	AddProperty( /* 0 */
-		new MP4Integer32Property("ratingEntity"));
-	AddProperty( /* 1 */
-		new MP4Integer16Property("ratingCriteria"));
-	AddProperty( /* 2 */
-		new MP4BytesProperty("ratingInfo"));
-}
-
-void MP4RatingDescriptor::Read(MP4File* pFile)
-{
-	ReadHeader(pFile);
-
-	/* byte properties need to know how long they are before reading */
-	((MP4BytesProperty*)m_pProperties[2])->SetValueSize(m_size - 6);
-
-	ReadProperties(pFile);
-}
-
-MP4LanguageDescriptor::MP4LanguageDescriptor()
-	: MP4Descriptor()
-{
-	AddProperty( /* 0 */
-		new MP4BytesProperty("languageCode", 3));
-}
-
-MP4ShortTextDescriptor::MP4ShortTextDescriptor()
-	: MP4Descriptor()
-{
-	AddProperty( /* 0 */
-		new MP4BytesProperty("languageCode", 3));
-	AddProperty( /* 1 */
-		new MP4BitfieldProperty("isUTF8String", 1));
-	AddProperty( /* 2 */
-		new MP4BitfieldProperty("reserved", 7));
-	AddProperty( /* 3 */
-		new MP4StringProperty("eventName", Counted));
-	AddProperty( /* 4 */
-		new MP4StringProperty("eventText", Counted));
-}
-
-void MP4ShortTextDescriptor::Read(MP4File* pFile)
-{
-	ReadHeader(pFile);
-	ReadProperties(pFile, 0, 2);
-	Mutate();
-	ReadProperties(pFile, 2);
-}
-
-void MP4ShortTextDescriptor::Mutate()
-{
-	bool utf8Flag = ((MP4BitfieldProperty*)m_pProperties[1])->GetValue();
-	((MP4StringProperty*)m_pProperties[3])->SetUnicode(!utf8Flag);
-	((MP4StringProperty*)m_pProperties[4])->SetUnicode(!utf8Flag);
-}
-
-MP4ExpandedTextDescriptor::MP4ExpandedTextDescriptor()
-	: MP4Descriptor()
-{
-	AddProperty( /* 0 */
-		new MP4BytesProperty("languageCode", 3));
-	AddProperty( /* 1 */
-		new MP4BitfieldProperty("isUTF8String", 1));
-	AddProperty( /* 2 */
-		new MP4BitfieldProperty("reserved", 7));
-	MP4Integer8Property* pCount = 
-		new MP4Integer8Property("itemCount");
-	AddProperty(pCount); /* 3 */
-
-	MP4TableProperty* pTable = new MP4TableProperty("items", pCount);
-	AddProperty(pTable); /* 4 */
-
-	pTable->AddProperty( /* Table 0 */
-		new MP4StringProperty("itemDescription", Counted));
-	pTable->AddProperty( /* Table 1 */
-		new MP4StringProperty("itemText", Counted));
-
-	AddProperty( /* 5 */
-		new MP4StringProperty("nonItemText"));
-	((MP4StringProperty*)m_pProperties[5])->SetExpandedCountedFormat(true);
-}
-
-void MP4ExpandedTextDescriptor::Read(MP4File* pFile)
-{
-	ReadHeader(pFile);
-	ReadProperties(pFile, 0, 2);
-	Mutate();
-	ReadProperties(pFile, 2);
-}
-
-void MP4ExpandedTextDescriptor::Mutate()
-{
-	bool utf8Flag = ((MP4BitfieldProperty*)m_pProperties[1])->GetValue();
-
-	MP4Property* pProperty =
-		((MP4TableProperty*)m_pProperties[4])->GetProperty(0);
-	ASSERT(pProperty);
-	((MP4StringProperty*)pProperty)->SetUnicode(!utf8Flag);
-
-	pProperty = ((MP4TableProperty*)m_pProperties[4])->GetProperty(1);
-	ASSERT(pProperty);
-	((MP4StringProperty*)pProperty)->SetUnicode(!utf8Flag);
-
-	((MP4StringProperty*)m_pProperties[5])->SetUnicode(!utf8Flag);
-}
-
-class MP4CreatorTableProperty : public MP4TableProperty {
-public:
-	MP4CreatorTableProperty(char* name, MP4Integer8Property* pCountProperty) :
-		MP4TableProperty(name, pCountProperty) {
-	};
-protected:
-	void ReadEntry(MP4File* pFile, u_int32_t index);
-	void WriteEntry(MP4File* pFile, u_int32_t index);
-};
-
-MP4CreatorDescriptor::MP4CreatorDescriptor(u_int8_t tag)
-	: MP4Descriptor(tag)
-{
-	MP4Integer8Property* pCount = 
-		new MP4Integer8Property("creatorCount");
-	AddProperty(pCount); /* 0 */
-
-	MP4TableProperty* pTable = new MP4CreatorTableProperty("creators", pCount);
-	AddProperty(pTable); /* 1 */
-
-	pTable->AddProperty( /* Table 0 */
-		new MP4BytesProperty("languageCode", 3));
-	pTable->AddProperty( /* Table 1 */
-		new MP4BitfieldProperty("isUTF8String", 1));
-	pTable->AddProperty( /* Table 2 */
-		new MP4BitfieldProperty("reserved", 7));
-	pTable->AddProperty( /* Table 3 */
-		new MP4StringProperty("name", Counted));
-}
-
-void MP4CreatorTableProperty::ReadEntry(MP4File* pFile, u_int32_t index)
-{
-	m_pProperties[0]->Read(pFile, index);
-	m_pProperties[1]->Read(pFile, index);
-
-	bool utf8Flag = ((MP4BitfieldProperty*)m_pProperties[1])->GetValue(index);
-	((MP4StringProperty*)m_pProperties[3])->SetUnicode(!utf8Flag);
-
-	m_pProperties[2]->Read(pFile, index);
-	m_pProperties[3]->Read(pFile, index);
-}
-
-void MP4CreatorTableProperty::WriteEntry(MP4File* pFile, u_int32_t index)
-{
-	bool utf8Flag = ((MP4BitfieldProperty*)m_pProperties[1])->GetValue(index);
-	((MP4StringProperty*)m_pProperties[3])->SetUnicode(!utf8Flag);
-
-	MP4TableProperty::WriteEntry(pFile, index);
-}
-
-MP4CreationDescriptor::MP4CreationDescriptor(u_int8_t tag)
-	: MP4Descriptor(tag)
-{
-	AddProperty( /* 0 */
-		new MP4BitfieldProperty("contentCreationDate", 40));
-}
-
-MP4SmpteCameraDescriptor::MP4SmpteCameraDescriptor()
-	: MP4Descriptor()
-{
-	MP4Integer8Property* pCount = 
-		new MP4Integer8Property("parameterCount"); 
-	AddProperty(pCount);
-
-	MP4TableProperty* pTable = new MP4TableProperty("parameters", pCount);
-	AddProperty(pTable);
-
-	pTable->AddProperty(
-		new MP4Integer8Property("id"));
-	pTable->AddProperty(
-		new MP4Integer32Property("value"));
-}
-
-MP4UnknownOCIDescriptor::MP4UnknownOCIDescriptor()
-	: MP4Descriptor()
-{
-	AddProperty( /* 0 */
-		new MP4BytesProperty("data"));
-}
-
-void MP4UnknownOCIDescriptor::Read(MP4File* pFile)
-{
-	ReadHeader(pFile);
-
-	/* byte properties need to know how long they are before reading */
-	((MP4BytesProperty*)m_pProperties[0])->SetValueSize(m_size);
-
-	ReadProperties(pFile);
 }
 
 MP4ExtensionDescriptor::MP4ExtensionDescriptor()
@@ -894,47 +572,19 @@ MP4Descriptor* MP4DescriptorProperty::CreateDescriptor(u_int8_t tag)
 		pDescriptor = new MP4ESIDRefDescriptor();
 		break;
 	case MP4IODescrTag:
+		pDescriptor = new MP4IODescriptor();
+		break;
 	case MP4ODescrTag:
-		pDescriptor = new MP4IODescriptor(tag);
+		pDescriptor = new MP4ODescriptor();
 		break;
 	case MP4ExtProfileLevelDescrTag:
 		pDescriptor = new MP4ExtProfileLevelDescriptor();
-		break;
-	case MP4ContentClassDescrTag:
-		pDescriptor = new MP4ContentClassDescriptor();
-		break;
-	case MP4KeywordDescrTag:
-		pDescriptor = new MP4KeywordDescriptor();
-		break;
-	case MP4RatingDescrTag:
-		pDescriptor = new MP4RatingDescriptor();
-		break;
-	case MP4LanguageDescrTag:
-		pDescriptor = new MP4LanguageDescriptor();
-		break;
-	case MP4ShortTextDescrTag:
-		pDescriptor = new MP4ShortTextDescriptor();
-		break;
-	case MP4ExpandedTextDescrTag:
-		pDescriptor = new MP4ExpandedTextDescriptor();
-		break;
-	case MP4ContentCreatorDescrTag:
-	case MP4OCICreatorDescrTag:
-		pDescriptor = new MP4CreatorDescriptor(tag);
-		break;
-	case MP4ContentCreationDescrTag:
-	case MP4OCICreationDescrTag:
-		pDescriptor = new MP4CreationDescriptor(tag);
-		break;
-	case MP4SmpteCameraDescrTag:
-		pDescriptor = new MP4SmpteCameraDescriptor();
 		break;
 	}
 
 	if (pDescriptor == NULL) {
 		if (tag >= MP4OCIDescrTagsStart && tag <= MP4OCIDescrTagsEnd) {
-			pDescriptor = new MP4UnknownOCIDescriptor();
-			pDescriptor->SetTag(tag);
+			pDescriptor = CreateOCIDescriptor(tag);
 		}
 
 		if (tag >= MP4ExtDescrTagsStart && tag <= MP4ExtDescrTagsEnd) {
@@ -946,36 +596,3 @@ MP4Descriptor* MP4DescriptorProperty::CreateDescriptor(u_int8_t tag)
 	return pDescriptor;
 }
 
-MP4Descriptor* MP4QosQualifierProperty::CreateDescriptor(u_int8_t tag) 
-{
-	MP4Descriptor* pDescriptor = NULL;
-
-	switch (tag) {
-	case MP4MaxDelayQosTag:
-		pDescriptor = new MP4MaxDelayQosQualifier();
-		break;
-	case MP4PrefMaxDelayQosTag:
-		pDescriptor = new MP4PrefMaxDelayQosQualifier();
-		break;
-	case MP4LossProbQosTag:
-		pDescriptor = new MP4LossProbQosQualifier();
-		break;
-	case MP4MaxGapLossQosTag:
-		pDescriptor = new MP4MaxGapLossQosQualifier();
-		break;
-	case MP4MaxAUSizeQosTag:
-		pDescriptor = new MP4MaxAUSizeQosQualifier();
-		break;
-	case MP4AvgAUSizeQosTag:
-		pDescriptor = new MP4AvgAUSizeQosQualifier();
-		break;
-	case MP4MaxAURateQosTag:
-		pDescriptor = new MP4MaxAURateQosQualifier();
-		break;
-	default:
-		pDescriptor = new MP4UnknownQosQualifier();
-		pDescriptor->SetTag(tag);
-	}
-	
-	return pDescriptor;
-}

@@ -126,6 +126,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libmp4v2"=..\..\LIB\MP4V2\libmp4v2.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libmpplayer"=.\libmpplayer.dsp - Package Owner=<4>
 
 Package=<5>
@@ -259,6 +271,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name need_for_win
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4v2
     End Project Dependency
 }}}
 

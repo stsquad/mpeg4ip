@@ -26,6 +26,7 @@ int main(int argc, char** argv)
 {
 	char* usageString = "usage: %s [-v [<level>]] <file-name>\n";
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
+	bool dumpImplicits = false;
 
 	/* begin processing command line */
 	char* progName = argv[0];
@@ -49,7 +50,13 @@ int main(int argc, char** argv)
 			if (optarg) {
 				u_int32_t level;
 				if (sscanf(optarg, "%u", &level) == 1 && level > 1) {
-					verbosity = MP4_DETAILS_ALL;
+					if (level == 2) {
+						verbosity |= MP4_DETAILS_TABLE;
+					} else if (level == 3) {
+						dumpImplicits = true;
+					} else {
+						verbosity = MP4_DETAILS_ALL;
+					}
 				}
 			}
 			break;
@@ -88,7 +95,7 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
-	MP4Dump(mp4File);
+	MP4Dump(mp4File, stdout, dumpImplicits);
 
 	MP4Close(mp4File);
 

@@ -31,34 +31,27 @@ const u_int8_t MP4SupplContentIdDescrTag 	= 0x08;
 const u_int8_t MP4IPIPtrDescrTag		 	= 0x09; 
 const u_int8_t MP4IPMPPtrDescrTag		 	= 0x0A; 
 const u_int8_t MP4IPMPDescrTag			 	= 0x0B; 
-const u_int8_t MP4QosDescrTag			 	= 0x0C; 
 const u_int8_t MP4RegistrationDescrTag	 	= 0x0D; 
 const u_int8_t MP4ESIDIncDescrTag			= 0x0E; 
 const u_int8_t MP4ESIDRefDescrTag			= 0x0F; 
 const u_int8_t MP4IODescrTag				= 0x10; 
 const u_int8_t MP4ODescrTag					= 0x11; 
 const u_int8_t MP4ExtProfileLevelDescrTag 	= 0x13; 
-const u_int8_t MP4OCIDescrTagsStart	 		= 0x40; 
-const u_int8_t MP4ContentClassDescrTag 		= 0x40; 
-const u_int8_t MP4KeywordDescrTag 			= 0x41; 
-const u_int8_t MP4RatingDescrTag 			= 0x42; 
-const u_int8_t MP4LanguageDescrTag	 		= 0x43;
-const u_int8_t MP4ShortTextDescrTag	 		= 0x44;
-const u_int8_t MP4ExpandedTextDescrTag 		= 0x45;
-const u_int8_t MP4ContentCreatorDescrTag	= 0x46;
-const u_int8_t MP4ContentCreationDescrTag	= 0x47;
-const u_int8_t MP4OCICreatorDescrTag		= 0x48;
-const u_int8_t MP4OCICreationDescrTag		= 0x49;
-const u_int8_t MP4SmpteCameraDescrTag		= 0x4A;
-const u_int8_t MP4OCIDescrTagsEnd			= 0x5F; 
 const u_int8_t MP4ExtDescrTagsStart			= 0x80; 
 const u_int8_t MP4ExtDescrTagsEnd			= 0xFE; 
 
 class MP4IODescriptor : public MP4Descriptor {
 public:
-	MP4IODescriptor(u_int8_t tag);
+	MP4IODescriptor();
 	void Generate();
-	void Read(MP4File* pFile);
+protected:
+	void Mutate();
+};
+
+class MP4ODescriptor : public MP4Descriptor {
+public:
+	MP4ODescriptor();
+	void Generate();
 protected:
 	void Mutate();
 };
@@ -76,7 +69,6 @@ public:
 class MP4ESDescriptor : public MP4Descriptor {
 public:
 	MP4ESDescriptor();
-	void Read(MP4File* pFile);
 protected:
 	void Mutate();
 };
@@ -130,64 +122,6 @@ public:
 	void Read(MP4File* pFile);
 };
 
-class MP4QosDescriptor : public MP4Descriptor {
-public:
-	MP4QosDescriptor();
-};
-
-typedef MP4Descriptor MP4QosQualifier;
-
-const u_int8_t MP4QosTagsStart				= 0x01; 
-const u_int8_t MP4MaxDelayQosTag			= 0x01; 
-const u_int8_t MP4PrefMaxDelayQosTag		= 0x02; 
-const u_int8_t MP4LossProbQosTag			= 0x03; 
-const u_int8_t MP4MaxGapLossQosTag			= 0x04; 
-const u_int8_t MP4MaxAUSizeQosTag			= 0x41; 
-const u_int8_t MP4AvgAUSizeQosTag			= 0x42; 
-const u_int8_t MP4MaxAURateQosTag			= 0x43; 
-const u_int8_t MP4QosTagsEnd				= 0xFF; 
-
-class MP4MaxDelayQosQualifier : public MP4QosQualifier {
-public:
-	MP4MaxDelayQosQualifier();
-};
-
-class MP4PrefMaxDelayQosQualifier : public MP4QosQualifier {
-public:
-	MP4PrefMaxDelayQosQualifier();
-};
-
-class MP4LossProbQosQualifier : public MP4QosQualifier {
-public:
-	MP4LossProbQosQualifier();
-};
-
-class MP4MaxGapLossQosQualifier : public MP4QosQualifier {
-public:
-	MP4MaxGapLossQosQualifier();
-};
-
-class MP4MaxAUSizeQosQualifier : public MP4QosQualifier {
-public:
-	MP4MaxAUSizeQosQualifier();
-};
-
-class MP4AvgAUSizeQosQualifier : public MP4QosQualifier {
-public:
-	MP4AvgAUSizeQosQualifier();
-};
-
-class MP4MaxAURateQosQualifier : public MP4QosQualifier {
-public:
-	MP4MaxAURateQosQualifier();
-};
-
-class MP4UnknownQosQualifier : public MP4QosQualifier {
-public:
-	MP4UnknownQosQualifier();
-	void Read(MP4File* pFile);
-};
-
 class MP4RegistrationDescriptor : public MP4Descriptor {
 public:
 	MP4RegistrationDescriptor();
@@ -197,68 +131,6 @@ public:
 class MP4ExtProfileLevelDescriptor : public MP4Descriptor {
 public:
 	MP4ExtProfileLevelDescriptor();
-};
-
-class MP4ContentClassDescriptor : public MP4Descriptor {
-public:
-	MP4ContentClassDescriptor();
-	void Read(MP4File* pFile);
-};
-
-class MP4KeywordDescriptor : public MP4Descriptor {
-public:
-	MP4KeywordDescriptor();
-	void Read(MP4File* pFile);
-protected:
-	void Mutate();
-};
-
-class MP4RatingDescriptor : public MP4Descriptor {
-public:
-	MP4RatingDescriptor();
-	void Read(MP4File* pFile);
-};
-
-class MP4LanguageDescriptor : public MP4Descriptor {
-public:
-	MP4LanguageDescriptor();
-};
-
-class MP4ShortTextDescriptor : public MP4Descriptor {
-public:
-	MP4ShortTextDescriptor();
-	void Read(MP4File* pFile);
-protected:
-	void Mutate();
-};
-
-class MP4ExpandedTextDescriptor : public MP4Descriptor {
-public:
-	MP4ExpandedTextDescriptor();
-	void Read(MP4File* pFile);
-protected:
-	void Mutate();
-};
-
-class MP4CreatorDescriptor : public MP4Descriptor {
-public:
-	MP4CreatorDescriptor(u_int8_t tag);
-};
-
-class MP4CreationDescriptor : public MP4Descriptor {
-public:
-	MP4CreationDescriptor(u_int8_t tag);
-};
-
-class MP4SmpteCameraDescriptor : public MP4Descriptor {
-public:
-	MP4SmpteCameraDescriptor();
-};
-
-class MP4UnknownOCIDescriptor : public MP4Descriptor {
-public:
-	MP4UnknownOCIDescriptor();
-	void Read(MP4File* pFile);
 };
 
 class MP4ExtensionDescriptor : public MP4Descriptor {
@@ -283,16 +155,6 @@ const u_int8_t MP4IPMPStreamType				= 0x07;
 const u_int8_t MP4OCIStreamType					= 0x08; 
 const u_int8_t MP4MPEGJStreamType				= 0x09; 
 const u_int8_t MP4UserPrivateStreamType			= 0x20; 
-
-
-// OD stream command descriptors
-const u_int8_t MP4ODUpdateODCommandTag			= 0x01; 
-const u_int8_t MP4ODRemoveODCommandTag			= 0x02; 
-const u_int8_t MP4ESUpdateODCommandTag			= 0x03; 
-const u_int8_t MP4ESRemoveODCommandTag			= 0x04; 
-const u_int8_t MP4IPMPUpdateODCommandTag		= 0x05; 
-const u_int8_t MP4IPMPRemoveODCommandTag		= 0x06; 
-const u_int8_t MP4ESRemoveRefODCommandTag		= 0x07; 
 
 #endif /* __DESCRIPTORS_INCLUDED__ */
 

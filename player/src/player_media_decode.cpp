@@ -28,6 +28,8 @@
 #include "player_sdp.h"
 #include "player_util.h"
 #include "media_utils.h"
+#include "audio.h"
+#include "video.h"
 #include <rtp/memory.h>
 
 //#define DEBUG_DECODE 1
@@ -104,7 +106,6 @@ int CPlayerMedia::decode_thread (void)
 	 * some sort of look up.
 	 */
 	if (is_video()) {
-	  m_video_sync->set_sync_sem(m_parent->get_sync_sem());
 	  m_video_sync->set_wait_sem(m_decode_thread_sem);
 	  codec = start_video_codec(m_codec_type,
 				    m_video_sync, 
@@ -114,7 +115,6 @@ int CPlayerMedia::decode_thread (void)
 				    m_user_data,
 				    m_user_data_size);
 	} else {
-	  m_audio_sync->set_sync_sem(m_parent->get_sync_sem());
 	  m_audio_sync->set_wait_sem(m_decode_thread_sem);
 	  codec = start_audio_codec(m_codec_type,
 				    m_audio_sync, 
@@ -152,12 +152,6 @@ int CPlayerMedia::decode_thread (void)
 	continue;
       if (decoding == 0) {
 	codec->do_pause();
-#if 0
-	if (m_rtp_byte_stream) {
-	  m_byte_stream->reset(); // zero out our rtp bytestream
-	  m_rtp_byte_stream->flush_rtp_packets();
-	}
-#endif
 	continue;
       }
       if (m_byte_stream->eof()) {
@@ -183,8 +177,28 @@ int CPlayerMedia::decode_thread (void)
       // Tell bytestream we're starting the next frame - they'll give us
       // the time.
       ourtime = m_byte_stream->start_next_frame();
+#if 0
+      if (is_video() &&
+	  (m_parent->get_session_state() == SESSION_PLAYING)) {
+	uint64_t current_time = m_parent->get_playing_time();
+	if (current_time >= ourtime) {
+	  player_debug_message("Candidate for skip decode %llu our %llu", 
+			       current_time, ourtime);
+	  if (m_byte_stream->can_skip_frame() != 0) {
+	    uint64_t diff = 0;
+	    do {
+	      ourtime = m_byte_stream->start_next_frame();
+	      if (ourtime > current_time) diff = ourtime - current_time;
+	    } while (!m_byte_stream->eof() && 
+		     diff < 500LLU);
+	    if (m_byte_stream->eof()) continue;
+	    player_debug_message("Skipping ahead to %llu", ourtime);
+	  }
+	}
+      }
+#endif
 #ifdef DEBUG_DECODE
-      player_debug_message("Decoding %c frame " LLX, m_is_video ? 'v' : 'a', ourtime);
+      player_debug_message("Decoding %c frame " LLX, m_is_video ? 'v' : 'a', ou2rtime);
 #endif
 #ifdef TIME_DECODE
       clock_t start, end;
@@ -198,20 +212,15 @@ int CPlayerMedia::decode_thread (void)
 	if (diff > max) max = diff;
 	avg += diff;
 	avg_cnt++;
-#if 1
 	if ((avg_cnt % 100) == 0) {
 	  player_debug_message("%s Decode avg time is " LLD " max " LLD, 
 			       m_codec_type,
 				 avg / avg_cnt, max);
 	  max = 0;
 	}
-#endif
       }
 #endif
     }
-#ifdef DEBUG_DECODE
-    player_debug_message("decode- out of inner loop");
-#endif
   }
 #ifdef TIME_DECODE
   if (avg_cnt != 0)

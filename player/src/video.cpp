@@ -22,6 +22,7 @@
  * video.cpp - provides codec to video hardware class
  */
 #include <string.h>
+#include "player_session.h"
 #include "video.h"
 #include "player_util.h"
 #include <SDL_syswm.h>
@@ -29,9 +30,10 @@
 //#define VIDEO_SYNC_FILL 1
 //#define SHORT_VIDEO 1
 
-CVideoSync::CVideoSync (void)
+CVideoSync::CVideoSync (CPlayerSession *psptr)
 {
   char buf[32];
+  m_psptr = psptr;
   if (SDL_Init(SDL_INIT_VIDEO) < 0 || !SDL_VideoDriverName(buf, 1)) {
     player_error_message("Could not init SDL video: %s", SDL_GetError());
   }
@@ -416,7 +418,8 @@ int CVideoSync::filled_video_buffers(uint64_t time, uint64_t &current_time)
   ix = m_fill_index;
   m_fill_index++;
   m_fill_index %= MAX_VIDEO_BUFFERS;
-  SDL_SemPost(m_sync_sem);
+  
+  m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
   player_debug_message("Filled %llu", time);
 #endif
@@ -508,7 +511,7 @@ int CVideoSync::set_video_frame(const Uint8 *y,
   m_buffer_filled[m_fill_index] = 1;
   m_fill_index++;
   m_fill_index %= MAX_VIDEO_BUFFERS;
-  SDL_SemPost(m_sync_sem);
+  m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
   player_debug_message("filled %llu", time);
 #endif

@@ -43,11 +43,12 @@ extern "C" MP4FileHandle MP4Read(const char* fileName, u_int32_t verbosity)
 }
 
 extern "C" MP4FileHandle MP4Create(const char* fileName, 
-	u_int32_t verbosity, bool use64bits)
+	u_int32_t verbosity, bool use64bits, bool useExtensibleFormat)
 {
 	MP4File* pFile = NULL;
 	try {
 		pFile = new MP4File(verbosity);
+		// TBD useExtensibleFormat, moov first, then mvex's
 		pFile->Create(fileName, use64bits);
 		return (MP4FileHandle)pFile;
 	}
@@ -76,6 +77,16 @@ extern "C" MP4FileHandle MP4Clone(const char* existingFileName,
 	}
 }
 
+extern "C" bool MP4Optimize(const char* existingFileName, 
+	const char* newFileName, 
+	u_int32_t verbosity)
+{
+	// TBD reorder atoms so that moov precedes mdat
+	// TBD collapse all mdats and extensions into a single mdat
+	// involves adjustments of stco/co64 
+	return false;
+}
+
 extern "C" int MP4Close(MP4FileHandle hFile)
 {
 	try {
@@ -90,10 +101,10 @@ extern "C" int MP4Close(MP4FileHandle hFile)
 	}
 }
 
-extern "C" int MP4Dump(MP4FileHandle hFile, FILE* pDumpFile)
+extern "C" int MP4Dump(MP4FileHandle hFile, FILE* pDumpFile, bool dumpImplicits)
 {
 	try {
-		((MP4File*)hFile)->Dump(pDumpFile);
+		((MP4File*)hFile)->Dump(pDumpFile, dumpImplicits);
 		return 0;
 	}
 	catch (MP4Error* e) {
@@ -312,7 +323,7 @@ extern "C" float MP4GetFloatProperty(
 	MP4FileHandle hFile, char* propName)
 {
 	try {
-		return ((MP4File*)hFile)->GetIntegerProperty(propName);
+		return ((MP4File*)hFile)->GetFloatProperty(propName);
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
@@ -433,10 +444,10 @@ extern "C" MP4TrackId MP4AddSystemsTrack(
 	}
 }
 
-extern "C" MP4TrackId MP4AddObjectDescriptionTrack(MP4FileHandle hFile)
+extern "C" MP4TrackId MP4AddODTrack(MP4FileHandle hFile)
 {
 	try {
-		return ((MP4File*)hFile)->AddObjectDescriptionTrack();
+		return ((MP4File*)hFile)->AddODTrack();
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
@@ -445,10 +456,10 @@ extern "C" MP4TrackId MP4AddObjectDescriptionTrack(MP4FileHandle hFile)
 	}
 }
 
-extern "C" MP4TrackId MP4AddSceneDescriptionTrack(MP4FileHandle hFile)
+extern "C" MP4TrackId MP4AddSceneTrack(MP4FileHandle hFile)
 {
 	try {
-		return ((MP4File*)hFile)->AddSceneDescriptionTrack();
+		return ((MP4File*)hFile)->AddSceneTrack();
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);
@@ -851,9 +862,6 @@ extern "C" bool MP4WriteSample(
 	bool isSyncSample)
 {
 	try {
-		if (pBytes == NULL) {
-			throw new MP4Error("no sample data", "MP4WriteSample");
-		}
 		((MP4File*)hFile)->WriteSample(trackId, pBytes, numBytes, 
 			duration, renderingOffset, isSyncSample);
 		return true;
@@ -996,3 +1004,16 @@ extern "C" MP4Duration MP4ConvertToTrackDuration(
 	}
 }
 
+extern "C" bool MP4MakeIsmaCompliant(
+	MP4FileHandle hFile)
+{
+	try {
+		((MP4File*)hFile)->MakeIsmaCompliant();
+		return true;
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return false;
+	}
+}

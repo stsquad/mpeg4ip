@@ -216,6 +216,8 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 		printf("ReadSample: id %u offset 0x"LLX" size %u (0x%x)\n",
 			sampleId, fileOffset, *pNumBytes, *pNumBytes));
 
+	// TBD could check would be to see if sample is in an mdat atom
+
 	bool bufferMalloc = false;
 	if (*ppBytes == NULL) {
 		*ppBytes = (u_int8_t*)MP4Malloc(*pNumBytes);
@@ -268,6 +270,10 @@ void MP4Track::WriteSample(u_int8_t* pBytes, u_int32_t numBytes,
 		printf("WriteSample: id %u size %u (0x%x)\n",
 			m_writeSampleId, numBytes, numBytes));
 
+	if (pBytes == NULL) {
+		throw new MP4Error("no sample data", "MP4WriteSample");
+	}
+
 	if (numBytes == 0) {
 		throw new MP4Error("sample size is zero", "MP4WriteSample");
 	}
@@ -276,21 +282,13 @@ void MP4Track::WriteSample(u_int8_t* pBytes, u_int32_t numBytes,
 		duration = GetFixedSampleDuration();
 	}
 
-	// We allow pBytes == NULL for library internal usage
-	// where other parts of the library will write the bytes
-	// to file directly, and just want this code to update the
-	// meta-information appropriately. The API code in mp4.cpp
-	// prevents the library caller from doing this.
-
-	if (pBytes) {
-		// append sample bytes to chunk buffer
-		m_pChunkBuffer = (u_int8_t*)MP4Realloc(m_pChunkBuffer, 
-			m_chunkBufferSize + numBytes);
-		memcpy(&m_pChunkBuffer[m_chunkBufferSize], pBytes, numBytes);
-		m_chunkBufferSize += numBytes;
-		m_chunkSamples++;
-		m_chunkDuration += duration;
-	}
+	// append sample bytes to chunk buffer
+	m_pChunkBuffer = (u_int8_t*)MP4Realloc(m_pChunkBuffer, 
+		m_chunkBufferSize + numBytes);
+	memcpy(&m_pChunkBuffer[m_chunkBufferSize], pBytes, numBytes);
+	m_chunkBufferSize += numBytes;
+	m_chunkSamples++;
+	m_chunkDuration += duration;
 
 	UpdateSampleSizes(m_writeSampleId, numBytes);
 
@@ -317,9 +315,7 @@ void MP4Track::WriteChunk()
 		return;
 	}
 
-	// move to EOF
-	u_int64_t chunkOffset = m_pFile->GetSize();
-	m_pFile->SetPosition(chunkOffset);
+	u_int64_t chunkOffset = m_pFile->GetPosition();
 
 	// write chunk buffer
 	m_pFile->WriteBytes(m_pChunkBuffer, m_chunkBufferSize);
@@ -356,6 +352,24 @@ bool MP4Track::IsChunkFull(MP4SampleId sampleId)
 
 	ASSERT(m_durationPerChunk);
 	return m_chunkDuration >= m_durationPerChunk;
+}
+
+u_int32_t MP4Track::GetNumberOfSamples()
+{
+	// if samples are variable size, we have the answer at hand in stsz
+	if (m_pStszFixedSampleSizeProperty->GetValue() == 0) {
+		return m_pStszSampleSizeProperty->GetCount();
+	}
+
+	// else samples are fixed size, 
+	// we need to count up samples in stts
+	u_int32_t numSamples = 0;
+	u_int32_t numStts = m_pSttsCountProperty->GetValue();
+
+	for (u_int32_t sttsIndex = 0; sttsIndex < numStts; sttsIndex++) {
+		numSamples += m_pSttsSampleCountProperty->GetValue(sttsIndex);
+	}
+	return numSamples;
 }
 
 u_int32_t MP4Track::GetSampleSize(MP4SampleId sampleId)
@@ -565,14 +579,21 @@ MP4SampleId MP4Track::GetSampleIdFromTime(
 		u_int32_t sampleDelta = 
 			m_pSttsSampleDeltaProperty->GetValue(sttsIndex);
 
+		if (sampleDelta == 0 && sttsIndex < numStts - 1) {
+			VERBOSE_READ(m_pFile->GetVerbosity(),
+				printf("Warning: Zero sample duration, stts entry %u\n",
+				sttsIndex));
+		}
+
 		MP4Duration d = when - elapsed;
 
 		if (d <= sampleCount * sampleDelta) {
-			MP4SampleId sampleId;
-
-			sampleId = sid + (d / sampleDelta);
-			if (d % sampleDelta) {
-				sampleId++;
+			MP4SampleId sampleId = sid;
+			if (sampleDelta) {
+				sampleId += (d / sampleDelta);
+				if (d % sampleDelta) {
+					sampleId++;
+				}
 			}
 
 			if (wantSyncSample) {
@@ -587,6 +608,8 @@ MP4SampleId MP4Track::GetSampleIdFromTime(
 
 	throw new MP4Error("time out of range", 
 		"MP4Track::GetSampleIdFromTime");
+
+	return 0; // satisfy MS compiler
 }
 
 void MP4Track::UpdateSampleTimes(MP4Duration duration)
@@ -633,6 +656,7 @@ u_int32_t MP4Track::GetSampleRenderingOffset(MP4SampleId sampleId)
 
 	throw new MP4Error("sample id out of range", 
 		"MP4Track::GetSampleRenderingOffset");
+	return 0; // satisfy MS compiler
 }
 
 void MP4Track::UpdateRenderingOffsets(MP4SampleId sampleId, 
@@ -735,7 +759,7 @@ MP4SampleId MP4Track::GetNextSyncSample(MP4SampleId sampleId)
 
 	// LATER check stsh for alternate sample
 
-	return (MP4SampleId)-1;
+	return MP4_INVALID_SAMPLE_ID;
 }
 
 void MP4Track::UpdateSyncSamples(MP4SampleId sampleId, bool isSyncSample)

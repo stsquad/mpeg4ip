@@ -20,8 +20,6 @@
  *		Bill May 		wmay@cisco.com
  */
 
-//#define MP4V2 1
-
 #include "mp4live.h"
 #include "mp4_recorder.h"
 #include "video_source.h"
@@ -77,18 +75,6 @@ void CMp4Recorder::DoStartRecord()
 		return;
 	}
 
-#ifdef MP4V2
-	m_odTrack = MP4AddObjectDescriptionTrack(m_mp4File);
-	if (m_odTrack == MP4InvalidTrackId) {
-		// TBD error
-	}
-
-	m_bifsTrack = MP4AddSceneDescriptionTrack(m_mp4File);
-	if (m_bifsTrack == MP4InvalidTrackId) {
-		// TBD error
-	}
-#endif
-
 	m_audioTimeScale = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 	m_audioFrameDuration = MP3_SAMPLES_PER_FRAME;
 
@@ -109,12 +95,12 @@ void CMp4Recorder::DoStartRecord()
 #ifdef MP4V2
 		m_videoTrack = MP4AddVideoTrack(m_mp4File,
 			m_videoTimeScale,
-			MP4InvalidDuration,
+			MP4_INVALID_DURATION,
 			m_pConfig->m_videoWidth, 
 			m_pConfig->m_videoHeight,
 			MP4_MPEG4_VIDEO_TYPE);
 
-		if (m_videoTrack == MP4InvalidTrackId) {
+		if (m_videoTrack == MP4_INVALID_TRACK_ID) {
 			// TBD error
 		}
 
@@ -147,7 +133,7 @@ void CMp4Recorder::DoStartRecord()
 #ifdef MP4V2
 			m_videoHintTrack = MP4AddHintTrack(m_mp4File, m_videoTrack);
 
-			if (m_videoHintTrack == MP4InvalidTrackId) {
+			if (m_videoHintTrack == MP4_INVALID_TRACK_ID) {
 				// TBD error
 			}
 
@@ -202,7 +188,7 @@ void CMp4Recorder::DoStartRecord()
 			m_audioFrameDuration,
 			MP4_MP3_AUDIO_TYPE);
 
-		if (m_audioTrack == MP4InvalidTrackId) {
+		if (m_audioTrack == MP4_INVALID_TRACK_ID) {
 			// TBD error
 		}
 
@@ -227,7 +213,7 @@ void CMp4Recorder::DoStartRecord()
 #ifdef MP4V2
 			m_audioHintTrack = MP4AddHintTrack(m_mp4File, m_audioTrack);
 
-			if (m_audioHintTrack == MP4InvalidTrackId) {
+			if (m_audioHintTrack == MP4_INVALID_TRACK_ID) {
 				// TBD error
 			}
 
@@ -261,6 +247,10 @@ void CMp4Recorder::DoStartRecord()
 #endif
 		}
 	}
+
+#ifdef MP4V2
+	MP4MakeIsmaCompliant(m_mp4File);
+#endif
 
 	m_record = true;
 }
