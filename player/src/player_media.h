@@ -120,8 +120,8 @@ class CPlayerMedia {
   format_list_t *m_media_fmt;        // format currently running.
   rtsp_session_t *m_rtsp_session;
   C2ConsecIpPort *m_ports;
-  uint16_t m_our_port;
-  uint16_t m_server_port;
+  in_port_t m_our_port;
+  in_port_t m_server_port;
   char *m_source_addr;
 
   time_t m_start_time;

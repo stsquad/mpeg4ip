@@ -67,11 +67,15 @@ void MP4File::Open(char* fileName, char* mode)
 void MP4File::Read()
 {
 	try {
+		// destroy any old information
 		delete m_pRootAtom;
-		m_pRootAtom = MP4Atom::CreateAtom(NULL);
-
-		// TBD should delete MP4Track's
+		for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
+			delete m_pTracks[i];
+		}
 		m_pTracks.Resize(0);
+
+		// create a new root atom
+		m_pRootAtom = MP4Atom::CreateAtom(NULL);
 
 		u_int64_t fileSize = GetSize();
 
@@ -92,11 +96,9 @@ void MP4File::Read()
 			if (pTrakAtom == NULL) {
 				break;
 			}
-printf("found new trak\n");
 
-			MP4Track* pTrack = new MP4Track(this, pTrakAtom);
-			// TBD pTrack->SetType(type);
-			m_pTracks.Add(pTrack);
+			// TBD catch errors and ignore trak?
+			m_pTracks.Add(new MP4Track(this, pTrakAtom));
 	
 			trackIndex++;
 		}
@@ -747,8 +749,10 @@ MP4TrackId MP4File::AddTrack(char* type)
 	pMoovAtom->AddChildAtom(pTrakAtom);
 
 	MP4Track* pTrack = new MP4Track(this, pTrakAtom);
-	pTrack->SetType(type);
 	m_pTracks.Add(pTrack);
+
+	// TEMP really want to set type for trak atom
+	pTrack->SetType(type);
 
 	// allocate a new track id
 	MP4TrackId trackId = GetIntegerProperty("moov.mvhd.nextTrackId");
@@ -826,7 +830,7 @@ MP4TrackId MP4File::FindTrackId(u_int16_t index, char* type)
 				typeSeen++;
 			}
 		}
-		throw MP4Error("FindTrackId", "Track index doesn't exist");
+		throw MP4Error("Track index doesn't exist", "FindTrackId"); 
 	}
 }
 
@@ -838,7 +842,7 @@ u_int16_t MP4File::FindTrackIndex(MP4TrackId trackId)
 		}
 	}
 	
-	throw MP4Error("FindTrackIndex", "Track id doesn't exist");
+	throw MP4Error("Track id doesn't exist", "FindTrackIndex"); 
 }
 
 MP4SampleId MP4File::GetSampleIdFromTime(MP4TrackId trackId, 
@@ -999,6 +1003,16 @@ u_int32_t MP4File::GetTrackTimeScale(MP4TrackId trackId)
 void MP4File::SetTrackTimeScale(MP4TrackId trackId, u_int32_t value)
 {
 	SetTrackIntegerProperty(trackId, "mdia.mdhd.timeScale", value);
+}
+
+MP4Duration MP4File::GetTrackDuration(MP4TrackId trackId)
+{
+	return GetTrackIntegerProperty(trackId, "mdia.mdhd.duration");
+}
+
+MP4Duration MP4File::GetTrackFixedSampleDuration(MP4TrackId trackId)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->GetFixedSampleDuration();
 }
 
 void MP4File::GetTrackESConfiguration(MP4TrackId trackId, 

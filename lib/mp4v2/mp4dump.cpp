@@ -21,53 +21,35 @@
 
 #include "mp4.h"
 
-void mp4create(int argc, char** argv)
-{
-	MP4File* pFile = new MP4File(argv[1], "w", MP4_DETAILS_ALL);
-
-	pFile->SetODProfileLevel(1);
-	pFile->SetSceneProfileLevel(1);
-	pFile->SetVideoProfileLevel(1);
-	pFile->SetAudioProfileLevel(1);
-	pFile->SetGraphicsProfileLevel(1);
-
-	MP4TrackId odTrackId = 
-		pFile->AddTrack("od");
-
-#ifdef NOTDEF
-	MP4TrackId bifsTrackId = 
-		pFile->AddTrack("bifs");
-
-	MP4TrackId videoTrackId = 
-		pFile->AddVideoTrack(90000, 3000, 320, 240);
-
-	MP4TrackId audioTrackId = 
-		pFile->AddAudioTrack(44100, 1152);
-#endif
-
-	// pFile->SetTrackESConfiguration();
-	// pFile->WriteSample();
-
-	pFile->Write();
-
-	delete pFile;
-}
-
 main(int argc, char** argv)
 {
-	if (argc < 2) {
-		fprintf(stderr, "Usage: cpptest <file>\n");
-		exit(1);
+	char* fileName;
+	u_int32_t verbosity = 0;
+
+	// -v option to control verbosity
+	if (!strcmp(argv[1], "-v")) {
+		verbosity = MP4_DETAILS_ALL;
+		fileName = argv[2];
+	} else {
+		fileName = argv[1];
 	}
 
 	try {
-		mp4create(argc, argv);
+		MP4File* pFile = new MP4File(fileName, "r", verbosity);
+
+		pFile->Dump();
+
+		delete pFile;
 	}
 	catch (MP4Error* e) {
-		e->Print();
+		// if verbosity is on,
+		// library will already have printed an error message, 
+		// just print it ourselves if we were in quiet mode
+		if (!verbosity) {
+			e->Print();
+		}
 		exit(1);
 	}
-
 	exit(0);
 }
 

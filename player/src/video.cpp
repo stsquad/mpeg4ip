@@ -22,8 +22,8 @@
  * video.cpp - provides codec to video hardware class
  */
 #include <string.h>
-#include "player_util.h"
 #include "video.h"
+#include "player_util.h"
 #include <SDL_syswm.h>
 //#define VIDEO_SYNC_PLAY 1
 //#define VIDEO_SYNC_FILL 1

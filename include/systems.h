@@ -20,6 +20,11 @@
  *		Bill May		wmay@cisco.com
  */
 
+#ifdef WIN32
+#else
+#include <config.h>
+#endif
+
 #ifndef __SYSTEMS_H__
 #define __SYSTEMS_H__
 
@@ -98,6 +103,8 @@ int gettimeofday(struct timeval *t, void *);
 #include <ctype.h>
 #include <netdb.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/param.h>
 
 #define closesocket close
 #define IOSBINARY ios::bin
@@ -114,5 +121,13 @@ typedef void (*error_msg_func_t)(int loglevel,
 				 const char *lib,
 				 const char *fmt,
 				 va_list ap);
+
+#ifndef HAVE_IN_PORT_T
+typedef uint16_t in_port_t;
+#endif
+
+#ifndef HAVE_SOCKLEN_T
+typedef unsigned int socklen_t;
+#endif
 
 #endif /* __SYSTEMS_H__ */

@@ -497,7 +497,9 @@ void MP4Atom::Dump(FILE* pFile)
 
 		/* skip details of tables unless we're told to be verbose */
 		if (m_pProperties[i]->GetType() == TableProperty
-		  && !(GetVerbosity() & MP4_DETAILS_READ_TABLE)) {
+		  && !(GetVerbosity() & MP4_DETAILS_TABLE)) {
+			Indent(pFile, depth + 1);
+			fprintf(pFile, "<table entries suppressed>\n");
 			continue;
 		}
 

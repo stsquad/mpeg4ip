@@ -20,8 +20,7 @@
  */
 #ifndef __PLAYER_UTIL_H__
 #define __PLAYER_UTIL_H__
-#include <stdarg.h>
-
+#include <config.h> // for strcasestr define
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,8 +40,7 @@ void player_library_message(int loglevel,
 			    const char *lib,
 			    const char *fmt,
 			    va_list ap);
-  
-const char *strcasestr(const char *haystack, const char *needle);
+char *strcasestr(const char *haystack, const char *needle);
   
 #ifdef __cplusplus
 }

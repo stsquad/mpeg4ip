@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: util.h,v 1.3 2001/06/28 23:54:23 wmaycisco Exp $
+ * $Id: util.h,v 1.4 2001/09/06 12:16:35 wmaycisco Exp $
  */
 
 #ifndef UTIL_H
@@ -26,7 +26,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <memory.h>
 
 #ifndef max

@@ -13,7 +13,7 @@ liblive_gui_la_SOURCES = \
 	transmit_dialog.cpp \
 	video_dialog.cpp
 
-INCLUDES=@GLIB_INCLUDES@ @GTK_INCLUDES@ \
+INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I.. \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/lib/SDL/include \

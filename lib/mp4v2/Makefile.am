@@ -31,11 +31,14 @@ mp4dump_LDADD = libmp4v2.la
 mp4extract_SOURCES = mp4extract.cpp
 mp4extract_LDADD = libmp4v2.la
 
-check_PROGRAMS = ctest cpptest
+check_PROGRAMS = apitest nullcreate nullvplayer
 
-ctest_SOURCES = ctest.c
-ctest_LDADD = libmp4v2.la
+apitest_SOURCES = apitest.c
+apitest_LDADD = libmp4v2.la
 
-cpptest_SOURCES = cpptest.cpp
-cpptest_LDADD = libmp4v2.la
+nullcreate_SOURCES = nullcreate.cpp
+nullcreate_LDADD = libmp4v2.la
+
+nullvplayer_SOURCES = nullvplayer.cpp
+nullvplayer_LDADD = libmp4v2.la
 

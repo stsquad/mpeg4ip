@@ -23,7 +23,7 @@
  * if you need PC, you'll have to add some stuff.
  */
 #include "systems.h"
-#ifndef _WINDOWS
+#ifdef HAVE_POLL
 #include <sys/poll.h>
 #endif
 #include "rtsp_private.h"
@@ -110,7 +110,7 @@ int rtsp_receive (rtsp_client_t *info)
 {
 
   int ret, totcnt;
-#ifndef _WINDOWS
+#ifdef HAVE_POLL
   struct pollfd pollit;
 #else
   fd_set read_set;
@@ -124,7 +124,7 @@ int rtsp_receive (rtsp_client_t *info)
   info->recv_buff_used = 0;
   info->recv_buff_parsed = 0;
   do {
-#ifndef _WINDOWS
+#ifdef HAVE_POLL
     pollit.fd = info->server_socket;
     pollit.events = POLLIN | POLLPRI;
     pollit.revents = 0;
@@ -135,7 +135,7 @@ int rtsp_receive (rtsp_client_t *info)
 	FD_SET(info->server_socket, &read_set);
 	timeout.tv_sec = info->recv_timeout / 1000;
 	timeout.tv_usec = (info->recv_timeout % 1000) * 1000;
-	ret = select(0, &read_set, NULL, NULL, &timeout);
+	ret = select(1, &read_set, NULL, NULL, &timeout);
 #endif
 
     if (ret <= 0) {

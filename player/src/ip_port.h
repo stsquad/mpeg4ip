@@ -39,12 +39,12 @@ class CIpPort {
   ~CIpPort();
   CIpPort *get_next (void) { return m_next;};
   void set_next (CIpPort *p) { m_next = p;};
-  uint16_t get_port_num (void) { return m_port_num;};
+  in_port_t get_port_num (void) { return m_port_num;};
   int valid(void) { return (m_sock == -1 ? 0 : 1);};
  private:
   CIpPort *m_next;
   int m_sock;
-  uint16_t m_port_num;
+  in_port_t m_port_num;
 };
 
 // C2ConsecIpPort will attempt to save 2 consecutive ip ports (starting with
@@ -55,8 +55,8 @@ class C2ConsecIpPort {
   C2ConsecIpPort(CIpPort **global);
   ~C2ConsecIpPort(void);
   int valid (void) { return m_first != NULL && m_second != NULL; };
-  uint16_t first_port (void) { return m_first->get_port_num(); };
-  uint16_t second_port (void) { return m_second->get_port_num(); };
+  in_port_t first_port (void) { return m_first->get_port_num(); };
+  in_port_t second_port (void) { return m_second->get_port_num(); };
  private:
   CIpPort *m_first, *m_second;
 };

@@ -7,7 +7,7 @@ int main (int argc, char **argv)
 {
   FILE *yuvfile;
   uint8_t *ybuf, *ubuf, *vbuf;
-  size_t height = 240, width = 320, ysize, uvsize, readbytes;
+  uint32_t height = 240, width = 320, ysize, uvsize, readbytes;
   char buf[32];
   argc--;
   argv++;
@@ -110,4 +110,5 @@ int main (int argc, char **argv)
   SDL_FreeSurface(m_screen);
   SDL_Quit();
   fclose(yuvfile);
+  return (0);
 }

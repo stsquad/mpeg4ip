@@ -92,14 +92,14 @@ typedef double FLOAT8;
 
 
 
-#if defined _WIN32 && !defined __CYGWIN__
+#if defined (_WIN32) && !defined (__CYGWIN__)
 	typedef unsigned long	u_long;
 	typedef unsigned int	u_int;
 	typedef unsigned short	u_short;
 	typedef unsigned char	u_char;
-#elif defined __DECALPHA__
+#elif defined (__DECALPHA__)
 #       do nothing
-#elif !defined __GNUC__ || defined __STRICT_ANSI__
+#elif !defined (__GNUC__) || defined (__STRICT_ANSI__)
 	typedef unsigned long	u_long;
 	typedef unsigned int	u_int;
 	typedef unsigned short	u_short;

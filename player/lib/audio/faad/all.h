@@ -27,25 +27,18 @@ Copyright(c)1996.
 #ifndef	_all_h_
 #define _all_h_
 
-#include <stdio.h>
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
 #endif
-#include <stdlib.h>
-#include <sys/types.h>
-#include <math.h>
-#include <string.h>
 
+#include "systems.h"
+#include <math.h>
 #include "interface.h"
 #include "tns.h"
 #include "nok_ltp_common.h"
 #include "monopred.h"
 #include "bits.h"
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #ifndef _POSIX_SOURCE
 #define                 _POSIX_SOURCE   /* stops repeat typdef of ulong */
@@ -56,9 +49,6 @@ extern "C" {
 #endif
 
 typedef	float Float;
-#ifndef HAS_ULONG
-typedef unsigned long   ulong;
-#endif
 typedef	unsigned char	byte;
 
 

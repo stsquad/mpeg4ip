@@ -183,7 +183,7 @@ public:
 #endif
 
 typedef unsigned char (*c_byte_get_t)(void *);
-typedef size_t (*c_byte_read_t)(unsigned char *, size_t, void *);
+typedef uint32_t (*c_byte_read_t)(unsigned char *, uint32_t, void *);
  
 class MPEGaudio {
  public:

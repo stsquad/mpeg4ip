@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Bootstrap development of mpeg4ip with GNU autoconf, automake, and libtool
 # Assumes tools are available on the system
@@ -6,54 +6,96 @@
 
 # Check that we can find libtool
 # Frequently it hasn't been installed
-libtool --version > /dev/null
-if [ $? != 0 ]; then
-	echo "libtool does not appear to be installed."
-	echo "Please install it and then rerun this script."
-	exit 1
+if glibtool --version > /dev/null
+then libtool=glibtool
+elif libtool --version >/dev/null
+then libtool=libtool
+else echo "libtool does not appear to be installed."
+     echo "Please install it and then rerun this script."
+     exit 1
 fi
 
-set -o xtrace
+for tool in aclocal autoheader autoconf automake
+do 
+  if $tool --version >/dev/null 
+  then :
+  else echo "$tool does not appear to be installed."
+       echo "Please install it and then rerun this script."
+       exit 1
+  fi
+done
 
-# The following packages have their own configure scripts, run them now
-# resulting Makefiles are called from mpeg4ip's Makefiles
-
-pushd ./server/lib/sndfile
-./configure $*
-popd
-
-pushd ./lib/SDL
-./configure $*
-popd
-
-pushd ./lib/rtp
-./configure $*
-popd
+set -x
 
 # if src tree is created via cvs export to tar.gz
 # then empty directories in the repository are pruned
 # this code recreates the empty directories
 # if src tree is checked out directly via cvs, this is a no-op
-
-if [ ! -d ./config ]; then
-	mkdir ./config
-fi
-if [ ! -d ./common/video/mpeg4/bin ]; then
-	mkdir ./common/video/mpeg4/bin
-fi
-if [ ! -d ./common/video/mpeg4/obj ]; then
-	mkdir ./common/video/mpeg4/obj
-fi
-
-# Create our own configure script and run it
-aclocal
-automake --add-missing --foreign
-autoconf
+mkdir -p ./config ./common/video/mpeg4/bin ./common/video/mpeg4/obj || exit 1
 
 # Pass our args to configure
-./configure $*
+case	`uname -s`
+in	Darwin)
+	rm -f server/lib/sndfile/config.* server/lib/sndfile/configure
+	rm -f server/lib/sndfile/ltmain.sh server/lib/sndfile/aclocal.m4
+	rm -f lib/rtp/config.guess lib/rtp/config.sub lib/rtp/configure
+	;;
+esac
 
-set +o xtrace
+
+if test -f /usr/share/libtool/config.guess
+then
+   CONFIG_GUESS=/usr/share/libtool/config.guess
+else
+   if test -f /usr/local/share/libtool/config.guess
+   then
+      CONFIG_GUESS=/usr/local/share/libtool/config.guess
+   else
+      echo "Can't find config.guess to copy"
+      exit 1
+   fi
+fi
+
+if test -f /usr/share/libtool/config.sub
+then
+   CONFIG_SUB=/usr/share/libtool/config.sub
+else
+   if test -f /usr/local/share/libtool/config.sub
+   then
+      CONFIG_SUB=/usr/local/share/libtool/config.sub
+   else
+      echo "Can't find config.sub to copy"
+      exit 1
+   fi
+fi
+
+if test -e /usr/local/share/aclocal
+then
+ACLOCAL_FLAGS="-I /usr/local/share/aclocal $ACLOCAL_FLAGS"
+fi
+
+pwd=`pwd`
+for	dir \
+in	$pwd/server/lib/sndfile $pwd/lib/SDL $pwd/lib/rtp 
+do	cd $dir
+	[ ! -f Makefile.am ] || aclocal $ACLOCAL_FLAGS || exit 3
+	[ ! -f Makefile.am ] || automake --add-missing --foreign || exit 1
+	[ ! -f configure.in ] || autoconf || exit 1
+	[ -f config.guess ] || cp $CONFIG_GUESS . || exit 1
+	[ -f config.sub ] || cp $CONFIG_SUB . || exit 1
+	[ ! -x configure ] || ./configure "$@" || exit 1
+done
+
+cd $pwd 
+# top level - we're using autoheader, which needs to be after aclocal  
+aclocal $ACLOCAL_FLAGS || exit 3
+autoheader || exit 1
+automake --add-missing --foreign || exit 1
+autoconf || exit 1
+[ -f config.guess ] || cp $CONFIG_GUESS . || exit 1
+[ -f config.sub ] || cp $CONFIG_SUB . || exit 1
+[ ! -x configure ] || ./configure "$@" || exit 1
+set +x
 
 # Now ready to run make
 echo "ready to make"

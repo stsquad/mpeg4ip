@@ -86,10 +86,6 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW				   
 #endif // __MFC_
 
-#ifndef IOSBINARY
-#define IOSBINARY ios::binary
-#endif
-
 #define _FOR_GSSP_
 #undef assert
 #define assert(a) if (!(a)) throw(#a);
@@ -333,7 +329,7 @@ CVideoObjectDecoder::CVideoObjectDecoder (
 #if 0
 	if (pistrm == NULL) {
 #endif
-		m_pistrm = new ifstream (pchStrFile, IOSBINARY | ios::in);
+		m_pistrm = new ifstream (pchStrFile, ios::binary | ios::in);
 		if(!m_pistrm->is_open())
 			fatal_error("Can't open bitstream file");
 #if 0

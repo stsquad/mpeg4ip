@@ -15,7 +15,7 @@ AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prot
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
 
 LDADD = \
-        $(top_builddir)/lib/SDL/src/libSDL.la \
+	@SDL_LIBS@ \
         -lpthread \
         -lm
 

@@ -2,7 +2,7 @@
 #ifndef __BYTESTRM_FILE__
 #define __BYTESTRM_FILE__ 1
 #include "bytestrm.hpp"
-#include <istream.h>
+#include <iostream.h>
 
 class CInByteStreamFile : public CInByteStreamBase
 {

@@ -222,10 +222,6 @@ protected:
 	MP4AtomArray		m_pChildAtoms;
 };
 
-inline u_int32_t STRTOINT32(const char* type) {
-	return (type[0] << 24) | (type[1] << 16) | (type[2] << 8) | type[3];
-}
-
 inline u_int32_t ATOMID(const char* type) {
 	return STRTOINT32(type);
 }

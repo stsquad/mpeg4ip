@@ -42,9 +42,10 @@ main(int argc, char** argv)
 
 		for (u_int32_t i = 0; i < numTracks; i++) {
 			char trackFileName[MAXPATHLEN];
-			snprintf(trackFileName, MAXPATHLEN, "%s.t%u", fileName, i);
+			snprintf(trackFileName, MAXPATHLEN, "%s.t%u", fileName, i + 1);
 
-			int trackFd = open(trackFileName, O_CREAT | O_TRUNC);
+			int trackFd = open(trackFileName, 
+				O_WRONLY | O_CREAT | O_TRUNC, 0644);
 			if (trackFd == -1) {
 				fprintf(stderr, "%s: can't open %s: %s\n",
 					argv[0], trackFileName, strerror(errno));
@@ -59,7 +60,11 @@ main(int argc, char** argv)
 
 			for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
 				pFile->ReadSample(trackId, sampleId, &pSample, &sampleSize);
-				write(trackFd, pSample, sampleSize);
+				if (write(trackFd, pSample, sampleSize) != sampleSize) {
+					fprintf(stderr, "%s: write to %s failed: %s\n",
+						argv[0], trackFileName, strerror(errno));
+					break;
+				}
 				free(pSample);
 			}
 

@@ -1,5 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT()
+AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
 AM_PROG_LIBTOOL
@@ -11,19 +12,40 @@ AC_CANONICAL_TARGET
 
 dnl Checks for programs.
 AC_PROG_CC
-AC_PROG_CXX
+AC_PROG_CXX(c++)
 AC_PROG_LIBTOOL
 
 dnl Checks for libraries.
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h unistd.h)
+AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror)
+AC_CHECK_FUNCS(strerror strcasestr poll)
+
+dnl MY_CHECK_TYPEDEF_FROM_INCLUDE(typedef, include files, define)
+dnl checks if typedef is in include files.  add define in acconfig.h
+AC_DEFUN(MY_CHECK_TYPEDEF_FROM_INCLUDE,
+[
+   AC_MSG_CHECKING([for $1])
+   AC_TRY_COMPILE([$2],
+	          [$1 temp;],
+                  mpeg4ip_ok=yes, mpeg4ip_ok=no)
+   if test $mpeg4ip_ok = yes; then
+      AC_DEFINE($3)
+      AC_MSG_RESULT([yes])
+   else
+      AC_MSG_RESULT([no])
+   fi
+])
+
+MY_CHECK_TYPEDEF_FROM_INCLUDE([in_port_t], [#include <netinet/in.h>], [HAVE_IN_PORT_T])
+MY_CHECK_TYPEDEF_FROM_INCLUDE([socklen_t], 
+	[#include <sys/types.h>
+	 #include <sys/socket.h>], HAVE_SOCKLEN_T)
 
 dnl Allow server build to be disabled
 AC_ARG_ENABLE(server, 
@@ -87,15 +109,8 @@ ifelse([$3], , , [$3])
 fi
 ])
 
-MY_CHECK_FILE(/usr/include/glib-1.2/glib.h,
-	GLIB_INCLUDES="-I/usr/lib/glib/include -I/usr/include/glib-1.2",
-	GLIB_INCLUDES="-I/usr/lib/glib/include")
-AC_SUBST(GLIB_INCLUDES)
-
-MY_CHECK_FILE(/usr/include/gtk-1.2/gtk/gtk.h,
-	GTK_INCLUDES="-I/usr/include/gtk-1.2",
-	GTK_INCLUDES="-I/usr/include/gtk")
-AC_SUBST(GTK_INCLUDES)
+AM_PATH_GLIB()
+AM_PATH_GTK()
 
     AC_ARG_ENABLE(mmx,
 [  --enable-mmx           use MMX assembly on x86 [default=yes]],
@@ -131,6 +146,10 @@ AC_SUBST(GTK_INCLUDES)
 		AM_CONDITIONAL(USE_MMX, false)
     fi
 
+SDL_CFLAGS="`lib/SDL/sdl-config --cflags`"
+SDL_LIBS="`lib/SDL/sdl-config --libs | sed 's,-L.* -lSDL,\$(top_builddir)/lib/SDL/src/libSDL.la,'`"
+AC_SUBST(SDL_CFLAGS)
+AC_SUBST(SDL_LIBS)
 dnl Now output the Makefile's
 AC_OUTPUT( \
 	Makefile \

@@ -26,7 +26,7 @@ RM = rm -f
 CPP_OPTS = -DLAMEPARSE
 INSTALL = install
 INSTALLBINDIR = /usr/local/bin
-
+RANLIB = :
 
 
 ##########################################################################
@@ -200,6 +200,16 @@ ifeq ($(UNAME),Rhapsody)
    MAKEDEP = -make 
    
 endif
+###########################################################################
+# Mac OS X (Darwin)
+###########################################################################
+ifeq ($(UNAME),Darwin)
+   CC = cc
+   LIBS =
+   CC_OPTS = -O3 -ffast-math -funroll-loops -fomit-frame-pointer
+   RANLIB = ranlib
+   
+endif
 ##########################################################################
 # OS/2
 ##########################################################################
@@ -298,6 +308,7 @@ libmp3lame.a:  $(OBJ) Makefile
 #	cd libmp3lame
 #	make libmp3lame
 	ar cr libmp3lame.a  $(OBJ) 
+	$(RANLIB) libmp3lame.a
 
 install: install-exec
 
@@ -305,7 +316,7 @@ install-exec:
 	$(INSTALL) $(PGM) $(INSTALLBINDIR)
 	@echo Installed $(PGM) in $(INSTALLBINDIR)
 
-clean:
+maintainer-clean distclean clean mostlyclean:
 	-$(RM) $(OBJ) $(DEP) $(PGM) main.o rtp.o mp3rtp mp3rtp.o \
          mp3x.o mp3x libmp3lame.a 
 

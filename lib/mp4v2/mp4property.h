@@ -339,8 +339,9 @@ public:
 
 	void GetValue(u_int8_t** ppValue, u_int32_t* pValueSize, 
 	  u_int32_t index = 0) {
-		// TBD const* or give copy?
-		*ppValue = m_values[index];
+		// N.B. caller must free memory
+		*ppValue = (u_int8_t*)MP4Malloc(m_valueSizes[index]);
+		memcpy(*ppValue, m_values[index], m_valueSizes[index]);
 		*pValueSize = m_valueSizes[index];
 	}
 

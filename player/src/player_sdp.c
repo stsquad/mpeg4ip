@@ -94,7 +94,7 @@ void convert_relative_urls_to_absolute (session_desc_t *sdp,
  */
 void create_rtsp_transport_from_sdp (session_desc_t *sdp,
 				     media_desc_t *media,
-				     uint16_t port,
+				     in_port_t port,
 				     char *buffer,
 				     uint32_t buflen)
 {

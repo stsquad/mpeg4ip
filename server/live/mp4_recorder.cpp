@@ -25,6 +25,10 @@
 #include "video_source.h"
 #include "mp3.h"
 
+#ifdef MP4V2
+#include "mp4.h"
+#endif
+
 int CMp4Recorder::ThreadMain(void) 
 {
 	while (SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
@@ -61,8 +65,13 @@ void CMp4Recorder::DoStartRecord()
 		return;
 	}
 
+#ifdef MP4V2
+	m_mp4File = MP4Open(
+		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), "w");
+#else
 	m_mp4File = quicktime_open(
 		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), 0, 1, 0);
+#endif
 
 	if (!m_mp4File) {
 		return;
@@ -72,20 +81,43 @@ void CMp4Recorder::DoStartRecord()
 	m_audioFrameDuration = MP3_SAMPLES_PER_FRAME;
 
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		quicktime_set_time_scale(m_mp4File, m_videoTimeScale);
+		m_movieTimeScale = m_videoTimeScale;
 	} else {
-		quicktime_set_time_scale(m_mp4File, m_audioTimeScale);
+		m_movieTimeScale = m_audioTimeScale;
 	}
+#ifdef MP4V2
+	MP4SetTimeScale(m_mp4File, m_movieTimeScale);
+#else
+	quicktime_set_time_scale(m_mp4File, m_movieTimeScale);
+#endif
 
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+		m_videoFrameNum = 1;
+
+#ifdef MP4V2
+		m_videoTrack = MP4AddVideoTrack(m_mp4File,
+			m_videoTimeScale,
+			0,
+			m_pConfig->m_videoWidth, 
+			m_pConfig->m_videoHeight);
+
+		if (!m_videoTrack) {
+			// TBD error
+		}
+
+		MP4SetVideoProfileLevel(m_mp4File, 
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID));
+
+		MP4SetTrackESConfiguration(m_mp4File, m_videoTrack,
+			m_pConfig->m_videoMpeg4Config, 
+			m_pConfig->m_videoMpeg4ConfigLength); 
+#else
 		quicktime_set_video(m_mp4File, 1, 
 			m_pConfig->m_videoWidth, 
 			m_pConfig->m_videoHeight,
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE), 
 			m_videoTimeScale,
 			"mp4v");
-
-		m_videoFrameNum = 1;
 
 		quicktime_set_iod_video_profile_level(m_mp4File,
 			m_pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID));
@@ -94,7 +126,9 @@ void CMp4Recorder::DoStartRecord()
 		quicktime_set_mp4_video_decoder_config(m_mp4File, m_videoTrack, 
 			m_pConfig->m_videoMpeg4Config, 
 			m_pConfig->m_videoMpeg4ConfigLength); 
+#endif
 
+		// TBD need to move this so it gets prepended to first video frame
 		/* for any players who want to see see the video config in-band */
 		quicktime_write_video_frame(m_mp4File, 
 			m_pConfig->m_videoMpeg4Config, 
@@ -145,11 +179,22 @@ void CMp4Recorder::DoStartRecord()
 	}
 
 	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+#ifdef MP4V2
+		m_audioTrack = MP4AddAudioTrack(m_mp4File, 
+			m_audioTimeScale, m_audioFrameDuration);
+
+		if (!m_audioTrack) {
+			// TBD error
+		}
+
+		MP4SetAudioProfileLevel(m_mp4File, 0xFE);
+#else
 		quicktime_set_audio(m_mp4File, 2, 
 			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE), 
 			16, 0, m_audioTimeScale, MP3_SAMPLES_PER_FRAME, "mp3 ");
 
 		quicktime_set_iod_audio_profile_level(m_mp4File, 0xFE);
+#endif
 
 		m_audioFrameNum = 1;
 
@@ -212,7 +257,11 @@ void CMp4Recorder::DoStopRecord()
 			m_videoTrack, m_videoHintTrack);
 	}
 
+#ifdef MP4V2
+	MP4Close(m_mp4File);
+#else
 	quicktime_close(m_mp4File);
+#endif
 	m_mp4File = NULL;
 
 	debug_message("MP4 recorder wrote %u audio frames", m_audioFrameNum);
@@ -236,11 +285,19 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 		if (!m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
 		  || m_videoFrameNum > 2) {
 
+#ifdef MP4V2
+			MP4WriteSample(
+				m_mp4File,
+				m_audioTrack,
+				pFrame->GetData(), 
+				pFrame->GetDataLength());
+#else
 			quicktime_write_audio_frame(
 				m_mp4File,
 				(unsigned char*)pFrame->GetData(), 
 				pFrame->GetDataLength(),
 				m_audioTrack);
+#endif
 
 			if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
 				Write2250Hints(pFrame);
@@ -255,6 +312,16 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 		// at start of recording wait for an I frame
 		if (m_videoFrameNum > 2 || isIFrame) {
 
+#ifdef MP4V2
+			MP4WriteSample(
+				m_mp4File,
+				m_videoTrack,
+				pFrame->GetData(), 
+				pFrame->GetDataLength(),
+				ConvertVideoDuration(pFrame->GetDuration()),
+				0,
+				isIFrame);
+#else
 			quicktime_write_video_frame(m_mp4File, 
 				(unsigned char*)pFrame->GetData(), 
 				pFrame->GetDataLength(), 
@@ -262,6 +329,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 				isIFrame,
 				ConvertVideoDuration(pFrame->GetDuration()),
 				0);
+#endif
 		
 			if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
 				Write3016Hints(pFrame);

@@ -156,6 +156,8 @@ public:
 	u_int32_t GetTrackTimeScale(MP4TrackId trackId);
 	void SetTrackTimeScale(MP4TrackId trackId, u_int32_t value);
 
+	MP4Duration GetTrackFixedSampleDuration(MP4TrackId trackId);
+
 	void GetTrackESConfiguration(MP4TrackId trackId, 
 		u_int8_t** ppConfig, u_int32_t* pConfigSize);
 	void SetTrackESConfiguration(MP4TrackId trackId, 

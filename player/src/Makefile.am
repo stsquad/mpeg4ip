@@ -12,7 +12,7 @@ SUFFIXES = .asm
 
 SUBDIRS = codec
 
-noinst_LTLIBRARIES = libmp4player.la
+noinst_LTLIBRARIES = libmp4playerutils.la libmp4player.la
 libmp4player_la_LDFLAGS = -static
 
 if USE_MMX
@@ -21,21 +21,23 @@ else
 EXTRA_libmp4player_la_SOURCES = frame_doubler.cpp
 endif
 
+libmp4playerutils_la_SOURCES = \
+	our_bytestream_file.cpp \
+	our_bytestream_mem.cpp \
+	player_util.c 
+
 libmp4player_la_SOURCES = \
 	audio.cpp \
 	avi_bytestream.cpp \
 	avi_file.cpp \
 	ip_port.cpp \
 	media_utils.cpp \
-	mpeg4_audio_config.cpp \
-	our_bytestream_file.cpp \
-	our_bytestream_mem.cpp \
 	our_config_file.cpp \
+	mpeg4_audio_config.cpp \
+	player_sdp.c \
 	player_media.cpp \
 	player_media_decode.cpp \
-	player_sdp.c \
 	player_session.cpp \
-	player_util.c \
 	playlist.cpp \
 	qtime_bytestream.cpp \
 	qtime_file.cpp \
@@ -59,52 +61,38 @@ gmp4player_SOURCES = \
 movplayer_SOURCES = player_util.c \
 	movplayer.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/include @GLIB_INCLUDES@ @GTK_INCLUDES@ -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib @GLIB_CFLAGS@ @GTK_CFLAGS@
 
 AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wmissing-prototypes 
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall -Werror
 
-LDADD = \
+mp4player_LDADD = \
+	-lm \
 	$(top_builddir)/player/src/libmp4player.la \
-	$(top_builddir)/lib/sdp/libsdp.la \
-	$(top_builddir)/player/lib/rtsp/librtsp.la \
-	$(top_builddir)/lib/rtp/libuclmmbase.a \
-	$(top_builddir)/player/lib/audio/faad/libfaad.la \
-	$(top_builddir)/player/lib/audio/mp3/libourmp3.la \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/player/src/codec/wav/libourwav.la \
 	$(top_builddir)/player/src/codec/mp3/libmp3.la \
-	$(top_builddir)/player/lib/audio/faad/libfaad.la \
-	$(top_builddir)/player/lib/audio/mp3/libourmp3.la \
 	$(top_builddir)/player/src/codec/mpeg4/libmpeg4.la \
-	$(top_builddir)/player/lib/video/divx/libourdivx.la \
 	$(top_builddir)/player/src/codec/divx/libdivx.la \
-	$(top_builddir)/player/lib/video/divx/libourdivx.la \
-	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
-	$(top_builddir)/lib/SDL/src/libSDL.la \
-	$(top_builddir)/lib/mp4/libmp4.la \
-	$(top_builddir)/lib/avi/libavi.la \
-	$(top_builddir)/player/src/libmp4player.la \
+	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/player/lib/http/libhttp.la \
-	$(top_builddir)/lib/avi/libavi.la \
 	$(top_builddir)/lib/config_file/libconfig_file.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/bitstream/libbitstream.la \
-	-lpthread \
-	-lm \
-	$(top_builddir)/lib/avi/libavi.la \
-	$(top_builddir)/player/src/libmp4player.la \
-	$(top_builddir)/lib/avi/libavi.la \
+	$(top_builddir)/lib/rtp/libuclmmbase.a \
+	$(top_builddir)/player/lib/rtsp/librtsp.la \
+	$(top_builddir)/player/lib/audio/faad/libfaad.la \
+	$(top_builddir)/player/lib/audio/mp3/libourmp3.la \
 	$(top_builddir)/player/lib/video/divx/libourdivx.la \
-	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
-	$(top_builddir)/player/src/codec/wav/libourwav.la \
-	$(top_builddir)/player/lib/http/libhttp.la \
-	$(top_builddir)/player/src/libmp4player.la \
-	$(top_builddir)/player/lib/http/libhttp.la \
-	-L/usr/lib -L/usr/X11R6/lib -lgtk -lgdk \
-	 -lgmodule -lglib -ldl -lXi -lXext -lX11 -lm
+	$(top_builddir)/lib/mp4/libmp4.la \
+	$(top_builddir)/lib/avi/libavi.la \
+	libmp4playerutils.la \
+	-lpthread \
+	$(top_builddir)/lib/SDL/src/libSDL.la 
 
-LDFLAGS = -rdynamic
+gmp4player_LDADD = $(mp4player_LDADD) \
+	@GTK_LIBS@ @GLIB_LIBS@
+
 

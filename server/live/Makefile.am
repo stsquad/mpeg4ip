@@ -34,7 +34,7 @@ mp4live_SOURCES = \
 	video_source.h
 
 INCLUDES=\
-	@GLIB_INCLUDES@ @GTK_INCLUDES@ \
+	@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/lib/SDL/include \
 	-I$(top_srcdir)/lib/mp4 \
@@ -62,5 +62,4 @@ LDADD = \
 	$(top_builddir)/server/video/ffmpeg/libffmpeg.la \
 	-lpthread \
 	$(top_builddir)/lib/SDL/src/libSDL.la \
-	-L/usr/lib -L/usr/X11R6/lib -lgtk -lgdk \
-	-lgmodule -lglib -lXi -lXext -lX11 -lm
+	@GTK_LIBS@ @GLIB_LIBS@

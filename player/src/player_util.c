@@ -69,12 +69,15 @@ void player_error_message (const char *fmt, ...)
 		unlock_mutex();
 #else
   struct timeval thistime;
+  time_t secs;
   char buffer[80];
 
   gettimeofday(&thistime, NULL);
   // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-my_player-%d: ", buffer, thistime.tv_usec / 1000, LOG_ERR);
+  secs = thistime.tv_sec;
+  strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
+  printf("%s.%03lu-my_player-%d: ", buffer,
+	 (unsigned long)thistime.tv_usec / 1000, LOG_ERR);
   va_start(ap, fmt);
   vprintf(fmt, ap);
   va_end(ap);
@@ -98,12 +101,15 @@ void player_debug_message (const char *fmt, ...)
 		unlock_mutex();
 #else
   struct timeval thistime;
+  time_t secs;
   char buffer[80];
 
   gettimeofday(&thistime, NULL);
+  secs = thistime.tv_sec;
   // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-my_player-%d: ", buffer, thistime.tv_usec / 1000, LOG_DEBUG);
+  strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
+  printf("%s.%03lu-my_player-%d: ",
+	 buffer, (unsigned long)thistime.tv_usec / 1000, LOG_DEBUG);
   va_start(ap, fmt);
   vprintf(fmt, ap);
   va_end(ap);
@@ -131,13 +137,15 @@ void player_library_message (int loglevel,
   unlock_mutex();
 #else
   struct timeval thistime;
+  time_t secs;
   char buffer[80];
 
   gettimeofday(&thistime, NULL);
-  strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-%s-%d: ",
+  secs = thistime.tv_sec;
+  strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
+  printf("%s.%03lu-%s-%d: ",
 	 buffer,
-	 thistime.tv_usec / 1000,
+	 (unsigned long)thistime.tv_usec / 1000,
 	 lib,
 	 loglevel);
   vprintf(fmt, ap);
@@ -179,6 +187,8 @@ char *strsep (char **sptr, const char *delim)
 	return (start);
 }
 #endif
+
+#ifndef HAVE_STRCASESTR
 const char *strcasestr (const char *haystack, const char *needle)
 {
   uint32_t nlen, hlen;
@@ -195,5 +205,5 @@ const char *strcasestr (const char *haystack, const char *needle)
   }
   return (NULL);
 }
-
+#endif
 /* end file player_util.c */

@@ -7,7 +7,7 @@
 
 ########## General definitions ##########################################
 #CCC 		= g++ -D __TRACE_AND_STATS_ -D__DOUBLE_PRECISION_
-CCC 		= g++ -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_
+CCC 		= c++ -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_
 
 CFLAGS		= -g $(INC) -O2 -Wall -Wpointer-arith -fexceptions -fno-rtti -Wall -Werror
 
@@ -147,6 +147,7 @@ OBJECTS	= \
 
 # Include all subdirectories for ease
 INC	= 	-I$(TOPDIR)/../../../include \
+		-I$(TOPDIR)/../../.. \
 		-I$(TOPDIR) \
 		-I$(TOPDIR)/sys \
 		-I$(TOPDIR)/sys/encoder \
@@ -178,21 +179,23 @@ all:	$(OBJECTS) $(PROGRAMS)
 
 bin/mp4venc: $(OBJECTS) 
 	@echo $(CCC) $(CFLAGS) $(INC) -o $(OBJDIR)/mp4venc $(APPENCDIR)/encoder.cpp $(LIBS)
-	@$(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/mp4venc $(APPENCDIR)/encoder.cpp $(LIBS)
+	ranlib $(OBJDIR)/libobj.a
+	$(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/mp4venc $(APPENCDIR)/encoder.cpp $(LIBS)
 	@echo Done making mp4venc
 
 # -------- decoder ---------------------------------------------
 
 bin/mp4vdec: $(OBJECTS) 
 	@echo $(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/mp4vdec $(APPDECDIR)/decoder.cpp $(LIBS)
-	@$(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/mp4vdec $(APPDECDIR)/decoder.cpp $(LIBS)
+	ranlib $(OBJDIR)/libobj.a
+	$(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/mp4vdec $(APPDECDIR)/decoder.cpp $(LIBS)
 	@echo Done making mp4vdec
 
 # -------- decoder ---------------------------------------------
 
 bin/convertpar: $(OBJECTS) 
 	@echo $(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/convertpar $(APPCONVDIR)/convertpar.cpp $(LIBS)
-	@$(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/convertpar $(APPCONVDIR)/convertpar.cpp $(LIBS)
+	$(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/convertpar $(APPCONVDIR)/convertpar.cpp $(LIBS)
 	@echo Done making convertpar
 
 # -------- necessary Objects --------------------------
@@ -274,5 +277,5 @@ deinstall:
 
 # ----- clean the obj-Subdiir ---------------------------------
 
-clean:
+maintainer-clean distclean clean mostlyclean:
 	$(RM) core $(PROGRAMS) $(OBJECTS) $(OBJDIR)/*.o $(OBJDIR)/libobj.a @echo Done cleaning ... 
