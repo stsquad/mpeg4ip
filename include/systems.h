@@ -30,6 +30,11 @@ int gettimeofday(struct timeval *t, void *);
 #endif
 
 #define MAX_UINT64 -1
+#define LLD "%I64d"
+#define LLU "%I64u"
+#define LLX "%I64x"
+#define M_LLU 1000i64
+#define I_LLU 1i64
 #else
 /*
  * Unix definitions
@@ -47,5 +52,10 @@ int gettimeofday(struct timeval *t, void *);
 #define closesocket close
 #define IOSBINARY ios::bin
 #define MAX_UINT64 -1LLU
+#define LLD "%lld"
+#define LLU "%llu"
+#define LLX "%llx"
+#define M_LLU 1000LLU
+#define I_LLU 1LLU
 #endif
 #endif
