@@ -465,6 +465,12 @@ void CMp4Recorder::DoStopRecord()
 					m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
 			}
 		}
+		if ((m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) &&
+		    (MP4_IS_VALID_TRACK_ID(m_rawAudioTrackId))) {
+		  L16Hinter(m_mp4File, 
+			    m_rawAudioTrackId,
+			    m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+		}
 	}
 
 	// close the mp4 file

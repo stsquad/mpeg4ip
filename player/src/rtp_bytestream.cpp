@@ -27,6 +27,7 @@
 #include "our_config_file.h"
 //#define DEBUG_RTP_PAKS 1
 //#define DEBUG_RTP_BCAST 1
+//#define DEBUG_RTP_WCLOCK 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 #else
@@ -219,6 +220,7 @@ void CRtpByteStreamBase::init (void)
 void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock, 
 					       uint32_t rtp_ts) 
 {
+#ifdef DEBUG_RTP_WCLOCK
   if (m_wallclock_offset_set == 1 &&
       m_stream_ondemand == 0) {
     int32_t rtp_ts_diff;
@@ -236,6 +238,7 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
     }
     
   }
+#endif
   m_wallclock_offset_set = 1;
   SDL_LockMutex(m_rtp_packet_mutex);
   m_wallclock_offset = wclock;

@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "." /I "..\..\include" /I "..\..\lib\mp4v2" /I "..\..\lib\mp4av" /I "..\..\lib\avi" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "." /I "..\..\include" /I "..\..\lib\mp4v2" /I "..\..\lib\mp4av" /I "..\..\lib\avi" /I "..\..\common\video\libmpeg32" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "_WINDOWS" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "." /I "..\..\include" /I "..\..\lib\mp4v2" /I "..\..\lib\mp4av" /I "..\..\lib\avi" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "." /I "..\..\include" /I "..\..\lib\mp4v2" /I "..\..\lib\mp4av" /I "..\..\lib\avi" /I "..\..\common\video\libmpeg32" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "_WINDOWS" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -106,6 +106,10 @@ SOURCE=.\mp4creator.cpp
 
 SOURCE=.\mp4v.cpp
 # End Source File
+# Begin Source File
+
+SOURCE=.\mpeg.cpp
+# End Source File
 # End Group
 # Begin Group "includes"
 
@@ -113,6 +117,10 @@ SOURCE=.\mp4v.cpp
 # Begin Source File
 
 SOURCE=.\mp4creator.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mpeg.h
 # End Source File
 # End Group
 # End Target

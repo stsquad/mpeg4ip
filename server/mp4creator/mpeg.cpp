@@ -145,9 +145,10 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
     return MP4_INVALID_TRACK_ID;
   }
 
+  MP4Duration duration = (90000 * samples_per_frame) / freq;
   id = MP4AddAudioTrack(mp4file, 
-			freq, 
-			samples_per_frame,
+			90000, 
+			duration,
 			audioType);
   
   if (id == MP4_INVALID_TRACK_ID) {

@@ -1,20 +1,19 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT()
 AM_CONFIG_HEADER(config.h)
-AC_CONFIG_AUX_DIR(config)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.5.5)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.6)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
 dnl Checks for programs.
 AC_CHECK_FILE(lib/SDL/sdl-config,,
 	      AC_MSG_ERROR([Configure for SDL needs to run first - either run bootstrap or run lib/SDL/configure]))
+
 
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
@@ -29,6 +28,7 @@ AC_PROG_INSTALL
 AC_PATH_XTRA
 AC_C_BIGENDIAN
 
+
 AS=gcc
 AC_SUBST(AS)
 ASFLAGS="$ASFLAGS"
@@ -37,8 +37,6 @@ CCAS=gcc
 AC_SUBST(CCAS)
 CCASFLAGS="$ASFLAGS"
 AC_SUBST(CCASFLAGS)
-CFLAGS="$CFLAGS -DMPEG4IP"
-CXXFLAGS="$CXXFLAGS -DMPEG4IP"
 
 dnl Checks for libraries.
 
@@ -53,6 +51,7 @@ AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h)
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
+AC_SEARCH_LIBS(dlopen, dl libc)
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
@@ -191,7 +190,7 @@ dnl If we're going to check for GLIB, we most likely need the real path
 dnl we need to save off the CFLAGS and CPPFLAGS for the AC_CHECK_HEADER
 dnl command 
 
-save_CFLAG=$CFLAGS
+save_CFLAG="$CFLAGS"
 save_CPPFLAG="$CPPFLAGS"
 CFLAGS="$CFLAGS $GLIB_CFLAGS"
 CPPFLAGS="$CPPFLAGS $GLIB_CFLAGS"
@@ -263,6 +262,11 @@ AC_SUBST(BILLS_CPPWARNINGS)
 
 PLAYER_PLUGIN_DIR=$libdir/mp4player_plugin
 AC_SUBST(PLAYER_PLUGIN_DIR)
+
+CFLAGS="$CFLAGS -DMPEG4IP"
+AC_SUBST(CFLAGS)
+CXXFLAGS="$CXXFLAGS -DMPEG4IP"
+AC_SUBST(CXXFLAGS)
 
 dnl Now output the Makefile's
 AC_OUTPUT( \

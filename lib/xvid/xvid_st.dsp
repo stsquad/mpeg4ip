@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release_st"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /Ob2 /D "NDEBUG" /D "ARCH_X86" /D "WIN32" /D "_MBCS" /D "_LIB" /D "_WIN32" /D "MPEG4IP" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /Ob2 /I "..\..\include" /D "NDEBUG" /D "ARCH_X86" /D "WIN32" /D "_MBCS" /D "_LIB" /D "_WIN32" /D "MPEG4IP" /YX /FD /c
 # ADD BASE RSC /l 0xc09 /d "NDEBUG"
 # ADD RSC /l 0xc09 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -165,6 +165,14 @@ SOURCE=bitstream\bitstream.c
 # Begin Source File
 
 SOURCE=bitstream\cbp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bitstream\h263.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\bitstream\h263.h
 # End Source File
 # Begin Source File
 

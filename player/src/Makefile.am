@@ -146,8 +146,7 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
-	$(top_builddir)/lib/avi/libavi.la \
-	-ldl
+	$(top_builddir)/lib/avi/libavi.la 
 
 mp4player_LDADD = \
 	-lm \

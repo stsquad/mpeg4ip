@@ -1,0 +1,222 @@
+This is a short description of RTP hint tracks that I created
+while I was working on L16 and Mpeg1/2 hint tracks.
+
+Hint tracks are a series of instructions in a mp4 container file that
+tell a server how to transmit packets. Hint tracks always refer
+to another track, most likely an audio or video media track.  
+
+This series of instructions tells the server when to send the packet, 
+what type of RTP header to add, if there is any extra data in the
+packet, and how much data to send in the packet.  To save on space, 
+a hint can contain a pointer to the media track, instead of duplicating
+that data.
+
+It will also tell what SDP to add for the track that is referenced.
+
+So, a file that is hinted should have a media track, and an associated
+hint track for that media track.  There are some mp4 container files
+that just have hint tracks - these are called "fat hints" and are
+usually not playable locally.  These are illegal in ISMA, so we won't
+talk about them.
+
+To create hint tracks for a mp4 file is fairly simple with the mp4creator
+program.  Just execute the:
+  mp4creator -hint=<track to hint track number> [-p <payload>] <mp4file>
+
+For example:
+
+[wmay@wmaytclinux2 content]$ mp4info xvid.mp4 
+mp4info version 0.9.5.4
+xvid.mp4:
+Track	Type	Info
+1	video	MPEG-4 Simple @ L3, 3.695 secs, 627 kbps, 608x256 @ 23.00 fps
+2	od	Object Descriptors
+3	scene	BIFS
+
+I would execute the:
+  mp4creator -hint=1 xvid.mp4
+
+and get:
+[wmay@wmaytclinux2 content]$ mp4info xvid.mp4 
+mp4info version 0.9.5.4
+xvid.mp4:
+Track	Type	Info
+1	video	MPEG-4 Simple @ L3, 3.695 secs, 627 kbps, 608x256 @ 23.00 fps
+2	od	Object Descriptors
+3	scene	BIFS
+4	hint	Payload MP4V-ES for track 1
+
+-----------------------------------------------------------------------------
+
+Now a bit about the internals of creating a hint track, for example, if you
+have your own codec and want to create a hint track for it.
+
+The mp4v2 library has a complete set of functions that will allow you
+to create a hint track.
+
+---- 
+
+The first function is MP4AddHintTrack:
+
+MP4TrackId MP4AddHintTrack(MP4FileHandle hFile, MP4TrackId refTrackId);
+
+hFile is the file handle, refTrackId is the track ID that you want to
+add the hint for.  The return value is the hint track ID that you will
+use in the below functions.
+
+----
+
+The next step is to set the RTP Payload type for the track.  The following
+function does that:
+
+bool MP4SetHintTrackRtpPayload(
+	MP4FileHandle hFile,
+	MP4TrackId hintTrackId,
+	const char* pPayloadName,
+	u_int8_t* pPayloadNumber,
+	u_int16_t maxPayloadSize DEFAULT(0),
+	const char *encode_params DEFAULT(NULL));
+
+pPayloadName should be the payload type that will be shown in the
+a=rtpmap statment.
+
+pPayloadNumber should most likely be 0 (which will indicate a 
+dynamic payload number), unless you have a payload defined in 
+rfc 1890.  The return value (it is a pointer) will be the dynamic
+value.
+
+maxPayloadSize will be the RTP payload size.
+
+encode params are basically the channel number in the rtp map, if needed.
+
+This will create the "m=" 
+"a=rtpmap:<payload num> <pPayloadName>/<track timescale>[/<encoding params>]"
+
+along with some other SDP for the media.
+
+---
+
+Now, we need to add a series of RtpHint and RtpPacket calls for each sample
+in the media.  Most functions will call MP4ReadSample for each of the
+samples in the reference track (MP4GetTrackNumberOfSamples).
+
+MP4AddRtpHint or MP4AddRtpVideoHint is called each time the server
+should generate a new RTP Timestamp.
+
+MP4AddRtpPacket is called for each RTP packet to be added.
+
+When all information about the hint is called, MP4WriteRtpHint is called.
+
+For example, if a video sample will span multiple packets, the calls might
+look like this:
+
+   MP4AddRtpHint()
+   MP4AddRtpPacket()
+   ...
+   MP4AddRtpPacket()
+   ...
+   MP4AddRtpPacket()
+   ...
+   MP4WriteRtpHint()
+
+
+Or if you've got sample based audio (not frame based), the calls might 
+look like:
+
+   MP4AddRtpHint()
+   MP4AddRtpPacket()
+   MP4WriteRtpHint()
+   MP4AddRtpHint()
+   MP4AddRtpPacket()
+   MP4WriteRtpHint()
+   
+Let's look at each call in detail:
+
+bool MP4AddRtpHint( MP4FileHandle hFile, MP4TrackId hintTrackId);
+
+is fairly simple.
+
+bool MP4AddRtpPacket(MP4FileHandle hFile, MP4TrackId hintTrackId,
+	             bool setMbit DEFAULT(false),
+                     int32_t transmitOffset DEFAULT(0));
+
+is also pretty simple.  setMbit is to set the M bit in the RTP
+header.  transmitOffset is more of an advance topic - it's used to
+change the offset in the case of B frames - see the code in 
+rfcisma.cpp for more information.
+
+bool MP4WriteRtpHint(MP4FileHandle hFile, MP4TrackId hintTrackId,
+	             MP4Duration duration, bool isSyncSample DEFAULT(true));
+
+where duration is the number of ticks in the timescale of the hint track
+involved in this RtpHint, and isSyncSample would be TRUE for sync samples, 
+like I frames.
+
+----
+
+But what about data for the packets, you ask ?  Well there are a
+couple of functions for that.
+
+bool MP4AddRtpImmediateData(MP4FileHandle hFile, MP4TrackId hintTrackId,
+	                    const u_int8_t* pBytes, u_int32_t numBytes);
+
+can be used to add numBytes located at pBytes to the RTP packet.  This
+could be used for a codec specific RTP payload.
+
+bool MP4AddRtpSampleData(MP4FileHandle hFile, MP4TrackId hintTrackId,
+	                 MP4SampleId sampleId, u_int32_t dataOffset,
+	                 u_int32_t dataLength);
+
+is used to create a pointer to the reference track.  It creates a
+pointer to the sampleId given, at the dataOffset for dataLength bytes.
+
+So, let's say we want to write a series of maxPayloadSize packets.
+
+We might do something like:
+    MP4AddRtpHint();
+    offset = 0;
+   while (sampleSize > 0) {
+       size_to_write = MIN(maxPayloadSize, sampleSize);
+       // mbit is 0 except for last packet for timestamp
+       MP4AddRtpPacket(file, hintTrack, (size_to_write == SampleSize) ? 1 : 0);
+       MP4AddRtpSampleData(file, hintTrack, sampleId, offset, 
+                           size_to_write);
+       offset += size_to_write;
+       sampleSize -= size_to_write;
+   }
+   MP4WriteRtpHint(file, hintTrack, <duration>, isSyncSample);
+
+
+In the above, we may read into the sample to add immediate data.
+
+Or if we want to pack several frames in a packet, we might do:
+
+   sampleId = 1; // note 1 based sample id's
+   offset = 0;
+   while (sampleId <= MP4GetTrackNumberOfSamples(file, trackId)) {
+      if (offset == 0) {
+         MP4AddRtpHint();
+         MP4AddRtpPacket();
+      }
+      size_to_write = MP4GetSampleSize(file, sampleId);
+      if (size_to_write + offset < maxPayloadSize) {
+         MP4AddSampleData(file, hintTrack, sampleId, offset, size_to_write);
+         sampleId++;
+         offset += size_to_write;
+      } else {
+	MP4WriteRtpHint(file, hintTrack, duration of added tracks);
+         offset = 0;
+      }
+   } 
+
+
+There are many variations on the above 2 examples.  See the files:
+
+lib/mp4av/l16.cpp
+          mpeg3.cpp
+          rfcisma.cpp
+          rfc2250.cpp
+          rfc3119.cpp
+          rfc3016.cpp
+
+For more information and more ideas.

@@ -21,6 +21,7 @@
 
 #include <mp4av_common.h>
 
+//#define DEBUG_L16 1
 extern "C" bool L16Hinter (MP4FileHandle mp4file, 
 			   MP4TrackId trackid,
 			   uint16_t maxPayloadSize)
@@ -37,21 +38,25 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
   uint32_t bytes_this_hint;
   uint32_t sampleOffset;
 
+#ifdef DEBUG_L16
   printf("time scale %u\n", MP4GetTrackTimeScale(mp4file, trackid));
 
   printf("Track fixed sample %llu\n", MP4GetTrackFixedSampleDuration(mp4file, trackid));
+#endif
 
   numSamples = MP4GetTrackNumberOfSamples(mp4file, trackid);
 
   if (numSamples == 0) return false;
 
 
+#ifdef DEBUG_L16
   for (unsigned int ix = 1; ix < MIN(10, numSamples); ix++) {
     printf("sampleId %d, size %u duration %llu time %llu\n",
 	   ix, MP4GetSampleSize(mp4file, trackid, ix), 
 	   MP4GetSampleDuration(mp4file, trackid, ix),
 	   MP4GetSampleTime(mp4file, trackid, ix));
   }
+#endif
 
   audioType = MP4GetTrackAudioType(mp4file, trackid);
 
@@ -70,8 +75,10 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
   sampleSize /= sizeof(uint16_t);
   
   if ((sampleSize % duration) != 0) {
+#ifdef DEBUG_L16
     printf("Number of samples not correct - duration %llu sample %d\n", 
 	   duration, sampleSize);
+#endif
     return false;
   }
 
@@ -101,7 +108,9 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
 
   while (1) {
     if (bytes_this_hint == 0) {
+#ifdef DEBUG_L16
       printf("Adding hint/packet\n");
+#endif
       MP4AddRtpHint(mp4file, hintTrackId);
       MP4AddRtpPacket(mp4file, hintTrackId, false); // marker bit 0
     }
@@ -113,12 +122,16 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
       bytes_this_hint += bytes_left_this_packet;
       sampleSize -= bytes_left_this_packet;
       sampleOffset += bytes_left_this_packet;
+#ifdef DEBUG_L16
       printf("Added sample with %d bytes\n", bytes_left_this_packet);
+#endif
     } else {
       MP4AddRtpSampleData(mp4file, hintTrackId, 
 			  sampleId, sampleOffset, sampleSize);
       bytes_this_hint += sampleSize;
+#ifdef DEBUG_L16
       printf("Added sample with %d bytes\n", sampleSize);
+#endif
       sampleSize = 0;
     }
 
@@ -126,7 +139,9 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
       // Write the hint
       // duration is 1/2 of the bytes written
       MP4WriteRtpHint(mp4file, hintTrackId, bytes_this_hint / (2 * chans));
+#ifdef DEBUG_L16
       printf("Finished packet - bytes %d\n", bytes_this_hint);
+#endif
       bytes_this_hint = 0;
     }
     if (sampleSize == 0) {
@@ -140,7 +155,9 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
 	}
       }
       sampleSize = MP4GetSampleSize(mp4file, trackid, sampleId);
+#ifdef DEBUG_L16
       printf("Next sample %d - size %d\n", sampleId, sampleSize);
+#endif
       sampleOffset = 0;
     }
   }

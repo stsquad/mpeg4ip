@@ -67,6 +67,10 @@ extern "C" bool MP4AV_Rfc2250Hinter(
 
 	u_int8_t payloadNumber = 0; // use dynamic payload number
 
+	if (MP4GetTrackTimeScale(mp4File, mediaTrackId) == 90000) {
+	  payloadNumber = 14;
+	}
+	
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
 		"MPA", &payloadNumber, 0);
 
