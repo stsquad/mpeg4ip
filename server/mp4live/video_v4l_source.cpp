@@ -371,11 +371,12 @@ void CV4LVideoSource::ReleaseDevice()
 	
 void CV4LVideoSource::SetVideoAudioMute(bool mute)
 {
-	if (!m_pConfig->m_videoCapabilities
-	  || !m_pConfig->m_videoCapabilities->m_hasAudio) {
-		return;
-	}
+  if (!m_pConfig->m_videoCapabilities) return;
 
+  CVideoCapabilities *vc = (CVideoCapabilities *)m_pConfig->m_videoCapabilities;
+  if ( !vc->m_hasAudio) {
+    return;
+  }
 	int rc;
 	struct video_audio videoAudio;
 
@@ -721,3 +722,33 @@ bool CVideoCapabilities::ProbeDevice()
 	return true;
 }
 
+static const char *signals[] = {
+  "PAL", "NTSC", "SECAM",
+};
+void CVideoCapabilities::Display (CLiveConfig *pConfig,
+				  char *msg, 
+				  uint32_t max_len)
+{
+  uint32_t port = pConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
+
+  if (m_inputHasTuners[port] == false) {
+    snprintf(msg, max_len, 
+	     "%s, %ux%u, %s, %s",
+	     pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME),
+	     pConfig->m_videoWidth,
+	     pConfig->m_videoHeight,
+	     signals[pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL)],
+	     m_inputNames[port]);
+  } else {
+    snprintf(msg, max_len, 
+	     "%s, %ux%u, %s, %s, %s, channel %s",
+	     pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME),
+	     pConfig->m_videoWidth,
+	     pConfig->m_videoHeight,
+	     signals[pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL)],
+	     m_inputNames[port],
+	     chanlists[pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX)].name,
+	     chanlists[pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX)].list[pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX)].name
+	     );
+  }
+}

@@ -102,8 +102,8 @@ void CLiveConfig::UpdateVideo()
 
 void CLiveConfig::CalculateVideoFrameSize()
 {
-  m_videoHeight = GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
-  m_videoWidth = GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+  m_videoHeight = GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+  m_videoWidth = GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
   m_ySize = m_videoHeight * m_videoWidth;
   m_uvSize = m_ySize / 4;
   m_yuvSize = (m_ySize * 3) / 2;

@@ -247,7 +247,6 @@ public:
 	  config_index_t numVariables, 
 	  const char* defaultFileName) {
 	  uint32_t size;
-		m_fileName = NULL;
 		m_debug = false;
 		m_numVariables = numVariables;
 		size = sizeof(SConfigVariable) * numVariables;
@@ -255,7 +254,7 @@ public:
 		  (SConfigVariable*)malloc(size);
 
 		memcpy(m_variables, variables, size);
-		m_defaultFileName = defaultFileName == NULL ? NULL : 
+		m_fileName = defaultFileName == NULL ? NULL : 
 		  strdup(defaultFileName);
 		SetToDefaults();
 		m_unknown_head = NULL;
@@ -275,7 +274,6 @@ public:
 		  free(ptr);
 		  ptr = m_unknown_head;
 		}
-		CHECK_AND_FREE(m_defaultFileName);
 	}
 
 	void InitializeIndexes(void) {
@@ -296,13 +294,7 @@ public:
 	  SetToDefaults(start);
 	}
 
-	void SetDefaultFileName (const char *name) {
-	  CHECK_AND_FREE(m_defaultFileName);
-	  m_defaultFileName = strdup(name);
-	};
-
 	const char* GetFileName() {
-	  if (m_fileName == NULL) return m_defaultFileName;
 		return m_fileName;
 	}
 
@@ -510,13 +502,15 @@ public:
 	  m_variables[ix].FromAscii(arg);
 	};
 
-	bool ReadFromFile(const char* fileName) {
-	  if (fileName == NULL) 
+	bool ReadFile(const char* fileName = NULL) {
+	  if (fileName == NULL && m_fileName == NULL) 
 	    return false;
        
+	  if (fileName != NULL) {
 		CHECK_AND_FREE(m_fileName);
 		m_fileName = strdup(fileName);
-		FILE* pFile = fopen(fileName, "r");
+	  }
+		FILE* pFile = fopen(m_fileName, "r");
 		if (pFile == NULL) {
 			if (m_debug) {
 				fprintf(stderr, "couldn't open file %s\n", fileName);
@@ -531,12 +525,18 @@ public:
 		return true;
 	}
 
-	bool WriteToFile(const char* fileName, bool allValues = false) {
-		FILE* pFile = fopen(fileName, "w");
+	bool WriteToFile(const char* fileName = NULL, bool allValues = false) {
+		FILE* pFile;
 		config_index_t i;
 		SConfigVariable *var;
 		SUnknownConfigVariable *ptr;
-
+		if (fileName == NULL && m_fileName == NULL) {
+		  return false;
+		}
+		if (fileName == NULL) {
+		  fileName = m_fileName;
+		}
+		pFile = fopen(fileName, "w");
 		if (pFile == NULL) {
 			if (m_debug) {
 				fprintf(stderr, "couldn't open file %s\n", fileName);
@@ -558,12 +558,6 @@ public:
 		return true;
 	}
 
-	bool ReadDefaultFile(void) {
-		return ReadFromFile(m_defaultFileName);
-	}
-	bool WriteDefaultFile(void) {
-		return WriteToFile(m_defaultFileName);
-	}
 
 	void SetDebug(bool debug = true) {
 		m_debug = debug;
@@ -629,9 +623,8 @@ protected:
 protected:
 	SConfigVariable*	m_variables;
 	config_index_t		m_numVariables;
-	const char*			m_defaultFileName;
-	bool 				m_debug;
-	char*				m_fileName;
+	bool 			m_debug;
+	const char*		m_fileName;
 	SUnknownConfigVariable *m_unknown_head;
 };
 
@@ -643,7 +636,7 @@ protected:
 // defined before the .h file.  Note - if you're already including mp4live.h, 
 // you need to #define the DECLARE_CONFIG_VARIABLES after the include.
 //
-// Note - you want to add the config variables BEFORE the ReadFromFile
+// Note - you want to add the config variables BEFORE the ReadFile
 // call
 
 #ifdef _WIN32

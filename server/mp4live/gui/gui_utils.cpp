@@ -477,7 +477,8 @@ static void on_filename_selected (GtkDialog *filesel,
     gtk_entry_set_text(GTK_ENTRY(fileentry), name);
     GtkSignalFunc okfunc = (GtkSignalFunc)data;
     gtk_widget_show(fileentry);
-    (okfunc)();
+    if (okfunc != NULL) 
+      (okfunc)();
   }
   gtk_widget_destroy(GTK_WIDGET(filesel));
 }

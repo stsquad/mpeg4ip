@@ -176,7 +176,8 @@ static int parse_vovod (xvid_codec_t *xvid,
   return look_and_parse_vol(xvid, bufptr, len);
 }
 
-static codec_data_t *xvid_create (const char *compressor, 
+static codec_data_t *xvid_create (const char *stream_type,
+				  const char *compressor, 
 				  int type, 
 				  int profile,
 				  format_list_t *media_fmt,
@@ -369,6 +370,7 @@ static const char *xvid_compressors[] = {
 };
 
 static int xvid_codec_check (lib_message_func_t message,
+			     const char *stream_type,
 			     const char *compressor,
 			     int type,
 			     int profile,
@@ -379,8 +381,9 @@ static int xvid_codec_check (lib_message_func_t message,
 {
   int retval;
   retval = 3;
-  if (compressor != NULL && 
-      (strcasecmp(compressor, "MP4 FILE") == 0)) {
+  if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0 &&
+      (strcasecmp(compressor, "mp4v") == 0 ||
+       strcasecmp(compressor, "encv") == 0)) {
     if ((type == MP4_MPEG4_VIDEO_TYPE) &&
 	((profile >= MPEG4_SP_L1 && profile <= MPEG4_SP_L3) ||
 	 (profile == MPEG4_SP_L0))) {
@@ -388,7 +391,8 @@ static int xvid_codec_check (lib_message_func_t message,
     }
     return -1;
   }
-  if (fptr != NULL) {
+  if (strcasecmp(stream_type, STREAM_TYPE_RTP) == 0 &&
+      fptr != NULL) {
     // find format. If matches, call parse_fmtp_for_mpeg4, look at
     // profile level.
     if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {

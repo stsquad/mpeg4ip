@@ -59,25 +59,31 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 	catch (MP4Error* e) {
 		delete e;
 	}
-	const char *audio_media_data_name, *video_media_data_name;
+	if (audioTrackId == MP4_INVALID_TRACK_ID &&
+	    videoTrackId == MP4_INVALID_TRACK_ID) return;
 
-	audio_media_data_name = MP4GetTrackMediaDataName(this, audioTrackId);
-	if (!(ATOMID(audio_media_data_name) == ATOMID("mp4a") ||
-	      ATOMID(audio_media_data_name) == ATOMID("enca"))) {
-	  VERBOSE_ERROR(m_verbosity,
-			printf("MakeIsmaCompliant:can't make ISMA compliant when file contains an %s track\n", audio_media_data_name);
-			);
-	  return;
+	const char *audio_media_data_name, *video_media_data_name;
+	if (audioTrackId != MP4_INVALID_TRACK_ID) {
+	  audio_media_data_name = MP4GetTrackMediaDataName(this, audioTrackId);
+	  if (!(ATOMID(audio_media_data_name) == ATOMID("mp4a") ||
+		ATOMID(audio_media_data_name) == ATOMID("enca"))) {
+	    VERBOSE_ERROR(m_verbosity,
+			  printf("MakeIsmaCompliant:can't make ISMA compliant when file contains an %s track\n", audio_media_data_name);
+			  );
+	    return;
+	  }
 	}
 	//
 	// Note - might have to check for avc1 here...
-	video_media_data_name = MP4GetTrackMediaDataName(this, videoTrackId);
-	if (!(ATOMID(video_media_data_name) == ATOMID("mp4v") ||
-	      ATOMID(video_media_data_name) == ATOMID("encv"))) {
-	  VERBOSE_ERROR(m_verbosity,
-			printf("MakeIsmaCompliant:can't make ISMA compliant when file contains an %s track\n", video_media_data_name);
-			);
-	  return;
+	if (videoTrackId != MP4_INVALID_TRACK_ID) {
+	  video_media_data_name = MP4GetTrackMediaDataName(this, videoTrackId);
+	  if (!(ATOMID(video_media_data_name) == ATOMID("mp4v") ||
+		ATOMID(video_media_data_name) == ATOMID("encv"))) {
+	    VERBOSE_ERROR(m_verbosity,
+			  printf("MakeIsmaCompliant:can't make ISMA compliant when file contains an %s track\n", video_media_data_name);
+			  );
+	    return;
+	  }
 	}
 
 	m_useIsma = true;

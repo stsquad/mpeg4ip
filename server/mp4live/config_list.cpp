@@ -110,7 +110,10 @@ bool CConfigList::CreateConfig (const char *proname)
     error_message("can't set config name %s", proname);
     return false;
   }
-  m_config_count++;
+  if (m_config_list->IsValid()) {
+    m_config_count++;
+    m_config_list->Update();
+  }
   return true;
 }
 
@@ -119,7 +122,7 @@ void CConfigList::AddEntryToList(CConfigEntry *e)
   char fname[PATH_MAX];
 
   CreateFileName(e->GetName(), fname);
-  e->SetDefaultFileName(fname);
+  e->SetFileName(fname);
   e->SetNext(m_config_list);
   m_config_list = e;
   m_config_count++;

@@ -104,16 +104,11 @@
 #define FILE_MP4_APPEND 0
 #define FILE_MP4_CREATE_NEW 2
 
+
+
 // forward declarations
-class CVideoCapabilities;
-class CAudioCapabilities;
+class CCapabilities;
 class CLiveConfig;
-#ifdef ADD_RTP_SOURCE
-class CRTPVideoCapabilities;
-#endif
-#ifdef ADD_DVB_SOURCE
-class CDVBVideoCapabilities;
-#endif
 
 // some configuration utility routines
 
@@ -459,12 +454,12 @@ public:
 	bool		m_appAutomatic;
 
 	// derived, shared video configuration
-	CVideoCapabilities* m_videoCapabilities;
+	CCapabilities* m_videoCapabilities;
 #ifdef ADD_RTP_SOURCE
-	CRTPVideoCapabilities *m_RTPvideoCapabilities;
+	CCapabilities *m_RTPvideoCapabilities;
 #endif
 #ifdef ADD_DVB_SOURCE
-	CDVBVideoCapabilities *m_DVBvideoCapabilities;
+	CCapabilities *m_DVBvideoCapabilities;
 #endif
 	bool		m_videoEncode;
 	u_int32_t	m_videoPreviewWindowId;
@@ -481,7 +476,7 @@ public:
 
 	u_int8_t        m_videoMpeg4ProfileId;
 	// derived, shared audio configuration
-	CAudioCapabilities* m_audioCapabilities;
+	CCapabilities* m_audioCapabilities;
 	bool		m_audioEncode;
 
 	// derived, shared file configuration
@@ -489,6 +484,35 @@ public:
 	
 	//Parent Config Pointer
 	CLiveConfig* m_parentConfig;
+};
+
+class CCapabilities
+{
+ public:
+  CCapabilities (const char *deviceName) {
+    m_deviceName = strdup(deviceName);
+    m_canOpen = false;
+  };
+
+  virtual ~CCapabilities() {
+    CHECK_AND_FREE(m_deviceName);
+  };
+
+  virtual bool IsValid() {
+    return m_canOpen;
+  };
+  
+  virtual void Display(CLiveConfig *pConfig,
+		       char *msg, 
+		       uint32_t max_len) = 0;
+  virtual u_int32_t CheckSampleRate(u_int32_t rate) {
+    return rate;
+  };
+
+  const char *m_deviceName;
+  bool m_canOpen;
+ protected:
+  virtual bool ProbeDevice(void) = 0;
 };
 
 #endif /* __LIVE_CONFG_H__ */

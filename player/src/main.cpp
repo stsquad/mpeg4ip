@@ -324,7 +324,7 @@ int main (int argc, char **argv)
     strcat(buffer, "/.gmp4player_rc");
   }
   
-  config.SetDefaultFileName(buffer);
+  config.SetFileName(buffer);
   initialize_plugins(&config);
   config.InitializeIndexes();
   opterr = 0;
@@ -362,7 +362,7 @@ int main (int argc, char **argv)
     }
   }
 
-  config.ReadDefaultFile();
+  config.ReadFile();
   if (have_unknown_opts) {
     /*
      * Create an struct option that allows all the loaded configuration

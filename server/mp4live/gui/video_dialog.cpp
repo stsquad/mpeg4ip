@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -31,10 +31,10 @@
 #endif
 #include "support.h"
 // source defines
+
 GtkWidget *VideoSourceDialog;
 static const char** inputNames = NULL;
 static u_int8_t inputNumber = 0;	// how many inputs total
-static char* source_name = NULL;
 
 static CVideoCapabilities* pVideoCaps;
 static bool source_modified;
@@ -61,56 +61,98 @@ static const char *filterNames[] = {
   VIDEO_FILTER_NONE, VIDEO_FILTER_DECIMATE, VIDEO_FILTER_DEINTERLACE,
 };
 
+static bool ValidateAndSave(void)
+{
+  GtkWidget *wid;
+
+  // if previewing, stop video source
+  AVFlow->StopVideoPreview();
+
+  wid = lookup_widget(VideoSourceDialog, "VideoSourceFilter");
+  
+  
+  MyConfig->SetStringValue(CONFIG_VIDEO_FILTER, 
+			   gtk_option_menu_get_history(GTK_OPTION_MENU(wid)) == 0 ?
+			   VIDEO_FILTER_NONE : VIDEO_FILTER_DECIMATE);
+  // copy new values to config
+  wid = lookup_widget(VideoSourceDialog, "VideoSourceFile");
+  const char *source_name = gtk_entry_get_text(GTK_ENTRY(wid));
+  if (strcmp(source_name, 
+	     MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME)) != 0) {
+    MyConfig->SetStringValue(CONFIG_VIDEO_SOURCE_TYPE,
+			     source_type);
+    
+    MyConfig->SetStringValue(CONFIG_VIDEO_SOURCE_NAME,
+			     gtk_entry_get_text(GTK_ENTRY(wid)));
 
 #if 0
-static GtkWidget *dialog = NULL;
-static u_int8_t channelListIndex;
-static const char* signalNames[] = {
-	"PAL", "NTSC", "SECAM"
-};
-
-static GtkWidget *source_combo;
-static GtkWidget *source_entry;
-static GtkWidget *source_list;
-static GtkWidget *browse_button;
-static bool default_file_audio_dialog = false;
-static int32_t default_file_audio_source = -1;
-static GtkWidget *input_label;
-static GtkWidget *input_menu;
-static GtkWidget *signal_label;
-static GtkWidget *signal_menu;
-static GSList* signal_menu_items;
-static GtkWidget *channel_list_label;
-static GtkWidget *channel_list_menu;
-static GtkWidget *channel_label;
-static GtkWidget *channel_combo;
-static GtkWidget *track_label;
-static GtkWidget *track_menu;
-static GtkWidget *encoder_menu;
-static GtkWidget *size_menu;
-static GtkWidget *aspect_menu;
-static GtkWidget *filter_menu;
-static GtkObject *frame_rate_ntsc_adjustment;
-static GtkObject *frame_rate_pal_adjustment;
-static GtkWidget *frame_rate_spinner;
-static GtkWidget *bit_rate_spinner;
-
-
-static u_int8_t signalIndex;
-
-
-static u_int8_t channelIndex;
-
-static u_int32_t trackIndex;
-static u_int32_t trackNumber;	// how many tracks total
-static u_int32_t* trackValues = NULL;
-
-static uint32_t encoderIndex;
-
-static u_int8_t aspectIndex;
-
-static u_int8_t filterIndex;
+    MyConfig->UpdateFileHistory(
+				gtk_entry_get_text(GTK_ENTRY(source_entry)));
 #endif
+
+    if (MyConfig->m_videoCapabilities != pVideoCaps) {
+      delete MyConfig->m_videoCapabilities;
+      MyConfig->m_videoCapabilities = pVideoCaps;
+      pVideoCaps = NULL;
+    }
+  
+#if 0
+    if (strcasecmp(source_type, VIDEO_SOURCE_V4L) 
+	&& default_file_audio_source >= 0) {
+		MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_TYPE,
+			source_type);
+		MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_NAME,
+			gtk_entry_get_text(GTK_ENTRY(source_entry)));
+		MyConfig->SetIntegerValue(CONFIG_AUDIO_SOURCE_TRACK,
+			default_file_audio_source);
+	}
+#endif
+  }
+
+    wid = lookup_widget(VideoSourceDialog, "VideoSourcePort");
+    MyConfig->SetIntegerValue(CONFIG_VIDEO_INPUT,
+			      gtk_option_menu_get_history(GTK_OPTION_MENU(wid)));
+
+    wid = lookup_widget(VideoSourceDialog, "VideoSourceSignal");
+    MyConfig->SetIntegerValue(CONFIG_VIDEO_SIGNAL,
+			      gtk_option_menu_get_history(GTK_OPTION_MENU(wid)));
+    wid = lookup_widget(VideoSourceDialog, "VideoSourceChannelList");
+    uint channelListIndex = 
+      gtk_option_menu_get_history(GTK_OPTION_MENU(wid));
+    MyConfig->SetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX,
+			      channelListIndex);
+    // extract channel index out of combo (not so simple)
+    GtkWidget* entry = lookup_widget(VideoSourceDialog, "VideoSourceChannelEntry");
+    const char* channelName = gtk_entry_get_text(GTK_ENTRY(entry));
+    uint channelIndex = MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX);
+    struct CHANLISTS* pChannelList = chanlists;
+    for (uint i = 0; i < pChannelList[channelListIndex].count; i++) {
+      if (!strcmp(channelName, 
+		  pChannelList[channelListIndex].list[i].name)) {
+	channelIndex = i;
+	break;
+      }
+    }
+    MyConfig->SetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX,
+			      channelIndex);
+
+#if 0
+    MyConfig->SetIntegerValue(CONFIG_VIDEO_SOURCE_TRACK,
+			      trackValues ? trackValues[trackIndex] : 0);
+#endif
+
+
+    MyConfig->Update();
+
+    // restart video source
+    if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+      AVFlow->StartVideoPreview();
+    }
+
+    MainWindowDisplaySources();
+    return true;
+}
+
 // forward declarations
 static void SetAvailableSignals(void)
 {
@@ -288,6 +330,8 @@ static void SourceV4LDevice()
       ShowMessage("Change Video Source",
 		  "Specified video source doesn't support capture");
     }
+    gtk_entry_set_text(GTK_ENTRY(temp), 
+		       MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
     delete pNewVideoCaps;
     return;
   }
@@ -324,65 +368,50 @@ static void ChangeSource()
 {
   GtkWidget *wid = lookup_widget(VideoSourceDialog, "VideoSourceFile");
 
-	const char* new_source_name =
-		gtk_entry_get_text(GTK_ENTRY(wid));
+  const char* new_source_name =
+    gtk_entry_get_text(GTK_ENTRY(wid));
 
-	if (!strcmp(new_source_name, source_name)) {
-		source_modified = false;
-		return;
+  if (strcmp(new_source_name, 
+	     MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME)) == 0) {
+    return;
+  }
+
+      //	default_file_audio_source = -1;
+
+      // decide what type of source we have
+      if (SourceIsDevice()) {
+	source_type = VIDEO_SOURCE_V4L;
+	
+	SourceV4LDevice();
+      } else {
+	if (pVideoCaps != MyConfig->m_videoCapabilities) {
+	  delete pVideoCaps;
 	}
-
-	free(source_name);
-	source_name = strdup(new_source_name);
-
-	//	default_file_audio_source = -1;
-
-	// decide what type of source we have
-	if (SourceIsDevice()) {
-		source_type = VIDEO_SOURCE_V4L;
-
-		SourceV4LDevice();
+	pVideoCaps = NULL;
+	
+	if (IsUrl(new_source_name)) {
+	  source_type = URL_SOURCE;
 	} else {
-		if (pVideoCaps != MyConfig->m_videoCapabilities) {
-			delete pVideoCaps;
-		}
-		pVideoCaps = NULL;
-
-		if (IsUrl(source_name)) {
-			source_type = URL_SOURCE;
-		} else {
-			if (access(source_name, R_OK) != 0) {
-				ShowMessage("Change Video Source",
-					"Specified video source can't be opened, check name");
-			}
-			source_type = FILE_SOURCE;
-		}
-
-#if 0
-		if (!default_file_audio_dialog
-		  && FileDefaultAudio(source_name) >= 0) {
-			YesOrNo(
-				"Change Video Source",
-				"Do you want to use this for the audio source also?",
-				true,
-				GTK_SIGNAL_FUNC(on_yes_default_file_audio_source),
-				GTK_SIGNAL_FUNC(on_no_default_file_audio_source));
-		}
-#endif
+	  if (access(new_source_name, R_OK) != 0) {
+	    ShowMessage("Change Video Source",
+			"Specified video source can't be opened, check name");
+	  }
+	  source_type = FILE_SOURCE;
 	}
+	
 #if 0
-	track_menu = CreateTrackMenu(
-		track_menu,
-		'V',
-		source_name,
-		&trackIndex,
-		&trackNumber,
-		&trackValues);
+	if (!default_file_audio_dialog
+	    && FileDefaultAudio(source_name) >= 0) {
+	  YesOrNo(
+		  "Change Video Source",
+		  "Do you want to use this for the audio source also?",
+		  true,
+		  GTK_SIGNAL_FUNC(on_yes_default_file_audio_source),
+		  GTK_SIGNAL_FUNC(on_no_default_file_audio_source));
+	}
 #endif
+      }
 
-	//ShowSourceSpecificSettings();
-
-	source_modified = false;
 }
 static void on_source_entry_changed (GtkWidget *widget, gpointer *data)
 {
@@ -404,29 +433,29 @@ static void on_source_browse_button (GtkWidget *widget, gpointer *data)
 }
 
 
-static void CreateChannelCombo()
+static void CreateChannelCombo(uint list_index, uint chan_index)
 {
-#if 0
-  struct CHANLISTS* pChannelList = chanlists;
+  GList *VideoSourceChannel_items = NULL;
 
-	GList* list = NULL;
-	for (int i = 0; i < pChannelList[channelListIndex].count; i++) {
-		list = g_list_append(list, 
-			pChannelList[channelListIndex].list[i].name);
-	}
+  if (chanlists[list_index].count <= chan_index) {
+    chan_index = 0;
+  }
+  for (uint ix = 0; ix < chanlists[list_index].count; ix++) {
+    VideoSourceChannel_items = 
+      g_list_append(VideoSourceChannel_items, 
+		    (gpointer)chanlists[list_index].list[ix].name);
+  }
 
-	gtk_combo_set_popdown_strings(GTK_COMBO(channel_combo), list);
-	// although we do want to limit the combo choices to the ones we provide
-	// this call results is some odd UI behaviors
-	// gtk_combo_set_value_in_list(GTK_COMBO(channel_combo), 1, 0);
-	gtk_combo_set_use_arrows_always(GTK_COMBO(channel_combo), 1);
+  GtkWidget *channel_combo = lookup_widget(VideoSourceDialog,
+					   "VideoSourceChannel");
+  gtk_combo_set_popdown_strings(GTK_COMBO(channel_combo), 
+				VideoSourceChannel_items);
+  g_list_free(VideoSourceChannel_items);
 
-	GtkWidget* entry = GTK_COMBO(channel_combo)->entry;
-	gtk_entry_set_text(GTK_ENTRY(entry), 
-		pChannelList[channelListIndex].list[channelIndex].name);
-
-	gtk_widget_show(channel_combo);
-#endif
+  GtkWidget *entry = lookup_widget(VideoSourceDialog, 
+				   "VideoSourceChannelEntry");
+  gtk_entry_set_text(GTK_ENTRY(entry), 
+		     chanlists[list_index].list[chan_index].name);
 }
 
 void ChangeChannelList(u_int8_t newIndex)
@@ -434,15 +463,18 @@ void ChangeChannelList(u_int8_t newIndex)
   //  channelListIndex = newIndex;
 
 	// recreate channel menu
-	CreateChannelCombo();
+  CreateChannelCombo(newIndex, 
+		     MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX));
 }
 
 static void on_channel_list_menu_activate(GtkWidget *widget, gpointer data)
 {
-	ChangeChannelList(GPOINTER_TO_UINT(data) & 0xFF);
+  uint channel_list_index = 
+    gtk_option_menu_get_history(GTK_OPTION_MENU(widget));
+  ChangeChannelList(channel_list_index);
 }
 
-const char* GetChannelListName(uint32_t index, void* pUserData)
+static const char* GetChannelListName(uint32_t index, void* pUserData)
 {
 	return ((struct CHANLISTS*)pUserData)[index].name;
 }
@@ -464,21 +496,15 @@ static void CreateChannelListMenu (void)
 		   on_index);
 }
 
-static void on_size_menu_activate(GtkWidget *widget, gpointer data)
-{
-	sizeIndex = GPOINTER_TO_UINT(data) & 0xFF;
-}
-
-static void
-on_FileOpenButton_clicked        (GtkButton       *button,
-				  gpointer         user_data)
-{
-}
 static void
 on_VideoSourceDialog_response          (GtkDialog       *dialog,
                                         gint             response_id,
                                         gpointer         user_data)
 {
+  if (response_id == GTK_RESPONSE_OK) {
+    if (ValidateAndSave() == false) 
+      return;
+  }
 
   gtk_widget_destroy(GTK_WIDGET(dialog));
 }
@@ -507,11 +533,13 @@ void create_VideoSourceDialog (void)
   GtkWidget *signalntsc;
   GtkWidget *signalsecam;
   GtkWidget *VideoSourceChannelList;
-  GtkWidget *VideoSourceChannel;
   GtkWidget *VideoSourceFilter;
   GtkWidget *menu11;
   GtkWidget *none1;
   GtkWidget *decimate1;
+  GtkWidget *VideoSourceChannel;
+  GtkWidget *VideoSourceChannelEntry;
+
   GtkWidget *dialog_action_area6;
   GtkWidget *VideoSourceCancel;
   GtkWidget *VideoSourceOkButton;
@@ -521,6 +549,9 @@ void create_VideoSourceDialog (void)
 
   VideoSourceDialog = gtk_dialog_new ();
   gtk_window_set_title (GTK_WINDOW (VideoSourceDialog), _("Video Source"));
+  gtk_window_set_modal(GTK_WINDOW(VideoSourceDialog), TRUE);
+  gtk_window_set_transient_for(GTK_WINDOW(VideoSourceDialog), 
+			       GTK_WINDOW(MainWindow));
 
   dialog_vbox7 = GTK_DIALOG (VideoSourceDialog)->vbox;
   gtk_widget_show (dialog_vbox7);
@@ -642,6 +673,7 @@ void create_VideoSourceDialog (void)
   gtk_widget_set_sensitive (VideoSourceChannelList, FALSE);
   gtk_tooltips_set_tip (tooltips, VideoSourceChannelList, _("Channel List for TV input"), NULL);
 
+
   VideoSourceChannel = gtk_option_menu_new ();
   gtk_widget_show (VideoSourceChannel);
   gtk_table_attach (GTK_TABLE (VideoSourceTable), VideoSourceChannel, 1, 2, 4, 5,
@@ -669,6 +701,23 @@ void create_VideoSourceDialog (void)
 
   gtk_option_menu_set_menu (GTK_OPTION_MENU (VideoSourceFilter), menu11);
 
+  VideoSourceChannel = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (VideoSourceChannel)->popwin),
+                     "GladeParentKey", VideoSourceChannel);
+  gtk_widget_show (VideoSourceChannel);
+  gtk_table_attach (GTK_TABLE (VideoSourceTable), VideoSourceChannel, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  //gtk_combo_set_value_in_list (GTK_COMBO (VideoSourceChannel), TRUE, TRUE);
+  //gtk_combo_set_use_arrows_always (GTK_COMBO (VideoSourceChannel), TRUE);
+
+  VideoSourceChannelEntry = GTK_COMBO (VideoSourceChannel)->entry;
+  gtk_widget_show (VideoSourceChannelEntry);
+  gtk_tooltips_set_tip (tooltips, VideoSourceChannelEntry, _("Channel number to tune"), NULL);
+  //  gtk_entry_set_text (GTK_ENTRY (VideoSourceChannelEntry), _("2"));
+
+
+
   dialog_action_area6 = GTK_DIALOG (VideoSourceDialog)->action_area;
   gtk_widget_show (dialog_action_area6);
   gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area6), GTK_BUTTONBOX_END);
@@ -683,10 +732,6 @@ void create_VideoSourceDialog (void)
   gtk_dialog_add_action_widget (GTK_DIALOG (VideoSourceDialog), VideoSourceOkButton, GTK_RESPONSE_OK);
   GTK_WIDGET_SET_FLAGS (VideoSourceOkButton, GTK_CAN_DEFAULT);
 
-  g_signal_connect((gpointer) VideoSourceBrowse, "clicked",
-                    G_CALLBACK(on_FileOpenButton_clicked),
-                    GINT_TO_POINTER(0));
-
   g_signal_connect ((gpointer) VideoSourceDialog, "response",
                     G_CALLBACK (on_VideoSourceDialog_response),
                     NULL);
@@ -700,6 +745,10 @@ void create_VideoSourceDialog (void)
   g_signal_connect((gpointer)VideoSourceBrowse, "clicked",
 		   G_CALLBACK(on_source_browse_button),
 		   NULL);
+  g_signal_connect((gpointer) VideoSourceChannelList, "changed",
+		   G_CALLBACK(on_channel_list_menu_activate),
+		   NULL);
+		   
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (VideoSourceDialog, VideoSourceDialog, "VideoSourceDialog");
   GLADE_HOOKUP_OBJECT_NO_REF (VideoSourceDialog, dialog_vbox7, "dialog_vbox7");
@@ -730,21 +779,27 @@ void create_VideoSourceDialog (void)
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, menu11, "menu11");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, none1, "none1");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, decimate1, "decimate1");
+  GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceChannel, "VideoSourceChannel");
+  GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceChannelEntry, "VideoSourceChannelEntry");
+
   GLADE_HOOKUP_OBJECT_NO_REF (VideoSourceDialog, dialog_action_area6, "dialog_action_area6");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceCancel, "VideoSourceCancel");
   GLADE_HOOKUP_OBJECT (VideoSourceDialog, VideoSourceOkButton, "VideoSourceOkButton");
   GLADE_HOOKUP_OBJECT_NO_REF (VideoSourceDialog, tooltips, "tooltips");
 
   //asdf
-
-  source_name = 
-    strdup(MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
-  gtk_entry_set_text(GTK_ENTRY(VideoSourceFile), source_name);
+  source_modified = false;
+  gtk_entry_set_text(GTK_ENTRY(VideoSourceFile),
+		     MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
   
-  pVideoCaps = MyConfig->m_videoCapabilities;
+  gtk_option_menu_set_history(GTK_OPTION_MENU(VideoSourceSignal), 
+			      MyConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL));
+  pVideoCaps = (CVideoCapabilities *)MyConfig->m_videoCapabilities;
   CreateInputMenu(pVideoCaps, MyConfig->GetIntegerValue(CONFIG_VIDEO_INPUT));
   source_type = MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
   CreateChannelListMenu();
+  CreateChannelCombo(MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX),
+		     MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX));
   gtk_widget_show(VideoSourceDialog);
 }
 
@@ -821,487 +876,6 @@ on_VideoProfileEncoder_changed         (GtkOptionMenu   *optionmenu,
 		 sizeHeightValues[sizeIndex]);
 }
 
-#if 0
-static void on_encoder_menu_activate (GtkWidget *widget, 
-				      gpointer data)
-{
-  encoderIndex = GPOINTER_TO_UINT(data) & 0xff;
-  CreateSizeMenu(sizeWidthValues[sizeIndex]);
-}
-
-void ChangeSignal(u_int8_t newIndex)
-{
-  signalIndex = newIndex;
-
-  ChangeChannelList(0);
-  
-}
-
-static void on_signal_menu_activate(GtkWidget *widget, gpointer data)
-{
-	ChangeSignal(GPOINTER_TO_UINT(data) & 0xFF);
-}
-
-
-static void on_aspect_menu_activate(GtkWidget *widget, gpointer data)
-{
-	aspectIndex = GPOINTER_TO_UINT(data) & 0xFF;
-}
-
-static void on_filter_menu_activate(GtkWidget *widget, gpointer data)
-{
-	filterIndex = GPOINTER_TO_UINT(data) & 0xFF;
-}
-
-static bool ValidateAndSave(void)
-{
-  bool resizewindow;
-	// if source has been modified
-	if (source_modified) {
-		// validate it
-		ChangeSource();
-
-		// can't validate
-		if (source_modified) {
-			return false;
-		}
-	}
-
-	if (strcasecmp(filterNames[filterIndex], VIDEO_FILTER_DECIMATE) == 0) {
-	  uint32_t max_w, max_h;
-	  if (signalIndex == VIDEO_SIGNAL_NTSC) {
-	    max_w = 720 / 2;
-	    max_h = 480 / 2;
-	  } else {
-	    max_w = 768 / 2;
-	    max_h = 576 / 2;
-	  }
-	  if (sizeWidthValues[sizeIndex] > max_w ||
-	      sizeHeightValues[sizeIndex] > max_h) {
-	    ShowMessage("Error", "Cannot use decimate filter - video size too big\nMax size is 360x240 for NTSC\n384x288 for PAL/SECAM", true);
-	    return false;
-	  }
-	}
-
-	// if previewing, stop video source
-	AVFlow->StopVideoPreview();
-
-	MyConfig->SetStringValue(CONFIG_VIDEO_FILTER, 
-				 filterNames[filterIndex]);
-	// copy new values to config
-
-	MyConfig->SetStringValue(CONFIG_VIDEO_SOURCE_TYPE,
-		source_type);
-
-	MyConfig->SetStringValue(CONFIG_VIDEO_SOURCE_NAME,
-		gtk_entry_get_text(GTK_ENTRY(source_entry)));
-
-	MyConfig->UpdateFileHistory(
-		gtk_entry_get_text(GTK_ENTRY(source_entry)));
-
-	if (MyConfig->m_videoCapabilities != pVideoCaps) {
-		delete MyConfig->m_videoCapabilities;
-		MyConfig->m_videoCapabilities = pVideoCaps;
-		pVideoCaps = NULL;
-	}
-
-	if (strcasecmp(source_type, VIDEO_SOURCE_V4L) 
-	  && default_file_audio_source >= 0) {
-		MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_TYPE,
-			source_type);
-		MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_NAME,
-			gtk_entry_get_text(GTK_ENTRY(source_entry)));
-		MyConfig->SetIntegerValue(CONFIG_AUDIO_SOURCE_TRACK,
-			default_file_audio_source);
-	}
-
-	MyConfig->SetIntegerValue(CONFIG_VIDEO_INPUT,
-		inputIndex);
-
-	MyConfig->SetIntegerValue(CONFIG_VIDEO_SIGNAL,
-		signalIndex);
-
-	MyConfig->SetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX,
-		channelListIndex);
-
-	// extract channel index out of combo (not so simple)
-	GtkWidget* entry = GTK_COMBO(channel_combo)->entry;
-	const char* channelName = gtk_entry_get_text(GTK_ENTRY(entry));
-	struct CHANLISTS* pChannelList = chanlists;
-	for (int i = 0; i < pChannelList[channelListIndex].count; i++) {
-		if (!strcmp(channelName, 
-		  pChannelList[channelListIndex].list[i].name)) {
-			channelIndex = i;
-			break;
-		}
-	}
-	MyConfig->SetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX,
-		channelIndex);
-
-	MyConfig->SetIntegerValue(CONFIG_VIDEO_SOURCE_TRACK,
-		trackValues ? trackValues[trackIndex] : 0);
-
-	MyConfig->SetStringValue(CONFIG_VIDEO_ENCODING, 
-				 video_encoder_table[encoderIndex].encoding);
-	MyConfig->SetStringValue(CONFIG_VIDEO_ENCODER, 
-				 video_encoder_table[encoderIndex].encoder);
-
-	resizewindow = sizeWidthValues[sizeIndex] != MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
-	resizewindow |= sizeHeightValues[sizeIndex] != MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
-	resizewindow |= aspectValues[aspectIndex] != MyConfig->GetFloatValue(CONFIG_VIDEO_ASPECT_RATIO);
-	
-	MyConfig->SetIntegerValue(CONFIG_VIDEO_RAW_WIDTH,
-		sizeWidthValues[sizeIndex]);
-
-	MyConfig->SetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT,
-		sizeHeightValues[sizeIndex]);
-
-	MyConfig->SetFloatValue(CONFIG_VIDEO_ASPECT_RATIO,
-		aspectValues[aspectIndex]);
-
-	MyConfig->SetFloatValue(CONFIG_VIDEO_FRAME_RATE,
-		gtk_spin_button_get_value_as_float(
-			GTK_SPIN_BUTTON(frame_rate_spinner)));
-
-	MyConfig->SetIntegerValue(CONFIG_VIDEO_BIT_RATE,
-		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(bit_rate_spinner)));
-
-
-	// now put the new configuration into effect
-
-	MyConfig->Update();
-
-	if (resizewindow) {
-	  NewVideoWindow();
-	}
-
-	// restart video source
-	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		AVFlow->StartVideoPreview();
-	}
-
-	// refresh display of settings in main window
-	DisplayVideoSettings();  
-	DisplayStatusSettings();  
-
-	return true;
-}
-
-static void on_ok_button (GtkWidget *widget, gpointer *data)
-{
-	// check and save values
-	if (!ValidateAndSave()) {
-		return;
-	}
-    on_destroy_dialog(NULL, NULL);
-}
-
-static void on_cancel_button (GtkWidget *widget, gpointer *data)
-{
-	on_destroy_dialog(NULL, NULL);
-}
-
-void CreateVideoDialog (void) 
-{
-	GtkWidget* hbox;
-	GtkWidget* vbox;
-	GtkWidget* hbox2;
-	GtkWidget* label;
-	GtkWidget* button;
-	GtkObject* adjustment;
-	uint8_t i;
-
-	SDL_LockMutex(dialog_mutex);
-	if (dialog != NULL) {
-	  SDL_UnlockMutex(dialog_mutex);
-	  return;
-	}
-	SDL_UnlockMutex(dialog_mutex);
-	pVideoCaps = MyConfig->m_videoCapabilities;
-	default_file_audio_source = -1;
-
-	dialog = gtk_dialog_new();
-	gtk_signal_connect(GTK_OBJECT(dialog),
-		"destroy",
-		GTK_SIGNAL_FUNC(on_destroy_dialog),
-		&dialog);
-
-	gtk_window_set_title(GTK_WINDOW(dialog), "Video Settings");
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-#ifndef HAVE_GTK_2_0
-	gtk_container_set_resize_mode(GTK_CONTAINER(dialog), GTK_RESIZE_IMMEDIATE);
-#endif
-
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox,
-		FALSE, FALSE, 5);
-
-	vbox = gtk_vbox_new(TRUE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
-
-	label = gtk_label_new(" Source:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-	gtk_widget_show(label);
-
-	input_label = gtk_label_new("   Port:");
-	gtk_misc_set_alignment(GTK_MISC(input_label), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox), input_label, FALSE, FALSE, 0);
-
-	signal_label = gtk_label_new("   Signal:");
-	gtk_misc_set_alignment(GTK_MISC(signal_label), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox), signal_label, FALSE, FALSE, 0);
-
-	channel_list_label = gtk_label_new("   Channel List:");
-	gtk_misc_set_alignment(GTK_MISC(channel_list_label), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox), channel_list_label, FALSE, FALSE, 0);
-
-	channel_label = gtk_label_new("   Channel:");
-	gtk_misc_set_alignment(GTK_MISC(channel_label), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox), channel_label, FALSE, FALSE, 0);
-
-	track_label = gtk_label_new("   Track:");
-	gtk_misc_set_alignment(GTK_MISC(track_label), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox), track_label, FALSE, FALSE, 0);
-
-	label = gtk_label_new(" Filter:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-	
-	label = gtk_label_new(" Output:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	label = gtk_label_new("   Encoder:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	label = gtk_label_new("   Size:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	label = gtk_label_new("   Aspect Ratio:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	label = gtk_label_new("   Frame Rate (fps):");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	label = gtk_label_new("   Bit Rate (kbps):");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-
-	vbox = gtk_vbox_new(TRUE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
-
-	hbox2 = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox2);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 0);
-
-	source_type = MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
-
-	// source entry
-	free(source_name);
-	source_name = 
-		strdup(MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
-
-	source_modified = false;
-
-	source_combo = CreateFileCombo(source_name);
-
-	source_entry = GTK_COMBO(source_combo)->entry;
-
-	source_list = GTK_COMBO(source_combo)->list;
-	gtk_signal_connect(GTK_OBJECT(source_list), "select_child",
-		GTK_SIGNAL_FUNC(on_source_list_changed), NULL);
-
-	SetEntryValidator(GTK_OBJECT(source_entry),
-		GTK_SIGNAL_FUNC(on_source_entry_changed), 
-		GTK_SIGNAL_FUNC(on_source_leave));
-
-	gtk_widget_show(source_combo);
-	gtk_box_pack_start(GTK_BOX(hbox2), source_combo, TRUE, TRUE, 0);
-
-	// browse button
-	browse_button = gtk_button_new_with_label(" Browse... ");
-	gtk_signal_connect(GTK_OBJECT(browse_button),
-		 "clicked",
-		 GTK_SIGNAL_FUNC(on_source_browse_button),
-		 NULL);
-	gtk_widget_show(browse_button);
-	gtk_box_pack_start(GTK_BOX(hbox2), browse_button, FALSE, FALSE, 5);
-
-	// N.B. because of the dependencies of 
-	// input, signal, channel list, channel, and sizes
-	// order of operations is important here
-
-	channelIndex = 
-		MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX);
-	channelListIndex = 
-		MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX);
-	signalIndex = 
-		MyConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL); 
-	inputIndex = 
-		MyConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
-
-	channel_combo = NULL;
-	channel_combo = gtk_combo_new();
-	CreateChannelCombo();
-
-	channel_list_menu = NULL;
-	CreateChannelListMenu();
-
-	track_menu = NULL;
-	track_menu = CreateTrackMenu(
-		track_menu,
-		'V',
-		gtk_entry_get_text(GTK_ENTRY(source_entry)),
-		&trackIndex,
-		&trackNumber,
-		&trackValues);
-
-	trackIndex = 0; 
-	for (i = 0; i < trackNumber; i++) {
-		if (MyConfig->GetIntegerValue(CONFIG_VIDEO_SOURCE_TRACK)
-		   == trackValues[i]) {
-			trackIndex = i;
-			break;
-		}
-	}
-
-	input_menu = NULL;
-	CreateInputMenu(pVideoCaps);
-	ChangeInput(inputIndex);
-
-	gtk_box_pack_start(GTK_BOX(vbox), input_menu, FALSE, FALSE, 0);
-
-	gtk_box_pack_start(GTK_BOX(vbox), signal_menu, FALSE, FALSE, 0);
-
-	gtk_box_pack_start(GTK_BOX(vbox), channel_list_menu, FALSE, FALSE, 0);
-
-	gtk_box_pack_start(GTK_BOX(vbox), channel_combo, FALSE, FALSE, 0);
-
-	gtk_box_pack_start(GTK_BOX(vbox), track_menu, FALSE, FALSE, 0);
-
-	filterIndex = 0; 
-	for (i = 0; i < sizeof(filterNames) / sizeof(*filterNames); i++) {
-	  if (strcasecmp(MyConfig->GetStringValue(CONFIG_VIDEO_FILTER),
-			 filterNames[i]) == 0) {
-	    filterIndex = i;
-	    break;
-	  }
-	}
-	filter_menu = CreateOptionMenu(NULL,
-				       filterNames, 
-				       sizeof(filterNames) / sizeof(*filterNames),
-				       filterIndex);
-
-	gtk_box_pack_start(GTK_BOX(vbox), filter_menu, FALSE, FALSE, 0);
-
-	// spacer
-	label = gtk_label_new(" ");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	encoderIndex = 0;
-	encoderNames = (const char **)malloc(video_encoder_table_size * sizeof(char *));
-	for (i = 0; i < video_encoder_table_size; i++) {
-	  if ((strcasecmp(MyConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
-			  video_encoder_table[i].encoding) == 0) &&
-	      (strcasecmp(MyConfig->GetStringValue(CONFIG_VIDEO_ENCODER), 
-			  video_encoder_table[i].encoder) == 0)) {
-	    encoderIndex = i;
-	  }
-	  encoderNames[i] = video_encoder_table[i].encoding_name;
-	}
-
-	encoder_menu = CreateOptionMenu(NULL, 
-					encoderNames,
-					video_encoder_table_size,
-					encoderIndex);
-	gtk_box_pack_start(GTK_BOX(vbox), encoder_menu, FALSE, FALSE, 0);
-	// size menu must be created after encoder index
-	sizeIndex = 0; 
-	size_menu = NULL;
-	CreateSizeMenu(MyConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH));
-	signal_menu = CreateOptionMenu(
-		NULL,
-		signalNames, 
-		sizeof(signalNames) / sizeof(char*),
-		signalIndex);
-
-	gtk_box_pack_start(GTK_BOX(vbox), size_menu, FALSE, FALSE, 0);
-
-	aspectIndex = 0; 
-	for (i = 0; i < sizeof(aspectValues) / sizeof(float); i++) {
-		if (MyConfig->GetFloatValue(CONFIG_VIDEO_ASPECT_RATIO)
-		  == aspectValues[i]) {
-			aspectIndex = i;
-			break;
-		}
-	}
-	aspect_menu = CreateOptionMenu(
-		NULL,
-		aspectNames, 
-		sizeof(aspectNames) / sizeof(char*),
-		aspectIndex);
-	gtk_box_pack_start(GTK_BOX(vbox), aspect_menu, FALSE, FALSE, 0);
-
-	frame_rate_pal_adjustment = gtk_adjustment_new(
-		MyConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE),
-		1, VIDEO_PAL_FRAME_RATE, 1, 0, 0);
-	gtk_object_ref(frame_rate_pal_adjustment);
-
-	frame_rate_ntsc_adjustment = gtk_adjustment_new(
-		MyConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE),
-		1, VIDEO_NTSC_FRAME_RATE, 1, 0, 0);
-	gtk_object_ref(frame_rate_ntsc_adjustment);
-
-	if (signalIndex == 1) {
-		frame_rate_spinner = gtk_spin_button_new(
-			GTK_ADJUSTMENT(frame_rate_ntsc_adjustment), 1, 2);
-	} else {
-		frame_rate_spinner = gtk_spin_button_new(
-			GTK_ADJUSTMENT(frame_rate_pal_adjustment), 1, 2);
-	}
-	gtk_widget_show(frame_rate_spinner);
-	gtk_box_pack_start(GTK_BOX(vbox), frame_rate_spinner, FALSE, FALSE, 0);
-
-	adjustment = gtk_adjustment_new(
-		MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE),
-		25, 4000, 50, 0, 0);
-	bit_rate_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 50, 0);
-	gtk_widget_show(bit_rate_spinner);
-	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_spinner, FALSE, FALSE, 0);
-
-	// Add standard buttons at bottom
-	button = AddButtonToDialog(dialog,
-		" OK ", 
-		GTK_SIGNAL_FUNC(on_ok_button));
-	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
-
-	AddButtonToDialog(dialog,
-		" Cancel ", 
-		GTK_SIGNAL_FUNC(on_cancel_button));
-
-	ShowSourceSpecificSettings();
-
-	gtk_widget_show(dialog);
-}
-#endif
 
 bool CreateNewProfile (GtkWidget *dialog,
 		       CVideoProfile *profile)
@@ -1365,7 +939,7 @@ on_VideoProfileDialog_response         (GtkWidget       *dialog,
       profile->SetStringValue(CFG_VIDEO_FILTER,
 			      filterNames[gtk_option_menu_get_history(GTK_OPTION_MENU(temp))]);
 
-      profile->WriteDefaultFile();
+      profile->WriteToFile();
     }
   } else {
     if (profile->GetName() == NULL) {
@@ -1420,6 +994,8 @@ void CreateVideoProfileDialog(CVideoProfile *profile)
   gtk_window_set_title(GTK_WINDOW(VideoProfileDialog), _("Video Profile"));
   gtk_window_set_modal(GTK_WINDOW(VideoProfileDialog), TRUE);
   gtk_window_set_resizable(GTK_WINDOW(VideoProfileDialog), FALSE);
+  gtk_window_set_transient_for(GTK_WINDOW(VideoProfileDialog), 
+			       GTK_WINDOW(MainWindow));
 
   dialog_vbox4 = GTK_DIALOG(VideoProfileDialog)->vbox;
   gtk_widget_show(dialog_vbox4);
@@ -1634,15 +1210,6 @@ void CreateVideoProfileDialog(CVideoProfile *profile)
   g_signal_connect((gpointer) VideoProfileEncoder, "changed",
                     G_CALLBACK(on_VideoProfileEncoder_changed),
                     NULL);
-#if 0
-  g_signal_connect((gpointer) no_filter, "activate",
-                    G_CALLBACK(on_no_filter_activate),
-                    NULL);
-  g_signal_connect((gpointer) interlace_filter1, "activate",
-                    G_CALLBACK(on_interlace_filter1_activate),
-                    NULL);
-#endif
-
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF(VideoProfileDialog, VideoProfileDialog, "VideoProfileDialog");
   GLADE_HOOKUP_OBJECT_NO_REF(VideoProfileDialog, dialog_vbox4, "dialog_vbox4");

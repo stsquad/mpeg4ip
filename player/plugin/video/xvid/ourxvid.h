@@ -68,7 +68,7 @@ codec_data_t *xvid_file_check(lib_message_func_t message,
 			      CConfigSet *pConfig);
 int xvid_file_next_frame(codec_data_t *your_data,
 			  uint8_t **buffer, 
-			 uint64_t *ts);
+			 frame_timestamp_t *ts);
 void xvid_file_used_for_frame(codec_data_t *your,uint32_t bytes);
 int xvid_file_seek_to(codec_data_t *you, uint64_t ts);
 int xvid_file_eof (codec_data_t *ifptr);

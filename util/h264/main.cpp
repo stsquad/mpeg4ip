@@ -317,6 +317,9 @@ static void h264_parse_sei (h264_decode_t *dec, CBitstream *bs)
   uint32_t payload_size;
   uint32_t read_val;
   const char *sei_type;
+  char *buffer = NULL;
+  uint32_t bufsize = 0;
+  bool is_printable;
 
   while (bs->bits_remain() >= 16) {
     payload_type = 0;
@@ -333,13 +336,29 @@ static void h264_parse_sei (h264_decode_t *dec, CBitstream *bs)
     sei_type = payload_type <= 18 ? sei[payload_type] : "unknown value";
     printf("   payload_type: %u %s\n", payload_type, sei_type);
     printf("   payload_size: %u", payload_size);
+    if (payload_size + 1 > bufsize) {
+      buffer = (char *)realloc(buffer, payload_size + 1);
+      bufsize = payload_size + 1;
+    }
+    uint ix = 0;
+    is_printable = true;
     while (payload_size > 0) {
       uint8_t bits = bs->GetBits(8);
+      if (isprint(bits)) {
+	buffer[ix++] = bits;
+      } else {
+	is_printable = false;
+      }
       printf(" 0x%x", bits);
       payload_size--;
     }
     printf("\n");
+    if (is_printable) {
+      buffer[ix] = '\0';
+      printf("                 %s", buffer);
+    }
   }
+  CHECK_AND_FREE(buffer);
 }
 
 uint32_t h264_find_next_start_code (uint8_t *pBuf, 

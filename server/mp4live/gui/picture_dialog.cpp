@@ -24,12 +24,6 @@
 #include "mp4live.h"
 #include "mp4live_gui.h"
 
-#ifdef HAVE_LINUX_VIDEODEV2_H
-#include "video_v4l2_source.h"
-#else
-#include "video_v4l_source.h"
-#endif
-
 
 static GtkWidget *dialog = NULL;
 
@@ -94,13 +88,6 @@ void CreatePictureDialog (void)
 	GtkWidget* button;
 	GtkObject* adjustment;
 
-	SDL_LockMutex(dialog_mutex);
-	if (dialog != NULL) {
-	  SDL_UnlockMutex(dialog_mutex);
-	  return;
-	}
-	SDL_UnlockMutex(dialog_mutex);
-
 	dialog = gtk_dialog_new();
 	gtk_signal_connect(GTK_OBJECT(dialog),
 		"destroy",
@@ -109,6 +96,8 @@ void CreatePictureDialog (void)
 
 	gtk_window_set_title(GTK_WINDOW(dialog), "Picture Settings");
 	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+	gtk_window_set_transient_for(GTK_WINDOW(dialog), 
+				     GTK_WINDOW(MainWindow));
 #ifndef HAVE_GTK_2_0
 	gtk_container_set_resize_mode(GTK_CONTAINER(dialog), GTK_RESIZE_IMMEDIATE);
 #endif

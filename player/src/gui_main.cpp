@@ -391,7 +391,7 @@ void delete_event (GtkWidget *widget, gpointer *data)
   if (config.get_config_string(CONFIG_LOG_FILE) != NULL) {
     close_log_file();
   }
-  config.WriteDefaultFile();
+  config.WriteToFile();
   close_plugins();
   gtk_main_quit();
 }
@@ -1375,7 +1375,7 @@ int main (int argc, char **argv)
   }
   
   initialize_plugins(&config);
-  config.SetDefaultFileName(buffer);
+  config.SetFileName(buffer);
   config.InitializeIndexes();
   opterr = 0;
   while (true) {
@@ -1410,7 +1410,7 @@ int main (int argc, char **argv)
   }
 
   command_mutex = SDL_CreateMutex();
-  config.ReadDefaultFile();
+  config.ReadFile();
 
   if (config.get_config_string(CONFIG_LOG_FILE) != NULL) {
     open_log_file(config.get_config_string(CONFIG_LOG_FILE));

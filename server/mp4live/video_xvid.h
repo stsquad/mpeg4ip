@@ -23,20 +23,21 @@
 #define __VIDEO_XVID_H__
 
 #include "video_encoder.h"
-
 #include <xvid.h>
 
 class CXvidVideoEncoder : public CVideoEncoder {
-public:
-	CXvidVideoEncoder();
+ public:
+	CXvidVideoEncoder(CVideoProfile *vp, 
+			  CVideoEncoder *next, 
+			  bool realTime = true);
 
 	MediaType GetFrameType(void) { return MPEG4VIDEOFRAME; };
 
-	bool Init(
-		CLiveConfig* pConfig, bool realTime = true);
+	bool Init(void);
 
+ protected:
 	bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
+		const u_int8_t* pY, const u_int8_t* pU, const u_int8_t* pV,
 		u_int32_t yStride, u_int32_t uvStride,
 		bool wantKeyFrame, Duration elapsed,
 		Timestamp srcFrameTimestamp);

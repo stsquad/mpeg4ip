@@ -69,28 +69,22 @@ class COSSAudioSource : public CMediaSource {
 };
 
 
-class CAudioCapabilities {
+class CAudioCapabilities : public CCapabilities {
  public:
-  CAudioCapabilities(const char* deviceName) {
-    m_deviceName = strdup(deviceName);
-    m_canOpen = false;
+  CAudioCapabilities(const char* deviceName) : 
+    CCapabilities(deviceName) {
     m_numSamplingRates = 0;
 
     ProbeDevice();
   }
 
   ~CAudioCapabilities() {
-    free(m_deviceName);
   }
 
-  inline bool IsValid() {
-    return m_canOpen;
-  }
-
+  void Display(CLiveConfig *pConfig, 
+	       char *msg, 
+	       uint32_t max_len);
  public:
-  char*		m_deviceName; 
-  bool		m_canOpen;
-
   // N.B. the rest of the fields are only valid 
   // if m_canOpen is true
 

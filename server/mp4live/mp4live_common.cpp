@@ -14,12 +14,7 @@ int ReadConfigFile (const char *configFileName,
   free(addr);
 
   try {
-    if (configFileName) {
-      pConfig->ReadFromFile(configFileName);
-    } else {
-      // read user config file if present
-      pConfig->ReadDefaultFile();
-    }
+    pConfig->ReadFile(configFileName);
 
     if (!pConfig->IsDefault(CONFIG_RTP_DEST_ADDRESS) &&
 	pConfig->IsDefault(CONFIG_RTP_AUDIO_DEST_ADDRESS)) {

@@ -311,7 +311,7 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
  */
 int xvid_file_next_frame (codec_data_t *your_data,
 			  uint8_t **buffer, 
-			  uint64_t *ts)
+			  frame_timestamp_t *ts)
 {
   xvid_codec_t *xvid;
   int next_hdr, value;
@@ -362,7 +362,8 @@ int xvid_file_next_frame (codec_data_t *your_data,
     value = xvid_find_header(xvid, 4);
   }
 
-  *ts = (xvid->m_frame_on * TO_U64(1000)) / 30; //mp4_hdr.fps;
+  ts->msec_timestamp = (xvid->m_frame_on * TO_U64(1000)) / 30;
+  ts->timestamp_is_pts = false;
   *buffer = &xvid->m_buffer[xvid->m_buffer_on];
   xvid->m_frame_on++;
   return xvid->m_buffer_size - xvid->m_buffer_on;

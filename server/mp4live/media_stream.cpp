@@ -83,11 +83,15 @@ void CMediaStream::Initialize (bool check_config_name)
 
     SetVideoProfile(GetStringValue(STREAM_VIDEO_PROFILE));
     if (m_pVideoProfile == NULL) {
-      error_message("Video profile \"%s\" could not be found in stream %s", 
-		    GetStringValue(STREAM_VIDEO_PROFILE),
-		    GetStringValue(STREAM_NAME));
-      m_valid = false;
-      return;
+      SetVideoProfile("default");
+      if (m_pVideoProfile == NULL) {
+	error_message("Video profile \"%s\" could not be found in stream %s", 
+		      GetStringValue(STREAM_VIDEO_PROFILE),
+		      GetStringValue(STREAM_NAME));
+	m_valid = false;
+	return;
+      } 
+      SetStringValue(STREAM_VIDEO_PROFILE, "default");
     }
       
   }
@@ -100,11 +104,15 @@ void CMediaStream::Initialize (bool check_config_name)
     }
     SetAudioProfile(GetStringValue(STREAM_AUDIO_PROFILE));
     if (m_pAudioProfile == NULL) {
-      error_message("Video profile \"%s\" could not be found in stream %s", 
-		    GetStringValue(STREAM_AUDIO_PROFILE),
-		    GetStringValue(STREAM_NAME));
-      m_valid = false;
-      return;
+      SetAudioProfile("default");
+      if (m_pAudioProfile == NULL) {
+	error_message("Video profile \"%s\" could not be found in stream %s", 
+		      GetStringValue(STREAM_AUDIO_PROFILE),
+		      GetStringValue(STREAM_NAME));
+	m_valid = false;
+	return;
+      } 
+      SetStringValue(STREAM_AUDIO_PROFILE, "default");
     }
   }
   // same profile for text here...

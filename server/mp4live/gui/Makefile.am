@@ -12,6 +12,7 @@ libmp4livegui_la_SOURCES = \
 	video_dialog.cpp \
 	gui_utils.h \
 	gui_utils.cpp \
+	preferences.cpp \
 	support.cpp \
 	support.h
 #	recording_dialog.cpp 

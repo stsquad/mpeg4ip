@@ -62,7 +62,7 @@ CVideoEncoder* VideoEncoderCreateBase(CVideoProfile *vp,
 #ifdef HAVE_XVID10
 	  return new CXvid10VideoEncoder(vp, next, realTime);
 #else
-		return new CXvidVideoEncoder();
+		return new CXvidVideoEncoder(vp, next, realTime);
 #endif
 #else
 		error_message("xvid encoder not available in this build");

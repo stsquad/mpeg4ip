@@ -285,11 +285,12 @@ int main(int argc, char** argv)
 
 	// first case: just want to generate the SDP file
 	if (sdpOnly) {
-#ifdef TODO
-		rc = GenerateSdpFile(pConfig);
-#endif
-		delete pConfig;
-		exit(rc);
+	  // just creating the flow will create the sdp files for all
+	  // sources
+	  CAVMediaFlow* pFlow = new CAVMediaFlow(pConfig);
+	  delete pFlow;
+	  delete pConfig;
+	  exit(rc);
 	}
 
 	// other cases:

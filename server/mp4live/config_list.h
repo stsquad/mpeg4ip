@@ -15,7 +15,7 @@ class CConfigEntry : public CConfigSet {
     m_valid = false;
   };
   virtual ~CConfigEntry(void) {
-    WriteDefaultFile();
+    WriteToFile();
     CHECK_AND_FREE(m_filename);
   };
 
@@ -23,7 +23,7 @@ class CConfigEntry : public CConfigSet {
     if (m_initialized) return;
     m_initialized = true;
     InitializeIndexes();
-    ReadDefaultFile();
+    ReadFile();
     m_configNameIndex = FindIndexByName("name");
     if (m_configNameIndex == UINT32_MAX) {
       error_message("No \"name\" variable found in configuration file type %s %s",
@@ -43,7 +43,7 @@ class CConfigEntry : public CConfigSet {
 
   bool IsValid(void) { return m_valid; } ;
   void Write(void) {
-    WriteDefaultFile();
+    WriteToFile();
   };
 
   const char *GetName(void) {

@@ -109,11 +109,10 @@ protected:
 
 };
 
-class CVideoCapabilities {
+class CVideoCapabilities : public CCapabilities {
 public:
-	CVideoCapabilities(const char* deviceName) {
-		m_deviceName = strdup(deviceName);
-		m_canOpen = false;
+	CVideoCapabilities(const char* deviceName) :
+	  CCapabilities(deviceName) {
 		m_canCapture = false;
 		m_driverName = NULL;
 		m_numInputs = 0;
@@ -127,7 +126,6 @@ public:
 	}
 
 	~CVideoCapabilities() {
-		free(m_deviceName);
 		free(m_driverName);
 		for (int i = 0; i < m_numInputs; i++) {
 			free(m_inputNames[i]);
@@ -138,12 +136,14 @@ public:
 		free(m_inputTunerSignalTypes);
 	}
 
-	inline bool IsValid() {
+	bool IsValid() {
 		return m_canOpen && m_canCapture;
 	}
 
+  void Display(CLiveConfig *pConfig, 
+	       char *msg, 
+	       uint32_t max_len);
 public:
-	char*		m_deviceName; 
 	bool		m_canOpen;
 	bool		m_canCapture;
 

@@ -22,17 +22,18 @@
 #include "mp4live.h"
 #include "video_xvid.h"
 
-CXvidVideoEncoder::CXvidVideoEncoder()
+CXvidVideoEncoder::CXvidVideoEncoder(CVideoProfile *vp, 
+				     CVideoEncoder *next, 
+				     bool realTime) :
+  CVideoEncoder(vp, next, realTime)
 {
 	m_xvidHandle = NULL;
 	m_vopBuffer = NULL;
 	m_vopBufferLength = 0;
 }
 
-bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
+bool CXvidVideoEncoder::Init (void)
 {
-	m_pConfig = pConfig;
-
 	XVID_INIT_PARAM xvidInitParams;
 
 	memset(&xvidInitParams, 0, sizeof(xvidInitParams));
@@ -46,27 +47,27 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 
 	memset(&xvidEncParams, 0, sizeof(xvidEncParams));
 
-	xvidEncParams.width = m_pConfig->m_videoWidth;
-	xvidEncParams.height = m_pConfig->m_videoHeight;
-	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS) == 0) {
+	xvidEncParams.width = Profile()->m_videoWidth;
+	xvidEncParams.height = Profile()->m_videoHeight;
+	if (Profile()->GetIntegerValue(CONFIG_VIDEO_TIMEBITS) == 0) {
 	  xvidEncParams.fincr = 1;
 	  xvidEncParams.fbase = 
-	    (int)(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
+	    (int)(Profile()->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
 	} else {
 	  xvidEncParams.fincr = 
-	    (int)(((double)m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS)) /
-		  m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE));
+	    (int)(((double)Profile()->GetIntegerValue(CONFIG_VIDEO_TIMEBITS)) /
+		  Profile()->GetFloatValue(CONFIG_VIDEO_FRAME_RATE));
 	  xvidEncParams.fbase = 
-	    m_pConfig->GetIntegerValue(CONFIG_VIDEO_TIMEBITS);
+	    Profile()->GetIntegerValue(CONFIG_VIDEO_TIMEBITS);
 	}
 
 	xvidEncParams.rc_bitrate = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
+		Profile()->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
 	xvidEncParams.min_quantizer = 1;
 	xvidEncParams.max_quantizer = 31;
 	xvidEncParams.max_key_interval = (int)
-		(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) 
-		 * m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
+		(Profile()->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) 
+		 * Profile()->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
 	if (xvidEncParams.max_key_interval == 0) {
 		xvidEncParams.max_key_interval = 1;
 	} 
@@ -82,14 +83,14 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	memset(&m_xvidFrame, 0, sizeof(m_xvidFrame));
 
 	m_xvidFrame.general = XVID_HALFPEL | XVID_H263QUANT;
-	if (!realTime) {
+	if (!m_realTime) {
 		m_xvidFrame.motion = 
 			PMV_EARLYSTOP16 | PMV_HALFPELREFINE16 
 			| PMV_EARLYSTOP8 | PMV_HALFPELDIAMOND8;
 	} else {
 		m_xvidFrame.motion = PMV_QUICKSTOP16;
 	}
-		if (!realTime) {
+		if (!m_realTime) {
 			m_xvidFrame.general |= XVID_INTER4V;
 		}
 	m_xvidFrame.colorspace = XVID_CSP_I420;
@@ -101,25 +102,25 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 }
 
 bool CXvidVideoEncoder::EncodeImage(
-	u_int8_t* pY, 
-	u_int8_t* pU, 
-	u_int8_t* pV, 
-	u_int32_t yStride,
-	u_int32_t uvStride,
-	bool wantKeyFrame,
-	Duration Elapsed,
-	Timestamp srcFrameTimestamp)
+				    const u_int8_t* pY, 
+				    const u_int8_t* pU, 
+				    const u_int8_t* pV, 
+				    u_int32_t yStride,
+				    u_int32_t uvStride,
+				    bool wantKeyFrame,
+				    Duration Elapsed,
+				    Timestamp srcFrameTimestamp)
 {
   m_srcFrameTimestamp = srcFrameTimestamp;
-	m_vopBuffer = (u_int8_t*)malloc(m_pConfig->m_videoMaxVopSize);
+	m_vopBuffer = (u_int8_t*)malloc(Profile()->m_videoMaxVopSize);
 	if (m_vopBuffer == NULL) {
 		return false;
 	}
 
 	XVID_DEC_PICTURE decpict;
-	decpict.y = pY;
-	decpict.u = pU;
-	decpict.v = pV;
+	decpict.y = (void *)pY;
+	decpict.u = (void *)pU;
+	decpict.v = (void *)pV;
 	decpict.stride_y = yStride;
 	decpict.stride_u = uvStride;
 	m_xvidFrame.image = &decpict;
@@ -167,7 +168,7 @@ bool CXvidVideoEncoder::GetReconstructedImage(
 	return false;
 }
 
-void CXvidVideoEncoder::Stop()
+void CXvidVideoEncoder::StopEncoder()
 {
   CHECK_AND_FREE(m_vopBuffer);
   xvid_encore(m_xvidHandle, XVID_ENC_DESTROY, NULL, NULL);

@@ -31,7 +31,7 @@
 // From gui_main.cpp
 extern CLiveConfig* MyConfig;
 extern CPreviewAVMediaFlow* AVFlow;
-extern SDL_mutex *dialog_mutex;
+extern GtkWidget *MainWindow;
 void NewVideoWindow(void);
 void DisplayVideoSettings(void);
 void DisplayAudioSettings(void);
@@ -43,9 +43,11 @@ void DisplayAllSettings(void);
 
 void OnAudioProfileFinished(CAudioProfile *p);
 void OnVideoProfileFinished(CVideoProfile *p);
+void MainWindowDisplaySources(void);
 void DoStart(void);
 void DoStop(void);
 void RefreshCurrentStream(void);
+void StartFlowLoadWindow(void);
 
 // From video_dialog.cpp
 void create_VideoSourceDialog(void);
@@ -57,7 +59,7 @@ void CreatePictureDialog(void);
 
 // From audio_dialog.cpp
 void CreateAudioProfileDialog(CAudioProfile *profile);
-void CreateAudioDialog(void);
+void create_AudioSourceDialog(void);
 
 // From recording_dialog.cpp
 void CreateRecordingDialog(void);
@@ -72,4 +74,5 @@ void create_IpAddrDialog(CMediaStream *ms,
 // From transcoding_dialog.cpp
 void CreateTranscodingDialog(void);
 
+void create_PreferencesDialog(void);
 #endif

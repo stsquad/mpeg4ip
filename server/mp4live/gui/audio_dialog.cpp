@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -28,8 +28,21 @@
 #include "audio_encoder.h"
 #include "support.h"
 
+// Source dialog variables
+static const char* inputValues[] = {
+	"cd", "line", "mic", "mix"
+};
+static const char* inputNames[] = {
+	"CD", "Line In", "Microphone", "Via Mixer"
+};
+static bool source_modified;
+static CAudioCapabilities* pAudioCaps;
+static const char* source_type;
+
+// Profile dialog variables
 static const char **encodingNames;
-static GtkWidget *AudioProfileDialog = NULL;
+static GtkWidget *AudioProfileDialog = NULL,
+  *AudioSourceDialog = NULL;
 static const char** samplingRateNames = NULL;
 static u_int32_t* samplingRateValues = NULL;
 static u_int32_t samplingRateNumber = 0;	// how many sampling rates
@@ -40,68 +53,15 @@ static const char* channelNames[] = {
 static u_int32_t *bitRateValues;
 static const char **bitRateNames;
 static u_int32_t bitRateNumber = 0; // how many bit rates
-#if 0
-static GtkWidget *dialog = NULL;
-
-static const char* source_type;
-static char* source_name;
-static GtkWidget *source_combo;
-static GtkWidget *source_entry;
-static GtkWidget *source_list;
-static bool source_modified;
-static GtkWidget *browse_button;
-static GtkWidget *input_label;
-static GtkWidget *input_menu;
-static GtkWidget *track_label;
-static GtkWidget *track_menu;
-static GtkWidget *channel_menu;
-static GtkWidget *encoding_menu;
-static GtkWidget *sampling_rate_menu;
-static GtkWidget *bit_rate_menu;
-
-static CAudioCapabilities* pAudioCaps;
-
-static const char* inputValues[] = {
-	"cd", "line", "mic", "mix"
-};
-static const char* inputNames[] = {
-	"CD", "Line In", "Microphone", "Via Mixer"
-};
-static u_int8_t inputIndex;
-
-static u_int32_t trackIndex;
-static u_int32_t trackNumber;	// how many tracks total
-static u_int32_t* trackValues = NULL;
-
-static u_int8_t channelValues[] = {
-	1, 2
-};
-static u_int8_t channelIndex;
-
-static const char **encodingNames;
-static u_int32_t encodingIndex;
-
-static u_int32_t samplingRateIndex;
-
-static u_int32_t bitRateIndex;
-
-// forward function declarations
-static void CreateBitRateMenu(uint32_t oldBitRate);
-static void SetSamplingRate(u_int32_t samplingRate);
-static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
-{
-	gtk_grab_remove(dialog);
-	gtk_widget_destroy(dialog);
-	dialog = NULL;
-} 
 
 static bool SourceIsDevice()
 {
-	const char* source_name =
-		gtk_entry_get_text(GTK_ENTRY(source_entry));
-	return !strncmp(source_name, "/dev/", 5);
+  GtkWidget *temp;
+  temp = lookup_widget(AudioSourceDialog, "AudioSourceFile");
+  return IsDevice(gtk_entry_get_text(GTK_ENTRY(temp)));
 }
 
+#if 0
 static void ShowSourceSpecificSettings()
 {
 	if (SourceIsDevice()) {
@@ -118,11 +78,14 @@ static void ShowSourceSpecificSettings()
 		gtk_widget_show(track_menu);
 	}
 }
+#endif
 
 static void SourceOssDevice()
 {
-	const gchar *newSourceName =
-		gtk_entry_get_text(GTK_ENTRY(source_entry));
+  GtkWidget *temp;
+  temp = lookup_widget(AudioSourceDialog, "AudioSourceFile");
+  const char *newSourceName =
+    gtk_entry_get_text(GTK_ENTRY(temp));
 
 	// don't probe the already open device!
 	if (!strcmp(newSourceName, 
@@ -146,51 +109,42 @@ static void SourceOssDevice()
 		delete pAudioCaps;
 	}
 	pAudioCaps = pNewAudioCaps;
-
-	// change sampling rate menu
-	CreateSamplingRateMenu(pNewAudioCaps);
-
-	CreateChannelMenu(channelValues[channelIndex]);
-	// change bit rate menu
-	CreateBitRateMenu(bitRateValues == NULL ? 
-			  0 : bitRateValues[bitRateIndex]);
 }
 
 static void ChangeSource()
 {
-	const gchar* new_source_name =
-		gtk_entry_get_text(GTK_ENTRY(source_entry));
+  GtkWidget *wid = lookup_widget(AudioSourceDialog, "AudioSourceFile");
+  
+  const char* new_source_name =
+    gtk_entry_get_text(GTK_ENTRY(wid));
 
-	if (!strcmp(new_source_name, source_name)) {
-		source_modified = false;
-		return;
-	}
+  if (!strcmp(new_source_name, 
+	      MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME))) {
+    return;
+  }
 
-	CHECK_AND_FREE(source_name);
-	source_name = strdup(new_source_name);
-
-	if (SourceIsDevice()) {
-		source_type = AUDIO_SOURCE_OSS;
+      if (SourceIsDevice()) {
+	source_type = AUDIO_SOURCE_OSS;
 	
-		SourceOssDevice();
+	SourceOssDevice();
 
-	} else {
-		if (pAudioCaps != MyConfig->m_audioCapabilities) {
-			delete pAudioCaps;
-		}
-		pAudioCaps = NULL;
-
-		if (IsUrl(source_name)) {
-			source_type = URL_SOURCE;
-		} else {
-			if (access(source_name, R_OK) != 0) {
-				ShowMessage("Change Audio Source",
-					"Specified audio source can't be opened, check name");
-			}
-			source_type = FILE_SOURCE;
-		}
+      } else {
+	if (pAudioCaps != MyConfig->m_audioCapabilities) {
+	  delete pAudioCaps;
 	}
+	pAudioCaps = NULL;
 
+	if (IsUrl(new_source_name)) {
+	  source_type = URL_SOURCE;
+	} else {
+	  if (access(new_source_name, R_OK) != 0) {
+	    ShowMessage("Change Audio Source",
+			"Specified audio source can't be opened, check name");
+	  }
+	  source_type = FILE_SOURCE;
+	}
+      }
+#if 0
 	track_menu = CreateTrackMenu(
 		track_menu,
 		'A',
@@ -200,20 +154,19 @@ static void ChangeSource()
 		&trackValues);
 
 	ShowSourceSpecificSettings();
+#endif
 
-	source_modified = false;
 }
 
 static void on_source_browse_button (GtkWidget *widget, gpointer *data)
 {
-	FileBrowser(source_entry, GTK_SIGNAL_FUNC(ChangeSource));
+  GtkWidget *wid = lookup_widget(AudioSourceDialog, "AudioSourceFile");
+  FileBrowser(wid, AudioSourceDialog, GTK_SIGNAL_FUNC(ChangeSource));
 }
 
 static void on_source_entry_changed(GtkWidget *widget, gpointer *data)
 {
-	if (widget == source_entry) {
-		source_modified = true;
-	}
+  source_modified = true;
 }
 
 static int on_source_leave(GtkWidget *widget, gpointer *data)
@@ -224,26 +177,194 @@ static int on_source_leave(GtkWidget *widget, gpointer *data)
 	return FALSE;
 }
 
-static void on_source_list_changed(GtkWidget *widget, gpointer *data)
+static void
+on_AudioSourceDialog_response          (GtkDialog       *dialog,
+                                        gint             response_id,
+                                        gpointer         user_data)
 {
-	if (widget == source_list) {
-		ChangeSource();
-	}
+  if (response_id == GTK_RESPONSE_OK) {
+    GtkWidget *wid;
+
+    wid = lookup_widget(GTK_WIDGET(dialog), "AudioSourceFile");
+    const char *source_name = gtk_entry_get_text(GTK_ENTRY(wid));
+    if (strcmp(source_name, 
+	       MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME)) != 0) {
+      MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_NAME, source_name);
+      MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_TYPE, source_type);
+      if (MyConfig->m_audioCapabilities != pAudioCaps) {
+	delete MyConfig->m_audioCapabilities;
+	MyConfig->m_audioCapabilities = pAudioCaps;
+	pAudioCaps = NULL;
+      }
+    }
+    wid = lookup_widget(GTK_WIDGET(dialog), "AudioPortMenu");
+    MyConfig->SetStringValue(CONFIG_AUDIO_INPUT_NAME,
+			     inputValues[gtk_option_menu_get_history(GTK_OPTION_MENU(wid))]);
+    
+    MyConfig->Update();
+    MainWindowDisplaySources();
+  }
+  gtk_widget_destroy(GTK_WIDGET(dialog));
+
 }
 
-static void on_input_menu_activate (GtkWidget *widget, gpointer data)
+void create_AudioSourceDialog (void)
 {
-	inputIndex = GPOINTER_TO_UINT(data) & 0xFF;
+  GtkWidget *dialog_vbox8;
+  GtkWidget *table6;
+  GtkWidget *label157;
+  GtkWidget *label158;
+  GtkWidget *hbox77;
+  GtkWidget *AudioSourceFile;
+  GtkWidget *AudioSourceBrowse;
+  GtkWidget *alignment21;
+  GtkWidget *hbox78;
+  GtkWidget *image21;
+  GtkWidget *label163;
+  GtkWidget *AudioPortMenu;
+  GtkWidget *dialog_action_area7;
+  GtkWidget *AudioSourceCancel;
+  GtkWidget *okbutton7;
+  GtkTooltips *tooltips;
+
+  tooltips = gtk_tooltips_new();
+
+  AudioSourceDialog = gtk_dialog_new();
+  gtk_window_set_title(GTK_WINDOW(AudioSourceDialog), _("Select Audio Source"));
+  gtk_window_set_modal(GTK_WINDOW(AudioSourceDialog), TRUE);
+  gtk_window_set_resizable(GTK_WINDOW(AudioSourceDialog), FALSE);
+  gtk_window_set_transient_for(GTK_WINDOW(AudioSourceDialog), 
+			       GTK_WINDOW(MainWindow));
+
+  dialog_vbox8 = GTK_DIALOG(AudioSourceDialog)->vbox;
+  gtk_widget_show(dialog_vbox8);
+
+  table6 = gtk_table_new(2, 2, FALSE);
+  gtk_widget_show(table6);
+  gtk_box_pack_start(GTK_BOX(dialog_vbox8), table6, TRUE, TRUE, 0);
+  gtk_table_set_row_spacings(GTK_TABLE(table6), 2);
+  gtk_table_set_col_spacings(GTK_TABLE(table6), 9);
+
+  label157 = gtk_label_new(_("Source:"));
+  gtk_widget_show(label157);
+  gtk_table_attach(GTK_TABLE(table6), label157, 0, 1, 0, 1,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label157), 0, 0.5);
+
+  label158 = gtk_label_new(_("Input Port:"));
+  gtk_widget_show(label158);
+  gtk_table_attach(GTK_TABLE(table6), label158, 0, 1, 1, 2,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_misc_set_alignment(GTK_MISC(label158), 0, 0.5);
+
+  hbox77 = gtk_hbox_new(FALSE, 0);
+  gtk_widget_show(hbox77);
+  gtk_table_attach(GTK_TABLE(table6), hbox77, 1, 2, 0, 1,
+                   (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
+                   (GtkAttachOptions)(GTK_FILL), 0, 0);
+
+  AudioSourceFile = gtk_entry_new();
+  gtk_widget_show(AudioSourceFile);
+  gtk_box_pack_start(GTK_BOX(hbox77), AudioSourceFile, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip(tooltips, AudioSourceFile, _("Select Audio Device"), NULL);
+
+  AudioSourceBrowse = gtk_button_new();
+  gtk_widget_show(AudioSourceBrowse);
+  gtk_box_pack_start(GTK_BOX(hbox77), AudioSourceBrowse, FALSE, FALSE, 0);
+
+  alignment21 = gtk_alignment_new(0.5, 0.5, 0, 0);
+  gtk_widget_show(alignment21);
+  gtk_container_add(GTK_CONTAINER(AudioSourceBrowse), alignment21);
+
+  hbox78 = gtk_hbox_new(FALSE, 2);
+  gtk_widget_show(hbox78);
+  gtk_container_add(GTK_CONTAINER(alignment21), hbox78);
+
+  image21 = gtk_image_new_from_stock("gtk-open", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_show(image21);
+  gtk_box_pack_start(GTK_BOX(hbox78), image21, FALSE, FALSE, 0);
+
+  label163 = gtk_label_new_with_mnemonic(_("Browse"));
+  gtk_widget_show(label163);
+  gtk_box_pack_start(GTK_BOX(hbox78), label163, FALSE, FALSE, 0);
+
+  AudioPortMenu = gtk_option_menu_new();
+  gtk_widget_show(AudioPortMenu);
+  gtk_table_attach(GTK_TABLE(table6), AudioPortMenu, 1, 2, 1, 2,
+                   (GtkAttachOptions)(GTK_FILL),
+                   (GtkAttachOptions)(0), 0, 0);
+  gtk_tooltips_set_tip(tooltips, AudioPortMenu, _("Audio Source Device"), NULL);
+
+  dialog_action_area7 = GTK_DIALOG(AudioSourceDialog)->action_area;
+  gtk_widget_show(dialog_action_area7);
+  gtk_button_box_set_layout(GTK_BUTTON_BOX(dialog_action_area7), GTK_BUTTONBOX_END);
+
+  AudioSourceCancel = gtk_button_new_from_stock("gtk-cancel");
+  gtk_widget_show(AudioSourceCancel);
+  gtk_dialog_add_action_widget(GTK_DIALOG(AudioSourceDialog), AudioSourceCancel, GTK_RESPONSE_CANCEL);
+  GTK_WIDGET_SET_FLAGS(AudioSourceCancel, GTK_CAN_DEFAULT);
+
+  okbutton7 = gtk_button_new_from_stock("gtk-ok");
+  gtk_widget_show(okbutton7);
+  gtk_dialog_add_action_widget(GTK_DIALOG(AudioSourceDialog), okbutton7, GTK_RESPONSE_OK);
+  GTK_WIDGET_SET_FLAGS(okbutton7, GTK_CAN_DEFAULT);
+
+  g_signal_connect((gpointer) AudioSourceDialog, "response",
+                    G_CALLBACK(on_AudioSourceDialog_response),
+                    NULL);
+  g_signal_connect((gpointer) AudioSourceBrowse, "clicked", 
+		   G_CALLBACK(on_source_browse_button),
+		   NULL);
+  SetEntryValidator(GTK_OBJECT(AudioSourceFile),
+		    GTK_SIGNAL_FUNC(on_source_entry_changed),
+		    GTK_SIGNAL_FUNC(on_source_leave));
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF(AudioSourceDialog, AudioSourceDialog, "AudioSourceDialog");
+  GLADE_HOOKUP_OBJECT_NO_REF(AudioSourceDialog, dialog_vbox8, "dialog_vbox8");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, table6, "table6");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, label157, "label157");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, label158, "label158");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, hbox77, "hbox77");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, AudioSourceFile, "AudioSourceFile");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, AudioSourceBrowse, "AudioSourceBrowse");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, alignment21, "alignment21");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, hbox78, "hbox78");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, image21, "image21");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, label163, "label163");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, AudioPortMenu, "AudioPortMenu");
+  GLADE_HOOKUP_OBJECT_NO_REF(AudioSourceDialog, dialog_action_area7, "dialog_action_area7");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, AudioSourceCancel, "AudioSourceCancel");
+  GLADE_HOOKUP_OBJECT(AudioSourceDialog, okbutton7, "okbutton7");
+  GLADE_HOOKUP_OBJECT_NO_REF(AudioSourceDialog, tooltips, "tooltips");
+
+  gtk_entry_set_text(GTK_ENTRY(AudioSourceFile),
+		     MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+  uint inputIndex = 0;
+  for (u_int8_t i = 0; i < sizeof(inputValues) / sizeof(u_int8_t); i++) {
+    if (!strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
+		    inputValues[i])) {
+      inputIndex = i;
+      break;
+    }
+  }
+  source_modified = false;
+  source_type = MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
+  pAudioCaps = (CAudioCapabilities *)MyConfig->m_audioCapabilities;
+
+  CreateOptionMenu(AudioPortMenu,
+		   inputNames, 
+		   sizeof(inputNames) / sizeof(char*),
+		   inputIndex);
+
+  gtk_widget_show(AudioSourceDialog);
 }
 
-static void on_channel_menu_activate (GtkWidget *widget, gpointer data)
-{
-	channelIndex = GPOINTER_TO_UINT(data) & 0xFF;
-	CreateBitRateMenu(bitRateValues[bitRateIndex]);
-}
-
-#endif
-
+/***************************************************************************
+ * Audio Profile Dialog
+ ***************************************************************************/
 static uint GetAudioEncoderIndex (void)
 {
   GtkWidget *encoder_widget = lookup_widget(AudioProfileDialog, 
@@ -406,231 +527,13 @@ static void CreateBitRateMenu(GtkWidget *menu = NULL,
 		   bitRateIndex);
 }
 
-#if 0
-void CreateAudioDialog (void) 
-{
-	GtkWidget* hbox;
-	GtkWidget* vbox;
-	GtkWidget* hbox2;
-	GtkWidget* label;
-	GtkWidget* button;
-	const char *audioEncoder;
-
-	SDL_LockMutex(dialog_mutex);
-	if (dialog != NULL) {
-	  SDL_UnlockMutex(dialog_mutex);
-	  return;
-	}
-	SDL_UnlockMutex(dialog_mutex);
-	pAudioCaps = MyConfig->m_audioCapabilities;
-
-	dialog = gtk_dialog_new();
-	gtk_signal_connect(GTK_OBJECT(dialog),
-		"destroy",
-		GTK_SIGNAL_FUNC(on_destroy_dialog),
-		&dialog);
-
-	gtk_window_set_title(GTK_WINDOW(dialog), "Audio Settings");
-	gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox,
-		FALSE, FALSE, 5);
-
-	vbox = gtk_vbox_new(TRUE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
-
-	label = gtk_label_new(" Source:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	input_label = gtk_label_new("   Input Port:");
-	gtk_misc_set_alignment(GTK_MISC(input_label), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox), input_label, FALSE, FALSE, 0);
-
-	track_label = gtk_label_new("   Track:");
-	gtk_misc_set_alignment(GTK_MISC(track_label), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox), track_label, FALSE, FALSE, 0);
-
-	label = gtk_label_new(" Output:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	label = gtk_label_new("   Encoding :");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	label = gtk_label_new("   Channels:");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	label = gtk_label_new("   Sampling Rate (Hz):");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	label = gtk_label_new("   Bit Rate (bps):");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-
-	vbox = gtk_vbox_new(TRUE, 1);
-	gtk_widget_show(vbox);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
-
-	hbox2 = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox2);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 0);
-
-	source_type = MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
-
-	// source entry
-	free(source_name);
-	source_name =
-		strdup(MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
-
-	source_modified = false;
-
-	source_combo = CreateFileCombo(source_name);
-
-	source_entry = GTK_COMBO(source_combo)->entry;
-
-	SetEntryValidator(GTK_OBJECT(source_entry),
-		GTK_SIGNAL_FUNC(on_source_entry_changed),
-		GTK_SIGNAL_FUNC(on_source_leave));
-
-	source_list = GTK_COMBO(source_combo)->list;
-	gtk_signal_connect(GTK_OBJECT(source_list), "select_child",
-		GTK_SIGNAL_FUNC(on_source_list_changed), NULL);
-
-	gtk_widget_show(source_combo);
-	gtk_box_pack_start(GTK_BOX(hbox2), source_combo, TRUE, TRUE, 0);
-
-	// browse button
-	browse_button = gtk_button_new_with_label(" Browse... ");
-	gtk_signal_connect(GTK_OBJECT(browse_button),
-		 "clicked",
-		 GTK_SIGNAL_FUNC(on_source_browse_button),
-		 NULL);
-	gtk_widget_show(browse_button);
-	gtk_box_pack_start(GTK_BOX(hbox2), browse_button, FALSE, FALSE, 5);
-
-	// input menu
-	inputIndex = 0;
-	for (u_int8_t i = 0; i < sizeof(inputValues) / sizeof(u_int8_t); i++) {
-		if (!strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_INPUT_NAME),
-		  inputValues[i])) {
-			inputIndex = i;
-			break;
-		}
-	}
-	input_menu = CreateOptionMenu (NULL,
-		inputNames, 
-		sizeof(inputNames) / sizeof(char*),
-				       inputIndex);
-	gtk_box_pack_start(GTK_BOX(vbox), input_menu, TRUE, TRUE, 0);
-
-	// track menu
-	track_menu = NULL;
-	track_menu = CreateTrackMenu(
-		track_menu,
-		'A',
-		gtk_entry_get_text(GTK_ENTRY(source_entry)),
-		&trackIndex,
-		&trackNumber,
-		&trackValues);
-
-	trackIndex = 0; 
-	for (u_int8_t i = 0; i < trackNumber; i++) {
-		if (MyConfig->GetIntegerValue(CONFIG_AUDIO_SOURCE_TRACK)
-		   == trackValues[i]) {
-			trackIndex = i;
-			break;
-		}
-	}
-	gtk_box_pack_start(GTK_BOX(vbox), track_menu, FALSE, FALSE, 0);
-
-	// spacer
-	label = gtk_label_new(" ");
-	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
-	gtk_widget_show(label);
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-	encodingNames = (const char **)malloc(sizeof(char *) * audio_encoder_table_size);
-	audioEncoder = 
-	  MyConfig->GetStringValue(CONFIG_AUDIO_ENCODER);
-	for (uint32_t ix = 0; ix < audio_encoder_table_size; ix++) {
-	  encodingNames[ix] = strdup(audio_encoder_table[ix]->dialog_selection_name);
-	  if ((strcasecmp(audioEncoder, 
-			 audio_encoder_table[ix]->audio_encoder) == 0) &&
-	      (strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING), 
-			  audio_encoder_table[ix]->audio_encoding) == 0)) {
-	    encodingIndex = ix;
-	  }
-	}
-	encoding_menu = CreateOptionMenu (NULL,
-		encodingNames, 
-					  audio_encoder_table_size,
-					  encodingIndex);
-	gtk_box_pack_start(GTK_BOX(vbox), encoding_menu, TRUE, TRUE, 0);
-
-	// channel menu
-	channel_menu = NULL;
-	CreateChannelMenu(MyConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
-	gtk_box_pack_start(GTK_BOX(vbox), channel_menu, TRUE, TRUE, 0);
-
-	sampling_rate_menu = NULL;
-	CreateSamplingRateMenu(pAudioCaps);
-	gtk_box_pack_start(GTK_BOX(vbox), sampling_rate_menu, TRUE, TRUE, 0);
-
-	// set sampling rate value based on MyConfig
-	SetSamplingRate(MyConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
-
-	bit_rate_menu = NULL;
-	CreateBitRateMenu(MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE));
-	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_menu, TRUE, TRUE, 0);
-
-	// set bit rate value based on MyConfig
-	for (u_int8_t i = 0; i < bitRateNumber; i++) {
-		if (MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE)
-		  == bitRateValues[i]) {
-			bitRateIndex = i;
-			break;
-		}
-	}
-	gtk_option_menu_set_history(
-		GTK_OPTION_MENU(bit_rate_menu), bitRateIndex);
-
-	// Add standard buttons at bottom
-	button = AddButtonToDialog(dialog,
-		" OK ", 
-		GTK_SIGNAL_FUNC(on_ok_button));
-	GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
-
-	AddButtonToDialog(dialog,
-		" Cancel ", 
-		GTK_SIGNAL_FUNC(on_cancel_button));
-
-	ShowSourceSpecificSettings();
-
-	gtk_widget_show(dialog);
-}
-#endif
-
 static void on_SamplingRateMenu_changed (GtkOptionMenu *optionmenu,
 					 gpointer user_data)
 {
   CreateBitRateMenu();
 }
 
-void
+static void
 on_AudioProfileEncoder_changed         (GtkOptionMenu   *optionmenu,
                                         gpointer         user_data)
 {
@@ -644,7 +547,7 @@ on_AudioProfileEncoder_changed         (GtkOptionMenu   *optionmenu,
 				  AUDIO_ENCODING_MP3) == 0);
 
   CreateChannelMenu();
-  CreateSamplingRateMenu(MyConfig->m_audioCapabilities);
+  CreateSamplingRateMenu((CAudioCapabilities *)MyConfig->m_audioCapabilities);
   CreateBitRateMenu();
 }
 
@@ -709,7 +612,7 @@ on_AudioProfileDialog_response (GtkWidget *dialog,
       temp = lookup_widget(dialog, "Mp3Use14");
       profile->SetBoolValue(CFG_RTP_USE_MP3_PAYLOAD_14,
 			    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp)));
-      profile->WriteDefaultFile(); // set up profile
+      profile->WriteToFile(); // set up profile
     } 
   } else {
     if (profile->GetName() == NULL) {
@@ -736,7 +639,7 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   GtkWidget *SampleRateMenu;
   GtkWidget *AudioBitRateMenu;
   GtkWidget *Mp3Use14;
-  GtkWidget *button16;
+  GtkWidget *AudioEncoderSettingsButton;
   GtkWidget *alignment19;
   GtkWidget *hbox73;
   GtkWidget *image19;
@@ -766,6 +669,8 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   AudioProfileDialog = gtk_dialog_new();
   gtk_window_set_title(GTK_WINDOW(AudioProfileDialog), _("Audio Profile Settings"));
   gtk_window_set_modal(GTK_WINDOW(AudioProfileDialog), TRUE);
+  gtk_window_set_transient_for(GTK_WINDOW(AudioProfileDialog), 
+			       GTK_WINDOW(MainWindow));
 
   dialog_vbox5 = GTK_DIALOG(AudioProfileDialog)->vbox;
   gtk_widget_show(dialog_vbox5);
@@ -813,17 +718,17 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
 			       profile->GetBoolValue(CFG_RTP_USE_MP3_PAYLOAD_14));
   gtk_tooltips_set_tip(tooltips, Mp3Use14, _("Transmit MP3 using RFC-2250"), NULL);
 
-  button16 = gtk_button_new();
-  gtk_widget_show(button16);
-  gtk_table_attach(GTK_TABLE(AudioProfileTable), button16, 1, 2, 6, 7,
+  AudioEncoderSettingsButton = gtk_button_new();
+  gtk_widget_show(AudioEncoderSettingsButton);
+  gtk_table_attach(GTK_TABLE(AudioProfileTable), AudioEncoderSettingsButton, 1, 2, 6, 7,
                    (GtkAttachOptions)(GTK_FILL),
                    (GtkAttachOptions)(0), 0, 0);
-  gtk_widget_set_sensitive(button16, FALSE);
-  gtk_tooltips_set_tip(tooltips, button16, _("Audio Encoder Specific Settings"), NULL);
+  gtk_widget_set_sensitive(AudioEncoderSettingsButton, FALSE);
+  gtk_tooltips_set_tip(tooltips, AudioEncoderSettingsButton, _("Audio Encoder Specific Settings"), NULL);
 
   alignment19 = gtk_alignment_new(0.5, 0.5, 0, 0);
   gtk_widget_show(alignment19);
-  gtk_container_add(GTK_CONTAINER(button16), alignment19);
+  gtk_container_add(GTK_CONTAINER(AudioEncoderSettingsButton), alignment19);
 
   hbox73 = gtk_hbox_new(FALSE, 2);
   gtk_widget_show(hbox73);
@@ -946,7 +851,7 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, SampleRateMenu, "SampleRateMenu");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, AudioBitRateMenu, "AudioBitRateMenu");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, Mp3Use14, "Mp3Use14");
-  GLADE_HOOKUP_OBJECT(AudioProfileDialog, button16, "button16");
+  GLADE_HOOKUP_OBJECT(AudioProfileDialog, AudioEncoderSettingsButton, "AudioEncoderSettingsButton");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, alignment19, "alignment19");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, hbox73, "hbox73");
   GLADE_HOOKUP_OBJECT(AudioProfileDialog, image19, "image19");
@@ -970,7 +875,7 @@ void CreateAudioProfileDialog (CAudioProfile *profile)
   }
   CreateChannelMenu(ChannelMenu, true, 
 		    profile->GetIntegerValue(CFG_AUDIO_CHANNELS));
-  CreateSamplingRateMenu(MyConfig->m_audioCapabilities, true, 
+  CreateSamplingRateMenu((CAudioCapabilities *)MyConfig->m_audioCapabilities, true, 
 			 profile->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE));
   CreateBitRateMenu(AudioBitRateMenu, true,
 		    profile->GetIntegerValue(CFG_AUDIO_BIT_RATE));

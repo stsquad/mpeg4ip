@@ -17,6 +17,7 @@ Cesar Gonzalez
 <P>
 <b>
 <a href="#mp4live">MP4LIVE</a><br>
+<a href="#s1.3">Changes in Version 1.3</a><br>
 <a href="#s1.1">Changes in Version 1.1</a><br>
 <a href="#hw">Hardware Requirements</a><br>
 <a href="#soft">Software Requirements</a><br>
@@ -28,7 +29,6 @@ Cesar Gonzalez
 <a href="#nw">Network Transmission</a><br>
 <a href="#dss">Use with Darwin Streaming Server</a><br>
 <a href="#capture">Sharing Capture Cards</a><br>
-<a href="#multi">Multiple Outputs using mp4live</a><br>
 <a href="#cli">Command Line Options</a><br>
 <a href="#issues">Known Issues</a><br>
 <a href="#unknown">Unknowns</a><br>
@@ -54,6 +54,13 @@ enhancements, ask questions, etc. The URL is
 <b>Do not contact us via email</b>
 <P>
 <a href="#top">Back to top</a>
+<p>
+<div id="s1.3">
+<h2>Changes in Version 1.3</h2>
+</div>
+<p>
+Mp4live has been rewritten to handle multiple streams from
+a single audio and video source.
 <P>
 <div id="s1.1">
 <h2>Changes in Version 1.1</h2>
@@ -262,15 +269,57 @@ will be installed into '/usr/local/bin'. Of course, you can also issue
 <div id="using">
 <h2>Using mp4live</h2>
 </div>
-<P>
-
+<p>
 Typically, there is no need for command line options to mp4live. You can
 just type 'mp4live' and you'll be up and running.
 <P>
-If you change an mp4live configuration setting, then that change will be 
-saved in your home directory in ~/.mp4live_rc. This file is read when 
-mp4live is started, and the configuration settings adjusted accordingly.
+Global configuration settings are stored in your home directory in ~/.mp4live_rc.
+This file is read when mp4live is started.
+<p>
+A concept that is new for mp4live in 1.3 are the concepts of profiles and 
+streams.  A profile can be used to name a set of audio, video, or text 
+parameters.   Different profiles can be created, and can be selected from
+at any time mp4live is run.  For example, you could create a video profile
+that has mpeg-4 with ffmpeg at 320x240, 500Mbps, and another one with mpeg-4 
+with xvid at 352x288, 750Mbps.  You can then switch between these 2
+profiles without changing each settings.
+<p>
+Profiles are stored in a user settable directory (by default ~/.mp4live_d),
+with Audio, Video and Text sub-directories.  Profiles can be created
+with mp4live (use the drop-down menu and select "Add"), or changed (select
+the profile, then select "Customize").  It is recommended that the
+profile directory not change; for multiple instances of mp4live, use
+seperate stream directories.
 <P>
+A stream is an group of a single audio, video, and/or text profiles.  A
+stream can be transmitted, recorded or both.
+<p>
+Mp4live can support as many streams as your CPU processing power can 
+support.  Each stream has the same source, but can have different
+destination parameters.
+<p>
+Mp4Live is smart in creating the streams; for any given audio, video or
+text profile, the encoding specified by that profile will be done only
+1 time, no matter how many streams include that profile.
+<p>
+mp4live will capture video at the largest size specified in the 
+profiles, and will capture audio at the highest sample rate.  Video
+for other profiles is resized; audio is resampled and converted from 
+stereo to mono, if needed.
+<p>
+By creating multiple streams, different combinations of audio and 
+video profiles can be used and saved.  For example
+<ul>
+<li>different streams with different profiles can be used; each profile is
+  only encoded and transmitted over a single multicast address if the
+  default settings are used.</li>
+<li>different streams can be used with the same profiles to transmit to different
+  destinations; only the ip packets will be duplicated </li>
+<li>Audio only streams can be created from audio/video streams by duplicating
+  the stream and disabling video on 1 of the streams.  SDP files, and
+  mp4 files will be created as specified.</li>
+</ul>
+<p>
 The default settings for mp4live are to record 1 minute of audio and video
 to an mp4 file, ./capture.mp4  The first time you use the program, it's
 a good idea to just hit the Start button, and see what happens. If all
@@ -278,7 +327,8 @@ goes well, 1 minute later you have a playable/streamable mp4 file. If you
 don't get this, then it's time to review this README, and it that doesn't
 help, then fire off a message on the MPEG4IP SourceForge discussion group.
 <P>
-Assuming things are working you can now use the Settings buttons to adjust
+<P>
+Assuming things are working you can now use the various controls to adjust
 things like the video size and frame rate, the audio sampling rate, the 
 encoded bitrates, etc. The UI is hopefully self-explanatory. If not, let us
 know what's confusing and we'll look at fixing that. (I'm a big believer that
@@ -305,6 +355,9 @@ A user contributed some simple video filters.  We have a decimate
 filter (which captures video at 2 times the resolution, and scales it
 back down), and a deinterlace filter (which will do a linear blend style
 of deinterlace on the Y plane before encoding).
+<p>
+The decimate filter is used on the source, while the deinterlace filter
+is done on a per-profile basis.
 <p>
 These filters do take up some processing power, so be careful.
 <P>
@@ -339,22 +392,29 @@ configuration setting.
 To use mp4live to transmit live audio/video to the network, follow these
 directions: 
 <P>
-Select 'Enabled' in the Transmission section of the main window.
+Select the Transmit check box in the Stream Information section of the
+main window.
 <P>
-By default, mp4live will multicast the media to IP address 224.1.2.3
+By default, mp4live will generate multicast address so that there are
+no overlaps.  The "Edit->Generate Addresses" menu item will pick new, 
+random addresses.  Each stream that has a common profile will transmit
+on the same address:port.
 <P>
-If you wish to change this, select the 'Settings...' button in the
-Transmission section of the main window. A dialog will appear that allows
-selection of the destination IP address (either unicast or multicast),
-the UDP port numbers used, the TTL used if multicasting, and the name of
-the .sdp file to generate (more about that in a minute). When you're done
-making changes, select 'OK'.
+If you wish to change this, select the 'Set Address' button for the
+stream you wish to change.  A dialog will appear that allows the
+choice between Generated Addresses or Fixed address.  To transmit to a
+unicast address, use the Fixed Address setting.
 <P>
 When you press mp4live's 'Start' button, media transmission to the network 
 will begin. Also a small text file with extension .sdp will be created that 
 describes the media transmission for the player. The player needs the .sdp 
-file to be able to tune into the media streams. (Note the .sdp file can also
-be generated from the Transmission Settings dialog)
+file to be able to tune into the media streams. The sdp files are generated
+pretty much any time a configuration item is changed; they can also be
+generated by using "Edit->Generate SDP Files" menu item, or using the
+command line argument.
+<p>
+SDP file names will by default contain the stream name, with spaces converted
+to underlines.
 <P>
 The most convenient way to distribute the .sdp file is to have mp4live write
 it to a directory that is accessible from a web server (httpd) that is running
@@ -432,82 +492,6 @@ rawVideoUseFifo=1 <br>
 The audio format is 16 bit PCM, the video format is YUV12 (planar 4:2:0 YUV).
 
 <P>
-<a href="#top">Back to top</a>
-<P>
-<div id="multi">
-<h2>Multiple Outputs using mp4live</h2>
-</div>
-<h3>Introduction</h3>
-<p>
-During the 1.2 coding period, Cesar Gonzalez contributed a method of
-using a single capture card, but outputting and recording serveral 
-different streams at the same time.  This is useful if you want to reach
-different audiences (for example: enterprise, broadband and modem users).
-<p>
-Let's suppose you want to transmit a live event at 640x480 900 Kbits, 320x240 
-150 Kbits and 160x120 at 41 Kbits. Until this feature was added, you would 
-need 3 video and 3 audio cards.  If you use this feature, you will need 
-only 1 video and 1 audio card.
-<p> 
-For the most part, this will be very CPU intensive - be prepared to have
-a fairly fast and modern machine.  For best output, make the video sizes 
-multiples of 2 in both height and width (ie: 640x480, 320x240 instead of
-640x480 and 352x288).
-<h3>How it works</h3>
-<p>
-There is one main process that take video and audio frames from the capture 
-devices and forward them to the rest of the processes. Each attached process 
-does the appropriate resize/resample work and records the mp4 or transmits the 
-frames via rtp if needed.
-<p>
-Right now, it can be inefficient - if you have the same audio or video for 2 different streams, it will resize/encode the raw data for each stream.
-<h3>How to configure</h3>
-<p>
-There is currently no GUI for multiple outputs; the video size selected in the GUI should be the maximum size requested.  In the main configuration file, the following commands should be used:
-<table cellpadding='8' summary="multioutput config variables main file">
-<tr><td>cascadeEnable=1</td><td>This turns on multiple outputs</td></tr>
-<tr>
-<td>cascadeFile1=file</td><td>Configuration file for first attached stream</td>
-</tr>
-<tr>
-<td>cascadeFile2=file</td><td>Configuration file for first attached stream</td>
-</tr>
-<tr>
-<td>cascadeFile3=file</td><td>Configuration file for first attached stream</td>
-</tr>
-<tr>
-<td>cascadeFile4=file</td><td>Configuration file for first attached stream</td>
-</tr>
-<tr>
-<td>cascadeFile5=file</td><td>Configuration file for first attached stream</td>
-</tr>
-</table>
-<p>
-For the cascade configuration files, the following need to be used:
-<table cellpadding="8" summary="cascade configuration">
-<tr>
-<td>videoSourceType=self</td><td>Specify self when the video frames come from the main process</td>
-</tr>
-<tr>
-<td>audioSourceType=self</td><td>Specify self when the audio frames come from the main process</td>
-</tr>
-</table>
-<P>
-<h3>Limitations</h3>
-<ul>
-<li> You can have a maximum of 5 attached processes - 1 main process and
-5 attached processes = 6 unique streams</li>
-<li>You must take special attention on choosing the main process because it 
-provides the raw data for the others. Imagine you want two streams : 640x480 
-25 frames/sec and 320x240 10 frames/sec, if you choose the second one as main
-process, you will never get 25 frames/sec in the first one.
-</li>
-</ul>
-<p>
-Please see server/mp4live/README_MULTIOUTPUT.txt for more information
-<p>
-
- 
 <a href="#top">Back to top</a>
 <P>
 <P>
@@ -773,13 +757,6 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>rawAudioFile</td><td>String</td><td>capture.pcm</td><td>File to store raw PCM</tr>
 <tr align=center><td>rawVideoEnable</td><td>bool</td><td>0</td><td>1 to enable sending raw video to rawVideoFile</tr>
 <tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw YUV</tr>
-<tr><th colspan=5 align=center><b>Multiple Output</b></tr>
-<tr align=center><td>cascadeEnable</td><td>bool</td><td>0</td><td>1 to enable multiple output (original config file only)</tr>
-<tr align=center><td>cascadeFile1</td><td>string</td><td>NULL</td><td>configuration file to use for stream 2</tr>
-<tr align=center><td>cascadeFile2</td><td>string</td><td>NULL</td><td>configuration file to use for stream 3</tr>
-<tr align=center><td>cascadeFile3</td><td>string</td><td>NULL</td><td>configuration file to use for stream 4</tr>
-<tr align=center><td>cascadeFile4</td><td>string</td><td>NULL</td><td>configuration file to use for stream 5</tr>
-<tr align=center><td>cascadeFile5</td><td>string</td><td>NULL</td><td>configuration file to use for stream 6</tr>
 </tbody>
 </table>
 

@@ -563,7 +563,7 @@ void CAVMediaFlow::ValidateAndUpdateStreams (void)
 			       max_h);
   }
   m_pConfig->Update();
-  m_pConfig->WriteDefaultFile();
+  m_pConfig->WriteToFile();
 }
 
 // Start
