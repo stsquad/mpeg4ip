@@ -146,7 +146,8 @@ OBJECTS	= \
 			#$(OBJDIR)/wvtpezw_spatial_snr.o \
 
 # Include all subdirectories for ease
-INC	= 	-I$(TOPDIR) \
+INC	= 	-I$(TOPDIR)/../../../include \
+		-I$(TOPDIR) \
 		-I$(TOPDIR)/sys \
 		-I$(TOPDIR)/sys/encoder \
 		-I$(TOPDIR)/sys/decoder \

@@ -46,7 +46,7 @@ typedef __int32 int32_t;
 typedef __int8  int8_t;
 typedef unsigned short in_port_t;
 typedef unsigned int socklen_t;
-
+typedef int ssize_t;
 #define snprintf _snprintf
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp

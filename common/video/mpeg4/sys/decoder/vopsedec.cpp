@@ -86,7 +86,9 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW				   
 #endif // __MFC_
 
+#ifndef IOSBINARY
 #define IOSBINARY ios::binary
+#endif
 
 #define _FOR_GSSP_
 #undef assert
