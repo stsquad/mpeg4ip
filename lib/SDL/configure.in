@@ -1281,8 +1281,8 @@ case "$target" in
             COPY_ARCH_SRC(src/thread, linux, SDL_systhread_c.h)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex.c)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex_c.h)
-            COPY_ARCH_SRC(src/thread, generic, SDL_syssem.c)
-            COPY_ARCH_SRC(src/thread, linux, SDL_syssem_c.h)
+            COPY_ARCH_SRC(src/thread, linux, SDL_syssem.c)
+            COPY_ARCH_SRC(src/thread, generic, SDL_syssem_c.h)
             COPY_ARCH_SRC(src/thread, linux, SDL_syscond.c)
             COPY_ARCH_SRC(src/thread, generic, SDL_syscond_c.h)
         fi
