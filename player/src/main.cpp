@@ -36,11 +36,33 @@
 #include <libhttp/http.h>
 #include "video.h"
 #include "video_sdl.h"
+#include "mpeg4ip_getopt.h"
 
 static int session_paused;
 static int screen_size = 2;
 static int fullscreen = 0;
 
+static void media_list_query (CPlayerSession *psptr,
+			      int num_video, 
+			      video_query_t *vq,
+			      int num_audio,
+			      audio_query_t *aq)
+{
+  if (num_video > 0) {
+    if (config.get_config_value(CONFIG_PLAY_VIDEO) != 0) {
+      vq[0].enabled = 1;
+    } 
+  }
+  if (num_audio > 0) {
+    if (config.get_config_value(CONFIG_PLAY_AUDIO) != 0) {
+      aq[0].enabled = 1;
+    } 
+  }
+}
+
+static control_callback_vft_t cc_vft = {
+  media_list_query,
+};
 static int set_aspect_ratio(int newaspect, CPlayerSession *psptr)
 {
   if (psptr != NULL) {
@@ -204,6 +226,7 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
 			    void *persist = NULL)
 {
   char buffer[80];
+  bool done = false;
   int loopcount = 0;
   CPlayerSession *psptr;
 
@@ -221,7 +244,7 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
   
   char errmsg[512];
   errmsg[0] = '\0';
-  int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg), NULL);
+  int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg), &cc_vft);
   if (ret < 0) {
     player_debug_message("%s %s", errmsg, name);
     delete psptr;
@@ -238,8 +261,7 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
   fullscreen = config.get_config_value(CONFIG_FULL_SCREEN);
   set_aspect_ratio(config.get_config_value(CONFIG_ASPECT_RATIO),psptr);
   psptr->set_audio_volume(config.get_config_value(CONFIG_VOLUME));
-  while (loopcount < max_loop) {
-    loopcount++;
+  while (done == false) {
     if (psptr->play_all_media(TRUE) != 0) {
       delete psptr;
       return (NULL);
@@ -281,8 +303,12 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
 	delete msg;
       }
     } while (keep_going == 0);
-    if (loopcount != max_loop) {
+    if (max_loop == -1 || loopcount != max_loop) {
       psptr->pause_all_media();
+    }
+    if (max_loop != -1) {
+      loopcount++;
+      done = loopcount >= max_loop;
     }
   }
   if (grab == 1) {
@@ -295,6 +321,9 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
   return (persist);
 }
 
+static const char *usage= "[--help] [--version] [--loop=count] [--<config variable>=<value>] media-to-play\n"
+"Use --config-vars to display configuration file variables\n";
+
 int main (int argc, char **argv)
 {
 
@@ -302,6 +331,49 @@ int main (int argc, char **argv)
   char *name;
   char buffer[FILENAME_MAX];
   char *home = getenv("HOME");
+  static struct option orig_options[] = {
+    { "version", 0, 0, 'v' },
+    { "help", 0, 0, 'h'},
+    { "config-vars", 0, 0, 'c'},
+    { "loop", 1, 0, 'l'},
+    { NULL, 0, 0, 0 }
+  };
+  bool have_unknown_opts = false;
+  opterr = 0;
+  while (true) {
+    int c = -1;
+    int option_index = 0;
+	  
+    c = getopt_long_only(argc, argv, "l:hvc",
+			 orig_options, &option_index);
+
+    if (c == -1)
+      break;
+
+    switch (c) {
+    case 'h':
+      fprintf(stderr, "Usage: %s %s", argv[0], usage);
+      exit(-1);
+
+    case 'c':
+      config.DisplayHelp();
+      exit(0);
+    case 'v':
+      fprintf(stderr, "%s version %s\n", argv[0], MPEG4IP_VERSION);
+      exit(0);
+    case 'l':
+      if (optarg == NULL) {
+	max_loop = -1;
+      } else 
+	max_loop = atoi(optarg);
+      break;
+    case '?':
+    default:
+      have_unknown_opts = true;
+      break;
+    }
+  }
+
   if (home == NULL) {
 #ifdef _WIN32
 	strcpy(buffer, "gmp4player_rc");
@@ -317,6 +389,62 @@ int main (int argc, char **argv)
   config.SetDefaultFileName(buffer);
   config.InitializeIndexes();
   config.ReadDefaultFile();
+  if (have_unknown_opts) {
+    /*
+     * Create an struct option that allows all the loaded configuration
+     * options
+     */
+    struct option *long_options;
+    uint32_t origo = sizeof(orig_options) / sizeof(*orig_options);
+    long_options = create_long_opts_from_config(&config,
+						orig_options,
+						origo,
+						128);
+    if (long_options == NULL) {
+      player_error_message("Couldn't create options");
+      exit(-1);
+    }
+    optind = 1;
+    // command line parsing
+    while (true) {
+      int c = -1;
+      int option_index = 0;
+      config_index_t ix;
+
+      c = getopt_long_only(argc, argv, "af:hsv",
+			   long_options, &option_index);
+
+      if (c == -1)
+	break;
+
+      /*
+       * We set a value of 128 to 128 + number of variables
+       * we added the original options to the block, but don't
+       * process them here.
+       */
+      if (c >= 128) {
+	// we have an option from the config file
+	ix = c - 128;
+	player_debug_message("setting %s to %s",
+		      config.GetNameFromIndex(ix),
+		      optarg);
+	if (config.GetTypeFromIndex(ix) == CONFIG_TYPE_BOOL &&
+	    optarg == NULL) {
+	  config.SetBoolValue(ix, true);
+	} else
+	  if (optarg == NULL) {
+	    player_error_message("Missing argument with variable %s",
+				 config.GetNameFromIndex(ix));
+	  } else 
+	    config.SetVariableFromAscii(ix, optarg);
+      } else if (c == '?') {
+	fprintf(stderr, "Usage: %s %s", argv[0], usage);
+	exit(-1);
+      }
+    }
+    free(long_options);
+  }
+
   rtsp_set_error_func(library_message);
   rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
   rtp_set_error_msg_func(library_message);
@@ -325,21 +453,16 @@ int main (int argc, char **argv)
   sdp_set_loglevel(config.get_config_value(CONFIG_SDP_DEBUG));
   http_set_error_func(library_message);
   http_set_loglevel(config.get_config_value(CONFIG_HTTP_DEBUG));
-
-  argv++;
-  argc--;
-  if (argc && strcmp(*argv, "-l") == 0) {
-    argv++;
-    argc--;
-    max_loop = atoi(*argv);
-    argc--;
-    argv++;
+  if (config.get_config_value(CONFIG_RX_SOCKET_SIZE) != 0) {
+    rtp_set_receive_buffer_default_size(config.get_config_value(CONFIG_RX_SOCKET_SIZE));
   }
-  if (*argv == NULL) {
-    player_error_message("usage - mp4player [-l] <content>");
+
+
+  if (argc - optind <= 0) {
+    fprintf(stderr, "Usage: %s %s", argv[0], usage);
     exit(-1);
   } else {
-    name = *argv;
+    name = argv[optind++];
   }
 
   const char *suffix = strrchr(name, '.');
@@ -361,7 +484,9 @@ int main (int argc, char **argv)
       player_error_message("%s", errmsg);
       return (-1);
     }
-    for (int loopcount = 0; loopcount < max_loop; loopcount++) {
+    int loopcount = 0;
+    bool done = false;
+    while (done == false) {
       const char *start = list->get_first();
       do {
 	if (start != NULL) {
@@ -373,6 +498,10 @@ int main (int argc, char **argv)
 	}
 	start = list->get_next();
       } while (start != NULL);
+      if (max_loop != -1) {
+	loopcount++;
+	done = loopcount >= max_loop;
+      }
     }
   } else {
     start_session(name, max_loop, 0, persist);

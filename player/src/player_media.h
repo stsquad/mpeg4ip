@@ -160,7 +160,7 @@ class CPlayerMedia {
    * RTP variables - used to pass info to the bytestream
    *************************************************************************/
   int m_rtp_ondemand;
-  int m_rtp_use_rtsp;
+  bool m_rtp_use_rtsp;
   int m_rtp_media_number_in_session;
   int m_rtp_buffering;
   struct rtp *m_rtp_session;

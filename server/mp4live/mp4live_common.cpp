@@ -10,7 +10,6 @@ int ReadConfigFile (const char *configFileName,
 {
 
   try {
-    pConfig->InitializeIndexes();
     if (configFileName) {
       pConfig->ReadFromFile(configFileName);
     } else {

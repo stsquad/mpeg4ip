@@ -248,7 +248,7 @@ static SConfigVariable MyConfigVariables[] = {
 
   // VIDEO
 
-  CONFIG_BOOL(CONFIG_VIDEO_ENABLE, "videoEnable", true),
+  CONFIG_BOOL_HELP(CONFIG_VIDEO_ENABLE, "videoEnable", true, "Enable Video"),
   CONFIG_STRING(CONFIG_VIDEO_SOURCE_TYPE, "videoSourceType", VIDEO_SOURCE_V4L),
   CONFIG_STRING(CONFIG_VIDEO_SOURCE_NAME, "videoDevice", "/dev/video0"),
   CONFIG_INT(CONFIG_VIDEO_INPUT, "videoInput", 1),

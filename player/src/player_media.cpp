@@ -119,7 +119,7 @@ CPlayerMedia::CPlayerMedia (CPlayerSession *p)
   m_rtcp_received = 0;
   m_streaming = 0;
   m_stream_ondemand = 0;
-  m_rtp_use_rtsp = 0;
+  m_rtp_use_rtsp = false;
 }
 
 CPlayerMedia::~CPlayerMedia()
@@ -317,7 +317,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
 				     buffer,
 				     sizeof(buffer));
     } else {
-      m_rtp_use_rtsp = 1;
+      m_rtp_use_rtsp = true;
       m_rtp_media_number_in_session = media_number_in_session;
       snprintf(buffer, sizeof(buffer), "RTP/AVP/TCP;unicast;interleaved=%d-%d",
 	       media_number_in_session * 2, (media_number_in_session * 2) + 1);

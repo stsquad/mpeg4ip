@@ -52,7 +52,7 @@ void set_configs (void)
 	sdp_set_loglevel(config.get_config_value(CONFIG_SDP_DEBUG));
 	http_set_loglevel(config.get_config_value(CONFIG_HTTP_DEBUG));
 	volume = config.get_config_value(CONFIG_VOLUME);
-	if (config.get_config_value(CONFIG_MUTED) != 0)
+	if (config.GetBoolValue(CONFIG_MUTED))
 		volume = 0;
 	if (psptr != NULL) {
 		psptr->set_audio_volume(volume);

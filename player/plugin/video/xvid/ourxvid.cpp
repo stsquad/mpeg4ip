@@ -404,14 +404,17 @@ static int xvid_codec_check (lib_message_func_t message,
 	    retvl = retval;
 	  } else if (fmtp->config_binary != NULL) {
 	    // see if they indicate simple tools in VOL
+#if 0
 	    uint8_t *volptr;
 	    volptr = MP4AV_Mpeg4FindVol(fmtp->config_binary, 
 					fmtp->config_binary_len);
 	    if (volptr != NULL && 
 		((volptr[4] & 0x7f) == 0) &&
 		((volptr[5] & 0x80) == 0x80)) {
+message(LOG_ERR, "xvid", "indicated simple tools in xvid");
 	      retvl = retval;
 	    }
+#endif
 	  }
 	  free_fmtp_parse(fmtp);
 	}

@@ -188,8 +188,9 @@ uint64_t CMpeg2tByteStream::start_next_frame (uint8_t **buffer,
 	ret += m_play_start_time;
       }
 #ifdef DEBUG_MPEG2T_FRAME
-      player_debug_message("%s - len %d time "U64" ftype %d", 
-			   m_name, *buflen, ret, m_frame->frame_type);
+      player_debug_message("%s - len %d time "U64" ftype %d %p", 
+			   m_name, *buflen, ret, m_frame->frame_type,
+	*buffer);
 #endif
       return (ret);
     }
@@ -211,7 +212,10 @@ int CMpeg2tByteStream::skip_next_frame (uint64_t *pts,
   uint64_t ts;
   ts = start_next_frame(buffer, buflen, NULL);
   *pts = ts;
-  *pSync = 0; //m_frame_on_has_sync;
+  *pSync = m_has_video && m_frame && m_frame->frame_type == 1 ? 1 : 0; //m_frame_on_has_sync;
+  
+  player_debug_message("%s - skip time "U64,
+			   m_name, ts);
   if (*buffer == NULL) return 0;
   return (1);
 }

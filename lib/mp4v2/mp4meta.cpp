@@ -106,7 +106,7 @@ bool MP4File::CreateMetadataAtom(const char* name)
     {
         pMetaAtom->SetFlags(0x1);
     } else if ((memcmp(name, "cpil", 4) == 0) || (memcmp(name, "tmpo", 4) == 0)) {
-        pMetaAtom->SetFlags(0xF);
+        pMetaAtom->SetFlags(0x15);
     }
 
     MP4Atom *pHdlrAtom = m_pRootAtom->FindAtom("moov.udta.meta.hdlr");

@@ -40,6 +40,7 @@
 #include <rtp/debug.h>
 #include "codec_plugin_private.h"
 #include <mpeg2t/mpeg2_transport.h>
+#include "mpeg4ip_getopt.h"
 /* ??? */
 #ifndef LOG_PRI
 #define LOG_PRI(p) ((p) & LOG_PRIMASK)
@@ -74,9 +75,9 @@ static GtkWidget *time_slider;
 static GtkWidget *time_disp;
 static GtkWidget *session_desc[5];
 static SDL_mutex *command_mutex;
-static int master_looped;
+static bool master_looped;
 static int master_volume;
-static int master_muted;
+static bool master_muted;
 static int master_fullscreen = 0;
 static uint64_t master_time;
 static int time_slider_pressed = 0;
@@ -243,7 +244,7 @@ static void create_session_from_name (const char *name)
       if (ret > 0) {
 	ShowMessage("Warning", errmsg);
       }
-      if (master_muted == 0)
+      if (master_muted == false)
 	psptr->set_audio_volume(master_volume);
       else
 	psptr->set_audio_volume(0);
@@ -714,17 +715,17 @@ static void set_speaker_button (gchar **xpm_data)
 static void on_speaker_clicked (GtkWidget *window, gpointer data)
 {
   int vol;
-  if (master_muted == 0) {
+  if (master_muted == false) {
     // mute the puppy
     set_speaker_button(xpm_speaker_muted);
-    master_muted = 1;
+    master_muted = true;
     vol = 0;
   } else {
     set_speaker_button(xpm_speaker);
-    master_muted = 0;
+    master_muted = false;
     vol  = master_volume;
   }
-  config.set_config_value(CONFIG_MUTED, master_muted);
+  config.SetBoolValue(CONFIG_MUTED, master_muted);
   if (psptr && psptr->session_has_audio()) {
     psptr->set_audio_volume(vol);
   }
@@ -740,7 +741,7 @@ static void volume_adjusted (int volume)
   gtk_range_slider_update(GTK_RANGE(volume_slider));
   gtk_range_clear_background(GTK_RANGE(volume_slider));
 #endif
-   if (master_muted == 0 && psptr && psptr->session_has_audio()) {
+   if (master_muted == false && psptr && psptr->session_has_audio()) {
      psptr->set_audio_volume(master_volume);
    }
 }
@@ -975,7 +976,7 @@ static int on_time_slider_adjusted (GtkWidget *window, gpointer data)
 static void on_loop_enabled_button (GtkWidget *widget, gpointer *data)
 {
   master_looped = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
-  config.set_config_value(CONFIG_LOOPED, master_looped);
+  config.SetBoolValue(CONFIG_LOOPED, master_looped);
 }
 
 /*
@@ -1073,7 +1074,7 @@ static gint main_timer (gpointer raw)
 	    create_session_from_name(start);
 	} while (start != NULL && psptr == NULL);
 	SDL_mutexV(command_mutex);
-      } else if (master_looped != 0) {
+      } else if (master_looped) {
 	if (play_state == PLAYING) {
 	  if (psptr == NULL)
 	    break;
@@ -1256,8 +1257,46 @@ static gint main_timer (gpointer raw)
  */
 int main (int argc, char **argv)
 {
-  gtk_init(&argc, &argv);
-printf("%s\n", *argv);
+  static struct option orig_options[] = {
+    { "version", 0, 0, 'v' },
+    { "help", 0, 0, 'H'},
+    { "config-vars", 0, 0, 'c'},
+    { NULL, 0, 0, 0 }
+  };
+
+  bool have_unknown_opts = false;
+  opterr = 0;
+  while (true) {
+    int c = -1;
+    int option_index = 0;
+	  
+    c = getopt_long_only(argc, argv, "af:hsvc",
+			 orig_options, &option_index);
+
+    if (c == -1)
+      break;
+
+    switch (c) {
+    case 'H':
+      fprintf(stderr, 
+	      "Usage: %s [--help] [--version] [--<config variable>=<value>] media-to-play\n",
+	      argv[0]);
+      fprintf(stderr, "Use [--config-vars] to dump configuration variables\n");
+      exit(-1);
+
+    case 'c':
+      config.DisplayHelp();
+      exit(0);
+    case 'v':
+      fprintf(stderr, "%s version %s\n", argv[0], MPEG4IP_VERSION);
+      exit(0);
+    case '?':
+    default:
+      have_unknown_opts = true;
+      break;
+    }
+  }
+
   command_mutex = SDL_CreateMutex();
   char buffer[FILENAME_MAX];
   char *home = getenv("HOME");
@@ -1277,11 +1316,64 @@ printf("%s\n", *argv);
   config.InitializeIndexes();
   config.ReadDefaultFile();
 
-  if (config.get_config_value(CONFIG_RTP_BUFFER_TIME) != 2) {
-    config.set_config_value(CONFIG_RTP_BUFFER_TIME_MSEC, 
-			    config.get_config_value(CONFIG_RTP_BUFFER_TIME) * 1000);
-    config.SetToDefault(CONFIG_RTP_BUFFER_TIME);
+  if (have_unknown_opts) {
+    /*
+     * Create an struct option that allows all the loaded configuration
+     * options
+     */
+    struct option *long_options;
+    uint32_t origo = sizeof(orig_options) / sizeof(*orig_options);
+    long_options = create_long_opts_from_config(&config,
+						orig_options,
+						origo,
+						128);
+    if (long_options == NULL) {
+      player_error_message("Couldn't create options");
+      exit(-1);
+    }
+    optind = 1;
+    // command line parsing
+    while (true) {
+      int c = -1;
+      int option_index = 0;
+      config_index_t ix;
+
+      c = getopt_long_only(argc, argv, "af:hsv",
+			   long_options, &option_index);
+
+      if (c == -1)
+	break;
+
+      /*
+       * We set a value of 128 to 128 + number of variables
+       * we added the original options to the block, but don't
+       * process them here.
+       */
+      if (c >= 128) {
+	// we have an option from the config file
+	ix = c - 128;
+	player_debug_message("setting %s to %s",
+		      config.GetNameFromIndex(ix),
+		      optarg);
+	if (config.GetTypeFromIndex(ix) == CONFIG_TYPE_BOOL &&
+	    optarg == NULL) {
+	  config.SetBoolValue(ix, true);
+	} else
+	  if (optarg == NULL) {
+	    player_error_message("Missing argument with variable %s",
+				 config.GetNameFromIndex(ix));
+	  } else 
+	    config.SetVariableFromAscii(ix, optarg);
+      } else if (c == '?') {
+	fprintf(stderr, 
+		"Usage: %s [--help] [--version] [--<config variable>=<value>] media-to-play\n",
+		argv[0]);
+	exit(-1);
+      }
+    }
+    free(long_options);
   }
+  gtk_init(&argc, &argv);
   const char *read;
   playlist = g_list_append(playlist, (void *)"");
   read = config.get_config_string(CONFIG_PREV_FILE_0);
@@ -1306,8 +1398,8 @@ printf("%s\n", *argv);
   }
   
   last_file = g_strdup(config.get_config_string(CONFIG_PREV_DIRECTORY));
-  master_looped = config.get_config_value(CONFIG_LOOPED);
-  master_muted = config.get_config_value(CONFIG_MUTED);
+  master_looped = config.GetBoolValue(CONFIG_LOOPED);
+  master_muted = config.GetBoolValue(CONFIG_MUTED);
   master_volume = config.get_config_value(CONFIG_VOLUME);
   rtsp_set_error_func(library_message);
   rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
@@ -1319,6 +1411,9 @@ printf("%s\n", *argv);
   http_set_loglevel(config.get_config_value(CONFIG_HTTP_DEBUG));
   mpeg2t_set_error_func(library_message);
   mpeg2t_set_loglevel(config.get_config_value(CONFIG_MPEG2T_DEBUG));
+  if (config.get_config_value(CONFIG_RX_SOCKET_SIZE) != 0) {
+    rtp_set_receive_buffer_default_size(config.get_config_value(CONFIG_RX_SOCKET_SIZE));
+  }
   /*
    * Set up main window
    */
@@ -1687,7 +1782,7 @@ printf("%s\n", *argv);
 
   speaker_button = gtk_button_new();
   image = CreateWidgetFromXpm(speaker_button,
-			      master_muted == 0 ?
+			      master_muted == false ?
 			      xpm_speaker : xpm_speaker_muted);
   gtk_container_add(GTK_CONTAINER(speaker_button), image);
 #if 0
@@ -1844,10 +1939,8 @@ printf("%s\n", *argv);
   /*
    * any args passed ?
    */
-  argc--;
-  argv++;
-  if (argc > 0) {
-    start_session_from_name(*argv);
+  if ((argc - optind) > 0) {
+    start_session_from_name(argv[optind++]);
   }
   gtk_main();
   exit(0);

@@ -123,7 +123,7 @@ static char* PrintAudioInfo(
 		type == 18 || type >= 28) {
 	      typeName = "MPEG-4";
 	    } else {
-	      typeName = mpeg4AudioNames[type - 1];
+	        typeName = mpeg4AudioNames[type - 1];
 	    }
 	    free(pAacConfig);
 #if 0
@@ -159,6 +159,15 @@ static char* PrintAudioInfo(
 	char *sInfo = (char*)MP4Malloc(256);
 
 	// type duration avgBitrate samplingFrequency
+        if (MP4IsIsmaCrypMediaTrack(mp4File, trackId))
+	sprintf(sInfo,	
+		"%u\taudio\tenca - %s, %.3f secs, %u kbps, %u Hz\n", 
+		trackId, 
+		typeName, 
+		msDuration / 1000.0, 
+		(avgBitRate + 500) / 1000, 
+		timeScale);
+        else
 	sprintf(sInfo,	
 		"%u\taudio\t%s, %.3f secs, %u kbps, %u Hz\n", 
 		trackId, 
@@ -317,6 +326,18 @@ static char* PrintVideoInfo(
 	char *sInfo = (char*)MP4Malloc(256);
 
 	// type duration avgBitrate frameSize frameRate
+        if (MP4IsIsmaCrypMediaTrack(mp4File, trackId))
+	sprintf(sInfo, 
+		"%u\tvideo\tencv - %s, %.3f secs, %u kbps, %ux%u @ %.2f fps\n", 
+		trackId, 
+		typeName,
+		msDuration / 1000.0, 
+		(avgBitRate + 500) / 1000,
+		width,	
+		height,
+		fps
+	);
+        else
 	sprintf(sInfo, 
 		"%u\tvideo\t%s, %.3f secs, %u kbps, %ux%u @ %.2f fps\n", 
 		trackId, 

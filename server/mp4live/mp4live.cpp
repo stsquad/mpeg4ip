@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -44,15 +44,18 @@ CLiveConfig *InitializeConfigVariables (void)
 {
   char userFileName[MAXPATHLEN];
   char* home;
+  CLiveConfig *ret;
 
   home = getenv("HOME");
   if (home) {
     strcpy(userFileName, home);
     strcat(userFileName, "/.mp4live_rc");
   }
-  return new CLiveConfig(MyConfigVariables,
+  ret = new CLiveConfig(MyConfigVariables,
 			 sizeof(MyConfigVariables) / sizeof(SConfigVariable),
 			 home ? userFileName : NULL);
+  ret->InitializeIndexes();
+  return ret;
 }
 
 // CreateVideoSource - if you've got more sources to add, this is
@@ -125,54 +128,128 @@ int main(int argc, char** argv)
 	extern int nogui_main(CLiveConfig* pConfig);
 	extern int gui_main(int argc, char**argv, CLiveConfig* pConfig);
 
-	// command line parsing
+	CLiveConfig* pConfig = InitializeConfigVariables();
+	config_index_t ix;
+	bool have_unknown_opts = false;
+	/*
+	 * First pass through getopt - read the below options, to see if
+	 * a file had been specified for config options.
+	 */
+	static struct option orig_options[] = {
+	  { "automatic", 0, 0, 'a' },
+	  { "file", 1, 0, 'f' },
+	  { "headless", 0, 0, 'h' },
+	  { "sdp", 0, 0, 's' },
+	  { "version", 0, 0, 'v' },
+	  { "help", 0, 0, 'H'},
+	  { "config-vars", 0, 0, 'c'},
+	  { NULL, 0, 0, 0 }
+	};
+	opterr = 0;
 	while (true) {
-		int c = -1;
-		int option_index = 0;
-		static struct option long_options[] = {
-			{ "automatic", 0, 0, 'a' },
-			{ "file", 1, 0, 'f' },
-			{ "headless", 0, 0, 'h' },
-			{ "sdp", 0, 0, 's' }, 
-			{ "version", 0, 0, 'v' },
-			{ NULL, 0, 0, 0 }
-		};
+	  int c = -1;
+	  int option_index = 0;
+	  
+	  c = getopt_long_only(argc, argv, "af:hsvc",
+			       orig_options, &option_index);
 
-		c = getopt_long_only(argc, argv, "af:hsv",
-			long_options, &option_index);
+	  if (c == -1)
+	    break;
 
-		if (c == -1)
-			break;
+	  switch (c) {
+	  case 'a':
+	    automatic = true;
+	    break;
+	  case 'f':	// -f <config-file>
+	    configFileName = strdup(optarg);
+	    break;
+	  case 'H':
+	    fprintf(stderr, 
+		    "Usage: %s [-f config_file] [--automatic] [--headless] [--sdp] [--<config variable>=<value>]\n",
+		    argv[0]);
+	    fprintf(stderr, "Use [--config-vars] to dump configuration variables\n");
+	    exit(-1);
 
-		switch (c) {
-		case 'a':
-			automatic = true;
-			break;
-		case 'f':	// -f <config-file>
-			configFileName = strdup(optarg);
-			break;
-		case 'h':
-			headless = true;
-			break;
-		case 's':
-			sdpOnly = true;
-			break;
-		case 'v':
-			fprintf(stderr, "%s version %s\n", argv[0], MPEG4IP_VERSION);
-			exit(0);
-		case '?':
-		default:
-			fprintf(stderr, 
-				"Usage: %s [-f config_file] [--automatic] [--headless] [--sdp]\n",
-				argv[0]);
-			exit(-1);
-		}
+	  case 'c':
+	    pConfig->DisplayHelp();
+	    exit(0);
+	  case 'h':
+	    headless = true;
+	    break;
+	  case 's':
+	    sdpOnly = true;
+	    break;
+	  case 'v':
+	    fprintf(stderr, "%s version %s\n", argv[0], MPEG4IP_VERSION);
+	    exit(0);
+	  case '?':
+	  default:
+	    have_unknown_opts = true;
+	    break;
+	  }
 	}
 
-	CLiveConfig* pConfig = InitializeConfigVariables();
-
+	/*
+	 * Read the config file so that any command line options can
+	 * overwrite them
+	 */
 	if (ReadConfigFile(configFileName, pConfig) < 0) {
 	}
+
+	if (have_unknown_opts) {
+	  /*
+	   * Create an struct option that allows all the loaded configuration
+	   * options
+	   */
+	  struct option *long_options;
+	  uint32_t origo = sizeof(orig_options) / sizeof(*orig_options);
+	  long_options = create_long_opts_from_config(pConfig,
+						      orig_options,
+						      origo,
+						      128);
+	  if (long_options == NULL) {
+	    error_message("Couldn't create options");
+	    exit(-1);
+	  }
+	  optind = 1;
+	  // command line parsing
+	  while (true) {
+	    int c = -1;
+	    int option_index = 0;
+
+	    c = getopt_long_only(argc, argv, "af:hsv",
+				 long_options, &option_index);
+
+	    if (c == -1)
+	      break;
+
+	    /*
+	     * We set a value of 128 to 128 + number of variables
+	     * we added the original options to the block, but don't
+	     * process them here.
+	     */
+	    if (c >= 128) {
+	      // we have an option from the config file
+	      ix = c - 128;
+	      error_message("setting %s to %s",
+			    pConfig->GetNameFromIndex(ix),
+			    optarg);
+	      if (pConfig->GetTypeFromIndex(ix) == CONFIG_TYPE_BOOL &&
+		  optarg == NULL) {
+		pConfig->SetBoolValue(ix, true);
+	      } else
+		pConfig->SetVariableFromAscii(ix, optarg);
+	    } else if (c == '?') {
+	      fprintf(stderr, 
+		      "Usage: %s [-f config_file] [--automatic] [--headless] [--sdp]\n",
+		      argv[0]);
+	      exit(-1);
+	    }
+	  }
+	  free(long_options);
+	}
+
+	
 
 	pConfig->m_appAutomatic = automatic;
 

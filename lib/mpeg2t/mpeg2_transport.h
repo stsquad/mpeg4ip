@@ -35,7 +35,9 @@
 typedef struct mpeg2t_frame_t {
   struct mpeg2t_frame_t *next_frame;
   int have_ps_ts; // 0 if we don't have presentation timestamp, 1 if we do
+  int have_dts;
   uint64_t ps_ts; 
+  uint64_t dts;
   int frame_type; // for video
   uint8_t *frame; // frame data
   uint32_t frame_len; // length of frame
@@ -104,7 +106,9 @@ typedef struct mpeg2t_es_t {
   uint8_t left_buff[12];
   int left;
   int have_ps_ts;
+  int have_dts;
   uint64_t ps_ts;
+  uint64_t dts;
   uint32_t header;
   int have_seq_header;
   uint32_t seq_header_offset;

@@ -54,13 +54,13 @@ public:
 
 // TBD weld this in, and throw exception
 
-enum ConfigType {
+typedef enum ConfigType {
 	CONFIG_TYPE_UNDEFINED,
 	CONFIG_TYPE_INTEGER,
 	CONFIG_TYPE_BOOL,
 	CONFIG_TYPE_STRING,
 	CONFIG_TYPE_FLOAT
-};
+} ConfigType;
 
 union UConfigValue {
 	UConfigValue(void) {
@@ -101,11 +101,13 @@ SConfigVariableDeclare SConfigVariable {
 		  const char* 	 sName,
 		  ConfigType	 type,
 		  UConfigValue	 defaultValue,
+		  const char *help = NULL,
 		  UConfigValue	 value = (config_integer_t)0) {
     m_iName = iName;
     m_sName = sName;
     m_type = type;
     m_defaultValue = defaultValue;
+    m_helpString = help;
     m_value = value;
   };
 #endif
@@ -114,6 +116,7 @@ SConfigVariableDeclare SConfigVariable {
 	const char* 			m_sName;
 	ConfigType			m_type;
 	UConfigValue			m_defaultValue;
+	const char*                     m_helpString;
 	UConfigValue			m_value;
 
 	const char* ToAscii() {
@@ -388,6 +391,13 @@ public:
 		return m_variables[iName].m_value.m_svalue;
 	}
 
+	inline const char* GetHelpValue(const config_index_t iName) {
+#if CONFIG_SAFETY
+	  CheckIName(iName);
+#endif
+	  return m_variables[iName].m_helpString;
+	};
+
 	inline void SetStringValue(const config_index_t iName, const char* svalue) {
 #if CONFIG_SAFETY
 		CheckIName(iName);
@@ -470,11 +480,15 @@ public:
 	  }
 	}
 
+	void SetVariableFromAscii(config_index_t ix, char *arg) {
+	  m_variables[ix].FromAscii(arg);
+	};
+
 	bool ReadFromFile(const char* fileName) {
 	  if (fileName == NULL) 
 	    return false;
        
-		free(m_fileName);
+		CHECK_AND_FREE(m_fileName);
 		m_fileName = strdup(fileName);
 		FILE* pFile = fopen(fileName, "r");
 		if (pFile == NULL) {
@@ -543,6 +557,33 @@ public:
 		}
 		return UINT32_MAX;
 	}
+	ConfigType GetTypeFromIndex (config_index_t index) {
+	  if (index < m_numVariables) {
+	    return m_variables[index].m_type;
+	  }
+	  return CONFIG_TYPE_UNDEFINED;
+	};
+	const char *GetNameFromIndex (config_index_t index) {
+	  if (index < m_numVariables) {
+	    return m_variables[index].m_sName;
+	  }
+	  return NULL;
+	};
+	config_index_t GetNumVariables (void) {
+	  return m_numVariables;
+	};
+	void DisplayHelp(bool onlyHelp = false) {
+	  config_index_t ix;
+	  for (ix = 0; ix < m_numVariables; ix++) {
+	    if (m_variables[ix].m_helpString) {
+	      fprintf(stdout, "%s - %s\n", m_variables[ix].m_sName,
+		      m_variables[ix].m_helpString);
+	    } else if (onlyHelp == false) {
+	      fprintf(stdout, "%s\n", m_variables[ix].m_sName);
+	    }
+	  }
+	};
+
 protected:
 	SConfigVariable* FindByName(const char* sName) {
 	  config_index_t ix = FindIndexByName(sName);
@@ -580,6 +621,15 @@ protected:
  //{ &(var), (name), CONFIG_TYPE_INTEGER,(config_integer_t) (defval), }
 #define CONFIG_STRING(var, name, defval) \
  { SConfigVariable(&(var), (name), CONFIG_TYPE_STRING, (const char *)(defval)) }
+#define CONFIG_BOOL_HELP(var, name, defval, help) \
+ { SConfigVariable(&(var), (name), CONFIG_TYPE_BOOL, (defval), help) }
+#define CONFIG_FLOAT_HELP(var, name, defval, help) \
+ { SConfigVariable(&(var), (name), CONFIG_TYPE_FLOAT,(float) (defval), help) }
+#define CONFIG_INT_HELP(var, name, defval, help) \
+ { SConfigVariable(&var, name, CONFIG_TYPE_INTEGER, (config_integer_t)(defval), help)}
+ //{ &(var), (name), CONFIG_TYPE_INTEGER,(config_integer_t) (defval), }
+#define CONFIG_STRING_HELP(var, name, defval, help) \
+ { SConfigVariable(&(var), (name), CONFIG_TYPE_STRING, (const char *)(defval), help) }
 #else
 #define CONFIG_BOOL(var, name, defval) \
  { &(var), (name), CONFIG_TYPE_BOOL, (defval), }
@@ -589,6 +639,14 @@ protected:
  { &(var), (name), CONFIG_TYPE_INTEGER,(config_integer_t) (defval), }
 #define CONFIG_STRING(var, name, defval) \
  { &(var), (name), CONFIG_TYPE_STRING, (const char *)(defval), (const char *)NULL }
+#define CONFIG_BOOL_HELP(var, name, defval, help) \
+ { &(var), (name), CONFIG_TYPE_BOOL, (defval), (help), }
+#define CONFIG_FLOAT_HELP(var, name, defval, help) \
+ { &(var), (name), CONFIG_TYPE_FLOAT,(float) (defval), (help), }
+#define CONFIG_INT_HELP(var, name, defval, help) \
+ { &(var), (name), CONFIG_TYPE_INTEGER,(config_integer_t) (defval), (help), }
+#define CONFIG_STRING_HELP(var, name, defval, help) \
+ { &(var), (name), CONFIG_TYPE_STRING, (const char *)(defval), (help), (const char *)NULL,  }
 #endif
 
 #endif /* __CONFIG_SET_H__ */

@@ -384,6 +384,7 @@ There are currently four command line options to mp4live:<br>
 --automatic<br>
 --headless<br>
 --sdp<br>
+--config-vars<br>
 </code>
 <P>
 <code>--file &lt;config-file&gt;</code> allows specification of the mp4live configuration file
@@ -399,6 +400,14 @@ with the 'cron' utlity to do scheduled recording and/or transmission.
 <code>--headless</code> causes mp4live to behave in the <code>--automatic</code> mode AND not display any user interface.
 <P>
 <code>--sdp</code> causes mp4live to just generate the sdp file based on its configuration file and then exit.
+<p>
+<code>--config-vars</code> will cause mp4live to display the list of all 
+possible configuration variables and exit.
+<p>
+In addition, any of the configuration variables can be overwritten by
+using --&lt;variable&gt;=&lt;value&gt;.  Make sure that the case of 
+variable matches the case from the --config-vars display.
+<p>
 
 <P>
 <a href="#top">Back to top</a>

@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.13 $ 
- * $Date: 2003/05/23 18:55:16 $
+ * $Revision: 1.14 $ 
+ * $Date: 2004/04/15 22:32:41 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -311,7 +311,8 @@ typedef struct socket_udp_ socket_udp;
 
 socket_udp *get_rtp_data_socket(struct rtp *session);
 socket_udp *get_rtp_rtcp_socket(struct rtp *session);
-  
+
+  void rtp_set_receive_buffer_default_size(int bufsize);  
 #ifdef __cplusplus
 }
 #endif

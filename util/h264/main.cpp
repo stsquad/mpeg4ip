@@ -172,8 +172,18 @@ void h264_vui_parameters (CBitstream *bs)
   }
 }
     
+static uint32_t calc_ceil_log2 (uint32_t val)
+{
+  uint32_t ix, cval;
 
-    
+  ix = 0; cval = 1;
+  while (ix < 32) {
+    if (cval >= val) return ix;
+    cval <<= 1;
+    ix++;
+  }
+  return ix;
+}
 
 void h264_parse_sequence_parameter_set (h264_decode_t *dec, CBitstream *bs)
 {
@@ -264,11 +274,7 @@ void h264_parse_pic_parameter_set (h264_decode_t *dec, CBitstream *bs)
       } else if (temp == 6) {
 	temp = h264_ue(bs);
 	printf("     pic_size_in_map_units_minus1: %u\n", temp);
-	double calc;
-	calc = (double) num_slice_groups + 1;
-	calc = log2(calc);
-	calc = ceil(calc);
-	uint32_t bits = (uint32_t)(calc);
+	uint32_t bits = calc_ceil_log2(num_slice_groups + 1);
 	printf("     bits - %u\n", bits);
 	for (iGroup = 0; iGroup <= temp; iGroup++) {
 	  printf("      slice_group_id[%u]: %u\n", iGroup, bs->GetBits(bits));

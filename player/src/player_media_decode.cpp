@@ -281,6 +281,7 @@ int CPlayerMedia::decode_thread (void)
 	    ud = NULL;
 	    do {
 	      if (ud != NULL) free(ud);
+	      frame_buffer = NULL;
 	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync,
 						   &frame_buffer, &frame_len,
 						   &ud);

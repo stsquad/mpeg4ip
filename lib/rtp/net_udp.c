@@ -253,13 +253,21 @@ static int udp_addr_valid4(const char *dst)
         return FALSE;
 }
 
+static int have_recv_buf_size =
+#ifdef _WIN32
+     1
+#else
+     0
+#endif
+;
+static int recv_buf_size_value = 65536;
+
 static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_port, uint16_t tx_port, int ttl)
 {
 	int                 	 reuse = 1;
 	struct sockaddr_in  	 s_in;
-#ifdef WIN32
-	int recv_buf_size = 65536;
-#endif
+	int recv_buf_size;
+
 	socket_udp         	*s = (socket_udp *)malloc(sizeof(socket_udp));
 	s->mode    = IPv4;
 	s->addr    = NULL;
@@ -290,14 +298,30 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 		free(s);
 		return NULL;
 	}
-#ifdef WIN32
-	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_RCVBUF, (char *)&recv_buf_size, sizeof(int)) != 0) {
-	  socket_error("setsockopt SO_RCVBUF");
-	  close(s->fd);
-	  free(s);
-	  return NULL;
+	if (have_recv_buf_size != 0) {
+	  recv_buf_size = recv_buf_size_value;
+	  if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_RCVBUF, (char *)&recv_buf_size, sizeof(int)) != 0) {
+	    socket_error("setsockopt SO_RCVBUF");
+	    close(s->fd);
+	    free(s);
+	    return NULL;
+	  }
+
+        //Since setsockopt would not return the error if /proc/sys/net/core/rmem_max is smaller
+        //then the value you are trying to set. use sysctl -w net.core.rmem_max=new_val
+        //to set the value higher than what is desired in RCVBUF
+	  int test_buffer;
+	  int test_buffer_size=sizeof(test_buffer);
+	  if( getsockopt( s->fd, SOL_SOCKET, SO_RCVBUF, (void*)&test_buffer, &test_buffer_size ) == -1 )
+	    {
+	      socket_error("getsockopt SO_RCVBUF");
+	    } else {
+	      //See if we could set the desired value
+	      if(test_buffer < recv_buf_size) {
+		rtp_message(LOG_WARNING, "Failed to set the RCVBUF to %d, only could set %d\n. Check the Max kernel receive buffer size using \"sysctl net.core.rmem_max\"\n", recv_buf_size, test_buffer);
+	      }
+	    }
 	}
-#endif
 	
 	if (SETSOCKOPT(s->fd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) != 0) {
 		socket_error("setsockopt SO_REUSEADDR");
@@ -941,3 +965,8 @@ int udp_fd(socket_udp *s)
 	return 0;
 }
 
+void rtp_set_receive_buffer_default_size (int bufsize)
+{
+  have_recv_buf_size = 1;
+  recv_buf_size_value = bufsize;
+}

@@ -521,6 +521,7 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
 static void clean_es_data (mpeg2t_es_t *es_pid) 
 {
   es_pid->have_ps_ts = 0;
+  es_pid->have_dts = 0;
   if (es_pid->is_video) {
     // mpeg1 or mpeg2 video
     es_pid->work_state = 0;
@@ -567,8 +568,11 @@ void mpeg2t_malloc_es_work (mpeg2t_es_t *es_pid, uint32_t frame_len)
   }
   es_pid->work->next_frame = NULL;
   es_pid->work->have_ps_ts = es_pid->have_ps_ts;
+  es_pid->work->have_dts = es_pid->have_dts;
   es_pid->work->ps_ts = es_pid->ps_ts;
+  es_pid->work->dts = es_pid->dts;
   es_pid->have_ps_ts = 0;
+  es_pid->have_dts = 0;
 }
 
 /*
@@ -713,16 +717,25 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     }
 
     es_pid->have_ps_ts = 0;
+    es_pid->have_dts = 0;
     if (read_pes_options) {
       if (esptr[2] + 3 > buflen) {
 	return 0;
       }
+#if 0
+      if ((esptr[1] & 0x20)) {
+	mpeg2t_message(LOG_INFO, "pid %x has ESCR", es_pid->pid.pid);
+      }
+      if ((esptr[1] & 0x10)) {
+	mpeg2t_message(LOG_INFO, "pid %x has ES rate", es_pid->pid.pid);
+      }
+#endif
+      uint64_t pts;
+      uint32_t offset = 3;
       //mpeg2t_read_pes_options(es_pid, esptr);
-      if (((esptr[1] & 0xc0) == 0x80) ||
-	  ((esptr[1] & 0xc0) == 0xc0)) {
+      if (esptr[1] & 0x80) {
 	// read presentation timestamp
-	uint64_t pts;
-#if 1
+#if 0
 	mpeg2t_message(LOG_INFO, "Stream %x %02x %02x %02x", 
 	       stream_id, esptr[0], esptr[1], esptr[2]);
 	mpeg2t_message(LOG_INFO, "PTS %02x %02x %02x %02x %02x", 
@@ -748,7 +761,28 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	have_psts = 1;
 	mpeg2t_message(LOG_INFO, "pid %x psts "U64, 
 		      es_pid->pid.pid, es_pid->ps_ts);
+	offset = 8;
       }
+
+      // this is how we would read the dts, if we wanted to use it
+      // I'm not sure what it buys us.
+      if (esptr[1] & 0x40) {
+	pts = ((esptr[offset] >> 1) & 0x7);
+	pts <<= 8;
+	pts |= esptr[offset + 1];
+	pts <<= 7;
+	pts |= ((esptr[offset + 2] >> 1) & 0x7f);
+	pts <<= 8;
+	pts |= esptr[offset + 3];
+	pts <<= 7;
+	pts |= ((esptr[offset + 4] >> 1) & 0x7f);
+	mpeg2t_message(LOG_INFO, "pid %x  dts "U64,
+		       es_pid->pid.pid, pts);
+	have_psts = 1;
+	es_pid->have_dts = 1;
+	es_pid->dts = pts;
+      }
+
       buflen -= esptr[2] + 3;
       esptr += esptr[2] + 3;
       pes_len -= esptr[2] + 3;
@@ -756,6 +790,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   // process esptr, buflen
     if (buflen == 0) {
       es_pid->have_ps_ts = 0;
+      es_pid->have_dts = 0;
       return 0;
     }
     mpeg2t_message(LOG_DEBUG, 
@@ -979,6 +1014,7 @@ void mpeg2t_clear_frames (mpeg2t_es_t *es_pid)
 {
   SDL_LockMutex(es_pid->list_mutex);
   es_pid->have_ps_ts = 0;
+  es_pid->have_dts = 0;
   es_pid->have_seq_header = 0;
   es_pid->frames_in_list = 0;
   while (es_pid->list != NULL) {

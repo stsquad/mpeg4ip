@@ -9,9 +9,12 @@ xx/xx/04 version 1.1
       MPEG4IP_VERSION
     Changed so that we no longer overwrite SDL, but clone SDL audio
       with our changes.
-    Mac OSX xcode projects for tools
+    Mac OSX support (including mp4player) and some xcode projects for tools
     Mpeg2 transport stream file parsing for player, including crude sync
     Mpeg2 video encoding via ffmpeg in mp4live
+    Xvid 1.0 API for mp4live, gmp4player
+    Ability to enter config file parameters on command line for mp4live and gmp4player
+    ISMAcryp support
 
 12/23/03 version 1.0
     Fix incorrect timestamp on mpeg1/2 insert into mp4 file.

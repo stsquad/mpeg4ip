@@ -50,7 +50,7 @@ int CMP4If::set_audio_volume (int val)
 
 int CMP4If::get_mute (void) 
 { 
-	return config.get_config_value(CONFIG_MUTED); 
+	return config.GetBoolValue(CONFIG_MUTED); 
 }
 
 int CMP4If::toggle_mute (void)
@@ -60,9 +60,8 @@ int CMP4If::toggle_mute (void)
 		return -1;
 	}
 
-	config.set_config_value(CONFIG_MUTED,
-							config.get_config_value(CONFIG_MUTED) == 0 ?
-							1 : 0);
+	config.SetBoolValue(CONFIG_MUTED,
+			    !config.GetBoolValue(CONFIG_MUTED));
 
 	ret = client_read_config();
 

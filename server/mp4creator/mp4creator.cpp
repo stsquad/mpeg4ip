@@ -62,7 +62,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
 int main(int argc, char** argv)
 {
   char* usageString = 
-    "usage: %s <options> <mp4-file>\n"
+    " <options> <mp4-file>\n"
     "  Options:\n"
     "  -aac-old-file-format    Use old file format with 58 bit adts headers\n"
     "  -aac-profile=[2|4]      Force AAC to mpeg2 or mpeg4 profile\n"
@@ -319,7 +319,7 @@ int main(int argc, char** argv)
       }
       break;
     case '?':
-      fprintf(stderr, usageString, ProgName);
+      fprintf(stderr, "usage: %s %s", ProgName, usageString);
       exit(EXIT_SUCCESS);
     case 'V':
       fprintf(stderr, "%s - %s version %s\n", 
@@ -333,7 +333,7 @@ int main(int argc, char** argv)
 
   // check that we have at least one non-option argument
   if ((argc - optind) < 1) {
-    fprintf(stderr, usageString, ProgName);
+    fprintf(stderr, "usage: %s %s", ProgName, usageString);
     exit(EXIT_COMMAND_LINE);
   }
   
