@@ -39,10 +39,10 @@ main(int argc, char** argv)
 	MP4SetGraphicsProfileLevel(mp4File, 1);
 
 	MP4TrackId odTrackId = 
-		MP4AddTrack(mp4File, "od");
+		MP4AddSystemsTrack(mp4File, "od");
 
 	MP4TrackId bifsTrackId = 
-		MP4AddTrack(mp4File, "bifs");
+		MP4AddSystemsTrack(mp4File, "bifs");
 
 	MP4TrackId videoTrackId = 
 		MP4AddVideoTrack(mp4File, 90000, 3000, 320, 240);

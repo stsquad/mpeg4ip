@@ -43,4 +43,3 @@ void MP4RtpAtom::Read()
 	MP4Free(data);
 }
 
-// TBD rtp sdp write

@@ -191,6 +191,8 @@ class MP4Float32Property : public MP4Property {
 public:
 	MP4Float32Property(char* name)
 		: MP4Property(name) {
+		m_useFixed16Format = false;
+		m_useFixed32Format = false;
 		SetCount(1);
 		m_values[0] = 0.0;
 	}
@@ -223,23 +225,29 @@ public:
 		SetValue(value, count);
 	}
 
-	void Read(MP4File* pFile, u_int32_t index = 0) {
-		if (m_implicit) {
-			return;
-		}
-		m_values[index] = pFile->ReadFloat();
+	bool IsFixed16Format() {
+		return m_useFixed16Format;
 	}
 
-	void Write(MP4File* pFile, u_int32_t index = 0) {
-		if (m_implicit) {
-			return;
-		}
-		pFile->WriteFloat(m_values[index]);
+	void SetFixed16Format(bool useFixed16Format = true) {
+		m_useFixed16Format = useFixed16Format;
 	}
 
+	bool IsFixed32Format() {
+		return m_useFixed32Format;
+	}
+
+	void SetFixed32Format(bool useFixed32Format = true) {
+		m_useFixed32Format = useFixed32Format;
+	}
+
+	void Read(MP4File* pFile, u_int32_t index = 0);
+	void Write(MP4File* pFile, u_int32_t index = 0);
 	void Dump(FILE* pFile, u_int32_t index = 0);
 
 protected:
+	bool m_useFixed16Format;
+	bool m_useFixed32Format;
 	MP4Float32Array m_values;
 };
 

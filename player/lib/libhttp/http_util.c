@@ -253,14 +253,16 @@ void http_debug (int loglevel, const char *fmt, ...)
       OutputDebugString(msg);
       OutputDebugString("\n");
 #else
-	  struct timeval thistime;
+      struct timeval thistime;
       char buffer[80];
+      time_t secs;
 
       gettimeofday(&thistime, NULL);
       // To add date, add %a %b %d to strftime
-      strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
+      secs = thistime.tv_sec;
+      strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
       printf("%s.%03ld-libhttp-%d: ",
-	     buffer, thistime.tv_usec / 1000, loglevel);
+	     buffer, (unsigned long)thistime.tv_usec / 1000, loglevel);
       vprintf(fmt, ap);
       printf("\n");
 #endif

@@ -70,6 +70,7 @@ public:
 	void FinishWrite();
 
 	MP4Duration GetFixedSampleDuration();
+	bool SetFixedSampleDuration(MP4Duration duration);
 
 	MP4SampleId GetSampleIdFromTime(MP4Timestamp when, 
 		bool wantSyncSample = false);
@@ -109,6 +110,7 @@ protected:
 
 	// for writing
 	MP4SampleId m_writeSampleId;
+	MP4Duration m_fixedSampleDuration;
 	u_int8_t* 	m_pChunkBuffer;
 	u_int32_t	m_chunkBufferSize;
 	u_int32_t	m_chunkSamples;

@@ -92,11 +92,12 @@ public:
 
 	/* track operations */
 
-	MP4TrackId AddTrack(char* type);
+	MP4TrackId AddTrack(char* type, u_int32_t timeScale = 1);
 	void DeleteTrack(MP4TrackId trackId);
 
 	u_int32_t GetNumberOfTracks(char* type = NULL);
 
+	MP4TrackId AllocTrackId();
 	MP4TrackId FindTrackId(u_int16_t index, char* type = NULL);
 	u_int16_t FindTrackIndex(MP4TrackId trackId);
 
@@ -147,6 +148,8 @@ public:
 		bool isSyncSample = true);
 
 	/* track level convenience functions */
+
+	MP4TrackId AddSystemsTrack(char* type);
 
 	MP4TrackId AddAudioTrack(u_int32_t timeScale, u_int32_t sampleDuration);
 

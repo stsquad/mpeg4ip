@@ -31,3 +31,4 @@ MP4Mp4aAtom::MP4Mp4aAtom()
 
 	ExpectChildAtom("esds", Required, OnlyOne);
 }
+

@@ -420,6 +420,19 @@ extern "C" MP4TrackId MP4AddTrack(
 	}
 }
 
+extern "C" MP4TrackId MP4AddSystemsTrack(
+	MP4FileHandle hFile, char* type)
+{
+	try {
+		return ((MP4File*)hFile)->AddSystemsTrack(type);
+	}
+	catch (MP4Error* e) {
+		PRINT_ERROR(e);
+		delete e;
+		return 0;
+	}
+}
+
 extern "C" MP4TrackId MP4AddAudioTrack(
 	MP4FileHandle hFile, u_int32_t timeScale, u_int32_t sampleDuration)
 {

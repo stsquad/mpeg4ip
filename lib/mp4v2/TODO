@@ -1,15 +1,20 @@
+
 Generate appropriate default values esp. for reserved fields
 
-AddTrack
-	AddVideoTrack
-	AddAudioTrack
-	AddHintTrack
+AddHintTrack
+
+Set movie and track duration fields on WriteSample()
 
 MP4Clone 
 	Interleaving of existing and new samples on writing
 	Rewriting of chunk offset atom to reflect moves
 
+Option to use dref to separate meta info file from media data file
+
 Effects of edit lists on reading samples
+
+Wrap printf's for verbosity - see example is player/lib/http/http_util.c
+
 
 Adapt mp4player to new library
 

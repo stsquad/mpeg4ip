@@ -27,6 +27,7 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 	m_pTrakAtom = pTrakAtom;
 
 	m_writeSampleId = 1;
+	m_fixedSampleDuration = 0;
 	m_pChunkBuffer = NULL;
 	m_chunkBufferSize = 0;
 	m_chunkSamples = 0;
@@ -45,7 +46,11 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 		m_trackId = pTrackIdProperty->GetValue();
 
 		// default chunking is 1 second of samples
-		m_durationPerChunk = pFile->GetTrackTimeScale(m_trackId);
+		MP4Integer32Property* pTrackTimeScaleProperty;
+		if (m_pTrakAtom->FindProperty("trak.mdia.mdhd.timeScale", 
+		  (MP4Property**)&pTrackTimeScaleProperty)) {
+			m_durationPerChunk = pTrackTimeScaleProperty->GetValue();
+		}
 	}
 
 	MP4Integer32Property* pTypeProperty;
@@ -227,6 +232,10 @@ void MP4Track::WriteSample(u_int8_t* pBytes, u_int32_t numBytes,
 	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
 		printf("WriteSample: id %u size %u (0x%x)\n",
 			m_writeSampleId, numBytes, numBytes));
+
+	if (duration == 0) {
+		duration = GetFixedSampleDuration();
+	}
 
 	// append sample bytes to chunk buffer
 	m_pChunkBuffer = (u_int8_t*)MP4Realloc(m_pChunkBuffer, 
@@ -419,10 +428,25 @@ MP4Duration MP4Track::GetFixedSampleDuration()
 {
 	u_int32_t numStts = m_pSttsCountProperty->GetValue();
 
+	if (numStts == 0) {
+		return m_fixedSampleDuration;
+	}
 	if (numStts != 1) {
 		return 0;	// sample duration is not fixed
 	}
 	return m_pSttsSampleDeltaProperty->GetValue(0);
+}
+
+bool MP4Track::SetFixedSampleDuration(MP4Duration duration)
+{
+	u_int32_t numStts = m_pSttsCountProperty->GetValue();
+
+	// setting this is only allowed before samples have been written
+	if (numStts != 0) {
+		return false;
+	}
+	m_fixedSampleDuration = duration;
+	return true;
 }
 
 void MP4Track::GetSampleTimes(MP4SampleId sampleId,
@@ -631,7 +655,7 @@ MP4SampleId MP4Track::GetNextSyncSample(MP4SampleId sampleId)
 		return syncSampleId;
 	}
 
-	// TBD check stsh for alternate sample
+	// LATER check stsh for alternate sample
 
 	return (MP4SampleId)-1;
 }
@@ -671,7 +695,6 @@ void MP4Track::UpdateSyncSamples(MP4SampleId sampleId, bool isSyncSample)
 MP4Atom* MP4Track::AddAtom(char* parentName, char* childName)
 {
 	MP4Atom* pChildAtom = MP4Atom::CreateAtom(childName);
-	ASSERT(pChildAtom);
 
 	MP4Atom* pParentAtom = m_pTrakAtom->FindAtom(parentName);
 	ASSERT(pParentAtom);

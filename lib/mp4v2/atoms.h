@@ -75,8 +75,7 @@ public:
 	void Generate();
 	void Read();
 protected:
-	void AddVersion0Properties();
-	void AddVersion1Properties();
+	void AddProperties(u_int8_t version);
 };
 
 class MP4TrefAtom : public MP4Atom {
@@ -354,6 +353,7 @@ class MP4FreeAtom : public MP4Atom {
 public:
 	MP4FreeAtom();
 	void Read();
+	void Write();
 };
 
 #endif /* __MP4_ATOMS_INCLUDED__ */

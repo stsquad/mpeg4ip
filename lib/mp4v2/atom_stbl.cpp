@@ -48,7 +48,6 @@ void MP4StblAtom::Generate()
 	} else {
 		pChunkOffsetAtom = CreateAtom("stco");
 	}
-	ASSERT(pChunkOffsetAtom);
 
 	AddChildAtom(pChunkOffsetAtom);
 

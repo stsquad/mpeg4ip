@@ -62,6 +62,7 @@ public:
 		m_end = 0;
 		m_size = 0;
 		m_pParentAtom = NULL;
+		m_depth = 0xFF;
 	}
 	virtual ~MP4Atom() { };
 
@@ -224,6 +225,7 @@ protected:
 	u_int8_t	m_extendedType[16];
 
 	MP4Atom*	m_pParentAtom;
+	u_int8_t	m_depth;
 
 	MP4PropertyArray	m_pProperties;
 	MP4AtomInfoArray 	m_pChildAtomInfos;

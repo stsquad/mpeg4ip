@@ -148,6 +148,7 @@ MP4Atom* MP4Atom::CreateAtom(char* type)
 		pAtom->SetUnknownType(true);
 	}
 
+	ASSERT(pAtom);
 	return pAtom;
 }
 
@@ -170,7 +171,6 @@ void MP4Atom::Generate()
 			// create the mandatory, single child atom
 			MP4Atom* pChildAtom = 
 				CreateAtom(m_pChildAtomInfos[i]->m_name);
-			ASSERT(pChildAtom);
 
 			AddChildAtom(pChildAtom);
 
@@ -226,8 +226,6 @@ MP4Atom* MP4Atom::ReadAtom(MP4File* pFile, MP4Atom* pParentAtom)
 
 
 	MP4Atom* pAtom = CreateAtom(type);
-	ASSERT(pAtom);
-
 	pAtom->SetFile(pFile);
 	pAtom->SetStart(pos);
 	pAtom->SetEnd(pos + hdrSize + dataSize);
@@ -648,15 +646,17 @@ u_int32_t MP4Atom::GetVerbosity()
 
 u_int8_t MP4Atom::GetDepth()
 {
-	// TBD can we cache the depth once we've been created???
+	if (m_depth < 0xFF) {
+		return m_depth;
+	}
 
 	MP4Atom *pAtom = this;
-	u_int8_t depth = 0;
+	m_depth = 0;
 
 	while ((pAtom = pAtom->GetParentAtom()) != NULL) {
-		depth++;
-		ASSERT(depth < 100);
+		m_depth++;
+		ASSERT(m_depth < 100);
 	}
-	return depth;
+	return m_depth;
 }
 

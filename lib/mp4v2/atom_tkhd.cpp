@@ -27,43 +27,76 @@ MP4TkhdAtom::MP4TkhdAtom()
 	AddVersionAndFlags();
 }
 
-void MP4TkhdAtom::AddVersion0Properties() 
+void MP4TkhdAtom::AddProperties(u_int8_t version) 
 {
-	AddProperty(
-		new MP4Integer32Property("creationTime"));
-	AddProperty(
-		new MP4Integer32Property("modificationTime"));
-	AddProperty(
-		new MP4Integer32Property("trackId"));
-	AddReserved("reserved1", 4);
-	AddProperty(
-		new MP4Integer32Property("duration"));
-	AddReserved("reserved2", 60);
-}
+	if (version == 1) {
+		AddProperty( /* 2 */
+			new MP4Integer64Property("creationTime"));
+		AddProperty( /* 3 */
+			new MP4Integer64Property("modificationTime"));
+	} else { // version == 0
+		AddProperty( /* 2 */
+			new MP4Integer32Property("creationTime"));
+		AddProperty( /* 3 */
+			new MP4Integer32Property("modificationTime"));
+	}
 
-void MP4TkhdAtom::AddVersion1Properties() 
-{
-	AddProperty(
-		new MP4Integer64Property("creationTime"));
-	AddProperty(
-		new MP4Integer64Property("modificationTime"));
-	AddProperty(
+	AddProperty( /* 4 */
 		new MP4Integer32Property("trackId"));
-	AddReserved("reserved1", 4);
-	AddProperty(
-		new MP4Integer64Property("duration"));
-	AddReserved("reserved2", 60);
+	AddReserved("reserved1", 4); /* 5 */
+
+	if (version == 1) {
+		AddProperty( /* 6 */
+			new MP4Integer64Property("duration"));
+	} else {
+		AddProperty( /* 6 */
+			new MP4Integer32Property("duration"));
+	}
+
+	AddReserved("reserved2", 12); /* 7 */
+
+	MP4Float32Property* pProp;
+
+	pProp = new MP4Float32Property("volume");
+	pProp->SetFixed16Format();
+	AddProperty(pProp); /* 8 */
+
+	AddReserved("reserved3", 38); /* 9 */
+
+	pProp = new MP4Float32Property("width");
+	pProp->SetFixed32Format();
+	AddProperty(pProp); /* 10 */
+
+	pProp = new MP4Float32Property("height");
+	pProp->SetFixed32Format();
+	AddProperty(pProp); /* 11 */
 }
 
 void MP4TkhdAtom::Generate() 
 {
 	SetVersion(1);
-	AddVersion1Properties();
+	AddProperties(GetVersion());
 
 	// set creation and modification times
 	MP4Timestamp now = MP4GetAbsTimestamp();
 	((MP4Integer64Property*)m_pProperties[2])->SetValue(now);
 	((MP4Integer64Property*)m_pProperties[3])->SetValue(now);
+
+	// property reserved3 has non-zero fixed values
+	static u_int8_t reserved3[38] = {
+		0x00, 0x00, 
+		0x00, 0x01, 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 
+		0x00, 0x01, 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 
+		0x40, 0x00, 0x00, 0x00, 
+	};
+	((MP4BytesProperty*)m_pProperties[9])->
+		SetValue(reserved3, sizeof(reserved3));
 }
 
 void MP4TkhdAtom::Read() 
@@ -72,13 +105,9 @@ void MP4TkhdAtom::Read()
 	ReadProperties(0, 1);
 
 	/* need to create the properties based on the atom version */
-	if (GetVersion() == 1) {
-		AddVersion1Properties();
-	} else {
-		AddVersion0Properties();
-	}
+	AddProperties(GetVersion());
 
-	/* now we can read the properties */
+	/* now we can read the remaining properties */
 	ReadProperties(1);
 
 	Skip();	// to end of atom

@@ -30,3 +30,8 @@ void MP4FreeAtom::Read()
 {
 	Skip();
 }
+
+void MP4FreeAtom::Write() 
+{
+	// currently a no-op
+}

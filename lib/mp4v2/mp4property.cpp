@@ -122,6 +122,34 @@ void MP4BitfieldProperty::Dump(FILE* pFile, u_int32_t index)
 
 // MP4Float32Property
 
+void MP4Float32Property::Read(MP4File* pFile, u_int32_t index) 
+{
+	if (m_implicit) {
+		return;
+	}
+	if (m_useFixed16Format) {
+		m_values[index] = pFile->ReadFixed16();
+	} else if (m_useFixed32Format) {
+		m_values[index] = pFile->ReadFixed32();
+	} else {
+		m_values[index] = pFile->ReadFloat();
+	}
+}
+
+void MP4Float32Property::Write(MP4File* pFile, u_int32_t index) 
+{
+	if (m_implicit) {
+		return;
+	}
+	if (m_useFixed16Format) {
+		pFile->WriteFixed16(m_values[index]);
+	} else if (m_useFixed32Format) {
+		pFile->WriteFixed32(m_values[index]);
+	} else {
+		pFile->WriteFloat(m_values[index]);
+	}
+}
+
 void MP4Float32Property::Dump(FILE* pFile, u_int32_t index)
 {
 	ASSERT(m_pParentAtom);

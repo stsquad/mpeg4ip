@@ -148,6 +148,9 @@ bool MP4SetBytesProperty(
 MP4TrackId MP4AddTrack(
 	MP4FileHandle hFile, char* type);
 
+MP4TrackId MP4AddSystemsTrack(
+	MP4FileHandle hFile, char* type);
+
 MP4TrackId MP4AddAudioTrack(
 	MP4FileHandle hFile, u_int32_t timeScale, u_int32_t sampleDuration);
 

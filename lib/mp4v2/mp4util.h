@@ -67,6 +67,14 @@ inline void Indent(FILE* pFile, u_int8_t depth) {
 	fprintf(pFile, "%*c", depth, ' ');
 }
 
+inline void MP4Printf(const char* fmt, ...) {
+	va_list ap;
+	va_start(ap, fmt);
+	// TBD API call to set error_msg_func instead of just printf
+	fprintf(stdout, fmt, ap);
+	va_end(ap);
+}
+
 class MP4Error {
 public:
 	MP4Error() {

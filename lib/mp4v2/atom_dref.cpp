@@ -46,7 +46,7 @@ void MP4DrefAtom::Read()
 
 	if (m_pChildAtoms.Size() != pCount->GetValue()) {
 		VERBOSE_READ(GetVerbosity(),
-			printf("Warning: dref inconsistency with number of entries"));
+			MP4Printf("Warning: dref inconsistency with number of entries"));
 
 		/* fix it */
 		pCount->SetReadOnly(false);

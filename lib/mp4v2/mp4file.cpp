@@ -140,14 +140,12 @@ void MP4File::ReadFromFile()
 		MP4Track* pTrack;
 		try {
 			pTrack = new MP4Track(this, pTrakAtom);
+			m_pTracks.Add(pTrack);
 		}
 		catch (MP4Error* e) {
 			VERBOSE_ERROR(m_verbosity, e->Print());
 			delete e;
-			// TBD need to fix api calls to handle this case
-			pTrack = NULL;
 		}
-		m_pTracks.Add(pTrack);
 		trackIndex++;
 	}
 }
@@ -619,12 +617,15 @@ void MP4File::WriteMpegLength(u_int32_t value, bool compact)
 
 MP4Atom* MP4File::AddAtom(char* parentName, char* childName)
 {
-// TBD check that FindAtom "", finds the root atom
-	MP4Atom* pParentAtom = m_pRootAtom->FindAtom(parentName);
+	MP4Atom* pParentAtom;
+	if (!parentName || !strcmp(parentName, "")) {
+		pParentAtom = m_pRootAtom;
+	} else {
+		pParentAtom = m_pRootAtom->FindAtom(parentName);
+	}
 	ASSERT(pParentAtom);
 
 	MP4Atom* pChildAtom = MP4Atom::CreateAtom(childName);
-	ASSERT(pChildAtom);
 
 	pParentAtom->AddChildAtom(pChildAtom);
 
@@ -810,20 +811,55 @@ void MP4File::SetBytesProperty(char* name,
 
 // track functions
 
-MP4TrackId MP4File::AddTrack(char* type)
+MP4TrackId MP4File::AddTrack(char* type, u_int32_t timeScale)
 {
+	// create and add new trak atom
 	MP4Atom* pTrakAtom = AddAtom("moov", "trak");
 
+	// allocate a new track id
+	MP4TrackId trackId = AllocTrackId();
+
+	// set track id
+	MP4Integer32Property* pProperty = NULL;
+	pTrakAtom->FindProperty(
+		"trak.tkhd.trackId", (MP4Property**)&pProperty);
+	ASSERT(pProperty);
+	pProperty->SetValue(trackId);
+
+	// set track type
+	pProperty = NULL;
+	pTrakAtom->FindProperty(
+		"trak.hdlr.handlerType", (MP4Property**)&pProperty);
+	ASSERT(pProperty);
+	pProperty->SetValue(STRTOINT32(MP4Track::NormalizeTrackType(type)));
+
+	// set track time scale
+	pProperty = NULL;
+	pTrakAtom->FindProperty(
+		"trak.mdia.mdhd.timeScale", (MP4Property**)&pProperty);
+	ASSERT(pProperty);
+	pProperty->SetValue(timeScale);
+
+	// now have enough to create MP4Track object
 	MP4Track* pTrack = new MP4Track(this, pTrakAtom);
 	m_pTracks.Add(pTrack);
 
-	// TEMP really want to set type for trak atom
-	pTrack->SetType(type);
+	// mark track as enabled
+	SetTrackIntegerProperty(trackId, "tkhd.flags", 1);
 
-	// allocate a new track id
-	MP4TrackId trackId = GetIntegerProperty("moov.mvhd.nextTrackId");
-	// TBD scan if nextTrackId is max'ed out
-	SetIntegerProperty("moov.mvhd.nextTrackId", trackId + 1);
+	// mark track as contained in this file
+	SetTrackIntegerProperty(trackId, "mdia.minf.dinf.dref.flags", 1);
+
+	return trackId;
+}
+
+MP4TrackId MP4File::AddSystemsTrack(char* type)
+{
+	MP4TrackId trackId = AddTrack(type);
+
+	AddAtom(MakeTrackName(trackId, "mdia.minf"), "nmhd");
+
+	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4s");
 
 	return trackId;
 }
@@ -831,18 +867,76 @@ MP4TrackId MP4File::AddTrack(char* type)
 MP4TrackId MP4File::AddAudioTrack(u_int32_t timeScale, 
 	u_int32_t sampleDuration)
 {
-	return AddTrack("audio");
+	MP4TrackId trackId = AddTrack("audio", timeScale);
+
+	SetTrackFloatProperty(trackId, "tkhd.volume", 1.0);
+
+	AddAtom(MakeTrackName(trackId, "mdia.minf"), "smhd");
+
+	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4a");
+
+	m_pTracks[FindTrackIndex(trackId)]->
+		SetFixedSampleDuration(sampleDuration);
+
+	return trackId;
 }
 
 MP4TrackId MP4File::AddVideoTrack(u_int32_t timeScale, 
 	u_int32_t sampleDuration, u_int16_t width, u_int16_t height)
 {
-	return AddTrack("video");
+	MP4TrackId trackId = AddTrack("video", timeScale);
+
+	SetTrackFloatProperty(trackId, "tkhd.width", width);
+	SetTrackFloatProperty(trackId, "tkhd.height", height);
+
+	AddAtom(MakeTrackName(trackId, "mdia.minf"), "vmhd");
+
+	AddAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), "mp4v");
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4v.width", width);
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsd.mp4v.height", height);
+
+	SetTrackIntegerProperty(trackId, 
+		"mdia.minf.stbl.stsz.sampleSize", sampleDuration);
+
+	m_pTracks[FindTrackIndex(trackId)]->
+		SetFixedSampleDuration(sampleDuration);
+
+	return trackId;
 }
 
 MP4TrackId MP4File::AddHintTrack(MP4TrackId refTrackId)
 {
-	return AddTrack("hint");
+	u_int32_t timeScale = 1;	// TBD timeScale of reference track
+
+	MP4TrackId trackId = AddTrack("hint", timeScale);
+
+	// mark track as disabled
+	SetTrackIntegerProperty(trackId, "tkhd.flags", 0);
+
+	AddAtom(MakeTrackName(trackId, "mdia.minf"), "hmhd");
+
+#ifdef NOTDEF
+	// TBD set refTrackId
+
+	// TBD on hint track FinishWrite, set values of hmhd
+
+		MP4Atom* pChildAtom = MP4Atom::CreateAtom("tref");
+
+		pTrakAtom->AddChildAtom(pChildAtom);
+
+		pChildAtom->Generate();
+
+		CreateAtom("hint");
+
+		// ditto
+
+		hint->AddEntry(refTrackId)
+#endif
+
+	return trackId;
 }
 
 void MP4File::DeleteTrack(MP4TrackId trackId)
@@ -878,6 +972,32 @@ u_int32_t MP4File::GetNumberOfTracks(char* type)
 		}
 		return typeSeen;
 	}
+}
+
+MP4TrackId MP4File::AllocTrackId()
+{
+	MP4TrackId trackId = GetIntegerProperty("moov.mvhd.nextTrackId");
+
+	if (trackId <= 0xFFFF) {
+		SetIntegerProperty("moov.mvhd.nextTrackId", trackId + 1);
+	} else {
+		// extremely rare case where we need to search for a track id
+		for (u_int16_t i = 1; i <= 0xFFFF; i++) {
+			try {
+				FindTrackIndex(i);
+			}
+			catch (MP4Error* e) {
+				trackId = i;
+				delete e;
+			}
+		}
+		// even more extreme case where mp4 file has 2^16 tracks in it
+		if (trackId > 0xFFFF) {
+			throw new MP4Error("too many exising tracks", "AddTrack");
+		}
+	}
+
+	return trackId;
 }
 
 MP4TrackId MP4File::FindTrackId(u_int16_t index, char* type)
@@ -938,6 +1058,10 @@ void MP4File::WriteSample(MP4TrackId trackId,
 
 char* MP4File::MakeTrackName(MP4TrackId trackId, char* name)
 {
+// TBD BUG, if we keep going over bad tracks
+// then FindTrackIndex yields index for m_pTracks
+// which isn't necessarily the same as moov.trak[]
+
 	u_int16_t trackIndex = FindTrackIndex(trackId);
 	static char trackName[1024];
 	snprintf(trackName, sizeof(trackName), 
