@@ -41,13 +41,3 @@ void InitAudioEncoders (void)
 #endif
 }
 
-void AddAudioEncoderTable (audio_encoder_table_t *new_table)
-{
-  audio_encoder_table_size++;
-  audio_encoder_table = 
-    (audio_encoder_table_t **)realloc(audio_encoder_table,
-				     sizeof(audio_encoder_table_t *) *
-				     audio_encoder_table_size);
-  audio_encoder_table[audio_encoder_table_size - 1] = new_table;
-
-}

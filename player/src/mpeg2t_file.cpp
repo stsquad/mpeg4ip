@@ -157,7 +157,7 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
    */
   do {
     m_buffer_on = 0;
-    while (m_buffer_on < m_buffer_size && done == false) {
+    while (m_buffer_on + 188 < m_buffer_size && done == false) {
       
       pidptr = mpeg2t_process_buffer(m_mpeg2t, 
 				     &m_buffer[m_buffer_on],
@@ -225,7 +225,7 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
     if (done == false) {
       m_buffer_size = fread(m_buffer, 1, m_buffer_size_max, m_ifile);
     }
-  } while (m_buffer_size > 0 && done == false);
+  } while (m_buffer_size >=188 && done == false);
 
   if (done == false) {
     snprintf(errmsg, errlen, "Could not find information in TS");
@@ -309,6 +309,10 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 	count += m_buffer_size - m_buffer_on;
 	m_buffer_size += m_buffer_on;
 	m_buffer_on = 0;
+	if (m_buffer_size < 188) {
+	  m_buffer_size = 0;
+	  done = true;
+	}
       }
 
       pidptr = mpeg2t_process_buffer(m_mpeg2t,
@@ -382,6 +386,7 @@ int CMpeg2tFile::create (char *errmsg, uint32_t errlen, CPlayerSession *psptr)
 			  m_buffer_size_max - m_buffer_on, m_ifile);
     m_buffer_size += m_buffer_on;
     m_buffer_on = 0;
+    if (m_buffer_size < 188) m_buffer_size = 0;
   } while (m_buffer_size > 188) ;
   m_last_psts = max_psts;
   // Calculate the rough max time; hopefully it will be greater than the
@@ -664,6 +669,7 @@ void CMpeg2tFile::get_frame_for_pid (mpeg2t_es_t *es_pid)
 			    m_buffer_size_max - m_buffer_on, m_ifile);
       m_buffer_size += m_buffer_on;
       m_buffer_on = 0;
+      if (m_buffer_size < 188) m_buffer_size = 0;
     }
   } while (!feof(m_ifile));
 

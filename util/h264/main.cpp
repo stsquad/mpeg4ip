@@ -72,7 +72,7 @@ void h264_hrd_parameters (CBitstream *bs)
   printf("      cpb_cnt_minus1: %u\n", cpb_cnt);
   printf("      bit_rate_scale: %u\n", bs->GetBits(4));
   printf("      cpb_size_scale: %u\n", bs->GetBits(4));
-  for (uint32_t ix = 0; ix < cpb_cnt; cpb_cnt++) {
+  for (uint32_t ix = 0; ix <= cpb_cnt; cpb_cnt++) {
     printf("      bit_rate_value_minus1[%u]: %u\n", ix, h264_ue(bs));
     printf("      cpb_size_value_minus1[%u]: %u\n", ix, h264_ue(bs));
     printf("      cbr_flag[%u]: %u\n", ix, bs->GetBits(1));
@@ -275,6 +275,57 @@ void h264_parse_pic_parameter_set (h264_decode_t *dec, CBitstream *bs)
     printf("   redundant_pic_cnt_present_flag: %u\n", bs->GetBits(1));
 	  
 }
+static const char *sei[19] = {
+  "buffering_period",
+  "pic_timing", 
+  "pan_scan_rect", 
+  "filler_payload",
+  "user_data_registered_itu_t_t35",
+  "user_data_unregistered",
+  "recovery_point",
+  "dec_ref_pic_marking_repetition",
+  "spare_pic",
+  "scene_info",
+  "sub_seq_info",
+  "sub_seq-layer_characteristics",
+  "full_frame_freeze",
+  "full_frame_freeze_release",
+  "full_frame_snapshot",
+  "progressive_refinement_segment_start",
+  "progressive_refinement_segment_end",
+  "motioned_constrained_slice_group_set",
+};
+
+static void h264_parse_sei (h264_decode_t *dec, CBitstream *bs)
+{
+  uint32_t payload_type;
+  uint32_t payload_size;
+  uint32_t read_val;
+  const char *sei_type;
+
+  while (bs->bits_remain() >= 16) {
+    payload_type = 0;
+    while ((read_val = bs->GetBits(8)) == 0xff) {
+      payload_type += 255;
+    }
+    payload_type += read_val;
+    payload_size = 0;
+    while ((read_val = bs->GetBits(8)) == 0xff) {
+      payload_size += 255;
+    }
+    payload_size += read_val;
+
+    sei_type = payload_type <= 18 ? sei[payload_type] : "unknown value";
+    printf("   payload_type: %u %s\n", payload_type, sei_type);
+    printf("   payload_size: %u", payload_size);
+    while (payload_size > 0) {
+      uint8_t bits = bs->GetBits(8);
+      printf(" 0x%x", bits);
+      payload_size--;
+    }
+    printf("\n");
+  }
+}
 
 uint32_t h264_find_next_start_code (uint8_t *pBuf, 
 				    uint32_t bufLen)
@@ -283,17 +334,22 @@ uint32_t h264_find_next_start_code (uint8_t *pBuf,
   uint32_t offset;
 
   offset = 0;
-  if (pBuf[0] == 0 && pBuf[1] == 0 && pBuf[2] == 1) {
+  if (pBuf[0] == 0 && pBuf[1] == 0 && pBuf[2] == 0 && pBuf[3] == 1) {
+    pBuf += 4;
+    offset = 4;
+  } else if (pBuf[0] == 0 && pBuf[1] == 0 && pBuf[2] == 1) {
     pBuf += 3;
     offset = 3;
   }
   val = 0xffffffff;
   while (offset < bufLen - 3) {
     val <<= 8;
-    val &= 0x00ffffff;
     val |= *pBuf++;
     offset++;
     if (val == H264_START_CODE) {
+      return offset - 4;
+    }
+    if ((val & 0x00ffffff) == H264_START_CODE) {
       return offset - 3;
     }
   }
@@ -401,7 +457,7 @@ uint8_t h264_parse_nal (h264_decode_t *dec, CBitstream *bs)
   uint8_t type = 0;
 
   try {
-    bs->GetBits(24);
+    if (bs->GetBits(24) == 0) bs->GetBits(8);
     h264_check_0s(bs, 1);
     dec->nal_ref_idc = bs->GetBits(2);
     dec->nal_unit_type = type = bs->GetBits(5);
@@ -417,12 +473,16 @@ uint8_t h264_parse_nal (h264_decode_t *dec, CBitstream *bs)
     case H264_NAL_TYPE_PIC_PARAM:
       h264_parse_pic_parameter_set(dec, bs);
       break;
+    case H264_NAL_TYPE_SEI:
+      h264_parse_sei(dec, bs);
+      break;
     case H264_NAL_TYPE_ACCESS_UNIT:
       printf("   primary_pic_type: %u\n", bs->GetBits(3));
       break;
     }
-  } catch (...) {
-    printf("Error reading bitstream\n");
+  } catch (BitstreamErr_t err) {
+    printf("\nERROR reading bitstream %s\n\n", err == BITSTREAM_PAST_END ?
+	   "read past NAL end" : "too many bits requested");
   }
   return type;
 }
@@ -540,10 +600,11 @@ int main (int argc, char **argv)
       } else {
 	// have a complete NAL from buffer_on to end
 	if (ret > 3) {
-	  printf("Nal length %d header %d\n", ret,
-		 buffer[buffer_on + 2] == 1 ? 4 : 5);
+	  printf("Nal length %d start code %d bytes\n", ret,
+		 buffer[buffer_on + 2] == 1 ? 3 : 4);
 	  ourbs.init(buffer + buffer_on, ret * 8);
-	  uint8_t type = h264_parse_nal(&dec, &ourbs);
+	  uint8_t type;
+	  type = h264_parse_nal(&dec, &ourbs);
 	  if (type >= 1 && type <= 5) {
 	    if (have_prevdec) {
 	      // compare the 2

@@ -36,10 +36,11 @@ static SConfigVariable MyConfigVariables[] = {
 
 //#define DEBUG_FFMPEG
 //#define DEBUG_FFMPEG_FRAME 1
-#ifndef HAVE_AVRATIONAL
+#ifdef HAVE_AVRATIONAL
 // cheap way to tell difference between ffmpeg versions
-#define CODEC_ID_AMR_WB CODEC_ID_NONE
-#define CODEC_ID_AMR_NB CODEC_ID_NONE
+#ifndef HAVE_AMR_CODEC
+#define HAVE_AMR_CODEC 1
+#endif
 #endif
 
 static enum CodecID ffmpeg_find_codec (const char *stream_type,
@@ -51,12 +52,14 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
 				       uint32_t ud_size)
 {
   if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
+#ifdef HAVE_AMR_CODEC
     if (strcmp(compressor, "sawb") == 0) {
       return CODEC_ID_AMR_WB;
     }
     if (strcmp(compressor, "samr") == 0) {
       return CODEC_ID_AMR_NB;
     }
+#endif
     if (strcmp(compressor, "ulaw") == 0) {
       return CODEC_ID_PCM_MULAW;
     }
@@ -70,6 +73,9 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
       if (type == MP4_ULAW_AUDIO_TYPE) {
 	return CODEC_ID_PCM_MULAW;
       }
+    }
+    if (strcmp(compressor, "alac") == 0) {
+      return CODEC_ID_FLAC;
     }
     return CODEC_ID_NONE;
   }
@@ -101,10 +107,12 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
       return CODEC_ID_PCM_MULAW;
     }
     if (fptr->rtpmap != NULL) {
+#ifdef HAVE_AMR_CODEC
       if (strcasecmp(fptr->rtpmap->encode_name, "AMR-WB") == 0)
 	return CODEC_ID_AMR_WB;
       if (strcasecmp(fptr->rtpmap->encode_name, "AMR") == 0) 
 	return CODEC_ID_AMR_NB;
+#endif
     }
     return CODEC_ID_NONE;
   }
@@ -144,12 +152,14 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
     ffmpeg->m_c->sample_rate = ainfo->freq;
   }
   switch (ffmpeg->m_codecId) {
+#ifdef HAVE_AMR_CODEC
   case CODEC_ID_AMR_WB:
   case CODEC_ID_AMR_NB:
     ffmpeg->m_c->channels = 1;
     ffmpeg->m_c->sample_rate = ffmpeg->m_codecId == CODEC_ID_AMR_WB ? 
       16000 : 8000;
     break;
+#endif
   case CODEC_ID_PCM_ALAW:
   case CODEC_ID_PCM_MULAW:
     ffmpeg->m_c->channels = 1;

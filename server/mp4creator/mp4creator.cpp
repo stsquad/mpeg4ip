@@ -1148,16 +1148,16 @@ static void extract_h264_track (MP4FileHandle mp4File,
   uint8_t **seqheader, **pictheader;
   uint32_t *pictheadersize, *seqheadersize;
   uint32_t ix;
-  uint8_t header[3] = {0, 0, 1};
+  uint8_t header[4] = {0, 0, 0, 1};
   MP4GetTrackH264SeqPictHeaders(mp4File, trackId, 
 				&seqheader, &seqheadersize,
 				&pictheader, &pictheadersize);
   for (ix = 0; seqheadersize[ix] != 0; ix++) {
-    write(outFd, header, 3);
+    write(outFd, header, 4);
     write(outFd, seqheader[ix], seqheadersize[ix]);
   }
   for (ix = 0; pictheadersize[ix] != 0; ix++) {
-    write(outFd, header, 3);
+    write(outFd, header, 4);
     write(outFd, pictheader[ix], pictheadersize[ix]);
   }
   
@@ -1185,7 +1185,7 @@ static void extract_h264_track (MP4FileHandle mp4File,
     }
     uint32_t read_offset = 0;
     uint32_t nal_len;
-
+    bool first = true;
     do {
       if (buflen_size == 1) {
 	nal_len = pSample[read_offset];
@@ -1196,7 +1196,12 @@ static void extract_h264_track (MP4FileHandle mp4File,
 	  nal_len |= (pSample[read_offset + 2] << 8) | pSample[read_offset + 3];
 	}
       }
-      write(outFd, header, 3);
+      if (first) {
+	write(outFd, header, 4);
+	first = false;
+      } else {
+	write(outFd, header + 1, 3);
+      }
       write(outFd, pSample + read_offset + buflen_size,
 	     nal_len);
       read_offset = nal_len + buflen_size;

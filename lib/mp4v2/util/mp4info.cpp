@@ -126,6 +126,10 @@ int main(int argc, char** argv)
 		    fprintf(stdout, " Metadata Genre: %s\n", value);
 		    free(value);
 		  }
+		  if (MP4GetMetadataGrouping(mp4file, &value) && value != NULL) {
+		    fprintf(stdout, " Metadata Grouping: %s\n", value);
+		    free(value);
+		  }
 		  if (MP4GetMetadataTempo(mp4file, &numvalue)) {
 		    fprintf(stdout, " Metadata Tempo: %u\n", numvalue);
 		  }

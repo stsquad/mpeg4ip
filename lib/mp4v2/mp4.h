@@ -1099,6 +1099,8 @@ bool MP4GetMetadataDisk(MP4FileHandle hFile,
 			u_int16_t* disk, u_int16_t* totalDisks);
 bool MP4SetMetadataGenre(MP4FileHandle hFile, const char *genre);
 bool MP4GetMetadataGenre(MP4FileHandle hFile, char **genre);
+bool MP4SetMetadataGrouping(MP4FileHandle hFile, const char *grouping);
+bool MP4GetMetadataGrouping(MP4FileHandle hFile, char **grouping);
 bool MP4SetMetadataTempo(MP4FileHandle hFile, u_int16_t tempo);
 bool MP4GetMetadataTempo(MP4FileHandle hFile, u_int16_t* tempo);
 bool MP4SetMetadataCompilation(MP4FileHandle hFile, u_int8_t cpl);

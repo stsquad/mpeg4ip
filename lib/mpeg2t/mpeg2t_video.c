@@ -80,8 +80,9 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	} else 
 	  es_pid->work_state = 1;
 #if 0
-	printf("video - state 0 header %x state %d\n", es_pid->header, 
-	       es_pid->work_state);
+	mpeg2t_message(LOG_DEBUG, 
+		       "video - state 0 header %x state %d", es_pid->header, 
+		       es_pid->work_state);
 #endif
       } 
       buflen--;
@@ -99,7 +100,8 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 			     sizeof(mpeg2t_frame_t) + 
 			     es_pid->work_max_size);
 #if 0
-	printf("Es pid work reallocing to %d\n", es_pid->work_max_size);
+	mpeg2t_message(LOG_DEBUG, "Es pid work reallocing to %d", 
+		       es_pid->work_max_size);
 #endif
 	if (frameptr == NULL) {
 	  es_pid->work = NULL;
@@ -250,8 +252,8 @@ int process_mpeg2t_h264_video (mpeg2t_es_t *es_pid,
   int have_header = 0;
   uint8_t nal_value = 0;
   int framesfinished = 0;
-  mpeg2t_message(LOG_DEBUG, "enter h264 process");
 #if 0
+  mpeg2t_message(LOG_DEBUG, "enter h264 process");
   if (es_pid->peshdr_loaded != 0 && ((es_pid->stream_id & 0xf0) != 0xe0)) {
     mpeg2t_message(LOG_ERR, "Video stream PID %x with bad stream_id %x", 
 		   es_pid->pid.pid,
@@ -294,7 +296,7 @@ int process_mpeg2t_h264_video (mpeg2t_es_t *es_pid,
 	es_pid->work_loaded = 4;
 	es_pid->work_state = 2;
 #if 1
-	mpeg2t_message(LOG_DEBUG, "video - state 0 header %x state %d\n", es_pid->header, 
+	mpeg2t_message(LOG_DEBUG, "video - state 0 header %x state %d", es_pid->header, 
 	       es_pid->work_state);
 #endif
       }
@@ -343,8 +345,7 @@ int process_mpeg2t_h264_video (mpeg2t_es_t *es_pid,
 	    framesfinished = 1;
 	    if (es_pid->info_loaded == 0) {
 	      // look to fill in es_pid information such as frame rate, etc
-	      if ((es_pid->work->flags & (HAVE_SEQ_HEADER | HAVE_PIC_PARAM_HEADER)) == 
-		  (HAVE_SEQ_HEADER | HAVE_PIC_PARAM_HEADER)) {
+	      if ((es_pid->work->flags & HAVE_SEQ_HEADER) == HAVE_SEQ_HEADER) {
 		h264_decode_t dec;
 		memset(&dec, 0, sizeof(dec));
 		if (h264_read_seq_info(es_pid->work->frame + es_pid->work->seq_header_offset,
@@ -353,6 +354,8 @@ int process_mpeg2t_h264_video (mpeg2t_es_t *es_pid,
 		  es_pid->info_loaded = 1;
 		  es_pid->h = dec.pic_height;
 		  es_pid->w = dec.pic_width;
+		  mpeg2t_message(LOG_DEBUG, "h264 read seq header - %ux%u",
+				 es_pid->w, es_pid->h);
 		  // don't have timing info yet.
 		  //es_pid->bitrate = bitrate;
 		  //es_pid->frame_rate = frame_rate;
@@ -401,6 +404,7 @@ int process_mpeg2t_h264_video (mpeg2t_es_t *es_pid,
 	  case H264_NAL_TYPE_SEQ_PARAM:
 	    es_pid->work->seq_header_offset = es_pid->work_loaded - 4;
 	    es_pid->work->flags |= HAVE_SEQ_HEADER;
+	    es_pid->have_seq_header = 1;
 	    break;
 	  case H264_NAL_TYPE_PIC_PARAM:
 	    es_pid->work->nal_pic_param_offset = es_pid->work_loaded - 4;

@@ -934,9 +934,15 @@ mpeg2t_pid_t *mpeg2t_process_buffer (mpeg2t_t *ptr,
   used = 0;
   remaining = buflen;
   mpeg2t_message(LOG_DEBUG, "start processing buffer - len %d", buflen);
+  if (buflen < 188) {
+    *buflen_used = buflen;
+    return NULL;
+  }
   while (used < buflen) {
     offset = mpeg2t_find_sync_byte(buffer, remaining);
+    mpeg2t_message(LOG_DEBUG, "offset %d", offset);
     if (offset >= remaining) {
+      mpeg2t_message(LOG_ERR, "sync not found in buffer");
       *buflen_used = buflen;
       return NULL;
     }

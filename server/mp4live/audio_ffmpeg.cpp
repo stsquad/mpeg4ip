@@ -24,6 +24,11 @@
 #include "audio_ffmpeg.h"
 #include <mp4av.h>
 
+#ifdef HAVE_AVRATIONAL
+#define MAY_HAVE_AMR_CODEC 1
+#else
+#undef MAY_HAVE_AMR_CODEC
+#endif
 // these are for mpeg2
 static const uint32_t ffmpeg_sample_rates[] = {
   44100, 48000, 
@@ -357,6 +362,7 @@ bool CFfmpegAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
     m_codec = avcodec_find_encoder(CODEC_ID_MP2);
     m_media_frame = MP3AUDIOFRAME;
   } else if (strcasecmp(encoding, AUDIO_ENCODING_AMR) == 0) {
+#ifdef MAY_HAVE_AMR_CODEC
     if (samplingRate == 8000) {
       m_codec = avcodec_find_encoder(CODEC_ID_AMR_NB);
       m_media_frame= AMRNBAUDIOFRAME;
@@ -364,6 +370,7 @@ bool CFfmpegAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
       m_codec = avcodec_find_encoder(CODEC_ID_AMR_WB);
       m_media_frame = AMRWBAUDIOFRAME;
     }
+#endif
   }
     
 
@@ -522,6 +529,7 @@ void CFfmpegAudioEncoder::Stop()
 
 void InitFFmpegAudio (void)
 {
+#ifdef MAY_HAVE_AMR_CODEC
   avcodec_init();
   avcodec_register_all();
   bool have_amr_nb = avcodec_find_encoder(CODEC_ID_AMR_NB) != NULL;
@@ -537,6 +545,7 @@ void InitFFmpegAudio (void)
       &ffmpeg_amr_sample_rates[1];
   }
   AddAudioEncoderTable(&ffmpeg_amr_audio_encoder_table);
+#endif
 }
     
 #endif

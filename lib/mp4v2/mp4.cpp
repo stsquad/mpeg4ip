@@ -3581,6 +3581,34 @@ extern "C" bool MP4GetMetadataGenre(MP4FileHandle hFile, char **genre)
   return false;
 }
  
+extern "C" bool MP4SetMetadataGrouping(MP4FileHandle hFile, const char *grouping)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      return ((MP4File*)hFile)->SetMetadataGrouping(grouping);
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return false;
+}
+ 
+extern "C" bool MP4GetMetadataGrouping(MP4FileHandle hFile, char **grouping)
+{
+  if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+    try {
+      return ((MP4File*)hFile)->GetMetadataGrouping(grouping);
+    }
+    catch (MP4Error* e) {
+      PRINT_ERROR(e);
+      delete e;
+    }
+  }
+  return false;
+}
+ 
 extern "C" bool MP4SetMetadataTempo(MP4FileHandle hFile, u_int16_t tempo)
 {
   if (MP4_IS_VALID_FILE_HANDLE(hFile)) {

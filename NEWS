@@ -1,4 +1,4 @@
-xx/xx/04 Version 1.2
+12/03/04 Version 1.2
     Added 3GP, .mov support to mp4v2
     Added ffmpeg decoder support (MPEG-2, H.264, MPEG-4, Sorenson, AMR)
     Added H.264 support to mp4v2, mp4creator, player, mpeg2t

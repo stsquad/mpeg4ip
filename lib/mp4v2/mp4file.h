@@ -535,7 +535,11 @@ public: /* equivalent to MP4 library API */
 		MP4Duration* pDuration = NULL);
 
 	/* iTunes metadata handling */
+ protected:
 	bool CreateMetadataAtom(const char* name);
+	bool GetMetadataString(const char *atom, char **value);
+	bool SetMetadataString(const char *atom, const char *value);
+ public:
 	bool MetadataDelete(void);
 	
 	/* set metadata */
@@ -549,6 +553,7 @@ public: /* equivalent to MP4 library API */
 	bool SetMetadataTrack(u_int16_t track, u_int16_t totalTracks);
 	bool SetMetadataDisk(u_int16_t disk, u_int16_t totalDisks);
 	bool SetMetadataGenre(const char *value);
+	bool SetMetadataGrouping(const char *value);
 	bool SetMetadataTempo(u_int16_t tempo);
 	bool SetMetadataCompilation(u_int8_t compilation);
 	bool SetMetadataCoverArt(u_int8_t *coverArt, u_int32_t size);
@@ -571,6 +576,7 @@ public: /* equivalent to MP4 library API */
 	bool GetMetadataTrack(u_int16_t* track, u_int16_t* totalTracks);
 	bool GetMetadataDisk(u_int16_t* disk, u_int16_t* totalDisks);
 	bool GetMetadataGenre(char **value);
+	bool GetMetadataGrouping(char **value);
 	bool GetMetadataTempo(u_int16_t* tempo);
 	bool GetMetadataCompilation(u_int8_t* compilation);
 	bool GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t* size);

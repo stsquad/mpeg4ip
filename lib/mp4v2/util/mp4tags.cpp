@@ -28,13 +28,14 @@
 #define OPT_DISK    'd'
 #define OPT_DISKS   'D'
 #define OPT_GENRE   'g'
+#define OPT_GROUPING 'G'
 #define OPT_SONG    's'
 #define OPT_TRACK   't'
 #define OPT_TRACKS  'T'
 #define OPT_WRITER  'w'    /* _composer_ */
 #define OPT_YEAR    'y'
 
-#define OPT_STRING  "hvA:a:b:c:d:D:g:s:t:T:w:y:"
+#define OPT_STRING  "hvA:a:b:c:d:D:g:G:s:t:T:w:y:"
 
 static const char* help_text =
 "OPTION... FILE...\n"
@@ -42,18 +43,19 @@ static const char* help_text =
 "\n"
 "  -h, -help         Display this help text and exit\n"
 "  -v, -version      Display version information and exit\n"
-"  -A, -album   STR  Set the album title\n"
-"  -a, -artist  STR  Set the artist information\n"
-"  -b, -tempo   NUM  Set the tempo (beats per minute)\n"
-"  -c, -comment STR  Set a general comment\n"
-"  -d, -disk    NUM  Set the disk number\n"
-"  -D, -disks   NUM  Set the number of disks\n"
-"  -g, -genre   STR  Set the genre name\n"
-"  -s, -song    STR  Set the song title\n"
-"  -t, -track   NUM  Set the track number\n"
-"  -T, -tracks  NUM  Set the number of tracks\n"
-"  -w, -writer  STR  Set the composer information\n"
-"  -y, -year    NUM  Set the year\n"
+"  -A, -album    STR  Set the album title\n"
+"  -a, -artist   STR  Set the artist information\n"
+"  -b, -tempo    NUM  Set the tempo (beats per minute)\n"
+"  -c, -comment  STR  Set a general comment\n"
+"  -d, -disk     NUM  Set the disk number\n"
+"  -D, -disks    NUM  Set the number of disks\n"
+"  -g, -genre    STR  Set the genre name\n"
+"  -G, -grouping STR  Set the grouping name\n"
+"  -s, -song     STR  Set the song title\n"
+"  -t, -track    NUM  Set the track number\n"
+"  -T, -tracks   NUM  Set the number of tracks\n"
+"  -w, -writer   STR  Set the composer information\n"
+"  -y, -year     NUM  Set the year\n"
 "\n";
 
 
@@ -69,6 +71,7 @@ main(int argc, char** argv)
     { "disk",    1, 0, OPT_DISK    },
     { "disks",   1, 0, OPT_DISKS   },
     { "genre",   1, 0, OPT_GENRE   },
+    { "grouping",1, 0, OPT_GROUPING},
     { "song",    1, 0, OPT_SONG    },
     { "tempo",   1, 0, OPT_TEMPO   },
     { "track",   1, 0, OPT_TRACK   },
@@ -185,6 +188,7 @@ main(int argc, char** argv)
         case OPT_ARTIST:  MP4SetMetadataArtist(h, tags[i]); break;
         case OPT_COMMENT: MP4SetMetadataComment(h, tags[i]); break;
         case OPT_GENRE:   MP4SetMetadataGenre(h, tags[i]); break;
+        case OPT_GROUPING:MP4SetMetadataGrouping(h, tags[i]); break;
         case OPT_SONG:    MP4SetMetadataName(h, tags[i]); break;
         case OPT_WRITER:  MP4SetMetadataWriter(h, tags[i]); break;
         case OPT_YEAR:    MP4SetMetadataYear(h, tags[i]); break;

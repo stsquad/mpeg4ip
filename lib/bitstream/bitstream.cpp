@@ -72,7 +72,7 @@ uint32_t CBitstream::GetBits (uint32_t numBits)
   uint32_t retData;
 
   if (numBits > 32) {
-    throw;
+    throw BITSTREAM_TOO_MANY_BITS;
   }
   
   if (numBits == 0) {
@@ -93,25 +93,25 @@ uint32_t CBitstream::GetBits (uint32_t numBits)
     switch ((nbits - 1) / 8) {
     case 3:
       nbits -= 8;
-      if (m_chDecBufferSize < 8) throw;
+      if (m_chDecBufferSize < 8) throw BITSTREAM_PAST_END;
       retData |= *m_chDecBuffer++ << nbits;
       m_chDecBufferSize -= 8;
       // fall through
     case 2:
       nbits -= 8;
-      if (m_chDecBufferSize < 8) throw;
+      if (m_chDecBufferSize < 8) throw BITSTREAM_PAST_END;
       retData |= *m_chDecBuffer++ << nbits;
       m_chDecBufferSize -= 8;
     case 1:
       nbits -= 8;
-      if (m_chDecBufferSize < 8) throw;
+      if (m_chDecBufferSize < 8) throw BITSTREAM_PAST_END;
       retData |= *m_chDecBuffer++ << nbits;
       m_chDecBufferSize -= 8;
     case 0:
       break;
     }
     if (m_chDecBufferSize < nbits) {
-      throw;
+      throw BITSTREAM_PAST_END;
     }
     m_chDecData = *m_chDecBuffer++;
     m_uNumOfBitsInBuffer = MIN(8, m_chDecBufferSize) - nbits;

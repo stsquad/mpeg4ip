@@ -296,6 +296,7 @@ static void *start_session (const char *name, int max_loop, int grab = 0,
 	  break;
 	case MSG_RECEIVED_QUIT:
 	  keep_going = 1;
+	  max_loop = 0; // get rid of the loop count
 	  break;
 	case MSG_SDL_KEY_EVENT:
 	  sdl_event_msg_t *smsg;
@@ -346,7 +347,7 @@ int main (int argc, char **argv)
     { "version", 0, 0, 'v' },
     { "help", 0, 0, 'h'},
     { "config-vars", 0, 0, 'c'},
-    { "loop", 1, 0, 'l'},
+    { "loop", optional_argument, 0, 'l'},
     { NULL, 0, 0, 0 }
   };
   bool have_unknown_opts = false;
@@ -422,7 +423,7 @@ int main (int argc, char **argv)
       int option_index = 0;
       config_index_t ix;
 
-      c = getopt_long_only(argc, argv, "af:hsv",
+      c = getopt_long_only(argc, argv, "l:hvc",
 			   long_options, &option_index);
 
       if (c == -1)

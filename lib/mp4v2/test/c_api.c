@@ -23,6 +23,7 @@
 
 main(int argc, char** argv)
 {
+#if 0
 	MP4FileHandle mp4File = MP4Read(argv[1], MP4_DETAILS_ERROR);
 
 	if (!mp4File) {
@@ -34,5 +35,19 @@ main(int argc, char** argv)
 	MP4Close(mp4File);
 
 	exit(0);
+#else
+	MP4FileHandle mp4File;
+
+	mp4File = MP4Modify(argv[1], MP4_DETAILS_ERROR, 0);
+	MP4SetVerbosity(mp4File, MP4_DETAILS_ALL);
+#if 0
+	u_int8_t* data=(u_int8_t*)"this is my tag data";
+	u_int32_t len=strlen((char*)data);
+	MP4SetMetadataFreeForm(mp4File, "my_tag1",data,len);
+	//MP4SetMetadataFreeForm(mp4File, "my_tag2",data,len);
+#endif
+	MP4Close(mp4File);
+	exit(0);
+#endif
 }
 

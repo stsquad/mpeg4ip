@@ -35,6 +35,7 @@
  - ©too : Tool(s) used to create the file (string)
  - ©cmt : Comment (string)
  - ©gen : Custom genre (string)
+ - ©grp : Grouping (string)
  - trkn : Tracknumber (8 byte string)
            16 bit: empty
            16 bit: tracknumber
@@ -134,309 +135,122 @@ bool MP4File::CreateMetadataAtom(const char* name)
 
     return true;
 }
+bool MP4File::SetMetadataString (const char *atom, const char *value)
+{
+  char atomstring[40];
+  MP4Atom *pMetaAtom;
+  MP4BytesProperty *pMetadataProperty = NULL;
+  sprintf(atomstring, "moov.udta.meta.ilst.%s.data", atom);
+
+  pMetaAtom = m_pRootAtom->FindAtom(atomstring);
+  
+  if (!pMetaAtom)
+    {
+      if (!CreateMetadataAtom(atom))
+	return false;
+      
+      pMetaAtom = m_pRootAtom->FindAtom(atomstring);
+    }
+
+  pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
+  ASSERT(pMetadataProperty);
+  
+  pMetadataProperty->SetValue((u_int8_t*)value, strlen(value));
+  
+  return true;
+}
+
+bool MP4File::GetMetadataString (const char *atom, char **value)
+{
+    unsigned char *val = NULL;
+    u_int32_t valSize = 0;
+    char atomstring[60];
+    sprintf(atomstring, "moov.udta.meta.ilst.%s.data.metadata", atom);
+
+    GetBytesProperty(atomstring, (u_int8_t**)&val, &valSize);
+
+    if (valSize > 0)
+    {
+        *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
+        memset(*value, 0, (valSize+1)*sizeof(unsigned char));
+        memcpy(*value, val, valSize*sizeof(unsigned char));
+        return true;
+    } 
+    *value = NULL;
+    return false;
+}
 
 bool MP4File::SetMetadataName(const char* value)
 {
-    const char *s = "moov.udta.meta.ilst.\251nam.data";
-    MP4BytesProperty *pMetadataProperty = NULL;
-    MP4Atom *pMetaAtom = NULL;
-    
-    pMetaAtom = m_pRootAtom->FindAtom(s);
-
-    if (!pMetaAtom)
-    {
-        if (!CreateMetadataAtom("\251nam"))
-            return false;
-
-        pMetaAtom = m_pRootAtom->FindAtom(s);
-    }
-
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
-    ASSERT(pMetadataProperty);
-
-    pMetadataProperty->SetValue((u_int8_t*)value, strlen(value));
-
-    return true;
+  return SetMetadataString("\251nam", value);
 }
 
 bool MP4File::GetMetadataName(char** value)
 {
-    unsigned char *val = NULL;
-    u_int32_t valSize = 0;
-    const char *s = "moov.udta.meta.ilst.\251nam.data.metadata";
-    GetBytesProperty(s, (u_int8_t**)&val, &valSize);
-
-    if (valSize > 0)
-    {
-        *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
-        memset(*value, 0, (valSize+1)*sizeof(unsigned char));
-        memcpy(*value, val, valSize*sizeof(unsigned char));
-        return true;
-    } else {
-        *value = NULL;
-        return false;
-    }
+  return GetMetadataString("\251nam", value);
 }
 
 bool MP4File::SetMetadataWriter(const char* value)
 {
-    const char *s = "moov.udta.meta.ilst.\251wrt.data";
-    MP4BytesProperty *pMetadataProperty = NULL;
-    MP4Atom *pMetaAtom = NULL;
-    
-    pMetaAtom = m_pRootAtom->FindAtom(s);
-
-    if (!pMetaAtom)
-    {
-        if (!CreateMetadataAtom("\251wrt"))
-            return false;
-
-        pMetaAtom = m_pRootAtom->FindAtom(s);
-    }
-
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
-    ASSERT(pMetadataProperty);
-
-    pMetadataProperty->SetValue((u_int8_t*)value, strlen(value));
-
-    return true;
+  return SetMetadataString("\251wrt", value);
 }
 
 bool MP4File::GetMetadataWriter(char** value)
 {
-    unsigned char *val = NULL;
-    u_int32_t valSize = 0;
-    const char *s = "moov.udta.meta.ilst.\251wrt.data.metadata";
-    GetBytesProperty(s, (u_int8_t**)&val, &valSize);
-
-    if (valSize > 0)
-    {
-        *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
-        memset(*value, 0, (valSize+1)*sizeof(unsigned char));
-        memcpy(*value, val, valSize*sizeof(unsigned char));
-        return true;
-    } else {
-        *value = NULL;
-        return false;
-    }
+  return GetMetadataString("\251wrt", value);
 }
+
 
 bool MP4File::SetMetadataAlbum(const char* value)
 {
-    const char *s = "moov.udta.meta.ilst.\251alb.data";
-    MP4BytesProperty *pMetadataProperty = NULL;
-    MP4Atom *pMetaAtom = NULL;
-    
-    pMetaAtom = m_pRootAtom->FindAtom(s);
-
-    if (!pMetaAtom)
-    {
-        if (!CreateMetadataAtom("\251alb"))
-            return false;
-
-        pMetaAtom = m_pRootAtom->FindAtom(s);
-    }
-
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
-    ASSERT(pMetadataProperty);
-
-    pMetadataProperty->SetValue((u_int8_t*)value, strlen(value));
-
-    return true;
+  return SetMetadataString("\251alb", value);
 }
 
 bool MP4File::GetMetadataAlbum(char** value)
 {
-    unsigned char *val = NULL;
-    u_int32_t valSize = 0;
-    const char *s = "moov.udta.meta.ilst.\251alb.data.metadata";
-    GetBytesProperty(s, (u_int8_t**)&val, &valSize);
-
-    if (valSize > 0)
-    {
-        *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
-        memset(*value, 0, (valSize+1)*sizeof(unsigned char));
-        memcpy(*value, val, valSize*sizeof(unsigned char));
-        return true;
-    } else {
-        *value = NULL;
-        return false;
-    }
+  return GetMetadataString("\251alb", value);
 }
 
 bool MP4File::SetMetadataArtist(const char* value)
 {
-    const char *s = "moov.udta.meta.ilst.\251ART.data";
-    MP4BytesProperty *pMetadataProperty = NULL;
-    MP4Atom *pMetaAtom = NULL;
-    
-    pMetaAtom = m_pRootAtom->FindAtom(s);
-
-    if (!pMetaAtom)
-    {
-        if (!CreateMetadataAtom("\251ART"))
-            return false;
-
-        pMetaAtom = m_pRootAtom->FindAtom(s);
-    }
-
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
-    ASSERT(pMetadataProperty);
-
-    pMetadataProperty->SetValue((u_int8_t*)value, strlen(value));
-
-    return true;
+  return SetMetadataString("\251ART", value);
 }
 
 bool MP4File::GetMetadataArtist(char** value)
 {
-    unsigned char *val = NULL;
-    u_int32_t valSize = 0;
-    const char *s = "moov.udta.meta.ilst.\251ART.data.metadata";
-    GetBytesProperty(s, (u_int8_t**)&val, &valSize);
-
-    if (valSize > 0)
-    {
-        *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
-        memset(*value, 0, (valSize+1)*sizeof(unsigned char));
-        memcpy(*value, val, valSize*sizeof(unsigned char));
-        return true;
-    } else {
-        *value = NULL;
-        return false;
-    }
+  return GetMetadataString("\251ART", value);
 }
 
 bool MP4File::SetMetadataTool(const char* value)
 {
-    const char *s = "moov.udta.meta.ilst.\251too.data";
-    MP4BytesProperty *pMetadataProperty = NULL;
-    MP4Atom *pMetaAtom = NULL;
-    
-    pMetaAtom = m_pRootAtom->FindAtom(s);
-
-    if (!pMetaAtom)
-    {
-        if (!CreateMetadataAtom("\251too"))
-            return false;
-
-        pMetaAtom = m_pRootAtom->FindAtom(s);
-    }
-
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
-    ASSERT(pMetadataProperty);
-
-    pMetadataProperty->SetValue((u_int8_t*)value, strlen(value));
-
-    return true;
+  return SetMetadataString("\251too", value);
 }
 
 bool MP4File::GetMetadataTool(char** value)
 {
-    unsigned char *val = NULL;
-    u_int32_t valSize = 0;
-    const char *s = "moov.udta.meta.ilst.\251too.data.metadata";
-    GetBytesProperty(s, (u_int8_t**)&val, &valSize);
-
-    if (valSize > 0)
-    {
-        *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
-        memset(*value, 0, (valSize+1)*sizeof(unsigned char));
-        memcpy(*value, val, valSize*sizeof(unsigned char));
-        return true;
-    } else {
-        *value = NULL;
-        return false;
-    }
+  return GetMetadataString("\251too", value);
 }
 
 bool MP4File::SetMetadataComment(const char* value)
 {
-    const char *s = "moov.udta.meta.ilst.\251cmt.data";
-    MP4BytesProperty *pMetadataProperty = NULL;
-    MP4Atom *pMetaAtom = NULL;
-    
-    pMetaAtom = m_pRootAtom->FindAtom(s);
-
-    if (!pMetaAtom)
-    {
-        if (!CreateMetadataAtom("\251cmt"))
-            return false;
-
-        pMetaAtom = m_pRootAtom->FindAtom(s);
-    }
-
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
-    ASSERT(pMetadataProperty);
-
-    pMetadataProperty->SetValue((u_int8_t*)value, strlen(value));
-
-    return true;
+  return SetMetadataString("\251cmt", value);
 }
 
 bool MP4File::GetMetadataComment(char** value)
 {
-    unsigned char *val = NULL;
-    u_int32_t valSize = 0;
-    const char *s = "moov.udta.meta.ilst.\251cmt.data.metadata";
-    GetBytesProperty(s, (u_int8_t**)&val, &valSize);
-
-    if (valSize > 0)
-    {
-        *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
-        memset(*value, 0, (valSize+1)*sizeof(unsigned char));
-        memcpy(*value, val, valSize*sizeof(unsigned char));
-        return true;
-    } else {
-        *value = NULL;
-        return false;
-    }
+  return GetMetadataString("\251cmt", value);
 }
 
 bool MP4File::SetMetadataYear(const char* value)
 {
-    const char *s = "moov.udta.meta.ilst.\251day.data";
-    MP4BytesProperty *pMetadataProperty = NULL;
-    MP4Atom *pMetaAtom = NULL;
-    
-    pMetaAtom = m_pRootAtom->FindAtom(s);
+  if (strlen(value) != 4) return false;
 
-    if (!pMetaAtom)
-    {
-        if (!CreateMetadataAtom("\251day"))
-            return false;
-
-        pMetaAtom = m_pRootAtom->FindAtom(s);
-    }
-
-    pMetaAtom->FindProperty("data.metadata", (MP4Property**)&pMetadataProperty);
-    ASSERT(pMetadataProperty);
-
-    if (strlen(value) < 4)
-        return false;
-
-    pMetadataProperty->SetValue((u_int8_t*)value, 4);
-
-    return true;
+  return SetMetadataString("\251day", value);
 }
 
 bool MP4File::GetMetadataYear(char** value)
 {
-    unsigned char *val = NULL;
-    u_int32_t valSize = 0;
-    const char *s = "moov.udta.meta.ilst.\251day.data.metadata";
-    GetBytesProperty(s, (u_int8_t**)&val, &valSize);
-
-    if (valSize > 0)
-    {
-        *value = (char*)malloc((valSize+1)*sizeof(unsigned char));
-        memset(*value, 0, (valSize+1)*sizeof(unsigned char));
-        memcpy(*value, val, valSize*sizeof(unsigned char));
-        return true;
-    } else {
-        *value = NULL;
-        return false;
-    }
+  return GetMetadataString("\251day", value);
 }
 
 bool MP4File::SetMetadataTrack(u_int16_t track, u_int16_t totalTracks)
@@ -699,6 +513,16 @@ bool MP4File::GetMetadataGenre(char** value)
     }
 
     return false;
+}
+
+bool MP4File::SetMetadataGrouping(const char* value)
+{
+  return SetMetadataString("\251grp", value);
+}
+
+bool MP4File::GetMetadataGrouping(char** value)
+{
+  return GetMetadataString("\251grp", value);
 }
 
 bool MP4File::SetMetadataTempo(u_int16_t tempo)

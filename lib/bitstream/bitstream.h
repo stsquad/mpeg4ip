@@ -23,6 +23,11 @@
 #define __BITSTREAM_H__ 1
 #include "mpeg4ip.h"
 
+typedef enum BitstreamErr_t {
+  BITSTREAM_TOO_MANY_BITS, 
+  BITSTREAM_PAST_END,
+} BitstreamErr_t;
+
 class CBitstream {
  public:
   CBitstream(void) { m_verbose = 0;};

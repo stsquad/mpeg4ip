@@ -4,7 +4,7 @@
 #include "mpeg2_transport.h"
 #include "mp4av.h"
 
-#define BUFFER_SIZE (1000 * 188)
+#define BUFFER_SIZE (188)
 class CMpeg2SeqCheck
 {
 public:
@@ -181,12 +181,18 @@ int main (int argc, char **argv)
   //lastcc = 0;
   while (!feof(ifile)) {
     if (buflen > 0) {
+      printf("buflen is %d\n", buflen);
       memmove(buffer, buffer + readfromfile - buflen, buflen);
     }
     fgetpos(ifile, &pos);
     uint64_t position;
     FPOS_TO_VAR(pos, uint64_t, position);
-    fprintf(stdout, "file pos %llu\n", position);
+    fprintf(stdout, "file pos 0x%llx %s\n", position - buflen,
+	(position - buflen) % 188 == 0 ? "" : "no mult");
+
+    if (position - buflen == 0x11a0) {
+      printf("here\n");
+    }
     readfromfile = buflen + fread(buffer + buflen, 1, BUFFER_SIZE - buflen, ifile);
     buflen = readfromfile;
     ptr = buffer;
@@ -195,6 +201,7 @@ int main (int argc, char **argv)
 
     while (done_with_buf == 0) {
       pidptr = mpeg2t_process_buffer(mpeg2t, ptr, buflen, &offset);
+      printf("processed %d\n", offset);
       ptr += offset;
       buflen -= offset;
       if (buflen < 188) {
