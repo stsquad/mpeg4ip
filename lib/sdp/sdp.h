@@ -31,7 +31,9 @@
 #define FALSE 0
 #endif
 
+#ifndef NTP_TO_UNIX_TIME 
 #define NTP_TO_UNIX_TIME 2208988800UL
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -303,7 +305,7 @@ int sdp_add_string_to_list(string_list_t **list, char *val);
 void sdp_free_string_list (string_list_t **list);
 
 void sdp_time_offset_to_str(uint32_t val, char *buff, uint32_t buflen);
-format_list_t *sdp_find_format_in_line(format_list_t *head, char *lptr);
+format_list_t *sdp_find_format_in_line(format_list_t *head, const char *lptr);
 void sdp_smpte_to_str(double value, uint16_t fps, char *buffer);
 
 media_desc_t *sdp_find_media_type(session_desc_t *sptr, const char *name);

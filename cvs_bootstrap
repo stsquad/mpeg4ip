@@ -107,7 +107,7 @@ autoconf || exit 1
 
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  
-aclocal || aclocal $ACLOCAL_FLAGS || aclocal -I doc || aclocal -I util || aclocal -I util $ACLOCAL_FLAGS || exit 3
+aclocal || aclocal $ACLOCAL_FLAGS || aclocal -I doc || aclocal -I util || aclocal -I util $ACLOCAL_FLAGS 
 libtoolize --force
 grep AM_PATH_GTK_2_0 aclocal.m4 || aclocal -I doc || exit 3
 autoheader || exit 1

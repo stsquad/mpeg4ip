@@ -169,7 +169,7 @@ public: /* equivalent to MP4 library API */
 
 	void WriteSample(
 		MP4TrackId trackId,
-		u_int8_t* pBytes, 
+		const u_int8_t* pBytes, 
 		u_int32_t numBytes,
 		MP4Duration duration = 0,
 		MP4Duration renderingOffset = 0, 
@@ -284,7 +284,9 @@ public: /* equivalent to MP4 library API */
 		const char* payloadName,
 		u_int8_t* pPayloadNumber,
 		u_int16_t maxPayloadSize,
-		const char *encoding_params);
+		const char *encoding_params,
+		bool include_rtp_map,
+		bool include_mpeg4_esid);
 
 	MP4TrackId GetHintTrackReferenceTrackId(
 		MP4TrackId hintTrackId);

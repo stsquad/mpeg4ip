@@ -335,7 +335,7 @@ void MP4Track::ReadSampleFragment(
 }
 
 void MP4Track::WriteSample(
-	u_int8_t* pBytes, 
+	const u_int8_t* pBytes, 
 	u_int32_t numBytes,
 	MP4Duration duration, 
 	MP4Duration renderingOffset, 

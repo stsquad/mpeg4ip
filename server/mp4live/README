@@ -13,6 +13,10 @@ Please use the MPEG4IP SourceForge site to report problems, suggest
 enhancements, ask questions, etc. The URL is 
 http://www.sourceforge.net/projects/mpeg4ip
 
+Changes in Version 0.9.8
+========================
+Major syncronization changes.
+
 Changes in Version 0.9.7
 ========================
 
@@ -21,6 +25,7 @@ Split out encoder specific information from the base architecture
 codecs.
 
 Reworked configuration variables.
+
 
 Changes in Version 0.9.5
 ========================
@@ -120,7 +125,8 @@ run any programs that make large resource demands (CPU, bus, disk, network)
 while mp4live is running.
 
 If you're capturing large video image sizes, then you may be able to boost
-the encoded video frame rate by disabling video preview.
+the encoded video frame rate by disabling video preview.  In general, once
+you've got the system working, disabling preview is a good idea.
 
 The AAC audio encoder is noticeably slower than the MP3 audio encoder so 
 you will see lower video frame rates and greater sensitivity to CPU load 
@@ -131,6 +137,10 @@ to use these to give it priority over non-real time processes. Typically
 these calls can only be made by processes with root privileges, so you may
 want to run mp4live as root for this reason.
 
+If you have the latest version of OSS, you have a chance of detecting
+audio overruns.  That, in combination with the latest version and
+working on a fast machine will give fairly good lip syncronization up to
+about the hour mark running 90% of the CPU.
 
 Building and Installing
 =======================
@@ -174,6 +184,14 @@ it's a big win to change the "Aspect Ratio" in the Video Settings. This
 will cause the video to be automatically cropped so you don't waste precious 
 CPU time encoding the empty black bars at the top and bottom of the screen. 
 
+The capture cards will always try to capture frame rates based on what
+the setting of the video card is (either NTSC or PAL).
+
+The default is to assume that the video driver is going to capture close
+to the correct frame rate of 29.97 for NTSC, 25 for PAL.  If you don't 
+think that this is working quite right, try the "videoTimestampCache=0"
+to the .mp4live_rc before you start.  (This may be the case with usb
+web cams, but most likely not regular capture cards).
 
 Use with QT 6.0 and Real One
 ============================
@@ -326,6 +344,13 @@ is a big problem for you, there is a configuration option to disable the
 hinting process, "recordMp4HintTracks=0". The mp4 file can always be hinted
 later with the mp4creator utility.
 
+We know that the audio and video goes out of sync.  This is due to 
+deficiencies in the drivers (video for linux, OSS) that we are using.
+
+We've made fixes so that the latest OSS drivers will help (the ones with
+SNDCTL_DSP_GETERROR defined), and the Video for Linux 2 driver would help, 
+but we can't figure out how to install that driver on our machine.  If you're
+in the San Jose area and can help, come on by.
 
 Unknowns
 ========

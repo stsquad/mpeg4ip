@@ -209,6 +209,7 @@ GtkWidget *CreateMenuRadio (GtkWidget *menu,
     menuitem = gtk_radio_menu_item_new_with_label (*group, szName);
     *group = gtk_radio_menu_item_group (GTK_RADIO_MENU_ITEM (menuitem));
 
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem), FALSE);
     /* --- Add it to the menu --- */
     gtk_menu_append (GTK_MENU (menu), menuitem);
     gtk_widget_show (menuitem);

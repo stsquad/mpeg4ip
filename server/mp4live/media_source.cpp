@@ -794,10 +794,11 @@ void CMediaSource::ProcessAudioFrame(
 				     bool resync)
 {
   Duration srcStartDuration;
-  //  debug_message("audio - ts %llu bytes %d", srcFrameTimestamp, frameDataLength);
+  //debug_message("audio - ts %llu bytes %d", srcFrameTimestamp, frameDataLength);
   if (m_audioSrcFrameNumber == 0) {
-    if (m_videoSrcFrameNumber == 0) {
+    if (!m_sourceVideo || m_videoSrcFrameNumber == 0) {
       m_encodingStartTimestamp = GetTimestamp();
+      //  debug_message("Setting encoding start ts to %llu", m_encodingStartTimestamp);
     }
     m_audioStartTimestamp = srcFrameTimestamp;
     m_audioSrcElapsedDuration = 0;

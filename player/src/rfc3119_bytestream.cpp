@@ -213,7 +213,9 @@ void CRfc3119RtpByteStream::process_packet (void)
     pak = m_head;
     if (pak != NULL) {
       remove_packet_rtp_queue(m_head, 0);
-      pak_ts = rtp_ts_to_msec(pak->rtp_pak_ts, m_wrap_offset);
+      pak_ts = rtp_ts_to_msec(pak->rtp_pak_ts, 
+			      pak->pd.rtp_pd_timestamp,
+			      m_wrap_offset);
       adu_offset = 0;
       prev_adu = NULL;
 

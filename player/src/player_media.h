@@ -131,6 +131,7 @@ class CPlayerMedia {
   int rtp_receive_packet(unsigned char interleaved, struct rtp_packet *, int len);
   int rtcp_send_packet(uint8_t *buffer, int buflen);
   int get_rtp_media_number (void) { return m_rtp_media_number_in_session; };
+  void syncronize_rtp_bytestreams(rtcp_sync_t *sync);
  private:
   int create_common(int is_video, char *errmsg, uint32_t errlen);
   void wait_on_bytestream(void);
@@ -179,6 +180,7 @@ class CPlayerMedia {
   uint16_t m_rtp_base_seq;
 
   int determine_payload_type_from_rtp(void);
+  void create_rtp_byte_stream(uint8_t payload, uint64_t tps, format_list_t *fmt);
   void clear_rtp_packets(void);
 
   // from rtcp, for broadcast, in case we get an RTCP before we determine
@@ -187,6 +189,7 @@ class CPlayerMedia {
   uint32_t m_rtcp_ntp_sec;
   uint32_t m_rtcp_rtp_ts;
   int m_rtcp_received;
+
   volatile int m_rtp_inited;
 
   /*************************************************************************

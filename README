@@ -1,4 +1,4 @@
-August 30, 2002
+February 04, 2003
 
 MPEG4IP Project
 ===============
@@ -489,14 +489,15 @@ IETF RFC 2326 RTSP
 IETF RFC 2327 SDP
 
 IETF RFC 2250 RTP Payload for MPEG-1/2
-    Note: we're just using the audio part for MP3.
+    Note: we're just using the audio part for MP3 (and video reception
+    for the player).
 
 IETF RFC 3119 A More Loss-Tolerant RTP Payload Format for MP3 Audio
 
 IETF RFC 3016 RTP Payload for MPEG-4 Audio/Visual
     Note: we're implementing the MPEG-4 video part
 
-IETF draft-vandermeer-mpeg4-simple-01.txt - work in progress
+IETF draft-ietf-avt-mpeg4-simple-06.txt - work in progress
     Note: we're implementing the AAC audio part
 
 The IETF RFCs can be found in mpeg4ip/doc/ietf
@@ -514,96 +515,45 @@ which seeks to standardize the protocols and formats used for streaming.
 We believe MPEG4IP is interoperable with that organization's 1.0 Technical 
 Specification. For more information see http://www.isma.tv
 
-Player URLS
-===========
+Latency in mpeg4ip
+==================
 
-We have 2 special type URLs for the player to play content.  The first
-one is for mpeg2 transport streams.  To play an mpeg2 transport stream
-over UDP, use the following url:
+There have been enough questions to merit a place in the README about
+the latency in mpeg4ip.
 
-mpeg2t://<multicast address>:<multicast port>
+First of all, mpeg4ip is not designed for video conferencing or real
+time display of data.  Most streaming products are not (look at Real
+or Quicktime's buffering schemes - QT buffers 3.0 seconds of data, 
+while Real can buffer up to 30-40 seconds).
 
-The 2nd special URL is to play a stream from a Cisco IP/TV server, either
-broadcast or on demand.  To do this, use the following url:
+When you need to look at latency in a streaming environment, you need
+to look at each potential piece.  In the simplest case (mp4live to 
+mp4player), there are 5 potential places where latency can take place - 
+at mp4live, in the kernel IP transmit stack, in the network, in the
+kernel IP receive stack and in the player.
 
-iptv://<iptv content manager>/<program id>
+Mp4live has very little latency.  In video, it tends to be 1 frame.  In
+audio, it tends to be 3-4 audio frames (if using AAC, frames tend to
+be 1024 samples.  MP3 tends to be 1152 samples, but can change based on
+sampling frequency and bit rate.  Samples can be converted to seconds by
+dividing by the sample rate).
 
-Where iptv content manager is the address of the IP/TV content manager, and
-program id is the session id that is created. You can find this out by
-looking at the program on the content manager, or get the session id by
-running the iptv_prog utility with the content manager as a parameter.
+The kernal IP stacks can have some latency built in, as well.  Probably
+not too much, but you should be aware that it can exist (look at a sniffer
+trace of DSS output and you'll see what I mean).
 
-Player Plugins
-==============
+Network latency can occur, as well.  Collisions, etc, can happen, especially
+if server and player are not on the same network.
 
-Starting with version 0.9.3.2, we've gone to a plugin model for audio
-and video codecs for the player.  This is true for both windows and
-linux platforms.
+Finally, the player has latency as well.  For streaming, we tend to buffer
+2 seconds for each stream.  This is changeable by setting the 
+RtpBufferTimeMsec variable in the .gmp4player_rc file (for Windows users, 
+you'll have to change the registry to do so).  The value is in milliseconds, 
+and you need to set it to a non-zero value (0 indicates the default value).
 
-On linux (and linux like) platforms, the plugins should be in the 
-mp4player_plugin directory, which is a sub directory of where the
-other mpeg4ip libraries will be stored.  You must do a make install
-of the plugin when running/debugging with plugins - the player does
-not currently search for plugins.  When installing a new version of
-the plugins, it is a good idea to purge this directory.
-
-On Windows, the .dlls that get created must be in the same directory as 
-the executable for mp4player.exe or wmp4client.exe.  The project files
-should copy the plugin DLLs to the player/src directory, so when 
-running the player, it should work fine.
-
-The plugin pattern can be found in player/src/codec_plugin.h.  It
-is bound to change fairly rapidly for the next couple of CVS releases.
-
-MP4Player key shortcuts
-=======================
-
-If you are using mp4player, the following key short cuts can be used, 
-assuming you've got a video window:
-
-HOME - begin video from beginning
-PAGE UP - increase video size (200% max)
-PAGE DOWN - decrease video size (50% min)
-ALT-ENTER - fullscreen
-ESC - return from fullscreen
-LEFT ARROW - go back 10 seconds
-RIGHT ARROW - go forward 10 seconds
-UP ARROW - volume up 1/10th
-DOWN ARROW - volume down 1/10th
-SPACE - pause or continue
-CTRL-C - close video (next if running playlist)
-CTRL-X - close mp4player
-
-Windows GUI
-===========
-
-We've created a simple windows GUI.  It consists of 2 parts - 
-wmp4player and wmp4client.  wmp4player contains the GUI, and 
-wmp4client is basically mp4player that will communicate with
-wmp4player.
-
-wmp4client is launched as a seperate process, due to SDL limitations.
-The 2 processes communicate using file maps in memory.  See the CMp4Process
-and CMP4If classes in wmp4player and CClientProcess in wmp4client.
-
-To create this, look for the player60.dsw in player/src directory. This
-will make all 3 executables (mp4player, wmp4player.exe and wmp4client.exe,
-as well as all the plugins).
-
-To install wmp4player, put the wmp4player.exe, wmp4client.exe and
-SDL.dll in the same directory.  We will not be writing any installers.
-In addition, make sure all desired plugins are in the same directory.
-
-These programs will use the registry for storing information that
-Linux stores in .gmp4player_rc.  Look for the Software\Mpeg4ip\Config
-registry entry.  Our config file library is rigged to save this data
-there.  mp4player will still use a gmp4player_rc file.
-
-At this time, if it's broken, you're going to have to fix it.  The
-same goes with GUI "nits" - we're not GUI writers.  Currently, there is
-no playlist support, no loop support, no drag and drop support, no
-wmp4player command line support, no accelerator from the dialog 
-window (accelerators from the video window still work).
+Player Information
+==================
+See the new README in player/src.
 
 Known Problems
 ==============
@@ -623,7 +573,8 @@ Known Problems
 
   If you have problems with choppy playback, and you're using Windows 98, 
   forget about it.  The timer tick time is too slow (55 msec) for us to
-  use effectively.  
+  use effectively.  Try Quicktime or Real with Envivio, or update to a
+  newer Windows OS.
 
 * Mac OSX player sometimes will lock up, or stop playing video while
   continuing the audio - we need someone to help us add the sound buffer 

@@ -31,6 +31,8 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 #include <sdp/sdp.h>
+#include "player_session.h"
+
 
 class CRtpByteStreamBase : public COurInByteStream
 {
@@ -57,7 +59,7 @@ class CRtpByteStreamBase : public COurInByteStream
     player_debug_message("rtp bytestream reset");
     init();
     m_buffering = 0;
-    m_rtp_base_ts_set = 0;
+    m_base_ts_set = 0;
     m_rtp_base_seq_set = 0;
 
   };
@@ -74,15 +76,19 @@ class CRtpByteStreamBase : public COurInByteStream
   };
 
   // various routines for RTP interface.
-  void set_rtp_base_ts(uint32_t t) { m_rtp_base_ts_set = 1; m_rtp_base_ts = t;};
+  void set_rtp_base_ts(uint32_t t, uint64_t value = 0) { 
+    m_base_ts_set = true; 
+    m_base_rtp_ts = t;
+    m_base_ts = value;
+  };
   void set_rtp_base_seq(uint16_t s) { 
-    m_rtp_base_seq_set = 1;
+    m_rtp_base_seq_set = true;
     m_rtp_base_seq = s;
   };
   int can_skip_frame (void) { return 1; } ;
   void set_wallclock_offset (uint64_t wclock, uint32_t rtp_ts);
   int rtp_ready (void) {
-    return (m_stream_ondemand | m_wallclock_offset_set);
+    return true;
   };
   void recv_callback(struct rtp *session, rtp_event *e);
   virtual void flush_rtp_packets(void);
@@ -90,25 +96,29 @@ class CRtpByteStreamBase : public COurInByteStream
   uint32_t get_last_rtp_timestamp (void) {return m_rtptime_last; };
   void remove_packet_rtp_queue(rtp_packet *pak, int free);
   void pause(void);
+  void set_sync(CPlayerSession *psptr);
+
+  void syncronize(rtcp_sync_t *sync);
  protected:
   void init(void);
   // Make sure all classes call this to calculate real time.
-  uint64_t rtp_ts_to_msec(uint32_t ts, uint64_t &wrap_offset);
+  uint64_t rtp_ts_to_msec(uint32_t rtp_ts, uint64_t uts, uint64_t &wrap_offset);
   rtp_packet *m_head, *m_tail;
   int m_offset_in_pak;
   uint32_t m_skip_on_advance_bytes;
   uint32_t m_ts;
   uint64_t m_total;
-  int m_rtp_base_ts_set;
-  uint32_t m_rtp_base_ts;
-  int m_rtp_base_seq_set;
+  bool m_base_ts_set;
+  uint32_t m_base_rtp_ts;
+  uint64_t m_base_ts;
+  bool m_rtp_base_seq_set;
   uint16_t m_rtp_base_seq;
-  uint64_t m_rtptime_tickpersec;
+  uint64_t m_timescale;
   int m_stream_ondemand;
   uint64_t m_wrap_offset;
-  int m_wallclock_offset_set;
-  uint64_t m_wallclock_offset;
-  uint32_t m_wallclock_rtp_ts;
+  bool m_rtcp_received;
+  uint64_t m_rtcp_ts;
+  uint32_t m_rtcp_rtp_ts;
   uint64_t m_wallclock_offset_wrap;
   void calculate_wallclock_offset_from_rtcp(uint32_t ntp_frac,
 					    uint32_t ntp_sec,
@@ -120,8 +130,6 @@ class CRtpByteStreamBase : public COurInByteStream
   virtual int check_rtp_frame_complete_for_payload_type(void);
   virtual void rtp_done_buffering(void) {};
   uint32_t m_rtptime_last;
-  int m_doing_add;
-  uint32_t m_add;
   int m_recvd_pak;
   int m_recvd_pak_timeout;
   uint64_t m_recvd_pak_timeout_time;
@@ -130,6 +138,12 @@ class CRtpByteStreamBase : public COurInByteStream
   int m_eof;
   int m_rtpinfo_set_from_pak;
   uint16_t m_seq_recvd;
+  bool m_have_first_pak_ts;
+  uint64_t m_first_pak_ts;
+  uint32_t m_first_pak_rtp_ts;
+  CPlayerSession *m_psptr;
+  bool m_have_sync_info;
+  rtcp_sync_t m_sync_info;
 };
 
 class CRtpByteStream : public CRtpByteStreamBase

@@ -82,6 +82,7 @@ libmp4player_la_SOURCES = \
 	player_media.cpp \
 	player_media.h \
 	player_media_decode.cpp \
+	player_media_rtp.cpp \
 	player_sdp.c \
 	player_sdp.h \
 	player_session.cpp \

@@ -261,6 +261,11 @@ bool CV4LVideoSource::InitDevice(void)
 	m_videoFrames = 0;
        m_videoSrcFrameDuration = 
 		(Duration)(((float)TimestampTicks / m_videoSrcFrameRate) + 0.5);
+       m_cacheTimestamp = true;
+       if (m_pConfig->GetBoolValue(CONFIG_V4L_CACHE_TIMESTAMP) == false) {
+	 m_videoMbuf.frames = 2;
+	 m_cacheTimestamp = false;
+       }
 	for (int i = 0; i < m_videoMbuf.frames; i++) {
 		// initialize frame map
 		m_videoFrameMap[i].frame = i;
@@ -397,8 +402,10 @@ int8_t CV4LVideoSource::AcquireFrame(Timestamp &frameTimestamp)
 		return -1;
 	}
 
-
-	frameTimestamp = m_videoFrameMapTimestamp[m_captureHead];
+	if (m_cacheTimestamp)
+	  frameTimestamp = m_videoFrameMapTimestamp[m_captureHead];
+	else
+	  frameTimestamp = GetTimestamp();
 
 	int8_t capturedFrame = m_captureHead;
 	m_captureHead = (m_captureHead + 1) % m_videoMbuf.frames;

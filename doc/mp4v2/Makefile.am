@@ -1,4 +1,5 @@
 this_FILES = \
+	api.mpt \
 	MP4.3 \
 	MP4AddAudioTrack.3 \
 	MP4AddHintTrack.3 \

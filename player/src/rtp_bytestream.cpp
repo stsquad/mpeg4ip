@@ -27,7 +27,7 @@
 #include "our_config_file.h"
 //#define DEBUG_RTP_PAKS 1
 //#define DEBUG_RTP_BCAST 1
-#define DEBUG_RTP_WCLOCK 1
+//#define DEBUG_RTP_WCLOCK 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 #else
@@ -171,21 +171,21 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   *head = NULL;
   m_tail = *tail;
   *tail = NULL;
-  m_rtp_base_ts_set = rtp_ts_set;
-  m_rtp_base_ts = rtp_base_ts;
-  m_rtp_base_seq_set = rtp_seq_set;
-  m_rtp_base_seq = rtp_base_seq;
-  
+  set_rtp_base_ts(rtp_base_ts);
+
+  set_rtp_base_seq(rtp_base_seq);
+
+  m_have_first_pak_ts = false;
   m_rtp_pt = rtp_pt;
   uint64_t temp;
   temp = config.get_config_value(CONFIG_RTP_BUFFER_TIME_MSEC);
   if (temp > 0) {
     m_rtp_buffer_time = temp;
   } else {
-    m_rtp_buffer_time = (ondemand ? 2 : 5)* M_LLU;
+    m_rtp_buffer_time = 2 * M_LLU;
   }
 
-  m_rtptime_tickpersec = tps;
+  m_timescale = tps;
 
   init();
 
@@ -193,10 +193,12 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   m_total =0;
   m_skip_on_advance_bytes = 0;
   m_stream_ondemand = ondemand;
-  m_wallclock_offset_set = 0;
+  m_rtcp_received = false;
   m_rtp_packet_mutex = SDL_CreateMutex();
   m_buffering = 0;
   m_eof = 0;
+  m_psptr = NULL;
+  m_have_sync_info = false;
   if (rtcp_received) {
     calculate_wallclock_offset_from_rtcp(ntp_frac, ntp_sec, rtp_ts);
   }
@@ -211,6 +213,13 @@ CRtpByteStreamBase::~CRtpByteStreamBase (void)
   }
 }
 
+// set_sync - this is for audio only - it will send messages to any
+// video rtp bytestream to perform the syncronizatio
+void CRtpByteStreamBase::set_sync (CPlayerSession *psptr) 
+{ 
+  m_psptr = psptr; 
+}
+
 void CRtpByteStreamBase::init (void)
 {
   m_wrap_offset = 0;
@@ -220,16 +229,17 @@ void CRtpByteStreamBase::init (void)
 void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock, 
 					       uint32_t rtp_ts) 
 {
-  if (m_wallclock_offset_set == 1 &&
+  int32_t rtp_ts_diff;
+  uint64_t wclock_calc;
+  bool set = true;
+  bool had_recvd_rtcp;
+  if (m_rtcp_received == 1 &&
       m_stream_ondemand == 0) {
-    int32_t rtp_ts_diff;
-    uint64_t wclock_diff;
-    uint64_t wclock_calc;
-    wclock_diff = wclock - m_wallclock_offset;
-    rtp_ts_diff = rtp_ts - m_wallclock_rtp_ts;
+    rtp_ts_diff = rtp_ts;
+    rtp_ts_diff -= m_rtcp_rtp_ts;
     wclock_calc = rtp_ts_diff * M_LLU;
-    wclock_calc /= m_rtptime_tickpersec;
-    wclock_calc += m_wallclock_offset;
+    wclock_calc /= m_timescale;
+    wclock_calc += m_rtcp_ts;
     if (wclock_calc != wclock) {
 #ifdef DEBUG_RTP_WCLOCK
       rtp_message(LOG_DEBUG, 
@@ -240,20 +250,55 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
       // it's annoying noise
       int64_t diff = wclock_calc - wclock;
       if (abs(diff) < 100) {
-	return;
+	set = false;
       }
     }
     
   }
-  m_wallclock_offset_set = 1;
+  had_recvd_rtcp = m_rtcp_received;
+  m_rtcp_received = true;
   SDL_LockMutex(m_rtp_packet_mutex);
-  m_wallclock_offset = wclock;
-  m_wallclock_rtp_ts = rtp_ts;
-  m_wallclock_offset_wrap = m_wrap_offset;
-  if (((m_ts & 0x80000000) == 0x80000000) &&
-      ((rtp_ts & 0x80000000) == 0)) {
-    m_wallclock_offset_wrap += (I_LLU << 32);
+  if (set) {
+    m_rtcp_ts = wclock;
+    m_rtcp_rtp_ts = rtp_ts;
   }
+  if (m_have_first_pak_ts) {
+    int64_t diff;
+    diff = (int64_t)rtp_ts;
+    diff -= (int64_t)m_first_pak_rtp_ts;
+    int64_t compare = 3600 * m_timescale;
+#ifdef DEBUG_RTP_WCLOCK
+    rtp_message(LOG_DEBUG, "%s - rtp ts %u rtcp %u %lld", 
+		m_name, m_first_pak_rtp_ts, rtp_ts, diff);
+#endif
+    if (diff > compare) {
+      // adjust once an hour, to keep errors low
+      // we'll adjust the timestamp and rtp timestamp
+      diff *= M_LLU;
+      diff /= m_timescale;
+      m_first_pak_ts += diff;
+      m_first_pak_rtp_ts = rtp_ts;
+#ifdef DEBUG_RTP_WCLOCK
+      rtp_message(LOG_DEBUG, "CHANGE %s - first pak ts is now %llu rtp %u", 
+		  m_name, m_first_pak_ts, m_first_pak_rtp_ts);
+#endif
+    }
+    // We've received an RTCP - see if we need to syncronize
+    // the video streams.
+    if (m_psptr != NULL) {
+      rtcp_sync_t sync;
+      sync.first_pak_ts = m_first_pak_ts;
+      sync.first_pak_rtp_ts = m_first_pak_rtp_ts;
+      sync.rtcp_ts = m_rtcp_ts;
+      sync.rtcp_rtp_ts = m_rtcp_rtp_ts;
+      sync.timescale = m_timescale;
+      m_psptr->syncronize_rtp_bytestreams(&sync);
+    } else {
+      // if this is our first rtcp, try to syncronize
+      if (!had_recvd_rtcp) syncronize(NULL);
+    }
+  }
+
   SDL_UnlockMutex(m_rtp_packet_mutex);
 }
 
@@ -276,7 +321,7 @@ CRtpByteStreamBase::calculate_wallclock_offset_from_rtcp (uint32_t ntp_frac,
   offset -= NTP_TO_UNIX_TIME;
   offset *= M_LLU;
   wclock += offset;
-#ifdef DEBUG_RTP_BCAST
+#ifdef DEBUG_RTP_WCLOCK
   rtp_message(LOG_DEBUG, "%s RTCP data - sec %u frac %u value %llu ts %u", 
 	      m_name, ntp_sec, ntp_frac, wclock, rtp_ts);
 #endif
@@ -297,6 +342,10 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
       xfree(rpak);
     } else {
       // need to add lock/unlock of mutex here
+      if (m_buffering == 0) {
+	rpak->pd.rtp_pd_timestamp = get_time_of_day();
+	rpak->pd.rtp_pd_have_timestamp = 1;
+      }
       if (SDL_mutexP(m_rtp_packet_mutex) == -1) {
 	rtp_message(LOG_CRIT, "SDL Lock mutex failure in rtp bytestream recv");
 	return;
@@ -328,6 +377,95 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
     break;
   }
 }
+
+/*
+ * syncronize is used to adjust a video broadcasts time based
+ * on an audio broadcasts time.
+ * We now start the audio and video just based on the Unix time of the
+ * first packet.  Then we use this to adjust when both sides have rtcp
+ * packets.
+ * It will also work if we never get in RTCP - this routine won't be
+ * called - but our sync will be off.
+ */
+void CRtpByteStreamBase::syncronize (rtcp_sync_t *sync)
+{
+  // need to recalculate m_first_pak_ts here
+  uint64_t adjust_first_pak_ts;
+  int64_t adjust_first_pak;
+  int64_t audio_diff, our_diff;
+
+  if (sync == NULL) {
+    if (!m_have_sync_info) return;
+    sync = &m_sync_info;
+  } else {
+    if (m_rtcp_received == false)
+      m_sync_info = *sync;
+  }
+  m_have_sync_info = true;
+  
+  if (m_psptr != NULL) return;
+  if (m_rtcp_received == false) return;
+  if (m_have_first_pak_ts == false) return;
+  
+  // First calculation - use the first packet's timestamp to calculate
+  // what the timestamp value would be at the RTCP's RTP timestamp value
+  // adjust_first_pak is amount we need to add to the first_packet's timestamp
+  // We do this for the data we got for the audio stream
+  adjust_first_pak = sync->rtcp_rtp_ts;
+  adjust_first_pak -= sync->first_pak_rtp_ts;
+  adjust_first_pak *= 1000;
+  adjust_first_pak /= (int64_t)sync->timescale;
+
+  adjust_first_pak_ts = sync->first_pak_ts;
+  adjust_first_pak_ts += adjust_first_pak;
+
+  // Now, we compute the difference between that value and what the RTCP
+  // says the timestamp should be
+  audio_diff = adjust_first_pak_ts;
+  audio_diff -= sync->rtcp_ts;
+
+#ifdef DEBUG_RTP_WCLOCK
+  rtp_message(LOG_DEBUG, "%s - audio rtcp rtp ts %u first pak %u",
+	      m_name, sync->rtcp_rtp_ts, sync->first_pak_rtp_ts);
+  rtp_message(LOG_DEBUG, "%s - audio rtcp ts %llu first pak %llu",
+	      m_name, sync->rtcp_ts, sync->first_pak_ts);
+  rtp_message(LOG_DEBUG, "%s - adjusted first pak %lld ts %llu", 
+	      m_name, adjust_first_pak, sync->timescale);
+  rtp_message(LOG_DEBUG, "%s - diff %lld", m_name, audio_diff);
+#endif
+  
+  // Now, we do the same calculation for the numbers for our timestamps - 
+  // find the timestamp by adjusting the first packet's timestamp to the
+  // timestamp based on the current RTCP RTP timestamp;
+  adjust_first_pak = m_rtcp_rtp_ts;
+  adjust_first_pak -= m_first_pak_rtp_ts;
+  adjust_first_pak *= 1000;
+  adjust_first_pak /= (int64_t)m_timescale;
+
+  adjust_first_pak_ts = m_first_pak_ts;
+  adjust_first_pak_ts += adjust_first_pak;
+  our_diff = adjust_first_pak_ts;
+  our_diff -= m_rtcp_ts;
+
+#ifdef DEBUG_RTP_WCLOCK
+  rtp_message(LOG_DEBUG, "%s - our rtcp rtp ts %u first pak %u",
+	      m_name, m_rtcp_rtp_ts, m_first_pak_rtp_ts);
+  rtp_message(LOG_DEBUG, "%s - our rtcp ts %llu first pak %llu",
+	      m_name, m_rtcp_ts, m_first_pak_ts);
+  rtp_message(LOG_DEBUG, "%s - adjusted first pak %lld ts %llu", 
+	      m_name, adjust_first_pak, m_timescale);
+  rtp_message(LOG_DEBUG, "%s - diff %lld", m_name, our_diff);
+  rtp_message(LOG_INFO, "%s adjusting first pak ts by "LLD, 
+	      m_name, 
+	      audio_diff - our_diff);
+#endif
+  // Now, we very simply add the difference between the 2 to get
+  // what the equivalent start time would be.  Note that these values
+  // for the first packet are not fixed - they change over time to avoid
+  // wrap issues.
+  m_first_pak_ts += audio_diff - our_diff;
+}
+
 void CRtpByteStreamBase::remove_packet_rtp_queue (rtp_packet *pak, 
 						       int free)
 {
@@ -395,7 +533,7 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	  tail_ts = m_tail->rtp_pak_ts;
 	  calc = (tail_ts - head_ts);
 	  calc *= 1000;
-	  calc /= m_rtptime_tickpersec;
+	  calc /= m_timescale;
 	  if (calc > m_rtp_buffer_time) {
 	    rtp_packet *temp = m_head;
 	    m_head = m_head->rtp_next;
@@ -417,28 +555,14 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	calc = tail_ts;
 	calc -= head_ts;
 	calc *= M_LLU;
-	calc /= m_rtptime_tickpersec;
+	calc /= m_timescale;
 	if (calc > m_rtp_buffer_time) {
-	  if (m_rtp_base_ts_set == 0) {
+	  if (m_base_ts_set == false) {
 	    rtp_message(LOG_NOTICE, "Setting rtp seq and time from 1st pak");
-	    m_rtp_base_ts = m_head->rtp_pak_ts;
-	    m_rtp_base_ts_set = 1;
+	    set_rtp_base_ts(m_head->rtp_pak_ts);
 	    m_rtpinfo_set_from_pak = 1;
 	  } else {
 	    m_rtpinfo_set_from_pak = 0;
-#if 0
-	    // note - 9/11/2002 - wmay - this is incorrect - we may have
-	    // the base timestamp but it may not match what is in the 
-	    // RtpInfo field.  
-	    if (m_rtp_base_seq_set != 0 &&
-		m_rtp_base_seq == m_head->rtp_pak_seq &&
-		m_rtp_base_ts != m_head->rtp_pak_ts) {
-	      rtp_message(LOG_NOTICE, "%s - rtp ts doesn't match RTPInfo %d seq %d", 
-			  m_name, m_head->rtp_pak_ts, m_head->rtp_pak_seq);
-	      m_rtp_base_ts = m_head->rtp_pak_ts;
-	    }
-#endif
-	    //
 	  }
 	  m_buffering = 1;
 #if 1
@@ -514,27 +638,30 @@ int CRtpByteStreamBase::check_rtp_frame_complete_for_payload_type (void)
   return (m_head && m_tail->rtp_pak_m == 1);
 }
 
-uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t ts,
+uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
+					     uint64_t uts,
 					     uint64_t &wrap_offset)
 {
   uint64_t timetick;
   uint64_t adjusted_rtp_ts;
   uint64_t adjusted_wc_rtp_ts;
+  bool have_wrap = false;
 
   if (((m_ts & 0x80000000) == 0x80000000) &&
-      ((ts & 0x80000000) == 0)) {
+      ((rtp_ts & 0x80000000) == 0)) {
     wrap_offset += (I_LLU << 32);
+    have_wrap = true;
   }
 
   if (m_stream_ondemand) {
     adjusted_rtp_ts = wrap_offset;
-    adjusted_rtp_ts += ts;
-    adjusted_wc_rtp_ts = m_rtp_base_ts;
+    adjusted_rtp_ts += rtp_ts;
+    adjusted_wc_rtp_ts = m_base_rtp_ts;
 
     if (adjusted_wc_rtp_ts > adjusted_rtp_ts) {
       timetick = adjusted_wc_rtp_ts - adjusted_rtp_ts;
       timetick *= M_LLU;
-      timetick /= m_rtptime_tickpersec;
+      timetick /= m_timescale;
       if (timetick > m_play_start_time) {
 	timetick = 0;
       } else {
@@ -543,32 +670,58 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t ts,
     } else {
       timetick = adjusted_rtp_ts - adjusted_wc_rtp_ts;
       timetick *= M_LLU;
-      timetick /= m_rtptime_tickpersec;
+      timetick /= m_timescale;
       timetick += m_play_start_time;
     }
   } else {
-
+    // We've got a broadcast scenario here...
+    if (m_have_first_pak_ts == false) {
+      // We haven't processed the first packet yet - we record
+      // the data here.
+      m_first_pak_rtp_ts = rtp_ts;
+      m_first_pak_ts = uts;
+      m_have_first_pak_ts = true;
+      rtp_message(LOG_DEBUG, "%s first pak ts %u %llu", 
+		  m_name, m_first_pak_rtp_ts, m_first_pak_ts);
+      // if we have received RTCP, set the wallclock offset, which
+      // triggers the syncronization effort.
+      if (m_rtcp_received) {
+	// calculate other stuff
+	set_wallclock_offset(m_rtcp_ts, m_rtcp_rtp_ts);
+      }
+    }
     SDL_LockMutex(m_rtp_packet_mutex);
-    adjusted_rtp_ts = wrap_offset;
-    adjusted_rtp_ts += ts;
-    adjusted_wc_rtp_ts = m_wallclock_offset_wrap;
-    adjusted_wc_rtp_ts += m_wallclock_rtp_ts;
+    // fairly simple calculation to calculate the timestamp
+    // based on this rtp timestamp, the first pak rtp timestamp and
+    // the first packet timestamp.
+    int64_t adder;
+    if (have_wrap) {
+      adder = (int64_t)rtp_ts;
+      adder += I_LLU << 32;
+      adder -= (int64_t)m_first_pak_rtp_ts;
+      // adjust once an hour, to keep errors low
+      // we'll adjust the timestamp and rtp timestamp
+      adder *= M_LLU;
+      adder /= m_timescale;
+      m_first_pak_ts += adder;
+      m_first_pak_rtp_ts = rtp_ts;
+#ifdef DEBUG_RTP_BCAST
+      rtp_message(LOG_DEBUG, "%s adjust for wrap - first pak ts is now %llu rtp %u", 
+		  m_name, m_first_pak_ts, m_first_pak_rtp_ts);
+#endif
+    }
+
+    adder = (int64_t)rtp_ts;
+    adder -= (int64_t) m_first_pak_rtp_ts;
+    adder *= (int64_t)1000;
+    adder /= (int64_t)m_timescale;
+    timetick = m_first_pak_ts;
+    timetick += adder;
     SDL_UnlockMutex(m_rtp_packet_mutex);
 
-    if (adjusted_rtp_ts >= adjusted_wc_rtp_ts) {
-      timetick = adjusted_rtp_ts - adjusted_wc_rtp_ts;
-      timetick *= M_LLU;
-      timetick /= m_rtptime_tickpersec;
-      timetick += m_wallclock_offset;
-    } else {
-      timetick = adjusted_wc_rtp_ts - adjusted_rtp_ts;
-      timetick *= M_LLU;
-      timetick /= m_rtptime_tickpersec;
-      timetick = m_wallclock_offset - timetick;
-    }
 #ifdef DEBUG_RTP_BCAST
-    rtp_message(LOG_DEBUG, "%s wcts %llu ts %llu wcntp %llu tp %llu",
-		m_name, adjusted_wc_rtp_ts, adjusted_rtp_ts, m_wallclock_offset,
+    rtp_message(LOG_DEBUG, "%s ts %u base %u %llu tp %llu",
+		m_name, rtp_ts, m_first_pak_rtp_ts, m_first_pak_ts, 
 		timetick);
 #endif
   }
@@ -619,8 +772,9 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
 					   void **ud)
 {
   uint16_t seq = 0;
-  uint32_t ts = 0;
+  uint32_t rtp_ts = 0;
   uint64_t timetick;
+  uint64_t ts = 0;
   int first = 0;
   int finished = 0;
   rtp_packet *rpak;
@@ -628,7 +782,6 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
 
   diff = m_buffer_len - m_bytes_used;
 
-  m_doing_add = 0;
   if (diff >= 2) {
     // Still bytes in the buffer...
     *buffer = m_buffer + m_bytes_used;
@@ -655,7 +808,7 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
 			     "is incomplete and active", m_name);
 	player_error_message("Please report to mpeg4ip");
 	player_error_message("first %d seq %u ts %x blen %d",
-			     first, seq, ts, m_buffer_len);
+			     first, seq, rtp_ts, m_buffer_len);
 	m_buffer_len = 0;
 	m_bytes_used = 0;
 	return 0;
@@ -665,20 +818,21 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
       
       if (first == 0) {
 	seq = rpak->rtp_pak_seq + 1;
-	ts = rpak->rtp_pak_ts;
+	ts = rpak->pd.rtp_pd_timestamp;
+	rtp_ts = rpak->rtp_pak_ts;
 	first = 1;
       } else {
 	if ((seq != rpak->rtp_pak_seq) ||
-	    (ts != rpak->rtp_pak_ts)) {
+	    (rtp_ts != rpak->rtp_pak_ts)) {
 	  if (seq != rpak->rtp_pak_seq) {
 	    rtp_message(LOG_INFO, "%s missing rtp sequence - should be %u is %u", 
 			m_name, seq, rpak->rtp_pak_seq);
 	  } else {
 	    rtp_message(LOG_INFO, "%s timestamp error - seq %u should be %x is %x", 
-			m_name, seq, ts, rpak->rtp_pak_ts);
+			m_name, seq, rtp_ts, rpak->rtp_pak_ts);
 	  }
 	  m_buffer_len = 0;
-	  ts = rpak->rtp_pak_ts;
+	  rtp_ts = rpak->rtp_pak_ts;
 	}
 	seq = rpak->rtp_pak_seq + 1;
       }
@@ -686,7 +840,7 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
       uint32_t len;
       from = (uint8_t *)rpak->rtp_data + m_skip_on_advance_bytes;
       len = rpak->rtp_data_len - m_skip_on_advance_bytes;
-      if ((m_buffer_len + len) > m_buffer_len_max) {
+      if ((m_buffer_len + len) >= m_buffer_len_max) {
 	// realloc
 	m_buffer_len_max = m_buffer_len + len + 1024;
 	m_buffer = (uint8_t *)realloc(m_buffer, m_buffer_len_max);
@@ -715,8 +869,8 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
     rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif
   }
-  timetick = rtp_ts_to_msec(ts, m_wrap_offset);
-  m_ts = ts;
+  timetick = rtp_ts_to_msec(rtp_ts, ts, m_wrap_offset);
+  m_ts = rtp_ts;
   
   return (timetick);
 }
@@ -836,7 +990,6 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
     diff = m_working_pak->rtp_data_len - m_bytes_used;
   } else diff = 0;
 
-  m_doing_add = 0;
   if (diff > 0) {
     // Still bytes in the buffer...
     *buffer = (uint8_t *)m_working_pak->rtp_data + m_bytes_used;
@@ -852,7 +1005,7 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
     m_bytes_used = m_skip_on_advance_bytes;
     m_working_pak = m_head;
     remove_packet_rtp_queue(m_working_pak, 0);
-    if (m_seq_recvd != m_working_pak->rtp_pak_seq) {
+    if (m_have_first_pak_ts && m_seq_recvd != m_working_pak->rtp_pak_seq) {
       rtp_message(LOG_ERR, "%s missing seq should be %d got %d", 
 		  m_name, m_seq_recvd, m_working_pak->rtp_pak_seq);
     }
@@ -869,7 +1022,9 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
   }
 
   // We're going to have to handle wrap better...
-  uint64_t retts = rtp_ts_to_msec(ts, m_wrap_offset);
+  uint64_t retts = rtp_ts_to_msec(ts, 
+				  m_working_pak->pd.rtp_pd_timestamp,
+				  m_wrap_offset);
   m_ts = ts;
   return retts;
 

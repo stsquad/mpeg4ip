@@ -131,6 +131,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
   timetick = 
     iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, 
 				iptr->m_current_pak->rtp_pak_ts,
+				iptr->m_current_pak->pd.rtp_pd_timestamp,
 				0);
   // We're going to have to handle wrap better...
 #ifdef DEBUG_H261

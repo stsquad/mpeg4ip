@@ -93,6 +93,7 @@ protected:
 	Timestamp *m_videoFrameMapTimestamp;
 	uint64_t m_lastVideoFrameMapFrameLoaded;
 	Timestamp m_lastVideoFrameMapTimestampLoaded;
+	bool            m_cacheTimestamp;
 };
 
 class CVideoCapabilities {
@@ -151,7 +152,6 @@ public:
 	u_int8_t*	m_inputTunerSignalTypes;	// possible signal types from tuner
 
 	bool		m_hasAudio;
-
 protected:
 	bool ProbeDevice(void);
 };

@@ -48,6 +48,14 @@ class CVideoSync;
 
 typedef void (*media_close_callback_f)(void *);
 
+typedef struct rtcp_sync_t {
+  uint64_t first_pak_ts;
+  uint64_t rtcp_ts;
+  uint32_t first_pak_rtp_ts;
+  uint32_t rtcp_rtp_ts;
+  uint64_t timescale;
+} rtcp_sync_t;
+
 class CPlayerSession {
  public:
   /*
@@ -176,6 +184,7 @@ class CPlayerSession {
   const char *get_session_desc(int line);
   void streaming_media_set_up(void) { m_streaming_media_set_up = 1; };
   CIpPort **get_unused_ip_port_ptr(void) { return &m_unused_ports; };
+  void syncronize_rtp_bytestreams(rtcp_sync_t *sync);
  private:
   void process_sdl_events(void);
   int process_msg_queue(int state);
@@ -227,6 +236,8 @@ class CPlayerSession {
   int m_rtp_over_rtsp;
   uint64_t m_first_time_played;
   int m_double_screen_width;
+  bool m_have_audio_rtcp_sync;
+  rtcp_sync_t m_audio_rtcp_sync;
 };
 
 int c_sync_thread(void *data);

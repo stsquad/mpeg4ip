@@ -174,7 +174,16 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		  "%s: Warning: no Visual Object Sequence Start (VOSH) header found in MPEG-4 video.\n"
 		  "This can cause problems with players other than mp4player included\n"
 		  "with this package.\n", ProgName);
+	} else {
+	  if (VideoProfileLevelSpecified &&
+	      videoProfileLevel != VideoProfileLevel) {
+	    fprintf(stderr, 
+		    "%s: You have specified a different video profile level than was detected in the VOSH header\n"
+		    "The level you specified was %d and %d was read from the VOSH\n",
+		    ProgName, VideoProfileLevel, videoProfileLevel);
+	  }
 	}
+
 	if (foundVisualObjectStart == false) {
 	  fprintf(stderr, 
 		  "%s: Warning: no Visual Object start header found in MPEG-4 video.\n"
@@ -225,6 +234,9 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 				   pFrameBuffer, vopStart + 1);
 #endif
 	if (MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE) == 1) {
+	  if (VideoProfileLevelSpecified) {
+	    videoProfileLevel = VideoProfileLevel;
+	  }
 	  MP4SetVideoProfileLevel(mp4File, 
 				  MP4AV_Mpeg4VideoToSystemsProfileLevel(videoProfileLevel));
 	}

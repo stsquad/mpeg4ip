@@ -608,6 +608,7 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (uint8_t **buffer,
 #endif
   timetick = rtp_ts_to_msec(m_frame_data_on != NULL ? 
 			    m_frame_data_on->rtp_timestamp : m_ts, 
+			    m_frame_data_on->pak->pd.rtp_pd_timestamp,
 			    m_wrap_offset);
   if (m_frame_data_on != NULL)
     m_ts =  m_frame_data_on->rtp_timestamp;

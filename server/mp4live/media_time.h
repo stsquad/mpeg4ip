@@ -45,4 +45,18 @@ inline u_int32_t GetSecsFromTimestamp(Timestamp t) {
 	return t / TimestampTicks;
 }
 
+#ifndef NTP_TO_UNIX_TIME
+#define NTP_TO_UNIX_TIME 2208988800UL
+#endif
+inline Timestamp GetTimestampFromNtp(uint32_t ntp_sec, uint32_t ntp_frac)
+{
+  Timestamp ret = ntp_frac;
+  ret *= TimestampTicks;
+  ret /= (1LLU << 32);
+  if (ntp_sec > NTP_TO_UNIX_TIME) {
+    ntp_sec -= NTP_TO_UNIX_TIME;
+  }
+  ret += (ntp_sec * TimestampTicks);
+  return ret;
+}
 #endif /* __MEDIA_TIME_H__ */

@@ -536,7 +536,7 @@ bool MP4ReadSampleFromTime(
 bool MP4WriteSample(
 	MP4FileHandle hFile,
 	MP4TrackId trackId,
-	u_int8_t* pBytes, 
+	const u_int8_t* pBytes, 
 	u_int32_t numBytes,
 	MP4Duration duration DEFAULT(MP4_INVALID_DURATION),
 	MP4Duration renderingOffset DEFAULT(0), 
@@ -618,7 +618,9 @@ bool MP4SetHintTrackRtpPayload(
 	const char* pPayloadName,
 	u_int8_t* pPayloadNumber,
 	u_int16_t maxPayloadSize DEFAULT(0),
-	const char *encode_params DEFAULT(NULL));
+	const char *encode_params DEFAULT(NULL),
+	bool include_rtp_map DEFAULT(true),
+	bool include_mpeg4_esid DEFAULT(true));
 
 const char* MP4GetSessionSdp(
 	MP4FileHandle hFile);

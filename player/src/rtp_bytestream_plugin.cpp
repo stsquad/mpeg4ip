@@ -23,11 +23,14 @@
 #include "rtp/memory.h"
 #include "player_util.h"
 
-static uint64_t rtp_ts_to_msec (void *ifp, uint32_t rtp_ts, int just_checking)
+static uint64_t rtp_ts_to_msec (void *ifp, 
+				uint32_t rtp_ts, 
+				uint64_t uts, 
+				int just_checking)
 {
   CPluginRtpByteStream *cptr = (CPluginRtpByteStream *)ifp;
 
-  return cptr->get_rtp_ts_to_msec(rtp_ts, just_checking);
+  return cptr->get_rtp_ts_to_msec(rtp_ts, uts, just_checking);
 }
 
 static rtp_packet *get_next_pak (void *ifp, rtp_packet *current, int remove)

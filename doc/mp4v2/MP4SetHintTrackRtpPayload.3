@@ -18,6 +18,10 @@ bool \fBMP4SetHintTrackRtpPayload\fR(
 .br 
 	u_int16_t \fImaxPayloadSize\fP = 0
 .br 
+	bool \fIinclude_rtp_map\fP = true
+.br 
+	bool \fIinclude_mpeg4_esid\fP = true
+.br 
 )
 .SH "ARGUMENTS"
 .LP 
@@ -36,6 +40,12 @@ Specifies a pointer to the RTP payload number.
 .TP 
 \fImaxPayloadSize\fP
 Specifies the maximum RTP payload size in bytes.
+.TP 
+\fIinclude_rtp_map\fP
+Specifies if the a=rtpmap statement is included.
+.TP 
+\fIinclude_mpeg4_esid\fP
+Specifies if the a=mpeg4-esid statement is included.
 .SH "RETURN VALUES"
 .LP 
 Upon success, true (1). Upon an error, false (0).

@@ -75,21 +75,18 @@ int check_name_for_network(const char *name, int &isOnDemand, int &isRtpOverRtsp
 int lookup_audio_codec_by_name(const char *name);
 int lookup_video_codec_by_name(const char *name);
 
-class CRtpByteStreamBase;
-struct rtp_packet;
+enum {
+  VIDEO_MPEG4_ISO,
+  VIDEO_DIVX,
+  VIDEO_MPEG4_ISO_OR_DIVX,
+  VIDEO_MPEG12,
+};
 
-CRtpByteStreamBase *create_rtp_byte_stream_for_format(format_list_t *fmt,
-						      unsigned int rtp_proto,
-						      int ondemand,
-						      uint64_t tps,
-						      rtp_packet **head, 
-						      rtp_packet **tail,
-						      int rtp_seq_set, 
-						      uint16_t rtp_seq,
-						      int rtp_ts_set,
-						      uint32_t rtp_base_ts,
-						      int rtcp_received,
-						      uint32_t ntp_frac,
-						      uint32_t ntp_sec,
-						      uint32_t rtp_ts);
+enum {
+  MPEG4IP_AUDIO_MP3,
+  MPEG4IP_AUDIO_WAV,
+  MPEG4IP_AUDIO_MP3_ROBUST,
+  MPEG4IP_AUDIO_GENERIC,
+  MPEG4IP_AUDIO_NONE,
+};
 #endif

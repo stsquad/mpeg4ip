@@ -86,6 +86,7 @@ void lib_message (int loglevel,
   printf("\n");
 }
 
+#if 0
 void message (int loglevel, const char *lib, const char *fmt, ...)
 {
   va_list ap;
@@ -105,6 +106,7 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
   printf("\n");
 }
 
+#endif
 extern "C" char *get_host_ip_address (void)
 {
   char sHostName[256];

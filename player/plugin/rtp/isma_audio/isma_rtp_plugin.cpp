@@ -651,6 +651,8 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 				iptr->m_frame_data_on != NULL ? 
 				iptr->m_frame_data_on->rtp_timestamp : 
 				iptr->m_ts, 
+				iptr->m_frame_data_on ?
+				iptr->m_frame_data_on->pak->pd.rtp_pd_timestamp : 0,
 				0);
   if (iptr->m_frame_data_on != NULL)
     iptr->m_ts =  iptr->m_frame_data_on->rtp_timestamp;

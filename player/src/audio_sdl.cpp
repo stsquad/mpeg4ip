@@ -30,6 +30,7 @@
 #include <SDL_thread.h>
 #include "our_config_file.h"
 //#define DEBUG_SYNC 1
+//#define DEBUG_SYNC_CHANGES 1
 //#define DEBUG_AUDIO_FILL 1
 //#define DEBUG_DELAY 1
 #ifdef _WIN32
@@ -626,15 +627,17 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
       }
     }
   } else {
+    uint64_t temp = 0;
     this_time = m_buffer_time[m_play_index];
-    if (m_first_time == 0) {
-      if (m_play_sample_index != 0) {
-	uint64_t temp;
-	temp = (uint64_t) m_play_sample_index * (uint64_t)m_msec_per_frame;
-	temp /= (uint64_t) m_buffer_size;
-	this_time += temp;
-      }
+    if ((m_first_time == 0) && (m_play_sample_index != 0)) {
+      temp = (uint64_t) m_play_sample_index * (uint64_t)m_msec_per_frame;
+      temp /= (uint64_t) m_buffer_size;
+      this_time += temp;
     }
+#if 0
+    audio_message(LOG_DEBUG, "time %llu %llu", m_buffer_time[m_play_index],
+		  temp);
+#endif
   }
 
 
@@ -738,7 +741,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 
       if (this_time > index_time + ALLOWED_LATENCY || 
 	  this_time < index_time - ALLOWED_LATENCY) {
-#ifdef DEBUG_SYNC
+#ifdef DEBUG_SYNC_CHANGES
 	audio_message(LOG_DEBUG, 
 		      "potential change - index time "LLU" time "LLU" delay %d", 
 		      index_time, this_time, delay);
@@ -750,11 +753,17 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 	  int64_t test;
 	  test = this_time - index_time;
 	  m_wrong_latency_total += test;
-	  test = m_wrong_latency_total / (m_consec_wrong_latency - 1);
+	  int64_t div;
+	  div = m_wrong_latency_total / (int64_t)(m_consec_wrong_latency - 1);
+#ifdef DEBUG_SYNC_CHANGES
+	  audio_message(LOG_DEBUG, "values are %lld %lld %d", 
+			test, div, m_consec_wrong_latency);
+#endif
 	  if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {
 	    if (m_consec_wrong_latency > 5) {
 	      m_consec_wrong_latency = 0;
 	      m_wrong_latency_total = 0;
+	      if (test < -10000) abort();
 	      m_psptr->adjust_start_time(test);
 	    }
 	  } else {

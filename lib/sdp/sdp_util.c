@@ -27,11 +27,7 @@
  * Bill May (wmay@cisco.com)
  * Cisco Systems, Inc.
  */
-#include <ctype.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
+#include "systems.h"
 #include "sdp.h"
 #include "sdp_decode_private.h"
 
@@ -203,7 +199,7 @@ void sdp_time_offset_to_str (uint32_t val, char *buff, uint32_t buflen)
  * Outputs:
  *   ptr of matching format or NULL if nothing matched.
  */
-format_list_t *sdp_find_format_in_line (format_list_t *head, char *lptr)
+format_list_t *sdp_find_format_in_line (format_list_t *head, const char *lptr)
 {
   uint32_t len;
   

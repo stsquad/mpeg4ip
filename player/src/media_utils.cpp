@@ -27,7 +27,6 @@
 #include "media_utils.h"
 #include "player_session.h"
 #include "player_media.h"
-#include "codec/mp3/mp3_rtp_bytestream.h"
 #include "avi_file.h"
 #include "mp4_file.h"
 #include "qtime_file.h"
@@ -35,32 +34,15 @@
 #include "rtp_bytestream.h"
 #include "codec_plugin_private.h"
 #include <gnu/strcasestr.h>
-#include "rfc3119_bytestream.h"
-#include "mpeg3_rtp_bytestream.h"
 #include "mpeg3_file.h"
 #include "audio.h"
 #ifndef _WIN32
 #include "mpeg2t.h"
 #endif
-#include "rtp_bytestream_plugin.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
  */
-enum {
-  VIDEO_MPEG4_ISO,
-  VIDEO_DIVX,
-  VIDEO_MPEG4_ISO_OR_DIVX,
-  VIDEO_MPEG12,
-};
-
-enum {
-  MPEG4IP_AUDIO_MP3,
-  MPEG4IP_AUDIO_WAV,
-  MPEG4IP_AUDIO_MP3_ROBUST,
-  MPEG4IP_AUDIO_GENERIC,
-  MPEG4IP_AUDIO_NONE,
-};
 /*
  * these are lists of supported audio and video codecs
  */
@@ -810,172 +792,4 @@ int check_name_for_network (const char *name,
   return 0;
 }
 
-  
-  
-CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
-						       unsigned int rtp_pt,
-						       int ondemand,
-						       uint64_t tps,
-						       rtp_packet **head, 
-						       rtp_packet **tail,
-						       int rtp_seq_set, 
-						       uint16_t rtp_seq,
-						       int rtp_ts_set,
-						       uint32_t rtp_base_ts,
-						       int rtcp_received,
-						       uint32_t ntp_frac,
-						       uint32_t ntp_sec,
-						       uint32_t rtp_ts)
-{
-  CRtpByteStreamBase *rtp_byte_stream;
-  int codec;
-  rtp_check_return_t plugin_ret;
-  rtp_plugin_t *rtp_plugin;
-
-  rtp_plugin = NULL;
-  rtp_byte_stream = NULL;
-  plugin_ret = check_for_rtp_plugins(fmt, rtp_pt, &rtp_plugin);
-
-  if (plugin_ret != RTP_PLUGIN_NO_MATCH) {
-    switch (plugin_ret) {
-    case RTP_PLUGIN_MATCH:
-      player_debug_message("Starting rtp bytestream %s from plugin", 
-			   rtp_plugin->name);
-      rtp_byte_stream = new CPluginRtpByteStream(rtp_plugin,
-						 fmt,
-						 rtp_pt,
-						ondemand,
-						tps,
-						head,
-						tail,
-						rtp_seq_set,
-						rtp_seq,
-						rtp_ts_set,
-						rtp_base_ts,
-						rtcp_received,
-						ntp_frac,
-						ntp_sec,
-						rtp_ts);
-      break;
-    case RTP_PLUGIN_MATCH_USE_VIDEO_DEFAULT:
-      // just fall through...
-      break; 
-    case RTP_PLUGIN_MATCH_USE_AUDIO_DEFAULT:
-      rtp_byte_stream = 
-	new CAudioRtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
-				rtp_seq_set, rtp_seq,
-				rtp_ts_set, rtp_base_ts, 
-				rtcp_received, ntp_frac, ntp_sec, rtp_ts);
-      if (rtp_byte_stream != NULL) {
-	player_debug_message("Starting generic audio byte stream");
-	return (rtp_byte_stream);
-      }
-
-    default:
-      break;
-    }
-  } else {
-  if (strcmp("video", fmt->media->media) == 0) {
-    if (rtp_pt == 32) {
-      codec = VIDEO_MPEG12;
-      rtp_byte_stream = new CMpeg3RtpByteStream(rtp_pt,
-						fmt, 
-						ondemand,
-						tps,
-						head,
-						tail,
-						rtp_seq_set,
-						rtp_seq,
-						rtp_ts_set,
-						rtp_base_ts,
-						rtcp_received,
-						ntp_frac,
-						ntp_sec,
-						rtp_ts);
-      if (rtp_byte_stream != NULL) {
-	return (rtp_byte_stream);
-      }
-    } 
-#if 0
-    // got this far - fall through to generic bytestream
-    else {
-      if (fmt->rtpmap != NULL) {
-	codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
-				     video_codecs);
-      } else return NULL;
-      if (codec < 0) {
-	return (NULL);
-      }
-    }
-#endif
-  } else {
-    if (rtp_pt == 14) {
-      codec = MPEG4IP_AUDIO_MP3;
-    } else if (rtp_pt >= 0 && rtp_pt <= 23) {
-      codec = MPEG4IP_AUDIO_GENERIC;
-    }  else {
-      if (fmt->rtpmap == NULL) return NULL;
-
-      codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
-				   audio_codecs);
-      if (codec < 0) {
-	codec = MPEG4IP_AUDIO_NONE; // fall through everything to generic
-      }
-    }
-    switch (codec) {
-    case MPEG4IP_AUDIO_MP3: {
-      rtp_byte_stream = 
-	new CAudioRtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
-				rtp_seq_set, rtp_seq,
-				rtp_ts_set, rtp_base_ts, 
-				rtcp_received, ntp_frac, ntp_sec, rtp_ts);
-      if (rtp_byte_stream != NULL) {
-	rtp_byte_stream->set_skip_on_advance(4);
-	player_debug_message("Starting mp3 2250 audio byte stream");
-	return (rtp_byte_stream);
-      }
-    }
-      break;
-    case MPEG4IP_AUDIO_MP3_ROBUST:
-      rtp_byte_stream = 
-	new CRfc3119RtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
-				  rtp_seq_set, rtp_seq,
-				  rtp_ts_set, rtp_base_ts, 
-				  rtcp_received, ntp_frac, ntp_sec, rtp_ts);
-      if (rtp_byte_stream != NULL) {
-	player_debug_message("Starting mpa robust byte stream");
-	return (rtp_byte_stream);
-      }
-      break;
-    case MPEG4IP_AUDIO_GENERIC:
-      rtp_byte_stream = 
-	new CAudioRtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
-				rtp_seq_set, rtp_seq,
-				rtp_ts_set, rtp_base_ts, 
-				rtcp_received, ntp_frac, ntp_sec, rtp_ts);
-      if (rtp_byte_stream != NULL) {
-	player_debug_message("Starting generic audio byte stream");
-	return (rtp_byte_stream);
-      }
-    default:
-      break;
-    }
-  }
-  rtp_byte_stream = new CRtpByteStream(fmt->media->media,
-				       fmt, 
-				       rtp_pt,
-				       ondemand,
-				       tps,
-				       head,
-				       tail,
-				       rtp_seq_set, 
-				       rtp_seq,
-				       rtp_ts_set,
-				       rtp_base_ts,
-				       rtcp_received,
-				       ntp_frac,
-				       ntp_sec,
-				       rtp_ts);
-  }
-  return (rtp_byte_stream);
-}
+/* end file media_utils.cpp */

@@ -1445,7 +1445,7 @@ void MP4File::ReadSample(MP4TrackId trackId, MP4SampleId sampleId,
 }
 
 void MP4File::WriteSample(MP4TrackId trackId,
-		u_int8_t* pBytes, u_int32_t numBytes,
+		const u_int8_t* pBytes, u_int32_t numBytes,
 		MP4Duration duration, MP4Duration renderingOffset, bool isSyncSample)
 {
 	ProtectWriteOperation("MP4WriteSample");
@@ -1830,7 +1830,9 @@ void MP4File::GetHintTrackRtpPayload(
 
 void MP4File::SetHintTrackRtpPayload(MP4TrackId hintTrackId,
 	const char* payloadName, u_int8_t* pPayloadNumber, u_int16_t maxPayloadSize,
-				     const char *encoding_params)
+				     const char *encoding_params,
+				     bool include_rtp_map,
+				     bool include_mpeg4_esid)
 {
 	MP4Track* pTrack = m_pTracks[FindTrackIndex(hintTrackId)];
 
@@ -1850,7 +1852,8 @@ void MP4File::SetHintTrackRtpPayload(MP4TrackId hintTrackId,
 	}
 
 	((MP4RtpHintTrack*)pTrack)->SetPayload(
-		payloadName, payloadNumber, maxPayloadSize, encoding_params);
+		payloadName, payloadNumber, maxPayloadSize, encoding_params,
+		include_rtp_map, include_mpeg4_esid);
 }
 
 u_int8_t MP4File::AllocRtpPayloadNumber()

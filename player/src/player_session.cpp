@@ -80,6 +80,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_first_time_played = 0;
   m_latency = 0;
   m_double_screen_width = 0;
+  m_have_audio_rtcp_sync = false;
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -672,5 +673,23 @@ uint64_t CPlayerSession::get_current_time (void)
   m_current_time = current_time - m_start;
   if (m_current_time >= m_latency) m_current_time -= m_latency;
   return(m_current_time);
+}
+
+void CPlayerSession::syncronize_rtp_bytestreams (rtcp_sync_t *sync)
+{
+  if (sync != NULL) {
+    m_audio_rtcp_sync = *sync;
+    m_have_audio_rtcp_sync = true;
+  } else {
+    if (!m_have_audio_rtcp_sync) 
+      return;
+  }
+  CPlayerMedia *mptr = m_my_media;
+  while (mptr != NULL) {
+    if (mptr->is_video()) {
+      mptr->syncronize_rtp_bytestreams(&m_audio_rtcp_sync);
+    }
+    mptr = mptr->get_next();
+  }
 }
 /* end file player_session.cpp */

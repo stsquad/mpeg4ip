@@ -51,7 +51,9 @@ static int display_sdp (session_desc_t *sdp)
   return 0;
 }
 
-static int get_program_list (const char *content_manager)
+static int get_program_list (const char *content_manager,
+			     bool save_sid,
+			     uint64_t sid)
 {
   http_client_t *http_client;
   http_resp_t *http_resp;
@@ -79,7 +81,16 @@ static int get_program_list (const char *content_manager)
 	(translated > 0)) {
       retvalue = 0;
       for (ix = 0; ix < translated; ix++) {
-	display_sdp(sdp);
+	if (save_sid) {
+	  if (sid == sdp->session_id) {
+	    char buffer[80];
+	    sprintf(buffer, "%llu.sdp", sid);
+	    sdp_encode_one_to_file(sdp, buffer, 0);
+	    retvalue = 1;
+	  }
+	} else {
+	  display_sdp(sdp);
+	}
 	ptr = sdp->next;
 	sdp->next = NULL;
 	sdp_free_session_desc(sdp);
@@ -97,16 +108,22 @@ static int get_program_list (const char *content_manager)
 int main (int argc, char **argv)
 {
   char* ProgName = argv[0];
+  bool save_sid;
+  uint64_t sid;
+
+  save_sid = false;
+  sid = 0;
   while (true) {
     int c = -1;
     int option_index = 0;
-    static struct option long_options[3] = {
+    static struct option long_options[] = {
       { "version", 0, 0, 'V' },
       { "debug", 0, 0, 'd' },
+      { "save", 1, 0, 's' },
       { NULL, 0, 0, 0 }
     };
     
-    c = getopt_long_only(argc, argv, "Vd",
+    c = getopt_long_only(argc, argv, "Vds:",
 			 long_options, &option_index);
     
     if (c == -1)
@@ -114,9 +131,10 @@ int main (int argc, char **argv)
     
     switch (c) {
     case '?':
-      fprintf(stderr, "%s - usage [-v] [-d] <content manager>\n", ProgName);
+      fprintf(stderr, "%s - usage [-v] [-d] [-s sid] <content manager>\n", ProgName);
       fprintf(stderr, " -d - debug\n");
       fprintf(stderr, " -v - version\n");
+      fprintf(stderr, " -s sid - save sdp for session id <sid>\n");
       exit(0);
     case 'd':
       sdp_set_loglevel(LOG_DEBUG);
@@ -126,19 +144,31 @@ int main (int argc, char **argv)
       fprintf(stderr, "%s - %s version %s\n", ProgName, 
 	      PACKAGE, VERSION);
       exit(0);
+    case 's':
+      sid = strtoull(optarg, NULL, 10);
+      save_sid = true;
+      break;
     }
   }
   
   while (optind < argc) {
     char *cm = argv[optind++];
     char buffer[1024];
-    printf("Content manager %s Scheduled Programs\n", cm);
+    if (!save_sid)
+      printf("Content manager %s Scheduled Programs\n", cm);
     snprintf(buffer, sizeof(buffer), "http://%s/iptvfiles/guide.sdf", 
 	     cm);
-    get_program_list(buffer);
-    printf("Content manager %s On-Demand Programs\n", cm);
+    if (get_program_list(buffer, save_sid, sid) > 0) {
+      printf("Program %llu found in Scheduled programs\n", sid);
+      return 0;
+    }
+    if (!save_sid)
+      printf("Content manager %s On-Demand Programs\n", cm);
     snprintf(buffer, sizeof(buffer), "http://%s/servlet/OdPublish", cm);
-    get_program_list(buffer);
+    if (get_program_list(buffer, save_sid, sid) > 0) {
+      printf("Program %llu found in On-demand programs\n", sid);
+      return 0;
+    }
   }
 
   return 0;

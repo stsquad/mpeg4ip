@@ -114,41 +114,6 @@ void CPlayerSession::process_sdl_events (void)
 	  }
 	}
 	break;
-      case SDLK_0:
-        player_debug_message("Aspect ratio set to auto");
-	if (m_video_sync) {
-	  m_video_sync->do_video_resize(0,0,-1,-1);
-	  config.set_config_value(CONFIG_ASPECT_RATIO, 0);
-	}
-        break;
-      case SDLK_1:
-        player_debug_message("Aspect ratio set to 4:3");
-	if (m_video_sync) {
-	  m_video_sync->do_video_resize(4,3,-1,-1);
-	  config.set_config_value(CONFIG_ASPECT_RATIO, 1);
-	}
-        break;
-      case SDLK_2:
-        player_debug_message("Aspect ratio set to 16:9");
-	if (m_video_sync) {
-	  m_video_sync->do_video_resize(16,9,-1,-1);
-	  config.set_config_value(CONFIG_ASPECT_RATIO, 2);
-	}
-        break;
-      case SDLK_3:
-        player_debug_message("Aspect ratio set to 1.85 Letterbox");
-	if (m_video_sync) {
-	  m_video_sync->do_video_resize(185,100,-1,-1);
-	  config.set_config_value(CONFIG_ASPECT_RATIO, 3);
-	}
-        break;
-      case SDLK_4:
-        player_debug_message("Aspect ratio set to 2.35 Letterbox");
-	if (m_video_sync) {
-	  m_video_sync->do_video_resize(235,100,-1,-1);
-	  config.set_config_value(CONFIG_ASPECT_RATIO, 4);
-	}
-        break;
       default:
 	break;
       }

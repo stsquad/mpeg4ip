@@ -1329,7 +1329,7 @@ extern "C" bool MP4ReadSampleFromTime(
 extern "C" bool MP4WriteSample(
 	MP4FileHandle hFile,
 	MP4TrackId trackId,
-	u_int8_t* pBytes, 
+	const u_int8_t* pBytes, 
 	u_int32_t numBytes,
 	MP4Duration duration,
 	MP4Duration renderingOffset, 
@@ -1694,12 +1694,15 @@ extern "C" bool MP4SetHintTrackRtpPayload(
 	const char* pPayloadName,
 	u_int8_t* pPayloadNumber,
 	u_int16_t maxPayloadSize,
-	const char *encode_params)
+	const char *encode_params,
+	bool include_rtp_map,
+	bool include_mpeg4_esid)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
 			((MP4File*)hFile)->SetHintTrackRtpPayload(
-				hintTrackId, pPayloadName, pPayloadNumber, maxPayloadSize, encode_params);
+				hintTrackId, pPayloadName, pPayloadNumber, maxPayloadSize, encode_params,
+				include_rtp_map, include_mpeg4_esid);
 			return true;
 		}
 		catch (MP4Error* e) {

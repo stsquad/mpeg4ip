@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.10 $ 
- * $Date: 2002/11/14 19:46:39 $
+ * $Revision: 1.11 $ 
+ * $Date: 2003/02/12 17:41:26 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -72,6 +72,8 @@ typedef struct rtp_packet_data {
   uint16_t	 rtp_pd_extn_len; /* Size of the extension in 32 bit words minus one */
   uint16_t	 rtp_pd_extn_type;/* Extension type field in the RTP packet header   */
   int            rtp_pd_buflen; /* received buffer len (w/rtp header) */
+  int            rtp_pd_have_timestamp;
+  uint64_t       rtp_pd_timestamp;
 } rtp_packet_data;
 
   

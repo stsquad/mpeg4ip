@@ -28,6 +28,7 @@ struct rtp_packet;
 
 typedef uint64_t (*rtp_ts_to_msec_f)(void *ifptr, 
 				     uint32_t rtp_ts, 
+				     uint64_t ts, 
 				     int just_checking);
 
 typedef rtp_packet *(*get_next_pak_f)(void *ifptr, 

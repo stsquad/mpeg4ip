@@ -1,5 +1,5 @@
 EXTRA_DIST =  \
-	draft-vandermeer-mpeg-4-simple-01.txt \
+	draft-ietf-avt-mpeg4-simple-06.txt \
 	rfc1889.txt \
 	rfc1890.txt \
 	rfc2250.txt \

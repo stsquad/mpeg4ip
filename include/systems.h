@@ -128,7 +128,14 @@ int gettimeofday(struct timeval *t, void *);
 #define UINT64_TO_DOUBLE(a) ((double)((int64_t)(a)))
 #else /* UNIX */
 
+#ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
+#else
+#if _FILE_OFFSET_BITS < 64
+#error File offset bits is already set to non-64 value
+#endif
+#endif
+
 #ifndef _LARGEFILE_SOURCE
 #define _LARGEFILE_SOURCE
 #endif
@@ -238,7 +245,7 @@ char *strsep(char **strp, const char *delim);
 
 #define MALLOC_STRUCTURE(a) ((a *)malloc(sizeof(a)))
 
-#define CHECK_AND_FREE(a) if ((a) != NULL) { free((a)); (a) = NULL;}
+#define CHECK_AND_FREE(a) if ((a) != NULL) { free((void *)(a)); (a) = NULL;}
 #ifndef HAVE_GLIB_H
 typedef char gchar;
 typedef unsigned char guchar;

@@ -94,7 +94,6 @@ uint64_t CMP3RtpByteStream::start_next_frame (uint8_t **buffer,
 
   diff = m_buffer_len - m_bytes_used;
 
-  m_doing_add = 0;
   if (diff > 2) {
     // Still bytes in the buffer...
     *buffer = m_mp3_frame + m_bytes_used;
@@ -122,7 +121,7 @@ uint64_t CMP3RtpByteStream::start_next_frame (uint8_t **buffer,
     mp3_rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif
   }
-  timetick = rtp_ts_to_msec(m_ts, m_wrap_offset);
+  timetick = rtp_ts_to_msec(m_ts, m_pak_on->pd.rtp_pd_timestamp, m_wrap_offset);
   
   return (timetick);
 }

@@ -1,3 +1,15 @@
+Please direct all questions and comments about MPEG4IP to the project
+discussion forum on SourceForge! This will ensure the fastest response by
+the most knowledgeable person, and also benefit the community knowledge
+base.
+
+The authors will not answer any personal emails with questions about MPEG4IP,
+especially about compiling/installing issues.  Contributions or other
+business type deals would be the exception.
+
+If you do not follow our wishes and do in fact email us, we have the right
+to be rude, or ignore you.
+
 MPEG4IP original code and integration by:
     Dave Mackie                 cahighlander@yahoo.com
     Alix Marchandise-Franquet   alix@cisco.com
@@ -24,10 +36,6 @@ for all his help with testing and other support.
 Authors for incorporated open source packages can be found in the respective 
 package sub-directories. The primary authors are also listed in the README.
 
-Please direct all questions and comments about MPEG4IP to the project
-discussion forum on SourceForge! This will ensure the fastest response by
-the most knowledgeable person, and also benefit the community knowledge
-base.
 
 http://sourceforge.net/projects/mpeg4ip/
 

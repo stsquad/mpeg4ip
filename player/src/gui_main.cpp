@@ -84,6 +84,8 @@ static int master_screen_size = 100;
 static const char *last_entry = NULL;
 static const gchar *last_file = NULL;
 static int doing_seek = 0;
+static GtkWidget *videoradio[3];
+static GtkWidget *aspectratio[5];
 
 static GtkTargetEntry drop_types[] = 
 {
@@ -169,11 +171,17 @@ static void adjust_gui_for_play (void)
   gtk_widget_grab_focus(combo);
 }
 
-static int set_aspect_ratio(int newaspect)
+static void set_aspect_ratio(int newaspect)
 {
   // Unfortunately psptr is NULL upon startup so we won't set aspect ratio
   // correct
 
+  if (config.get_config_value(CONFIG_ASPECT_RATIO) == newaspect) {
+    return;
+  }
+
+  if (newaspect > 4 || newaspect < 0) newaspect = 0;
+  config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
   if (psptr != NULL) {
     switch (newaspect) {
       case 1 : 
@@ -193,9 +201,9 @@ static int set_aspect_ratio(int newaspect)
 	newaspect = 0;
 	break;
     }
-    config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
-  } else player_error_message("Can't set aspect ratio yet");
-  return(newaspect);
+  } 
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio[newaspect]), TRUE);
+  
 }
 
 static void create_session_from_name (const char *name)
@@ -826,20 +834,38 @@ static void on_network_rtp_over_rtsp (GtkWidget *window, gpointer data)
 			  checkmenu->active);
 }
   
+static void change_video_size (int newsize)
+{
+  if (master_screen_size == newsize) return;
+
+  master_screen_size = newsize;
+  if (psptr != NULL) {
+    psptr->set_screen_size(newsize / 50);
+  }
+  int index;
+  if (newsize == 50) index = 0;
+  else if (newsize == 100) index = 1;
+  else index = 2;
+  if (!gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(videoradio[index])))
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(videoradio[index]), TRUE);
+
+}
 
 static void on_video_radio (GtkWidget *window, gpointer data)
 {
+  if (!gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(window)))
+    return;
+
   int newsize = GPOINTER_TO_INT(data);
   if (newsize != master_screen_size) {
-    master_screen_size = newsize;
-    if (psptr != NULL) {
-      psptr->set_screen_size(newsize / 50);
-    }
+    change_video_size(newsize);
   }
 }
 
 static void on_aspect_ratio (GtkWidget *window, gpointer data)
 {
+  if (!gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(window)))
+    return;
   int newaspect = GPOINTER_TO_INT(data);
   if (psptr != NULL) set_aspect_ratio(newaspect);
 }
@@ -1149,16 +1175,23 @@ static gint main_timer (gpointer raw)
 	break;
       case SDLK_PAGEUP:
 	if (master_screen_size < 200) {
-	  master_screen_size *= 2;
-	  psptr->set_screen_size(master_screen_size / 50);
+	  change_video_size (master_screen_size * 2);
 	}
 	break;
       case SDLK_PAGEDOWN:
 	if (master_screen_size > 50) {
-	  master_screen_size /= 2;
-	  psptr->set_screen_size(master_screen_size / 50);
+	  change_video_size (master_screen_size / 2);
 	}
 	break;
+      case SDLK_0:
+      case SDLK_1:
+      case SDLK_2:
+      case SDLK_3:
+      case SDLK_4:
+	if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+	  set_aspect_ratio(msg->sym - SDLK_0);
+	}
+        break;
       default:
 	break;
       }
@@ -1294,19 +1327,18 @@ printf("%s\n", *argv);
   GtkWidget *videosub;
   videosub = CreateSubMenu(menu, "Video");
   GSList *videosizelist = NULL;
-  GtkWidget *videoradio;
-  videoradio = CreateMenuRadio(videosub,
+  videoradio[0] = CreateMenuRadio(videosub,
 			       "50 %",
 			       &videosizelist,
 			       GTK_SIGNAL_FUNC(on_video_radio),
 			       GINT_TO_POINTER(50));
-  videoradio = CreateMenuRadio(videosub,
+  videoradio[1] = CreateMenuRadio(videosub,
 			       "100 %",
 			       &videosizelist,
 			       GTK_SIGNAL_FUNC(on_video_radio),
 			       GINT_TO_POINTER(100));
-  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(videoradio), TRUE);
-  videoradio = CreateMenuRadio(videosub,
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM((videoradio[1])), TRUE);
+  videoradio[2] = CreateMenuRadio(videosub,
 			       "200 %",
 			       &videosizelist,
 			       GTK_SIGNAL_FUNC(on_video_radio),
@@ -1333,43 +1365,34 @@ printf("%s\n", *argv);
 			    NULL, NULL, NULL, 
 			    NULL, NULL);
   GSList *aspectratiolist = NULL;
-  GtkWidget *aspectratio;
-  int value = set_aspect_ratio(config.get_config_value(CONFIG_ASPECT_RATIO));
-  aspectratio = CreateMenuRadio(videosub,
-				"Aspect Ration Auto",
-				&aspectratiolist,
-				GTK_SIGNAL_FUNC(on_aspect_ratio),
-				GINT_TO_POINTER(0));
-  if (value == 0)
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
-  aspectratio = CreateMenuRadio(videosub,
-				"3:4",
-				&aspectratiolist,
-				GTK_SIGNAL_FUNC(on_aspect_ratio),
-				GINT_TO_POINTER(1));
-  if (value == 1)
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
-  aspectratio = CreateMenuRadio(videosub,
-				"16:9",
-				&aspectratiolist,
-				GTK_SIGNAL_FUNC(on_aspect_ratio),
-				GINT_TO_POINTER(2));
-  if (value == 2)
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
-  aspectratio = CreateMenuRadio(videosub,
-				"1.85 Letterbox",
-				&aspectratiolist,
-				GTK_SIGNAL_FUNC(on_aspect_ratio),
-				GINT_TO_POINTER(2));
-  if (value == 3)
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
-  aspectratio = CreateMenuRadio(videosub,
-				"2.35 Letterbox",
-				&aspectratiolist,
-				GTK_SIGNAL_FUNC(on_aspect_ratio),
-				GINT_TO_POINTER(2));
-  if (value == 4)
-    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
+  int value = config.get_config_value(CONFIG_ASPECT_RATIO);
+  set_aspect_ratio(value);
+  aspectratio[0] = CreateMenuRadio(videosub,
+				   "Aspect Ration Auto",
+				   &aspectratiolist,
+				   GTK_SIGNAL_FUNC(on_aspect_ratio),
+				   GINT_TO_POINTER(0));
+  aspectratio[1] = CreateMenuRadio(videosub,
+				   "3:4",
+				   &aspectratiolist,
+				   GTK_SIGNAL_FUNC(on_aspect_ratio),
+				   GINT_TO_POINTER(1));
+  aspectratio[2] = CreateMenuRadio(videosub,
+				   "16:9",
+				   &aspectratiolist,
+				   GTK_SIGNAL_FUNC(on_aspect_ratio),
+				   GINT_TO_POINTER(2));
+  aspectratio[3] = CreateMenuRadio(videosub,
+				   "1.85 Letterbox",
+				   &aspectratiolist,
+				   GTK_SIGNAL_FUNC(on_aspect_ratio),
+				   GINT_TO_POINTER(2));
+  aspectratio[4] = CreateMenuRadio(videosub,
+				   "2.35 Letterbox",
+				   &aspectratiolist,
+				   GTK_SIGNAL_FUNC(on_aspect_ratio),
+				   GINT_TO_POINTER(2));
+  gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio[value]), TRUE);
   CreateMenuItemSeperator(menu);
 
   seek_menuitem = CreateMenuItem(menu, 

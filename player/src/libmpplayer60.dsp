@@ -149,6 +149,10 @@ SOURCE=.\player_media_decode.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\player_media_rtp.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\player_sdp.c
 # End Source File
 # Begin Source File

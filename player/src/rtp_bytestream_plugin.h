@@ -55,12 +55,14 @@ class CPluginRtpByteStream : public CRtpByteStreamBase
   void flush_rtp_packets(void);
   void reset(void);
   
-  uint64_t get_rtp_ts_to_msec (uint32_t rtp_ts, int just_checking) {
+  uint64_t get_rtp_ts_to_msec (uint32_t rtp_ts, 
+			       uint64_t ts, 
+			       int just_checking) {
     if (just_checking == 1) {
       uint64_t check_value = m_wrap_offset;
-      return (rtp_ts_to_msec(rtp_ts, check_value));
+      return (rtp_ts_to_msec(rtp_ts, ts, check_value));
     }
-    return (rtp_ts_to_msec(rtp_ts, m_wrap_offset));
+    return (rtp_ts_to_msec(rtp_ts, ts, m_wrap_offset));
   };
   rtp_packet *get_next_pak(rtp_packet *current, int remove);
   void remove_from_list(rtp_packet *pak);

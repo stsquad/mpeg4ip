@@ -1,3 +1,6 @@
+Changes in 0.9.8
+  MP4WriteSample - changed "uint8_t * data" to "const uint8_t *data"
+
 Changes from 0.9.6
 ---------------------------
 Modified
