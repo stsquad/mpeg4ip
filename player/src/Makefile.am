@@ -91,7 +91,19 @@ mp4player_LDADD = \
 	$(top_builddir)/player/lib/audio/faad/libfaad.la \
 	$(top_builddir)/player/lib/audio/mp3/libourmp3.la \
 	$(top_builddir)/player/lib/video/divx/libourdivx.la \
-	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
+	$(top_builddir)/common/video/mpeg4/sys/decoder/libobj_sys_decoder.la \
+	$(top_builddir)/common/video/mpeg4/type/libobj_type.la \
+	$(top_builddir)/common/video/mpeg4/sys/libobj_sys.la \
+	$(top_builddir)/common/video/mpeg4/vtc/main/libobj_vtc_main_enc.la \
+	$(top_builddir)/common/video/mpeg4/vtc/main/libobj_vtc_main.la \
+	$(top_builddir)/common/video/mpeg4/vtc/ztq/libobj_vtc_ztq.la \
+	$(top_builddir)/common/video/mpeg4/vtc/zte/libobj_vtc_zte.la \
+	$(top_builddir)/common/video/mpeg4/vtc/pezw/libobj_vtc_pezw.la \
+	$(top_builddir)/common/video/mpeg4/vtc/wavelet/libobj_vtc_wavelet.la \
+	$(top_builddir)/common/video/mpeg4/vtc/main/libobj_vtc_main.la \
+	$(top_builddir)/common/video/mpeg4/vtc/main/libobj_vtc_main_dec.la \
+	$(top_builddir)/common/video/mpeg4/vtc/ztq/libobj_vtc_ztq.la \
+	$(top_builddir)/common/video/mpeg4/tools/entropy/libobj_tools_entropy.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/avi/libavi.la \
 	libmp4playerutils.la \

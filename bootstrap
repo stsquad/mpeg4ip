@@ -31,7 +31,7 @@ set -x
 # then empty directories in the repository are pruned
 # this code recreates the empty directories
 # if src tree is checked out directly via cvs, this is a no-op
-mkdir -p ./config ./common/video/mpeg4/bin ./common/video/mpeg4/obj || exit 1
+mkdir -p ./config || exit 1
 
 # Pass our args to configure
 case	`uname -s`

@@ -1,0 +1,1 @@
+SUBDIRS= convertpar decoder encoder

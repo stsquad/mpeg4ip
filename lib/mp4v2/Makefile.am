@@ -83,16 +83,22 @@ libmp4v2_la_SOURCES = \
 
 AM_CXXFLAGS = -Wall
 
+if PROVIDE_GETOPTLONG
+LDADD_E1 = $(top_builddir)/lib/gnu/getopt/libgetopt_long.la
+else
+LDADD_E1 = 
+endif
+
 bin_PROGRAMS = mp4broadcaster mp4dump mp4extract
 
 mp4broadcaster_SOURCES = mp4broadcaster.cpp
-mp4broadcaster_LDADD = libmp4v2.la
+mp4broadcaster_LDADD = libmp4v2.la $(LDADD_E1)
 
 mp4dump_SOURCES = mp4dump.cpp
-mp4dump_LDADD = libmp4v2.la
+mp4dump_LDADD = libmp4v2.la $(LDADD_E1)
 
 mp4extract_SOURCES = mp4extract.cpp
-mp4extract_LDADD = libmp4v2.la
+mp4extract_LDADD = libmp4v2.la $(LDADD_E1)
 
 check_PROGRAMS = apitest nullcreate nullvplayer
 

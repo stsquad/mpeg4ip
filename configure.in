@@ -173,6 +173,23 @@ AC_SUBST(SDL_LIBS)
 dnl Now output the Makefile's
 AC_OUTPUT( \
 	Makefile \
+	common/video/mpeg4/Makefile \
+	common/video/mpeg4/app/Makefile \
+	common/video/mpeg4/app/convertpar/Makefile \
+	common/video/mpeg4/app/decoder/Makefile \
+	common/video/mpeg4/app/encoder/Makefile \
+	common/video/mpeg4/sys/Makefile \
+	common/video/mpeg4/sys/decoder/Makefile \
+	common/video/mpeg4/sys/encoder/Makefile \
+	common/video/mpeg4/tools/Makefile \
+	common/video/mpeg4/tools/entropy/Makefile \
+	common/video/mpeg4/type/Makefile \
+	common/video/mpeg4/vtc/Makefile \
+	common/video/mpeg4/vtc/main/Makefile \
+	common/video/mpeg4/vtc/pezw/Makefile \
+	common/video/mpeg4/vtc/wavelet/Makefile \
+	common/video/mpeg4/vtc/zte/Makefile \
+	common/video/mpeg4/vtc/ztq/Makefile \
 	lib/Makefile \
 	lib/avi/Makefile \
 	lib/bitstream/Makefile \

@@ -1272,16 +1272,17 @@ case "$target" in
         # Set up files for the cdrom library
         # (No cdrom support yet)
         if test x$enable_cdrom = xyes; then
-            COPY_ARCH_SRC(src/cdrom, dummy, SDL_syscdrom.c)
+            COPY_ARCH_SRC(src/cdrom, bsdi, SDL_syscdrom.c)
         fi
         # Set up files for the thread library
         if test x$enable_threads = xyes; then
+	    SYSTEM_LIBS="$SYSTEM_LIBS -lsem"
             COPY_ARCH_SRC(src/thread, linux, SDL_systhread.c)
             COPY_ARCH_SRC(src/thread, linux, SDL_systhread_c.h)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex.c)
             COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex_c.h)
             COPY_ARCH_SRC(src/thread, generic, SDL_syssem.c)
-            COPY_ARCH_SRC(src/thread, generic, SDL_syssem_c.h)
+            COPY_ARCH_SRC(src/thread, linux, SDL_syssem_c.h)
             COPY_ARCH_SRC(src/thread, linux, SDL_syscond.c)
             COPY_ARCH_SRC(src/thread, generic, SDL_syscond_c.h)
         fi

@@ -691,6 +691,15 @@ void mbus_qmsg(struct mbus *m, const char *dest, const char *cmnd, const char *a
 	mbus_msg_validate(curr);
 }
 
+#define mbus_qmsgf(m, dest, reliable, cmnd, format, var) \
+{ \
+char buffer[MBUS_BUF_SIZE]; \
+mbus_validate(m); \
+snprintf(buffer, MBUS_BUF_SIZE, format, var); \
+mbus_qmsg(m, dest, cmnd, buffer, reliable); \
+}
+
+#if 0
 void mbus_qmsgf(struct mbus *m, const char *dest, int reliable, const char *cmnd, const char *format, ...)
 {
 	/* This is a wrapper around mbus_qmsg() which does a printf() style format into  */
@@ -710,6 +719,7 @@ void mbus_qmsgf(struct mbus *m, const char *dest, int reliable, const char *cmnd
 	va_end(ap);
 	mbus_qmsg(m, dest, cmnd, buffer, reliable);
 }
+#endif
 
 int mbus_recv(struct mbus *m, void *data, struct timeval *timeout)
 {

@@ -20,22 +20,69 @@
  */
 
 #include "mp4.h"
+#include "mpeg4ip_getopt.h"
 
 int main(int argc, char** argv)
 {
-	char* fileName;
-	u_int32_t verbosity = 0;
+	char* usageString = "%s [-v [<level>]] <file-name>\n";
+	u_int32_t verbosity = MP4_DETAILS_ERROR;
 
-	// -v option to control verbosity
-	if (!strcmp(argv[1], "-v")) {
-		verbosity = MP4_DETAILS_ALL;
-		fileName = argv[2];
-	} else {
-		verbosity = MP4_DETAILS_ERROR;
-		fileName = argv[1];
+	/* begin processing command line */
+	char* progName = argv[0];
+	while (true) {
+		int c = -1;
+		int option_index = 0;
+		static struct option long_options[] = {
+			{ "verbose", 2, 0, 'v' },
+			{ NULL, 0, 0, 0 }
+		};
+
+		c = getopt_long_only(argc, argv, "v",
+			long_options, &option_index);
+
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 'v':
+			verbosity |= MP4_DETAILS_TABLE;
+			if (optarg) {
+				u_int32_t level;
+				if (sscanf(optarg, "%u", &level) == 1 && level > 1) {
+					verbosity = MP4_DETAILS_ALL;
+				}
+			}
+			break;
+		case '?':
+			fprintf(stderr, usageString, progName);
+			exit(0);
+		default:
+			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
+				progName, c);
+		}
 	}
 
-	MP4FileHandle mp4File = MP4Read(fileName, verbosity);
+	/* check that we have at least one non-option argument */
+	if ((argc - optind) < 1) {
+		fprintf(stderr, usageString, progName);
+		exit(1);
+	}
+
+	/* point to the specified file names */
+	char* mp4FileName = argv[optind++];
+
+	/* warn about extraneous non-option arguments */
+	if (optind < argc) {
+		fprintf(stderr, "%s: unknown options specified, ignoring: ", progName);
+		while (optind < argc) {
+			fprintf(stderr, "%s ", argv[optind++]);
+		}
+		fprintf(stderr, "\n");
+	}
+
+	/* end processing of command line */
+
+	MP4FileHandle mp4File = MP4Read(mp4FileName, verbosity);
 
 	if (!mp4File) {
 		exit(1);
