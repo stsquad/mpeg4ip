@@ -271,10 +271,9 @@ void CMpeg3RtpByteStream::rtp_done_buffering (void)
 
   m_next_seq = m_head->rtp_pak_seq;
 
-
-  p = end_of_pak(m_head);
+  p = m_head;
   had_b = 0;
-  while (p != m_head) {
+  do {
     q = end_of_pak(p->rtp_next);
     if ((p->rtp_data[2] & 0x7) == 3) {
       // B frame 
@@ -285,14 +284,16 @@ void CMpeg3RtpByteStream::rtp_done_buffering (void)
 	q = q->rtp_next;
 	m_rtp_frame_add  = q->rtp_pak_ts - p->rtp_pak_ts;
 #ifdef DEBUG_MPEG3_RTP_TIME
-	rtp_message(LOG_DEBUG, "2 consec b frames %d", m_rtp_frame_add);
+	rtp_message(LOG_DEBUG, "2 consec b frames %d %d %d", 
+		    m_rtp_frame_add,
+		    p->rtp_pak_ts, q->rtp_pak_ts);
 #endif
 	SDL_UnlockMutex(m_rtp_packet_mutex);
 	return;
       }
     }
     p = q->rtp_next;
-  }
+  }  while (p != m_head);
   if (had_b == 0) {
     // no b frames 
     p = end_of_pak(m_head);

@@ -70,11 +70,11 @@ protected:
 
 	void SetVideoAudioMute(bool mute);
 
-	Timestamp CalculateVideoTimestampFromFrames (void) {
-	  double duration = m_videoFrames;
+	Timestamp CalculateVideoTimestampFromFrames (uint64_t frame) {
+	  double duration = frame;
 	  duration *= TimestampTicks;
 	  duration /= m_videoSrcFrameRate;
-	  return m_videoStartTimestamp + (Timestamp)duration;
+	  return m_videoCaptureStartTimestamp + (Timestamp)duration;
 	}
 protected:
 	u_int8_t			m_maxPasses;
@@ -83,12 +83,16 @@ protected:
 	struct video_mbuf	m_videoMbuf;
 	void*				m_videoMap;
 	struct video_mmap*	m_videoFrameMap;
-	Timestamp m_videoStartTimestamp;
+	Timestamp m_videoCaptureStartTimestamp;
 	uint64_t m_videoFrames;
 	Duration m_videoSrcFrameDuration;
 	int8_t				m_captureHead;
 	int8_t				m_encodeHead;
 	float				m_videoSrcFrameRate;
+	uint64_t *m_videoFrameMapFrame;
+	Timestamp *m_videoFrameMapTimestamp;
+	uint64_t m_lastVideoFrameMapFrameLoaded;
+	Timestamp m_lastVideoFrameMapTimestampLoaded;
 };
 
 class CVideoCapabilities {

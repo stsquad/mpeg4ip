@@ -17,6 +17,8 @@
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
+ *              video aspect ratio by:
+ *              Peter Maersk-Moller peter @maersk-moller.net
  */
 
 #ifndef __OUR_CONFIG_FILE_H__
@@ -48,7 +50,9 @@
 #define CONFIG_MPEG2T_PAM_WAIT_SECS 22
 #define CONFIG_MPEG2T_DEBUG 23
 #define CONFIG_LIMIT_AUDIO_SDL_BUFFER 24
-#define CONFIG_MAX 25
+#define CONFIG_ASPECT_RATIO 25
+#define CONFIG_FULL_SCREEN 26
+#define CONFIG_MAX 27
 
 extern CConfig config;
 

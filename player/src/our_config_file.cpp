@@ -17,6 +17,7 @@
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
+ *              Peter Maersk-Moller peter @maersk-moller.net
  */
 
 /*
@@ -56,6 +57,8 @@ static config_variable_t configs[] = {
   { CONFIG_MPEG2T_PAM_WAIT_SECS, "Mpeg2tPamWaitSecs", CONFIG_INT, 30, NULL },
   { CONFIG_LIMIT_AUDIO_SDL_BUFFER, "LimitAudioSdlBuffer", CONFIG_INT, 0, NULL},
   { CONFIG_MPEG2T_DEBUG, "Mpeg2tDebug", CONFIG_INT, LOG_ALERT, NULL },
+  { CONFIG_ASPECT_RATIO, "AspectRatio", CONFIG_INT, 0, NULL},
+  { CONFIG_FULL_SCREEN, "FullScreen", CONFIG_INT, 0, NULL},
 };
 
 CConfig config(configs, CONFIG_MAX);

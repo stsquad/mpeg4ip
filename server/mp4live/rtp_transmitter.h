@@ -244,6 +244,7 @@ protected:
 	u_int8_t		m_audioQueueCount;	// number of frames
 	u_int8_t		m_audioQueueMaxCount;	// max number of frames
 	u_int16_t		m_audioQueueSize;	// bytes for RTP packet payload
+	uint32_t m_nextAudioRtpTimestamp;
 };
 
   

@@ -17,6 +17,8 @@
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
+ *              video aspect ratio by:
+ *              Peter Maersk-Moller peter@maersk-moller.net
  */
 /*
  * video.h - contains the interface class between the codec and the video
@@ -55,7 +57,7 @@ class CSDLVideoSync : public CVideoSync {
   void set_screen_size(int scaletimes2); // 1 gets 50%, 2, normal, 4, 2 times
   void set_fullscreen(int fullscreen);
   int get_fullscreen (void) { return m_fullscreen; };
-  void do_video_resize(void); // from sync
+  void do_video_resize(int m_pixel_width = -1, int m_pixel_height = -1, int m_max_width = -1, int m_max_height = -1, bool resize = true); 
   void double_width(void);
  private:
   int m_video_bpp;
@@ -78,6 +80,10 @@ class CSDLVideoSync : public CVideoSync {
   uint8_t *m_v_buffer[MAX_VIDEO_BUFFERS];
   uint64_t m_play_this_at[MAX_VIDEO_BUFFERS];
   int m_dont_fill;
+  int m_pixel_width;
+  int m_pixel_height;
+  int m_max_width;
+  int m_max_height;
 };
 
 /* frame doublers */

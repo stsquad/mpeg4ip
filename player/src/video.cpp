@@ -17,6 +17,8 @@
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
+ *              video aspect ratio by:
+ *              Peter Maersk-Moller peter@maersk-moller.net
  */
 /*
  * video.cpp - provides codec to video hardware class
@@ -108,7 +110,7 @@ void CVideoSync::set_fullscreen (int fullscreen)
 {
 }
 
-void CVideoSync::do_video_resize (void)
+void CVideoSync::do_video_resize(int m_pixel_width, int m_pixel_height, int m_max_width, int m_max_height, bool resize)
 {
 }
 

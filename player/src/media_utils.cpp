@@ -785,8 +785,9 @@ int check_name_for_network (const char *name,
     if (suffix == NULL) {
       return -1;
     }
-    if (strcasecmp(name, ".sdp") == 0) {
+    if (strcasecmp(suffix, ".sdp") == 0) {
       sdp_info = set_sdp_decode_from_filename(name);
+      do_sdp = 1;
     } else 
       return 0;
   }

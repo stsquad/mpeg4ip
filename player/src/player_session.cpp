@@ -17,6 +17,8 @@
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
+ *              video aspect ratio by:
+ *              Peter Maersk-Moller peter @maersk-moller.net
  */
 /* 
  * player_session.cpp - describes player session class, which is the
@@ -65,6 +67,8 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_clock_wrapped = -1;
   m_hardware_error = 0;
   m_fullscreen = 0;
+  m_pixel_height = -1;
+  m_pixel_width = -1;
   m_session_control_is_aggregate = 0;
   for (int ix = 0; ix < SESSION_DESC_COUNT; ix++) {
     m_session_desc[ix] = NULL;
@@ -533,15 +537,21 @@ void CPlayerSession::set_screen_location (int x, int y)
   m_screen_pos_y = y;
 }
 
-void CPlayerSession::set_screen_size (int scaletimes2, int fullscreen)
+void CPlayerSession::set_screen_size (int scaletimes2, 
+				      int fullscreen, 
+				      int pixel_width, 
+				      int pixel_height)
 {
   m_screen_scale = scaletimes2;
   m_fullscreen = fullscreen;
+  m_pixel_width = pixel_width;
+  m_pixel_height = pixel_height;
   if (m_video_sync) {
     m_video_sync->set_screen_size(scaletimes2);
     m_video_sync->set_fullscreen(fullscreen);
+    m_video_sync->do_video_resize(pixel_width, pixel_height,-1,-1,false);
     send_sync_thread_a_message(MSG_SYNC_RESIZE_SCREEN);
-  }
+  } 
 }
 
 void CPlayerSession::double_screen_width (void)

@@ -257,12 +257,14 @@ public:
 
 	void AddConfigVariables (SConfigVariable* vars,
 				 config_index_t numVariables) {
+	  config_index_t start = m_numVariables;
 	  uint32_t size = sizeof(SConfigVariable) * 
 	    (m_numVariables + numVariables);
 	  m_variables = (SConfigVariable*)realloc(m_variables, size);
 	  memcpy(&m_variables[m_numVariables], vars, 
 		 numVariables * sizeof(SConfigVariable));
 	  m_numVariables += numVariables;
+	  SetToDefaults(start);
 	}
 
 	const char* GetFileName() {
@@ -382,8 +384,8 @@ public:
 		m_variables[iName].m_value.m_fvalue = fvalue;
 	}
 
-	void SetToDefaults(void) {
-		for (config_index_t i = 0; i < m_numVariables; i++) {
+	void SetToDefaults(int start = 0) {
+		for (config_index_t i = start; i < m_numVariables; i++) {
 			m_variables[i].SetToDefault();
 		}
 	}

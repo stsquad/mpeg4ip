@@ -92,16 +92,6 @@ void CAVMediaFlow::Start(void)
 		AddSink(m_rawSink);
 	}
 
-	if (m_videoSource && m_videoSource == m_audioSource) {
-		m_videoSource->Start();
-	} else {
-		if (m_videoSource) {
-			m_videoSource->StartVideo();
-		}
-		if (m_audioSource) {
-			m_audioSource->StartAudio();
-		}
-	}
 	if (m_mp4Recorder) {
 		m_mp4Recorder->Start();
 	}
@@ -113,6 +103,17 @@ void CAVMediaFlow::Start(void)
 		m_rawSink->Start();
 	}
 	
+	if (m_videoSource && m_videoSource == m_audioSource) {
+		m_videoSource->Start();
+	} else {
+		if (m_videoSource) {
+			m_videoSource->StartVideo();
+		}
+		if (m_audioSource) {
+			m_audioSource->StartAudio();
+		}
+	}
+
 	if (m_videoSource) {
 		// force video source to generate a key frame
 		// so that sinks can quickly sync up
@@ -126,6 +127,22 @@ void CAVMediaFlow::Stop(void)
 {
 	if (!m_started) {
 		return;
+	}
+	bool oneSource = (m_audioSource == m_videoSource);
+
+	if (m_audioSource) {
+		m_audioSource->StopThread();
+		delete m_audioSource;
+		m_audioSource = NULL;
+	}
+
+	if (!m_pConfig->IsCaptureVideoSource()) {
+		if (m_videoSource && !oneSource) {
+			m_videoSource->StopThread();
+			delete m_videoSource;
+		}
+		m_videoSource = NULL;
+
 	}
 
 	if (m_mp4Recorder) {
@@ -145,23 +162,6 @@ void CAVMediaFlow::Stop(void)
 		m_rawSink->StopThread();
 		delete m_rawSink;
 		m_rawSink = NULL;
-	}
-
-	bool oneSource = (m_audioSource == m_videoSource);
-
-	if (m_audioSource) {
-		m_audioSource->StopThread();
-		delete m_audioSource;
-		m_audioSource = NULL;
-	}
-
-	if (!m_pConfig->IsCaptureVideoSource()) {
-		if (m_videoSource && !oneSource) {
-			m_videoSource->StopThread();
-			delete m_videoSource;
-		}
-		m_videoSource = NULL;
-
 	}
 
 	m_started = false;

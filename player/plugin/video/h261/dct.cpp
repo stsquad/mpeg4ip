@@ -61,7 +61,7 @@
 #define LIMIT(x, t) (LIMIT8((x), t) & 0xff)
 
 /* row order */
-const u_char ROWZAG[] = {
+static const u_char ROWZAG[] = {
 	0,  1,  8, 16,  9,  2,  3, 10,
 	17, 24, 32, 25, 18, 11,  4,  5,
 	12, 19, 26, 33, 40, 48, 41, 34,
@@ -639,7 +639,7 @@ bv_rdct3(int dc, short* bp, int ac0, int ac1, u_char* in, u_char* out, int strid
  */
 void
 #ifdef INT_64
-rdct(register short *bp, INT_64 m0, u_char* p, int stride, const int* qt)
+rdct(short *bp, INT_64 m0, u_char* p, int stride, const int* qt)
 #else
 rdct(register short *bp, u_int m0, u_int m1, u_char* p,
      int stride, const int* qt)
@@ -861,7 +861,7 @@ rdct(register short *bp, u_int m0, u_int m1, u_char* p,
  */
 void
 #ifdef INT_64
-rdct(register short *bp, INT_64 m0, u_char* p, int stride, const u_char* in)
+rdct(short *bp, INT_64 m0, u_char* p, int stride, const u_char* in)
 #else
 rdct(register short *bp, u_int m0, u_int m1, u_char* p, int stride, const u_char *in)
 #endif

@@ -68,6 +68,18 @@ EXTRA_DIST = \
 	rijndael-api-fst.h \
 	rtp.h \
 	sockstorage.h \
+	util.h \
+	vsnprintf.c \
+	vsnprintf.h \
+	MODS \
+	README \
+	README.qfdes \
+	VERSION \
+	test_rtp_encrypt.txt \
+	test-libcommon
+
+check_PROGRAMS = test
+test_SOURCES = \
 	test.c \
 	test_base64.c \
 	test_base64.h \
@@ -82,17 +94,9 @@ EXTRA_DIST = \
 	test_memory.c \
 	test_memory.h \
 	test_net_udp.c \
-	test_net_udp.h \
-	test_rtp_encrypt.txt \
-	util.h \
-	vsnprintf.c \
-	vsnprintf.h \
-	MODS \
-	README \
-	README.qfdes \
-	VERSION \
-	test-libcommon
+	test_net_udp.h 
 
+test_LDADD = libuclmmbase.la
 version.h: VERSION
 	sed -e 's/.*/#define CCL_VERSION "v&"/' $? > version.h
 

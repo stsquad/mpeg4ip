@@ -96,8 +96,10 @@ static int h261_decode (codec_data_t *ptr,
   if (h261->m_decoder == NULL) {
     if ((buffer[0] & 0x2) != 0) {
       h261->m_decoder = new IntraP64Decoder();
+      h261->m_vft->log_msg(LOG_DEBUG, "h261", "starting intra decoder");
     } else {
       h261->m_decoder = new FullP64Decoder();
+      h261->m_vft->log_msg(LOG_DEBUG, "h261", "starting full decoder");
     }
   }
   u_int32_t read = ntohl(*(uint32_t *)(buffer));

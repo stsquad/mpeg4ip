@@ -287,8 +287,8 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
     pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS);
   session_desc_t *sdp = 
     createSdpDescription(pConfig, 
-			 sDestAddr, 
 			 pConfig->GetStringValue(CONFIG_RTP_AUDIO_DEST_ADDRESS),
+			 sDestAddr, 
 			 pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL),
 			 false,
 			 pConfig->GetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT),

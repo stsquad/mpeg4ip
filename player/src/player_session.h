@@ -17,6 +17,8 @@
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
+ *              video aspect ratio by:
+ *              Peter Maersk-Moller peter @maersk-moller.net
  */
 /*
  * player_session.h - provides definitions for a CPlayerSession.
@@ -117,7 +119,8 @@ class CPlayerSession {
   void set_audio_volume(int volume);
   int get_audio_volume(void) { return m_audio_volume; };
   void set_screen_location(int x, int y);
-  void set_screen_size(int scaletimes2, int fullscreen = 0);
+  void set_screen_size(int scaletimes2, int fullscreen = 0,
+		       int pixel_width = -1, int pixel_height = -1);
   void double_screen_width(void);
   void session_set_seekable (int seekable) {
     m_seekable = seekable;
@@ -207,6 +210,8 @@ class CPlayerSession {
   int m_audio_volume;
   int m_screen_scale;
   int m_fullscreen;
+  int m_pixel_height;
+  int m_pixel_width;
   int m_seekable;
   volatile int m_sync_pause_done;
   session_state_t m_session_state;

@@ -77,7 +77,7 @@ void dct_decimate(const short* in0, const short* in1, short* out);
 void rdct_fold_q(const int* in, int* qt);
 void fdct_fold_q(const int* in, float* qt);
 
-extern const u_char ROWZAG[];
+//extern const u_char ROWZAG[];
 extern const u_char COLZAG[];
 
 /*XXX*/

@@ -25,9 +25,7 @@
 //#define DEBUG_H261
 
 #define h261_message iptr->m_vft->log_msg
-#ifdef DEBUG_H261
 static const char *h261rtp="h261rtp";
-#endif
 
 static rtp_check_return_t check (lib_message_func_t msg, 
 				 format_list_t *fmt, 
@@ -113,6 +111,8 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
   if (iptr->m_first_pak != 0) {
     if (iptr->m_last_seq + 1 != iptr->m_current_pak->rtp_pak_seq) {
       udata->detected_loss = 1;
+      h261_message(LOG_ERR, h261rtp, "RTP sequence should be %d is %d", 
+		   iptr->m_last_seq + 1, iptr->m_current_pak->rtp_pak_seq);
     }
   }
   udata->m_bit_value = iptr->m_current_pak->rtp_pak_m;
@@ -134,8 +134,8 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 				0);
   // We're going to have to handle wrap better...
 #ifdef DEBUG_H261
-  h261_message(LOG_DEBUG, h261rtp, "start next frame %p %d ts "LLX" "LLU, 
-	       *buffer, *buflen, iptr->m_ts, timetick);
+  h261_message(LOG_DEBUG, h261rtp, "start next frame %p %d ts %x "LLU, 
+	       *buffer, *buflen, iptr->m_current_pak->rtp_pak_ts, timetick);
 #endif
   return (timetick);
 }

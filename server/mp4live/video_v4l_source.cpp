@@ -252,6 +252,8 @@ bool CV4LVideoSource::InitDevice(void)
 		goto failure;
 	}
 
+	m_videoFrameMapFrame = (uint64_t *)malloc(m_videoMbuf.frames * sizeof(uint64_t));
+	m_videoFrameMapTimestamp = (uint64_t *)malloc(m_videoMbuf.frames * sizeof(Timestamp));
 	m_captureHead = 0;
 	m_encodeHead = -1;
 	format = VIDEO_PALETTE_YUV420P;
@@ -259,9 +261,6 @@ bool CV4LVideoSource::InitDevice(void)
 	m_videoFrames = 0;
        m_videoSrcFrameDuration = 
 		(Duration)(((float)TimestampTicks / m_videoSrcFrameRate) + 0.5);
-#if 1
-       m_videoMbuf.frames = 2;
-#endif
 	for (int i = 0; i < m_videoMbuf.frames; i++) {
 		// initialize frame map
 		m_videoFrameMap[i].frame = i;
@@ -285,6 +284,13 @@ bool CV4LVideoSource::InitDevice(void)
 				deviceName);
 			goto failure;
 		}
+		if (i == 0) {
+		  m_videoCaptureStartTimestamp = GetTimestamp();
+		}
+		m_lastVideoFrameMapFrameLoaded = m_videoFrameMapFrame[i] = i;
+		m_lastVideoFrameMapTimestampLoaded = 
+		  m_videoFrameMapTimestamp[i] = 
+		  CalculateVideoTimestampFromFrames(i);
 	}
 
 	if (format == VIDEO_PALETTE_RGB24) {
@@ -386,37 +392,13 @@ bool CV4LVideoSource::SetPictureControls()
 int8_t CV4LVideoSource::AcquireFrame(Timestamp &frameTimestamp)
 {
 	int rc;
-	Timestamp pre, post;
-	pre = GetTimestamp();
 	rc = ioctl(m_videoDevice, VIDIOCSYNC, &m_videoFrameMap[m_captureHead]);
 	if (rc != 0) {
 		return -1;
 	}
-	post = GetTimestamp();
 
-	Duration diff = post - pre;
 
-	if (m_videoFrames == 0) {
-	  if (diff > m_videoSrcFrameDuration) {
-	    m_videoStartTimestamp = post;
-	  } else {
-	    m_videoStartTimestamp = pre;
-	  }
-	  frameTimestamp = m_videoStartTimestamp;
-	  m_videoFrames++;
-	} else {
-	  frameTimestamp = CalculateVideoTimestampFromFrames();
-
-	  if (diff > m_videoSrcFrameDuration) {
-#ifdef DEBUG_TIMESTAMPS
-	    error_message("Post read %llu %llu after pre - frame %llu pre %llu post %llu calc %llu",
-			  diff, m_videoSrcFrameDuration, m_videoFrames, pre, post, frameTimestamp);
-#endif
-	    m_videoFrames = 0;
-	  } else
-	    m_videoFrames++;
-
-	}
+	frameTimestamp = m_videoFrameMapTimestamp[m_captureHead];
 
 	int8_t capturedFrame = m_captureHead;
 	m_captureHead = (m_captureHead + 1) % m_videoMbuf.frames;
@@ -425,6 +407,23 @@ int8_t CV4LVideoSource::AcquireFrame(Timestamp &frameTimestamp)
 }
 bool CV4LVideoSource::ReleaseFrame(int8_t frameNumber)
 {
+  Timestamp calc = GetTimestamp();
+
+  if (calc > m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded) {
+    error_message("video frame delay past end of buffer - time is %llu should be %llu",
+		  calc,
+		  m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded);
+    m_videoCaptureStartTimestamp = calc;
+    m_videoFrameMapFrame[frameNumber] = 0;
+    m_videoFrameMapTimestamp[frameNumber] = calc;
+  } else {
+    m_videoFrameMapFrame[frameNumber] = m_lastVideoFrameMapFrameLoaded + 1;
+    m_videoFrameMapTimestamp[frameNumber] =
+      CalculateVideoTimestampFromFrames(m_videoFrameMapFrame[frameNumber]);
+  }
+
+  m_lastVideoFrameMapFrameLoaded = m_videoFrameMapFrame[frameNumber];
+  m_lastVideoFrameMapTimestampLoaded = m_videoFrameMapTimestamp[frameNumber];
   return (ioctl(m_videoDevice, VIDIOCMCAPTURE, 
 		&m_videoFrameMap[frameNumber]) == 0);
 }

@@ -17,6 +17,8 @@
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
+ *              video aspect ratio by:
+ *              Peter Maersk-Moller peter@maersk-moller.net
  */
 /*
  * video.h - contains the interface class between the codec and the video
@@ -52,7 +54,7 @@ class CVideoSync {
   virtual int is_video_ready(uint64_t &disptime);  // from sync task
   virtual int64_t play_video_at(uint64_t current_time, // from sync task
 			 int &have_eof);
-  virtual void do_video_resize(void);     // from sync
+  virtual void do_video_resize(int m_pixel_width = -1, int m_pixel_height = -1, int m_max_width = -1, int m_max_height = -1, bool resize = true);
   virtual void flush_sync_buffers(void);  // from sync task in response to stop
   virtual void double_width(void);
  protected:
@@ -68,6 +70,12 @@ class CVideoSync {
   uint32_t m_skipped_render;
   uint64_t m_msec_per_frame;
   uint64_t m_last_filled_time;
+#ifdef ADD_ASPECT_RATIO
+  int m_pixel_width;
+  int m_pixel_height;
+  int m_max_width;
+  int m_max_height;
+#endif
 };
 
 /* frame doublers */

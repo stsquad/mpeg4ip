@@ -70,8 +70,8 @@ void error_message (const char *fmt, ...)
 
   gettimeofday(&thistime, NULL);
   // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-mp4live: ", buffer, thistime.tv_usec / 1000);
+  strftime(buffer, sizeof(buffer), "%T", localtime(&thistime.tv_sec));
+  printf("%s.%03ld-mp4live-3: ", buffer, thistime.tv_usec / 1000);
   va_start(ap, fmt);
   vprintf(fmt, ap);
   va_end(ap);
@@ -105,8 +105,8 @@ void debug_message (const char *fmt, ...)
 
   gettimeofday(&thistime, NULL);
   // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-debug-mp4live: ", buffer, thistime.tv_usec / 1000);
+  strftime(buffer, sizeof(buffer), "%T", localtime(&thistime.tv_sec));
+  printf("%s.%03ld-mp4live-7: ", buffer, thistime.tv_usec / 1000);
   va_start(ap, fmt);
   vprintf(fmt, ap);
   va_end(ap);
@@ -142,7 +142,7 @@ void lib_message (int loglevel,
 
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
-  strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
+  strftime(buffer, sizeof(buffer), "%T", localtime(&secs));
   printf("%s.%03lu-%s-%d: ",
 	 buffer,
 	 (unsigned long)thistime.tv_usec / 1000,
@@ -211,7 +211,7 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
   // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
+  strftime(buffer, sizeof(buffer), "%T", localtime(&secs));
   printf("%s.%03lu-%s-%d: ",
 	 buffer, (unsigned long)thistime.tv_usec / 1000, lib, loglevel);
   va_start(ap, fmt);

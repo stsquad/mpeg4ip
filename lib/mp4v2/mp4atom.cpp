@@ -611,7 +611,7 @@ void MP4Atom::Write()
 void MP4Atom::BeginWrite(bool use64)
 {
 	m_start = m_pFile->GetPosition();
-	use64 = m_pFile->Use64Bits();
+	//use64 = m_pFile->Use64Bits();
 	if (use64) {
 		m_pFile->WriteUInt32(1);
 	} else {
@@ -630,7 +630,7 @@ void MP4Atom::FinishWrite(bool use64)
 {
 	m_end = m_pFile->GetPosition();
 	m_size = (m_end - m_start);
-	use64 = m_pFile->Use64Bits();
+	//use64 = m_pFile->Use64Bits();
 	if (use64) {
 		m_pFile->SetPosition(m_start + 8);
 		m_pFile->WriteUInt64(m_size);

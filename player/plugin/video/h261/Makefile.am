@@ -22,8 +22,8 @@ h261_plugin_la_LIBADD = \
 
 INCLUDES = -I.. -I../.. -I../../../lib -I$(top_srcdir)/lib/SDL/include -I../../../../include -I../../../../lib -I$(top_srcdir)/player/src -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/player/plugin/rtp/h261
 
-AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@
+AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@ -DINT64=uint64_t
 
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DINT64=uint64_t
 
 EXTRA_DIST= README.vic

@@ -258,12 +258,27 @@ bool COSSAudioSource::InitDevice(void)
 void COSSAudioSource::ProcessAudio(void)
 {
 	// for efficiency, process 1 second before returning to check for commands
+  int enablebits;
+#ifdef SNDCTL_DSP_GETERROR
+  audio_errinfo errinfo;
+  if (m_audioSrcFrameNumber == 0) {
+    ioctl(m_audioDevice, SNDCTL_DSP_GETERROR, &errinfo);
+  } else {
+    ioctl(m_audioDevice, SNDCTL_DSP_GETERROR, &errinfo);
+    if (errinfo.rec_overruns > 0) {
+      debug_message("overrun error found in audio - adding %llu samples",
+		    SrcBytesToSamples(errinfo.rec_ptradjust));
+      close(m_audioDevice);
+      InitDevice();
+      m_audioSrcSampleNumber = 0;
+    }
+  }
+#endif
 	for (int pass = 0; pass < m_maxPasses; pass++) {
 
 		// read a frame's worth of raw PCM data
-	  if (m_audioSrcFrameNumber == 0) {
-	    m_audioStartTimestamp = GetTimestamp();
-	    int enablebits;
+	  if (m_audioSrcSampleNumber == 0) {
+	    m_audioCaptureStartTimestamp = GetTimestamp();
 	    // Now - pull the trigger, and start the audio input
 	    ioctl(m_audioDevice, SNDCTL_DSP_GETTRIGGER, &enablebits);
 	    enablebits |= PCM_ENABLE_INPUT;
@@ -279,7 +294,7 @@ void COSSAudioSource::ProcessAudio(void)
 
 		Timestamp frameTimestamp;
 
-		frameTimestamp = m_audioStartTimestamp + SrcSamplesToTicks(m_audioSrcSampleNumber);
+		frameTimestamp = m_audioCaptureStartTimestamp + SrcSamplesToTicks(m_audioSrcSampleNumber);
 
 		ProcessAudioFrame(
 			m_pcmFrameBuffer,

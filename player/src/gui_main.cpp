@@ -169,6 +169,34 @@ static void adjust_gui_for_play (void)
   gtk_widget_grab_focus(combo);
 }
 
+static int set_aspect_ratio(int newaspect)
+{
+  // Unfortunately psptr is NULL upon startup so we won't set aspect ratio
+  // correct
+
+  if (psptr != NULL) {
+    switch (newaspect) {
+      case 1 : 
+	psptr->set_screen_size(master_screen_size/50,master_fullscreen,4,3);
+	break;
+      case 2 : 
+	psptr->set_screen_size(master_screen_size/50,master_fullscreen,16,9);
+	break;
+      case 3 : 
+	psptr->set_screen_size(master_screen_size/50,master_fullscreen,185,100);
+	break;
+      case 4 : 
+	psptr->set_screen_size(master_screen_size/50,master_fullscreen,235,100);
+	break;
+      default: 
+	psptr->set_screen_size(master_screen_size/50,master_fullscreen,0,0);
+	newaspect = 0;
+	break;
+    }
+    config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
+  } else player_error_message("Can't set aspect ratio yet");
+  return(newaspect);
+}
 
 static void create_session_from_name (const char *name)
 {
@@ -213,7 +241,10 @@ static void create_session_from_name (const char *name)
 	psptr->set_audio_volume(0);
       psptr->set_up_sync_thread();
       psptr->set_screen_location(x, y);
-      psptr->set_screen_size(master_screen_size / 50, master_fullscreen);
+
+      master_fullscreen = config.get_config_value(CONFIG_FULL_SCREEN);
+      set_aspect_ratio(config.get_config_value(CONFIG_ASPECT_RATIO));
+
       if (psptr->play_all_media(TRUE, 0.0, errmsg,sizeof(errmsg)) < 0) {
 	delete psptr;
 	psptr = NULL;
@@ -476,7 +507,8 @@ static void on_main_menu_about (GtkWidget *window, gpointer data)
 	  "FAAC decoder\n"
 	  "Xvid decoder\n"
 	  "Libmpeg3 file and video decoder\n"
-	  "Developed by Bill May, 10/00 to present", VERSION);
+	  "Developed by Bill May, 10/00 to present", VERSION
+	  );
 
   ShowMessage("About gmp4player",buffer);
 }
@@ -804,6 +836,12 @@ static void on_video_radio (GtkWidget *window, gpointer data)
       psptr->set_screen_size(newsize / 50);
     }
   }
+}
+
+static void on_aspect_ratio (GtkWidget *window, gpointer data)
+{
+  int newaspect = GPOINTER_TO_INT(data);
+  if (psptr != NULL) set_aspect_ratio(newaspect);
 }
 
 static void on_video_fullscreen (GtkWidget *window, gpointer data)
@@ -1289,7 +1327,51 @@ printf("%s\n", *argv);
 			    GTK_SIGNAL_FUNC(on_video_fullscreen),
 			    NULL);
 
+  menuitem = CreateMenuItem(videosub, 
+			    accel_group, 
+			    tooltips, 
+			    NULL, NULL, NULL, 
+			    NULL, NULL);
+  GSList *aspectratiolist = NULL;
+  GtkWidget *aspectratio;
+  int value = set_aspect_ratio(config.get_config_value(CONFIG_ASPECT_RATIO));
+  aspectratio = CreateMenuRadio(videosub,
+				"Aspect Ration Auto",
+				&aspectratiolist,
+				GTK_SIGNAL_FUNC(on_aspect_ratio),
+				GINT_TO_POINTER(0));
+  if (value == 0)
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
+  aspectratio = CreateMenuRadio(videosub,
+				"3:4",
+				&aspectratiolist,
+				GTK_SIGNAL_FUNC(on_aspect_ratio),
+				GINT_TO_POINTER(1));
+  if (value == 1)
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
+  aspectratio = CreateMenuRadio(videosub,
+				"16:9",
+				&aspectratiolist,
+				GTK_SIGNAL_FUNC(on_aspect_ratio),
+				GINT_TO_POINTER(2));
+  if (value == 2)
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
+  aspectratio = CreateMenuRadio(videosub,
+				"1.85 Letterbox",
+				&aspectratiolist,
+				GTK_SIGNAL_FUNC(on_aspect_ratio),
+				GINT_TO_POINTER(2));
+  if (value == 3)
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
+  aspectratio = CreateMenuRadio(videosub,
+				"2.35 Letterbox",
+				&aspectratiolist,
+				GTK_SIGNAL_FUNC(on_aspect_ratio),
+				GINT_TO_POINTER(2));
+  if (value == 4)
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio), TRUE);
   CreateMenuItemSeperator(menu);
+
   seek_menuitem = CreateMenuItem(menu, 
 				 accel_group,
 				 tooltips,
@@ -1312,6 +1394,7 @@ printf("%s\n", *argv);
 			     GTK_SIGNAL_FUNC(on_media_play_video),
 			     NULL,
 			     config.get_config_value(CONFIG_PLAY_VIDEO));
+  CreateMenuItemSeperator(menu);
 
   menu = CreateBarSubMenu(menubar, "Network");
   menuitem = CreateMenuCheck(menu,

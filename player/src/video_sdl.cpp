@@ -17,6 +17,8 @@
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
+ *              video aspect ratio by:
+ *              Peter Maersk-Moller peter@maersk-moller.net
  */
 /*
  * video.cpp - provides codec to video hardware class
@@ -77,6 +79,11 @@ CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr) : CVideoSync(psptr)
   m_fullscreen = 0;
   m_filled_frames = 0;
   m_double_width = 0;
+  m_pixel_width = 0;
+  m_pixel_height = 0;
+  m_max_width = 0;
+  m_max_height = 0;
+
 }
 
 CSDLVideoSync::~CSDLVideoSync (void)
@@ -192,6 +199,7 @@ int CSDLVideoSync::initialize_video (const char *name, int x, int y)
       video_message(LOG_DEBUG, "Created mscreen %p hxw %d %d", m_screen, m_height,
 			   m_width);
 #endif
+	do_video_resize();
 #ifdef OLD_SURFACE
 	if (video_scale == 4) {
       m_image = SDL_CreateYUVOverlay(m_width << 1, 
@@ -619,8 +627,29 @@ void CSDLVideoSync::set_fullscreen (int fullscreen)
   m_fullscreen = fullscreen;
 }
 
-void CSDLVideoSync::do_video_resize (void)
+void CSDLVideoSync::do_video_resize (int pixel_width, 
+				     int pixel_height, 
+				     int max_width, 
+				     int max_height, 
+				     bool resize)
 {
+
+#if 0
+  player_debug_message("do_video_resize %d,%d,%d,%d\n",
+		       pixel_width,pixel_height,max_width,max_height);
+#endif
+  // Save values for future use (i.e. -1 values as argument will
+  // restore an argument.)
+  if (pixel_width > -1) m_pixel_width = pixel_width;
+  if (pixel_height > -1) m_pixel_height = pixel_height;
+  if (max_width > -1) m_max_width = max_width;
+  if (max_height > -1) m_max_height = max_height;
+
+  // Check and see if all we wanted was to transfer values.
+  if (!resize) {
+    return;
+  }
+
   if (m_image) {
     SDL_FreeYUVOverlay(m_image);
     m_image = NULL;
@@ -648,16 +677,47 @@ void CSDLVideoSync::do_video_resize (void)
   if (m_double_width) w *= 2;
   int h = m_height * video_scale / 2;
     
+  // Check and see if we should use old values.
+  if (pixel_width == -1 && m_pixel_width) pixel_width = m_pixel_width;
+  if (pixel_height == -1 && m_pixel_height) pixel_height = m_pixel_height;
+  if (max_width == -1 && m_max_width) max_width = m_max_width;
+  if (max_height == -1 && m_max_height) max_height = m_height;
+ 
+  // It is only when we have positive values larger than zero for
+  // pixel sizes that we resize
+  if (pixel_width > 0 && pixel_height > 0) {
+ 
+    // Square pixels needs no resize.
+    if (pixel_width != pixel_height) {
+ 
+      // enable different handling of full screen versus non full screen
+      if (m_fullscreen == 0) {
+	if (pixel_width > pixel_height)
+	  w = h * pixel_width / pixel_height;
+	else w = w * pixel_height / pixel_width;
+      } else {
+ 
+	// For now we do the same as in non full screen.
+	if (pixel_width > pixel_height)
+	  w = h * pixel_width / pixel_height;
+	else w = w * pixel_height / pixel_width;
+      }
+    }
+  }
+  if (m_fullscreen == 1) {
+    if (max_width > 0 && w > max_width) w = max_width;
+    if (max_height > 0 && h > max_height) h = max_height;
+  }
   video_message(LOG_DEBUG, "Setting video mode %d %d %x", 
 		w, h, mask);
   m_screen = SDL_SetVideoMode(w, h, m_video_bpp, 
 			      mask);
   if (m_screen == NULL) {
-	  m_screen = SDL_SetVideoMode(w, h, m_video_bpp, mask);
-	  if (m_screen == NULL) {
-	  video_message(LOG_CRIT, "sdl error message is %s", SDL_GetError());
-	abort();
-	  }
+    m_screen = SDL_SetVideoMode(w, h, m_video_bpp, mask);
+    if (m_screen == NULL) {
+      video_message(LOG_CRIT, "sdl error message is %s", SDL_GetError());
+      abort();
+    }
   }
   m_dstrect.x = 0;
   m_dstrect.y = 0;

@@ -121,9 +121,9 @@ void CSDLAudioSync::set_config (int freq,
     int temp;
     temp = freq;
     while ((temp & 0x1) == 0) temp >>= 1;
-
     sample_size = temp;
     while (sample_size < 1024) sample_size *= 2;
+    while (((sample_size * 1000) % freq) != 0) sample_size *= 2;
   } 
   
   m_buffer_size = channels * sample_size * m_bytes_per_sample;
@@ -138,7 +138,7 @@ void CSDLAudioSync::set_config (int freq,
   m_channels = channels;
   m_format = format;
   m_config_set = 1;
-  m_msec_per_frame = sample_size * 1000 / m_freq;
+  m_msec_per_frame = (sample_size * 1000) / m_freq;
   audio_message(LOG_DEBUG, "buffer size %d msec per frame %d", 
 		m_buffer_size, m_msec_per_frame);
 };

@@ -39,6 +39,32 @@ static int session_paused;
 static int screen_size = 2;
 static int fullscreen = 0;
 
+static int set_aspect_ratio(int newaspect, CPlayerSession *psptr)
+{
+  if (psptr != NULL) {
+    switch (newaspect) {
+      case 1 : 
+	psptr->set_screen_size(screen_size,fullscreen,4,3);
+        break;
+      case 2 : 
+	psptr->set_screen_size(screen_size,fullscreen,16,9);
+        break;
+      case 3 : 
+	psptr->set_screen_size(screen_size,fullscreen,185,100);
+        break;
+      case 4 : 
+	psptr->set_screen_size(screen_size,fullscreen,235,100);
+        break;
+      default: 
+	psptr->set_screen_size(screen_size,fullscreen,0,0);
+        newaspect = 0;
+        break;
+    }
+    config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
+  } else player_error_message("Can't set aspect ratio yet");
+  return(newaspect);
+}
+
 int process_sdl_key_events (CPlayerSession *psptr,
 		 				   sdl_event_msg_t *msg)
 {
@@ -139,6 +165,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
   case SDLK_ESCAPE:
 	  fullscreen = 0;
 	  break;
+
   default:
     break;
   }
@@ -178,7 +205,8 @@ static int start_session (const char *name, int max_loop)
   psptr->set_up_sync_thread();
   psptr->set_screen_location(100, 100);
 
-  psptr->set_screen_size(screen_size);
+  fullscreen = config.get_config_value(CONFIG_FULL_SCREEN);
+  set_aspect_ratio(config.get_config_value(CONFIG_ASPECT_RATIO),psptr);
   psptr->set_audio_volume(config.get_config_value(CONFIG_VOLUME));
   while (loopcount < max_loop) {
     loopcount++;

@@ -285,6 +285,7 @@ protected:
 	Timestamp		m_videoStartTimestamp;
 	Duration		m_videoEncodingDrift;
 	Duration		m_videoEncodingMaxDrift;
+	Duration                m_videoSrcPrevElapsedDuration;
 	Duration		m_videoSrcElapsedDuration;
 	Duration		m_videoDstElapsedDuration;
 	Duration		m_otherTotalDrift;
@@ -295,6 +296,8 @@ protected:
 	u_int8_t*		m_videoDstPrevReconstructImage;
 	u_int8_t*		m_videoDstPrevFrame;
 	u_int32_t		m_videoDstPrevFrameLength;
+	Timestamp               m_videoDstPrevFrameTimestamp;
+	Duration                m_videoDstPrevFrameElapsedDuration;
 
 
 	// audio source info 
@@ -326,6 +329,7 @@ protected:
 
 	// audio timing info
 	Timestamp		m_audioStartTimestamp;
+	Timestamp               m_audioEncodingStartTimestamp;
 	Duration		m_audioSrcElapsedDuration;
 	Duration		m_audioDstElapsedDuration;
 };

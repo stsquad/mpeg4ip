@@ -140,7 +140,7 @@ static int rawa_decode (codec_data_t *ptr,
 	  return buflen;
 	}
 
-	uint64_t calc;
+	double calc;
 
 	LOGIT(LOG_DEBUG, "rawaudio",
 	      "freq %d ts "LLU" buffsize %d",
@@ -149,10 +149,11 @@ static int rawa_decode (codec_data_t *ptr,
 	calc = 1000 *  rawa->m_temp_buffsize;
 	calc /= rawa->m_freq;
 	calc /= (ts - rawa->m_ts);
-	calc /= 2;
-	if (calc == 0) calc = 1;
-	LOGIT(LOG_DEBUG, "rawaudio", "Channels is %d", calc);
-	rawa->m_chans = calc;
+	calc /= 2.0;
+	if (calc > 1.5) rawa->m_chans = 2;
+	else rawa->m_chans = 1;
+
+	LOGIT(LOG_DEBUG, "rawaudio", "Channels is %d", rawa->m_chans);
 	rawa->m_bitsperchan = 16;
       } 
     }
@@ -172,7 +173,7 @@ static int rawa_decode (codec_data_t *ptr,
       rawa->m_vft->audio_load_buffer(rawa->m_ifptr,
 				     rawa->m_temp_buff, 
 				     rawa->m_temp_buffsize,
-				     0, 
+				     rawa->m_ts, 
 				     1);
       rawa->m_resync = 0;
       if (ts == 0) rawa->m_bytes = rawa->m_temp_buffsize;

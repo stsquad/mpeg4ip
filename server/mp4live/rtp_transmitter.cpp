@@ -301,7 +301,25 @@ void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 	if (m_audioQueueCount == 0) {
 		newAudioQueueSize += 
 			m_audioPayloadBytesPerPacket;
+	} else {
+	  uint32_t ourTs;
+	  int32_t diff;
+	  ourTs = AudioTimestampToRtp(pFrame->GetTimestamp());
+	  diff = ourTs - m_nextAudioRtpTimestamp;
+
+	  if (diff > 1) {
+	    debug_message("Timestamp not consectutive error - timestamp %llu should be %u is %u", 
+			  pFrame->GetTimestamp(),
+			  ourTs, m_nextAudioRtpTimestamp);
+	    SendQueuedAudioFrames();
+	    newAudioQueueSize = m_audioQueueSize +=
+	      m_audioPayloadBytesPerPacket;
+	  }
+
 	}
+	m_nextAudioRtpTimestamp = 
+	  AudioTimestampToRtp(pFrame->GetTimestamp()) + 
+	  pFrame->GetDuration();
 
 	newAudioQueueSize +=
 		m_audioPayloadBytesPerFrame
@@ -692,6 +710,7 @@ void CRtpDestination::start (void)
   if (m_rtpSession == NULL) {
     debug_message("Starting rtp dest %s %d %d", 
 		  m_destAddr, m_destPort, m_srcPort);
+    if (m_srcPort == 0) m_srcPort = m_destPort;
     m_rtpSession = rtp_init_xmitter(m_destAddr,
 				    m_srcPort,
 				    m_destPort,
