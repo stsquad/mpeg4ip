@@ -154,7 +154,7 @@ int CPlayerMedia::recv_thread (void)
 
 
   m_rtp_buffering = 0;
-  if (m_stream_ondemand != 0) {
+  if (m_ports != NULL) {
     /*
      * We need to free up the ports that we got before RTP tries to set 
      * them up, so we don't have any re-use conflicts.  There is a small
@@ -183,14 +183,34 @@ int CPlayerMedia::recv_thread (void)
   } else {
     media_message(LOG_DEBUG, "Using bw from sdp %g", bw);
   }
-  m_rtp_session = rtp_init(m_source_addr == NULL ? 
-			   cptr->conn_addr : m_source_addr,
-			   m_our_port,
-			   m_server_port,
-			   cptr == NULL ? 1 : cptr->ttl, // need ttl here
-			   bw, // rtcp bandwidth ?
-			   c_recv_callback,
-			   (uint8_t *)this);
+  m_rtp_session = NULL;
+  if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
+    struct in_addr if_addr;
+    if (getIpAddressFromInterface(config.get_config_string(CONFIG_MULTICAST_RX_IF),
+				  &if_addr) >= 0) {
+      m_rtp_session = rtp_init_if(m_source_addr == NULL ? 
+				  cptr->conn_addr : m_source_addr, 
+				  inet_ntoa(if_addr),
+				  m_our_port, 
+				  m_server_port, 
+				  cptr == NULL ? 1 : cptr->ttl,
+				  bw,
+				  c_recv_callback,
+				  (uint8_t *)this,
+				  0);
+    }
+  }
+
+  if (m_rtp_session == NULL) {
+    m_rtp_session = rtp_init(m_source_addr == NULL ? 
+			     cptr->conn_addr : m_source_addr,
+			     m_our_port,
+			     m_server_port,
+			     cptr == NULL ? 1 : cptr->ttl, // need ttl here
+			     bw, // rtcp bandwidth ?
+			     c_recv_callback,
+			     (uint8_t *)this);
+  }
   if (m_rtp_session != NULL) {
     rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
     rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
@@ -424,10 +444,18 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
   int codec;
   rtp_check_return_t plugin_ret;
   rtp_plugin_t *rtp_plugin;
-
+  int stream_ondemand;
   rtp_plugin = NULL;
   plugin_ret = check_for_rtp_plugins(fmt, rtp_pt, &rtp_plugin);
-
+  
+  stream_ondemand = 0;
+  if (m_stream_ondemand == 1 &&
+      get_range_from_media(m_media_info) != NULL) {
+    // m_stream_ondemand == 1 means we're using RTSP, and having a range 
+    // in the SDP means that we have an ondemand presentation; otherwise, we
+    // want to treat it like a broadcast session, and use the RTCP.
+    stream_ondemand = 1;
+  }
   if (plugin_ret != RTP_PLUGIN_NO_MATCH) {
     switch (plugin_ret) {
     case RTP_PLUGIN_MATCH:
@@ -436,7 +464,7 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
       m_rtp_byte_stream = new CPluginRtpByteStream(rtp_plugin,
 						 fmt,
 						 rtp_pt,
-						 m_stream_ondemand,
+						 stream_ondemand,
 						 tps,
 						 &m_head,
 						 &m_tail,
@@ -456,7 +484,7 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
       m_rtp_byte_stream = 
 	new CAudioRtpByteStream(rtp_pt, 
 				fmt, 
-				m_stream_ondemand,
+				stream_ondemand,
 				tps,
 				&m_head,
 				&m_tail,
@@ -481,7 +509,7 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
       codec = VIDEO_MPEG12;
       m_rtp_byte_stream = new CMpeg3RtpByteStream(rtp_pt,
 						  fmt, 
-						m_stream_ondemand,
+						stream_ondemand,
 						tps,
 						&m_head,
 						&m_tail,
@@ -513,7 +541,7 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
     case MPEG4IP_AUDIO_MP3: {
       m_rtp_byte_stream = 
 	new CAudioRtpByteStream(rtp_pt, fmt, 
-				m_stream_ondemand,
+				stream_ondemand,
 				tps,
 				&m_head,
 				&m_tail,
@@ -535,7 +563,7 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
     case MPEG4IP_AUDIO_MP3_ROBUST:
       m_rtp_byte_stream = 
 	new CRfc3119RtpByteStream(rtp_pt, fmt, 
-				m_stream_ondemand,
+				stream_ondemand,
 				tps,
 				&m_head,
 				&m_tail,
@@ -555,7 +583,7 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
     case MPEG4IP_AUDIO_GENERIC:
       m_rtp_byte_stream = 
 	new CAudioRtpByteStream(rtp_pt, fmt, 
-				m_stream_ondemand,
+				stream_ondemand,
 				tps,
 				&m_head,
 				&m_tail,
@@ -578,7 +606,7 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
   m_rtp_byte_stream = new CRtpByteStream(fmt->media->media,
 					 fmt, 
 					 rtp_pt,
-					 m_stream_ondemand,
+					 stream_ondemand,
 					 tps,
 					 &m_head,
 					 &m_tail,

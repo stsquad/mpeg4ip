@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 			automatic = true;
 			break;
 		case 'f':	// -f <config-file>
-			configFileName = stralloc(optarg);
+			configFileName = strdup(optarg);
 			break;
 		case 'h':
 			headless = true;

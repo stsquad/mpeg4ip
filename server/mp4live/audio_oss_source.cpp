@@ -50,7 +50,7 @@ COSSAudioSource::COSSAudioSource(CLiveConfig *pConfig) : CMediaSource()
 
   static char* inputNames[] = SOUND_DEVICE_NAMES;
 
-  char* mixerName = 
+  const char* mixerName = 
     m_pConfig->GetStringValue(CONFIG_AUDIO_MIXER_NAME);
 
   int mixer = open(mixerName, O_RDONLY);
@@ -216,7 +216,7 @@ bool COSSAudioSource::Init(void)
 bool COSSAudioSource::InitDevice(void)
 {
   int rc;
-  char* deviceName = m_pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME);
+  const char* deviceName = m_pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME);
 
   // open the audio device
   m_audioDevice = open(deviceName, O_RDONLY);

@@ -252,7 +252,8 @@ static int mpeg3_codec_check (lib_message_func_t message,
 			     int profile,
 			     format_list_t *fptr,
 			     const uint8_t *userdata,
-			     uint32_t userdata_size)
+			     uint32_t userdata_size,
+			      CConfigSet *pConfig)
 {
   if (fptr != NULL) {
     if (strcmp(fptr->fmt, "32") == 0) {
@@ -281,4 +282,6 @@ VIDEO_CODEC_PLUGIN("mpeg3",
 		   NULL,
 		   mpeg3_close,
 		   mpeg3_codec_check,
-		   mpeg3_frame_is_sync);
+		   mpeg3_frame_is_sync,
+		   NULL,
+		   0);

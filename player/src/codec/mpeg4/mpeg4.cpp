@@ -23,6 +23,7 @@
  */
 
 
+#define DECLARE_CONFIG_VARIABLES
 #include "codec_plugin.h"
 #if 0
 #ifdef _WIN32
@@ -52,6 +53,9 @@
 
 #define iso_message (iso->m_vft->log_msg)
 static const char *mp4iso = "mp4iso";
+static SConfigVariable MyConfigVariables[] = {
+  CONFIG_BOOL(CONFIG_USE_MPEG4_ISO_ONLY, "Mpeg4IsoOnly", false),
+};
 
 // Convert a hex character to it's decimal value.
 static uint8_t tohex (char a)
@@ -572,41 +576,49 @@ static int iso_codec_check (lib_message_func_t message,
 			    int profile,
 			    format_list_t *fptr,
 			    const uint8_t *userdata,
-			    uint32_t userdata_size)
+			    uint32_t userdata_size,
+			    CConfigSet *pConfig)
 {
+  int ret_val = -1;
+
   if (compressor != NULL && 
       (strcasecmp(compressor, "MP4 FILE") == 0)) {
     if (type == MP4_MPEG4_VIDEO_TYPE || type == MP4_H263_VIDEO_TYPE) {
-      return 1;
+      ret_val =  1;
     }
-    return -1;
   }
+
   if (fptr != NULL) {
     // find format. If matches, call parse_fmtp_for_mpeg4, look at
     // profile level.
 #if 1
     if (strcmp(fptr->fmt, "34") == 0) {
-      return 1;
+      ret_val =  1;
     }
 #endif
     if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
       if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0) {
-	return 1;
+	ret_val =  1;
       }
     }
-    return -1;
   }
 
   if (compressor != NULL) {
     const char **lptr = iso_compressors;
     while (*lptr != NULL) {
       if (strcasecmp(*lptr, compressor) == 0) {
-	return 1;
+	ret_val =  1;
+	break;
       }
       lptr++;
     }
   }
-  return -1;
+  if (ret_val == 1 && pConfig->GetBoolValue(CONFIG_USE_MPEG4_ISO_ONLY)) {
+    
+    ret_val = 255;
+    message(LOG_DEBUG, "mpeg4iso", "Asserting mpeg4 iso only");
+  }
+  return ret_val;
 }
 
 VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("MPEG4 ISO", 
@@ -622,4 +634,7 @@ VIDEO_CODEC_WITH_RAW_FILE_PLUGIN("MPEG4 ISO",
 				 divx_file_used_for_frame,
 				 divx_file_seek_to,
 				 iso_skip_frame,
-				 divx_file_eof);
+				 divx_file_eof,
+				 MyConfigVariables,
+				 sizeof(MyConfigVariables) / 
+				 sizeof(*MyConfigVariables));

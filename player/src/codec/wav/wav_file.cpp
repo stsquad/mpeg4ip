@@ -27,7 +27,8 @@
 codec_data_t *wav_file_check (lib_message_func_t message,
 			      const char *name, 
 			      double *max, 
-			      char *desc[4])
+			      char *desc[4],
+			      CConfigSet *pConfig)
 {
 
   int len = strlen(name);

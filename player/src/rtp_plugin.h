@@ -23,7 +23,7 @@
 
 #include <mpeg4ip.h>
 #include <sdp/sdp.h>
-
+#include <mpeg4ip_config_set.h>
 struct rtp_packet;
 
 /*
@@ -78,6 +78,7 @@ typedef struct rtp_vft_t {
   get_next_pak_f     get_next_pak;
   remove_from_list_f remove_from_list;
   free_pak_f         free_pak;
+  CConfigSet         *pConfig;
 } rtp_vft_t;
 
 /*
@@ -120,7 +121,8 @@ typedef enum {
  */
 typedef rtp_check_return_t (*rtp_plugin_check_f)(lib_message_func_t msg,
 						 format_list_t *fptr,
-						 uint8_t rtp_payload_type);
+						 uint8_t rtp_payload_type,
+						 CConfigSet *pConfig);
 /*
  * rtp_plugin_create - create private data needed by RTP plugin
  * Inputs:
@@ -197,9 +199,12 @@ typedef struct rtp_plugin_t {
   rtp_plugin_reset_f                rtp_plugin_reset;
   rtp_plugin_flush_f                rtp_plugin_flush;
   rtp_plugin_have_no_data_f         rtp_plugin_have_no_data;
+  SConfigVariable                  *rtp_variable_list;
+  uint32_t                          rtp_variable_list_count;
 } rtp_plugin_t;
   
-#define RTP_PLUGIN_VERSION "0.1"
+#define RTP_PLUGIN_VERSION "0.2"
+#define HAVE_RTP_PLUGIN_VERSION_0_2 1
 #ifndef DLL_EXPORT
 #ifdef _WIN32
 #define DLL_EXPORT __declspec(dllexport)
@@ -222,11 +227,13 @@ typedef struct rtp_plugin_t {
                    ubff, \
                    reset, \
                    flush, \
-                   hnd) \
+                   hnd, \
+                   var, \
+                   varlen) \
 extern "C" { rtp_plugin_t DLL_EXPORT RTP_PLUGIN_EXPORT_NAME = { \
    name, \
    RTP_PLUGIN_VERSION, \
-   check, create, destroy, snf, ubff, reset, flush, hnd, \
+   check, create, destroy, snf, ubff, reset, flush, hnd, var, varlen,\
 }; }
                    
 #endif

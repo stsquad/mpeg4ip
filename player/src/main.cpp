@@ -287,9 +287,23 @@ int main (int argc, char **argv)
 
   int max_loop = 1;
   char *name;
+  char buffer[FILENAME_MAX];
+  char *home = getenv("HOME");
+  if (home == NULL) {
+#ifdef _WIN32
+	strcpy(buffer, "gmp4player_rc");
+#else
+    strcpy(buffer, ".gmp4player_rc");
+#endif
+  } else {
+    strcpy(buffer, home);
+    strcat(buffer, "/.gmp4player_rc");
+  }
   
   initialize_plugins();
-  config.read_config_file();
+  config.SetDefaultFileName(buffer);
+  config.InitializeIndexes();
+  config.ReadDefaultFile();
   rtsp_set_error_func(player_library_message);
   rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
   rtp_set_error_msg_func(player_library_message);

@@ -134,7 +134,7 @@ CRtpTransmitter::~CRtpTransmitter (void)
 }
 
 void CRtpTransmitter::CreateAudioRtpDestination (uint32_t ref,
-						 char *destAddress,
+						 const char *destAddress,
 						 in_port_t destPort,
 						 in_port_t srcPort)
 {
@@ -163,7 +163,7 @@ void CRtpTransmitter::CreateAudioRtpDestination (uint32_t ref,
 }
 
 void CRtpTransmitter::CreateVideoRtpDestination (uint32_t ref,
-						 char *destAddress,
+						 const char *destAddress,
 						 in_port_t destPort,
 						 in_port_t srcPort)
 {
@@ -674,7 +674,7 @@ static void RtpCallback (struct rtp *session, rtp_event *e)
 }
 
 CRtpDestination::CRtpDestination (uint32_t ref_number,
-				  char *destAddr, 
+				  const char *destAddr, 
 				  in_port_t destPort,
 				  in_port_t srcPort,
 				  uint8_t payloadNumber,

@@ -29,6 +29,7 @@
 #include "player_util.h"
 #include <SDL_error.h>
 #include <SDL_syswm.h>
+#include "our_config_file.h"
 //#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
 //#define SHORT_VIDEO 1
@@ -809,10 +810,12 @@ static video_vft_t video_vft =
   c_video_get_buffer,
   c_video_filled_buffer,
   c_video_have_frame,
+  NULL,
 };
 
 video_vft_t *get_video_vft (void)
 {
+  video_vft.pConfig = &config;
   return (&video_vft);
 }
 

@@ -141,18 +141,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libconfig_file"=..\..\lib\config_file\libconfig_file60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "libfaad"=..\lib\audio\faad\libfaad60.dsp - Package Owner=<4>
 
 Package=<5>

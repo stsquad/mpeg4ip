@@ -120,7 +120,7 @@ bool CV4L2VideoSource::Init(void)
 bool CV4L2VideoSource::InitDevice(void)
 {
   int rc;
-  char* deviceName = m_pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
+  const char* deviceName = m_pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
   int buftype = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   v4l2_std_id std;
 
@@ -551,7 +551,7 @@ bool CV4L2VideoSource::InitialVideoProbe(CLiveConfig* pConfig)
     "/dev/video2", 
     "/dev/video3"
   };
-  char* deviceName = pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
+  const char* deviceName = pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
   CVideoCapabilities* pVideoCaps;
 
   // first try the device we're configured with
@@ -613,7 +613,7 @@ bool CVideoCapabilities::ProbeDevice()
   }
 
   m_canCapture = true;
-  m_driverName = stralloc((char*)capability.driver);
+  m_driverName = strdup((char*)capability.driver);
   m_hasAudio = capability.capabilities & V4L2_CAP_AUDIO;
 
   struct v4l2_input input;
@@ -647,7 +647,7 @@ bool CVideoCapabilities::ProbeDevice()
                     i, m_deviceName);
       continue;
     }
-    m_inputNames[i] = stralloc((char*)input.name);
+    m_inputNames[i] = strdup((char*)input.name);
 
     error_message("type %d %s type %x", i, m_inputNames[i], input.type);
     if (input.type == V4L2_INPUT_TYPE_TUNER) {

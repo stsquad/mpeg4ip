@@ -76,7 +76,7 @@ void CRawFileSink::DoStartSink()
 	}
 }
 
-int CRawFileSink::OpenFile(char* fileName, bool useFifo)
+int CRawFileSink::OpenFile(const char* fileName, bool useFifo)
 {
 	int fd = -1;
 	int openFlags = O_CREAT | O_TRUNC | O_WRONLY;

@@ -1048,7 +1048,8 @@ static audio_vft_t audio_vft = {
   c_audio_config,
   c_get_audio_buffer,
   c_filled_audio_buffer,
-  c_load_audio_buffer
+  c_load_audio_buffer,
+  NULL,
 };
 
 CAudioSync *create_audio_sync (CPlayerSession *psptr, int volume)
@@ -1058,6 +1059,7 @@ CAudioSync *create_audio_sync (CPlayerSession *psptr, int volume)
 
 audio_vft_t *get_audio_vft (void)
 {
+  audio_vft.pConfig = &config;
   return &audio_vft;
 }
 

@@ -159,7 +159,7 @@ int CMP4If::seek_to (double time)
 
 int CMP4If::client_read_config (void)
 {
-	config.write_config_file("Software\\Mpeg4ip", "Config");
+	config.WriteVariablesToRegistry("Software\\Mpeg4ip", "Config");
 	return m_process->send_message(CLIENT_READ_CONFIG_FILE, NULL);
 }
 

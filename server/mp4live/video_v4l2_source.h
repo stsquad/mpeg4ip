@@ -79,7 +79,7 @@ class CV4L2VideoSource : public CMediaSource {
 class CVideoCapabilities {
  public:
   CVideoCapabilities(const char* deviceName) {
-    m_deviceName = stralloc(deviceName);
+    m_deviceName = strdup(deviceName);
     m_canOpen = false;
     m_canCapture = false;
     m_driverName = NULL;

@@ -22,6 +22,7 @@
 #include "rtp_bytestream_plugin.h"
 #include "rtp/memory.h"
 #include "player_util.h"
+#include "our_config_file.h"
 
 static uint64_t rtp_ts_to_msec (void *ifp, 
 				uint32_t rtp_ts, 
@@ -57,6 +58,7 @@ static rtp_vft_t rtp_vft = {
   get_next_pak,
   remove_from_list,
   free_pak,
+  NULL,
 };
 
 CPluginRtpByteStream::CPluginRtpByteStream(rtp_plugin_t *rtp_plugin,
@@ -80,6 +82,7 @@ CPluginRtpByteStream::CPluginRtpByteStream(rtp_plugin_t *rtp_plugin,
 {
   m_rtp_plugin = rtp_plugin;
 
+  rtp_vft.pConfig = &config;
   m_rtp_plugin_data = (m_rtp_plugin->rtp_plugin_create)(fmt, 
 							rtp_pt, 
 							&rtp_vft, 

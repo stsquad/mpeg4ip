@@ -107,7 +107,7 @@ static void mpeg2t_decode_buffer (mpeg2t_client_t *info,
 		}
 	      }
 	    } else {
-	      int msec;
+	      uint32_t msec;
 	      if (sptr->m_is_video) {
 		// use the video values for buffering
 		double msec_in_list;
@@ -191,19 +191,52 @@ static int mpeg2t_thread_start_cmd (mpeg2t_client_t *info)
   ret = 0;
 #endif
   if (info->useRTP == FALSE) {
-    info->udp = udp_init(info->address, info->rx_port,
-			 info->tx_port, info->ttl);
+    if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
+      struct in_addr if_addr;
+
+      if (getIpAddressFromInterface(config.get_config_string(CONFIG_MULTICAST_RX_IF),
+				    &if_addr) >= 0) {
+	info->udp = udp_init_if(info->address,
+				inet_ntoa(if_addr),
+				info->rx_port,
+				info->tx_port,
+				info->ttl);
+      }
+    }
+    if (info->udp == NULL) {
+      info->udp = udp_init(info->address, info->rx_port,
+			   info->tx_port, info->ttl);
+    }
     if (info->udp == NULL) 
       return -1;
     info->data_socket = udp_fd(info->udp);
   } else {
-    info->rtp_session = rtp_init(info->address,
-				 info->rx_port,
-				 info->tx_port,
-				 info->ttl,
-				 info->rtcp_bw,
-				 mpeg2t_rtp_callback,
-				 (uint8_t *)info);
+    info->rtp_session = NULL;
+    if (config.get_config_string(CONFIG_MULTICAST_RX_IF) != NULL) {
+      struct in_addr if_addr;
+
+      if (getIpAddressFromInterface(config.get_config_string(CONFIG_MULTICAST_RX_IF),
+				    &if_addr) >= 0) {
+	info->rtp_session = rtp_init_if(info->address,
+					inet_ntoa(if_addr),
+					info->rx_port,
+					info->tx_port,
+					info->ttl,
+					info->rtcp_bw,
+					mpeg2t_rtp_callback,
+					(uint8_t *)info,
+					0);
+      }
+    }
+    if (info->rtp_session == NULL) {
+      info->rtp_session = rtp_init(info->address,
+				   info->rx_port,
+				   info->tx_port,
+				   info->ttl,
+				   info->rtcp_bw,
+				   mpeg2t_rtp_callback,
+				   (uint8_t *)info);
+    }
     if (info->rtp_session == NULL) {
       return -1;
     }

@@ -28,6 +28,10 @@ int ReadConfigFile (const char *configFileName,
       pConfig->SetStringValue(CONFIG_RTP_AUDIO_DEST_ADDRESS,
 			      pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS));
     }
+    if (!pConfig->IsDefault(CONFIG_RECORD_MP4_OVERWRITE)) {
+      pConfig->SetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS, FILE_MP4_APPEND);
+      pConfig->SetToDefault(CONFIG_RECORD_MP4_OVERWRITE);
+    }
     PrintDebugMessages =
       pConfig->GetIntegerValue(CONFIG_APP_DEBUG);
  }

@@ -41,7 +41,8 @@ typedef struct mp3_codec_t {
 codec_data_t *mp3_file_check(lib_message_func_t message,
 			     const char *name, 
 			     double *max,
-			     char *desc[4]);
+			     char *desc[4],
+			     CConfigSet *pConfig);
 int mp3_file_next_frame(codec_data_t *your_data,
 			uint8_t **buffer,
 			uint64_t *ts);

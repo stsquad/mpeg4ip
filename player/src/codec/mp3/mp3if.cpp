@@ -219,7 +219,8 @@ static int mp3_codec_check (lib_message_func_t message,
 			    int profile,
 			    format_list_t *fptr,
 			    const uint8_t *userdata,
-			    uint32_t userdata_size)
+			    uint32_t userdata_size,
+			    CConfigSet *pConfig)
 {
   if (compressor != NULL && 
       (strcasecmp(compressor, "MP4 FILE") == 0) &&
@@ -292,7 +293,9 @@ AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("mp3",
 				 mp3_file_next_frame,
 				 NULL,
 				 mp3_raw_file_seek_to,
-				 mp3_file_eof);
+				 mp3_file_eof,
+				 NULL,
+				 0);
 
 /* end file mp3.cpp */
 

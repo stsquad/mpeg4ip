@@ -26,8 +26,14 @@
 
 #include <mpeg4ip.h>
 #include <sdp.h>
+#include <mpeg4ip_config_set.h>
+/*
+ * When you change the plugin version, you should add a "HAVE_PLUGIN_VERSION"
+ * for easier makes
+ */
+#define PLUGIN_VERSION "0.8"
+#define HAVE_PLUGIN_VERSION_0_8 1
 
-#define PLUGIN_VERSION "0.7"
 /***************************************************************************
  *  Audio callbacks from plugin to renderer
  ***************************************************************************/
@@ -95,6 +101,7 @@ typedef struct audio_vft_t {
   audio_get_buffer_f audio_get_buffer;
   audio_filled_buffer_f audio_filled_buffer;
   audio_load_buffer_f audio_load_buffer;
+  CConfigSet *pConfig;
 } audio_vft_t;
 
 /*****************************************************************************
@@ -166,6 +173,7 @@ typedef struct video_vft_t {
   video_get_buffer_f video_get_buffer;
   video_filled_buffer_f video_filled_buffer;
   video_have_frame_f video_have_frame;
+  CConfigSet *pConfig;
 } video_vft_t;
 
 /**************************************************************************
@@ -294,7 +302,8 @@ typedef int (*c_compress_check_f)(lib_message_func_t msg,
 				  int profile,
 				  format_list_t *fptr,
 				  const uint8_t *userdata,
-				  uint32_t userdata_size);
+				  uint32_t userdata_size,
+				  CConfigSet *pConfig);
 
 /*
  * c_raw_file_check_f - see if this codec can handle raw files
@@ -308,7 +317,8 @@ typedef int (*c_compress_check_f)(lib_message_func_t msg,
 typedef codec_data_t *(*c_raw_file_check_f)(lib_message_func_t msg,
 					    const char *filename,
 					    double *max_time,
-					    char *desc[4]);
+					    char *desc[4],
+					    CConfigSet *pConfig);
 
 /*
  * c_raw_file_next_frame_f - get a data buffer with a full frame of data
@@ -364,6 +374,8 @@ typedef struct codec_plugin_t {
   c_raw_file_has_eof_f    c_raw_file_has_eof;
   c_video_frame_is_sync_f c_video_frame_is_sync;
   c_print_status_f        c_print_status;
+  SConfigVariable         *c_variable_list;
+  uint32_t                c_variable_list_count;
 } codec_plugin_t;
 
 #ifdef _WIN32
@@ -382,7 +394,9 @@ typedef struct codec_plugin_t {
                            decode, \
                            print_status, \
 			   close,\
-			   compress_check) \
+			   compress_check, \
+			   config_variables, \
+			   config_variables_count) \
 extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    name, \
    "audio", \
@@ -394,7 +408,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    close,\
    compress_check, \
    NULL, NULL, NULL, NULL, NULL, NULL, NULL, print_status, \
-}; }
+   config_variables, config_variables_count, }; }
 
 /*
  * Use this for audio plugin that has raw file support
@@ -410,7 +424,9 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
 			                 raw_file_next_frame, \
                                          raw_file_used_for_frame, \
 			                 raw_file_seek_to, \
-			                 raw_file_has_eof)\
+			                 raw_file_has_eof, \
+					 config_variables, \
+                                         config_variables_count)\
 extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    name, \
    "audio", \
@@ -427,7 +443,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    raw_file_seek_to, \
    NULL, \
    raw_file_has_eof, NULL, print_status, \
-}; }
+   config_variables, config_variables_count, }; }
 
 /*
  * Use this for a video codec without raw file support
@@ -439,7 +455,9 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
                            print_status, \
 			   close,\
 			   compress_check,\
-			   video_frame_is_sync) \
+			   video_frame_is_sync, \
+                           config_variables, \
+                           config_variables_count ) \
 extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    name, \
    "video", \
@@ -451,7 +469,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    close,\
    compress_check, \
    NULL, NULL, NULL, NULL, NULL, NULL, video_frame_is_sync, print_status, \
-}; }
+   config_variables, config_variables_count, }; }
 
 /*
  * Use this for video codec with raw file support
@@ -469,7 +487,9 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
                                          raw_file_used_for_frame, \
 			                 raw_file_seek_to, \
 			                 raw_file_skip_frame, \
-                                         raw_file_has_eof) \
+                                         raw_file_has_eof, \
+                                         config_variables, \
+					 config_variables_count) \
 extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    name, \
    "video", \
@@ -488,6 +508,8 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    raw_file_has_eof, \
    video_frame_is_sync, \
    print_status, \
+   config_variables, \
+   config_variables_count, \
 }; }
      
      

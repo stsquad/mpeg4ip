@@ -28,6 +28,7 @@
 #include "media_sink.h"
 
 class CRtpTransmitter;
+class CMp4Recorder;
 
 // abstract parent class
 class CMediaFlow {
@@ -57,6 +58,7 @@ enum {
 	FLOW_STATUS_DURATION,
 	FLOW_STATUS_PROGRESS,
 	FLOW_STATUS_VIDEO_ENCODED_FRAMES,
+	FLOW_STATUS_FILENAME, 
 	FLOW_STATUS_MAX
 };
 
@@ -98,7 +100,7 @@ protected:
 	CMediaSource* 	m_videoSource;
 	CMediaSource*	m_audioSource;
 
-	CMediaSink*		m_mp4Recorder;
+	CMp4Recorder*		m_mp4Recorder;
 	CRtpTransmitter*	m_rtpTransmitter;
 	CMediaSink*		m_rawSink;
 };

@@ -26,7 +26,8 @@
 codec_data_t *aac_file_check (lib_message_func_t message,
 			      const char *name, 
 			      double *max, 
-			      char *desc[4])
+			      char *desc[4],
+			      CConfigSet *pConfig)
 {
   aac_codec_t *aac;
   int len = strlen(name);

@@ -123,7 +123,8 @@ static int wav_codec_check (lib_message_func_t message,
 			    int profile, 
 			    format_list_t *fptr,
 			    const uint8_t *userdata,
-			    uint32_t userdata_size)
+			    uint32_t userdata_size,
+			    CConfigSet *pConfig)
 {
   return -1;
 }
@@ -139,7 +140,9 @@ AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("wav",
 				 wav_file_next_frame,
 				 wav_file_used_for_frame,
 				 NULL,
-				 wav_file_eof);
+				 wav_file_eof,
+				 NULL,
+				 0);
 
 /* end file ourwav.cpp */
 

@@ -24,6 +24,7 @@
  * config_file.cpp - a fairly simple config file reader.  It will read
  * either strings or ints out of .gmp4player_rc (or a specified file)
  */
+#define DECLARE_CONFIG_VARIABLES
 #include "our_config_file.h"
 #include "player_util.h"
 
@@ -31,35 +32,37 @@
 
 // Basic list of available config variables.  Future work could make this
 // dynamic, but I'm not going to bother right now...
-static config_variable_t configs[] = {
-  { CONFIG_USE_MPEG4_ISO_ONLY, "Mpeg4IsoOnly", CONFIG_INT, 0, NULL },
-  { CONFIG_PREV_FILE_0, "File0", CONFIG_STRING, 0, NULL },
-  { CONFIG_PREV_FILE_1, "File1", CONFIG_STRING, 0, NULL },
-  { CONFIG_PREV_FILE_2, "File2", CONFIG_STRING, 0, NULL },
-  { CONFIG_PREV_FILE_3, "File3", CONFIG_STRING, 0, NULL },
-  { CONFIG_RTP_BUFFER_TIME, "RtpBufferTime", CONFIG_INT, 2, NULL },
-  { CONFIG_LOOPED, "Looped", CONFIG_INT, 0, NULL },
-  { CONFIG_VOLUME, "Volume", CONFIG_INT, 75, NULL },
-  { CONFIG_MUTED, "AudioMuted", CONFIG_INT, 0, NULL},
-  { CONFIG_HTTP_DEBUG, "HttpDebug", CONFIG_INT, LOG_ALERT, NULL},
-  { CONFIG_RTSP_DEBUG, "RtspDebug", CONFIG_INT, LOG_ALERT, NULL},
-  { CONFIG_SDP_DEBUG, "SdpDebug", CONFIG_INT, LOG_ALERT, NULL},
-  { CONFIG_IPPORT_MIN, "RtpIpPortMin", CONFIG_INT, -1, NULL},
-  { CONFIG_IPPORT_MAX, "RtpIpPortMax", CONFIG_INT, -1, NULL},
-  { CONFIG_USE_OLD_MP4_LIB, "UseOldMp4Lib", CONFIG_INT, 0, NULL},
-  { CONFIG_USE_RTP_OVER_RTSP, "UseRtpOverRtsp", CONFIG_INT, 0, NULL},
-  { CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP, "SendRtcpInRtpOverRtsp", CONFIG_INT, 0, NULL},
-  { CONFIG_PREV_DIRECTORY, "PrevDirectory", CONFIG_STRING, 0, NULL},
-  { CONFIG_RTP_DEBUG, "RtpDebug", CONFIG_INT, LOG_ALERT, NULL},
-  { CONFIG_PLAY_AUDIO, "PlayAudio", CONFIG_INT, 1, NULL },
-  { CONFIG_PLAY_VIDEO, "PlayVideo", CONFIG_INT, 1, NULL },
-  { CONFIG_RTP_BUFFER_TIME_MSEC, "RtpBufferTimeMsec", CONFIG_INT, 2000, NULL },
-  { CONFIG_MPEG2T_PAM_WAIT_SECS, "Mpeg2tPamWaitSecs", CONFIG_INT, 30, NULL },
-  { CONFIG_LIMIT_AUDIO_SDL_BUFFER, "LimitAudioSdlBuffer", CONFIG_INT, 0, NULL},
-  { CONFIG_MPEG2T_DEBUG, "Mpeg2tDebug", CONFIG_INT, LOG_ALERT, NULL },
-  { CONFIG_ASPECT_RATIO, "AspectRatio", CONFIG_INT, 0, NULL},
-  { CONFIG_FULL_SCREEN, "FullScreen", CONFIG_INT, 0, NULL},
+static const SConfigVariable MyConfigVariables[] = {
+  CONFIG_STRING(CONFIG_PREV_FILE_0, "File0", NULL),
+  CONFIG_STRING(CONFIG_PREV_FILE_1, "File1", NULL),
+  CONFIG_STRING(CONFIG_PREV_FILE_2, "File2", NULL),
+  CONFIG_STRING(CONFIG_PREV_FILE_3, "File3", NULL),
+  CONFIG_INT(CONFIG_RTP_BUFFER_TIME, "RtpBufferTime", 2),
+  CONFIG_INT(CONFIG_LOOPED, "Looped", 0),
+  CONFIG_INT(CONFIG_VOLUME, "Volume", 75),
+  CONFIG_INT(CONFIG_MUTED, "AudioMuted", 0),
+  CONFIG_INT(CONFIG_HTTP_DEBUG, "HttpDebug", LOG_ALERT),
+  CONFIG_INT(CONFIG_RTSP_DEBUG, "RtspDebug", LOG_ALERT),
+  CONFIG_INT(CONFIG_SDP_DEBUG, "SdpDebug", LOG_ALERT),
+  CONFIG_INT(CONFIG_IPPORT_MIN, "RtpIpPortMin", UINT32_MAX),
+  CONFIG_INT(CONFIG_IPPORT_MAX, "RtpIpPortMax", UINT32_MAX),
+  CONFIG_INT(CONFIG_USE_OLD_MP4_LIB, "UseOldMp4Lib", 0),
+  CONFIG_INT(CONFIG_USE_RTP_OVER_RTSP, "UseRtpOverRtsp", 0),
+  CONFIG_INT(CONFIG_SEND_RTCP_IN_RTP_OVER_RTSP, "SendRtcpInRtpOverRtsp", 0), 
+  CONFIG_STRING(CONFIG_PREV_DIRECTORY, "PrevDirectory", NULL),
+  CONFIG_INT(CONFIG_RTP_DEBUG, "RtpDebug", LOG_ALERT),
+  CONFIG_INT(CONFIG_PLAY_AUDIO, "PlayAudio", 1),
+  CONFIG_INT(CONFIG_PLAY_VIDEO, "PlayVideo", 1),
+  CONFIG_INT(CONFIG_RTP_BUFFER_TIME_MSEC, "RtpBufferTimeMsec", 2000),
+  CONFIG_INT(CONFIG_MPEG2T_PAM_WAIT_SECS, "Mpeg2tPamWaitSecs", 30),
+  CONFIG_INT(CONFIG_LIMIT_AUDIO_SDL_BUFFER, "LimitAudioSdlBuffer", 0),
+  CONFIG_INT(CONFIG_MPEG2T_DEBUG, "Mpeg2tDebug", LOG_ALERT),
+  CONFIG_INT(CONFIG_ASPECT_RATIO, "AspectRatio", 0),
+  CONFIG_INT(CONFIG_FULL_SCREEN, "FullScreen", 0),
+  CONFIG_STRING(CONFIG_MULTICAST_RX_IF, "MulticastIf", NULL),
 };
 
-CConfig config(configs, CONFIG_MAX);
+CConfigSet config(MyConfigVariables, 
+		  sizeof(MyConfigVariables) / sizeof(*MyConfigVariables), 
+		  ".gmp4player");
 /* end file config_file.cpp */

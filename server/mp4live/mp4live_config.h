@@ -26,8 +26,7 @@
 #include <sys/types.h>
 #include <mp4.h>
 
-#define CONFIG_SAFETY 0		// go fast, live dangerously
-#include "config_set.h"
+#include "mpeg4ip_config_set.h"
 
 #include "media_time.h"
 #include "video_util_tv.h"
@@ -78,6 +77,10 @@
 #define VIDEO_SIGNAL_NTSC 1
 #define VIDEO_SIGNAL_SECAM 2
 
+// to decide if we overwrite or not
+#define FILE_MP4_OVERWRITE 1
+#define FILE_MP4_APPEND 0
+#define FILE_MP4_CREATE_NEW 2
 
 // forward declarations
 class CVideoCapabilities;
@@ -90,8 +93,8 @@ bool GenerateSdpFile(CLiveConfig* pConfig);
 struct session_desc_t;
 
 session_desc_t *createSdpDescription(CLiveConfig *pConfig, 
-				     char *sAudioDestAddr,
-				     char *sVideoDestAddr,
+				     const char *sAudioDestAddr,
+				     const char *sVideoDestAddr,
 				     int ttl,
 				     bool allow_rtcp,
 				     int video_port,
@@ -171,6 +174,7 @@ DECLARE_CONFIG(CONFIG_RECORD_MP4_FILE_NAME);
 DECLARE_CONFIG(CONFIG_RECORD_MP4_HINT_TRACKS);
 DECLARE_CONFIG(CONFIG_RECORD_MP4_OVERWRITE);
 DECLARE_CONFIG(CONFIG_RECORD_MP4_OPTIMIZE);
+DECLARE_CONFIG(CONFIG_RECORD_MP4_FILE_STATUS);
 
 DECLARE_CONFIG(CONFIG_RTP_ENABLE);
 DECLARE_CONFIG(CONFIG_RTP_DEST_ADDRESS); // for video
@@ -294,6 +298,7 @@ static SConfigVariable MyConfigVariables[] = {
   CONFIG_BOOL(CONFIG_RECORD_MP4_HINT_TRACKS, "recordMp4HintTracks", true),
   CONFIG_BOOL(CONFIG_RECORD_MP4_OVERWRITE, "recordMp4Overwrite", true),
   CONFIG_BOOL(CONFIG_RECORD_MP4_OPTIMIZE, "recordMp4Optimize", false),
+  CONFIG_INT(CONFIG_RECORD_MP4_FILE_STATUS, "recordMp4FileStatus", FILE_MP4_OVERWRITE),
 
   // RTP
   CONFIG_BOOL(CONFIG_RTP_ENABLE, "rtpEnable", false),

@@ -137,7 +137,7 @@ bool CV4LVideoSource::Init(void)
 bool CV4LVideoSource::InitDevice(void)
 {
 	int rc;
-	char* deviceName = m_pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
+	const char* deviceName = m_pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
 	u_int16_t format;
 
 	// open the video device
@@ -518,7 +518,7 @@ bool CV4LVideoSource::InitialVideoProbe(CLiveConfig* pConfig)
 		"/dev/video2", 
 		"/dev/video3"
 	};
-	char* deviceName = pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
+	const char* deviceName = pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME);
 	CVideoCapabilities* pVideoCaps;
 
 	// first try the device we're configured with
@@ -582,7 +582,7 @@ bool CVideoCapabilities::ProbeDevice()
 	}
 	m_canCapture = true;
 
-	m_driverName = stralloc(videoCapability.name);
+	m_driverName = strdup(videoCapability.name);
 	m_numInputs = videoCapability.channels;
 
 	m_minWidth = videoCapability.minwidth;
@@ -615,7 +615,7 @@ bool CVideoCapabilities::ProbeDevice()
 				m_deviceName, i);
 			continue;
 		}
-		m_inputNames[i] = stralloc(videoChannel.name);
+		m_inputNames[i] = strdup(videoChannel.name);
 		m_inputSignalTypes[i] = videoChannel.norm;
 
 		if (videoChannel.flags & VIDEO_VC_TUNER) {

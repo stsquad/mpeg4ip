@@ -308,6 +308,9 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   }
   return (0);
 }
+/*
+ * This is where we get the sdp from a source, iptv or http
+ */
 static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
 						 const char *name,
 						 session_desc_t *sdp,

@@ -48,6 +48,8 @@ void player_library_message(int loglevel,
 			    const char *fmt,
 			    va_list ap);
 
+int getIpAddressFromInterface(const char *ifname,
+			      struct in_addr *retval);
 #ifdef __cplusplus
 }
 #endif

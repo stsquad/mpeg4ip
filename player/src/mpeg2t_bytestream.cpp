@@ -106,8 +106,9 @@ uint64_t CMpeg2tByteStream::start_next_frame (uint8_t **buffer,
       *buffer = m_frame->frame;
       *buflen = m_frame->frame_len;
 #ifdef DEBUG_MPEG2T_FRAME
-      player_debug_message("%s - len %d time %llu", 
-			   m_name, *buflen, ret);
+      if (m_has_video)
+      player_debug_message("%s - len %d time %llu ftype %d", 
+			   m_name, *buflen, ret, m_frame->frame_type);
 #endif
       return (ret);
     }

@@ -33,7 +33,7 @@
 
 static GtkWidget *dialog = NULL;
 
-static char* source_type;
+static const char* source_type;
 static char* source_name;
 static GtkWidget *source_combo;
 static GtkWidget *source_entry;
@@ -186,7 +186,7 @@ void CreateInputMenu(CVideoCapabilities* pNewVideoCaps)
 		char buf[64];
 		snprintf(buf, sizeof(buf), "%u - %s",
 			i, pNewVideoCaps->m_inputNames[i]);
-		newInputNames[i] = stralloc(buf);
+		newInputNames[i] = strdup(buf);
 	}
 
 	// (re)create the menu
@@ -269,7 +269,7 @@ static void ChangeSource()
 	}
 
 	free(source_name);
-	source_name = stralloc(new_source_name);
+	source_name = strdup(new_source_name);
 
 	default_file_audio_source = -1;
 
@@ -809,7 +809,7 @@ void CreateVideoDialog (void)
 	// source entry
 	free(source_name);
 	source_name = 
-		stralloc(MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
+		strdup(MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
 
 	source_modified = false;
 

@@ -115,7 +115,8 @@ static void read_mp3_file_for_tag (mp3_codec_t *mp3,
 codec_data_t *mp3_file_check (lib_message_func_t message,
 			      const char *name, 
 			      double *max,
-			      char *desc[4])
+			      char *desc[4],
+			      CConfigSet *pConfig)
 {
   int freq = 0, samplesperframe = 0;
   int len;

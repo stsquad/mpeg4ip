@@ -74,7 +74,9 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
   int32_t diff;
   int correct_hdr;
   int dropped_seq;
-
+#ifdef DEBUG_MPEG3_RTP_TIME
+  int temp_ref;
+#endif
   diff = m_buffer_len - m_bytes_used;
 
   if (diff > 2) {
@@ -133,6 +135,9 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
       }
     }
     frame_type = rpak->rtp_data[2] & 0x7;
+#ifdef DEBUG_MPEG3_RTP_TIME
+    temp_ref = ((rpak->rtp_data[0] & 0x3) << 8) | rpak->rtp_data[1];
+#endif
     from = (uint8_t *)rpak->rtp_data + m_skip_on_advance_bytes;
     len = rpak->rtp_data_len - m_skip_on_advance_bytes;
     if ((m_buffer_len + len) > m_buffer_len_max) {
@@ -169,8 +174,13 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
     }
   }
 #ifdef DEBUG_MPEG3_RTP_TIME
+#if 0
   rtp_message(LOG_DEBUG, "frame type %d pak ts %u out ts %u", frame_type, 
 	      ts, outts);
+#else
+  rtp_message(LOG_DEBUG, "frame type %d pak ts %u temp ref %d", 
+	      frame_type, ts, temp_ref);
+#endif
 #endif
 
   if (m_rtpinfo_set_from_pak != 0) {

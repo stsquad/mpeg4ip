@@ -23,7 +23,7 @@
 #ifndef __FILE_UTILS_INCLUDED__
 #define __FILE_UTILS_INCLUDED__
 
-GtkWidget* CreateFileCombo(char* entryText);
+GtkWidget* CreateFileCombo(const char* entryText);
 
 void FileBrowser(
 	GtkWidget* fileEntry, 

@@ -31,8 +31,8 @@
 #include "video_encoder.h"
 
 session_desc_t *createSdpDescription (CLiveConfig *pConfig, 
-				      char *sAudioDestAddr,
-				      char *sVideoDestAddr,
+				      const char *sAudioDestAddr,
+				      const char *sVideoDestAddr,
 				      int ttl,
 				      bool allow_rtcp,
 				      int video_port,
@@ -280,7 +280,7 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 bool GenerateSdpFile(CLiveConfig* pConfig)
 {
   bool rc;
-  char* sDestAddr = 
+  const char* sDestAddr = 
     pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS);
   session_desc_t *sdp = 
     createSdpDescription(pConfig, 

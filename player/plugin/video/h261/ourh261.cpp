@@ -158,7 +158,8 @@ static int h261_codec_check (lib_message_func_t message,
 			     int profile,
 			     format_list_t *fptr,
 			     const uint8_t *userdata,
-			     uint32_t userdata_size)
+			     uint32_t userdata_size,
+			     CConfigSet *pConfig)
 {
   if (fptr != NULL) {
     if (strcmp(fptr->fmt, "31") == 0) {
@@ -175,4 +176,6 @@ VIDEO_CODEC_PLUGIN("h261",
 		   NULL,
 		   h261_close,
 		   h261_codec_check,
-		   h261_frame_is_sync);
+		   h261_frame_is_sync,
+		   NULL,
+		   0);

@@ -39,7 +39,7 @@ protected:
 	void DoStopSink(void);
 	void DoWriteFrame(CMediaFrame* pFrame);
 
-	int OpenFile(char* fileName, bool useFifo);
+	int OpenFile(const char* fileName, bool useFifo);
 
 protected:
 	int		m_pcmFile;

@@ -156,12 +156,12 @@ int gettimeofday(struct timeval *t, void *);
 
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
-#else
+#endif
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
-#else
-#error "Don't have stdint.h or inttypes.h - no way to get uint8_t"
 #endif
+#if !defined(HAVE_INTTYPES_H) || !defined(HAVE_STDINT_H)
+#error "Don't have stdint.h or inttypes.h - no way to get uint8_t"
 #endif
 
 #include <unistd.h>
@@ -341,6 +341,10 @@ typedef unsigned char bool;
 # else
 # define ROUND(f) (int)(floor((f) + 0.5))
 # endif
+#endif
+
+#ifndef UINT32_MAX
+# define UINT32_MAX             (4294967295U)
 #endif
 
 #endif /* __MPEG4IP_INCLUDED__ */

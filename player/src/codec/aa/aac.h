@@ -70,7 +70,8 @@ extern const char *aaclib;
 codec_data_t *aac_file_check(lib_message_func_t message,
 			     const char *name,
 			     double *max,
-			     char *desc[4]);
+			     char *desc[4],
+			     CConfigSet *pConfig);
 
 int aac_file_next_frame(codec_data_t *ifptr,
 			uint8_t **buffer,

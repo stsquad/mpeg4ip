@@ -91,7 +91,8 @@ BOOL CWmp4playerApp::InitInstance()
 
 
 	const char *str;
-	config.read_config_file("Software\\Mpeg4ip", "Config");
+	config.InitializeIndexes();
+	config.ReadVariablesFromRegistry("Software\\Mpeg4ip", "Config");
 	str = config.get_config_string(CONFIG_PREV_FILE_0);
 	if (str != NULL) {
 		m_played.AddTail(str);
@@ -241,9 +242,7 @@ void CWmp4playerApp::StartSession (CString &name)
 {
 	int added_to_list = 0;
 	BeginWaitCursor();
-	if (config.changed()) {
-		config.write_config_file("Software\\Mpeg4ip", "Config");
-	}
+	config.WriteVariablesToRegistry("Software\\Mpeg4ip", "Config");
 	if (m_mp4if != NULL) {
 		StopSession();
 	}
@@ -282,10 +281,13 @@ void CWmp4playerApp::StartSession (CString &name)
 			m_mp4if->set_screen_size(m_video_size);
 		}
 		if (added_to_list == 1) {
-			config.move_config_strings(CONFIG_PREV_FILE_3, CONFIG_PREV_FILE_2);
-			config.move_config_strings(CONFIG_PREV_FILE_2, CONFIG_PREV_FILE_1);
-			config.move_config_strings(CONFIG_PREV_FILE_1, CONFIG_PREV_FILE_0);
-			config.set_config_string(CONFIG_PREV_FILE_0, strdup(name));
+      config.set_config_string(CONFIG_PREV_FILE_3, 
+				config.get_config_string(CONFIG_PREV_FILE_2));
+      config.set_config_string(CONFIG_PREV_FILE_2, 
+				config.get_config_string(CONFIG_PREV_FILE_1));
+      config.set_config_string(CONFIG_PREV_FILE_1, 
+				config.get_config_string(CONFIG_PREV_FILE_0));
+      config.set_config_string(CONFIG_PREV_FILE_0, name);
 		}
 		//m_played.AddTail(name);
 	}
@@ -355,7 +357,7 @@ void CWmp4playerApp::OnMediaVideo(UINT id)
 
 void CWmp4playerApp::OnUpdateDebugRtp (CCmdUI* pCmdUI)
 {
-	int id = pCmdUI->m_nID - ID_RTP_DEBUG_EMERG;
+	config_integer_t id = pCmdUI->m_nID - ID_RTP_DEBUG_EMERG;
 
 	pCmdUI->Enable();
 	pCmdUI->SetRadio(config.get_config_value(CONFIG_RTP_DEBUG) == id);
@@ -371,7 +373,7 @@ void CWmp4playerApp::OnDebugRtp (UINT id)
 
 void CWmp4playerApp::OnUpdateDebugHttp (CCmdUI* pCmdUI)
 {
-	int id = pCmdUI->m_nID - ID_HTTP_EMERG;
+	config_integer_t id = pCmdUI->m_nID - ID_HTTP_EMERG;
 
 	pCmdUI->Enable();
 	pCmdUI->SetRadio(config.get_config_value(CONFIG_HTTP_DEBUG) == id);
@@ -387,7 +389,7 @@ void CWmp4playerApp::OnDebugHttp (UINT id)
 
 void CWmp4playerApp::OnUpdateDebugRtsp (CCmdUI* pCmdUI)
 {
-	int id = pCmdUI->m_nID - ID_RTSP_EMERG;
+	config_integer_t id = pCmdUI->m_nID - ID_RTSP_EMERG;
 
 	pCmdUI->Enable();
 	pCmdUI->SetRadio(config.get_config_value(CONFIG_RTSP_DEBUG) == id);
@@ -403,7 +405,7 @@ void CWmp4playerApp::OnDebugRtsp (UINT id)
 
 void CWmp4playerApp::OnUpdateDebugSdp (CCmdUI* pCmdUI)
 {
-	int id = pCmdUI->m_nID - ID_SDP_EMERG;
+	config_integer_t id = pCmdUI->m_nID - ID_SDP_EMERG;
 
 	pCmdUI->Enable();
 	pCmdUI->SetRadio(config.get_config_value(CONFIG_SDP_DEBUG) == id);
@@ -419,9 +421,7 @@ void CWmp4playerApp::OnDebugSdp (UINT id)
 
 int CWmp4playerApp::ExitInstance() 
 {
-	if (config.changed()) {
-		config.write_config_file("Software\\Mpeg4ip", "Config");
-	}
+	config.WriteVariablesToRegistry("Software\\Mpeg4ip", "Config");
 	return CWinApp::ExitInstance();
 }
 

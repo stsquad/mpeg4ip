@@ -360,7 +360,8 @@ static int celp_codec_check (lib_message_func_t message,
 			     int profile,
 			     format_list_t *fptr, 
 			     const uint8_t *userdata,
-			     uint32_t userdata_size)
+			     uint32_t userdata_size,
+			     CConfigSet *pConfig)
 {
   fmtp_parse_t *fmtp = NULL;
   if (compressor != NULL && 
@@ -414,7 +415,9 @@ AUDIO_CODEC_PLUGIN("celp",
 		   celp_decode,
 		   NULL,
 		   celp_close,
-		   celp_codec_check);
+		   celp_codec_check,
+		   NULL, 
+		   0);
 /* end file aa.cpp */
 
 

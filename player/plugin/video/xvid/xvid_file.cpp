@@ -182,7 +182,8 @@ static int xvid_buffer_load (xvid_codec_t *xvid, uint8_t *ftype)
 codec_data_t *xvid_file_check (lib_message_func_t message,
 			       const char *name, 
 			       double *max,
-			       char *desc[4])
+			       char *desc[4],
+			       CConfigSet *pConfig)
 {
   int len;
   xvid_codec_t *xvid;

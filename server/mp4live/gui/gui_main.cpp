@@ -247,10 +247,14 @@ void DisplayRecordingSettings(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(record_enabled_button),
 		MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE));
 
-	char* fileName = strrchr(
-		MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), '/');
+	const char *fname;
+	AVFlow->GetStatus(FLOW_STATUS_FILENAME, &fname);
+	if (fname == NULL) {
+	  fname = MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
+	}
+	const char* fileName = strrchr(fname,'/');
 	if (!fileName) {
-		fileName = MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
+	  fileName = fname;
 	} else {
 		fileName++;
 	}
@@ -464,12 +468,6 @@ static void status_start()
 	StopFileSize = 0;
 
 	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
-		if (!MyConfig->GetBoolValue(CONFIG_RECORD_MP4_OVERWRITE)) {
-			struct stat stats;
-			stat(MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), &stats);
-			StartFileSize = stats.st_size;
-		}
-
 		snprintf(buffer, sizeof(buffer), " %llu",
 			StartFileSize / MM_64);
 		gtk_label_set_text(GTK_LABEL(current_size), buffer);
@@ -517,8 +515,10 @@ static gint status_timer (gpointer raw)
 	gtk_widget_show(duration);
 
 	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
+	  const char *fname;
+	  AVFlow->GetStatus(FLOW_STATUS_FILENAME, &fname);
 		struct stat stats;
-		if (stat(MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), &stats) == 0) {
+		if (stat(fname, &stats) == 0) {
 		  uint64_t size = stats.st_size;
 		  size /= (MM_64);
 		  snprintf(buffer, sizeof(buffer), " %llu", size);
@@ -527,6 +527,10 @@ static gint status_timer (gpointer raw)
 		}
 		gtk_label_set_text(GTK_LABEL(current_size), buffer);
 		gtk_widget_show(current_size);
+		if (MyConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS) ==
+		    FILE_MP4_CREATE_NEW) {
+		  DisplayRecordingSettings();
+		}
 	}
 
 	if (!StopTime) {

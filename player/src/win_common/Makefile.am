@@ -1,1 +1,1 @@
-EXTRA_DIST = msg_mbox.h
+EXTRA_DIST = msg_mbox.h config.cpp

@@ -184,9 +184,18 @@ void initialize_plugins (void)
 		    cptr->c_name, fname);
 	  } else {
 	    free(p);
+	    p = NULL;
 	    message(LOG_CRIT, "plugin", "Unknown plugin type %s in plugin %s", 
 		    cptr->c_type, fname);
 	  }
+	  if (p != NULL) {
+	    if (p->codec->c_variable_list != NULL &&
+		p->codec->c_variable_list_count > 0) {
+	      config.AddConfigVariables(p->codec->c_variable_list,
+					p->codec->c_variable_list_count);
+	    }
+	  }
+	      
 	} else {
 	  message(LOG_ERR, "plugin", "Plugin %s(%s) has wrong version %s", 
 		  fname, cptr->c_type, cptr->c_version);
@@ -252,7 +261,8 @@ codec_plugin_t *check_for_audio_codec (const char *compressor,
 					     profile, 
 					     fptr,
 					     userdata,
-					     userdata_size);
+					     userdata_size,
+					     &config);
       if (temp > best_value) {
 	best_value = temp;
 	ret = aptr->codec;
@@ -293,13 +303,8 @@ codec_plugin_t *check_for_video_codec (const char *compressor,
 					     profile, 
 					     fptr,
 					     userdata,
-					     userdata_size);
-      if (temp > 0 &&
-	  config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) &&
-	  strcmp(vptr->codec->c_name, "MPEG4 ISO") == 0) {
-	temp = INT_MAX;
-      }
-
+					     userdata_size,
+					     &config);
       if (temp > best_value) {
 	best_value = temp;
 	ret = vptr->codec;
@@ -329,7 +334,7 @@ rtp_check_return_t check_for_rtp_plugins (format_list_t *fptr,
     rptr = r->rtp_plugin;
 
     if (rptr->rtp_plugin_check != NULL) {
-      ret = (rptr->rtp_plugin_check)(message, fptr, rtp_payload_type);
+      ret = (rptr->rtp_plugin_check)(message, fptr, rtp_payload_type, &config);
       if (ret != RTP_PLUGIN_NO_MATCH) {
 	*rtp_plugin = rptr;
 	return ret;
@@ -353,7 +358,6 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
   codec_data_t *cifptr;
   char *desc[4];
   double maxtime;
-  int slen = strlen(name);
 
   desc[0] = NULL;
   desc[1] = NULL;
@@ -364,17 +368,11 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
   
   while (vptr != NULL) {
     if (vptr->codec->c_raw_file_check != NULL) {
-      if (config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) != 0 &&
-	  strcmp("MPEG4 ISO", vptr->codec->c_name) != 0 && 
-	  strcmp(".divx", name + slen - 5) == 0) {
-	vptr = vptr->next_codec;
-	continue;
-      }
-							   
       cifptr = vptr->codec->c_raw_file_check(message,
 					     name,
 					     &maxtime,
-					     desc);
+					     desc,
+					     &config);
       if (cifptr != NULL) {
 	player_debug_message("Found raw file codec %s", vptr->codec->c_name);
 	CPlayerMedia *mptr;
@@ -432,7 +430,8 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
       cifptr = aptr->codec->c_raw_file_check(message,
 					     name,
 					     &maxtime,
-					     desc);
+					     desc,
+					     &config);
       if (cifptr != NULL) {
 	CPlayerMedia *mptr;
       

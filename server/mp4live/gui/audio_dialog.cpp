@@ -28,7 +28,7 @@
 
 static GtkWidget *dialog = NULL;
 
-static char* source_type;
+static const char* source_type;
 static char* source_name;
 static GtkWidget *source_combo;
 static GtkWidget *source_entry;
@@ -161,8 +161,8 @@ static void ChangeSource()
 		return;
 	}
 
-	free(source_name);
-	source_name = stralloc(new_source_name);
+	CHECK_AND_FREE(source_name);
+	source_name = strdup(new_source_name);
 
 	if (SourceIsDevice()) {
 		source_type = AUDIO_SOURCE_OSS;
@@ -326,7 +326,7 @@ void CreateSamplingRateMenu(CAudioCapabilities* pNewAudioCaps)
 	    samplingRateValues[newSampleRates] = aenct->sample_rates[ix];
 	    char buffer[20];
 	    sprintf(buffer, "%d", aenct->sample_rates[ix]);
-	    samplingRateNames[newSampleRates] = stralloc(buffer);
+	    samplingRateNames[newSampleRates] = strdup(buffer);
 	    if (oldSamplingRate == aenct->sample_rates[ix]) {
 	      samplingRateIndex = newSampleRates;
 	    }
@@ -392,7 +392,7 @@ void CreateBitRateMenu(uint32_t oldBitRate)
 	  char buf[64];
 	  snprintf(buf, sizeof(buf), "%u",
 		   bitRateValues[ix]);
-	  bitRateNames[ix] = stralloc(buf);
+	  bitRateNames[ix] = strdup(buf);
 
 	  // preserve user's current choice if we can
 	  if (oldBitRate == bitRateValues[ix]) {
@@ -570,7 +570,7 @@ void CreateAudioDialog (void)
 	// source entry
 	free(source_name);
 	source_name =
-		stralloc(MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+		strdup(MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
 
 	source_modified = false;
 

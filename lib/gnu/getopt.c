@@ -109,7 +109,7 @@
    the argument value is returned here.
    Also, when `ordering' is RETURN_IN_ORDER,
    each non-option ARGV-element is returned here.  */
-#ifdef DARWIN
+#if defined(DARWIN) || defined(__APPLE__)
 extern
 #endif
 char *optarg;

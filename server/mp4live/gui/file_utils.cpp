@@ -26,20 +26,20 @@
 #include <mp4.h>
 #include <libmpeg3.h>
 
-GtkWidget* CreateFileCombo(char* entryText)
+GtkWidget* CreateFileCombo(const char* entryText)
 {
 	GList* list = NULL;
 
-	list = g_list_append(list, entryText);
+	list = g_list_append(list, strdup(entryText));
 
 	for (int i = 0; i < NUM_FILE_HISTORY; i++) {
-		char* fileName =
+	  const char* fileName =
 			MyConfig->GetStringValue(CONFIG_APP_FILE_0 + i);
 		if (fileName == NULL || fileName[0] == '\0'
 		  || !strcmp(fileName, entryText)) {
 			continue;
 		}
-		list = g_list_append(list, fileName);
+		list = g_list_append(list, strdup(fileName));
 	}
 
 	GtkWidget* combo = gtk_combo_new();
@@ -207,7 +207,7 @@ static GtkWidget* CreateNullTrackMenu(
 
 	char** newTrackNames = 
 		(char**)malloc(sizeof(char*));
-	newTrackNames[0] = stralloc("");
+	newTrackNames[0] = strdup("");
 
 	// (re)create the menu
 	menu = CreateOptionMenu(
@@ -266,7 +266,7 @@ static GtkWidget* CreateMp4TrackMenu(
 
 	if (!mp4File) {
 		newTrackValues[0] = 0;
-		newTrackNames[0] = stralloc("");
+		newTrackNames[0] = strdup("");
 	} else {
 		for (u_int8_t i = 0; i < newTrackNumber; i++) {
 			MP4TrackId trackId =
@@ -361,7 +361,7 @@ static GtkWidget* CreateMp4TrackMenu(
 			}
 
 			newTrackValues[i] = trackId;
-			newTrackNames[i] = stralloc(buf);
+			newTrackNames[i] = strdup(buf);
 		}
 
 		MP4Close(mp4File);
@@ -419,7 +419,7 @@ static GtkWidget* CreateMpeg2TrackMenu(
 
 	if (!mpeg2File) {
 		newTrackValues[0] = 0;
-		newTrackNames[0] = stralloc("");
+		newTrackNames[0] = strdup("");
 	} else {
 		for (u_int8_t i = 0; i < newTrackNumber; i++) {
 			newTrackValues[i] = i;
@@ -448,7 +448,7 @@ static GtkWidget* CreateMpeg2TrackMenu(
 					mpeg3_audio_channels(mpeg2File, i),
 					mpeg3_sample_rate(mpeg2File, i));
 			}
-			newTrackNames[i] = stralloc(buf);
+			newTrackNames[i] = strdup(buf);
 		}
 		mpeg3_close(mpeg2File);
 	}

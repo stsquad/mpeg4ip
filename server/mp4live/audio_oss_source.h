@@ -74,7 +74,7 @@ class COSSAudioSource : public CMediaSource {
 class CAudioCapabilities {
  public:
   CAudioCapabilities(const char* deviceName) {
-    m_deviceName = stralloc(deviceName);
+    m_deviceName = strdup(deviceName);
     m_canOpen = false;
     m_numSamplingRates = 0;
 

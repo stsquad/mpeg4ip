@@ -122,7 +122,7 @@ gmp4player_SOURCES = \
 	gui_utils.h \
 	gui_xpm.h
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 -I$(top_srcdir)/lib/sdp @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 -I$(top_srcdir)/lib/sdp @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@ 
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
 
@@ -136,7 +136,6 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/player/lib/mp4util/libmp4util.la \
 	$(top_builddir)/player/lib/libhttp/libhttp.la \
-	$(top_builddir)/lib/config_file/libconfig_file.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/bitstream/libbitstream.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \

@@ -29,7 +29,8 @@ static const char *h261rtp="h261rtp";
 
 static rtp_check_return_t check (lib_message_func_t msg, 
 				 format_list_t *fmt, 
-				 uint8_t rtp_payload_type)
+				 uint8_t rtp_payload_type,
+				 CConfigSet *pConfig)
 {
 
   if (fmt == NULL)
@@ -170,4 +171,6 @@ RTP_PLUGIN("h261",
 	   used_bytes_for_frame,
 	   reset, 
 	   flush_rtp_packets,
-	   have_no_data);
+	   have_no_data,
+	   NULL,
+	   0);

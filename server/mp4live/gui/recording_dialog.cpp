@@ -31,7 +31,9 @@ static GtkWidget *video_raw_button;
 static GtkWidget *video_encoded_button;
 static GtkWidget *audio_raw_button;
 static GtkWidget *audio_encoded_button;
+static GtkWidget *append_button;
 static GtkWidget *overwrite_button;
+static GtkWidget *create_new_button;
 
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
@@ -85,8 +87,14 @@ static void Save()
 	MyConfig->SetBoolValue(CONFIG_RECORD_ENCODED_AUDIO,
 		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(audio_encoded_button)));
 
-	MyConfig->SetBoolValue(CONFIG_RECORD_MP4_OVERWRITE,
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(overwrite_button)));
+	config_integer_t value = FILE_MP4_OVERWRITE;
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(append_button))) {
+	  value = FILE_MP4_APPEND;
+	} else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(create_new_button))) {
+	  value = FILE_MP4_CREATE_NEW;
+	}
+
+	MyConfig->SetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS, value);
 
 	MyConfig->Update();
 
@@ -158,17 +166,41 @@ void CreateRecordingDialog (void)
 	// second row
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 5);
-
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 0);
 	// overwrite button
 	overwrite_button = 
-		gtk_check_button_new_with_label("Overwrite existing file");
+		gtk_radio_button_new_with_label(NULL, "Always overwrite existing file");
 	gtk_box_pack_start(GTK_BOX(hbox), overwrite_button, FALSE, FALSE, 5);
 	gtk_widget_show(overwrite_button);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(overwrite_button),
-		MyConfig->GetBoolValue(CONFIG_RECORD_MP4_OVERWRITE));
-  
+		MyConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS) ==
+				     FILE_MP4_OVERWRITE);
+
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_widget_show(hbox);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 0);
+	append_button = 
+	  gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(overwrite_button),
+						      "Append to file");
+	gtk_box_pack_start(GTK_BOX(hbox), append_button, FALSE, FALSE, 5);
+	gtk_widget_show(append_button);
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(append_button),
+		MyConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS) ==
+				     FILE_MP4_APPEND);
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_widget_show(hbox);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 0);
+	create_new_button = 
+	  gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(overwrite_button),
+						      "Create New File based on name");
+	gtk_box_pack_start(GTK_BOX(hbox), create_new_button, FALSE, FALSE, 5);
+	gtk_widget_show(create_new_button);
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(create_new_button),
+		MyConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS) ==
+				     FILE_MP4_CREATE_NEW);
 	// third row
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);

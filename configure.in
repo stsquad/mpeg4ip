@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.0 )
+AM_INIT_AUTOMAKE(mpeg4ip, 1.0.1)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -420,7 +420,6 @@ AC_OUTPUT( \
 	lib/Makefile \
 	lib/avi/Makefile \
 	lib/bitstream/Makefile \
-	lib/config_file/Makefile \
 	lib/fposrec/Makefile \
 	lib/gnu/Makefile \
 	lib/mp4/Makefile \
@@ -455,7 +454,6 @@ AC_OUTPUT( \
 	common/video/libmpeg32/video/Makefile \
 	server/Makefile \
 	server/video/Makefile \
-	server/video/H26L/Makefile \
 	server/mp4live/Makefile \
 	server/mp4live/gui/Makefile \
 	server/mp4live/h261/Makefile \

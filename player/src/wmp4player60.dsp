@@ -104,6 +104,10 @@ PostBuild_Cmds=copy ..\..\lib\SDL_VisualC\Debug\SDL.dll
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\win_common\config.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\win_gui\MainFrm.cpp
 # End Source File
 # Begin Source File

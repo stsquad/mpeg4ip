@@ -180,7 +180,8 @@ static int divx_buffer_load (iso_decode_t *divx, uint8_t *ftype)
 codec_data_t *mpeg4_iso_file_check (lib_message_func_t message,
 				    const char *name, 
 				    double *max,
-				    char *desc[4])
+				    char *desc[4],
+				    CConfigSet *pConfig)
 {
   int len;
   iso_decode_t *iso;

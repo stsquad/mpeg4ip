@@ -23,7 +23,7 @@ CPlayerSession *psptr;
 
 void set_configs (void)
 {
-	config.read_config_file("Software\\Mpeg4ip", "Config");
+	config.ReadVariablesFromRegistry("Software\\Mpeg4ip", "Config");
 	rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
 	rtp_set_loglevel(config.get_config_value(CONFIG_RTP_DEBUG));
 	sdp_set_loglevel(config.get_config_value(CONFIG_SDP_DEBUG));
@@ -43,7 +43,8 @@ int main (int argc, char **argv)
 	SDL_sem *master_sem;
 	CMsgQueue master_queue;
 	char errmsg[512];
-	config.read_config_file("Software\\Mpeg4ip", "Config");
+	config.InitializeIndexes();
+	config.ReadVariablesFromRegistry("Software\\Mpeg4ip", "Config");
 
 	open_output("wmp4player.log");
 	if (proc.enable_communication() < 0) {
@@ -133,7 +134,28 @@ int main (int argc, char **argv)
 	  // remove invalid global ports
 	
 	close_plugins();
-	config.write_config_file("Software\\Mpeg4ip", "Config");
+	config.WriteVariablesToRegistry("Software\\Mpeg4ip", "Config");
 	close_output();
 	return 0;
+}
+
+int getIpAddressFromInterface (const char *ifname,
+			       struct in_addr *retval)
+{
+  int fd;
+  int ret = -1;
+#ifndef _WIN32
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (fd > 0) {
+    struct ifreq ifr;
+    strcpy(ifr.ifr_name, ifname);
+    ifr.ifr_addr.sa_family = AF_INET;
+    if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) {
+      *retval = ((struct sockaddr_in *)(&ifr.ifr_addr))->sin_addr;
+      ret = 0;
+    } 
+    closesocket(fd);
+  }
+#endif
+  return ret;
 }

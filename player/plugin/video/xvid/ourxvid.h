@@ -61,7 +61,8 @@ void xvid_clean_up(xvid_codec_t *divx);
 codec_data_t *xvid_file_check(lib_message_func_t message,
 			      const char *name, 
 			      double *max,
-			      char *desc[4]);
+			      char *desc[4],
+			      CConfigSet *pConfig);
 int xvid_file_next_frame(codec_data_t *your_data,
 			  uint8_t **buffer, 
 			 uint64_t *ts);

@@ -28,6 +28,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 #endif
 
 #include "player_util.h"
@@ -194,5 +196,25 @@ void player_library_message (int loglevel,
   printf("\n");
 }
 
+int getIpAddressFromInterface (const char *ifname,
+			       struct in_addr *retval)
+{
+  int fd;
+  int ret = -1;
+#ifndef _WIN32
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (fd > 0) {
+    struct ifreq ifr;
+    strcpy(ifr.ifr_name, ifname);
+    ifr.ifr_addr.sa_family = AF_INET;
+    if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) {
+      *retval = ((struct sockaddr_in *)(&ifr.ifr_addr))->sin_addr;
+      ret = 0;
+    } 
+    closesocket(fd);
+  }
+#endif
+  return ret;
+}
 
 /* end file player_util.c */

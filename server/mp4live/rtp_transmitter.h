@@ -52,7 +52,7 @@ class CRtpDestination
 {
  public:
   CRtpDestination(uint32_t refNum,
-		  char *destAddr, 
+		  const char *destAddr, 
 		  in_port_t destPort,
 		  in_port_t srcPort,
 		  uint8_t payloadNumber,
@@ -72,7 +72,7 @@ class CRtpDestination
  protected:
   uint32_t m_refNum;
   CRtpDestination *m_next;
-  char *m_destAddr;
+  const char *m_destAddr;
   in_port_t m_destPort;
   in_port_t m_srcPort;
   uint32_t m_timeScale;
@@ -132,11 +132,11 @@ public:
 
 	}
 	void CreateVideoRtpDestination (uint32_t ref,
-					char *destAddress,
+					const char *destAddress,
 					in_port_t destPort,
 					in_port_t srcPort);
 	void CreateAudioRtpDestination (uint32_t ref,
-					char *destAddress,
+					const char *destAddress,
 					in_port_t destPort,
 					in_port_t srcPort);
 	

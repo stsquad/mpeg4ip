@@ -207,7 +207,7 @@ void CAVMediaFlow::SetAudioOutput(bool mute)
 	static int muted = 0;
 	static int lastVolume;
 
-	char* mixerName = 
+	const char* mixerName = 
 		m_pConfig->GetStringValue(CONFIG_AUDIO_MIXER_NAME);
 
 	int mixer = open(mixerName, O_RDONLY);
@@ -274,6 +274,13 @@ bool CAVMediaFlow::GetStatus(u_int32_t valueName, void* pValue)
 			*(u_int32_t*)pValue = 0;
 		}
 		break;
+	case FLOW_STATUS_FILENAME:
+	  if (m_mp4Recorder) {
+	    *(const char **)pValue = m_mp4Recorder->GetRecordFileName();
+	  } else {
+	    *(const char **)pValue = NULL;
+	  }
+	  break;
 	default:
 		return CMediaFlow::GetStatus(valueName, pValue);
 	}

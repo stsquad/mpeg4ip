@@ -226,7 +226,8 @@ static int rawa_codec_check (lib_message_func_t message,
 			    int profile,
 			    format_list_t *fptr, 
 			    const uint8_t *userdata,
-			    uint32_t userdata_size)
+			    uint32_t userdata_size,
+			    CConfigSet *pConfig)
 {
   if (compressor != NULL && 
       strcasecmp(compressor, "MP4 FILE") == 0 &&
@@ -266,7 +267,9 @@ AUDIO_CODEC_PLUGIN("rawa",
 		   rawa_decode,
 		   NULL,
 		   rawa_close,
-		   rawa_codec_check);
+		   rawa_codec_check,
+		   NULL, 
+		   0);
 /* end file rawa.cpp */
 
 

@@ -300,7 +300,8 @@ static int aac_codec_check (lib_message_func_t message,
 			    int profile,
 			    format_list_t *fptr, 
 			    const uint8_t *userdata,
-			    uint32_t userdata_size)
+			    uint32_t userdata_size,
+			    CConfigSet *pConfig)
 {
   fmtp_parse_t *fmtp = NULL;
   if (compressor != NULL && 
@@ -368,7 +369,9 @@ AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("aac",
 				 aac_file_next_frame,
 				 aac_file_used_for_frame,
 				 aac_raw_file_seek_to,
-				 aac_file_eof);
+				 aac_file_eof,
+				 NULL,
+				 0);
 /* end file aa.cpp */
 
 

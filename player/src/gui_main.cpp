@@ -171,7 +171,7 @@ static void adjust_gui_for_play (void)
   gtk_widget_grab_focus(combo);
 }
 
-static void set_aspect_ratio(int newaspect)
+static void set_aspect_ratio(uint32_t newaspect)
 {
   // Unfortunately psptr is NULL upon startup so we won't set aspect ratio
   // correct
@@ -180,7 +180,7 @@ static void set_aspect_ratio(int newaspect)
     return;
   }
 
-  if (newaspect > 4 || newaspect < 0) newaspect = 0;
+  if (newaspect > 4) newaspect = 0;
   config.set_config_value(CONFIG_ASPECT_RATIO, newaspect);
   if (psptr != NULL) {
     switch (newaspect) {
@@ -297,7 +297,7 @@ static void start_session_from_name (const char *name)
       last_file = NULL;
     }
     last_file = g_strdup(name);
-    config.set_config_string(CONFIG_PREV_DIRECTORY, strdup(last_file));
+    config.set_config_string(CONFIG_PREV_DIRECTORY, last_file);
   }
 
   // See if entry is already in the list.
@@ -339,10 +339,13 @@ static void start_session_from_name (const char *name)
   if (psptr != NULL) {
 
     if (in_list == 0) {
-      config.move_config_strings(CONFIG_PREV_FILE_3, CONFIG_PREV_FILE_2);
-      config.move_config_strings(CONFIG_PREV_FILE_2, CONFIG_PREV_FILE_1);
-      config.move_config_strings(CONFIG_PREV_FILE_1, CONFIG_PREV_FILE_0);
-      config.set_config_string(CONFIG_PREV_FILE_0, strdup(name));
+      config.set_config_string(CONFIG_PREV_FILE_3, 
+				config.get_config_string(CONFIG_PREV_FILE_2));
+      config.set_config_string(CONFIG_PREV_FILE_2, 
+				config.get_config_string(CONFIG_PREV_FILE_1));
+      config.set_config_string(CONFIG_PREV_FILE_1, 
+				config.get_config_string(CONFIG_PREV_FILE_0));
+      config.set_config_string(CONFIG_PREV_FILE_0, name);
     }
   }
   if (in_list == 0) {
@@ -365,6 +368,7 @@ void delete_event (GtkWidget *widget, gpointer *data)
   if (master_playlist != NULL) {
     delete master_playlist;
   }
+  config.WriteDefaultFile();
   close_plugins();
   gtk_main_quit();
 }
@@ -750,11 +754,16 @@ static void on_volume_adjusted (GtkWidget *window, gpointer data)
 static void on_debug_mpeg4isoonly (GtkWidget *window, gpointer data)
 {
   GtkCheckMenuItem *checkmenu;
+  config_index_t iso_only = config.FindIndexByName("Mpeg4IsoOnly");
 
   checkmenu = GTK_CHECK_MENU_ITEM(window);
 
-  config.set_config_value(CONFIG_USE_MPEG4_ISO_ONLY,
-			  checkmenu->active == FALSE ? 0 : 1);
+  if (iso_only != UINT32_MAX) {
+    config.SetBoolValue(iso_only,
+			checkmenu->active == FALSE ? 0 : 1);
+  } else {
+    ShowMessage("Error", "Mpeg4IsoOnly config variable not loaded");
+  }
 }
 static void on_debug_use_old_mp4_lib (GtkWidget *window, gpointer data)
 {
@@ -1225,15 +1234,28 @@ int main (int argc, char **argv)
   gtk_init(&argc, &argv);
 printf("%s\n", *argv);
   command_mutex = SDL_CreateMutex();
+  char buffer[FILENAME_MAX];
+  char *home = getenv("HOME");
+  if (home == NULL) {
+#ifdef _WIN32
+	strcpy(buffer, "gmp4player_rc");
+#else
+    strcpy(buffer, ".gmp4player_rc");
+#endif
+  } else {
+    strcpy(buffer, home);
+    strcat(buffer, "/.gmp4player_rc");
+  }
   
-  config.read_config_file();
   initialize_plugins();
+  config.SetDefaultFileName(buffer);
+  config.InitializeIndexes();
+  config.ReadDefaultFile();
 
   if (config.get_config_value(CONFIG_RTP_BUFFER_TIME) != 2) {
     config.set_config_value(CONFIG_RTP_BUFFER_TIME_MSEC, 
 			    config.get_config_value(CONFIG_RTP_BUFFER_TIME) * 1000);
-    config.set_config_value(CONFIG_RTP_BUFFER_TIME,
-			    config.get_config_default_value(CONFIG_RTP_BUFFER_TIME));
+    config.SetToDefault(CONFIG_RTP_BUFFER_TIME);
   }
   const char *read;
   playlist = g_list_append(playlist, (void *)"");
@@ -1277,7 +1299,6 @@ printf("%s\n", *argv);
    */
   main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_policy(GTK_WINDOW(main_window), FALSE, TRUE, FALSE);
-  char buffer[80];
   sprintf(buffer, "Cisco Open Source Streaming Video Player %s", VERSION);
   gtk_window_set_title(GTK_WINDOW(main_window), buffer);
   gtk_widget_set_uposition(GTK_WIDGET(main_window), 10, 10);
@@ -1455,11 +1476,15 @@ printf("%s\n", *argv);
   CreateMenuItemSeperator(menu);
   GtkWidget *debugsub;
   debugsub = CreateSubMenu(menu, "Debug");
-  menuitem = CreateMenuCheck(debugsub, 
-			     "Mpeg4ISOOnly",
-			     GTK_SIGNAL_FUNC(on_debug_mpeg4isoonly),
-			     NULL,
-			     config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) == 0 ? FALSE : TRUE);
+  config_index_t iso_check;
+  iso_check = config.FindIndexByName("Mpeg4IsoOnly");
+  if (iso_check != UINT32_MAX) {
+    menuitem = CreateMenuCheck(debugsub, 
+			       "Mpeg4ISOOnly",
+			       GTK_SIGNAL_FUNC(on_debug_mpeg4isoonly),
+			       NULL,
+			       config.GetBoolValue(iso_check));
+  }
 
   menuitem = CreateMenuCheck(debugsub, 
 			     "Use Old mp4 library",

@@ -105,6 +105,10 @@ SOURCE=.\codec_plugin.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\win_common\config.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\ip_port.cpp
 # End Source File
 # Begin Source File

@@ -10,12 +10,7 @@ Bill May<br>
 <font face="Arial" color="#0000FF">
 <b>
 <a href="#mp4live">MP4LIVE</a><br>
-<a href="#1.0">Changes in Version 1.0</a><br>
-<a href="#0.9.10">Changes in Version 1.0RC1</a><br>
-<a href="#0.9.9">Changes in Version 0.9.9</a><br>
-<a href="#0.9.8">Changes in Version 0.9.8</a><br>
-<a href="#0.9.7">Changes in Version 0.9.7</a><br>
-<a href="#0.9.5">Changes in Version 0.9.5</a><br>
+<a href="#1.1">Changes in Version 1.1</a><br>
 <a href="#hw">Hardware Requirements</a><br>
 <a href="#soft">Software Requirements</a><br>
 <a href="#warning">Warnings</a><br>
@@ -51,57 +46,11 @@ enhancements, ask questions, etc. The URL is
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="1.0">
-<b><font color="#0000FF">Changes in Version 1.0</font></b>
+<a name="1.1">
+<b><font color="#0000FF">Changes in Version 1.1</font></b>
 <p>
-Generate correct Video Profile based on bitrate and frame rate<br>
-<p>
-<a name="0.9.10">
-<b><font color="#0000FF">Changes in Version 1.0RC1</font></b>
-<p>
-Support for V4L2 drivers (recommended)<br>
-Fixed long term audio/video sync problems in transmission and file recording<br>
-Updated faac encoder to use packaged faac<br>
-Updated to enable ffmpeg encoder<br>
-Updated to allow use of packaged XVID encoder<br>
-<P> 
-<a name="0.9.9">
-<b><font color="#0000FF">Changes in Version 0.9.9</font></b>
-<P>
-Added H.261 video encoding (no recording).<br>
-Fixes to audio driver from rca.<br>
-Added flag to remove b=RR:0 for playing through DSS with gmp4player<br>
-<P>
-<a name="0.9.8">
-<b><font color="#0000FF">Changes in Version 0.9.8</font></b>
-<P>
-Major synchronization changes.
-<P>
-<a href="#top">Back to top</a>
-<P> 
-<a name="0.9.7">
-<b><font color="#0000FF">Changes in Version 0.9.7</font></b>
-<P>
-Split out encoder specific information from the base architecture
-(rtp transmitter, file recorder).  This enables easy addition of 
-codecs.
-<P>
-Reworked configuration variables.
-<P>
-<a href="#top">Back to top</a>
-<P>
-<a name="0.9.5">
-<b><font color="#0000FF">Changes in Version 0.9.5</font></b>
-<P>
-Once again, fixes for A/V sync and adapting to encoding speed.
-<P>
-Added UI to easily load and save configuration files
-<P>
-SDP now reflects media bandwidth
-<P>
-Experimental file sources is removed.
-<P>
-<a href="#top">Back to top</a>
+Add option to create new file name based on existing name when
+recording files
 <P> 
 <a name="hw">
 <b><font color="#0000FF">Hardware Requirements</font></b>
@@ -615,6 +564,8 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>recordMp4File</td><td>string</td><td>capture.mp4</td><td>Filename to create</tr>
 <tr align=center><td>recordMp4HintTracks</td><td>bool</td><td>true</td><td>Record hint tracks when recording completed</tr>
 <tr align=center><td>recordMp4Optimize</td><td>bool</td><td>false</td><td>Optimize mp4 file when recording completed</tr>
+<tr align=center><td>recordMp4FileStatus</td><td>integer</td><td>1</td><td>What happens to file when restarted:<br>
+0 - append, 1 - overwrite,<br> 2 - create new file with timestamp</tr>
 <tr> </tr>
 <tr> </tr>
 <th colspan=5 align=center><b>Transmission (RTP) Options</b>

@@ -30,6 +30,8 @@
 #define DECODE_STATE_NORMAL 1
 #define DECODE_STATE_WAIT_I 2
 
+DECLARE_CONFIG(CONFIG_USE_MPEG4_ISO_ONLY);
+
 class CVideoObjectDecoder;
 
 #define m_vft c.v.video_vft
@@ -71,7 +73,8 @@ void iso_clean_up(iso_decode_t *iso);
 codec_data_t *mpeg4_iso_file_check(lib_message_func_t message,
 				   const char *name, 
 				   double *max,
-				   char *desc[4]);
+				   char *desc[4],
+				   CConfigSet *pConfig);
 
 int divx_file_next_frame(codec_data_t *your_data,
 			 uint8_t **buffer, 

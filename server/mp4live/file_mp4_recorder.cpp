@@ -128,15 +128,51 @@ void CMp4Recorder::DoStartRecord()
   debug_message("Creating huge file - %s", hugeFile ? "yes" : "no");
   u_int32_t verbosity =
     MP4_DETAILS_ERROR /* DEBUG | MP4_DETAILS_WRITE_ALL */;
- 
-  if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_OVERWRITE)) {
-    m_mp4File = MP4Create(
-                          m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-                          verbosity, createFlags);
-  } else {
+
+  switch (m_pConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS)) {
+  case FILE_MP4_APPEND:
     m_mp4File = MP4Modify(
                           m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
                           verbosity);
+    break;
+  case FILE_MP4_CREATE_NEW: {
+    struct stat stats;
+    const char *fname = m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
+    if (stat(fname, &stats) == 0) {
+      // file already exists - create new one
+      size_t len = strlen(fname);
+      if (strncasecmp(fname + len - 4, ".mp4", 4) == 0) {
+	len -= 4;
+      }
+      struct tm timeval;
+      int ret;
+      char *buffer = (char *)malloc(len + 22);
+      do {
+	time_t val = time(NULL);
+	localtime_r(&val, &timeval);
+	memcpy(buffer, fname, len);
+	sprintf(buffer + len, "_%04u%02u%02u_%02u%02u%02u.mp4",
+		1900 + timeval.tm_year, timeval.tm_mon + 1, timeval.tm_mday,
+		timeval.tm_hour, timeval.tm_min, timeval.tm_sec);
+	error_message("trying file %s", buffer);
+	ret = stat(buffer, &stats);
+	if (ret == 0) {
+	  SDL_Delay(100);
+	}
+      } while (ret == 0);
+      m_mp4FileName = strdup(buffer);
+      m_mp4File = MP4Create(m_mp4FileName,
+			    verbosity, createFlags);
+      break;
+    }
+  }
+    // else fall through
+    
+  case FILE_MP4_OVERWRITE:
+    m_mp4File = MP4Create(
+                          m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
+                          verbosity, createFlags);
+    break;
   }
  
   if (!m_mp4File) {

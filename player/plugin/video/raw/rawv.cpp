@@ -121,7 +121,8 @@ static int rawv_codec_check (lib_message_func_t message,
 			     int profile,
 			     format_list_t *fptr,
 			     const uint8_t *userdata,
-			     uint32_t userdata_size)
+			     uint32_t userdata_size,
+			     CConfigSet *pConfig)
 {
   if (compressor != NULL && 
       (strcasecmp(compressor, "MP4 FILE") == 0)) {
@@ -150,4 +151,6 @@ VIDEO_CODEC_PLUGIN("rawv",
 		   NULL, 
 		   rawv_close,
 		   rawv_codec_check,
-		   rawv_video_frame_is_sync);
+		   rawv_video_frame_is_sync,
+		   NULL, 
+		   0);

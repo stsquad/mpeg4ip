@@ -47,8 +47,15 @@ public:
 
     m_canRecordRawVideo = false;
     m_canRecordEncodedVideo = false;
+    m_mp4FileName = NULL;
   }
 
+  const char *GetRecordFileName(void) {
+    if (m_mp4FileName == NULL) {
+      return m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
+    }
+    return m_mp4FileName;
+  };
 protected:
   int ThreadMain(void);
 
@@ -59,7 +66,7 @@ protected:
 protected:
   bool			m_recordVideo;
 
-  char*			m_mp4FileName;
+  const char*		m_mp4FileName;
   MP4FileHandle	m_mp4File;
 
   CMediaFrame*          m_prevRawVideoFrame;

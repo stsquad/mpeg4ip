@@ -14,11 +14,12 @@
 #include <getopt.h>
 #endif
 
-#if !defined(HAVE_GETOPT) || !defined(HAVE_GETOPT_LONG)
-
 #ifdef	__cplusplus
 extern "C" {
 #endif
+
+#if !defined(HAVE_GETOPT) && !defined(HAVE_GETOPT_LONG) && !defined(HAVE_GETOPT_LONG_ONLY) 
+
 
 /* For communication from `getopt' to the caller.
    When `getopt' finds an option that takes an argument,
@@ -88,19 +89,15 @@ struct option
 
 /* Names for the values of the `has_arg' field of `struct option'.  */
 
+#ifndef no_argument
 # define no_argument		0
 # define required_argument	1
 # define optional_argument	2
+#endif
 
-#ifdef	__cplusplus
-}
-#endif
-#endif
+#endif /* no HAVE_GETOPT defines */
 
 #ifndef HAVE_GETOPT
-#ifdef	__cplusplus
-extern "C" {
-#endif
 /* Get definitions and prototypes for functions to process the
    arguments in ARGV (ARGC of them, minus the program name) for
    options given in OPTS.
@@ -130,29 +127,29 @@ extern "C" {
    errors, only prototype getopt for the GNU C library.  */
 extern int getopt (int __argc, char *const *__argv, const char *__shortopts);
 
-#ifdef	__cplusplus
-}
-#endif
 
-#endif
+#endif /* HAVE_GETOPT */
 
 #ifndef HAVE_GETOPT_LONG  
 
-#ifdef	__cplusplus
-extern "C" {
-#endif
-
 extern int getopt_long (int __argc, char *const *__argv, const char *__shortopts,
 		        const struct option *__longopts, int *__longind);
+
+#endif /* HAVE_GETOPT_LONG */
+
+#ifndef HAVE_GETOPT_LONG_ONLY
 extern int getopt_long_only (int __argc, char *const *__argv,
 			     const char *__shortopts,
 		             const struct option *__longopts, int *__longind);
+#endif /* HAVE_GETOPT_LONG */
+
+#if !defined(HAVE_GETOPT) || !defined(HAVE_GETOPT_LONG) || !defined(HAVE_GETOPT_LONG_ONLY)
 
   extern int _getopt_internal (int __argc, char *const *argv,
 			       const char *optstring,
 			       const struct option *longopts,
 			       int *longind, int long_only);
+#endif
 #ifdef	__cplusplus
 }
-#endif
 #endif
