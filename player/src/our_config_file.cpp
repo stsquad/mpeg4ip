@@ -52,6 +52,7 @@ static const SConfigVariable MyConfigVariables[] = {
   CONFIG_INT(CONFIG_RTP_DEBUG, "RtpDebug", LOG_ALERT),
   CONFIG_INT(CONFIG_PLAY_AUDIO, "PlayAudio", 1),
   CONFIG_INT(CONFIG_PLAY_VIDEO, "PlayVideo", 1),
+  CONFIG_INT(CONFIG_PLAY_TEXT, "PlayText", 1),
   CONFIG_INT(CONFIG_RTP_BUFFER_TIME_MSEC, "RtpBufferTimeMsec", 2000),
   CONFIG_INT_HELP(CONFIG_MPEG2T_PAM_WAIT_SECS, "Mpeg2tPamWaitSecs", 30, "Time to wait for Program Map (seconds)"),
   CONFIG_INT(CONFIG_LIMIT_AUDIO_SDL_BUFFER, "LimitAudioSdlBuffer", 0),
@@ -64,6 +65,8 @@ static const SConfigVariable MyConfigVariables[] = {
   CONFIG_STRING(CONFIG_LOG_FILE, "LogFile", NULL),
   CONFIG_BOOL_HELP(CONFIG_DISPLAY_DEBUG, "DisplayDebug", false, "In gmp4player, display status information every second"),
   CONFIG_INT(CONFIG_MPEG2PS_DEBUG, "Mpeg2psDebug", LOG_ALERT),
+  CONFIG_STRING_HELP(CONFIG_URL_EXEC, "UrlExec", NULL, 
+		     "Enter full path to browser launch - default /usr/bin/firefox/firefox"),
 };
 
 CConfigSet config(MyConfigVariables, 

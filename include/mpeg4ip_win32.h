@@ -19,7 +19,8 @@
  *		Bill May wmay@cisco.com
  */
 /* windows defines */
-#ifdef __MPEG4IP_WIN32_H__
+#ifndef __MPEG4IP_WIN32_H__
+#define __MPEG4IP_WIN32_H__
 #define HAVE_IN_PORT_T
 #define HAVE_SOCKLEN_T
 #define NEED_SDL_VIDEO_IN_MAIN_THREAD
@@ -103,7 +104,7 @@ int gettimeofday(struct timeval *t, void *);
 
 #if     !__STDC__ && _INTEGRAL_MAX_BITS >= 64
 #define VAR_TO_FPOS(fpos, var) (fpos) = (var)
-#define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)(_FPOSOFF(fpos))
+#define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)(fpos)
 #else
 #define VAR_TO_FPOS(fpos, var) (fpos).lopart = ((var) & UINT_MAX); (fpos).hipart = ((var) >> 32)
 #define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)((uint64_t)((fpos).hipart ) << 32 | (fpos).lopart)

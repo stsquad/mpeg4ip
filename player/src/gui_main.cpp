@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -95,10 +95,12 @@ static GtkTargetEntry drop_types[] =
 };
 
 static void media_list_query (CPlayerSession *psptr,
-			      int num_video, 
+			      uint num_video, 
 			      video_query_t *vq,
-			      int num_audio,
-			      audio_query_t *aq)
+			      uint num_audio,
+			      audio_query_t *aq,
+			      uint num_text,
+			      text_query_t *tq)
 {
   if (num_video > 0) {
     if (config.get_config_value(CONFIG_PLAY_VIDEO) != 0) {
@@ -108,6 +110,11 @@ static void media_list_query (CPlayerSession *psptr,
   if (num_audio > 0) {
     if (config.get_config_value(CONFIG_PLAY_AUDIO) != 0) {
       aq[0].enabled = 1;
+    } 
+  }
+  if (num_text > 0) {
+    if (config.get_config_value(CONFIG_PLAY_TEXT) != 0) {
+      tq[0].enabled = 1;
     } 
   }
 }
@@ -247,56 +254,6 @@ static void create_session_from_name (const char *name)
   if (psptr != NULL) {
     adjust_gui_for_play();
   }
-#if 0
-  psptr = new CPlayerSession(&master_queue,
-			     NULL,
-			     name);
-  if (psptr != NULL) {
-    // See if we can create media for this session
-    int ret = parse_name_for_session(psptr, name, &cc_vft);
-    if (ret >= 0) {
-      // Yup - valid session.  Set volume, set up sync thread, and
-      // start the session
-      if (ret > 0) {
-	ShowMessage("Warning", psptr->get_message());
-      }
-      if (master_muted == false)
-	psptr->set_audio_volume(master_volume);
-      else
-	psptr->set_audio_volume(0);
-      psptr->set_up_sync_thread();
-      psptr->set_screen_location(x, y);
-      psptr->set_screen_size(master_screen_size / 50);
-
-      master_fullscreen = config.get_config_value(CONFIG_FULL_SCREEN);
-      int old_aspect_ratio;
-      old_aspect_ratio = config.get_config_value(CONFIG_ASPECT_RATIO);
-      config.set_config_value(CONFIG_ASPECT_RATIO, old_aspect_ratio + 1);
-      set_aspect_ratio(old_aspect_ratio);
-
-      if (psptr->play_all_media(TRUE, 0.0) < 0) {
-	do_delete = true;
-	display_err = 1;
-      } else {
-	adjust_gui_for_play();
-      }
-    } else {
-      display_err = 1;
-      do_delete = true;
-    }
-  }
-  if (display_err != 0) {
-    // Nope - display a message
-    char buffer[1024];
-    snprintf(buffer, sizeof(buffer), "%s cannot be opened\n%s", name,
-	     psptr->get_message());
-    ShowMessage("Open error", buffer);
-  }
-  if (do_delete) {
-    delete psptr;
-    psptr = NULL;
-  }
-#endif
 }
 /*
  * start a session
@@ -342,6 +299,7 @@ static void start_session_from_name (const char *name)
   if ((suffix != NULL) && 
       ((strcasecmp(suffix, ".mp4plist") == 0) ||
        (strcasecmp(suffix, ".mxu") == 0) ||
+       (strcasecmp(suffix, ".m4u") == 0) ||
        (strcasecmp(suffix, ".gmp4_playlist") == 0))) {
     const char *errmsg = NULL;
     master_playlist = new CPlaylist(name, &errmsg);
@@ -1348,6 +1306,7 @@ static gint main_timer (gpointer raw)
       }
       break;
     }
+    delete newmsg;
   }
   return (TRUE);  // keep timer going
 }

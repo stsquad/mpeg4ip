@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -32,17 +32,18 @@
 #include "our_bytestream.h"
 #include "our_msg_queue.h"
 #include "codec_plugin.h"
+#include "player_session.h"
+#include "audio.h"
+#include "video.h"
 
-class CPlayerSession;
-class CAudioSync;
-class CVideoSync;
 class C2ConsecIpPort;
 class COurInByteStream;
 class CRtpByteStreamBase;
 
 class CPlayerMedia {
  public:
-  CPlayerMedia(CPlayerSession *p);
+  CPlayerMedia(CPlayerSession *p,
+	       session_sync_types_t sync_type);
   ~CPlayerMedia();
   /* API routine - create - for RTP stream */
   int create_streaming(media_desc_t *sdp_media,
@@ -50,18 +51,20 @@ class CPlayerMedia {
 		       int use_rtsp,
 		       int media_number_in_session);
   /* API routine - create - where we provide the bytestream */
-  int create(COurInByteStream *b, 
-	     int is_video, 
-	     int streaming = 0);
+  int create_media(const char *media_type, 
+		   COurInByteStream *b, 
+		   bool streaming = false);
   /* API routine - play, pause */
   int do_play(double start_time_offset);
   int do_pause(void);
-  int is_video(void) { return (m_is_video); };
+  bool is_audio(void) { return (m_is_audio); };
+  session_sync_types_t get_sync_type (void) { return m_sync_type; };
   double get_max_playtime(void);
   /* API routine - interface for decoding start/continue */
   void start_decoding(void);
   void bytestream_primed(void); 
   void display_status(void);
+  const char *get_name(void) { return m_media_type; };
   /* API routine - ip port information */
   uint16_t get_our_port (void) { return m_our_port; };
   void set_server_port (uint16_t port) { m_server_port = port; };
@@ -88,8 +91,12 @@ class CPlayerMedia {
   void set_rtp_base_ts(uint32_t time);
   void set_rtp_base_seq(uint16_t seq);
   
-  void set_video_sync(CVideoSync *p) {m_video_sync = p;};
-  void set_audio_sync(CAudioSync *p) {m_audio_sync = p;};
+  CVideoSync *get_video_sync (void) { return m_videoSync; };
+  CTimedSync *get_timed_sync (void) { return m_timedSync; };
+  CAudioSync *get_audio_sync (void) { return m_audioSync; };
+  void set_video_sync(CVideoSync *p) { set_timed_sync(p); m_videoSync = p; };
+  void set_timed_sync(CTimedSync *p) {m_timedSync = p; m_sync = p;};
+  void set_audio_sync(CAudioSync *p) {m_audioSync = p; m_sync = p;};
 
   const video_info_t *get_video_info (void) { return m_video_info; };
   const audio_info_t *get_audio_info (void) { return m_audio_info; };
@@ -112,6 +119,12 @@ class CPlayerMedia {
 			  audio_info_t *audio,
 			  const uint8_t *user_data,
 			  uint32_t userdata_size);
+  int create_text_plugin(const codec_plugin_t *p,
+			 const char *stream_type, 
+			 const char *compressor, 
+			 format_list_t *fptr, 
+			 const uint8_t *pConfig,
+			 uint32_t userdata_size);
   void set_plugin_data (const codec_plugin_t *p, 
 			codec_data_t *d, 
 			video_vft_t *v, 
@@ -131,11 +144,12 @@ class CPlayerMedia {
   int get_rtp_media_number (void) { return m_rtp_media_number_in_session; };
   void syncronize_rtp_bytestreams(rtcp_sync_t *sync);
  private:
-  int create_common(int is_video);
+  int create_common(const char *media_type);
   void wait_on_bytestream(void);
-  int m_streaming;
-  int m_is_video;
-  int m_paused;
+  const char *m_media_type;
+  bool m_streaming;
+  bool m_is_audio;
+  bool m_paused;
   CPlayerMedia *m_next;
   CPlayerSession *m_parent;
   media_desc_t *m_media_info;
@@ -204,8 +218,10 @@ class CPlayerMedia {
   CMsgQueue m_decode_msg_queue;
   // Private routines
   int process_rtsp_transport(char *transport);
-  CAudioSync *m_audio_sync;
-  CVideoSync *m_video_sync;
+  CSync *m_sync;
+  CAudioSync *m_audioSync;
+  CTimedSync *m_timedSync;
+  CVideoSync *m_videoSync;
   void parse_decode_message(int &thread_stop, int &decoding);
   COurInByteStream *m_byte_stream;
   video_info_t *m_video_info;
@@ -213,7 +229,7 @@ class CPlayerMedia {
 
   const uint8_t *m_user_data;
   int m_user_data_size;
-
+  session_sync_types_t m_sync_type;
 };
 
 int process_rtsp_rtpinfo(char *rtpinfo, 

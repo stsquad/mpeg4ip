@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -109,9 +109,9 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   char buffer[80];
   codec_plugin_t *codec;
   format_list_t *fmt;
-  int audio_count, video_count;
-  int audio_offset, video_offset;
-  int ix;
+  uint audio_count, video_count, text_count;
+  uint audio_offset, video_offset, text_offset;
+  uint ix;
 
   if (sdp->session_name != NULL) {
     snprintf(buffer, sizeof(buffer), "Name: %s", sdp->session_name);
@@ -134,7 +134,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   }
 #endif
   media_desc_t *sdp_media;
-  audio_count = video_count = 0;
+  audio_count = video_count = text_count = 0;
   for (sdp_media = psptr->get_sdp_info()->media;
        sdp_media != NULL;
        sdp_media = sdp_media->next) {
@@ -146,11 +146,15 @@ static int create_media_from_sdp (CPlayerSession *psptr,
       }
     } else if (strcasecmp(sdp_media->media, "video") == 0) {
       video_count++;
+    } else if (strcasecmp(sdp_media->media, "control") == 0 ||
+	       strcasecmp(sdp_media->media, "application") == 0) {
+      text_count++;
     }
   }
 
   video_query_t *vq;
   audio_query_t *aq;
+  text_query_t *tq;
 
   if (video_count > 0) {
     vq = (video_query_t *)malloc(sizeof(video_query_t) * video_count);
@@ -162,8 +166,13 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   } else {
     aq = NULL;
   }
+  if (text_count > 0) {
+    tq = (text_query_t *)malloc(sizeof(text_query_t) * text_count);
+  } else {
+    tq = NULL;
+  }
       
-  video_offset = audio_offset = 0;
+  video_offset = audio_offset = text_offset = 0;
   for (sdp_media = psptr->get_sdp_info()->media;
        sdp_media != NULL;
        sdp_media = sdp_media->next) {
@@ -241,6 +250,45 @@ static int create_media_from_sdp (CPlayerSession *psptr,
 	  vq[video_offset].reference = NULL;
 	  video_offset++;
 	}
+      } else if (strcasecmp(sdp_media->media, "application") == 0 ||
+		 strcasecmp(sdp_media->media, "control") == 0) {
+	fmt = sdp_media->fmt;
+	codec = NULL;
+	while (codec == NULL && fmt != NULL) {
+	  codec = check_for_text_codec(STREAM_TYPE_RTP, 
+				       NULL,
+				       fmt, 
+				       NULL,
+				       0, 
+				       &config);
+	  if (codec == NULL) {
+	    if (only_check_first != 0) {
+	      fmt = NULL;
+	    } else {
+	      fmt = fmt->next;
+	    }
+	  } else {
+	    if (fmt != sdp_media->fmt || fmt->next != NULL) {
+	      player_error_message("Disallow sdp stream %s - more than 1 possible format", sdp_media->media);
+	      codec = NULL;
+	      fmt = fmt->next;
+	    }
+	  }
+	}
+	if (codec == NULL) {
+	  invalid_count++;
+	  continue;
+	} else {
+	  tq[text_offset].track_id = text_offset;
+	  tq[text_offset].stream_type = STREAM_TYPE_RTP;
+	  tq[text_offset].compressor = NULL;
+	  tq[text_offset].fptr = fmt;
+	  tq[text_offset].config = NULL;
+	  tq[text_offset].config_len = 0;
+	  tq[text_offset].enabled = 0;
+	  tq[text_offset].reference = NULL;
+	  text_offset++;
+	}
       } else {
 	player_error_message("Skipping media type `%s\'", sdp_media->media);
 	continue;
@@ -249,7 +297,10 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   // okay - from here, write the callback call, and go ahead...
   if (cc_vft != NULL &&
       cc_vft->media_list_query != NULL) {
-    (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq);
+    (cc_vft->media_list_query)(psptr, 
+			       video_offset, vq, 
+			       audio_offset, aq,
+			       text_offset, tq);
   } else {
     if (video_offset > 0) {
       vq[0].enabled = 1;
@@ -257,10 +308,13 @@ static int create_media_from_sdp (CPlayerSession *psptr,
     if (audio_offset > 0) {
       aq[0].enabled = 1;
     }
+    if (text_offset > 0) {
+      tq[0].enabled = 1;
+    }
   }
   for (ix = 0; ix < video_offset; ix++) {
     if (vq[ix].enabled != 0) {
-      CPlayerMedia *mptr = new CPlayerMedia(psptr);
+      CPlayerMedia *mptr = new CPlayerMedia(psptr, VIDEO_SYNC);
       err = mptr->create_streaming(vq[ix].fptr->media, 
 				   broadcast, 
 				   config.get_config_value(CONFIG_USE_RTP_OVER_RTSP),
@@ -276,8 +330,24 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   }
   for (ix = 0; ix < audio_offset; ix++) {
     if (aq[ix].enabled != 0) {
-      CPlayerMedia *mptr = new CPlayerMedia(psptr);
+      CPlayerMedia *mptr = new CPlayerMedia(psptr, AUDIO_SYNC);
       err = mptr->create_streaming(aq[ix].fptr->media, 
+				   broadcast, 
+				   config.get_config_value(CONFIG_USE_RTP_OVER_RTSP),
+				   media_count);
+      if (err < 0) {
+	return (-1);
+      }
+      if (err > 0) {
+	delete mptr;
+      } else 
+	media_count++;
+    }
+  }
+  for (ix = 0; ix < text_offset; ix++) {
+    if (tq[ix].enabled != 0) {
+      CPlayerMedia *mptr = new CPlayerMedia(psptr, TIMED_TEXT_SYNC);
+      err = mptr->create_streaming(tq[ix].fptr->media, 
 				   broadcast, 
 				   config.get_config_value(CONFIG_USE_RTP_OVER_RTSP),
 				   media_count);
@@ -292,6 +362,7 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   }
   if (aq != NULL) free(aq);
   if (vq != NULL) free(vq);
+  if (tq != NULL) free(tq);
 
   if (media_count == 0) {
     psptr->set_message("No known codecs found in SDP");
@@ -682,7 +753,7 @@ int parse_name_for_session (CPlayerSession *psptr,
     codec_data_t *cdata = NULL;
     double maxtime;
     char *desc[4];
-    bool is_video = false;
+    bool is_audio = true;
     codec_plugin_t *codec;
     desc[0] = NULL;
     desc[1] = NULL;
@@ -702,7 +773,7 @@ int parse_name_for_session (CPlayerSession *psptr,
 					     &maxtime,
 					     desc,
 					     &config);
-      is_video = true;
+      is_audio = false;
     }
 
     if (cdata == NULL) {
@@ -713,16 +784,16 @@ int parse_name_for_session (CPlayerSession *psptr,
       /*
        * Create the player media, and the bytestream
        */
-      mptr = new CPlayerMedia(psptr);
+      mptr = new CPlayerMedia(psptr, is_audio ? AUDIO_SYNC : VIDEO_SYNC);
       
       COurInByteStreamFile *fbyte;
       fbyte = new COurInByteStreamFile(codec,
 				       cdata,
 				       maxtime);
-      mptr->create(fbyte, is_video);
+      mptr->create_media(is_audio ? "audio" : "video", fbyte);
       mptr->set_plugin_data(codec, cdata, 
-			    is_video ? get_video_vft() : NULL,
-			    is_video ? NULL : get_audio_vft());
+			    is_audio ? NULL : get_video_vft(),
+			    is_audio ? get_audio_vft() : NULL);
 
       for (int ix = 0; ix < 4; ix++) 
 	if (desc[ix] != NULL) 

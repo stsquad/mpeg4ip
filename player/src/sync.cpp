@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -79,6 +79,7 @@ const char *sync_state[] = {
 void CPlayerSession::process_sdl_events (void)
 {
   SDL_Event event;
+  CVideoSync *vs;
 
   while (SDL_PollEvent(&event) == 1) {
     switch (event.type) {
@@ -96,19 +97,23 @@ void CPlayerSession::process_sdl_events (void)
 #endif
       switch (event.key.keysym.sym) {
       case SDLK_ESCAPE:
-	if (m_video_sync &&
-	    m_video_sync->get_fullscreen() != 0) {
-	  m_video_sync->set_fullscreen(0);
-	  m_video_sync->do_video_resize();
+	vs = m_video_list;
+	while (vs != NULL) {
+	  if (vs->get_fullscreen() != 0) {
+	    vs->set_fullscreen(0);
+	    vs->do_video_resize();
+	  }
+	  vs = vs->GetNextVideo();
 	}
 	break;
       case SDLK_RETURN:
 	if ((event.key.keysym.mod & (KMOD_ALT | KMOD_META)) != 0) {
 	  // alt-enter - full screen
-	  if (m_video_sync &&
-	      m_video_sync->get_fullscreen() == 0) {
-	    m_video_sync->set_fullscreen(1);
-	    m_video_sync->do_video_resize();
+	  if (m_video_list &&
+	      m_video_count == 1 &&
+	      m_video_list->get_fullscreen() == 0) {
+	    m_video_list->set_fullscreen(1);
+	    m_video_list->do_video_resize();
 	  }
 	}
 	break;
@@ -122,6 +127,16 @@ void CPlayerSession::process_sdl_events (void)
 				       (unsigned char *)&msg,
 				       sizeof(msg),
 				       m_master_msg_queue_sem);
+      break;
+    case SDL_MOUSEBUTTONUP:
+      if (event.button.which == 0) {
+	// add callback here.
+	if (m_mouse_click_callback != NULL) {
+	  (m_mouse_click_callback)(m_mouse_click_callback_ud, 
+				   event.button.x,
+				   event.button.y);
+	}
+      }
       break;
     default:
       break;
@@ -150,12 +165,18 @@ int CPlayerSession::process_msg_queue (int state)
     case MSG_STOP_THREAD:
       state = SYNC_STATE_EXIT;
       break;
-    case MSG_SYNC_RESIZE_SCREEN:
-      if (m_video_sync) {
-	m_video_sync->set_screen_size(m_screen_scale);
-	m_video_sync->set_fullscreen(m_fullscreen);
-	m_video_sync->do_video_resize(m_pixel_width, m_pixel_height, m_max_width, m_max_height);
+    case MSG_SYNC_RESIZE_SCREEN: {
+      CVideoSync *vs = m_video_list;
+      while (vs != NULL) {
+	vs->set_screen_size(m_screen_scale);
+	if (m_video_count == 1) {
+	  vs->set_fullscreen(m_fullscreen);
+	}
+	vs->do_video_resize(m_pixel_width, m_pixel_height, 
+			    m_max_width, m_max_height);
+	vs = vs->GetNextVideo();
       }
+    }
       break;
     default:
       sync_message(LOG_ERR, "Sync thread received message %d", 
@@ -178,35 +199,43 @@ int CPlayerSession::process_msg_queue (int state)
 int CPlayerSession::sync_thread_init (void)
 {
   int ret = 1;
-  bool video_failed = false, audio_failed = false;
+  uint failed = 0;
   uint media_count = 0, media_initialized = 0;
+  CTimedSync *ts;
 
-  for (CPlayerMedia *mptr = m_my_media;
-       mptr != NULL && ret >= 0;
-       mptr = mptr->get_next()) {
-    if (mptr->is_video()) {
-      // initialize the video size from the player session information
-      media_count++;
-      m_video_sync->set_screen_size(m_screen_scale);
-      m_video_sync->set_fullscreen(m_fullscreen);
-      ret = m_video_sync->initialize_video(m_session_name,
-					   m_screen_pos_x,
-					   m_screen_pos_y);
-      if (ret > 0) {
-	media_initialized++;
-      } else {
-	video_failed = true;
-      }
+  if (m_audio_sync != NULL) {
+    media_count++;
+    ret = m_audio_sync->initialize_audio(m_timed_sync_list != NULL);
+    if (ret > 0) {
+      media_initialized++;
     } else {
-      media_count++;
-      ret = m_audio_sync->initialize_audio(m_video_sync != NULL);
-      if (ret > 0) {
-	media_initialized++;
+      failed |= 1;
+    }
+  }
+
+  for (ts = m_timed_sync_list;
+       ts != NULL && ret >= 0;
+       ts = ts->GetNext()) {
+    media_count++;
+    if (ts->get_sync_type() == VIDEO_SYNC) {
+      CVideoSync *vs = (CVideoSync *)ts;
+      vs->set_screen_size(m_screen_scale);
+      if (m_video_count == 1) {
+	vs->set_fullscreen(m_fullscreen);
+      }
+    }
+    ret = ts->initialize(m_session_name);
+    if (ret > 0) {
+      media_initialized++;
+    } else {
+      if (ts->get_sync_type() == VIDEO_SYNC) {
+	failed |= 2;
       } else {
-	audio_failed = true;
+	failed |= 4;
       }
     }
   }
+      
   if (media_count > 0 && media_count == media_initialized) {
     return (SYNC_STATE_WAIT_SYNC); 
   } 
@@ -215,10 +244,13 @@ int CPlayerSession::sync_thread_init (void)
     m_init_tries_made++;
     if (m_init_tries_made > 250) {
       sync_message(LOG_CRIT, "One media is not initializing; it might not be receiving correctly");
-      if (video_failed) {
+      if ((failed & 0x2) != 0 ) {
 	sync_message(LOG_INFO, "video failed");
       } 
-      if (audio_failed) {
+      if ((failed & 0x4) != 0 ) {
+	sync_message(LOG_INFO, "timed text failed");
+      }
+      if ((failed & 0x1) != 0 ) {
 	sync_message(LOG_INFO, "audio failed");
       }
 
@@ -227,8 +259,10 @@ int CPlayerSession::sync_thread_init (void)
   }
   if (ret == -1) {
     sync_message(LOG_CRIT, "Fatal error while initializing hardware");
-    if (m_video_sync != NULL) {
-      m_video_sync->flush_sync_buffers();
+    ts = m_timed_sync_list;
+    while (ts != NULL) {
+      ts->flush_sync_buffers();
+      ts = ts->GetNext();
     }
     if (m_audio_sync != NULL) {
       m_audio_sync->flush_sync_buffers();
@@ -273,17 +307,26 @@ int CPlayerSession::sync_thread_wait_sync (void)
       
       // We're not synced.  See if the video is ready, and if the audio
       // is ready.  Then start them going...
-      int vsynced = 1, asynced = 1;
-      uint64_t astart = 0, vstart = 0;
+    bool vsynced = true;
+      int asynced = 1;
+      uint64_t astart = 0, vstart = MAX_UINT64;
 
-      if (m_video_sync) {
-	vsynced = m_video_sync->is_video_ready(vstart);
-      } 
-
+      for (CTimedSync *ts = m_timed_sync_list;
+	   ts != NULL;
+	   ts = ts->GetNext()) {
+	uint64_t cmp;
+	if (ts->active_at_start()) {
+	  if (ts->is_ready(cmp)) {
+	    vstart = MIN(cmp, vstart);
+	  } else {
+	    vsynced = false;
+	  }
+	}
+      }
       if (m_audio_sync) {
 	asynced = m_audio_sync->is_audio_ready(astart); 
       }
-      if (vsynced == 1 && asynced == 1) {
+      if (vsynced && asynced == 1) {
 	/*
 	 * Audio and video are synced. 
 	 */
@@ -294,12 +337,12 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	  m_first_time_played = astart;
 	  m_current_time = astart;
 	  sync_message(LOG_DEBUG, "Astart is "U64, astart);
-	  if (m_video_sync) 
+	  if (m_timed_sync_list) 
 	    sync_message(LOG_DEBUG, "Vstart is "U64, vstart);
 	  m_waiting_for_audio = 1;
 	  state = SYNC_STATE_WAIT_AUDIO;
 	  m_audio_sync->play_audio();
-	} else 	if (m_video_sync) {
+	} else 	if (m_timed_sync_list) {
 	  /*
 	   * Video only - set up the start time based on the video time
 	   * returned
@@ -368,7 +411,7 @@ int CPlayerSession::sync_thread_playing (void)
 							 have_audio_eof,
 							 need_audio_restart);
       if (need_audio_resync) {
-	if (m_video_sync) {
+	if (m_timed_sync_list) {
 	  // wait for video to play out
 	  return SYNC_STATE_AUDIO_RESYNC;
 	} else {
@@ -377,31 +420,41 @@ int CPlayerSession::sync_thread_playing (void)
 	}
       }
     }
-    if (m_video_sync) {
-      video_have_next_time = m_video_sync->play_video_at(m_current_time, 
-						 false,
-						 video_next_time,
-						 have_video_eof);
-    }
+    video_next_time = MAX_UINT64;
+    if (m_timed_sync_list != NULL) {
+      have_video_eof = true;
+      for (CTimedSync *ts = m_timed_sync_list;
+	   ts != NULL;
+	   ts = ts->GetNext()) {
+	uint64_t cmp;
+	bool have_eof = false;
+	if (ts->play_at(m_current_time, false, cmp, have_eof)) {
+	  video_have_next_time = true;
+#if 0
+	  sync_message(LOG_DEBUG, "return "U64 " "U64 " %u", cmp, m_current_time,
+		       have_eof);
+#endif
+	  video_next_time = MIN(cmp, video_next_time);
+	  have_video_eof &= have_eof;
+	}
+      }
+    } 
 
-    int delay = 9;
+    int delay;
     bool have_delay = false;
 
-    if (m_video_sync && m_audio_sync) {
+    if (m_timed_sync_list && m_audio_sync) {
       if (have_video_eof && have_audio_eof) {
 	return (SYNC_STATE_DONE);
       }
-      if (video_have_next_time || wait_audio_time > 0) {
+      if (video_have_next_time) {
 	have_delay = true;
-	if (video_have_next_time) {
-	  int64_t video_wait_time = video_next_time - m_current_time;
-	  delay = (int)MIN(wait_audio_time, video_wait_time);
-	} else {
-	  delay = wait_audio_time;
-	}
+	int64_t video_wait_time = video_next_time - m_current_time;
+	delay = (int)video_wait_time;
       }
-    } else if (m_video_sync) {
+    } else if (m_timed_sync_list) {
       if (have_video_eof) {
+	sync_message(LOG_DEBUG, "have video eof");
 	return (SYNC_STATE_DONE);
       } 
       if (video_have_next_time) {
@@ -420,10 +473,19 @@ int CPlayerSession::sync_thread_playing (void)
     }
       
     if (have_delay) {
+#if 0
       if (delay >= 9) {
 	delay = 9;
 	SDL_SemWaitTimeout(m_sync_sem, delay);
       }
+#else
+      //sync_message(LOG_DEBUG, "delay %d", delay);
+      if (delay >= 10) {
+	delay = 10;
+      }
+      SDL_SemWaitTimeout(m_sync_sem, delay);
+#endif
+	
     } else {
       SDL_SemWaitTimeout(m_sync_sem, 10);
     }
@@ -487,10 +549,20 @@ int CPlayerSession::sync_thread_audio_resync (void)
       sync_message(LOG_ERR, "resync but no audio resync");
       return SYNC_STATE_PLAYING;
     }
-    video_have_next_time = m_video_sync->play_video_at(m_current_time, 
-						       true,
-						       video_next_time,
-						       have_video_eof);
+    have_video_eof = true;
+    video_next_time = MAX_UINT64;
+    for (CTimedSync *ts = m_timed_sync_list;
+	 ts != NULL;
+	 ts = ts->GetNext()) {
+      uint64_t cmp;
+      bool have_eof;
+      if (ts->play_at(m_current_time, true, cmp, have_eof)) {
+	video_have_next_time = true;
+	video_next_time = MIN(cmp, video_next_time);
+	have_video_eof &= have_eof;
+      }
+    }
+
     sync_message(LOG_DEBUG, "audio resync - "U64" have_next %d "U64,
 		 m_current_time, video_have_next_time, 
 		 video_next_time);
@@ -511,10 +583,6 @@ int CPlayerSession::sync_thread_audio_resync (void)
       if (diff < 0 || diff > TO_D64(1000)) {
 	// drop this frame
 	return SYNC_STATE_WAIT_SYNC;
-#if 0
-	m_video_sync->drop_next_frame();
-	return state;
-#endif
       }
       if (diff > 9) {
 	diff = 9;
@@ -577,29 +645,42 @@ int CPlayerSession::sync_thread (int state)
     case SYNC_STATE_PLAYING:
       m_session_state = SESSION_PLAYING;
       break;
-    case SYNC_STATE_PAUSED:
-      if (m_video_sync != NULL) 
-	m_video_sync->flush_sync_buffers();
+    case SYNC_STATE_PAUSED: {
+      for (CTimedSync *ts = m_timed_sync_list; 
+	   ts != NULL; 
+	   ts = ts->GetNext()) {
+	ts->flush_sync_buffers();
+      }
       if (m_audio_sync != NULL) 
 	m_audio_sync->flush_sync_buffers();
       m_session_state = SESSION_PAUSED;
       m_sync_pause_done = 1;
       break;
-    case SYNC_STATE_DONE:
-      if (m_video_sync && m_video_sync->get_fullscreen() != 0) {
-	m_video_sync->set_fullscreen(0);
-	m_video_sync->do_video_resize();
+    }
+    case SYNC_STATE_DONE: {
+      CVideoSync *vs = m_video_list;
+      while (vs != NULL) {
+	if (vs->get_fullscreen() != 0) {
+	  vs->set_fullscreen(0);
+	  vs->do_video_resize();
+	}
+	vs = vs->GetNextVideo();
       }
       m_master_msg_queue->send_message(MSG_SESSION_FINISHED, 
 				       m_master_msg_queue_sem);
       m_session_state = SESSION_DONE;
       break;
-    case SYNC_STATE_EXIT:
-      if (m_video_sync != NULL) 
-	m_video_sync->flush_sync_buffers();
+    }
+    case SYNC_STATE_EXIT: {
+      for (CTimedSync *ts = m_timed_sync_list; 
+	   ts != NULL; 
+	   ts = ts->GetNext()) {
+	ts->flush_sync_buffers();
+      }
       if (m_audio_sync != NULL) 
 	m_audio_sync->flush_sync_buffers();
       break;
+    }
     }
   }
   return (state);

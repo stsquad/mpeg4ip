@@ -145,6 +145,10 @@ SOURCE=.\atom_hnti.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\atom_href.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_mdat.cpp
 # End Source File
 # Begin Source File

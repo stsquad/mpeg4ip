@@ -61,7 +61,7 @@ static int create_mpeg3_video (video_query_t *vq,
     psptr->set_message("Can't find plugin for mpeg video");
     return 0;
   } 
-  mptr = new CPlayerMedia(psptr);
+  mptr = new CPlayerMedia(psptr, VIDEO_SYNC);
   if (mptr == NULL) {
     psptr->set_message("Could not create video media");
     return -1;
@@ -102,7 +102,7 @@ static int create_mpeg3_video (video_query_t *vq,
     psptr->set_message("Failed to create video bytestream");
     return -1;
   }
-  ret = mptr->create(vbyte, TRUE);
+  ret = mptr->create_media("video", vbyte);
   if (ret != 0) {
     psptr->set_message("Couldn't create video media");
     return -1;
@@ -132,7 +132,7 @@ static int create_mpeg3_audio (audio_query_t * aq,
 	     mpeg2ps_get_audio_stream_name(afile, aq->track_id));
     return 0;
   } 
-  mptr = new CPlayerMedia(psptr);
+  mptr = new CPlayerMedia(psptr, AUDIO_SYNC);
   if (mptr == NULL) {
     psptr->set_message("Could not create video media");
     return -1;
@@ -168,7 +168,7 @@ static int create_mpeg3_audio (audio_query_t * aq,
     psptr->set_message("Failed to create audio bytestream");
     return -1;
   }
-  ret = mptr->create(abyte, FALSE);
+  ret = mptr->create_media("audio", abyte);
   if (ret != 0) {
     psptr->set_message("Couldn't create audio media");
     return -1;
@@ -296,7 +296,8 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
     return -1;
   }
   if (cc_vft && cc_vft->media_list_query != NULL) {
-    (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq);
+    (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq,
+			       0, NULL);
   } else {
     if (video_offset > 0) vq[0].enabled = 1;
     if (audio_offset > 0) aq[0].enabled = 1;

@@ -123,7 +123,8 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   }
 
   if (cc_vft != NULL && cc_vft->media_list_query != NULL) {
-    (cc_vft->media_list_query)(psptr, video_count, &vq, audio_count, &aq);
+    (cc_vft->media_list_query)(psptr, video_count, &vq, audio_count, &aq,
+			       0, NULL);
   } else {
     if (video_count != 0) vq.enabled = 1;
     if (audio_count != 0) aq.enabled = 1;
@@ -141,7 +142,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   psptr->set_media_close_callback(close_avi_file, Avifile1);
 
   if (video_count != 0 && vq.enabled) {
-    mptr = new CPlayerMedia(psptr);
+    mptr = new CPlayerMedia(psptr, VIDEO_SYNC);
     if (mptr == NULL) {
       return (-1);
     }
@@ -187,7 +188,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
       return (-1);
     }
     vbyte->config(AVI_video_frames(avi), vq.frame_rate);
-    ret = mptr->create(vbyte, TRUE);
+    ret = mptr->create_media("video", vbyte);
     if (ret != 0) {
       return (-1);
     }
@@ -204,7 +205,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
 				   0,
 				   &config);
     CAviAudioByteStream *abyte;
-    mptr = new CPlayerMedia(psptr);
+    mptr = new CPlayerMedia(psptr, AUDIO_SYNC);
     if (mptr == NULL) {
       return (-1);
     }
@@ -233,7 +234,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     }
     abyte = new CAviAudioByteStream(Avifile1);
 
-    ret = mptr->create(abyte, FALSE);
+    ret = mptr->create_media("audio", abyte);
     if (ret != 0) {
       return (-1);
     }

@@ -125,7 +125,7 @@ int CMp4File::create_video(CPlayerSession *psptr,
   for (ix = 0; ix < video_offset; ix++) {
     if (vq[ix].enabled != 0) {
 
-      mptr = new CPlayerMedia(psptr);
+      mptr = new CPlayerMedia(psptr, VIDEO_SYNC);
       if (mptr == NULL) {
 	return (-1);
       }
@@ -182,7 +182,7 @@ int CMp4File::create_video(CPlayerSession *psptr,
 	return (-1);
       }
 
-      ret = mptr->create(vbyte, TRUE);
+      ret = mptr->create_media("video", vbyte);
       if (ret != 0) {
 	return (-1);
       }
@@ -217,7 +217,7 @@ int CMp4File::create_audio(CPlayerSession *psptr,
   for (ix = 0; ix < audio_offset; ix++) {
     if (aq[ix].enabled != 0) {
       CMp4AudioByteStream *abyte;
-      mptr = new CPlayerMedia(psptr);
+      mptr = new CPlayerMedia(psptr, AUDIO_SYNC);
       if (mptr == NULL) {
 	return (-1);
       }
@@ -276,7 +276,7 @@ int CMp4File::create_audio(CPlayerSession *psptr,
 	return -1;
       }
 
-      ret = mptr->create(abyte, FALSE);
+      ret = mptr->create_media("audio", abyte);
       if (ret != 0) {
 	return (-1);
       }
@@ -507,7 +507,7 @@ int CMp4File::create_media (CPlayerSession *psptr,
     return -1;
   }
   if (cc_vft && cc_vft->media_list_query != NULL) {
-    (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq);
+    (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq, 0, NULL);
   } else {
     if (video_offset > 0) {
       vq[0].enabled = 1;

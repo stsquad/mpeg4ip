@@ -151,7 +151,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
       player_debug_message("Couldn't find video codec %s", codec_name);
       continue;
     }
-    mptr = new CPlayerMedia(psptr);
+    mptr = new CPlayerMedia(psptr, VIDEO_SYNC);
     if (mptr == NULL) {
       return (-1);
     }
@@ -217,7 +217,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
 		  quicktime_video_time_scale(m_qtfile, ix));
     player_debug_message("Video Max time is %g", vbyte->get_max_playtime());
 
-    ret = mptr->create(vbyte, TRUE);
+    ret = mptr->create_media("video", vbyte);
     if (ret != 0) {
       return (-1);
     }
@@ -275,7 +275,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
 			   sample_rate, samples_per_frame);
     }
     CQTAudioByteStream *abyte;
-    mptr = new CPlayerMedia(psptr);
+    mptr = new CPlayerMedia(psptr, AUDIO_SYNC);
     if (mptr == NULL) {
       return (-1);
     }
@@ -302,7 +302,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     abyte->config(len, sample_rate, samples_per_frame);
     player_debug_message("audio Max time is %g len %ld", 
 			 abyte->get_max_playtime(), len);
-    ret = mptr->create(abyte, FALSE);
+    ret = mptr->create_media("audio", abyte);
     if (ret != 0) {
       return (-1);
     }

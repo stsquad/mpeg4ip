@@ -343,7 +343,7 @@ bool CV4L2VideoSource::InitDevice(void)
 
   SetPictureControls();
 
-  if (capability.capabilities & V4L2_CAP_AUDIO) {
+  if (capability.capabilities & (V4L2_CAP_AUDIO | V4L2_CAP_TUNER)) {
     SetVideoAudioMute(false);
   }
 
@@ -737,7 +737,7 @@ bool CVideoCapabilities::ProbeDevice()
 
   m_canCapture = true;
   m_driverName = strdup((char*)capability.driver);
-  m_hasAudio = capability.capabilities & V4L2_CAP_AUDIO;
+  m_hasAudio = capability.capabilities & (V4L2_CAP_AUDIO | V4L2_CAP_TUNER);
 
   struct v4l2_input input;
 

@@ -27,7 +27,12 @@ libmp4syncbase_la_SOURCES = \
 	audio.h \
 	frame_doubler.cpp \
 	video.cpp \
-	video.h 
+	video.h \
+	text.cpp \
+	text.h \
+	text_href.cpp \
+	text_href.h \
+	timed_sync.cpp
 
 libmp4decode_plugin_la_SOURCES = \
 	codec_plugin.cpp \
@@ -52,11 +57,12 @@ libmp4syncsdl_la_SOURCES = \
 	audio_buffer.h \
 	$(SDL_AUDIO_SRC) \
 	video_sdl.cpp \
-	video_sdl.h
+	video_sdl.h 
 
 include_HEADERS = \
 	codec_plugin.h \
-	rtp_plugin.h 
+	rtp_plugin.h \
+	text_plugin.h
 
 libmp4player_la_SOURCES = \
 	avi_bytestream.cpp \
@@ -115,7 +121,8 @@ libmp4player_la_SOURCES = \
 	rtp_bytestream.h \
 	rtp_bytestream_plugin.cpp \
 	rtp_bytestream_plugin.h \
-	sync.cpp 
+	sync.cpp  \
+	sync.h 
 
 if NO_GLIB_GTK
 PROG_E1 =

@@ -115,7 +115,7 @@ if test $target_system != "Darwin"; then
 for	dir \
 in	$pwd/lib/SDLAudio 
 do	cd $dir
-  aclocal || aclocal $ACLOCAL_FLAGS || exit 4
+  aclocal $ACLOCAL_FLAGS || exit 4
   libtoolize --force
   automake --add-missing --foreign || exit 5
   autoconf || exit 6
@@ -123,7 +123,7 @@ done
 fi
 
 cd $pwd/lib/rtp
-aclocal || aclocal $ACLOCAL_FLAGS || exit 3
+aclocal $ACLOCAL_FLAGS || exit 3
 libtoolize --force
 autoheader
 automake --add-missing --foreign || exit 1
@@ -131,7 +131,7 @@ autoconf || exit 1
 cd $pwd
 
 cd $pwd/common/video/mpeg4-2000
-aclocal || aclocal $ACLOCAL_FLAGS || exit 3
+aclocal $ACLOCAL_FLAGS || exit 3
 libtoolize --force
 autoheader
 automake --add-missing --foreign || exit 1
@@ -140,7 +140,19 @@ autoconf || exit 1
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  
 if `aclocal $ACLOCAL_FLAGS`; then
-echo
+  echo
+  if grep AM_PATH_GTK_2_0 aclocal.m4; then
+    echo
+  else
+    ACLOCAL_FLAGS="-I $pwd/doc $ACLOCAL_FLAGS"
+    aclocal $ACLOCAL_FLAGS
+  fi
+  if grep AM_PATH_GTK aclocal.m4 | grep -v AM_PATH_GTK_2_0; then
+      echo
+  else 
+      ACLOCAL_FLAGS="-I $pwd/util $ACLOCAL_FLAGS"
+      aclocal $ACLOCAL_FLAGS
+  fi
 else
 if `aclocal -I $pwd/doc`; then
 ACLOCAL_FLAGS="-I $pwd/doc $ACLOCAL_FLAGS"

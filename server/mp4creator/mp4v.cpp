@@ -33,6 +33,12 @@
 
 #include <mp4creator.h>
 
+typedef struct mpeg4_frame_t {
+  mpeg4_frame_t *next;
+  MP4Timestamp frameTimestamp;
+  int vopType;
+} mpeg4_frame_t;
+
 /*
  * Load the next syntatic object from the file
  * into the supplied buffer, which better be large enough!
@@ -216,7 +222,8 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
     u_int32_t lastVopTimeIncrement = 0;
     bool variableFrameRate = false;
     bool lastFrame = false;
-
+    bool haveBframes = false;
+    mpeg4_frame_t *head = NULL, *tail = NULL;
 
     // start reading objects until we get the first VOP
     while (LoadNextObject(inFile, pObj, &objSize, &objType)) {
@@ -431,6 +438,16 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
 
             vopType = MP4AV_Mpeg4GetVopType(pObj, objSize);
 
+	    mpeg4_frame_t *fr = MALLOC_STRUCTURE(mpeg4_frame_t);
+	    if (head == NULL) {
+	      head = tail = fr;
+	    } else {
+	      tail->next = fr;
+	      tail = fr;
+	    }
+	    fr->vopType = vopType;
+	    fr->frameTimestamp = currentSampleTime;
+	    fr->next = NULL;
             if ( variableFrameRate ) {
                 // variable frame rate:  recalculate "mp4FrameDuration"
                 if ( lastFrame ) {
@@ -497,36 +514,12 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                 // deal with rendering time offsets
                 // that can occur when B frames are being used
                 // which is the case for all profiles except Simple Profile
-                if ( prevVopType != VOP_TYPE_B ) {
-                    switch (videoProfileLevel) {
-                        case MPEG4_SP_L0:
-                        case MPEG4_SP_L1:
-                        case MPEG4_SP_L2:
-                        case MPEG4_SP_L3:
-                            break;
-                        default:
-#ifdef DEBUG_MP4V
-                            printf("sample %u %d renderingOffset "U64"\n",
-                                    refVopId, prevVopType,
-                                    currentSampleTime - refVopTime);
-#endif
-                            // Note - this writes to the previous
-                            // I or P frame
-                            MP4SetSampleRenderingOffset(
-                                    mp4File, trackId, refVopId,
-                                    currentSampleTime - refVopTime);
-                            break;
-                    }
+		haveBframes |= prevVopType == VOP_TYPE_B;
 
-                    if ( lastFrame ) {
-                        // finish read frames
-                        break;
-                    }
-
-                    refVopId = sampleId;
-                    refVopTime = currentSampleTime;
-                }
-
+		if ( lastFrame ) {
+		  // finish read frames
+		  break;
+		}
                 sampleId++;
             } // not the first time
 
@@ -563,24 +556,55 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
         }
 #endif
     }
-
-    // Left over at end - make sure we set the last P or I frame
-    // with the last time
+    bool doRenderingOffset = false;
     switch (videoProfileLevel) {
-        case MPEG4_SP_L0:
-        case MPEG4_SP_L1:
-        case MPEG4_SP_L2:
-        case MPEG4_SP_L3:
-            break;
-        default:
-#ifdef DEBUG_MP4V
-            printf("sample %u %d renderingOffset "U64"\n",
-                    refVopId, prevVopType, currentSampleTime - refVopTime);
+    case MPEG4_SP_L0:
+    case MPEG4_SP_L1:
+    case MPEG4_SP_L2:
+    case MPEG4_SP_L3:
+      break;
+    default:
+      doRenderingOffset = true;
+      break;
+    }
+   
+    if (doRenderingOffset && haveBframes) {
+      // only generate ctts (with rendering offset for I, P frames) when
+      // we need one.  We saved all the frames types and timestamps above - 
+      // we can't use MP4ReadSample, because the end frames might not have
+      // been written 
+      refVopId = 1;
+      refVopTime = 0;
+      MP4SampleId maxSamples = MP4GetTrackNumberOfSamples(mp4File, trackId);
+      // start with sample 2 - we know the first one is a I frame
+      mpeg4_frame_t *fr = head->next; // skip the first one
+      for (MP4SampleId ix = 2; ix <= maxSamples; ix++) {
+	if (fr->vopType != VOP_TYPE_B) {
+#if 1
+            printf("sample %u %u renderingOffset "U64"\n",
+		   refVopId, fr->vopType, fr->frameTimestamp - refVopTime);
 #endif
-            MP4SetSampleRenderingOffset(mp4File, trackId, refVopId,
-                    currentSampleTime - refVopTime);
+	  MP4SetSampleRenderingOffset(mp4File, trackId, refVopId, 
+				      fr->frameTimestamp - refVopTime);
+	  refVopId = ix;
+	  refVopTime = fr->frameTimestamp;
+	}
+	fr = fr->next;
+      }
+      
+#if 1
+            printf("sample %u %u renderingOffset "U64"\n",
+		   refVopId, fr->vopType, fr->frameTimestamp - refVopTime);
+#endif
+      MP4SetSampleRenderingOffset(mp4File, trackId, refVopId, 
+				  fr->frameTimestamp - refVopTime);
     }
 
+    while (head != NULL) {
+      tail = head->next;
+      free(head);
+      head = tail;
+    }
     // terminate session if encrypting
     if (doEncrypt) {
         if (ismacrypEndSession(ismaCrypSId) != 0) {

@@ -57,8 +57,8 @@ static float aspectValues[] = {
 static const char* aspectNames[] = {
 	"Standard 4:3", "Letterbox 2.35", "Letterbox 1.85", "HDTV 16:9"
 };
-static const char *filterNames[] = {
-  VIDEO_FILTER_NONE, VIDEO_FILTER_DECIMATE, VIDEO_FILTER_DEINTERLACE,
+static const char *profilefilterNames[] = {
+  VIDEO_FILTER_NONE, VIDEO_FILTER_DEINTERLACE,
 };
 
 static bool ValidateAndSave(void)
@@ -800,6 +800,9 @@ void create_VideoSourceDialog (void)
   CreateChannelListMenu();
   CreateChannelCombo(MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX),
 		     MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX));
+  gtk_option_menu_set_history(GTK_OPTION_MENU(VideoSourceFilter),
+			      strcmp(MyConfig->GetStringValue(CONFIG_VIDEO_FILTER),
+				     VIDEO_FILTER_NONE) == 0 ? 0 : 1);
   gtk_widget_show(VideoSourceDialog);
 }
 
@@ -937,8 +940,8 @@ on_VideoProfileDialog_response         (GtkWidget       *dialog,
 			     aspectValues[gtk_option_menu_get_history(GTK_OPTION_MENU(temp))]);
       temp = lookup_widget(dialog, "VideoFilterMenu");
       profile->SetStringValue(CFG_VIDEO_FILTER,
-			      filterNames[gtk_option_menu_get_history(GTK_OPTION_MENU(temp))]);
-
+			      profilefilterNames[gtk_option_menu_get_history(GTK_OPTION_MENU(temp))]);
+      profile->Update();
       profile->WriteToFile();
     }
   } else {
@@ -1178,16 +1181,16 @@ void CreateVideoProfileDialog(CVideoProfile *profile)
                    (GtkAttachOptions)(0), 0, 0);
 
   uint filterIndex = 0; 
-  for (i = 0; i < NUM_ELEMENTS_IN_ARRAY(filterNames); i++) {
+  for (i = 0; i < NUM_ELEMENTS_IN_ARRAY(profilefilterNames); i++) {
     if (strcasecmp(profile->GetStringValue(CFG_VIDEO_FILTER),
-		   filterNames[i]) == 0) {
+		   profilefilterNames[i]) == 0) {
       filterIndex = i;
       break;
     }
   }
   CreateOptionMenu(VideoFilterMenu,
-		   filterNames,
-		   NUM_ELEMENTS_IN_ARRAY(filterNames), 
+		   profilefilterNames,
+		   NUM_ELEMENTS_IN_ARRAY(profilefilterNames), 
 		   filterIndex);
 
   dialog_action_area3 = GTK_DIALOG(VideoProfileDialog)->action_area;

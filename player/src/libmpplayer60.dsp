@@ -193,6 +193,18 @@ SOURCE=.\sync.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\text.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\text_href.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\timed_sync.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\video.cpp
 # End Source File
 # Begin Source File
@@ -310,6 +322,18 @@ SOURCE=.\rfc3119_bytestream.h
 # Begin Source File
 
 SOURCE=.\rtp_bytestream.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\text.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\text_href.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\text_plugin.h
 # End Source File
 # Begin Source File
 

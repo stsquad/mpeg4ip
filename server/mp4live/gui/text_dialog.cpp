@@ -296,6 +296,7 @@ on_TextEncoderDialog_response          (GtkDialog       *dialog,
     tp->SetFloatValue(CFG_TEXT_REPEAT_TIME_SECS,
 		      gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(wid)));
     
+    tp->Update();
   }
   free(encoderNames);
   OnTextProfileFinished(ret_profile);
@@ -448,7 +449,7 @@ static const GtkTargetEntry drop_types[] = {
 typedef struct text_line_offset_t {
   text_line_offset_t *next_line;
   uint index;
-  off_t offset;
+  uint64_t offset;
 } text_line_offset_t;
 
 typedef struct text_file_data_t {
@@ -494,7 +495,7 @@ static bool ReadNextLine (text_file_data_t *tptr)
 
 static void GoToLine (text_file_data_t *tptr, text_line_offset_t *tlptr) 
 {
-  debug_message("Go to line - %u offset %llu",
+  debug_message("Go to line - %u offset "U64,
 		tlptr->index, tlptr->offset);
   fseeko(tptr->m_file, tlptr->offset, SEEK_SET);
   tptr->m_index = tlptr->index;

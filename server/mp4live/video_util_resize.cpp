@@ -514,3 +514,50 @@ void scale_image_done(scaler_t *scaler)
     free(scaler->programX);
     free(scaler);
 }
+
+void CopyYuv (const uint8_t *fY, const uint8_t *fU, const uint8_t *fV,
+	      uint32_t fyStride, uint32_t fuStride, uint32_t fvStride,
+	      uint8_t *tY, uint8_t *tU, uint8_t *tV,
+	      uint32_t tyStride, uint32_t tuStride, uint32_t tvStride,
+	      uint32_t w, uint32_t h)
+{
+  const uint8_t *from;
+  uint8_t *to;
+  uint ix;
+  if (fyStride == tyStride) {
+    memcpy(tY, fY, fyStride * h);
+  } else {
+    to = tY;
+    from = fY;
+    for (ix = 0; ix < h; ix++) {
+      memcpy(to, from, w);
+      to += tyStride;
+      from += fyStride;
+    }
+  }
+  h /= 2;
+  w /= 2;
+
+  if (fuStride == tuStride) {
+    memcpy(tU, fU, fuStride * h);
+  } else {
+    to = tU;
+    from = fU;
+    for (ix = 0; ix < h; ix++) {
+      memcpy(to, from, w);
+      to += tuStride;
+      from += fuStride;
+    }
+  } 
+  if (fvStride == tvStride) {
+    memcpy(tV, fV, fvStride * h);
+  } else {
+    to = tV;
+    from = fV;
+    for (ix = 0; ix < h; ix++) {
+      memcpy(to, from, w);
+      to += tuStride;
+      from += fuStride;
+    }
+  }
+}

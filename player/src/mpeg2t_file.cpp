@@ -433,7 +433,7 @@ int CMpeg2tFile::create_video (CPlayerSession *psptr,
     es_pid = (mpeg2t_es_t *)pidptr;
     if (vq[ix].enabled != 0 && created == 0) {
       created = 1;
-      mptr = new CPlayerMedia(psptr);
+      mptr = new CPlayerMedia(psptr, VIDEO_SYNC);
       if (mptr == NULL) {
 	return (-1);
       }
@@ -474,7 +474,7 @@ int CMpeg2tFile::create_video (CPlayerSession *psptr,
 	delete mptr;
 	return (-1);
       }
-      ret = mptr->create(vbyte, TRUE, 0);
+      ret = mptr->create_media("video", vbyte, false);
       if (ret != 0) {
 	mpeg2f_message(LOG_CRIT, "failed to create from file");
 	return (-1);
@@ -517,7 +517,7 @@ int CMpeg2tFile::create_audio (CPlayerSession *psptr,
     es_pid = (mpeg2t_es_t *)pidptr;
     if (aq[ix].enabled != 0 && created == 0) {
       created = 1;
-      mptr = new CPlayerMedia(psptr);
+      mptr = new CPlayerMedia(psptr, AUDIO_SYNC);
       if (mptr == NULL) {
 	return (-1);
       }
@@ -559,7 +559,7 @@ int CMpeg2tFile::create_audio (CPlayerSession *psptr,
 	delete mptr;
 	return (-1);
       }
-      ret = mptr->create(abyte, FALSE, 0);
+      ret = mptr->create_media("audio", abyte, false);
       if (ret != 0) {
 	mpeg2f_message(LOG_CRIT, "failed to create from file");
 	return (-1);

@@ -612,6 +612,7 @@ on_AudioProfileDialog_response (GtkWidget *dialog,
       temp = lookup_widget(dialog, "Mp3Use14");
       profile->SetBoolValue(CFG_RTP_USE_MP3_PAYLOAD_14,
 			    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(temp)));
+      profile->Update();
       profile->WriteToFile(); // set up profile
     } 
   } else {

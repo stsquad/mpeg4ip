@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -49,15 +49,16 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_sdp_info = NULL;
   m_my_media = NULL;
   m_rtsp_client = NULL;
-  m_video_sync = NULL;
+  m_timed_sync_list = NULL;
+  m_video_list = NULL;
   m_audio_sync = NULL;
   m_sync_thread = NULL;
   m_sync_sem = NULL;
   m_content_base = NULL;
   m_master_msg_queue = master_mq;
   m_master_msg_queue_sem = master_sem;
-  m_paused = 0;
-  m_streaming = 0;
+  m_paused = false;
+  m_streaming = false;
   m_session_name = strdup(name);
   m_audio_volume = 75;
   m_current_time = 0;
@@ -89,6 +90,8 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_init_tries_made = 0;
   m_message[0] = '\0';
   m_stop_processing = SDL_CreateSemaphore(0);
+  m_audio_count = m_video_count = m_text_count = 0;
+  m_mouse_click_callback = NULL;
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -144,14 +147,18 @@ CPlayerSession::~CPlayerSession ()
   }
 
   int quit_sdl = 1;
-  if (m_video_sync != NULL) {
+  if (m_video_list != NULL) {
     // we need to know if we should quit SDL or not.  If the control
     // code has grabbed the persistence, we don't want to quit
-    if (m_video_sync->grabbed_video_persistence() != 0) {
+    if (m_video_list->grabbed_video_persistence() != 0) {
       quit_sdl = 0;
     }
-    delete m_video_sync;
-    m_video_sync = NULL;
+  }
+  CTimedSync *ts;
+  while (m_timed_sync_list != NULL) {
+    ts = m_timed_sync_list->GetNext();
+    delete m_timed_sync_list;
+    m_timed_sync_list = ts;
   } 
   if (m_grabbed_video_persistence) {
     sync_message(LOG_DEBUG, "grabbed persist");
@@ -221,7 +228,6 @@ bool CPlayerSession::start_session_work (void)
 			       m_cc_vft);
 
   if (ret >= 0) {
-    set_up_syncs();
     if (play_all_media(TRUE, 0.0) < 0) {
       err = true;
     }
@@ -246,7 +252,7 @@ int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp)
 {
   session_set_seekable(0);
   m_sdp_info = sdp;
-  m_streaming = 1;
+  m_streaming = true;
   m_streaming_ondemand = 0;
   m_rtp_over_rtsp = 0;
   return (0);
@@ -367,7 +373,7 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
     set_session_control_url(m_sdp_info->control_string);
   }
   free_decode_response(decode);
-  m_streaming = 1;
+  m_streaming = true;
   m_streaming_ondemand = (get_range_from_sdp(m_sdp_info) != NULL);
   return (0);
 }
@@ -380,7 +386,7 @@ int CPlayerSession::create_streaming_ondemand_other(rtsp_client_t *rtsp_client,
 						    int seekable)
 {
   session_set_seekable(seekable);
-  m_streaming = 1;
+  m_streaming = true;
   m_streaming_ondemand = 1;
   m_rtsp_client = rtsp_client;
   m_set_end_time = have_end_time;
@@ -389,41 +395,6 @@ int CPlayerSession::create_streaming_ondemand_other(rtsp_client_t *rtsp_client,
   m_session_control_url = control_url;
   streaming_media_set_up();
   return 0;
-}
-
-CVideoSync * CPlayerSession::set_up_video_sync (void)
-{
-  if (m_video_sync == NULL) {
-    m_video_sync = create_video_sync(this);
-  }
-  return m_video_sync;
-}
-
-
-CAudioSync *CPlayerSession::set_up_audio_sync (void)
-{
-  if (m_audio_sync == NULL) {
-    m_audio_sync = create_audio_sync(this, m_audio_volume);
-  }
-  return m_audio_sync;
-}
-/*
- * set_up_sync_thread.  Creates the sync thread, and a sync class
- * for each media
- */
-void CPlayerSession::set_up_syncs(void) 
-{
-  CPlayerMedia *media;
-
-  media = m_my_media;
-  while (media != NULL) {
-    if (media->is_video()) {
-      media->set_video_sync(set_up_video_sync());
-    } else {
-       media->set_audio_sync(set_up_audio_sync());
-    }
-    media= media->get_next();
-  }
 }
 
 /*
@@ -458,7 +429,7 @@ int CPlayerSession::play_all_media (int start_from_begin,
   }
   p = m_my_media;
   m_session_state = SESSION_BUFFERING;
-  if (m_paused == 1 && start_time == 0.0 && start_from_begin == FALSE) {
+  if (m_paused && start_time == 0.0 && start_from_begin == FALSE) {
     /*
      * we were paused.  Continue.
      */
@@ -473,7 +444,7 @@ int CPlayerSession::play_all_media (int start_from_begin,
     // Indicate what time we're starting at for sync task.
     m_play_start_time = (uint64_t)(start_time * 1000.0);
   }
-  m_paused = 0;
+  m_paused = false;
 
   send_sync_thread_a_message(MSG_START_SESSION);
   // If we're doing aggregate rtsp, send the play command...
@@ -564,7 +535,7 @@ int CPlayerSession::pause_all_media (void)
 #ifndef NEED_SDL_VIDEO_IN_MAIN_THREAD
   } while (m_sync_pause_done == 0);
 #endif
-  m_paused = 1;
+  m_paused = true;
   return (0);
 }
 void CPlayerSession::add_media (CPlayerMedia *m) 
@@ -580,32 +551,45 @@ void CPlayerSession::add_media (CPlayerMedia *m)
     }
     p->set_next(m);
   }
+  // set the sync values
+  if (m->is_audio()) {
+    // add audio sync
+    m_audio_count++;
+    m_audio_sync = m->get_audio_sync();
+    if (m_audio_sync == NULL) {
+      player_error_message("add audio media and sync is NULL");
+    }
+  } else {
+    CTimedSync *ts;
+    ts = m->get_timed_sync();
+    if (m->get_sync_type() == VIDEO_SYNC) {
+      m_video_count++;
+      if (m_video_list == NULL) {
+	m_video_list = m->get_video_sync();
+      } else {
+	CVideoSync *vs = m->get_video_sync();
+	vs->SetNextVideo(m_video_list);
+	m_video_list = vs;
+      }
+    } else {
+      m_text_count++;
+    }
+    ts->SetNext(m_timed_sync_list);
+    m_timed_sync_list = ts;
+    if (ts == NULL) {
+      player_error_message("add timed media and sync is NULL");
+    }
+  }
 }
 
-int CPlayerSession::session_has_audio (void)
+bool CPlayerSession::session_has_audio (void)
 {
-  CPlayerMedia *p;
-  p = m_my_media;
-  while (p != NULL) {
-    if (p->is_video() == FALSE) {
-      return (1);
-    }
-    p = p->get_next();
-  }
-  return (0);
+  return m_audio_count > 0;
 }
 
-int CPlayerSession::session_has_video (void)
+bool CPlayerSession::session_has_video (void)
 {
-  CPlayerMedia *p;
-  p = m_my_media;
-  while (p != NULL) {
-    if (p->is_video() != FALSE) {
-      return (1);
-    }
-    p = p->get_next();
-  }
-  return (0);
+  return m_video_count > 0;
 }
 
 void CPlayerSession::set_audio_volume (int volume)
@@ -750,7 +734,7 @@ void CPlayerSession::syncronize_rtp_bytestreams (rtcp_sync_t *sync)
   }
   CPlayerMedia *mptr = m_my_media;
   while (mptr != NULL) {
-    if (mptr->is_video()) {
+    if (mptr->is_audio() == false) {
       mptr->syncronize_rtp_bytestreams(&m_audio_rtcp_sync);
     }
     mptr = mptr->get_next();
@@ -759,11 +743,19 @@ void CPlayerSession::syncronize_rtp_bytestreams (rtcp_sync_t *sync)
 
 void *CPlayerSession::grab_video_persistence (void)
 {
-  if (m_video_sync == NULL) {
+  if (m_video_list == NULL) {
     m_grabbed_video_persistence = true;
     return m_video_persistence;
   }
-  return m_video_sync->grab_video_persistence();
+  return m_video_list->grab_video_persistence();
 }
 
+void CPlayerSession::set_cursor (bool on)
+{
+  CVideoSync *vs = m_video_list;
+  while (vs != NULL) {
+    vs->set_cursor(on);
+    vs = vs->GetNextVideo();
+  }
+}
 /* end file player_session.cpp */

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -45,10 +45,12 @@ static int screen_size = 2;
 static int fullscreen = 0;
 
 static void media_list_query (CPlayerSession *psptr,
-			      int num_video, 
+			      uint num_video, 
 			      video_query_t *vq,
-			      int num_audio,
-			      audio_query_t *aq)
+			      uint num_audio,
+			      audio_query_t *aq,
+			      uint num_text, 
+			      text_query_t *tq)
 {
   if (num_video > 0) {
     if (config.get_config_value(CONFIG_PLAY_VIDEO) != 0) {
@@ -58,6 +60,11 @@ static void media_list_query (CPlayerSession *psptr,
   if (num_audio > 0) {
     if (config.get_config_value(CONFIG_PLAY_AUDIO) != 0) {
       aq[0].enabled = 1;
+    } 
+  }
+  if (num_text > 0) {
+    if (config.get_config_value(CONFIG_PLAY_TEXT) != 0) {
+      tq[0].enabled = 1;
     } 
   }
 }
@@ -458,6 +465,7 @@ int main (int argc, char **argv)
    if ((suffix != NULL) && 
 	  ((strcasecmp(suffix, ".mp4plist") == 0) ||
 	   (strcasecmp(suffix, ".mxu") == 0) ||
+	   (strcasecmp(suffix, ".m4u") == 0) ||
        (strcasecmp(suffix, ".gmp4_playlist") == 0))) {
     const char *errmsg = NULL;
     CPlaylist *list = new CPlaylist(name, &errmsg);

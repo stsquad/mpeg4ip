@@ -5,6 +5,8 @@ xx/xx/05 Version 1.3
     Fixed H.264 extract using mp4creator to put out correct 0 0 0 1 header
     Fixed H.264 import problem using mp4creator
     Fixed a number of tool/compiler related problems
+    Mp4creator will no longer create ISMA compliant OD and BIFs tracks, 
+     as well as IODs unless -make-isma-10-compliant flag is used
 
 12/03/04 Version 1.2
     Added 3GP, .mov support to mp4v2

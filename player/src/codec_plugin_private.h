@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2002-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -47,6 +47,12 @@ codec_plugin_t *check_for_video_codec(const char *stream_type,
 				      const uint8_t *userdata,
 				      uint32_t userdata_size,
 				      CConfigSet *pConfig);
+codec_plugin_t *check_for_text_codec(const char *stream_type, 
+				     const char *compressor, 
+				     format_list_t *fptr, 
+				     const uint8_t *userdata,
+				     uint32_t userdata_size,
+				     CConfigSet *pConfig);
 
 codec_data_t *audio_codec_check_for_raw_file(const char *name,
 					     codec_plugin_t **codec,

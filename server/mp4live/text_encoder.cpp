@@ -184,7 +184,7 @@ media_desc_t *create_text_sdp (CTextProfile *pConfig)
 	     TEXT_ENCODING_PLAIN) == 0) {
     // text
     sdpRtpMap->encode_name = strdup("x-plain-text");
-    sdpMedia->media = strdup("data");
+    sdpMedia->media = strdup("application");
   } else {
     sdpRtpMap->encode_name = strdup("X-HREF");
     sdpMedia->media = strdup("control");

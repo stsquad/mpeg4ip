@@ -397,8 +397,25 @@ void CVideoEncoder::ProcessVideoYUVFrame(CMediaFrame *pFrame)
   // this has to be rewritten to not mess with the original YUV, 
   // since it has to be done after the resizer.
   if (m_videoFilterInterlace) {
-    error_message("Interlace filter needs rewrite");
-    //video_filter_interlace(yImage, yImage + m_videoDstYSize, yStride);
+    if (mallocedYuvImage == NULL) {
+      u_int8_t* YUV = (u_int8_t*)Malloc(m_videoDstYUVSize);
+		
+      u_int8_t* pY = YUV;
+      u_int8_t* pU = YUV + m_videoDstYSize;
+      u_int8_t* pV = YUV + m_videoDstYSize + m_videoDstUVSize;
+      CopyYuv(yImage, uImage, vImage, yStride, uvStride, uvStride,
+	      pY, pU, pV, m_videoDstWidth, m_videoDstWidth/2, m_videoDstWidth / 2,
+	      m_videoDstWidth, m_videoDstHeight);
+      mallocedYuvImage = YUV;
+      yImage = pY;
+      uImage = pU;
+      vImage = pV;
+      yStride = m_videoDstWidth;
+      uvStride = yStride / 2;
+      // need to copy
+    }
+    video_filter_interlace((uint8_t *)yImage, 
+			   (uint8_t *)yImage + m_videoDstYSize, yStride);
   }
   // if we want encoded video frames
   // this checkr really doesnt need to be here

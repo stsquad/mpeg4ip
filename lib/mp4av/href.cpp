@@ -55,6 +55,7 @@ extern "C" bool HrefHinter (MP4FileHandle mp4file,
 
   for (sampleId = 1; sampleId <= numSamples; sampleId++) {
     sampleSize = MP4GetSampleSize(mp4file, trackid, sampleId);
+    MP4AddRtpHint(mp4file, hintTrackId);
     MP4AddRtpPacket(mp4file, hintTrackId, true);
     uint8_t payloadHeader[4];
     payloadHeader[0] = 0;

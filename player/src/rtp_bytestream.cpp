@@ -409,7 +409,7 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
 	rtp_message(LOG_CRIT, "SDL Lock mutex failure in rtp bytestream recv");
 	return;
       }
-      m_recvd_pak = 1;
+      m_recvd_pak = true;
     }
     break;
   case RX_SR:
@@ -606,7 +606,6 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 		      tail_ts, calc);
 #endif
 	  m_next_seq = m_head->rtp_pak_seq - 1;
-	  rtp_done_buffering();
 	  
 	}
       }
@@ -623,8 +622,8 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	return (1);
       }
     }
-    if (m_recvd_pak == 0) {
-      if (m_recvd_pak_timeout == 0) {
+    if (m_recvd_pak == false) {
+      if (m_recvd_pak_timeout == false) {
 	m_recvd_pak_timeout_time = get_time_of_day();
 #if 0
 	rtp_message(LOG_DEBUG, "%s Starting timeout at "U64, 
@@ -659,10 +658,10 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	}
 	
       }
-      m_recvd_pak_timeout++;
+      m_recvd_pak_timeout = true;
     } else {
-      m_recvd_pak = 0;
-      m_recvd_pak_timeout = 0;
+      m_recvd_pak = false;
+      m_recvd_pak_timeout = false;
     }
   }
   return (m_buffering);

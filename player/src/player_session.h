@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -45,8 +45,11 @@ typedef enum {
 class CPlayerMedia;
 class CAudioSync;
 class CVideoSync;
+class CTimedSync;
 
 typedef void (*media_close_callback_f)(void *);
+
+typedef void (*mouse_click_callback_f)(void *, uint16_t x, uint16_t y);
 
 typedef struct rtcp_sync_t {
   uint64_t first_pak_ts;
@@ -57,6 +60,11 @@ typedef struct rtcp_sync_t {
 } rtcp_sync_t;
 
 struct control_callback_vft_t;
+typedef enum {
+  AUDIO_SYNC,
+  VIDEO_SYNC, 
+  TIMED_TEXT_SYNC,
+} session_sync_types_t;
 
 class CPlayerSession {
  public:
@@ -116,12 +124,6 @@ class CPlayerSession {
   session_desc_t *get_sdp_info (void) { return m_sdp_info;} ;
   rtsp_client_t *get_rtsp_client (void) { return m_rtsp_client; };
   /*
-   * API routine - after setting up media, need to set up sync thread
-   */
-  void set_up_syncs(void);
-  CVideoSync *set_up_video_sync(void);
-  CAudioSync *set_up_audio_sync(void);
-  /*
    * API routine - get the current time
    */
   uint64_t get_playing_time (void) {
@@ -137,14 +139,15 @@ class CPlayerSession {
   /*
    * Other API routines
    */
-  int session_has_audio(void);
-  int session_has_video(void);
+  bool session_has_audio(void);
+  bool session_has_video(void);
   void set_audio_volume(int volume);
   int get_audio_volume(void) { return m_audio_volume; };
   void set_screen_location(int x, int y);
   void set_screen_size(int scaletimes2, int fullscreen = 0,
 		       int pixel_width = -1, int pixel_height = -1,
 		       int max_width = -1, int max_height = -1);
+  void set_cursor(bool on);
   void session_set_seekable (int seekable) {
     m_seekable = seekable;
   };
@@ -160,7 +163,7 @@ class CPlayerSession {
     m_media_close_callback_data = mccd;
   }
   int session_is_network (int &on_demand, int &rtp_over_rtsp) {
-    if (m_streaming == 0) {
+    if (m_streaming == false) {
       return 0;
     }
     if (m_seekable) { 
@@ -211,6 +214,13 @@ class CPlayerSession {
     return ((m_stop_processing != NULL) &&
 	    (SDL_SemTryWait(m_stop_processing) == 0));
   };
+  int m_screen_pos_x;
+  int m_screen_pos_y;
+  void register_mouse_click_callback(mouse_click_callback_f f, 
+				     void *data) {
+    m_mouse_click_callback = f;
+    m_mouse_click_callback_ud = data;
+  };
  private:
   void *m_video_connection;
   int m_started_video_connection;
@@ -225,8 +235,8 @@ class CPlayerSession {
   int sync_thread_done(void);
   const char *m_session_name;
   const char *m_content_base;
-  int m_paused;
-  int m_streaming;
+  bool m_paused;
+  bool m_streaming;
   int m_streaming_ondemand;
   uint64_t m_current_time; // current time playing
   uint64_t m_start;
@@ -235,8 +245,12 @@ class CPlayerSession {
   session_desc_t *m_sdp_info;
   rtsp_client_t *m_rtsp_client;
   CPlayerMedia *m_my_media;
+  uint m_audio_count;
+  uint m_video_count;
+  uint m_text_count;
   CAudioSync *m_audio_sync;
-  CVideoSync *m_video_sync;
+  CTimedSync *m_timed_sync_list;
+  CVideoSync *m_video_list;
   SDL_Thread *m_sync_thread;
   SDL_sem *m_sync_sem;
   CMsgQueue *m_master_msg_queue;
@@ -253,8 +267,6 @@ class CPlayerSession {
   int m_seekable;
   volatile int m_sync_pause_done;
   session_state_t m_session_state;
-  int m_screen_pos_x;
-  int m_screen_pos_y;
   int m_hardware_error;
   #define SESSION_DESC_COUNT 4
   const char *m_session_desc[SESSION_DESC_COUNT];
@@ -277,6 +289,8 @@ class CPlayerSession {
   char m_message[512];
   control_callback_vft_t *m_cc_vft;
   SDL_sem *m_stop_processing;
+  mouse_click_callback_f m_mouse_click_callback;
+  void *m_mouse_click_callback_ud;
 };
 
 int c_sync_thread(void *data);

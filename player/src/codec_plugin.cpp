@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2002-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -72,11 +72,17 @@ typedef struct dir_list_t {
 /*
  * codec_plugin_list_t is how we store the codec links
  */
+typedef enum {
+  CODEC_TYPE_AUDIO, 
+  CODEC_TYPE_VIDEO,
+  CODEC_TYPE_TEXT
+} codec_type_t;
+
 typedef struct plugin_list_t {
   struct plugin_list_t *next_plugin;
   FILE_HANDLE    file_handle;
   LIBRARY_HANDLE dl_handle;
-  bool codec_is_audio;
+  codec_type_t codec_type;
   codec_plugin_t *codec;
   rtp_plugin_t *rtp_plugin;
 } plugin_list_t;
@@ -254,13 +260,18 @@ void initialize_plugins (CConfigSet *pConfig)
 	  bool add = true;
 	  if (strcmp(cptr->c_type, "audio") == 0) {
 	    p->codec = cptr;
-	    p->codec_is_audio = true;
+	    p->codec_type = CODEC_TYPE_AUDIO;
 	    message(LOG_INFO, "plugin", "Adding audio plugin %s %s", 
 		    cptr->c_name, fname);
 	  } else if (strcmp(cptr->c_type, "video") == 0) {
 	    p->codec = cptr;
-	    p->codec_is_audio = false;
+	    p->codec_type = CODEC_TYPE_VIDEO;
 	    message(LOG_INFO, "plugin", "Adding video plugin %s %s", 
+		    cptr->c_name, fname);
+	  } else if (strcmp(cptr->c_type, "text") == 0) {
+	    p->codec = cptr;
+	    p->codec_type = CODEC_TYPE_TEXT;
+	    message(LOG_INFO, "plugin", "Adding text plugin %s %s", 
 		    cptr->c_name, fname);
 	  } else {
 	    add = false;
@@ -338,7 +349,7 @@ codec_plugin_t *check_for_audio_codec (const char *stream_type,
   aptr = plugins;
   while (aptr != NULL) {
     if (aptr->codec != NULL &&
-	aptr->codec_is_audio &&
+	aptr->codec_type == CODEC_TYPE_AUDIO &&
 	aptr->codec->c_compress_check != NULL) {
       int temp;
       temp = (aptr->codec->c_compress_check)(message,
@@ -368,6 +379,50 @@ codec_plugin_t *check_for_audio_codec (const char *stream_type,
  * check_for_video_codec
  * search the list of video plugins  for one that matches the parameters
  */
+codec_plugin_t *check_for_text_codec (const char *stream_type,
+				      const char *compressor,
+				      format_list_t *fptr,
+				      const uint8_t *userdata,
+				      uint32_t userdata_size,
+				      CConfigSet *pConfig)
+{
+  plugin_list_t *vptr;
+  int best_value = 0;
+  codec_plugin_t *ret;
+
+  ret = NULL;
+  vptr = plugins;
+  while (vptr != NULL) {
+    if (vptr->codec && 
+	vptr->codec_type == CODEC_TYPE_TEXT &&
+	vptr->codec->c_compress_check != NULL) {
+      int temp;
+      temp = (vptr->codec->c_compress_check)(message,
+					     stream_type,
+					     compressor,
+					     0,
+					     0, 
+					     fptr,
+					     userdata,
+					     userdata_size,
+					     pConfig);
+      if (temp > best_value) {
+	best_value = temp;
+	ret = vptr->codec;
+      }
+    }
+    vptr = vptr->next_plugin;
+  }
+  if (ret != NULL) {
+    message(LOG_DEBUG, "plugin", 
+	    "Found matching text plugin %s", ret->c_name);
+  }
+  return (ret);
+}
+/*
+ * check_for_video_codec
+ * search the list of video plugins  for one that matches the parameters
+ */
 codec_plugin_t *check_for_video_codec (const char *stream_type,
 				       const char *compressor,
 				       format_list_t *fptr,
@@ -385,7 +440,7 @@ codec_plugin_t *check_for_video_codec (const char *stream_type,
   vptr = plugins;
   while (vptr != NULL) {
     if (vptr->codec && 
-	vptr->codec_is_audio == false &&
+	vptr->codec_type == CODEC_TYPE_VIDEO &&
 	vptr->codec->c_compress_check != NULL) {
       int temp;
       temp = (vptr->codec->c_compress_check)(message,
@@ -457,7 +512,7 @@ codec_data_t *video_codec_check_for_raw_file (const char *name,
   
   while (vptr != NULL) {
     if (vptr->codec != NULL &&
-	vptr->codec_is_audio == false &&
+	vptr->codec_type == CODEC_TYPE_VIDEO &&
 	vptr->codec->c_raw_file_check != NULL) {
       cifptr = vptr->codec->c_raw_file_check(message,
 					     name,
@@ -498,7 +553,7 @@ codec_data_t *audio_codec_check_for_raw_file (const char *name,
   while (aptr != NULL) {
 
     if (aptr->codec != NULL &&
-	aptr->codec_is_audio &&
+	aptr->codec_type == CODEC_TYPE_AUDIO &&
 	aptr->codec->c_raw_file_check != NULL) {
       message(LOG_DEBUG, "plugin", 
 	      "Trying raw file codec %s", aptr->codec->c_name);

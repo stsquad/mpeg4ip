@@ -40,6 +40,7 @@ lookup_widget                          (GtkWidget       *widget,
   return found_widget;
 }
 
+#if 0
 static GList *pixmaps_directories = NULL;
 
 /* Use this function to set the directory containing installed pixmaps. */
@@ -123,20 +124,5 @@ create_pixbuf                          (const gchar     *filename)
   g_free (pathname);
   return pixbuf;
 }
-
-/* This is used to set ATK action descriptions. */
-void
-glade_set_atk_action_description       (AtkAction       *action,
-                                        const gchar     *action_name,
-                                        const gchar     *description)
-{
-  gint n_actions, i;
-
-  n_actions = atk_action_get_n_actions (action);
-  for (i = 0; i < n_actions; i++)
-    {
-      if (!strcmp (atk_action_get_name (action, i), action_name))
-        atk_action_set_description (action, i, description);
-    }
-}
+#endif
 

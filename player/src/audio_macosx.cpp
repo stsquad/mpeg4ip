@@ -265,9 +265,9 @@ static audio_vft_t audio_vft = {
   NULL,
 };
 
-CAudioSync *create_audio_sync (CPlayerSession *psptr, int volume)
+CAudioSync *create_audio_sync (CPlayerSession *psptr)
 {
-  return new CPortAudioSync(psptr, volume);
+  return new CPortAudioSync(psptr, psptr->get_audio_volume());
 }
 
 audio_vft_t *get_audio_vft (void)

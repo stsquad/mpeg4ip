@@ -938,11 +938,14 @@ kernel IP receive stack and in the player.
 <P>
 Mp4live has very little latency.  There is no latency from when the video frame
 is encoded with mpeg4.  With MPEG-2, the B frames require a 2 frame latency
-period.  In audio, it tends to be 3-4 audio frames (if using AAC, frames 
-tend to be 1024 samples.  MP3 tends to be 1152 samples, but can change based on
-sampling frequency and bit rate.  Samples can be converted to seconds by
-dividing by the sample rate).  You can remove some of this latency by
-not bundling multiple frames in an RTP packet.
+period.  In audio, mpeg style codecs usually require 2 or 3 frames to
+begin generating output. (if using AAC, frames tend to be 1024 samples.  
+MP3 tends to be 1152 samples, but can change based on sampling frequency and 
+bit rate.  Samples can be converted to seconds by dividing by the sample rate).
+<p>
+You can remove some of this latency by not bundling multiple frames in 
+an RTP packet.  This can be set using the rtpMaxFramesPerPacket in the
+Audio Profile configuration file in mp4live.
 <P>
 The kernel IP stacks can have some latency built in, as well.  Probably
 not too much, but you should be aware that it can exist (look at a sniffer
@@ -960,15 +963,6 @@ RtpBufferTimeMsec variable in the .gmp4player_rc file (for Windows users,
 you'll have to change the registry to do so).  The value is in milliseconds, 
 and you need to set it to a non-zero value (0 indicates the default value).
 <p>
-Recently, I've noticed that the player seems to increase latency over time - 
-going from a couple of seconds until 30 or more seconds after a couple of
-hours.  This is most likely due to a couple of different reasons.  I believe
-that it is due to the output frequency of the sound card not equaling the
-requested sampling frequency, and rounding errors in converting the sampling
-frequency to milliseconds.  This does not affect the synchronization, which
-seems to work.  However, after a day or 2, this may lead to the player 
-crashing, as the buffer grows and grows.
-<P>
 <a href="#top">Back to top</a>
 <P>
 <div id="player">

@@ -779,6 +779,9 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
   } else if (sptr->m_stream_id == 0xbd) {
     if (sptr->m_substream_id >= 0xa0) {
       // PCM - ???
+      sptr->freq = 48000;
+      sptr->channels = 2;
+      sptr->samples_per_frame = 1024;
     } else if (sptr->m_substream_id >= 0x80) {
       // ac3
       const uint8_t *temp;
@@ -834,8 +837,10 @@ static uint64_t convert_ts (mpeg2ps_stream_t *sptr,
     ret += frames_since_ts * sptr->ticks_per_frame;
   } else {
     // audio
-    calc = (frames_since_ts * 90000 * sptr->samples_per_frame) / sptr->freq;
-    ret += calc;
+    if (frames_since_ts != 0 && sptr->freq != 0) {
+      calc = (frames_since_ts * 90000 * sptr->samples_per_frame) / sptr->freq;
+      ret += calc;
+    }
   }
   if (ts_type == TS_MSEC)
     ret /= TO_U64(90); // * 1000 / 90000

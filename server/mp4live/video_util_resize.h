@@ -88,4 +88,9 @@ extern double Mitchell_filter(double t);
 #define       Lanczos3_support  (3.0)
 extern double Lanczos3_filter(double t);
 
+void CopyYuv(const uint8_t *fY, const uint8_t *fU, const uint8_t *fV,
+	     uint32_t fyStride, uint32_t fuStride, uint32_t fvStride,
+	     uint8_t *tY, uint8_t *tU, uint8_t *fV,
+	     uint32_t tyStride, uint32_t tvStride, uint32_t tvStride,
+	     uint32_t w, uint32_t h);
 #endif

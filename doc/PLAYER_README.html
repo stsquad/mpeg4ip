@@ -19,6 +19,7 @@ as well as an <a href="pi.html">internals guide</a> to the player.
 <a href="#configvar">Configuration Variables</a><br>
 <a href="#plugin">Player Plugins</a><br>
 <a href="#url">Player URLS</a><br>
+<a href="#href">ISMA Href Support</a><br>
 <a href="#keys">MP4Player key shortcuts</a><br>
 <a href="#wgui">Windows GUI</a><br>
 <a href="#pb">Known Problems</a><P>
@@ -149,6 +150,9 @@ Here is the current list by categories:
 <tr align=center>
 <td>Mpeg2tPamWaitSecs</td><td>Integer</td><td>30</td><td>no</td><td>Sets time to wait for PAM in Mpeg2 transport session</td>
 </tr>
+<tr align=center>
+<td>UrlExec</td><td>String</td><td>NULL</td><td>no</td><td>path to executable for Href url dispatch (not in Windows))</td>
+</tr>
 <tr><td colspan=5 align=center><b>Debugging Knobs</b></td></tr>
 <tr>
   <th>Name</th><th>Type</th><th>Default</th><th>Gui</th><th>Does</th>
@@ -196,7 +200,7 @@ Here is the current list by categories:
 Starting with version 0.9.3.2, we've gone to a plugin model for audio
 and video codecs for the player.  This is true for both windows and
 linux platforms.  As of 0.9.7, we also have plugins available for 
-RTP byte streams.
+RTP byte streams.  Release 1.3 adds text type plugins.
 <P>
 On linux (and linux like) platforms, the plugins should be in the 
 mp4player_plugin directory, which is a sub directory of where the
@@ -238,6 +242,36 @@ running the iptv_prog utility with the content manager as a parameter.
 <P>
 <a href="#top">Back to top</a>
 <P>
+<div id="href">
+<h2><b>ISMA Href Support</b></h2>
+</div>
+<P>
+In release 1.3, we implemented support for ISMA href.  This is a method
+that allows timed opening of web pages to synchronize with audio and
+video.
+<p>
+There are 2 methods that can be used; automatically dispatching URLs, or
+click to dispatch.  Normally, the cursor will be off in the video window
+while the video is running.  Click to dispatch will enable the cursor in 
+the window while active.
+<p>
+While using this feature, the browser should be set to open new urls
+in the existing window.  In Firefox, this setting is in Preferences->Advanced->Tabbed Browsing.  Make sure "Open Links From Other Applications" is set
+to "the most recent tab/window".
+<p>
+On Windows, the default browser will be used.  On Mac OS X, the
+"open" command is used (which should use the default browser).  On
+Linux, /usr/bin/firefox/firefox is tried.  The browser in question
+can be set up by using the UrlExec configuration file setting; the
+full path to the browser should be used.
+<p>
+On Linux, Konquerer web browser can not be used, as it will open
+a different process for each url.
+<p>
+On Mac OS X, Safari should be avoided; there is no setting to open
+URLs in the same window, only in a new window or new tab.
+<p>
+
 <div id="keys">
 <h2><b>MP4Player key shortcuts</b></h2>
 </div>

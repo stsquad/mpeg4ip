@@ -110,6 +110,7 @@ int main(int argc, char** argv)
     "  -hint[=<track-id>]      Create hint track, also -H\n"
     "  -interleave             Use interleaved audio payload format, also -I\n"
     "  -list                   List tracks in mp4 file\n"
+    "  -make-isma-10-compliant Insert bifs and od tracks required for some ISMA players (also -i)\n"
     "  -mpeg4-video-profile=<level> Mpeg4 video profile override\n"
     "  -mtu=<size>             Maximum Payload size for RTP packets in hint track\n"
     "  -optimize               Optimize mp4 file layout\n"
@@ -132,6 +133,7 @@ int main(int argc, char** argv)
   bool doList = false;
   bool doOptimize = false;
   bool doInterleave = false;
+  bool doIsma = false;
   uint64_t createFlags = 0;
   char* mp4FileName = NULL;
   char* inputFileName = NULL;
@@ -176,6 +178,7 @@ int main(int argc, char** argv)
       { "hint", 2, 0, 'H' },
       { "interleave", 0, 0, 'I' },
       { "list", 0, 0, 'l' },
+      { "make-isma-10-compliant", 0, 0, 'i' },
       { "mpeg4-video-profile", 1, 0, 'M' },
       { "mtu", 1, 0, 'm' },
       { "optimize", 0, 0, 'O' },
@@ -190,7 +193,7 @@ int main(int argc, char** argv)
       { NULL, 0, 0, 0 }
     };
 
-    c = getopt_long_only(argc, argv, "aBc:Cd:e:E::GH::IlL:m:Op:P:r:t:T:uUv::VZ",
+    c = getopt_long_only(argc, argv, "aBc:Cd:e:E::GH::iIlL:m:Op:P:r:t:T:uUv::VZ",
 			 long_options, &option_index);
 
     if (c == -1)
@@ -281,6 +284,9 @@ int main(int argc, char** argv)
 	  exit(EXIT_COMMAND_LINE);
 	}
       }
+      break;
+    case 'i':
+      doIsma = true;
       break;
     case 'I':
       doInterleave = true;
@@ -448,19 +454,19 @@ int main(int argc, char** argv)
   // operations consistency checks
   
   if (!doList && !doCreate && !doHint && !doEncrypt  
-      && !doOptimize && !doExtract && !doDelete) {
+      && !doOptimize && !doExtract && !doDelete && !doIsma) {
     fprintf(stderr, 
 	    "%s: no operation specified\n",
 	    ProgName);
     exit(EXIT_COMMAND_LINE);
   }
-  if ((doCreate || doHint || doEncrypt) && doExtract) {
+  if ((doCreate || doHint || doEncrypt || doIsma) && doExtract) {
     fprintf(stderr, 
 	    "%s: extract operation must be done separately\n",
 	    ProgName);
     exit(EXIT_COMMAND_LINE);
   }
-  if ((doCreate || doHint || doEncrypt) && doDelete) {
+  if ((doCreate || doHint || doEncrypt || doIsma) && doDelete) {
     fprintf(stderr, 
 	    "%s: delete operation must be done separately\n",
 	    ProgName);
@@ -651,18 +657,8 @@ int main(int argc, char** argv)
                           0x0001,
                           p3gppSupportedBrands,
                           sizeof(p3gppSupportedBrands) / sizeof(p3gppSupportedBrands[0]));
-    } else {
-      // check if it should be ISMA - check profile 
-      uint8_t video_profile = MP4GetVideoProfileLevel(mp4File);
-      uint8_t audio_profile = MP4GetAudioProfileLevel(mp4File);
-      MP4Close(mp4File);
-      if ((video_profile >= 0xfe) ||
-	  (audio_profile >= 0xfe)) {
-	// not isma compliant - we have non isma stuff.
-      } else {
-	MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
-      }
-    }
+    } 
+    MP4Close(mp4File);
   } else if (doEncrypt) { 
     // just encrypting, not creating nor hinting, but may already be hinted
     if (!mp4FileExists) {
@@ -781,9 +777,6 @@ int main(int argc, char** argv)
 
     MP4Close(mp4File);
     MP4Close(outputFile);
-    bool allMpeg4Streams = true;
-    MP4MakeIsmaCompliant(outputFileName, Verbosity, allMpeg4Streams);
-
   } else if (doExtract) {
     if (!mp4FileExists) {
       fprintf(stderr,
@@ -828,6 +821,10 @@ int main(int argc, char** argv)
     MP4Close(mp4File);
 
     doOptimize = true;	// to purge unreferenced track data
+  }
+  
+  if (doIsma) {
+    MP4MakeIsmaCompliant(mp4FileName, Verbosity);
   }
 
   if (doOptimize) {

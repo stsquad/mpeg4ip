@@ -6,7 +6,7 @@
 <body id="top">
 <h1>MP4LIVE README</h1>
 <p>
-December, 2004<br>  
+March, 2005<br>  
 Dave Mackie<br>
 Bill May<br>
 <p>
@@ -25,6 +25,7 @@ Cesar Gonzalez
 <a href="#tips">Tips</a><br>
 <a href="#build">Building and Installing</a><br>
 <a href="#using">Using mp4live</a><br>
+<a href="#href">Text and ISMA Href streams</a><br>
 <a href="#qt">Use with QT 6.0 and Real One</a><br>
 <a href="#nw">Network Transmission</a><br>
 <a href="#dss">Use with Darwin Streaming Server</a><br>
@@ -60,7 +61,8 @@ enhancements, ask questions, etc. The URL is
 </div>
 <p>
 Mp4live has been rewritten to handle multiple streams from
-a single audio and video source.
+a single audio and video source, as well as being able to generate
+ISMA href and text streams.
 <P>
 <div id="s1.1">
 <h2>Changes in Version 1.1</h2>
@@ -282,7 +284,7 @@ parameters.   Different profiles can be created, and can be selected from
 at any time mp4live is run.  For example, you could create a video profile
 that has mpeg-4 with ffmpeg at 320x240, 500Mbps, and another one with mpeg-4 
 with xvid at 352x288, 750Mbps.  You can then switch between these 2
-profiles without changing each settings.
+profiles without changing each setting.
 <p>
 Profiles are stored in a user settable directory (by default ~/.mp4live_d),
 with Audio, Video and Text sub-directories.  Profiles can be created
@@ -363,6 +365,53 @@ These filters do take up some processing power, so be careful.
 <P>
 <a href="#top">Back to top</a>
 <P>
+<div id="href">
+<h2>Use with Text or ISMA Href Streams</h2>
+</div>
+<p>
+Along with audio and video, mp4live allows you to transmit plain
+text, or href streams as defined in ISMA's 2.0 specification.
+<p>
+There are currently 3 sources of getting entries for these streams:
+<ol>
+<li>
+Entry GUI - allows the user to enter entries in a dialog
+</li>
+<li>
+Timed File - a file with time in seconds, followed by element to send:<br>
+0  http://www.cisco.com<br>
+2.5 http://www.yahoo.com<br>
+3.5 http://www.google.com<br>
+</li>
+<li>
+File with Entry GUI - specify entries in a file, then use a GUI.  The user can 
+control when the entry is sent, as well as navigating through the entries, or 
+entering an entry not in the file.
+</li>
+</ol>
+<p>
+ISMA Href's can be used to either automatically open a URL (also
+known as auto dispatch), or open the target URL when clicked.
+<p>
+Hrefs have the following format:
+<p>
+[A]&lt;entry url&gt;[T&lt;target element&gt;][E&lt;embeded parameters element&gt;][M&lt;&gt;]
+<br>
+The &lt; and &gt; are mandatory around the entry URL.  The remain elements 
+defined as:
+<ul>
+<li>A is used to indicate auto-dispatched urls; if missing url is clickable</li>
+<li>T&lt;target&gt; is used to specify a target for the URL (frames, etc)</li>
+<li>E&lt;embed&gt; is used for extra parameters (unused now)</li>
+<li>M&lt;&gt; is used with clickable url to get click location<li>
+</ul>
+<p>
+mp4live will automatically generate the A&lt; and &gt; if a &lt; is not
+the first character entered.  So if <code>http://www.cisco.com</code> is
+entered, <code>A&lt;http://www.cisco.com&gt;</code> will be generated.
+<p>
+<a href="#top">Back to top</a>
+<p>
 <div id="qt">
 <h2>Use with QT 6.0 and Real One</h2>
 </div>
@@ -658,8 +707,10 @@ have the capability or inclination to debug that for you!
 <div id="config">
 <h2>Configuration Variables</h2>
 </div>
+<h3>Global Configuration</h3>
+<p>Global configuration variables are stored in .mp4live_rc file
 <P>
-<table border cellpadding=4 summary="Configuration variables">
+<table border cellpadding=4 summary="Global Configuration variables">
 <tbody>
 <tr><th colspan=5 align=center><b>Application Level</b></th></tr></tbody>
 <tbody>
@@ -670,22 +721,15 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>durationUnits</td><td>int</td><td>60</td><td>Number of seconds per duration unit (1, 60, 3600, 86400)</td></tr>
 <tr align=center><td>debug</td><td>bool</td><td>false</td><td>Enable debug output</td></tr>
 <tr align=center><td>signalHalt</td><td>string</td><td>sighup</td><td>Signal used in no gui mode to stop</td></tr>
-<tr><th colspan=5 align=center><b>Audio Options</b></tr>
-<tr align=center><td>audioEnable</td><td>bool</td><td>true</td><td>True if audio is enabled</td></tr>
+<tr><th colspan=5 align=center><b>Global Audio Settings</b></th></tr>
 <tr align=center><td>audioSourceType</td><td>string</td><td>OSS</td><td>Audio Source Type (only OSS for now)</td></tr>
 <tr align=center><td>audioDevice</td><td>string</td><td>/dev/dsp</td><td>Audio Device to use</td></tr>
 <tr align=center><td>audioMixer</td><td>string</td><td>/dev/mixer</td><td>Audio Mixer to use</td></tr>
 <tr align=center><td>audioInput</td><td>string</td><td>mix</td><td>Audio Input Type to use</td></tr>
-<tr align=center><td>audioChannels</td><td>int</td><td>2</td><td>Number of Encoded Audio Channels (1 or 2)</td></tr>
-<tr align=center><td>audioSampleRate</td><td>int</td><td>44100</td><td>Audio Frequency Sample Rate</td></tr>
-<tr align=center><td>audioBitRateBps</td><td>int</td><td>128000</td><td>Encoded Audio Bit Rate</td></tr>
-<tr align=center><td>audioEncoding</td><td>string</td><td>MP3</td><td>Audio Encoding to use</tr>
-<tr align=center><td>audioEncoder</td><td>string</td><td>LAME</td><td>Audio Encoder to use</tr>
 <tr align=center><td>audioOssUseSmallFrags</td><td>bool</td><td>true</td><td>Enable small fragments size in OSS</tr>
 <tr align=center><td>audioOssFragments</td><td>int</td><td>128</td><td>Number of fragments</tr>
 <tr align=center><td>audioOssFragSize</td><td>int</td><td>8</td><td>Size of fragments</tr>
-<tr><th colspan=5 align=center><b>Video Options</b></tr>
-<tr align=center><td>videoEnable</td><td>bool</td><td>true</td><td>Enable Video</tr>
+<tr><th colspan=5 align=center><b>Global Video Settings</b></th></tr>
 <tr align=center><td>videoSourceType</td><td>string</td><td>V4L</td><td>Video Source to use <br>(V4L is for both V4L and V4L2)</tr>
 <tr align=center><td>videoDevice</td><td>string</td><td>/dev/video0</td><td>Video Device to use</tr>
 <tr align=center><td>videoInput</td><td>int</td><td>1</td><td>Video Input to use (index from V4L)</tr>
@@ -696,25 +740,114 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>videoPreview</td><td>bool</td><td>true</td><td>Show Video Preview in Gui</tr>
 <tr align=center><td>videoRawPreview</td><td>bool</td><td>false</td><td>Show Raw Video Preview in Gui</tr>
 <tr align=center><td>videoEncodedPreview</td><td>bool</td><td>true</td><td>Show Encoded Video Preview in Gui</tr>
-<tr align=center><td>videoEncoder</td><td>string</td><td>xvid</td><td>Video Encoder Type</tr>
-<tr align=center><td>videoEncoding</td><td>string</td><td>MPEG4</td><td>Video Encoding Type</tr>
-<tr align=center><td id="vheight">videoRawWidth</td><td>int</td><td>320</td><td>Width of output frame in pixels</tr>
-<tr align=center><td>videoRawHeight</td><td>int</td><td>240</td><td>Height of output frame in pixels</tr>
-<tr align=center><td>videoAspectRatio</td><td>float</td><td>1.33</td><td>Aspect ratio</tr>
-<tr align=center><td>videoFrameRate</td><td>float</td><td>29.97</td><td>Frame Rate</tr>
-<tr align=center><td>videoKeyFrameInterval</td><td>float</td><td>2.0</td><td>Number of Seconds between Key Frames</tr>
-<tr align=center><td>videoBitRate</td><td>int</td><td>500</td><td>Encoded Video Bit Rate in 1000 bits per second</tr>
-<tr align=center><td>videoForceProfileId</td><td>bool</td><td>false</td><td>True to force MPEG4 Video Profile to videoProfileId</tr>
-<tr align=center><td>videoProfileId</td><td>int</td><td>3 (SP@L3)</td><td>MPEG4 Video Profile when forcing</tr>
 <tr align=center><td>videoBrightness</td><td>int</td><td>50</td><td>Brightness level (0 to 100)</tr>
 <tr align=center><td>videoHue</td><td>int</td><td>50</td><td>Hue level (0 to 100)</tr>
 <tr align=center><td>videoColor</td><td>int</td><td>50</td><td>Color level (0 to 100)</tr>
 <tr align=center><td>videoContrast</td><td>int</td><td>50</td><td>Contrast level (0 to 100)</tr>
 <tr align=center><td>videoTimestampCache</td><td>bool</td><td>true</td><td>Calculate timestamps, rather than read with timestamp<br>(V4L only)</tr>
+<tr align=center><td>videoFilter</td><td>string</td><td>none</td><td>Video filter to use (none, "deinterlace - blend")</td></tr>
+<tr><th colspan=5 align=center><b>Global Recording Options</b></tr>
+<tr align=center><td>recordEnable</td><td>bool</td><td>true</td><td>True to record</tr>
+<tr align=center><td>recordRawInMp4</td><td>bool</td><td>true</td><td>True to record raw audio and video in MP4 File</tr>
+<tr align=center><td>recordRawMp4Audio</td><td>bool</td><td>false</td><td>True to record raw audio <br>(PCM at encode frequency)</tr>
+<tr align=center><td>recordRawMp4Video</td><td>bool</td><td>false</td><td>True to record raw video <br>(YUV at height/width)</tr>
+<tr align=center><td>recordMp4HintTracks</td><td>bool</td><td>true</td><td>Record hint tracks when recording completed</tr>
+<tr align=center><td>recordMp4Optimize</td><td>bool</td><td>false</td><td>Optimize mp4 file when recording completed</tr>
+<tr align=center><td>recordMp4FileStatus</td><td>integer</td><td>1</td><td>What happens to file when restarted:<br>
+0 - append, 1 - overwrite,<br> 2 - create new file with timestamp</tr>
+
+<tr align=center><td>rawEnable</td><td>bool</td><td>0</td><td>ouput raw audio/video to file</tr>
+<tr align=center><td>rawAudioUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
+<tr align=center><td>rawAudioFile</td><td>String</td><td>capture.yuv</td><td>File to store raw PCM</tr>
+<tr align=center><td>rawVideoUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
+<tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw YUV</tr>
+<tr><th colspan=5 align=center><b>Global Transmission (RTP) Options</b></tr>
+<tr align=center><td>rtpPayloadSize</td><td>int</td><td>1460</td><td>max bytes of audio or video per packet</tr>
+<tr align=center><td>rtpMulticastTtl</td><td>int</td><td>15</td><td>Multicast TTl</tr>
+<tr align=center><td>rtpDisableTimestampOffset</td><td>bool</td><td>false</td><td>If true, start RTP timestamps at 0<br>if false, start at random offset</tr>
+<tr align=center><td>rtpUseSingleSourceMulticast</td><td>bool</td><td>false</td><td>Use SSM multicast</tr>
+<tr align=center><td>rtpNoBRR0</td><td>bool</td><td>false</td><td>If true, do not include b=RR:0 in SDP</tr>
+</tbody>
+</table>
+
+<h3>Stream Configuration</h3>
+<p>Stream configuration variables are stored in an individual file per
+stream in the .mp4live_d/Stream directory.
+<P>
+<table border cellpadding=4 summary="Stream Configuration">
+<tbody>
+<tr><th colspan=5 align=center><b>Stream Configuration</b></tr></tbody>
+<tbody>
+<tr><th>Name</th><th>Type</th><th>Default</th><th>Does</th></tr>
+<tr align=center><td>name</td><td>string</td><td>none</td><td>Mandatory Name</td></tr>
+<tr align=center><td>audioEnabled</td><td>bool</td><td>true</td><td>True if audio is enabled</td></tr>
+<tr align=center><td>videoEnabled</td><td>bool</td><td>true</td><td>Enable Video</tr>
+<tr align=center><td>textEnabled</td><td>bool</td><td>true</td><td>Enable Text</tr>
+<tr align=center><td>recordEnabled</td><td>bool</td><td>false</td><td>True to record</tr>
+<tr align=center><td>recordFile</td><td>string</td><td>&lt;stream name&gt;.mp4</td><td>MP4 Filename to create</tr>
+<tr align=center><td>transmitEnabled</td><td>bool</td><td>true</td><td>True to transmit over the network</tr>
+<tr align=center><td>sdpFile</td><td>string</td><td>&lt;stream name&gt;.sdp</td><td>Where to store sdp file describing session</tr>
+
+<tr align=center><td>audioAddrFixed</td><td>bool</td><td>false</td><td>true to fix address; false autogenerates</tr>
+<tr align=center><td>audioDestAddress</td><td>string</td><td>224.1.2.3</td><td>Audio Stream destination address</tr>
+<tr align=center><td>audioDestPort</td><td>int</td><td>20002</td><td>Audio Stream destination port</tr>
+
+<tr align=center><td>videoAddrFixed</td><td>bool</td><td>false</td><td>true to fix address; false autogenerates</tr>
+<tr align=center><td>videoDestAddress</td><td>string</td><td>224.1.2.3</td><td>Video Stream destination address</tr>
+<tr align=center><td>videoDestPort</td><td>int</td><td>20000</td><td>Video Stream destination port</tr>
+
+<tr align=center><td>textAddrFixed</td><td>bool</td><td>false</td><td>true to fix address; false autogenerates</tr>
+<tr align=center><td>textDestAddress</td><td>string</td><td>224.1.2.3</td><td>Text Stream destination address</tr>
+<tr align=center><td>textDestPort</td><td>int</td><td>20004</td><td>Text Stream destination port</tr>
+</tbody>
+</table>
+
+<h3>Audio Profile</h3>
+<p>Audio profile configuration variables are stored in an individual file per
+stream in the .mp4live_d/Audio directory.
+<P>
+
+<table border cellpadding=4 summary="Audio Profiles">
+<tbody>
+<tr><th colspan=5 align=center><b>Audio Profile Settings</b></tr></tbody>
+<tbody>
+<tr><th>Name</th><th>Type</th><th>Default</th><th>Does</th></tr>
+<tr align=center><td>name</td><td>string</td><td>none</td><td>Mandatory Name</td></tr>
+<tr align=center><td>audioChannels</td><td>int</td><td>2</td><td>Number of Encoded Audio Channels (1 or 2)</td></tr>
+<tr align=center><td>audioSampleRate</td><td>int</td><td>44100</td><td>Audio Frequency Sample Rate</td></tr>
+<tr align=center><td>audioBitRateBps</td><td>int</td><td>128000</td><td>Encoded Audio Bit Rate</td></tr>
+<tr align=center><td>audioEncoding</td><td>string</td><td>MP3</td><td>Audio Encoding to use</tr>
+<tr align=center><td>audioEncoder</td><td>string</td><td>LAME</td><td>Audio Encoder to use</tr>
+<tr align=center><td>rtpUseMp3RtpPayload14</td><td>bool</td><td>false</td><td>if true, use RTP payload 14 and 90000 timescale<br>if false, use dynamic payload and frequency timescale</tr>
+<tr align=center><td>rtpMaxFramesPerPacket</td><td>int</td><td>0</td><td>if non-zero, set maximum number of frames per packet</tr>
+</tbody>
+</table>
+
+<h3>Video Profile</h3>
+<p>Video profile configuration variables are stored in an individual file per
+stream in the .mp4live_d/Video directory.
+<P>
+
+<table border cellpadding=4 summary="Video Profiles">
+<tbody>
+<tr><th colspan=5 align=center><b>Video Profile Settings</b></tr></tbody>
+<tbody>
+<tr><th>Name</th><th>Type</th><th>Default</th><th>Does</th></tr>
+<tr align=center><td>name</td><td>string</td><td>none</td><td>Mandatory Name</td></tr>
+<tr align=center><td>videoEncoder</td><td>string</td><td>xvid</td><td>Video Encoder Type</tr>
+<tr align=center><td>videoEncoding</td><td>string</td><td>MPEG4</td><td>Video Encoding Type</tr>
+<tr align=center><td id="vheight">videoWidth</td><td>int</td><td>320</td><td>Width of output frame in pixels</tr>
+<tr align=center><td>videoHeight</td><td>int</td><td>240</td><td>Height of output frame in pixels</tr>
+<tr align=center><td>videoCropAspectRatio</td><td>float</td><td>1.33</td><td>Aspect ratio</tr>
+<tr align=center><td>videoFrameRate</td><td>float</td><td>29.97</td><td>Frame Rate</tr>
+<tr align=center><td>videoKeyFrameInterval</td><td>float</td><td>2.0</td><td>Number of Seconds between Key Frames</tr>
+<tr align=center><td>videoBitRate</td><td>int</td><td>500</td><td>Encoded Video Bit Rate in 1000 bits per second</tr>
+<tr align=center><td>videoForceProfileId</td><td>bool</td><td>false</td><td>True to force MPEG4 Video Profile to videoProfileId</tr>
+<tr align=center><td>videoProfileId</td><td>int</td><td>3 (SP@L3)</td><td>MPEG4 Video Profile when forcing</tr>
 <tr align=center><td>videoH261Quality</td><td>int</td><td>10</td><td>Starting H.261 Video Quality</tr>
 <tr align=center><td>videoH261QualityAdjFrames</td><td>int</td><td>8</td><td>Number of frames to adjust H.261 Quality over</tr>
 <tr align=center><td>videoCaptureBuffersCount</td><td>int</td><td>16</td><td>Number of capture buffers to request<br>(V4L2 only)</tr>
-<tr align=center><td>videoFilter</td><td>string</td><td>none</td><td>Video filter to use (none, "deinterlace - blend", "deinterlace - decimate")</td></tr>
+<tr align=center><td>videoFilter</td><td>string</td><td>none</td><td>Video filter to use (none, "deinterlace - blend")</td></tr>
 <tr><th colspan=5 align=center><b>Mpeg-4 Video Options</b></tr>
 <tr align=center><td>videoMpeg4ParWidth</td><td>int</td><td>0</td><td>Mpeg-4 par width value</td>
 <tr align=center><td>videoMpeg4ParHeight</td><td>int</td><td>0</td><td>Mpeg-4 par height value</td>
@@ -724,39 +857,25 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>xvid10UseQpel</td><td>bool</td><td>false</td><td>Use Quarter Pel (do not use if using Quicktime Clients</td>
 <tr align=center><td>xvid10UseLumimask</td><td>bool</td><td>false</td><td>Use XVID lumimask filter plugin</td>
 <tr align=center><td>xvid10UseInterlace</td><td>bool</td><td>false</td><td>Use XVID interlace plugin</td>
-<tr><th colspan=5 align=center><b>Recording Options</b></tr>
-<tr align=center><td>recordEnable</td><td>bool</td><td>true</td><td>True to record</tr>
-<tr align=center><td>recordRawAudio</td><td>bool</td><td>false</td><td>True to record raw audio <br>(PCM at encode frequency)</tr>
-<tr align=center><td>rawAudioUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
-<tr align=center><td>recordRawVideo</td><td>bool</td><td>false</td><td>True to record raw video <br>(YUV at height/width)</tr>
-<tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw YUV</tr>
-<tr align=center><td>rawVideoUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
-<tr align=center><td>recordEncodedAudio</td><td>bool</td><td>true</td><td>True to record encoded audio</tr>
-<tr align=center><td>recordEncodedVideo</td><td>bool</td><td>true</td><td>True to record encoded video</tr>
-<tr align=center><td>recordMp4File</td><td>string</td><td>capture.mp4</td><td>Filename to create</tr>
-<tr align=center><td>recordMp4HintTracks</td><td>bool</td><td>true</td><td>Record hint tracks when recording completed</tr>
-<tr align=center><td>recordMp4Optimize</td><td>bool</td><td>false</td><td>Optimize mp4 file when recording completed</tr>
-<tr align=center><td>recordMp4FileStatus</td><td>integer</td><td>1</td><td>What happens to file when restarted:<br>
-0 - append, 1 - overwrite,<br> 2 - create new file with timestamp</tr>
-<tr><th colspan=5 align=center><b>Transmission (RTP) Options</b></tr>
-<tr align=center><td>rtpEnable</td><td>bool</td><td>false</td><td>True to transmit over the network</tr>
-<tr align=center><td>rtpDestAddress</td><td>string</td><td>224.1.2.3</td><td>Video Stream destination address</tr>
-<tr align=center><td>audioRtpDestAddress</td><td>string</td><td>224.1.2.3</td><td>Audio Stream destination address</tr>
-<tr align=center><td>rtpAudioDestPort</td><td>int</td><td>20002</td><td>Audio Stream destination port</tr>
-<tr align=center><td>rtpVideoDestPort</td><td>int</td><td>20000</td><td>Video Stream destination port</tr>
-<tr align=center><td>rtpPayloadSize</td><td>int</td><td>1460</td><td>max bytes of audio or video per packet</tr>
-<tr align=center><td>rtpMulticastTtl</td><td>int</td><td>15</td><td>Multicast TTl</tr>
-<tr align=center><td>rtpDisableTimestampOffset</td><td>bool</td><td>false</td><td>If true, start RTP timestamps at 0<br>if false, start at random offset</tr>
-<tr align=center><td>rtpUseSingleSourceMulticast</td><td>bool</td><td>false</td><td>Use SSM multicast</tr>
-<tr align=center><td>sdpFile</td><td>string</td><td>capture.sdp</td><td>Where to store sdp file describing session</tr>
-<tr align=center><td>rtpUseMp3RtpPayload14</td><td>bool</td><td>false</td><td>if true, use RTP payload 14 and 90000 timescale<br>if false, use dynamic payload and frequency timescale</tr>
-<tr align=center><td>rtpNoBRR0</td><td>bool</td><td>false</td><td>If true, do not include b=RR:0 in SDP</tr>
-<tr><th colspan=5 align=center><b>Sharing Capture Cards</b></tr>
-<tr align=center><td>rawEnable</td><td>bool</td><td>0</td><td>1 to enable sending raw data to pipes</tr>
-<tr align=center><td>rawAudioEnable</td><td>bool</td><td>0</td><td>1 to enable sending raw audio to rawAudioFile</tr>
-<tr align=center><td>rawAudioFile</td><td>String</td><td>capture.pcm</td><td>File to store raw PCM</tr>
-<tr align=center><td>rawVideoEnable</td><td>bool</td><td>0</td><td>1 to enable sending raw video to rawVideoFile</tr>
-<tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw YUV</tr>
+</tbody>
+</table>
+
+<h3>Text Profile</h3>
+<p>Text profile configuration variables are stored in an individual file per
+stream in the .mp4live_d/Text directory.
+<P>
+
+<table border cellpadding=4 summary="Text Profiles">
+<tbody>
+<tr><th colspan=5 align=center><b>Text Profile Settings</b></tr></tbody>
+<tbody>
+<tr><th>Name</th><th>Type</th><th>Default</th><th>Does</th></tr>
+<tr align=center><td>name</td><td>string</td><td>none</td><td>Mandatory Name</td></tr>
+<tr align=center><td>textEncoding</td><td>string</td><td>href</td><td>Text encoding to use</td></tr>
+<tr align=center><td>textRepeatTime</td><td>float</td><td>1.0</td><td>time in seconds to repeat last transmission</td></tr>
+<tr align=center><td>hrefMakeAutomatic</td><td>bool</td><td>true</td><td>Urls without ISMA href markings get made Automatic</td></tr>
+
+
 </tbody>
 </table>
 

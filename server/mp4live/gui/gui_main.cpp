@@ -390,7 +390,7 @@ static void free_profile_names (const char **arr, uint32_t count)
   for (uint32_t ix = 0; ix < count; ix++) {
     CHECK_AND_FREE(arr[ix]);
   }
-  CHECK_AND_FREE((void *)arr);
+  CHECK_AND_FREE(arr);
 }
 
 static uint32_t get_index_from_profile_list (const char **list,
@@ -728,6 +728,7 @@ void OnAudioProfileFinished (CAudioProfile *p)
   AVFlow->ValidateAndUpdateStreams();
   MainWindowDisplaySources();
   DisplayStreamData(SelectedStream);
+
 }
 
 void OnVideoProfileFinished (CVideoProfile *p)
@@ -741,7 +742,9 @@ void OnVideoProfileFinished (CVideoProfile *p)
   AVFlow->ValidateAndUpdateStreams();
   MainWindowDisplaySources();
   DisplayStreamData(SelectedStream);
-}
+  if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+    AVFlow->StartVideoPreview();
+  }}
 
 void OnTextProfileFinished (CTextProfile *p)
 {

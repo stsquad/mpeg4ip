@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2002-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -30,11 +30,12 @@
  * When you change the plugin version, you should add a "HAVE_PLUGIN_VERSION"
  * for easier makes
  */
-#define PLUGIN_VERSION "0.B"
+#define PLUGIN_VERSION "1.0"
 #define HAVE_PLUGIN_VERSION_0_8 1
 #define HAVE_PLUGIN_VERSION_0_9 1
 #define HAVE_PLUGIN_VERSION_0_A 1
 #define HAVE_PLUGIN_VERSION_0_B 1
+#define HAVE_PLUGIN_VERSION_1_0 1
 
 /*
  * frame_timestamp_t structure is the method that the bytestreams will
@@ -200,6 +201,22 @@ typedef struct video_vft_t {
   CConfigSet *pConfig;
 } video_vft_t;
 
+/*************************************************************************
+ * Text callbacks
+ *************************************************************************/
+typedef void (*text_configure_f)(void *ifptr, uint32_t display_type, 
+				   void *display_configuration);
+
+typedef void (*text_have_frame_f)(void *ifptr, 
+				  uint64_t display_time,
+				  uint32_t display_type,
+				  void *display_structure);
+typedef struct text_vft_t {
+  lib_message_func_t log_msg;
+  text_configure_f text_configure;
+  text_have_frame_f text_have_frame;
+  CConfigSet *pConfig;
+} text_vft_t;
 /**************************************************************************
  *  Routines plugin must provide
  **************************************************************************/
@@ -222,6 +239,7 @@ typedef struct codec_data_t {
   union {
     video_vft_t *video_vft;
     audio_vft_t *audio_vft;
+    text_vft_t *text_vft;
   } v;
 } codec_data_t;
 
@@ -260,6 +278,25 @@ typedef codec_data_t *(*ac_create_f)(const char *stream_type,
 				     audio_vft_t *if_vft,
 				     void *ifptr);
 
+/*
+ * tc_create_f - text codec plugin creation routine
+ * Inputs: 
+ *         stream_type - stream type of file
+ *         compressor - pointer to codec.  
+ *         sdp_media - pointer to session description information for stream
+ *         user_data - pointer to user data
+ *         userdata_size - size of user data
+ *         if_vft - pointer to video vft to use
+ *         ifptr - handle to use for video callbacks
+ * Returns - must return a handle that contains codec_data_t.
+ */
+typedef codec_data_t *(*tc_create_f)(const char *stream_type,
+				     const char *compressor, 
+				     format_list_t *sdp_media,
+				     const uint8_t *user_data,
+				     uint32_t userdata_size,
+				     text_vft_t *if_vft,
+				     void *ifptr);
 /*
  * vc_create_f - video codec plugin creation routine
  * Inputs: 
@@ -423,6 +460,7 @@ typedef struct codec_plugin_t {
   c_print_status_f        c_print_status;
   SConfigVariable         *c_variable_list;
   uint32_t                c_variable_list_count;
+  tc_create_f   tc_create;
 } codec_plugin_t;
 
 #ifdef _WIN32
@@ -455,7 +493,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    close,\
    compress_check, \
    NULL, NULL, NULL, NULL, NULL, NULL, NULL, print_status, \
-   config_variables, config_variables_count, }; }
+   config_variables, config_variables_count, NULL,}; }
 
 /*
  * Use this for audio plugin that has raw file support
@@ -490,8 +528,32 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    raw_file_seek_to, \
    NULL, \
    raw_file_has_eof, NULL, print_status, \
-   config_variables, config_variables_count, }; }
+   config_variables, config_variables_count, NULL, }; }
 
+/*
+ * Use this for text plugins
+ */
+#define TEXT_CODEC_PLUGIN(name, \
+                           create, \
+			   do_pause, \
+                           decode, \
+                           print_status, \
+			   close,\
+			   compress_check, \
+			   config_variables, \
+			   config_variables_count) \
+extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
+   name, \
+   "text", \
+   PLUGIN_VERSION, \
+   NULL, \
+   NULL, \
+   do_pause, \
+   decode, \
+   close,\
+   compress_check, \
+   NULL, NULL, NULL, NULL, NULL, NULL, NULL, print_status, \
+   config_variables, config_variables_count, create,}; }
 /*
  * Use this for a video codec without raw file support
  */
@@ -516,7 +578,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    close,\
    compress_check, \
    NULL, NULL, NULL, NULL, NULL, NULL, video_frame_is_sync, print_status, \
-   config_variables, config_variables_count, }; }
+   config_variables, config_variables_count, NULL,}; }
 
 /*
  * Use this for video codec with raw file support
@@ -556,7 +618,7 @@ extern "C" { codec_plugin_t DLL_EXPORT mpeg4ip_codec_plugin = { \
    video_frame_is_sync, \
    print_status, \
    config_variables, \
-   config_variables_count, \
+   config_variables_count, NULL,\
 }; }
      
      

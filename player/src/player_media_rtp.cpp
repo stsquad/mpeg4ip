@@ -87,6 +87,18 @@ void CPlayerMedia::rtp_periodic (void)
     }
     return;
   }
+  // note wmay - 3/16/2005 - need to push in text here.
+  // we'll only every allow 1 type to be read, so we'll be able to
+  // set up the interface directly.
+
+  if (get_sync_type() == TIMED_TEXT_SYNC) {
+    determine_payload_type_from_rtp();
+    // set the buffer time to 0, so we can pass buffering immediately
+    m_rtp_byte_stream->set_rtp_buffer_time(0);
+    rtp_periodic();
+    return;
+  }
+
   if (m_head != NULL) {
     /*
      * Make sure that the payload type is the same
@@ -250,7 +262,7 @@ int CPlayerMedia::recv_thread (void)
       retcode = rtp_recv(m_rtp_session, &timeout, 0);
       //      player_debug_message("rtp_recv return %d", retcode);
       // Run rtp periodic after each packet received or idle time.
-      if (m_paused == 0 || m_stream_ondemand != 0)
+      if (m_paused == false || m_stream_ondemand != 0)
 	rtp_periodic();
     }
     
@@ -275,7 +287,7 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
   /*
    * If we're paused, just dump the packet.  Multicast case
    */
-  if (m_paused != 0) {
+  if (m_paused) {
     if (e->type == RX_RTP) {
       xfree(e->data);
       return;
@@ -306,7 +318,8 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
     } else {
       rpak->pd.rtp_pd_timestamp = get_time_of_day();
       rpak->pd.rtp_pd_have_timestamp = true;
-      add_rtp_packet_to_queue(rpak, &m_head, &m_tail, m_is_video ? "video" : "audio");
+      add_rtp_packet_to_queue(rpak, &m_head, &m_tail, 
+			      get_name());
       m_rtp_queue_len++;
     }
     break;
@@ -337,10 +350,15 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
  */
 int CPlayerMedia::determine_payload_type_from_rtp(void)
 {
-  uint8_t payload_type = m_head->rtp_pak_pt, temp;
+  uint8_t payload_type, temp;
   format_list_t *fmt;
   uint64_t tickpersec;
 
+  if (m_head != NULL) {
+    payload_type = m_head->rtp_pak_pt;
+  } else {
+    payload_type = atoi(m_media_info->fmt->fmt);
+  }
   fmt = m_media_info->fmt;
   while (fmt != NULL) {
     // rtp payloads are all numeric
@@ -375,9 +393,10 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
       create_rtp_byte_stream(payload_type,
 			     tickpersec,
 			     fmt);
-      m_rtp_byte_stream->play((uint64_t)(m_play_start_time * 1000.0));
+      uint64_t start_time = (uint64_t)(m_play_start_time * 1000.0);
+      m_rtp_byte_stream->play(start_time);
       m_byte_stream = m_rtp_byte_stream;
-      if (!is_video()) {
+      if (is_audio()) {
 	m_rtp_byte_stream->set_sync(m_parent);
       } else {
 	m_parent->syncronize_rtp_bytestreams(NULL);
@@ -393,7 +412,7 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
     fmt = fmt->next;
   }
   media_message(LOG_ERR, "Payload type %d not in format list for media %s", 
-		payload_type, m_is_video ? "video" : "audio");
+		payload_type, get_name());
   return (FALSE);
 }
 
@@ -510,125 +529,126 @@ void CPlayerMedia::create_rtp_byte_stream (uint8_t rtp_pt,
       break;
     }
   } else {
-    if (is_video() && (rtp_pt == 32)) {
+    if (is_audio() == false && (rtp_pt == 32)) {
       codec = VIDEO_MPEG12;
       m_rtp_byte_stream = new CMpeg3RtpByteStream(rtp_pt,
 						  fmt, 
-						stream_ondemand,
-						tps,
-						&m_head,
-						&m_tail,
-						m_rtsp_base_seq_received,
-						m_rtp_base_seq,
-						m_rtsp_base_ts_received,
-						m_rtp_base_ts,
-						m_rtcp_received,
-						m_rtcp_ntp_frac,
-						m_rtcp_ntp_sec,
-						m_rtcp_rtp_ts);
+						  stream_ondemand,
+						  tps,
+						  &m_head,
+						  &m_tail,
+						  m_rtsp_base_seq_received,
+						  m_rtp_base_seq,
+						  m_rtsp_base_ts_received,
+						  m_rtp_base_ts,
+						  m_rtcp_received,
+						  m_rtcp_ntp_frac,
+						  m_rtcp_ntp_sec,
+						  m_rtcp_rtp_ts);
       if (m_rtp_byte_stream != NULL) {
 	return;
       }
-  } else {
-    if (rtp_pt == 14) {
-      codec = MPEG4IP_AUDIO_MP3;
-    } else if (rtp_pt <= 23) {
-      codec = MPEG4IP_AUDIO_GENERIC;
-    }  else {
-      if (fmt->rtpmap == NULL) return;
+    } else {
+      if (rtp_pt == 14) {
+	codec = MPEG4IP_AUDIO_MP3;
+      } else if (rtp_pt <= 23) {
+	codec = MPEG4IP_AUDIO_GENERIC;
+      }  else {
+	if (fmt->rtpmap == NULL) return;
 
-      codec = lookup_audio_codec_by_name(fmt->rtpmap->encode_name);
-      if (codec < 0) {
-	codec = MPEG4IP_AUDIO_NONE; // fall through everything to generic
+	codec = lookup_audio_codec_by_name(fmt->rtpmap->encode_name);
+	if (codec < 0) {
+	  codec = MPEG4IP_AUDIO_NONE; // fall through everything to generic
+	}
       }
-    }
-    switch (codec) {
-    case MPEG4IP_AUDIO_MP3: {
-      m_rtp_byte_stream = 
-	new CAudioRtpByteStream(rtp_pt, fmt, 
-				stream_ondemand,
-				tps,
-				&m_head,
-				&m_tail,
-				m_rtsp_base_seq_received,
-				m_rtp_base_seq,
-				m_rtsp_base_ts_received,
-				m_rtp_base_ts,
-				m_rtcp_received,
-				m_rtcp_ntp_frac,
-				m_rtcp_ntp_sec,
-				m_rtcp_rtp_ts);
-      if (m_rtp_byte_stream != NULL) {
-	m_rtp_byte_stream->set_skip_on_advance(4);
-	player_debug_message("Starting mp3 2250 audio byte stream");
-	return;
+      switch (codec) {
+      case MPEG4IP_AUDIO_MP3: {
+	m_rtp_byte_stream = 
+	  new CAudioRtpByteStream(rtp_pt, fmt, 
+				  stream_ondemand,
+				  tps,
+				  &m_head,
+				  &m_tail,
+				  m_rtsp_base_seq_received,
+				  m_rtp_base_seq,
+				  m_rtsp_base_ts_received,
+				  m_rtp_base_ts,
+				  m_rtcp_received,
+				  m_rtcp_ntp_frac,
+				  m_rtcp_ntp_sec,
+				  m_rtcp_rtp_ts);
+	if (m_rtp_byte_stream != NULL) {
+	  m_rtp_byte_stream->set_skip_on_advance(4);
+	  player_debug_message("Starting mp3 2250 audio byte stream");
+	  return;
+	}
       }
-    }
-      break;
-    case MPEG4IP_AUDIO_MP3_ROBUST:
-      m_rtp_byte_stream = 
-	new CRfc3119RtpByteStream(rtp_pt, fmt, 
-				stream_ondemand,
-				tps,
-				&m_head,
-				&m_tail,
-				m_rtsp_base_seq_received,
-				m_rtp_base_seq,
-				m_rtsp_base_ts_received,
-				m_rtp_base_ts,
-				m_rtcp_received,
-				m_rtcp_ntp_frac,
-				m_rtcp_ntp_sec,
-				m_rtcp_rtp_ts);
-      if (m_rtp_byte_stream != NULL) {
-	player_debug_message("Starting mpa robust byte stream");
-	return;
+	break;
+      case MPEG4IP_AUDIO_MP3_ROBUST:
+	m_rtp_byte_stream = 
+	  new CRfc3119RtpByteStream(rtp_pt, fmt, 
+				    stream_ondemand,
+				    tps,
+				    &m_head,
+				    &m_tail,
+				    m_rtsp_base_seq_received,
+				    m_rtp_base_seq,
+				    m_rtsp_base_ts_received,
+				    m_rtp_base_ts,
+				    m_rtcp_received,
+				    m_rtcp_ntp_frac,
+				    m_rtcp_ntp_sec,
+				    m_rtcp_rtp_ts);
+	if (m_rtp_byte_stream != NULL) {
+	  player_debug_message("Starting mpa robust byte stream");
+	  return;
+	}
+	break;
+      case MPEG4IP_AUDIO_GENERIC:
+	m_rtp_byte_stream = 
+	  new CAudioRtpByteStream(rtp_pt, fmt, 
+				  stream_ondemand,
+				  tps,
+				  &m_head,
+				  &m_tail,
+				  m_rtsp_base_seq_received,
+				  m_rtp_base_seq,
+				  m_rtsp_base_ts_received,
+				  m_rtp_base_ts,
+				  m_rtcp_received,
+				  m_rtcp_ntp_frac,
+				  m_rtcp_ntp_sec,
+				  m_rtcp_rtp_ts);
+	if (m_rtp_byte_stream != NULL) {
+	  player_debug_message("Starting generic audio byte stream");
+	  return;
+	}
+      default:
+	break;
       }
-      break;
-    case MPEG4IP_AUDIO_GENERIC:
-      m_rtp_byte_stream = 
-	new CAudioRtpByteStream(rtp_pt, fmt, 
-				stream_ondemand,
-				tps,
-				&m_head,
-				&m_tail,
-				m_rtsp_base_seq_received,
-				m_rtp_base_seq,
-				m_rtsp_base_ts_received,
-				m_rtp_base_ts,
-				m_rtcp_received,
-				m_rtcp_ntp_frac,
-				m_rtcp_ntp_sec,
-				m_rtcp_rtp_ts);
-      if (m_rtp_byte_stream != NULL) {
-	player_debug_message("Starting generic audio byte stream");
-	return;
-      }
-    default:
-      break;
     }
   }
-  m_rtp_byte_stream = new CRtpByteStream(fmt->media->media,
-					 fmt, 
-					 rtp_pt,
-					 stream_ondemand,
-					 tps,
-					 &m_head,
-					 &m_tail,
-					 m_rtsp_base_seq_received,
-					 m_rtp_base_seq,
-					 m_rtsp_base_ts_received,
-					 m_rtp_base_ts,
-					 m_rtcp_received,
-					 m_rtcp_ntp_frac,
-					 m_rtcp_ntp_sec,
-					 m_rtcp_rtp_ts);
-  }
+  if (m_rtp_byte_stream == NULL) 
+    m_rtp_byte_stream = new CRtpByteStream(fmt->media->media,
+					   fmt, 
+					   rtp_pt,
+					   stream_ondemand,
+					   tps,
+					   &m_head,
+					   &m_tail,
+					   m_rtsp_base_seq_received,
+					   m_rtp_base_seq,
+					   m_rtsp_base_ts_received,
+					   m_rtp_base_ts,
+					   m_rtcp_received,
+					   m_rtcp_ntp_frac,
+					   m_rtcp_ntp_sec,
+					   m_rtcp_rtp_ts);
 }
 
 void CPlayerMedia::syncronize_rtp_bytestreams (rtcp_sync_t *sync)
 {
-  if (!is_video()) {
+  if (is_audio()) {
     player_error_message("Attempt to syncronize audio byte stream");
     return;
   }

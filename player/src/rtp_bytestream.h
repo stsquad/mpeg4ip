@@ -64,6 +64,8 @@ class CRtpByteStreamBase : public COurInByteStream
     m_have_sync_info = false;
     m_have_recv_last_ts = false;
     m_have_first_pak_ts = false;
+    m_recvd_pak = false;
+    m_recvd_pak_timeout = false;
   };
   void set_skip_on_advance (uint32_t bytes_to_skip) {
     m_skip_on_advance_bytes = bytes_to_skip;
@@ -102,6 +104,7 @@ class CRtpByteStreamBase : public COurInByteStream
   void set_last_seq(uint16_t seq);
   bool find_mbit(void);
   void display_status(void);
+  void set_rtp_buffer_time (uint64_t ts) { m_rtp_buffer_time = ts; };
  protected:
   void init(void);
   // Make sure all classes call this to calculate real time.
@@ -130,9 +133,8 @@ class CRtpByteStreamBase : public COurInByteStream
   uint64_t m_rtp_buffer_time;
   unsigned int m_rtp_pt;
   virtual bool check_rtp_frame_complete_for_payload_type(void);
-  virtual void rtp_done_buffering(void) {};
-  int m_recvd_pak;
-  int m_recvd_pak_timeout;
+  bool m_recvd_pak;
+  bool m_recvd_pak_timeout;
   uint64_t m_recvd_pak_timeout_time;
   uint64_t m_last_realtime;
   uint32_t m_last_rtp_ts;

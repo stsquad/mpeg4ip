@@ -580,7 +580,7 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
     es_pid = (mpeg2t_es_t *)pidptr;
     if (vq[ix].enabled != 0 && created == 0) {
       created = 1;
-      mptr = new CPlayerMedia(psptr);
+      mptr = new CPlayerMedia(psptr, VIDEO_SYNC);
       if (mptr == NULL) {
 	return (-1);
       }
@@ -633,7 +633,7 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
 	free(stream);
 	return (-1);
       }
-      ret = mptr->create(vbyte, TRUE, 1);
+      ret = mptr->create_media("video", vbyte, true);
       if (ret != 0) {
 	mpeg2t_message(LOG_CRIT, "failed to create from file");
 	free(stream);
@@ -676,7 +676,7 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
     }
     es_pid = (mpeg2t_es_t *)pidptr;
     if (aq[ix].enabled != 0 && created == 0) {
-      mptr = new CPlayerMedia(psptr);
+      mptr = new CPlayerMedia(psptr, AUDIO_SYNC);
       if (mptr == NULL) {
 	return (-1);
       }
@@ -731,7 +731,7 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
 	free(stream);
 	return (-1);
       }
-      ret = mptr->create(abyte, FALSE, 1);
+      ret = mptr->create_media("audio", abyte, true);
       if (ret != 0) {
 	mpeg2t_message(LOG_CRIT, "failed to create from file");
 	free(stream);
@@ -1059,7 +1059,8 @@ void mpeg2t_check_streams (video_query_t **pvq,
   }
   SDL_UnlockMutex(decoder->pid_mutex);
   if (cc_vft && cc_vft->media_list_query != NULL) {
-    (cc_vft->media_list_query)(psptr, vid_cnt, vq, aud_cnt, aq);
+    (cc_vft->media_list_query)(psptr, vid_cnt, vq, aud_cnt, aq,
+			       0, NULL);
   } else {
     if (video_count > 0) {
       vq[0].enabled = 1;

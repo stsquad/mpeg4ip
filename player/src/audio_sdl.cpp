@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000-2004.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -303,9 +303,9 @@ static audio_vft_t audio_vft = {
   NULL,
 };
 
-CAudioSync *create_audio_sync (CPlayerSession *psptr, int volume)
+CAudioSync *create_audio_sync (CPlayerSession *psptr)
 {
-  return new CSDLAudioSync(psptr, volume);
+  return new CSDLAudioSync(psptr, psptr->get_audio_volume());
 }
 
 audio_vft_t *get_audio_vft (void)

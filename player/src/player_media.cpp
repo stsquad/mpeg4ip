@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -33,8 +33,10 @@
 #include "ip_port.h"
 #include "codec_plugin.h"
 #include "audio.h"
+#include "text.h"
 #include <time.h>
 #include "player_rtsp.h"
+#include "codec_plugin_private.h"
 //#define DROP_PAKS 1
 /*
  * c routines for callbacks
@@ -81,7 +83,8 @@ static int c_rtp_periodic (void *data)
 }
 
 
-CPlayerMedia::CPlayerMedia (CPlayerSession *p)
+CPlayerMedia::CPlayerMedia (CPlayerSession *p, 
+			    session_sync_types_t sync_type)
 {
   m_plugin = NULL;
   m_plugin_data = NULL;
@@ -108,25 +111,40 @@ CPlayerMedia::CPlayerMedia (CPlayerSession *p)
   m_sync_time_set = FALSE;
   m_decode_thread = NULL;
   m_decode_thread_sem = NULL;
-  m_video_sync = NULL;
-  m_audio_sync = NULL;
-  m_paused = 0;
+  set_timed_sync(NULL);
+  set_audio_sync(NULL);
+  m_paused = false;
   m_byte_stream = NULL;
   m_rtp_byte_stream = NULL;
   m_video_info = NULL;
   m_audio_info = NULL;
   m_user_data = NULL;
   m_rtcp_received = 0;
-  m_streaming = 0;
+  m_streaming = false;
   m_stream_ondemand = 0;
   m_rtp_use_rtsp = false;
+  m_media_type = NULL;
+  m_is_audio = sync_type == AUDIO_SYNC;
+  m_sync_type = sync_type;
+  switch (sync_type) {
+  case VIDEO_SYNC:
+    set_video_sync(create_video_sync(m_parent));
+    break;
+  case AUDIO_SYNC:
+    set_audio_sync(create_audio_sync(m_parent));
+    break;
+  case TIMED_TEXT_SYNC:
+    set_timed_sync(create_text_sync(m_parent));
+    break;
+  }
+  m_play_start_time = 0.0;
 }
 
 CPlayerMedia::~CPlayerMedia()
 {
   rtsp_decode_t *rtsp_decode;
 
-  media_message(LOG_DEBUG, "closing down media %d", m_is_video);
+  media_message(LOG_DEBUG, "closing down media %d", m_is_audio);
   if (m_rtsp_session) {
     // If control is aggregate, m_rtsp_session will be freed by
     // CPlayerSession
@@ -203,6 +221,7 @@ CPlayerMedia::~CPlayerMedia()
     SDL_DestroySemaphore(m_decode_thread_sem);
     m_decode_thread_sem = NULL;
   }
+  CHECK_AND_FREE(m_media_type);
 }
 
 void CPlayerMedia::clear_rtp_packets (void)
@@ -221,17 +240,17 @@ void CPlayerMedia::clear_rtp_packets (void)
   m_rtp_queue_len = 0;
 }
 
-int CPlayerMedia::create_common (int is_video)
+int CPlayerMedia::create_common (const char *media_type)
 {
+  m_media_type = strdup(media_type);
   m_parent->add_media(this);
-  m_is_video = is_video;
 
   m_decode_thread_sem = SDL_CreateSemaphore(0);
   m_decode_thread = SDL_CreateThread(c_decode_thread, this);
   if (m_decode_thread_sem == NULL || m_decode_thread == NULL) {
     const char *outmedia;
     if (m_media_info == NULL) {
-      outmedia = m_is_video ? "video" : "audio";
+      outmedia = m_is_audio ? "audio" : "video";
     } else outmedia = m_media_info->media;
 
     m_parent->set_message("Couldn't start media thread for %s", 
@@ -246,13 +265,13 @@ int CPlayerMedia::create_common (int is_video)
  * CPlayerMedia::create - create when we've already got a
  * bytestream
  */
-int CPlayerMedia::create (COurInByteStream *b, 
-			  int is_video,
-			  int streaming)
+int CPlayerMedia::create_media (const char *media_type, 
+				COurInByteStream *b, 
+				bool streaming)
 {
   m_byte_stream = b;
   m_streaming = streaming;
-  return create_common(is_video);
+  return create_common(media_type);
 }
 
 /*
@@ -268,7 +287,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
   rtsp_command_t cmd;
   rtsp_decode_t *decode;
   
-  m_streaming = 1;
+  m_streaming = true;
   if (sdp_media == NULL) {
     m_parent->set_message("Internal media error - sdp is NULL");
     return(-1);
@@ -371,7 +390,7 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
   //
   m_start_time = time(NULL);
 
-  if (create_common(strcmp(sdp_media->media, "video") == 0) < 0) {
+  if (create_common(sdp_media->media) < 0) {
     return -1;
   }
 
@@ -430,10 +449,17 @@ int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
 				       const uint8_t *user_data,
 				       uint32_t userdata_size)
 {
-  if (m_video_sync == NULL) {
-    m_video_sync = m_parent->set_up_video_sync();
-  }
-  if (m_video_sync == NULL) return -1;
+  if (p == NULL) {
+    p = check_for_video_codec(stream_type, 
+			      compressor, 
+			      sdp_media, 
+			      type, 
+			      profile, 
+			      user_data, 
+			      userdata_size, 
+			      &config);
+    if (p == NULL) return -1;
+  } 
 
   m_plugin = p;
   m_video_info = video;
@@ -445,7 +471,7 @@ int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
 				 user_data,
 				 userdata_size,
 				 get_video_vft(),
-				 m_video_sync);
+				 m_videoSync);
   if (m_plugin_data == NULL) 
     return -1;
 
@@ -461,17 +487,12 @@ void CPlayerMedia::set_plugin_data (const codec_plugin_t *p,
 {
   m_plugin = p;
   m_plugin_data = d;
-  if (is_video()) {
-    if (m_video_sync == NULL) {
-      m_video_sync = m_parent->set_up_video_sync();
-    }
-    d->ifptr = m_video_sync;
+  d->ifptr = m_sync;
+  if (is_audio() == false) {
+    //d->ifptr = m_videoSync;
     d->v.video_vft = v;
   } else {
-    if (m_audio_sync == NULL) {
-      m_audio_sync = m_parent->set_up_audio_sync();
-    }
-    d->ifptr = m_audio_sync;
+    //d->ifptr = m_audioSync;
     d->v.audio_vft = a;
   }
     
@@ -496,11 +517,12 @@ int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
 				       const uint8_t *user_data,
 				       uint32_t userdata_size)
 {
-  if (m_audio_sync == NULL) {
-    m_audio_sync = m_parent->set_up_audio_sync();
+  if (p == NULL) {
+    p = check_for_audio_codec(stream_type, compressor, sdp_media, 
+			      type, profile, user_data, userdata_size, 
+			      &config);
+    if (p == NULL) return -1;
   }
-  if (m_audio_sync == NULL) return -1;
-
   m_audio_info = audio;
   m_plugin = p;
   m_plugin_data = (p->ac_create)(stream_type,
@@ -512,7 +534,35 @@ int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
 				 user_data,
 				 userdata_size,
 				 get_audio_vft(),
-				 m_audio_sync);
+				 m_sync);
+  if (m_plugin_data == NULL) return -1;
+
+  if (user_data != NULL)
+    set_user_data(user_data, userdata_size);
+  return 0;
+}
+
+int CPlayerMedia::create_text_plugin (const codec_plugin_t *p,
+				      const char *stream_type,
+				      const char *compressor, 
+				      format_list_t *sdp_media,
+				      const uint8_t *user_data,
+				      uint32_t userdata_size)
+{
+  if (p == NULL) {
+    p = check_for_text_codec(stream_type, compressor, sdp_media, 
+			     user_data, userdata_size, 
+			     &config);
+    if (p == NULL) return -1;
+  }
+  m_plugin = p;
+  m_plugin_data = (p->tc_create)(stream_type,
+				 compressor,
+				 sdp_media,
+				 user_data,
+				 userdata_size,
+				 get_text_vft(),
+				 m_sync);
   if (m_plugin_data == NULL) return -1;
 
   if (user_data != NULL)
@@ -526,7 +576,7 @@ int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
 int CPlayerMedia::do_play (double start_time_offset)
 {
 
-  if (m_streaming != 0) {
+  if (m_streaming) {
     if (m_stream_ondemand != 0) {
       /*
        * We're streaming - send the RTSP play command
@@ -587,7 +637,7 @@ int CPlayerMedia::do_play (double start_time_offset)
     if (m_byte_stream != NULL) {
       m_byte_stream->play((uint64_t)(start_time_offset * 1000.0));
     }
-    m_paused = 0;
+    m_paused = false;
     if (m_rtp_use_rtsp) {
       rtsp_thread_perform_callback(m_parent->get_rtsp_client(),
 				   c_rtp_start, 
@@ -597,12 +647,12 @@ int CPlayerMedia::do_play (double start_time_offset)
     /*
      * File (or other) playback.
      */
-    if (m_paused == 0 || start_time_offset == 0.0) {
+    if (m_paused == false || start_time_offset == 0.0) {
       m_byte_stream->reset();
     }
     m_byte_stream->play((uint64_t)(start_time_offset * 1000.0));
     m_play_start_time = start_time_offset;
-    m_paused = 0;
+    m_paused = false;
     start_decoding();
   }
   return (0);
@@ -614,7 +664,7 @@ int CPlayerMedia::do_play (double start_time_offset)
 int CPlayerMedia::do_pause (void)
 {
 
-  if (m_streaming != 0) {
+  if (m_streaming) {
     if (m_stream_ondemand != 0) {
       /*
      * streaming - send RTSP pause
@@ -644,7 +694,7 @@ int CPlayerMedia::do_pause (void)
    */
   m_decode_msg_queue.send_message(MSG_PAUSE_SESSION, 
 				  m_decode_thread_sem);
-  m_paused = 1;
+  m_paused = true;
   return (0);
 }
 
@@ -857,12 +907,9 @@ void CPlayerMedia::display_status (void)
   if (m_rtp_byte_stream != NULL) {
     m_rtp_byte_stream->display_status();
   }
-  if (m_audio_sync != NULL) {
-    m_audio_sync->display_status();
+  if (m_sync != NULL) {
+    m_sync->display_status();
   }
-  if (m_video_sync != NULL) {
-    m_video_sync->display_status();
-  }
-  media_message(LOG_DEBUG, "%s decode waiting %d", m_is_video ? "video" : "audio", 
+  media_message(LOG_DEBUG, "%s decode waiting %d", m_is_audio ? "audio" : "video", 
 		m_decode_thread_waiting);
 }

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -34,92 +34,42 @@ DEFINE_MESSAGE_MACRO(video_message, "videosync")
 #define video_message(loglevel, fmt...) message(loglevel, "videosync", fmt)
 #endif
 
-CVideoSync::CVideoSync (CPlayerSession *psptr,
-			void *video_persistence)
+CVideoApi::CVideoApi (CPlayerSession *psptr,
+			void *video_persistence,
+			int screen_pos_x,
+			int screen_pos_y)
 {
-  m_psptr = psptr;
-  m_decode_sem = NULL;
-  m_consec_skipped = 0;
-  m_behind_frames = 0;
-  m_total_frames = 0;
-  m_filled_frames = 0;
-  m_behind_time = 0;
-  m_behind_time_max = 0;
-  m_skipped_render = 0;
-  m_msec_per_frame = 0;
-  m_last_filled_time = 0;
-  m_eof_found = 0;
   // set up the persistence information.  If we have a value, we
   // consider it grabbed - and it's the responsibility of the grabber
   // to free it.
   m_video_persistence = video_persistence;
   m_grabbed_video_persistence = m_video_persistence != NULL ? 1 : 0;
+  m_screen_pos_x = screen_pos_x;
+  m_screen_pos_y = screen_pos_y;
 }
 
-CVideoSync::~CVideoSync (void)
+CVideoApi::~CVideoApi (void)
 {
-  video_message(LOG_NOTICE, "Video Sync Stats:");
-  video_message(LOG_NOTICE, "Displayed-behind frames %d", m_behind_frames);
-  video_message(LOG_NOTICE, "Total frames displayed %d", m_total_frames);
-  video_message(LOG_NOTICE, "Max behind time " U64, m_behind_time_max);
-  if (m_behind_frames > 0) 
-    video_message(LOG_NOTICE, "Average behind time "U64, m_behind_time / m_behind_frames);
-  video_message(LOG_NOTICE, "Skipped rendering %u", m_skipped_render);
-  video_message(LOG_NOTICE, "Filled frames %u", m_filled_frames);
 }
 
 /*
- * CVideoSync::initialize_video - Called from sync task to initialize
+ * CVideoApi::initialize_video - Called from sync task to initialize
  * the video window
  */  
-int CVideoSync::initialize_video (const char *name, int x, int y)
+int CVideoApi::initialize (const char *name)
 {
   return (1);
 }
 
-/*
- * CVideoSync::is_video_ready - called from sync task to determine if
- * we have sufficient number of buffers stored up to start displaying
- */
-int CVideoSync::is_video_ready (uint64_t &disptime)
-{
-  return 0;
-}
-
-/*
- * CVideoSync::play_video_at - called from sync task to show the next
- * video frame (if the timing is right
- */
-bool CVideoSync::play_video_at (uint64_t current_time, 
-				bool have_audio_resync,
-				uint64_t &next_time,
-				bool &have_eof)
-{
-  next_time = current_time + 10;
-  return (true);
-}
-
-
-// called from sync thread.  Don't call on play, or m_dont_fill race
-// condition may occur.
-void CVideoSync::flush_sync_buffers (void)
+void CVideoApi::set_screen_size (int scaletimes2)
 {
 }
 
-// called from decode thread on both stop/start.
-void CVideoSync::flush_decode_buffers (void)
+void CVideoApi::set_fullscreen (int fullscreen)
 {
 }
 
-void CVideoSync::set_screen_size (int scaletimes2)
-{
-}
-
-void CVideoSync::set_fullscreen (int fullscreen)
-{
-}
-
-void CVideoSync::do_video_resize(int m_pixel_width, int m_pixel_height, int m_max_width, int m_max_height)
+void CVideoApi::do_video_resize(int m_pixel_width, int m_pixel_height, int m_max_width, int m_max_height)
 {
 }
 

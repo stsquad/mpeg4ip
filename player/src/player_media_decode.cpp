@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -83,19 +83,13 @@ void CPlayerMedia::parse_decode_message (int &thread_stop, int &decoding)
       break;
     case MSG_PAUSE_SESSION:
       decoding = 0;
-      if (m_video_sync != NULL) {
-	m_video_sync->flush_decode_buffers();
-      }
-      if (m_audio_sync != NULL) {
-	m_audio_sync->flush_decode_buffers();
+      if (m_sync != NULL) {
+	m_sync->flush_decode_buffers();
       }
       break;
     case MSG_START_DECODING:
-      if (m_video_sync != NULL) {
-	m_video_sync->flush_decode_buffers();
-      }
-      if (m_audio_sync != NULL) {
-	m_audio_sync->flush_decode_buffers();
+      if (m_sync != NULL) {
+	m_sync->flush_decode_buffers();
       }
       decoding = 1;
       break;
@@ -137,78 +131,52 @@ int CPlayerMedia::decode_thread (void)
     ret = SDL_SemWait(m_decode_thread_sem);
 #ifdef DEBUG_DECODE
     media_message(LOG_DEBUG, "%s Decode thread awake",
-		  is_video() ? "video" : "audio");
+		  get_name());
 #endif
     parse_decode_message(thread_stop, decoding);
 
     if (decoding == 1) {
       // We've been told to start decoding - if we don't have a codec, 
       // create one
-      if (is_video()) {
-	if (m_video_sync == NULL) {
-	  m_video_sync = m_parent->set_up_video_sync();
-	}
-	m_video_sync->set_wait_sem(m_decode_thread_sem);
-      } else {
-	if (m_audio_sync == NULL) {
-	  m_audio_sync = m_parent->set_up_audio_sync();
-	}
-      }
+      m_sync->set_wait_sem(m_decode_thread_sem);
       if (m_plugin == NULL) {
-	if (is_video()) {
-	  m_plugin = check_for_video_codec(STREAM_TYPE_RTP,
-					   NULL,
-					   m_media_fmt,
-					   -1,
-					   -1,
-					   m_user_data,
-					   m_user_data_size,
-					   &config);
-	  if (m_plugin != NULL) {
-	    m_plugin_data = (m_plugin->vc_create)(STREAM_TYPE_RTP,
-						  NULL, // must figure from sdp
-						  -1,
-						  -1,
-						  m_media_fmt,
-						  m_video_info,
-						  m_user_data,
-						  m_user_data_size,
-						  get_video_vft(),
-						  m_video_sync);
-	    if (m_plugin_data == NULL) {
-	      m_plugin = NULL;
-	    } else {
-	      media_message(LOG_DEBUG, "Starting %s codec from decode thread",
-			    m_plugin->c_name);
-	    }
-	  }
+	switch (m_sync_type) {
+	case VIDEO_SYNC:
+	  create_video_plugin(NULL, 
+			      STREAM_TYPE_RTP,
+			      NULL,
+			      -1,
+			      -1,
+			      m_media_fmt,
+			      NULL,
+			      m_user_data,
+			      m_user_data_size);
+	  break;
+	case AUDIO_SYNC:
+	  create_audio_plugin(NULL,
+			      STREAM_TYPE_RTP,
+			      NULL,
+			      -1, 
+			      -1, 
+			      m_media_fmt,
+			      NULL,
+			      m_user_data,
+			      m_user_data_size);
+	  break;
+	case TIMED_TEXT_SYNC:
+	  create_text_plugin(NULL,
+			     STREAM_TYPE_RTP, 
+			     NULL, 
+			     m_media_fmt, 
+			     m_user_data, 
+			     m_user_data_size);
+	  break;
+	}
+	if (m_plugin_data == NULL) {
+	  m_plugin = NULL;
 	} else {
-	  m_plugin = check_for_audio_codec(STREAM_TYPE_RTP,
-					   NULL,
-					   m_media_fmt,
-					   -1, 
-					   -1, 
-					   m_user_data,
-					   m_user_data_size,
-					   &config);
-	  if (m_plugin != NULL) {
-	    m_plugin_data = (m_plugin->ac_create)(STREAM_TYPE_RTP,
-						  NULL, 
-						  -1,
-						  -1,
-						  m_media_fmt,
-						  m_audio_info,
-						  m_user_data,
-						  m_user_data_size,
-						  get_audio_vft(),
-						  m_audio_sync);
-	    if (m_plugin_data == NULL) {
-	      m_plugin = NULL;
-	    } else {
-	      media_message(LOG_DEBUG, "Starting %s codec from decode thread",
-			    m_plugin->c_name);
-	    }
-	  }
+	  media_message(LOG_DEBUG, "Starting %s codec from decode thread",
+			m_plugin->c_name);
 	}
       }
       if (m_plugin != NULL) {
@@ -240,9 +208,8 @@ int CPlayerMedia::decode_thread (void)
 	continue;
       }
       if (m_byte_stream->eof()) {
-	media_message(LOG_INFO, "%s hit eof", m_is_video ? "video" : "audio");
-	if (m_audio_sync) m_audio_sync->set_eof();
-	if (m_video_sync) m_video_sync->set_eof();
+	media_message(LOG_INFO, "%s hit eof", get_name());
+	if (m_sync) m_sync->set_eof();
 	decoding = 0;
 	continue;
       }
@@ -265,7 +232,7 @@ int CPlayerMedia::decode_thread (void)
        * If we're decoding video, see if we're playing - if so, check
        * if we've fallen significantly behind the audio
        */
-      if (is_video() &&
+      if (get_sync_type() == VIDEO_SYNC &&
 	  (m_parent->get_session_state() == SESSION_PLAYING) &&
 	  have_frame_ts) {
 	int64_t ts_diff = ourtime.msec_timestamp - lasttime.msec_timestamp;
@@ -362,7 +329,7 @@ int CPlayerMedia::decode_thread (void)
 	int sync_frame;
 	ret = m_plugin->c_decode_frame(m_plugin_data,
 				       &ourtime,
-				       m_streaming != 0,
+				       m_streaming,
 				       &sync_frame,
 				       frame_buffer, 
 				       frame_len,
@@ -388,7 +355,7 @@ int CPlayerMedia::decode_thread (void)
     }
     // calculate frame rate for session
   }
-  if (m_is_video)
+  if (is_audio() == false)
     media_message(LOG_NOTICE, "Video decoder skipped %u frames", 
 		  decode_skipped_frames);
   if (last_decode_time > start_decode_time) {
@@ -406,7 +373,7 @@ int CPlayerMedia::decode_thread (void)
     bps = UINT64_TO_DOUBLE(bytes_decoded);
     bps *= 8.0 / secs;
     media_message(LOG_NOTICE, "%s - bytes "U64", seconds %g, fps %g bps %g",
-		  m_is_video ? "video" : "audio", 
+		  get_name(),
 		  bytes_decoded, secs, 
 		  fps, bps);
   }

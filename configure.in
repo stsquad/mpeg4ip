@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(mpeg4ip, 1.2.11)
+AC_INIT(mpeg4ip, 1.2.12)
 AM_CONFIG_HEADER(mpeg4ip_config.h)
 dnl Prevent user from running just ./configure
 AC_CHECK_FILE(./bootstrapped, [did_bootstrap=yes], [did_bootstrap=no])
@@ -643,15 +643,18 @@ AC_OUTPUT( \
 	player/plugin/audio/a52dec/Makefile \
 	player/plugin/audio/celp/Makefile \
 	player/plugin/audio/ffmpeg/Makefile \
-	player/plugin/audio/mad/Makefile \
 	player/plugin/audio/raw/Makefile \
 	player/plugin/rtp/Makefile \
 	player/plugin/rtp/h261/Makefile \
 	player/plugin/rtp/h264/Makefile \
 	player/plugin/rtp/isma_audio/Makefile \
+	player/plugin/rtp/isma_href/Makefile \
         player/plugin/rtp/isma_video/Makefile \
         player/plugin/rtp/rfc2429/Makefile \
 	player/plugin/rtp/rfc3267/Makefile \
+	player/plugin/text/Makefile \
+	player/plugin/text/href/Makefile \
+	player/plugin/text/plain/Makefile \
 	player/plugin/video/Makefile \
 	player/plugin/video/ffmpeg/Makefile \
 	player/plugin/video/h261/Makefile \

@@ -105,6 +105,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "href_plugin"=..\plugin\text\href\href_plugin.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "isma_audio_rtp_plugin"=..\PLUGIN\RTP\ISMA_AUDIO\isma_audio_rtp_plugin.dsp - Package Owner=<4>
 
 Package=<5>
@@ -119,6 +131,18 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libmp4util
     End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "isma_href_rtp_plugin"=..\plugin\rtp\isma_href\isma_href_rtp_plugin.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
 }}}
 
 ###############################################################################
@@ -505,6 +529,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name mp3_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name isma_href_rtp_plugin
     End Project Dependency
 }}}
 

@@ -21,6 +21,7 @@
 
 #include "mp4live.h"
 #include "video_sdl_preview.h"
+#include "video_util_resize.h"
 
 int CSDLVideoPreview::ThreadMain(void) 
 {
@@ -132,56 +133,15 @@ void CSDLVideoPreview::DoPreviewFrame(CMediaFrame* pFrame)
 	if (m_sink) {
 	  SDL_LockYUVOverlay(m_sdlImage);
 
-	  uint ix;
-	  uint8_t *to;
-	  const uint8_t *from;
-	  if (pYUV->y_stride != m_sdlImage->pitches[0]) {
-	    to = (uint8_t *)m_sdlImage->pixels[0];
-	    from = pYUV->y;
-	    for (ix = 0; ix < m_h; ix++) {
-	      memcpy(to, from, m_w);
-	      to += m_sdlImage->pitches[0];
-	      from += pYUV->y_stride;
-	    }
-	  } else {
-	    memcpy(m_sdlImage->pixels[0], 
-		   pYUV->y,
-		   m_w * m_h);
-	  }
+	  CopyYuv(pYUV->y, pYUV->u, pYUV->v, 
+		  pYUV->y_stride, pYUV->uv_stride, pYUV->uv_stride,
+		  m_sdlImage->pixels[0], m_sdlImage->pixels[2], m_sdlImage->pixels[1],
+		  m_sdlImage->pitches[0], m_sdlImage->pitches[2], m_sdlImage->pitches[1],
+		  m_w, m_h);
 
-	  if (pYUV->uv_stride != m_sdlImage->pitches[1]) {
-	    // V
-	    to = (uint8_t *)m_sdlImage->pixels[1];
-	    from = pYUV->v;
-	    for (ix = 0; ix < m_h/2; ix++) {
-	      memcpy(to, from, m_w / 2);
-	      to += m_sdlImage->pitches[1];
-	      from += pYUV->uv_stride;
-	    }
-	  } else {
-	    memcpy(m_sdlImage->pixels[1],
-		   pYUV->v,
-		   m_w * m_h / 4);
-	  }
-	  if (pYUV->uv_stride != m_sdlImage->pitches[2]) {
-	    // u
-	    to = (uint8_t *)m_sdlImage->pixels[2];
-	    from = pYUV->u;
-	    for (ix = 0; ix < m_h/2; ix++) {
-	      memcpy(to, from, m_w / 2);
-	      to += m_sdlImage->pitches[2];
-	      from += pYUV->uv_stride;
-	    }
-	  } else {
-	    memcpy(m_sdlImage->pixels[2],
-		   pYUV->u,
-		   m_w * m_h / 4);
-	  }
-
-
+	  SDL_UnlockYUVOverlay(m_sdlImage);
 	  SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
 	  
-	  SDL_UnlockYUVOverlay(m_sdlImage);
 
 	}
 }

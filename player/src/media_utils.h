@@ -21,7 +21,7 @@
 #ifndef __MEDIA_UTILS_H__
 #define __MEDIA_UTILS_H__ 1
 
-#include "video.h"
+#include "player_session.h"
 #include "our_bytestream.h"
 #include "mp4.h"
 
@@ -58,11 +58,25 @@ typedef struct audio_query_t {
   void *reference;
 } audio_query_t;
 
+typedef struct text_query_t {
+  uint32_t track_id;
+  const char *stream_type;
+  const char *compressor;
+  format_list_t *fptr;
+  const uint8_t *config;
+  uint32_t config_len;
+  // user supplied
+  int enabled;
+  void *reference;
+} text_query_t;
+
 typedef void (*media_list_query_f)(CPlayerSession *psptr,
-				   int num_video, 
+				   uint num_video, 
 				   video_query_t *,
-				   int num_audio,
-				   audio_query_t *);
+				   uint num_audio,
+				   audio_query_t *,
+				   uint num_text,
+				   text_query_t *);
 
 typedef struct control_callback_vft_t {
   media_list_query_f media_list_query;

@@ -38,16 +38,6 @@ DEFINE_MESSAGE_MACRO(audio_message, "audiosync")
 #endif
 
 
-void CAudioSync::set_eof(void) 
-{ 
-  audio_message(LOG_DEBUG, "Setting audio EOF");
-  m_eof = 1;
-}
-
-void CAudioSync::clear_eof (void)
-{
-  m_eof = 0;
-}
 
 // Sync task api - initialize the sucker.
 // May need to check out non-standard frequencies, see about conversion.
@@ -80,19 +70,6 @@ void CAudioSync::play_audio (void)
 {
 }
 
-// Called from the sync thread when we want to stop.  Pause the audio,
-// and indicate that we're not to fill any more buffers - this should let
-// the decode thread get back to receive the pause message.  Only called
-// when pausing - could cause m_dont_fill race conditions if called on play
-void CAudioSync::flush_sync_buffers (void)
-{
-}
-
-// this is called from the decode thread.  It gets called on entry into pause,
-// and entry into play.  This way, m_dont_fill race conditions are resolved.
-void CAudioSync::flush_decode_buffers (void)
-{
-}
 
 static uint16_t swapit (uint16_t val)
 {

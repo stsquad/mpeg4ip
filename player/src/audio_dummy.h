@@ -59,7 +59,7 @@ class CDummyAudioSync : public CAudioSync {
   int m_configed;
 };
 
-CAudioSync *create_audio_sync(CPlayerSession *, int volume);
+CAudioSync *create_audio_sync(CPlayerSession *);
 
 audio_vft_t *get_audio_vft(void);
 #endif
