@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syssem.c,v 1.1 2001/11/13 23:58:16 wmaycisco Exp $";
+ "@(#) $Id: SDL_syssem.c,v 1.2 2001/11/14 00:17:30 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -503,3 +503,4 @@ sem_getvalue(sem_t *sem, int *sval)
   RETURN:
 	return retval;
 }
+#endif
