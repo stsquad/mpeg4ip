@@ -259,7 +259,7 @@ extern "C" bool MP4AV_Mpeg4CreateVol(
 	u_int8_t** ppBytes,
 	u_int32_t* pNumBytes,
 	u_int8_t profile,
-	float frameRate,
+	double frameRate,
 	bool shortTime,
 	bool variableRate,
 	u_int16_t width,
@@ -333,7 +333,7 @@ extern "C" bool MP4AV_Mpeg4CreateVol(
 			vol.PutBits(1, 1);
 
 			u_int16_t frameDuration = 
-				(u_int16_t)((float)ticks / frameRate);
+				(u_int16_t)((double)ticks / frameRate);
 
 			/* 1-16 bits - fixed vop time increment in ticks */
 			vol.PutBits(frameDuration, rangeBits);

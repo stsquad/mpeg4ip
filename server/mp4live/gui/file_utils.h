@@ -27,6 +27,7 @@ GtkWidget* CreateFileCombo(const char* entryText);
 
 void FileBrowser(
 	GtkWidget* fileEntry, 
+	GtkWidget* mainwindow,
 	GtkSignalFunc okFunc = (GtkSignalFunc)NULL);
 
 GtkWidget* CreateTrackMenu(

@@ -23,6 +23,7 @@
 #include "mp4live.h"
 #include "mp4live_gui.h"
 
+
 static GtkWidget *dialog = NULL;
 static GtkWidget *file_combo;
 static GtkWidget *file_entry;

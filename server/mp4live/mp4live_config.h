@@ -93,6 +93,7 @@
 #define VIDEO_SIGNAL_PAL 0
 #define VIDEO_SIGNAL_NTSC 1
 #define VIDEO_SIGNAL_SECAM 2
+#define VIDEO_SIGNAL_MAX 3
 
 #define VIDEO_FILTER_NONE      "none"
 #define VIDEO_FILTER_DEINTERLACE "deinterlace - blend"

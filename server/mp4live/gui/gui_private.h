@@ -48,6 +48,7 @@ void DoStop(void);
 void RefreshCurrentStream(void);
 
 // From video_dialog.cpp
+void create_VideoSourceDialog(void);
 void CreateVideoProfileDialog(CVideoProfile *profile);
 void CreateVideoDialog(void);
 

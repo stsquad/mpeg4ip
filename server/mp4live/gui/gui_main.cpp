@@ -967,6 +967,7 @@ on_VideoSourceMenu_activate            (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   RestoreSourceMenu();
+  create_VideoSourceDialog();
 }
 
 

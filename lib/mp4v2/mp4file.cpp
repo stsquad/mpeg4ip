@@ -2326,7 +2326,7 @@ MP4Duration MP4File::GetTrackFixedSampleDuration(MP4TrackId trackId)
 	return m_pTracks[FindTrackIndex(trackId)]->GetFixedSampleDuration();
 }
 
-float MP4File::GetTrackVideoFrameRate(MP4TrackId trackId)
+double MP4File::GetTrackVideoFrameRate(MP4TrackId trackId)
 {
 	MP4SampleId numSamples =
 		GetTrackNumberOfSamples(trackId);

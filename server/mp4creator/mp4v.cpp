@@ -298,9 +298,11 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
     u_int32_t mp4FrameDuration = 0;
 
     if (VideoFrameRate) {
-        mp4FrameDuration = (u_int32_t)(((float)Mp4TimeScale) / VideoFrameRate);
+      mp4FrameDuration = (u_int32_t)(((double)Mp4TimeScale) / VideoFrameRate);    
     } else if (frameDuration) {
-        mp4FrameDuration = (Mp4TimeScale * frameDuration) / timeTicks;
+	  VideoFrameRate = frameDuration;
+	  VideoFrameRate /= timeTicks;
+	  mp4FrameDuration = (Mp4TimeScale * frameDuration) / timeTicks;
     } else {
       if (allowVariableFrameRate == false ) {
 	fprintf(stderr,
@@ -414,6 +416,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
     memmove(sampleBuffer, pCurrentSample, pObj - pCurrentSample + objSize);
     pObj = sampleBuffer + (pObj - pCurrentSample);
     pCurrentSample = sampleBuffer;
+    MP4Timestamp prevFrameTimestamp = 0;
 
     // now process the rest of the video stream
     while ( true ) {
@@ -441,8 +444,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                     mp4FrameDuration = (Mp4TimeScale * vopTime) / timeTicks;
                     lastVopTimeIncrement = vopTimeIncrement % timeTicks;
                 }
-            }
-
+	    }
             if ( prevSampleSize > 0 ) { // not the first time
                 // fill sample data & length to write
                 u_int8_t* sampleData2Write = NULL;
@@ -462,6 +464,17 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                     sampleLen2Write = prevSampleSize;
                 }
 
+		
+            if (variableFrameRate == false) {
+	      double now_calc;
+	      now_calc = sampleId;
+	      now_calc *= Mp4TimeScale;
+	      now_calc /= VideoFrameRate;
+	      MP4Timestamp now_ts = (MP4Timestamp)now_calc;
+	      mp4FrameDuration = now_ts - prevFrameTimestamp;
+	      prevFrameTimestamp = now_ts;
+	      currentSampleTime = now_ts;
+	    }
                 // Write the previous sample
                 rc = MP4WriteSample(mp4File, trackId,
                         sampleData2Write, sampleLen2Write,

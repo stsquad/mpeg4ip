@@ -389,14 +389,14 @@ static char* PrintVideoInfo(
 
 	u_int16_t height = MP4GetTrackVideoHeight(mp4File, trackId);
 
-	float fps = MP4GetTrackVideoFrameRate(mp4File, trackId);
+	double fps = MP4GetTrackVideoFrameRate(mp4File, trackId);
 
 	char *sInfo = (char*)MP4Malloc(256);
 
 	// type duration avgBitrate frameSize frameRate
 	if (foundTypeName) {
 	  sprintf(sInfo,
-		  "%u\tvideo\t%s%s, %.3f secs, %u kbps, %ux%u @ %.2f fps\n",
+		  "%u\tvideo\t%s%s, %.3f secs, %u kbps, %ux%u @ %f fps\n",
 		  trackId,
 		  MP4IsIsmaCrypMediaTrack(mp4File, trackId) ? "encv - " : "",
 		  typeName,
@@ -408,7 +408,7 @@ static char* PrintVideoInfo(
 		  );
 	} else {
 	  sprintf(sInfo,
-		  "%u\tvideo\t%s(%u), %.3f secs, %u kbps, %ux%u @ %.2f fps\n",
+		  "%u\tvideo\t%s(%u), %.3f secs, %u kbps, %ux%u @ %f fps\n",
 		  trackId,
 		  typeName,
 		  type, 

@@ -663,7 +663,7 @@ u_int16_t MP4GetTrackVideoHeight(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 
-float MP4GetTrackVideoFrameRate(
+double MP4GetTrackVideoFrameRate(
 	MP4FileHandle hFile, 
 	MP4TrackId trackId);
 

@@ -17,6 +17,7 @@
  *
  * Contributor(s):
  *           Bill May wmay@cisco.com
+ *           Laurent Aimar
  */
 
 //#define DEBUG_H264 1
@@ -32,6 +33,101 @@ typedef struct nal_reader_t {
   uint32_t buffer_size_max;
 } nal_reader_t;
 
+typedef struct
+{
+  struct
+  {
+    int size_min;
+    int next;
+    int cnt;
+    int idx[17];
+    int poc[17];
+  } dpb;
+
+  int cnt;
+  int cnt_max;
+  int *frame;
+} h264_dpb_t;
+
+void DpbInit( h264_dpb_t *p )
+{
+  p->dpb.cnt = 0;
+  p->dpb.next = 0;
+  p->dpb.size_min = 0;
+
+  p->cnt = 0;
+  p->cnt_max = 0;
+  p->frame = NULL;
+}
+void DpbClean( h264_dpb_t *p )
+{
+  free( p->frame );
+}
+static void DpbUpdate( h264_dpb_t *p, int is_forced )
+{
+  int i;
+  int pos;
+  if (!is_forced && p->dpb.cnt < 16)
+    return;
+
+  /* find the lowest poc */
+  pos = 0;
+  for (i = 1; i < p->dpb.cnt; i++)
+  {
+    if (p->dpb.poc[i] < p->dpb.poc[pos])
+      pos = i;
+  }
+  //fprintf( stderr, "lowest=%d\n", pos );
+
+  /* save the idx */
+  if (p->cnt >= p->cnt_max)
+  {
+    p->cnt_max += 1000;
+    p->frame = (int*)realloc( p->frame, sizeof(int)*p->cnt_max );
+  }
+  p->frame[p->cnt++] = p->dpb.idx[pos];
+
+  /* Update the dpb minimal size */
+  if (pos > p->dpb.size_min)
+    p->dpb.size_min = pos;
+
+  /* update dpb */
+  for (i = pos; i < p->dpb.cnt-1; i++)
+  {
+    p->dpb.idx[i] = p->dpb.idx[i+1];
+    p->dpb.poc[i] = p->dpb.poc[i+1];
+  }
+  p->dpb.cnt--;
+}
+
+void DpbFlush( h264_dpb_t *p )
+{
+  while (p->dpb.cnt > 0)
+    DpbUpdate( p, true );
+}
+
+void DpbAdd( h264_dpb_t *p, int poc, int is_idr )
+{
+  if (is_idr)
+    DpbFlush( p );
+
+  p->dpb.idx[p->dpb.cnt] = p->dpb.next;
+  p->dpb.poc[p->dpb.cnt] = poc;
+  p->dpb.cnt++;
+  p->dpb.next++;
+  
+  DpbUpdate( p, false );
+}
+
+int DpbFrameOffset( h264_dpb_t *p, int idx )
+{
+  if (idx >= p->cnt)
+    return 0;
+
+  return p->dpb.size_min + p->frame[idx] - idx;
+}
+
+
 static bool remove_unused_sei_messages (nal_reader_t *nal,
 					uint32_t header_size)
 {
@@ -40,6 +136,10 @@ static bool remove_unused_sei_messages (nal_reader_t *nal,
 
   while (buffer_on < nal->buffer_on) {
     uint32_t payload_type, payload_size, start, size;
+    if (nal->buffer[buffer_on] == 0x80) {
+      // rbsp_trailing_bits
+      return true;
+    }
     if (nal->buffer_on - buffer_on < 2) {
       fprintf(stderr, "extra bytes after SEI message\n");
       memset(nal->buffer + buffer_on, 0,
@@ -176,9 +276,6 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
     // but not always, i.e. non-VOP's
     // the current sample
     MP4SampleId sampleId = 1;
-    // the last reference VOP
-    //MP4SampleId refVopId = 1;
-    //MP4Timestamp refVopTime = 0;
 
     // track configuration info
     uint8_t AVCProfileIndication = 0;
@@ -189,8 +286,8 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
     uint8_t nal_type;
     nal_reader_t nal;
     h264_decode_t h264_dec;
-    MP4Timestamp lastTime = 0, thisTime, refVopTime = 0;
-    MP4SampleId samplesWritten = 0, refId = 1;
+    MP4Timestamp lastTime = 0, thisTime;
+    MP4SampleId samplesWritten = 0;
 
     memset(&nal, 0, sizeof(nal));
     nal.ifile = inFile;
@@ -231,7 +328,7 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 
     u_int32_t mp4FrameDuration = 0;
     
-    mp4FrameDuration = (u_int32_t)(((float)Mp4TimeScale) / VideoFrameRate);
+    mp4FrameDuration = (u_int32_t)(((double)Mp4TimeScale) / VideoFrameRate);
 
 #if 0
     ismacryp_session_id_t ismaCrypSId;
@@ -315,15 +412,17 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
     nal_buffer_size_max = 0;
     bool first = true;
     bool nal_is_sync = false;
-    bool access_unit_has_b_nal = false;
-    bool handle_pts = AVCProfileIndication != H264_PROFILE_BASELINE;
+    bool slice_is_idr = false;
+    int32_t poc = 0;
+    h264_dpb_t h264_dpb;
 
     // now process the rest of the video stream
     memset(&h264_dec, 0, sizeof(h264_dec));
+    DpbInit(&h264_dpb);
 
     while ( LoadNal(&nal) != false ) {
       uint32_t header_size;
-      header_size = nal.buffer[2] == 1 ? 5 : 4;
+      header_size = nal.buffer[2] == 1 ? 3 : 4;
       bool boundary = h264_detect_boundary(nal.buffer, 
 					   nal.buffer_on,
 					   &h264_dec);
@@ -335,8 +434,12 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 		 nal_buffer_size);
 #endif
 	  samplesWritten++;
- 	  thisTime = samplesWritten;
-	  thisTime *= mp4FrameDuration;
+	  double thiscalc;
+	  thiscalc = samplesWritten;
+	  thiscalc *= Mp4TimeScale;
+	  thiscalc /= VideoFrameRate;
+	  
+ 	  thisTime = (MP4Duration)thiscalc;
 	  MP4Duration dur;
 	  dur = thisTime - lastTime;
 	  rc = MP4WriteSample(mp4File, 
@@ -346,21 +449,7 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 			      dur,
 			      0, 
 			      nal_is_sync);
-	  if (handle_pts) {
-	    if (access_unit_has_b_nal == false &&
-		sampleId != 1) {
-	      MP4SetSampleRenderingOffset(mp4File, 
-					  trackId, 
-					  refId,
-					  thisTime - refVopTime);
-#ifdef DEBUG_H264
-	      printf("sid %u render offset %d value "D64"\n", 
-		     sampleId, refId, thisTime - refVopTime);
-#endif
-	      refId = sampleId;
-	      refVopTime = thisTime;
-	    }
-	  }
+
 	  lastTime = thisTime;
 	  if ( !rc ) {
 	    fprintf(stderr,
@@ -370,8 +459,8 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 	    return MP4_INVALID_TRACK_ID;
 	  }
 	  sampleId++;
+          DpbAdd( &h264_dpb, poc, slice_is_idr );
 	  nal_is_sync = false;
-	  access_unit_has_b_nal = false;
 #ifdef DEBUG_H264
 	  printf("wrote frame %d "U64"\n", nal_buffer_size, thisTime);
 #endif
@@ -386,15 +475,10 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
       }
       if (h264_nal_unit_type_is_slice(h264_dec.nal_unit_type)) {
 	copy_nal_to_buffer = true;
+        slice_is_idr = h264_dec.nal_unit_type == H264_NAL_TYPE_IDR_SLICE;
+        poc = h264_dec.pic_order_cnt;
+
 	nal_is_sync = h264_slice_is_idr(&h264_dec);
-	if (nal_is_sync == false) {
-	  if (H264_TYPE_IS_B(h264_dec.slice_type)) {
-	    access_unit_has_b_nal = true;
-#ifdef DEBUG_H264
-	    printf("sid %u have b type nal\n", sampleId);
-#endif
-	  }
-	}
       } else {
 	switch (h264_dec.nal_unit_type) {
 	case H264_NAL_TYPE_SEQ_PARAM:
@@ -442,6 +526,9 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 #ifdef DEBUG_H264
 	printf("copy nal - to_write %u offset %u total %u\n",
 	       to_write, nal_buffer_size, nal_buffer_size + 4 + to_write);
+	printf("header size %d bytes after %02x %02x\n", 
+	       header_size, nal.buffer[header_size], 
+	       nal.buffer[header_size + 1]);
 #endif
 	nal_buffer_size += to_write + 4;
       }
@@ -450,8 +537,12 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 
     if (nal_buffer_size != 0) {
       samplesWritten++;
-      thisTime = samplesWritten;
-      thisTime *= mp4FrameDuration;
+      double thiscalc;
+      thiscalc = samplesWritten;
+      thiscalc *= Mp4TimeScale;
+      thiscalc /= VideoFrameRate;
+      
+      thisTime = (MP4Duration)thiscalc;
       MP4Duration dur;
       dur = thisTime - lastTime;
       rc = MP4WriteSample(mp4File, 
@@ -461,10 +552,6 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 			  dur,
 			  0, 
 			  nal_is_sync);
-      if (handle_pts) {
-	MP4SetSampleRenderingOffset(mp4File, trackId, refId,
-				    thisTime - refVopTime);
-      }
       if ( !rc ) {
 	fprintf(stderr,
 		"%s: can't write video frame %u\n",
@@ -472,8 +559,21 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 	MP4DeleteTrack(mp4File, trackId);
 	return MP4_INVALID_TRACK_ID;
       }
+      DpbAdd(&h264_dpb, h264_dec.pic_order_cnt, slice_is_idr);
     }
 
+    DpbFlush(&h264_dpb);
+
+    if (h264_dpb.dpb.size_min > 0) {
+      unsigned int ix;
+      for (ix = 0; ix < samplesWritten; ix++) {
+	const int offset = DpbFrameOffset(&h264_dpb, ix);
+	MP4SetSampleRenderingOffset(mp4File, trackId, 1 + ix, 
+				    offset * mp4FrameDuration);
+      }
+    }
+
+    DpbClean(&h264_dpb);
 #if 0
     // terminate session if encrypting
     if (doEncrypt) {

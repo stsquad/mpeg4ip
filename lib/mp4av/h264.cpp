@@ -88,6 +88,29 @@ int32_t h264_se (CBitstream *bs)
   return (ret + 1) >> 1;
 }
 
+static void h264_decode_annexb( uint8_t *dst, int *dstlen,
+                                const uint8_t *src, const int srclen )
+{
+  uint8_t *dst_sav = dst;
+  const uint8_t *end = &src[srclen];
+
+  while (src < end)
+  {
+    if (src < end - 3 && src[0] == 0x00 && src[1] == 0x00 &&
+        src[2] == 0x03)
+    {
+      *dst++ = 0x00;
+      *dst++ = 0x00;
+
+      src += 3;
+      continue;
+    }
+    *dst++ = *src++;
+  }
+
+  *dstlen = dst - dst_sav;
+}
+
 extern "C" bool h264_is_start_code (const uint8_t *pBuf) 
 {
   if (pBuf[0] == 0 && 
@@ -171,11 +194,15 @@ int h264_read_seq_info (const uint8_t *buffer,
 {
   CBitstream bs;
   uint32_t header;
+  uint8_t tmp[2048]; /* Should be enough for all SPS (we have at worst 13 bytes and 496 se/ue in frext) */
+  int tmp_len;
 
   if (buffer[2] == 1) header = 4;
   else header = 5;
 
-  bs.init(buffer + header, (buflen - header) * 8);
+  h264_decode_annexb( tmp, &tmp_len, buffer + header, MIN(buflen-header,2048) );
+  bs.init(tmp, tmp_len * 8);
+
   //bs.set_verbose(true);
   try {
     dec->profile = bs.GetBits(8);
@@ -188,11 +215,11 @@ int h264_read_seq_info (const uint8_t *buffer,
       dec->log2_max_pic_order_cnt_lsb_minus4 = h264_ue(&bs);
     } else if (dec->pic_order_cnt_type == 1) {
       dec->delta_pic_order_always_zero_flag = bs.GetBits(1);
-      h264_se(&bs); // offset_for_non_ref_pic
-      h264_se(&bs); // offset_for_top_to_bottom_field
-      uint32_t temp = h264_ue(&bs);
-      for (uint32_t ix = 0; ix < temp; ix++) {
-	h264_se(&bs); // offset for ref fram -
+      dec->offset_for_non_ref_pic = h264_se(&bs); // offset_for_non_ref_pic
+      dec->offset_for_non_ref_pic = h264_se(&bs); // offset_for_top_to_bottom_field
+      dec->pic_order_cnt_cycle_length = h264_ue(&bs); // poc_cycle_length
+      for (uint32_t ix = 0; ix < dec->pic_order_cnt_cycle_length; ix++) {
+        dec->offset_for_ref_frame[MIN(ix,255)] = h264_se(&bs); // offset for ref fram -
       }
     }
     h264_ue(&bs); // num_ref_frames
@@ -251,10 +278,15 @@ int h264_read_slice_info (const uint8_t *buffer,
 			  h264_decode_t *dec)
 {
   uint32_t header;
+  uint8_t tmp[512]; /* Enough for the begining of the slice header */
+  int tmp_len;
+
   if (buffer[2] == 1) header = 4;
   else header = 5;
   CBitstream bs;
-  bs.init(buffer + header, (buflen - header) * 8);
+
+  h264_decode_annexb( tmp, &tmp_len, buffer + header, MIN(buflen-header,512) );
+  bs.init(tmp, tmp_len * 8);
   try {
     dec->field_pic_flag = 0;
     dec->bottom_field_flag = 0;
@@ -295,6 +327,117 @@ int h264_read_slice_info (const uint8_t *buffer,
   }
   return 0;
 }
+
+static void h264_compute_poc( h264_decode_t *dec ) {
+  const int max_frame_num = 1 << (dec->log2_max_frame_num_minus4 + 4);
+  int field_poc[2] = {0,0};
+  enum {
+    H264_PICTURE_FRAME,
+    H264_PICTURE_FIELD_TOP,
+    H264_PICTURE_FIELD_BOTTOM,
+  } pic_type;
+
+  /* FIXME FIXME it doesn't handle the case where there is a MMCO == 5
+   * (MMCO 5 "emulates" an idr) */
+  
+  /* picture type */
+  if (dec->frame_mbs_only_flag || !dec->field_pic_flag)
+    pic_type = H264_PICTURE_FRAME;
+  else if (dec->bottom_field_flag)
+    pic_type = H264_PICTURE_FIELD_BOTTOM;
+  else
+    pic_type = H264_PICTURE_FIELD_TOP;
+
+  /* frame_num_offset */
+  if (dec->nal_unit_type == H264_NAL_TYPE_IDR_SLICE) {
+    dec->pic_order_cnt_lsb_prev = 0;
+    dec->pic_order_cnt_msb_prev = 0;
+    dec->frame_num_offset = 0;
+  } else {
+    if (dec->frame_num < dec->frame_num_prev)
+      dec->frame_num_offset = dec->frame_num_offset_prev + max_frame_num;
+    else
+      dec->frame_num_offset = dec->frame_num_offset_prev;
+  }
+
+  /* */
+  if(dec->pic_order_cnt_type == 0) {
+    const unsigned int max_poc_lsb = 1 << (dec->log2_max_pic_order_cnt_lsb_minus4 + 4);
+
+    if (dec->pic_order_cnt_lsb < dec->pic_order_cnt_lsb_prev &&
+        dec->pic_order_cnt_lsb_prev - dec->pic_order_cnt_lsb >= max_poc_lsb / 2)
+      dec->pic_order_cnt_msb = dec->pic_order_cnt_msb_prev + max_poc_lsb;
+    else if (dec->pic_order_cnt_lsb > dec->pic_order_cnt_lsb_prev &&
+             dec->pic_order_cnt_lsb - dec->pic_order_cnt_lsb_prev > max_poc_lsb / 2)
+      dec->pic_order_cnt_msb = dec->pic_order_cnt_msb_prev - max_poc_lsb;
+    else
+      dec->pic_order_cnt_msb = dec->pic_order_cnt_msb_prev;
+
+    field_poc[0] = dec->pic_order_cnt_msb + dec->pic_order_cnt_lsb;
+    field_poc[1] = field_poc[0];
+    if (pic_type == H264_PICTURE_FRAME)
+      field_poc[1] += dec->delta_pic_order_cnt_bottom;
+
+  } else if (dec->pic_order_cnt_type == 1) {
+    int abs_frame_num, expected_delta_per_poc_cycle, expected_poc;
+
+    if (dec->pic_order_cnt_cycle_length != 0)
+      abs_frame_num = dec->frame_num_offset + dec->frame_num;
+    else
+      abs_frame_num = 0;
+
+    if (dec->nal_ref_idc == 0 && abs_frame_num > 0)
+      abs_frame_num--;
+
+    expected_delta_per_poc_cycle = 0;
+    for (int i = 0; i < (int)dec->pic_order_cnt_cycle_length; i++ )
+      expected_delta_per_poc_cycle += dec->offset_for_ref_frame[i];
+
+    if (abs_frame_num > 0) {
+      const int poc_cycle_cnt = ( abs_frame_num - 1 ) / dec->pic_order_cnt_cycle_length;
+      const int frame_num_in_poc_cycle = ( abs_frame_num - 1 ) % dec->pic_order_cnt_cycle_length;
+
+      expected_poc = poc_cycle_cnt * expected_delta_per_poc_cycle;
+      for (int i = 0; i <= frame_num_in_poc_cycle; i++)
+        expected_poc += dec->offset_for_ref_frame[i];
+    } else {
+      expected_poc = 0;
+    }
+
+    if (dec->nal_ref_idc == 0)
+      expected_poc += dec->offset_for_non_ref_pic;
+
+    field_poc[0] = expected_poc + dec->delta_pic_order_cnt[0];
+    field_poc[1] = field_poc[0] + dec->offset_for_top_to_bottom_field;
+
+    if (pic_type == H264_PICTURE_FRAME)
+      field_poc[1] += dec->delta_pic_order_cnt[1];
+
+  } else if (dec->pic_order_cnt_type == 2) {
+    int poc;
+    if (dec->nal_unit_type == H264_NAL_TYPE_IDR_SLICE) {
+      poc = 0;
+    } else {
+      const int abs_frame_num = dec->frame_num_offset + dec->frame_num;
+      if (dec->nal_ref_idc != 0)
+        poc = 2 * abs_frame_num;
+      else
+        poc = 2 * abs_frame_num - 1;
+    }
+    field_poc[0] = poc;
+    field_poc[1] = poc;
+  }
+
+  /* */
+  if (pic_type == H264_PICTURE_FRAME)
+    dec->pic_order_cnt = MIN(field_poc[0], field_poc[1] );
+  else if (pic_type == H264_PICTURE_FIELD_TOP)
+    dec->pic_order_cnt = field_poc[0];
+  else
+    dec->pic_order_cnt = field_poc[1];
+}
+
+
 extern "C" int h264_detect_boundary (const uint8_t *buffer, 
 				     uint32_t buflen, 
 				     h264_decode_t *decode)
@@ -302,6 +445,7 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
   uint8_t temp;
   h264_decode_t new_decode;
   int ret;
+  int slice = 0;
 
   memcpy(&new_decode, decode, sizeof(new_decode));
 
@@ -322,6 +466,7 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
   case H264_NAL_TYPE_DP_B_SLICE:
   case H264_NAL_TYPE_DP_C_SLICE:
   case H264_NAL_TYPE_IDR_SLICE:
+    slice = 1;
     // slice buffer - read the info into the new_decode, and compare.
     if (h264_read_slice_info(buffer, buflen, &new_decode) < 0) {
       // need more memory
@@ -410,12 +555,32 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
     if (decode->nal_unit_type <= H264_NAL_TYPE_IDR_SLICE) ret = 1;
     else ret = 0;
   } 
+
+  /* save _prev values */
+  if (ret)
+  {
+    new_decode.frame_num_offset_prev = decode->frame_num_offset;
+    if (decode->pic_order_cnt_type != 2 || decode->nal_ref_idc != 0)
+      new_decode.frame_num_prev = decode->frame_num;
+    if (decode->nal_ref_idc != 0)
+    {
+      new_decode.pic_order_cnt_lsb_prev = decode->pic_order_cnt_lsb;
+      new_decode.pic_order_cnt_msb_prev = decode->pic_order_cnt_msb;
+    }
+  }
+
+  if( slice ) {  // XXX we compute poc for every slice in a picture (but it's not needed)
+    h264_compute_poc( &new_decode );
+  }
+
+
   // other types (6, 7, 8, 
 #ifdef BOUND_VERBOSE
   if (ret == 0) {
     printf("no change\n");
   }
 #endif
+
   memcpy(decode, &new_decode, sizeof(*decode));
   return ret;
 }
@@ -431,3 +596,4 @@ uint32_t h264_read_sei_value (const uint8_t *buffer, uint32_t *size)
   ret += *buffer;
   return ret;
 }
+

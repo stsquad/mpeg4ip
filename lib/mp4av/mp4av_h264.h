@@ -47,6 +47,10 @@ typedef struct h264_decode_t {
   uint8_t frame_mbs_only_flag;
   uint8_t pic_order_present_flag;
   uint8_t delta_pic_order_always_zero_flag;
+  int32_t offset_for_non_ref_pic;
+  int32_t offset_for_top_to_bottom_field;
+  uint32_t pic_order_cnt_cycle_length;
+  int16_t offset_for_ref_frame[256];
 
   uint8_t nal_ref_idc;
   uint8_t nal_unit_type;
@@ -61,6 +65,17 @@ typedef struct h264_decode_t {
 
   uint32_t pic_width, pic_height;
   uint32_t slice_type;
+
+  /* POC state */
+  int32_t  pic_order_cnt;        /* can be < 0 */
+
+  uint32_t  pic_order_cnt_msb;
+  uint32_t  pic_order_cnt_msb_prev;
+  uint32_t  pic_order_cnt_lsb_prev;
+  uint32_t  frame_num_prev;
+  int32_t  frame_num_offset;
+  int32_t  frame_num_offset_prev;
+
 } h264_decode_t;
 
 #ifdef __cplusplus

@@ -1744,7 +1744,7 @@ extern "C" u_int16_t MP4GetTrackVideoHeight(
 	return 0;
 }
 
-extern "C" float MP4GetTrackVideoFrameRate(
+extern "C" double MP4GetTrackVideoFrameRate(
 	MP4FileHandle hFile, MP4TrackId trackId)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {

@@ -283,7 +283,7 @@ extern "C" bool MP4AV_RfcIsmaHinter(
 		sprintf(sdpBuf,
 			"a=fmtp:%u "
 			"streamtype=5; profile-level-id=15; mode=AAC-hbr; config=%s; "
-			"SizeLength=13; IndexLength=3; IndexDeltaLength=3; Profile=1;"
+			"SizeLength=13; IndexLength=3; IndexDeltaLength=3;"
 			"\015\012",
 				payloadNumber,
 				sConfig); 

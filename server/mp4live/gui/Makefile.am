@@ -4,15 +4,17 @@ libmp4livegui_la_SOURCES = \
 	mp4live_gui.h \
 	gui_main.cpp \
 	gui_private.h \
+	file_utils.cpp \
+	file_utils.h \
 	audio_dialog.cpp \
 	picture_dialog.cpp \
-	recording_dialog.cpp \
 	transmit_dialog.cpp \
 	video_dialog.cpp \
 	gui_utils.h \
 	gui_utils.cpp \
 	support.cpp \
 	support.h
+#	recording_dialog.cpp 
 
 INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I.. \

@@ -278,8 +278,7 @@ GtkWidget *CreateOptionMenu(GtkWidget *omenu,
 			    const char* (*gather_func)(uint32_t index, void* pUserData),
 			    void* pUserData,
 			    uint32_t max,
-			    uint32_t current_index,
-			    GSList** menuItems)
+			    uint32_t current_index)
 {
   GtkWidget *menu;
   GtkWidget *menuitem;
@@ -320,18 +319,17 @@ static const char* GetArrayItem(uint32_t index, void* pUserData)
 }
 
 GtkWidget *CreateOptionMenu(GtkWidget *omenu,
-			     const char **names,
-			     uint32_t max,
-			     uint32_t current_index,
-				 GSList** menuItems)
+			    const char **names,
+			    uint32_t max,
+			    uint32_t current_index)
+
 {
 	return CreateOptionMenu(
 		omenu, 
 		GetArrayItem, 
 		(void*)names, 
 		max, 
-		current_index, 
-		menuItems);
+		current_index);
 }
 
 void SetNumberEntryValue (GtkWidget *entry,
@@ -469,34 +467,36 @@ void SetEntryValidator(GtkObject* object,
 static GtkWidget* filesel;
 static GtkWidget* fileentry;
 
-static void on_filename_selected (GtkFileSelection *widget, 
+static void on_filename_selected (GtkDialog *filesel, 
+				  gint response_id,
 				  gpointer data)
 {
   const gchar *name;
-  name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(filesel));
-  gtk_entry_set_text(GTK_ENTRY(fileentry), name);
-  gtk_widget_show(fileentry);
-  gtk_grab_remove(filesel);
-  gtk_widget_destroy(filesel);
+  if (GTK_RESPONSE_OK == response_id) {
+    name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(filesel));
+    gtk_entry_set_text(GTK_ENTRY(fileentry), name);
+    GtkSignalFunc okfunc = (GtkSignalFunc)data;
+    gtk_widget_show(fileentry);
+    (okfunc)();
+  }
+  gtk_widget_destroy(GTK_WIDGET(filesel));
 }
 
-void FileBrowser (GtkWidget* entry)
+void FileBrowser (GtkWidget* entry, GtkWidget *mainwin, GtkSignalFunc okFunc)
 {
   fileentry = entry;
   filesel = gtk_file_selection_new("Select File");
   gtk_file_selection_hide_fileop_buttons(GTK_FILE_SELECTION(filesel));
-  gtk_signal_connect(
-			GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button),
-		     "clicked",
-		     GTK_SIGNAL_FUNC(on_filename_selected),
-		     filesel);
-  gtk_signal_connect_object(
-			GTK_OBJECT(GTK_FILE_SELECTION(filesel)->cancel_button),
-		     "clicked",
-		     GTK_SIGNAL_FUNC(gtk_widget_destroy),
-		     GTK_OBJECT(filesel));
+  gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel),
+				  gtk_entry_get_text(GTK_ENTRY(entry)));
+  gtk_window_set_modal(GTK_WINDOW(filesel), true);
+  gtk_window_set_transient_for(GTK_WINDOW(filesel), 
+			       GTK_WINDOW(mainwin));
+
+  g_signal_connect((gpointer)filesel, "response", 
+		   G_CALLBACK(on_filename_selected),
+		   (void *)okFunc);
   gtk_widget_show(filesel);
-  gtk_grab_add(filesel);
 }
 
 /*

@@ -185,6 +185,7 @@ int32_t FileDefaultAudio(const char* fileName)
 	}
 }
 
+#if 0
 static char** trackNames;
 static u_int32_t* pTrackIndex;
 
@@ -491,3 +492,4 @@ GtkWidget* CreateTrackMenu(
 	}
 }
 
+#endif

@@ -343,7 +343,7 @@ int main(int argc, char** argv)
 	fprintf(stderr, "%s:no rate specifed\n", ProgName);
 	exit(EXIT_COMMAND_LINE);
       }
-      if (sscanf(optarg, "%f", &VideoFrameRate) != 1) {
+      if (sscanf(optarg, "%lf", &VideoFrameRate) != 1) {
 	fprintf(stderr, 
 		"%s: bad rate specified: %s\n",
 		ProgName, optarg);
@@ -1186,6 +1186,9 @@ static void extract_h264_track (MP4FileHandle mp4File,
     uint32_t read_offset = 0;
     uint32_t nal_len;
     bool first = true;
+#if 0
+    printf("\n\nsample id: %u\n", sampleId);
+#endif
     do {
 #if 0
       printf("read offset %u buflen %u sample Size %u\n", 
@@ -1206,6 +1209,10 @@ static void extract_h264_track (MP4FileHandle mp4File,
 	  nal_len |= (pSample[read_offset + 2] << 8) | pSample[read_offset + 3];
 	  }
 	}
+#if 0
+	printf("read offset %u nallen %u sample Size %u %d\n", 
+	       read_offset, nal_len, sampleSize, first);
+#endif
 	if (read_offset + nal_len > sampleSize) {
 	  fprintf(stderr, 
 		  "nal length past end of buffer - sample %u size %u frame offset %u left %u\n",
@@ -1387,3 +1394,4 @@ bool Is3GPP(MP4FileHandle mp4File)
   }
   return true;
 }
+

@@ -69,7 +69,7 @@ bool MP4AV_Mpeg4CreateVol(
 	u_int8_t** ppBytes,
 	u_int32_t* pNumBytes,
 	u_int8_t profile,
-	float frameRate,
+	double frameRate,
 	bool shortTime,
 	bool variableRate,
 	u_int16_t width,
