@@ -23,6 +23,7 @@
 #define __MP3_INCLUDED__
 
 u_int8_t Mp3GetHdrVersion(u_int32_t hdr);
+u_int8_t Mp3GetHdrLayer(u_int32_t hdr);
 u_int16_t Mp3GetHdrSamplingRate(u_int32_t hdr);
 u_int16_t Mp3GetHdrSamplingWindow(u_int32_t hdr);
 u_int16_t Mp3GetFrameSize(u_int32_t hdr);

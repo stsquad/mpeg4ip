@@ -112,7 +112,7 @@ void MP4Descriptor::ReadProperties(MP4File* pFile,
 
 		if (m_pProperties[i]->GetType() == DescriptorProperty
 		  && remaining >= 0) {
-			// place a limit on how far this sub-desriptor looks
+			// place a limit on how far this sub-descriptor looks
 			((MP4DescriptorProperty*)m_pProperties[i])->SetSizeLimit(remaining);
 			m_pProperties[i]->Read(pFile);
 

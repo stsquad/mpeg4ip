@@ -124,6 +124,12 @@ u_int8_t Mp3GetHdrVersion(u_int32_t hdr)
 	return ((hdr >> 19) & 0x3); 
 }
 
+u_int8_t Mp3GetHdrLayer(u_int32_t hdr)
+{
+	/* extract the necessary field from the MP3 header */
+	return ((hdr >> 17) & 0x3); 
+}
+
 u_int16_t Mp3GetHdrSamplingRate(u_int32_t hdr)
 {
 	/* extract the necessary fields from the MP3 header */
@@ -136,7 +142,7 @@ u_int16_t Mp3GetHdrSamplingRate(u_int32_t hdr)
 u_int16_t Mp3GetHdrSamplingWindow(u_int32_t hdr)
 {
 	u_int8_t version = Mp3GetHdrVersion(hdr);
-	u_int8_t layer = (hdr >> 17) & 0x3; 
+	u_int8_t layer = Mp3GetHdrLayer(hdr);
 	u_int16_t samplingWindow;
 
 	if (layer == 1) {
@@ -161,7 +167,7 @@ u_int16_t Mp3GetFrameSize(u_int32_t hdr)
 {
 	/* extract the necessary fields from the MP3 header */
 	u_int8_t version = Mp3GetHdrVersion(hdr);
-	u_int8_t layer = (hdr >> 17) & 0x3; 
+	u_int8_t layer = Mp3GetHdrLayer(hdr);
 	u_int8_t bitRateIndex1;
 	u_int8_t bitRateIndex2 = (hdr >> 12) & 0xF;
 	u_int8_t sampleRateIndex = (hdr >> 10) & 0x3;
@@ -198,24 +204,30 @@ u_int16_t Mp3GetFrameSize(u_int32_t hdr)
 
 u_int16_t Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize)
 {
-	if (frameSize < 6) {
+	if (frameSize < 2) {
 		return 0;
 	}
 
-	bool isProtected = !(pFrame[1] & 0x1);
+	u_int8_t version = (pFrame[1] >> 3) & 0x3;
 	u_int8_t layer = (pFrame[1] >> 1) & 0x3; 
-
-	if (layer != 1 || (isProtected && frameSize < 8)) {
-		return 0;
-	}
-
+	bool isProtected = !(pFrame[1] & 0x1);
 	u_int8_t crcSize = isProtected ? 2 : 0;
 
-#ifdef LIVECASTER
-	return pFrame[4 + crcSize];
-#else
-	return (pFrame[4 + crcSize] << 1) | (pFrame[5 + crcSize] >> 7);
-#endif
+	// protect against garbage input
+	if (frameSize < (u_int32_t)(5 + crcSize + (version == 3 ? 1 : 0))) {
+		return 0;
+	}
+	if (layer != 1) {
+		return 0;
+	}
+
+	if (version == 3) {
+		// MPEG-1
+		return (pFrame[4 + crcSize] << 1) | (pFrame[5 + crcSize] >> 7);
+	} else {
+		// MPEG-2 or 2.5
+		return pFrame[4 + crcSize];
+	}
 }
 
 u_int8_t Mp3GetCrcSize(u_int32_t hdr)
@@ -223,52 +235,33 @@ u_int8_t Mp3GetCrcSize(u_int32_t hdr)
 	return ((hdr & 0x00010000) ? 0 : 2);
 }
 
-// The side info can be:
-//  32 bytes for MPEG-1 stereo
-//  17 bytes for MPEG-1 mono
-//  9 bytes for MPEG-2 mono
 u_int8_t Mp3GetSideInfoSize(u_int32_t hdr)
 {
-#ifdef LIVECASTER
-	return 17;
-#else
-	u_int8_t layer = (hdr >> 17) & 0x3; 
+	u_int8_t version = Mp3GetHdrVersion(hdr);
+	u_int8_t layer = Mp3GetHdrLayer(hdr);
+	u_int8_t mode = (hdr >> 6) & 0x3;
+	u_int8_t channels = (mode == 3 ? 1 : 2);
 
 	// check that this is layer 3
 	if (layer != 1) {
 		return 0;
 	}
 
-	u_int8_t mode = (hdr >> 6) & 0x3;
-	u_int8_t channels;
-
-	if (mode == 3) {
-		channels = 1;
+	if (version == 3) {
+		// MPEG-1
+		if (channels == 1) {
+			return 17;
+		} else { 
+			return 32;
+		}
 	} else {
-		channels = 2;
+		// MPEG-2 or 2.5
+		if (channels == 1) {
+			return 9;
+		} else { 
+			return 17;
+		}
 	}
-
-	u_int16_t bits = 0;
-
-	// main data begin
-	bits += 9;
-
-	// private bits
-	if (channels == 1) {
-		bits += 5;
-	} else {
-		bits += 3;
-	}
-
-	// scfsi
-	bits += channels * 4;
-
-	// gr loop, channel loop
-	bits += 2 * channels 
-		* (12 + 9 + 8 + 4 + 1 + 22 + 1 + 1 + 1);
-
-	return (bits + 7) / 8;
-#endif
 }
 
 /*
@@ -354,7 +347,7 @@ static bool GetMpegLayer(FILE* inFile, u_int8_t* pLayer)
 		return false;
 	}
 
-	(*pLayer) = (header >> 17) & 0x3; 
+	(*pLayer) = Mp3GetHdrLayer(header);
 
 	/* rewind the file to where we were */
 	fsetpos(inFile, &curPos);

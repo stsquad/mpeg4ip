@@ -251,6 +251,7 @@ int main(int argc, char** argv)
 	// end processing of command line
 
 	if (doList) {
+		// just want the track listing
 		PrintTrackList(mp4FileName, verbosity);
 		exit(EXIT_SUCCESS);
 	}
@@ -282,14 +283,42 @@ int main(int argc, char** argv)
 			exit(EXIT_CREATE_FILE);
 		}
 
-		if (doCreate) {
-			MP4TrackId* pTrackIds = CreateMediaTracks(mp4File, inputFileName);
+		bool allMpeg4Streams = true;
 
-			if (pTrackIds && doHint) {
-				while (*pTrackIds != MP4_INVALID_TRACK_ID) {
-					CreateHintTrack(mp4File, *pTrackIds, 
+		if (doCreate) {
+			MP4TrackId* pCreatedTrackIds = 
+				CreateMediaTracks(mp4File, inputFileName);
+
+			if (pCreatedTrackIds) {
+				// decide if we can raise the ISMA compliance tag in SDP
+				// we do this if audio and/or video are MPEG-4
+				MP4TrackId* pTrackId = pCreatedTrackIds;
+
+				while (*pTrackId != MP4_INVALID_TRACK_ID) {				
+					const char *type =
+						MP4GetTrackType(mp4File, *pTrackId);
+
+					if (!strcmp(type, MP4_AUDIO_TRACK_TYPE)) { 
+						allMpeg4Streams &=
+							MP4GetTrackAudioType(mp4File, *pTrackId) 
+							== MP4_MPEG4_AUDIO_TYPE;
+
+					} else if (!strcmp(type, MP4_VIDEO_TRACK_TYPE)) { 
+						allMpeg4Streams &=
+							MP4GetTrackVideoType(mp4File, *pTrackId)
+							== MP4_MPEG4_VIDEO_TYPE;
+					}
+					pTrackId++;
+				}
+			}
+
+			if (pCreatedTrackIds && doHint) {
+				MP4TrackId* pTrackId = pCreatedTrackIds;
+
+				while (*pTrackId != MP4_INVALID_TRACK_ID) {
+					CreateHintTrack(mp4File, *pTrackId, 
 						payloadName, doInterleave);
-					pTrackIds++;
+					pTrackId++;
 				}
 			}
 		} else {
@@ -299,7 +328,8 @@ int main(int argc, char** argv)
 		MP4Close(mp4File);
 
 		if (doCreate) {
-			MP4MakeIsmaCompliant(mp4FileName, verbosity);
+			// this creates simple MPEG-4 OD and BIFS streams
+			MP4MakeIsmaCompliant(mp4FileName, verbosity, allMpeg4Streams);
 		}
 
 
@@ -437,7 +467,9 @@ MP4TrackId CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 			break;
 		case MP4_MPEG1_AUDIO_TYPE:
 		case MP4_MPEG2_AUDIO_TYPE:
-			if (payloadName && !strcasecmp(payloadName, "3119")) {
+			if (payloadName && 
+			  (!strcasecmp(payloadName, "3119") 
+			  || !strcasecmp(payloadName, "mpa-robust"))) {
 				Rfc3119Hinter(mp4File, mediaTrackId, hintTrackId, interleave);
 			} else {
 				Rfc2250Hinter(mp4File, mediaTrackId, hintTrackId);
@@ -489,7 +521,7 @@ void PrintTrackList(const char* mp4FileName, u_int32_t verbosity)
 	MP4Close(mp4File);
 }
 
-// there are so many attempts to get this right
+// there are so many attempts in libc to get this right
 // that for portablity reasons, it's best just to roll our own
 char* MakeTempMp4FileName()
 {

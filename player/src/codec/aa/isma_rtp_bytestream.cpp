@@ -60,6 +60,7 @@ CIsmaAudioRtpByteStream::CIsmaAudioRtpByteStream (format_list_t *media_fmt,
   m_outfile = fopen("isma.aac", "w");
 #endif
   m_frame_data_head = NULL;
+  m_frame_data_on = NULL;
   m_frame_data_free = NULL;
   isma_frame_data_t *p;
   for (m_frame_data_max = 0; m_frame_data_max < 25; m_frame_data_max++) {
@@ -108,6 +109,11 @@ CIsmaAudioRtpByteStream::~CIsmaAudioRtpByteStream (void)
   if (m_frag_reass_buffer != NULL) {
     free(m_frag_reass_buffer);
     m_frag_reass_buffer = NULL;
+  }
+  if (m_frame_data_on != NULL) {
+    m_frame_data_on->frame_data_next = m_frame_data_head;
+    m_frame_data_head = m_frame_data_on;
+    m_frame_data_on = NULL;
   }
   while (m_frame_data_free != NULL) {
     p = m_frame_data_free;
@@ -470,18 +476,18 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
 {
   uint64_t timetick;
 
-  if (m_frame_data_head != NULL) {
+  if (m_frame_data_on != NULL) {
     uint32_t next_ts;
 #ifdef DEBUG_ISMA_AAC
     isma_message(LOG_DEBUG, "Advancing to next pak data - old ts %x", 
-		 m_frame_data_head->rtp_timestamp);
+		 m_frame_data_on->rtp_timestamp);
 #endif
-    if (m_frame_data_head->last_in_pak != 0) {
+    if (m_frame_data_on->last_in_pak != 0) {
       // We're done with all the data in this packet - get rid
       // of the rtp packet.
-      if (m_frame_data_head->is_fragment == 1) {
+      if (m_frame_data_on->is_fragment == 1) {
 	// if fragmented, need to get rid of all paks pointed to
-	isma_frag_data_t *q =  m_frame_data_head->frag_data;
+	isma_frag_data_t *q =  m_frame_data_on->frag_data;
 	while (q != NULL) {
 	  rtp_packet *pak = q->pak;
 	  q->pak = NULL;
@@ -493,8 +499,8 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
 #endif
 	}
       } else {
-	rtp_packet *pak = m_frame_data_head->pak;
-	m_frame_data_head->pak = NULL;
+	rtp_packet *pak = m_frame_data_on->pak;
+	m_frame_data_on->pak = NULL;
 	xfree(pak);
 #ifdef DEBUG_ISMA_AAC
 	isma_message(LOG_DEBUG, "removing pak %d", pak->rtp_pak_seq);
@@ -506,9 +512,9 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
      */
     isma_frame_data_t *p = NULL;
     SDL_LockMutex(m_rtp_packet_mutex);
-    p = m_frame_data_head;
+    p = m_frame_data_on;
+    m_frame_data_on = NULL;
     next_ts = p->rtp_timestamp;
-    m_frame_data_head = p->frame_data_next;
     p->frame_data_next = m_frame_data_free;
     m_frame_data_free = p;
     // free all frag_data for this frame
@@ -556,11 +562,16 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
    * Init up the offsets
    */
   if (m_frame_data_head != NULL) {
-    if (m_frame_data_head->is_fragment == 1) {	  
+    SDL_LockMutex(m_rtp_packet_mutex);
+    m_frame_data_on = m_frame_data_head;
+    m_frame_data_head = m_frame_data_head->frame_data_next;
+    SDL_UnlockMutex(m_rtp_packet_mutex);
+
+    if (m_frame_data_on->is_fragment == 1) {	  
 
       m_frag_reass_size = 0;
       isma_frag_data_t *ptr;
-      ptr = m_frame_data_head->frag_data;
+      ptr = m_frame_data_on->frag_data;
       while (ptr != NULL) {
 	if (m_frag_reass_size + ptr->frag_len > m_frag_reass_size_max) {
 	  m_frag_reass_size_max += max(4096, ptr->frag_len);
@@ -576,8 +587,8 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
       *buffer = m_frag_reass_buffer;
       *buflen = m_frag_reass_size;
     } else { 
-      *buffer = (unsigned char *)m_frame_data_head->frame_ptr;
-      *buflen = m_frame_data_head->frame_len;
+      *buffer = (unsigned char *)m_frame_data_on->frame_ptr;
+      *buflen = m_frame_data_on->frame_len;
     }
   } else {
     *buffer = NULL;
@@ -587,11 +598,11 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (unsigned char **buffer,
     fwrite(*buffer, *buflen,  1, m_outfile);
   }
 #endif
-  timetick = rtp_ts_to_msec(m_frame_data_head != NULL ? 
-			    m_frame_data_head->rtp_timestamp : m_ts, 
+  timetick = rtp_ts_to_msec(m_frame_data_on != NULL ? 
+			    m_frame_data_on->rtp_timestamp : m_ts, 
 			    m_wrap_offset);
-  if (m_frame_data_head != NULL)
-    m_ts =  m_frame_data_head->rtp_timestamp;
+  if (m_frame_data_on != NULL)
+    m_ts =  m_frame_data_on->rtp_timestamp;
   // We're going to have to handle wrap better...
 #ifdef DEBUG_ISMA_AAC
   isma_message(LOG_DEBUG, "start next frame %p %d ts %x "LLU, 
@@ -616,6 +627,11 @@ void CIsmaAudioRtpByteStream::flush_rtp_packets (void)
 {
   isma_frame_data_t *p;
   SDL_LockMutex(m_rtp_packet_mutex);
+  if (m_frame_data_on != NULL) {
+    m_frame_data_on->frame_data_next = m_frame_data_head;
+    m_frame_data_head = m_frame_data_on;
+    m_frame_data_on = NULL;
+  }
   if (m_frame_data_head != NULL) {
     p = m_frame_data_head;
     while (p->frame_data_next != NULL) {

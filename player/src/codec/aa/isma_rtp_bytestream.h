@@ -83,6 +83,7 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   FILE *m_outfile;
 #endif
   isma_frame_data_t *m_frame_data_head;
+  isma_frame_data_t *m_frame_data_on;
   isma_frame_data_t *m_frame_data_free;
   uint32_t m_frame_data_max;
   uint32_t m_rtp_ts_add;

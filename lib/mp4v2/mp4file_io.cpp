@@ -85,8 +85,12 @@ u_int64_t MP4File::GetSize()
 
 u_int32_t MP4File::ReadBytes(u_int8_t* pBytes, u_int32_t numBytes, FILE* pFile)
 {
+	// handle degenerate cases
+	if (numBytes == 0) {
+		return 0;
+	}
+
 	ASSERT(pBytes);
-	ASSERT(numBytes > 0);
 	WARNING(m_numReadBits > 0);
 
 	if (pFile == NULL) {

@@ -245,7 +245,11 @@ int CPlayerMedia::decode_thread (void)
       clock_t start, end;
       start = clock();
 #endif
-      ret = codec->decode(ourtime, m_streaming != 0, frame_buffer, frame_len);
+      if (frame_buffer != NULL) 
+	ret = codec->decode(ourtime, 
+			    m_streaming != 0, 
+			    frame_buffer, 
+			    frame_len);
 #ifdef TIME_DECODE
       end = clock();
       if (ret > 0) {
