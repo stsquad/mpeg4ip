@@ -115,7 +115,7 @@ uint64_t CAacRtpByteStream::start_next_frame (void)
     check_for_end_of_pak(1); // don't throw an exception...
   }
   if (m_pak != NULL) {
-    m_frame_ptr = &m_pak->data[m_offset_in_pak];
+    m_frame_ptr = &m_pak->rtp_data[m_offset_in_pak];
     m_frame_len = ntohs(*(unsigned short *)m_frame_ptr);
     m_offset_in_pak += 2;
     m_frame_ptr += 2;
@@ -124,7 +124,7 @@ uint64_t CAacRtpByteStream::start_next_frame (void)
   if (m_stream_ondemand) {
     int neg = 0;
     if (m_pak != NULL)
-      m_ts = m_pak->ts;
+      m_ts = m_pak->rtp_pak_ts;
     
     if (m_ts >= m_rtp_rtptime) {
       timetick = m_ts;
@@ -143,10 +143,10 @@ uint64_t CAacRtpByteStream::start_next_frame (void)
   } else {
     if (m_pak != NULL) {
       if (((m_ts & 0x80000000) == 0x80000000) &&
-	  ((m_pak->ts & 0x80000000) == 0)) {
+	  ((m_pak->rtp_pak_ts & 0x80000000) == 0)) {
 	m_wrap_offset += (I_LLU << 32);
       }
-      m_ts = m_pak->ts;
+      m_ts = m_pak->rtp_pak_ts;
     }
     timetick = m_ts + m_wrap_offset;
     timetick *= 1000;

@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.3 $
- *  $Date: 2001/10/11 20:39:03 $
+ *  $Revision: 1.4 $
+ *  $Date: 2001/11/13 23:58:16 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -80,7 +80,7 @@
 #include <sys/ioctl.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-
+#include <syslog.h>
 #ifdef __APPLE__
 #define NEED_DRAND48
 #define srand48 srand

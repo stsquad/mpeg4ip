@@ -2166,6 +2166,10 @@ if test $ARCH = openbsd; then
   SDL_RLD_FLAGS="-Wl,-rpath,\${exec_prefix}/lib $SYSTEM_LIBS"
 fi
 
+if test $ARCH = bsdi; then
+  SDL_RLD_FLAGS="-Wl,-rpath,\${exec_prefix}/lib -lSDL $SYSTEM_LIBS"
+fi
+
 dnl Output the video drivers we use
 if test x$enable_video = xtrue; then
     if test "$VIDEO_SUBDIRS" = ""; then

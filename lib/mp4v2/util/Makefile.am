@@ -9,7 +9,7 @@ else
 LDADD_E1 = 
 endif
 
-bin_PROGRAMS = mp4dump mp4extract
+bin_PROGRAMS = mp4dump mp4extract mp4info
 
 mp4dump_SOURCES = mp4dump.cpp
 mp4dump_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la $(LDADD_E1)
@@ -17,3 +17,5 @@ mp4dump_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la $(LDADD_E1)
 mp4extract_SOURCES = mp4extract.cpp
 mp4extract_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la $(LDADD_E1)
 
+mp4info_SOURCES = mp4info.cpp
+mp4info_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la $(LDADD_E1)

@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.3 $ 
- * $Date: 2001/11/01 19:07:02 $
+ * $Revision: 1.4 $ 
+ * $Date: 2001/11/13 23:58:16 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -44,8 +44,8 @@
 extern "C" {
 #endif
   
+#define RTP_PACKET_HEADER_SIZE	(sizeof(rtp_packet_data))
 #define RTP_VERSION 2
-#define RTP_PACKET_HEADER_SIZE	((sizeof(char *) * 2) + sizeof(uint32_t *) + (2 * sizeof(int)) + (2 * sizeof(rtp_packet *)))
 #define RTP_MAX_PACKET_LEN 1500
 
 #if !defined(WORDS_BIGENDIAN) && !defined(WORDS_SMALLENDIAN)
@@ -58,45 +58,72 @@ struct rtp;
  * struct *'s. */
 typedef struct rtp *rtp_t;
 
-typedef struct rtp_packet {
-	/* The following are pointers to the data in the packet as    */
-	/* it came off the wire. The packet it read in such that the  */
-	/* header maps onto the latter part of this struct, and the   */
-	/* fields in this first part of the struct point into it. The */
-	/* entire packet can be freed by freeing this struct, without */
-	/* having to free the csrc, data and extn blocks separately.  */
-	/* WARNING: Don't change the size of the first portion of the */
-	/* struct without changing RTP_PACKET_HEADER_SIZE to match.   */
-  struct rtp_packet *next, *prev;
-	uint32_t	*csrc;
-	char		*data;
-	int		 data_len;
-	unsigned char	*extn;
-	uint16_t	 extn_len;	/* Size of the extension in 32 bit words minus one */
-	uint16_t	 extn_type;	/* Extension type field in the RTP packet header   */
-	/* The following map directly onto the RTP packet header...   */
+typedef struct rtp_packet_data {
+  struct rtp_packet *rtp_pd_next, *rtp_pd_prev;
+  uint32_t	*rtp_pd_csrc;
+  char		*rtp_pd_data;
+  int		 rtp_pd_data_len;
+  unsigned char	*rtp_pd_extn;
+  uint16_t	 rtp_pd_extn_len; /* Size of the extension in 32 bit words minus one */
+  uint16_t	 rtp_pd_extn_type;/* Extension type field in the RTP packet header   */
+  int            rtp_pd_buflen; /* received buffer len (w/rtp header) */
+} rtp_packet_data;
+
+  
+typedef struct rtp_packet_header {
 #ifdef WORDS_BIGENDIAN
-	unsigned short   v:2;		/* packet type                */
-	unsigned short   p:1;		/* padding flag               */
-	unsigned short   x:1;		/* header extension flag      */
-	unsigned short   cc:4;		/* CSRC count                 */
-	unsigned short   m:1;		/* marker bit                 */
-	unsigned short   pt:7;		/* payload type               */
+	unsigned short   ph_v:2;	/* packet type                */
+	unsigned short   ph_p:1;	/* padding flag               */
+	unsigned short   ph_x:1;	/* header extension flag      */
+	unsigned short   ph_cc:4;	/* CSRC count                 */
+	unsigned short   ph_m:1;	/* marker bit                 */
+	unsigned short   ph_pt:7;	/* payload type               */
 #else
-	unsigned short   cc:4;		/* CSRC count                 */
-	unsigned short   x:1;		/* header extension flag      */
-	unsigned short   p:1;		/* padding flag               */
-	unsigned short   v:2;		/* packet type                */
-	unsigned short   pt:7;		/* payload type               */
-	unsigned short   m:1;		/* marker bit                 */
+	unsigned short   ph_cc:4;	/* CSRC count                 */
+	unsigned short   ph_x:1;	/* header extension flag      */
+	unsigned short   ph_p:1;	/* padding flag               */
+	unsigned short   ph_v:2;	/* packet type                */
+	unsigned short   ph_pt:7;	/* payload type               */
+	unsigned short   ph_m:1;	/* marker bit                 */
 #endif
-	uint16_t          seq;		/* sequence number            */
-	uint32_t          ts;		/* timestamp                  */
-	uint32_t          ssrc;		/* synchronization source     */
+	uint16_t          ph_seq;	/* sequence number            */
+	uint32_t          ph_ts;	/* timestamp                  */
+	uint32_t          ph_ssrc;	/* synchronization source     */
 	/* The csrc list, header extension and data follow, but can't */
 	/* be represented in the struct.                              */
-} rtp_packet;
+} rtp_packet_header;
 
+#define rtp_next      pd.rtp_pd_next
+#define rtp_prev      pd.rtp_pd_prev
+#define rtp_csrc      pd.rtp_pd_csrc
+#define rtp_data      pd.rtp_pd_data
+#define rtp_data_len  pd.rtp_pd_data_len
+#define rtp_extn      pd.rtp_pd_extn
+#define rtp_extn_len  pd.rtp_pd_extn_len
+#define rtp_extn_type pd.rtp_pd_extn_type
+  
+#define rtp_pak_v    ph.ph_v
+#define rtp_pak_p    ph.ph_p
+#define rtp_pak_x    ph.ph_x
+#define rtp_pak_cc   ph.ph_x
+#define rtp_pak_m    ph.ph_m
+#define rtp_pak_pt   ph.ph_pt
+#define rtp_pak_seq  ph.ph_seq
+#define rtp_pak_ts   ph.ph_ts
+#define rtp_pak_ssrc ph.ph_ssrc
+
+typedef struct rtp_packet {
+  /* The following are pointers to the data in the packet as    */
+  /* it came off the wire. The packet it read in such that the  */
+  /* header maps onto the latter part of this struct, and the   */
+  /* fields in this first part of the struct point into it. The */
+  /* entire packet can be freed by freeing this struct, without */
+  /* having to free the csrc, data and extn blocks separately.  */
+  rtp_packet_data pd;
+  /* The following map directly onto the RTP packet header...   */
+  rtp_packet_header ph;
+} rtp_packet;
+  
 typedef struct {
 	uint32_t         ssrc;
 	uint32_t         ntp_sec;
@@ -260,7 +287,8 @@ int rtp_process_recv_data(struct rtp *session,
 			  uint32_t curr_rtp_ts,
 			  rtp_packet *packet,
 			  int buflen);
-  void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen);
+
+void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen);
 
 #ifdef __cplusplus
 }

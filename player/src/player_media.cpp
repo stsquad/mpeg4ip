@@ -167,9 +167,9 @@ CPlayerMedia::~CPlayerMedia()
   if (m_rtp_byte_stream) {
     double diff;
     diff = difftime(time(NULL), m_start_time);
-    player_debug_message("Media %s", m_media_info->media);
+    media_message(LOG_INFO, "Media %s", m_media_info->media);
     
-    player_debug_message("Time: %g seconds", diff);
+    media_message(LOG_INFO, "Time: %g seconds", diff);
 #if 0
     double div;
     player_debug_message("Packets received: %u", m_rtp_packet_received);
@@ -183,7 +183,7 @@ CPlayerMedia::~CPlayerMedia()
 #endif
 	div *= 8.0;
 	div /= diff;
-    player_debug_message("Bits per sec   : %g", div);
+    media_message(LOG_INFO, "Bits per sec   : %g", div);
 #endif
 			 
   }
@@ -215,12 +215,12 @@ CPlayerMedia::~CPlayerMedia()
 void CPlayerMedia::clear_rtp_packets (void)
 {
   if (m_head != NULL) {
-    m_tail->next = NULL;
+    m_tail->rtp_next = NULL;
     while (m_head != NULL) {
       rtp_packet *p;
       p = m_head;
-      m_head = m_head->next;
-      p->next = p->prev = NULL;
+      m_head = m_head->rtp_next;
+      p->rtp_next = p->rtp_prev = NULL;
       xfree(p);
     }
   }
@@ -243,7 +243,7 @@ int CPlayerMedia::create_from_file (CPlayerSession *p,
   m_decode_thread_sem = SDL_CreateSemaphore(0);
   m_decode_thread = SDL_CreateThread(c_decode_thread, this);
   if (m_decode_thread == NULL) {
-    player_error_message("Failed to create decode thread for media %s",
+    media_message(LOG_ERR, "Failed to create decode thread for media %s",
 			 m_media_info->media);
     return (-1);
   }
@@ -274,13 +274,13 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 
   if (strncasecmp(sdp_media->proto, "RTP", strlen("RTP")) != 0) {
     *errmsg = "Media doesn't use RTP";
-    player_error_message("Media %s doesn't use RTP", sdp_media->media);
+    media_message(LOG_ERR, "%s doesn't use RTP", sdp_media->media);
     return (-1);
   }
   if (sdp_media->fmt == NULL) {
     *errmsg = "Media doesn't have any usuable formats";
-    player_error_message("Media %s doesn't have any formats", 
-			 sdp_media->media);
+    media_message(LOG_ERR, "%s doesn't have any formats", 
+		  sdp_media->media);
     return (-1);
   }
 
@@ -297,7 +297,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
       m_ports = new C2ConsecIpPort(&global_invalid_ports);
       if (m_ports == NULL || !m_ports->valid()) {
 	*errmsg = "Could not find any valid IP ports";
-	player_error_message("Couldn't get valid IP ports");
+	media_message(LOG_ERR, "Couldn't get valid IP ports");
 	return (-1);
       }
       m_our_port = m_ports->first_port();
@@ -328,14 +328,14 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 		      m_parent->session_control_is_aggregate());
     if (err != 0) {
       *errmsg = "Couldn't set up media session";
-      player_error_message("Can't create session %s - error code %d", 
-			   m_media_info->media, err);
+      media_message(LOG_ERR, "Can't create session %s - error code %d", 
+		    m_media_info->media, err);
       if (decode != NULL)
 	free_decode_response(decode);
       return (-1);
     }
     cmd.transport = NULL;
-    player_error_message("Transport returned is %s", decode->transport);
+    media_message(LOG_INFO, "Transport returned is %s", decode->transport);
 
     /*
      * process the transport they sent.  They need to send port numbers, 
@@ -372,7 +372,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
   m_decode_thread = SDL_CreateThread(c_decode_thread, this);
   if (m_decode_thread == NULL) {
     *errmsg = "Couldn't create media thread";
-    player_error_message("Failed to create decode thread for media %s",
+    media_message(LOG_ERR, "Failed to create decode thread for %s",
 			 m_media_info->media);
     return (-1);
   }
@@ -382,7 +382,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     m_recv_thread = SDL_CreateThread(c_recv_thread, this);
     if (m_recv_thread == NULL) {
       *errmsg = "Couldn't create media thread";
-      player_error_message("Failed to create thread for media %s RTP recv",
+      media_message(LOG_ERR, "Failed to create thread for media %s RTP recv",
 			   m_media_info->media);
       return (-1);
     }
@@ -391,7 +391,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     }
     if (m_rtp_session == NULL) {
       *errmsg = "Couldn't start RTP";
-      player_error_message("Could not start RTP - check debug log");
+      media_message(LOG_ERR, "Could not start RTP - check debug log");
       return (-1);
     }
   } else {
@@ -422,7 +422,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
    */
   if (m_rtp_session == NULL) {
     *errmsg = "Couldn't create RTP session";
-    player_error_message("Failed to create RTP for media %s", 
+    media_message(LOG_ERR, "Failed to create RTP for media %s", 
 			 m_media_info->media);
     return (-1);
   }
@@ -460,7 +460,7 @@ int CPlayerMedia::do_play (double start_time_offset)
 	cmd.range = buffer;
 
 	if (rtsp_send_play(m_rtsp_session, &cmd, &decode) != 0) {
-	  player_error_message("RTSP play command failed");
+	  media_message(LOG_ERR, "RTSP play command failed");
 	  free_decode_response(decode);
 	  return (-1);
 	}
@@ -470,7 +470,7 @@ int CPlayerMedia::do_play (double start_time_offset)
 	 */
 	int ret = process_rtsp_rtpinfo(decode->rtp_info, m_parent, this);
 	if (ret < 0) {
-	  player_debug_message("rtsp rtpinfo failed");
+	  media_message(LOG_ERR, "rtsp rtpinfo failed");
 	  free_decode_response(decode);
 	  return (-1);
 	}
@@ -527,7 +527,7 @@ int CPlayerMedia::do_pause (void)
       memset(&cmd, 0, sizeof(rtsp_command_t));
 
       if (rtsp_send_pause(m_rtsp_session, &cmd, &decode) != 0) {
-	player_error_message("RTSP play command failed");
+	media_message(LOG_ERR, "RTSP play command failed");
 	free_decode_response(decode);
 	return (-1);
       }
@@ -578,7 +578,7 @@ static char *transport_parse_unicast (char *transport, CPlayerMedia *m)
 
 static char *transport_parse_multicast (char *transport, CPlayerMedia *m)
 {
-  player_error_message("Received multicast indication during SETUP");
+  media_message(LOG_ERR,"Received multicast indication during SETUP");
   return (NULL);
 }
 
@@ -607,8 +607,8 @@ static char *transport_parse_client_port (char *transport, CPlayerMedia *m)
   our_port_max = our_port + 1;
 
   if (port != our_port) {
-    player_error_message("Returned client port %u doesn't match sent %u",
-			 port, our_port);
+    media_message(LOG_ERR, "Returned client port %u doesn't match sent %u",
+		  port, our_port);
     return (NULL);
   }
   if (*transport == ';') {
@@ -626,7 +626,7 @@ static char *transport_parse_client_port (char *transport, CPlayerMedia *m)
   transport = convert_number(transport, port);
   if ((port < our_port) || 
       (port > our_port_max)) {
-    player_error_message("Illegal client to port %u, range %u to %u",
+    media_message(LOG_ERR, "Illegal client to port %u, range %u to %u",
 			 port, our_port, our_port_max);
     return (NULL);
   }
@@ -664,7 +664,7 @@ static char *transport_parse_server_port (char *transport, CPlayerMedia *m)
   ADV_SPACE(transport);
   transport = convert_number(transport, toport);
   if (toport < fromport || toport > fromport + 1) {
-    player_error_message("Illegal server to port %u, from is %u",
+    media_message(LOG_ERR, "Illegal server to port %u, from is %u",
 			 toport, fromport);
     return (NULL);
   }
@@ -693,7 +693,7 @@ static char *transport_parse_source (char *transport, CPlayerMedia *m)
   }
   newone = (char *)malloc(addrlen + 1);
   if (newone == NULL) {
-    player_error_message("Can't alloc memory for transport source");
+    media_message(LOG_ERR, "Can't alloc memory for transport source");
     return (NULL);
   }
   strncpy(newone, ptr, addrlen);
@@ -734,7 +734,7 @@ static char *transport_parse_interleave (char *transport, CPlayerMedia *m)
   transport = convert_number(transport, chan);
   chan2 = m->get_rtp_media_number() * 2;
   if (chan != chan2) {
-    player_error_message("Transport interleave not what was requested %d %d", 
+    media_message(LOG_ERR, "Transport interleave not what was requested %d %d", 
 			 chan, chan2);
     return NULL;
   }
@@ -746,7 +746,7 @@ static char *transport_parse_interleave (char *transport, CPlayerMedia *m)
     transport++;
     transport = convert_number(transport, chan2);
     if (chan + 1 != chan2) {
-      player_error_message("Error in transport interleaved field");
+      media_message(LOG_ERR, "Error in transport interleaved field");
       return (NULL);
     }
     
@@ -851,7 +851,7 @@ int CPlayerMedia::process_rtsp_transport (char *transport)
   protolen = strlen(m_media_info->proto);
   
   if (strncasecmp(transport, m_media_info->proto, protolen) != 0) {
-    player_error_message("transport %s doesn't match %s", transport, 
+    media_message(LOG_ERR, "transport %s doesn't match %s", transport, 
 			 m_media_info->proto);
     return (-1);
   }
@@ -860,13 +860,13 @@ int CPlayerMedia::process_rtsp_transport (char *transport)
     transport++;
     if (m_rtp_use_rtsp) {
       if (strncasecmp(transport, "TCP", strlen("TCP")) != 0) {
-	player_error_message("Transport is not TCP");
+	media_message(LOG_ERR, "Transport is not TCP");
 	return (-1);
       }
       transport += strlen("TCP");
     } else {
       if (strncasecmp(transport, "UDP", strlen("UDP")) != 0) {
-	player_error_message("Transport is not UDP");
+	media_message(LOG_ERR, "Transport is not UDP");
 	return (-1);
       }
       transport += strlen("UDP");
@@ -889,7 +889,7 @@ int CPlayerMedia::process_rtsp_transport (char *transport)
       }
     }
     if (transport_types[ix].name == NULL) {
-      player_error_message("Illegal mime type in transport - skipping %s", 
+      media_message(LOG_INFO, "Illegal mime type in transport - skipping %s", 
 			   transport);
       while (*transport != ';' && *transport != '\0') transport++;
       if (*transport != '\0') transport++;
@@ -927,13 +927,13 @@ int process_rtsp_rtpinfo (char *rtpinfo,
     ADV_SPACE(rtpinfo);
     if (media == NULL) {
       if (strncasecmp(rtpinfo, "url", strlen("url")) != 0) {
-	player_debug_message("Url not found");
+	media_message(LOG_ERR, "Url not found");
 	return (-1);
       }
       rtpinfo += strlen("url");
       ADV_SPACE(rtpinfo);
       if (*rtpinfo != '=') {
-	player_debug_message("Can't find = after url");
+	media_message(LOG_ERR, "Can't find = after url");
 	return (-1);
       }
       rtpinfo++;
@@ -951,10 +951,9 @@ int process_rtsp_rtpinfo (char *rtpinfo,
 	*rtpinfo++ = '\0';
       }
       char *temp = url;
-      player_debug_message("Processing url %s", temp);
       media = session->rtsp_url_to_media(url);
       if (media == NULL) {
-	player_debug_message("Can't find media from %s", url);
+	media_message(LOG_ERR, "Can't find media from %s", url);
 	return -1;
       }
       if (temp != url) 
@@ -976,7 +975,7 @@ int process_rtsp_rtpinfo (char *rtpinfo,
       }
       if (rtpinfo_types[ix].name == NULL) {
 #if 1
-	player_debug_message("Illegal name in RtpInfo - skipping %s", 
+	media_message(LOG_INFO, "Unknown mime-type in RtpInfo - skipping %s", 
 			     rtpinfo);
 #endif
 	while (*rtpinfo != ';' && *rtpinfo != '\0') rtpinfo++;
@@ -1005,7 +1004,7 @@ int CPlayerMedia::rtp_receive_packet (unsigned char interleaved,
     if (ret < 0)
       xfree(pak);
   } else {
-    rtp_process_ctrl(m_rtp_session, ((uint8_t *)(&pak->extn_type)) + sizeof(pak->extn_type), len);
+    rtp_process_ctrl(m_rtp_session, ((uint8_t *)(&pak->rtp_extn_type)) + sizeof(pak->rtp_extn_type), len);
     xfree(pak);
     ret = 0;
   }
@@ -1039,7 +1038,7 @@ void CPlayerMedia::rtp_periodic (void)
     /*
      * Make sure that the proto is the same
      */
-    if (m_head->pt == m_tail->pt) {
+    if (m_head->rtp_pak_pt == m_tail->rtp_pak_pt) {
       if (m_rtp_queue_len > 10) { // 10 packets consecutive proto same
 	if (determine_proto_from_rtp() == FALSE) {
 	  clear_rtp_packets(); 
@@ -1169,7 +1168,7 @@ int CPlayerMedia::recv_thread (void)
 	  recv_thread_stop = 1;
 	  break;
 	case MSG_START_SESSION:
-	  player_debug_message("Got play when playing");
+	  media_message(LOG_ERR, "Got play when playing");
 	  break;
 	case MSG_PAUSE_SESSION:
 	  receiving = 0;
@@ -1213,7 +1212,7 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
     rtp_packet *rpak;
 
     rpak = (rtp_packet *)e->data;
-    if (rpak->data_len == 0) {
+    if (rpak->rtp_data_len == 0) {
       xfree(rpak);
     } else {
       add_rtp_packet_to_queue(rpak, &m_head, &m_tail);
@@ -1231,8 +1230,8 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
     break;
   default:
 #if 0
-    player_debug_message("Thread %u - Callback from rtp with %d %p", 
-			 SDL_ThreadID(),e->type, e->data);
+    media_message(LOG_DEBUG, "Thread %u - Callback from rtp with %d %p", 
+		  SDL_ThreadID(),e->type, e->data);
 #endif
     break;
   }
@@ -1244,7 +1243,7 @@ void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
  */
 int CPlayerMedia::determine_proto_from_rtp(void)
 {
-  char proto = (char)m_head->pt, temp;
+  char proto = (char)m_head->rtp_pak_pt, temp;
   format_list_t *fmt;
   uint64_t tickpersec;
 
@@ -1258,8 +1257,8 @@ int CPlayerMedia::determine_proto_from_rtp(void)
 	set_codec_type(fmt->rtpmap->encode_name);
       } else {
 	if (proto >= 96) {
-	  player_error_message("Media %s, rtp proto of %u, no rtp map",
-			       m_media_info->media, proto);
+	  media_message(LOG_ERR, "Media %s, rtp proto of %u, no rtp map",
+			m_media_info->media, proto);
 	  return (FALSE);
 	}
 	tickpersec = 90000;
@@ -1284,7 +1283,7 @@ int CPlayerMedia::determine_proto_from_rtp(void)
       m_byte_stream = m_rtp_byte_stream;
       m_byte_stream->set_start_time((uint64_t)(m_play_start_time * 1000.0));
 #if 1
-      player_debug_message("media %s - rtp tps %u ntp per rtp ",
+      media_message(LOG_DEBUG, "media %s - rtp tps %u ntp per rtp ",
 			   m_media_info->media,
 			   m_rtptime_tickpersec);
 #endif

@@ -29,6 +29,12 @@
 #include "player_util.h"
 //#define DEBUG_SYNC 1
 //#define DEBUG_AUDIO_FILL 1
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(audio_message, "audiosync")
+#else
+#define audio_message(loglevel, fmt...) message(loglevel, "audiosync", fmt)
+#endif
+
 /*
  * c routine to call into the AudioSync class callback
  */
@@ -82,8 +88,10 @@ CAudioSync::~CAudioSync (void)
       free(m_sample_buffer[ix]);
     m_sample_buffer[ix] = NULL;
   }
-  player_debug_message("Audio sync skipped %u buffers", m_skipped_buffers);
-  player_debug_message("didn't fill %u buffers", m_didnt_fill_buffers);
+  audio_message(LOG_NOTICE, 
+		"Audio sync skipped %u buffers", 
+		m_skipped_buffers);
+  audio_message(LOG_NOTICE, "didn't fill %u buffers", m_didnt_fill_buffers);
 }
 
 /*
@@ -168,7 +176,8 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
     if (diff - m_msec_per_frame > m_msec_per_frame) {
       // have a hole here - don't want to resync
 #ifdef DEBUG_AUDIO_FILL
-      player_debug_message("Filling - last %llu new %llu", m_last_fill_timestamp, ts);
+      audio_message(LOG_DEBUG, 
+		    "Filling - last %llu new %llu", m_last_fill_timestamp, ts);
 #endif
       if (diff > ((m_msec_per_frame + 1) * 4)) {
 	resync = 1;
@@ -185,7 +194,7 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 	    return;
 	  }
 	  if (retbuffer != m_sample_buffer[m_fill_index]) {
-	    player_error_message("retbuffer not fill index in audio sync");
+	    audio_message(LOG_ERR, "retbuffer not fill index in audio sync");
 	    return;
 	  }
 	  SDL_LockAudio();
@@ -200,17 +209,17 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 	  m_fill_index++;
 	  m_fill_index %= DECODE_BUFFERS_MAX;
 	  SDL_UnlockAudio();
-	  player_debug_message("Filling timestamp %llu with silence",
-			       m_last_fill_timestamp);
+	  audio_message(LOG_NOTICE, "Filling timestamp %llu with silence",
+			m_last_fill_timestamp);
 	  m_last_fill_timestamp += m_msec_per_frame + 1; // fill plus extra
 	  ts_diff = ts - m_last_fill_timestamp;
-	  player_debug_message("diff is %lld", ts_diff);
+	  audio_message(LOG_DEBUG, "diff is %lld", ts_diff);
 	} while (ts_diff > 0);
 	SDL_LockAudio();
       }
     } else {
       if (m_last_fill_timestamp == ts) {
-	player_debug_message("Repeat timestamp with audio %llu", ts);
+	audio_message(LOG_NOTICE, "Repeat timestamp with audio %llu", ts);
 	SDL_UnlockAudio();
 	return;
       }
@@ -224,7 +233,7 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
     m_resync_required = 1;
     m_resync_buffer = fill_index;
 #ifdef DEBUG_SYNC
-    player_debug_message("Resync from filled_audio_buffer");
+    audio_message(LOG_DEBUG, "Resync from filled_audio_buffer");
 #endif
   }
   SDL_UnlockAudio();
@@ -233,8 +242,8 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   if (resync)
     m_psptr->wake_sync_thread();
 #ifdef DEBUG_AUDIO_FILL
-  player_debug_message("Filling " LLU " %u %u", 
-		       ts, fill_index, m_samples_loaded);
+  audio_message(LOG_DEBUG, "Filling " LLU " %u %u", 
+		ts, fill_index, m_samples_loaded);
 #endif
 }
 
@@ -264,7 +273,7 @@ int CAudioSync::initialize_audio (int have_video)
 	}
       }
       ix >>= 1;
-      player_debug_message("Sample size is %d", ix);
+      audio_message(LOG_DEBUG, "Sample size is %d", ix);
       m_sample_size = ix;
 #else
       m_sample_size = 4096;
@@ -275,31 +284,32 @@ int CAudioSync::initialize_audio (int have_video)
       wanted->callback = c_audio_callback;
       wanted->userdata = this;
 #if DEBUG_SYNC
-       player_debug_message("requested f %d chan %d format %x samples %d size %u",
-                             wanted->freq,
-                             wanted->channels,
-                             wanted->format,
-                             wanted->samples,
-                             wanted->size);
+       audio_message(LOG_INFO, 
+		     "requested f %d chan %d format %x samples %d size %u",
+		     wanted->freq,
+		     wanted->channels,
+		     wanted->format,
+		     wanted->samples,
+		     wanted->size);
 #endif
       int ret = SDL_OpenAudio(wanted, &m_obtained);
       if (ret < 0) {
-	player_error_message("Couldn't open audio, %s", SDL_GetError());
+	audio_message(LOG_CRIT, "Couldn't open audio, %s", SDL_GetError());
 	return (-1);
       }
 #if 1
-       player_debug_message("got f %d chan %d format %x samples %d size %u",
-                             m_obtained.freq,
-                             m_obtained.channels,
-                             m_obtained.format,
-                             m_obtained.samples,
-                             m_obtained.size);
+       audio_message(LOG_INFO, "got f %d chan %d format %x samples %d size %u",
+		     m_obtained.freq,
+		     m_obtained.channels,
+		     m_obtained.format,
+		     m_obtained.samples,
+		     m_obtained.size);
 #endif
 
       m_audio_initialized = 1;
       m_use_SDL_delay = SDL_HasAudioDelayMsec();
       if (m_use_SDL_delay)
-	player_debug_message("Using delay measurement from SDL");
+	audio_message(LOG_NOTICE, "Using delay measurement from SDL");
     } else {
       return 0; // check again pretty soon...
     }
@@ -342,7 +352,7 @@ uint64_t CAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 
 	if (cmptime < current_time) {
 #ifdef DEBUG_SYNC
-	  player_debug_message("Passed time " LLU " " LLU " %u", 
+	  audio_message(LOG_INFO, "Passed time " LLU " " LLU " %u", 
 			       cmptime, current_time, m_resync_buffer);
 #endif
 	  m_buffer_filled[m_resync_buffer] = 0;
@@ -365,7 +375,7 @@ uint64_t CAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 	m_play_index = m_resync_buffer;
 	play_audio();
 #ifdef DEBUG_SYNC
-	player_debug_message("Resynced audio at " LLU " %u %u", current_time, m_resync_buffer, m_play_index);
+	audio_message(LOG_INFO, "Resynced audio at " LLU " %u %u", current_time, m_resync_buffer, m_play_index);
 #endif
 	return (0);
       } else {
@@ -393,7 +403,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       m_audio_paused = 1;
       m_psptr->wake_sync_thread();
 #ifdef DEBUG_SYNC
-      player_debug_message("sempost");
+      audio_message(LOG_DEBUG, "sempost");
 #endif
       return;
     }
@@ -404,7 +414,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
     delay = SDL_AudioDelayMsec();
     if (delay < 0) delay = 0;
 #ifdef DEBUG_SYNC
-    player_debug_message("Audio delay is %d", delay);
+    audio_message(LOG_DEBUG, "Audio delay is %d", delay);
 #endif
   }
 
@@ -434,10 +444,11 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 	playtime = m_play_time + m_buffer_latency;
 
       if (m_play_time != 0 && buffertime + m_msec_per_frame < playtime) {
-	player_debug_message("Skipped audio buffer " LLU "("LLU") at " LLU, 
-			     m_buffer_time[m_play_index],
-			     buffertime,
-			     playtime);
+	audio_message(LOG_DEBUG, 
+		      "Skipped audio buffer " LLU "("LLU") at " LLU, 
+		      m_buffer_time[m_play_index],
+		      buffertime,
+		      playtime);
 	m_buffer_filled[m_play_index] = 0;
 	m_play_index++;
 	m_play_index %= DECODE_BUFFERS_MAX;
@@ -481,8 +492,8 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       return;
     }
 #ifdef DEBUG_SYNC
-    player_debug_message("No buffer in audio callback %u %u", 
-			 m_samples_loaded, len);
+    audio_message(LOG_DEBUG, "No buffer in audio callback %u %u", 
+		  m_samples_loaded, len);
 #endif
     m_consec_no_buffers++;
     if (m_consec_no_buffers > 10) {
@@ -551,8 +562,9 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       if (this_time > index_time + ALLOWED_LATENCY || 
 	  this_time < index_time - ALLOWED_LATENCY) {
 #if DEBUG_SYNC
-	player_debug_message("potential change - index time "LLU" time "LLU, 
-			     index_time, this_time);
+	audio_message(LOG_DEBUG, 
+		      "potential change - index time "LLU" time "LLU, 
+		      index_time, this_time);
 #endif
 	m_consec_wrong_latency++;
 	m_wrong_latency_total += this_time - index_time;
@@ -579,8 +591,9 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       // we have a latency number - see if it really is correct
       uint64_t index_time = delay + m_play_time;
 #if DEBUG_SYNC
-      player_debug_message("latency - time " LLU " index " LLU " latency " LLU " %u", 
-			   this_time, index_time, m_buffer_latency, m_samples_loaded);
+      audio_message(LOG_DEBUG, 
+		    "latency - time " LLU " index " LLU " latency " LLU " %u", 
+		    this_time, index_time, m_buffer_latency, m_samples_loaded);
 #endif
       if (this_time > index_time + ALLOWED_LATENCY || 
 	  this_time < index_time - ALLOWED_LATENCY) {
@@ -597,7 +610,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 	      m_buffer_latency += test; 
 	    }
 	    m_psptr->audio_is_ready(m_buffer_latency, this_time);
-	    player_debug_message("Latency off by " LLD " - now is " LLU, 
+	    audio_message(LOG_INFO, "Latency off by " LLD " - now is " LLU, 
 				 test, m_buffer_latency);
 	  }
 	} else {
@@ -612,8 +625,8 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
     }
   } else {
 #ifdef DEBUG_SYNC
-    player_debug_message("playing %llu %llu latency %llu", 
-			 this_time, m_play_time, m_buffer_latency);
+    audio_message(LOG_DEBUG, "playing %llu %llu latency %llu", 
+		  this_time, m_play_time, m_buffer_latency);
 #endif
   }
 

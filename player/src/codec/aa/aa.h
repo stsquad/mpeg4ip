@@ -65,4 +65,9 @@ class CAACodec : public CAudioCodecBase {
 #endif
 };
 
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(aa_message, "aac")
+#else
+#define aa_message(loglevel, fmt...) message(loglevel, "aa", fmt)
+#endif
 #endif

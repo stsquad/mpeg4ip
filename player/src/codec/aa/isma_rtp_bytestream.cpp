@@ -300,7 +300,7 @@ int CIsmaAudioRtpByteStream::insert_frame_data (isma_frame_data_t *frame_data)
 		     frame_data->rtp_timestamp);
 	isma_message(LOG_DEBUG, 
 		     "Seq number orig %d new %d", 
-		     p->pak->seq, frame_data->pak->seq); 
+		     p->pak->rtp_pak_seq, frame_data->pak->rtp_pak_seq); 
 	// if fragmented frame, free all frag_data
 	if (frame_data->is_fragment == 1) {
 	  isma_frag_data_t * p = NULL;
@@ -380,8 +380,8 @@ void CIsmaAudioRtpByteStream::cleanup_frag (isma_frame_data_t * frame_data)
 int CIsmaAudioRtpByteStream::process_fragment (rtp_packet *pak, 
 					       isma_frame_data_t *frame_data)
 {
-  uint16_t seq = pak->seq; 
-  uint32_t ts = pak->ts;
+  uint16_t seq = pak->rtp_pak_seq; 
+  uint32_t ts = pak->rtp_pak_ts;
   isma_frag_data_t *cur = NULL;
   int read_mBit = 0;
   uint32_t total_len = 0; 
@@ -399,14 +399,14 @@ int CIsmaAudioRtpByteStream::process_fragment (rtp_packet *pak,
       return (1);
     }
     // check if ts and rtp seq numbers are ok, and lengths match
-    if (ts != pak->ts) {
+    if (ts != pak->rtp_pak_ts) {
       cleanup_frag(frame_data);
       isma_message(LOG_ERR, 
 		   "Error processing frag: wrong ts: ts= %x, pak->ts = %x", 
-		   ts, pak->ts);
+		   ts, pak->rtp_pak_ts);
       return (1);
     }
-    if (seq != pak->seq) {
+    if (seq != pak->rtp_pak_seq) {
       cleanup_frag(frame_data);
       isma_message(LOG_ERR, "Error processing frag: wrong seq num");
       return (1);
@@ -429,12 +429,12 @@ int CIsmaAudioRtpByteStream::process_fragment (rtp_packet *pak,
     cur->frag_data_next = NULL;
     cur->pak = pak; 
     // length in bits
-    uint16_t header_len = ntohs(*(unsigned short *)pak->data);
-    m_header_bitstream.init(&pak->data[sizeof(uint16_t)], header_len);
+    uint16_t header_len = ntohs(*(unsigned short *)pak->rtp_data);
+    m_header_bitstream.init(&pak->rtp_data[sizeof(uint16_t)], header_len);
     // frag_ptr should just point to beginning of data in pkt
     uint32_t header_len_bytes = ((header_len + 7) / 8) + sizeof(uint16_t);
-    cur->frag_ptr =  &pak->data[header_len_bytes];
-    cur->frag_len = pak->data_len - header_len_bytes;
+    cur->frag_ptr =  &pak->rtp_data[header_len_bytes];
+    cur->frag_len = pak->rtp_data_len - header_len_bytes;
     // if aux data, move frag pointer
     if (m_fmtp.auxiliary_data_size_length > 0) {
       m_header_bitstream.byte_align();
@@ -450,8 +450,8 @@ int CIsmaAudioRtpByteStream::process_fragment (rtp_packet *pak,
 		 "rtp seq# %d, fraglen: %d, ts: %x", 
 		 pak->seq, cur->frag_len, pak->ts);
 #endif	
-    seq = pak->seq + 1;
-    if (pak->m) 
+    seq = pak->rtp_pak_seq + 1;
+    if (pak->rtp_pak_m) 
       read_mBit = 1;
     remove_packet_rtp_queue(pak, 0);
     pak = m_head; // get next pkt in the queue
@@ -478,17 +478,17 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
 #ifdef DEBUG_ISMA_AAC
   isma_message(LOG_DEBUG, 
 	       "processing pak seq %d ts %x len %d", 
-	       pak->seq, pak->ts, pak->data_len);
+	       pak->rtp_pak_seq, pak->rtp_pak_ts, pak->rtp_data_len);
 #endif
   // This pak has not had it's header processed
   // length in bytes
-  if (pak->data_len == 0) {
+  if (pak->rtp_data_len == 0) {
     remove_packet_rtp_queue(pak, 1);
     isma_message(LOG_ERR, "RTP audio packet with data length of 0");
     return;
   }
 
-  header_len = ntohs(*(unsigned short *)pak->data);
+  header_len = ntohs(*(unsigned short *)pak->rtp_data);
   if (header_len < m_min_first_header_bits) {
     // bye bye, frame...
     remove_packet_rtp_queue(pak, 1);
@@ -497,7 +497,7 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
     return;
   }
 
-  m_header_bitstream.init(&pak->data[sizeof(uint16_t)],
+  m_header_bitstream.init(&pak->rtp_data[sizeof(uint16_t)],
 			  header_len);
   if (m_header_bitstream.getbits(m_fmtp.size_length, &frame_len) != 0) 
     return;
@@ -505,10 +505,10 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
   get_au_header_bits();
 #ifdef DEBUG_ISMA_AAC
   uint64_t wrap_offset = m_wrap_offset;
-  uint64_t msec = rtp_ts_to_msec(pak->ts, wrap_offset);
+  uint64_t msec = rtp_ts_to_msec(pak->rtp_pak_ts, wrap_offset);
   isma_message(LOG_DEBUG, 
 	       "1st - header len %u frame len %u ts %x %llu", 
-	       header_len, frame_len, pak->ts, msec);
+	       header_len, frame_len, pak->rtp_pak_ts, msec);
 #endif
   if (frame_len == 0) {
     remove_packet_rtp_queue(pak, 1);
@@ -517,12 +517,12 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
   char *frame_ptr;
   isma_frame_data_t *frame_data;
   uint32_t ts;
-  ts = pak->ts;
+  ts = pak->rtp_pak_ts;
   frame_data = get_frame_data();
   frame_data->pak = pak;
   // frame pointer is after header_len + header_len size.  Header_len
   // is in bits - add 7, divide by 8 to get padding correctly.
-  frame_data->frame_ptr = &pak->data[((header_len + 7) / 8) 
+  frame_data->frame_ptr = &pak->rtp_data[((header_len + 7) / 8) 
 				    + sizeof(uint16_t)];
   frame_data->frame_len = frame_len;
   frame_data->rtp_timestamp = ts;
@@ -532,7 +532,7 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
   int frag_check = frame_len + sizeof(uint16_t);
   frag_check += m_fmtp.size_length / 8;
   if ((m_fmtp.size_length % 8) != 0) frag_check++;
-  if (frag_check > pak->data_len) {
+  if (frag_check > pak->rtp_data_len) {
 #ifdef DEBUG_ISMA_AAC
     isma_message(LOG_DEBUG, "Frame is fragmented");
 #endif
@@ -591,7 +591,7 @@ void CIsmaAudioRtpByteStream::process_packet_header (void)
       // Didn't find pak in list.  Weird
       isma_message(LOG_ERR, 
 		   "Decoded packet with RTP timestamp %x and didn't"
-		   "see any good frames", pak->ts);
+		   "see any good frames", pak->rtp_pak_ts);
       remove_packet_rtp_queue(pak, 1);
       return;
     }
@@ -640,7 +640,7 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (void)
 	    xfree(pak);
 	  q = q->frag_data_next;
 #ifdef DEBUG_ISMA_AAC
-	  isma_message(LOG_DEBUG, "removing pak - frag %d", pak->seq);
+	  isma_message(LOG_DEBUG, "removing pak - frag %d", pak->rtp_pak_seq);
 #endif
 	}
       } else {
@@ -648,7 +648,7 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (void)
 	m_frame_data_head->pak = NULL;
 	xfree(pak);
 #ifdef DEBUG_ISMA_AAC
-	isma_message(LOG_DEBUG, "removing pak %d", pak->seq);
+	isma_message(LOG_DEBUG, "removing pak %d", pak->rtp_pak_seq);
 #endif
       }
     }
@@ -769,7 +769,7 @@ void CIsmaAudioRtpByteStream::flush_rtp_packets (void)
     p = m_frame_data_head;
     while (p->frame_data_next != NULL) {
 #ifdef DEBUG_ISMA_AAC
-      isma_message(LOG_DEBUG, "reset removing pak %d", p->pak->seq);
+      isma_message(LOG_DEBUG, "reset removing pak %d", p->pak->rtp_pak_seq);
 #endif
       if (p->last_in_pak != 0) {
 	if (p->is_fragment == 1) {

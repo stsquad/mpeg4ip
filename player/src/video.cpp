@@ -29,13 +29,18 @@
 //#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
 //#define SHORT_VIDEO 1
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(video_message, "videosync")
+#else
+#define video_message(loglevel, fmt...) message(loglevel, "videosync", fmt)
+#endif
 
 CVideoSync::CVideoSync (CPlayerSession *psptr)
 {
   char buf[32];
   m_psptr = psptr;
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0 || !SDL_VideoDriverName(buf, 1)) {
-    player_error_message("Could not init SDL video: %s", SDL_GetError());
+    video_message(LOG_CRIT, "Could not init SDL video: %s", SDL_GetError());
   }
   m_screen = NULL;
   m_image = NULL;
@@ -95,13 +100,13 @@ CVideoSync::~CVideoSync (void)
       m_v_buffer[ix] = NULL;
     }
   }
-  player_debug_message("Video Sync Stats:");
-  player_debug_message("Displayed-behind frames %d", m_behind_frames);
-  player_debug_message("Total frames displayed %d", m_total_frames);
-  player_debug_message("Max behind time " LLU, m_behind_time_max);
+  video_message(LOG_NOTICE, "Video Sync Stats:");
+  video_message(LOG_NOTICE, "Displayed-behind frames %d", m_behind_frames);
+  video_message(LOG_NOTICE, "Total frames displayed %d", m_total_frames);
+  video_message(LOG_NOTICE, "Max behind time " LLU, m_behind_time_max);
   if (m_behind_frames > 0) 
-    player_debug_message("Average behind time "LLU, m_behind_time / m_behind_frames);
-  player_debug_message("Skipped rendering %u", m_skipped_render);
+    video_message(LOG_NOTICE, "Average behind time "LLU, m_behind_time / m_behind_frames);
+  video_message(LOG_NOTICE, "Skipped rendering %u", m_skipped_render);
 }
 
 /*
@@ -123,7 +128,6 @@ void CVideoSync::config (int w, int h, int frame_rate)
     m_msec_per_frame = 1000 / frame_rate;
   }
   m_config_set = 1;
-  player_debug_message("Config for "LLU" msec per video frame", m_msec_per_frame);
 }
 
 /*
@@ -220,7 +224,7 @@ int CVideoSync::is_video_ready (uint64_t &disptime)
 
 void CVideoSync::play_video (void) 
 {
-  player_debug_message("video start");
+
 }
 
 /*
@@ -260,12 +264,14 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
   play_this_at = m_play_this_at[m_play_index];
   if (play_this_at > current_time) {
 #if 0
-    player_debug_message("checking "LLU" at "LLU, play_this_at, current_time);
+    video_message(LOG_DEBUG, 
+		  "checking "LLU" at "LLU, 
+		  play_this_at, current_time);
 #endif
     return (play_this_at - current_time);
   }
 #if VIDEO_SYNC_PLAY
-  player_debug_message("play "LLU" at "LLU " %d", play_this_at, current_time,
+  video_message(LOG_DEBUG, "play "LLU" at "LLU " %d", play_this_at, current_time,
 		       m_play_index);
 #endif
 
@@ -279,7 +285,7 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
     if (behind > m_behind_time_max) m_behind_time_max = behind;
 #if 0
     if ((m_behind_frames % 64) == 0) {
-      player_debug_message("behind "LLU" avg "LLU" max "LLU,
+      video_message(LOG_DEBUG, "behind "LLU" avg "LLU" max "LLU,
 			   behind, m_behind_time / m_behind_frames,
 			   m_behind_time_max);
     }
@@ -302,7 +308,7 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
       showed = 1;
       m_consec_skipped = 0;
     if (SDL_LockYUVOverlay(m_image)) {
-      player_debug_message("Failed to lock image");
+      video_message(LOG_ERR, "Failed to lock image");
     }
     // Must always copy the buffer to memory.  This creates 2 copies of this
     // data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
@@ -343,14 +349,14 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
 
     int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
     if (rval != 0) {
-      player_error_message("Return from display is %d", rval);
+      video_message(LOG_ERR, "Return from display is %d", rval);
     }
     SDL_UnlockYUVOverlay(m_image);
   } 
 #ifdef CHECK_SYNC_TIME
 else {
 #if 0
-    player_debug_message("Video lagging current time "LLU" "LLU" "LLU, 
+    video_message(LOG_DEBUG, "Video lagging current time "LLU" "LLU" "LLU, 
 			 play_this_at, current_time, m_msec_per_frame);
 #endif
     /*
@@ -422,7 +428,7 @@ int CVideoSync::filled_video_buffers(uint64_t time, uint64_t &current_time)
   
   m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
-  player_debug_message("Filled %llu %d", time, ix);
+  video_message(LOG_DEBUG, "Filled %llu %d", time, ix);
 #endif
   return (1);
 }
@@ -479,7 +485,7 @@ int CVideoSync::set_video_frame(const Uint8 *y,
     } else {
       m_msec_per_frame = time - m_first_frame_time;
       m_calculated_frame_rate = 1;
-      player_debug_message("Calculate frame rate is "LLU, m_msec_per_frame);
+      video_message(LOG_INFO, "Calculate frame rate is "LLU, m_msec_per_frame);
     }
   }
   src = y;
@@ -515,7 +521,7 @@ int CVideoSync::set_video_frame(const Uint8 *y,
   m_fill_index %= MAX_VIDEO_BUFFERS;
   m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
-  player_debug_message("filled %llu %d", time, ix);
+  video_message(LOG_DEBUG, "filled %llu %d", time, ix);
 #endif
   return (m_paused);
 }

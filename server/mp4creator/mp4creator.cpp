@@ -429,7 +429,7 @@ MP4TrackId CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 			break;
 		case MP4_MPEG1_AUDIO_TYPE:
 		case MP4_MPEG2_AUDIO_TYPE:
-			if (!strcasecmp(payloadName, "3119")) {
+			if (payloadName && !strcasecmp(payloadName, "3119")) {
 				Rfc3119Hinter(mp4File, mediaTrackId, hintTrackId, interleave);
 			} else {
 				Rfc2250Hinter(mp4File, mediaTrackId, hintTrackId);

@@ -274,7 +274,7 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 	}
 	if (iface != NULL) {
 		if (inet_pton(AF_INET, iface, &iface_addr) != 1) {
-			debug_msg("Illegal interface specification\n");
+			rtp_message(LOG_ERR, "Illegal interface specification");
                         free(s);
 			return NULL;
 		}
@@ -352,7 +352,7 @@ static void udp_exit4(socket_udp *s)
 			socket_error("setsockopt IP_DROP_MEMBERSHIP");
 			abort();
 		}
-		debug_msg("Dropped membership of multicast group\n");
+		rtp_message(LOG_INFO,  "Dropped membership of multicast group\n");
 	}
 	close(s->fd);
         free(s->addr);
@@ -408,7 +408,7 @@ static char *udp_host_addr4(void)
   struct in_addr  	 iaddr;
 	
 	if (gethostname(hname, MAXHOSTNAMELEN) != 0) {
-		debug_msg("Cannot get hostname!");
+		rtp_message(LOG_ERR, "Cannot get hostname!");
 		abort();
 	}
 	hent = gethostbyname(hname);
@@ -438,7 +438,7 @@ static int udp_addr_valid6(const char *dst)
                 return FALSE;
                 break;
         case -1: 
-                debug_msg("inet_pton failed\n");
+                rtp_message(LOG_ERR, "inet_pton failed");
                 errno = 0;
         }
 #endif /* HAVE_IPv6 */

@@ -43,7 +43,7 @@ void CPlayerMedia::parse_decode_message (int &thread_stop, int &decoding)
 
   if ((newmsg = m_decode_msg_queue.get_message()) != NULL) {
 #ifdef DEBUG_DECODE_MSGS
-    player_debug_message("Here's the decode message %d",newmsg->get_value());
+    media_message(LOG_DEBUG, "decode thread message %d",newmsg->get_value());
 #endif
     switch (newmsg->get_value()) {
     case MSG_STOP_THREAD:
@@ -80,6 +80,7 @@ int CPlayerMedia::decode_thread (void)
   //  uint32_t msec_per_frame = 0;
   CCodecBase *codec = NULL;
   int ret = 0;
+#define TIME_DECODE 1
 #ifdef TIME_DECODE
   int64_t avg = 0, diff;
   int64_t max = 0;
@@ -92,7 +93,7 @@ int CPlayerMedia::decode_thread (void)
     // waiting here for decoding or thread stop
     ret = SDL_SemWait(m_decode_thread_sem);
 #ifdef DEBUG_DECODE
-    player_debug_message("Decode thread awake");
+    media_message(LOG_DEBUG, "Decode thread awake");
 #endif
     parse_decode_message(thread_stop, decoding);
 
@@ -144,7 +145,7 @@ int CPlayerMedia::decode_thread (void)
      * this is our main decode loop
      */
 #ifdef DEBUG_DECODE
-    player_debug_message("Into decode loop");
+    media_message(LOG_DEBUG, "Into decode loop");
 #endif
     while ((thread_stop == 0) && decoding) {
       parse_decode_message(thread_stop, decoding);
@@ -155,7 +156,7 @@ int CPlayerMedia::decode_thread (void)
 	continue;
       }
       if (m_byte_stream->eof()) {
-	player_debug_message("%s hit eof", m_is_video ? "video" : "audio");
+	media_message(LOG_INFO, "%s hit eof", m_is_video ? "video" : "audio");
 	if (m_audio_sync) m_audio_sync->set_eof();
 	if (m_video_sync) m_video_sync->set_eof();
 	decoding = 0;
@@ -166,7 +167,7 @@ int CPlayerMedia::decode_thread (void)
 	// task.
 	m_decode_thread_waiting = 1;
 #ifdef DEBUG_DECODE
-	player_debug_message("decode thread %s waiting", m_media_info->media);
+	media_message(LOG_INFO, "decode thread %s waiting", m_media_info->media);
 #endif
 	ret = SDL_SemWait(m_decode_thread_sem);
 	m_decode_thread_waiting = 0;
@@ -186,7 +187,7 @@ int CPlayerMedia::decode_thread (void)
 	uint64_t current_time = m_parent->get_playing_time();
 	if (current_time >= ourtime) {
 #ifdef DEBUG_DECODE
-	  player_debug_message("Candidate for skip decode %llu our %llu", 
+	  media_message(LOG_INFO, "Candidate for skip decode %llu our %llu", 
 			       current_time, ourtime);
 #endif
 	  // If the bytestream can skip ahead, let's do so
@@ -205,7 +206,7 @@ int CPlayerMedia::decode_thread (void)
 		     current_time > ourtime);
 	    if (m_byte_stream->eof() || ret == 0) continue;
 #ifdef DEBUG_DECODE
-	    player_debug_message("Matched ahead to %llu", ourtime);
+	    media_message(LOG_INFO, "Skipped ahead to %llu", ourtime);
 #endif
 	    /*
 	     * Ooh - fun - try to match to the next sync value - if not, 
@@ -227,14 +228,15 @@ int CPlayerMedia::decode_thread (void)
 		     !m_byte_stream->eof());
 	    if (m_byte_stream->eof() || ret == 0) continue;
 #ifdef DEBUG_DECODE
-	    player_debug_message("Matched ahead - count %d, sync %d time %llu",
+	    media_message(LOG_INFO, "Matched ahead - count %d, sync %d time %llu",
 				 count, hassync, ourtime);
 #endif
 	  }
 	}
       }
 #ifdef DEBUG_DECODE
-      player_debug_message("Decoding %c frame " LLU, m_is_video ? 'v' : 'a', ourtime);
+      media_message(LOG_DEBUG, "Decoding %c frame " LLU, 
+		    m_is_video ? 'v' : 'a', ourtime);
 #endif
 #ifdef TIME_DECODE
       clock_t start, end;
@@ -248,25 +250,19 @@ int CPlayerMedia::decode_thread (void)
 	if (diff > max) max = diff;
 	avg += diff;
 	avg_cnt++;
-	if ((avg_cnt % 100) == 0) {
-	  player_debug_message("%s Decode avg time is " LLD " max " LLD, 
-			       m_codec_type,
-				 avg / avg_cnt, max);
-	  max = 0;
-	}
       }
 #endif
     }
   }
 #ifdef TIME_DECODE
   if (avg_cnt != 0)
-    player_debug_message("Decode avg time is " LLD " max " LLD, 
-			 avg / avg_cnt,
-			 max);
+    media_message(LOG_INFO, "Decode avg time is " LLD " max " LLD, 
+		  avg / avg_cnt,
+		  max);
 #endif
   if (m_is_video)
-    player_debug_message("Video decoder skipped "LLU" frames", 
-			 decode_skipped_frames);
+    media_message(LOG_NOTICE, "Video decoder skipped "LLU" frames", 
+		  decode_skipped_frames);
   delete codec;
   return (0);
 }

@@ -51,7 +51,7 @@ typedef u_int64_t	MP4Duration;
 #define MP4_INVALID_TIMESTAMP	((MP4Timestamp)-1)
 #define MP4_INVALID_DURATION	((MP4Duration)-1)
 
-/* For Bill - Macros to test for API type validity */
+/* Macros to test for API type validity */
 #define MP4_IS_VALID_FILE_HANDLE(x)	((x) != MP4_INVALID_FILE_HANDLE) 
 #define MP4_IS_VALID_TRACK_ID(x)	((x) != MP4_INVALID_TRACK_ID) 
 #define MP4_IS_VALID_SAMPLE_ID(x)	((x) != MP4_INVALID_SAMPLE_ID) 
@@ -87,8 +87,8 @@ typedef u_int64_t	MP4Duration;
 #define MP4_VIDEO_TRACK_TYPE	"vide"
 #define MP4_HINT_TRACK_TYPE		"hint"
 /*
- * This second set of track types can be created 
- * via MP4AddTrack(type) or MP4AddSystemsTrack(type)
+ * This second set of track types should be created 
+ * via MP4AddSystemsTrack(type)
  */
 #define MP4_CLOCK_TRACK_TYPE	"crsm"
 #define MP4_MPEG7_TRACK_TYPE	"m7sm"
@@ -459,11 +459,6 @@ bool MP4WriteRtpHint(
 
 /* ISMA specific operations */
 
-/* 
- * note this operation should be done 
- * after media and hint tracks have been created
- * but before media samples and hints are written
- */
 bool MP4MakeIsmaCompliant(
 	MP4FileHandle hFile);
 

@@ -1,12 +1,12 @@
 .TH "MP4" "3" "Version 0.9" "Cisco Systems Inc." "MP4 File Format Library"
 .SH "NAME"
 .LP 
-\fBMP4GetTrackNumberOfSamples\fR \- Get the number of samples in a track
+\fBMP4GetTrackDuration\fR \- Get the duration of a track
 .SH "SYNTAX"
 .LP 
 #include <mp4.h>
 .LP 
-u_int32_t \fBMP4GetTrackNumberOfSamples\fR(
+MP4Duration \fBMP4GetTrackDuration\fR(
 .br 
 	MP4FileHandle \fIhFile\fP,
 .br 
@@ -20,13 +20,15 @@ u_int32_t \fBMP4GetTrackNumberOfSamples\fR(
 Specifies the mp4 file to which the operation applies.
 .TP 
 \fItrackId\fP
-Specifies the track for which the number of samples is desired.
+Specifies the track for which the duration is desired.
 .SH "RETURN VALUES"
 .LP 
-The number of samples in the track of the mp4 file.
+The duration in track time scale units of the track in the mp4 file.
 .SH "DESCRIPTION"
 .LP 
-\fBMP4GetTrackNumberOfSamples\fR returns how many samples exist in the specified track in the mp4 file. 
+\fBMP4GetTrackDuration\fR returns the total duration of all the samples in the specified track in the mp4 file. 
+.LP 
+Caveat: The value is in units of the track time scale.
 .SH "SEE ALSO"
 .LP 
 MP4(3)

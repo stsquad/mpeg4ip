@@ -7,6 +7,8 @@ man_MANS = \
 	MP4AddSceneTrack.3 \
 	MP4AddSystemsTrack.3 \
 	MP4AddVideoTrack.3 \
+	MP4BinaryToBase16.3 \
+	MP4BinaryToBase64.3 \
 	MP4Create.3 \
 	MP4Close.3 \
 	MP4DeleteTrack.3 \
@@ -14,14 +16,19 @@ man_MANS = \
 	MP4FindTrackId.3 \
 	MP4FindTrackIndex.3 \
 	MP4GetNumberOfTracks.3 \
+	MP4GetTrackAudioType.3 \
 	MP4GetTrackDuration.3 \
 	MP4GetTrackESConfiguration.3 \
 	MP4GetTrackNumberOfSamples.3 \
+	MP4GetTrackTimeScale.3 \
 	MP4GetTrackType.3 \
+	MP4GetTrackVideoType.3 \
 	MP4GetVerbosity.3 \
+	MP4MakeIsmaCompliant.3 \
 	MP4Modify.3 \
 	MP4Optimize.3 \
 	MP4Read.3 \
 	MP4ReadSample.3 \
+	MP4SetTrackTimeScale.3 \
 	MP4SetVerbosity.3 \
 	MP4WriteSample.3 

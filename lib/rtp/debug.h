@@ -3,8 +3,8 @@
  * PROGRAM: RAT
  * AUTHOR:  Isidor Kouvelas + Colin Perkins + Mark Handley + Orion Hodson
  * 
- * $Revision: 1.1 $
- * $Date: 2001/08/01 00:34:01 $
+ * $Revision: 1.2 $
+ * $Date: 2001/11/13 23:58:16 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -47,6 +47,19 @@
 extern "C" {
 #endif
 
+  void rtp_message(int loglevel, const char *fmt, ...)
+#ifndef _WINDOWS
+     __attribute__((format(__printf__, 2, 3)));
+#else
+     ;
+#endif
+typedef void (*rtp_error_msg_func_t)(int loglevel,
+				     const char *lib,
+				     const char *fmt,
+				     va_list ap);
+  void rtp_set_error_msg_func(rtp_error_msg_func_t func);
+
+  void rtp_set_loglevel(int loglevel);
 void _dprintf(const char *format, ...);
 void debug_dump(void*lp, long len);
 void debug_set_core_dir(const char *argv0);

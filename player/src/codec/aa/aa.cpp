@@ -24,6 +24,7 @@
 #include "player_sdp.h"
 #include "player_util.h"
 #define DEBUG_SYNC 2
+
 /*
  * C interfaces for faac callbacks
  */
@@ -97,7 +98,7 @@ CAACodec::CAACodec (CAudioSync *a,
     }
   }
 
-  player_debug_message("AAC object type is %d", m_object_type);
+  aa_message(LOG_INFO,"AAC object type is %d", m_object_type);
   m_info = faacDecOpen(m_object_type, m_freq);
   m_msec_per_frame = m_output_frame_size;
   m_msec_per_frame *= M_LLU;
@@ -105,7 +106,7 @@ CAACodec::CAACodec (CAudioSync *a,
 
   faad_init_bytestream(&m_info->ld, c_read_byte, c_bookmark, m_bytestream);
 
-  player_debug_message("Setting freq to %d", m_freq);
+  aa_message(LOG_INFO, "Setting freq to %d", m_freq);
 #if DUMP_OUTPUT_TO_FILE
   m_outfile = fopen("temp.raw", "w");
 #endif
@@ -215,7 +216,7 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
       if (m_audio_inited != 0) {
 	int tempchans = faacDecGetProgConfig(m_info, NULL);
 	if (tempchans != m_chans) {
-	  player_debug_message("AA-chupdate - chans from data is %d", 
+	  aa_message(LOG_NOTICE, "chupdate - chans from data is %d", 
 			       tempchans);
 	}
       }
@@ -229,8 +230,8 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
 	  return -1;
 	}
 	if (tempchans != m_chans) {
-	  player_debug_message("AA - chans from data is %d conf %d", 
-			       tempchans, m_chans);
+	  aa_message(LOG_NOTICE, "chans from data is %d conf %d", 
+		     tempchans, m_chans);
 	  m_chans = tempchans;
 	}
 	m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16SYS, m_output_frame_size);
@@ -253,24 +254,24 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
       if (m_resync_with_header == 1) {
 	m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
-	player_debug_message("AA - Back to good at "LLU, m_current_time);
+	aa_message(LOG_DEBUG, "Back to good at "LLU, m_current_time);
 #endif
       }
       break;
     default:
-      player_debug_message("Bits return is %d", bits);
+      aa_message(LOG_ERR, "Bits return is %d", bits);
       m_resync_with_header = 1;
 #ifdef DEBUG_SYNC
-      player_debug_message("Audio decode problem - at "LLU, 
-			   m_current_time);
+      aa_message(LOG_ERR, "Audio decode problem - at "LLU, 
+		 m_current_time);
 #endif
       break;
     }
   } catch (int err) {
 #ifdef DEBUG_SYNC
-    player_error_message("aa Got exception %s at "LLU, 
-			 m_bytestream->get_throw_error(err), 
-			 m_current_time);
+    aa_message(LOG_ERR, "Got exception %s at "LLU, 
+	       m_bytestream->get_throw_error(err), 
+	       m_current_time);
 #endif
     m_resync_with_header = 1;
     m_record_sync_time = 1;

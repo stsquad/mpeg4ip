@@ -32,6 +32,11 @@
 //#define DEBUG_SYNC_STATE 1
 //#define DEBUG_SYNC_MSGS 1
 //#define DEBUG_SYNC_SDL_EVENTS 1
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(sync_message, "avsync")
+#else
+#define sync_message(loglevel, fmt...) message(loglevel, "avsync", fmt)
+#endif
 /*
  * get_current_time.  Gets the time of day, subtracts off the start time
  * to get the current play time.
@@ -45,7 +50,7 @@ uint64_t CPlayerSession::get_current_time ()
   }
   current_time = get_time_of_day();
 #if 0
-  player_debug_message("current time %llx m_start %llx", 
+  sync_message(LOG_DEBUG, "current time %llx m_start %llx", 
 		       current_time, m_start);
   if (current_time < m_start) {
     if (m_clock_wrapped == -1) {
@@ -117,7 +122,7 @@ int CPlayerSession::process_sdl_events (int state)
       case SDL_QUIT:
 	m_master_msg_queue->send_message(MSG_RECEIVED_QUIT);
 #ifdef DEBUG_SYNC_SDL_EVENTS
-	player_debug_message("Quit event detected");
+	sync_message(LOG_DEBUG, "Quit event detected");
 #endif
 #ifdef _WINDOWS
 	 return (SYNC_STATE_EXIT);
@@ -125,7 +130,7 @@ int CPlayerSession::process_sdl_events (int state)
 	break;
       case SDL_KEYDOWN:
 #ifdef DEBUG_SYNC_SDL_EVENTS
-	player_debug_message("Pressed %x %s", event.key.keysym.mod, SDL_GetKeyName(event.key.keysym.sym));
+	sync_message(LOG_DEBUG, "Pressed %x %s", event.key.keysym.mod, SDL_GetKeyName(event.key.keysym.sym));
 #endif
 	if (event.key.keysym.sym == SDLK_ESCAPE && 
 	    m_video_sync &&
@@ -152,7 +157,7 @@ int CPlayerSession::process_msg_queue (int state)
   CMsg *newmsg;
   while ((newmsg = m_sync_thread_msg_queue.get_message()) != NULL) {
 #ifdef DEBUG_SYNC_MSGS
-    player_debug_message("Sync thread msg %d", newmsg->get_value());
+    sync_message(LOG_DEBUG, "Sync thread msg %d", newmsg->get_value());
 #endif
     switch (newmsg->get_value()) {
     case MSG_PAUSE_SESSION:
@@ -170,8 +175,8 @@ int CPlayerSession::process_msg_queue (int state)
       }
       break;
     default:
-      player_error_message("Sync thread received message %d", 
-			   newmsg->get_value());
+      sync_message(LOG_ERR, "Sync thread received message %d", 
+		   newmsg->get_value());
       break;
     }
     delete newmsg;
@@ -205,7 +210,7 @@ int CPlayerSession::sync_thread_init (void)
       }
     }
     if (ret == -1) {
-      player_error_message("Fatal error while initializing hardware");
+      sync_message(LOG_CRIT, "Fatal error while initializing hardware");
       if (m_video_sync != NULL) {
 	m_video_sync->flush_sync_buffers();
       }
@@ -279,7 +284,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	   * If we have audio, we use that for syncing.  Start it up
 	   */
 	  m_current_time = astart;
-	  player_debug_message("Astart is %llu", astart);
+	  sync_message(LOG_DEBUG, "Astart is %llu", astart);
 	  m_waiting_for_audio = 1;
 	  state = SYNC_STATE_WAIT_AUDIO;
 	  m_audio_sync->play_audio();
@@ -294,7 +299,8 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	  m_start -= m_current_time;
 	  state = SYNC_STATE_PLAYING;
 	}
-	player_debug_message("Resynced at time "LLX " "LLX, m_current_time, vstart);
+	sync_message(LOG_DEBUG, 
+		     "Resynced at time "LLX " "LLX, m_current_time, vstart);
 	/*
 	 * Play off some video
 	 */
@@ -325,7 +331,7 @@ int CPlayerSession::sync_thread_wait_audio (void)
       } else {
 	// make sure we set the current time
 	get_current_time();
-	player_debug_message("Current time is %llx", m_current_time);
+	sync_message(LOG_DEBUG, "Current time is %llx", m_current_time);
 	return (SYNC_STATE_PLAYING);
       }
     }
@@ -490,7 +496,7 @@ int CPlayerSession::sync_thread (void)
       break;
     }
 #ifdef DEBUG_SYNC_STATE
-    player_debug_message("sync changed state to %s", sync_state[state]);
+    sync_message(LOG_INFO, "sync changed state to %s", sync_state[state]);
 #endif
     switch (state) {
     case SYNC_STATE_WAIT_SYNC:
@@ -539,8 +545,8 @@ void CPlayerSession::audio_is_ready (uint64_t latency, uint64_t time)
   if (latency != 0) {
     m_clock_wrapped = -1;
   }
-  player_debug_message("Audio is ready "LLU" - latency "LLU, time, latency);
-  player_debug_message("m_start is "LLX, m_start);
+  sync_message(LOG_DEBUG, "Audio is ready "LLU" - latency "LLU, time, latency);
+  sync_message(LOG_DEBUG, "m_start is "LLX, m_start);
   m_waiting_for_audio = 0;
   SDL_SemPost(m_sync_sem);
 }
@@ -549,8 +555,8 @@ void CPlayerSession::adjust_start_time (int64_t time)
 {
   m_start -= time;
   m_clock_wrapped = -1;
-  player_debug_message("Adjusting start time "LLD " to " LLU, time,
-		       get_current_time());
+  sync_message(LOG_INFO, "Adjusting start time "LLD " to " LLU, time,
+	       get_current_time());
   SDL_SemPost(m_sync_sem);
 }
 /* end sync.cpp */

@@ -188,4 +188,9 @@ int process_rtsp_rtpinfo(char *rtpinfo,
 			 CPlayerSession *session,
 			 CPlayerMedia *media);
 
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(media_message, "media")
+#else
+#define media_message(loglevel, fmt...) message(loglevel, "media", fmt)
+#endif
 #endif

@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.5 $ 
- * $Date: 2001/11/01 19:07:02 $
+ * $Revision: 1.6 $ 
+ * $Date: 2001/11/13 23:58:16 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -401,7 +401,7 @@ static void insert_rr(struct rtp *session, uint32_t reporter_ssrc, rtcp_rr *rr, 
         cur->prev       = start;
         cur->prev->next = cur;
 
-        debug_msg("Created new rr entry for 0x%08lx from source 0x%08lx\n", rr->ssrc, reporter_ssrc);
+        rtp_message(LOG_INFO, "Created new rr entry for 0x%08x from source 0x%08x", rr->ssrc, reporter_ssrc);
         return;
 }
 
@@ -616,7 +616,7 @@ static source *create_source(struct rtp *session, uint32_t ssrc, int probation)
 	session->ssrc_count++;
 	check_database(session);
 
-	debug_msg("Created database entry for ssrc 0x%08lx (%d valid sources)\n", ssrc, session->ssrc_count);
+	rtp_message(LOG_INFO, "Created database entry for ssrc 0x%08x (%d valid sources)", ssrc, session->ssrc_count);
         if (ssrc != session->my_ssrc) {
                 /* Do not send during rtp_init since application cannot map the address */
                 /* of the rtp session to anything since rtp_init has not returned yet.  */
@@ -1046,15 +1046,15 @@ struct rtp *rtp_init_if(const char *addr, char *iface,
 	char *hname;
 
         if (ttl < 0) {
-                debug_msg("ttl must be greater than zero\n");
+                rtp_message(LOG_CRIT, "ttl must be greater than zero");
                 return NULL;
         }
         if (rx_port % 2) {
-                debug_msg("rx_port must be even\n");
+                rtp_message(LOG_CRIT, "rx_port must be even");
                 return NULL;
         }
         if (tx_port % 2) {
-                debug_msg("tx_port must be even\n");
+                rtp_message(LOG_CRIT, "tx_port must be even");
                 return NULL;
         }
 
@@ -1201,7 +1201,7 @@ int rtp_set_option(struct rtp *session, rtp_option optname, int optval)
 			session->opt->filter_my_packets = optval;
 			break;
         	default:
-			debug_msg("Ignoring unknown option (%d) in call to rtp_set_option().\n", optname);
+			rtp_message(LOG_ALERT, "Ignoring unknown option (%d) in call to rtp_set_option().", optname);
                         return FALSE;
 	}
         return TRUE;
@@ -1232,7 +1232,7 @@ int rtp_get_option(struct rtp *session, rtp_option optname, int *optval)
 			break;
         	default:
                         *optval = 0;
-			debug_msg("Ignoring unknown option (%d) in call to rtp_get_option().\n", optname);
+			rtp_message(LOG_ALERT, "Ignoring unknown option (%d) in call to rtp_get_option().", optname);
                         return FALSE;
 	}
         return TRUE;
@@ -1275,39 +1275,38 @@ static int validate_rtp(rtp_packet *packet, int len)
 	/* See Appendix A.1 of the RTP specification.                        */
 
 	/* We only accept RTPv2 packets... */
-	if (packet->v != 2) {
-		debug_msg("rtp_header_validation: v != 2\n");
+	if (packet->rtp_pak_v != 2) {
+		rtp_message(LOG_WARNING, "rtp_header_validation: v != 2");
 		return FALSE;
 	}
 	/* Check for valid payload types..... 72-76 are RTCP payload type numbers, with */
 	/* the high bit missing so we report that someone is running on the wrong port. */
-	if (packet->pt >= 72 && packet->pt <= 76) {
-		debug_msg("rtp_header_validation: payload-type invalid");
-		if (packet->m) {
-			debug_msg(" (RTCP packet on RTP port?)");
+	if (packet->rtp_pak_pt >= 72 && packet->rtp_pak_pt <= 76) {
+		rtp_message(LOG_WARNING, "rtp_header_validation: payload-type invalid %d - seq%d", packet->rtp_pak_pt, packet->rtp_pak_seq);
+		if (packet->rtp_pak_m) {
+			rtp_message(LOG_WARNING, " (RTCP packet on RTP port?)");
 		}
-		debug_msg("\n");
 		return FALSE;
 	}
 	/* Check that the length of the packet is sensible... */
-	if (len < (12 + (4 * packet->cc))) {
-		debug_msg("rtp_header_validation: packet length is smaller than the header\n");
+	if (len < (12 + (4 * packet->rtp_pak_cc))) {
+		rtp_message(LOG_WARNING, "rtp_header_validation: packet length is smaller than the header");
 		return FALSE;
 	}
 	/* Check that the amount of padding specified is sensible. */
 	/* Note: have to include the size of any extension header! */
-	if (packet->p) {
-		int	payload_len = len - 12 - (packet->cc * 4);
-                if (packet->x) {
+	if (packet->rtp_pak_p) {
+		int	payload_len = len - 12 - (packet->rtp_pak_cc * 4);
+                if (packet->rtp_pak_x) {
                         /* extension header and data */
-                        payload_len -= 4 * (1 + packet->extn_len);
+                        payload_len -= 4 * (1 + packet->rtp_extn_len);
                 }
-                if (packet->data[packet->data_len - 1] > payload_len) {
-                        debug_msg("rtp_header_validation: padding greater than payload length\n");
+                if (packet->rtp_data[packet->rtp_data_len - 1] > payload_len) {
+                        rtp_message(LOG_WARNING, "rtp_header_validation: padding greater than payload length");
                         return FALSE;
                 }
-                if (packet->data[packet->data_len - 1] < 1) {
-			debug_msg("rtp_header_validation: padding zero\n");
+                if (packet->rtp_data[packet->rtp_data_len - 1] < 1) {
+			rtp_message(LOG_WARNING, "rtp_header_validation: padding zero");
 			return FALSE;
 		}
         }
@@ -1320,9 +1319,9 @@ static void process_rtp(struct rtp *session, uint32_t curr_rtp_ts, rtp_packet *p
 	rtp_event	 event;
 	struct timeval	 event_ts;
 
-	if (packet->cc > 0) {
-		for (i = 0; i < packet->cc; i++) {
-			create_source(session, packet->csrc[i], FALSE);
+	if (packet->rtp_pak_cc > 0) {
+		for (i = 0; i < packet->rtp_pak_cc; i++) {
+			create_source(session, packet->rtp_csrc[i], FALSE);
 		}
 	}
 	/* Update the source database... */
@@ -1330,7 +1329,7 @@ static void process_rtp(struct rtp *session, uint32_t curr_rtp_ts, rtp_packet *p
 		s->sender = TRUE;
 		session->sender_count++;
 	}
-	transit    = curr_rtp_ts - packet->ts;
+	transit    = curr_rtp_ts - packet->rtp_pak_ts;
 	d      	   = transit - s->transit;
 	s->transit = transit;
 	if (d < 0) {
@@ -1339,9 +1338,9 @@ static void process_rtp(struct rtp *session, uint32_t curr_rtp_ts, rtp_packet *p
 	s->jitter += d - ((s->jitter + 8) / 16);
 	
 	/* Callback to the application to process the packet... */
-	if (!filter_event(session, packet->ssrc)) {
+	if (!filter_event(session, packet->rtp_pak_ssrc)) {
 		gettimeofday(&event_ts, NULL);
-		event.ssrc = packet->ssrc;
+		event.ssrc = packet->rtp_pak_ssrc;
 		event.type = RX_RTP;
 		event.data = (void *) packet;	/* The callback function MUST free this! */
 		event.ts   = &event_ts;
@@ -1356,6 +1355,7 @@ int rtp_process_recv_data (struct rtp *session,
 {
   uint8_t		*buffer = ((uint8_t *) packet) + RTP_PACKET_HEADER_SIZE;
   source		*s;
+  packet->pd.rtp_pd_buflen = buflen;
 
   if (buflen > 0) {
     if (session->encryption_enabled)
@@ -1365,48 +1365,48 @@ int rtp_process_recv_data (struct rtp *session,
       }
     
     /* Convert header fields to host byte order... */
-    packet->next = packet->prev = NULL;
-    packet->seq      = ntohs(packet->seq);
-    packet->ts       = ntohl(packet->ts);
-    packet->ssrc     = ntohl(packet->ssrc);
+    packet->rtp_next = packet->rtp_prev = NULL;
+    packet->rtp_pak_seq  = ntohs(packet->rtp_pak_seq);
+    packet->rtp_pak_ts   = ntohl(packet->rtp_pak_ts);
+    packet->rtp_pak_ssrc = ntohl(packet->rtp_pak_ssrc);
     /* Setup internal pointers, etc... */
-    if (packet->cc) {
+    if (packet->rtp_pak_cc) {
       int	i;
-      packet->csrc = (uint32_t *)(buffer + 12);
-      for (i = 0; i < packet->cc; i++) {
-	packet->csrc[i] = ntohl(packet->csrc[i]);
+      packet->rtp_csrc = (uint32_t *)(buffer + 12);
+      for (i = 0; i < packet->rtp_pak_cc; i++) {
+	packet->rtp_csrc[i] = ntohl(packet->rtp_csrc[i]);
       }
     } else {
-      packet->csrc = NULL;
+      packet->rtp_csrc = NULL;
     }
-    if (packet->x) {
-      packet->extn      = buffer + 12 + (packet->cc * 4);
-      packet->extn_len  = (packet->extn[2] << 8) | packet->extn[3];
-      packet->extn_type = (packet->extn[0] << 8) | packet->extn[1];
+    if (packet->rtp_pak_x) {
+      packet->rtp_extn      = buffer + 12 + (packet->rtp_pak_cc * 4);
+      packet->rtp_extn_len  = (packet->rtp_extn[2] << 8) | packet->rtp_extn[3];
+      packet->rtp_extn_type = (packet->rtp_extn[0] << 8) | packet->rtp_extn[1];
     } else {
-      packet->extn      = NULL;
-      packet->extn_len  = 0;
-      packet->extn_type = 0;
+      packet->rtp_extn      = NULL;
+      packet->rtp_extn_len  = 0;
+      packet->rtp_extn_type = 0;
     }
-    packet->data     = buffer + 12 + (packet->cc * 4);
-    packet->data_len = buflen -  (packet->cc * 4) - 12;
-    if (packet->extn != NULL) {
-      packet->data += ((packet->extn_len + 1) * 4);
-      packet->data_len -= ((packet->extn_len + 1) * 4);
+    packet->rtp_data     = buffer + 12 + (packet->rtp_pak_cc * 4);
+    packet->rtp_data_len = buflen -  (packet->rtp_pak_cc * 4) - 12;
+    if (packet->rtp_extn != NULL) {
+      packet->rtp_data += ((packet->rtp_extn_len + 1) * 4);
+      packet->rtp_data_len -= ((packet->rtp_extn_len + 1) * 4);
     }
     if (validate_rtp(packet, buflen)) {
       int weak = 0, promisc = 0;
       rtp_get_option(session, RTP_OPT_WEAK_VALIDATION, &weak);
       if (weak) {
-	s = get_source(session, packet->ssrc);
+	s = get_source(session, packet->rtp_pak_ssrc);
       } else {
-	s = create_source(session, packet->ssrc, TRUE);
+	s = create_source(session, packet->rtp_pak_ssrc, TRUE);
       }
       rtp_get_option(session, RTP_OPT_PROMISC, &promisc);
       if (promisc) {
 	if (s == NULL) {
-	  create_source(session, packet->ssrc, FALSE);
-	  s = get_source(session, packet->ssrc);
+	  create_source(session, packet->rtp_pak_ssrc, FALSE);
+	  s = get_source(session, packet->rtp_pak_ssrc);
 	}
 	process_rtp(session, curr_rtp_ts, packet, s);
 	return 0; /* We don't free "packet", that's done by the callback function... */
@@ -1414,7 +1414,7 @@ int rtp_process_recv_data (struct rtp *session,
       if (s != NULL) {
 	if (s->probation == -1) {
 	  s->probation = MIN_SEQUENTIAL;
-	  s->max_seq   = packet->seq - 1;
+	  s->max_seq   = packet->rtp_pak_seq - 1;
 	}
 	// wmay - if (update_seq(s, packet->seq))
 	if (1) {
@@ -1422,14 +1422,14 @@ int rtp_process_recv_data (struct rtp *session,
 	  return 0;	/* we don't free "packet", that's done by the callback function... */
 	} else {
 	  /* This source is still on probation... */
-	  debug_msg("RTP packet from probationary source ignored...\n");
+	  rtp_message(LOG_INFO, "RTP packet from probationary source ignored...");
 	}
       } else {
-	debug_msg("RTP packet from unknown source %d ignored\n", packet->ssrc);
+	rtp_message(LOG_WARNING, "RTP packet from unknown source %d ignored", packet->rtp_pak_ssrc);
       }
     } else {
       session->invalid_rtp_count++;
-      debug_msg("Invalid RTP packet discarded\n");
+      rtp_message(LOG_INFO, "Invalid RTP packet discarded");
     }
   }
   return -1; /* We need to free the packet */
@@ -1438,11 +1438,11 @@ int rtp_process_recv_data (struct rtp *session,
 static void rtp_recv_data(struct rtp *session, uint32_t curr_rtp_ts)
 {
 	/* This routine preprocesses an incoming RTP packet, deciding whether to process it. */
-	rtp_packet	*packet = (rtp_packet *) xmalloc(RTP_MAX_PACKET_LEN);
+	rtp_packet	*packet = (rtp_packet *) xmalloc(RTP_MAX_PACKET_LEN + RTP_PACKET_HEADER_SIZE);
 	uint8_t		*buffer = ((uint8_t *) packet) + RTP_PACKET_HEADER_SIZE;
 	int		 buflen;
 
-	buflen = udp_recv(session->rtp_socket, buffer, RTP_MAX_PACKET_LEN - RTP_PACKET_HEADER_SIZE);
+	buflen = udp_recv(session->rtp_socket, buffer, RTP_MAX_PACKET_LEN);
 	if (rtp_process_recv_data(session, curr_rtp_ts, packet, buflen) < 0)
 	  xfree(packet);
 }
@@ -1471,22 +1471,22 @@ static int validate_rtcp(uint8_t *packet, int len)
 
 	/* All RTCP packets must be compound packets (RFC1889, section 6.1) */
 	if (((ntohs(pkt->common.length) + 1) * 4) == len) {
-		debug_msg("Bogus RTCP packet: not a compound packet\n");
+		rtp_message(LOG_WARNING, "Bogus RTCP packet: not a compound packet");
 		return FALSE;
 	}
 
 	/* Check the RTCP version, payload type and padding of the first in  */
 	/* the compund RTCP packet...                                        */
 	if (pkt->common.version != 2) {
-		debug_msg("Bogus RTCP packet: version number != 2 in the first sub-packet\n");
+		rtp_message(LOG_WARNING, "Bogus RTCP packet: version number != 2 in the first sub-packet");
 		return FALSE;
 	}
 	if (pkt->common.p != 0) {
-		debug_msg("Bogus RTCP packet: padding bit is set on first packet in compound\n");
+		rtp_message(LOG_WARNING, "Bogus RTCP packet: padding bit is set on first packet in compound");
 		return FALSE;
 	}
 	if ((pkt->common.pt != RTCP_SR) && (pkt->common.pt != RTCP_RR)) {
-		debug_msg("Bogus RTCP packet: compund packet does not start with SR or RR\n");
+		rtp_message(LOG_WARNING, "Bogus RTCP packet: compund packet does not start with SR or RR");
 		return FALSE;
 	}
 
@@ -1495,14 +1495,14 @@ static int validate_rtcp(uint8_t *packet, int len)
 	/* the last packet.                                                      */
 	do {
 		if (p == 1) {
-			debug_msg("Bogus RTCP packet: padding bit set before last in compound (sub-packet %d)\n", pc);
+			rtp_message(LOG_WARNING, "Bogus RTCP packet: padding bit set before last in compound (sub-packet %d)", pc);
 			return FALSE;
 		}
 		if (r->common.p) {
 			p = 1;
 		}
 		if (r->common.version != 2) {
-			debug_msg("Bogus RTCP packet: version number != 2 in sub-packet %d is %d\n", pc, r->common.version);
+			rtp_message(LOG_WARNING, "Bogus RTCP packet: version number != 2 in sub-packet %d", pc);
 			return FALSE;
 		}
 		l += (ntohs(r->common.length) + 1) * 4;
@@ -1513,11 +1513,11 @@ static int validate_rtcp(uint8_t *packet, int len)
 	/* Check that the length of the packets matches the length of the UDP */
 	/* packet in which they were received...                              */
 	if (l != len) {
-		debug_msg("Bogus RTCP packet: RTCP packet length does not match UDP packet length (%d != %d)\n", l, len);
+		rtp_message(LOG_WARNING, "Bogus RTCP packet: RTCP packet length does not match UDP packet length (%d != %d)", l, len);
 		return FALSE;
 	}
 	if (r != end) {
-		debug_msg("Bogus RTCP packet: RTCP packet length does not match UDP packet length (%p != %p)\n", r, end);
+		rtp_message(LOG_WARNING, "Bogus RTCP packet: RTCP packet length does not match UDP packet length (%p != %p)", r, end);
 		return FALSE;
 	}
 
@@ -1578,7 +1578,7 @@ static void process_rtcp_sr(struct rtp *session, rtcp_t *packet, struct timeval 
 	ssrc = ntohl(packet->r.sr.sr.ssrc);
 	s = create_source(session, ssrc, FALSE);
 	if (s == NULL) {
-		debug_msg("Source 0x%08x invalid, skipping...\n", ssrc);
+		rtp_message(LOG_WARNING, "Source 0x%08x invalid, skipping...", ssrc);
 		return;
 	}
 
@@ -1616,7 +1616,7 @@ static void process_rtcp_sr(struct rtp *session, rtcp_t *packet, struct timeval 
 	process_report_blocks(session, packet, ssrc, packet->r.sr.rr, event_ts);
 
 	if (((packet->common.count * 6) + 1) < (ntohs(packet->common.length) - 5)) {
-		debug_msg("Profile specific SR extension ignored\n");
+		rtp_message(LOG_NOTICE, "Profile specific SR extension ignored");
 	}
 }
 
@@ -1628,14 +1628,14 @@ static void process_rtcp_rr(struct rtp *session, rtcp_t *packet, struct timeval 
 	ssrc = ntohl(packet->r.rr.ssrc);
 	s = create_source(session, ssrc, FALSE);
 	if (s == NULL) {
-		debug_msg("Source 0x%08x invalid, skipping...\n", ssrc);
+		rtp_message(LOG_WARNING, "Source 0x%08x invalid, skipping...", ssrc);
 		return;
 	}
 
 	process_report_blocks(session, packet, ssrc, packet->r.rr.rr, event_ts);
 
 	if (((packet->common.count * 6) + 1) < ntohs(packet->common.length)) {
-		debug_msg("Profile specific RR extension ignored\n");
+		rtp_message(LOG_INFO, "Profile specific RR extension ignored");
 	}
 }
 
@@ -1657,7 +1657,7 @@ static void process_rtcp_sdes(struct rtp *session, rtcp_t *packet, struct timeva
 		sd->ssrc = ntohl(sd->ssrc);
 		s = create_source(session, sd->ssrc, FALSE);
 		if (s == NULL) {
-			debug_msg("Can't get valid source entry for 0x%08x, skipping...\n", sd->ssrc);
+			rtp_message(LOG_NOTICE, "Cannot get valid source entry for 0x%08x, skipping...", sd->ssrc);
 		} else {
 			for (; rsp->type; rsp = rspn ) {
 				rspn = (rtcp_sdes_item *)((char*)rsp+rsp->length+2);
@@ -1674,14 +1674,14 @@ static void process_rtcp_sdes(struct rtp *session, rtcp_t *packet, struct timeva
 						session->callback(session, &event);
 					}
 				} else {
-					debug_msg("Invalid sdes item for source 0x%08x, skipping...\n", sd->ssrc);
+					rtp_message(LOG_WARNING, "Invalid sdes item for source 0x%08x, skipping...", sd->ssrc);
 				}
 			}
 		}
 		sd = (struct rtcp_sdes_t *) ((uint32_t *)sd + (((char *)rsp - (char *)sd) >> 2)+1);
 	}
 	if (count >= 0) {
-		debug_msg("Invalid RTCP SDES packet, some items ignored.\n");
+		rtp_message(LOG_INFO, "Invalid RTCP SDES packet, some items ignored.");
 	}
 }
 
@@ -1729,7 +1729,7 @@ static void process_rtcp_app(struct rtp *session, rtcp_t *packet, struct timeval
 	s = get_source(session, ssrc);
 	if (s == NULL) {
 	        /* This should only occur in the event of database malfunction. */
-	        debug_msg("Source 0x%08x invalid, skipping...\n", ssrc);
+	        rtp_message(LOG_NOTICE, "Source 0x%08x invalid, skipping...", ssrc);
 	        return;
 	}
 	check_source(s);
@@ -1839,7 +1839,7 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 					        process_rtcp_app(session, packet, &event_ts);
 						break;
 					default: 
-						debug_msg("RTCP packet with unknown type (%d) ignored.\n", packet->common.pt);
+						rtp_message(LOG_WARNING, "RTCP packet with unknown type (%d) ignored.", packet->common.pt);
 						break;
 				}
 				packet = (rtcp_t *) ((char *) packet + (4 * (ntohs(packet->common.length) + 1)));
@@ -1863,29 +1863,7 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen)
 				session->callback(session, &event);
 			}
 		} else {
-#if 0
-		  int ix;
-		  for (ix = 0; ix < buflen; ix += 16) {
-		    debug_msg("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
-			      buffer[ix],
-			      buffer[ix + 1],
-			      buffer[ix + 2],
-			      buffer[ix + 3],
-			      buffer[ix + 4],
-			      buffer[ix + 5],
-			      buffer[ix + 6],
-			      buffer[ix + 7],
-			      buffer[ix + 8],
-			      buffer[ix + 9],
-			      buffer[ix + 10],
-			      buffer[ix + 11],
-			      buffer[ix + 12],
-			      buffer[ix + 13],
-			      buffer[ix + 14],
-			      buffer[ix + 15]);
-		  }
-#endif
-			debug_msg("Invalid RTCP packet discarded\n");
+			rtp_message(LOG_INFO, "Invalid RTCP packet discarded");
 			session->invalid_rtcp_count++;
 		}
 	}
@@ -1947,12 +1925,12 @@ int rtp_add_csrc(struct rtp *session, uint32_t csrc)
 	s = get_source(session, csrc);
 	if (s == NULL) {
 		s = create_source(session, csrc, FALSE);
-		debug_msg("Created source 0x%08x as CSRC\n", csrc);
+		rtp_message(LOG_INFO, "Created source 0x%08x as CSRC", csrc);
 	}
 	check_source(s);
 	s->should_advertise_sdes = TRUE;
 	session->csrc_count++;
-	debug_msg("Added CSRC 0x%08lx as CSRC %d\n", csrc, session->csrc_count);
+	rtp_message(LOG_INFO, "Added CSRC 0x%08x as CSRC %d", csrc, session->csrc_count);
 	return TRUE;
 }
 
@@ -1973,7 +1951,7 @@ int rtp_del_csrc(struct rtp *session, uint32_t csrc)
 	check_database(session);
 	s = get_source(session, csrc);
 	if (s == NULL) {
-		debug_msg("Invalid source 0x%08x\n", csrc);
+		rtp_message(LOG_ERR, "Invalid source 0x%08x when deleting", csrc);
 		return FALSE;
 	}
 	check_source(s);
@@ -2011,7 +1989,7 @@ int rtp_set_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type, const 
 
 	s = get_source(session, ssrc);
 	if (s == NULL) {
-		debug_msg("Invalid source 0x%08x\n", ssrc);
+		rtp_message(LOG_ERR, "Invalid source 0x%08x when setting", ssrc);
 		return FALSE;
 	}
 	check_source(s);
@@ -2054,7 +2032,7 @@ int rtp_set_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type, const 
 			s->priv = v; 
 			break;
 		default :
-			debug_msg("Unknown SDES item (type=%d, value=%s)\n", type, v);
+			rtp_message(LOG_NOTICE, "Unknown SDES item (type=%d, value=%s)", type, v);
                         xfree(v);
 			check_database(session);
 			return FALSE;
@@ -2086,7 +2064,7 @@ const char *rtp_get_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type
 
 	s = get_source(session, ssrc);
 	if (s == NULL) {
-		debug_msg("Invalid source 0x%08x\n", ssrc);
+		rtp_message(LOG_ERR, "Invalid source 0x%08x getting sdes", ssrc);
 		return NULL;
 	}
 	check_source(s);
@@ -2110,7 +2088,7 @@ const char *rtp_get_sdes(struct rtp *session, uint32_t ssrc, rtcp_sdes_type type
 		return s->priv;	
         default:
                 /* This includes RTCP_SDES_PRIV and RTCP_SDES_END */
-                debug_msg("Unknown SDES item (type=%d)\n", type);
+                rtp_message(LOG_WARNING, "Unknown SDES item (type=%d)", type);
 	}
 	return NULL;
 }
@@ -2227,36 +2205,36 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, char pt, int m,
 	packet     = (rtp_packet *) buffer;
 
 	/* These are internal pointers into the buffer... */
-	packet->csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
-	packet->extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
-	packet->data = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+	packet->rtp_csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
+	packet->rtp_extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+	packet->rtp_data = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
 	if (extn != NULL) {
-		packet->data += (extn_len + 1) * 4;
+		packet->rtp_data += (extn_len + 1) * 4;
 	}
 	/* ...and the actual packet header... */
-	packet->v    = 2;
-	packet->p    = pad;
-	packet->x    = (extn != NULL);
-	packet->cc   = cc;
-	packet->m    = m;
-	packet->pt   = pt;
-	packet->seq  = htons(session->rtp_seq++);
-	packet->ts   = htonl(rtp_ts);
-	packet->ssrc = htonl(rtp_my_ssrc(session));
+	packet->rtp_pak_v    = 2;
+	packet->rtp_pak_p    = pad;
+	packet->rtp_pak_x    = (extn != NULL);
+	packet->rtp_pak_cc   = cc;
+	packet->rtp_pak_m    = m;
+	packet->rtp_pak_pt   = pt;
+	packet->rtp_pak_seq  = htons(session->rtp_seq++);
+	packet->rtp_pak_ts   = htonl(rtp_ts);
+	packet->rtp_pak_ssrc = htonl(rtp_my_ssrc(session));
 	/* ...now the CSRC list... */
 	for (i = 0; i < cc; i++) {
-		packet->csrc[i] = htonl(csrc[i]);
+		packet->rtp_csrc[i] = htonl(csrc[i]);
 	}
 	/* ...a header extension? */
 	if (extn != NULL) {
 		/* We don't use the packet->extn_type field here, that's for receive only... */
-		uint16_t *base = (uint16_t *) packet->extn;
+		uint16_t *base = (uint16_t *) packet->rtp_extn;
 		base[0] = htons(extn_type);
 		base[1] = htons(extn_len);
-		memcpy(packet->extn + 4, extn, extn_len * 4);
+		memcpy(packet->rtp_extn + 4, extn, extn_len * 4);
 	}
 	/* ...and the media data... */
-	memcpy(packet->data, data, data_len);
+	memcpy(packet->rtp_data, data, data_len);
 	/* ...and any padding... */
 	if (pad) {
 		for (i = 0; i < pad_len; i++) {
@@ -2312,33 +2290,33 @@ int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, char pt, int m, int 
 	packet     = (rtp_packet *) buffer;
 
 	/* These are internal pointers into the buffer... */
-	packet->csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
-	packet->extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
-	packet->data = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+	packet->rtp_csrc = (uint32_t *) (buffer + RTP_PACKET_HEADER_SIZE + 12);
+	packet->rtp_extn = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
+	packet->rtp_data = (uint8_t  *) (buffer + RTP_PACKET_HEADER_SIZE + 12 + (4 * cc));
 	if (extn != NULL) {
-		packet->data += (extn_len + 1) * 4;
+		packet->rtp_data += (extn_len + 1) * 4;
 	}
 	/* ...and the actual packet header... */
-	packet->v    = 2;
-	packet->p    = 0;
-	packet->x    = (extn != NULL);
-	packet->cc   = cc;
-	packet->m    = m;
-	packet->pt   = pt;
-	packet->seq  = htons(session->rtp_seq++);
-	packet->ts   = htonl(rtp_ts);
-	packet->ssrc = htonl(rtp_my_ssrc(session));
+	packet->rtp_pak_v    = 2;
+	packet->rtp_pak_p    = 0;
+	packet->rtp_pak_x    = (extn != NULL);
+	packet->rtp_pak_cc   = cc;
+	packet->rtp_pak_m    = m;
+	packet->rtp_pak_pt   = pt;
+	packet->rtp_pak_seq  = htons(session->rtp_seq++);
+	packet->rtp_pak_ts   = htonl(rtp_ts);
+	packet->rtp_pak_ssrc = htonl(rtp_my_ssrc(session));
 	/* ...now the CSRC list... */
 	for (i = 0; i < cc; i++) {
-		packet->csrc[i] = htonl(csrc[i]);
+		packet->rtp_csrc[i] = htonl(csrc[i]);
 	}
 	/* ...a header extension? */
 	if (extn != NULL) {
 		/* We don't use the packet->extn_type field here, that's for receive only... */
-		uint16_t *base = (uint16_t *) packet->extn;
+		uint16_t *base = (uint16_t *) packet->rtp_extn;
 		base[0] = htons(extn_type);
 		base[1] = htons(extn_len);
-		memcpy(packet->extn + 4, extn, extn_len * 4);
+		memcpy(packet->rtp_extn + 4, extn, extn_len * 4);
 	}
 
 	/* Add the RTP packet header to the beginning of the iov list */
@@ -2492,7 +2470,7 @@ static int add_sdes_item(uint8_t *buf, int buflen, int type, const char *val)
         int             namelen;
 
         if (val == NULL) {
-                debug_msg("Cannot format SDES item. type=%d val=%xp\n", type, val);
+                rtp_message(LOG_ERR, "Cannot format SDES item. type=%d val=%p", type, val);
                 return 0;
         }
         shdr->type = type;
@@ -2831,7 +2809,7 @@ void rtp_update(struct rtp *session)
 			/* is to ensure that all delayed packets are received before */
 			/* the source is timed out.                                  */
 			if (s->got_bye && (delay > 2.0)) {
-				debug_msg("Deleting source 0x%08lx due to reception of BYE %f seconds ago...\n", s->ssrc, delay);
+				rtp_message(LOG_INFO, "Deleting source 0x%08x due to reception of BYE %f seconds ago...", s->ssrc, delay);
 				delete_source(session, s->ssrc);
 			}
 
@@ -2847,7 +2825,7 @@ void rtp_update(struct rtp *session)
 			/* If a source hasn't been heard from for more than 5 RTCP   */
 			/* reporting intervals, we delete it from our database...    */
 			if ((s->ssrc != rtp_my_ssrc(session)) && (delay > (session->rtcp_interval * 5))) {
-				debug_msg("Deleting source 0x%08lx due to timeout...\n", s->ssrc);
+				rtp_message(LOG_INFO, "Deleting source 0x%08x due to timeout...", s->ssrc);
 				delete_source(session, s->ssrc);
 			}
 		}
@@ -2938,7 +2916,7 @@ void rtp_send_bye(struct rtp *session)
 	/* "...a participant which never sent an RTP or RTCP packet MUST NOT send  */
 	/* a BYE packet when they leave the group." (section 6.3.7 of RTP spec)    */
 	if ((session->we_sent == FALSE) && (session->initial_rtcp == TRUE)) {
-		debug_msg("Silent BYE\n");
+		rtp_message(LOG_NOTICE, "Silent BYE");
 		return;
 	}
 
@@ -2958,7 +2936,7 @@ void rtp_send_bye(struct rtp *session)
 		session->avg_rtcp_size       = 70.0 + RTP_LOWER_LAYER_OVERHEAD;	/* FIXME */
 		tv_add(&session->next_rtcp_send_time, rtcp_interval(session) / (session->csrc_count + 1));
 
-		debug_msg("Preparing to send BYE...\n");
+		rtp_message(LOG_DEBUG, "Preparing to send BYE...");
 		while (1) {
 			/* Schedule us to block in udp_select() until the time we are due to send our */
 			/* BYE packet. If we receive an RTCP packet from another participant before   */
@@ -2979,13 +2957,13 @@ void rtp_send_bye(struct rtp *session)
 			new_send_time = session->last_rtcp_send_time;
 			tv_add(&new_send_time, new_interval);
 			if (tv_gt(curr_time, new_send_time)) {
-				debug_msg("Sent BYE...\n");
+				rtp_message(LOG_DEBUG, "Sent BYE...");
 				rtp_send_bye_now(session);
 				break;
 			}
 			/* No, we reconsider... */
 			session->next_rtcp_send_time = new_send_time;
-			debug_msg("Reconsidered sending BYE... delay = %f\n", tv_diff(session->next_rtcp_send_time, curr_time));
+			rtp_message(LOG_INFO, "Reconsidered sending BYE... delay = %f", tv_diff(session->next_rtcp_send_time, curr_time));
 			/* ...and perform housekeeping in the usual manner */
 			rtp_update(session);
 		}
@@ -3095,7 +3073,7 @@ int rtp_set_encryption_key(struct rtp* session, const char *passphrase)
 		return TRUE;
 	}
 
-	debug_msg("Enabling RTP/RTCP encryption\n");
+	rtp_message(LOG_DEBUG, "Enabling RTP/RTCP encryption");
 	session->encryption_enabled = 1;
 
  	/*
@@ -3116,7 +3094,7 @@ int rtp_set_encryption_key(struct rtp* session, const char *passphrase)
 	    passphrase = slash + 1;
  	}
  
- 	debug_msg("Initializing encryption, algorithm is '%s'\n",
+ 	rtp_message(LOG_INFO, "Initializing encryption, algorithm is '%s'",
  		  session->encryption_algorithm);
  
 	/* Step 1: convert to canonical form, comprising the following steps:  */
@@ -3149,7 +3127,7 @@ int rtp_set_encryption_key(struct rtp* session, const char *passphrase)
 	}
 	else
 	{
-		debug_msg("Encryption algorithm \"%s\" not found\n",
+		rtp_message(LOG_ERR, "Encryption algorithm \"%s\" not found",
 			  session->encryption_algorithm);
 		return FALSE;
 	}

@@ -7,8 +7,8 @@
  *          Orion Hodson
  *          Jerry Isdale
  * 
- * $Revision: 1.2 $
- * $Date: 2001/10/11 20:39:03 $
+ * $Revision: 1.3 $
+ * $Date: 2001/11/13 23:58:16 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -196,4 +196,54 @@ void debug_set_core_dir(const char *argv0)
         }
 #endif /* DEBUG */
         UNUSED(argv0);
+}
+
+static int rtp_debug_level =
+#ifdef DEBUG
+LOG_DEBUG;
+#else
+LOG_ERR;
+#endif
+
+void rtp_set_loglevel (int loglevel)
+{
+  rtp_debug_level = loglevel;
+}
+static rtp_error_msg_func_t error_msg_func = NULL;
+
+void rtp_set_error_msg_func (rtp_error_msg_func_t func)
+{
+  error_msg_func = func;
+}
+void rtp_message (int loglevel, const char *fmt, ...)
+{
+  va_list ap;
+  if (loglevel <= rtp_debug_level) {
+    va_start(ap, fmt);
+    if (error_msg_func != NULL) {
+      (error_msg_func)(loglevel, "rtp", fmt, ap);
+    } else {
+ #if _WIN32 && _DEBUG
+	  char msg[1024];
+
+      _vsnprintf(msg, 1024, fmt, ap);
+      OutputDebugString(msg);
+      OutputDebugString("\n");
+#else
+      struct timeval thistime;
+      char buffer[80];
+      time_t secs;
+
+      gettimeofday(&thistime, NULL);
+      // To add date, add %a %b %d to strftime
+      secs = thistime.tv_sec;
+      strftime(buffer, sizeof(buffer), "%X", localtime(&secs));
+      printf("%s.%03ld-libhttp-%d: ",
+	     buffer, (unsigned long)thistime.tv_usec / 1000, loglevel);
+      vprintf(fmt, ap);
+      printf("\n");
+#endif
+    }
+    va_end(ap);
+  }
 }
