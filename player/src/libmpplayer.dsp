@@ -40,7 +40,7 @@ CPP=cl.exe
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /I "../../common/video/mpeg4 ./codec ./codec/mpeg4 ../lib ../lib/audio ../lib/SDL/include ../../common/mp4 ../../include" /I "../../common/mp4" /I "../../common/lib" /I "../../lib/mp4" /I "." /I "../../lib/mp4v2" /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../../lib/SDL/include" /I "../../include" /I "../lib/video/divx" /I "../../lib" /I "../../lib/avi" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /I "../../common/video/mpeg4 ./codec ./codec/mpeg4 ../lib ../lib/audio ../lib/SDL/include ../../common/mp4 ../../include" /I "../../common/mp4" /I "../../common/lib" /I "../../lib/mp4" /I "." /I "../../lib/mp4v2" /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../../lib/SDL/include" /I "../../include" /I "../lib/video/divx" /I "../../lib" /I "../../lib/avi" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /D "WIN32" /D "NDEBUG" /D "_WIN32" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -62,7 +62,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "../../lib/mp4" /I "." /I "../../lib/mp4v2" /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../../lib/SDL/include" /I "../../include" /I "../lib/video/divx" /I "../../lib" /I "../../lib/avi" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /D "_AFXDLL" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "../../lib/mp4" /I "." /I "../../lib/mp4v2" /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../../lib/SDL/include" /I "../../include" /I "../lib/video/divx" /I "../../lib" /I "../../lib/avi" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /D "_AFXDLL" /D "_WIN32" /D "WIN32" /D "_DEBUG" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -93,6 +93,10 @@ SOURCE=.\avi_file.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\codec_plugin.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\frame_doubler.cpp
 # End Source File
 # Begin Source File
@@ -110,10 +114,6 @@ SOURCE=.\mp4_bytestream.cpp
 # Begin Source File
 
 SOURCE=.\mp4_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg4_audio_config.cpp
 # End Source File
 # Begin Source File
 
@@ -146,6 +146,16 @@ SOURCE=.\player_session.cpp
 # Begin Source File
 
 SOURCE=.\player_util.c
+
+!IF  "$(CFG)" == "libmpplayer - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "libmpplayer - Win32 Debug"
+
+# ADD CPP /D "WINDOWS_IS_A_PIECE_OF_CRAP"
+# SUBTRACT CPP /u /D "_DEBUG"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -190,6 +200,14 @@ SOURCE=.\avi_file.h
 # Begin Source File
 
 SOURCE=.\codec\codec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_plugin.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\codec_plugin_private.h
 # End Source File
 # Begin Source File
 
@@ -277,22 +295,6 @@ SOURCE=.\video.h
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\codec\aa\aa.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\aa.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\aa_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\aa\aa_file.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\codec\aa\isma_rtp_bytestream.cpp
 # End Source File
 # Begin Source File
@@ -300,107 +302,9 @@ SOURCE=.\codec\aa\isma_rtp_bytestream.cpp
 SOURCE=.\codec\aa\isma_rtp_bytestream.h
 # End Source File
 # End Group
-# Begin Group "codec/divx"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\divx\divx.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\divx\divx.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\divx\divx_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\divx\divx_file.h
-# End Source File
-# End Group
-# Begin Group "codec/mpeg4"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\mpeg4\mpeg4.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mpeg4\mpeg4.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mpeg4\mpeg4_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mpeg4\mpeg4_file.h
-# End Source File
-# End Group
-# Begin Group "codec/wav"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\wav\ourwav.cpp
-
-!IF  "$(CFG)" == "libmpplayer - Win32 Release"
-
-# SUBTRACT CPP /O<none> /YX
-
-!ELSEIF  "$(CFG)" == "libmpplayer - Win32 Debug"
-
-# SUBTRACT CPP /YX
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\wav\ourwav.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\wav\wav_file.cpp
-
-!IF  "$(CFG)" == "libmpplayer - Win32 Release"
-
-# SUBTRACT CPP /O<none> /YX
-
-!ELSEIF  "$(CFG)" == "libmpplayer - Win32 Debug"
-
-# SUBTRACT CPP /YX
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\wav\wav_file.h
-# End Source File
-# End Group
 # Begin Group "codec/mp3"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3_file.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3_file.h
-# End Source File
 # Begin Source File
 
 SOURCE=.\codec\mp3\mp3_rtp_bytestream.cpp

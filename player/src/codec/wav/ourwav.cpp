@@ -19,40 +19,45 @@
  *              Bill May        wmay@cisco.com
  */
 #include "ourwav.h"
-#include "our_bytestream.h"
+
 #define DEBUG_SYNC
 /*
  * Create CAACodec class
  */
-CWavCodec::CWavCodec (CAudioSync *a, 
-		      COurInByteStream *pbytestrm,
-		      format_list_t *media_fmt,
-		      audio_info_t *audio,
-		      const unsigned char *userdata,
-		      uint32_t userdata_size) : 
-  CAudioCodecBase(a, pbytestrm, media_fmt, audio, userdata, userdata_size)
-{
-  
-  m_sdl_config = (SDL_AudioSpec *)userdata;
-  m_audio_sync->set_config(m_sdl_config->freq, 
-			   m_sdl_config->channels, 
-			   m_sdl_config->format, 
-			   m_sdl_config->samples);
-  if (m_sdl_config->format == AUDIO_U8 || m_sdl_config->format == AUDIO_S8)
-    m_bytes_per_sample = 1;
-  else
-    m_bytes_per_sample = 2;
+static codec_data_t *wav_codec_create (format_list_t *media_fmt,
+				       audio_info_t *audio,
+				       const unsigned char *userdata,
+				       uint32_t userdata_size,
+				       audio_vft_t *vft,
+				       void *ifptr)
+{ 
+  wav_codec_t *wav = (wav_codec_t *)malloc(sizeof(wav_codec_t));
+  memset(wav, 0, sizeof(*wav));
+  wav->m_vft = vft;
+  wav->m_ifptr = ifptr;
+  wav->m_sdl_config = (SDL_AudioSpec *)userdata;
+  return ((codec_data_t *)wav);
 }
 
-CWavCodec::~CWavCodec()
+static void wav_close (codec_data_t *ptr)
 {
-
+  wav_codec_t *wav;
+  wav = (wav_codec_t *)ptr;
+  if (wav->m_wav_buffer != NULL) {
+    SDL_FreeWAV(wav->m_wav_buffer);
+    wav->m_wav_buffer = NULL;
+  }
+  if (wav->m_sdl_config != NULL) {
+    free(wav->m_sdl_config);
+    wav->m_sdl_config = NULL;
+  }
+  free(ptr);
 }
 
 /*
  * Handle pause - basically re-init the codec
  */
-void CWavCodec::do_pause (void)
+static void wav_do_pause (codec_data_t *ifptr)
 {
 
 }
@@ -60,25 +65,41 @@ void CWavCodec::do_pause (void)
 /*
  * Decode task call for FAAC
  */
-int CWavCodec::decode (uint64_t ts, 
+static int wav_decode (codec_data_t *ifptr, 
+		       uint64_t ts, 
 		       int from_rtp,
+		       int *sync_frame,
 		       unsigned char *buffer, 
 		       uint32_t buflen)
 {
   unsigned char *buff;
+  wav_codec_t *wav = (wav_codec_t *)ifptr;
 	
+  if (wav->m_configured == 0) {
+    wav->m_configured = 1;
+    wav->m_vft->audio_configure(wav->m_ifptr,
+				wav->m_sdl_config->freq, 
+				wav->m_sdl_config->channels, 
+				wav->m_sdl_config->format, 
+				wav->m_sdl_config->samples);
+    if (wav->m_sdl_config->format == AUDIO_U8 || 
+	wav->m_sdl_config->format == AUDIO_S8)
+      wav->m_bytes_per_channel = 1;
+    else
+      wav->m_bytes_per_channel = 2;
+  }
   /* 
    * Get an audio buffer
    */
-  buff = m_audio_sync->get_audio_buffer();
+  buff = wav->m_vft->audio_get_buffer(wav->m_ifptr);
   if (buff == NULL) {
     return (-1);
   }
 	
   uint32_t bytes_to_copy;
-  bytes_to_copy = m_sdl_config->samples * 
-    m_sdl_config->channels * 
-    m_bytes_per_sample;
+  bytes_to_copy = wav->m_sdl_config->samples * 
+    wav->m_sdl_config->channels * 
+    wav->m_bytes_per_channel;
   
   uint32_t bytes;
     
@@ -87,16 +108,35 @@ int CWavCodec::decode (uint64_t ts,
   if (bytes < bytes_to_copy) {
     memset(&buff[bytes], 0, bytes_to_copy - bytes);
   }
-  m_bytestream->used_bytes_for_frame(bytes);
 
-  m_audio_sync->filled_audio_buffer(ts, 0);
-  return (0);
+  wav->m_vft->audio_filled_buffer(wav->m_ifptr, ts, 0);
+  return (bytes);
 }
 
-int CWavCodec::skip_frame (uint64_t ts, unsigned char *buffer, uint32_t buflen)
+static int wav_codec_check (lib_message_func_t message,
+			    const char *compressor,
+			    int audio_format,
+			    int profile, 
+			    format_list_t *fptr,
+			    const unsigned char *userdata,
+			    uint32_t userdata_size)
 {
-  return (decode(ts, 0, buffer, buflen));
+  return -1;
 }
+
+AUDIO_CODEC_PLUGIN("wav", 
+		   wav_codec_create,
+		   wav_do_pause,
+		   wav_decode,
+		   wav_close,
+		   wav_codec_check,
+		   wav_file_check,
+		   wav_file_next_frame,
+		   wav_file_used_for_frame,
+		   wav_raw_file_seek_to,
+		   NULL,
+		   wav_file_eof);
+
 /* end file ourwav.cpp */
 
 

@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bits.h,v 1.2 2001/12/11 18:12:04 wmaycisco Exp $
+ * $Id: bits.h,v 1.3 2002/03/20 22:45:34 wmaycisco Exp $
  */
 
 #ifndef __BITS_H__
@@ -26,11 +26,8 @@
 extern "C" {
 #endif
 
-  typedef void (*get_more_bytes_t)(void *, unsigned char **, uint32_t *, uint32_t);
 typedef struct _bitfile2
 {
-  get_more_bytes_t get_more_bytes;
-  void *ud;
 	/* bit input */
   unsigned char *buffer;
   unsigned char *rdptr;
@@ -38,13 +35,9 @@ typedef struct _bitfile2
   int incnt;
   int bitcnt;
   int framebits;
-  int framebits_max;
-  uint32_t orig_buflen;
-  uint32_t buflen;
-
 } bitfile;
 
-void faad_initbits(bitfile *ld, char *buffer, uint32_t buflen);
+void faad_initbits(bitfile *ld, char *buffer);
 uint32_t faad_getbits(bitfile *ld, int n);
 uint32_t faad_getbits_fast(bitfile *ld, int n);
 uint32_t faad_get1bit(bitfile *ld);
@@ -57,30 +50,12 @@ extern unsigned int faad_bit_msk[33];
 
 #define _SWAP(a) ((a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3])
 
-static __inline void check_buffer (bitfile *ld, int n)
-{
-  int cmp;
-
-  cmp = ld->framebits + n;
-  if (cmp > ld->framebits_max) {
-    
-    (ld->get_more_bytes)(ld->ud, &ld->buffer, &ld->orig_buflen,
-			 (ld->framebits / 8));
-    ld->framebits = ld->bitcnt;
-    ld->rdptr = ld->buffer;
-    ld->buflen = ld->orig_buflen;
-    ld->framebits_max = ld->orig_buflen * 8;
-  }
-}
-
 static __inline uint32_t faad_showbits(bitfile *ld, int n)
 {
         unsigned char *v;
 	int rbit = 32 - ld->bitcnt;
 	uint32_t b;
 
-	check_buffer(ld, n);
-	
 	v = ld->rdptr;
 	b = _SWAP(v);
 	return ((b & faad_bit_msk[rbit]) >> (rbit-n));
@@ -92,7 +67,6 @@ static __inline void faad_flushbits(bitfile *ld, int n)
 
 	if (ld->bitcnt >= 8) {
 		ld->rdptr += (ld->bitcnt>>3);
-		ld->buflen -= (ld->bitcnt>>3);
 		ld->bitcnt &= 7;
 	}
 

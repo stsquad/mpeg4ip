@@ -22,31 +22,7 @@
  * mp3_file.cpp - create media structure for mp3 files
  */
 
-#include "player_session.h"
-#include "player_media.h"
-#include "our_bytestream_file.h"
-#include "mp3.h"
-#include "mp3_file.h"
-#include "player_util.h"
-static void c_get_more (void *ud, unsigned char **buffer, 
-			uint32_t *buflen, uint32_t used)
-{
-  COurInByteStream *bs = (COurInByteStream *)ud;
-  bs->get_more_bytes(buffer, buflen, used, 0);
-}
-#if 0
-static unsigned char c_read_byte (void *userdata)
-{
-  COurInByteStreamFile *fd = (COurInByteStreamFile *)userdata;
-  return (fd->get());
-}
-
-static uint32_t c_read_bytes (unsigned char *b, uint32_t bytes, void *userdata)
-{
-  COurInByteStreamFile *fd = (COurInByteStreamFile *)userdata;
-  return (fd->read(b, bytes));
-}
-#endif
+#include "mp3if.h"
 
 // from mplib-0.6
 #define GLL 148
@@ -72,21 +48,18 @@ const static char *genre_list[GLL] =
   "Christian Rock", "Merengue", "Salsa", "Trash Metal", "Anime", "JPop", "Synthpop" };
 
 
-static void read_mp3_file_for_tag (CPlayerSession *psptr,
-				   const char *name)
+static void read_mp3_file_for_tag (mp3_codec_t *mp3,
+				   char *descptr[3])
 {
-  FILE *ifile;
   char buffer[128];
   char desc[80];
   char temp;
   int ix;
 
-  ifile = fopen(name, "r");
-  if (ifile == NULL) return;
-  if (fseek(ifile, -128, SEEK_END) != 0) {
+  if (fseek(mp3->m_ifile, -128, SEEK_END) != 0) {
     return;
   }
-  fread(buffer, 1, 128, ifile);
+  fread(buffer, 1, 128, mp3->m_ifile);
   if (strncasecmp(buffer, "tag", 3) != 0) {
     return;
   }
@@ -98,7 +71,8 @@ static void read_mp3_file_for_tag (CPlayerSession *psptr,
     ix--;
   }
   snprintf(desc, sizeof(desc), "%s", &buffer[3]);
-  psptr->set_session_desc(0, desc);
+  descptr[0] = strdup(desc);
+
   buffer[33] = temp;
 
   temp = buffer[63];
@@ -109,9 +83,10 @@ static void read_mp3_file_for_tag (CPlayerSession *psptr,
     ix--;
   }
   snprintf(desc, sizeof(desc), "By: %s", &buffer[33]);
-  psptr->set_session_desc(1, desc);
-  buffer[63] = temp;
+  descptr[1] = strdup(desc);
 
+
+  buffer[63] = temp;
   temp = buffer[93];
   buffer[93] = '\0';
   ix = 92;
@@ -128,110 +103,224 @@ static void read_mp3_file_for_tag (CPlayerSession *psptr,
 	     &buffer[63], temp, buffer[94], buffer[95],
 	     buffer[96]);
   }
-  psptr->set_session_desc(2, desc);
+  descptr[2] = strdup(desc);
+
   unsigned char index = (unsigned char)buffer[127];
   if (index <= GLL) {
     snprintf(desc, sizeof(desc), "Genre: %s", genre_list[index]);
-    psptr->set_session_desc(3, desc);
+    descptr[3] = strdup(desc);
   }
 }
-int create_media_for_mp3_file (CPlayerSession *psptr, 
-			       const char *name,
-			       const char **errmsg)
+
+codec_data_t *mp3_file_check (lib_message_func_t message,
+			      const char *name, 
+			      double *max,
+			      char *desc[4])
 {
-  CPlayerMedia *mptr;
-  COurInByteStreamFile *fbyte;
   int freq = 0, samplesperframe = 0;
-  int ret;
-
-  psptr->session_set_seekable(1);
-  mptr = new CPlayerMedia;
-  if (mptr == NULL) {
-    *errmsg = "Couldn't create media";
-    return (-1);
-  }
-
-  fbyte = new COurInByteStreamFile(name);
-
-  MPEGaudio *mp3 = new MPEGaudio(c_get_more, fbyte);
-
+  int len;
+  mp3_codec_t *mp3;
   int first = 0;
   int framecount = 0;
-  int error = 0;
-  fbyte->config_for_file(30);
-  while (!fbyte->eof() && error == 0) {
-    try {
-      uint32_t bytes;
-      uint32_t buflen;
-      uint32_t framesize;
-      unsigned char *buffer;
-      fbyte->start_next_frame(&buffer, &buflen);
-      bytes = mp3->findheader(buffer, buflen, &framesize);
-      if (bytes < 0) {
-	fbyte->used_bytes_for_frame(buflen);
+  int bytes;
+  uint32_t framesize;
+
+  len = strlen(name);
+  if (strcasecmp(name + len - 4, ".mp3") != 0) {
+    return (NULL);
+  }
+
+  message(LOG_DEBUG, "mp3", "Begin reading mp3 file");
+  mp3 = (mp3_codec_t *)malloc(sizeof(mp3_codec_t));
+  memset(mp3, 0, sizeof(mp3_codec_t));
+
+  mp3->m_ifile = fopen(name, FOPEN_READ_BINARY);
+  if (mp3->m_ifile == NULL) {
+    free(mp3);
+    return NULL;
+  }
+  mp3->m_buffer = (unsigned char *)malloc(1024);
+  if (mp3->m_buffer == NULL) {
+    fclose(mp3->m_ifile);
+    free(mp3);
+    return NULL;
+  }
+  mp3->m_buffer_size_max = 1024;
+  
+  mp3->m_mp3_info = new MPEGaudio();
+  mp3->m_fpos = new CFilePosRecorder;
+
+  while (feof(mp3->m_ifile) == 0) {
+    if (mp3->m_buffer_on + 3 >= mp3->m_buffer_size) {
+      uint32_t diff = mp3->m_buffer_size - mp3->m_buffer_on;
+      if (diff > 0) {
+	memcpy(mp3->m_buffer,
+	       &mp3->m_buffer[mp3->m_buffer_on],
+	       diff);
+      }
+      mp3->m_buffer_size = diff;
+      mp3->m_buffer_size += fread(mp3->m_buffer,
+				  1,  
+				  mp3->m_buffer_size_max - diff,
+				  mp3->m_ifile);
+      mp3->m_buffer_on = 0;
+    }
+    
+    bytes = 
+      mp3->m_mp3_info->findheader(&mp3->m_buffer[mp3->m_buffer_on], 
+				  mp3->m_buffer_size - mp3->m_buffer_on, 
+				  &framesize);
+    if (bytes < 0) {
+      mp3->m_buffer_on = mp3->m_buffer_size - 3;
+    } else {
+
+      mp3->m_buffer_on += bytes;  // skipped bytes
+
+      // check framesize as compared to m_buffersize_max
+      if (mp3->m_buffer_on + framesize > mp3->m_buffer_size) {
+	int extra = mp3->m_buffer_on + framesize - mp3->m_buffer_size;
+
+	fseek(mp3->m_ifile, extra, SEEK_CUR);
+	mp3->m_buffer_on = 0;
+	mp3->m_buffer_size = 0;
       } else {
-	fbyte->used_bytes_for_frame(bytes);
-	if (bytes + framesize > buflen) {
-	  fbyte->used_bytes_for_frame(buflen - bytes);
-	  fbyte->used_bytes_for_frame(framesize - (buflen - bytes));
+	mp3->m_buffer_on += framesize;
+      }
+	  
+      if (first == 0) {
+	first = 1;
+	freq = mp3->m_mp3_info->getfrequency();
+	samplesperframe = 32;
+	if (mp3->m_mp3_info->getlayer() == 3) {
+	  samplesperframe *= 18;
+	  if (mp3->m_mp3_info->getversion() == 0) {
+	    samplesperframe *= 2;
+	  }
 	} else {
-	  fbyte->used_bytes_for_frame(framesize);
-	}
-	if (first == 0) {
-	  first = 1;
-	  freq = mp3->getfrequency();
-	  samplesperframe = 32;
-	  if (mp3->getlayer() == 3) {
-	    samplesperframe *= 18;
-	    if (mp3->getversion() == 0) {
-	      samplesperframe *= 2;
-	    }
-	  } else {
-	    samplesperframe *= SCALEBLOCK;
-	    if (mp3->getlayer() == 2) {
-	      samplesperframe *= 3;
-	    }
+	  samplesperframe *= SCALEBLOCK;
+	  if (mp3->m_mp3_info->getlayer() == 2) {
+	    samplesperframe *= 3;
 	  }
 	}
-	framecount++;
+	mp3->m_samplesperframe = samplesperframe;
+	mp3->m_freq = freq;
       }
-    } catch (int err) {
-      error = 1;
-    } catch (...) {
-      error = 1;
+      if ((framecount % 16) == 0) {
+	long current;
+	current = ftell(mp3->m_ifile);
+	current -= framesize;
+	current -= mp3->m_buffer_size - mp3->m_buffer_on;
+	uint64_t calc;
+	calc = framecount * mp3->m_samplesperframe * M_LLU;
+	calc /= mp3->m_freq;
+	mp3->m_fpos->record_point(current, calc, framecount);
+      }
+      framecount++;
     }
   }
 
-  delete mp3;
-  delete fbyte;
-  if (first == 0) {
-    delete mptr;
-    *errmsg = "Couldn't find valid mp3 frame";
-    return -1;
-  }
-
-  fbyte = new COurInByteStreamFile(name);
-  mp3_message(LOG_INFO, "freq %d samples %d fps %d", freq, samplesperframe, 
+  message(LOG_INFO, "mp3", "freq %d samples %d fps %d", freq, samplesperframe, 
 	      freq / samplesperframe);
   double maxtime;
   maxtime = (double) samplesperframe * (double)framecount;
   maxtime /= (double)freq;
-  mp3_message(LOG_INFO, "max playtime %g", maxtime);
-  fbyte->config_for_file(freq / samplesperframe, maxtime);
+  message(LOG_INFO, "mp3", "max playtime %g", maxtime);
 
-  *errmsg = "Can't create thread";
-  ret =  mptr->create_from_file(psptr, fbyte, FALSE);
-  if (ret != 0) {
-    return (-1);
-  }
+  *max = maxtime;
 
-  audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
-  audio->freq = freq;
-  mptr->set_audio_info(audio);
-  mptr->set_codec_type("mp3 ");
-  read_mp3_file_for_tag(psptr, name);
-  return (0);
+  read_mp3_file_for_tag(mp3, desc);
+
+  rewind(mp3->m_ifile);
+
+  return ((codec_data_t *)mp3);
 }
+
+int mp3_file_next_frame (codec_data_t *your_data,
+			 unsigned char **buffer,
+			 uint64_t *ts)
+{
+  mp3_codec_t *mp3;
+  int bytes_skipped;
+  uint32_t framesize;
+
+  mp3 = (mp3_codec_t *)your_data;
+
+  while (1) {
+    if (mp3->m_buffer_on + 3 >= mp3->m_buffer_size) {
+      uint32_t diff = mp3->m_buffer_size - mp3->m_buffer_on;
+      if (diff > 0) {
+	memcpy(mp3->m_buffer,
+	       &mp3->m_buffer[mp3->m_buffer_on],
+	       diff);
+      }
+      mp3->m_buffer_size = diff;
+      mp3->m_buffer_size += fread(mp3->m_buffer, 
+				  1, 
+				  mp3->m_buffer_size_max - diff,
+				  mp3->m_ifile);
+      mp3->m_buffer_on = 0;
+      if (mp3->m_buffer_size == diff) return 0;
+    }
+      
+    bytes_skipped = 
+      mp3->m_mp3_info->findheader(&mp3->m_buffer[mp3->m_buffer_on], 
+				  mp3->m_buffer_size - mp3->m_buffer_on, 
+				  &framesize);
+    if (bytes_skipped < 0) {
+      mp3->m_buffer_on = mp3->m_buffer_size;
+      continue;
+    }
+    
+    mp3->m_buffer_on += bytes_skipped;  // skipped bytes
+    
+    // check framesize as compared to m_buffersize_max
+    if (mp3->m_buffer_on + framesize > mp3->m_buffer_size) {
+      uint32_t left_in_buffer;
+
+      left_in_buffer = mp3->m_buffer_size - mp3->m_buffer_on;
+      memmove(mp3->m_buffer,
+	      mp3->m_buffer + mp3->m_buffer_on,
+	      left_in_buffer);
+      
+      int temp = fread(mp3->m_buffer + left_in_buffer,
+		       1, 
+		       mp3->m_buffer_on,
+		       mp3->m_ifile);
+      mp3->m_buffer_size = temp + left_in_buffer;
+      mp3->m_buffer_on = 0;
+    } 
+
+    // We have a buffer.  Make sure m_buffer_on points past the
+    // buffer.
+    *buffer = mp3->m_buffer + mp3->m_buffer_on;
+    mp3->m_buffer_on += framesize;
+
+    // Calculate the current time
+    uint64_t calc;
+    calc = mp3->m_framecount * mp3->m_samplesperframe * M_LLU;
+    calc /= mp3->m_freq;
+    *ts = calc;
+    mp3->m_framecount++;
+
+    return (framesize);
+  }
+}
+
+int mp3_raw_file_seek_to (codec_data_t *ptr, uint64_t ts)
+{
+  mp3_codec_t *mp3 = (mp3_codec_t *)ptr;
+  const frame_file_pos_t *fpos = mp3->m_fpos->find_closest_point(ts);
+
+  mp3->m_framecount = fpos->frames;
+  mp3->m_buffer_on = 0;
+  mp3->m_buffer_size = 0;
+
+  fseek(mp3->m_ifile, fpos->file_position, SEEK_SET);
+  return 0;
+}
+  
+  
+
 
 /* end file mp3_file.cpp */
 

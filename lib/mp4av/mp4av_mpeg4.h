@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -22,13 +22,45 @@
 #ifndef __MP4AV_MPEG4_INCLUDED__
 #define __MP4AV_MPEG4_INCLUDED__
 
-#define VOSH_START	0xB0
-#define VOL_START	0x20
-#define GOV_START	0xB3
-#define VOP_START	0xB6
+#define MP4AV_MPEG4_VOSH_START	0xB0
+#define MP4AV_MPEG4_VOL_START	0x20
+#define MP4AV_MPEG4_GOV_START	0xB3
+#define MP4AV_MPEG4_VOP_START	0xB6
 
-u_int8_t MP4AV_Mpeg4VideoToSystemsProfileLevel(u_int8_t videoProfileLevel);
+bool MP4AV_Mpeg4ParseVosh(
+	u_int8_t* pVoshBuf, 
+	u_int32_t voshSize,
+	u_int8_t* pProfileLevel);
 
-u_char MP4AV_Mpeg4GetVopType(u_int8_t* pVopBuf, u_int32_t vopSize);
+bool MP4AV_Mpeg4ParseVol(
+	u_int8_t* pVolBuf, 
+	u_int32_t volSize,
+	u_int8_t* pTimeBits, 
+	u_int16_t* pTimeTicks, 
+	u_int16_t* pFrameDuration, 
+	u_int16_t* pFrameWidth, 
+	u_int16_t* pFrameHeight);
+
+bool MP4AV_Mpeg4ParseGov(
+	u_int8_t* pGovBuf, 
+	u_int32_t govSize,
+	u_int8_t* pHours, 
+	u_int8_t* pMinutes, 
+	u_int8_t* pSeconds);
+
+bool MP4AV_Mpeg4ParseVop(
+	u_int8_t* pVopBuf, 
+	u_int32_t vopSize,
+	u_char* pVopType, 
+	u_int8_t timeBits, 
+	u_int16_t timeTicks, 
+	u_int32_t* pVopTimeIncrement);
+
+u_int8_t MP4AV_Mpeg4VideoToSystemsProfileLevel(
+	u_int8_t videoProfileLevel);
+
+u_char MP4AV_Mpeg4GetVopType(
+	u_int8_t* pVopBuf, 
+	u_int32_t vopSize);
 
 #endif /* __MP4AV_MPEG4_INCLUDED__ */

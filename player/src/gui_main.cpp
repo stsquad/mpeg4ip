@@ -37,7 +37,7 @@
 #include "playlist.h"
 #include <libhttp/http.h>
 #include <rtp/debug.h>
-
+#include "codec_plugin_private.h"
 /* ??? */
 #ifndef LOG_PRI
 #define LOG_PRI(p) ((p) & LOG_PRIMASK)
@@ -157,10 +157,10 @@ static void create_session_from_name (const char *name)
 			     NULL,
 			     name);
   if (psptr != NULL) {
-    const char *errmsg;
-    errmsg = NULL;
+    char errmsg[512];
+    errmsg[0] = '\0';
     // See if we can create media for this session
-    int ret = parse_name_for_session(psptr, name, &errmsg);
+    int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg));
     if (ret >= 0) {
       // Yup - valid session.  Set volume, set up sync thread, and
       // start the session
@@ -273,6 +273,7 @@ void delete_event (GtkWidget *widget, gpointer *data)
   if (master_playlist != NULL) {
     delete master_playlist;
   }
+  close_plugins();
   gtk_main_quit();
 }
 
@@ -653,9 +654,12 @@ static gint main_timer (gpointer raw)
 {
   uint64_t play_time;
   if (play_state == PLAYING) {
-    double val = psptr->get_max_time();
+    double max_time = psptr->get_max_time();
     uint64_t pt = psptr->get_playing_time();
     double playtime = ((double)pt) / 1000.0;
+    double val;
+
+    val = max_time;
     if (time_slider_pressed == 0 && 
 	val > 0.0 &&
 	psptr->get_session_state() == SESSION_PLAYING) {
@@ -681,9 +685,23 @@ static gint main_timer (gpointer raw)
     min = tot / 60;
     tot %= 60;
     playtime -= (double)((hr * 3600) + (min * 60));
-    gchar buffer[30];
-    g_snprintf(buffer, 30, "%d:%02d:%04.1f", hr, min, playtime);
-    gtk_label_set_text(GTK_LABEL(time_disp), buffer);
+    if (max_time == 0.0) {
+      gchar buffer[30];
+      g_snprintf(buffer, 30, "%d:%02d:%04.1f", hr, min, playtime);
+      gtk_label_set_text(GTK_LABEL(time_disp), buffer);
+    } else {
+      int mhr, mmin, msec, mtot;
+      mtot = (int)max_time;
+      mhr = mtot / 3600;
+      mtot %= 3600;
+      mmin = mtot / 60;
+      msec = mtot % 60;
+
+      gchar buffer[60];
+      g_snprintf(buffer, 60, "%d:%02d:%04.1f of %d:%02d:%02d", 
+		 hr, min, playtime, mhr, mmin, msec);
+      gtk_label_set_text(GTK_LABEL(time_disp), buffer);
+    }
     
     for (int ix = 0; ix < 4; ix++) {
       const char *text;
@@ -727,7 +745,7 @@ static gint main_timer (gpointer raw)
 	  adjust_gui_for_play();
 	  SDL_mutexV(command_mutex);
 	}
-      } else {
+      } else if (psptr != NULL) {
 	play_state = STOPPED;
 	toggle_button_adjust(play_button, FALSE);
 	toggle_button_adjust(stop_button, TRUE);
@@ -869,10 +887,12 @@ static gint main_timer (gpointer raw)
 int main (int argc, char **argv)
 {
   gtk_init(&argc, &argv);
-
+printf("%s\n", *argv);
   command_mutex = SDL_CreateMutex();
-
+  
   config.read_config_file();
+  initialize_plugins();
+
   const char *read;
   playlist = g_list_append(playlist, (void *)"");
   read = config.get_config_string(CONFIG_PREV_FILE_0);

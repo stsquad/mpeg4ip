@@ -22,25 +22,17 @@
  * wav_file.cpp - create media structure for aac files
  */
 
-#include "player_session.h"
-#include "player_media.h"
-#include "our_bytestream_mem.h"
 #include "ourwav.h"
-#include "wav_file.h"
-#include "player_util.h"
- 
-    
-int create_media_for_wav_file (CPlayerSession *psptr, 
-			       const char *name,
-			       const char **errmsg)
+
+codec_data_t *wav_file_check (lib_message_func_t message,
+			      const char *name, 
+			      double *max, 
+			      char *desc[4])
 {
-  CPlayerMedia *mptr;
-  COurInByteStreamWav *mbyte;
-  psptr->session_set_seekable(0);
-  mptr = new CPlayerMedia;
-  if (mptr == NULL) {
-    *errmsg = "Couldn't create media";
-    return (-1);
+
+  int len = strlen(name);
+  if (strcasecmp(name + len - 4, ".wav") != 0) {
+    return (NULL);
   }
 
   SDL_AudioSpec *temp, *read;
@@ -50,37 +42,90 @@ int create_media_for_wav_file (CPlayerSession *psptr,
   temp = (SDL_AudioSpec *)malloc(sizeof(SDL_AudioSpec));
   read = SDL_LoadWAV(name, temp, &wav_buffer, &wav_len);
   if (read == NULL) {
-    *errmsg = "Invalid wav file";
+    message(LOG_DEBUG, "libwav", "Can't decode wav file");
+    return (NULL);
   }
-  player_debug_message("Wav got f %d chan %d format %x samples %d size %u",
-		       temp->freq,
-		       temp->channels,
-		       temp->format,
-		       temp->samples,
-		       temp->size);
-  player_debug_message("Wav read %d bytes", wav_len);
+  message(LOG_DEBUG, "libwav", 
+	  "Wav got f %d chan %d format %x samples %d size %u",
+	  temp->freq,
+	  temp->channels,
+	  temp->format,
+	  temp->samples,
+	  wav_len);
 
-  mbyte = new COurInByteStreamWav(wav_buffer, 
-				  wav_len);
-  if (mbyte == NULL) {
-    *errmsg = "Couldn't create byte stream";
-    return (-1);
-  }
-  /*
-   * This is not necessarilly true - we may want to read the aac, then
-   * read the adts header for it.
-   */
-  mbyte->config_frame_per_sec(temp->freq / temp->samples);
-  //  fbyte->config_for_file(freq / 1024);
-  *errmsg = "Can't create thread";
-  int ret =  mptr->create_from_file(psptr, mbyte, FALSE);
-  if (ret != 0) {
-    return (-1);
-  }
+  wav_codec_t *wav;
+  wav = MALLOC_STRUCTURE(wav_codec_t);
+  memset(wav, 0, sizeof(*wav));
+  
+  wav->m_sdl_config = temp;
+  wav->m_wav_buffer = wav_buffer;
+  wav->m_wav_len = wav_len;
 
-  mptr->set_user_data((const unsigned char *)temp, sizeof(temp));
-  mptr->set_codec_type("wav ");
-  return (0);
+  if (wav->m_sdl_config->format == AUDIO_U8 || 
+      wav->m_sdl_config->format == AUDIO_S8)
+    wav->m_bytes_per_channel = 1;
+  else
+    wav->m_bytes_per_channel = 2;
+
+  int divs;
+
+  divs = wav->m_bytes_per_channel * 
+    wav->m_sdl_config->channels *
+    wav->m_sdl_config->freq;
+
+  *max = (double)wav->m_wav_len / (double) divs;
+  message(LOG_DEBUG, "libwav", "wav length is %g", *max);
+  return ((codec_data_t *)wav);
 }
 
+
+int wav_file_next_frame (codec_data_t *your,
+			 unsigned char **buffer,
+			 uint64_t *ts)
+{
+  wav_codec_t *wav = (wav_codec_t *)your;
+  uint64_t calc;
+
+  *buffer = &wav->m_wav_buffer[wav->m_wav_buffer_on];
+  calc = wav->m_wav_buffer_on * M_LLU;
+  calc /= wav->m_bytes_per_channel;
+  calc /= wav->m_sdl_config->channels;
+  calc /= wav->m_sdl_config->freq;
+  *ts = calc;
+  return (wav->m_wav_len - wav->m_wav_buffer_on);
+}
+
+void wav_file_used_for_frame (codec_data_t *ifptr,
+			      uint32_t bytes)
+{
+  wav_codec_t *wav = (wav_codec_t *)ifptr;
+
+  wav->m_wav_buffer_on += bytes;
+  if (wav->m_wav_buffer_on > wav->m_wav_len) wav->m_wav_buffer_on = wav->m_wav_len;
+}
+
+int wav_file_eof (codec_data_t *ifptr)
+{
+  wav_codec_t *wav = (wav_codec_t *)ifptr;
+  return (wav->m_wav_buffer_on == wav->m_wav_len);
+}
+
+int wav_raw_file_seek_to (codec_data_t *ifptr, uint64_t ts)
+{
+  wav_codec_t *wav = (wav_codec_t *)ifptr;
+  uint64_t calc;
+  
+  calc = ts * wav->m_bytes_per_channel * 
+    wav->m_sdl_config->channels *
+    wav->m_sdl_config->freq;
+  calc /= M_LLU;
+  wav->m_wav_buffer_on = calc;
+  if (wav->m_bytes_per_channel != 1)
+    wav->m_wav_buffer_on &= ~1;
+
+  wav->m_vft->log_msg(LOG_DEBUG, "libwav", "skip " LLU " bytes %d max %d", 
+		      ts, wav->m_wav_buffer_on, wav->m_wav_len);
+
+  return 0;
+}
 

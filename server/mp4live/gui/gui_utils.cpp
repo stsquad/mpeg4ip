@@ -479,3 +479,36 @@ void SetEntryValidator(GtkObject* object,
 		     object);
 }
 
+static GtkWidget* filesel;
+static GtkWidget* fileentry;
+
+static void on_filename_selected (GtkFileSelection *widget, 
+				  gpointer data)
+{
+  const gchar *name;
+  name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(filesel));
+  gtk_entry_set_text(GTK_ENTRY(fileentry), name);
+  gtk_widget_show(fileentry);
+  gtk_grab_remove(filesel);
+  gtk_widget_destroy(filesel);
+}
+
+void FileBrowser (GtkWidget* entry)
+{
+  fileentry = entry;
+  filesel = gtk_file_selection_new("Select File");
+  gtk_file_selection_hide_fileop_buttons(GTK_FILE_SELECTION(filesel));
+  gtk_signal_connect(
+			GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button),
+		     "clicked",
+		     GTK_SIGNAL_FUNC(on_filename_selected),
+		     filesel);
+  gtk_signal_connect_object(
+			GTK_OBJECT(GTK_FILE_SELECTION(filesel)->cancel_button),
+		     "clicked",
+		     GTK_SIGNAL_FUNC(gtk_widget_destroy),
+		     GTK_OBJECT(filesel));
+  gtk_widget_show(filesel);
+  gtk_grab_add(filesel);
+}
+

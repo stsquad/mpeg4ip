@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -24,14 +24,21 @@
  *  - file formatted with tabstops == 4 spaces 
  */
 
-#include <mp4av.h>
+#include <mp4av_common.h>
 #include <mp4av_mpeg4.h>
 
-void MP4AV_Rfc3016Hinter(
+bool MP4AV_Rfc3016Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId)
+	u_int16_t maxPayloadSize)
 {
+	MP4TrackId hintTrackId =
+		MP4AddHintTrack(mp4File, mediaTrackId);
+
+	if (hintTrackId == MP4_INVALID_TRACK_ID) {
+		return false;
+	}
+
 	u_int8_t payloadNumber = 0;
 
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
@@ -46,7 +53,9 @@ void MP4AV_Rfc3016Hinter(
 
 	if (pConfig) {
 		// attempt to get a valid profile-level
-		static u_int8_t voshStartCode[4] = { 0x00, 0x00, 0x01, VOSH_START };
+		static u_int8_t voshStartCode[4] = { 
+			0x00, 0x00, 0x01, MP4AV_MPEG4_VOSH_START 
+		};
 		if (configSize >= 5 && !memcmp(pConfig, voshStartCode, 4)) {
 			systemsProfileLevel = 
 				MP4AV_Mpeg4VideoToSystemsProfileLevel(pConfig[4]);
@@ -100,10 +109,7 @@ void MP4AV_Rfc3016Hinter(
 			&renderingOffset, &isSyncSample);
 
 		if (!rc) {
-			fprintf(stderr,
-				"%s: failed to read sample %u from track %u\n",
-				ProgName, sampleId, mediaTrackId);
-			exit(EXIT_RFC3016_HINTER);
+			return false;
 		}
 
 		bool isBFrame = 
@@ -122,11 +128,11 @@ void MP4AV_Rfc3016Hinter(
 			bool isLastPacket = false;
 			u_int32_t length;
 
-			if (remaining <= MaxPayloadSize) {
+			if (remaining <= maxPayloadSize) {
 				length = remaining;
 				isLastPacket = true;
 			} else {
-				length = MaxPayloadSize;
+				length = maxPayloadSize;
 			}
 
 			MP4AddRtpPacket(mp4File, hintTrackId, isLastPacket);
@@ -140,5 +146,7 @@ void MP4AV_Rfc3016Hinter(
 
 		MP4WriteRtpHint(mp4File, hintTrackId, duration, isSyncSample);
 	}
+
+	return true;
 }
 

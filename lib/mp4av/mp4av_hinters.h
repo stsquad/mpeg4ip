@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -22,77 +22,35 @@
 #ifndef __MP4AV_HINTERS_INCLUDED__
 #define __MP4AV_HINTERS_INCLUDED__ 
 
-// Generic Audio Hinters
+#define MP4AV_DFLT_PAYLOAD_SIZE		1460
 
-typedef u_int32_t (*MP4AV_AudioSampleSizer)(
+// Audio Hinters
+
+bool MP4AV_Rfc2250Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	MP4SampleId sampleId); 
+	bool interleave = false,
+	u_int16_t maxPayloadSize = MP4AV_DFLT_PAYLOAD_SIZE);
 
-typedef void (*MP4AV_AudioConcatenator)(
+bool MP4AV_Rfc3119Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId,
-	u_int8_t samplesThisHint, 
-	MP4SampleId* pSampleIds, 
-	MP4Duration hintDuration);
+	bool interleave = false,
+	u_int16_t maxPayloadSize = MP4AV_DFLT_PAYLOAD_SIZE);
 
-typedef void (*MP4AV_AudioFragmenter)(
+bool MP4AV_RfcIsmaHinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId,
-	MP4SampleId sampleId, 
-	u_int32_t sampleSize, 
-	MP4Duration sampleDuration);
+	bool interleave = false,
+	u_int16_t maxPayloadSize = MP4AV_DFLT_PAYLOAD_SIZE);
 
-void MP4AV_AudioConsecutiveHinter( 
+
+// Video Hinters
+
+bool MP4AV_Rfc3016Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId,
-	MP4Duration sampleDuration, 
-	u_int8_t perPacketHeaderSize,
-	u_int8_t perSampleHeaderSize,
-	u_int8_t maxSamplesPerPacket,
-	MP4AV_AudioSampleSizer pSizer,
-	MP4AV_AudioConcatenator pConcatenator,
-	MP4AV_AudioFragmenter pFragmenter);
-
-void MP4AV_AudioInterleaveHinter( 
-	MP4FileHandle mp4File, 
-	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId,
-	MP4Duration sampleDuration, 
-	u_int8_t stride, 
-	u_int8_t bundle,
-	MP4AV_AudioConcatenator pConcatenator);
-
-
-// Specific Audio Hinters
-
-void MP4AV_Rfc2250Hinter(
-	MP4FileHandle mp4File, 
-	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId);
-
-void MP4AV_Rfc3119Hinter(
-	MP4FileHandle mp4File, 
-	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId,
-	bool interleave = false);
-
-void MP4AV_RfcIsmaHinter(
-	MP4FileHandle mp4File, 
-	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId,
-	bool interleave = false);
-
-
-// Specific Video Hinters
-
-void MP4AV_Rfc3016Hinter(
-	MP4FileHandle mp4File, 
-	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId);
+	u_int16_t maxPayloadSize = MP4AV_DFLT_PAYLOAD_SIZE);
 
 #endif /* __MP4AV_HINTERS_INCLUDED__ */ 
 

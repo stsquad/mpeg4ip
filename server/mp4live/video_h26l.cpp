@@ -80,7 +80,7 @@ bool CH26LVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	float br = (float)m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE);
 	float b = 0.666667 * fps * ar;
 	u_int8_t qp;
-	for (qp = 30; qp >= 0; qp--) {
+	for (qp = 30; qp > 0; qp--) {
 		if (b >= br) {
 			break;
 		}

@@ -231,7 +231,7 @@ int CPlayerSession::sync_thread_init (void)
     if (m_audio_sync != NULL) {
       m_audio_sync->flush_sync_buffers();
     }
-    m_master_msg_queue->send_message(MSG_SESSION_FINISHED, 
+    m_master_msg_queue->send_message(MSG_RECEIVED_QUIT, 
 				     NULL, 
 				     0, 
 				     m_master_msg_queue_sem);
@@ -304,7 +304,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	  state = SYNC_STATE_PLAYING;
 	}
 	sync_message(LOG_DEBUG, 
-		     "Resynced at time "LLX " "LLX, m_current_time, vstart);
+		     "Resynced at time "LLU " "LLU, m_current_time, vstart);
 	/*
 	 * Play off some video
 	 */

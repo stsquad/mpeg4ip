@@ -29,8 +29,13 @@
 #define CONFIG_SAFETY 0		// go fast, live dangerously
 #include "config_set.h"
 
-#include "timestamp.h"
-#include "tv_frequencies.h"
+#include "media_time.h"
+#include "video_util_tv.h"
+
+#define FILE_SOURCE_MP4			"mp4"
+#define FILE_SOURCE_MPEG2		"mpg"
+
+#define AUDIO_SOURCE_OSS		"OSS"
 
 #define AUDIO_ENCODER_FAAC		"faac"
 #define AUDIO_ENCODER_LAME		"lame"
@@ -40,6 +45,8 @@
 #define AUDIO_ENCODING_MP3		"MP3"
 #define AUDIO_ENCODING_AAC		"AAC"
 
+#define VIDEO_SOURCE_V4L		"V4L"
+
 #define VIDEO_ENCODER_FFMPEG	"ffmpeg"
 #define VIDEO_ENCODER_DIVX		"divx"
 #define VIDEO_ENCODER_H26L		"h26l"
@@ -47,6 +54,7 @@
 
 #define VIDEO_ENCODING_NONE		"None"
 #define VIDEO_ENCODING_YUV12	"YUV12"
+#define VIDEO_ENCODING_MPEG2	"MPEG2"
 #define VIDEO_ENCODING_MPEG4	"MPEG4"
 #define VIDEO_ENCODING_H26L		"H26L"
 
@@ -67,14 +75,17 @@ char* BinaryToAscii(u_int8_t* buf, u_int32_t bufSize);
 bool GenerateSdpFile(CLiveConfig* pConfig);
 
 enum {
-	CONFIG_APP_USE_REAL_TIME,
+	CONFIG_APP_REAL_TIME,
+	CONFIG_APP_REAL_TIME_SCHEDULER,
 	CONFIG_APP_DURATION,
 	CONFIG_APP_DURATION_UNITS,
 
 	CONFIG_AUDIO_ENABLE,
-	CONFIG_AUDIO_DEVICE_NAME,
+	CONFIG_AUDIO_SOURCE_TYPE,
+	CONFIG_AUDIO_SOURCE_NAME,
 	CONFIG_AUDIO_MIXER_NAME,
 	CONFIG_AUDIO_INPUT_NAME,
+	CONFIG_AUDIO_SOURCE_TRACK,
 	CONFIG_AUDIO_CHANNELS,
 	CONFIG_AUDIO_SAMPLE_RATE,
 	CONFIG_AUDIO_BIT_RATE,
@@ -82,12 +93,14 @@ enum {
 	CONFIG_AUDIO_ENCODER,
 
 	CONFIG_VIDEO_ENABLE,
-	CONFIG_VIDEO_DEVICE_NAME,
+	CONFIG_VIDEO_SOURCE_TYPE,
+	CONFIG_VIDEO_SOURCE_NAME,
 	CONFIG_VIDEO_INPUT,
 	CONFIG_VIDEO_SIGNAL,
 	CONFIG_VIDEO_TUNER,
 	CONFIG_VIDEO_CHANNEL_LIST_INDEX,
 	CONFIG_VIDEO_CHANNEL_INDEX,
+	CONFIG_VIDEO_SOURCE_TRACK,
 	CONFIG_VIDEO_PREVIEW,
 	CONFIG_VIDEO_RAW_PREVIEW,
 	CONFIG_VIDEO_ENCODED_PREVIEW,
@@ -108,6 +121,7 @@ enum {
 	CONFIG_RECORD_ENCODED_VIDEO,
 	CONFIG_RECORD_MP4_FILE_NAME,
 	CONFIG_RECORD_MP4_HINT_TRACKS,
+	CONFIG_RECORD_MP4_OPTIMIZE,
 
 	CONFIG_RTP_ENABLE,
 	CONFIG_RTP_DEST_ADDRESS,
@@ -119,13 +133,6 @@ enum {
 	CONFIG_RTP_USE_SSM,
 	CONFIG_SDP_FILE_NAME,
 
-	CONFIG_TRANSCODE_ENABLE,
-	CONFIG_TRANSCODE_SRC_FILE_NAME,
-	CONFIG_TRANSCODE_DST_FILE_NAME,
-	CONFIG_TRANSCODE_SRC_AUDIO_ENCODING,
-	CONFIG_TRANSCODE_DST_AUDIO_ENCODING,
-	CONFIG_TRANSCODE_SRC_VIDEO_ENCODING,
-	CONFIG_TRANSCODE_DST_VIDEO_ENCODING,
 };
 
 // normally this would be in a .cpp file
@@ -136,7 +143,10 @@ enum {
 static SConfigVariable MyConfigVariables[] = {
 	// APP
 
-	{ CONFIG_APP_USE_REAL_TIME, "useKernelRealTimeExtensions", 
+	{ CONFIG_APP_REAL_TIME, "isRealTime", 
+		CONFIG_TYPE_BOOL, true, },
+
+	{ CONFIG_APP_REAL_TIME_SCHEDULER, "useRealTimeScheduler", 
 		CONFIG_TYPE_BOOL, true, },
 
 	{ CONFIG_APP_DURATION, "duration", 
@@ -150,7 +160,10 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_AUDIO_ENABLE, "audioEnable", 
 		CONFIG_TYPE_BOOL, true, },
 
-	{ CONFIG_AUDIO_DEVICE_NAME, "audioDevice", 
+	{ CONFIG_AUDIO_SOURCE_TYPE, "audioSourceType", 
+		CONFIG_TYPE_STRING, AUDIO_SOURCE_OSS, },
+
+	{ CONFIG_AUDIO_SOURCE_NAME, "audioDevice", 
 		CONFIG_TYPE_STRING, "/dev/dsp", },
 
 	{ CONFIG_AUDIO_MIXER_NAME, "audioMixer", 
@@ -158,6 +171,9 @@ static SConfigVariable MyConfigVariables[] = {
 
 	{ CONFIG_AUDIO_INPUT_NAME, "audioInput", 
 		CONFIG_TYPE_STRING, "mix", },
+
+	{ CONFIG_AUDIO_SOURCE_TRACK, "audioSourceTrack", 
+		CONFIG_TYPE_INTEGER, (config_integer_t)0, },
 
 	{ CONFIG_AUDIO_CHANNELS, "audioChannels", 
 		CONFIG_TYPE_INTEGER, (config_integer_t)2, },
@@ -179,7 +195,10 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_VIDEO_ENABLE, "videoEnable", 
 		CONFIG_TYPE_BOOL, true, },
 
-	{ CONFIG_VIDEO_DEVICE_NAME, "videoDevice", 
+	{ CONFIG_VIDEO_SOURCE_TYPE, "videoSourceType", 
+		CONFIG_TYPE_STRING, VIDEO_SOURCE_V4L, },
+
+	{ CONFIG_VIDEO_SOURCE_NAME, "videoDevice", 
 		CONFIG_TYPE_STRING, "/dev/video0", },
 
 	{ CONFIG_VIDEO_INPUT, "videoInput",
@@ -197,6 +216,9 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_VIDEO_CHANNEL_INDEX, "videoChannelIndex",
 		CONFIG_TYPE_INTEGER, (config_integer_t)1, },
 
+	{ CONFIG_VIDEO_SOURCE_TRACK, "videoSourceTrack", 
+		CONFIG_TYPE_INTEGER, (config_integer_t)0, },
+
 	{ CONFIG_VIDEO_PREVIEW, "videoPreview",
 		CONFIG_TYPE_BOOL, true, },
 
@@ -207,7 +229,7 @@ static SConfigVariable MyConfigVariables[] = {
 		CONFIG_TYPE_BOOL, true, },
 
 	{ CONFIG_VIDEO_ENCODER, "videoEncoder",
-		CONFIG_TYPE_STRING, "ffmpeg", },
+		CONFIG_TYPE_STRING, VIDEO_ENCODER_XVID, },
 
 	{ CONFIG_VIDEO_RAW_WIDTH, "videoRawWidth",
 		CONFIG_TYPE_INTEGER, (config_integer_t)320, },
@@ -256,6 +278,9 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_RECORD_MP4_HINT_TRACKS, "recordMp4HintTracks", 
 		CONFIG_TYPE_BOOL, true, },
 
+	{ CONFIG_RECORD_MP4_OPTIMIZE, "recordMp4Optimize", 
+		CONFIG_TYPE_BOOL, false, },
+
 	// RTP
 
 	{ CONFIG_RTP_ENABLE, "rtpEnable", 
@@ -285,29 +310,6 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_SDP_FILE_NAME, "sdpFile", 
 		CONFIG_TYPE_STRING, "capture.sdp", },
 
-	// Transcode
-
-	{ CONFIG_TRANSCODE_ENABLE, "transcodeEnable", 
-		CONFIG_TYPE_BOOL, false, },
-
-	{ CONFIG_TRANSCODE_SRC_FILE_NAME, "transcodeSrcFile",
-		CONFIG_TYPE_STRING, "", },
-
-	{ CONFIG_TRANSCODE_DST_FILE_NAME, "transcodeDstFile",
-		CONFIG_TYPE_STRING, "", },
-
-	{ CONFIG_TRANSCODE_SRC_AUDIO_ENCODING, "transcodeSrcAudioEncoding",
-		CONFIG_TYPE_STRING, AUDIO_ENCODING_PCM16, },
-
-	{ CONFIG_TRANSCODE_DST_AUDIO_ENCODING, "transcodeDstAudioEncoding",
-		CONFIG_TYPE_STRING, AUDIO_ENCODING_NONE, },
-
-	{ CONFIG_TRANSCODE_SRC_VIDEO_ENCODING, "transcodeSrcVideoEncoding",
-		CONFIG_TYPE_STRING, VIDEO_ENCODING_YUV12, },
-
-	{ CONFIG_TRANSCODE_DST_VIDEO_ENCODING, "transcodeDstVideoEncoding",
-		CONFIG_TYPE_STRING, VIDEO_ENCODING_MPEG4, },
-
 };
 #endif /* DECLARE_CONFIG_VARIABLES */
 
@@ -325,6 +327,10 @@ public:
 	void UpdateAudio();
 	void UpdateRecord();
 
+	bool IsOneSource();
+	bool IsFileVideoSource();
+	bool IsFileAudioSource();
+
 public:
 	// command line configuration
 	bool		m_appAutomatic;
@@ -339,10 +345,12 @@ public:
 	u_int16_t	m_videoMaxHeight;
 	u_int32_t	m_ySize;
 	u_int32_t	m_uvSize;
+	u_int32_t	m_yuvSize;
 	bool		m_videoNeedRgbToYuv;
 	u_int16_t	m_videoMpeg4ConfigLength;
 	u_int8_t*	m_videoMpeg4Config;
 	u_int32_t	m_videoMaxVopSize;
+	u_int8_t	m_videoTimeIncrBits;
 
 	// derived, shared audio configuration
 	CAudioCapabilities* m_audioCapabilities;

@@ -29,9 +29,9 @@
 #include "gdk/gdkx.h"
 
 CLiveConfig* MyConfig;
-CMediaFlow* AVFlow;
-CAVLiveMediaFlow* AVLive;
-CAVTranscodeMediaFlow* AVTranscode;
+CAVMediaFlow* AVFlow;
+CAVMediaFlow* AVLive;
+CAVMediaFlow* AVTranscode;
 
 /* Local variables */
 static bool started = false;
@@ -64,12 +64,6 @@ static GtkWidget *record_settings_button;
 static GtkWidget *transmit_enabled_button;
 static GtkWidget *transmit_settings_label;
 static GtkWidget *transmit_settings_button;
-
-static GtkWidget *transcode_enabled_button;
-static GtkWidget *transcode_settings_label1;
-static GtkWidget *transcode_settings_label2;
-static GtkWidget *transcode_settings_label3;
-static GtkWidget *transcode_settings_button;
 
 static GtkWidget *start_button;
 static GtkWidget *start_button_label;
@@ -237,48 +231,13 @@ void DisplayRecordingSettings(void)
 	gtk_widget_show(record_settings_label);
 }
 
-void DisplayTranscodingSettings(void)
-{
-	char buffer[256];
-
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transcode_enabled_button),
-		MyConfig->GetBoolValue(CONFIG_TRANSCODE_ENABLE));
-
-	gtk_widget_set_sensitive(GTK_WIDGET(transcode_enabled_button),
-		MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE));
-
-	if (strcasecmp(MyConfig->GetStringValue(
-	  CONFIG_TRANSCODE_DST_VIDEO_ENCODING), VIDEO_ENCODING_NONE)) {
-		snprintf(buffer, sizeof(buffer), " %s to %s",
-			MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_VIDEO_ENCODING),
-			MyConfig->GetStringValue(CONFIG_TRANSCODE_DST_VIDEO_ENCODING));
-	} else {
-		buffer[0] = '\0';
-	}
-	gtk_label_set_text(GTK_LABEL(transcode_settings_label1), buffer);
-	gtk_widget_show(transcode_settings_label1);
-
-	if (strcasecmp(MyConfig->GetStringValue(
-	  CONFIG_TRANSCODE_DST_AUDIO_ENCODING), AUDIO_ENCODING_NONE)) {
-		snprintf(buffer, sizeof(buffer), " %s to %s",
-			MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_AUDIO_ENCODING),
-			MyConfig->GetStringValue(CONFIG_TRANSCODE_DST_AUDIO_ENCODING));
-	} else {
-		buffer[0] = '\0';
-	}
-	gtk_label_set_text(GTK_LABEL(transcode_settings_label2), buffer);
-	gtk_widget_show(transcode_settings_label2);
-}
-
 static void on_video_enabled_button (GtkWidget *widget, gpointer *data)
 {
 	MyConfig->SetBoolValue(CONFIG_VIDEO_ENABLE,
 		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 
 	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
-			AVLive->StartVideoPreview();
-		}
+		AVLive->StartVideoPreview();
 	} else {
 		AVLive->StopVideoPreview();
 	}
@@ -327,12 +286,6 @@ static void on_record_enabled_button (GtkWidget *widget, gpointer *data)
 {
 	MyConfig->SetBoolValue(CONFIG_RECORD_ENABLE,
 		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
-
-	// interlock with transcode
-	if (transcode_enabled_button) {
-		gtk_widget_set_sensitive(GTK_WIDGET(transcode_enabled_button),
-			MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE));
-	}
 }
 
 static void on_record_settings_button (GtkWidget *widget, gpointer *data)
@@ -351,17 +304,6 @@ static void on_transmit_settings_button (GtkWidget *widget, gpointer *data)
 	CreateTransmitDialog();
 }
 
-static void on_transcode_enabled_button (GtkWidget *widget, gpointer *data)
-{
-	MyConfig->SetBoolValue(CONFIG_TRANSCODE_ENABLE,
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
-}
-
-static void on_transcode_settings_button (GtkWidget *widget, gpointer *data)
-{
-	CreateTranscodingDialog();
-}
-
 static void LockoutChanges(bool lockout)
 {
 	gtk_widget_set_sensitive(GTK_WIDGET(video_enabled_button), !lockout);
@@ -372,10 +314,6 @@ static void LockoutChanges(bool lockout)
 	gtk_widget_set_sensitive(GTK_WIDGET(record_settings_button), !lockout);
 	gtk_widget_set_sensitive(GTK_WIDGET(transmit_enabled_button), !lockout);
 	gtk_widget_set_sensitive(GTK_WIDGET(transmit_settings_button), !lockout);
-#ifdef TRANSCODER
-	gtk_widget_set_sensitive(GTK_WIDGET(transcode_enabled_button), !lockout);
-	gtk_widget_set_sensitive(GTK_WIDGET(transcode_settings_button), !lockout);
-#endif
 	gtk_widget_set_sensitive(GTK_WIDGET(duration_spinner), !lockout);
 	gtk_widget_set_sensitive(GTK_WIDGET(duration_units_menu), !lockout);
 }
@@ -393,25 +331,21 @@ static void status_start()
 
 	// media source
 	buffer[0] = '\0';
-	if (AVFlow == AVLive) {
-		if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
-		  && MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
-			snprintf(buffer, sizeof(buffer), "%s & %s",
-				MyConfig->GetStringValue(CONFIG_VIDEO_DEVICE_NAME),
-				MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
-			gtk_label_set_text(GTK_LABEL(media_source), buffer);
 
-		} else if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-			gtk_label_set_text(GTK_LABEL(media_source),
-				MyConfig->GetStringValue(CONFIG_VIDEO_DEVICE_NAME));
+	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
+	  && MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+		snprintf(buffer, sizeof(buffer), "%s & %s",
+			MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME),
+			MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+		gtk_label_set_text(GTK_LABEL(media_source), buffer);
 
-		} else if (MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
-			gtk_label_set_text(GTK_LABEL(media_source),
-				MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
-		}
-	} else { // AVFlow == AVTranscode
+	} else if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 		gtk_label_set_text(GTK_LABEL(media_source),
-			MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME));
+			MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
+
+	} else if (MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+		gtk_label_set_text(GTK_LABEL(media_source),
+			MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
 	}
 
 	gtk_widget_show(media_source);
@@ -463,7 +397,8 @@ static void status_start()
 		}
 	} else { // AVFlow == AVTranscode
 		struct stat stats;
-		stat(MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME), &stats);
+		// TBD A&V, or A
+		stat(MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME), &stats);
 		StartFileSize = stats.st_size;
 		snprintf(buffer, sizeof(buffer), " %lu", 
 			stats.st_size / 1000000);
@@ -645,30 +580,29 @@ void DoStop()
 {
 	gtk_timeout_remove(status_timer_id);
 
-	AVFlow->Stop();
+	GtkWidget* stopDialog = NULL;
 
-	if (AVFlow == AVLive) {
-		// automatic transcoding mode
-		if (MyConfig->GetBoolValue(CONFIG_TRANSCODE_ENABLE)) {
+	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
+		char* notice = "Closing mp4 file";
 
-			AVLive->StopVideoPreview();
-
-			AVFlow = AVTranscode;
-
-			// ensure that transcoding src file is the recording file
-			MyConfig->SetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME,
-				MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME));
-
-			DoStart();
-
-			return;
+		if (MyConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
+			notice = "Closing and hinting mp4 file";
 		}
 
-	} else if (AVFlow == AVTranscode) {
+		// TBD this doesn't get shown 
+		stopDialog = ShowMessage("Stopping", notice, false);
+	}
+
+	AVFlow->Stop();
+
+	if (stopDialog) {
+		CloseShowMessage(NULL, stopDialog);
+	}
+
+	if (AVFlow == AVTranscode) {
 		AVFlow = AVLive;
 
-		if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
-		  && MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+		if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 			AVLive->StartVideoPreview();
 		}
 	}
@@ -1002,81 +936,6 @@ static void LayoutTransmitFrame(GtkWidget* box)
 	gtk_widget_show(frame);
 }
 
-// Transcoding Frame
-static void LayoutTranscodingFrame(GtkWidget* box)
-{
-	GtkWidget *frame;
-	GtkWidget *vbox, *hbox;
-	GtkWidget *vbox1, *vbox2;
-
-	frame = gtk_frame_new("Re-Encoding");
-	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
-	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
-	gtk_box_pack_start(GTK_BOX(box), frame, FALSE, FALSE, 5);
-
-	vbox = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox);
-
-	// create first row, homogenous
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 5);
-  
-	// enabled button
-	transcode_enabled_button = gtk_check_button_new_with_label("Enabled");
-	gtk_box_pack_start(GTK_BOX(hbox), transcode_enabled_button, TRUE, TRUE, 5);
-	gtk_signal_connect(GTK_OBJECT(transcode_enabled_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_transcode_enabled_button),
-		NULL);
-	gtk_widget_show(transcode_enabled_button);
-
-	// create second row
-	hbox = gtk_hbox_new(FALSE, 1);
-	gtk_widget_show(hbox);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
-
-	// secondary vbox for two labels
-	vbox1 = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox1);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox1, TRUE, TRUE, 5);
-
-	// settings summary
-	transcode_settings_label1 = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(transcode_settings_label1), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox1), 
-		transcode_settings_label1, TRUE, TRUE, 0);
-
-	transcode_settings_label2 = gtk_label_new("");
-	gtk_misc_set_alignment(GTK_MISC(transcode_settings_label2), 0.0, 0.5);
-	gtk_box_pack_start(GTK_BOX(vbox1), 
-		transcode_settings_label2, TRUE, TRUE, 0);
-
-	// secondary vbox to match stacked labels
-	vbox2 = gtk_vbox_new(FALSE, 1);
-	gtk_widget_show(vbox2);
-	gtk_box_pack_start(GTK_BOX(hbox), vbox2, FALSE, FALSE, 5);
-
-	// settings button
-	transcode_settings_button = gtk_button_new_with_label(" Settings... ");
-	gtk_box_pack_start(GTK_BOX(vbox2), 
-		transcode_settings_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(transcode_settings_button), 
-		"clicked",
-		GTK_SIGNAL_FUNC(on_transcode_settings_button),
-		NULL);
-	gtk_widget_show(transcode_settings_button);
-
-	// empty label to get sizing correct
-	transcode_settings_label3 = gtk_label_new("");
-	gtk_box_pack_start(GTK_BOX(vbox2), 
-		transcode_settings_label3, TRUE, TRUE, 0);
-
-	// finalize
-	gtk_container_add(GTK_CONTAINER(frame), vbox);
-	gtk_widget_show(frame);
-}
-
 // Control frame
 void LayoutControlFrame(GtkWidget* box)
 {
@@ -1357,9 +1216,9 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 {
 	MyConfig = pConfig;
 
-	AVLive = new CAVLiveMediaFlow(pConfig);
+	AVLive = new CAVMediaFlow(pConfig);
 
-	AVTranscode = new CAVTranscodeMediaFlow(pConfig);
+	AVTranscode = new CAVMediaFlow(pConfig);
 
 	AVFlow = AVLive;
 
@@ -1411,12 +1270,6 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 	LayoutTransmitFrame(main_vbox2);
 	DisplayTransmitSettings();
 
-#ifdef TRANSCODER
-	// Transcoding Frame
-	LayoutTranscodingFrame(main_vbox2);
-	DisplayTranscodingSettings();
-#endif /* TRANSCODER */
-
 	// Status frame
 	LayoutStatusFrame(main_vbox1);
 
@@ -1425,8 +1278,7 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 
 	gtk_widget_show(main_window);
 
-	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
-	  && MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 		AVLive->StartVideoPreview();
 	}
 

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -24,9 +24,9 @@
  *  - file formatted with tabstops == 4 spaces 
  */
 
-#include <mp4av.h>
+#include <mp4av_common.h>
 
-void MP4AV_AudioConsecutiveHinter( 
+bool MP4AV_AudioConsecutiveHinter( 
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	MP4TrackId hintTrackId,
@@ -34,10 +34,12 @@ void MP4AV_AudioConsecutiveHinter(
 	u_int8_t perPacketHeaderSize,
 	u_int8_t perSampleHeaderSize,
 	u_int8_t maxSamplesPerPacket,
+	u_int16_t maxPayloadSize,
 	MP4AV_AudioSampleSizer pSizer,
 	MP4AV_AudioConcatenator pConcatenator,
 	MP4AV_AudioFragmenter pFragmenter)
 {
+	bool rc;
 	u_int32_t numSamples = 
 		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
@@ -53,13 +55,19 @@ void MP4AV_AudioConsecutiveHinter(
 
 		// sample won't fit in this packet
 		// or we've reached the limit on samples per packet
-		if (sampleSize + perSampleHeaderSize > MaxPayloadSize - bytesThisHint 
+		if ((int16_t)(sampleSize + perSampleHeaderSize) 
+		    > maxPayloadSize - bytesThisHint 
 		  || samplesThisHint == maxSamplesPerPacket) {
 
 			if (samplesThisHint > 0) {
-				(*pConcatenator)(mp4File, mediaTrackId, hintTrackId,
+				rc = (*pConcatenator)(mp4File, mediaTrackId, hintTrackId,
 					samplesThisHint, pSampleIds,
-					samplesThisHint * sampleDuration);
+					samplesThisHint * sampleDuration,
+					maxPayloadSize);
+
+				if (!rc) {
+					return false;
+				}
 			}
 
 			// start a new hint 
@@ -70,8 +78,8 @@ void MP4AV_AudioConsecutiveHinter(
 		}
 
 		// sample is less than remaining payload size
-		if (sampleSize + perSampleHeaderSize 
-		  <= MaxPayloadSize - bytesThisHint) {
+		if ((int16_t)(sampleSize + perSampleHeaderSize)
+		  <= maxPayloadSize - bytesThisHint) {
 
 			// add it to this hint
 			bytesThisHint += (sampleSize + perSampleHeaderSize);
@@ -79,8 +87,12 @@ void MP4AV_AudioConsecutiveHinter(
 
 		} else { 
 			// jumbo frame, need to fragment it
-			(*pFragmenter)(mp4File, mediaTrackId, hintTrackId,
-				sampleId, sampleSize, sampleDuration);
+			rc = (*pFragmenter)(mp4File, mediaTrackId, hintTrackId,
+				sampleId, sampleSize, sampleDuration, maxPayloadSize);
+
+			if (!rc) {
+				return false;
+			}
 
 			// start a new hint 
 			samplesThisHint = 0;
@@ -89,17 +101,21 @@ void MP4AV_AudioConsecutiveHinter(
 	}
 
 	delete [] pSampleIds;
+
+	return true;
 }
 
-void MP4AV_AudioInterleaveHinter( 
+bool MP4AV_AudioInterleaveHinter( 
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	MP4TrackId hintTrackId,
 	MP4Duration sampleDuration, 
 	u_int8_t stride, 
 	u_int8_t bundle,
+	u_int16_t maxPayloadSize,
 	MP4AV_AudioConcatenator pConcatenator)
 {
+	bool rc;
 	u_int32_t numSamples = 
 		MP4GetTrackNumberOfSamples(mp4File, mediaTrackId);
 
@@ -142,11 +158,17 @@ void MP4AV_AudioInterleaveHinter(
 			}
 
 			// write hint
-			(*pConcatenator)(mp4File, mediaTrackId, hintTrackId,
-				k, pSampleIds, hintDuration);
+			rc = (*pConcatenator)(mp4File, mediaTrackId, hintTrackId,
+				k, pSampleIds, hintDuration, maxPayloadSize);
+
+			if (!rc) {
+				return false;
+			}
 		}
 	}
 
 	delete [] pSampleIds;
+
+	return true;
 }
 

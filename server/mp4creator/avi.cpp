@@ -26,8 +26,6 @@
 
 #include <mp4creator.h>
 #include <avilib.h>
-#include <mp4v.h>
-#include <mp3.h>
 
 static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 {
@@ -105,7 +103,10 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	}
 
 	// find VOP start code in first sample
-	static u_int8_t vopStartCode[4] = { 0x00, 0x00, 0x01, VOP_START };
+	static u_int8_t vopStartCode[4] = { 
+		0x00, 0x00, 0x01, MP4AV_MPEG4_VOP_START 
+	};
+
 	for (i = 0; i < frameSize - 4; i++) {
 		if (!memcmp(&pFrameBuffer[i], vopStartCode, 4)) {
 			// everything before the VOP
@@ -136,7 +137,8 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		}
 
 		// we mark random access points in MP4 files
-		bool isIFrame = (Mp4vGetVopType(pFrameBuffer, frameSize) == 'I');
+		bool isIFrame = 
+			(MP4AV_Mpeg4GetVopType(pFrameBuffer, frameSize) == 'I');
 
 		// write the frame to the MP4 file
 		MP4WriteSample(mp4File, trackId, 
@@ -185,9 +187,12 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 		exit(EXIT_AVI_CREATOR);
 	}
 
-	u_int16_t samplesPerSecond = Mp3GetHdrSamplingRate(mp3header);
-	u_int16_t samplesPerFrame = Mp3GetHdrSamplingWindow(mp3header);
-	u_int8_t mp4AudioType = Mp3ToMp4AudioType(Mp3GetHdrVersion(mp3header));
+	u_int16_t samplesPerSecond = 
+		MP4AV_Mp3GetHdrSamplingRate(mp3header);
+	u_int16_t samplesPerFrame = 
+		MP4AV_Mp3GetHdrSamplingWindow(mp3header);
+	u_int8_t mp4AudioType = 
+		MP4AV_Mp3ToMp4AudioType(MP4AV_Mp3GetHdrVersion(mp3header));
 
 	if (audioType == MP4_INVALID_AUDIO_TYPE) {
 		fprintf(stderr,	
@@ -245,7 +250,7 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 
 		mp3header = BytesToInt32(&pFrameBuffer[0]);
 
-		u_int16_t mp3FrameSize = Mp3GetFrameSize(mp3header);
+		u_int16_t mp3FrameSize = MP4AV_Mp3GetFrameSize(mp3header);
 
 		if (AVI_read_audio(aviFile, (char*)&pFrameBuffer[4], mp3FrameSize - 4)
 		  != mp3FrameSize - 4) {

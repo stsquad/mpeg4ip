@@ -182,11 +182,10 @@ public:
 }
 #endif
 
-typedef void (*c_get_more_t)(void *, unsigned char **, uint32_t *, uint32_t);
  
 class MPEGaudio {
  public:
-  MPEGaudio(c_get_more_t c_get_more, void *ud);
+  MPEGaudio(void);
   ~MPEGaudio();
   int findheader(unsigned char *frombuffer,
 		 uint32_t frombuffer_len,
@@ -219,8 +218,6 @@ protected:
   /* Constant tables for layer */
   /*****************************/
 private:
-    c_get_more_t m_get_more;
-    void *m_userdata;
   static const int bitrate[2][3][15],frequencies[9];
   static const REAL scalefactorstable[64];
   static const HUFFMANCODETABLE ht[HTN];
@@ -287,7 +284,6 @@ public:
 private:
   unsigned char *_buffer;
   uint32_t _buflen;
-  uint32_t _orig_buflen;
   unsigned int _buffer_pos;
   int  bitindex;
   bool fillbuffer(uint32_t size);

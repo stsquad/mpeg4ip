@@ -181,7 +181,10 @@ typedef void (*error_msg_func_t)(int loglevel,
 				 const char *lib,
 				 const char *fmt,
 				 va_list ap);
-
+typedef void (*lib_message_func_t)(int loglevel,
+				   const char *lib,
+				   const char *fmt,
+				   ...);
 #ifndef HAVE_IN_PORT_T
 typedef uint16_t in_port_t;
 #endif
@@ -221,4 +224,5 @@ char *strsep(char **strp, const char *delim);
 #define INADDR_NONE (-1)
 #endif
 
+#define MALLOC_STRUCTURE(a) ((a *)malloc(sizeof(a)))
 #endif /* __SYSTEMS_H__ */

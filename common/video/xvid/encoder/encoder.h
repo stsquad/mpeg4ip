@@ -141,6 +141,10 @@ typedef struct
 
 	MACROBLOCK * pMBs;
 
+#ifdef MPEG4IP
+	int time_incr_bits;
+#endif
+
     Statistics sStat;
 }
 Encoder;

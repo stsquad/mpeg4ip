@@ -389,18 +389,14 @@ int FAADAPI faacDecSetConfiguration(faacDecHandle hDecoder,
 
 int FAADAPI faacDecInit(faacDecHandle hDecoder,
 			unsigned char *buffer,
-			uint32_t buflen,
 			unsigned long *samplerate,
-			unsigned long *channels,
-			get_more_bytes_t get_more,
-			void *ud);
+			unsigned long *channels);
 
 int FAADAPI faacDecGetProgConfig(faacDecHandle hDecoder,
-								 faacProgConfig *progConfig);
+				 faacProgConfig *progConfig);
 
 int FAADAPI faacDecDecode(faacDecHandle hDecoder,
 			  unsigned char *buffer,
-			  uint32_t buflen,
 			  unsigned long *bytesconsumed,
 			  short *sample_buffer,
 			  unsigned long *samples);

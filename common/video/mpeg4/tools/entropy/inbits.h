@@ -13,14 +13,12 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: inbits.h,v 1.1 2002/01/03 01:09:29 wmaycisco Exp $
+ * $Id: inbits.h,v 1.2 2002/03/20 22:45:31 wmaycisco Exp $
  */
 
 #ifndef __BITS_H__
 #define __BITS_H__ 1
 #include "systems.h"
-
-typedef void (*get_more_bytes_t)(void *, unsigned char **, uint32_t *, uint32_t);
 
 extern unsigned int bit_msk[33];
 #define INLINE __inline
@@ -33,10 +31,9 @@ class CInBitStream
   ~CInBitStream();
   void init(void);
 
-  int eof() const { return FALSE; };
+  int eof() const { return m_orig_buflen == 0; };
 
-  void set_buffer(get_more_bytes_t gb,
-		  void *ud, unsigned char *bptr, uint32_t blen);
+  void set_buffer(unsigned char *bptr, uint32_t blen);
 
   int get_used_bytes(void) { return m_framebits / 8; };
   
@@ -82,9 +79,7 @@ class CInBitStream
   void bookmark (Bool bSet);
 
  private:
-  get_more_bytes_t m_get_more_bytes;
   int m_pistrm;
-  void *m_ud;
   unsigned char *m_buffer;
   unsigned char *m_rdptr, *m_bookmark_rdptr;
   int m_bitcnt, m_bookmark_bitcnt;
@@ -99,13 +94,7 @@ class CInBitStream
     cmp = m_framebits + n;
     if (cmp > m_framebits_max) {
       if (m_pistrm < 0) {
-	if (m_bookmark == 0) {
-	  (m_get_more_bytes)(m_ud, &m_buffer, &m_orig_buflen,
-			     (m_framebits / 8));
-	  m_framebits = m_bitcnt;
-	  m_rdptr = m_buffer;
-	  m_framebits_max = m_orig_buflen * 8;
-	}
+	throw ((int)1);
       } else {
 	read_ifstream_buffer();
       }

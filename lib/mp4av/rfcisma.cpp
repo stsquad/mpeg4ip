@@ -24,19 +24,20 @@
  *  - file formatted with tabstops == 4 spaces 
  */
 
-#include <mp4av.h>
+#include <mp4av_common.h>
 
-void MP4AV_RfcIsmaConcatenator(
+bool MP4AV_RfcIsmaConcatenator(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	MP4TrackId hintTrackId,
 	u_int8_t samplesThisHint, 
 	MP4SampleId* pSampleIds, 
-	MP4Duration hintDuration)
+	MP4Duration hintDuration,
+	u_int16_t maxPayloadSize)
 {
 	// handle degenerate case
 	if (samplesThisHint == 0) {
-		return;
+		return true;
 	}
 
 	// construct the new hint
@@ -84,15 +85,18 @@ void MP4AV_RfcIsmaConcatenator(
 
 	// write the hint
 	MP4WriteRtpHint(mp4File, hintTrackId, hintDuration);
+
+	return true;
 }
 
-void MP4AV_RfcIsmaFragmenter(
+bool MP4AV_RfcIsmaFragmenter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
 	MP4TrackId hintTrackId,
 	MP4SampleId sampleId, 
 	u_int32_t sampleSize, 
-	MP4Duration sampleDuration)
+	MP4Duration sampleDuration,
+	u_int16_t maxPayloadSize)
 {
 	MP4AddRtpHint(mp4File, hintTrackId);
 
@@ -108,7 +112,7 @@ void MP4AV_RfcIsmaFragmenter(
 		(u_int8_t*)&payloadHeader, sizeof(payloadHeader));
 
 	u_int16_t sampleOffset = 0;
-	u_int16_t fragLength = MaxPayloadSize - 4;
+	u_int16_t fragLength = maxPayloadSize - 4;
 
 	do {
 		MP4AddRtpSampleData(mp4File, hintTrackId,
@@ -116,8 +120,8 @@ void MP4AV_RfcIsmaFragmenter(
 
 		sampleOffset += fragLength;
 
-		if (sampleSize - sampleOffset > MaxPayloadSize) {
-			fragLength = MaxPayloadSize; 
+		if (sampleSize - sampleOffset > maxPayloadSize) {
+			fragLength = maxPayloadSize; 
 			MP4AddRtpPacket(mp4File, hintTrackId, false);
 		} else {
 			fragLength = sampleSize - sampleOffset; 
@@ -128,14 +132,23 @@ void MP4AV_RfcIsmaFragmenter(
 	} while (sampleOffset < sampleSize);
 
 	MP4WriteRtpHint(mp4File, hintTrackId, sampleDuration);
+
+	return true;
 }
 
-void MP4AV_RfcIsmaHinter(
+bool MP4AV_RfcIsmaHinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId,
-	bool interleave)
+	bool interleave,
+	u_int16_t maxPayloadSize)
 {
+	MP4TrackId hintTrackId =
+		MP4AddHintTrack(mp4File, mediaTrackId);
+
+	if (hintTrackId == MP4_INVALID_TRACK_ID) {
+		return false;
+	}
+
 	u_int8_t payloadNumber = 0;
 
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
@@ -187,7 +200,7 @@ void MP4AV_RfcIsmaHinter(
 
 		// compute how many maximum size samples would fit in a packet
 		samplesPerPacket = 
-			(MaxPayloadSize - 2) / (maxSampleSize + 2);
+			(maxPayloadSize - 2) / (maxSampleSize + 2);
 
 		// can't interleave if this number is 0 or 1
 		if (samplesPerPacket < 2) {
@@ -205,6 +218,7 @@ void MP4AV_RfcIsmaHinter(
 			sampleDuration, 
 			samplesPerGroup / samplesPerPacket,		// stride
 			samplesPerPacket,						// bundle
+			maxPayloadSize,
 			MP4AV_RfcIsmaConcatenator);
 
 	} else {
@@ -216,9 +230,12 @@ void MP4AV_RfcIsmaHinter(
 			2,										// perPacketHeaderSize
 			2,										// perSampleHeaderSize
 			maxLatency / sampleDuration,			// maxSamplesPerPacket
+			maxPayloadSize,
 			MP4GetSampleSize,
 			MP4AV_RfcIsmaConcatenator,
 			MP4AV_RfcIsmaFragmenter);
 	}
+
+	return true;
 }
 

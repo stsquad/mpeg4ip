@@ -98,6 +98,7 @@ typedef struct
 	int width, height;
 #ifdef MPEG4IP
 	int raw_height;		// height of raw image, >= height
+	int time_incr_bits;	// number of bits in a vop time increment
 #endif
 	int fincr, fbase;	// frame increment, fbase. each frame = "fincr/fbase" seconds
 	int bitrate;		// the bitrate of the target encoded stream, in bits/second

@@ -63,8 +63,12 @@ class CPlayerSession {
    * need to associate media
    */
   int create_streaming_broadcast(session_desc_t *sdp,
-				 const char **ermsg);
-  int create_streaming_ondemand(const char *url, const char **errmsg, int use_rtp_tcp);
+				 char *ermsg,
+				 uint32_t errlen);
+  int create_streaming_ondemand(const char *url,
+				char *errmsg,
+				uint32_t errlen,
+				int use_rtp_tcp);
   /*
    * API routine - play at time.  If start_from_begin is FALSE, start_time
    * and we're paused, it will continue from where it left off.
@@ -88,6 +92,8 @@ class CPlayerSession {
    * API routine - after setting up media, need to set up sync thread
    */
   void set_up_sync_thread(void);
+  CVideoSync *set_up_video_sync(void);
+  CAudioSync *set_up_audio_sync(void);
   /*
    * API routine - get the current time
    */

@@ -60,6 +60,16 @@ public:
 		}
 	}
 
+	void Start(void) {
+		m_myMsgQueue.send_message(MSG_NODE_START,
+			 NULL, 0, m_myMsgQueueSemaphore);
+	}
+
+	void Stop(void) {
+		m_myMsgQueue.send_message(MSG_NODE_STOP,
+			NULL, 0, m_myMsgQueueSemaphore);
+	}
+
 	virtual ~CMediaNode() {
 		StopThread();
 	}
@@ -69,8 +79,10 @@ public:
 	}
 
 protected:
-	static const int MSG_NODE = 1024;
-	static const int MSG_NODE_STOP_THREAD = MSG_NODE + 1;;
+	static const int MSG_NODE				= 1024;
+	static const int MSG_NODE_START			= MSG_NODE + 1;
+	static const int MSG_NODE_STOP			= MSG_NODE + 2;
+	static const int MSG_NODE_STOP_THREAD	= MSG_NODE + 3;
 
 	virtual int ThreadMain(void) = NULL;
 
@@ -195,6 +207,20 @@ public:
 		}
 	}
 
+	void StartVideo(void) {
+		m_myMsgQueue.send_message(MSG_SOURCE_START_VIDEO,
+			NULL, 0, m_myMsgQueueSemaphore);
+	}
+
+	void StartAudio(void) {
+		m_myMsgQueue.send_message(MSG_SOURCE_START_AUDIO,
+			NULL, 0, m_myMsgQueueSemaphore);
+	}
+
+	void GenerateKeyFrame(void) {
+		m_myMsgQueue.send_message(MSG_SOURCE_KEY_FRAME,
+			NULL, 0, m_myMsgQueueSemaphore);
+	}
 
 protected:
 	void ForwardFrame(CMediaFrame* pFrame) {
@@ -214,6 +240,10 @@ protected:
 	}
 
 protected:
+	static const int MSG_SOURCE_START_VIDEO	= 1;
+	static const int MSG_SOURCE_START_AUDIO	= 2;
+	static const int MSG_SOURCE_KEY_FRAME	= 3;
+
 	static const u_int16_t MAX_SINKS = 8;
 	CMediaSink* m_sinks[MAX_SINKS];
 	SDL_mutex*	m_pSinksMutex;

@@ -27,6 +27,30 @@ Package=<4>
 
 ###############################################################################
 
+Project: "aac_plugin"=.\codec\aa\aac_plugin_60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfaad
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libfileposrec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4util
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name bitstream
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "bitstream"=..\..\lib\bitstream\bitstream60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -47,6 +71,30 @@ Package=<5>
 
 Package=<4>
 {{{
+}}}
+
+###############################################################################
+
+Project: "divx_plugin"=.\codec\divx\divx_plugin60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfileposrec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libourdivx
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name need_for_win
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4util
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -76,6 +124,18 @@ Package=<4>
 ###############################################################################
 
 Project: "libfaad"=..\lib\audio\faad\libfaad60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libfileposrec"=..\..\lib\fposrec\libfileposrec60.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -135,6 +195,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libmp4util"=..\lib\mp4util\libmp4util60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libmp4v2"=..\..\lib\mp4v2\libmp4v260.dsp - Package Owner=<4>
 
 Package=<5>
@@ -165,25 +237,13 @@ Package=<4>
     Project_Dep_Name libavi
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name libfaad
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name libhttp
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmp3
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp4
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp4v2
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libobj
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libourdivx
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name librtsp
@@ -196,6 +256,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name SDL
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4util
     End Project Dependency
 }}}
 
@@ -261,6 +324,24 @@ Package=<4>
 
 ###############################################################################
 
+Project: "mp3_plugin"=.\codec\mp3\mp3_plugin60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfileposrec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp3
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "mp4player"=.\mp4player60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -284,6 +365,30 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libmissing60
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name wav_plugin
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "mpeg4_iso_plugin"=.\codec\mpeg4\mpeg4_iso_plugin60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libfileposrec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libobj
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name need_for_win
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -296,6 +401,21 @@ Package=<5>
 
 Package=<4>
 {{{
+}}}
+
+###############################################################################
+
+Project: "wav_plugin"=.\codec\wav\wav_plugin60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name SDL
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -327,7 +447,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "wmp4player60"=.\win_gui\wmp4player60.dsp - Package Owner=<4>
+Project: "wmp4player60"=.\wmp4player60.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -337,6 +457,21 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name libconfig_file
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name aac_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name divx_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mp3_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mpeg4_iso_plugin
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name wav_plugin
     End Project Dependency
 }}}
 

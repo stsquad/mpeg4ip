@@ -31,7 +31,8 @@ class CPlayerSession;
 
 int create_media_for_qtime_file (CPlayerSession *psptr,
 				 const char *name,
-				 const char **errmsg,
+				 char *errmsg,
+				 uint32_t errlen,
 				 int have_audio_driver);
 
 /*

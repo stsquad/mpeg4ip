@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /I "sys" /I "sys/encoder" /I "sys/decoder" /I "type" /I "tools" /I "tools/entropy" /I "vtc" /I "vtc/include" /I "vtc/main" /I "vtc/pezw" /I "vtc/wavelet" /I "vtc/zte" /I "vtc/ztq" /I "..\..\..\include" /D "_DEBUG" /D "__PC_COMPILER_" /D "WIN32" /D "_WINDOWS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "sys" /I "sys/encoder" /I "sys/decoder" /I "type" /I "tools" /I "tools/entropy" /I "vtc" /I "vtc/include" /I "vtc/main" /I "vtc/pezw" /I "vtc/wavelet" /I "vtc/zte" /I "vtc/ztq" /I "..\..\..\include" /D "_DEBUG" /D "__PC_COMPILER_" /D "WIN32" /D "_WINDOWS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
 BSC32=bscmake.exe

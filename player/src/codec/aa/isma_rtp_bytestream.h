@@ -26,12 +26,10 @@
 #ifndef __ISMA_RTP_BYTESTREAM_H__
 #define __ISMA_RTP_BYTESTREAM_H__ 1
 #include "rtp_bytestream.h"
-#include "player_sdp.h"
+#include <mp4util/mpeg4_sdp.h>
 #include "bitstream/bitstream.h"
 //#define ISMA_RTP_DUMP_OUTPUT_TO_FILE 1
 //#define DEBUG_ISMA_RTP_FRAGS 1
-
-#define THROW_ISMA_RTP_DECODE_PAST_EOF ((int)(THROW_RTP_BASE_MAX + 1))
 
 // fragment information
 typedef struct isma_frag_data_t {
@@ -73,10 +71,6 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   int have_no_data(void);
   uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
   void used_bytes_for_frame(uint32_t byte);
-  void get_more_bytes(unsigned char **buffer, uint32_t *buflen,
-		      uint32_t used, int nothrow);
-  const char *get_throw_error(int error);
-  int throw_error_minor(int error);
   void flush_rtp_packets(void);
  private:
 #ifdef ISMA_RTP_DUMP_OUTPUT_TO_FILE

@@ -126,6 +126,9 @@ void BitstreamVolHeader(Bitstream * const bs,
 */
 void BitstreamVopHeader(Bitstream * const bs,
 			  VOP_TYPE prediction_type,
+#ifdef MPEG4IP
+			  const int time_incr_bits,
+#endif
 			  const int rounding_type,
 			  const uint32_t quant,
 			  const uint32_t fcode)
@@ -141,7 +144,11 @@ void BitstreamVopHeader(Bitstream * const bs,
 	MARKER();
 
 	// time_increment: value=nth_of_sec, nbits = log2(resolution)
-	BitstreamPutBits(bs, 1, 1);		
+#ifdef MPEG4IP
+	BitstreamPutBits(bs, 1, (time_incr_bits ? time_incr_bits : 1));
+#else
+	BitstreamPutBits(bs, 1, 1);
+#endif
 
 	MARKER();
 

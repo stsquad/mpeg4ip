@@ -22,95 +22,103 @@
  * aa_file.cpp - create media structure for aac files
  */
 
-#include "player_session.h"
-#include "player_media.h"
-#include "player_util.h"
-#include "our_bytestream_file.h"
-#include "aa.h"
-#include "aa_file.h"
-#if 0
-static unsigned int c_get (void *ud)
+#include "aac.h"
+codec_data_t *aac_file_check (lib_message_func_t message,
+			      const char *name, 
+			      double *max, 
+			      char *desc[4])
 {
-  CInByteStreamBase *byte_stream;
-
-  byte_stream = (CInByteStreamBase *)ud;
-  return (byte_stream->get());
-}
-
-static void c_bookmark (void *ud, int state)
-{
-  CInByteStreamBase *byte_stream;
-
-  byte_stream = (CInByteStreamBase *)ud;
-  byte_stream->bookmark(state);
-}
-#endif
-
-int create_media_for_aac_file (CPlayerSession *psptr, 
-			       const char *name,
-			       const char **errmsg)
-{
-  CPlayerMedia *mptr;
-  COurInByteStreamFile *fbyte;
-
-  psptr->session_set_seekable(0);
-  mptr = new CPlayerMedia;
-  if (mptr == NULL) {
-    *errmsg = "Couldn't create media";
-    return (-1);
+  aac_codec_t *aac;
+  int len = strlen(name);
+  if (strcasecmp(name + len - 4, ".aac") != 0) {
+    return (NULL);
   }
 
-  /*
-   * Read faad file to get the frequency.  We need to read at
-   * least 1 frame to get the adts header.
-   */
-  faacDecHandle fInfo;
-  fInfo = faacDecOpen(); // use defaults here...
+  aac = MALLOC_STRUCTURE(aac_codec_t);
+  memset(aac, 0, sizeof(*aac));
+  *max = 0;
 
-  fbyte = new COurInByteStreamFile(name);
-  if (fbyte == NULL) {
-    *errmsg = "Couldn't create file stream";
-    return (-1);
+  aac->m_buffer = (unsigned char *)malloc(MAX_READ_BUFFER);
+  aac->m_buffer_size_max = MAX_READ_BUFFER;
+  aac->m_ifile = fopen(name, FOPEN_READ_BINARY);
+  if (aac->m_ifile == NULL) {
+    free(aac);
+    return NULL;
   }
-  
-  //faad_init_bytestream(&fInfo->ld, c_get, c_bookmark, fbyte);
+  aac->m_output_frame_size = 1024;
+  aac->m_info = faacDecOpen(); // use defaults here...
+  aac->m_buffer_size = fread(aac->m_buffer, 
+			     1, 
+			     aac->m_buffer_size_max, 
+			     aac->m_ifile);
+
   unsigned long freq, chans;
-  unsigned char *buffer;
-  uint32_t len;
-  freq = 0;
-  fbyte->config_for_file(44100 / 1024); // dummy value for now
-  fbyte->start_next_frame(&buffer, &len);
-  faacDecInit(fInfo, buffer, len, &freq, &chans, NULL, NULL);
+
+  faacDecInit(aac->m_info, aac->m_buffer, &freq, &chans);
   // may want to actually decode the first frame...
   if (freq == 0) {
-    *errmsg = "Couldn't determine AAC frame rate";
-    return (-1);
+    message(LOG_ERR, aaclib, "Couldn't determine AAC frame rate");
+    aac_close((codec_data_t *)aac);
+    return (NULL);
   } 
-#if 0
-  if (fInfo->adts_header) {
-    player_debug_message("detected adts header - making seekable");
-  }
-#endif
-  faacDecClose(fInfo);
-  delete fbyte;
-
-  fbyte = new COurInByteStreamFile(name);
-  if (fbyte == NULL) {
-    *errmsg = "Couldn't create file stream";
-    return (-1);
-  }
-  fbyte->config_for_file(freq / 1024);
-  *errmsg = "Can't create thread";
-  int ret =  mptr->create_from_file(psptr, fbyte, FALSE);
-  if (ret != 0) {
-    return (-1);
-  }
-
-  audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
-  audio->freq = freq;
-  mptr->set_audio_info(audio);
-  mptr->set_codec_type("aac ");
-  return (0);
+  aac->m_freq = freq;
+  aac->m_chans = chans;
+  aac->m_faad_inited = 1;
+  aac->m_framecount = 0;
+  return ((codec_data_t *)aac);
 }
 
 
+int aac_file_next_frame (codec_data_t *your,
+			 unsigned char **buffer, 
+			 uint64_t *ts)
+{
+  aac_codec_t *aac = (aac_codec_t *)your;
+
+  if (aac->m_buffer_on > 0) {
+    memmove(aac->m_buffer, 
+	    &aac->m_buffer[aac->m_buffer_on],
+	    aac->m_buffer_size - aac->m_buffer_on);
+  }
+  aac->m_buffer_size -= aac->m_buffer_on;
+  aac->m_buffer_size += fread(aac->m_buffer + aac->m_buffer_size, 
+			      1, 
+			      aac->m_buffer_size_max - aac->m_buffer_size,
+			      aac->m_ifile);
+  aac->m_buffer_on = 0;
+  if (aac->m_buffer_size == 0) return 0;
+
+
+  uint64_t calc;
+  calc = aac->m_framecount * 1024 * M_LLU;
+  calc /= aac->m_freq;
+  *ts = calc;
+  *buffer = aac->m_buffer;
+  aac->m_framecount++;
+  return (aac->m_buffer_size);
+}
+	
+void aac_file_used_for_frame (codec_data_t *ifptr, 
+			     uint32_t bytes)
+{
+  aac_codec_t *aac = (aac_codec_t *)ifptr;
+  aac->m_buffer_on += bytes;
+  if (aac->m_buffer_on > aac->m_buffer_size) aac->m_buffer_on = aac->m_buffer_size;
+}
+
+int aac_file_eof (codec_data_t *ifptr)
+{
+  aac_codec_t *aac = (aac_codec_t *)ifptr;
+  return aac->m_buffer_on == aac->m_buffer_size && feof(aac->m_ifile);
+}
+
+int aac_raw_file_seek_to (codec_data_t *ifptr, uint64_t ts)
+{
+  if (ts != 0) return -1;
+
+  aac_codec_t *aac = (aac_codec_t *)ifptr;
+  rewind(aac->m_ifile);
+  aac->m_buffer_size = aac->m_buffer_on = 0;
+  aac->m_framecount = 0;
+  return 0;
+}

@@ -239,7 +239,6 @@ static __inline void putMVData(Bitstream * bs, Statistics * pStat,
 void MBCoding(const MBParam * pParam, const MACROBLOCK *pMB,
 	      int16_t qcoeff[][64], Bitstream * bs, Statistics * pStat)
 {
-
     int i;
     VOP_TYPE vop_type = pParam->coding_type;
     bool bIntra = (pMB->mode == MODE_INTRA) || (pMB->mode == MODE_INTRA_Q);
@@ -302,5 +301,4 @@ void MBCoding(const MBParam * pParam, const MACROBLOCK *pMB,
 		else if (pMB->cbp & (1 << (5 - i)))
 		    EncodeBlockInter(bs, pStat, qcoeff[i]);
     }
-
 }

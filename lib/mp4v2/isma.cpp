@@ -118,7 +118,9 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 		m_odTrackId, sceneTrackId, audioTrackId, videoTrackId,
 		&pBytes, &numBytes);
 
-	char* sdpBuf = (char*)MP4Calloc(numBytes + 256);
+	char* iodBase64 = MP4ToBase64(pBytes, numBytes);
+
+	char* sdpBuf = (char*)MP4Calloc(strlen(iodBase64) + 256);
 
 	if (addIsmaComplianceSdp) {
 		strcpy(sdpBuf, "a=isma-compliance:1,1.0,1\015\012");
@@ -126,13 +128,15 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 
 	sprintf(&sdpBuf[strlen(sdpBuf)], 
 		"a=mpeg4-iod: \042data:application/mpeg4-iod;base64,%s\042\015\012",
-		MP4ToBase64(pBytes, numBytes));
+		iodBase64);
 
 	SetSessionSdp(sdpBuf);
 
 	VERBOSE_ISMA(GetVerbosity(),
 		printf("IOD SDP = %s\n", sdpBuf));
 
+	MP4Free(iodBase64);
+	iodBase64 = NULL;
 	MP4Free(pBytes);
 	pBytes = NULL;
 	MP4Free(sdpBuf);
@@ -207,15 +211,15 @@ void MP4File::CreateIsmaIod(
 	VERBOSE_ISMA(GetVerbosity(),
 		printf("OD data =\n"); MP4HexDump(pBytes, numBytes));
 
-	MP4StringProperty* pUrlProperty;
-	char* urlBuf = NULL;
+	char* odCmdBase64 = MP4ToBase64(pBytes, numBytes);
 
-	urlBuf = (char*)MP4Malloc((numBytes * 4 / 3) + 64);
+	char* urlBuf = (char*)MP4Malloc(strlen(odCmdBase64) + 64);
 
 	sprintf(urlBuf, 
 		"data:application/mpeg4-od-au;base64,%s",
-		 MP4ToBase64(pBytes, numBytes));
+		odCmdBase64);
 
+	MP4StringProperty* pUrlProperty;
 	pOdEsd->FindProperty("URL", 
 		(MP4Property**)&pUrlProperty);
 	pUrlProperty->SetValue(urlBuf);
@@ -223,6 +227,8 @@ void MP4File::CreateIsmaIod(
 	VERBOSE_ISMA(GetVerbosity(),
 		printf("OD data URL = \042%s\042\n", urlBuf));
 
+	MP4Free(odCmdBase64);
+	odCmdBase64 = NULL;
 	MP4Free(pBytes);
 	pBytes = NULL;
 	MP4Free(urlBuf);
@@ -272,10 +278,12 @@ void MP4File::CreateIsmaIod(
 	VERBOSE_ISMA(GetVerbosity(),
 		printf("Scene data =\n"); MP4HexDump(pBytes, numBytes));
 
-	urlBuf = (char*)MP4Malloc((numBytes * 4 / 3) + 64);
+	char *sceneCmdBase64 = MP4ToBase64(pBytes, numBytes);
+
+	urlBuf = (char*)MP4Malloc(strlen(sceneCmdBase64) + 64);
 	sprintf(urlBuf, 
 		"data:application/mpeg4-bifs-au;base64,%s",
-		 MP4ToBase64(pBytes, numBytes));
+		sceneCmdBase64);
 
 	pSceneEsd->FindProperty("URL", 
 		(MP4Property**)&pUrlProperty);
@@ -284,6 +292,8 @@ void MP4File::CreateIsmaIod(
 	VERBOSE_ISMA(GetVerbosity(),
 		printf("Scene data URL = \042%s\042\n", urlBuf));
 
+	MP4Free(sceneCmdBase64);
+	sceneCmdBase64 = NULL;
 	MP4Free(urlBuf);
 	urlBuf = NULL;
 	MP4Free(pBytes);

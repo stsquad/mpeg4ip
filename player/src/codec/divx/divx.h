@@ -23,28 +23,17 @@
  */
 #ifndef __DIVX_H__
 #define __DIVX_H__ 1
+#include <systems.h>
+#include "codec_plugin.h"
+#include <fposrec/fposrec.h>
 
-#include "codec.h"
-#include "video.h"
-#include "player_util.h"
 #define DIVX_STATE_VO_SEARCH 0
 #define DIVX_STATE_NORMAL 1
 #define DIVX_STATE_WAIT_I 2
 
-class CDivxCodec: public CVideoCodecBase {
- public:
-  CDivxCodec(CVideoSync *v, 
-	     COurInByteStream *pbytestrm, 
-	     format_list_t *media_fmt,
-	     video_info_t *vinfo,
-	     const unsigned char *userdata = NULL,
-	     uint32_t ud_size = 0);
-  ~CDivxCodec();
-  int decode(uint64_t ts, int fromrtp, unsigned char *buffer, uint32_t buflen);
-  int skip_frame(uint64_t ts, unsigned char *buffer, uint32_t buflen);
-  void do_pause(void);
- private:
-  int parse_vovod(const char *config, int ascii, uint32_t len);
+
+typedef struct divx_codec_t {
+  codec_data_t c;
   int m_nFrames;
   int m_decodeState;
   int m_dropFrame;
@@ -53,13 +42,31 @@ class CDivxCodec: public CVideoCodecBase {
   uint32_t m_num_wait_i;
   uint32_t m_num_wait_i_frames;
   uint32_t m_total_frames;
-};
-  
-#ifdef _WIN32
-DEFINE_MESSAGE_MACRO(divx_message, "divx")
-#else
-#define divx_message(loglevel, fmt...) message(loglevel, "divx", fmt)
-#endif
+  // raw file support
+  FILE *m_ifile;
+  unsigned char *m_buffer;
+  uint32_t m_buffer_size_max;
+  uint32_t m_buffer_size;
+  uint32_t m_buffer_on;
+  uint32_t m_framecount;
+  uint32_t m_frame_on;
+  CFilePosRecorder *m_fpos;
+} divx_codec_t;
 
+#define m_vft c.v.video_vft
+#define m_ifptr c.ifptr
+
+void divx_clean_up(divx_codec_t *divx);
+
+codec_data_t *divx_file_check(lib_message_func_t message,
+			      const char *name, 
+			      double *max,
+			      char *desc[4]);
+int divx_file_next_frame(codec_data_t *your_data,
+			  unsigned char **buffer, 
+			 uint64_t *ts);
+void divx_file_used_for_frame(codec_data_t *your,uint32_t bytes);
+int divx_file_seek_to(codec_data_t *you, uint64_t ts);
+int divx_file_eof (codec_data_t *ifptr);
 #endif
 /* end file divx.h */

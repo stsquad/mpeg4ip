@@ -97,7 +97,7 @@ int FAADAPI faacDecInit2(faacDecHandle hDecoder,
 
     /* get adif header */
 
-    faad_initbits(&hDecoder->ld, pBuffer, SizeOfDecoderSpecificInfo);
+    faad_initbits(&hDecoder->ld, pBuffer);
 
     rc = parse_audio_decoder_specific_info(hDecoder,samplerate,channels);
 
@@ -120,7 +120,7 @@ int FAADAPI faacDecInit2(faacDecHandle hDecoder,
 }
 
 
-faacDecHandle FAADAPI faacDecOpen()
+faacDecHandle FAADAPI faacDecOpen(void)
 {
     int i;
     faacDecHandle hDecoder = NULL;
@@ -217,18 +217,13 @@ int FAADAPI faacDecSetConfiguration(faacDecHandle hDecoder,
 
 int FAADAPI faacDecInit(faacDecHandle hDecoder,
 			unsigned char *buffer,
-			uint32_t buflen,
                         unsigned long *samplerate,
-			unsigned long *channels,
-			get_more_bytes_t get_more,
-			void *ud)
+			unsigned long *channels)
 {
     int i, bits = 0;
     char chk_header[4];
 
-    hDecoder->ld.get_more_bytes = get_more;
-    hDecoder->ld.ud = ud;
-    faad_initbits(&hDecoder->ld, buffer, buflen);
+    faad_initbits(&hDecoder->ld, buffer);
 #if 0
     faad_bookmark(&hDecoder->ld, 1);
 #endif
@@ -261,7 +256,7 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder,
         faad_bookmark(&hDecoder->ld, 0);
         faad_bookmark(&hDecoder->ld, 1);
 #else
-	faad_initbits(&hDecoder->ld, buffer, buflen);
+	faad_initbits(&hDecoder->ld, buffer);
 #endif
         get_adif_header(hDecoder);
         /* only MPEG2 ADIF header uses byte_alignment */
@@ -276,7 +271,7 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder,
         faad_bookmark(&hDecoder->ld, 0);
         faad_bookmark(&hDecoder->ld, 1);
 #else
-	faad_initbits(&hDecoder->ld, buffer, buflen);
+	faad_initbits(&hDecoder->ld, buffer);
 #endif
         get_adts_header(hDecoder);
         /* only MPEG2 ADTS header uses byte_alignment */
@@ -367,7 +362,6 @@ int FAADAPI faacDecGetProgConfig(faacDecHandle hDecoder,
 
 int FAADAPI faacDecDecode(faacDecHandle hDecoder,
                           unsigned char *buffer,
-			  uint32_t buflen,
                           unsigned long *bytesconsumed,
                           short *sample_buffer,
                           unsigned long *samples)
@@ -382,7 +376,7 @@ int FAADAPI faacDecDecode(faacDecHandle hDecoder,
     Ch_Info *cip;
     int retCode = FAAD_OK;
 
-    faad_initbits(&hDecoder->ld, buffer, buflen);
+    faad_initbits(&hDecoder->ld, buffer);
 
     if (hDecoder->adts_header_present)
     {

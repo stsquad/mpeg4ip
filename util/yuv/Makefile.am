@@ -8,7 +8,7 @@ yuvcreate_SOURCES = yuvcreate.cpp
 
 yuvdisp_SOURCES = yuvdisp.cpp
 
-INCLUDES = -I. -I../../lib/SDL/include
+INCLUDES = -I. -I../../include -I../../lib/SDL/include
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@
 

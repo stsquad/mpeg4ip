@@ -31,7 +31,8 @@ class CPlayerSession;
 
 int create_media_for_avi_file (CPlayerSession *psptr,
 			       const char *name,
-			       const char **errmsg,
+			       char *errmsg,
+			       uint32_t errlen, 
 			       int have_audio_driver);
 
 /*
@@ -45,8 +46,8 @@ class CAviFile {
   ~CAviFile();
   void lock_file_mutex (void) { SDL_mutexP(m_file_mutex); };
   void unlock_file_mutex (void) { SDL_mutexV(m_file_mutex); };
-  int create_audio (CPlayerSession *psptr);
-  int create_video (CPlayerSession *psptr);
+  int create_audio (CPlayerSession *psptr, char *errmsg, uint32_t errlen);
+  int create_video (CPlayerSession *psptr, char *errmsg, uint32_t errlen);
   avi_t *get_file(void) {return m_file; };
   int get_audio_tracks (void) { return m_audio_tracks; };
   int get_video_tracks (void) { return m_video_tracks; };

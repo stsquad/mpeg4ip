@@ -473,7 +473,6 @@ CInBitStream::~CInBitStream()
   
 void CInBitStream::init (void) {
   m_bookmark = 0;
-  m_get_more_bytes = NULL;
   m_buffer = NULL;
   m_framebits = m_framebits_max = 0;
 }
@@ -531,7 +530,7 @@ void CInBitStream::read_ifstream_buffer (void)
       memmove(m_buffer,
 	      m_buffer + offset,
 	      left);
-      ret = read(m_pistrm, m_buffer + offset, m_orig_buflen - left);
+      ret = read(m_pistrm, m_buffer + left, m_orig_buflen - left);
       m_orig_buflen = left + ret;
       m_framebits = m_bitcnt;
       m_rdptr = m_buffer;
@@ -556,19 +555,16 @@ void CInBitStream::read_ifstream_buffer (void)
   m_framebits_max = m_orig_buflen * 8;
 }
 
-void CInBitStream::set_buffer (get_more_bytes_t gb,
-			       void *ud, 
-			       unsigned char *bptr, 
+void CInBitStream::set_buffer (unsigned char *bptr, 
 			       uint32_t blen) 
 {
-  m_get_more_bytes = gb;
-  m_ud = ud;
   m_buffer = bptr;
   m_rdptr = bptr;
   m_bitcnt = 0;
   m_framebits = 0;
   m_orig_buflen = blen;
   m_framebits_max = blen * 8;
+  m_bookmark = 0;
 }
 
 Void CInBitStream::flush (int nExtraBits) 

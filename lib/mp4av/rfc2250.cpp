@@ -24,13 +24,26 @@
  *  - file formatted with tabstops == 4 spaces 
  */
 
-#include <mp4av.h>
+#include <mp4av_common.h>
 
-void MP4AV_Rfc2250Hinter(
+bool MP4AV_Rfc2250Hinter(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId, 
-	MP4TrackId hintTrackId)
+	bool interleave,
+	u_int16_t maxPayloadSize)
 {
+	// RFC 2250 doesn't support interleaving
+	if (interleave) {
+		return false;
+	}
+
+	MP4TrackId hintTrackId =
+		MP4AddHintTrack(mp4File, mediaTrackId);
+
+	if (hintTrackId == MP4_INVALID_TRACK_ID) {
+		return false;
+	}
+
 	u_int8_t payloadNumber = 0; // use dynamic payload number
 
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
@@ -54,7 +67,7 @@ void MP4AV_Rfc2250Hinter(
 			MP4GetSampleSize(mp4File, mediaTrackId, sampleId);
 
 		if (samplesThisHint > 0) {
-			if (bytesThisHint + sampleSize <= MaxPayloadSize) {
+			if (bytesThisHint + sampleSize <= maxPayloadSize) {
 				// add the mp3 frame to current hint
 				MP4AddRtpSampleData(mp4File, hintTrackId,
 					sampleId, 0, sampleSize);
@@ -80,7 +93,7 @@ void MP4AV_Rfc2250Hinter(
 
 		ASSERT(samplesThisHint == 0);
 		
-		if (sampleSize + 4 <= MaxPayloadSize) {
+		if (sampleSize + 4 <= maxPayloadSize) {
 			// add rfc 2250 payload header
 			static u_int32_t zero32 = 0;
 
@@ -98,7 +111,7 @@ void MP4AV_Rfc2250Hinter(
 
 			while (sampleOffset < sampleSize) {
 				u_int16_t fragLength = 
-					MIN(sampleSize - sampleOffset, MaxPayloadSize) - 4;
+					MIN(sampleSize - sampleOffset, maxPayloadSize) - 4;
 
 				u_int8_t payloadHeader[4];
 				payloadHeader[0] = payloadHeader[1] = 0;
@@ -121,7 +134,7 @@ void MP4AV_Rfc2250Hinter(
 
 			// lie to ourselves so as to force next frame to output 
 			// our hint as is, and start a new hint for itself
-			bytesThisHint = MaxPayloadSize;
+			bytesThisHint = maxPayloadSize;
 		}
 
 		samplesThisHint = 1;
@@ -130,5 +143,7 @@ void MP4AV_Rfc2250Hinter(
 	// write out current (final) hint
 	MP4WriteRtpHint(mp4File, hintTrackId, 
 		samplesThisHint * sampleDuration);
+
+	return true;
 }
 

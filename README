@@ -372,13 +372,18 @@ mpeg4ip - top level project directory
             rtsp - Our own RTSP client 
             video
                 divx - OpenDivx decoder
+        plugin - home of player plugins
+            audio - audio plugins
+               raw - raw audio plugin
+            video - video plugins
+               raw - raw video plugin
         src - the player executable
-            codec - wrappers to interface codecs with the player
-                aa - wrapper around FAAD
-                divx - wrapper around OpenDivx
-                mp3 - wrapper around MP3
-                mpeg4 - wrapper around mpeg4v
-                wav - wrapper around PCM wav
+            codec - 
+                aa - aac plugin
+                divx - divx plugin 
+                mp3 - mp3 plugin
+                mpeg4 - mpeg4 ISO decoder plugin
+                wav - wav plugin
             osx - Mac OS X UI
 	    win_common - common windows code
             win_client - windows client
@@ -471,6 +476,27 @@ We believe MPEG4IP is interoperable with that organization's 1.0 Technical
 Specification. For more information see http://www.isma.tv
 
 
+Player Plugins
+==============
+
+Starting with version 0.9.3.2, we've gone to a plugin model for audio
+and video codecs for the player.  This is true for both windows and
+linux platforms.
+
+On linux (and linux like) platforms, the plugins should be in the 
+mp4player_plugin directory, which is a sub directory of where the
+other mpeg4ip libraries will be stored.  You must do a make install
+of the plugin when running/debugging with plugins - the player does
+not currently search for plugins.
+
+On Windows, the .dlls that get created must be in the same directory as 
+the executable for mp4player.exe or wmp4client.exe.  The project files
+should copy the plugin DLLs to the player/src directory, so when 
+running the player, it should work fine.
+
+The plugin pattern can be found in player/src/codec_plugin.h.  It
+is bound to change fairly rapidly for the next couple of CVS releases.
+
 MP4Player key shortcuts
 =======================
 
@@ -509,6 +535,7 @@ will make all 3 executables (mp4player, wmp4player.exe and wmp4client.exe).
 
 To install wmp4player, put the wmp4player.exe, wmp4client.exe and
 SDL.dll in the same directory.  We will not be writing any installers.
+In addition, make sure all desired plugins are in the same directory.
 
 These programs will use the registry for storing information that
 Linux stores in .gmp4player_rc.  Look for the Software\Mpeg4ip\Config

@@ -29,9 +29,9 @@ void PrintTrackList(const char* mp4FileName, u_int32_t verbosity);
 MP4TrackId* CreateMediaTracks(
 	MP4FileHandle mp4File, const char* inputFileName);
 
-MP4TrackId CreateHintTrack(
+void CreateHintTrack(
 	MP4FileHandle mp4File, MP4TrackId mediaTrackId,
-	const char* payloadName, bool interleave);
+	const char* payloadName, bool interleave, u_int16_t maxPayloadSize);
 
 
 // external declarations
@@ -48,21 +48,6 @@ MP4TrackId Mp3Creator(
 
 MP4TrackId Mp4vCreator(
 	MP4FileHandle mp4File, FILE* inFile);
-
-// hinters
-void RfcIsmaHinter(
-	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId,
-	bool interleave);
-
-void Rfc2250Hinter(
-	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId);
-
-void Rfc3119Hinter(
-	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId,
-	bool interleave);
-
-void Rfc3016Hinter(
-	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId);
 
 
 // main routine
@@ -96,11 +81,11 @@ int main(int argc, char** argv)
 	char* payloadName = NULL;
 	MP4TrackId hintTrackId = MP4_INVALID_TRACK_ID;
 	MP4TrackId deleteTrackId = MP4_INVALID_TRACK_ID;
+	u_int16_t maxPayloadSize = 1460;
 
 	// begin processing command line
 	ProgName = argv[0];
 	VideoFrameRate = 0;		// determine from input file
-	MaxPayloadSize = 1460;
 
 	while (true) {
 		int c = -1;
@@ -166,7 +151,7 @@ int main(int argc, char** argv)
 					 ProgName, optarg);
 				exit(EXIT_COMMAND_LINE);
 			}
-			MaxPayloadSize = mtu - 40;	// subtract IP, UDP, and RTP hdrs
+			maxPayloadSize = mtu - 40;	// subtract IP, UDP, and RTP hdrs
 			break;
 		case 'O':
 			doOptimize = true;
@@ -316,12 +301,13 @@ int main(int argc, char** argv)
 
 				while (*pTrackId != MP4_INVALID_TRACK_ID) {
 					CreateHintTrack(mp4File, *pTrackId, 
-						payloadName, doInterleave);
+						payloadName, doInterleave, maxPayloadSize);
 					pTrackId++;
 				}
 			}
 		} else {
-			CreateHintTrack(mp4File, hintTrackId, payloadName, doInterleave);
+			CreateHintTrack(mp4File, hintTrackId, 
+				payloadName, doInterleave, maxPayloadSize);
 		} 
 
 		MP4Close(mp4File);
@@ -418,21 +404,12 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 	return pTrackIds;
 }
 
-MP4TrackId CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
-	const char* payloadName, bool interleave)
+void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
+	const char* payloadName, bool interleave, u_int16_t maxPayloadSize)
 {
 	if (MP4GetTrackNumberOfSamples(mp4File, mediaTrackId) == 0) {
 		fprintf(stderr, 
 			"%s: couldn't create hint track, no media samples\n", ProgName);
-		return MP4_INVALID_TRACK_ID;
-	}
-
-	// create the hint track
-	MP4TrackId hintTrackId = MP4AddHintTrack(mp4File, mediaTrackId);
-
-	if (hintTrackId == MP4_INVALID_TRACK_ID) {
-		fprintf(stderr, 
-			"%s: couldn't create hint track\n", ProgName);
 		exit(EXIT_CREATE_HINT);
 	}
 
@@ -447,16 +424,19 @@ MP4TrackId CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 		case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
 		case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
 		case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
-			RfcIsmaHinter(mp4File, mediaTrackId, hintTrackId, interleave);
+			MP4AV_RfcIsmaHinter(mp4File, mediaTrackId, 
+				interleave, maxPayloadSize);
 			break;
 		case MP4_MPEG1_AUDIO_TYPE:
 		case MP4_MPEG2_AUDIO_TYPE:
 			if (payloadName && 
 			  (!strcasecmp(payloadName, "3119") 
 			  || !strcasecmp(payloadName, "mpa-robust"))) {
-				Rfc3119Hinter(mp4File, mediaTrackId, hintTrackId, interleave);
+				MP4AV_Rfc3119Hinter(mp4File, mediaTrackId, 
+					interleave, maxPayloadSize);
 			} else {
-				Rfc2250Hinter(mp4File, mediaTrackId, hintTrackId);
+				MP4AV_Rfc2250Hinter(mp4File, mediaTrackId, 
+					false, maxPayloadSize);
 			}
 			break;
 		default:
@@ -468,7 +448,7 @@ MP4TrackId CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 		u_int8_t videoType = MP4GetTrackVideoType(mp4File, mediaTrackId);
 
 		if (videoType == MP4_MPEG4_VIDEO_TYPE) {
-			Rfc3016Hinter(mp4File, mediaTrackId, hintTrackId);
+			MP4AV_Rfc3016Hinter(mp4File, mediaTrackId, maxPayloadSize);
 		} else {
 			fprintf(stderr, 
 				"%s: can't hint non-MPEG4 video type\n", ProgName);
@@ -479,8 +459,6 @@ MP4TrackId CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 			"%s: can't hint track type %s\n", ProgName, trackType);
 		exit(EXIT_CREATE_HINT);
 	}
-
-	return hintTrackId;
 }
 
 void PrintTrackList(const char* mp4FileName, u_int32_t verbosity)

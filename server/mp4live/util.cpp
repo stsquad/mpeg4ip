@@ -141,5 +141,5 @@ char *strsep (char **sptr, const char *delim)
 	}
 	return (start);
 }
+
 #endif
-/* end file util.c */

@@ -30,55 +30,6 @@
 
 static u_int8_t firstHeader[ADTS_HEADER_MAX_SIZE];
 
-/*
- * compute ADTS frame size
- */
-static u_int16_t GetAdtsFrameSize(u_int8_t* hdr)
-{
-	/* extract the necessary fields from the header */
-	u_int8_t isMpeg4 = !(hdr[1] & 0x08);
-	u_int16_t frameLength;
-
-	if (isMpeg4) {
-		frameLength = (((u_int16_t)hdr[4]) << 5) | (hdr[5] >> 3); 
-	} else { /* MPEG-2 */
-		frameLength = (((u_int16_t)(hdr[3] & 0x3)) << 11) 
-			| (((u_int16_t)hdr[4]) << 3) | (hdr[5] >> 5); 
-	}
-	return frameLength;
-}
-
-/*
- * Compute length of ADTS header in bits
- */
-static u_int16_t GetAdtsHeaderBitSize(u_int8_t* hdr)
-{
-	u_int8_t isMpeg4 = !(hdr[1] & 0x08);
-	u_int8_t hasCrc = !(hdr[1] & 0x01);
-	u_int16_t hdrSize;
-
-	if (isMpeg4) {
-		hdrSize = 58;
-	} else {
-		hdrSize = 56;
-	}
-	if (hasCrc) {
-		hdrSize += 16;
-	}
-	return hdrSize;
-}
-
-static u_int16_t GetAdtsHeaderByteSize(u_int8_t* hdr)
-{
-	u_int16_t hdrBitSize = GetAdtsHeaderBitSize(hdr);
-	
-	if ((hdrBitSize % 8) == 0) {
-		return (hdrBitSize / 8);
-	} else {
-		return (hdrBitSize / 8) + 1;
-	}
-}
-
 /* 
  * hdr must point to at least ADTS_HEADER_MAX_SIZE bytes of memory 
  */
@@ -115,7 +66,7 @@ static bool LoadNextAdtsHeader(FILE* inFile, u_int8_t* hdr)
 					hdr[state] = b;
 					state = 2;
 					/* compute desired header size */
-					hdrByteSize = GetAdtsHeaderByteSize(hdr);
+					hdrByteSize = MP4AV_AacGetHeaderByteSize(hdr);
 				} else {
 					state = 0;
 				}
@@ -152,11 +103,11 @@ static bool LoadNextAacFrame(FILE* inFile, u_int8_t* pBuf, u_int32_t* pBufSize, 
 	}
 	
 	/* get frame size from header */
-	frameSize = GetAdtsFrameSize(hdrBuf);
+	frameSize = MP4AV_AacGetFrameSize(hdrBuf);
 
 	/* get header size in bits and bytes from header */
-	hdrBitSize = GetAdtsHeaderBitSize(hdrBuf);
-	hdrByteSize = GetAdtsHeaderByteSize(hdrBuf);
+	hdrBitSize = MP4AV_AacGetHeaderBitSize(hdrBuf);
+	hdrByteSize = MP4AV_AacGetHeaderByteSize(hdrBuf);
 	
 	/* adjust the frame size to what remains to be read */
 	frameSize -= hdrByteSize;
@@ -223,83 +174,25 @@ static bool GetFirstHeader(FILE* inFile)
 	return true;
 }
 
-static bool GetAacVersion(FILE* inFile, u_int8_t* pVersion)
-{
-	if (!GetFirstHeader(inFile)) {
-		return false;
-	}
-	(*pVersion) = (firstHeader[1] & 0x08) >> 3;
-	return true;
-}
-
-static bool GetAacProfile(FILE* inFile, u_int8_t* pProfile)
-{
-	if (!GetFirstHeader(inFile)) {
-		return false;
-	}
-	(*pProfile) = (firstHeader[2] & 0xc0) >> 6;
-	return true;
-}
-
-static u_int32_t AacSamplingRates[16] = {
-	96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 
-	16000, 12000, 11025, 8000, 7350, 0, 0, 0
-};
-
-static bool GetAacSamplingRate(FILE* inFile, u_int32_t* pSamplingRate)
-{
-	if (!GetFirstHeader(inFile)) {
-		return false;
-	}
-	(*pSamplingRate) = AacSamplingRates[(firstHeader[2] & 0x3c) >> 2];
-	if (*pSamplingRate == 0) {
-		return false;
-	}
-	return true;
-}
-
-static bool GetAacSamplingRateIndex(FILE* inFile, u_int8_t* pSamplingRateIndex)
-{
-	if (!GetFirstHeader(inFile)) {
-		return false;
-	}
-	(*pSamplingRateIndex) = (firstHeader[2] & 0x3c) >> 2;
-	return true;
-}
-
-static bool GetAacChannelConfiguration(FILE* inFile, u_int8_t* pChannelConfig)
-{
-	if (!GetFirstHeader(inFile)) {
-		return false;
-	}
-	(*pChannelConfig) = 
-		((firstHeader[2] & 0x1) << 2) | ((firstHeader[3] & 0xc0) >> 6);
-	return true;
-}
-
 MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 {
 	// collect all the necessary meta information
 	u_int32_t samplesPerSecond;
-	u_int16_t samplesPerFrame = 1024;
 	u_int8_t mpegVersion;
 	u_int8_t profile;
-	u_int8_t samplingRateIndex; 
 	u_int8_t channelConfig;
-	bool success = true; 
 
-	success &= GetAacSamplingRate(inFile, &samplesPerSecond);
-	success &= GetAacVersion(inFile, &mpegVersion);
-	success &= GetAacProfile(inFile, &profile);
-	success &= GetAacSamplingRateIndex(inFile, &samplingRateIndex);
-	success &= GetAacChannelConfiguration(inFile, &channelConfig);
-
-	if (!success) {
+	if (!GetFirstHeader(inFile)) {
 		fprintf(stderr,	
 			"%s: data in file doesn't appear to be valid audio\n",
 			 ProgName);
 		exit(EXIT_AAC_CREATOR);
 	}
+
+	samplesPerSecond = MP4AV_AacGetSamplingRate(firstHeader);
+	mpegVersion = MP4AV_AacGetVersion(firstHeader);
+	profile = MP4AV_AacGetProfile(firstHeader);
+	channelConfig = MP4AV_AacGetChannelConfig(firstHeader);
 
 	u_int8_t audioType = MP4_INVALID_AUDIO_TYPE;
 	switch (mpegVersion) {
@@ -333,7 +226,7 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 	// add the new audio track
 	MP4TrackId trackId = 
 		MP4AddAudioTrack(mp4File, 
-			samplesPerSecond, samplesPerFrame, audioType);
+			samplesPerSecond, 1024, audioType);
 
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	
@@ -345,29 +238,18 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 		MP4SetAudioProfileLevel(mp4File, 0x0F);
 	}
 
-	/* create the appropriate MP4 decoder config */
-	/*
-	 * AudioObjectType 			5 bits
-	 * samplingFrequencyIndex 	4 bits
-	 * channelConfiguration 	4 bits
-	 * GA_SpecificConfig
-	 * 	FrameLengthFlag 		1 bit 1024 or 960
-	 * 	DependsOnCoreCoder		1 bit always 0
-	 * 	ExtensionFlag 			1 bit always 0
-	 */
-	u_int8_t aacConfigBuf[2];
-	int aacConfigBufSize = sizeof(aacConfigBuf);
+	u_int8_t* pConfig = NULL;
+	u_int32_t configLength = 0;
 
-	aacConfigBuf[0] =
-		((profile + 1) << 3) | ((samplingRateIndex & 0xe) >> 1);
-	aacConfigBuf[1] =
-		((samplingRateIndex & 0x1) << 7) | (channelConfig << 3);
-	if (samplesPerFrame != 1024) {
-		aacConfigBuf[1] |= (1 << 2);
-	}
+	MP4AV_AacGetConfiguration(
+		&pConfig,
+		&configLength,
+		profile,
+		samplesPerSecond,
+		channelConfig);
 
 	if (!MP4SetTrackESConfiguration(mp4File, trackId, 
-	  aacConfigBuf, aacConfigBufSize)) {
+	  pConfig, configLength)) {
 		fprintf(stderr,	
 			"%s: can't write audio configuration\n", ProgName);
 		exit(EXIT_AAC_CREATOR);

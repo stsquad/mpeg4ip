@@ -10,17 +10,19 @@
 #include "global.h"
 #include "divxif.h"
 
-void newdec_init (get_more_t get, void *userdata)
+void newdec_init (void)
 {
   ld = &base;
   coeff_pred = &ac_dc;
-  initbits(get, userdata);
+  initbits();
 }
 
 int newdec_read_volvop (unsigned char *buffer, unsigned int buflen)
 {
   init_frame_bits(buffer, buflen);
-  while (getvolhdr() != 1); // should exception out if not found...
+  while (getvolhdr() != 1) {
+    if (ld->incnt >= buflen) return 0;
+  }
   return 1; // get vol header
 }
 
@@ -61,8 +63,9 @@ int newdec_frame (unsigned char *y,
   yuv[1] = u;
   yuv[2] = v;
   init_frame_bits(buffer, buflen);
-  if (getvophdr() == 0)
-    return (0 - ld->incnt);
+  while (getvophdr() == 0) {
+    if (ld->incnt >= buflen) return 0 - ld->incnt;
+  }
   #if 0
   if (wait_for_i && mp4_hdr.prediction_type != I_VOP) {
     printf("wfi !IVOP\n");

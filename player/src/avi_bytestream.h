@@ -28,8 +28,6 @@
 #include "our_bytestream.h"
 #include "avi_file.h"
 
-#define THROW_AVI_BUFFER_OVERFLOW ((int)1)
-#define THROW_AVI_END_OF_FRAME ((int) 2)
 /*
  * CQTByteStreamBase provides base class access to quicktime files.
  * Most functions are shared between audio and video.
@@ -45,12 +43,6 @@ class CAviByteStreamBase : public COurInByteStream
   virtual uint64_t start_next_frame (unsigned char **buf,
 				     uint32_t *buflen) = 0;
   virtual void used_bytes_for_frame(uint32_t bytes) = 0;
-  virtual void get_more_bytes (unsigned char **buffer,
-			       uint32_t *buflen,
-			       uint32_t used,
-			       int get) = 0;
-  const char *get_throw_error(int error);
-  int throw_error_minor(int error);
  protected:
   virtual void read_frame(uint32_t frame_to_read) = 0;
   CAviFile *m_parent;
@@ -83,10 +75,6 @@ class CAviVideoByteStream : public CAviByteStreamBase
   uint64_t start_next_frame(unsigned char **buf,
 			    uint32_t *buflen);
   void used_bytes_for_frame(uint32_t bytes);
-  void get_more_bytes (unsigned char **buffer,
-		       uint32_t *buflen,
-		       uint32_t used,
-		       int get);
   void set_start_time (uint64_t start);
   double get_max_playtime (void) {
     double ret = m_frames_max;
@@ -120,10 +108,6 @@ class CAviAudioByteStream : public CAviByteStreamBase
   void reset(void);
   uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
   void used_bytes_for_frame(uint32_t bytes);
-  void get_more_bytes (unsigned char **buffer,
-		       uint32_t *buflen,
-		       uint32_t used,
-		       int get);
   void set_start_time(uint64_t start);
   double get_max_playtime (void) {
     double ret = m_frames_max * m_samples_per_frame;

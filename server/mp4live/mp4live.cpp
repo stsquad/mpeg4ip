@@ -23,6 +23,8 @@
 #define DECLARE_CONFIG_VARIABLES 1
 #include "mp4live.h"
 #include "media_flow.h"
+#include "video_v4l_source.h"
+#include "audio_oss_source.h"
 #include <getopt.h>
 
 int main(int argc, char** argv)
@@ -105,10 +107,18 @@ int main(int argc, char** argv)
 		delete e;
 	}
 
-	CVideoSource::InitialVideoProbe(pConfig);
+	// probe for capture cards
+	if (!strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE),
+	  VIDEO_SOURCE_V4L)) {
+		CV4LVideoSource::InitialVideoProbe(pConfig);
+	}
 
-	pConfig->m_audioCapabilities = new CAudioCapabilities(
-		pConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
+	// probe for sound card capabilities
+	if (!strcasecmp(pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE),
+	  AUDIO_SOURCE_OSS)) {
+		pConfig->m_audioCapabilities = new CAudioCapabilities(
+			pConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+	}
 
 	pConfig->Update();
 
@@ -125,7 +135,7 @@ int main(int argc, char** argv)
 
 	// attempt to exploit any real time features of the OS
 	// will probably only succeed if user has root privileges
-	if (pConfig->GetBoolValue(CONFIG_APP_USE_REAL_TIME)) {
+	if (pConfig->GetBoolValue(CONFIG_APP_REAL_TIME_SCHEDULER)) {
 #ifdef _POSIX_PRIORITY_SCHEDULING
 		// put us into the lowest real-time scheduling queue
 		struct sched_param sp;
@@ -175,7 +185,7 @@ int main(int argc, char** argv)
 		free(configFileName);
 	}
 
-	if (pConfig->GetBoolValue(CONFIG_APP_USE_REAL_TIME)) {
+	if (pConfig->GetBoolValue(CONFIG_APP_REAL_TIME_SCHEDULER)) {
 #ifdef _POSIX_MEMLOCK
 		munlockall();
 #endif /* _POSIX_MEMLOCK */
@@ -197,7 +207,7 @@ int nogui_main(CLiveConfig* pConfig)
 		pConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW);
 	pConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW, false);
 
-	CAVLiveMediaFlow* pFlow = new CAVLiveMediaFlow(pConfig);
+	CAVMediaFlow* pFlow = new CAVMediaFlow(pConfig);
 
 	pFlow->Start();
 

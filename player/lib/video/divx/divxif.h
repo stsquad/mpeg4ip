@@ -6,7 +6,7 @@ extern "C" {
   
 #include "global.h"
 
-  void newdec_init(get_more_t get, void *userdata);
+  void newdec_init(void);
 
 int newdec_read_volvop (unsigned char *buffer, unsigned int buflen);
 

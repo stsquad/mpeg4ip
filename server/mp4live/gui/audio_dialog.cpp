@@ -23,6 +23,7 @@
 #define __STDC_LIMIT_MACROS
 #include "mp4live.h"
 #include "mp4live_gui.h"
+#include "audio_oss_source.h"
 #include "audio_lame.h"
 
 static GtkWidget *dialog;
@@ -53,9 +54,6 @@ static char* channelNames[] = {
 };
 static u_int8_t channelIndex;
 
-static u_int8_t encodingValues[] = {
-	1, 2
-};
 static char* encodingNames[] = {
 	"MP3", "AAC"
 };
@@ -112,8 +110,8 @@ static void on_device_leave(GtkWidget *widget, gpointer *data)
 	
 	// check for errors
 	if (!pNewAudioCaps->IsValid()) {
-		ShowMessage("Change Audio Device",
-			"Specified audio device can't be opened, check name");
+		ShowMessage("Change Audio Source",
+			"Specified audio source can't be opened, check name");
 		delete pNewAudioCaps;
 		return;
 	}
@@ -342,7 +340,7 @@ static bool ValidateAndSave(void)
 
 	// copy new values to config
 
-	MyConfig->SetStringValue(CONFIG_AUDIO_DEVICE_NAME,
+	MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(device_entry)));
 
 	if (MyConfig->m_audioCapabilities != pAudioCaps) {
@@ -408,7 +406,7 @@ void CreateAudioDialog (void)
 
 	gtk_window_set_title(GTK_WINDOW(dialog), "Audio Settings");
 
-	hbox = gtk_hbox_new(TRUE, 1);
+	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox,
 		FALSE, FALSE, 5);
@@ -417,12 +415,12 @@ void CreateAudioDialog (void)
 	gtk_widget_show(vbox);
 	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
 
-	label = gtk_label_new(" Device:");
+	label = gtk_label_new(" Source:");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-	label = gtk_label_new(" Input:");
+	label = gtk_label_new("   Input Port:");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
@@ -454,7 +452,7 @@ void CreateAudioDialog (void)
 
 	device_entry = gtk_entry_new_with_max_length(128);
 	gtk_entry_set_text(GTK_ENTRY(device_entry), 
-		MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
+		MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
 	device_modified = false;
 	SetEntryValidator(GTK_OBJECT(device_entry),
 		GTK_SIGNAL_FUNC(on_changed),

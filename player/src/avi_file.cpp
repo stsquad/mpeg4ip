@@ -29,6 +29,7 @@
 #include "media_utils.h"
 #include "avi_bytestream.h"
 #include "avi_file.h"
+#include "codec_plugin_private.h"
 
 CAviFile *Avifile1 = NULL;
 /*
@@ -36,15 +37,16 @@ CAviFile *Avifile1 = NULL;
  */
 int create_media_for_avi_file (CPlayerSession *psptr, 
 			       const char *name,
-			       const char **errmsg,
+			       char *errmsg,
+			       uint32_t errlen,
 			       int have_audio_driver)
 {
   avi_t *avi;
 
   avi = AVI_open_input_file(name, 1);
   if (avi == NULL) {
-    *errmsg = AVI_strerror();
-    player_error_message(*errmsg);
+    snprintf(errmsg, errlen, AVI_strerror());
+    player_error_message(errmsg);
     return (-1);
   }
 
@@ -54,31 +56,30 @@ int create_media_for_avi_file (CPlayerSession *psptr,
   // quicktime is searchable...
   psptr->session_set_seekable(1);
 
-  int video;
-  video = Avifile1->create_video(psptr);
-  if (video < 0) {
-    *errmsg = "Internal AVI error";
-    return (-1);
-  }
-  int audio;
-  if (have_audio_driver > 0) {
-    audio = Avifile1->create_audio(psptr);
-    if (audio < 0) {
-      *errmsg = "Internal avi error";
-      return (-1);
-    }
-  } else
-    audio = 0;
-  if (audio == 0 && video == 0) {
-    *errmsg = "No valid codecs";
-    return (-1);
-  }
-  if (audio == 0 && Avifile1->get_audio_tracks() > 0) {
-    *errmsg = "Invalid Audio Codec";
-    return (1);
-  }
-  if (video != 1) {
-    *errmsg = "Invalid Video Codec";
+   int video;
+   video = Avifile1->create_video(psptr, errmsg, errlen);
+   if (video < 0) {
+     return (-1);
+   }
+   int audio;
+   if (have_audio_driver > 0) {
+     audio = Avifile1->create_audio(psptr, errmsg, errlen);
+     if (audio < 0) {
+       return (-1);
+     }
+   } else
+     audio = 0;
+   if (audio == 0 && video == 0) {
+     snprintf(errmsg, errlen, "No valid audio or video codecs in avi file");
+     return (-1);
+   }
+   if (audio == 0 && Avifile1->get_audio_tracks() > 0) {
+     snprintf(errmsg, errlen, "Unknown Audio Codec in avi file ");
+     return (1);
+   }
+   if (video != 1) {
+     snprintf(errmsg, errlen, "Unknown Video Codec %s in avi file",
+	     AVI_video_compressor(Avifile1->get_file()));
     return (1);
   }
   return (0);
@@ -102,54 +103,71 @@ CAviFile::~CAviFile (void)
   }
 }
 
-int CAviFile::create_video (CPlayerSession *psptr)
+int CAviFile::create_video (CPlayerSession *psptr,
+			    char *errmsg, 
+			    uint32_t errlen)
 {
   CPlayerMedia *mptr;
-  
+  codec_plugin_t *plugin;
+
   const char *codec_name = AVI_video_compressor(m_file);
-  if (lookup_video_codec_by_name(codec_name) < 0) {
-    player_debug_message("Couldn't find video codec `%s\'", codec_name);
-    return (-1);
+  plugin = check_for_video_codec(codec_name, 
+				 NULL,
+				 -1,
+				 -1,
+				 NULL,
+				 0);
+  if (plugin == NULL) {
+    snprintf(errmsg,errlen, "Couldn't find video codec `%s\'", 
+	     codec_name);
+    player_debug_message(errmsg);
+    return -1;
   }
-  mptr = new CPlayerMedia;
+
+  mptr = new CPlayerMedia(psptr);
   if (mptr == NULL) {
     return (-1);
   }
   
-  CAviVideoByteStream *vbyte = new CAviVideoByteStream(this);
-  if (vbyte == NULL) {
-    return (-1);
-  }
-  vbyte->config(AVI_video_frames(m_file),
-		AVI_video_frame_rate(m_file));
-  player_debug_message("Video Max time is %g", vbyte->get_max_playtime());
-  int ret = mptr->create_from_file(psptr, vbyte, TRUE);
-  if (ret != 0) {
-    return (-1);
-  }
-  // This needs much work.  We need to figure a way to get extensions
-  // down to the audio and video codecs.
-#if 1
   video_info_t *vinfo = (video_info_t *)malloc(sizeof(video_info_t));
   if (vinfo == NULL) 
     return (-1);
   vinfo->height = AVI_video_height(m_file);
   vinfo->width = AVI_video_width(m_file);
-  vinfo->frame_rate = (int)AVI_video_frame_rate(m_file);
-  // May want to expand this later... For now, we're just doing divx
-  // files, which don't have a vol header...
-  vinfo->file_has_vol_header = 0;
-  mptr->set_video_info(vinfo);
   player_debug_message("avi file h %d w %d frame rate %g", 
 		       vinfo->height,
 		       vinfo->width,
 		       AVI_video_frame_rate(m_file));
-#endif
-  mptr->set_codec_type("divx");
+
+  int ret;
+  ret = mptr->create_video_plugin(plugin,
+				  NULL,
+				  vinfo,
+				  NULL,
+				  0);
+  if (ret < 0) {
+    snprintf(errmsg, errlen, "Failed to create video plugin %s", 
+	     codec_name);
+    player_error_message("Failed to create plugin data");
+    delete mptr;
+    return -1;
+  }
+  CAviVideoByteStream *vbyte = new CAviVideoByteStream(this);
+  if (vbyte == NULL) {
+    delete mptr;
+    return (-1);
+  }
+  vbyte->config(AVI_video_frames(m_file),
+		AVI_video_frame_rate(m_file));
+  ret = mptr->create_from_file(vbyte, TRUE);
+  if (ret != 0) {
+    return (-1);
+  }
+  player_debug_message("Video Max time is %g", vbyte->get_max_playtime());
   return (1);
 }
 
-int CAviFile::create_audio (CPlayerSession *psptr)
+int CAviFile::create_audio (CPlayerSession *psptr, char *errmsg, uint32_t errlen)
 {
   m_audio_tracks = 0;
   //  CPlayerMedia *mptr;
@@ -170,7 +188,7 @@ int CAviFile::create_audio (CPlayerSession *psptr)
       return (0);
     }
     CAviAudioByteStream *abyte;
-    mptr = new CPlayerMedia;
+    mptr = new CPlayerMedia(psptr);
     if (mptr == NULL) {
       return (-1);
     }
@@ -186,7 +204,7 @@ int CAviFile::create_audio (CPlayerSession *psptr)
     mptr->set_audio_info(audio);
     abyte->config(len, sr, duration);
     player_debug_message("audio Max time is %g", abyte->get_max_playtime());
-    int ret = mptr->create_from_file(psptr, abyte, FALSE);
+    int ret = mptr->create_from_file(abyte, FALSE);
     if (ret != 0) {
       return (-1);
     }

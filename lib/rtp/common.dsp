@@ -45,7 +45,7 @@ RSC=rc.exe
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "HAVE_INET_NTOP" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /D "_MBCS" /D "_LIB" /D "HAVE_INET_NTOP" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_WIN32" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -117,7 +117,7 @@ RSC=rc.exe
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 # ADD BASE CPP /nologo /W3 /GX /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /ZI /GZ /c
-# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "DEBUG" /FR /YX /FD /ZI /GZ /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /D "_MBCS" /D "_LIB" /D "DEBUG" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_WIN32" /FR /YX /FD /ZI /GZ /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo

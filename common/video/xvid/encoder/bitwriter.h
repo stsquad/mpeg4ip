@@ -53,6 +53,9 @@ void BitstreamVolHeader(Bitstream * const bs,
 
 void BitstreamVopHeader(Bitstream * const bs,
 			  VOP_TYPE prediction_type,
+#ifdef MPEG4IP
+			  const int time_incr_bits,
+#endif
 			  const int rounding_type,
 			  const uint32_t quant,
 			  const uint32_t fcode);

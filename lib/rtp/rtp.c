@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.9 $ 
- * $Date: 2002/03/04 21:58:06 $
+ * $Revision: 1.10 $ 
+ * $Date: 2002/03/20 22:45:33 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -2339,6 +2339,9 @@ int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, char pt, int m, int 
 
 	/* Send the data */
 	rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
+
+	xfree(buffer);
+	xfree(my_iov);
 
 	/* Update the RTCP statistics... */
 	session->we_sent     = TRUE;

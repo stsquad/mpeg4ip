@@ -72,6 +72,7 @@ public:
 	private:
 		void UpdateClientConfig(void);
 		int m_video_size;
+		int m_session_died;
 };
 
 extern CWmp4playerApp theApp;

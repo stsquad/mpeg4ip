@@ -25,17 +25,16 @@ endif
 
 libmp4playerutils_la_SOURCES = \
 	our_bytestream_file.cpp \
-	our_bytestream_mem.cpp \
 	player_util.c 
 
 libmp4player_la_SOURCES = \
 	audio.cpp \
 	avi_bytestream.cpp \
 	avi_file.cpp \
+	codec_plugin.cpp \
 	ip_port.cpp \
 	media_utils.cpp \
 	our_config_file.cpp \
-	mpeg4_audio_config.cpp \
 	mp4_file.cpp \
 	mp4_bytestream.cpp \
 	player_sdp.c \
@@ -72,42 +71,24 @@ movplayer_SOURCES = player_util.c \
 
 INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@ @X_CFLAGS@
 
-AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@
+AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
 
-AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
 
 mp4player_LDADD = \
 	-lm \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/player/src/libmp4player.la \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
-	$(top_builddir)/player/src/codec/wav/libourwav.la \
 	$(top_builddir)/player/src/codec/mp3/libmp3.la \
-	$(top_builddir)/player/src/codec/mpeg4/libmpeg4.la \
-	$(top_builddir)/player/src/codec/divx/libdivx.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
+	$(top_builddir)/player/lib/mp4util/libmp4util.la \
 	$(top_builddir)/player/lib/libhttp/libhttp.la \
 	$(top_builddir)/lib/config_file/libconfig_file.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/bitstream/libbitstream.la \
 	$(top_builddir)/lib/rtp/libuclmmbase.la \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
-	$(top_builddir)/player/lib/audio/faad/libfaad.la \
-	$(top_builddir)/player/lib/audio/mp3/libourmp3.la \
-	$(top_builddir)/player/lib/video/divx/libourdivx.la \
-	$(top_builddir)/common/video/mpeg4/sys/decoder/libobj_sys_decoder.la \
-	$(top_builddir)/common/video/mpeg4/type/libobj_type.la \
-	$(top_builddir)/common/video/mpeg4/sys/libobj_sys.la \
-	$(top_builddir)/common/video/mpeg4/vtc/main/libobj_vtc_main_enc.la \
-	$(top_builddir)/common/video/mpeg4/vtc/main/libobj_vtc_main.la \
-	$(top_builddir)/common/video/mpeg4/vtc/ztq/libobj_vtc_ztq.la \
-	$(top_builddir)/common/video/mpeg4/vtc/zte/libobj_vtc_zte.la \
-	$(top_builddir)/common/video/mpeg4/vtc/pezw/libobj_vtc_pezw.la \
-	$(top_builddir)/common/video/mpeg4/vtc/wavelet/libobj_vtc_wavelet.la \
-	$(top_builddir)/common/video/mpeg4/vtc/main/libobj_vtc_main.la \
-	$(top_builddir)/common/video/mpeg4/vtc/main/libobj_vtc_main_dec.la \
-	$(top_builddir)/common/video/mpeg4/vtc/ztq/libobj_vtc_ztq.la \
-	$(top_builddir)/common/video/mpeg4/tools/entropy/libobj_tools_entropy.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/avi/libavi.la \

@@ -39,5 +39,7 @@ public:
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
 };
 
+CVideoEncoder* VideoEncoderCreate(const char* encoderName);
+
 #endif /* __VIDEO_ENCODER_H__ */
 

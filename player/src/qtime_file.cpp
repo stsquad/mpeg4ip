@@ -30,8 +30,11 @@
 #include "quicktime.h"
 #include "qtime_bytestream.h"
 #include "qtime_file.h"
-#include "mpeg4_audio_config.h"
+#include <mp4util/mpeg4_audio_config.h>
 #include "our_config_file.h"
+#include "codec_plugin_private.h"
+#include <gnu/strcasestr.h>
+#include <mp4v2/mp4.h>
 
 CQtimeFile *QTfile1 = NULL;
 static void close_qt_file (void)
@@ -46,12 +49,13 @@ static void close_qt_file (void)
  */
 int create_media_for_qtime_file (CPlayerSession *psptr, 
 				 const char *name,
-				 const char **errmsg,
+				 char *errmsg,
+				 uint32_t errlen,
 				 int have_audio_driver)
 {
   if (quicktime_check_sig(name) == 0) {
-    *errmsg = "File is not quicktime";
-    player_error_message("File %s is not quicktime", name);
+    snprintf(errmsg, errlen, "File %s is not a quicktime file", name);
+    player_error_message(errmsg);
     return (-1);
   }
  
@@ -64,32 +68,30 @@ int create_media_for_qtime_file (CPlayerSession *psptr,
   int video;
   video = QTfile1->create_video(psptr);
   if (video < 0) {
-    *errmsg = "Internal quicktime error";
+    snprintf(errmsg, errlen, "Internal quicktime video error");
     return (-1);
   }
-  player_debug_message("create video returned %d", video);
   int audio = 0;
   if (have_audio_driver > 0) {
     audio = QTfile1->create_audio(psptr);
     if (audio < 0) {
-      *errmsg = "Internal quicktime error";
+      snprintf(errmsg, errlen, "Internal quicktime audio error");
       return (-1);
     }
-    player_debug_message("create audio returned %d", audio);
   }
   if (audio == 0 && video == 0) {
-    *errmsg = "No valid codecs";
+    snprintf(errmsg, errlen, "No valid codecs in file %s", name);
     return (-1);
   }
   if (audio == 0 && QTfile1->get_audio_tracks() > 0) {
     if (have_audio_driver > 0) 
-      *errmsg = "Invalid Audio Codec";
+      snprintf(errmsg, errlen, "Invalid Audio Codec");
     else 
-      *errmsg = "No Audio driver - no sound";
+      snprintf(errmsg, errlen, "No Audio driver - no sound");
     return (1);
   }
   if ((QTfile1->get_video_tracks() != 0) && video == 0) {
-    *errmsg = "Invalid Video Codec";
+    snprintf(errmsg, errlen, "Invalid Video Codec");
     return (1);
   }
   return (0);
@@ -116,6 +118,9 @@ CQtimeFile::~CQtimeFile (void)
 int CQtimeFile::create_video (CPlayerSession *psptr)
 {
   CPlayerMedia *mptr;
+  codec_plugin_t *plugin;
+  int ret;
+
   int vid_cnt = 0;
   m_video_tracks = quicktime_video_tracks(m_qtfile);
   player_debug_message("qtime video tracks %d", m_video_tracks);
@@ -124,15 +129,76 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
     const char *codec_name = quicktime_video_compressor(m_qtfile, ix);
     if (codec_name == NULL) 
       continue;
+    int profileID = -1;
+    int type = -1;
 
-    if (lookup_video_codec_by_name(codec_name) < 0) {
+    if (strcasestr(m_name, ".mp4") != NULL && 
+	strcasecmp(codec_name, "mp4v") == 0) {
+      profileID = quicktime_get_iod_video_profile_level(m_qtfile);
+      codec_name = "mpeg4";
+      type = MP4_MPEG4_VIDEO_TYPE;
+    }
+
+    plugin = check_for_video_codec(codec_name,
+				   NULL, 
+				   type,
+				   profileID,
+				   NULL,
+				   0);
+    if (plugin == NULL) {
       player_debug_message("Couldn't find video codec %s", codec_name);
       continue;
     }
-    mptr = new CPlayerMedia;
+    mptr = new CPlayerMedia(psptr);
     if (mptr == NULL) {
       return (-1);
     }
+    
+    /*
+     * Set up vinfo structure
+     */
+    vinfo = (video_info_t *)malloc(sizeof(video_info_t));
+    if (vinfo == NULL) 
+      return (-1);
+    vinfo->height = quicktime_video_height(m_qtfile, ix);
+    vinfo->width = quicktime_video_width(m_qtfile, ix);
+    player_debug_message("qtime file h %d w %d frame rate %g", 
+			 vinfo->height,
+			 vinfo->width,
+			 quicktime_video_frame_rate(m_qtfile, ix));
+
+    /*
+     * See if there is userdata
+     */
+    unsigned char *foo;
+    int bufsize;
+#undef SORENSON
+#ifdef SORENSON
+    bufsize = 0;
+    ret = quicktime_video_sequence_header(m_qtfile, ix, NULL, &length);
+    if (ret < 0) {
+      bufsize = -ret;
+      unsigned char *foo = (unsigned char *)malloc(bufsize);
+      int ret2 = quicktime_video_sequence_header(m_qtfile, ix, foo, &bufsize);
+      if (ret2 != 1) {
+	player_debug_message("Weird error here %d %d", ret, ret2);
+	return (-1);
+      }
+    }
+#else
+    ret = quicktime_get_mp4_video_decoder_config(m_qtfile, ix, &foo, &bufsize);
+#endif
+    /*
+     * Create plugin
+     */
+    ret = mptr->create_video_plugin(plugin, 
+				    NULL,
+				    vinfo,
+				    foo,
+				    bufsize);
+    /*
+     * Create bytestream
+     */
     CQTVideoByteStream *vbyte;
     vbyte = new CQTVideoByteStream(this, ix);
     if (vbyte == NULL) {
@@ -144,65 +210,11 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
 		  quicktime_video_frame_rate(m_qtfile, ix),
 		  quicktime_video_time_scale(m_qtfile, ix));
     player_debug_message("Video Max time is %g", vbyte->get_max_playtime());
-    int ret = mptr->create_from_file(psptr, vbyte, TRUE);
+
+    ret = mptr->create_from_file(vbyte, TRUE);
     if (ret != 0) {
       return (-1);
     }
-    // This needs much work.  We need to figure a way to get extensions
-    // down to the audio and video codecs.
-    vinfo = (video_info_t *)malloc(sizeof(video_info_t));
-    if (vinfo == NULL) 
-      return (-1);
-    vinfo->height = quicktime_video_height(m_qtfile, ix);
-    vinfo->width = quicktime_video_width(m_qtfile, ix);
-    vinfo->frame_rate = (int)quicktime_video_frame_rate(m_qtfile, ix);
-    vinfo->file_has_vol_header = 0;
-#if 1
-    player_debug_message("video compressor is %s", codec_name);
-    if (strcasestr(m_name, ".mp4") != NULL && 
-	strcasecmp(codec_name, "mp4v") == 0) {
-      int profileID = quicktime_get_iod_video_profile_level(m_qtfile);
-      player_debug_message("Got profile ID %d", profileID);
-      if (profileID >= 1 && profileID <= 3) {
-	if (config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) == 1) {
-	  mptr->set_codec_type("mp4v");
-	} else
-	mptr->set_codec_type("divx");
-      } else {
-	mptr->set_codec_type(codec_name);
-      }
-    } else
-      mptr->set_codec_type(codec_name);
-#else
-    mptr->set_codec_type("mp4v");
-#endif
-    mptr->set_video_info(vinfo);
-    player_debug_message("qtime file h %d w %d frame rate %d", 
-			 vinfo->height,
-			 vinfo->width,
-			 vinfo->frame_rate);
-#undef SORENSON
-#ifdef SORENSON
-    int length = 0;
-    ret = quicktime_video_sequence_header(m_qtfile, ix, NULL, &length);
-    if (ret < 0) {
-      length = -ret;
-      unsigned char *foo = (unsigned char *)malloc(length);
-      int ret2 = quicktime_video_sequence_header(m_qtfile, ix, foo, &length);
-      if (ret2 != 1) {
-	player_debug_message("Weird error here %d %d", ret, ret2);
-	return (-1);
-      }
-      mptr->set_user_data(foo, length);
-    }
-#else
-    unsigned char *foo;
-    int bufsize;
-    ret = quicktime_get_mp4_video_decoder_config(m_qtfile, ix, &foo, &bufsize);
-    if (ret >= 0) {
-      mptr->set_user_data(foo, bufsize);
-    }
-#endif
     vid_cnt++;
 
   }
@@ -213,10 +225,11 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
 int CQtimeFile::create_audio (CPlayerSession *psptr)
 {
   CPlayerMedia *mptr;
-  unsigned char *foo;
-  int bufsize, ret;
+  unsigned char *ud;
+  int udsize, ret;
   long sample_rate;
   int samples_per_frame;
+  codec_plugin_t *plugin = NULL;
 
   m_audio_tracks = quicktime_audio_tracks(m_qtfile);
   if (m_audio_tracks > 0) {
@@ -225,15 +238,19 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     if (codec == NULL)
       return (0);
 
-    if (lookup_audio_codec_by_name(codec) < 0) {
+    ud = NULL;
+    udsize = 0;
+    ret = quicktime_get_mp4_audio_decoder_config(m_qtfile, 0, &ud, &udsize);
+
+    plugin = check_for_audio_codec(codec, NULL, -1, -1, ud, udsize);
+    if (plugin == NULL) {
       player_debug_message("Couldn't find audio codec %s", codec);
       return (0);
     }
-    ret = quicktime_get_mp4_audio_decoder_config(m_qtfile, 0, &foo, &bufsize);
-    if (ret >= 0 && foo != NULL) {
+    if (ret >= 0 && ud != NULL) {
       mpeg4_audio_config_t audio_config;
 
-      decode_mpeg4_audio_config(foo, bufsize, &audio_config);
+      decode_mpeg4_audio_config(ud, udsize, &audio_config);
 
       sample_rate = audio_config.frequency;
       if (audio_object_type_is_aac(&audio_config) != 0) {
@@ -251,26 +268,31 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
 			   sample_rate, samples_per_frame);
     }
     CQTAudioByteStream *abyte;
-    mptr = new CPlayerMedia;
+    mptr = new CPlayerMedia(psptr);
     if (mptr == NULL) {
       return (-1);
     }
+
+    audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
+    audio->freq = sample_rate;
+
+    int ret = mptr->create_audio_plugin(plugin,
+					NULL, // SDP info
+					audio,
+					ud,
+					udsize);
+    if (ret < 0) {
+      delete mptr;
+      return 0;
+    }
     abyte = new CQTAudioByteStream(this, 0);
     long len = quicktime_audio_length(m_qtfile, 0);
-    audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
-
-    audio->freq = sample_rate;
-    mptr->set_codec_type(quicktime_audio_compressor(m_qtfile, 0));
-    mptr->set_audio_info(audio);
     abyte->config(len, sample_rate, samples_per_frame);
     player_debug_message("audio Max time is %g len %ld", 
 			 abyte->get_max_playtime(), len);
-    ret = mptr->create_from_file(psptr, abyte, FALSE);
+    ret = mptr->create_from_file(abyte, FALSE);
     if (ret != 0) {
       return (-1);
-    }
-    if (foo != NULL) {
-      mptr->set_user_data(foo, bufsize);
     }
     return (1);
   }

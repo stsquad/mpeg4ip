@@ -10,7 +10,6 @@ liblive_gui_la_SOURCES = \
 	gui_utils.h \
 	audio_dialog.cpp \
 	recording_dialog.cpp \
-	transcode_dialog.cpp \
 	transmit_dialog.cpp \
 	video_dialog.cpp
 
@@ -19,6 +18,7 @@ INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/lib/SDL/include \
 	-I$(top_srcdir)/lib/mp4v2 \
+	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/msg_queue \
 	-I$(top_srcdir)/lib/rtp \
 	-I$(top_srcdir)/lib/sdp \
@@ -28,5 +28,5 @@ INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/server/video/ffmpeg \
 	-I$(top_srcdir)/player/lib
 
-AM_CXXFLAGS = -DTRANSCODER -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
+AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 

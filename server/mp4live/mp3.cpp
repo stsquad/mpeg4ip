@@ -47,36 +47,6 @@ static u_int16_t mp3SampleRates[4][3] = {
 	{ 44100, 48000, 32000 }		/* MPEG-1 */
 };
 
-static u_int16_t Mp3GetHdrSamplingRate(u_int32_t hdr)
-{
-	/* extract the necessary fields from the MP3 header */
-	u_int8_t version = (hdr >> 19) & 0x3; 
-	u_int8_t sampleRateIndex = (hdr >> 10) & 0x3;
-
-	return mp3SampleRates[version][sampleRateIndex];
-}
-
-static u_int16_t Mp3GetHdrSamplingWindow(u_int32_t hdr)
-{
-	u_int8_t version = (hdr >> 19) & 0x3; 
-	u_int8_t layer = (hdr >> 17) & 0x3; 
-	u_int16_t samplingWindow;
-
-	if (layer == 1) {
-		if (version == 3) {
-			samplingWindow = MP3_MPEG1_SAMPLES_PER_FRAME;
-		} else {
-			samplingWindow = MP3_MPEG2_SAMPLES_PER_FRAME;
-		}
-	} else if (layer == 2) {
-		samplingWindow = MP3_MPEG1_SAMPLES_PER_FRAME;
-	} else {
-		samplingWindow = MP3_MPEG1_SAMPLES_PER_FRAME / 3;
-	}
-
-	return samplingWindow;
-}
-
 /*
  * compute MP3 frame size
  */

@@ -76,50 +76,6 @@ void CQTByteStreamBase::check_for_end_of_frame (void)
   }
 }
 
-const char *CQTByteStreamBase::get_throw_error (int error)
-{
-  if (error == THROW_QTIME_END_OF_DATA)
-    return "Qtime - end of data";
-  else if (error == THROW_QTIME_END_OF_FRAME)
-    return "Qtime - end of frame";
-  player_debug_message("quicktime - unknown throw error %d", error);
-  return "Unknown error";
-}
-
-int CQTByteStreamBase::throw_error_minor (int error)
-{
-  return 0;
-}
-
-void CQTByteStreamBase::get_more_bytes (unsigned char **buffer,
-					uint32_t *buflen, 
-					uint32_t used,
-					int get)
-{
-  if ( get != 0)
-    throw THROW_QTIME_END_OF_FRAME;
-  // otherwise, just throw a couple of bytes of NULL there...
-  uint32_t
-  next_frame = m_frame_in_buffer + 1;
-  if (next_frame >= m_frames_max) {
-    throw THROW_QTIME_END_OF_DATA;
-  }
-  uint32_t diff;
-
-  if (used > m_this_frame_size) 
-    throw THROW_QTIME_END_OF_FRAME;
-  diff = m_this_frame_size - used;
-  if (diff > 0) {
-    memmove(m_buffer,
-	    m_buffer + used, 
-	    diff);
-  }
-  memset(m_buffer + diff, 4, 0);
-  m_byte_on = m_this_frame_size = diff;
-  *buffer = m_buffer;
-  *buflen = 4 + diff;
-}
-
 void CQTByteStreamBase::used_bytes_for_frame (uint32_t bytes_used)
 {
   m_byte_on += bytes_used;

@@ -43,7 +43,6 @@ protected:
 protected:
 	//{{AFX_MSG(CWmp4playerDoc)
 	afx_msg void OnFileClose();
-	afx_msg void OnFileOpen();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

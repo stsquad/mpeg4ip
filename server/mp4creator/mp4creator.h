@@ -22,8 +22,9 @@
 #ifndef __MP4CREATOR_INCLUDED__
 #define __MP4CREATOR_INCLUDED__ 
 
-#include "mpeg4ip.h"
-#include "mp4.h"
+#include <mpeg4ip.h>
+#include <mp4.h>
+#include <mp4av.h>
 
 #ifdef NODEBUG
 #define ASSERT(expr)
@@ -57,6 +58,5 @@
 
 MP4CREATOR_GLOBAL char* ProgName;
 MP4CREATOR_GLOBAL float VideoFrameRate;
-MP4CREATOR_GLOBAL u_int32_t MaxPayloadSize;
 
 #endif /* __MP4CREATOR_INCLUDED__ */

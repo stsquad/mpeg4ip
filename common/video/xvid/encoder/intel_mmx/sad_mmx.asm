@@ -191,8 +191,6 @@ sad16_xmm
 ;					const uint32_t stride,
 ;					const uint32_t best_sad);
 ;
-; experimental!
-;
 ;===========================================================================
 
 align 16
@@ -335,11 +333,11 @@ sad16_sse2
 		movdqu xmm1, [edi]		; cur
 		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
 		paddusw xmm2,xmm0		; sum += xmm0
-		add	esi, ecx
-		add	edi, ecx
 
-		movdq2q mm6, xmm2
-		movd eax, mm6
+		movd eax, xmm2
+		psrldq xmm2, 8
+		movd ecx, xmm2
+		add eax, ecx
 
 .ret	pop		ebx
 		pop 	edi

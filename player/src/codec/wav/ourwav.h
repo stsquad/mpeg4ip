@@ -25,24 +25,36 @@
 #ifndef __OURWAV_H__
 #define __OURWAV_H__ 1
 #include "systems.h"
-#include "codec.h"
-#include "audio.h"
+#include <SDL.h>
+#include "codec_plugin.h"
 
-class CWavCodec : public CAudioCodecBase {
- public:
-  CWavCodec(CAudioSync *a,
-	    COurInByteStream *pbytestrm,
-	    format_list_t *media_desc,
-	    audio_info_t *audio,
-	    const unsigned char *userdata = NULL,
-	    uint32_t userdata_size = 0);
-  ~CWavCodec();
-  int decode(uint64_t ts, int fromrtp, unsigned char *buffer, uint32_t buflen);
-  int skip_frame(uint64_t ts, unsigned char *buffer, uint32_t buflen);
-  void do_pause(void);
- private:
+#define m_vft c.v.audio_vft
+#define m_ifptr c.ifptr
+
+typedef struct wav_codec_t {
+  codec_data_t c;
   SDL_AudioSpec *m_sdl_config;
-  uint32_t m_bytes_per_sample;
-};
+  uint32_t m_bytes_per_channel;
+  int m_configured;
+  Uint8 *m_wav_buffer;
+  Uint32 m_wav_len;
+  Uint32 m_wav_buffer_on;
+} wav_codec_t;
+
+codec_data_t *wav_file_check(lib_message_func_t message,
+			     const char *name,
+			     double *max,
+			     char *desc[4]);
+
+int wav_file_next_frame(codec_data_t *ifptr,
+			unsigned char **buffer,
+			uint64_t *ts);
+int wav_file_eof(codec_data_t *ifptr);
+
+void wav_file_used_for_frame(codec_data_t *ifptr,
+			     uint32_t bytes);
+
+int wav_raw_file_seek_to(codec_data_t *ifptr,
+			 uint64_t ts);
 
 #endif

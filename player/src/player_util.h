@@ -21,16 +21,6 @@
 #ifndef __PLAYER_UTIL_H__
 #define __PLAYER_UTIL_H__
 
-typedef struct video_info_t {
-  int height;
-  int width;
-  int frame_rate;
-  int file_has_vol_header;
-} video_info_t;
-
-typedef struct audio_info_t {
-  int freq;
-} audio_info_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,7 +47,11 @@ void player_library_message(int loglevel,
 			    const char *lib,
 			    const char *fmt,
 			    va_list ap);
-char *strcasestr(const char *haystack, const char *needle);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #ifdef _WIN32
 #define DEFINE_MESSAGE_MACRO(funcname, libname) \
@@ -70,9 +64,6 @@ static inline void funcname (int loglevel, const char *fmt, ...) \
 } 
 #else
 #define DEFINE_MESSAGE_MACRO(funcname, libname) 
-#endif
-#ifdef __cplusplus
-}
 #endif
 
 #endif

@@ -25,7 +25,6 @@
 
 static GtkWidget *dialog;
 static GtkWidget *file_entry;
-static GtkWidget *filesel;
 
 static GtkWidget *video_raw_button;
 static GtkWidget *video_encoded_button;
@@ -120,31 +119,9 @@ static void Save()
 	DisplayRecordingSettings();
 }
 
-static void on_filename_selected (GtkFileSelection *widget, 
-				  gpointer data)
-{
-  const gchar *name;
-  name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(filesel));
-  gtk_entry_set_text(GTK_ENTRY(file_entry), name);
-  gtk_widget_show(file_entry);
-  gtk_grab_remove(filesel);
-  gtk_widget_destroy(filesel);
-}
-
 static void on_browse_button (GtkWidget *widget, gpointer *data)
 {
-  filesel = gtk_file_selection_new("Select File to Record Into");
-  gtk_file_selection_hide_fileop_buttons(GTK_FILE_SELECTION(filesel));
-  gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button),
-		     "clicked",
-		     GTK_SIGNAL_FUNC(on_filename_selected),
-		     filesel);
-  gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(filesel)->cancel_button),
-		     "clicked",
-		     GTK_SIGNAL_FUNC(gtk_widget_destroy),
-		     GTK_OBJECT(filesel));
-  gtk_widget_show(filesel);
-  gtk_grab_add(filesel);
+	FileBrowser(file_entry);
 }
 
 static void on_ok_button (GtkWidget *widget, gpointer *data)

@@ -33,6 +33,30 @@ Package=<4>
 
 ###############################################################################
 
+Project: "SDL"=.\lib\SDL\VisualC\SDL\SDL.DSP - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "SDLmain"=.\lib\SDL\VisualC\SDLMain\SDLMain.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "avi2raw"=.\server\util\avi2raw\avi2raw.dsp - Package Owner=<4>
 
 Package=<5>
@@ -326,6 +350,24 @@ Package=<5>
 
 Package=<4>
 {{{
+}}}
+
+###############################################################################
+
+Project: "yuvdump"=.\UTIL\YUV\yuvdump.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name SDL
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name SDLmain
+    End Project Dependency
 }}}
 
 ###############################################################################

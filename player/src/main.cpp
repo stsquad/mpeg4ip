@@ -22,6 +22,7 @@
  * This is a command line based player for testing the library
  */
 #include "systems.h"
+#include "codec_plugin_private.h"
 #include <rtsp/rtsp_client.h>
 #include "player_session.h"
 #include "player_media.h"
@@ -162,8 +163,8 @@ static int start_session (const char *name, int max_loop)
     return (-1);
   }
   
-  const char *errmsg;
-  int ret = parse_name_for_session(psptr, name, &errmsg);
+  char errmsg[512];
+  int ret = parse_name_for_session(psptr, name, errmsg, sizeof(errmsg));
   if (ret < 0) {
     player_debug_message("%s %s", errmsg, name);
     delete psptr;
@@ -239,6 +240,7 @@ int main (int argc, char **argv)
   int max_loop = 1;
   char *name;
   
+  initialize_plugins();
   config.read_config_file();
   rtsp_set_error_func(player_library_message);
   rtsp_set_loglevel(config.get_config_value(CONFIG_RTSP_DEBUG));
@@ -297,7 +299,9 @@ int main (int argc, char **argv)
     player_debug_message("Freeing invalid port %u", first->get_port_num());
     delete first;
   }
-     
+
+  close_plugins();
+
   return(0); 
 }  
   

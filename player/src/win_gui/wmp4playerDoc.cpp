@@ -20,7 +20,6 @@ IMPLEMENT_DYNCREATE(CWmp4playerDoc, CDocument)
 BEGIN_MESSAGE_MAP(CWmp4playerDoc, CDocument)
 	//{{AFX_MSG_MAP(CWmp4playerDoc)
 	ON_COMMAND(ID_FILE_CLOSE, OnFileClose)
-	ON_COMMAND(ID_FILE_OPEN, OnFileOpen)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -97,8 +96,3 @@ void CWmp4playerDoc::OnFileClose()
 	theApp.StopSession();
 }
 
-void CWmp4playerDoc::OnFileOpen() 
-{
-	// TODO: Add your command handler code here
-	OutputDebugString("Doc on file open\n");
-}

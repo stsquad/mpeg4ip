@@ -13,6 +13,7 @@
 #include "our_config_file.h"
 #include <rtp/debug.h>
 #include <libhttp/http.h>
+#include "codec_plugin_private.h"
 
 static int session_paused;
 static int screen_size = 2;
@@ -51,7 +52,7 @@ int main (int argc, char **argv)
 		close_output();
 		return -1;
 	}
-
+	initialize_plugins();
 	argv++;
 	argc--;
 
@@ -137,6 +138,7 @@ int main (int argc, char **argv)
 		player_debug_message("Freeing invalid port %u", first->get_port_num());
 		delete first;
 	}
+	close_plugins();
 	config.write_config_file("Software\\Mpeg4ip", "Config");
 	close_output();
 	return 0;

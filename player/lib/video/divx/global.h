@@ -56,8 +56,7 @@
 **/
 
 // getbits.c 
-typedef void (*get_more_t)(void *, unsigned char **, unsigned int *, unsigned int, int);
-void initbits(get_more_t get, void *);
+void initbits(void);
 void init_frame_bits(unsigned char *buffer,
 		      unsigned int buflen);
 
@@ -155,17 +154,12 @@ EXTERN mp4_header mp4_hdr;
 EXTERN struct _base
 {
   // bit input
-  get_more_t get_more;
-  void *ud;
   int infile;
   unsigned char rdbfr[2051];
   unsigned char *rdptr;
-  unsigned char *endptr;
-  unsigned int buflen;
   unsigned char inbfr[16];
   int incnt;
   int bitcnt;
-  int get;
   // block data
   short block[6][64];
 } base, *ld;

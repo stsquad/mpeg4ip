@@ -26,13 +26,12 @@
 
 #include "mp4live_config.h"
 #include "media_flow.h" 
-#include "transcoder.h"
 
 // From gui_main.cpp
 extern CLiveConfig* MyConfig;
-extern CMediaFlow* AVFlow;
-extern CAVLiveMediaFlow* AVLive;
-extern CAVTranscodeMediaFlow* AVTranscode;
+extern CAVMediaFlow* AVFlow;
+extern CAVMediaFlow* AVLive;
+extern CAVMediaFlow* AVTranscode;
 
 void NewVideoWindow(void);
 void DisplayVideoSettings(void);

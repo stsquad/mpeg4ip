@@ -327,7 +327,7 @@ int CAudioSync::is_audio_ready (uint64_t &disptime)
 uint64_t CAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 {
   if (m_eof_found != 0) {
-    have_eof = 1;
+    have_eof = m_audio_paused;
     return (0);
   }
   // audio is initialized.

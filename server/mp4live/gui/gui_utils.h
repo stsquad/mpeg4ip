@@ -94,7 +94,14 @@ void SetEntryValidator(GtkObject* object,
 	GtkSignalFunc changed_func, GtkSignalFunc leave_func);
 
 // from gui_showmsg.cpp
-void ShowMessage (const char *szTitle, const char *szMessage);
+GtkWidget* ShowMessage (
+	const char *szTitle, 
+	const char *szMessage,
+	bool userDismiss = true);
+
+void CloseShowMessage(
+	GtkWidget* parent, 
+	gpointer widget);
 
 #define CreateMenuItemSeperator(menu) \
 	CreateMenuItem(menu, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -104,6 +111,8 @@ void YesOrNo (const char *szTitle,
 	      int yes_as_default,
 	      GtkSignalFunc yesroutine,
 	      GtkSignalFunc noroutine);
+
+void FileBrowser(GtkWidget* entry);
 
 #endif /* __GUIUTILS_H__ */
 

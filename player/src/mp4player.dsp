@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /I "../../../include" /I "../lib/SDL/include" /I "../../include" /I "../lib" /I "../../lib" /I "../../lib/SDL/include" /I "../../common/video/mpeg4" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /I "../../../include" /I "../lib/SDL/include" /I "../../include" /I "../lib" /I "../../lib" /I "../../lib/SDL/include" /I "../../common/video/mpeg4" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /D "WIN32" /D "NDEBUG" /D "_WIN32" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o NUL /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -64,12 +64,12 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "mp4playe"
-# PROP Intermediate_Dir "mp4playe"
+# PROP Output_Dir "Debug"
+# PROP Intermediate_Dir "Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "../../lib" /I "../../lib/SDL/include" /I "../../include" /I "../lib" /I "../../common/video/mpeg4" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /D "_CONSOLE" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "../../lib" /I "../../lib/SDL/include" /I "../../include" /I "../lib" /I "../../common/video/mpeg4" /D "_WINDOWS" /D _WIN32_WINNT=0x0400 /D "_CONSOLE" /D "WIN32" /D "_DEBUG" /D "_WIN32" /FR /YX /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o NUL /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o NUL /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -79,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 ws2_32.lib wininet.lib ..\..\lib\SDL\VisualC\SDL\Debug\SDL.lib advapi32.lib /nologo /subsystem:windows /debug /machine:I386 /nodefaultlib:"libcd.lib" /nodefaultlib:"msvcrt.lib" /out:"debug/mp4player.exe" /pdbtype:sept
+# ADD LINK32 kernel32.lib ws2_32.lib wininet.lib ..\..\lib\SDL\VisualC\SDL\Debug\SDL.lib advapi32.lib /nologo /subsystem:windows /debug /machine:I386 /nodefaultlib:"libcd.lib" /nodefaultlib:"msvcrt.lib" /pdbtype:sept
 # SUBTRACT LINK32 /nodefaultlib
 # Begin Special Build Tool
 SOURCE=$(InputPath)

@@ -185,7 +185,7 @@ int getvophdr(void)
 	next_start_code();
 
 	temp = showbits(32);
-	while (temp != (int) VOP_START_CODE)
+	if (temp != (int) VOP_START_CODE)
 	  {
 	    if (((temp >> 4) == VOL_START_CODE) ||
 		((temp >> 5) == VO_START_CODE)) {
@@ -196,6 +196,8 @@ int getvophdr(void)
 	    } else 
 	      getbits(8);
 	    temp = showbits(32);
+	    if (temp != (int) VOP_START_CODE) return 0;
+	    
 	  }
 	flushbits(32);
 	mp4_hdr.prediction_type = getbits(2);

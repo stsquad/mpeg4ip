@@ -112,7 +112,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "DEBUG" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "..\tcl-8.0\generic" /I "..\tk-8.0\generic" /I "..\tk-8.0\xlib" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "DEBUG" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -434,45 +434,6 @@ SOURCE=.\version.h
 # Begin Source File
 
 SOURCE=.\VERSION
-
-!IF  "$(CFG)" == "common - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "common - Win32 Debug IPv6"
-
-# Begin Custom Build
-InputPath=.\VERSION
-
-"version.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy win32\set.txt + VERSION win32\vergen.bat 
-	copy win32\vergen.bat + win32\null.txt win32\vergen.bat 
-	copy win32\vergen.bat + win32\echo.txt win32\vergen.bat 
-	win32\vergen.bat 
-	move win32\version.h version.h 
-	erase win32\version.h 
-	erase win32\vergen.bat 
-	
-# End Custom Build
-
-!ELSEIF  "$(CFG)" == "common - Win32 Debug IPv6 Musica"
-
-!ELSEIF  "$(CFG)" == "common - Win32 Debug"
-
-# Begin Custom Build
-InputPath=.\VERSION
-
-"version.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	copy win32\set.txt + VERSION win32\vergen.bat 
-	copy win32\vergen.bat + win32\null.txt win32\vergen.bat 
-	copy win32\vergen.bat + win32\echo.txt win32\vergen.bat 
-	win32\vergen.bat 
-	move win32\version.h version.h 
-	erase win32\version.h 
-	erase win32\vergen.bat 
-	
-# End Custom Build
-
-!ENDIF 
-
 # End Source File
 # End Target
 # End Project

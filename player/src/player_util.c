@@ -59,7 +59,7 @@ void player_error_message (const char *fmt, ...)
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG)
+#if defined(_WIN32) && defined(_DEBUG) && !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
   if (IsDebuggerPresent()) {
         char msg[512];
 
@@ -93,7 +93,7 @@ void player_debug_message (const char *fmt, ...)
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG)
+#if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
   if (IsDebuggerPresent()) {
        char msg[512];
 
@@ -128,7 +128,7 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG)
+#if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
   if (IsDebuggerPresent()) {
        char msg[512];
 
@@ -164,7 +164,7 @@ void player_library_message (int loglevel,
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG)
+#if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
 	if (IsDebuggerPresent()) {
   char msg[512];
 
@@ -195,22 +195,4 @@ void player_library_message (int loglevel,
 }
 
 
-#ifndef HAVE_STRCASESTR
-char *strcasestr (const char *haystack, const char *needle)
-{
-  uint32_t nlen, hlen;
-  uint32_t ix;
-
-  if (needle == NULL || haystack == NULL) return (NULL);
-  nlen = strlen(needle);
-  hlen = strlen(haystack);
- 
-  for (ix = 0; ix + nlen <= hlen; ix++) {
-    if (strncasecmp(needle, haystack + ix, nlen) == 0) {
-      return ((char *)haystack + ix);
-    }
-  }
-  return (NULL);
-}
-#endif
 /* end file player_util.c */

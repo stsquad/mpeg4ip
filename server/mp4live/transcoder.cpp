@@ -21,7 +21,6 @@
 
 #include "mp4live.h"
 #include "transcoder.h"
-#include <sys/wait.h>
 
 #ifdef ADD_FFMPEG_ENCODER
 #include "video_ffmpeg.h"
@@ -353,11 +352,16 @@ void CTranscoder::DoTranscode()
 
 		m_srcVideoSampleId += numSamples;
 
+		// all done
 		if (m_srcVideoSampleId >= m_srcVideoNumSamples) {
 			DoStopTranscode();
 
+			// add hint track
 			if (m_videoDstType == MP4_MPEG4_VIDEO_TYPE) {
-				HintTrack(m_dstMp4FileName, m_dstVideoTrackId);
+				MP4AV_Rfc3016Hinter(
+					m_dstMp4File, 
+					m_dstVideoTrackId,
+					m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
 			}
 		}
 	}
@@ -375,10 +379,24 @@ void CTranscoder::DoTranscode()
 
 		m_srcAudioSampleId += numSamples;
 
+		// all done
 		if (m_srcAudioSampleId >= m_srcAudioNumSamples) {
 			DoStopTranscode();
 
-			HintTrack(m_dstMp4FileName, m_dstAudioTrackId);
+			if (m_audioDstType == MP4_MP3_AUDIO_TYPE) {
+				MP4AV_Rfc2250Hinter(
+					m_dstMp4File, 
+					m_dstAudioTrackId, 
+					false, 
+					m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+
+			} else if (m_audioDstType == MP4_MPEG4_AUDIO_TYPE) {
+				MP4AV_RfcIsmaHinter(
+					m_dstMp4File, 
+					m_dstAudioTrackId, 
+					false, 
+					m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+			}
 		}
 	}
 }
@@ -474,8 +492,10 @@ bool CTranscoder::DoVideoTrack(
 		if (vopBufLength != 0) {
 			// determine if image was encoded as an I(ntra) frame
 			bool isIFrame = false;
+
 			if (m_videoDstType == MP4_MPEG4_VIDEO_TYPE) {
-				isIFrame = ((vopBuf[4] >> 6) == 0);
+				isIFrame = 
+					(MP4AV_Mpeg4GetVopType(vopBuf, vopBufLength) == 'I');
 			} else {
 				// TBD H.26L I frame
 			}
@@ -632,33 +652,6 @@ u_int64_t CTranscoder::GetEstSize()
 
 	return (u_int64_t)
 		((double)((videoBytesPerSec + audioBytesPerSec) * seconds) * 1.025);
-}
-
-bool CTranscoder::HintTrack(const char* dstMp4FileName, MP4TrackId trackId)
-{
-	// TEMP use external mp4creator executable
-	// to do the hinting. Longer term solution is
-	// to restructure mp4creator to expose a hinter library
-	// that can be used for both the transcoder and the mp4 recorder
-
-	pid_t pid = fork();
-
-	if (pid == -1) {
-		return false;
-	}
-	if (pid == 0) { // child, exec mp4creator
-		char arg1[16];
-		snprintf(arg1, sizeof(arg1), "-hint=%u", trackId);
-
-		execlp("mp4creator", 
-			"mp4creator", arg1, dstMp4FileName, NULL);
-
-	} else { // parent, wait for child
-		int status;
-		waitpid(pid, &status, 0);
-		return (WEXITSTATUS(status) == 0);
-	}
-	return false;
 }
 
 void CTranscoder::DoStopTranscode()

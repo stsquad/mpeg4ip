@@ -59,6 +59,7 @@ Revision History
 #include "entropy/bitstrm.hpp"
 #include "entropy/entropy.hpp"
 #include "entropy/huffman.hpp"
+#include "grayf.hpp"
 #include "dct.hpp"
 #include "vopses.hpp"
 #include "vopsedec.hpp"

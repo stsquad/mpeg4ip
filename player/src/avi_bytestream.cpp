@@ -53,22 +53,6 @@ int CAviByteStreamBase::eof(void)
   return m_eof != 0;
 }
 
-
-
-const char *CAviByteStreamBase::get_throw_error (int error)
-{
-  if (error == THROW_AVI_BUFFER_OVERFLOW) {
-    return "AVI Buffer overflow";
-  }
-  player_debug_message("Avi bytestream - unknown throw %d", error);
-  return "Unknown";
-}
-
-int CAviByteStreamBase::throw_error_minor (int error)
-{
-  return 1;
-}
-
 /**************************************************************************
  * Quicktime video stream functions
  **************************************************************************/
@@ -104,33 +88,6 @@ void CAviVideoByteStream::used_bytes_for_frame (uint32_t bytes)
   m_total += bytes;
 }
 
-void CAviVideoByteStream::get_more_bytes (unsigned char **buffer,
-					  uint32_t *buflen,
-					  uint32_t used,
-					  int get)
-{
-  if (get != 0) 
-    throw THROW_AVI_END_OF_FRAME;
-  uint32_t next_frame;
-  next_frame = m_frame_in_buffer + 1;
-  if (next_frame >= m_frames_max) {
-    throw THROW_AVI_BUFFER_OVERFLOW;
-  }
-  uint32_t diff;
-  if (m_this_frame_size <= used) throw THROW_AVI_END_OF_FRAME;
-  diff = m_this_frame_size - used;
-  m_total += used;
-  if (diff > 0) {
-    memmove(m_buffer_on,
-	    m_buffer_on + used, 
-	    diff);
-  }
-  memset(m_buffer_on + diff, 4, 0);
-  m_byte_on = 0;
-  m_this_frame_size = diff;
-  *buffer = m_buffer_on;
-  *buflen = 4 + diff;
-}
 /*
  * read_frame for video - this will try to read the next frame - it
  * tries to be smart about reading it 1 time if we've already read it
@@ -211,34 +168,6 @@ uint64_t CAviAudioByteStream::start_next_frame (unsigned char **buffer,
 void CAviAudioByteStream::used_bytes_for_frame (uint32_t bytes)
 {
   m_total += bytes;
-}
-
-void CAviAudioByteStream::get_more_bytes (unsigned char **buffer,
-					  uint32_t *buflen,
-					  uint32_t used,
-					  int get)
-{
-  if (get != 0) 
-    throw THROW_AVI_END_OF_FRAME;
-  uint32_t next_frame;
-  next_frame = m_frame_in_buffer + 1;
-  if (next_frame >= m_frames_max) {
-    throw THROW_AVI_BUFFER_OVERFLOW;
-  }
-  uint32_t diff;
-  if (m_this_frame_size <= used) throw THROW_AVI_END_OF_FRAME;
-  diff = m_this_frame_size - used;
-  m_total += used;
-  if (diff > 0) {
-    memmove(m_buffer_on,
-	    m_buffer_on + used, 
-	    diff);
-  }
-  memset(m_buffer_on + diff, 4, 0);
-  m_byte_on = 0;
-  m_this_frame_size = diff;
-  *buffer = m_buffer_on;
-  *buflen = 4 + diff;
 }
 
 void CAviAudioByteStream::read_frame (uint32_t frame_to_read)

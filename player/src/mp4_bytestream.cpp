@@ -97,28 +97,12 @@ void CMp4ByteStream::check_for_end_of_frame (void)
 		 m_name, 
 		 next_frame); 
 #endif
-    if (next_frame >= m_frames_max) {
+    if (next_frame >= m_frames_max + 1) {
 	m_eof = 1;
     } else {
       read_frame(next_frame);
     }
   }
-}
-
-const char *CMp4ByteStream::get_throw_error (int error)
-{
-  if (error == THROW_MP4_END_OF_DATA)
-    return "MP4 - end of data";
-  else if (error == THROW_MP4_END_OF_FRAME) 
-    return "MP4 - end of frame";
-
-  mp4f_message(LOG_INFO, "MP4 - unknown throw error %d", error);
-  return "Unknown error";
-}
-
-int CMp4ByteStream::throw_error_minor (int error)
-{
-  return 0;
 }
 
 void CMp4ByteStream::set_timebase (MP4SampleId frame)
@@ -176,36 +160,6 @@ int CMp4ByteStream::skip_next_frame (uint64_t *pts,
   return (1);
 }
 
-void CMp4ByteStream::get_more_bytes (unsigned char **buffer, 
-				     uint32_t *buflen, 
-				     uint32_t used,
-				     int get)
-{
-  if (get != 0)
-    throw THROW_MP4_END_OF_FRAME;
-  // otherwise, just throw a couple of bytes of NULL there...
-  uint32_t next_frame;
-  next_frame = m_frame_in_buffer + 1;
-  if (next_frame >= m_frames_max) {
-    throw THROW_MP4_END_OF_DATA;
-  }
-  uint32_t diff;
-  if (m_this_frame_size < used) {
-    throw THROW_MP4_END_OF_FRAME;
-  }
-  diff = m_this_frame_size - used;
-  m_total += used;
-  if (diff > 0) {
-    memmove(m_buffer,
-	    m_buffer + used, 
-	    diff);
-  }
-  memset(m_buffer + diff, 8, 0);
-  m_byte_on = 0;
-  m_this_frame_size = diff;
-  *buffer = m_buffer;
-  *buflen = 8 + diff;
-}
 /*
  * read_frame for video - this will try to read the next frame - it
  * tries to be smart about reading it 1 time if we've already read it

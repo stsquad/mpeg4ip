@@ -33,7 +33,10 @@ public:
 
 	virtual bool GetEncodedSamples(
 		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
+
 };
+
+CAudioEncoder* AudioEncoderCreate(const char* encoderName);
 
 #endif /* __AUDIO_ENCODER_H__ */
 

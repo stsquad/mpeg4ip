@@ -3,7 +3,7 @@ AC_INIT()
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.1)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.2)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -13,6 +13,7 @@ AC_CANONICAL_TARGET
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX(c++)
+AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 AC_PROG_LIBTOOL
 AC_PATH_XTRA
@@ -198,6 +199,10 @@ BILLS_CWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-
 BILLS_CPPWARNINGS="-Wall -Werror -Wmissing-prototypes -Wmissing-declarations -Wno-char-subscripts -Woverloaded-virtual -Wno-unknown-pragmas"
 AC_SUBST(BILLS_CWARNINGS)
 AC_SUBST(BILLS_CPPWARNINGS)
+
+PLAYER_PLUGIN_DIR=$libdir/mp4player_plugin
+AC_SUBST(PLAYER_PLUGIN_DIR)
+
 dnl Now output the Makefile's
 AC_OUTPUT( \
 	Makefile \
@@ -222,11 +227,13 @@ AC_OUTPUT( \
 	lib/avi/Makefile \
 	lib/bitstream/Makefile \
 	lib/config_file/Makefile \
+	lib/fposrec/Makefile \
 	lib/gnu/Makefile \
 	lib/mp4/Makefile \
 	lib/mp4v2/Makefile \
 	lib/mp4v2/test/Makefile \
 	lib/mp4v2/util/Makefile \
+	lib/mp4av/Makefile \
 	lib/msg_queue/Makefile \
 	lib/sdp/Makefile \
 	common/Makefile \
@@ -270,8 +277,14 @@ AC_OUTPUT( \
 	player/lib/audio/Makefile \
 	player/lib/audio/faad/Makefile \
 	player/lib/audio/mp3/Makefile \
+	player/lib/mp4util/Makefile \
 	player/lib/video/Makefile \
 	player/lib/video/divx/Makefile \
+	player/plugin/Makefile \
+	player/plugin/audio/Makefile \
+	player/plugin/audio/raw/Makefile \
+	player/plugin/video/Makefile \
+	player/plugin/video/raw/Makefile \
 	player/src/Makefile \
 	player/src/codec/Makefile \
 	player/src/codec/aa/Makefile \

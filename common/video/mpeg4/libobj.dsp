@@ -40,7 +40,7 @@ CPP=cl.exe
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "sys" /I "sys/encoder" /I "sys/decoder" /I "type" /I "tools" /I "tools/entropy" /I "vtc" /I "vtc/include" /I "vtc/main" /I "vtc/pezw" /I "vtc/wavelet" /I "vtc/zte" /I "vtc/ztq" /I "..\..\..\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "__PC_COMPILER_" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "sys" /I "sys/encoder" /I "sys/decoder" /I "type" /I "tools" /I "tools/entropy" /I "vtc" /I "vtc/include" /I "vtc/main" /I "vtc/pezw" /I "vtc/wavelet" /I "vtc/zte" /I "vtc/ztq" /I "..\..\..\include" /D "_WINDOWS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "__PC_COMPILER_" /D "WIN32" /D "NDEBUG" /D "_WIN32" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -62,7 +62,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "sys" /I "sys/encoder" /I "sys/decoder" /I "type" /I "tools" /I "tools/entropy" /I "vtc" /I "vtc/include" /I "vtc/main" /I "vtc/pezw" /I "vtc/wavelet" /I "vtc/zte" /I "vtc/ztq" /I "..\..\..\include" /D "_DEBUG" /D "__PC_COMPILER_" /D "WIN32" /D "_WINDOWS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "sys" /I "sys/encoder" /I "sys/decoder" /I "type" /I "tools" /I "tools/entropy" /I "vtc" /I "vtc/include" /I "vtc/main" /I "vtc/pezw" /I "vtc/wavelet" /I "vtc/zte" /I "vtc/ztq" /I "..\..\..\include" /D "__PC_COMPILER_" /D "_WINDOWS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /D "WIN32" /D "_DEBUG" /D "_WIN32" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo

@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bits.c,v 1.3 2001/12/18 01:12:37 wmaycisco Exp $
+ * $Id: bits.c,v 1.4 2002/03/20 22:45:34 wmaycisco Exp $
  */
 
 #include <assert.h>
@@ -36,15 +36,13 @@ unsigned int faad_bit_msk[33] =
 };
 
 /* initialize buffer, call once before first getbits or showbits */
-void faad_initbits(bitfile *ld, char *buffer, uint32_t buflen)
+void faad_initbits(bitfile *ld, char *buffer)
 {
 	ld->incnt = 0;
 	ld->framebits = 0;
 	ld->bitcnt = 0;
 	ld->buffer = buffer;
 	ld->rdptr = buffer;
-	ld->orig_buflen = ld->buflen = buflen;
-	ld->framebits_max = buflen * 8;
 }
 
 
@@ -63,7 +61,6 @@ uint32_t faad_getbits_fast(bitfile *ld, int n)
 {
 	unsigned int l;
 
-	check_buffer(ld, n);
 	l =  (unsigned char) (ld->rdptr[0] << ld->bitcnt);
 	l |= ((unsigned int) ld->rdptr[1] << ld->bitcnt)>>8;
 	l <<= n;
@@ -73,7 +70,6 @@ uint32_t faad_getbits_fast(bitfile *ld, int n)
 	ld->framebits += n;
 
 	ld->rdptr += (ld->bitcnt>>3);
-	ld->buflen -= (ld->bitcnt>>3);
 	ld->bitcnt &= 7;
 
 	return l;
@@ -82,13 +78,11 @@ uint32_t faad_getbits_fast(bitfile *ld, int n)
 uint32_t faad_get1bit(bitfile *ld)
 {
 	unsigned char l;
-	check_buffer(ld, 1);
 	l = *ld->rdptr << ld->bitcnt;
 
 	ld->bitcnt++;
 	ld->framebits++;
 	ld->rdptr += (ld->bitcnt>>3);
-	ld->buflen -= (ld->bitcnt>>3);
 	ld->bitcnt &= 7;
 
 	return l>>7;

@@ -34,10 +34,10 @@ int CRtpTransmitter::ThreadMain(void)
 				DoStopTransmit();
 				delete pMsg;
 				return 0;
-			case MSG_START_TRANSMIT:
+			case MSG_NODE_START:
 				DoStartTransmit();
 				break;
-			case MSG_STOP_TRANSMIT:
+			case MSG_NODE_STOP:
 				DoStopTransmit();
 				break;
 			case MSG_SINK_FRAME:

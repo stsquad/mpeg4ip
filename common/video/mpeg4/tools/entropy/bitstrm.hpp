@@ -44,9 +44,7 @@ Revision History:
 
 #ifndef _BITSTREAM_HPP_
 #define _BITSTREAM_HPP_
-//#include <streambuf.h>
 #include "inbits.h"
-//#include "bytestrm.hpp"
 class istream;
 class ostream;
 

@@ -44,7 +44,7 @@ Revision History:
 
 Class CTransform;
 
-Class CBlockDCT : public CTransform
+Class CBlockDCT// : public CTransform
 {
 public:
 	// Constructors

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -25,13 +25,21 @@
 typedef u_int32_t MP4AV_Mp3Header;
 
 u_int8_t MP4AV_Mp3GetHdrVersion(MP4AV_Mp3Header hdr);
+
 u_int8_t MP4AV_Mp3GetHdrLayer(MP4AV_Mp3Header hdr);
+
 u_int16_t MP4AV_Mp3GetHdrSamplingRate(MP4AV_Mp3Header hdr);
+
 u_int16_t MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3Header hdr);
+
 u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr);
+
 u_int16_t MP4AV_Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize);
+
 u_int8_t MP4AV_Mp3GetCrcSize(MP4AV_Mp3Header hdr);
+
 u_int8_t MP4AV_Mp3GetSideInfoSize(MP4AV_Mp3Header hdr);
+
 u_int8_t MP4AV_Mp3ToMp4AudioType(u_int8_t mpegVersion);
 
 #endif /* __MP4AV_MP3_INCLUDED__ */

@@ -23,6 +23,7 @@
 #define __MP4_TRANSCODER_H__
 
 #include <mp4.h>
+#include <mp4av.h>
 #include "media_node.h"
 #include "video_encoder.h"
 #include "video_decoder.h"
@@ -71,8 +72,6 @@ public:
 	float GetProgress();
 
 	u_int64_t GetEstSize();
-
-	static bool HintTrack(const char* dstMp4FileName, MP4TrackId trackId);
 
 protected:
 	static const int MSG_START_TRANSCODE	= 1;

@@ -21,8 +21,8 @@
  */
 
 #include "mp4live.h"
-#include "video_source.h"
-#include "audio_source.h"
+#include "video_v4l_source.h"
+#include "audio_oss_source.h"
 
 CLiveConfig::CLiveConfig(
 	SConfigVariable* variables, 
@@ -117,5 +117,40 @@ void CLiveConfig::UpdateRecord()
 
 	m_recordEstFileSize = (u_int64_t)
 		((double)((videoBytesPerSec + audioBytesPerSec) * duration) * 1.025);
+}
+
+bool CLiveConfig::IsOneSource()
+{
+	bool sameSourceType =
+		!strcasecmp(GetStringValue(CONFIG_VIDEO_SOURCE_TYPE),
+			GetStringValue(CONFIG_AUDIO_SOURCE_TYPE));
+
+	if (!sameSourceType) {
+		return false;
+	}
+
+	bool sameSourceName =
+		!strcmp(GetStringValue(CONFIG_VIDEO_SOURCE_NAME),
+			GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+
+	return sameSourceName;
+}
+
+bool CLiveConfig::IsFileVideoSource()
+{
+	const char *sourceType =
+		GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
+
+	return !strcasecmp(sourceType, FILE_SOURCE_MP4)
+		|| !strcasecmp(sourceType, FILE_SOURCE_MPEG2);
+}
+
+bool CLiveConfig::IsFileAudioSource()
+{
+	const char *sourceType =
+		GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
+
+	return !strcasecmp(sourceType, FILE_SOURCE_MP4)
+		|| !strcasecmp(sourceType, FILE_SOURCE_MPEG2);
 }
 

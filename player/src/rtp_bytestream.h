@@ -31,8 +31,6 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 
-#define THROW_RTP_DECODE_ACROSS_TS ((int) 1)
-#define THROW_RTP_BASE_MAX 1
 class CRtpByteStreamBase : public COurInByteStream
 {
  public:
@@ -60,8 +58,6 @@ class CRtpByteStreamBase : public COurInByteStream
     m_skip_on_advance_bytes = bytes_to_skip;
   };
   double get_max_playtime (void) { return 0.0; };
-  const char *get_throw_error(int error);
-  int throw_error_minor(int error);
 
   // various routines for RTP interface.
   void set_rtp_rtptime(uint32_t t) { m_rtp_rtptime = t;};
@@ -126,7 +122,6 @@ class CRtpByteStream : public CRtpByteStreamBase
   int can_skip_frame (void) { return 1; } ;
   int skip_next_frame(uint64_t *ts, int *havesync, unsigned char **buffer,
 		      uint32_t *buflen);
-  void get_more_bytes(unsigned char **buffer, uint32_t *buflen, uint32_t used, int no_throw);
   void used_bytes_for_frame(uint32_t bytes);
   int have_no_data(void);
   void flush_rtp_packets(void);

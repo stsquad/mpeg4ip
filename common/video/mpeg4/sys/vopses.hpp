@@ -87,8 +87,7 @@ public:
 	UInt fSptUsage () const {return m_uiSprite;}
 
 	// Operations
-	virtual Void encode () {}
-	virtual Int decode () {return 0;}
+	//virtual Void encode () {}
 
 	Void swapRefQ1toSpt ();
 	Void changeSizeofCurrQ (CRct rctOrg);

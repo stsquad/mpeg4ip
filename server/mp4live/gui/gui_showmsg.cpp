@@ -30,7 +30,7 @@
  *
  * Routine to close the about dialog window.
  */
-static void CloseShowMessage (GtkWidget *widget, gpointer data)
+void CloseShowMessage (GtkWidget *widget, gpointer data)
 {
     GtkWidget *dialog_widget = (GtkWidget *) data;
 
@@ -60,7 +60,8 @@ static void ClearShowMessage (GtkWidget *widget, gpointer data)
  *
  * Show a popup message to the user.
  */
-void ShowMessage (const char *szTitle, const char *szMessage)
+GtkWidget* ShowMessage (
+	const char *szTitle, const char *szMessage, bool userDismiss)
 {
     GtkWidget *label;
     GtkWidget *button;
@@ -78,18 +79,20 @@ void ShowMessage (const char *szTitle, const char *szMessage)
     gtk_container_border_width (GTK_CONTAINER (dialog_window), 0);
 
     /* --- Create an "Ok" button with the focus --- */
-    button = gtk_button_new_with_label ("OK");
+	if (userDismiss) {
+		button = gtk_button_new_with_label ("OK");
 
-    gtk_signal_connect (GTK_OBJECT (button), "clicked",
-              GTK_SIGNAL_FUNC (CloseShowMessage),
-              dialog_window);
+		gtk_signal_connect (GTK_OBJECT (button), "clicked",
+				  GTK_SIGNAL_FUNC (CloseShowMessage),
+				  dialog_window);
 
-    /* --- Default the "Ok" button --- */
-    GTK_WIDGET_SET_FLAGS (button, GTK_CAN_DEFAULT);
-    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog_window)->action_area), 
-              button, TRUE, TRUE, 0);
-    gtk_widget_grab_default (button);
-    gtk_widget_show (button);
+		/* --- Default the "Ok" button --- */
+		GTK_WIDGET_SET_FLAGS (button, GTK_CAN_DEFAULT);
+		gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog_window)->action_area), 
+				  button, TRUE, TRUE, 0);
+		gtk_widget_grab_default (button);
+		gtk_widget_show (button);
+	}
 
     /* --- Create a descriptive label --- */
     label = gtk_label_new (szMessage);
@@ -104,12 +107,13 @@ void ShowMessage (const char *szTitle, const char *szMessage)
     /* --- Show the label --- */
     gtk_widget_show (label);
 
-
     /* --- Show the dialog --- */
     gtk_widget_show (dialog_window);
 
     /* --- Only this window can have actions done. --- */
     gtk_grab_add (dialog_window);
+
+	return dialog_window;
 }
 
 static GtkSignalFunc local_yesroutine, local_noroutine;

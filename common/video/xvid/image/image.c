@@ -307,7 +307,7 @@ void image_interpolate(const IMAGE * refn,
 		edged_width, edged_height,
 		rounding);
 
-
+#ifdef NOTDEF
 	/* uv-image-based compensation
 	offset = EDGE_SIZE2 * (edged_width / 2 + 1);
 
@@ -348,6 +348,7 @@ void image_interpolate(const IMAGE * refn,
 		edged_width / 2, edged_height / 2,
 		rounding);
 	*/
+#endif
 }
 
 

@@ -94,12 +94,18 @@ BOOL CMP4Process::start_process (CString &name)
 								   0, &m_receive_thread_id);
 
    char buffer[512];
-   _snprintf(buffer, sizeof(buffer), "wmp4client.exe \"%s\"", name);
+   _snprintf(buffer, sizeof(buffer), "%swmp4client.exe \"%s\"", 
+#ifdef _DEBUG
+	   "win_client\\debug\\", 
+#else
+	   "",
+#endif
+	   name);
    m_thread_created = CreateProcess(
 #ifdef _DEBUG
-	   "d:\\mpeg4ip\\player\\src\\win_client\\debug\\wmp4client.exe", 
+	   "win_client\\debug\\wmp4client.exe", 
 #else
-	   NULL,
+	   "wmp4client.exe",
 #endif
 		buffer,       // command line 
 		NULL,          // process security attributes 

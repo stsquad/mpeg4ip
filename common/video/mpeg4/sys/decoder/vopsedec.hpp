@@ -83,11 +83,9 @@ public:
         CVideoObjectDecoder (	// for back/forward shape
 		int iDisplayWidth, int iDisplayHeight
 	);
-	Void SetUpBitstreamBuffer(get_more_bytes_t gb, 
-				  void *ud, 
-				  unsigned char *bptr, 
+	Void SetUpBitstreamBuffer(unsigned char *bptr, 
 				  uint32_t blen) {
-	  m_pbitstrmIn->set_buffer(gb, ud, bptr, blen);
+	  m_pbitstrmIn->set_buffer(bptr, blen);
 	};
 	int get_used_bytes(void) { return m_pbitstrmIn->get_used_bytes(); };
 	Void FakeOutVOVOLHead(int h, int w, int fr, Bool *pbSpatialScalability);

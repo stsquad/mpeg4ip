@@ -31,6 +31,8 @@
 #include "our_config_file.h"
 #include "media_utils.h"
 #include "ip_port.h"
+#include "codec_plugin.h"
+#include "audio.h"
 /*
  * c routines for callbacks
  */
@@ -85,10 +87,90 @@ static int c_rtcp_send_packet (void *ud, char *buffer, int buflen)
   return ((CPlayerMedia *)ud)->rtcp_send_packet(buffer, buflen);
 }
 
-CPlayerMedia::CPlayerMedia ()
+static void c_audio_config (void *ifptr, int freq, 
+			    int chans, int format, uint32_t max_buffer_size)
 {
+  ((CPlayerMedia *)ifptr)->get_audio_sync()->set_config(freq,
+							chans,
+							format,
+							max_buffer_size);
+}
+
+static unsigned char *c_get_audio_buffer (void *ifptr)
+{
+  return ((CPlayerMedia *)ifptr)->get_audio_sync()->get_audio_buffer();
+}
+
+static void c_filled_audio_buffer (void *ifptr,
+				   uint64_t ts,
+				   int resync_req)
+{
+  ((CPlayerMedia *)ifptr)->get_audio_sync()->filled_audio_buffer(ts, 
+								 resync_req);
+}
+
+audio_vft_t audio_vft = {
+  message,
+  c_audio_config,
+  c_get_audio_buffer,
+  c_filled_audio_buffer
+};
+
+static void c_video_configure (void *ifptr,
+			      int w,
+			      int h,
+			      int format)
+{
+  // asdf - ignore format for now
+  ((CPlayerMedia *)ifptr)->get_video_sync()->config(w, h);
+}
+
+static int c_video_get_buffer (void *ifptr, 
+			       unsigned char **y,
+			       unsigned char **u,
+			       unsigned char **v)
+{
+  return (((CPlayerMedia *)ifptr)->get_video_sync()->get_video_buffer(y, u, v));
+}
+
+static int c_video_filled_buffer(void *ifptr, uint64_t time)
+{
+  return (((CPlayerMedia *)ifptr)->get_video_sync()->filled_video_buffers(time));
+}
+
+static int c_video_have_frame (void *ifptr,
+			       const unsigned char *y,
+			       const unsigned char *u,
+			       const unsigned char *v,
+			       int m_pixelw_y,
+			       int m_pixelw_uv,
+			       uint64_t time)
+{
+  CPlayerMedia *foo = (CPlayerMedia *)ifptr;
+
+  return (foo->get_video_sync()->set_video_frame(y, 
+						 u, 
+						 v, 
+						 m_pixelw_y,
+						 m_pixelw_uv,
+						 time));
+}
+
+video_vft_t video_vft = 
+{
+  message,
+  c_video_configure,
+  c_video_get_buffer,
+  c_video_filled_buffer,
+  c_video_have_frame,
+};
+
+CPlayerMedia::CPlayerMedia (CPlayerSession *p)
+{
+  m_plugin = NULL;
+  m_plugin_data = NULL;
   m_next = NULL;
-  m_parent = NULL;
+  m_parent = p;
   m_media_info = NULL;
   m_media_fmt = NULL;
   m_our_port = 0;
@@ -117,7 +199,6 @@ CPlayerMedia::CPlayerMedia ()
   m_rtp_byte_stream = NULL;
   m_video_info = NULL;
   m_audio_info = NULL;
-  m_codec_type = NULL;
   m_user_data = NULL;
   m_rtcp_received = 0;
   m_streaming = 0;
@@ -203,11 +284,6 @@ CPlayerMedia::~CPlayerMedia()
     free(m_audio_info);
     m_audio_info = NULL;
   }
-  if (m_codec_type) {
-    free((void *)m_codec_type);
-    m_codec_type = NULL;
-  }
-
   if (m_user_data) {
     free((void *)m_user_data);
     m_user_data = NULL;
@@ -234,11 +310,9 @@ void CPlayerMedia::clear_rtp_packets (void)
  * CPlayerMedia::create_from_file - create when we've already got a
  * bytestream
  */
-int CPlayerMedia::create_from_file (CPlayerSession *p, 
-				    COurInByteStream *b, 
+int CPlayerMedia::create_from_file (COurInByteStream *b, 
 				    int is_video)
 {
-  m_parent = p;
   m_parent->add_media(this);
   m_is_video = is_video;
   m_byte_stream = b;
@@ -257,9 +331,9 @@ int CPlayerMedia::create_from_file (CPlayerSession *p,
  * CPlayerMedia::create_streaming - create a streaming media session,
  * including setting up rtsp session, rtp and rtp bytestream
  */
-int CPlayerMedia::create_streaming (CPlayerSession *psptr,
-				    media_desc_t *sdp_media,
-				    const char **errmsg,
+int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
+				    char *errmsg,
+				    uint32_t errlen,
 				    int ondemand,
 				    int use_rtsp,
 				    int media_number_in_session)
@@ -269,24 +343,24 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
   rtsp_decode_t *decode;
   
   m_streaming = 1;
-  if (psptr == NULL || sdp_media == NULL) {
-    *errmsg = "Internal media error";
+  if (sdp_media == NULL) {
+    snprintf(errmsg, errlen, "Internal media error - sdp is NULL");
     return(-1);
   }
 
   if (strncasecmp(sdp_media->proto, "RTP", strlen("RTP")) != 0) {
-    *errmsg = "Media doesn't use RTP";
+    snprintf(errmsg, errlen, "Media %s doesn't use RTP", sdp_media->media);
     media_message(LOG_ERR, "%s doesn't use RTP", sdp_media->media);
     return (-1);
   }
   if (sdp_media->fmt == NULL) {
-    *errmsg = "Media doesn't have any usuable formats";
+    snprintf(errmsg, errlen, "Media %s doesn't have any usuable formats",
+	     sdp_media->media);
     media_message(LOG_ERR, "%s doesn't have any formats", 
 		  sdp_media->media);
     return (-1);
   }
 
-  m_parent = psptr;
   m_media_info = sdp_media;
   m_is_video = strcmp(sdp_media->media, "video") == 0;
   m_stream_ondemand = ondemand;
@@ -298,7 +372,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     if (use_rtsp == 0) {
       m_ports = new C2ConsecIpPort(&global_invalid_ports);
       if (m_ports == NULL || !m_ports->valid()) {
-	*errmsg = "Could not find any valid IP ports";
+	snprintf(errmsg, errlen, "Could not find any valid IP ports");
 	media_message(LOG_ERR, "Couldn't get valid IP ports");
 	return (-1);
       }
@@ -329,7 +403,8 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 		      &decode,
 		      m_parent->session_control_is_aggregate());
     if (err != 0) {
-      *errmsg = "Couldn't set up media session";
+      snprintf(errmsg, errlen, "Couldn't set up session %s", 
+	       m_media_info->control_string);
       media_message(LOG_ERR, "Can't create session %s - error code %d", 
 		    m_media_info->media, err);
       if (decode != NULL)
@@ -344,7 +419,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
      * addresses, rtptime information, that sort of thing
      */
     if (process_rtsp_transport(decode->transport) != 0) {
-      *errmsg = "Couldn't process transport information";
+      snprintf(errmsg, errlen, "Couldn't process transport information in RTSP response: %s", decode->transport);
       free_decode_response(decode);
       return(-1);
     }
@@ -355,7 +430,7 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
   connect_desc_t *cptr;
   cptr = get_connect_desc_from_media(m_media_info);
   if (cptr == NULL) {
-    *errmsg = "Server did not return address";
+    snprintf(errmsg, errlen, "Server did not return address");
     return (-1);
   }
 
@@ -373,9 +448,9 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 
   m_decode_thread = SDL_CreateThread(c_decode_thread, this);
   if (m_decode_thread == NULL) {
-    *errmsg = "Couldn't create media thread";
-    media_message(LOG_ERR, "Failed to create decode thread for %s",
-			 m_media_info->media);
+    snprintf(errmsg, errlen, "Couldn't start media thread for %s", 
+	     m_media_info->media);
+    media_message(LOG_ERR, errmsg);
     return (-1);
   }
 
@@ -383,17 +458,17 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
     m_rtp_inited = 0;
     m_recv_thread = SDL_CreateThread(c_recv_thread, this);
     if (m_recv_thread == NULL) {
-      *errmsg = "Couldn't create media thread";
-      media_message(LOG_ERR, "Failed to create thread for media %s RTP recv",
-			   m_media_info->media);
+      snprintf(errmsg, errlen, "Couldn't create media %s RTP recv thread",
+	       m_media_info->media);
+      media_message(LOG_ERR, errmsg);
       return (-1);
     }
     while (m_rtp_inited == 0) {
       SDL_Delay(10);
     }
     if (m_rtp_session == NULL) {
-      *errmsg = "Couldn't start RTP";
-      media_message(LOG_ERR, "Could not start RTP - check debug log");
+      snprintf(errmsg, errlen, "Could not start RTP - check debug log");
+      media_message(LOG_ERR, errmsg);
       return (-1);
     }
   } else {
@@ -404,14 +479,14 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 				       m_rtp_media_number_in_session,
 				       this);
     if (ret < 0) {
-      *errmsg = "Can't setup TCP/RTP callback";
+      snprintf(errmsg, errlen, "Can't setup TCP/RTP callback");
       return -1;
     }
     ret = rtsp_thread_perform_callback(m_parent->get_rtsp_client(),
 				       c_init_rtp_tcp,
 				       this);
     if (ret < 0) {
-      *errmsg = "Can't init RTP in RTSP thread";
+      snprintf(errmsg, errlen,  "Can't init RTP in RTSP thread");
       return -1;
     }
   }
@@ -419,12 +494,63 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
    * create the rtp bytestream
    */
   if (m_rtp_session == NULL) {
-    *errmsg = "Couldn't create RTP session";
-    media_message(LOG_ERR, "Failed to create RTP for media %s", 
-			 m_media_info->media);
+    snprintf(errmsg, errlen, "Couldn't create RTP session for media %s",
+	     m_media_info->media);
+    media_message(LOG_ERR, errmsg);
     return (-1);
   }
   return (0);
+}
+
+int CPlayerMedia::create_video_plugin (const codec_plugin_t *p,
+				       format_list_t *sdp_media,
+				       video_info_t *video,
+				       const unsigned char *user_data,
+				       uint32_t userdata_size)
+{
+  if (m_video_sync == NULL) {
+    m_video_sync = m_parent->set_up_video_sync();
+  }
+  if (m_video_sync == NULL) return -1;
+
+  m_plugin = p;
+  m_plugin_data = (p->vc_create)(sdp_media,
+				 video,
+				 user_data,
+				 userdata_size,
+				 &video_vft,
+				 this);
+  if (m_plugin_data == NULL) 
+    return -1;
+
+  if (user_data != NULL) 
+    set_user_data(user_data, userdata_size);
+  return 0;
+}
+
+int CPlayerMedia::create_audio_plugin (const codec_plugin_t *p,
+				       format_list_t *sdp_media,
+				       audio_info_t *audio,
+				       const unsigned char *user_data,
+				       uint32_t userdata_size)
+{
+  if (m_audio_sync == NULL) {
+    m_audio_sync = m_parent->set_up_audio_sync();
+  }
+  if (m_audio_sync == NULL) return -1;
+
+  m_plugin = p;
+  m_plugin_data = (p->ac_create)(sdp_media,
+				 audio,
+				 user_data,
+				 userdata_size,
+				 &audio_vft,
+				 this);
+  if (m_plugin_data == NULL) return -1;
+
+  if (user_data != NULL)
+    set_user_data(user_data, userdata_size);
+  return 0;
 }
 
 /*
@@ -1293,7 +1419,6 @@ int CPlayerMedia::determine_proto_from_rtp(void)
       m_media_fmt = fmt;
       if (fmt->rtpmap != NULL) {
 	tickpersec = fmt->rtpmap->clock_rate;
-	set_codec_type(fmt->rtpmap->encode_name);
       } else {
 	if (proto >= 96) {
 	  media_message(LOG_ERR, "Media %s, rtp proto of %u, no rtp map",
@@ -1301,9 +1426,6 @@ int CPlayerMedia::determine_proto_from_rtp(void)
 	  return (FALSE);
 	}
 	tickpersec = 90000;
-	if (proto == 14) {
-	  set_codec_type("mp3 ");
-	}
       }
 
       m_rtp_byte_stream = 

@@ -25,7 +25,7 @@
 
 #include <sys/types.h>
 #include <SDL.h>
-#include "timestamp.h"
+#include "media_time.h"
 
 class CMediaFrame {
 public:

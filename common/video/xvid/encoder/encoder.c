@@ -375,6 +375,7 @@ int encoder_create(XVID_ENC_PARAM * pParam)
 	{
 		return XVID_ERR_MEMORY;
 	}
+	memset(pEnc, 0, sizeof(Encoder));
 
 /* Fill members of Encoder structure */
 
@@ -382,6 +383,7 @@ int encoder_create(XVID_ENC_PARAM * pParam)
     pEnc->mbParam.height = pParam->height;
 #ifdef MPEG4IP
     pEnc->mbParam.raw_height = pParam->raw_height;
+	pEnc->time_incr_bits = pParam->time_incr_bits;
 #endif
 
 	pEnc->mbParam.mb_width = (pEnc->mbParam.width + 15) / 16;
@@ -393,6 +395,8 @@ int encoder_create(XVID_ENC_PARAM * pParam)
     pEnc->mbParam.quality = pParam->motion_search;
 	pEnc->mbParam.quant_type = pParam->quant_type;
     pEnc->sStat.fMvPrevSigma = -1;
+
+    pEnc->mbParam.fixed_code = 2;
 
 /* Fill rate control parameters */
 
@@ -624,12 +628,17 @@ static int FrameCodeI(Encoder * pEnc, Bitstream * bs, uint32_t *pBits)
     pEnc->iFrameNum = 0;
     pEnc->mbParam.rounding_type = 1;
     pEnc->mbParam.coding_type = I_VOP;
+    pEnc->mbParam.fixed_code = 2;
 
 #ifndef MPEG4IP
 	BitstreamVolHeader(bs, pEnc->mbParam.width, pEnc->mbParam.height, pEnc->mbParam.quant_type);
 #endif 
 
-	BitstreamVopHeader(bs, I_VOP, pEnc->mbParam.rounding_type,
+	BitstreamVopHeader(bs, I_VOP, 
+#ifdef MPEG4IP
+			pEnc->time_incr_bits,
+#endif
+			pEnc->mbParam.rounding_type,
 			pEnc->mbParam.quant,
 			pEnc->mbParam.fixed_code); 
 
@@ -701,7 +710,7 @@ static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool forc
 
 	image_setedges(pRef,pEnc->mbParam.edged_width, pEnc->mbParam.edged_height, pEnc->mbParam.width, pEnc->mbParam.height);
 
-    pEnc->mbParam.rounding_type = 1 - pEnc->mbParam.rounding_type;
+    pEnc->mbParam.rounding_type = !pEnc->mbParam.rounding_type;
 
 	if (!force_inter)
 		iLimit = (int)(pEnc->mbParam.mb_width * pEnc->mbParam.mb_height * INTRA_THRESHOLD);
@@ -724,9 +733,13 @@ static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool forc
 
     pEnc->mbParam.coding_type = P_VOP;
 
-    BitstreamVopHeader(bs, P_VOP, pEnc->mbParam.rounding_type,
-			 pEnc->mbParam.quant,
-			 pEnc->mbParam.fixed_code); 
+    BitstreamVopHeader(bs, P_VOP, 
+#ifdef MPEG4IP
+			pEnc->time_incr_bits,
+#endif
+			pEnc->mbParam.rounding_type,
+			pEnc->mbParam.quant,
+			pEnc->mbParam.fixed_code); 
 
     *pBits = BsPos(bs);
 

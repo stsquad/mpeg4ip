@@ -147,7 +147,8 @@ CPlayerSession::~CPlayerSession ()
 }
 
 int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
-						const char **ermsg)
+						char *ermsg,
+						uint32_t errlen)
 {
   session_set_seekable(0);
   m_sdp_info = sdp;
@@ -160,7 +161,8 @@ int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp,
  * RTSP session with the server, get the SDP information from it.
  */
 int CPlayerSession::create_streaming_ondemand (const char *url, 
-					       const char **errmsg,
+					       char *errmsg,
+					       uint32_t errlen, 
 					       int use_tcp)
 {
   rtsp_command_t cmd;
@@ -183,7 +185,7 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
     m_rtsp_client = rtsp_create_client(url, &err);
   }
   if (m_rtsp_client == NULL) {
-    *errmsg = "Failed to create RTSP client";
+    snprintf(errmsg, errlen, "Failed to create RTSP client");
     player_error_message("Failed to create rtsp client - error %d", err);
     return (err);
   }
@@ -197,13 +199,13 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
       RTSP_RESPONSE_GOOD) {
     int retval;
     if (decode != NULL) {
-    retval = (((decode->retcode[0] - '0') * 100) +
-	    ((decode->retcode[1] - '0') * 10) +
-	    (decode->retcode[2] - '0'));
+      retval = (((decode->retcode[0] - '0') * 100) +
+		((decode->retcode[1] - '0') * 10) +
+		(decode->retcode[2] - '0'));
     } else {
       retval = -1;
     }
-    *errmsg = "RTSP describe error";
+    snprintf(errmsg, errlen, "RTSP describe error %d", retval);
     player_error_message("Describe response not good\n");
     free_decode_response(decode);
     return (retval);
@@ -211,7 +213,7 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
 
   sdpdecode = set_sdp_decode_from_memory(decode->body);
   if (sdpdecode == NULL) {
-    *errmsg = "Memory failure";
+    snprintf(errmsg, errlen, "Memory failure");
     player_error_message("Couldn't get sdp decode\n");
     free_decode_response(decode);
     return (-1);
@@ -223,15 +225,16 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
   err = sdp_decode(sdpdecode, &m_sdp_info, &dummy);
   free(sdpdecode);
   if (err != 0) {
-    *errmsg = "Couldn't decode session description";
+    snprintf(errmsg, errlen, "Couldn't decode session description %s",
+	     decode->body);
     player_error_message("Couldn't decode sdp %s", decode->body);
     free_decode_response(decode);
     return (-1);
   }
   if (dummy != 1) {
-    *errmsg = "Session description error";
-    player_error_message("Incorrect number of sessions in sdp decode %d",
-			 dummy);
+    snprintf(errmsg, errlen, "Incorrect number of sessions in sdp decode %d",
+	     dummy);
+    player_error_message(errmsg);
     free_decode_response(decode);
     return (-1);
   }
@@ -252,6 +255,21 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
   return (0);
 }
 
+CVideoSync * CPlayerSession::set_up_video_sync (void)
+{
+  if (m_video_sync == NULL) {
+    m_video_sync = new CVideoSync(this);
+  }
+  return m_video_sync;
+}
+
+CAudioSync *CPlayerSession::set_up_audio_sync (void)
+{
+  if (m_audio_sync == NULL) {
+    m_audio_sync = new CAudioSync(this, m_audio_volume);
+  }
+  return m_audio_sync;
+}
 /*
  * set_up_sync_thread.  Creates the sync thread, and a sync class
  * for each media
@@ -263,11 +281,9 @@ void CPlayerSession::set_up_sync_thread(void)
   media = m_my_media;
   while (media != NULL) {
     if (media->is_video()) {
-      m_video_sync = new CVideoSync(this);
-      media->set_video_sync(m_video_sync);
+      media->set_video_sync(set_up_video_sync());
     } else {
-      m_audio_sync = new CAudioSync(this, m_audio_volume);
-      media->set_audio_sync(m_audio_sync);
+       media->set_audio_sync(set_up_audio_sync());
     }
     media= media->get_next();
   }

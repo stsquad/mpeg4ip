@@ -43,16 +43,6 @@ public:
 		m_videoTimeScale = 90000;
 	}
 
-	void StartTransmit(void) {
-		m_myMsgQueue.send_message(MSG_START_TRANSMIT,
-			 NULL, 0, m_myMsgQueueSemaphore);
-	}
-
-	void StopTransmit(void) {
-		m_myMsgQueue.send_message(MSG_STOP_TRANSMIT,
-			NULL, 0, m_myMsgQueueSemaphore);
-	}
-
 	static void SeedRandom(void) {
 		static bool once = false;
 		if (!once) {
@@ -99,9 +89,6 @@ public:
 	}
 
 protected:
-	static const int MSG_START_TRANSMIT	= 1;
-	static const int MSG_STOP_TRANSMIT	= 2;
-
 	int ThreadMain(void);
 
 	void DoStartTransmit(void);

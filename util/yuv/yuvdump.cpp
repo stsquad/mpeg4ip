@@ -1,8 +1,6 @@
-#include <inttypes.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "systems.h"
 #include <SDL.h>
+
 int main (int argc, char **argv)
 {
   FILE *yuvfile;

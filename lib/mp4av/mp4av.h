@@ -22,14 +22,10 @@
 #ifndef __MP4AV_INCLUDED__
 #define __MP4AV_INCLUDED__ 
 
-#ifdef NODEBUG
-#define ASSERT(expr)
-#else
-#include <assert.h>
-#define ASSERT(expr)	assert(expr)
-#endif
-
-#include <mp4.h>
+/* MP4AV library API */
+#include "mp4av_aac.h"
+#include "mp4av_mp3.h"
+#include "mp4av_mpeg4.h"
 #include "mp4av_hinters.h"
 
 #endif /* __MP4AV_INCLUDED__ */ 

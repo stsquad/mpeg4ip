@@ -31,6 +31,7 @@
 #include "audio.h"
 #include "video.h"
 #include "rtp_bytestream.h"
+#include "codec_plugin_private.h"
 //#define DEBUG_DECODE 1
 //#define DEBUG_DECODE_MSGS 1
 
@@ -78,7 +79,6 @@ void CPlayerMedia::parse_decode_message (int &thread_stop, int &decoding)
 int CPlayerMedia::decode_thread (void) 
 {
   //  uint32_t msec_per_frame = 0;
-  CCodecBase *codec = NULL;
   int ret = 0;
 #ifdef TIME_DECODE
   int64_t avg = 0, diff;
@@ -91,66 +91,88 @@ int CPlayerMedia::decode_thread (void)
     // waiting here for decoding or thread stop
     ret = SDL_SemWait(m_decode_thread_sem);
 #ifdef DEBUG_DECODE
-    media_message(LOG_DEBUG, "Decode thread awake");
+    media_message(LOG_DEBUG, "%s Decode thread awake",
+		  is_video() ? "video" : "audio");
 #endif
     parse_decode_message(thread_stop, decoding);
 
     if (decoding == 1) {
       // We've been told to start decoding - if we don't have a codec, 
       // create one
-      if (codec == NULL) {
-	/*
-	 * We need a better way to do this for multiple codecs
-	 * We should probably set something in the media, then do
-	 * some sort of look up.
-	 */
+      if (is_video())
+	m_video_sync->set_wait_sem(m_decode_thread_sem);
+      else
+	m_audio_sync->set_wait_sem(m_decode_thread_sem);
+      if (m_plugin == NULL) {
 	if (is_video()) {
-	  m_video_sync->set_wait_sem(m_decode_thread_sem);
-	  codec = start_video_codec(m_codec_type,
-				    m_video_sync, 
-				    m_byte_stream,
-				    m_media_fmt,
-				    m_video_info,
-				    m_user_data,
-				    m_user_data_size);
-	} else {
-	  m_audio_sync->set_wait_sem(m_decode_thread_sem);
-	  codec = start_audio_codec(m_codec_type,
-				    m_audio_sync, 
-				    m_byte_stream, 
-				    m_media_fmt,
-				    m_audio_info,
-				    m_user_data,
-				    m_user_data_size);
-	}
-	if (codec == NULL) {
-	  while (thread_stop == 0 && decoding) {
-	    SDL_Delay(100);
-	    if (m_rtp_byte_stream) {
-	      m_rtp_byte_stream->flush_rtp_packets();
+	  m_plugin = check_for_video_codec(NULL,
+					   m_media_fmt,
+					   -1,
+					   -1,
+					   m_user_data,
+					   m_user_data_size);
+	  if (m_plugin != NULL) {
+	    m_plugin_data = (m_plugin->vc_create)(m_media_fmt,
+						  m_video_info,
+						  m_user_data,
+						  m_user_data_size,
+						  &video_vft,
+						  this);
+	    if (m_plugin_data == NULL) {
+	      m_plugin = NULL;
+	    } else {
+	      media_message(LOG_DEBUG, "Starting %s codec from decode thread",
+			    m_plugin->c_name);
 	    }
-	    parse_decode_message(thread_stop, decoding);
 	  }
 	} else {
-	  m_byte_stream->set_codec(codec);
+	  m_plugin = check_for_audio_codec(NULL,
+					   m_media_fmt,
+					   -1, 
+					   -1, 
+					   m_user_data,
+					   m_user_data_size);
+	  if (m_plugin != NULL) {
+	    m_plugin_data = (m_plugin->ac_create)(m_media_fmt,
+						  m_audio_info,
+						  m_user_data,
+						  m_user_data_size,
+						  &audio_vft,
+						  this);
+	    if (m_plugin_data == NULL) {
+	      m_plugin = NULL;
+	    } else {
+	      media_message(LOG_DEBUG, "Starting %s codec from decode thread",
+			    m_plugin->c_name);
+	    }
+	  }
 	}
+      }
+      if (m_plugin != NULL) {
+	m_plugin->c_do_pause(m_plugin_data);
       } else {
-	codec->do_pause();
-	// to do - compare with m_rtp_proto
+	while (thread_stop == 0 && decoding) {
+	  SDL_Delay(100);
+	  if (m_rtp_byte_stream) {
+	    m_rtp_byte_stream->flush_rtp_packets();
+	  }
+	  parse_decode_message(thread_stop, decoding);
+	}
       }
     }
     /*
      * this is our main decode loop
      */
 #ifdef DEBUG_DECODE
-    media_message(LOG_DEBUG, "Into decode loop");
+    media_message(LOG_DEBUG, "%s Into decode loop",
+		  is_video() ? "video" : "audio");
 #endif
     while ((thread_stop == 0) && decoding) {
       parse_decode_message(thread_stop, decoding);
       if (thread_stop != 0)
 	continue;
       if (decoding == 0) {
-	codec->do_pause();
+	m_plugin->c_do_pause(m_plugin_data);
 	continue;
       }
       if (m_byte_stream->eof()) {
@@ -245,11 +267,20 @@ int CPlayerMedia::decode_thread (void)
       clock_t start, end;
       start = clock();
 #endif
-      if (frame_buffer != NULL) 
-	ret = codec->decode(ourtime, 
-			    m_streaming != 0, 
-			    frame_buffer, 
-			    frame_len);
+      if (frame_buffer != NULL && frame_len != 0) {
+	int sync_frame;
+	ret = m_plugin->c_decode_frame(m_plugin_data,
+				       ourtime,
+				       m_streaming != 0,
+				       &sync_frame,
+				       frame_buffer, 
+				       frame_len);
+	if (ret > 0) {
+	  m_byte_stream->used_bytes_for_frame(ret);
+	} else {
+	  m_byte_stream->used_bytes_for_frame(frame_len);
+	}
+
 #ifdef TIME_DECODE
       end = clock();
       if (ret > 0) {
@@ -259,6 +290,7 @@ int CPlayerMedia::decode_thread (void)
 	avg_cnt++;
       }
 #endif
+      }
     }
   }
 #ifdef TIME_DECODE
@@ -270,7 +302,10 @@ int CPlayerMedia::decode_thread (void)
   if (m_is_video)
     media_message(LOG_NOTICE, "Video decoder skipped "LLU" frames", 
 		  decode_skipped_frames);
-  delete codec;
+  if (m_plugin) {
+    m_plugin->c_close(m_plugin_data);
+    m_plugin_data = NULL;
+  }
   return (0);
 }
 

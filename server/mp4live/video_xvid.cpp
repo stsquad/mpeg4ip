@@ -50,6 +50,7 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	xvidEncParams.height = m_pConfig->m_videoHeight;
 	xvidEncParams.raw_height = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+	xvidEncParams.time_incr_bits = m_pConfig->m_videoTimeIncrBits;
 	xvidEncParams.fincr = 1001;
 	xvidEncParams.fbase = 
 		(int)(1001 * m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE));
@@ -58,16 +59,16 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	xvidEncParams.rc_period = 2000;
 	xvidEncParams.rc_reaction_period = 10;
 	xvidEncParams.rc_reaction_ratio = 20;
-	xvidEncParams.max_quantizer = 31;
 	xvidEncParams.min_quantizer = 1;
+	xvidEncParams.max_quantizer = 31;
 	xvidEncParams.max_key_interval = (int) 
 		(m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) 
-		 * m_pConfig->GetIntegerValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
+		 * m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
 	if (xvidEncParams.max_key_interval == 0) {
 		xvidEncParams.max_key_interval = 1;
 	} 
 	xvidEncParams.motion_search = (realTime ? 1 : 5);
-	xvidEncParams.quant_type = 1;
+	xvidEncParams.quant_type = 0;	// 0 = H.263, 1 = MPEG-4
 	xvidEncParams.lum_masking = 0;
 
 	if (xvid_encore(NULL, XVID_ENC_CREATE, &xvidEncParams, NULL) 
@@ -77,6 +78,10 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	}
 
 	m_xvidHandle = xvidEncParams.handle; 
+
+	m_inputOffset =
+		(xvidEncParams.raw_height - xvidEncParams.height) / 2 
+		* xvidEncParams.width;
 
 	return true;
 }
@@ -93,12 +98,12 @@ bool CXvidVideoEncoder::EncodeImage(
 
 	// So long as images planes are consecutive in memory
 	// perhaps separated by a crop area, then we can just
-	// give xvid the start of the Y plane
-	xvidFrame.image = pY;
+	// give xvid the start of the raw Y plane
+	xvidFrame.image = pY - m_inputOffset;
 	xvidFrame.bitstream = m_vopBuffer;
 	xvidFrame.colorspace = XVID_CSP_I420;
-	xvidFrame.quant = 4;
-	xvidFrame.intra = wantKeyFrame;
+	xvidFrame.quant = 0;
+	xvidFrame.intra = (wantKeyFrame ? 1 : -1);
 
 	if (xvid_encore(m_xvidHandle, XVID_ENC_ENCODE, &xvidFrame, 
 	  &m_xvidResult) != XVID_ERR_OK) {

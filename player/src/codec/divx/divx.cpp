@@ -22,108 +22,14 @@
  * divx.cpp - implementation with ISO reference codec
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "our_bytestream.h"
 #include "divx.h"
-#include "player_util.h"
 #include "divxif.h"
+#include "codec_plugin.h"
+#include <mp4util/mpeg4_sdp.h>
+#include <gnu/strcasestr.h>
+#include <mp4v2/mp4.h>
 
-
-#if 0
-static unsigned int c_get (void *ud)
-{
-  unsigned int ret;
-  CDivxCodec *d = (CDivxCodec *)ud;
-  ret = d->get();
-  return (ret);
-}
-
-static void c_bookmark (void *ud, int val)
-{
-  CDivxCodec *d = (CDivxCodec *)ud;
-  d->bookmark(val);
-}
-#endif
-
-static void c_get_more (void *ud, 
-			unsigned char **buffer, 
-			unsigned int *buflen,
-			unsigned int used,
-			int get)
-{
-  uint32_t ret;
-
-  COurInByteStream *bs = (COurInByteStream *)ud;
-
-  bs->get_more_bytes(buffer, &ret, used, get);
-  *buflen = ret;
-}
-
-CDivxCodec::CDivxCodec(CVideoSync *v, 
-		       COurInByteStream *pbytestrm, 
-		       format_list_t *media_fmt,
-		       video_info_t *vinfo,
-		       const unsigned char *userdata,
-		       uint32_t ud_size) :
-  CVideoCodecBase(v, pbytestrm, media_fmt, vinfo, userdata, ud_size)
-{
-  m_bytestream = pbytestrm;
-  m_last_time = 0;
-  newdec_init(c_get_more, m_bytestream);
-  m_decodeState = DIVX_STATE_VO_SEARCH;
-  if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
-    // See if we can decode a passed in vovod header
-    if (parse_vovod(media_fmt->fmt_param, 1, 0) == 1) {
-      m_decodeState = DIVX_STATE_WAIT_I;
-    }
-  } else if (userdata != NULL) {
-    if (parse_vovod((const char *)userdata, 0, ud_size) == 1) {
-      m_decodeState = DIVX_STATE_WAIT_I;
-    }
-  } else if (vinfo != NULL && vinfo->file_has_vol_header == 0) {
-    mp4_hdr.width = vinfo->width;
-    mp4_hdr.height = vinfo->height;
-    
-    // defaults from mp4_decoder.c routine dec_init...
-    mp4_hdr.quant_precision = 5;
-    mp4_hdr.bits_per_pixel = 8;
-
-    mp4_hdr.quant_type = 0;
-
-    mp4_hdr.time_increment_resolution = 15;
-    mp4_hdr.time_increment_bits = 0;
-    while (mp4_hdr.time_increment_resolution > 
-	   (1 << mp4_hdr.time_increment_bits)) {
-      mp4_hdr.time_increment_bits++;
-    }
-    mp4_hdr.fps = 30;
-
-    mp4_hdr.complexity_estimation_disable = 1;
-
-    m_video_sync->config(vinfo->width,
-			 vinfo->height,
-			 vinfo->frame_rate);
-    post_volprocessing();
-    m_decodeState = DIVX_STATE_NORMAL;
-  } 
-
-  m_dropped_b_frames = 0;
-  m_num_wait_i = 0;
-  m_num_wait_i_frames = 0;
-  m_total_frames = 0;
-}
-
-
-CDivxCodec::~CDivxCodec()
-{
-  closedecoder();
-  divx_message(LOG_NOTICE, "Divx codec results:");
-  divx_message(LOG_NOTICE, "total frames    : %u", m_total_frames);
-  divx_message(LOG_NOTICE, "dropped b frames: %u", m_dropped_b_frames);
-  divx_message(LOG_NOTICE, "wait for I times: %u", m_num_wait_i);
-  divx_message(LOG_NOTICE, "wait I frames   : %u", m_num_wait_i_frames);
-}
+#define divx_message (divx->m_vft->log_msg)
 
 // Convert a hex character to it's decimal value.
 static char tohex (char a)
@@ -135,9 +41,10 @@ static char tohex (char a)
 
 // Parse the format config passed in.  This is the vo vod header
 // that we need to get width/height/frame rate
-int CDivxCodec::parse_vovod (const char *vovod,
-			     int ascii,
-			     uint32_t len)
+static int parse_vovod (divx_codec_t *divx,
+			const char *vovod,
+			int ascii,
+			uint32_t len)
 {
   unsigned char buffer[255];
   const char *bufptr;
@@ -182,16 +89,16 @@ int CDivxCodec::parse_vovod (const char *vovod,
   try {
     ret = newdec_read_volvop((unsigned char *)bufptr, len);
     if (ret != 0) {
-      divx_message(LOG_DEBUG, "Found VOL in header");
-      m_video_sync->config(mp4_hdr.width,
-			   mp4_hdr.height,
-			   mp4_hdr.time_increment_resolution);
+      divx_message(LOG_DEBUG, "divxif", "Found VOL in header");
+      divx->m_vft->video_configure(divx->m_ifptr,
+				   mp4_hdr.width,
+				   mp4_hdr.height,
+				   VIDEO_FORMAT_YUV);
       post_volprocessing();
     }
     
   } catch (int err) {
-    //    divx_message(LOG_INFO, "Caught exception in VO mem header search %s", 
-    //	 membytestream->get_throw_error(err));
+
   }
 
   if (ret == 0) {
@@ -204,37 +111,141 @@ int CDivxCodec::parse_vovod (const char *vovod,
   return ret;
 }
 
-void CDivxCodec::do_pause (void)
+static codec_data_t *divx_create (format_list_t *media_fmt,
+				  video_info_t *vinfo,
+				  const unsigned char *userdata,
+				  uint32_t ud_size,
+				  video_vft_t *vft,
+				  void *ifptr)
 {
-  m_decodeState = DIVX_STATE_WAIT_I;
+  divx_codec_t *divx;
+
+  divx = MALLOC_STRUCTURE(divx_codec_t);
+  memset(divx, 0, sizeof(*divx));
+
+  divx->m_vft = vft;
+  divx->m_ifptr = ifptr;
+  divx->m_last_time = 0;
+
+  newdec_init();
+  divx->m_decodeState = DIVX_STATE_VO_SEARCH;
+  if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
+    // See if we can decode a passed in vovod header
+    if (parse_vovod(divx, media_fmt->fmt_param, 1, 0) == 1) {
+      divx->m_decodeState = DIVX_STATE_WAIT_I;
+    }
+  } else if (userdata != NULL) {
+    if (parse_vovod(divx, (const char *)userdata, 0, ud_size) == 1) {
+      divx->m_decodeState = DIVX_STATE_WAIT_I;
+    }
+  } else if (vinfo != NULL) {
+    mp4_hdr.width = vinfo->width;
+    mp4_hdr.height = vinfo->height;
+    
+    // defaults from mp4_decoder.c routine dec_init...
+    mp4_hdr.quant_precision = 5;
+    mp4_hdr.bits_per_pixel = 8;
+
+    mp4_hdr.quant_type = 0;
+
+    mp4_hdr.time_increment_resolution = 15;
+    mp4_hdr.time_increment_bits = 0;
+    while (mp4_hdr.time_increment_resolution > 
+	   (1 << mp4_hdr.time_increment_bits)) {
+      mp4_hdr.time_increment_bits++;
+    }
+    mp4_hdr.fps = 30;
+
+    mp4_hdr.complexity_estimation_disable = 1;
+
+    divx->m_vft->video_configure(divx->m_ifptr, 
+				 vinfo->width,
+				 vinfo->height,
+				 VIDEO_FORMAT_YUV);
+    post_volprocessing();
+    divx->m_decodeState = DIVX_STATE_NORMAL;
+  } 
+
+  divx->m_dropped_b_frames = 0;
+  divx->m_num_wait_i = 0;
+  divx->m_num_wait_i_frames = 0;
+  divx->m_total_frames = 0;
+  return ((codec_data_t *)divx);
 }
 
-int CDivxCodec::decode (uint64_t ts, 
+void divx_clean_up (divx_codec_t *divx)
+{
+  closedecoder();
+  if (divx->m_ifile != NULL) {
+    fclose(divx->m_ifile);
+    divx->m_ifile = NULL;
+  }
+  if (divx->m_buffer != NULL) {
+    free(divx->m_buffer);
+    divx->m_buffer = NULL;
+  }
+  if (divx->m_fpos != NULL) {
+    delete divx->m_fpos;
+    divx->m_fpos = NULL;
+  }
+
+  free(divx);
+}
+
+static void divx_close (codec_data_t *ifptr)
+{
+  divx_codec_t *divx;
+
+  divx = (divx_codec_t *)ifptr;
+
+  divx_message(LOG_NOTICE, "divxif", "Divx codec results:");
+  divx_message(LOG_NOTICE, "divxif", "total frames    : %u", divx->m_total_frames);
+  divx_message(LOG_NOTICE, "divxif", "dropped b frames: %u", divx->m_dropped_b_frames);
+  divx_message(LOG_NOTICE, "divxif", "wait for I times: %u", divx->m_num_wait_i);
+  divx_message(LOG_NOTICE, "divxif", "wait I frames   : %u", divx->m_num_wait_i_frames);
+  divx_clean_up(divx);
+}
+
+
+
+static void divx_do_pause (codec_data_t *ifptr)
+{
+  divx_codec_t *divx = (divx_codec_t *)ifptr;
+  if (divx->m_decodeState != DIVX_STATE_VO_SEARCH)
+    divx->m_decodeState = DIVX_STATE_WAIT_I;
+}
+
+static int divx_decode (codec_data_t *ptr,
+			uint64_t ts, 
 			int from_rtp,
+			int *sync_frame,
 			unsigned char *buffer, 
 			uint32_t buflen)
 {
   int ret;
   int do_wait_i = 0;
+  divx_codec_t *divx = (divx_codec_t *)ptr;
 
-  m_total_frames++;
+  //divx->m_vft->log_msg(LOG_DEBUG, "divx", "frame "LLU, ts);
+  divx->m_total_frames++;
   
-  switch (m_decodeState) {
+  switch (divx->m_decodeState) {
   case DIVX_STATE_VO_SEARCH:
     try {
       ret = newdec_read_volvop(buffer, buflen);
       if (ret != 0) {
-	m_video_sync->config(mp4_hdr.width,
-			     mp4_hdr.height,
-			     mp4_hdr.fps);
+	divx->m_vft->video_configure(divx->m_ifptr, 
+				     mp4_hdr.width,
+				     mp4_hdr.height, 
+				     VIDEO_FORMAT_YUV);
 	post_volprocessing();
-	m_decodeState = DIVX_STATE_WAIT_I;
+	divx->m_decodeState = DIVX_STATE_WAIT_I;
       } else {
 	return (-1);
       }
     } catch (int err) {
-      divx_message(LOG_INFO, "Caught exception in VO search %s", 
-		   m_bytestream->get_throw_error(err));
+      divx_message(LOG_INFO, "divxif", "Caught exception in VO search %d", 
+		   err);
       return (-1);
     }
     //      return(0);
@@ -246,7 +257,7 @@ int CDivxCodec::decode (uint64_t ts,
   }
   
   unsigned char *y, *u, *v;
-  ret = m_video_sync->get_video_buffer(&y, &u, &v);
+  ret = divx->m_vft->video_get_buffer(divx->m_ifptr, &y, &u, &v);
   if (ret == 0) {
     return (-1);
   }
@@ -256,63 +267,97 @@ int CDivxCodec::decode (uint64_t ts,
 
     if (ret < 0) {
       //player_debug_message("ret from newdec_frame %d "LLU, ret, ts);
-      m_bytestream->used_bytes_for_frame(0 - ret);
-      if (m_last_time != ts)
-	m_decodeState = DIVX_STATE_WAIT_I;
-      return (-1);
+      if (divx->m_last_time != ts)
+	divx->m_decodeState = DIVX_STATE_WAIT_I;
+      return (-ret);
     }
     //player_debug_message("frame type %d", mp4_hdr.prediction_type);
-    m_decodeState = DIVX_STATE_NORMAL;
-    m_last_time = ts;
-    m_bytestream->used_bytes_for_frame(ret);
+    divx->m_decodeState = DIVX_STATE_NORMAL;
+    divx->m_last_time = ts;
   } catch (int err) {
-	  m_bytestream->used_bytes_for_frame(buflen);
-      if (m_bytestream->throw_error_minor(err) != 0) {
-	//player_debug_message("decode across ts");
-	return (-1);
-      }
-      divx_message(LOG_DEBUG, "divx caught %s", 
-		   m_bytestream->get_throw_error(err));
-      m_decodeState = DIVX_STATE_WAIT_I;
-      return (-1);
+    divx_message(LOG_DEBUG, "divxif", "divx caught %d", 
+		 err);
+    divx->m_decodeState = DIVX_STATE_WAIT_I;
+    return (-1);
   } catch (...) {
-	m_bytestream->used_bytes_for_frame(buflen);
-    divx_message(LOG_DEBUG, "divx caught exception");
-    m_decodeState = DIVX_STATE_WAIT_I;
+    divx_message(LOG_DEBUG, "divxif", "divx caught exception");
+    divx->m_decodeState = DIVX_STATE_WAIT_I;
     return (-1);
   }
 
-  uint64_t rettime;
-  ret = m_video_sync->filled_video_buffers(ts, rettime);
-  // disptime is time we've decoded.  Ret is time last buffer was played
-  // at.  If we fall behind, we can do 2 things - either nothing  < 3 frames
-  // worth - drop B's - up to 10 frames worth, or resync to the next I frame
-  if (ret != 0) {
-    //    uint64_t msec;
-    //player_debug_message("Processed frame "LLU, ts);
-#if 0
-    msec = m_video_sync->get_video_msec_per_frame();
-    if (msec > 0 && 
-	((ts + msec) < rettime)) {
-      player_debug_message("Out of sync - waiting for I "LLU " "LLU,
-			   ts, rettime);
-      m_decodeState = DIVX_STATE_WAIT_I;
-      m_num_wait_i++;
-    } else {
-      m_dropFrame = FALSE;
+  divx->m_vft->video_filled_buffer(divx->m_ifptr, ts);
+      
+  return (ret);
+}
+
+static int divx_skip_frame (codec_data_t *ifptr)
+
+{
+  return 0;
+}
+
+static const char *divx_compressors[] = {
+  "divx", 
+  "dvx1", 
+  "div4", 
+  NULL,
+};
+
+static int divx_codec_check (lib_message_func_t message,
+			     const char *compressor,
+			     int type,
+			     int profile,
+			     format_list_t *fptr,
+			     const unsigned char *userdata,
+			     uint32_t userdata_size)
+{
+  if (compressor != NULL && 
+      (strcasecmp(compressor, "MP4 FILE") == 0)) {
+    if ((type == MP4_MPEG4_VIDEO_TYPE) &&
+	(profile >= 1 && profile <= 3)) {
+      return 2;
     }
-#endif
-    return (1);
+    return -1;
+  }
+  if (fptr != NULL) {
+    // find format. If matches, call parse_fmtp_for_mpeg4, look at
+    // profile level.
+    if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {
+      if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0) {
+	fmtp_parse_t *fmtp;
+	fmtp = parse_fmtp_for_mpeg4(fptr->fmt_param, message);
+	if (fmtp != NULL) {
+	  int profile = fmtp->profile_level_id;
+	  free_fmtp_parse(fmtp);
+	  if (profile >= 1 && profile <= 3) return 2;
+	}
+	return -1;
+      }
+    }
+    return -1;
   }
 
-      
-  return (-1);
+  if (compressor != NULL) {
+    const char **lptr = divx_compressors;
+    while (*lptr != NULL) {
+      if (strcasecmp(*lptr, compressor) == 0) {
+	return 2;
+      }
+      lptr++;
+    }
+  }
+  return -1;
 }
 
-int CDivxCodec::skip_frame (uint64_t ts, 
-			    unsigned char *buffer, 
-			    uint32_t buflen)
-{
-  return (decode(ts, 0, buffer, buflen));
-}
-
+VIDEO_CODEC_PLUGIN("divx", 
+		   divx_create,
+		   divx_do_pause,
+		   divx_decode,
+		   divx_close,
+		   divx_codec_check,
+		   divx_file_check,
+		   divx_file_next_frame,
+		   divx_file_used_for_frame,
+		   divx_file_seek_to,
+		   divx_skip_frame,
+		   divx_file_eof);

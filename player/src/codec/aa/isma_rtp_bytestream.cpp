@@ -26,7 +26,7 @@
 #include "bitstream/bitstream.h"
 #include "isma_rtp_bytestream.h"
 #include "our_config_file.h"
-#include "mpeg4_audio_config.h"
+#include <mp4util/mpeg4_audio_config.h>
 //#define DEBUG_ISMA_AAC
 
 #ifdef _WIN32
@@ -615,14 +615,6 @@ void CIsmaAudioRtpByteStream::used_bytes_for_frame (uint32_t bytes)
 {
 }
 
-void CIsmaAudioRtpByteStream::get_more_bytes (unsigned char **buffer, 
-					      uint32_t *buflen,
-					      uint32_t used,
-					      int nothrow)
-{
-  throw THROW_ISMA_RTP_DECODE_PAST_EOF;
-}
-
 void CIsmaAudioRtpByteStream::flush_rtp_packets (void)
 {
   isma_frame_data_t *p;
@@ -706,25 +698,3 @@ int CIsmaAudioRtpByteStream::have_no_data (void)
   return (m_head == NULL && m_frame_data_head == NULL);
 }
 
-const char *CIsmaAudioRtpByteStream::get_throw_error (int error)
-{
-  if (error <= THROW_RTP_BASE_MAX) {
-    return (CRtpByteStreamBase::get_throw_error(error));
-  }
-  switch (error) {
-  case THROW_ISMA_RTP_DECODE_PAST_EOF:
-    return "Read past end of frame";
-  default:
-    break;
-  }
-  isma_message(LOG_ERR, "Isma RTP bytestream - unknown throw error %d", error);
-  return "Unknown error";
-}
-
-int CIsmaAudioRtpByteStream::throw_error_minor (int error)
-{
-  if (error <= THROW_RTP_BASE_MAX) {
-    return (CRtpByteStreamBase::throw_error_minor(error));
-  }
-  return 0;
-}

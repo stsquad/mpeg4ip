@@ -55,6 +55,7 @@ CWmp4playerApp::CWmp4playerApp()
 	// Place all significant initialization in InitInstance
 	m_mp4if = NULL;
 	m_video_size = 1;
+	m_session_died = 0;
 }
 
 
@@ -213,7 +214,7 @@ void CWmp4playerApp::OnFileOpen()
 	CFileDialog fd(TRUE, 
 				   NULL, 
 				   file_name, 
-				   OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, 
+				   OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR, 
 				   NULL, NULL);
 	if (fd.DoModal() == IDOK) {
 		StartSession(fd.GetPathName());
@@ -311,8 +312,12 @@ void CWmp4playerApp::StopSession (int terminating)
 
 void CWmp4playerApp::SessionDied (void)
 {
-	AfxMessageBox("Client Session Crashed");
-	StopSession();
+	if (m_session_died == 0) {
+		m_session_died = 1;
+		AfxMessageBox("Client Session Crashed");
+		StopSession();
+		m_session_died = 0;
+	}
 }
 
 void CWmp4playerApp::RemoveLast (void)

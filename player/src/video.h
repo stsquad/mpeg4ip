@@ -44,15 +44,14 @@ class CVideoSync {
   int get_video_buffer(unsigned char **y,
 		       unsigned char **u,
 		       unsigned char **v);
-  int filled_video_buffers(uint64_t time, uint64_t &current_time);
+  int filled_video_buffers(uint64_t time);
   int set_video_frame(const Uint8 *y,      // from codec
 		      const Uint8 *u,
 		      const Uint8 *v,
 		      int m_pixelw_y,
 		      int m_pixelw_uv,
-		      uint64_t time,
-		      uint64_t &current_time);
-  void config (int w, int h, int frame_rate); // from codec
+		      uint64_t time);
+  void config (int w, int h); // from codec
   void set_wait_sem (SDL_sem *p) { m_decode_sem = p; };  // from set up
   void flush_decode_buffers(void);    // from decoder task in response to stop
   void flush_sync_buffers(void);      // from sync task in response to stop
@@ -84,8 +83,6 @@ class CVideoSync {
   Uint8 *m_u_buffer[MAX_VIDEO_BUFFERS];
   Uint8 *m_v_buffer[MAX_VIDEO_BUFFERS];
   uint64_t m_play_this_at[MAX_VIDEO_BUFFERS];
-  uint64_t m_current_time;
-  uint64_t m_next_time;
   SDL_sem *m_decode_sem;
   int m_dont_fill;
   uint32_t m_consec_skipped;
@@ -96,9 +93,7 @@ class CVideoSync {
   uint64_t m_behind_time_max;
   uint32_t m_skipped_render;
   uint64_t m_msec_per_frame;
-  uint64_t m_first_frame_time;
-  uint64_t m_first_frame_count;
-  uint64_t m_calculated_frame_rate;
+  uint64_t m_last_filled_time;
 };
 
 /* frame doublers */

@@ -402,28 +402,6 @@ int CRtpByteStreamBase::check_rtp_frame_complete_for_proto (void)
   }
 }
 
-const char *CRtpByteStreamBase::get_throw_error (int error)
-{
-  switch (error) {
-  case THROW_RTP_DECODE_ACROSS_TS:
-    return "Rtp decode across timestamp";
-  default:
-    break;
-  }
-  rtp_message(LOG_DEBUG, 
-	      "%s RTP bytestream base - unknown throw error %d", 
-	      m_name, error);
-  return "Unknown Error";
-}
-
-int CRtpByteStreamBase::throw_error_minor (int error)
-{
-  if (error == THROW_RTP_DECODE_ACROSS_TS) {
-    return 1;
-  }
-  return 0;
-}
-
 CRtpByteStream::CRtpByteStream(const char *name,
 			       unsigned int rtp_proto,
 			       int ondemand,
@@ -598,35 +576,6 @@ int CRtpByteStream::have_no_data (void)
     temp = temp->rtp_next;
   } while (temp != NULL && temp != first);
   return TRUE;
-}
-
-void CRtpByteStream::get_more_bytes (unsigned char **buffer, 
-				     uint32_t *buflen, 
-				     uint32_t used,
-				     int get)
-{
-#ifdef DEBUG_RTP_PAKS
-  rtp_message(LOG_DEBUG, "%s Get more bytes %d get %d", m_name, used, get);
-#endif
-  if (get != 0 || m_buffer_len == 0 || m_doing_add != 0) {
-    m_bytes_used = m_buffer_len;
-    throw THROW_RTP_DECODE_ACROSS_TS;
-  }
-  m_doing_add = 1;
-  m_add = 0;
-  m_bytes_used = m_buffer_len;
-  uint32_t diff;
-  diff = m_buffer_len - used;
-  m_total += used;
-  if (diff > 0) {
-    memmove(m_buffer, 
-	    m_buffer + used,
-	    diff);
-  }
-  memset(m_buffer + diff, 4, 0);
-  m_bytes_used = m_buffer_len = diff + 4;
-  *buffer = m_buffer;
-  *buflen = m_buffer_len;
 }
 
 void CRtpByteStream::flush_rtp_packets (void)

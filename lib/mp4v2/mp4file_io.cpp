@@ -442,11 +442,11 @@ void MP4File::WriteCountedString(char* string,
 	u_int32_t charLength = byteLength / charSize;
 
 	if (allowExpandedCount) {
-		do {
-			u_int8_t b = MIN(charLength, 255);
-			WriteUInt8(b);
-			charLength -= b;
-		} while (charLength);
+		while (charLength >= 0xFF) {
+			WriteUInt8(0xFF);
+			charLength -= 0xFF;
+		}		
+		WriteUInt8(charLength);
 	} else {
 		if (charLength > 255) {
 			throw new MP4Error(ERANGE, "MP4WriteCountedString");

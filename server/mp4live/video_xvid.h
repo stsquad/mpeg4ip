@@ -57,6 +57,7 @@ protected:
 
 protected:
 	void*				m_xvidHandle;
+	u_int32_t			m_inputOffset;
 	u_int8_t*			m_vopBuffer;
 	u_int32_t			m_vopBufferLength;
 	XVID_ENC_STATS		m_xvidResult;
