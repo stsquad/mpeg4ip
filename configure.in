@@ -3,7 +3,7 @@ AC_INIT()
 AC_CONFIG_AUX_DIR(config)
 
 AM_PROG_LIBTOOL
-AM_INIT_AUTOMAKE(mpeg4ip, 0.5)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.6)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -20,6 +20,28 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(strerror)
+
+dnl Allow server build to be disabled
+AC_ARG_ENABLE(server, 
+[  --enable-server        enable server build],
+[ case "${enableval}" in
+  yes) server=true ;;
+  no)  server=false ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-server) ;;
+esac],
+[server=true])
+AM_CONDITIONAL(SERVER, test $server = true)
+
+dnl Allow player build to be disabled
+AC_ARG_ENABLE(player, 
+[  --enable-player        enable player build],
+[ case "${enableval}" in
+  yes) player=true ;;
+  no)  player=false ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for --player-server) ;;
+esac],
+[player=true])
+AM_CONDITIONAL(PLAYER, test $player = true)
 
 AC_OUTPUT( \
 	Makefile \

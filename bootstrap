@@ -10,15 +10,15 @@ set -o xtrace
 # resulting Makefiles are called from mpeg4ip's Makefiles
 
 pushd ./server/lib/sndfile
-./configure
+./configure $*
 popd
 
 pushd ./player/lib/SDL
-./configure
+./configure $*
 popd
 
 pushd ./player/lib/rtp
-./configure
+./configure $*
 popd
 
 # if src tree is created via cvs export to tar.gz
@@ -40,7 +40,8 @@ fi
 aclocal
 automake --add-missing
 autoconf
-./configure
+# Pass our args to configure
+./configure $*
 
 set +o xtrace
 
