@@ -464,6 +464,7 @@ uint64_t CRtpByteStream::start_next_frame (unsigned char **buffer,
 
   diff = m_buffer_len - m_bytes_used;
 
+  m_doing_add = 0;
   if (diff > 2) {
     // Still bytes in the buffer...
     *buffer = m_buffer + m_bytes_used;
@@ -607,10 +608,13 @@ void CRtpByteStream::get_more_bytes (unsigned char **buffer,
 #ifdef DEBUG_RTP_PAKS
   rtp_message(LOG_DEBUG, "%s Get more bytes %d get %d", m_name, used, get);
 #endif
-  if (get != 0 || m_buffer_len == 0) {
+  if (get != 0 || m_buffer_len == 0 || m_doing_add != 0) {
     m_bytes_used = m_buffer_len;
     throw THROW_RTP_DECODE_ACROSS_TS;
   }
+  m_doing_add = 1;
+  m_add = 0;
+  m_bytes_used = m_buffer_len;
   uint32_t diff;
   diff = m_buffer_len - used;
   m_total += used;
@@ -620,7 +624,7 @@ void CRtpByteStream::get_more_bytes (unsigned char **buffer,
 	    diff);
   }
   memset(m_buffer + diff, 4, 0);
-  m_bytes_used = m_buffer_len = diff;
+  m_bytes_used = m_buffer_len = diff + 4;
   *buffer = m_buffer;
   *buflen = m_buffer_len;
 }

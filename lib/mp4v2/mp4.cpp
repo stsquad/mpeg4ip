@@ -820,6 +820,38 @@ extern "C" MP4SampleId MP4GetTrackNumberOfSamples(
 	return 0;
 }
 
+extern "C" u_int16_t MP4GetTrackVideoWidth(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackIntegerProperty(trackId,
+				"mdia.minf.stbl.stsd.mp4v.width");
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return 0;
+}
+
+extern "C" u_int16_t MP4GetTrackVideoHeight(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackIntegerProperty(trackId,
+				"mdia.minf.stbl.stsd.mp4v.height");
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return 0;
+}
+
 /* generic track properties */
 
 extern "C" u_int64_t MP4GetTrackIntegerProperty(

@@ -53,7 +53,9 @@ man_MANS = \
 	MP4GetTrackNumberOfSamples.3 \
 	MP4GetTrackTimeScale.3 \
 	MP4GetTrackType.3 \
+	MP4GetTrackVideoHeight.3 \
 	MP4GetTrackVideoType.3 \
+	MP4GetTrackVideoWidth.3 \
 	MP4GetVerbosity.3 \
 	MP4MakeIsmaCompliant.3 \
 	MP4Modify.3 \

@@ -1,16 +1,21 @@
-01/xx/02 Version 0.9.3
-    Added RFC 3119, MP3 robust RTP payload, support to mp4creator
-    Improved mp4live's synchronization of audio and video
-    Improved windows video resizing.
-    Changed .gmp4_playlist to .mp4plist
-    Added avidump utility
-    Updated FAAD.
-    Enhanced player decode performance for ISO codec.
-    Fixed a bunch of memory leaks.
-    Enhanced RTP over RTSP
-    Added windows gui.
-    Added support for RTP over RTSP for windows
-    Added Solaris support
+02/26/02 Version 0.9.3
+    Added RFC 3119, MP3 robust RTP payload, support to mp4creator.
+    Improved mp4live's synchronization of audio and video.
+    Improved mp4player video resizing on Windows.
+    Changed .gmp4_playlist extension to .mp4plist
+    Added avidump utility.
+    Updated FAAD (AAC audio decoder).
+    Enhanced mp4player decode performance for ISO codec.
+    Fixed a bunch of memory leaks in mp4player.
+    Enhanced RTP over RTSP in mp4player
+    Added Windows gui to mp4player.
+    Added support for RTP over RTSP on Windows.
+    Added Solaris support.
+	Added raw recording support to mp4live.
+    Added AAC support to mp4live.
+    Fixed mp4live TV frequency tuning bug.
+    Fixed mp4live audio sampling rate bugs.
+    Some minor API changes to MP4 library, see lib/mp4v2/API_CHANGES
 
 12/17/01 Version 0.9.2
     Added VC 6.0 projects for windows

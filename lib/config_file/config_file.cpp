@@ -278,7 +278,7 @@ int CConfig::read_config_file(const char *reg_name, const char *config_section)
 			}
 		} else {
 			DWORD buflen;
-
+			buflen = sizeof(buff);
 			result = newrk.QueryValue(buff, m_config_var[ix].config_name,
 									  &buflen);
 			if (result == ERROR_SUCCESS) {

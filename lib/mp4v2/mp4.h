@@ -298,6 +298,12 @@ bool MP4SetTrackESConfiguration(
 MP4SampleId MP4GetTrackNumberOfSamples(
 	MP4FileHandle hFile, MP4TrackId trackId);
 
+u_int16_t MP4GetTrackVideoWidth(
+	MP4FileHandle hFile, MP4TrackId trackId);
+
+u_int16_t MP4GetTrackVideoHeight(
+	MP4FileHandle hFile, MP4TrackId trackId);
+
 /* generic track properties */
 
 u_int64_t MP4GetTrackIntegerProperty(

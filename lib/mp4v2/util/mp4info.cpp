@@ -297,13 +297,9 @@ static void PrintVideoInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 
 	// Note not all mp4 implementations set width and height correctly
 	// The real answer can be buried inside the ES configuration info
-	u_int16_t width =
-		MP4GetTrackIntegerProperty(mp4File, trackId, 
-			"mdia.minf.stbl.stsd.mp4v.width");
+	u_int16_t width = MP4GetTrackVideoWidth(mp4File, trackId); 
 
-	u_int16_t height =
-		MP4GetTrackIntegerProperty(mp4File, trackId, 
-			"mdia.minf.stbl.stsd.mp4v.height");
+	u_int16_t height = MP4GetTrackVideoHeight(mp4File, trackId); 
 
 	// Note if variable rate video is being used the fps is an average 
 	u_int32_t numFrames = 

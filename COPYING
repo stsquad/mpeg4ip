@@ -1,12 +1,172 @@
+February 26, 2002
+
 MPEG4IP contains original code, and copies of other open source packages.
 
-The original code is covered by the Mozilla Public License 1.1 (MPL 1.1)
-which is reproduced below.
-
+The original code that we've written, is under the Mozilla Public
+License 1.1, which is reproduced at the end of this file.
+ 
 The redistributed open source packages are covered by their own licenses
-which accompany their source. Please see the README for a list of these
+which accompany their source. Please see below for a list of these
 packages, and their location within the mpeg4ip directory structure.
 
+Like most, if not all, modern audio/video codecs, the codecs used by MPEG4IP 
+are subject to patent royalities depending on usage and jurisdiction. 
+Information about licenses for products that use these codecs can be found at:
+For MPEG-4, www.mpeg-la.org
+For MP3, www.mp3licensing.com
+For AAC, www.aac-audio.com
+
+You should consider this issue before you start building derivative works. 
+We are not warranting or indemnifying you in any way for patent royalities! 
+YOU ARE SOLELY RESPONSIBLE FOR YOUR OWN ACTIONS!
+
+
+Redistributed Open Source Packages
+==================================
+
+This is the list of redistributed open source packages that are included 
+in MPEG4IP:
+
+Name:       Apple Darwin Streaming Server
+Version:    4.0
+Origin:     http://www.apple.com/projects/streaming
+Author:     Apple Computer
+Directory:  mpeg4ip/server/DSS4
+License:    Apple Public Source License (APSL)
+Notes:      The package includes the APSL version 1.1, however Apple 
+            release version 1.2 of the APSL on January 4, 2001. This
+            version of the license can be used instead if desired.
+
+Name:       avilib
+Version:    1999
+Origin:     http://www.munich-vision.de/lavtools
+Author:     Rainer Johanni
+Directory:  mpeg4ip/lib/avi
+License:    GNU Library General Public License (LGPL), version 2 1991
+Notes:      Extracted from lavtools package,
+
+Name:       ffmpeg
+Version:    0.3.4
+Origin:     http://www.sourceforge.net/projects/ffmpeg
+Author:     Gerard Lantau
+Directory:  mpeg4ip/server/video/ffmpeg
+License:    GNU General Public License (GPL), version 2 1991
+Notes:      Code redistributed with MPEG4IP is the video encoder library
+            portion of the ffmpeg project. See the ffmpeg site to obtain
+            the complete distribution.
+
+Name:       Freeware Advanced Audio Coder (FAAC) / Decoder (FAAD)
+Version:    1.2
+Origin:     http://www.sourceforge.net/projects/FAAC
+Author:     Menno Bakker
+Directory:  mpeg4ip/server/audio/faac
+            mpeg4ip/player/lib/audio/faad
+License:    GNU Library General Public License (LGPL), version 2 1991 
+            ISO MPEG-4 reference software license for original base code
+Notes:      Use may require payment of patent royalties
+
+Name:       ISO MPEG-4 reference software
+Version:    2000
+Origin:     http://www.iso.ch/ittf
+Author:     ISO
+Directory:  mpeg4ip/common/video/mpeg4
+License:    Other, see source files
+Notes:      Use may require payment of patent royalties
+            Many contributors are listed in the individual source files.
+
+Name:       ITU H.26L reference software
+Version:    TML 9.4
+Origin:		ftp://standards.pictel.com/video-site/h26L/
+Author:		ITU
+Directory:  mpeg4ip/common/video/mpeg4
+License:    Other, see COPYRIGHT file 
+Notes:      Use may require payment of patent royalties
+			This code is being used for evaluation and experimentation.
+			It is not currently used by the rest of the MPEG4IP tools.
+
+Name:       LAME
+Version:    3.70
+Origin:     http://www.mp3dev.org/mp3/
+Authors:    Mike Cheng, Mark Taylor     
+Directory:  mpeg4ip/server/audio/lame
+License:    GNU Library General Public License (LGPL), version 2 1991 
+            for modifications
+            ISO MPEG-2 reference software license for orignial base code
+Notes:      Use may require payment of patent royalties
+            Many contributors are listed in the individual source files.
+
+Name:       Open DivX
+Version:    4.0, alpha 50 for encoder, alpha48 for decoder 
+Origin:     http://www.projectmayo.com/
+Author:     Project Mayo
+Directory:  mpeg4ip/server/video/divx, and mpeg4ip/player/lib/video/divx
+License:    DivX Open license, version 2.1
+Notes:      DivX license can be found in above directories, as
+            divx_open_license.txt
+            Note this license has requirements on content generated
+            by the encoder when the content is used for commerical purposes.
+            Many contributors are listed in the individual source files.
+
+Name:       Quicktime for Linux
+Version:    1.2
+Origin:     http://heroine.linuxave.net/quicktime.html 
+Author:     Adam Williams
+Directory:  mpeg4ip/lib/mp4
+License:    Other, see README_ORIGINAL
+Notes:      This directory also contains original MPEG4IP code.
+
+Name:       Simple DirectMedia Layer
+Version:    1.2.3
+Origin:     http://www.libsdl.org/
+Author:     Sam Lantinga
+Directory:  mpeg4ip/lib/SDL
+License:    GNU Library General Public License (LGPL), version 2 1991
+
+Name:       sndfile
+Version:    0.0.16
+Origin:     http://www.zip.com.au/~erikd/libsndfile
+Author:     Erik de Castro Lopo
+Directory:  mpeg4ip/server/lib/sndfile
+License:    GNU Lesser General Public License, version 2.1 1999
+Notes:      Used by FAAC
+
+Name:       splay
+Version:    0.9.4
+Origin:     http://splay.sourceforge.net/
+Author:     Woo-jae Jung
+Directory:  mpeg4ip/player/audio/mp3
+License:    GNU Library General Public License (LGPL), version 2 1991
+
+Name:       UCL Common Multimedia Library
+Version:    1.2.8
+Origin:     http://www-mice.cs.ucl.ac.uk/multimedia/software/common/
+Author:     University College London
+Directory:  mpeg4ip/lib/rtp
+License:    Other, see COPYRIGHT
+Notes:      This directory contains additional third-party code with 
+            different licenses.
+
+Name:       xvid
+Version:    January 5, 2002
+Origin:     http://www.videocoding.de/
+Authors:    Michael Militzer, Peter Ross
+Directory:  mpeg4ip/common/video/xvid
+License:    GNU General Public License (GPL), version 2 1991
+            with portions of the code covered by the OpenDivx license.
+Notes:      Code redistributed with MPEG4IP is just the codec library
+            portion of the project. See the project site to obtain
+            the complete distribution which includes a Video for Windows
+            wrapper.
+
+We will attempt to keep up with the current stable releases of
+these packages. 
+
+If you have questions or problems that are specific to one of 
+these packages, please look at the package for how best to contact
+the authors/maintainers. 
+
+
+---
 
 
                           MOZILLA PUBLIC LICENSE

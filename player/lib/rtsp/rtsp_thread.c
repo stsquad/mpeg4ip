@@ -100,12 +100,12 @@ static int rtsp_msg_thread_perform_callback (rtsp_client_t *info)
 {
   rtsp_msg_callback_t callback;
   int ret;
-  size_t cbs;
+  uint32_t cbs;
 
   cbs = sizeof(callback);
   ret = rtsp_thread_ipc_receive(info, (char *)&callback, cbs);
   if (ret != cbs) {
-    rtsp_debug(LOG_ERR, "Perform callback msg - recvd %d instead of %d",
+    rtsp_debug(LOG_ERR, "Perform callback msg - recvd %d instead of %u",
 	       ret, cbs); 
     return -1;
   }
@@ -118,12 +118,12 @@ static int rtsp_msg_thread_set_rtp_callback (rtsp_client_t *info)
   rtsp_msg_rtp_callback_t callback;
   int interleave_num;
   int ret;
-  size_t cbs = sizeof(callback);
+  uint32_t cbs = sizeof(callback);
 
   rtsp_debug(LOG_DEBUG, "In rtsp_msg_thread_set_rtp_callback");
   ret = rtsp_thread_ipc_receive(info, (char *)&callback, cbs);
   if (ret != cbs) {
-    rtsp_debug(LOG_ERR, "Perform callback msg - recvd %d instead of %d",
+    rtsp_debug(LOG_ERR, "Perform callback msg - recvd %d instead of %u",
 	       ret, cbs);
     return -1;
   }

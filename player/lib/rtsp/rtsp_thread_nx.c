@@ -76,7 +76,7 @@ int rtsp_thread_wait_for_event (rtsp_client_t *info)
     max_fd = COMM_SOCKET_THREAD;
     if (info->server_socket != -1) {
       FD_SET(info->server_socket, &tinfo->read_set);
-      max_fd = MAX(tinfo->server_socket, max_fd);
+      max_fd = MAX(info->server_socket, max_fd);
     }
     FD_SET(COMM_SOCKET_THREAD, &tinfo->read_set);
     timeout.tv_sec = info->recv_timeout / 1000;

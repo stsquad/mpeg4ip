@@ -11,7 +11,7 @@ mp4live [\fIoptions\fP]
 This program is a Linux audio/video capture utility that can capture and encode 
 audio and video in real\-time. The results can be written to either an mp4
 file, transmitted onto the network via either unicast or multicast, or both 
-simultaneously! The audio is encoded with MP3, and the video with MPEG\-4 
+simultaneously! The audio is encoded with MP3 or AAC, and the video with MPEG\-4 
 Simple Profile which is OpenDivx compatible.
 .LP 
 The program has a Gtk based user interface which displays a preview of the encoded video and controls to adjust the settings of the functions of the program. Settings are remembered and stored in ~/.mp4live_rc.
@@ -28,6 +28,9 @@ Act as if the "Start" button were pressed immediately upon program startup. What
 .TP 
 \fB\-headless\fR
 Act as in automatic mode, and do not display any user interface.
+.TP 
+\fB\-sdp\fR
+Just generate the sdp file based on the configuration and exit.
 .SH "FILES"
 .LP 
 \fI~/.mp4live_rc\fP 

@@ -1,4 +1,4 @@
-January 16, 2002
+February 26, 2002
 
 MPEG4IP Project
 ===============
@@ -10,7 +10,7 @@ also created some original code to fill in the gaps.
 
 Please note this project is intended for developers who are interested
 in MPEG-4 audio and video, and Internet streaming. It is not intended
-for end-users. Please read all the legal information!
+for end-users. Please read all the legal information in the file "COPYING"!
 
 Also note that the primary development focus of this project is the 
 Linux platform. If you're going to use the package on other platforms,
@@ -23,10 +23,11 @@ There is also a project web site at http://www.mpeg4ip.net/ that has some
 general information on MPEG4IP.   
 
 
-Upgrading
-=========
+Upgrading from 0.8 or earlier versions
+======================================
 
 Note: If you have used a pre-0.9 version of mpeg4ip please read this section.
+Otherwise you can safely ignore it.
 
 In version 0.9, the mp4 file format library has been reimplemented. The 
 new implementation addresses a number of bugs and shortcomings of the old 
@@ -68,7 +69,7 @@ $ mp4v1regenerate foo.mp4 (the new file will be foo_new.mp4)
 Overview
 ========
 
-There are now two ways to use MPEG4IP to create content. 
+There are two ways to use MPEG4IP to create content:
 
 The older method assumes that you've somehow managed to capture raw audio
 and/or video into a file. That's the starting point from which you can use
@@ -76,7 +77,7 @@ the MPEG4IP encoding tools to create an MP4 file. The simplest method being
 to use the 'mp4encode' script. Detailed instructions for this script and the
 individual tools that it uses are in doc/encoding/encoding.htm  
 
-The new method is an integrated live encoding tool called mp4live.  This 
+The newer method is an integrated live encoding tool called mp4live.  This 
 program is designed to make it easy to create MP4 files or transmit live
 audio/video streams over the network. It can even do both things 
 simultaneously!  The key requirement to use this tool is to have a video 
@@ -119,162 +120,7 @@ to fit that need.
 Legal
 =====
 
-As you might imagine, integrating a significant number of open source 
-packages creates a complicated legal situation. Here's the plain language 
-overview. For the complete story, you'll have to wade through the licenses.
-
-For the original code that we've written, it's under the Mozilla Public
-License 1.1, included in the file 'COPYING' or from http://www.mozilla.org/mpl
- 
-Each third party package has it's own license (it's quite a menagerie). 
-Before you do anything, you should take a look at each package. They are 
-listed in the next section.
-
-Like most modern codecs, MPEG-4 Video and Audio codecs are almost certainly 
-subject to patent royalities. The problem is that you wouldn't know whom to
-pay. For MPEG-2 this problem was addressed by establishing a patent pool that
-charges a relatively modest fee for products to license the patents in the 
-pool. This is admistered by MPEG-LA, http://www.mpeg-la.org/  For MPEG-4,
-the MPEG-4 Industry Forum is looking at doing roughly the same thing.
-See http://www.m4if.org for details. In any case, you need to consider this 
-issue before you start building derivative works. We are not warranting or 
-indemnifying you in any way for patent royalities! YOU ARE SOLELY RESPONSIBLE 
-FOR YOUR OWN ACTIONS!
-
-
-Redistributed Open Source Packages
-==================================
-
-This is the list of redistributed open source packages that are included 
-in MPEG4IP:
-
-Name:       Apple Darwin Streaming Server
-Version:    3.0.1
-Origin:     http://www.apple.com/projects/streaming
-Author:     Apple Computer
-Directory:  mpeg4ip/server/DSS
-License:    Apple Public Source License (APSL)
-Notes:      The package includes the APSL version 1.1, however Apple 
-            release version 1.2 of the APSL on January 4, 2001. This
-            version of the license can be used instead if desired.
-
-Name:       avilib
-Version:    1999
-Origin:     http://www.munich-vision.de/lavtools
-Author:     Rainer Johanni
-Directory:  mpeg4ip/lib/avi
-License:    GNU Library General Public License (LGPL), version 2 1991
-Notes:      Extracted from lavtools package,
-
-Name:       ffmpeg
-Version:    0.3.4
-Origin:     http://www.sourceforge.net/projects/ffmpeg
-Author:     Gerard Lantau
-Directory:  mpeg4ip/server/video/ffmpeg
-License:    GNU General Public License (GPL), version 2 1991
-Notes:      Code redistributed with MPEG4IP is the video encoder library
-            portion of the ffmpeg project. See the ffmpeg site to obtain
-            the complete distribution.
-
-Name:       Freeware Advanced Audio Coder (FAAC) / Decoder (FAAD)
-Version:    1.1
-Origin:     http://www.sourceforge.net/projects/FAAC
-Author:     Menno Bakker
-Directory:  mpeg4ip/server/audio/faac
-            mpeg4ip/player/lib/audio/faad
-License:    GNU Library General Public License (LGPL), version 2 1991 
-            ISO MPEG-4 reference software license for original base code
-Notes:      Use may require payment of patent royalties
-
-Name:       ISO MPEG-4 reference software
-Version:    2000
-Origin:     http://www.iso.ch/ittf
-Author:     ISO
-Directory:  mpeg4ip/common/video/mpeg4
-License:    Other, see source files
-Notes:      Use may require payment of patent royalties
-            Many contributors are listed in the individual source files.
-
-Name:       LAME
-Version:    3.70
-Origin:     http://www.mp3dev.org/mp3/
-Authors:    Mike Cheng, Mark Taylor     
-Directory:  mpeg4ip/server/audio/lame
-License:    GNU Library General Public License (LGPL), version 2 1991 
-            for modifications
-            ISO MPEG-2 reference software license for orignial base code
-Notes:      Use may require payment of patent royalties
-            Many contributors are listed in the individual source files.
-
-Name:       Open DivX
-Version:    4.0, alpha 50 for encoder, alpha48 for decoder 
-Origin:     http://www.projectmayo.com/
-Author:     Project Mayo
-Directory:  mpeg4ip/server/video/divx, and mpeg4ip/player/lib/video/divx
-License:    DivX Open license, version 2.1
-Notes:      DivX license can be found in above directories, as
-            divx_open_license.txt
-            Note this license has requirements on content generated
-            by the encoder when the content is used for commerical purposes.
-            Many contributors are listed in the individual source files.
-
-Name:       Quicktime for Linux
-Version:    1.2
-Origin:     http://heroine.linuxave.net/quicktime.html 
-Author:     Adam Williams
-Directory:  mpeg4ip/lib/mp4
-License:    Other, see README_ORIGINAL
-Notes:      This directory also contains original MPEG4IP code.
-
-Name:       Simple DirectMedia Layer
-Version:    1.2.2
-Origin:     http://www.libsdl.org/
-Author:     Sam Lantinga
-Directory:  mpeg4ip/lib/SDL
-License:    GNU Library General Public License (LGPL), version 2 1991
-
-Name:       sndfile
-Version:    0.0.16
-Origin:     http://www.zip.com.au/~erikd/libsndfile
-Author:     Erik de Castro Lopo
-Directory:  mpeg4ip/server/lib/sndfile
-License:    GNU Lesser General Public License, version 2.1 1999
-Notes:      Used by FAAC
-
-Name:       splay
-Version:    0.9.4
-Origin:     http://splay.sourceforge.net/
-Author:     Woo-jae Jung
-Directory:  mpeg4ip/player/audio/mp3
-License:    GNU Library General Public License (LGPL), version 2 1991
-
-Name:       UCL Common Multimedia Library
-Version:    1.2.8
-Origin:     http://www-mice.cs.ucl.ac.uk/multimedia/software/common/
-Author:     University College London
-Directory:  mpeg4ip/lib/rtp
-License:    Other, see COPYRIGHT
-Notes:      This directory contains additional third-party code with 
-            different licenses.
-
-Name:       xvid
-Version:    January 5, 2002
-Origin:     http://www.videocoding.de/
-Authors:    Michael Militzer, Peter Ross
-Directory:  mpeg4ip/common/video/xvid
-License:    GNU General Public License (GPL), version 2 1991
-            with portions of the code covered by the OpenDivx license.
-Notes:      Code redistributed with MPEG4IP is just the codec library
-            portion of the project. See the project site to obtain
-            the complete distribution which includes a Video for Windows
-            wrapper.
-
-We will attempt to keep up with the current stable releases of
-these packages. 
-
-If you have questions or problems that are specific to one of 
-these packages, please look at the package for how best to contact
-the authors/maintainers. 
+Please see the file "COPYING".
 
 
 Building and Installing
@@ -325,7 +171,8 @@ need to specify the configuration option "--enable-mmx=no". The
 configuration script automatically detects an x86 target CPU and 
 enables MMX assembly code in the build (if the NASM assembler is available).
 If your CPU doesn't support MMX instructions you will want to disable 
-this feature. 
+this feature.  The configure script will also check for the minimum
+version of nasm supported; we require 0.98.19 or greater.
 
 For the curious, the bootstrap script invokes the configure scripts of 
 the included packages that have them, and then our own top level configure 
@@ -339,14 +186,14 @@ perform that step separately.
 
 To build the Darwin Streaming Server:
 
-    cd server/DSS
+    cd server/DSS4
     ./Buildit
 
 To install the Darwin Streaming Server from the build:
-    cd server/DSS
-    mkdir dist
-    ./DSS_MakeRoot -f dist
-    cd dist
+    cd server/DSS4
+    mkdir Dist
+    ./DSS_MakeRoot -f Dist
+    cd Dist
     ./Install    (need root privileges)
 
 See the documentation that accompanies the server on how to configure it
@@ -363,9 +210,6 @@ and enter the appropriate RTSP URL in gmp4player.
 Note that the clip is encoded to minimize the size of the distribution, and
 does not reflect the best quality that can be achieved.
 
-You can find other mp4 clips at the Philips MPEG-4 site,
-http://www.mpeg-4player.com/  Note that these clips are not hinted, so
-they can't be streamed, only local playback is possible.
 
 OS Supported
 ============
@@ -374,9 +218,8 @@ Currently, we have compiled and tested on the following platforms:
 linux, freeBSD, BSD/OS, Solaris, Mac OS X and windows.  For all varieties
 of *nux, X11 is required.
 
-To date we've built on Red Hat Linux 6.1, 6.2, 7.0, and 7.1 with
-the native compilers, and on 7.1 with gcc 3.0.  We've built on 
-freeBSD 4.3, and BSD/OS.
+To date we've built on Red Hat Linux 6.1, 6.2, 7.0, 7.1, and 7.2 with
+the native compilers, and on 7.1 and 7.2 with gcc 3.0.  
 
 For BSD/OS, you may need a semaphore shim.  Contact Steven Schultz
 for help on that (contact information in Authors).
@@ -388,6 +231,13 @@ correct its scripts.
 
 To fix this problem, do a link of libtoolize to glibtoolize (ie:
 ln -s libtoolize glibtoolize where ever glibtoolize is installed).
+
+You should also use the --disable-shared command when issuing the
+bootstrap shell.  This should be done for you if you use the project
+builder project.  
+
+We've tested the latest build on OSX, and have some strange results
+at times.
 
 When building on Slackware-8.0, you need to consider the following 
 (from maersk):
@@ -417,7 +267,9 @@ in player/src/video.cpp.
 
 To run mp4player other than in Visual Studio, install both mp4player.exe 
 and SDL.DLL into a directory on your Window's path (install them into
-the same directory).
+the same directory).  
+
+For windows GUI player, see below section.
 
 When building on Solaris, libtool and gnu make must be installed and
 used.  If libtool is installed, you make get a warning message that
@@ -485,12 +337,14 @@ mpeg4ip - top level project directory
         encoding - how to encode contenet
         ietf - copies of the relevant RFC's
         mcast - how to multicast 
+		mp4v2 - man pages for mp4v2 library
+		programs - man pages for core programs
 
     include - project wide includes 
 
     common - shared code
         video 
-            mpeg4 - MPEG-4 video encoder/decoder
+            mpeg4 - ISO MPEG-4 video encoder/decoder
             xvid - xvid video encoder/decoder
 
     lib - project wide libraries
@@ -502,6 +356,7 @@ mpeg4ip - top level project directory
             getopt - gnu getopt routines
         mp4 - MP4 (aka MOV/Quicktime) file format library
         mp4v2 - new MP4 library written from scratch
+			test - contains some test programs
             util - contains new mp4dump and mp4extract utilities
         msg_queue - SDL based Inter-thread messages utlity
         rtp - UCL RTP 
@@ -525,10 +380,13 @@ mpeg4ip - top level project directory
                 mpeg4 - wrapper around mpeg4v
                 wav - wrapper around PCM wav
             osx - Mac OS X UI
+	    win_common - common windows code
+            win_client - windows client
+            win_gui - windows gui code.
 
     server - server specific code
-        DSS - Darwin QuickTime Streaming Server
-            <see server/DSS/Documenation/AboutTheSource.html>
+        DSS4 - Darwin QuickTime Streaming Server
+            <see server/DSS4/Documentation/AboutTheSource.html>
         audio
             faac - AAC encoder program
             lame - MP3 encoder program
@@ -551,6 +409,7 @@ mpeg4ip - top level project directory
         video
             divx - OpenDivx encoder library and program
             ffmpeg - ffmpeg video encoder library
+			H26L - ITU H.26L TML 9.4 reference video encoder (EXPERIMENTAL)
 
     util - generally useful utilities
         yuv - simple tools for examining raw video
@@ -631,24 +490,6 @@ SPACE - pause or continue
 CTRL-C - close video (next if running playlist)
 CTRL-X - close mp4player
 
-Known Problems
-==============
-
-* If you're playing through a NAT box, you may have to specify the
-  default client IP ports.  Use the command RtpIpPortMin=<port> and
-  RtpIpPortMax=<port> in the .gmp4player_rc file created in your home
-  directory.  The IETF recommends a range of 6970 to 6999.
-
-* The ISO MPEG-4 video codec bitrate control feature is broken. We've
-  heard that a fix is available, so we're trying to track that down.
-
-* The player for windows is sketchy at best.  We have included project
-  files that should build, for both Dev Studio 5.0 and 6.0. 
-
-* We recommend installing DirectX 8.1 or later.  If that is not possible, 
-  and you have problems with video, try uncommenting out #define OLD_SURFACE
-  in player/src/video.cpp.
-
 Windows GUI
 ===========
 
@@ -679,5 +520,27 @@ same goes with GUI "nits" - we're not GUI writers.  Currently, there is
 no playlist support, no loop support, no drag and drop support, no
 wmp4player command line support, no accelerator from the dialog 
 window (accelerators from the video window still work).
+
+Known Problems
+==============
+
+* If you're playing through a NAT box, you may have to specify the
+  default client IP ports.  Use the command RtpIpPortMin=<port> and
+  RtpIpPortMax=<port> in the .gmp4player_rc file created in your home
+  directory.  The IETF recommends a range of 6970 to 6999.
+
+* The ISO MPEG-4 video codec bitrate control feature is broken. We've
+  heard that a fix is available, so we're trying to track that down.
+
+* The player for windows is sketchy at best.  We have included project
+  files that should build, for both Dev Studio 5.0 and 6.0. 
+
+* We recommend installing DirectX 8.1 or later.  If that is not possible, 
+  and you have problems with video, try uncommenting out #define OLD_SURFACE
+  in player/src/video.cpp.
+
+* Mac OSX player sometimes will lock up, or stop playing video while
+  continuing the audio - we need someone to help us add the sound buffer 
+  delay to get really good audio/video sync.
 
 === END OF README ===

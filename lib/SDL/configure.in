@@ -2082,8 +2082,8 @@ case "$target" in
         ARCH=macosx
         CheckDummyVideo
         CheckDiskAudio
-	# CheckCARBON
-        CheckQUARTZ
+	CheckCARBON
+        # CheckQUARTZ
         CheckMacGL
         CheckPTHREAD
         # Set up files for the main() stub

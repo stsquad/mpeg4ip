@@ -266,6 +266,7 @@ int CDivxCodec::decode (uint64_t ts,
     m_last_time = ts;
     m_bytestream->used_bytes_for_frame(ret);
   } catch (int err) {
+	  m_bytestream->used_bytes_for_frame(buflen);
       if (m_bytestream->throw_error_minor(err) != 0) {
 	//player_debug_message("decode across ts");
 	return (-1);
@@ -275,6 +276,7 @@ int CDivxCodec::decode (uint64_t ts,
       m_decodeState = DIVX_STATE_WAIT_I;
       return (-1);
   } catch (...) {
+	m_bytestream->used_bytes_for_frame(buflen);
     divx_message(LOG_DEBUG, "divx caught exception");
     m_decodeState = DIVX_STATE_WAIT_I;
     return (-1);

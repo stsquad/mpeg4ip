@@ -1,0 +1,21 @@
+Changes from 0.9.2 to 0.9.3
+---------------------------
+Modified
+	MP4Optimize()
+		Second argument, newFileName, can now be NULL in which case
+		a temporary file is created for the results of the optimization.
+		Upon success, the existing file specified with the first argument 
+		is overwritten with the optimized file.
+
+	MP4GetNumberOfTracks()
+	MP4FindTrackId()
+		Both have a new optional argument, subType, with default value 0.
+		The subType can be specified for audio and video tracks to
+		match only a specific encoding type. See man page for more details.
+
+Added
+	MP4GetTrackVideoWidth()
+		Returns video width in pixels. See man page for caveat.
+
+	MP4GetTrackVideoHeight()
+		Returns video height in pixels. See man page for caveat.
