@@ -24,12 +24,6 @@
  *  - file formatted with tabstops == 4 spaces 
  */
 
-#include <sys/types.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <mpeg4ip.h>
 
 static bool loadNextMp3Header(FILE* inFile, u_int32_t* pHdr, bool allowLayer4)

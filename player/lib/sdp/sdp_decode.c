@@ -437,6 +437,7 @@ static int sdp_decode_parse_a_fmtp (int arg,
   fptr = find_format_in_line(mptr->fmt,lptr) ;
 
   if (fptr == NULL) {
+    sdp_debug(LOG_ERR, "Can't find fmtp format %s in media format list", lptr);
     return (-1);
   }
 
@@ -474,6 +475,7 @@ static int sdp_decode_parse_a_rtpmap (int arg,
   fptr = find_format_in_line(mptr->fmt,lptr) ;
 
   if (fptr == NULL) {
+    sdp_debug(LOG_ERR, "Can't find rtpmap format %s in media list", lptr);
     return (-1);
   }
 
@@ -484,8 +486,10 @@ static int sdp_decode_parse_a_rtpmap (int arg,
   enc = lptr + len;
   ADV_SPACE(enc);
   slash = strchr(enc, '/');  
-  if (slash == NULL)
+  if (slash == NULL) {
+    sdp_debug(LOG_ERR, "Couldn't find / in fmtp");
     return (-1);
+  }
 
   *slash++ = '\0';
   temp = enc;
@@ -498,8 +502,10 @@ static int sdp_decode_parse_a_rtpmap (int arg,
   if (temp == NULL)
     return (-1);
 
-  if (sscanf(temp, "%u", &a) == 0)
+  if (sscanf(temp, "%u", &a) == 0) {
+    sdp_debug(LOG_ERR, "Couldn't decode rtp clockrate %s", temp);
     return (-1);
+  }
 
   b = 0;
   if (slash != NULL) {
@@ -712,34 +718,49 @@ static int sdp_decode_parse_a_range (int arg,
       rptr->range_smpte_fps = 0;
     }
   } else {
+    sdp_debug(LOG_ERR, "range decode - unknown keyword %s", lptr);
     return (-1);
   }
   ADV_SPACE(lptr);
-  if (*lptr != '=')
+  if (*lptr != '=') {
+    sdp_debug(LOG_ERR, "range decode - no =");
     return (-1);
+  }
   lptr++;
   ADV_SPACE(lptr);
   dash = strchr(lptr, '-');
   if (dash == NULL) return (-1);
   if (rptr->range_is_npt) {
-    if (convert_npt(lptr, dash, &rptr->range_start) == FALSE) return (-1);
+    if (convert_npt(lptr, dash, &rptr->range_start) == FALSE) {
+      sdp_debug(LOG_ERR, "Couldn't decode range from npt %s", lptr);
+      return (-1);
+    }
   } else {
     if (convert_smpte(lptr,
 		      dash,
 		      rptr->range_smpte_fps,
-		      &rptr->range_start) == FALSE) return (-1);
+		      &rptr->range_start) == FALSE) {
+      sdp_debug(LOG_ERR, "Couldn't decode range from smpte %s", lptr);
+      return (-1);
+    }
   }
       
   second = dash + 1;
   ADV_SPACE(second);
   if (*second != '\0') {
     if (rptr->range_is_npt) {
-      if (convert_npt(second, NULL, &rptr->range_end) == FALSE) return (-1);
+      if (convert_npt(second, NULL, &rptr->range_end) == FALSE) {
+	sdp_debug(LOG_ERR, "Couldn't decode range to npt %s", lptr);
+	return (-1);
+      }
     } else {
       if (convert_smpte(second,
 			NULL,
 			rptr->range_smpte_fps,
-			&rptr->range_end) == FALSE) return (-1);
+			&rptr->range_end) == FALSE) {
+	sdp_debug(LOG_ERR, "Couldn't decode range to smpte %s", lptr);
+	return (-1);
+      }
     }
   } else {
     rptr->range_end_infinite = TRUE;
@@ -846,63 +867,93 @@ static int sdp_decode_parse_a_str (int arg,
   switch (arg) {
   case 0: // keywds
     if (sptr->keywds != NULL) {
+      sdp_debug(LOG_ERR, "2nd keywds statement");
       return (-1);
     }
     sptr->keywds = strdup(lptr);
     break;
   case 1: // tool
     if (sptr->tool != NULL) {
+      sdp_debug(LOG_ERR, "2nd tool statement");
       return (-1);
     }
     sptr->tool = strdup(lptr);
     break;
   case 2: // charset
     if (sptr->charset != NULL) {
+      sdp_debug(LOG_ERR, "2nd charset statement");
       return (-1);
     }
     sptr->charset = strdup(lptr);
     break;
   case 3: // sdplang
     if (mptr != NULL) {
-      if (mptr->sdplang != NULL) return (-1);
+      if (mptr->sdplang != NULL) {
+	sdp_debug(LOG_ERR, "2nd sdplang statement in media");
+	return (-1);
+      }
       mptr->sdplang = strdup(lptr);
     } else {
-      if (sptr->sdplang != NULL) return (-1);
+      if (sptr->sdplang != NULL) {
+	sdp_debug(LOG_ERR, "2nd sdplang statement in session");
+	return (-1);
+      }
       sptr->sdplang = strdup(lptr);
     }
     break;
   case 4: // lang
     if (mptr != NULL) {
-      if (mptr->lang != NULL) return (-1);
+      if (mptr->lang != NULL) {
+	sdp_debug(LOG_ERR, "2nd lang statement in media");
+	return (-1);
+      }
       mptr->lang = strdup(lptr);
     } else {
-      if (sptr->lang != NULL) return (-1);
+      if (sptr->lang != NULL) {
+	sdp_debug(LOG_ERR, "2nd lang statement in media");
+	return (-1);
+      }
       sptr->lang = strdup(lptr);
     }
     break;
   case 5: // type
-    if (sptr->conf_type != 0) return (-1);
+    if (sptr->conf_type != 0) {
+      sdp_debug(LOG_ERR, "2nd conftype statement");
+      return (-1);
+    }
     sptr->conf_type = check_value_list_or_user(lptr,
 					       type_values,
 					       &sptr->conf_type_user);
     break;
   case 6: // orient
-    if (mptr == NULL || mptr->orient_type != 0) return (-1);
+    if (mptr == NULL || mptr->orient_type != 0) {
+      sdp_debug(LOG_ERR, "2nd orient type statement");
+      return (-1);
+    }
     mptr->orient_type = check_value_list_or_user(lptr,
 						 orient_values,
 						 &mptr->orient_user_type);
     break;
   case 7: // control
     if (mptr == NULL) {
-      if (sptr->control_string != NULL) return (-1);
+      if (sptr->control_string != NULL) {
+	sdp_debug(LOG_ERR, "2nd control statement in media");
+	return (-1);
+      }
       sptr->control_string = strdup(lptr);
     } else {
-      if (mptr->control_string != NULL) return (-1);
+      if (mptr->control_string != NULL) {
+	sdp_debug(LOG_ERR, "2nd control statement in session");
+	return (-1);
+      }
       mptr->control_string = strdup(lptr);
     }
     break;
   case 8:
-    if (sptr->etag != NULL) return (-1);
+    if (sptr->etag != NULL) {
+      sdp_debug(LOG_ERR, "2nd etag statement");
+      return (-1);
+    }
     sptr->etag = strdup(lptr);
     break;
   }
@@ -1043,6 +1094,7 @@ static int sdp_decode_parse_bandwidth (char *lptr,
   uint32_t temp;
   cptr = strchr(lptr, ':');
   if (cptr == NULL) {
+    sdp_debug(LOG_ERR, "No colon in bandwidth");
     return (ESDP_BANDWIDTH);
   }
   *cptr++ = '\0';
@@ -1058,10 +1110,14 @@ static int sdp_decode_parse_bandwidth (char *lptr,
   }
 
   if (*cptr == '\0') {
+    sdp_debug(LOG_ERR, "No bandwidth in bandwidth");
     return (ESDP_BANDWIDTH);
   }
   temp = strtoul(cptr, &endptr, 10);
-  if (*endptr != '\0') return (ESDP_BANDWIDTH);
+  if (*endptr != '\0') {
+    sdp_debug(LOG_ERR, "Error in decoding bandwidth value %s", cptr);
+    return (ESDP_BANDWIDTH);
+  }
   
   new = malloc(sizeof(bandwidth_t));
   if (new == NULL) {
@@ -1104,9 +1160,10 @@ static int sdp_decode_parse_connect (char *lptr, connect_desc_t *cptr)
 
   // <network type> should be IN
   sep = strsep(&lptr, SPACES);
-  if (sep == NULL || lptr == NULL)
-    return (ESDP_CONNECT);
-  if (strcasecmp(sep, "IN") != 0) {
+  if (sep == NULL ||
+      lptr == NULL ||
+      strcasecmp(sep, "IN") != 0) {
+    sdp_debug(LOG_ERR, "IN statement missing from c");
     return (ESDP_CONNECT);
   }
 
@@ -1114,6 +1171,7 @@ static int sdp_decode_parse_connect (char *lptr, connect_desc_t *cptr)
   ADV_SPACE(lptr);
   sep = strsep(&lptr, SPACES);
   if (sep == NULL || lptr == NULL) {
+    sdp_debug(LOG_ERR, "No connection type in c=");
     return (ESDP_CONNECT);
   }
   cptr->conn_type = strdup(sep);
@@ -1144,6 +1202,7 @@ static int sdp_decode_parse_connect (char *lptr, connect_desc_t *cptr)
   sep = strsep(&lptr, " \t/");
   if (!isdigit(*sep)) {
     free_connect_desc(cptr);
+    sdp_debug(LOG_ERR, "No multicast TTL in c=");
     return (ESDP_CONNECT);
   }
   sscanf(sep, "%u", &cptr->ttl);
@@ -1152,6 +1211,7 @@ static int sdp_decode_parse_connect (char *lptr, connect_desc_t *cptr)
     // we have a number of ports, as well
     ADV_SPACE(lptr);
     if (!isdigit(*lptr)) {
+      sdp_debug(LOG_ERR, "c=: garbage after multicast ttl %s", lptr);
       free_connect_desc(cptr);
       return (ESDP_CONNECT);
     }
@@ -1182,6 +1242,7 @@ static int sdp_decode_parse_key (char *lptr, key_desc_t *kptr)
     kptr->key_type = KEY_TYPE_URI;
     lptr += strlen("uri");
   } else {
+    sdp_debug(LOG_ERR, "key statement keyword error %s", lptr);
     return (ESDP_KEY);
   }
   ADV_SPACE(lptr);
@@ -1219,6 +1280,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
   // m=<media> <port> <transport> <fmt list>
   mdesc = strsep(&lptr, SPACES);
   if (mdesc == NULL || lptr == NULL) {
+    sdp_debug(LOG_ERR, "No media type");
     *err = ESDP_MEDIA;
     return (NULL);
   }
@@ -1227,6 +1289,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
   ADV_SPACE(lptr);
   read = 0;
   if (!isdigit(*lptr)) {
+    sdp_debug(LOG_ERR, "Illegal port number in media %s", lptr);
     *err = ESDP_MEDIA;
     return (NULL);
   }
@@ -1242,11 +1305,13 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
     lptr++;
     ADV_SPACE(lptr);
     if (!isdigit(*lptr)) {
+      sdp_debug(LOG_ERR, "Illegal port number in media %s", lptr);
       *err = ESDP_MEDIA;
       return (NULL);
     }
     sep = strsep(&lptr, SPACES);
     if (lptr == NULL) {
+      sdp_debug(LOG_ERR, "Missing keywords in media");
       *err = ESDP_MEDIA;
       return (NULL);
     }
@@ -1259,6 +1324,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
   // <transport> (protocol)
   proto = strsep(&lptr, SPACES);
   if (proto == NULL || lptr == NULL) {
+    sdp_debug(LOG_ERR, "No transport in media");
     *err = ESDP_MEDIA;
     return (NULL);
   }
@@ -1327,6 +1393,7 @@ static int sdp_decode_parse_origin (char *lptr, session_desc_t *sptr)
   // Username - leave null if "-"
   username = strsep(&lptr, SPACES);
   if (username == NULL || lptr == NULL) {
+    sdp_debug(LOG_ERR, "o=: no username");
     return (ESDP_ORIGIN);
   }
   ADV_SPACE(lptr);
@@ -1335,24 +1402,28 @@ static int sdp_decode_parse_origin (char *lptr, session_desc_t *sptr)
   }
     
   if (strtou64(&lptr, &sptr->session_id) == FALSE) {
+    sdp_debug(LOG_ERR, "Non-numeric session id");
     return (ESDP_ORIGIN);
   }
 
   if (strtou64(&lptr, &sptr->session_version) == FALSE) {
+    sdp_debug(LOG_ERR, "Non-numeric session version");
     return (ESDP_ORIGIN);
   }
   
   ADV_SPACE(lptr);
   sep = strsep(&lptr, SPACES);
-  if (sep == NULL || lptr == NULL)
-    return (ESDP_ORIGIN);
-  if (strcasecmp(sep, "IN") != 0) {
+  if ((sep == NULL) ||
+      (lptr == NULL) ||
+      (strcasecmp(sep, "IN") != 0)) {
+    sdp_debug(LOG_ERR, "o=: no IN statement");
     return (ESDP_ORIGIN);
   }
 
   ADV_SPACE(lptr);
   sep = strsep(&lptr, SPACES);
   if (sep == NULL || lptr == NULL) {
+    sdp_debug(LOG_ERR, "o=: No creation address type");
     return (ESDP_ORIGIN);
   }
   sptr->create_addr_type = strdup(sep);
@@ -1360,6 +1431,7 @@ static int sdp_decode_parse_origin (char *lptr, session_desc_t *sptr)
   ADV_SPACE(lptr);
   sep = strsep(&lptr, SPACES);
   if (sep == NULL) {
+    sdp_debug(LOG_ERR, "o=: No creation address");
     return (ESDP_ORIGIN);
   }
   sptr->create_addr = strdup(sep);
@@ -1675,9 +1747,7 @@ int sdp_decode (sdp_decode_info_t *decode,
      */
     if (*lptr == '\0')
       continue;
-#if 0
-    printf("%s\n", lptr);
-#endif
+    sdp_debug(LOG_DEBUG, lptr);
     /*
      * Let's be strict about 1 character code
      */
@@ -1687,6 +1757,7 @@ int sdp_decode (sdp_decode_info_t *decode,
       lptr++;
       ADV_SPACE(lptr);
       if ((sptr == NULL) && (tolower(code) != 'v')) {
+	sdp_debug(LOG_ERR, "Version not 1st statement");
 	errret = ESDP_INVVER;
 	break;
       }
@@ -1696,6 +1767,7 @@ int sdp_decode (sdp_decode_info_t *decode,
 	if ((sscanf(lptr, "%u", &ver) != 1) ||
 	    (ver != 0)) {
 	  errret = ESDP_INVVER;
+	  sdp_debug(LOG_ERR, "SDP Version not correct, %s", line);
 	  break;
 	}
 	/*
@@ -1722,15 +1794,10 @@ int sdp_decode (sdp_decode_info_t *decode,
       }
       case 'o':
 	errret = sdp_decode_parse_origin(lptr, sptr);
-	if (errret != 0) {
-	  free_session_desc(sptr);
-	  break;
-	}
 	break;
       case 's':
 	sptr->session_name = strdup(lptr);
 	if (sptr->session_name == NULL) {
-	  free_session_desc(sptr);
 	  errret = ENOMEM;
 	}
 	break;
@@ -1738,13 +1805,11 @@ int sdp_decode (sdp_decode_info_t *decode,
 	if (current_media != NULL) {
 	  current_media->media_desc = strdup(lptr);
 	  if (current_media->media_desc == NULL) {
-	    free_session_desc(sptr);
 	    errret = ENOMEM;
 	  }
 	} else {
 	  sptr->session_desc = strdup(lptr);
 	  if (sptr->session_desc == NULL) {
-	    free_session_desc(sptr);
 	    errret = ENOMEM;
 	  }
 	}
@@ -1752,19 +1817,16 @@ int sdp_decode (sdp_decode_info_t *decode,
       case 'u':
 	sptr->uri = strdup(lptr);
 	if (sptr->uri == NULL) {
-	  free_session_desc(sptr);
 	  errret = ENOMEM;
 	}
 	break;
       case 'e':
 	if (add_string_to_list(&sptr->admin_email, lptr) == FALSE) {
-	  free_session_desc(sptr);
 	  errret = ENOMEM;
 	}
 	break;
       case 'p':
 	if (add_string_to_list(&sptr->admin_phone, lptr) == FALSE) {
-	  free_session_desc(sptr);
 	  errret = ENOMEM;
 	}
 	break;
@@ -1773,70 +1835,68 @@ int sdp_decode (sdp_decode_info_t *decode,
 					  current_media ?
 					  &current_media->media_connect :
 					  &sptr->session_connect);
-	if (errret != 0) {
-	  free_session_desc(sptr);
-	}
 	break;
       case 'b':
 	errret= sdp_decode_parse_bandwidth(lptr,
 					   current_media != NULL ?
 					   &current_media->media_bandwidth :
 					   &sptr->session_bandwidth);
-	if (errret != 0) {
-	  free_session_desc(sptr);
-	}
 	break;
       case 't':
 	current_time = sdp_decode_parse_time(lptr, sptr, &errret);
 	if (current_time == NULL) {
-	  free_session_desc(sptr);
+	  errret = ESDP_TIME;
 	}
 	break;
       case 'r':
 	if (current_time != NULL) {
 	  errret = sdp_decode_parse_time_repeat(lptr, current_time);
-	  if (errret != 0) {
-	    free_session_desc(sptr);
-	  }
 	}
 	break;
       case 'z':
 	errret = sdp_decode_parse_time_adj(lptr, sptr);
-	if (errret != 0) {
-	  free_session_desc(sptr);
-	}
 	break;
       case 'k':
 	errret = sdp_decode_parse_key(lptr,
 				      current_media == NULL ? &sptr->key :
 				      &current_media->key);
-	if (errret != 0) {
-	  free_session_desc(sptr);
-	}
 	break;
       case 'a':
 	errret = sdp_decode_parse_a(lptr, line, sptr, current_media);
-	if (errret != 0) {
-	  free_session_desc(sptr);
-	}
 	break;
       case 'm':
 	current_media = sdp_decode_parse_media(lptr, sptr, &errret);
-	if (current_media == NULL) {
-	  free_session_desc(sptr);
-	}
 	break;
       default:
-	free_session_desc(sptr);
+	sdp_debug(LOG_ERR, "unknown code - %s", line);
 	errret = ESDP_UNKNOWN_LINE;
       }
     } else {
       // bigger than 1 character code
+      sdp_debug(LOG_ERR, "More than 1 character code - %s", line);
       errret = ESDP_UNKNOWN_LINE;
     }
   }
+
   if (decode->isMem == FALSE) {
     fclose(decode->ifile);
+  }
+
+  if (errret != 0) {
+    if (sptr != NULL) {
+      if (first_session == sptr) {
+	*retlist = NULL;
+      } else {
+	session_desc_t *p;
+	p = first_session;
+	while (p->next != sptr) {
+	  p = p->next;
+	}
+	p->next = NULL;
+      }
+      free_session_desc(sptr);
+    }
+    return (errret);
   }
   return (0);
 }

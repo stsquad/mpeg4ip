@@ -1,24 +1,43 @@
 bin_PROGRAMS = faac
 
-faac_SOURCES = \
-	aac_se_enc.c \
-	bitstream.c \
-	enc_tf.c \
-	encoder.c \
-	mc_enc.c \
-	ms.c \
-	psych.c \
-	pulse.c \
-	tns.c \
-	transfo.c \
-	fastfft.c \
-	nok_ltp_enc.c \
-	nok_pitch.c \
-	rateconv.c \
-	faac.c \
-	quant.c \
-	huffman.c
+faac_SOURCES = faac.c
 
 INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/server/lib/sndfile/src
 
-LDADD = $(top_builddir)/server/lib/sndfile/src/libsndfile.la -lm
+AM_CFLAGS = -O2
+
+LDADD = $(top_builddir)/server/lib/sndfile/src/libsndfile.la \
+	libfaac.la -lm
+
+lib_LTLIBRARIES = libfaac.la
+
+libfaac_la_SOURCES = \
+	aacquant.h \
+	aacquant.c \
+	backpred.h \
+	backpred.c \
+	bitstream.h \
+	bitstream.c \
+	channels.h \
+	channels.c \
+	coder.h \
+	fft.h \
+	fft.c \
+	filtbank.h \
+	filtbank.c \
+	frame.h \
+	frame.c \
+	huffman.h \
+	hufftab.h \
+	huffman.c \
+	joint.h \
+	joint.c \
+	ltp.h \
+	ltp.c \
+	psych.h \
+	psych.c \
+	tns.h \
+	tns.c \
+	util.h \
+	util.c
+

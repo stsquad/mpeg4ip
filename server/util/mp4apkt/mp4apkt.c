@@ -25,18 +25,9 @@
  *  - TBD == "To Be Done" 
  */
 
-#include <sys/types.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <getopt.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <quicktime.h>
-#include <netinet/in.h>
 #include <mpeg4ip.h>
-
+#include <getopt.h>
+#include <quicktime.h>
 
 /* hard limits on range of RTP packet sizes */
 #define MIN_PKTSIZE	512
@@ -235,7 +226,7 @@ int main(int argc, char** argv)
 	/* end processing of command line */
 
 	/* open MPEG file for reading */
-	mpegFile = fopen(mpegFileName, "r");
+	mpegFile = fopen(mpegFileName, "rb");
 	if (mpegFile == NULL) {
 		/* error, file doesn't exist or we can't read it */
 		fprintf(stderr,
@@ -275,7 +266,11 @@ int main(int argc, char** argv)
 	}
 
 	/* check if Quicktime file already exists */
+#ifndef WIN32
 	if (access(qtFileName, X_OK) == 0) {
+#else
+	if (_access(qtFileName, X_OK) == 0) {
+#endif
 		/* exists, check signature */
 		if (!quicktime_check_sig(qtFileName)) {
 			/* error, not a Quicktime file? */

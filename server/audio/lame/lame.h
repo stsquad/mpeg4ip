@@ -21,6 +21,10 @@
 #define LAME_H_INCLUDE
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+  
 /* maximum size of mp3buffer needed if you encode at most 1152 samples for
    each call to lame_encode_buffer.  see lame_encode_buffer() below  */
 #define LAME_MAXMP3BUFFER 16384
@@ -330,7 +334,9 @@ int lame_decode_initfile(FILE *fd,int *stereo,int *samp,int *bitrate, unsigned l
 int lame_decode_fromfile(FILE *fd,short int pcm_l[],short int pcm_r[]);
 #endif
 
-
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

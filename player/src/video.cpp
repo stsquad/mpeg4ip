@@ -590,7 +590,13 @@ void CVideoSync::smooth_doubling(u_int8_t* pSrcPlane, u_int8_t* pDstPlane,
 			pDstPlane[di0++] = p00;
 			pDstPlane[di0++] = (p00 + p01) >> 1;
 			pDstPlane[di1++] = (p00 + p10) >> 1;
-			pDstPlane[di1++] = (p00 + p11) >> 1;
+			/*
+			 * TBD optimize this to use 
+			 * ((p00 + p01) >> 1 from above 
+			 * + the same value from the previous loop iteration >> 1
+			 * which will eliminate 1 add operation
+			 */
+			pDstPlane[di1++] = ((p00 + p01) + p10 + p11) >> 2;
 		}
 		
 		/* last column */

@@ -30,7 +30,7 @@
 
 #include <stdlib.h>
 #include <math.h>
-
+#include "divxif.h"
 #include "mp4_decoder.h"
 #include "global.h"
 
@@ -52,12 +52,10 @@ int getvolhdr()
 	{
 		getbits(27); // start_code
 		getbits(5); // vo_id
+	}
 
-		if (getbits(28) != VOL_START_CODE)
-		{
-		  return(0);
-		  //exit(101);
-		}
+	if (showbits(28) == VOL_START_CODE) {
+	  getbits(28);
 		mp4_hdr.ident = getbits(4); // vol_id
 		mp4_hdr.random_accessible_vol = getbits(1);
 		mp4_hdr.type_indication = getbits(8); 
@@ -189,7 +187,14 @@ int getvophdr(void)
 	temp = showbits(32);
 	while (temp != (int) VOP_START_CODE)
 	  {
-	    getbits(8);
+	    if (((temp >> 4) == VOL_START_CODE) ||
+		((temp >> 5) == VO_START_CODE)) {
+	      if (getvolhdr() > 0) {
+		post_volprocessing();
+		next_start_code();
+	      }
+	    } else 
+	      getbits(8);
 	    temp = showbits(32);
 	  }
 	flushbits(32);

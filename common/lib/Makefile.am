@@ -1,1 +1,1 @@
-SUBDIRS = config_file
+SUBDIRS = config_file msg_queue

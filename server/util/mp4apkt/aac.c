@@ -24,12 +24,6 @@
  *  - file formatted with tabstops == 4 spaces 
  */
 
-#include <sys/types.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <mpeg4ip.h>
 
 #define ADTS_HEADER_MAX_SIZE 10 /* bytes */
@@ -42,7 +36,7 @@ static u_int8_t firstHeader[ADTS_HEADER_MAX_SIZE];
 static u_int16_t getAdtsFrameSize(u_int8_t* hdr)
 {
 	/* extract the necessary fields from the header */
-	u_int8_t isMpeg4 = hdr[1] & 0x08;
+	u_int8_t isMpeg4 = !(hdr[1] & 0x08);
 	u_int16_t frameLength;
 
 	if (isMpeg4) {
@@ -59,7 +53,7 @@ static u_int16_t getAdtsFrameSize(u_int8_t* hdr)
  */
 static u_int16_t getAdtsHeaderBitSize(u_int8_t* hdr)
 {
-	u_int8_t isMpeg4 = hdr[1] & 0x08;
+	u_int8_t isMpeg4 = !(hdr[1] & 0x08);
 	u_int8_t hasCrc = !(hdr[1] & 0x01);
 	u_int16_t hdrSize;
 

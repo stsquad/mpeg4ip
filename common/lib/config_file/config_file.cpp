@@ -23,10 +23,7 @@
  * config_file.cpp - a fairly simple config file reader.  It will read
  * either strings or ints out of .gmp4player_rc (or a specified file)
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#include "systems.h"
 #include "config_file.h"
 // Basic list of available config variables.  Future work could make this
 // dynamic, but I'm not going to bother right now...

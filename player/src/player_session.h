@@ -33,7 +33,7 @@
 #include "player_media.h"
 #include "audio.h"
 #include "video.h"
-#include "msg_queue.h"
+#include "our_msg_queue.h"
 
 typedef enum {
   SESSION_PAUSED,
@@ -143,7 +143,7 @@ class CPlayerSession {
   int set_session_desc (int line, const char *desc);
   const char *get_session_desc(int line);
  private:
-  void process_sdl_events();
+  int process_sdl_events(int state);
   int process_msg_queue(int state);
   int sync_thread_init(void);
   int sync_thread_wait_sync(void);

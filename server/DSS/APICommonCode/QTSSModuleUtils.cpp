@@ -38,7 +38,9 @@
 #include "StringFormatter.h"
 #include "QTSSDataConverter.h"
 #include "ResizeableStringFormatter.h"
+#ifndef WIN32
 #include <netinet/in.h>
+#endif
 
 QTSS_TextMessagesObject 	QTSSModuleUtils::sMessages = NULL;
 QTSS_ServerObject 			QTSSModuleUtils::sServer = NULL;

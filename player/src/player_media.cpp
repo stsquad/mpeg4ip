@@ -30,6 +30,7 @@
 #include "player_util.h"
 #include <rtp/rtp.h>
 #include <rtp/memory.h>
+#include "our_config_file.h"
 
 /*
  * c routines for callbacks
@@ -80,6 +81,14 @@ CPlayerMedia::CPlayerMedia ()
   m_rtp_ssrc_set = FALSE;
   m_rtp_init_seq_set = FALSE;
   m_rtp_rtptime = 0xffffffff;
+  uint64_t temp;
+  temp = config.get_config_value(CONFIG_RTP_BUFFER_TIME);
+  if (temp > 0) {
+    m_rtp_buffer_time = temp;
+    m_rtp_buffer_time *= M_LLU;
+  } else {
+    m_rtp_buffer_time = 2 * M_LLU;
+  }
   
   m_rtsp_session = NULL;
   m_decode_thread_waiting = 0;
@@ -994,26 +1003,27 @@ int CPlayerMedia::recv_thread (void)
 		calc = (tail_ts - head_ts);
 		calc *= 1000;
 		calc /= m_rtptime_tickpersec;
-		if (calc > 2 * M_LLU) {
+		if (calc > m_rtp_buffer_time) {
 		  rtp_packet *temp = m_head;
 		  m_head = m_head->next;
 		  m_tail->next = m_head;
 		  m_head->prev = m_tail;
 		  xfree((void *)temp);
 		}
-	      } while (calc > 2 * M_LLU);
+	      } while (calc > m_rtp_buffer_time);
 	      continue;
 	    }
 	    if (check_rtp_frame_complete_for_proto()) {
 	      head_ts = m_head->ts;
 	      tail_ts = m_tail->ts;
-	      double calc;
+	      uint64_t calc;
 	      calc = (tail_ts - head_ts);
+	      calc *= M_LLU;
 	      calc /= m_rtptime_tickpersec;
 #if 0
 	      player_debug_message("head %u tail %u diff %u div %u in queue %u - time diff is %g", head_ts, tail_ts, tail_ts - head_ts, m_rtptime_tickpersec, m_rtp_queue_len, calc);
 #endif
-	      if (calc > 2.0) {
+	      if (calc > m_rtp_buffer_time) {
 		if (m_rtp_rtpinfo_received == 0) {
 		  player_debug_message("Setting rtp seq and time from 1st pak");
 		  set_rtp_init_seq(m_head->seq);
@@ -1022,7 +1032,7 @@ int CPlayerMedia::recv_thread (void)
 		}
 		buffering = 1;
 #if 1
-		player_debug_message("buffering complete - head %u tail %u %g - count %u", 
+		player_debug_message("buffering complete - head %u tail %u "LLU" - count %u", 
 				     head_ts, tail_ts, calc, m_rtp_queue_len);
 #endif
 

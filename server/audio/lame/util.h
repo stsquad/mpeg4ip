@@ -131,6 +131,10 @@ typedef struct  bit_stream_struc {
 *
 ***********************************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+  
 extern int      bitrate_table[2][15];
 
 /***********************************************************************
@@ -155,4 +159,7 @@ extern void SwapBytesInWords( short *loc, int words );
 extern void 
 getframebits(lame_global_flags *gfp,int *bitsPerFrame, int *mean_bits);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

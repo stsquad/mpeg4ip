@@ -30,7 +30,7 @@
 #include "player_util.h"
 #include "divxif.h"
 
-unsigned int c_get (void *ud)
+static unsigned int c_get (void *ud)
 {
   unsigned int ret;
   CDivxCodec *d = (CDivxCodec *)ud;
@@ -38,7 +38,7 @@ unsigned int c_get (void *ud)
   return (ret);
 }
 
-void c_bookmark (void *ud, int val)
+static void c_bookmark (void *ud, int val)
 {
   CDivxCodec *d = (CDivxCodec *)ud;
   d->bookmark(val);
@@ -257,11 +257,11 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
 	//player_debug_message("decode across ts");
 	return (-1);
       }
-      //player_debug_message("divx caught %s", err);
+      player_debug_message("divx caught %s", err);
       m_decodeState = DIVX_STATE_WAIT_I;
       return (-1);
   } catch (...) {
-    //player_debug_message("divx caught exception");
+    player_debug_message("divx caught exception");
 	  m_decodeState = DIVX_STATE_WAIT_I;
 	  return (-1);
   }
@@ -272,7 +272,7 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
   // at.  If we fall behind, we can do 2 things - either nothing  < 3 frames
   // worth - drop B's - up to 10 frames worth, or resync to the next I frame
   if (ret != 0) {
-    uint64_t msec;
+    //    uint64_t msec;
     //player_debug_message("Processed frame "LLU, ts);
 #if 0
     msec = m_video_sync->get_video_msec_per_frame();

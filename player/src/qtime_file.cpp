@@ -75,7 +75,7 @@ int create_media_for_qtime_file (CPlayerSession *psptr,
     *errmsg = "Invalid Audio Codec";
     return (1);
   }
-  if (video != QTfile1->get_video_tracks()) {
+  if (video != 1) { //QTfile1->get_video_tracks()) {
     *errmsg = "Invalid Video Codec";
     return (1);
   }
@@ -106,9 +106,12 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
   int vid_cnt = 0;
   m_video_tracks = quicktime_video_tracks(m_qtfile);
   player_debug_message("qtime video tracks %d", m_video_tracks);
-  for (int ix = 0; ix < m_video_tracks; ix++) {
+  for (int ix = 0; ix < m_video_tracks && vid_cnt == 0; ix++) { 
     video_info_t *vinfo;
     const char *codec_name = quicktime_video_compressor(m_qtfile, ix);
+    if (codec_name == NULL) 
+      continue;
+
     if (lookup_video_codec_by_name(codec_name) != 0) {
       player_debug_message("Couldn't find video codec %s", codec_name);
       continue;
@@ -142,17 +145,18 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
     vinfo->frame_rate = (int)quicktime_video_frame_rate(m_qtfile, ix);
     vinfo->file_has_vol_header = 0;
 #if 1
-    const char *compressor = quicktime_video_compressor(m_qtfile, ix);
+    player_debug_message("video compressor is %s", codec_name);
     if (strstr(m_name, ".mp4") != NULL && 
-	strcasecmp(compressor, "mp4v") == 0) {
+	strcasecmp(codec_name, "mp4v") == 0) {
       int profileID = quicktime_get_iod_video_profile_level(m_qtfile);
+      player_debug_message("Got profile ID %d", profileID);
       if (profileID >= 1 && profileID <= 3) {
 	mptr->set_codec_type("divx");
       } else {
-	mptr->set_codec_type(compressor);
+	mptr->set_codec_type(codec_name);
       }
     } else
-      mptr->set_codec_type(compressor);
+      mptr->set_codec_type(codec_name);
 #else
     mptr->set_codec_type("mp4v");
 #endif
@@ -198,6 +202,9 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
   if (m_audio_tracks > 0) {
     player_debug_message("qtime audio tracks %d", m_audio_tracks);
     const char *codec = quicktime_audio_compressor(m_qtfile, 0);
+    if (codec == NULL)
+      return (0);
+
     if (lookup_audio_codec_by_name(codec) != 0) {
       player_debug_message("Couldn't find audio codec %s", codec);
       return (0);

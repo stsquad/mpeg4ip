@@ -44,8 +44,9 @@ CQTByteStreamBase::CQTByteStreamBase (CQtimeFile *parent,
   m_buffer = (unsigned char *) malloc(m_max_frame_size * sizeof(char));
   m_bookmark_buffer = (unsigned char *)malloc(m_max_frame_size * sizeof(char));
   m_buffer_on = m_buffer;
-  m_bookmark_read_frame = 0;
   m_type = type;
+  m_frame_in_buffer = 0xffffffff;
+  m_frame_in_bookmark = 0xffffffff;
 }
 
 CQTByteStreamBase::~CQTByteStreamBase()
@@ -63,21 +64,25 @@ int CQTByteStreamBase::eof(void)
 void CQTByteStreamBase::check_for_end_of_frame (void)
 {
   if (m_byte_on >= m_this_frame_size) {
-    m_frame_on++;
+    size_t next_frame;
+    next_frame = m_frame_in_buffer + 1;
 #if 0
-    player_debug_message("%s - next frame %d", m_type, m_frame_on);
+    player_debug_message("%s - next frame %d %d", 
+			 m_type, 
+			 next_frame, 
+			 m_bookmark);
 #endif
-    if (m_frame_on >= m_frames_max) {
+    if (next_frame >= m_frames_max) {
       if (m_bookmark == 0)
 	m_eof = 1;
     } else {
 #if 0
       if (m_bookmark == 0)
       player_debug_message("Reading frame %u - bookmark %d", 
-			   m_frame_on,
+			   next_frame,
 			   m_bookmark);
 #endif
-      read_frame();
+      read_frame(next_frame);
     }
   }
 }
@@ -108,14 +113,12 @@ void CQTByteStreamBase::bookmark (int bSet)
   if (bSet) {
     m_bookmark = 1;
     m_bookmark_byte_on = m_byte_on;
-    m_bookmark_frame_on = m_frame_on;
     m_total_bookmark = m_total;
     m_bookmark_this_frame_size = m_this_frame_size;
   } else {
     m_bookmark = 0;
     m_byte_on = m_bookmark_byte_on;
     m_buffer_on = m_buffer;
-    m_frame_on = m_bookmark_frame_on;
     m_total = m_total_bookmark;
     m_this_frame_size = m_bookmark_this_frame_size;
   }
@@ -156,7 +159,7 @@ void CQTVideoByteStream::video_set_timebase (long frame)
 			       frame, 
 			       m_track);
   m_parent->unlock_file_mutex();
-  read_frame();
+  read_frame(m_frame_on);
 }
 void CQTVideoByteStream::reset (void) 
 {
@@ -169,20 +172,25 @@ uint64_t CQTVideoByteStream::start_next_frame (void)
   long start;
   int duration;
 
- if (quicktime_video_frame_time(m_parent->get_file(),
-				m_track,
-				m_frame_on,
-				&start,
-				&duration) != 0) {
-   ret = start;
-   ret *= 1000;
-   ret /= m_time_scale;
+#ifdef DEBUG_QTIME_VIDEO_FRAME
+  player_debug_message("start_next_frame %d", m_frame_on);
+#endif
+  if (quicktime_video_frame_time(m_parent->get_file(),
+				 m_track,
+				 m_frame_on,
+				 &start,
+				 &duration) != 0) {
+    ret = start;
+    ret *= 1000;
+    ret /= m_time_scale;
    //player_debug_message("Returning %llu", ret);
  } else {
    ret = m_frame_on;
    ret *= 1000;
    ret /= m_frame_rate;
  }
+  read_frame(m_frame_on);
+  m_frame_on++;
   return (ret);
 }
 
@@ -191,11 +199,22 @@ uint64_t CQTVideoByteStream::start_next_frame (void)
  * tries to be smart about reading it 1 time if we've already read it
  * while bookmarking
  */
-void CQTVideoByteStream::read_frame (void)
+void CQTVideoByteStream::read_frame (size_t frame_to_read)
 {
   size_t next_frame_size;
 
-  if (m_bookmark_read_frame != 0) {
+  if (m_frame_in_buffer == frame_to_read) {
+#ifdef DEBUG_QTIME_VIDEO_FRAME
+    player_debug_message("frame in buffer %u %u", m_byte_on, m_this_frame_size);
+#endif
+    m_byte_on = 0;
+    return;
+  }
+  if (m_bookmark_read_frame != 0 && 
+      m_frame_in_bookmark == frame_to_read) {
+#ifdef DEBUG_QTIME_VIDEO_FRAME
+    player_debug_message("frame in bookmark");
+#endif
     // Had we already read it ?
     if (m_bookmark == 0) {
       // Yup - looks like it - just adjust the buffers and return
@@ -204,6 +223,8 @@ void CQTVideoByteStream::read_frame (void)
       m_buffer = m_bookmark_buffer;
       m_bookmark_buffer = temp;
       m_buffer_on = m_buffer;
+      m_frame_in_buffer = m_frame_in_bookmark;
+      m_frame_in_bookmark = 0xfffffff;
     } else {
       // Bookmarking, and had already read it.
       m_buffer_on = m_bookmark_buffer;
@@ -216,7 +237,7 @@ void CQTVideoByteStream::read_frame (void)
   // it fits, then read it into the appropriate buffer
   m_parent->lock_file_mutex();
   next_frame_size = quicktime_frame_size(m_parent->get_file(),
-					 m_frame_on,
+					 frame_to_read,
 					 m_track);
   if (next_frame_size > m_max_frame_size) {
     m_max_frame_size = next_frame_size;
@@ -226,17 +247,34 @@ void CQTVideoByteStream::read_frame (void)
 						 next_frame_size * sizeof(char));
   }
   m_this_frame_size = next_frame_size;
+  quicktime_set_video_position(m_parent->get_file(), frame_to_read, m_track);
   if (m_bookmark == 0) {
     m_buffer_on = m_buffer;
+    m_frame_in_buffer = frame_to_read;
+#ifdef DEBUG_QTIME_VIDEO_FRAME
+    player_debug_message("reading into buffer %u", m_this_frame_size);
+#endif
   } else {
     // bookmark...
     m_buffer_on = m_bookmark_buffer;
     m_bookmark_read_frame = 1;
     m_bookmark_read_frame_size = next_frame_size;
+    m_frame_in_bookmark = frame_to_read;
+#ifdef DEBUG_QTIME_VIDEO_FRAME
+    player_debug_message("Reading into bookmark %u", m_this_frame_size);
+#endif
   }
   quicktime_read_frame(m_parent->get_file(),
 		       m_buffer_on,
 		       m_track);
+#ifdef DEBUG_QTIME_VIDEO_FRAME
+  player_debug_message("Buffer %d %02x %02x %02x %02x", 
+		       frame_to_read,
+	 m_buffer_on[0],
+	 m_buffer_on[1],
+	 m_buffer_on[2],
+	 m_buffer_on[3]);
+#endif
   m_parent->unlock_file_mutex();
   m_byte_on = 0;
 }
@@ -326,7 +364,7 @@ void CQTAudioByteStream::audio_set_timebase (long frame)
 			       frame, 
 			       m_track);
   m_parent->unlock_file_mutex();
-  read_frame();
+  read_frame(0);
 }
 
 void CQTAudioByteStream::reset (void) 
@@ -341,22 +379,34 @@ uint64_t CQTAudioByteStream::start_next_frame (void)
   ret *= m_samples_per_frame;
   ret *= 1000;
   ret /= m_frame_rate;
-#if 0
-    player_debug_message("audio Start next frame "LLU " offset %u %u", 
-			 ret, m_byte_on, m_this_frame_size);
+#ifdef DEBUG_QTIME_AUDIO_FRAME
+  player_debug_message("audio - start frame %d", m_frame_on);
 #endif
+#if 0
+  player_debug_message("audio Start next frame "LLU " offset %u %u", 
+		       ret, m_byte_on, m_this_frame_size);
+#endif
+  read_frame(m_frame_on);
+  m_frame_on++;
   return (ret);
 }
 
-void CQTAudioByteStream::read_frame (void)
+void CQTAudioByteStream::read_frame (size_t frame_to_read)
 {
-  if (m_bookmark_read_frame != 0) {
+  if (m_frame_in_buffer == frame_to_read) {
+    m_byte_on = 0;
+    return;
+  }
+  if ((m_bookmark_read_frame != 0) &&
+      (m_frame_in_bookmark == frame_to_read)) {
     if (m_bookmark == 0) {
       m_bookmark_read_frame = 0;
       unsigned char *temp = m_buffer;
       m_buffer = m_bookmark_buffer;
       m_bookmark_buffer = temp;
       m_buffer_on = m_buffer;
+      m_frame_in_buffer = m_frame_in_bookmark;
+      m_frame_in_bookmark = 0xffffffff;
     } else {
       m_buffer_on = m_bookmark_buffer;
     }
@@ -376,6 +426,9 @@ void CQTAudioByteStream::read_frame (void)
   if (m_add_len_to_stream) {
     buff += 2;
   }
+  quicktime_set_audio_position(m_parent->get_file(), 
+			       frame_to_read, 
+			       m_track);
   m_this_frame_size = quicktime_read_audio_frame(m_parent->get_file(),
 						 buff,
 						 m_max_frame_size,
@@ -388,14 +441,19 @@ void CQTAudioByteStream::read_frame (void)
     // Okay - I could have used a goto, but it really grates...
     if (m_bookmark == 0) {
       m_buffer_on = m_buffer;
+      m_frame_in_bookmark = frame_to_read;
     } else {
       m_buffer_on = m_bookmark_buffer;
       m_bookmark_read_frame = 1;
+      m_frame_in_bookmark = frame_to_read;
     }
     buff = m_buffer_on;
     if (m_add_len_to_stream) {
       buff += 2;
     }
+    quicktime_set_audio_position(m_parent->get_file(), 
+				 frame_to_read, 
+				 m_track);
     m_this_frame_size = quicktime_read_audio_frame(m_parent->get_file(),
 						   buff,
 						   m_max_frame_size,
@@ -425,6 +483,7 @@ void CQTAudioByteStream::read_frame (void)
       m_bookmark_buffer[0] = m_bookmark_read_frame_size >> 8;
       m_bookmark_buffer[1] = m_bookmark_read_frame_size & 0xff;
       m_bookmark_read_frame_size += 2;
+      m_frame_in_bookmark = frame_to_read + 1;
 #if 0
       player_debug_message("qta bframe size %u", m_bookmark_read_frame_size);
 #endif

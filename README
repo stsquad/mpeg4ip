@@ -1,4 +1,4 @@
-May 7, 2001
+May 21, 2001
 
 MPEG4IP Project
 ===============
@@ -102,7 +102,7 @@ Notes:      Extracted from lavtools package,
             Used only by the avi2raw utility
 
 Name:       Freeware Advanced Audio Coder (FAAC) / Decoder (FAAD)
-Version:    0.7 / 0.6
+Version:    1.0 / 0.6
 Origin:     http://www.sourceforge.net/projects/FAAC
 Author:     Menno Bakker
 Directory:  mpeg4ip/server/audio/faac
@@ -422,18 +422,9 @@ This document can be found at http://developer.apple.com/quicktime/
 Known Problems
 ==============
 
-* The version 0.7 FAAC audio encoder creates less than perfect audio.
-The good news is that we've looked at recent snapshots of the upcoming
-version 1.0 and all those problems appear to be fixed. We included the 0.7
-version because that's the project's current stable release. We will  
-sync up with the 1.0 release as soon as the authors deem it stable. In
-the interim MP3 audio is available as an alternative.
-
-* The ISO MPEG-4 video codec has a bitrate control feature, but we're
-still mystified as to how the input parameter influences the output.
-The same value of the parameter results in different bitrates by a factor
-of two for different content. If you figure it out, please let us know.
-Note the OpenDivx encoder has bitrate control that works.
+* The ISO MPEG-4 video codec bitrate control feature is broken. We've
+heard that a fix is available, so we're trying to track that down.
+Note that the OpenDivx encoder has bitrate control that works.
 
 * On slower machines (~500MHz), doubling the video size via the gmp4player 
 menu consumes enough CPU to adversely effect playback, resulting in audio

@@ -40,7 +40,7 @@ CPP=cl.exe
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../common/video/mpeg4 ./codec ./codec/mpeg4 ../lib ../lib/audio ../lib/SDL/include ../../common/mp4 ../../include" /I "." /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../lib/SDL/include" /I "../../common/mp4" /I "../../include" /I "../lib/video/divx" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../common/video/mpeg4 ./codec ./codec/mpeg4 ../lib ../lib/audio ../lib/SDL/include ../../common/mp4 ../../include" /I "../../server/lib/avi" /I "../../common/lib/config_file" /I "../../common/lib/msg_queue" /I "." /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../lib/SDL/include" /I "../../common/mp4" /I "../../include" /I "../lib/video/divx" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -62,7 +62,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "." /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../lib/SDL/include" /I "../../common/mp4" /I "../../include" /I "../lib/video/divx" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /D "_AFXDLL" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "." /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../lib/SDL/include" /I "../../common/mp4" /I "../../include" /I "../lib/video/divx" /I "../../common/lib/config_file" /I "../../common/lib/msg_queue" /I "../../server/lib/avi" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /D "_AFXDLL" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -85,6 +85,14 @@ SOURCE=.\audio.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\avi_bytestream.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\avi_file.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\ip_port.cpp
 # End Source File
 # Begin Source File
@@ -93,15 +101,15 @@ SOURCE=.\media_utils.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\msg_queue.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\our_bytestream_file.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\our_bytestream_mem.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\our_config_file.cpp
 # End Source File
 # Begin Source File
 
@@ -157,6 +165,14 @@ SOURCE=.\audio.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\avi_bytestream.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\avi_file.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\codec\codec.h
 # End Source File
 # Begin Source File
@@ -182,6 +198,14 @@ SOURCE=.\our_bytestream_file.h
 # Begin Source File
 
 SOURCE=.\our_bytestream_mem.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\our_config_file.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\our_msg_queue.h
 # End Source File
 # Begin Source File
 

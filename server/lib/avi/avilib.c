@@ -23,12 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include "systems.h"
 #include "avilib.h"
 
 /* The following variable indicates the kind of error */
@@ -464,7 +459,9 @@ static int avi_close_output_file(avi_t *AVI)
 
    /* Output the header, truncate the file to the number of bytes
       actually written, report an error if someting goes wrong */
-
+#ifdef _WINDOWS
+#pragma message("If you're using AVI write, you've got an error and need to write a ftruncate function")
+#else
    if ( lseek(AVI->fdes,0,SEEK_SET)<0 ||
         write(AVI->fdes,AVI_header,HEADERBYTES)!=HEADERBYTES ||
         ftruncate(AVI->fdes,AVI->pos)<0 )
@@ -472,6 +469,7 @@ static int avi_close_output_file(avi_t *AVI)
       AVI_errno = AVI_ERR_CLOSE;
       return -1;
    }
+#endif
 
    if(idxerror) return -1;
 
@@ -1207,7 +1205,13 @@ char *AVI_strerror()
       AVI_errno == AVI_ERR_WRITE_INDEX ||
       AVI_errno == AVI_ERR_CLOSE )
    {
-      sprintf(error_string,"%s - %s",avi_errors[aerrno],strerror(errno));
+      sprintf(error_string,"%s - %s",avi_errors[aerrno],
+#ifndef _WINDOWS
+			strerror(errno)
+#else
+			_strerror(NULL)
+#endif
+			);
       return error_string;
    }
    else

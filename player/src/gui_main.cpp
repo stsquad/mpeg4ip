@@ -253,17 +253,21 @@ static void on_main_menu_help (GtkWidget *window, gpointer data)
 
 static void on_main_menu_about (GtkWidget *window, gpointer data)
 {
-  ShowMessage("About gmp4player",
-	      "gmp4player is an open source file/streaming MPEG4 player\n"
-	      "Developed by cisco Systems using the\n"
-	      "following open source packages:\n"
-	      "\n"
-	      "SDL, SMPEG audio (MP3) from lokigames\n"
-	      "RTP from UCL\n"
-	      "ISO reference decoder for MPEG4\n"
-	      "FAAC decoder\n"
-	      "OpenDivx decore version 0.48\n"
-	      "Developed by Bill May, 10/00 to 3/01");
+  char buffer[1024];
+  sprintf(buffer,
+	  "gmp4player Version %s.\n"
+	  "An open source file/streaming MPEG4 player\n"
+	  "Developed by cisco Systems using the\n"
+	  "following open source packages:\n"
+	  "\n"
+	  "SDL, SMPEG audio (MP3) from lokigames\n"
+	  "RTP from UCL\n"
+	  "ISO reference decoder for MPEG4\n"
+	  "FAAC decoder\n"
+	  "OpenDivx decore version 0.48\n"
+	  "Developed by Bill May, 10/00 to 3/01", VERSION);
+
+  ShowMessage("About gmp4player",buffer);
 }
 
 static void on_main_menu_debug (GtkWidget *window, gpointer data)
@@ -612,6 +616,9 @@ int main (int argc, char **argv)
   }
 
   rtsp_set_loglevel(LOG_DEBUG);
+  rtsp_set_error_func(player_library_message);
+  sdp_set_error_func(player_library_message);
+  sdp_set_loglevel(LOG_DEBUG);
   /*
    * Set up main window
    */

@@ -42,6 +42,30 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libavi"=..\..\SERVER\LIB\AVI\libavi.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libconfig_file"=..\..\COMMON\LIB\CONFIG_FILE\libconfig_file.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libfaad"=..\lib\audio\faad\libfaad.dsp - Package Owner=<4>
 
 Package=<5>
@@ -79,6 +103,18 @@ Package=<4>
 ###############################################################################
 
 Project: "libmpplayer"=.\libmpplayer.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libmsg_queue"=..\..\COMMON\LIB\MSG_QUEUE\libmsg_queue.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -178,6 +214,15 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp3
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libconfig_file
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmsg_queue
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavi
     End Project Dependency
 }}}
 

@@ -29,7 +29,7 @@
 #include <SDL_thread.h>
 #include <sdp/sdp.h>
 #include <rtsp/rtsp_client.h>
-#include "msg_queue.h"
+#include "our_msg_queue.h"
 #include "ip_port.h"
 #include "player_rtp_bytestream.h"
 
@@ -147,6 +147,7 @@ class CPlayerMedia {
   rtp_packet *m_head, *m_tail;
   size_t m_rtp_queue_len;
   size_t m_rtp_queue_len_max;
+  uint64_t m_rtp_buffer_time;
 
   // Other rtp information
   int m_rtp_ondemand;

@@ -59,7 +59,7 @@ CMpeg4Codec::CMpeg4Codec(CVideoSync *v,
   m_main_short_video_header = FALSE;
   m_bytestream = pbytestrm;
   m_pvodec = new CVideoObjectDecoder(pbytestrm);
-  m_decodeState = DECODE_STATE_VO_SEARCH;
+  m_decodeState = DECODE_STATE_VOL_SEARCH;
   if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
     // See if we can decode a passed in vovod header
     if (parse_vovod(media_fmt->fmt_param, 1, 0) == 1) {
@@ -155,49 +155,32 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
   // Temporary set of our bytestream
   m_pvodec->set_byte_stream(membytestream);
 
-  // Get the VO/VOL header.  If we fail, set the bytestream back
-  int havevo = 0;
-
+  // Get the VOL header.  If we fail, set the bytestream back
+  int havevol = 0;
   do {
     try {
-      m_pvodec->decodeVOHead();
-      //player_debug_message("Found VO in header");
-      havevo = 1;
-    } catch (const char *err) {
-      player_debug_message("Caught exception in VO mem header search %s", err);
-    }
-  } while (havevo == 0 && membytestream->eof() == 0);
-
-  if (havevo == 0) {
-    m_pvodec->set_byte_stream(m_bytestream);
-    delete membytestream;
-    return (0);
-  }
-
-  try {
-    m_pvodec->decodeVOLHead();
-    m_pvodec->postVO_VOLHeadInit(m_pvodec->getWidth(),
-				 m_pvodec->getHeight(),
-				 &m_bSpatialScalability);
-    //player_debug_message("Found VOL in header");
+      m_pvodec->decodeVOLHead();
+      m_pvodec->postVO_VOLHeadInit(m_pvodec->getWidth(),
+				   m_pvodec->getHeight(),
+				   &m_bSpatialScalability);
+      player_debug_message("Found VOL in header");
 	
-    m_video_sync->config(m_pvodec->getWidth(),
-			 m_pvodec->getHeight(),
-			 m_pvodec->getClockRate());
+      m_video_sync->config(m_pvodec->getWidth(),
+			   m_pvodec->getHeight(),
+			   m_pvodec->getClockRate());
+      havevol = 1;
+    } catch (const char *err) {
+      player_debug_message("Caught exception in VOL mem header search %s", err);
+    }
+  } while (havevol == 0 && membytestream->eof() == 0);
 
-  } catch (const char *err) {
-    player_debug_message("Caught exception in VOL mem header search %s", err);
-    m_pvodec->set_byte_stream(m_bytestream);
-    delete membytestream;
-    return (0);
-  }
 
   // We've found the VO VOL header - that's good.
   // Reset the byte stream back to what it was, delete our temp stream
   m_pvodec->set_byte_stream(m_bytestream);
   delete membytestream;
   //player_debug_message("Decoded vovod header correctly");
-  return 1;
+  return havevol;
 }
 
 void CMpeg4Codec::do_pause (void)
@@ -210,16 +193,6 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
   Int iEof = 1;
   m_total_frames++;
   switch (m_decodeState) {
-  case DECODE_STATE_VO_SEARCH:
-    try {
-      m_pvodec->decodeVOHead();
-      m_decodeState = DECODE_STATE_VOL_SEARCH;
-      //player_debug_message("Found VO");
-    } catch (const char *err) {
-      player_debug_message("Caught exception in VO search %s", err);
-      return (-1);
-    }
-    // fall through
   case DECODE_STATE_VOL_SEARCH:
     try {
       m_pvodec->decodeVOLHead();

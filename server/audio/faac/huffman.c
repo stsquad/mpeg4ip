@@ -1,125 +1,60 @@
+/*
+ * FAAC - Freeware Advanced Audio Coder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: huffman.c,v 1.2 2001/06/01 20:52:37 wmaycisco Exp $
+ */
+
 #include <math.h>
-#include <string.h>
-#include "aacenc.h"
-#include "bitstream.h"
-#include "tf_main.h"
-#include "pulse.h"
-#include "quant.h"
+#include <stdlib.h>
+
 #include "huffman.h"
-#include "aac_se_enc.h"
+#include "coder.h"
+#include "bitstream.h"
+#include "util.h"
 
-#include "hufftab5.h"
+#include "hufftab.h"
 
-
-sort_book_numbers(AACQuantInfo* quantInfo,     /* Quantization information */
-//		  int output_book_vector[],    /* Output codebook vector, formatted for bitstream */
-		  BsBitStream* fixed_stream,   /* Bitstream */
-		  int write_flag)              /* Write flag: 0 count, 1 write */
+void HuffmanInit(CoderInfo *coderInfo, unsigned int numChannels)
 {
-  /*
-    This function inputs the vector, 'book_vector[]', which is of length SFB_NUM_MAX,
-    and contains the optimal huffman tables of each sfb.  It returns the vector, 'output_book_vector[]', which
-    has it's elements formatted for the encoded bit stream.  It's syntax is:
+	unsigned int channel;
 
-    {sect_cb[0], length_segment[0], ... ,sect_cb[num_of_sections], length_segment[num_of_sections]}
-
-    The above syntax is true, unless there is an escape sequence.  An
-    escape sequence occurs when a section is longer than 2 ^ (bit_len)
-    long in units of scalefactor bands.  Also, the integer returned from
-    this function is the number of bits written in the bitstream,
-    'bit_count'.
-
-    This function supports both long and short blocks.
-    */
-
-	int i;
-	int repeat_counter;
-	int bit_count = 0;
-	int previous;
-	int max, bit_len/*,sfbs*/;
-	int max_sfb,g,band;
-
-	/* Set local pointers to quantInfo elements */
-	int* book_vector = quantInfo -> book_vector;
-//	int nr_of_sfb = quantInfo -> nr_of_sfb;
-
-	if (quantInfo->block_type == ONLY_SHORT_WINDOW){
-		max = 7;
-		bit_len = 3;
-	} else {  /* the block_type is a long,start, or stop window */
-		max = 31;
-		bit_len = 5;
+	for (channel = 0; channel < numChannels; channel++) {
+		coderInfo[channel].data = (int*)AllocMemory(5*FRAME_LEN*sizeof(int));
+		coderInfo[channel].len = (int*)AllocMemory(5*FRAME_LEN*sizeof(int));
 	}
-
-	/* Compute number of scalefactor bands */
-	max_sfb = quantInfo->nr_of_sfb/quantInfo->num_window_groups;
-
-
-	for (g=0;g<quantInfo->num_window_groups;g++) {
-		band=g*max_sfb;
-
-		repeat_counter=1;
-
-		previous = book_vector[band];
-		if (write_flag) {
-			BsPutBit(fixed_stream,book_vector[band],4);
-		}
-		bit_count += 4;
-
-		for (i=band+1;i<band+max_sfb;i++) {
-			if( (book_vector[i] != previous)) {
-				if (write_flag) {
-					BsPutBit(fixed_stream,repeat_counter,bit_len);
-				}
-				bit_count += bit_len;
-
-				if (repeat_counter == max){  /* in case you need to terminate an escape sequence */
-					if (write_flag) BsPutBit(fixed_stream,0,bit_len);
-					bit_count += bit_len;
-				}
-
-				if (write_flag) BsPutBit(fixed_stream,book_vector[i],4);
-				bit_count += 4;
-				previous = book_vector[i];
-				repeat_counter=1;
-
-			}
-			/* if the length of the section is longer than the amount of bits available in */
-			/* the bitsream, "max", then start up an escape sequence */
-			else if ((book_vector[i] == previous) && (repeat_counter == max)) {
-				if (write_flag) {
-					BsPutBit(fixed_stream,repeat_counter,bit_len);
-				}
-				bit_count += bit_len;
-				repeat_counter = 1;
-			}
-			else {
-				repeat_counter++;
-			}
-		}
-
-		if (write_flag) {
-			BsPutBit(fixed_stream,repeat_counter,bit_len);
-		}
-		bit_count += bit_len;
-		if (repeat_counter == max) {  /* special case if the last section length is an */
-			/* escape sequence */
-			if (write_flag) BsPutBit(fixed_stream,0,bit_len);
-			bit_count += bit_len;
-		}
-
-
-	}  /* Bottom of group iteration */
-
-	return(bit_count);
 }
 
-int bit_search(int quant[NUM_COEFF],  /* Quantized spectral values */
-               AACQuantInfo* quantInfo)        /* Quantization information */
+void HuffmanEnd(CoderInfo *coderInfo, unsigned int numChannels)
+{
+	unsigned int channel;
+
+	for (channel = 0; channel < numChannels; channel++) {
+		if (coderInfo[channel].data) FreeMemory(coderInfo[channel].data);
+		if (coderInfo[channel].len) FreeMemory(coderInfo[channel].len);
+	}
+}
+
+int BitSearch(CoderInfo *coderInfo,
+			  int *quant)  /* Quantized spectral values */
   /*
   This function inputs a vector of quantized spectral data, quant[][], and returns a vector,
   'book_vector[]' that describes how to group together the scalefactor bands into a smaller
-  number of sections.  There are SFB_NUM_MAX elements in book_vector (equal to 49 in the
+  number of sections.  There are MAX_SCFAC_BANDS elements in book_vector (equal to 49 in the
   case of long blocks and 112 for short blocks), and each element has a huffman codebook 
   number assigned to it.
 
@@ -150,31 +85,29 @@ int bit_search(int quant[NUM_COEFF],  /* Quantized spectral values */
 	int hop;
 	int min_book_choice[112][3];
 	int bit_stats[240][3];
-//	int total_bits;
 	int total_bit_count;
 	int levels;
 	double fraction;
 
-	/* Set local pointer to quantInfo book_vector */
-	int* book_vector = quantInfo -> book_vector;
+	/* Set local pointer to coderInfo book_vector */
+	int* book_vector = coderInfo -> book_vector;
 
-	levels = (int) ((log((double)quantInfo->nr_of_sfb)/log((double)2.0))+1);
-	fraction = (pow(2,levels)+quantInfo->nr_of_sfb)/(double)(pow(2,levels));
+	levels = (int) ((log((double)coderInfo->nr_of_sfb)/log((double)2.0))+1);
+	fraction = (pow(2,levels)+coderInfo->nr_of_sfb)/(double)(pow(2,levels));
 
-//#define SLOW
+/* #define SLOW */
+
 #ifdef SLOW
-	for(i=0;i<5;i++){
-		hop = 1 << i;
+	for(i = 0; i < 5; i++) {
 #else
-		hop = 1;
 		i = 0;
 #endif
-//		total_bits = noiseless_bit_count(quant, hop, min_book_choice, quantInfo);
-		noiseless_bit_count(quant, hop, min_book_choice, quantInfo);
+		hop = 1 << i;
+
+		NoiselessBitCount(coderInfo, quant, hop, min_book_choice);
 
 		/* load up the (not-full) binary search tree with the min_book_choice values */
 		k=0;
-//		m=0;
 		total_bit_count = 0;
 
 		for (j=(int)(pow(2,levels-i)); j<(int)(fraction*pow(2,levels-i)); j++)
@@ -201,7 +134,6 @@ int bit_search(int quant[NUM_COEFF],  /* Quantized spectral values */
 			}
 			total_bit_count = total_bit_count +  bit_stats[j][0];
 			k=k+hop;
-//			m++;
 		}
 #ifdef SLOW
 	}
@@ -211,17 +143,16 @@ int bit_search(int quant[NUM_COEFF],  /* Quantized spectral values */
 }
 
 
-int noiseless_bit_count(int quant[NUM_COEFF],
-			/*int huff[13][MAXINDEX][NUMINTAB],*/
-			int hop,  // hop is now always 1
-			int min_book_choice[112][3],
-			AACQuantInfo* quantInfo)         /* Quantization information */
+int NoiselessBitCount(CoderInfo *coderInfo,
+					  int *quant,
+					  int hop,
+					  int min_book_choice[112][3])
 {
   int i,j,k;
 
   /*
      This function inputs:
-     - the quantized spectral data, 'quant[][]';
+     - the quantized spectral data, 'quant[]';
      - all of the huffman codebooks, 'huff[][]';
      - the size of the sections, in scalefactor bands (SFB's), 'hop';
      - an empty matrix, min_book_choice[][] passed to it;
@@ -248,11 +179,10 @@ int noiseless_bit_count(int quant[NUM_COEFF],
 	int total_bits_cost = 0;
 	int offset, length, end;
 	int q;
-	int write_flag = 0;
 
 	/* set local pointer to sfb_offset */
-	int* sfb_offset = quantInfo->sfb_offset;
-	int nr_of_sfb = quantInfo->nr_of_sfb;
+	int *sfb_offset = coderInfo->sfb_offset;
+	int nr_of_sfb = coderInfo->nr_of_sfb;
 
 	/* each section is 'hop' scalefactor bands wide */
 	for (i=0; i < nr_of_sfb; i=i+hop){ 
@@ -274,80 +204,65 @@ int noiseless_bit_count(int quant[NUM_COEFF],
 			offset = sfb_offset[i];
 			if ((i+hop) > nr_of_sfb){
 				end = sfb_offset[nr_of_sfb];
-			}
-			else
+			} else
 				end = sfb_offset[q];
 			length = end - offset;
 
 			/* all spectral coefficients in this section are zero */
 			if (max_sb_coeff == 0) { 
-				book_choice[j][0] = output_bits(quantInfo,0,quant,offset,length,write_flag);
+				book_choice[j][0] = CalcBits(coderInfo,0,quant,offset,length);
 				book_choice[j++][1] = 0;
 
 			}
 			else {  /* if the section does have non-zero coefficients */
 				if(max_sb_coeff < 2){
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,1,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,1,quant,offset,length);
 					book_choice[j++][1] = 1;
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,2,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,2,quant,offset,length);
 					book_choice[j++][1] = 2;
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,3,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,3,quant,offset,length);
 					book_choice[j++][1] = 3;
 				}
 				else if (max_sb_coeff < 3){
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,3,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,3,quant,offset,length);
 					book_choice[j++][1] = 3;
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,4,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,4,quant,offset,length);
 					book_choice[j++][1] = 4;
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,5,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,5,quant,offset,length);
 					book_choice[j++][1] = 5;
 				}
 				else if (max_sb_coeff < 5){
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,5,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,5,quant,offset,length);
 					book_choice[j++][1] = 5;
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,6,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,6,quant,offset,length);
 					book_choice[j++][1] = 6;
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,7,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,7,quant,offset,length);
 					book_choice[j++][1] = 7;
 				}
 				else if (max_sb_coeff < 8){
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,7,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,7,quant,offset,length);
 					book_choice[j++][1] = 7;
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,8,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,8,quant,offset,length);
 					book_choice[j++][1] = 8;
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,9,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,9,quant,offset,length);
 					book_choice[j++][1] = 9;
 				}
 				else if (max_sb_coeff < 13){
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,9,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,9,quant,offset,length);
 					book_choice[j++][1] = 9;
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,10,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,10,quant,offset,length);
 					book_choice[j++][1] = 10;
 				}
 				/* (max_sb_coeff >= 13), choose table 11 */
 				else {
-					quantInfo->spectralCount = 0; /* just for debugging : using data and len vectors */
-					book_choice[j][0] = output_bits(quantInfo,11,quant,offset,length,write_flag);
+					book_choice[j][0] = CalcBits(coderInfo,11,quant,offset,length);
 					book_choice[j++][1] = 11;
 				}
 			}
 
 			/* find the minimum bit cost and table number for huffman coding this scalefactor section */
-			min_book_choice[i][0] = 100000;  
+			min_book_choice[i][0] = 100000;
+
 			for(k=0;k<j;k++){
 				if (book_choice[k][0] < min_book_choice[i][0]){
 					min_book_choice[i][1] = book_choice[k][1];
@@ -362,9 +277,7 @@ int noiseless_bit_count(int quant[NUM_COEFF],
 
 
 
-int calculate_esc_sequence(int input,
-						   int *len_esc_sequence
-						   )
+static int CalculateEscSequence(int input, int *len_esc_sequence)
 /* 
    This function takes an element that is larger than 16 and generates the base10 value of the
    equivalent escape sequence.  It returns the escape sequence in the variable, 'output'.  It
@@ -391,32 +304,20 @@ int calculate_esc_sequence(int input,
 	return(output);
 }
 
-
-#ifndef __BORLANDC__
-__inline
-#endif
-int output_bits(AACQuantInfo* quantInfo,
-		/*int huff[13][MAXINDEX][NUMINTAB],*/
-                int book,
-		int quant[NUM_COEFF],
-                int offset,
-		int length,
-		int write_flag)
+int OutputBits(CoderInfo *coderInfo,
+			   int book,
+			   int *quant,
+			   int offset,
+			   int length)
 {
   /* 
      This function inputs 
-     - all the huffman codebooks, 'huff[]' 
      - a specific codebook number, 'book'
      - the quantized spectral data, 'quant[][]'
      - the offset into the spectral data to begin scanning, 'offset'
      - the 'length' of the segment to huffman code
-     -> therefore, the segment quant[CHANNEL][offset] to quant[CHANNEL][offset+length-1]
+     -> therefore, the segment quant[offset] to quant[offset+length-1]
      is huffman coded.
-     - a flag, 'write_flag' to determine whether the codebooks and lengths need to be written
-     to file.  If write_flag=0, then this function is being used only in the quantization
-     rate loop, and does not need to spend time writing the codebooks and lengths to file.
-     If write_flag=1, then it is being called by the function output_bits(), which is 
-     sending the bitsteam out of the encoder.  
 
      This function outputs 
      - the number of bits required, 'bits'  using the prescribed codebook, book applied to 
@@ -424,10 +325,10 @@ int output_bits(AACQuantInfo* quantInfo,
 
      There are three parameters that are passed back and forth into this function.  data[]
      and len[] are one-dimensional arrays that store the codebook values and their respective
-     bit lengths.  These are used when packing the data for the bitstream in output_bits().  The
-     index into these arrays is 'quantInfo->spectralCount''.  It gets incremented internally in this
+     bit lengths.  These are used when packing the data for the bitstream in OutputBits().  The
+     index into these arrays is 'coderInfo->spectral_count''.  It gets incremented internally in this
      function as counter, then passed to the outside through outside_counter.  The next time
-     output_bits() is called, counter starts at the value it left off from the previous call.
+     OutputBits() is called, counter starts at the value it left off from the previous call.
 
    */
  
@@ -439,157 +340,207 @@ int output_bits(AACQuantInfo* quantInfo,
 	int codebook,i,j;
 	int counter;
 
-	/* Set up local pointers to quantInfo elements data and len */
-	int* data= quantInfo -> data;
-	int* len=  quantInfo -> len;
+	/* Set up local pointers to coderInfo elements data and len */
+	int* data= coderInfo->data;
+	int* len=  coderInfo->len;
 
-	counter = quantInfo->spectralCount;
+	counter = coderInfo->spectral_count;
 
-	/* This case also applies to intensity stereo encoding */
-	/*if (book == 0) { */ /* if using the zero codebook, data of zero length is sent */
-	if ((book == 0)||(book==INTENSITY_HCB2)||(book==INTENSITY_HCB)) {  /* if using the zero codebook, 
-		data of zero length is sent */
-		
-		if (write_flag) {
-			quantInfo->data[counter] = 0;
-			quantInfo->len[counter++] = 0;
-		}
-	}
-
-	if ((book == 1) || (book == 2)) {
+	switch (book) {
+	case 0:
+	case INTENSITY_HCB2:
+	case INTENSITY_HCB:
+		/* This case also applies to intensity stereo encoding */		
+		coderInfo->data[counter] = 0;
+		coderInfo->len[counter++] = 0;
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 1:
 		for(i=offset;i<offset+length;i=i+4){
 			index = 27*quant[i] + 9*quant[i+1] + 3*quant[i+2] + quant[i+3] + 40;
-			if (book == 1) {
-				codebook = huff1[index][LASTINTAB];
-				tmp = huff1[index][FIRSTINTAB];
-			} else {
-				codebook = huff2[index][LASTINTAB];
-				tmp = huff2[index][FIRSTINTAB];
-			}
+			codebook = huff1[index][LASTINTAB];
+			tmp = huff1[index][FIRSTINTAB];
 			bits += tmp;
-			if (write_flag) {
-				data[counter] = codebook;
-				len[counter++] = tmp;
-			}
+			data[counter] = codebook;
+			len[counter++] = tmp;
 		}
-	}
-
-	if ((book == 3) || (book == 4)) {
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 2:
+		for(i=offset;i<offset+length;i=i+4){
+			index = 27*quant[i] + 9*quant[i+1] + 3*quant[i+2] + quant[i+3] + 40;
+			codebook = huff2[index][LASTINTAB];
+			tmp = huff2[index][FIRSTINTAB];
+			bits += tmp;
+			data[counter] = codebook;
+			len[counter++] = tmp;
+		}
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 3:
 		for(i=offset;i<offset+length;i=i+4){
 			index = 27*ABS(quant[i]) + 9*ABS(quant[i+1]) + 3*ABS(quant[i+2]) + ABS(quant[i+3]);
-			if (book == 3) {
-				codebook = huff3[index][LASTINTAB];
-				tmp = huff3[index][FIRSTINTAB];
-			} else {
-				codebook = huff4[index][LASTINTAB];
-				tmp = huff4[index][FIRSTINTAB];
-			}
+			codebook = huff3[index][LASTINTAB];
+			tmp = huff3[index][FIRSTINTAB];
 			bits = bits + tmp;
+			data[counter] = codebook;
+			len[counter++] = tmp;
 			for(j=0;j<4;j++){
-				if(ABS(quant[i+j]) > 0) bits += 1; /* only for non-zero spectral coefficients */
-			}
-			if (write_flag) {
-				data[counter] = codebook;
-				len[counter++] = tmp;
-				for(j=0;j<4;j++){
-					if(quant[i+j] > 0) {  /* send out '0' if a positive value */
-						data[counter] = 0;
-						len[counter++] = 1;
-					}
-					if(quant[i+j] < 0) {  /* send out '1' if a negative value */
-						data[counter] = 1;
-						len[counter++] = 1;
-					}
+				if(quant[i+j] > 0) {  /* send out '0' if a positive value */
+					data[counter] = 0;
+					len[counter++] = 1;
+					bits += 1;
+				} else
+				if(quant[i+j] < 0) {  /* send out '1' if a negative value */
+					data[counter] = 1;
+					len[counter++] = 1;
+					bits += 1;
 				}
 			}
 		}
-	}
-
-	if ((book == 5) || (book == 6)) {
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 4:
+		for(i=offset;i<offset+length;i=i+4){
+			index = 27*ABS(quant[i]) + 9*ABS(quant[i+1]) + 3*ABS(quant[i+2]) + ABS(quant[i+3]);
+			codebook = huff4[index][LASTINTAB];
+			tmp = huff4[index][FIRSTINTAB];
+			bits = bits + tmp;
+			data[counter] = codebook;
+			len[counter++] = tmp;
+			for(j=0;j<4;j++){
+				if(quant[i+j] > 0) {  /* send out '0' if a positive value */
+					data[counter] = 0;
+					len[counter++] = 1;
+					bits += 1;
+				} else
+				if(quant[i+j] < 0) {  /* send out '1' if a negative value */
+					data[counter] = 1;
+					len[counter++] = 1;
+					bits += 1;
+				}
+			}
+		}
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 5:
 		for(i=offset;i<offset+length;i=i+2){
 			index = 9*(quant[i]) + (quant[i+1]) + 40;
-			if (book == 5) {
-				codebook = huff5[index][LASTINTAB];
-				tmp = huff5[index][FIRSTINTAB];
-			} else {
-				codebook = huff6[index][LASTINTAB];
-				tmp = huff6[index][FIRSTINTAB];
-			}
+			codebook = huff5[index][LASTINTAB];
+			tmp = huff5[index][FIRSTINTAB];
 			bits = bits + tmp;
-			if (write_flag) {
-				data[counter] = codebook;
-				len[counter++] = tmp;
-			}
+			data[counter] = codebook;
+			len[counter++] = tmp;
 		}
-	}
-
-	if ((book == 7) || (book == 8)) {
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 6:
+		for(i=offset;i<offset+length;i=i+2){
+			index = 9*(quant[i]) + (quant[i+1]) + 40;
+			codebook = huff6[index][LASTINTAB];
+			tmp = huff6[index][FIRSTINTAB];
+			bits = bits + tmp;
+			data[counter] = codebook;
+			len[counter++] = tmp;
+		}
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 7:
 		for(i=offset;i<offset+length;i=i+2){
 			index = 8*ABS(quant[i]) + ABS(quant[i+1]);
-			if (book == 7) {
-				codebook = huff7[index][LASTINTAB];
-				tmp = huff7[index][FIRSTINTAB];
-			} else {
-				codebook = huff8[index][LASTINTAB];
-				tmp = huff8[index][FIRSTINTAB];
-			}
+			codebook = huff7[index][LASTINTAB];
+			tmp = huff7[index][FIRSTINTAB];
 			bits = bits + tmp;
+			data[counter] = codebook;
+			len[counter++] = tmp;
 			for(j=0;j<2;j++){
-				if(ABS(quant[i+j]) > 0) bits += 1; /* only for non-zero spectral coefficients */
-			}
-			if (write_flag) {
-				data[counter] = codebook;
-				len[counter++] = tmp;
-				for(j=0;j<2;j++){
-					if(quant[i+j] > 0) {  /* send out '0' if a positive value */
-						data[counter] = 0;
-						len[counter++] = 1;
-					}
-					if(quant[i+j] < 0) {  /* send out '1' if a negative value */
-						data[counter] = 1;
-						len[counter++] = 1;
-					}
+				if(quant[i+j] > 0) {  /* send out '0' if a positive value */
+					data[counter] = 0;
+					len[counter++] = 1;
+					bits += 1;
+				} else
+				if(quant[i+j] < 0) {  /* send out '1' if a negative value */
+					data[counter] = 1;
+					len[counter++] = 1;
+					bits += 1;
 				}
 			}
 		}
-	}
-
-	if ((book == 9) || (book == 10)) {
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 8:
+		for(i=offset;i<offset+length;i=i+2){
+			index = 8*ABS(quant[i]) + ABS(quant[i+1]);
+			codebook = huff8[index][LASTINTAB];
+			tmp = huff8[index][FIRSTINTAB];
+			bits = bits + tmp;
+			data[counter] = codebook;
+			len[counter++] = tmp;
+			for(j=0;j<2;j++){
+				if(quant[i+j] > 0) {  /* send out '0' if a positive value */
+					data[counter] = 0;
+					len[counter++] = 1;
+					bits += 1;
+				} else
+				if(quant[i+j] < 0) {  /* send out '1' if a negative value */
+					data[counter] = 1;
+					len[counter++] = 1;
+					bits += 1;
+				}
+			}
+		}
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 9:
 		for(i=offset;i<offset+length;i=i+2){
 			index = 13*ABS(quant[i]) + ABS(quant[i+1]);
-			if (book == 9) {
-				codebook = huff9[index][LASTINTAB];
-				tmp = huff9[index][FIRSTINTAB];
-			} else {
-				codebook = huff10[index][LASTINTAB];
-				tmp = huff10[index][FIRSTINTAB];
-			}
+			codebook = huff9[index][LASTINTAB];
+			tmp = huff9[index][FIRSTINTAB];
 			bits = bits + tmp;
-			for(j=0;j<2;j++){
-				if(ABS(quant[i+j]) > 0) bits += 1; /* only for non-zero spectral coefficients */
-			}
-			if (write_flag) {
-				
-				data[counter] = codebook;
-				len[counter++] = tmp;
+			data[counter] = codebook;
+			len[counter++] = tmp;
 
-				for(j=0;j<2;j++){
-					if(quant[i+j] > 0) {  /* send out '0' if a positive value */
-						data[counter] = 0;
-						len[counter++] = 1;
-					}
-					if(quant[i+j] < 0) {  /* send out '1' if a negative value */
-						data[counter] = 1;
-						len[counter++] = 1;
-					}
+			for(j=0;j<2;j++){
+				if(quant[i+j] > 0) {  /* send out '0' if a positive value */
+					data[counter] = 0;
+					len[counter++] = 1;
+					bits += 1;
+				} else
+				if(quant[i+j] < 0) {  /* send out '1' if a negative value */
+					data[counter] = 1;
+					len[counter++] = 1;
+					bits += 1;
 				}
 			}
 		}
-	}
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 10:
+		for(i=offset;i<offset+length;i=i+2){
+			index = 13*ABS(quant[i]) + ABS(quant[i+1]);
+			codebook = huff10[index][LASTINTAB];
+			tmp = huff10[index][FIRSTINTAB];
+			bits = bits + tmp;
+			data[counter] = codebook;
+			len[counter++] = tmp;
 
-	if ((book == 11)){
+			for(j=0;j<2;j++){
+				if(quant[i+j] > 0) {  /* send out '0' if a positive value */
+					data[counter] = 0;
+					len[counter++] = 1;
+					bits += 1;
+				} else
+				if(quant[i+j] < 0) {  /* send out '1' if a negative value */
+					data[counter] = 1;
+					len[counter++] = 1;
+					bits += 1;
+				}
+			}
+		}
+		coderInfo->spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
+	case 11:
 		/* First, calculate the indecies into the huffman tables */
-
 		for(i=offset;i<offset+length;i=i+2){
 			if ((ABS(quant[i]) >= 16) && (ABS(quant[i+1]) >= 16)) {  /* both codewords were above 16 */
 				/* first, code the orignal pair, with the larger value saturated to +/- 16 */
@@ -607,121 +558,325 @@ int output_bits(AACQuantInfo* quantInfo,
 			}
 
 			/* write out the codewords */
-
 			tmp = huff11[index][FIRSTINTAB];
 			codebook = huff11[index][LASTINTAB];
 			bits += tmp;
-			if (write_flag) {
-				/*	printf("[book %d] {%d %d} \n",book,quant[i],quant[i+1]);*/
-				data[counter] = codebook;
-				len[counter++] = tmp;
-			}
+			data[counter] = codebook;
+			len[counter++] = tmp;
 			
 			/* Take care of the sign bits */
-
 			for(j=0;j<2;j++){
-				if(ABS(quant[i+j]) > 0) bits += 1; /* only for non-zero spectral coefficients */
-			}
-			if (write_flag) {
-				for(j=0;j<2;j++){
-					if(quant[i+j] > 0) {  /* send out '0' if a positive value */
-						data[counter] = 0;
-						len[counter++] = 1;
-					}
-					if(quant[i+j] < 0) {  /* send out '1' if a negative value */
-						data[counter] = 1;
-						len[counter++] = 1;
-					}
+				if(quant[i+j] > 0) {  /* send out '0' if a positive value */
+					data[counter] = 0;
+					len[counter++] = 1;
+					bits += 1;
+				} else
+				if(quant[i+j] < 0) {  /* send out '1' if a negative value */
+					data[counter] = 1;
+					len[counter++] = 1;
+					bits += 1;
 				}
 			}
 
 			/* write out the escape sequences */
-
 			if ((ABS(quant[i]) >= 16) && (ABS(quant[i+1]) >= 16)) {  /* both codewords were above 16 */
 				/* code and transmit the first escape_sequence */
-				esc_sequence = calculate_esc_sequence(quant[i],&len_esc); 
+				esc_sequence = CalculateEscSequence(quant[i],&len_esc); 
 				bits += len_esc;
-				if (write_flag) {
-					data[counter] = esc_sequence;
-					len[counter++] = len_esc;
-				}
+				data[counter] = esc_sequence;
+				len[counter++] = len_esc;
 
 				/* then code and transmit the second escape_sequence */
-				esc_sequence = calculate_esc_sequence(quant[i+1],&len_esc);
+				esc_sequence = CalculateEscSequence(quant[i+1],&len_esc);
 				bits += len_esc;
-				if (write_flag) {
-					data[counter] = esc_sequence;
-					len[counter++] = len_esc;
-				}
+				data[counter] = esc_sequence;
+				len[counter++] = len_esc;
 			}
-
 			else if (ABS(quant[i]) >= 16) {  /* the first codeword was above 16, not the second one */
 				/* code and transmit the escape_sequence */
-				esc_sequence = calculate_esc_sequence(quant[i],&len_esc); 
+				esc_sequence = CalculateEscSequence(quant[i],&len_esc); 
 				bits += len_esc;
-				if (write_flag) {
-					data[counter] = esc_sequence;
-					len[counter++] = len_esc;
-				}
+				data[counter] = esc_sequence;
+				len[counter++] = len_esc;
 			}
-
 			else if (ABS(quant[i+1]) >= 16) { /* the second codeword was above 16, not the first one */
 				/* code and transmit the escape_sequence */
-				esc_sequence = calculate_esc_sequence(quant[i+1],&len_esc); 
+				esc_sequence = CalculateEscSequence(quant[i+1],&len_esc); 
 				bits += len_esc;
-				if (write_flag) {
-					data[counter] = esc_sequence;
-					len[counter++] = len_esc;
-				}
+				data[counter] = esc_sequence;
+				len[counter++] = len_esc;
 			} 
 		}
+		coderInfo -> spectral_count = counter;  /* send the current count back to the outside world */
+		return(bits);
 	}
-
-	quantInfo -> spectralCount = counter;  /* send the current count back to the outside world */
-
-	return(bits);
+	return 0;
 }
 
-
-int find_grouping_bits(int window_group_length[],
-					   int num_window_groups
-					   )
+int CalcBits(CoderInfo *coderInfo,
+			 int book,
+			 int *quant,
+			 int offset,
+			 int length)
 {
+  /* 
+     This function inputs 
+     - a specific codebook number, 'book'
+     - the quantized spectral data, 'quant[]'
+     - the offset into the spectral data to begin scanning, 'offset'
+     - the 'length' of the segment to huffman code
+     -> therefore, the segment quant[offset] to quant[offset+length-1]
+     is huffman coded.
 
-  /* This function inputs the grouping information and outputs the seven bit 
-	'grouping_bits' field that the NBC decoder expects.  */
+     This function outputs 
+     - the number of bits required, 'bits'  using the prescribed codebook, book applied to 
+     the given segment of spectral data.
 
+   */
+ 
+	int len_esc;
+	int index;
+	int bits = 0;
+	int i, j;
 
-	int grouping_bits = 0;
-	int tmp[8];
-	int i,j;
-	int index=0;
-
-	for(i=0; i<num_window_groups; i++){
-		for (j=0; j<window_group_length[i];j++){
-			tmp[index++] = i;
+	switch (book) {
+	case 1:
+		for(i=offset;i<offset+length;i=i+4){
+			index = 27*quant[i] + 9*quant[i+1] + 3*quant[i+2] + quant[i+3] + 40;
+			bits += huff1[index][FIRSTINTAB];
 		}
-	}
-
-	for(i=1; i<8; i++){
-		grouping_bits = grouping_bits << 1;
-		if(tmp[i] == tmp[i-1]) {
-			grouping_bits++;
+		return (bits);
+	case 2:
+		for(i=offset;i<offset+length;i=i+4){
+			index = 27*quant[i] + 9*quant[i+1] + 3*quant[i+2] + quant[i+3] + 40;
+			bits += huff2[index][FIRSTINTAB];
 		}
+		return (bits);
+	case 3:
+		for(i=offset;i<offset+length;i=i+4){
+			index = 27*ABS(quant[i]) + 9*ABS(quant[i+1]) + 3*ABS(quant[i+2]) + ABS(quant[i+3]);
+			bits += huff3[index][FIRSTINTAB];
+			for(j=0;j<4;j++){
+				if(quant[i+j] != 0) bits += 1; /* only for non-zero spectral coefficients */
+			}
+		}
+		return (bits);
+	case 4:
+		for(i=offset;i<offset+length;i=i+4){
+			index = 27*ABS(quant[i]) + 9*ABS(quant[i+1]) + 3*ABS(quant[i+2]) + ABS(quant[i+3]);
+			bits += huff4[index][FIRSTINTAB];
+			for(j=0;j<4;j++){
+				if(quant[i+j] != 0) bits += 1; /* only for non-zero spectral coefficients */
+			}
+		}
+		return (bits);
+	case 5:
+		for(i=offset;i<offset+length;i=i+2){
+			index = 9*(quant[i]) + (quant[i+1]) + 40;
+			bits += huff5[index][FIRSTINTAB];
+		}
+		return (bits);
+	case 6:
+		for(i=offset;i<offset+length;i=i+2){
+			index = 9*(quant[i]) + (quant[i+1]) + 40;
+			bits += huff6[index][FIRSTINTAB];
+		}
+		return (bits);
+	case 7:
+		for(i=offset;i<offset+length;i=i+2){
+			index = 8*ABS(quant[i]) + ABS(quant[i+1]);
+			bits += huff7[index][FIRSTINTAB];
+			for(j=0;j<2;j++){
+				if(quant[i+j] != 0) bits += 1; /* only for non-zero spectral coefficients */
+			}
+		}
+		return (bits);
+	case 8:
+		for(i=offset;i<offset+length;i=i+2){
+			index = 8*ABS(quant[i]) + ABS(quant[i+1]);
+			bits += huff8[index][FIRSTINTAB];
+			for(j=0;j<2;j++){
+				if(quant[i+j] != 0) bits += 1; /* only for non-zero spectral coefficients */
+			}
+		}
+		return (bits);
+	case 9:
+		for(i=offset;i<offset+length;i=i+2){
+			index = 13*ABS(quant[i]) + ABS(quant[i+1]);
+			bits += huff9[index][FIRSTINTAB];
+			for(j=0;j<2;j++){
+				if(quant[i+j] != 0) bits += 1; /* only for non-zero spectral coefficients */
+			}
+		}
+		return (bits);
+	case 10:
+		for(i=offset;i<offset+length;i=i+2){
+			index = 13*ABS(quant[i]) + ABS(quant[i+1]);
+			bits += huff10[index][FIRSTINTAB];
+			for(j=0;j<2;j++){
+				if(quant[i+j] != 0) bits += 1; /* only for non-zero spectral coefficients */
+			}
+		}
+		return (bits);
+	case 11:
+		/* First, calculate the indecies into the huffman tables */
+		for(i=offset;i<offset+length;i=i+2){
+			if ((ABS(quant[i]) >= 16) && (ABS(quant[i+1]) >= 16)) {  /* both codewords were above 16 */
+				/* first, code the orignal pair, with the larger value saturated to +/- 16 */
+				index = 17*16 + 16;
+			} else if (ABS(quant[i]) >= 16) {  /* the first codeword was above 16, not the second one */
+				/* first, code the orignal pair, with the larger value saturated to +/- 16 */
+				index = 17*16 + ABS(quant[i+1]);
+			} else if (ABS(quant[i+1]) >= 16) { /* the second codeword was above 16, not the first one */
+				index = 17*ABS(quant[i]) + 16;
+			} else {  /* there were no values above 16, so no escape sequences */
+				index = 17*ABS(quant[i]) + ABS(quant[i+1]);
+			}
+
+			/* write out the codewords */
+			bits += huff11[index][FIRSTINTAB];
+			
+			/* Take care of the sign bits */
+			for(j=0;j<2;j++){
+				if(quant[i+j] != 0) bits += 1; /* only for non-zero spectral coefficients */
+			}
+
+			/* write out the escape sequences */
+			if ((ABS(quant[i]) >= 16) && (ABS(quant[i+1]) >= 16)) {  /* both codewords were above 16 */
+				/* code and transmit the first escape_sequence */
+				CalculateEscSequence(quant[i],&len_esc); 
+				bits += len_esc;
+
+				/* then code and transmit the second escape_sequence */
+				CalculateEscSequence(quant[i+1],&len_esc);
+				bits += len_esc;
+			} else if (ABS(quant[i]) >= 16) {  /* the first codeword was above 16, not the second one */
+				/* code and transmit the escape_sequence */
+				CalculateEscSequence(quant[i],&len_esc); 
+				bits += len_esc;
+			} else if (ABS(quant[i+1]) >= 16) { /* the second codeword was above 16, not the first one */
+				/* code and transmit the escape_sequence */
+				CalculateEscSequence(quant[i+1],&len_esc); 
+				bits += len_esc;
+			} 
+		}
+		return (bits);
 	}
-	
-	return(grouping_bits);
+	return 0;
 }
 
+int SortBookNumbers(CoderInfo *coderInfo,
+					BitStream *bitStream,
+					int writeFlag)
+{
+  /*
+    This function inputs the vector, 'book_vector[]', which is of length MAX_SCFAC_BANDS,
+    and contains the optimal huffman tables of each sfb.  It returns the vector, 'output_book_vector[]', which
+    has it's elements formatted for the encoded bit stream.  It's syntax is:
+
+    {sect_cb[0], length_segment[0], ... ,sect_cb[num_of_sections], length_segment[num_of_sections]}
+
+    The above syntax is true, unless there is an escape sequence.  An
+    escape sequence occurs when a section is longer than 2 ^ (bit_len)
+    long in units of scalefactor bands.  Also, the integer returned from
+    this function is the number of bits written in the bitstream,
+    'bit_count'.
+
+    This function supports both long and short blocks.
+    */
+
+	int i;
+	int repeat_counter;
+	int bit_count = 0;
+	int previous;
+	int max, bit_len/*,sfbs*/;
+	int max_sfb,g,band;
+
+	/* Set local pointers to coderInfo elements */
+	int* book_vector = coderInfo->book_vector;
+
+	if (coderInfo->block_type == ONLY_SHORT_WINDOW){
+		max = 7;
+		bit_len = 3;
+	} else {  /* the block_type is a long,start, or stop window */
+		max = 31;
+		bit_len = 5;
+	}
+
+	/* Compute number of scalefactor bands */
+	max_sfb = coderInfo->nr_of_sfb / coderInfo->num_window_groups;
 
 
-int write_scalefactor_bitstream(BsBitStream* fixed_stream,             /* Bitstream */  
-				int write_flag,                        /* Write flag */
-				AACQuantInfo* quantInfo)               /* Quantization information */
+	for (g = 0; g < coderInfo->num_window_groups; g++) {
+		band=g*max_sfb;
+
+		repeat_counter=1;
+
+		previous = book_vector[band];
+		if (writeFlag) {
+			PutBit(bitStream,book_vector[band],4);
+		}
+		bit_count += 4;
+
+		for (i=band+1;i<band+max_sfb;i++) {
+			if( (book_vector[i] != previous)) {
+				if (writeFlag) {
+					PutBit(bitStream,repeat_counter,bit_len);
+				}
+				bit_count += bit_len;
+
+				if (repeat_counter == max){  /* in case you need to terminate an escape sequence */
+					if (writeFlag)
+						PutBit(bitStream,0,bit_len);
+					bit_count += bit_len;
+				}
+
+				if (writeFlag)
+					PutBit(bitStream,book_vector[i],4);
+				bit_count += 4;
+				previous = book_vector[i];
+				repeat_counter=1;
+
+			}
+			/* if the length of the section is longer than the amount of bits available in */
+			/* the bitsream, "max", then start up an escape sequence */
+			else if ((book_vector[i] == previous) && (repeat_counter == max)) {
+				if (writeFlag) {
+					PutBit(bitStream,repeat_counter,bit_len);
+				}
+				bit_count += bit_len;
+				repeat_counter = 1;
+			}
+			else {
+				repeat_counter++;
+			}
+		}
+
+		if (writeFlag)
+			PutBit(bitStream,repeat_counter,bit_len);
+		bit_count += bit_len;
+
+		if (repeat_counter == max) {  /* special case if the last section length is an */
+			/* escape sequence */
+			if (writeFlag)
+				PutBit(bitStream,0,bit_len);
+			bit_count += bit_len;
+		}
+
+
+	}  /* Bottom of group iteration */
+
+	return bit_count;
+}
+
+int WriteScalefactors(CoderInfo *coderInfo,
+					  BitStream *bitStream,
+					  int writeFlag)
+							 
 {
 	/* this function takes care of counting the number of bits necessary */
-	/* to encode the scalefactors.  In addition, if the write_flag == 1, */
-	/* then the scalefactors are written out the fixed_stream output bit */
+	/* to encode the scalefactors.  In addition, if the writeFlag == 1, */
+	/* then the scalefactors are written out the bitStream output bit */
 	/* stream.  it returns k, the number of bits written to the bitstream*/
 
 	int i,j,bit_count=0;
@@ -729,33 +884,27 @@ int write_scalefactor_bitstream(BsBitStream* fixed_stream,             /* Bitstr
 	int previous_scale_factor;
 	int previous_is_factor;       /* Intensity stereo */
 	int index = 0;
-//	int count = 0;
-//	int group_offset = 0;
 	int nr_of_sfb_per_group;
 
-	int pns_pcm_flag = 1;
-	int previous_noise_nrg = quantInfo->common_scalefac ;
+	/* set local pointer to coderInfo elements */
+	int* scale_factors = coderInfo->scale_factor;
 
-	/* set local pointer to quantInfo elements */
-	int* scale_factors = quantInfo->scale_factor;
-
-	if (quantInfo->block_type == ONLY_SHORT_WINDOW) { /* short windows */
-		nr_of_sfb_per_group = quantInfo->nr_of_sfb/quantInfo->num_window_groups;
-	}
-	else {
-		nr_of_sfb_per_group = quantInfo->nr_of_sfb;
-		quantInfo->num_window_groups = 1;
-		quantInfo->window_group_length[0] = 1;
+	if (coderInfo->block_type == ONLY_SHORT_WINDOW) { /* short windows */
+		nr_of_sfb_per_group = coderInfo->nr_of_sfb/coderInfo->num_window_groups;
+	} else {
+		nr_of_sfb_per_group = coderInfo->nr_of_sfb;
+		coderInfo->num_window_groups = 1;
+		coderInfo->window_group_length[0] = 1;
 	}
 
-	previous_scale_factor = quantInfo->common_scalefac;
+	previous_scale_factor = coderInfo->global_gain;
 	previous_is_factor = 0;
     
-	for(j=0; j<quantInfo->num_window_groups; j++){
+	for(j=0; j<coderInfo->num_window_groups; j++){
 		for(i=0;i<nr_of_sfb_per_group;i++) {  
 			/* test to see if any codebooks in a group are zero */
-			if ( (quantInfo->book_vector[index]==INTENSITY_HCB) ||
-				(quantInfo->book_vector[index]==INTENSITY_HCB2) ) {
+			if ( (coderInfo->book_vector[index]==INTENSITY_HCB) ||
+				(coderInfo->book_vector[index]==INTENSITY_HCB2) ) {
 				/* only send scalefactors if using non-zero codebooks */
 				diff = scale_factors[index] - previous_is_factor;
 				if ((diff < 60)&&(diff >= -60))
@@ -763,31 +912,11 @@ int write_scalefactor_bitstream(BsBitStream* fixed_stream,             /* Bitstr
 				else length = 0;
 				bit_count+=length;
 				previous_is_factor = scale_factors[index];
-				if (write_flag == 1 ) {   
+				if (writeFlag == 1 ) {   
 					codeword = huff12[diff+60][LASTINTAB];
-					BsPutBit(fixed_stream,codeword,length); 
+					PutBit(bitStream,codeword,length); 
 				}
-			} else if (quantInfo-> book_vector[index] == PNS_HCB){
-				diff = quantInfo->pns_sfb_nrg[index] - previous_noise_nrg;
-				if (pns_pcm_flag) {
-					pns_pcm_flag = 0;
-					length = PNS_PCM_BITS;
-					codeword = diff + PNS_PCM_OFFSET;
-				} else {
-					if (diff<-60  ||  diff>60) {
-						length = 0;
-						codeword = 0;
-					} else {
-						length = huff12[diff+60][FIRSTINTAB];
-						codeword = huff12[diff+60][LASTINTAB];
-					}
-				}
-				bit_count += length;
-				previous_noise_nrg = quantInfo->pns_sfb_nrg[index];
-				if (write_flag == 1 ) {   
-					BsPutBit(fixed_stream,codeword,length); 
-				}
-			} else if (quantInfo->book_vector[index]) {
+			} else if (coderInfo->book_vector[index]) {
 				/* only send scalefactors if using non-zero codebooks */
 				diff = scale_factors[index] - previous_scale_factor;
 				if ((diff < 60)&&(diff >= -60))
@@ -795,14 +924,14 @@ int write_scalefactor_bitstream(BsBitStream* fixed_stream,             /* Bitstr
 				else length = 0;
 				bit_count+=length;
 				previous_scale_factor = scale_factors[index];
-				if (write_flag == 1 ) {   
+				if (writeFlag == 1 ) {   
 					codeword = huff12[diff+60][LASTINTAB];
-					BsPutBit(fixed_stream,codeword,length); 
+					PutBit(bitStream,codeword,length); 
 				}
 			}
 			index++;
 		}
 	}
-	return(bit_count);
+	return bit_count;
 }
 

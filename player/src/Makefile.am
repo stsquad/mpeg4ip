@@ -8,7 +8,6 @@ libmp4player_la_SOURCES = \
 	avi_file.cpp \
 	ip_port.cpp \
 	media_utils.cpp \
-	msg_queue.cpp \
 	our_bytestream_file.cpp \
 	our_bytestream_mem.cpp \
 	our_config_file.cpp \
@@ -68,6 +67,7 @@ LDADD = \
 	$(top_builddir)/player/src/libmp4player.la \
 	$(top_builddir)/server/lib/avi/libavi.la \
 	$(top_builddir)/common/lib/config_file/libconfig_file.la \
+	$(top_builddir)/common/lib/msg_queue/libmsg_queue.la \
 	-lpthread \
 	-lm \
 	$(top_builddir)/server/lib/avi/libavi.la \

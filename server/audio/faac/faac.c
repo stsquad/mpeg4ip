@@ -1,347 +1,295 @@
+/*
+ * FAAC - Freeware Advanced Audio Coder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: faac.c,v 1.3 2001/06/01 20:52:37 wmaycisco Exp $
+ */
+
 #ifdef _WIN32
 #include <windows.h>
-#else
-#include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
 #endif
-#ifdef LINUX
+
+#ifdef __unix__
+#define min(a,b) ( (a) < (b) ? (a) : (b) )
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <unistd.h>
 #endif
 
-#include "aacenc.h"
-#include "bitstream.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-#ifdef FAAC_DLL
+#include <sndfile.h>
 
-BOOL APIENTRY DllMain(HANDLE hModule,
-                      DWORD  ul_reason_for_call,
-                      LPVOID lpReserved)
-{
-  return TRUE;
-}
+#include "faac.h"
 
-#else  // Not dll
-
-char *get_filename(char *pPath)
-{
-  char *pT;
-
-  for (pT = pPath; *pPath; pPath++) {
-   if ((pPath[0] == '\\' || pPath[0] == ':') && pPath[1] && (pPath[1] != '\\'))
-     pT = pPath + 1;
-  }
-
-  return pT;
-}
-
-void combine_path(char *path, char *dir, char *file)
-{
-  /* Should be a bit more sophisticated
-    This code assumes that the path exists */
-
-  /* Assume dir is allocated big enough */
-  if (dir[strlen(dir)-1] != '\\')
-    strcat(dir, "\\");
-  strcat(dir, get_filename(file));
-  strcpy(path, dir);
-}
-
-void usage(void)
-{
-  printf("Usage:\n");
-  printf("faac.exe -options file ...\n");
-  printf("Options:\n");
-  printf(" -?    Shows this help screen.\n");
-  printf(" -pX   AAC profile (X can be LOW, or MAIN (default).\n");
-  printf(" -bX   Bitrate in kbps (in steps of 1kbps, min. 16kbps)\n");
-  printf(" -pns  Use PNS (Perceptual Noise Substitution).\n");
-  printf(" -nt   Don't use TNS (Temporal Noise Shaping).\n");
-  printf(" -ms   Use mid/side stereo coding.\n");
-  printf(" -nm   Don't use mid/side stereo coding.\n");
-  printf("       The default for MS is intelligent switching.\n");
-  printf(" -np   Don't use LTP (Long Term Prediction).\n");
-  printf(" -oX   Set output directory.\n");
-  printf(" -sX   Set output sampling rate.\n");
-  printf(" -cX   Set cut-off frequency.\n");
-  printf(" -r    Use raw data input file.\n");
-  printf(" -hN   No header will be written to the AAC file.\n");
-  printf(" -hS   ADTS headers will be written to the AAC file(default).\n");
-  printf(" -hI   ADIF header will be written to the AAC file.\n");
-  printf(" file  Multiple files can be given as well as wild cards.\n");
-  printf("       Can be any of the filetypes supported by libsndfile\n");
-  printf("       (http://www.zip.com.au/~erikd/libsndfile/).\n");
-  printf("Example:\n");
-  printf("       faac.exe -b96 -oc:\\aac\\ *.wav\n");
-  return;
-}
-
-int parse_arg(int argc, char *argv[],faacAACStream *as, char *InFileNames[100], char *OutFileNames[100])
-{
-  int i, out_dir_set=0, FileCount=0;
-  char *argp, *fnp, out_dir[255];
-
-  faac_InitParams(as);
-  if (argc == 1) {
-    usage();
-    return -1;
-  }
-
-  for (i = 1; i < argc; i++) {
-#ifdef WIN32
-    if ((argv[i][0] != '-')&&(argv[i][0] != '/')) 
-#else
-    if ((argv[i][0] != '-'))
-#endif
-	{
-	  argp = argv[i];
-
-      if (!strchr(argp, '*') && !strchr(argp, '?')) {
-	InFileNames[FileCount] = (char*) malloc((strlen(argv[i])+1)*sizeof(char));
-	OutFileNames[FileCount] = (char*) malloc((strlen(argv[i])+1)*sizeof(char));
-	strcpy(InFileNames[FileCount], argv[i]);
-	FileCount++;
-      } else {
-#ifdef _WIN32
-	HANDLE hFindFile;
-	WIN32_FIND_DATA fd;
-
-        char path[255], *p;
-
-        if (NULL == (p = strrchr(argp, '\\')))
-	  p = strrchr(argp, '/');
-        if (p) {
-	  char ch = *p;
-
-	  *p = 0;
-	  strcat(strcpy(path, argp), "\\");
-	  *p = ch;
-        }
-	else
-	  *path = 0;
-
-	  if (INVALID_HANDLE_VALUE != (hFindFile = FindFirstFile(argp, &fd))) {
-	     do {
-	       InFileNames[FileCount] = (char*) malloc((strlen(fd.cFileName) + strlen(path) + 2)*sizeof(char));
-	       OutFileNames[FileCount] = (char*) malloc((strlen(fd.cFileName) + strlen(path) + 2)*sizeof(char));
-               strcat(strcpy(InFileNames[FileCount], path), fd.cFileName);
-	       FileCount++;
-             }
-             while (FindNextFile(hFindFile, &fd));
-	  FindClose(hFindFile);
-        }
-#else
-	printf("Wildcards not yet supported on systems other than WIN32\n");
-#endif
-      }
-    }
-    else {
-      switch(argv[i][1]) {
-      	case 'p': case 'P':
-	  if ((argv[i][2] == 'n') || (argv[i][2] == 'N'))
-	    faac_SetParam(as,PNS,USE_PNS);
-          else if ((argv[i][2] == 'l') || (argv[i][2] == 'L'))
-            faac_SetParam(as,PROFILE,LOW_PROFILE);
-	  else if ((argv[i][2] == 'm') || (argv[i][2] == 'M'))
-	    faac_SetParam(as,PROFILE,MAIN_PROFILE);
-          else {
-            printf("Unknown option: %s\n", argv[i]);
-            return 0;
-          }
-          break;
-        case 'n': case 'N':
-	  if ((argv[i][2] == 'm') || (argv[i][2] == 'M'))
-	    faac_SetParam(as,MS_STEREO,NO_MS);
-          else if ((argv[i][2] == 'p') || (argv[i][2] == 'P'))
-	    faac_SetParam(as,LTP,NO_LTP);
-          else if ((argv[i][2] == 't') || (argv[i][2] == 'T'))
-	  faac_SetParam(as,TNS,NO_TNS);
-          else {
-            printf("Unknown option: %s\n", argv[i]);
-            return 0;
-          }
-	  break;
-        case 'h': case 'H':
-          if ((argv[i][2] == 'i') || (argv[i][2] == 'I'))
-	    faac_SetParam(as,HEADER_TYPE,ADIF_HEADER);
-          else if ((argv[i][2] == 's') || (argv[i][2] == 'S'))
-	    faac_SetParam(as,HEADER_TYPE,ADTS_HEADER);
-          else if ((argv[i][2] == 'n') || (argv[i][2] == 'N'))
-	    faac_SetParam(as,HEADER_TYPE,NO_HEADER);
-          else {
-            printf("Unknown option: %s\n", argv[i]);
-            return 0;
-          }
-	  break;
-        case 'm': case 'M':
-	  faac_SetParam(as,MS_STEREO,FORCE_MS);
-	  break;
-	case 'r': case 'R':
-	  faac_SetParam(as,RAW_AUDIO,USE_RAW_AUDIO);
-	  break;
-	case 'b': case 'B':
-	  faac_SetParam(as,BITRATE,atoi(&argv[i][2]));
-	  break;
-	case 's': case 'S':
-	  faac_SetParam(as,OUT_SAMPLING_RATE,atoi(&argv[i][2]));
-	  break;
-        case 'c': case 'C':
-	  faac_SetParam(as,CUT_OFF,atoi(&argv[i][2]));
-	  break;
-        case 'o': case 'O':
-	  out_dir_set = 1;
-	  strcpy(out_dir, &argv[i][2]);
-	  break;
-	case '?':
-	  usage();
-	  return 0;
-        default:
-          printf("Unknown option: %s\n", argv[i]);
-          return 0;
-      }
-    }   // else  of:  if ((argv[i][0] != '-')&&(argv[i][0] != '/')) {
-  } //   for (i = 1; i < argc; i++) {
-
-  if (FileCount == 0)
-    return -1;
-  else {
-    for (i = 0; i < FileCount; i++){
-      if (out_dir_set)
-        combine_path(OutFileNames[i], out_dir, InFileNames[i]);
-      else
-        strcpy(OutFileNames[i], InFileNames[i]);
-      fnp = strrchr(OutFileNames[i],'.');
-      fnp[0] = '\0';
-      strcat(OutFileNames[i],".aac");
-    }
-  }
-  return FileCount;
-}
-
-void printVersion(void)
-{
-  faacVersion *faacv;
-  faacv = faac_Version();
-  printf("FAAC cl (Freeware AAC Encoder)\n");
-  printf("FAAC homepage: %s\n", faacv->HomePage);
-  printf("Encoder engine version: %d.%d\n\n",
-	 faacv->MajorVersion, faacv->MinorVersion);
-  if (faacv)
-    free(faacv);
-}
-
-void printConf(faacAACStream *as)
-{
-  printf("AAC configuration:\n");
-  printf("----------------------------------------------\n");
-  printf("AAC profile: %s.\n", (as->profile==MAIN_PROFILE)?"MAIN":"LOW");
-  printf("Bitrate: %dkbps.\n", as->bit_rate/1000);
-  printf("Mid/Side (MS) stereo coding: %s.\n",
- 	(as->use_MS==1)?"Always (If CPE)":((as->use_MS==0)?"Switching (If CPE)":"Off"));
-  printf("Temporal Noise Shaping: %s.\n", as->use_TNS?"On":"Off");
-  printf("Long Term Prediction: %s.\n", as->use_LTP?"On":"Off");
-  printf("Perceptual Noise Substitution: %s.\n", as->use_PNS?"On":"Off");
-  if (as->out_sampling_rate)
-    printf("Output sampling rate: %dHz.\n", as->out_sampling_rate);
-  if (as->cut_off)
-    printf("Cut-off frequency: %dHz.\n", as->cut_off);
-  if (as->header_type == ADIF_HEADER)
-    printf("Header info: ADIF header (seeking disabled)\n");
-  else if (as->header_type == ADTS_HEADER)
-    printf("Header info: ADTS headers (seeking enabled)\n");
-  else
-    printf("Header info: no headers (seeking disabled)\n");
-  printf("----------------------------------------------\n");
-}
 
 int main(int argc, char *argv[])
 {
-#ifdef LINUX
-    struct rusage *usage;
-#endif
-  int i, frames, currentFrame, result, FileCount;
-  char *InFileNames[100], *OutFileNames[100];
-  faacAACStream *as;
+	int i, frames, currentFrame;
+	faacEncHandle hEncoder;
+	SNDFILE *infile;
+	SF_INFO sfinfo;
+	faacEncConfigurationPtr myFormat;
 
-	/* System dependant types */
+	unsigned long totalDesiredBitRate = 0;
+	int rawInput = 0;
+	unsigned long rawSampleRate = 44100;
+	int swapRawBytes = 0;
+
+	unsigned long samplesInput, maxBytesOutput;
+
+	short *pcmbuf;
+
+	unsigned char *bitbuf;
+	int bytesInput = 0;
+
+	FILE *outfile;
+
+#ifdef __unix__
+	struct rusage usage;
+#endif
 #ifdef _WIN32
-  long	begin, end;
-  int nTotSecs, nSecs;
-  int nMins;
+	long begin, end;
+	int nTotSecs, nSecs;
+	int nMins;
 #else
-  float	totalSecs;
-  int mins;
+	float totalSecs;
+	int mins;
 #endif
 
-  /* create main aacstream object */
-  as =(faacAACStream *) malloc(sizeof(faacAACStream));
+	/* get the default encoder configuration values */
+	hEncoder = faacEncOpen(44100, 2, &samplesInput, &maxBytesOutput);
+	myFormat = faacEncGetCurrentConfiguration(hEncoder);
+	faacEncClose(hEncoder);
+	hEncoder = 0;
 
-  /* Print version of FAAC */
-  printVersion();
+	printf("FAAC - command line demo of %s\n", __DATE__);
+	printf("Uses FAACLIB version: %.1f %s\n\n", FAACENC_VERSION, (FAACENC_VERSIONB)?"beta":"");
 
-  /* Process command line params */
-  if ((FileCount=parse_arg(argc, argv, as, InFileNames, OutFileNames)) < 1) return 0;
+	if (argc < 3)
+	{
+		printf("USAGE: %s -options infile outfile\n", argv[0]);
+		printf("Options:\n");
+		printf("  -mX   AAC MPEG version, X can be 2 or 4.\n");
+		printf("  -pX   AAC object type, X can be LC, MAIN or LTP.\n");
+		printf("  -nm   Don\'t use mid/side coding.\n");
+		printf("  -tns  Use TNS coding.\n");
+		printf("  -bX   Set the total bitrate, X in Kbps.\n\n");
+		printf("  -brX  Set the bitrate per channel, X in bps.\n\n");
+		printf("  -bwX  Set the bandwidth, X in Hz.\n");
+		printf("  -rX   Input is raw 16 bit stereo PCM at X Hz, default 44100.\n");
+		printf("  -x    Swap raw input bytes.\n");
+		return 1;
+	}
 
-  /* Print configuration */
-  printConf(as);
+	/* set other options */
+	if (argc > 3)
+	{
+		for (i = 1; i < argc-2; i++) {
+			if ((argv[i][0] == '-') || (argv[i][0] == '/')) {
+				switch(argv[i][1]) {
+				case 'p': case 'P':
+					if ((argv[i][2] == 'l') || (argv[i][2] == 'L')) {
+						if ((argv[i][3] == 'c') || (argv[i][2] == 'C')) {
+							myFormat->aacObjectType = LOW;
+						} else if ((argv[i][3] == 't') || (argv[i][2] == 'T')) {
+							myFormat->aacObjectType = LTP;
+						}
+					} else if ((argv[i][2] == 'm') || (argv[i][2] == 'M')) {
+						myFormat->aacObjectType = MAIN;
+					}
+				break;
+				case 'm': case 'M':
+					if (argv[i][2] == '4') {
+						myFormat->mpegVersion = MPEG4;
+					} else {
+						myFormat->mpegVersion = MPEG2;
+					}
+				break;
+				case 't': case 'T':
+					if ((argv[i][2] == 'n') || (argv[i][2] == 'N'))
+						myFormat->useTns = 1;
+				break;
+				case 'n': case 'N':
+					if ((argv[i][2] == 'm') || (argv[i][2] == 'M'))
+						myFormat->allowMidside = 0;
+				break;
+				case 'b': case 'B':
+					if ((argv[i][2] == 'r') || (argv[i][2] == 'R'))
+					{
+						unsigned int bitrate = atol(&argv[i][3]);
+						if (bitrate)
+						{
+							myFormat->bitRate = bitrate;
+						}
+					} else if ((argv[i][2] == 'w') || (argv[i][2] == 'W')) {
+						unsigned int bandwidth = atol(&argv[i][3]);
+						if (bandwidth)
+						{
+							myFormat->bandWidth = bandwidth;
+						}
+					} else if (isdigit(argv[i][2])) {
+						unsigned int bitrate = atol(&argv[i][3]);
+						if (bitrate)
+						{
+							totalDesiredBitRate = bitrate * 1000;
+						}
+					}
+				break;
+				case 'r':
+					rawInput = 1;
+					if (isdigit(argv[i][2])) {
+						rawSampleRate = atol(&argv[i][3]);
+					} else {
+						rawSampleRate = 44100;
+					}
+				break;
+				case 'x':
+					swapRawBytes = 1;
+				break;
+				}
+			}
+		}
+	}
 
-  /* Process input files */
-  for (i = 0; i < FileCount; i++) {
-    printf("0%\tBusy encoding %s.\r", InFileNames[i]);
-#ifdef _WIN32
-    begin = GetTickCount();
-#endif
-
-    /* Init encoder core and retrieve number of frames */
-    if ((frames=faac_EncodeInit(as, InFileNames[i], OutFileNames[i])) < 0) {
-      printf("Error %d while encoding %s.\n",-frames,InFileNames[i]);
-      continue;
+	/* handle raw audio input */
+    if (rawInput) {
+		sfinfo.format =  SF_FORMAT_RAW;
+		if (swapRawBytes) {
+			if (IsBigEndian()) {
+				sfinfo.format |= SF_FORMAT_PCM_LE;
+			} else {
+				sfinfo.format |= SF_FORMAT_PCM_BE;
+			}
+		} else {
+			if (IsBigEndian()) {
+				sfinfo.format |= SF_FORMAT_PCM_BE;
+			} else {
+				sfinfo.format |= SF_FORMAT_PCM_LE;
+			}
+		}
+		sfinfo.pcmbitwidth = 16;
+		sfinfo.channels = 2;
+		sfinfo.samplerate = rawSampleRate;
     }
-    currentFrame = 0;
-    // Keep encoding frames until the end of the audio file
-    do {
-      currentFrame++;
-      result = faac_EncodeFrame(as);
-      if (result == FERROR) {
-        printf("Error while encoding %s.\n", InFileNames[i]);
-	break;
-      }
-      printf("%.2f%%\tBusy encoding %s.\r", min((double)(currentFrame*100)/frames,100),InFileNames[i]);
 
-    } while (result != F_FINISH);
+	/* open the audio input file */
+	infile = sf_open_read(argv[argc-2], &sfinfo);
+	if (infile == NULL)
+	{
+		printf("couldn't open input file %s\n", argv [argc-2]);
+		return 1;
+	}
 
-    /* destroying internal data */
-    faac_EncodeFree(as);
+	/* open the aac output file */
+	outfile = fopen(argv[argc-1], "wb");
+	if (!outfile)
+	{
+		printf("couldn't create output file %s\n", argv [argc-1]);
+		return 1;
+	}
+
+	/* open the encoder library */
+	hEncoder = faacEncOpen(sfinfo.samplerate, sfinfo.channels, 
+		&samplesInput, &maxBytesOutput);
+
+	if (totalDesiredBitRate) {
+		myFormat->bitRate = totalDesiredBitRate / sfinfo.channels;
+	} 
+
+	if (!faacEncSetConfiguration(hEncoder, myFormat))
+		fprintf(stderr, "unsupported output format!\n");
+
+	pcmbuf = (short*)malloc(samplesInput*sizeof(short));
+	bitbuf = (unsigned char*)malloc(maxBytesOutput*sizeof(unsigned char));
+
+	if (outfile)
+	{
 #ifdef _WIN32
-    end = GetTickCount();
-    nTotSecs = (end-begin)/1000;
-    nMins = nTotSecs / 60;
-    nSecs = nTotSecs - (60*nMins);
-    printf("Encoding %s took:\t%d:%.2d\t\n", InFileNames[i], nMins, nSecs);
+		begin = GetTickCount();
+#endif
+		frames = (int)(sfinfo.samples/1024+0.5);
+		currentFrame = 0;
+
+		/* encoding loop */
+		for ( ;; )
+		{
+			int bytesWritten;
+
+			currentFrame++;
+
+			bytesInput = sf_read_short(infile, pcmbuf, samplesInput) * sizeof(short);
+
+			/* call the actual encoding routine */
+			bytesWritten = faacEncEncode(hEncoder,
+				pcmbuf,
+				bytesInput/2,
+				bitbuf,
+				maxBytesOutput);
+
+#ifndef _DEBUG
+			printf("%.2f%%\tBusy encoding %s.\r",
+				min((double)(currentFrame*100)/frames,100), argv[argc-2]);
+#endif
+
+			/* all done, bail out */
+			if (!bytesInput && !bytesWritten)
+				break ;
+
+			if (bytesWritten < 0)
+			{
+				fprintf(stderr, "faacEncEncode() failed\n");
+				break ;
+			}
+
+			/* write bitstream to aac file */
+			fwrite(bitbuf, 1, bytesWritten, outfile);
+		}
+
+		/* clean up */
+		fclose(outfile);
+
+#ifdef _WIN32
+		end = GetTickCount();
+		nTotSecs = (end-begin)/1000;
+		nMins = nTotSecs / 60;
+		nSecs = nTotSecs - (60*nMins);
+		printf("Encoding %s took:\t%d:%.2d\t\n", argv[argc-2], nMins, nSecs);
 #else
-#ifdef LINUX
-    usage=malloc(sizeof(struct rusage*));
-    getrusage(RUSAGE_SELF,usage);
-    totalSecs=usage->ru_utime.tv_sec;
-    free(usage);
-    mins = totalSecs/60;
-    printf("Encoding %s took: %i min, %.2f sec. of cpu-time\n", InFileNames[i], mins, totalSecs - (60 * mins));
+#ifdef __unix__
+		getrusage(RUSAGE_SELF, &usage);
+		totalSecs = usage.ru_utime.tv_sec;
+		mins = totalSecs/60;
+		printf("Encoding %s took: %i min, %.2f sec. of cpu-time\n", argv[argc-2], mins, totalSecs - (60 * mins));
 #else
-    totalSecs = (float)(clock())/(float)CLOCKS_PER_SEC;
-    mins = totalSecs/60;
-    printf("Encoding %s took: %i min, %.2f sec.\n", InFileNames[i], mins, totalSecs - (60 * mins));
+		totalSecs = (float)(clock())/(float)CLOCKS_PER_SEC;
+		mins = totalSecs/60;
+		printf("Encoding %s took: %i min, %.2f sec.\n", argv[argc-2], mins, totalSecs - (60 * mins));
 #endif
 #endif
-    if(InFileNames[i]) free(InFileNames[i]);
-    if(OutFileNames[i]) free(OutFileNames[i]);
-  }
-  if (as) free (as);
-//  exit(FNO_ERROR); // Uncomment to use profiling on *nix systems
-  return FNO_ERROR;
+	}
+
+	faacEncClose(hEncoder);
+
+	sf_close(infile);
+
+	if (pcmbuf) free(pcmbuf);
+	if (bitbuf) free(bitbuf);
+
+	return 0;
 }
-
-#endif // end of not dll
-
-

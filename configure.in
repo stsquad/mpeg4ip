@@ -3,7 +3,7 @@ AC_INIT()
 AC_CONFIG_AUX_DIR(config)
 
 AM_PROG_LIBTOOL
-AM_INIT_AUTOMAKE(mpeg4ip, 0.6.2)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.6.3)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -110,6 +110,8 @@ AC_SUBST(GTK_INCLUDES)
 				;;
 			esac
         fi
+	else
+		AM_CONDITIONAL(USE_MMX, false)
     fi
 
 dnl Now output the Makefile's
@@ -118,6 +120,7 @@ AC_OUTPUT( \
 	common/Makefile \
 	common/lib/Makefile \
 	common/lib/config_file/Makefile \
+	common/lib/msg_queue/Makefile \
 	common/mp4/Makefile \
 	common/video/Makefile \
 	server/Makefile \

@@ -1,15 +1,27 @@
-/* TBD HEADER */
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ * 
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ * 
+ * The Original Code is MPEG4IP.
+ * 
+ * The Initial Developer of the Original Code is Cisco Systems Inc.
+ * Portions created by Cisco Systems Inc. are
+ * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * 
+ * Contributor(s): 
+ *		Dave Mackie		dmackie@cisco.com
+ */
 
-#include <sys/types.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <getopt.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <avilib.h>
-#include <math.h>
 #include <mpeg4ip.h>
+#include <getopt.h>
+#include <avilib.h>
 
 
 /* globals */
@@ -26,6 +38,7 @@ int main(int argc, char** argv)
 	bool extractVideo = TRUE;	/* FALSE implies extract audio */
 	u_int32_t start = 0;		/* secs, start offset */
 	u_int32_t duration = 0;		/* secs, 0 implies entire file */
+	bool quiet = FALSE;		
 
 	/* internal variables */
 	char* aviFileName = NULL;
@@ -42,12 +55,13 @@ int main(int argc, char** argv)
 		static struct option long_options[] = {
 			{ "audio", 0, 0, 'a' },
 			{ "length", 1, 0, 'l' },
+			{ "quiet", 0, 0, 'q' },
 			{ "start", 1, 0, 's' },
 			{ "video", 0, 0, 'v' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "al:s:v",
+		c = getopt_long_only(argc, argv, "al:qs:v",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -68,6 +82,10 @@ int main(int argc, char** argv)
 			} else {
 				duration = i;
 			}
+			break;
+		}
+		case 'q': {
+			quiet = TRUE;
 			break;
 		}
 		case 's': {
@@ -227,6 +245,11 @@ int main(int argc, char** argv)
 				progName, emptyFramesRead);
 		}
 
+		if (!quiet) {
+			printf("%u video frames written\n", 
+				videoFramesRead - emptyFramesRead);
+		}
+
 		/* cleanup */
 		free(buf);
 
@@ -281,6 +304,12 @@ int main(int argc, char** argv)
 				"%s: warning: could only extract %u seconds of audio\n",
 				progName, audioBytesRead / audioBytesPerSec);
 		}
+
+		if (!quiet) {
+			printf("%u audio samples written\n", 
+				audioBytesRead / ((AVI_audio_bits(aviFile) + 7) / 8)); 
+		}
+
 	}
 
 	/* cleanup */

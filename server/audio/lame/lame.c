@@ -1049,7 +1049,6 @@ int lame_encode_buffer(lame_global_flags *gfp,
       }
       mp3buf += ret;
       mp3size += ret;
-
       /* shift out old samples */
       mf_size -= gfp->framesize;
       mf_samples_to_encode -= gfp->framesize;

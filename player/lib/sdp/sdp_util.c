@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include "sdp.h"
 #include "sdp_decode_private.h"
 
@@ -213,5 +214,29 @@ void smpte_to_str (double value, uint16_t fps, char *buffer)
   if (value > 0.0) sprintf(buffer + index, ":%02g", value);
 }
 
+static int sdp_debug_level = LOG_ERR;
+
+static error_msg_func_t error_msg_func = NULL;
+
+void sdp_set_loglevel (int loglevel)
+{
+  sdp_debug_level = loglevel;
+}
+
+void sdp_set_error_func (error_msg_func_t func)
+{
+  error_msg_func = func;
+}
+void sdp_debug (int loglevel, const char *fmt, ...)
+{
+  if (loglevel <= sdp_debug_level) {
+    if (error_msg_func != NULL) {
+      va_list ap;
+      va_start(ap, fmt);
+      (error_msg_func)(loglevel, "libsdp", fmt, ap);
+      va_end(ap);
+    }
+  }
+}
 /* end file sdp_util.c */
 

@@ -29,3 +29,10 @@ struct sdp_decode_info_ {
   const char *filename;
   FILE *ifile;
 };
+
+void sdp_debug(int loglevel, const char *fmt, ...)
+
+#ifndef _WINDOWS
+     __attribute__((format(__printf__, 2, 3)))
+#endif
+     ;

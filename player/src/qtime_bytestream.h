@@ -53,7 +53,7 @@ class CQTByteStreamBase : public COurInByteStream
   };
   void check_for_end_of_frame(void);
  protected:
-  virtual void read_frame(void) = 0;
+  virtual void read_frame(size_t frame) = 0;
   CQtimeFile *m_parent;
   int m_eof;
   int m_track;
@@ -61,12 +61,13 @@ class CQTByteStreamBase : public COurInByteStream
   size_t m_frames_max;
   size_t m_frame_rate;
   size_t m_max_frame_size;
+  size_t m_frame_in_buffer;
+  size_t m_frame_in_bookmark;
   unsigned char *m_buffer;
   int m_bookmark;
   unsigned char *m_bookmark_buffer;
   unsigned char *m_buffer_on;
   size_t m_byte_on, m_bookmark_byte_on;
-  size_t m_bookmark_frame_on;
   size_t m_this_frame_size, m_bookmark_this_frame_size;
   uint64_t m_total, m_total_bookmark;
   int m_bookmark_read_frame;
@@ -86,7 +87,7 @@ class CQTVideoByteStream : public CQTByteStreamBase
 		     int track) :
     CQTByteStreamBase(parent, m, track, "video")
     {
-    read_frame();
+    read_frame(0);
     };
   void reset(void);
   uint64_t start_next_frame(void);
@@ -94,7 +95,7 @@ class CQTVideoByteStream : public CQTByteStreamBase
   double get_max_playtime(void);
   void config(long num_frames, float frate, int time_scale);
  protected:
-  void read_frame(void);
+  void read_frame(size_t frame);
  private:
   void video_set_timebase(long frame);
   int m_time_scale;
@@ -115,7 +116,7 @@ class CQTAudioByteStream : public CQTByteStreamBase
     CQTByteStreamBase(parent, m, track, "audio")
     {
       m_add_len_to_stream = add_len_to_frame;
-      read_frame();
+      read_frame(0);
     };
   void reset(void);
   uint64_t start_next_frame(void);
@@ -131,7 +132,7 @@ class CQTAudioByteStream : public CQTByteStreamBase
     m_samples_per_frame = duration;
   };
  protected:
-  void read_frame(void);
+  void read_frame(size_t frame);
   size_t read_a_frame(unsigned char **ppbuff);
  private:
   void audio_set_timebase(long frame);

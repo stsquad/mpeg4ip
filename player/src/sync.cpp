@@ -62,38 +62,6 @@ uint64_t CPlayerSession::get_current_time ()
   return(current_time - m_start);
 }
 
-/*
- * process_sdl_events - process the sdl event queue.  This will allow the
- * video window to capture things like close, key strokes.
- */
-void CPlayerSession::process_sdl_events (void)
-{
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-      switch (event.type) {
-      case SDL_QUIT:
-	m_master_msg_queue->send_message(MSG_RECEIVED_QUIT);
-#ifdef DEBUG_SYNC_SDL_EVENTS
-	player_debug_message("Quit event detected");
-#endif
-	break;
-      case SDL_KEYDOWN:
-#ifdef DEBUG_SYNC_SDL_EVENTS
-	player_debug_message("Pressed %x %s", event.key.keysym.mod, SDL_GetKeyName(event.key.keysym.sym));
-#endif
-	if (event.key.keysym.sym == SDLK_ESCAPE && 
-	    m_video_sync &&
-	    m_video_sync->get_fullscreen() != 0) {
-	  m_video_sync->set_fullscreen(0);
-	  m_video_sync->do_video_resize();
-	}
-	  
-	break;
-      default:
-	break;
-      }
-    }
-}
 
 /*
  * Sync thread states.  General state machine looks like:
@@ -122,6 +90,49 @@ const char *sync_state[] = {
   "Exit"
 };
 #endif
+/*
+ * process_sdl_events - process the sdl event queue.  This will allow the
+ * video window to capture things like close, key strokes.
+ */
+#ifdef _WINDOWS
+#define PROCESS_SDL_EVENTS(abc) \
+	state = process_sdl_events(abc); if (state != abc) return (state)
+#else
+#define PROCESS_SDL_EVENTS(abc) process_sdl_events(abc)
+#endif
+
+int CPlayerSession::process_sdl_events (int state)
+{
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+      case SDL_QUIT:
+	m_master_msg_queue->send_message(MSG_RECEIVED_QUIT);
+#ifdef DEBUG_SYNC_SDL_EVENTS
+	player_debug_message("Quit event detected");
+#endif
+#ifdef _WINDOWS
+	 return (SYNC_STATE_EXIT);
+#endif
+	break;
+      case SDL_KEYDOWN:
+#ifdef DEBUG_SYNC_SDL_EVENTS
+	player_debug_message("Pressed %x %s", event.key.keysym.mod, SDL_GetKeyName(event.key.keysym.sym));
+#endif
+	if (event.key.keysym.sym == SDLK_ESCAPE && 
+	    m_video_sync &&
+	    m_video_sync->get_fullscreen() != 0) {
+	  m_video_sync->set_fullscreen(0);
+	  m_video_sync->do_video_resize();
+	}
+	  
+	break;
+      default:
+	break;
+      }
+    }
+	return (state);
+}
 
 /*
  * process_msg_queue - receive messages for the sync task.  Most are
@@ -226,7 +237,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
   int state;
 
   do {
-    process_sdl_events();
+	PROCESS_SDL_EVENTS(SYNC_STATE_WAIT_SYNC); 
     state = process_msg_queue(SYNC_STATE_WAIT_SYNC);
     if (state == SYNC_STATE_WAIT_SYNC) {
       
@@ -288,7 +299,7 @@ int CPlayerSession::sync_thread_wait_audio (void)
   int state;
 
   do {
-    process_sdl_events();
+	PROCESS_SDL_EVENTS(SYNC_STATE_WAIT_AUDIO);
     state = process_msg_queue(SYNC_STATE_WAIT_AUDIO);
     if (state == SYNC_STATE_WAIT_AUDIO) {
       if (m_waiting_for_audio != 0) {
@@ -315,7 +326,7 @@ int CPlayerSession::sync_thread_playing (void)
   int have_audio_eof = 0, have_video_eof = 0;
 
   do {
-    process_sdl_events();
+	PROCESS_SDL_EVENTS(SYNC_STATE_PLAYING);
     state = process_msg_queue(SYNC_STATE_PLAYING);
     if (state == SYNC_STATE_PLAYING) {
       m_current_time = get_current_time();
@@ -410,7 +421,7 @@ int CPlayerSession::sync_thread_paused (void)
   int state;
   do {
     SDL_SemWaitTimeout(m_sync_sem, 10);
-    process_sdl_events();
+	PROCESS_SDL_EVENTS(SYNC_STATE_PAUSED);
     state = process_msg_queue(SYNC_STATE_PAUSED);
   } while (state == SYNC_STATE_PAUSED);
   return (state);
@@ -424,7 +435,7 @@ int CPlayerSession::sync_thread_done (void)
   int state;
   do {
     SDL_SemWaitTimeout(m_sync_sem, 10);
-    process_sdl_events();
+	PROCESS_SDL_EVENTS(SYNC_STATE_DONE);
     state = process_msg_queue(SYNC_STATE_DONE);
   } while (state == SYNC_STATE_DONE);
   return (state);

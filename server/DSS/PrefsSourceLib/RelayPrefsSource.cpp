@@ -33,8 +33,8 @@
 	Change History (most recent first):
 
 	$Log: RelayPrefsSource.cpp,v $
-	Revision 1.2  2001/05/09 21:04:37  cahighlander
-	Sync to 0.6.2
+	Revision 1.3  2001/06/01 20:52:37  wmaycisco
+	Sync to our latest code base.
 	
 	Revision 1.1.1.1  2001/02/26 23:27:30  dmackie
 	Import of Apple Darwin Streaming Server 3 Public Preview

@@ -2,11 +2,11 @@
  * ISO MPEG Audio Subgroup Software Simulation Group (1996)
  * ISO 13818-3 MPEG-2 Audio Encoder - Lower Sampling Frequency Extension
  *
- * $Id: l3bitstream-pvt.h,v 1.1 2001/05/09 21:04:37 cahighlander Exp $
+ * $Id: l3bitstream-pvt.h,v 1.2 2001/06/01 20:52:37 wmaycisco Exp $
  *
  * $Log: l3bitstream-pvt.h,v $
- * Revision 1.1  2001/05/09 21:04:37  cahighlander
- * Sync to 0.6.2
+ * Revision 1.2  2001/06/01 20:52:37  wmaycisco
+ * Sync to our latest code base.
  *
  * Revision 1.1  2001/04/24 20:45:53  dmackie
  * Import of lame 3.70

@@ -41,6 +41,7 @@ static config_variable_t configs[] = {
   { CONFIG_PREV_FILE_1, "File1", CONFIG_STRING, 0, NULL },
   { CONFIG_PREV_FILE_2, "File2", CONFIG_STRING, 0, NULL },
   { CONFIG_PREV_FILE_3, "File3", CONFIG_STRING, 0, NULL },
+  { CONFIG_RTP_BUFFER_TIME, "RtpBufferTime", CONFIG_INT, 2, NULL },
 };
 
 CConfig config(configs, CONFIG_MAX);

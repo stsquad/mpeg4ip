@@ -20,6 +20,7 @@
  */
 #ifndef __PLAYER_UTIL_H__
 #define __PLAYER_UTIL_H__
+#include <stdarg.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,7 +37,11 @@ void player_debug_message(const char *fmt, ...)
        __attribute__((format(__printf__, 1, 2)))
 #endif
 	   ;
-
+void player_library_message(int loglevel,
+			    const char *lib,
+			    const char *fmt,
+			    va_list ap);
+  
 #ifdef __cplusplus
 }
 #endif

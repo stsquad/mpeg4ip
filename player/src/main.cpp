@@ -25,7 +25,7 @@
 #include <rtsp/rtsp_client.h>
 #include "player_session.h"
 #include "player_util.h"
-#include "msg_queue.h"
+#include "our_msg_queue.h"
 #include "ip_port.h"
 #include "media_utils.h"
 
@@ -88,8 +88,7 @@ int main (int argc, char **argv)
 
 #ifdef _WINDOWS
 	psptr->sync_thread();
-#endif
-#if 0
+#else
     int keep_going = 0;
     int paused = 0;
 #ifdef DO_PAUSE
@@ -99,9 +98,14 @@ int main (int argc, char **argv)
       CMsg *msg;
       SDL_SemWaitTimeout(master_sem, 10000);
       while ((msg = master_queue.get_message()) != NULL) {
-	if (msg->get_value() == MSG_SESSION_FINISHED) {
+	switch (msg->get_value()) {
+	case MSG_SESSION_FINISHED:
 	  if (paused == 0)
 	    keep_going = 1;
+	  break;
+	case MSG_RECEIVED_QUIT:
+	  keep_going = 1;
+	  break;
 	}
 	delete msg;
       }

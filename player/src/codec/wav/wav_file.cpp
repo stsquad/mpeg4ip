@@ -36,7 +36,6 @@ int create_media_for_wav_file (CPlayerSession *psptr,
 {
   CPlayerMedia *mptr;
   COurInByteStreamWav *mbyte;
-  int freq = 0;
   psptr->session_set_seekable(0);
   mptr = new CPlayerMedia;
   if (mptr == NULL) {

@@ -721,6 +721,8 @@ int quicktime_audio_sample_duration(quicktime_t *file, int track)
 
 char* quicktime_audio_compressor(quicktime_t *file, int track)
 {
+  if (file->atracks[track].track == NULL)
+    return (NULL);
 	return file->atracks[track].track->mdia.minf.stbl.stsd.table[0].format;
 }
 
@@ -816,6 +818,9 @@ float quicktime_video_frame_rate(quicktime_t *file, int track)
 
 char* quicktime_video_compressor(quicktime_t *file, int track)
 {
+  if (file->vtracks[track].track == NULL)
+    return (NULL);
+  
 	return file->vtracks[track].track->mdia.minf.stbl.stsd.table[0].format;
 }
 

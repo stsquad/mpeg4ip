@@ -74,7 +74,7 @@ void player_error_message (const char *fmt, ...)
   gettimeofday(&thistime, NULL);
   // To add date, add %a %b %d to strftime
   strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-my_player: ", buffer, thistime.tv_usec / 1000);
+  printf("%s.%03ld-my_player-%d: ", buffer, thistime.tv_usec / 1000, LOG_ERR);
   va_start(ap, fmt);
   vprintf(fmt, ap);
   va_end(ap);
@@ -103,7 +103,7 @@ void player_debug_message (const char *fmt, ...)
   gettimeofday(&thistime, NULL);
   // To add date, add %a %b %d to strftime
   strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-deb-my_player: ", buffer, thistime.tv_usec / 1000);
+  printf("%s.%03ld-my_player-%d: ", buffer, thistime.tv_usec / 1000, LOG_DEBUG);
   va_start(ap, fmt);
   vprintf(fmt, ap);
   va_end(ap);
@@ -111,6 +111,40 @@ void player_debug_message (const char *fmt, ...)
 #endif
 }
 
+void player_library_message (int loglevel,
+			     const char *lib,
+			     const char *fmt,
+			     va_list ap)
+{
+#if _WIN32 && _DEBUG
+  char msg[512];
+
+  if (initialized) init_local_mutex();
+  lock_mutex();
+  sprintf(msg, "%s:", lib);
+  OutputDebugString(msg);
+  va_start(ap, fmt);
+  _vsnprintf(msg, 512, fmt, ap);
+  va_end(ap);
+  OutputDebugString(msg);
+  OutputDebugString("\n");
+  unlock_mutex();
+#else
+  struct timeval thistime;
+  char buffer[80];
+
+  gettimeofday(&thistime, NULL);
+  strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
+  printf("%s.%03ld-%s-%d: ",
+	 buffer,
+	 thistime.tv_usec / 1000,
+	 lib,
+	 loglevel);
+  vprintf(fmt, ap);
+  printf("\n");
+#endif
+}
+  
 #ifdef _WINDOWS
 #include <sys/timeb.h>
 

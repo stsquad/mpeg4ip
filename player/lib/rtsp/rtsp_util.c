@@ -30,6 +30,7 @@
 #include "rtsp_private.h"
 
 static int rtsp_debug_level = LOG_INFO;
+static error_msg_func_t rtsp_error_msg = NULL;
 /*
  * Ugh - a global variable for the loglevel.
  * We probably want to enhance this to pass a function vector as well.
@@ -39,6 +40,10 @@ void rtsp_set_loglevel (int loglevel)
   rtsp_debug_level = loglevel;
 }
 
+void rtsp_set_error_func (error_msg_func_t func)
+{
+  rtsp_error_msg = func;
+}
 /*
  * rtsp_debug()
  * Display rtsp debug information.  Probably want to hook this into
@@ -47,19 +52,16 @@ void rtsp_set_loglevel (int loglevel)
  */
 void rtsp_debug (int loglevel, const char *fmt, ...)
 {
-  struct timeval thistime;
+  //struct timeval thistime;
   va_list ap;
-  char buffer[80];
+  //char buffer[80];
 
   if (loglevel <= rtsp_debug_level) {
-    gettimeofday(&thistime, NULL);
-    // To add date, add %a %b %d to strftime
-    strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-    printf("%s.%03ld-librtsp-%d: ", buffer, thistime.tv_usec / 1000, loglevel);
-    va_start(ap, fmt);
-    vprintf(fmt, ap);
-    va_end(ap);
-    printf("\n");
+    if (rtsp_error_msg != NULL) {
+      va_start(ap, fmt);
+      (rtsp_error_msg)(loglevel, "librtsp", fmt, ap);
+      va_end(ap);
+    }
   }
 }
 

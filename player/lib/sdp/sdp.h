@@ -24,6 +24,7 @@
 #ifndef __SDP_H__
 #define __SDP_H__
 #include "systems.h"
+#include <stdarg.h>
 #include "sdp_error.h"
 
 #ifndef TRUE
@@ -285,13 +286,17 @@ int sdp_encode_list_to_file(session_desc_t *sptr,
 			    int append);
 int sdp_encode_one_to_memory(session_desc_t *sptr, char **mem);
 int sdp_encode_list_to_memory (session_desc_t *sptr, char **mem, int *count);
-
+void sdp_set_loglevel(int loglevel);
+void sdp_set_error_func(error_msg_func_t func);
+  
+  
 /* utils */
 format_list_t *add_format_to_list(media_desc_t *mptr, char *val);
 int add_string_to_list(string_list_t **list, char *val);
 void time_offset_to_str(uint32_t val, char *buff, size_t buflen);
 format_list_t *find_format_in_line(format_list_t *head, char *lptr);
 void smpte_to_str(double value, uint16_t fps, char *buffer);
+
 
 #ifdef __cplusplus
 }

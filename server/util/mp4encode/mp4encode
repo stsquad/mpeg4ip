@@ -81,9 +81,24 @@ date
 echo "Starting encode of ${mp4file}"
 
 if [ ! -f $prefix.yuv ] || [ $prefix.avi -nt $prefix.yuv ]; then
-	echo "Splitting out video from avi"
-	avi2raw -v $prefix.avi $prefix.yuv
+	echo "Extracting video from avi"
+	tmpfile=./.tmp$$
+	avi2raw -v $prefix.avi $prefix.yuv > $tmpfile
 
+	# Perform simple check that we do indeed have raw YUV12 video
+	let numframes=`awk '{print $1}' $tmpfile`
+	let targetbytes=$((${numframes}*${rawframesize}))
+	wc -c ${prefix}.yuv > $tmpfile
+	let numbytes=`awk '{print $1}' $tmpfile`
+	rm -f $tmpfile
+
+	if [ $targetbytes != $numbytes ]; then
+		echo "Extracted video isn't correct size for YUV12 ${videoWidth}x${videoHeight}"
+		echo "Please check specified video frame size and YUV12 format"
+		exit 2
+	fi 
+
+	# Crop video if desired
 	if [ $aspectRatio != 1.33 ] ; then
 		echo "Cropping video to ${aspectRatio}:1"
 		lboxcrop -w ${videoWidth} -h ${videoHeight} -a ${aspectRatio} ${prefix}.yuv ${prefix}_crop.yuv
@@ -135,7 +150,7 @@ fi
 echo "Encoding audio"
 if [ $use_mp3 = 0 ]; then 
 	afile=${prefix}.aac
-	faac -r -pLOW -b${abitRate} ${prefix}.pcm
+	faac -r -m4 -pLC -b ${abitRate} ${prefix}.pcm ${afile}
 else
 	afile=${prefix}.mp3
 	lame -r -x -h -b ${abitRate} ${prefix}.pcm ${afile}

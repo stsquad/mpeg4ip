@@ -4,9 +4,18 @@
 # Assumes tools are available on the system
 #
 
+# Check that we can find libtool
+# Frequently it hasn't been installed
+libtool --version > /dev/null
+if [ $? != 0 ]; then
+	echo "libtool does not appear to be installed."
+	echo "Please install it and then rerun this script."
+	exit 1
+fi
+
 set -o xtrace
 
-# These packages have their own configure scripts, run them now
+# The following packages have their own configure scripts, run them now
 # resulting Makefiles are called from mpeg4ip's Makefiles
 
 pushd ./server/lib/sndfile
@@ -40,6 +49,7 @@ fi
 aclocal
 automake --add-missing --foreign
 autoconf
+
 # Pass our args to configure
 ./configure $*
 

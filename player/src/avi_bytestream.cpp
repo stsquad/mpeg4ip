@@ -81,6 +81,10 @@ unsigned char CAviByteStreamBase::get (void)
   player_debug_message("Getting byte %u frame %u %u bookmark %d", 
 		       m_byte_on, m_frame_on, m_this_frame_size, m_bookmark);
 #endif
+  if ((m_eof != 0) || 
+      (m_byte_on >= m_this_frame_size)) {
+    throw("Buffer overflow");
+  }
   ret = m_buffer_on[m_byte_on];
   m_byte_on++;
   m_total++;

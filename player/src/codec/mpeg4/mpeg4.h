@@ -30,10 +30,9 @@
 
 #include "video.h"
 
-#define DECODE_STATE_VO_SEARCH 0
-#define DECODE_STATE_VOL_SEARCH 1
-#define DECODE_STATE_NORMAL 2
-#define DECODE_STATE_WAIT_I 3
+#define DECODE_STATE_VOL_SEARCH 0
+#define DECODE_STATE_NORMAL 1
+#define DECODE_STATE_WAIT_I 2
 
 class CVideoObjectDecoder;
 

@@ -26,10 +26,7 @@
 
 #include "systems.h"
 #ifdef _WINDOWS
-#define LOG_ERR 3
-#define LOG_WARNING 4
-#define LOG_INFO 6
-#define LOG_DEBUG 7
+
 #endif
 
 #ifdef __cplusplus
@@ -266,7 +263,8 @@ int rtsp_is_url_my_stream (const char *url,
  * Input - loglevel - levels from syslog.h
  */
 void rtsp_set_loglevel(int loglevel);
-  
+
+void rtsp_set_error_func(error_msg_func_t func);
 #ifdef __cplusplus
 }
 #endif

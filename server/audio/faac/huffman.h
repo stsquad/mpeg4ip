@@ -1,88 +1,83 @@
+/*
+ * FAAC - Freeware Advanced Audio Coder
+ * Copyright (C) 2001 Menno Bakker
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * $Id: huffman.h,v 1.2 2001/06/01 20:52:37 wmaycisco Exp $
+ */
+
 #ifndef HUFFMAN_H
 #define HUFFMAN_H
 
-#include "pulse.h"
-#include "interface.h"
-#include "tf_main.h"
-#include "tns.h"
-#include "all.h"
-#include "nok_ltp_common.h"
-
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif /* __cplusplus */
 
+#include "bitstream.h"
+#include "coder.h"
 
-#define PNS_HCB 13                               /* reserved codebook for flagging PNS */
-#define PNS_PCM_BITS 9                           /* size of first (PCM) PNS energy */
-#define PNS_PCM_OFFSET (1 << (PNS_PCM_BITS-1))   /* corresponding PCM transmission offset */
-#define PNS_SF_OFFSET 90                         /* transmission offset for PNS energies */
-
-// Huffman tables
+/* Huffman tables */
 #define MAXINDEX 289
 #define NUMINTAB 2
 #define FIRSTINTAB 0
 #define LASTINTAB 1
 
-
-void PulseCoder(AACQuantInfo *quantInfo, int *quant);
-void PulseDecoder(AACQuantInfo *quantInfo, int *quant);
-
-/*********************************************************/
-/* sort_book_numbers                                     */
-/*********************************************************/
-int sort_book_numbers(AACQuantInfo* quantInfo,     /* Quantization information */
-//		  int output_book_vector[],    /* Output codebook vector, formatted for bitstream */
-		  BsBitStream* fixed_stream,   /* Bitstream */
-		  int write_flag);             /* Write flag: 0 count, 1 write */
+#define INTENSITY_HCB 15
+#define INTENSITY_HCB2 14
 
 
-/*********************************************************/
-/* bit_search                                            */
-/*********************************************************/
-int bit_search(int quant[NUM_COEFF],  /* Quantized spectral values */
-               AACQuantInfo* quantInfo);       /* Quantization information */
+#define ABS(A) ((A) < 0 ? (-A) : (A))
 
-/*********************************************************/
-/* noiseless_bit_count                                   */
-/*********************************************************/
-int noiseless_bit_count(int quant[NUM_COEFF],
-			int hop,
-			int min_book_choice[112][3],
-			AACQuantInfo* quantInfo);         /* Quantization information */
+#include "frame.h"
 
-/*********************************************************/
-/* output_bits                                           */
-/*********************************************************/
-#ifndef __BORLANDC__
-__inline
-#endif
-int output_bits(AACQuantInfo* quantInfo,
-		/*int huff[13][MAXINDEX][NUMINTAB],*/
-                int book,                /* codebook */
-		int quant[NUM_COEFF],		
-		int offset,
-		int length,
-		int write_flag);
+void HuffmanInit(CoderInfo *coderInfo, unsigned int numChannels);
+void HuffmanEnd(CoderInfo *coderInfo, unsigned int numChannels);
 
+int BitSearch(CoderInfo *coderInfo,
+			  int *quant);
 
-/*********************************************************/
-/* find_grouping_bits                                    */
-/*********************************************************/
-int find_grouping_bits(int window_group_length[],
-		       int num_window_groups
-		       );
+int NoiselessBitCount(CoderInfo *coderInfo,
+					  int *quant,
+					  int hop,
+					  int min_book_choice[112][3]);
 
-/*********************************************************/
-/* write_scalefactor_bitstream                           */
-/*********************************************************/
-int write_scalefactor_bitstream(BsBitStream* fixed_stream,             /* Bitstream */  
-				int write_flag,                        /* Write flag */
-				AACQuantInfo* quantInfo);              /* Quantization information */
+static int CalculateEscSequence(int input, int *len_esc_sequence);
 
+int CalcBits(CoderInfo *coderInfo,
+			 int book,
+			 int *quant,
+			 int offset,
+			 int length);
+
+int OutputBits(CoderInfo *coderInfo,
+			   int book,
+			   int *quant,
+			   int offset,
+			   int length);
+
+int SortBookNumbers(CoderInfo *coderInfo,
+					BitStream *bitStream,
+					int writeFlag);
+
+int WriteScalefactors(CoderInfo *coderInfo,
+					  BitStream *bitStream,
+					  int writeFlag);
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
 
-#endif
+#endif /* HUFFMAN_H */
