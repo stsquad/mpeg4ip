@@ -266,7 +266,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	   */
 	  m_first_time_played = astart;
 	  m_current_time = astart;
-	  sync_message(LOG_DEBUG, "Astart is %llu", astart);
+	  sync_message(LOG_DEBUG, "Astart is "U64, astart);
 	  m_waiting_for_audio = 1;
 	  state = SYNC_STATE_WAIT_AUDIO;
 	  m_audio_sync->play_audio();
@@ -283,7 +283,7 @@ int CPlayerSession::sync_thread_wait_sync (void)
 	  state = SYNC_STATE_PLAYING;
 	}
 	sync_message(LOG_DEBUG, 
-		     "Resynced at time "LLU " "LLU, m_current_time, vstart);
+		     "Resynced at time "U64 " "U64, m_current_time, vstart);
       } else {
 	SDL_Delay(10);
       }
@@ -306,7 +306,7 @@ int CPlayerSession::sync_thread_wait_audio (void)
     } else {
       // make sure we set the current time
       get_current_time();
-      sync_message(LOG_DEBUG, "Current time is %llu", m_current_time);
+      sync_message(LOG_DEBUG, "Current time is "U64, m_current_time);
       return (SYNC_STATE_PLAYING);
     }
   }

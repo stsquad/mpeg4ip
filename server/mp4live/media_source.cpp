@@ -355,7 +355,7 @@ void CMediaSource::ProcessVideoYUVFrame(
   m_videoSrcElapsedDuration = srcFrameTimestamp - m_videoStartTimestamp;
 
 #ifdef DEBUG_VIDEO_SYNC
-  debug_message("src# %d srcDuration=%llu dst# %d dstDuration %llu encDrift %llu",
+  debug_message("src# %d srcDuration="U64" dst# %d dstDuration "U64" encDrift "U64,
                 m_videoSrcFrameNumber, m_videoSrcElapsedDuration,
                 m_videoDstFrameNumber, m_videoDstElapsedDuration,
                 m_videoEncodingDrift);
@@ -365,7 +365,7 @@ void CMediaSource::ProcessVideoYUVFrame(
   // drop src frames as needed to match target frame rate
   if (m_videoSrcElapsedDuration + m_videoDstFrameDuration < m_videoDstElapsedDuration) {
 #ifdef DEBUG_VIDEO_SYNC
-    debug_message("video: dropping frame, SrcElapsedDuration=%llu DstElapsedDuration=%llu",
+    debug_message("video: dropping frame, SrcElapsedDuration="U64" DstElapsedDuration="U64,
                   m_videoSrcElapsedDuration, m_videoDstElapsedDuration);
 #endif
     return;
@@ -733,7 +733,7 @@ void CMediaSource::ProcessAudioFrame(
     }
     m_audioStartTimestamp = srcFrameTimestamp;
 #ifdef DEBUG_AUDIO_SYNC
-    debug_message("m_audioStartTimestamp = %llu", m_audioStartTimestamp);
+    debug_message("m_audioStartTimestamp = "U64, m_audioStartTimestamp);
 #endif
   }
 
@@ -855,7 +855,7 @@ void CMediaSource::ProcessAudioFrame(
     Duration frametime = DstSamplesToTicks(DstBytesToSamples(frameDataLength));
 
 #ifdef DEBUG_AUDIO_SYNC
-    debug_message("src# %d srcDuration=%llu dst# %d dstDuration %llu encDuration %llu",
+    debug_message("src# %d srcDuration="U64" dst# %d dstDuration "U64" encDuration "U64,
                   m_audioSrcFrameNumber, m_audioSrcElapsedDuration,
                   m_audioDstFrameNumber, m_audioDstElapsedDuration,
                   m_audioEncodingElapsedDuration);
@@ -873,7 +873,7 @@ void CMediaSource::ProcessAudioFrame(
     // time (~ 20-30 minutes) before we are off by one frame duration
 
     if (m_audioSrcElapsedDuration + frametime < m_audioDstElapsedDuration) {
-      debug_message("audio: dropping frame, SrcElapsedDuration=%llu DstElapsedDuration=%llu",
+      debug_message("audio: dropping frame, SrcElapsedDuration="U64" DstElapsedDuration="U64,
                     m_audioSrcElapsedDuration, m_audioDstElapsedDuration);
       return;
     }
@@ -1069,7 +1069,7 @@ void CMediaSource::ForwardEncodedAudioFrames(void)
     // forward the encoded frame to sinks
 
 #ifdef DEBUG_SYNC
-    debug_message("audio forwarding %llu", output);
+    debug_message("audio forwarding "U64, output);
 #endif
     CMediaFrame* pMediaFrame =
       new CMediaFrame(

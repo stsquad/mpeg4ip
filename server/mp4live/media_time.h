@@ -28,8 +28,8 @@
 #include <sys/time.h>
 
 typedef u_int64_t Timestamp;
-#define TimestampTicks (1000000LLU)
-#define TIMESTAMP_TICKS_TO_MSEC (TimestampTicks / 1000LLU)
+#define TimestampTicks (MM_64)
+#define TIMESTAMP_TICKS_TO_MSEC (TimestampTicks / M_64)
 typedef int64_t Duration;
 
 inline Timestamp GetTimestampFromTimeval(struct timeval* pTimeval) {
@@ -53,7 +53,7 @@ inline Timestamp GetTimestampFromNtp(uint32_t ntp_sec, uint32_t ntp_frac)
 {
   Timestamp ret = ntp_frac;
   ret *= TimestampTicks;
-  ret /= (1LLU << 32);
+  ret /= (I_64 << 32);
   if (ntp_sec > NTP_TO_UNIX_TIME) {
     ntp_sec -= NTP_TO_UNIX_TIME;
   }

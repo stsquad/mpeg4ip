@@ -79,10 +79,10 @@ public:
 	}
 
 protected:
-	static const int MSG_NODE				= 1024;
-	static const int MSG_NODE_START			= MSG_NODE + 1;
-	static const int MSG_NODE_STOP			= MSG_NODE + 2;
-	static const int MSG_NODE_STOP_THREAD	= MSG_NODE + 3;
+	static const uint32_t MSG_NODE			= 1024;
+	static const uint32_t MSG_NODE_START		= MSG_NODE + 1;
+	static const uint32_t MSG_NODE_STOP		= MSG_NODE + 2;
+	static const uint32_t MSG_NODE_STOP_THREAD	= MSG_NODE + 3;
 
 	virtual int ThreadMain(void) = NULL;
 

@@ -250,7 +250,7 @@ codec_data_t *mpeg4_iso_file_check (lib_message_func_t message,
 	calc = framecount * 1000;
 	
 	calc /= iso->m_framerate;
-	//message(LOG_DEBUG, "mp4iso", "I frame at %u "LLU, framecount, calc);
+	//message(LOG_DEBUG, "mp4iso", "I frame at %u "U64, framecount, calc);
 	iso->m_fpos->record_point(ftell(iso->m_ifile) - 
 				  iso->m_buffer_size - 
 				  iso->m_buffer_on, 
@@ -323,7 +323,7 @@ int divx_file_next_frame (codec_data_t *your_data,
     value = divx_find_header(divx, 4);
   }
 
-  *ts = (divx->m_frame_on * M_LLU) / divx->m_framerate;
+  *ts = (divx->m_frame_on * M_64) / divx->m_framerate;
   *buffer = &divx->m_buffer[divx->m_buffer_on];
   divx->m_frame_on++;
   return divx->m_buffer_size - divx->m_buffer_on;

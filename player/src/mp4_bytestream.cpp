@@ -62,7 +62,7 @@ CMp4ByteStream::CMp4ByteStream (CMp4File *parent,
   m_max_time = UINT64_TO_DOUBLE(max_ts);
   m_max_time /= 1000.0;
   mp4f_message(LOG_DEBUG, 
-	       "MP4 %s max time is "LLU" %g", type, max_ts, m_max_time);
+	       "MP4 %s max time is "U64" %g", type, max_ts, m_max_time);
   read_frame(1);
 }
 
@@ -220,7 +220,7 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 #if 0
   //    mp4f_message(LOG_DEBUG, "reading into buffer %u %u", 
   //		 frame_to_read, m_this_frame_size);
-    //mp4f_message(LOG_DEBUG, "%s Sample time "LLU, m_name, sampleTime);
+    //mp4f_message(LOG_DEBUG, "%s Sample time "U64, m_name, sampleTime);
     //    mp4f_message(LOG_DEBUG, "%s values %x %x %x %x", m_name, m_buffer[0], 
     //	 m_buffer[1], m_buffer[2], m_buffer[3]);
 #endif
@@ -233,7 +233,7 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
 				    MP4_MSECS_TIME_SCALE);
   //if (isSyncSample == TRUE && m_has_video != 0 ) player_debug_message("%s has sync sample %llu", m_name, ts);
 #if 0
-  mp4f_message(LOG_DEBUG, "%s frame %u sample time "LLU " converts to time "LLU, 
+  mp4f_message(LOG_DEBUG, "%s frame %u sample time "U64 " converts to time "U64, 
 	       m_name, frame_to_read, sampleTime, ts);
 #endif
   m_frame_in_buffer_ts = ts;
@@ -272,9 +272,9 @@ void CMp4ByteStream::play (uint64_t start)
 				    MP4_MSECS_TIME_SCALE);
   m_parent->unlock_file_mutex();
 #ifdef DEBUG_MP4_FRAME
-  mp4f_message(LOG_DEBUG, "%s searching timestamp "LLU" gives "LLU,
+  mp4f_message(LOG_DEBUG, "%s searching timestamp "U64" gives "U64,
 	       m_name, start, mp4_ts);
-  mp4f_message(LOG_DEBUG, "%s values are sample time "LLU" ts "LLU,
+  mp4f_message(LOG_DEBUG, "%s values are sample time "U64" ts "U64,
 	       m_name, sampleTime, ts);
 #endif
   set_timebase(mp4_sampleId);

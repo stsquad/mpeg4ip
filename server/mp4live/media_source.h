@@ -218,10 +218,10 @@ protected:
 	void AddSilenceFrame(void);
 
 protected:
-	static const int MSG_SOURCE	= 2048;
-	static const int MSG_SOURCE_START_VIDEO	= MSG_SOURCE + 1;
-	static const int MSG_SOURCE_START_AUDIO	= MSG_SOURCE + 2;
-	static const int MSG_SOURCE_KEY_FRAME	= MSG_SOURCE + 3;
+	static const uint32_t MSG_SOURCE	= 2048;
+	static const uint32_t MSG_SOURCE_START_VIDEO	= MSG_SOURCE + 1;
+	static const uint32_t MSG_SOURCE_START_AUDIO	= MSG_SOURCE + 2;
+	static const uint32_t MSG_SOURCE_KEY_FRAME	= MSG_SOURCE + 3;
 
 	// sink info
 	static const u_int16_t MAX_SINKS = 8;

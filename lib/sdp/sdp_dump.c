@@ -128,7 +128,7 @@ static void category_dump (category_list_t *cptr)
     return;
   printf("Category: ");
   while (cptr != NULL) {
-    printf("%lld ", cptr->category);
+    printf(D64" ", cptr->category);
     ix++;
     if (ix >= 8) {
       printf("\n");
@@ -277,7 +277,7 @@ void session_dump_one (session_desc_t *sptr)
   if (sptr->orig_username) {
     printf("Origin username: %s\n", sptr->orig_username);
   }
-  printf("Session id: %lld\nSession version: %lld\n",
+  printf("Session id: "D64"\nSession version: "D64"\n",
 	 sptr->session_id,
 	 sptr->session_version);
   if (sptr->create_addr)

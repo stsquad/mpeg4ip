@@ -41,7 +41,7 @@ int CSDLVideoPreview::ThreadMain(void)
 				DoStopPreview();
 				break;
 			case MSG_SINK_FRAME:
-				size_t dontcare;
+				uint32_t dontcare;
 				DoPreviewFrame((CMediaFrame*)pMsg->get_message(dontcare));
 				break;
 			}

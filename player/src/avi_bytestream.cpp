@@ -130,7 +130,7 @@ void CAviVideoByteStream::play (uint64_t start)
   time *= m_frame_rate;
   time /= 1000;
 #if 0
-  player_debug_message("avi video frame " LLD , start);
+  player_debug_message("avi video frame " D64 , start);
 #endif
   // we've got the position;
   video_set_timebase((uint32_t)time);
@@ -190,7 +190,7 @@ uint64_t CAviAudioByteStream::start_next_frame (uint8_t **buffer,
   ret *= m_samples_per_frame;
   ret *= 1000;
   ret /= m_frame_rate;
-    player_debug_message("Start next frame "LLU " offset %u %u", 
+    player_debug_message("Start next frame "U64 " offset %u %u", 
 			 ret, m_byte_on, m_this_frame_size);
   return (ret);
 #endif
@@ -212,7 +212,7 @@ void CAviAudioByteStream::play (uint64_t start)
 #if 0  
   start *= m_frame_rate;
   start /= 1000 * m_samples_per_frame;
-  player_debug_message("qtime audio frame " LLD, start);
+  player_debug_message("qtime audio frame " D64, start);
 #endif
   // we've got the position;
   audio_set_timebase((uint32_t)start);

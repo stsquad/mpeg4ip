@@ -209,7 +209,7 @@ void CSDLAudioSync::load_audio_buffer (uint8_t *from,
   uint8_t *to;
   uint32_t copied;
 #ifdef DEBUG_AUDIO_FILL
-  audio_message(LOG_DEBUG, "fill %d bytes at "LLU", offset %d resync %d", 
+  audio_message(LOG_DEBUG, "fill %d bytes at "U64", offset %d resync %d", 
 		bytes, ts, m_buffer_offset_on, resync);
 #endif
   copied = 0;
@@ -218,7 +218,7 @@ void CSDLAudioSync::load_audio_buffer (uint8_t *from,
 
     if (m_buffer_ts != 0 && diff > 1) {
       m_load_audio_do_next_resync = 1;
-      audio_message(LOG_DEBUG, "timeslot doesn't match - %llu %llu",
+      audio_message(LOG_DEBUG, "timeslot doesn't match - "U64" "U64,
 		    ts, m_buffer_ts);
     }
     m_buffer_ts = ts;
@@ -226,7 +226,7 @@ void CSDLAudioSync::load_audio_buffer (uint8_t *from,
     int64_t check;
     check = ts - m_loaded_next_ts;
     if (check > m_msec_per_frame) {
-      audio_message(LOG_DEBUG, "potential resync at ts "LLU" should be ts "LLU,
+      audio_message(LOG_DEBUG, "potential resync at ts "U64" should be ts "U64,
 		    ts, m_loaded_next_ts);
       uint32_t left;
       left = m_buffer_size - m_buffer_offset_on;
@@ -238,7 +238,7 @@ void CSDLAudioSync::load_audio_buffer (uint8_t *from,
       m_buffer_ts = ts;
     }
   }
-  m_loaded_next_ts = bytes * M_LLU;
+  m_loaded_next_ts = bytes * M_64;
   m_loaded_next_ts /= m_bytes_per_sample;
   m_loaded_next_ts /= m_freq;
   m_loaded_next_ts += ts;
@@ -307,7 +307,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
       // have a hole here - don't want to resync
 #ifdef DEBUG_AUDIO_FILL
       audio_message(LOG_DEBUG, 
-		    "Filling - last %llu new %llu", m_last_fill_timestamp, ts);
+		    "Filling - last "U64" new "U64, m_last_fill_timestamp, ts);
 #endif
       if (diff > ((m_msec_per_frame + 1) * 4)) {
 #ifdef DEBUG_AUDIO_FILL
@@ -349,7 +349,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 	  m_fill_index %= DECODE_BUFFERS_MAX;
 	  if (locked)
 	    SDL_UnlockAudio();
-	  audio_message(LOG_NOTICE, "Filling timestamp %llu with silence",
+	  audio_message(LOG_NOTICE, "Filling timestamp "U64" with silence",
 			m_last_fill_timestamp);
 	  m_last_fill_timestamp += m_msec_per_frame + 1; // fill plus extra
 	  ts_diff = ts - m_last_fill_timestamp;
@@ -363,7 +363,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
       }
     } else {
       if (m_last_fill_timestamp == ts) {
-	audio_message(LOG_NOTICE, "Repeat timestamp with audio %llu", ts);
+	audio_message(LOG_NOTICE, "Repeat timestamp with audio "U64, ts);
 	if (locked)
 	  SDL_UnlockAudio();
 	return;
@@ -388,7 +388,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   if (resync)
     m_psptr->wake_sync_thread();
 #ifdef DEBUG_AUDIO_FILL
-  audio_message(LOG_DEBUG, "Filling " LLU " %u %u", 
+  audio_message(LOG_DEBUG, "Filling " U64 " %u %u", 
 		ts, fill_index, m_samples_loaded);
 #endif
 }
@@ -531,7 +531,7 @@ uint64_t CSDLAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 
 	if (cmptime < current_time) {
 #ifdef DEBUG_SYNC
-	  audio_message(LOG_INFO, "Passed time " LLU " " LLU " %u", 
+	  audio_message(LOG_INFO, "Passed time " U64 " " U64 " %u", 
 			       cmptime, current_time, m_resync_buffer);
 #endif
 	  m_buffer_filled[m_resync_buffer] = 0;
@@ -551,7 +551,7 @@ uint64_t CSDLAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 	  m_resync_required = 0;
 	  play_audio();
 #ifdef DEBUG_SYNC
-	  audio_message(LOG_INFO, "Resynced audio at " LLU " %u %u", current_time, m_resync_buffer, m_play_index);
+	  audio_message(LOG_INFO, "Resynced audio at " U64 " %u %u", current_time, m_resync_buffer, m_play_index);
 #endif
 	  cmptime = 0;
 	} 
@@ -595,7 +595,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
     delay = SDL_AudioDelayMsec();
     if (delay < 0) delay = 0;
 #ifdef DEBUG_DELAY
-    audio_message(LOG_DEBUG, "Audio delay is %d %llu", delay, m_play_time);
+    audio_message(LOG_DEBUG, "Audio delay is %d "U64, delay, m_play_time);
 #endif
   }
 
@@ -626,7 +626,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 
       if (m_play_time != 0 && buffertime + m_msec_per_frame < playtime) {
 	audio_message(LOG_DEBUG, 
-		      "Skipped audio buffer " LLU "("LLU") at " LLU, 
+		      "Skipped audio buffer " U64 "("U64") at " U64, 
 		      m_buffer_time[m_play_index],
 		      buffertime,
 		      playtime);
@@ -660,7 +660,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
       this_time += temp;
     }
 #if 0
-    audio_message(LOG_DEBUG, "time %llu %llu", m_buffer_time[m_play_index],
+    audio_message(LOG_DEBUG, "time "U64" "U64, m_buffer_time[m_play_index],
 		  temp);
 #endif
   }
@@ -711,7 +711,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
       thissamples = bufferSamples;
     }
 #ifdef DEBUG_SYNC
-    audio_message(LOG_DEBUG, "Playing "LLU" offset %d",
+    audio_message(LOG_DEBUG, "Playing "U64" offset %d",
 		  m_buffer_time[m_play_index], m_play_sample_index);
 #endif
     if (m_convert_buffer) {
@@ -783,7 +783,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 	  this_time < index_time - ALLOWED_LATENCY) {
 #ifdef DEBUG_SYNC_CHANGES
 	audio_message(LOG_DEBUG, 
-		      "potential change - index time "LLU" time "LLU" delay %d", 
+		      "potential change - index time "U64" time "U64" delay %d", 
 		      index_time, this_time, delay);
 #endif
 	if (m_consec_wrong_latency == 0) {
@@ -823,7 +823,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
       uint64_t index_time = delay + m_play_time;
 #if DEBUG_SYNC
       audio_message(LOG_DEBUG, 
-		    "latency - time " LLU " index " LLU " latency " LLU " %u", 
+		    "latency - time " U64 " index " U64 " latency " U64 " %u", 
 		    this_time, index_time, m_buffer_latency, m_samples_loaded);
 #endif
       if (this_time > index_time + ALLOWED_LATENCY || 
@@ -841,7 +841,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 	      m_buffer_latency += test; 
 	    }
 	    m_psptr->audio_is_ready(m_buffer_latency, this_time);
-	    audio_message(LOG_INFO, "Latency off by " LLD " - now is " LLU, 
+	    audio_message(LOG_INFO, "Latency off by " D64 " - now is " U64, 
 				 test, m_buffer_latency);
 	  }
 	} else {
@@ -856,7 +856,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
     }
   } else {
 #ifdef DEBUG_SYNC
-    audio_message(LOG_DEBUG, "playing %llu %llu latency %llu", 
+    audio_message(LOG_DEBUG, "playing "U64" "U64" latency "U64, 
 		  this_time, m_play_time, m_buffer_latency);
 #endif
   }

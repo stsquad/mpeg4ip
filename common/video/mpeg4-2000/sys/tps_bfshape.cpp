@@ -319,9 +319,9 @@ Void inv_convertYuv(const CVOPU8YUVBA* pvopcSrc, PixelC* destY, PixelC* destU, P
 
     Int nSkipYPixel = Fwidth  * EXPANDY_REF_FRAME  + EXPANDY_REF_FRAME;
     Int nSkipUVPixel = FwidthUV * EXPANDUV_REF_FRAME + EXPANDUV_REF_FRAME;
-    PixelC* ppxlcY = (PixelC*)( (Int)(pvopcSrc->pixelsY ()) + nSkipYPixel );
-    PixelC* ppxlcU = (PixelC*)( (Int)(pvopcSrc->pixelsU ()) + nSkipUVPixel );
-    PixelC* ppxlcV = (PixelC*)( (Int)(pvopcSrc->pixelsV ()) + nSkipUVPixel );
+    PixelC* ppxlcY = (PixelC*)((pvopcSrc->pixelsY ()) + nSkipYPixel );
+    PixelC* ppxlcU = (PixelC*)((pvopcSrc->pixelsU ()) + nSkipUVPixel );
+    PixelC* ppxlcV = (PixelC*)((pvopcSrc->pixelsV ()) + nSkipUVPixel );
     PixelC* pdY = destY;    PixelC* pdU = destU;    PixelC* pdV = destV;
     PixelC* psY;    PixelC* psU;    PixelC* psV;
 	
@@ -373,9 +373,9 @@ Void convertYuv(const CVOPU8YUVBA* pvopcSrc, PixelC* destY, PixelC* destU, Pixel
 
     Int nSkipYPixel = Fwidth  * EXPANDY_REF_FRAME  + EXPANDY_REF_FRAME;
     Int nSkipUVPixel = FwidthUV * EXPANDUV_REF_FRAME + EXPANDUV_REF_FRAME;
-    PixelC* ppxlcY = (PixelC*)( (Int)(pvopcSrc->pixelsY ()) + nSkipYPixel );
-    PixelC* ppxlcU = (PixelC*)( (Int)(pvopcSrc->pixelsU ()) + nSkipUVPixel );
-    PixelC* ppxlcV = (PixelC*)( (Int)(pvopcSrc->pixelsV ()) + nSkipUVPixel );
+    PixelC* ppxlcY = (PixelC*)((pvopcSrc->pixelsY ()) + nSkipYPixel );
+    PixelC* ppxlcU = (PixelC*)((pvopcSrc->pixelsU ()) + nSkipUVPixel );
+    PixelC* ppxlcV = (PixelC*)((pvopcSrc->pixelsV ()) + nSkipUVPixel );
     PixelC* pdY = destY;    PixelC* pdU = destU;    PixelC* pdV = destV;
     PixelC* psY;    PixelC* psU;    PixelC* psV;
 	
@@ -417,7 +417,7 @@ Void convertSeg(const CVOPU8YUVBA* pvopcSrc, PixelC* destBY, PixelC* destBUV, In
     Int sum, color = 0;
 
     Int nSkipYPixel  = Fwidth  * EXPANDY_REF_FRAME  + EXPANDY_REF_FRAME;
-    PixelC* ppxlcBY  = (PixelC*)( (Int)(pvopcSrc->pixelsBY ()) + nSkipYPixel );
+    PixelC* ppxlcBY  = (PixelC*)((pvopcSrc->pixelsBY ()) + nSkipYPixel );
     PixelC* pdBY = destBY;    PixelC* pdBUV = destBUV;
     PixelC* psBY;
 

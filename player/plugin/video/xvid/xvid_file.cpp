@@ -276,7 +276,7 @@ codec_data_t *xvid_file_check (lib_message_func_t message,
 	calc = framecount * 1000;
 	
 	calc /= 30;
-	//message(LOG_DEBUG, "xvid", "I frame at %u "LLU, framecount, calc);
+	//message(LOG_DEBUG, "xvid", "I frame at %u "U64, framecount, calc);
 	xvid->m_fpos->record_point(ftell(xvid->m_ifile) - 
 				   xvid->m_buffer_size - 
 				   xvid->m_buffer_on, 
@@ -356,7 +356,7 @@ int xvid_file_next_frame (codec_data_t *your_data,
     value = xvid_find_header(xvid, 4);
   }
 
-  *ts = (xvid->m_frame_on * M_LLU) / 30; //mp4_hdr.fps;
+  *ts = (xvid->m_frame_on * M_64) / 30; //mp4_hdr.fps;
   *buffer = &xvid->m_buffer[xvid->m_buffer_on];
   xvid->m_frame_on++;
   return xvid->m_buffer_size - xvid->m_buffer_on;

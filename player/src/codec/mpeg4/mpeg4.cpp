@@ -415,7 +415,7 @@ static int iso_decode (codec_data_t *ptr,
     } catch (int err) {
       if (err != 1)
 	iso_message(LOG_DEBUG, mp4iso, 
-		    "ts "LLU",Caught exception in wait_i %d", ts, err);
+		    "ts "U64",Caught exception in wait_i %d", ts, err);
       return (iso->m_pvodec->get_used_bytes());
       //return (-1);
     }
@@ -513,7 +513,7 @@ static int iso_decode (codec_data_t *ptr,
 
   if (pvopcQuant != NULL) {
 #if 0
-    player_debug_message("frame rtp_ts "LLU" disp "LLU" cached %d", 
+    player_debug_message("frame rtp_ts "U64" disp "U64" cached %d", 
 			 ts, displaytime, cached_ts);
 #endif
     /*
@@ -529,7 +529,7 @@ static int iso_decode (codec_data_t *ptr,
     v = (const uint8_t *)pvopcQuant->getPlane(V_PLANE)->pixels(0,0);
     iso->m_last_time = displaytime;
 #if 0
-    player_debug_message("Adding video at "LLU" %d", displaytime,
+    player_debug_message("Adding video at "U64" %d", displaytime,
 			 iso->m_pvodec->vopmd().vopPredType);
 #endif
 

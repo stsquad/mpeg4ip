@@ -136,11 +136,11 @@ static int encode_category (category_list_t *cptr, sdp_encode_t *se)
   while (cptr != NULL) {
     if (first == FALSE) {
       ADD_STR_TO_ENCODE_WITH_RETURN(se, "a=cat:");
-      sprintf(buffer, "%llu", cptr->category);
+      sprintf(buffer, U64, cptr->category);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
       first = TRUE;
     } else {
-      sprintf(buffer, ".%llu", cptr->category);
+      sprintf(buffer, "."U64, cptr->category);
       ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
     }
     cptr = cptr->next;
@@ -274,7 +274,7 @@ static int encode_time (session_time_desc_t *tptr, sdp_encode_t *se)
     end = tptr->end_time;
     if (end != 0) end += NTP_TO_UNIX_TIME;
 
-    sprintf(buffer, "t=%llu %llu\n", start, end);
+    sprintf(buffer, "t="U64" "U64"\n", start, end);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
 
     rptr = tptr->repeat;
@@ -311,7 +311,7 @@ static int encode_time_adj (time_adj_desc_t *aptr, sdp_encode_t *se)
   while (aptr != NULL) {
     ADD_STR_TO_ENCODE_WITH_RETURN(se, dohead ? "z=" : " ");
     time = aptr->adj_time + NTP_TO_UNIX_TIME;
-    sprintf(buffer, "%llu ", time);
+    sprintf(buffer, U64" ", time);
     ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);
     if (aptr->offset < 0) {
       offset = (0 - aptr->offset);

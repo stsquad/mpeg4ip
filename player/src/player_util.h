@@ -69,8 +69,8 @@ static inline void funcname (int loglevel, const char *fmt, ...) \
 static  __inline uint64_t get_time_of_day (void) {
   struct timeval t;
   gettimeofday(&t, NULL);
-  return ((((uint64_t)t.tv_sec) * M_LLU) +
-	  (((uint64_t)t.tv_usec) / M_LLU));
+  return ((((uint64_t)t.tv_sec) * M_64) +
+	  (((uint64_t)t.tv_usec) / M_64));
 }
 
 #endif

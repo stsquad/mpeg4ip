@@ -282,7 +282,7 @@ uint64_t CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer,
   }
   ts = m_frame_on;
   ts *= spf;
-  ts *= M_LLU;
+  ts *= M_64;
   ts /= m_freq;
   m_frame_on++;
   //mpeg3f_message(LOG_DEBUG, "audiostart %ld %llu %d", m_frame_on, ts, m_this_frame_size);

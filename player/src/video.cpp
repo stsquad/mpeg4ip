@@ -55,9 +55,9 @@ CVideoSync::~CVideoSync (void)
   video_message(LOG_NOTICE, "Video Sync Stats:");
   video_message(LOG_NOTICE, "Displayed-behind frames %d", m_behind_frames);
   video_message(LOG_NOTICE, "Total frames displayed %d", m_total_frames);
-  video_message(LOG_NOTICE, "Max behind time " LLU, m_behind_time_max);
+  video_message(LOG_NOTICE, "Max behind time " U64, m_behind_time_max);
   if (m_behind_frames > 0) 
-    video_message(LOG_NOTICE, "Average behind time "LLU, m_behind_time / m_behind_frames);
+    video_message(LOG_NOTICE, "Average behind time "U64, m_behind_time / m_behind_frames);
   video_message(LOG_NOTICE, "Skipped rendering %u", m_skipped_render);
   video_message(LOG_NOTICE, "Filled frames %u", m_filled_frames);
 }

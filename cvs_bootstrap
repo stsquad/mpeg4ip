@@ -37,6 +37,8 @@ done
 #
 # Test for lame
 #
+allargs="$@"
+
 target_system=`uname -s`
 if test $target_system = "Linux"; then
 
@@ -57,8 +59,6 @@ if test $target_system = "Linux"; then
     if test $have_faac = "no"; then
 	have_lame=no
     fi
-
-    allargs="$@"
 
     if test $have_lame = "no"; then
 	disabled_mp4live=no

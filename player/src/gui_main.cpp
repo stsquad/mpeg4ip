@@ -1145,7 +1145,7 @@ static gint main_timer (gpointer raw)
 	  SDL_mutexP(command_mutex);
 	  play_time = psptr->get_playing_time();
 	  double ptime, maxtime;
-	  play_time += 10 * M_LLU;
+	  play_time += 10 * M_64;
 	  ptime = (double)play_time;
 	  ptime /= 1000.0;
 	  maxtime = psptr->get_max_time();
@@ -1170,8 +1170,8 @@ static gint main_timer (gpointer raw)
 	  SDL_mutexP(command_mutex);
 	  play_time = psptr->get_playing_time();
 	  double ptime;
-	  if (play_time >= 10 * M_LLU) {
-	    play_time -= 10 * M_LLU;
+	  if (play_time >= 10 * M_64) {
+	    play_time -= 10 * M_64;
 	    ptime = (double)play_time;
 	    ptime /= 1000.0;
 	    psptr->pause_all_media();

@@ -60,8 +60,8 @@ public:
 	}
 
 protected:
-	static const int MSG_SINK = 4096;
-	static const int MSG_SINK_FRAME = MSG_SINK + 1;
+	static const uint32_t MSG_SINK = 4096;
+	static const uint32_t MSG_SINK_FRAME = MSG_SINK + 1;
 
 	bool 		m_sink;
 	SDL_mutex*	m_pEnqueueMutex;

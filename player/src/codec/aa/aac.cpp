@@ -99,7 +99,7 @@ static codec_data_t *aac_codec_create (const char *compressor,
   config.defSampleRate = aac->m_freq;
   faacDecSetConfiguration(aac->m_info, &config);
   aac->m_msec_per_frame = aac->m_output_frame_size;
-  aac->m_msec_per_frame *= M_LLU;
+  aac->m_msec_per_frame *= M_64;
   aac->m_msec_per_frame /= aac->m_freq;
 
   //  faad_init_bytestream(&m_info->ld, c_read_byte, c_bookmark, m_bytestream);
@@ -271,7 +271,7 @@ static int aac_decode (codec_data_t *ptr,
       if (aac->m_resync_with_header == 1) {
 	aac->m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
-	aa_message(LOG_DEBUG, aaclib, "Back to good at "LLU, aac->m_current_time);
+	aa_message(LOG_DEBUG, aaclib, "Back to good at "U64, aac->m_current_time);
 #endif
       }
       break;
@@ -279,7 +279,7 @@ static int aac_decode (codec_data_t *ptr,
       aa_message(LOG_ERR, aaclib, "Bits return is %d", bits);
       aac->m_resync_with_header = 1;
 #ifdef DEBUG_SYNC
-      aa_message(LOG_ERR, aaclib, "Audio decode problem - at "LLU, 
+      aa_message(LOG_ERR, aaclib, "Audio decode problem - at "U64, 
 		 aac->m_current_time);
 #endif
       break;

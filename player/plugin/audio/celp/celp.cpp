@@ -140,7 +140,7 @@ static codec_data_t *celp_codec_create (const char *compressor,
 
 
 
-  celp->m_msec_per_frame *= M_LLU;
+  celp->m_msec_per_frame *= M_64;
   celp->m_msec_per_frame /= celp->m_freq;
   celp->m_last=userdata_size;
 	
@@ -340,7 +340,7 @@ static int celp_decode (codec_data_t *ptr,
   if (celp->m_resync_with_header == 1) {
     celp->m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
-    celp_message(LOG_DEBUG, celplib, "Back to good at "LLU, celp->m_current_time);
+    celp_message(LOG_DEBUG, celplib, "Back to good at "U64, celp->m_current_time);
 #endif
   }
       

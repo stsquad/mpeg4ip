@@ -167,7 +167,7 @@ int mbus_parse_int(struct mbus_parser *m, int *i)
         }
 
 	*i = strtol(m->buffer, &p, 10);
-	if (((*i == LONG_MAX) || (*i == LONG_MIN)) && (errno == ERANGE)) {
+	if (((*i == INT_MAX) || (*i == INT_MIN)) && (errno == ERANGE)) {
 		debug_msg("integer out of range\n");
 		return FALSE;
 	}

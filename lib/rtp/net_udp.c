@@ -102,6 +102,7 @@ struct socket_udp_ {
 	ttl_t	 	 ttl;
 	fd_t	 	 fd;
 	struct in_addr	 addr4;
+	struct in_addr	 iface4_addr;
 #ifdef HAVE_IPv6
 	struct in6_addr	 addr6;
 #endif /* HAVE_IPv6 */
@@ -256,7 +257,6 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 {
 	int                 	 reuse = 1;
 	struct sockaddr_in  	 s_in;
-	struct in_addr		 iface_addr;
 #ifdef WIN32
 	int recv_buf_size = 65536;
 #endif
@@ -276,13 +276,13 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 		memcpy(&(s->addr4), h->h_addr_list[0], sizeof(s->addr4));
 	}
 	if (iface != NULL) {
-		if (inet_pton(AF_INET, iface, &iface_addr) != 1) {
+		if (inet_pton(AF_INET, iface, &s->iface4_addr) != 1) {
 			rtp_message(LOG_ERR, "Illegal interface specification");
                         free(s);
 			return NULL;
 		}
 	} else {
-		iface_addr.s_addr = 0;
+		s->iface4_addr.s_addr = 0;
 	}
 	s->fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (s->fd < 0) {
@@ -327,7 +327,7 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 		struct ip_mreq  imr;
 		
 		imr.imr_multiaddr.s_addr = s->addr4.s_addr;
-		imr.imr_interface.s_addr = iface_addr.s_addr;
+		imr.imr_interface.s_addr = s->iface4_addr.s_addr;
 		
 		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
 			socket_error("setsockopt IP_ADD_MEMBERSHIP");
@@ -349,8 +349,8 @@ static socket_udp *udp_init4(const char *addr, const char *iface, uint16_t rx_po
 			free(s);
 			return NULL;
 		}
-		if (iface_addr.s_addr != 0) {
-			if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_IF, (char *) &iface_addr, sizeof(iface_addr)) != 0) {
+		if (s->iface4_addr.s_addr != 0) {
+			if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_MULTICAST_IF, (char *) &s->iface4_addr, sizeof(s->iface4_addr)) != 0) {
 			  close(s->fd);
 			  free(s);
 				socket_error("setsockopt IP_MULTICAST_IF");
@@ -367,7 +367,11 @@ static void udp_exit4(socket_udp *s)
 	if (IN_MULTICAST(ntohl(s->addr4.s_addr))) {
 		struct ip_mreq  imr;
 		imr.imr_multiaddr.s_addr = s->addr4.s_addr;
-		imr.imr_interface.s_addr = INADDR_ANY;
+		if (s->iface4_addr.s_addr != 0) {
+		  imr.imr_interface.s_addr = s->iface4_addr.s_addr;
+		} else {
+		  imr.imr_interface.s_addr = INADDR_ANY;
+		}
 		if (SETSOCKOPT(s->fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char *) &imr, sizeof(struct ip_mreq)) != 0) {
 			socket_error("setsockopt IP_DROP_MEMBERSHIP");
 			abort();

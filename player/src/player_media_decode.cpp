@@ -267,7 +267,7 @@ int CPlayerMedia::decode_thread (void)
 	uint64_t current_time = m_parent->get_playing_time();
 	if (current_time >= ourtime) {
 #if 1
-	  media_message(LOG_INFO, "Candidate for skip decode %llu our %llu", 
+	  media_message(LOG_INFO, "Candidate for skip decode "U64" our "U64, 
 			       current_time, ourtime);
 #endif
 	  // If the bytestream can skip ahead, let's do so
@@ -290,7 +290,7 @@ int CPlayerMedia::decode_thread (void)
 		     current_time > ourtime);
 	    if (m_byte_stream->eof() || ret == 0) continue;
 #if 1
-	    media_message(LOG_INFO, "Skipped ahead %llu  to %llu", 
+	    media_message(LOG_INFO, "Skipped ahead "U64 " to "U64, 
 			  current_time - 200, ourtime);
 #endif
 	    /*
@@ -304,7 +304,7 @@ int CPlayerMedia::decode_thread (void)
 						   &ud);
 	      if (hassync < 0) {
 		uint64_t diff = ourtime - current_time;
-		if (diff > (2 * C_LLU)) {
+		if (diff > (2 * C_64)) {
 		  hassync = 1;
 		}
 	      }
@@ -316,14 +316,14 @@ int CPlayerMedia::decode_thread (void)
 		     !m_byte_stream->eof());
 	    if (m_byte_stream->eof() || ret == 0) continue;
 #ifdef DEBUG_DECODE
-	    media_message(LOG_INFO, "Matched ahead - count %d, sync %d time %llu",
+	    media_message(LOG_INFO, "Matched ahead - count %d, sync %d time "U64,
 				 count, hassync, ourtime);
 #endif
 	  }
 	}
       }
 #ifdef DEBUG_DECODE
-      media_message(LOG_DEBUG, "Decoding %c frame " LLU, 
+      media_message(LOG_DEBUG, "Decoding %c frame " U64, 
 		    m_is_video ? 'v' : 'a', ourtime);
 #endif
       if (frame_buffer != NULL && frame_len != 0) {
@@ -347,7 +347,7 @@ int CPlayerMedia::decode_thread (void)
 	  if ((ourtime / 1000) > current_second) {
 	    if (frames_decoded_last_sec != 0) {
 #if 0
-	      media_message(LOG_DEBUG, "%s - Second "LLU", frames %d bytes "LLU,
+	      media_message(LOG_DEBUG, "%s - Second "U64", frames %d bytes "U64,
 			    m_is_video ? "video" : "audio", 
 			    current_second,
 			    frames_decoded_last_sec,
@@ -384,7 +384,7 @@ int CPlayerMedia::decode_thread (void)
     fps /= secs;
     bps = UINT64_TO_DOUBLE(bytes_decoded);
     bps *= 8.0 / secs;
-    media_message(LOG_NOTICE, "%s - bytes "LLU", seconds %g, fps %g bps "LLU,
+    media_message(LOG_NOTICE, "%s - bytes "U64", seconds %g, fps %g bps "U64,
 		  m_is_video ? "video" : "audio", 
 		  bytes_decoded, secs, 
 		  fps, bytes_decoded * 8 / total_secs);

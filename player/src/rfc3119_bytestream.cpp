@@ -156,7 +156,7 @@ int CRfc3119RtpByteStream::insert_processed_adu (adu_data_t *adu)
     do {
       diff = adu->timestamp - p->timestamp;
       if (diff == 0) {
-	mpa_message(LOG_ERR, "Duplicate timestamp of "LLU" found in RTP packet",
+	mpa_message(LOG_ERR, "Duplicate timestamp of "U64" found in RTP packet",
 		    adu->timestamp);
 	mpa_message(LOG_DEBUG, 
 		     "Seq number orig %d new %d", 

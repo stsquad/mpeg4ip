@@ -31,6 +31,7 @@ then echo "Please run cvs_bootstrap instead."
      exit 1
 fi
 
+allargs="$@"
 #
 # Test for lame
 #
@@ -55,7 +56,6 @@ if test $target_system = "Linux"; then
 	have_lame=no
     fi
 
-    allargs="$@"
 
     if test $have_lame = "no"; then
 	disabled_mp4live=no

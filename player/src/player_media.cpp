@@ -170,7 +170,7 @@ CPlayerMedia::~CPlayerMedia()
 #if 0
     double div;
     player_debug_message("Packets received: %u", m_rtp_packet_received);
-    player_debug_message("Payload received: "LLU" bytes", m_rtp_data_received);
+    player_debug_message("Payload received: "U64" bytes", m_rtp_data_received);
     div = m_rtp_packet_received / diff;
     player_debug_message("Packets per sec : %g", div);
     div = UINT64_TO_DOUBLE(m_rtp_data_received);

@@ -1,4 +1,8 @@
-11/xx/03 version 1.0RC3
+12/xx/03 version 1.0
+    Fix incorrect timestamp on mpeg1/2 insert into mp4 file.
+    Allow iTunes \0\0\0\0 atom
+
+11/20/03 version 1.0RC3
     Fixed compilation on SuSE 9.0 personal
     Added compatibility code for large files and Quicktime local playback
     Read aspect ratio in player for mpeg1/2/4 and set correctly

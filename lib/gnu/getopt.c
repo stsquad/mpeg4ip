@@ -31,7 +31,8 @@
 # include <mpeg4ip_config.h>
 #endif
 #include <mpeg4ip_getopt.h>
-#ifndef HAVE_GETOPT_LONG
+
+#if !defined(HAVE_GETOPT_LONG) || !defined(HAVE_GETOPT) || !defined(HAVE_GETOPT_LONG_ONLY)
 #if !defined __STDC__ || !__STDC__
 /* This is a separate conditional since some stdc systems
    reject `defined (const)'.  */
@@ -959,6 +960,8 @@ _getopt_internal (argc, argv, optstring, longopts, longind, long_only)
     return c;
   }
 }
+#endif	/* Not ELIDE_CODE.  */
+#endif  /* need internals because missing one of getopt, getopt_long or getopt_long_only */
 
 #ifndef HAVE_GETOPT
 int
@@ -973,78 +976,4 @@ getopt (argc, argv, optstring)
 			   0);
 }
 
-#endif
-#endif	/* Not ELIDE_CODE.  */
-
-#ifdef TEST
-
-/* Compile with -DTEST to make an executable for use in testing
-   the above definition of `getopt'.  */
-
-int
-main (argc, argv)
-     int argc;
-     char **argv;
-{
-  int c;
-  int digit_optind = 0;
-
-  while (1)
-    {
-      int this_option_optind = optind ? optind : 1;
-
-      c = getopt (argc, argv, "abc:d:0123456789");
-      if (c == -1)
-	break;
-
-      switch (c)
-	{
-	case '0':
-	case '1':
-	case '2':
-	case '3':
-	case '4':
-	case '5':
-	case '6':
-	case '7':
-	case '8':
-	case '9':
-	  if (digit_optind != 0 && digit_optind != this_option_optind)
-	    printf ("digits occur in two different argv-elements.\n");
-	  digit_optind = this_option_optind;
-	  printf ("option %c\n", c);
-	  break;
-
-	case 'a':
-	  printf ("option a\n");
-	  break;
-
-	case 'b':
-	  printf ("option b\n");
-	  break;
-
-	case 'c':
-	  printf ("option c with value `%s'\n", optarg);
-	  break;
-
-	case '?':
-	  break;
-
-	default:
-	  printf ("?? getopt returned character code 0%o ??\n", c);
-	}
-    }
-
-  if (optind < argc)
-    {
-      printf ("non-option ARGV-elements: ");
-      while (optind < argc)
-	printf ("%s ", argv[optind++]);
-      printf ("\n");
-    }
-
-  exit (0);
-}
-
-#endif /* TEST */
 #endif

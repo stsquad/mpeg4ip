@@ -260,7 +260,7 @@ int http_build_header (char *buffer,
     SNPRINTF_CHECK("%s\r\n", add_header);
   }
   if (content_body != NULL) {
-    size_t len = strlen(content_body);
+    int len = strlen(content_body);
     SNPRINTF_CHECK("Content-length: %d\r\n\r\n", len);
     SNPRINTF_CHECK("%s", content_body);
   } else {

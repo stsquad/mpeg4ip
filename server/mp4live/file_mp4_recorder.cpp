@@ -52,7 +52,7 @@ int CMp4Recorder::ThreadMain(void)
         DoStopRecord();
         break;
       case MSG_SINK_FRAME:
-        size_t dontcare;
+        uint32_t dontcare;
         DoWriteFrame((CMediaFrame*)pMsg->get_message(dontcare));
         break;
       }
@@ -63,8 +63,8 @@ int CMp4Recorder::ThreadMain(void)
 
   while ((pMsg = m_myMsgQueue.get_message()) != NULL) {
     error_message("recorder - had msg after stop");
-    if ((int)pMsg->get_value() == MSG_SINK_FRAME) {
-      size_t dontcare;
+    if (pMsg->get_value() == MSG_SINK_FRAME) {
+      uint32_t dontcare;
       CMediaFrame *mf = (CMediaFrame*)pMsg->get_message(dontcare);
       if (mf->RemoveReference()) {
 	delete mf;
@@ -120,7 +120,7 @@ void CMp4Recorder::DoStartRecord()
     * m_movieTimeScale;
   bool hugeFile = 
     (duration > 0xFFFFFFFF) 
-    || (m_pConfig->m_recordEstFileSize > 1000000000LLU);
+    || (m_pConfig->m_recordEstFileSize > (M_64 * MM_64));
   uint32_t createFlags = 0;
   if (hugeFile) {
     createFlags |= MP4_CREATE_64BIT_DATA;
@@ -324,7 +324,7 @@ void CMp4Recorder::ProcessEncodedAudioFrame (CMediaFrame *pFrame)
       // add the number of extra samples
       m_encodedAudioSamples += 
 	(thisFrameDurationInSamples - pFrame->GetDuration());
-      error_message("adding encoded %lld samples", 
+      error_message("adding encoded "D64" samples", 
 		    thisFrameDurationInSamples - pFrame->GetDuration());
     }
     // we have a consecutive frame
@@ -342,13 +342,13 @@ void CMp4Recorder::ProcessEncodedAudioFrame (CMediaFrame *pFrame)
     diffTimeTicks += m_encodedAudioDiffTicksTotal;
 
     if (diffTimeTicks != 0) {
-      error_message("elfts %lld samples %lld elfs %lld diff %lld",
+      error_message("elfts "D64" samples "D64" elfs "D64" diff "D64,
 		    elapsedTimeFromTimestamp,
 		    m_encodedAudioSamples,
 		    elapsedTimeFromSamples,
 		    diffTimeTicks);
       
-      error_message("adj %lld diff %lld",
+      error_message("adj "D64" diff "D64,
 		    m_encodedAudioDiffTicksTotal, diffTimeTicks);
     }
 
@@ -435,7 +435,7 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 
     m_encodedVideoDurationTimescale += videoDurationInTimescaleFrame;
 #if 0
-    debug_message("vdit %lld vdits %lld frame %lld total %lld %lld",
+    debug_message("vdit "D64" vdits "D64" frame "D64" total "D64" "D64,
 		  videoDurationInTicks, videoDurationInTimescaleTotal,
 		  videoDurationInTimescaleFrame, m_encodedVideoDurationTimescale,
 		  GetTicksFromTimescale(m_encodedVideoDurationTimescale, 0, 0, m_videoTimeScale));
@@ -489,7 +489,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 
     if (m_rawAudioFrameNumber == 1) {
 
-      debug_message("First raw audio frame at %llu", pFrame->GetTimestamp());
+      debug_message("First raw audio frame at "U64, pFrame->GetTimestamp());
 
       m_rawAudioStartTimestamp = pFrame->GetTimestamp();
       m_canRecordRawVideo = true;
@@ -561,7 +561,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
         }
       }
 
-      debug_message("First raw video frame at %llu", pFrame->GetTimestamp());
+      debug_message("First raw video frame at "U64, pFrame->GetTimestamp());
 
       m_rawVideoStartTimestamp = pFrame->GetTimestamp();
       m_prevRawVideoFrame = pFrame;

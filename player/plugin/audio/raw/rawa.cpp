@@ -145,7 +145,7 @@ static int rawa_decode (codec_data_t *ptr,
 	double calc;
 
 	LOGIT(LOG_DEBUG, "rawaudio",
-	      "freq %d ts "LLU" buffsize %d",
+	      "freq %d ts "U64" buffsize %d",
 	      rawa->m_freq, ts, rawa->m_temp_buffsize);
 	
 	calc = 1000 *  rawa->m_temp_buffsize;
@@ -187,7 +187,7 @@ static int rawa_decode (codec_data_t *ptr,
 
   if (ts == rawa->m_ts) {
     uint64_t calc;
-    calc = rawa->m_bytes * M_LLU;
+    calc = rawa->m_bytes * M_64;
     calc /= rawa->m_chans;
     if (rawa->m_bitsperchan == 16) calc /= 2;
     calc /= rawa->m_freq;

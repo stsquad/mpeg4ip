@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.0RC3 )
+AM_INIT_AUTOMAKE(mpeg4ip, 1.0RC3.1 )
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -68,7 +68,7 @@ AC_SEARCH_LIBS(dlopen, dl libc)
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getrusage socketpair strsep inet_ntoa)
+AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getopt_long_only getrusage socketpair strsep inet_ntoa)
 
 dnl MY_CHECK_TYPEDEF_FROM_INCLUDE(typedef, include files, define)
 dnl checks if typedef is in include files.  add define in acconfig.h

@@ -90,7 +90,7 @@ int celp_file_next_frame (codec_data_t *your,
 
 
   uint64_t calc;
-  calc = celp->m_framecount * 1024 * M_LLU;
+  calc = celp->m_framecount * 1024 * M_64;
   calc /= celp->m_freq;
   *ts = calc;
   *buffer = celp->m_buffer;

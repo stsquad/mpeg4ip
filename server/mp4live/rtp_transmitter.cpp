@@ -208,7 +208,7 @@ int CRtpTransmitter::ThreadMain(void)
 	DoStopTransmit();
 	break;
       case MSG_SINK_FRAME:
-	size_t dontcare;
+	uint32_t dontcare;
 	DoSendFrame((CMediaFrame*)pMsg->get_message(dontcare));
 	break;
       case MSG_RTP_DEST_START:
@@ -223,8 +223,8 @@ int CRtpTransmitter::ThreadMain(void)
     }
   }
   while ((pMsg = m_myMsgQueue.get_message()) != NULL) {
-    if ((int)pMsg->get_value() == MSG_SINK_FRAME) {
-      size_t dontcare;
+    if (pMsg->get_value() == MSG_SINK_FRAME) {
+      uint32_t dontcare;
       CMediaFrame *mf = (CMediaFrame*)pMsg->get_message(dontcare);
       if (mf->RemoveReference()) {
 	delete mf;
@@ -590,7 +590,8 @@ void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
 		      mbit);
       rdptr = rdptr->get_next();
     }
-    error_message("data offset %d len %d max %d", dataOffset, iov[1].iov_len,
+    error_message("data offset %d len %d max %d", dataOffset, 
+		  (int)iov[1].iov_len,
 		  pFrame->GetDataLength());
     dataOffset += iov[1].iov_len;
   } while (dataOffset < pFrame->GetDataLength());

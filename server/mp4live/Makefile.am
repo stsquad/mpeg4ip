@@ -73,8 +73,6 @@ libmp4live_la_SOURCES = \
 	sdp_file.cpp \
 	util.cpp \
 	util.h \
-	video_h26l.h \
-	video_h26l.cpp \
 	video_util_mpeg4.cpp \
 	video_util_resize.h \
 	video_util_resize.cpp \
@@ -113,7 +111,6 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib \
 	$(XVID_INC) \
-	-I$(top_srcdir)/server/video/H26L \
 	-I$(top_srcdir)/common/video/libmpeg32 \
 	-I$(top_srcdir)/player/lib \
 	-I$(top_srcdir)/player/src \
@@ -132,7 +129,6 @@ mp4live_LDADD = \
 	-lfaac \
 	-lmp3lame \
 	$(XVID_LIB) \
-	$(top_builddir)/server/video/H26L/libh26lenc.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \

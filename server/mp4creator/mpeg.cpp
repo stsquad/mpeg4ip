@@ -110,7 +110,7 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
     MP4WriteSample(mp4file, id, buf, blen, mp4FrameDuration, 0, 
 		   ret >= 0 ? true : false);
     mpeg3_read_video_chunk_cleanup(file, vstream);
-    if (ret == 0 || frame_type != 3) {
+    if (ret > 0 || frame_type != 3) {
       // I or P frame
       MP4SetSampleRenderingOffset(mp4file, id, refFrame, 
 				  (frames - refFrame) * mp4FrameDuration);

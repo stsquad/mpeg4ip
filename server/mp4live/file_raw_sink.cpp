@@ -41,7 +41,7 @@ int CRawFileSink::ThreadMain(void)
 				DoStopSink();
 				break;
 			case MSG_SINK_FRAME:
-				size_t dontcare;
+				uint32_t dontcare;
 				DoWriteFrame((CMediaFrame*)pMsg->get_message(dontcare));
 				break;
 			}

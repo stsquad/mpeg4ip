@@ -176,6 +176,7 @@ mpeg2t_pid_t *mpeg2t_process_buffer(mpeg2t_t *ptr,
  * es pid pointer
  */
 mpeg2t_frame_t *mpeg2t_get_es_list_head(mpeg2t_es_t *es_pid);
+  void mpeg2t_free_frame(mpeg2t_frame_t *fptr);
 
 /*
  * mpeg2t_set_loglevel, mpeg2t_set_error_func - set the log level

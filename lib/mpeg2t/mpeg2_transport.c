@@ -385,7 +385,7 @@ static int mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
       if (mpeg2t_lookup_pid(ptr, pid) == NULL) {
 	create_pmap(ptr, prog_num, pid);
       }
-    }
+    } // else network information table
   }
   return 1;
 }
@@ -447,12 +447,14 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
 
 			    
   prog_num = ((pmapptr[0] << 8) | pmapptr[1]);
+#if 0
   if (prog_num != pmap_pid->program_number) {
     mpeg2t_message(LOG_ERR, 
 		   "Prog Map error - program number doesn't match - pid %x orig %x from pak %x", 
 		   pmap_pid->pid.pid, pmap_pid->program_number, prog_num);
     return 0;
   }
+#endif
   pmap_pid->version_number = (pmapptr[2] >> 1) & 0x1f;
 
   pcr_pid = ((pmapptr[5] << 8) | pmapptr[6]) & 0x1fff;
@@ -599,7 +601,11 @@ mpeg2t_frame_t *mpeg2t_get_es_list_head (mpeg2t_es_t *es_pid)
   SDL_UnlockMutex(es_pid->list_mutex);
   return p;
 }
-  
+
+void mpeg2t_free_frame (mpeg2t_frame_t *fptr)
+{
+  free(fptr);
+}
 /*
  * mpeg2t_process_es - process a transport stream pak for an
  * elementary stream
@@ -714,8 +720,8 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	pts <<= 7;
 	pts |= ((esptr[7] >> 1) & 0x7f);
 	es_pid->have_ps_ts = 1;
-	es_pid->ps_ts = (pts * M_LLU) / (90 * M_LLU); // give msec
-	mpeg2t_message(LOG_DEBUG, "pid %x psts "LLU, 
+	es_pid->ps_ts = (pts * M_64) / (90 * M_64); // give msec
+	mpeg2t_message(LOG_DEBUG, "pid %x psts "U64, 
 		       es_pid->pid.pid, es_pid->ps_ts);
       }
       buflen -= esptr[2] + 3;

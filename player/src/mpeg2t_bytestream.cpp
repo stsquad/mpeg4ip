@@ -55,7 +55,7 @@ CMpeg2tByteStream::~CMpeg2tByteStream()
 #ifdef OUTPUT_TO_FILE
   fclose(m_output_file);
 #endif
-  CHECK_AND_FREE(m_frame);
+  mpeg2t_free_frame(m_frame);
 }
 
 int CMpeg2tByteStream::eof(void)
@@ -74,7 +74,7 @@ void CMpeg2tByteStream::reset (void)
   do {
     p = mpeg2t_get_es_list_head(m_es_pid);
     if (p != NULL)
-      free(p);
+      mpeg2t_free_frame(p);
   } while (p != NULL);
 }
 
@@ -98,7 +98,7 @@ uint64_t CMpeg2tByteStream::start_next_frame (uint8_t **buffer,
 					      void **ud)
 {
   uint64_t ret;
-  CHECK_AND_FREE(m_frame);
+  mpeg2t_free_frame(m_frame);
     
   m_frame = mpeg2t_get_es_list_head(m_es_pid);
   if (m_frame != NULL) {

@@ -99,13 +99,12 @@ int gettimeofday(struct timeval *t, void *);
 
 #define PATH_MAX MAX_PATH
 #define MAX_UINT64 -1
-#define LLD "%I64d"
-#define LLU "%I64u"
-#define LLX "%I64x"
-#define LLX16 "%016I64x"
-#define M_LLU 1000i64
-#define C_LLU 100i64
-#define I_LLU 1i64
+#define D64F "I64d"
+#define U64F  "I64u"
+#define X64F "I64x"
+#define M_64 1000i64
+#define C_64 100i64
+#define I_64 1i64
 
 #define LOG_EMERG 0
 #define LOG_ALERT 1
@@ -195,14 +194,29 @@ int gettimeofday(struct timeval *t, void *);
 
 #define closesocket close
 #define IOSBINARY ios::bin
+
+#if SIZEOF_LONG == 8
+#define MAX_UINT64 -1LU
+#define D64F "ld"
+#define U64F  "lu"
+#define X64F "lx"
+
+#define MM_64 1000000LU
+#define M_64 1000LU
+#define C_64 100LU
+#define I_64 1LU
+#else
 #define MAX_UINT64 -1LLU
-#define LLD "%lld"
-#define LLU "%llu"
-#define LLX "%llx"
-#define LLX16 "%016llx"
-#define M_LLU 1000LLU
-#define C_LLU 100LLU
-#define I_LLU 1LLU
+#define D64F "lld"
+#define U64F  "llu"
+#define X64F "llx"
+
+#define MM_64 1000000LLU
+#define M_64 1000LLU
+#define C_64 100LLU
+#define I_64 1LLU
+#endif
+
 #ifdef HAVE_FPOS_T_POS
 #define FPOS_TO_VAR(fpos, typed, var) (var) = (typed)((fpos).__pos)
 #define VAR_TO_FPOS(fpos, var) (fpos).__pos = (var)
@@ -219,6 +233,10 @@ int gettimeofday(struct timeval *t, void *);
 /*****************************************************************************
  *             Generic type includes used in the whole package               *
  *****************************************************************************/
+#define D64  "%"D64F
+#define U64  "%"U64F
+#define X64 "%"X64F
+
 #include <stdarg.h>
 typedef void (*error_msg_func_t)(int loglevel,
 				 const char *lib,

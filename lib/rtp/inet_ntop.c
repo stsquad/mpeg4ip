@@ -15,7 +15,9 @@
  * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
  * SOFTWARE.
  */
-
+#ifndef _WIN32
+#include "uclconf.h"
+#endif
 #ifndef HAVE_INET_NTOP
 #include "config_unix.h"
 #include "config_win32.h"

@@ -265,7 +265,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
     return (play_this_at - current_time);
   }
 #if VIDEO_SYNC_PLAY
-  video_message(LOG_DEBUG, "play "LLU" at "LLU " %d", play_this_at, current_time,
+  video_message(LOG_DEBUG, "play "U64" at "U64 " %d", play_this_at, current_time,
 		       m_play_index);
 #endif
 
@@ -279,7 +279,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
     if (behind > m_behind_time_max) m_behind_time_max = behind;
 #if 0
     if ((m_behind_frames % 64) == 0) {
-      video_message(LOG_DEBUG, "behind "LLU" avg "LLU" max "LLU,
+      video_message(LOG_DEBUG, "behind "U64" avg "U64" max "U64,
 			   behind, m_behind_time / m_behind_frames,
 			   m_behind_time_max);
     }
@@ -386,7 +386,12 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
       }
 
     int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
-    if (rval != 0) {
+#ifndef darwin
+#define CORRECT_RETURN 0
+#else
+#define CORRECT_RETURN 1
+#endif
+    if (rval != CORRECT_RETURN) {
       video_message(LOG_ERR, "Return from display is %d", rval);
     }
     SDL_UnlockYUVOverlay(m_image);
@@ -395,7 +400,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
 #ifdef CHECK_SYNC_TIME
 else {
 #ifdef VIDEO_SYNC_PLAY
-    video_message(LOG_DEBUG, "Video lagging current time "LLU" "LLU" "LLU, 
+    video_message(LOG_DEBUG, "Video lagging current time "U64" "U64" "U64, 
 			 play_this_at, current_time, m_msec_per_frame);
 #endif
     /*

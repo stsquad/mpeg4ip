@@ -161,7 +161,7 @@ static int mp3_decode (codec_data_t *ptr,
      */
   buff = mp3->m_vft->audio_get_buffer(mp3->m_ifptr);
   if (buff == NULL) {
-    //mp3_message(LOG_DEBUG, "mp3", "Can't get buffer in mp3 ts" LLU, ts);
+    //mp3_message(LOG_DEBUG, "mp3", "Can't get buffer in mp3 ts" U64, ts);
     return (-1);
   }
   bits = mp3->m_mp3_info->decodeFrame(buff, buffer, buflen);
@@ -199,7 +199,7 @@ static int mp3_decode (codec_data_t *ptr,
       
   } else {
     mp3->m_resync_with_header = 1;
-    mp3_message(LOG_DEBUG, "libmp3", "decode problem %d - at "LLU, 
+    mp3_message(LOG_DEBUG, "libmp3", "decode problem %d - at "U64, 
 		bits, mp3->m_current_time);
     bits = -1;
   }

@@ -63,7 +63,7 @@ int CDummyVideoSync::get_video_buffer(uint8_t **y,
 
 int CDummyVideoSync::filled_video_buffers (uint64_t time)
 {
-  video_message(LOG_DEBUG, "Filled "LLU, time);
+  video_message(LOG_DEBUG, "Filled "U64, time);
   return (1);
 }
 
@@ -87,7 +87,7 @@ int CDummyVideoSync::set_video_frame(const Uint8 *y,
 				   int pixelw_uv, 
 				   uint64_t time)
 {
-  video_message(LOG_DEBUG, "set_video_frame" LLU, time);
+  video_message(LOG_DEBUG, "set_video_frame" U64, time);
   return (1);
 }
 

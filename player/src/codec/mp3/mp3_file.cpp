@@ -222,7 +222,7 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
 	current -= framesize;
 	current -= mp3->m_buffer_size - mp3->m_buffer_on;
 	uint64_t calc;
-	calc = framecount * mp3->m_samplesperframe * M_LLU;
+	calc = framecount * mp3->m_samplesperframe * M_64;
 	calc /= mp3->m_freq;
 	mp3->m_fpos->record_point(current, calc, framecount);
       }
@@ -318,7 +318,7 @@ int mp3_file_next_frame (codec_data_t *your_data,
 
     // Calculate the current time
     uint64_t calc;
-    calc = mp3->m_framecount * mp3->m_samplesperframe * M_LLU;
+    calc = mp3->m_framecount * mp3->m_samplesperframe * M_64;
     calc /= mp3->m_freq;
     *ts = calc;
     mp3->m_framecount++;

@@ -335,7 +335,11 @@ typedef struct
 
 } Slice;
 
-
+#ifdef __DEFINE_GLOBALS__
+#define EXTERN 
+#else
+#define EXTERN extern
+#endif
 // GH: global picture format dependend buffers, mem allocation in image.c
 byte   **imgY;               //!< Encoded luma images
 byte  ***imgUV;              //!< Encoded croma images

@@ -377,7 +377,7 @@ int CPlayerSession::play_all_media (int start_from_begin,
     m_play_start_time = m_current_time;
     start_time = UINT64_TO_DOUBLE(m_current_time);
     start_time /= 1000.0;
-    player_debug_message("Restarting at " LLU ", %g", m_current_time, start_time);
+    player_debug_message("Restarting at " U64 ", %g", m_current_time, start_time);
   } else {
     /*
      * We might have been paused, but we're told to seek
@@ -399,7 +399,7 @@ int CPlayerSession::play_all_media (int start_from_begin,
     if (range != NULL) {
       uint64_t stime = (uint64_t)(start_time * 1000.0);
       uint64_t etime = (uint64_t)(range->range_end * 1000.0);
-      sprintf(buffer, "npt="LLU"."LLU"-"LLU"."LLU, 
+      sprintf(buffer, "npt="U64"."U64"-"U64"."U64, 
 	      stime / 1000, stime % 1000, etime / 1000, etime % 1000);
       cmd.range = buffer;
     }
@@ -604,14 +604,14 @@ const char *CPlayerSession::get_session_desc (int line)
 void CPlayerSession::audio_is_ready (uint64_t latency, uint64_t time)
 {
   m_start = get_time_of_day();
-  sync_message(LOG_DEBUG, "Aisready "LLU, m_start);
+  sync_message(LOG_DEBUG, "Aisready "U64, m_start);
   m_start -= time;
   m_latency = latency;
   if (latency != 0) {
     m_clock_wrapped = -1;
   }
-  sync_message(LOG_DEBUG, "Audio is ready "LLU" - latency "LLU, time, latency);
-  sync_message(LOG_DEBUG, "m_start is "LLX, m_start);
+  sync_message(LOG_DEBUG, "Audio is ready "U64" - latency "U64, time, latency);
+  sync_message(LOG_DEBUG, "m_start is "X64, m_start);
   m_waiting_for_audio = 0;
   SDL_SemPost(m_sync_sem);
 }
@@ -621,7 +621,7 @@ void CPlayerSession::adjust_start_time (int64_t time)
   m_start -= time;
   m_clock_wrapped = -1;
 #if 0
-  sync_message(LOG_INFO, "Adjusting start time "LLD " to " LLU, time,
+  sync_message(LOG_INFO, "Adjusting start time "D64 " to " U64, time,
 	       get_current_time());
 #endif
   SDL_SemPost(m_sync_sem);

@@ -135,7 +135,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 				0);
   // We're going to have to handle wrap better...
 #ifdef DEBUG_H261
-  h261_message(LOG_DEBUG, h261rtp, "start next frame %p %d ts %x "LLU, 
+  h261_message(LOG_DEBUG, h261rtp, "start next frame %p %d ts %x "U64, 
 	       *buffer, *buflen, iptr->m_current_pak->rtp_pak_ts, timetick);
 #endif
   return (timetick);

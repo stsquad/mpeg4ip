@@ -114,7 +114,7 @@ int process_sdl_key_events (CPlayerSession *psptr,
     if (psptr->session_is_seekable()) {
       play_time = psptr->get_playing_time();
       double ptime, maxtime;
-      play_time += 10 * M_LLU;
+      play_time += 10 * M_64;
       ptime = UINT64_TO_DOUBLE(play_time);
       ptime /= 1000.0;
       maxtime = psptr->get_max_time();
@@ -128,8 +128,8 @@ int process_sdl_key_events (CPlayerSession *psptr,
     if (psptr->session_is_seekable()) {
       play_time = psptr->get_playing_time();
       double ptime;
-      if (play_time >= 10 * M_LLU) {
-	play_time -= 10 * M_LLU;
+      if (play_time >= 10 * M_64) {
+	play_time -= 10 * M_64;
 	ptime = UINT64_TO_DOUBLE(play_time);
 	ptime /= 1000.0;
 	psptr->pause_all_media();

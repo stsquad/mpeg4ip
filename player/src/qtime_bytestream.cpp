@@ -141,7 +141,7 @@ uint64_t CQTVideoByteStream::start_next_frame (uint8_t **buffer,
     ret = start;
     ret *= 1000;
     ret /= m_time_scale;
-   //player_debug_message("Returning %llu", ret);
+   //player_debug_message("Returning "U64, ret);
  } else {
    ret = m_frame_on;
    ret *= 1000;
@@ -230,9 +230,9 @@ void CQTVideoByteStream::play (uint64_t start)
       cmp = frame_start + duration;
       cmp *= 1000;
       cmp /= m_time_scale;
-      //player_debug_message("frame %d %llu", ix, cmp);
+      //player_debug_message("frame %d "U64, ix, cmp);
       if (cmp >= start) {
-	player_debug_message("Searched through - frame %d is %llu", 
+	player_debug_message("Searched through - frame %d is "U64, 
 			     ix, start);
 	break;
       }
@@ -244,7 +244,7 @@ void CQTVideoByteStream::play (uint64_t start)
     }
   }
 #if 0
-  player_debug_message("qtime video frame " LLD , start);
+  player_debug_message("qtime video frame " D64 , start);
 #endif
   // we've got the position;
   m_parent->unlock_file_mutex();
@@ -324,7 +324,7 @@ uint64_t CQTAudioByteStream::start_next_frame (uint8_t **buffer,
   player_debug_message("audio - start frame %d %d", m_frame_on, m_frames_max);
 #endif
 #if 0
-  player_debug_message("audio Start next frame "LLU " offset %u %u", 
+  player_debug_message("audio Start next frame "U64 " offset %u %u", 
 		       ret, m_byte_on, m_this_frame_size);
 #endif
   read_frame(m_frame_on);
@@ -384,7 +384,7 @@ void CQTAudioByteStream::play (uint64_t start)
   start *= m_frame_rate;
   start /= 1000 * m_samples_per_frame;
 #if 0
-  player_debug_message("qtime audio frame " LLD, start);
+  player_debug_message("qtime audio frame " D64, start);
 #endif
   // we've got the position;
   audio_set_timebase((uint32_t)start);

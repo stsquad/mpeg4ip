@@ -63,7 +63,7 @@ uint8_t *CDummyAudioSync::get_audio_buffer (void)
 
 void CDummyAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 {
-  audio_message(LOG_DEBUG, "Filled audio buffer "LLU" resync %d", 
+  audio_message(LOG_DEBUG, "Filled audio buffer "U64" resync %d", 
 		ts, resync);
 }
 
@@ -72,7 +72,7 @@ uint32_t CDummyAudioSync::load_audio_buffer (uint8_t *from,
 					     uint64_t ts, 
 					     int resync)
 {
-  audio_message(LOG_DEBUG, "Load audio buffer %d bytes at "LLU" resync %d", 
+  audio_message(LOG_DEBUG, "Load audio buffer %d bytes at "U64" resync %d", 
 		bytes, ts, resync);
   return bytes;
 }

@@ -416,7 +416,7 @@ afx_msg LRESULT CWmp4playerView::OnSdlKey(WPARAM key, LPARAM mod)
 			if (mp4if->get_current_time(&play_time) == FALSE) return 0;
 
 			double ptime, maxtime;
-			play_time += 10 * M_LLU;
+			play_time += 10 * M_64;
 			ptime = (double)
 #ifdef _WIN32
 				(int64_t)
@@ -435,8 +435,8 @@ afx_msg LRESULT CWmp4playerView::OnSdlKey(WPARAM key, LPARAM mod)
 			
 			if (mp4if->get_current_time(&play_time) == FALSE) return 0;
 			double ptime;
-			if (play_time > 10 * M_LLU) {
-				play_time -= 10 * M_LLU;
+			if (play_time > 10 * M_64) {
+				play_time -= 10 * M_64;
 				ptime = (double)
 #ifdef _WIN32
 					(int64_t)

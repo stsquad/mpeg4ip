@@ -7,11 +7,6 @@
  * All rights reserved.
  */
  
-#ifndef HIDE_SOURCE_STRINGS
-static const char cvsid[] = 
-	"$Id: asarray.c,v 1.2 2002/01/11 00:55:16 wmaycisco Exp $";
-#endif /* HIDE_SOURCE_STRINGS */
-
 #include "config_unix.h"
 #include "config_win32.h"
 

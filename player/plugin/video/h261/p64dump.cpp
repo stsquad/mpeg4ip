@@ -677,7 +677,7 @@ int P64Dumper::decode(const u_char* bp, int cc, int sbit, int ebit,
 	 * If input buffer not aligned, prime bit-buffer
 	 * with 8 bits; otherwise, prime it with a 16.
 	 */
-	if ((int)bp & 1) {
+	if ((long)bp & 1) {
 		bs_ = (u_short*)(bp + 1);
 		bb_ = *bp;
 		nbb_ = 8 - sbit;

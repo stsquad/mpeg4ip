@@ -663,7 +663,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
     iptr->m_ts =  iptr->m_frame_data_on->rtp_timestamp;
   // We're going to have to handle wrap better...
 #ifdef DEBUG_ISMA_AAC
-  isma_message(LOG_DEBUG, ismartp, "start next frame %p %d ts "LLX" "LLU, 
+  isma_message(LOG_DEBUG, ismartp, "start next frame %p %d ts "X64" "U64, 
 	       *buffer, *buflen, iptr->m_ts, timetick);
 #endif
   return (timetick);
