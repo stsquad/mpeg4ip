@@ -285,8 +285,9 @@ static int LoadNextH263Object(  FILE           *inputFileHandle,
   } while ((frameBuffer < bufferEnd) &&                    // We have place in the buffer
            ((row = states[row][*(frameBuffer++)]) != -1)); // Start code was not found
   if (row != -1) {
+    uint32_t diff = bufferEnd - bufferStart + additionalBytesNeeded;
     fprintf(stderr, "%s: Buffer too small (%u)\n",
-            ProgName, bufferEnd - bufferStart + additionalBytesNeeded);
+            ProgName, diff);
     return 0;
   }
 

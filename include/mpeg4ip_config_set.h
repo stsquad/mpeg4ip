@@ -308,36 +308,61 @@ public:
 	  CHECK_AND_FREE(m_fileName);
 	  m_fileName = strdup(name);
 	};
-
+	
 	inline void CheckIName(config_index_t iName) {
 		if (iName >= m_numVariables) {
-			throw new CConfigException(CONFIG_ERR_INAME);
+		  fprintf(stderr, 
+			  "config variable index failure - try %u max %u\n",
+			  iName, m_numVariables);
+		  fflush(stderr);
+		  throw new CConfigException(CONFIG_ERR_INAME);
 		}
 		if (*m_variables[iName].m_iName != iName) {
-			throw new CConfigException(CONFIG_ERR_INAME);
+		  fprintf(stderr, 
+			   "config variable index mismatch %u should %u\n",
+			   iName, *m_variables[iName].m_iName);
+		  fflush(stderr);
+		  throw new CConfigException(CONFIG_ERR_INAME);
 		}
 	}
 
+
 	inline void CheckIntegerType(config_index_t iName) {
 		if (m_variables[iName].m_type != CONFIG_TYPE_INTEGER) {
-			throw new CConfigException(CONFIG_ERR_TYPE);
+		  fprintf(stderr, 
+			  "config type mismatch on %s - should be integer\n", 
+			  m_variables[iName].m_sName);
+		  fflush(stderr);
+		  throw new CConfigException(CONFIG_ERR_TYPE);
 		}
 	}
 
 	inline void CheckBoolType(config_index_t iName) {
 		if (m_variables[iName].m_type != CONFIG_TYPE_BOOL) {
-			throw new CConfigException(CONFIG_ERR_TYPE);
+		  fprintf(stderr, 
+			  "config type mismatch on %s - should be bool\n", 
+			  m_variables[iName].m_sName);
+		  fflush(stderr);
+		  throw new CConfigException(CONFIG_ERR_TYPE);
 		}
 	}
 
 	inline void CheckStringType(config_index_t iName) {
 		if (m_variables[iName].m_type != CONFIG_TYPE_STRING) {
+		  fprintf(stderr, 
+			  "config type mismatch on %s - should be string\n", 
+			  m_variables[iName].m_sName);
+		  fflush(stderr);
 			throw new CConfigException(CONFIG_ERR_TYPE);
 		}
 	}
 
 	inline void CheckFloatType(config_index_t iName) {
 		if (m_variables[iName].m_type != CONFIG_TYPE_FLOAT) {
+		  fprintf(stderr, 
+			  "config type mismatch on %s - should be float\n", 
+			  m_variables[iName].m_sName);
+		  fflush(stderr);
 			throw new CConfigException(CONFIG_ERR_TYPE);
 		}
 	}

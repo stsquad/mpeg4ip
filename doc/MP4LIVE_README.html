@@ -6,13 +6,14 @@
 <body id="top">
 <h1>MP4LIVE README</h1>
 <p>
-May, 2004<br>  
+December, 2004<br>  
 Dave Mackie<br>
 Bill May<br>
 <p>
 User Contributions by:
 <br>
 Dave Baker
+Cesar Gonzalez
 <P>
 <b>
 <a href="#mp4live">MP4LIVE</a><br>
@@ -27,6 +28,7 @@ Dave Baker
 <a href="#nw">Network Transmission</a><br>
 <a href="#dss">Use with Darwin Streaming Server</a><br>
 <a href="#capture">Sharing Capture Cards</a><br>
+<a href="#multi">Multiple Outputs using mp4live</a><br>
 <a href="#cli">Command Line Options</a><br>
 <a href="#issues">Known Issues</a><br>
 <a href="#unknown">Unknowns</a><br>
@@ -432,6 +434,83 @@ The audio format is 16 bit PCM, the video format is YUV12 (planar 4:2:0 YUV).
 <P>
 <a href="#top">Back to top</a>
 <P>
+<div id="multi">
+<h2>Multiple Outputs using mp4live</h2>
+</div>
+<h3>Introduction</h3>
+<p>
+During the 1.2 coding period, Cesar Gonzalez contributed a method of
+using a single capture card, but outputting and recording serveral 
+different streams at the same time.  This is useful if you want to reach
+different audiences (for example: enterprise, broadband and modem users).
+<p>
+Let's suppose you want to transmit a live event at 640x480 900 Kbits, 320x240 
+150 Kbits and 160x120 at 41 Kbits. Until this feature was added, you would 
+need 3 video and 3 audio cards.  If you use this feature, you will need 
+only 1 video and 1 audio card.
+<p> 
+For the most part, this will be very CPU intensive - be prepared to have
+a fairly fast and modern machine.  For best output, make the video sizes 
+multiples of 2 in both height and width (ie: 640x480, 320x240 instead of
+640x480 and 352x288).
+<h3>How it works</h3>
+<p>
+There is one main process that take video and audio frames from the capture 
+devices and forward them to the rest of the processes. Each attached process 
+does the appropriate resize/resample work and records the mp4 or transmits the 
+frames via rtp if needed.
+<p>
+Right now, it can be inefficient - if you have the same audio or video for 2 different streams, it will resize/encode the raw data for each stream.
+<h3>How to configure</h3>
+<p>
+There is currently no GUI for multiple outputs; the video size selected in the GUI should be the maximum size requested.  In the main configuration file, the following commands should be used:
+<table cellpadding='8' summary="multioutput config variables main file">
+<tr><td>cascadeEnable=1</td><td>This turns on multiple outputs</td></tr>
+<tr>
+<td>cascadeFile1=file</td><td>Configuration file for first attached stream</td>
+</tr>
+<tr>
+<td>cascadeFile2=file</td><td>Configuration file for first attached stream</td>
+</tr>
+<tr>
+<td>cascadeFile3=file</td><td>Configuration file for first attached stream</td>
+</tr>
+<tr>
+<td>cascadeFile4=file</td><td>Configuration file for first attached stream</td>
+</tr>
+<tr>
+<td>cascadeFile5=file</td><td>Configuration file for first attached stream</td>
+</tr>
+</table>
+<p>
+For the cascade configuration files, the following need to be used:
+<table cellpadding="8" summary="cascade configuration">
+<tr>
+<td>videoSourceType=self</td><td>Specify self when the video frames come from the main process</td>
+</tr>
+<tr>
+<td>audioSourceType=self</td><td>Specify self when the audio frames come from the main process</td>
+</tr>
+</table>
+<P>
+<h3>Limitations</h3>
+<ul>
+<li> You can have a maximum of 5 attached processes - 1 main process and
+5 attached processes = 6 unique streams</li>
+<li>You must take special attention on choosing the main process because it 
+provides the raw data for the others. Imagine you want two streams : 640x480 
+25 frames/sec and 320x240 10 frames/sec, if you choose the second one as main
+process, you will never get 25 frames/sec in the first one.
+</li>
+</ul>
+<p>
+Please see server/mp4live/README_MULTIOUTPUT.txt for more information
+<p>
+
+ 
+<a href="#top">Back to top</a>
+<P>
+<P>
 <div id="cli">
 <h2>Command Line Options</h2>
 </div>
@@ -615,7 +694,6 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>audioInput</td><td>string</td><td>mix</td><td>Audio Input Type to use</td></tr>
 <tr align=center><td>audioChannels</td><td>int</td><td>2</td><td>Number of Encoded Audio Channels (1 or 2)</td></tr>
 <tr align=center><td>audioSampleRate</td><td>int</td><td>44100</td><td>Audio Frequency Sample Rate</td></tr>
-<tr align=center><td>audioBitRate</td><td>int</td><td>128</td><td>Encoded Audio Bit Rate (in 1000 Hz)</td></tr>
 <tr align=center><td>audioBitRateBps</td><td>int</td><td>128000</td><td>Encoded Audio Bit Rate</td></tr>
 <tr align=center><td>audioEncoding</td><td>string</td><td>MP3</td><td>Audio Encoding to use</tr>
 <tr align=center><td>audioEncoder</td><td>string</td><td>LAME</td><td>Audio Encoder to use</tr>
@@ -628,6 +706,7 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>videoDevice</td><td>string</td><td>/dev/video0</td><td>Video Device to use</tr>
 <tr align=center><td>videoInput</td><td>int</td><td>1</td><td>Video Input to use (index from V4L)</tr>
 <tr align=center><td>videoSignal</td><td>int</td><td>1</td><td>PAL-0, NTSC-1, SECAM-2</tr>
+<tr align=center><td>videoTuner</td><td>int</td><td>-1</td><td>Which tuner to use - usually 0</td></tr>
 <tr align=center><td>videoChannelListIndex</td><td>int</td><td>0</td><td>Which channel list to use for tuner<br>see video_util_tv.cpp</tr>
 <tr align=center><td>videoChannelIndex</td><td>int</td><td>1</td><td>0 based index for channel in above list</tr>
 <tr align=center><td>videoPreview</td><td>bool</td><td>true</td><td>Show Video Preview in Gui</tr>
@@ -652,15 +731,18 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>videoH261QualityAdjFrames</td><td>int</td><td>8</td><td>Number of frames to adjust H.261 Quality over</tr>
 <tr align=center><td>videoCaptureBuffersCount</td><td>int</td><td>16</td><td>Number of capture buffers to request<br>(V4L2 only)</tr>
 <tr align=center><td>videoFilter</td><td>string</td><td>none</td><td>Video filter to use (none, "deinterlace - blend", "deinterlace - decimate")</td></tr>
+<tr><th colspan=5 align=center><b>Mpeg-4 Video Options</b></tr>
+<tr align=center><td>videoMpeg4ParWidth</td><td>int</td><td>0</td><td>Mpeg-4 par width value</td>
+<tr align=center><td>videoMpeg4ParHeight</td><td>int</td><td>0</td><td>Mpeg-4 par height value</td>
 <tr><th colspan=5 align=center><b>XVID 1.0 Video Options</b></tr>
 <tr align=center><td>xvid10VideoQuality</td><td>int</td><td>6</td><td>Video Quality (0 to 6 values)</td>
 <tr align=center><td>xvid10UseGMC</td><td>bool</td><td>false</td><td>Use GMC (do not use if using Quicktime Clients</td>
 <tr align=center><td>xvid10UseQpel</td><td>bool</td><td>false</td><td>Use Quarter Pel (do not use if using Quicktime Clients</td>
 <tr align=center><td>xvid10UseLumimask</td><td>bool</td><td>false</td><td>Use XVID lumimask filter plugin</td>
+<tr align=center><td>xvid10UseInterlace</td><td>bool</td><td>false</td><td>Use XVID interlace plugin</td>
 <tr><th colspan=5 align=center><b>Recording Options</b></tr>
 <tr align=center><td>recordEnable</td><td>bool</td><td>true</td><td>True to record</tr>
 <tr align=center><td>recordRawAudio</td><td>bool</td><td>false</td><td>True to record raw audio <br>(PCM at encode frequency)</tr>
-<tr align=center><td>rawAudioFile</td><td>String</td><td>capture.pcm</td><td>File to store raw PCM</tr>
 <tr align=center><td>rawAudioUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
 <tr align=center><td>recordRawVideo</td><td>bool</td><td>false</td><td>True to record raw video <br>(YUV at height/width)</tr>
 <tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw YUV</tr>
@@ -685,6 +767,19 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>sdpFile</td><td>string</td><td>capture.sdp</td><td>Where to store sdp file describing session</tr>
 <tr align=center><td>rtpUseMp3RtpPayload14</td><td>bool</td><td>false</td><td>if true, use RTP payload 14 and 90000 timescale<br>if false, use dynamic payload and frequency timescale</tr>
 <tr align=center><td>rtpNoBRR0</td><td>bool</td><td>false</td><td>If true, do not include b=RR:0 in SDP</tr>
+<tr><th colspan=5 align=center><b>Sharing Capture Cards</b></tr>
+<tr align=center><td>rawEnable</td><td>bool</td><td>0</td><td>1 to enable sending raw data to pipes</tr>
+<tr align=center><td>rawAudioEnable</td><td>bool</td><td>0</td><td>1 to enable sending raw audio to rawAudioFile</tr>
+<tr align=center><td>rawAudioFile</td><td>String</td><td>capture.pcm</td><td>File to store raw PCM</tr>
+<tr align=center><td>rawVideoEnable</td><td>bool</td><td>0</td><td>1 to enable sending raw video to rawVideoFile</tr>
+<tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw YUV</tr>
+<tr><th colspan=5 align=center><b>Multiple Output</b></tr>
+<tr align=center><td>cascadeEnable</td><td>bool</td><td>0</td><td>1 to enable multiple output (original config file only)</tr>
+<tr align=center><td>cascadeFile1</td><td>string</td><td>NULL</td><td>configuration file to use for stream 2</tr>
+<tr align=center><td>cascadeFile2</td><td>string</td><td>NULL</td><td>configuration file to use for stream 3</tr>
+<tr align=center><td>cascadeFile3</td><td>string</td><td>NULL</td><td>configuration file to use for stream 4</tr>
+<tr align=center><td>cascadeFile4</td><td>string</td><td>NULL</td><td>configuration file to use for stream 5</tr>
+<tr align=center><td>cascadeFile5</td><td>string</td><td>NULL</td><td>configuration file to use for stream 6</tr>
 </tbody>
 </table>
 

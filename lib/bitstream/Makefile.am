@@ -3,7 +3,7 @@ libbitstream_la_SOURCES = \
 	bitstream.cpp \
 	bitstream.h
 
-EXTRA_DIST = bitstream60.dsp bitstream.xcode/project.pbxproj
+EXTRA_DIST = bitstream60.dsp 
 
 INCLUDES = -I../../include
 

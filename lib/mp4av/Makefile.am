@@ -49,5 +49,5 @@ libmp4av_la_SOURCES = \
 
 libmp4av_la_LIBADD = $(top_builddir)/lib/bitstream/libbitstream.la
 
-EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp libmp4av.xcode/project.pbxproj
+EXTRA_DIST = libmp4av.dsp libmp4av_st.dsp 
 

@@ -30,6 +30,9 @@
 #include <stdarg.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#ifdef sun
+#include <sys/sockio.h>
+#endif
 #endif
 
 #include "player_util.h"

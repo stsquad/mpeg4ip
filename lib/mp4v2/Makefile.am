@@ -135,5 +135,4 @@ EXTRA_DIST = API_CHANGES \
 	INTERNALS \
 	libmp4v260.dsp \
 	libmp4v2_st60.dsp \
-	TODO \
-	libmp4v2.xcode/project.pbxproj
+	TODO 

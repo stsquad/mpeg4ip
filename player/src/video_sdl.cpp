@@ -27,13 +27,8 @@
 #include "player_session.h"
 #include "video_sdl.h"
 #include "player_util.h"
-#ifdef _WIN32
 #include "SDL_error.h"
 #include "SDL_syswm.h"
-#else
-#include <SDL/SDL_error.h>
-#include <SDL/SDL_syswm.h>
-#endif
 #include "our_config_file.h"
 
 //#define VIDEO_SYNC_PLAY 2
@@ -202,7 +197,7 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
       video_message(LOG_INFO, "aspect ratio %g %g %d %d", 
 		    m_aspect_ratio, win_wf, win_w, win_h);
       win_wtest = (int)win_wf;
-      if (win_wtest > win_w) {
+      if (win_wtest >= win_w) {
 	win_w = win_wtest;
       } else {
 	video_message(LOG_ERR, "aspect ratio width less than orig");

@@ -178,7 +178,7 @@ char *strcasestr(const char *haystack, const char *needle);
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif
-#if !defined(HAVE_INTTYPES_H) || !defined(HAVE_STDINT_H)
+#if !defined(HAVE_INTTYPES_H) && !defined(HAVE_STDINT_H)
 #error "Don't have stdint.h or inttypes.h - no way to get uint8_t"
 #endif
 

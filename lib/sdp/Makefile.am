@@ -11,7 +11,7 @@ libsdp_la_SOURCES = \
 	sdp_util.c \
 	sdp_decode_private.h
 
-EXTRA_DIST = libsdp60.dsp libsdp.xcode/project.pbxproj
+EXTRA_DIST = libsdp60.dsp 
 
 INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/utils
 

@@ -6,7 +6,7 @@
 <body id="top">
 <h1>MP4LIVE INTERNALS</h1>
 <p>
-October, 2003
+December, 2004
 <P>
 <P>
 <b>
@@ -198,6 +198,9 @@ received media frame, and reject (free) any types that it does not want.
 <tr><td valign="top">OSS</td><td>audio_oss_source.cpp<br>
 	Acquires PCM16 audio samples from an OSS (Open Sound System) device
 </td></tr>
+<tr><td valign="top">self</td><td>loop_source.cpp<br>
+	Acquires raw YUV or PCM from main process
+</td></tr>
 </table>
 
 <P>
@@ -210,12 +213,14 @@ received media frame, and reject (free) any types that it does not want.
 Lame -&gt; MP3 - audio_lame.cpp, installed from lame version 3.92 or later
 <P>
 FAAC -&gt; AAC - audio_faac.cpp, installed from faac version 1.21 or later
+<p>
+ffmeg-&gt; Mpeg layer 2, AMR NB, AMR WB, installed from ffmpeg (0.4.7 or later)
 <P>
 Xvid -&gt; MPEG4 - video_xvid.cpp, mpeg4ip/lib/xvid, or from xvidcode 0.92 or later
 <P>
 Xvid 1.0 -&gt; MPEG4 - video_xvid10.cpp, from xvidcode 1.0RC3 or later
 <P>
-ffmpeg-&gt; MPEG4 - video_ffmpeg.cpp, installed from ffmpeg version 0.4.7 or later (see main README for installation instructions).
+ffmpeg-&gt; MPEG4, MPEG2, H263 - video_ffmpeg.cpp, installed from ffmpeg version 0.4.7 or later (see main README for installation instructions).
 <P>
 <a href="#top">Back to top</a>
 <P>

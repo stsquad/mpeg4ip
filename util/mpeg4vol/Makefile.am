@@ -15,4 +15,4 @@ mpeg4vol_LDADD = \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la 
 
-EXTRA_DIST=mpeg4vol.xcode/project.pbxproj
+EXTRA_DIST=mpeg4vol.dsp

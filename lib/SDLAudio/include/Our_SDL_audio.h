@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: Our_SDL_audio.h,v 1.4 2004/10/28 22:44:16 wmaycisco Exp $";
+ "@(#) $Id: Our_SDL_audio.h,v 1.5 2004/12/03 23:33:38 wmaycisco Exp $";
 #endif
 
 /* Access to the raw audio mixing buffer for the SDL library */
@@ -30,16 +30,9 @@ static char rcsid =
 #ifndef _OURSDL_audio_h
 #define _OURSDL_audio_h
 
-#ifdef _WIN32
 #include <SDL.h>
 #include <SDL_thread.h>
 #include <begin_code.h>
-#else
-#include <SDL/SDL.h>
-#include <SDL/SDL_thread.h>
-
-#include <SDL/begin_code.h>
-#endif
 /* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
@@ -179,9 +172,5 @@ extern DECLSPEC int Our_SDL_AudioDelay(void);
 #ifdef __cplusplus
 }
 #endif
-#ifdef _WIN32
 #include <close_code.h>
-#else
-#include <SDL/close_code.h>
-#endif
 #endif /* _SDL_audio_h */

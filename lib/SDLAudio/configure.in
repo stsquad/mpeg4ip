@@ -1270,7 +1270,8 @@ case "$target" in
         AC_MSG_RESULT(not implemented yet)
         ;;
 esac
-
+MYSDL_CFLAGS=`sdl-config --cflags`
+CFLAGS="$CFLAGS $MYSDL_CFLAGS"
 # Finally create all the generated files
 dnl Important: Any directory that you want to be in the distcheck should
 dnl            have a file listed here, so that configure generates the
