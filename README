@@ -178,9 +178,32 @@ of *nux, X11 is required.
 To date we've built on Red Hat Linux 6.1, 6.2, 7.0, 7.1, and 7.2 with
 the native compilers, and on 7.1 and 7.2 with gcc 3.0.  
 
+Windows
+-------
+
+For windows, Visual Studio 6.0 projects are included.  You will need
+to install nasm in the VC98/bin directory before compiling.  You should
+get nasm-0.98.22-win32.zip from the nasm web site.  You will need to 
+rename nasmw.exe to nasm.exe.
+
+We recommend installing DirectX 8.1 or later.  If that is not possible, 
+and you have problems with video, try uncommenting out #define OLD_SURFACE
+in player/src/video.cpp.
+
+To run mp4player other than in Visual Studio, install both mp4player.exe 
+and SDL.DLL into a directory on your Window's path (install them into
+the same directory).   You will also need to install all the plugin
+.dlls.
+
+For windows GUI player, see below section.
+
+BSD/OS
+------
 For BSD/OS, you may need a semaphore shim.  Contact Steven Schultz
 for help on that (contact information in Authors).
 
+Mac OSX
+-------
 When building on Mac OSX, you may get an error that libtoolize is
 not installed correctly.  Mac OSX comes with libtool installed as
 glibtool.  Automake (which doesn't come included with OSX) does not
@@ -194,8 +217,10 @@ bootstrap shell.  This should be done for you if you use the project
 builder project.  
 
 We've tested the latest build on OSX, and have some strange results
-at times.
+at times.  Your mileage may vary.
 
+Slackware
+---------
 When building on Slackware-8.0, you need to consider the following 
 (from maersk):
   The Slackware distribution does not as standard come with shared 
@@ -213,19 +238,8 @@ When building on Slackware-8.0, you need to consider the following
 
   Note that you need to be root to do this.
 
-
-For windows, Visual Studio 6.0 projects are included.  
-
-We recommend installing DirectX 8.1 or later.  If that is not possible, 
-and you have problems with video, try uncommenting out #define OLD_SURFACE
-in player/src/video.cpp.
-
-To run mp4player other than in Visual Studio, install both mp4player.exe 
-and SDL.DLL into a directory on your Window's path (install them into
-the same directory).  
-
-For windows GUI player, see below section.
-
+Solaris
+-------
 When building on Solaris, libtool and gnu make must be installed and
 used.  If libtool is installed, you make get a warning message that
 common libraries made with gcc less than 3.0 might have problems, 
@@ -520,7 +534,7 @@ Known Problems
   heard that a fix is available, so we're trying to track that down.
 
 * The player for windows is sketchy at best.  We have included project
-  files that should build, for both Dev Studio 5.0 and 6.0. 
+  files that should build for Dev Studio 6.0. 
 
 * We recommend installing DirectX 8.1 or later.  If that is not possible, 
   and you have problems with video, try uncommenting out #define OLD_SURFACE

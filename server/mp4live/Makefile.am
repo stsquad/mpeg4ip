@@ -48,6 +48,8 @@ mp4live_SOURCES = \
 	file_mp4_source.cpp \
 	file_mp4_recorder.h \
 	file_mp4_recorder.cpp \
+	file_raw_sink.h \
+	file_raw_sink.cpp \
 	rtp_transmitter.cpp \
 	rtp_transmitter.h \
 	sdp_file.cpp \
@@ -59,9 +61,6 @@ mp4live_SOURCES = \
 # video_dv
 # rtp_receiver
 # audio_vorbis
-
-# Note that Divx and Xvid libraries have name conflict in their putvlc.c
-# code so don't attempt to link both at once. 
 
 INCLUDES=\
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ \

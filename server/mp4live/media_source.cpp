@@ -376,7 +376,7 @@ void CMediaSource::ProcessVideoFrame(
 		// add any external drift (i.e. audio encoding drift)
 		// to our drift measurement
 		m_videoEncodingDrift += 
-			m_otherLastTotalDrift - m_otherTotalDrift;
+			m_otherTotalDrift - m_otherLastTotalDrift;
 		m_otherLastTotalDrift = m_otherTotalDrift;
 
 		// check if we are falling behind
@@ -535,8 +535,7 @@ void CMediaSource::ProcessVideoFrame(
 	}
 
 	// forward raw video to sinks
-	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)
-	  || m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
+	if (m_pConfig->SourceRawVideo()) {
 
 		if (m_videoDstPrevImage) {
 			CMediaFrame* pFrame =
@@ -723,6 +722,19 @@ void CMediaSource::ProcessAudioFrame(
 		m_startTimestamp = GetTimestamp();
 	}
 
+#ifdef NOTDEF
+	if (m_sourceRealTime) {
+		Duration drift =
+			(GetTimestamp() - m_startTimestamp) 
+			- m_audioSrcElapsedDuration
+			- m_audioSrcDrift;
+
+		if (drift > 0) {
+			m_videoSource->AddEncodingDrift(drift);
+		}
+	}
+#endif
+
 	m_audioSrcFrameNumber++;
 	m_audioSrcElapsedDuration += SamplesToTicks(frameDuration);
 
@@ -731,8 +743,6 @@ void CMediaSource::ProcessAudioFrame(
 		debug_message("TBD implement audio decoding");
 		return;
 	}
-
-	Duration encodingStartTimestamp = GetTimestamp();
 
 	bool pcmMalloced = false;
 	u_int8_t* pcmData = frameData;
@@ -765,7 +775,7 @@ void CMediaSource::ProcessAudioFrame(
 	}
 
 	// if desired, forward raw audio to sinks
-	if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
+	if (m_pConfig->SourceRawAudio()) {
 
 		// make a copy of the pcm data if needed
 		u_int8_t* pcmForwardedData;
@@ -795,16 +805,6 @@ void CMediaSource::ProcessAudioFrame(
 
 	if (pcmMalloced) {
 		free(pcmData);
-	}
-
-	if (m_sourceRealTime) {
-		Duration drift =
-			(GetTimestamp() - encodingStartTimestamp) 
-			- frameDuration;
-
-		if (drift > 0) {
-			// m_videoSource->AddEncodingDrift(drift);
-		}
 	}
 }
 

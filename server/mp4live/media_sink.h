@@ -28,6 +28,7 @@
 class CMediaSink : public CMediaNode {
 public:
 	CMediaSink() : CMediaNode() {
+		m_sink = false;
 		m_pEnqueueMutex = SDL_CreateMutex();
 		if (m_pEnqueueMutex == NULL) {
 			debug_message("EnqueueFrame CreateMutex error");
@@ -62,6 +63,7 @@ protected:
 	static const int MSG_SINK = 2048;
 	static const int MSG_SINK_FRAME = MSG_SINK + 1;
 
+	bool 		m_sink;
 	SDL_mutex*	m_pEnqueueMutex;
 };
 

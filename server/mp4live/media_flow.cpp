@@ -29,6 +29,7 @@
 #include "video_sdl_preview.h"
 #include "file_mp4_recorder.h"
 #include "rtp_transmitter.h"
+#include "file_raw_sink.h"
 
 // Generic Flow
 
@@ -104,6 +105,13 @@ void CAVMediaFlow::Start(void)
 		AddSink(m_rtpTransmitter);
 	}
 
+	if (m_pConfig->GetBoolValue(CONFIG_RAW_ENABLE)) {
+		m_rawSink = new CRawFileSink();
+		m_rawSink->SetConfig(m_pConfig);	
+		m_rawSink->StartThread();	
+		AddSink(m_rawSink);
+	}
+
 #ifndef NOGUI
 	if (m_videoPreview == NULL) {
 		m_videoPreview = new CSDLVideoPreview();
@@ -127,6 +135,9 @@ void CAVMediaFlow::Start(void)
 	}
 	if (m_rtpTransmitter) {
 		m_rtpTransmitter->Start();
+	}
+	if (m_rawSink) {
+		m_rawSink->Start();
 	}
 	
 	if (m_videoSource) {
@@ -155,6 +166,12 @@ void CAVMediaFlow::Stop(void)
 		m_rtpTransmitter->StopThread();
 		delete m_rtpTransmitter;
 		m_rtpTransmitter = NULL;
+	}
+	if (m_rawSink) {
+		RemoveSink(m_rawSink);
+		m_rawSink->StopThread();
+		delete m_rawSink;
+		m_rawSink = NULL;
 	}
 
 	bool oneSource = (m_audioSource == m_videoSource);

@@ -152,6 +152,11 @@ enum {
 	CONFIG_RTP_USE_SSM,
 	CONFIG_SDP_FILE_NAME,
 
+	CONFIG_RAW_ENABLE,
+	CONFIG_RAW_PCM_FILE_NAME,
+	CONFIG_RAW_PCM_FIFO,
+	CONFIG_RAW_YUV_FILE_NAME,
+	CONFIG_RAW_YUV_FIFO,
 };
 
 // normally this would be in a .cpp file
@@ -356,6 +361,24 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_SDP_FILE_NAME, "sdpFile", 
 		CONFIG_TYPE_STRING, "capture.sdp", },
 
+
+	// RAW sink
+
+	{ CONFIG_RAW_ENABLE, "rawEnable", 
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_RAW_PCM_FILE_NAME, "rawAudioFile", 
+		CONFIG_TYPE_STRING, "capture.pcm", },
+
+	{ CONFIG_RAW_PCM_FIFO, "rawAudioUseFifo", 
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_RAW_YUV_FILE_NAME, "rawVideoFile", 
+		CONFIG_TYPE_STRING, "capture.yuv", },
+
+	{ CONFIG_RAW_YUV_FIFO, "rawVideoUseFifo", 
+		CONFIG_TYPE_BOOL, false, },
+
 };
 #endif /* DECLARE_CONFIG_VARIABLES */
 
@@ -377,6 +400,19 @@ public:
 	bool IsOneSource();
 	bool IsFileVideoSource();
 	bool IsFileAudioSource();
+
+	bool SourceRawVideo() {
+		return (GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)
+			|| (GetBoolValue(CONFIG_RECORD_ENABLE)
+				&& GetBoolValue(CONFIG_RECORD_RAW_VIDEO))
+			|| GetBoolValue(CONFIG_RAW_ENABLE));
+	}
+
+	bool SourceRawAudio() {
+		return (GetBoolValue(CONFIG_RECORD_ENABLE)
+				&& GetBoolValue(CONFIG_RECORD_RAW_AUDIO))
+			|| GetBoolValue(CONFIG_RAW_ENABLE);
+	}
 
 public:
 	// command line configuration

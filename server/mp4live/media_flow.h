@@ -94,6 +94,7 @@ protected:
 	CMediaSink*		m_videoPreview;
 	CMediaSink*		m_mp4Recorder;
 	CMediaSink*		m_rtpTransmitter;
+	CMediaSink*		m_rawSink;
 };
 
 #endif /* __MEDIA_FLOW_H__ */

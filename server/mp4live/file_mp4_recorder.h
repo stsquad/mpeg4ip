@@ -32,7 +32,6 @@
 class CMp4Recorder : public CMediaSink {
 public:
 	CMp4Recorder() {
-		m_record = false;
 		m_mp4File = NULL;
 		m_rawAudioTrackId = MP4_INVALID_TRACK_ID;
 		m_encodedAudioTrackId = MP4_INVALID_TRACK_ID;
@@ -51,7 +50,6 @@ protected:
 	void DoWriteFrame(CMediaFrame* pFrame);
 
 protected:
-	bool			m_record;
 	bool			m_canRecordAudio;	// used for sync'ed start of A/V
 
 	char*			m_mp4FileName;

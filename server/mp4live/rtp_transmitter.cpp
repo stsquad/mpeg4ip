@@ -55,7 +55,7 @@ int CRtpTransmitter::ThreadMain(void)
 
 void CRtpTransmitter::DoStartTransmit()
 {
-	if (m_transmit) {
+	if (m_sink) {
 		return;
 	}
 
@@ -130,13 +130,13 @@ void CRtpTransmitter::DoStartTransmit()
 		// automatic sdp file generation
 		GenerateSdpFile(m_pConfig);
 
-		m_transmit = true;
+		m_sink = true;
 	}
 }
 
 void CRtpTransmitter::DoStopTransmit()
 {
-	if (!m_transmit) {
+	if (!m_sink) {
 		return;
 	}
 
@@ -152,7 +152,7 @@ void CRtpTransmitter::DoStopTransmit()
 		m_videoRtpSession = NULL;
 	}
 
-	m_transmit = false;
+	m_sink = false;
 }
 
 void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
@@ -160,7 +160,7 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 	if (pFrame == NULL) {
 		return;
 	}
-	if (!m_transmit) {
+	if (!m_sink) {
 		delete pFrame;
 		return;
 	}

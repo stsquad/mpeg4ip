@@ -1,7 +1,9 @@
 #ifndef _XVID_H_
 #define _XVID_H_
 
+#ifndef _WIN32
 #include <config.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

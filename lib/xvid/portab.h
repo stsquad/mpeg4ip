@@ -63,7 +63,7 @@ static __inline int64_t read_counter() {
 	return ts;
 }
 
-#elif defined(LINUX) || defined(__linux__) || defined(DJGPP)
+#elif defined(LINUX) || defined(__linux__) || defined(DJGPP) || defined(__bsdi__)
 
 #ifdef _DEBUG
 
@@ -86,7 +86,7 @@ static __inline int64_t read_counter() {
 
 #define CACHE_LINE  16
 
-#if defined(LINUX) || defined(__linux__)
+#if defined(LINUX) || defined(__linux__) || defined(__bsdi__)
 
 #include <stdint.h>
 

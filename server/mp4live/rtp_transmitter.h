@@ -24,13 +24,11 @@
 #define __RTP_TRANSMITTER_H__
 
 #include <rtp/rtp.h>
-
 #include "media_sink.h"
 
 class CRtpTransmitter : public CMediaSink {
 public:
 	CRtpTransmitter() {
-		m_transmit = false;
 		m_rtcpBandwidth = 100.0;
 
 		m_audioDestAddress = NULL;
@@ -131,7 +129,6 @@ protected:
 	}
 
 protected:
-	bool			m_transmit;
 	Timestamp		m_startTimestamp;
 	float			m_rtcpBandwidth;
 

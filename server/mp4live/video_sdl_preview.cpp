@@ -54,7 +54,7 @@ int CSDLVideoPreview::ThreadMain(void)
 
 void CSDLVideoPreview::DoStartPreview()
 {
-	if (m_preview) {
+	if (m_sink) {
 		return;
 	}
 
@@ -94,12 +94,12 @@ void CSDLVideoPreview::DoStartPreview()
 		m_pConfig->SetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW, false);
 	}
 
-	m_preview = true;
+	m_sink = true;
 }
 
 void CSDLVideoPreview::DoStopPreview()
 {
-	if (!m_preview) {
+	if (!m_sink) {
 		return;
 	}
 
@@ -111,7 +111,7 @@ void CSDLVideoPreview::DoStopPreview()
 
 	SDL_Quit();
 
-	m_preview = false;
+	m_sink = false;
 }
 
 void CSDLVideoPreview::DoPreviewFrame(CMediaFrame* pFrame)
@@ -120,7 +120,7 @@ void CSDLVideoPreview::DoPreviewFrame(CMediaFrame* pFrame)
 		return;
 	}
 
-	if (m_preview) {
+	if (m_sink) {
 		if ((pFrame->GetType() == CMediaFrame::YuvVideoFrame 
 		    && m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW))
 		  || (pFrame->GetType() == CMediaFrame::ReconstructYuvVideoFrame 

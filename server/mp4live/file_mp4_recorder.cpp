@@ -57,7 +57,7 @@ int CMp4Recorder::ThreadMain(void)
 
 void CMp4Recorder::DoStartRecord()
 {
-	if (m_record) {
+	if (m_sink) {
 		return;
 	}
 
@@ -218,7 +218,7 @@ void CMp4Recorder::DoStartRecord()
 		}
 	}
 
-	m_record = true;
+	m_sink = true;
 	return;
 
 start_failure:
@@ -232,7 +232,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 	if (pFrame == NULL) {
 		return;
 	}
-	if (!m_record) {
+	if (!m_sink) {
 		delete pFrame;
 		return;
 	}
@@ -320,7 +320,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 
 void CMp4Recorder::DoStopRecord()
 {
-	if (!m_record) {
+	if (!m_sink) {
 		return;
 	}
 
@@ -391,6 +391,6 @@ void CMp4Recorder::DoStopRecord()
 		MP4Optimize(m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME));
 	}
 
-	m_record = false;
+	m_sink = false;
 }
 

@@ -27,7 +27,7 @@
 class CSDLVideoPreview : public CMediaSink {
 public:
 	CSDLVideoPreview() : CMediaSink() {
-		m_preview = false;
+		m_sdlScreen = NULL;
 	}
 
 protected:
@@ -38,8 +38,6 @@ protected:
 	void DoPreviewFrame(CMediaFrame* pFrame);
 
 protected:
-	bool			m_preview;
-
 	SDL_Surface*	m_sdlScreen;
 	SDL_Rect		m_sdlScreenRect;
 	SDL_Overlay*	m_sdlImage;

@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 
 		u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
 
-		printf("Id\tType\tInfo\n");
+		printf("Track\tType\tInfo\n");
 		for (u_int32_t i = 0; i < numTracks; i++) {
 			MP4TrackId trackId = MP4FindTrackId(mp4File, i);
 

@@ -4,10 +4,11 @@ MPEG4IP original code and integration by:
     Alix Marchandise-Franquet   alix@cisco.com
 
 MPEG4IP would like to thank the following people for help in porting
-to other versions of *nux and Mac OS X:
+to other versions of *nux, windows and Mac OS X:
     Steven Schultz              sms@TO.GD-ES.COM
     sergent@io.com
     Sean Gilligan               sean_gilligan@catalla.com
+    Michael Rossberg            aziel@gmx.net
 
 Authors for incorporated open source packages can be found in the respective 
 package sub-directories. The primary authors are also listed in the README.

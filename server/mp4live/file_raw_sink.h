@@ -23,7 +23,7 @@
 #ifndef __FILE_RAW_SINK_H__
 #define __FILE_RAW_SINK_H__
 
-#include "media_node.h"
+#include "media_sink.h"
 
 class CRawFileSink : public CMediaSink {
 public:

@@ -34,10 +34,10 @@ int CRawFileSink::ThreadMain(void)
 				DoStopSink();
 				delete pMsg;
 				return 0;
-			case MSG_SINK_START:
+			case MSG_NODE_START:
 				DoStartSink();
 				break;
-			case MSG_SINK_STOP:
+			case MSG_NODE_STOP:
 				DoStopSink();
 				break;
 			case MSG_SINK_FRAME:
@@ -80,6 +80,7 @@ int CRawFileSink::OpenFile(char* fileName, bool useFifo)
 {
 	int fd = -1;
 	int openFlags = O_CREAT | O_TRUNC | O_WRONLY;
+	int mode = S_IRUSR | S_IWUSR | S_IRGRP;
 
 	if (useFifo) {
 		int rc;
@@ -89,29 +90,30 @@ int CRawFileSink::OpenFile(char* fileName, bool useFifo)
 
 		if (rc == 0) {
 			if (S_ISFIFO(stats.st_mode)) {
-				open_flags |= O_NONBLOCK;
+				openFlags = O_RDWR | O_NONBLOCK;
 			} else {
 				error_message(
 					"Warning: %s exists but is not a fifo (named pipe)\n",
 					fileName);
 			}
 		} else {
-			rc = mkfifo(fileName, S_IRUSR | S_IWUSR);
+			rc = mkfifo(fileName, mode);
 
 			if (rc != 0) {
 				error_message(
-					"Can't create fifo (named pipe) %s\n",
-					fileName);
+					"Can't create fifo (named pipe) %s: %s\n",
+					fileName, strerror(errno));
 				return -1;
 			}
-			open_flags |= O_NONBLOCK;
+			openFlags = O_RDWR | O_NONBLOCK;
 		}
 	}
 
-	fd = open(fileName, openFlags, S_IRUSR | S_IWUSR);
+	fd = open(fileName, openFlags, mode);
 
 	if (fd == -1) {
-		error_message("Failed to open %s", fileName);
+		error_message("Failed to open %s: %s", 
+			fileName, strerror(errno));
 	}
 
 	return fd;
@@ -146,7 +148,7 @@ void CRawFileSink::DoWriteFrame(CMediaFrame* pFrame)
 		  && m_pcmFile != -1) {
 			write(m_pcmFile, pFrame->GetData(), pFrame->GetDataLength());
 
-		} else if (pFrame->GetType() == CMediaFrame::RawYuvVideoFrame 
+		} else if (pFrame->GetType() == CMediaFrame::YuvVideoFrame 
 		  && m_yuvFile != -1) {
 			write(m_yuvFile, pFrame->GetData(), pFrame->GetDataLength());
 		}

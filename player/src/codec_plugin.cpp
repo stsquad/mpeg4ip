@@ -293,8 +293,8 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
   while (vptr != NULL) {
 
     if (vptr->codec->c_raw_file_check != NULL) {
-      if (config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) == 0 &&
-	  strcmp("MPEG4 ISO", vptr->codec->c_name) == 0 && 
+      if (config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) != 0 &&
+	  strcmp("MPEG4 ISO", vptr->codec->c_name) != 0 && 
 	  strcmp(".divx", name + slen - 5) == 0) {
 	vptr = vptr->next_codec;
 	continue;
@@ -305,7 +305,7 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
 					     &maxtime,
 					     desc);
       if (cifptr != NULL) {
-	player_debug_message("Found codec %s", vptr->codec->c_name);
+	player_debug_message("Found raw file codec %s", vptr->codec->c_name);
 	CPlayerMedia *mptr;
    
 	/*
