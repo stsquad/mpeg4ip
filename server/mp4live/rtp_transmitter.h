@@ -195,8 +195,12 @@ protected:
 	u_int64_t TimestampToNtp(Timestamp t) {
 		// low order ntp 32 bits is 2 ^ 32 -1 ticks per sec
 		register u_int32_t usecs = t % TimestampTicks;
-		return (((t / TimestampTicks) + SECS_BETWEEN_1900_1970) << 32)
-			| ((usecs << 12) + (usecs << 8) - ((usecs * 3650) >> 6));
+		uint64_t ret;
+
+		ret = (t / TimestampTicks) + SECS_BETWEEN_1900_1970;
+		ret <<= 32;
+		ret |= ((usecs << 12) + (usecs << 8) - ((usecs * 3650) >> 6));
+		return ret;
 	}
 
 	static void RtpCallback(struct rtp *session, rtp_event *e) {

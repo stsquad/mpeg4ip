@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.7.2)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.7.3)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -51,6 +51,7 @@ AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h)
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
+AC_SEARCH_LIBS(inet_addr, nsl)
 AC_SEARCH_LIBS(dlopen, dl libc)
 dnl Checks for typedefs, structures, and compiler characteristics.
 

@@ -36,7 +36,7 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid)
   MP4SampleId sid;
   MP4Duration time;
   uint32_t timescale;
-  double sectime;
+  double sectime, mintime, hrtime, msectime;
 
   numSamples = MP4GetTrackNumberOfSamples(mp4file, tid);
   timescale = MP4GetTrackTimeScale(mp4file, tid);
@@ -45,13 +45,21 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid)
 
   for (sid = 1; sid <= numSamples; sid++) {
     time = MP4GetSampleTime(mp4file, tid, sid);
-    sectime = time;
-    sectime /= timescale;
+    msectime = time;
+    msectime /= timescale;
 
-    printf("sampleId %6d, size %5u duration %8llu time %8llu %g\n",
+    hrtime = floor(msectime / 3600.0);
+    msectime -= hrtime * 3600.0;
+    mintime = floor(msectime / 60.0);
+    msectime -= mintime * 60.0;
+    sectime = floor(msectime);
+    msectime -= sectime;
+    char buf[12];
+    sprintf(buf, "%0.6f", msectime);
+    printf("sampleId %6d, size %5u duration %8llu time %8llu %02.f:%02.f:%02.f.%s\n",
 	  sid,  MP4GetSampleSize(mp4file, tid, sid), 
 	   MP4GetSampleDuration(mp4file, tid, sid),
-	   time, sectime);
+	   time, hrtime, mintime, sectime, buf + 2);
   }
 }
 

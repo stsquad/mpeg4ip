@@ -1,5 +1,6 @@
 lib_LTLIBRARIES = libsdp.la
 libsdp_la_LDFLAGS = -static
+libsdp_la_LIBADD = $(top_srcdir)/lib/gnu/libmpeg4ip_gnu.la
 libsdp_la_SOURCES = \
 	sdp_decode.c \
 	sdp_encode.c \

@@ -95,8 +95,9 @@ void CMp4Recorder::DoStartRecord()
  		* m_movieTimeScale;
  	bool hugeFile = 
  		(duration > 0xFFFFFFFF) 
- 		|| (m_pConfig->m_recordEstFileSize > 1000000000);
+ 		|| (m_pConfig->m_recordEstFileSize > 1000000000LLU);
  
+	debug_message("Creating huge file - %s", hugeFile ? "yes" : "no");
  	u_int32_t verbosity =
  		MP4_DETAILS_ERROR /* DEBUG | MP4_DETAILS_WRITE_ALL */;
  
@@ -371,12 +372,22 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 
 		if (doRawAudioFrame) {
 			m_rawAudioFrameNumber++;
+#if 0
 			m_rawAudioDuration += 
 				pFrame->ConvertDuration(TimestampTicks);
+#else
+			m_rawAudioDuration = pFrame->GetTimestamp() - m_movieStartTimestamp;
+			m_rawAudioDuration += pFrame->ConvertDuration(TimestampTicks);
+#endif
 		} else {
 			m_encodedAudioFrameNumber++;
+#if 0
 			m_encodedAudioDuration += 
 				pFrame->ConvertDuration(TimestampTicks);
+#else
+			m_encodedAudioDuration = pFrame->GetTimestamp() - m_movieStartTimestamp;
+			m_encodedAudioDuration += pFrame->ConvertDuration(TimestampTicks);
+#endif
 		}
 
 	} else if (pFrame->GetType() == YUVVIDEOFRAME
@@ -475,13 +486,14 @@ void CMp4Recorder::DoStopRecord()
 					      m_mp4File, 
 					      m_encodedAudioTrackId);
 		}
-
+#if 0
 		if ((m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) &&
 		    (MP4_IS_VALID_TRACK_ID(m_rawAudioTrackId))) {
 		  L16Hinter(m_mp4File, 
 			    m_rawAudioTrackId,
 			    m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
 		}
+#endif
 	}
 
 	// close the mp4 file

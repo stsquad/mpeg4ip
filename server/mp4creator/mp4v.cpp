@@ -93,7 +93,7 @@ static int LoadNextObject(FILE* inFile,
 		state = 1;
 
 	} else if (state == 5) {
-		/* EOF was reached on last call */
+	        state = 0;
 		return 0;
 
 	} else {

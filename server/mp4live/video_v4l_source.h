@@ -64,15 +64,18 @@ protected:
 
 	void ProcessVideo(void);
 
-	int8_t AcquireFrame(void);
+	int8_t AcquireFrame(Timestamp &frameTimestamp);
 
-	inline bool ReleaseFrame(int8_t frameNumber) {
-		return (ioctl(m_videoDevice, VIDIOCMCAPTURE, 
-			&m_videoFrameMap[frameNumber]) == 0);
-	}
+	bool ReleaseFrame(int8_t frameNumber);
 
 	void SetVideoAudioMute(bool mute);
 
+	Timestamp CalculateVideoTimestampFromFrames (void) {
+	  double duration = m_videoFrames;
+	  duration *= TimestampTicks;
+	  duration /= m_videoSrcFrameRate;
+	  return m_videoStartTimestamp + (Timestamp)duration;
+	}
 protected:
 	u_int8_t			m_maxPasses;
 
@@ -80,6 +83,9 @@ protected:
 	struct video_mbuf	m_videoMbuf;
 	void*				m_videoMap;
 	struct video_mmap*	m_videoFrameMap;
+	Timestamp m_videoStartTimestamp;
+	uint64_t m_videoFrames;
+	Duration m_videoSrcFrameDuration;
 	int8_t				m_captureHead;
 	int8_t				m_encodeHead;
 	float				m_videoSrcFrameRate;

@@ -1,0 +1,116 @@
+MP4Player internals
+December, 2002
+Bill May
+Cisco Systems.
+
+This will attempt to describe the internal workings of mp4player for
+those that are interested. 
+
+mp4player was intended as a mpeg4 streaming only player, but since
+we were going to handle multiple audio codecs, I made an early decision
+to support both local and streaming playback, as well as multiple 
+audio and video codecs.
+
+mp4player (and it's derivitive applications gmp4player and wmp4player)
+is broken up into 2 part - libmp4player, which contains everything
+for playback, and playback control code (for example, in gmp4player, this
+would be the GTK gui code).
+
+There are a few major concepts that need to be understood.  These are
+the concepts of a session, a media, a bytestream, and a decode plugin.
+
+Session
+-------
+A session is something that the user wants to play.  This could be
+audio only, video only, both, multiple videos with audio, whatever.
+A session is represented by the CPlayerSession class, which is the
+major structure/API of libmp4player.  The CPlayerSession class is 
+also responsible for the syncronization of the audio and video classes.
+
+Media
+-----
+Each media stream is represented by a CPlayerMedia class.  This class
+is responsible for decoding data from the bytestream and passing it to
+a sync class for buffering and rendering.  The media class really doesn't
+care too much whether it is audio or video - the majority of the code
+works for both.
+
+Bytestream
+----------
+A bytestream is the mechanism that gives the Media a frame (or a number
+of bytes) to decode, as well as a timestamp for that frame.  For example, 
+an mp4 file bytestream would read each audio or video frame from an mp4 
+container file.
+
+mp4player supports bytestreams for avi files, mp4 files, mpeg files, 
+.mov files, some raw files, and RTP.
+
+Some bytestreams need to be media aware (meaning they have to know something
+about the structure of the media inside of them).  The mpeg file and some
+of the RTP bytestreams are media aware; the mp4 container file is not.
+
+Each media will have its own bytestream.  The bytestream base class resides
+in our_bytestream.h.
+
+Decode Plugin
+-------------
+Each media must have a way to translate from the encoded data to data
+that can be rendered (in the case of video, it is YUV data - for audio, 
+it will be PCM - if you need to know what YUV or PCM is, do a web search).
+
+With this in mind, we have the concept of a decode plugin that the media
+can use to take data from the bytestream and pass it to the sync routines.
+At startup, decode plugins are detected (rather than hard linked at 
+compile time), and the proper decode plugin is detected as the media are
+created.
+
+The decode plugin takes the encoded frame from the bytestream, decode
+it and pass the raw data to the rendering buffer.
+
+Media Data Flow
+---------------
+
+The media data flow is fairly simple:
+
+bytestream -> decoder -> render buffer -> rendering
+
+Threading
+---------
+libmp4player uses multiple threads.  Whatever control is used will have
+its own thread, or multiple threads.
+
+Each media has a thread for decoding, and if it uses RTP as a bytestream, 
+has a thread for RTP packet reception (except for RTP over RTSP, which 
+will have 1 thread for all media).
+
+SDL will start a thread for audio rendering.
+
+Finally, there is a thread for syncronization of audio and video.
+
+Rendering and Syncronization
+----------------------------
+
+We use the open source package SDL for rendering - it is a multiple platform
+rendering engine for games.  We have modified it slightly to get the 
+audio latency for better syncronization.  
+
+The decode plugins will have an interface to a sync class - there are 
+both audio and video sync classes, with different interfaces.  audio.cpp
+and video.cpp contain the base classes for rendering - video_sdl.cpp and
+audio_sdl.cpp contain the SDL rendering functions.  These classes provide
+buffering for the audio and video.  If someone wanted, they could replace
+these functions with other rendering engines.
+
+Rendering is done through the CPlayerSession sync thread.  This is a
+fairly complex state machine when both audio and video is being displayed.
+It works by starting the audio rendering, then using the audio latency to 
+feedback the display time to the sync task for video rendering.  The SDL 
+audio driver uses a callback when it requires more data.  
+
+We syncronize the "display" times passed by the bytestream with the time of 
+day from the gettimeofday function.
+
+Finally
+-------
+To see the call flow to start and stop a session, you should look
+at main.cpp, function start_session().

@@ -5,6 +5,7 @@ xx/xx/xx Version 0.9.8
     Added video profile level override.
     Some help for MAC users
     Added resync marker checking in xvid decoder.
+    Added seek function in gmp4player
 
 11/22/02 Version 0.9.7
     Improved mp4creator warning messages if VOSH/VO are not included

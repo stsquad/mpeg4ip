@@ -129,6 +129,7 @@ class CRtpByteStreamBase : public COurInByteStream
   format_list_t *m_fmt;
   int m_eof;
   int m_rtpinfo_set_from_pak;
+  uint16_t m_seq_recvd;
 };
 
 class CRtpByteStream : public CRtpByteStreamBase

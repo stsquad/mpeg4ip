@@ -129,6 +129,7 @@ static int rawa_decode (codec_data_t *ptr,
 	rawa->m_temp_buff = (uint8_t *)malloc(buflen);
 	memcpy(rawa->m_temp_buff, buffer, buflen);
 	rawa->m_temp_buffsize = buflen;
+	rawa->m_ts = ts;
 	LOGIT(LOG_DEBUG, "rawaudio", "setting %d bufsize", 
 	      rawa->m_temp_buffsize);
 	return (buflen);
@@ -147,7 +148,7 @@ static int rawa_decode (codec_data_t *ptr,
 	
 	calc = 1000 *  rawa->m_temp_buffsize;
 	calc /= rawa->m_freq;
-	calc /= ts;
+	calc /= (ts - rawa->m_ts);
 	calc /= 2;
 	if (calc == 0) calc = 1;
 	LOGIT(LOG_DEBUG, "rawaudio", "Channels is %d", calc);

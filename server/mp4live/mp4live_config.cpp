@@ -140,11 +140,11 @@ void CLiveConfig::UpdateAudio()
 
 void CLiveConfig::UpdateRecord() 
 {
-	u_int32_t videoBytesPerSec = 0;
+	u_int64_t videoBytesPerSec = 0;
 
 	if (GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 		if (GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
-			videoBytesPerSec += (u_int32_t)
+			videoBytesPerSec += (u_int64_t)
 				(((m_videoWidth * m_videoHeight * 3) / 2)
 				* GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
 		}
@@ -154,7 +154,7 @@ void CLiveConfig::UpdateRecord()
 		}
 	}
 
-	u_int32_t audioBytesPerSec = 0;
+	u_int64_t audioBytesPerSec = 0;
 
 	if (GetBoolValue(CONFIG_AUDIO_ENABLE)) {
 		if (GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
@@ -169,7 +169,7 @@ void CLiveConfig::UpdateRecord()
 		}
 	}
 
-	u_int32_t duration = GetIntegerValue(CONFIG_APP_DURATION) 
+	u_int64_t duration = GetIntegerValue(CONFIG_APP_DURATION) 
 		* GetIntegerValue(CONFIG_APP_DURATION_UNITS);
 
 	m_recordEstFileSize = (u_int64_t)

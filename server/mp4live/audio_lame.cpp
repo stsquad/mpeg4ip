@@ -259,7 +259,6 @@ bool CLameAudioEncoder::EncodeSamples(
 			m_samplesPerFrame,
 			(unsigned char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
 			m_mp3FrameBufferSize - m_mp3FrameBufferLength);
-
 		if (mallocedLeft) {
 			free(pLeftBuffer);
 			pLeftBuffer = NULL;
@@ -278,8 +277,9 @@ bool CLameAudioEncoder::EncodeSamples(
 	}
 
 	m_mp3FrameBufferLength += mp3DataLength;
+	//debug_message("audio -return from lame_encode_buffer is %d %d", mp3DataLength, m_mp3FrameBufferLength);
 
-	return (mp3DataLength > 0);
+	return (mp3DataLength >= 0);
 }
 
 bool CLameAudioEncoder::GetEncodedFrame(
@@ -292,17 +292,20 @@ bool CLameAudioEncoder::GetEncodedFrame(
 
 	if (!MP4AV_Mp3GetNextFrame(m_mp3FrameBuffer, m_mp3FrameBufferLength, 
 	  &mp3Frame, &mp3FrameLength)) {
+	  //debug_message("Can't find frame header - len %d", m_mp3FrameBufferLength);
 		return false;
 	}
 
 	// check if we have all the bytes for the MP3 frame
 	if (mp3FrameLength > m_mp3FrameBufferLength) {
+	  //debug_message("Not enough in buffer - %d %d", m_mp3FrameBufferLength, mp3FrameLength);
 		return false;
 	}
 
 	// need a buffer for this MP3 frame
 	*ppBuffer = (u_int8_t*)malloc(mp3FrameLength);
 	if (*ppBuffer == NULL) {
+	  error_message("Cannot alloc memory");
 		return false;
 	}
 

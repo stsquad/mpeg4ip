@@ -125,6 +125,10 @@ int gettimeofday(struct timeval *t, void *);
 
 #else /* UNIX */
 
+#define _FILE_OFFSET_BITS 64
+#ifndef _LARGEFILE_SOURCE
+#define _LARGEFILE_SOURCE
+#endif
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>

@@ -86,7 +86,8 @@ static rtp_plugin_list_t *rtp_plugins;
 static void close_file_search (dir_list_t *ptr)
 {
 #ifndef _WIN32
-  closedir(ptr->dptr);
+  if (ptr->dptr != NULL)
+    closedir(ptr->dptr);
 #endif
 }
 /*

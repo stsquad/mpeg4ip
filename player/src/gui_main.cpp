@@ -48,7 +48,7 @@
 /* Local variables */
 static GtkWidget *main_window;
 static GtkWidget *main_vbox;
-static GtkWidget *close_menuitem;
+static GtkWidget *close_menuitem, *seek_menuitem;
 static GtkAccelGroup *accel_group = NULL;
 static GtkTooltips         *tooltips = NULL;
 static GList *playlist = NULL;
@@ -83,6 +83,8 @@ static int time_slider_pressed = 0;
 static int master_screen_size = 100;
 static const char *last_entry = NULL;
 static const gchar *last_file = NULL;
+static int doing_seek = 0;
+
 static GtkTargetEntry drop_types[] = 
 {
   { "text/plain", 0, 1 }
@@ -130,6 +132,7 @@ static void close_session (void)
     psptr = NULL;
     play_state = PLAYING_NONE;
     gtk_widget_set_sensitive(close_menuitem, 0);
+    gtk_widget_set_sensitive(seek_menuitem, 0);
     toggle_button_adjust(play_button, FALSE);
     toggle_button_adjust(pause_button, FALSE);
     toggle_button_adjust(stop_button, FALSE);
@@ -154,6 +157,7 @@ static void adjust_gui_for_play (void)
 #endif
   if (psptr->session_is_seekable()) {
     gtk_widget_set_sensitive(time_slider, 1);
+    gtk_widget_set_sensitive(seek_menuitem, 1);
   }
   play_state = PLAYING;
   toggle_button_adjust(play_button, TRUE);
@@ -244,9 +248,7 @@ static void start_session_from_name (const char *name)
     free((void *)last_entry);
   }
   last_entry = strdup(name);
-  if (!((strncmp("rtsp://", name, strlen("rtsp://")) == 0) ||
-	(strncmp("http://", name, strlen("http://")) == 0) ||
-	(strncmp("mpeg2t://", name, strlen("mpeg2t://")) == 0))) {
+  if (strstr(name, "://") == NULL) {
     if (last_file != NULL) {
       free((void *)last_file);
       last_file = NULL;
@@ -330,6 +332,129 @@ static void on_main_menu_close (GtkWidget *window, gpointer data)
   close_session();
   master_fullscreen = 0;
   SDL_mutexV(command_mutex);
+}
+
+static GtkWidget *seek_dialog;
+
+static void on_seek_destroy (GtkWidget *window, gpointer data)
+{
+  gtk_widget_destroy(window);
+  doing_seek = 0;
+}
+static void on_seek_activate (GtkWidget *window, gpointer data)
+{
+  const gchar *entry = 
+    gtk_entry_get_text(GTK_ENTRY(data));
+  double time;
+  bool good = true;
+  if (strchr(entry, ':') == NULL) {
+    if (sscanf(entry, "%lf", &time) != 1) {
+      good = false;
+    }
+  } else {
+    int hr, min;
+    hr = 0; 
+    min = 0;
+    if (sscanf(entry, "%u", &hr) == 1) {
+      entry = strchr(entry, ':') + 1;
+      if (strchr(entry, ':') == NULL) {
+	min = hr;
+	hr = 0;
+      } else {
+	if (sscanf(entry, "%u", &min) != 1) {
+	  good = false;
+	} else 
+	  entry = strchr(entry, ':') + 1;
+      }
+      if (good) {
+	if (sscanf(entry, "%lf", &time) == 1) {
+	  time += ((hr * 60) + min) * 60;
+	} else good = false;
+      }
+    } else good = false;
+  }
+	
+  if (good && psptr && time < psptr->get_max_time()) {
+    if (play_state == PLAYING) {
+      psptr->pause_all_media();
+    }
+    char errmsg[512];
+    int ret = 
+	psptr->play_all_media(time == 0.0 ? TRUE : FALSE, 
+			      time, 
+			      errmsg, 
+			      sizeof(errmsg));
+    if (ret == 0) {
+      adjust_gui_for_play();
+    }
+    if (ret != 0) {
+      char buffer[1024];
+      close_session();
+      snprintf(buffer, sizeof(buffer), "Error seeking session: %s", 
+	       errmsg);
+      ShowMessage("Play error", buffer);
+    } 
+  }
+  on_seek_destroy(seek_dialog, data);
+}
+
+static void on_seek_cancel (GtkWidget *window, gpointer data)
+{
+  on_seek_destroy(seek_dialog, data);
+}
+static void on_menu_seek (GtkWidget *window, gpointer data)
+{
+  if (master_fullscreen || doing_seek != 0) return;
+
+  seek_dialog = gtk_dialog_new();
+  gtk_signal_connect(GTK_OBJECT(seek_dialog),
+		     "destroy",
+		     GTK_SIGNAL_FUNC(on_seek_destroy),
+		     seek_dialog);
+  gtk_window_set_title(GTK_WINDOW(seek_dialog), "Seek to");
+  gtk_container_border_width(GTK_CONTAINER(seek_dialog), 5);
+
+  GtkWidget *vbox;
+  vbox = gtk_vbox_new(FALSE, 1);
+  gtk_box_pack_start(GTK_BOX(GTK_DIALOG(seek_dialog)->action_area),
+		     vbox, 
+		     TRUE, 
+		     TRUE,
+		     0);
+  gtk_widget_show(vbox);
+  GtkWidget *hbox;
+  hbox = gtk_hbox_new(FALSE, 1);
+  gtk_widget_show(hbox);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
+  GtkWidget *seek_entry;
+  seek_entry = gtk_entry_new();
+  gtk_signal_connect(GTK_OBJECT(seek_entry),
+		     "activate",
+		     GTK_SIGNAL_FUNC(on_seek_activate),
+		     seek_entry);
+  gtk_box_pack_start(GTK_BOX(hbox), seek_entry, TRUE, TRUE, 0);
+  gtk_widget_show(seek_entry);
+
+  hbox = gtk_hbox_new(FALSE, 1);
+  gtk_widget_show(hbox);
+  gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 5);
+  GtkWidget *button;
+  button = gtk_button_new_with_label("Ok");
+  gtk_signal_connect(GTK_OBJECT(button), "clicked",
+		     GTK_SIGNAL_FUNC(on_seek_activate),
+		     seek_entry);
+  gtk_box_pack_start(GTK_BOX(hbox), button, TRUE, TRUE, 0);
+  gtk_widget_show(button);
+
+  button = gtk_button_new_with_label("Cancel");
+  gtk_signal_connect(GTK_OBJECT(button), "clicked",
+		     GTK_SIGNAL_FUNC(on_seek_cancel),
+		     NULL);
+  gtk_box_pack_start(GTK_BOX(hbox), button, TRUE, TRUE, 0);
+  gtk_widget_show(button);
+ 
+  gtk_widget_show(seek_dialog);
+  doing_seek = 1;
 }
 
 static void on_main_menu_help (GtkWidget *window, gpointer data)
@@ -888,6 +1013,11 @@ static gint main_timer (gpointer raw)
 	  delete_event(NULL, 0);
 	}
 	break;
+      case SDLK_s:
+	if ((msg->mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0) {
+	  on_menu_seek(NULL, NULL);
+	}
+	break;
       case SDLK_UP:
 	master_volume += 10;
 	if (master_volume > 100) master_volume = 100;
@@ -1158,6 +1288,18 @@ printf("%s\n", *argv);
 			    "Full Screen",
 			    GTK_SIGNAL_FUNC(on_video_fullscreen),
 			    NULL);
+
+  CreateMenuItemSeperator(menu);
+  seek_menuitem = CreateMenuItem(menu, 
+				 accel_group,
+				 tooltips,
+				 "Seek",
+				 "^S",
+				 "Seek",
+				 GTK_SIGNAL_FUNC(on_menu_seek),
+				 NULL);
+  gtk_widget_set_sensitive(seek_menuitem, 0);
+  CreateMenuItemSeperator(menu);
 
   menuitem = CreateMenuCheck(menu, 
 			     "Play Audio", 

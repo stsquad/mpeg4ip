@@ -852,6 +852,12 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
     m_bytes_used = m_skip_on_advance_bytes;
     m_working_pak = m_head;
     remove_packet_rtp_queue(m_working_pak, 0);
+    if (m_seq_recvd != m_working_pak->rtp_pak_seq) {
+      rtp_message(LOG_ERR, "%s missing seq should be %d got %d", 
+		  m_name, m_seq_recvd, m_working_pak->rtp_pak_seq);
+    }
+    m_seq_recvd = m_working_pak->rtp_pak_seq + 1;
+
     *buffer = (uint8_t *)m_working_pak->rtp_data + m_bytes_used;
     *buflen = m_working_pak->rtp_data_len;
     ts = m_working_pak->rtp_pak_ts;

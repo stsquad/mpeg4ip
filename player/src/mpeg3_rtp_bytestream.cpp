@@ -26,6 +26,7 @@
 #include "mpeg3_rtp_bytestream.h"
 #include "our_config_file.h"
 //#define DEBUG_RTP_PAKS 1
+//#define DEBUG_MPEG3_RTP_TIME 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 #else
@@ -156,26 +157,21 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
 #ifdef DEBUG_RTP_PAKS
   rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif
-  if (dropped_seq) {
+  if (dropped_seq || m_have_mpeg_ip_ts == 0) {
     outts = calc_this_ts_from_future(frame_type, ts);
   } else {
-    if (m_have_prev_frame_type) {
-      if (frame_type < 3) {
-	// B frame
-	outts = ts + m_rtp_frame_add;
-      } else {
-	outts = m_prev_ts + m_rtp_frame_add;
-      }
-    } else 
-      outts = calc_this_ts_from_future(frame_type, ts);
+    if (frame_type == 3) {
+      // B frame
+      outts = ts + m_rtp_frame_add;
+    } else {
+      outts = m_mpeg_ip_ts + m_rtp_frame_add;
+      m_mpeg_ip_ts = ts;
+    }
   }
-#ifdef MPEG3_RTP_TIME
+#ifdef DEBUG_MPEG3_RTP_TIME
   rtp_message(LOG_DEBUG, "frame type %d pak ts %u out ts %u", frame_type, 
 	      ts, outts);
 #endif
-  m_have_prev_frame_type = 1;
-  m_prev_frame_type = frame_type;
-  m_prev_ts = outts;
 
   if (m_rtpinfo_set_from_pak != 0) {
     if (outts < m_rtp_base_ts) {
@@ -193,7 +189,9 @@ uint32_t CMpeg3RtpByteStream::calc_this_ts_from_future (int frame_type,
 						   uint32_t pak_ts)
 {
   int new_frame_type;
-  uint32_t outts;
+  uint32_t outts = 0;
+
+  m_have_mpeg_ip_ts = 0;
   if (frame_type >= 3) {
     // B frame - ts is always pak_ts + 1 frame time
     return pak_ts + m_rtp_frame_add;
@@ -205,22 +203,17 @@ uint32_t CMpeg3RtpByteStream::calc_this_ts_from_future (int frame_type,
   } else {
     new_frame_type = m_head->rtp_data[2] & 0x7;
     if (new_frame_type >= 3) {
+      // I/P frame followed by B frame - take the B frame's timestamp
       outts = m_head->rtp_pak_ts;
+      m_mpeg_ip_ts = pak_ts;
+      m_have_mpeg_ip_ts = 1;
     }  else if (frame_type == 2 ||
 		(frame_type == 1 && new_frame_type == 1)) {
-    // I frame followed by I frame, P frame followed by I or P frame
-      outts = pak_ts;
-    } else {
-      // I frame followed by P frame
-      rtp_packet *next_pak = end_of_pak(m_head);
-      next_pak = next_pak->rtp_next;
-      new_frame_type = next_pak->rtp_data[2] & 0x7;
-      if (new_frame_type < 3) {
-	outts = pak_ts;
-      } else {
-	outts = next_pak->rtp_pak_ts - (2 * m_rtp_frame_add);
-      }
-    }
+    // I/P frame followed by I frame, P frame followed by I or P frame
+      outts = pak_ts - (m_head->rtp_pak_ts - pak_ts);
+      m_mpeg_ip_ts = pak_ts;
+      m_have_mpeg_ip_ts = 1;
+    } 
   }
   SDL_UnlockMutex(m_rtp_packet_mutex);
   return outts;
@@ -291,7 +284,7 @@ void CMpeg3RtpByteStream::rtp_done_buffering (void)
 	// 2 consec b frames
 	q = q->rtp_next;
 	m_rtp_frame_add  = q->rtp_pak_ts - p->rtp_pak_ts;
-#ifdef MPEG3_RTP_TIME
+#ifdef DEBUG_MPEG3_RTP_TIME
 	rtp_message(LOG_DEBUG, "2 consec b frames %d", m_rtp_frame_add);
 #endif
 	SDL_UnlockMutex(m_rtp_packet_mutex);

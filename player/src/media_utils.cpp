@@ -21,7 +21,7 @@
 /*
  * media_utils.cpp - various utilities, globals (ick).
  */
-#include <stdlib.h>
+#include "systems.h"
 #include <sdp/sdp.h>
 #include <libhttp/http.h>
 #include "media_utils.h"

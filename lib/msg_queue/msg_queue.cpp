@@ -22,7 +22,6 @@
  * msg_queue.cpp - generic class to send/receive messages.  Uses SDL mutexs
  * to protect queues
  */
-#include <string.h>
 #include "msg_queue.h"
 
 /*****************************************************************************

@@ -27,7 +27,7 @@
 #include "video_v4l_source.h"
 #include "video_util_rgb.h"
 
-
+//#define DEBUG_TIMESTAMPS 1
 int CV4LVideoSource::ThreadMain(void) 
 {
 	while (true) {
@@ -256,6 +256,12 @@ bool CV4LVideoSource::InitDevice(void)
 	m_encodeHead = -1;
 	format = VIDEO_PALETTE_YUV420P;
 
+	m_videoFrames = 0;
+       m_videoSrcFrameDuration = 
+		(Duration)(((float)TimestampTicks / m_videoSrcFrameRate) + 0.5);
+#if 1
+       m_videoMbuf.frames = 2;
+#endif
 	for (int i = 0; i < m_videoMbuf.frames; i++) {
 		// initialize frame map
 		m_videoFrameMap[i].frame = i;
@@ -377,37 +383,64 @@ bool CV4LVideoSource::SetPictureControls()
 	return true;
 }
 
-int8_t CV4LVideoSource::AcquireFrame(void)
+int8_t CV4LVideoSource::AcquireFrame(Timestamp &frameTimestamp)
 {
 	int rc;
-
+	Timestamp pre, post;
+	pre = GetTimestamp();
 	rc = ioctl(m_videoDevice, VIDIOCSYNC, &m_videoFrameMap[m_captureHead]);
 	if (rc != 0) {
 		return -1;
+	}
+	post = GetTimestamp();
+
+	Duration diff = post - pre;
+
+	if (m_videoFrames == 0) {
+	  if (diff > m_videoSrcFrameDuration) {
+	    m_videoStartTimestamp = post;
+	  } else {
+	    m_videoStartTimestamp = pre;
+	  }
+	  frameTimestamp = m_videoStartTimestamp;
+	  m_videoFrames++;
+	} else {
+	  frameTimestamp = CalculateVideoTimestampFromFrames();
+
+	  if (diff > m_videoSrcFrameDuration) {
+#ifdef DEBUG_TIMESTAMPS
+	    error_message("Post read %llu %llu after pre - frame %llu pre %llu post %llu calc %llu",
+			  diff, m_videoSrcFrameDuration, m_videoFrames, pre, post, frameTimestamp);
+#endif
+	    m_videoFrames = 0;
+	  } else
+	    m_videoFrames++;
+
 	}
 
 	int8_t capturedFrame = m_captureHead;
 	m_captureHead = (m_captureHead + 1) % m_videoMbuf.frames;
 
-	if (m_captureHead == m_encodeHead) {
-		debug_message("Video capture buffer overflow");
-		return -1;
-	}
 	return capturedFrame;
+}
+bool CV4LVideoSource::ReleaseFrame(int8_t frameNumber)
+{
+  return (ioctl(m_videoDevice, VIDIOCMCAPTURE, 
+		&m_videoFrameMap[frameNumber]) == 0);
 }
 
 void CV4LVideoSource::ProcessVideo(void)
 {
 	// for efficiency, process ~1 second before returning to check for commands
+  Timestamp frameTimestamp;
 	for (int pass = 0; pass < m_maxPasses; pass++) {
 
 		// get next frame from video capture device
-		m_encodeHead = AcquireFrame();
+		m_encodeHead = AcquireFrame(frameTimestamp);
 		if (m_encodeHead == -1) {
 			continue;
 		}
 
-		Timestamp frameTimestamp = GetTimestamp();
 
 		u_int8_t* mallocedYuvImage = NULL;
 		u_int8_t* pY;
@@ -450,8 +483,9 @@ void CV4LVideoSource::ProcessVideo(void)
 		} else {
 			debug_message("Couldn't release capture buffer!");
 		}
-
-		free(mallocedYuvImage);
+		if (mallocedYuvImage != NULL) {
+		  free(mallocedYuvImage);
+		}
 	}
 }
 

@@ -465,7 +465,7 @@ static void status_start()
 		}
 
 		snprintf(buffer, sizeof(buffer), " %llu",
-			StartFileSize / 1000000);
+			StartFileSize / 1000000LLU);
 		gtk_label_set_text(GTK_LABEL(current_size), buffer);
 		gtk_widget_show(current_size);
 
@@ -474,7 +474,7 @@ static void status_start()
 
 		StopFileSize = MyConfig->m_recordEstFileSize;
 		snprintf(buffer, sizeof(buffer), " %llu",
-			StopFileSize / 1000000);
+			StopFileSize / 1000000LLU);
 		gtk_label_set_text(GTK_LABEL(final_size), buffer);
 		gtk_widget_show(final_size);
 
@@ -512,8 +512,13 @@ static gint status_timer (gpointer raw)
 
 	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
 		struct stat stats;
-		stat(MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), &stats);
-		snprintf(buffer, sizeof(buffer), " %lu", stats.st_size / 1000000);
+		if (stat(MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), &stats) == 0) {
+		  uint64_t size = stats.st_size;
+		  size /= 1000000LLU;
+		  snprintf(buffer, sizeof(buffer), " %llu", size);
+		} else {
+		  snprintf(buffer, sizeof(buffer), "BAD");
+		}
 		gtk_label_set_text(GTK_LABEL(current_size), buffer);
 		gtk_widget_show(current_size);
 	}

@@ -176,7 +176,6 @@ bool COSSAudioSource::Init(void)
 
 	// for live capture we can match the source to the destination
 	m_audioSrcSamplesPerFrame = m_audioDstSamplesPerFrame;
-
 	m_pcmFrameSize = 
 		m_audioSrcSamplesPerFrame * m_audioSrcChannels * sizeof(u_int16_t);
 
@@ -215,6 +214,11 @@ bool COSSAudioSource::InitDevice(void)
 		return false;
 	}
 
+	int enablebits;
+	// Disable the audio input until we can start it below
+	ioctl(m_audioDevice, SNDCTL_DSP_GETTRIGGER, &enablebits);
+	enablebits &= ~PCM_ENABLE_INPUT;
+	ioctl(m_audioDevice, SNDCTL_DSP_SETTRIGGER, &enablebits);
 #ifdef WORDS_BIGENDIAN
 #define OUR_FORMAT AFMT_S16_BE
 #else
@@ -257,6 +261,14 @@ void COSSAudioSource::ProcessAudio(void)
 	for (int pass = 0; pass < m_maxPasses; pass++) {
 
 		// read a frame's worth of raw PCM data
+	  if (m_audioSrcFrameNumber == 0) {
+	    m_audioStartTimestamp = GetTimestamp();
+	    int enablebits;
+	    // Now - pull the trigger, and start the audio input
+	    ioctl(m_audioDevice, SNDCTL_DSP_GETTRIGGER, &enablebits);
+	    enablebits |= PCM_ENABLE_INPUT;
+	    ioctl(m_audioDevice, SNDCTL_DSP_SETTRIGGER, &enablebits);
+	  }
 		u_int32_t bytesRead = 
 			read(m_audioDevice, m_pcmFrameBuffer, m_pcmFrameSize); 
 
@@ -267,16 +279,7 @@ void COSSAudioSource::ProcessAudio(void)
 
 		Timestamp frameTimestamp;
 
-		if (m_audioSrcFrameNumber == 0) {
-			// timestamp needs to reflect the first pcm sample
-			frameTimestamp = m_audioStartTimestamp =
-				GetTimestamp() - SrcSamplesToTicks(m_audioSrcSamplesPerFrame);
-			m_audioSrcSampleNumber = m_audioSrcSamplesPerFrame;
-		} else {
-			frameTimestamp = m_audioStartTimestamp +
-				SrcSamplesToTicks(m_audioSrcSampleNumber);
-			m_audioSrcSampleNumber += m_audioSrcSamplesPerFrame;
-		}
+		frameTimestamp = m_audioStartTimestamp + SrcSamplesToTicks(m_audioSrcSampleNumber);
 
 		ProcessAudioFrame(
 			m_pcmFrameBuffer,

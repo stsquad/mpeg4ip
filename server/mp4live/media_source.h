@@ -71,7 +71,7 @@ public:
 	virtual float GetProgress() = NULL;
 
 	virtual u_int32_t GetNumEncodedVideoFrames() {
-		return m_videoDstFrameNumber;
+		return m_videoEncodedFrames;
 	}
 
 	virtual u_int32_t GetNumEncodedAudioFrames() {
@@ -86,6 +86,15 @@ public:
 		// currently there is no thread contention
 		// for this function, so we omit a mutex
 		m_otherTotalDrift += drift;
+	}
+	void SubtractEncodingDrift(Duration drift) {
+	  if (m_otherTotalDrift > 0) {
+	    if (m_otherTotalDrift <= drift) {
+	      m_otherTotalDrift = 0;
+	    } else {
+	      m_otherTotalDrift -= drift;
+	    }
+	  }
 	}
 
 	virtual bool SetPictureControls() {
@@ -159,20 +168,17 @@ protected:
 		u_int8_t* frameData,
 		u_int32_t frameDataLength);
 
-	void ForwardEncodedAudioFrames(
-		Timestamp baseTimestamp,
-		u_int32_t* pNumSamples,
-		u_int32_t* pNumFrames);
+	void ForwardEncodedAudioFrames(void);
 
 	void DoStopAudio();
 
 	// audio utility routines
 
-	Duration SrcSamplesToTicks(u_int32_t numSamples) {
+	Duration SrcSamplesToTicks(u_int64_t numSamples) {
 		return (numSamples * TimestampTicks) / m_audioSrcSampleRate;
 	}
 
-	Duration DstSamplesToTicks(u_int32_t numSamples) {
+	Duration DstSamplesToTicks(u_int64_t numSamples) {
 		return (numSamples * TimestampTicks) / m_audioDstSampleRate;
 	}
 
@@ -184,23 +190,32 @@ protected:
 		return (duration * m_audioDstSampleRate) / TimestampTicks;
 	}
 
-	u_int32_t SrcSamplesToBytes(u_int32_t numSamples) {
+	u_int32_t SrcSamplesToBytes(u_int64_t numSamples) {
 		return (numSamples * m_audioSrcChannels * sizeof(u_int16_t));
 	}
 
-	u_int32_t DstSamplesToBytes(u_int32_t numSamples) {
+	u_int32_t DstSamplesToBytes(u_int64_t numSamples) {
 		return (numSamples * m_audioDstChannels * sizeof(u_int16_t));
 	}
 
-	u_int32_t SrcBytesToSamples(u_int32_t numBytes) {
+	u_int64_t SrcBytesToSamples(u_int32_t numBytes) {
 		return (numBytes / (m_audioSrcChannels * sizeof(u_int16_t)));
 	}
 
-	u_int32_t DstBytesToSamples(u_int32_t numBytes) {
+	u_int64_t DstBytesToSamples(u_int32_t numBytes) {
 		return (numBytes / (m_audioDstChannels * sizeof(u_int16_t)));
 	}
 
+	Duration VideoDstFramesToDuration(void) {
+	  double tempd;
+	  tempd = m_videoDstFrameNumber;
+	  tempd *= TimestampTicks;
+	  tempd /= m_videoDstFrameRate;
+	  return (Duration) tempd;
+	};
 
+	void AddGapToAudio(Timestamp startTimestamp, Duration silenceDuration);
+	  
 protected:
 	static const int MSG_SOURCE	= 2048;
 	static const int MSG_SOURCE_START_VIDEO	= MSG_SOURCE + 1;
@@ -218,7 +233,7 @@ protected:
 	bool			m_sourceAudio;
 	bool			m_sourceRealTime;
 	bool			m_sinkRealTime;
-	Timestamp		m_startTimestamp;
+	Timestamp		m_encodingStartTimestamp;
 	Duration		m_maxAheadDuration;
 
 	// video source info
@@ -242,6 +257,7 @@ protected:
 	float			m_videoDstFrameRate;
 	Duration		m_videoDstFrameDuration;
 	u_int32_t		m_videoDstFrameNumber;
+	u_int32_t               m_videoEncodedFrames;
 	u_int16_t		m_videoDstWidth;
 	u_int16_t		m_videoDstHeight;
 	float			m_videoDstAspectRatio;
@@ -267,7 +283,6 @@ protected:
 
 	// video timing info
 	Timestamp		m_videoStartTimestamp;
-	u_int32_t		m_videoSkippedFrames;
 	Duration		m_videoEncodingDrift;
 	Duration		m_videoEncodingMaxDrift;
 	Duration		m_videoSrcElapsedDuration;

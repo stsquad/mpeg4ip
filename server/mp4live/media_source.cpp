@@ -28,6 +28,9 @@
 #include "mpeg4ip_byteswap.h"
 
 //#define DEBUG_AUDIO_RESAMPLER 1
+//#define DEBUG_SYNC 1
+//#define DEBUG_SYNC_DRIFT 1
+//#define DEBUG_SYNC_DROPS 1
 CMediaSource::CMediaSource() 
 {
 	m_pSinksMutex = SDL_CreateMutex();
@@ -196,6 +199,7 @@ bool CMediaSource::InitVideo(
 	m_videoDstFrameDuration = 
 		(Duration)(((float)TimestampTicks / m_videoDstFrameRate) + 0.5);
 	m_videoDstFrameNumber = 0;
+	m_videoEncodedFrames = 0;
 	m_videoDstWidth =
 		m_pConfig->m_videoWidth;
 	m_videoDstHeight =
@@ -227,7 +231,6 @@ bool CMediaSource::InitVideo(
 #endif
 
 	m_videoWantKeyFrame = true;
-	m_videoSkippedFrames = 0;
 	m_videoEncodingDrift = 0;
 	m_videoEncodingMaxDrift = m_videoDstFrameDuration;
 	m_videoSrcElapsedDuration = 0;
@@ -334,40 +337,63 @@ void CMediaSource::ProcessVideoYUVFrame(
 	u_int16_t uvStride,
 	Timestamp srcFrameTimestamp)
 {
+  Duration temp;
 	if (m_videoSrcFrameNumber == 0) {
 		if (m_audioSrcFrameNumber == 0) {
-			m_startTimestamp = GetTimestamp();
+			m_encodingStartTimestamp = GetTimestamp();
 		}
 		m_videoStartTimestamp = srcFrameTimestamp;
 	}
 
 	m_videoSrcFrameNumber++;
-	m_videoSrcElapsedDuration = srcFrameTimestamp - m_videoStartTimestamp;
+	temp = srcFrameTimestamp - m_videoStartTimestamp;
+	if (temp <= m_videoSrcElapsedDuration) {
+#ifdef DEBUG_SYNC
+	  error_message("video duplication in source timestamp %llu %llu",
+			srcFrameTimestamp, temp);
+#endif
+	}
+	m_videoSrcElapsedDuration = temp;
 
 	// drop src frames as needed to match target frame rate
 	if (m_videoDstElapsedDuration > m_videoSrcElapsedDuration) {
+#ifdef DEBUG_SYNC
+	  debug_message("Dropping at %llu before %llu", 
+			m_videoSrcElapsedDuration, m_videoDstElapsedDuration);
+#endif
 		return;
 	}
-
 	// if we're running in real-time mode
 	if (m_sourceRealTime) {
 
 		// add any external drift (i.e. audio encoding drift)
 		// to our drift measurement
+#ifdef DEBUG_SYNC_DRIFT
+ 			debug_message("drift %llu other last %llu %llu", 
+				      m_videoEncodingDrift,
+				      m_otherLastTotalDrift, m_otherTotalDrift);
+#endif
 		m_videoEncodingDrift += 
 			m_otherTotalDrift - m_otherLastTotalDrift;
 		m_otherLastTotalDrift = m_otherTotalDrift;
 
 		// check if we are falling behind
 		if (m_videoEncodingDrift >= m_videoEncodingMaxDrift) {
-			m_videoEncodingDrift -= m_videoDstFrameDuration;
+#ifdef DEBUG_SYNC_DROPS
+			debug_message("video Skipping frame %llu due to drift", 
+				      m_videoSrcElapsedDuration);
+			debug_message("video drift is %llu max %llu", 
+				      m_videoEncodingDrift, m_videoEncodingMaxDrift);
+ 			debug_message("video other last %llu %llu", 
+				      m_otherLastTotalDrift, m_otherTotalDrift);
+#endif
 
+			m_videoEncodingDrift -= m_videoDstFrameDuration;
 			if (m_videoEncodingDrift < 0) {
 				m_videoEncodingDrift = 0;
 			}
-
-			// skip this frame			
-			m_videoSkippedFrames++;
+			m_videoDstFrameNumber++;
+			m_videoDstElapsedDuration = VideoDstFramesToDuration();
 			return;
 		}
 	}
@@ -455,32 +481,41 @@ void CMediaSource::ProcessVideoYUVFrame(
 	Timestamp dstPrevFrameTimestamp =
 		m_videoStartTimestamp + m_videoDstElapsedDuration;
 
+#ifdef DEBUG_SYNC
+	// Display this before we recalculate elapsed duration
+	debug_message("video src frame duration %llu dst %llu", 
+		      m_videoSrcElapsedDuration, m_videoDstElapsedDuration);
+#endif
 	// calculate previous frame duration
-	Duration dstPrevFrameDuration = m_videoDstFrameDuration;
-	m_videoDstElapsedDuration += m_videoDstFrameDuration;
+	Duration dstPrevFrameElapsedDuration = m_videoDstElapsedDuration;
+	m_videoEncodedFrames++;
+	m_videoDstFrameNumber++;
+	m_videoDstElapsedDuration = VideoDstFramesToDuration();
 
 	if (m_sourceRealTime && m_videoSrcFrameNumber > 0) {
 
-		// first adjust due to skipped frames
-		Duration dstPrevFrameAdjustment = 
-			m_videoSkippedFrames * m_videoDstFrameDuration;
+	  // next check our duration against real elasped time
+	  Duration lag = m_videoSrcElapsedDuration - m_videoDstElapsedDuration;
 
-		dstPrevFrameDuration += dstPrevFrameAdjustment;
-		m_videoDstElapsedDuration += dstPrevFrameAdjustment;
+	  if (lag >= m_videoDstFrameDuration) {
+	    // adjust by integral number of target duration units
+#if 1
+	    debug_message("video Lag dst %llu src %llu frames %llu", 
+			  m_videoDstElapsedDuration,
+			  m_videoSrcElapsedDuration,
+			  lag / m_videoDstFrameDuration);
+#endif
+	    m_videoDstFrameNumber += (lag / m_videoDstFrameDuration) + 1;
 
-		// next check our duration against real elasped time
-		Duration lag = m_videoSrcElapsedDuration - m_videoDstElapsedDuration;
-
-		if (lag > 0) {
-			// adjust by integral number of target duration units
-			dstPrevFrameAdjustment = 
-				(lag / m_videoDstFrameDuration) * m_videoDstFrameDuration;
-
-			dstPrevFrameDuration += dstPrevFrameAdjustment;
-			m_videoDstElapsedDuration += dstPrevFrameAdjustment;
-		}
+	    m_videoDstElapsedDuration = VideoDstFramesToDuration();
+#ifdef DEBUG_SYNC_LAG
+	  } else {
+	    debug_message("video lag is %lld %lld", lag, m_videoDstFrameDuration);
+#endif
+	  }
 	}
 
+	Duration dstPrevFrameDuration = m_videoDstElapsedDuration - dstPrevFrameElapsedDuration;
 	// forward encoded video to sinks
 	if (m_pConfig->m_videoEncode) {
 		if (m_videoDstPrevFrame) {
@@ -556,21 +591,26 @@ void CMediaSource::ProcessVideoYUVFrame(
 				+ m_videoDstYSize + m_videoDstUVSize);
 	}
 
-	m_videoDstFrameNumber++;
 
 	// calculate how we're doing versus target frame rate
 	// this is used to decide if we need to drop frames
 	if (m_sourceRealTime) {
 		// reset skipped frames
-		m_videoSkippedFrames = 0;
-
-		Duration drift =
-			(GetTimestamp() - encodingStartTimestamp) 
-			- m_videoDstFrameDuration;
-
-		if (drift > 0) {
-			m_videoEncodingDrift += drift;
+		Duration drift = GetTimestamp() - encodingStartTimestamp;
+		if (drift >= m_videoDstFrameDuration) {
+		  m_videoEncodingDrift += drift - m_videoDstFrameDuration;
+		} else {
+		  Duration diff = m_videoDstFrameDuration - drift;
+		  if (m_videoDstFrameDuration >= drift && diff < m_videoEncodingDrift) {
+		    m_videoEncodingDrift -= diff;
+		  } else {
+		    m_videoEncodingDrift = 0;
+		  }
 		}
+#if DEBUG_SYNC_DRIFT
+		debug_message("drift is %llu - dst duration is %llu total %llu",
+			     drift, m_videoDstFrameDuration, m_videoEncodingDrift);
+#endif
 	}
 
 	free(mallocedYuvImage);
@@ -625,7 +665,7 @@ bool CMediaSource::InitAudio(
 	m_sinkRealTime = m_pConfig->GetBoolValue(CONFIG_RTP_ENABLE);
 	m_audioSrcSampleNumber = 0;
 	m_audioSrcFrameNumber = 0;
-	m_videoSrcFrameNumber = 0;	// ensure video is also at zero
+	//m_videoSrcFrameNumber = 0;	// ensure video is also at zero
 
 	// audio destination info
 	m_audioDstChannels =
@@ -707,22 +747,62 @@ bool CMediaSource::SetAudioSrc(
 	return true;
 }
 
+void CMediaSource::AddGapToAudio(Timestamp startTimestamp, Duration silenceDuration)
+{
+  uint32_t samples = SrcTicksToSamples(silenceDuration);
+  uint32_t bytes = SrcSamplesToBytes(samples);
+  if (bytes > 0) {
+    error_message("Adding audio gap of %lld duration %u bytes", 
+		  silenceDuration, bytes);
+    uint8_t *pSilence = (uint8_t *)Malloc(bytes);
+
+    memset(pSilence, 0, bytes);
+    ProcessAudioFrame(pSilence, bytes, startTimestamp, false);
+    free(pSilence);
+  }
+    
+}
+
 void CMediaSource::ProcessAudioFrame(
 	u_int8_t* frameData,
 	u_int32_t frameDataLength,
 	Timestamp srcFrameTimestamp,
 	bool resync)
 {
-  //debug_message("Audio timestamp %llu", srcFrameTimestamp);
+  Duration srcStartDuration;
+  //  debug_message("audio - ts %llu bytes %d", srcFrameTimestamp, frameDataLength);
 	if (m_audioSrcFrameNumber == 0) {
 		if (m_videoSrcFrameNumber == 0) {
-			m_startTimestamp = GetTimestamp();
+		  m_encodingStartTimestamp = GetTimestamp();
 		}
 		m_audioStartTimestamp = srcFrameTimestamp;
+		m_audioSrcElapsedDuration = 0;
+	} else {
+	  Duration diff;
+	  srcStartDuration = srcFrameTimestamp - m_audioStartTimestamp;
+	  if (srcStartDuration >= m_audioSrcElapsedDuration) {
+	    diff = srcStartDuration - m_audioSrcElapsedDuration;
+	  } else {
+	    diff = m_audioSrcElapsedDuration - srcStartDuration;
+	  }
+#ifdef DEBUG_SYNC
+	  debug_message("audio dur should be %llu is %llu - diff %lld", 
+			m_audioSrcElapsedDuration, srcStartDuration, diff);
+#endif
+	  if (diff >= 2000LL) {
+	    // we have a time differential between audio frames of more
+	    // than 2 milliseconds.  This is most likely an error
+	    error_message("audio - missing audio frame found - duration %llu should be about %llu diff %llu", 
+			  srcStartDuration, m_audioSrcElapsedDuration, diff);
+	    if (srcStartDuration > m_audioSrcElapsedDuration) {
+	      AddGapToAudio(m_audioStartTimestamp + m_audioSrcElapsedDuration, diff);
+	    }
+	  }
+	  m_audioSrcElapsedDuration = srcStartDuration;
 	}
 
 	m_audioSrcFrameNumber++;
-	m_audioSrcElapsedDuration = srcFrameTimestamp - m_audioStartTimestamp;
+	m_audioSrcSampleNumber += SrcBytesToSamples(frameDataLength);
 
 	if (resync) {
 		// flush preEncodingBuffer
@@ -732,7 +812,12 @@ void CMediaSource::ProcessAudioFrame(
 		m_audioDstSampleNumber =
 		m_audioDstRawSampleNumber =
 			DstTicksToSamples(m_audioSrcElapsedDuration);
+		error_message("Received resync");
 	}
+
+	// calculate m_audioSrcElapsedDuration for end of frame - we're only looking for
+	// a plus or minus 2 msec here.
+	m_audioSrcElapsedDuration += SrcSamplesToTicks(SrcBytesToSamples(frameDataLength));
 
 	bool pcmMalloced = false;
 	bool pcmBuffered;
@@ -838,25 +923,30 @@ pcmBufferCheck:
 			(GetTimestamp() - encodingStartTimestamp);
 
 		if (m_sourceRealTime && m_videoSource) {
-			Duration drift = encodingTime 
-				- DstSamplesToTicks(DstBytesToSamples(pcmDataLength));
-
-			if (drift > 0) {
-				m_videoSource->AddEncodingDrift(drift);
-			}
+		  Duration frametime = 
+		    DstSamplesToTicks(DstBytesToSamples(pcmDataLength));
+		  Duration drift;
+		  if (frametime <= encodingTime) {
+		    drift = encodingTime - frametime;
+#ifdef DEBUG_SYNC_DRIFT
+		    debug_message("Adding %llu audio drift", drift);
+#endif
+		    m_videoSource->AddEncodingDrift(drift);
+		  } else {
+		    drift = frametime - encodingTime;
+#ifdef DEBUG_SYNC_DRIFT
+		    debug_message("Subtracting %llu audio drift", drift);
+#endif
+		    m_videoSource->SubtractEncodingDrift(drift);
+		  }
 		}
 
-		u_int32_t forwardedSamples;
-		u_int32_t forwardedFrames;
-
-		ForwardEncodedAudioFrames(
-			m_audioStartTimestamp 
-				+ DstSamplesToTicks(m_audioDstSampleNumber),
-			&forwardedSamples,
-			&forwardedFrames);
-
-		m_audioDstSampleNumber += forwardedSamples;
-		m_audioDstFrameNumber += forwardedFrames;
+		ForwardEncodedAudioFrames();
+#ifdef DEBUG_SYNC
+		Duration output = DstSamplesToTicks(m_audioDstSampleNumber);
+		debug_message("audio src duration %llu dst %llu diff %lld", 
+			      m_audioSrcElapsedDuration, output, m_audioSrcElapsedDuration - output);
+#endif
 	}
 
 	// if desired, forward raw audio to sinks
@@ -972,37 +1062,38 @@ void CMediaSource::ResampleAudio(
   } // end while we still have input samples
 }
 
-void CMediaSource::ForwardEncodedAudioFrames(
-	Timestamp baseTimestamp,
-	u_int32_t* pNumSamples,
-	u_int32_t* pNumFrames)
+void CMediaSource::ForwardEncodedAudioFrames(void)
 {
 	u_int8_t* pFrame;
 	u_int32_t frameLength;
 	u_int32_t frameNumSamples;
 
-	(*pNumSamples) = 0;
-	(*pNumFrames) = 0;
-
-	while (m_audioEncoder->GetEncodedFrame(
-	  &pFrame, &frameLength, &frameNumSamples)) {
+	while (m_audioEncoder->GetEncodedFrame(&pFrame, 
+					       &frameLength, 
+					       &frameNumSamples)) {
 
 		// sanity check
 		if (pFrame == NULL || frameLength == 0) {
 			break;
 		}
 
-		(*pNumSamples) += frameNumSamples;
-		(*pNumFrames)++;
+		// output has frame start timestamp
+		Timestamp output = DstSamplesToTicks(m_audioDstSampleNumber);
+
+		m_audioDstSampleNumber += frameNumSamples;
+		m_audioDstFrameNumber++;
 
 		// forward the encoded frame to sinks
+
+#ifdef DEBUG_SYNC
+		debug_message("audio forwarding %llu", output);
+#endif
 		CMediaFrame* pMediaFrame =
 			new CMediaFrame(
 				m_audioEncoder->GetFrameType(),
 				pFrame, 
 				frameLength,
-				baseTimestamp 
-					+ DstSamplesToTicks((*pNumSamples)),
+				m_audioStartTimestamp + output,
 				frameNumSamples,
 				m_audioDstSampleRate);
 		ForwardFrame(pMediaFrame);
@@ -1017,17 +1108,7 @@ void CMediaSource::DoStopAudio()
 
 		m_audioEncoder->EncodeSamples(NULL, 0, m_audioSrcChannels);
 
-		u_int32_t forwardedSamples;
-		u_int32_t forwardedFrames;
-
-		ForwardEncodedAudioFrames(
-			m_audioStartTimestamp
-				+ DstSamplesToTicks(m_audioDstSampleNumber),
-			&forwardedSamples,
-			&forwardedFrames);
-
-		m_audioDstSampleNumber += forwardedSamples;
-		m_audioDstFrameNumber += forwardedFrames;
+		ForwardEncodedAudioFrames();
 
 		m_audioEncoder->Stop();
 		delete m_audioEncoder;
