@@ -22,7 +22,7 @@ void	CMQ_destroy(CMQ*);
 
 int		CMQ_send_message(CMQ*, size_t msgval, unsigned char *msg,
 		   size_t msg_len, SDL_sem *sem);
-
+void player_initialize_plugins(void);
 
 /* Player session */
 #ifndef __PLAYER_SESSION_H__ /* HACK */
@@ -64,7 +64,7 @@ session_state_t
 
 /* Media utilities */
 
-int 	parse_name_for_c_session(CPS* s, const char* name, const char** errmsg);
+int 	parse_name_for_c_session(CPS* s, const char* name, char* errmsg, unsigned int len);
 
 #ifdef __cplusplus
 };

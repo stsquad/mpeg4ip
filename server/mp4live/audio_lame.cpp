@@ -78,7 +78,7 @@ static uint32_t *lame_bitrate_for_samplerate (uint32_t samplerate,
 }
 
 audio_encoder_table_t lame_audio_encoder_table =  {
-  "MP3",
+  "MP3 - lame",
   AUDIO_ENCODER_LAME,
   AUDIO_ENCODING_MP3,
   lame_sample_rates,
@@ -123,7 +123,7 @@ media_desc_t *lame_create_audio_sdp (CLiveConfig *pConfig,
   sdpMediaAudio = MALLOC_STRUCTURE(media_desc_t);
   memset(sdpMediaAudio, 0, sizeof(*sdpMediaAudio));
   sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
-			 strdup("a=mpeg4-esid:10"));
+			 "a=mpeg4-esid:10");
 
   sdpMediaAudioFormat = MALLOC_STRUCTURE(format_list_t);
   memset(sdpMediaAudioFormat, 0, sizeof(*sdpMediaAudioFormat));

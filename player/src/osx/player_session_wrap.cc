@@ -97,8 +97,14 @@ session_state_t
 	return s->p->get_session_state();
 }
 
-int 	parse_name_for_c_session(CPS* s, const char* name, const char** errmsg)
+int 	parse_name_for_c_session(CPS* s, const char* name, char* errmsg, unsigned int len)
 {
-	return parse_name_for_session(s->p, name, errmsg);
+	return parse_name_for_session(s->p, name, errmsg, len);
+}
+
+void player_initialize_plugins(void)
+{
+  extern void initialize_plugins(void);
+  initialize_plugins();
 }
 

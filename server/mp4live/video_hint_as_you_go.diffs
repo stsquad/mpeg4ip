@@ -1,0 +1,394 @@
+? .deps
+? .libs
+? Makefile
+? Makefile.in
+? a
+? audio_encoder_base.lo
+? audio_faac.lo
+? audio_lame.lo
+? audio_oss_source.lo
+? both.diffs
+? capture.sdp
+? capture.xvid
+? file_mp4_recorder.lo
+? file_raw_sink.lo
+? libmp4live.la
+? libmp4livepreview.la
+? media_flow.lo
+? media_source.lo
+? mp4live
+? mp4live_common.lo
+? mp4live_config.lo
+? preview_flow.lo
+? resample.lo
+? rtp_transmitter.lo
+? sdp_file.lo
+? util.lo
+? video_encoder_base.lo
+? video_ffmpeg.lo
+? video_h26l.lo
+? video_sdl_preview.lo
+? video_util_mpeg4.lo
+? video_util_resize.lo
+? video_util_rgb.lo
+? video_util_tv.lo
+? video_v4l2_source.lo
+? video_xvid.lo
+? gui/.deps
+? gui/.libs
+? gui/Makefile
+? gui/Makefile.in
+? gui/audio_dialog.lo
+? gui/file_utils.lo
+? gui/gui_main.lo
+? gui/gui_utils.lo
+? gui/libmp4livegui.la
+? gui/picture_dialog.lo
+? gui/recording_dialog.lo
+? gui/transmit_dialog.lo
+? gui/video_dialog.lo
+? h261/.deps
+? h261/.libs
+? h261/Makefile
+? h261/Makefile.in
+? h261/crdef.lo
+? h261/dct.lo
+? h261/encoder-h261.lo
+? h261/huffcode.lo
+? h261/libmp4live_h261.la
+Index: Makefile.am
+===================================================================
+RCS file: /vws/pan/mpeg4ip/server/mp4live/Makefile.am,v
+retrieving revision 1.65
+diff -c -w -r1.65 Makefile.am
+*** Makefile.am	10 Oct 2003 18:43:13 -0000	1.65
+--- Makefile.am	14 Oct 2003 18:23:52 -0000
+***************
+*** 34,40 ****
+    XVID_LIB=$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la
+    XVID_INC=-I$(top_srcdir)/lib/xvid
+  else
+!   XVID_LIB=-lxvidcore
+    XVID_INC=
+  endif
+  
+--- 34,40 ----
+    XVID_LIB=$(top_builddir)/lib/xvid/libmpeg4ip_xvid.la
+    XVID_INC=-I$(top_srcdir)/lib/xvid
+  else
+!   XVID_LIB=/home/wmay/xvidcore-0.9.2/build/generic/libxvidcore.a
+    XVID_INC=
+  endif
+  
+Index: file_mp4_recorder.cpp
+===================================================================
+RCS file: /vws/pan/mpeg4ip/server/mp4live/file_mp4_recorder.cpp,v
+retrieving revision 1.26
+diff -c -w -r1.26 file_mp4_recorder.cpp
+*** file_mp4_recorder.cpp	14 Oct 2003 16:02:15 -0000	1.26
+--- file_mp4_recorder.cpp	14 Oct 2003 18:23:52 -0000
+***************
+*** 94,99 ****
+--- 94,100 ----
+  
+    m_rawVideoTrackId = MP4_INVALID_TRACK_ID;
+    m_encodedVideoTrackId = MP4_INVALID_TRACK_ID;
++   m_encodedVideoHintTrackId = MP4_INVALID_TRACK_ID;
+    m_rawAudioTrackId = MP4_INVALID_TRACK_ID;
+    m_encodedAudioTrackId = MP4_INVALID_TRACK_ID;
+    m_audioTimeScale =
+***************
+*** 366,372 ****
+  /******************************************************************************
+   * Process encoded video frame
+   ******************************************************************************/
+! void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
+  {
+      // we drop encoded video frames until we get the first encoded audio frame
+      // after that we drop encoded video frames until we get the first I frame.
+--- 367,373 ----
+  /******************************************************************************
+   * Process encoded video frame
+   ******************************************************************************/
+! void CMp4Recorder::ProcessEncodedMpeg4VideoFrame (CMediaFrame *pFrame)
+  {
+      // we drop encoded video frames until we get the first encoded audio frame
+      // after that we drop encoded video frames until we get the first I frame.
+***************
+*** 402,407 ****
+--- 403,416 ----
+        m_prevEncodedVideoFrame = pFrame;
+        m_encodedVideoFrameNumber++;
+        m_encodedVideoDurationTimescale = 0;
++       m_encodedVideoHintTrackWrite = NULL;
++       if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
++ 	m_encodedVideoHintTrackId = 
++ 	  create_mp4_video_hint_track(m_pConfig,
++ 				      m_mp4File,
++ 				      m_encodedVideoTrackId,
++ 				      m_encodedVideoHintTrackWrite);
++       }
+        return; // wait until the next video frame
+      }
+  
+***************
+*** 441,446 ****
+--- 450,467 ----
+                     0,
+                     isIFrame);
+  
++     if (m_encodedVideoHintTrackWrite != NULL) {
++       (m_encodedVideoHintTrackWrite)(m_mp4File,
++ 				     m_encodedVideoHintTrackId,
++ 				     m_encodedVideoFrameNumber - 1,
++ 				     (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
++ 				     m_prevEncodedVideoFrame->GetDataLength(),
++ 				     videoDurationInTimescaleFrame,
++ 				     0,
++ 				     isIFrame,
++ 				     m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
++     }
++ 				     
+      m_encodedVideoFrameNumber++;
+      if (m_prevEncodedVideoFrame->RemoveReference()) {
+        delete m_prevEncodedVideoFrame;
+***************
+*** 577,583 ****
+    } else if (pFrame->GetType() == MPEG4VIDEOFRAME
+               && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
+  
+!     ProcessEncodedVideoFrame(pFrame);
+    } else {
+      // degenerate case
+      if (pFrame->RemoveReference()) delete pFrame;
+--- 598,604 ----
+    } else if (pFrame->GetType() == MPEG4VIDEOFRAME
+               && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
+  
+!     ProcessEncodedMpeg4VideoFrame(pFrame);
+    } else {
+      // degenerate case
+      if (pFrame->RemoveReference()) delete pFrame;
+***************
+*** 653,664 ****
+      if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_OPTIMIZE)) {
+        optimize = true;
+      }
+! 
+      if (MP4_IS_VALID_TRACK_ID(m_encodedVideoTrackId)) {
+        create_mp4_video_hint_track(m_pConfig,
+                                    m_mp4File, 
+                                    m_encodedVideoTrackId);
+      }
+  
+      if (MP4_IS_VALID_TRACK_ID(m_encodedAudioTrackId)) {
+        create_mp4_audio_hint_track(m_pConfig, 
+--- 674,686 ----
+      if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_OPTIMIZE)) {
+        optimize = true;
+      }
+! #if 0
+      if (MP4_IS_VALID_TRACK_ID(m_encodedVideoTrackId)) {
+        create_mp4_video_hint_track(m_pConfig,
+                                    m_mp4File, 
+                                    m_encodedVideoTrackId);
+      }
++ #endif
+  
+      if (MP4_IS_VALID_TRACK_ID(m_encodedAudioTrackId)) {
+        create_mp4_audio_hint_track(m_pConfig, 
+Index: file_mp4_recorder.h
+===================================================================
+RCS file: /vws/pan/mpeg4ip/server/mp4live/file_mp4_recorder.h,v
+retrieving revision 1.12
+diff -c -w -r1.12 file_mp4_recorder.h
+*** file_mp4_recorder.h	8 Oct 2003 23:27:12 -0000	1.12
+--- file_mp4_recorder.h	14 Oct 2003 18:23:52 -0000
+***************
+*** 26,31 ****
+--- 26,32 ----
+  #include <mp4.h>
+  #include <mp4av.h>
+  #include "media_sink.h"
++ #include "video_encoder.h"
+  
+  class CMp4Recorder : public CMediaSink {
+  public:
+***************
+*** 81,86 ****
+--- 82,91 ----
+    Timestamp		m_encodedVideoStartTimestamp;
+    Duration              m_encodedVideoDurationTimescale;
+    MediaType             m_encodedVideoFrameType;
++   MP4TrackId            m_encodedVideoHintTrackId;
++   mp4_write_video_hint_track_f m_encodedVideoHintTrackWrite;
++ 
++   
+  
+    MP4TrackId		m_rawAudioTrackId;
+    u_int32_t		m_rawAudioFrameNumber;
+***************
+*** 100,106 ****
+    bool                  m_canRecordEncodedVideo;
+   
+    void ProcessEncodedAudioFrame(CMediaFrame *pFrame);
+!   void ProcessEncodedVideoFrame(CMediaFrame *pFrame);
+  };
+  
+  #endif /* __FILE_MP4_RECORDER_H__ */
+--- 105,111 ----
+    bool                  m_canRecordEncodedVideo;
+   
+    void ProcessEncodedAudioFrame(CMediaFrame *pFrame);
+!   void ProcessEncodedMpeg4VideoFrame(CMediaFrame *pFrame);
+  };
+  
+  #endif /* __FILE_MP4_RECORDER_H__ */
+Index: video_encoder.cpp
+===================================================================
+RCS file: /vws/pan/mpeg4ip/server/mp4live/video_encoder.cpp,v
+retrieving revision 1.11
+diff -c -w -r1.11 video_encoder.cpp
+*** video_encoder.cpp	16 May 2003 21:05:20 -0000	1.11
+--- video_encoder.cpp	14 Oct 2003 18:23:52 -0000
+***************
+*** 61,71 ****
+  }
+  
+  
+! void create_mp4_video_hint_track (CLiveConfig *pConfig,
+  				  MP4FileHandle mp4file,
+! 				  MP4TrackId trackId)
+  {
+!   return create_mp4_video_hint_track_base(pConfig, mp4file, trackId);
+  }
+  
+  video_rtp_transmitter_f GetVideoRtpTransmitRoutine (CLiveConfig *pConfig,
+--- 61,72 ----
+  }
+  
+  
+! MP4TrackId create_mp4_video_hint_track (CLiveConfig *pConfig,
+  					MP4FileHandle mp4file,
+! 					MP4TrackId trackId,
+! 					mp4_write_video_hint_track_f &htf)
+  {
+!   return create_mp4_video_hint_track_base(pConfig, mp4file, trackId, htf);
+  }
+  
+  video_rtp_transmitter_f GetVideoRtpTransmitRoutine (CLiveConfig *pConfig,
+Index: video_encoder.h
+===================================================================
+RCS file: /vws/pan/mpeg4ip/server/mp4live/video_encoder.h,v
+retrieving revision 1.16
+diff -c -w -r1.16 video_encoder.h
+*** video_encoder.h	16 May 2003 21:05:20 -0000	1.16
+--- video_encoder.h	14 Oct 2003 18:23:52 -0000
+***************
+*** 64,73 ****
+  			       uint8_t *audioProfile,
+  			       uint8_t **audioConfig,
+  			       uint32_t *audioConfigLen);
+  
+! void create_mp4_video_hint_track(CLiveConfig *pConfig,
+  				  MP4FileHandle mp4file,
+! 				  MP4TrackId trackId);
+  
+  class CRtpDestination;
+  
+--- 64,83 ----
+  			       uint8_t *audioProfile,
+  			       uint8_t **audioConfig,
+  			       uint32_t *audioConfigLen);
++ typedef void (*mp4_write_video_hint_track_f)(MP4FileHandle mp4File,
++ 					     MP4TrackId hintTrackId,
++ 					     MP4SampleId sampleId,
++ 					     uint8_t *pSampleBuffer,
++ 					     uint32_t sampleSize,
++ 					     MP4Duration duration,
++ 					     MP4Duration renderingOffset,
++ 					     bool isSyncSample,
++ 					     uint16_t maxPayloadSize);
+  
+! MP4TrackId create_mp4_video_hint_track(CLiveConfig *pConfig,
+  				       MP4FileHandle mp4file,
+! 				       MP4TrackId trackId,
+! 				       mp4_write_video_hint_track_f &htf);
+  
+  class CRtpDestination;
+  
+Index: video_encoder_base.cpp
+===================================================================
+RCS file: /vws/pan/mpeg4ip/server/mp4live/video_encoder_base.cpp,v
+retrieving revision 1.5
+diff -c -w -r1.5 video_encoder_base.cpp
+*** video_encoder_base.cpp	14 Oct 2003 16:02:15 -0000	1.5
+--- video_encoder_base.cpp	14 Oct 2003 18:23:52 -0000
+***************
+*** 164,180 ****
+  }
+  
+  
+! void create_mp4_video_hint_track_base (CLiveConfig *pConfig,
+  				       MP4FileHandle mp4file,
+! 				       MP4TrackId trackId)
+  {
+    const char *encodingName = pConfig->GetStringValue(CONFIG_VIDEO_ENCODING);
+  
+    if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG4)) {
+!     MP4AV_Rfc3016Hinter(mp4file, 
+! 			trackId,
+! 			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+    }
+  }
+  
+  static void H261SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
+--- 164,182 ----
+  }
+  
+  
+! MP4TrackId create_mp4_video_hint_track_base (CLiveConfig *pConfig,
+  					     MP4FileHandle mp4file,
+! 					     MP4TrackId trackId,
+! 					     mp4_write_video_hint_track_f &htf)
+  {
+    const char *encodingName = pConfig->GetStringValue(CONFIG_VIDEO_ENCODING);
+  
+    if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG4)) {
+!     htf = MP4AV_Rfc3016_HintAddSample;
+!     return MP4AV_Rfc3016_HintTrackCreate(mp4file,
+! 					 trackId);
+    }
++   return MP4_INVALID_TRACK_ID;
+  }
+  
+  static void H261SendVideo (CMediaFrame *pFrame, CRtpDestination *list,
+Index: video_encoder_base.h
+===================================================================
+RCS file: /vws/pan/mpeg4ip/server/mp4live/video_encoder_base.h,v
+retrieving revision 1.2
+diff -c -w -r1.2 video_encoder_base.h
+*** video_encoder_base.h	16 May 2003 21:05:20 -0000	1.2
+--- video_encoder_base.h	14 Oct 2003 18:23:52 -0000
+***************
+*** 45,53 ****
+  				    uint8_t **audioConfig,
+  				    uint32_t *audioConfigLen);
+  
+! void create_mp4_video_hint_track_base(CLiveConfig *pConfig,
+  				      MP4FileHandle mp4file,
+! 				      MP4TrackId trackId);
+  
+  
+  video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CLiveConfig *pConfig,
+--- 45,54 ----
+  				    uint8_t **audioConfig,
+  				    uint32_t *audioConfigLen);
+  
+! MP4TrackId create_mp4_video_hint_track_base(CLiveConfig *pConfig,
+  					    MP4FileHandle mp4file,
+! 					    MP4TrackId trackId,
+! 					    mp4_write_video_hint_track_f &htf);
+  
+  
+  video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CLiveConfig *pConfig,

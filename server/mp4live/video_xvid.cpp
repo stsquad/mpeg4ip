@@ -145,6 +145,7 @@ bool CXvidVideoEncoder::EncodeImage(
 	if (xvid_encore(m_xvidHandle, XVID_ENC_ENCODE, &m_xvidFrame, 
 	  &m_xvidResult) != XVID_ERR_OK) {
 		debug_message("Xvid can't encode frame!");
+		CHECK_AND_FREE(m_vopBuffer);
 		return false;
 	}
 
@@ -190,7 +191,8 @@ bool CXvidVideoEncoder::GetReconstructedImage(
 
 void CXvidVideoEncoder::Stop()
 {
-	xvid_encore(m_xvidHandle, XVID_ENC_DESTROY, NULL, NULL);
-	m_xvidHandle = NULL;
+  CHECK_AND_FREE(m_vopBuffer);
+  xvid_encore(m_xvidHandle, XVID_ENC_DESTROY, NULL, NULL);
+  m_xvidHandle = NULL;
 }
 

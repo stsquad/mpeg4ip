@@ -93,11 +93,11 @@ inet_pton4(src, dst)
 
 		if ((pch = (char *) strchr(digits, ch)) != NULL) {
 		  unsigned int temp = *tp * 10 + (pch - digits);
-
+uint8_t newv;
 			if (temp > 255)
 				return (0);
-			uint8_t new = (uint8_t) temp;
-			*tp = new;
+			newv = (uint8_t) temp;
+			*tp = newv;
 			if (! saw_digit) {
 				if (++octets > 4)
 					return (0);

@@ -73,6 +73,11 @@ public:
 
 	virtual ~CAVMediaFlow() {
 		Stop();
+		if (m_videoSource != NULL) {
+		  m_videoSource->StopThread();
+		  delete m_videoSource;
+		  m_videoSource = NULL;
+		}
 	}
 
 	void Start(void);

@@ -3,8 +3,210 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 34;
+	objectVersion = 38;
 	objects = {
+		4A3745BB0528B400003608A1 = {
+			isa = PBXFileReference;
+			name = libmsg_queue.a;
+			path = lib/msg_queue/.libs/libmsg_queue.a;
+			refType = 4;
+		};
+		4A3745BC0528B400003608A1 = {
+			fileRef = 4A3745BB0528B400003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4A3745C20528B6DF003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4syncbase.a;
+			path = player/src/.libs/libmp4syncbase.a;
+			refType = 4;
+		};
+		4A3745C30528B6DF003608A1 = {
+			fileRef = 4A3745C20528B6DF003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4A3745C40528B744003608A1 = {
+			isa = PBXFileReference;
+			name = libconfig_file.a;
+			path = lib/config_file/.libs/libconfig_file.a;
+			refType = 4;
+		};
+		4A3745C50528B744003608A1 = {
+			fileRef = 4A3745C40528B744003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4A82771405336C28003608A1 = {
+			isa = PBXFileReference;
+			name = "libstdc++.a";
+			path = "/usr/lib/libstdc++.a";
+			refType = 0;
+		};
+		4A82771505336C28003608A1 = {
+			fileRef = 4A82771405336C28003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA000528A8C1003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4player.a;
+			path = player/src/.libs/libmp4player.a;
+			refType = 4;
+		};
+		4AD5DA010528A8C1003608A1 = {
+			fileRef = 4AD5DA000528A8C1003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA2D0528AB08003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4syncbase.a;
+			path = player/src/.libs/libmp4syncbase.a;
+			refType = 4;
+		};
+		4AD5DA2F0528AB18003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4syncsdl.a;
+			path = player/src/.libs/libmp4syncsdl.a;
+			refType = 4;
+		};
+		4AD5DA300528AB18003608A1 = {
+			fileRef = 4AD5DA2F0528AB18003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA310528AB30003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4playerutils.a;
+			path = player/src/.libs/libmp4playerutils.a;
+			refType = 4;
+		};
+		4AD5DA320528AB30003608A1 = {
+			fileRef = 4AD5DA310528AB30003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA330528AC30003608A1 = {
+			isa = PBXFileReference;
+			name = libSDL.a;
+			path = lib/SDL/src/.libs/libSDL.a;
+			refType = 4;
+		};
+		4AD5DA340528AC30003608A1 = {
+			fileRef = 4AD5DA330528AC30003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA350528AC91003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4syncbase.a;
+			path = player/src/.libs/libmp4syncbase.a;
+			refType = 4;
+		};
+		4AD5DA3E0528ADD2003608A1 = {
+			isa = PBXFileReference;
+			name = libhttp.a;
+			path = player/lib/libhttp/.libs/libhttp.a;
+			refType = 4;
+		};
+		4AD5DA3F0528ADD2003608A1 = {
+			fileRef = 4AD5DA3E0528ADD2003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA400528AE44003608A1 = {
+			isa = PBXFileReference;
+			name = libsdp.a;
+			path = lib/sdp/.libs/libsdp.a;
+			refType = 4;
+		};
+		4AD5DA410528AE44003608A1 = {
+			fileRef = 4AD5DA400528AE44003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA420528AE88003608A1 = {
+			isa = PBXFileReference;
+			name = libdl.a;
+			path = /sw/lib/libdl.a;
+			refType = 0;
+		};
+		4AD5DA430528AE88003608A1 = {
+			fileRef = 4AD5DA420528AE88003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA440528AF01003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4v2.a;
+			path = lib/mp4v2/.libs/libmp4v2.a;
+			refType = 4;
+		};
+		4AD5DA450528AF01003608A1 = {
+			fileRef = 4AD5DA440528AF01003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA4B0528AF78003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4util.a;
+			path = player/lib/mp4util/.libs/libmp4util.a;
+			refType = 4;
+		};
+		4AD5DA4C0528AF78003608A1 = {
+			fileRef = 4AD5DA4B0528AF78003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA4D0528AFCF003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4.a;
+			path = lib/mp4/.libs/libmp4.a;
+			refType = 4;
+		};
+		4AD5DA4E0528AFCF003608A1 = {
+			fileRef = 4AD5DA4D0528AFCF003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		4AD5DA4F0528B04B003608A1 = {
+			isa = PBXFileReference;
+			name = libmp4av.a;
+			path = lib/mp4av/.libs/libmp4av.a;
+			refType = 4;
+		};
+		4AD5DA500528B04B003608A1 = {
+			fileRef = 4AD5DA4F0528B04B003608A1;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+//4A0
+//4A1
+//4A2
+//4A3
+//4A4
+//540
+//541
+//542
+//543
+//544
 		54EE26120174FC597F000001 = {
 			children = (
 				54EE27050175099F7F000001,
@@ -26,12 +228,6 @@
 			isa = PBXFileReference;
 			path = libmp4v2.a;
 			refType = 4;
-		};
-		54EE27070175099F7F000001 = {
-			fileRef = 54EE27060175099F7F000001;
-			isa = PBXBuildFile;
-			settings = {
-			};
 		};
 //540
 //541
@@ -266,72 +462,6 @@
 			path = libobj_vtc_ztq.a;
 			refType = 4;
 		};
-		F50A1A5B0152C08701927C4D = {
-			fileRef = F50A16E70152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1A7A0152C08701927C4D = {
-			fileRef = F50A177F0152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1A7D0152C08701927C4D = {
-			fileRef = F50A17970152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1A890152C08701927C4D = {
-			fileRef = F50A17DC0152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1A8F0152C08701927C4D = {
-			fileRef = F50A18020152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1A900152C08701927C4D = {
-			fileRef = F50A18040152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1A910152C08701927C4D = {
-			fileRef = F50A18060152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1A9D0152C08701927C4D = {
-			fileRef = F50A183F0152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1AA50152C08701927C4D = {
-			fileRef = F50A18690152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1AAB0152C08701927C4D = {
-			fileRef = F50A188B0152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1AB40152C08701927C4D = {
-			fileRef = F50A18BB0152C08701927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		F50A1AB50152C1AA01927C4D = {
 			children = (
 				F50A1AB60152C1AA01927C4D,
@@ -352,12 +482,6 @@
 			isa = PBXFileReference;
 			path = libobj_sys_encoder.a;
 			refType = 4;
-		};
-		F50A1AB80152C1AA01927C4D = {
-			fileRef = F50A1AB70152C1AA01927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
 		};
 		F50A1ABF0152CA5D01927C4D = {
 			isa = PBXFileReference;
@@ -384,18 +508,6 @@
 			isa = PBXFileReference;
 			path = libhttp.a;
 			refType = 4;
-		};
-		F50A1AC30152CA5D01927C4D = {
-			fileRef = F50A1ABF0152CA5D01927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F50A1AC40152CA5D01927C4D = {
-			fileRef = F50A1AC20152CA5D01927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
 		};
 		F5E43B8C01A73F4701FE0166 = {
 			children = (
@@ -433,6 +545,7 @@
 			buildStyles = (
 				F5E8C8B201459E3201927C4D,
 			);
+			hasScannedForEncodings = 1;
 			isa = PBXProject;
 			mainGroup = F5E8C8A701459D8901927C4D;
 			productRefGroup = F5E8C8A801459DCE01927C4D;
@@ -480,7 +593,7 @@
 			);
 			buildSettings = {
 				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/player/src\" \"$(SRCROOT)/common/video/mpeg4\" \"$(SRCROOT)/player/src/codec\" \"$(SRCROOT)/player/src/codec/mpeg4\" \"$(SRCROOT)/player/lib\" \"$(SRCROOT)/player/lib/audio\" \"$(SRCROOT)/lib/SDL/include\" \"$(SRCROOT)/lib/mp4\" \"$(SRCROOT)/include\" \"$(SRCROOT)/lib/avi\" \"$(SRCROOT)/lib\" \"$(SRCROOT)\"";
-				LIBRARY_SEARCH_PATHS = "lib/SDL/src/.libs player/src/.libs player/src/codec/aa/.libs player/src/codec/mp3/.libs player/src/codec/divx/.libs player/src/codec/mpeg4/.libs player/src/codec/wav/.libs player/lib/audio/faad/.libs player/lib/audio/mp3/.libs player/lib/rtsp/.libs player/lib/video/divx/.libs lib/bitstream/.libs lib/config_file/.libs lib/mp4/.libs lib/msg_queue/.libs lib/rtp lib/sdp/.libs /usr/lib/gcc/darwin/2.95.2 lib/avi/.libs lib/SDL/src/.libs common/video/mpeg4/sys/decoder/.libs common/video/mpeg4/sys/encoder/.libs common/video/mpeg4/sys/.libs common/video/mpeg4/tools/entropy/.libs common/video/mpeg4/type/.libs common/video/mpeg4/vtc/main/.libs common/video/mpeg4/vtc/pezw/.libs common/video/mpeg4/vtc/wavelet/.libs common/video/mpeg4/vtc/zte/.libs common/video/mpeg4/vtc/ztq/.libs player/lib/libhttp/.libs lib/mp4v2/.libs lib/rtp lib/rtp/.libs";
+				LIBRARY_SEARCH_PATHS = "lib/SDL/src/.libs player/src/.libs player/src/codec/aa/.libs player/src/codec/mp3/.libs player/src/codec/mpeg4/.libs player/src/codec/wav/.libs player/lib/audio/faad/.libs player/lib/audio/mp3/.libs player/lib/rtsp/.libs lib/bitstream/.libs lib/config_file/.libs lib/mp4/.libs lib/msg_queue/.libs lib/rtp lib/sdp/.libs /usr/lib/gcc/darwin/default lib/avi/.libs lib/SDL/src/.libs lib/mp4v2/.libs lib/rtp lib/rtp/.libs /mpeg/mpeg4ip-0.9.9/player/src/.libs /sw/lib /mpeg/mpeg4ip-0.9.9/lib/SDL/src/.libs /mpeg/mpeg4ip-0.9.9/player/lib/libhttp/.libs /mpeg/mpeg4ip-0.9.9/lib/sdp/.libs /mpeg/mpeg4ip-0.9.9/lib/mp4v2/.libs /mpeg/mpeg4ip-0.9.9/player/lib/mp4util/.libs /mpeg/mpeg4ip-0.9.9/lib/mp4/.libs /mpeg/mpeg4ip-0.9.9/lib/mp4av/.libs /mpeg/mpeg4ip-0.9.9/lib/msg_queue/.libs /mpeg/mpeg4ip-0.9.9/lib/config_file/.libs /usr/lib/gcc/darwin/3.1";
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				OTHER_REZFLAGS = "";
@@ -498,8 +611,8 @@
 			productName = player;
 			productReference = F5E8C8A901459DCE01927C4D;
 			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<!DOCTYPE plist SYSTEM \"file://localhost/System/Library/DTDs/PropertyList.dtd\">
-<plist version=\"0.9\">
+<!DOCTYPE plist PUBLIC \"-//Apple Computer//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+<plist version=\"1.0\">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
@@ -530,7 +643,6 @@
 </dict>
 </plist>
 ";
-			shouldUseHeadermap = 0;
 		};
 		F5E8C8AB01459DCE01927C4D = {
 			buildActionMask = 2147483647;
@@ -540,7 +652,7 @@
 				F5E8C8C40145A1E901927C4D,
 			);
 			isa = PBXHeadersBuildPhase;
-			name = Headers;
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F5E8C8AC01459DCE01927C4D = {
 			buildActionMask = 2147483647;
@@ -549,7 +661,7 @@
 				F5E8D72F0145B57001927C4D,
 			);
 			isa = PBXResourcesBuildPhase;
-			name = "Bundle Resources";
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F5E8C8AD01459DCE01927C4D = {
 			buildActionMask = 2147483647;
@@ -559,59 +671,40 @@
 				F5E8C8C70145A1E901927C4D,
 			);
 			isa = PBXSourcesBuildPhase;
-			name = Sources;
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F5E8C8AE01459DCE01927C4D = {
 			buildActionMask = 2147483647;
 			files = (
+				4AD5DA010528A8C1003608A1,
+				4A3745C50528B744003608A1,
+				4AD5DA300528AB18003608A1,
+				4AD5DA320528AB30003608A1,
+				4AD5DA340528AC30003608A1,
+				4AD5DA3F0528ADD2003608A1,
+				4AD5DA410528AE44003608A1,
+				4AD5DA450528AF01003608A1,
+				4AD5DA4C0528AF78003608A1,
+				4A3745C30528B6DF003608A1,
+				4AD5DA4E0528AFCF003608A1,
+				4AD5DA500528B04B003608A1,
+				4A3745BC0528B400003608A1,
 				F5E8D3110145AE2B01927C4D,
 				F5E8D3130145AE3801927C4D,
-				F5E8D3170145AE7401927C4D,
-				F5E8D3CB0145AEE601927C4D,
-				F5E8D3D00145AEE601927C4D,
-				F5E8D3D30145AEE601927C4D,
-				F5E8D3D60145AEE601927C4D,
-				F5E8D3D90145AEE601927C4D,
-				F5E8D6D70145B04301927C4D,
-				F5E8D6EA0145B04301927C4D,
-				F5E8D6F80145B04301927C4D,
-				F5E8D6FD0145B04301927C4D,
-				F5E8D7200145B22F01927C4D,
-				F5E8D7210145B22F01927C4D,
-				F5E8D7220145B22F01927C4D,
-				F5E8D7230145B22F01927C4D,
-				F5E8D7250145B22F01927C4D,
-				F5E8D7280145B2C001927C4D,
-				F5E8D72B0145B41101927C4D,
-				F5E8D30F0145AE0B01927C4D,
-				F50A1A5B0152C08701927C4D,
-				F50A1A7A0152C08701927C4D,
-				F50A1A7D0152C08701927C4D,
-				F50A1A890152C08701927C4D,
-				F50A1A8F0152C08701927C4D,
-				F50A1A900152C08701927C4D,
-				F50A1A910152C08701927C4D,
-				F50A1A9D0152C08701927C4D,
-				F50A1AA50152C08701927C4D,
-				F50A1AAB0152C08701927C4D,
-				F50A1AB40152C08701927C4D,
-				F50A1AB80152C1AA01927C4D,
-				F50A1AC30152CA5D01927C4D,
-				F50A1AC40152CA5D01927C4D,
-				54EE27070175099F7F000001,
 				F5E43B9D01A7507301FE0166,
 				F5E43B9E01A7507301FE0166,
-				F67D1EA4022ACFEB01476132,
+				4AD5DA430528AE88003608A1,
+				4A82771505336C28003608A1,
 			);
 			isa = PBXFrameworksBuildPhase;
-			name = "Frameworks & Libraries";
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F5E8C8AF01459DCE01927C4D = {
 			buildActionMask = 2147483647;
 			files = (
 			);
 			isa = PBXRezBuildPhase;
-			name = "ResourceManager Resources";
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F5E8C8B201459E3201927C4D = {
 			buildRules = (
@@ -634,31 +727,37 @@
 			};
 		};
 		F5E8C8BC0145A1E901927C4D = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = MP4PlayerController.h;
 			refType = 4;
 		};
 		F5E8C8BD0145A1E901927C4D = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = MP4PlayerController.m;
 			refType = 4;
 		};
 		F5E8C8BE0145A1E901927C4D = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = player_session_wrap.cc;
 			refType = 4;
 		};
 		F5E8C8BF0145A1E901927C4D = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = player_session_wrap.h;
 			refType = 4;
 		};
 		F5E8C8C00145A1E901927C4D = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = SDLMain.h;
 			refType = 4;
 		};
 		F5E8C8C10145A1E901927C4D = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = SDLMain.m;
 			refType = 4;
@@ -706,9 +805,9 @@
 			generatedFileNames = (
 			);
 			isa = PBXShellScriptBuildPhase;
-			name = "Shell Script";
 			neededFileNames = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "cp lib/avi/.libs/libavi.al lib/avi/.libs/libavi.a\nranlib lib/avi/.libs/libavi.a";
 		};
@@ -766,12 +865,6 @@
 			path = player;
 			refType = 2;
 		};
-		F5E8D30F0145AE0B01927C4D = {
-			fileRef = F5E8D2D20145A8CD01927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		F5E8D3100145AE2B01927C4D = {
 			isa = PBXFrameworkReference;
 			name = Cocoa.framework;
@@ -820,12 +913,6 @@
 			isa = PBXFileReference;
 			path = libmp4player.a;
 			refType = 4;
-		};
-		F5E8D3170145AE7401927C4D = {
-			fileRef = F5E8D3160145AE7401927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
 		};
 		F5E8D3180145AEE601927C4D = {
 			children = (
@@ -944,36 +1031,6 @@
 			path = libourwav.a;
 			refType = 4;
 		};
-		F5E8D3CB0145AEE601927C4D = {
-			fileRef = F5E8D32B0145AEE601927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D3D00145AEE601927C4D = {
-			fileRef = F5E8D3420145AEE601927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D3D30145AEE601927C4D = {
-			fileRef = F5E8D3550145AEE601927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D3D60145AEE601927C4D = {
-			fileRef = F5E8D3680145AEE601927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D3D90145AEE601927C4D = {
-			fileRef = F5E8D37B0145AEE601927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		F5E8D3DC0145AF7101927C4D = {
 			children = (
 				F5E8D3DD0145AF7101927C4D,
@@ -1003,6 +1060,7 @@
 			refType = 4;
 		};
 		F5E8D3DF0145AF7101927C4D = {
+			fileEncoding = 30;
 			isa = PBXExecutableFileReference;
 			path = cpptocc.sh;
 			refType = 4;
@@ -1119,30 +1177,6 @@
 			path = libourdivx.a;
 			refType = 4;
 		};
-		F5E8D6D70145B04301927C4D = {
-			fileRef = F5E8D4D70145B04301927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D6EA0145B04301927C4D = {
-			fileRef = F5E8D5270145B04301927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D6F80145B04301927C4D = {
-			fileRef = F5E8D5740145B04301927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D6FD0145B04301927C4D = {
-			fileRef = F5E8D5B90145B04301927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		F5E8D70C0145B22F01927C4D = {
 			children = (
 				F5E8D7290145B3E001927C4D,
@@ -1256,36 +1290,6 @@
 			path = libsdp.a;
 			refType = 4;
 		};
-		F5E8D7200145B22F01927C4D = {
-			fileRef = F5E8D7130145B22F01927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D7210145B22F01927C4D = {
-			fileRef = F5E8D7160145B22F01927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D7220145B22F01927C4D = {
-			fileRef = F5E8D71E0145B22F01927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D7230145B22F01927C4D = {
-			fileRef = F5E8D7100145B22F01927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		F5E8D7250145B22F01927C4D = {
-			fileRef = F5E8D7190145B22F01927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		F5E8D7260145B2C001927C4D = {
 			children = (
 				F5E8C8BA0145A10101927C4D,
@@ -1300,18 +1304,6 @@
 			path = osx;
 			refType = 4;
 		};
-		F5E8D7270145B2C001927C4D = {
-			isa = PBXFileReference;
-			name = "libstdc++.a";
-			path = "/usr/lib/gcc/darwin/2.95.2/libstdc++.a";
-			refType = 0;
-		};
-		F5E8D7280145B2C001927C4D = {
-			fileRef = F5E8D7270145B2C001927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		F5E8D7290145B3E001927C4D = {
 			children = (
 				F5E8D72A0145B41101927C4D,
@@ -1325,12 +1317,6 @@
 			path = libavi.a;
 			refType = 4;
 		};
-		F5E8D72B0145B41101927C4D = {
-			fileRef = F5E8D72A0145B41101927C4D;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		F5E8D72D0145B57001927C4D = {
 			children = (
 				F5E8D72E0145B57001927C4D,
@@ -1341,6 +1327,7 @@
 			refType = 4;
 		};
 		F5E8D72E0145B57001927C4D = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
 			name = English;
 			path = InfoPlist.strings;
@@ -1353,17 +1340,34 @@
 			};
 		};
 		F5E8D7340145D1BB01927C4D = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
 			path = sync.cpp;
 			refType = 4;
 		};
 		F5E8D7380145D49401927C4D = {
 			children = (
+				4AD5DA000528A8C1003608A1,
+				4AD5DA2D0528AB08003608A1,
+				4AD5DA2F0528AB18003608A1,
+				4AD5DA400528AE44003608A1,
+				4AD5DA310528AB30003608A1,
+				4AD5DA350528AC91003608A1,
+				4AD5DA3E0528ADD2003608A1,
+				4AD5DA330528AC30003608A1,
+				4AD5DA420528AE88003608A1,
+				4A3745BB0528B400003608A1,
+				4AD5DA4F0528B04B003608A1,
 				F5E8D3100145AE2B01927C4D,
 				F5E8D3120145AE3801927C4D,
-				F5E8D7270145B2C001927C4D,
 				F5E43B9B01A7507301FE0166,
+				4AD5DA4B0528AF78003608A1,
 				F5E43B9C01A7507301FE0166,
+				4A3745C20528B6DF003608A1,
+				4AD5DA440528AF01003608A1,
+				4A3745C40528B744003608A1,
+				4AD5DA4D0528AFCF003608A1,
+				4A82771405336C28003608A1,
 			);
 			isa = PBXGroup;
 			name = Frameworks;
@@ -1403,11 +1407,11 @@
 			);
 			isa = PBXLegacyTarget;
 			name = mpeg4ip;
+			passBuildSettingsInEnvironment = 1;
 			productName = mpeg4ip;
 			settingsToExpand = 6;
 			settingsToPassInEnvironment = 287;
 			settingsToPassOnCommandLine = 280;
-			shouldUseHeadermap = 0;
 		};
 		F5E8D73D0145D63801927C4D = {
 			isa = PBXTargetDependency;
@@ -1433,7 +1437,6 @@
 			productInstallPath = /usr/local/bin;
 			productName = Untitled;
 			productReference = F5E8D73A0145D63801927C4D;
-			shouldUseHeadermap = 0;
 		};
 		F5E8D73F0145D63801927C4D = {
 			buildActionMask = 2147483647;
@@ -1442,11 +1445,11 @@
 			generatedFileNames = (
 			);
 			isa = PBXShellScriptBuildPhase;
-			name = "Shell Script";
 			neededFileNames = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "PATH=/sw/bin:$PATH\nexport PATH\n\n[ -f .bootstrapped ] || ./bootstrap --disable-shared || exit 1\ntouch .bootstrapped";
+			shellScript = "PATH=/sw/bin:$PATH\nexport PATH\nexport CFLAGS='-g -fno-common -I/sw/include'\nexport CXXFLAGS='-g -fno-common -I/sw/include'\nexport CPPFLAGS='-g -fno-common -I/sw/include'\n\n[ -f .bootstrapped ] || (./bootstrap --disable-server && patch -p0 --forward <../patch.OSX) || exit 1\ntouch .bootstrapped";
 		};
 		F5EF51B50152B7EE01927C4D = {
 			isa = PBXTargetDependency;
@@ -1467,12 +1470,6 @@
 			name = libuclmmbase.a;
 			path = .libs/libuclmmbase.a;
 			refType = 4;
-		};
-		F67D1EA4022ACFEB01476132 = {
-			fileRef = F67D1EA3022ACFEB01476132;
-			isa = PBXBuildFile;
-			settings = {
-			};
 		};
 	};
 	rootObject = F5E8C8A601459D8901927C4D;

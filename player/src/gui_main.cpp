@@ -1380,7 +1380,7 @@ printf("%s\n", *argv);
   int value = config.get_config_value(CONFIG_ASPECT_RATIO);
   set_aspect_ratio(value);
   aspectratio[0] = CreateMenuRadio(videosub,
-				   "Aspect Ration Auto",
+				   "Aspect Ratio Auto",
 				   &aspectratiolist,
 				   GTK_SIGNAL_FUNC(on_aspect_ratio),
 				   GINT_TO_POINTER(0));
@@ -1398,12 +1398,12 @@ printf("%s\n", *argv);
 				   "1.85 Letterbox",
 				   &aspectratiolist,
 				   GTK_SIGNAL_FUNC(on_aspect_ratio),
-				   GINT_TO_POINTER(2));
+				   GINT_TO_POINTER(3));
   aspectratio[4] = CreateMenuRadio(videosub,
 				   "2.35 Letterbox",
 				   &aspectratiolist,
 				   GTK_SIGNAL_FUNC(on_aspect_ratio),
-				   GINT_TO_POINTER(2));
+				   GINT_TO_POINTER(4));
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(aspectratio[value]), TRUE);
   CreateMenuItemSeperator(menu);
 

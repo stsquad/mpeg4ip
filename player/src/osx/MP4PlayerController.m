@@ -128,7 +128,7 @@
 - (void)doOpen
 {
     int result;
-    char* errmsg;
+    char errbuf[200];
 
     if (!master_queue)
         master_queue = new_CMQ();
@@ -137,11 +137,10 @@
         
     player = new_CPS(master_queue, master_sem, "MPEG-4 Player");
 
-    result = parse_name_for_c_session(player, [filename lossyCString], &errmsg);
+    result = parse_name_for_c_session(player, [filename lossyCString], errbuf, sizeof errbuf);
     if (result < 0) {
-		NSString* errstr = [NSString stringWithCString:errmsg];
-        NSLog(@"Name parse failed: %s", errmsg);
-        CPS_destroy(player);
+        NSString* errstr = [NSString stringWithCString:errbuf];
+        NSLog(@"Name parse failed: %s", errbuf);        CPS_destroy(player);
         NSRunAlertPanel(@"Cannot open file", errstr, nil, nil, nil);
         return;
     }

@@ -358,8 +358,10 @@ void CMediaSource::ProcessVideoYUVFrame(
   // destination gets ahead of source
   // drop src frames as needed to match target frame rate
   if (m_videoSrcElapsedDuration + m_videoDstFrameDuration < m_videoDstElapsedDuration) {
+#ifdef DEBUG_VIDEO_SYNC
     debug_message("video: dropping frame, SrcElapsedDuration=%llu DstElapsedDuration=%llu",
                   m_videoSrcElapsedDuration, m_videoDstElapsedDuration);
+#endif
     return;
   }
 
@@ -1025,6 +1027,13 @@ void CMediaSource::ResampleAudio(
   } // end while we still have input samples
 }
 
+#if 0
+static void free_audio (void *ifp)
+{
+  error_message("freeing %p", ifp);
+  free(ifp);
+}
+#endif
 void CMediaSource::ForwardEncodedAudioFrames(void)
 {
   u_int8_t* pFrame;
@@ -1064,7 +1073,9 @@ void CMediaSource::ForwardEncodedAudioFrames(void)
 		      m_audioStartTimestamp + output,
 		      frameNumSamples,
 		      m_audioDstSampleRate);
-
+#if 0
+    pMediaFrame->SetMediaFreeFunction(free_audio);
+#endif
     ForwardFrame(pMediaFrame);
   }
 }

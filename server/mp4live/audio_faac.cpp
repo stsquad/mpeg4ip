@@ -47,7 +47,7 @@ static uint32_t *faac_bitrates_for_samplerate (uint32_t samplerate,
 }
 
 audio_encoder_table_t faac_audio_encoder_table = {
-  "AAC", 
+  "AAC - FAAC", 
   AUDIO_ENCODER_FAAC,
   AUDIO_ENCODING_AAC,
   samplingRateAllValues,
@@ -96,7 +96,7 @@ media_desc_t *faac_create_audio_sdp (CLiveConfig *pConfig,
   memset(sdpMediaAudio, 0, sizeof(*sdpMediaAudio));
 
   sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
-			 strdup("a=mpeg4-esid:10"));
+			 "a=mpeg4-esid:10");
   sdpMediaAudioFormat = MALLOC_STRUCTURE(format_list_t);
   memset(sdpMediaAudioFormat, 0, sizeof(*sdpMediaAudioFormat));
 
@@ -278,11 +278,10 @@ bool CFaacAudioEncoder::EncodeSamples(
   bool inputBufferMalloced = false;
 
   // free old AAC buffer, just in case, should already be NULL
-  free(m_aacFrameBuffer);
+ CHECK_AND_FREE(m_aacFrameBuffer);
 
   // allocate the AAC buffer
   m_aacFrameBuffer = (u_int8_t*)Malloc(m_aacFrameMaxSize);
-
   // check for channel mismatch between src and dst
   if (numChannels != m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)) {
     if (numChannels == 1) {
@@ -336,6 +335,10 @@ bool CFaacAudioEncoder::GetEncodedFrame(
                                         u_int32_t* pBufferLength,
                                         u_int32_t* pNumSamplesPerChannel)
 {
+  if (m_aacFrameBufferLength == 0 && m_aacFrameBuffer) {
+    free(m_aacFrameBuffer);
+    m_aacFrameBuffer = NULL;
+  }
   *ppBuffer = m_aacFrameBuffer;
   *pBufferLength = m_aacFrameBufferLength;
   *pNumSamplesPerChannel = m_samplesPerFrame;
@@ -350,5 +353,6 @@ void CFaacAudioEncoder::Stop()
 {
   faacEncClose(m_faacHandle);
   m_faacHandle = NULL;
+  CHECK_AND_FREE(m_aacFrameBuffer);
 }
 

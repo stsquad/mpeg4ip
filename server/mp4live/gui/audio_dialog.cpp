@@ -639,8 +639,10 @@ void CreateAudioDialog (void)
 	  MyConfig->GetStringValue(CONFIG_AUDIO_ENCODER);
 	for (uint32_t ix = 0; ix < audio_encoder_table_size; ix++) {
 	  encodingNames[ix] = strdup(audio_encoder_table[ix]->dialog_selection_name);
-	  if (strcasecmp(audioEncoder, 
-			 audio_encoder_table[ix]->audio_encoder) == 0) {
+	  if ((strcasecmp(audioEncoder, 
+			 audio_encoder_table[ix]->audio_encoder) == 0) &&
+	      (strcasecmp(MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING), 
+			  audio_encoder_table[ix]->audio_encoding) == 0)) {
 	    encodingIndex = ix;
 	  }
 	}

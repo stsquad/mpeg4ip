@@ -178,8 +178,10 @@ void CLiveConfig::UpdateRecord()
 	u_int64_t duration = GetIntegerValue(CONFIG_APP_DURATION) 
 		* GetIntegerValue(CONFIG_APP_DURATION_UNITS);
 
-	m_recordEstFileSize = (u_int64_t)
-		((double)((videoBytesPerSec + audioBytesPerSec) * duration) * 1.025);
+	m_recordEstFileSize = (u_int64_t)videoBytesPerSec + audioBytesPerSec;
+	m_recordEstFileSize *= duration;
+	m_recordEstFileSize *= 1025;
+	m_recordEstFileSize /= 1000;
 }
 
 bool CLiveConfig::IsOneSource()

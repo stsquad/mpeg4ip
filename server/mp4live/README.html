@@ -10,6 +10,7 @@ Bill May<br>
 <font face="Arial" color="#0000FF">
 <b>
 <a href="#mp4live">MP4LIVE</a><br>
+<a href="#0.9.10">Changes in Version 0.9.10</a><br>
 <a href="#0.9.9">Changes in Version 0.9.9</a><br>
 <a href="#0.9.8">Changes in Version 0.9.8</a><br>
 <a href="#0.9.7">Changes in Version 0.9.7</a><br>
@@ -47,6 +48,15 @@ enhancements, ask questions, etc. The URL is
 <b>Do not contact us via email</b>
 <P>
 <a href="#top">Back to top</a>
+<P>
+<a name="0.9.10">
+<b><font color="#0000FF">Changes in Version 0.9.10</font></b>
+<p>
+Support for V4L2 drivers (recommended)<br>
+Fixed long term audio/video sync problems in transmission and file recording<br>
+Updated faac encoder to use packaged faac<br>
+Updated to enable ffmpeg encoder<br>
+Updated to allow use of packaged XVID encoder<br>
 <P> 
 <a name="0.9.9">
 <b><font color="#0000FF">Changes in Version 0.9.9</font></b>
@@ -98,11 +108,14 @@ at greater than 15 fps, but I have a no-name clone with a 800 MHz PIII that
 can encode CIF @ 24 fps no problem.
 <P>
 RAM is not typically an issue. I develop on machines with 128 MB, but I believe much smaller configurations would work fine. The real issue is CPU speed.
+We recommend at least 256Mb.
 <P>
-A sound card with an OSS compatible driver and capture ability.
+A sound card with an OSS compatible driver and capture ability, preferrably 
+at least 3.8.2 that have the SNDCTL_DSP_GETERROR define, and that support
+the SNDCTRL_DSP_GETISPACE ioctl accurately.
 <P>
 A video device with a video4linux (v4l) compatible driver and memory mapped 
-capture ability.
+capture ability.  We also support (and recommend) the video4linux2 (v4l2) driver.
 <P>
 Known to work are:
 	Video capture cards based on the Brooktree 8x8 chip
@@ -126,13 +139,15 @@ threaded video encoder would certainly provide an interesting challenge.
 <a name="soft">
 <b><font color="#0000FF">Software Requirements</font></b>
 <P>
-Linux with a 2.4 or later kernel
-	(My development was done on RedHat 7.X)
+Linux with a 2.4 or later kernel.<br>
+We recommend a kernel with V4L2 built in.  See the instructions on
+<a href="Building_mpeg4ip_with_V4L2_support.html">building it yourself</a>
 <P>
 Drivers for sound and video devices
 <P>
 	bttv 0.7 or later video capture driver
 		(Included with RedHat 7.1 and later)
+        (0.9 required for v4l2)<br>
 	qce webcam driver
 
 <P>
@@ -152,9 +167,9 @@ specific.
 <P>
 By far the easiest route is to use a Linux distribution that already has a
 2.4 kernel, the bttv driver, and the associated i2c module built into it.
-I've hacked kernels before, and I'm not sure I could sucessfully follow the 
-instructions in the bttv driver as to how to configure a kernel so that it 
-would work. Caveat emptor!
+However, this will not get you good long term audio and video lip sync.  See
+the <a href="Building_mpeg4ip_with_V4L2_support.html">instructions</a> on
+how to build your own kernel with V4L2 included. 
 <P>
 I've had many headaches with sound cards under Linux. Before you start using 
 mp4live, please make sure you're able to playback and record with your sound 
@@ -167,7 +182,7 @@ by editting /etc/modules.conf and adding the line
 "add options bttv gbuffers=32"
 at the end of the file. The value 32 is my recommendation but you can 
 experiment with other values if you are so inclined.
-
+<br>Note: with v4l2, we're not sure if this is required any more.
 <P>
 <a href="#top">Back to top</a>
 <P>
@@ -184,8 +199,8 @@ If you're capturing large video image sizes, then you may be able to boost
 the encoded video frame rate by disabling video preview.  In general, once
 you've got the system working, disabling preview is a good idea.
 <P>
-The AAC audio encoder is noticeably slower than the MP3 audio encoder so 
-you will see lower video frame rates and greater sensitivity to CPU load 
+The AAC audio encoder is somewhat slower than the MP3 audio encoder so 
+you may see lower video frame rates and greater sensitivity to CPU load 
 if you are using AAC.
 <P>
 Linux supports the POSIX soft real-time extensions and mp4live will attempt
@@ -196,7 +211,8 @@ want to run mp4live as root for this reason.
 If you have the latest version of OSS, you have a chance of detecting
 audio overruns.  That, in combination with the latest version and
 working on a fast machine will give fairly good lip syncronization up to
-about the hour mark running 90% of the CPU.
+about the hour mark running 90% of the CPU with V4L.  With V4L2, we've
+had good audio and video sync out beyond 500 hours in our lab.
 <P>
 <a href="#top">Back to top</a>
 <P>
@@ -210,7 +226,6 @@ you're on a Linux system then mp4live should be built and waiting for you
 in this directory. If you've done a top level 'make install', the mp4live
 will be installed into '/usr/local/bin'. Of course, you can also issue 
 'make' and 'make install' from this directory as well.
-
 <P>
 <a href="#top">Back to top</a>
 <P>
@@ -252,7 +267,8 @@ The default is to assume that the video driver is going to capture close
 to the correct frame rate of 29.97 for NTSC, 25 for PAL.  If you don't 
 think that this is working quite right, try the "videoTimestampCache=0"
 to the .mp4live_rc before you start.  (This may be the case with usb
-web cams, but most likely not regular capture cards).
+web cams, but most likely not regular capture cards).  Note: this is
+for v4l users only.
 
 <P>
 <a href="#top">Back to top</a>
@@ -260,8 +276,6 @@ web cams, but most likely not regular capture cards).
 <a name="qt">
 <b><font color="#0000FF">Use with QT 6.0 and Real One</font></b>
 <P>
-
-
 It is possible to create content for QT 6.0 and Real One with the 
 Envivio plug in.  You must create with the audio encoding set to 
 AAC for both of these.  
@@ -434,8 +448,9 @@ is a big problem for you, there is a configuration option to disable the
 hinting process, "recordMp4HintTracks=0". The mp4 file can always be hinted
 later with the mp4creator utility.
 <P>
-We know that the audio and video goes out of sync.  This is due to 
-deficiencies in the drivers (video for linux, OSS) that we are using.
+The audio and video should be in sync if you're using the latest tools
+(V4L2 and the latest OSS driver).  If you're not, you will have problems
+in long term (usually an hour or so).
 <P>
 The current audio/video synchronization algorithm in the MP4 File Recorder
 starts by dropping video frames until an audio frame is loaded. It then
@@ -451,12 +466,6 @@ is already running in the preview (if turned on), the file recorder receives
 a bunch of video frames before the first audio frame propagates to the
 file recorder. Given this, the above algorithm seems to be a resonable
 solution.
-<P>
-We've made fixes so that the latest OSS drivers will help (the ones with
-SNDCTL_DSP_GETERROR defined), and the Video for Linux 2 driver would help, 
-but we can't figure out how to install that driver on our machine.  If you're
-in the San Jose area and can help, come on by.
-
 <P>
 <a href="#top">Back to top</a>
 <P>

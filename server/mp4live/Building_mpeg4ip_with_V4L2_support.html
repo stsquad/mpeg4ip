@@ -12,6 +12,7 @@
 </div>
 <h2>A. Redhat Linux 9 Installation</h2>
 This section only applies if you setting up a machine from scratch.<br>
+If not, go <a href="#build1">here</a>
 <br>
 Pick the <span style="font-style: italic;">custom install</span>
 option.<br>
@@ -127,10 +128,11 @@ and <code>lame-devel-3.93.1-fr2.i386.rpm</code>.<br>
     </code></li>
   <li><code>rpm -ivh lame*</code></li>
 </ol>
+<a name="build1">
 <h2>B. Build a Custom Kernel</h2>
 The instructions are given in <a
  href="http://www.redhat.com/docs/manuals/linux/RHL-9-Manual/custom-guide/ch-custom-kernel.html">Redhat
-Linux 9 Customization Guide</a>.<br>
+Linux 9 Customization Guide</a>. You must have the kernel source installed before continuing<br>
 <ol>
   <li>Open a terminal.</li>
   <li><code>su -</code></li>
@@ -149,7 +151,7 @@ click <span style="font-style: italic;">Save and Exit</span>.</li>
   <li><code>reboot</code></li>
 </ol>
 <h2>C. Install V4L2</h2>
-V4L2 is work in progress. So far, I've only gotten the 20030717 CVS
+V4L2 is a work in progress. So far, I've only gotten the 20030717 CVS
 snapshot to work.<br>
 <ol>
   <li>Download <code><a href="v4l2-20030717.tar.gz">v4l2-20030717.tar.gz</a></code>
@@ -202,7 +204,7 @@ The original V4L2 and bttv drivers are installed in
 /lib/modules/2.4.20-8custom/kernel/drivers/media/video.<br>
 <br>
 <span style="font-weight: bold;">modprobe</span> is a program which
-loads/unloads <span style="font-style: italic;">loadbale kernel modules</span>
+loads/unloads <span style="font-style: italic;">loadable kernel modules</span>
 (LKMs). By default, modprobe searches for an LKM in /lib/modules/boot
 before looking in /lib/modules/2.4.20-8custom. This can be verified by
 using the '<code>modprobe -c</code>' command. modprobe also uses
@@ -223,6 +225,7 @@ The following steps do that:<br>
 and its dependencies.<br>
   </li>
 </ol>
+Do a find to make sure that you've overwritten all bttv.o files.
 <h2>F. Testing the Installation</h2>
 <ul>
   <li><code>su -</code></li>

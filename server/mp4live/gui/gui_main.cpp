@@ -127,7 +127,10 @@ static u_int64_t StopFileSize;
  */
 static void delete_event (GtkWidget *widget, gpointer *data)
 {
-	gtk_main_quit();
+  // stop the flow (which gets rid of the preview, before we gtk_main_quit
+  AVFlow->Stop();
+  delete AVFlow;
+  gtk_main_quit();
 }
 
 void NewVideoWindow()
@@ -205,8 +208,9 @@ void DisplayAudioSettings(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(audio_enabled_button),
 		MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE));
   
-	snprintf(buffer, sizeof(buffer), " %s at %u bps",
+	snprintf(buffer, sizeof(buffer), " %s(%s) at %u bps",
 		 MyConfig->GetStringValue(CONFIG_AUDIO_ENCODING),
+		 MyConfig->GetStringValue(CONFIG_AUDIO_ENCODER),
 		MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE));
 	gtk_label_set_text(GTK_LABEL(audio_settings_label1), buffer);
 	gtk_widget_show(audio_settings_label1);
@@ -1441,9 +1445,6 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 	}
 
 	gtk_main();
-
-	delete AVFlow;
-
 	return 0;
 }
 

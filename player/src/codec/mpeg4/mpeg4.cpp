@@ -22,15 +22,14 @@
  * mpeg4.cpp - implementation with ISO reference codec
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdlib.h>
+
 #include "codec_plugin.h"
+#if 0
 #ifdef _WIN32
 #include <windows.h>
 #include <mmsystem.h>
 #endif // __PC_COMPILER_
+#endif
 
 #include <type/typeapi.h>
 #include <sys/mode.hpp>
@@ -55,7 +54,7 @@
 static const char *mp4iso = "mp4iso";
 
 // Convert a hex character to it's decimal value.
-static char tohex (char a)
+static uint8_t tohex (char a)
 { 
   if (isdigit(a))
     return (a - '0');
@@ -70,7 +69,7 @@ static int parse_vovod (iso_decode_t *iso,
 			int ascii,
 			uint32_t len)
 {
-  unsigned char buffer[255];
+  uint8_t buffer[255];
   unsigned char *bufptr;
 
   if (ascii == 1) {
@@ -90,7 +89,7 @@ static int parse_vovod (iso_decode_t *iso,
     // make sure we have even number of digits to convert to binary
     if ((len % 2) == 1) 
       return 0;
-    unsigned char *write;
+    uint8_t *write;
     write = buffer;
     // Convert the config= from ascii to binary
     for (uint32_t ix = 0; ix < len; ix++) {

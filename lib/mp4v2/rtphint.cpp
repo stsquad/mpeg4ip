@@ -1183,6 +1183,7 @@ void MP4RtpSampleData::SetEmbeddedImmediate(MP4SampleId sampleId,
 	((MP4Integer16Property*)m_pProperties[2])->SetValue(dataLength);
 	((MP4Integer32Property*)m_pProperties[3])->SetValue(sampleId);
 	((MP4Integer32Property*)m_pProperties[4])->SetValue(0); 
+	CHECK_AND_FREE(m_pRefData);
 	m_pRefData = pData;
 }
 

@@ -159,7 +159,7 @@ rtp_packet *CPluginRtpByteStream::get_next_pak (rtp_packet *current,
   if (current == NULL) current = m_head;
   else current = current->rtp_next;
 
-  if (remove) {
+  if (remove && current) {
     set_last_seq(current->rtp_pak_seq);
     remove_packet_rtp_queue(current, 0);
   }

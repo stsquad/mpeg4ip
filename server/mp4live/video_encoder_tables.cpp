@@ -59,7 +59,11 @@ static  char* mpeg4SizeNames[] = {
 
 const video_encoder_table_t video_encoder_table[] = {
   { 
-    "Mpeg4 - xvid",
+#ifdef HAVE_XVID_H
+    "Mpeg4 - xvid release",
+#else
+    "Mpeg4 - xvid mpeg4ip",
+#endif
     VIDEO_ENCODING_MPEG4,
     VIDEO_ENCODER_XVID,
     MPEG4_SIZES - 2, // can't use last 2 sizes

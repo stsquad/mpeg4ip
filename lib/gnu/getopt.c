@@ -108,7 +108,9 @@
    the argument value is returned here.
    Also, when `ordering' is RETURN_IN_ORDER,
    each non-option ARGV-element is returned here.  */
-
+#ifdef DARWIN
+extern
+#endif
 char *optarg;
 
 /* Index in ARGV of the next element to be scanned.

@@ -67,6 +67,7 @@ class COSSAudioSource : public CMediaSource {
   unsigned int  m_index;
   u_int8_t*     m_pcmFrameBuffer;
   u_int32_t     m_pcmFrameSize;
+  uint32_t      m_channelsConfigured;
 };
 
 

@@ -233,6 +233,7 @@ bool COSSAudioSource::InitDevice(void)
   rc = ioctl(m_audioDevice, SNDCTL_DSP_SETFMT, &format);
   if (rc < 0 || format != OUR_FORMAT) {
     error_message("Couldn't set format for %s", deviceName);
+    close(m_audioDevice);
     return false;
   }
 
@@ -241,6 +242,7 @@ bool COSSAudioSource::InitDevice(void)
   if (rc < 0 
       || channels != m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)) {
     error_message("Couldn't set audio channels for %s", deviceName);
+    close(m_audioDevice);
     return false;
   }
 
@@ -252,6 +254,7 @@ bool COSSAudioSource::InitDevice(void)
 
   if (rc < 0 || abs(samplingRate - targetSamplingRate) > 1) {
     error_message("Couldn't set sampling rate for %s", deviceName);
+    close(m_audioDevice);
     return false;
   }
 
@@ -273,6 +276,7 @@ bool COSSAudioSource::InitDevice(void)
     rc = ioctl(m_audioDevice, SNDCTL_DSP_SETFRAGMENT, &bufcfg);
     if (rc) {
       error_message("Error - could not set OSS Input fragment size %d", rc);
+      close(m_audioDevice);
       return false;
     }
 
@@ -280,6 +284,7 @@ bool COSSAudioSource::InitDevice(void)
     rc = ioctl(m_audioDevice, SNDCTL_DSP_GETISPACE, &info);
     if (rc < 0) {
       error_message("Failed to query OSS GETISPACE");
+      close(m_audioDevice);
       return false;
     }
 

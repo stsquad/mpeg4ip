@@ -516,33 +516,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "mpeg4_iso_plugin"=.\codec\mpeg4\mpeg4_iso_plugin60.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libfileposrec
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name need_for_win
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmissing60
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmp4av
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libobj
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "wmp4client60"=.\win_client\wmp4client60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -589,9 +562,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name mp3_plugin
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name mpeg4_iso_plugin
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name wav_plugin

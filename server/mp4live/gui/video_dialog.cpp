@@ -896,8 +896,10 @@ void CreateVideoDialog (void)
 	encoderIndex = 0;
 	encoderNames = (char **)malloc(video_encoder_table_size * sizeof(char *));
 	for (i = 0; i < video_encoder_table_size; i++) {
-	  if (strcasecmp(MyConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
-			 video_encoder_table[i].encoding) == 0) {
+	  if ((strcasecmp(MyConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
+			  video_encoder_table[i].encoding) == 0) &&
+	      (strcasecmp(MyConfig->GetStringValue(CONFIG_VIDEO_ENCODER), 
+			  video_encoder_table[i].encoder) == 0)) {
 	    encoderIndex = i;
 	  }
 	  encoderNames[i] = video_encoder_table[i].encoding_name;

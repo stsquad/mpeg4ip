@@ -29,12 +29,12 @@ February 04, 2003
 <b><font color="#0000FF">MPEG4IP Project</font></b>
 <P>
 The MPEG4IP project provides a standards-based system for encoding, 
-streaming, and playing MPEG-4 encoded audio and video. To achieve 
+streaming, and playing encoded audio and video. To achieve 
 this we've integrated a number of existing open source packages, and 
 also created some original code to fill in the gaps.
 <P>
 Please note this project is intended for developers who are interested
-in MPEG-4 audio and video, and Internet streaming. It is not intended
+in standards based audio and video, and Internet streaming. It is not intended
 for end-users. Please read all the legal information in the file <a href="COPYING">COPYING</a>!
 <P>
 Also note that the primary development focus of this project is the 
@@ -60,13 +60,18 @@ The older method assumes that you've somehow managed to capture raw audio
 and/or video into a file. That's the starting point from which you can use
 the MPEG4IP encoding tools to create an MP4 file. The simplest method being 
 to use the 'mp4encode' script. Detailed instructions for this script and the
-individual tools that it uses are in <a href="doc/encoding/encoding.htm">doc/encoding/encoding.htm</a>  
+individual tools that it uses are in 
+<a href="doc/encoding/encoding.htm">doc/encoding/encoding.htm</a> <p><b>
+Note that this might be a bit out of date; we're no longer including some of 
+the packages like xvid and faac - they are seperate downloads, so the command
+lines may change.  See those packages for specifics on command line.
+</b>
 <P>
 The newer method is an integrated live encoding tool called mp4live.  This 
 program is designed to make it easy to create MP4 files or transmit live
 audio/video streams over the network. It can even do both things 
 simultaneously!  The key requirement to use this tool is to have a video 
-capture device and a Video for Linux (v4l) driver for it. So far we've 
+capture device and a Video for Linux (v4l) or Video for Linux2 (v4l2) driver for it. So far we've 
 tested with the bttv driver for Brooktree based video capture cards, and 
 the qce driver for Logitech QuickCam Express USB webcams. Both of these 
 solutions can be acquired for about $50 US! Please see the file 
@@ -82,7 +87,7 @@ the player. Start 'gmp4player' and then enter the RTSP URL to the server
 and the content, (command line works too). E.g.<br>  
     &nbsp;&nbsp;&nbsp;&nbsp;<code>$ gmp4player rtsp://myserver.mydomain.com/mycontent.mp4</code>
 <P>
-Although we're focussed on streaming, the player will also playback from
+Although we're focused on streaming, the player will also playback from
 a local file. E.g<br>
     &nbsp;&nbsp;&nbsp;&nbsp;<code>$ gmp4player mycontent.mp4</code>
 <P>
@@ -132,8 +137,13 @@ the bootstrap or cvs_bootstrap scripts will allow you to build without
 lame installed or one of the above arguments.
 <P>
 We also support ffmpeg as an optional mpeg4 encoder for mp4live.  To do this, 
-enter the argument<code>--enable-ffmpeg=directory</code> to the bootstrap or cvs_bootstrap.  <code>directory</code> is required and must be the absolute path to where the ffmpeg code has been compiled - do not use ~.  We've tested with ffmpeg version 0.4.7.
+enter the argument<code>--enable-ffmpeg=&lt;directory&gt;</code> to the bootstrap or cvs_bootstrap.  <code>&lt;directory&gt;</code> is required and must be the absolute path to where the ffmpeg code has been compiled - do not use ~.  We've tested with ffmpeg version 0.4.7.
 <P>
+In addition, if you have the xvid library installed, we will use that for the
+player plugin and for mp4live.  The configure scripts will automatically detect it and use the installed library.  We've tested with xvidcore version 0.9.2.
+If you are using xvidcore, mp4live will not display an encoded preview at
+this point.
+<p>
 If you don't have root privileges, but still wish to install the 
 distribution to a directory to which you do have write permission,
 then here is an example of how to do that:
@@ -240,42 +250,19 @@ To build with IPv6 support, use the <code>--enable-ipv6</code> command option.
 <P>
 Please note that the Apple Darwin Quicktime Streaming Server is NOT distributed
 with mpeg4ip. It can be downloaded from <a href="http://www.apple.com/">Apple</a>, as either
-source or pre-built binaries. For those who choose the source option, below is
-the express version of the build and install process for the Darwin Streaming
-Server:
-<P>
-To build the Darwin Streaming Server:
-<P>
-<blockquote>
-<code>
-    cd DSS4<br>
-    ./Buildit<br>
-</code>
-</blockquote>
-<P>
-To install the Darwin Streaming Server from the build:
-<blockquote>
-<code>
-    cd DSS4<br>
-    mkdir Dist<br>
-    ./DSS_MakeRoot -f Dist<br>
-    cd Dist<br>
-    ./Install    (need root privileges)<br>
-</code>
-</blockquote>
-<P>
-See the documentation that accompanies the server on how to configure it
+source or pre-built binaries. For those who choose the source option, please see the documentation that accompanies the server on how to build and configure it
 for your environment. 
 <P>
 Note the default content directory is /usr/local/movies and that you can
 configure the darwin server by pointing your browser at port 1220. (ie: localhost:1220)
 <P>
-There are some sample mp4 files available on the mpeg4ip SourceForge 
-download area. Also <a href="http://www.envivio.com/">Envivio</a>, has some sample mp4 
+There are some sample mp4 files included with the Darwin Streaming server. 
+<a href="http://www.envivio.com/">Envivio</a>, also has some sample mp4 
 files. We suggest first downloading one of these samples and try opening 
 the file with gmp4player. If that works, then try copying the file to the 
 streaming server's content directory (e.g. /usr/local/movies), and enter 
-the appropriate RTSP URL in gmp4player.
+the appropriate RTSP URL in gmp4player.  You may have to "hint" the files
+before they will stream.
 <P>
 <a href="#top">Back to top</a>
 <P>
@@ -286,19 +273,19 @@ Currently, we have compiled and tested on the following platforms:
 linux, freeBSD, BSD/OS, Solaris and windows.  For all varieties
 of *nux, X11 is required.
 <P>
-To date we've built on Red Hat Linux 6.1, 6.2, 7.0, 7.1, and 7.2 with
-the native compilers, on 7.1 and 7.2 with gcc 3.0, and on 7.3 with gcc 3.1.
-We also support 9.0 with the native compiler (gcc 3.2).  
+To date we've built on Red Hat Linux 6.1 to 9.0 with
+the native compilers, on 7.1 and 7.2 with gcc 3.0, and on 7.3 and later with gcc 3.1.
+We also support 9.0 with the native compiler (gcc 3.2) and gcc 3.3.  
 <P>
 <b>Windows</b>
 <P>
 For windows, Visual Studio 6.0 projects are included.  You will need
 to install nasm in the VC98/bin directory before compiling.  You should
 get nasm-0.98.22-win32.zip from the nasm web site.  You will need to 
-rename nasmw.exe to nasm.exe.  We recommend getting Service Pack 5.
+rename nasmw.exe to nasm.exe.  We require Service Pack 5.
 <P>
 <b>NOTE:</b> We don't usually support the Windows code in CVS.  So, 
-unless you're explicitly told to use CVS, don't.
+unless you're explicitly told to use CVS, <b>don't</b>.
 <P>
 Use the encoding60.dsw project for encoding tools, and the 
 player/src/player60.dsw for the player.
@@ -728,9 +715,9 @@ mp4player), there are 5 potential places where latency can take place -
 at mp4live, in the kernel IP transmit stack, in the network, in the
 kernel IP receive stack and in the player.
 <P>
-Mp4live has very little latency.  In video, it tends to be 1 frame.  In
-audio, it tends to be 3-4 audio frames (if using AAC, frames tend to
-be 1024 samples.  MP3 tends to be 1152 samples, but can change based on
+Mp4live has very little latency.  There is no latency from when the video frame
+is encoded.  In audio, it tends to be 3-4 audio frames (if using AAC, frames 
+tend to be 1024 samples.  MP3 tends to be 1152 samples, but can change based on
 sampling frequency and bit rate.  Samples can be converted to seconds by
 dividing by the sample rate).
 <P>

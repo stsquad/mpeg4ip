@@ -24,10 +24,6 @@
 #include "video_encoder_base.h"
 #include "mp4av.h"
 
-#ifdef ADD_FFMPEG_ENCODER
-#include "video_ffmpeg.h"
-#endif
-
 #ifdef ADD_XVID_ENCODER
 #include "video_xvid.h"
 #endif
@@ -141,7 +137,7 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
 
   if (mtype == MPEG4VIDEOFRAME) {
     sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, 
-			   strdup("a=mpeg4-esid:20"));
+			   "a=mpeg4-esid:20");
     sdpMediaVideoFormat->fmt = strdup("96");
 	
     sdpVideoRtpMap->encode_name = strdup("MP4V-ES");

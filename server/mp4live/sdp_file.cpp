@@ -271,7 +271,7 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 
 	if (audioIsIsma && videoIsIsma) {
 	  sdp_add_string_to_list(&sdp->unparsed_a_lines,
-				 strdup("a=isma-compliance:1,1.0,1"));
+				 "a=isma-compliance:1,1.0,1");
 	}
 
 	return sdp;

@@ -191,14 +191,16 @@ void CRtpTransmitter::CreateVideoRtpDestination (uint32_t ref,
 
 int CRtpTransmitter::ThreadMain(void) 
 {
-  while (SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
-    CMsg* pMsg = m_myMsgQueue.get_message();
+  CMsg* pMsg;
+  bool stop = false;
+  while (stop == false && SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
+    pMsg = m_myMsgQueue.get_message();
     if (pMsg != NULL) {
       switch (pMsg->get_value()) {
       case MSG_NODE_STOP_THREAD:
 	DoStopTransmit();
-	delete pMsg;
-	return 0;
+	stop = true;
+	break;
       case MSG_NODE_START:
 	DoStartTransmit();
 	break;
@@ -220,8 +222,18 @@ int CRtpTransmitter::ThreadMain(void)
       delete pMsg;
     }
   }
+  while ((pMsg = m_myMsgQueue.get_message()) != NULL) {
+    if ((int)pMsg->get_value() == MSG_SINK_FRAME) {
+      size_t dontcare;
+      CMediaFrame *mf = (CMediaFrame*)pMsg->get_message(dontcare);
+      if (mf->RemoveReference()) {
+	delete mf;
+      }
+    }
+    delete pMsg;
+  }
   
-  return -1;
+  return 0;
 }
 
 void CRtpTransmitter::DoStartTransmit()

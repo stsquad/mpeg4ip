@@ -6,6 +6,7 @@
 
 #import "SDL.h"
 #import "SDLMain.h"
+#import "player_session_wrap.h"
 #import <sys/param.h> /* for MAXPATHLEN */
 #import <unistd.h>
 
@@ -80,6 +81,8 @@ int main (int argc, char **argv) {
     }
     gArgv[i] = NULL;
 
+    player_initialize_plugins();
     NSApplicationMain (argc, argv);
     return 0;
 }
+

@@ -33,15 +33,18 @@
 
 int CMp4Recorder::ThreadMain(void) 
 {
-  while (SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
-    CMsg* pMsg = m_myMsgQueue.get_message();
+  CMsg *pMsg;
+  bool stop = false;
+
+  while (stop == false && SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
+    pMsg = m_myMsgQueue.get_message();
 		
     if (pMsg != NULL) {
       switch (pMsg->get_value()) {
       case MSG_NODE_STOP_THREAD:
         DoStopRecord();
-        delete pMsg;
-        return 0;
+	stop = true;
+	break;
       case MSG_NODE_START:
         DoStartRecord();
         break;
@@ -58,7 +61,18 @@ int CMp4Recorder::ThreadMain(void)
     }
   }
 
-  return -1;
+  while ((pMsg = m_myMsgQueue.get_message()) != NULL) {
+    error_message("recorder - had msg after stop");
+    if ((int)pMsg->get_value() == MSG_SINK_FRAME) {
+      size_t dontcare;
+      CMediaFrame *mf = (CMediaFrame*)pMsg->get_message(dontcare);
+      if (mf->RemoveReference()) {
+	delete mf;
+      }
+    }
+    delete pMsg;
+  }
+  return 0;
 }
 
 void CMp4Recorder::DoStartRecord()
@@ -255,6 +269,7 @@ void CMp4Recorder::DoStartRecord()
                                    m_encodedAudioTrackId,
                                    pAudioConfig, 
                                    audioConfigLen);
+	free(pAudioConfig);
       }
     }
   }
@@ -296,7 +311,7 @@ void CMp4Recorder::ProcessEncodedAudioFrame (CMediaFrame *pFrame)
       // add the number of extra samples
       m_encodedAudioSamples += 
 	(thisFrameDurationInSamples - pFrame->GetDuration());
-      debug_message("adding encoded %lld samples", 
+      error_message("adding encoded %lld samples", 
 		    thisFrameDurationInSamples - pFrame->GetDuration());
     }
     // we have a consecutive frame
@@ -314,13 +329,13 @@ void CMp4Recorder::ProcessEncodedAudioFrame (CMediaFrame *pFrame)
     diffTimeTicks += m_encodedAudioDiffTicksTotal;
 
     if (diffTimeTicks != 0) {
-      debug_message("elfts %lld samples %lld elfs %lld diff %lld",
+      error_message("elfts %lld samples %lld elfs %lld diff %lld",
 		    elapsedTimeFromTimestamp,
 		    m_encodedAudioSamples,
 		    elapsedTimeFromSamples,
 		    diffTimeTicks);
       
-      debug_message("adj %lld diff %lld",
+      error_message("adj %lld diff %lld",
 		    m_encodedAudioDiffTicksTotal, diffTimeTicks);
     }
 

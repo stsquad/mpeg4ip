@@ -33,7 +33,7 @@
 #define xvid_message (xvid->m_vft->log_msg)
 
 // Convert a hex character to it's decimal value.
-static char tohex (char a)
+static uint8_t tohex (char a)
 { 
   if (isdigit(a))
     return (a - '0');
@@ -47,7 +47,7 @@ static int parse_vovod (xvid_codec_t *xvid,
 			int ascii,
 			uint32_t len)
 {
-  unsigned char buffer[255];
+  uint8_t buffer[255];
   uint8_t *bufptr;
   int ret;
 
@@ -68,7 +68,7 @@ static int parse_vovod (xvid_codec_t *xvid,
     // make sure we have even number of digits to convert to binary
     if ((len % 2) == 1) 
       return 0;
-    unsigned char *write;
+    uint8_t *write;
     write = buffer;
     // Convert the config= from ascii to binary
     for (uint32_t ix = 0; ix < len; ix++) {
@@ -343,7 +343,8 @@ static int xvid_codec_check (lib_message_func_t message,
 	if (fmtp != NULL) {
 	  int profile = fmtp->profile_level_id;
 	  free_fmtp_parse(fmtp);
-	  if (profile >= 1 && profile <= 3) return 3;
+	  if (profile >= MPEG4_SP_L1 && profile <= MPEG4_SP_L3) return 3;
+	  if (profile == MPEG4_SP_L0) return 3;
 	}
 	return -1;
       }

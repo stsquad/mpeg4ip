@@ -146,4 +146,4 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
 	$(GUILIBS)
 
-EXTRA_DIST = README.html INTERNALS.html $(ed1)
+EXTRA_DIST = README.html INTERNALS.html $(ed1) Building_mpeg4ip_with_V4L2_support.html
