@@ -1,0 +1,32 @@
+C++ = $(CPLUS)
+CC = $(CCOMP)
+LINK = $(LINKER)
+CCFLAGS += $(MACHDEFINES) -include ../revision.h -include ../PlatformHeader.h -g -Wall
+LIBS = $(PTHREADLIB) -lm $(DLLIB) -lcrypt
+
+OPTIM = -O2
+
+# EACH DIRECTORY WITH HEADERS MUST BE APPENDED IN THIS MANNER TO THE CCFLAGS
+
+CCFLAGS += -I.
+
+C++FLAGS = $(CCFLAGS)
+
+CFILES = QTSSPasswd.c
+
+all: qtpasswd
+
+qtpasswd: $(CFILES:.c=.o) $(CPPFILES:.cpp=.o)
+	$(LINK) -o $@ $(CFILES:.c=.o) $(CPPFILES:.cpp=.o) $(CCFLAGS) $(LINKOPTS) $(LIBS) 
+
+clean:
+	rm -f qtpasswd $(CFILES:.c=.o) $(CPPFILES:.cpp=.o)
+
+.SUFFIXES: .cpp .c .o
+
+.cpp.o:
+	$(C++) -c -o $*.o $(DEFINES) $(C++FLAGS) $*.cpp
+
+.c.o:
+	$(CC) -c -o $*.o $(DEFINES) $(CCFLAGS) $*.c
+

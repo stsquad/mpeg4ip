@@ -1,0 +1,1 @@
+gdb ./QuickTimeStreamingServer -x gdb_script

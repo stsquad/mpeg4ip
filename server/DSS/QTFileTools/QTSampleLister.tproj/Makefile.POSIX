@@ -1,0 +1,59 @@
+# Copyright (c) 1999 Apple Computer, Inc.  All rights reserved.
+#  
+
+NAME = QTSampleLister
+C++ = $(CPLUS)
+CC = $(CCOMP)
+LINK = $(LINKER)
+CCFLAGS += $(MACHDEFINES) -include ../../PlatformHeader.h -include ../../revision.h -g -Wall $(CFLAGSX)
+LIBS = $(PTHREADLIB) -lm $(DLLIB) -lCommonUtilitiesLib  -lQTFileLib ../../CommonUtilitiesLib/libCommonUtilitiesLib.a ../../QTFileLib/libQTFileLib.a
+
+OPTIM = -O2
+
+# EACH DIRECTORY WITH HEADERS MUST BE APPENDED IN THIS MANNER TO THE CCFLAGS
+
+CCFLAGS += -I.
+CCFLAGS += -I../../QTFileLib
+CCFLAGS += -I../../CommonUtilitiesLib
+CCFLAGS += -I../../RTPMetaInfoLib
+
+# EACH DIRECTORY WITH A STATIC LIBRARY MUST BE APPENDED IN THIS MANNER TO THE LINKOPTS
+
+LINKOPTS = -L../../CommonUtilitiesLib
+LINKOPTS += -L../../QTFileLib
+
+C++FLAGS = $(CCFLAGS)
+
+CFILES  = 
+
+#
+#
+#
+#
+CPPFILES = 	QTSampleLister.cpp \
+			../../RTPMetaInfoLib/RTPMetaInfoPacket.cpp
+
+ 
+#
+#
+# CCFLAGS += $(foreach dir,$(HDRS),-I$(dir))
+
+LIBFILES = 	../../QTFileLib/libQTFileLib.a \
+			../../CommonUtilitiesLib/libCommonUtilitiesLib.a
+
+all: QTSampleLister
+
+QTSampleLister: $(CFILES:.c=.o) $(CPPFILES:.cpp=.o) $(LIBFILES)
+	$(LINK) -o $@ $(CFILES:.c=.o) $(CPPFILES:.cpp=.o) $(CCFLAGS) $(LINKOPTS) $(LIBS) 
+
+clean:
+	rm -f QTSampleLister $(CFILES:.c=.o) $(CPPFILES:.cpp=.o)
+
+.SUFFIXES: .cpp .c .o
+
+.cpp.o:
+	$(C++) -c -o $*.o $(DEFINES) $(C++FLAGS) $*.cpp
+
+.c.o:
+	$(CC) -c -o $*.o $(DEFINES) $(CCFLAGS) $*.c
+

@@ -1,0 +1,228 @@
+<HTML>
+<HEAD>
+   <TITLE>Streaming Server Admin: <%%ECHODATA /server/qtssSvrDefaultDNSName%%></TITLE>
+<SCRIPT LANGUAGE="JavaScript" TYPE="text/javascript">		
+
+function setOpts() {
+	
+ 	document.forms[0].elements[1].defaultChecked 	= document.forms[0].elements[1].checked;
+ 	document.forms[0].elements[2].defaultChecked 	= document.forms[0].elements[2].checked;
+ 	document.forms[0].elements[3].defaultValue 		= document.forms[0].elements[3].value;
+ 	document.forms[0].elements[4].defaultValue 		= document.forms[0].elements[4].value;
+ 	document.forms[0].elements[5].defaultChecked 	= document.forms[0].elements[5].checked;
+ 	document.forms[0].elements[6].defaultChecked 	= document.forms[0].elements[6].checked;
+ 	document.forms[0].elements[7].defaultValue 		= document.forms[0].elements[7].value;
+ 	document.forms[0].elements[8].defaultValue 		= document.forms[0].elements[8].value;
+ }
+ 
+ function submitChangedValues() {
+	if((document.forms[0].elements[1].defaultChecked == document.forms[0].elements[1].checked) && 
+		(document.forms[0].elements[2].defaultChecked == document.forms[0].elements[2].checked)) {
+		document.forms[0].elements[1].name += "$";
+		document.forms[0].elements[2].name += "$";
+	}
+	else {
+		if(document.forms[0].elements[1].checked) {
+			document.forms[0].elements[1].value = "true";
+			document.forms[0].elements[2].value = "true";
+		}
+		else {
+			document.forms[0].elements[1].value = "false";
+			document.forms[0].elements[2].value = "false";
+		}
+	}
+	if(document.forms[0].elements[3].defaultValue == document.forms[0].elements[3].value)
+		document.forms[0].elements[3].name += "$";
+	if(document.forms[0].elements[4].defaultValue == document.forms[0].elements[4].value)
+		document.forms[0].elements[4].name += "$";
+	if((document.forms[0].elements[5].defaultChecked == document.forms[0].elements[5].checked) && 
+		(document.forms[0].elements[6].defaultChecked == document.forms[0].elements[6].checked)) {
+		document.forms[0].elements[5].name += "$";
+		document.forms[0].elements[6].name += "$";
+	}
+	else {
+		if(document.forms[0].elements[5].checked) {
+			document.forms[0].elements[5].value = "true";
+			document.forms[0].elements[6].value = "true";
+		}
+		else {
+			document.forms[0].elements[5].value = "false";
+			document.forms[0].elements[6].value = "false";
+		}
+	}
+	if(document.forms[0].elements[7].defaultValue == document.forms[0].elements[7].value)
+		document.forms[0].elements[7].name += "$";
+	if(document.forms[0].elements[8].defaultValue == document.forms[0].elements[8].value)
+		document.forms[0].elements[8].name += "$";
+
+	document.forms[0].submit();		
+}
+
+function checkValue(field) {
+	if(field.value < 0) {
+		alert(field.name + " must be positive");
+		field.value = field.defaultValue;
+	}
+}
+
+function init() {
+	toploded = top.nav.loded;
+	if(typeof(toploded) == "number") {
+		top.nav.selekt('2');
+		top.nav.subSelekt('2B');
+		} else {
+	setTimeout("init()", 200);
+	}
+}
+
+</SCRIPT>
+<STYLE TYPE="text/css">	
+	<!--	
+		TD { font: 10px/10px geneva, trebuchet MS, helvetica, arial, sans-serif; margin-top: 0px; margin-left: 0px; font-weight: plain; margin-bottom: 0px; }
+	-->
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" ONLOAD="setOpts()">
+<FORM NAME="logsettings" METHOD="GET" ACTION="setlogsettings.cgi">
+<CENTER><BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="85%" HEIGHT=32>
+   <TR>
+      <TD WIDTH=455>
+         <FONT SIZE="+3" FACE="Arial" COLOR="#B7BED2">Log
+         Settings</FONT>
+      </TD>
+      <TD ALIGN=center WIDTH=100>
+         <INPUT TYPE=submit NAME=Submit VALUE="Submit" onClick="submitChangedValues()">
+      </TD>
+   </TR>
+</TABLE>
+ <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="85%">
+   <TR>
+      <TD VALIGN=top>
+         <CENTER><BR>
+         <TABLE BORDER=0 BGCOLOR="#D6D6DE" CELLSPACING=1 CELLPADDING=4 WIDTH="60%" HEIGHT="100%">
+            <TR>
+               <TD VALIGN=top NOWRAP WIDTH="98%" HEIGHT=14 BGCOLOR="#D6D6DE">
+                  <FONT FACE="Arial" COLOR="#333333"><B>Error
+                  Log:</B></FONT>
+               </TD>
+            </TR>
+            <TR>
+               <TD VALIGN=top WIDTH="98%" BGCOLOR="#FFFFFF">
+                  <CENTER><TABLE BORDER=0 CELLSPACING=4 CELLPADDING=0 WIDTH="90%">
+                     <TR>
+                     	<%%GETVALUE errorlogging /server/qtssSvrPreferences/error_logging%%>
+                      <%%IFVALUEEQUALS isTrue errorlogging 'true'%%>
+ 											  <TD WIDTH="50%">
+                           <FONT FACE="Arial"><B>Error
+                           Logging:</B></FONT>
+                        </TD>
+                        <TD WIDTH="50%">
+                           <FONT FACE="Arial"><%%FORMATRADIOBUTTON isTrue 'Log Errors' 'true' checked%%>Enabled</FONT>
+                        </TD>
+                     </TR>
+                     <TR>
+                        <TD VALIGN=top WIDTH="50%">
+                           
+                        </TD>
+                        <TD WIDTH="50%">
+                           <FONT FACE="Arial"><%%FORMATRADIOBUTTON isTrue 'Log Errors' 'false' unchecked%%>Disabled</FONT>
+                        </TD>
+                     </TR>
+                  </TABLE>
+                  <BR>
+                  <TABLE BORDER=0 CELLSPACING=4 CELLPADDING=0 WIDTH="90%">
+                     <TR>
+                        <TD WIDTH="50%">
+                           <FONT FACE="Arial"><B>Roll
+                           the error log every:</B></FONT>
+                        </TD>
+                        <TD WIDTH="50%">
+                           <INPUT TYPE=text NAME="Error Log Roll Time" VALUE="<%%ECHODATA /server/qtssSvrPreferences/error_logfile_interval%%>" SIZE=3 MAXLENGTH=3 ONCHANGE="checkValue(this)">
+                           <FONT FACE="Arial">days</FONT>
+                        </TD>
+                     </TR>
+                     <TR>
+                        <TD VALIGN=top WIDTH="50%">
+                           
+                        </TD>
+                        <TD WIDTH="50%">
+                    				<%%GETVALUE errLogSize /server/qtssSvrPreferences/error_logfile_size%%>
+                           </FONT><INPUT TYPE=text NAME="Error Log Roll Size" VALUE="<%%MODIFYDATA errLogSize '> 0' '/ 1024'%%>" SIZE=9 MAXLENGTH=9 ONCHANGE="checkValue(this)">
+                           <FONT FACE="Arial">KB</FONT>
+                        </TD>
+                     </TR>
+                  </TABLE>
+                  <BR>
+                  </CENTER>
+               </TD>
+            </TR>
+         </TABLE>
+         <BR>
+         <BR>
+         <TABLE BORDER=0 BGCOLOR="#D6D6DE" CELLSPACING=1 CELLPADDING=4 WIDTH="60%" HEIGHT="100%">
+            <TR>
+               <TD VALIGN=top NOWRAP WIDTH="98%" HEIGHT=14 BGCOLOR="#D6D6DE">
+                  <FONT FACE="Arial" COLOR="#333333"><B>Access
+                  Log:</B></FONT>
+               </TD>
+            </TR>
+            <TR>
+               <TD VALIGN=top WIDTH="98%" BGCOLOR="#FFFFFF">
+                  <CENTER><TABLE BORDER=0 CELLSPACING=4 CELLPADDING=0 WIDTH="90%">
+                     <TR>
+                     	<%%GETVALUE accesslogging /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logging%%>
+                      <%%IFVALUEEQUALS isTrue accesslogging 'true'%%>
+                        <TD WIDTH="50%">
+                           <FONT FACE="Arial"><B>Access
+                           Logging:</B></FONT>
+                        </TD>
+                        <TD WIDTH="50%">
+                           <FONT FACE="Arial"><%%FORMATRADIOBUTTON isTrue 'Log Access' 'true' checked%%>Enabled</FONT>
+                        </TD>
+                     </TR>
+                     <TR>
+                        <TD VALIGN=top WIDTH="50%">
+                           
+                        </TD>
+                        <TD WIDTH="50%">
+                           <FONT FACE="Arial"><%%FORMATRADIOBUTTON isTrue 'Log Access' 'false' unchecked%%>Disabled</FONT>
+                        </TD>
+                     </TR>
+                  </TABLE>
+                  <BR>
+                  <TABLE BORDER=0 CELLSPACING=4 CELLPADDING=0 WIDTH="90%">
+                     <TR>
+                        <TD WIDTH="50%">
+                           <FONT FACE="Arial"><B>Roll
+                           the access log every:</B></FONT>
+                        </TD>
+                        <TD WIDTH="50%">
+                           <INPUT TYPE=text NAME="Access Log Roll Time" VALUE="<%%ECHODATA /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logfile_interval%%>" SIZE=3 MAXLENGTH=3 ONCHANGE="checkValue(this)">
+                           <FONT FACE="Arial">days</FONT>
+                        </TD>
+                     </TR>
+                     <TR>
+                        <TD VALIGN=top WIDTH="50%">
+                           
+                        </TD>
+                        <TD WIDTH="50%">
+                        <%%GETVALUE accLogSize /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logfile_size%%>
+                           <INPUT TYPE=text NAME="Access Log Roll Size" VALUE="<%%MODIFYDATA accLogSize '> 0' '/ 1024'%%>" SIZE=9 MAXLENGTH=9 ONCHANGE="checkValue(this)">
+                           <FONT FACE="Arial">KB</FONT>
+                        </TD>
+                     </TR>
+                  </TABLE>
+                  <BR>
+                  </CENTER>
+               </TD>
+            </TR>
+         </TABLE>
+         </CENTER>
+      </TD>
+   </TR>
+</TABLE>
+</CENTER>
+</FORM>
+</BODY>
+</HTML>

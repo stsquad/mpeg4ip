@@ -1,0 +1,24 @@
+#!/bin/sh
+
+#Darwin BuildTarball script
+
+PLAT=`uname`
+
+echo removing DarwinStreamingSrvr3_Preview-$PLAT.tar.gz
+if rm -f DarwinStreamingSrvr3_Preview-$PLAT.tar.gz; 
+then :
+fi
+
+echo removing DarwinStreamingSrvr3_Preview
+if rm -rf DarwinStreamingSrvr3_Preview; 
+then :
+fi
+
+cvs -q up
+./Buildit clean
+./Buildit
+./DSS_MakeRoot -f DarwinStreamingSrvr3_Preview
+tar cvf DarwinStreamingSrvr3_Preview-$PLAT.tar DarwinStreamingSrvr3_Preview
+gzip DarwinStreamingSrvr3_Preview-$PLAT.tar
+
+echo Done!

@@ -1,0 +1,296 @@
+<HTML>
+<!--This file created 5/19/00 12:19 PM by Claris Home Page version 3.0-->
+<HEAD>
+   <TITLE>DARWIN STREAMING SERVER 2 - Read Me</TITLE>
+   <META NAME=GENERATOR CONTENT="Claris Home Page 3.0">
+   <X-CLARIS-WINDOW TOP=42 BOTTOM=757 LEFT=4 RIGHT=534>
+   <X-CLARIS-TAGVIEW MODE=minimal>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" VLINK="#800080">
+<BLOCKQUOTE><H2><CENTER>DARWIN STREAMING SERVER 2</CENTER></H2>
+   
+   <H3>Table of Contents</H3>
+   
+   <H3>About Darwin Streaming Server</H3>
+   
+   <P>What's New in Darwin Streaming Server 2.0.1<BR>
+   Licensing<BR>
+   Documentation<BR>
+   Mailing List<BR>
+   Platform Support<BR>
+   Binary Packages<BR>
+   Building<BR>
+   Installation<BR>
+   Configuration and Testing<BR>
+   Modifying Configuration Files</P>
+   
+   <P>&nbsp;</P>
+   
+   <H3>About Darwin Streaming Server</H3>
+   
+   <H4>QuickTime Streaming Server</H4>
+   
+   <P>QuickTime Streaming Server on Mac OS X Server lets you stream
+   digital video on the Internet using industry-standard Internet
+   protocols RTP and RTSP. Using QuickTime Streaming Server you can
+   serve stored files (video on demand) or reflect live broadcasts to
+   thousands of QuickTime 4 users. With its combination of
+   industry-standard streaming protocols and cutting-edge compression
+   technologies, QuickTime 4 delivers perfectly synchronized audio
+   and video streams ideal for Internet video and live events.</P>
+   
+   <H4>Darwin Streaming Server</H4>
+   
+   <P>Apple has pledged to make the QuickTime Streaming Server source
+   code available to whoever wants to improve it. Darwin Streaming
+   Server is the open source release of the QuickTime Streaming
+   Server product. The Darwin Streaming Server open source gives
+   developers the flexibility to easily improve and extend QuickTime
+   digital video streaming to meet their needs.</P>
+   
+   <P>This package includes source files for a streaming server that
+   can serve both on-disk QuickTime files and can reflect a live
+   broadcast. It does not include source code for the server
+   administration software used on Mac OS X Server.</P>
+   
+   <P>&nbsp;</P>
+   
+   <H3>What's New in Darwin Streaming Server 2.0.1</H3>
+   
+   <P>Darwin Streaming Server 2.0.1 addresses several product and
+   Open Source issues and provides general product enhancements such
+   as:</P>
+   
+   <UL>
+      <LI>Improved logging of client error messages.</LI>
+      
+      <LI>Improved server CPU performance when serving non-optimized
+      hinted QuickTime movies.</LI>
+   </UL>
+   
+   <P>It also fixes this problem:</P>
+   
+   <UL>
+      <LI>Unwanted clicks on audio tracks, especially when a file
+      isn't optimized for streaming.</LI>
+   </UL>
+   
+   <P>Standard Features in the Darwin Streaming Server 2.0.x release
+   include the following:</P>
+   
+   <UL>
+      <LI>Accessibility - You can stream media using RTP and RTSP
+      over HTTP in addition to UDP. This means users can view media
+      through most firewalls.</LI>
+      
+      <LI>Relay Support - You can replicate content for live
+      broadcasts. With relays, you can scale streaming services to
+      reach more viewers.</LI>
+      
+      <LI>Enhanced Logging - The Darwin Streaming Server software now
+      supports third-party analysis tools that provide consolidated
+      server reporting.</LI>
+      
+      <LI>Authentication Support - You can control access to media
+      files using the authentication modules that come with Darwin
+      Streaming Server software, or you can supply your own
+      module.</LI>
+      
+      <LI>Module API - The Darwin Streaming Server software now
+      supports dynamically loadable modules which can extend the
+      functionality of the server through the QTSS API.</LI>
+   </UL>
+   
+   <P>&nbsp;</P>
+   
+   <H3>Licensing</H3>
+   
+   <P>The Darwin Streaming Server is distributed under the terms of
+   the Apple Public Source License. For more information, refer to
+   the license terms at <A HREF="http://www.publicsource.apple.com/">www.publicsource.apple.com</A>.
+   Note that the Apple Public Source License does not allow you to
+   use the terms "QuickTime" or "QuickTime Streaming Server" in
+   descriptions of products developed using Darwin Streaming Server
+   open source code, nor use any Apple trademarks or logos associated
+   with QuickTime and QuickTime Streaming Server.</P>
+   
+   <P>&nbsp;&nbsp;</P>
+   
+   <H3>Documentation</H3>
+   
+   <P>Further information, documentation, and answers to frequently
+   asked questions about QuickTime Streaming Server on Mac OS X
+   Server are available at the <A HREF="http://www.apple.com/quicktime/servers/">QuickTime
+   Streaming Server web page</A> and the <A HREF="http://www.info.apple.com/support/macosxserver/qtss.html">QuickTime
+   Streaming Server support page</A>. Most of this documentation is
+   also applicable to the Darwin Streaming Server. Answers to
+   frequently asked questions about Darwin Streaming Server are also
+   available at the <A HREF="http://www.publicsource.apple.com/projects/streaming/">Darwin
+   Streaming Server web page</A>.</P>
+   
+   <P>&nbsp;</P>
+   
+   <H3>Mailing List</H3>
+   
+   <P>To receive information about QuickTime Streaming Server
+   updates, join the QuickTime Streaming Server mailing list. Through
+   the list you can share experiences, questions, and comments with
+   others who use the software. Apple employees may monitor the list,
+   but Apple does not guarantee that questions sent to this list will
+   be answered. For more information about joining the mailing list,
+   see the Apple mailing lists Web site at <A HREF="http://www.lists.apple.com/">www.lists.apple.com</A>.</P>
+   
+   <P>&nbsp;</P>
+   
+   <H3>Platform Support</H3>
+   
+   <P>The Darwin Streaming Server source currently compiles and runs
+   on the following platforms:</P>
+   
+   <UL>
+      <LI>Mac OS X Server</LI>
+      
+      <LI>Linux (RedHat 5.2 - 6.2, GlibC 2.1.3 recommended)</LI>
+      
+      <LI>Solaris 7 (SunOS 5.7)</LI>
+      
+      <LI>FreeBSD 3.4 (Intel)</LI>
+   </UL>
+   
+   <P>It can be ported to other platforms by modifying a handful of
+   platform specific source files. For more information on the source
+   code and on porting the source, see the files AboutTheSource.html
+   and SourceFAQ.html.</P>
+   
+   <P>&nbsp;</P>
+   
+   <P>&nbsp;</P>
+   
+   <P><FONT SIZE="+1"><B>Binary Packages</B></FONT></P>
+   
+   <P>Binary packages for the platforms listed above (other than Mac
+   OS X Server) are available for download from the <A HREF="http://www.publicsource.apple.com/projects/streaming/">Darwin
+   Streaming Server web page</A>. These binary packages include the
+   DarwinStreamingServer, a sample streamingserver.conf file,
+   PlaylistBroadcaster, StreamingProxy (an RTSP Proxy Server), a
+   sample QTSSAccessModule that provides authentication features, a
+   100kbit hinted "sample.mov".</P>
+   
+   <P>Also included with the Darwin Streaming Server is rtspam, a
+   stress tool for testing the server. rtspam realistically simulates
+   many RTSP clients viewing a movie from the server. The tool offers
+   many command-line options that can create different types of
+   simulations. Typing ./rtspam will print a description of all
+   available options.</P>
+   
+   <P>rtspam will only work if there is a movie called "rtspam.mov"
+   in the root movie folder of the target server. This file must be a
+   valid, hinted QuickTime movie.</P>
+   
+   <P>&nbsp;</P>
+   
+   <H3>Installation</H3>
+   
+   <P>&#91;NOTE: For Windows NT/2000 Server install instructions
+   please see the "ReadMeNT.txt" file.&#93;</P>
+   
+   <P>From a terminal window perform the following steps:</P>
+   
+   <OL>
+      <LI>Log in as "root"</LI>
+      
+      <LI>"cd" into the DarwinStreamingServer2 directory and type:
+      
+      <P><TT>./Install</TT></P></LI>
+      
+      <LI>Once the install script completes type:
+      
+      <P><TT>DarwinStreamingServer </TT></P></LI>
+   </OL>
+   
+   <H3>What Gets Installed</H3>
+   
+   <P>Running the ./Install script places the following files and
+   directories onto your system:</P>
+   
+   <UL>
+      <LI>/usr/local/sbin/DarwinStreamingServer</LI>
+      
+      <LI>/usr/local/sbin/PlaylistBroadcaster</LI>
+      
+      <LI>/usr/local/sbin/StreamingServerModules/QTSSAccessModule</LI>
+      
+      <LI>/usr/local/sbin/qtpasswd</LI>
+      
+      <LI>/etc/streamingserver.conf</LI>
+      
+      <LI>/etc/streamingrelay.conf</LI>
+      
+      <LI>/var/streaming/logs/</LI>
+      
+      <LI>/usr/local/movies/sample.mov</LI>
+   </UL>
+   
+   <P>&nbsp;</P>
+   
+   <H3>Configuration and Testing</H3>
+   
+   <P>The server serves all streaming content out of its "media
+   folder". By default, this media folder is located at /usr/local/movies/.
+   This path is one of the preferences in the config file (or in
+   NetInfo on Mac OS X). If you want your media folder to be located
+   somewhere else, you must edit the "movie_folder" preference before
+   starting the server.</P>
+   
+   <P>In order to enable streaming of media using RTP and RTSP over
+   HTTP, add port 80 to the "rtsp_port" preference.</P>
+   
+   <P>Once you have a media folder, you can place streaming media
+   into the folder. All QuickTime files must be "hinted" with
+   QuickTime Player Pro or other QuickTime authoring applications
+   before they can be streamed. Once the movie is hinted, copy the
+   file to the streaming media folder on your server.</P>
+   
+   <P>There is a sample movie that comes with each package. The
+   sample movie is already hinted, so you can place it into your
+   media folder. From the QuickTime client, attempt to access that
+   movie through an rtsp URL (e.g. rtsp://my.server.com/sample.mov),
+   and the server will stream that movie to the client.</P>
+   
+   <P>In order to "reflect" a live broadcast, you must setup and
+   start a broadcaster application, such as the Sorenson Broadcaster.
+   The broadcaster produces an SDP file that describes the live
+   broadcast. Place that SDP file into your media folder, access the
+   URL from a QuickTime Client, and the server will "reflect" the
+   live broadcast to the client.</P>
+   
+   <P>For more information about authoring, hinting, and streaming
+   QuickTime media, refer to the QuickTime Streaming Server
+   documentation.</P>
+   
+   <P>&nbsp;</P>
+   
+   <H3>Modifying Configuration Files</H3>
+   
+   <P>If you enter a string that includes spaces in a configuration
+   file, you must put quotations marks around the string.</P>
+   
+   <P>For example, "My Streaming Server" instead of My Streaming
+   Server.</P>
+   
+   <P>&nbsp;</P>
+   
+   <P>&nbsp;</P>
+   
+   <P><FONT SIZE="-1">&copy; 1999, 2000 Apple Computer, Inc. All
+   rights reserved. Apple, the Apple logo, Mac, Macintosh, PowerBook,
+   Power Macintosh, and QuickTime are trademarks of Apple Computer,
+   Inc., registered in the United States and other countries. iBook,
+   iMac, and Power Mac are trademarks of Apple Computer, Inc. All
+   other product names are trademarks or registered trademarks of
+   their respective holders.</FONT></P>
+   
+   <P><FONT SIZE="-1">&nbsp;</FONT></P></BLOCKQUOTE>
+</BODY>
+</HTML>

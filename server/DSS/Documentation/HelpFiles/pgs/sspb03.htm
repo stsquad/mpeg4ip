@@ -1,0 +1,90 @@
+<HTML>
+
+	<HEAD>
+		<META HTTP-EQUIV="content-type" CONTENT="text/html;charset=iso-8859-1">
+		<TITLE>Creating a playlist</TITLE>
+		<META NAME="DP" CONTENT="1.9.1/4.0.1">
+	</HEAD>
+
+	<BODY BGCOLOR="#ffffff">
+		<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="349">
+			<TR VALIGN="top">
+				<TD><FONT FACE="Helvetica,Arial" SIZE="4" COLOR="#330099"><B>Creating a playlist </B> </FONT>
+					<UL>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">The playlist text file specifies the media files used in the broadcast by pathname. You can use any text editor to create a playlist. </FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>Note:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"> If you change a playlist file, you must <A HREF="sspb05.htm">stop and restart the broadcast</A> for changes to take effect.</FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">The playlist file</FONT><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">must begin with *PLAY-LIST* </FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">can consist of pathnames for individual media files or other playlist files </FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">must include the complete or relative pathname of each media file or playlist file</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">must include a &quot;+&quot; symbol before the pathname to any other playlist</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">can include a weight for individual media files, but not for a playlist</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">can be named anything you'd like</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">can be stored anywhere on your server </FONT></TD>
+							</TR>
+						</TABLE></P>
+					</UL>
+					<P><FONT FACE="Helvetica,Arial" COLOR="#330099"><B>Setting the sequence and weight of your media files </B></FONT></P>
+					<UL>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">You can broadcast the media in the playlist sequentially or randomly, either once through the list or repeatedly through the list.</FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">If you broadcast the media randomly, you can specify a &quot;weight&quot; for each media file in the list. The weight, which is a number from 1 to 10, determines how often an item plays. Media files that are weighted as 10 play more often than media files weighted with lower numbers. (You place the weight after the movie name, as shown in the example below.) The default weight for a media file is 10. In addition to using weights, you can prevent a media file from playing again until a specified number of other media files play. </FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>Example playlist file:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"><BR>
+						This playlist file contains individual media files with weights and two other playlists:</FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">*PLAY-LIST*<BR>
+						# Lines beginning with &quot;#&quot; are comments<BR>
+						#<BR>
+						# individual media files with weights<BR>
+						/music/jazz/take5.mov 2<BR>
+						/music/rock/freebird.mov 9<BR>
+						/music/reggae/onedrop.mov 5<BR>
+						#<BR>
+						# path to another playlist<BR>
+						+ /music/classical/playlist.txt<BR>
+						#<BR>
+						# relative path to another playlist<BR>
+						+ funk/funkplist.txt<BR>
+						#<BR>
+						#individual media file with space</FONT><FONT FACE="Geneva,Arial" SIZE="2"><BR>
+						&quot;/music/jazz/ice cream love.mov&quot; 9</FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>Note:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"> If a pathname includes spaces, enclose the pathname in quotation marks. Hinted media files and playlists can be stored anywhere on your server, not just in the media directory. Hinted media files stored outside of the media directory can be broadcast as part of a playlist but are not directly accessible by QuickTime clients.</FONT></P>
+					</UL>
+					<P><FONT FACE="Helvetica,Arial" COLOR="#330099"><B>Related topic </B></FONT></P>
+					<UL>
+						<P><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="5" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="11" BGCOLOR="#cccccc">&nbsp;</TD>
+								<TD WIDTH="283"><FONT FACE="Geneva,Arial" SIZE="2"><A HREF="sspb01.htm">Broadcasting prerecorded audio or video</A></FONT></TD>
+							</TR>
+						</TABLE></P>
+					</UL>
+					<P>&nbsp;</TD>
+			</TR>
+			<TR>
+				<TD ALIGN="center"><FONT FACE="Geneva,Arial" SIZE="1">
+					<HR>
+					<A HREF="../index.htm">Table of contents</A></FONT></TD>
+			</TR>
+		</TABLE>
+	</BODY>
+
+</HTML>

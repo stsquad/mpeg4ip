@@ -1,0 +1,146 @@
+/*
+ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
+ *
+ * @APPLE_LICENSE_HEADER_START@
+ * 
+ * Copyright (c) 1999 Apple Computer, Inc.  All Rights Reserved.
+ * The contents of this file constitute Original Code as defined in and are 
+ * subject to the Apple Public Source License Version 1.1 (the "License").  
+ * You may not use this file except in compliance with the License.  Please 
+ * obtain a copy of the License at http://www.apple.com/publicsource and 
+ * read it before using this file.
+ * 
+ * This Original Code and all software distributed under the License are 
+ * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
+ * FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the License for 
+ * the specific language governing rights and limitations under the 
+ * License.
+ * 
+ * 
+ * @APPLE_LICENSE_HEADER_END@
+ */
+/*
+	File:		StringParser.h
+
+	Contains:	A couple of handy utilities for parsing a stream.  
+					
+	
+
+*/
+
+
+#ifndef __STRINGPARSER_H__
+#define __STRINGPARSER_H__
+
+#include "StrPtrLen.h"
+#include "MyAssert.h"
+
+#define STRINGPARSERTESTING 0
+
+
+class StringParser
+{
+	public:
+		
+		StringParser(StrPtrLen *inStream)
+			: 	fStartGet(inStream == NULL ? NULL : inStream->Ptr),
+				fEndGet(inStream == NULL ? NULL : inStream->Ptr + inStream->Len),
+				fStream(inStream) {}
+		~StringParser() {}
+		
+		// Built-in masks for common stop conditions
+		static UInt8 sDigitMask[]; 		// stop when you hit a digit
+		static UInt8 sWordMask[]; 		// stop when you hit a word
+		static UInt8 sEOLMask[];		// stop when you hit an eol
+		static UInt8 sEOLWhitespaceMask[]; // stop when you hit an EOL or whitespace
+		static UInt8 sWhitespaceMask[];	// skip over whitespace
+
+		//GetBuffer:
+		//Returns a pointer to the string object
+		StrPtrLen*		GetStream() { return fStream; }
+		
+		//Expect:
+		//These functions consume the given token/word if it is in the stream.
+		//If not, they return false.
+		//In all other situations, true is returned.
+		//NOTE: if these functions return an error, the object goes into a state where
+		//it cannot be guarenteed to function correctly.
+		Bool16			Expect(char stopChar);
+		Bool16			ExpectEOL();
+		
+		//Returns the next word
+		void			ConsumeWord(StrPtrLen* outString)
+							{ ConsumeUntil(outString, sNonWordMask); }
+
+		//Returns all the data before inStopChar
+		void			ConsumeUntil(StrPtrLen* outString, char inStopChar);
+
+		//Returns whatever integer is currently in the stream
+		UInt32			ConsumeInteger(StrPtrLen* outString);
+		Float32 		ConsumeFloat();
+
+		//Keeps on going until non-whitespace
+		void			ConsumeWhitespace()
+							{ ConsumeUntil(NULL, sWhitespaceMask); }
+		
+		//Assumes 'stop' is a 255-char array of booleans. Set this array
+		//to a mask of what the stop characters are. true means stop character.
+		//You may also pass in one of the many prepackaged masks defined above.
+		void			ConsumeUntil(StrPtrLen* spl, UInt8 *stop);
+
+
+		//+ rt 8.19.99
+		//returns whatever is avaliable until non-whitespace
+		void			ConsumeUntilWhitespace(StrPtrLen* spl )
+							{ ConsumeUntil( spl, sEOLWhitespaceMask); }
+		void			ConsumeLength(StrPtrLen* spl, SInt32 numBytes);
+
+		//GetThru:
+		//Works very similar to ConsumeUntil except that it moves past the stop token,
+		//and if it can't find the stop token it returns false
+		inline Bool16		GetThru(StrPtrLen* spl, char stop);
+		inline Bool16		GetThruEOL(StrPtrLen* spl);
+		
+		//Returns the current character, doesn't move past it.
+		inline char		PeekFast() { return *fStartGet; }
+		char operator[](int i) { Assert((fStartGet+i) < fEndGet);return fStartGet[i]; }
+		
+		//Returns some info about the stream
+		UInt32			GetDataParsedLen() 
+			{ Assert(fStartGet >= fStream->Ptr); return (UInt32)(fStartGet - fStream->Ptr); }
+		UInt32			GetDataReceivedLen()
+			{ Assert(fEndGet >= fStream->Ptr); return (UInt32)(fEndGet - fStream->Ptr); }
+		UInt32			GetDataRemaining()
+			{ Assert(fEndGet >= fStartGet); return (UInt32)(fEndGet - fStartGet); }
+		char*			GetCurrentPosition() { return fStartGet; }
+
+#if STRINGPARSERTESTING
+		static Bool16		Test();
+#endif
+
+	private:
+
+		//built in masks for some common stop conditions
+		static UInt8 sNonWordMask[];
+
+		char*		fStartGet;
+		char*		fEndGet;
+		StrPtrLen*	fStream;
+		
+};
+
+
+Bool16 StringParser::GetThru(StrPtrLen* outString, char inStopChar)
+{
+	ConsumeUntil(outString, inStopChar);
+	return Expect(inStopChar);
+}
+
+Bool16 StringParser::GetThruEOL(StrPtrLen* outString)
+{
+	ConsumeUntil(outString, sEOLMask);
+	return ExpectEOL();
+}
+#endif // __STRINGPARSER_H__

@@ -1,0 +1,297 @@
+<HTML>
+<!--This file created 10/6/00 3:28 PM by Claris Home Page version 3.0-->
+<HEAD>
+   <TITLE>About Darwin Streaming Server 3 Public Preview (Unix)</TITLE>
+   <META NAME=GENERATOR CONTENT="Claris Home Page 3.0">
+   <X-CLARIS-WINDOW TOP=54 BOTTOM=997 LEFT=391 RIGHT=1161>
+   <X-CLARIS-TAGVIEW MODE=minimal>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+</HEAD>
+<BODY>
+<P>&nbsp;</P>
+
+<CENTER><FONT SIZE="+2" FACE="Helvetica"><B>About Darwin Streaming
+Server 3 Public Preview (Unix)</B></FONT></CENTER>
+
+<P>&nbsp;</P>
+
+<P><FONT FACE="Helvetica"><B>Contents</B></FONT></P>
+
+<UL>
+   <LI><FONT SIZE="+1">Introduction</FONT></LI>
+   
+   <LI><FONT SIZE="+1">Seed Software Disclaimer</FONT></LI>
+   
+   <LI><FONT SIZE="+1">Giving Apple Feedback About the
+   Software</FONT></LI>
+   
+   <LI><FONT SIZE="+1">Requirements for Running DSS 3 Public
+   Preview</FONT></LI>
+   
+   <LI><FONT SIZE="+1">Installing and Setting Up</FONT></LI>
+   
+   <LI><FONT SIZE="+1">Documentation</FONT></LI>
+   
+   <LI><FONT SIZE="+1">Troubleshooting</FONT></LI>
+</UL>
+
+<P>&nbsp;</P>
+
+<P><FONT FACE="Helvetica"><B>Introduction</B></FONT></P>
+
+<P><FONT SIZE="+1">This document provides an overview of the Darwin
+Streaming Server (DSS) 3 Public Preview software, installation
+instructions, and information on how to give feedback to Apple. This
+software is a preview of the next Darwin Streaming Server
+release.</FONT></P>
+
+<P><FONT SIZE="+1">What's new in Darwin Streaming Server 3 Public
+Preview?</FONT></P>
+
+<UL>
+   <LI><FONT SIZE="+1">Quality of Service Enhancements: Streaming
+   with Darwin has always been powerful, reliable, and of the highest
+   quality. New features make streaming even better, such as packet
+   retransmission and reliable transmission of broadcast
+   streams.</FONT></LI>
+   
+   <LI><FONT SIZE="+1">New Web-based Administration: Configuring
+   Darwin Streaming Server is easy and straightforward with a new,
+   web-based interface.</FONT></LI>
+</UL>
+
+<P><FONT SIZE="+1">And as always, QuickTime Streaming Server is an
+opensource project, allowing the highest level of customizability and
+community involvement.</FONT></P>
+
+<P><FONT SIZE="+1">While not required, it is recommended that
+QuickTime 5 is used for viewing streams from Darwin Streaming Server
+3 Public Preview.</FONT></P>
+
+<P><FONT SIZE="+1">Please refer to the online Help (see Documentation
+section below) included in this seed package for more detailed
+information about using the features of this seed.</FONT></P>
+
+<P>&nbsp;</P>
+
+<P><FONT FACE="Helvetica"><B><A NAME=SeedSoftwareDisclaimer></A>Seed
+Software Disclaimer</B></FONT></P>
+
+<P><FONT SIZE="+1">The Darwin Streaming Server 3 Public Preview
+software is being released for evaluation of its technology and will
+expire on February 15, 2001. This software is in
+development.</FONT></P>
+
+<P><FONT SIZE="+1">The seed software is not a supported product, but
+we encourage you to use it, evaluate it, and give us feedback. This
+copy is for evaluation purposes only and is offered at no charge. We
+cannot guarantee that any subsequent releases will be offered free of
+charge, but we suggest that you check periodically for any revisions
+to this release.</FONT></P>
+
+<P>&nbsp;</P>
+
+<P><FONT FACE="Helvetica"><B>IMPORTANT:</B></FONT><FONT SIZE="+1">
+The software is in development. There are inherent risks in
+installing unreleased software on your computer. You should not use
+this product in production or mission critical operations or where
+100% reliability is required. As much as possible, we will respond to
+problems and provide updates to address issues, but we cannot
+guarantee all problems will be addressed. You should back up your
+system and hard drives prior to installing and testing this software.
+Then you should save your work often and back up your hard drives
+regularly to protect your data. Apple cannot accept liability for any
+lost data or other injury.</FONT></P>
+
+<P>&nbsp;</P>
+
+<P><FONT FACE="Helvetica"><B><A NAME=NDA></A><A NAME=GivingFeedback></A>Giving
+Apple Feedback About the Preview Software</B></FONT></P>
+
+<P><FONT SIZE="+1">You can give feedback to Apple about Darwin
+Streaming Server 3 Public Preview. Refer to
+http://www.apple.com/quicktime/servers/ for details.</FONT></P>
+
+<P><FONT SIZE="+1">&nbsp;</FONT></P>
+
+<P><FONT FACE="Helvetica"><B>Installing and Setting Up</B></FONT></P>
+
+<P><FONT SIZE="+1">To install and set up Darwin Streaming Server
+Public Preview software, follow these steps on the server
+computer:</FONT></P>
+
+<OL>
+   <LI><FONT SIZE="+1"><B>Important: Installing DSS 3 Public Preview
+   will remove older versions of DSS.</B></FONT>
+   
+   <DL>
+      <DT>&nbsp;</DT>
+   </DL>
+   </LI>
+   
+   <LI><FONT SIZE="+1">After expanding the downloaded tar file "cd"
+   into the "DarwinStreamingSrvr3_Preview" directory then
+   type:</FONT>
+   
+   <DL>
+      <DD><FONT SIZE="+1" FACE="Courier">./Install</FONT></DD>
+      
+      <DT>&nbsp;</DT>
+   </DL>
+   </LI>
+   
+   <LI><FONT SIZE="+1">During the install, the
+   streamingadminserver.pl application will automatically be
+   launched. To avoid the need to manually relaunch
+   streamingadminserver.pl following reboots, you may want to
+   configure your server machine to launch it automatically at boot
+   time.</FONT></LI>
+</OL>
+
+<P><FONT SIZE="+1">To configure and administer your server from
+either the server machine or a remote client machine, follow these
+steps.</FONT></P>
+
+<OL>
+   <LI><FONT SIZE="+1">From the server machine or a remote machine
+   launch Netscape Navigator, Netscape Communicator, or Microsoft
+   Internet Explorer, versions 4.5 or later.</FONT></LI>
+   
+   <LI><FONT SIZE="+1">Enter the URL for your Streaming Server
+   Admin:</FONT>
+   
+   <DL>
+      <DD><FONT SIZE="+1">http://myserver.com:1220</FONT></DD>
+      
+      <DD><FONT SIZE="+1">Replace "myserver.com" with the name of
+      your Streaming Server computer. 1220 is the port
+      number.</FONT></DD>
+      
+      <DT>&nbsp;</DT>
+   </DL>
+   </LI>
+   
+   <LI><FONT SIZE="+1">Follow the onscreen instructions to log into
+   the server as user "Administrator". The first time you log in, the
+   "Administrator" password will be "default".</FONT></LI>
+   
+   <LI><FONT SIZE="+1">Choose the Settings tab to start configuring
+   your server.</FONT>
+   
+   <P>&nbsp;</P></LI>
+</OL>
+
+<P><FONT SIZE="+1"><B>IMPORTANT: The preview version of the server is
+configured with the "Administrator" password set to "default".
+Immediately after installing, you should reset the "Administrator"
+password. Note: The "Administrator" password can only be set from a
+web browser running on the local server machine using the following
+URL: </B></FONT></P>
+
+<DL>
+   <DD><FONT SIZE="+1"><B>http://127.0.0.1:1220/</B></FONT></DD>
+</DL>
+
+<P><FONT SIZE="+1"><B>If you cannot run a web browser from your
+server machine you may change the Administrator password directly by
+editing the "/etc/streaming/streamingserver.xml" file using a text
+editor. Change the "AdministratorPassword" attribute located within
+the "QTSSAdminModule" attribute block. You will need to restart the
+server for a change the change to the file to take
+effect.</B></FONT></P>
+
+<P>&nbsp;</P>
+
+<P><FONT FACE="Helvetica"><B>Documentation</B></FONT></P>
+
+<P><FONT SIZE="+1">For help on using the DSS administration and
+setting up your server to stream hinted media, refer to the online
+Help by selecting the Question Mark button from the Streaming Server
+Admin.</FONT></P>
+
+<P><FONT FACE="Helvetica"><B>Platform Support</B></FONT></P>
+
+<P><FONT SIZE="+1">Darwin Streaming Server source code currently
+compiles and runs on the following platforms:</FONT></P>
+
+<BLOCKQUOTE><UL>
+      <LI><FONT SIZE="+1">Mac OS X</FONT></LI>
+      
+      <LI><FONT SIZE="+1">Linux (RedHat 6.2, Intel)</FONT></LI>
+      
+      <LI><FONT SIZE="+1">Solaris 7 (SunOS 5.7)</FONT></LI>
+      
+      <LI><FONT SIZE="+1">FreeBSD 3.5 (Intel)</FONT></LI>
+      
+      <LI><FONT SIZE="+1">Windows 2000 /NT(Service Pack
+      5)</FONT></LI>
+   </UL>
+</BLOCKQUOTE>
+
+<P><FONT SIZE="+1">It can be ported to other platforms by modifying a
+handful of platform specific source files. For more information on
+the source code and on porting the source, see the files
+AboutTheSource.html and SourceFAQ.html.</FONT></P>
+
+<P><FONT FACE="Helvetica"><B>Troubleshooting</B></FONT></P>
+
+<P><FONT SIZE="+1">&#149; If you have used previous versions of DSS,
+please note that some of the file locations have changed with the DSS
+3 Public Preview. You may find it helpful to know these locations for
+troubleshooting problems.</FONT></P>
+
+<DL>
+   <DD><FONT SIZE="-1" FACE="Courier">/usr/local/sbin/DarwinStreamingServer
+   - Streaming Server application</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/usr/local/sbin/StreamingServerModules
+   - Directory for DSS dynamic plugins</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/usr/local/sbin/PlaylistBroadcaster
+   - PlaylistBroadcaster application</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/usr/local/sbin/qtpasswd -
+   qtpasswd application</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/usr/local/sbin/SpamPro -
+   RTSP/RTP load/stress tool</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/usr/local/bin/streamingadminserver.pl
+   - DSS Web Admin server</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/etc/streaming/ - Directory for
+   DSS configuration files</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/usr/local/movies/ - Directory
+   for media files</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/var/streaming/ -
+   Documentation</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/var/streaming/AdminHtml -
+   Directory containing Admin HTML and CGIs</FONT></DD>
+   
+   <DD><FONT SIZE="-1" FACE="Courier">/var/streaming/logs/ -
+   Directory for access and error logs</FONT></DD>
+   
+   <DT>&nbsp;</DT>
+</DL>
+
+<P><FONT SIZE="+1">&#149; If the Streaming Server Admin is not
+responding, you should verify that the streamingadminserver.pl script
+is running first. If not, become root by typing "su root" and then
+the root password. Then start up the process by typing
+"streamingadminserver.pl" in a terminal.</FONT></P>
+
+<P><FONT SIZE="+1">&nbsp;</FONT></P>
+
+<P>&copy; 2000 Apple Computer, Inc. All rights reserved. Apple, the
+Apple logo, Macintosh, PowerBook, Power Macintosh, and QuickTime are
+trademarks of Apple Computer, Inc., registered in the United States
+and other countries. iBook, iMac, and Power Mac are trademarks of
+Apple Computer, Inc. All other product names are trademarks or
+registered trademarks of their respective holders.</P>
+
+<P>&nbsp;</P>
+</BODY>
+</HTML>

@@ -1,0 +1,50 @@
+<HTML>
+
+	<HEAD>
+		<META HTTP-EQUIV="content-type" CONTENT="text/html;charset=iso-8859-1">
+		<TITLE>Solving problems with PlaylistBroadcaster</TITLE>
+		<META NAME="DP" CONTENT="1.9.1/4.0.1">
+	</HEAD>
+
+	<BODY BGCOLOR="#ffffff">
+		<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="349">
+			<TR VALIGN="top">
+				<TD><FONT FACE="Helvetica,Arial" SIZE="4" COLOR="#330099"><B>Solving problems with PlaylistBroadcaster </B> </FONT>
+					<UL>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">If you enable logging, you can use the log file to troubleshoot problems that occur during the broadcast.</FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>If the media in the playlist is not being broadcast:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"><BR>
+						Check the process list (ps) to be sure the PlaylistBroadcaster is running. If it is and the media is not being broadcast, <A HREF="sspb05.htm">stop the broadcast,</A> delete the <A HREF="ss13.htm">Session Description Protocol (SDP) file</A> for the broadcast from the Darwin Streaming Server media directory, then restart the broadcast. A new SDP file is generated when you restart the broadcast.</FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">Make sure the broadcast description file is complete and doesn't contain errors. If you change the broadcast description file, stop the broadcast, delete the SDP file for the broadcast, then restart.</FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>If the media in the playlist is not being broadcast randomly:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"><BR>
+						Make sure the weighted_random play mode is specified in the broadcast description file.</FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>If the media plays once and then stops:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"><BR>
+						Make sure the <A HREF="sspb04.htm">broadcast description file</A> specifies that the play_mode parameter is sequential_looped or weighted_random.</FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">If you broadcast the playlist as weighted_random and set a value other than zero for the recent_movies_list_size, make sure the number is less than the number of media files in the playlist.</FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>If some media in the playlist is not played:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"><BR>
+						Check the weight you have assigned to each media file in the playlist. If you change the playlist, you must stop and start the broadcast for the changes to take effect.</FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">Check the setting for the recent_movies_list_size in the <A HREF="sspb04.htm">broadcast description file.</A> If you change the broadcast description file, be sure to stop the broadcast, delete the SDP file for the broadcast from the Darwin Streaming Server movie directory, then start the broadcast again.</FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>If the media isn't streaming correctly:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"><BR>
+						Be sure the content, format, and encoding of the media is the same for all files in the playlist. Also, be sure users have the latest version of the QuickTime software installed on their computers.</FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>If the streaming is slow:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"><BR>
+						Be sure each media file is a <A HREF="ss03.htm">hinted movie optimized for the server.</A></FONT></P>
+					</UL>
+					<P><FONT FACE="Helvetica,Arial" COLOR="#330099"><B>Related topic </B></FONT></P>
+					<UL>
+						<P><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="5" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="11" BGCOLOR="#cccccc">&nbsp;</TD>
+								<TD WIDTH="283"><FONT FACE="Geneva,Arial" SIZE="2"><A HREF="sspb01.htm">Broadcasting prerecorded audio or video</A></FONT></TD>
+							</TR>
+						</TABLE></P>
+					</UL>
+					<P>&nbsp;</TD>
+			</TR>
+			<TR>
+				<TD ALIGN="center"><FONT FACE="Geneva,Arial" SIZE="1">
+					<HR>
+					<A HREF="../index.htm">Table of contents</A></FONT></TD>
+			</TR>
+		</TABLE>
+	</BODY>
+
+</HTML>

@@ -1,0 +1,67 @@
+<HTML>
+
+	<HEAD>
+		<META HTTP-EQUIV="content-type" CONTENT="text/html;charset=iso-8859-1">
+		<TITLE>Starting or stopping streaming services</TITLE>
+		<META NAME="DP" CONTENT="1.9.1/4.0.1">
+	</HEAD>
+
+	<BODY BGCOLOR="#ffffff">
+		<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="349">
+			<TR VALIGN="top">
+				<TD><FONT FACE="Helvetica,Arial" SIZE="4" COLOR="#330099"><B>Starting or stopping streaming services </B> </FONT>
+					<UL>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">You may need to enter the Administrator (root) password for your computer before you can start or stop streaming services.</FONT></P>
+					</UL>
+					<P><FONT FACE="Helvetica,Arial" COLOR="#330099"><B>Starting streaming services </B></FONT></P>
+					<UL>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">To start Darwin streaming services:<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">At the command line, enter the following: </FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">/usr/sbin/Darwinstreamingserver</FONT></TD>
+							</TR>
+						</TABLE></FONT></P>
+					</UL>
+					<P><FONT FACE="Helvetica,Arial" COLOR="#330099"><B>Stopping streaming services </B></FONT></P>
+					<UL>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">To stop Darwin streaming services:<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>1</B></FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Look up the process ID (pid) of &quot;DarwinStreamingServer.&quot;</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>2</B></FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">At the command line, enter  the following:</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">kill -9 &lt;pid&gt;</FONT></TD>
+							</TR>
+						</TABLE></FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">It is normal for the Darwin Streaming Server to be running with several different process IDs. To stop streaming, you should make sure that each of these Darwin Streaming Server processes is stopped. Stopping just the primary parent many not be enough if you were running Darwin Streaming Server as a background process.</FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">On some Linux servers, you may be able to use the &quot;killall&quot; command to stop all streaming processes at once.</FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">To stop Darwin streaming services on some Linux machines:<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">At the command line, enter the following: </FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">killall DarwinStreamingServer</FONT></TD>
+							</TR>
+						</TABLE></FONT></P>
+					</UL>					<P>&nbsp;</TD>
+			</TR>
+			<TR>
+				<TD ALIGN="center"><FONT FACE="Geneva,Arial" SIZE="1">
+					<HR>
+					<A HREF="../index.htm">Table of contents</A></FONT></TD>
+			</TR>
+		</TABLE>
+	</BODY>
+
+</HTML>

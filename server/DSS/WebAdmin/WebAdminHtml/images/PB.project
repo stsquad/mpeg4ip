@@ -1,0 +1,63 @@
+{
+    CURRENTLY_ACTIVE_VERSION = YES; 
+    DEPLOY_WITH_VERSION_NAME = A; 
+    DYNAMIC_CODE_GEN = YES; 
+    FILESTABLE = {
+        FRAMEWORKS = (Foundation.framework); 
+        OTHER_SOURCES = (
+            Makefile.preamble, 
+            Makefile, 
+            Makefile.postamble, 
+            apple_logo.gif, 
+            dot.gif, 
+            help.gif, 
+            nav1.gif, 
+            nav1_h.gif, 
+            nav1_s.gif, 
+            nav2.gif, 
+            nav2_h.gif, 
+            nav2_s.gif, 
+            nav3.gif, 
+            nav3_h.gif, 
+            nav3_s.gif, 
+            spacer.gif, 
+            subnav1A.gif, 
+            subnav1A_h.gif, 
+            subnav1A_s.gif, 
+            subnav1B.gif, 
+            subnav1B_h.gif, 
+            subnav1B_s.gif, 
+            subnav2A.gif, 
+            subnav2A_h.gif, 
+            subnav2A_s.gif, 
+            subnav2B.gif, 
+            subnav2B_h.gif, 
+            subnav2B_s.gif, 
+            subnav3A.gif, 
+            subnav3A_h.gif, 
+            subnav3A_s.gif, 
+            subnav3B.gif, 
+            subnav3B_h.gif, 
+            subnav3B_s.gif
+        ); 
+    }; 
+    LANGUAGE = English; 
+    MAKEFILEDIR = "$(MAKEFILEPATH)/pb_makefiles"; 
+    NEXTSTEP_BUILDTOOL = /usr/bin/gnumake; 
+    NEXTSTEP_INSTALLDIR = /localgibblies/lib; 
+    NEXTSTEP_JAVA_COMPILER = /usr/bin/javac; 
+    NEXTSTEP_OBJCPLUS_COMPILER = /usr/bin/cc; 
+    PDO_UNIX_BUILDTOOL = $NEXT_ROOT/Developer/bin/make; 
+    PDO_UNIX_INSTALLDIR = /lib; 
+    PDO_UNIX_JAVA_COMPILER = "$(JDKBINDIR)/javac"; 
+    PDO_UNIX_OBJCPLUS_COMPILER = "$(NEXTDEV_BIN)/gcc"; 
+    PDO_UNIX_PUBLICHEADERSDIR = "$(LOCAL_DEVELOPER_DIR)/Headers/$(NAME)"; 
+    PROJECTNAME = images; 
+    PROJECTTYPE = Library; 
+    PROJECTVERSION = 2.8; 
+    WINDOWS_BUILDTOOL = $NEXT_ROOT/Developer/Executables/make; 
+    WINDOWS_INSTALLDIR = /Developer/Libraries; 
+    WINDOWS_JAVA_COMPILER = "$(JDKBINDIR)/javac.exe"; 
+    WINDOWS_OBJCPLUS_COMPILER = "$(DEVDIR)/gcc"; 
+    WINDOWS_PUBLICHEADERSDIR = "$(HOMEDRIVE)$(LOCAL_DEVELOPER_DIR)/Headers/$(NAME)"; 
+}

@@ -1,0 +1,127 @@
+#!/bin/sh
+
+# Install script for the Darwin Streaming Server
+# source release
+
+
+echo;echo Installing Darwin Streaming Server;echo
+
+if [ `uname` != "SunOS" ]; then
+	USERID=`id -u`
+else
+	USERID=`/usr/xpg4/bin/id -u`
+fi
+
+if [ $USERID = 0 ]; then
+
+	echo Removing previous versions of Darwin Streaming Server
+	if [ -f /usr/sbin/DarwinStreamingServer ]; then
+		echo removing /usr/sbin/DarwinStreamingServer
+		rm -f /usr/sbin/DarwinStreamingServer 
+	fi
+	
+	if [ -f /usr/sbin/PlaylistBroadcaster ]; then
+		echo removing /usr/sbin/PlaylistBroadcaster
+		rm -f /usr/sbin/PlaylistBroadcaster
+	fi
+	
+	if [ -f /usr/sbin/qtpasswd ]; then
+		echo removing /usr/sbin/qtpasswd
+		rm -f /usr/sbin/qtpasswd
+	fi
+
+	if [ -d /usr/sbin/StreamingServerModules ]; then
+		echo removing /usr/sbin/StreamingServerModules
+		rm -rf /usr/sbin/StreamingServerModules
+	fi
+
+
+	echo
+
+	echo copying "DarwinStreamingServer" to "/usr/local/sbin/DarwinStreamingServer"
+	if [ ! -d /usr/local/sbin ]; then
+		echo creating "/usr/local/sbin" directory
+		mkdir -p /usr/local/sbin
+	fi
+	cp -f DarwinStreamingServer /usr/local/sbin/
+	
+	
+	echo copying "PlaylistBroadcaster" to "/usr/local/sbin/PlaylistBroadcaster"
+	cp -f PlaylistBroadcaster /usr/local/sbin/
+	
+	echo copying "qtpasswd" to "/usr/local/sbin/qtpasswd"
+	cp -f qtpasswd /usr/local/sbin/
+	
+	echo copying modules to "/usr/local/sbin/StreamingServerModules"
+	if [ ! -d /usr/local/sbin/StreamingServerModules ]; then
+		echo creating "/usr/local/sbin/StreamingServerModules" directory
+		mkdir /usr/local/sbin/StreamingServerModules
+	fi
+	cp -f StreamingServerModules/* /usr/local/sbin/StreamingServerModules/
+	
+	if [ ! -d /etc/streaming ]; then
+		echo creating "/etc/streaming" directory
+		mkdir -p /etc/streaming
+	fi
+	
+	echo copying "streamingserver.xml" to "/etc/streaming/streamingserver.xml-sample"
+	cp streamingserver.xml /etc/streaming/streamingserver.xml-sample
+	
+	echo;echo copying "streamingserver.xml" to "/etc/streaming/streamingserver.xml"
+	cp streamingserver.xml /etc/streaming/streamingserver.xml
+	chmod 600 /etc/streaming/streamingserver.xml
+		
+	
+	if [ ! -d /var/streaming ]; then
+		echo creating "/var/streaming" directory
+		mkdir -p /var/streaming
+	fi
+	
+	echo copying "readme.html" to "/var/streaming/readme.html"
+	cp readme.html /var/streaming/readme.html
+	
+	echo copying "usermanual.pdf" to "/var/streaming/usermanual.pdf"
+	cp usermanual.pdf /var/streaming/usermanual.pdf
+	
+	
+	if [ ! -d /var/streaming/logs ]; then
+		echo creating "/var/streaming/logs" directory
+		mkdir -p /var/streaming/logs
+	fi
+	
+	if [ ! -d /usr/local/movies ]; then
+		echo creating "/usr/local/movies" directory
+		mkdir -p /usr/local/movies
+	fi
+	
+	echo copying "sample.mov" into "/usr/local/movies/sample.mov"
+	cp -f sample.mov /usr/local/movies/
+	
+	echo copying "SpamPro" to "/usr/local/sbin/SpamPro"
+	cp SpamPro /usr/local/sbin/
+	
+	echo copying "spampro.conf" to "/var/streaming/spampro.conf"
+	cp spampro.conf /var/streaming/
+	
+	#WebAdmin install
+	echo copying "streamingadminserver.pl" into "/usr/local/bin/streamingadminserver.pl"
+	cp -f streamingadminserver.pl /usr/local/bin/streamingadminserver.pl
+	
+	echo copying Admin HTML to "/var/streaming/AdminHtml" directory
+	if [ ! -d /var/streaming/ ]; then
+		echo creating "/var/streaming/AdminHtml" directory
+		mkdir -p /var/streaming/AdminHtml
+	fi
+	cp -f -r AdminHtml /var/streaming/
+	
+	echo;echo "Launching streamingadminserver.pl"
+	/usr/local/bin/streamingadminserver.pl
+	
+	echo;echo Installion Complete
+
+else
+
+	echo "Unable to perform install"
+	echo "You must be logged in as root to install Darwin Streaming Server";echo
+	exit 1
+fi

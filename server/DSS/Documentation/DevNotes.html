@@ -1,0 +1,58 @@
+
+<HTML>
+<HEAD>
+<TITLE>Darwin Streaming Server 2 - Developer Notes</TITLE>
+</HEAD>
+<BODY LINK="#0000ff" VLINK="#800080" BGCOLOR="#ffffff">
+
+<H2 ALIGN="CENTER">Darwin Streaming Server Source Code</H2>
+<H2 ALIGN="CENTER">Developer Notes</H2>
+<P ALIGN="CENTER">&nbsp;</P>
+<B><FONT SIZE=1><P>&nbsp;</P>
+</FONT><FONT SIZE=4><P>Table of Contents</P>
+</B></FONT><P>Building<BR>
+Installation<BR>
+Configuration and Testing&nbsp;</P>
+<FONT SIZE=2><P>&nbsp;</P>
+</FONT><B><FONT SIZE=4><P>Licensing</P>
+</B></FONT><P>The Darwin Streaming Server is distributed under the terms of the Apple Public Source License. For more information, refer to the license terms at <A HREF="http://www.publicsource.apple.com/">www.publicsource.apple.com</A>. Note that the Apple Public Source License does not allow you to use the terms "QuickTime" or "QuickTime Streaming Server" in descriptions of products developed using Darwin Streaming Server open source code, nor use any Apple trademarks or logos associated with QuickTime and QuickTime Streaming Server.</P>
+<FONT SIZE=2><P>&nbsp;&nbsp;</P>
+</FONT><B><FONT SIZE=4><P>Building</P>
+</B></FONT><P>If you downloaded a binary package of Darwin Streaming Server, skip to the next section on installation.</P>
+<P>To build Darwin Streaming Server on Mac OS X run ProjectBuilder or type "make" from within the DarwinStreamingServer<FONT COLOR="#ff0000"> </FONT>directory. This will build all of the targets.</P>
+<P>To build Darwin Streaming Server on other UNIX platforms, type ./Buildit from within the DarwinStreamingServer<FONT COLOR="#ff0000"> </FONT>directory. The script determines the current OS and hardware platform, and builds all of the targets for that platform: DarwinStreamingServer, PlaylistBroadcaster, qtpasswd, and dynamic modules included in the "APIModules" folder.</P>
+<P>To build Darwin Streaming Server on Windows NT or Windows 2000, you must have a copy of Visual C++. There is a VC++ workspace file located inside WinNTSupport directory, which is a subdirectory of the DarwinStreamingServer directory. Once the workspace is open, from the Build menu select Batch Build.</P>
+<P>Currently, the dynamic modules included in APIModules are:</P>
+
+<UL>
+<BLOCKQUOTE><LI>QTSSAccessModule.bproj: QTSSAccessModule, a module that uses "qtaccess" files to authenticate and authorize streaming users. </LI></BLOCKQUOTE>
+<BLOCKQUOTE><LI>QTSSDemoAuthorizationModule.bproj: QTSSDemoAuthorizationModule, a module shown at the QTLive! conference which plays a movie as an error response. </LI></BLOCKQUOTE>
+<BLOCKQUOTE><LI>QTSSRawFileModule.bproj: QTSSRawFileModule, a module that allows the server to serve ".raw" files. </LI></BLOCKQUOTE>
+<BLOCKQUOTE><LI>QTSSSpamDefenseModule.bproj: QTSSSpamDefenseModule, a module that allows only n clients to connect from a given IP address, protecting against denial of service attacks. </LI></BLOCKQUOTE></UL>
+
+<P>Some of these modules have more detailed documentation in their respective folders. These are not all of the modules in APIModules. The others are either compiled into QTSS, and therefore do not need to be built as dynamic modules, or are specific to Mac OS X.</P>
+<P>&nbsp;</P>
+<B><P>How to build your dynamic QTSS API modules</P>
+</B><P>For building new dynamic QTSS API modules on Mac OS X, follow the instructions in the QTSS API developer documentation, "QTSSAPIDocs.pdf".</P>
+<P>For platforms other that Mac OS X, your module must be built as a shared object, and it must include APIStubLib/QTSS_Private.cpp. This file is the "stub library" that all modules must link against.</P>
+<P>On most UNIX platforms, building a shared object is like building any other executable, with the addition of one command-line argument to the linker. On Linux, the -shared option tells the linker that it is producing a shared object, on Solaris, the option is -G.</P>
+<P>The dynamic QTSS API modules that come with Darwin Streaming Server each have a Makefile.POSIX makefile in their respective source directories. These makefiles execute when the Buildit script runs, and contain the make rules to make the dynamic module for each currently supported UNIX platform. It is easiest to use these existing makefiles as a template to copy and modify for your new QTSS API module.</P>
+<FONT SIZE=2><P>&nbsp;</P>
+</FONT><B><FONT SIZE=4><P>Installation</P>
+</B></FONT><P>The next step is to install and configure the server. On Mac OS X, the server reads its preferences from a NetInfo database by default. On UNIX platforms, the server reads its preferences from a config file. A default config file, streamingserver.conf, comes with both the source and binary packages. The server looks for this file at /etc/streamingserver.conf, so you must copy it to the /etc directory before starting the server.</P>
+<P>Once the server is built, you will have an executable called DarwinStreamingServer. The server can be run from the directory where it is built, or you can copy it to another location.</P>
+<P>To run the server from the directory where it is compiled, just type ./DarwinStreamingServer.</P>
+<P>&nbsp;</P>
+<B><FONT SIZE=4><P>Configuration and Testing</P>
+</B></FONT><P>The server serves all streaming content out of its "media folder". By default, this media folder is located at /Local/Library/QuickTimeStreaming/Movies. This path is one of the preferences in the config file (or NetInfo). If you want your media folder to be located somewhere else, you must edit the "movie_folder" preference before starting the server.</P>
+<P>Once you have a media folder, you can place streaming media into the folder. All QuickTime files must be "hinted" with QuickTime Player Pro or other QuickTime authoring applications before they can be streamed. Once the movie is hinted, copy the file to the streaming media folder on your server.</P>
+<P>There is a sample movie that comes with each package. The sample movie is already hinted, so you can place it into your media folder. From the QuickTime client, attempt to access that movie through an rtsp URL (e.g. rtsp://my.server.com/sample.mov), and the server will stream that movie to the client.</P>
+<P>In order to "reflect" a live broadcast, you must setup and start a broadcaster application, such as the Sorenson Broadcaster. The broadcaster produces an SDP file that describes the live broadcast. Place that SDP file into your media folder, access the URL from a QuickTime Client, and the server will "reflect" the live broadcast to the client.</P>
+<P>Also included with the Darwin Streaming Server is rtspam, a stress tool for testing the server. rtspam realistically simulates many RTSP clients viewing a movie from the server. The tool offers many command-line options that can create different types of simulations. Typing ./rtspam will print a description of all available options.</P>
+<P>rtspam will only work if there is a movie called "rtspam.mov" in the root movie folder of the target server. This file must be a valid, hinted QuickTime movie.</P>
+<P>For more information about authoring, hinting, and streaming QuickTime media, refer to the QuickTime Streaming Server documentation.</P>
+<P>&nbsp;</P>
+<FONT SIZE=2><P>&copy; 1999 Apple Computer, Inc. All rights reserved. Apple, the Apple logo, Mac, Macintosh, PowerBook, Power Macintosh, and QuickTime are trademarks of Apple Computer, Inc., registered in the United States and other countries. iBook, iMac, and Power Mac are trademarks of Apple Computer, Inc. All other product names are trademarks or registered trademarks of their respective holders.</P>
+<P>&nbsp;</P>
+</FONT><FONT SIZE=1><P>&nbsp;</P></FONT></BODY>
+</HTML>

@@ -1,0 +1,77 @@
+<HTML>
+<HEAD>
+   <TITLE>Streaming Server Admin: <%%ECHODATA /server/qtssSvrDefaultDNSName%%></TITLE>
+<SCRIPT LANGUAGE="JavaScript1.2" TYPE="text/javascript">		
+		<!--
+
+function init() {
+	toploded = top.nav.loded;
+	if(typeof(toploded) == "number") {
+		top.nav.selekt('3');
+		top.nav.subSelekt('3B');
+		} else {
+	setTimeout("init()", 200);
+	}
+}
+
+// -->
+</SCRIPT> 
+ </HEAD>
+<%%GETVALUE dir /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logfile_dir%%>
+<%%GETVALUE file /server/qtssSvrModuleObjects/QTSSAccessLogModule/qtssModPrefs/request_logfile_name%%>
+<%%PROCESSFILE accessdata dir file 4%%>
+<BODY BGCOLOR="#FFFFFF">
+<CENTER><BR>
+<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="85%" HEIGHT=32>
+   <TR>
+      <TD WIDTH=455>
+         <P><FONT SIZE="+3" FACE="Arial" COLOR="#B7BED2">Access
+         History</FONT></P>
+      </TD>
+      <TD ALIGN=center WIDTH=100>
+         <P></P>
+      </TD>
+   </TR>
+</TABLE>
+ <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH="85%">
+   <TR>
+      <TD VALIGN=top>
+         <CENTER><BR>
+         <BR>
+         <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 WIDTH=400>
+            <TR>
+               <TD VALIGN=top WIDTH="100%">
+                  <P><TABLE BORDER=0 CELLSPACING=0 CELLPADDING=4 WIDTH="100%" HEIGHT=14>
+                     <TR>
+                        <TD ALIGN=right NOWRAP BGCOLOR="#8C94AD">
+                           <P ALIGN=left><FONT FACE="Arial" COLOR="#FFFFFF"><B>Files
+                           Requested Since Last Reset</B></FONT></P>
+                        </TD>
+                     </TR>
+                  </TABLE>
+                  
+                  <TABLE BORDER=0 BGCOLOR="#FFFFFF" CELLSPACING=1 CELLPADDING=4 WIDTH="100%">
+                     <TR>
+                        <TD NOWRAP BGCOLOR="#C6C6D6">
+                           <P><FONT SIZE="-1" FACE="Arial" COLOR="#333333"><B>File
+                           Requested</B></FONT></P>
+                        </TD>
+                        <TD NOWRAP WIDTH="47%" BGCOLOR="#C6C6D6">
+                           <P><FONT SIZE="-1" FACE="Arial" COLOR="#333333"><B>Requests</B></FONT></P>
+                        </TD>
+                     </TR>
+  					<%%FORMATDDARRAY accessdata 0 -1 '<TR>' '</TR>' 
+ 							   0 '<TD NO WRAP BGCOLOR="#EFEFF7"><FONT SIZE="-1" FACE="Arial">' '</FONT></TD>' 
+ 							   1 '<TD NO WRAP BGCOLOR="#EFEFF7"><FONT SIZE="-1" FACE="Arial">' '</FONT></TD>'%%>
+                  </TABLE>
+                  </P>
+               </TD>
+            </TR>
+         </TABLE>
+         </CENTER>
+      </TD>
+   </TR>
+</TABLE>
+</CENTER>
+</BODY>
+</HTML>

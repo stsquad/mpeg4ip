@@ -1,0 +1,47 @@
+<HTML>
+
+	<HEAD>
+		<META HTTP-EQUIV="content-type" CONTENT="text/html;charset=iso-8859-1">
+		<TITLE>Setting up authentication</TITLE>
+		<META NAME="DP" CONTENT="1.9.1/4.0.1">
+	</HEAD>
+
+	<BODY BGCOLOR="#ffffff">
+		<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="349">
+			<TR VALIGN="top">
+				<TD><FONT FACE="Helvetica,Arial" SIZE="4" COLOR="#330099"><B>Setting up authentication </B> </FONT>
+					<UL>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">Darwin Streaming Server comes with an authentication module you can use to control access to streamed media files. </FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">QTSSAccessModule</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">This module lets you set up access to Darwin streaming services, but not to any other services on your computer.</FONT></TD>
+							</TR>
+						</TABLE></FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">Users must have QuickTime Player 4.1 or later to access a media file for which authentication is enabled. The user must enter his or her user name and password to view the media file. Users who try to access a media file with an earlier version of QuickTime installed will see an error message: &quot;401: Unauthorized.&quot;</FONT></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>Note:</B></FONT><FONT FACE="Geneva,Arial" SIZE="2"> Authentication modules control access to media streamed from your server. It does not control access to media you relay. Access to media streamed from a relay server must be set up by the administrator of the relay server. </FONT></P>
+					</UL>
+					<P><FONT FACE="Helvetica,Arial" COLOR="#330099"><B>Enabling or disabling an authentication module </B></FONT></P>
+					<UL>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">To enable an authentication module, copy it to the Darwin Streaming Server modules directory, which is located at /usr/sbin/StreamingServerModules.</FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">To disable an authentication module, remove it from the modules directory, and copy it to the /usr/sbin/StreamingServerModules.disabled directory. </FONT></P>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">When you install Darwin Streaming Server, QTSSAccessModule is enabled by default. </FONT></P>
+					</UL>
+					<P><FONT FACE="Helvetica,Arial" COLOR="#330099"><B>Setting up an authentication module </B></FONT></P>
+					<UL>
+						<P><FONT FACE="Geneva,Arial" SIZE="2">If you are using QTSSAccessModule, <A HREF="ss07c.htm">set up an access file and user and group files.</A></FONT></P>
+					</UL>					<P>&nbsp;</TD>
+			</TR>
+			<TR>
+				<TD ALIGN="center"><FONT FACE="Geneva,Arial" SIZE="1">
+					<HR>
+					<A HREF="../index.htm">Table of contents</A></FONT></TD>
+			</TR>
+		</TABLE>
+	</BODY>
+
+</HTML>

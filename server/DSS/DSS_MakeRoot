@@ -1,0 +1,184 @@
+#!/bin/sh -e
+
+
+# Install script for the Darwin Streaming Server
+# source release
+
+if [ $1 = "-f" ]; then
+	FLATTEN=1
+	INSTALLROOT=$2
+else
+	FLATTEN=0
+	INSTALLROOT=$1
+fi
+
+echo Installing source build of Darwin Streaming Server
+
+if [ -z $INSTALLROOT ]; then
+	echo "usage: DSS_MakeRoot [-f] rootdirname"
+	echo " -f: flatten directory hierarchy"
+	exit 1
+fi
+
+if [ -d $INSTALLROOT ];
+then :
+else
+	echo "creating directory $INSTALLROOT"
+	mkdir -p $INSTALLROOT
+fi
+
+if [ $FLATTEN != 1 ]; then
+	# Install each file into it's appropriate location relative to "$INSTALLROOT"
+
+	echo copying "DarwinStreamingServer" to "$INSTALLROOT/usr/local/sbin/DarwinStreamingServer"
+	mkdir -p $INSTALLROOT/usr/l
+	ocal/sbin
+	cp DarwinStreamingServer $INSTALLROOT/usr/local/sbin/
+	
+	echo copying "PlaylistBroadcaster" to "$INSTALLROOT/usr/local/sbin/PlaylistBroadcaster"
+	cp PlaylistBroadcaster.tproj/PlaylistBroadcaster $INSTALLROOT/usr/local/sbin/
+	
+	echo copying "qtpasswd" to "$INSTALLROOT/usr/local/sbin/qtpasswd"
+	cp qtpasswd.tproj/qtpasswd $INSTALLROOT/usr/local/sbin/
+	
+	echo creating "$INSTALLROOT/usr/local/sbin/StreamingServerModules" directory
+	mkdir $INSTALLROOT/usr/local/sbin/StreamingServerModules
+#	cp APIModules/QTSSAccessModule.bproj/QTSSAccessModule $INSTALLROOT/usr/local/sbin/StreamingServerModules/
+	
+	echo copying "streamingserver.xml-POSIX" to "$INSTALLROOT/etc/streaming/streamingserver.xml"
+	mkdir -p $INSTALLROOT/etc/streaming
+	cp -i streamingserver.xml-POSIX $INSTALLROOT/etc/streaming/streamingserver.xml
+	echo copying "streamingserver.xml-POSIX" to "$INSTALLROOT/etc/streaming/streamingserver.xml-sample"
+	cp -i streamingserver.xml-POSIX $INSTALLROOT/etc/streaming/streamingserver.xml-sample
+	
+	echo copying "streamingrelay.conf" to "$INSTALLROOT/etc/streaming/streamingrelay.conf"
+	cp -i streamingrelay.conf $INSTALLROOT/etc/streaming/
+	
+	echo creating "$INSTALLROOT/var/streaming/logs" directory
+	mkdir -p $INSTALLROOT/var/streaming/logs
+	
+	echo copying "Documentation/AboutDarwinStreamingSvr.pdf" into "$INSTALLROOT/var/streaming/usermanual.pdf"
+	cp Documentation/AboutDarwinStreamingSvr.pdf $INSTALLROOT/var/streaming/usermanual.pdf
+	
+	echo copying "Documentation/AboutDarwinStreamingSvr.pdf" into "$INSTALLROOT/var/streaming/usermanual.pdf"
+	cp Documentation/AboutDarwinStreamingSvr.pdf $INSTALLROOT/var/streaming/usermanual.pdf
+	
+	echo copying "Documentation/DSSReadMe.htm" into "$INSTALLROOT/var/streaming/readme.html"
+	cp Documentation/DSSReadMe.htm $INSTALLROOT/var/streaming/readme.html
+	
+	
+	echo creating "$INSTALLROOT/usr/local/movies" directory
+	mkdir -p $INSTALLROOT/usr/local/movies
+	
+	echo copying "sample.mov" into "$INSTALLROOT/usr/local/movies"
+	cp sample.mov $INSTALLROOT/usr/local/movies/
+	
+	echo copying "SpamPro" to "$INSTALLROOT/usr/local/sbin/SpamPro"
+	cp SpamPro.tproj/SpamPro $INSTALLROOT/usr/local/sbin/
+	
+	echo copying "spampro.conf" to "$INSTALLROOT/usr/local/sbin/spampro.conf"
+	cp SpamPro.tproj/spampro.conf $INSTALLROOT/var/streaming/
+	
+	#WebAdmin install
+	echo copying "streamingadminserver.pl" into "$INSTALLROOT/usr/local/bin/"
+	cp WebAdmin/src/streamingadminserver.pl $INSTALLROOT/usr/local/bin/streamingadminserver.pl
+	
+	echo creating "$INSTALLROOT/var/streaming/AdminHtml" directory
+	mkdir -p $INSTALLROOT/var/streaming/AdminHtml
+	
+	echo copying Admin HTML to "$INSTALLROOT/var/streaming/AdminHtml" directory
+	cp WebAdmin/WebAdminHtml/adminprotocol-lib.pl $INSTALLROOT/var/streaming/AdminHtml/adminprotocol-lib.pl
+	cp WebAdmin/WebAdminHtml/cgi-lib.pl $INSTALLROOT/var/streaming/AdminHtml/cgi-lib.pl
+	cp WebAdmin/WebAdminHtml/mainpage.htm $INSTALLROOT/var/streaming/AdminHtml/mainpage.htm
+	cp WebAdmin/WebAdminHtml/index.cgi $INSTALLROOT/var/streaming/AdminHtml/index.cgi
+	cp WebAdmin/WebAdminHtml/nav.htm $INSTALLROOT/var/streaming/AdminHtml/nav.htm
+	cp WebAdmin/WebAdminHtml/parse.cgi $INSTALLROOT/var/streaming/AdminHtml/parse.cgi
+	cp WebAdmin/WebAdminHtml/parsewithinput.cgi $INSTALLROOT/var/streaming/AdminHtml/parsewithinput.cgi
+	cp WebAdmin/WebAdminHtml/setgensettings.cgi $INSTALLROOT/var/streaming/AdminHtml/setgensettings.cgi
+	cp WebAdmin/WebAdminHtml/setlogsettings.cgi $INSTALLROOT/var/streaming/AdminHtml/setlogsettings.cgi
+	cp WebAdmin/WebAdminHtml/startstopserver.cgi $INSTALLROOT/var/streaming/AdminHtml/startstopserver.cgi
+else
+	# Build a "flat" directory containing an "Install" script
+
+	echo copying "Install" to "$INSTALLROOT"
+	cp Install $INSTALLROOT/Install
+	
+	echo copying "DarwinStreamingServer" to "$INSTALLROOT/DarwinStreamingServer"
+	cp DarwinStreamingServer $INSTALLROOT/
+	
+	echo copying "PlaylistBroadcaster" to "$INSTALLROOT/PlaylistBroadcaster"
+	cp PlaylistBroadcaster.tproj/PlaylistBroadcaster $INSTALLROOT/
+	
+	echo copying "qtpasswd" to "$INSTALLROOT/qtpasswd"
+	cp qtpasswd.tproj/qtpasswd $INSTALLROOT/
+	
+	echo creating "$INSTALLROOT/StreamingServerModules" directory
+	mkdir -p $INSTALLROOT/StreamingServerModules
+#	cp APIModules/QTSSAccessModule.bproj/QTSSAccessModule $INSTALLROOT/StreamingServerModules/
+	
+	echo copying "streamingserver.xml-POSIX" to "$INSTALLROOT/streamingserver.xml"
+	cp -i streamingserver.xml-POSIX $INSTALLROOT/streamingserver.xml
+	
+	echo copying "streamingserver.xml-POSIX" to "$INSTALLROOT/streamingserver.xml-sample"
+	cp -i streamingserver.xml-POSIX $INSTALLROOT/streamingserver.xml-sample
+	
+	echo copying "streamingrelay.conf" to "$INSTALLROOT/streamingrelay.conf"
+	cp -i streamingrelay.conf $INSTALLROOT/
+	
+	echo copying "Documentation/AboutDarwinStreamingSvr.pdf" into "usermanual.pdf"
+	cp Documentation/AboutDarwinStreamingSvr.pdf $INSTALLROOT/usermanual.pdf
+	
+	echo copying "Documentation/DSSReadMe.htm" into "$INSTALLROOT/readme.html"
+	cp Documentation/DSSReadMe.htm $INSTALLROOT/readme.html
+	
+	echo copying "sample.mov" into "$INSTALLROOT/movies"
+	cp sample.mov $INSTALLROOT/
+	
+	echo copying "SpamPro" to "$INSTALLROOT/SpamPro"
+	cp SpamPro.tproj/SpamPro $INSTALLROOT/
+	
+	echo copying "spampro.conf" to "$INSTALLROOT/spampro.conf"
+	cp SpamPro.tproj/spampro.conf $INSTALLROOT/
+	
+	#WebAdmin install
+	echo copying "streamingadminserver.pl" into "$INSTALLROOT/"
+	cp WebAdmin/src/streamingadminserver.pl $INSTALLROOT/streamingadminserver.pl
+	
+	echo creating "$INSTALLROOT/AdminHtml" directory
+	mkdir -p $INSTALLROOT/AdminHtml
+	
+	echo copying Admin HTML to "$INSTALLROOT/AdminHtml" directory
+	cp WebAdmin/WebAdminHtml/*.pl $INSTALLROOT/AdminHtml/
+	cp WebAdmin/WebAdminHtml/*.htm $INSTALLROOT/AdminHtml/
+	cp WebAdmin/WebAdminHtml/*.cgi $INSTALLROOT/AdminHtml/
+
+	echo creating "$INSTALLROOT/AdminHtml/images/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/images/
+	cp WebAdmin/WebAdminHtml/images/*.gif $INSTALLROOT/AdminHtml/images/
+
+	echo creating "$INSTALLROOT/AdminHtml/javascripts/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/javascripts/
+	cp WebAdmin/WebAdminHtml/javascripts/*.js $INSTALLROOT/AdminHtml/javascripts/
+	
+	echo creating "$INSTALLROOT/AdminHtml/logs/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/logs/
+	cp WebAdmin/WebAdminHtml/logs/*.htm $INSTALLROOT/AdminHtml/logs/
+	
+	echo creating "$INSTALLROOT/AdminHtml/settings/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/settings/
+	cp WebAdmin/WebAdminHtml/settings/*.htm $INSTALLROOT/AdminHtml/settings/
+	
+	echo creating "$INSTALLROOT/AdminHtml/status/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/status/
+	cp WebAdmin/WebAdminHtml/status/*.htm $INSTALLROOT/AdminHtml/status/
+
+	echo creating "$INSTALLROOT/AdminHtml/help/" directory
+	mkdir -p $INSTALLROOT/AdminHtml/help/
+	cp -r Documentation/HelpFiles/* $INSTALLROOT/AdminHtml/help/
+
+fi
+
+
+
+echo
+echo Done.

@@ -1,0 +1,116 @@
+<HTML>
+
+	<HEAD>
+		<META HTTP-EQUIV="content-type" CONTENT="text/html;charset=iso-8859-1">
+		<TITLE>Solving problems with streaming services</TITLE>
+		<META NAME="DP" CONTENT="1.9.1/4.0.1">
+	</HEAD>
+
+	<BODY BGCOLOR="#ffffff">
+		<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="349">
+			<TR VALIGN="top">
+				<TD><FONT FACE="Helvetica,Arial" SIZE="4" COLOR="#330099"><B>Solving problems with streaming services </B> </FONT>
+					<UL>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>If the server doesn't start up or quits unexpectedly:</B></FONT><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2"><A HREF="ss09.htm">Check the error log.</A></FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Make sure the DarwinStreamingServer file is in the /usr/sbin/directory.</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">You must be logged in to the server computer as Administrator (root) to run the DarwinStreamingServer file.</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Reconfigure the Ethernet ports. </FONT></TD>
+							</TR>
+						</TABLE></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>If media files do not stream properly:</B></FONT><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2"><A HREF="ss09.htm">Check the error log.</A></FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Make sure the movie file is supported by the Darwin Streaming Server. Check the list of <A HREF="ss12.htm">compatible file formats.</A></FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Try streaming a sample movie to see if the server can stream it. You can download a sample prehinted movie from the Apple Software Updates Web site:<BR>
+									/asu.info.apple.com/swupdates.nsf/artnum/n11357</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"></TD>
+								<TD WIDTH="284"><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" WIDTH="284">
+										<TR VALIGN="top">
+											<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+											<TD WIDTH="259"><FONT FACE="Geneva,Arial" SIZE="2">If the server streams the sample movie, the problem you're having may be with the way your movie file is prepared. Recreate the movie.</FONT></TD>
+										</TR>
+										<TR VALIGN="top">
+											<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+											<TD WIDTH="259"><FONT FACE="Geneva,Arial" SIZE="2">If the sample movie doesn't stream, the problem you're having may be with the server computer or the network.</FONT></TD>
+										</TR>
+									</TABLE></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Try <A HREF="ss03.htm">hinting the movie again</A> with the Optimize Hints For Server option selected.</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Check streaming server activity and if necessary, <A HREF="ss05.htm">reduce the number of connections or throughput.</A></FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">If the problem occurs on a Mac OS client computer, open the TCP/IP control panel on the client computer and make sure MacIP is not selected.</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">If the problem occurs on a client computer, make sure the user has the appropriate settings in the Streaming Proxy and Streaming Transport panels of the QuickTime Settings control panel. The administrator for the client computer's network should be able to provide the correct settings. </FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">If the problem occurs for media streamed using PlaylistBroadcaster, try hinting the movies again with the RTP Payload Encoding set to QuickTime and Smooth Data Rate enabled.</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">If you are reflecting more than one live stream, make sure each stream uses a separate UDP port. Otherwise client computers will show a message with error 500. You set up ports in the <A HREF="ss08a.htm">relay configuration file.</A></FONT></TD>
+							</TR>
+						</TABLE></P>
+						<P><FONT FACE="Helvetica,Arial" SIZE="2" COLOR="#330099"><B>If streaming service is slow:</B></FONT><TABLE BORDER="0" CELLPADDING="0" CELLSPACING="3" WIDTH="309">
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">If you are streaming QuickTime movies, make the movies self-contained using your authoring application, and make sure <A HREF="ss03.htm">hinting is optimized for streaming services.</A></FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Reduce the <A HREF="ss05.htm">maximum number of connections or the throughput.</A></FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Turn off other services. </FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"><FONT FACE="Geneva,Arial" SIZE="2" COLOR="#666666">&#149;</FONT></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Place media files on other hard disks to improve server performance.</FONT></TD>
+							</TR>
+							<TR VALIGN="top">
+								<TD WIDTH="16"></TD>
+								<TD WIDTH="284"><FONT FACE="Geneva,Arial" SIZE="2">Because Darwin Streaming Server can use only one media directory, you need to create links from the directory you specified in the Darwin Streaming Server configuration file to the media files on other hard disks. </FONT></TD>
+							</TR>
+						</TABLE></P>
+					</UL>					<P>&nbsp;</TD>
+			</TR>
+			<TR>
+				<TD ALIGN="center"><FONT FACE="Geneva,Arial" SIZE="1">
+					<HR>
+					<A HREF="../index.htm">Table of contents</A></FONT></TD>
+			</TR>
+		</TABLE>
+	</BODY>
+
+</HTML>

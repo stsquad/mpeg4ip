@@ -1,0 +1,108 @@
+{
+    DYNAMIC_CODE_GEN = YES; 
+    FILESTABLE = {
+        CLASSES = (
+            GenerateXMLPrefs.cpp, 
+            main.cpp, 
+            QTSSCallbacks.cpp, 
+            QTSSDictionary.cpp, 
+            QTSSErrorLogModule.cpp, 
+            QTSServer.cpp, 
+            QTSServerInterface.cpp, 
+            QTSServerPrefs.cpp, 
+            QTSSExpirationDate.cpp, 
+            QTSSFile.cpp, 
+            QTSSMessages.cpp, 
+            QTSSModule.cpp, 
+            QTSSPrefs.cpp, 
+            QTSSSocket.cpp, 
+            RTCPTask.cpp, 
+            RTPBandwidthTracker.cpp, 
+            RTPPacketResender.cpp, 
+            RTPSession.cpp, 
+            RTPSessionInterface.cpp, 
+            RTPStream.cpp, 
+            RTSPProtocol.cpp, 
+            RTSPRequest.cpp, 
+            RTSPRequestInterface.cpp, 
+            RTSPRequestStream.cpp, 
+            RTSPResponseStream.cpp, 
+            RTSPSession.cpp, 
+            RTSPSessionInterface.cpp, 
+            RunServer.cpp
+        ); 
+        FRAMEWORKS = (Carbon.framework, Foundation.framework); 
+        FRAMEWORKSEARCH = (); 
+        H_FILES = (
+            GenerateXMLPrefs.h, 
+            QTSSCallbacks.h, 
+            QTSSDictionary.h, 
+            QTSSErrorLogModule.h, 
+            QTSServer.h, 
+            QTSServerInterface.h, 
+            QTSServerPrefs.h, 
+            QTSSExpirationDate.h, 
+            QTSSFile.h, 
+            QTSSMessages.h, 
+            QTSSModule.h, 
+            QTSSPrefs.h, 
+            QTSSSocket.h, 
+            QTSSStream.h, 
+            RTCPTask.h, 
+            RTPBandwidthTracker.h, 
+            RTPPacketResender.h, 
+            RTPSession.h, 
+            RTPSessionInterface.h, 
+            RTPStream.h, 
+            RTSPProtocol.h, 
+            RTSPRequest.h, 
+            RTSPRequestInterface.h, 
+            RTSPRequestStream.h, 
+            RTSPResponseStream.h, 
+            RTSPSession.h, 
+            RTSPSessionInterface.h, 
+            RunServer.h
+        ); 
+        LIBRARYSEARCH = (..); 
+        OTHER_LIBS = (
+            QTSSReflectorModule, 
+            PrefsSourceLib, 
+            QTSSHttpFileModule, 
+            HTTPUtilitiesLib, 
+            QTSSAdminModule, 
+            QTSSPOSIXFileSysModule, 
+            QTSSAccessLogModule, 
+            QTSSWebStatsModule, 
+            RTCPUtilitiesLib, 
+            QTSSWebDebugModule, 
+            QTSSFlowControlModule, 
+            QTSSFileModule, 
+            OSMemoryLib, 
+            CommonUtilitiesLib, 
+            APIStubLib, 
+            APICommonCode, 
+            RTPMetaInfoLib
+        ); 
+        OTHER_LINKED = (); 
+        OTHER_SOURCES = (Makefile.preamble, Makefile, Makefile.postamble, m.template, h.template); 
+        SUBPROJECTS = (); 
+    }; 
+    LANGUAGE = English; 
+    MAKEFILEDIR = "$(MAKEFILEPATH)/pb_makefiles"; 
+    NEXTSTEP_BUILDTOOL = /usr/bin/gnumake; 
+    NEXTSTEP_COMPILEROPTIONS = "-D__MacOSX__ -DNeXT -include ../PlatformHeader.h -include ../revision.h -Wredundant-decls -Wcast-qual -Wno-four-char-constants -fcommon"; 
+    NEXTSTEP_INSTALLDIR = /usr/sbin; 
+    NEXTSTEP_JAVA_COMPILER = /usr/bin/javac; 
+    NEXTSTEP_OBJCPLUS_COMPILER = /usr/bin/cc; 
+    PDO_UNIX_BUILDTOOL = $NEXT_ROOT/Developer/bin/make; 
+    PDO_UNIX_INSTALLDIR = /bin; 
+    PDO_UNIX_JAVA_COMPILER = "$(JDKBINDIR)/javac"; 
+    PDO_UNIX_OBJCPLUS_COMPILER = "$(NEXTDEV_BIN)/gcc"; 
+    PROJECTNAME = QuickTimeStreamingServer; 
+    PROJECTTYPE = Tool; 
+    PROJECTVERSION = 2.8; 
+    WINDOWS_BUILDTOOL = $NEXT_ROOT/Developer/Executables/make; 
+    WINDOWS_INSTALLDIR = /Library/Executables; 
+    WINDOWS_JAVA_COMPILER = "$(JDKBINDIR)/javac.exe"; 
+    WINDOWS_OBJCPLUS_COMPILER = "$(DEVDIR)/gcc"; 
+}
