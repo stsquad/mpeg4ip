@@ -22,9 +22,12 @@
 #ifndef __MP4_FILE_INCLUDED__
 #define __MP4_FILE_INCLUDED__
 
-#include <stdio.h>
-#include <sys/stat.h>
-#include "mp4atom.h"
+// forward declarations
+class MP4Atom;
+class MP4RootAtom;
+class MP4Property;
+class MP4StringProperty;
+class MP4BytesProperty;
 
 class MP4File {
 public:

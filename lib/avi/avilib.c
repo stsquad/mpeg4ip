@@ -787,7 +787,8 @@ avi_t *AVI_open_input_file(const char *filename, int getIndex)
 
    if(AVI->idx)
    {
-      long pos, len;
+      long pos;
+		unsigned long len;
 
       /* Search the first videoframe in the idx1 and look where
          it is in the file */

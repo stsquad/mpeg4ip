@@ -19,8 +19,10 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#include "mp4.h"
+#include "mp4common.h"
+#ifdef NOTDEF
 #include <ctype.h>
+#endif
 
 MP4Atom* MP4Atom::ReadAtom(MP4File* pFile, MP4Atom* pParentAtom)
 {
@@ -126,7 +128,7 @@ void MP4Atom::Read()
 	ReadProperties();
 
 	// read child atoms, if we expect there to be some
-	if (m_pChildAtomInfos.size() > 0) {
+	if (m_pChildAtomInfos.Size() > 0) {
 		ReadChildAtoms();
 	}
 
@@ -149,7 +151,7 @@ MP4Property* MP4Atom::FindProperty(char *name)
 
 	char *propName = name;
 
-	u_int32_t numProperties = m_pProperties.size();
+	u_int32_t numProperties = m_pProperties.Size();
 
 	// check all of our properties
 	for (u_int32_t i = 0; i < numProperties; i++) {
@@ -161,7 +163,7 @@ MP4Property* MP4Atom::FindProperty(char *name)
 	}
 
 	// check all of our child atoms
-	u_int32_t numChildren = m_pChildAtoms.size();
+	u_int32_t numChildren = m_pChildAtoms.Size();
 
 	for (u_int32_t i = 0; i < numChildren; i++) {
 		MP4Property* pProperty = 
@@ -178,7 +180,7 @@ MP4Property* MP4Atom::FindProperty(char *name)
 void MP4Atom::ReadProperties(u_int32_t startIndex)
 {
 	u_int32_t i;
-	u_int32_t numProperties = m_pProperties.size();
+	u_int32_t numProperties = m_pProperties.Size();
 
 	// read any properties of the atom
 	for (i = startIndex; i < numProperties; i++) {
@@ -237,7 +239,7 @@ void MP4Atom::ReadChildAtoms()
 	}
 
 	// if mandatory child atom doesn't exist, print warning
-	u_int32_t numAtomInfo = m_pChildAtomInfos.size();
+	u_int32_t numAtomInfo = m_pChildAtomInfos.Size();
 	for (u_int32_t i = 0; i < numAtomInfo; i++) {
 		if (m_pChildAtomInfos[i]->m_mandatory
 		  && m_pChildAtomInfos[i]->m_count == 0) {
@@ -253,7 +255,7 @@ void MP4Atom::ReadChildAtoms()
 
 MP4AtomInfo* MP4Atom::FindAtomInfo(const char* name)
 {
-	u_int32_t numAtomInfo = m_pChildAtomInfos.size();
+	u_int32_t numAtomInfo = m_pChildAtomInfos.Size();
 	for (u_int32_t i = 0; i < numAtomInfo; i++) {
 		if (ATOMID(m_pChildAtomInfos[i]->m_name) == ATOMID(name)) {
 			return m_pChildAtomInfos[i];
@@ -272,12 +274,12 @@ void MP4Atom::Write()
 
 	BeginWrite();
 
-	size = m_pProperties.size();
+	size = m_pProperties.Size();
 	for (i = 0; i < size; i++) {
 		m_pProperties[i]->Write(m_pFile);
 	}
 
-	size = m_pChildAtoms.size();
+	size = m_pChildAtoms.Size();
 	for (i = 0; i < size; i++) {
 		m_pChildAtoms[i]->Write();
 	}
@@ -324,7 +326,7 @@ void MP4Atom::Dump(FILE* pFile)
 	u_int32_t size;
 
 	// dump our properties
-	size = m_pProperties.size();
+	size = m_pProperties.Size();
 	for (i = 0; i < size; i++) {
 
 		/* skip details of tables unless we're told to be verbose */
@@ -338,7 +340,7 @@ void MP4Atom::Dump(FILE* pFile)
 	}
 
 	// dump our children
-	size = m_pChildAtoms.size();
+	size = m_pChildAtoms.Size();
 	for (int i = 0; i < size; i++) {
 		m_pChildAtoms[i]->Dump(pFile);
 	}

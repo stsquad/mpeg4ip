@@ -22,13 +22,12 @@
 #ifndef __MP4_ATOM_INCLUDED__
 #define __MP4_ATOM_INCLUDED__
 
-#include <sys/types.h>
-#include <stdio.h>
-#include <vector>
+#include "mp4array.h"
 #include "mp4property.h"
+#include "mp4file.h"
 
-/* forward declarations */
-class MP4File;
+class MP4Atom;
+MP4ARRAY_DECL(MP4Atom, MP4Atom*);
 
 /* helper class */
 class MP4AtomInfo {
@@ -48,6 +47,8 @@ public:
 	bool m_onlyOne;
 	u_int32_t m_count;
 };
+
+MP4ARRAY_DECL(MP4AtomInfo, MP4AtomInfo*);
 
 class MP4Atom {
 public:
@@ -128,7 +129,7 @@ public:
 	}
 
 	void AddChildAtom(MP4Atom* pChildAtom) {
-		m_pChildAtoms.insert(m_pChildAtoms.end(), pChildAtom);
+		m_pChildAtoms.Add(pChildAtom);
 	}
 
 	MP4Property* FindProperty(char* string);
@@ -142,11 +143,11 @@ public:
 protected:
 	void AddProperty(MP4Property* pProperty) {
 		ASSERT(FindProperty(pProperty->GetName()) == NULL);
-		m_pProperties.insert(m_pProperties.end(), pProperty);
+		m_pProperties.Add(pProperty);
 	}
 
 	void AddVersionAndFlags() {
-		AddProperty(new MP4IntegerProperty<u_int8_t>("version"));
+		AddProperty(new MP4Integer8Property("version"));
 		AddProperty(new MP4BytesProperty("flags", 3));
 	}
 
@@ -157,8 +158,7 @@ protected:
 	}
 
 	void ExpectChildAtom(char* name, bool mandatory, bool onlyOne = true) {
-		m_pChildAtomInfos.insert(m_pChildAtomInfos.end(),
-			new MP4AtomInfo(name, mandatory, onlyOne));
+		m_pChildAtomInfos.Add(new MP4AtomInfo(name, mandatory, onlyOne));
 	}
 
 	MP4AtomInfo* FindAtomInfo(const char* name);
@@ -185,9 +185,9 @@ protected:
 
 	MP4Atom*	m_pParentAtom;
 
-	vector<MP4Property*>	m_pProperties;
-	vector<MP4AtomInfo*> 	m_pChildAtomInfos;
-	vector<MP4Atom*>		m_pChildAtoms;
+	MP4PropertyArray	m_pProperties;
+	MP4AtomInfoArray 	m_pChildAtomInfos;
+	MP4AtomArray		m_pChildAtoms;
 };
 
 inline u_int32_t ATOMID(const char* type) {

@@ -19,7 +19,7 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#include "mp4.h"
+#include "mp4common.h"
 
 MP4File::MP4File()
 {
@@ -444,16 +444,31 @@ void MP4File::WriteMpegLength(u_int32_t value, bool compact)
 		throw new MP4Error(ERANGE, "MP4WriteMpegLength");
 	}
 
-	u_int8_t i = 0;
+	int8_t numBytes;
+
+	if (compact) {
+		if (value <= 0x7F) {
+			numBytes = 1;
+		} else if (value <= 0x3FFF) {
+			numBytes = 2;
+		} else if (value <= 0x1FFFFF) {
+			numBytes = 3;
+		} else {
+			numBytes = 4;
+		}
+	} else {
+		numBytes = 4;
+	}
+
+	int8_t i = numBytes;
 	do {
-		i++;
-		u_int8_t b = value & 0x7F;
-		value >>= 7;
-		if (value || (!compact && i < 4)) {
+		i--;
+		u_int8_t b = (value >> (i * 7)) & 0x7F;
+		if (i > 0) {
 			b |= 0x80;
 		}
 		WriteUInt8(b);
-	} while (value || (!compact && i < 4));
+	} while (i > 0);
 }
 
 MP4Property* MP4File::FindProperty(char* name)
@@ -487,13 +502,13 @@ u_int64_t MP4File::GetIntegerProperty(char* name)
 	MP4Property* pProperty = FindIntegerProperty(name);
 	switch (pProperty->GetType()) {
 	case Integer8Property:
-		return ((MP4IntegerProperty<u_int8_t>*)pProperty)->GetValue();
+		return ((MP4Integer8Property*)pProperty)->GetValue();
 	case Integer16Property:
-		return ((MP4IntegerProperty<u_int16_t>*)pProperty)->GetValue();
+		return ((MP4Integer16Property*)pProperty)->GetValue();
 	case Integer32Property:
-		return ((MP4IntegerProperty<u_int32_t>*)pProperty)->GetValue();
+		return ((MP4Integer32Property*)pProperty)->GetValue();
 	case Integer64Property:
-		return ((MP4IntegerProperty<u_int64_t>*)pProperty)->GetValue();
+		return ((MP4Integer64Property*)pProperty)->GetValue();
 	}
 	ASSERT(FALSE);
 }
@@ -504,16 +519,16 @@ void MP4File::SetIntegerProperty(char* name, u_int64_t value)
 
 	switch (pProperty->GetType()) {
 	case Integer8Property:
-		((MP4IntegerProperty<u_int8_t>*)pProperty)->SetValue(value);
+		((MP4Integer8Property*)pProperty)->SetValue(value);
 		break;
 	case Integer16Property:
-		((MP4IntegerProperty<u_int16_t>*)pProperty)->SetValue(value);
+		((MP4Integer16Property*)pProperty)->SetValue(value);
 		break;
 	case Integer32Property:
-		((MP4IntegerProperty<u_int32_t>*)pProperty)->SetValue(value);
+		((MP4Integer32Property*)pProperty)->SetValue(value);
 		break;
 	case Integer64Property:
-		((MP4IntegerProperty<u_int64_t>*)pProperty)->SetValue(value);
+		((MP4Integer64Property*)pProperty)->SetValue(value);
 		break;
 	default:
 		ASSERT(FALSE);

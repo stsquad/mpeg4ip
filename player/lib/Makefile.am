@@ -1,1 +1,1 @@
-SUBDIRS = sdp rtsp rtp audio video SDL
+SUBDIRS = rtsp audio video 

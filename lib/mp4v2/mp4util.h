@@ -22,11 +22,7 @@
 #ifndef __MP4_UTIL_INCLUDED__
 #define __MP4_UTIL_INCLUDED__
 
-#include <stdlib.h>
 #include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
 
 #ifdef NDEBUG
 #define ASSERT(expr)
@@ -107,6 +103,12 @@ inline void* MP4Malloc(size_t size) {
 		throw new MP4Error(errno);
 	}
 	return p;
+}
+
+inline char* MP4Stralloc(char* s1) {
+	char* s2 = (char*)MP4Malloc(strlen(s1) + 1);
+	strcpy(s2, s1);
+	return s2;
 }
 
 inline void* MP4Realloc(void* p, u_int32_t newSize) {

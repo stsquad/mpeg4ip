@@ -21,6 +21,10 @@
 
 #include "bitstream.h"
 
+#ifndef MIN
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#endif
+
 static unsigned int msk[33] =
 {
   0x00000000, 0x00000001, 0x00000003, 0x00000007,
@@ -34,11 +38,11 @@ static unsigned int msk[33] =
   0xffffffff
 };
 
-void CBitstream::init (unsigned char *buffer, 
-		       size_t byte_len)
+void CBitstream::init (const unsigned char *buffer, 
+		       size_t bit_len)
 {
   m_chDecBuffer = buffer;
-  m_chDecBufferSize = byte_len;
+  m_chDecBufferSize = bit_len;
   m_bBookmarkOn = 0;
   m_uNumOfBitsInBuffer = 0;
 }
@@ -73,7 +77,7 @@ int CBitstream::getbits (size_t numBits, uint32_t &retData)
     retData = *m_chDecBuffer >> m_uNumOfBitsInBuffer;
     retData &= msk[numBits];
   } else {
-    int nbits;
+    size_t nbits;
     nbits = numBits - m_uNumOfBitsInBuffer;
     if (nbits == 32)
       retData = 0;
@@ -82,39 +86,55 @@ int CBitstream::getbits (size_t numBits, uint32_t &retData)
     switch ((nbits - 1) / 8) {
     case 3:
       nbits -= 8;
-      if (m_chDecBufferSize == 0) {
+      if (m_chDecBufferSize < 8) {
 	return -1;
       }
       retData |= (*m_chDecBuffer++) << nbits;
-      m_chDecBufferSize--;
+      m_chDecBufferSize -= 8;
       // fall through
     case 2:
       nbits -= 8;
-      if (m_chDecBufferSize == 0) {
+      if (m_chDecBufferSize < 8) {
 	return -1;
       }
       retData |= (*m_chDecBuffer++) << nbits;
-      m_chDecBufferSize--;
+      m_chDecBufferSize -= 8;
     case 1:
       nbits -= 8;
-      if (m_chDecBufferSize == 0) {
+      if (m_chDecBufferSize < 8) {
 	return -1;
       }
       retData |= (*m_chDecBuffer++) << nbits;
-      m_chDecBufferSize--;
+      m_chDecBufferSize -= 8;
     case 0:
       break;
     }
-    if (m_chDecBufferSize == 0) {
+    if (m_chDecBufferSize < nbits) {
       return (-1);
     }
-    m_uNumOfBitsInBuffer = 8 - nbits;
+    if (m_chDecBufferSize >= 8) {
+      m_uNumOfBitsInBuffer = 8 - nbits;
+    } else
+      m_uNumOfBitsInBuffer = m_chDecBufferSize - nbits;
+
     retData |= (*m_chDecBuffer >> m_uNumOfBitsInBuffer) & msk[nbits];
   }
   if (m_uNumOfBitsInBuffer == 0) {
     m_chDecBuffer++;
-    m_chDecBufferSize--;
+    m_chDecBufferSize -= MIN(m_chDecBufferSize,8);
   }
   retData &= msk[numBits];
   return 0;
+}
+
+int CBitstream::byte_align(void) 
+{
+  int temp = 0;
+  if (m_uNumOfBitsInBuffer != 0) {
+    temp = m_uNumOfBitsInBuffer;
+    m_uNumOfBitsInBuffer = 0;
+    m_chDecBuffer++;
+    m_chDecBufferSize -= MIN(m_chDecBufferSize,8);
+  }
+  return (temp);
 }

@@ -27,9 +27,9 @@ class CBitstream {
  public:
   CBitstream(void) {};
   ~CBitstream (void) {};
-  void init(unsigned char *buffer, size_t byte_len);
-  void init(char *buffer, size_t byte_len) {
-    init((unsigned char *)buffer, byte_len);
+  void init(const unsigned char *buffer, size_t bit_len);
+  void init(char *buffer, size_t bit_len) {
+    init((unsigned char *)buffer, bit_len);
   };
   int getbits(size_t bits, uint32_t &retvalue);
   int peekbits(size_t bits, uint32_t &retvalue) {
@@ -41,15 +41,16 @@ class CBitstream {
   }
   void bookmark(int on);
   int bits_remain (void) {
-    return m_chDecBufferSize * 8 + m_uNumOfBitsInBuffer;
+    return m_chDecBufferSize + m_uNumOfBitsInBuffer;
   };
+  int byte_align(void);
  private:
   size_t m_uNumOfBitsInBuffer;
-  unsigned char *m_chDecBuffer;
+  const unsigned char *m_chDecBuffer;
   size_t m_chDecBufferSize;
   int m_bBookmarkOn;
   size_t m_uNumOfBitsInBuffer_bookmark;
-  unsigned char *m_chDecBuffer_bookmark;
+  const unsigned char *m_chDecBuffer_bookmark;
   size_t m_chDecBufferSize_bookmark;
 };
 

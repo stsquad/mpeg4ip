@@ -19,7 +19,7 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#include "mp4.h"
+#include "mp4common.h"
 #include "descriptors.h"
 
 #define Required	true
@@ -106,30 +106,30 @@ public:
 		/* read atom version */
 		m_pProperties[0]->Read(m_pFile);
 		u_int8_t version = 
-			((MP4IntegerProperty<u_int8_t>*)m_pProperties[0])->GetValue();
+			((MP4Integer8Property*)m_pProperties[0])->GetValue();
 
 		/* need to create the properties based on the atom version */
 		if (version == 1) {
 			AddProperty(
-				new MP4IntegerProperty<u_int64_t>("creationTime"));
+				new MP4Integer64Property("creationTime"));
 			AddProperty(
-				new MP4IntegerProperty<u_int64_t>("modificationTime"));
+				new MP4Integer64Property("modificationTime"));
 			AddProperty(
-				new MP4IntegerProperty<u_int32_t>("timeScale"));
+				new MP4Integer32Property("timeScale"));
 			AddProperty(
-				new MP4IntegerProperty<u_int64_t>("duration"));
+				new MP4Integer64Property("duration"));
 		} else {
 			AddProperty(
-				new MP4IntegerProperty<u_int32_t>("creationTime"));
+				new MP4Integer32Property("creationTime"));
 			AddProperty(
-				new MP4IntegerProperty<u_int32_t>("modificationTime"));
+				new MP4Integer32Property("modificationTime"));
 			AddProperty(
-				new MP4IntegerProperty<u_int32_t>("timeScale"));
+				new MP4Integer32Property("timeScale"));
 			AddProperty(
-				new MP4IntegerProperty<u_int32_t>("duration"));
+				new MP4Integer32Property("duration"));
 		}
 		AddProperty(
-			new MP4IntegerProperty<u_int16_t>("language"));
+			new MP4Integer16Property("language"));
 		AddReserved("reserved", 2);
 
 		/* now we can read the properties */
@@ -145,7 +145,7 @@ public:
 		AddVersionAndFlags();
 		AddReserved("reserved1", 4);
 		AddProperty(
-			new MP4IntegerProperty<u_int32_t>("handlerType"));
+			new MP4Integer32Property("handlerType"));
 		AddReserved("reserved2", 12);
 		// ??? QT says Pascal string, ISO says C string ???
 		AddProperty(
@@ -187,15 +187,15 @@ public:
 		AddVersionAndFlags();
 
 		AddProperty(	
-			new MP4IntegerProperty<u_int16_t>("maxPduSize")); 
+			new MP4Integer16Property("maxPduSize")); 
 		AddProperty(	
-			new MP4IntegerProperty<u_int16_t>("avgPduSize")); 
+			new MP4Integer16Property("avgPduSize")); 
 		AddProperty(	
-			new MP4IntegerProperty<u_int32_t>("maxBitRate")); 
+			new MP4Integer32Property("maxBitRate")); 
 		AddProperty(	
-			new MP4IntegerProperty<u_int32_t>("avgBitRate")); 
+			new MP4Integer32Property("avgBitRate")); 
 		AddProperty(	
-			new MP4IntegerProperty<u_int32_t>("slidingAvgBitRate")); 
+			new MP4Integer32Property("slidingAvgBitRate")); 
 	}
 };
 
@@ -218,8 +218,8 @@ public:
 	MP4DrefAtom() : MP4Atom("dref") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		pCount->SetReadOnly();
 		AddProperty(pCount);
 
@@ -232,16 +232,16 @@ public:
 		MP4Atom::Read();
 
 		// check that number of children == entryCount
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			(MP4IntegerProperty<u_int32_t>*)m_pProperties[2];
+		MP4Integer32Property* pCount = 
+			(MP4Integer32Property*)m_pProperties[2];
 
-		if (m_pChildAtoms.size() != pCount->GetValue()) {
+		if (m_pChildAtoms.Size() != pCount->GetValue()) {
 			VERBOSE_READ(GetVerbosity(),
 				printf("Warning: dref inconsistency with number of entries"));
 
 			/* fix it */
 			pCount->SetReadOnly(false);
-			pCount->SetValue(m_pChildAtoms.size());
+			pCount->SetValue(m_pChildAtoms.Size());
 			pCount->SetReadOnly(true);
 		}
 	}
@@ -285,8 +285,8 @@ public:
 	MP4StsdAtom() : MP4Atom("stsd") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		pCount->SetReadOnly();
 		AddProperty(pCount);
 
@@ -300,16 +300,16 @@ public:
 		MP4Atom::Read();
 
 		// check that number of children == entryCount
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			(MP4IntegerProperty<u_int32_t>*)m_pProperties[2];
+		MP4Integer32Property* pCount = 
+			(MP4Integer32Property*)m_pProperties[2];
 
-		if (m_pChildAtoms.size() != pCount->GetValue()) {
+		if (m_pChildAtoms.Size() != pCount->GetValue()) {
 			VERBOSE_READ(GetVerbosity(),
 				printf("Warning: stsd inconsistency with number of entries"));
 
 			/* fix it */
 			pCount->SetReadOnly(false);
-			pCount->SetValue(m_pChildAtoms.size());
+			pCount->SetValue(m_pChildAtoms.Size());
 			pCount->SetReadOnly(true);
 		}
 	}
@@ -320,7 +320,7 @@ public:
 	MP4Mp4aAtom() : MP4Atom("mp4a") {
 		AddReserved("reserved1", 6);
 		AddProperty(
-			new MP4IntegerProperty<u_int16_t>("dataReferenceIndex"));
+			new MP4Integer16Property("dataReferenceIndex"));
 		AddReserved("reserved2", 20);
 		ExpectChildAtom("esds", Required, OnlyOne);
 	}
@@ -331,7 +331,7 @@ public:
 	MP4Mp4sAtom() : MP4Atom("mp4s") {
 		AddReserved("reserved1", 6);
 		AddProperty(
-			new MP4IntegerProperty<u_int16_t>("dataReferenceIndex"));
+			new MP4Integer16Property("dataReferenceIndex"));
 		ExpectChildAtom("esds", Required, OnlyOne);
 	}
 };
@@ -341,7 +341,7 @@ public:
 	MP4Mp4vAtom() : MP4Atom("mp4v") {
 		AddReserved("reserved1", 6);
 		AddProperty(
-			new MP4IntegerProperty<u_int16_t>("dataReferenceIndex"));
+			new MP4Integer16Property("dataReferenceIndex"));
 		AddReserved("reserved2", 70);
 		ExpectChildAtom("esds", Required, OnlyOne);
 	}
@@ -360,17 +360,17 @@ public:
 	MP4SttsAtom() : MP4Atom("stts") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		AddProperty(pCount);
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
 
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("sampleCount"));
+			new MP4Integer32Property("sampleCount"));
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("sampleDelta"));
+			new MP4Integer32Property("sampleDelta"));
 	}
 };
 
@@ -379,17 +379,17 @@ public:
 	MP4CttsAtom() : MP4Atom("ctts") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		AddProperty(pCount);
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
 
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("sampleCount"));
+			new MP4Integer32Property("sampleCount"));
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("sampleOffset"));
+			new MP4Integer32Property("sampleOffset"));
 	}
 };
 
@@ -399,17 +399,17 @@ public:
 		AddVersionAndFlags();
 
 		AddProperty(
-			new MP4IntegerProperty<u_int32_t>("sampleSize")); 
+			new MP4Integer32Property("sampleSize")); 
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("sampleCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("sampleCount"); 
 		AddProperty(pCount);
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
 
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("sampleSize"));
+			new MP4Integer32Property("sampleSize"));
 	}
 };
 
@@ -418,19 +418,19 @@ public:
 	MP4StscAtom() : MP4Atom("stsc") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		AddProperty(pCount);
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
 
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("firstChunk"));
+			new MP4Integer32Property("firstChunk"));
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("samplesPerChunk"));
+			new MP4Integer32Property("samplesPerChunk"));
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("sampleDescriptionIndex"));
+			new MP4Integer32Property("sampleDescriptionIndex"));
 	}
 };
 
@@ -439,15 +439,15 @@ public:
 	MP4StcoAtom() : MP4Atom("stco") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		AddProperty(pCount);
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
 
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("chunkOffset"));
+			new MP4Integer32Property("chunkOffset"));
 	}
 };
 
@@ -456,15 +456,15 @@ public:
 	MP4Co64Atom() : MP4Atom("co64") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		AddProperty(pCount);
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
 
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int64_t>("chunkOffset"));
+			new MP4Integer64Property("chunkOffset"));
 	}
 };
 
@@ -473,15 +473,15 @@ public:
 	MP4StssAtom() : MP4Atom("stss") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		AddProperty(pCount);
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
 
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("sampleNumber"));
+			new MP4Integer32Property("sampleNumber"));
 	}
 };
 
@@ -490,17 +490,17 @@ public:
 	MP4StshAtom() : MP4Atom("stsh") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		AddProperty(pCount);
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
 		AddProperty(pTable);
 
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("shadowedSampleNumber"));
+			new MP4Integer32Property("shadowedSampleNumber"));
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int32_t>("syncSampleNumber"));
+			new MP4Integer32Property("syncSampleNumber"));
 	}
 };
 
@@ -509,8 +509,8 @@ public:
 	MP4StdpAtom() : MP4Atom("stdp") {
 		AddVersionAndFlags();
 
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		pCount->SetImplicit();
 		AddProperty(pCount);
 
@@ -518,7 +518,7 @@ public:
 		AddProperty(pTable);
 
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int16_t>("priority"));
+			new MP4Integer16Property("priority"));
 	}
 };
 
@@ -539,11 +539,11 @@ public:
 		/* read atom version */
 		m_pProperties[0]->Read(m_pFile);
 		u_int8_t version = 
-			((MP4IntegerProperty<u_int8_t>*)m_pProperties[0])->GetValue();
+			((MP4Integer8Property*)m_pProperties[0])->GetValue();
 
 		/* need to create the properties based on the atom version */
-		MP4IntegerProperty<u_int32_t>* pCount = 
-			new MP4IntegerProperty<u_int32_t>("entryCount"); 
+		MP4Integer32Property* pCount = 
+			new MP4Integer32Property("entryCount"); 
 		AddProperty(pCount);
 
 		MP4TableProperty* pTable = new MP4TableProperty("entries", pCount);
@@ -551,19 +551,19 @@ public:
 
 		if (version == 1) {
 			pTable->AddProperty(
-				new MP4IntegerProperty<u_int64_t>("segmentDuration"));
+				new MP4Integer64Property("segmentDuration"));
 			pTable->AddProperty(
-				new MP4IntegerProperty<u_int64_t>("mediaTime"));
+				new MP4Integer64Property("mediaTime"));
 		} else {
 			pTable->AddProperty(
-				new MP4IntegerProperty<u_int32_t>("segmentDuration"));
+				new MP4Integer32Property("segmentDuration"));
 			pTable->AddProperty(
-				new MP4IntegerProperty<u_int32_t>("mediaTime"));
+				new MP4Integer32Property("mediaTime"));
 		}
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int16_t>("mediaRate"));
+			new MP4Integer16Property("mediaRate"));
 		pTable->AddProperty(
-			new MP4IntegerProperty<u_int16_t>("reserved"));
+			new MP4Integer16Property("reserved"));
 
 		/* now we can read the properties */
 		ReadProperties(1);
@@ -593,7 +593,7 @@ public:
 	MP4CprtAtom() : MP4Atom("cprt") {
 		AddVersionAndFlags();
 		AddProperty(
-			new MP4IntegerProperty<u_int16_t>("language"));
+			new MP4Integer16Property("language"));
 		AddProperty(
 			new MP4StringProperty("notice"));
 	}
@@ -644,7 +644,7 @@ class MP4TrpyAtom : public MP4Atom {
 public:
 	MP4TrpyAtom() : MP4Atom("trpy") {
 		AddProperty( // bytes sent including RTP headers
-			new MP4IntegerProperty<u_int64_t>("bytes"));
+			new MP4Integer64Property("bytes"));
 	}
 };
 
@@ -652,7 +652,7 @@ class MP4NumpAtom : public MP4Atom {
 public:
 	MP4NumpAtom() : MP4Atom("nump") {
 		AddProperty( // packets sent
-			new MP4IntegerProperty<u_int64_t>("packets"));
+			new MP4Integer64Property("packets"));
 	}
 };
 
@@ -660,7 +660,7 @@ class MP4TpylAtom : public MP4Atom {
 public:
 	MP4TpylAtom() : MP4Atom("tpyl") {
 		AddProperty( // bytes sent of RTP payload data
-			new MP4IntegerProperty<u_int64_t>("bytes"));
+			new MP4Integer64Property("bytes"));
 	}
 };
 
@@ -668,9 +668,9 @@ class MP4MaxrAtom : public MP4Atom {
 public:
 	MP4MaxrAtom() : MP4Atom("maxr") {
 		AddProperty(
-			new MP4IntegerProperty<u_int32_t>("granularity"));
+			new MP4Integer32Property("granularity"));
 		AddProperty(
-			new MP4IntegerProperty<u_int32_t>("maxBitRate"));
+			new MP4Integer32Property("maxBitRate"));
 	}
 };
 
@@ -678,7 +678,7 @@ class MP4DmedAtom : public MP4Atom {
 public:
 	MP4DmedAtom() : MP4Atom("dmed") {
 		AddProperty( // bytes sent from media data
-			new MP4IntegerProperty<u_int64_t>("bytes"));
+			new MP4Integer64Property("bytes"));
 	}
 };
 
@@ -686,7 +686,7 @@ class MP4DimmAtom : public MP4Atom {
 public:
 	MP4DimmAtom() : MP4Atom("dimm") {
 		AddProperty( // bytes of immediate data
-			new MP4IntegerProperty<u_int64_t>("bytes"));
+			new MP4Integer64Property("bytes"));
 	}
 };
 
@@ -694,7 +694,7 @@ class MP4DrepAtom : public MP4Atom {
 public:
 	MP4DrepAtom() : MP4Atom("drep") {
 		AddProperty( // bytes of repeated data
-			new MP4IntegerProperty<u_int64_t>("bytes"));
+			new MP4Integer64Property("bytes"));
 	}
 };
 
@@ -702,7 +702,7 @@ class MP4TminAtom : public MP4Atom {
 public:
 	MP4TminAtom() : MP4Atom("tmin") {
 		AddProperty( // min relative xmit time
-			new MP4IntegerProperty<u_int32_t>("milliSecs"));
+			new MP4Integer32Property("milliSecs"));
 	}
 };
 
@@ -710,7 +710,7 @@ class MP4TmaxAtom : public MP4Atom {
 public:
 	MP4TmaxAtom() : MP4Atom("tmax") {
 		AddProperty( // max relative xmit time
-			new MP4IntegerProperty<u_int32_t>("milliSecs"));
+			new MP4Integer32Property("milliSecs"));
 	}
 };
 
@@ -718,7 +718,7 @@ class MP4PmaxAtom : public MP4Atom {
 public:
 	MP4PmaxAtom() : MP4Atom("pmax") {
 		AddProperty( // max packet size 
-			new MP4IntegerProperty<u_int32_t>("bytes"));
+			new MP4Integer32Property("bytes"));
 	}
 };
 
@@ -726,7 +726,7 @@ class MP4DmaxAtom : public MP4Atom {
 public:
 	MP4DmaxAtom() : MP4Atom("dmax") {
 		AddProperty( // max packet duration 
-			new MP4IntegerProperty<u_int32_t>("milliSecs"));
+			new MP4Integer32Property("milliSecs"));
 	}
 };
 
@@ -734,7 +734,7 @@ class MP4PaytAtom : public MP4Atom {
 public:
 	MP4PaytAtom() : MP4Atom("payt") {
 		AddProperty( 
-			new MP4IntegerProperty<u_int32_t>("payloadNumber"));
+			new MP4Integer32Property("payloadNumber"));
 		AddProperty( 
 			new MP4StringProperty("rtpMap", true));
 	}

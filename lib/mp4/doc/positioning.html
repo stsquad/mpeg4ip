@@ -1,0 +1,36 @@
+<TITLE>Positioning</TITLE>
+
+<H1>Positioning yourself in a file</H1>
+
+The library stores a seperate position identifier for each video track
+and each audio track in a file.  The position identifiers are
+independant of each other and advance independantly when you read
+data.  Video tracks advance independantly, but audio tracks are
+tricky.  When you read audio data, the channel positions are not
+independant.  Since all the channels are on track 0, reading audio data
+advances all the channel positions.  You need to manually set the audio
+position every time you want to read a different audio channel.<P>
+
+When you write audio, you write all channels simultaneously, so there's
+no need to manually set the file position unless you want to overwrite
+data.<P>
+
+The positioning routines are as follows:<P>
+
+<CODE>
+int quicktime_seek_end(quicktime_t *file);<BR>
+int quicktime_seek_start(quicktime_t *file);<BR>
+int quicktime_set_audio_position(quicktime_t *file, long sample, int track);<BR>
+int quicktime_set_video_position(quicktime_t *file, long frame, int track);<BR>
+</CODE>
+<P>
+
+The seek_end and seek_start seek all tracks to their ends or starts. 
+The set_position commands seek one track to the desired position.  The
+track parameter for audio is always going to be 0.<P>
+
+
+
+
+
+

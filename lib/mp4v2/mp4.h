@@ -22,21 +22,7 @@
 #ifndef __MP4_INCLUDED__
 #define __MP4_INCLUDED__
 
-#include <sys/types.h>
-#include <stdio.h>
-
-#include "mpeg4ip.h"
-
-typedef void* MP4FileHandle;
-typedef u_int16_t MP4TrackId;
-typedef u_int32_t MP4SampleId;
-
-/* declaration of C++ classes */
-
-#ifdef __cplusplus
-#include "mp4util.h"
-#include "mp4file.h"
-#endif
+#include "mp4common.h"
 
 /* declaration of C interface functions */
 
