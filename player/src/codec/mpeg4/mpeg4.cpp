@@ -171,8 +171,9 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
 			   m_pvodec->getHeight(),
 			   m_pvodec->getClockRate());
       havevol = 1;
-    } catch (const char *err) {
-      player_debug_message("Caught exception in VOL mem header search %s", err);
+    } catch (int err) {
+      player_debug_message("Caught exception in VOL mem header search %s",
+			   membytestream->get_throw_error(err));
     }
   } while (havevol == 0 && membytestream->eof() == 0);
 
@@ -208,8 +209,9 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
 			   m_pvodec->getClockRate());
 
       m_decodeState = DECODE_STATE_WAIT_I;
-    } catch (const char *err) {
-      player_debug_message("Caught exception in VOL search %s", err);
+    } catch (int err) {
+      player_debug_message("Caught exception in VOL search %s", 
+			   m_bytestream->get_throw_error(err));
       return (-1);
     }
     //      return(0);
@@ -226,9 +228,9 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
       m_bCachedRefFrameCoded = FALSE;
       m_cached_valid = FALSE;
       m_cached_time = 0;
-    } catch (...) { //(const char *err) {
+    } catch (int err) { //(const char *err) {
 #if 0
-      if (strcmp(err, "DECODE ACROSS TS") != 0) {
+      if (m_bytestream->throw_error_minor(err) != 0) {
 	player_debug_message("Caught exception in WAIT_I %s", err);
       }
 #endif
@@ -243,17 +245,18 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
 	m_dropped_b_frames++;
 	return (0);
       }
-    } catch (const char *err) {
+    } catch (int err) {
       // This is because sometimes, the encoder doesn't read all the bytes
       // it should out of the rtp packet.  The rtp bytestream does a read
       // and determines that we're trying to read across bytestreams.
       // If we get this, we don't want to change anything - just fall up
       // to the decoder thread so it gives us a new timestamp.
-      if (strcmp(err, "DECODE ACROSS TS") == 0) {
+      if (m_bytestream->throw_error_minor(err) != 0) {
 	//player_debug_message("decode across ts");
 	return (-1);
       }
-      player_debug_message("Mpeg4 ncaught %s -> waiting for I", err);
+      player_debug_message("Mpeg4 ncaught %s -> waiting for I", 
+			   m_bytestream->get_throw_error(err));
       m_decodeState = DECODE_STATE_WAIT_I;
       return (-1);
     } catch (...) {

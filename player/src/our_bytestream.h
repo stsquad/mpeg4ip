@@ -49,6 +49,10 @@ class COurInByteStream : public CInByteStreamBase
   virtual ssize_t read(unsigned char *buffer, size_t bytes) = 0;
   virtual ssize_t read(char *buffer, size_t bytes) = 0;
   virtual void set_codec (CCodecBase *codec) { m_codec = codec; };
+  virtual const char *get_throw_error(int error) = 0;
+  // A minor error is one where in video, you don't need to skip to the
+  // next I frame.
+  virtual int throw_error_minor(int error) = 0;
  protected:
   uint64_t m_play_start_time;
   CCodecBase *m_codec;

@@ -298,6 +298,15 @@ You can find other mp4 clips at the Philips MPEG-4 site,
 http://www.mpeg-4player.com/  Note that these clips are not hinted, so
 they can't be streamed, only local playback is possible.
 
+OS Supported
+============
+
+Currently, we have compiled and tested on the following platforms:
+linux, freeBSD, BSD/OS, Mac OS X and windows.  For all varieties
+of *nux, X11 is required.
+
+For BSD/OS, you may need a semaphore shim.  Contact Steven Schultz
+for help on that (contact information in Authors).
 
 Executables
 ===========

@@ -31,6 +31,13 @@
 #include <SDL.h>
 #include <SDL_thread.h>
 
+#define THROW_RTP_SEQ_NUM_VIOLATION ((int)1)
+#define THROW_RTP_BOOKMARK_SEQ_NUM_VIOLATION ((int)2)
+#define THROW_RTP_NO_MORE_DATA ((int) 3)
+#define THROW_RTP_BOOKMARK_NO_MORE_DATA ((int) 4)
+#define THROW_RTP_NULL_WHEN_START ((int) 5)
+#define THROW_RTP_DECODE_ACROSS_TS ((int) 6)
+#define THROW_RTP_BASE_MAX 6
 class CRtpByteStreamBase : public COurInByteStream
 {
  public:
@@ -63,6 +70,8 @@ class CRtpByteStreamBase : public COurInByteStream
   ssize_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
+  const char *get_throw_error(int error);
+  int throw_error_minor(int error);
 
   // various routines for RTP interface.
   void set_rtp_rtptime(uint32_t t) { m_rtp_rtptime = t;};

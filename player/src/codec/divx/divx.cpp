@@ -181,8 +181,9 @@ int CDivxCodec::parse_vovod (const char *vovod,
 	post_volprocessing();
       }
 
-    } catch (const char *err) {
-      player_debug_message("Caught exception in VO mem header search %s", err);
+    } catch (int err) {
+      player_debug_message("Caught exception in VO mem header search %s", 
+			   membytestream->get_throw_error(err));
     }
   } while (ret == 0 && membytestream->eof() == 0);
 
@@ -225,8 +226,9 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
       } else {
 	return (-1);
       }
-    } catch (const char *err) {
-      player_debug_message("Caught exception in VO search %s", err);
+    } catch (int err) {
+      player_debug_message("Caught exception in VO search %s", 
+			   m_bytestream->get_throw_error(err));
       return (-1);
     }
     //      return(0);
@@ -255,12 +257,13 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
     //player_debug_message("frame type %d", mp4_hdr.prediction_type);
     m_decodeState = DIVX_STATE_NORMAL;
     m_last_time = ts;
-  } catch (const char *err) {
-      if (strcmp(err, "DECODE ACROSS TS") == 0) {
+  } catch (int err) {
+      if (m_bytestream->throw_error_minor(err) != 0) {
 	//player_debug_message("decode across ts");
 	return (-1);
       }
-      player_debug_message("divx caught %s", err);
+      player_debug_message("divx caught %s", 
+			   m_bytestream->get_throw_error(err));
       m_decodeState = DIVX_STATE_WAIT_I;
       return (-1);
   } catch (...) {

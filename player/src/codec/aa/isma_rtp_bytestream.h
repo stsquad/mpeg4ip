@@ -31,6 +31,10 @@
 //#define ISMA_RTP_DUMP_OUTPUT_TO_FILE 1
 //#define DEBUG_ISMA_RTP_FRAGS 1
 
+#define THROW_ISMA_RTP_FRAGMENT_PAST_END ((int)(THROW_RTP_BASE_MAX + 1))
+#define THROW_ISMA_RTP_DECODE_PAST_EOF ((int)(THROW_RTP_BASE_MAX + 2))
+#define THROW_ISMA_INCONSISTENT ((int)(THROW_RTP_BASE_MAX + 3))
+
 // fragment information
 typedef struct isma_frag_data_t {
   struct isma_frag_data_t *frag_data_next;
@@ -77,6 +81,8 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   ssize_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
+  const char *get_throw_error(int error);
+  int throw_error_minor(int error);
   void flush_rtp_packets(void);
  private:
   char *m_frame_ptr;

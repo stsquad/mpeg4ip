@@ -82,7 +82,7 @@ unsigned char CAviByteStreamBase::get (void)
 #endif
   if ((m_eof != 0) || 
       (m_byte_on >= m_this_frame_size)) {
-    throw("Buffer overflow");
+    throw THROW_AVI_BUFFER_OVERFLOW; 
   }
   ret = m_buffer_on[m_byte_on];
   m_byte_on++;
@@ -133,6 +133,21 @@ ssize_t CAviByteStreamBase::read (unsigned char *buffer, size_t bytestoread)
   } while (bytestoread > 0 && m_eof == 0);
   return (readbytes);
 }
+
+const char *CAviByteStreamBase::get_throw_error (int error)
+{
+  if (error == THROW_AVI_BUFFER_OVERFLOW) {
+    return "AVI Buffer overflow";
+  }
+  player_debug_message("Avi bytestream - unknown throw %d", error);
+  return "Unknown";
+}
+
+int CAviByteStreamBase::throw_error_minor (int error)
+{
+  return 0;
+}
+
 /**************************************************************************
  * Quicktime video stream functions
  **************************************************************************/

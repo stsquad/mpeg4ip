@@ -95,7 +95,7 @@ unsigned char CQTByteStreamBase::get (void)
 		       m_byte_on, m_frame_on, m_this_frame_size, m_bookmark);
 #endif
   if (m_eof) {
-    throw("END OF DATA");
+    throw THROW_QTIME_END_OF_DATA;
   }
   ret = m_buffer_on[m_byte_on];
   m_byte_on++;
@@ -131,7 +131,7 @@ ssize_t CQTByteStreamBase::read (unsigned char *buffer, size_t bytestoread)
   ssize_t readbytes = 0;
   do {
     if (m_eof) {
-      throw("END OF DATA");
+      throw THROW_QTIME_END_OF_DATA;
     }
     inbuffer = m_this_frame_size - m_byte_on;
     if (inbuffer > bytestoread) {
@@ -147,6 +147,20 @@ ssize_t CQTByteStreamBase::read (unsigned char *buffer, size_t bytestoread)
   } while (bytestoread > 0 && m_eof == 0);
   return (readbytes);
 }
+
+const char *CQTByteStreamBase::get_throw_error (int error)
+{
+  if (error == THROW_QTIME_END_OF_DATA)
+    return "Qtime - end of data";
+  player_debug_message("quicktime - unknown throw error %d", error);
+  return "Unknown error";
+}
+
+int CQTByteStreamBase::throw_error_minor (int error)
+{
+  return 0;
+}
+
 /**************************************************************************
  * Quicktime video stream functions
  **************************************************************************/

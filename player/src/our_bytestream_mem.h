@@ -27,6 +27,7 @@
 #include "systems.h"
 #include "our_bytestream.h"
 
+#define THROW_MEM_PAST_END ((int) 1)
 class COurInByteStreamMem : public COurInByteStream
 {
  public:
@@ -54,6 +55,10 @@ class COurInByteStreamMem : public COurInByteStream
   ssize_t read(char *buffer, size_t readbytes) {
     return (read((unsigned char *)buffer, readbytes));
   }
+  const char *get_throw_error(int error);
+  // A minor error is one where in video, you don't need to skip to the
+  // next I frame.
+  int throw_error_minor(int error);
  protected:
   const unsigned char *m_memptr;
  private:

@@ -175,18 +175,38 @@ int http_build_header (char *buffer,
   return (ret);
 }
 
+static int http_debug_level = LOG_ERR;
+static error_msg_func_t error_msg_func = NULL;
+
+void http_set_loglevel (int loglevel)
+{
+  http_debug_level = loglevel;
+}
+
+void http_set_error_func (error_msg_func_t func)
+{
+  error_msg_func = func;
+}
+
 void http_debug (int loglevel, const char *fmt, ...)
 {
   va_list ap;
-  struct timeval thistime;
-  char buffer[80];
+  if (loglevel <= http_debug_level) {
+    va_start(ap, fmt);
+    if (error_msg_func != NULL) {
+      (error_msg_func)(loglevel, "libhttp", fmt, ap);
+    } else {
+      struct timeval thistime;
+      char buffer[80];
 
-  gettimeofday(&thistime, NULL);
-  // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-libhttp-%d: ", buffer, thistime.tv_usec / 1000, loglevel);
-  va_start(ap, fmt);
-  vprintf(fmt, ap);
-  va_end(ap);
-  printf("\n");
+      gettimeofday(&thistime, NULL);
+      // To add date, add %a %b %d to strftime
+      strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
+      printf("%s.%03ld-libhttp-%d: ",
+	     buffer, thistime.tv_usec / 1000, loglevel);
+      vprintf(fmt, ap);
+      printf("\n");
+    }
+    va_end(ap);
+  }
 }

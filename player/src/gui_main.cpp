@@ -34,6 +34,7 @@
 #include <rtsp/rtsp_client.h>
 #include "our_config_file.h"
 #include "playlist.h"
+#include <libhttp/http.h>
 
 /* Local variables */
 static GtkWidget *main_window;
@@ -704,6 +705,8 @@ int main (int argc, char **argv)
   rtsp_set_error_func(player_library_message);
   sdp_set_error_func(player_library_message);
   sdp_set_loglevel(LOG_DEBUG);
+  http_set_error_func(player_library_message);
+  http_set_loglevel(LOG_DEBUG);
   /*
    * Set up main window
    */

@@ -185,9 +185,11 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
 			   m_current_time);
 #endif
     }
-  } catch (const char *err) {
+  } catch (int err) {
 #ifdef DEBUG_SYNC
-    player_error_message("Got exception %s at %llu", err, m_current_time);
+    player_error_message("Got exception %s at %llu", 
+			 m_bytestrea->get_throw_error(err), 
+			 m_current_time);
 #endif
     m_resync_with_header = 1;
     m_record_sync_time = 1;

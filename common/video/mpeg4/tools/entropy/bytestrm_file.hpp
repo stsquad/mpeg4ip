@@ -27,6 +27,8 @@ class CInByteStreamFile : public CInByteStreamBase
     }
   };
   void reset(void) { m_pInStream->seekg(0);};
+  const char *get_throw_error(int error) { return "Unknown"; };
+  int throw_error_minor(int error) { return 0; };
 };
 
 #endif

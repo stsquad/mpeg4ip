@@ -61,7 +61,7 @@ uint64_t COurInByteStreamMem::start_next_frame (void)
 unsigned char COurInByteStreamMem::get (void) 
 {
   if ((m_offset >= m_len) && m_bookmark_set == 0) {
-    throw "PAST END";
+    throw THROW_MEM_PAST_END;
   }
     
   unsigned char ret = m_memptr[m_offset];
@@ -108,6 +108,20 @@ void COurInByteStreamMem::reset (void)
   m_frames = 0;
 }
 
+const char *COurInByteStreamMem::get_throw_error (int error)
+{
+  if (error == THROW_MEM_PAST_END) {
+    return "Memory past end";
+  }
+  player_debug_message("Unknown throw error %d", error);
+  return "Unknown Error";
+}
+
+int COurInByteStreamMem::throw_error_minor (int error)
+{
+  return 0;
+}
+
 COurInByteStreamWav::COurInByteStreamWav (const unsigned char *membuf, 
 					  uint32_t len) :
   COurInByteStreamMem(membuf, len) 
@@ -117,3 +131,4 @@ COurInByteStreamWav::~COurInByteStreamWav(void)
 {
   SDL_FreeWAV((Uint8 *)m_memptr); 
 };
+

@@ -82,7 +82,7 @@ int CWavCodec::decode (uint64_t rtpts, int from_rtp)
     if (ret < bytes_to_copy) {
       memset(&buff[ret], 0, bytes_to_copy - ret);
     }
-  } catch (const char *err) {
+  } catch (int err) {
     //player_debug_message("Hit at end %d %d", ix, bytes_to_copy);
     past_end = 1;
   } catch (...) {

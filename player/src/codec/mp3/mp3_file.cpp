@@ -178,6 +178,8 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
       } else {
 	havelast = 1;
       }
+    } catch (int err) {
+      havelast = 1;
     } catch (...) {
       havelast = 1;
     }

@@ -137,7 +137,7 @@ isma_frag_data_t *CIsmaAudioRtpByteStream::go_to_frag (void)
 	p = p->frag_data_next;
   }
   if (m_bookmark_set != 1) {
-	throw("Fragment past end");
+    throw THROW_ISMA_RTP_FRAGMENT_PAST_END;
   }
   return (NULL);
 }
@@ -158,7 +158,7 @@ char *CIsmaAudioRtpByteStream::go_to_offset (void)
 	p = p->frag_data_next;
   }
   if (frag_ptr == NULL && m_bookmark_set != 1) {
-	throw("Fragment past end");
+    throw THROW_ISMA_RTP_FRAGMENT_PAST_END;
   }
   return (frag_ptr);
 }
@@ -173,14 +173,14 @@ unsigned char CIsmaAudioRtpByteStream::get (void)
       return (0);
     }
     init();
-    throw("NULL when start");
+    throw THROW_RTP_NULL_WHEN_START;
   }
 
   if (m_offset_in_frame >= m_frame_len) {
     if (m_bookmark_set == 1) {
       return (0);
     }
-    throw("DECODE PAST END OF FRAME");
+    throw THROW_ISMA_RTP_DECODE_PAST_EOF;
   }
 
   // check if frame is fragmented
@@ -237,7 +237,7 @@ void CIsmaAudioRtpByteStream::read_frag (unsigned char *buffer,
 	if (frag_data == NULL) {
 	  // error 
 	  init();
-	  throw "NULL when start - readfrag";
+	  throw THROW_RTP_NULL_WHEN_START;
 	}
 	memcpy(cur, &offset, len);
 	cur += len;
@@ -259,7 +259,7 @@ ssize_t CIsmaAudioRtpByteStream::read (unsigned char *buffer,
       return (0);
     }
     init();
-    throw "NULL when start - read";
+    throw THROW_RTP_NULL_WHEN_START;
   }
 
   inbuffer = m_frame_len - m_offset_in_frame;
@@ -686,7 +686,7 @@ uint64_t CIsmaAudioRtpByteStream::start_next_frame (void)
 		m_is_fragment = 0;
 		m_frag_data = NULL;
 		init();
-		throw("Inconsistent frame info and data! We should never get here");
+		throw THROW_ISMA_INCONSISTENT;
 	  }
 	} else { 
 	  m_frag_data = NULL;
@@ -807,4 +807,31 @@ uint64_t CIsmaAudioRtpByteStream::rtp_ts_to_msec (uint32_t ts,
 int CIsmaAudioRtpByteStream::have_no_data (void)
 {
   return (m_head == NULL && m_frame_data_head == NULL);
+}
+
+const char *CIsmaAudioRtpByteStream::get_throw_error (int error)
+{
+  if (error <= THROW_RTP_BASE_MAX) {
+    return (CRtpByteStreamBase::get_throw_error(error));
+  }
+  switch (error) {
+  case THROW_ISMA_RTP_FRAGMENT_PAST_END:
+    return "Read past end of fragment";
+  case THROW_ISMA_RTP_DECODE_PAST_EOF:
+    return "Read past end of frame";
+  case THROW_ISMA_INCONSISTENT:
+    return "Inconsistent data - we can't recover";
+  default:
+    break;
+  }
+  player_debug_message("Isma RTP bytestream - unknown throw error %d", error);
+  return "Unknown error";
+}
+
+int CIsmaAudioRtpByteStream::throw_error_minor (int error)
+{
+  if (error <= THROW_RTP_BASE_MAX) {
+    return (CRtpByteStreamBase::throw_error_minor(error));
+  }
+  return 0;
 }

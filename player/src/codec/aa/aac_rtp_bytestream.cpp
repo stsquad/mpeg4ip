@@ -70,14 +70,14 @@ unsigned char CAacRtpByteStream::get (void)
       return (0);
     }
     init();
-    throw "NULL when start";
+    throw THROW_RTP_NULL_WHEN_START;
   }
 
   if (m_offset_in_frame >= m_frame_len) {
     if (m_bookmark_set == 1) {
       return (0);
     }
-    throw("DECODE PAST END OF FRAME");
+    throw THROW_RTP_DECODE_PAST_EOF;
   }
   ret = m_frame_ptr[m_offset_in_frame];
   m_offset_in_frame++;
@@ -171,7 +171,7 @@ ssize_t CAacRtpByteStream::read (unsigned char *buffer, size_t bytes_to_read)
       return (0);
     }
     init();
-    throw "NULL when start";
+    throw THROW_RTP_NULL_WHEN_START;
   }
 
   inbuffer = m_frame_len - m_offset_in_frame;
@@ -190,6 +190,25 @@ void CAacRtpByteStream::reset (void)
   m_offset_in_frame = 0;
   m_frame_len = 0;
   CRtpByteStreamBase::reset();
+}
+
+const char *CAacRtpByteStream::get_throw_error (int error)
+{
+  if (error <= THROW_RTP_BASE_MAX) {
+    return (CRtpByteStreamBase::get_throw_error(error));
+  }
+  if (error == THROW_RTP_DECODE_PAST_EOF)
+    return "Read past end of frame";
+  player_debug_message("AAC rtp bytestream - unknown throw error %d", error);
+  return "Unknown error";
+}
+
+int CAacRtpByteStream::throw_error_minor (int error)
+{
+  if (error <= THROW_RTP_BASE_MAX) {
+    return (CRtpByteStreamBase::throw_error_minor(error));
+  }
+  return 0;
 }
 
 CRtpByteStreamBase *create_aac_rtp_bytestream (format_list_t *media_fmt,
@@ -254,3 +273,4 @@ CRtpByteStreamBase *create_aac_rtp_bytestream (format_list_t *media_fmt,
   return (rtp_byte_stream);
 
 }
+

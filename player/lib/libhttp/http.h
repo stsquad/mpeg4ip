@@ -19,7 +19,9 @@ extern "C" {
 
   int http_get(http_client_t *, const char *url, http_resp_t **resp);
   void http_resp_free(http_resp_t *);
-  
+
+  void http_set_loglevel(int loglevel);
+  void http_set_error_func(error_msg_func_t func);
 #ifdef __cplusplus
 }
 #endif

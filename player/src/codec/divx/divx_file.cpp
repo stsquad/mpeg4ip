@@ -65,7 +65,7 @@ int create_media_for_divx_file (CPlayerSession *psptr,
       if (ret == 1) {
 	player_debug_message("Found vol in divx file");
       }
-    } catch (const char *err) {
+    } catch (int err) {
       ret = -1;
     }
   } while (ret == 0);

@@ -204,7 +204,7 @@ unsigned char COurInByteStreamFile::get (void)
 {
   unsigned char ret = m_buffer_on[m_index];
   if (m_buffer_size == 0) {
-    throw "PAST EOF";
+    throw THROW_PAST_EOF;
   }
   m_index++;
   m_total++;
@@ -253,7 +253,7 @@ ssize_t COurInByteStreamFile::read (unsigned char *buffer, size_t bytestoread)
   size_t inbuffer;
   ssize_t readbytes = 0;
   if (m_buffer_size == 0) {
-    throw "PAST EOF";
+    throw THROW_PAST_EOF;
   }
   do {
     inbuffer = m_buffer_size - m_index;
@@ -267,7 +267,7 @@ ssize_t COurInByteStreamFile::read (unsigned char *buffer, size_t bytestoread)
     if (m_index >= m_buffer_size) {
       read_frame();
       if (m_buffer_size == 0) {
-	throw "PAST EOF";
+	throw THROW_PAST_EOF;
       }
     }
     m_total += inbuffer;
@@ -276,4 +276,17 @@ ssize_t COurInByteStreamFile::read (unsigned char *buffer, size_t bytestoread)
   return (readbytes);
 }
 
+const char *COurInByteStreamFile::get_throw_error (int error)
+{
+  if (error == THROW_PAST_EOF) {
+    return "Past EOF";
+  }
+  player_debug_message("File bytestream - unknown error %d", error);
+  return "Unknown Error";
+}
+
+int COurInByteStreamFile::throw_error_minor (int error)
+{
+  return 0;
+}
 /* end file our_bytestream_file.cpp */

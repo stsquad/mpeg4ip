@@ -3,6 +3,11 @@ MPEG4IP original code and integration by:
 	Bill May					wmay@cisco.com
 	Alix Marchandise-Franquet	alix@cisco.com
 
+MPEG4IP would like to thank the following people for help in porting
+to other versions of *nux :
+  Steven Schultz (sms@TO.GD-ES.COM)
+  sergent@io.com
+
 Authors for incorporated open source packages can be found in the respective 
 package sub-directories. The primary authors are also listed in the README.
 

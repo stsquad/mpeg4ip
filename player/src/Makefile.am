@@ -82,7 +82,7 @@ mp4player_LDADD = \
 	$(top_builddir)/player/src/codec/mpeg4/libmpeg4.la \
 	$(top_builddir)/player/src/codec/divx/libdivx.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
-	$(top_builddir)/player/lib/http/libhttp.la \
+	$(top_builddir)/player/lib/libhttp/libhttp.la \
 	$(top_builddir)/lib/config_file/libconfig_file.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/bitstream/libbitstream.la \

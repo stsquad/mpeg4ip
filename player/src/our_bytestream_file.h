@@ -35,6 +35,7 @@ typedef struct frame_file_pos_t
   uint64_t frames;
 } frame_file_pos_t;
   
+#define THROW_PAST_EOF ((int)1)
   
 class COurInByteStreamFile : public COurInByteStream
 {
@@ -54,7 +55,8 @@ class COurInByteStreamFile : public COurInByteStream
   ssize_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
-	    
+  const char *get_throw_error(int error);
+  int throw_error_minor(int error);
   void config_for_file (uint64_t frame_per_sec, double max_time = 0.0) {
     m_frame_per_sec = frame_per_sec;
     m_max_play_time = max_time;

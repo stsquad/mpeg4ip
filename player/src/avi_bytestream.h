@@ -28,7 +28,7 @@
 #include "our_bytestream.h"
 #include "avi_file.h"
 
-
+#define THROW_AVI_BUFFER_OVERFLOW ((int)1)
 /*
  * CQTByteStreamBase provides base class access to quicktime files.
  * Most functions are shared between audio and video.
@@ -49,6 +49,8 @@ class CAviByteStreamBase : public COurInByteStream
   ssize_t read (char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
+  const char *get_throw_error(int error);
+  int throw_error_minor(int error);
   void check_for_end_of_frame(void);
  protected:
   virtual void read_frame(void) = 0;

@@ -27,6 +27,7 @@
 #define __AAC_RTP_BYTESTREAM_H__ 1
 #include "rtp_bytestream.h"
 
+#define THROW_RTP_DECODE_PAST_EOF (int)(THROW_RTP_BASE_MAX + 1)
 class CAacRtpByteStream : public CRtpByteStreamBase
 {
  public:
@@ -51,7 +52,8 @@ class CAacRtpByteStream : public CRtpByteStreamBase
   ssize_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
-
+  const char *get_throw_error(int error);
+  int throw_error_minor(int error);
  private:
   char *m_frame_ptr;
   uint32_t m_offset_in_frame;

@@ -223,7 +223,7 @@ AC_OUTPUT( \
 	server/util/mp4extract/Makefile \
 	player/Makefile \
 	player/lib/Makefile \
-	player/lib/http/Makefile \
+	player/lib/libhttp/Makefile \
 	player/lib/rtsp/Makefile \
 	player/lib/audio/Makefile \
 	player/lib/audio/faad/Makefile \

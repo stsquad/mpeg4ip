@@ -194,7 +194,7 @@ void CRtpByteStreamBase::check_for_end_of_pak (int nothrow)
 {
   rtp_packet *p;
   uint16_t nextseq;
-  const char *err;
+  int err;
 
   // See if we're at the end of the packet - if not, return...
   if (m_offset_in_pak < m_pak->data_len) {
@@ -240,15 +240,15 @@ void CRtpByteStreamBase::check_for_end_of_pak (int nothrow)
 
   if (m_head) {
     if (m_bookmark_set == 0)
-      err = "Sequence number violation";
+      err = THROW_RTP_SEQ_NUM_VIOLATION;
     else 
-      err = "Bookmark sequence number violation";
+      err = THROW_RTP_BOOKMARK_SEQ_NUM_VIOLATION;
     player_debug_message("seq # violation - should %d is %d", nextseq, m_head->seq);
   } else {
     if (m_bookmark_set == 0) 
-      err = "No more data";
+      err = THROW_RTP_NO_MORE_DATA;
     else
-      err = "Bookmark no more data";
+      err = THROW_RTP_BOOKMARK_NO_MORE_DATA;
   }
   m_pak = NULL;
   init();
@@ -266,7 +266,7 @@ unsigned char CRtpByteStreamBase::get (void)
       return (0);
     }
     init();
-    throw "NULL when start";
+    throw THROW_RTP_NULL_WHEN_START;
   }
 
   if ((m_offset_in_pak == 0) &&
@@ -274,7 +274,7 @@ unsigned char CRtpByteStreamBase::get (void)
     if (m_bookmark_set == 1) {
       return (0);
     }
-    throw("DECODE ACROSS TS");
+    throw THROW_RTP_DECODE_ACROSS_TS;
   }
   ret = m_pak->data[m_offset_in_pak];
   m_offset_in_pak++;
@@ -357,7 +357,7 @@ ssize_t CRtpByteStreamBase::read (unsigned char *buffer, size_t bytes_to_read)
       return (0);
     }
     init();
-    throw "NULL when start";
+    throw THROW_RTP_NULL_WHEN_START;
   }
 
   do {
@@ -366,7 +366,7 @@ ssize_t CRtpByteStreamBase::read (unsigned char *buffer, size_t bytes_to_read)
       if (m_bookmark_set == 1) {
 	return (0);
       }
-      throw("DECODE ACROSS TS");
+      throw THROW_RTP_DECODE_ACROSS_TS;
     }
     inbuffer = m_pak->data_len - m_offset_in_pak;
     if (bytes_to_read < inbuffer) {
@@ -580,4 +580,34 @@ int CRtpByteStreamBase::check_rtp_frame_complete_for_proto (void)
   default:
     return (m_head && m_tail->m == 1);
   }
+}
+
+const char *CRtpByteStreamBase::get_throw_error (int error)
+{
+  switch (error) {
+  case THROW_RTP_SEQ_NUM_VIOLATION:
+    return "RTP sequence number violation";
+  case THROW_RTP_BOOKMARK_SEQ_NUM_VIOLATION:
+    return "RTP bookmark sequence number violation";
+  case THROW_RTP_NO_MORE_DATA:
+    return "RTP no more data";
+  case THROW_RTP_BOOKMARK_NO_MORE_DATA:
+    return "RTP bookmark no more data";
+  case THROW_RTP_NULL_WHEN_START:
+    return "RTP null when start";
+  case THROW_RTP_DECODE_ACROSS_TS:
+    return "Rtp decode across timestamp";
+  default:
+    break;
+  }
+  player_debug_message("RTP bytestream base - unknown throw error %d", error);
+  return "Unknown Error";
+}
+
+int CRtpByteStreamBase::throw_error_minor (int error)
+{
+  if (error == THROW_RTP_DECODE_ACROSS_TS) {
+    return 1;
+  }
+  return 0;
 }

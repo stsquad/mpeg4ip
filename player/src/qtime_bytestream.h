@@ -28,7 +28,7 @@
 #include "our_bytestream.h"
 #include "qtime_file.h"
 
-
+#define THROW_QTIME_END_OF_DATA ((int) 1)
 /*
  * CQTByteStreamBase provides base class access to quicktime files.
  * Most functions are shared between audio and video.
@@ -50,6 +50,8 @@ class CQTByteStreamBase : public COurInByteStream
   ssize_t read (char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
+  const char *get_throw_error(int error);
+  int throw_error_minor(int error);
   void check_for_end_of_frame(void);
  protected:
   virtual void read_frame(uint32_t frame) = 0;

@@ -23,7 +23,7 @@
  */
 #include <stdlib.h>
 #include <sdp/sdp.h>
-#include <http/http_lib.h>
+#include <libhttp/http.h>
 #include "player_session.h"
 #include "codec/codec.h"
 #include "codec/aa/aa.h"
@@ -363,39 +363,24 @@ static int create_media_for_http (CPlayerSession *psptr,
 				  const char *name,
 				  const char **errmsg)
 {
-  char *data, *filename, *proxy;
-  char typebuf[70];
+  http_client_t *http_client;
+
   int ret;
-  int len;
+  http_resp_t *http_resp;
+  http_resp = NULL;
+  http_client = http_init_connection(name);
 
-  proxy=getenv("http_proxy");
-  if (proxy != NULL) {
-    ret=http_parse_url(proxy,&filename);
-    if (ret<0) return ret;
-    http_proxy_server=http_server;
-    http_server=NULL;
-    http_proxy_port=http_port;
-  }
-  ret = http_parse_url(name, &filename);
-  if (ret < 0) {
-    if (proxy != NULL) free(http_proxy_server);
-    *errmsg = "Couldn't translate URL";
-    return (-1);
-  }
-  ret = http_get(filename, &data, &len, typebuf);
-  if (! ((ret == 201) || (ret == 200))) {
-    *errmsg = "Failed to get data from URL";
-    return (-1);
-  }
-  sdp_decode_info_t *sdp_info;
+  ret = http_get(http_client, NULL, &http_resp);
+  if (ret > 0) {
+    sdp_decode_info_t *sdp_info;
 
-  int have_audio_driver = do_we_have_audio();
-  sdp_info = set_sdp_decode_from_memory(data);
-  ret = create_from_sdp(psptr, name, errmsg, sdp_info, have_audio_driver);
-  if (data) free(data);
-  if (filename) free(filename);
-  if (http_server) free(http_server);
-  if (proxy) free(http_proxy_server);
+    int have_audio_driver = do_we_have_audio();
+    sdp_info = set_sdp_decode_from_memory(http_resp->body);
+    ret = create_from_sdp(psptr, name, errmsg, sdp_info, have_audio_driver);
+  }
+  http_resp_free(http_resp);
+  http_free_connection(http_client);
+
   return (ret);
 }
 /*

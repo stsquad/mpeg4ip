@@ -264,9 +264,11 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
 #endif
       break;
     }
-  } catch (const char *err) {
+  } catch (int err) {
 #ifdef DEBUG_SYNC
-    player_error_message("aa Got exception %s at "LLU, err, m_current_time);
+    player_error_message("aa Got exception %s at "LLU, 
+			 m_bytestream->get_throw_error(err), 
+			 m_current_time);
 #endif
     m_resync_with_header = 1;
     m_record_sync_time = 1;
