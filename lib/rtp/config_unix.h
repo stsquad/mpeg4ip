@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.6 $
- *  $Date: 2002/02/20 17:32:03 $
+ *  $Revision: 1.7 $
+ *  $Date: 2003/03/06 21:14:47 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -123,7 +123,11 @@
 /* IPV_{ADD,DROP}_MEMBERSHIP in in.h                                         */
 #include <netinet6/in6.h>
 #else
+#ifdef HAVE_NETINET_IP6_H
+#include <netinet/ip6.h>
+#else
 #include <netinet/in.h>
+#endif
 #endif /* HAVE_NETINET_IN6_H */
 
 #ifndef IPV6_ADD_MEMBERSHIP

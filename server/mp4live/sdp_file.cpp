@@ -237,16 +237,13 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 	  videoIsIsma = true;
 	}
 
-
-#if 0
-	session_time_desc_t sdpTime;
-	sdpTime.start_time = 0;
-	sdpTime.end_time = 0;
-	sdpTime.next = NULL;
-	sdpTime.repeat = NULL;
-	sdp.time_desc = &sdpTime;
-#endif
-
+	session_time_desc_t *sdpTime;
+	sdpTime = MALLOC_STRUCTURE(session_time_desc_t);
+	sdpTime->start_time = 0;
+	sdpTime->end_time = 0;
+	sdpTime->next = NULL;
+	sdpTime->repeat = NULL;
+	sdp->time_desc = sdpTime;
 
 	if (createIod) {
 	  char* iod =

@@ -131,7 +131,14 @@ Note: libtool is frequently not installed on Linux systems (autoconf,
 and automake generally are). You can download libtool from a GNU mirror
 site, or http://download.sourceforge.net/mpegip/libtool-1.3.5.tar.gz
 
-In order to compile mpeg4ip, libtool must have a minimum version of 1.3.5.
+In order to compile mpeg4ip from CVS, we require the following tools:
+gcc 3.2 or greater
+libtool 1.4.3
+autoconf 2.53
+automake 1.6.
+
+If you don't have these tools and are trying to compile from CVS, don't
+complain.
 
 Be sure to read the OS specific section later before continuing here.
 
@@ -498,7 +505,8 @@ IETF RFC 3016 RTP Payload for MPEG-4 Audio/Visual
     Note: we're implementing the MPEG-4 video part
 
 IETF draft-ietf-avt-mpeg4-simple-06.txt - work in progress
-    Note: we're implementing the AAC audio part
+    Note: we're implementing the AAC audio part, and for the next
+    release will finalize implementation.
 
 The IETF RFCs can be found in mpeg4ip/doc/ietf
 
@@ -557,6 +565,10 @@ See the new README in player/src.
 
 Known Problems
 ==============
+* There have been some changes to the MPEG4 AAC DTS headers in the
+  latest version of the MPEG4 specification.  This renders previous
+  .aac files pretty much obsolete.  We have NOT made this change to 
+  mpeg4ip - we will make it in the next release.
 
 * If you're playing through a NAT box, you may have to specify the
   default client IP ports.  Use the command RtpIpPortMin=<port> and

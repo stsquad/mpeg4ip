@@ -61,6 +61,7 @@ CCAS="$CC"
 AC_SUBST(CCAS)
 CCASFLAGS=""
 AC_SUBST(CCASFLAGS)
+AM_CONDITIONAL([am__fastdepOBJC], false)
 
 dnl The alpha architecture needs special flags for binary portability
 case "$target" in

@@ -224,20 +224,23 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
    * Send the RTSP describe.  This should return SDP information about
    * the session.
    */
-  if (rtsp_send_describe(m_rtsp_client, &cmd, &decode) !=
-      RTSP_RESPONSE_GOOD) {
+  int rtsp_resp;
+
+  rtsp_resp = rtsp_send_describe(m_rtsp_client, &cmd, &decode);
+  if (rtsp_resp != RTSP_RESPONSE_GOOD) {
     int retval;
     if (decode != NULL) {
       retval = (((decode->retcode[0] - '0') * 100) +
 		((decode->retcode[1] - '0') * 10) +
 		(decode->retcode[2] - '0'));
+      snprintf(errmsg, errlen, "RTSP describe error %d %s", retval,
+	       decode->retresp != NULL ? decode->retresp : "");
+      free_decode_response(decode);
     } else {
       retval = -1;
+      snprintf(errmsg, errlen, "RTSP return invalid %d", rtsp_resp);
     }
-    snprintf(errmsg, errlen, "RTSP describe error %d %s", retval,
-	     decode->retresp != NULL ? decode->retresp : "");
     player_error_message("Describe response not good\n");
-    free_decode_response(decode);
     return (retval);
   }
 

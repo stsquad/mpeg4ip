@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.18 $ 
- * $Date: 2002/11/14 19:46:39 $
+ * $Revision: 1.19 $ 
+ * $Date: 2003/03/06 21:14:48 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -1103,7 +1103,8 @@ struct rtp *rtp_init_if(const char *addr, char *iface,
 
 	if (dont_init_sockets == 0) {
 	  session->rtp_socket	= udp_init_if(addr, iface, rx_port, tx_port, ttl);
-	  session->rtcp_socket	= udp_init_if(addr, iface, (uint16_t) (rx_port+1), (uint16_t) (tx_port+1), ttl);
+	  session->rtcp_socket = udp_init_if(addr, iface, (uint16_t) (rx_port ? rx_port + 1 : 0), (uint16_t) (tx_port + 1), ttl);
+
 	  if (session->rtp_socket == NULL || session->rtcp_socket == NULL) {
 	    xfree(session);
 	    return NULL;

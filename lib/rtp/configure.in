@@ -185,6 +185,7 @@ then
 fi
 
 AC_CHECK_HEADERS(netinet6/in6.h)
+AC_CHECK_HEADERS(netinet/ip6.h)
 
 AC_CACHE_CHECK(for struct addrinfo in <netdb.h>, ucl_cv_st_addrinfo_in_netdb_h,
 	[AC_EGREP_HEADER(addrinfo,
@@ -201,7 +202,11 @@ AC_CACHE_CHECK(for sin6_len in struct sockaddr_in6, ucl_cv_sin6_len,
 		#ifdef HAVE_NETINET6_IN6_H
 		#include <netinet6/in6.h>
 		#else
+		#ifdef HAVE_NETINET_IP6_H
+		#include <netinet/ip6.h>
+		#else
 		#include <netinet/in.h>
+		#endif
 		#endif /* HAVE_NETINET_IN6_H */
 	],[
 		struct sockaddr_in6	s_in;

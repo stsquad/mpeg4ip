@@ -367,11 +367,11 @@ int rtsp_is_url_my_stream (rtsp_session_t *session,
       /* check if there is an overlap */
       char *str1 = rm_rtsp_overlap(url, content_base);
       char *str2 = rm_rtsp_overlap(url, session_name);
-      if (strcmp(session_url, str1) == 0 
-	  || strcmp(session_url, str2) == 0)  
+      if ((str1 != NULL && strcmp(session_url, str1) == 0 )
+	  || (str2 != NULL && strcmp(session_url, str2) == 0))
 	is_match = 1;
-      free(str1);
-      free(str2);
+      CHECK_AND_FREE(str1);
+      CHECK_AND_FREE(str2);
     }
   }
   return (is_match);
