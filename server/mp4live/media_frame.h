@@ -43,6 +43,7 @@ typedef u_int16_t MediaType;
 #define RECONSTRUCTYUVVIDEOFRAME 	15
 #define H261VIDEOFRAME          16
 #define MPEG2VIDEOFRAME         17
+#define RAWPCMAUDIOFRAME	18
 
 typedef void (*media_free_f)(void *);
 

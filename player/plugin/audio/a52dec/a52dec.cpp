@@ -21,7 +21,7 @@
 #include "a52dec.h"
 #include <mp4v2/mp4.h>
 #include <mp4av/mp4av.h>
-
+#include <mpeg2ps/mpeg2_ps.h>
 #define LOGIT a52dec->m_vft->log_msg
 
 
@@ -397,7 +397,7 @@ static int a52dec_codec_check (lib_message_func_t message,
     return -1; 
   }
   if ((strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) &&
-      (type == 2)) { // AUDIO_AC3 from mpeg file
+      (type == MPEG_AUDIO_AC3)) { // AUDIO_AC3 from mpeg file
     return 1;
   }
   if ((strcasecmp(stream_type, STREAM_TYPE_MPEG2_TRANSPORT_STREAM) == 0) &&

@@ -38,6 +38,7 @@
 #include "video_sdl.h"
 #include "mpeg4ip_getopt.h"
 #include "mpeg2t/mpeg2_transport.h"
+#include "mpeg2ps/mpeg2_ps.h"
 
 static int session_paused;
 static int screen_size = 2;
@@ -157,12 +158,15 @@ int process_sdl_key_events (CPlayerSession *psptr,
     if (psptr->session_is_seekable()) {
       play_time = psptr->get_playing_time();
       double ptime;
+      psptr->pause_all_media();
       if (play_time >= TO_U64(10000)) {
 	play_time -= TO_U64(10000);
 	ptime = UINT64_TO_DOUBLE(play_time);
 	ptime /= 1000.0;
-	psptr->pause_all_media();
 	if (psptr->play_all_media(FALSE, ptime) < 0) return -1;
+      } else {
+	ptime = 0.0;
+	if (psptr->play_all_media(TRUE) < 0) return -1;
       }
     }
     break;
@@ -463,6 +467,9 @@ int main (int argc, char **argv)
 #ifndef _WIN32
   mpeg2t_set_error_func(library_message);
   mpeg2t_set_loglevel(config.get_config_value(CONFIG_MPEG2T_DEBUG));
+
+  mpeg2ps_set_error_func(library_message);
+  mpeg2ps_set_loglevel(config.get_config_value(CONFIG_MPEG2PS_DEBUG));
 #endif
   if (config.get_config_value(CONFIG_RX_SOCKET_SIZE) != 0) {
     rtp_set_receive_buffer_default_size(config.get_config_value(CONFIG_RX_SOCKET_SIZE));

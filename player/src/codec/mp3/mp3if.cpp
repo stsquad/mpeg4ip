@@ -22,6 +22,7 @@
 #include <mp4av/mp4av.h>
 #include <mp4v2/mp4.h>
 #include <mpeg2t/mpeg2_transport.h>
+#include <mpeg2ps/mpeg2_ps.h>
 
 #define mp3_message mp3->m_vft->log_msg
 #define DEBUG_SYNC 1
@@ -239,7 +240,7 @@ static int mp3_codec_check (lib_message_func_t message,
     return 1;
   }
   if ((strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) &&
-	(audio_type == 1)) { // AUDIO_MPEG def from libmpeg3
+	(audio_type == MPEG_AUDIO_MPEG)) { // AUDIO_MPEG def from libmpeg3
       return 1;
   }
 

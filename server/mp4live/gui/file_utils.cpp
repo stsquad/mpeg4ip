@@ -24,7 +24,7 @@
 #include "mp4live_gui.h"
 
 #include <mp4.h>
-#include <libmpeg3.h>
+#include "mpeg2_ps.h"
 
 GtkWidget* CreateFileCombo(const char* entryText)
 {
@@ -158,15 +158,15 @@ int32_t Mp4FileDefaultAudio(const char* fileName)
 
 int32_t Mpeg2FileDefaultAudio(const char* fileName)
 {
-	mpeg3_t* mpeg2File = mpeg3_open(fileName);
+  mpeg2ps_t *mpeg2File = mpeg2ps_init(fileName);
 
 	if (!mpeg2File) {
 		return -1;
 	}
 
-	int32_t audioTracks = mpeg3_total_astreams(mpeg2File);
+	int32_t audioTracks = mpeg2ps_get_audio_stream_count(mpeg2File);
 
-	mpeg3_close(mpeg2File);
+	mpeg2ps_close(mpeg2File);
 
 	if (audioTracks <= 0) {
 		return -1;
@@ -398,13 +398,13 @@ static GtkWidget* CreateMpeg2TrackMenu(
 
 	u_int32_t newTrackNumber = 1;
 
-	mpeg3_t* mpeg2File = mpeg3_open(source);
+	mpeg2ps_t* mpeg2File = mpeg2ps_init(source);
 
 	if (mpeg2File) {
 		if (type == 'V') {
-			newTrackNumber = mpeg3_total_vstreams(mpeg2File);
+		  newTrackNumber = mpeg2ps_get_video_stream_count(mpeg2File);
 		} else {
-			newTrackNumber = mpeg3_total_astreams(mpeg2File);
+		  newTrackNumber = mpeg2ps_get_audio_stream_count(mpeg2File);
 		}
 	}
 
@@ -423,31 +423,27 @@ static GtkWidget* CreateMpeg2TrackMenu(
 
 			char buf[64];
 			if (type == 'V') {
-				snprintf(buf, sizeof(buf), 
-					"%u - %u x %u @ %.2f fps", 
-					i + 1,
-					mpeg3_video_width(mpeg2File, i),
-					mpeg3_video_height(mpeg2File, i),
-					mpeg3_frame_rate(mpeg2File, i));
+			  snprintf(buf, sizeof(buf), 
+				   "%u - %u x %u @ %.2f fps", 
+				   i + 1,
+				   mpeg2ps_get_video_stream_width(mpeg2File, i),
+				   mpeg2ps_get_video_stream_height(mpeg2File, i),
+				   mpeg2ps_get_video_stream_framerate(mpeg2File, i));
 			} else {
-				char* afmt =
-					mpeg3_audio_format(mpeg2File, i);
-
-				// use more familar though less accurate name
-				if (!strcasecmp(afmt, "MPEG")) {
-					afmt = "MP3";
-				}
-
-				snprintf(buf, sizeof(buf), 
-					"%u - %s  %u channels @ %u Hz", 
-					i + 1,
-					afmt,
-					mpeg3_audio_channels(mpeg2File, i),
-					mpeg3_sample_rate(mpeg2File, i));
+			  const char* afmt =
+			    mpeg2ps_get_audio_stream_name(mpeg2File, i);
+			  
+			  // use more familar though less accurate name
+			  snprintf(buf, sizeof(buf), 
+				   "%u - %s  %u channels @ %u Hz", 
+				   i + 1,
+				   afmt,
+				   mpeg2ps_get_audio_stream_channels(mpeg2File, i),
+				   mpeg2ps_get_audio_stream_sample_freq(mpeg2File, i));
 			}
 			newTrackNames[i] = strdup(buf);
 		}
-		mpeg3_close(mpeg2File);
+		mpeg2ps_close(mpeg2File);
 	}
 
 	// (re)create the menu

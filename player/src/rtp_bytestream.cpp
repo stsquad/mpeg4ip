@@ -6,7 +6,7 @@
  * 
  * Software distributed under the License is distributed on an "AS
  * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
- * implied. See theL icense for the specific language governing
+ * implied. See the License for the specific language governing
  * rights and limitations under the License.
  * 
  * The Original Code is MPEG4IP.
@@ -29,8 +29,9 @@
 //#define DEBUG_RTP_PAKS 1
 //#define DEBUG_RTP_FRAMES 1
 //#define DEBUG_RTP_BCAST 1
-#define DEBUG_RTP_WCLOCK 1
+//#define DEBUG_RTP_WCLOCK 1
 //#define DEBUG_RTP_TS 1
+//#define DEBUG_SEQUENCE_DROPS 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 #else
@@ -140,18 +141,21 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
   
   q = *head;
   if (q->rtp_next == *head) return 1;
+#ifdef DEBUG_SEQUENCE_DROPS
   bool dump_list = false;
   int16_t diff;
   do {
     diff = q->rtp_next->rtp_pak_seq - q->rtp_pak_seq;
     if (diff < 0 || diff > 2) {
       dump_list = true;
-    }
-    q = q->rtp_next;
+    } else 
+      q = q->rtp_next;
   } while (dump_list == false && q != *tail);
   if (dump_list) {
     rtp_message(LOG_DEBUG, "%s possible queue error - inserted %u %d %d", name,
 		pak->rtp_pak_seq, head_diff, tail_diff);
+    rtp_message(LOG_DEBUG, "%s seq %u %u diff %d", name, 
+		q->rtp_pak_seq, q->rtp_next->rtp_pak_seq, diff);
 #if 0
     q = *head;
     do {
@@ -163,6 +167,7 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
     rtp_message(LOG_DEBUG, "%s - head %u tail %u", 
 		name, (*head)->rtp_pak_seq, (*tail)->rtp_pak_seq);
   }
+#endif
   return (1);
 }
 
@@ -256,6 +261,7 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
 					       uint32_t rtp_ts) 
 {
   int32_t rtp_ts_diff;
+  int64_t wclock_diff;
   uint64_t wclock_calc;
   bool set = true;
   bool had_recvd_rtcp;
@@ -263,9 +269,11 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
       m_stream_ondemand == 0) {
     rtp_ts_diff = rtp_ts;
     rtp_ts_diff -= m_rtcp_rtp_ts;
-    wclock_calc = rtp_ts_diff * TO_U64(1000);
-    wclock_calc /= m_timescale;
-    wclock_calc += m_rtcp_ts;
+    wclock_diff = (int64_t)rtp_ts_diff;
+    wclock_diff *= TO_D64(1000);
+    wclock_diff /= (int64_t)m_timescale;
+    wclock_calc = m_rtcp_ts;
+    wclock_calc += wclock_diff;
     if (wclock_calc != wclock) {
 #ifdef DEBUG_RTP_WCLOCK
       rtp_message(LOG_DEBUG, 
@@ -291,21 +299,24 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
     m_rtcp_rtp_ts = rtp_ts;
   }
   if (m_have_first_pak_ts) {
-    int64_t diff;
-    diff = (int64_t)rtp_ts;
-    diff -= (int64_t)m_first_pak_rtp_ts;
-    int64_t compare = 3600 * m_timescale;
+    // we only want positives here
+    int32_t diff;
+    diff = rtp_ts - m_first_pak_rtp_ts;
+    int32_t compare = 3600 * m_timescale;
 #ifdef DEBUG_RTP_WCLOCK
-    rtp_message(LOG_DEBUG, "%s - rtp ts %u rtcp %u "D64, 
+    rtp_message(LOG_DEBUG, "%s - 1st rtp ts %u rtp %u %u", 
 		m_name, m_first_pak_rtp_ts, rtp_ts, diff);
+    rtp_message(LOG_DEBUG, "%s - 1st ts "U64, m_name, m_first_pak_ts);
 #endif
     if (diff > compare) {
       // adjust once an hour, to keep errors low
       // we'll adjust the timestamp and rtp timestamp
-      diff *= TO_U64(1000);
-      diff /= m_timescale;
-      m_first_pak_ts += diff;
-      m_first_pak_rtp_ts = rtp_ts;
+      int64_t ts_diff;
+      ts_diff = (int64_t)diff;
+      ts_diff *= TO_U64(1000);
+      ts_diff /= (int64_t)m_timescale;
+      m_first_pak_ts += ts_diff;
+      m_first_pak_rtp_ts += diff;
 #ifdef DEBUG_RTP_WCLOCK
       rtp_message(LOG_DEBUG, "CHANGE %s - first pak ts is now "U64" rtp %u", 
 		  m_name, m_first_pak_ts, m_first_pak_rtp_ts);
@@ -453,8 +464,7 @@ void CRtpByteStreamBase::syncronize (rtcp_sync_t *sync)
   // what the timestamp value would be at the RTCP's RTP timestamp value
   // adjust_first_pak is amount we need to add to the first_packet's timestamp
   // We do this for the data we got for the audio stream
-  adjust_first_pak = sync->rtcp_rtp_ts;
-  adjust_first_pak -= sync->first_pak_rtp_ts;
+  adjust_first_pak = sync->rtcp_rtp_ts - sync->first_pak_rtp_ts;
   adjust_first_pak *= 1000;
   adjust_first_pak /= (int64_t)sync->timescale;
 
@@ -479,8 +489,7 @@ void CRtpByteStreamBase::syncronize (rtcp_sync_t *sync)
   // Now, we do the same calculation for the numbers for our timestamps - 
   // find the timestamp by adjusting the first packet's timestamp to the
   // timestamp based on the current RTCP RTP timestamp;
-  adjust_first_pak = m_rtcp_rtp_ts;
-  adjust_first_pak -= m_first_pak_rtp_ts;
+  adjust_first_pak = m_rtcp_rtp_ts - m_first_pak_rtp_ts;
   adjust_first_pak *= 1000;
   adjust_first_pak /= (int64_t)m_timescale;
 
@@ -758,16 +767,16 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
     // fairly simple calculation to calculate the timestamp
     // based on this rtp timestamp, the first pak rtp timestamp and
     // the first packet timestamp.
-    int64_t adder;
+    int32_t adder;
+    int64_t ts_adder;
     if (have_wrap) {
-      adder = (int64_t)rtp_ts;
-      adder += TO_U64(1) << 32;
-      adder -= (int64_t)m_first_pak_rtp_ts;
+      adder = rtp_ts - m_first_pak_rtp_ts;
       // adjust once an hour, to keep errors low
       // we'll adjust the timestamp and rtp timestamp
-      adder *= TO_U64(1000);
-      adder /= m_timescale;
-      m_first_pak_ts += adder;
+      ts_adder = (int64_t)adder;
+      ts_adder *= TO_D64(1000);
+      ts_adder /= (int64_t)m_timescale;
+      m_first_pak_ts += ts_adder;
       m_first_pak_rtp_ts = rtp_ts;
 #if 1 //def DEBUG_RTP_BCAST
       rtp_message(LOG_DEBUG, "%s adjust for wrap - first pak ts is now "U64" rtp %u", 
@@ -775,18 +784,19 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
 #endif
     }
 
-    adder = (int64_t)rtp_ts;
-    adder -= (int64_t) m_first_pak_rtp_ts;
-    adder *= (int64_t)1000;
-    adder /= (int64_t)m_timescale;
+    // adder could be negative here, based on the RTCP we receive
+    adder = rtp_ts - m_first_pak_rtp_ts;
+    ts_adder = (int64_t)adder;
+    ts_adder *= TO_D64(1000);
+    ts_adder /= (int64_t)m_timescale;
     timetick = m_first_pak_ts;
-    timetick += adder;
+    timetick += ts_adder;
     SDL_UnlockMutex(m_rtp_packet_mutex);
 
 #ifdef DEBUG_RTP_BCAST
-    rtp_message(LOG_DEBUG, "%s ts %u base %u "U64" tp "U64,
+    rtp_message(LOG_DEBUG, "%s ts %u base %u "U64" tp "U64" adder %d "D64,
 		m_name, rtp_ts, m_first_pak_rtp_ts, m_first_pak_ts, 
-		timetick);
+		timetick, adder, ts_adder);
 #endif
   }
 #ifdef DEBUG_RTP_TS

@@ -59,6 +59,10 @@ libmp4live_la_SOURCES = \
 	file_mp4_recorder.h \
 	file_raw_sink.cpp \
 	file_raw_sink.h \
+	loop_feeder_sink.cpp \
+	loop_feeder_sink.h \
+	loop_source.cpp \
+	loop_source.h \
 	media_codec.h \
 	media_flow.cpp \
 	media_flow.h \
@@ -118,7 +122,7 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib/utils \
 	-I$(top_srcdir)/lib \
-	-I$(top_srcdir)/common/video/libmpeg32 \
+	-I$(top_srcdir)/lib/mpeg2ps \
 	-I$(top_srcdir)/player/lib \
 	-I$(top_srcdir)/player/src \
 	-I./h261 \
@@ -134,7 +138,7 @@ mp4live_LDADD = \
 	libmp4live.la \
 	-lfaac \
 	-lmp3lame \
-	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
+	$(top_builddir)/lib/mpeg2ps/libmpeg2_program.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \

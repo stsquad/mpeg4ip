@@ -368,8 +368,10 @@ void CBufferAudioSync::load_audio_buffer (const uint8_t *from,
   } else {
     if (m_first_filled) {
       int32_t diff = freq_ts - m_jitter_calc_freq_ts;
-      uint64_t calc_diff = diff * TO_U64(1000);
-      calc_diff /= m_freq;
+      int64_t calc_diff = (int64_t)diff;
+      calc_diff *= TO_D64(1000);
+      calc_diff /= (int64_t)m_freq;
+
       int64_t msec_diff = ts - m_jitter_calc_ts;
       int64_t add_diff;
       msec_diff -= m_jitter_msec_total;
@@ -394,11 +396,10 @@ void CBufferAudioSync::load_audio_buffer (const uint8_t *from,
 	  m_have_jitter = true;
 	  m_jitter_msec += add_diff;
 	}
-      } else {
-	if (diff > (int32_t) m_freq) {
-	  m_jitter_calc_freq_ts = freq_ts;
-	  m_jitter_calc_ts = ts;
-	}
+      } 
+      if (diff > (int32_t) m_freq || add_diff == 0) {
+	m_jitter_calc_freq_ts = freq_ts;
+	m_jitter_calc_ts = ts;
       }
     }
   }
@@ -743,7 +744,7 @@ bool CBufferAudioSync::audio_buffer_callback (uint8_t *outbuf,
 	    outbuf += 3 * m_bytes_per_sample_output;
 	    len_bytes -= 3 * m_bytes_per_sample_output;
 	    m_sync_samples_added += 3;
-#if 1 //def DEBUG_AUDIO_TIMING
+#ifdef DEBUG_AUDIO_TIMING
 	    audio_message(LOG_DEBUG, "samples "U64" latency %u", m_samples_written,
 			  latency_samples);
 	    audio_message(LOG_DEBUG, "current "U64" hwstart "U64,

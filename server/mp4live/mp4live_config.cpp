@@ -49,6 +49,7 @@ CLiveConfig::CLiveConfig(
 	m_audioCapabilities = NULL;
 	m_audioEncode = true;
 	m_recordEstFileSize = 0;
+	m_parentConfig = NULL;
 }
 
 CLiveConfig::~CLiveConfig()

@@ -23,6 +23,7 @@
 #include <mp4.h>
 #include "mp4live.h"
 #include "media_flow.h"
+#include "loop_source.h"
 
 #ifdef HAVE_LINUX_VIDEODEV2_H
 #include "video_v4l2_source.h"
@@ -75,6 +76,9 @@ CMediaSource *CreateVideoSource (CLiveConfig *pConfig)
 #else
     vs = new CV4LVideoSource();
 #endif
+  } else if  (!strcasecmp(sourceType, "self"))
+  {
+  	vs = new CLoopSource(false);
   } else {
     error_message("unknown video source type %s", sourceType);
     return NULL;
@@ -99,6 +103,11 @@ CMediaSource *CreateAudioSource (CLiveConfig *pConfig,
 
     if (!strcasecmp(sourceType, AUDIO_SOURCE_OSS)) {
       audioSource = new COSSAudioSource(pConfig);
+    } else if  (!strcasecmp(sourceType, "self"))
+    {
+	audioSource = new CLoopSource(true);
+	audioSource->SetConfig(pConfig);
+	
     } else {
       error_message("unknown audio source type %s", sourceType);
       return NULL;
@@ -369,7 +378,7 @@ int nogui_main(CLiveConfig* pConfig)
 	  duration = difftime(nowtime, starttime);
 	} while (duration < maxduration && stop_signal_received == 0);
 
-
+	
 	pFlow->Stop();
 
 	delete pFlow;

@@ -34,6 +34,7 @@
 #include "rtp_transmitter.h"
 #include "file_raw_sink.h"
 #include "mp4live_common.h"
+#include "loop_feeder_sink.h"
 
 // Generic Flow
 
@@ -96,7 +97,17 @@ void CAVMediaFlow::Start(void)
 		m_rawSink->StartThread();	
 		AddSink(m_rawSink);
 	}
-
+	
+	if (m_pConfig->GetBoolValue(CONFIG_FEEDER_SINK_ENABLE))
+	{
+		m_feederSink = new CLoopFeederSink();
+		m_feederSink->SetConfig(m_pConfig);
+		m_feederSink->StartThread();
+		m_feederSink->Start();
+		AddSink(m_feederSink);
+		
+	}
+	
 	if (m_mp4Recorder) {
 		m_mp4Recorder->Start();
 	}
@@ -107,7 +118,7 @@ void CAVMediaFlow::Start(void)
 	if (m_rawSink) {
 		m_rawSink->Start();
 	}
-	
+
 	if (m_videoSource && m_videoSource == m_audioSource) {
 		m_videoSource->Start();
 	} else {
@@ -149,27 +160,40 @@ void CAVMediaFlow::Stop(void)
 		m_videoSource = NULL;
 
 	}
-
-	if (m_mp4Recorder) {
-		RemoveSink(m_mp4Recorder);
-		m_mp4Recorder->StopThread();
-		delete m_mp4Recorder;
-		m_mp4Recorder = NULL;
-	}
+	
 	if (m_rtpTransmitter) {
 		RemoveSink(m_rtpTransmitter);
 		m_rtpTransmitter->StopThread();
 		delete m_rtpTransmitter;
 		m_rtpTransmitter = NULL;
 	}
+	
+	
 	if (m_rawSink) {
 		RemoveSink(m_rawSink);
 		m_rawSink->StopThread();
 		delete m_rawSink;
 		m_rawSink = NULL;
 	}
-
+	
+	if (m_feederSink) {
+                RemoveSink(m_feederSink);
+                m_feederSink->StopThread();
+                delete m_feederSink;
+                m_feederSink = NULL;
+        }
+	
+	
+	
+	if (m_mp4Recorder) {
+		RemoveSink(m_mp4Recorder);
+		m_mp4Recorder->StopThread();
+		delete m_mp4Recorder;
+		m_mp4Recorder = NULL;
+	}
+	
 	m_started = false;
+	
 }
 
 void CAVMediaFlow::AddSink(CMediaSink* pSink)

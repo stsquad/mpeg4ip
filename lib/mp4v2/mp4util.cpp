@@ -223,10 +223,11 @@ static bool convertBase64 (const char data, uint8_t *value)
     0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30,
     0x31, 0x32, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
   };
-  if ((data & 0x80) != 0) return false;
+  uint8_t index = (uint8_t)data;
+  if ((index & 0x80) != 0) return false;
 
-  if (decodingarr64[data] == 0xff) return false;
-  *value = decodingarr64[data];
+  if (decodingarr64[index] == 0xff) return false;
+  *value = decodingarr64[index];
   return true;
 }
 

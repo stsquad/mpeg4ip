@@ -24,7 +24,7 @@
 
 #ifndef __MPEG3_BYTESTREAM_H__
 #define __MPEG3_BYTESTREAM_H__
-#include "libmpeg3.h"
+#include "mpeg2_ps.h"
 #include "our_bytestream.h"
 #include "player_util.h"
 //#define OUTPUT_TO_FILE 1
@@ -36,7 +36,7 @@
 class CMpeg3VideoByteStream : public COurInByteStream
 {
  public:
-  CMpeg3VideoByteStream(mpeg3_t *file, int track);
+  CMpeg3VideoByteStream(mpeg2ps_t *file, int track);
   ~CMpeg3VideoByteStream();
   int eof(void);
   void reset(void);
@@ -56,18 +56,14 @@ class CMpeg3VideoByteStream : public COurInByteStream
 #ifdef OUTPUT_TO_FILE
   FILE *m_output_file;
 #endif
-  mpeg3_t *m_file;
+  mpeg2ps_t *m_file;
   int m_stream;
 
   int m_eof;
   float m_frame_rate;
-  long m_frames_max;
   long m_frame_on;
-  u_int8_t *m_buffer;
-  long m_buffersize_max;
-  long m_this_frame_size;
   uint64_t m_total;
-  void set_timebase(double time);
+  void set_timebase(uint64_t time);
   double m_max_time;
   int m_changed_time;
 };
@@ -75,7 +71,7 @@ class CMpeg3VideoByteStream : public COurInByteStream
 class CMpeg3AudioByteStream : public COurInByteStream
 {
  public:
-  CMpeg3AudioByteStream(mpeg3_t *file, int track);
+  CMpeg3AudioByteStream(mpeg2ps_t *file, int track);
   ~CMpeg3AudioByteStream();
   int eof(void);
   void reset(void);
@@ -95,20 +91,16 @@ class CMpeg3AudioByteStream : public COurInByteStream
 #ifdef OUTPUT_TO_FILE
   FILE *m_output_file;
 #endif
-  mpeg3_t *m_file;
+  mpeg2ps_t *m_file;
   int m_stream;
 
   int m_eof;
-  uint32_t m_samples_per_frame;
   uint32_t m_freq;
   uint32_t m_chans;
   long m_frames_max;
   long m_frame_on;
-  u_int8_t *m_buffer;
-  uint32_t m_buffersize_max;
-  uint32_t m_this_frame_size;
   uint64_t m_total;
-  void set_timebase(double time);
+  void set_timebase(uint64_t time);
   double m_max_time;
   int m_changed_time;
 };

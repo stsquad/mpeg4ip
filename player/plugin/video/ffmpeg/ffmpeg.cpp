@@ -306,6 +306,7 @@ static void ffmpeg_do_pause (codec_data_t *ifptr)
   //mpeg2_reset(ffmpeg->m_decoder, 0);
   ffmpeg->m_did_pause = 1;
   ffmpeg->m_got_i = 0;
+  ffmpeg->have_cached_ts = false;
   MP4AV_clear_dts_from_pts(&ffmpeg->pts_to_dts);
 }
 
@@ -403,7 +404,7 @@ static int ffmpeg_decode (codec_data_t *ptr,
 				    ftype,
 				    temp_ref, 
 				    &ret) < 0) {
-	  ffmpeg->have_cached_ts = false;
+ 	  ffmpeg->have_cached_ts = false;
 	  return buflen;
 	} 
 	ts = ret;

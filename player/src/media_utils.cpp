@@ -33,9 +33,9 @@
 #include "our_config_file.h"
 #include "rtp_bytestream.h"
 #include "codec_plugin_private.h"
-#include "mpeg3_file.h"
 #include "audio.h"
 #ifndef _WIN32
+#include "mpeg3_file.h"
 #include "mpeg2t.h"
 #include "mpeg2t_file.h"
 #endif
@@ -710,11 +710,12 @@ int parse_name_for_session (CPlayerSession *psptr,
 #else
     err = create_media_for_mpeg2t_file(psptr, name, errmsg, errlen, 
 				       have_audio_driver, cc_vft);
-#endif
+
     if (err < 0) {
     err = create_media_for_mpeg_file(psptr, name, errmsg, 
 				     errlen, have_audio_driver, cc_vft);
     }
+#endif
   } else {
     // raw files
     if (have_audio_driver) {

@@ -247,6 +247,12 @@ DECLARE_CONFIG(CONFIG_RAW_PCM_FILE_NAME);
 DECLARE_CONFIG(CONFIG_RAW_PCM_FIFO);
 DECLARE_CONFIG(CONFIG_RAW_YUV_FILE_NAME);
 DECLARE_CONFIG(CONFIG_RAW_YUV_FIFO);
+DECLARE_CONFIG(CONFIG_FEEDER_SINK_ENABLE);
+DECLARE_CONFIG(CONFIG_FEEDER_SINK_FILE1);
+DECLARE_CONFIG(CONFIG_FEEDER_SINK_FILE2);
+DECLARE_CONFIG(CONFIG_FEEDER_SINK_FILE3);
+DECLARE_CONFIG(CONFIG_FEEDER_SINK_FILE4);
+DECLARE_CONFIG(CONFIG_FEEDER_SINK_FILE5);
 
 // normally this would be in a .cpp file
 // but we have it here to make it easier to keep
@@ -348,6 +354,7 @@ static SConfigVariable MyConfigVariables[] = {
   CONFIG_BOOL(CONFIG_XVID10_USE_QPEL, "xvid10UseQpel", false),
   CONFIG_BOOL(CONFIG_XVID10_USE_LUMIMASK, "xvid10UseLumimask", false),
   CONFIG_BOOL(CONFIG_XVID10_USE_INTERLACING, "xvid10UseInterlacing", false),
+  
   // RECORD
   CONFIG_BOOL(CONFIG_RECORD_ENABLE, "recordEnable", true),
   CONFIG_BOOL(CONFIG_RECORD_RAW_AUDIO, "recordRawAudio", false),
@@ -407,6 +414,14 @@ static SConfigVariable MyConfigVariables[] = {
   CONFIG_STRING(CONFIG_RAW_YUV_FILE_NAME, "rawVideoFile", "capture.yuv"),
   CONFIG_BOOL(CONFIG_RAW_YUV_FIFO, "rawVideoUseFifo", false),
 
+  // FEEDER SINK
+  CONFIG_BOOL(CONFIG_FEEDER_SINK_ENABLE, "cascadeEnable", false),
+  CONFIG_STRING(CONFIG_FEEDER_SINK_FILE1, "cascadeFile1", ""),
+  CONFIG_STRING(CONFIG_FEEDER_SINK_FILE2, "cascadeFile2", ""),
+  CONFIG_STRING(CONFIG_FEEDER_SINK_FILE3, "cascadeFile3", ""),
+  CONFIG_STRING(CONFIG_FEEDER_SINK_FILE4, "cascadeFile4", ""),
+  CONFIG_STRING(CONFIG_FEEDER_SINK_FILE5, "cascadeFile5", ""),
+  
 };
 #endif /* DECLARE_CONFIG_VARIABLES */
 
@@ -437,7 +452,7 @@ public:
 		return (GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)
 			|| (GetBoolValue(CONFIG_RECORD_ENABLE)
 				&& GetBoolValue(CONFIG_RECORD_RAW_VIDEO))
-			|| GetBoolValue(CONFIG_RAW_ENABLE));
+			|| GetBoolValue(CONFIG_RAW_ENABLE)) || GetBoolValue(CONFIG_FEEDER_SINK_ENABLE);
 	}
 
 	bool SourceRawAudio() {
@@ -445,7 +460,17 @@ public:
 				&& GetBoolValue(CONFIG_RECORD_RAW_AUDIO))
 			|| GetBoolValue(CONFIG_RAW_ENABLE);
 	}
-
+	
+	CLiveConfig* GetParentConfig()
+	{
+		return m_parentConfig;
+	}
+	
+	void SetParentConfig(CLiveConfig* parentConfig)
+	{
+		m_parentConfig=parentConfig;
+	}
+	
 public:
 	// command line configuration
 	bool		m_appAutomatic;
@@ -480,6 +505,9 @@ public:
 
 	// derived, shared file configuration
 	u_int64_t	m_recordEstFileSize;
+	
+	//Parent Config Pointer
+	CLiveConfig* m_parentConfig;
 };
 
 #endif /* __LIVE_CONFIG_H__ */

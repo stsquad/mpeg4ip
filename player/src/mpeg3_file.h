@@ -23,7 +23,7 @@
  */
 #ifndef __MPEG3_FILE_H__
 #define __MPEG3_FILE_H__ 1
-#include <libmpeg3.h>
+#include <mpeg2_ps.h>
 #include "mpeg4ip_sdl_includes.h"
 
 class CPlayerSession;

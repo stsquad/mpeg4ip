@@ -234,11 +234,13 @@ use ~.
 <p>
 For version 0.4.9, we recommend that you install the ffmpeg libraries and 
 include files.  When installing ffmpeg, use the additional <code>make 
-installlib</code> command when installing.  mpeg4ip should automatically 
+installlib</code> command.  mpeg4ip should then automatically 
 detect that the ffmpeg library exists.
 <p>
 If you wish AMR decoding, you will want to build ffmpeg with AMR support -
-see their documentation for that.
+see their documentation for that. (Basically, use their --enable-amr_wb and
+--enable-amr_nb code, get the code and unzip it in the correct sub-directory - 
+for the amr_float directory, you'll have to move the code from c-code to amr_float).
 <p>
 You may also want to build ffmpeg with the --enable-shared options (especially
 on Mac OS X systems).  If you do this, only libavcodec will build, but that 

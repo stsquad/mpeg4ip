@@ -57,7 +57,9 @@ void flush_log_file (void)
 
 void clear_log_file (void)
 {
+#ifndef _WIN32
   ftruncate(fileno(outfile), 0);
+#endif
 }
 
 void close_log_file (void)

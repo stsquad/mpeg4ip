@@ -20,17 +20,16 @@
  *              Alix Marchandise-Franquet alix@cisco.com
  */
 #include "mp4creator.h"
-#include "libmpeg3.h"
+#include "mpeg2_ps.h"
 
 static MP4TrackId VideoCreate (MP4FileHandle mp4file, 
-			       mpeg3_t *file, 
+			       mpeg2ps_t *file, 
 			       int vstream,
 			       bool doEncrypt)
 {
-  double frame_rate = mpeg3_frame_rate(file, vstream);
+  double frame_rate = mpeg2ps_get_video_stream_framerate(file, vstream);
   uint8_t video_type;
   uint16_t w, h;
-  long frames_max;
   MP4TrackId id;
   ismacryp_session_id_t ismaCrypSId;
   mp4v2_ismacrypParams *icPp =  (mp4v2_ismacrypParams *) malloc(sizeof(mp4v2_ismacrypParams));
@@ -46,9 +45,10 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
     (MP4Duration)(Mp4TimeScale / frame_rate);
 #endif
 
-  h = mpeg3_video_height(file, vstream);
-  w = mpeg3_video_width(file, vstream);
-  video_type = mpeg3_video_layer(file, vstream) == 2 ?
+  h = mpeg2ps_get_video_stream_height(file, vstream);
+  w = mpeg2ps_get_video_stream_width(file, vstream);
+
+  video_type = mpeg2ps_get_video_stream_type(file, vstream) == MPEG_VIDEO_MPEG2 ?
     MP4_MPEG2_MAIN_VIDEO_TYPE : MP4_MPEG1_VIDEO_TYPE;
 
   if (doEncrypt) {
@@ -120,23 +120,21 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
     fprintf(stderr, "%s:Couldn't add video track %d", ProgName, vstream);
     return MP4_INVALID_TRACK_ID;
   }
-  frames_max = mpeg3_video_frames(file, vstream);
   uint8_t *buf;
-  long  blen;
+  uint32_t blen;
   uint32_t frames = 1;
 #if 0
   printf("Processing %lu video frames\n", frames_max);
 #endif
   uint32_t refFrame = 1;
-
-  while (mpeg3_read_video_chunk_resize(file, 
-				      (unsigned char **)&buf, 
-				      &blen, 
-				      vstream) == 0) {
-    int ret;
-    int frame_type;
-    ret = MP4AV_Mpeg3FindPictHdr(buf, blen, &frame_type);
-    // we sometimes have the next start code...
+  uint8_t frame_type;
+  while (mpeg2ps_get_video_frame(file, 
+				 vstream,
+				 &buf, 
+				 &blen, 
+				 &frame_type,
+				 TS_90000,
+				 NULL)) {
     if (buf[blen - 4] == 0 &&
 	buf[blen - 3] == 0 &&
 	buf[blen - 2] == 1) blen -= 4;
@@ -152,16 +150,17 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
       }
       MP4WriteSample(mp4file, id, encSampleData, encSampleLen, 
 		     mp4FrameDuration, 0, 
-		     ret >= 0 ? true : false);
+		     frame_type == 1 ? true : false);
       if (encSampleData != NULL) {
 	free(encSampleData);
       }
     } else {
       MP4WriteSample(mp4file, id, buf, blen, mp4FrameDuration, 0, 
-		     ret >= 0 ? true : false);
+		     frame_type == 1 ? true : false);
+      printf("frame %d len %d duration "U64" ftype %d\n",
+	     frames, blen, mp4FrameDuration, frame_type);
     }
-    mpeg3_read_video_chunk_cleanup(file, vstream);
-    if (ret > 0 || frame_type != 3) {
+    if (frame_type != 3) {
       // I or P frame
       MP4SetSampleRenderingOffset(mp4file, id, refFrame, 
 				  (frames - refFrame) * mp4FrameDuration);
@@ -186,7 +185,7 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
 }
 
 static MP4TrackId AudioCreate (MP4FileHandle mp4file, 
-			       mpeg3_t *file, 
+			       mpeg2ps_t *file, 
 			       int astream,
 			       bool doEncrypt)
 {
@@ -196,7 +195,6 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
   uint16_t samples_per_frame;
   uint8_t *buf = NULL;
   uint32_t blen = 0;
-  uint32_t blenmax = 0;
   uint32_t frame_num = 1;
   ismacryp_session_id_t ismaCrypSId;
   mp4v2_ismacrypParams *icPp =  (mp4v2_ismacrypParams *) malloc(sizeof(mp4v2_ismacrypParams));
@@ -204,28 +202,30 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
   u_int8_t mpegVersion;
   memset(icPp, 0, sizeof(mp4v2_ismacrypParams));
 
-  type = mpeg3_get_audio_format(file, astream);
+  type = mpeg2ps_get_audio_stream_type(file, astream);
 
-  if (type != AUDIO_MPEG) {
+  if (type != MPEG_AUDIO_MPEG) {
     fprintf(stderr, "Unsupported audio format %d in audio stream %d\n", 
 	    type, astream);
     return MP4_INVALID_TRACK_ID;
   }
 
-  freq = mpeg3_sample_rate(file, astream);
-  samples_per_frame = mpeg3_audio_samples_per_frame(file, astream);
+  freq = mpeg2ps_get_audio_stream_sample_freq(file, astream);
 
-  if (mpeg3_read_audio_frame(file, 
-			 (unsigned char **)&buf, 
-			 &blen,
-			 &blenmax, 
-			 astream) < 0) {
+  if (mpeg2ps_get_audio_frame(file, 
+			      astream,
+			      &buf, 
+			      &blen,
+			      TS_90000,
+			      NULL, 
+			      NULL) == false) {
     fprintf(stderr, "No audio tracks in audio stream %d\n", astream);
     return MP4_INVALID_TRACK_ID;
   }
   
   hdr = MP4AV_Mp3HeaderFromBytes(buf);
   mpegVersion = MP4AV_Mp3GetHdrVersion(hdr);
+  samples_per_frame = MP4AV_Mp3GetHdrSamplingWindow(hdr);
 
   u_int8_t audioType = MP4AV_Mp3ToMp4AudioType(mpegVersion);
   
@@ -339,11 +339,12 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
 #if 0
     if ((frame_num % 100) == 0) printf("Audio frame %d\n", frame_num);
 #endif
-  }  while (mpeg3_read_audio_frame(file, 
-				   (unsigned char **)&buf, 
-				   &blen,
-				   &blenmax, 
-				   astream) >= 0);
+  }  while (mpeg2ps_get_audio_frame(file, 
+				    astream, 
+				    &buf, 
+				    &blen,
+				    TS_90000,
+				    NULL, NULL));
   
   // if encrypting, terminate the ismacryp session
   if (doEncrypt) {
@@ -361,18 +362,14 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
 MP4TrackId *MpegCreator (MP4FileHandle mp4file, const char *fname, bool doEncrypt)
 {
 
-  mpeg3_t *file;
+  mpeg2ps_t *file;
   int video_streams, audio_streams;
   int ix;
   MP4TrackId *pTrackId;
 
-  if (mpeg3_check_sig(fname) != 1) {
-    return (NULL);
-  }
-
-  file = mpeg3_open(fname);
-  video_streams = mpeg3_total_vstreams(file);
-  audio_streams = mpeg3_total_astreams(file);
+  file = mpeg2ps_init(fname);
+  video_streams = mpeg2ps_get_video_stream_count(file);
+  audio_streams = mpeg2ps_get_audio_stream_count(file);
 
   pTrackId = 
     (MP4TrackId *)malloc(sizeof(MP4TrackId) * (audio_streams + video_streams + 1));

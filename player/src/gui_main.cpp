@@ -41,6 +41,7 @@
 #include "codec_plugin_private.h"
 #include <mpeg2t/mpeg2_transport.h>
 #include "mpeg4ip_getopt.h"
+#include "mpeg2_ps.h"
 /* ??? */
 #ifndef LOG_PRI
 #define LOG_PRI(p) ((p) & LOG_PRIMASK)
@@ -578,7 +579,7 @@ static void on_filename_selected (GtkFileSelection *selector,
 /*
  * This is right out of the book...
  */
-static void enable_file_select (GCallback func,
+static void enable_file_select (GtkSignalFunc func,
 				const char *header, 
 				const char *file)
 {
@@ -884,6 +885,13 @@ static void on_debug_mpeg2t (GtkWidget *window, gpointer data)
 
   mpeg2t_set_loglevel(LOG_PRI(loglevel));
   config.set_config_value(CONFIG_MPEG2T_DEBUG, LOG_PRI(loglevel));
+}
+static void on_debug_mpeg2ps (GtkWidget *window, gpointer data)
+{
+  int loglevel = GPOINTER_TO_INT(data);
+
+  mpeg2ps_set_loglevel(LOG_PRI(loglevel));
+  config.set_config_value(CONFIG_MPEG2PS_DEBUG, LOG_PRI(loglevel));
 }
 
 static void on_media_play_audio (GtkWidget *window, gpointer data)
@@ -1481,6 +1489,9 @@ int main (int argc, char **argv)
   http_set_loglevel(config.get_config_value(CONFIG_HTTP_DEBUG));
   mpeg2t_set_error_func(library_message);
   mpeg2t_set_loglevel(config.get_config_value(CONFIG_MPEG2T_DEBUG));
+  mpeg2ps_set_error_func(library_message);
+  mpeg2ps_set_loglevel(config.get_config_value(CONFIG_MPEG2PS_DEBUG));
+
   if (config.get_config_value(CONFIG_RX_SOCKET_SIZE) != 0) {
     rtp_set_receive_buffer_default_size(config.get_config_value(CONFIG_RX_SOCKET_SIZE));
   }
@@ -1731,6 +1742,10 @@ int main (int argc, char **argv)
 			"Mpeg2 Transport Library",
 			config.get_config_value(CONFIG_MPEG2T_DEBUG),
 			GTK_SIGNAL_FUNC(on_debug_mpeg2t));
+  CreateLogLevelSubmenu(debugsub,
+			"Mpeg2 Program Stream Library",
+			config.get_config_value(CONFIG_MPEG2PS_DEBUG),
+			GTK_SIGNAL_FUNC(on_debug_mpeg2ps));
 
   CreateMenuItemSeperator(menu);
   menuitem = CreateMenuItem(menu, 

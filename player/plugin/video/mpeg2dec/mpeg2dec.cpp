@@ -106,7 +106,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
   decoder = mpeg2dec->m_decoder;
   
 #if 0
-  mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "ts "U64, ts);
+  mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "ts buflen %d "U64, buflen, ts);
   //if (mpeg2dec->m_did_pause != 0) 
  {
     for (uint32_t ix = 0; ix < buflen + 3; ix++) {
@@ -126,6 +126,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
  bool finished_buffer = false;
  do {
    state = mpeg2_parse(decoder);
+   //mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "state %d", state);
    const mpeg2_sequence_t *sequence;
    sequence = info->sequence;
    switch (state) {

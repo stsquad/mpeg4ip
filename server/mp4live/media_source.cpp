@@ -932,6 +932,27 @@ void CMediaSource::ProcessAudioFrame(
 
   }
 
+  //Forward PCM Frames to Feeder Sink
+  if ((m_pConfig->GetBoolValue(CONFIG_FEEDER_SINK_ENABLE) &&
+				m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) && frameDataLength > 0)) {
+    // make a copy of the pcm data if needed
+    u_int8_t* FwdedData;
+
+	FwdedData = (u_int8_t*)Malloc(frameDataLength);
+	memcpy(FwdedData, frameData, frameDataLength);
+
+    CMediaFrame* pFrame =
+      new CMediaFrame(
+		      RAWPCMAUDIOFRAME,
+		      FwdedData,
+		      frameDataLength,
+		      srcFrameTimestamp,
+		      0,
+		      m_audioDstSampleRate);
+
+   ForwardFrame(pFrame);
+  }
+  
   // if desired, forward raw audio to sinks
   if (m_pConfig->SourceRawAudio() && pcmDataLength > 0) {
 

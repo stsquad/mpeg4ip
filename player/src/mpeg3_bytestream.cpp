@@ -27,12 +27,12 @@
 #include "player_util.h"
 #include "mp4av/mp4av.h"
 #include <math.h>
-//#define DEBUG_MP4_FRAME 1
+//#define DEBUG_MPEG_FRAME 1
 
 /**************************************************************************
  * Quicktime stream base class functions
  **************************************************************************/
-CMpeg3VideoByteStream::CMpeg3VideoByteStream (mpeg3_t *file, int stream)
+CMpeg3VideoByteStream::CMpeg3VideoByteStream (mpeg2ps_t *file, int stream)
   : COurInByteStream("mpeg3 video")
 {
 #ifdef OUTPUT_TO_FILE
@@ -42,14 +42,13 @@ CMpeg3VideoByteStream::CMpeg3VideoByteStream (mpeg3_t *file, int stream)
   m_stream = stream;
 
   m_eof = 0;
-  m_frames_max = mpeg3_video_frames(m_file, m_stream);
-  m_frame_rate = mpeg3_frame_rate(m_file, m_stream);
+  m_frame_rate = mpeg2ps_get_video_stream_framerate(m_file, m_stream);
 
-  m_max_time = m_frames_max;
-  m_max_time /= m_frame_rate;
+  m_max_time = mpeg2ps_get_max_time_msec(m_file);
+  m_max_time /= 1000.0;
   mpeg3f_message(LOG_DEBUG, 
-		 "Mpeg3 video frame rate %g frames %ld max time is %g", 
-		 m_frame_rate, m_frames_max, m_max_time);
+		 "Mpeg3 video frame rate %g max time is %g", 
+		 m_frame_rate,  m_max_time);
   m_changed_time = 0;
 }
 
@@ -58,7 +57,7 @@ CMpeg3VideoByteStream::~CMpeg3VideoByteStream()
 #ifdef OUTPUT_TO_FILE
   fclose(m_output_file);
 #endif
-  mpeg3_close(m_file);
+  // nothing here - we let the main routine close the mpeg2ps_t
 }
 
 int CMpeg3VideoByteStream::eof(void)
@@ -68,26 +67,16 @@ int CMpeg3VideoByteStream::eof(void)
 
 
 
-#include "mpeg3protos.h"
-void CMpeg3VideoByteStream::set_timebase (double time)
+void CMpeg3VideoByteStream::set_timebase (uint64_t mtime)
 {
-  double calc;
   m_eof = 0;
-  m_frame_on = 0;
-  //mpeg3_seek_video_percentage(m_file, m_stream, time / m_max_time);
   
-  calc = (time * m_frame_rate);
-  calc = ceil(calc);
-  m_frame_on = (long)(calc);
-  mpeg3_set_frame(m_file, m_frame_on, m_stream);
-  mpeg3f_message(LOG_DEBUG, "video seek frame is %ld %g %g", m_frame_on,
-		 time, m_max_time);
+  mpeg2ps_seek_video_frame(m_file, m_stream, mtime);
 }
 
 void CMpeg3VideoByteStream::reset (void) 
 {
-  set_timebase(0.0);
-  m_this_frame_size = 0;
+  set_timebase(0);
 }
 
 bool CMpeg3VideoByteStream::start_next_frame (uint8_t **buffer, 
@@ -95,53 +84,28 @@ bool CMpeg3VideoByteStream::start_next_frame (uint8_t **buffer,
 					      frame_timestamp_t *pts,
 					      void **ud)
 {
-  double ts;
+  m_eof = mpeg2ps_get_video_frame(m_file, m_stream, 
+				  buffer,
+				  buflen,
+				  NULL,
+				  TS_MSEC,
+				  &pts->msec_timestamp) == false;
+				  
   if (m_eof) {
     return false;
   }
-  uint8_t *buf;
-  long blen;
 
-  int ret = mpeg3_read_video_chunk_resize(m_file,
-					  (unsigned char **)&buf,
-					  &blen,
-					  m_stream);
-
-  if (ret != 0) {
-    m_eof = 1;
-    return false;
-  }
-  if (buffer != NULL) {
-    *buffer = buf;
-    *buflen = blen;
-#if 0
-    mpeg3f_message(LOG_DEBUG, "frame %ld: %02x %02x %02x %02x %02x %02x %02x %02x %02x",
-		   m_frame_on,
-		   buf[0],
-		   buf[1],
-		   buf[2],
-		   buf[3],
-		   buf[4],
-		   buf[5],
-		   buf[6],
-		   buf[7],
-		   buf[8]);
-#endif
-  }
-
-  ts = m_frame_on;
-  ts /= m_frame_rate;
-  ts *= 1000.0;
-  pts->msec_timestamp = (uint64_t)ts;
   pts->timestamp_is_pts = false;
-  //mpeg3f_message(LOG_DEBUG, "start next frame %ld "U64, blen, time);
-  m_frame_on++;
+#ifdef DEBUG_MPEG_FRAME
+  mpeg3f_message(LOG_DEBUG, "start next frame %d "U64, *buflen, 
+		 pts->msec_timestamp);
+#endif
   return true;
 }
 
 void CMpeg3VideoByteStream::used_bytes_for_frame (uint32_t bytes_used)
 {
-  mpeg3_read_video_chunk_cleanup(m_file, m_stream);
+  // nothing here...
 }
 
 bool CMpeg3VideoByteStream::skip_next_frame (frame_timestamp_t *pts, 
@@ -150,28 +114,25 @@ bool CMpeg3VideoByteStream::skip_next_frame (frame_timestamp_t *pts,
 					    uint32_t *buflen,
 					    void **ud)
 {
-  bool ret;
-  mpeg3_read_video_chunk_cleanup(m_file, m_stream);
-  ret = start_next_frame(buffer, buflen, pts, NULL);
-  if (*buffer != NULL) {
-    int ret, ftype;
-    ret = MP4AV_Mpeg3FindPictHdr(*buffer, *buflen, &ftype);
-    *pSync =  (ret >= 0 && ftype == 1) ? 1 : 0;
-  } else 
-    *pSync = 0;
-  //*pSync = m_frame_on_has_sync;
-  return ret;
+  uint8_t ftype;
+  ftype = 0;
+  m_eof = mpeg2ps_get_video_frame(m_file, m_stream, 
+				  buffer, 
+				  buflen,
+				  &ftype,
+				  TS_MSEC,
+				  &pts->msec_timestamp) == false;
+  if (m_eof)
+    return true;
+  *pSync = ftype == 1 ? 1 : 0;
+  return true;
 }
 
 void CMpeg3VideoByteStream::play (uint64_t start)
 {
   m_play_start_time = start;
 
-  double ts;
-  ts = UINT64_TO_DOUBLE(start);
-  ts /= 1000.0;
-
-  set_timebase(ts);
+  set_timebase(start);
 }
 
 
@@ -182,7 +143,7 @@ double CMpeg3VideoByteStream::get_max_playtime (void)
 
 
 
-CMpeg3AudioByteStream::CMpeg3AudioByteStream (mpeg3_t *file, int stream)
+CMpeg3AudioByteStream::CMpeg3AudioByteStream (mpeg2ps_t *file, int stream)
   : COurInByteStream("mpeg3 audio")
 {
 #ifdef OUTPUT_TO_FILE
@@ -190,16 +151,10 @@ CMpeg3AudioByteStream::CMpeg3AudioByteStream (mpeg3_t *file, int stream)
 #endif
   m_file = file;
   m_stream = stream;
-  m_buffer = NULL;
-  m_buffersize_max = 0;
-  m_this_frame_size = 0;
   m_eof = 0;
-  m_samples_per_frame = mpeg3_audio_samples_per_frame(m_file, m_stream);
-  m_freq = mpeg3_sample_rate(m_file, m_stream);
-  m_max_time = mpeg3_audio_get_number_of_frames(m_file, m_stream);
-  m_max_time *= mpeg3_audio_samples_per_frame(m_file, m_stream);
-  m_max_time /= mpeg3_sample_rate(m_file, m_stream);
-  m_chans = mpeg3_audio_channels(m_file, m_stream);
+  m_freq = mpeg2ps_get_audio_stream_sample_freq(m_file, m_stream);
+  m_max_time = mpeg2ps_get_max_time_msec(m_file);
+  m_max_time /= 1000.0;
   mpeg3f_message(LOG_DEBUG, "audio max time is %g", m_max_time);
   m_changed_time = 0;
   m_frame_on = 0;
@@ -210,8 +165,6 @@ CMpeg3AudioByteStream::~CMpeg3AudioByteStream()
 #ifdef OUTPUT_TO_FILE
   fclose(m_output_file);
 #endif
-  CHECK_AND_FREE(m_buffer);
-  mpeg3_close(m_file);
 }
 
 int CMpeg3AudioByteStream::eof(void)
@@ -221,28 +174,15 @@ int CMpeg3AudioByteStream::eof(void)
 
 
 
-void CMpeg3AudioByteStream::set_timebase (double time)
+void CMpeg3AudioByteStream::set_timebase (uint64_t mtime)
 {
-  double calc;
   m_eof = 0;
-  m_frame_on = 0;
-  mpeg3_seek_audio_percentage(m_file, m_stream, time / m_max_time);
-  
-  calc = (time * m_freq) / m_samples_per_frame;
-  if (calc > 0) {
-    calc = ceil(calc);
-  } else {
-    calc = 0;
-  }
-  m_frame_on = (long)(calc);
-  mpeg3f_message(LOG_DEBUG, "audio seek frame is %ld %g %g", m_frame_on,
-		 time, m_max_time);
+  mpeg2ps_seek_audio_frame(m_file, m_stream, mtime);
 }
 
 void CMpeg3AudioByteStream::reset (void) 
 {
-  set_timebase(0.0);
-  m_this_frame_size = 0;
+  set_timebase(0);
 }
 
 bool CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer, 
@@ -251,48 +191,32 @@ bool CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer,
 					      void **ud)
 {
   uint64_t ts;
+  uint32_t freq_ts;
   if (m_eof) {
-    return 0;
+    return false;
   }
 
-  int ret = mpeg3_read_audio_frame(m_file, 
-				   (unsigned char **)&m_buffer, 
-				   &m_this_frame_size,
-				   &m_buffersize_max,
-				   m_stream);
+  m_eof = mpeg2ps_get_audio_frame(m_file,    
+				  m_stream,
+				  buffer,
+				  buflen,
+				  TS_MSEC,
+				  &freq_ts,
+				  &ts) == false;
+  
+  if (m_eof) return false;
 
-  if (ret < 0) {
-    m_eof = 1;
-    return 0;
-  }
-  if (m_buffer != NULL) {
-    *buffer = m_buffer;
-    *buflen = m_this_frame_size;
 #ifdef OUTPUT_TO_FILE
-    fwrite(m_buffer, m_this_frame_size, 1, m_output_file);
+  fwrite(*buffer, buflen, 1, m_output_file);
 #endif
-  }
 
-  uint32_t spf;
-
-  if (m_samples_per_frame == 0) {
-    spf = m_this_frame_size / (m_chans * 2);
-  } else {
-    spf = m_samples_per_frame;
-  }
-  if (m_freq == 0) {
-    return 0;
-  }
-  ts = m_frame_on;
-  ts *= spf;
-  pts->audio_freq_timestamp = ts;
+  pts->audio_freq_timestamp = freq_ts;
   pts->audio_freq = m_freq;
-  ts *= TO_U64(1000);
-  ts /= m_freq;
-  m_frame_on++;
   pts->msec_timestamp = ts;
   pts->timestamp_is_pts = false;
-  //mpeg3f_message(LOG_DEBUG, "audiostart %ld "U64" %d", m_frame_on, ts, m_this_frame_size);
+#ifdef DEBUG_MPEG_FRAME
+  mpeg3f_message(LOG_DEBUG, "audiostart %u %u "U64, *buflen, freq_ts, ts);
+#endif
   return true;
 }
 
@@ -318,12 +242,7 @@ void CMpeg3AudioByteStream::play (uint64_t start)
 {
   m_play_start_time = start;
 
-  double ts;
-
-  ts = UINT64_TO_DOUBLE(start);
-  ts /= 1000.0;
-
-  set_timebase(ts);
+  set_timebase(start);
 }
 
 

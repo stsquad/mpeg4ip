@@ -63,6 +63,7 @@ static const SConfigVariable MyConfigVariables[] = {
   CONFIG_STRING(CONFIG_MULTICAST_SRC, "MulticastSrc", NULL),
   CONFIG_STRING(CONFIG_LOG_FILE, "LogFile", NULL),
   CONFIG_BOOL_HELP(CONFIG_DISPLAY_DEBUG, "DisplayDebug", false, "In gmp4player, display status information every second"),
+  CONFIG_INT(CONFIG_MPEG2PS_DEBUG, "Mpeg2psDebug", LOG_ALERT),
 };
 
 CConfigSet config(MyConfigVariables, 

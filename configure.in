@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.1.8)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.1.9)
 
 dnl Checks for programs. 
 
@@ -545,6 +545,8 @@ AC_SUBST(CXXFLAGS)
 dnl Now output the Makefile's
 AC_OUTPUT( \
 	Makefile \
+	common/Makefile \
+	common/video/Makefile \
 	common/video/mpeg4-2000/Makefile \
 	common/video/mpeg4-2000/app/Makefile \
 	common/video/mpeg4-2000/app/convertpar/Makefile \
@@ -589,9 +591,6 @@ AC_OUTPUT( \
 	lib/msg_queue/Makefile \
 	lib/sdp/Makefile \
 	lib/utils/Makefile \
-	common/Makefile \
-	common/video/Makefile \
-	common/video/libmpeg32/Makefile \
 	server/Makefile \
 	server/video/Makefile \
 	server/mp4live/Makefile \

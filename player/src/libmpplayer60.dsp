@@ -129,14 +129,6 @@ SOURCE=.\mp4_file.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\mpeg3_bytestream.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg3_file.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\mpeg3_rtp_bytestream.cpp
 # End Source File
 # Begin Source File
@@ -258,14 +250,6 @@ SOURCE=.\mp4_bytestream.h
 # Begin Source File
 
 SOURCE=.\mp4_file.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg3_bytestream.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\mpeg3_file.h
 # End Source File
 # Begin Source File
 

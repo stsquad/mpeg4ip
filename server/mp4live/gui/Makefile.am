@@ -24,7 +24,7 @@ INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib/utils \
 	-I$(top_srcdir)/lib \
-	-I$(top_srcdir)/common/video/libmpeg32 \
+	-I$(top_srcdir)/lib/mpeg2ps \
 	-I$(top_srcdir)/player/lib
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions @BILLS_CPPWARNINGS@

@@ -72,6 +72,7 @@ typedef __int8  int8_t;
 typedef unsigned short in_port_t;
 typedef int socklen_t;
 typedef int ssize_t;
+typedef unsigned int uint;
 #define snprintf _snprintf
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
@@ -135,7 +136,14 @@ int gettimeofday(struct timeval *t, void *);
 #define FOPEN_WRITE_BINARY "wb"
 
 #define UINT64_TO_DOUBLE(a) ((double)((int64_t)(a)))
-#include "../lib/gnu/strcasestr.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+char *strcasestr(const char *haystack, const char *needle);
+#ifdef __cplusplus
+}
+#endif
+
 
 #define SIZEOF_BOOL 1
 
@@ -356,6 +364,12 @@ typedef int8_t gint8;
       typedef unsigned char bool;
      #endif
    #endif
+ #endif
+ #ifndef false
+ #define false FALSE
+ #endif
+ #ifndef true
+ #define true TRUE
  #endif
 #endif
 

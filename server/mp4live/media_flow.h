@@ -29,6 +29,7 @@
 
 class CRtpTransmitter;
 class CMp4Recorder;
+class CLoopFeederSink;
 
 // abstract parent class
 class CMediaFlow {
@@ -71,6 +72,7 @@ public:
 		m_mp4Recorder = NULL;
 		m_rtpTransmitter = NULL;
 		m_rawSink = NULL;
+		m_feederSink = NULL;
 	}
 
 	virtual ~CAVMediaFlow() {
@@ -91,6 +93,16 @@ public:
 
 	bool GetStatus(u_int32_t valueName, void* pValue);
 
+	CMediaSource* GetAudioSource()
+	{
+		return m_audioSource;
+	}
+	
+	CMediaSource* GetVideoSource()
+	{
+		return m_videoSource;
+	}
+	
 protected:
 	void AddSink(CMediaSink* pSink);
 	void RemoveSink(CMediaSink* pSink);
@@ -103,6 +115,7 @@ protected:
 	CMp4Recorder*		m_mp4Recorder;
 	CRtpTransmitter*	m_rtpTransmitter;
 	CMediaSink*		m_rawSink;
+	CLoopFeederSink*		m_feederSink;
 };
 
 #endif /* __MEDIA_FLOW_H__ */

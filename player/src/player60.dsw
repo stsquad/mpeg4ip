@@ -315,30 +315,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libmpeg32"=..\..\common\video\libmpeg32\libmpeg32.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "libmpeg32util"=..\..\common\video\libmpeg32\libmpeg32util.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "libmpplayer"=.\libmpplayer60.dsp - Package Owner=<4>
 
 Package=<5>

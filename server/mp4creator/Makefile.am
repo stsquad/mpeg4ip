@@ -5,7 +5,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/avi \
 	@ISMACRYP_INC@ \
-	-I$(top_srcdir)/common/video/libmpeg32
+	-I$(top_srcdir)/lib/mpeg2ps
 
 AM_CXXFLAGS = -DMPEG4IP -fexceptions @BILLS_CPPWARNINGS@
 
@@ -30,6 +30,6 @@ mp4creator_LDADD = \
 	$(top_builddir)/lib/avi/libavi.la \
 	@ISMACRYP_LIB@ \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
-	$(top_builddir)/common/video/libmpeg32/libmpeg3.la
+	$(top_builddir)/lib/mpeg2ps/libmpeg2_program.la
 
 EXTRA_DIST = mp4creator60.dsp mp4creator.xcode/project.pbxproj
