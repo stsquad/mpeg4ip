@@ -110,21 +110,32 @@ static int rawa_decode (codec_data_t *ptr,
 	rawa->m_chans = calc;
 	rawa->m_bitsperchan = 16;
       } 
-
+#if 0
       samples = rawa->m_temp_buffsize;
       samples /= rawa->m_chans;
       if (rawa->m_bitsperchan == 16) samples /= 2;
+#else
+      samples = 0;
+#endif
       rawa->m_vft->audio_configure(rawa->m_ifptr,
 				   rawa->m_freq, 
 				   rawa->m_chans, 
 				   rawa->m_bitsperchan == 16 ? AUDIO_S16SYS :
 				   AUDIO_U8, 
 				   samples);
+#if 0
       unsigned char *temp = rawa->m_vft->audio_get_buffer(rawa->m_ifptr);
       memcpy(temp, rawa->m_temp_buff, rawa->m_temp_buffsize);
       rawa->m_vft->audio_filled_buffer(rawa->m_ifptr,
 				       0,
 				       1);
+#endif
+      rawa->m_vft->audio_load_buffer(rawa->m_ifptr,
+				     rawa->m_temp_buff, 
+				     rawa->m_temp_buffsize,
+				     0, 
+				     1);
+
       if (ts == 0) rawa->m_frames = 1;
       free(rawa->m_temp_buff);
       rawa->m_temp_buff = NULL;
@@ -146,6 +157,7 @@ static int rawa_decode (codec_data_t *ptr,
     rawa->m_frames = 0;
     rawa->m_ts = ts;
   }
+#if 0
   unsigned char *now = rawa->m_vft->audio_get_buffer(rawa->m_ifptr);
   if (now != NULL) {
     memcpy(now, buffer, buflen);
@@ -154,6 +166,12 @@ static int rawa_decode (codec_data_t *ptr,
 				     rawa->m_resync);
     rawa->m_resync = 0;
   }
+#endif
+  rawa->m_vft->audio_load_buffer(rawa->m_ifptr, 
+				 buffer, 
+				 buflen,
+				 ts, 
+				 rawa->m_resync);
 
   return (buflen);
 }

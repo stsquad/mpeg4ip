@@ -62,3 +62,7 @@ int CMP3RtpByteStream::have_no_data (void)
   return FALSE;
 }
 
+int CMP3RtpByteStream::check_rtp_frame_complete_for_proto (void)
+{
+  return m_head != NULL;
+}

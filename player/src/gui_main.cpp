@@ -581,8 +581,9 @@ static void on_network_rtp_over_rtsp (GtkWidget *window, gpointer data)
 
   checkmenu = GTK_CHECK_MENU_ITEM(window);
 
+
   config.set_config_value(CONFIG_USE_RTP_OVER_RTSP,
-			  checkmenu->active == FALSE ? 1 : 0);
+			  checkmenu->active);
 }
   
 
@@ -1033,8 +1034,7 @@ printf("%s\n", *argv);
 			     "Use RTP over RTSP(TCP)",
 			     GTK_SIGNAL_FUNC(on_network_rtp_over_rtsp),
 			     NULL,
-			     config.get_config_value(CONFIG_USE_RTP_OVER_RTSP) == 0 ?
-			     1 : 0);
+			     config.get_config_value(CONFIG_USE_RTP_OVER_RTSP));
 
   menu = CreateBarSubMenu(menubar, "Help");
   menuitem = CreateMenuItem(menu,

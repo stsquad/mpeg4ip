@@ -39,7 +39,8 @@
  *   chans - number of channels
  *   format - audio format definitions from lib/SDL/include/SDL_audio.h
  *   max_samples - number of samples required after processing each frame
- *     (note: fixed size).
+ *     Use a 0 for unknown or variable size.
+ *     variable size must use audio_load_buffer interface
  * Outputs:
  *   nothing
  */
@@ -70,6 +71,21 @@ typedef void (*audio_filled_buffer_f)(void *ifptr,
 				      int resync_required);
 
 /*
+ * audio_load_buffer_f - load local audio buffer with a variable number of
+ * bytes
+ * Inputs:
+ *    ifptr - pointer to handle
+ *    from - pointer to from buffer
+ *    bytes - number of bytes (not samples) in buffer
+ *    ts - timestamp of start of buffer
+ *    resync - resync required
+ */
+typedef uint32_t (*audio_load_buffer_f)(void *ifptr,
+					unsigned char *from,
+					uint32_t bytes,
+					uint64_t ts,
+					int resync);
+/*
  * audio_vft_t - virtual function table for audio events
  */
 typedef struct audio_vft_t {
@@ -77,6 +93,7 @@ typedef struct audio_vft_t {
   audio_configure_f audio_configure;
   audio_get_buffer_f audio_get_buffer;
   audio_filled_buffer_f audio_filled_buffer;
+  audio_load_buffer_f audio_load_buffer;
 } audio_vft_t;
 
 /*****************************************************************************
@@ -336,7 +353,7 @@ typedef struct codec_plugin_t {
 #endif
 
 
-#define PLUGIN_VERSION "0.1"
+#define PLUGIN_VERSION "0.2"
 
 #define AUDIO_CODEC_PLUGIN(name, \
                            create, \

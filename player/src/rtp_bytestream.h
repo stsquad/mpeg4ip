@@ -95,7 +95,7 @@ class CRtpByteStreamBase : public COurInByteStream
   int m_buffering;
   uint64_t m_rtp_buffer_time;
   unsigned int m_rtp_proto;
-  int check_rtp_frame_complete_for_proto(void);
+  virtual int check_rtp_frame_complete_for_proto(void);
   int m_rtp_rtpinfo_received;
   uint32_t m_rtptime_last;
   int m_doing_add;

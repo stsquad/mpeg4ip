@@ -109,11 +109,24 @@ static void c_filled_audio_buffer (void *ifptr,
 								 resync_req);
 }
 
+static uint32_t c_load_audio_buffer (void *ifptr, 
+				     unsigned char *from, 
+				     uint32_t bytes, 
+				     uint64_t ts, 
+				     int resync)
+{
+  return ((CPlayerMedia *)ifptr)->get_audio_sync()->load_audio_buffer(from,
+								      bytes,
+								      ts, 
+								      resync);
+}
+  
 audio_vft_t audio_vft = {
   message,
   c_audio_config,
   c_get_audio_buffer,
-  c_filled_audio_buffer
+  c_filled_audio_buffer,
+  c_load_audio_buffer
 };
 
 static void c_video_configure (void *ifptr,

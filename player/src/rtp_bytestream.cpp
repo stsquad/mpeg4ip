@@ -394,12 +394,7 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 
 int CRtpByteStreamBase::check_rtp_frame_complete_for_proto (void)
 {
-  switch (m_rtp_proto) {
-  case 14:
-    return (m_head != NULL);
-  default:
-    return (m_head && m_tail->rtp_pak_m == 1);
-  }
+  return (m_head && m_tail->rtp_pak_m == 1);
 }
 
 CRtpByteStream::CRtpByteStream(const char *name,

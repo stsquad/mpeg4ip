@@ -43,5 +43,6 @@ class CMP3RtpByteStream : public CRtpByteStream
 		    uint32_t rtp_ts);
   ~CMP3RtpByteStream();
   int have_no_data(void);
+  int check_rtp_frame_complete_for_proto(void);
 };
 #endif

@@ -75,6 +75,7 @@ CAudioSync::CAudioSync (CPlayerSession *psptr, int volume)
   m_volume = (volume * SDL_MIX_MAXVOLUME)/100;
   m_first_time = 1;
   m_first_filled = 1;
+  m_buffer_offset_on = 0;
 }
 
 /*
@@ -111,6 +112,10 @@ void CAudioSync::set_config (int freq,
   else
     m_bytes_per_sample = 2;
 
+  if (sample_size == 0) {
+    sample_size = freq * m_bytes_per_sample * channels / 4;
+  }
+
   m_buffer_size = channels * sample_size * m_bytes_per_sample;
   for (int ix = 0; ix < DECODE_BUFFERS_MAX; ix++) {
     m_buffer_filled[ix] = 0;
@@ -123,6 +128,8 @@ void CAudioSync::set_config (int freq,
   m_format = format;
   m_config_set = 1;
   m_msec_per_frame = sample_size * 1000 / m_freq;
+  audio_message(LOG_DEBUG, "buffer size %d msec per frame %d", 
+		m_buffer_size, m_msec_per_frame);
 };
 
 /*
@@ -165,13 +172,59 @@ unsigned char *CAudioSync::get_audio_buffer (void)
   return (m_sample_buffer[m_fill_index]);
 }
 
+uint32_t CAudioSync::load_audio_buffer (unsigned char *from, 
+					uint32_t bytes, 
+					uint64_t ts, 
+					int resync)
+{
+  unsigned char *to;
+  uint32_t copied;
+
+#ifdef DEBUG_AUDIO_FILL
+  audio_message(LOG_DEBUG, "fill %d bytes at "LLU", offset %d", 
+		bytes, ts, m_buffer_offset_on);
+#endif
+  copied = 0;
+  if (m_buffer_offset_on == 0) {
+    m_buffer_ts = ts;
+  }
+  while ( bytes > 0) {
+    to = get_audio_buffer();
+    if (to == NULL) {
+      return copied;
+    }
+    int copy;
+    uint32_t left;
+
+    left = m_buffer_size - m_buffer_offset_on;
+    copy = MIN(left, bytes);
+    memcpy(to + m_buffer_offset_on, 
+	   from,
+	   copy);
+    bytes -= copy;
+    copied += copy;
+    from += copy;
+    m_buffer_offset_on += copy;
+    if (m_buffer_offset_on >= m_buffer_size) {
+      m_buffer_offset_on = 0;
+      filled_audio_buffer(m_buffer_ts, resync);
+      m_buffer_ts += m_msec_per_frame;
+      resync = 0;
+    }
+  }
+  return (copied);
+}
+
+    
+
+  
 /*
  * filled_audio_buffer - codec API - after codec fills the buffer from
  * get_audio_buffer, it will call here.
  */
 void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 {
-  uint32_t fill_index, temp2;
+  uint32_t fill_index;
   // m_dont_fill will be set when we have a pause
   if (m_dont_fill == 1) {
     return;
@@ -240,7 +293,7 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   }
   m_last_fill_timestamp = ts;
   m_buffer_filled[fill_index] = 1;
-  temp2 = m_samples_loaded += m_buffer_size;
+  m_samples_loaded += m_buffer_size;
   m_buffer_time[fill_index] = ts;
   if (resync) {
     m_resync_required = 1;
@@ -258,6 +311,23 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   audio_message(LOG_DEBUG, "Filling " LLU " %u %u", 
 		ts, fill_index, m_samples_loaded);
 #endif
+}
+
+void CAudioSync::set_eof(void) 
+{ 
+  unsigned char *to;
+  if (m_buffer_offset_on != 0) {
+    to = get_audio_buffer();
+    if (to != NULL) {
+      uint32_t left;
+      left = m_buffer_size - m_buffer_offset_on;
+      memset(to + m_buffer_offset_on, 0, left);
+      m_buffer_offset_on = 0;
+      filled_audio_buffer(m_buffer_ts, 0);
+      m_buffer_ts += m_msec_per_frame;
+    }
+  }
+  m_eof_found = 1; 
 }
 
 // Sync task api - initialize the sucker.
@@ -682,12 +752,13 @@ void CAudioSync::flush_sync_buffers (void)
 // and entry into play.  This way, m_dont_fill race conditions are resolved.
 void CAudioSync::flush_decode_buffers (void)
 {
+  SDL_LockAudio();
   m_dont_fill = 0;
   m_first_filled = 1;
-  SDL_LockAudio();
   for (int ix = 0; ix < DECODE_BUFFERS_MAX; ix++) {
     m_buffer_filled[ix] = 0;
   }
+  m_buffer_offset_on = 0;
   m_play_index = m_fill_index = 0;
   m_audio_paused = 1;
   m_resync_buffer = 0;

@@ -72,17 +72,34 @@ static const char *find_seperator (const char *ptr)
  * correct information in the rtsp_decode_t structure.
  *
  * DEC_DUP_WARN macro will see if the field is already set, and send a warning
- * if it is.
+ * if it is.  If the cont_line field is set, it will append the next line
  *
  ************************************************************************/
-#define RTSP_HEADER_FUNC(a) static void a (const char *lptr, rtsp_decode_t *dec)
-#define DEC_DUP_WARN(a, b) if (dec->a == NULL) dec->a = strdup(lptr); \
-    else rtsp_debug(LOG_WARNING, "2nd "b" %s", lptr);
+#define RTSP_HEADER_FUNC(a) static void a (const char *lptr, rtsp_decode_t *dec, int cont_line)
+
+static void dec_dup_warn (char **location,
+			  const char *lptr,
+			  const char *warn,
+			  int cont_line)
+{
+  if (*location == NULL) {
+    *location = strdup(lptr);
+  } else if (cont_line != 0) {
+    uint32_t len = strlen(*location);
+    len += strlen(lptr);
+    len++;
+    *location = realloc(*location, len);
+    strcat(*location, lptr);
+  } else {
+    rtsp_debug(LOG_WARNING, "2nd %s %s", warn, lptr);
+  }
+}
+
+#define DEC_DUP_WARN(a, b) dec_dup_warn(&dec->a, lptr, b, cont_line)
 
 RTSP_HEADER_FUNC(rtsp_header_allow_public)
 {
-  CHECK_AND_FREE(dec, allow_public);
-  dec->allow_public = strdup(lptr);
+  DEC_DUP_WARN(allow_public, "allow public");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_connection)
@@ -140,20 +157,7 @@ RTSP_HEADER_FUNC(rtsp_header_retry_after)
 
 RTSP_HEADER_FUNC(rtsp_header_rtp)
 {
-  if (dec->rtp_info != NULL) {
-    char *newrtp;
-    uint32_t len = strlen(dec->rtp_info);
-    len += strlen(lptr);
-    len++;
-    newrtp = malloc(len);
-    strcpy(newrtp, dec->rtp_info);
-    strcat(newrtp, lptr);
-    free(dec->rtp_info);
-    dec->rtp_info = newrtp;
-    rtsp_debug(LOG_DEBUG, "rtp adding new is %s", dec->rtp_info);
-  } else {
-    dec->rtp_info = strdup(lptr);
-  }
+  DEC_DUP_WARN(rtp_info, "RtpInfo");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_session)
@@ -237,7 +241,7 @@ RTSP_HEADER_FUNC(rtsp_header_from)
 
 RTSP_HEADER_FUNC(rtsp_header_ifmod)
 {
-  DEC_DUP_WARN(if_modified_since, "If-Modified-Since:")
+  DEC_DUP_WARN(if_modified_since, "If-Modified-Since:");
 }
 
 RTSP_HEADER_FUNC(rtsp_header_lastmod)
@@ -293,11 +297,10 @@ RTSP_HEADER_FUNC(rtsp_header_via)
 static struct {
   const char *val;
   uint32_t val_length;
-  void (*parse_routine)(const char *lptr, rtsp_decode_t *decode);
-  int allow_crlf_violation;
+  void (*parse_routine)(const char *lptr, rtsp_decode_t *decode, int cont_line);
 } header_types[] =
 {
-#define HEAD_TYPE(a, b) { a, sizeof(a), b, 0 }
+#define HEAD_TYPE(a, b) { a, sizeof(a), b }
   HEAD_TYPE("Allow:", rtsp_header_allow_public),
   HEAD_TYPE("Public:", rtsp_header_allow_public),
   HEAD_TYPE("Connection:", rtsp_header_connection),
@@ -309,7 +312,7 @@ static struct {
   HEAD_TYPE("Location:", rtsp_header_location),
   HEAD_TYPE("Range:", rtsp_header_range),
   HEAD_TYPE("Retry-After:", rtsp_header_retry_after),
-  {"RTP-Info:", sizeof("RTP-Info:"), rtsp_header_rtp, 1},
+  HEAD_TYPE("RTP-Info:", rtsp_header_rtp),
   HEAD_TYPE("Session:", rtsp_header_session),
   HEAD_TYPE("Set-Cookie:", rtsp_header_cookie),
   HEAD_TYPE("Speed:", rtsp_header_speed),
@@ -354,7 +357,7 @@ static void rtsp_decode_header (const char *lptr,
 {
   int ix;
   const char *after;
-  
+
   ix = 0;
   /*
    * go through above array, looking for a complete match
@@ -369,26 +372,19 @@ static void rtsp_decode_header (const char *lptr,
       /*
        * Call the correct parsing routine
        */
-      (header_types[ix].parse_routine)(after, info->decode_response);
-      if (header_types[ix].allow_crlf_violation != 0) {
-	*last_number = ix;
-      } else {
-	*last_number = -1;
-      }
+      (header_types[ix].parse_routine)(after, info->decode_response, 0);
+      *last_number = ix;
       return;
     }
     ix++;
   }
 
-  if (last_number >= 0) {
+  if (last_number >= 0 && isspace(*lptr)) {
     //asdf
     ADV_SPACE(lptr);
-    if (*lptr == ',') {
-      (header_types[*last_number].parse_routine)(lptr, info->decode_response);
-      return;
-    }
-  }
-  rtsp_debug(LOG_DEBUG, "Not processing response header: %s", lptr);
+    (header_types[*last_number].parse_routine)(lptr, info->decode_response, 1);
+  } else 
+    rtsp_debug(LOG_DEBUG, "Not processing response header: %s", lptr);
 }
 static int rtsp_read_into_buffer (rtsp_client_t *cptr,
 				  uint32_t buffer_offset)

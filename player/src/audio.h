@@ -41,7 +41,11 @@ class CAudioSync {
   unsigned char *get_audio_buffer(void);
   void filled_audio_buffer(uint64_t ts, int resync);
   void set_config(int freq, int channels, int format, uint32_t max_buffer_size);
-  void set_eof(void) { m_eof_found = 1; };
+  void set_eof(void);
+  uint32_t load_audio_buffer(unsigned char *from, 
+			     uint32_t bytes, 
+			     uint64_t ts, 
+			     int resync);
   
   // APIs from sync task
   int initialize_audio(int have_video);
@@ -57,6 +61,8 @@ class CAudioSync {
   void set_volume(int volume);
  private:
   volatile int m_dont_fill;
+  uint64_t m_buffer_ts;
+  uint32_t m_buffer_offset_on;
   uint32_t m_buffer_size;
   uint32_t m_fill_index, m_play_index;
   volatile int m_buffer_filled[DECODE_BUFFERS_MAX];

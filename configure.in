@@ -3,7 +3,7 @@ AC_INIT()
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.4)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.5)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
