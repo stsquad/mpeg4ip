@@ -263,7 +263,13 @@ int main (int argc, char **argv)
     name = *argv;
   }
 
-  if (strstr(name, ".mp4plist") != NULL) {
+  const char *suffix = strrchr(name, '.');
+  if (suffix == NULL) {
+    player_error_message("Suffix not found in %s", name);
+    return (-1);
+  }
+  if ((strcasecmp(suffix, ".mp4plist") == 0) ||
+      (strcasecmp(suffix, ".gmp4_playlist") == 0)) {
     const char *errmsg = NULL;
     CPlaylist *list = new CPlaylist(name, &errmsg);
     if (errmsg != NULL) {

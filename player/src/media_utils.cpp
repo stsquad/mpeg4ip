@@ -424,44 +424,49 @@ int parse_name_for_session (CPlayerSession *psptr,
 #endif
   err = -1;
 
-  if ((strcasestr(name, ".mp4v") != NULL) ||
-      (strcasestr(name, ".cmp") != NULL)) {
+  const char *suffix = strrchr(name, '.');
+  if (suffix == NULL) {
+    *errmsg = "No useable suffix on file";
+    return err;
+  }
+
+  if ((strcasecmp(suffix, ".mp4v") == 0) ||
+      (strcasecmp(suffix, ".cmp") == 0)) {
     err = create_media_for_mpeg4_file(psptr, name, errmsg);
-  } else if (strcasestr(name, ".divx") != NULL) {
+  } else if (strcasecmp(suffix, ".divx") == 0) {
     err = create_media_for_divx_file(psptr, name, errmsg);
   } else {
     int have_audio_driver;
 
     have_audio_driver = do_we_have_audio();
 
-    if (strcasestr(name, ".sdp") != NULL) {
+    if (strcasecmp(suffix, ".sdp") == 0) {
       err = create_media_from_sdp_file(psptr, name, errmsg, have_audio_driver);
-    } else if ((strcasestr(name, ".mov") != NULL) ||
+    } else if ((strcasecmp(suffix, ".mov") == 0) ||
 	       ((config.get_config_value(CONFIG_USE_OLD_MP4_LIB) != 0) &&
-		(strcasestr(name, ".mp4") != NULL))){
+		(strcasecmp(suffix, ".mp4") == 0))){
       err = create_media_for_qtime_file(psptr, name, errmsg, have_audio_driver);
-    } else if (strcasestr(name, ".mp4") != NULL) {
+    } else if (strcasecmp(suffix, ".mp4") == 0) {
       err = create_media_for_mp4_file(psptr, name, errmsg, have_audio_driver);
-    } else if (strcasestr(name, ".avi") != NULL) {
+    } else if (strcasecmp(suffix, ".avi") == 0) {
       err = create_media_for_avi_file(psptr, name, errmsg, have_audio_driver);
     } else {
       if (have_audio_driver != 0) {
-	if (strcasestr(name, ".aac") != NULL) {
+	if (strcasecmp(suffix, ".aac") == 0) {
 	  err = create_media_for_aac_file(psptr, name, errmsg);
-	} else if ((strcasestr(name, ".wav") != NULL) ||
-		   (strcasestr(name, ".WAV") != NULL)) {
+	} else if (strcasecmp(suffix, ".wav") == 0) {
 	  err = create_media_for_wav_file(psptr, name, errmsg);
-	} else if (strcasestr(name, ".mp3") != NULL) {
+	} else if (strcasecmp(suffix, ".mp3") == 0) {
 	  err = create_media_for_mp3_file(psptr, name, errmsg);
 	} else {
 	  *errmsg = "Illegal or unknown file type";
 	  player_error_message("Illegal or unknown file type - %s", name);
 	}
       } else {
-	if ((strcasestr(name, ".aac") != NULL) ||
-	    (strcasestr(name, ".wav") != NULL) ||
-	    (strcasestr(name, ".WAV") != NULL) ||
-	    (strcasestr(name, ".mp3") != NULL)) {
+	if ((strcasecmp(suffix, ".aac") == 0) ||
+	    (strcasecmp(suffix, ".wav") == 0) ||
+	    (strcasecmp(suffix, ".WAV") == 0) ||
+	    (strcasecmp(suffix, ".mp3") == 0)) {
 	  *errmsg = "Cannot play audio files - no Audio driver";
 	} else {
 	  *errmsg = "Illegal or unknown file type";
