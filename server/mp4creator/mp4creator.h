@@ -54,5 +54,5 @@ MP4CREATOR_GLOBAL char* ProgName;
 MP4CREATOR_GLOBAL u_int32_t Verbosity;
 MP4CREATOR_GLOBAL float VideoFrameRate;
 MP4CREATOR_GLOBAL u_int32_t Mp4TimeScale;
-
+MP4CREATOR_GLOBAL bool TimeScaleSpecified;
 #endif /* __MP4CREATOR_INCLUDED__ */

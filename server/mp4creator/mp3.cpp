@@ -226,9 +226,20 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile)
 		return MP4_INVALID_TRACK_ID;
 	}
 
-	MP4TrackId trackId = 
-		MP4AddAudioTrack(mp4File, 
-			samplesPerSecond, samplesPerFrame, audioType);
+	MP4TrackId trackId;
+	MP4Duration duration;
+	if (TimeScaleSpecified && Mp4TimeScale == 90000) {
+	  duration = (90000 * samplesPerFrame) / samplesPerSecond;
+	  trackId = 
+	    MP4AddAudioTrack(mp4File, 
+			     90000,
+			     duration, 
+			     audioType);
+	} else {
+	  trackId = 
+	    MP4AddAudioTrack(mp4File, 
+			     samplesPerSecond, samplesPerFrame, audioType);
+	}
 
 	if (trackId == MP4_INVALID_TRACK_ID) {
 		fprintf(stderr,	

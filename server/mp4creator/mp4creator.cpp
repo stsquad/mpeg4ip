@@ -101,6 +101,7 @@ int main(int argc, char** argv)
 
 	Verbosity = MP4_DETAILS_ERROR;
 	VideoFrameRate = 0;		// determine from input file
+	TimeScaleSpecified = false;
 	Mp4TimeScale = 90000;
 
 	// begin processing command line
@@ -205,6 +206,7 @@ int main(int argc, char** argv)
 					 ProgName, optarg);
 				exit(EXIT_COMMAND_LINE);
 			}
+			TimeScaleSpecified = true;
 			break;
 		case 'u':
 		  use64bits = true;

@@ -467,8 +467,10 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
     if (m_recvd_pak == 0) {
       if (m_recvd_pak_timeout == 0) {
 	m_recvd_pak_timeout_time = get_time_of_day();
+#if 0
 	rtp_message(LOG_DEBUG, "%s Starting timeout at %llu", 
 		    m_name, m_recvd_pak_timeout_time);
+#endif
       } else {
 	uint64_t timeout;
 	timeout = get_time_of_day() - m_recvd_pak_timeout_time;
