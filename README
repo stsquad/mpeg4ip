@@ -1,4 +1,4 @@
-January 25, 2001
+February 5, 2001
 
 MPEG4IP Project
 ==================
@@ -29,14 +29,15 @@ to fix that soon).
 
 Once the content is encoded and available on the server, you can run
 the player. Start 'gmp4player' and then enter the RTSP URL to the server 
-and the content (command line works too). E.g.  
+and the content, (command line works too). E.g.  
 	$ gmp4player rtsp://myserver.mydomain.com/mycontent.mov
 
 The player has a simple Gtk interface. If you prefer no UI, but just
 the bare bones video, 'mp4player' is available to you.
 
 Although we're focussed on streaming, the player will also playback from
-a local file. 
+a local file. E.g
+	$ gmp4player mycontent.mov
 
 
 Legal
@@ -152,7 +153,7 @@ an equivalent automake file.
 To date we've only built on Red Hat Linux 7.0, with GCC 2.96. 
 The code should be portable, but as someone once said "There's no such
 thing as portable code, just code that has been ported." When you find
-problems please be sure to use the SourceForge site, to tell us what you
+problems please be sure to use the SourceForge site to tell us what you
 encountered, and hopefully how you fixed it.
 
 To build:
@@ -161,7 +162,7 @@ To build:
     make install (optional)
 
 For the curious, the bootstrap script invokes the configure scripts of 
-the included packages that have them, and then our the top level configure 
+the included packages that have them, and then our own top level configure 
 script is generated and run. At the end of this process all the Makefile's
 are ready, and setup in the correct hierarchy. If this doesn't work for you,
 you're free to hack as needed ;-)  
@@ -180,6 +181,7 @@ faac        Encodes raw audio into MPEG-4 AAC encoded audio
 mp4venc     Encodes raw video into MPEG-4 encoded video
 mp4apkt     Creates audio streaming hint track in MP4/Quicktime file
 mp4vpkt     Creates video streaming hint track in MP4/Quicktime file
+mp4vhdr	    Creates MPEG-4 video headers
 mp4dump     Dumps MP4/Quicktime file meta-information in text form
 yuvdump     Displays a raw video file on the screen
 
@@ -235,6 +237,7 @@ mpeg4ip - top level project directory
             avi2raw - extract raw A/V data from AVI files
             mp4apkt - MPEG-4 audio packetizer
             mp4vpkt - MPEG-4 video packetizer
+            mp4vhdr - MPEG-4 video header generator
             mp4dump - dump MP4 file meta-info contents
 
     util - generally useful utilities
@@ -290,8 +293,12 @@ details. If you figure it out, please let us know. (Anyway we're expecting
 to add the OpenDivX codec soon, and we're hoping that will deal with 
 this reasonably.)
 
-* We currently create "hinted Quicktime" files as the streamable file format.
-This is approximately 90% compatible with the MPEG-4 file format. We're
-working on the other 10%, and expect to check in the changes soon.
+* By default, we currently create "hinted Quicktime" files as the 
+streamable file format. This is approximately 95% compatible with the 
+MPEG-4 file format, and can be used with the Darwin Streaming Server.
+However you can generate "real" MP4 files by using the packetizers with
+output file names that end in .mp4 instead of .mov  We're still working
+on verifying that what's produced does in fact comply with the specification
+so it should be considered alpha quality code.
 
 
