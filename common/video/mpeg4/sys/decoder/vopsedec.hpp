@@ -112,10 +112,7 @@ void decodeShortHeaderIntraMBDC(Int *rgiCoefQ);
 
 //protected:
 public:
- void set_byte_stream(CInByteStreamBase *p) 
-   { m_pbytestrmIn = p;
-   m_pbitstrmIn->attach(p);
-   };
+ void set_byte_stream(CInByteStreamBase *p);
 	own ifstream* m_pistrm;
 	own CInByteStreamBase *m_pbytestrmIn;
 	own Bool m_bcreatedByteStream;
