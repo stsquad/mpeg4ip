@@ -1,6 +1,11 @@
-3/1/01 Version 0.6
+3/30/01 Version 0.6
+	Inclusion of the OpenDivx MPEG-4 video encoder/decoder
+	Inclusion of MP3 audio in addition to AAC audio
+	Inclusion of the Apple Darwin Quicktime Server
 	Support for the MP4 file format
-	Addition of Apple Darwin Quicktime Server package
+	Support for multicast streaming
+	Added fullscreen mode to player
+	Windows port of the player
 
 2/5/01 Version 0.5
 	Initial public release

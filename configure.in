@@ -3,7 +3,7 @@ AC_INIT()
 AC_CONFIG_AUX_DIR(config)
 
 AM_PROG_LIBTOOL
-AM_INIT_AUTOMAKE(mpeg4ip, 0.6)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.7)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -51,24 +51,34 @@ AC_OUTPUT( \
 	server/Makefile \
 	server/audio/Makefile \
 	server/audio/faac/Makefile \
+	server/video/Makefile \
+	server/video/divx/Makefile \
 	server/lib/Makefile \
 	server/lib/avi/Makefile \
 	server/util/Makefile \
 	server/util/avi2raw/Makefile \
+	server/util/lboxcrop/Makefile \
 	server/util/mp4apkt/Makefile \
 	server/util/mp4vpkt/Makefile \
 	server/util/mp4vhdr/Makefile \
 	server/util/mp4dump/Makefile \
+	server/util/mp4extract/Makefile \
 	player/Makefile \
 	player/lib/Makefile \
 	player/lib/sdp/Makefile \
 	player/lib/rtsp/Makefile \
 	player/lib/audio/Makefile \
 	player/lib/audio/faad/Makefile \
+	player/lib/audio/mp3/Makefile \
+	player/lib/video/Makefile \
+	player/lib/video/divx/Makefile \
 	player/src/Makefile \
 	player/src/codec/Makefile \
 	player/src/codec/aa/Makefile \
+	player/src/codec/divx/Makefile \
+	player/src/codec/mp3/Makefile \
 	player/src/codec/mpeg4/Makefile \
+	player/src/codec/wav/Makefile \
 	util/Makefile \
 	util/yuv/Makefile \
 )
