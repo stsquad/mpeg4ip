@@ -91,6 +91,9 @@ static bool Validate()
 
 static void Save()
 {
+	MyConfig->SetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME,
+		gtk_entry_get_text(GTK_ENTRY(file_entry)));
+
 	// TBD save
 
 	DisplayTranscodingSettings();
@@ -193,7 +196,10 @@ void CreateTranscodingDialog(void)
 	gtk_widget_show(label);
 
 	// file entry
-	const char *file = MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
+	const char *file = MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME);
+	if (file == NULL || *file == '\0') {
+		file = MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
+	}
 	file_entry = gtk_entry_new_with_max_length(PATH_MAX);
 	if (file != NULL) {
 		gtk_entry_set_text(GTK_ENTRY(file_entry), file);

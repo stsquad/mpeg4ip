@@ -27,7 +27,7 @@
  * DivX Advanced Research Center <darc@projectmayo.com>
 *
 **/
-
+#include <string.h>
 #include "basic_prediction.h"
 
 // Purpose: Copy a memory block from Src to Dst 
@@ -124,15 +124,14 @@ void CopyBlock(unsigned char * Src, unsigned char * Dst, int Stride)
 {
 	int dy;
 
-	long *lpSrc = (long *) Src;
-	long *lpDst = (long *) Dst;
-	int lpStride = Stride >> 2;
-
+if (Stride != 8) {
 	for (dy = 0; dy < 8; dy++) {
-		lpDst[0] = lpSrc[0];
-		lpDst[1] = lpSrc[1];
-		lpSrc += lpStride;
-		lpDst += lpStride;
+		memcpy(Dst,Src, 8);
+		Src += Stride;
+		Dst += Stride;
+	}
+} else {
+    memcpy(Dst, Src, 64);
 	}
 }
 /**/
@@ -220,17 +219,10 @@ void CopyMBlock(unsigned char * Src, unsigned char * Dst, int Stride)
 {
 	int dy;
 
-	long *lpSrc = (long *) Src;
-	long *lpDst = (long *) Dst;
-	int lpStride = Stride >> 2;
-
 	for (dy = 0; dy < 16; dy++) {
-		lpDst[0] = lpSrc[0];
-		lpDst[1] = lpSrc[1];
-		lpDst[2] = lpSrc[2];
-		lpDst[3] = lpSrc[3];
-		lpSrc += lpStride;
-		lpDst += lpStride;
+		memcpy(Dst, Src, 16);
+		Src += Stride;
+		Dst += Stride;
 	}
 }
 /**/

@@ -16,8 +16,8 @@ check_PROGRAMS = test test_thread
 test_SOURCES = test.c
 test_INCLUDES = -I../../../lib/sdp
 test_LDADD = librtsp.la ../../../lib/sdp/libsdp.la @SDL_LIBS@ \
-	../../../lib/rtp/libuclmmbase.a
+	../../../lib/rtp/libuclmmbase.la
 test_thread_SOURCES = test_thread.c
 test_thread_INCLUDES = -I../../../lib/sdp
 test_thread_LDADD = librtsp.la ../../../lib/sdp/libsdp.la @SDL_LIBS@ \
-	../../../lib/rtp/libuclmmbase.a
+	../../../lib/rtp/libuclmmbase.la

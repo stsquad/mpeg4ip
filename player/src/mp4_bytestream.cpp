@@ -256,7 +256,8 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
     m_parent->unlock_file_mutex();
     return;
   }
-  *(uint32_t *)(m_buffer + m_this_frame_size) = 0; // add some 0's
+  memset(m_buffer + m_this_frame_size, 0, sizeof(uint32_t));
+  //*(uint32_t *)(m_buffer + m_this_frame_size) = 0; // add some 0's
 #ifdef OUTPUT_TO_FILE
   fwrite(m_buffer, m_this_frame_size, 1, m_output_file);
 #endif

@@ -36,9 +36,11 @@ public:
 
 		m_srcAudioTrackId = MP4_INVALID_TRACK_ID;
 		m_dstAudioTrackId = MP4_INVALID_TRACK_ID;
+		m_srcAudioSampleId = 1;
 
 		m_srcVideoTrackId = MP4_INVALID_TRACK_ID;
 		m_dstVideoTrackId = MP4_INVALID_TRACK_ID;
+		m_srcVideoSampleId = 1;
 
 		m_videoEncoder = NULL;
 	}

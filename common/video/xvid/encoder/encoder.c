@@ -289,6 +289,10 @@ void init_encoder(uint32_t cpu_flags) {
 		sad8 = sad8_xmm;
 		dev16 = dev16_xmm;
 	}
+
+	if((cpu_flags & XVID_CPU_SSE2) > 0) {
+		sad16 = sad16_sse2;
+	}
 #endif
 }
 

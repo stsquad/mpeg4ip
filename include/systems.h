@@ -215,4 +215,9 @@ char *strsep(char **strp, const char *delim);
 #ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
+
+#ifndef INADDR_NONE
+#define INADDR_NONE (-1)
+#endif
+
 #endif /* __SYSTEMS_H__ */

@@ -19,6 +19,8 @@ libxvidcommonmmx_la_SOURCES = \
 	cpuid.asm \
 	fdct_mmx.asm \
 	idct_mmx.asm \
+	interpolate8x8_mmx.asm \
 	quantize_mmx.asm \
+	quantize4_mmx.asm \
 	transfer_mmx.asm
 

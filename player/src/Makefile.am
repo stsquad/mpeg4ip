@@ -90,7 +90,7 @@ mp4player_LDADD = \
 	$(top_builddir)/lib/config_file/libconfig_file.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/bitstream/libbitstream.la \
-	$(top_builddir)/lib/rtp/libuclmmbase.a \
+	$(top_builddir)/lib/rtp/libuclmmbase.la \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
 	$(top_builddir)/player/lib/audio/faad/libfaad.la \
 	$(top_builddir)/player/lib/audio/mp3/libourmp3.la \

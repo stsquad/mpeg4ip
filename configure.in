@@ -3,7 +3,7 @@ AC_INIT()
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR(config)
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.2.11)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.2.12)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -26,10 +26,11 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 
+AC_CHECK_LIB(socket, socket)
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getrusage socketpair strsep)
+AC_CHECK_FUNCS(strerror strcasestr poll getopt getopt_long getrusage socketpair strsep inet_ntoa)
 
 dnl MY_CHECK_TYPEDEF_FROM_INCLUDE(typedef, include files, define)
 dnl checks if typedef is in include files.  add define in acconfig.h
@@ -227,6 +228,7 @@ AC_OUTPUT( \
 	server/video/Makefile \
 	server/video/divx/Makefile \
 	server/video/ffmpeg/Makefile \
+	server/video/H26L/Makefile \
 	server/lib/Makefile \
 	server/mp4live/Makefile \
 	server/mp4live/gui/Makefile \

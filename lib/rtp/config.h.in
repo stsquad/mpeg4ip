@@ -1,4 +1,4 @@
-/* src/config.h.in.  Generated automatically from ../configure.in by autoheader.  */
+/* config.h.in.  Generated automatically from configure.in by autoheader.  */
 
 /* Define if type char is unsigned and you are not using gcc.  */
 #ifndef __CHAR_UNSIGNED__
@@ -88,6 +88,7 @@
 
 /* Define if you have the <sys/time.h> header file.  */
 #undef HAVE_SYS_TIME_H
+
 
 #ifndef WORDS_BIGENDIAN
 #define WORDS_SMALLENDIAN

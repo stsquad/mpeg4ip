@@ -66,7 +66,7 @@ LDADD = \
 	$(top_builddir)/server/mp4live/gui/liblive_gui.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
-	$(top_builddir)/lib/rtp/libuclmmbase.a \
+	$(top_builddir)/lib/rtp/libuclmmbase.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/server/audio/lame/libmp3lame.a \
 	$(top_builddir)/server/video/ffmpeg/libffmpeg.la \

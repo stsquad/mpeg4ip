@@ -184,6 +184,168 @@ sad16_xmm
 		ret
 
 
+;===========================================================================
+;
+; uint32_t sad16_sse2(const uint8_t * const cur,
+;					const uint8_t * const ref,
+;					const uint32_t stride,
+;					const uint32_t best_sad);
+;
+; experimental!
+;
+;===========================================================================
+
+align 16
+cglobal sad16_sse2
+sad16_sse2
+		push esi
+		push edi
+		push ebx
+
+		mov esi, [esp + 12 + 4]		; ref
+		mov edi, [esp + 12 + 8]		; cur
+		mov ecx, [esp + 12 + 12]	; stride
+		mov ebx, [esp + 12 + 16]	; best_sad
+		mov	edx, 16
+		
+		pxor xmm2, xmm2			; xmm2 = sum = 0
+
+		; 0
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+		
+		; 1
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 2
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 3
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 4
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 5
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 6
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 7
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 8
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 9
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 10
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 11
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 12
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 13
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 14
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		; 15
+		movdqu xmm0, [esi]		; ref
+		movdqu xmm1, [edi]		; cur
+		psadbw xmm0, xmm1		; xmm0 = |ref - cur|
+		paddusw xmm2,xmm0		; sum += xmm0
+		add	esi, ecx
+		add	edi, ecx
+
+		movdq2q mm6, xmm2
+		movd eax, mm6
+
+.ret	pop		ebx
+		pop 	edi
+		pop 	esi
+
+		ret
 
 ;===========================================================================
 ;

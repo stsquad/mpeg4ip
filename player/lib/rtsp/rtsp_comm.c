@@ -36,7 +36,7 @@
 static int rtsp_get_server_address (rtsp_client_t *info)
 {
   struct hostent *host;
-#ifdef _WIN32
+#if defined(_WIN32) || !defined(HAVE_INET_NTOA)
   info->server_addr.s_addr = inet_addr(info->server_name);
   if (info->server_addr.s_addr != INADDR_NONE) return 0;
 #else

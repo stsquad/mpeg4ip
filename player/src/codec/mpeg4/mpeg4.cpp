@@ -264,9 +264,9 @@ int CMpeg4Codec::decode (uint64_t ts,
       m_cached_time = 0;
     } catch (int err) { //(const char *err) {
 #if 1
-      //if (m_bytestream->throw_error_minor(err) != 0) {
+      if (m_bytestream->throw_error_minor(err) == 0) {
 	player_debug_message("Caught exception in WAIT_I %d", err);
-	//}
+      }
 #endif
 	error_return(buflen);
       return (-1);

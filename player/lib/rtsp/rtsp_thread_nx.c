@@ -29,11 +29,12 @@ void rtsp_thread_init_thread_info (rtsp_client_t *info)
 #ifndef HAVE_SOCKETPAIR
   struct sockaddr_un our_name, his_name;
   int len;
+  int ret;
   COMM_SOCKET_THREAD = socket(AF_UNIX, SOCK_STREAM, 0);
 
   memset(&our_name, 0, sizeof(our_name));
   our_name.sun_family = AF_UNIX;
-  strcpy(our_name.sun_path, info->socket_name);
+  strcpy(our_name.sun_path, info->m_thread_info->socket_name);
   ret = bind(COMM_SOCKET_THREAD, (struct sockaddr *)&our_name, sizeof(our_name));
   listen(COMM_SOCKET_THREAD, 1);
   len = sizeof(his_name);
@@ -124,38 +125,40 @@ void rtsp_close_thread (rtsp_client_t *rptr)
  * rtsp_create_thread - create the thread we need, along with the
  * communications socket.
  */
-int rtsp_create_thread (rtsp_client_t *cptr)
+int rtsp_create_thread (rtsp_client_t *info)
 {
-  rtsp_thread_info_t *info;
-  info = cptr->m_thread_info =
+  rtsp_thread_info_t *tinfo;
+#ifndef HAVE_SOCKETPAIR
+  int ret;
+  struct sockaddr_un addr;
+#endif
+  tinfo = info->m_thread_info =
     (rtsp_thread_info_t *)malloc(sizeof(rtsp_thread_info_t));
 
-  if (info == NULL) return -1;
+  if (tinfo == NULL) return -1;
   
-  info->comm_socket[0] = -1;
-  info->comm_socket[1] = -1;
-  info->comm_socket_write_to = -1;
+  tinfo->comm_socket[0] = -1;
+  tinfo->comm_socket[1] = -1;
+  tinfo->comm_socket_write_to = -1;
 #ifdef HAVE_SOCKETPAIR
-  if (socketpair(PF_UNIX, SOCK_STREAM, 0, info->comm_socket) < 0) {
+  if (socketpair(PF_UNIX, SOCK_STREAM, 0, tinfo->comm_socket) < 0) {
     rtsp_debug(LOG_CRIT, "Couldn't create comm sockets - errno %d", errno);
     return -1;
   }
 #else
-  int ret;
-  struct sockaddr_un addr;
   COMM_SOCKET_THREAD = -1;
   COMM_SOCKET_CALLER = socket(AF_UNIX, SOCK_STREAM, 0);
-  snprintf(info->socket_name, sizeof(info->socket_name) - 1, "RTSPCLIENT%p", info);
-  unlink(info->socket_name);
+  snprintf(tinfo->socket_name, sizeof(tinfo->socket_name) - 1, "RTSPCLIENT%p", tinfo);
+  unlink(tinfo->socket_name);
 #endif
-  cptr->thread = SDL_CreateThread(rtsp_thread, cptr);
-  if (cptr->thread == NULL) {
+  info->thread = SDL_CreateThread(rtsp_thread, info);
+  if (info->thread == NULL) {
     rtsp_debug(LOG_CRIT, "Couldn't create comm thread");
     return -1;
   }
 #ifndef HAVE_SOCKETPAIR
   addr.sun_family = AF_UNIX;
-  strcpy(addr.sun_path, info->socket_name);
+  strcpy(addr.sun_path, tinfo->socket_name);
   ret = -1;
   do {
     ret = connect(COMM_SOCKET_CALLER, (struct sockaddr *)&addr, sizeof(addr));

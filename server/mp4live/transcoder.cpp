@@ -75,20 +75,22 @@ int CTranscoder::ThreadMain(void)
 
 void CTranscoder::DoStartTranscode()
 {
+	u_int32_t numVideoTracks;
+	u_int32_t numAudioTracks;
+
 	if (m_transcode) {
 		return;
 	}
+
+	m_srcVideoSampleId = 1;
+	m_srcAudioSampleId = 1;
+	m_dstMp4File = NULL;
 
 	char* srcMp4FileName =
 		m_pConfig->GetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME);
 
 	char* dstMp4FileName =
 		m_pConfig->GetStringValue(CONFIG_TRANSCODE_DST_FILE_NAME);
-
-	if (srcMp4FileName == NULL || srcMp4FileName[0] == '\0') {
-		srcMp4FileName =
-			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
-	}
 
 	bool twoFiles = !(dstMp4FileName == NULL || dstMp4FileName[0] == '\0');
 
@@ -107,22 +109,39 @@ void CTranscoder::DoStartTranscode()
 
 		if (m_dstMp4File == MP4_INVALID_FILE_HANDLE) {
 			error_message("can't create %s", dstMp4FileName);
-			MP4Close(m_srcMp4File);
-			m_srcMp4File = NULL;
-			return;
+			goto start_failure;
 		}
 	} else {
 		m_dstMp4File = m_srcMp4File;
 	}
 
-	// if video
-	// TBD match track encoding
-	m_srcVideoTrackId = 
-		MP4FindTrackId(m_srcMp4File, 0, MP4_VIDEO_TRACK_TYPE);
+	// find raw video track
+	numVideoTracks =
+		MP4GetNumberOfTracks(m_srcMp4File, MP4_VIDEO_TRACK_TYPE);
+
+	m_srcVideoTrackId = MP4_INVALID_TRACK_ID;
+
+	u_int32_t i;
+	for (i = 0; i < numVideoTracks; i++) {
+		MP4TrackId videoTrackId =
+			MP4FindTrackId(m_srcMp4File, i, MP4_VIDEO_TRACK_TYPE);
+
+		u_int8_t videoType =
+			MP4GetTrackVideoType(m_srcMp4File, videoTrackId);
+
+		if (videoType == MP4_PRIVATE_VIDEO_TYPE) {
+			m_srcVideoTrackId = videoTrackId;
+			break;
+		}
+	}
+
+	if (m_srcVideoTrackId == MP4_INVALID_TRACK_ID) {
+		error_message("can't find raw video track");
+		goto start_failure;
+	}
 
 	m_srcVideoNumSamples =
 		MP4GetTrackNumberOfSamples(m_srcMp4File, m_srcVideoTrackId);
-	m_srcVideoSampleId = 1;
 
 	m_srcVideoWidth =
 		MP4GetTrackIntegerProperty(m_srcMp4File, m_srcVideoTrackId, 
@@ -130,6 +149,8 @@ void CTranscoder::DoStartTranscode()
 	m_srcVideoHeight =
 		MP4GetTrackIntegerProperty(m_srcMp4File, m_srcVideoTrackId, 
 			"mdia.minf.stbl.stsd.mp4v.height");
+
+	// TBD preview sink needs to know the video size
 
 	m_videoYSize = m_srcVideoWidth * m_srcVideoHeight;
 	m_videoUVSize = m_videoYSize / 4;
@@ -147,12 +168,23 @@ void CTranscoder::DoStartTranscode()
 		m_pConfig->m_videoMpeg4Config, 
 		m_pConfig->m_videoMpeg4ConfigLength); 
 
-	InitVideoEncoder();
-		// TBD error
+	if (!InitVideoEncoder()) {
+		goto start_failure;
+	}
 
 	// TBD if audio
 
 	m_transcode = true;
+	return;
+
+start_failure:
+	if (m_dstMp4File != m_srcMp4File) {
+		MP4Close(m_dstMp4File);
+		m_dstMp4File = NULL;
+	}
+	MP4Close(m_srcMp4File);
+	m_srcMp4File = NULL;
+	return;
 }
 
 void CTranscoder::DoTranscode()
@@ -246,18 +278,6 @@ bool CTranscoder::DoVideoTrack(
 			return false;
 		}
 
-		// forward for raw preview
-		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)) {
-			CMediaFrame* pFrame =
-				new CMediaFrame(CMediaFrame::RawYuvVideoFrame, 
-					pSample,
-					sampleSize,
-					0, 
-					sampleDuration);
-			ForwardFrame(pFrame);
-			delete pFrame;
-		}
-
 		// call encoder
 		rc = m_videoEncoder->EncodeImage(
 			pSample, 
@@ -313,7 +333,19 @@ bool CTranscoder::DoVideoTrack(
 			delete pFrame;
 		}
 
-		free(pSample);
+		// forward for raw preview
+		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)) {
+			CMediaFrame* pFrame =
+				new CMediaFrame(CMediaFrame::RawYuvVideoFrame, 
+					pSample,
+					sampleSize,
+					0, 
+					sampleDuration);
+			ForwardFrame(pFrame);
+			delete pFrame;
+		} else {
+			free(pSample);
+		}
 	}
 
 	return true;

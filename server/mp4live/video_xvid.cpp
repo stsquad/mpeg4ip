@@ -64,7 +64,7 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) * 2;
 	xvidEncParams.motion_search = (realTime ? 1 : 5);
 	xvidEncParams.quant_type = 1;
-	xvidEncParams.lum_masking = 1;
+	xvidEncParams.lum_masking = 0;
 
 	if (xvid_encore(NULL, XVID_ENC_CREATE, &xvidEncParams, NULL) 
 	  != XVID_ERR_OK) {
@@ -93,7 +93,7 @@ bool CXvidVideoEncoder::EncodeImage(
 	xvidFrame.image = pY;
 	xvidFrame.bitstream = m_vopBuffer;
 	xvidFrame.colorspace = XVID_CSP_I420;
-	xvidFrame.quant = 0;
+	xvidFrame.quant = 4;
 	xvidFrame.intra = wantKeyFrame;
 
 	if (xvid_encore(m_xvidHandle, XVID_ENC_ENCODE, &xvidFrame, 
@@ -128,12 +128,12 @@ bool CXvidVideoEncoder::GetReconstructedImage(
 		m_pConfig->m_videoHeight,
 		m_xvidResult.stride_y);
 
-	imgcpy(pU, (u_int8_t*)m_xvidResult.image_v,
+	imgcpy(pU, (u_int8_t*)m_xvidResult.image_u,
 		m_pConfig->m_videoWidth / 2, 
 		m_pConfig->m_videoHeight / 2,
 		m_xvidResult.stride_uv);
 
-	imgcpy(pV, (u_int8_t*)m_xvidResult.image_u,
+	imgcpy(pV, (u_int8_t*)m_xvidResult.image_v,
 		m_pConfig->m_videoWidth / 2, 
 		m_pConfig->m_videoHeight / 2,
 		m_xvidResult.stride_uv);

@@ -209,7 +209,7 @@ void DisplayRecordingSettings(void)
 {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(record_enabled_button),
 		MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE));
-  
+
 	char* fileName = strrchr(
 		MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), '/');
 	if (!fileName) {
@@ -226,7 +226,11 @@ void DisplayRecordingSettings(void)
 
 void DisplayTranscodingSettings(void)
 {
-	// TBD
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transcode_enabled_button),
+		MyConfig->GetBoolValue(CONFIG_TRANSCODE_ENABLE));
+
+	gtk_widget_set_sensitive(GTK_WIDGET(transcode_enabled_button),
+		MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE));
 }
 
 static void on_video_enabled_button (GtkWidget *widget, gpointer *data)
@@ -278,6 +282,12 @@ static void on_record_enabled_button (GtkWidget *widget, gpointer *data)
 {
 	MyConfig->SetBoolValue(CONFIG_RECORD_ENABLE,
 		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+
+	// interlock with transcode
+	if (transcode_enabled_button) {
+		gtk_widget_set_sensitive(GTK_WIDGET(transcode_enabled_button),
+			MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE));
+	}
 }
 
 static void on_record_settings_button (GtkWidget *widget, gpointer *data)
@@ -298,9 +308,8 @@ static void on_transmit_settings_button (GtkWidget *widget, gpointer *data)
 
 static void on_transcode_enabled_button (GtkWidget *widget, gpointer *data)
 {
-	// TBD
-	//MyConfig->SetBoolValue(CONFIG_REENCODE_ENABLE,
-	//	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+	MyConfig->SetBoolValue(CONFIG_TRANSCODE_ENABLE,
+		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
 static void on_transcode_settings_button (GtkWidget *widget, gpointer *data)
@@ -337,20 +346,25 @@ static void status_start()
 
 	// media source
 	buffer[0] = '\0';
-	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
-	  && MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
-		snprintf(buffer, sizeof(buffer), "%s & %s",
-			MyConfig->GetStringValue(CONFIG_VIDEO_DEVICE_NAME),
-			MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
-		gtk_label_set_text(GTK_LABEL(media_source), buffer);
+	if (AVFlow == AVLive) {
+		if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
+		  && MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+			snprintf(buffer, sizeof(buffer), "%s & %s",
+				MyConfig->GetStringValue(CONFIG_VIDEO_DEVICE_NAME),
+				MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
+			gtk_label_set_text(GTK_LABEL(media_source), buffer);
 
-	} else if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		gtk_label_set_text(GTK_LABEL(media_source),
-			MyConfig->GetStringValue(CONFIG_VIDEO_DEVICE_NAME));
+		} else if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+			gtk_label_set_text(GTK_LABEL(media_source),
+				MyConfig->GetStringValue(CONFIG_VIDEO_DEVICE_NAME));
 
-	} else if (MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+		} else if (MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+			gtk_label_set_text(GTK_LABEL(media_source),
+				MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
+		}
+	} else { // AVFlow == AVTranscode
 		gtk_label_set_text(GTK_LABEL(media_source),
-			MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
+			MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME));
 	}
 
 	gtk_widget_show(media_source);
@@ -380,15 +394,39 @@ static void status_start()
 	}
 
 	// file size
-	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
-		gtk_label_set_text(GTK_LABEL(current_size), " 0");
+	if (AVFlow == AVLive) {
+		if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
+			gtk_label_set_text(GTK_LABEL(current_size), " 0");
+			gtk_widget_show(current_size);
+
+			gtk_label_set_text(GTK_LABEL(current_size_units), "MB");
+			gtk_widget_show(current_size_units);
+
+			snprintf(buffer, sizeof(buffer), " %llu",
+				MyConfig->m_recordEstFileSize / 1000000);
+			gtk_label_set_text(GTK_LABEL(final_size), buffer);
+			gtk_widget_show(final_size);
+
+			gtk_label_set_text(GTK_LABEL(final_size_units), "MB");
+			gtk_widget_show(final_size_units);
+		}
+	} else { // AVFlow == AVTranscode
+		struct stat stats;
+		stat(MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME), &stats);
+		snprintf(buffer, sizeof(buffer), " %lu", 
+			stats.st_size / 1000000);
+		gtk_label_set_text(GTK_LABEL(current_size), buffer);
 		gtk_widget_show(current_size);
 
 		gtk_label_set_text(GTK_LABEL(current_size_units), "MB");
 		gtk_widget_show(current_size_units);
 
+		u_int64_t estFileSize = stats.st_size;
+
+		// TBD if video, bitrate * duration, if audio...
+
 		snprintf(buffer, sizeof(buffer), " %llu",
-			MyConfig->m_recordEstFileSize / 1000000);
+			estFileSize / 1000000);
 		gtk_label_set_text(GTK_LABEL(final_size), buffer);
 		gtk_widget_show(final_size);
 
@@ -458,6 +496,8 @@ static gint status_timer (gpointer raw)
 	}
 
 	if (stop) {
+		CMediaFlow* oldFlow = AVFlow;
+
 		// automatically "press" stop button
 		DoStop();
 
@@ -468,7 +508,7 @@ static gint status_timer (gpointer raw)
 			// Make sure user knows that were done
 			char *notice;
 
-			if (AVFlow == AVLive) {
+			if (oldFlow == AVLive) {
 				if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)
 				  && MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
 					notice = "Recording and transmission completed";
@@ -480,8 +520,7 @@ static gint status_timer (gpointer raw)
 			} else {
 				notice = "Re-Encoding completed";
 			}
-
-			ShowMessage("Duration Elapsed", notice);
+			ShowMessage("Completed", notice);
 		}
 
 		return (FALSE);
@@ -529,9 +568,28 @@ void DoStart()
 
 void DoStop()
 {
+	gtk_timeout_remove(status_timer_id);
+
 	AVFlow->Stop();
 
-	if (AVFlow == AVTranscode) {
+	if (AVFlow == AVLive) {
+		// automatic transcoding mode
+		if (MyConfig->GetBoolValue(CONFIG_TRANSCODE_ENABLE)) {
+
+			AVLive->StopVideoPreview();
+
+			AVFlow = AVTranscode;
+
+			// ensure that transcoding src file is the recording file
+			MyConfig->SetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME,
+				MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME));
+
+			DoStart();
+
+			return;
+		}
+
+	} else if (AVFlow == AVTranscode) {
 		AVFlow = AVLive;
 
 		if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
@@ -539,8 +597,6 @@ void DoStop()
 			AVLive->StartVideoPreview();
 		}
 	}
-
-	gtk_timeout_remove(status_timer_id);
 
 	// unlock changes to settings
 	LockoutChanges(false);

@@ -1,1 +1,1 @@
-SUBDIRS = divx ffmpeg
+SUBDIRS = divx ffmpeg H26L

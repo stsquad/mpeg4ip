@@ -312,32 +312,22 @@ void MP4File::Open(const char* fmode)
 	int fd;
 	int flags = O_LARGEFILE;
 
-	if (fmode[0] == 'w') {
-		flags |= O_CREAT | O_TRUNC | O_WRONLY;
-	} else if (strchr(fmode, '+')) {
+	if (strchr(fmode, '+')) {
 		flags |= O_CREAT | O_RDWR;
+		if (fmode[0] == 'w') {
+			flags |= O_TRUNC;
+		}
 	} else {
-		flags |= O_RDONLY;
+		if (fmode[0] == 'w') {
+			flags |= O_CREAT | O_TRUNC | O_WRONLY;
+		} else {
+			flags |= O_RDONLY;
+		}
 	}
 	fd = open(m_fileName, flags, 0666); 
 
 	if (fd >= 0) {
-		u_int8_t i;
-		char fdmode[4];
-
-		// fdopen gets upset about '+' in it's mode
-		// so eliminate them from fmode before calling fdopen()
-		for (i = 0; i < 3; i++) {
-			if (fmode[i] == '\0') {
-				break;
-			}
-			if (fmode[i] != '+') {
-				fdmode[i] = fmode[i];
-			}
-		}
-		fdmode[i] = '\0';
-
-		m_pFile = fdopen(fd, fdmode);
+		m_pFile = fdopen(fd, fmode);
 	}
 #else
 	m_pFile = fopen(m_fileName, fmode);

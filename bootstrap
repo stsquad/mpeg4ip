@@ -52,32 +52,6 @@ in	Darwin)
 esac
 
 
-if test -f /usr/share/libtool/config.guess
-then
-   CONFIG_GUESS=/usr/share/libtool/config.guess
-else
-   if test -f /usr/local/share/libtool/config.guess
-   then
-      CONFIG_GUESS=/usr/local/share/libtool/config.guess
-   else
-      echo "Can't find config.guess to copy"
-      exit 1
-   fi
-fi
-
-if test -f /usr/share/libtool/config.sub
-then
-   CONFIG_SUB=/usr/share/libtool/config.sub
-else
-   if test -f /usr/local/share/libtool/config.sub
-   then
-      CONFIG_SUB=/usr/local/share/libtool/config.sub
-   else
-      echo "Can't find config.sub to copy"
-      exit 1
-   fi
-fi
-
 for dir in /usr/local /usr/contrib /opt/gnome
 do
    if test -d $dir/share/aclocal -a `which aclocal` != $dir/bin/aclocal
@@ -93,8 +67,6 @@ do	cd $dir
 	[ ! -f Makefile.am ] || aclocal || aclocal $ACLOCAL_FLAGS || exit 3
 	[ ! -f Makefile.am ] || automake --add-missing --foreign || exit 1
 	[ ! -f configure.in ] || autoconf || exit 1
-	[ -f config.guess ] || cp $CONFIG_GUESS . || exit 1
-	[ -f config.sub ] || cp $CONFIG_SUB . || exit 1
 	[ ! -x configure ] || ./configure "$@" || exit 1
 done
 
@@ -104,8 +76,6 @@ aclocal || aclocal $ACLOCAL_FLAGS || aclocal -I util || aclocal -I util $ACLOCAL
 autoheader || exit 1
 automake --add-missing --foreign || exit 1
 autoconf || exit 1
-[ -f config.guess ] || cp $CONFIG_GUESS . || exit 1
-[ -f config.sub ] || cp $CONFIG_SUB . || exit 1
 [ ! -x configure ] || ./configure "$@" || exit 1
 set +x
 

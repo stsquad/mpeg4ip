@@ -17,6 +17,7 @@ extern sad16FuncPtr sad16;
 sad16Func sad16_c;
 sad16Func sad16_mmx;
 sad16Func sad16_xmm;
+sad16Func sad16_sse2;
 
 typedef uint32_t (sad8Func)(const uint8_t * const cur,
 						const uint8_t * const ref,

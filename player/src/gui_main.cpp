@@ -728,6 +728,10 @@ static gint main_timer (gpointer raw)
 	  SDL_mutexV(command_mutex);
 	}
       } else {
+	play_state = STOPPED;
+	toggle_button_adjust(play_button, FALSE);
+	toggle_button_adjust(stop_button, TRUE);
+	psptr->pause_all_media();
 	master_fullscreen = 0;
       }
 

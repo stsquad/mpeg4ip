@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sunaudio.c,v 1.2 2001/11/13 00:38:55 wmaycisco Exp $";
+ "@(#) $Id: SDL_sunaudio.c,v 1.3 2002/02/15 23:19:19 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -37,7 +37,7 @@ static char rcsid =
 #include <sys/audioio.h>
 #endif
 #ifdef __SVR4
-#include <sys/audioio.h>
+#include <sys/audio.h>
 #else
 #include <sys/time.h>
 #include <sys/types.h>
@@ -60,6 +60,7 @@ static int DSP_OpenAudio(_THIS, SDL_AudioSpec *spec);
 static void DSP_WaitAudio(_THIS);
 static void DSP_PlayAudio(_THIS);
 static Uint8 *DSP_GetAudioBuf(_THIS);
+static int DSP_AudioDelayMsec(_THIS);
 static void DSP_CloseAudio(_THIS);
 
 /* Audio driver bootstrap functions */
@@ -111,6 +112,7 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
 	this->PlayAudio = DSP_PlayAudio;
 	this->GetAudioBuf = DSP_GetAudioBuf;
 	this->CloseAudio = DSP_CloseAudio;
+	this->AudioDelayMsec = DSP_AudioDelayMsec;
 
 	this->free = Audio_DeleteDevice;
 
@@ -436,4 +438,21 @@ static Uint8 snd2au(int sample)
 		sample = 0x80;
 	}
 	return (mask & sample);
+}
+
+static int DSP_AudioDelayMsec (_THIS)
+{
+#ifdef AUDIO_GETINFO
+#define SLEEP_FUDGE	10		/* 10 ms scheduling fudge factor */
+	audio_info_t info;
+	Sint32 left;
+
+	ioctl(audio_fd, AUDIO_GETINFO, &info);
+	left = (written - info.play.samples);
+	left *= 1000;
+	left /= this->spec.freq;
+	return left;
+#else
+  return 10;
+#endif
 }
