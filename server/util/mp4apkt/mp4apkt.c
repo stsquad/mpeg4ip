@@ -335,7 +335,7 @@ int main(int argc, char** argv)
 	/* create audio hint track */
 	switch (fileType) {
 	case AAC_FILE:
-		payloadName = "MP-AAC";
+		payloadName = "MPA-AAC";
 		payloadNumber = 0;	/* dynamically assign it */
 		break;
 	case MP3_FILE:
