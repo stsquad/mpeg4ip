@@ -32,8 +32,6 @@ COSSAudioSource::COSSAudioSource(CLiveConfig *pConfig) : CMediaSource()
   m_audioDevice = -1;
   m_pcmFrameBuffer = NULL;
   m_prevTimestamp = 0;
-  m_timestampArray = NULL;
-  m_index = 0;
 
   // NOTE: This used to be CAVMediaFlow::SetAudioInput();
   // if mixer is specified, then user takes responsibility for
@@ -151,8 +149,6 @@ void COSSAudioSource::DoStopCapture()
   close(m_audioDevice);
   m_audioDevice = -1;
 
-  free(m_timestampArray);
-
   free(m_pcmFrameBuffer);
   m_pcmFrameBuffer = NULL;
 
@@ -167,9 +163,12 @@ bool COSSAudioSource::Init(void)
     return false;
   }
 
+  if (!InitDevice()) {
+    return false;
+  }
   rc = SetAudioSrc(
                    PCMAUDIOFRAME,
-                   m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
+                   m_channelsConfigured,
                    m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
 
   if (!rc) {
@@ -181,9 +180,6 @@ bool COSSAudioSource::Init(void)
   m_pcmFrameSize = 
     m_audioSrcSamplesPerFrame * m_audioSrcChannels * sizeof(u_int16_t);
 
-  if (!InitDevice()) {
-    return false;
-  }
 
   m_pcmFrameBuffer = (u_int8_t*)malloc(m_pcmFrameSize);
   if (!m_pcmFrameBuffer) {
@@ -237,13 +233,17 @@ bool COSSAudioSource::InitDevice(void)
     return false;
   }
 
-  u_int32_t channels = m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
-  rc = ioctl(m_audioDevice, SNDCTL_DSP_CHANNELS, &channels);
-  if (rc < 0 
-      || channels != m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)) {
+  m_channelsConfigured = m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
+  rc = ioctl(m_audioDevice, SNDCTL_DSP_CHANNELS, &m_channelsConfigured);
+  if (rc < 0) {
     error_message("Couldn't set audio channels for %s", deviceName);
     close(m_audioDevice);
     return false;
+  }
+  if (m_channelsConfigured != m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)) {
+    error_message("Channels not set to configured driver says %d - configured %d", 
+		  m_channelsConfigured, 
+		  m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS));
   }
 
   u_int32_t samplingRate = 
@@ -279,27 +279,25 @@ bool COSSAudioSource::InitDevice(void)
       close(m_audioDevice);
       return false;
     }
+  }
 
-    audio_buf_info info;
-    rc = ioctl(m_audioDevice, SNDCTL_DSP_GETISPACE, &info);
-    if (rc < 0) {
-      error_message("Failed to query OSS GETISPACE");
-      close(m_audioDevice);
-      return false;
-    }
-
+  audio_buf_info info;
+  rc = ioctl(m_audioDevice, SNDCTL_DSP_GETISPACE, &info);
+  if (rc < 0) {
+    error_message("Failed to query OSS GETISPACE");
+    error_message("This means you will not get accurate audio timestamps");
+    error_message("Please think about updating your audio card or driver");
+    m_audioOssMaxBufferSize = 0;
+    return true;
+  }
+  
 #ifdef DEBUG_TIMESTAMPS
-    debug_message("fragstotal = %d", info.fragstotal);
-    debug_message("fragsize = %d", info.fragsize);
+  debug_message("fragstotal = %d", info.fragstotal);
+  debug_message("fragsize = %d", info.fragsize);
 #endif
 
-    m_audioBufferSize = info.fragstotal * info.fragsize;
-    m_audioBufferFrames = (m_audioBufferSize / m_pcmFrameSize);
+  m_audioOssMaxBufferSize = info.fragstotal * info.fragsize;
 
-    m_timestampArray = (Timestamp*) Malloc(m_audioBufferFrames * sizeof(Timestamp));
-    for(int ix = 0; ix < m_audioBufferFrames; ix++)
-      m_timestampArray[ix] = 0;
-  }
   return true;
 }
 
@@ -349,20 +347,16 @@ void COSSAudioSource::ProcessAudio(void)
 
     Timestamp timestamp;
 
-    if (info.bytes == m_audioBufferSize) {
-
-      if (m_timestampArray[m_index]) {
-        timestamp = m_timestampArray[m_index];
-      } else {
-        timestamp = m_prevTimestamp + SrcSamplesToTicks(m_audioSrcSamplesPerFrame);
-      }
-
-      m_timestampArray[m_index] = currentTime;
+    if (info.bytes == m_audioOssMaxBufferSize) {
+      // means the audio buffer is full, and not capturing
+      // we want to make the timestamp based on the previous one
+      timestamp = m_prevTimestamp + SrcSamplesToTicks(m_audioSrcSamplesPerFrame);
       debug_message("audio buffer full !");
 
     } else {
+      // buffer is not full - so, we make the timestamp based on the number
+      // of bytes in the buffer that we read.
       timestamp = currentTime - SrcSamplesToTicks(SrcBytesToSamples(info.bytes));
-      m_timestampArray[m_index] = 0;
     }
 
 #ifdef DEBUG_TIMESTAMPS
@@ -371,7 +365,6 @@ void COSSAudioSource::ProcessAudio(void)
 #endif
 
     m_prevTimestamp = timestamp;
-    m_index = (m_index + 1) % m_audioBufferFrames;
 
     ProcessAudioFrame(m_pcmFrameBuffer, m_pcmFrameSize, timestamp, false);
 

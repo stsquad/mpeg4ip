@@ -61,10 +61,7 @@ class COSSAudioSource : public CMediaSource {
   int           m_audioDevice;
   int           m_maxPasses;
   Timestamp     m_prevTimestamp;
-  int           m_audioBufferSize;
-  Timestamp*    m_timestampArray;
-  int           m_audioBufferFrames;
-  unsigned int  m_index;
+  int           m_audioOssMaxBufferSize;
   u_int8_t*     m_pcmFrameBuffer;
   u_int32_t     m_pcmFrameSize;
   uint32_t      m_channelsConfigured;
