@@ -132,6 +132,27 @@ static u_int16_t getMp3HdrSamplingRate(u_int32_t hdr)
 	return mp3SampleRates[version][sampleRateIndex];
 }
 
+static u_int16_t getMp3HdrSamplingWindow(u_int32_t hdr)
+{
+	u_int8_t version = (hdr >> 19) & 0x3; 
+	u_int8_t layer = (hdr >> 17) & 0x3; 
+	u_int16_t samplingWindow;
+
+	if (layer == 1) {
+		if (version == 3) {
+			samplingWindow = 1152;
+		} else {
+			samplingWindow = 576;
+		}
+	} else if (layer == 2) {
+		samplingWindow = 1152;
+	} else {
+		samplingWindow = 384;
+	}
+
+	return samplingWindow;
+}
+
 /*
  * compute MP3 frame size
  */
@@ -162,7 +183,7 @@ static u_int16_t getMp3FrameSize(u_int32_t hdr)
 
 	/* compute frame size */
 	frameSize = (144 * 1000 * mp3BitRates[bitRateIndex1][bitRateIndex2-1]) 
-		/ mp3SampleRates[version][sampleRateIndex];
+		/ (mp3SampleRates[version][sampleRateIndex] << !(version & 1));
 
 	if (isProtected) {
 		frameSize += 2;		/* 2 byte checksum is present */
@@ -212,7 +233,8 @@ bool loadNextMp3Frame(FILE* inFile, u_char* pBuf, u_int* pBufSize)
 	return TRUE;
 }
 
-bool getMp3SamplingRate(FILE* inFile, u_int* pSamplingRate)
+bool getMp3SamplingParams(FILE* inFile, 
+	u_int* pSamplingRate, u_int* pSamplingWindow)
 {
 	/* read file until we find an audio frame */
 	fpos_t curPos;
@@ -227,6 +249,7 @@ bool getMp3SamplingRate(FILE* inFile, u_int* pSamplingRate)
 	}
 
 	(*pSamplingRate) = getMp3HdrSamplingRate(header);
+	(*pSamplingWindow) = getMp3HdrSamplingWindow(header);
 
 	/* rewind the file to where we were */
 	fsetpos(inFile, &curPos);

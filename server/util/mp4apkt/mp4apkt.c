@@ -50,7 +50,8 @@ extern bool loadNextAacFrame(FILE* inFile, u_char* buf, u_int* pBufSize);
 extern bool getAacSamplingRate(FILE* inFile, u_int* pSamplingRate);
 
 extern bool loadNextMp3Frame(FILE* inFile, u_char* buf, u_int* pBufSize);
-extern bool getMp3SamplingRate(FILE* inFile, u_int* pSamplingRate);
+extern bool getMp3SamplingParams(FILE* inFile,
+	u_int* pSamplingRate, u_int* pSamplingWindow);
 extern bool getMpegLayer(FILE* inFile, u_int* pLayer);
 
 /*
@@ -66,7 +67,7 @@ int main(int argc, char** argv)
 	bool merge = FALSE;				/* --merge */
 	u_int maxPayloadSize = 1460;  	/* --payloadsize=<uint> */
 	u_int samplesPerSecond = 0;		/* --samplingrate=<uint> */
-	u_int samplesPerFrame = 1024;	/* --samplingwindow=<uint> */
+	u_int samplesPerFrame = 0;		/* --samplingwindow=<uint> */
 	bool trace = FALSE;				/* --trace */
 
 	/* internal variables */
@@ -177,7 +178,6 @@ int main(int argc, char** argv)
 			} else {
 				/*
 				 * we just trust the user on the value 
-				 * should be either 1024 (the default) or 960
 				 */
 				samplesPerFrame = i;
 			}
@@ -296,30 +296,28 @@ int main(int argc, char** argv)
 	}
 
 	/*
-	 * We need to know the sampling rate used, 
+	 * We need to know the sampling parameters used 
 	 * in order to create the new audio track
 	 */
-	if (samplesPerSecond == 0) {
-		bool rc;
-
-		switch (fileType) {
-		case AAC_FILE:
-			rc = getAacSamplingRate(mpegFile, &samplesPerSecond);		
-			compression = "mp4a";
-			break;
-		case MP3_FILE:
-			rc = getMp3SamplingRate(mpegFile, &samplesPerSecond);
-			compression = "mp3 ";
-			break;
-		default:
-			rc = FALSE;
-		}
-		
-		if (!rc) {
+	if (fileType == MP3_FILE) {
+		compression = "mp3 ";
+		if (!getMp3SamplingParams(mpegFile, 
+		  &samplesPerSecond, &samplesPerFrame)) {
 			fprintf(stderr, 
 				"%s: error can't read any audio frames from %s\n",
 				progName, mpegFileName);
 			exit(6);
+		}
+	} else { /* fileType == AAC_FILE */
+		compression = "mp4a";
+		if (!getAacSamplingRate(mpegFile, &samplesPerSecond)) {
+			fprintf(stderr, 
+				"%s: error can't read any audio frames from %s\n",
+				progName, mpegFileName);
+			exit(6);
+		}
+		if (samplesPerFrame == 0) {
+			samplesPerFrame = 1024;
 		}
 	}
 
