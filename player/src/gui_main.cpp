@@ -230,7 +230,8 @@ static void create_session_from_name (const char *name)
   y += h + 40;
 
   if (config.get_config_value(CONFIG_PLAY_AUDIO) == 0 &&
-      config.get_config_value(CONFIG_PLAY_VIDEO) == 0) {
+      config.get_config_value(CONFIG_PLAY_VIDEO) == 0 &&
+      config.get_config_value(CONFIG_PLAY_TEXT) == 0) {
     ShowMessage("Hey Dummy", "You have both audio and video disabled");
     return;
   }
@@ -873,6 +874,16 @@ static void on_media_play_audio (GtkWidget *window, gpointer data)
   }
 }
 
+static void on_media_play_text (GtkWidget *window, gpointer data)
+{
+  GtkCheckMenuItem *checkmenu;
+  checkmenu = GTK_CHECK_MENU_ITEM(window);
+
+  config.set_config_value(CONFIG_PLAY_TEXT, checkmenu->active);
+  if (psptr != NULL) {
+    ShowMessage("Warning", "Play text will not take effect until next session");
+  }
+}
 static void on_media_play_video (GtkWidget *window, gpointer data)
 {
   GtkCheckMenuItem *checkmenu;
@@ -1641,6 +1652,11 @@ int main (int argc, char **argv)
 			     NULL,
 			     config.get_config_value(CONFIG_PLAY_AUDIO));
 
+  menuitem = CreateMenuCheck(menu, 
+			     "Play Text", 
+			     GTK_SIGNAL_FUNC(on_media_play_text),
+			     NULL,
+			     config.get_config_value(CONFIG_PLAY_TEXT));
   menuitem = CreateMenuCheck(menu, 
 			     "Play Video", 
 			     GTK_SIGNAL_FUNC(on_media_play_video),

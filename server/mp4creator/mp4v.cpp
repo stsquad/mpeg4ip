@@ -25,7 +25,7 @@
  */
 
 //#define DEBUG_MP4V 1
-
+//#define DEBUG_MP4V_TS 1
 /*
  * Notes:
  *  - file formatted with tabstops == 4 spaces
@@ -580,7 +580,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
       mpeg4_frame_t *fr = head->next; // skip the first one
       for (MP4SampleId ix = 2; ix <= maxSamples; ix++) {
 	if (fr->vopType != VOP_TYPE_B) {
-#if 1
+#ifdef DEBUG_MP4V_TS
             printf("sample %u %u renderingOffset "U64"\n",
 		   refVopId, fr->vopType, fr->frameTimestamp - refVopTime);
 #endif
@@ -592,9 +592,9 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
 	fr = fr->next;
       }
       
-#if 1
-            printf("sample %u %u renderingOffset "U64"\n",
-		   refVopId, fr->vopType, fr->frameTimestamp - refVopTime);
+#ifdef DEBUG_MP4V_TS
+      printf("sample %u %u renderingOffset "U64"\n",
+	     refVopId, fr->vopType, fr->frameTimestamp - refVopTime);
 #endif
       MP4SetSampleRenderingOffset(mp4File, trackId, refVopId, 
 				  fr->frameTimestamp - refVopTime);

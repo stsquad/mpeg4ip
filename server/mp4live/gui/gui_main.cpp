@@ -330,8 +330,8 @@ void MainWindowDisplaySources (void)
   gtk_label_set_text(GTK_LABEL(temp), buffer);
 #endif
 }
-static const char *add_profile_string = "Add";
-static const char *customize_profile_string = "Customize";
+static const char *add_profile_string = "Add Profile";
+static const char *customize_profile_string = "Change Profile Settings";
 
 // load_profiles will create a menu of the profiles - in alphabetical
 // order.  Should only be called at start, and if a profile is added
@@ -944,7 +944,27 @@ static void
 on_about1_activate                     (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-  printf("on about active\n");
+  char buffer[1024];
+  snprintf(buffer, sizeof(buffer), 
+	   "mp4live %s %s\n"
+	   "\nAn open source live broadcaster\n"
+	   "\nDeveloped by Cisco Systems\n"
+	   "\nUsing open source packages:\n"
+	   "lame encoder\n"
+	   "faac encoder\n"
+	   "Xvid mpeg-4 encoder\n"
+	   "Ffmpeg encoder\n"
+	   "H.261 encoder from UC\n"
+	   "Glade interface designer\n"
+	   "\n2000 to present\n"
+	   ,
+#ifdef HAVE_LINUX_VIDEODEV2_H
+	   "V4L2",
+#else
+	   "V4L",
+#endif
+	   MPEG4IP_VERSION);
+  ShowMessage("About", buffer);
 }
 
 // Source Menu handlers
@@ -2035,6 +2055,8 @@ static GtkWidget *create_MainWindow (void)
   SourceOptionMenu = gtk_option_menu_new();
   gtk_widget_show(SourceOptionMenu);
   gtk_box_pack_start(GTK_BOX(hbox98), SourceOptionMenu, TRUE, FALSE, 0);
+  gtk_tooltips_set_tip(tooltips, SourceOptionMenu, 
+		       _("Change Source Settings"), NULL);
 
   menu14 = gtk_menu_new();
   Change = gtk_menu_item_new_with_mnemonic(_("Change Source"));
@@ -2388,7 +2410,7 @@ static GtkWidget *create_MainWindow (void)
                  (GtkAttachOptions)(0), 11, 0);
   gtk_tooltips_set_tip(tooltips, VideoTxAddrButton, _("Set Transmission Address"), NULL);
 
-  label5 = gtk_label_new(_("Video Stream"));
+  label5 = gtk_label_new(_("Video"));
   gtk_widget_show(label5);
   gtk_frame_set_label_widget(GTK_FRAME(VideoFrame), label5);
 
@@ -2452,7 +2474,7 @@ static GtkWidget *create_MainWindow (void)
                  (GtkAttachOptions)(0), 11, 0);
   gtk_tooltips_set_tip(tooltips, AudioTxAddrButton, _("Set Transmission Address"), NULL);
 
-  label9 = gtk_label_new(_("Audio Stream"));
+  label9 = gtk_label_new(_("Audio"));
   gtk_widget_show(label9);
   gtk_frame_set_label_widget(GTK_FRAME(AudioFrame), label9);
 
@@ -2517,7 +2539,7 @@ static GtkWidget *create_MainWindow (void)
                  (GtkAttachOptions)(0), 11, 0);
   gtk_tooltips_set_tip(tooltips, TextTxAddrButton, _("Set Transmission Address"), NULL);
 
-  label16 = gtk_label_new(_("Text Stream"));
+  label16 = gtk_label_new(_("Text"));
   gtk_widget_show(label16);
   gtk_frame_set_label_widget(GTK_FRAME(TextFrame), label16);
 #ifdef HAVE_TEXT_ENTRY

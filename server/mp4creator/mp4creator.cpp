@@ -321,8 +321,8 @@ int main(int argc, char** argv)
 	fprintf(stderr, "%s:no video profile specifed\n", ProgName);
 	exit(EXIT_COMMAND_LINE);
       }
-      if (sscanf(optarg, "%u", &VideoProfileLevel) != 1 ||
-	  (VideoProfileLevel < 0 || VideoProfileLevel > 3)) {
+      if (sscanf(optarg, "%i", &VideoProfileLevel) != 1 ||
+	  (VideoProfileLevel < 0 || VideoProfileLevel > MPEG4_FGSP_L5)) {
 	fprintf(stderr,
 		"%s: bad mpeg4 video profile level specified %d\n",
 		ProgName, VideoProfileLevel);
