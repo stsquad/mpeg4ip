@@ -4,7 +4,7 @@
 #else
 #undef PACKAGE
 #undef VERSION
-#include "../config.h"
+#include "../mpeg4ip_config.h"
 #endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

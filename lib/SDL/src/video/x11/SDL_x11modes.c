@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11modes.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11modes.c,v 1.6 2003/09/12 23:19:33 wmaycisco Exp $";
 #endif
 
 /* Utilities for getting and setting the X display mode */
@@ -85,9 +85,9 @@ static int cmpmodes(const void *va, const void *vb)
 {
     const SDL_NAME(XF86VidModeModeInfo) *a = *(const SDL_NAME(XF86VidModeModeInfo)**)va;
     const SDL_NAME(XF86VidModeModeInfo) *b = *(const SDL_NAME(XF86VidModeModeInfo)**)vb;
-    if(a->hdisplay > b->hdisplay)
+    if( (a->vdisplay > b->vdisplay) && (a->hdisplay >= b->hdisplay) )
         return -1;
-    return b->vdisplay - a->vdisplay;
+    return b->hdisplay - a->hdisplay;
 }
 #endif
 
@@ -100,23 +100,42 @@ static void set_best_resolution(_THIS, int width, int height)
         SDL_NAME(XF86VidModeModeLine) mode;
         SDL_NAME(XF86VidModeModeInfo) **modes;
         int i;
+        int best_width = 0, best_height = 0;
         int nmodes;
 
         if ( SDL_NAME(XF86VidModeGetModeLine)(SDL_Display, SDL_Screen, &i, &mode) &&
              SDL_NAME(XF86VidModeGetAllModeLines)(SDL_Display,SDL_Screen,&nmodes,&modes)){
-            qsort(modes, nmodes, sizeof *modes, cmpmodes);
 #ifdef XFREE86_DEBUG
-            printf("Available modes:\n");
+            printf("Available modes (unsorted):\n");
             for ( i = 0; i < nmodes; ++i ) {
-                printf("Mode %d: %dx%d\n", i,
-                        modes[i]->hdisplay, modes[i]->vdisplay);
+                printf("Mode %d: %d x %d @ %d\n", i,
+                        modes[i]->hdisplay, modes[i]->vdisplay,
+                        1000 * modes[i]->dotclock / (modes[i]->htotal *
+                        modes[i]->vtotal) );
             }
 #endif
-            for ( i = nmodes-1; i > 0 ; --i ) {
-                if ( (modes[i]->hdisplay >= width) &&
-                     (modes[i]->vdisplay >= height) )
-                    break;
+            for ( i = 0; i < nmodes ; i++ ) {
+                if ( (modes[i]->hdisplay == width) &&
+                     (modes[i]->vdisplay == height) )
+                    goto match;
             }
+            qsort(modes, nmodes, sizeof *modes, cmpmodes);
+            for ( i = nmodes-1; i >= 0 ; i-- ) {
+		if ( ! best_width ) {
+                    if ( (modes[i]->hdisplay >= width) &&
+                         (modes[i]->vdisplay >= height) ) {
+                        best_width = modes[i]->hdisplay;
+                        best_height = modes[i]->vdisplay;
+                    }
+                } else {
+                    if ( (modes[i]->hdisplay != best_width) ||
+                         (modes[i]->vdisplay != best_height) ) {
+                        i++;
+                        break;
+                    }
+                }
+            }
+       match:
             if ( (modes[i]->hdisplay != mode.hdisplay) ||
                  (modes[i]->vdisplay != mode.vdisplay) ) {
                 SDL_NAME(XF86VidModeSwitchToMode)(SDL_Display, SDL_Screen, modes[i]);
@@ -304,8 +323,8 @@ int X11_GetVideoModes(_THIS)
             fclose(metro_fp);
         }
     }
-#if defined(__alpha__) || defined(__powerpc__)
-    /* The alpha and PPC XFree86 servers are also buggy */
+#if defined(__alpha__) || defined(__sparc64__) || defined(__powerpc__)
+    /* The alpha, sparc64 and PPC XFree86 servers are also buggy */
     buggy_X11 = 1;
 #endif
     /* Enumerate the available fullscreen modes */
@@ -331,6 +350,16 @@ int X11_GetVideoModes(_THIS)
     }
     if ( ! buggy_X11 &&
          SDL_NAME(XF86VidModeGetAllModeLines)(SDL_Display, SDL_Screen,&nmodes,&modes) ) {
+
+#ifdef XFREE86_DEBUG
+        printf("Available modes: (sorted)\n");
+        for ( i = 0; i < nmodes; ++i ) {
+            printf("Mode %d: %d x %d @ %d\n", i,
+                    modes[i]->hdisplay, modes[i]->vdisplay,
+                    1000 * modes[i]->dotclock / (modes[i]->htotal *
+                    modes[i]->vtotal) );
+        }
+#endif
 
         qsort(modes, nmodes, sizeof *modes, cmpmodes);
         SDL_modelist = (SDL_Rect **)malloc((nmodes+2)*sizeof(SDL_Rect *));

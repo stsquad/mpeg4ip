@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_xbios.c,v 1.2 2002/10/07 21:21:49 wmaycisco Exp $";
+ "@(#) $Id: SDL_xbios.c,v 1.3 2003/09/12 23:19:33 wmaycisco Exp $";
 #endif
 
 /*
@@ -38,7 +38,7 @@ static char rcsid =
 #include <unistd.h>
 
 /* Mint includes */
-#include <sys/cookie.h>
+#include <mint/cookie.h>
 #include <mint/osbind.h>
 #include <mint/falcon.h>
 
@@ -131,13 +131,7 @@ static unsigned long	F30_palette[256];
 
 static int XBIOS_Available(void)
 {
-	const char *envr = getenv("SDL_VIDEODRIVER");
 	unsigned long cookie_vdo;
-
-	/* Check if user asked a different video driver */
-	if ((envr) && (strcmp(envr, XBIOS_VID_DRIVER_NAME)!=0)) {
-		return 0;
-	}
 
 	/* Cookie _VDO present ? if not, assume ST machine */
 	if (Getcookie(C__VDO, &cookie_vdo) != C_FOUND) {

@@ -41,18 +41,18 @@ Revision History:
 
 #include "basic.hpp"
 #include "quant.hpp"
-#include "ac.hpp"
+#include "../zte/ac.hpp"
 //#include "context.hpp"
-#include "dwt.h"
+#include "../wavelet/dwt.h"
 
 /* for bilevel mode */
-#include "PEZW_ac.hpp"
-#include "wvtPEZW.hpp"
-#include "PEZW_zerotree.hpp"
-#include "PEZW_mpeg4.hpp"
+#include "../pezw/PEZW_ac.hpp"
+#include "../pezw/wvtPEZW.hpp"
+#include "../pezw/PEZW_zerotree.hpp"
+#include "../pezw/PEZW_mpeg4.hpp"
 /* for shape coding added by SL@Sarnoff (03/03/99)*/
-#include "ShapeBaseCommon.hpp"
-#include "BinArCodec.hpp"
+#include "../shape/ShapeBaseCommon.hpp"
+#include "../shape/BinArCodec.hpp"
 
 #ifdef DATA
 #undef DATA

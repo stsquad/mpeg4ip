@@ -26,6 +26,7 @@
 */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "SDL_video.h"
 #include "SDL_pixels_c.h"
@@ -505,6 +506,7 @@ static int NX_SetGammaRamp (_THIS, Uint16 * ramp)
         GammaRamp_G [i] = green [i] ;
         GammaRamp_B [i] = blue  [i] ;
     }
+    SDL_UpdateRect(this->screen, 0, 0, 0, 0);
 
     Dprintf ("leave NX_SetGammaRamp\n") ;   
     return 0 ;

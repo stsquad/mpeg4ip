@@ -824,6 +824,12 @@ void MP4File::SetBytesProperty(const char* name,
 
 MP4TrackId MP4File::AddTrack(const char* type, u_int32_t timeScale)
 {
+#if 0
+        ismacryp_rc_t rc = error1;
+        ismacryp_session_id_t mySession1 = 7;
+        rc=ismacrypInitSession(&mySession1);
+#endif
+
 	ProtectWriteOperation("AddTrack");
 
 	// create and add new trak atom
@@ -1155,7 +1161,7 @@ MP4TrackId MP4File::AddAudioTrack(
 	return trackId;
 }
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale, 
 				     MP4Duration sampleDuration, 
 				     u_int8_t audioType,
@@ -1332,7 +1338,7 @@ MP4TrackId MP4File::AddVideoTrack(
 	return trackId;
 }
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 MP4TrackId MP4File::AddEncVideoTrack(u_int32_t timeScale, 
 				     MP4Duration sampleDuration, 
 				     u_int16_t width, 

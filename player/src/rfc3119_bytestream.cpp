@@ -21,7 +21,7 @@
 /*
  * rfc3119_bytestream.cpp - an implemention of rfc 3119
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <rtp/rtp.h>
 #include <rtp/memory.h>
 #include <sdp/sdp.h> // for NTP_TO_UNIX_TIME

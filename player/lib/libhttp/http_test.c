@@ -22,7 +22,7 @@
 /*
  * http_test - provide test harness for libhttp.
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "http.h"
 
 int main (int argc, char **argv)

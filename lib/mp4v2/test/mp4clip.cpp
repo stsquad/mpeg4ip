@@ -232,7 +232,6 @@ void ClipTrack(
 			srcFile,
 			trackId,
 			dstFile,
-			MP4_COPY_SAMPLES,
 			true);
 
 		MP4DeleteTrackEdit(

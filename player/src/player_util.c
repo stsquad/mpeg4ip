@@ -22,7 +22,7 @@
  * player_util.c - utility routines for output
  */
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #ifndef _WIN32
 #include <time.h>
 #include <sys/time.h>

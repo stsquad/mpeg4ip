@@ -24,7 +24,6 @@
 #ifndef __MPEG4_H__
 #define __MPEG4_H__ 1
 
-#include <systems.h>
 #include <codec_plugin.h>
 #include <fposrec/fposrec.h>
 #define DECODE_STATE_VOL_SEARCH 0

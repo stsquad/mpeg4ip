@@ -125,6 +125,9 @@ public:
 	Duration GetDuration(void) {
 		return m_duration;
 	}
+	void SetDuration(Duration d) {
+		m_duration = d;
+	}
 	u_int32_t GetDurationScale(void) {
 		return m_durationScale;
 	}

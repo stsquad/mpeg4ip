@@ -21,7 +21,7 @@
 /*
  * avi_bytestream.cpp - convert quicktime file to a bytestream
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "avi_bytestream.h"
 #include "player_util.h"
 

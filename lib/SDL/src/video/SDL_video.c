@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.c,v 1.5 2002/10/07 21:21:42 wmaycisco Exp $";
+ "@(#) $Id: SDL_video.c,v 1.6 2003/09/12 23:19:24 wmaycisco Exp $";
 #endif
 
 /* The high-level video driver subsystem */
@@ -54,6 +54,9 @@ static VideoBootStrap *bootstrap[] = {
 #ifdef ENABLE_NANOX
 	&NX_bootstrap,
 #endif
+#ifdef ENABLE_QTOPIA
+	&Qtopia_bootstrap,
+#endif
 #ifdef ENABLE_FBCON
 	&FBCON_bootstrap,
 #endif
@@ -73,7 +76,7 @@ static VideoBootStrap *bootstrap[] = {
 	&SVGALIB_bootstrap,
 #endif
 #ifdef ENABLE_AALIB
-    &AALIB_bootstrap,
+	&AALIB_bootstrap,
 #endif
 #ifdef ENABLE_DIRECTX
 	&DIRECTX_bootstrap,
@@ -102,23 +105,23 @@ static VideoBootStrap *bootstrap[] = {
 #ifdef ENABLE_EPOC
 	&EPOC_bootstrap,
 #endif
-#ifdef ENABLE_DUMMYVIDEO
-	&DUMMY_bootstrap,
-#endif
 #ifdef ENABLE_XBIOS
 	&XBIOS_bootstrap,
 #endif
 #ifdef ENABLE_GEM
 	&GEM_bootstrap,
 #endif
-#ifdef ENABLE_QTOPIA
-	&Qtopia_bootstrap,
-#endif
 #ifdef ENABLE_PICOGUI
 	&PG_bootstrap,
 #endif
 #ifdef ENABLE_DC
 	&DC_bootstrap,
+#endif
+#ifdef ENABLE_RISCOS
+    &RISCOS_bootstrap,
+#endif
+#ifdef ENABLE_DUMMYVIDEO
+	&DUMMY_bootstrap,
 #endif
 	NULL
 };
@@ -230,6 +233,8 @@ int SDL_VideoInit (const char *driver_name, Uint32 flags)
 	video->gl_config.accum_blue_size = 0;
 	video->gl_config.accum_alpha_size = 0;
 	video->gl_config.stereo = 0;
+	video->gl_config.multisamplebuffers = 0;
+	video->gl_config.multisamplesamples = 0;
 	
 	/* Initialize the video subsystem */
 	memset(&vformat, 0, sizeof(vformat));
@@ -255,7 +260,7 @@ int SDL_VideoInit (const char *driver_name, Uint32 flags)
        */
 	/* If we have a palettized surface, create a default palette */
 	if ( SDL_VideoSurface->format->palette ) {
-	        SDL_PixelFormat *vf = SDL_VideoSurface->format;
+		SDL_PixelFormat *vf = SDL_VideoSurface->format;
 		SDL_DitherColors(vf->palette->colors, vf->BitsPerPixel);
 		video->SetColors(video,
 				 0, vf->palette->ncolors, vf->palette->colors);
@@ -628,7 +633,7 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 		video->physpal = NULL;
 	}
 	if( video->gammacols) {
-	        free(video->gammacols);
+		free(video->gammacols);
 		video->gammacols = NULL;
 	}
 
@@ -647,7 +652,7 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 	    if ( is_opengl && !(mode->flags & SDL_OPENGL) ) {
 		mode = NULL;
 	    }
-        }
+	}
 	/*
 	 * rcg11292000
 	 * If you try to set an SDL_OPENGL surface, and fail to find a
@@ -670,7 +675,7 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 
 		/* If we have a palettized surface, create a default palette */
 		if ( mode->format->palette ) {
-	        	SDL_PixelFormat *vf = mode->format;
+			SDL_PixelFormat *vf = mode->format;
 			SDL_DitherColors(vf->palette->colors, vf->BitsPerPixel);
 			video->SetColors(this, 0, vf->palette->ncolors,
 			                           vf->palette->colors);
@@ -719,6 +724,26 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 	SDL_WM_GrabInput(saved_grab);
 	SDL_GetRelativeMouseState(NULL, NULL); /* Clear first large delta */
 
+#ifdef HAVE_OPENGL
+	/* Load GL symbols (before MakeCurrent, where we need glGetString). */
+	if ( flags & (SDL_OPENGL | SDL_OPENGLBLIT) ) {
+#ifndef __QNXNTO__
+#define SDL_PROC(ret,func,params) \
+do { \
+	video->func = SDL_GL_GetProcAddress(#func); \
+	if ( ! video->func ) { \
+		SDL_SetError("Couldn't load GL function: %s\n", #func); \
+		return(NULL); \
+	} \
+} while ( 0 );
+#else
+#define SDL_PROC(ret,func,params) video->func=func;
+#endif /* __QNXNTO__ */
+#include "SDL_glfuncs.h"
+#undef SDL_PROC	
+	}
+#endif
+
 	/* If we're running OpenGL, make the context current */
 	if ( (video->screen->flags & SDL_OPENGL) &&
 	      video->GL_MakeCurrent ) {
@@ -731,16 +756,6 @@ SDL_Surface * SDL_SetVideoMode (int width, int height, int bpp, Uint32 flags)
 	if ( (flags & SDL_OPENGLBLIT) == SDL_OPENGLBLIT ) {
 		/* Load GL functions for performing the texture updates */
 #ifdef HAVE_OPENGL
-#define SDL_PROC(ret,func,params) \
-do { \
-	video->func = SDL_GL_GetProcAddress(#func); \
-	if ( ! video->func ) { \
-		SDL_SetError("Couldn't load GL function: %s\n", #func); \
-		return(NULL); \
-	} \
-} while ( 0 );
-#include "SDL_glfuncs.h"
-#undef SDL_PROC	
 
 		/* Create a software surface for blitting */
 #ifdef GL_VERSION_1_2
@@ -794,7 +809,7 @@ do { \
 		/* Free the original video mode surface (is this safe?) */
 		SDL_FreeSurface(mode);
 
-                /* Set the surface completely opaque & white by default */
+		/* Set the surface completely opaque & white by default */
 		memset( SDL_VideoSurface->pixels, 255, SDL_VideoSurface->h * SDL_VideoSurface->pitch );
 		video->glGenTextures( 1, &video->texture );
 		video->glBindTexture( GL_TEXTURE_2D, video->texture );
@@ -836,7 +851,10 @@ do { \
 		   as soon as they are performed, so we need to buffer them
 		 */
 	     (   ((flags&SDL_HWSURFACE) == SDL_SWSURFACE) &&
-				(SDL_VideoSurface->flags&SDL_HWSURFACE))
+				(SDL_VideoSurface->flags&SDL_HWSURFACE)) ||
+	     (   (flags&SDL_DOUBLEBUF) &&
+				(SDL_VideoSurface->flags&SDL_HWSURFACE) &&
+				!(SDL_VideoSurface->flags&SDL_DOUBLEBUF))
 	     ) ) {
 		SDL_CreateShadowSurface(bpp);
 		if ( SDL_ShadowSurface == NULL ) {
@@ -1079,17 +1097,17 @@ int SDL_Flip(SDL_Surface *screen)
 static void SetPalette_logical(SDL_Surface *screen, SDL_Color *colors,
 			       int firstcolor, int ncolors)
 {
-        SDL_Palette *pal = screen->format->palette;
+	SDL_Palette *pal = screen->format->palette;
 	SDL_Palette *vidpal;
 
 	if ( colors != (pal->colors + firstcolor) ) {
-	        memcpy(pal->colors + firstcolor, colors,
+		memcpy(pal->colors + firstcolor, colors,
 		       ncolors * sizeof(*colors));
 	}
 
 	vidpal = SDL_VideoSurface->format->palette;
 	if ( (screen == SDL_ShadowSurface) && vidpal ) {
-	        /*
+		/*
 		 * This is a shadow surface, and the physical
 		 * framebuffer is also indexed. Propagate the
 		 * changes to its logical palette so that
@@ -1156,8 +1174,8 @@ static int SetPalette_physical(SDL_Surface *screen,
 	if ( screen == SDL_VideoSurface ) {
 		SDL_Color gcolors[256];
 
-	        if ( video->gamma ) {
-		        SDL_ApplyGamma(video->gamma, colors, gcolors, ncolors);
+		if ( video->gamma ) {
+			SDL_ApplyGamma(video->gamma, colors, gcolors, ncolors);
 			colors = gcolors;
 		}
 		gotall = video->SetColors(video, firstcolor, ncolors, colors);
@@ -1185,7 +1203,7 @@ static int SetPalette_physical(SDL_Surface *screen,
 int SDL_SetPalette(SDL_Surface *screen, int which,
 		   SDL_Color *colors, int firstcolor, int ncolors)
 {
-        SDL_Palette *pal;
+	SDL_Palette *pal;
 	int gotall;
 	int palsize;
 
@@ -1193,22 +1211,22 @@ int SDL_SetPalette(SDL_Surface *screen, int which,
 		return 0;
 	}
 	if ( screen != SDL_PublicSurface ) {
-	        /* only screens have physical palettes */
-	        which &= ~SDL_PHYSPAL;
+		/* only screens have physical palettes */
+		which &= ~SDL_PHYSPAL;
 	} else if( (screen->flags & SDL_HWPALETTE) != SDL_HWPALETTE ) {
-	        /* hardware palettes required for split colormaps */
-	        which |= SDL_PHYSPAL | SDL_LOGPAL;
+		/* hardware palettes required for split colormaps */
+		which |= SDL_PHYSPAL | SDL_LOGPAL;
 	}
 
 	/* Verify the parameters */
 	pal = screen->format->palette;
 	if( !pal ) {
-	        return 0;	/* not a palettized surface */
+		return 0;	/* not a palettized surface */
 	}
 	gotall = 1;
 	palsize = 1 << screen->format->BitsPerPixel;
 	if ( ncolors > (palsize - firstcolor) ) {
-	        ncolors = (palsize - firstcolor);
+		ncolors = (palsize - firstcolor);
 		gotall = 0;
 	}
 
@@ -1219,20 +1237,20 @@ int SDL_SetPalette(SDL_Surface *screen, int which,
 		 * interpretation of the pixel values (for blits etc) is
 		 * changed.
 		 */
-	        SetPalette_logical(screen, colors, firstcolor, ncolors);
+		SetPalette_logical(screen, colors, firstcolor, ncolors);
 	}
 	if ( which & SDL_PHYSPAL ) {
 		SDL_VideoDevice *video = current_video;
-	        /*
+		/*
 		 * Physical palette change: This doesn't affect the
 		 * program's idea of what the screen looks like, but changes
 		 * its actual appearance.
 		 */
-	        if(!video)
-		        return gotall;	/* video not yet initialized */
+		if(!video)
+			return gotall;	/* video not yet initialized */
 		if(!video->physpal && !(which & SDL_LOGPAL) ) {
 			/* Lazy physical palette allocation */
-		        int size;
+			int size;
 			SDL_Palette *pp = malloc(sizeof(*pp));
 			current_video->physpal = pp;
 			pp->ncolors = pal->ncolors;
@@ -1251,7 +1269,7 @@ int SDL_SetPalette(SDL_Surface *screen, int which,
 int SDL_SetColors(SDL_Surface *screen, SDL_Color *colors, int firstcolor,
 		  int ncolors)
 {
-        return SDL_SetPalette(screen, SDL_LOGPAL | SDL_PHYSPAL,
+	return SDL_SetPalette(screen, SDL_LOGPAL | SDL_PHYSPAL,
 			      colors, firstcolor, ncolors);
 }
 
@@ -1384,8 +1402,8 @@ int SDL_GL_SetAttribute( SDL_GLattr attr, int value )
 		case SDL_GL_DOUBLEBUFFER:
 			video->gl_config.double_buffer = value;
 			break;
-        	case SDL_GL_BUFFER_SIZE:
-	        	video->gl_config.buffer_size = value;
+		case SDL_GL_BUFFER_SIZE:
+			video->gl_config.buffer_size = value;
 			break;
 		case SDL_GL_DEPTH_SIZE:
 			video->gl_config.depth_size = value;
@@ -1407,6 +1425,12 @@ int SDL_GL_SetAttribute( SDL_GLattr attr, int value )
 			break;
 		case SDL_GL_STEREO:
 			video->gl_config.stereo = value;
+			break;
+		case SDL_GL_MULTISAMPLEBUFFERS:
+			video->gl_config.multisamplebuffers = value;
+			break;
+		case SDL_GL_MULTISAMPLESAMPLES:
+			video->gl_config.multisamplesamples = value;
 			break;
 		default:
 			SDL_SetError("Unknown OpenGL attribute");
@@ -1640,8 +1664,9 @@ void SDL_WM_GetCaption (char **title, char **icon)
 	}
 }
 
-/* Utility function used by SDL_WM_SetIcon() */
-static void CreateMaskFromColorKey(SDL_Surface *icon, Uint8 *mask)
+/* Utility function used by SDL_WM_SetIcon();
+ * flags & 1 for color key, flags & 2 for alpha channel. */
+static void CreateMaskFromColorKeyOrAlpha(SDL_Surface *icon, Uint8 *mask, int flags)
 {
 	int x, y;
 	Uint32 colorkey;
@@ -1667,9 +1692,12 @@ static void CreateMaskFromColorKey(SDL_Surface *icon, Uint8 *mask)
 				pixels = (Uint16 *)icon->pixels +
 				                   y*icon->pitch/2;
 				for ( x=0; x<icon->w; ++x ) {
-					if ( *pixels++ == colorkey ) {
+					if ( (flags & 1) && *pixels == colorkey ) {
+						SET_MASKBIT(icon, x, y, mask);
+					} else if((flags & 2) && (*pixels & icon->format->Amask) == 0) {
 						SET_MASKBIT(icon, x, y, mask);
 					}
+					pixels++;
 				}
 			}
 		}
@@ -1680,9 +1708,12 @@ static void CreateMaskFromColorKey(SDL_Surface *icon, Uint8 *mask)
 				pixels = (Uint32 *)icon->pixels +
 				                   y*icon->pitch/4;
 				for ( x=0; x<icon->w; ++x ) {
-					if ( *pixels++ == colorkey ) {
+					if ( (flags & 1) && *pixels == colorkey ) {
+						SET_MASKBIT(icon, x, y, mask);
+					} else if((flags & 2) && (*pixels & icon->format->Amask) == 0) {
 						SET_MASKBIT(icon, x, y, mask);
 					}
+					pixels++;
 				}
 			}
 		}
@@ -1702,13 +1733,16 @@ void SDL_WM_SetIcon (SDL_Surface *icon, Uint8 *mask)
 		/* Generate a mask if necessary, and create the icon! */
 		if ( mask == NULL ) {
 			int mask_len = icon->h*(icon->w+7)/8;
+			int flags = 0;
 			mask = (Uint8 *)malloc(mask_len);
 			if ( mask == NULL ) {
 				return;
 			}
 			memset(mask, ~0, mask_len);
-			if ( icon->flags & SDL_SRCCOLORKEY ) {
-				CreateMaskFromColorKey(icon, mask);
+			if ( icon->flags & SDL_SRCCOLORKEY ) flags |= 1;
+			if ( icon->flags & SDL_SRCALPHA ) flags |= 2;
+			if( flags ) {
+				CreateMaskFromColorKeyOrAlpha(icon, mask, flags);
 			}
 			video->SetIcon(video, icon, mask);
 			free(mask);

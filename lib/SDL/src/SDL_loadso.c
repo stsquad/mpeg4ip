@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_loadso.c,v 1.1 2002/05/01 17:40:33 wmaycisco Exp $";
+ "@(#) $Id: SDL_loadso.c,v 1.2 2003/09/12 23:19:08 wmaycisco Exp $";
 #endif
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -40,6 +40,9 @@ static char rcsid =
 # include <Strings.h>
 # include <CodeFragments.h>
 # include <Errors.h>
+#elif defined(__MINT__) && defined(ENABLE_LDG)
+# include <gem.h>
+# include <ldg.h>
 #else
 /*#error Unsupported dynamic link environment*/
 #endif /* system type */
@@ -113,6 +116,9 @@ void *SDL_LoadObject(const char *sofile)
 	if ( loaderror == NULL ) {
 		handle = (void *)(library_id);
 	}
+#elif defined(__MINT__) && defined(ENABLE_LDG)
+/* * */
+	handle = (void *)ldg_open((char *)sofile, ldg_global);
 #endif /* system type */
 
 	if ( handle == NULL ) {
@@ -163,6 +169,9 @@ void *SDL_LoadFunction(void *handle, const char *name)
 	                (char **)&symbol, &class) != noErr ) {
 		loaderror = "Symbol not found";
 	}
+#elif defined(__MINT__) && defined(ENABLE_LDG)
+/* * */
+	symbol = (void *)ldg_find((char *)name, (LDG *)handle);
 #endif /* system type */
 
 	if ( symbol == NULL ) {
@@ -175,6 +184,8 @@ void SDL_UnloadObject(void *handle)
 {
 #if defined(__BEOS__)
 	image_id library_id;
+#elif defined(macintosh)
+	CFragConnectionID library_id;
 #endif
 	if ( handle == NULL ) {
 		return;
@@ -191,7 +202,10 @@ void SDL_UnloadObject(void *handle)
 	unload_add_on(library_id);
 #elif defined(macintosh)
 /* * */
-	CFragConnectionID library_id = (CFragConnectionID)handle;
-	CloseConnection(library_id);
+	library_id = (CFragConnectionID)handle;
+	CloseConnection(&library_id);
+#elif defined(__MINT__) && defined(ENABLE_LDG)
+/* * */
+	ldg_close((LDG *)handle, ldg_global);
 #endif /* system type */
 }

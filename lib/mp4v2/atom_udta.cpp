@@ -26,6 +26,7 @@ MP4UdtaAtom::MP4UdtaAtom()
 {
 	ExpectChildAtom("cprt", Optional, Many);
 	ExpectChildAtom("hnti", Optional, OnlyOne);
+	ExpectChildAtom("meta", Optional, OnlyOne);
 }
 
 void MP4UdtaAtom::Read() 

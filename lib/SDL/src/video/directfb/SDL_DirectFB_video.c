@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_DirectFB_video.c,v 1.3 2002/10/07 21:21:43 wmaycisco Exp $";
+ "@(#) $Id: SDL_DirectFB_video.c,v 1.4 2003/09/12 23:19:28 wmaycisco Exp $";
 #endif
 
 /* DirectFB video driver implementation.
@@ -394,7 +394,7 @@ int DirectFB_VideoInit(_THIS, SDL_PixelFormat *vformat)
       goto error;
     }
 
-  ret = dfb->CreateEventBuffer (dfb, DICAPS_ALL, &events);
+  ret = dfb->CreateInputEventBuffer (dfb, DICAPS_ALL, DFB_FALSE, &events);
   if (ret)
     {
       SetDirectFBerror ("dfb->CreateEventBuffer", ret);

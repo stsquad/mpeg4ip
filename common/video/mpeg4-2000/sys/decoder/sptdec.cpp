@@ -37,7 +37,9 @@ Revision History:
 *************************************************************************/
 #include <stdio.h>
 #include <fstream.h>
+#ifndef _WIN32
 #include <strstream.h>
+#endif
 #include <math.h>
 
 #include "typeapi.h"

@@ -24,7 +24,7 @@
  * player_session.cpp - describes player session class, which is the
  * main access point for the player
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "player_session.h"
 #include "player_media.h"
 #include "player_sdp.h"

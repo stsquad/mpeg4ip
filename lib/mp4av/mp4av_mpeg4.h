@@ -29,6 +29,7 @@
 #define MP4AV_MPEG4_VO_START	0xB5
 #define MP4AV_MPEG4_VOP_START	0xB6
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -87,13 +88,11 @@ bool MP4AV_Mpeg4ParseVop(
 	u_int16_t timeTicks, 
 	u_int32_t* pVopTimeIncrement);
 
-u_int8_t MP4AV_Mpeg4VideoToSystemsProfileLevel(
-	u_int8_t videoProfileLevel);
-
 u_char MP4AV_Mpeg4GetVopType(
 	u_int8_t* pVopBuf, 
 	u_int32_t vopSize);
 
+  const char *MP4AV_Mpeg4VisualProfileName (uint8_t profile);
 #ifdef __cplusplus
 }
 #endif

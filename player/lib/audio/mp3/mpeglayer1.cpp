@@ -6,7 +6,7 @@
 // It's for MPEG Layer 1
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "mpeg4ip_config.h"
 #endif
 
 #include "MPEGaudio.h"

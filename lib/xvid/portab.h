@@ -3,7 +3,7 @@
 
 #if defined(WIN32)
 
-#include "systems.h"
+#include "mpeg4ip.h"
 
 #define DEBUGCBR(A,B,C) { char tmp[100]; wsprintf(tmp, "CBR: frame: %i, quant: %i, deviation: %i\n", (A), (B), (C)); OutputDebugString(tmp); }
 
@@ -78,7 +78,7 @@ static __inline int64_t read_counter() {
 #define CACHE_LINE  16
 
 #if defined(LINUX) || defined(__linux__) || defined(__bsdi__) || defined(__FreeBSD__)
-#include "systems.h"
+#include "mpeg4ip.h"
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #endif

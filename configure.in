@@ -1,12 +1,12 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT()
-AM_CONFIG_HEADER(config.h)
+AM_CONFIG_HEADER(mpeg4ip_config.h)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.9.1)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.9.2)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
@@ -72,6 +72,7 @@ AC_DEFUN(MY_CHECK_TYPEDEF_FROM_INCLUDE,
       $3
       AC_MSG_RESULT([yes])
    else
+      $4
       AC_MSG_RESULT([no])
    fi
 ])
@@ -159,19 +160,19 @@ esac],
 [player=true])
 AM_CONDITIONAL(PLAYER, test $player = true)
 
-AC_ARG_ENABLE(ismacrypt,
-[  --enable-ismacrypt    enable build of ISMA crypt],, enable_ismacrypt=no)
+AC_ARG_ENABLE(ismacryp,
+[  --enable-ismacryp    enable build of ismacryp ],, enable_ismacryp=no)
 
-if test x$enable_ismacrypt != xno; then
-   ISMACRYPTLIB=${enable_ismacrypt}/libismacryp.la
-   ISMACRYPTINC=-I${enable_ismacrypt}
-   AC_SUBST(ISMACRYPTLIB)
-   AC_SUBST(ISMACRYPTINC)
-   CFLAGS="$CFLAGS -DISMACRYPT"
-   CXXFLAGS="$CXXFLAGS -DISMACRYPT"
-   AC_MSG_NOTICE([enabling ISMAcrypt - directory ${enable_ismacrypt}])
+if test x$enable_ismacryp != xno; then
+   ISMACRYPLIB=${enable_ismacryp}/libismacryp.la
+   ISMACRYPINC=-I${enable_ismacryp}
+   AC_SUBST(ISMACRYPLIB)
+   AC_SUBST(ISMACRYPINC)
+   CFLAGS="$CFLAGS -DISMACRYP"
+   CXXFLAGS="$CXXFLAGS -DISMACRYP"
+   AC_MSG_NOTICE([enabling ismacryp - directory ${enable_ismacryp}])
 else
-  AC_MSG_NOTICE([no ismacrypt])
+  AC_MSG_NOTICE([no ismacryp])
 fi
 
 AC_ARG_ENABLE(mp4live,
@@ -181,6 +182,11 @@ AC_ARG_ENABLE(mp4live,
 		case "$target" in
 		*-*-linux*)
 			AM_CONDITIONAL(MP4LIVE, true)
+                        AC_CHECK_HEADERS(linux/videodev2.h,
+                                        [AM_CONDITIONAL(HAVE_V4L2, true)],
+                                        [AM_CONDITIONAL(HAVE_V4L2, false)],
+                                        [#include <sys/time.h>
+ #include <linux/videodev.h>])
 			;;
 		*)
 			AM_CONDITIONAL(MP4LIVE, false)
@@ -472,4 +478,5 @@ AC_OUTPUT( \
 	util/Makefile \
 	util/iptv/Makefile \
 	util/yuv/Makefile \
+	mpeg4ip-config
 )

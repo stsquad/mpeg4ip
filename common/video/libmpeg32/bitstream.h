@@ -1,7 +1,7 @@
 #ifndef BITSTREAM_H
 #define BITSTREAM_H
 
-#include <systems.h>
+#include <mpeg4ip.h>
 
 //                                    next bit in forward direction
 //                                  next bit in reverse direction |

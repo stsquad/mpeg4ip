@@ -21,7 +21,7 @@
 /*
  * player_media.cpp - handle generic information about a stream
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "player_session.h"
 #include "player_media.h"
 #include "player_sdp.h"

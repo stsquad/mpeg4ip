@@ -64,8 +64,7 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 			0x00, 0x00, 0x01, MP4AV_MPEG4_VOSH_START 
 		};
 		if (configSize >= 5 && !memcmp(pConfig, voshStartCode, 4)) {
-			systemsProfileLevel = 
-				MP4AV_Mpeg4VideoToSystemsProfileLevel(pConfig[4]);
+			systemsProfileLevel = pConfig[4];
 		} 
 		if (systemsProfileLevel == 0xFE) {
 			u_int8_t iodProfileLevel = MP4GetVideoProfileLevel(mp4File);

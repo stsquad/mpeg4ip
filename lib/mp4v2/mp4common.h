@@ -46,7 +46,7 @@
 #include "odcommands.h"
 
 #include "rtphint.h"
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 #include <ismacryplib.h>
 #endif
 

@@ -1,4 +1,4 @@
-# Makefile.in generated automatically by automake 1.4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4a from Makefile.am
 
 # Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
@@ -46,9 +46,10 @@ AUTOMAKE = @AUTOMAKE@
 AUTOHEADER = @AUTOHEADER@
 
 INSTALL = @INSTALL@
-INSTALL_PROGRAM = @INSTALL_PROGRAM@ $(AM_INSTALL_PROGRAM_FLAGS)
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_STRIP_FLAG =
 transform = @program_transform_name@
 
 NORMAL_INSTALL = :
@@ -71,7 +72,7 @@ VERSION = @VERSION@
 
 AUTOMAKE_OPTIONS = no-dependencies
 
-noinst_PROGRAMS =  	testver testtypes testhread testlock testerror testsem testtimer 	loopwave testcdrom testkeys testvidinfo checkkeys testwin graywin 	testsprite testbitmap testalpha testgamma testpalette testwm 	threadwin testoverlay testgl testjoystick
+noinst_PROGRAMS =  	testver testtypes testhread testlock testerror testsem testtimer 	loopwave testcdrom testkeys testvidinfo checkkeys testwin graywin 	testsprite testbitmap testalpha testgamma testpalette testwm 	threadwin testoverlay testoverlay2 testgl testjoystick
 
 
 testalpha_SOURCES = testalpha.c
@@ -200,6 +201,11 @@ testoverlay_OBJECTS =  testoverlay.o
 testoverlay_LDADD = $(LDADD)
 testoverlay_DEPENDENCIES = 
 testoverlay_LDFLAGS = 
+testoverlay2_SOURCES = testoverlay2.c
+testoverlay2_OBJECTS =  testoverlay2.o
+testoverlay2_LDADD = $(LDADD)
+testoverlay2_DEPENDENCIES = 
+testoverlay2_LDFLAGS = 
 testgl_OBJECTS =  testgl.o
 testgl_DEPENDENCIES = 
 testgl_LDFLAGS = 
@@ -221,8 +227,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-SOURCES = testver.c testtypes.c testhread.c testlock.c testerror.c testsem.c testtimer.c loopwave.c testcdrom.c testkeys.c testvidinfo.c checkkeys.c testwin.c graywin.c testsprite.c testbitmap.c $(testalpha_SOURCES) $(testgamma_SOURCES) $(testpalette_SOURCES) testwm.c threadwin.c testoverlay.c $(testgl_SOURCES) testjoystick.c
-OBJECTS = testver.o testtypes.o testhread.o testlock.o testerror.o testsem.o testtimer.o loopwave.o testcdrom.o testkeys.o testvidinfo.o checkkeys.o testwin.o graywin.o testsprite.o testbitmap.o $(testalpha_OBJECTS) $(testgamma_OBJECTS) $(testpalette_OBJECTS) testwm.o threadwin.o testoverlay.o $(testgl_OBJECTS) testjoystick.o
+SOURCES = testver.c testtypes.c testhread.c testlock.c testerror.c testsem.c testtimer.c loopwave.c testcdrom.c testkeys.c testvidinfo.c checkkeys.c testwin.c graywin.c testsprite.c testbitmap.c $(testalpha_SOURCES) $(testgamma_SOURCES) $(testpalette_SOURCES) testwm.c threadwin.c testoverlay.c testoverlay2.c $(testgl_SOURCES) testjoystick.c
+OBJECTS = testver.o testtypes.o testhread.o testlock.o testerror.o testsem.o testtimer.o loopwave.o testcdrom.o testkeys.o testvidinfo.o checkkeys.o testwin.o graywin.o testsprite.o testbitmap.o $(testalpha_OBJECTS) $(testgamma_OBJECTS) $(testpalette_OBJECTS) testwm.o threadwin.o testoverlay.o testoverlay2.o $(testgl_OBJECTS) testjoystick.o
 
 all: all-redirect
 .SUFFIXES:
@@ -358,6 +364,10 @@ testoverlay: $(testoverlay_OBJECTS) $(testoverlay_DEPENDENCIES)
 	@rm -f testoverlay
 	$(LINK) $(testoverlay_LDFLAGS) $(testoverlay_OBJECTS) $(testoverlay_LDADD) $(LIBS)
 
+testoverlay2: $(testoverlay2_OBJECTS) $(testoverlay2_DEPENDENCIES)
+	@rm -f testoverlay2
+	$(LINK) $(testoverlay2_LDFLAGS) $(testoverlay2_OBJECTS) $(testoverlay2_LDADD) $(LIBS)
+
 testgl: $(testgl_OBJECTS) $(testgl_DEPENDENCIES)
 	@rm -f testgl
 	$(LINK) $(testgl_LDFLAGS) $(testgl_OBJECTS) $(testgl_LDADD) $(LIBS)
@@ -436,7 +446,7 @@ distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    cp -pr $$/$$file $(distdir)/$$file; \
+	    cp -pr $$d/$$file $(distdir)/$$file; \
 	  else \
 	    test -f $(distdir)/$$file \
 	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
@@ -465,7 +475,7 @@ uninstall: uninstall-am
 all-am: Makefile $(PROGRAMS)
 all-redirect: all-am
 install-strip:
-	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
+	$(MAKE) $(AM_MAKEFLAGS) INSTALL_STRIP_FLAG=-s install
 installdirs:
 
 

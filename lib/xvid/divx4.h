@@ -1,7 +1,7 @@
 #ifndef _DIVX4_H_
 #define _DIVX4_H_
 
-#include "systems.h"
+#include "mpeg4ip.h"
 
 #ifdef __cplusplus
 extern "C" {

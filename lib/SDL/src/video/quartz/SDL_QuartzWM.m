@@ -20,6 +20,8 @@
     slouken@libsdl.org
 */
 
+static void QZ_ChangeGrabState (_THIS, int action);
+
 struct WMcursor {
     Cursor curs;
 };
@@ -66,21 +68,27 @@ static WMcursor*    QZ_CreateWMCursor   (_THIS, Uint8 *data, Uint8 *mask,
     return(cursor);
 }
 
-static int QZ_cursor_visible = 1;
-    
 static int QZ_ShowWMCursor (_THIS, WMcursor *cursor) { 
 
     if ( cursor == NULL) {
-        if ( QZ_cursor_visible ) {
-            HideCursor ();
-            QZ_cursor_visible = 0;
+        if ( cursor_visible ) {
+            if (!cursor_hidden) {
+                HideCursor ();
+                cursor_hidden = YES;
+            }
+            cursor_visible = NO;
+            QZ_ChangeGrabState (this, QZ_HIDECURSOR);
         }
     }
     else {
         SetCursor(&cursor->curs);
-        if ( ! QZ_cursor_visible ) {
-            ShowCursor ();
-            QZ_cursor_visible = 1;
+        if ( ! cursor_visible ) {
+            if (cursor_hidden) {
+                ShowCursor ();
+                cursor_hidden = NO;
+            }
+            cursor_visible = YES;
+            QZ_ChangeGrabState (this, QZ_SHOWCURSOR);
         }
     }
 
@@ -111,28 +119,35 @@ static void QZ_PrivateLocalToGlobal (_THIS, NSPoint *p) {
 /* Convert SDL coordinate to Cocoa coordinate */
 static void QZ_PrivateSDLToCocoa (_THIS, NSPoint *p) {
 
-    int height;
-    
     if ( CGDisplayIsCaptured (display_id) ) { /* capture signals fullscreen */
     
-        height = CGDisplayPixelsHigh (display_id);
+        p->y = CGDisplayPixelsHigh (display_id) - p->y - 1;
     }
     else {
         
-        height = NSHeight ( [ qz_window frame ] );
-        if ( [ qz_window styleMask ] & NSTitledWindowMask ) {
+        NSPoint newPoint;
         
-            height -= 22;
-        }
+        newPoint = [ window_view convertPoint:*p toView:[ qz_window contentView ] ];
+        
+        *p = newPoint;
     }
-    
-    p->y = height - p->y;
 }
 
 /* Convert Cocoa coordinate to SDL coordinate */
 static void QZ_PrivateCocoaToSDL (_THIS, NSPoint *p) {
 
-    QZ_PrivateSDLToCocoa (this, p);
+    if ( CGDisplayIsCaptured (display_id) ) { /* capture signals fullscreen */
+    
+        p->y = CGDisplayPixelsHigh (display_id) - p->y - 1;
+    }
+    else {
+        
+        NSPoint newPoint;
+        
+        newPoint = [ window_view convertPoint:*p fromView:[ qz_window contentView ] ];
+        
+        *p = newPoint;
+    }
 }
 
 /* Convert SDL coordinate to window server (CoreGraphics) coordinate */
@@ -157,6 +172,7 @@ static CGPoint QZ_PrivateSDLToCG (_THIS, NSPoint *p) {
     return cgp;
 }
 
+#if 0 /* Dead code */
 /* Convert window server (CoreGraphics) coordinate to SDL coordinate */
 static void QZ_PrivateCGToSDL (_THIS, NSPoint *p) {
             
@@ -172,6 +188,7 @@ static void QZ_PrivateCGToSDL (_THIS, NSPoint *p) {
         QZ_PrivateCocoaToSDL (this, p);
     }
 }
+#endif /* Dead code */
 
 static void  QZ_PrivateWarpCursor (_THIS, int x, int y) {
     
@@ -179,12 +196,11 @@ static void  QZ_PrivateWarpCursor (_THIS, int x, int y) {
     CGPoint cgp;
     
     p = NSMakePoint (x, y);
-    cgp = QZ_PrivateSDLToCG (this, &p);   
-    CGDisplayMoveCursorToPoint (display_id, cgp);
-    warp_ticks = SDL_GetTicks();
-    warp_flag = 1;
-
-    SDL_PrivateMouseMotion(0, 0, x, y);
+    cgp = QZ_PrivateSDLToCG (this, &p);
+    
+    /* this is the magic call that fixes cursor "freezing" after warp */
+    CGSetLocalEventsSuppressionInterval (0.0);
+    CGWarpMouseCursorPosition (cgp);
 }
 
 static void QZ_WarpWMCursor (_THIS, Uint16 x, Uint16 y) {
@@ -195,6 +211,9 @@ static void QZ_WarpWMCursor (_THIS, Uint16 x, Uint16 y) {
             
     /* Do the actual warp */
     QZ_PrivateWarpCursor (this, x, y);
+
+    /* Generate the mouse moved event */
+    SDL_PrivateMouseMotion (0, 0, x, y);
 }
 
 static void QZ_MoveWMCursor     (_THIS, int x, int y) { }
@@ -222,8 +241,7 @@ static void QZ_SetIcon       (_THIS, SDL_Surface *icon, Uint8 *mask)
     NSBitmapImageRep *imgrep;
     NSImage *img;
     SDL_Surface *mergedSurface;
-    Uint8 *surfPtr;
-    int i,j,masksize;
+    int i,j;
     NSAutoreleasePool *pool;
     SDL_Rect rrect;
     NSSize imgSize = {icon->w, icon->h};
@@ -239,18 +257,34 @@ static void QZ_SetIcon       (_THIS, SDL_Surface *icon, Uint8 *mask)
         goto freePool;
     }
     
+    if (mergedSurface->pitch != 
+        mergedSurface->format->BytesPerPixel * mergedSurface->w) {
+        SDL_SetError ("merged surface has wrong format");
+        SDL_FreeSurface (mergedSurface);
+        goto freePool;
+    }
+    
     if (SDL_BlitSurface(icon,&rrect,mergedSurface,&rrect)) {
         NSLog(@"Error blitting to mergedSurface");
         goto freePool;
     }
     
     if (mask) {
-        masksize=icon->w*icon->h;
-        surfPtr = (Uint8 *)mergedSurface->pixels;
-        #define ALPHASHIFT 3
-        for (i=0;i<masksize;i+=8)
-            for (j=0;j<8;j++) 
-                surfPtr[ALPHASHIFT+((i+j)<<2)]=(mask[i>>3]&(1<<(7-j)))?0xFF:0x00;
+
+        Uint32 *pixels = mergedSurface->pixels;
+        for (i = 0; i < mergedSurface->h; i++) {
+            for (j = 0; j < mergedSurface->w; j++) {
+                
+                int index = i * mergedSurface->w + j;
+                int mindex = index >> 3;
+                int bindex = 7 - (index & 0x7);
+                
+                if (mask[mindex] & (1 << bindex))
+                    pixels[index] |= 0x000000FF;
+                else
+                    pixels[index] &= 0xFFFFFF00;
+            }
+        }
     }
     
     imgrep = [ [ NSBitmapImageRep alloc] 
@@ -289,24 +323,77 @@ static int  QZ_GetWMInfo  (_THIS, SDL_SysWMinfo *info) {
     return 0; 
 }*/
 
+static void QZ_ChangeGrabState (_THIS, int action) {
+
+    /* 
+        Figure out what the next state should be based on the action.
+        Ignore actions that can't change the current state.
+    */
+    if ( grab_state == QZ_UNGRABBED ) {
+        if ( action == QZ_ENABLE_GRAB ) {
+            if ( cursor_visible )
+                grab_state = QZ_VISIBLE_GRAB;
+            else
+                grab_state = QZ_INVISIBLE_GRAB;
+        }
+    }
+    else if ( grab_state == QZ_VISIBLE_GRAB ) {
+        if ( action == QZ_DISABLE_GRAB )
+            grab_state = QZ_UNGRABBED;
+        else if ( action == QZ_HIDECURSOR )
+            grab_state = QZ_INVISIBLE_GRAB;
+    }
+    else {
+        assert( grab_state == QZ_INVISIBLE_GRAB );
+        
+        if ( action == QZ_DISABLE_GRAB )
+            grab_state = QZ_UNGRABBED;
+        else if ( action == QZ_SHOWCURSOR )
+            grab_state = QZ_VISIBLE_GRAB;
+    }
+    
+    /* now apply the new state */
+    if (grab_state == QZ_UNGRABBED) {
+    
+        CGAssociateMouseAndMouseCursorPosition (1);
+    }
+    else if (grab_state == QZ_VISIBLE_GRAB) {
+    
+        CGAssociateMouseAndMouseCursorPosition (1);
+    }
+    else {
+        assert( grab_state == QZ_INVISIBLE_GRAB );
+
+        QZ_PrivateWarpCursor (this, SDL_VideoSurface->w / 2, SDL_VideoSurface->h / 2);
+        CGAssociateMouseAndMouseCursorPosition (0);
+    }
+}
+
 static SDL_GrabMode QZ_GrabInput (_THIS, SDL_GrabMode grab_mode) {
 
-    switch (grab_mode) {
-    case SDL_GRAB_QUERY:
-            break;
-    case SDL_GRAB_OFF:
-            CGAssociateMouseAndMouseCursorPosition (1);
-            current_grab_mode = SDL_GRAB_OFF;
-            break;
-    case SDL_GRAB_ON:
-            QZ_WarpWMCursor (this, SDL_VideoSurface->w / 2, SDL_VideoSurface->h / 2);
-            CGAssociateMouseAndMouseCursorPosition (0);
-            current_grab_mode = SDL_GRAB_ON;
-            break;
-    case SDL_GRAB_FULLSCREEN:        
-            break;
+    int doGrab = grab_mode & SDL_GRAB_ON;
+    /*int fullscreen = grab_mode & SDL_GRAB_FULLSCREEN;*/
+
+    if ( this->screen == NULL ) {
+        SDL_SetError ("QZ_GrabInput: screen is NULL");
+        return SDL_GRAB_OFF;
     }
         
+    if ( ! video_set ) {
+        /*SDL_SetError ("QZ_GrabInput: video is not set, grab will take effect on mode switch"); */
+        current_grab_mode = grab_mode;
+        return grab_mode;       /* Will be set later on mode switch */
+    }
+
+    if ( grab_mode != SDL_GRAB_QUERY ) {
+        if ( doGrab )
+            QZ_ChangeGrabState (this, QZ_ENABLE_GRAB);
+        else
+            QZ_ChangeGrabState (this, QZ_DISABLE_GRAB);
+        
+        current_grab_mode = doGrab ? SDL_GRAB_ON : SDL_GRAB_OFF;
+    }
+
     return current_grab_mode;
 }
 

@@ -27,7 +27,7 @@ Copyright(c)1996.
 #ifndef	_all_h_
 #define _all_h_
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <math.h>
 #include "interface.h"
 #include "tns.h"

@@ -20,22 +20,23 @@
     slouken@libsdl.org
 */
 
-#ifndef _SDL_ph_video_h
-#define _SDL_ph_video_h
+#ifndef __SDL_PH_VIDEO_H__
+#define __SDL_PH_VIDEO_H__
 
 #include "SDL_mouse.h"
 #include "SDL_sysvideo.h"
 
-#include "Ph.h"
-#include "Pt.h"
+#include <Ph.h>
+#include <Pt.h>
 #include <photon/Pg.h>
 #include <photon/PdDirect.h>
+
 #ifdef HAVE_OPENGL
-#include <photon/PdGL.h>
+    #include <photon/PdGL.h>
 #endif /* HAVE_OPENGL */
 
 /* Hidden "this" pointer for the video functions */
-#define _THIS	SDL_VideoDevice *this
+#define _THIS	SDL_VideoDevice* this
 
 #define PH_OGL_MAX_ATTRIBS 32
 
@@ -43,19 +44,22 @@
 #define SDLPH_PAL_EMULATE 0x00000001L
 #define SDLPH_PAL_SYSTEM  0x00000002L
 
-typedef union vidptr{
-  uint8_t  *volatile ptr8;
-  uint16_t *volatile ptr16;
-  uint32_t *volatile ptr32;
- } VidPtr_t;
+typedef struct
+{
+    unsigned char* Y;
+    unsigned char* V;
+    unsigned char* U;
+} FRAMEDATA;
 
-typedef struct {
-	unsigned char *Y;
-	unsigned char *V;
-	unsigned char *U;
-}FRAMEDATA;
-
-#define EVENT_SIZE    sizeof( PhEvent_t ) + 1000
+/* Mask values for SDL_ReallocFormat() */
+struct ColourMasks
+{
+    Uint32 red;
+    Uint32 green;
+    Uint32 blue;
+    Uint32 alpha;
+    Uint32 bpp;
+};
 
 /* Private display data */
 struct SDL_PrivateVideoData {
@@ -64,64 +68,47 @@ struct SDL_PrivateVideoData {
     PhImage_t *image;	                 /* used to display image       */
 #ifdef HAVE_OPENGL
     PdOpenGLContext_t* OGLContext;       /* OpenGL context              */
+    Uint32 OGLFlags;                     /* OpenGL flags                */
+    Uint32 OGLBPP;                       /* OpenGL bpp                  */
 #endif /* HAVE_OPENGL */
-    PgColor_t ph_palette[_Pg_MAX_PALETTE];
+    PgColor_t savedpal[_Pg_MAX_PALETTE];
+    PgColor_t syspalph[_Pg_MAX_PALETTE];
 
-    struct {
-        PdDirectContext_t *direct_context;
-        PdOffscreenContext_t *offscreen_context;
-        VidPtr_t dc_ptr;
-        FRAMEDATA *CurrentFrameData;
-        FRAMEDATA *FrameData0;
-        FRAMEDATA *FrameData1;
-        int current;
-        long flags;
+    struct
+    {
+        PdDirectContext_t*    direct_context;
+        PdOffscreenContext_t* offscreen_context;
+        PdOffscreenContext_t* offscreen_backcontext;
+        PhDrawContext_t*      oldDC;
+        uint8_t*              dc_ptr;
+        unsigned char*        CurrentFrameData;
+        unsigned char*        FrameData0;
+        unsigned char*        FrameData1;
+        Uint32                current;
+        Uint32                flags;
     } ocimage;
 
     PgHWCaps_t graphics_card_caps;  /* Graphics card caps at the moment of start   */
+    PgVideoModeInfo_t desktop_mode; /* Current desktop video mode information      */
     int old_video_mode;             /* Stored mode before fullscreen switch        */
     int old_refresh_rate;           /* Stored refresh rate befor fullscreen switch */
-
-    /* The current width and height of the fullscreen mode */
-    int current_w;
-    int current_h;
-
-    /* Support for internal mouse warping */
-    struct {
-        int x;
-        int y;
-    } mouse_last;
-
-    struct {
-        int numerator;
-        int denominator;
-        int threshold;
-    } mouse_accel;
 
     int mouse_relative;
     WMcursor* BlankCursor;
 
-    int depth;			/* current visual depth (not bpp)        */
-    int desktopbpp;             /* bpp of desktop at the moment of start */
-    int desktoppal;             /* palette mode emulation or system      */
-    int captionflag;            /* caption setting flag                  */
+    Uint32 depth;	            /* current visual depth (not bpp)           */
+    Uint32 desktopbpp;              /* bpp of desktop at the moment of start    */
+    Uint32 desktoppal;              /* palette mode emulation or system         */
 
-    int use_vidmode;
     int currently_fullscreen;
-
-    /* Automatic mode switching support (entering/leaving fullscreen) */
-    Uint32 switch_waiting;
-    Uint32 switch_time;
-
-    /* Prevent too many XSync() calls */
-    int blit_queued;
+    int currently_hided;        /* 1 - window hided (minimazed), 0 - normal */
 
     PhEvent_t* event;
+    SDL_Overlay* overlay;
 };
 
 #define mode_settings        (this->hidden->mode_settings)
 #define window	             (this->hidden->Window)
-#define oglctx               (this->hidden->OGLContext)
 #define SDL_Image            (this->hidden->image)
 #define OCImage              (this->hidden->ocimage)
 #define old_video_mode       (this->hidden->old_video_mode)
@@ -129,23 +116,20 @@ struct SDL_PrivateVideoData {
 #define graphics_card_caps   (this->hidden->graphics_card_caps)
 #define desktopbpp           (this->hidden->desktopbpp)
 #define desktoppal           (this->hidden->desktoppal)
-#define ph_palette           (this->hidden->ph_palette)
-
-/* Old variable names */
-#define current_w            (this->hidden->current_w)
-#define current_h            (this->hidden->current_h)
-#define mouse_last           (this->hidden->mouse_last)
-#define mouse_accel          (this->hidden->mouse_accel)
-#define mouse_relative       (this->hidden->mouse_relative)
-#define saved_mode           (this->hidden->saved_mode)
-#define saved_view           (this->hidden->saved_view)
-#define use_vidmode          (this->hidden->use_vidmode)
+#define savedpal             (this->hidden->savedpal)
+#define syspalph             (this->hidden->syspalph)
 #define currently_fullscreen (this->hidden->currently_fullscreen)
-#define switch_waiting       (this->hidden->switch_waiting)
-#define switch_time          (this->hidden->switch_time)
-#define blit_queued          (this->hidden->blit_queued)
+#define currently_hided      (this->hidden->currently_hided)
 #define event                (this->hidden->event)
+#define current_overlay      (this->hidden->overlay)
+#define desktop_mode         (this->hidden->desktop_mode)
+#define mouse_relative       (this->hidden->mouse_relative)
 #define SDL_BlankCursor      (this->hidden->BlankCursor)
-#define captionflag          (this->hidden->captionflag)
 
-#endif /* _SDL_x11video_h */
+#ifdef HAVE_OPENGL
+     #define oglctx               (this->hidden->OGLContext)
+     #define oglflags             (this->hidden->OGLFlags)
+     #define oglbpp               (this->hidden->OGLBPP)
+#endif /* HAVE_OPENGL */
+
+#endif /* __SDL_PH_VIDEO_H__ */

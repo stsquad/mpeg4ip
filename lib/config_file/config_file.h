@@ -21,7 +21,7 @@
 
 #ifndef __CONFIG_FILE_H__
 #define __CONFIG_FILE_H__ 1
-#include "systems.h"
+#include "mpeg4ip.h"
 
 enum {
   CONFIG_INT,

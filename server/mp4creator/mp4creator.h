@@ -25,7 +25,7 @@
 #include <mpeg4ip.h>
 #include <mp4.h>
 #include <mp4av.h>
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 #include <ismacryplib.h>
 #endif
 
@@ -45,9 +45,9 @@
 #define EXIT_OPTIMIZE_FILE	5
 #define EXIT_EXTRACT_TRACK	6	
 #define EXIT_INFO		7
-#ifdef ISMACRYPT
-#define EXIT_ISMACRYPT_INIT     8
-#define EXIT_ISMACRYPT_END      9
+#ifdef ISMACRYP
+#define EXIT_ISMACRYP_INIT     8
+#define EXIT_ISMACRYP_END      9
 #endif
 
 // global variables
@@ -65,7 +65,7 @@ MP4CREATOR_GLOBAL bool TimeScaleSpecified;
 MP4CREATOR_GLOBAL bool VideoProfileLevelSpecified;
 MP4CREATOR_GLOBAL int VideoProfileLevel;
 MP4CREATOR_GLOBAL bool aacUseOldFile;
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 MP4CREATOR_GLOBAL ismacryp_session_id_t ismaCryptSId;
 #endif
 MP4CREATOR_GLOBAL int aacProfileLevel;

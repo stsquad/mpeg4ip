@@ -22,7 +22,7 @@
  * player_util.c - utility routines for output
  */
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "strcasestr.h"
 
 #ifndef HAVE_STRCASESTR

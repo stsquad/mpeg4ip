@@ -21,7 +21,7 @@
 /*
  * http_resp.c - read and decode http response.
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #ifdef HAVE_POLL
 #include <sys/poll.h>
 #endif
@@ -335,6 +335,7 @@ int http_get_response (http_client_t *cptr,
    */
   p = http_get_next_line(cptr);
   if (p == NULL) {
+    http_debug(LOG_INFO, "did not get first line");
     return (-1);
   }
 
@@ -343,6 +344,7 @@ int http_get_response (http_client_t *cptr,
    */
   ADV_SPACE(p);
   if (*p == '\0' || strncasecmp(p, "http/", strlen("http/")) != 0) {
+    http_debug(LOG_INFO, "first line did not start with HTTP/");
     return (-1);
   }
   p += strlen("http/");
@@ -362,6 +364,7 @@ int http_get_response (http_client_t *cptr,
       resp_code *= 10;
       resp_code += *p++ - '0';
     } else {
+      http_debug(LOG_ERR, "did not get 3-digit response code");
       return (-1);
     }
   }

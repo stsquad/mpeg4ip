@@ -1,7 +1,7 @@
 #ifndef _XVID_H_
 #define _XVID_H_
 
-#include <systems.h>
+#include <mpeg4ip.h>
 
 #ifdef __cplusplus
 extern "C" {

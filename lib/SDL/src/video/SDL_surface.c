@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_surface.c,v 1.4 2002/10/07 21:21:41 wmaycisco Exp $";
+ "@(#) $Id: SDL_surface.c,v 1.5 2003/09/12 23:19:24 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -413,7 +413,7 @@ int SDL_LowerBlit (SDL_Surface *src, SDL_Rect *srcrect,
 	/* Figure out which blitter to use */
 	if ( (src->flags & SDL_HWACCEL) == SDL_HWACCEL ) {
 		if ( src == SDL_VideoSurface ) {
-			hw_srcrect = *dstrect;
+			hw_srcrect = *srcrect;
 			hw_srcrect.x += current_video->offset_x;
 			hw_srcrect.y += current_video->offset_y;
 			srcrect = &hw_srcrect;
@@ -524,6 +524,20 @@ int SDL_UpperBlit (SDL_Surface *src, SDL_Rect *srcrect,
 	return 0;
 }
 
+static int SDL_FillRect1(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color)
+{
+	/* FIXME: We have to worry about packing order.. *sigh* */
+	SDL_SetError("1-bpp rect fill not yet implemented");
+	return -1;
+}
+
+static int SDL_FillRect4(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color)
+{
+	/* FIXME: We have to worry about packing order.. *sigh* */
+	SDL_SetError("4-bpp rect fill not yet implemented");
+	return -1;
+}
+
 /* 
  * This function performs a fast fill of the given rectangle with 'color'
  */
@@ -533,6 +547,22 @@ int SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color)
 	SDL_VideoDevice *this  = current_video;
 	int x, y;
 	Uint8 *row;
+
+	/* This function doesn't work on surfaces < 8 bpp */
+	if ( dst->format->BitsPerPixel < 8 ) {
+		switch(dst->format->BitsPerPixel) {
+		    case 1:
+			return SDL_FillRect1(dst, dstrect, color);
+			break;
+		    case 4:
+			return SDL_FillRect4(dst, dstrect, color);
+			break;
+		    default:
+			SDL_SetError("Fill rect on unsupported surface format");
+			return(-1);
+			break;
+		}
+	}
 
 	/* If 'dstrect' == NULL, then fill the whole surface */
 	if ( dstrect ) {
@@ -692,10 +722,6 @@ int SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, Uint32 color)
 
 /*
  * Lock a surface to directly access the pixels
- * -- Do not call this from any blit function, as SDL_DrawCursor() may recurse
- *    Instead, use:
- *    if ( (surface->flags & SDL_HWSURFACE) == SDL_HWSURFACE )
- *               video->LockHWSurface(video, surface);
  */
 int SDL_LockSurface (SDL_Surface *surface)
 {
@@ -724,10 +750,6 @@ int SDL_LockSurface (SDL_Surface *surface)
 }
 /*
  * Unlock a previously locked surface
- * -- Do not call this from any blit function, as SDL_DrawCursor() may recurse
- *    Instead, use:
- *    if ( (surface->flags & SDL_HWSURFACE) == SDL_HWSURFACE )
- *               video->UnlockHWSurface(video, surface);
  */
 void SDL_UnlockSurface (SDL_Surface *surface)
 {

@@ -142,7 +142,7 @@ protected:
 		Timestamp frameTimestamp);
 
 	void DoGenerateKeyFrame() {
-		m_videoWantKeyFrame = true;
+          m_videoWantKeyFrame = true;
 	}
 
 	void DestroyVideoResizer();
@@ -175,39 +175,39 @@ protected:
 
 	// audio utility routines
 
-	Duration SrcSamplesToTicks(u_int64_t numSamples) {
+	inline Duration SrcSamplesToTicks(u_int64_t numSamples) {
 		return (numSamples * TimestampTicks) / m_audioSrcSampleRate;
 	}
 
-	Duration DstSamplesToTicks(u_int64_t numSamples) {
+	inline Duration DstSamplesToTicks(u_int64_t numSamples) {
 		return (numSamples * TimestampTicks) / m_audioDstSampleRate;
 	}
 
-	u_int32_t SrcTicksToSamples(Duration duration) {
+	inline u_int32_t SrcTicksToSamples(Duration duration) {
 		return (duration * m_audioSrcSampleRate) / TimestampTicks;
 	}
 
-	u_int32_t DstTicksToSamples(Duration duration) {
+	inline u_int32_t DstTicksToSamples(Duration duration) {
 		return (duration * m_audioDstSampleRate) / TimestampTicks;
 	}
 
-	u_int32_t SrcSamplesToBytes(u_int64_t numSamples) {
+	inline u_int32_t SrcSamplesToBytes(u_int64_t numSamples) {
 		return (numSamples * m_audioSrcChannels * sizeof(u_int16_t));
 	}
 
-	u_int32_t DstSamplesToBytes(u_int64_t numSamples) {
+	inline u_int32_t DstSamplesToBytes(u_int64_t numSamples) {
 		return (numSamples * m_audioDstChannels * sizeof(u_int16_t));
 	}
 
-	u_int64_t SrcBytesToSamples(u_int32_t numBytes) {
+	inline u_int64_t SrcBytesToSamples(u_int32_t numBytes) {
 		return (numBytes / (m_audioSrcChannels * sizeof(u_int16_t)));
 	}
 
-	u_int64_t DstBytesToSamples(u_int32_t numBytes) {
+	inline u_int64_t DstBytesToSamples(u_int32_t numBytes) {
 		return (numBytes / (m_audioDstChannels * sizeof(u_int16_t)));
 	}
 
-	Duration VideoDstFramesToDuration(void) {
+	inline Duration VideoDstFramesToDuration(void) {
 	  double tempd;
 	  tempd = m_videoDstFrameNumber;
 	  tempd *= TimestampTicks;
@@ -215,7 +215,7 @@ protected:
 	  return (Duration) tempd;
 	};
 
-	void AddGapToAudio(Timestamp startTimestamp, Duration silenceDuration);
+	void AddSilenceFrame(void);
 
 protected:
 	static const int MSG_SOURCE	= 2048;
@@ -233,9 +233,7 @@ protected:
 	bool			m_sourceVideo;
 	bool			m_sourceAudio;
 	bool			m_sourceRealTime;
-	bool			m_sinkRealTime;
 	Timestamp		m_encodingStartTimestamp;
-	Duration		m_maxAheadDuration;
 
 	// video source info
 	CMediaSource*	m_videoSource; 
@@ -286,7 +284,6 @@ protected:
 	Timestamp		m_videoStartTimestamp;
 	Duration		m_videoEncodingDrift;
 	Duration		m_videoEncodingMaxDrift;
-	Duration                m_videoSrcPrevElapsedDuration;
 	Duration		m_videoSrcElapsedDuration;
 	Duration		m_videoDstElapsedDuration;
 	Duration		m_otherTotalDrift;
@@ -333,7 +330,7 @@ protected:
 	Timestamp               m_audioEncodingStartTimestamp;
 	Duration		m_audioSrcElapsedDuration;
 	Duration		m_audioDstElapsedDuration;
+        Duration                m_audioEncodingElapsedDuration;
 };
 
 #endif /* __MEDIA_SOURCE_H__ */
-

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysvideo.h,v 1.5 2002/10/07 21:21:41 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysvideo.h,v 1.6 2003/09/12 23:19:24 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysvideo_h
@@ -304,6 +304,8 @@ struct SDL_VideoDevice {
 		int accum_blue_size;
 		int accum_alpha_size;
 		int stereo;
+		int multisamplebuffers;
+		int multisamplesamples;
 		int driver_loaded;
 		char driver_path[256];
 		void* dll_handle;
@@ -408,6 +410,9 @@ extern VideoBootStrap PG_bootstrap;
 #endif
 #ifdef ENABLE_DC
 extern VideoBootStrap DC_bootstrap;
+#endif
+#ifdef ENABLE_RISCOS
+extern VideoBootStrap RISCOS_bootstrap;
 #endif
 /* This is the current video device */
 extern SDL_VideoDevice *current_video;

@@ -2,7 +2,7 @@
 #ifndef __MP3IF_H__
 #define __MP3IF_H__ 1
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <mp3/MPEGaudio.h>
 #include <SDL.h>
 #include "codec_plugin.h"

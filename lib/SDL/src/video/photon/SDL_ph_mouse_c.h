@@ -20,10 +20,13 @@
     slouken@libsdl.org
 */
 
+#ifndef __SDL_PH_MOUSE_H__
+#define __SDL_PH_MOUSE_H__
+
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ph_mouse_c.h,v 1.2 2002/05/01 17:41:26 wmaycisco Exp $";
-#endif
+ "@(#) $Id: SDL_ph_mouse_c.h,v 1.3 2003/09/12 23:19:30 wmaycisco Exp $";
+#endif /* SAVE_RCSID */
 
 #include "SDL_ph_video.h"
 
@@ -35,3 +38,6 @@ extern PhCursorDef_t ph_GetWMPhCursor(WMcursor *cursor);
 extern int ph_ShowWMCursor(_THIS, WMcursor *cursor);
 extern void ph_WarpWMCursor(_THIS, Uint16 x, Uint16 y);
 extern void ph_CheckMouseMode(_THIS);
+extern void ph_UpdateMouse(_THIS);
+
+#endif /* __SDL_PH_MOUSE_H__ */

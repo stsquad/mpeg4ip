@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dgavideo.c,v 1.5 2002/10/07 21:21:42 wmaycisco Exp $";
+ "@(#) $Id: SDL_dgavideo.c,v 1.6 2003/09/12 23:19:27 wmaycisco Exp $";
 #endif
 
 /* DGA 2.0 based SDL video driver implementation.
@@ -474,7 +474,7 @@ SDL_Surface *DGA_SetVideoMode(_THIS, SDL_Surface *current,
 		SDL_SetError("Unable to switch to requested mode");
 		return(NULL);
 	}
-	DGA_visualClass = modes[i].visualClass;
+	DGA_visualClass = mode->mode.visualClass;
 	memory_base = (Uint8 *)mode->data;
 	memory_pitch = mode->mode.bytesPerScanline;
 
@@ -816,7 +816,9 @@ static int DGA_FillHWRect(_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color)
   printf("Hardware accelerated rectangle fill: %dx%d at %d,%d\n", w, h, x, y);
 #endif
 	SDL_NAME(XDGAFillRectangle)(DGA_Display, DGA_Screen, x, y, w, h, color);
-	XFlush(DGA_Display);
+	if ( !(this->screen->flags & SDL_DOUBLEBUF) ) {
+		XFlush(DGA_Display);
+	}
 	DGA_AddBusySurface(dst);
 	UNLOCK_DISPLAY();
 	return(0);
@@ -856,7 +858,9 @@ static int HWAccelBlit(SDL_Surface *src, SDL_Rect *srcrect,
 		SDL_NAME(XDGACopyArea)(DGA_Display, DGA_Screen,
 			srcx, srcy, w, h, dstx, dsty);
 	}
-	XFlush(DGA_Display);
+	if ( !(this->screen->flags & SDL_DOUBLEBUF) ) {
+		XFlush(DGA_Display);
+	}
 	DGA_AddBusySurface(src);
 	DGA_AddBusySurface(dst);
 	UNLOCK_DISPLAY();

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_gsyuv.c,v 1.3 2002/05/01 17:41:26 wmaycisco Exp $";
+ "@(#) $Id: SDL_gsyuv.c,v 1.4 2003/09/12 23:19:31 wmaycisco Exp $";
 #endif
 
 /* This is the Playstation 2 implementation of YUV video overlays */
@@ -349,7 +349,7 @@ int GS_DisplayYUVOverlay(_THIS, SDL_Overlay *overlay, SDL_Rect *dstrect)
 		Cr =  (Uint32 *)overlay->pixels[2];
 		Cb =  (Uint32 *)overlay->pixels[1];
 	    default:
-		SDL_SetError("Unsupported YUV format in blit (??)");
+		SDL_SetError("Unsupported YUV format in blit (?)");
 		return(-1);
 	}
 	dst = (Uint32 *)hwdata->ipu_imem;

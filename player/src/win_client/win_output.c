@@ -22,7 +22,7 @@
  * player_util.c - utility routines for output
  */
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "player_util.h"
 
 static FILE *output_file;

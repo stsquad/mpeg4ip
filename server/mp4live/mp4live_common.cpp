@@ -1,8 +1,6 @@
-
 #include "mp4live.h"
 #include "util.h"
 #include "mp4live_common.h"
-#include "video_v4l_source.h"
 #include "audio_oss_source.h"
 #include "signal.h"
 #include <gnu/strcasestr.h>
@@ -46,7 +44,7 @@ void ProbeVideoAudioCapabilities (CLiveConfig *pConfig)
   // probe for capture cards
   if (!strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE),
 		  VIDEO_SOURCE_V4L)) {
-    CV4LVideoSource::InitialVideoProbe(pConfig);
+    InitialVideoProbe(pConfig);
   }
 
   // probe for sound card capabilities

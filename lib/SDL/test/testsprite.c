@@ -8,6 +8,8 @@
 
 #include "SDL.h"
 
+#define DEBUG_FLIP 1
+
 #define NUM_SPRITES	100
 #define MAX_SPEED 	1
 
@@ -82,6 +84,24 @@ void MoveSprites(SDL_Surface *screen, Uint32 background)
 		sprite_rects[nupdates++] = area;
 	}
 
+#if DEBUG_FLIP
+    {
+	if ( (screen->flags & SDL_DOUBLEBUF) == SDL_DOUBLEBUF ) {
+            static int t = 0;
+
+            Uint32 color = SDL_MapRGB (screen->format, 255, 0, 0);
+            SDL_Rect r;
+            r.x = (sin((float)t * 2 * 3.1459) + 1.0) / 2.0 * (screen->w-20);
+            r.y = 0;
+            r.w = 20;
+            r.h = screen->h;
+        
+            SDL_FillRect (screen, &r, color);
+            t+=2;
+        }
+    }
+#endif
+    
 	/* Update the screen! */
 	if ( (screen->flags & SDL_DOUBLEBUF) == SDL_DOUBLEBUF ) {
 		SDL_Flip(screen);
@@ -267,6 +287,9 @@ int main(int argc, char *argv[])
 		++frames;
 		while ( SDL_PollEvent(&event) ) {
 			switch (event.type) {
+				case SDL_MOUSEBUTTONDOWN:
+					SDL_WarpMouse(screen->w/2, screen->h/2);
+					break;
 				case SDL_KEYDOWN:
 					/* Any keypress quits the app... */
 				case SDL_QUIT:

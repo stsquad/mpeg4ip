@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11gl_c.h,v 1.3 2002/05/01 17:41:29 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11gl_c.h,v 1.4 2003/09/12 23:19:33 wmaycisco Exp $";
 #endif
 
 #ifdef HAVE_OPENGL
@@ -77,6 +77,11 @@ struct SDL_PrivateGLData {
 	 ( Display* dpy,
 	   GLXDrawable drawable );
 
+    const char *(*glXQueryExtensionsString)
+	    ( Display* dpy,
+	      int screen);
+
+    
 #endif /* HAVE_OPENGL */
 };
 

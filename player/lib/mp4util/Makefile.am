@@ -1,9 +1,11 @@
 lib_LTLIBRARIES = libmp4util.la
+include_HEADERS = \
+	mpeg4_audio_config.h \
+	mpeg4_sdp.h 
+
 libmp4util_la_SOURCES = \
 	mpeg4_audio_config.cpp \
-	mpeg4_audio_config.h \
-        mpeg4_sdp.c \
-	mpeg4_sdp.h 
+        mpeg4_sdp.c
 
 libmp4util_la_LIBADD = \
         $(top_srcdir)/lib/bitstream/libbitstream.la

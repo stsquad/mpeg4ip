@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_atarievents.c,v 1.1 2002/05/01 17:41:15 wmaycisco Exp $";
+ "@(#) $Id: SDL_atarievents.c,v 1.2 2003/09/12 23:19:27 wmaycisco Exp $";
 #endif
 
 /*
@@ -36,7 +36,7 @@ static char rcsid =
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/cookie.h>
+#include <mint/cookie.h>
 
 #include "SDL.h"
 #include "SDL_sysevents.h"

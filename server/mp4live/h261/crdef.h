@@ -31,7 +31,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * @(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/crdef.h,v 1.3 2003/05/23 18:55:44 wmaycisco Exp $
+ * @(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/crdef.h,v 1.4 2003/09/12 23:19:43 wmaycisco Exp $
  */
 
 /*
@@ -61,7 +61,7 @@
 #ifndef mash_crdef_h
 #define mash_crdef_h
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <sys/types.h>
 
 #define CR_SEND		0xc0

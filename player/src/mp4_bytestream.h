@@ -25,7 +25,7 @@
 #ifndef __MP4_BYTESTREAM_H__
 #define __MP4_BYTESTREAM_H__
 #include <mp4.h>
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 #include <ismacryplib.h>
 #endif
 #include "our_bytestream.h"
@@ -58,7 +58,7 @@ class CMp4ByteStream : public COurInByteStream
   double get_max_playtime(void);
 
   void play(uint64_t start);
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
   u_int8_t *get_buffer() {return m_buffer; }
   void set_buffer(u_int8_t *buffer) {memcpy(m_buffer, buffer, sizeof(buffer));}
   uint32_t get_this_frame_size() {return m_this_frame_size;}
@@ -118,7 +118,7 @@ class CMp4AudioByteStream : public CMp4ByteStream
 
 };
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 /*
  * CMp4EncVideoByteStream is for encrypted video streams.  
  * It is inherited from CMp4VideoByteStreamBase.

@@ -46,6 +46,14 @@ then
       have_lame=yes
    fi
 fi
+have_faac=no
+faac >/dev/null 2>testfaac
+have_faac=`sh util/testfaac.sh testfaac`
+rm -f testfaac
+
+if test $have_faac = "no"; then
+   have_lame=no
+fi
 
 allargs="$@"
 
@@ -63,11 +71,12 @@ if test $have_lame = "no"; then
    shift
    done
    if test $disabled_mp4live = no; then
-      echo "Error - we cannot detect a valid version of lame and you are trying"
+      echo "Error - we cannot detect a valid version of lame or faac and you are trying"
       echo "to build mpeg4ip with mp4live."
       echo "To remedy this, either reexecute this program with either the"
       echo "--disable-mp4live or --disable-server options -OR-"
       echo "install lame at version 3.92 or greater from http://www.mp3dev.org"
+      echo "and libfaac at verion 1.20 or greater from http://www.audiocoding.com"
       exit 1
    fi
 fi
@@ -95,6 +104,7 @@ pwd=`pwd`
 for	dir \
 in	$pwd/lib/SDL 
 do	cd $dir
+  ./autogen.sh || exit 1
 	./configure $allargs || exit 1
 	chmod +x sdl-config
 done

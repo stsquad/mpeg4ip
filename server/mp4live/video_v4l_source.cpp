@@ -174,14 +174,24 @@ bool CV4LVideoSource::InitDevice(void)
 	}
 
 	// select video input and signal type
-	videoChannel.norm = m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL);
-	rc = ioctl(m_videoDevice, VIDIOCSCHAN, &videoChannel);
+        switch(m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL)) {
+        case VIDEO_SIGNAL_PAL:
+          videoChannel.norm = VIDEO_MODE_PAL;
+          break;
+        case VIDEO_SIGNAL_NTSC:
+          videoChannel.norm = VIDEO_MODE_NTSC;
+          break;
+        case VIDEO_SIGNAL_SECAM:
+          videoChannel.norm = VIDEO_MODE_SECAM;
+          break;
+        }
+        rc = ioctl(m_videoDevice, VIDIOCSCHAN, &videoChannel);
 	if (rc < 0) {
 		error_message("Failed to set video channel info for %s",
 			deviceName);
 		goto failure;
 	}
-	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) == VIDEO_MODE_NTSC) {
+	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) == VIDEO_SIGNAL_NTSC) {
 		m_videoSrcFrameRate = VIDEO_NTSC_FRAME_RATE;
 	} else {
 		m_videoSrcFrameRate = VIDEO_PAL_FRAME_RATE;
@@ -235,7 +245,7 @@ bool CV4LVideoSource::InitDevice(void)
 		goto failure;
 	}
 
-	// map the video capture buffers
+        // map the video capture buffers
 	m_videoMap = mmap(0, m_videoMbuf.size, 
 		PROT_READ | PROT_WRITE, MAP_SHARED, m_videoDevice, 0);
 	if (m_videoMap == MAP_FAILED) {

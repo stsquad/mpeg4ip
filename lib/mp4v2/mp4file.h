@@ -194,7 +194,7 @@ public: /* equivalent to MP4 library API */
 		MP4Duration sampleDuration,
 		u_int8_t audioType);
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 	MP4TrackId AddEncAudioTrack( // ismacrypt
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
@@ -209,7 +209,7 @@ public: /* equivalent to MP4 library API */
 		u_int16_t height, 
 		u_int8_t videoType);
 
-#ifdef ISMACRYPT	
+#ifdef ISMACRYP	
 	MP4TrackId AddEncVideoTrack( // ismacrypt
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
@@ -435,6 +435,49 @@ public: /* equivalent to MP4 library API */
 		MP4Timestamp* pStartTime = NULL,
 		MP4Duration* pDuration = NULL);
 
+	/* iTunes metadata handling */
+	bool CreateMetadataAtom(const char* name);
+	bool MetadataDelete(void);
+	
+	/* set metadata */
+	bool SetMetadataName(const char* value);
+	bool SetMetadataWriter(const char* value);
+	bool SetMetadataAlbum(const char* value);
+	bool SetMetadataArtist(const char* value);
+	bool SetMetadataTool(const char* value);
+	bool SetMetadataComment(const char* value);
+	bool SetMetadataYear(const char* value);
+	bool SetMetadataTrack(u_int16_t track, u_int16_t totalTracks);
+	bool SetMetadataDisk(u_int16_t disk, u_int16_t totalDisks);
+	bool SetMetadataGenre(const char *value);
+	bool SetMetadataTempo(u_int16_t tempo);
+	bool SetMetadataCompilation(u_int8_t compilation);
+	bool SetMetadataCoverArt(u_int8_t *coverArt, u_int32_t size);
+	bool SetMetadataFreeForm(char *name, 
+				 u_int8_t* pValue, 
+				 u_int32_t valueSize);
+ 
+	/* get metadata */
+	bool GetMetadataByIndex(u_int32_t index,
+				const char** ppName,
+				u_int8_t** ppValue, 
+				u_int32_t* pValueSize);
+	bool GetMetadataName(char** value);
+	bool GetMetadataWriter(char** value);
+	bool GetMetadataAlbum(char** value);
+	bool GetMetadataArtist(char** value);
+	bool GetMetadataTool(char** value);
+	bool GetMetadataComment(char** value);
+	bool GetMetadataYear(char** value);
+	bool GetMetadataTrack(u_int16_t* track, u_int16_t* totalTracks);
+	bool GetMetadataDisk(u_int16_t* disk, u_int16_t* totalDisks);
+	bool GetMetadataGenre(char **value);
+	bool GetMetadataTempo(u_int16_t* tempo);
+	bool GetMetadataCompilation(u_int8_t* compilation);
+	bool GetMetadataCoverArt(u_int8_t **coverArt, u_int32_t* size);
+	bool GetMetadataFreeForm(char *name, 
+				 u_int8_t** pValue, 
+				 u_int32_t* valueSize);
 	/* end of MP4 API */
 
 	/* "protected" interface to be used only by friends in library */

@@ -33,7 +33,7 @@
  * modifications done 3/2003, wmay@cisco.com
  */
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "dct.h"
 
 #include "p64-huff.h"

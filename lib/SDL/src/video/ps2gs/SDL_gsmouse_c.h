@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_gsmouse_c.h,v 1.2 2002/05/01 17:41:26 wmaycisco Exp $";
+ "@(#) $Id: SDL_gsmouse_c.h,v 1.3 2003/09/12 23:19:31 wmaycisco Exp $";
 #endif
 
 #include "SDL_gsvideo.h"
@@ -37,7 +37,5 @@ static char rcsid =
 extern void GS_FreeWMCursor(_THIS, WMcursor *cursor);
 extern WMcursor *GS_CreateWMCursor(_THIS,
 		Uint8 *data, Uint8 *mask, int w, int h, int hot_x, int hot_y);
-extern void GS_DrawCursor(SDL_Surface *screen);
-extern void GS_EraseCursor(SDL_Surface *screen);
 extern void GS_MoveWMCursor(_THIS, int x, int y);
 extern int GS_ShowWMCursor(_THIS, WMcursor *cursor);

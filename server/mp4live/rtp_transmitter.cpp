@@ -309,31 +309,35 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 // void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
 void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 {
+  //  debug_message("RTP Timestamp %u\tFrame Duration %llu",
+  //                AudioTimestampToRtp(pFrame->GetTimestamp())
+  //                , pFrame->GetDuration());
+
 	// first compute how much data we'll have 
 	// after adding this audio frame
 	
-	u_int16_t newAudioQueueSize = m_audioQueueSize;
+  	//u_int16_t newAudioQueueSize = m_audioQueueSize;
 
-	if (m_audioQueueCount == 0) {
-		newAudioQueueSize += 
-			m_audioPayloadBytesPerPacket;
-	} else {
-	  uint32_t ourTs;
-	  int32_t diff;
-	  ourTs = AudioTimestampToRtp(pFrame->GetTimestamp());
-	  diff = ourTs - m_nextAudioRtpTimestamp;
+        //	if (m_audioQueueCount == 0) {
+        //		newAudioQueueSize += 
+        //			m_audioPayloadBytesPerPacket;
+        //	} else {
+  //uint32_t ourTs = AudioTimestampToRtp(pFrame->GetTimestamp());
+  //int32_t diff = ourTs - m_nextAudioRtpTimestamp;
 
-	  if (diff > 1) {
-	    debug_message("Timestamp not consecutive error - timestamp %llu should be %u is %u", 
-			  pFrame->GetTimestamp(),
-			  m_nextAudioRtpTimestamp,
-			  ourTs);
-	    SendQueuedAudioFrames();
-	    newAudioQueueSize = m_audioQueueSize +=
-	      m_audioPayloadBytesPerPacket;
-	  }
+  //if (diff > 1) {
+  //  debug_message("Timestamp not consecutive error - timestamp %llu should be %u is %u", 
+  //                pFrame->GetTimestamp(),
+  //                m_nextAudioRtpTimestamp,
+  //                ourTs);
+	    //***   SendQueuedAudioFrames();
+            //	    newAudioQueueSize = m_audioQueueSize +=
+            //	      m_audioPayloadBytesPerPacket;
+  //}
 
-	}
+          //	}
+
+  /*
 	// save the next timestamp.
 	if (m_audioTimeScale == pFrame->GetDurationScale()) {
 	  m_nextAudioRtpTimestamp = 
@@ -344,10 +348,11 @@ void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 	    AudioTimestampToRtp(pFrame->GetTimestamp()) + 
 	    pFrame->ConvertDuration(m_audioTimeScale);
 	}
-
-	newAudioQueueSize +=
-		m_audioPayloadBytesPerFrame
-		+ pFrame->GetDataLength();
+  */
+        uint16_t newAudioQueueSize = m_audioQueueSize
+          + m_audioPayloadBytesPerPacket
+          + m_audioPayloadBytesPerFrame
+          + pFrame->GetDataLength();
 
 	// if new queue size exceeds the RTP payload
 	if (newAudioQueueSize 

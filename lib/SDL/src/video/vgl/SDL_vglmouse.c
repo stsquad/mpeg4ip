@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_vglmouse.c,v 1.2 2002/05/01 17:41:27 wmaycisco Exp $";
+ "@(#) $Id: SDL_vglmouse.c,v 1.3 2003/09/12 23:19:32 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -58,9 +58,6 @@ int VGL_ShowWMCursor(_THIS, WMcursor *cursor)
 
 void VGL_WarpWMCursor(_THIS, Uint16 x, Uint16 y)
 {
-	x += (this->screen->offset % this->screen->pitch) /
-	      this->screen->format->BytesPerPixel;
-	y += (this->screen->offset / this->screen->pitch);
 	SDL_PrivateMouseMotion(0, 0, x, y);
 }
 

@@ -27,9 +27,8 @@
 #ifndef __AUDIO_H__
 #define __AUDIO_H__ 1
 
-#include "systems.h"
-#include <SDL.h>
 #include "codec_plugin.h"
+#include <SDL.h>
 
 #define DECODE_BUFFERS_MAX 32
 

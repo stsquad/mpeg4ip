@@ -22,7 +22,7 @@
  * qtime_bytestream.cpp - convert quicktime file to a bytestream
  */
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "mp4_bytestream.h"
 #include "player_util.h"
 //#define DEBUG_MP4_FRAME 1
@@ -286,7 +286,7 @@ double CMp4ByteStream::get_max_playtime (void)
   return (m_max_time);
 };
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 uint64_t CMp4EncAudioByteStream::start_next_frame (uint8_t **buffer, 
 						   uint32_t *buflen,
 						   void **ud)

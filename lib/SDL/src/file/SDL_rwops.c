@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_rwops.c,v 1.3 2002/05/01 17:40:48 wmaycisco Exp $";
+ "@(#) $Id: SDL_rwops.c,v 1.4 2003/09/12 23:19:18 wmaycisco Exp $";
 #endif
 
 /* This file provides a general interface for SDL to read and write
@@ -225,7 +225,7 @@ SDL_RWops *SDL_RWFromFP(FILE *fp, int autoclose)
 
 #ifdef WIN32
 	if ( ! in_sdl ) {
-		SDL_SetError("You can't pass a FILE pointer to a DLL (??)");
+		SDL_SetError("You can't pass a FILE pointer to a DLL (?)");
 		/*return(NULL);*/
 	}
 #endif

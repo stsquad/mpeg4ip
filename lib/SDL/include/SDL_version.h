@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_version.h,v 1.5 2002/10/07 21:21:33 wmaycisco Exp $";
+ "@(#) $Id: SDL_version.h,v 1.6 2003/09/12 23:19:08 wmaycisco Exp $";
 #endif
 
 /* This header defines the current SDL version */
@@ -42,7 +42,7 @@ extern "C" {
 */
 #define SDL_MAJOR_VERSION	1
 #define SDL_MINOR_VERSION	2
-#define SDL_PATCHLEVEL		5
+#define SDL_PATCHLEVEL		6
 
 typedef struct {
 	Uint8 major;

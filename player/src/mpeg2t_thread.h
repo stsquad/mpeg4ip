@@ -1,6 +1,6 @@
 #ifndef __MPEG2T_THREAD_H__
 #define __MPEG2T_THREAD_H__ 1
-#include "systems.h"
+#include "mpeg4ip.h"
 
 typedef struct mpeg2t_client_ mpeg2t_client_t;
 #ifdef __cplusplus

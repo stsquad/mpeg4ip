@@ -24,7 +24,7 @@
 #ifndef __MSG_QUEUE_H__
 #define __MSG_QUEUE_H__ 1
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <SDL.h>
 #include <SDL_thread.h>
 

@@ -25,7 +25,7 @@
 
 #ifndef __RFC3119_BYTESTREAM_H__
 #define __RFC3119_BYTESTREAM_H__ 1
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "rtp_bytestream.h"
 #include <sdp/sdp.h>
 #include <mp4av/mp4av.h>

@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MPEG3_PLUGIN_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\..\src" /I "..\..\..\lib" /I "..\..\..\..\include" /I "..\..\..\..\lib" /I "..\..\..\..\lib\mp4av" /I "..\..\..\..\lib\mp4v2" /I "..\..\..\..\lib\SDL\include" /I "..\..\..\..\common\video\libmpeg32" /I "..\..\..\..\common\video\libmpeg32\video" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MPEG3_PLUGIN_EXPORTS" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\..\src" /I "..\..\..\lib" /I "..\..\..\..\include" /I "..\..\..\..\lib" /I "..\..\..\..\lib\mp4av" /I "..\..\..\..\lib\mp4v2" /I "..\..\..\..\lib\SDL\include" /I "..\..\..\..\common\video\libmpeg32" /I "..\..\..\..\common\video\libmpeg32\video" /I "..\..\..\..\lib\sdp" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MPEG3_PLUGIN_EXPORTS" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -74,7 +74,7 @@ PostBuild_Cmds=copy Release\mpeg3_plugin.dll ..\..\..\Src
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MPEG3_PLUGIN_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\..\src" /I "..\..\..\lib" /I "..\..\..\..\include" /I "..\..\..\..\lib" /I "..\..\..\..\lib\mp4av" /I "..\..\..\..\lib\mp4v2" /I "..\..\..\..\lib\SDL\include" /I "..\..\..\..\common\video\libmpeg32" /I "..\..\..\..\common\video\libmpeg32\video" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MPEG3_PLUGIN_EXPORTS" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\..\src" /I "..\..\..\lib" /I "..\..\..\..\include" /I "..\..\..\..\lib" /I "..\..\..\..\lib\mp4av" /I "..\..\..\..\lib\mp4v2" /I "..\..\..\..\lib\SDL\include" /I "..\..\..\..\common\video\libmpeg32" /I "..\..\..\..\common\video\libmpeg32\video" /I "..\..\..\..\lib\sdp" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MPEG3_PLUGIN_EXPORTS" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"

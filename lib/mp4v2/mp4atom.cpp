@@ -73,6 +73,8 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4Co64Atom();
       } else if (ATOMID(type) == ATOMID("cprt")) {
 	pAtom = new MP4CprtAtom();
+      } else if (ATOMID(type) == ATOMID("cpil")) { /* Apple iTunes */
+	pAtom = new MP4CpilAtom();
       }
       break;
     case 'd':
@@ -90,6 +92,10 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4DrepAtom();
       } else if (ATOMID(type) == ATOMID("dmax")) {
 	pAtom = new MP4DmaxAtom();
+      } else if (ATOMID(type) == ATOMID("data")) { /* Apple iTunes */
+	pAtom = new MP4DataAtom();
+      } else if (ATOMID(type) == ATOMID("disk")) { /* Apple iTunes */
+	pAtom = new MP4DiskAtom();
       }
       break;
     case 'e':
@@ -114,6 +120,11 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4FtypAtom();
       }
       break;
+    case 'g':
+      if (ATOMID(type) == ATOMID("gnre")) { // Apple iTunes 
+	pAtom = new MP4GnreAtom();
+      }
+      break;
     case 'h':
       if (ATOMID(type) == ATOMID("hdlr")) {
 	pAtom = new MP4HdlrAtom();
@@ -136,6 +147,8 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4IodsAtom();
       } else if (ATOMID(type) == ATOMID("ipir")) {
 	pAtom = new MP4TrefTypeAtom(type);
+      } else if (ATOMID(type) == ATOMID("ilst")) {
+	pAtom = new MP4IlstAtom();
       }
       break;
     case 'm':
@@ -167,6 +180,10 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4MvexAtom();
       } else if (ATOMID(type) == ATOMID("maxr")) {
 	pAtom = new MP4MaxrAtom();
+      } else if (ATOMID(type) == ATOMID("meta")) { // iTunes
+	pAtom = new MP4MetaAtom();
+      } else if (ATOMID(type) == ATOMID("mean")) { // iTunes
+	pAtom = new MP4MeanAtom();
       }
       break;
     case 'n':
@@ -174,6 +191,8 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4NmhdAtom();
       } else if (ATOMID(type) == ATOMID("nump")) {
 	pAtom = new MP4NumpAtom();
+      } else if (ATOMID(type) == ATOMID("name")) { // iTunes
+	pAtom = new MP4NameAtom();
       }
       break;
     case 'p':
@@ -253,6 +272,10 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4TimsAtom();
       } else if (ATOMID(type) == ATOMID("tsro")) {
 	pAtom = new MP4TsroAtom();
+      } else if (ATOMID(type) == ATOMID("trkn")) { // iTunes
+	pAtom = new MP4TrknAtom();
+      } else if (ATOMID(type) == ATOMID("tmpo")) { // iTunes
+	pAtom = new MP4TmpoAtom();
       }
       break;
     case 'u':
@@ -269,6 +292,27 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4VmhdAtom();
       }
       break;
+    case '©':
+      if (ATOMID(type) == ATOMID("©nam")) {
+ 	pAtom = new MP4NamAtom();
+      } else if (ATOMID(type) == ATOMID("©ART")) { /* Apple iTunes */
+ 	pAtom = new MP4ArtAtom();
+      } else if (ATOMID(type) == ATOMID("©wrt")) { /* Apple iTunes */
+ 	pAtom = new MP4WrtAtom();
+      } else if (ATOMID(type) == ATOMID("©alb")) { /* Apple iTunes */
+ 	pAtom = new MP4AlbAtom();
+      } else if (ATOMID(type) == ATOMID("©day")) { /* Apple iTunes */
+ 	pAtom = new MP4DayAtom();
+      } else if (ATOMID(type) == ATOMID("©too")) { /* Apple iTunes */
+ 	pAtom = new MP4TooAtom();
+      } else if (ATOMID(type) == ATOMID("©cmt")) { /* Apple iTunes */
+ 	pAtom = new MP4CmtAtom();
+      }
+      break;
+    case '-':
+      if (ATOMID(type) == ATOMID("----")) { /* Apple iTunes */
+ 	pAtom = new MP4DashAtom();
+      }
     }
   }
 

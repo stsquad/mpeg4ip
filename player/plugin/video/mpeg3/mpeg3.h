@@ -23,7 +23,6 @@
  */
 #ifndef __MPEG3_H__
 #define __MPEG3_H__ 1
-#include <systems.h>
 #include "codec_plugin.h"
 extern "C" {
 #include <libmpeg3.h>

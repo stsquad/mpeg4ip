@@ -1,5 +1,5 @@
 %define name SDL
-%define version 1.2.5
+%define version 1.2.6
 %define release 1
 
 Summary: Simple DirectMedia Layer

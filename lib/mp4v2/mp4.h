@@ -25,7 +25,7 @@
 
 /* include system and project specific headers */
 #include "mpeg4ip.h"
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 #include "../ismacryp/ismacryplib.h"
 #endif
 
@@ -404,7 +404,7 @@ MP4TrackId MP4AddAudioTrack(
 	MP4Duration sampleDuration,
 	u_int8_t audioType DEFAULT(MP4_MPEG4_AUDIO_TYPE));
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 MP4TrackId MP4AddEncAudioTrack(
 	MP4FileHandle hFile, 
 	u_int32_t timeScale, 
@@ -421,7 +421,7 @@ MP4TrackId MP4AddVideoTrack(
 	u_int16_t height,
 	u_int8_t videoType DEFAULT(MP4_MPEG4_VIDEO_TYPE));
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 MP4TrackId MP4AddEncVideoTrack(
 	MP4FileHandle hFile, 
 	u_int32_t timeScale, 
@@ -454,7 +454,7 @@ MP4TrackId MP4CopyTrack(
 	bool applyEdits DEFAULT(false),
 	MP4TrackId dstHintTrackReferenceTrack DEFAULT(MP4_INVALID_TRACK_ID));
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 MP4TrackId MP4EncAndCopyTrack(
 	MP4FileHandle srcFile, 
 	MP4TrackId srcTrackId,
@@ -655,7 +655,7 @@ bool MP4CopySample(
 	MP4TrackId dstTrackId DEFAULT(MP4_INVALID_TRACK_ID),
 	MP4Duration dstSampleDuration DEFAULT(MP4_INVALID_DURATION));
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 bool MP4EncAndCopySample(
 	MP4FileHandle srcFile,
 	MP4TrackId srcTrackId, 
@@ -948,6 +948,48 @@ MP4SampleId MP4GetSampleIdFromEditTime(
 	MP4Timestamp when, 
 	MP4Timestamp* pStartTime DEFAULT(NULL), 
 	MP4Duration* pDuration DEFAULT(NULL));
+/* iTunes metadata handling */
+bool MP4MetadataDelete(MP4FileHandle hFile);
+bool MP4GetMetadataByIndex(MP4FileHandle hFile, u_int32_t index,
+			   const char** ppName,
+			   u_int8_t** ppValue, u_int32_t* pValueSize);
+bool MP4SetMetadataName(MP4FileHandle hFile, const char* value);
+bool MP4GetMetadataName(MP4FileHandle hFile, char** value);
+bool MP4SetMetadataArtist(MP4FileHandle hFile, const char* value);
+bool MP4GetMetadataArtist(MP4FileHandle hFile, char** value);
+bool MP4SetMetadataWriter(MP4FileHandle hFile, const char* value);
+bool MP4GetMetadataWriter(MP4FileHandle hFile, char** value);
+bool MP4SetMetadataComment(MP4FileHandle hFile, const char* value);
+bool MP4GetMetadataComment(MP4FileHandle hFile, char** value);
+bool MP4SetMetadataTool(MP4FileHandle hFile, const char* value);
+bool MP4GetMetadataTool(MP4FileHandle hFile, char** value);
+bool MP4SetMetadataYear(MP4FileHandle hFile, const char* value);
+bool MP4GetMetadataYear(MP4FileHandle hFile, char** value);
+bool MP4SetMetadataAlbum(MP4FileHandle hFile, const char* value);
+bool MP4GetMetadataAlbum(MP4FileHandle hFile, char** value);
+bool MP4SetMetadataTrack(MP4FileHandle hFile,
+			 u_int16_t track, u_int16_t totalTracks);
+bool MP4GetMetadataTrack(MP4FileHandle hFile,
+			 u_int16_t* track, u_int16_t* totalTracks);
+bool MP4SetMetadataDisk(MP4FileHandle hFile,
+			u_int16_t disk, u_int16_t totalDisks);
+bool MP4GetMetadataDisk(MP4FileHandle hFile,
+			u_int16_t* disk, u_int16_t* totalDisks);
+bool MP4SetMetadataGenre(MP4FileHandle hFile, const char *genre);
+bool MP4GetMetadataGenre(MP4FileHandle hFile, char **genre);
+bool MP4SetMetadataTempo(MP4FileHandle hFile, u_int16_t tempo);
+bool MP4GetMetadataTempo(MP4FileHandle hFile, u_int16_t* tempo);
+bool MP4SetMetadataCompilation(MP4FileHandle hFile, u_int8_t cpl);
+bool MP4GetMetadataCompilation(MP4FileHandle hFile, u_int8_t* cpl);
+bool MP4SetMetadataCoverArt(MP4FileHandle hFile,
+			    u_int8_t *coverArt, u_int32_t size);
+bool MP4GetMetadataCoverArt(MP4FileHandle hFile,
+			    u_int8_t **coverArt, u_int32_t* size);
+bool MP4SetMetadataFreeForm(MP4FileHandle hFile, char *name,
+			    u_int8_t* pValue, u_int32_t valueSize);
+bool MP4GetMetadataFreeForm(MP4FileHandle hFile, char *name,
+			    u_int8_t** pValue, u_int32_t* valueSize);
+ 
 
 /* time conversion utilties */
 

@@ -45,13 +45,15 @@ libmp4syncsdl_la_SOURCES = \
 	video_sdl.h
 libmp4syncsdl_la_LDFLAGS = -static
 
+include_HEADERS = \
+	codec_plugin.h 
+
 libmp4player_la_SOURCES = \
 	avi_bytestream.cpp \
 	avi_bytestream.h \
 	avi_file.cpp \
 	avi_file.h \
 	codec_plugin.cpp \
-	codec_plugin.h \
 	codec_plugin_private.h \
 	ip_port.cpp \
 	ip_port.h \
@@ -110,8 +112,6 @@ endif
 
 bin_PROGRAMS = mp4player $(PROG_E1)
 
-check_PROGRAMS = movplayer
-
 mp4player_SOURCES = \
 	main.cpp 
 
@@ -122,10 +122,7 @@ gmp4player_SOURCES = \
 	gui_utils.h \
 	gui_xpm.h
 
-movplayer_SOURCES = \
-	movplayer.cpp
-
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPTINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/lib/mp4v2 @ISMACRYPINC@ -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib -I$(top_srcdir)/common/video/libmpeg32 -I$(top_srcdir)/lib/sdp @GLIB_CFLAGS@ @GTK_CFLAGS@ @X_CFLAGS@
 
 AM_CFLAGS= -D_REENTRANT @BILLS_CWARNINGS@ -DPLAYER_PLUGIN_DIR=\"@PLAYER_PLUGIN_DIR@\"
 
@@ -147,7 +144,7 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/player/lib/rtsp/librtsp.la \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
-	@ISMACRYPTLIB@ \
+	@ISMACRYPLIB@ \
 	$(top_builddir)/lib/avi/libavi.la 
 
 mp4player_LDADD = \

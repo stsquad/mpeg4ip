@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.5 2002/10/07 21:21:33 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.6 2003/09/12 23:19:08 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -49,6 +49,9 @@ static AudioBootStrap *bootstrap[] = {
 #endif
 #ifdef ALSA_SUPPORT
 	&ALSA_bootstrap,
+#endif
+#ifdef QNXNTOAUDIO_SUPPORT
+	&QNXNTOAUDIO_bootstrap,
 #endif
 #ifdef SUNAUDIO_SUPPORT
 	&SUNAUDIO_bootstrap,
@@ -83,14 +86,24 @@ static AudioBootStrap *bootstrap[] = {
 #ifdef ENABLE_AHI
 	&AHI_bootstrap,
 #endif
+#ifdef MMEAUDIO_SUPPORT
+	&MMEAUDIO_bootstrap,
+#endif
 #ifdef MINTAUDIO_SUPPORT
-	&MINTAUDIO_bootstrap,
+	&MINTAUDIO_GSXB_bootstrap,
+	&MINTAUDIO_MCSN_bootstrap,
+	&MINTAUDIO_STFA_bootstrap,
+	&MINTAUDIO_XBIOS_bootstrap,
+	&MINTAUDIO_DMA8_bootstrap,
 #endif
 #ifdef DISKAUD_SUPPORT
 	&DISKAUD_bootstrap,
 #endif
 #ifdef ENABLE_DC
 	&DCAUD_bootstrap,
+#endif
+#ifdef DRENDERER_SUPPORT
+	&DRENDERER_bootstrap,
 #endif
 	NULL
 };
@@ -381,7 +394,7 @@ int SDL_OpenAudio(SDL_AudioSpec *desired, SDL_AudioSpec *obtained)
 		return(-1);
 	}
 
-#ifdef macintosh
+#if defined(macintosh) || defined(__riscos__)
 	/* FIXME: Need to implement PPC interrupt asm for SDL_LockAudio() */
 #else
 #if defined(__MINT__) && !defined(ENABLE_THREADS)

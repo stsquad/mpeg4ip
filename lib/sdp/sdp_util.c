@@ -27,7 +27,6 @@
  * Bill May (wmay@cisco.com)
  * Cisco Systems, Inc.
  */
-#include "systems.h"
 #include "sdp.h"
 #include "sdp_decode_private.h"
 

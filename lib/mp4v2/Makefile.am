@@ -1,14 +1,16 @@
 SUBDIRS = . test util
 
 INCLUDES = -I$(top_srcdir)/include \
-           -I$(top_srcdir)/@ISMACRYPTINC@
+           @ISMACRYPINC@
 
 AM_CXXFLAGS = @BILLS_CPPWARNINGS@
 
 lib_LTLIBRARIES = libmp4v2.la 
 
 libmp4v2_la_LIBADD = \
-         $(top_builddir)/@ISMACRYPTLIB@
+         @ISMACRYPLIB@
+
+include_HEADERS = mp4.h
 
 libmp4v2_la_SOURCES = \
 	atom_co64.cpp \
@@ -39,6 +41,7 @@ libmp4v2_la_SOURCES = \
 	atom_mdat.cpp \
 	atom_mdhd.cpp \
 	atom_mdia.cpp \
+	atom_meta.cpp \
 	atom_mfhd.cpp \
 	atom_minf.cpp \
 	atom_moof.cpp \
@@ -97,7 +100,6 @@ libmp4v2_la_SOURCES = \
 	mp4common.h \
 	mp4container.cpp \
 	mp4container.h \
-	mp4.h \
 	mp4.cpp \
 	mp4descriptor.cpp \
 	mp4descriptor.h \
@@ -105,6 +107,7 @@ libmp4v2_la_SOURCES = \
 	mp4file.h \
 	mp4file_io.cpp \
 	mp4info.cpp \
+	mp4meta.cpp \
 	mp4property.cpp \
 	mp4property.h \
 	mp4track.cpp \

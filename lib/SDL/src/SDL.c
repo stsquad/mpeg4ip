@@ -22,12 +22,15 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL.c,v 1.4 2002/10/07 21:21:33 wmaycisco Exp $";
+ "@(#) $Id: SDL.c,v 1.5 2003/09/12 23:19:08 wmaycisco Exp $";
 #endif
 
 /* Initialization code for SDL */
 
 #include <stdlib.h>		/* For getenv() */
+#ifdef ENABLE_PTH
+#include <pth.h>
+#endif
 
 #include "SDL.h"
 #include "SDL_endian.h"
@@ -241,8 +244,8 @@ const SDL_version * SDL_Linked_Version(void)
 	return(&version);
 }
 
-#if defined(_WIN32_WCE)
-/* Need to include DllMain() on Windows CE for some reason.. */
+#if defined(_WIN32_WCE) || (defined(__WATCOMC__) && defined(BUILD_DLL))
+/* Need to include DllMain() on Windows CE and Watcom C for some reason.. */
 #include <windows.h>
 
 BOOL APIENTRY DllMain( HANDLE hModule, 
@@ -258,4 +261,4 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 	}
 	return TRUE;
 }
-#endif /* _WIN32_WCE */
+#endif /* _WIN32_WCE and building DLL with Watcom C */

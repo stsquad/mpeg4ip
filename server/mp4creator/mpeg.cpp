@@ -46,7 +46,7 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
     MP4_MPEG2_MAIN_VIDEO_TYPE : MP4_MPEG1_VIDEO_TYPE;
 
   if (doEncrypt) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
     id = MP4AddEncVideoTrack(mp4file, 
 			     Mp4TimeScale, 
 			     mp4FrameDuration,
@@ -98,7 +98,7 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
 	buf[blen - 3] == 0 &&
 	buf[blen - 2] == 1) blen -= 4;
     
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
     // encrypt the sample if neeed
     if (doEncrypt) {
       if (ismacrypEncryptSample(ismaCryptSId, blen, buf) != 0) {
@@ -176,7 +176,7 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
   MP4Duration duration = (90000 * samples_per_frame) / freq;
 
   if (doEncrypt) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
     id = MP4AddEncAudioTrack(mp4file, 
 			     90000, 
 			     duration,
@@ -206,7 +206,7 @@ static MP4TrackId AudioCreate (MP4FileHandle mp4file,
   }
 
   do {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
     // encrypt if needed
      if (doEncrypt) {
       if (ismacrypEncryptSample(ismaCryptSId, blen, buf) != 0) {

@@ -31,71 +31,76 @@
 #include "audio_encoder.h"
 
 class COSSAudioSource : public CMediaSource {
-public:
-        COSSAudioSource(CLiveConfig *pConfig);
+ public:
+  COSSAudioSource(CLiveConfig *pConfig);
 
-	~COSSAudioSource() {
-		free(m_pcmFrameBuffer);
-	}
+  ~COSSAudioSource() {
+    free(m_pcmFrameBuffer);
+  }
 
-	bool IsDone() {
-		return false;	// live capture device is inexhaustible
-	}
+  bool IsDone() {
+    return false;	// live capture device is inexhaustible
+  }
 
-	float GetProgress() {
-		return 0.0;		// live capture device is inexhaustible
-	}
+  float GetProgress() {
+    return 0.0;		// live capture device is inexhaustible
+  }
 
-protected:
-	int ThreadMain();
+ protected:
+  int ThreadMain();
 
-	void DoStartCapture();
-	void DoStopCapture();
+  void DoStartCapture();
+  void DoStopCapture();
 
-	bool Init();
-	bool InitDevice();
+  bool Init();
+  bool InitDevice();
 
-	void ProcessAudio();
+  void ProcessAudio();
 
-protected:
-	int					m_audioDevice;
-	u_int16_t			m_maxPasses;
-	Timestamp       m_audioCaptureStartTimestamp;
-	u_int8_t*			m_pcmFrameBuffer;
-	u_int32_t			m_pcmFrameSize;
+ protected:
+  int           m_audioDevice;
+  int           m_maxPasses;
+  Timestamp     m_prevTimestamp;
+  int           m_audioBufferSize;
+  Timestamp*    m_timestampArray;
+  int           m_audioBufferFrames;
+  unsigned int  m_index;
+  u_int8_t*     m_pcmFrameBuffer;
+  u_int32_t     m_pcmFrameSize;
 };
 
+
 class CAudioCapabilities {
-public:
-	CAudioCapabilities(const char* deviceName) {
-		m_deviceName = stralloc(deviceName);
-		m_canOpen = false;
-		m_numSamplingRates = 0;
+ public:
+  CAudioCapabilities(const char* deviceName) {
+    m_deviceName = stralloc(deviceName);
+    m_canOpen = false;
+    m_numSamplingRates = 0;
 
-		ProbeDevice();
-	}
+    ProbeDevice();
+  }
 
-	~CAudioCapabilities() {
-		free(m_deviceName);
-	}
+  ~CAudioCapabilities() {
+    free(m_deviceName);
+  }
 
-	inline bool IsValid() {
-		return m_canOpen;
-	}
+  inline bool IsValid() {
+    return m_canOpen;
+  }
 
-public:
-	char*		m_deviceName; 
-	bool		m_canOpen;
+ public:
+  char*		m_deviceName; 
+  bool		m_canOpen;
 
-	// N.B. the rest of the fields are only valid 
-	// if m_canOpen is true
+  // N.B. the rest of the fields are only valid 
+  // if m_canOpen is true
 
-	char*		m_driverName; 
+  char*		m_driverName; 
 
-	u_int16_t	m_numSamplingRates;
-	u_int32_t	m_samplingRates[16];
-protected:
-	bool ProbeDevice(void);
+  u_int16_t	m_numSamplingRates;
+  u_int32_t	m_samplingRates[16];
+ protected:
+  bool ProbeDevice(void);
 };
 
 #endif /* __AUDIO_OSS_SOURCE_H__ */

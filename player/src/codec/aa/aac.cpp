@@ -21,7 +21,7 @@
 #include "aac.h"
 #include <mp4util/mpeg4_audio_config.h>
 #include <mp4util/mpeg4_sdp.h>
-#include <mp4v2/mp4.h>
+#include <mp4.h>
 
 #define DEBUG_SYNC 2
 

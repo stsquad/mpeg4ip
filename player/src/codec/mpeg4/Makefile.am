@@ -43,7 +43,8 @@ INCLUDES = -I.. \
 	-I$(top_builddir)/$(mpeg4_dir)/vtc/ztq \
 	-I$(top_builddir)/include \
 	-I$(top_builddir)/lib \
-	-I$(top_srcdir)/lib/mp4v2
+	-I$(top_srcdir)/lib/mp4v2 \
+	-I$(top_srcdir)/lib/sdp
 
 AM_CFLAGS = -D_REENTRANT -fexceptions @BILLS_CWARNINGS@ -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_ -D_OBSS_
 

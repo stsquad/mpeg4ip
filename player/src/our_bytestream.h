@@ -28,7 +28,7 @@
 #ifndef __OUR_BYTESTREAM_H__
 #define __OUR_BYTESTREAM_H__ 1
 #include <assert.h>
-#include "systems.h"
+#include "mpeg4ip.h"
 
 class COurInByteStream
 {

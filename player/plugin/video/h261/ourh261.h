@@ -23,7 +23,6 @@
  */
 #ifndef __H261_H__
 #define __H261_H__ 1
-#include <systems.h>
 #include "codec_plugin.h"
 #include "p64.h"
 

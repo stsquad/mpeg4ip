@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "avilib.h"
 
 /* The following variable indicates the kind of error */

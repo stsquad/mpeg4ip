@@ -21,7 +21,7 @@
 /*
  * test.c - test utility for sdp library
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <time.h>
 #include "sdp.h"
 

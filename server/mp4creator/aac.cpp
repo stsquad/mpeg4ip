@@ -284,7 +284,7 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
   // add the new audio track
   MP4TrackId trackId;
   if (doEncrypt) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
     trackId = MP4AddEncAudioTrack(mp4File, samplesPerSecond, 
 				  1024, audioType, ismaCryptSId);
 #else
@@ -333,7 +333,7 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 
   while (LoadNextAacFrame(inFile, sampleBuffer, &sampleSize, true)) {
     if (doEncrypt) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
       if (ismacrypEncryptSample(ismaCryptSId, sampleSize, sampleBuffer) != 0) {
 	fprintf(stderr,	
 		"%s: can't encrypt audio frame %u\n", ProgName, sampleId);

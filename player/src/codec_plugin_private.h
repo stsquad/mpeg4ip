@@ -26,7 +26,7 @@
 #include "codec_plugin.h"
 #include "rtp_plugin.h"
 
-void initialize_plugins(void);
+extern "C" void initialize_plugins(void);
 
 void close_plugins(void);
 

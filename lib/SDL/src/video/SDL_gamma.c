@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_gamma.c,v 1.3 2002/05/01 17:41:04 wmaycisco Exp $";
+ "@(#) $Id: SDL_gamma.c,v 1.4 2003/09/12 23:19:24 wmaycisco Exp $";
 #endif
 
 /* Gamma correction support */
@@ -151,7 +151,7 @@ int SDL_GetGamma(float *red, float *green, float *blue)
 	return succeeded;
 }
 
-int SDL_SetGammaRamp(Uint16 *red, Uint16 *green, Uint16 *blue)
+int SDL_SetGammaRamp(const Uint16 *red, const Uint16 *green, const Uint16 *blue)
 {
 	int succeeded;
 	SDL_VideoDevice *video = current_video;

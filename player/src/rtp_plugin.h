@@ -21,7 +21,7 @@
 #ifndef __RTP_PLUGIN_H__
 #define __RTP_PLUGIN_H__
 
-#include <systems.h>
+#include <mpeg4ip.h>
 #include <sdp/sdp.h>
 
 struct rtp_packet;

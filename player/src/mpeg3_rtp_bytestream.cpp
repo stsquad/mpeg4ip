@@ -19,7 +19,7 @@
  *              Bill May        wmay@cisco.com
  */
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <rtp/rtp.h>
 #include <rtp/memory.h>
 #include <sdp/sdp.h> // for NTP_TO_UNIX_TIME

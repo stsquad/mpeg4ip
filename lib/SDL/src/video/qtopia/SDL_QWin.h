@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_QWin.h,v 1.1 2002/10/07 21:21:46 wmaycisco Exp $";
+ "@(#) $Id: SDL_QWin.h,v 1.2 2003/09/12 23:19:31 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_QWin_h
@@ -70,14 +70,7 @@ class SDL_QWin : public QWidget
     x = my_offset.x();
     y = my_offset.y();
   }
-  bool beginDraw(void) {
-    return true;
-  }
-  void endDraw(void) {
-  }
-  QImage *image(void) {
-    return my_image;
-  }
+  QImage *image(void) { return my_image; }
   
   void setWFlags(WFlags flags) {
     QWidget::setWFlags(flags);
@@ -87,22 +80,8 @@ class SDL_QWin : public QWidget
   void setMousePos(const QPoint& newpos);
   void setFullscreen(bool);
 
-  void lockScreen() {
-    if(!my_painter) {
-      my_painter = new QDirectPainter(this);
-    }
-    my_locked++; // Increate lock refcount
-  }
-  void unlockScreen() {
-    if(my_locked > 0) {
-      my_locked--; // decrease lock refcount;
-    }
-    if(!my_locked && my_painter) {
-      my_painter->end();
-      delete my_painter;
-      my_painter = 0;
-    }
-  }
+  bool lockScreen(bool force=false);
+  void unlockScreen();
   void repaintRect(const QRect& rect);
  protected:
   /* Handle resizing of the window */
@@ -114,13 +93,12 @@ class SDL_QWin : public QWidget
   void mousePressEvent(QMouseEvent *e);
   void mouseReleaseEvent(QMouseEvent *e);
   void paintEvent(QPaintEvent *ev);
-  void keyPressEvent(QKeyEvent *e) {
-    QueueKey(e, 1);
-  }
-  void keyReleaseEvent(QKeyEvent *e) {
-    QueueKey(e, 0);
-  }
+  void keyPressEvent(QKeyEvent *e)   { QueueKey(e, 1); }
+  void keyReleaseEvent(QKeyEvent *e) { QueueKey(e, 0); }
  private:
+  bool repaintRotation0(const QRect& rect);
+  bool repaintRotation1(const QRect& rect);
+  bool repaintRotation3(const QRect& rect);
   void enableFullscreen();
   QDirectPainter *my_painter;
   QImage *my_image;

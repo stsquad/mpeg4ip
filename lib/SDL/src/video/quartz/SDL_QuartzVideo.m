@@ -32,6 +32,7 @@ VideoBootStrap QZ_bootstrap = {
     "Quartz", "Mac OS X CoreGraphics", QZ_Available, QZ_CreateDevice
 };
 
+
 /* Bootstrap functions */
 static int QZ_Available () {
     return 1;
@@ -130,6 +131,10 @@ static int QZ_VideoInit (_THIS, SDL_PixelFormat *video_format) {
     /* Set misc globals */
     current_grab_mode = SDL_GRAB_OFF;
     in_foreground     = YES;
+    cursor_visible    = YES;
+    
+    /* register for sleep notifications so wake from sleep generates SDL_VIDEOEXPOSE */
+    QZ_RegisterForSleepNotifications (this);
     
     return 0;
 }
@@ -248,6 +253,17 @@ static SDL_Rect** QZ_ListModes (_THIS, SDL_PixelFormat *format, Uint32 flags) {
     return client_mode_list;
 }
 
+static SDL_bool QZ_WindowPosition(_THIS, int *x, int *y)
+{
+    const char *window = getenv("SDL_VIDEO_WINDOW_POS");
+    if ( window ) {
+        if ( sscanf(window, "%d,%d", x, y) == 2 ) {
+            return SDL_TRUE;
+        }
+    }
+    return SDL_FALSE;
+}
+
 /* 
     Gamma functions to try to hide the flash from a rez switch
     Fade the display from normal to black
@@ -356,6 +372,16 @@ static void QZ_UnsetVideoMode (_THIS) {
         
         gamma_error = QZ_FadeGammaOut (this, &gamma_table);
 
+        /*  Release double buffer stuff */
+        if ( mode_flags & (SDL_HWSURFACE|SDL_DOUBLEBUF)) {
+            quit_thread = YES;
+            SDL_SemPost (sem1);
+            SDL_WaitThread (thread, NULL);
+            SDL_DestroySemaphore (sem1);
+            SDL_DestroySemaphore (sem2);
+            free (sw_buffers[0]);
+        }
+        
         /* 
             Release the OpenGL context
             Do this first to avoid trash on the display before fade
@@ -368,9 +394,8 @@ static void QZ_UnsetVideoMode (_THIS) {
         
         /* Restore original screen resolution/bpp */
         CGDisplaySwitchToMode (display_id, save_mode);
-        CGDisplayRelease (display_id);
+        CGReleaseAllDisplays ();
         ShowMenuBar ();
-
         /* 
             Reset the main screen's rectangle
             See comment in QZ_SetVideoFullscreen for why we do this
@@ -394,13 +419,6 @@ static void QZ_UnsetVideoMode (_THIS) {
             QZ_TearDownOpenGL (this);
     }
 
-    /* Restore gamma settings */
-    CGDisplayRestoreColorSyncSettings ();
-
-    /* Ensure the cursor will be visible and working when we quit */
-    CGDisplayShowCursor (display_id);
-    CGAssociateMouseAndMouseCursorPosition (1);
-
     /* Signal successful teardown */
     video_set = SDL_FALSE;
 }
@@ -411,6 +429,7 @@ static SDL_Surface* QZ_SetVideoFullScreen (_THIS, SDL_Surface *current, int widt
     int gamma_error;
     SDL_QuartzGammaTable gamma_table;
     NSRect screen_rect;
+    CGError error;
     
     /* Destroy any previous mode */
     if (video_set == SDL_TRUE)
@@ -430,7 +449,12 @@ static SDL_Surface* QZ_SetVideoFullScreen (_THIS, SDL_Surface *current, int widt
     gamma_error = QZ_FadeGammaOut (this, &gamma_table);
 
     /* Put up the blanking window (a window above all other windows) */
-    if ( CGDisplayNoErr != CGDisplayCapture (display_id) ) {
+    if (getenv ("SDL_SINGLEDISPLAY"))
+        error = CGDisplayCapture (display_id);
+    else
+        error = CGCaptureAllDisplays ();
+        
+    if ( CGDisplayNoErr != error ) {
         SDL_SetError ("Failed capturing display");
         goto ERR_NO_CAPTURE;
     }
@@ -454,11 +478,41 @@ static SDL_Surface* QZ_SetVideoFullScreen (_THIS, SDL_Surface *current, int widt
     this->UpdateRects     = QZ_DirectUpdate;
     this->LockHWSurface   = QZ_LockHWSurface;
     this->UnlockHWSurface = QZ_UnlockHWSurface;
-    
-    /* Setup some mode-dependant info */
-    if ( CGSDisplayCanHWFill (display_id) ) {
-        this->info.blit_fill = 1;
-        this->FillHWRect = QZ_FillHWRect;
+
+    /* Setup double-buffer emulation */
+    if ( flags & SDL_DOUBLEBUF ) {
+        
+        /*
+            Setup a software backing store for reasonable results when
+            double buffering is requested (since a single-buffered hardware
+            surface looks hideous).
+            
+            The actual screen blit occurs in a separate thread to allow 
+            other blitting while waiting on the VBL (and hence results in higher framerates).
+        */
+        this->LockHWSurface = NULL;
+        this->UnlockHWSurface = NULL;
+        this->UpdateRects = NULL;
+        
+        current->flags |= (SDL_HWSURFACE|SDL_DOUBLEBUF);
+        this->UpdateRects = QZ_DoubleBufferUpdate;
+        this->LockHWSurface = QZ_LockDoubleBuffer;
+        this->UnlockHWSurface = QZ_UnlockDoubleBuffer;
+        this->FlipHWSurface = QZ_FlipDoubleBuffer;
+
+        current->pixels = malloc (current->pitch * current->h * 2);
+        if (current->pixels == NULL) {
+            SDL_OutOfMemory ();
+            goto ERR_DOUBLEBUF;
+        }
+        
+        sw_buffers[0] = current->pixels;
+        sw_buffers[1] = (Uint8*)current->pixels + current->pitch * current->h;
+        
+        quit_thread = NO;
+        sem1 = SDL_CreateSemaphore (0);
+        sem2 = SDL_CreateSemaphore (1);
+        thread = SDL_CreateThread ((int (*)(void *))QZ_ThreadFlip, this);
     }
 
     if ( CGDisplayCanSetPalette (display_id) )
@@ -514,16 +568,20 @@ static SDL_Surface* QZ_SetVideoFullScreen (_THIS, SDL_Surface *current, int widt
     return current;
 
     /* Since the blanking window covers *all* windows (even force quit) correct recovery is crucial */
-ERR_NO_GL:      CGDisplaySwitchToMode (display_id, save_mode);
-ERR_NO_SWITCH:  CGDisplayRelease (display_id);
+ERR_NO_GL:      
+ERR_DOUBLEBUF:  CGDisplaySwitchToMode (display_id, save_mode);
+ERR_NO_SWITCH:  CGReleaseAllDisplays ();
 ERR_NO_CAPTURE: if (!gamma_error) { QZ_FadeGammaIn (this, &gamma_table); }
-ERR_NO_MATCH:    return NULL;
+ERR_NO_MATCH:   return NULL;
 }
 
 static SDL_Surface* QZ_SetVideoWindowed (_THIS, SDL_Surface *current, int width,
                                          int height, int bpp, Uint32 flags) {
     unsigned int style;
     NSRect contentRect;
+    BOOL isCustom = NO;
+    int center_window = 1;
+    int origin_x, origin_y;
 
     current->flags = 0;
     current->w = width;
@@ -544,7 +602,41 @@ static SDL_Surface* QZ_SetVideoWindowed (_THIS, SDL_Surface *current, int width,
              (mode_flags & SDL_OPENGL) || 
              (flags & SDL_OPENGL) )
             QZ_UnsetVideoMode (this);
-        
+    
+    /* Check for user-specified window and view */
+    {
+        char *windowPtrString = getenv ("SDL_NSWindowPointer");
+        char *viewPtrString = getenv ("SDL_NSQuickDrawViewPointer");
+    
+        if (windowPtrString && viewPtrString) {
+            
+            /* Release any previous window */
+            if ( qz_window ) {
+                [ qz_window release ];
+                qz_window = nil;
+            }
+            
+            qz_window = (NSWindow*)atoi(windowPtrString);
+            window_view = (NSQuickDrawView*)atoi(viewPtrString);
+            isCustom = YES;
+            
+            /* 
+                Retain reference to window because we
+                might release it in QZ_UnsetVideoMode
+            */
+            [ qz_window retain ];
+            
+            style = [ qz_window styleMask ];
+            /* Check resizability */
+            if ( style & NSResizableWindowMask )
+                current->flags |= SDL_RESIZABLE;
+            
+            /* Check frame */
+            if ( style & NSBorderlessWindowMask )
+                current->flags |= SDL_NOFRAME;
+        }
+    }
+    
     /* Check if we should recreate the window */
     if (qz_window == nil) {
     
@@ -561,6 +653,12 @@ static SDL_Surface* QZ_SetVideoWindowed (_THIS, SDL_Surface *current, int width,
             }
         }
                 
+        if ( QZ_WindowPosition(this, &origin_x, &origin_y) ) {
+            center_window = 0;
+            contentRect.origin.x = (float)origin_x;
+            contentRect.origin.y = (float)origin_y;            
+        }
+        
         /* Manually create a window, avoids having a nib file resource */
         qz_window = [ [ SDL_QuartzWindow alloc ] 
             initWithContentRect:contentRect
@@ -573,19 +671,23 @@ static SDL_Surface* QZ_SetVideoWindowed (_THIS, SDL_Surface *current, int width,
             return NULL;
         }
     
-        [ qz_window setReleasedWhenClosed:YES ];
+        //[ qz_window setReleasedWhenClosed:YES ];
         QZ_SetCaption(this, this->wm_title, this->wm_icon);
         [ qz_window setAcceptsMouseMovedEvents:YES ];
         [ qz_window setViewsNeedDisplay:NO ];
-        [ qz_window center ];
+        if ( center_window ) {
+            [ qz_window center ];
+        }
         [ qz_window setDelegate:
             [ [ [ SDL_QuartzWindowDelegate alloc ] init ] autorelease ] ];
     }
     /* We already have a window, just change its size */
     else {
     
-        [ qz_window setContentSize:contentRect.size ];
-        current->flags |= (SDL_NOFRAME|SDL_RESIZABLE) & mode_flags;
+        if (!isCustom) {
+            [ qz_window setContentSize:contentRect.size ];
+            current->flags |= (SDL_NOFRAME|SDL_RESIZABLE) & mode_flags;
+        }
     }
 
     /* For OpenGL, we bind the context to a subview */
@@ -626,9 +728,18 @@ static SDL_Surface* QZ_SetVideoWindowed (_THIS, SDL_Surface *current, int width,
         current->flags |= SDL_PREALLOC;
         current->flags |= SDL_ASYNCBLIT;
         
-        /* Offset below the title bar to fill the full content region */
-        current->pixels += ((int)([ qz_window frame ].size.height) - height) * current->pitch;
-
+        /* 
+            current->pixels now points to the window's pixels
+            We want it to point to the *view's* pixels 
+        */
+        { 
+            int vOffset = [ qz_window frame ].size.height - 
+                [ window_view frame ].size.height - [ window_view frame ].origin.y;
+            
+            int hOffset = [ window_view frame ].origin.x;
+                    
+            current->pixels += (vOffset * current->pitch) + hOffset * (device_bpp/8);
+        }
         this->UpdateRects     = QZ_UpdateRects;
         this->LockHWSurface   = QZ_LockWindow;
         this->UnlockHWSurface = QZ_UnlockWindow;
@@ -699,7 +810,7 @@ static SDL_Surface* QZ_SetVideoMode (_THIS, SDL_Surface *current, int width,
 }
 
 static int QZ_ToggleFullScreen (_THIS, int on) {
-    return -1;
+    return 0;
 }
 
 static int QZ_SetColors (_THIS, int first_color, int num_colors,
@@ -724,6 +835,151 @@ static int QZ_SetColors (_THIS, int first_color, int num_colors,
         return 0;
 
     return 1;
+}
+
+static int QZ_LockDoubleBuffer (_THIS, SDL_Surface *surface) {
+
+    return 1;
+}
+
+static void QZ_UnlockDoubleBuffer (_THIS, SDL_Surface *surface) {
+
+}
+
+ /* The VBL delay is based on code by Ian R Ollmann's RezLib <iano@cco.caltech.edu> */
+ static AbsoluteTime QZ_SecondsToAbsolute ( double seconds ) {
+    
+    union
+    {
+        UInt64	i;
+        Nanoseconds ns;
+    } temp;
+        
+    temp.i = seconds * 1000000000.0;
+    
+    return NanosecondsToAbsolute ( temp.ns );
+}
+
+static int QZ_ThreadFlip (_THIS) {
+
+    Uint8 *src, *dst;
+    int skip, len, h;
+    
+    /*
+        Give this thread the highest scheduling priority possible,
+        in the hopes that it will immediately run after the VBL delay
+    */
+    {
+        pthread_t current_thread;
+        int policy;
+        struct sched_param param;
+        
+        current_thread = pthread_self ();
+        pthread_getschedparam (current_thread, &policy, &param);
+        policy = SCHED_RR;
+        param.sched_priority = sched_get_priority_max (policy);
+        pthread_setschedparam (current_thread, policy, &param);
+    }
+    
+    while (1) {
+    
+        SDL_SemWait (sem1);
+        if (quit_thread)
+            return 0;
+                
+        dst = CGDisplayBaseAddress (display_id);
+        src = current_buffer;
+        len = SDL_VideoSurface->w * SDL_VideoSurface->format->BytesPerPixel;
+        h = SDL_VideoSurface->h;
+        skip = SDL_VideoSurface->pitch;
+    
+        /* Wait for the VBL to occur (estimated since we don't have a hardware interrupt) */
+        {
+            
+            /* The VBL delay is based on Ian Ollmann's RezLib <iano@cco.caltech.edu> */
+            double refreshRate;
+            double linesPerSecond;
+            double target;
+            double position;
+            double adjustment;
+            AbsoluteTime nextTime;        
+            CFNumberRef refreshRateCFNumber;
+            
+            refreshRateCFNumber = CFDictionaryGetValue (mode, kCGDisplayRefreshRate);
+            if ( NULL == refreshRateCFNumber ) {
+                SDL_SetError ("Mode has no refresh rate");
+                goto ERROR;
+            }
+            
+            if ( 0 == CFNumberGetValue (refreshRateCFNumber, kCFNumberDoubleType, &refreshRate) ) {
+                SDL_SetError ("Error getting refresh rate");
+                goto ERROR;
+            }
+            
+            if ( 0 == refreshRate ) {
+               
+               SDL_SetError ("Display has no refresh rate, using 60hz");
+                
+                /* ok, for LCD's we'll emulate a 60hz refresh, which may or may not look right */
+                refreshRate = 60.0;
+            }
+            
+            linesPerSecond = refreshRate * h;
+            target = h;
+        
+            /* Figure out the first delay so we start off about right */
+            position = CGDisplayBeamPosition (display_id);
+            if (position > target)
+                position = 0;
+            
+            adjustment = (target - position) / linesPerSecond; 
+            
+            nextTime = AddAbsoluteToAbsolute (UpTime (), QZ_SecondsToAbsolute (adjustment));
+        
+            MPDelayUntil (&nextTime);
+        }
+        
+        
+        /* On error, skip VBL delay */
+        ERROR:
+        
+        while ( h-- ) {
+        
+            memcpy (dst, src, len);
+            src += skip;
+            dst += skip;
+        }
+        
+        /* signal flip completion */
+        SDL_SemPost (sem2);
+    }
+    
+    return 0;
+}
+        
+static int QZ_FlipDoubleBuffer (_THIS, SDL_Surface *surface) {
+
+    /* wait for previous flip to complete */
+    SDL_SemWait (sem2);
+    
+    current_buffer = surface->pixels;
+        
+    if (surface->pixels == sw_buffers[0])
+        surface->pixels = sw_buffers[1];
+    else
+        surface->pixels = sw_buffers[0];
+    
+    /* signal worker thread to do the flip */
+    SDL_SemPost (sem1);
+    
+    return 0;
+}
+
+
+static void QZ_DoubleBufferUpdate (_THIS, int num_rects, SDL_Rect *rects) {
+
+    /* perform a flip if someone calls updaterects on a doublebuferred surface */
+    this->FlipHWSurface (this, SDL_VideoSurface);
 }
 
 static void QZ_DirectUpdate (_THIS, int num_rects, SDL_Rect *rects) {
@@ -1058,16 +1314,25 @@ static void QZ_UpdateRects (_THIS, int numRects, SDL_Rect *rects) {
 
 static void QZ_VideoQuit (_THIS) {
 
+    /* Restore gamma settings */
+    CGDisplayRestoreColorSyncSettings ();
+
+    /* Ensure the cursor will be visible and working when we quit */
+    CGDisplayShowCursor (display_id);
+    CGAssociateMouseAndMouseCursorPosition (1);
+    
     QZ_UnsetVideoMode (this);
     CGPaletteRelease (palette);
 }
 
+#if 0 /* Not used (apparently, it's really slow) */
 static int  QZ_FillHWRect (_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color) {
 
     CGSDisplayHWFill (display_id, rect->x, rect->y, rect->w, rect->h, color);
 
     return 0;
 }
+#endif
 
 static int  QZ_LockHWSurface(_THIS, SDL_Surface *surface) {
 
@@ -1222,6 +1487,18 @@ static int QZ_SetupOpenGL (_THIS, int bpp, Uint32 flags) {
         attr[i++] = this->gl_config.stencil_size;
     }
 
+#if NSOPENGL_CURRENT_VERSION > 1  /* What version should this be? */
+    if ( this->gl_config.multisamplebuffers != 0 ) {
+        attr[i++] = NSOpenGLPFASampleBuffers;
+        attr[i++] = this->gl_config.multisamplebuffers;
+    }
+
+    if ( this->gl_config.multisamplesamples != 0 ) {
+        attr[i++] = NSOpenGLPFASamples;
+        attr[i++] = this->gl_config.multisamplesamples;
+    }
+#endif
+
     attr[i++] = NSOpenGLPFAScreenMask;
     attr[i++] = CGDisplayIDToOpenGLDisplayMask (display_id);
     attr[i] = 0;
@@ -1239,6 +1516,31 @@ static int QZ_SetupOpenGL (_THIS, int bpp, Uint32 flags) {
         SDL_SetError ("Failed creating OpenGL context");
         return 0;
     }
+
+    /*
+     * Wisdom from Apple engineer in reference to UT2003's OpenGL performance:
+     *  "You are blowing a couple of the internal OpenGL function caches. This
+     *  appears to be happening in the VAO case.  You can tell OpenGL to up
+     *  the cache size by issuing the following calls right after you create
+     *  the OpenGL context.  The default cache size is 16."    --ryan.
+     */
+
+    #ifndef GLI_ARRAY_FUNC_CACHE_MAX
+    #define GLI_ARRAY_FUNC_CACHE_MAX 284
+    #endif
+
+    #ifndef GLI_SUBMIT_FUNC_CACHE_MAX
+    #define GLI_SUBMIT_FUNC_CACHE_MAX 280
+    #endif
+
+    {
+        long cache_max = 64;
+        CGLContextObj ctx = [ gl_context cglContext ];
+        CGLSetParameter (ctx, GLI_SUBMIT_FUNC_CACHE_MAX, &cache_max);
+        CGLSetParameter (ctx, GLI_ARRAY_FUNC_CACHE_MAX, &cache_max);
+    }
+
+    /* End Wisdom from Apple Engineer section. --ryan. */
 
     /* Convince SDL that the GL "driver" is loaded */
     this->gl_config.driver_loaded = 1;
@@ -1306,6 +1608,8 @@ static int    QZ_GL_GetAttribute   (_THIS, SDL_GLattr attrib, int* value) {
         case SDL_GL_ACCUM_BLUE_SIZE: attr = GL_ACCUM_BLUE_BITS; break;
         case SDL_GL_ACCUM_ALPHA_SIZE: attr = GL_ACCUM_ALPHA_BITS; break;
         case SDL_GL_STEREO: attr = GL_STEREO; break;
+        case SDL_GL_MULTISAMPLEBUFFERS: attr = GL_SAMPLE_BUFFERS_ARB; break;
+        case SDL_GL_MULTISAMPLESAMPLES: attr = GL_SAMPLES_ARB; break;
         case SDL_GL_BUFFER_SIZE:
         {
             GLint bits = 0;
@@ -1488,7 +1792,6 @@ static SDL_Overlay* QZ_CreateYUVOverlay (_THIS, int width, int height,
                 QDFlushPortBuffer (port, nil);
             }
         */
-
     }
     else {
         port = [ window_view qdPort ];

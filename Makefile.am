@@ -13,3 +13,7 @@ endif
 endif
 
 EXTRA_DIST = bootstrap cvs_bootstrap encoding60.dsw README_FIRST strip_fPIC.sh depcomp README.html
+
+include_HEADERS = mpeg4ip_config.h
+
+bin_SCRIPTS = mpeg4ip-config

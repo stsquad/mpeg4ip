@@ -21,7 +21,7 @@
 /*
  * test.c - test program for rtsp library
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <time.h>
 #include "sdp.h"
 #include "rtsp_private.h"

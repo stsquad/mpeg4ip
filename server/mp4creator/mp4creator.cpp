@@ -60,7 +60,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt);
 // main routine
 int main(int argc, char** argv)
 {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
   printf("using ismacrypt\n");
 #else
   printf("not using ismacrypt\n");
@@ -379,14 +379,14 @@ int main(int argc, char** argv)
 
   MP4FileHandle mp4File;
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
   // initialize session if encrypting
   if (doEncrypt) {
     if (ismacrypInitSession(&ismaCryptSId) != 0) {
       fprintf(stderr, 
 	      "%s: could not initialize the ISMAcrypt session\n",
 	      ProgName);
-      exit(EXIT_ISMACRYPT_INIT);
+      exit(EXIT_ISMACRYP_INIT);
     }
   }
 #endif
@@ -530,7 +530,7 @@ int main(int argc, char** argv)
       // or if no arg were specified (i.e. encrypt all tracks)
       if ((curTrackId == encryptTrackId) || 
 	  (encryptTrackId == MP4_INVALID_TRACK_ID)) {
-#ifdef ISMACRYPT 
+#ifdef ISMACRYP 
 	MP4EncAndCopyTrack(mp4File, curTrackId, ismaCryptSId, outputFile);  
 #else
 
@@ -604,14 +604,14 @@ int main(int argc, char** argv)
     }
   }
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
   // terminate session if encrypting
   if (doEncrypt) {
     if (ismacrypEndSession(ismaCryptSId) != 0) {
       fprintf(stderr, 
 	      "%s: could not end the ISMAcrypt session\n",
 	      ProgName);
-      exit(EXIT_ISMACRYPT_END);
+      exit(EXIT_ISMACRYP_END);
     }
   }
 #endif

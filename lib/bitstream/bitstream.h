@@ -21,7 +21,7 @@
 
 #ifndef __BITSTREAM_H__
 #define __BITSTREAM_H__ 1
-#include "systems.h"
+#include "mpeg4ip.h"
 
 class CBitstream {
  public:

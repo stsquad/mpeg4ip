@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5video.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5video.c,v 1.6 2003/09/12 23:19:33 wmaycisco Exp $";
 #endif
 
 #include <stdio.h>
@@ -41,7 +41,6 @@ static char rcsid =
 #include "SDL_events.h"
 #include "SDL_syswm.h"
 #include "SDL_sysvideo.h"
-#include "SDL_RLEaccel_c.h"
 #include "SDL_blit.h"
 #include "SDL_pixels_c.h"
 #include "SDL_dx5video.h"

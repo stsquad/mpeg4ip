@@ -6,7 +6,7 @@
 // It has tables for MPEG layer 1, 2 and a part of layer 3
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "mpeg4ip_config.h"
 #endif
 #ifdef _MSC_VER
 #pragma warning(disable:4305) 

@@ -20,14 +20,13 @@
     slouken@libsdl.org
 */
 
+#ifndef __SDL_PH_MODES_H__
+#define __SDL_PH_MODES_H__
+
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ph_modes_c.h,v 1.2 2002/05/01 17:41:26 wmaycisco Exp $";
-#endif
-
-
-#ifndef _PH_MODES_INCLUDED_
-#define _PH_MODES_INCLUDED_
+ "@(#) $Id: SDL_ph_modes_c.h,v 1.3 2003/09/12 23:19:30 wmaycisco Exp $";
+#endif /* SAVE_RCSID */
 
 #include "SDL_ph_video.h"
 
@@ -36,13 +35,10 @@ static char rcsid =
 extern SDL_Rect **ph_ListModes(_THIS,SDL_PixelFormat *format, Uint32 flags);
 extern void ph_FreeVideoModes(_THIS);
 extern int ph_ResizeFullScreen(_THIS);
-extern void ph_WaitMapped(_THIS);
-extern void ph_WaitUnmapped(_THIS);
-extern void ph_QueueEnterFullScreen(_THIS);
-extern int ph_EnterFullScreen(_THIS);
+extern int ph_EnterFullScreen(_THIS, SDL_Surface* screen);
 extern int ph_LeaveFullScreen(_THIS);
-extern int get_mode(int width, int height, int bpp);
+extern int ph_GetVideoMode(int width, int height, int bpp);
 extern int get_mode_any_format(int width, int height, int bpp);
 extern int ph_ToggleFullScreen(_THIS, int on);
 
-#endif /* _PH_MODES_INCLUDED_ */
+#endif /* __SDL_PH_MODES_H__ */

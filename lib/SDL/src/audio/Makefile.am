@@ -5,8 +5,28 @@ noinst_LTLIBRARIES = libaudio.la
 
 # Define which subdirectories need to be built
 SUBDIRS = @AUDIO_SUBDIRS@
-DIST_SUBDIRS = alsa arts baudio dma dmedia dsp esd macrom nas nto openbsd \
-	paudio sun ums windib windx5 disk mint dc
+DIST_SUBDIRS =	\
+	alsa	\
+	arts	\
+	baudio	\
+	dc	\
+	disk	\
+	dma	\
+	dmedia	\
+	dsp	\
+	esd	\
+	macrom	\
+	mint	\
+	mme	\
+	nas	\
+	nto	\
+	openbsd	\
+	paudio	\
+	riscos	\
+	sun	\
+	ums	\
+	windib	\
+	windx5
 
 DRIVERS = @AUDIO_DRIVERS@
 
@@ -22,7 +42,13 @@ COMMON_SRCS =			\
 	SDL_mixer.c		\
 	SDL_sysaudio.h		\
 	SDL_wave.c		\
-	SDL_wave.h
+	SDL_wave.h              \
+	SDL_mixer_MMX.c         \
+	SDL_mixer_MMX.h		\
+	SDL_mixer_MMX_VC.c	\
+	SDL_mixer_MMX_VC.h	\
+	SDL_mixer_m68k.c	\
+	SDL_mixer_m68k.h
 
 libaudio_la_SOURCES = $(COMMON_SRCS)
 libaudio_la_LIBADD = $(DRIVERS)

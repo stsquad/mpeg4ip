@@ -18,7 +18,7 @@
  * Contributor(s):
  *              Bill May                wmay@cisco.com
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <SDL.h>
 
 int main (int argc, char **argv)

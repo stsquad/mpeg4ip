@@ -61,34 +61,34 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+build_alias = @build_alias@
+build_triplet = @build@
 host_alias = @host_alias@
 host_triplet = @host@
+target_alias = @target_alias@
+target_triplet = @target@
 
 EXEEXT = @EXEEXT@
 OBJEXT = @OBJEXT@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-AMTAR = @AMTAR@
 ARCH = @ARCH@
 ARTSCCONFIG = @ARTSCCONFIG@
 AS = @AS@
 ASFLAGS = @ASFLAGS@
 AUDIO_DRIVERS = @AUDIO_DRIVERS@
 AUDIO_SUBDIRS = @AUDIO_SUBDIRS@
-AWK = @AWK@
 CC = @CC@
 CCAS = @CCAS@
 CCASFLAGS = @CCASFLAGS@
 CDROM_DRIVERS = @CDROM_DRIVERS@
 CDROM_SUBDIRS = @CDROM_SUBDIRS@
 CXX = @CXX@
-DEPDIR = @DEPDIR@
 DIRECTFB_CFLAGS = @DIRECTFB_CFLAGS@
 DIRECTFB_LIBS = @DIRECTFB_LIBS@
 DLLTOOL = @DLLTOOL@
 ESD_CFLAGS = @ESD_CFLAGS@
 ESD_CONFIG = @ESD_CONFIG@
 ESD_LIBS = @ESD_LIBS@
-INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 JOYSTICK_DRIVERS = @JOYSTICK_DRIVERS@
 JOYSTICK_SUBDIRS = @JOYSTICK_SUBDIRS@
 LIBTOOL = @LIBTOOL@
@@ -120,7 +120,6 @@ SDL_RLD_FLAGS = @SDL_RLD_FLAGS@
 SDL_VERSION = @SDL_VERSION@
 SHARED_SYSTEM_LIBS = @SHARED_SYSTEM_LIBS@
 STATIC_SYSTEM_LIBS = @STATIC_SYSTEM_LIBS@
-STRIP = @STRIP@
 SYSTEM_LIBS = @SYSTEM_LIBS@
 VERSION = @VERSION@
 VIDEO_DRIVERS = @VIDEO_DRIVERS@
@@ -129,11 +128,8 @@ X_CFLAGS = @X_CFLAGS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_LIBS = @X_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
-am__include = @am__include@
-am__quote = @am__quote@
 arts_lib = @arts_lib@
 esd_lib = @esd_lib@
-install_sh = @install_sh@
 
 # require automake 1.4
 AUTOMAKE_OPTIONS = 1.4
@@ -170,6 +166,7 @@ EXTRA_DIST = \
 	Borland.zip	\
 	VisualC.html	\
 	VisualC.zip	\
+	VisualC7.zip	\
 	VisualCE.zip	\
 	Makefile.dc	\
 	MPWmake.sea.bin	\
@@ -193,7 +190,7 @@ CVSROOT = :pserver:guest@libsdl.org:/home/sdlweb/libsdl.org/cvs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
-CONFIG_CLEAN_FILES = sdl-config SDL.spec
+CONFIG_CLEAN_FILES = sdl-config SDL.spec SDL.qpg
 SCRIPTS = $(bin_SCRIPTS)
 
 DIST_SOURCES =
@@ -204,7 +201,7 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive install-info-recursive \
 	uninstall-info-recursive all-recursive install-data-recursive \
 	install-exec-recursive installdirs-recursive install-recursive \
 	uninstall-recursive check-recursive installcheck-recursive
-DIST_COMMON = README COPYING INSTALL Makefile.am Makefile.in \
+DIST_COMMON = README COPYING INSTALL Makefile.am Makefile.in SDL.qpg.in \
 	SDL.spec.in TODO acinclude.m4 aclocal.m4 config.guess \
 	config.sub configure configure.in depcomp install-sh ltconfig \
 	ltmain.sh missing mkinstalldirs sdl-config.in
@@ -230,6 +227,8 @@ $(ACLOCAL_M4):  configure.in acinclude.m4
 sdl-config: $(top_builddir)/config.status sdl-config.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 SDL.spec: $(top_builddir)/config.status SDL.spec.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+SDL.qpg: $(top_builddir)/config.status SDL.qpg.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 install-binSCRIPTS: $(bin_SCRIPTS)

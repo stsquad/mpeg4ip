@@ -6,7 +6,7 @@
 // Server which get mpeg format and put raw format.
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "mpeg4ip_config.h"
 #endif
 
 #include <math.h>

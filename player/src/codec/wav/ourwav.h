@@ -24,7 +24,6 @@
 
 #ifndef __OURWAV_H__
 #define __OURWAV_H__ 1
-#include "systems.h"
 #include <SDL.h>
 #include "codec_plugin.h"
 

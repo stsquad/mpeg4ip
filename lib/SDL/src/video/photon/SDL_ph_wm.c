@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ph_wm.c,v 1.4 2002/05/01 17:41:26 wmaycisco Exp $";
+ "@(#) $Id: SDL_ph_wm.c,v 1.5 2003/09/12 23:19:30 wmaycisco Exp $";
 #endif
 
 #define DISABLE_X11
@@ -56,14 +56,10 @@ void ph_SetCaption(_THIS, const char *title, const char *icon)
 {
     SDL_Lock_EventThread();
 
-    /* check for set caption call before window init */
+    /* sanity check for set caption call before window init */
     if (window!=NULL)
     {
         PtSetResource(window, Pt_ARG_WINDOW_TITLE, title, 0);
-    }
-    else
-    {
-        captionflag=1;
     }
 
     SDL_Unlock_EventThread();
@@ -79,8 +75,9 @@ int ph_IconifyWindow(_THIS)
     memset( &windowevent, 0, sizeof (event) );
     windowevent.event_f = Ph_WM_HIDE;
     windowevent.event_state = Ph_WM_EVSTATE_HIDE;
-    windowevent.rid = PtWidgetRid( window );
-    PtForwardWindowEvent( &windowevent );
+    windowevent.rid = PtWidgetRid(window);
+    PtForwardWindowEvent(&windowevent);
+
     SDL_Unlock_EventThread();
 
     return 0;
@@ -88,35 +85,34 @@ int ph_IconifyWindow(_THIS)
 
 SDL_GrabMode ph_GrabInputNoLock(_THIS, SDL_GrabMode mode)
 {
+    short abs_x, abs_y;
+
+    if( mode == SDL_GRAB_OFF )
+    {
+        PtSetResource(window, Pt_ARG_WINDOW_STATE, Pt_FALSE, Ph_WM_STATE_ISALTKEY);
+    }
+    else
+    {
+        PtSetResource(window, Pt_ARG_WINDOW_STATE, Pt_TRUE, Ph_WM_STATE_ISALTKEY);
+
+        PtGetAbsPosition(window, &abs_x, &abs_y);
+        PhMoveCursorAbs(PhInputGroup(NULL), abs_x + SDL_VideoSurface->w/2, abs_y + SDL_VideoSurface->h/2);
+    }
+
+    SDL_Unlock_EventThread();
+
     return(mode);
 }
 
 SDL_GrabMode ph_GrabInput(_THIS, SDL_GrabMode mode)
 {
-	short abs_x, abs_y;
+    SDL_Lock_EventThread();
+    mode = ph_GrabInputNoLock(this, mode);
+    SDL_Unlock_EventThread();
 
-	SDL_Lock_EventThread();
-/*	mode = ph_GrabInputNoLock(this, mode);*/
-
-	if( mode == SDL_GRAB_OFF )
-	{
-		PtSetResource(window, Pt_ARG_WINDOW_STATE, Pt_FALSE,
-				Ph_WM_STATE_ISALTKEY );
-	}
-	else
-	{
-		PtSetResource(window, Pt_ARG_WINDOW_STATE, Pt_TRUE,
-				Ph_WM_STATE_ISALTKEY );
-
-		PtGetAbsPosition( window, &abs_x, &abs_y );
-		PhMoveCursorAbs( PhInputGroup( NULL ),
-				abs_x + SDL_VideoSurface->w/2,
-				abs_y + SDL_VideoSurface->h/2 );
-	}
-
-	SDL_Unlock_EventThread();
-	return(mode);
+    return(mode);
 }
+
 
 int ph_GetWMInfo(_THIS, SDL_SysWMinfo *info)
 {

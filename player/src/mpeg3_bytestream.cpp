@@ -22,7 +22,7 @@
  * qtime_bytestream.cpp - convert quicktime file to a bytestream
  */
 
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "mpeg3_bytestream.h"
 #include "player_util.h"
 #include "mp4av/mp4av.h"

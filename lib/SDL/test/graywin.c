@@ -20,6 +20,7 @@ void DrawBox(SDL_Surface *screen, int X, int Y, int width, int height)
 	static unsigned int seeded = 0;
 	SDL_Rect area;
 	Uint32 color;
+        Uint32 randc;
 
 	/* Seed the random number generator */
 	if ( seeded == 0 ) {
@@ -32,11 +33,73 @@ void DrawBox(SDL_Surface *screen, int X, int Y, int width, int height)
 	area.h = (rand()%height);
 	area.x = X-(area.w/2);
 	area.y = Y-(area.h/2);
-	color = (rand()%NUM_COLORS);
+        randc = (rand()%NUM_COLORS);
+
+        if (screen->format->BytesPerPixel==1)
+        {
+            color = randc;
+        }
+        else
+        {
+            color = SDL_MapRGB(screen->format, randc, randc, randc);
+        }
 
 	/* Do it! */
 	SDL_FillRect(screen, &area, color);
-	SDL_UpdateRects(screen, 1, &area);
+	if ( screen->flags & SDL_DOUBLEBUF ) {
+		SDL_Flip(screen);
+	} else {
+		SDL_UpdateRects(screen, 1, &area);
+	}
+}
+
+void DrawBackground(SDL_Surface *screen)
+{
+	int i, j, k;
+	Uint8  *buffer;
+	Uint16 *buffer16;
+        Uint16 color;
+        Uint8  gradient;
+
+	/* Set the surface pixels and refresh! */
+	/* Use two loops in case the surface is double-buffered (both sides) */
+
+	for ( j=0; j<2; ++j ) {
+		if ( SDL_LockSurface(screen) < 0 ) {
+			fprintf(stderr, "Couldn't lock display surface: %s\n",
+								SDL_GetError());
+			return;
+		}
+		buffer = (Uint8 *)screen->pixels;
+
+		if (screen->format->BytesPerPixel!=2) {
+			for ( i=0; i<screen->h; ++i ) {
+				memset(buffer,(i*(NUM_COLORS-1))/screen->h, screen->w * screen->format->BytesPerPixel);
+				buffer += screen->pitch;
+			}
+		}
+                else
+                {
+			for ( i=0; i<screen->h; ++i ) {
+				gradient=((i*(NUM_COLORS-1))/screen->h);
+                                color = SDL_MapRGB(screen->format, gradient, gradient, gradient);
+                                buffer16=(Uint16*)buffer;
+                                for (k=0; k<screen->w; k++)
+                                {
+                                   *(buffer16+k)=color;
+                                }
+				buffer += screen->pitch;
+			}
+                }
+
+		SDL_UnlockSurface(screen);
+		if ( screen->flags & SDL_DOUBLEBUF ) {
+			SDL_Flip(screen);
+		} else {
+			SDL_UpdateRect(screen, 0, 0, 0, 0);
+                        break;
+		}
+	}
 }
 
 SDL_Surface *CreateScreen(Uint16 w, Uint16 h, Uint8 bpp, Uint32 flags)
@@ -44,7 +107,6 @@ SDL_Surface *CreateScreen(Uint16 w, Uint16 h, Uint8 bpp, Uint32 flags)
 	SDL_Surface *screen;
 	int i;
 	SDL_Color palette[NUM_COLORS];
-	Uint8 *buffer;
 
 	/* Set the video mode */
 	screen = SDL_SetVideoMode(w, h, bpp, flags);
@@ -56,27 +118,15 @@ SDL_Surface *CreateScreen(Uint16 w, Uint16 h, Uint8 bpp, Uint32 flags)
 	fprintf(stderr, "Screen is in %s mode\n",
 		(screen->flags & SDL_FULLSCREEN) ? "fullscreen" : "windowed");
 
-	/* Set a gray colormap, reverse order from white to black */
-	for ( i=0; i<NUM_COLORS; ++i ) {
-		palette[i].r = (NUM_COLORS-1)-i * (256 / NUM_COLORS);
-		palette[i].g = (NUM_COLORS-1)-i * (256 / NUM_COLORS);
-		palette[i].b = (NUM_COLORS-1)-i * (256 / NUM_COLORS);
+	if (bpp==8) {
+		/* Set a gray colormap, reverse order from white to black */
+		for ( i=0; i<NUM_COLORS; ++i ) {
+			palette[i].r = (NUM_COLORS-1)-i * (256 / NUM_COLORS);
+			palette[i].g = (NUM_COLORS-1)-i * (256 / NUM_COLORS);
+			palette[i].b = (NUM_COLORS-1)-i * (256 / NUM_COLORS);
+		}
+		SDL_SetColors(screen, palette, 0, NUM_COLORS);
 	}
-	SDL_SetColors(screen, palette, 0, NUM_COLORS);
-
-	/* Set the surface pixels and refresh! */
-	if ( SDL_LockSurface(screen) < 0 ) {
-		fprintf(stderr, "Couldn't lock display surface: %s\n",
-							SDL_GetError());
-		return(NULL);
-	}
-	buffer = (Uint8 *)screen->pixels;
-	for ( i=0; i<screen->h; ++i ) {
-		memset(buffer,(i*(NUM_COLORS-1))/screen->h, screen->w * screen->format->BytesPerPixel);
-		buffer += screen->pitch;
-	}
-	SDL_UnlockSurface(screen);
-	SDL_UpdateRect(screen, 0, 0, 0, 0);
 
 	return(screen);
 }
@@ -120,13 +170,16 @@ int main(int argc, char *argv[])
 		if ( argv[argc] && (strcmp(argv[argc], "-hwpalette") == 0) ) {
 			videoflags |= SDL_HWPALETTE;
 		} else
+		if ( argv[argc] && (strcmp(argv[argc], "-flip") == 0) ) {
+			videoflags |= SDL_DOUBLEBUF;
+		} else
 		if ( argv[argc] && (strcmp(argv[argc], "-noframe") == 0) ) {
 			videoflags |= SDL_NOFRAME;
 		} else
 		if ( argv[argc] && (strcmp(argv[argc], "-fullscreen") == 0) ) {
 			videoflags |= SDL_FULLSCREEN;
 		} else {
-			fprintf(stderr, "Usage: %s [-width] [-height] [-bpp] [-hw] [-hwpalette] [-noframe] [-fullscreen]\n",
+			fprintf(stderr, "Usage: %s [-width] [-height] [-bpp] [-hw] [-hwpalette] [-flip] [-noframe] [-fullscreen]\n",
 								argv[0]);
 			exit(1);
 		}
@@ -137,6 +190,8 @@ int main(int argc, char *argv[])
 	if ( screen == NULL ) {
 		exit(2);
 	}
+        
+        DrawBackground(screen);
 		
 	/* Wait for a keystroke */
 	done = 0;
@@ -168,11 +223,15 @@ int main(int argc, char *argv[])
 					"Couldn't toggle fullscreen mode\n");
 						done = 1;
 					}
+                                        DrawBackground(screen);
 					break;
 				}
 				/* Any other key quits the application... */
 			case SDL_QUIT:
 				done = 1;
+				break;
+			case SDL_VIDEOEXPOSE:
+				DrawBackground(screen);
 				break;
 			default:
 				break;

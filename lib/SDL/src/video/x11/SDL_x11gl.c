@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11gl.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11gl.c,v 1.6 2003/09/12 23:19:33 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>	/* For getenv() prototype */
@@ -35,6 +35,12 @@ static char rcsid =
 #include "SDL_x11gl_c.h"
 
 #define DEFAULT_OPENGL	"libGL.so.1"
+
+#ifndef GLX_ARB_multisample
+#define GLX_ARB_multisample
+#define GLX_SAMPLE_BUFFERS_ARB             100000
+#define GLX_SAMPLES_ARB                    100001
+#endif
 
 /* return the preferred visual to use for openGL graphics */
 XVisualInfo *X11_GL_GetVisual(_THIS)
@@ -121,6 +127,16 @@ XVisualInfo *X11_GL_GetVisual(_THIS)
 	if( this->gl_config.stereo ) {
 		attribs[i++] = GLX_STEREO;
 		attribs[i++] = this->gl_config.stereo;
+	}
+	
+	if( this->gl_config.multisamplebuffers ) {
+		attribs[i++] = GLX_SAMPLE_BUFFERS_ARB;
+		attribs[i++] = this->gl_config.multisamplebuffers;
+	}
+	
+	if( this->gl_config.multisamplesamples ) {
+		attribs[i++] = GLX_SAMPLES_ARB;
+		attribs[i++] = this->gl_config.multisamplesamples;
 	}
 
 #ifdef GLX_DIRECT_COLOR /* Try for a DirectColor visual for gamma support */
@@ -229,11 +245,44 @@ void X11_GL_Shutdown(_THIS)
 
 #ifdef HAVE_OPENGL
 
+static int ExtensionSupported(const char *extension)
+{
+	const GLubyte *extensions = NULL;
+	const GLubyte *start;
+	GLubyte *where, *terminator;
+
+	/* Extension names should not have spaces. */
+	where = (GLubyte *) strchr(extension, ' ');
+	if (where || *extension == '\0')
+	      return 0;
+	
+	extensions = current_video->glGetString(GL_EXTENSIONS);
+	/* It takes a bit of care to be fool-proof about parsing the
+	 *      OpenGL extensions string. Don't be fooled by sub-strings,
+	 *           etc. */
+	
+	start = extensions;
+	
+	for (;;)
+	{
+		where = (GLubyte *) strstr((const char *) start, extension);
+		if (!where) break;
+		
+		terminator = where + strlen(extension);
+		if (where == start || *(where - 1) == ' ')
+	        if (*terminator == ' ' || *terminator == '\0') return 1;
+						  
+		start = terminator;
+	}
+	
+	return 0;
+}
+
 /* Make the current context active */
 int X11_GL_MakeCurrent(_THIS)
 {
 	int retval;
-
+	
 	retval = 0;
 	if ( ! this->gl_data->glXMakeCurrent(GFX_Display,
 	                                     SDL_Window, glx_context) ) {
@@ -241,6 +290,29 @@ int X11_GL_MakeCurrent(_THIS)
 		retval = -1;
 	}
 	XSync( GFX_Display, False );
+
+	/* 
+	 * The context is now current, check for glXReleaseBuffersMESA() 
+	 * extension. If extension is _not_ supported, destroy the pointer 
+	 * (to make sure it will not be called in X11_GL_Shutdown() ).
+	 * 
+	 * DRI/Mesa drivers include glXReleaseBuffersMESA() in the libGL.so, 
+	 * but there's no need to call it (is is only needed for some old 
+	 * non-DRI drivers).
+	 * 
+	 * When using for example glew (http://glew.sf.net), dlsym() for
+	 * glXReleaseBuffersMESA() returns the pointer from the glew library
+	 * (namespace conflict).
+	 *
+	 * The glXReleaseBuffersMESA() pointer in the glew is NULL, if the 
+	 * driver doesn't support this extension. So blindly calling it will
+	 * cause segfault with DRI/Mesa drivers!
+	 * 
+	 */
+	
+	if ( ! ExtensionSupported("glXReleaseBuffersMESA") ) {
+		this->gl_data->glXReleaseBuffersMESA = NULL;
+	}
 
 	/* More Voodoo X server workarounds... Grr... */
 	SDL_Lock_EventThread();
@@ -296,6 +368,12 @@ int X11_GL_GetAttribute(_THIS, SDL_GLattr attrib, int* value)
 	    case SDL_GL_STEREO:
 		glx_attrib = GLX_STEREO;
 		break;
+ 	    case SDL_GL_MULTISAMPLEBUFFERS:
+ 		glx_attrib = GLX_SAMPLE_BUFFERS_ARB;
+ 		break;
+ 	    case SDL_GL_MULTISAMPLESAMPLES:
+ 		glx_attrib = GLX_SAMPLES_ARB;
+ 		break;
 	    default:
 		return(-1);
 	}
@@ -382,16 +460,21 @@ int X11_GL_LoadLibrary(_THIS, const char* path)
 		(void (*)(Display *, GLXDrawable)) dlsym(handle, "glXSwapBuffers");
 	this->gl_data->glXGetConfig =
 		(int (*)(Display *, XVisualInfo *, int, int *)) dlsym(handle, "glXGetConfig");
+	this->gl_data->glXQueryExtensionsString =
+		(const char *(*)(Display *, int)) dlsym(handle, "glXQueryExtensionsString");
+	
 	/* We don't compare below for this in case we're not using Mesa. */
 	this->gl_data->glXReleaseBuffersMESA =
 		(void (*)(Display *, GLXDrawable)) dlsym( handle, "glXReleaseBuffersMESA" );
-
+	
+	
 	if ( (this->gl_data->glXChooseVisual == NULL) || 
 	     (this->gl_data->glXCreateContext == NULL) ||
 	     (this->gl_data->glXDestroyContext == NULL) ||
 	     (this->gl_data->glXMakeCurrent == NULL) ||
 	     (this->gl_data->glXSwapBuffers == NULL) ||
-	     (this->gl_data->glXGetConfig == NULL) ) {
+	     (this->gl_data->glXGetConfig == NULL) ||
+	     (this->gl_data->glXQueryExtensionsString == NULL)) {
 		SDL_SetError("Could not retrieve OpenGL functions");
 		return -1;
 	}
@@ -414,17 +497,9 @@ void *X11_GL_GetProcAddress(_THIS, const char* proc)
 	void* retval;
 	
 	handle = this->gl_config.dll_handle;
-#if 0 /* This doesn't work correctly yet */
 	if ( this->gl_data->glXGetProcAddress ) {
-        void *func, *func2;
-		func = this->gl_data->glXGetProcAddress(proc);
-        func2 = dlsym(handle, proc);
-        if ( func != func2 ) {
-fprintf(stderr, "glXGetProcAddress returned %p and dlsym returned %p for %s\n", func, func2, proc);
-        }
-        return this->gl_data->glXGetProcAddress(proc);
+		return this->gl_data->glXGetProcAddress(proc);
 	}
-#endif
 #if defined(__OpenBSD__) && !defined(__ELF__)
 #undef dlsym(x,y);
 #endif

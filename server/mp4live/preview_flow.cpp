@@ -1,7 +1,7 @@
 #include "mp4live.h"
 #include "media_flow.h"
 #include "preview_flow.h"
-#include "video_v4l_source.h"
+#include "mp4live_common.h"
 #include "video_sdl_preview.h"
 
 void CPreviewAVMediaFlow::Start (void)
@@ -30,9 +30,7 @@ void CPreviewAVMediaFlow::StartVideoPreview(void)
 	}
 
 	if (m_videoSource == NULL) {
-		m_videoSource = new CV4LVideoSource();
-		m_videoSource->SetConfig(m_pConfig);
-		m_videoSource->StartThread();
+          m_videoSource = CreateVideoSource(m_pConfig);
 	}
 
 	if (m_videoPreview == NULL) {

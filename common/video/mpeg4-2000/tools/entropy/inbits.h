@@ -13,12 +13,12 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: inbits.h,v 1.2 2003/06/27 18:36:55 wmaycisco Exp $
+ * $Id: inbits.h,v 1.3 2003/09/12 23:19:05 wmaycisco Exp $
  */
 
 #ifndef __BITS_H__
 #define __BITS_H__ 1
-#include "systems.h"
+#include "mpeg4ip.h"
 
 extern unsigned int bit_msk[33];
 #define INLINE __inline

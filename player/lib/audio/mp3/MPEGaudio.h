@@ -21,7 +21,7 @@
 
 #ifndef _MPEGAUDIO_H_
 #define _MPEGAUDIO_H_
-#include "systems.h"
+#include "mpeg4ip.h"
 
 /* This improves the performance of the audio player by quite a bit */
 #define THREADED_AUDIO

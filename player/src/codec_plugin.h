@@ -24,9 +24,8 @@
 #ifndef __CODEC_PLUGIN_H__
 #define __CODEC_PLUGIN_H__ 1
 
-#include "systems.h"
-#include <sdp/sdp.h>
-
+#include <mpeg4ip.h>
+#include <sdp.h>
 /***************************************************************************
  *  Audio callbacks from plugin to renderer
  ***************************************************************************/

@@ -29,60 +29,72 @@
 
 class CMp4Recorder : public CMediaSink {
 public:
-	CMp4Recorder() {
-		m_mp4File = NULL;
-		m_rawAudioTrackId = MP4_INVALID_TRACK_ID;
-		m_encodedAudioTrackId = MP4_INVALID_TRACK_ID;
-		m_rawVideoTrackId = MP4_INVALID_TRACK_ID;
-		m_encodedVideoTrackId = MP4_INVALID_TRACK_ID;
+  CMp4Recorder() {
+    m_mp4File = NULL;
 
-		m_videoTimeScale = 90000;
-		m_movieTimeScale = m_videoTimeScale;
-		m_audioGapThresholdInSamples = 128;
-	}
+    m_prevRawVideoFrame = NULL;
+    m_prevEncodedVideoFrame = NULL;
+    m_prevRawAudioFrame = NULL;
+    m_prevEncodedAudioFrame = NULL;
+
+    m_rawAudioTrackId = MP4_INVALID_TRACK_ID;
+    m_encodedAudioTrackId = MP4_INVALID_TRACK_ID;
+    m_rawVideoTrackId = MP4_INVALID_TRACK_ID;
+    m_encodedVideoTrackId = MP4_INVALID_TRACK_ID;
+
+    m_videoTimeScale = 90000;
+    m_movieTimeScale = m_videoTimeScale;
+
+    m_canRecordRawVideo = false;
+    m_canRecordEncodedVideo = false;
+  }
 
 protected:
-	int ThreadMain(void);
+  int ThreadMain(void);
 
-	void DoStartRecord(void);
-	void DoStopRecord(void);
-	void DoWriteFrame(CMediaFrame* pFrame);
+  void DoStartRecord(void);
+  void DoStopRecord(void);
+  void DoWriteFrame(CMediaFrame* pFrame);
 
 protected:
-	bool			m_recordVideo;
-	bool			m_canRecordAudio;	// used for sync'ed start of A/V
+  bool			m_recordVideo;
 
-	char*			m_mp4FileName;
-	MP4FileHandle	m_mp4File;
+  char*			m_mp4FileName;
+  MP4FileHandle	m_mp4File;
 
-	u_int32_t		m_movieTimeScale;
-	u_int32_t		m_videoTimeScale;
-	u_int32_t		m_audioTimeScale;
-	Timestamp		m_movieStartTimestamp;
-	u_int32_t		m_audioGapThresholdInSamples;
+  CMediaFrame*          m_prevRawVideoFrame;
+  CMediaFrame*          m_prevEncodedVideoFrame;
 
-	MP4TrackId		m_rawVideoTrackId;
-	u_int32_t		m_rawVideoFrameNumber;
-	Timestamp		m_rawVideoStartTimestamp;
+  CMediaFrame*          m_prevRawAudioFrame;
+  CMediaFrame*          m_prevEncodedAudioFrame;
 
-	MP4TrackId		m_encodedVideoTrackId;
-	u_int32_t		m_encodedVideoFrameNumber;
-	Timestamp		m_encodedVideoStartTimestamp;
-	MediaType               m_encodedVideoFrameType;
+  u_int32_t		m_movieTimeScale;
+  u_int32_t		m_videoTimeScale;
+  u_int32_t		m_audioTimeScale;
 
-	MP4TrackId		m_rawAudioTrackId;
-	u_int32_t		m_rawAudioFrameNumber;
-	Timestamp		m_rawAudioStartTimestamp;
-	Duration		m_rawAudioDuration;
+  MP4TrackId		m_rawVideoTrackId;
+  u_int32_t		m_rawVideoFrameNumber;
+  Timestamp		m_rawVideoStartTimestamp;
 
-	MP4TrackId		m_encodedAudioTrackId;
-	u_int32_t		m_encodedAudioFrameNumber;
-	Timestamp		m_encodedAudioStartTimestamp;
-	Duration		m_encodedAudioDuration;
-	MediaType               m_encodedAudioFrameType;
+  MP4TrackId		m_encodedVideoTrackId;
+  u_int32_t		m_encodedVideoFrameNumber;
+  Timestamp		m_encodedVideoStartTimestamp;
+  MediaType               m_encodedVideoFrameType;
+
+  MP4TrackId		m_rawAudioTrackId;
+  u_int32_t		m_rawAudioFrameNumber;
+  Timestamp		m_rawAudioStartTimestamp;
+
+  MP4TrackId		m_encodedAudioTrackId;
+  u_int32_t		m_encodedAudioFrameNumber;
+  Timestamp		m_encodedAudioStartTimestamp;
+  MediaType             m_encodedAudioFrameType;
 	
-	bool                    m_makeIod;
-	bool                    m_makeIsmaCompliant;
+  bool                  m_makeIod;
+  bool                  m_makeIsmaCompliant;
+
+  bool                  m_canRecordRawVideo;
+  bool                  m_canRecordEncodedVideo;
 };
 
 #endif /* __FILE_MP4_RECORDER_H__ */

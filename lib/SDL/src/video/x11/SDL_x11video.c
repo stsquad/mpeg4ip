@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11video.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11video.c,v 1.6 2003/09/12 23:19:33 wmaycisco Exp $";
 #endif
 
 /* X11 based SDL video driver implementation.
@@ -409,9 +409,9 @@ static int X11_VideoInit(_THIS, SDL_PixelFormat *vformat)
 	/* use default screen (from $DISPLAY) */
 	SDL_Screen = DefaultScreen(SDL_Display);
 
-	use_mitshm = 0;
 #ifndef NO_SHARED_MEMORY
 	/* Check for MIT shared memory extension */
+	use_mitshm = 0;
 	if ( local_X11 ) {
 		use_mitshm = XShmQueryExtension(SDL_Display);
 	}

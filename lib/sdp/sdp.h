@@ -23,7 +23,7 @@
  */
 #ifndef __SDP_H__
 #define __SDP_H__
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "sdp_error.h"
 
 #ifndef TRUE

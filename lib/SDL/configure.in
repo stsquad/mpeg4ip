@@ -14,9 +14,9 @@ dnl Set various version strings - taken gratefully from the GTk sources
 #
 SDL_MAJOR_VERSION=1
 SDL_MINOR_VERSION=2
-SDL_MICRO_VERSION=5
-SDL_INTERFACE_AGE=5
-SDL_BINARY_AGE=5
+SDL_MICRO_VERSION=6
+SDL_INTERFACE_AGE=6
+SDL_BINARY_AGE=6
 SDL_VERSION=$SDL_MAJOR_VERSION.$SDL_MINOR_VERSION.$SDL_MICRO_VERSION
 
 AC_SUBST(SDL_MAJOR_VERSION)
@@ -38,8 +38,7 @@ AC_SUBST(LT_REVISION)
 AC_SUBST(LT_AGE)
 
 dnl Detect the canonical host and target build environment
-AC_CANONICAL_HOST
-AC_CANONICAL_TARGET
+AC_CANONICAL_SYSTEM
 
 dnl Setup for automake
 AM_INIT_AUTOMAKE(SDL, $SDL_VERSION)
@@ -331,8 +330,8 @@ CheckESD()
         AM_PATH_ESD(0.2.8, use_esd=yes)
         if test x$use_esd = xyes; then
             AC_ARG_ENABLE(esd-shared,
-[  --enable-esd-shared     dynamically load ESD audio support [default=no]],
-                          , enable_esd_shared=no)
+[  --enable-esd-shared     dynamically load ESD audio support [default=yes]],
+                          , enable_esd_shared=yes)
             esd_lib_spec=`echo $ESD_LIBS | sed 's/.*-L\([[^ ]]*\).*/\1\/libesd.so.*/'`
             esd_lib=`ls $esd_lib_spec | head -1 | sed 's/.*\/\(.*\)/\1/'`
             echo "-- $esd_lib_spec -> $esd_lib"
@@ -381,8 +380,8 @@ CheckARTSC()
             AC_MSG_RESULT($audio_arts)
             if test x$audio_arts = xyes; then
                 AC_ARG_ENABLE(arts-shared,
-[  --enable-arts-shared     dynamically load aRts audio support [default=no]],
-                              , enable_arts_shared=no)
+[  --enable-arts-shared    dynamically load aRts audio support [default=yes]],
+                              , enable_arts_shared=yes)
                 arts_lib_spec=`echo $ARTSC_LIBS | sed 's/.*-L\([[^ ]]*\).*/\1\/libartsc.so.*/'`
                 arts_lib=`ls $arts_lib_spec | head -1 | sed 's/.*\/\(.*\)/\1/'`
                 echo "-- $arts_lib_spec -> $arts_lib"
@@ -409,21 +408,29 @@ dnl See if the NAS audio interface is supported
 CheckNAS()
 {
     AC_ARG_ENABLE(nas,
-[  --enable-nas                  support the NAS audio API [default=yes]],
+[  --enable-nas            support the NAS audio API [default=yes]],
                   , enable_nas=yes)
     if test x$enable_audio = xyes -a x$enable_nas = xyes; then
         AC_MSG_CHECKING(for NAS audio support)
         have_nas=no
         if test -r /usr/X11R6/include/audio/audiolib.h; then
             have_nas=yes
-        fi
-        AC_MSG_RESULT($have_nas)
-        if test x$have_nas = xyes; then
             CFLAGS="$CFLAGS -DNAS_SUPPORT"
             SYSTEM_LIBS="$SYSTEM_LIBS -laudio -lXt"
             AUDIO_SUBDIRS="$AUDIO_SUBDIRS nas"
             AUDIO_DRIVERS="$AUDIO_DRIVERS nas/libaudio_nas.la"
+
+        dnl On IRIX, the NAS includes are in a different directory,
+        dnl and libnas must be explicitly linked in
+
+        elif test -r /usr/freeware/include/nas/audiolib.h; then
+            have_nas=yes
+            CFLAGS="$CFLAGS -DNAS_SUPPORT"
+            SYSTEM_LIBS="$SYSTEM_LIBS -lnas -lXt"
+            AUDIO_SUBDIRS="$AUDIO_SUBDIRS nas"
+            AUDIO_DRIVERS="$AUDIO_DRIVERS nas/libaudio_nas.la"
         fi
+        AC_MSG_RESULT($have_nas)
     fi
 }
 
@@ -431,7 +438,7 @@ dnl rcg07142001 See if the user wants the disk writer audio driver...
 CheckDiskAudio()
 {
     AC_ARG_ENABLE(diskaudio,
-[  --enable-diskaudio            support the disk writer audio driver [default=yes]],
+[  --enable-diskaudio      support the disk writer audio driver [default=yes]],
                   , enable_diskaudio=yes)
     if test x$enable_audio = xyes -a x$enable_diskaudio = xyes; then
         CFLAGS="$CFLAGS -DDISKAUD_SUPPORT"
@@ -546,7 +553,7 @@ CheckX11()
         AC_PATH_X
         AC_PATH_XTRA
         if test x$have_x = xyes; then
-            CFLAGS="$CFLAGS $X_CFLAGS -DENABLE_X11 -I$srcdir/include -I$srcdir/src/video"
+            CFLAGS="$CFLAGS $X_CFLAGS -DENABLE_X11 -DXTHREADS -I$srcdir/include -I$srcdir/src/video"
             if test x$ac_cv_func_shmat != xyes; then
                 CFLAGS="$CFLAGS -DNO_SHARED_MEMORY"
             fi
@@ -769,8 +776,8 @@ dnl Find DirectFB
 CheckDirectFB()
 {
     AC_ARG_ENABLE(video-directfb,
-[  --enable-video-directfb    use DirectFB video driver [default=yes]],
-                  , enable_video_directfb=yes)
+[  --enable-video-directfb use DirectFB video driver [default=no]],
+                  , enable_video_directfb=no)
     if test x$enable_video = xyes -a x$enable_video_directfb = xyes; then
         video_directfb=no
 
@@ -784,7 +791,7 @@ CheckDirectFB()
                 AC_MSG_ERROR([*** pkg-config too old; version 0.7 or better required.])
             fi
 
-            DIRECTFB_REQUIRED_VERSION=0.9.14
+            DIRECTFB_REQUIRED_VERSION=0.9.15
 
             if $PKG_CONFIG --atleast-version $DIRECTFB_REQUIRED_VERSION directfb ; then
                 DIRECTFB_CFLAGS=`$PKG_CONFIG --cflags directfb`
@@ -892,7 +899,7 @@ dnl Find the VGL includes and libraries
 CheckVGL()
 {
     AC_ARG_ENABLE(video-vgl,
-[  --enable-video-vgl     use VGL video driver [default=no]],
+[  --enable-video-vgl      use VGL video driver [default=no]],
                   , enable_video_vgl=no)
     if test x$enable_video = xyes -a x$enable_video_vgl = xyes; then
         AC_MSG_CHECKING(for libVGL support)
@@ -1046,6 +1053,9 @@ CheckOpenGLQNX()
         if test x$video_opengl = xyes; then
             CFLAGS="$CFLAGS -DHAVE_OPENGL"
             SYSTEM_LIBS="$SYSTEM_LIBS -lGL"
+            if test x$use_dlopen != xyes; then
+                AC_CHECK_LIB(c, dlopen, SYSTEM_LIBS="$SYSTEM_LIBS", AC_CHECK_LIB(ltdl, dlopen, SYSTEM_LIBS="$SYSTEM_LIBS -lltdl"))
+            fi
         fi
     fi
 }
@@ -1331,6 +1341,8 @@ CopyUnixThreadSource()
             *-*-bsdi*)
                 COPY_ARCH_SRC(src/thread, bsdi, SDL_syssem.c)
                 COPY_ARCH_SRC(src/thread, generic, SDL_syssem_c.h)
+                COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex.c)
+                COPY_ARCH_SRC(src/thread, linux, SDL_sysmutex_c.h)
                 ;;
             *)
                 if test x$glibc20_pthreads = xyes; then
@@ -1461,8 +1473,13 @@ CheckQtopia()
         if test x$video_qtopia = xyes; then
             CFLAGS="$CFLAGS -DENABLE_QTOPIA -DQT_QWS_EBX -DQT_QWS_CUSTOM -DQWS -I${QPEDIR}/include -I${QTDIR}/include/ -DNO_DEBUG -fno-rtti -fno-exceptions"
             SDL_LIBS="$SDL_LIBS -L${QPEDIR}/lib -L${QTDIR}/lib/ -lqpe -lqte"
+            SDL_CFLAGS="$SDL_CFLAGS -DQWS"	  
             VIDEO_SUBDIRS="$VIDEO_SUBDIRS qtopia"
             VIDEO_DRIVERS="$VIDEO_DRIVERS qtopia/libvideo_qtopia.la"
+        else
+	AC_MSG_ERROR([
+*** Failed to find Qtopia includes. Make sure that the QTDIR and QPEDIR
+*** environment variables are set correctly.])
         fi
         AC_LANG_C
     fi
@@ -1541,7 +1558,7 @@ CheckDLOPEN()
 {
     AC_ARG_ENABLE(dlopen,
 [  --enable-dlopen         use dlopen for shared object loading [default=no]],
-                  , enable_dlopen=no)
+                  , enable_dlopen=yes)
     if test x$enable_dlopen = xyes; then
         AC_MSG_CHECKING(for dlopen)
         use_dlopen=no
@@ -1555,7 +1572,23 @@ CheckDLOPEN()
 
         if test x$use_dlopen = xyes; then
             CFLAGS="$CFLAGS -DUSE_DLOPEN"
-            AC_CHECK_LIB(dl, dlopen, SYSTEM_LIBS="$SYSTEM_LIBS -ldl")
+            AC_CHECK_LIB(dl, dlopen, SYSTEM_LIBS="$SYSTEM_LIBS -ldl", AC_CHECK_LIB(ltdl, dlopen, SYSTEM_LIBS="$SYSTEM_LIBS -lltdl"))
+        fi
+    fi
+}
+
+dnl Set up the Atari LDG (shared object loader)
+CheckAtariLdg()
+{
+    AC_ARG_ENABLE(atari-ldg,
+[  --enable-atari-ldg      use Atari LDG for shared object loading [default=yes]],
+                  , enable_atari_ldg=yes)
+    if test x$video_gem = xyes -a x$enable_atari_ldg = xyes; then
+        AC_CHECK_HEADER(ldg.h, have_ldg_hdr=yes)
+        AC_CHECK_LIB(ldg, ldg_open, have_ldg_lib=yes, have_ldg_lib=no, -lgem)
+        if test x$have_ldg_hdr = xyes -a x$have_ldg_lib = xyes; then
+            CFLAGS="$CFLAGS -DENABLE_LDG"
+            SYSTEM_LIBS="$SYSTEM_LIBS -lldg"
         fi
     fi
 }
@@ -2137,13 +2170,15 @@ case "$target" in
         CheckAAlib
         CheckOpenGL
         CheckPTHREAD
+        SDL_LIBS="$SDL_LIBS -lrt"
         # Set up files for the main() stub
         COPY_ARCH_SRC(src/main, linux, SDL_main.c)
         # Set up files for the audio library
         if test x$enable_audio = xyes; then
-            CFLAGS="$CFLAGS -DSUNAUDIO_SUPPORT"
-            AUDIO_SUBDIRS="$AUDIO_SUBDIRS sun"
-            AUDIO_DRIVERS="$AUDIO_DRIVERS sun/libaudio_sun.la"
+            CFLAGS="$CFLAGS -I/usr/include/mme -DMMEAUDIO_SUPPORT"
+            SYSTEM_LIBS="$SYSTEM_LIBS -lmme"
+            AUDIO_SUBDIRS="$AUDIO_SUBDIRS mme"
+            AUDIO_DRIVERS="$AUDIO_DRIVERS mme/libaudio_mme.la"
         fi
         # Set up files for the joystick library
         # (No joystick support yet)
@@ -2154,8 +2189,8 @@ case "$target" in
         # Set up files for the cdrom library
         # (No cdrom support yet)
         if test x$enable_cdrom = xyes; then
-            CDROM_SUBDIRS="$CDROM_SUBDIRS dummy"
-            CDROM_DRIVERS="$CDROM_DRIVERS dummy/libcdrom_dummy.la"
+            CDROM_SUBDIRS="$CDROM_SUBDIRS osf"
+            CDROM_DRIVERS="$CDROM_DRIVERS osf/libcdrom_osf.la"
         fi
         # Set up files for the thread library
         if test x$enable_threads = xyes; then
@@ -2180,7 +2215,7 @@ case "$target" in
         COPY_ARCH_SRC(src/main, linux, SDL_main.c)
         # Set up files for the audio library
         if test x$enable_audio = xyes; then
-            CFLAGS="$CFLAGS -DALSA_SUPPORT"
+            CFLAGS="$CFLAGS -DQNXNTOAUDIO_SUPPORT"
             SYSTEM_LIBS="$SYSTEM_LIBS -lasound"
             AUDIO_SUBDIRS="$AUDIO_SUBDIRS nto"
             AUDIO_DRIVERS="$AUDIO_DRIVERS nto/libaudio_nto.la"
@@ -2387,6 +2422,10 @@ case "$target" in
         fi
         # Set up files for the cdrom library
         if test x$enable_cdrom = xyes; then
+	    # The CD-ROM code won't work on old versions of MacOS X yet...
+            #CDROM_SUBDIRS="$CDROM_SUBDIRS macosx"
+            #CDROM_DRIVERS="$CDROM_DRIVERS macosx/libcdrom_macosx.la"
+            #SYSTEM_LIBS="$SYSTEM_LIBS -framework AudioToolbox -framework AudioUnit -lstdc++"
             CDROM_SUBDIRS="$CDROM_SUBDIRS dummy"
             CDROM_DRIVERS="$CDROM_DRIVERS dummy/libcdrom_dummy.la"
         fi
@@ -2411,6 +2450,7 @@ case "$target" in
         CheckAtariXbiosVideo
         CheckAtariGemVideo
         CheckAtariAudio
+        CheckAtariLdg
         CheckPTH
         # Set up files for the main() stub
         COPY_ARCH_SRC(src/main, linux, SDL_main.c)
@@ -2438,12 +2478,36 @@ case "$target" in
         fi
         # Set up files for the timer library
         if test x$enable_timers = xyes; then
-            COPY_ARCH_SRC(src/timer, mint, SDL_systimer.c)
-            COPY_ARCH_SRC(src/timer, mint, SDL_vbltimer.S)
-            COPY_ARCH_SRC(src/timer, mint, SDL_vbltimer_s.h)
+            if test x$enable_threads = xyes -a x$enable_pth = xyes; then
+                COPY_ARCH_SRC(src/timer, linux, SDL_systimer.c)
+            else
+                COPY_ARCH_SRC(src/timer, mint, SDL_systimer.c)
+                COPY_ARCH_SRC(src/timer, mint, SDL_vbltimer.S)
+                COPY_ARCH_SRC(src/timer, mint, SDL_vbltimer_s.h)
+            fi
         fi
         # MiNT does not define "unix"
         CFLAGS="$CFLAGS -Dunix"
+        ;;
+    *-*-riscos)
+        ARCH=riscos
+        JOYSTICK_SUBDIRS="$JOYSTICK_SUBDIRS riscos"
+        JOYSTICK_DRIVERS="$JOYSTICK_DRIVERS riscos/libjoystick_riscos.la"
+        COPY_ARCH_SRC(src/timer, riscos, SDL_systimer.c)
+        COPY_ARCH_SRC(src/main, linux, SDL_main.c)
+        VIDEO_SUBDIRS="$VIDEO_SUBDIRS riscos"
+        VIDEO_DRIVERS="$VIDEO_DRIVERS riscos/libvideo_riscos.la"
+        AUDIO_SUBDIRS="$AUDIO_SUBDIRS riscos"
+        AUDIO_DRIVERS="$AUDIO_DRIVERS riscos/libaudio_riscos.la"
+
+        if test x$enable_cdrom = xyes; then
+            CDROM_SUBDIRS="$CDROM_SUBDIRS dummy"
+            CDROM_DRIVERS="$CDROM_DRIVERS dummy/libcdrom_dummy.la"
+        fi
+
+        CFLAGS="$CFLAGS -DDISABLE_THREADS -DENABLE_RISCOS -DDRENDERER_SUPPORT"
+
+        SYSTEM_LIBS="$SYSTEM_LIBS -ljpeg -ltiff -lpng -lz"
         ;;
     *)
         AC_MSG_ERROR(Unsupported target:  Please add to configure.in)
@@ -2488,6 +2552,9 @@ fi
 
 case "$ARCH" in
   openbsd | netbsd | bsdi)
+    SHARED_SYSTEM_LIBS="$SYSTEM_LIBS"
+    ;;
+  qnx)
     SHARED_SYSTEM_LIBS="$SYSTEM_LIBS"
     ;;
   macosx)
@@ -2552,12 +2619,19 @@ CXXFLAGS="$CFLAGS"
 # We do this here so that we get the full CFLAGS into OBJCFLAGS
 case "$target" in
     *-*-darwin*)
-        OBJC="cc"
-        OBJCFLAGS="$CFLAGS"
-        OBJCDEPMODE="$CCDEPMODE"
+        dnl AC_PROG_OBJC doesn't seem to exist, this is the SDL workaround
+        AC_MSG_CHECKING(for an Objective-C compiler)
+        OBJC="$CC"
         AC_SUBST(OBJC)
+        OBJCFLAGS="$CFLAGS"
         AC_SUBST(OBJCFLAGS)
+        dnl _AM_DEPENDENCIES(OBJC) doesn't work, so hard code OBJCDEPMODE here
+        dnl _AM_DEPENDENCIES(OBJC)
+        dnl Of course, hard coding doesn't work for some versions of automake
+        OBJCDEPMODE="depmode=gcc"
         AC_SUBST(OBJCDEPMODE)
+        dnl Trying this to satisfy everybody...
+        AC_MSG_RESULT(not implemented yet)
         ;;
 esac
 
@@ -2580,56 +2654,59 @@ src/audio/alsa/Makefile
 src/audio/arts/Makefile
 src/audio/baudio/Makefile
 src/audio/dc/Makefile
+src/audio/disk/Makefile
 src/audio/dma/Makefile
 src/audio/dmedia/Makefile
 src/audio/dsp/Makefile
 src/audio/esd/Makefile
 src/audio/macrom/Makefile
+src/audio/mint/Makefile
+src/audio/mme/Makefile
 src/audio/nas/Makefile
 src/audio/nto/Makefile
 src/audio/openbsd/Makefile
 src/audio/paudio/Makefile
+src/audio/riscos/Makefile
 src/audio/sun/Makefile
 src/audio/ums/Makefile
 src/audio/windib/Makefile
 src/audio/windx5/Makefile
-src/audio/disk/Makefile
-src/audio/mint/Makefile
 src/video/Makefile
+src/video/aalib/Makefile
+src/video/ataricommon/Makefile
+src/video/bwindow/Makefile
+src/video/cybergfx/Makefile
+src/video/dc/Makefile
+src/video/dga/Makefile
+src/video/directfb/Makefile
+src/video/dummy/Makefile
+src/video/epoc/Makefile
+src/video/fbcon/Makefile
+src/video/gem/Makefile
+src/video/ggi/Makefile
+src/video/maccommon/Makefile
+src/video/macdsp/Makefile
+src/video/macrom/Makefile
+src/video/nanox/Makefile
+src/video/photon/Makefile
+src/video/picogui/Makefile
+src/video/ps2gs/Makefile
+src/video/qtopia/Makefile
+src/video/quartz/Makefile
+src/video/riscos/Makefile
+src/video/svga/Makefile
+src/video/vgl/Makefile
+src/video/wincommon/Makefile
+src/video/windib/Makefile
+src/video/windx5/Makefile
+src/video/x11/Makefile
+src/video/xbios/Makefile
 src/video/XFree86/Makefile
 src/video/XFree86/extensions/Makefile
 src/video/XFree86/Xinerama/Makefile
 src/video/XFree86/Xv/Makefile
 src/video/XFree86/Xxf86dga/Makefile
 src/video/XFree86/Xxf86vm/Makefile
-src/video/cybergfx/Makefile
-src/video/x11/Makefile
-src/video/dga/Makefile
-src/video/nanox/Makefile
-src/video/fbcon/Makefile
-src/video/directfb/Makefile
-src/video/ps2gs/Makefile
-src/video/ggi/Makefile
-src/video/maccommon/Makefile
-src/video/macdsp/Makefile
-src/video/macrom/Makefile
-src/video/quartz/Makefile
-src/video/svga/Makefile
-src/video/vgl/Makefile
-src/video/aalib/Makefile
-src/video/wincommon/Makefile
-src/video/windib/Makefile
-src/video/windx5/Makefile
-src/video/bwindow/Makefile
-src/video/photon/Makefile
-src/video/epoc/Makefile
-src/video/dummy/Makefile
-src/video/ataricommon/Makefile
-src/video/xbios/Makefile
-src/video/gem/Makefile
-src/video/dc/Makefile
-src/video/qtopia/Makefile
-src/video/picogui/Makefile
 src/events/Makefile
 src/joystick/Makefile
 src/joystick/amigaos/Makefile
@@ -2641,6 +2718,7 @@ src/joystick/dummy/Makefile
 src/joystick/linux/Makefile
 src/joystick/macos/Makefile
 src/joystick/mint/Makefile
+src/joystick/riscos/Makefile
 src/joystick/win32/Makefile
 src/cdrom/Makefile
 src/cdrom/aix/Makefile
@@ -2651,7 +2729,9 @@ src/cdrom/bsdi/Makefile
 src/cdrom/freebsd/Makefile
 src/cdrom/linux/Makefile
 src/cdrom/macos/Makefile
+src/cdrom/macosx/Makefile
 src/cdrom/openbsd/Makefile
+src/cdrom/osf/Makefile
 src/cdrom/qnx/Makefile
 src/cdrom/win32/Makefile
 src/thread/Makefile
@@ -2661,4 +2741,5 @@ src/file/Makefile
 src/hermes/Makefile
 sdl-config
 SDL.spec
+SDL.qpg
 ], [chmod +x sdl-config])

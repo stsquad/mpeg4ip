@@ -141,6 +141,10 @@ EPOC:
     
     No console output screen. Printing to stdout do not have any effect.
 
+QNX:
+	Fullscreen switch doesn't work (disabled for now).
+ 
+
 OpenBSD:  -= NOT YET SUPPORTED =-
 	This is reported to work, but I haven't verified this.
 
@@ -182,19 +186,6 @@ AIX:  -= NOT YET SUPPORTED =-
 	The AIX port was done by Carsten.Griwodz@KOM.tu-darmstadt.de
 	More information on this port is available at:
 	http://www.kom.e-technik.tu-darmstadt.de/~griff/SDL/
-
-QNX:  -= NOT YET SUPPORTED =-
-	Only static libraries are being made, no shared ones.
- 
-	The only hardware surface is the primary view surface.
- 
-	Mouse events don't seem to be working right.
- 
-	Fullscreen doesn't display correctly.
- 
-	The software surfaces could use some speed up.
- 
-	The mouse cursor doesn't look right.
 
 AmigaOS:  -= NOT YET SUPPORTED =-
 	The OpenGL support isn't implemented yet.

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ph_mouse.c,v 1.3 2002/10/07 21:21:45 wmaycisco Exp $";
+ "@(#) $Id: SDL_ph_mouse.c,v 1.4 2003/09/12 23:19:30 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -35,10 +35,10 @@ static char rcsid =
 #include "SDL_cursor_c.h"
 #include "SDL_ph_mouse_c.h"
 
-struct  WMcursor {
+struct WMcursor
+{
     PhCursorDef_t *ph_cursor ;
 };
-
 
 void ph_FreeWMCursor(_THIS, WMcursor *cursor)
 {
@@ -46,127 +46,135 @@ void ph_FreeWMCursor(_THIS, WMcursor *cursor)
     {
         SDL_Lock_EventThread();
 
-        if (PtSetResource( window, Pt_ARG_CURSOR_TYPE, Ph_CURSOR_INHERIT, 0 ) < 0)
+        if (PtSetResource(window, Pt_ARG_CURSOR_TYPE, Ph_CURSOR_INHERIT, 0) < 0)
         {
             /* TODO: output error msg */
         }
 
         SDL_Unlock_EventThread();
     }	
-    /* free(cursor->ph_cursor.images); */
+
     free(cursor);
 }
 
-WMcursor *ph_CreateWMCursor(_THIS,
-		Uint8 *data, Uint8 *mask, int w, int h, int hot_x, int hot_y)
+WMcursor *ph_CreateWMCursor(_THIS, Uint8 *data, Uint8 *mask, int w, int h, int hot_x, int hot_y)
 {
-	WMcursor* cursor;
-	int clen, i;
-	unsigned char bit, databit, maskbit;
+    WMcursor* cursor;
+    int clen, i;
+    unsigned char bit, databit, maskbit;
 
-	/* Allocate and initialize the cursor memory */
-	if ((cursor = (WMcursor*)malloc(sizeof(WMcursor))) == NULL)
-	{
-            SDL_OutOfMemory();
-            return(NULL);
-	}
-	memset(cursor,0,sizeof(WMcursor));
+    /* Allocate and initialize the cursor memory */
+    if ((cursor = (WMcursor*)malloc(sizeof(WMcursor))) == NULL)
+    {
+        SDL_OutOfMemory();
+        return(NULL);
+    }
+    memset(cursor,0,sizeof(WMcursor));
 
-	cursor->ph_cursor = (PhCursorDef_t *) malloc(sizeof(PhCursorDef_t) + 32*4*2);
-	if(cursor->ph_cursor == NULL)
-	   printf("cursor malloc failed\n");
+    cursor->ph_cursor = (PhCursorDef_t *) malloc(sizeof(PhCursorDef_t) + 32*4*2);
 
-	memset(cursor->ph_cursor,0,(sizeof(PhCursorDef_t) + 32*4*2));
+    if (cursor->ph_cursor == NULL)
+    {
+        SDL_SetError("ph_CreateWMCursor(): cursor malloc failed !\n");
+        return NULL;
+    }
 
-	cursor->ph_cursor->hdr.type =Ph_RDATA_CURSOR;   
-	cursor->ph_cursor->size1.x = (short)w;
-	cursor->ph_cursor->size1.y = (short)h;
-	cursor->ph_cursor->offset1.x = (short)hot_x;
-	cursor->ph_cursor->offset1.y = (short)hot_y;
-	cursor->ph_cursor->bytesperline1 = (char)w/8;
-	cursor->ph_cursor->color1 = Pg_WHITE;
-	cursor->ph_cursor->size2.x = (short)w;
-        cursor->ph_cursor->size2.y = (short)h;
-        cursor->ph_cursor->offset2.x = (short)hot_x;
-        cursor->ph_cursor->offset2.y = (short)hot_y;
-        cursor->ph_cursor->bytesperline2 = (char)w/8;
-        cursor->ph_cursor->color2 = Pg_BLACK;
+    memset(cursor->ph_cursor,0,(sizeof(PhCursorDef_t) + 32*4*2));
 
-	clen = (w/8)*h;
+    cursor->ph_cursor->hdr.type =Ph_RDATA_CURSOR;   
+    cursor->ph_cursor->size1.x = (short)w;
+    cursor->ph_cursor->size1.y = (short)h;
+    cursor->ph_cursor->offset1.x = (short)hot_x;
+    cursor->ph_cursor->offset1.y = (short)hot_y;
+    cursor->ph_cursor->bytesperline1 = (char)w/8;
+    cursor->ph_cursor->color1 = Pg_WHITE;
+    cursor->ph_cursor->size2.x = (short)w;
+    cursor->ph_cursor->size2.y = (short)h;
+    cursor->ph_cursor->offset2.x = (short)hot_x;
+    cursor->ph_cursor->offset2.y = (short)hot_y;
+    cursor->ph_cursor->bytesperline2 = (char)w/8;
+    cursor->ph_cursor->color2 = Pg_BLACK;
 
-	/* Copy the mask and the data to different 
-	   bitmap planes */
-	for ( i=0; i<clen; ++i )
-	{
-		for ( bit = 0; bit < 8; bit++ )
-		{
-			databit = data[i] & (1 << bit);
-			maskbit = mask[i] & (1 << bit);
+    clen = (w/8)*h;
 
-			cursor->ph_cursor->images[i] |= 
-				(databit == 0) ? maskbit : 0;
-			/* If the databit != 0, treat it as a black pixel and
-			 * ignore the maskbit (can't do an inverted color) */
-			cursor->ph_cursor->images[i+clen] |= databit;
-		}
-	}
+    /* Copy the mask and the data to different bitmap planes */
+    for (i=0; i<clen; ++i)
+    {
+        for (bit = 0; bit < 8; bit++)
+        {
+            databit = data[i] & (1 << bit);
+            maskbit = mask[i] & (1 << bit);
 
-        /* #bytes following the hdr struct */
-	cursor->ph_cursor->hdr.len =sizeof(PhCursorDef_t) + clen*2 - sizeof(PhRegionDataHdr_t); 
+            cursor->ph_cursor->images[i] |= (databit == 0) ? maskbit : 0;
+            /* If the databit != 0, treat it as a black pixel and
+             * ignore the maskbit (can't do an inverted color) */
+            cursor->ph_cursor->images[i+clen] |= databit;
+        }
+    }
 
-	return (cursor);
+    /* #bytes following the hdr struct */
+    cursor->ph_cursor->hdr.len =sizeof(PhCursorDef_t) + clen*2 - sizeof(PhRegionDataHdr_t); 
+
+    return (cursor);
 }
-
 
 PhCursorDef_t ph_GetWMPhCursor(WMcursor *cursor)
 {
-    return(*cursor->ph_cursor);
+    return (*cursor->ph_cursor);
 }
 
-int ph_ShowWMCursor(_THIS, WMcursor *cursor)
+int ph_ShowWMCursor(_THIS, WMcursor* cursor)
 {
-	PtArg_t args[3];
-	int nargs = 0;
-	short cursor_is_defined = 0;
+    PtArg_t args[3];
+    int nargs = 0;
 
-	/* Don't do anything if the display is gone */
- 	if ( window == NULL ) {
-    	 return(0);
- 	}
+    /* Don't do anything if the display is gone */
+    if (window == NULL)
+    {
+        return (0);
+    }
 
-	/* Set the photon cursor cursor, or blank if cursor is NULL */
-	if ( window ) {
-		
-		if ( cursor != NULL ) {
-			PtSetArg( &args[0], Pt_ARG_CURSOR_TYPE, Ph_CURSOR_BITMAP, 0 );
-			/* Could set next to any PgColor_t value */
-			PtSetArg( &args[1], Pt_ARG_CURSOR_COLOR,Ph_CURSOR_DEFAULT_COLOR , 0 );
-			PtSetArg( &args[2], Pt_ARG_BITMAP_CURSOR, cursor->ph_cursor, (cursor->ph_cursor->hdr.len + sizeof(PhRegionDataHdr_t)) );
-			nargs = 3;
-			cursor_is_defined = 1;
-		}
-		else /* Ph_CURSOR_NONE */
-		{
-			PtSetArg( &args[0], Pt_ARG_CURSOR_TYPE,Ph_CURSOR_NONE, 0);
-			nargs = 1;
-			cursor_is_defined = 1;
-		}
-		if (cursor_is_defined)
-		{
-    	                SDL_Lock_EventThread();
-			
-			if (PtSetResources( window, nargs, args ) < 0 )
-			{
-			    return(0);
-			}	
-						
-			SDL_Unlock_EventThread();
-		}
-		else
-			return(0);
-	}
-	return(1);
+    /* looks like photon can't draw mouse cursor in direct mode */
+    if ((this->screen->flags & SDL_FULLSCREEN) == SDL_FULLSCREEN)
+    {
+         /* disable the fake mouse in the fullscreen OpenGL mode */
+         if ((this->screen->flags & SDL_OPENGL) == SDL_OPENGL)
+         {
+             cursor=NULL;
+         }
+         else
+         {
+             return (0);
+         }
+    }
+
+    /* Set the photon cursor, or blank if cursor is NULL */
+    if (cursor!=NULL)
+    {
+        PtSetArg(&args[0], Pt_ARG_CURSOR_TYPE, Ph_CURSOR_BITMAP, 0);
+        /* Could set next to any PgColor_t value */
+        PtSetArg(&args[1], Pt_ARG_CURSOR_COLOR, Ph_CURSOR_DEFAULT_COLOR , 0);
+        PtSetArg(&args[2], Pt_ARG_BITMAP_CURSOR, cursor->ph_cursor, (cursor->ph_cursor->hdr.len + sizeof(PhRegionDataHdr_t)));
+        nargs = 3;
+    }
+    else /* Ph_CURSOR_NONE */
+    {
+        PtSetArg(&args[0], Pt_ARG_CURSOR_TYPE, Ph_CURSOR_NONE, 0);
+        nargs = 1;
+    }
+
+    SDL_Lock_EventThread();
+
+    if (PtSetResources(window, nargs, args) < 0 )
+    {
+        return (0);
+    }	
+
+    SDL_Unlock_EventThread();
+
+    return (1);
 }
+
 
 void ph_WarpWMCursor(_THIS, Uint16 x, Uint16 y)
 {
@@ -190,4 +198,32 @@ void ph_CheckMouseMode(_THIS)
     {
         mouse_relative = 0;
     }
+}
+
+
+void ph_UpdateMouse(_THIS)
+{
+    PhCursorInfo_t phcursor;
+    short abs_x;
+    short abs_y;
+
+    /* Lock the event thread, in multi-threading environments */
+    SDL_Lock_EventThread();
+
+    /* synchronizing photon mouse cursor position and SDL mouse position, if cursor appears over window. */
+    PtGetAbsPosition(window, &abs_x, &abs_y);
+    PhQueryCursor(PhInputGroup(NULL), &phcursor);
+    if (((phcursor.pos.x >= abs_x) && (phcursor.pos.x <= abs_x + this->screen->w)) &&
+        ((phcursor.pos.y >= abs_y) && (phcursor.pos.y <= abs_y + this->screen->h)))
+    {
+        SDL_PrivateAppActive(1, SDL_APPMOUSEFOCUS);
+        SDL_PrivateMouseMotion(0, 0, phcursor.pos.x-abs_x, phcursor.pos.y-abs_y);
+    }
+    else
+    {
+        SDL_PrivateAppActive(0, SDL_APPMOUSEFOCUS);
+    }
+
+    /* Unlock the event thread, in multi-threading environments */
+    SDL_Unlock_EventThread();
 }

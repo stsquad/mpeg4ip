@@ -4,7 +4,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib/mp4v2 \
 	-I$(top_srcdir)/lib/mp4av \
 	-I$(top_srcdir)/lib/avi \
-	@ISMACRYPTINC@ \
+	@ISMACRYPINC@ \
 	-I$(top_srcdir)/common/video/libmpeg32
 
 AM_CXXFLAGS = -DMPEG4IP -fexceptions -Wall
@@ -25,7 +25,7 @@ mp4creator_LDADD = \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \
 	$(top_builddir)/lib/avi/libavi.la \
-	@ISMACRYPTLIB@ \
+	@ISMACRYPLIB@ \
 	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la
 

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_pixels.c,v 1.2 2002/05/01 17:41:05 wmaycisco Exp $";
+ "@(#) $Id: SDL_pixels.c,v 1.3 2003/09/12 23:19:24 wmaycisco Exp $";
 #endif
 
 /* General (mostly internal) pixel/color manipulation routines for SDL */
@@ -379,18 +379,19 @@ void SDL_GetRGBA(Uint32 pixel, SDL_PixelFormat *fmt,
 		 * This only works for RGB bit fields at least 4 bit
 		 * wide, which is almost always the case.
 		 */
-	        unsigned rv, gv, bv, av;
-		rv = (pixel & fmt->Rmask) >> fmt->Rshift;
-		*r = (rv << fmt->Rloss) + (rv >> (8 - fmt->Rloss));
-		gv = (pixel & fmt->Gmask) >> fmt->Gshift;
-		*g = (gv << fmt->Gloss) + (gv >> (8 - fmt->Gloss));
-		bv = (pixel & fmt->Bmask) >> fmt->Bshift;
-		*b = (bv << fmt->Bloss) + (bv >> (8 - fmt->Bloss));
+	        unsigned v;
+		v = (pixel & fmt->Rmask) >> fmt->Rshift;
+		*r = (v << fmt->Rloss) + (v >> (8 - (fmt->Rloss << 1)));
+		v = (pixel & fmt->Gmask) >> fmt->Gshift;
+		*g = (v << fmt->Gloss) + (v >> (8 - (fmt->Gloss << 1)));
+		v = (pixel & fmt->Bmask) >> fmt->Bshift;
+		*b = (v << fmt->Bloss) + (v >> (8 - (fmt->Bloss << 1)));
 		if(fmt->Amask) {
-		        av = (pixel & fmt->Amask) >> fmt->Ashift;
-			*a = (av << fmt->Aloss) + (av >> (8 - fmt->Aloss));
-		} else
+		        v = (pixel & fmt->Amask) >> fmt->Ashift;
+			*a = (v << fmt->Aloss) + (v >> (8 - (fmt->Aloss << 1)));
+		} else {
 		        *a = SDL_ALPHA_OPAQUE;
+                }
 	} else {
 		*r = fmt->palette->colors[pixel].r;
 		*g = fmt->palette->colors[pixel].g;
@@ -403,13 +404,13 @@ void SDL_GetRGB(Uint32 pixel, SDL_PixelFormat *fmt, Uint8 *r,Uint8 *g,Uint8 *b)
 {
 	if ( fmt->palette == NULL ) {
 	        /* the note for SDL_GetRGBA above applies here too */
-	        unsigned rv, gv, bv;
-		rv = (pixel & fmt->Rmask) >> fmt->Rshift;
-		*r = (rv << fmt->Rloss) + (rv >> (8 - fmt->Rloss));
-		gv = (pixel & fmt->Gmask) >> fmt->Gshift;
-		*g = (gv << fmt->Gloss) + (gv >> (8 - fmt->Gloss));
-		bv = (pixel & fmt->Bmask) >> fmt->Bshift;
-		*b = (bv << fmt->Bloss) + (bv >> (8 - fmt->Bloss));
+	        unsigned v;
+		v = (pixel & fmt->Rmask) >> fmt->Rshift;
+		*r = (v << fmt->Rloss) + (v >> (8 - (fmt->Rloss << 1)));
+		v = (pixel & fmt->Gmask) >> fmt->Gshift;
+		*g = (v << fmt->Gloss) + (v >> (8 - (fmt->Gloss << 1)));
+		v = (pixel & fmt->Bmask) >> fmt->Bshift;
+		*b = (v << fmt->Bloss) + (v >> (8 - (fmt->Bloss << 1)));
 	} else {
 		*r = fmt->palette->colors[pixel].r;
 		*g = fmt->palette->colors[pixel].g;

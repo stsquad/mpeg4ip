@@ -22,7 +22,13 @@
 #define DECLARE_CONFIG_VARIABLES 1
 #include "mp4live.h"
 #include "media_flow.h"
+
+#ifdef HAVE_LINUX_VIDEODEV2_H
+#include "video_v4l2_source.h"
+#else
 #include "video_v4l_source.h"
+#endif
+
 #include "audio_oss_source.h"
 #include "mp4live_common.h"
 #include <getopt.h>
@@ -57,7 +63,11 @@ CMediaSource *CreateVideoSource (CLiveConfig *pConfig)
     pConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
 
   if (!strcasecmp(sourceType, VIDEO_SOURCE_V4L)) {
+#ifdef HAVE_LINUX_VIDEODEV2_H
+    vs = new CV4L2VideoSource();
+#else
     vs = new CV4LVideoSource();
+#endif
   } else {
     error_message("unknown video source type %s", sourceType);
     return NULL;
@@ -92,6 +102,16 @@ CMediaSource *CreateAudioSource (CLiveConfig *pConfig,
   audioSource->SetVideoSource(videoSource);
 
   return audioSource;
+}
+
+// Probe video input devices
+void InitialVideoProbe(CLiveConfig *pConfig)
+{
+#ifdef HAVE_LINUX_VIDEODEV2_H
+  CV4L2VideoSource::InitialVideoProbe(pConfig);
+#else
+  CV4LVideoSource::InitialVideoProbe(pConfig);
+#endif
 }
 
 int main(int argc, char** argv)

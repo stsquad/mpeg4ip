@@ -177,6 +177,10 @@ SOURCE=.\atom_mdia.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\atom_meta.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\atom_mfhd.cpp
 # End Source File
 # Begin Source File
@@ -386,6 +390,10 @@ SOURCE=.\mp4file.cpp
 # Begin Source File
 
 SOURCE=.\mp4file_io.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4meta.cpp
 # End Source File
 # Begin Source File
 

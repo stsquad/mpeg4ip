@@ -731,7 +731,7 @@ static int FrameCodeP(Encoder * pEnc, Bitstream * bs, uint32_t *pBits, bool forc
 	int iLimit;
 	uint32_t x, y;
 	int iSearchRange;
-	bool bIntra;
+	int bIntra;
 
 	IMAGE *pCurrent = &pEnc->sCurrent;
 	IMAGE *pRef = &pEnc->sReference;

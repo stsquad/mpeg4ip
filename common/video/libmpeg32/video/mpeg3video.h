@@ -6,7 +6,7 @@
 #endif
 
 #ifdef _WIN32
-#include "systems.h"
+#include "mpeg4ip.h"
 #endif
 #include "../bitstream.h"
 #include "../mpeg3private.inc"

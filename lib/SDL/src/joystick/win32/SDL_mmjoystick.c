@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_mmjoystick.c,v 1.4 2002/05/01 17:40:51 wmaycisco Exp $";
+ "@(#) $Id: SDL_mmjoystick.c,v 1.5 2003/09/12 23:19:21 wmaycisco Exp $";
 #endif
 
 /* Win32 MultiMedia Joystick driver, contributed by Andrei de A. Formiga */
@@ -38,7 +38,7 @@ static char rcsid =
 #include <windows.h>
 #include <mmsystem.h>
 
-#define MAX_JOYSTICKS	2	/* only 2 are supported in the multimedia API */
+#define MAX_JOYSTICKS	16
 #define MAX_AXES	6	/* each joystick can have up to 6 axes */
 #define MAX_BUTTONS	32	/* and 32 buttons                      */
 #define AXIS_MIN	-32768  /* minimum value for axis coordinate */
@@ -91,8 +91,10 @@ int SDL_SYS_JoystickInit(void)
 	}
 
 
-	SYS_JoystickID[0] = JOYSTICKID1;
-	SYS_JoystickID[1] = JOYSTICKID2;
+	for ( i = 0; i < MAX_JOYSTICKS; i++ ) {
+		SYS_JoystickID[i] = JOYSTICKID1 + i;
+	}
+
 
 	for ( i = 0; (i < maxdevs); ++i ) {
 		

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_BeApp.cc,v 1.2 2002/05/01 17:40:51 wmaycisco Exp $";
+ "@(#) $Id: SDL_BeApp.cc,v 1.3 2003/09/12 23:19:22 wmaycisco Exp $";
 #endif
 
 /* Handle the BeApp specific portions of the application */
@@ -31,6 +31,7 @@ static char rcsid =
 #include <storage/Path.h>
 #include <storage/Entry.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "SDL_BeApp.h"

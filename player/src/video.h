@@ -27,8 +27,6 @@
 #ifndef __VIDEO_H__
 #define __VIDEO_H__ 1
 
-#include "systems.h"
-//#include <type/typeapi.h>
 #include <SDL.h>
 #include "codec_plugin.h"
 

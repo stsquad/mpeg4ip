@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_systimer.c,v 1.1 2002/05/01 17:40:59 wmaycisco Exp $";
+ "@(#) $Id: SDL_systimer.c,v 1.2 2003/09/12 23:19:24 wmaycisco Exp $";
 #endif
 
 /*
@@ -40,7 +40,7 @@ static char rcsid =
 #include <errno.h>
 
 #include <mint/osbind.h>
-#include <sysvars.h>
+#include <mint/sysvars.h>
 
 #include "SDL_error.h"
 #include "SDL_timer.h"

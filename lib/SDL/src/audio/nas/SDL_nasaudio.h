@@ -26,13 +26,17 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_nasaudio.h,v 1.2 2002/05/01 17:40:41 wmaycisco Exp $";
+ "@(#) $Id: SDL_nasaudio.h,v 1.3 2003/09/12 23:19:11 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_nasaudio_h
 #define _SDL_nasaudio_h
 
+#ifdef __sgi
+#include <nas/audiolib.h>
+#else
 #include <audio/audiolib.h>
+#endif
 #include <sys/time.h>
 #include "SDL_sysaudio.h"
 

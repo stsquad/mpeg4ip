@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5events.c,v 1.5 2002/10/07 21:21:48 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5events.c,v 1.6 2003/09/12 23:19:33 wmaycisco Exp $";
 #endif
 
 /* CAUTION!!!!  If you modify this file, check ../windib/SDL_sysevents.c */
@@ -49,7 +49,7 @@ static char rcsid =
 
 /* The keyboard and mouse device input */
 #define MAX_INPUTS	16		/* Maximum of 16-1 input devices */
-#define INPUT_QSIZE	32		/* Buffer up to 32 input messages */
+#define INPUT_QSIZE	512		/* Buffer up to 512 input messages */
 
 static LPDIRECTINPUT dinput = NULL;
 static LPDIRECTINPUTDEVICE2 SDL_DIdev[MAX_INPUTS];
@@ -275,6 +275,7 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 	Sint16 xrel, yrel;
 	Uint8 state;
 	Uint8 button;
+	DWORD timestamp = 0;
 
 	/* If we are in windowed mode, Windows is taking care of the mouse */
 	if (  (SDL_PublicSurface->flags & SDL_OPENGL) ||
@@ -363,9 +364,27 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 	for ( i=0; i<(int)numevents; ++i ) {
 		switch (ptrbuf[i].dwOfs) {
 			case DIMOFS_X:
+				if ( timestamp != ptrbuf[i].dwTimeStamp ) {
+					if ( xrel || yrel ) {
+						posted = SDL_PrivateMouseMotion(
+								0, 1, xrel, yrel);
+						xrel = 0;
+						yrel = 0;
+					}
+					timestamp = ptrbuf[i].dwTimeStamp;
+				}
 				xrel += (Sint16)ptrbuf[i].dwData;
 				break;
 			case DIMOFS_Y:
+				if ( timestamp != ptrbuf[i].dwTimeStamp ) {
+					if ( xrel || yrel ) {
+						posted = SDL_PrivateMouseMotion(
+								0, 1, xrel, yrel);
+						xrel = 0;
+						yrel = 0;
+					}
+					timestamp = ptrbuf[i].dwTimeStamp;
+				}
 				yrel += (Sint16)ptrbuf[i].dwData;
 				break;
 			case DIMOFS_Z:
@@ -375,6 +394,7 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 					xrel = 0;
 					yrel = 0;
 				}
+				timestamp = 0;
 				if((int)ptrbuf[i].dwData > 0)
 					button = SDL_BUTTON_WHEELUP;
 				else
@@ -394,6 +414,7 @@ static void handle_mouse(const int numevents, DIDEVICEOBJECTDATA *ptrbuf)
 					xrel = 0;
 					yrel = 0;
 				}
+				timestamp = 0;
 				button = (Uint8)(ptrbuf[i].dwOfs-DIMOFS_BUTTON0)+1;
 				/* Button #2 on two button mice is button 3
 				   (the middle button is button 2)
@@ -538,8 +559,8 @@ static int DX5_CheckInput(_THIS, int timeout, BOOL processInput)
 	/* Check the normal windows queue (highest preference) */
 	posted = 0;
 	while ( ! posted &&
-	        PeekMessage(&msg, NULL, 0, (WM_APP-1), PM_NOREMOVE) ) {
-		if ( GetMessage(&msg, NULL, 0, (WM_APP-1)) > 0 ) {
+	        PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) ) {
+		if ( GetMessage(&msg, NULL, 0, 0) > 0 ) {
 			DispatchMessage(&msg);
 		} else {
 			return(-1);

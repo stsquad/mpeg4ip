@@ -22,6 +22,14 @@ libmp4livepreview_la_SOURCES = \
 	video_sdl_preview.h \
 	video_sdl_preview.cpp
 
+if HAVE_V4L2
+  es1= video_v4l2_source.cpp video_v4l2_source.h
+  ed1= video_v4l_source.cpp video_v4l_source.h
+else
+  es1= video_v4l_source.cpp video_v4l_source.h
+  ed1= video_v4l2_source.cpp video_v4l2_source.h
+endif
+
 libmp4live_la_LDFLAGS = -static
 libmp4live_la_SOURCES = \
 	audio_encoder_base.cpp \
@@ -66,8 +74,7 @@ libmp4live_la_SOURCES = \
 	video_util_rgb.cpp \
 	video_util_tv.h \
 	video_util_tv.cpp \
-	video_v4l_source.cpp \
-	video_v4l_source.h \
+	$(es1) \
 	video_encoder.h \
 	video_encoder_base.h \
 	video_encoder_base.cpp \
@@ -95,7 +102,6 @@ INCLUDES=\
 	-I$(top_srcdir)/lib/rtp \
 	-I$(top_srcdir)/lib/sdp \
 	-I$(top_srcdir)/lib \
-	-I$(top_srcdir)/server/audio/faac \
 	-I$(top_srcdir)/lib/xvid \
 	-I$(top_srcdir)/server/video/H26L \
 	-I$(top_srcdir)/common/video/libmpeg32 \
@@ -111,7 +117,7 @@ mp4live_LDADD = \
 	@GTK_LIBS@ @GLIB_LIBS@ \
 	$(GUIADD) \
 	libmp4live.la \
-	$(top_builddir)/server/audio/faac/libfaac.la \
+	-lfaac \
 	-lmp3lame \
 	$(top_builddir)/lib/xvid/libxvid.la \
 	$(top_builddir)/server/video/H26L/libh26lenc.la \
@@ -128,4 +134,4 @@ mp4live_LDADD = \
 	$(top_builddir)/lib/SDL/src/main/libSDLmain.a \
 	$(GUILIBS)
 
-EXTRA_DIST = README.html INTERNALS.html
+EXTRA_DIST = README.html INTERNALS.html $(ed1)

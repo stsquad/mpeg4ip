@@ -24,7 +24,7 @@
 #ifndef __RTSP_CLIENT_H__
 #define __RTSP_CLIENT_H__ 1
 
-#include "systems.h"
+#include "mpeg4ip.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_yuv.c,v 1.3 2002/05/01 17:41:06 wmaycisco Exp $";
+ "@(#) $Id: SDL_yuv.c,v 1.4 2003/09/12 23:19:24 wmaycisco Exp $";
 #endif
 
 /* This is the implementation of the YUV video surface support */
@@ -32,6 +32,7 @@ static char rcsid =
 
 #include "SDL_getenv.h"
 #include "SDL_video.h"
+#include "SDL_error.h"
 #include "SDL_sysvideo.h"
 #include "SDL_yuvfuncs.h"
 #include "SDL_yuv_sw_c.h"
@@ -45,7 +46,10 @@ SDL_Overlay *SDL_CreateYUVOverlay(int w, int h, Uint32 format,
 	const char *yuv_hwaccel;
 	SDL_Overlay *overlay;
 
-	overlay = NULL;
+	if ( (SDL_VideoSurface->flags & SDL_OPENGL) == SDL_OPENGL ) {
+		SDL_SetError("YUV overlays are not supported in OpenGL mode");
+		return NULL;
+	}
 
 	/* Display directly on video surface, if possible */
 	if ( getenv("SDL_VIDEO_YUV_DIRECT") ) {
@@ -55,6 +59,7 @@ SDL_Overlay *SDL_CreateYUVOverlay(int w, int h, Uint32 format,
 			display = SDL_VideoSurface;
 		}
 	}
+	overlay = NULL;
         yuv_hwaccel = getenv("SDL_VIDEO_YUV_HWACCEL");
 	if ( ((display == SDL_VideoSurface) && video->CreateYUVOverlay) &&
 	     (!yuv_hwaccel || (atoi(yuv_hwaccel) > 0)) ) {

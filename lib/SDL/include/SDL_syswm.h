@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syswm.h,v 1.4 2002/10/07 21:21:33 wmaycisco Exp $";
+ "@(#) $Id: SDL_syswm.h,v 1.5 2003/09/12 23:19:08 wmaycisco Exp $";
 #endif
 
 /* Include file for SDL custom system window manager hooks */
@@ -128,6 +128,23 @@ typedef struct {
 	SDL_version version;
 	HWND window;			/* The Win32 display window */
 	HGLRC hglrc;			/* The OpenGL context, if any */
+} SDL_SysWMinfo;
+
+#elif defined(__riscos__)
+
+/* RISC OS custom event structure */
+struct SDL_SysWMmsg {
+	SDL_version version;
+	int eventCode;		/* The window for the message */
+	int pollBlock[64];
+};
+
+/* The RISCOS custom window manager information structure */
+typedef struct {
+	SDL_version version;
+	int wimpVersion;    /* Wimp version running under */
+	int taskHandle;     /* The RISCOS task handle */
+	int window;			/* The RISCOS display window */
 } SDL_SysWMinfo;
 
 #else

@@ -21,7 +21,7 @@
 /*
  * mpeg4_sdp.c - utilities for handling SDP structures
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <sdp/sdp.h>
 #include "mpeg4_sdp.h"
 

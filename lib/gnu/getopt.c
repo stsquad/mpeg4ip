@@ -28,7 +28,7 @@
 #endif
 
 #ifdef HAVE_CONFIG_H
-# include <config.h>
+# include <mpeg4ip_config.h>
 #endif
 #include <mpeg4ip_getopt.h>
 #ifndef HAVE_GETOPT_LONG

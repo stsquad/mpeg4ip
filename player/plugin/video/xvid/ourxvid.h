@@ -23,7 +23,6 @@
  */
 #ifndef __OURXVID_H__
 #define __OURXVID_H__ 1
-#include <systems.h>
 #include "codec_plugin.h"
 #include <fposrec/fposrec.h>
 

@@ -437,6 +437,21 @@ later with the mp4creator utility.
 We know that the audio and video goes out of sync.  This is due to 
 deficiencies in the drivers (video for linux, OSS) that we are using.
 <P>
+The current audio/video synchronization algorithm in the MP4 File Recorder
+starts by dropping video frames until an audio frame is loaded. It then
+drops subsequent video frames until the next I video frame is loaded.
+This I frame is stretched to the beginning of the first audio frame to
+synchronize the video and audio.
+Because of this, the first video frame is displayed for a longer duration
+before the video starts rolling. This duration is usually of the order of
+4 or 5 video frame times and generally unnoticable.
+
+We've done our best to try to start the audio first, but since the video
+is already running in the preview (if turned on), the file recorder receives
+a bunch of video frames before the first audio frame propagates to the
+file recorder. Given this, the above algorithm seems to be a resonable
+solution.
+<P>
 We've made fixes so that the latest OSS drivers will help (the ones with
 SNDCTL_DSP_GETERROR defined), and the Video for Linux 2 driver would help, 
 but we can't figure out how to install that driver on our machine.  If you're

@@ -138,6 +138,11 @@ void CSDLAudioSync::set_config (int freq,
   m_freq = freq;
   m_channels = channels;
   m_format = format;
+  if (m_format == AUDIO_U8) {
+    m_silence = 0x80;
+  } else {
+    m_silence = 0x00;
+  }
   m_config_set = 1;
   m_msec_per_frame = (sample_size * 1000) / m_freq;
   audio_message(LOG_DEBUG, "buffer size %d msec per frame %d", 
@@ -207,7 +212,9 @@ void CSDLAudioSync::load_audio_buffer (uint8_t *from,
 #endif
   copied = 0;
   if (m_buffer_offset_on == 0) {
-    if (m_buffer_ts != 0 && m_buffer_ts != ts) {
+    int64_t diff = ts - m_buffer_ts;
+
+    if (m_buffer_ts != 0 && diff > 1) {
       m_load_audio_do_next_resync = 1;
       audio_message(LOG_DEBUG, "timeslot doesn't match - %llu %llu",
 		    ts, m_buffer_ts);
@@ -330,7 +337,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 	  }
 	  m_sample_buffer[m_fill_index] = m_sample_buffer[fill_index];
 	  m_sample_buffer[fill_index] = retbuffer;
-	  memset(retbuffer, m_obtained.silence, m_buffer_size);
+	  memset(retbuffer, m_silence, m_buffer_size);
 	  m_buffer_time[fill_index] = m_last_fill_timestamp;
 	  m_buffer_filled[fill_index] = 1;
 	  m_samples_loaded += m_buffer_size;
@@ -451,12 +458,18 @@ int CSDLAudioSync::initialize_audio (int have_video)
 	return (-1);
       }
 #if 1
-       audio_message(LOG_INFO, "got f %d chan %d format %x samples %d size %u",
+      char buffer[128];
+      if (SDL_AudioDriverName(buffer, sizeof(buffer)) == NULL) {
+	strcpy(buffer, "no audio driver");
+      }
+	
+      audio_message(LOG_INFO, "got f %d chan %d format %x samples %d size %u %s",
 		     m_obtained.freq,
 		     m_obtained.channels,
 		     m_obtained.format,
 		     m_obtained.samples,
-		     m_obtained.size);
+		     m_obtained.size,
+		    buffer);
 #endif
 
       m_audio_initialized = 1;

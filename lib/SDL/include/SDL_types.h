@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_types.h,v 1.4 2002/10/07 21:21:33 wmaycisco Exp $";
+ "@(#) $Id: SDL_types.h,v 1.5 2003/09/12 23:19:08 wmaycisco Exp $";
 #endif
 
 /* General data types used by the SDL library */
@@ -47,7 +47,7 @@ typedef signed int	Sint32;
 
 /* Figure out how to support 64-bit datatypes */
 #if !defined(__STRICT_ANSI__)
-#if defined(__GNUC__) || defined(__MWERKS__) || defined(__SUNPRO_C)
+#if defined(__GNUC__) || defined(__MWERKS__) || defined(__SUNPRO_C) || defined(__DECC)
 #define SDL_HAS_64BIT_TYPE	long long
 #elif defined(_MSC_VER) /* VC++ */
 #define SDL_HAS_64BIT_TYPE	__int64
@@ -61,7 +61,9 @@ typedef signed int	Sint32;
 
 /* The 64-bit datatype isn't supported on all platforms */
 #ifdef SDL_HAS_64BIT_TYPE
+#ifndef H_MMBASIC
 typedef unsigned SDL_HAS_64BIT_TYPE Uint64;
+#endif
 typedef SDL_HAS_64BIT_TYPE Sint64;
 #else
 /* This is really just a hack to prevent the compiler from complaining */
@@ -89,6 +91,11 @@ SDL_COMPILE_TIME_ASSERT(sint64, sizeof(Sint64) == 8);
    enums having the size of an int must be enabled.
    This is "-b" for Borland C/C++ and "-ei" for Watcom C/C++ (v11).
 */
+/* Enable enums always int in CodeWarrior (for MPW use "-enum int") */
+#ifdef __MWERKS__
+#pragma enumsalwaysint on
+#endif
+
 typedef enum {
 	DUMMY_ENUM_VALUE
 } SDL_DUMMY_ENUM;

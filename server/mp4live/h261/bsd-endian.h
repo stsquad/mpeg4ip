@@ -30,10 +30,10 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * @(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/bsd-endian.h,v 1.1 2003/04/09 00:44:42 wmaycisco Exp $
+ * @(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/bsd-endian.h,v 1.2 2003/09/12 23:19:43 wmaycisco Exp $
  */
 
-#include "config.h"
+#include "mpeg4ip_config.h"
 
 #ifndef BYTE_ORDER
 #   define LITTLE_ENDIAN 1234

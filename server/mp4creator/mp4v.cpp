@@ -297,7 +297,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	// create the new video track
 	MP4TrackId trackId;
 	if (doEncrypt) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 		trackId = 
 		MP4AddEncVideoTrack(
 			mp4File, 
@@ -333,8 +333,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	  videoProfileLevel = VideoProfileLevel;
 	}
 	if (MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE) == 1) {
-		MP4SetVideoProfileLevel(mp4File, 
-			MP4AV_Mpeg4VideoToSystemsProfileLevel(videoProfileLevel));
+		MP4SetVideoProfileLevel(mp4File, videoProfileLevel);
 	}
 
 	if (esConfigSize) {
@@ -356,7 +355,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 
 			vopType = MP4AV_Mpeg4GetVopType(pObj, objSize);
 
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 			 if (doEncrypt) {
 			   if (ismacrypEncryptSample(ismaCryptSId, sampleSize, 
 						     sampleBuffer) != 0) {

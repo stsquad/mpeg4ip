@@ -4,8 +4,8 @@
  * Patrice Mandin
  */
 
-#ifndef _SDL_mintgsxb_h
-#define _SDL_mintgsxb_h
+#ifndef _SDL_mintaudio_gsxb_h
+#define _SDL_mintaudio_gsxb_h
 
 #include <mint/falcon.h>	/* for trap_14_xxx macros */
 
@@ -82,4 +82,4 @@
 	(long)trap_14_wwwl((short)135,(short)(src_inter),(short)(cause),	\
 		(long)(inth_addr))
 
-#endif /* _SDL_mintgsxb_h */
+#endif /* _SDL_mintaudio_gsxb_h */

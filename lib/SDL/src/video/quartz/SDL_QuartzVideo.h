@@ -50,9 +50,14 @@
 
 #include <Cocoa/Cocoa.h>
 #include <OpenGL/OpenGL.h>
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
 #include <Carbon/Carbon.h>
 #include <QuickTime/QuickTime.h>
+#include <IOKit/IOKitLib.h>	/* For powersave handling */
+#include <pthread.h>
 
+#include "SDL_thread.h"
 #include "SDL_video.h"
 #include "SDL_error.h"
 #include "SDL_timer.h"
@@ -131,6 +136,17 @@ typedef struct SDL_PrivateVideoData {
     SDLKey             keymap[256];        /* Mac OS X to SDL key mapping */
     Uint32             current_mods;       /* current keyboard modifiers, to track modifier state */
     Uint32             last_virtual_button;/* last virtual mouse button pressed */
+    io_connect_t       power_connection;   /* used with IOKit to detect wake from sleep */
+    Uint8              expect_mouse_up;    /* used to determine when to send mouse up events */
+    Uint8              grab_state;         /* used to manage grab behavior */
+    NSPoint            cursor_loc;         /* saved cursor coords, for activate/deactivate when grabbed */
+    BOOL          	   cursor_visible;     /* tells if cursor was instructed to be hidden or not (SDL_ShowCursor) */
+    BOOL               cursor_hidden;      /* tells if cursor is *actually* hidden or not */
+    Uint8*             sw_buffers[2];      /* pointers to the two software buffers for double-buffer emulation */
+    SDL_Thread         *thread;            /* thread for async updates to the screen */
+    SDL_sem            *sem1, *sem2;       /* synchronization for async screen updates */
+    Uint8              *current_buffer;    /* the buffer being copied to the screen */
+    BOOL               quit_thread;        /* used to quit the async blitting thread */
     
     ImageDescriptionHandle yuv_idh;
     MatrixRecordPtr        yuv_matrix;
@@ -165,6 +181,18 @@ typedef struct SDL_PrivateVideoData {
 #define keymap (this->hidden->keymap)
 #define current_mods (this->hidden->current_mods)
 #define last_virtual_button (this->hidden->last_virtual_button)
+#define power_connection (this->hidden->power_connection)
+#define expect_mouse_up (this->hidden->expect_mouse_up)
+#define grab_state (this->hidden->grab_state)
+#define cursor_loc (this->hidden->cursor_loc)
+#define cursor_visible (this->hidden->cursor_visible)
+#define cursor_hidden (this->hidden->cursor_hidden)
+#define sw_buffers (this->hidden->sw_buffers)
+#define thread (this->hidden->thread)
+#define sem1 (this->hidden->sem1)
+#define sem2 (this->hidden->sem2)
+#define current_buffer (this->hidden->current_buffer)
+#define quit_thread (this->hidden->quit_thread)
 
 #define yuv_idh (this->hidden->yuv_idh)
 #define yuv_matrix (this->hidden->yuv_matrix)
@@ -175,6 +203,22 @@ typedef struct SDL_PrivateVideoData {
 #define yuv_width (this->hidden->yuv_width)
 #define yuv_height (this->hidden->yuv_height)
 #define yuv_port (this->hidden->yuv_port)
+
+
+/* grab states - the input is in one of these states */
+enum {
+    QZ_UNGRABBED = 0,
+    QZ_VISIBLE_GRAB,
+    QZ_INVISIBLE_GRAB
+};
+
+/* grab actions - these can change the grabbed state */
+enum {
+    QZ_ENABLE_GRAB = 0,
+    QZ_DISABLE_GRAB,
+    QZ_HIDECURSOR,
+    QZ_SHOWCURSOR
+};
 
 /* 
     Obscuring code: maximum number of windows above ours (inclusive) 
@@ -235,6 +279,8 @@ extern CGSError CGSDisplayCanHWFill (CGDirectDisplayID id);
 
 extern CGSError CGSGetMouseEnabledFlags (CGSConnectionID cid, CGSWindowID wid, int *flags);
 
+int CGSDisplayHWSync (CGDirectDisplayID id);
+
 /* Bootstrap functions */
 static int              QZ_Available ();
 static SDL_VideoDevice* QZ_CreateDevice (int device_index);
@@ -253,6 +299,13 @@ static SDL_Surface* QZ_SetVideoMode     (_THIS, SDL_Surface *current,
 static int          QZ_ToggleFullScreen (_THIS, int on);
 static int          QZ_SetColors        (_THIS, int first_color,
                                          int num_colors, SDL_Color *colors);
+
+static int          QZ_LockDoubleBuffer   (_THIS, SDL_Surface *surface);
+static void         QZ_UnlockDoubleBuffer (_THIS, SDL_Surface *surface);
+static int          QZ_ThreadFlip         (_THIS);
+static int          QZ_FlipDoubleBuffer   (_THIS, SDL_Surface *surface);
+static void         QZ_DoubleBufferUpdate (_THIS, int num_rects, SDL_Rect *rects);
+
 static void         QZ_DirectUpdate     (_THIS, int num_rects, SDL_Rect *rects);
 static int          QZ_LockWindow       (_THIS, SDL_Surface *surface);
 static void         QZ_UnlockWindow     (_THIS, SDL_Surface *surface);
@@ -260,7 +313,9 @@ static void         QZ_UpdateRects      (_THIS, int num_rects, SDL_Rect *rects);
 static void         QZ_VideoQuit        (_THIS);
 
 /* Hardware surface functions (for fullscreen mode only) */
+#if 0 /* Not used (apparently, it's really slow) */
 static int  QZ_FillHWRect (_THIS, SDL_Surface *dst, SDL_Rect *rect, Uint32 color);
+#endif
 static int  QZ_LockHWSurface(_THIS, SDL_Surface *surface);
 static void QZ_UnlockHWSurface(_THIS, SDL_Surface *surface);
 static void QZ_FreeHWSurface (_THIS, SDL_Surface *surface);

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_cursor.c,v 1.3 2002/05/01 17:41:04 wmaycisco Exp $";
+ "@(#) $Id: SDL_cursor.c,v 1.4 2003/09/12 23:19:24 wmaycisco Exp $";
 #endif
 
 /* General cursor handling code for SDL */
@@ -295,13 +295,20 @@ void SDL_WarpMouse (Uint16 x, Uint16 y)
 	SDL_VideoDevice *video = current_video;
 	SDL_VideoDevice *this  = current_video;
 
+	if ( !video || !SDL_PublicSurface ) {
+		SDL_SetError("A video mode must be set before warping mouse");
+		return;
+	}
+
+	/* If we have an offset video mode, offset the mouse coordinates */
+	x += (this->screen->offset % this->screen->pitch) /
+	      this->screen->format->BytesPerPixel;
+	y += (this->screen->offset / this->screen->pitch);
+
 	/* This generates a mouse motion event */
 	if ( video->WarpWMCursor ) {
 		video->WarpWMCursor(this, x, y);
 	} else {
-		x += (this->screen->offset % this->screen->pitch) /
-		      this->screen->format->BytesPerPixel;
-		y += (this->screen->offset / this->screen->pitch);
 		SDL_PrivateMouseMotion(0, 0, x, y);
 	}
 }

@@ -20,16 +20,20 @@
     slouken@libsdl.org
 */
 
+#ifndef __SDL_PH_IMAGE_H__
+#define __SDL_PH_IMAGE_H__
+
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_ph_image_c.h,v 1.2 2002/05/01 17:41:25 wmaycisco Exp $";
-#endif
+ "@(#) $Id: SDL_ph_image_c.h,v 1.3 2003/09/12 23:19:30 wmaycisco Exp $";
+#endif /* SAVE_RCSID */
 
+#include "SDL_events_c.h"
 #include "SDL_ph_video.h"
 
-extern int ph_SetupImage(_THIS, SDL_Surface *screen);
-extern void ph_DestroyImage(_THIS, SDL_Surface *screen);
-extern int ph_ResizeImage(_THIS, SDL_Surface *screen, Uint32 flags);
+extern int ph_SetupImage(_THIS, SDL_Surface* screen);
+extern void ph_DestroyImage(_THIS, SDL_Surface* screen);
+extern int ph_SetupUpdateFunction(_THIS, SDL_Surface* screen, Uint32 flags);
 
 extern int ph_AllocHWSurface(_THIS, SDL_Surface *surface);
 extern void ph_FreeHWSurface(_THIS, SDL_Surface *surface);
@@ -39,4 +43,7 @@ extern int ph_FlipHWSurface(_THIS, SDL_Surface *surface);
 
 extern void ph_NormalUpdate(_THIS, int numrects, SDL_Rect *rects);
 extern void ph_OCUpdate(_THIS, int numrects, SDL_Rect *rects);
+extern void ph_OCDCUpdate(_THIS, int numrects, SDL_Rect *rects);
 extern void ph_OpenGLUpdate(_THIS, int numrects, SDL_Rect *rects);
+
+#endif /* __SDL_PH_IMAGE_H__ */

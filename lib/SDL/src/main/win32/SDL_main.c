@@ -1,7 +1,7 @@
 /*
     SDL_main.c, placed in the public domain by Sam Lantinga  4/13/98
 
-    The WinMain function -- calls your program's main() function 
+    The WinMain function -- calls your program's main() function
 */
 
 #include <stdio.h>
@@ -10,25 +10,45 @@
 #include <stdlib.h>
 
 #include <windows.h>
-#include <malloc.h>		/* For _alloca() */
+#include <malloc.h>			/* For _alloca() */
+
+#ifdef _WIN32_WCE
+# define DIR_SEPERATOR TEXT("\\")
+# define _getcwd(str,len)	wcscpy(str,DIR_SEPERATOR);
+# define setbuf(x)
+# define setvbuf(x)
+# define fopen		_wfopen
+# define freopen	_wfreopen
+# define remove(x)	DeleteFile(x)
+# define strcat		wcscat
+#else
+# define DIR_SEPERATOR TEXT("/")
+# include <direct.h>
+#endif
 
 /* Include the SDL main definition header */
 #include "SDL.h"
 #include "SDL_main.h"
-#ifdef main
-#ifndef _WIN32_WCE_EMULATION
-#undef main
-#endif
-#endif
 
-/* Do we really not want stdio redirection with Windows CE? */
-#ifdef _WIN32_WCE
-#define NO_STDIO_REDIRECT
-#endif
+#ifdef main
+# ifndef _WIN32_WCE_EMULATION
+#  undef main
+# endif /* _WIN32_WCE_EMULATION */
+#endif /* main */
 
 /* The standard output files */
 #define STDOUT_FILE	TEXT("stdout.txt")
 #define STDERR_FILE	TEXT("stderr.txt")
+
+#ifndef NO_STDIO_REDIRECT
+# ifdef _WIN32_WCE
+  static wchar_t stdoutPath[MAX_PATH];
+  static wchar_t stderrPath[MAX_PATH];
+# else
+  static char stdoutPath[MAX_PATH];
+  static char stderrPath[MAX_PATH];
+# endif
+#endif
 
 #if defined(_WIN32_WCE) && _WIN32_WCE < 300
 /* seems to be undefined in Win CE although in online help */
@@ -138,20 +158,24 @@ static void __cdecl cleanup_output(void)
 
 #ifndef NO_STDIO_REDIRECT
 	/* See if the files have any output in them */
-	file = fopen(STDOUT_FILE, "rb");
-	if ( file ) {
-		empty = (fgetc(file) == EOF) ? 1 : 0;
-		fclose(file);
-		if ( empty ) {
-			remove(STDOUT_FILE);
+	if ( stdoutPath[0] ) {
+		file = fopen(stdoutPath, TEXT("rb"));
+		if ( file ) {
+			empty = (fgetc(file) == EOF) ? 1 : 0;
+			fclose(file);
+			if ( empty ) {
+				remove(stdoutPath);
+			}
 		}
 	}
-	file = fopen(STDERR_FILE, "rb");
-	if ( file ) {
-		empty = (fgetc(file) == EOF) ? 1 : 0;
-		fclose(file);
-		if ( empty ) {
-			remove(STDERR_FILE);
+	if ( stderrPath[0] ) {
+		file = fopen(stderrPath, TEXT("rb"));
+		if ( file ) {
+			empty = (fgetc(file) == EOF) ? 1 : 0;
+			fclose(file);
+			if ( empty ) {
+				remove(stderrPath);
+			}
 		}
 	}
 #endif
@@ -261,29 +285,42 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 	}
 
 #ifndef NO_STDIO_REDIRECT
+	_getcwd( stdoutPath, sizeof( stdoutPath ) );
+	strcat( stdoutPath, DIR_SEPERATOR STDOUT_FILE );
+    
 	/* Redirect standard input and standard output */
-	newfp = freopen(STDOUT_FILE, "w", stdout);
+	newfp = freopen(stdoutPath, TEXT("w"), stdout);
+
+#ifndef _WIN32_WCE
 	if ( newfp == NULL ) {	/* This happens on NT */
 #if !defined(stdout)
-		stdout = fopen(STDOUT_FILE, "w");
+		stdout = fopen(stdoutPath, TEXT("w"));
 #else
-		newfp = fopen(STDOUT_FILE, "w");
+		newfp = fopen(stdoutPath, TEXT("w"));
 		if ( newfp ) {
 			*stdout = *newfp;
 		}
 #endif
 	}
-	newfp = freopen(STDERR_FILE, "w", stderr);
+#endif /* _WIN32_WCE */
+
+	_getcwd( stderrPath, sizeof( stderrPath ) );
+	strcat( stderrPath, DIR_SEPERATOR STDERR_FILE );
+
+	newfp = freopen(stderrPath, TEXT("w"), stderr);
+#ifndef _WIN32_WCE
 	if ( newfp == NULL ) {	/* This happens on NT */
 #if !defined(stderr)
-		stderr = fopen(STDERR_FILE, "w");
+		stderr = fopen(stderrPath, TEXT("w"));
 #else
-		newfp = fopen(STDERR_FILE, "w");
+		newfp = fopen(stderrPath, TEXT("w"));
 		if ( newfp ) {
 			*stderr = *newfp;
 		}
 #endif
 	}
+#endif /* _WIN32_WCE */
+
 	setvbuf(stdout, NULL, _IOLBF, BUFSIZ);	/* Line buffered */
 	setbuf(stderr, NULL);			/* No buffering */
 #endif /* !NO_STDIO_REDIRECT */

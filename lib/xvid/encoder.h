@@ -25,7 +25,6 @@
 #define MPEG4_QUANT	1
 
 
-typedef uint32_t bool;
 
 
 typedef enum

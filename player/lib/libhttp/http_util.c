@@ -21,7 +21,7 @@
 /*
  * http_util.c - http utilities.
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <time.h>
 #include "http_private.h"
 
@@ -255,6 +255,7 @@ int http_build_header (char *buffer,
   if (ret == -1) return -1;
   *at += ret;
   SNPRINTF_CHECK("User-Agent: %s\r\n", user_agent);
+  SNPRINTF_CHECK("Connection: Keep-Alive%s", "\r\n");
   if (add_header != NULL) {
     SNPRINTF_CHECK("%s\r\n", add_header);
   }
@@ -293,7 +294,7 @@ void http_debug (int loglevel, const char *fmt, ...)
     if (error_msg_func != NULL) {
       (error_msg_func)(loglevel, "libhttp", fmt, ap);
     } else {
- #if _WIN32 && _DEBUG
+#if _WIN32 && _DEBUG
 	  char msg[1024];
 
       _vsnprintf(msg, 1024, fmt, ap);

@@ -231,7 +231,7 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	if (TimeScaleSpecified && Mp4TimeScale == 90000) {
 	  duration = (90000 * samplesPerFrame) / samplesPerSecond;
 	  if (doEncrypt) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 	    trackId = 
 	      MP4AddEncAudioTrack(mp4File, 
 			       90000,
@@ -252,7 +252,7 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	  }
 	} else {
 	  if (doEncrypt) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 	    trackId = 
 	      MP4AddEncAudioTrack(mp4File, 
 			       samplesPerSecond, samplesPerFrame, audioType);
@@ -284,7 +284,7 @@ MP4TrackId Mp3Creator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	MP4SampleId sampleId = 1;
 
 	while (LoadNextMp3Frame(inFile, sampleBuffer, &sampleSize)) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 	         if (doEncrypt) {
 		   if (ismacrypEncryptSample(ismaCryptSId, sampleSize, 
 					     sampleBuffer) != 0) {

@@ -23,7 +23,6 @@
  */
 #ifndef __RAWV_H__
 #define __RAWV_H__ 1
-#include <systems.h>
 #include "codec_plugin.h"
 
 #define m_vft c.v.video_vft

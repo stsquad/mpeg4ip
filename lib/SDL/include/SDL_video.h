@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_video.h,v 1.5 2002/10/07 21:21:33 wmaycisco Exp $";
+ "@(#) $Id: SDL_video.h,v 1.6 2003/09/12 23:19:08 wmaycisco Exp $";
 #endif
 
 /* Header file for access to the SDL raw framebuffer window */
@@ -58,6 +58,7 @@ typedef struct {
 	Uint8 b;
 	Uint8 unused;
 } SDL_Color;
+#define SDL_Colour SDL_Color
 
 typedef struct {
 	int       ncolors;
@@ -216,7 +217,9 @@ typedef enum {
     SDL_GL_ACCUM_GREEN_SIZE,
     SDL_GL_ACCUM_BLUE_SIZE,
     SDL_GL_ACCUM_ALPHA_SIZE,
-	SDL_GL_STEREO
+    SDL_GL_STEREO,
+    SDL_GL_MULTISAMPLEBUFFERS,
+    SDL_GL_MULTISAMPLESAMPLES
 } SDL_GLattr;
 
 /* flags for SDL_SetPalette() */
@@ -393,7 +396,7 @@ extern DECLSPEC int SDLCALL SDL_SetGamma(float red, float green, float blue);
  * hardware does not support gamma translation, or otherwise fails,
  * this function will return -1.
  */
-extern DECLSPEC int SDLCALL SDL_SetGammaRamp(Uint16 *red, Uint16 *green, Uint16 *blue);
+extern DECLSPEC int SDLCALL SDL_SetGammaRamp(const Uint16 *red, const Uint16 *green, const Uint16 *blue);
 
 /*
  * Retrieve the current values of the gamma translation tables.

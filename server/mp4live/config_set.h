@@ -23,14 +23,8 @@
 #ifndef __CONFIG_SET_H__
 #define __CONFIG_SET_H__
 
-#include <systems.h>
+#include <mpeg4ip.h>
 
-#ifndef MIN
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#endif
-#ifndef MAX
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#endif
 
 #ifndef CONFIG_SAFETY
 #define CONFIG_SAFETY 1

@@ -1,3 +1,7 @@
+xx/xx/03 version x.x
+    Fixed non-compliance in mp4live created ISMA files with 0 length frames
+    Updated profile @ level defines for audio and video
+
 07/03/03 Version 0.9.9
     Added H.261 encoding for mp4live
     Fixes from April ISMA plugfest

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11image.c,v 1.3 2002/05/01 17:41:29 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11image.c,v 1.4 2003/09/12 23:19:33 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -103,8 +103,9 @@ int X11_SetupImage(_THIS, SDL_Surface *screen)
 		}
 		this->UpdateRects = X11_MITSHMUpdate;
 	}
+	if(!use_mitshm)
 #endif /* not NO_SHARED_MEMORY */
-	if(!use_mitshm) {
+	{
 		int bpp;
 		screen->pixels = malloc(screen->h*screen->pitch);
 		if ( screen->pixels == NULL ) {
@@ -167,6 +168,8 @@ static int num_CPU(void)
                }
                fclose(pstat);
            }
+#elif defined(__sgi)
+	   num_cpus = sysconf(_SC_NPROC_ONLN);
 #elif defined(_SC_NPROCESSORS_ONLN)
 	   /* number of processors online (SVR4.0MP compliant machines) */
            num_cpus = sysconf(_SC_NPROCESSORS_ONLN);

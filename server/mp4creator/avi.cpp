@@ -60,7 +60,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 
 	MP4TrackId trackId;
 	if (doEncrypt) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 	  trackId = MP4AddEncVideoTrack(
 				     mp4File,
 				     Mp4TimeScale, 
@@ -255,8 +255,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 	  if (VideoProfileLevelSpecified) {
 	    videoProfileLevel = VideoProfileLevel;
 	  }
-	  MP4SetVideoProfileLevel(mp4File, 
-				  MP4AV_Mpeg4VideoToSystemsProfileLevel(videoProfileLevel));
+	  MP4SetVideoProfileLevel(mp4File, videoProfileLevel);
 	}
 
 	// write out the first frame, minus the initial configuration info
@@ -351,7 +350,7 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 	
 	MP4TrackId trackId;
 	if (doEncrypt) {
-#ifdef ISMACRYPT
+#ifdef ISMACRYP
 	  trackId = MP4AddEncAudioTrack(mp4File, samplesPerSecond, 
 				     samplesPerFrame, mp4AudioType);
 #else

@@ -6,7 +6,7 @@
 // It's bit reservior for MPEG layer 3
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "mpeg4ip_config.h"
 #endif
 
 #include "MPEGaudio.h"

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysaudio.h,v 1.5 2002/10/07 21:21:33 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysaudio.h,v 1.6 2003/09/12 23:19:08 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysaudio_h
@@ -115,6 +115,9 @@ extern AudioBootStrap DMA_bootstrap;
 #ifdef ALSA_SUPPORT
 extern AudioBootStrap ALSA_bootstrap;
 #endif
+#ifdef QNXNTOAUDIO_SUPPORT
+extern AudioBootStrap QNXNTOAUDIO_bootstrap;
+#endif
 #ifdef SUNAUDIO_SUPPORT
 extern AudioBootStrap SUNAUDIO_bootstrap;
 #endif
@@ -149,13 +152,23 @@ extern AudioBootStrap SNDMGR_bootstrap;
 extern AudioBootStrap AHI_bootstrap;
 #endif
 #ifdef MINTAUDIO_SUPPORT
-extern AudioBootStrap MINTAUDIO_bootstrap;
+extern AudioBootStrap MINTAUDIO_GSXB_bootstrap;
+extern AudioBootStrap MINTAUDIO_MCSN_bootstrap;
+extern AudioBootStrap MINTAUDIO_STFA_bootstrap;
+extern AudioBootStrap MINTAUDIO_XBIOS_bootstrap;
+extern AudioBootStrap MINTAUDIO_DMA8_bootstrap;
 #endif
 #ifdef DISKAUD_SUPPORT
 extern AudioBootStrap DISKAUD_bootstrap;
 #endif
 #ifdef ENABLE_DC
 extern AudioBootStrap DCAUD_bootstrap;
+#endif
+#ifdef DRENDERER_SUPPORT
+extern AudioBootStrap DRENDERER_bootstrap;
+#endif
+#ifdef MMEAUDIO_SUPPORT
+extern AudioBootStrap MMEAUDIO_bootstrap;
 #endif
 
 /* This is the current audio device */

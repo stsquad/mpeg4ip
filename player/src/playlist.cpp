@@ -1,5 +1,5 @@
+#include "mpeg4ip.h"
 #include "playlist.h"
-#include "systems.h"
 
 CPlaylist::CPlaylist (const char *filename, const char **errmsg)
 {

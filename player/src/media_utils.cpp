@@ -21,7 +21,7 @@
 /*
  * media_utils.cpp - various utilities, globals (ick).
  */
-#include "systems.h"
+#include "mpeg4ip.h"
 #include <sdp/sdp.h>
 #include <libhttp/http.h>
 #include "media_utils.h"
@@ -474,6 +474,8 @@ static int create_media_for_http (CPlayerSession *psptr,
 			  cc_vft);
   } else {
     ret = -1;
+    snprintf(errmsg, errlen, "HTTP error %d, %s", http_resp->ret_code, 
+	     http_resp->resp_phrase);
   }
   http_resp_free(http_resp);
   http_free_connection(http_client);

@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../.." /I "../../../lib" /I "../../../lib/audio" /I "../../../../include" /I "../../../../lib" /I "../../../../lib/SDL/include" /D "_WINDOWS" /D "_WIN32" /D "WIN32" /D "NDEBUG" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../.." /I "../../../lib" /I "../../../lib/audio" /I "../../../../include" /I "../../../../lib" /I "../../../../lib/SDL/include" /I "../../../../lib/sdp" /I "../../../../lib/mp4v2" /D "_WINDOWS" /D "_WIN32" /D "WIN32" /D "NDEBUG" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -74,7 +74,7 @@ PostBuild_Cmds=copy Release\aac_plugin.dll ..\..
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "../.." /I "../../../lib" /I "../../../lib/audio" /I "../../../../include" /I "../../../../lib" /I "../../../../lib/SDL/include" /D "_WINDOWS" /D "_WIN32" /D "WIN32" /D "_DEBUG" /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "../.." /I "../../../lib" /I "../../../lib/audio" /I "../../../../include" /I "../../../../lib" /I "../../../../lib/SDL/include" /I "../../../../lib/sdp" /I "../../../../lib/mp4v2" /D "_WINDOWS" /D "_WIN32" /D "WIN32" /D "_DEBUG" /YX /FD /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"

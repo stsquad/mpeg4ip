@@ -50,7 +50,7 @@
 
 #ifndef _BITSTREAM_H_
 #define _BITSTREAM_H_
-#include "systems.h"
+#include "mpeg4ip.h"
 #include "../portab.h"
 #include "../decoder.h"
 #include "../encoder.h"

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysmouse.c,v 1.4 2002/10/07 21:21:47 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysmouse.c,v 1.5 2003/09/12 23:19:32 wmaycisco Exp $";
 #endif
 
 #include <stdlib.h>
@@ -213,12 +213,7 @@ int WIN_ShowWMCursor(_THIS, WMcursor *cursor)
 
 void WIN_WarpWMCursor(_THIS, Uint16 x, Uint16 y)
 {
-	POINT pt;
-
 	if ( DDRAW_FULLSCREEN() ) {
-		x += (this->screen->offset % this->screen->pitch) /
-		      this->screen->format->BytesPerPixel;
-		y += (this->screen->offset / this->screen->pitch);
 		SDL_PrivateMouseMotion(0, 0, x, y);
 	} else if ( mouse_relative) {
 		/*	RJR: March 28, 2000
@@ -226,6 +221,7 @@ void WIN_WarpWMCursor(_THIS, Uint16 x, Uint16 y)
 			mouse hidden and grabbed */
 		SDL_PrivateMouseMotion(0, 0, x, y);
 	} else {
+		POINT pt;
 		pt.x = x;
 		pt.y = y;
 		ClientToScreen(SDL_Window, &pt);

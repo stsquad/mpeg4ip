@@ -24,9 +24,8 @@
 #ifndef __OUR_BYTESTREAM_FILE_H__
 #define __OUR_BYTESTREAM_FILE_H__ 1
 
-#include "systems.h"
-#include "our_bytestream.h"
 #include "codec_plugin.h"
+#include "our_bytestream.h"
 
 class COurInByteStreamFile : public COurInByteStream
 {
