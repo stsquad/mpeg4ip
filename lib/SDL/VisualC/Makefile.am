@@ -1,1 +1,0 @@
-SUBDIRS= SDL SDLmain
