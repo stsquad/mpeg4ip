@@ -127,7 +127,7 @@ do	cd $dir
 done
 fi
 
-cd lib/rtp
+cd $pwd/lib/rtp
 aclocal || aclocal $ACLOCAL_FLAGS || exit 3
 libtoolize --force
 autoheader

@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.0.8)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.0.9)
 
 dnl Checks for programs. 
 
@@ -421,7 +421,7 @@ AM_CONDITIONAL(USE_MMX, test x$test_use_mmx = xtrue)
 
 dnl Get SDL cflags and SDL libraries to include
 if test $have_macosx = false; then
-SDL_LIBS="`sh sdl-config --libs`"
+SDL_LIBS="`sdl-config --libs`"
 else
 SDL_LIBS=
 fi
