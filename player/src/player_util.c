@@ -56,6 +56,9 @@ static void unlock_mutex(void)
 void player_error_message (const char *fmt, ...)
 {
   va_list ap;
+  struct timeval thistime;
+  time_t secs;
+  char buffer[80];
 #if _WIN32
   if (IsDebuggerPresent()) {
         char msg[512];
@@ -70,10 +73,7 @@ void player_error_message (const char *fmt, ...)
 		unlock_mutex();
 		return;
 	}
-#else
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
+#endif
 
   gettimeofday(&thistime, NULL);
   // To add date, add %a %b %d to strftime
@@ -85,12 +85,14 @@ void player_error_message (const char *fmt, ...)
   vprintf(fmt, ap);
   va_end(ap);
   printf("\n");
-#endif
 }
 
 void player_debug_message (const char *fmt, ...)
 {
   va_list ap;
+  struct timeval thistime;
+  time_t secs;
+  char buffer[80];
 #if _WIN32 
   if (IsDebuggerPresent()) {
        char msg[512];
@@ -105,10 +107,7 @@ void player_debug_message (const char *fmt, ...)
 		unlock_mutex();
 		return;
 	}
-#else
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
+#endif
 
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
@@ -120,12 +119,15 @@ void player_debug_message (const char *fmt, ...)
   vprintf(fmt, ap);
   va_end(ap);
   printf("\n");
-#endif
+
 }
 
 void message (int loglevel, const char *lib, const char *fmt, ...)
 {
   va_list ap;
+  struct timeval thistime;
+  time_t secs;
+  char buffer[80];
 #if _WIN32
   if (IsDebuggerPresent()) {
        char msg[512];
@@ -140,10 +142,7 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
 	unlock_mutex();
 	return;
   }
-#else
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
+#endif
 
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
@@ -155,7 +154,6 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
   vprintf(fmt, ap);
   va_end(ap);
   printf("\n");
-#endif
 }
 
 void player_library_message (int loglevel,
@@ -163,6 +161,9 @@ void player_library_message (int loglevel,
 			     const char *fmt,
 			     va_list ap)
 {
+  struct timeval thistime;
+  time_t secs;
+  char buffer[80];
 #if _WIN32
 	if (IsDebuggerPresent()) {
   char msg[512];
@@ -179,10 +180,7 @@ void player_library_message (int loglevel,
   unlock_mutex();
   return;
 	}
-#else
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
+#endif
 
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
@@ -194,7 +192,6 @@ void player_library_message (int loglevel,
 	 loglevel);
   vprintf(fmt, ap);
   printf("\n");
-#endif
 }
   
 

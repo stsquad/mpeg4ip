@@ -602,7 +602,7 @@ void CRtpByteStream::get_more_bytes (unsigned char **buffer,
 				     int get)
 {
 #ifdef DEBUG_RTP_PAKS
-  rtp_message(LOG_DEBUG, "%s Get more bytes", m_name);
+  rtp_message(LOG_DEBUG, "%s Get more bytes %d", m_name, used);
 #endif
   if (get != 0) {
     m_bytes_used = m_buffer_len;

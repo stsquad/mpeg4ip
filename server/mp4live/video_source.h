@@ -142,6 +142,15 @@ protected:
 		}
 	}
 
+	static void imgcpy(u_int8_t* dst, u_int8_t* src, 
+		u_int16_t width, u_int16_t height, u_int16_t stride) {
+		for (u_int16_t i = 0; i < height; i++) {
+			memcpy(dst, src, width);
+			dst += width;
+			src += stride;
+		}
+	}
+
 protected:
 	bool				m_capture;
 	bool				m_preview;

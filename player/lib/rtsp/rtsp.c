@@ -73,6 +73,7 @@ rtsp_client_t *rtsp_create_client_common (const char *url, int *perr)
   info->m_offset_on = 0;
   info->m_buffer_len = 0;
   info->m_resp_buffer[RECV_BUFF_DEFAULT_LEN] = '\0';
+  info->thread = NULL;
   
   err = rtsp_dissect_url(info, url);
   if (err != 0) {

@@ -1,4 +1,4 @@
-November 7, 2001
+January 16, 2002
 
 MPEG4IP Project
 ===============
@@ -165,7 +165,6 @@ Author:     Rainer Johanni
 Directory:  mpeg4ip/lib/avi
 License:    GNU Library General Public License (LGPL), version 2 1991
 Notes:      Extracted from lavtools package,
-            Used only by the avi2raw utility
 
 Name:       ffmpeg
 Version:    0.3.4
@@ -258,6 +257,17 @@ License:    Other, see COPYRIGHT
 Notes:      This directory contains additional third-party code with 
             different licenses.
 
+Name:       xvid
+Version:    January 5, 2002
+Origin:     http://www.videocoding.de/
+Authors:    Michael Militzer, Peter Ross
+Directory:  mpeg4ip/common/video/xvid
+License:    GNU General Public License (GPL), version 2 1991
+            with portions of the code covered by the OpenDivx license.
+Notes:      Code redistributed with MPEG4IP is just the codec library
+            portion of the project. See the project site to obtain
+            the complete distribution which includes a Video for Windows
+            wrapper.
 
 We will attempt to keep up with the current stable releases of
 these packages. 
@@ -434,8 +444,9 @@ A few debugging tools are also included:
 
 mp4extract  Utility to extract tracks from an MP4 file
 mp4dump     Utility to dump MP4 file meta-information in text form
+mp4info     Utility to display MP4 file summary
+avidump     Utility to display AVI file summary
 yuvdump     Utility to display a raw video file on the screen
-avidump     Utility to dump AVI file meta-information
 
 
 For playback, you get:
@@ -471,6 +482,7 @@ mpeg4ip - top level project directory
     common - shared code
         video 
             mpeg4 - MPEG-4 video encoder/decoder
+            xvid - xvid video encoder/decoder
 
     lib - project wide libraries
         SDL - Simple DirectMedia Layer
@@ -518,7 +530,7 @@ mpeg4ip - top level project directory
             gui - gtk gui for mp4 live.
         util
             avi2raw - extract raw A/V data from AVI files
-	    avidump - dump AVI meta information.
+        avidump - dump AVI meta information.
             lboxcrop - vertically crop raw video 
             mp4apkt - DEPRECATED MP4 audio packetizer
             mp4dump - DEPRECATED dump MP4 file meta-info contents
@@ -565,6 +577,9 @@ IETF RFC 2327 SDP
 
 IETF RFC 2250 RTP Payload for MPEG-1/2
     Note: we're just using the audio part for MP3.
+
+IETF RFC 3119 A More Loss-Tolerant RTP Payload Format for MP3 Audio
+    Note: only mp4creator supports this currently
 
 IETF RFC 3016 RTP Payload for MPEG-4 Audio/Visual
     Note: we're implementing the MPEG-4 video part
@@ -617,13 +632,13 @@ Known Problems
 
 * The ISO MPEG-4 video codec bitrate control feature is broken. We've
   heard that a fix is available, so we're trying to track that down.
-  Note that the OpenDivx encoder has bitrate control that works.
 
 * The player for windows is sketchy at best.  We have included project
   files that should build, for both Dev Studio 5.0 and 6.0.  With 5.0,
   the new version of SDL doesn't seem to want to link.
 
-  We recommend installing DirectX 8.1 or later.  If that is not possible, 
+* We recommend installing DirectX 8.1 or later.  If that is not possible, 
   and you have problems with video, try uncommenting out #define OLD_SURFACE
   in player/src/video.cpp.
+
 === END OF README ===

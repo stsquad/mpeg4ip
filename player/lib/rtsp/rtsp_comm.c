@@ -22,6 +22,7 @@
  * rtsp_comm.c - contains communication routines.
  */
 #include "rtsp_private.h"
+
 #ifdef HAVE_POLL
 #include <sys/poll.h>
 #endif
@@ -45,10 +46,12 @@ int rtsp_create_socket (rtsp_client_t *info)
   }
   
   if (info->server_name == NULL) {
+    rtsp_debug(LOG_CRIT, "No server name in create socket");
     return (-1);
   }
   host = gethostbyname(info->server_name);
   if (host == NULL) {
+    rtsp_debug(LOG_CRIT, "Can't get server host name %s", info->server_name);
     return (h_errno);
   }
   info->server_addr = *(struct in_addr *)host->h_addr;
@@ -56,9 +59,11 @@ int rtsp_create_socket (rtsp_client_t *info)
   info->server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
   if (info->server_socket == -1) {
+    rtsp_debug(LOG_CRIT, "Couldn't create socket");
     return (-1);
   }
 
+  
   sockaddr.sin_family = AF_INET;
   sockaddr.sin_port = htons(info->port);
   sockaddr.sin_addr = info->server_addr;
@@ -68,8 +73,18 @@ int rtsp_create_socket (rtsp_client_t *info)
 		   sizeof(sockaddr));
 
   if (result == -1) {
+    rtsp_debug(LOG_CRIT, "Couldn't connect socket");
     return (-1);
   }
+
+  if (info->thread != NULL) {
+    result = fcntl(info->server_socket, F_GETFL);
+    result = fcntl(info->server_socket, F_SETFL, result | O_NONBLOCK);
+    if (result < 0) {
+      rtsp_debug(LOG_ERR, "Couldn't create nonblocking %d", errno);
+    }
+  }
+
   return (0);
 }
 
@@ -111,37 +126,41 @@ int rtsp_send (rtsp_client_t *info, const char *buff, uint32_t len)
  *   recv_buff_parsed - used by above routine in case we got more than
  *      1 response at a time.
  */
-int rtsp_receive (int rsocket, char *buffer, uint32_t len,
-		  uint32_t msec_timeout)
+int rtsp_receive_socket (int rsocket, char *buffer, uint32_t len,
+			 uint32_t msec_timeout)
 {
 
   int ret;
 #ifdef HAVE_POLL
   struct pollfd pollit;
-  
-  pollit.fd = rsocket;
-  pollit.events = POLLIN | POLLPRI;
-  pollit.revents = 0;
-
-  ret = poll(&pollit, 1, msec_timeout);
 #else
   fd_set read_set;
   struct timeval timeout;
-  FD_ZERO(&read_set);
-  FD_SET(rsocket, &read_set);
-  timeout.tv_sec = msec_timeout / 1000;
-  timeout.tv_usec = (msec_timeout % 1000) * 1000;
-  ret = select(rsocket + 1, &read_set, NULL, NULL, &timeout);
 #endif
 
-  if (ret <= 0) {
-    rtsp_debug(LOG_ERR, "Response timed out %d %d", msec_timeout, ret);
-    if (ret == -1) {
-      rtsp_debug(LOG_ERR, "Errorno is %d", errno);
-    }
-    return (-1);
-  }
+  if (msec_timeout != 0) {
+#ifdef HAVE_POLL
+    pollit.fd = rsocket;
+    pollit.events = POLLIN | POLLPRI;
+    pollit.revents = 0;
 
+    ret = poll(&pollit, 1, msec_timeout);
+#else
+    FD_ZERO(&read_set);
+    FD_SET(rsocket, &read_set);
+    timeout.tv_sec = msec_timeout / 1000;
+    timeout.tv_usec = (msec_timeout % 1000) * 1000;
+    ret = select(rsocket + 1, &read_set, NULL, NULL, &timeout);
+#endif
+
+    if (ret <= 0) {
+      rtsp_debug(LOG_ERR, "Response timed out %d %d", msec_timeout, ret);
+      if (ret == -1) {
+	rtsp_debug(LOG_ERR, "Errorno is %d", errno);
+      }
+      return (-1);
+    }
+  }
   ret = recv(rsocket, buffer, len, 0);
   return (ret);
 }

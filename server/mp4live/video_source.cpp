@@ -146,7 +146,7 @@ void CVideoSource::DoStartPreview(void)
 		}
 	}
 
-	u_int32_t sdlVideoFlags = SDL_SWSURFACE | SDL_ASYNCBLIT;
+	u_int32_t sdlVideoFlags = SDL_HWSURFACE;
 
 	if (m_pConfig->m_videoPreviewWindowId) {
 		char buffer[16];
@@ -510,6 +510,7 @@ bool CVideoSource::InitEncoder()
 		return InitXvidEncoder();
 	}
 
+	error_message("unknown encoder specified");
 	return false;
 }
 
@@ -535,6 +536,7 @@ bool CVideoSource::InitFfmpegEncoder()
 
 	return true;
 #else
+	error_message("ffmpeg encoder not available in this build\n");
 	return false;
 #endif /* ADD_FFMPEG_ENCODER */
 }
@@ -559,7 +561,7 @@ bool CVideoSource::InitDivxEncoder()
 	divxParams.max_key_interval = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) * 2;
 	divxParams.search_range = 16;
-	divxParams.max_quantizer = 31;
+	divxParams.max_quantizer = 15;
 	divxParams.min_quantizer = 2;
 	divxParams.enable_8x8_mv = 0;
 
@@ -570,6 +572,7 @@ bool CVideoSource::InitDivxEncoder()
 
 	return true;
 #else
+	error_message("divx encoder not available in this build\n");
 	return false;
 #endif /* ADD_DIVX_ENCODER */
 }
@@ -606,7 +609,7 @@ bool CVideoSource::InitXvidEncoder()
 	xvidEncParams.min_quantizer = 1;
 	xvidEncParams.max_key_interval = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) * 2;
-	xvidEncParams.motion_search = 3;
+	xvidEncParams.motion_search = 1;
 	xvidEncParams.quant_type = 1;
 	xvidEncParams.lum_masking = 1;
 
@@ -619,6 +622,7 @@ bool CVideoSource::InitXvidEncoder()
 
 	return true;
 #else
+	error_message("xvid encoder not available in this build\n");
 	return false;
 #endif /* ADD_XVID_ENCODER */
 }
@@ -766,8 +770,13 @@ void CVideoSource::ProcessVideo(void)
 				goto release;
 			}
 
+#ifdef ADD_DIVX_ENCODER
+			ENC_RESULT divxResult;
+#endif
+
 #ifdef ADD_XVID_ENCODER
 			XVID_ENC_FRAME xvidFrame;
+			XVID_ENC_STATS xvidResult;
 #endif
 
 			// call encoder
@@ -790,8 +799,6 @@ void CVideoSource::ProcessVideo(void)
 			}
 			case USE_DIVX: {
 #ifdef ADD_DIVX_ENCODER
-				ENC_RESULT divxResult;
-
 				ENC_FRAME divxFrame;
 				divxFrame.image = yuvImage;
 				divxFrame.bitstream = vopBuf;
@@ -818,16 +825,13 @@ void CVideoSource::ProcessVideo(void)
 				xvidFrame.quant = 4;
 				xvidFrame.intra = m_wantKeyFrame;
 
-printf("xvid encoding frame\n");
 				if (xvid_encore(m_xvidHandle, XVID_ENC_ENCODE, &xvidFrame, 
-				  NULL) != XVID_ERR_OK) {
+				  &xvidResult) != XVID_ERR_OK) {
 					debug_message("Xvid can't encode frame!");
-printf("xvid failed\n");
 					goto release;
 				}
 
 				vopBufLength = xvidFrame.length;
-printf("xvid vop is %u bytes\n", vopBufLength);
 #endif /* ADD_XVID_ENCODER */
 				break;
 			}
@@ -874,15 +878,21 @@ printf("xvid vop is %u bytes\n", vopBufLength);
 					break;
 				case USE_XVID:
 #ifdef ADD_XVID_ENCODER
-					memcpy(m_sdlImage->pixels[0], 
-						xvidFrame.reconstruct_y,
-						m_ySize);
-					memcpy(m_sdlImage->pixels[1], 
-						xvidFrame.reconstruct_u,
-						m_uvSize);
-					memcpy(m_sdlImage->pixels[2], 
-						xvidFrame.reconstruct_v,
-						m_uvSize);
+					imgcpy(m_sdlImage->pixels[0], 
+						xvidResult.image_y,
+						m_pConfig->m_videoWidth, 
+						m_pConfig->m_videoHeight,
+						xvidResult.stride_y);
+					imgcpy(m_sdlImage->pixels[1], 
+						xvidResult.image_u,
+						m_pConfig->m_videoWidth / 2, 
+						m_pConfig->m_videoHeight / 2,
+						xvidResult.stride_uv);
+					imgcpy(m_sdlImage->pixels[2], 
+						xvidResult.image_v,
+						m_pConfig->m_videoWidth / 2, 
+						m_pConfig->m_videoHeight / 2,
+						xvidResult.stride_uv);
 #endif /* ADD_XVID_ENCODER */
 					break;
 				}

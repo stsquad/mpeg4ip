@@ -128,7 +128,6 @@ EXTERN unsigned char alternate_vertical_scan[64]
 #endif
 ;
 
-EXTERN unsigned char *clp;
 EXTERN int horizontal_size, vertical_size, mb_width, mb_height;
 EXTERN int juice_hor, juice_ver;
 EXTERN int coded_picture_width, coded_picture_height;
@@ -186,11 +185,22 @@ EXTERN struct _ac_dc
 	int predict_dir;
 
 } ac_dc, *coeff_pred;
-EXTERN unsigned char	*edged_ref[3],
-											*edged_for[3],
-											*frame_ref[3],
-											*frame_for[3],
-											*display_frame[3];
+#ifdef GLOBAL
+unsigned char *clp = NULL;
+unsigned char *edged_ref[3] = {NULL, NULL, NULL},
+  *edged_for[3] = { NULL, NULL, NULL},
+  *frame_ref[3],
+  *frame_for[3],
+  *display_frame[3] = {NULL, NULL, NULL};
+#else
+EXTERN unsigned char *clp;
+EXTERN unsigned char *edged_ref[3],
+  *edged_for[3],
+  *frame_ref[3],
+  *frame_for[3],
+  *display_frame[3];
+#endif
+
 static __inline void flushbits (unsigned int n)
 {
 	ld->bitcnt += n;

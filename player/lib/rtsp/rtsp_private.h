@@ -114,8 +114,8 @@ void rtsp_close_socket(rtsp_client_t *info);
 
 int rtsp_send(rtsp_client_t *info, const char *buff, uint32_t len);
 void rtsp_flush(rtsp_client_t *info);
-int rtsp_receive(int rsocket, char *buffer, uint32_t len,
-		 uint32_t msec_timeout);
+int rtsp_receive_socket(int rsocket, char *buffer, uint32_t len,
+			uint32_t msec_timeout);
 
 int rtsp_get_response(rtsp_client_t *info);
 
@@ -142,3 +142,9 @@ int rtsp_thread_ipc_send_wait(rtsp_client_t *info,
 int rtsp_send_and_get(rtsp_client_t *info,
 		      char *buffer,
 		      uint32_t buflen);
+
+int rtsp_recv(rtsp_client_t *cptr, char *buffer, uint32_t len);
+
+int rtsp_bytes_in_buffer(rtsp_client_t *cptr);
+
+

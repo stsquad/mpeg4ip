@@ -209,7 +209,6 @@ CPlayerMedia::~CPlayerMedia()
     free((void *)m_user_data);
     m_user_data = NULL;
   }
-
 }
 
 void CPlayerMedia::clear_rtp_packets (void)
@@ -488,6 +487,9 @@ int CPlayerMedia::do_play (double start_time_offset)
        * that it needs to start
        */
       m_play_start_time = start_time_offset;
+      if (m_rtp_byte_stream != NULL) {
+	m_rtp_byte_stream->set_start_time((uint64_t)(start_time_offset * 1000.0));
+      }
     }
     m_paused = 0;
     if (m_rtp_use_rtsp) {
@@ -1031,8 +1033,9 @@ int CPlayerMedia::rtp_receive_packet (unsigned char interleaved,
   int ret;
   if ((interleaved & 1) == 0) {
     ret = rtp_process_recv_data(m_rtp_session, 0, pak, len);
-    if (ret < 0)
+    if (ret < 0) {
       xfree(pak);
+    }
   } else {
     rtp_process_ctrl(m_rtp_session, ((uint8_t *)(&pak->rtp_extn_type)) + sizeof(pak->rtp_extn_type), len);
     xfree(pak);
@@ -1342,6 +1345,9 @@ int CPlayerMedia::determine_proto_from_rtp(void)
 void CPlayerMedia::set_rtp_rtptime (uint32_t time)
 {
   m_rtp_rtptime = time;
+  if (m_rtp_byte_stream != NULL) {
+    m_rtp_byte_stream->set_rtp_rtptime(time);
+  }
 };
 
 void CPlayerMedia::rtp_init_tcp (void) 

@@ -45,6 +45,7 @@ INCLUDES=\
 	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/server/video/ffmpeg \
 	-I$(top_srcdir)/server/video/divx \
+	-I$(top_srcdir)/common/video/xvid \
 	-I$(top_srcdir)/player/lib
 
 AM_CFLAGS= -DMPEG4IP -DADD_FFMPEG_ENCODER -D_REENTRANT -Wall -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
@@ -60,6 +61,7 @@ LDADD = \
 	$(top_builddir)/server/audio/lame/libmp3lame.a \
 	$(top_builddir)/server/video/divx/libdivxencore.la \
 	$(top_builddir)/server/video/ffmpeg/libffmpeg.la \
+	$(top_builddir)/common/video/xvid/libxvid.la \
 	-lpthread \
 	$(top_builddir)/lib/SDL/src/libSDL.la \
 	@GTK_LIBS@ @GLIB_LIBS@

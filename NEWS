@@ -4,6 +4,10 @@
     Improved windows video resizing.
     Changed .gmp4_playlist to .mp4plist
     Added avidump utility
+    Updated FAAD.
+    Enhanced player decode performance for ISO codec.
+    Fixed a bunch of memory leaks.
+    Enhanced RTP over RTSP
 
 12/17/01 Version 0.9.2
     Added VC 6.0 projects for windows

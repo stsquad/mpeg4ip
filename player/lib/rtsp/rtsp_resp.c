@@ -395,10 +395,10 @@ static int rtsp_read_into_buffer (rtsp_client_t *cptr,
 {
   int ret;
 
-  ret = rtsp_receive(cptr->server_socket,
-		     cptr->m_resp_buffer + buffer_offset,
-		     RECV_BUFF_DEFAULT_LEN - buffer_offset,
-		     cptr->recv_timeout);
+  ret = rtsp_receive_socket(cptr->server_socket,
+			    cptr->m_resp_buffer + buffer_offset,
+			    RECV_BUFF_DEFAULT_LEN - buffer_offset,
+			    cptr->recv_timeout);
 
   if (ret <= 0) return (ret);
 
@@ -408,6 +408,41 @@ static int rtsp_read_into_buffer (rtsp_client_t *cptr,
   return ret;
 }
 
+int rtsp_bytes_in_buffer (rtsp_client_t *cptr)
+{
+  return (cptr->m_buffer_len - cptr->m_offset_on);
+}
+
+int rtsp_recv (rtsp_client_t *cptr,
+	       char *buffer,
+	       uint32_t len)
+{
+  uint32_t mlen;
+  int copied, result;
+
+  copied = 0;
+  if (cptr->m_offset_on < cptr->m_buffer_len) {
+    mlen =  MIN(len, cptr->m_buffer_len - cptr->m_offset_on);
+    memmove(buffer,
+	    &cptr->m_resp_buffer[cptr->m_offset_on],
+	    mlen);
+    cptr->m_offset_on += mlen;
+    len -= mlen;
+    copied += mlen;
+  }
+  if (len > 0) {
+    result = rtsp_receive_socket(cptr->server_socket,
+				 buffer + copied,
+				 len,
+				 0);
+    if (result >= 0) {
+      copied += result;
+    }
+  }
+  return copied;
+}
+    
+    
 static int rtsp_save_and_read (rtsp_client_t *cptr)
 {
   int last_on;
@@ -426,11 +461,12 @@ static int rtsp_save_and_read (rtsp_client_t *cptr)
   
   cptr->m_offset_on = 0;  
   ret = rtsp_read_into_buffer(cptr, cptr->m_buffer_len);
-  if (ret <= 0) {
-    return (-1);
+  if (ret > 0) {
+    last_on += ret;
   }
   return (last_on);
 }
+
 static const char *rtsp_get_next_line (rtsp_client_t *cptr,
 				       const char *seperator)
 {
@@ -511,6 +547,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
 
   seperator = find_seperator(info->m_resp_buffer);
   if (seperator == NULL) {
+    rtsp_debug(LOG_INFO, "Could not find seperator in header");
     return RTSP_RESPONSE_MALFORM_HEADER;
   }
   
@@ -518,11 +555,13 @@ static int rtsp_parse_response (rtsp_client_t *info)
 
   lptr = rtsp_get_next_line(info, seperator);
   if (lptr == NULL) {
+    rtsp_debug(LOG_INFO, "Couldn't get next line");
     return (RTSP_RESPONSE_MALFORM_HEADER);
   }
 
   rtsp_debug(LOG_DEBUG, lptr);
   if (strncasecmp(lptr, "RTSP/1.0", strlen("RTSP/1.0")) != 0) {
+    rtsp_debug(LOG_INFO, "RTSP/1.0 not found");
     return RTSP_RESPONSE_MALFORM_HEADER;
   }
   p = lptr + strlen("RTSP/1.0");
@@ -538,6 +577,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
   case '5':
     break;
   default:
+    rtsp_debug(LOG_INFO, "Bad error code %s", p);
     return RTSP_RESPONSE_MALFORM_HEADER;
   }
   p += 3;
@@ -602,24 +642,12 @@ static int rtsp_parse_response (rtsp_client_t *info)
       info->m_offset_on += decode->content_length;
     }
   } else if (decode->close_connection) {
-    // No termination - just keep reading, I guess...
+    // No termination - just deal with what we've got...
     len = info->m_buffer_len - info->m_offset_on;
     decode->body = (char *)malloc(len + 1);
     memcpy(decode->body,
 	   &info->m_resp_buffer[info->m_offset_on],
 	   len);
-    while (rtsp_read_into_buffer(info, 0) > 0) {
-      char *temp;
-      temp = realloc(decode->body, len + info->m_buffer_len + 1);
-      if (temp == NULL) {
-	return -1;
-      }
-      decode->body = temp;
-      memcpy(&decode->body[len],
-	     info->m_resp_buffer,
-	     info->m_buffer_len);
-      len += info->m_buffer_len;
-    }
     decode->body[len] = '\0';
   }
   if (decode->body != NULL)
@@ -655,8 +683,11 @@ int rtsp_get_response (rtsp_client_t *info)
     do {
       // Parse response.
       ret = rtsp_parse_response(info);
+      rtsp_debug(LOG_DEBUG, "parsed response - len %d offset %d",
+		 info->m_buffer_len, info->m_offset_on);
       if (ret != 0) {
-	rtsp_close_socket(info);
+	if (info->thread == NULL)
+	  rtsp_close_socket(info);
 	rtsp_debug(LOG_ERR, "return code %d from rtsp_parse_response", ret);
 	return (RTSP_RESPONSE_RECV_ERROR);
       }
@@ -692,6 +723,7 @@ int rtsp_get_response (rtsp_client_t *info)
 	  return (RTSP_RESPONSE_REDIRECT);
 	}
       }
+#if 0
       if (info->m_buffer_len != 0) {
 	// We have more in the buffer - see if it's what
 	// we need
@@ -699,6 +731,7 @@ int rtsp_get_response (rtsp_client_t *info)
 	clear_decode_response(decode);
 	memset(decode, 0, sizeof(rtsp_decode_t));
       }
+#endif
     } while (info->m_buffer_len != 0);
   } 
   return (RTSP_RESPONSE_RECV_ERROR);

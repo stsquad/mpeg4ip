@@ -29,6 +29,33 @@
 #include <sys/poll.h>
 #endif
 
+typedef enum rtsp_rtp_state_t {
+  RTP_DATA_UNKNOWN = 0,
+  RTP_DATA_START = 1,
+  RTP_DATA_CONTINUE = 2,
+  RTSP_HEADER_CHECK = 3,
+  RTP_HEADER_CHECK = 4,
+} rtsp_rtp_state_t;
+
+#ifdef DEBUG_RTP_STATES
+static const char *states[] = {
+  "DATA UNKNOWN",
+  "DATA START",
+  "DATA CONTINUE",
+  "RTSP HEADER CHECK",
+  "RTP HEADER CHECK"
+};
+#endif
+
+typedef struct rtp_state_t {
+  rtp_packet *rtp_ptr;
+  rtsp_rtp_state_t state;
+  int try_periodic;
+  int receiving_rtsp_response;
+  unsigned short rtp_len, rtp_len_gotten;
+  unsigned char header[3];
+} rtp_state_t;
+
 /*
  * rtsp_thread_ipc_respond
  * respond with the message given
@@ -76,7 +103,6 @@ static int rtsp_thread_send_and_get (rtsp_client_t *info)
   rtsp_msg_send_and_get_t msg;
   int ret;
 
-  rtsp_debug(LOG_DEBUG, "In rtsp_thread_send_and_get");
   ret = recv(COMM_SOCKET_THREAD, (char *)&msg, sizeof(msg), 0);
   if (ret != sizeof(msg)) {
     rtsp_debug(LOG_DEBUG, "Send and get - recv %d", ret);
@@ -167,6 +193,191 @@ static void callback_for_rtp_packet (rtsp_client_t *info,
   }
 }
 
+/****************************************************************************
+ *
+ * Thread RTP data receive state machine
+ *
+ ****************************************************************************/
+static __inline void change_state (rtp_state_t *state, rtsp_rtp_state_t s)
+{
+  if (state->state != s) {
+    state->state = s;
+    //rtsp_debug(LOG_DEBUG, "changing state to %d %s", s,states[s]);
+  }
+}
+static void move_end_of_buffer (rtsp_client_t *info, int bytes)
+{
+  memmove(info->m_resp_buffer,
+	  &info->m_resp_buffer[info->m_offset_on],
+	  bytes);
+  info->m_offset_on = 0;
+  info->m_buffer_len = bytes;
+}
+
+static int get_rtp_packet (rtsp_client_t *info, rtp_state_t *state)
+{
+  int ret;
+  if (state->rtp_ptr == NULL) {
+    //rtsp_debug(LOG_DEBUG, "PAK %d %d", state->header[0], state->rtp_len);
+    state->rtp_ptr =
+      (rtp_packet *)xmalloc(state->rtp_len + RTP_PACKET_HEADER_SIZE);
+    state->rtp_len_gotten = 0;
+  }
+  ret = 
+    rtsp_recv(info,
+	      ((char *)state->rtp_ptr) + RTP_PACKET_HEADER_SIZE + state->rtp_len_gotten,
+	      state->rtp_len - state->rtp_len_gotten);
+  //rtsp_debug(LOG_DEBUG, "recv %d", ret);
+  state->rtp_len_gotten += ret;
+
+  if (state->rtp_len_gotten == state->rtp_len) {
+    callback_for_rtp_packet(info,
+			    state->header[0],
+			    state->rtp_ptr,
+			    state->rtp_len);
+    state->rtp_ptr = NULL;
+    state->rtp_len = 0;
+    state->rtp_len_gotten = 0;
+    state->try_periodic = 1;
+    change_state(state, RTP_DATA_START);
+    return 0;
+  } 
+  change_state(state, RTP_DATA_CONTINUE);
+  return 1;
+}
+
+static const char *rtsp_cmp = "rtsp/1.0";
+static int rtsp_get_resp (rtsp_client_t *info,
+			  rtp_state_t *state)
+{
+  int ret;
+
+  ret = rtsp_get_response(info);
+  if (ret == RTSP_RESPONSE_RECV_ERROR) {
+    change_state(state, RTP_DATA_UNKNOWN);
+  } else {
+    change_state(state, RTP_DATA_START);
+    if (state->receiving_rtsp_response != 0) {
+      /*
+       * Are they waiting ?  If so, pop them the return value
+       */
+      rtsp_thread_ipc_respond(info,
+			      (const unsigned char *)&ret,
+			      sizeof(ret));
+      state->receiving_rtsp_response = 0;
+    }
+  }
+  return 1;
+}
+  
+static int check_rtsp_resp (rtsp_client_t *info,
+			    rtp_state_t *state)
+{
+  int len, blen, ret;
+
+  len = strlen(rtsp_cmp);
+
+  blen = rtsp_bytes_in_buffer(info);
+
+  if (len > blen) {
+    if (info->m_offset_on != 0) {
+      move_end_of_buffer(info, blen);
+    }
+    ret = rtsp_receive_socket(info->server_socket,
+			      info->m_resp_buffer + blen,
+			      len - blen,
+			      0);
+    if (ret < 0) return 0;
+    info->m_buffer_len += ret;
+    blen = rtsp_bytes_in_buffer(info);
+  }
+  
+  if (len <= blen) {
+    if (strncasecmp(rtsp_cmp,
+		    &info->m_resp_buffer[info->m_offset_on],
+		    len) == 0) {
+      //rtsp_debug(LOG_DEBUG, "Found resp");
+      return (rtsp_get_resp(info, state));
+    }
+
+    info->m_offset_on++;
+    change_state(state, RTP_DATA_UNKNOWN);
+    return 0;
+  }
+  return -1;
+}
+
+static int check_rtp_header (rtsp_client_t *info,
+			     rtp_state_t *state)
+{
+  int ix;
+  int blen;
+
+  blen = rtsp_bytes_in_buffer(info);
+
+  if (blen < 3) {
+    return -1;
+  }
+
+  state->header[0] = info->m_resp_buffer[info->m_offset_on];
+  state->header[1] = info->m_resp_buffer[info->m_offset_on + 1];
+  state->header[2] = info->m_resp_buffer[info->m_offset_on + 2];
+
+  ix = state->header[0] / 2;
+  if ((ix >= MAX_RTP_THREAD_SESSIONS) ||
+      !(info->m_callback[ix].rtp_callback_set)) {
+    // header failure
+    info->m_offset_on++;
+    change_state(state, RTP_DATA_UNKNOWN);
+    return 0;
+  }
+
+  state->rtp_len = (state->header[1] << 8) | state->header[2];
+  if (state->rtp_len < 1514) {
+    info->m_offset_on += 3; // increment past the header
+    return (get_rtp_packet(info, state));
+  }
+  // length is most likely incorrect
+  info->m_offset_on++;
+  change_state(state, RTP_DATA_UNKNOWN);
+  return 0;
+}
+
+static int data_unknown (rtsp_client_t *info,
+			 rtp_state_t *state)
+{
+  int blen;
+  int ix;
+
+  blen = rtsp_bytes_in_buffer(info);
+  if (info->m_offset_on != 0) {
+    move_end_of_buffer(info, blen);
+  }
+  blen = rtsp_receive_socket(info->server_socket,
+			     info->m_resp_buffer + info->m_offset_on,
+			     RECV_BUFF_DEFAULT_LEN - info->m_offset_on,
+			     0);
+  if (blen < 0) return 0;
+  info->m_buffer_len += blen;
+
+  blen = rtsp_bytes_in_buffer(info);
+
+  for (ix = 0; ix < blen; ix++) {
+    if (info->m_resp_buffer[info->m_offset_on] == '$') {
+      info->m_offset_on++;
+      change_state(state, RTP_HEADER_CHECK);
+      return 0;
+    } else if (tolower(info->m_resp_buffer[info->m_offset_on]) == 'r') {
+      change_state(state, RTSP_HEADER_CHECK);
+      return 0;
+    } else {
+      info->m_offset_on++;
+    }
+  }
+      
+  return -1;
+}
+
 /*
  * rtsp_thread() - rtsp thread handler - receives and
  * processes all data
@@ -176,11 +387,12 @@ static int rtsp_thread (void *data)
   rtsp_client_t *info = (rtsp_client_t *)data;
   int continue_thread;
   int ret;
-  int receiving_rtsp_response;
-  unsigned char header[3];
-  unsigned short rtp_len, rtp_len_gotten;
-  rtp_packet *rtp_ptr;
-  int ix;
+  unsigned int ix;
+  int state_cont;
+  int bytes;
+  int got_rtp_pak;
+  rtp_state_t state;
+
 
 #ifdef HAVE_POLL
   struct pollfd pollit[2];
@@ -193,7 +405,7 @@ static int rtsp_thread (void *data)
 #ifndef HAVE_SOCKETPAIR
   struct sockaddr_un our_name, his_name;
   int len;
-  rtsp_debug(LOG_DEBUG, "rtsp_thread running");
+  //rtsp_debug(LOG_DEBUG, "rtsp_thread running");
   COMM_SOCKET_THREAD = socket(AF_UNIX, SOCK_STREAM, 0);
 
   memset(&our_name, 0, sizeof(our_name));
@@ -208,9 +420,9 @@ static int rtsp_thread (void *data)
 #endif
   
   continue_thread = 0;
-  receiving_rtsp_response = 0;
-  rtp_ptr = NULL;
-  rtp_len = rtp_len_gotten = 0;
+  memset(&state, sizeof(state), 0);
+  state.rtp_ptr = NULL;
+  state.state = RTP_DATA_UNKNOWN;
   
   while (continue_thread == 0) {
 #ifdef HAVE_POLL
@@ -287,7 +499,7 @@ static int rtsp_thread (void *data)
 				    sizeof(ret));
 	  } else {
 	    // indicate we're supposed to receive...
-	    receiving_rtsp_response = 1;
+	    state.receiving_rtsp_response = 1;
 	  }
 	  break;
 	case RTSP_MSG_PERFORM_CALLBACK:
@@ -312,94 +524,94 @@ static int rtsp_thread (void *data)
     if (info->server_socket != -1) {
       ret = SERVER_SOCKET_HAS_DATA;
       if (ret) {
-	/*
-	 * First see if we're in the middle of receiving an RTP packet.
-	 * If so - receive the rest of the data.
-	 */
-	int try_periodic = 0;
-	if (rtp_ptr != NULL) {
-	  ret = recv(info->server_socket,
-		     ((unsigned char *)rtp_ptr) + RTP_PACKET_HEADER_SIZE + rtp_len_gotten,
-		     rtp_len - rtp_len_gotten,
-		     0);
-	  //rtsp_debug(LOG_DEBUG, "got %d more", ret);
-	  rtp_len_gotten += ret;
-	  if (rtp_len_gotten == rtp_len) {
-	    callback_for_rtp_packet(info, header[0], rtp_ptr, rtp_len);
-	    rtp_ptr = NULL;
-	    try_periodic = 1;
-	  }
-	} else {
-	  /*
-	   * At the beginning... Either we're getting a $, or getting
-	   * a RTP packet.
-	   */
-	  ret = recv(info->server_socket,
-		     info->m_resp_buffer,
-		     1,
-		     0);
-	  if (ret != 1) continue;
-
-	  // we either have a $ - indicating RTP, or a R (for RTSP response)
-	  if (*info->m_resp_buffer == '$') {
+	state_cont = 0;
+	while (state_cont == 0) {
+	  got_rtp_pak = 0;
+	  switch (state.state) {
+	  case RTP_DATA_UNKNOWN:
+	    state_cont = data_unknown(info, &state);
+	    break;
+	  case RTP_HEADER_CHECK:
+	    got_rtp_pak = 1;
+	    state_cont = check_rtp_header(info, &state);
+	    break;
+	  case RTSP_HEADER_CHECK:
+	    state_cont = check_rtsp_resp(info, &state);
+	    break;
+	  case RTP_DATA_START:
 	    /*
-	     * read the 3 byte header - 1 byte for interleaved channel,
-	     * 2 byte length.
+	     * At the beginning... Either we're getting a $, or getting
+	     * a RTP packet.
 	     */
-	    ret = recv(info->server_socket, header, sizeof(header), 0);
-	    if (ret != sizeof(header)) continue;
-	    rtp_len = (header[1] << 8) | header[2];
-	    //rtsp_debug(LOG_DEBUG, "RTP pak - %d len %d", header[0], rtp_len);
-	    /*
-	     * Start to receive the data packet - might not get the whole
-	     * thing
-	     */
-	    rtp_ptr = (rtp_packet *)xmalloc(rtp_len + RTP_PACKET_HEADER_SIZE);
-	    rtp_len_gotten = recv(info->server_socket,
-				  ((unsigned char *)rtp_ptr) + RTP_PACKET_HEADER_SIZE,
-				  rtp_len,
-				  0);
-	    //rtsp_debug(LOG_DEBUG, "recvd %d", rtp_len_gotten);
-	    if (rtp_len_gotten == rtp_len) {
-	      callback_for_rtp_packet(info, header[0], rtp_ptr, rtp_len);
-	      rtp_ptr = NULL;
-	      try_periodic = 1;
+	    bytes = rtsp_bytes_in_buffer(info);
+	    if (bytes < 4) {
+	      if (bytes != 0 && info->m_offset_on != 0) {
+		move_end_of_buffer(info, bytes);
+	      }
+	      ret = rtsp_receive_socket(info->server_socket,
+					info->m_resp_buffer + bytes,
+					4 - bytes,
+					0);
+	      if (ret < 0) {
+		state_cont = 1;
+		break;
+	      }
+	      bytes += ret;
+	      info->m_offset_on = 0;
+	      info->m_buffer_len = bytes;
+	      if (bytes < 4) {
+		state_cont  = 1;
+		break;
+	      }
 	    }
-	  } else if (tolower(*info->m_resp_buffer) == 'r') {
-	    /*
-	     * Getting the rtsp response.  Indicate we've got 1 byte in the
-	     * buffer, then read the response.
-	     */
-	    info->m_offset_on = 0;
-	    info->m_buffer_len = 1;
-	    ret = rtsp_get_response(info);
-	    if (receiving_rtsp_response != 0) {
+	    // we either have a $ - indicating RTP, or a R (for RTSP response)
+	    if (info->m_resp_buffer[info->m_offset_on] == '$') {
 	      /*
-	       * Are they waiting ?  If so, pop them the return value
+	       * read the 3 byte header - 1 byte for interleaved channel,
+	       * 2 byte length.
 	       */
-	      rtsp_thread_ipc_respond(info,
-				      (const unsigned char *)&ret,
-				      sizeof(ret));
-	      receiving_rtsp_response = 0;
+	      info->m_offset_on++;
+	
+	      ret = rtsp_recv(info, state.header, 3);
+	      if (ret != 3) continue;
+	      state.rtp_len = (state.header[1] << 8) | state.header[2];
+	      state_cont = get_rtp_packet(info, &state);
+	      got_rtp_pak = 1;
+	    } else if (tolower(info->m_resp_buffer[info->m_offset_on]) == 'r') {
+	      state_cont = rtsp_get_resp(info, &state);
+	    } else {
+	      info->m_offset_on++;
+	      rtsp_debug(LOG_INFO, "Unknown data %d in rtp stream",
+			  info->m_resp_buffer[info->m_offset_on]);
+	      change_state(&state, RTP_DATA_UNKNOWN);
+	    }
+	    break;
+	  case RTP_DATA_CONTINUE:
+	    state_cont = get_rtp_packet(info, &state);
+	    got_rtp_pak = 1;
+	    break;
+	  }
+
+	  if (got_rtp_pak == 1 && state.try_periodic != 0) {
+	    state.try_periodic = 0;
+	    ix = state.header[0] / 2;
+	    if (info->m_callback[ix].rtp_callback_set &&
+		info->m_callback[ix].rtp_periodic != NULL) {
+	      (info->m_callback[ix].rtp_periodic)(info->m_callback[ix].rtp_userdata);
 	    }
 	  }
 	}
-	// If we got a complete packet, try the periodic vector.
-	if (try_periodic != 0) {
-	  ix = header[0] / 2;
-	  if (info->m_callback[ix].rtp_callback_set &&
-	      info->m_callback[ix].rtp_periodic != NULL) {
-	    (info->m_callback[ix].rtp_periodic)(info->m_callback[ix].rtp_userdata);
-	  }
-	} // end try_periodic != 0
+	
       } // end server_socket has data
     } // end have server socket
   } // end while continue_thread
+
+  SDL_Delay(10);
   /*
    * Okay - we've gotten a quit - we're done
    */
-  if (rtp_ptr != NULL) {
-    xfree(rtp_ptr);
+  if (state.rtp_ptr != NULL) {
+    xfree(state.rtp_ptr);
   }
   rtsp_close_socket(info);
 #ifndef HAVE_SOCKETPAIR
@@ -513,6 +725,7 @@ int rtsp_thread_ipc_send_wait (rtsp_client_t *info,
 
   read = recv(COMM_SOCKET_CALLER, return_msg, return_msg_len, 0);
   SDL_UnlockMutex(info->msg_mutex);
+  rtsp_debug(LOG_DEBUG, "comm socket got return value of %d", read);
   return (read);
 }
 

@@ -200,8 +200,8 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
       m_dstrect.y = 0;
       m_dstrect.w = m_screen->w;
       m_dstrect.h = m_screen->h;
-#if 0
-      player_debug_message("Created mscreen %p hxw %d %d", m_screen, m_height,
+#if 1
+      video_message(LOG_DEBUG, "Created mscreen %p hxw %d %d", m_screen, m_height,
 			   m_width);
 #endif
 #ifdef OLD_SURFACE

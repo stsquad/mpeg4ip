@@ -46,132 +46,147 @@ void get_mp4picture (unsigned char *bmp, int render_flag);
 
 /***/
 
+#if 1
+#define FREE_AND_CLEAR(a) if ((a) != NULL) { free((a)); (a) = NULL; }
+#else
+#define FREE_AND_CLEAR(a)
+#endif
+
 void initdecoder (void)
 {
   int i, j, cc, size;
 
   /* clip table */
-	clp = (unsigned char *) malloc (sizeof(unsigned char) * 1024);
+
+
+  if (clp == NULL) {
+  clp = (unsigned char *) malloc (sizeof(unsigned char) * 1024);
   if (! clp) {
     printf ("malloc failed\n");
-		exit(0);
-	}
+    exit(0);
+  }
   clp += 384;
   for (i = -384; i < 640; i++)
     clp[i] = (unsigned char) ( (i < 0) ? 0 : ((i > 255) ? 255 : i) );
+  }
  
-	/* dc prediction border */
-	for (i = 0; i < (2*MBC+1); i++)
-		coeff_pred->dc_store_lum[0][i] = 1024;
+  /* dc prediction border */
+  for (i = 0; i < (2*MBC+1); i++)
+    coeff_pred->dc_store_lum[0][i] = 1024;
 
-	for (i = 1; i < (2*MBR+1); i++)
-		coeff_pred->dc_store_lum[i][0] = 1024;
+  for (i = 1; i < (2*MBR+1); i++)
+    coeff_pred->dc_store_lum[i][0] = 1024;
 
-	for (i = 0; i < (MBC+1); i++) {
-		coeff_pred->dc_store_chr[0][0][i] = 1024;
-		coeff_pred->dc_store_chr[1][0][i] = 1024;
-	}
-
-	for (i = 1; i < (MBR+1); i++) {
-		coeff_pred->dc_store_chr[0][i][0] = 1024;
-		coeff_pred->dc_store_chr[1][i][0] = 1024;
-	}
-
-	/* ac prediction border */
-	for (i = 0; i < (2*MBC+1); i++)
-		for (j = 0; j < 7; j++)	{
-			coeff_pred->ac_left_lum[0][i][j] = 0;
-			coeff_pred->ac_top_lum[0][i][j] = 0;
-		}
-
-	for (i = 1; i < (2*MBR+1); i++)
-		for (j = 0; j < 7; j++)	{
-			coeff_pred->ac_left_lum[i][0][j] = 0;
-			coeff_pred->ac_top_lum[i][0][j] = 0;
-		}
-
-	/* 
-			[Review] too many computation to access to the 
-			correct array value, better use two different
-			pointer for Cb and Cr components
-	*/
-	for (i = 0; i < (MBC+1); i++)
-		for (j = 0; j < 7; j++)	{
-			coeff_pred->ac_left_chr[0][0][i][j] = 0; 
-			coeff_pred->ac_top_chr[0][0][i][j] = 0;
-			coeff_pred->ac_left_chr[1][0][i][j] = 0;
-			coeff_pred->ac_top_chr[1][0][i][j] = 0;
-		}
-
-	for (i = 1; i < (MBR+1); i++)
-		for (j = 0; j < 7; j++)	{
-			coeff_pred->ac_left_chr[0][i][0][j] = 0;
-			coeff_pred->ac_top_chr[0][i][0][j] = 0;
-			coeff_pred->ac_left_chr[1][i][0][j] = 0;
-			coeff_pred->ac_top_chr[1][i][0][j] = 0;
-		}
-
-	/* mode border */
-	for (i = 0; i < mb_width + 1; i++)
-		modemap[0][i] = INTRA;
-	for (i = 0; i < mb_height + 1; i++) {
-		modemap[i][0] = INTRA;
-		modemap[i][mb_width+1] = INTRA;
-	}
-
-	// edged forward and reference frame
-  for (cc = 0; cc < 3; cc++)
-  {
-    if (cc == 0)
-    {
-      size = coded_picture_width * coded_picture_height;
-
-			edged_ref[cc] = (unsigned char *) malloc (size);
-      if (! edged_ref[cc]) {
-        printf ("malloc failed\n");
-				exit(0);
-			}
-			edged_for[cc] = (unsigned char *) malloc (size);
-      if (! edged_for[cc]) {
-        printf ("malloc failed\n");
-				exit(0);
-			}
-      frame_ref[cc] = edged_ref[cc] + coded_picture_width * 32 + 32;
-      frame_for[cc] = edged_for[cc] + coded_picture_width * 32 + 32;
-    } 
-    else
-    {
-      size = chrom_width * chrom_height;
-
-			edged_ref[cc] = (unsigned char *) malloc (size);
-      if (! edged_ref[cc]) {
-        printf ("malloc failed\n");
-				exit(0);
-			}
-			edged_for[cc] = (unsigned char *) malloc (size);
-      if (! edged_for[cc]) {
-        printf ("malloc failed\n");
-				exit(0);
-			}
-      frame_ref[cc] = edged_ref[cc] + chrom_width * 16 + 16;
-      frame_for[cc] = edged_for[cc] + chrom_width * 16 + 16;
-    }
+  for (i = 0; i < (MBC+1); i++) {
+    coeff_pred->dc_store_chr[0][0][i] = 1024;
+    coeff_pred->dc_store_chr[1][0][i] = 1024;
   }
 
-	// display frame
-	for (cc = 0; cc < 3; cc++) 
-	{
-		if (cc == 0)
-			size = horizontal_size * vertical_size;
-		else
-			size = (horizontal_size * vertical_size) >> 2;
+  for (i = 1; i < (MBR+1); i++) {
+    coeff_pred->dc_store_chr[0][i][0] = 1024;
+    coeff_pred->dc_store_chr[1][i][0] = 1024;
+  }
 
-		display_frame[cc] = (unsigned char *) malloc (size);
-		if (! display_frame[cc]) {
-			printf("malloc failed\n");
-			exit(0);
-		}
+  /* ac prediction border */
+  for (i = 0; i < (2*MBC+1); i++)
+    for (j = 0; j < 7; j++)	{
+      coeff_pred->ac_left_lum[0][i][j] = 0;
+      coeff_pred->ac_top_lum[0][i][j] = 0;
+    }
+
+  for (i = 1; i < (2*MBR+1); i++)
+    for (j = 0; j < 7; j++)	{
+      coeff_pred->ac_left_lum[i][0][j] = 0;
+      coeff_pred->ac_top_lum[i][0][j] = 0;
+    }
+
+  /* 
+     [Review] too many computation to access to the 
+     correct array value, better use two different
+     pointer for Cb and Cr components
+  */
+  for (i = 0; i < (MBC+1); i++)
+    for (j = 0; j < 7; j++)	{
+      coeff_pred->ac_left_chr[0][0][i][j] = 0; 
+      coeff_pred->ac_top_chr[0][0][i][j] = 0;
+      coeff_pred->ac_left_chr[1][0][i][j] = 0;
+      coeff_pred->ac_top_chr[1][0][i][j] = 0;
+    }
+
+  for (i = 1; i < (MBR+1); i++)
+    for (j = 0; j < 7; j++)	{
+      coeff_pred->ac_left_chr[0][i][0][j] = 0;
+      coeff_pred->ac_top_chr[0][i][0][j] = 0;
+      coeff_pred->ac_left_chr[1][i][0][j] = 0;
+      coeff_pred->ac_top_chr[1][i][0][j] = 0;
+    }
+
+  /* mode border */
+  for (i = 0; i < mb_width + 1; i++)
+    modemap[0][i] = INTRA;
+  for (i = 0; i < mb_height + 1; i++) {
+    modemap[i][0] = INTRA;
+    modemap[i][mb_width+1] = INTRA;
+  }
+
+  // edged forward and reference frame
+  for (cc = 0; cc < 3; cc++)
+    {
+      if (cc == 0)
+	{
+	  size = coded_picture_width * coded_picture_height;
+
+	  FREE_AND_CLEAR(edged_ref[cc]);
+	  edged_ref[cc] = (unsigned char *) malloc (size);
+	  if (! edged_ref[cc]) {
+	    printf ("malloc failed\n");
+	    exit(0);
+	  }
+	  FREE_AND_CLEAR(edged_for[cc]);
+	  edged_for[cc] = (unsigned char *) malloc (size);
+	  if (! edged_for[cc]) {
+	    printf ("malloc failed\n");
+	    exit(0);
+	  }
+	  frame_ref[cc] = edged_ref[cc] + coded_picture_width * 32 + 32;
+	  frame_for[cc] = edged_for[cc] + coded_picture_width * 32 + 32;
+	} 
+      else
+	{
+	  size = chrom_width * chrom_height;
+
+	  FREE_AND_CLEAR(edged_ref[cc]);
+	  edged_ref[cc] = (unsigned char *) malloc (size);
+	  if (! edged_ref[cc]) {
+	    printf ("malloc failed\n");
+	    exit(0);
+	  }
+	  FREE_AND_CLEAR(edged_for[cc]);
+	  edged_for[cc] = (unsigned char *) malloc (size);
+	  if (! edged_for[cc]) {
+	    printf ("malloc failed\n");
+	    exit(0);
+	  }
+	  frame_ref[cc] = edged_ref[cc] + chrom_width * 16 + 16;
+	  frame_for[cc] = edged_for[cc] + chrom_width * 16 + 16;
 	}
+    }
+
+  // display frame
+  for (cc = 0; cc < 3; cc++) 
+    {
+      if (cc == 0)
+	size = horizontal_size * vertical_size;
+      else
+	size = (horizontal_size * vertical_size) >> 2;
+
+      FREE_AND_CLEAR(display_frame[cc]);
+      display_frame[cc] = (unsigned char *) malloc (size);
+      if (! display_frame[cc]) {
+	printf("malloc failed\n");
+	exit(0);
+      }
+    }
 
 #ifndef _MMX_IDCT
   init_idct ();
@@ -182,14 +197,18 @@ void initdecoder (void)
 
 void closedecoder (void)
 {
-	int cc;
+  int cc;
 
-	clp -= 384;
-	free(clp);
-
-	for (cc = 0; cc < 3; cc++) {
-		free(display_frame[cc]);
-		free(edged_ref[cc]);
-		free(edged_for[cc]);
-	}
+  clp -= 384;
+  free(clp);
+  clp = NULL;
+  
+  for (cc = 0; cc < 3; cc++) {
+    free(display_frame[cc]);
+    display_frame[cc] = NULL;
+    free(edged_ref[cc]);
+    edged_ref[cc] = NULL;
+    free(edged_for[cc]);
+    edged_for[cc] = NULL;
+  }
 }
