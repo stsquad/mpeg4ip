@@ -30,13 +30,15 @@
 #ifndef __SYSTEMS_H__
 #define __SYSTEMS_H__
 
-#include <stdio.h>
-#include <errno.h>
+
 
 #ifdef WIN32
 
 #define _WIN32_WINNT 0x0400
 #include <windows.h>
+#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
 #include <time.h>
 #include <limits.h>
 
@@ -67,6 +69,8 @@ typedef int ssize_t;
 #define lseek _lseek
 #define close _close
 #define open _open
+#define access _access
+#define F_OK 0
 #define O_RDWR _O_RDWR
 #define O_CREAT _O_CREAT
 #define O_RDONLY _O_RDONLY
@@ -84,6 +88,7 @@ int gettimeofday(struct timeval *t, void *);
 }
 #endif
 
+#define PATH_MAX MAX_PATH
 #define MAX_UINT64 -1
 #define LLD "%I64d"
 #define LLU "%I64u"
@@ -115,6 +120,8 @@ int gettimeofday(struct timeval *t, void *);
 #define FOPEN_WRITE_BINARY "wb"
 #else /* UNIX */
 
+#include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 
 #ifdef HAVE_INTTYPES_H

@@ -98,6 +98,6 @@ int main(int argc, char** argv)
 
 	MP4Close(mp4File);
 
-	exit(0);
+	return(0);
 }
 

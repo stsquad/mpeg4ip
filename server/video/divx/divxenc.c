@@ -33,7 +33,6 @@
 #include <string.h>
 #include <mpeg4ip_getopt.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <math.h>
 #include <time.h>
 #include "encore.h"
@@ -190,7 +189,7 @@ int main(int argc, char** argv)
 	/* end processing of command line */
 
 	/* open raw file for reading */
-	rawFile = fopen(rawFileName, "r");
+	rawFile = fopen(rawFileName, "rb");
 	if (rawFile == NULL) {
 		/* error, file doesn't exist or we can't read it */
 		fprintf(stderr,
@@ -200,7 +199,7 @@ int main(int argc, char** argv)
 	}
 	
 	/* open the DivX file for writing */
-	divxFile = fopen(divxFileName, "w");
+	divxFile = fopen(divxFileName, "wb");
 	if (divxFile == NULL) {
 		fprintf(stderr, 
 			"%s: error %s: %s\n",
@@ -302,6 +301,6 @@ int main(int argc, char** argv)
 	encore(myHandle, ENC_OPT_RELEASE, NULL, NULL);
 	fclose(rawFile);
 	fclose(divxFile);
-	exit(0);
+	return(0);
 }
 

@@ -196,6 +196,64 @@ u_int16_t Mp3GetFrameSize(u_int32_t hdr)
 	return frameSize;
 }
 
+u_int16_t Mp3GetAduOffset(u_int8_t* pFrame, u_int32_t frameSize)
+{
+	if (frameSize < 6) {
+		return 0;
+	}
+
+	bool isProtected = !(pFrame[1] & 0x1);
+	u_int8_t layer = (pFrame[1] >> 1) & 0x3; 
+
+	if (layer != 1 || (isProtected && frameSize < 8)) {
+		return 0;
+	}
+
+	u_int8_t crcSize = isProtected ? 2 : 0;
+
+	return (pFrame[4 + crcSize] << 1) | (pFrame[5 + crcSize] >> 7);
+}
+
+u_int16_t Mp3GetSideInfoSize(u_int32_t hdr)
+{
+	u_int8_t layer = (hdr >> 17) & 0x3; 
+
+	// check that this is layer 3
+	if (layer != 1) {
+		return 0;
+	}
+
+	u_int8_t mode = (hdr >> 6) & 0x3;
+	u_int8_t channels;
+
+	if (mode == 3) {
+		channels = 1;
+	} else {
+		channels = 2;
+	}
+
+	u_int16_t bits = 0;
+
+	// main data begin
+	bits += 9;
+
+	// private bits
+	if (channels == 1) {
+		bits += 5;
+	} else {
+		bits += 3;
+	}
+
+	// scfsi
+	bits += channels * 4;
+
+	// gr loop, channel loop
+	bits += 2 * channels 
+		* (12 + 9 + 8 + 4 + 1 + 22 + 1 + 1 + 1);
+
+	return (bits + 7) / 8;
+}
+
 /*
  * Load the next frame from the file
  * into the supplied buffer, which better be large enough!

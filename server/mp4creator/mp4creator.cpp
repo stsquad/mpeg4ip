@@ -23,7 +23,6 @@
 #include "mp4creator.h"
 #include "mpeg4ip_getopt.h"
 
-
 // forward declarations
 void PrintTrackList(const char* mp4FileName, u_int32_t verbosity);
 char* MakeTempMp4FileName();
@@ -41,10 +40,13 @@ MP4TrackId CreateHintTrack(
 // track creators
 MP4TrackId* AviCreator(
 	MP4FileHandle mp4File, const char* aviFileName);
+
 MP4TrackId AacCreator(
 	MP4FileHandle mp4File, FILE* inFile);
+
 MP4TrackId Mp3Creator(
 	MP4FileHandle mp4File, FILE* inFile);
+
 MP4TrackId Mp4vCreator(
 	MP4FileHandle mp4File, FILE* inFile);
 
@@ -52,8 +54,14 @@ MP4TrackId Mp4vCreator(
 void RfcIsmaHinter(
 	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId,
 	bool interleave);
+
 void Rfc2250Hinter(
 	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId);
+
+void Rfc3119Hinter(
+	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId,
+	bool interleave);
+
 void Rfc3016Hinter(
 	MP4FileHandle mp4File, MP4TrackId mediaTrackId, MP4TrackId hintTrackId);
 
@@ -64,7 +72,7 @@ int main(int argc, char** argv)
 	char* usageString = 
 		"usage: %s <options> <mp4-file>\n"
 		"  Options:\n"
-		"  -create <input-file>    Create track from <input-file>\n"
+		"  -create=<input-file>    Create track from <input-file>\n"
 		"    input files can be of type: .aac .mp3 .divx .mp4v\n"
 		"  -delete=<track-id>      Delete a track\n"
 		"  -hint[=<track-id>]      Create hint track, also -H\n"
@@ -315,14 +323,23 @@ int main(int argc, char** argv)
 
 		MP4Optimize(mp4FileName, outputFileName, verbosity);
 
-		int rc = rename(outputFileName, mp4FileName);
+		int rc;
+
+#ifdef _WIN32
+		rc = remove(mp4FileName);
+		if (rc == 0) {
+			rc = rename(outputFileName, mp4FileName);
+		}
+#else
+		rc = rename(outputFileName, mp4FileName);
+#endif
 		if (rc != 0) {
 			fprintf(stderr, "%s: can't overwrite %s, output is in %s\n",
 				ProgName, mp4FileName, outputFileName);
 		}
 	}
 
-	exit(EXIT_SUCCESS);
+	return(EXIT_SUCCESS);
 }
 
 MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
@@ -412,7 +429,11 @@ MP4TrackId CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 			break;
 		case MP4_MPEG1_AUDIO_TYPE:
 		case MP4_MPEG2_AUDIO_TYPE:
-			Rfc2250Hinter(mp4File, mediaTrackId, hintTrackId);
+			if (!strcasecmp(payloadName, "3119")) {
+				Rfc3119Hinter(mp4File, mediaTrackId, hintTrackId, interleave);
+			} else {
+				Rfc2250Hinter(mp4File, mediaTrackId, hintTrackId);
+			}
 			break;
 		default:
 			fprintf(stderr, 
@@ -464,9 +485,9 @@ void PrintTrackList(const char* mp4FileName, u_int32_t verbosity)
 // that for portablity reasons, it's best just to roll our own
 char* MakeTempMp4FileName()
 {
+#ifndef _WIN32
 	static char tempFileName[64];
 	u_int32_t i;
-
 	for (i = getpid(); i < 0xFFFFFFFF; i++) {
 		sprintf(tempFileName, "./tmp%u.mp4", i);
 		if (access(tempFileName, F_OK) != 0) {
@@ -476,5 +497,13 @@ char* MakeTempMp4FileName()
 	if (i == 0xFFFFFFFF) {
 		return NULL;
 	}
+#else
+	static char tempFileName[MAX_PATH + 3];
+	GetTempFileName(".", // dir. for temp. files 
+					"mp4",                // temp. filename prefix 
+					0,                    // create unique name 
+					tempFileName);        // buffer for name 
+#endif
+
 	return tempFileName;
 }

@@ -30,6 +30,7 @@
 #include "ip_port.h"
 #include "media_utils.h"
 #include "playlist.h"
+#include "our_config_file.h"
 static int start_session (const char *name, int max_loop)
 {
   int loopcount = 0;
@@ -105,7 +106,7 @@ int main (int argc, char **argv)
 
   int max_loop = 1;
   char *name;
-
+	config.read_config_file();
   rtsp_set_loglevel(LOG_DEBUG);
   rtsp_set_error_func(player_library_message);
   argv++;

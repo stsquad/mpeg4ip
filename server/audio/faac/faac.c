@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: faac.c,v 1.7 2001/09/12 17:08:34 wmaycisco Exp $
+ * $Id: faac.c,v 1.8 2001/11/09 20:18:25 wmaycisco Exp $
  */
 #include "systems.h"
 
@@ -27,7 +27,7 @@
 #include <sndfile.h>
 
 #include "faac.h"
-
+#include "util.h"
 
 int main(int argc, char *argv[])
 {
@@ -235,6 +235,9 @@ int main(int argc, char *argv[])
 				maxBytesOutput);
 
 #ifndef _DEBUG
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 			printf("%.2f%%\tBusy encoding %s.\r",
 				MIN((double)(currentFrame*100)/frames,100), argv[argc-2]);
 #endif

@@ -247,6 +247,19 @@ SOURCE=.\ntp.c
 # Begin Source File
 
 SOURCE=.\qfDES.c
+
+!IF  "$(CFG)" == "common - Win32 Release"
+
+# SUBTRACT CPP /O<none>
+
+!ELSEIF  "$(CFG)" == "common - Win32 Debug IPv6"
+
+!ELSEIF  "$(CFG)" == "common - Win32 Debug IPv6 Musica"
+
+!ELSEIF  "$(CFG)" == "common - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

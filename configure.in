@@ -233,6 +233,7 @@ AC_OUTPUT( \
 	server/util/mp4vhdr/Makefile \
 	server/util/mp4dump/Makefile \
 	server/util/mp4extract/Makefile \
+	server/util/mp4regenerate/Makefile \
 	player/Makefile \
 	player/lib/Makefile \
 	player/lib/libhttp/Makefile \
@@ -251,4 +252,7 @@ AC_OUTPUT( \
 	player/src/codec/wav/Makefile \
 	util/Makefile \
 	util/yuv/Makefile \
+	doc/Makefile \
+	doc/programs/Makefile \
+	doc/mp4v2/Makefile \
 )

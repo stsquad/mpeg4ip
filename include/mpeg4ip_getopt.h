@@ -1,4 +1,9 @@
+#ifdef WIN32
+#define HAVE_IN_PORT_T
+#define HAVE_SOCKLEN_T
+#else
 #include "../config.h"
+#endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif

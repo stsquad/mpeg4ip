@@ -3,7 +3,22 @@ Microsoft Developer Studio Workspace File, Format Version 5.00
 
 ###############################################################################
 
-Project: "libourdivx"=.\libourdivx.dsp - Package Owner=<4>
+Project: "RGB2YUV"=.\RGB2YUV.DSP - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name gnugetopt
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "gnugetopt"=..\..\..\lib\gnu\getopt\gnugetopt.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

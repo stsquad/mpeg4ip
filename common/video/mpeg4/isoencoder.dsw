@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 5.00
 
 ###############################################################################
 
-Project: "libsdp"=.\libsdp.dsp - Package Owner=<4>
+Project: "encoder"=.\app\encoder\encoder.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

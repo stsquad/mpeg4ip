@@ -152,7 +152,7 @@ int main(int argc, char** argv)
 
 	MP4Close(mp4File);
 
-	exit(0);
+	return(0);
 }
 
 void PrintTrackList(MP4FileHandle mp4File)
@@ -169,11 +169,11 @@ void PrintTrackList(MP4FileHandle mp4File)
 
 void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode)
 {
-	char outFileName[MAXPATHLEN];
+	char outFileName[PATH_MAX];
 	int outFd = -1;
 
 	if (!sampleMode) {
-		snprintf(outFileName, MAXPATHLEN, "%s.t%u", Mp4FileName, trackId);
+		snprintf(outFileName, sizeof(outFileName), "%s.t%u", Mp4FileName, trackId);
 
 		outFd = open(outFileName, 
 			O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -205,7 +205,7 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, bool sampleMode)
 		}
 
 		if (sampleMode) {
-			snprintf(outFileName, MAXPATHLEN, "%s.t%u.s%u",
+			snprintf(outFileName, sizeof(outFileName), "%s.t%u.s%u",
 				Mp4FileName, trackId, sampleId);
 
 			outFd = open(outFileName, 

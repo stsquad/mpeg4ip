@@ -406,7 +406,7 @@ int main(int argc, char** argv)
 		u_int8_t buf[8*1024];
 		int numBytes;
 
-		if ((fin = fopen(inFileName, "r")) == NULL) {
+		if ((fin = fopen(inFileName, "rb")) == NULL) {
 			fprintf(stderr,
 				"%s: can't open %s: %s\n",
 				progName, inFileName, strerror(errno));

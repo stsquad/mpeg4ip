@@ -1,0 +1,96 @@
+.TH "mp4creator" "1" "0.9" "Cisco Systems Inc." "MPEG4IP"
+.SH "NAME"
+.LP 
+mp4creator \- creates and modifies mp4 files
+.SH "SYNTAX"
+.LP 
+mp4creator [\fIoptions\fP] <\fIfilename.mp4\fP>
+
+.SH "DESCRIPTION"
+.LP 
+This program creates or modifies mp4 files. Supported operations are to add media tracks, add hint tracks, delete a track, and optimize the layout of the mp4 file. Currently the program understands MP3, AAC (ADTS), and MPEG\-4 video (Divx) files. These are known as elementary stream (ES) files.
+.LP 
+Note MP3 files frequently have embedded tags that list information such as title and artist. These tags are not carried forward into the mp4 file.
+.LP 
+To add a media track to an mp4 file, use the "\-create=<file>" option to specify the ES file. Note if two files names are given on the command line
+.LP 
+To add a hint track to an mp4 file you need to know the track id of the media track you want to hint. This can be determined by invoking mp4creator with the "\-list" option to obtain a list of existing tracks and their type. Once you've determined the track id, use the "\-hint=<track\-id>" option to create the hint track. Currently the program understands how to create hint tracks for MPEG audio, and MPEG\-4 video. 
+.LP 
+When adding tracks, mp4creator does not attempt to optimize the file layout for streaming and playback. This can be done once all the desired tracks have been added with the "\-optimize" option.
+.LP 
+To delete an undesired track from an existing mp4 file, use the "\-delete=<track\-id>" option.
+.LP 
+Detailed diagnostics are available via the "\-verbosity=<level>" option. Levels 1\-5 are available.
+.SH "OPTIONS"
+.LP 
+.TP 
+\fB\-c, \-create\fR=<\fIfile\fP>
+Create a media track using <\fIfile\fP>. File must have either .mp3 .aac .divx or .mp4v extension.
+.TP 
+\fB\-d, \-delete\fR=<\fItrack\-id\fP>
+Delete the specified track and all it's associated data.
+.TP 
+\fB\-H, \-hint\fR=<\fItrack\-id\fP>
+Create a hint track for the specified media track. Note this option can be used when creating the media track in which case no track id is necessary. The appropriate RTP payload format is chosen based on the media track content.
+.TP 
+\fB\-I, \-interleave\fR
+Use an interleaved RTP payload format for an audio hint track. Currently this is only valid for AAC audio hint tracks.
+.TP 
+\fB\-l, \-list\fR
+Print a list of tracks in the specified mp4 file and exit.
+.TP 
+\fB\-m, \-mtu\fR=<\fIsize\fP>
+Specifies the network maximum transmission unit (MTU) to use when creating hint tracks. The default value is 1500.
+.TP 
+\fB\-O, \-optimize\fR
+Optimize the layout of the mp4 file to interleave the data in time, hence reducing disk seeks during streaming or playback. This also arranges the mp4 file so that the media control information is at the beginning of the file. This allows HTTP streaming of the mp4 file.
+.TP 
+\fB\-r, \-rate\fR=<\fIfps\fP>
+Specifies video frame rate (frames per second) when creating a video media track. The value can be either an integer or floating point number. It may be necessary to specify this parameter for some MPEG\-4 video streams due to encoding bugs.
+.TP 
+\fB\-v, \-verbosity\fR=<\fIlevel\fP>
+Causes increasing levels of diagnostics to be printed. A level includes details of all lower levels. Levels are:
+.br 
+	1	Details concerning reading and writing
+.br 
+	2	Details about control tables
+.br 
+	3	Details about media samples
+.br 
+	4	Details about media hints
+.br 
+	5	Details about everything
+.TP 
+\fB\-help\fR
+.br 
+Prints help information.
+
+.SH "EXAMPLES"
+.LP 
+To create an audio only mp4 file:
+.br 
+	mp4creator foo.mp3 foo.mp4
+.LP 
+To create a video only mp4 file:
+.br 
+	mp4creator foo.divx foo.mp4
+.LP 
+To create an audio and video file:
+.br 
+	mp4creator foo.mp3 foo.mp4
+.br 
+	mp4creator foo.divx foo.mp4
+.LP 
+To create an audio and video file, hinted, and optimized for streaming:
+.br 
+	mp4creator foo.mp3 \-H foo.mp4
+.br 
+	mp4creator foo.divx \-H \-O foo.mp4
+.SH "AUTHORS"
+.LP 
+David Mackie <dmackie@cisco.com>
+.br 
+Bill May <wmay@cisco.com>
+.SH "SEE ALSO"
+.LP 
+mp4encode(1) gmp4player(1)

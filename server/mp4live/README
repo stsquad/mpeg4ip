@@ -1,4 +1,4 @@
-August 21, 2001
+November 7, 2001
 
 MP4LIVE 
 =======
@@ -31,7 +31,7 @@ capture ability.
 
 Known to work are:
 	Video capture cards based on the Brooktree 8x8 chip
-	AND an analog A/V source - VCR, DVD, Camcorder, Settop box, Tivo, etc.
+	with an analog A/V source - VCR, DVD, Camcorder, Settop box, Tivo, etc.
 		Typically a video capture card will support composite video inputs.
 		Some will also have S-Video input.
 		Others will also have a TV Tuner input.
@@ -53,14 +53,12 @@ Drivers for sound and video devices
 WARNINGS!
 =========
 
-This is the first beta of mp4live, so be prepared for a few problems. 
-
 Please see the MPEG4IP README regarding legal issues, and the list of 
 open source packages that are redistributed with this code.
 
 This is a LINUX program! Do not even think about trying to get this to 
-run on Windows or MacOS! Even moving it to other UNIX systems would require 
-some re-programming since the sound and video capture interfaces are Linux 
+run on Windows! Even moving it to other UNIX systems would require some 
+re-programming since the sound and video capture interfaces are Linux 
 specific.
 
 By far the easiest route is to use a Linux distribution that already has a
@@ -198,12 +196,6 @@ any user interface.
 Known Issues
 ============
 
-If (when?) the program crashes it can leave zombie processes lying 
-around. This usually results in the window not being destroyed or the
-invoking shell hanging. Use 'ps' to find any threads name 'lt-mp4live'
-and 'kill -9' them. Infrequently, the video capture card may not recover 
-from a crash. In that case, a system rebot is necessary.
-
 Using a system with a PCI instead of an AGP video display card can cause 
 video "tearing" with CIF or larger size images. I.e. the PCI bus quickly
 gets swamped moving raw video from the video capture card to the CPU, and 
@@ -219,10 +211,6 @@ on the card to the line-in input on your sound card in order to get the
 audio signal from the TV tuner.
 
 There is no exploitation of the Pentium IV MMX/SSE instructions, yet!
-
-The number of video inputs, their names, and capabilities as reported 
-by the bttv driver (and hence mp4live's UI) is not accurate for all 
-capture cards. 
 
 
 Unknowns

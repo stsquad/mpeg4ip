@@ -1,0 +1,45 @@
+.TH "mp4live" "1" "0.9" "Cisco Systems Inc." "MPEG4IP"
+.SH "NAME"
+.LP 
+mp4live \- record and/or transmit video and/or audio
+.SH "SYNTAX"
+.LP 
+mp4live [\fIoptions\fP]
+
+.SH "DESCRIPTION"
+.LP 
+This program is a Linux audio/video capture utility that can capture and encode 
+audio and video in real\-time. The results can be written to either an mp4
+file, transmitted onto the network via either unicast or multicast, or both 
+simultaneously! The audio is encoded with MP3, and the video with MPEG\-4 
+Simple Profile which is OpenDivx compatible.
+.LP 
+The program has a Gtk based user interface which displays a preview of the encoded video and controls to adjust the settings of the functions of the program. Settings are remembered and stored in ~/.mp4live_rc.
+.LP 
+See the program README for detailed information on hardware and software requirements, known problems, and unknowns.
+.SH "OPTIONS"
+.LP 
+.TP 
+\fB\-file\fR <\fIconfig\-file\fP>
+Use the configuration information store in <config\-file> instead of that in ~/.mp4live_rc
+.TP 
+\fB\-automatic\fR
+Act as if the "Start" button were pressed immediately upon program startup. Whatever is appropriate to do based on the configuration at startup will be done.
+.TP 
+\fB\-headless\fR
+Act as in automatic mode, and do not display any user interface.
+.SH "FILES"
+.LP 
+\fI~/.mp4live_rc\fP 
+.br 
+\fI/dev/video\fP 
+.br 
+\fI/dev/dsp\fP
+.SH "AUTHORS"
+.LP 
+David Mackie <dmackie@cisco.com>
+.br 
+Bill May <wmay@cisco.com>
+.SH "SEE ALSO"
+.LP 
+gmp4player(1) mpeg4ip/server/mp4live/README

@@ -512,8 +512,8 @@ void MP4RtpPacket::Set(u_int8_t payloadNumber,
 	u_int32_t packetId, bool setMbit)
 {
 	((MP4BitfieldProperty*)m_pProperties[5])->SetValue(setMbit);
-	((MP4Integer8Property*)m_pProperties[6])->SetValue(payloadNumber);
-	((MP4Integer32Property*)m_pProperties[7])->SetValue(packetId);
+	((MP4BitfieldProperty*)m_pProperties[6])->SetValue(payloadNumber);
+	((MP4Integer16Property*)m_pProperties[7])->SetValue(packetId);
 }
 
 void MP4RtpPacket::SetBframe(bool isBframe)
@@ -628,8 +628,8 @@ MP4RtpSampleData::MP4RtpSampleData()
 	AddProperty( /* 6 */
 		new MP4Integer16Property("samplesPerBlock"));
 
-	((MP4Integer32Property*)m_pProperties[5])->SetValue(1);
-	((MP4Integer32Property*)m_pProperties[6])->SetValue(1);
+	((MP4Integer16Property*)m_pProperties[5])->SetValue(1);
+	((MP4Integer16Property*)m_pProperties[6])->SetValue(1);
 
 	m_pRefData = NULL;
 	m_pRefTrack = NULL;

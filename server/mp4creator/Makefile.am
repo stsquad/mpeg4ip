@@ -24,6 +24,7 @@ mp4creator_SOURCES = \
 	mp4v.cpp \
 	avi.cpp \
 	rfc2250.cpp \
+	rfc3119.cpp \
 	rfcisma.cpp \
 	rfc3016.cpp
 

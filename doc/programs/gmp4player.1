@@ -1,0 +1,40 @@
+.TH "gmp4player" "1" "0.9" "Cisco Systems Inc." "MPEG4IP"
+.SH "NAME"
+.LP 
+gmp4player \- play mp4 content
+.SH "SYNTAX"
+.LP 
+gmp4player <\fIfile\fP>
+.br 
+gmp4player <\fIurl\fP>
+.SH "DESCRIPTION"
+.LP 
+This program plays mp4 audio/video files either locally from file or remotely streamed via RTSP/RTP. In addition to local mp4 files, it can also play mp3, aac, wav, divx, and mp4v files. The streaming function uses IETF standards and so is compatible with a number of video servers, including Apple's QuickTime Server (aka Darwin Streaming Server). User settings are remembered and saved in ~/.gmp4player_rc.
+.LP 
+If you are attempting to stream from an on\-demand server and there is a firewall between the player and server, you probably will need to select the "Use RTP over RTSP (TCP)" option from the "Network" menu. 
+.SH "FILES"
+.LP 
+\fI~/.gmp4player_rc\fP 
+ 
+.SH "EXAMPLES"
+.LP 
+To play a local file:
+.br 
+	gmp4player foo.mp4
+.LP 
+To stream from a on\-demand server:
+.br 
+	gmp4player rtsp://myserver/foo.mp4
+.LP 
+To stream from a live broadcast:
+.br 
+	gmp4player http://myserver/foo.sdp
+.SH "AUTHORS"
+.LP 
+Bill May <wmay@cisco.com>
+.br 
+David Mackie <dmackie@cisco.com>
+
+.SH "SEE ALSO"
+.LP 
+mp4encode(1) mp4live(1)

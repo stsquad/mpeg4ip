@@ -277,7 +277,7 @@ int main(int argc, char** argv)
 	/* end processing of command line */
 
 	/* open MPEG-4 file for reading */
-	mp4File = fopen(mp4FileName, "r");
+	mp4File = fopen(mp4FileName, "rb");
 	if (mp4File == NULL) {
 		/* error, file doesn't exist or we can't read it */
 		fprintf(stderr,

@@ -1,0 +1,56 @@
+.TH "mp4program" "1" "0.9" "Cisco Systems Inc." "MPEG4IP"
+.SH "NAME"
+.LP 
+myprogram \- Does some neat things
+.SH "SYNTAX"
+.LP 
+myprogram [\fIoption\fP] <\fIfilename\fP>
+.br 
+myprogram \fI\-dscan\fP <\fIdirectory\fP>
+.SH "DESCRIPTION"
+.LP 
+This program does some very neat things.
+.SH "OPTIONS"
+.LP 
+.TP 
+\fB\-dscan\fR <\fIdirectory\fP>
+Scans specified <\fIdirectory\fP>.
+.TP 
+\fB\-\-help\fR
+Output help information and exit.
+.TP 
+\fB\-\-version\fR
+Output version information and exit.
+.SH "FILES"
+.LP 
+\fI/etc/myprogram\fP 
+.br 
+\fI/var/log\fP 
+.SH "ENVIRONMENT VARIABLES"
+.LP 
+.TP 
+\fBHOME\fP
+Specifies the home directory
+.TP 
+\fBLOGINNAME\fP
+Specifies the user's login name
+.TP 
+\fBPRINTER\fP
+Specifies the printer
+.SH "EXAMPLES"
+.LP 
+To run this program the standard way type:
+.LP 
+myprogram /tmp/myfile
+.LP 
+Alternativly you can run it as:
+.LP 
+myprogram \-dscan /tmp
+.SH "AUTHORS"
+.LP 
+David Mackie <dmackie@cisco.com>
+.br 
+Bill May <wmay@cisco.com>
+.SH "SEE ALSO"
+.LP 
+myotherprogram(2) mynextprogram(2)

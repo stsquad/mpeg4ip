@@ -1,0 +1,62 @@
+Microsoft Developer Studio Workspace File, Format Version 6.00
+# WARNING: DO NOT EDIT OR DELETE THIS WORKSPACE FILE!
+
+###############################################################################
+
+Project: "avi2raw"=.\avi2raw60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libavi
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name gnugetopt
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libavi_st
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "gnugetopt"=..\..\..\lib\gnu\getopt\gnugetopt60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libavi_st"=..\..\..\lib\avi\libavi_st60.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Global:
+
+Package=<5>
+{{{
+}}}
+
+Package=<3>
+{{{
+}}}
+
+###############################################################################
+

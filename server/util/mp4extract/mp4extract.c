@@ -24,17 +24,12 @@
  *  - file formatted with tabstops == 4 spaces 
  *  - TBD == "To Be Done" 
  */
-
-#include <sys/types.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <mpeg4ip.h>
 #include <errno.h>
 #include <string.h>
 #include <mpeg4ip_getopt.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <quicktime.h>
-#include <mpeg4ip.h>
 
 
 /* globals */
@@ -129,7 +124,7 @@ int main(int argc, char** argv)
 	}
 
 	/* open output file for writing */
-	outFile = fopen(outFileName, "w");
+	outFile = fopen(outFileName, "wb");
 	if (outFile == NULL) {
 		fprintf(stderr,
 			"%s: error opening %s: %s\n",
@@ -188,6 +183,6 @@ int main(int argc, char** argv)
 	/* cleanup */
 	quicktime_close(mp4File);
 	fclose(outFile);
-	exit(0);
+	return (0);
 }
 

@@ -139,7 +139,7 @@ int main(int argc, char** argv)
 	/* end processing of command line */
 
 	/* open the RGB file */
-	rgbFile = fopen(rgbFileName, "r");
+	rgbFile = fopen(rgbFileName, "rb");
 	if (rgbFile == NULL) {
 		fprintf(stderr, 
 			"%s: error %s: %s\n",
@@ -148,7 +148,7 @@ int main(int argc, char** argv)
 	}
 
 	/* open the RAW file */
-	yuvFile = fopen(yuvFileName, "w");
+	yuvFile = fopen(yuvFileName, "wb");
 	if (yuvFile == NULL) {
 		fprintf(stderr,
 			"%s: error opening %s: %s\n",
@@ -189,6 +189,6 @@ int main(int argc, char** argv)
 	fclose(rgbFile);
 	fclose(yuvFile);
 
-	exit(0);
+	return(0);
 }
 

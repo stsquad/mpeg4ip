@@ -1,10 +1,10 @@
-# Microsoft Developer Studio Project File - Name="encoder" - Package Owner=<4>
-# Microsoft Developer Studio Generated Build File, Format Version 6.00
+# Microsoft Developer Studio Project File - Name="ISOencoder" - Package Owner=<4>
+# Microsoft Developer Studio Generated Build File, Format Version 5.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Console Application" 0x0103
 
-CFG=encoder - Win32 Release
+CFG=ISOencoder - Win32 Release
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
@@ -13,22 +13,23 @@ CFG=encoder - Win32 Release
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "encoder.mak" CFG="encoder - Win32 Release"
+!MESSAGE NMAKE /f "encoder.mak" CFG="ISOencoder - Win32 Release"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "encoder - Win32 Release" (based on "Win32 (x86) Console Application")
-!MESSAGE "encoder - Win32 Debug" (based on "Win32 (x86) Console Application")
+!MESSAGE "ISOencoder - Win32 Release" (based on\
+ "Win32 (x86) Console Application")
+!MESSAGE "ISOencoder - Win32 Debug" (based on\
+ "Win32 (x86) Console Application")
 !MESSAGE 
 
 # Begin Project
-# PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
 CPP=cl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "encoder - Win32 Release"
+!IF  "$(CFG)" == "ISOencoder - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -42,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /YX /c
-# ADD CPP /nologo /W3 /GX /O2 /I "..\.." /I "..\..\type" /I "..\..\sys" /I "..\..\sys\encoder" /I "..\..\tools" /I "..\..\vtc\include" /I "..\..\vtc\ztq" /I "..\..\vtc\wavelet" /I "..\..\vtc\pezw" /I "..\..\vtc\zte" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "__PC_COMPILER_" /D "_MBCS" /D "_MFC_" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\..\..\..\include" /I "..\.." /I "..\..\type" /I "..\..\sys" /I "..\..\sys\encoder" /I "..\..\tools" /I "..\..\vtc\include" /I "..\..\vtc\ztq" /I "..\..\vtc\wavelet" /I "..\..\vtc\pezw" /I "..\..\vtc\zte" /I "..\..\..\..\..\include" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "__PC_COMPILER_" /D "_MBCS" /D "_MFC_" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -52,7 +53,7 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
 # ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
 
-!ELSEIF  "$(CFG)" == "encoder - Win32 Debug"
+!ELSEIF  "$(CFG)" == "ISOencoder - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -66,7 +67,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /YX /c
-# ADD CPP /nologo /W3 /GX /ZI /Od /I "..\.." /I "..\..\type" /I "..\..\sys" /I "..\..\sys\encoder" /I "..\..\tools" /I "..\..\vtc\include" /I "..\..\vtc\ztq" /I "..\..\vtc\wavelet" /I "..\..\vtc\pezw" /I "..\..\vtc\zte" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "__PC_COMPILER_" /D "_MBCS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /Od /I "..\..\..\..\..\include" /I "..\.." /I "..\..\type" /I "..\..\sys" /I "..\..\sys\encoder" /I "..\..\tools" /I "..\..\vtc\include" /I "..\..\vtc\ztq" /I "..\..\vtc\wavelet" /I "..\..\vtc\pezw" /I "..\..\vtc\zte" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "__PC_COMPILER_" /D "_MBCS" /D "__TRACE_AND_STATS_" /D "__DOUBLE_PRECISION_" /FR /YX /FD /ZI /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -80,8 +81,8 @@ LINK32=link.exe
 
 # Begin Target
 
-# Name "encoder - Win32 Release"
-# Name "encoder - Win32 Debug"
+# Name "ISOencoder - Win32 Release"
+# Name "ISOencoder - Win32 Debug"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;hpj;bat;for;f90"

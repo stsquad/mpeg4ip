@@ -1,5 +1,9 @@
-bin_PROGRAMS = mp4dump
+bin_PROGRAMS = mp4v1dump
+
+mp4v1dump_SOURCES = mp4dump.c
+
 INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/mp4
+
 if PROVIDE_GETOPTLONG
 LDADD_E1 = $(top_builddir)/lib/gnu/getopt/libgetopt_long.la
 else

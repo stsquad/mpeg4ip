@@ -49,7 +49,13 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	}
 
 	MP4Duration mp4TimeScale = 90000;
+#ifdef _WIN32
+	MP4Duration mp4FrameDuration;
+	mp4FrameDuration = (MP4Duration)((int64_t)(mp4TimeScale));
+	mp4FrameDuration /= (int64_t)frameRate;
+#else
 	MP4Duration mp4FrameDuration = (MP4Duration)(mp4TimeScale / frameRate);
+#endif
 
 	MP4TrackId trackId = MP4AddVideoTrack(mp4File,
 		mp4TimeScale, mp4FrameDuration, 

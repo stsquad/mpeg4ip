@@ -131,9 +131,6 @@ extern "C" {
 
 /* file operations */
 
-MP4FileHandle MP4Read(const char* fileName, 
-	u_int32_t verbosity DEFAULT(0));
-
 MP4FileHandle MP4Create(const char* fileName, 
 	u_int32_t verbosity DEFAULT(0),
 	bool use64bits DEFAULT(0),
@@ -143,13 +140,16 @@ MP4FileHandle MP4Modify(const char* fileName,
 	u_int32_t verbosity DEFAULT(0),
 	bool useExtensibleFormat DEFAULT(0));
 
+MP4FileHandle MP4Read(const char* fileName, 
+	u_int32_t verbosity DEFAULT(0));
+
+bool MP4Close(MP4FileHandle hFile);
+
 bool MP4Optimize(const char* existingFileName, 
 	const char* newFileName, 
 	u_int32_t verbosity DEFAULT(0));
 
-int MP4Close(MP4FileHandle hFile);
-
-int MP4Dump(MP4FileHandle hFile, 
+bool MP4Dump(MP4FileHandle hFile, 
 	FILE* pDumpFile DEFAULT(NULL), 
 	bool dumpImplicits DEFAULT(0));
 

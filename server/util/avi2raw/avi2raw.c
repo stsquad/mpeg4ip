@@ -146,7 +146,7 @@ int main(int argc, char** argv)
 	}
 
 	/* open the RAW file */
-	rawFile = fopen(rawFileName, "w");
+	rawFile = fopen(rawFileName, "wb");
 	if (rawFile == NULL) {
 		fprintf(stderr,
 			"%s: error opening %s: %s\n",
@@ -334,6 +334,6 @@ int main(int argc, char** argv)
 	AVI_close(aviFile);
 	fclose(rawFile);
 
-	exit(0);
+	return(0);
 }
 

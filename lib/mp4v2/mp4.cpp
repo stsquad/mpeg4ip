@@ -103,35 +103,35 @@ extern "C" bool MP4Optimize(const char* existingFileName,
 	return false;
 }
 
-extern "C" int MP4Close(MP4FileHandle hFile)
+extern "C" bool MP4Close(MP4FileHandle hFile)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
 			((MP4File*)hFile)->Close();
 			delete (MP4File*)hFile;
-			return 0;
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
 			delete e;
 		}
 	}
-	return -1;
+	return false;
 }
 
-extern "C" int MP4Dump(MP4FileHandle hFile, FILE* pDumpFile, bool dumpImplicits)
+extern "C" bool MP4Dump(MP4FileHandle hFile, FILE* pDumpFile, bool dumpImplicits)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
 			((MP4File*)hFile)->Dump(pDumpFile, dumpImplicits);
-			return 0;
+			return true;
 		}
 		catch (MP4Error* e) {
 			PRINT_ERROR(e);
 			delete e;
 		}
 	}
-	return -1;
+	return false;
 }
 
 

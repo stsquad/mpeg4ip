@@ -652,6 +652,7 @@ int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame)
 {
   uint64_t ts;
   *hasSyncFrame = -1;  // we don't know if we have a sync frame
+  if (m_head == NULL) return 0;
   ts = m_head->ts;
   do {
     remove_packet_rtp_queue(m_head, 1);

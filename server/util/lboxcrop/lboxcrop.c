@@ -25,16 +25,12 @@
  *  - TBD == "To Be Done" 
  */
 
-#include <sys/types.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <mpeg4ip.h>
 #include <errno.h>
 #include <string.h>
 #include <mpeg4ip_getopt.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <math.h>
-#include <mpeg4ip.h>
 
 /* globals */
 char* progName = NULL;
@@ -156,7 +152,7 @@ int main(int argc, char** argv)
 	/* end processing of command line */
 
 	/* open the raw input file for reading */
-	inFile = fopen(inFileName, "r");
+	inFile = fopen(inFileName, "rb");
 	if (inFile == NULL) {
 		/* error, file doesn't exist or we can't read it */
 		fprintf(stderr,
@@ -166,7 +162,7 @@ int main(int argc, char** argv)
 	}
 	
 	/* open the raw output file for writing */
-	outFile = fopen(outFileName, "w");
+	outFile = fopen(outFileName, "wb");
 	if (outFile == NULL) {
 		/* error, file doesn't exist or we can't read it */
 		fprintf(stderr,
@@ -237,7 +233,7 @@ done:
 	/* cleanup */
 	fclose(inFile);
 	fclose(outFile);
-	exit(0);
+	return(0);
 }
 
 static int cropPlane(u_int32_t inSize, u_int32_t outOffset, u_int32_t outSize)

@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 5.00
 
 ###############################################################################
 
-Project: "libmpplayer"=.\libmpplayer.dsp - Package Owner=<4>
+Project: "libmp4_st"=..\..\..\lib\mp4\libmp4_st.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -11,6 +11,21 @@ Package=<5>
 
 Package=<4>
 {{{
+}}}
+
+###############################################################################
+
+Project: "mp4v1getatype"=.\mp4v1getatype.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libmp4_st
+    End Project Dependency
 }}}
 
 ###############################################################################

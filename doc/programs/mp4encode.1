@@ -1,0 +1,67 @@
+.TH "mp4encode" "1" "0.9" "Cisco Systems Inc." "MPEG4IP"
+.SH "NAME"
+.LP 
+mp4encode \- encode raw audio/video into an mp4 file
+.SH "SYNTAX"
+.LP 
+mp4encode [\fIoptions\fP] <\fIfilename.avi\fP> [<\fIfilename.mp4\fP>]
+
+.SH "DESCRIPTION"
+.LP 
+This script takes an avi file with raw audio and video, and produces an encoded mp4 file. Note: a common mistake is to attempt to encode an avi that doesn't contain the raw data but already encoded media.
+.LP 
+The raw audio in the avi file should be PCM format, 16 bits/sample, little\-endian, 2 channels, 44100 samples/sec.
+.LP 
+The raw video in the avi file should be YUV12 format, aka YV12. (FYI: This is a planar format sampled at 4:2:0). Any frame size and frame rate are acceptable.
+.LP 
+There are two choices for the video encoder, one from the OpenDivx project, and another from the ISO MPEG reference software. The OpenDivx encoder is much faster, and is the default. The ISO encoder can be selected via the "\-I" option.
+.LP 
+There are also two choices for audio encoder, one for the MP3 format, and another for the AAC format. The MP3 format is much used in the Divx world, the AAC format is used in the MPEG\-4 world. The AAC encoder is used by default. The MP3 encoder can be selected via the "\-M" option.
+.SH "OPTIONS"
+.LP 
+.TP 
+\fB\-w\fR <\fIuint\fP>   
+The input video frame width in pixels, default value is 320
+.TP 
+\fB\-h\fR <\fIuint\fP> 
+The input video frame height in pixels, default value is 240
+.TP 
+\fB\-r\fR <\fIuint\fP>   
+The video frame rate in frames per second, default value is 24
+.TP 
+\fB\-V\fR <\fIuint\fP>
+The desired video bitrate in Kbps, default value is 500
+.TP 
+\fB\-A\fR <\fIuint\fP>  
+The desired audio bitrate in Kbps, default value is 96
+.TP 
+\fB\-a\fR <\fIfloat\fP>
+The desired aspect ratio, default value is 1.33 (4:3). Typically letterbox is 2.35.
+.TP 
+\fB\-I\fR          
+Use the ISO MPEG\-4 video encoder instead of the OpenDivX encoder
+.TP 
+\fB\-M\fR        
+Use the MP3 audio encoder instead of the AAC encoder
+.TP 
+\fB\-d\fR     
+Debug mode, leave intermediate files.
+
+.SH "EXAMPLES"
+.LP 
+To create a 320x240, 24 fps, 500 Kbps Divx video, and 96 Kbps AAC audio:
+.br 
+	mp4encode foo.avi (output is in foo.mp4)
+.LP 
+To create a 640x480, 30 fps, 1000 Kbps ISO video, and 128 Kbps MP3 audio:
+.br 
+	mp4encode \-w 640 \-h 480 \-r 30 \-I \-V 1000 \-M \-A 128 foo.avi foo.mp4
+
+.SH "AUTHORS"
+.LP 
+David Mackie <dmackie@cisco.com>
+.br 
+Bill May <wmay@cisco.com>
+.SH "SEE ALSO"
+.LP 
+gmp4player(1) mpeg4ip/doc/encoding/encoding.htm

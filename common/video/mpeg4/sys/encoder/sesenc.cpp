@@ -556,6 +556,7 @@ Void CSessionEncoder::encode ()
 		}
 
 		initVOEncoder (rgpvoenc, iVO, rgpostrmTrace);
+#undef write
 		rgpostrm [BASE_LAYER]->write (rgpvoenc [BASE_LAYER]->pOutStream ()->str (),			//VO and VOL header
 									  rgpvoenc [BASE_LAYER]->pOutStream ()->pcount ());
 

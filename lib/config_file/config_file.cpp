@@ -140,7 +140,11 @@ void CConfig::get_default_name (char *buffer)
 {
   char *home = getenv("HOME");
   if (home == NULL) {
+#ifdef _WIN32
+	strcpy(buffer, "gmp4player_rc");
+#else
     strcpy(buffer, ".gmp4player_rc");
+#endif
   } else {
     strcpy(buffer, home);
     strcat(buffer, "/.gmp4player_rc");

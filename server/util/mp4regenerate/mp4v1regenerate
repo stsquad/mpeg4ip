@@ -1,0 +1,37 @@
+#!/bin/bash
+
+old=$1
+
+if [ ! -f "$old" ] ; then
+	echo "Input file $old does not exist"
+	exit 1
+fi 
+
+prefix=`expr $old : '\(.*\)\.mp4'`
+
+video=$prefix.mp4v
+new=${prefix}_new.mp4
+
+asuffix=`mp4v1getatype $old`
+audio=$prefix.$asuffix
+
+fps=`mp4v1getfps $old`
+
+echo "Extracting video..."
+mp4v1extract -v $old $video
+
+echo "Extracting audio..."
+mp4v1extract -a $old $audio
+
+echo "Creating new mp4 file..."
+echo "Adding video..."
+mp4creator -c $video -H -rate=$fps $new
+
+echo "Adding audio..."
+mp4creator -c $audio -H -O $new
+
+rm -f $video
+rm -f $audio
+
+echo "Done, new file is $new"
+exit 0

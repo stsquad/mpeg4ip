@@ -1,4 +1,4 @@
-November 6, 2001
+November 7, 2001
 
 MPEG4IP Project
 ===============
@@ -45,8 +45,8 @@ MP4 UTILITIES
     server/util/mp4dump            lib/mp4v2/util/mp4dump
     server/util/mp4extract         lib/mp4v2/util/mp4extract
 
-The file mpeg4ip/doc/encoding/encoding.htm describes the usage of mp4creator
-We hope to have man pages for all the utilties for the next release of MPEG4IP.
+The file mpeg4ip/doc/encoding/encoding.htm describes the usage of mp4creator.
+There is also a man page for it.
 
 Note: you may wish to uninstall mp4apkt and mp4vpkt. 
 The install process will not do this automatically.
@@ -57,6 +57,12 @@ problems in file format. The player has an option under the Help/Debug menu,
 "Use old mp4 library" that can be used to switch to the old mp4 library 
 and play these old files. However, we recommend that you regenerate these 
 mp4 files so they will be compatible with the mp4 standard. 
+
+In most cases, old mp4 files can be regenerated using the mp4v1regenerate
+script which doesn't require re-encoding hence it's much faster than 
+regenerating from the original raw content. The usage is simply:
+
+$ mp4v1regenerate foo.mp4 (the new file will be foo_new.mp4)
 
 
 Overview
@@ -389,6 +395,9 @@ When building on Slackware-8.0, you need to consider the following
   Note that you need to be root to do this.
 
 
+For windows, both Visual Studio 5.0 and Visual Studio 6.0 projects
+are included.  6.0 projects are the ones with 60 in the names: ie:
+encoding.dsw is the 5.0 project and encoding60.dsw is the 6.0 project.
 
 Executables
 ===========
