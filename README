@@ -177,6 +177,10 @@ To build:
     make
     make install (optional)
 
+The bootstrap script will pass any arguments to the configure scripts.
+Two interesting options are "--disable-server" and "--disable-player"
+which disable the building of the server and player respectively. 
+
 For the curious, the bootstrap script invokes the configure scripts of 
 the included packages that have them, and then our own top level configure 
 script is generated and run. At the end of this process all the Makefile's
@@ -194,10 +198,10 @@ To build the Darwin Streaming Server:
 
 To install the Darwin Streaming Server from the build:
 	cd server/DSS
-	mkdir install
-	./DSS_MakeRoot -f install
-	cd install
-	./Install
+	mkdir dist
+	./DSS_MakeRoot -f dist
+	cd dist
+	./Install	(need root privileges)
 
 See the documentation that accompanies the server on how to configure it
 for your environment. 
@@ -342,9 +346,4 @@ The same value of the parameter results in different bitrates by a factor
 of two for different content. See doc/mp4encode and doc/template.par for
 details. If you figure it out, please let us know. (Anyway we're expecting
 to add the OpenDivX codec soon which does this correctly.)
-
-* The Darwin QuickTime Streaming Server currently only supports hinted 
-Quicktime files, not MP4 files. Our packetizing utlities can generate 
-either format (using the output file extension, .mov or .mp4, as the switch).
-If you are going to use the Darwin server, then you want to generate .mov's
 
