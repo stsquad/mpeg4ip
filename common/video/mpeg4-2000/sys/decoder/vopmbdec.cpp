@@ -594,7 +594,7 @@ Void CVideoObjectDecoder::decodePVOP_WithShape ()
 				//			if(!(m_volmd.bSpatialScalability)){
 				//~OBSSFIX_MODE3
 				shpmdColocatedMB = m_rgmbmdRef [
-					min (iMBY, m_iNumMBYRef-1) * m_iNumMBXRef
+					MIN (iMBY, m_iNumMBYRef-1) * m_iNumMBXRef
 					].m_shpmd;
 				decodeInterShape (m_pvopcRefQ0, pmbmd, 0, iMBY,
 					m_rctCurrVOPY.left, y, pmv, pmvBY,
@@ -615,7 +615,7 @@ Void CVideoObjectDecoder::decodePVOP_WithShape ()
 					//~OBSSFIX_MODE3
 					if((m_volmd.volType == BASE_LAYER) || (!(m_volmd.iEnhnType==0 || m_volmd.iuseRefShape ==0) && !m_volmd.bShapeOnly) ){			
 						shpmdColocatedMB = m_rgmbmdRef [
-							min (iMBY, m_iNumMBYRef-1) * m_iNumMBXRef
+							MIN (iMBY, m_iNumMBYRef-1) * m_iNumMBXRef
 							].m_shpmd;
 						decodeInterShape (m_pvopcRefQ0, pmbmd, 0, iMBY,
 							m_rctCurrVOPY.left, y, pmv, pmvBY,
@@ -623,7 +623,7 @@ Void CVideoObjectDecoder::decodePVOP_WithShape ()
 							shpmdColocatedMB);
 					}
 					else if(m_volmd.volType == ENHN_LAYER) { // for spatial scalability
-						Int index = min (max (0, (iMBY+yIndex)*m_volmd.iver_sampling_factor_m_shape/m_volmd.iver_sampling_factor_n_shape), (m_iNumMBBaseYRef-1)) * m_iNumMBBaseXRef; 
+						Int index = MIN (MAX (0, (iMBY+yIndex)*m_volmd.iver_sampling_factor_m_shape/m_volmd.iver_sampling_factor_n_shape), (m_iNumMBBaseYRef-1)) * m_iNumMBBaseXRef; 
 						shpmdColocatedMB = m_rgBaseshpmd [index];
 						decodeSIShapePVOP (m_pvopcRefQ0, pmbmd, 0, iMBY,
 							m_rctCurrVOPY.left, y, pmv, pmvBY, (m_rgmvBaseBY+index), 
@@ -759,8 +759,8 @@ Void CVideoObjectDecoder::decodePVOP_WithShape ()
 						//                  if(!(m_volmd.bSpatialScalability)){     
 						//~OBSSFIX_MODE3
 						shpmdColocatedMB = m_rgmbmdRef [
-							min (max (0, iMBX+1), m_iNumMBXRef-1) + 
-							min (max (0, iMBY), m_iNumMBYRef-1) * m_iNumMBXRef
+							MIN (MAX (0, iMBX+1), m_iNumMBXRef-1) + 
+							MIN (MAX (0, iMBY), m_iNumMBYRef-1) * m_iNumMBXRef
 							].m_shpmd;
 						decodeInterShape (
 							m_pvopcRefQ0,
@@ -789,8 +789,8 @@ Void CVideoObjectDecoder::decodePVOP_WithShape ()
 							//~OBSSFIX_MODE3          
 							if((m_volmd.volType == BASE_LAYER) || (!(m_volmd.iEnhnType==0 || m_volmd.iuseRefShape ==0) && !m_volmd.bShapeOnly)){		
 								shpmdColocatedMB = m_rgmbmdRef [
-									min (max (0, iMBX+1), m_iNumMBXRef-1) + 
-									min (max (0, iMBY), m_iNumMBYRef-1) * m_iNumMBXRef
+									MIN (MAX (0, iMBX+1), m_iNumMBXRef-1) + 
+									MIN (MAX (0, iMBY), m_iNumMBYRef-1) * m_iNumMBXRef
 									].m_shpmd;
 								decodeInterShape (
 									m_pvopcRefQ0,
@@ -804,8 +804,8 @@ Void CVideoObjectDecoder::decodePVOP_WithShape ()
 									);
 							}
 							else if(m_volmd.volType == ENHN_LAYER) { // for spatial scalability
-								Int index = min (max (0, ((iMBX+xIndex+1)*m_volmd.ihor_sampling_factor_m_shape/m_volmd.ihor_sampling_factor_n_shape)), (m_iNumMBBaseXRef-1)) +				
-									min (max (0, (iMBY+yIndex)*m_volmd.iver_sampling_factor_m_shape/m_volmd.iver_sampling_factor_n_shape), (m_iNumMBBaseYRef-1)) * m_iNumMBBaseXRef;		
+								Int index = MIN (MAX (0, ((iMBX+xIndex+1)*m_volmd.ihor_sampling_factor_m_shape/m_volmd.ihor_sampling_factor_n_shape)), (m_iNumMBBaseXRef-1)) +				
+									MIN (MAX (0, (iMBY+yIndex)*m_volmd.iver_sampling_factor_m_shape/m_volmd.iver_sampling_factor_n_shape), (m_iNumMBBaseYRef-1)) * m_iNumMBBaseXRef;		
 								shpmdColocatedMB = m_rgBaseshpmd [index];
 								decodeSIShapePVOP (
 									m_pvopcRefQ0,
@@ -1650,11 +1650,11 @@ Void CVideoObjectDecoder::decodeBVOP_WithShape ()
 				ShapeMode shpmdColocatedMB;
 				if(!(m_volmd.bSpatialScalability)){	
 					if(m_vopmd.fShapeBPredDir==B_FORWARD)
-						shpmdColocatedMB = m_rgshpmd [min (max (0, iMBX), m_iRefShpNumMBX - 1)
-						+ min (max (0, iMBY), m_iRefShpNumMBY - 1) * m_iRefShpNumMBX];
+						shpmdColocatedMB = m_rgshpmd [MIN (MAX (0, iMBX), m_iRefShpNumMBX - 1)
+						+ MIN (MAX (0, iMBY), m_iRefShpNumMBY - 1) * m_iRefShpNumMBX];
 					else
-						shpmdColocatedMB = m_rgmbmdRef [min (max (0, iMBX), m_iNumMBXRef - 1)
-						+ min (max (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef].m_shpmd;
+						shpmdColocatedMB = m_rgmbmdRef [MIN (MAX (0, iMBX), m_iNumMBXRef - 1)
+						+ MIN (MAX (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef].m_shpmd;
 					decodeInterShape (
 						m_vopmd.fShapeBPredDir==B_FORWARD ? m_pvopcRefQ0 : m_pvopcRefQ1,
 						pmbmd, iMBX, iMBY, x, y,
@@ -1663,11 +1663,17 @@ Void CVideoObjectDecoder::decodeBVOP_WithShape ()
 				else {
 					if((m_volmd.volType == BASE_LAYER) || (!(m_volmd.iEnhnType==0 || m_volmd.iuseRefShape ==0) && !m_volmd.bShapeOnly) ){
 						if(m_volmd.iEnhnType!=0 &&m_volmd.iuseRefShape ==1){
-							shpmdColocatedMB = m_rgmbmdRef [  min (max (0, iMBX), m_iNumMBXRef - 1)+
-								min (max (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef].m_shpmd;
+							shpmdColocatedMB = m_rgmbmdRef [ MIN (MAX (0, iMBX), m_iNumMBXRef - 1)+
+								MIN (MAX (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef].m_shpmd;
                         }else
 							if(m_vopmd.fShapeBPredDir==B_FORWARD)
-								shpmdColocatedMB = m_rgshpmd [min (max (0, iMBX), m_iRefShpNumMBX - 1)
+#ifndef min
+#define min MIN
+#endif
+#ifndef max
+#define max MAX
+#endif
+								shpmdColocatedMB = m_rgshpmd [MIN (MAX (0, iMBX), m_iRefShpNumMBX - 1)
 								+ min (max (0, iMBY), m_iRefShpNumMBY - 1) * m_iRefShpNumMBX];
 							else
 								shpmdColocatedMB = m_rgmbmdRef [min (max (0, iMBX), m_iNumMBXRef - 1)

@@ -70,6 +70,12 @@ Revision History:
 #ifndef SOURCE_FRAME_RATE				//assuming input source is always 30f/s
 #define SOURCE_FRAME_RATE 30
 #endif
+#ifndef min
+#define min MIN
+#endif
+#ifndef max
+#define max MAX
+#endif
 
 #include "tm5rc.hpp"
 

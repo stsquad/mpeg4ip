@@ -225,12 +225,12 @@ CVideoObjectEncoder::CVideoObjectEncoder (
 		m_uiSprite = 0;
 
 	m_pchBitsBuffer = new Char [iSessionWidth * iSessionHeight * 2];	//we think this is enof for 4:2:0; if crushes, increase the buffer
-	m_pbitstrmOut = new COutBitStream (m_pchBitsBuffer, 0, pstrmTrace);
+	m_pbitstrmOut = new COutBitStream ((char *)m_pchBitsBuffer, 0, (std::ostream *)pstrmTrace);
 	m_pentrencSet = new CEntropyEncoderSet (*m_pbitstrmOut);
 
 	// shape cache
 	m_pchShapeBitsBuffer = new Char [MB_SIZE * MB_SIZE * 2]; // same as above
-	m_pbitstrmShape = new COutBitStream (m_pchShapeBitsBuffer, 0, pstrmTrace);
+	m_pbitstrmShape = new COutBitStream ((char *)m_pchShapeBitsBuffer, 0, (std::ostream *)pstrmTrace);
 	m_pbitstrmShapeMBOut = m_pbitstrmOut; // initially the output stream (only changes for inter)
 
 	m_uiVOId = uiVOId;
@@ -296,7 +296,7 @@ CVideoObjectEncoder::CVideoObjectEncoder (
 	m_pbitstrmShape_DP = new COutBitStream* [iMBN];
 	for (iMB = 0; iMB < iMBN; iMB++) {
 		m_pchShapeBitsBuffer_DP[iMB] = new Char [MB_SIZE * MB_SIZE * 2]; // same as above
-		m_pbitstrmShape_DP[iMB] = new COutBitStream (m_pchShapeBitsBuffer_DP[iMB], 0, pstrmTrace);
+		m_pbitstrmShape_DP[iMB] = new COutBitStream ((char *)m_pchShapeBitsBuffer_DP[iMB], 0, (std::ostream *)pstrmTrace);
 	}
 // End Toshiba(1998-1-16:DP+RVLC)
 	m_rctRefFrameY = CRct (

@@ -4,4 +4,4 @@ else
   extradir = SDLAudio
 endif
 
-SUBDIRS = audio avi bitstream fposrec gnu ismacryp mp4 mp4v2 mp4av msg_queue rtp sdp utils mpeg2t mpeg2ps $(extradir) 
+SUBDIRS = utils audio avi bitstream fposrec gnu ismacryp mp4 mp4v2 mp4av msg_queue rtp sdp mpeg2t mpeg2ps $(extradir) 

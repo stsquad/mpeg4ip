@@ -24,41 +24,7 @@
 #include "mpeg4ip.h"
 #include <time.h>
 #include "sdp.h"
-
-
-static void local_error_msg (int loglevel,
-			     const char *lib,
-			     const char *fmt,
-			     va_list ap)
-{
-#if _WIN32 && _DEBUG
-  char msg[512];
-
-  if (initialized) init_local_mutex();
-  lock_mutex();
-  sprintf(msg, "%s:", lib);
-  OutputDebugString(msg);
-  va_start(ap, fmt);
-  _vsnprintf(msg, 512, fmt, ap);
-  va_end(ap);
-  OutputDebugString(msg);
-  OutputDebugString("\n");
-  unlock_mutex();
-#else
-  struct timeval thistime;
-  char buffer[80];
-
-  gettimeofday(&thistime, NULL);
-  strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-%s-%d: ",
-	 buffer,
-	 thistime.tv_usec / 1000,
-	 lib,
-	 loglevel);
-  vprintf(fmt, ap);
-  printf("\n");
-#endif
-}
+#include "mpeg4ip_utils.h"
 
 int main (int argc, char **argv)
 {
@@ -76,7 +42,7 @@ int main (int argc, char **argv)
     exit(1);
   }
   sdp_set_loglevel(LOG_DEBUG);
-  sdp_set_error_func(local_error_msg);
+  sdp_set_error_func(library_message);
   sdpd = set_sdp_decode_from_filename(*argv);
   if (sdpd == NULL) {
     printf("Didn't find file %s\n", *argv);
@@ -92,7 +58,7 @@ int main (int argc, char **argv)
     session_dump_list(session);
     err = sdp_encode_list_to_memory(session, &formatted, NULL);
     if (err == 0) {
-      printf(formatted);
+      printf("%s\n", formatted);
     } else {
       printf("Error formating session %d\n", err);
     }

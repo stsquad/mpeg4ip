@@ -13,11 +13,11 @@ libsdp_la_SOURCES = \
 
 EXTRA_DIST = libsdp60.dsp libsdp.xcode/project.pbxproj
 
-INCLUDES = -I$(top_srcdir)/include
+INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/utils
 
 AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 
 check_PROGRAMS = test_sdp
 test_sdp_SOURCES = test.c
-test_sdp_LDADD = libsdp.la
+test_sdp_LDADD = libsdp.la $(top_srcdir)/lib/utils/libutils.la
 

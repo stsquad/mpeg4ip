@@ -96,7 +96,7 @@ Bool CVideoObjectDecoder::checkResyncMarker()
 		if(m_vopmd.vopPredType == PVOP || (m_uiSprite == 2 && m_vopmd.vopPredType == SPRITE)) // GMC
 			nBitsResyncMarker += (m_vopmd.mvInfoForward.uiFCode - 1);
 		else if(m_vopmd.vopPredType == BVOP)
-			nBitsResyncMarker += max(m_vopmd.mvInfoForward.uiFCode, m_vopmd.mvInfoBackward.uiFCode) - 1;
+			nBitsResyncMarker += MAX(m_vopmd.mvInfoForward.uiFCode, m_vopmd.mvInfoBackward.uiFCode) - 1;
 	}
 		
 	assert (nBitsPeeked > 0 && nBitsPeeked <= 8);
@@ -129,7 +129,7 @@ Int	CVideoObjectDecoder::decodeVideoPacketHeader(Int& iCurrentQP)
 		if(m_vopmd.vopPredType == PVOP || (m_uiSprite == 2 && m_vopmd.vopPredType == SPRITE)) // GMC_V2
 			nBitsResyncMarker += (m_vopmd.mvInfoForward.uiFCode - 1);
 		else if(m_vopmd.vopPredType == BVOP)
-			nBitsResyncMarker += max(m_vopmd.mvInfoForward.uiFCode, m_vopmd.mvInfoBackward.uiFCode) - 1;
+			nBitsResyncMarker += MAX(m_vopmd.mvInfoForward.uiFCode, m_vopmd.mvInfoBackward.uiFCode) - 1;
 	}
 
 	/* UInt uiResyncMarker = wmay */ m_pbitstrmIn -> getBits (nBitsResyncMarker);
@@ -1107,8 +1107,8 @@ Void CVideoObjectDecoder::decodePVOP_WithShape_DataPartitioning ()
 			ShapeMode shpmdColocatedMB;
 			if(m_vopmd.bShapeCodingType) {
 				shpmdColocatedMB = m_rgmbmdRef [
-					min (max (0, iMBX), m_iNumMBXRef - 1) + 
- 					min (max (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef
+					MIN (MAX (0, iMBX), m_iNumMBXRef - 1) + 
+ 					MIN (MAX (0, iMBY), m_iNumMBYRef - 1) * m_iNumMBXRef
 				].m_shpmd;
 				decodeInterShape (
 					m_pvopcRefQ0,
