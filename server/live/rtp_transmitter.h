@@ -53,12 +53,6 @@ public:
 			NULL, 0, m_myMsgQueueSemaphore);
 	}
 
-	static void RtpCallback(struct rtp *session, rtp_event *e) {
-		// Currently we ignore RTCP packets
-		// Just do our required housekeeping
-		free(e->data);
-	}
-
 	static void SeedRandom(void) {
 		static bool once = false;
 		if (!once) {
@@ -114,16 +108,33 @@ protected:
 
 	void SendMpeg4VideoWith3016(CMediaFrame* pFrame);
 
-	u_int32_t ConvertAudioTimestamp(Timestamp t) {
+	u_int32_t AudioTimestampToRtp(Timestamp t) {
 		return (u_int32_t)(((t - m_startTimestamp) 
 			* m_audioTimeScale) / TimestampTicks)
 			+ m_audioRtpTimestampOffset;
 	}
 
-	u_int32_t ConvertVideoTimestamp(Timestamp t) {
+	u_int32_t VideoTimestampToRtp(Timestamp t) {
 		return (u_int32_t)(((t - m_startTimestamp) 
 			* m_videoTimeScale) / TimestampTicks)
 			+ m_videoRtpTimestampOffset;
+	}
+
+	static const u_int32_t SECS_BETWEEN_1900_1970 = 2208988800U;
+
+	u_int64_t TimestampToNtp(Timestamp t) {
+		// low order ntp 32 bits is 2 ^ 32 -1 ticks per sec
+		register u_int32_t usecs = t % TimestampTicks;
+		return (((t / TimestampTicks) + SECS_BETWEEN_1900_1970) << 32)
+			| ((usecs << 12) + (usecs << 8) - ((usecs * 3650) >> 6));
+	}
+
+	static void RtpCallback(struct rtp *session, rtp_event *e) {
+		// Currently we ignore RTCP packets
+		// Just do our required housekeeping
+		if (e && e->type == RX_RTP) {
+			free(e->data);
+		}
 	}
 
 protected:

@@ -16,15 +16,15 @@ liblive_gui_la_SOURCES = \
 INCLUDES=@GLIB_INCLUDES@ @GTK_INCLUDES@ \
 	-I.. \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/player/lib/SDL/include \
-	-I$(top_srcdir)/common/mp4 \
-	-I$(top_srcdir)/common/lib/msg_queue \
+	-I$(top_srcdir)/lib/SDL/include \
+	-I$(top_srcdir)/lib/mp4 \
+	-I$(top_srcdir)/lib/msg_queue \
+	-I$(top_srcdir)/lib/rtp \
+	-I$(top_srcdir)/lib/sdp \
+	-I$(top_srcdir)/lib \
 	-I$(top_srcdir)/server/audio/lame \
 	-I$(top_srcdir)/server/video/divx \
 	-I$(top_srcdir)/server/video/ffmpeg \
-	-I$(top_srcdir)/common/mp4 \
-	-I$(top_srcdir)/player/lib/rtp \
-	-I$(top_srcdir)/player/lib/sdp \
 	-I$(top_srcdir)/player/lib
 
 AM_CFLAGS= -D_REENTRANT -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes 

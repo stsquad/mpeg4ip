@@ -60,12 +60,13 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   unsigned char peek(void);
   void bookmark(int Bset);
   void reset(void);
+  int have_no_data(void);
   uint64_t start_next_frame(void);
   size_t read(unsigned char *buffer, size_t bytes);
   size_t read(char *buffer, size_t bytes) {
     return (read((unsigned char *)buffer, bytes));
   };
-
+  void flush_rtp_packets(void);
  private:
   char *m_frame_ptr;
   size_t m_offset_in_frame;
@@ -80,7 +81,6 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   uint32_t m_rtp_ts_add;
   void process_packet_header(void);
   int insert_pak_data(isma_pak_data_t *pak);
-  void remove_packet(rtp_packet *pak);
   isma_pak_data_t *get_pak_data (void) {
     isma_pak_data_t *pak;
     if (m_pak_data_free == NULL) {
@@ -96,6 +96,11 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
     return (pak);
   }
   CBitstream m_header_bitstream;
+  uint64_t rtp_ts_to_msec (uint32_t ts, uint64_t &wrap_offset);
+  fmtp_parse_t m_fmtp;
+  int m_min_first_header_bits;
+  int m_min_header_bits;
+  void get_au_header_bits(void);
 };
 
 #endif

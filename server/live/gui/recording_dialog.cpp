@@ -38,7 +38,8 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 // you want to overwrite file.
 static void on_yes_button (void)
 {
-	MyConfig->m_recordMp4FileName = gtk_entry_get_text(GTK_ENTRY(file_entry));
+	MyConfig->SetStringValue(CONFIG_RECORD_MP4_FILE_NAME,
+		gtk_entry_get_text(GTK_ENTRY(file_entry)));
 	DisplayRecordingSettings();
 	on_destroy_dialog(NULL, NULL);
 }
@@ -72,7 +73,9 @@ static int record_values (void)
     }
   }
   
-	MyConfig->m_recordMp4FileName = gtk_entry_get_text(GTK_ENTRY(file_entry));
+	MyConfig->SetStringValue(CONFIG_RECORD_MP4_FILE_NAME, 
+		gtk_entry_get_text(GTK_ENTRY(file_entry)));
+
 	DisplayRecordingSettings();
 
 	return (1);
@@ -145,7 +148,7 @@ void CreateRecordingDialog (void)
   gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
   gtk_widget_show(label);
 
-  const char *file = MyConfig->m_recordMp4FileName;
+  const char *file = MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
   file_entry = gtk_entry_new_with_max_length(PATH_MAX);
   if (file != NULL) {
     gtk_entry_set_text(GTK_ENTRY(file_entry), file);
@@ -167,7 +170,7 @@ void CreateRecordingDialog (void)
   
   // Add standard buttons at bottom
   AddButtonToDialog(dialog,
-	" Ok ", 
+	" OK ", 
 	GTK_SIGNAL_FUNC(on_ok_button));
   AddButtonToDialog(dialog,
 	" Cancel ", 

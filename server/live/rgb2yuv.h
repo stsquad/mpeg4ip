@@ -16,22 +16,14 @@
  * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
  * 
  * Contributor(s): 
- *              Bill May        wmay@cisco.com
+ *		Dave Mackie		dmackie@cisco.com
+ *		Bill May 		wmay@cisco.com
  */
-/*
- * msg_queue.h - provides a basic, SDL based message passing routine
- */
-#ifndef __OUR_MSG_QUEUE_H__
-#define __OUR_MSG_QUEUE_H__ 1
 
-#include "msg_queue/msg_queue.h"
+#ifndef __RGB2YUV_H__
+#define __RGB2YUV_H__
 
-#define MSG_SESSION_FINISHED 1
-#define MSG_PAUSE_SESSION 2
-#define MSG_START_SESSION 3
-#define MSG_STOP_THREAD 4
-#define MSG_START_DECODING 5
-#define MSG_SYNC_RESIZE_SCREEN 6
-#define MSG_RECEIVED_QUIT 7
-#define MSG_NO_FULL_SCREEN 8
-#endif
+int RGB2YUV(int x_dim, int y_dim, void *bmp, 
+	void *y_out, void *u_out, void *v_out, int flip);
+
+#endif /* __RGB2YUV_H__ */

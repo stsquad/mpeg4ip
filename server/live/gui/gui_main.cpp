@@ -26,21 +26,10 @@
 #define __STDC_LIMIT_MACROS
 #include "mp4live.h"
 #include "mp4live_gui.h"
-#include "video_source.h"
-#include "audio_source.h"
-#include "raw_recorder.h"
-#include "mp4_recorder.h"
-#include "rtp_transmitter.h"
 #include "gdk/gdkx.h"
 
 CLiveConfig* MyConfig;
-
-static bool Started = false;
-static CVideoSource* VideoSource;
-static CAudioSource* AudioSource;
-static CRawRecorder* RawRecorder;
-static CMp4Recorder* Mp4Recorder;
-static CRtpTransmitter* RtpTransmitter;
+CAVMediaFlow* AVFlow;
 
 /* Local variables */
 static GtkWidget *main_window;
@@ -98,236 +87,20 @@ static GtkWidget *current_size_label;
 static GtkWidget *current_size;
 static GtkWidget *current_size_units;
 
+static GtkWidget *actual_fps_label;
+static GtkWidget *actual_fps;
+static GtkWidget *actual_fps_units;
+
 static Timestamp StartTime;
 static Timestamp StopTime;
-
-bool InitialVideoProbe(CLiveConfig* pConfig)
-{
-	static char* devices[] = {
-		"/dev/video", 
-		"/dev/video0", 
-		"/dev/video1", 
-		"/dev/video2", 
-		"/dev/video3"
-	};
-	CVideoCapabilities* pVideoCaps;
-
-	// first try the device we're configured with
-	pVideoCaps = new CVideoCapabilities(pConfig->m_videoDeviceName);
-
-	if (pVideoCaps->IsValid()) {
-		pConfig->m_videoCapabilities = pVideoCaps;
-		return true;
-	}
-
-	delete pVideoCaps;
-
-	// no luck, go searching
-	for (u_int32_t i = 0; i < sizeof(devices) / sizeof(char*); i++) {
-
-		// don't waste time trying something that's already failed
-		if (!strcmp(devices[i], pConfig->m_videoDeviceName)) {
-			continue;
-		} 
-
-		pVideoCaps = new CVideoCapabilities(devices[i]);
-
-		if (pVideoCaps->IsValid()) {
-			free(pConfig->m_videoDeviceName);
-			pConfig->m_videoDeviceName = stralloc(devices[i]);
-			pConfig->m_videoCapabilities = pVideoCaps;
-			return true;
-		}
-		
-		delete pVideoCaps;
-	}
-
-	return false;
-}
+static u_int32_t StartEncodedFrameNumber;
 
 /*
  * delete_event - called when window closed
  */
 static void delete_event (GtkWidget *widget, gpointer *data)
 {
-  gtk_main_quit();
-}
-
-static char* mixerDeviceName = "/dev/mixer";
-
-void SetAudioInput(void)
-{
-	int mixer = open(mixerDeviceName, O_RDONLY);
-
-	if (mixer < 0) {
-		debug_message("Couldn't open mixer");
-		return;
-	}
-	int recmask = SOUND_MASK_LINE;
-	ioctl(mixer, SOUND_MIXER_WRITE_RECSRC, &recmask);
-
-	close(mixer);
-}
-
-void SetAudio(bool mute)
-{
-	static int muted = 0;
-	static int lastVolume;
-
-	int mixer = open(mixerDeviceName, O_RDONLY);
-
-	if (mixer < 0) {
-		debug_message("Couldn't open mixer");
-		return;
-	}
-
-	if (mute) {
-		ioctl(mixer, SOUND_MIXER_READ_LINE, &lastVolume);
-		ioctl(mixer, SOUND_MIXER_WRITE_LINE, &muted);
-	} else {
-		int newVolume;
-		ioctl(mixer, SOUND_MIXER_READ_LINE, &newVolume);
-		if (newVolume == 0) {
-			ioctl(mixer, SOUND_MIXER_WRITE_LINE, &lastVolume);
-		}
-	}
-
-	close(mixer);
-}
-
-static void StartMedia(void)
-{
-	if (Started) {
-		return;
-	}
-
-	if (MyConfig->m_audioEnable) {
-		SetAudioInput();
-		AudioSource = new CAudioSource();
-		AudioSource->SetConfig(MyConfig);
-		AudioSource->StartThread();
-		AudioSource->StartCapture();
-	}
-
-	if (MyConfig->m_videoEnable && VideoSource == NULL) {
-		VideoSource = new CVideoSource();
-		VideoSource->SetConfig(MyConfig);
-		VideoSource->StartThread();
-		VideoSource->StartCapture();
-	}
-
-	if (MyConfig->m_recordEnable) {
-		if (MyConfig->m_recordRaw) {
-			RawRecorder = new CRawRecorder();
-			RawRecorder->SetConfig(MyConfig);	
-			RawRecorder->StartThread();
-			if (AudioSource) {
-				AudioSource->AddSink(RawRecorder);
-			}
-			if (VideoSource) {
-				VideoSource->AddSink(RawRecorder);
-			}
-		}
-		if (MyConfig->m_recordMp4) {
-			Mp4Recorder = new CMp4Recorder();
-			Mp4Recorder->SetConfig(MyConfig);	
-			Mp4Recorder->StartThread();
-			if (AudioSource) {
-				AudioSource->AddSink(Mp4Recorder);
-			}
-			if (VideoSource) {
-				VideoSource->AddSink(Mp4Recorder);
-			}
-		}
-	}
-
-	if (MyConfig->m_rtpEnable) {
-		RtpTransmitter = new CRtpTransmitter();
-		RtpTransmitter->SetConfig(MyConfig);	
-		RtpTransmitter->StartThread();	
-		if (AudioSource) {
-			AudioSource->AddSink(RtpTransmitter);
-		}
-		if (VideoSource) {
-			VideoSource->AddSink(RtpTransmitter);
-		}
-	}
-
-	if (RawRecorder) {
-		RawRecorder->StartRecord();
-	}
-	if (Mp4Recorder) {
-		Mp4Recorder->StartRecord();
-	}
-	if (RtpTransmitter) {
-		RtpTransmitter->StartTransmit();
-	}
-}
-
-static void StopMedia(void)
-{
-	if (!Started) {
-		return;
-	}
-
-	if (AudioSource) {
-		AudioSource->StopThread();
-		delete AudioSource;
-		AudioSource = NULL;
-	}
-	if (VideoSource) {
-		if (MyConfig->m_videoPreview) {
-			VideoSource->RemoveAllSinks();
-		} else {
-			VideoSource->StopThread();
-			delete VideoSource;
-			VideoSource = NULL;
-		}
-	}
-	if (RawRecorder) {
-		RawRecorder->StopThread();
-		delete RawRecorder;
-		RawRecorder = NULL;
-	}
-	if (Mp4Recorder) {
-		Mp4Recorder->StopThread();
-		delete Mp4Recorder;
-		Mp4Recorder = NULL;
-	}
-	if (RtpTransmitter) {
-		RtpTransmitter->StopThread();
-		delete RtpTransmitter;
-		RtpTransmitter = NULL;
-	}
-}
-
-void StartVideoPreview(void)
-{
-	if (VideoSource == NULL) {
-		VideoSource = new CVideoSource();
-		VideoSource->SetConfig(MyConfig);
-		VideoSource->StartThread();
-	}
-
-	VideoSource->StartPreview();
-
-	// TBD
-	//gtk_preview_size(GTK_PREVIEW(video_preview), 
-	//	MyConfig->m_videoWidth, MyConfig->m_videoHeight);
-	//gtk_widget_show(video_preview);
-}
-
-void StopVideoPreview(void)
-{
-	if (VideoSource) {
-		if (!Started) {
-			VideoSource->StopThread();
-			delete VideoSource;
-			VideoSource = NULL;
-		} else {
-			VideoSource->StopPreview();
-		}
-	}
+	gtk_main_quit();
 }
 
 void DisplayVideoSettings(void)
@@ -335,20 +108,20 @@ void DisplayVideoSettings(void)
 	char buffer[256];
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(video_enabled_button),
-		MyConfig->m_videoEnable);
+		MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE));
   
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(video_preview_button),
-		MyConfig->m_videoPreview);
+		MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW));
 
 	snprintf(buffer, sizeof(buffer), " MPEG-4 at %u Kbps",
-		MyConfig->m_videoTargetBitRate);
+		MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE));
 	gtk_label_set_text(GTK_LABEL(video_settings_label1), buffer);
 	gtk_widget_show(video_settings_label1);
 
 	snprintf(buffer, sizeof(buffer), " %ux%u at %u fps", 
 		MyConfig->m_videoWidth,
 		MyConfig->m_videoHeight,
-		MyConfig->m_videoTargetFrameRate);
+		MyConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE));
 	gtk_label_set_text(GTK_LABEL(video_settings_label2), buffer);
 	gtk_widget_show(video_settings_label2);
 }
@@ -358,10 +131,10 @@ void DisplayAudioSettings(void)
 	char buffer[256];
  
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(audio_enabled_button),
-		MyConfig->m_audioEnable);
+		MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE));
   
 	snprintf(buffer, sizeof(buffer), " MP3 at %u Kbps",
-		MyConfig->m_audioTargetBitRate);
+		MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE));
 	gtk_label_set_text(GTK_LABEL(audio_settings_label), buffer);
 	gtk_widget_show(audio_settings_label);
 }
@@ -369,10 +142,10 @@ void DisplayAudioSettings(void)
 void DisplayTransmitSettings (void)
 {
 	char buffer[256];
-	const char *addr = MyConfig->m_rtpDestAddress;
+	const char *addr = MyConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(transmit_enabled_button),
-		MyConfig->m_rtpEnable);
+		MyConfig->GetBoolValue(CONFIG_RTP_ENABLE));
   
 	if (addr == NULL) {
 		gtk_label_set_text(GTK_LABEL(transmit_settings_label), 
@@ -390,12 +163,13 @@ void DisplayRecordingSettings(void)
   char buffer[256];
 
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(record_enabled_button),
-	MyConfig->m_recordEnable);
+	MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE));
   
-  if (MyConfig->m_recordMp4) {
-	fileName = strrchr(MyConfig->m_recordMp4FileName, '/');
+  if (MyConfig->GetBoolValue(CONFIG_RECORD_MP4)) {
+	fileName = strrchr(
+		MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), '/');
 	if (!fileName) {
-		fileName = MyConfig->m_recordMp4FileName;
+		fileName = MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
 	} else {
 		fileName++;
 	}
@@ -410,28 +184,29 @@ void DisplayRecordingSettings(void)
 
 static void on_video_enabled_button (GtkWidget *widget, gpointer *data)
 {
-	MyConfig->m_videoEnable = 
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+	MyConfig->SetBoolValue(CONFIG_VIDEO_ENABLE,
+		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 
-	if (MyConfig->m_videoEnable) {
-		if (MyConfig->m_videoPreview) {
-			StartVideoPreview();
+	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+		if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+			AVFlow->StartVideoPreview();
 		}
 	} else {
-		StopVideoPreview();
+		AVFlow->StopVideoPreview();
 	}
 }
 
 static void on_video_preview_button (GtkWidget *widget, gpointer *data)
 {
-	MyConfig->m_videoPreview = 
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+	MyConfig->SetBoolValue(CONFIG_VIDEO_PREVIEW,
+		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 	
-	if (MyConfig->m_videoEnable && MyConfig->m_videoPreview) {
-		StartVideoPreview();
+	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
+	  && MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+		AVFlow->StartVideoPreview();
 	} else {
 		// whether preview is running or not
-		StopVideoPreview();
+		AVFlow->StopVideoPreview();
 	}
 }
 
@@ -442,13 +217,14 @@ static void on_video_settings_button (GtkWidget *widget, gpointer *data)
 
 static void on_audio_enabled_button (GtkWidget *widget, gpointer *data)
 {
-	MyConfig->m_audioEnable = 
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+	MyConfig->SetBoolValue(CONFIG_AUDIO_ENABLE,
+		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
 static void on_audio_mute_button (GtkWidget *widget, gpointer *data)
 {
-	SetAudio(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+	AVFlow->SetAudioOutput(
+		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
 static void on_audio_settings_button (GtkWidget *widget, gpointer *data)
@@ -458,8 +234,8 @@ static void on_audio_settings_button (GtkWidget *widget, gpointer *data)
 
 static void on_record_enabled_button (GtkWidget *widget, gpointer *data)
 {
-	MyConfig->m_recordEnable = 
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+	MyConfig->SetBoolValue(CONFIG_RECORD_ENABLE,
+		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
 static void on_record_settings_button (GtkWidget *widget, gpointer *data)
@@ -469,8 +245,8 @@ static void on_record_settings_button (GtkWidget *widget, gpointer *data)
 
 static void on_transmit_enabled_button (GtkWidget *widget, gpointer *data)
 {
-	MyConfig->m_rtpEnable = 
-		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+	MyConfig->SetBoolValue(CONFIG_RTP_ENABLE, 
+		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
 static void on_transmit_settings_button (GtkWidget *widget, gpointer *data)
@@ -536,32 +312,52 @@ static gint status_timer (gpointer raw)
 	gtk_label_set_text(GTK_LABEL(duration), buffer);
 	gtk_widget_show(duration);
 
-	if (MyConfig->m_recordEnable) {
+	if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
 		struct stat stats;
-		stat(MyConfig->m_recordMp4FileName, &stats);
+		stat(MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), &stats);
 		snprintf(buffer, sizeof(buffer), " %lu", stats.st_size / 1000000);
 		gtk_label_set_text(GTK_LABEL(current_size), buffer);
 		gtk_widget_show(current_size);
 
 		gtk_label_set_text(GTK_LABEL(current_size_units), "MB");
-		gtk_widget_show(current_size);
+		gtk_widget_show(current_size_units);
+	}
+
+	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+		u_int32_t encodedFrames;
+		AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, &encodedFrames);
+		u_int32_t totalFrames = encodedFrames - StartEncodedFrameNumber;
+
+		snprintf(buffer, sizeof(buffer), " %u", (u_int32_t)
+			(((float)totalFrames / (float)duration_secs) + 0.5));
+		gtk_label_set_text(GTK_LABEL(actual_fps), buffer);
+		gtk_widget_show(actual_fps);
+
+		gtk_label_set_text(GTK_LABEL(actual_fps_units), "fps");
+		gtk_widget_show(actual_fps_units);
 	}
 
 	if (now >= StopTime) {
 		// automatically "press" stop button
 		on_start_button(start_button, NULL);
 
-		// Make sure user knows that were done
-		char *notice;
-
-		if (MyConfig->m_recordEnable && MyConfig->m_rtpEnable) {
-			notice = "Recording and transmission completed";
-		} else if (MyConfig->m_rtpEnable) {
-			notice = "Transmission completed";
+		if (MyConfig->m_appAutomatic) {
+			// In automatic mode, time to exit app
+			gtk_main_quit();
 		} else {
-			notice = "Recording completed";
+			// Make sure user knows that were done
+			char *notice;
+
+			if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)
+			  && MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
+				notice = "Recording and transmission completed";
+			} else if (MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
+				notice = "Transmission completed";
+			} else {
+				notice = "Recording completed";
+			}
+			ShowMessage("Duration Elapsed", notice);
 		}
-		ShowMessage("Duration Elapsed", notice);
 
 		return (FALSE);
 	}
@@ -571,8 +367,11 @@ static gint status_timer (gpointer raw)
 
 static void on_start_button (GtkWidget *widget, gpointer *data)
 {
-	if (!Started) {
-		if (!MyConfig->m_audioEnable && !MyConfig->m_videoEnable) {
+	static bool started = false;
+
+	if (!started) {
+		if (!MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
+		&& !MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 			ShowMessage("Can't record", "Neither audio nor video are enabled");
 			return;
 		}
@@ -580,9 +379,15 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 		// lock out change to settings while media is running
 		LockoutChanges(true);
 
-		StartMedia();
+		AVFlow->Start();
 
 		StartTime = GetTimestamp(); 
+
+		if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+			AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, 
+				&StartEncodedFrameNumber);
+		}
+
 		StopTime = StartTime +
 			gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner))
 			* durationUnitsValues[durationUnitsIndex] * TimestampTicks;
@@ -591,9 +396,10 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 
 		status_timer_id = gtk_timeout_add(1000, status_timer, main_window);
 
-		Started = true;
+		started = true;
+
 	} else {
-		StopMedia();
+		AVFlow->Stop();
 
 		gtk_timeout_remove(status_timer_id);
 
@@ -602,13 +408,21 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 
 		gtk_label_set_text(GTK_LABEL(start_button_label), "  Start  ");
 
-		Started = false;
+		started = false;
 	}
+}
+
+static void on_duration_changed(GtkWidget* widget, gpointer* data)
+{
+	MyConfig->SetIntegerValue(CONFIG_APP_DURATION,
+		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner)));
 }
 
 static void on_duration_units_menu_activate(GtkWidget *widget, gpointer data)
 {
 	durationUnitsIndex = (unsigned int)data & 0xFF;;
+	MyConfig->SetIntegerValue(CONFIG_APP_DURATION_UNITS,
+		durationUnitsValues[durationUnitsIndex]);
 }
 
 static gfloat frameLabelAlignment = 0.025;
@@ -876,11 +690,26 @@ void LayoutControlFrame(GtkWidget* box)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
 
-	adjustment = gtk_adjustment_new(1, 1, 24 * 60 * 60, 1, 0, 0);
+	adjustment = gtk_adjustment_new(
+		MyConfig->GetIntegerValue(CONFIG_APP_DURATION),
+		1, 24 * 60 * 60, 1, 0, 0);
 	duration_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 1, 0);
+	gtk_signal_connect(GTK_OBJECT(duration_spinner),
+		"changed",
+		GTK_SIGNAL_FUNC(on_duration_changed),
+		GTK_OBJECT(duration_spinner));
 	gtk_widget_show(duration_spinner);
 	gtk_box_pack_start(GTK_BOX(hbox), duration_spinner, FALSE, FALSE, 5);
 
+	durationUnitsIndex = 0; 
+	for (u_int8_t i = 0; 
+	  i < sizeof(durationUnitsValues) / sizeof(u_int16_t); i++) {
+		if (MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS) 
+		  == durationUnitsValues[i]) {
+			durationUnitsIndex = i;
+			break;
+		}
+	}
 	duration_units_menu = CreateOptionMenu(NULL,
 		durationUnitsNames, 
 		sizeof(durationUnitsNames) / sizeof(char*),
@@ -949,6 +778,11 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(current_size_label);
 	gtk_box_pack_start(GTK_BOX(vbox), current_size_label, TRUE, TRUE, 0);
 
+	actual_fps_label = gtk_label_new(" Video Frame Rate:");
+	gtk_misc_set_alignment(GTK_MISC(actual_fps_label), 0.0, 0.5);
+	gtk_widget_show(actual_fps_label);
+	gtk_box_pack_start(GTK_BOX(vbox), actual_fps_label, TRUE, TRUE, 0);
+
 	// vbox for values
 	vbox = gtk_vbox_new(FALSE, 1);
 	gtk_widget_show(vbox);
@@ -973,6 +807,11 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_misc_set_alignment(GTK_MISC(current_size), 1.0, 0.5);
 	gtk_widget_show(current_size);
 	gtk_box_pack_start(GTK_BOX(vbox), current_size, TRUE, TRUE, 0);
+
+	actual_fps = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(actual_fps), 1.0, 0.5);
+	gtk_widget_show(actual_fps);
+	gtk_box_pack_start(GTK_BOX(vbox), actual_fps, TRUE, TRUE, 0);
 
 	// vbox for units
 	vbox = gtk_vbox_new(FALSE, 1);
@@ -999,6 +838,11 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(current_size_units);
 	gtk_box_pack_start(GTK_BOX(vbox), current_size_units, TRUE, TRUE, 0);
 
+	actual_fps_units = gtk_label_new("");
+	gtk_misc_set_alignment(GTK_MISC(actual_fps_units), 1.0, 0.5);
+	gtk_widget_show(actual_fps_units);
+	gtk_box_pack_start(GTK_BOX(vbox), actual_fps_units, TRUE, TRUE, 0);
+
 	gtk_widget_show(frame); // show control frame
 }
 
@@ -1009,13 +853,7 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 {
 	MyConfig = pConfig;
 
-	// TBD remember video device 
-
-	InitialVideoProbe(MyConfig);
-
-	// if failed to find a video capture device
-	// should notify user
-	// also note if video device was automatically changed
+	AVFlow = new CAVMediaFlow(pConfig);
 
 	gtk_init(&argc, &argv);
 
@@ -1086,13 +924,19 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 
 	gtk_widget_show(main_window);
 
-	// TBD if video device was changed, show message?
-	// ???
-	if (MyConfig->m_videoEnable && MyConfig->m_videoPreview) {
-		StartVideoPreview();
+	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
+	  && MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+		AVFlow->StartVideoPreview();
+	}
+
+	// "press" start button
+	if (MyConfig->m_appAutomatic) {
+		on_start_button(start_button, NULL);
 	}
 
 	gtk_main();
+
+	delete AVFlow;
 
 	return 0;
 }

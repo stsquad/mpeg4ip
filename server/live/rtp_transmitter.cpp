@@ -61,46 +61,57 @@ void CRtpTransmitter::DoStartTransmit()
 
 	m_startTimestamp = GetTimestamp();
 
-	if (m_pConfig->m_audioEnable) {
-		m_audioDestAddress = m_pConfig->m_rtpDestAddress; 
+	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+		m_audioTimeScale = 
+			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 
-		if (m_pConfig->m_rtpDisableTimestampOffset) {
+		m_audioDestAddress = 
+			m_pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS); 
+
+		if (m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET)) {
 			m_audioRtpTimestampOffset = 0;
 		} else {
 			m_audioRtpTimestampOffset = random();
 		}
 
 		m_audioSrcPort = GetRandomPortBlock();
-		if (m_pConfig->m_rtpAudioDestPort == 0) {
-			m_pConfig->m_rtpAudioDestPort = m_audioSrcPort + 2;
+		if (m_pConfig->GetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT) == 0) {
+			m_pConfig->SetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT,
+				m_audioSrcPort + 2);
 		}
 
 		m_audioRtpSession = rtp_init(m_audioDestAddress, 
-			m_audioSrcPort, m_pConfig->m_rtpAudioDestPort, 
-			m_pConfig->m_rtpMulticastTtl, m_rtcpBandwidth, 
+			m_audioSrcPort, 
+			m_pConfig->GetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT),
+			m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL), 
+			m_rtcpBandwidth, 
 			RtpCallback, this);
 
 		m_mp3QueueCount = 0;
 		m_mp3QueueSize = 0;
 	}
 
-	if (m_pConfig->m_videoEnable) {
-		m_videoDestAddress = m_pConfig->m_rtpDestAddress; 
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+		m_videoDestAddress = 
+			m_pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS); 
 
-		if (m_pConfig->m_rtpDisableTimestampOffset) {
+		if (m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET)) {
 			m_videoRtpTimestampOffset = 0;
 		} else {
 			m_videoRtpTimestampOffset = random();
 		}
 
 		m_videoSrcPort = GetRandomPortBlock();
-		if (m_pConfig->m_rtpVideoDestPort == 0) {
-			m_pConfig->m_rtpVideoDestPort = m_videoSrcPort + 2;
+		if (m_pConfig->GetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT) == 0) {
+			m_pConfig->SetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT,
+				m_videoSrcPort + 2);
 		}
 
 		m_videoRtpSession = rtp_init(m_videoDestAddress, 
-			m_videoSrcPort, m_pConfig->m_rtpVideoDestPort, 
-			m_pConfig->m_rtpMulticastTtl, m_rtcpBandwidth, 
+			m_videoSrcPort, 
+			m_pConfig->GetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT),
+			m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL), 
+			m_rtcpBandwidth, 
 			RtpCallback, this);
 	}
 
@@ -159,8 +170,8 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 void CRtpTransmitter::SendMp3AudioWith2250(CMediaFrame* pFrame)
 {
 	// if this frame would overflow current rtp packet
-	if ((u_int16_t)(m_pConfig->m_rtpPayloadSize - m_mp3QueueSize)
-	  < pFrame->GetDataLength() + mp3PayloadHeaderSize) {
+	if ((u_int16_t)(m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)
+	  - m_mp3QueueSize) < pFrame->GetDataLength() + mp3PayloadHeaderSize) {
 
 		// send queued frames
 		SendMp3QueuedFrames();
@@ -169,7 +180,7 @@ void CRtpTransmitter::SendMp3AudioWith2250(CMediaFrame* pFrame)
 	// OPTION might want to treat greater than 1/2 payload size as jumbo
 
 	if (pFrame->GetDataLength() + mp3PayloadHeaderSize 
-	  < m_pConfig->m_rtpPayloadSize) {
+	  < m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
 
 		// by here we are guaranteed mp3 frame 
 		// will fit in packet so queue it up
@@ -198,6 +209,15 @@ void CRtpTransmitter::SendMp3QueuedFrames(void)
 		return;
 	}
 
+	u_int32_t rtpTimestamp =
+		AudioTimestampToRtp(m_mp3Queue[0]->GetTimestamp());
+	u_int64_t ntpTimestamp =
+		TimestampToNtp(m_mp3Queue[0]->GetTimestamp());
+
+	// check if RTCP SR needs to be sent
+	rtp_send_ctrl_2(m_audioRtpSession, rtpTimestamp, ntpTimestamp, NULL);
+	rtp_update(m_audioRtpSession);
+
 	// create the iovec list
 	for (int i = 0; i < 2 * m_mp3QueueCount; ) {
 		iov[i].iov_base = &zero32;
@@ -209,9 +229,9 @@ void CRtpTransmitter::SendMp3QueuedFrames(void)
 	// send packet
 	rtp_send_data_iov(
 		m_audioRtpSession,
-		ConvertAudioTimestamp(m_mp3Queue[0]->GetTimestamp()),
+		rtpTimestamp,
 		m_audioPayloadNumber, 1, 0, NULL,
-		iov, m_mp3QueueCount,
+		iov, 2 * m_mp3QueueCount,
 		NULL, 0, 0);
 
 	// delete all the pending media frames
@@ -226,12 +246,20 @@ void CRtpTransmitter::SendMp3QueuedFrames(void)
 
 void CRtpTransmitter::SendMp3JumboFrame(CMediaFrame* pFrame)
 {
+	u_int32_t rtpTimestamp = 
+		AudioTimestampToRtp(pFrame->GetTimestamp());
+	u_int64_t ntpTimestamp =
+		TimestampToNtp(pFrame->GetTimestamp());
+
+	// check if RTCP SR needs to be sent
+	rtp_send_ctrl_2(m_videoRtpSession, rtpTimestamp, ntpTimestamp, NULL);
+	rtp_update(m_audioRtpSession);
+
 	u_int32_t dataOffset = 0;
 	u_int32_t spaceAvailable = 
-		m_pConfig->m_rtpPayloadSize - mp3PayloadHeaderSize;
+		m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)
+		- mp3PayloadHeaderSize;
 	bool firstPacket = true;
-
-	Timestamp timestamp = ConvertAudioTimestamp(pFrame->GetTimestamp());
 
 	u_int8_t payloadHeader[4];
 	payloadHeader[0] = payloadHeader[1] = 0;
@@ -254,7 +282,7 @@ void CRtpTransmitter::SendMp3JumboFrame(CMediaFrame* pFrame)
 		// send packet
 		rtp_send_data_iov(
 			m_audioRtpSession,
-			timestamp,
+			rtpTimestamp,
 			m_audioPayloadNumber, firstPacket, 0, NULL,
 			iov, 2,
 		 	NULL, 0, 0);
@@ -269,6 +297,15 @@ void CRtpTransmitter::SendMp3JumboFrame(CMediaFrame* pFrame)
 
 void CRtpTransmitter::SendMpeg4VideoWith3016(CMediaFrame* pFrame)
 {
+	u_int32_t rtpTimestamp =
+		VideoTimestampToRtp(pFrame->GetTimestamp());
+	u_int64_t ntpTimestamp =
+		TimestampToNtp(pFrame->GetTimestamp());
+
+	// check if RTCP SR needs to be sent
+	rtp_send_ctrl_2(m_videoRtpSession, rtpTimestamp, ntpTimestamp, NULL);
+	rtp_update(m_videoRtpSession);
+
 	u_int8_t* pData = (u_int8_t*)pFrame->GetData();
 	u_int32_t bytesToSend = pFrame->GetDataLength();
 	struct iovec iov;
@@ -277,11 +314,13 @@ void CRtpTransmitter::SendMpeg4VideoWith3016(CMediaFrame* pFrame)
 		u_int32_t payloadLength;
 		bool lastPacket;
 
-		if (bytesToSend <= m_pConfig->m_rtpPayloadSize) {
+		if (bytesToSend 
+		  <= m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
 			payloadLength = bytesToSend;
 			lastPacket = true;
 		} else {
-			payloadLength = m_pConfig->m_rtpPayloadSize;
+			payloadLength = 
+				m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
 			lastPacket = false;
 		}
 
@@ -290,7 +329,7 @@ void CRtpTransmitter::SendMpeg4VideoWith3016(CMediaFrame* pFrame)
 
 		rtp_send_data_iov(
 			m_videoRtpSession,
-			ConvertVideoTimestamp(pFrame->GetTimestamp()),
+			rtpTimestamp,
 			m_videoPayloadNumber, lastPacket, 0, NULL,
 			&iov, 1,
 		 	NULL, 0, 0);

@@ -340,11 +340,114 @@ int rtsp_setup_redirect (rtsp_client_t *info)
   return (rtsp_setup_url(info, decode->location));
 }
 
-int rtsp_is_url_my_stream (const char *url,
-			   rtsp_session_t *session)
+
+/* return last occurrence of needle in haystack */
+static const char *my_strrstr (const char *haystack, const char *needle)
 {
-  if (strcmp(url, session->url) == 0) {
-    return 1;
-  }
-  return (0);
+   size_t needle_len = strlen(needle);
+   size_t haystack_len = strlen(haystack);
+
+   haystack_len -= needle_len;
+   while (haystack_len > 0) {
+     if (strncmp(haystack + haystack_len, needle, needle_len) == 0) {
+        return (haystack + haystack_len);
+     }
+     haystack_len--;
+   }
+   return (NULL);
 }
+
+/* 
+ * removes the overlap between the base_url and the control_string
+ * the base_url will never contain /trackID= x, so remove it
+ * Example: rm_rtsp_overlap("rtsp://www.blah.com/foo", "foo/trackId=2")
+ *          will return "rtsp://www.blah.com/foo/trackId=2"
+ */
+static char *rm_rtsp_overlap (const char *control_string, const char *base_url)
+{
+  char *str = NULL;
+  size_t cblen = 0; 
+  char *file_ptr = strrchr(control_string, '/'); 
+
+  if (file_ptr != NULL && file_ptr != control_string) {
+    char *path = NULL;
+    char *last_path_in_base = NULL;
+	size_t control_len = strlen(control_string);
+	size_t file_len = strlen(file_ptr);
+	size_t last_path_len = 0;
+
+    /* path will contain control str without /trackID = x at the end */
+    path = (char *)malloc(control_len - file_len + 1);
+    if (path == NULL) 
+      exit(EXIT_FAILURE);
+    strncpy (path, control_string, control_len - file_len);
+    path[control_len - file_len] = '\0';
+
+    last_path_in_base = strdup(my_strrstr(base_url, path));
+	if (last_path_in_base != NULL) 
+	  last_path_len = strlen(last_path_in_base);
+    if (last_path_in_base == NULL 
+		|| last_path_len != strlen(path)) {
+	  /* couldn't find path in base url or isn't at end of base url */
+      free(path);
+	  free(last_path_in_base);
+      return ((char *)NULL);
+    } 
+	else {
+	  /* make sure there is one and only one '/' between the base url
+       * and the control string */
+      cblen = strlen(base_url) - last_path_len;
+      if (*control_string != '/') {
+        cblen +=1;
+      }
+      str = (char *)malloc(cblen + control_len +1);
+      if (str == NULL) 
+        exit(EXIT_FAILURE);
+      /* copy base_url up to last occurrence of path */
+      strncpy(str, base_url, cblen);
+      str[cblen] = '\0';
+      strcat(str, control_string);
+      free(path);
+    }
+	free(last_path_in_base);
+  }
+  return ((char *)str);
+}
+
+
+/* 
+ * attempts to match the session url with  
+ * content_base/url or session_name/url
+ * if content base and url overlap, or if session_name and 
+ * url overlap, remove the overlap and attempt to match again
+ * return 1 if matched, 0 otherwise
+ */
+int rtsp_is_url_my_stream (rtsp_session_t *session, const char *url,
+						  const char *content_base, const char *session_name)
+{ 
+  char *session_url = session->url;
+  const char *end =  my_strrstr(session_url, url); 
+  int is_match = 0;
+
+  if (end != NULL  || strcmp(url,"*") == 0) {
+	if (strncmp(session_url, content_base,
+				strlen(session_url) - strlen(end)) == 0
+		|| strncmp(session_url, session_name, 
+				   strlen(session_url) - strlen(end)) == 0) {
+	  is_match = 1;
+	}
+	else {
+	  /* url isn't contained in the session_url */
+	  /* check if there is an overlap */
+	  char *str1 = rm_rtsp_overlap(url, content_base);
+	  char *str2 = rm_rtsp_overlap(url, session_name);
+	  if (strcmp(session_url, str1) == 0 
+		  || strcmp(session_url, str2) == 0)  
+		is_match = 1;
+	  free(str1);
+	  free(str2);
+	}
+  }
+  return (is_match);
+}
+

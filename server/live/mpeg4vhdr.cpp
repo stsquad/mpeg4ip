@@ -38,8 +38,9 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 	bool want_vosh = false;			
 	bool want_vo = true;		
 	bool want_vol = true;	
-	bool want_short_time = false;
-	bool want_variable_rate = false;
+	bool want_short_time = 
+		!pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER);
+	bool want_variable_rate = true;
 
 	BitBuffer config;
 	init_putbits(&config, (5 + 9 + 20) * 8);
@@ -49,7 +50,8 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		putbits(&config, 0x000001B0, 32);
 
 		// profile_level_id, default is 3, Simple Profile @ Level 3
-		putbits(&config, pConfig->m_videoProfileLevelId, 8);
+		putbits(&config, 
+			pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_LEVEL_ID), 8);
 	}
 
 	if (want_vo) {
@@ -79,7 +81,7 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		 * 		= 1 (simple profile)
 		 * 		= 4 (main profile)
 		 */
-		putbits(&config, pConfig->m_videoProfileId, 8);
+		putbits(&config, pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID), 8);
 		/* 1 bit - is object layer id = 1 */
 		putbits(&config, 1, 1);
 		/* 4 bits - visual object layer ver id = 2 */
@@ -96,9 +98,9 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		/* 1 bit - marker = 1 */
 		putbits(&config, 1, 1);
 
-		u_int16_t frameRate = pConfig->m_videoTargetFrameRate;
+		u_int16_t frameRate = pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
 		u_int16_t ticks;
-		if (want_short_time && frameRate == (float)((int)frameRate)) {
+		if (want_short_time /*&& frameRate == (float)((int)frameRate)*/) {
 			ticks = (u_int16_t)frameRate;
 		} else {
 			ticks = 30000;
@@ -113,7 +115,7 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		} else {
 			u_int16_t frameDuration = 
 				(u_int16_t)((float)ticks / frameRate);
-			u_int8_t rangeBits = 0;
+			u_int8_t rangeBits = 1;
 
 			putbits(&config, 1, 1);
 
@@ -151,6 +153,10 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		/* 1 bit - resync marker disable = 1 */
 		putbits(&config, 1, 1);
 		/* 1 bit - data partitioned = 0 */
+		putbits(&config, 0, 1);
+		/* 1 bit - newpred = 0 */
+		putbits(&config, 0, 1);
+		/* 1 bit - reduced resolution vop = 0 */
 		putbits(&config, 0, 1);
 		/* 1 bit - scalability = 0 */
 		putbits(&config, 0, 1);

@@ -59,11 +59,20 @@ int create_media_for_divx_file (CPlayerSession *psptr,
 #if 0
   ret = newdec_read_volvop();
 #else
-  ret = getvolhdr();
+  do {
+    try {
+      ret = getvolhdr();
+      if (ret == 1) {
+	player_debug_message("Found vol in divx file");
+      }
+    } catch (const char *err) {
+      ret = -1;
+    }
+  } while (ret == 0);
 #endif
   delete fbyte;
   fbyte = NULL;
-  if (ret == 0) {
+  if (ret <= 0) {
     vid = (video_info_t *)malloc(sizeof(video_info_t));
     vid->height = 240;
     vid->width = 320;

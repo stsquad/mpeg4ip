@@ -53,7 +53,6 @@ CAACodec::CAACodec (CAudioSync *a,
 {
   fmtp_parse_t *fmtp = NULL;
   // Start setting up FAAC stuff...
-  m_info = faacDecOpen();
   m_bytestream = pbytestrm;
 
   m_resync_with_header = 1;
@@ -86,10 +85,12 @@ CAACodec::CAACodec (CAudioSync *a,
   }
   m_chans = 2; // this may be wrong - the isma spec, Appendix A.1.1 of
   m_output_frame_size = 1024;
+  m_object_type = AACMAIN;
   // Appendix H says the default is 1 channel...
   if (userdata != NULL || fmtp != NULL) {
     mpeg4_audio_config_t audio_config;
     decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
+    m_object_type = audio_config.audio_object_type;
     m_freq = audio_config.frequency;
     m_chans = audio_config.channels;
     if (audio_config.codec.aac.frame_len_1024 == 0) {
@@ -97,6 +98,8 @@ CAACodec::CAACodec (CAudioSync *a,
     }
   }
 
+  player_debug_message("AAC object type is %d", m_object_type);
+  m_info = faacDecOpen(m_object_type);
   m_msec_per_frame = m_output_frame_size;
   m_msec_per_frame *= M_LLU;
   m_msec_per_frame /= m_freq;
@@ -149,7 +152,6 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
   //  struct timezone tz;
 
   if (m_record_sync_time) {
-    m_first_time_offset = 0;
     m_current_frame = 0;
     m_record_sync_time = 0;
     m_current_time = rtpts;

@@ -234,7 +234,8 @@ int encore(unsigned long handle, unsigned long enc_opt, void *param1, void *para
 	fprintf(ftrace, "\nCoding frame #%d\n", ref_curr->seq);
 #endif
 
-	if (ref_curr->curr_run % ref_curr->max_key_interval == 0) {
+	if ((enc_opt & ENC_OPT_WANT_KEY_FRAME)
+	  || ref_curr->curr_run % ref_curr->max_key_interval == 0) {
 		curr->prediction_type = I_VOP;
 #ifdef _RC_
 	fprintf(ftrace, "This frame is forced to be coded in INTRA.\n");
@@ -385,8 +386,10 @@ int PutVoVolHeader(int vol_width, int vol_height, int time_increment_resolution,
 	Bitstream_PutBits(1, 1);				/* complexity_estimation_disabled = 1		*/
 	Bitstream_PutBits(1, 1);				/* resync_marker_disabled = 1				*/
 	Bitstream_PutBits(1, 0);				/* data_partitioning_enabled = 0			*/
+	Bitstream_PutBits(1, 0);				/* newpred = 0							*/
+	Bitstream_PutBits(1, 0);				/* reduced resolution vop = 0							*/
 	Bitstream_PutBits(1, 0);				/* scalability = 0							*/
-	written += 1 + 1 + 1 + 1 + 1 + 1;
+	written += 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1;
 
 	written += Bitstream_NextStartCode();
 

@@ -16,7 +16,6 @@ SAD_Macroblock_mmx:
 	push ebp;
 	mov ebp, esp;
 
-	push eax;
 	push ebx;
 	push ecx;
 	push edx;
@@ -25,7 +24,10 @@ SAD_Macroblock_mmx:
 
 	mov MB1, [ebp+8];
 	mov MB2, [ebp+12];
-	sub DWORD [MB1_ROW_INC], 32;
+	mov eax, DWORD [MB1_ROW_INC];
+	sub eax, 16;
+	imul eax, 2;
+	mov DWORD [MB1_ROW_INC], eax;
 	mov MIN_ERR, [ebp+20];
 	mov SAD, 0;
 	mov ROW, 16;
@@ -71,7 +73,6 @@ sad_mb_done:
 	pop edx;
 	pop ecx;
 	pop ebx;
-	pop eax;
 
 	emms;
 	pop ebp;

@@ -20,4 +20,4 @@ EXTRA_DIST =			\
 	README			\
 	README.LIB
 
-AM_CXXFLAGS = -D_REENTRANT -Werror -Wall -fexceptions -I../../SDL/include -I../../../../include
+AM_CXXFLAGS = -D_REENTRANT -Werror -Wall -fexceptions -I$(top_srcdir)/lib/SDL/include -I../../../../include

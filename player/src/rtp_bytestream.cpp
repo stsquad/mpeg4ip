@@ -25,7 +25,7 @@
 #include <sdp/sdp.h> // for NTP_TO_UNIX_TIME
 #include "rtp_bytestream.h"
 #include "our_config_file.h"
-
+//#define DEBUG_RTP_PAKS 1
 /*
  * add_rtp_packet_to_queue() - adds rtp packet to doubly linked lists - 
  * this is used both by the bytestream, and by the player_media when trying
@@ -38,25 +38,30 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
   rtp_packet *q;
   int inserted = TRUE;
   int16_t diff;
-#if 0
-    player_debug_message("CBThread %u - m %u pt %u seq %x ts %u len %d", 
-			 SDL_ThreadID(),
-			 pak->m, pak->pt, pak->seq, pak->ts, 
-			 
-			 pak->data_len);
+#ifdef DEBUG_RTP_PAKS
+  player_debug_message("CBThread %u - m %u pt %u seq %x ts %x len %d", 
+		       SDL_ThreadID(),
+		       pak->m, pak->pt, pak->seq, pak->ts, 
+		       pak->data_len);
 #endif
   
   if (*head == NULL) {
     *head = *tail = pak;
   } else if (*head == *tail) {
-    (*head)->next = pak;
-    (*head)->prev = pak;
-    pak->next = pak->prev = *head;
-    diff = pak->seq - (*head)->seq;
-    if (diff > 0) {
-      *tail = pak;
+    if (pak->seq == (*head)->seq) {
+      player_debug_message("Duplicate RTP sequence number %d received", 
+			   pak->seq);
+      inserted = FALSE;
     } else {
-      *head = pak;
+      (*head)->next = pak;
+      (*head)->prev = pak;
+      pak->next = pak->prev = *head;
+      diff = pak->seq - (*head)->seq;
+      if (diff > 0) {
+	*tail = pak;
+      } else {
+	*head = pak;
+      }
     }
   } else if ((((*head)->seq < (*tail)->seq) &&
 	      ((pak->seq > (*tail)->seq) || pak->seq < (*head)->seq)) ||
@@ -149,7 +154,7 @@ CRtpByteStreamBase::CRtpByteStreamBase(unsigned int rtp_proto,
     m_rtp_buffer_time = temp;
     m_rtp_buffer_time *= M_LLU;
   } else {
-    m_rtp_buffer_time = 2 * M_LLU;
+    m_rtp_buffer_time = (ondemand ? 2 : 5)* M_LLU;
   }
 
   m_rtptime_tickpersec = tps;
@@ -223,36 +228,8 @@ void CRtpByteStreamBase::check_for_end_of_pak (int nothrow)
     return;
   }
 
-  // Not a bookmark - remove the packet at the head, and make sure that
-  // the sequence number is correct.
-  if (SDL_mutexP(m_rtp_packet_mutex) == -1) {
-      player_error_message("SDL Lock mutex failure in decode thread");
-      m_pak = NULL;
-      if (nothrow == 0) {
-	throw "SDL lock failure";
-      }
-      return;
-  }
-
-  p = m_head;
-  if (m_head->next == NULL || m_head->next == m_head) {
-    m_head = NULL;
-    m_tail = NULL;
-  } else {
-    m_head = p->next;
-    m_head->prev = m_tail;
-    m_tail->next = m_head;
-  }
-  if (SDL_mutexV(m_rtp_packet_mutex) == -1) {
-    player_error_message("SDL unlock mutex failure in decode thread");
-    if (nothrow == 0) {
-      throw "SDL unlock";
-    }
-    return;
-  }
-  nextseq = p->seq + 1;
-  xfree(p);
-
+  nextseq = m_head->seq + 1;
+  remove_packet_rtp_queue(m_head, 1);
   /*
    * Check the sequence number...
    */
@@ -262,10 +239,16 @@ void CRtpByteStreamBase::check_for_end_of_pak (int nothrow)
   }
 
   if (m_head) {
-    err = "Sequence number violation";
+    if (m_bookmark_set == 0)
+      err = "Sequence number violation";
+    else 
+      err = "Bookmark sequence number violation";
     player_debug_message("seq # violation - should %d is %d", nextseq, m_head->seq);
   } else {
-    err = "No more data";
+    if (m_bookmark_set == 0) 
+      err = "No more data";
+    else
+      err = "Bookmark no more data";
   }
   m_pak = NULL;
   init();
@@ -355,13 +338,13 @@ uint64_t CRtpByteStreamBase::start_next_frame (void)
     timetick /= m_rtptime_tickpersec;
     timetick += m_wallclock_offset;
 #if 0
-	player_debug_message("time %x "LLX" "LLX" "LLX" "LLX,
-			m_ts, m_wrap_offset, m_rtptime_tickpersec, m_wallclock_offset,
-			timetick);
+    player_debug_message("time %x "LLU" "LLU" "LLU" "LLU "offset %d",
+			 m_ts, m_wrap_offset, m_rtptime_tickpersec, m_wallclock_offset,
+			 timetick, m_offset_in_pak);
 #endif
   }
+
   return (timetick);
-					   
 }
 
 size_t CRtpByteStreamBase::read (unsigned char *buffer, size_t bytes_to_read)
@@ -428,7 +411,12 @@ CRtpByteStreamBase::calculate_wallclock_offset_from_rtcp (uint32_t ntp_frac,
   offset /= m_rtptime_tickpersec;
   // offset is now a consistent offset between wall clock time and rtp
   // for rtp ts 0.
-  set_wallclock_offset(wclock - offset);
+  wclock -= offset;
+#if 0
+  player_debug_message("wallclock offset is %llu - prev %llu", 
+		       wclock, m_wallclock_offset);
+#endif
+  set_wallclock_offset(wclock);
 }
 
 /*
@@ -463,31 +451,48 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
 					 srpak->ntp_sec, 
 					 srpak->rtp_ts);
     break;
+  default:
 #if 0
     player_debug_message("Thread %u - Callback from rtp with %d %p", 
 			 SDL_ThreadID(),e->type, e->data);
 #endif
     break;
-  default:
     break;
   }
+}
+void CRtpByteStreamBase::remove_packet_rtp_queue (rtp_packet *pak, 
+						       int free)
+{
+  SDL_LockMutex(m_rtp_packet_mutex);
+  if ((m_head == pak) &&
+      (m_head->next == NULL || m_head->next == m_head)) {
+    m_head = NULL;
+    m_tail = NULL;
+  } else {
+    pak->next->prev = pak->prev;
+    pak->prev->next = pak->next;
+    if (m_head == pak) {
+      m_head = pak->next;
+    }
+    if (m_tail == pak) {
+      m_tail = pak->prev;
+    }
+  }
+  if (pak->data_len < 0) {
+    // restore the packet data length
+    pak->data_len = 0 - pak->data_len;
+  }
+  if (free == 1) {
+    xfree(pak);
+  }
+  SDL_UnlockMutex(m_rtp_packet_mutex);
 }
 
 void CRtpByteStreamBase::flush_rtp_packets (void)
 {
-  SDL_mutexP(m_rtp_packet_mutex);
-  if (m_head != NULL) {
-    m_tail->next = NULL;
-    while (m_head != NULL) {
-      rtp_packet *p;
-      p = m_head;
-      m_head = m_head->next;
-      p->next = p->prev = NULL;
-      xfree(p);
-    }
+  while (m_head != NULL) {
+    remove_packet_rtp_queue(m_head, 1);
   }
-  m_tail = NULL;
-  SDL_mutexV(m_rtp_packet_mutex);
 }
 
 /*
@@ -536,9 +541,6 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	calc = (tail_ts - head_ts);
 	calc *= M_LLU;
 	calc /= m_rtptime_tickpersec;
-#if 0
-	player_debug_message("head %u tail %u diff %u div %u in queue %u - time diff is %g", head_ts, tail_ts, tail_ts - head_ts, m_rtptime_tickpersec, m_rtp_queue_len, calc);
-#endif
 	if (calc > m_rtp_buffer_time) {
 	  if (m_rtp_rtpinfo_received == 0) {
 	    player_debug_message("Setting rtp seq and time from 1st pak");

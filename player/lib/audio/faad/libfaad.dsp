@@ -42,7 +42,7 @@ RSC=rc.exe
 # ADD BASE RSC /l 0x809 /d "NDEBUG"
 # ADD RSC /l 0x809 /d "NDEBUG"
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /G6 /W3 /O2 /Ob2 /D "_MBCS" /D "_LIB" /D "WIN32" /D "NDEBUG" /YX /FD /c
+# ADD CPP /nologo /GB /MD /W3 /GX /O2 /Ob1 /D "_MBCS" /D "_LIB" /D "WIN32" /D "NDEBUG" /YX /FD /c
 # SUBTRACT CPP /Fr
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
@@ -67,7 +67,7 @@ RSC=rc.exe
 # ADD BASE RSC /l 0x809 /d "_DEBUG"
 # ADD RSC /l 0x809 /d "_DEBUG"
 # ADD BASE CPP /nologo /W3 /GX /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /ZI /GZ /c
-# ADD CPP /nologo /MTd /W3 /GX /Od /I "..\\" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /FR /YX /FD /ZI /GZ /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "..\\" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /FR /YX /FD /ZI /GZ /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -107,6 +107,16 @@ SOURCE=.\dolby_adapt.c
 # Begin Source File
 
 SOURCE=.\fastfft.c
+
+!IF  "$(CFG)" == "libfaad - Win32 Release"
+
+# ADD CPP /GX-
+# SUBTRACT CPP /O<none>
+
+!ELSEIF  "$(CFG)" == "libfaad - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

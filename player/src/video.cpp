@@ -27,6 +27,7 @@
 #include <SDL_syswm.h>
 //#define VIDEO_SYNC_PLAY 1
 //#define VIDEO_SYNC_FILL 1
+//#define SHORT_VIDEO 1
 
 CVideoSync::CVideoSync (void)
 {
@@ -208,7 +209,11 @@ int CVideoSync::is_video_ready (uint64_t &disptime)
   if (m_dont_fill) {
     return 0;
   }
+#ifdef SHORT_VIDEO
+  return (m_buffer_filled[m_play_index] == 1);
+#else
   return (m_buffer_filled[(m_play_index + 2*MAX_VIDEO_BUFFERS/3) % MAX_VIDEO_BUFFERS] == 1);
+#endif
 }
 
 void CVideoSync::play_video (void) 

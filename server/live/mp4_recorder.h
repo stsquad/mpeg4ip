@@ -66,7 +66,15 @@ protected:
 	void Write2250Hints(CMediaFrame* pFrame);
 
 	void Write3016Hints(CMediaFrame* pFrame);
-	void Write3016Hints(u_int32_t frameLength, bool isIFrame);
+	void Write3016Hints(u_int32_t frameLength, 
+		bool isIFrame, u_int32_t frameDuration);
+
+	inline u_int32_t ConvertVideoDuration(Duration d) {
+		register u_int32_t temp = (u_int32_t)
+			((d * m_videoTimeScale) / (TimestampTicks / 2));
+		register u_int32_t rounder = ((temp % 10) >= 5) ? 1 : 0;	
+		return (temp / 2 + rounder); 
+	}
 
 protected:
 	bool			m_record;
@@ -98,7 +106,7 @@ protected:
 
 	u_int32_t		m_movieTimeScale;
 	u_int32_t		m_audioTimeScale;
-	u_int32_t		m_audioFrameDuration;
+	u_int32_t		m_audioFrameDuration;	// in audioTimeScale ticks
 	u_int32_t		m_videoTimeScale;
 
 	u_int32_t		m_audioPayloadNumber;

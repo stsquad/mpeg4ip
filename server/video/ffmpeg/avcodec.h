@@ -33,6 +33,8 @@ typedef struct AVEncodeContext {
     /* audio only */
     int channels;
 
+	int want_key_frame;	/* mechanism for app to ask for a key frame */
+
     /* the following data should not be initialized */
     int frame_size; /* in samples, initialized when calling 'init' */
     int frame_number; /* audio or video frame number */

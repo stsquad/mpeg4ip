@@ -265,3 +265,33 @@ bool getAacChannelConfiguration(FILE* inFile, u_int* pChannelConfig)
 	return TRUE;
 }
 
+/* return size of max of first n AAC frames in file */
+u_int16_t getMaxAACFrameSize (FILE *inFile, int numFrames) {
+  u_int16_t maxFrameSize = 0;
+  u_int16_t frameSize = 0;
+  fpos_t curPos;
+  u_int8_t hdrBuf[ADTS_HEADER_MAX_SIZE];
+  int i = 0;
+  int hdrByteSize;
+  char pBuf[4096];
+  /* */
+  fgetpos(inFile, &curPos);
+  rewind(inFile);
+  for (i = 0; i < numFrames; i++) {
+	/* load next AAC frame header*/
+	if (!loadNextAdtsHeader(inFile, hdrBuf)) {
+	  break;
+	}
+	frameSize = getAdtsFrameSize(hdrBuf);
+	hdrByteSize = getAdtsHeaderByteSize(hdrBuf);
+	/* adjust the frame size to what remains to be read */
+	frameSize -= hdrByteSize;
+	fread(&pBuf[hdrByteSize], 1, frameSize, inFile);
+	/*lseek(inFile, frameSize, SEEK_CUR);*/
+	if (frameSize > maxFrameSize) {
+	  maxFrameSize = frameSize;
+	}
+  }
+  fsetpos(inFile, &curPos);
+  return maxFrameSize;
+}

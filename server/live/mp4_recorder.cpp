@@ -61,60 +61,34 @@ void CMp4Recorder::DoStartRecord()
 		return;
 	}
 
-	m_mp4File = quicktime_open(m_pConfig->m_recordMp4FileName, 0, 1, 0);
+	m_mp4File = quicktime_open(
+		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME), 0, 1, 0);
 
 	if (!m_mp4File) {
 		return;
 	}
 
-	m_audioTimeScale = m_pConfig->m_audioSamplingRate;
-	m_audioFrameDuration = m_audioTimeScale / MP3_SAMPLES_PER_FRAME;
+	m_audioTimeScale = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+	m_audioFrameDuration = MP3_SAMPLES_PER_FRAME;
 
-	if (m_pConfig->m_videoEnable) {
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 		quicktime_set_time_scale(m_mp4File, m_videoTimeScale);
 	} else {
 		quicktime_set_time_scale(m_mp4File, m_audioTimeScale);
 	}
 
-	if (m_pConfig->m_audioEnable) {
-		quicktime_set_audio(m_mp4File, 2, m_pConfig->m_audioSamplingRate, 16, 
-			0, m_audioTimeScale, MP3_SAMPLES_PER_FRAME, "mp3 ");
-
-		m_audioFrameNum = 1;
-
-		m_audioPayloadNumber = 14;	// static payload for MPEG Audio
-		m_audioFrameRate = 
-			m_pConfig->m_audioSamplingRate / MP3_SAMPLES_PER_FRAME;
-
-		m_audioHintTrack = quicktime_set_audio_hint(m_mp4File, m_audioTrack,
-			"MPA", &m_audioPayloadNumber, m_pConfig->m_rtpPayloadSize);
-
-		m_audioRtpPktNum = 1;
-		m_audioHintBufLength = 0;
-		m_audioFramesThisHint = 0;
-		m_audioBytesThisHint = 0;
-		m_audioBytesThisSec = 0;
-		m_audioFirstRtpPktThisSec = m_audioRtpPktNum;
-		m_audioMaxRtpBytesPerSec = 0;
-
-		quicktime_init_hint_sample(m_audioHintBuf, &m_audioHintBufLength);
-		quicktime_add_hint_packet(m_audioHintBuf, &m_audioHintBufLength, 
-			m_audioPayloadNumber, m_audioRtpPktNum);
-
-		// RFC 2250 uses RTP M-bit for start of frame
-		quicktime_set_hint_Mbit(m_audioHintBuf);
-	}
-
-	if (m_pConfig->m_videoEnable) {
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 		quicktime_set_video(m_mp4File, 1, 
-			m_pConfig->m_videoWidth, m_pConfig->m_videoHeight,
-			m_pConfig->m_videoTargetFrameRate, m_videoTimeScale,
+			m_pConfig->m_videoWidth, 
+			m_pConfig->m_videoHeight,
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE), 
+			m_videoTimeScale,
 			"mp4v");
 
 		m_videoFrameNum = 1;
 
 		quicktime_set_iod_video_profile_level(m_mp4File,
-			m_pConfig->m_videoProfileLevelId);
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_ID));
 
 		/* create the appropriate MP4 decoder config in the iod */
 		quicktime_set_mp4_video_decoder_config(m_mp4File, m_videoTrack, 
@@ -125,44 +99,86 @@ void CMp4Recorder::DoStartRecord()
 		quicktime_write_video_frame(m_mp4File, 
 			m_pConfig->m_videoMpeg4Config, 
 			m_pConfig->m_videoMpeg4ConfigLength,
-			m_videoTrack, 0, 0);
+			m_videoTrack, 0, 0, 0);
 
-		m_videoPayloadNumber = 0;	// dynamically assigned
+		if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
+			m_videoPayloadNumber = 0;	// dynamically assigned
 
-		m_videoHintTrack = quicktime_set_video_hint(m_mp4File, m_videoTrack, 
-			"MP4V-ES", &m_videoPayloadNumber, m_pConfig->m_rtpPayloadSize);
+			m_videoHintTrack = quicktime_set_video_hint(
+				m_mp4File, m_videoTrack, 
+				"MP4V-ES", &m_videoPayloadNumber, 
+				m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
 
-		m_videoRtpPktNum = 1;
-		m_videoBytesThisSec = 0;
-		m_videoFirstRtpPktThisSec = m_videoRtpPktNum;
-		m_videoMaxRtpBytesPerSec = 0;
+			m_videoRtpPktNum = 1;
+			m_videoBytesThisSec = 0;
+			m_videoFirstRtpPktThisSec = m_videoRtpPktNum;
+			m_videoMaxRtpBytesPerSec = 0;
 
-		/* convert the mpeg4 configuration to ASCII form */
-		char* sConfig = BinaryToAscii(m_pConfig->m_videoMpeg4Config, 
-			m_pConfig->m_videoMpeg4ConfigLength); 
+			/* convert the mpeg4 configuration to ASCII form */
+			char* sConfig = BinaryToAscii(m_pConfig->m_videoMpeg4Config, 
+				m_pConfig->m_videoMpeg4ConfigLength); 
 
-		/* create the appropriate SDP attribute */
-		if (sConfig) {
-			char sdpBuf[1024];
+			/* create the appropriate SDP attribute */
+			if (sConfig) {
+				char sdpBuf[1024];
 
-			sprintf(sdpBuf,
-				"a=fmtp:%u profile-level-id=%u; config=%s;\n",
-					m_videoPayloadNumber,
-					m_pConfig->m_videoProfileLevelId,
-					sConfig); 
+				sprintf(sdpBuf,
+					"a=fmtp:%u profile-level-id=%u; config=%s;\n",
+						m_videoPayloadNumber,
+						m_pConfig->GetIntegerValue(
+							CONFIG_VIDEO_PROFILE_LEVEL_ID),
+						sConfig); 
 
-			/* add this to the MP4 file's sdp atom */
-			quicktime_add_video_sdp(m_mp4File, sdpBuf, 
-				m_videoTrack, m_videoHintTrack);
+				/* add this to the MP4 file's sdp atom */
+				quicktime_add_video_sdp(m_mp4File, sdpBuf, 
+					m_videoTrack, m_videoHintTrack);
 
-			/* cleanup, don't want to leak memory */
-			free(sConfig);
+				/* cleanup, don't want to leak memory */
+				free(sConfig);
+			}
+
+			// hint the first "frame", i.e the config info
+			Write3016Hints(m_pConfig->m_videoMpeg4ConfigLength, false, 0);
 		}
 
-		// hint the first "frame", i.e the config info
-		Write3016Hints(m_pConfig->m_videoMpeg4ConfigLength, false);
-
 		m_videoFrameNum++;
+	}
+
+	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+		quicktime_set_audio(m_mp4File, 2, 
+			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE), 
+			16, 0, m_audioTimeScale, MP3_SAMPLES_PER_FRAME, "mp3 ");
+
+		quicktime_set_iod_audio_profile_level(m_mp4File, 0xFE);
+
+		m_audioFrameNum = 1;
+
+		m_audioFrameRate = 
+			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE)
+			/ MP3_SAMPLES_PER_FRAME;
+
+		if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
+			m_audioPayloadNumber = 14;	// static payload for MPEG Audio
+
+			m_audioHintTrack = quicktime_set_audio_hint(m_mp4File, m_audioTrack,
+				"MPA", &m_audioPayloadNumber, 
+				m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+
+			m_audioRtpPktNum = 1;
+			m_audioHintBufLength = 0;
+			m_audioFramesThisHint = 0;
+			m_audioBytesThisHint = 0;
+			m_audioBytesThisSec = 0;
+			m_audioFirstRtpPktThisSec = m_audioRtpPktNum;
+			m_audioMaxRtpBytesPerSec = 0;
+
+			quicktime_init_hint_sample(m_audioHintBuf, &m_audioHintBufLength);
+			quicktime_add_hint_packet(m_audioHintBuf, &m_audioHintBufLength, 
+				m_audioPayloadNumber, m_audioRtpPktNum);
+
+			// RFC 2250 uses RTP M-bit for start of frame
+			quicktime_set_hint_Mbit(m_audioHintBuf);
+		}
 	}
 
 	m_record = true;
@@ -175,20 +191,26 @@ void CMp4Recorder::DoStopRecord()
 	}
 
 	// write out any remaining audio hint samples
-	if (m_pConfig->m_audioEnable && m_audioFramesThisHint > 0) {
-		quicktime_write_audio_hint(m_mp4File, 
-			m_audioHintBuf, m_audioHintBufLength, 
-			m_audioTrack, m_audioHintTrack, 
-			m_audioFramesThisHint * m_audioFrameDuration);
-	}
+	if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
+		if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
+		  && m_audioFramesThisHint > 0) {
+			quicktime_write_audio_hint(m_mp4File, 
+				m_audioHintBuf, m_audioHintBufLength, 
+				m_audioTrack, m_audioHintTrack, 
+				m_audioFramesThisHint * m_audioFrameDuration);
 
-	/* record maximum bits per second in Quicktime file */
-	quicktime_set_audio_hint_max_rate(m_mp4File, 
-		1000, m_audioMaxRtpBytesPerSec * 8,
-		m_audioTrack, m_audioHintTrack);
-	quicktime_set_video_hint_max_rate(m_mp4File, 
-		1000, m_videoMaxRtpBytesPerSec * 8,
-		m_videoTrack, m_videoHintTrack);
+			// DEBUG
+			// quicktime_dump_hint_sample(m_audioHintBuf);
+		}
+
+		/* record maximum bits per second in Quicktime file */
+		quicktime_set_audio_hint_max_rate(m_mp4File, 
+			1000, m_audioMaxRtpBytesPerSec * 8,
+			m_audioTrack, m_audioHintTrack);
+		quicktime_set_video_hint_max_rate(m_mp4File, 
+			1000, m_videoMaxRtpBytesPerSec * 8,
+			m_videoTrack, m_videoHintTrack);
+	}
 
 	quicktime_close(m_mp4File);
 	m_mp4File = NULL;
@@ -210,24 +232,43 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 	}
 
 	if (pFrame->GetType() == CMediaFrame::Mp3AudioFrame) {
-		quicktime_write_audio_frame(
-			m_mp4File,
-			(unsigned char*)pFrame->GetData(), 
-			pFrame->GetDataLength(),
-			m_audioTrack);
+		// at start of recording wait for a video I frame
+		if (!m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
+		  || m_videoFrameNum > 2) {
 
-		Write2250Hints(pFrame);
+			quicktime_write_audio_frame(
+				m_mp4File,
+				(unsigned char*)pFrame->GetData(), 
+				pFrame->GetDataLength(),
+				m_audioTrack);
 
-		m_audioFrameNum++;
+			if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
+				Write2250Hints(pFrame);
+			}
 
+			m_audioFrameNum++;
+		}
 	} else if (pFrame->GetType() == CMediaFrame::Mpeg4VideoFrame) {
-		quicktime_write_video_frame(m_mp4File, 
-			(unsigned char*)pFrame->GetData(), pFrame->GetDataLength(), 
-			m_videoTrack, 0, 0);
-		
-		Write3016Hints(pFrame);
+		bool isIFrame =
+			CVideoSource::GetMpeg4VideoFrameType(pFrame) == 'I';
 
-		m_videoFrameNum++;
+		// at start of recording wait for an I frame
+		if (m_videoFrameNum > 2 || isIFrame) {
+
+			quicktime_write_video_frame(m_mp4File, 
+				(unsigned char*)pFrame->GetData(), 
+				pFrame->GetDataLength(), 
+				m_videoTrack,
+				isIFrame,
+				ConvertVideoDuration(pFrame->GetDuration()),
+				0);
+		
+			if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS)) {
+				Write3016Hints(pFrame);
+			}
+
+			m_videoFrameNum++;
+		}
 
 	} else {
 		debug_message("MP4 recorder received unknown frame type %u",
@@ -242,13 +283,17 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 	u_int32_t frameLength = pFrame->GetDataLength();
 
 	// if frame is larger than remaining payload size
-	if (frameLength + 4 > m_pConfig->m_rtpPayloadSize - m_audioBytesThisHint) {
+	if (frameLength + 4 > m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE) 
+	  - m_audioBytesThisHint) {
 
 		// write out hint sample
 		quicktime_write_audio_hint(m_mp4File, 
 			m_audioHintBuf, m_audioHintBufLength, 
 			m_audioTrack, m_audioHintTrack, 
 			m_audioFramesThisHint * m_audioFrameDuration);
+
+		// DEBUG
+		// quicktime_dump_hint_sample(m_audioHintBuf);
 
 		// start a new hint 
 		m_audioHintBufLength = 0;
@@ -266,7 +311,8 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 	}
 
 	// if frame is less than remaining payload size
-	if (frameLength + 4 <= m_pConfig->m_rtpPayloadSize - m_audioBytesThisHint) {
+	if (frameLength + 4 <= m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)
+	  - m_audioBytesThisHint) {
 		static u_int32_t zero32 = 0;
 
 		quicktime_add_hint_immed_data(m_audioHintBuf, &m_audioHintBufLength,
@@ -280,8 +326,8 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 		u_int16_t frameOffset = 0;
 
 		while (frameOffset < frameLength) {
-			u_int16_t fragLength = 
-				MIN(frameLength - frameOffset, m_pConfig->m_rtpPayloadSize) - 4;
+			u_int16_t fragLength = MIN(frameLength - frameOffset,
+				m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) - 4;
 
 			u_int8_t payloadHeader[4];
 			payloadHeader[0] = payloadHeader[1] = 0;
@@ -310,7 +356,8 @@ void CMp4Recorder::Write2250Hints(CMediaFrame* pFrame)
 
 		// lie to ourselves so as to force next frame to output 
 		// our hint as is, and start a new hint for itself
-		m_audioBytesThisHint = m_pConfig->m_rtpPayloadSize;
+		m_audioBytesThisHint = 
+			m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
 	}
 
 	m_audioFramesThisHint++;
@@ -332,10 +379,12 @@ void CMp4Recorder::Write3016Hints(CMediaFrame* pFrame)
 {
 	char type = CVideoSource::GetMpeg4VideoFrameType(pFrame);
 
-	Write3016Hints(pFrame->GetDataLength(), type == 'I');
+	Write3016Hints(pFrame->GetDataLength(), type == 'I',
+		ConvertVideoDuration(pFrame->GetDuration()));
 }
 
-void CMp4Recorder::Write3016Hints(u_int32_t frameLength, bool isIFrame)
+void CMp4Recorder::Write3016Hints(u_int32_t frameLength, 
+	bool isIFrame, u_int32_t frameDuration)
 {
 	u_int32_t offset = 0;
 	u_int32_t remaining = frameLength;
@@ -346,10 +395,10 @@ void CMp4Recorder::Write3016Hints(u_int32_t frameLength, bool isIFrame)
 	while (remaining) {
 		u_int32_t payloadLength;
 
-		if (remaining <= m_pConfig->m_rtpPayloadSize) {
+		if (remaining <= m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE)) {
 			payloadLength = remaining;
 		} else {
-			payloadLength = m_pConfig->m_rtpPayloadSize;
+			payloadLength = m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
 		}
 
 		quicktime_add_hint_packet(m_videoHintBuf, &m_videoHintBufLength, 
@@ -365,11 +414,14 @@ void CMp4Recorder::Write3016Hints(u_int32_t frameLength, bool isIFrame)
 
 	quicktime_set_hint_Mbit(m_videoHintBuf);
 	quicktime_write_video_hint(m_mp4File, m_videoHintBuf, m_videoHintBufLength, 
-		m_videoTrack, m_videoHintTrack, 0, isIFrame);
+		m_videoTrack, m_videoHintTrack, frameDuration, isIFrame);
+
+	// DEBUG quicktime_dump_hint_sample(m_videoHintBuf);
 
 	m_videoBytesThisSec += frameLength;
 
-	if ((m_videoFrameNum % m_pConfig->m_videoTargetFrameRate) == 0) {
+	if ((m_videoFrameNum % m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE))
+	  == 0) {
 		u_int32_t rtpPktsThisSec = 
 			m_videoRtpPktNum - m_videoFirstRtpPktThisSec;
 

@@ -27,7 +27,7 @@
 
 class CRawRecorder : public CMediaSink {
 public:
-	CRawRecorder() {
+	CRawRecorder() : CMediaSink() {
 		m_record = false;
 		m_pcmFile = -1;
 		m_yuvFile = -1;

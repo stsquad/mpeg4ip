@@ -51,6 +51,7 @@ int encore(
 			void *param2);			// param2		- the parameter 2 (its actually meaning depends on enc_opt
 
 // encore options (the enc_opt parameter of encore())
+#define ENC_OPT_WANT_KEY_FRAME	(1 << 1) // generate a key frame
 #define ENC_OPT_WRITE	1024	// write the reconstruct image to files (for debuging)
 #define ENC_OPT_INIT	32768	// initialize the encoder for an handle
 #define ENC_OPT_RELEASE 65536	// release all the resource associated with the handle

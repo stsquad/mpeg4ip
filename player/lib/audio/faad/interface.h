@@ -108,10 +108,10 @@ enum
     /*
      * Program Configuration
      */
-    AACMAIN = 0, 
-    AACLC = 1,
-	AACSSR = 2,
-	AACLTP = 3,
+    AACMAIN = 1, 
+    AACLC = 2,
+    AACSSR = 3,
+    AACLTP = 4,
 
     Fs_48		= 3, 
     Fs_44		= 4, 

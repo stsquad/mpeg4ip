@@ -27,10 +27,17 @@
 static GtkWidget *dialog;
 
 static GtkWidget *device_entry;
-static GtkWidget *mono_button;
-static GtkWidget *stereo_button;
+static GtkWidget *channel_menu;
 static GtkWidget *sampling_rate_menu;
 static GtkWidget *bit_rate_menu;
+
+static u_int8_t channelValues[] = {
+	1, 2
+};
+static char* channelNames[] = {
+	"1 - Mono", "2 - Stereo"
+};
+static u_int8_t channelIndex;
 
 // from mp3.cpp
 
@@ -62,6 +69,11 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 	gtk_widget_destroy(dialog);
 	dialog = NULL;
 } 
+
+static void on_channel_menu_activate (GtkWidget *widget, gpointer data)
+{
+	channelIndex = (unsigned int)data & 0xFF;
+}
 
 static void on_sampling_rate_menu_activate (GtkWidget *widget, gpointer data)
 {
@@ -133,19 +145,17 @@ static bool ValidateAndSave(void)
 {
 	// copy new values to config
 
-	free(MyConfig->m_audioDeviceName);
-	MyConfig->m_audioDeviceName = stralloc(
+	MyConfig->SetStringValue(CONFIG_AUDIO_DEVICE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(device_entry)));
 
-	bool mono = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(mono_button));
-	if (mono) {
-		MyConfig->m_audioChannels = 1;
-	} else {
-		MyConfig->m_audioChannels = 2;
-	}
+	MyConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS, 
+		channelValues[channelIndex]);
 
-	MyConfig->m_audioSamplingRate = samplingRateValues[samplingRateIndex];
-	MyConfig->m_audioTargetBitRate = bitRateValues[bitRateIndex];
+	MyConfig->SetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE, 
+		samplingRateValues[samplingRateIndex]);
+
+	MyConfig->SetIntegerValue(CONFIG_AUDIO_BIT_RATE,
+		bitRateValues[bitRateIndex]);
 
 	DisplayAudioSettings();  // display settings in main window
 
@@ -170,7 +180,6 @@ void CreateAudioDialog (void)
 {
 	GtkWidget* hbox;
 	GtkWidget* vbox;
-	GSList* radioGroup;
 	GtkWidget* label;
 	GtkWidget* button;
 
@@ -196,11 +205,10 @@ void CreateAudioDialog (void)
 	gtk_widget_show(label);
 	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
-	mono_button = gtk_radio_button_new_with_label(NULL, "Mono");
-	gtk_widget_show(mono_button);
-	gtk_box_pack_start(GTK_BOX(vbox), mono_button, TRUE, TRUE, 0);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(mono_button), 
-		MyConfig->m_audioChannels == 1);
+	label = gtk_label_new(" Channels:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
 	label = gtk_label_new(" Sampling Rate (Hz):");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
@@ -218,20 +226,30 @@ void CreateAudioDialog (void)
 	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
 
 	device_entry = gtk_entry_new_with_max_length(128);
-	gtk_entry_set_text(GTK_ENTRY(device_entry), MyConfig->m_audioDeviceName);
+	gtk_entry_set_text(GTK_ENTRY(device_entry), 
+		MyConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME));
 	gtk_widget_show(device_entry);
 	gtk_box_pack_start(GTK_BOX(vbox), device_entry, TRUE, TRUE, 0);
 
-	radioGroup = gtk_radio_button_group(GTK_RADIO_BUTTON(mono_button));
-	stereo_button = gtk_radio_button_new_with_label(radioGroup, "Stereo");
-	gtk_widget_show(stereo_button);
-	gtk_box_pack_start(GTK_BOX(vbox), stereo_button, TRUE, TRUE, 0);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(stereo_button), 
-		MyConfig->m_audioChannels == 2);
+	channelIndex = 0;
+	for (u_int8_t i = 0; i < sizeof(channelValues) / sizeof(u_int8_t); i++) {
+		if (MyConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)
+		  == channelValues[i]) {
+			channelIndex = i;
+			break;
+		}
+	}
+	channel_menu = CreateOptionMenu (NULL,
+		channelNames, 
+		sizeof(channelNames) / sizeof(char*),
+		channelIndex,
+		GTK_SIGNAL_FUNC(on_channel_menu_activate));
+	gtk_box_pack_start(GTK_BOX(vbox), channel_menu, TRUE, TRUE, 0);
 
 	samplingRateIndex = 0; 
 	for (u_int8_t i = 0; i < sizeof(samplingRateValues) / sizeof(u_int32_t); i++) {
-		if (MyConfig->m_audioSamplingRate == samplingRateValues[i]) {
+		if (MyConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE)
+		  == samplingRateValues[i]) {
 			samplingRateIndex = i;
 			break;
 		}
@@ -245,7 +263,8 @@ void CreateAudioDialog (void)
 
 	bitRateIndex = 0; 
 	for (u_int8_t i = 0; i < sizeof(bitRateValues) / sizeof(u_int16_t); i++) {
-		if (MyConfig->m_audioTargetBitRate == bitRateValues[i]) {
+		if (MyConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE)
+		  == bitRateValues[i]) {
 			bitRateIndex = i;
 			break;
 		}

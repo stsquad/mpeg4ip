@@ -55,13 +55,13 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	sdp.create_addr = sIpAddress;
 
 	// s=
-	sdp.session_name = pConfig->m_sdpFileName;
+	sdp.session_name = pConfig->GetStringValue(CONFIG_SDP_FILE_NAME);
 
 	bool destIsMcast = false;
 	bool destIsSSMcast = false;
 	struct in_addr in;
 
-	if (inet_aton(pConfig->m_rtpDestAddress, &in)) {
+	if (inet_aton(pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS), &in)) {
 		destIsMcast = IN_MULTICAST(ntohl(in.s_addr));
 		if ((ntohl(in.s_addr) >> 24) == 232) {
 			destIsSSMcast = true;
@@ -70,9 +70,11 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 
 	// c=
 	sdp.session_connect.conn_type = "IP4";
-	sdp.session_connect.conn_addr = pConfig->m_rtpDestAddress;
+	sdp.session_connect.conn_addr = 
+		pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS);
 	if (destIsMcast) {
-		sdp.session_connect.ttl = pConfig->m_rtpMulticastTtl;
+		sdp.session_connect.ttl = 
+			pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL);
 	}
 	sdp.session_connect.used = 1;
 
@@ -85,7 +87,7 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 		memset(&sdpSourceFilter, 0, sizeof(sdpSourceFilter));
 		sdpSourceFilter.string_val = sIncl;
 		sprintf(sIncl, "a=incl:IN IP4 %s %s",
-			pConfig->m_rtpDestAddress,
+			pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS),
 			sIpAddress);
 	}
 
@@ -95,14 +97,15 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	rtpmap_desc_t sdpVideoRtpMap;
 	char videoFmtpBuf[512];
 
-	if (pConfig->m_videoEnable) {
+	if (pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 		memset(&sdpMediaVideo, 0, sizeof(sdpMediaVideo));
 
 		sdp.media = &sdpMediaVideo;
 		sdpMediaVideo.parent = &sdp;
 
 		sdpMediaVideo.media = "video";
-		sdpMediaVideo.port = pConfig->m_rtpVideoDestPort;
+		sdpMediaVideo.port = 
+			pConfig->GetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT);
 		sdpMediaVideo.proto = "RTP/AVP";
 
 		sdpMediaVideo.fmt = &sdpMediaVideoFormat;
@@ -119,7 +122,8 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 		char* sConfig = BinaryToAscii(pConfig->m_videoMpeg4Config, 
 			pConfig->m_videoMpeg4ConfigLength); 
 		sprintf(videoFmtpBuf, "profile-level-id=%u; config=%s;",
-			pConfig->m_videoProfileLevelId, sConfig); 
+			pConfig->GetIntegerValue(CONFIG_VIDEO_PROFILE_LEVEL_ID),
+			sConfig); 
 		free(sConfig);
 		sdpMediaVideoFormat.fmt_param = videoFmtpBuf;
 	}
@@ -128,7 +132,7 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	format_list_t sdpMediaAudioFormat;
 	rtpmap_desc_t sdpAudioRtpMap;
 
-	if (pConfig->m_audioEnable) {
+	if (pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
 		if (sdp.media) {
 			sdp.media->next = &sdpMediaAudio;
 		} else {
@@ -138,7 +142,8 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 		sdpMediaAudio.parent = &sdp;
 
 		sdpMediaAudio.media = "audio";
-		sdpMediaAudio.port = pConfig->m_rtpAudioDestPort;
+		sdpMediaAudio.port = 
+			pConfig->GetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT);
 		sdpMediaAudio.proto = "RTP/AVP";
 
 		sdpMediaAudio.fmt = &sdpMediaAudioFormat;
@@ -148,11 +153,13 @@ bool GenerateSdpFile(CLiveConfig* pConfig)
 	
 		memset(&sdpAudioRtpMap, 0, sizeof(sdpAudioRtpMap));
 		sdpAudioRtpMap.encode_name = "MPA";
-		sdpAudioRtpMap.clock_rate = pConfig->m_audioSamplingRate;
+		sdpAudioRtpMap.clock_rate = 
+			pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 
 		sdpMediaAudioFormat.rtpmap = &sdpAudioRtpMap;
 	}
 
-	return (sdp_encode_one_to_file(&sdp, pConfig->m_sdpFileName, 0) == 0);
+	return (sdp_encode_one_to_file(&sdp, 
+		pConfig->GetStringValue(CONFIG_SDP_FILE_NAME), 0) == 0);
 }
 

@@ -147,8 +147,8 @@ static void on_address_generate (GtkWidget *widget, gpointer *data)
 	gtk_entry_set_text(GTK_ENTRY(address_entry), inet_ntoa(in));
 
 	u_int16_t portBlock = CRtpTransmitter::GetRandomPortBlock();
-	SetNumberEntryValue(video_port_entry, portBlock);
-	SetNumberEntryValue(audio_port_entry, portBlock + 2);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(video_port_entry), portBlock);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(audio_port_entry), portBlock + 2);
 }
 
 static bool ValidateAndSave(void)
@@ -174,16 +174,14 @@ static bool ValidateAndSave(void)
 	}
 
 	// copy new values to config
-	free(MyConfig->m_rtpDestAddress);
-	MyConfig->m_rtpDestAddress = stralloc(
+	MyConfig->SetStringValue(CONFIG_RTP_DEST_ADDRESS, 
 		gtk_entry_get_text(GTK_ENTRY(address_entry)));
 
-	MyConfig->m_rtpVideoDestPort = videoPort;
-	MyConfig->m_rtpAudioDestPort = audioPort;
-	MyConfig->m_rtpMulticastTtl = ttlValues[ttlIndex];
+	MyConfig->SetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT, videoPort);
+	MyConfig->SetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT, audioPort);
+	MyConfig->SetIntegerValue(CONFIG_RTP_MCAST_TTL, ttlValues[ttlIndex]);
 
-	free(MyConfig->m_sdpFileName);
-	MyConfig->m_sdpFileName = stralloc(
+	MyConfig->SetStringValue(CONFIG_SDP_FILE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(sdp_file_entry)));
 
 	DisplayTransmitSettings();  // display settings in main window
@@ -201,7 +199,7 @@ static void on_sdp_generate (GtkWidget *widget, gpointer *data)
 	if (GenerateSdpFile(MyConfig)) {
 		char buffer[256];
 		snprintf(buffer, sizeof(buffer), "SDP file %s written",
-			MyConfig->m_sdpFileName);
+			MyConfig->GetStringValue(CONFIG_SDP_FILE_NAME));
 		ShowMessage("Generate SDP file", buffer); 
 	} else {
 		ShowMessage("Generate SDP file", 
@@ -247,9 +245,9 @@ void CreateTransmitDialog (void)
 
 	// Unicast/Multicast radio
 	bool isMcast = true;
-	if (MyConfig->m_rtpDestAddress != NULL) {
+	if (MyConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS) != NULL) {
 		struct in_addr in;
-		if (inet_aton(MyConfig->m_rtpDestAddress, &in)) {
+		if (inet_aton(MyConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS), &in)) {
 			isMcast = IN_MULTICAST(ntohl(in.s_addr));
 		} else {
 			isMcast = false;
@@ -312,7 +310,8 @@ void CreateTransmitDialog (void)
 		TRUE, TRUE, 5);
 
 	address_entry = gtk_entry_new_with_max_length(128);
-	gtk_entry_set_text(GTK_ENTRY(address_entry), MyConfig->m_rtpDestAddress);
+	gtk_entry_set_text(GTK_ENTRY(address_entry), 
+		MyConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS));
 	address_modified = false;
 	SetEntryValidator(GTK_OBJECT(address_entry),
 		GTK_SIGNAL_FUNC(on_changed),
@@ -320,7 +319,8 @@ void CreateTransmitDialog (void)
 	gtk_widget_show(address_entry);
 	gtk_box_pack_start(GTK_BOX(vbox), address_entry, TRUE, TRUE, 0);
 
-	adjustment = gtk_adjustment_new(MyConfig->m_rtpVideoDestPort,
+	adjustment = gtk_adjustment_new(
+		MyConfig->GetIntegerValue(CONFIG_RTP_VIDEO_DEST_PORT),
 		1024, 65534, 2, 0, 0);
 	video_port_entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 2, 0);
 	video_port_modified = false;
@@ -330,7 +330,8 @@ void CreateTransmitDialog (void)
 	gtk_widget_show(video_port_entry);
 	gtk_box_pack_start(GTK_BOX(vbox), video_port_entry, FALSE, FALSE, 0);
 
-	adjustment = gtk_adjustment_new(MyConfig->m_rtpAudioDestPort,
+	adjustment = gtk_adjustment_new(
+		MyConfig->GetIntegerValue(CONFIG_RTP_AUDIO_DEST_PORT),
 		1024, 65534, 2, 0, 0);
 	audio_port_entry = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 2, 0);
 	audio_port_modified = false;
@@ -342,7 +343,7 @@ void CreateTransmitDialog (void)
 
 	ttlIndex = 0; 
 	for (u_int8_t i = 0; i < sizeof(ttlValues) / sizeof(u_int8_t); i++) {
-		if (MyConfig->m_rtpMulticastTtl == ttlValues[i]) {
+		if (MyConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL) == ttlValues[i]) {
 			ttlIndex = i;
 			break;
 		}
@@ -355,7 +356,8 @@ void CreateTransmitDialog (void)
 	gtk_box_pack_start(GTK_BOX(vbox), mcast_ttl_menu, TRUE, TRUE, 0);
 
 	sdp_file_entry = gtk_entry_new_with_max_length(128);
-	gtk_entry_set_text(GTK_ENTRY(sdp_file_entry), MyConfig->m_sdpFileName);
+	gtk_entry_set_text(GTK_ENTRY(sdp_file_entry), 
+		MyConfig->GetStringValue(CONFIG_SDP_FILE_NAME));
 	gtk_widget_show(sdp_file_entry);
 	gtk_box_pack_start(GTK_BOX(vbox), sdp_file_entry, TRUE, TRUE, 0);
 

@@ -458,6 +458,10 @@ CCodecBase *start_video_codec (const char *codec_name,
   int val;
 
   if (lookup_codec_by_name(codec_name, video_codecs, &val) == 0) {
+    if (val == VIDEO_DIVX &&
+	config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY))
+      val = VIDEO_MPEG4_ISO;
+
     if (val == VIDEO_MPEG4_ISO_OR_DIVX) {
       if (config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY))
 	val = VIDEO_MPEG4_ISO;

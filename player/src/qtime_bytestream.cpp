@@ -173,6 +173,23 @@ uint64_t CQTVideoByteStream::start_next_frame (void)
   long start;
   int duration;
 
+#if 0
+  if (m_frame_on != 0) {
+    player_debug_message("frame %d on %u %d", m_frame_on,
+			 m_byte_on, m_this_frame_size);
+    if (m_byte_on != 0 && m_byte_on != m_this_frame_size) {
+      for (size_t ix = m_byte_on; ix < m_this_frame_size - 4; ix++) {
+	if ((m_buffer_on[ix] == 0) &&
+	    (m_buffer_on[ix + 1] == 0) &&
+	    (m_buffer_on[ix + 2] == 1)) {
+	  player_debug_message("correct start code %x", m_buffer_on[ix + 3]);
+	  player_debug_message("offset %d %d %d", m_byte_on,
+			       ix, m_this_frame_size);
+	}
+      }
+    }
+  }
+#endif
   if (m_frame_on >= m_frames_max) {
     m_eof = 1;
   }
@@ -194,6 +211,7 @@ uint64_t CQTVideoByteStream::start_next_frame (void)
    ret /= m_frame_rate;
  }
   read_frame(m_frame_on);
+
   m_frame_on++;
   return (ret);
 }

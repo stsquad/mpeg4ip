@@ -26,166 +26,272 @@
 #include <sys/types.h>
 #include <linux/videodev.h>
 
+#define CONFIG_SAFETY 0		// go fast, live dangerously
+#include "config_set.h"
+
 #include "timestamp.h"
 #include "tv_frequencies.h"
 
-#define VIDEO_STD_ASPECT_RATIO 	1.33	// standard 4:3
-#define VIDEO_LB1_ASPECT_RATIO 	2.35	// typical "widescreen" format
-#define VIDEO_LB2_ASPECT_RATIO 	1.85	// approximately 16:9
+#define VIDEO_STD_ASPECT_RATIO 	((float)1.33)	// standard 4:3
+#define VIDEO_LB1_ASPECT_RATIO 	((float)2.35)	// typical "widescreen" format
+#define VIDEO_LB2_ASPECT_RATIO 	((float)1.85)	// approximately 16:9
 
 // forward declarations
 class CVideoCapabilities;
+class CLiveConfig;
 
 // some configuration utility routines
-class CLiveConfig;
+void CalculateVideoFrameSize(CLiveConfig* pConfig);
 void GenerateMpeg4VideoConfig(CLiveConfig* pConfig);
 char* BinaryToAscii(u_int8_t* buf, u_int32_t bufSize);
 bool GenerateSdpFile(CLiveConfig* pConfig);
 
-inline char* stralloc(const char* src) {
-	char* dst = (char*)malloc(strlen(src)+1);
-	if (dst) {
-		strcpy(dst, src);
-	}
-	return dst;
-}
+enum {
+	CONFIG_APP_USE_REAL_TIME,
+	CONFIG_APP_DURATION,
+	CONFIG_APP_DURATION_UNITS,
 
-class CLiveConfig {
+	CONFIG_AUDIO_ENABLE,
+	CONFIG_AUDIO_ENCODE,
+	CONFIG_AUDIO_DEVICE_NAME,
+	CONFIG_AUDIO_MIXER_NAME,
+	CONFIG_AUDIO_CHANNELS,
+	CONFIG_AUDIO_SAMPLE_RATE,
+	CONFIG_AUDIO_BIT_RATE,
+
+	CONFIG_VIDEO_ENABLE,
+	CONFIG_VIDEO_ENCODE,
+	CONFIG_VIDEO_DEVICE_NAME,
+	CONFIG_VIDEO_INPUT,
+	CONFIG_VIDEO_SIGNAL,
+	CONFIG_VIDEO_TUNER,
+	CONFIG_VIDEO_CHANNEL_LIST_INDEX,
+	CONFIG_VIDEO_CHANNEL_INDEX,
+	CONFIG_VIDEO_PREVIEW,
+	CONFIG_VIDEO_RAW_PREVIEW,
+	CONFIG_VIDEO_ENCODED_PREVIEW,
+	CONFIG_VIDEO_USE_DIVX_ENCODER,
+	CONFIG_VIDEO_RAW_WIDTH,
+	CONFIG_VIDEO_RAW_HEIGHT,
+	CONFIG_VIDEO_ASPECT_RATIO,
+	CONFIG_VIDEO_FRAME_RATE,
+	CONFIG_VIDEO_BIT_RATE,
+	CONFIG_VIDEO_PROFILE_ID,
+	CONFIG_VIDEO_PROFILE_LEVEL_ID,
+
+	CONFIG_RECORD_ENABLE,
+	CONFIG_RECORD_RAW,
+	CONFIG_RECORD_PCM_FILE_NAME,
+	CONFIG_RECORD_YUV_FILE_NAME,
+	CONFIG_RECORD_MP4,
+	CONFIG_RECORD_MP4_FILE_NAME,
+	CONFIG_RECORD_MP4_HINT_TRACKS,
+
+	CONFIG_RTP_ENABLE,
+	CONFIG_RTP_DEST_ADDRESS,
+	CONFIG_RTP_AUDIO_DEST_PORT,
+	CONFIG_RTP_VIDEO_DEST_PORT,
+	CONFIG_RTP_PAYLOAD_SIZE,
+	CONFIG_RTP_MCAST_TTL,
+	CONFIG_RTP_DISABLE_TS_OFFSET,
+	CONFIG_RTP_USE_SSM,
+	CONFIG_SDP_FILE_NAME,
+};
+
+// normally this would be in a .cpp file
+// but we have it here to make it easier to keep
+// the enumerator list and the variables in sync
+
+#ifdef DECLARE_CONFIG_VARIABLES
+static SConfigVariable MyConfigVariables[] = {
+	// APP
+
+	{ CONFIG_APP_USE_REAL_TIME, "useKernelRealTimeExtensions", 
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_APP_DURATION, "duration", 
+		CONFIG_TYPE_INTEGER, (config_integer_t)1, },
+
+	{ CONFIG_APP_DURATION_UNITS, "durationUnits", 
+		CONFIG_TYPE_INTEGER, (config_integer_t)60, },
+
+	// AUDIO
+
+	{ CONFIG_AUDIO_ENABLE, "audioEnable", 
+		CONFIG_TYPE_BOOL, true, },
+
+	{ CONFIG_AUDIO_ENCODE, "audioEncode", 
+		CONFIG_TYPE_BOOL, true, },
+
+	{ CONFIG_AUDIO_DEVICE_NAME, "audioDevice", 
+		CONFIG_TYPE_STRING, "/dev/dsp", },
+
+	{ CONFIG_AUDIO_MIXER_NAME, "audioMixer", 
+		CONFIG_TYPE_STRING, "/dev/mixer", },
+
+	{ CONFIG_AUDIO_CHANNELS, "audioChannels", 
+		CONFIG_TYPE_INTEGER, (config_integer_t)2, },
+
+	{ CONFIG_AUDIO_SAMPLE_RATE, "audioSampleRate", 
+		CONFIG_TYPE_INTEGER, (config_integer_t)44100, },
+
+	{ CONFIG_AUDIO_BIT_RATE, "audioBitRate", 
+		CONFIG_TYPE_INTEGER, (config_integer_t)128, },
+
+	// VIDEO
+
+	{ CONFIG_VIDEO_ENABLE, "videoEnable", 
+		CONFIG_TYPE_BOOL, true, },
+
+	{ CONFIG_VIDEO_ENCODE, "videoEncode", 
+		CONFIG_TYPE_BOOL, true, },
+
+	{ CONFIG_VIDEO_DEVICE_NAME, "videoDevice", 
+		CONFIG_TYPE_STRING, "/dev/video0", },
+
+	{ CONFIG_VIDEO_INPUT, "videoInput",
+		CONFIG_TYPE_INTEGER, (config_integer_t)1, },
+
+	{ CONFIG_VIDEO_SIGNAL, "videoSignal",
+		CONFIG_TYPE_INTEGER, (config_integer_t)VIDEO_MODE_NTSC, },
+
+	{ CONFIG_VIDEO_TUNER, "videoTuner",
+		CONFIG_TYPE_INTEGER, (config_integer_t)-1, },
+
+	{ CONFIG_VIDEO_CHANNEL_LIST_INDEX, "videoChannelListIndex",
+		CONFIG_TYPE_INTEGER, (config_integer_t)0, },
+
+	{ CONFIG_VIDEO_CHANNEL_INDEX, "videoChannelIndex",
+		CONFIG_TYPE_INTEGER, (config_integer_t)1, },
+
+	{ CONFIG_VIDEO_PREVIEW, "videoPreview",
+		CONFIG_TYPE_BOOL, true, },
+
+	{ CONFIG_VIDEO_RAW_PREVIEW, "videoRawPreview",
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_VIDEO_ENCODED_PREVIEW, "videoEncodedPreview",
+		CONFIG_TYPE_BOOL, true, },
+
+	{ CONFIG_VIDEO_USE_DIVX_ENCODER, "videoUseDivxEncoder",
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_VIDEO_RAW_WIDTH, "videoRawWidth",
+		CONFIG_TYPE_INTEGER, (config_integer_t)320, },
+
+	{ CONFIG_VIDEO_RAW_HEIGHT, "videoRawHeight",
+		CONFIG_TYPE_INTEGER, (config_integer_t)240, },
+
+	{ CONFIG_VIDEO_ASPECT_RATIO, "videoAspectRatio",
+		CONFIG_TYPE_FLOAT, VIDEO_STD_ASPECT_RATIO },
+
+	{ CONFIG_VIDEO_FRAME_RATE, "videoFrameRate", 
+		CONFIG_TYPE_INTEGER, (config_integer_t)15, },
+
+	{ CONFIG_VIDEO_BIT_RATE, "videoBitRate",
+		CONFIG_TYPE_INTEGER, (config_integer_t)500, },
+
+	{ CONFIG_VIDEO_PROFILE_ID, "videoProfileId",
+		CONFIG_TYPE_INTEGER, (config_integer_t)1, },
+
+	{ CONFIG_VIDEO_PROFILE_LEVEL_ID, "videoProfileLevelId",
+		CONFIG_TYPE_INTEGER, (config_integer_t)3, },
+
+	// RECORD
+
+	{ CONFIG_RECORD_ENABLE, "recordEnable", 
+		CONFIG_TYPE_BOOL, true, },
+
+	{ CONFIG_RECORD_RAW, "recordRaw", 
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_RECORD_PCM_FILE_NAME, "recordPcmFile", 
+		CONFIG_TYPE_STRING, "capture.pcm", },
+
+	{ CONFIG_RECORD_YUV_FILE_NAME, "recordYuvFile", 
+		CONFIG_TYPE_STRING, "capture.yuv", },
+
+	{ CONFIG_RECORD_MP4, "recordMp4", 
+		CONFIG_TYPE_BOOL, true, },
+
+	{ CONFIG_RECORD_MP4_FILE_NAME, "recordMp4File", 
+		CONFIG_TYPE_STRING, "capture.mp4", },
+
+	{ CONFIG_RECORD_MP4_HINT_TRACKS, "recordMp4HintTracks", 
+		CONFIG_TYPE_BOOL, true, },
+
+	// RTP
+
+	{ CONFIG_RTP_ENABLE, "rtpEnable", 
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_RTP_DEST_ADDRESS, "rtpDestAddress",
+		CONFIG_TYPE_STRING, "224.1.2.3", },
+
+	{ CONFIG_RTP_AUDIO_DEST_PORT, "rtpAudioDestPort",
+		CONFIG_TYPE_INTEGER, (config_integer_t)32770, },
+
+	{ CONFIG_RTP_VIDEO_DEST_PORT, "rtpVideoDestPort",
+		CONFIG_TYPE_INTEGER, (config_integer_t)32768, },
+
+	{ CONFIG_RTP_PAYLOAD_SIZE, "rtpPayloadSize",
+		CONFIG_TYPE_INTEGER, (config_integer_t)1460, },
+
+	{ CONFIG_RTP_MCAST_TTL, "rtpMulticastTtl",
+		CONFIG_TYPE_INTEGER, (config_integer_t)15, },
+
+	{ CONFIG_RTP_DISABLE_TS_OFFSET, "rtpDisableTimestampOffset", 
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_RTP_USE_SSM, "rtpUseSingleSourceMulticast", 
+		CONFIG_TYPE_BOOL, false, },
+
+	{ CONFIG_SDP_FILE_NAME, "sdpFile", 
+		CONFIG_TYPE_STRING, "capture.sdp", },
+
+};
+#endif /* DECLARE_CONFIG_VARIABLES */
+
+
+class CLiveConfig : public CConfigSet {
 public:
-	CLiveConfig() {
-		SetDefaults();
-	}
-
-	bool Read(char* fileName) {
-		return true; // TEMP
-	}
-	bool ReadUser() {
-		return Read(GetUserFileName());
-	}
-
-	bool Write(char* fileName, bool onlyNonDefaults) {
-		return true; // TEMP
-	}
-	bool WriteUser() {
-		return Write(GetUserFileName(), true);
-	}
-
-	char* GetUserFileName() {
-		return "~/.mp4live_rc";
-	}
-
-	void SetDefaults(void) {
-		m_audioEnable = true;
-		m_audioEncode = true;
-		m_audioDeviceName = stralloc("/dev/dsp");
-		m_audioChannels = 2;
-		m_audioSamplingRate = 44100; // Hz
-		m_audioTargetBitRate = 128;	// Kbps
-
-		m_videoEnable = true;
-		m_videoEncode = true;
-		m_videoDeviceName = stralloc("/dev/video0");
+	CLiveConfig(SConfigVariable* variables, config_index_t numVariables, const char* defaultFileName)
+	: CConfigSet(variables, numVariables, defaultFileName) {
+		m_appAutomatic = false;
 		m_videoCapabilities = NULL;
-		m_videoInput = 0;
-		m_videoSignal = VIDEO_MODE_NTSC;
-		m_videoTuner = -1;		
-		m_videoChannelListIndex = 0;	// US Broadcast
-		m_videoChannelIndex = 1;		// Channel 3
-		m_videoPreview = true;
-		m_videoRawPreview = false;
-		m_videoEncodedPreview = true;
 		m_videoPreviewWindowId = 0;
-		m_videoUseDivxEncoder = false;
-		m_videoRawWidth = 320;
-		m_videoRawHeight = 240;
-		m_videoWidth = m_videoRawWidth;
-		m_videoHeight = m_videoRawHeight;
+#ifdef LARGE_FRAME_SIZES
+		m_videoMaxWidth = 704;
+		m_videoMaxHeight = 576;
+#else
 		m_videoMaxWidth = 352;
 		m_videoMaxHeight = 288;
-		m_videoTargetFrameRate = 24;
-		m_videoTargetBitRate = 750;	// Kbps
-		m_videoAspectRatio = VIDEO_STD_ASPECT_RATIO;
-		m_videoProfileId = 1;		// Simple Profile
-		m_videoProfileLevelId = 3;	// Simple Profile @ L3
+#endif
+		m_videoNeedRgbToYuv = false;
 		m_videoMpeg4ConfigLength = 0;
 		m_videoMpeg4Config = NULL;
+	}
+
+	// recalculate derived values
+	void Regenerate(void) {
+		CalculateVideoFrameSize(this);
 		GenerateMpeg4VideoConfig(this);
-
-		m_recordEnable = true;
-		m_recordRaw = false;
-		m_recordPcmFileName = stralloc("capture.pcm");
-		m_recordYuvFileName = stralloc("capture.yuv");
-		m_recordMp4 = true;
-		m_recordMp4FileName = stralloc("capture.mp4");
-
-		m_rtpEnable = false;
-		m_rtpDestAddress = stralloc("224.1.2.3");
-		m_rtpAudioDestPort = 32770;
-		m_rtpVideoDestPort = 32768;
-		m_rtpPayloadSize = 1460;
-		m_rtpMulticastTtl = 15;
-		m_rtpDisableTimestampOffset = false;
-		m_rtpUseSSM = false;
-		m_sdpFileName = stralloc("capture.sdp");
 	}
 
 public:
-	// audio configuration
-	bool		m_audioEnable;
-	bool		m_audioEncode;
-	char*		m_audioDeviceName;
-	u_int8_t	m_audioChannels;
-	u_int32_t	m_audioSamplingRate;
-	u_int16_t	m_audioTargetBitRate;
+	// command line configuration
+	bool		m_appAutomatic;
 
-	// video configuration
-	bool		m_videoEnable;
-	bool		m_videoEncode;
-	char*		m_videoDeviceName;
+	// derived, shared video configuration
 	CVideoCapabilities* m_videoCapabilities;
-	u_int16_t	m_videoInput;
-	u_int16_t	m_videoSignal;
-	int16_t		m_videoTuner;
-	u_int16_t	m_videoChannelListIndex;
-	u_int16_t	m_videoChannelIndex;
-	bool		m_videoPreview;
-	bool		m_videoRawPreview;
-	bool		m_videoEncodedPreview;
 	u_int32_t	m_videoPreviewWindowId;
-	// Note use of SDL means one must choose raw xor encoded preview
-	bool		m_videoUseDivxEncoder;
-	u_int16_t	m_videoRawWidth;
-	u_int16_t	m_videoRawHeight;
 	u_int16_t	m_videoWidth;
 	u_int16_t	m_videoHeight;
 	u_int16_t	m_videoMaxWidth;
 	u_int16_t	m_videoMaxHeight;
-	u_int16_t	m_videoTargetFrameRate;
-	u_int16_t	m_videoTargetBitRate;
-	float		m_videoAspectRatio;
-	u_int8_t	m_videoProfileId;
-	u_int8_t	m_videoProfileLevelId;
+	bool		m_videoNeedRgbToYuv;
 	u_int16_t	m_videoMpeg4ConfigLength;
 	u_int8_t*	m_videoMpeg4Config;
-
-	// recording configuration
-	bool		m_recordEnable;
-	bool		m_recordRaw;
-	char*		m_recordPcmFileName;
-	char*		m_recordYuvFileName;
-	bool		m_recordMp4;
-	char*		m_recordMp4FileName;
-
-	// transmitting configuration
-	bool		m_rtpEnable;
-	char*		m_rtpDestAddress;
-	u_int16_t	m_rtpAudioDestPort;
-	u_int16_t	m_rtpVideoDestPort;
-	u_int16_t	m_rtpPayloadSize;
-	u_int8_t	m_rtpMulticastTtl;
-	bool		m_rtpDisableTimestampOffset;
-	bool		m_rtpUseSSM;
-	char*		m_sdpFileName;
 };
 
 #endif /* __LIVE_CONFIG_H__ */

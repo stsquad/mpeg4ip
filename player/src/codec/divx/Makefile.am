@@ -4,7 +4,7 @@ libdivx_la_SOURCES = \
 	divx.cpp \
 	divx_file.cpp
 
-INCLUDES = -I.. -I../.. -I../../../lib -I../../../lib/SDL/include -I../../../lib/video/divx -I../../../../common/video/mpeg4 -I../../../../include
+INCLUDES = -I.. -I../.. -I../../../lib -I$(top_srcdir)/lib/SDL/include -I../../../lib/video/divx -I../../../../common/video/mpeg4 -I../../../../include -I../../../../lib
 
 AM_CFLAGS = -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 

@@ -29,7 +29,7 @@
 
 typedef u_int64_t Timestamp;
 const u_int64_t TimestampTicks = 1000000;
-typedef u_int64_t Duration;
+typedef int64_t Duration;
 
 inline Timestamp GetTimestampFromTimeval(struct timeval* pTimeval) {
 	return ((u_int64_t)pTimeval->tv_sec * TimestampTicks) + pTimeval->tv_usec;

@@ -138,14 +138,7 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
       m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16LSB, samplesperframe);
       have_head = 1;
       m_audio_inited = 1;
-      m_current_time = rtpts;
-    } else {
-      if (m_last_rtp_ts == rtpts) {
-	m_current_time += ((m_samplesperframe * 1000) / m_freq);
-      } else {
-	m_last_rtp_ts = rtpts;
-	m_current_time = rtpts;
-      }
+      m_last_rtp_ts = rtpts - 1; // so we meet the critera below
     }
       
 
@@ -162,6 +155,12 @@ int CMP3Codec::decode (uint64_t rtpts, int from_rtp)
     bits = m_mp3_info->decodeFrame(buff, have_head);
     
     if (bits) {
+      if (m_last_rtp_ts == rtpts) {
+	m_current_time += ((m_samplesperframe * 1000) / m_freq);
+      } else {
+	m_last_rtp_ts = rtpts;
+	m_current_time = rtpts;
+      }
 #ifdef OUTPUT_TO_FILE
       fwrite(buff, m_chans * m_samplesperframe * sizeof(ushort), 1, m_output_file);
 #endif

@@ -43,6 +43,7 @@ typedef struct MpegEncContext {
     int picture_number;
     int fake_picture_number; /* picture number at the bitstream frame rate */
     int gop_picture_number; /* index of the first picture of a GOP */
+	int num_time_increment_bits;	/* (int)log2(frame_rate) + 1 */
     int mb_width, mb_height;
     UINT8 *new_picture[3];     /* picture to be compressed */
     UINT8 *last_picture[3];    /* previous picture */

@@ -89,7 +89,7 @@ void CAudioSource::DoStopCapture()
 		return;
 	}
 
-	if (m_pConfig->m_audioEncode) {
+	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENCODE)) {
 		// lame can be holding onto a few MP3 frames
 		// get them and forward them to sinks
 
@@ -100,7 +100,7 @@ void CAudioSource::DoStopCapture()
 
 		if (mp3DataLength > 0) {
 			m_mp3FrameBufferLength += mp3DataLength;
-			ForwardCompletedFrames(GetTimestamp());
+			ForwardCompletedFrames();
 		}
 	}
 
@@ -116,7 +116,7 @@ bool CAudioSource::Init(void)
 		return false;
 	}
 
-	if (m_pConfig->m_audioEncode) {
+	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENCODE)) {
 		if (!InitEncoder()) {
 			close(m_audioDevice);
 			m_audioDevice = -1;
@@ -125,13 +125,16 @@ bool CAudioSource::Init(void)
 	}
 
 	m_samplesPerFrame = MP3_SAMPLES_PER_FRAME;
-	m_rawFrameSize = 
-		m_samplesPerFrame *  m_pConfig->m_audioChannels * sizeof(u_int16_t);
+	m_rawFrameSize = m_samplesPerFrame 
+		* m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) 
+		* sizeof(u_int16_t);
 	m_frameDuration = (m_samplesPerFrame * TimestampTicks) 
-		/ m_pConfig->m_audioSamplingRate;
+		/ m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 	// maximum number of passes in ProcessAudio, approx 1 sec.
-	m_maxPasses = m_pConfig->m_audioSamplingRate / m_samplesPerFrame;
-	m_rawFrameNumber = 0xFFFFFFFF;
+	m_maxPasses = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE)
+		/ m_samplesPerFrame;
+	m_startTimestamp = 0;
+	m_frameNumber = 0;
 	m_mp3MaxFrameSize = (u_int)(1.25 * m_samplesPerFrame) + 7200;
 	m_mp3FrameBufferSize = 2 * m_mp3MaxFrameSize;
 	m_mp3FrameBufferLength = 0;
@@ -148,43 +151,48 @@ bool CAudioSource::Init(void)
 		return false;
 	}
 
+	if (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 1) {
+		memset(m_rightBuffer, 0, m_samplesPerFrame * sizeof(u_int16_t));
+	}
+
 	return true;
 }
 
 bool CAudioSource::InitDevice(void)
 {
 	int rc;
+	char* deviceName = m_pConfig->GetStringValue(CONFIG_AUDIO_DEVICE_NAME);
 
 	// open the audio device
-	m_audioDevice = open(m_pConfig->m_audioDeviceName, O_RDONLY);
+	m_audioDevice = open(deviceName, O_RDONLY);
 	if (m_audioDevice < 0) {
-		error_message("Failed to open %s", 
-			m_pConfig->m_audioDeviceName);
+		error_message("Failed to open %s", deviceName);
 		return false;
 	}
 
 	int format = AFMT_S16_LE;
 	rc = ioctl(m_audioDevice, SNDCTL_DSP_SETFMT, &format);
 	if (rc < 0 || format != AFMT_S16_LE) {
-		error_message("Couldn't set format for %s", 
-			m_pConfig->m_audioDeviceName);
+		error_message("Couldn't set format for %s", deviceName);
 		return false;
 	}
 
-	int channels = m_pConfig->m_audioChannels;
+	u_int32_t channels = 
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
 	rc = ioctl(m_audioDevice, SNDCTL_DSP_CHANNELS, &channels);
-	if (rc < 0 || channels != m_pConfig->m_audioChannels) {
-		error_message("Couldn't set audio channels for %s", 
-			m_pConfig->m_audioDeviceName);
+	if (rc < 0 
+	  || channels != m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)) {
+		error_message("Couldn't set audio channels for %s", deviceName);
 		return false;
 	}
 
-	int samplingRate = m_pConfig->m_audioSamplingRate;
+	u_int32_t samplingRate = 
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+	u_int32_t targetSamplingRate = samplingRate;
 	rc = ioctl(m_audioDevice, SNDCTL_DSP_SPEED, &samplingRate);
-	if (rc < 0 || (u_int)abs(samplingRate - m_pConfig->m_audioSamplingRate) >
-	  m_pConfig->m_audioSamplingRate / 10) {
-		error_message("Couldn't set sampling rate for %s", 
-			m_pConfig->m_audioDeviceName);
+	if (rc < 0 || (u_int)
+	  abs(samplingRate - targetSamplingRate) > targetSamplingRate / 10) {
+		error_message("Couldn't set sampling rate for %s", deviceName);
 		return false;
 	}
 
@@ -195,9 +203,12 @@ bool CAudioSource::InitEncoder()
 {
 	lame_init(&m_lameParams);
 
-	m_lameParams.num_channels = m_pConfig->m_audioChannels;
-	m_lameParams.in_samplerate = m_pConfig->m_audioSamplingRate;
-	m_lameParams.brate = m_pConfig->m_audioTargetBitRate;
+	m_lameParams.num_channels = 
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
+	m_lameParams.in_samplerate = 
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+	m_lameParams.brate = 
+		m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE);
 	m_lameParams.mode = 0;
 	m_lameParams.quality = 2;
 	m_lameParams.silent = 1;
@@ -230,32 +241,31 @@ void CAudioSource::ProcessAudio(void)
 			continue;
 		}
 
-		// OPTION timing might be better if we used
-		// frameTimestamp = m_startTimestamp 
-		// + m_rawFrameNumber * m_frameDuration;
-
-		Timestamp frameTimestamp = GetTimestamp() - m_frameDuration;
-		m_rawFrameNumber++;
-		if (m_rawFrameNumber == 0) {
-			m_startTimestamp = frameTimestamp;
-		}
-		if (m_mp3FrameBufferLength == 0) {
-			m_mp3FrameTimestamp = frameTimestamp;
+		if (m_startTimestamp == 0) {
+			m_startTimestamp = GetTimestamp() - m_frameDuration;
 		}
 
 		// encode audio frame to MP3
-		if (m_pConfig->m_audioEncode) {
-			// de-interleave raw frame buffer
-			u_int16_t* s = m_rawFrameBuffer;
-			for (int i = 0; i < m_samplesPerFrame; i++) {
-				m_leftBuffer[i] = *s++;
-				m_rightBuffer[i] = *s++;
+		if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENCODE)) {
+			u_int16_t* leftBuffer;
+
+			// de-interleave input if doing stereo
+			if (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 2) {
+				// de-interleave raw frame buffer
+				u_int16_t* s = m_rawFrameBuffer;
+				for (int i = 0; i < m_samplesPerFrame; i++) {
+					m_leftBuffer[i] = *s++;
+					m_rightBuffer[i] = *s++;
+				}
+				leftBuffer = m_leftBuffer;
+			} else {
+				leftBuffer = m_rawFrameBuffer;
 			}
 
 			// call lame encoder
 			u_int32_t mp3DataLength = lame_encode_buffer(
 				&m_lameParams,
-				(short*)m_leftBuffer, (short*)m_rightBuffer, 
+				(short*)leftBuffer, (short*)m_rightBuffer, 
 				m_samplesPerFrame,
 				(char*)&m_mp3FrameBuffer[m_mp3FrameBufferLength], 
 				m_mp3FrameBufferSize - m_mp3FrameBufferLength);
@@ -263,16 +273,16 @@ void CAudioSource::ProcessAudio(void)
 			// forward the completed frames
 			if (mp3DataLength > 0) {
 				m_mp3FrameBufferLength += mp3DataLength;
-				ForwardCompletedFrames(frameTimestamp);
+				ForwardCompletedFrames();
 			}
 		}
 
 		// if desired, forward raw audio to sinks
-		if (m_pConfig->m_recordRaw) {
+		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW)) {
 			CMediaFrame* pFrame =
 				new CMediaFrame(CMediaFrame::PcmAudioFrame, 
 					m_rawFrameBuffer, m_rawFrameSize,
-					frameTimestamp, m_frameDuration);
+					0, m_frameDuration);
 			ForwardFrame(pFrame);
 			delete pFrame;
 
@@ -282,10 +292,11 @@ void CAudioSource::ProcessAudio(void)
 	}
 }
 
-void CAudioSource::ForwardCompletedFrames(Timestamp newFrameTimestamp)
+u_int16_t CAudioSource::ForwardCompletedFrames(void)
 {
 	u_int8_t* mp3Frame;
 	u_int32_t mp3FrameLength;
+	u_int16_t numForwarded = 0;
 
 	while (Mp3FindNextFrame(m_mp3FrameBuffer,
 	  m_mp3FrameBufferLength, &mp3Frame, &mp3FrameLength, false)) {
@@ -306,20 +317,26 @@ void CAudioSource::ForwardCompletedFrames(Timestamp newFrameTimestamp)
 		memcpy(newMp3Frame, mp3Frame, mp3FrameLength);
 
 		// forward the copy of the MP3 frame to sinks
+		Timestamp frameTimestamp = m_startTimestamp 
+			+ (m_frameNumber * m_frameDuration);
+
 		CMediaFrame* pFrame =
 			new CMediaFrame(CMediaFrame::Mp3AudioFrame, 
 				newMp3Frame, mp3FrameLength,
-				m_mp3FrameTimestamp, m_frameDuration);
+				frameTimestamp, m_frameDuration);
 		ForwardFrame(pFrame);
 		delete pFrame;
+
+		m_frameNumber++;
+		numForwarded++;
 
 		// shift what remains in the buffer down
 		memcpy(m_mp3FrameBuffer, 
 			mp3Frame + mp3FrameLength, 
 			m_mp3FrameBufferLength - mp3FrameLength);
 		m_mp3FrameBufferLength -= mp3FrameLength;
-
-		m_mp3FrameTimestamp = newFrameTimestamp;
 	}
+
+	return numForwarded;
 }
 

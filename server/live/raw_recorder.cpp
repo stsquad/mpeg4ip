@@ -58,19 +58,23 @@ void CRawRecorder::DoStartRecord()
 	if (m_record) {
 		return;
 	}
-	if (m_pConfig->m_audioEnable) {
-		m_pcmFile = open(m_pConfig->m_recordPcmFileName, 
-			O_CREAT | O_WRONLY,	S_IRUSR | S_IWUSR);
+	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
+		m_pcmFile = open(
+			m_pConfig->GetStringValue(CONFIG_RECORD_PCM_FILE_NAME), 
+			O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
 		if (m_pcmFile == -1) {
-			error_message("Failed to open %s", m_pConfig->m_recordPcmFileName);
+			error_message("Failed to open %s", 
+				m_pConfig->GetStringValue(CONFIG_RECORD_PCM_FILE_NAME)); 
 		}
 	}
 
-	if (m_pConfig->m_videoEnable) {
-		m_yuvFile = open(m_pConfig->m_recordYuvFileName,
-			O_CREAT | O_WRONLY,	S_IRUSR | S_IWUSR);
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+		m_yuvFile = open(
+			m_pConfig->GetStringValue(CONFIG_RECORD_YUV_FILE_NAME), 
+			O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
 		if (m_yuvFile == -1) {
-			error_message("Failed to open %s", m_pConfig->m_recordYuvFileName);
+			error_message("Failed to open %s", 
+				m_pConfig->GetStringValue(CONFIG_RECORD_YUV_FILE_NAME)); 
 		}
 	}
 	m_record = true;
@@ -96,12 +100,20 @@ void CRawRecorder::DoStopRecord()
 
 void CRawRecorder::DoWriteFrame(CMediaFrame* pFrame)
 {
-	if (pFrame->GetType() == CMediaFrame::PcmAudioFrame && m_pcmFile != -1) {
-		write(m_pcmFile, pFrame->GetData(), pFrame->GetDataLength());
+	if (pFrame == NULL) {
+		return;
 	}
 
-	if (pFrame->GetType() == CMediaFrame::YuvVideoFrame && m_yuvFile != -1) {
+	if (pFrame->GetType() == CMediaFrame::PcmAudioFrame 
+	  && m_pcmFile != -1) {
+		write(m_pcmFile, pFrame->GetData(), pFrame->GetDataLength());
+
+	} else if (pFrame->GetType() == CMediaFrame::YuvVideoFrame 
+	  && m_yuvFile != -1) {
 		write(m_yuvFile, pFrame->GetData(), pFrame->GetDataLength());
+	} else {
+		debug_message("Raw recorder received unknown frame type %u",
+			pFrame->GetType());
 	}
 
 	delete pFrame;

@@ -141,6 +141,11 @@ int MPV_encode_init(AVEncodeContext *avctx)
         break;
     }
 
+	s->num_time_increment_bits = 1;
+	while (s->frame_rate > (1 << s->num_time_increment_bits)) {
+		s->num_time_increment_bits++;
+	}
+
     /* init */
     s->mb_width = s->width / 16;
     s->mb_height = s->height / 16;
@@ -295,7 +300,7 @@ int MPV_encode_picture(AVEncodeContext *avctx,
     }
     
     
-    if (!s->intra_only) {
+    if (!s->intra_only && !avctx->want_key_frame) {
         /* first picture of GOP is intra */
         if ((s->picture_number % s->gop_size) == 0)
             s->pict_type = I_TYPE;

@@ -396,6 +396,7 @@ static void on_play_list_selected (GtkWidget *window, gpointer data)
 
 static void on_play_clicked (GtkWidget *window, gpointer data)
 {
+  int ret;
   if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(play_button)) == FALSE) {
     if (play_state == PLAYING) {
       toggle_button_adjust(play_button, TRUE);
@@ -405,19 +406,25 @@ static void on_play_clicked (GtkWidget *window, gpointer data)
 
   if (psptr == NULL)
     return;
+  ret = 0;
   SDL_mutexP(command_mutex);
   switch (play_state) {
   case PAUSED:
-    psptr->play_all_media(FALSE);
+    ret = psptr->play_all_media(FALSE);
     break;
   case STOPPED:
-    psptr->play_all_media(TRUE, 0.0);
+    ret = psptr->play_all_media(TRUE, 0.0);
     break;
   default:
     break;
   }
-  adjust_gui_for_play();
+  if (ret == 0)
+    adjust_gui_for_play();
   SDL_mutexV(command_mutex);
+  if (ret != 0) {
+    close_session();
+    ShowMessage("Play error", "Error re-starting session");
+  }
 }
 
 static void on_pause_clicked (GtkWidget *window, gpointer data)
@@ -545,13 +552,18 @@ static void on_time_slider_adjusted (GtkWidget *window, gpointer data)
     psptr->pause_all_media();
   }
   // If we're going all the way back to the beginning, indicate that
-  psptr->play_all_media(newtime == 0.0 ? TRUE : FALSE, newtime);
-  adjust_gui_for_play();
+  int ret = psptr->play_all_media(newtime == 0.0 ? TRUE : FALSE, newtime);
+  if (ret == 0) 
+    adjust_gui_for_play();
   SDL_mutexV(command_mutex);
-  gtk_range_set_adjustment(GTK_RANGE(time_slider), val);
-  gtk_range_slider_update(GTK_RANGE(time_slider));
-  gtk_range_clear_background(GTK_RANGE(time_slider));
+  if (ret == 0) {
+    gtk_range_set_adjustment(GTK_RANGE(time_slider), val);
+    gtk_range_slider_update(GTK_RANGE(time_slider));
+    gtk_range_clear_background(GTK_RANGE(time_slider));
   //gtk_range_draw_background(GTK_RANGE(vol));
+  } else {
+    close_session();
+  }
 }
 
 static void on_loop_enabled_button (GtkWidget *widget, gpointer *data)

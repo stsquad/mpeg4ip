@@ -24,11 +24,12 @@
 #ifndef __GUI_PRIVATE_H__
 #define __GUI_PRIVATE_H__ 1
 
+#include "live_config.h"
+#include "media_flow.h" 
+
 // From gui_main.cpp
 extern CLiveConfig* MyConfig;
-
-void StartVideoPreview(void);
-void StopVideoPreview(void);
+extern CAVMediaFlow* AVFlow;
 
 void DisplayVideoSettings(void);
 void DisplayAudioSettings(void);

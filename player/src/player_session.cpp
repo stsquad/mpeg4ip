@@ -440,36 +440,23 @@ double CPlayerSession::get_max_time (void)
   return (max);
 }
 
+/*
+ * Matches a url with the corresponding media. 
+ * Return the media, or NULL if no match. 
+ */
 CPlayerMedia *CPlayerSession::rtsp_url_to_media (const char *url)
 {
-  char *temp = strdup(url);
-  do_relative_url_to_absolute(&temp, m_session_name, 1);
-  CPlayerMedia *p;
-  p = m_my_media;
+  CPlayerMedia *p = m_my_media;
   while (p != NULL) {
-    if (rtsp_is_url_my_stream(temp, p->get_rtsp_session()) != 0) {
-      free(temp);
-      return p;
-    }
+	rtsp_session_t *session = p->get_rtsp_session();
+	if (rtsp_is_url_my_stream(session, url, m_content_base, 
+							  m_session_name) == 1) 
+	  return p;
     p = p->get_next();
-  }
-  free(temp);
-  temp = strdup(url);
-  if (m_content_base) {
-    do_relative_url_to_absolute(&temp, m_content_base, 1);
-    p = m_my_media;
-    while (p != NULL) {
-      if (rtsp_is_url_my_stream(temp, p->get_rtsp_session()) != 0) {
-	free(temp);
-	return p;
-      }
-      p = p->get_next();
-    }
-    free(temp);
   }
   return (NULL);
 }
-       
+
 int CPlayerSession::set_session_desc (int line, const char *desc)
 {
   if (line >= SESSION_DESC_COUNT) {

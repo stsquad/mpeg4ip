@@ -490,7 +490,7 @@ int main(int argc, char** argv)
 		 * each is a sample and gets its own chunk 
 		 */
 		quicktime_write_video_frame(qtFile, &objBuf[0], objBufSize, 
-			videoTrack, (vopCodingType == 'I'), frameRenderingOffset);
+			videoTrack, (vopCodingType == 'I'), 0, frameRenderingOffset);
 
 		/* add this to our count of bytes sent in this 1 second period */
 		bytesThisSec += objBufSize;

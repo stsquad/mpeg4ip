@@ -33,9 +33,11 @@ static GtkWidget *input_menu;
 static GtkWidget *signal_menu;
 static GSList* signal_menu_items;
 static GtkWidget *channel_list_menu;
-static GtkWidget *channel_menu;
+static GtkWidget *channel_combo;
 static GtkWidget *size_menu;
 static GtkWidget *aspect_menu;
+static GtkObject *frame_rate_ntsc_adjustment;
+static GtkObject *frame_rate_pal_adjustment;
 static GtkWidget *frame_rate_spinner;
 static GtkWidget *bit_rate_spinner;
 
@@ -55,13 +57,35 @@ static u_int8_t channelListIndex;
 static u_int8_t channelIndex;
 
 static u_int16_t sizeWidthValues[] = {
-	160, 176, 320, 352
+	128, 
+#ifdef ENABLE_QSIF
+	160,
+#endif
+	176, 320, 352
+#ifdef LARGE_FRAME_SIZES
+	, 640, 704
+#endif
 };
 static u_int16_t sizeHeightValues[] = {
-	120, 144, 240, 288
+	96, 
+#ifdef ENABLE_QSIF
+	120, 
+#endif
+	144, 240, 288
+#ifdef LARGE_FRAME_SIZES
+	, 480, 576
+#endif
 };
 static char* sizeNames[] = {
-	"160 x 120", "176 x 144", "320 x 240", "352 x 288"
+	"128 x 96 SQCIF", 
+#ifdef ENABLE_QSIF
+	"160 x 120 QSIF", 
+#endif
+	"176 x 144 QCIF", 
+	"320 x 240 SIF", "352 x 288 CIF"
+#ifdef LARGE_FRAME_SIZES
+	, "640 x 480 4SIF", "704 x 576 4CIF"
+#endif
 };
 static u_int8_t sizeIndex;
 
@@ -83,11 +107,28 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 	dialog = NULL;
 } 
 
+static void EnableChannels()
+{
+	bool hasTuner = false;
+
+	if (pVideoCaps && pVideoCaps->m_inputHasTuners[inputIndex]) {
+		hasTuner = true;
+	}
+
+	gtk_widget_set_sensitive(GTK_WIDGET(channel_list_menu), hasTuner);
+	gtk_widget_set_sensitive(GTK_WIDGET(channel_combo), hasTuner);
+}
+
+static void ChangeInput(u_int8_t newIndex)
+{
+	inputIndex = newIndex;
+	SetAvailableSignals();
+	EnableChannels();
+}
+
 static void on_input_menu_activate(GtkWidget *widget, gpointer data)
 {
-	inputIndex = ((unsigned int)data) & 0xFF;
-
-	SetAvailableSignals();
+	ChangeInput(((unsigned int)data) & 0xFF);
 }
 
 void CreateInputMenu(CVideoCapabilities* pNewVideoCaps)
@@ -128,9 +169,6 @@ void CreateInputMenu(CVideoCapabilities* pNewVideoCaps)
 	free(inputNames);
 	inputNames = newInputNames;
 	inputNumber = newInputNumber;
-
-	// get signal types sync'ed up with new input
-	SetAvailableSignals();
 }
 
 static void on_changed(GtkWidget *widget, gpointer *data)
@@ -168,12 +206,9 @@ static void on_device_leave(GtkWidget *widget, gpointer *data)
 
 	pVideoCaps = pNewVideoCaps;
 
-	device_modified = false;
-}
+	ChangeInput(inputIndex);
 
-static void on_channel_menu_activate(GtkWidget *widget, gpointer data)
-{
-	channelIndex = ((unsigned int)data) & 0xFF;
+	device_modified = false;
 }
 
 char* GetChannelName(size_t index, void* pUserData)
@@ -181,34 +216,45 @@ char* GetChannelName(size_t index, void* pUserData)
 	return ((struct CHANNEL*)pUserData)[index].name;
 }
 
-static void CreateChannelMenu()
+static void CreateChannelCombo()
 {
 	struct CHANNEL_LIST* pChannelList =
 		ListOfChannelLists[signalIndex];
 
-	channel_menu = CreateOptionMenu(
-		channel_menu,
-		GetChannelName,
-		pChannelList[channelListIndex].list,
-		pChannelList[channelListIndex].count,
-		channelIndex,
-		GTK_SIGNAL_FUNC(on_channel_menu_activate));
-
-	if (pVideoCaps == NULL
-	  || !pVideoCaps->m_inputHasTuners[inputIndex]) {
-		gtk_widget_set_sensitive(GTK_WIDGET(channel_menu), false);
+	GList* list = NULL;
+	for (int i = 0; i < pChannelList[channelListIndex].count; i++) {
+		list = g_list_append(list, 
+			pChannelList[channelListIndex].list[i].name);
 	}
+
+	channel_combo = gtk_combo_new();
+	gtk_combo_set_popdown_strings(GTK_COMBO(channel_combo), list);
+	// although we do want to limit the combo choices to the ones we provide
+	// this call results is some odd UI behaviors
+	// gtk_combo_set_value_in_list(GTK_COMBO(channel_combo), 1, 0);
+	gtk_combo_set_use_arrows_always(GTK_COMBO(channel_combo), 1);
+
+	GtkWidget* entry = GTK_COMBO(channel_combo)->entry;
+	gtk_entry_set_text(GTK_ENTRY(entry), 
+		pChannelList[channelListIndex].list[channelIndex].name);
+
+	gtk_widget_show(channel_combo);
 }
 
-static void on_channel_list_menu_activate(GtkWidget *widget, gpointer data)
+void ChangeChannelList(u_int8_t newIndex)
 {
-	channelListIndex = ((unsigned int)data) & 0xFF;
+	channelListIndex = newIndex;
 
 	// change channel index to zero
 	channelIndex = 0;
 
 	// recreate channel menu
-	CreateChannelMenu();
+	CreateChannelCombo();
+}
+
+static void on_channel_list_menu_activate(GtkWidget *widget, gpointer data)
+{
+	ChangeChannelList((unsigned int)data & 0xFF);
 }
 
 char* GetChannelListName(size_t index, void* pUserData)
@@ -228,21 +274,35 @@ static void CreateChannelListMenu()
 		0xFF,
 		channelListIndex,
 		GTK_SIGNAL_FUNC(on_channel_list_menu_activate));
+}
 
-	if (pVideoCaps == NULL
-	  || !pVideoCaps->m_inputHasTuners[inputIndex]) {
-		gtk_widget_set_sensitive(GTK_WIDGET(channel_list_menu), false);
+void ChangeSignal(u_int8_t newIndex)
+{
+	signalIndex = newIndex;
+	CreateChannelListMenu();
+	ChangeChannelList(0);
+
+	// change max frame rate spinner
+	if (signalIndex == 1) {
+		// NTSC 
+		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(frame_rate_spinner),
+			GTK_ADJUSTMENT(frame_rate_ntsc_adjustment));
+	} else {
+		// PAL or SECAM
+		int frameRate = gtk_spin_button_get_value_as_int(
+			GTK_SPIN_BUTTON(frame_rate_spinner));
+		if (frameRate > PAL_INT_FPS) {
+			gtk_spin_button_set_value(GTK_SPIN_BUTTON(frame_rate_spinner),
+				(gfloat)PAL_INT_FPS);
+		}
+		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(frame_rate_spinner),
+			GTK_ADJUSTMENT(frame_rate_pal_adjustment));
 	}
 }
 
 static void on_signal_menu_activate(GtkWidget *widget, gpointer data)
 {
-	signalIndex = ((unsigned int)data) & 0xFF;
-
-	// change channel list index to 0
-	on_channel_list_menu_activate(GTK_WIDGET(channel_list_menu), 0);
-
-	CreateChannelListMenu();
+	ChangeSignal(((unsigned int)data) & 0xFF);
 }
 
 static void SetAvailableSignals(void)
@@ -298,6 +358,7 @@ static void SetAvailableSignals(void)
 
 		// cause the displayed value to be updated
 		gtk_option_menu_set_history(GTK_OPTION_MENU(signal_menu), signalIndex);
+		// TBD check that signal activate is called here
 	}
 }
 
@@ -320,49 +381,61 @@ static bool ValidateAndSave(void)
 	}
 
 	// if previewing, stop video source
-	StopVideoPreview();
+	AVFlow->StopVideoPreview();
 
 	// copy new values to config
 
-	free(MyConfig->m_videoDeviceName);
-	MyConfig->m_videoDeviceName = stralloc(
+	MyConfig->SetStringValue(CONFIG_VIDEO_DEVICE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(device_entry)));
 
-	MyConfig->m_videoInput =
-		inputIndex;
+	MyConfig->SetIntegerValue(CONFIG_VIDEO_INPUT,
+		inputIndex);
 
-	MyConfig->m_videoSignal =
-		signalIndex;
+	MyConfig->SetIntegerValue(CONFIG_VIDEO_SIGNAL,
+		signalIndex);
 
-	MyConfig->m_videoChannelListIndex =
-		channelListIndex;
+	MyConfig->SetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX,
+		channelListIndex);
 
-	MyConfig->m_videoChannelIndex =
-		channelIndex;
+	// extract channel index out of combo (not so simple)
+	GtkWidget* entry = GTK_COMBO(channel_combo)->entry;
+	char* channelName = gtk_entry_get_text(GTK_ENTRY(entry));
+	struct CHANNEL_LIST* pChannelList =
+		ListOfChannelLists[signalIndex];
+	for (int i = 0; i < pChannelList[channelListIndex].count; i++) {
+		if (!strcmp(channelName, 
+		  pChannelList[channelListIndex].list[i].name)) {
+			channelIndex = i;
+			break;
+		}
+	}
+	MyConfig->SetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX,
+		channelIndex);
 
-	MyConfig->m_videoRawWidth =
-		sizeWidthValues[sizeIndex];
+	MyConfig->SetIntegerValue(CONFIG_VIDEO_RAW_WIDTH,
+		sizeWidthValues[sizeIndex]);
 
-	MyConfig->m_videoRawHeight =
-		sizeHeightValues[sizeIndex];
+	MyConfig->SetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT,
+		sizeHeightValues[sizeIndex]);
 
-	MyConfig->m_videoAspectRatio =
-		aspectValues[aspectIndex];
+	MyConfig->SetFloatValue(CONFIG_VIDEO_ASPECT_RATIO,
+		aspectValues[aspectIndex]);
 
-	MyConfig->m_videoTargetFrameRate =
-		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(frame_rate_spinner));
+	MyConfig->SetIntegerValue(CONFIG_VIDEO_FRAME_RATE,
+		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(frame_rate_spinner)));
 
-	MyConfig->m_videoTargetBitRate =
-		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(bit_rate_spinner));
+	MyConfig->SetIntegerValue(CONFIG_VIDEO_BIT_RATE,
+		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(bit_rate_spinner)));
 
 
 	// now put the new configuration into effect
 
-	GenerateMpeg4VideoConfig(MyConfig);
+	MyConfig->Regenerate();
 
 	// if previewing, restart video source
-	if (MyConfig->m_videoEnable && MyConfig->m_videoPreview) {
-		StartVideoPreview();
+	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
+	  && MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
+		AVFlow->StartVideoPreview();
 	}
 
 	// refresh display of settings in main window
@@ -464,7 +537,8 @@ void CreateVideoDialog (void)
 	gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 5);
 
 	device_entry = gtk_entry_new_with_max_length(128);
-	gtk_entry_set_text(GTK_ENTRY(device_entry), MyConfig->m_videoDeviceName);
+	gtk_entry_set_text(GTK_ENTRY(device_entry), 
+		MyConfig->GetStringValue(CONFIG_VIDEO_DEVICE_NAME));
 	device_modified = false;
 	SetEntryValidator(GTK_OBJECT(device_entry),
 		GTK_SIGNAL_FUNC(on_changed),
@@ -476,13 +550,17 @@ void CreateVideoDialog (void)
 	// input, signal, channel list, and channel
 	// order of operations is important here
 
-	channelIndex = MyConfig->m_videoChannelIndex;
-	channelListIndex = MyConfig->m_videoChannelListIndex;
-	signalIndex = MyConfig->m_videoSignal; 
-	inputIndex = MyConfig->m_videoInput;
+	channelIndex = 
+		MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX);
+	channelListIndex = 
+		MyConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX);
+	signalIndex = 
+		MyConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL); 
+	inputIndex = 
+		MyConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
 
-	channel_menu = NULL;
-	CreateChannelMenu();
+	channel_combo = NULL;
+	CreateChannelCombo();
 
 	channel_list_menu = NULL;
 	CreateChannelListMenu();
@@ -497,6 +575,7 @@ void CreateVideoDialog (void)
 
 	input_menu = NULL;
 	CreateInputMenu(pVideoCaps);
+	ChangeInput(inputIndex);
 
 	gtk_box_pack_start(GTK_BOX(vbox), input_menu, TRUE, TRUE, 0);
 
@@ -504,8 +583,9 @@ void CreateVideoDialog (void)
 
 	gtk_box_pack_start(GTK_BOX(vbox), channel_list_menu, TRUE, TRUE, 0);
 
-	gtk_box_pack_start(GTK_BOX(vbox), channel_menu, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), channel_combo, TRUE, TRUE, 0);
 
+	// TBD limit choices based on video capabilities
 	sizeIndex = 0; 
 	for (u_int8_t i = 0; i < sizeof(sizeWidthValues) / sizeof(u_int16_t); i++) {
 		if (MyConfig->m_videoWidth == sizeWidthValues[i]) {
@@ -523,7 +603,8 @@ void CreateVideoDialog (void)
 
 	aspectIndex = 0; 
 	for (u_int8_t i = 0; i < sizeof(aspectValues) / sizeof(float); i++) {
-		if (MyConfig->m_videoAspectRatio == aspectValues[i]) {
+		if (MyConfig->GetFloatValue(CONFIG_VIDEO_ASPECT_RATIO)
+		  == aspectValues[i]) {
 			aspectIndex = i;
 			break;
 		}
@@ -536,18 +617,31 @@ void CreateVideoDialog (void)
 		GTK_SIGNAL_FUNC(on_aspect_menu_activate));
 	gtk_box_pack_start(GTK_BOX(vbox), aspect_menu, TRUE, TRUE, 0);
 
-	adjustment = gtk_adjustment_new(MyConfig->m_videoTargetFrameRate,
-		1, 30, 1, 0, 0);
-	frame_rate_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 1, 0);
+	frame_rate_pal_adjustment = gtk_adjustment_new(
+		MyConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE),
+		1, PAL_INT_FPS, 1, 0, 0);
+	gtk_object_ref(frame_rate_pal_adjustment);
+	frame_rate_ntsc_adjustment = gtk_adjustment_new(
+		MyConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE),
+		1, NTSC_INT_FPS, 1, 0, 0);
+	gtk_object_ref(frame_rate_ntsc_adjustment);
+
+	if (signalIndex == 1) {
+		frame_rate_spinner = gtk_spin_button_new(
+			GTK_ADJUSTMENT(frame_rate_ntsc_adjustment), 1, 0);
+	} else {
+		frame_rate_spinner = gtk_spin_button_new(
+			GTK_ADJUSTMENT(frame_rate_pal_adjustment), 1, 0);
+	}
 	gtk_widget_show(frame_rate_spinner);
 	gtk_box_pack_start(GTK_BOX(vbox), frame_rate_spinner, TRUE, TRUE, 0);
 
-	adjustment = gtk_adjustment_new(MyConfig->m_videoTargetBitRate,
+	adjustment = gtk_adjustment_new(
+		MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE),
 		50, 1500, 50, 0, 0);
 	bit_rate_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 50, 0);
 	gtk_widget_show(bit_rate_spinner);
 	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_spinner, TRUE, TRUE, 0);
-
 
 	// Add standard buttons at bottom
 	button = AddButtonToDialog(dialog,

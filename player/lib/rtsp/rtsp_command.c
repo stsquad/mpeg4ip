@@ -352,8 +352,11 @@ static int rtsp_send_play_or_pause (const char *command,
   size_t maxlen, buflen;
   int ret;
   rtsp_decode_t *decode;
-  
+
   *decode_result = NULL;
+  if (info->server_socket < 0) {
+    return (RTSP_RESPONSE_CLOSED_SOCKET);
+  }
 
   maxlen = sizeof(buffer);
   buflen = snprintf(buffer, maxlen, "%s %s RTSP/1.0\r\n", command, url);
@@ -477,6 +480,9 @@ static int rtsp_send_teardown_common (rtsp_client_t *info,
   rtsp_decode_t *decode;
   
   *decode_result = NULL;
+  if (info->server_socket < 0) {
+    return (RTSP_RESPONSE_CLOSED_SOCKET);
+  }
 
   maxlen = sizeof(buffer);
   buflen = snprintf(buffer, maxlen, "TEARDOWN %s RTSP/1.0\r\n", url);

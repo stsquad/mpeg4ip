@@ -207,6 +207,12 @@ void CAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 	} while (ts_diff > 0);
 	SDL_LockAudio();
       }
+    } else {
+      if (m_last_fill_timestamp == ts) {
+	player_debug_message("Repeat timestamp with audio %llu", ts);
+	SDL_UnlockAudio();
+	return;
+      }
     }
   }
   m_last_fill_timestamp = ts;
@@ -399,7 +405,8 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 #endif
   }
 
-  if (m_first_time == 0) {
+  if ((m_first_time == 0) &&
+      (m_use_SDL_delay != 0)) {
     /*
      * If we're not the first time, see if we're about a frame or more
      * around the current time, with latency built in.  If not, skip
@@ -438,10 +445,12 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 	size_t diff;
 	diff = m_buffer_size - m_play_sample_index;
 	if (m_samples_loaded >= diff) {
-		m_samples_loaded -= diff;
+	  m_samples_loaded -= diff;
 	} else {	
-		m_samples_loaded = 0;
+	  m_samples_loaded = 0;
 	}
+	m_consec_wrong_latency = 0;  // reset all latency calcs..
+	m_wrong_latency_total = 0;
       } else {
 	time_okay = 1;
 	time = buffertime;
@@ -530,8 +539,8 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
 
       if (time > index_time + ALLOWED_LATENCY || 
 	  time < index_time - ALLOWED_LATENCY) {
-	//player_debug_message("potential change - index time %llu time %llu", 
-	//index_time, time);
+	player_debug_message("potential change - index time %llu time %llu", 
+			     index_time, time);
 	m_consec_wrong_latency++;
 	m_wrong_latency_total += time - index_time;
 	int64_t test;

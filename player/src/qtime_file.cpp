@@ -31,6 +31,7 @@
 #include "qtime_bytestream.h"
 #include "qtime_file.h"
 #include "mpeg4_audio_config.h"
+#include "our_config_file.h"
 
 CQtimeFile *QTfile1 = NULL;
 /*
@@ -149,6 +150,9 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
       int profileID = quicktime_get_iod_video_profile_level(m_qtfile);
       player_debug_message("Got profile ID %d", profileID);
       if (profileID >= 1 && profileID <= 3) {
+	if (config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY) == 1) {
+	  mptr->set_codec_type("mp4v");
+	} else
 	mptr->set_codec_type("divx");
       } else {
 	mptr->set_codec_type(codec_name);

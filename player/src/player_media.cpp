@@ -1088,8 +1088,8 @@ int CPlayerMedia::determine_proto_from_rtp(void)
 
       m_rtp_byte_stream = 
 	create_rtp_byte_stream_for_format(m_media_fmt,
-					  m_stream_ondemand,
 					  proto,
+					  m_stream_ondemand,
 					  tickpersec,
 					  &m_head,
 					  &m_tail,

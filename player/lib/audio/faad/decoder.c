@@ -16,7 +16,7 @@
 
 
 
-faacDecHandle FAADAPI faacDecOpen()
+faacDecHandle FAADAPI faacDecOpen(int object_type)
 {
 	int i;
 	faacDecHandle hDecoder = NULL;
@@ -32,7 +32,7 @@ faacDecHandle FAADAPI faacDecOpen()
 	/* set defaults */
     hDecoder->current_program = -1;
     hDecoder->default_config = 1;
-    hDecoder->mc_info.object_type = AACLTP; /* assumed defaults */
+    hDecoder->mc_info.object_type = object_type; /* assumed defaults */
     hDecoder->mc_info.sampling_rate_idx = Fs_44;
 	hDecoder->dolbyShortOffset_f2t = 1;
 	hDecoder->dolbyShortOffset_t2f = 1;

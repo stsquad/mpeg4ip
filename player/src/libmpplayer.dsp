@@ -40,7 +40,7 @@ CPP=cl.exe
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../common/video/mpeg4 ./codec ./codec/mpeg4 ../lib ../lib/audio ../lib/SDL/include ../../common/mp4 ../../include" /I "." /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../lib/SDL/include" /I "../../common/mp4" /I "../../include" /I "../lib/video/divx" /I "../../common/lib" /I "../../lib/avi" /I "../../lib" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../common/video/mpeg4 ./codec ./codec/mpeg4 ../lib ../lib/audio ../lib/SDL/include ../../common/mp4 ../../include" /I "../../common/mp4" /I "../../common/lib" /I "." /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../../lib/SDL/include" /I "../../lib/mp4" /I "../../include" /I "../lib/video/divx" /I "../../lib" /I "../../lib/avi" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -62,7 +62,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "." /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../lib/SDL/include" /I "../../common/mp4" /I "../../include" /I "../lib/video/divx" /I "../../common/lib" /I "../../lib/avi" /I "../../lib" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /D "_AFXDLL" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /GX /Zi /Od /I "../../lib/mp4" /I "." /I "../../common/video/mpeg4" /I "./codec" /I "./codec/mpeg4" /I "../lib" /I "../lib/audio" /I "../../lib/SDL/include" /I "../../include" /I "../lib/video/divx" /I "../../lib" /I "../../lib/avi" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_REENTRANT" /D "NOCONTROLS" /D _WIN32_WINNT=0x0400 /D "_AFXDLL" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo

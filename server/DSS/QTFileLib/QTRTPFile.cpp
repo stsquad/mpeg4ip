@@ -21,7 +21,7 @@
  * 
  * @APPLE_LICENSE_HEADER_END@
  */
-// $Id: QTRTPFile.cpp,v 1.2 2001/05/09 21:04:37 cahighlander Exp $
+// $Id: QTRTPFile.cpp,v 1.3 2001/08/01 00:34:59 wmaycisco Exp $
 //
 // QTRTPFile:
 //   An interface to QTFile for TimeShare.
@@ -586,12 +586,12 @@ char * QTRTPFile::GetSDPFile(int * sdpFileLength)
 	{
 		//
 		// Verify that this is an SDP atom.
-		fFile->Read(globalSDPTOCEntry->AtomDataPos, (char *)&tempAtomType, 4);
+		fFile->Read(globalSDPTOCEntry->AtomDataPos+4, (char *)&tempAtomType, 4);
 		
 		if ( ntohl(tempAtomType) == FOUR_CHARS_TO_INT('s', 'd', 'p', ' ') ) 
 		{
 			haveGlobalSDPAtom = true;
-			fSDPFileLength += globalSDPTOCEntry->AtomDataLength - 4;
+			fSDPFileLength += globalSDPTOCEntry->AtomDataLength - 8;
 		}
 	}
 
@@ -605,8 +605,8 @@ char * QTRTPFile::GetSDPFile(int * sdpFileLength)
 	
 	if( haveGlobalSDPAtom ) 
 	{
-		fFile->Read(globalSDPTOCEntry->AtomDataPos + 4, pSDPFile, globalSDPTOCEntry->AtomDataLength - 4);
-		pSDPFile += globalSDPTOCEntry->AtomDataLength - 4;
+		fFile->Read(globalSDPTOCEntry->AtomDataPos + 8, pSDPFile, globalSDPTOCEntry->AtomDataLength - 8);
+		pSDPFile += globalSDPTOCEntry->AtomDataLength - 8;
 	}
 	
 	::memcpy(pSDPFile, sdpRangeLine, ::strlen(sdpRangeLine));

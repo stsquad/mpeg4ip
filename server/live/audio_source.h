@@ -33,7 +33,7 @@
 
 class CAudioSource : public CMediaSource {
 public:
-	CAudioSource() {
+	CAudioSource() : CMediaSource() {
 		m_capture = false;
 		m_audioDevice = -1;
 		m_rawFrameBuffer = NULL;
@@ -72,13 +72,13 @@ protected:
 	bool InitEncoder(void);
 
 	void ProcessAudio(void);
-	void ForwardCompletedFrames(Timestamp newFrameTimestamp);
+	u_int16_t ForwardCompletedFrames(void);
 
 protected:
 	bool				m_capture;
 	int					m_audioDevice;
 	Timestamp			m_startTimestamp;
-	u_int32_t			m_rawFrameNumber;
+	u_int32_t			m_frameNumber;
 	u_int16_t			m_samplesPerFrame;
 	Duration			m_frameDuration;
 	u_int16_t			m_maxPasses;
@@ -91,7 +91,6 @@ protected:
 	u_int8_t*			m_mp3FrameBuffer;
 	u_int32_t			m_mp3FrameBufferLength;
 	u_int32_t			m_mp3FrameBufferSize;
-	Timestamp			m_mp3FrameTimestamp;
 };
 
 #endif /* __AUDIO_SOURCE_H__ */

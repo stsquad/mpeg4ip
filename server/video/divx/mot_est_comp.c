@@ -175,16 +175,18 @@ Image  **mode									  /* --> modes for each MB                            */
 	pr_rec_y = prev_rec_vop->y_chan;
 	prev_orig_y = (SInt*)GetImageData(pr_rec_y);
 	pi_y = AllocImage (2*vop_width, 2*vop_height, SHORT_TYPE);
-#ifdef USE_MMX
+
+#ifndef MMX
+	InterpolateImage(pr_rec_y, pi_y, GetVopRoundingType(curr_vop));
+#else
 	InterpolateImageMmx(
 		GetImageData(pr_rec_y),
 		GetImageData(pi_y), 
 		pr_rec_y->x,
 		pr_rec_y->y,
 		GetVopRoundingType(curr_vop));
-#else
-	InterpolateImage(pr_rec_y, pi_y, GetVopRoundingType(curr_vop));
 #endif
+
 	prev_ipol_y = (SInt*)GetImageData(pi_y);
 
 	/*

@@ -152,9 +152,11 @@ rowLoop:
 	mov PSRCROW, [PSRC];
 	mov PDSTROW, [PDST];
 	add COLNUM, 2;
-	add PSRCROW, COLNUM;
-	add PDSTROW, COLNUM;
-	add PDSTROW, COLNUM;
+	mov eax, COLNUM;
+	imul eax, 2;
+	add PSRCROW, eax;
+	imul eax, 2;
+	add PDSTROW, eax;
 	
 	mov eax, [WIDTH];
 	sub eax, 2;

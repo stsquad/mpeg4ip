@@ -537,7 +537,8 @@ void CPlayerSession::adjust_start_time (int64_t time)
 {
   m_start -= time;
   m_clock_wrapped = -1;
-  player_debug_message("Adjusting start time "LLD, time);
+  player_debug_message("Adjusting start time "LLD " to " LLU, time,
+		       get_current_time());
   SDL_SemPost(m_sync_sem);
 }
 /* end sync.cpp */

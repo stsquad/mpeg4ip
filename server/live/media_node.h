@@ -44,8 +44,8 @@ public:
 
 	void StartThread() {
 		if (m_myThread == NULL) {
-			m_myThread = SDL_CreateThread(StartThreadCallback, this);
 			m_myMsgQueueSemaphore = SDL_CreateSemaphore(0);
+			m_myThread = SDL_CreateThread(StartThreadCallback, this);
 		}
 	}
 
@@ -84,7 +84,7 @@ protected:
 
 class CMediaSink : public CMediaNode {
 public:
-	CMediaSink() {
+	CMediaSink() : CMediaNode() {
 		m_pEnqueueMutex = SDL_CreateMutex();
 		if (m_pEnqueueMutex == NULL) {
 			debug_message("EnqueueFrame CreateMutex error");
@@ -107,7 +107,7 @@ public:
 
 		pFrame->AddReference();
 		m_myMsgQueue.send_message(MSG_SINK_FRAME, 
-			(unsigned char*)pFrame, sizeof(CMediaFrame),
+			(unsigned char*)pFrame, 0,
 			m_myMsgQueueSemaphore);
 
 		if (SDL_UnlockMutex(m_pEnqueueMutex) == -1) {
@@ -124,10 +124,13 @@ protected:
 
 class CMediaSource : public CMediaNode {
 public:
-	CMediaSource() {
+	CMediaSource() : CMediaNode() {
 		m_pSinksMutex = SDL_CreateMutex();
 		if (m_pSinksMutex == NULL) {
 			debug_message("CreateMutex error");
+		}
+		for (int i = 0; i < MAX_SINKS; i++) {
+			m_sinks[i] = NULL;
 		}
 	}
 

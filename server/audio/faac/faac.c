@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: faac.c,v 1.4 2001/06/01 22:30:45 wmaycisco Exp $
+ * $Id: faac.c,v 1.5 2001/08/01 00:34:59 wmaycisco Exp $
  */
 
 #ifdef _WIN32
@@ -106,9 +106,9 @@ int main(int argc, char *argv[])
 				switch(argv[i][1]) {
 				case 'p': case 'P':
 					if ((argv[i][2] == 'l') || (argv[i][2] == 'L')) {
-						if ((argv[i][3] == 'c') || (argv[i][2] == 'C')) {
+						if ((argv[i][3] == 'c') || (argv[i][3] == 'C')) {
 							myFormat.aacObjectType = LOW;
-						} else if ((argv[i][3] == 't') || (argv[i][2] == 'T')) {
+						} else if ((argv[i][3] == 't') || (argv[i][3] == 'T')) {
 							myFormat.aacObjectType = LTP;
 						}
 					} else if ((argv[i][2] == 'm') || (argv[i][2] == 'M')) {

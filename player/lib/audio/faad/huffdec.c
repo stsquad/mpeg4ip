@@ -30,7 +30,7 @@ Copyright(c)1996.
 #include "port.h"
 #include "bits.h"
 #include "util.h"
-
+#define DEBUG 1
 // wmay - add statics
 static int extension_payload(faacDecHandle hDecoder, int cnt, byte *data);
 static int getescape(faacDecHandle hDecoder, int q);
@@ -136,12 +136,18 @@ int huffdecode(faacDecHandle hDecoder, int id, MC_Info *mip, byte *win,
 		common_window = faad_get1bit(&hDecoder->ld); /* common_window */
 		break;
 	default:
-		/* CommonWarning("Unknown id"); */
+#ifdef DEBUG
+		printf("Unknown id %d\n", id);
+#endif
 		return(-1);
     }
 
-    if ((ch = chn_config(hDecoder, id, tag, common_window, mip)) < 0)
+    if ((ch = chn_config(hDecoder, id, tag, common_window, mip)) < 0) {
+      #ifdef DEBUG
+      printf("chn config\n");
+      #endif
 		return -1;
+    }
     
     switch(id) {
 	case ID_SCE:
@@ -177,8 +183,12 @@ int huffdecode(faacDecHandle hDecoder, int id, MC_Info *mip, byte *win,
 		if(!getics(hDecoder, &info, common_window, &win[widx], &wshape[widx].this_bk,
 			group[widx], &max_sfb[widx], lpflag[widx], prstflag[widx], 
 			cb_map[i], coef[i], &global_gain, factors[i], nok_ltp_status[widx],
-			tns[i]))
+			   tns[i])) {
+		  #ifdef DEBUG
+		  printf("getics\n");
+#endif
 			return -1;
+		}
     }
 
     return 0;
@@ -487,8 +497,10 @@ static int getics(faacDecHandle hDecoder, Info *info, int common_window, byte *w
 
     if (!common_window) {
 		if (!get_ics_info(hDecoder, win, wshape, group, max_sfb, lpflag, prstflag,
-			nok_ltp_status, NULL, 0))
+				  nok_ltp_status, NULL, 0)) {
+		  printf("get_ics_info\n");
 			return 0;
+		}
 	}
 
     CopyMemory(info, hDecoder->winmap[*win], sizeof(Info));
@@ -509,8 +521,10 @@ static int getics(faacDecHandle hDecoder, Info *info, int common_window, byte *w
 	* section data
 	*/
     nsect = huffcb(hDecoder, sect, info->sectbits, tot_sfb, info->sfb_per_sbk[0], *max_sfb);
-    if(nsect==0 && *max_sfb>0)
+    if(nsect==0 && *max_sfb>0) {
+      printf ("huffcb nsect == 0 && maxsfb %d tot_sfb %d\n", *max_sfb, tot_sfb);
 		return 0;
+    }
 
 		/* generate "linear" description from section info
 		* stored as codebook for each scalefactor band and group
@@ -538,8 +552,10 @@ static int getics(faacDecHandle hDecoder, Info *info, int common_window, byte *w
     /*
 	* scale factor data
 	*/
-    if(!hufffac(hDecoder, info, group, nsect, sect, *global_gain, factors))
+    if(!hufffac(hDecoder, info, group, nsect, sect, *global_gain, factors)) {
+      printf("hufffac\n");
 		return 0;
+    }
 
 	/*
 	 *  Pulse coding
@@ -548,7 +564,7 @@ static int getics(faacDecHandle hDecoder, Info *info, int common_window, byte *w
 		if (info->islong) {
 			get_pulse_nc(hDecoder, &hDecoder->pulse_info);
 		} else {
-			/* CommonExit(1,"Pulse data not allowed for short blocks"); */
+			printf("Pulse data not allowed for short blocks");
 			return 0;
 		}
     }
@@ -564,7 +580,7 @@ static int getics(faacDecHandle hDecoder, Info *info, int common_window, byte *w
     }
 
     if (faad_get1bit(&hDecoder->ld)) { /* gain control present */
-		/* CommonExit(1, "Gain control not implemented"); */
+      printf( "Gain control not implemented");
 		return 0;
     }   
 
@@ -604,8 +620,10 @@ static int huffcb(faacDecHandle hDecoder, byte *sect, int *sectbits,
 		}
     }
 
-    if(base != tot_sfb || nsect > tot_sfb)
+    if(base != tot_sfb || nsect > tot_sfb) {
+      printf("base %d totsfb %d nsect %d\n", base, tot_sfb, nsect);
 		return 0;
+    }
 
     return nsect;
 }

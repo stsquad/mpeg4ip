@@ -172,13 +172,13 @@ int CDivxCodec::parse_vovod (const char *vovod,
     try {
       ret = getvolhdr();
       if (ret != 0) {
+	player_debug_message("Found VOL in header");
 	m_video_sync->config(mp4_hdr.width,
 			     mp4_hdr.height,
 			     mp4_hdr.time_increment_resolution);
 	post_volprocessing();
       }
 
-      //player_debug_message("Found VO in header");
     } catch (const char *err) {
       player_debug_message("Caught exception in VO mem header search %s", err);
     }

@@ -155,6 +155,7 @@ rtsp_client_t *rtsp_create_client(const char *url, int *err);
 #define RTSP_RESPONSE_BAD -2
 #define RTSP_RESPONSE_MISSING_OR_BAD_PARAM -3
 #define RTSP_RESPONSE_BAD_URL -4
+#define RTSP_RESPONSE_CLOSED_SOCKET -5
 #define RTSP_RESPONSE_REDIRECT  1
 #define RTSP_RESPONSE_GOOD 0
 
@@ -256,8 +257,11 @@ int rtsp_send_aggregate_teardown (rtsp_client_t *info,
 				  rtsp_command_t *cmd,
 				  rtsp_decode_t **decode_result);
   
-int rtsp_is_url_my_stream (const char *url,
-			   rtsp_session_t *session);
+
+int rtsp_is_url_my_stream(rtsp_session_t *session, const char *url,
+						  const char *content_base, const char *session_name);
+
+
 /*
  * rtsp_set_loglevel - set debug output level.
  * Input - loglevel - levels from syslog.h

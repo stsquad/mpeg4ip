@@ -29,6 +29,7 @@
 #include <mpegvideo.h>	/* ffmpeg */
 
 #include "video_source.h"
+#include "rgb2yuv.h"
 
 int CVideoSource::ThreadMain(void) 
 {
@@ -68,6 +69,9 @@ int CVideoSource::ThreadMain(void)
 				case MSG_STOP_PREVIEW:
 					DoStopPreview();
 					break;
+				case MSG_GENERATE_KEY_FRAME:
+					DoGenerateKeyFrame();
+					break;
 				}
 
 				delete pMsg;
@@ -82,7 +86,7 @@ int CVideoSource::ThreadMain(void)
 	return -1;
 }
 
-void CVideoSource::DoStartCapture()
+void CVideoSource::DoStartCapture(void)
 {
 	if (m_capture) {
 		return;
@@ -94,7 +98,7 @@ void CVideoSource::DoStartCapture()
 	m_capture = true;
 }
 
-void CVideoSource::DoStopCapture()
+void CVideoSource::DoStopCapture(void)
 {
 	if (!m_capture) {
 		return;
@@ -103,8 +107,9 @@ void CVideoSource::DoStopCapture()
 		DoStopPreview();
 	}
 
-	if (m_pConfig->m_videoEncode) {
-		if (m_pConfig->m_videoUseDivxEncoder) {
+	// shutdown encoders
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
+		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER)) {
 			encore(m_divxHandle, ENC_OPT_RELEASE, NULL, NULL);
 		} else { // ffmpeg
 			divx_encoder.close(&m_avctx);
@@ -112,13 +117,17 @@ void CVideoSource::DoStopCapture()
 		}
 	}
 
+	// release device resources
+	munmap(m_videoMap, m_videoMbuf.size);
+	m_videoMap = NULL;
+
 	close(m_videoDevice);
 	m_videoDevice = -1;
 
 	m_capture = false;
 }
 
-void CVideoSource::DoStartPreview()
+void CVideoSource::DoStartPreview(void)
 {
 	if (m_preview) {
 		return;
@@ -142,7 +151,7 @@ void CVideoSource::DoStartPreview()
 		sdlVideoFlags |= SDL_NOFRAME;
 	}
 
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) < 0) {
 		error_message("Could not init SDL video: %s", SDL_GetError());
 	}
 	char driverName[32];
@@ -150,25 +159,40 @@ void CVideoSource::DoStartPreview()
 		error_message("Could not init SDL video: %s", SDL_GetError());
 	}
 
-	m_sdlScreen = SDL_SetVideoMode(m_pConfig->m_videoWidth, 
-		m_pConfig->m_videoHeight, 32, sdlVideoFlags);
+	m_sdlScreen = SDL_SetVideoMode(m_pConfig->m_videoMaxWidth, 
+		m_pConfig->m_videoMaxHeight, 32, sdlVideoFlags);
 
-	m_sdlScreenRect.x = 0;
-	m_sdlScreenRect.y = 0;
-	m_sdlScreenRect.w = m_sdlScreen->w;
-	m_sdlScreenRect.h = m_sdlScreen->h;
+	m_sdlScreenRect.x = (m_sdlScreen->w - m_pConfig->m_videoWidth) / 2;
+	m_sdlScreenRect.y = (m_sdlScreen->h - m_pConfig->m_videoHeight) / 2;
+	m_sdlScreenRect.w = m_pConfig->m_videoWidth;
+	m_sdlScreenRect.h = m_pConfig->m_videoHeight;
 
 	m_sdlImage = SDL_CreateYUVOverlay(m_pConfig->m_videoWidth, 
 		m_pConfig->m_videoHeight, SDL_YV12_OVERLAY, m_sdlScreen);
 
+	// currently we can only do one type of preview
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)
+	  && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
+		// so resolve any misconfiguration
+		m_pConfig->SetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW, false);
+	}
+
 	m_preview = true;
 }
 
-void CVideoSource::DoStopPreview()
+void CVideoSource::DoStopPreview(void)
 {
 	if (!m_preview) {
 		return;
 	}
+
+	// do a final blit to set the screen to all black
+	SDL_LockYUVOverlay(m_sdlImage);
+	memset(m_sdlImage->pixels[0], 16, m_ySize);
+	memset(m_sdlImage->pixels[1], 128, m_uvSize);
+	memset(m_sdlImage->pixels[2], 128, m_uvSize);
+	SDL_DisplayYUVOverlay(m_sdlImage, &m_sdlScreenRect);
+	SDL_UnlockYUVOverlay(m_sdlImage);
 
 	SDL_FreeYUVOverlay(m_sdlImage);
 	SDL_FreeSurface(m_sdlScreen);
@@ -180,22 +204,29 @@ void CVideoSource::DoStopPreview()
 	m_preview = false;
 }
 
+void CVideoSource::DoGenerateKeyFrame(void)
+{
+	m_wantKeyFrame = true;
+}
+
 bool CVideoSource::Init(void)
 {
 	if (!InitDevice()) {
 		return false;
 	}
 
-	if (m_pConfig->m_videoSignal == VIDEO_MODE_NTSC) {
+	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) == VIDEO_MODE_NTSC) {
 		m_rawFrameRate = NTSC_INT_FPS;
 	} else {
 		m_rawFrameRate = PAL_INT_FPS;
 	}
-	InitSampleFrames(m_pConfig->m_videoTargetFrameRate, m_rawFrameRate);
+	InitSampleFrames(
+		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE), 
+		m_rawFrameRate);
 
 	InitSizes();
 
-	if (m_pConfig->m_videoEncode) {
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
 		if (!InitEncoder()) {
 			close(m_videoDevice);
 			m_videoDevice = -1;
@@ -204,12 +235,17 @@ bool CVideoSource::Init(void)
 	}
 
 	m_rawFrameNumber = 0xFFFFFFFF;
-	m_skippedFrames = 0;
 	m_rawFrameDuration = TimestampTicks / m_rawFrameRate;
-	m_targetFrameDuration = TimestampTicks / m_pConfig->m_videoTargetFrameRate;
+	m_encodedFrameNumber = 0;
+	m_targetFrameDuration = TimestampTicks 
+		/ m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
 
 	m_prevVopBuf = NULL;
 	m_prevVopBufLength = 0;
+
+	m_skippedFrames = 0;
+	m_accumDrift = 0;
+	m_maxDrift = m_targetFrameDuration;
 
 	return true;
 }
@@ -217,12 +253,14 @@ bool CVideoSource::Init(void)
 bool CVideoSource::InitDevice(void)
 {
 	int rc;
+	char* deviceName = m_pConfig->GetStringValue(CONFIG_VIDEO_DEVICE_NAME);
+	u_int16_t format;
 
 	// open the video device
-	m_videoDevice = open(m_pConfig->m_videoDeviceName, O_RDWR);
+	m_videoDevice = open(deviceName, O_RDWR);
 	if (m_videoDevice < 0) {
-		error_message("Failed to open %s", 
-			m_pConfig->m_videoDeviceName);
+		error_message("Failed to open %s: %s", 
+			deviceName, strerror(errno));
 		return false;
 	}
 
@@ -231,35 +269,33 @@ bool CVideoSource::InitDevice(void)
 	rc = ioctl(m_videoDevice, VIDIOCGCAP, &videoCapability);
 	if (rc < 0) {
 		error_message("Failed to get video capabilities for %s",
-			m_pConfig->m_videoDeviceName);
-		close(m_videoDevice);
-		m_videoDevice = -1;
-		return false;
+			deviceName);
+		goto failure;
 	}
 
 	if (!(videoCapability.type & VID_TYPE_CAPTURE)) {
 		error_message("Device %s is not capable of video capture!",
-			m_pConfig->m_videoDeviceName);
-		close(m_videoDevice);
-		m_videoDevice = -1;
-		return false;
+			deviceName);
+		goto failure;
 	}
 
 	// N.B. "channel" here is really an input source
 	struct video_channel videoChannel;
-	videoChannel.channel = m_pConfig->m_videoInput;
+	videoChannel.channel = m_pConfig->GetIntegerValue(CONFIG_VIDEO_INPUT);
 	rc = ioctl(m_videoDevice, VIDIOCGCHAN, &videoChannel);
 	if (rc < 0) {
 		error_message("Failed to get video channel info for %s",
-			m_pConfig->m_videoDeviceName);
+			deviceName);
+		goto failure;
 	}
 
 	// select video input and signal type
-	videoChannel.norm = m_pConfig->m_videoSignal;
+	videoChannel.norm = m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL);
 	rc = ioctl(m_videoDevice, VIDIOCSCHAN, &videoChannel);
 	if (rc < 0) {
 		error_message("Failed to set video channel info for %s",
-			m_pConfig->m_videoDeviceName);
+			deviceName);
+		goto failure;
 	}
 
 	// input source has a TV tuner
@@ -267,36 +303,36 @@ bool CVideoSource::InitDevice(void)
 		struct video_tuner videoTuner;
 
 		// get tuner info
-		if (m_pConfig->m_videoTuner == -1) {
-			m_pConfig->m_videoTuner = 0;
+		if ((int32_t)m_pConfig->GetIntegerValue(CONFIG_VIDEO_TUNER) == -1) {
+			m_pConfig->SetIntegerValue(CONFIG_VIDEO_TUNER, 0);
 		}
-		videoTuner.tuner = m_pConfig->m_videoTuner;
+		videoTuner.tuner = m_pConfig->GetIntegerValue(CONFIG_VIDEO_TUNER);
 		rc = ioctl(m_videoDevice, VIDIOCGTUNER, &videoTuner);
 		if (rc < 0) {
 			error_message("Failed to get video tuner info for %s",
-				m_pConfig->m_videoDeviceName);
+				deviceName);
 		}
 		
 		// set tuner and signal type
-		videoTuner.mode = m_pConfig->m_videoSignal;
+		videoTuner.mode = m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL);
 		rc = ioctl(m_videoDevice, VIDIOCSTUNER, &videoTuner);
 		if (rc < 0) {
 			error_message("Failed to set video tuner info for %s",
-				m_pConfig->m_videoDeviceName);
+				deviceName);
 		}
 
 		// tune in the desired frequency (channel)
-		struct CHANNEL_LIST* pChannelList =
-			ListOfChannelLists[m_pConfig->m_videoSignal];
-		struct CHANNEL* pChannel =
-			pChannelList[m_pConfig->m_videoChannelListIndex].list;
-		unsigned long videoFrequency =
-			pChannel[m_pConfig->m_videoChannelIndex].freq;
+		struct CHANNEL_LIST* pChannelList = ListOfChannelLists[
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL)];
+		struct CHANNEL* pChannel = pChannelList[
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_LIST_INDEX)].list;
+		unsigned long videoFrequency = pChannel[
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_CHANNEL_INDEX)].freq;
 
 		rc = ioctl(m_videoDevice, VIDIOCSFREQ, &videoFrequency);
 		if (rc < 0) {
 			error_message("Failed to set video tuner frequency for %s",
-				m_pConfig->m_videoDeviceName);
+				deviceName);
 		}
 	}
 
@@ -304,8 +340,8 @@ bool CVideoSource::InitDevice(void)
 	rc = ioctl(m_videoDevice, VIDIOCGMBUF, &m_videoMbuf);
 	if (rc < 0) {
 		error_message("Failed to get video capture info for %s", 
-			m_pConfig->m_videoDeviceName);
-		return false;
+			deviceName);
+		goto failure;
 	}
 
 	// map the video capture buffers
@@ -313,8 +349,8 @@ bool CVideoSource::InitDevice(void)
 		PROT_READ, MAP_SHARED, m_videoDevice, 0);
 	if (m_videoMap == MAP_FAILED) {
 		error_message("Failed to map video capture memory for %s", 
-			m_pConfig->m_videoDeviceName);
-		return false;
+			deviceName);
+		goto failure;
 	}
 
 	// allocate enough frame maps
@@ -322,29 +358,53 @@ bool CVideoSource::InitDevice(void)
 		malloc(m_videoMbuf.frames * sizeof(struct video_mmap));
 	if (m_videoFrameMap == NULL) {
 		error_message("Failed to allocate enough memory"); 
-		return false;
+		goto failure;
 	}
 
 	m_captureHead = 0;
 	m_encodeHead = -1;
+	format = VIDEO_PALETTE_YUV420P;
 
 	for (int i = 0; i < m_videoMbuf.frames; i++) {
 		// initialize frame map
 		m_videoFrameMap[i].frame = i;
-		m_videoFrameMap[i].width = m_pConfig->m_videoRawWidth;
-		m_videoFrameMap[i].height = m_pConfig->m_videoRawHeight;
-		m_videoFrameMap[i].format = VIDEO_PALETTE_YUV420P;
+		m_videoFrameMap[i].width = 
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
+		m_videoFrameMap[i].height = 
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+		m_videoFrameMap[i].format = format;
 
 		// give frame to the video capture device
 		rc = ioctl(m_videoDevice, VIDIOCMCAPTURE, &m_videoFrameMap[i]);
 		if (rc < 0) {
+			// try RGB24 palette instead
+			if (i == 0 && format == VIDEO_PALETTE_YUV420P) {
+				format = VIDEO_PALETTE_RGB24;
+				i--;
+				continue;
+			} 
+
 			error_message("Failed to allocate video capture buffer for %s", 
-				m_pConfig->m_videoDeviceName);
-			return false;
+				deviceName);
+			goto failure;
 		}
 	}
 
+	if (format == VIDEO_PALETTE_RGB24) {
+		m_pConfig->m_videoNeedRgbToYuv = true;
+	}
+
 	return true;
+
+failure:
+	free(m_videoFrameMap);
+	if (m_videoMap) {
+		munmap(m_videoMap, m_videoMbuf.size);
+		m_videoMap = NULL;
+	}
+	close(m_videoDevice);
+	m_videoDevice = -1;
+	return false;
 }
 
 void CVideoSource::InitSampleFrames(u_int16_t targetFps, u_int16_t rawFps)
@@ -371,35 +431,52 @@ void CVideoSource::InitSampleFrames(u_int16_t targetFps, u_int16_t rawFps)
 	m_frameRateRatio = rawFps / targetFps;
 }
 
-void CVideoSource::InitSizes()
+void CalculateVideoFrameSize(CLiveConfig* pConfig)
 {
-	m_yRawSize = m_pConfig->m_videoRawWidth * m_pConfig->m_videoRawHeight;
-	m_uvRawSize = m_yRawSize / 4;
+	u_int16_t frameHeight;
+	float aspectRatio = pConfig->GetFloatValue(CONFIG_VIDEO_ASPECT_RATIO);
 
-	// setup to crop video to appropriate aspect ratio
-	if (m_pConfig->m_videoAspectRatio != VIDEO_STD_ASPECT_RATIO) {
+	// crop video to appropriate aspect ratio modulo 16 pixels
+	if ((u_int32_t)(aspectRatio - VIDEO_STD_ASPECT_RATIO) == 0) {
+		frameHeight = pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+	} else {
+		frameHeight = (u_int16_t)(
+			(float)pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH) 
+			/ aspectRatio);
 
-		u_int16_t frameHeight = (u_int16_t)
-			((float)m_pConfig->m_videoRawWidth / m_pConfig->m_videoAspectRatio);
 		if ((frameHeight % 16) != 0) {
 			frameHeight += 16 - (frameHeight % 16);
 		}
 
-		m_pConfig->m_videoWidth = m_pConfig->m_videoRawWidth;
-		m_pConfig->m_videoHeight = frameHeight;
-
-		m_yOffset = m_pConfig->m_videoRawWidth 
-			* ((m_pConfig->m_videoRawHeight - frameHeight) / 2);
-		m_uvOffset = m_yOffset / 4;
-		
-	} else {
-		m_pConfig->m_videoWidth = m_pConfig->m_videoRawWidth;
-		m_pConfig->m_videoHeight = m_pConfig->m_videoRawHeight;
-
-		m_yOffset = 0;
-		m_uvOffset = 0;
+		if (frameHeight > pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT)) {
+			// OPTION might be better to insert black lines 
+			// to pad image but for now we crop down
+			frameHeight = pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+			if ((frameHeight % 16) != 0) {
+				frameHeight -= (frameHeight % 16);
+			}
+		}
 	}
 
+	pConfig->m_videoWidth = pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
+	pConfig->m_videoHeight = frameHeight;
+}
+
+void CVideoSource::InitSizes()
+{
+	CalculateVideoFrameSize(m_pConfig);
+
+	m_yRawSize = 
+		m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH)
+		* m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+	m_uvRawSize = m_yRawSize / 4;
+	m_yuvRawSize = m_yRawSize + (2 * m_uvRawSize);
+
+	m_yOffset = m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH)
+		* ((m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT)
+			- m_pConfig->m_videoHeight) / 2);
+	m_uvOffset = m_yOffset / 4;
+		
 	m_ySize = m_pConfig->m_videoWidth * m_pConfig->m_videoHeight;
 	m_uvSize = m_ySize / 4;
 	m_yuvSize = m_ySize + 2 * m_uvSize;
@@ -407,21 +484,24 @@ void CVideoSource::InitSizes()
 
 bool CVideoSource::InitEncoder()
 {
-	if (m_pConfig->m_videoUseDivxEncoder) {
+	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER)) {
 		// setup DivX Encore parameters
 		ENC_PARAM divxParams;
 
 		divxParams.x_dim = m_pConfig->m_videoWidth;
-		divxParams.raw_y_dim = m_pConfig->m_videoRawHeight;
+		divxParams.raw_y_dim = 
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
 		divxParams.y_dim = m_pConfig->m_videoHeight;
-		divxParams.framerate = m_pConfig->m_videoTargetFrameRate;
-		divxParams.bitrate = m_pConfig->m_videoTargetBitRate;
+		divxParams.framerate = 
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
+		divxParams.bitrate = 
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE);
 		divxParams.rc_period = 2000;
 		divxParams.rc_reaction_period = 10;
 		divxParams.rc_reaction_ratio = 20;
-		divxParams.max_key_interval = m_pConfig->m_videoTargetFrameRate * 2;
+		divxParams.max_key_interval = 
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) * 2;
 		divxParams.search_range = 16;
-		// INVESTIGATE divxParams.search_range = 0;
 		divxParams.max_quantizer = 15;
 		divxParams.min_quantizer = 2;
 		divxParams.enable_8x8_mv = 0;
@@ -435,9 +515,12 @@ bool CVideoSource::InitEncoder()
 		m_avctx.frame_number = 0;
 		m_avctx.width = m_pConfig->m_videoWidth;
 		m_avctx.height = m_pConfig->m_videoHeight;
-		m_avctx.rate = m_pConfig->m_videoTargetFrameRate;
-		m_avctx.bit_rate = m_pConfig->m_videoTargetBitRate * 1000;
+		m_avctx.rate = 
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
+		m_avctx.bit_rate = 
+			m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
 		m_avctx.gop_size = m_avctx.rate * 2;
+		m_avctx.want_key_frame = 0;
 		m_avctx.flags = 0;
 		m_avctx.codec = &divx_encoder;
 		m_avctx.priv_data = malloc(m_avctx.codec->priv_data_size);
@@ -454,8 +537,6 @@ int8_t CVideoSource::AcquireFrame(void)
 
 	rc = ioctl(m_videoDevice, VIDIOCSYNC, &m_videoFrameMap[m_captureHead]);
 	if (rc != 0) {
-		//error_message("Failed to sync video capture buffer for %s", 
-		//	m_pConfig->m_videoDeviceName);
 		return -1;
 	}
 
@@ -463,8 +544,7 @@ int8_t CVideoSource::AcquireFrame(void)
 	m_captureHead = (m_captureHead + 1) % m_videoMbuf.frames;
 
 	if (m_captureHead == m_encodeHead) {
-		debug_message("Video capture buffer overflow for %s",
-			m_pConfig->m_videoDeviceName);
+		debug_message("Video capture buffer overflow");
 		return -1;
 	}
 	return capturedFrame;
@@ -472,7 +552,7 @@ int8_t CVideoSource::AcquireFrame(void)
 
 void CVideoSource::ProcessVideo(void)
 {
-	u_int8_t* yuvImage;
+	u_int8_t* yuvImage = NULL;
 	u_int8_t* yImage;
 	u_int8_t* uImage;
 	u_int8_t* vImage;
@@ -497,32 +577,45 @@ void CVideoSource::ProcessVideo(void)
 			goto release;
 		}
 
-#ifdef NOTDEF
 		// check if we are falling behind due to encoding speed
-		if (m_pConfig->m_videoEncode) {
-			// if now is later than 
-			// when we should be acquiring the next frame to be coded
-			if (frameTimestamp >= m_startTimestamp 
-			  + (m_rawFrameNumber + m_frameRateRatio + 1) * m_rawFrameDuration) {
+		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
+			if (m_accumDrift >= m_maxDrift) {
+				if (m_accumDrift <= m_targetFrameDuration) {
+					m_accumDrift = 0;
+				} else {
+					m_accumDrift -= m_targetFrameDuration;
+				}
+
 				// skip this frame			
-debug_message("skipping frame #%u ts %llu >= ts %llu", 
-	m_rawFrameNumber, frameTimestamp, 
-	m_startTimestamp + (m_rawFrameNumber + m_frameRateRatio + 1) * m_rawFrameDuration);
 				m_skippedFrames++;
 				goto release;
-			} else {
-				m_skippedFrames = 0;
 			}
 		}
-#endif
 
-		yuvImage = (u_int8_t*)m_videoMap 
-			+ m_videoMbuf.offsets[m_encodeHead];
+		if (m_pConfig->m_videoNeedRgbToYuv) {
+			yuvImage = (u_int8_t*)malloc(m_yuvRawSize);
+			if (yuvImage == NULL) {
+				debug_message("Can't malloc YUV buffer!");
+				goto release;
+			}
+			RGB2YUV(
+				m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH), 
+				m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT), 
+				(u_int8_t*)m_videoMap + m_videoMbuf.offsets[m_encodeHead],
+				yuvImage,
+				yuvImage + m_yRawSize,
+				yuvImage + m_yRawSize + m_uvRawSize,
+				1);
+		} else {
+			yuvImage = (u_int8_t*)m_videoMap 
+				+ m_videoMbuf.offsets[m_encodeHead];
+		}
+
 		yImage = yuvImage + m_yOffset;
 		uImage = yuvImage + m_yRawSize + m_uvOffset;
 		vImage = uImage + m_uvRawSize;
 
-		if (m_pConfig->m_videoRawPreview) {
+		if (m_preview && m_pConfig->GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)) {
 			SDL_LockYUVOverlay(m_sdlImage);
 			memcpy(m_sdlImage->pixels[0], yImage, m_ySize);
 			memcpy(m_sdlImage->pixels[1], vImage, m_uvSize);
@@ -532,7 +625,7 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 		}
 
 		// encode video frame to MPEG-4
-		if (m_pConfig->m_videoEncode) {
+		if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODE)) {
 
 			u_int8_t* vopBuf = (u_int8_t*)malloc(m_maxVopSize);
 			u_int32_t vopBufLength;
@@ -544,13 +637,16 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 			ENC_RESULT divxResult;
 
 			// call encoder libraries
-			if (m_pConfig->m_videoUseDivxEncoder) {
+			if (m_pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER)) {
 				ENC_FRAME divxFrame;
-
 				divxFrame.image = yuvImage;
 				divxFrame.bitstream = vopBuf;
 				divxFrame.length = m_maxVopSize;
-				if (encore(m_divxHandle, 0, &divxFrame, &divxResult)
+
+				u_int32_t divxFlags =
+					(m_wantKeyFrame ? ENC_OPT_WANT_KEY_FRAME : 0);
+
+				if (encore(m_divxHandle, divxFlags, &divxFrame, &divxResult)
 				  != ENC_OK) {
 					debug_message("Divx can't encode frame!");
 					goto release;
@@ -561,16 +657,24 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 				yuvPlanes[0] = yImage;
 				yuvPlanes[1] = uImage;
 				yuvPlanes[2] = vImage;
+
+				m_avctx.want_key_frame = m_wantKeyFrame;
+
 				vopBufLength = divx_encoder.encode(&m_avctx, 
 					vopBuf, m_maxVopSize, yuvPlanes);
+
 				m_avctx.frame_number++;
 			}
 
+			// clear this flag
+			m_wantKeyFrame = false;
+
 			// if desired, preview reconstructed image
-			if (m_pConfig->m_videoEncodedPreview) {
+			if (m_preview 
+			  && m_pConfig->GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)) {
 				SDL_LockYUVOverlay(m_sdlImage);
 
-				if (m_pConfig->m_videoUseDivxEncoder) {
+				if (m_pConfig->GetBoolValue(CONFIG_VIDEO_USE_DIVX_ENCODER)) {
 					memcpy2to1(m_sdlImage->pixels[0], 
 						(u_int16_t*)divxResult.reconstruct_y,
 						m_ySize);
@@ -611,11 +715,26 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 			m_prevVopBuf = vopBuf;
 			m_prevVopBufLength = vopBufLength;
 			m_prevVopTimestamp = frameTimestamp;
+
+			m_encodedFrameNumber++;
+
+			// reset skipped frames
+			m_skippedFrames = 0;
+
+			// calculate how we're doing versus target frame rate
+			Duration encodingTime = GetTimestamp() - frameTimestamp;
+			if (encodingTime >= m_targetFrameDuration) {
+				m_accumDrift += encodingTime - m_targetFrameDuration;
+			} else {
+				m_accumDrift -= m_targetFrameDuration - encodingTime;
+				if (m_accumDrift < 0) {
+					m_accumDrift = 0;
+				}
+			}
 		}
 
 		// if desired, forward raw video to sinks
-		if (m_pConfig->m_recordRaw) {
-
+		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW)) {
 			u_int8_t* yuvBuf = (u_int8_t*)malloc(m_yuvSize);
 			if (yuvBuf == NULL) {
 				debug_message("Can't malloc YUV buffer!");
@@ -632,14 +751,18 @@ debug_message("skipping frame #%u ts %llu >= ts %llu",
 					frameTimestamp, m_targetFrameDuration);
 			ForwardFrame(pFrame);
 			delete pFrame;
-		}
+		} 
 
-		// release video frame buffer back to video capture device
 release:
+		// release video frame buffer back to video capture device
 		if (ReleaseFrame(m_encodeHead)) {
 			m_encodeHead = (m_encodeHead + 1) % m_videoMbuf.frames;
 		} else {
 			debug_message("Couldn't release capture buffer!");
+		}
+		if (m_pConfig->m_videoNeedRgbToYuv) {
+			free(yuvImage);
+			yuvImage = NULL;
 		}
 	}
 }
@@ -671,6 +794,50 @@ char CVideoSource::GetMpeg4VideoFrameType(CMediaFrame* pFrame)
 	}
 
 	return 0;
+}
+
+bool CVideoSource::InitialVideoProbe(CLiveConfig* pConfig)
+{
+	static char* devices[] = {
+		"/dev/video", 
+		"/dev/video0", 
+		"/dev/video1", 
+		"/dev/video2", 
+		"/dev/video3"
+	};
+	char* deviceName = pConfig->GetStringValue(CONFIG_VIDEO_DEVICE_NAME);
+	CVideoCapabilities* pVideoCaps;
+
+	// first try the device we're configured with
+	pVideoCaps = new CVideoCapabilities(deviceName);
+
+	if (pVideoCaps->IsValid()) {
+		pConfig->m_videoCapabilities = pVideoCaps;
+		return true;
+	}
+
+	delete pVideoCaps;
+
+	// no luck, go searching
+	for (u_int32_t i = 0; i < sizeof(devices) / sizeof(char*); i++) {
+
+		// don't waste time trying something that's already failed
+		if (!strcmp(devices[i], deviceName)) {
+			continue;
+		} 
+
+		pVideoCaps = new CVideoCapabilities(devices[i]);
+
+		if (pVideoCaps->IsValid()) {
+			pConfig->SetStringValue(CONFIG_VIDEO_DEVICE_NAME, devices[i]);
+			pConfig->m_videoCapabilities = pVideoCaps;
+			return true;
+		}
+		
+		delete pVideoCaps;
+	}
+
+	return false;
 }
 
 bool CVideoCapabilities::ProbeDevice()

@@ -390,7 +390,7 @@ void mpeg4_encode_picture_header(MpegEncContext * s, int picture_number)
     put_bits(&s->pb, 1, 0);
 
     put_bits(&s->pb, 1, 1);	/* marker */
-    put_bits(&s->pb, 4, 1);	/* XXX: correct time increment */
+    put_bits(&s->pb, s->num_time_increment_bits, 1);	/* XXX: correct time increment */
     put_bits(&s->pb, 1, 1);	/* marker */
     put_bits(&s->pb, 1, 1);	/* vop coded */
     if (s->pict_type == P_TYPE)

@@ -35,14 +35,17 @@
 #define SECAM_INT_FPS	25
 #define MAX_INT_FPS		NTSC_INT_FPS
 
+void CalculateVideoFrameSize(CLiveConfig* pConfig);
+
 class CVideoSource : public CMediaSource {
 public:
-	CVideoSource() {
+	CVideoSource() : CMediaSource() {
 		m_capture = false;
 		m_preview = false;
 		m_videoDevice = -1;
 		m_videoMap = NULL;
 		m_videoFrameMap = NULL;
+		m_wantKeyFrame = false;
 		m_divxHandle = 1;
 		m_sdlScreen = NULL;
 		m_sdlImage = NULL;
@@ -69,6 +72,16 @@ public:
 			NULL, 0, m_myMsgQueueSemaphore);
 	}
 
+	void GenerateKeyFrame(void) {
+		m_myMsgQueue.send_message(MSG_GENERATE_KEY_FRAME,
+			NULL, 0, m_myMsgQueueSemaphore);
+	}
+
+	u_int32_t GetNumEncodedFrames() {
+		return m_encodedFrameNumber;
+	}
+
+	static bool InitialVideoProbe(CLiveConfig* pConfig);
 	static char GetMpeg4VideoFrameType(CMediaFrame* pFrame);
 
 protected:
@@ -76,6 +89,7 @@ protected:
 	static const int MSG_STOP_CAPTURE	= 2;
 	static const int MSG_START_PREVIEW	= 3;
 	static const int MSG_STOP_PREVIEW	= 4;
+	static const int MSG_GENERATE_KEY_FRAME	= 5;
 
 	int ThreadMain(void);
 
@@ -84,6 +98,8 @@ protected:
 
 	void DoStartPreview(void);
 	void DoStopPreview(void);
+
+	void DoGenerateKeyFrame(void);
 
 	bool Init(void);
 	bool InitDevice(void);
@@ -119,13 +135,18 @@ protected:
 
 	bool				m_sampleFrames[MAX_INT_FPS];
 	u_int32_t			m_rawFrameNumber;
+	u_int32_t			m_encodedFrameNumber;
 	u_int32_t			m_skippedFrames;
 	u_int16_t			m_rawFrameRate;
 	Timestamp			m_startTimestamp;
 	Duration			m_rawFrameDuration;
 	Duration			m_targetFrameDuration;
 	u_int16_t			m_frameRateRatio;
+	Duration			m_accumDrift;
+	Duration			m_maxDrift;
+	bool				m_wantKeyFrame;
 
+	u_int32_t			m_yuvRawSize;
 	u_int32_t			m_yRawSize;
 	u_int32_t			m_uvRawSize;
 	u_int32_t			m_yuvSize;

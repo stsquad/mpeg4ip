@@ -70,17 +70,20 @@ class CRtpByteStreamBase : public COurInByteStream
     m_skip_on_advance_bytes = bytes_to_skip;
   };
   void set_wallclock_offset (uint64_t wclock) {
+    if (m_wallclock_offset_set == 0) {
     m_wallclock_offset = wclock;
     m_wallclock_offset_set = 1;
+    }
   };
   int rtp_ready (void) {
     return (m_stream_ondemand | m_wallclock_offset_set);
   };
   void check_for_end_of_pak(int nothrow = 0); // used by read and get
   void recv_callback(struct rtp *session, rtp_event *e);
-  void flush_rtp_packets(void);
+  virtual void flush_rtp_packets(void);
   int recv_task(int waiting);
   uint32_t get_last_rtp_timestamp (void) {return m_rtptime_last; };
+  void remove_packet_rtp_queue(rtp_packet *pak, int free);
  protected:
   void init(void);
   rtp_packet *m_pak, *m_head, *m_tail;

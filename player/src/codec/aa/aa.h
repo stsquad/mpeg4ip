@@ -45,9 +45,9 @@ class CAACodec : public CAudioCodecBase {
   void do_pause(void);
  private:
   faacDecHandle m_info;
+  int m_object_type;
   int m_resync_with_header;
   int m_record_sync_time;
-  uint64_t m_first_time_offset;
   uint64_t m_current_time;
   uint64_t m_last_rtp_ts;
   uint64_t m_msec_per_frame;

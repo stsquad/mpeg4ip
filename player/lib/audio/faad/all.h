@@ -394,7 +394,7 @@ typedef struct {
 
 } faacDecStruct, *faacDecHandle;
 
-faacDecHandle FAADAPI faacDecOpen();
+faacDecHandle FAADAPI faacDecOpen(int object_type);
 
 faacDecConfigurationPtr FAADAPI faacDecGetCurrentConfiguration(faacDecHandle hDecoder);
 
