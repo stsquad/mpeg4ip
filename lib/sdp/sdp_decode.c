@@ -501,39 +501,43 @@ static int sdp_decode_parse_a_rtpmap (int arg,
   enc = lptr + len;
   ADV_SPACE(enc);
   slash = strchr(enc, '/');  
-  if (slash == NULL) {
-    sdp_debug(LOG_ERR, "Couldn't find / in rtpmap");
-    return (-1);
-  }
-
-  *slash++ = '\0';
-  temp = enc;
-  while ((!(isspace(*temp))) && *temp != '\0') temp++;
-  *temp = '\0';
-  
-  // enc points to encode name
-  ADV_SPACE(slash);
-  temp = strsep(&slash, " \t/");
-  if (temp == NULL) {
-    sdp_debug(LOG_ERR, "Can't find seperator after encode name in rtpmap");
-    return (-1);
-  }
-
-  if (sscanf(temp, "%u", &a) == 0) {
-    sdp_debug(LOG_ERR, "Couldn't decode rtp clockrate %s", temp);
-    return (-1);
-  }
-
-  b = 0;
   if (slash != NULL) {
+    *slash++ = '\0';
+    temp = enc;
+    while ((!(isspace(*temp))) && *temp != '\0') temp++;
+    *temp = '\0';
+  
+    // enc points to encode name
     ADV_SPACE(slash);
-    if (*slash == '/') {
-      slash++;
+    temp = strsep(&slash, " \t/");
+    if (temp == NULL) {
+      sdp_debug(LOG_ERR, "Can't find seperator after encode name in rtpmap");
+      return (-1);
+    }
+
+    if (sscanf(temp, "%u", &a) == 0) {
+      sdp_debug(LOG_ERR, "Couldn't decode rtp clockrate %s", temp);
+      return (-1);
+    }
+
+    b = 0;
+    if (slash != NULL) {
       ADV_SPACE(slash);
+      if (*slash == '/') {
+	slash++;
+	ADV_SPACE(slash);
+      }
+      if (isdigit(*slash)) {
+	sscanf(slash, "%u", &b);
+      }
     }
-    if (isdigit(*slash)) {
-      sscanf(slash, "%u", &b);
-    }
+  } else {
+    sdp_debug(LOG_CRIT, "a=rtpmap clock rate is missing.");
+    sdp_debug(LOG_CRIT, "Most likely, you're decoding SDP from Apple's broadcaster");
+    sdp_debug(LOG_CRIT, "They initially misinterpreted RFC3016, but should fix it at some point");
+    sdp_debug(LOG_CRIT, "You may see audio/video at the wrong rate");
+    a = 90000;
+    b = 0;
   }
   
   fptr->rtpmap = malloc(sizeof(rtpmap_desc_t));
