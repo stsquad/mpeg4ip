@@ -1,0 +1,5 @@
+playlist_file playlist_example
+play_mode sequential_looped
+sdp_reference_movie mycontent1.mp4
+destination_ip_address 224.10.11.12
+destination_base_port 40000

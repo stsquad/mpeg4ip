@@ -1,0 +1,65 @@
+The Darwin Streaming Server provides a program, PlaylistBroadcaster,
+that can be used to multicast stream MPEG4 content stored in MP4 files.
+Here's the step by step procedure:
+
+SETUP
+=====
+
+To set up the multicast you need to create two files. 
+
+The first file is a playlist file which specifies which files to play. 
+Here's an example playlist file, 'playlist_example': 
+
+*PLAY-LIST*
+mycontent1.mp4
+mycontent2.mp4
+mycontent3.mp4
+
+The second file specifies where to multicast.
+Here's an example multicast file, 'mcast_example':
+
+playlist_file playlist_example
+play_mode sequential_looped
+sdp_reference_movie mycontent1.mp4
+destination_ip_address 224.10.11.12
+destination_base_port 40000
+
+See mpeg4ip/server/DSS/Documentation/AboutDarwinStreamingSvr.pdf for a
+more detailed explanation.
+
+
+TRANSMITTING
+============
+
+Once these files are setup, you tell the PlaylistBroadcaster to start 
+transmitting. I.e.
+
+$ /usr/local/sbin/PlaylistBroadcaster mcast_example
+
+Note you need root privileges to do this.
+
+Note on some systems, it may be necessary to add a multicast route 
+to the system routing table to get multicast packets to be transmitted.
+I.e:
+
+$ route add -net 224.0.0.0 netmask 240.0.0.0 eth0
+
+
+RECEIVING
+=========
+
+As part of the statup procedure, PlaylistBroadcaster will automatically
+generate an SDP file for the transmission. E.g 'mcast_example.sdp'
+You need to get that SDP file to the clients that want to receive the
+multicast transmission. This can be done via email, web site, ftp, ...
+
+The player then opens the sdp file, and should begin receiving the
+multicast content within a few seconds. I.e.
+
+$ gmp4player mcast_example.sdp
+
+That's it! I suggest at first that you check multicast with a server and
+player on the same LAN. Once that is working, you can try it across routers
+which enters the arena of configuring multicast routing which is beyond
+the scope of this document.
+
