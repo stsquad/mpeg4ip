@@ -58,7 +58,10 @@ void CPlayerMedia::wait_on_bytestream (void)
 {
   m_decode_thread_waiting = 1;
 #ifdef DEBUG_DECODE
-  media_message(LOG_INFO, "decode thread %s waiting", m_media_info->media);
+  if (m_media_info)
+    media_message(LOG_INFO, "decode thread %s waiting", m_media_info->media);
+  else
+    media_message(LOG_INFO, "decode thread waiting");
 #endif
   SDL_SemWait(m_decode_thread_sem);
   m_decode_thread_waiting = 0;
@@ -257,7 +260,7 @@ int CPlayerMedia::decode_thread (void)
 	  (m_parent->get_session_state() == SESSION_PLAYING)) {
 	uint64_t current_time = m_parent->get_playing_time();
 	if (current_time >= ourtime) {
-#ifdef DEBUG_DECODE
+#if 1
 	  media_message(LOG_INFO, "Candidate for skip decode %llu our %llu", 
 			       current_time, ourtime);
 #endif

@@ -80,12 +80,13 @@ CMsgQueue::CMsgQueue(void)
 CMsgQueue::~CMsgQueue (void) 
 {
   CMsg *p;
-  SDL_mutexP(m_msg_queue_mutex);
+  SDL_LockMutex(m_msg_queue_mutex);
   while (m_msg_queue != NULL) {
     p = m_msg_queue->get_next();
     delete m_msg_queue;
     m_msg_queue = p;
   }
+  SDL_UnlockMutex(m_msg_queue_mutex);
   SDL_DestroyMutex(m_msg_queue_mutex);
   m_msg_queue_mutex = NULL;
 }
@@ -114,7 +115,7 @@ int CMsgQueue::send_message (uint32_t msgval, uint32_t param, SDL_sem *sem)
 int CMsgQueue::send_message(CMsg *newmsg, SDL_sem *sem)
 {
 
-  SDL_mutexP(m_msg_queue_mutex);
+  SDL_LockMutex(m_msg_queue_mutex);
   if (m_msg_queue == NULL) {
     m_msg_queue = newmsg;
   } else {
@@ -122,7 +123,7 @@ int CMsgQueue::send_message(CMsg *newmsg, SDL_sem *sem)
     while (p->get_next() != NULL) p = p->get_next();
     p->set_next(newmsg);
   }
-  SDL_mutexV(m_msg_queue_mutex);
+  SDL_UnlockMutex(m_msg_queue_mutex);
   if (sem != NULL) {
     SDL_SemPost(sem);
   }
@@ -136,14 +137,14 @@ CMsg *CMsgQueue::get_message (void)
   if (m_msg_queue == NULL) 
     return(NULL);
 
-  SDL_mutexP(m_msg_queue_mutex);
+  SDL_LockMutex(m_msg_queue_mutex);
   if (m_msg_queue == NULL) 
     ret = NULL;
   else {
     ret = m_msg_queue;
     m_msg_queue = ret->get_next();
   }
-  SDL_mutexV(m_msg_queue_mutex);
+  SDL_UnlockMutex(m_msg_queue_mutex);
   if (ret) {
     ret->set_next(NULL);
   }

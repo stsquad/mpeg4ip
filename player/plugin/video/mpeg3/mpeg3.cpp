@@ -26,6 +26,7 @@
 #include <mpeg3videoprotos.h>
 #include <bitstream.h>
 #include "mp4av.h"
+#include <mpeg2t/mpeg2_transport.h>
 
 //#define DEBUG_MPEG3_FRAME 1
 
@@ -99,6 +100,8 @@ static int mpeg3_decode (codec_data_t *ptr,
   int render = 1;
   mpeg3_codec_t *mpeg3 = (mpeg3_codec_t *)ptr;
   mpeg3video_t *video;
+  char *y, *u, *v;
+
   video = mpeg3->m_video;
 
   buffer[buflen] = 0;
@@ -128,6 +131,8 @@ static int mpeg3_decode (codec_data_t *ptr,
     if (video->found_seqhdr != 0) {
       mpeg3video_initdecoder(video);
       video->decoder_initted = 1;
+      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "h %d w %d", 
+			    video->vertical_size, video->horizontal_size);
       mpeg3->m_h = video->vertical_size;
       mpeg3->m_w = video->horizontal_size;
       mpeg3->m_vft->video_configure(mpeg3->m_ifptr, 
@@ -136,7 +141,13 @@ static int mpeg3_decode (codec_data_t *ptr,
 				    VIDEO_FORMAT_YUV);
       // Gross and disgusting, but it looks like it didn't clean up
       // properly - so just start from beginning of buffer and decode.
-    } else {
+ y = NULL;
+  ret = mpeg3video_read_yuvframe_ptr(video,
+				     (unsigned char *)buffer,
+				     buflen + 3,
+				     &y,
+				     &u,
+				     &v);    } else {
       mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "didnt find seq header in frame %llu", ts);
       return buflen;
     }
@@ -162,8 +173,6 @@ static int mpeg3_decode (codec_data_t *ptr,
 	}
       }
     }
-
-  char *y, *u, *v;
 
 #if 0
   if (from_rtp) {
@@ -232,6 +241,11 @@ static int mpeg3_codec_check (lib_message_func_t message,
   }
   if (compressor != NULL && strcmp(compressor, "MPEG FILE") == 0) {
     return 1;
+  }
+  if (compressor != NULL && strcmp(compressor, "MPEG2 TRANSPORT") == 0) {
+    if ((type == MPEG2T_ST_MPEG_VIDEO) ||
+	(type == MPEG2T_ST_11172_VIDEO)) 
+      return 1;
   }
   return -1;
 }

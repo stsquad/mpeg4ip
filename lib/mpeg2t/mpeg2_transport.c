@@ -1,8 +1,31 @@
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ * 
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ * 
+ * The Original Code is MPEG4IP.
+ * 
+ * The Initial Developer of the Original Code is Cisco Systems Inc.
+ * Portions created by Cisco Systems Inc. are
+ * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
+ * 
+ * Contributor(s): 
+ *		Bill May (wmay@cisco.com)
+ */
+/* mpeg2_transport.c - mpeg2 transport stream decoding */
 
 #include "mpeg4ip.h"
 #include "mpeg2_transport.h"
 #include <assert.h>
 #include "mpeg2t_private.h"
+
+//#define DUMP_ADAPTION_CONTOL 1
 #define DEBUG 1
 #ifdef DEBUG
 #define CHECK_MP2T_HEADER assert(*pHdr == MPEG2T_SYNC_BYTE)
@@ -10,6 +33,9 @@
 #define CHECK_MP2T_HEADER 
 #endif
 
+/*
+ * mpeg2 transport layer header routines.
+ */
 uint32_t mpeg2t_find_sync_byte (const uint8_t *buffer, uint32_t buflen)
 {
   uint32_t offset;
@@ -65,10 +91,17 @@ uint32_t mpeg2t_continuity_counter (const uint8_t *pHdr)
   return (pHdr[3] & 0xf);
 }
 
+/*
+ * mpeg2t_transport_payload_start
+ * find the start of the payload data, skipping any adaptation data
+ */
 const uint8_t *mpeg2t_transport_payload_start (const uint8_t *pHdr,
-					     uint32_t *payload_len)
+					       uint32_t *payload_len)
 {
   uint32_t adaption_control;
+#if DUMP_ADAPTION_CONTROL
+  int ix;
+#endif
   CHECK_MP2T_HEADER;
 
   if (mpeg2t_transport_error_indicator(pHdr) != 0) {
@@ -88,6 +121,18 @@ const uint8_t *mpeg2t_transport_payload_start (const uint8_t *pHdr,
       return NULL;
     }
     *payload_len = 183 - pHdr[4];
+#if DUMP_ADAPTION_CONTROL
+    mpeg2t_message(LOG_DEBUG, "adaptation control - len %d", pHdr[4]);
+    for (ix = 0; ix < pHdr[4]; ix += 4) {
+      mpeg2t_message(LOG_DEBUG, "%d - %02x %02x %02x %02x", 
+		     ix, 
+		     pHdr[4 + ix],
+		     pHdr[5 + ix],
+		     pHdr[6 + ix],
+		     pHdr[7 + ix]);
+    }
+#endif
+    
     return pHdr + 5 + pHdr[4];
   }
 
@@ -95,6 +140,12 @@ const uint8_t *mpeg2t_transport_payload_start (const uint8_t *pHdr,
   return NULL;
 }
 
+/*
+ * mpeg2t_start_join_pak - this handles PMAP or PAS that are more
+ * than 1 transport stream packet. It should also handle any other
+ * type packet.
+ * Elementary streams use their own processing routines.
+ */
 static void mpeg2t_start_join_pak (mpeg2t_pid_t *pidptr,
 				   const uint8_t *bufstart,
 				   uint32_t buflen,
@@ -124,6 +175,9 @@ static void mpeg2t_start_join_pak (mpeg2t_pid_t *pidptr,
   pidptr->lastcc = cc;
 }
 
+/*
+ * mpeg2t_join_pak - add data to a started pak from above
+ */
 static int mpeg2t_join_pak (mpeg2t_pid_t *pidptr,
 			    const uint8_t *bufstart,
 			    uint32_t buflen,
@@ -172,27 +226,45 @@ static int mpeg2t_join_pak (mpeg2t_pid_t *pidptr,
   return 1;
 }
 
-static mpeg2t_pid_t *mpeg2t_lookup_pid (mpeg2t_t *ptr,
-					uint16_t pid)
+/*
+ * mpeg2t_lookup_pid - search through the list for the pid pointer 
+ */
+mpeg2t_pid_t *mpeg2t_lookup_pid (mpeg2t_t *ptr,
+				 uint16_t pid)
 {
-  mpeg2t_pid_t *pidptr = &ptr->pas.pid;
+  mpeg2t_pid_t *pidptr;
+
+  SDL_LockMutex(ptr->pid_mutex);
+  pidptr = &ptr->pas.pid;
 
   while (pidptr != NULL && pidptr->pid != pid) {
     pidptr = pidptr->next_pid;
   }
+  SDL_UnlockMutex(ptr->pid_mutex);
   return pidptr;
 }
 
+/*
+ * add_to_pidQ - add a PID to the queue
+ */
 static void add_to_pidQ (mpeg2t_t *ptr, mpeg2t_pid_t *pidptr)
 {
   mpeg2t_pid_t *p = &ptr->pas.pid;
 
+  SDL_LockMutex(ptr->pid_mutex);
   while (p->next_pid != NULL) {
     p = p->next_pid;
   }
   p->next_pid = pidptr;
+  SDL_UnlockMutex(ptr->pid_mutex);
 }
 
+/*
+ * create_pmap - create a program map.  This is called while processing
+ * PAS statements.  From here, we should get a PMAP packet for this
+ * particular PID.  That will give us the elementary streams that are
+ * part of the PMAP  (PMAP = program map)
+ */
 static void create_pmap (mpeg2t_t *ptr, uint16_t prog_num, uint16_t pid)
 {
   mpeg2t_pmap_t *pmap;
@@ -205,8 +277,13 @@ static void create_pmap (mpeg2t_t *ptr, uint16_t prog_num, uint16_t pid)
   pmap->pid.pid = pid;
   pmap->program_number = prog_num;
   add_to_pidQ(ptr, &pmap->pid);
+  ptr->program_count++;
 }
 
+/*
+ * create_es - create elementary stream pid.  This is called while
+ * processing PMAPs.
+ */
 static void create_es (mpeg2t_t *ptr, 
 		       uint16_t pid, 
 		       uint8_t stream_type,
@@ -220,6 +297,12 @@ static void create_es (mpeg2t_t *ptr,
   es = MALLOC_STRUCTURE(mpeg2t_es_t);
   if (es == NULL) return;
   memset(es, 0, sizeof(*es));
+  es->list_mutex = SDL_CreateMutex();
+  if (es->list_mutex == NULL) {
+    mpeg2t_message(LOG_ERR, "Can't malloc mutex");
+    free(es);
+    return;
+  }
   es->pid.pak_type = MPEG2T_ES_PAK;
   es->pid.pid = pid;
   es->stream_type = stream_type;
@@ -234,6 +317,10 @@ static void create_es (mpeg2t_t *ptr,
   add_to_pidQ(ptr, &es->pid);
 }
   
+/*
+ * mpeg2t_process_pas - process the PAS.  The PAS is a list of PMAP
+ * pids.
+ */
 static int mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
 {
   uint32_t buflen;
@@ -287,6 +374,10 @@ static int mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
   ptr->pas.version_number = (pasptr[2] >> 1) & 0x1f;
   mapptr = &pasptr[5];
   section_len -= 5 + 4; // remove CRC and stuff before map list
+  /*
+   * Now, we have a list of PMAPs - for each one, see if we've
+   * already created a PIDPTR for it - if not, do so
+   */
   for (len = 0; len < section_len; len += 4, mapptr += 4) {
     prog_num = (mapptr[0] << 8) | mapptr[1];
     if (prog_num != 0) {
@@ -299,6 +390,10 @@ static int mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
   return 1;
 }
 
+/*
+ * mpeg2t_process_pmap - process a PMAP, creating the elementary
+ * stream PIDs
+ */
 static int mpeg2t_process_pmap (mpeg2t_t *ptr, 
 				mpeg2t_pid_t *ifptr,
 				const uint8_t *buffer)
@@ -370,6 +465,7 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
   pmapptr += 2;
   section_len -= 2;
   if (len != 0) {
+    // This is the prog info - we don't do anything with it yet.
     if (len > section_len) return 0;
 
     if (len == pmap_pid->prog_info_len) {
@@ -381,6 +477,9 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
   }
   section_len -= 4; // remove CRC
   len = 0;
+  /*
+   * Now, add all elementary streams for this PMAP
+   */
   while (len < section_len) {
     stream_type = pmapptr[0];
     e_pid = ((pmapptr[1] << 8) | pmapptr[2]) & 0x1fff;
@@ -389,6 +488,7 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
     if (mpeg2t_lookup_pid(ptr, e_pid) == NULL) {
       mpeg2t_message(LOG_INFO, "Creating es pid %x", e_pid);
       create_es(ptr, e_pid, stream_type, &pmapptr[5], es_len);
+      ptr->program_maps_recvd++;
     }
     // create_es
     len += 5 + es_len;
@@ -397,6 +497,12 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
   return 1;
 }
 
+/*
+ * clean_es_data
+ * clean all data needed for processing the stream.  This 
+ * should really be broken out into other files, like the
+ * frame processing.
+ */
 static void clean_es_data (mpeg2t_es_t *es_pid) 
 {
   switch (es_pid->stream_type) {
@@ -424,6 +530,10 @@ static void clean_es_data (mpeg2t_es_t *es_pid)
   }
 }  
 
+/*
+ * mpeg2t_malloc_es_work - create or clean a mpeg2t_frame_t for an
+ * elementary stream.
+ */
 void mpeg2t_malloc_es_work (mpeg2t_es_t *es_pid, uint32_t frame_len)
 {
   uint8_t *frameptr;
@@ -442,27 +552,56 @@ void mpeg2t_malloc_es_work (mpeg2t_es_t *es_pid, uint32_t frame_len)
   es_pid->work->next_frame = NULL;
   es_pid->work->have_ps_ts = es_pid->have_ps_ts;
   es_pid->work->ps_ts = es_pid->ps_ts;
-  es_pid->have_ps_ts = 0;
-  es_pid->work_loaded = 0;
 }
 
+/*
+ * mpeg2t_finished_es_work - when we have a frame, this is 
+ * called to save the frame on the list (if so configured)
+ */
 void mpeg2t_finished_es_work (mpeg2t_es_t *es_pid,
 			      uint32_t frame_len)
 {
   mpeg2t_frame_t *p;
-  es_pid->work->frame_len = frame_len;
-  if (es_pid->list == NULL) {
-    es_pid->list = es_pid->work;
+  SDL_LockMutex(es_pid->list_mutex);
+  if (es_pid->save_frames == 0) {
+    mpeg2t_malloc_es_work(es_pid, es_pid->work->frame_len);
   } else {
-    p = es_pid->list;
-    while (p->next_frame != NULL) p = p->next_frame;
-    p->next_frame = es_pid->work;
+    es_pid->work->frame_len = frame_len;
+    if (es_pid->list == NULL) {
+      es_pid->list = es_pid->work;
+    } else {
+      p = es_pid->list;
+      while (p->next_frame != NULL) p = p->next_frame;
+      p->next_frame = es_pid->work;
+    }
+    es_pid->frames_in_list++;
+    es_pid->work = NULL;
   }
-  es_pid->work = NULL;
   es_pid->work_loaded = 0;
+  SDL_UnlockMutex(es_pid->list_mutex);
 }
 
+/*
+ * mpeg2t_get_es_list_head - get the first frame on the list
+ */
+mpeg2t_frame_t *mpeg2t_get_es_list_head (mpeg2t_es_t *es_pid)
+{
+  mpeg2t_frame_t *p;
+  SDL_LockMutex(es_pid->list_mutex);
+  p = es_pid->list;
+  if (p != NULL) {
+    es_pid->list = p->next_frame;
+    p->next_frame = NULL;
+    es_pid->frames_in_list--;
+  }
+  SDL_UnlockMutex(es_pid->list_mutex);
+  return p;
+}
   
+/*
+ * mpeg2t_process_es - process a transport stream pak for an
+ * elementary stream
+ */
 static int mpeg2t_process_es (mpeg2t_t *ptr, 
 			      mpeg2t_pid_t *ifptr,
 			      const uint8_t *buffer)
@@ -475,11 +614,21 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   uint8_t stream_id;
   uint32_t nextcc, pakcc;
   int ret;
+  int ac;
 
+  ac = mpeg2t_adaptation_control(buffer);
+  // Note to self - if ac is 0x3, we may have to check
+  // the discontinuity indicator in the adapation control - this
+  // can cause a cc to be non-sequential, as well.
+  // ASDF - not implemented yet
   nextcc = ifptr->lastcc;
-  nextcc = (nextcc + 1) & 0xf;
+  if (!(ac == 0 || ac == 2)) {
+    // don't add to continuity counter if adaptation counter is 0 or 2
+    nextcc = (nextcc + 1) & 0xf;
+  }
   pakcc = mpeg2t_continuity_counter(buffer);
   if (nextcc != pakcc) {
+    // Note - this message will occur for the first packet
     mpeg2t_message(LOG_ERR, "cc error in PES %x should be %d is %d", 
 	   ifptr->pid, nextcc, pakcc);
     clean_es_data(es_pid);
@@ -490,7 +639,6 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   // process pas pointer
   esptr = mpeg2t_transport_payload_start(buffer, &buflen);
   if (esptr == NULL) return -1;
-
   
   if (mpeg2t_payload_unit_start_indicator(buffer) != 0) {
     // start of PES packet
@@ -506,7 +654,9 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     pes_len = (esptr[4] << 8) | esptr[5];
     esptr += 6;
     buflen -= 6;
-    
+
+    mpeg2t_message(LOG_DEBUG, 
+		   "PES start stream id %02x len %d", stream_id, pes_len);
     read_pes_options = 0;
     // do we have header extensions
     switch ((stream_id & 0x70) >> 4) {
@@ -529,7 +679,8 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
       }
       break;
     }
-      
+
+    es_pid->have_ps_ts = 0;
     if (read_pes_options) {
       if (esptr[2] + 3 > buflen) {
 	return 0;
@@ -561,7 +712,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	pts <<= 7;
 	pts |= ((esptr[7] >> 1) & 0x7f);
 	es_pid->have_ps_ts = 1;
-	es_pid->ps_ts = pts;
+	es_pid->ps_ts = (pts * M_LLU) / (90 * M_LLU); // give msec
       }
       buflen -= esptr[2] + 3;
       esptr += esptr[2] + 3;
@@ -585,7 +736,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     break;
   case 3:
   case 4:
-    // mpeg1/mpeg2 audio (mp3 codec
+    // mpeg1/mpeg2 audio (mp3 codec)
     ret = process_mpeg2t_mpeg_audio(es_pid, esptr, buflen);
   break;
   case 0xf:
@@ -596,7 +747,10 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   return ret;
 }
 			    
-      
+/*
+ * mpeg2t_process_buffer - API routine that allows us to
+ * process a buffer filled with transport streams
+ */      
 mpeg2t_pid_t *mpeg2t_process_buffer (mpeg2t_t *ptr, 
 				     const uint8_t *buffer, 
 				     uint32_t buflen,
@@ -611,6 +765,7 @@ mpeg2t_pid_t *mpeg2t_process_buffer (mpeg2t_t *ptr,
 
   used = 0;
   remaining = buflen;
+  mpeg2t_message(LOG_DEBUG, "start processing buffer - len %d", buflen);
   while (used < buflen) {
     offset = mpeg2t_find_sync_byte(buffer, remaining);
     if (offset >= remaining) {
@@ -672,16 +827,123 @@ mpeg2t_pid_t *mpeg2t_process_buffer (mpeg2t_t *ptr,
   *buflen_used = buflen;
   return NULL;
 }
-  
+
+/*
+ * create_mpeg2_tranport - create the basic structure - we always
+ * need a PAS, so we create one (PAS has a pid of 0).
+ */  
 mpeg2t_t *create_mpeg2_transport (void)
 {
   mpeg2t_t *ptr;
 
   ptr = MALLOC_STRUCTURE(mpeg2t_t);
-  memset(ptr, 0, sizeof(ptr));
+  memset(ptr, 0, sizeof(mpeg2t_t));
   ptr->pas.pid.pak_type = MPEG2T_PAS_PAK;
   ptr->pas.pid.next_pid = NULL;
   ptr->pas.pid.pid = 0;
   ptr->pas.pid.collect_pes = 1;
+  ptr->program_count = 0;
+  ptr->program_maps_recvd = 0;
+  ptr->pid_mutex = SDL_CreateMutex();
   return (ptr);
+}
+
+static void clean_pid (mpeg2t_pid_t *pidptr)
+{
+  CHECK_AND_FREE(pidptr->data);
+}
+
+static void clean_es_pid (mpeg2t_es_t *es_pid)
+{
+  mpeg2t_frame_t *p;
+  clean_es_data(es_pid);
+  
+  do {
+    p = mpeg2t_get_es_list_head(es_pid);
+    if (p != NULL)
+      free(p);
+  } while (p != NULL);
+
+  CHECK_AND_FREE(es_pid->work);
+  CHECK_AND_FREE(es_pid->es_data);
+  SDL_DestroyMutex(es_pid->list_mutex);
+}
+
+
+  
+void delete_mpeg2t_transport (mpeg2t_t *ptr)
+{
+  mpeg2t_pid_t *pidptr, *p;
+  mpeg2t_pmap_t *pmap;
+
+  pidptr = ptr->pas.pid.next_pid;
+
+  while (pidptr != NULL) {
+    switch (pidptr->pak_type) {
+    case MPEG2T_ES_PAK:
+      clean_es_pid((mpeg2t_es_t *)pidptr);
+      break;
+    case MPEG2T_PROG_MAP_PAK:
+      pmap = (mpeg2t_pmap_t *)pidptr;
+      CHECK_AND_FREE(pmap->prog_info);
+      clean_pid(pidptr);
+      break;
+    case MPEG2T_PAS_PAK:
+      clean_pid(pidptr);
+      break;
+    }
+    p = pidptr;
+    pidptr = pidptr->next_pid;
+    free(p);
+  }
+  clean_pid(&ptr->pas.pid);
+  SDL_DestroyMutex(ptr->pid_mutex);
+  free(ptr);
+}
+
+/*
+ * Other API routines
+ */
+void *mpeg2t_es_get_userdata (mpeg2t_es_t *es_pid)
+{
+  return es_pid->es_userdata;
+}
+
+void mpeg2t_es_set_userdata (mpeg2t_es_t *es_pid, void *ud)
+{
+  es_pid->es_userdata = ud;
+}
+
+void mpeg2t_start_saving_frames (mpeg2t_es_t *es_pid)
+{
+  es_pid->save_frames = 1;
+}
+
+void mpeg2t_stop_saving_frames (mpeg2t_es_t *es_pid)
+{
+  es_pid->save_frames = 0;
+}
+
+int mpeg2t_write_stream_info (mpeg2t_es_t *es_pid, 
+			      char *buffer,
+			      size_t buflen)
+{
+  int ret = -1;
+  switch (es_pid->stream_type) {
+  case 1:
+  case 2:
+    // mpeg1 or mpeg2 video
+    //ret = process_mpeg2t_mpeg_video(es_pid, esptr, buflen);
+    ret = mpeg2t_mpeg_video_info(es_pid, buffer, buflen);
+    break;
+  case 3:
+  case 4:
+    // mpeg1/mpeg2 audio (mp3 codec)
+    ret = mpeg2t_mpeg_audio_info(es_pid, buffer, buflen);
+  break;
+  case 0xf:
+    // aac
+    break;
+  }
+  return ret;
 }

@@ -24,6 +24,13 @@ else echo "libtool does not appear to be installed."
      exit 1
 fi
 
+if (test ! -f ./configure) || (test ! -f ./lib/SDL/configure)
+then echo "Please run cvs_bootstrap instead."
+     echo "Please note that you will need autoconf, automake and libtool"
+     echo "of the correct version as specified in the README"
+     exit 1
+fi
+
 set -x
 
 # if src tree is created via cvs export to tar.gz

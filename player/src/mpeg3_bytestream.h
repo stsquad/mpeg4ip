@@ -49,7 +49,7 @@ class CMpeg3VideoByteStream : public COurInByteStream
 		      uint32_t *buflen);
   double get_max_playtime(void);
 
-  void set_start_time(uint64_t start);
+  void play(uint64_t start);
  private:
 #ifdef OUTPUT_TO_FILE
   FILE *m_output_file;
@@ -86,7 +86,7 @@ class CMpeg3AudioByteStream : public COurInByteStream
 		      uint32_t *buflen);
   double get_max_playtime(void);
 
-  void set_start_time(uint64_t start);
+  void play(uint64_t start);
  private:
 #ifdef OUTPUT_TO_FILE
   FILE *m_output_file;

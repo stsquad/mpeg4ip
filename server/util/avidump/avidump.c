@@ -45,6 +45,7 @@ static struct {
   {"YAMAHA_ADPCM", 0x0020},
   {"DSP_TRUESPEECH", 0x0022},
   {"GSM610", 0x0031},
+  {"MP3", 0x0055},
   {"IBMMULAW", 0x0101},
   {"IBMALAW", 0x0102},
   {"IBMADPCM", 0x0103},

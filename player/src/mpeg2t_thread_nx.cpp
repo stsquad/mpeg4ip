@@ -2,7 +2,6 @@
 #include "mpeg2t_thread_nx.h"
 #include "player_util.h"
 
-#undef HAVE_SOCKETPAIR
 #define COMM_SOCKET_THREAD info->m_thread_info->comm_socket_write_to
 #define COMM_SOCKET_CALLER info->m_thread_info->comm_socket[1]
 
@@ -56,16 +55,15 @@ void mpeg2t_thread_init_thread_info (mpeg2t_client_t *info)
 #else
   COMM_SOCKET_THREAD = info->m_thread_info->comm_socket[0];
 #endif
-  mpeg2t_message(LOG_DEBUG, "mpeg2t_thread running");
 
 }
 int mpeg2t_thread_wait_for_event (mpeg2t_client_t *info)
 {
   mpeg2t_thread_info_t *tinfo = info->m_thread_info;
-  int count;
   int ret;
 
   #ifdef HAVE_POLL
+  int count;
 #define DATA_SOCKET_HAS_DATA ((tinfo->pollit[1].revents & (POLLIN | POLLPRI)) != 0)
 #define RTCP_SOCKET_HAS_DATA ((tinfo->pollit[2].revents & (POLLIN | POLLPRI)) != 0)
 #define COMM_SOCKET_HAS_DATA   ((tinfo->pollit[0].revents & (POLLIN | POLLPRI)) != 0)
@@ -81,9 +79,9 @@ int mpeg2t_thread_wait_for_event (mpeg2t_client_t *info)
 
     count = info->data_socket == 0 ? 1 : info->useRTP ? 3 : 2;
 
-    mpeg2t_message(LOG_DEBUG, "start poll");
+    //mpeg2t_message(LOG_DEBUG, "start poll");
     ret = poll(tinfo->pollit,count, info->recv_timeout);
-    mpeg2t_message(LOG_DEBUG, "poll ret %d - count %d", ret, count);
+    //mpeg2t_message(LOG_DEBUG, "poll ret %d - count %d", ret, count);
 #else
 #define DATA_SOCKET_HAS_DATA (FD_ISSET(info->data_socket, &tinfo->read_set))
 #define RTCP_SOCKET_HAS_DATA (FD_ISSET(info->rtcp_socket, &tinfo->read_set))
@@ -99,6 +97,7 @@ int mpeg2t_thread_wait_for_event (mpeg2t_client_t *info)
       if (info->useRTP && info->rtcp_socket > 0) {
 	FD_SET(info->rtcp_socket, &tinfo->read_set);
 	max_fd = MAX(info->rtcp_socket, max_fd);
+      }
     }
     FD_SET(COMM_SOCKET_THREAD, &tinfo->read_set);
     timeout.tv_sec = info->recv_timeout / 1000;
@@ -173,8 +172,6 @@ int mpeg2t_create_thread (mpeg2t_client_t *info)
     mpeg2t_message(LOG_CRIT, "Couldn't create comm sockets - errno %d", errno);
     return -1;
   }
-  mpeg2t_message(LOG_DEBUG, "values are %d %d", tinfo->comm_socket[0],
-		 tinfo->comm_socket[1]);
 #else
   COMM_SOCKET_THREAD = -1;
   COMM_SOCKET_CALLER = socket(AF_UNIX, SOCK_STREAM, 0);

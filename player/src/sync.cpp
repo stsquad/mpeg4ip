@@ -207,12 +207,18 @@ int CPlayerSession::sync_thread_init (void)
   CMsg *newmsg;
 
   newmsg = m_sync_thread_msg_queue.get_message();
-  if (newmsg && newmsg->get_value() == MSG_STOP_THREAD) {
-    return (SYNC_STATE_EXIT);
+  if (newmsg != NULL) {
+    int value = newmsg->get_value();
+    delete newmsg;
+
+    if (value == MSG_STOP_THREAD) {
+      return (SYNC_STATE_EXIT);
+    }
+    if (value == MSG_PAUSE_SESSION) {
+      m_sync_pause_done = 1;
+    }
   }
-  if (newmsg && newmsg->get_value() == MSG_PAUSE_SESSION) {
-    m_sync_pause_done = 1;
-  }
+
   SDL_Delay(100);
 	
   return (SYNC_STATE_INIT);

@@ -117,6 +117,7 @@ class CPlayerSession {
   int get_audio_volume(void) { return m_audio_volume; };
   void set_screen_location(int x, int y);
   void set_screen_size(int scaletimes2, int fullscreen = 0);
+  void double_screen_width(void);
   void session_set_seekable (int seekable) {
     m_seekable = seekable;
   };
@@ -167,7 +168,7 @@ class CPlayerSession {
     m_session_control_is_aggregate = is_aggregate;
   }
   CPlayerMedia *rtsp_url_to_media (const char *url);
-  int set_session_desc (int line, const char *desc);
+  int set_session_desc(int line, const char *desc);
   const char *get_session_desc(int line);
   void streaming_media_set_up(void) { m_streaming_media_set_up = 1; };
   CIpPort **get_unused_ip_port_ptr(void) { return &m_unused_ports; };
@@ -219,6 +220,7 @@ class CPlayerSession {
   CIpPort *m_unused_ports;
   int m_rtp_over_rtsp;
   uint64_t m_first_time_played;
+  int m_double_screen_width;
 };
 
 int c_sync_thread(void *data);

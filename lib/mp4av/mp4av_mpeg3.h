@@ -26,8 +26,9 @@ extern "C" {
 #endif
 
   int MP4AV_Mpeg3ParseSeqHdr(uint8_t *pbuffer, uint32_t buflen, 
+			     int *have_mpeg2,
 			      uint32_t *height, uint32_t *width, 
-			      double *frame_rate);
+			      double *frame_rate, double *bitrate);
 
   int MP4AV_Mpeg3PictHdrType(uint8_t *pbuffer);
 

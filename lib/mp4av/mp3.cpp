@@ -203,6 +203,27 @@ extern "C" u_int16_t MP4AV_Mp3GetSamplingWindow(u_int16_t samplingRate)
 	return 576;
 }
 
+extern "C" u_int16_t MP4AV_Mp3GetBitRate (MP4AV_Mp3Header hdr)
+{
+  u_int8_t version = MP4AV_Mp3GetHdrVersion(hdr);
+  u_int8_t layer = MP4AV_Mp3GetHdrLayer(hdr);
+  u_int8_t bitRateIndex1;
+  u_int8_t bitRateIndex2 = (hdr >> 12) & 0xF;
+
+  if (version == 3) {
+    /* MPEG-1 */
+    bitRateIndex1 = layer - 1;
+  } else {
+    /* MPEG-2 or MPEG-2.5 */
+    if (layer == 3) {
+      /* Layer I */
+      bitRateIndex1 = 4;
+    } else {
+      bitRateIndex1 = 3;
+    }
+  }
+  return Mp3BitRates[bitRateIndex1][bitRateIndex2-1];
+}
 /*
  * compute MP3 frame size
  */

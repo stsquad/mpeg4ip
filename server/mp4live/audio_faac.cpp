@@ -69,25 +69,75 @@ u_int32_t CFaacAudioEncoder::GetSamplesPerFrame()
 
 bool CFaacAudioEncoder::EncodeSamples(
 	u_int16_t* pBuffer, 
-	u_int32_t bufferLength)
+	u_int32_t bufferLength,
+	u_int8_t numChannels)
 {
+	u_int16_t* pInputBuffer = pBuffer;
+	bool inputBufferMalloced = false;
+	u_int32_t numInputSamples = bufferLength / sizeof(u_int16_t);
 	int rc = 0;
 
-	// just in case, should be NULL
+	// check for signal to end encoding
+	if (pInputBuffer == NULL) {
+		// unlike lame, faac doesn't need to finish up anything
+		return false;
+	}
+
+	// free old AAC buffer, just in case, should already be NULL
 	free(m_aacFrameBuffer);
 
+	// allocate the AAC buffer
 	m_aacFrameBuffer = (u_int8_t*)malloc(m_aacFrameMaxSize);
 
 	if (m_aacFrameBuffer == NULL) {
 		return false;
 	}
 
+	// check for channel mismatch between src and dst
+	if (numChannels != m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS)) {
+		if (numChannels == 1) {
+			// convert mono to stereo
+			pInputBuffer = NULL;
+			inputBufferMalloced = true;
+
+			InterleaveStereoSamples(
+				pBuffer, 
+				pBuffer,
+				numInputSamples,
+				&pInputBuffer);
+
+			numInputSamples *= 2;
+
+		} else if (numChannels == 2) {
+			// convert stereo to mono
+			pInputBuffer = NULL;
+			inputBufferMalloced = true;
+
+			DeinterleaveStereoSamples(
+				pBuffer, 
+				numInputSamples,
+				&pInputBuffer, 
+				NULL);
+
+			numInputSamples /= 2;
+
+		} else {
+			// invalid numChannels
+			return false;
+		}
+	}
+
 	rc = faacEncEncode(
 		m_faacHandle,
-		(short*)pBuffer,
-		bufferLength / 2,
+		(short*)pInputBuffer,
+		numInputSamples,
 		m_aacFrameBuffer,
 		m_aacFrameMaxSize);
+
+	if (inputBufferMalloced) {
+		free(pInputBuffer);
+		pInputBuffer = NULL;
+	}
 
 	if (rc < 0) {
 		return false;
@@ -103,7 +153,8 @@ bool CFaacAudioEncoder::EncodeSamples(
 	u_int16_t* pRightBuffer, 
 	u_int32_t bufferLength)
 {
-	if (pRightBuffer) {
+	if (pRightBuffer 
+	  && m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 2) {
 		u_int16_t* pPcmBuffer = NULL;
 
 		InterleaveStereoSamples(
@@ -112,14 +163,14 @@ bool CFaacAudioEncoder::EncodeSamples(
 			bufferLength / sizeof(u_int16_t),
 			&pPcmBuffer);
 
-		bool rc = EncodeSamples(pPcmBuffer, bufferLength * 2);
+		bool rc = EncodeSamples(pPcmBuffer, bufferLength * 2, 2);
 
 		free(pPcmBuffer);
 
 		return rc;
 	}
 
-	return EncodeSamples(pLeftBuffer, bufferLength);
+	return EncodeSamples(pLeftBuffer, bufferLength, 1);
 }
 
 bool CFaacAudioEncoder::GetEncodedSamples(

@@ -63,7 +63,7 @@ CSDLAudioSync::CSDLAudioSync (CPlayerSession *psptr, int volume) :
   m_config_set = 0;
   m_audio_initialized = 0;
   m_audio_paused = 1;
-  m_resync_required = 1;
+  m_resync_required = 0;
   m_dont_fill = 0;
   m_consec_no_buffers = 0;
   //SDL_Init(SDL_INIT_AUDIO);
@@ -97,6 +97,7 @@ CSDLAudioSync::~CSDLAudioSync (void)
 		"Audio sync skipped %u buffers", 
 		m_skipped_buffers);
   audio_message(LOG_NOTICE, "didn't fill %u buffers", m_didnt_fill_buffers);
+  SDL_DestroySemaphore(m_audio_waiting);
 }
 
 /*
@@ -269,6 +270,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   if (m_dont_fill == 1) {
     return;
   }
+  //  resync = 0;
   fill_index = m_fill_index;
   m_fill_index++;
   m_fill_index %= DECODE_BUFFERS_MAX;
@@ -280,6 +282,8 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   }
   if (m_first_filled != 0) {
     m_first_filled = 0;
+    resync = 0;
+    m_resync_required = 0;
   } else {
     int64_t diff;
     diff = ts - m_last_fill_timestamp;
@@ -504,8 +508,9 @@ uint64_t CSDLAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
       } else {
 	if (cmptime >= current_time) {
 	  m_play_index = m_resync_buffer;
+	  m_resync_required = 0;
 	  play_audio();
-#if 1
+#ifdef DEBUG_SYNC
 	  audio_message(LOG_INFO, "Resynced audio at " LLU " %u %u", current_time, m_resync_buffer, m_play_index);
 #endif
 	  cmptime = 0;
@@ -655,6 +660,10 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
     uint32_t thislen;
     thislen = m_buffer_size - m_play_sample_index;
     if (len < thislen) thislen = len;
+#ifdef DEBUG_SYNC
+    audio_message(LOG_DEBUG, "Playing "LLU" offset %d",
+		  m_buffer_time[m_play_index], m_play_sample_index);
+#endif
     SDL_MixAudio(stream, 
 		 (const unsigned char *)&m_sample_buffer[m_play_index][m_play_sample_index],
 		 thislen,
@@ -677,6 +686,18 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
       m_play_index %= DECODE_BUFFERS_MAX;
       m_play_sample_index = 0;
       freed_buffer = 1;
+      if (m_resync_required) {
+	// resync required from codec side.  Shut down, and notify sync task
+	if (m_resync_buffer == m_play_index) {
+	  SDL_PauseAudio(1);
+	  m_audio_paused = 1;
+	  m_psptr->wake_sync_thread();
+#ifdef DEBUG_SYNC
+	  audio_message(LOG_DEBUG, "sempost");
+#endif
+	  len = 0;
+	}
+      }
     }
   }
       
@@ -703,25 +724,30 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 
       if (this_time > index_time + ALLOWED_LATENCY || 
 	  this_time < index_time - ALLOWED_LATENCY) {
-#if DEBUG_SYNC
+#ifdef DEBUG_SYNC
 	audio_message(LOG_DEBUG, 
-		      "potential change - index time "LLU" time "LLU, 
-		      index_time, this_time);
+		      "potential change - index time "LLU" time "LLU" delay %d", 
+		      index_time, this_time, delay);
 #endif
-	m_consec_wrong_latency++;
-	m_wrong_latency_total += this_time - index_time;
-	int64_t test;
-	test = m_wrong_latency_total / m_consec_wrong_latency;
-	if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {
-	  if (m_consec_wrong_latency > 3) {
+	if (m_consec_wrong_latency == 0) {
+	  m_consec_wrong_latency = 1;
+	} else {
+	  m_consec_wrong_latency++;
+	  int64_t test;
+	  test = this_time - index_time;
+	  m_wrong_latency_total += test;
+	  test = m_wrong_latency_total / (m_consec_wrong_latency - 1);
+	  if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {
+	    if (m_consec_wrong_latency > 5) {
+	      m_consec_wrong_latency = 0;
+	      m_wrong_latency_total = 0;
+	      m_psptr->adjust_start_time(test);
+	    }
+	  } else {
+	    // average wrong latency is not greater than allowed latency
 	    m_consec_wrong_latency = 0;
 	    m_wrong_latency_total = 0;
-	    m_psptr->adjust_start_time(test);
 	  }
-	} else {
-	  // average wrong latency is not greater than allowed latency
-	  m_consec_wrong_latency = 0;
-	  m_wrong_latency_total = 0;
 	}
       } else {
 	m_consec_wrong_latency = 0;
@@ -783,7 +809,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
 void CSDLAudioSync::play_audio (void)
 {
   m_first_time = 1;
-  m_resync_required = 0;
+  //m_resync_required = 0;
   m_audio_paused = 0;
   m_play_sample_index = 0;
   SDL_PauseAudio(0);

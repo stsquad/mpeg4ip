@@ -46,31 +46,77 @@ static double mpeg3_frame_rate_table[16] =
 #define MPEG3_SEQUENCE_START_CODE        0x000001b3
 #define MPEG3_PICTURE_START_CODE         0x00000100
 #define MPEG3_GOP_START_CODE             0x000001b8
+#define MPEG3_EXT_START_CODE             0x000001b5
 
+#define SEQ_ID 1
 extern "C" int MP4AV_Mpeg3ParseSeqHdr (uint8_t *pbuffer,
 				       uint32_t buflen,
+				       int *have_mpeg2,
 				       uint32_t *height,
 				       uint32_t *width,
-				       double *frame_rate)
+				       double *frame_rate,
+				       double *bitrate)
 {
   uint32_t framerate_code;
+  uint32_t bitrate_int;
+  uint32_t bitrate_ext;
 #if 1
-  uint32_t value, ix;
+  uint32_t scode, ix;
+  int found = -1;
+  *have_mpeg2 = 0;
   buflen -= 6;
+  bitrate_int = 0;
   for (ix = 0; ix < buflen; ix++, pbuffer++) {
-    value = (pbuffer[0] << 24) | (pbuffer[1] << 16) | (pbuffer[2] << 8) | 
+    scode = (pbuffer[0] << 24) | (pbuffer[1] << 16) | (pbuffer[2] << 8) | 
       pbuffer[3];
 
-    if (value == MPEG3_SEQUENCE_START_CODE) {
+    if (scode == MPEG3_SEQUENCE_START_CODE) {
       pbuffer += sizeof(uint32_t);
-      *height = (pbuffer[0] << 4) | ((pbuffer[1] >> 4) &0xf);
-      *width = ((pbuffer[1] & 0xf) << 4) | pbuffer[2];
+      *width = (pbuffer[0]);
+      *width <<= 4;
+      *width |= ((pbuffer[1] >> 4) &0xf);
+      *height = (pbuffer[1] & 0xf);
+      *height <<= 8;
+      *height |= pbuffer[2];
       framerate_code = pbuffer[3] & 0xf;
       *frame_rate = mpeg3_frame_rate_table[framerate_code];
-      return 0;
+      // 18 bits
+      bitrate_int = (pbuffer[4] << 10) | 
+	(pbuffer[5] << 2) | 
+	((pbuffer[6] >> 6) & 0x3);
+      *bitrate = bitrate_int;
+      *bitrate *= 400.0;
+      ix += sizeof(uint32_t) + 7;
+      pbuffer += 7;
+      found = 0;
+    } else if (found == 0) {
+      if (scode == MPEG3_EXT_START_CODE) {
+	pbuffer += sizeof(uint32_t);
+	ix += sizeof(uint32_t);
+	switch ((pbuffer[0] >> 4) & 0xf) {
+	case SEQ_ID:
+	  *have_mpeg2 = 1;
+	  *height = ((pbuffer[1] & 0x1) << 13) | 
+	    ((pbuffer[2] & 0x80) << 5) |
+	    (*height & 0x0fff);
+	  *width = (((pbuffer[2] >> 5) & 0x3) << 12) | (*width & 0x0fff);
+	  bitrate_ext = (pbuffer[2] & 0x1f) << 7;
+	  bitrate_ext |= (pbuffer[3] >> 1) & 0x7f;
+	  bitrate_int |= (bitrate_ext << 18);
+	  *bitrate = bitrate_int;
+	  *bitrate *= 400.0;
+	  break;
+	default:
+	  break;
+	}
+	pbuffer++;
+	ix++;
+      } else if (scode == MPEG3_PICTURE_START_CODE) {
+	return found;
+      }
     }
   }
-  return -1;
+  return found;
 
 #else
   // if you want to do the whole frame

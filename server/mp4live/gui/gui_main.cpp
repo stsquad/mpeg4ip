@@ -613,7 +613,7 @@ void DoStart()
 		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(duration_spinner))
 		* durationUnitsValues[durationUnitsIndex] * TimestampTicks;
 
-	if (!MyConfig->IsCaptureVideoSource() && !MyConfig->IsCaptureAudioSource()
+	if (MyConfig->IsFileVideoSource() && MyConfig->IsFileAudioSource()
 	  && !MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
 		// no real time constraints
 		StopTime = 0;

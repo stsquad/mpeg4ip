@@ -54,6 +54,7 @@ static config_variable_t configs[] = {
   { CONFIG_PLAY_VIDEO, "PlayVideo", CONFIG_INT, 1, NULL },
   { CONFIG_RTP_BUFFER_TIME_MSEC, "RtpBufferTimeMsec", CONFIG_INT, 2000, NULL },
   { CONFIG_MPEG2T_PAM_WAIT_SECS, "Mpeg2tPamWaitSecs", CONFIG_INT, 30, NULL },
+  { CONFIG_MPEG2T_DEBUG, "Mpeg2tDebug", CONFIG_INT, LOG_ALERT, NULL },
 };
 
 CConfig config(configs, CONFIG_MAX);

@@ -102,11 +102,11 @@ typedef struct
 	mpeg3_slice_buffer_t slice_buffers[MPEG3_MAX_CPUS];   /* Buffers for holding the slice data */
 	int total_slice_buffers;         /* Total buffers in the array to be decompressed */
 	int slice_buffers_initialized;     /* Total buffers initialized in the array */
+	SDL_mutex *slice_lock;
+  SDL_sem *slice_complete_sem;
 #ifndef SDL_THREADS
-	pthread_mutex_t slice_lock;      /* Lock slice array while getting the next buffer */
 	pthread_mutex_t test_lock;
 #else
-	SDL_mutex *slice_lock;
 	SDL_mutex *test_lock;
 #endif
 

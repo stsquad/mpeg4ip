@@ -81,7 +81,7 @@ class CQTVideoByteStream : public CQTByteStreamBase
   int can_skip_frame(void) { return 1; };
   int skip_next_frame (uint64_t *ts, int *hasSync, uint8_t **buffer,
 		       uint32_t *buflen);
-  void set_start_time(uint64_t start);
+  void play(uint64_t start);
   double get_max_playtime(void);
   void config(long num_frames, float frate, int time_scale);
  protected:
@@ -109,7 +109,7 @@ class CQTAudioByteStream : public CQTByteStreamBase
   uint64_t start_next_frame(uint8_t **buffer,
 			    uint32_t *buflen,
 			    void **ud);
-  void set_start_time(uint64_t start);
+  void play(uint64_t start);
   double get_max_playtime (void) {
     double ret = m_frames_max * m_samples_per_frame;
     ret /= m_frame_rate;

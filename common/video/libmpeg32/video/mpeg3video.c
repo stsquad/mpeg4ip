@@ -267,11 +267,12 @@ mpeg3video_t *mpeg3video_allocate_struct(void)
 	pthread_mutexattr_init(&mutex_attr);
 //	pthread_mutexattr_setkind_np(&mutex_attr, PTHREAD_MUTEX_FAST_NP);
 	pthread_mutex_init(&(video->test_lock), &mutex_attr);
-	pthread_mutex_init(&(video->slice_lock), &mutex_attr);
+	//pthread_mutex_init(&(video->slice_lock), &mutex_attr);
 #else
 	video->test_lock = SDL_CreateMutex();
-	video->slice_lock = SDL_CreateMutex();
 #endif
+	video->slice_lock = SDL_CreateMutex();
+	video->slice_complete_sem = SDL_CreateSemaphore(0);
 	return video;
 }
 
@@ -281,11 +282,12 @@ int mpeg3video_delete_struct(mpeg3video_t *video)
 	mpeg3bits_delete_stream(video->vstream);
 #ifndef SDL_THREADS
 	pthread_mutex_destroy(&(video->test_lock));
-	pthread_mutex_destroy(&(video->slice_lock));
+	//pthread_mutex_destroy(&(video->slice_lock));
 #else
 	SDL_DestroyMutex(video->test_lock);
-	SDL_DestroyMutex(video->slice_lock);
 #endif
+	SDL_DestroyMutex(video->slice_lock);
+	SDL_DestroySemaphore(video->slice_complete_sem);
 	if(video->x_table)
 	{
 		free(video->x_table);
@@ -299,6 +301,10 @@ int mpeg3video_delete_struct(mpeg3video_t *video)
 	for(i = 0; i < video->slice_buffers_initialized; i++)
 		mpeg3_delete_slice_buffer(&(video->slice_buffers[i]));
 
+	if(video->decoder_initted)
+	{
+		mpeg3video_deletedecoder(video);
+	}
 	free(video);
 	return 0;
 }
@@ -407,10 +413,6 @@ mpeg3video_t* mpeg3video_new(int is_video_stream,
 
 int mpeg3video_delete(mpeg3video_t *video)
 {
-	if(video->decoder_initted)
-	{
-		mpeg3video_deletedecoder(video);
-	}
 	mpeg3video_delete_struct(video);
 	return 0;
 }

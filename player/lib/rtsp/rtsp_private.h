@@ -33,7 +33,6 @@
  * Some useful macros.
  */
 #define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
-#define CHECK_AND_FREE(a, b) { if (a->b != NULL) { free(a->b); a->b = NULL;}}
 
 /*
  * Session structure.

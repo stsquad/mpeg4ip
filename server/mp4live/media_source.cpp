@@ -822,7 +822,7 @@ pcmBufferCheck:
 
 	if (pcmBuffered) {
 		u_int32_t samplesAvailable =
-			DstBytesToSamples(m_audioPreEncodingBufferLength);
+			SrcBytesToSamples(m_audioPreEncodingBufferLength);
 
 		// not enough samples collected yet to call encode or forward
 		if (samplesAvailable < m_audioDstSamplesPerFrame) {
@@ -833,7 +833,7 @@ pcmBufferCheck:
 		pcmData = 
 			&m_audioPreEncodingBuffer[0];
 		pcmDataLength = 
-			DstSamplesToBytes(m_audioDstSamplesPerFrame);
+			SrcSamplesToBytes(m_audioDstSamplesPerFrame);
 	}
 
 	// encode audio frame
@@ -842,7 +842,9 @@ pcmBufferCheck:
 		Timestamp encodingStartTimestamp = GetTimestamp();
 
 		bool rc = m_audioEncoder->EncodeSamples(
-			(u_int16_t*)pcmData, pcmDataLength);
+			(u_int16_t*)pcmData, 
+			pcmDataLength,
+			m_audioSrcChannels);
 
 		if (!rc) {
 			debug_message("failed to encode audio");
@@ -852,7 +854,7 @@ pcmBufferCheck:
 		Duration encodingTime =
 			(GetTimestamp() - encodingStartTimestamp);
 
-		if (m_sourceRealTime) {
+		if (m_sourceRealTime && m_videoSource) {
 			Duration drift = encodingTime 
 				- DstSamplesToTicks(DstBytesToSamples(pcmDataLength));
 
@@ -1091,7 +1093,7 @@ void CMediaSource::DoStopAudio()
 		// flush remaining output from audio encoder
 		// and forward it to sinks
 
-		m_audioEncoder->EncodeSamples(NULL, 0);
+		m_audioEncoder->EncodeSamples(NULL, 0, m_audioSrcChannels);
 
 		u_int32_t forwardedSamples;
 		u_int32_t forwardedFrames;

@@ -78,7 +78,7 @@ static
 int mpeg3vtrack_get_frame (mpeg3_vtrack_t *track)
 
 {
-	u_int32_t code = 0;
+	uint32_t code = 0;
 	int have_pict_start, done;
 	mpeg3_demuxer_t *demux = track->demuxer;
 	unsigned char *output;
@@ -355,7 +355,8 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	int number)
 {
   uint32_t h,w;
-  double frame_rate;
+  int have_mpeg2;
+  double frame_rate, bitrate;
 
 	int result = 0;
 	mpeg3_vtrack_t *new_vtrack;
@@ -390,9 +391,11 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	
 	if (MP4AV_Mpeg3ParseSeqHdr(new_vtrack->track_frame_buffer, 
 				   new_vtrack->track_frame_buffer_size, 
+				   &have_mpeg2,
 				   &h,
 				   &w, 
-				   &frame_rate) < 0) {
+				   &frame_rate,
+				   &bitrate) < 0) {
 	  mpeg3_delete_vtrack(file, new_vtrack);
 	  return NULL;
 	}
@@ -400,6 +403,7 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	new_vtrack->frame_rate = frame_rate;
 	new_vtrack->width = w;
 	new_vtrack->height = h;
+	new_vtrack->mpeg_layer = have_mpeg2 ? 2 : 1;
 	mpeg3demux_seek_start(new_vtrack->demuxer);
 	new_vtrack->track_frame_buffer_size = 0;
 
@@ -420,6 +424,7 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 int mpeg3_delete_vtrack(mpeg3_t *file, mpeg3_vtrack_t *vtrack)
 {
 	if(vtrack->demuxer) mpeg3_delete_demuxer(vtrack->demuxer);
+	if(vtrack->track_frame_buffer) free(vtrack->track_frame_buffer);
 	free(vtrack);
 	return 0;
 }
@@ -430,7 +435,7 @@ int mpeg3vtrack_read_raw (mpeg3_vtrack_t *vtrack,
 			  long *size, 
 			  long max_size)
 {
-  u_int32_t code = 0;
+  uint32_t code = 0;
 
   mpeg3_demuxer_t *demux = vtrack->demuxer;
   *size = 0;

@@ -51,6 +51,7 @@ class CDummyVideoSync : public CVideoSync {
 		      int m_pixelw_uv,
 		      uint64_t time);
   void config (int w, int h); // from codec
+  void double_width(void);
  protected:
   int m_width;
   int m_height;

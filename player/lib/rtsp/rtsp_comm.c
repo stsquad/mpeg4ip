@@ -271,6 +271,6 @@ void rtsp_close_socket (rtsp_client_t *info)
     closesocket(info->server_socket);
   info->server_socket = -1;
 #ifdef HAVE_ST_ADDRINFO
-  CHECK_AND_FREE(info,addr_info);
+  CHECK_AND_FREE(info->addr_info);
 #endif
 }

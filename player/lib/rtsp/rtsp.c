@@ -38,10 +38,10 @@ void free_rtsp_client (rtsp_client_t *rptr)
     SDL_DestroyMutex(rptr->msg_mutex);
     rptr->msg_mutex = NULL;
   }
-  CHECK_AND_FREE(rptr, orig_url);
-  CHECK_AND_FREE(rptr, url);
-  CHECK_AND_FREE(rptr, server_name);
-  CHECK_AND_FREE(rptr, cookie);
+  CHECK_AND_FREE(rptr->orig_url);
+  CHECK_AND_FREE(rptr->url);
+  CHECK_AND_FREE(rptr->server_name);
+  CHECK_AND_FREE(rptr->cookie);
   free_decode_response(rptr->decode_response);
   rptr->decode_response = NULL;
   free(rptr);

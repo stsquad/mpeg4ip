@@ -30,8 +30,6 @@
 #include "media_source.h"
 #include "video_encoder.h"
 
-void CalculateVideoFrameSize(CLiveConfig* pConfig);
-
 class CV4LVideoSource : public CMediaSource {
 public:
 	CV4LVideoSource() : CMediaSource() {

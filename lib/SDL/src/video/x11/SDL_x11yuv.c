@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11yuv.c,v 1.3 2002/05/01 17:41:30 wmaycisco Exp $";
+ "@(#) $Id: SDL_x11yuv.c,v 1.4 2002/07/30 20:52:54 wmaycisco Exp $";
 #endif
 
 /* This is the XFree86 Xv extension implementation of YUV video overlays */
@@ -36,7 +36,7 @@ static char rcsid =
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 #include <XFree86/extensions/Xvlib.h>
-
+#include <X11/Xlibint.h>
 #include "SDL_error.h"
 #include "SDL_video.h"
 #include "SDL_x11yuv_c.h"
@@ -123,9 +123,16 @@ SDL_Overlay *X11_CreateYUVOverlay(_THIS, int width, int height, Uint32 format, S
 						}
 					}
 				}
+				Xfree(formats);
 			}
 		}
 	}
+		
+	for ( i=0; i < adaptors; ++i ) {
+	  if (ainfo[i].name != NULL) Xfree(ainfo[i].name);
+	  if (ainfo[i].formats != NULL) Xfree(ainfo[i].formats);
+	}
+	Xfree(ainfo);
 	if ( xv_port == -1 ) {
 		SDL_SetError("No available video ports for requested format");
 		return(NULL);

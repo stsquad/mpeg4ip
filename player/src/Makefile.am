@@ -58,6 +58,8 @@ libmp4player_la_SOURCES = \
 	media_utils.cpp \
 	media_utils.h \
 	mpeg2t.h \
+	mpeg2t_bytestream.cpp \
+	mpeg2t_bytestream.h \
 	mpeg2t_private.h \
 	mpeg2t_thread.cpp \
 	mpeg2t_thread.h \
@@ -131,6 +133,7 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/lib/mpeg2t/libmpeg2_transport.la \
 	$(top_builddir)/common/video/libmpeg32/libmpeg3.la \
 	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
+	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la \
 	$(top_builddir)/lib/sdp/libsdp.la \
 	$(top_builddir)/player/lib/mp4util/libmp4util.la \
 	$(top_builddir)/player/lib/libhttp/libhttp.la \
@@ -143,7 +146,7 @@ libmp4player_la_LIBADD = \
 	$(top_builddir)/lib/mp4/libmp4.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/avi/libavi.la \
-	$(top_builddir)/lib/gnu/libmpeg4ip_gnu.la
+	-ldl
 
 mp4player_LDADD = \
 	-lm \

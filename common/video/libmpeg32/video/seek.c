@@ -20,6 +20,8 @@ unsigned int mpeg3bits_next_startcode(mpeg3_bits_t* stream)
 //	stream->demuxer->titles[0]->fs->current_byte, 
 //	stream->demuxer->titles[0]->fs->total_bytes);
 
+  if (mpeg3bits_eof(stream)) return 0xffffffff;
+
 /* Perform search */
   while(1)
     {
@@ -27,7 +29,7 @@ unsigned int mpeg3bits_next_startcode(mpeg3_bits_t* stream)
 
       //printf("mpeg3bits_next_startcode 2 %lx\n", code);
       if((code >> 8) == MPEG3_PACKET_START_CODE_PREFIX) break;
-      if(mpeg3bits_eof(stream)) break;
+      if(mpeg3bits_eof(stream)) return 0xffffffff;
 
 
       mpeg3bits_getbyte_noptr(stream);

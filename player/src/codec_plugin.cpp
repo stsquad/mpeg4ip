@@ -326,7 +326,7 @@ int video_codec_check_for_raw_file (CPlayerSession *psptr,
 	fbyte = new COurInByteStreamFile(vptr->codec,
 					 cifptr,
 					 maxtime);
-	mptr->create_from_file(fbyte, TRUE);
+	mptr->create(fbyte, TRUE);
 	mptr->set_plugin_data(vptr->codec, cifptr, get_video_vft(), NULL);
 
 	for (int ix = 0; ix < 4; ix++) 
@@ -382,7 +382,7 @@ int audio_codec_check_for_raw_file (CPlayerSession *psptr,
 	fbyte = new COurInByteStreamFile(aptr->codec,
 					 cifptr,
 					 maxtime);
-	mptr->create_from_file(fbyte, FALSE);
+	mptr->create(fbyte, FALSE);
 	mptr->set_plugin_data(aptr->codec, cifptr, NULL, get_audio_vft());
 
 	for (int ix = 0; ix < 4; ix++) 

@@ -79,9 +79,13 @@ u_int32_t CLameAudioEncoder::GetSamplesPerFrame()
 
 bool CLameAudioEncoder::EncodeSamples(
 	u_int16_t* pBuffer, 
-	u_int32_t bufferLength)
+	u_int32_t bufferLength,
+	u_int8_t numChannels)
 {
-	if (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) == 2) {
+	if (numChannels == 1) {
+		return EncodeSamples(pBuffer, pBuffer, bufferLength);
+
+	} else if (numChannels == 2) {
 		bool rc;
 		u_int16_t* leftBuffer = NULL;
 		u_int16_t* rightBuffer = NULL;
@@ -99,9 +103,8 @@ bool CLameAudioEncoder::EncodeSamples(
 
 		return rc; 
 	} 
-
-	// else channels == 1
-	return EncodeSamples(pBuffer, NULL, bufferLength);
+	// invalid numChannels
+	return false;	
 }
 
 bool CLameAudioEncoder::EncodeSamples(
@@ -112,6 +115,10 @@ bool CLameAudioEncoder::EncodeSamples(
 	u_int32_t mp3DataLength = 0;
 
 	if (pLeftBuffer) {
+		if (m_lameParams.num_channels == 1) {
+			pRightBuffer = NULL;
+		}
+
 		// call lame encoder
 		mp3DataLength = lame_encode_buffer(
 			&m_lameParams,

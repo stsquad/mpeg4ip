@@ -7,12 +7,12 @@ typedef struct mpeg2t_client_ mpeg2t_client_t;
 extern "C" {
 #endif
 mpeg2t_client_t *mpeg2t_create_client(const char *address,
-				       in_port_t rx_port,
-				       in_port_t tx_port,
-				       int use_rtp,
-				       double rtcp_bw, 
-				       int ttl,
-				       char *errmsg,
+				      in_port_t rx_port,
+				      in_port_t tx_port,
+				      int use_rtp,
+				      double rtcp_bw, 
+				      int ttl,
+				      char *errmsg,
 				      uint32_t errmsg_len);
 
 void mpeg2t_delete_client(mpeg2t_client_t *info);

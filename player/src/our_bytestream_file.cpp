@@ -37,7 +37,7 @@ COurInByteStreamFile::~COurInByteStreamFile(void)
 {
 }
 
-void COurInByteStreamFile::set_start_time (uint64_t start) 
+void COurInByteStreamFile::play (uint64_t start) 
 {
   if (m_plugin->c_raw_file_seek_to != NULL)
   m_plugin->c_raw_file_seek_to(m_plugin_data, start);

@@ -4,10 +4,10 @@
 #include <sys/types.h>
 #ifndef SDL_THREADS
 #include <pthread.h>
-#else
+#endif
 #include "SDL.h"
 #include "SDL_thread.h"
-#endif
+
 
 /* Array of these feeds the slice decoders */
 typedef struct
@@ -16,13 +16,9 @@ typedef struct
 	int buffer_size;         /* Size of buffer */
 	int buffer_allocation;   /* Space allocated for buffer  */
 	int current_position;    /* Position in buffer */
-	u_int32_t bits;
+	uint32_t bits;
 	int bits_size;
-#ifndef SDL_THREADS
-	pthread_mutex_t completion_lock; /* Lock slice until completion */
-#else
-	SDL_mutex *completion_lock;
-#endif
+	SDL_mutex *buffer_completion_lock;
 	int done;           /* Signal for slice decoder to skip */
 } mpeg3_slice_buffer_t;
 
@@ -44,11 +40,10 @@ typedef struct
 	int sparse[12];
 #ifndef SDL_THREADS
 	pthread_t tid;   /* ID of thread */
-	pthread_mutex_t input_lock, output_lock, completion_lock;
 #else
 	SDL_Thread *tid;   /* ID of thread */
-	SDL_mutex *input_lock, *output_lock, *completion_lock;
 #endif
+  SDL_sem *input_sem;
 } mpeg3_slice_t;
 
 #define mpeg3slice_fillbits(buffer, nbits) \

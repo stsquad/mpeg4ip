@@ -161,7 +161,7 @@ int CMp4File::create_video(CPlayerSession *psptr,
 	return (-1);
       }
 
-      ret = mptr->create_from_file(vbyte, TRUE);
+      ret = mptr->create(vbyte, TRUE, errmsg, errlen);
       if (ret != 0) {
 	return (-1);
       }
@@ -232,7 +232,7 @@ int CMp4File::create_audio(CPlayerSession *psptr,
 	return -1;
       }
 
-      ret = mptr->create_from_file(abyte, FALSE);
+      ret = mptr->create(abyte, FALSE, errmsg, errlen);
       if (ret != 0) {
 	return (-1);
       }

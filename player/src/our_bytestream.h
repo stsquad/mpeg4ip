@@ -64,7 +64,8 @@ class COurInByteStream
    */
   virtual int skip_next_frame (uint64_t *ts, int *hasSyncFrame, uint8_t **buffer, uint32_t *buflen) { assert(0 == 1);return 0; };
   virtual double get_max_playtime (void) = 0;
-  virtual void set_start_time (uint64_t start) { m_play_start_time = start; };
+  virtual void pause (void) {};
+  virtual void play (uint64_t start) { m_play_start_time = start; };
  protected:
   uint64_t m_play_start_time;
   const char *m_name;

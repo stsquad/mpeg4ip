@@ -54,6 +54,7 @@ class CVideoSync {
 			 int &have_eof);
   virtual void do_video_resize(void);     // from sync
   virtual void flush_sync_buffers(void);  // from sync task in response to stop
+  virtual void double_width(void);
  protected:
   CPlayerSession *m_psptr;
   SDL_sem *m_decode_sem;

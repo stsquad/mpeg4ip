@@ -210,7 +210,7 @@ void CQTVideoByteStream::read_frame (uint32_t frame_to_read)
   m_byte_on = 0;
 }
 
-void CQTVideoByteStream::set_start_time (uint64_t start)
+void CQTVideoByteStream::play (uint64_t start)
 {
   m_play_start_time = start;
   uint32_t ix;
@@ -376,7 +376,7 @@ void CQTAudioByteStream::read_frame (uint32_t frame_to_read)
   m_byte_on = 0;
 }
 
-void CQTAudioByteStream::set_start_time (uint64_t start)
+void CQTAudioByteStream::play (uint64_t start)
 {
   m_play_start_time = start;
   

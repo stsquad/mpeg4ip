@@ -44,7 +44,7 @@ class COurInByteStreamFile : public COurInByteStream
 			    void **userdata);
   void used_bytes_for_frame(uint32_t bytes);
   double get_max_playtime (void) { return m_max_play_time; };
-  void set_start_time(uint64_t start);
+  void play(uint64_t start);
  private:
   codec_plugin_t *m_plugin;
   codec_data_t *m_plugin_data;

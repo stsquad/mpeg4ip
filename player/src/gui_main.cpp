@@ -38,6 +38,7 @@
 #include <libhttp/http.h>
 #include <rtp/debug.h>
 #include "codec_plugin_private.h"
+#include <mpeg2t/mpeg2_transport.h>
 /* ??? */
 #ifndef LOG_PRI
 #define LOG_PRI(p) ((p) & LOG_PRIMASK)
@@ -229,7 +230,9 @@ static void start_session_from_name (const char *name)
     free((void *)last_entry);
   }
   last_entry = strdup(name);
-  if (strncmp("rtsp://", name, strlen("rtsp://")) != 0) {
+  if (!((strncmp("rtsp://", name, strlen("rtsp://")) == 0) ||
+	(strncmp("http://", name, strlen("http://")) == 0) ||
+	(strncmp("mpeg2t://", name, strlen("mpeg2t://")) == 0))) {
     if (last_file != NULL) {
       free((void *)last_file);
       last_file = NULL;
@@ -603,6 +606,14 @@ static void on_debug_sdp (GtkWidget *window, gpointer data)
 
   sdp_set_loglevel(LOG_PRI(loglevel));
   config.set_config_value(CONFIG_SDP_DEBUG, LOG_PRI(loglevel));
+}
+
+static void on_debug_mpeg2t (GtkWidget *window, gpointer data)
+{
+  int loglevel = GPOINTER_TO_INT(data);
+
+  mpeg2t_set_loglevel(LOG_PRI(loglevel));
+  config.set_config_value(CONFIG_MPEG2T_DEBUG, LOG_PRI(loglevel));
 }
 
 static void on_media_play_audio (GtkWidget *window, gpointer data)
@@ -987,6 +998,8 @@ printf("%s\n", *argv);
   sdp_set_loglevel(config.get_config_value(CONFIG_SDP_DEBUG));
   http_set_error_func(player_library_message);
   http_set_loglevel(config.get_config_value(CONFIG_HTTP_DEBUG));
+  mpeg2t_set_error_func(player_library_message);
+  mpeg2t_set_loglevel(config.get_config_value(CONFIG_MPEG2T_DEBUG));
   /*
    * Set up main window
    */
@@ -1146,6 +1159,10 @@ printf("%s\n", *argv);
 			"SDP library", 
 			config.get_config_value(CONFIG_SDP_DEBUG),
 			GTK_SIGNAL_FUNC(on_debug_sdp));
+  CreateLogLevelSubmenu(debugsub,
+			"Mpeg2 Transport Library",
+			config.get_config_value(CONFIG_MPEG2T_DEBUG),
+			GTK_SIGNAL_FUNC(on_debug_mpeg2t));
 
   CreateMenuItemSeperator(menu);
   menuitem = CreateMenuItem(menu,

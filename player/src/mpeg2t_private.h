@@ -18,6 +18,8 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
+#ifndef __MPEG2T_PRIVATE_H__
+#define __MPEG2T_PRIVATE_H__ 1
 #include "mpeg2t_thread.h"
 #include "mpeg2t_thread_ipc.h"
 #include <rtp/rtp.h>
@@ -34,12 +36,23 @@
  * Some useful macros.
  */
 #define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
-#define CHECK_AND_FREE(a, b) { if (a->b != NULL) { free(a->b); a->b = NULL;}}
 
+class CPlayerMedia;
 
 typedef struct mpeg2t_thread_info_ mpeg2t_thread_info_t;
 
 struct addrinfo;
+
+typedef struct mpeg2t_stream_t {
+  struct mpeg2t_stream_t *next_stream;
+  CPlayerMedia *m_mptr;
+  int m_have_info;
+  int m_is_video;
+  int m_buffering;
+  int m_frames_since_last_psts;
+  uint64_t m_last_psts;
+} mpeg2t_stream_t;
+
 
 struct mpeg2t_client_ {
   /*
@@ -71,6 +84,7 @@ struct mpeg2t_client_ {
 #endif
   int recv_timeout;
 
+  uint16_t rtp_seq;
   /*
    * Thread information
    */
@@ -85,7 +99,7 @@ struct mpeg2t_client_ {
    */
   uint32_t m_buffer_len, m_offset_on;
   char m_resp_buffer[1500];
-
+  mpeg2t_stream_t *stream;
 };
 
 #ifdef __cplusplus
@@ -121,3 +135,4 @@ int mpeg2t_thread_ipc_send_wait(mpeg2t_client_t *info,
 }
 #endif
 
+#endif

@@ -88,6 +88,7 @@ class CRtpByteStreamBase : public COurInByteStream
   int recv_task(int waiting);
   uint32_t get_last_rtp_timestamp (void) {return m_rtptime_last; };
   void remove_packet_rtp_queue(rtp_packet *pak, int free);
+  void pause(void);
  protected:
   void init(void);
   // Make sure all classes call this to calculate real time.

@@ -112,5 +112,8 @@ void CVideoSync::do_video_resize (void)
 {
 }
 
+void CVideoSync::double_width(void)
+{
+}
 /* end file video.cpp */
 

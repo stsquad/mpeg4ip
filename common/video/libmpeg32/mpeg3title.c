@@ -175,7 +175,7 @@ int mpeg3demux_create_title(mpeg3_demuxer_t *demuxer,
 	double next_time, prev_time, absolute_time;
 	long i;
 	mpeg3_title_t *title;
-	u_int32_t test_header = 0;
+	uint32_t test_header = 0;
 	mpeg3demux_timecode_t *timecode = 0;
 
 	demuxer->error_flag = 0;

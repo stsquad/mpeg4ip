@@ -115,7 +115,7 @@ bool CV4LVideoSource::Init(void)
 		return false;
 	}
 
-	CalculateVideoFrameSize(m_pConfig);
+	m_pConfig->CalculateVideoFrameSize();
 
 	InitVideo(
 		(m_pConfig->m_videoNeedRgbToYuv ?
@@ -341,41 +341,6 @@ void CV4LVideoSource::SetVideoAudioMute(bool mute)
 				m_pConfig->m_videoCapabilities->m_deviceName);
 		}
 	}
-}
-
-void CalculateVideoFrameSize(CLiveConfig* pConfig)
-{
-	u_int16_t frameHeight;
-	float aspectRatio = pConfig->GetFloatValue(CONFIG_VIDEO_ASPECT_RATIO);
-
-	// crop video to appropriate aspect ratio modulo 16 pixels
-	if ((aspectRatio - VIDEO_STD_ASPECT_RATIO) < 0.1) {
-		frameHeight = pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
-	} else {
-		frameHeight = (u_int16_t)(
-			(float)pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH) 
-			/ aspectRatio);
-
-		if ((frameHeight % 16) != 0) {
-			frameHeight += 16 - (frameHeight % 16);
-		}
-
-		if (frameHeight > pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT)) {
-			// OPTION might be better to insert black lines 
-			// to pad image but for now we crop down
-			frameHeight = pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
-			if ((frameHeight % 16) != 0) {
-				frameHeight -= (frameHeight % 16);
-			}
-		}
-	}
-
-	pConfig->m_videoWidth = pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
-	pConfig->m_videoHeight = frameHeight;
-
-	pConfig->m_ySize = pConfig->m_videoWidth * pConfig->m_videoHeight;
-	pConfig->m_uvSize = pConfig->m_ySize / 4;
-	pConfig->m_yuvSize = (pConfig->m_ySize * 3) / 2;
 }
 
 int8_t CV4LVideoSource::AcquireFrame(void)

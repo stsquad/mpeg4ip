@@ -56,6 +56,7 @@ class CSDLVideoSync : public CVideoSync {
   void set_fullscreen(int fullscreen);
   int get_fullscreen (void) { return m_fullscreen; };
   void do_video_resize(void); // from sync
+  void double_width(void);
  private:
   int m_video_bpp;
   int m_video_scale;
@@ -64,6 +65,7 @@ class CSDLVideoSync : public CVideoSync {
   int m_video_initialized;
   int m_config_set;
   int m_paused;
+  int m_double_width;
   volatile int m_have_data;
   SDL_Surface *m_screen;
   SDL_Overlay *m_image;

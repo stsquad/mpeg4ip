@@ -40,7 +40,9 @@
 #include "mpeg3_rtp_bytestream.h"
 #include "mpeg3_file.h"
 #include "audio.h"
+#ifndef _WIN32
 #include "mpeg2t.h"
+#endif
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -138,13 +140,18 @@ static int create_media_from_sdp (CPlayerSession *psptr,
     snprintf(buffer, sizeof(buffer), "Description: %s", sdp->session_desc);
     psptr->set_session_desc(1, buffer);
   }
+#ifndef _WIN32
   if (sdp->media != NULL &&
       sdp->media->next == NULL &&
       strcasecmp(sdp->media->media, "video") == 0 &&
       sdp->media->fmt != NULL &&
       strcmp(sdp->media->fmt->fmt, "33") == 0) {
     // we have a mpeg2 transport stream
+    return (create_mpeg2t_session(psptr, NULL, sdp, errmsg, errlen,
+				  have_audio_driver, cc_vft));
+				  
   }
+#endif
   media_desc_t *sdp_media;
   audio_count = video_count = 0;
   for (sdp_media = psptr->get_sdp_info()->media;
@@ -506,13 +513,17 @@ int parse_name_for_session (CPlayerSession *psptr,
     err = create_media_for_http(psptr, name, errmsg, errlen, cc_vft);
     return (err);
   }    
-#if 0
+
+  int have_audio_driver;
+
+  have_audio_driver = do_we_have_audio();
+#ifndef _WIN32
   if (strncmp(name, "mpeg2t://", strlen("mpeg2t://")) == 0) {
-    err = create_mpeg2t_session(psptr, name, errmsg, errlen, cc_vft);
+    err = create_mpeg2t_session(psptr, name, NULL, errmsg, errlen, 
+				have_audio_driver, cc_vft);
     return (err);
   }
-#endif
-#ifndef _WINDOWS
+
   struct stat statbuf;
   if (stat(name, &statbuf) != 0) {
     snprintf(errmsg, errlen, "File \'%s\' not found", name);
@@ -538,9 +549,6 @@ int parse_name_for_session (CPlayerSession *psptr,
     return err;
   }
 
-  int have_audio_driver;
-
-  have_audio_driver = do_we_have_audio();
 
   if (strcasecmp(suffix, ".sdp") == 0) {
     err = create_media_from_sdp_file(psptr, 
@@ -574,7 +582,7 @@ int parse_name_for_session (CPlayerSession *psptr,
   } else if (strcasecmp(suffix, ".mpeg") == 0 ||
 	     strcasecmp(suffix, ".mpg") == 0) {
     err = create_media_for_mpeg_file(psptr, name, errmsg, 
-				     errlen, have_audio_driver);
+				     errlen, have_audio_driver, cc_vft);
   } else {
     // raw files
     if (have_audio_driver) {

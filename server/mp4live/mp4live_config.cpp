@@ -89,8 +89,44 @@ void CLiveConfig::UpdateVideo()
 		|| (GetBoolValue(CONFIG_RECORD_ENABLE)
 			&& GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO));
 
-	CalculateVideoFrameSize(this);
+	CalculateVideoFrameSize();
+
 	GenerateMpeg4VideoConfig(this);
+}
+
+void CLiveConfig::CalculateVideoFrameSize()
+{
+	u_int16_t frameHeight;
+	float aspectRatio = GetFloatValue(CONFIG_VIDEO_ASPECT_RATIO);
+
+	// crop video to appropriate aspect ratio modulo 16 pixels
+	if ((aspectRatio - VIDEO_STD_ASPECT_RATIO) < 0.1) {
+		frameHeight = GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+	} else {
+		frameHeight = (u_int16_t)(
+			(float)GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH) 
+			/ aspectRatio);
+
+		if ((frameHeight % 16) != 0) {
+			frameHeight += 16 - (frameHeight % 16);
+		}
+
+		if (frameHeight > GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT)) {
+			// OPTION might be better to insert black lines 
+			// to pad image but for now we crop down
+			frameHeight = GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+			if ((frameHeight % 16) != 0) {
+				frameHeight -= (frameHeight % 16);
+			}
+		}
+	}
+
+	m_videoWidth = GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
+	m_videoHeight = frameHeight;
+
+	m_ySize = m_videoWidth * m_videoHeight;
+	m_uvSize = m_ySize / 4;
+	m_yuvSize = (m_ySize * 3) / 2;
 }
 
 void CLiveConfig::UpdateAudio() 
@@ -170,5 +206,21 @@ bool CLiveConfig::IsCaptureAudioSource()
 		GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
 
 	return !strcasecmp(sourceType, AUDIO_SOURCE_OSS);
+}
+
+bool CLiveConfig::IsFileVideoSource()
+{
+	const char *sourceType =
+		GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
+
+	return !strcasecmp(sourceType, FILE_SOURCE);
+}
+
+bool CLiveConfig::IsFileAudioSource()
+{
+	const char *sourceType =
+		GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
+
+	return !strcasecmp(sourceType, FILE_SOURCE);
 }
 

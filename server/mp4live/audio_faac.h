@@ -40,7 +40,8 @@ public:
 
 	bool EncodeSamples(
 		u_int16_t* pBuffer, 
-		u_int32_t bufferLength);
+		u_int32_t bufferLength,
+		u_int8_t numChannels);
 
 	bool EncodeSamples(
 		u_int16_t* pLeftBuffer,

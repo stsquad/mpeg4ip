@@ -127,6 +127,7 @@ CPlayerMedia::CPlayerMedia (CPlayerSession *p)
   m_user_data = NULL;
   m_rtcp_received = 0;
   m_streaming = 0;
+  m_stream_ondemand = 0;
   m_rtp_use_rtsp = 0;
 }
 
@@ -167,10 +168,6 @@ CPlayerMedia::~CPlayerMedia()
   m_next = NULL;
   m_parent = NULL;
 
-  if (m_decode_thread_sem) {
-    SDL_DestroySemaphore(m_decode_thread_sem);
-    m_decode_thread_sem = NULL;
-  }
   if (m_ports) {
     delete m_ports;
     m_ports = NULL;
@@ -215,6 +212,10 @@ CPlayerMedia::~CPlayerMedia()
     free((void *)m_user_data);
     m_user_data = NULL;
   }
+  if (m_decode_thread_sem) {
+    SDL_DestroySemaphore(m_decode_thread_sem);
+    m_decode_thread_sem = NULL;
+  }
 }
 
 void CPlayerMedia::clear_rtp_packets (void)
@@ -256,14 +257,18 @@ int CPlayerMedia::create_common (int is_video, char *errmsg, uint32_t errlen)
   return 0;
 }
 /*
- * CPlayerMedia::create_from_file - create when we've already got a
+ * CPlayerMedia::create - create when we've already got a
  * bytestream
  */
-int CPlayerMedia::create_from_file (COurInByteStream *b, 
-				    int is_video)
+int CPlayerMedia::create (COurInByteStream *b, 
+			  int is_video,
+			  char *errmsg,
+			  uint32_t errlen,
+			  int streaming)
 {
   m_byte_stream = b;
-  return create_common(is_video, NULL, 0);
+  m_streaming = streaming;
+  return create_common(is_video, errmsg, errlen);
 }
 
 /*
@@ -572,18 +577,16 @@ int CPlayerMedia::do_play (double start_time_offset)
        * that it needs to start
        */
       m_play_start_time = start_time_offset;
-      if (m_rtp_byte_stream != NULL) {
-	m_rtp_byte_stream->set_start_time((uint64_t)(start_time_offset * 1000.0));
-      }
+    }
+    if (m_byte_stream != NULL) {
+      m_byte_stream->play((uint64_t)(start_time_offset * 1000.0));
     }
     m_paused = 0;
     if (m_rtp_use_rtsp) {
       rtsp_thread_perform_callback(m_parent->get_rtsp_client(),
 				   c_rtp_start, 
 				   this);
-    } else {
-      m_rtp_msg_queue.send_message(MSG_START_SESSION);
-    }
+    } 
   } else {
     /*
      * File (or other) playback.
@@ -591,7 +594,7 @@ int CPlayerMedia::do_play (double start_time_offset)
     if (m_paused == 0 || start_time_offset == 0.0) {
       m_byte_stream->reset();
     }
-    m_byte_stream->set_start_time((uint64_t)(start_time_offset * 1000.0));
+    m_byte_stream->play((uint64_t)(start_time_offset * 1000.0));
     m_play_start_time = start_time_offset;
     m_paused = 0;
     start_decoding();
@@ -623,10 +626,13 @@ int CPlayerMedia::do_pause (void)
 	free_decode_response(decode);
       }
     }
-    m_rtp_msg_queue.send_message(MSG_PAUSE_SESSION);
-    if (m_rtp_byte_stream) m_rtp_byte_stream->reset();
+    if (m_recv_thread != NULL) {
+      m_rtp_msg_queue.send_message(MSG_PAUSE_SESSION);
+    }
   }
-  
+
+  if (m_byte_stream != NULL) 
+    m_byte_stream->pause();
   /*
    * Pause the various threads
    */
@@ -1211,7 +1217,6 @@ int CPlayerMedia::recv_thread (void)
   CMsg *newmsg;
   int recv_thread_stop = 0;
   connect_desc_t *cptr;
-  int receiving = 0;
   cptr = get_connect_desc_from_media(m_media_info);
 
 
@@ -1256,58 +1261,32 @@ int CPlayerMedia::recv_thread (void)
   if (m_rtp_session != NULL) {
     rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
     rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
+    rtp_start();
   }
   m_rtp_inited = 1;
   
   while (recv_thread_stop == 0) {
-    /*
-     * See if we need to check for a state change - this will allow
-     * changes to the rtp info, if required.
-     */
-    while ((newmsg = m_rtp_msg_queue.get_message()) != NULL) {
+    if ((newmsg = m_rtp_msg_queue.get_message()) != NULL) {
+      //player_debug_message("recv thread message %d", newmsg->get_value());
       switch (newmsg->get_value()) {
       case MSG_STOP_THREAD:
 	recv_thread_stop = 1;
-	continue;
-      case MSG_START_SESSION:
-	if (m_rtp_session == NULL) {
-	  continue;
-	}
-	rtp_start();
-	receiving = 1;
 	break;
       case MSG_PAUSE_SESSION:
+	// Indicate that we need to restart the session.
+	// But keep going...
+	rtp_start();
 	break;
       }
       delete newmsg;
+      newmsg = NULL;
     }
-    if (receiving == 0) {
-      SDL_Delay(50);
+    if (recv_thread_stop == 1) {
       continue;
     }
-    while (receiving == 1 && recv_thread_stop == 0) {
-      if ((newmsg = m_rtp_msg_queue.get_message()) != NULL) {
-	//player_debug_message("recv thread message %d", newmsg->get_value());
-	switch (newmsg->get_value()) {
-	case MSG_STOP_THREAD:
-	  recv_thread_stop = 1;
-	  break;
-	case MSG_START_SESSION:
-	  //media_message(LOG_ERR, "Got play when playing");
-	  break;
-	case MSG_PAUSE_SESSION:
-	  // Indicate that we need to restart the session.
-	  // But keep going...
-	  media_message(LOG_DEBUG, "calling rtp start from pause");
-	  rtp_start();
-	  break;
-	}
-	delete newmsg;
-	newmsg = NULL;
-      }
-      if (recv_thread_stop == 1) {
-	continue;
-      }
+    if (m_rtp_session == NULL) {
+      SDL_Delay(50); 
+    } else {
       timeout.tv_sec = 0;
       timeout.tv_usec = 500000;
       retcode = rtp_recv(m_rtp_session, &timeout, 0);
@@ -1315,8 +1294,8 @@ int CPlayerMedia::recv_thread (void)
       // Run rtp periodic after each packet received or idle time.
       if (m_paused == 0)
 	rtp_periodic();
-
     }
+    
   }
   /*
    * When we're done, send a bye, close up rtp, and go home
@@ -1430,7 +1409,7 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
 					  m_rtcp_ntp_frac,
 					  m_rtcp_ntp_sec,
 					  m_rtcp_rtp_ts);
-      bs->set_start_time((uint64_t)(m_play_start_time * 1000.0));
+      bs->play((uint64_t)(m_play_start_time * 1000.0));
       m_rtp_byte_stream = bs;
       m_byte_stream = m_rtp_byte_stream;
 #if 1
@@ -1470,13 +1449,18 @@ void CPlayerMedia::set_rtp_base_seq (uint16_t seq)
 void CPlayerMedia::rtp_init_tcp (void) 
 {
   connect_desc_t *cptr;
+  double bw;
+
+  if (find_rtcp_bandwidth_from_media(m_media_info, &bw) < 0) {
+    bw = 5000.0;
+  } 
   cptr = get_connect_desc_from_media(m_media_info);
   m_rtp_session = rtp_init_extern_net(m_source_addr == NULL ? 
 				      cptr->conn_addr : m_source_addr,
 				      m_our_port,
 				      m_server_port,
 				      cptr->ttl,
-				      5000.0, // rtcp bandwidth ?
+				      bw, // rtcp bandwidth ?
 				      c_recv_callback,
 				      c_rtcp_send_packet,
 				      (uint8_t *)this);

@@ -32,10 +32,12 @@
 #include "mpeg3_bytestream.h"
 #include "codec_plugin_private.h"
 
-static int create_mpeg3_video (mpeg3_t *vfile, 
+static int create_mpeg3_video (video_query_t *vq,
+			       mpeg3_t *vfile, 
 			       CPlayerSession *psptr,
 			       char *errmsg, 
-			       uint32_t errlen)
+			       uint32_t errlen, 
+			       int &sdesc)
 {
   CPlayerMedia *mptr;
   codec_plugin_t *plugin;
@@ -60,9 +62,26 @@ static int create_mpeg3_video (mpeg3_t *vfile,
   }
   video_info_t *vinfo;
   vinfo = MALLOC_STRUCTURE(video_info_t);
-  vinfo->height = mpeg3_video_height(vfile, 0);
-  vinfo->width = mpeg3_video_width(vfile, 0);
+  vinfo->height = vq->h;
+  vinfo->width = vq->w;
 
+  if (vinfo->height == 480 && vinfo->width == 352) {
+    psptr->double_screen_width();
+  }
+  char buffer[80];
+  int bitrate;
+  ret = snprintf(buffer, 80, "MPEG-%d Video, %d x %d, %g",
+		 mpeg3_video_layer(vfile, vq->track_id),
+		 vinfo->width, vinfo->height, vq->frame_rate);
+  bitrate = (int)(mpeg3_video_bitrate(vfile, vq->track_id) / 1000.0);
+  if (bitrate > 0) {
+    snprintf(buffer + ret, 80 - ret, ", %d kbps", bitrate);
+  }
+  psptr->set_session_desc(sdesc, buffer);
+  sdesc++;
+  mpeg3f_message(LOG_DEBUG, "video stream h %d w %d fr %g bitr %d", 
+		 vinfo->height, vinfo->width, vq->frame_rate,
+		 bitrate);
   ret = mptr->create_video_plugin(plugin, NULL, vinfo, NULL, 0);
   if (ret < 0) {
     mpeg3f_message(LOG_ERR, "Failed to create video plugin");
@@ -71,12 +90,12 @@ static int create_mpeg3_video (mpeg3_t *vfile,
     return -1;
   }
   CMpeg3VideoByteStream *vbyte;
-  vbyte = new CMpeg3VideoByteStream(vfile, 0);
+  vbyte = new CMpeg3VideoByteStream(vfile, vq->track_id);
   if (vbyte == NULL) {
     snprintf(errmsg, errlen, "Failed to create video bytestream");
     return -1;
   }
-  ret = mptr->create_from_file(vbyte, TRUE);
+  ret = mptr->create(vbyte, TRUE, errmsg, errlen);
   if (ret != 0) {
     snprintf(errmsg, errlen, "Couldn't create video media");
     return -1;
@@ -84,10 +103,12 @@ static int create_mpeg3_video (mpeg3_t *vfile,
   return 1;
 }
 
-static int create_mpeg3_audio (mpeg3_t *afile, 
+static int create_mpeg3_audio (audio_query_t * aq,
+			       mpeg3_t *afile, 
 			       CPlayerSession *psptr,
 			       char *errmsg, 
-			       uint32_t errlen)
+			       uint32_t errlen,
+			       int &sdesc)
 {
   CPlayerMedia *mptr;
   codec_plugin_t *plugin;
@@ -95,13 +116,13 @@ static int create_mpeg3_audio (mpeg3_t *afile,
 
   plugin = check_for_audio_codec("MPEG FILE",
 				 NULL,
-				 mpeg3_get_audio_format(afile, 0),
+				 aq->type,
 				 -1,
 				 NULL,
 				 0);
   if (plugin == NULL) {
     snprintf(errmsg, errlen, "Can't find plugin for mpeg audio format %s",
-	     mpeg3_audio_format(afile, 0));
+	     mpeg3_audio_format(afile, aq->track_id));
     return 0;
   } 
   mptr = new CPlayerMedia(psptr);
@@ -111,9 +132,17 @@ static int create_mpeg3_audio (mpeg3_t *afile,
   }
   audio_info_t *ainfo;
   ainfo = MALLOC_STRUCTURE(audio_info_t);
-  ainfo->freq = mpeg3_sample_rate(afile, 0);
-  ainfo->chans = mpeg3_audio_channels(afile, 0);
+  ainfo->freq = aq->sampling_freq;
+  ainfo->chans = aq->chans;
   ainfo->bitspersample = 16;
+
+  char buffer[80];
+  snprintf(buffer, 80, "%s Audio, %d %s", 
+	   mpeg3_audio_format(afile, aq->track_id),
+	   ainfo->freq,
+	   ainfo->chans == 1 ? "mono" : "stereo");
+  psptr->set_session_desc(sdesc, buffer);
+  sdesc++;
 
   ret = mptr->create_audio_plugin(plugin, NULL, ainfo, NULL, 0);
   if (ret < 0) {
@@ -124,12 +153,12 @@ static int create_mpeg3_audio (mpeg3_t *afile,
     return -1;
   }
   CMpeg3AudioByteStream *abyte;
-  abyte = new CMpeg3AudioByteStream(afile, 0);
+  abyte = new CMpeg3AudioByteStream(afile, aq->track_id);
   if (abyte == NULL) {
     snprintf(errmsg, errlen, "Failed to create audio bytestream");
     return -1;
   }
-  ret = mptr->create_from_file(abyte, FALSE);
+  ret = mptr->create(abyte, FALSE);
   if (ret != 0) {
     snprintf(errmsg, errlen, "Couldn't create audio media");
     return -1;
@@ -141,10 +170,17 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
 				const char *name,
 				char *errmsg, 
 				uint32_t errlen,
-				int has_audio_driver)
+				int have_audio_driver,
+				control_callback_vft_t *cc_vft)
 {
-  mpeg3_t *file, *vfile, *afile;
-  int has_video, has_audio;
+  mpeg3_t *file,*newfile;
+  int video_streams, audio_streams;
+  int video_cnt, audio_cnt;
+  int ix;
+  codec_plugin_t *plugin;
+  int audio_offset;
+  int ret;
+  int sdesc;
 
   if (mpeg3_check_sig(name) != 1) {
     snprintf(errmsg, errlen, "file %s is not a valid .mpg file",
@@ -153,37 +189,136 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
   }
 
   file = mpeg3_open(name);
-  has_video = mpeg3_has_video(file);
-  has_audio = mpeg3_has_audio(file);
-  if (has_video != 0 && 
-      (has_audio != 0 && has_audio_driver)) {
-    // need to open both audio and video
-    vfile = file;
-    afile = mpeg3_open_copy(name, vfile);
-  } else if (has_video != 0) {
-    vfile = file;
-    afile = NULL;
-  } else if (has_audio != 0) {
-    vfile = NULL;
-    afile = file;
+  video_streams = mpeg3_total_vstreams(file);
+  audio_streams = mpeg3_total_astreams(file);
+
+  video_cnt = 0;
+  if (video_streams > 0) {
+    plugin = check_for_video_codec("MPEG FILE",
+				   NULL,
+				   -1,
+				   -1,
+				   NULL,
+				   0);
+    if (plugin != NULL) video_cnt = video_streams;
+  }
+
+  for (ix = 0, audio_cnt = 0; ix < audio_streams; ix++) {
+    plugin = check_for_audio_codec("MPEG FILE",
+				   NULL,
+				   mpeg3_get_audio_format(file, ix),
+				   -1,
+				   NULL,
+				   0);
+    if (plugin != NULL) audio_cnt++;
+  }
+    
+  video_query_t *vq;
+  audio_query_t *aq;
+
+  if (video_cnt > 0) {
+    vq = (video_query_t *)malloc(sizeof(video_query_t) * video_cnt);
   } else {
-    snprintf(errmsg, errlen, "Weird error - neither audio nor video");
-    return -1;
+    vq = NULL;
   }
-  if (vfile != NULL) {
-    has_video = create_mpeg3_video(vfile, psptr, errmsg, errlen);
-    if (has_video <= 0) {
-      mpeg3_close(vfile);
+  if (have_audio_driver && audio_cnt > 0) {
+    aq = (audio_query_t *)malloc(sizeof(audio_query_t) * audio_cnt);
+  } else {
+    aq = NULL;
+  }
+    
+  for (ix = 0; ix < video_cnt; ix++) {
+    vq[ix].track_id = ix;
+    vq[ix].compressor = "MPEG FILE";
+    vq[ix].type = mpeg3_video_layer(file, ix);
+    vq[ix].profile = -1;
+    vq[ix].fptr = NULL;
+    vq[ix].h = mpeg3_video_height(file, ix);
+    vq[ix].w = mpeg3_video_width(file, ix);
+    vq[ix].frame_rate = mpeg3_frame_rate(file, ix);
+    vq[ix].config = NULL;
+    vq[ix].config_len = 0;
+    vq[ix].enabled = 0;
+    vq[ix].reference = NULL;
+  }
+  audio_offset = 0;
+  if (have_audio_driver) {
+    for (ix = 0; ix < audio_streams; ix++) {
+      plugin = check_for_audio_codec("MPEG FILE",
+				     NULL,
+				     mpeg3_get_audio_format(file, ix),
+				     -1,
+				     NULL,
+				     0);
+      if (plugin != NULL) {
+	aq[audio_offset].track_id = ix;
+	aq[audio_offset].compressor = "MPEG FILE";
+	aq[audio_offset].type = mpeg3_get_audio_format(file, ix);
+	aq[audio_offset].profile = -1;
+	aq[audio_offset].fptr = NULL;
+	aq[audio_offset].config = NULL;
+	aq[audio_offset].config_len = 0;
+	aq[audio_offset].sampling_freq = mpeg3_sample_rate(file, ix);
+	aq[audio_offset].chans = mpeg3_audio_channels(file, ix);
+	aq[audio_offset].enabled = 0;
+	aq[audio_offset].reference = NULL;
+	audio_offset++;
+      } else {
+	mpeg3f_message(LOG_ERR, "Unsupported audio type %s in track %d", 
+		       mpeg3_audio_format(file, ix), ix);
+      }
     }
-    if (has_video < 0) return -1;
   }
-  if (afile != NULL) {
-    has_audio = create_mpeg3_audio(afile, psptr, errmsg, errlen);
-    if (has_audio <= 0) {
-      mpeg3_close(afile);
+
+  if (cc_vft && cc_vft->media_list_query != NULL) {
+    (cc_vft->media_list_query)(psptr, video_cnt, vq, audio_offset, aq);
+  } else {
+    if (video_cnt > 0) vq[0].enabled = 1;
+    if (audio_offset > 0) aq[0].enabled = 1;
+  }
+
+  newfile = file;
+
+  ret = 0;
+  sdesc = 1;
+  for (ix = 0; ret >= 0 && ix < video_cnt; ix++) {
+    if (vq[ix].enabled) {
+      if (newfile == NULL) {
+	newfile = mpeg3_open_copy(name, file);
+      }
+      ret = create_mpeg3_video(&vq[ix], newfile, psptr, errmsg, errlen, sdesc);
+      if (ret <= 0) {
+	if (newfile != file) {
+	  mpeg3_close(file);
+	  newfile = NULL;
+	}
+      } else {
+	newfile = NULL;
+      }
     }
-    if (has_audio < 0) return -1;
   }
+  if (ret >= 0) {
+    for (ix = 0; ix < audio_offset && ret >= 0; ix++) {
+      if (aq[ix].enabled) {
+	if (newfile == NULL) {
+	  newfile = mpeg3_open_copy(name, file);
+	}
+	ret = create_mpeg3_audio(&aq[ix], newfile, psptr, errmsg, errlen,sdesc);
+	if (ret <= 0) {
+	  if (newfile != file) {
+	    mpeg3_close(file);
+	    newfile = NULL;
+	  }
+	} else {
+	  newfile = NULL;
+	}
+      }
+    }
+  }
+
+  free(vq);
+  free(aq);
+  if (ret < 0) return ret;
   psptr->session_set_seekable(1);
   return 0;
 }

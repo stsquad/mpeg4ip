@@ -75,7 +75,7 @@ class CAviVideoByteStream : public CAviByteStreamBase
 			    uint32_t *buflen,
 			    void **ud);
   void used_bytes_for_frame(uint32_t bytes);
-  void set_start_time (uint64_t start);
+  void play (uint64_t start);
   double get_max_playtime (void) {
     double ret = m_frames_max;
     ret /= m_frame_rate;
@@ -108,7 +108,7 @@ class CAviAudioByteStream : public CAviByteStreamBase
 			    uint32_t *buflen, 
 			    void **ud);
   void used_bytes_for_frame(uint32_t bytes);
-  void set_start_time(uint64_t start);
+  void play(uint64_t start);
   double get_max_playtime (void) {
     return (0.0);
   };

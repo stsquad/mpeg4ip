@@ -177,7 +177,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
       return (-1);
     }
     vbyte->config(AVI_video_frames(avi), vq.frame_rate);
-    ret = mptr->create_from_file(vbyte, TRUE);
+    ret = mptr->create(vbyte, TRUE, errmsg, errlen);
     if (ret != 0) {
       return (-1);
     }
@@ -217,7 +217,7 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     }
     abyte = new CAviAudioByteStream(Avifile1);
 
-    ret = mptr->create_from_file(abyte, FALSE);
+    ret = mptr->create(abyte, FALSE, errmsg, errlen);
     if (ret != 0) {
       return (-1);
     }

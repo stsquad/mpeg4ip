@@ -8,7 +8,7 @@ libmpeg2_transport_la_SOURCES = \
 	mpeg2t_video.c \
 	mpeg2t_util.c 
 
-INCLUDES = -I$(top_builddir)/include -I$(top_builddir)/lib -I$(top_builddir)/lib/mp4av -I$(top_builddir)/lib/mp4v2
+INCLUDES = -I$(top_builddir)/include -I$(top_builddir)/lib -I$(top_builddir)/lib/mp4av -I$(top_builddir)/lib/mp4v2 -I$(top_builddir)/lib/SDL/include
 AM_CFLAGS = -DIPTV_COMPATIBLE -D_REENTRANT @BILLS_CWARNINGS@
 AM_CXXFLAGS = -D_REENTRANT @BILLS_CPPWARNINGS@
 

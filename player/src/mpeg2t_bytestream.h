@@ -22,28 +22,28 @@
  * mp4_bytestream.h - provides bytestream access to quicktime files
  */
 
-#ifndef __MP4_BYTESTREAM_H__
-#define __MP4_BYTESTREAM_H__
-#include <mp4.h>
+#ifndef __MPEG2T_BYTESTREAM_H__
+#define __MPEG2T_BYTESTREAM_H__
 #include "our_bytestream.h"
-#include "mp4_file.h"
 #include "player_util.h"
+#include "mpeg2t_private.h"
+#include "mpeg2t/mpeg2_transport.h"
 //#define OUTPUT_TO_FILE 1
 
 /*
- * CMp4ByteStreamBase provides base class access to quicktime files.
+ * CMpeg2tByteStreamBase provides base class access to quicktime files.
  * Most functions are shared between audio and video.
  */
-class CMp4ByteStream : public COurInByteStream
+class CMpeg2tByteStream : public COurInByteStream
 {
  public:
-  CMp4ByteStream(CMp4File *parent,
-		 MP4TrackId track,
-		 const char *type,
-		 int has_video);
-  ~CMp4ByteStream();
+  CMpeg2tByteStream(mpeg2t_es_t *es_pid,
+		    const char *type,
+		    int has_video);
+  ~CMpeg2tByteStream();
   int eof(void);
   void reset(void);
+  int have_no_data(void);
   uint64_t start_next_frame(uint8_t **buffer,
 			    uint32_t *buflen,
 			    void **ud);
@@ -55,64 +55,51 @@ class CMp4ByteStream : public COurInByteStream
   double get_max_playtime(void);
 
   void play(uint64_t start);
- private:
+  void pause(void);
+ protected:
 #ifdef OUTPUT_TO_FILE
   FILE *m_output_file;
 #endif
-  void read_frame(uint32_t frame);
-  CMp4File *m_parent;
-  int m_eof;
-  MP4TrackId m_track;
-  MP4SampleId m_frames_max;
-
-  MP4SampleId m_frame_on;
-  uint64_t m_frame_on_ts;
-  int m_frame_on_has_sync;
-  
-  MP4SampleId m_frame_in_buffer;
-  uint64_t m_frame_in_buffer_ts;
-  int m_frame_in_buffer_has_sync;
-
-  u_int32_t m_max_frame_size;
-  u_int8_t *m_buffer;
-  uint32_t m_byte_on;
-  uint32_t m_this_frame_size;
-  uint64_t m_total;
-  void set_timebase(MP4SampleId frame);
-  double m_max_time;
   int m_has_video;
+  mpeg2t_es_t *m_es_pid;
+  virtual int get_timestamp_for_frame(mpeg2t_frame_t *, uint64_t &ts) = 0;
+  mpeg2t_frame_t *m_frame;
+  int m_timestamp_loaded;
+  uint64_t m_last_timestamp;
+  int m_frames_since_last_timestamp;
 };
 
 /*
  * CMp4VideoByteStream is for video streams.  It is inherited from
- * CMp4ByteStreamBase.
+ * CMpeg2tByteStreamBase.
  */
-class CMp4VideoByteStream : public CMp4ByteStream
+class CMpeg2tVideoByteStream : public CMpeg2tByteStream
 {
  public:
-  CMp4VideoByteStream(CMp4File *parent,
-		      MP4TrackId track) :
-    CMp4ByteStream(parent, track, "video", 1) {};
+  CMpeg2tVideoByteStream(mpeg2t_es_t *es_pid) :
+    CMpeg2tByteStream(es_pid, "video", 1) {
+    m_have_prev_frame_type = 0;
+  };
+ protected:
+  int get_timestamp_for_frame(mpeg2t_frame_t *, uint64_t &ts);
+  int m_have_prev_frame_type;
+  int m_prev_frame_type;
+  uint64_t m_prev_ts;
 };
 
 /*
  * CMp4AudioByteStream is for audio streams.  It is inherited from
- * CMp4ByteStreamBase.
+ * CMpeg2tByteStreamBase.
  */
-class CMp4AudioByteStream : public CMp4ByteStream
+class CMpeg2tAudioByteStream : public CMpeg2tByteStream
 {
  public:
-  CMp4AudioByteStream(CMp4File *parent,
-		      MP4TrackId track) :
-    CMp4ByteStream(parent, track, "audio", 0) {};
+  CMpeg2tAudioByteStream(mpeg2t_es_t *es_pid) :
+    CMpeg2tByteStream(es_pid, "audio", 0) {};
+ protected:
+  int get_timestamp_for_frame(mpeg2t_frame_t *, uint64_t &ts);
 
 };
-
-#ifdef _WIN32
-DEFINE_MESSAGE_MACRO(mp4f_message, "mp4file")
-#else
-#define mp4f_message(loglevel, fmt...) message(loglevel, "mp4file", fmt)
-#endif
 
 #endif
 

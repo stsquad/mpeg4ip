@@ -269,6 +269,7 @@ SDL_NAME(XvQueryAdaptors)(
 
   UnlockDisplay(dpy);
   SyncHandle();
+  Xfree(buffer);
 
   return (Success);
 }

@@ -53,7 +53,11 @@ class CPlayerMedia {
 		       int use_rtsp,
 		       int media_number_in_session);
   /* API routine - create - where we provide the bytestream */
-  int create_from_file (COurInByteStream *b, int is_video);
+  int create(COurInByteStream *b, 
+	     int is_video, 
+	     char *errmsg = NULL, 
+	     uint32_t errlen = 0, 
+	     int streaming = 0);
   /* API routine - play, pause */
   int do_play(double start_time_offset = 0.0);
   int do_pause(void);

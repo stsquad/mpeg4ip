@@ -79,7 +79,6 @@ class CAudioCapabilities;
 class CLiveConfig;
 
 // some configuration utility routines
-void CalculateVideoFrameSize(CLiveConfig* pConfig);
 void GenerateMpeg4VideoConfig(CLiveConfig* pConfig);
 bool GenerateSdpFile(CLiveConfig* pConfig);
 
@@ -409,12 +408,15 @@ public:
 	void Update();
 	void UpdateFileHistory(char* fileName);
 	void UpdateVideo();
+	void CalculateVideoFrameSize();
 	void UpdateAudio();
 	void UpdateRecord();
 
 	bool IsOneSource();
 	bool IsCaptureVideoSource();
 	bool IsCaptureAudioSource();
+	bool IsFileVideoSource();
+	bool IsFileAudioSource();
 
 	bool SourceRawVideo() {
 		return (GetBoolValue(CONFIG_VIDEO_RAW_PREVIEW)

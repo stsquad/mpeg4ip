@@ -50,6 +50,8 @@ u_int16_t MP4AV_Mp3GetHdrSamplingWindow(MP4AV_Mp3Header hdr);
 
 u_int16_t MP4AV_Mp3GetSamplingWindow(u_int16_t samplingRate);
 
+u_int16_t MP4AV_Mp3GetBitRate(MP4AV_Mp3Header hdr);
+
 u_int16_t MP4AV_Mp3GetFrameSize(MP4AV_Mp3Header hdr);
 
 u_int16_t MP4AV_Mp3GetAduOffset(const u_int8_t* pFrame, u_int32_t frameSize);

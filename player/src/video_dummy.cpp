@@ -91,6 +91,10 @@ int CDummyVideoSync::set_video_frame(const Uint8 *y,
   return (1);
 }
 
+void CDummyVideoSync::double_width (void)
+{
+}
+
 static void c_video_configure (void *ifptr,
 			      int w,
 			      int h,

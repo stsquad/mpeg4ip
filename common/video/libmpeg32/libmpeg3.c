@@ -63,7 +63,7 @@ int mpeg3_delete(mpeg3_t *file)
 int mpeg3_check_sig(const char *path)
 {
 	mpeg3_fs_t *fs;
-	u_int32_t bits;
+	uint32_t bits;
 	char *ext;
 	int result = 0;
 
@@ -711,12 +711,27 @@ float mpeg3_aspect_ratio(mpeg3_t *file, int stream)
 	return 0;
 }
 
-float mpeg3_frame_rate(mpeg3_t *file,
+double mpeg3_frame_rate(mpeg3_t *file,
 		int stream)
 {
 	if(file->total_vstreams)
 		return file->vtrack[stream]->frame_rate;
 	return -1;
+}
+
+double mpeg3_video_bitrate(mpeg3_t *file,
+		int stream)
+{
+	if(file->total_vstreams)
+		return file->vtrack[stream]->bitrate;
+	return -1;
+}
+
+int mpeg3_video_layer (mpeg3_t *file, int stream)
+{
+  if (file->total_vstreams) 
+    return file->vtrack[stream]->mpeg_layer;
+  return -1;
 }
 
 long mpeg3_video_frames(mpeg3_t *file,
@@ -828,7 +843,7 @@ int mpeg3_read_audio_frame (mpeg3_t *file,
 			    int stream)
 {
   int result = -1;
-  if (file->total_astreams) {
+  if (file->total_astreams > stream) {
     result = mpeg3_atrack_read_frame(file->atrack[stream],
 				     output, 
 				     size,
@@ -842,7 +857,7 @@ int mpeg3_read_audio_frame (mpeg3_t *file,
 				 
 int mpeg3_get_audio_format (mpeg3_t *file, int stream)
 {
-  if (file->total_astreams) {
+  if (file->total_astreams > stream) {
     return (file->atrack[stream]->format);
   }
   return AUDIO_UNKNOWN;

@@ -58,6 +58,7 @@ CMpeg3VideoByteStream::~CMpeg3VideoByteStream()
 #ifdef OUTPUT_TO_FILE
   fclose(m_output_file);
 #endif
+  mpeg3_close(m_file);
 }
 
 int CMpeg3VideoByteStream::eof(void)
@@ -159,7 +160,7 @@ int CMpeg3VideoByteStream::skip_next_frame (uint64_t *pts,
   return (1);
 }
 
-void CMpeg3VideoByteStream::set_start_time (uint64_t start)
+void CMpeg3VideoByteStream::play (uint64_t start)
 {
   m_play_start_time = start;
 
@@ -209,6 +210,8 @@ CMpeg3AudioByteStream::~CMpeg3AudioByteStream()
 #ifdef OUTPUT_TO_FILE
   fclose(m_output_file);
 #endif
+  CHECK_AND_FREE(m_buffer);
+  mpeg3_close(m_file);
 }
 
 int CMpeg3AudioByteStream::eof(void)
@@ -297,7 +300,7 @@ int CMpeg3AudioByteStream::skip_next_frame (uint64_t *pts,
   return (1);
 }
 
-void CMpeg3AudioByteStream::set_start_time (uint64_t start)
+void CMpeg3AudioByteStream::play (uint64_t start)
 {
   m_play_start_time = start;
 

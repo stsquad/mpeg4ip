@@ -75,6 +75,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_unused_ports = NULL;
   m_first_time_played = 0;
   m_latency = 0;
+  m_double_screen_width = 0;
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -299,6 +300,9 @@ CVideoSync * CPlayerSession::set_up_video_sync (void)
 {
   if (m_video_sync == NULL) {
     m_video_sync = create_video_sync(this);
+    if (m_double_screen_width) {
+      m_video_sync->double_width();
+    }
   }
   return m_video_sync;
 }
@@ -528,6 +532,16 @@ void CPlayerSession::set_screen_size (int scaletimes2, int fullscreen)
     send_sync_thread_a_message(MSG_SYNC_RESIZE_SCREEN);
   }
 }
+
+void CPlayerSession::double_screen_width (void)
+{
+  m_double_screen_width = 1;
+  if (m_video_sync) {
+    m_video_sync->double_width();
+    send_sync_thread_a_message(MSG_SYNC_RESIZE_SCREEN);
+  }
+}
+
 double CPlayerSession::get_max_time (void)
 {
   CPlayerMedia *p;
@@ -597,7 +611,7 @@ void CPlayerSession::adjust_start_time (int64_t time)
 {
   m_start -= time;
   m_clock_wrapped = -1;
-#if 0
+#if 1
   sync_message(LOG_INFO, "Adjusting start time "LLD " to " LLU, time,
 	       get_current_time());
 #endif

@@ -1,7 +1,7 @@
 #ifndef BITSTREAM_H
 #define BITSTREAM_H
 
-#include <sys/types.h>
+#include <systems.h>
 
 //                                    next bit in forward direction
 //                                  next bit in reverse direction |
@@ -13,7 +13,7 @@
 
 typedef struct
 {
-	u_int32_t bfr;  /* bfr = buffer for bits */
+	uint32_t bfr;  /* bfr = buffer for bits */
 	int bit_number;   /* position of pointer in bfr */
 	int bfr_size;    /* number of bits in bfr.  Should always be a multiple of 8 */
 /* If the input ptr is true, data is read from it instead of the demuxer. */

@@ -335,6 +335,10 @@ void CRtpByteStreamBase::flush_rtp_packets (void)
   m_buffering = 0;
 }
 
+void CRtpByteStreamBase::pause(void)
+{
+  reset();
+}
 /*
  * recv_task - called from the player media rtp task - make sure
  * we have 2 seconds of buffering, then go...
@@ -395,8 +399,8 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	    if (m_rtp_base_seq_set != 0 &&
 		m_rtp_base_seq == m_head->rtp_pak_seq &&
 		m_rtp_base_ts != m_head->rtp_pak_ts) {
-	      rtp_message(LOG_NOTICE, "%s - rtp ts doesn't match RTPInfo %d", 
-			  m_name, m_head->rtp_pak_ts);
+	      rtp_message(LOG_NOTICE, "%s - rtp ts doesn't match RTPInfo %d seq %d", 
+			  m_name, m_head->rtp_pak_ts, m_head->rtp_pak_seq);
 	      m_rtp_base_ts = m_head->rtp_pak_ts;
 	    }
 	    //
@@ -590,6 +594,14 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
     *buflen = diff;
 #ifdef DEBUG_RTP_PAKS
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
+#endif
+#if 0
+  rtp_message(LOG_DEBUG, "%s start %02x %02x %02x %02x %02x", m_name,
+		  	(*buffer)[0],
+		  	(*buffer)[1],
+		  	(*buffer)[2],
+		  	(*buffer)[3],
+		  	(*buffer)[4]);
 #endif
     return (m_last_realtime);
   } else {

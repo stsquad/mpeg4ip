@@ -247,7 +247,7 @@ void CMp4ByteStream::read_frame (uint32_t frame_to_read)
   m_byte_on = 0;
 }
 
-void CMp4ByteStream::set_start_time (uint64_t start)
+void CMp4ByteStream::play (uint64_t start)
 {
   m_play_start_time = start;
 

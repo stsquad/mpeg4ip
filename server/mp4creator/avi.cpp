@@ -255,12 +255,14 @@ static MP4TrackId AudioCreator(MP4FileHandle mp4File, avi_t* aviFile)
 
 		u_int16_t mp3FrameSize = MP4AV_Mp3GetFrameSize(mp3header);
 
-		if (AVI_read_audio(aviFile, (char*)&pFrameBuffer[4], mp3FrameSize - 4)
-		  != mp3FrameSize - 4) {
+		int bytesRead =
+			AVI_read_audio(aviFile, (char*)&pFrameBuffer[4], mp3FrameSize - 4);
+
+		if (bytesRead != mp3FrameSize - 4) {
 			fprintf(stderr,	
-				"%s: can't read audio frame %u: %s\n",
-				ProgName, mp3FrameNumber, AVI_strerror());
-			exit(EXIT_AVI_CREATOR);
+				"%s: Warning, incomplete audio frame %u, ending audio track\n",
+				ProgName, mp3FrameNumber);
+			break;
 		}
 
 		if (!MP4WriteSample(mp4File, trackId, 

@@ -62,8 +62,8 @@ void rtsp_debug (int loglevel, const char *fmt, ...)
 
 void free_session_info (rtsp_session_t *session)
 {
-  CHECK_AND_FREE(session, session);
-  CHECK_AND_FREE(session, url);
+  CHECK_AND_FREE(session->session);
+  CHECK_AND_FREE(session->url);
   free(session);
 }
 
@@ -73,44 +73,44 @@ void free_session_info (rtsp_session_t *session)
  */
 void clear_decode_response (rtsp_decode_t *resp)
 {
-  CHECK_AND_FREE(resp, retresp);
-  CHECK_AND_FREE(resp, body);
-  CHECK_AND_FREE(resp, accept);
-  CHECK_AND_FREE(resp, accept_encoding);
-  CHECK_AND_FREE(resp, accept_language);
-  CHECK_AND_FREE(resp, allow_public);
-  CHECK_AND_FREE(resp, authorization);
-  CHECK_AND_FREE(resp, bandwidth);
-  CHECK_AND_FREE(resp, blocksize);
-  CHECK_AND_FREE(resp, cache_control);
-  CHECK_AND_FREE(resp, content_base);
-  CHECK_AND_FREE(resp, content_encoding);
-  CHECK_AND_FREE(resp, content_language);
-  CHECK_AND_FREE(resp, content_location);
-  CHECK_AND_FREE(resp, content_type);
-  CHECK_AND_FREE(resp, cookie);
-  CHECK_AND_FREE(resp, date);
-  CHECK_AND_FREE(resp, expires);
-  CHECK_AND_FREE(resp, from);
-  CHECK_AND_FREE(resp, if_modified_since);
-  CHECK_AND_FREE(resp, last_modified);
-  CHECK_AND_FREE(resp, location);
-  CHECK_AND_FREE(resp, proxy_authenticate);
-  CHECK_AND_FREE(resp, proxy_require);
-  CHECK_AND_FREE(resp, range);
-  CHECK_AND_FREE(resp, referer);
-  CHECK_AND_FREE(resp, require);
-  CHECK_AND_FREE(resp, retry_after);
-  CHECK_AND_FREE(resp, rtp_info);
-  CHECK_AND_FREE(resp, scale);
-  CHECK_AND_FREE(resp, server);
-  CHECK_AND_FREE(resp, session);
-  CHECK_AND_FREE(resp, speed);
-  CHECK_AND_FREE(resp, transport);
-  CHECK_AND_FREE(resp, unsupported);
-  CHECK_AND_FREE(resp, user_agent);
-  CHECK_AND_FREE(resp, via);
-  CHECK_AND_FREE(resp, www_authenticate);
+  CHECK_AND_FREE(resp->retresp);
+  CHECK_AND_FREE(resp->body);
+  CHECK_AND_FREE(resp->accept);
+  CHECK_AND_FREE(resp->accept_encoding);
+  CHECK_AND_FREE(resp->accept_language);
+  CHECK_AND_FREE(resp->allow_public);
+  CHECK_AND_FREE(resp->authorization);
+  CHECK_AND_FREE(resp->bandwidth);
+  CHECK_AND_FREE(resp->blocksize);
+  CHECK_AND_FREE(resp->cache_control);
+  CHECK_AND_FREE(resp->content_base);
+  CHECK_AND_FREE(resp->content_encoding);
+  CHECK_AND_FREE(resp->content_language);
+  CHECK_AND_FREE(resp->content_location);
+  CHECK_AND_FREE(resp->content_type);
+  CHECK_AND_FREE(resp->cookie);
+  CHECK_AND_FREE(resp->date);
+  CHECK_AND_FREE(resp->expires);
+  CHECK_AND_FREE(resp->from);
+  CHECK_AND_FREE(resp->if_modified_since);
+  CHECK_AND_FREE(resp->last_modified);
+  CHECK_AND_FREE(resp->location);
+  CHECK_AND_FREE(resp->proxy_authenticate);
+  CHECK_AND_FREE(resp->proxy_require);
+  CHECK_AND_FREE(resp->range);
+  CHECK_AND_FREE(resp->referer);
+  CHECK_AND_FREE(resp->require);
+  CHECK_AND_FREE(resp->retry_after);
+  CHECK_AND_FREE(resp->rtp_info);
+  CHECK_AND_FREE(resp->scale);
+  CHECK_AND_FREE(resp->server);
+  CHECK_AND_FREE(resp->session);
+  CHECK_AND_FREE(resp->speed);
+  CHECK_AND_FREE(resp->transport);
+  CHECK_AND_FREE(resp->unsupported);
+  CHECK_AND_FREE(resp->user_agent);
+  CHECK_AND_FREE(resp->via);
+  CHECK_AND_FREE(resp->www_authenticate);
   resp->content_length = 0;
   resp->cseq = 0;
   resp->close_connection = FALSE;
@@ -251,10 +251,10 @@ int rtsp_setup_redirect (rtsp_client_t *info)
     info->orig_url = info->url;
     info->url = NULL;
   } else {
-    CHECK_AND_FREE(info, url);
+    CHECK_AND_FREE(info->url);
   }
 
-  CHECK_AND_FREE(info, server_name);
+  CHECK_AND_FREE(info->server_name);
   rtsp_close_socket(info);
 
   ret = rtsp_dissect_url(info, decode->location);

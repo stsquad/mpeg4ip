@@ -83,7 +83,7 @@ bool CAudioEncoder::DeinterleaveStereoSamples(
 {
 	bool mallocedLeft = false;
 
-	if (*ppLeftBuffer == NULL) {
+	if (ppLeftBuffer && *ppLeftBuffer == NULL) {
 		*ppLeftBuffer = 
 			(u_int16_t*)malloc((srcNumSamples >> 1) * sizeof(u_int16_t));
 		if (*ppLeftBuffer == NULL) {
@@ -92,7 +92,7 @@ bool CAudioEncoder::DeinterleaveStereoSamples(
 		mallocedLeft = true;
 	}
 
-	if (*ppRightBuffer == NULL) {
+	if (ppRightBuffer && *ppRightBuffer == NULL) {
 		*ppRightBuffer = 
 			(u_int16_t*)malloc((srcNumSamples >> 1) * sizeof(u_int16_t));
 		if (*ppRightBuffer == NULL) {
@@ -105,8 +105,12 @@ bool CAudioEncoder::DeinterleaveStereoSamples(
 	}
 
 	for (u_int32_t i = 0; i < (srcNumSamples >> 1); i++) {
-		(*ppLeftBuffer)[i] = pSrcBuffer[(i << 1)];
-		(*ppRightBuffer)[i] = pSrcBuffer[(i << 1) + 1];
+		if (ppLeftBuffer) {
+			(*ppLeftBuffer)[i] = pSrcBuffer[(i << 1)];
+		}
+		if (ppRightBuffer) {
+			(*ppRightBuffer)[i] = pSrcBuffer[(i << 1) + 1];
+		}
 	}
 
 	return true;

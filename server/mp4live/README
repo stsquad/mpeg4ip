@@ -1,4 +1,4 @@
-July 15, 2002 - Dave Mackie
+July 29, 2002 - Dave Mackie
 
 MP4LIVE 
 =======
@@ -51,6 +51,15 @@ Known to work are:
 
 	Logitech Quickcam Express Webcam
 
+Note on multi-processor machines (SMP): mp4live is multithreaded at a coarse
+level. Specifically the video encoder, audio encoder, file recorder, network
+transmitter, and user interface each have their own thread. Unfortunately for
+owners of multiprocessor machines, the video encoder thread dominates the 
+computational requirements so one CPU will be very busy, and the others will
+be lightly to moderately loaded. For those looking for a project, a multi-
+threaded video encoder would certainly provide an interesting challenge.
+
+
 Software Requirements
 =====================
 Linux with a 2.4 or later kernel
@@ -100,6 +109,9 @@ I suggest you disable any fancy, computationally intensive screensavers
 when using mp4live to capture long programs. Along the same lines, don't
 run any programs that make large resource demands (CPU, bus, disk, network)
 while mp4live is running.
+
+If you're capturing large video image sizes, then you may be able to boost
+the encoded video frame rate by disabling video preview.
 
 The AAC audio encoder is noticeably slower than the MP3 audio encoder so 
 you will see lower video frame rates and greater sensitivity to CPU load 
@@ -275,12 +287,6 @@ It took me awhile to figure this out so perhaps I can save some of you some
 time. If you use the Hauppage WinTV Go card you need to connect the mini-jack
 on the card to the line-in input on your sound card in order to get the
 audio signal from the TV tuner.
-
-Reports from those who have tried mp4live on SMP enabled kernels report
-crashes that appear to be related to SDL. Pending a SDL fix to this we don't
-recommend using mp4live with SMP.  However, the code is multi-threaded so
-it should be possible exploit an SMP machine by assigning the video encoding 
-thread to one CPU and let the other threads run on another CPU. 
 
 Note there is currently no support for DV/mini-DV camcorders via FireWire. 
 You can of course still use these via their composite or S-Video outputs.

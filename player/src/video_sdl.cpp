@@ -76,6 +76,7 @@ CSDLVideoSync::CSDLVideoSync (CPlayerSession *psptr) : CVideoSync(psptr)
   m_consec_skipped = 0;
   m_fullscreen = 0;
   m_filled_frames = 0;
+  m_double_width = 0;
 }
 
 CSDLVideoSync::~CSDLVideoSync (void)
@@ -166,6 +167,7 @@ int CSDLVideoSync::initialize_video (const char *name, int x, int y)
 #endif
       }
       int w = m_width * video_scale / 2;
+      if (m_double_width) w *= 2;
       int h = m_height * video_scale / 2;
       m_screen = SDL_SetVideoMode(w,
 				  h,
@@ -398,7 +400,7 @@ int64_t CSDLVideoSync::play_video_at (uint64_t current_time,
   } 
 #ifdef CHECK_SYNC_TIME
 else {
-#if 0
+#ifdef VIDEO_SYNC_PLAY
     video_message(LOG_DEBUG, "Video lagging current time "LLU" "LLU" "LLU, 
 			 play_this_at, current_time, m_msec_per_frame);
 #endif
@@ -644,6 +646,7 @@ void CSDLVideoSync::do_video_resize (void)
   }
 
   int w = m_width * video_scale / 2;
+  if (m_double_width) w *= 2;
   int h = m_height * video_scale / 2;
     
   video_message(LOG_DEBUG, "Setting video mode %d %d %x", 
@@ -677,6 +680,11 @@ void CSDLVideoSync::do_video_resize (void)
 				 SDL_YV12_OVERLAY, 
 				 m_screen);
   }
+}
+
+void CSDLVideoSync::double_width (void)
+{
+  m_double_width = 1;
 }
 
 static void c_video_configure (void *ifptr,

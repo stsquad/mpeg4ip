@@ -122,7 +122,7 @@ void CAviVideoByteStream::read_frame (uint32_t frame_to_read)
   m_byte_on = 0;
 }
 
-void CAviVideoByteStream::set_start_time (uint64_t start)
+void CAviVideoByteStream::play (uint64_t start)
 {
   m_play_start_time = start;
 
@@ -209,7 +209,7 @@ void CAviAudioByteStream::used_bytes_for_frame (uint32_t bytes)
   if (m_buffer_on > m_this_frame_size) m_buffer_on = m_this_frame_size;
 }
 
-void CAviAudioByteStream::set_start_time (uint64_t start)
+void CAviAudioByteStream::play (uint64_t start)
 {
   m_play_start_time = start;
   
