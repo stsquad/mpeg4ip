@@ -1,4 +1,12 @@
-xx/xx/02 Version 0.9.7
+xx/xx/xx Version 0.9.8
+    Several changes from ISMA plugfest in IOD and RTSP.
+    Fixed audio/video sync problem in mp4live, plus some other problems
+    with audio destination.
+    Added video profile level override.
+    Some help for MAC users
+    Added resync marker checking in xvid decoder.
+
+11/22/02 Version 0.9.7
     Improved mp4creator warning messages if VOSH/VO are not included
       in mpeg4 video from avi or .mp4v file
     Removed lame from package - version 3.92 required if mp4live is

@@ -713,6 +713,7 @@ void CMediaSource::ProcessAudioFrame(
 	Timestamp srcFrameTimestamp,
 	bool resync)
 {
+  //debug_message("Audio timestamp %llu", srcFrameTimestamp);
 	if (m_audioSrcFrameNumber == 0) {
 		if (m_videoSrcFrameNumber == 0) {
 			m_startTimestamp = GetTimestamp();

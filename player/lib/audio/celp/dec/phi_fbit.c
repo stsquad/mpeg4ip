@@ -33,7 +33,6 @@ derivative works. Copyright 1996.
 /*======================================================================*/
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h> 
 
 #include "buffersHandle.h"       /* handler, defines, enums */
 

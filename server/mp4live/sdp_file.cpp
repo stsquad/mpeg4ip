@@ -252,11 +252,11 @@ session_desc_t *createSdpDescription (CLiveConfig *pConfig,
 	  char* iod =
 	    MP4MakeIsmaSdpIod(
 			      videoProfile,
-			      pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE),
+			      pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000,
 			      pVideoConfig,
 			      videoConfigLength,
 			      audioProfile,
-			      pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE) / 1000,
+			      pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE),
 			      pAudioConfig,
 			      audioConfigLength,
 			      pConfig->GetBoolValue(CONFIG_APP_DEBUG) ?

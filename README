@@ -208,7 +208,7 @@ OS Supported
 ============
 
 Currently, we have compiled and tested on the following platforms:
-linux, freeBSD, BSD/OS, Solaris, Mac OS X and windows.  For all varieties
+linux, freeBSD, BSD/OS, Solaris and windows.  For all varieties
 of *nux, X11 is required.
 
 To date we've built on Red Hat Linux 6.1, 6.2, 7.0, 7.1, and 7.2 with
@@ -246,6 +246,22 @@ For windows GUI player, see below section.
 
 Mac OSX
 -------
+We haven't been able to build mpeg4ip on a MAC for quite some
+time.  We just don't understand the toolchains, and it's not a
+high priority for us.  One of our forum member (yakima) sent us
+the following steps:
+
+- updated automake -> 1.6.3
+- installed DLCompat (dlfcn.h etc., see above)
+- bootstrap w/ --disable-shared --disable-mp4live
+- make w/ LDFLAGS='-flat_namespace -undefined warning' 
+
+Version 0.9.7.2 should have the other changes required to get this
+to compile.  He didn't have any luck with the player plugins, and
+we hope to get that done before the next release.
+
+This makes the below accurate again.
+/*
 When building on Mac OSX, you may get an error that libtoolize is
 not installed correctly.  Mac OSX comes with libtool installed as
 glibtool.  Automake (which doesn't come included with OSX) does not
@@ -260,6 +276,7 @@ builder project.
 
 We've tested the latest build on OSX, and have some strange results
 at times.  Your mileage may vary.
+*/
 
 Slackware
 ---------
@@ -654,5 +671,5 @@ Known Problems
   rtpUseMp4RtpPayload14 config file option.
 
   Neither QT or Real appear to understand mpeg1/2 or mp3 content in a .mp4
-  container file.
+  container file for local playback.
 === END OF README ===

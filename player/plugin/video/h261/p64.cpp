@@ -155,7 +155,7 @@ void P64Decoder::init()
 }
 #endif
 
-#define MASK(s) ((1 << (s)) - 1)
+#define P64MASK(s) ((1 << (s)) - 1)
 
 #define HUFF_DECODE(bs, ht, nbb, bb, result) { \
 	register int s__, v__; \
@@ -165,7 +165,7 @@ void P64Decoder::init()
 		nbb += 16; \
 	} \
 	s__ = ht.maxlen; \
-	v__ = (bb >> (nbb - s__)) & MASK(s__); \
+	v__ = (bb >> (nbb - s__)) & P64MASK(s__); \
 	s__ = (ht.prefix)[v__]; \
 	nbb -= (s__ & 0x1f); \
 	result = s__ >> 5; \
@@ -178,7 +178,7 @@ void P64Decoder::init()
 		HUFFRQ(bs, bb); \
 		nbb += 16; \
 	} \
-	(result) = ((bb >> nbb) & MASK(n)); \
+	(result) = ((bb >> nbb) & P64MASK(n)); \
 }
 
 #define SKIP_BITS(bs, n, nbb, bb) \

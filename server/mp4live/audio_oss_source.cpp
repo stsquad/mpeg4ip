@@ -271,9 +271,11 @@ void COSSAudioSource::ProcessAudio(void)
 			// timestamp needs to reflect the first pcm sample
 			frameTimestamp = m_audioStartTimestamp =
 				GetTimestamp() - SrcSamplesToTicks(m_audioSrcSamplesPerFrame);
+			m_audioSrcSampleNumber = m_audioSrcSamplesPerFrame;
 		} else {
 			frameTimestamp = m_audioStartTimestamp +
 				SrcSamplesToTicks(m_audioSrcSampleNumber);
+			m_audioSrcSampleNumber += m_audioSrcSamplesPerFrame;
 		}
 
 		ProcessAudioFrame(

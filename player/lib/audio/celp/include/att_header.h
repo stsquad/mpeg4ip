@@ -36,7 +36,6 @@ Copyright (c) 1996.
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <malloc.h>
 
 /* Revised 06/26/96 These are defined as configuration input
 #define  FRAME_SIZE 200
