@@ -79,7 +79,7 @@ static int h261_frame_is_sync (codec_data_t *ifptr,
 }
 
 static int h261_decode (codec_data_t *ptr,
-			uint64_t ts, 
+			frame_timestamp_t *ts, 
 			int from_rtp,
 			int *sync_frame,
 			uint8_t *buffer, 
@@ -145,7 +145,7 @@ static int h261_decode (codec_data_t *ptr,
 				  (const uint8_t *)u, 
 				  (const uint8_t *)v, 
 				  h261->m_w, h261->m_w / 2, 
-				  ts);
+				  ts->msec_timestamp);
     h261->m_decoder->resetndblk();
   } 
   free(h261_data);

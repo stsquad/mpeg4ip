@@ -373,7 +373,7 @@ static void process_packet_header (isma_rtp_data_t *iptr)
   uint16_t header_len;
   uint32_t retvalue;
 
-  pak = iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 1);
+  pak = iptr->m_vft->get_head_and_check(iptr->m_ifptr, false, 0);
   if (pak == NULL) {
     return;
   }
@@ -520,10 +520,11 @@ static void process_packet_header (isma_rtp_data_t *iptr)
   }
 }
 
-static uint64_t start_next_frame (rtp_plugin_data_t *pifptr, 
-				  uint8_t **buffer, 
-				  uint32_t *buflen,
-				  void **userdata)
+static bool start_next_frame (rtp_plugin_data_t *pifptr, 
+			      uint8_t **buffer, 
+			      uint32_t *buflen,
+			      frame_timestamp_t *ts,
+			      void **userdata)
 {
   isma_rtp_data_t *iptr = (isma_rtp_data_t *)pifptr;
   uint64_t timetick;
@@ -660,14 +661,19 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 				iptr->m_frame_data_on ?
 				iptr->m_frame_data_on->pak->pd.rtp_pd_timestamp : 0,
 				0);
+
   if (iptr->m_frame_data_on != NULL)
     iptr->m_ts =  iptr->m_frame_data_on->rtp_timestamp;
+  
   // We're going to have to handle wrap better...
 #ifdef DEBUG_ISMA_AAC
   isma_message(LOG_DEBUG, ismartp, "start next frame %p %d ts "X64" "U64, 
 	       *buffer, *buflen, iptr->m_ts, timetick);
 #endif
-  return (timetick);
+  ts->audio_freq_timestamp = iptr->m_ts;
+  ts->msec_timestamp = timetick;
+  ts->timestamp_is_pts = true;
+  return (true);
 }
 
 static void used_bytes_for_frame (rtp_plugin_data_t *pifptr, uint32_t bytes)
@@ -715,11 +721,12 @@ static void flush_rtp_packets (rtp_plugin_data_t *pifptr)
   SDL_UnlockMutex(iptr->m_rtp_packet_mutex);
 }
 
-static int have_no_data (rtp_plugin_data_t *pifptr)
+static bool have_frame (rtp_plugin_data_t *pifptr)
 {
   isma_rtp_data_t *iptr = (isma_rtp_data_t *)pifptr;
-  return (iptr->m_frame_data_head == NULL &&
-	  iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 0) == NULL);
+  if (iptr->m_frame_data_head != NULL) return true;
+
+  return (iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 0) != NULL);
 }
 
 RTP_PLUGIN("mpeg4-generic", 
@@ -730,6 +737,6 @@ RTP_PLUGIN("mpeg4-generic",
 	   used_bytes_for_frame,
 	   reset, 
 	   flush_rtp_packets,
-	   have_no_data,
+	   have_frame,
 	   NULL,
 	   0);

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysaudio.h,v 1.2 2004/05/05 23:36:23 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysaudio.h,v 1.3 2004/10/28 22:44:16 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysaudio_h
@@ -54,7 +54,7 @@ struct SDL_AudioDevice {
 	Uint8 *(*GetAudioBuf)(_THIS);
 	void (*WaitDone)(_THIS);
 	void (*CloseAudio)(_THIS);
-	int (*AudioDelayMsec)(_THIS);
+	int (*AudioDelay)(_THIS);
 
 	/* * * */
 	/* Lock / Unlock functions added for the Mac port */

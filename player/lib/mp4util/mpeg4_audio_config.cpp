@@ -34,6 +34,7 @@ extern "C" int audio_object_type_is_aac (mpeg4_audio_config_t *mptr)
       audio_object == 2 ||
       audio_object == 3 || 
       audio_object == 4 ||
+      audio_object == 5 ||
       audio_object == 6 ||
       audio_object == 7 ||
       audio_object == 17) 

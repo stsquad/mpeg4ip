@@ -1372,7 +1372,7 @@ extern "C" bool MP4AV_RfcCryptoVideoHinter(
     }
 
     bool isBFrame = 
-      (MP4AV_Mpeg4GetVopType(pSampleBuffer, sampleSize) == 'B');
+      (MP4AV_Mpeg4GetVopType(pSampleBuffer, sampleSize) == VOP_TYPE_B);
 
     MP4AddRtpVideoHint(mp4File, hintTrackId, isBFrame, renderingOffset);
 

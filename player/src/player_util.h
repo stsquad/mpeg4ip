@@ -68,5 +68,14 @@ static  __inline uint64_t get_time_of_day (void) {
 	  (((uint64_t)t.tv_usec) / TO_U64(1000)));
 }
 
+static __inline uint64_t get_time_of_day_usec (void) {
+  struct timeval t;
+  uint64_t result;
+  gettimeofday(&t, NULL);
+  result = t.tv_sec;
+  result *= TO_U64(1000000);
+  result += t.tv_usec;
+  return result;
+}
 
 #endif

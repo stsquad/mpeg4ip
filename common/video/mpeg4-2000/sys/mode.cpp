@@ -362,6 +362,7 @@ CStatistics::~CStatistics()
 								
 Void CStatistics::print (Bool bVOPPrint)
 {
+#if 0
 	(Void) total ();
 
 	if (bVOPPrint)
@@ -416,6 +417,7 @@ Void CStatistics::print (Bool bVOPPrint)
 	  cout << "\t" << "SNR A[" << iAuxComp << "]:" << "\t\t" << dSNRA[iAuxComp] / nVOPs << " dB\n";
 	cout << "\n\t" << "average Qp:" << "\t\t" << (Double)nQp / nQMB << "\n\n";
 	cout.flush ();
+#endif
 }
 
 Void CStatistics::operator += (const CStatistics& statSrc)

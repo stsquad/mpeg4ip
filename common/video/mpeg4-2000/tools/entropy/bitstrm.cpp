@@ -291,57 +291,68 @@ Int COutBitStream::flush ()
 
 Void COutBitStream::trace (const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace != NULL)	{
 		m_pstrmTrace->width (20);
 		(*m_pstrmTrace) << rgchSymbolName;
 		m_pstrmTrace->flush ();
 	}
+#endif
 }
 
 Void COutBitStream::trace (Int iValue, const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace != NULL)	{
 		m_pstrmTrace->width (20);
 		(*m_pstrmTrace) << rgchSymbolName << "= ";
 		(*m_pstrmTrace) << iValue << "\n";
-		m_pstrmTrace->flush ();
+ 		m_pstrmTrace->flush ();
 	}
+#endif
 }
 
 Void COutBitStream::trace (UInt uiValue, const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace != NULL)	{
 		m_pstrmTrace->width (20);
 		(*m_pstrmTrace) << rgchSymbolName << "= ";
 		(*m_pstrmTrace) << uiValue << "\n";
 		m_pstrmTrace->flush ();
 	}
+#endif
 }
 
 Void COutBitStream::trace (Float fltValue, const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace != NULL)	{
 		m_pstrmTrace->width (20);
 		(*m_pstrmTrace) << rgchSymbolName << "= ";
 		(*m_pstrmTrace) << fltValue << "\n";
 		m_pstrmTrace->flush ();
 	}
+#endif
 }
 
 #ifndef __DOUBLE_PRECISION_
 Void COutBitStream::trace (Double dblValue, const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace != NULL)	{
 		m_pstrmTrace->width (20);
 		(*m_pstrmTrace) << rgchSymbolName << "= ";
 		(*m_pstrmTrace) << dblValue << "\n";
 		m_pstrmTrace->flush ();
 	}
+#endif
 }
 #endif
 
 Void COutBitStream::trace (const CMotionVector& mvValue, const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace != NULL)	{
 		m_pstrmTrace->width (20);
 		(*m_pstrmTrace) << rgchSymbolName << "= ";
@@ -349,10 +360,12 @@ Void COutBitStream::trace (const CMotionVector& mvValue, const Char* rgchSymbolN
 		(*m_pstrmTrace) << mvValue.iMVY + mvValue.iMVY + mvValue.iHalfY << "\n ";
 		m_pstrmTrace->flush ();
 	}
+#endif
 }
 
 Void COutBitStream::trace (const CVector2D& vctValue, const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace != NULL)	{
 		m_pstrmTrace->width (20);
 		(*m_pstrmTrace) << rgchSymbolName << "= ";
@@ -360,10 +373,12 @@ Void COutBitStream::trace (const CVector2D& vctValue, const Char* rgchSymbolName
 		(*m_pstrmTrace) << vctValue.y << "\n ";
 		m_pstrmTrace->flush ();
 	}
+#endif
 }
 
 Void COutBitStream::trace (const CSite& stValue, const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace != NULL)	{
 		m_pstrmTrace->width (20);
 		(*m_pstrmTrace) << rgchSymbolName << "= ";
@@ -371,10 +386,12 @@ Void COutBitStream::trace (const CSite& stValue, const Char* rgchSymbolName)
 		(*m_pstrmTrace) << stValue.y << "\n ";
 		m_pstrmTrace->flush ();
 	}
+#endif
 }
 
 Void COutBitStream::trace (const CFloatImage* pfi, const Char* rgchSymbolName, CRct rct)
 {
+#if 0
 	if (m_pstrmTrace == NULL)
 		return;
 	Int iValue;
@@ -403,10 +420,12 @@ Void COutBitStream::trace (const CFloatImage* pfi, const Char* rgchSymbolName, C
 		}
 	}
 	m_pstrmTrace->flush ();
+#endif
 }
 
 Void COutBitStream::trace (const Float* ppxlf, UInt cElem, const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace == NULL)
 			return;	
 	Int iValue;	
@@ -418,10 +437,12 @@ Void COutBitStream::trace (const Float* ppxlf, UInt cElem, const Char* rgchSymbo
 	}
 	(*m_pstrmTrace) << "\n";
 	m_pstrmTrace->flush ();
+#endif
 }
 
 Void COutBitStream::trace (const Int* rgi, UInt cElem, const Char* rgchSymbolName)
 {
+#if 0
 	if (m_pstrmTrace == NULL)
 		return;	
 	(*m_pstrmTrace) << rgchSymbolName << ": \n";
@@ -430,10 +451,12 @@ Void COutBitStream::trace (const Int* rgi, UInt cElem, const Char* rgchSymbolNam
 	}
 	(*m_pstrmTrace) << "\n";
 	m_pstrmTrace->flush ();
+#endif
 }
 
 Void COutBitStream::trace (const PixelC* rgpxlc, Int cCol, Int cRow, const Char* rgchSymbolName)	//this is for tracing shape buffers
 {
+#if 0
 	if (m_pstrmTrace == NULL)
 		return;	
 	(*m_pstrmTrace) << rgchSymbolName << ": \n";
@@ -451,6 +474,7 @@ Void COutBitStream::trace (const PixelC* rgpxlc, Int cCol, Int cRow, const Char*
 		(*m_pstrmTrace) << "\n";		
 	}
 	m_pstrmTrace->flush ();
+#endif
 }
 
 CInBitStream::CInBitStream (void) 

@@ -584,10 +584,11 @@ static void process_packet_header (isma_enc_rtp_data_t *iptr)
   }
 }
 
-static uint64_t start_next_frame (rtp_plugin_data_t *pifptr, 
-				  uint8_t **buffer, 
-				  uint32_t *buflen,
-				  void **userdata)
+static bool start_next_frame (rtp_plugin_data_t *pifptr, 
+			      uint8_t **buffer, 
+			      uint32_t *buflen,
+			      frame_timestamp_t *ts,
+			      void **userdata)
 {
   isma_enc_rtp_data_t *iptr = (isma_enc_rtp_data_t *)pifptr;
   uint64_t timetick;
@@ -733,7 +734,10 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 #endif
   ismacrypDecryptSampleRandomAccess(iptr->myEncSID, iptr->m_frame_data_on->IV, *buflen, *buffer); 
 
-  return (timetick);
+  ts->audio_freq_timestamp = iptr->m_ts;
+  ts->msec_timestamp = timetick;
+  ts->timestamp_is_pts = true;
+  return (true);
 }
 
 static void used_bytes_for_frame (rtp_plugin_data_t *pifptr, uint32_t bytes)
@@ -781,11 +785,12 @@ static void flush_rtp_packets (rtp_plugin_data_t *pifptr)
   SDL_UnlockMutex(iptr->m_rtp_packet_mutex);
 }
 
-static int have_no_data (rtp_plugin_data_t *pifptr)
+static bool have_frame (rtp_plugin_data_t *pifptr)
 {
   isma_enc_rtp_data_t *iptr = (isma_enc_rtp_data_t *)pifptr;
-  return (iptr->m_frame_data_head == NULL &&
-	  iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 0) == NULL);
+  if (iptr->m_frame_data_head != NULL) return true;
+
+  return (iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 0) != NULL);
 }
 
 RTP_PLUGIN("enc-mpeg4-generic:audio", 
@@ -796,6 +801,6 @@ RTP_PLUGIN("enc-mpeg4-generic:audio",
 	   used_bytes_for_frame,
 	   reset, 
 	   flush_rtp_packets,
-	   have_no_data,
+	   have_frame,
 	   NULL,
 	   0);

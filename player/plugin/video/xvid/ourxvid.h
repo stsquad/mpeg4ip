@@ -25,6 +25,7 @@
 #define __OURXVID_H__ 1
 #include "codec_plugin.h"
 #include <fposrec/fposrec.h>
+#include <mp4av.h>
 
 #define XVID_STATE_VO_SEARCH 0
 #define XVID_STATE_NORMAL 1
@@ -52,6 +53,7 @@ typedef struct xvid_codec_t {
   int m_short_headers;
   void *m_xvid_handle;
   uint32_t m_width, m_height;
+  mp4av_pts_to_dts_t pts_to_dts;
 } xvid_codec_t;
 
 #define m_vft c.v.video_vft

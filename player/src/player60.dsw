@@ -35,6 +35,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name bitstream
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -67,6 +70,12 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name bitstream
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av
     End Project Dependency
 }}}
 
@@ -330,18 +339,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libmpeg32video"=..\..\common\video\libmpeg32\video\libmpeg32video.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
 Project: "libmpplayer"=.\libmpplayer60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -518,33 +515,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name mp3_plugin
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name mpeg3_plugin
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "mpeg3_plugin"=..\plugin\video\mpeg3\mpeg3_plugin.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libmpeg32video
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmpeg32util
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmp4av
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libmissing60
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -629,9 +599,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name mp3_plugin
     End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name mpeg3_plugin
-    End Project Dependency
 }}}
 
 ###############################################################################
@@ -658,9 +625,6 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name wmp4client60
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name mpeg3_plugin
     End Project Dependency
 }}}
 

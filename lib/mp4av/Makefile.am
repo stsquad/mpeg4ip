@@ -11,6 +11,7 @@ lib_LTLIBRARIES = libmp4av.la
 
 include_HEADERS = \
 	mp4av_aac.h \
+	mp4av_ac3.h \
 	mp4av_adts.h \
 	mp4av_audio.h \
 	mp4av.h \
@@ -22,6 +23,7 @@ include_HEADERS = \
 
 libmp4av_la_SOURCES = \
 	aac.cpp \
+	ac3.cpp \
 	adts.cpp \
 	audio.cpp \
 	audio_hinters.cpp \

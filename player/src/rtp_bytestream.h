@@ -55,12 +55,15 @@ class CRtpByteStreamBase : public COurInByteStream
   ~CRtpByteStreamBase();
   int eof (void) { return m_eof; };
   virtual void reset(void) {
-    player_debug_message("rtp bytestream reset");
+    player_debug_message("%s rtp bytestream reset", m_name);
     init();
     m_buffering = 0;
     m_base_ts_set = 0;
+    m_rtcp_received = false;
     m_rtp_base_seq_set = 0;
-
+    m_have_sync_info = false;
+    m_have_recv_last_ts = false;
+    m_have_first_pak_ts = false;
   };
   void set_skip_on_advance (uint32_t bytes_to_skip) {
     m_skip_on_advance_bytes = bytes_to_skip;
@@ -92,22 +95,23 @@ class CRtpByteStreamBase : public COurInByteStream
   void recv_callback(struct rtp *session, rtp_event *e);
   virtual void flush_rtp_packets(void);
   int recv_task(int waiting);
-  uint32_t get_last_rtp_timestamp (void) {return m_rtptime_last; };
+  uint32_t get_last_rtp_timestamp (void) {return m_last_rtp_ts; };
   void remove_packet_rtp_queue(rtp_packet *pak, int free);
   void pause(void);
   void set_sync(CPlayerSession *psptr);
 
   void syncronize(rtcp_sync_t *sync);
- protected:
   bool check_seq (uint16_t seq);
   void set_last_seq(uint16_t seq);
+  bool find_mbit(void);
+  void display_status(void);
+ protected:
   void init(void);
   // Make sure all classes call this to calculate real time.
   uint64_t rtp_ts_to_msec(uint32_t rtp_ts, uint64_t uts, uint64_t &wrap_offset);
   rtp_packet *m_head, *m_tail;
   int m_offset_in_pak;
   uint32_t m_skip_on_advance_bytes;
-  uint32_t m_ts;
   uint64_t m_total;
   bool m_base_ts_set;
   uint32_t m_base_rtp_ts;
@@ -128,13 +132,13 @@ class CRtpByteStreamBase : public COurInByteStream
   int m_buffering;
   uint64_t m_rtp_buffer_time;
   unsigned int m_rtp_pt;
-  virtual int check_rtp_frame_complete_for_payload_type(void);
+  virtual bool check_rtp_frame_complete_for_payload_type(void);
   virtual void rtp_done_buffering(void) {};
-  uint32_t m_rtptime_last;
   int m_recvd_pak;
   int m_recvd_pak_timeout;
   uint64_t m_recvd_pak_timeout_time;
   uint64_t m_last_realtime;
+  uint32_t m_last_rtp_ts;
   format_list_t *m_fmt;
   int m_eof;
   int m_rtpinfo_set_from_pak;
@@ -145,6 +149,8 @@ class CRtpByteStreamBase : public COurInByteStream
   CPlayerSession *m_psptr;
   bool m_have_sync_info;
   rtcp_sync_t m_sync_info;
+  bool m_have_recv_last_ts;
+  uint32_t m_recv_last_ts;
 };
 
 class CRtpByteStream : public CRtpByteStreamBase
@@ -166,12 +172,12 @@ class CRtpByteStream : public CRtpByteStreamBase
 		 uint32_t ntp_sec,
 		 uint32_t rtp_ts);
   ~CRtpByteStream();
-  uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
-			    void **userdata);
-  int skip_next_frame(uint64_t *ts, int *havesync, uint8_t **buffer,
+  bool start_next_frame(uint8_t **buffer, uint32_t *buflen,
+			frame_timestamp_t *ts, void **userdata);
+  bool skip_next_frame(frame_timestamp_t *ts, int *havesync, uint8_t **buffer,
 		      uint32_t *buflen, void **userdata = NULL);
   void used_bytes_for_frame(uint32_t bytes);
-  int have_no_data(void);
+  bool have_frame(void);
   void flush_rtp_packets(void);
   void reset(void);
  protected:
@@ -199,10 +205,10 @@ class CAudioRtpByteStream : public CRtpByteStream
 		      uint32_t ntp_sec,
 		      uint32_t rtp_ts);
   ~CAudioRtpByteStream();
-  int have_no_data(void);
-  int check_rtp_frame_complete_for_payload_type(void);
-  uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
-			    void **userdata);
+  bool have_frame(void);
+  bool check_rtp_frame_complete_for_payload_type(void);
+  bool start_next_frame(uint8_t **buffer, uint32_t *buflen,
+			frame_timestamp_t *ts, void **userdata);
   void reset(void);
  private:
   rtp_packet *m_working_pak;

@@ -210,3 +210,16 @@ extern "C" u_int16_t MP4AV_AudioGetSamplingWindow(
 
 	return 0;
 }
+
+extern "C" uint32_t convert_timescale (uint32_t timestamp,
+				       uint32_t from_timescale,
+				       uint32_t to_timescale)
+{
+  uint64_t result;
+
+  result = timestamp;
+
+  result *= to_timescale;
+  result /= from_timescale;
+  return result & UINT32_MAX;
+}

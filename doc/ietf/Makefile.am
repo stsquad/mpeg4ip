@@ -6,5 +6,6 @@ EXTRA_DIST =  \
 	rfc2327.txt \
 	rfc3016.txt \
 	rfc3119.txt \
-	rfc3640.txt
+	rfc3640.txt \
+	draft-ietf-avt-rtp-h264-10.txt
 

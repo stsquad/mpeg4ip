@@ -447,11 +447,11 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 	  if (pFrame->RemoveReference()) delete pFrame;
 	  return;
 	}
-	char voptype =
+	int voptype =
 	    MP4AV_Mpeg4GetVopType(pData,
 				  dataLen - (pData - pDataStart));
-	if (voptype != 'I') {
-	  debug_message(U64" wrong vop type %c %02x %02x %02x %02x %02x", 
+	if (voptype != VOP_TYPE_I) {
+	  debug_message(U64" wrong vop type %d %02x %02x %02x %02x %02x", 
 			pFrame->GetTimestamp(),
 			voptype,
 			pData[0],
@@ -516,9 +516,9 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
       if (pData) {
 	dataLen -= (pData - (uint8_t *)m_prevEncodedVideoFrame->GetData());
 	isIFrame =
-	  (MP4AV_Mpeg4GetVopType(pData,dataLen) == 'I');
+	  (MP4AV_Mpeg4GetVopType(pData,dataLen) == VOP_TYPE_I);
 #if 0
-	debug_message("record type %c %02x %02x %02x %02x",
+	debug_message("record type %d %02x %02x %02x %02x",
 		      MP4AV_Mpeg4GetVopType(pData, dataLen),
 		      pData[0],
 		      pData[1],
@@ -747,7 +747,7 @@ void CMp4Recorder::DoStopRecord()
       isIFrame = 
 	(MP4AV_Mpeg4GetVopType(
 			       (u_int8_t*) m_prevEncodedVideoFrame->GetData(),
-			       m_prevEncodedVideoFrame->GetDataLength()) == 'I');
+			       m_prevEncodedVideoFrame->GetDataLength()) == VOP_TYPE_I);
     } else {
       int ret, ftype;
       ret = 

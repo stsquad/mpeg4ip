@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -432,7 +432,7 @@ extern "C" bool MP4AV_Mpeg4ParseGov(
 static bool Mpeg4ParseShortHeaderVop(
 	u_int8_t* pVopBuf, 
 	u_int32_t vopSize,
-	u_char* pVopType)
+	int* pVopType)
 {
 	CMemoryBitstream vop;
 
@@ -442,9 +442,9 @@ static bool Mpeg4ParseShortHeaderVop(
 		// skip start code, temporal ref, and into type
 		vop.SkipBits(22 + 8 + 5 + 3);	
 		if (vop.GetBits(1) == 0) {
-			*pVopType = 'I';
+			*pVopType = VOP_TYPE_I;
 		} else {
-			*pVopType = 'P';
+			*pVopType = VOP_TYPE_P;
 		}
 	}
 	catch (int e) {
@@ -457,7 +457,7 @@ static bool Mpeg4ParseShortHeaderVop(
 extern "C" bool MP4AV_Mpeg4ParseVop(
 	u_int8_t* pVopBuf, 
 	u_int32_t vopSize,
-	u_char* pVopType, 
+	int* pVopType, 
 	u_int8_t timeBits, 
 	u_int16_t timeTicks, 
 	u_int32_t* pVopTimeIncrement)
@@ -472,19 +472,19 @@ extern "C" bool MP4AV_Mpeg4ParseVop(
 		switch (vop.GetBits(2)) {
 		case 0:
 			/* Intra */
-			*pVopType = 'I';
+			*pVopType = VOP_TYPE_I;
 			break;
 		case 1:
 			/* Predictive */
-			*pVopType = 'P';
+			*pVopType = VOP_TYPE_P;
 			break;
 		case 2:
 			/* Bidirectional Predictive */
-			*pVopType = 'B';
+			*pVopType = VOP_TYPE_B;
 			break;
 		case 3:
 			/* Sprite */
-			*pVopType = 'S';
+			*pVopType = VOP_TYPE_S;
 			break;
 		}
 
@@ -508,9 +508,9 @@ extern "C" bool MP4AV_Mpeg4ParseVop(
 }
 
 
-extern "C" u_char MP4AV_Mpeg4GetVopType(u_int8_t* pVopBuf, u_int32_t vopSize)
+extern "C" int MP4AV_Mpeg4GetVopType(u_int8_t* pVopBuf, u_int32_t vopSize)
 {
-	u_char vopType = 0;
+	int vopType = 0;
 
 	if (vopSize <= 4) {
 		return vopType;
@@ -529,3 +529,57 @@ extern "C" u_char MP4AV_Mpeg4GetVopType(u_int8_t* pVopBuf, u_int32_t vopSize)
 	return vopType;
 }
 
+// MP4AV_calculate_dts_from_pts
+// a crude method of determining the decode timestamp from the 
+// presentation timestamp.
+// the player needs the decode timestamp - it uses that coupled with
+// if the decoder returns a decoded frame for timing
+extern "C" int MP4AV_calculate_dts_from_pts (mp4av_pts_to_dts_t *ptr,
+					     uint64_t pts,
+					     int type,
+					     uint64_t *dts)
+{
+  if (type == VOP_TYPE_B) {
+    // If we have a B type, the dts is always the pts.
+    ptr->last_type = type;
+    ptr->last_dts = *dts = pts;
+    return 0;
+  } 
+  // We have a I or P type.
+  if (ptr->have_last_pts && ptr->last_pts >= ptr->last_dts) {
+    // if we have a PTS stored, and the PTS is greater than the last
+    // dts we stored (from a b frame, most likely), we will return
+    // that pts as the dts.
+    // we also need to record this frames pts
+    ptr->have_last_pts = 1;
+    *dts = ptr->last_dts = ptr->last_pts;
+    ptr->last_pts = pts;
+    ptr->last_type = type;
+    return 0;
+  }
+ 
+  // we don't have a pts stored, or we have a situation where the last
+  // stored pts is less that dts we've gotten from B frames - this is
+  // when lost I or P frames occur
+  ptr->have_last_pts = 1;
+  ptr->last_pts = pts;
+  if (ptr->last_type == 0) {
+    // we can't do anything with the timing here - we just store,
+    // and return an error
+    ptr->last_dts = pts;
+    ptr->last_type = type;
+    return -1;
+  }
+  // we have a last type, so we'll use the dts from that frame, add
+  // a small amount, then hit it up the next time - we'll have a pts
+  // stored.
+  ptr->last_dts = *dts = ptr->last_dts + (uint64_t)(1000.0 / 29.97);
+  ptr->last_type = type;
+  return 0;
+}
+
+extern "C" void MP4AV_clear_dts_from_pts (mp4av_pts_to_dts_t *ptr)
+{
+  ptr->last_type = 0;
+  ptr->have_last_pts = 0;
+}

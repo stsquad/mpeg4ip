@@ -152,7 +152,7 @@ typedef struct mpeg2t_t {
   uint64_t initial_psts;
 } mpeg2t_t;
 
-#ifdef __cplusplus 
+ #ifdef __cplusplus 
 extern "C" {
 #endif
 /*

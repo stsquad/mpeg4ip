@@ -14,4 +14,4 @@ else
 ed3=
 endif
 
-SUBDIRS = raw mpeg3 h261 $(ed1) $(ed2) $(ed3)
+SUBDIRS = raw h261 $(ed1) $(ed2) $(ed3)

@@ -29,6 +29,7 @@
 #define __OUR_BYTESTREAM_H__ 1
 #include <assert.h>
 #include "mpeg4ip.h"
+#include "codec_plugin.h"
 
 class COurInByteStream
 {
@@ -42,14 +43,16 @@ class COurInByteStream
   virtual int eof(void) = 0;
   // reset vector
   virtual void reset(void) = 0;
-  // have no data - return TRUE if we don't have a frame ready
-  virtual int have_no_data (void) {return 0; };
+  // have_frame - return TRUE if we have a frame ready
+  virtual bool have_frame (void) { return true; };
   /*
-   * start_next_frame - return ts offset, pointer to buffer start, length
+   * start_next_frame - return timestamp value, pointer to buffer start, length
    * in buffer
    */
-  virtual uint64_t start_next_frame (uint8_t **buffer, uint32_t *buflen,
-				     void **userdata) = 0;
+  virtual bool start_next_frame(uint8_t **buffer, 
+				uint32_t *buflen,
+				frame_timestamp_t *ts,
+				void **userdata) = 0;
   /*
    * used_bytes_for_frame - called after we process a frame with the number
    * of bytes used during decoding
@@ -62,7 +65,7 @@ class COurInByteStream
   /*
    * skip_next_frame - actually do it...
    */
-  virtual int skip_next_frame (uint64_t *ts, int *hasSyncFrame, uint8_t **buffer, uint32_t *buflen, void **ud) { assert(0 == 1);return 0; };
+  virtual bool skip_next_frame(frame_timestamp_t *ts, int *hasSyncFrame, uint8_t **buffer, uint32_t *buflen, void **ud) { assert(0 == 1);return false; };
   virtual double get_max_playtime (void) = 0;
   virtual void pause (void) {};
   virtual void play (uint64_t start) { m_play_start_time = start; };

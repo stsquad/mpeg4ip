@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "ISMACRYP_RTP_VIDEO_PLUGIN_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../../src" /I "../../../../lib" /I "../../../../include" /I "../../../../lib/ismacryp" /I "../../../lib" /I "../../../../SDL/include" /D "NDEBUG" /D "_WIN32" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "ISMACRYP_RTP_VIDEO_PLUGIN_EXPORTS" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../../src" /I "../../../../lib" /I "../../../../include" /I "../../../../lib/ismacryp" /I "../../../lib" /I "../../../../SDL/include" /I "../../../../lib/sdp" /I "../../../../lib/mp4av" /I "../../../../lib/mp4v2" /D "NDEBUG" /D "_WIN32" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "ISMACRYP_RTP_VIDEO_PLUGIN_EXPORTS" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /machine:I386
+# ADD LINK32 kernel32.lib ws2_32.lib /nologo /dll /machine:I386
 # Begin Special Build Tool
 OutDir=.\Release
 SOURCE="$(InputPath)"
@@ -73,8 +73,8 @@ PostBuild_Cmds=copy $(OutDir)\ismacryp_rtp_video_plugin.dll ..\..\..\src
 # PROP Intermediate_Dir "Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "ISMACRYP_RTP_VIDEO_PLUGIN_EXPORTS" /YX /FD /GZ  /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../../../src" /I "../../../../lib" /I "../../../../include" /I "../../../../lib/ismacryp" /I "../../../lib" /I "../../../../SDL/include" /D "_DEBUG" /D "_WIN32" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "ISMACRYP_RTP_VIDEO_PLUGIN_EXPORTS" /YX /FD /GZ  /c
+# ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "ISMACRYP_RTP_VIDEO_PLUGIN_EXPORTS" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../../../src" /I "../../../../lib" /I "../../../../include" /I "../../../../lib/ismacryp" /I "../../../lib" /I "../../../../SDL/include" /I "../../../../lib/sdp" /I "../../../../lib/mp4av" /I "../../../../lib/mp4v2" /D "_DEBUG" /D "_WIN32" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "ISMACRYP_RTP_VIDEO_PLUGIN_EXPORTS" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -84,7 +84,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 kernel32.lib ws2_32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
 # Begin Special Build Tool
 OutDir=.\Debug
 SOURCE="$(InputPath)"

@@ -114,7 +114,7 @@ int CPlayerMedia::decode_thread (void)
   int ret = 0;
   int thread_stop = 0, decoding = 0;
   uint32_t decode_skipped_frames = 0;
-  uint64_t ourtime;
+  frame_timestamp_t ourtime, lasttime;
       // Tell bytestream we're starting the next frame - they'll give us
       // the time.
   uint8_t *frame_buffer;
@@ -125,6 +125,8 @@ int CPlayerMedia::decode_thread (void)
   uint64_t start_decode_time = 0;
   uint64_t last_decode_time = 0;
   bool have_start_time = false;
+  bool have_frame_ts = false;
+  bool found_out_of_range_ts = false;
   uint64_t bytes_decoded;
 
   frames_decoded = 0;
@@ -152,7 +154,6 @@ int CPlayerMedia::decode_thread (void)
 	if (m_audio_sync == NULL) {
 	  m_audio_sync = m_parent->set_up_audio_sync();
 	}
-	m_audio_sync->set_wait_sem(m_decode_thread_sem);
       }
       if (m_plugin == NULL) {
 	if (is_video()) {
@@ -234,6 +235,7 @@ int CPlayerMedia::decode_thread (void)
 	continue;
       if (decoding == 0) {
 	m_plugin->c_do_pause(m_plugin_data);
+	have_frame_ts = false;
 	continue;
       }
       if (m_byte_stream->eof()) {
@@ -243,7 +245,7 @@ int CPlayerMedia::decode_thread (void)
 	decoding = 0;
 	continue;
       }
-      if (m_byte_stream->have_no_data()) {
+      if (m_byte_stream->have_frame() == false) {
 	// Indicate that we're waiting, and wait for a message from RTP
 	// task.
 	wait_on_bytestream();
@@ -251,82 +253,114 @@ int CPlayerMedia::decode_thread (void)
       }
 
       frame_buffer = NULL;
-      ourtime = m_byte_stream->start_next_frame(&frame_buffer, 
-						&frame_len,
-						&ud);
+      bool have_frame;
+      memset(&ourtime, 0, sizeof(ourtime));
+      have_frame = m_byte_stream->start_next_frame(&frame_buffer, 
+						   &frame_len,
+						   &ourtime,
+						   &ud);
+      if (have_frame == false) continue;
       /*
        * If we're decoding video, see if we're playing - if so, check
        * if we've fallen significantly behind the audio
        */
       if (is_video() &&
-	  (m_parent->get_session_state() == SESSION_PLAYING)) {
-	uint64_t current_time = m_parent->get_playing_time();
-	if (current_time >= ourtime) {
-#if 1
-	  media_message(LOG_INFO, "Candidate for skip decode "U64" our "U64, 
-			       current_time, ourtime);
-#endif
-	  // If the bytestream can skip ahead, let's do so
-	  if (m_byte_stream->can_skip_frame() != 0) {
-	    int ret;
-	    int hassync;
-	    int count;
-	    current_time += 200; 
-	    count = 0;
-	    // Skip up to the current time + 200 msec
-	    ud = NULL;
-	    do {
-	      if (ud != NULL) free(ud);
-	      frame_buffer = NULL;
-	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync,
-						   &frame_buffer, &frame_len,
-						   &ud);
-	      decode_skipped_frames++;
-	    } while (ret != 0 &&
-		     !m_byte_stream->eof() && 
-		     current_time > ourtime);
-	    if (m_byte_stream->eof() || ret == 0) continue;
-#if 1
-	    media_message(LOG_INFO, "Skipped ahead "U64 " to "U64, 
-			  current_time - 200, ourtime);
-#endif
-	    /*
-	     * Ooh - fun - try to match to the next sync value - if not, 
-	     * 15 frames
-	     */
-	    do {
-	      if (ud != NULL) free(ud);
-	      ret = m_byte_stream->skip_next_frame(&ourtime, &hassync,
-						   &frame_buffer, &frame_len,
-						   &ud);
-	      if (hassync < 0) {
-		uint64_t diff = ourtime - current_time;
-		if (diff > TO_U64(200)) {
-		  hassync = 1;
-		}
-	      }
-	      decode_skipped_frames++;
-	      count++;
-	    } while (ret != 0 &&
-		     hassync <= 0 &&
-		     count < 30 &&
-		     !m_byte_stream->eof());
-	    if (m_byte_stream->eof() || ret == 0) continue;
+	  (m_parent->get_session_state() == SESSION_PLAYING) &&
+	  have_frame_ts) {
+	int64_t ts_diff = ourtime.msec_timestamp - lasttime.msec_timestamp;
+
+	if (ts_diff > TO_D64(1000) ||
+	    ts_diff < TO_D64(-1000)) {
+	  // out of range timestamp - we'll want to not skip here
+	  found_out_of_range_ts = true;
+	  media_message(LOG_INFO, "found out of range ts "U64" last "U64" "D64,
+			ourtime.msec_timestamp, 
+			lasttime.msec_timestamp,
+			ts_diff);
+	} else {
+	  uint64_t current_time = m_parent->get_playing_time();
+	  if (found_out_of_range_ts) {
+	    ts_diff = current_time - ourtime.msec_timestamp;
+	    if (ts_diff > TO_D64(0) && ts_diff < TO_D64(5000)) {
+	      found_out_of_range_ts = false;
+	      media_message(LOG_INFO, 
+			    "ts back in playing range "U64" "D64,
+			    ourtime.msec_timestamp, ts_diff);
+	    }
+	  } else {
+	    // regular time
+	    if (current_time >= ourtime.msec_timestamp) {
+	      media_message(LOG_INFO, 
+			    "Candidate for skip decode "U64" our "U64, 
+			    current_time, ourtime.msec_timestamp);
+	      // If the bytestream can skip ahead, let's do so
+	      if (m_byte_stream->can_skip_frame() != 0) {
+		int ret;
+		int hassync;
+		int count;
+		current_time += 200; 
+		count = 0;
+		// Skip up to the current time + 200 msec
+		ud = NULL;
+		do {
+		  if (ud != NULL) free(ud);
+		  frame_buffer = NULL;
+		  ret = m_byte_stream->skip_next_frame(&ourtime, 
+						       &hassync,
+						       &frame_buffer, 
+						       &frame_len,
+						       &ud);
+		  decode_skipped_frames++;
+		} while (ret != 0 &&
+			 !m_byte_stream->eof() && 
+			 current_time > ourtime.msec_timestamp);
+		if (m_byte_stream->eof() || ret == 0) continue;
+		media_message(LOG_INFO, "Skipped ahead "U64 " to "U64, 
+			      current_time - 200, ourtime.msec_timestamp);
+		/*
+		 * Ooh - fun - try to match to the next sync value - if not, 
+		 * 15 frames
+		 */
+		do {
+		  if (ud != NULL) free(ud);
+		  ret = m_byte_stream->skip_next_frame(&ourtime, 
+						       &hassync,
+						       &frame_buffer, 
+						       &frame_len,
+						       &ud);
+		  if (hassync < 0) {
+		    uint64_t diff = ourtime.msec_timestamp - current_time;
+		    if (diff > TO_U64(200)) {
+		      hassync = 1;
+		    }
+		  }
+		  decode_skipped_frames++;
+		  count++;
+		} while (ret != 0 &&
+			 hassync <= 0 &&
+			 count < 30 &&
+			 !m_byte_stream->eof());
+		if (m_byte_stream->eof() || ret == 0) continue;
 #ifdef DEBUG_DECODE
-	    media_message(LOG_INFO, "Matched ahead - count %d, sync %d time "U64,
-				 count, hassync, ourtime);
+		media_message(LOG_INFO, 
+			      "Matched ahead - count %d, sync %d time "U64,
+			      count, hassync, ourtime.msec_timestamp);
 #endif
-	  }
+	      }
+	    }
+	  } // end regular time
 	}
       }
+      lasttime = ourtime;
+      have_frame_ts = true;
 #ifdef DEBUG_DECODE
       media_message(LOG_DEBUG, "Decoding %c frame " U64, 
-		    m_is_video ? 'v' : 'a', ourtime);
+		    m_is_video ? 'v' : 'a', ourtime.msec_timestamp);
 #endif
       if (frame_buffer != NULL && frame_len != 0) {
 	int sync_frame;
 	ret = m_plugin->c_decode_frame(m_plugin_data,
-				       ourtime,
+				       &ourtime,
 				       m_streaming != 0,
 				       &sync_frame,
 				       frame_buffer, 
@@ -340,9 +374,9 @@ int CPlayerMedia::decode_thread (void)
 	  frames_decoded++;
 	  if (have_start_time == false) {
 	    have_start_time = true;
-	    start_decode_time = ourtime;
+	    start_decode_time = ourtime.msec_timestamp;
 	  }
-	  last_decode_time = ourtime;
+	  last_decode_time = ourtime.msec_timestamp;
 	  m_byte_stream->used_bytes_for_frame(ret);
 	  bytes_decoded += ret;
 	} else {

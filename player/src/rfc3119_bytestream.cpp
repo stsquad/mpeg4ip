@@ -201,6 +201,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 {
   rtp_packet *pak;
   uint64_t pak_ts;
+  uint32_t freq_ts;
   uint32_t adu_offset;
   adu_data_t *prev_adu;
   int thisAduSize;
@@ -213,6 +214,7 @@ void CRfc3119RtpByteStream::process_packet (void)
     pak = m_head;
     if (pak != NULL) {
       remove_packet_rtp_queue(m_head, 0);
+      freq_ts = pak->rtp_pak_ts;
       pak_ts = rtp_ts_to_msec(pak->rtp_pak_ts, 
 			      pak->pd.rtp_pd_timestamp,
 			      m_wrap_offset);
@@ -244,6 +246,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 	  if (adu_offset == 0) {
 	    adu->first_in_pak = 1;
 	    adu->timestamp = pak_ts;
+	    adu->freq_timestamp = freq_ts;
 	  } else {
 	    adu->first_in_pak = 0;
 	  }
@@ -352,8 +355,9 @@ void CRfc3119RtpByteStream::process_packet (void)
 	  if (m_rtp_ts_add == 0) {
 	    m_rtp_ts_add = 
 	      ( 1000 * MP4AV_Mp3GetHdrSamplingWindow(adu->mp3hdr));
-
-	    m_rtp_ts_add /= MP4AV_Mp3GetHdrSamplingRate(adu->mp3hdr);
+	    m_rtp_freq_ts_add = m_rtp_ts_add;
+	    m_freq = MP4AV_Mp3GetHdrSamplingRate(adu->mp3hdr);
+	    m_rtp_ts_add /= m_freq;
 	  }
 	
 	  // here we make a few decisions as to where the packet should
@@ -415,6 +419,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 	    // calculate timestamp
 	    if (adu->first_in_pak == 0) {
 	      adu->timestamp = prev_adu->timestamp + m_rtp_ts_add;
+	      adu->freq_timestamp = prev_adu->freq_timestamp + m_rtp_freq_ts_add;
 	    }
 	    insert_processed_adu(adu);
 	  }
@@ -437,6 +442,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 	int cur_cyc_ct;
 	int ts_index;
 	uint64_t ts = 0;
+	uint32_t freq_ts = 0;
 	m_got_next_idx = 0;
 	q = NULL;
 	p = m_deinterleave_list;
@@ -445,6 +451,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 	do {
 	  if (ts_index == -1 && p->first_in_pak) {
 	    ts = p->timestamp;
+	    freq_ts = p->freq_timestamp;
 	    ts_index = p->interleave_idx;
 	  }
 	  q = p;
@@ -461,13 +468,17 @@ void CRfc3119RtpByteStream::process_packet (void)
      
 	p = m_ordered_adu_list;
 	ts -= ((ts_index - p->interleave_idx) * m_rtp_ts_add);
+	freq_ts -= ((ts_index - p->interleave_idx) * m_rtp_freq_ts_add);
 	ts_index = p->interleave_idx;
 	while (p != NULL) {
 	  if (p->first_in_pak == 0) {
 	    // calculate ts
 	    p->timestamp = ts + (p->interleave_idx - ts_index) * m_rtp_ts_add;
+	    p->freq_timestamp = freq_ts + (p->interleave_idx - ts_index) * 
+	      m_rtp_freq_ts_add;
 	  } else {
 	    ts = p->timestamp;
+	    freq_ts = p->freq_timestamp;
 	    ts_index = p->interleave_idx;
 	  }
 #ifdef DEBUG_3119_INTERLEAVE
@@ -575,6 +586,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 
     if (tailADU->backpointer > prevADUend) {
       uint64_t ts;
+      uint32_t freq_ts;
 #ifdef DEBUG_3119
       mpa_message(LOG_DEBUG, "Adding tail ts is "D64, tailADU->timestamp);
 #endif
@@ -582,6 +594,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
       if (prevADU == NULL) {
 	prevADU = get_adu_data();
 	ts = m_pending_adu_list->timestamp - m_rtp_ts_add;
+	freq_ts = m_pending_adu_list->freq_timestamp - m_rtp_freq_ts_add;
 	prevADU->next_adu = m_pending_adu_list;
 	m_pending_adu_list = prevADU;
 #ifdef DEBUG_3119
@@ -597,9 +610,11 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 		      p->timestamp - m_rtp_ts_add);
 #endif
 	  p->timestamp -= m_rtp_ts_add;
+	  p->freq_timestamp -= m_rtp_freq_ts_add;
 
 	}
 	ts = tailADU->timestamp - m_rtp_ts_add;
+	freq_ts = tailADU->freq_timestamp - m_rtp_freq_ts_add;
 	prevADU->next_adu = get_adu_data();
 	prevADU = prevADU->next_adu;
 #ifdef DEBUG_3119
@@ -615,6 +630,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 	(uint8_t *)malloc(tailADU->framesize);
       prevADU->aduDataSize = 0;
       prevADU->timestamp = ts;
+      prevADU->freq_timestamp = freq_ts;
       prevADU->first_in_pak = 0;
       prevADU->last_in_pak = 0;
       prevADU->freeframe = 1;
@@ -638,9 +654,10 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
   }
 }
 
-uint64_t CRfc3119RtpByteStream::start_next_frame (uint8_t **buffer, 
-						  uint32_t *buflen,
-						  void **ud)
+bool CRfc3119RtpByteStream::start_next_frame (uint8_t **buffer, 
+					      uint32_t *buflen,
+					      frame_timestamp_t *ts,
+					      void **ud)
 {
   adu_data_t *p;
 
@@ -682,7 +699,11 @@ uint64_t CRfc3119RtpByteStream::start_next_frame (uint8_t **buffer,
 #endif
       *buffer = m_pending_adu_list->frame_ptr;
       *buflen = m_pending_adu_list->framesize;
-      return m_pending_adu_list->timestamp;
+      ts->msec_timestamp = m_pending_adu_list->timestamp;
+      ts->audio_freq_timestamp = m_pending_adu_list->freq_timestamp;
+      ts->audio_freq = m_freq;
+      ts->timestamp_is_pts = false;
+      return true;
     }
   }
 
@@ -702,7 +723,7 @@ uint64_t CRfc3119RtpByteStream::start_next_frame (uint8_t **buffer,
 	m_pending_adu_list = NULL;
 	*buffer = NULL;
 	*buflen = 0;
-	return 0;
+	return false;
       }
     }
     add_and_insertDummyADUsIfNecessary();
@@ -769,8 +790,12 @@ uint64_t CRfc3119RtpByteStream::start_next_frame (uint8_t **buffer,
 #endif
   *buffer = m_mp3_frame;
   *buflen = m_pending_adu_list->framesize;
+  ts->msec_timestamp = m_pending_adu_list->timestamp;
+  ts->audio_freq_timestamp = m_pending_adu_list->freq_timestamp;
+  ts->audio_freq = m_freq;
+  ts->timestamp_is_pts = false;
 
-  return (m_pending_adu_list->timestamp);
+  return true;
 }
 
 void CRfc3119RtpByteStream::used_bytes_for_frame (uint32_t bytes)
@@ -799,9 +824,9 @@ void CRfc3119RtpByteStream::reset (void)
 }
 
 
-int CRfc3119RtpByteStream::have_no_data (void)
+bool CRfc3119RtpByteStream::have_frame (void)
 {
-  return (m_head == NULL); // || m_pending_adu_list == NULL);
+  return (m_head != NULL); // || m_pending_adu_list == NULL);
 }
 
 void CRfc3119RtpByteStream::free_adu (adu_data_t *adu)

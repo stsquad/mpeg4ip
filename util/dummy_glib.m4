@@ -1,6 +1,6 @@
 # Dummy configuration for GLIB - comment it out, basically
 
-AC_DEFUN(AM_PATH_GLIB,
+AC_DEFUN([AM_PATH_GLIB],
    [ dnl
      no_glib=yes
      GLIB_CFLAGS=""
@@ -9,7 +9,7 @@ AC_DEFUN(AM_PATH_GLIB,
      AC_SUBST(GLIB_LIBS)
    ])
 
-AC_DEFUN(AM_PATH_GTK,
+AC_DEFUN([AM_PATH_GTK],
    [ dnl
      no_gtk=yes
      GTK_CFLAGS=""

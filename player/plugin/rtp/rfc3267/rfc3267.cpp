@@ -114,10 +114,11 @@ static void flush_rtp_packets (rtp_plugin_data_t *pifptr)
   }
 }
 
-static uint64_t start_next_frame (rtp_plugin_data_t *pifptr, 
-				  uint8_t **buffer, 
-				  uint32_t *buflen,
-				  void **userdata)
+static bool start_next_frame (rtp_plugin_data_t *pifptr, 
+			      uint8_t **buffer, 
+			      uint32_t *buflen,
+			      frame_timestamp_t *ts,
+			      void **userdata)
 {
   rfc3267_data_t *iptr = (rfc3267_data_t *)pifptr;
   uint64_t timetick;
@@ -133,8 +134,10 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
   // see if we need to read the packet
   if (iptr->m_pak_on == NULL) {
     do {
-      iptr->m_pak_on = iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 1);
-      if (iptr->m_pak_on == NULL) return 0;
+      iptr->m_pak_on = iptr->m_vft->get_head_and_check(iptr->m_ifptr, 
+						       false,
+						       0);
+      if (iptr->m_pak_on == NULL) return false;
       iptr->m_pak_frame_offset = 1;
       while (((iptr->m_pak_on->rtp_data[iptr->m_pak_frame_offset] & 0x80) != 0) &&
 	     (iptr->m_pak_frame_offset < iptr->m_pak_on->rtp_data_len)) {
@@ -195,12 +198,15 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 				iptr->m_pak_on ?
 				iptr->m_pak_on->pd.rtp_pd_timestamp : 0,
 				0);
+  ts->audio_freq_timestamp = iptr->m_ts;
+  ts->msec_timestamp = timetick;
+  ts->timestamp_is_pts = false;
   // We're going to have to handle wrap better...
 #ifdef DEBUG_RFC3267_FRAME
   rfc3267_message(LOG_DEBUG, rfc3267rtp, "start next frame %p %d ts "X64" "U64, 
 	       *buffer, *buflen, iptr->m_ts, timetick);
 #endif
-  return (timetick);
+  return true;
 }
 
 static void used_bytes_for_frame (rtp_plugin_data_t *pifptr, uint32_t bytes)
@@ -215,16 +221,16 @@ static void reset (rtp_plugin_data_t *pifptr)
 }
 
 
-static int have_no_data (rtp_plugin_data_t *pifptr)
+static bool have_frame (rtp_plugin_data_t *pifptr)
 {
   rfc3267_data_t *iptr = (rfc3267_data_t *)pifptr;
   if (iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 0) != NULL) 
-    return 0; // we have data
+    return true; // we have data
 
-  if (iptr->m_pak_on == NULL) return 1; // no pak, none on queue
+  if (iptr->m_pak_on == NULL) return false; // no pak, none on queue
 
   uint8_t toc = iptr->m_pak_on->rtp_data[1 + iptr->m_pak_frame_on];
-  return (toc & 0x80) == 0; // if toc is not done, we are...
+  return (toc & 0x80) != 0; // if toc is not done, we are...
 }
 
 RTP_PLUGIN("rfc3267", 
@@ -235,6 +241,6 @@ RTP_PLUGIN("rfc3267",
 	   used_bytes_for_frame,
 	   reset, 
 	   flush_rtp_packets,
-	   have_no_data,
+	   have_frame,
 	   NULL,
 	   0);

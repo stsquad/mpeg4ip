@@ -193,6 +193,7 @@ codec_data_t *mpeg4_iso_file_check (lib_message_func_t message,
    */
   len = strlen(name);
   if ((strcasecmp(name + len - 5, ".divx") != 0) &&
+      (strcasecmp(name + len - 5, ".xvid") != 0) &&
       (strcasecmp(name + len - 5, ".mp4v") != 0) &&
       (strcasecmp(name + len - 4, ".m4v") != 0) &&
       (strcasecmp(name + len - 4, ".cmp") != 0)) {
@@ -285,7 +286,7 @@ codec_data_t *mpeg4_iso_file_check (lib_message_func_t message,
  */
 int divx_file_next_frame (codec_data_t *your_data,
 			  uint8_t **buffer, 
-			  uint64_t *ts)
+			  frame_timestamp_t *ts)
 {
   iso_decode_t *divx;
   int next_hdr, value;
@@ -329,7 +330,8 @@ int divx_file_next_frame (codec_data_t *your_data,
     value = divx_find_header(divx, 4);
   }
 
-  *ts = (divx->m_frame_on * TO_U64(1000)) / divx->m_framerate;
+  ts->msec_timestamp = (divx->m_frame_on * TO_U64(1000)) / divx->m_framerate;
+  ts->timestamp_is_pts = false;
   *buffer = &divx->m_buffer[divx->m_buffer_on];
   divx->m_frame_on++;
   return divx->m_buffer_size - divx->m_buffer_on;

@@ -53,7 +53,6 @@ static codec_data_t *mp3_codec_create (const char *stream_type,
 #endif
   mp3->m_mp3_info = new MPEGaudio();
 
-  mp3->m_resync_with_header = 1;
   mp3->m_record_sync_time = 1;
 
   mp3->m_audio_inited = 0;
@@ -104,7 +103,6 @@ static void mp3_do_pause (codec_data_t *ifptr)
 {
   mp3_codec_t *mp3 = (mp3_codec_t *)ifptr;
 
-  mp3->m_resync_with_header = 1;
   mp3->m_record_sync_time = 1;
   mp3->m_audio_inited = 0;
 }
@@ -113,7 +111,7 @@ static void mp3_do_pause (codec_data_t *ifptr)
  * Decode task call for MP3
  */
 static int mp3_decode (codec_data_t *ptr,
-		       uint64_t ts, 
+		       frame_timestamp_t *ts, 
 		       int from_rtp, 
 		       int *sync_frame,
 		       uint8_t *buffer,
@@ -151,16 +149,40 @@ static int mp3_decode (codec_data_t *ptr,
 				AUDIO_FMT_S16, 
 				mp3->m_samplesperframe);
     mp3->m_audio_inited = 1;
-    mp3->m_last_rtp_ts = ts - 1; // so we meet the critera below
+    mp3->m_last_rtp_ts = ts->msec_timestamp - 1; // so we meet the critera below
   }
       
 
   uint8_t *buff;
-
+  uint32_t freq_timestamp;
+  freq_timestamp = ts->audio_freq_timestamp;
+  if (ts->audio_freq != mp3->m_freq) {
+    freq_timestamp = convert_timescale(freq_timestamp,
+				       ts->audio_freq,
+				       mp3->m_freq);
+  }
+  if (mp3->m_last_rtp_ts == ts->msec_timestamp) {
+#if 0
+    mp3_message(LOG_DEBUG, "mp3",
+		"ts %llu current time "U64" spf %d freq %d", 
+		ts, mp3->m_current_time, mp3->m_samplesperframe, 
+		mp3->m_freq);
+#endif
+    mp3->m_current_frame++;
+    mp3->m_current_time = mp3->m_last_rtp_ts + 
+      ((mp3->m_samplesperframe * mp3->m_current_frame * 1000) / mp3->m_freq);
+    freq_timestamp += (mp3->m_current_frame * mp3->m_samplesperframe);
+  } else {
+    mp3->m_last_rtp_ts = ts->msec_timestamp;
+    mp3->m_current_time = ts->msec_timestamp;
+    mp3->m_current_frame = 0;
+  }
     /* 
      * Get an audio buffer
      */
-  buff = mp3->m_vft->audio_get_buffer(mp3->m_ifptr);
+  buff = mp3->m_vft->audio_get_buffer(mp3->m_ifptr,
+				      freq_timestamp,
+				      mp3->m_current_time);
   if (buff == NULL) {
     //mp3_message(LOG_DEBUG, "mp3", "Can't get buffer in mp3 ts" U64, ts);
     return (-1);
@@ -168,18 +190,6 @@ static int mp3_decode (codec_data_t *ptr,
   bits = mp3->m_mp3_info->decodeFrame(buff, buffer, buflen);
 
   if (bits > 4) {
-    if (mp3->m_last_rtp_ts == ts) {
-#if 0
-      mp3_message(LOG_DEBUG, "mp3",
-		  "ts %llu current time "U64" spf %d freq %d", 
-		  ts, mp3->m_current_time, mp3->m_samplesperframe, 
-		  mp3->m_freq);
-#endif
-      mp3->m_current_time += ((mp3->m_samplesperframe * 1000) / mp3->m_freq);
-    } else {
-      mp3->m_last_rtp_ts = ts;
-      mp3->m_current_time = ts;
-    }
 #ifdef OUTPUT_TO_FILE
     fwrite(buff, mp3->m_chans * mp3->m_samplesperframe * sizeof(ushort), 1, mp3->m_output_file);
 #endif
@@ -187,19 +197,9 @@ static int mp3_decode (codec_data_t *ptr,
      * good result - give it to audio sync class
      * May want to check frequency, number of channels here...
      */
-    mp3->m_vft->audio_filled_buffer(mp3->m_ifptr, 
-				    mp3->m_current_time, 
-				    mp3->m_resync_with_header);
-    if (mp3->m_resync_with_header == 1) {
-      mp3->m_resync_with_header = 0;
-#ifdef DEBUG_SYNC
-      mp3_message(LOG_DEBUG, "libmp3", 
-		  "Back to good at "U64, mp3->m_current_time);
-#endif
-    }
+    mp3->m_vft->audio_filled_buffer(mp3->m_ifptr);
       
   } else {
-    mp3->m_resync_with_header = 1;
     mp3_message(LOG_DEBUG, "libmp3", "decode problem %d - at "U64, 
 		bits, mp3->m_current_time);
     bits = -1;

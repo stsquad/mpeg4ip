@@ -60,7 +60,7 @@ codec_data_t *ac3_file_check (lib_message_func_t message,
 
 int ac3_file_next_frame (codec_data_t *your,
 			 uint8_t **buffer, 
-			 uint64_t *ts)
+			 frame_timestamp_t *pts)
 {
   a52dec_codec_t *ac3 = (a52dec_codec_t *)your;
 
@@ -79,13 +79,16 @@ int ac3_file_next_frame (codec_data_t *your,
 
 
   uint64_t calc;
+  pts->audio_freq = ac3->m_freq;
+  pts->audio_freq_timestamp = ac3->m_framecount * 256 * 6;
+  pts->timestamp_is_pts = false;
   calc = ac3->m_framecount * 256 * 6 * TO_U64(1000);
   if (ac3->m_freq == 0) {
     calc = 0;
   } else {
     calc /= ac3->m_freq;
   }
-  *ts = calc;
+  pts->msec_timestamp = calc;
   *buffer = ac3->m_buffer;
   ac3->m_framecount++;
   return (ac3->m_buffer_size);

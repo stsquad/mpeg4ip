@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: aa_file.cpp,v 1.3 2004/03/15 23:56:29 wmaycisco Exp $
+** $Id: aa_file.cpp,v 1.4 2004/10/28 22:44:19 wmaycisco Exp $
 **/
 /*
  * aa_file.cpp - create media structure for aac files
@@ -77,7 +77,7 @@ codec_data_t *aac_file_check (lib_message_func_t message,
 
 int aac_file_next_frame (codec_data_t *your,
              uint8_t **buffer,
-             uint64_t *ts)
+             frame_timestamp_t *ts)
 {
   aac_codec_t *aac = (aac_codec_t *)your;
 
@@ -98,7 +98,10 @@ int aac_file_next_frame (codec_data_t *your,
   uint64_t calc;
   calc = aac->m_framecount * 1024 * M_LLU;
   calc /= aac->m_freq;
-  *ts = calc;
+  ts->msec_timestamp = calc;
+  ts->audio_freq_timestamp = aac->m_framecount * 1024;
+  ts->audio_freq = aac->m_freq;
+  ts->timestamp_is_pts = false;
   *buffer = aac->m_buffer;
   aac->m_framecount++;
   return (aac->m_buffer_size);

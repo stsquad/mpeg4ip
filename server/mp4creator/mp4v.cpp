@@ -210,8 +210,8 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
     u_int16_t frameWidth = 320;
     u_int16_t frameHeight = 240;
     u_int32_t esConfigSize = 0;
-    u_char vopType = 0;
-    u_char prevVopType = 0;
+    int vopType = 0;
+    int prevVopType = 0;
     bool foundVOSH = false, foundVO = false, foundVOL = false;
     u_int32_t lastVopTimeIncrement = 0;
     bool variableFrameRate = false;
@@ -465,7 +465,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                 // Write the previous sample
                 rc = MP4WriteSample(mp4File, trackId,
                         sampleData2Write, sampleLen2Write,
-                        mp4FrameDuration, 0, prevVopType == 'I');
+                        mp4FrameDuration, 0, prevVopType == VOP_TYPE_I);
 
                 if ( doEncrypt && sampleData2Write ) {
                     // buffer allocated by encrypt function.
@@ -484,7 +484,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                 // deal with rendering time offsets
                 // that can occur when B frames are being used
                 // which is the case for all profiles except Simple Profile
-                if ( prevVopType != 'B' ) {
+                if ( prevVopType != VOP_TYPE_B ) {
                     switch (videoProfileLevel) {
                         case MPEG4_SP_L0:
                         case MPEG4_SP_L1:
@@ -493,7 +493,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
                             break;
                         default:
 #ifdef DEBUG_MP4V
-                            printf("sample %u %c renderingOffset "U64"\n",
+                            printf("sample %u %d renderingOffset "U64"\n",
                                     refVopId, prevVopType,
                                     currentSampleTime - refVopTime);
 #endif
@@ -561,7 +561,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt,
             break;
         default:
 #ifdef DEBUG_MP4V
-            printf("sample %u %c renderingOffset "U64"\n",
+            printf("sample %u %d renderingOffset "U64"\n",
                     refVopId, prevVopType, currentSampleTime - refVopTime);
 #endif
             MP4SetSampleRenderingOffset(mp4File, trackId, refVopId,

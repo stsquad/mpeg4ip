@@ -10,7 +10,7 @@ faad2_plugin_la_SOURCES = \
 
 faad2_plugin_la_LIBADD = \
 	$(top_builddir)/libfaad/libfaad.la \
-	-lm
+	-lm -lmp4av -lmp4v2
 
 
 INCLUDES =  -I$(top_srcdir)/include

@@ -81,7 +81,7 @@ static int rawv_video_frame_is_sync (codec_data_t *ptr,
 }
 
 static int rawv_decode (codec_data_t *ptr,
-			uint64_t ts, 
+			frame_timestamp_t *ts, 
 			int from_rtp,
 			int *sync_frame,
 			uint8_t *buffer, 
@@ -105,7 +105,8 @@ static int rawv_decode (codec_data_t *ptr,
   }
                        
   rawv->m_vft->video_have_frame(rawv->m_ifptr,
-				y, u, v, rawv->m_w, rawv->m_w / 2, ts);
+				y, u, v, rawv->m_w, rawv->m_w / 2, 
+				ts->msec_timestamp);
 
   return (buflen);
 }

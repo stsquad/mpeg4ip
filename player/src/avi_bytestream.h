@@ -40,9 +40,10 @@ class CAviByteStreamBase : public COurInByteStream
   
   int eof(void);
   virtual void reset(void) = 0;
-  virtual uint64_t start_next_frame (uint8_t **buf,
-				     uint32_t *buflen,
-				     void **ud) = 0;
+  virtual bool start_next_frame (uint8_t **buf,
+				 uint32_t *buflen,
+				 frame_timestamp_t *ts,
+				 void **ud) = 0;
   virtual void used_bytes_for_frame(uint32_t bytes) = 0;
  protected:
   CAviFile *m_parent;
@@ -71,9 +72,10 @@ class CAviVideoByteStream : public CAviByteStreamBase
     read_frame(0);
     };
   void reset(void);
-  uint64_t start_next_frame(uint8_t **buf,
-			    uint32_t *buflen,
-			    void **ud);
+  bool start_next_frame(uint8_t **buf,
+			uint32_t *buflen,
+			frame_timestamp_t *ts,
+			void **ud);
   void used_bytes_for_frame(uint32_t bytes);
   void play (uint64_t start);
   double get_max_playtime (void) {
@@ -104,9 +106,10 @@ class CAviAudioByteStream : public CAviByteStreamBase
     {
     };
   void reset(void);
-  uint64_t start_next_frame(uint8_t **buffer, 
-			    uint32_t *buflen, 
-			    void **ud);
+  bool start_next_frame(uint8_t **buffer, 
+			uint32_t *buflen, 
+			frame_timestamp_t *ts,
+			void **ud);
   void used_bytes_for_frame(uint32_t bytes);
   void play(uint64_t start);
   double get_max_playtime (void) {

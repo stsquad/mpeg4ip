@@ -45,19 +45,22 @@ class CMpeg3RtpByteStream : public CRtpByteStream
 		      uint32_t ntp_frac,
 		      uint32_t ntp_sec,
 		      uint32_t rtp_ts);
-  int have_no_data(void);
-  uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
-			    void **ud);
-  int skip_next_frame(uint64_t *ptr, int *hasSyncFrame,
+  bool have_frame(void);
+  bool start_next_frame(uint8_t **buffer, uint32_t *buflen,
+			frame_timestamp_t *ts,
+			void **ud);
+  bool skip_next_frame(frame_timestamp_t *ts, int *hasSyncFrame,
 		      uint8_t **buffer, uint32_t *buflen,
 		      void **userdata = NULL);
  protected:
-  void rtp_done_buffering(void);
+  //  void rtp_done_buffering(void);
  private:
+#if 0
   uint32_t m_rtp_frame_add;
   int m_have_mpeg_ip_ts;
   uint32_t m_mpeg_ip_ts;
   uint32_t calc_this_ts_from_future(int frame_type, uint32_t pak_ts, uint8_t temp_ref);
+#endif
   
 };
 #endif

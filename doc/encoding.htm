@@ -224,6 +224,12 @@ divx and xvid have created different ways to store b-frames in avi files.
 Therefore, avi support is deprecated.  We recommend using avi2raw for
 audio and video in the avi file, then using the elementary stream file
 to create the content.
+<p>
+If you want to create streaming files with mpeg audio (mp2 or mp3) to
+stream with Quicktime or Real, 
+use the <code>--timescale=90000</code> flag when adding that stream with 
+mp4creator.  This will force the hinter to use Rtp Payload 14, and a 90000 
+timescale, instead of using MPA and the sampling frequency.
 <div id="hint">
 <h3>Hinting tracks file</h3></div>
 <p>

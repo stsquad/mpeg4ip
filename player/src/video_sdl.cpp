@@ -35,6 +35,7 @@
 #include <SDL/SDL_syswm.h>
 #endif
 #include "our_config_file.h"
+
 //#define VIDEO_SYNC_PLAY 2
 //#define VIDEO_SYNC_FILL 1
 //#define SHORT_VIDEO 1
@@ -107,14 +108,14 @@ CSDLVideo::CSDLVideo(int initial_x, int initial_y)
 	m_max_height = DisplayHeight(info.info.x11.display, 
                             DefaultScreen(info.info.x11.display));
         info.info.x11.unlock_func();
-        video_message(LOG_INFO, "Max Window resolution %dx%d\n", m_max_width, m_max_height);
+        video_message(LOG_INFO, "Max Window resolution %dx%d", m_max_width, m_max_height);
   } else {
-      video_message(LOG_ERR, "Failed to get Max resolution foe window system\n");
+      video_message(LOG_ERR, "Failed to get Max resolution foe window system");
   }
 #elif defined (WM_WIN)
       m_max_width=GetSystemMetrics(SM_CXSCREEN);
       m_max_height=GetSystemMetrics(SM_CYSCREEN);
-      video_message(LOG_INFO, "Max Window resolution %dx%d\n", m_max_width, m_max_height);
+      video_message(LOG_INFO, "Max Window resolution %dx%d", m_max_width, m_max_height);
 #endif
   }
 }
@@ -213,7 +214,7 @@ void  CSDLVideo::set_screen_size(int fullscreen, int video_scale,
     //--------
     if(m_max_width > 0 ) win_w = m_max_width;
     if (m_max_height > 0 ) win_h = m_max_height;
-    video_message(LOG_INFO, "Setting full screen mode %dx%d\n", win_w, win_h);
+    video_message(LOG_INFO, "Setting full screen mode %dx%d", win_w, win_h);
     //--------
   }
 
@@ -634,140 +635,132 @@ void CSDLVideoSync::play_video (void)
  * CSDLVideoSync::play_video_at - called from sync task to show the next
  * video frame (if the timing is right
  */
-int64_t CSDLVideoSync::play_video_at (uint64_t current_time, 
-				      int &have_eof)
+bool CSDLVideoSync::play_video_at (uint64_t current_time, 
+				   bool have_audio_resync,
+				   uint64_t &next_time,
+				   bool &have_eof)
 {
-  uint64_t play_this_at;
-  int64_t ret_value;
+  uint64_t play_this_at = 0;
   bool done = false;
   bool used_frame = false;
 #ifdef VIDEO_SYNC_FILL
   uint32_t temp = 0;
 #endif
-  ret_value = 0;
+  bool have_next_time = true;
 
   while (done == false) {
-
-  // This needs to be re-written to get rid of all the old frames
-  //before signaling the other threads that it's ready.
-  
-  /*
-   * m_buffer_filled is ring buffer of YUV data from decoders, with
-   * timestamps.
-   * If the next buffer is not filled, indicate that, as well
-   */
-  if (m_buffer_filled[m_play_index] == 0) {
     /*
-     * If we have end of file, indicate it
+     * m_buffer_filled is ring buffer of YUV data from decoders, with
+     * timestamps.
+     * If the next buffer is not filled, indicate that, as well
      */
-    done = true;
-    if (m_eof_found != 0) {
-      have_eof = 1;
-      ret_value = -1;
+    if (m_buffer_filled[m_play_index] == 0) {
+      /*
+       * If we have end of file, indicate it
+       */
+      if (m_eof_found != 0) {
+	have_eof = true;
+      }
+      done = true;
+      have_next_time = false;
+      continue;
     }
-    ret_value = 10;
-    continue;
-  }
   
-  /*
-   * we have a buffer.  If it is in the future, don't play it now
-   */
-  play_this_at = m_play_this_at[m_play_index];
-  if (play_this_at > current_time) {
-    ret_value = play_this_at - current_time;
-    done = true;
-    continue;
-  }
+    /*
+     * we have a buffer.  If it is in the future, don't play it now
+     */
+    play_this_at = m_play_this_at[m_play_index];
+    if (play_this_at > current_time) {
+      have_next_time = true;
+      done = true;
+      continue;
+    }
 #if VIDEO_SYNC_PLAY
-  video_message(LOG_DEBUG, "play "U64" at "U64 " %d "U64, play_this_at, current_time,
-		m_play_index, m_msec_per_frame);
+    video_message(LOG_DEBUG, "play "U64" at "U64 " %d "U64, play_this_at, current_time,
+		  m_play_index, m_msec_per_frame);
 #endif
 
-  /*
-   * If we're behind - see if we should just skip it
-   */
-  if (play_this_at < current_time) {
-    m_behind_frames++;
-    uint64_t behind = current_time - play_this_at;
-    m_behind_time += behind;
-    if (behind > m_behind_time_max) m_behind_time_max = behind;
+    /*
+     * If we're behind - see if we should just skip it
+     */
+    if (play_this_at < current_time) {
+      uint64_t behind = current_time - play_this_at;
+      if (have_audio_resync && behind > TO_U64(1000)) {
+	have_next_time = true;
+	done = true;
+	continue;
+      }
+      m_behind_frames++;
+      m_behind_time += behind;
+      if (behind > m_behind_time_max) m_behind_time_max = behind;
 #if 0
-    if ((m_behind_frames % 64) == 0) {
-      video_message(LOG_DEBUG, "behind "U64" avg "U64" max "U64,
-			   behind, m_behind_time / m_behind_frames,
-			   m_behind_time_max);
+      if ((m_behind_frames % 64) == 0) {
+	video_message(LOG_DEBUG, "behind "U64" avg "U64" max "U64,
+		      behind, m_behind_time / m_behind_frames,
+		      m_behind_time_max);
+      }
+#endif
     }
-#endif
-  }
-  m_paused = 0;
-  /*
-   * If we're within 1/2 of the frame time, go ahead and display
-   * this frame
-   */
-  if ((play_this_at + m_msec_per_frame) > current_time) {
-#if 0
-  if ((m_msec_per_frame == 0) || 
-      ((play_this_at + m_msec_per_frame) > current_time) ||
-      (m_consec_skipped > 10)) {
-#endif
+    m_paused = 0;
+    /*
+     * If we're within 1/2 of the frame time, go ahead and display
+     * this frame
+     */
+    if ((play_this_at + m_msec_per_frame) > current_time) {
       m_consec_skipped = 0;
       m_sdl_video->display_image(m_y_buffer[m_play_index],
 				 m_u_buffer[m_play_index],
 				 m_v_buffer[m_play_index]);
-  } 
-else {
+    } else {
 #if 0
-    video_message(LOG_DEBUG, "Video lagging current time "U64" "U64" "U64, 
-			 play_this_at, current_time, m_msec_per_frame);
+      video_message(LOG_DEBUG, "Video lagging current time "U64" "U64" "U64, 
+		    play_this_at, current_time, m_msec_per_frame);
 #endif
+      /*
+       * Else - we're lagging - just skip and hope we catch up...
+       */
+      m_skipped_render++;
+      m_consec_skipped++;
+    }
     /*
-     * Else - we're lagging - just skip and hope we catch up...
+     * Advance the ring buffer, indicating that the decoder can fill this
+     * buffer.
      */
-    m_skipped_render++;
-    m_consec_skipped++;
-  }
-  /*
-   * Advance the ring buffer, indicating that the decoder can fill this
-   * buffer.
-   */
-  m_buffer_filled[m_play_index] = 0;
+    m_buffer_filled[m_play_index] = 0;
 #ifdef VIDEO_SYNC_FILL
-  temp = m_play_index;
+    temp = m_play_index;
 #endif
-  m_play_index++;
-  m_play_index %= MAX_VIDEO_BUFFERS;
-  m_total_frames++;
-  used_frame = true;
+    increment_play_index();
+    used_frame = true;
   }
-  if (used_frame && m_decode_waiting) {
+  if (used_frame) {
+    notify_decode_thread();
+  }
+  next_time = play_this_at;
+  return have_next_time;
+}
+
+void CSDLVideoSync::increment_play_index (void)
+{
+    m_play_index++;
+    m_play_index %= MAX_VIDEO_BUFFERS;
+    m_total_frames++;
+}
+
+void CSDLVideoSync::notify_decode_thread (void)
+{
+  if (m_decode_waiting) {
     // If the decode thread is waiting, signal it.
     m_decode_waiting = 0;
     SDL_SemPost(m_decode_sem);
-#ifdef VIDEO_SYNC_FILL
-    video_message(LOG_DEBUG, "wait posting %d", temp);
-#endif
   }
+}
 
-  return ret_value;
-#if 0
-  // Try to return the next time we want to play - it's probably not
-  // accurate, but it should be okay - the sync task looks every 10 msec
-  // or so, anyway.
-  if (m_buffer_filled[m_play_index] == 1) {
-    if (m_play_this_at[m_play_index] < current_time) 
-      return (0);
-    else {
-      m_msec_per_frame = m_play_this_at[m_play_index] - current_time;
-      return (m_msec_per_frame);
-    }
-  }
-  /*
-   * we don't have next frame decoded yet.  Wait a minimal time - this
-   * means the decode task will signal
-   */
-  m_msec_per_frame = 0;
-  return (10);
-#endif
+void CSDLVideoSync::drop_next_frame (void) 
+{
+  increment_play_index();
+  notify_decode_thread();
+  m_skipped_render++;
 }
 
 /*

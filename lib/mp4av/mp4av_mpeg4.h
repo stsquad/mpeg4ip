@@ -88,16 +88,32 @@ bool MP4AV_Mpeg4ParseGov(
 bool MP4AV_Mpeg4ParseVop(
 	u_int8_t* pVopBuf, 
 	u_int32_t vopSize,
-	u_char* pVopType, 
+	int* pVopType, 
 	u_int8_t timeBits, 
 	u_int16_t timeTicks, 
 	u_int32_t* pVopTimeIncrement);
 
-u_char MP4AV_Mpeg4GetVopType(
+int MP4AV_Mpeg4GetVopType(
 	u_int8_t* pVopBuf, 
 	u_int32_t vopSize);
 
   const char *MP4AV_Mpeg4VisualProfileName (uint8_t profile);
+#define VOP_TYPE_I 1
+#define VOP_TYPE_P 2
+#define VOP_TYPE_B 3
+#define VOP_TYPE_S 4
+
+typedef struct mp4av_pts_to_dts_t {
+  int last_type;
+  uint64_t last_dts;
+  int have_last_pts;
+  uint64_t last_pts;
+} mp4av_pts_to_dts_t;
+int MP4AV_calculate_dts_from_pts(mp4av_pts_to_dts_t *ptr,
+				 uint64_t pts,
+				 int type,
+				 uint64_t *dts);
+  void MP4AV_clear_dts_from_pts (mp4av_pts_to_dts_t *ptr);
 #ifdef __cplusplus
 }
 #endif

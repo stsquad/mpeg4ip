@@ -93,7 +93,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
   uint8_t use_buffer = 1;
   //MP4Timestamp currentTime;
 
-  u_char vopType;
+  int vopType;
   mp4v2_ismacrypParams *icPp =  (mp4v2_ismacrypParams *) malloc(sizeof(mp4v2_ismacrypParams));
   memset(icPp, 0, sizeof(mp4v2_ismacrypParams));
 
@@ -362,7 +362,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 
       MP4WriteSample(mp4File, trackId, 
 		     pPrevFrameBuffer, prevFrameSize, dur, 0, 
-		     vopType  == 'I');
+		     vopType  == VOP_TYPE_I);
       dur = mp4FrameDuration;
       pPrevFrameBuffer = vophdr;
       prevFrameSize = frameSize;
@@ -381,7 +381,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
   vopType = MP4AV_Mpeg4GetVopType(pPrevFrameBuffer, prevFrameSize);
   MP4WriteSample(mp4File, trackId, 
 		 pPrevFrameBuffer, prevFrameSize, dur, 0, 
-		 vopType  == 'I');
+		 vopType  == VOP_TYPE_I);
 
   return trackId;
 }

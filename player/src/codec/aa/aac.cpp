@@ -22,6 +22,7 @@
 #include <mp4util/mpeg4_audio_config.h>
 #include <mp4util/mpeg4_sdp.h>
 #include <mp4.h>
+#include <mp4av.h>
 
 #define DEBUG_SYNC 2
 
@@ -154,7 +155,7 @@ static void aac_do_pause (codec_data_t *ifptr)
  * Decode task call for FAAC
  */
 static int aac_decode (codec_data_t *ptr,
-		       uint64_t ts,
+		       frame_timestamp_t *ts,
 		       int from_rtp,
 		       int *sync_frame,
 		       uint8_t *buffer,
@@ -165,19 +166,30 @@ static int aac_decode (codec_data_t *ptr,
   unsigned long bytes_consummed;
   int bits = -1;
   //  struct timezone tz;
+  uint32_t freq_timestamp;
 
+  freq_timestamp = ts->audio_freq_timestamp;
+  if (ts->audio_freq != aac->m_freq) {
+    freq_timestamp = convert_timescale(freq_timestamp,
+				       ts->audio_freq,
+				       aac->m_freq);
+  }
   if (aac->m_record_sync_time) {
     aac->m_current_frame = 0;
     aac->m_record_sync_time = 0;
-    aac->m_current_time = ts;
-    aac->m_last_rtp_ts = ts;
+    aac->m_current_time = ts->msec_timestamp;
+    aac->m_last_rtp_ts = ts->msec_timestamp;
   } else {
-    if (aac->m_last_rtp_ts == ts) {
-      aac->m_current_time += aac->m_msec_per_frame;
+    if (aac->m_last_rtp_ts == ts->msec_timestamp) {
       aac->m_current_frame++;
+      aac->m_current_time = aac->m_last_rtp_ts;
+      aac->m_current_time += 
+	aac->m_output_frame_size * aac->m_current_frame * 
+	TO_U64(1000) / aac->m_freq;
+      freq_timestamp += aac->m_output_frame_size * aac->m_current_frame;
     } else {
-      aac->m_last_rtp_ts = ts;
-      aac->m_current_time = ts;
+      aac->m_last_rtp_ts = ts->msec_timestamp;
+      aac->m_current_time = ts->msec_timestamp;
       aac->m_current_frame = 0;
     }
 
@@ -212,7 +224,9 @@ static int aac_decode (codec_data_t *ptr,
     if (aac->m_audio_inited == 0) {
       buff = aac->m_temp_buff;
     } else {
-      buff = aac->m_vft->audio_get_buffer(aac->m_ifptr);
+      buff = aac->m_vft->audio_get_buffer(aac->m_ifptr,
+					  freq_timestamp,
+					  aac->m_current_time);
     }
     if (buff == NULL) {
       //player_debug_message("Can't get buffer in aa");
@@ -255,7 +269,10 @@ static int aac_decode (codec_data_t *ptr,
 				     aac->m_chans, 
 				     AUDIO_FMT_S16, 
 				     aac->m_output_frame_size);
-	uint8_t *now = aac->m_vft->audio_get_buffer(aac->m_ifptr);
+	uint8_t *now = aac->m_vft->audio_get_buffer(aac->m_ifptr,
+						    freq_timestamp,
+						    aac->m_current_time);
+
 	if (now != NULL) {
 	  memcpy(now, buff, tempchans * aac->m_output_frame_size * sizeof(int16_t));
 	}
@@ -267,9 +284,7 @@ static int aac_decode (codec_data_t *ptr,
 #if DUMP_OUTPUT_TO_FILE
       fwrite(buff, aac->m_output_frame_size * 4, 1, aac->m_outfile);
 #endif
-      aac->m_vft->audio_filled_buffer(aac->m_ifptr,
-				      aac->m_current_time, 
-				      aac->m_resync_with_header);
+      aac->m_vft->audio_filled_buffer(aac->m_ifptr);
       if (aac->m_resync_with_header == 1) {
 	aac->m_resync_with_header = 0;
 #ifdef DEBUG_SYNC

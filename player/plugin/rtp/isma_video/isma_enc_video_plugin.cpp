@@ -98,10 +98,11 @@ static void r2429_rtp_destroy (rtp_plugin_data_t *pifptr)
   free(iptr);
 }
 
-static uint64_t start_next_frame (rtp_plugin_data_t *pifptr, 
-				  uint8_t **buffer, 
-				  uint32_t *buflen,
-				  void **userdata)
+static bool start_next_frame (rtp_plugin_data_t *pifptr, 
+			      uint8_t **buffer, 
+			      uint32_t *buflen,
+			      frame_timestamp_t *ts,
+			      void **userdata)
 {
   isma_enc_video_rtp_data_t *iptr = (isma_enc_video_rtp_data_t *)pifptr;
   uint64_t timetick;
@@ -137,7 +138,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
       dlen = rpak->rtp_data_len;
 
       if ( rpak->rtp_pak_seq - seq > 1 ) {
-          return 0;
+          return false;
       }
       else
           seq = rpak->rtp_pak_seq;
@@ -208,7 +209,9 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
 
         ismacrypDecryptSampleRandomAccess(iptr->myEncSID, IV, *buflen, *buffer);
         //ismacrypDecryptSample(iptr->myEncSID, *buflen, *buffer);
-	return timetick;
+	ts->msec_timestamp = timetick;
+	ts->timestamp_is_pts = true;
+	return true;
       }
       // free and get the next one
       (iptr->m_vft->free_pak)(rpak);
@@ -218,7 +221,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
     } while (rpak && rpak->rtp_pak_ts == rtp_ts);
   
   }
-  return 0;
+  return false;
 
 }
 
@@ -234,24 +237,24 @@ static void flush_rtp_packets (rtp_plugin_data_t *pifptr)
 {
 }
 
-static int have_no_data (rtp_plugin_data_t *pifptr)
+static bool have_frame (rtp_plugin_data_t *pifptr)
 {
   isma_enc_video_rtp_data_t *iptr = (isma_enc_video_rtp_data_t *)pifptr;
   rtp_packet *rpak, *firstpak;
 
   firstpak = rpak = (iptr->m_vft->get_next_pak)(iptr->m_ifptr, NULL, 0);
 
-  if (firstpak == NULL) return true;
+  if (firstpak == NULL) return false;
 
-  if (firstpak->rtp_pak_m != 0) return false;
+  if (firstpak->rtp_pak_m != 0) return true;
 
   do {
     rpak = (iptr->m_vft->get_next_pak)(iptr->m_ifptr, rpak, 0);
-    if (rpak == NULL) return true;
+    if (rpak == NULL) return false;
 
-    if (rpak && rpak->rtp_pak_m != 0) return false;
+    if (rpak && rpak->rtp_pak_m != 0) return true;
   } while (rpak != firstpak);
-  return true;
+  return false;
 }
 
 RTP_PLUGIN("enc-mpeg4-generic:video", 
@@ -262,6 +265,6 @@ RTP_PLUGIN("enc-mpeg4-generic:video",
 	   used_bytes_for_frame,
 	   reset, 
 	   flush_rtp_packets,
-	   have_no_data,
+	   have_frame,
 	   NULL,
 	   0);

@@ -105,7 +105,7 @@ extern "C" void MP4AV_Rfc3016_HintAddSample (
 					     uint16_t maxPayloadSize)
 {
   bool isBFrame = 
-    (MP4AV_Mpeg4GetVopType(pSampleBuffer, sampleSize) == 'B');
+    (MP4AV_Mpeg4GetVopType(pSampleBuffer, sampleSize) == VOP_TYPE_B);
 
   MP4AddRtpVideoHint(mp4File, hintTrackId, isBFrame, renderingOffset);
 

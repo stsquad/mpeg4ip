@@ -1,7 +1,28 @@
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ * 
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ * 
+ * The Original Code is MPEG4IP.
+ * 
+ * The Initial Developer of the Original Code is Cisco Systems Inc.
+ * Portions created by Cisco Systems Inc. are
+ * Copyright (C) Cisco Systems Inc. 2004.  All Rights Reserved.
+ * 
+ * Contributor(s): 
+ *		Bill May wmay@cisco.com
+ */
 
 #include "mpeg4ip.h"
 #include "mp4av_h264.h"
 #include "bitstream.h"
+//#define BOUND_VERBOSE
 
 static uint8_t exp_golomb_bits[256] = {
 8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 3, 
@@ -256,6 +277,9 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
   case H264_NAL_TYPE_ACCESS_UNIT:
   case H264_NAL_TYPE_END_OF_SEQ:
   case H264_NAL_TYPE_END_OF_STREAM:
+#ifdef BOUND_VERBOSE
+    printf("nal type %d\n", temp);
+#endif
     ret = 1;
     break;
   case H264_NAL_TYPE_NON_IDR_SLICE:
@@ -272,14 +296,26 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
 	decode->nal_unit_type < H264_NAL_TYPE_NON_IDR_SLICE) {
       break;
     }
-    if ((decode->frame_num != new_decode.frame_num) ||
-	(decode->field_pic_flag != new_decode.field_pic_flag)) {
+    if (decode->frame_num != new_decode.frame_num) {
+#ifdef BOUND_VERBOSE
+      printf("frame num values different\n");
+#endif
       ret = 1;
+      break;
+    }
+    if (decode->field_pic_flag != new_decode.field_pic_flag) {
+      ret = 1;
+#ifdef BOUND_VERBOSE
+      printf("field pic values different\n");
+#endif
       break;
     }
     if (decode->nal_ref_idc != new_decode.nal_ref_idc &&
 	(decode->nal_ref_idc == 0 ||
 	 new_decode.nal_ref_idc == 0)) {
+#ifdef BOUND_VERBOSE
+      printf("nal ref idc values differ\n");
+#endif
       ret = 1;
       break;
     }
@@ -287,20 +323,32 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
 	decode->pic_order_cnt_type == new_decode.pic_order_cnt_type) {
       if (decode->pic_order_cnt_type == 0) {
 	if (decode->pic_order_cnt_lsb != new_decode.pic_order_cnt_lsb) {
+#ifdef BOUND_VERBOSE
+	  printf("pic order 1\n");
+#endif
 	  ret = 1;
 	  break;
 	}
 	if (decode->delta_pic_order_cnt_bottom != new_decode.delta_pic_order_cnt_bottom) {
 	  ret = 1;
+#ifdef BOUND_VERBOSE
+	  printf("delta pic order cnt bottom 1\n");
+#endif
 	  break;
 	}
       } else if (decode->pic_order_cnt_type == 1) {
 	if (decode->delta_pic_order_cnt[0] != new_decode.delta_pic_order_cnt[0]) {
 	  ret =1;
+#ifdef BOUND_VERBOSE
+	  printf("delta pic order cnt [0]\n");
+#endif
 	  break;
 	}
 	if (decode->delta_pic_order_cnt[1] != new_decode.delta_pic_order_cnt[1]) {
 	  ret = 1;
+#ifdef BOUND_VERBOSE
+	  printf("delta pic order cnt [1]\n");
+#endif
 	  break;
 	  
 	}
@@ -309,6 +357,10 @@ extern "C" int h264_detect_boundary (const uint8_t *buffer,
     if (decode->nal_unit_type == H264_NAL_TYPE_IDR_SLICE &&
 	new_decode.nal_unit_type == H264_NAL_TYPE_IDR_SLICE) {
       if (decode->idr_pic_id != new_decode.idr_pic_id) {
+#ifdef BOUND_VERBOSE
+	printf("idr_pic id\n");
+#endif
+	
 	ret = 1;
 	break;
       }

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000 - 2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Massimo Villari        mvillari@cisco.com
@@ -29,6 +29,7 @@
 #include <mp4util/mpeg4_audio_config.h>
 #include <mp4util/mpeg4_sdp.h>
 #include <mp4v2/mp4.h>
+#include <mp4av/mp4av.h>
 
 #define DEBUG_SYNC 2
 #define bit2byte(a) (((a)+8-1)/8)
@@ -68,7 +69,6 @@ static codec_data_t *celp_codec_create (const char *stream_type,
   
   // Start setting up CELP stuff...
   
-  celp->m_resync_with_header = 1;
   celp->m_record_sync_time = 1;
   
   celp->m_celp_inited = 0;
@@ -140,7 +140,7 @@ static codec_data_t *celp_codec_create (const char *stream_type,
 	     bBuffer ,&celp->m_output_frame_size,&delayNumSample);
 
 
-
+  celp->m_samples_per_frame = celp->m_output_frame_size;
   celp->m_msec_per_frame *= TO_U64(1000);
   celp->m_msec_per_frame /= celp->m_freq;
   celp->m_last=userdata_size;
@@ -152,7 +152,7 @@ static codec_data_t *celp_codec_create (const char *stream_type,
 	
   celp->m_sampleBuf=(float**)malloc(celp->m_chans*sizeof(float*));
   for(i=0;i<celp->m_chans;i++)
-    // wmay - added 2 times
+    // wmay - added 2 times - return for frame size was samples, not bytes
     celp->m_sampleBuf[i]=(float*)malloc(2*celp->m_output_frame_size*sizeof(float));
 
   celp->m_bufs = 
@@ -246,7 +246,6 @@ static void celp_do_pause (codec_data_t *ifptr)
   
 
   celp_codec_t *celp = (celp_codec_t *)ifptr;
-  celp->m_resync_with_header = 1;
   celp->m_record_sync_time = 1;
   celp->m_audio_inited = 0;
   celp->m_celp_inited = 0;
@@ -257,7 +256,7 @@ static void celp_do_pause (codec_data_t *ifptr)
  * Decode task call for CELP
  */
 static int celp_decode (codec_data_t *ptr,
-			uint64_t ts,
+			frame_timestamp_t *pts,
 			int from_rtp,
 			int *sync_frame,
 			uint8_t *buffer,
@@ -266,19 +265,30 @@ static int celp_decode (codec_data_t *ptr,
 {
   int usedNumBit;	
   celp_codec_t *celp = (celp_codec_t *)ptr;
-  
+
+  uint32_t freq_ts;
+
+  freq_ts = pts->audio_freq_timestamp;
+  if (pts->audio_freq != celp->m_freq) {
+    freq_ts = convert_timescale(freq_ts, pts->audio_freq, celp->m_freq);
+  }
   if (celp->m_record_sync_time) {
     celp->m_current_frame = 0;
     celp->m_record_sync_time = 0;
-    celp->m_current_time = ts;
-    celp->m_last_rtp_ts = ts;
+    celp->m_current_time = pts->msec_timestamp;
+    celp->m_last_rtp_ts = freq_ts;
+    celp->m_current_freq_time = freq_ts;
   } else {
-    if (celp->m_last_rtp_ts == ts) {
-      celp->m_current_time += celp->m_msec_per_frame;
+    if (celp->m_last_rtp_ts == pts->audio_freq_timestamp) {
       celp->m_current_frame++;
+      celp->m_current_time = celp->m_last_rtp_ts;
+      celp->m_current_time += 
+	celp->m_samples_per_frame * celp->m_current_frame * TO_U64(1000) / 
+	celp->m_freq;
+      celp->m_current_freq_time += celp->m_samples_per_frame;
     } else {
-      celp->m_last_rtp_ts = ts;
-      celp->m_current_time = ts;
+      celp->m_last_rtp_ts = celp->m_current_freq_time = freq_ts;
+      celp->m_current_time = pts->msec_timestamp;
       celp->m_current_frame = 0;
     }
 
@@ -319,7 +329,9 @@ static int celp_decode (codec_data_t *ptr,
 	
   int chan,sample;
 
-  uint8_t *now = celp->m_vft->audio_get_buffer(celp->m_ifptr);
+  uint8_t *now = celp->m_vft->audio_get_buffer(celp->m_ifptr,
+					       celp->m_current_freq_time,
+					       celp->m_current_time);
   if (now != NULL) {
     uint16_t *buf = (uint16_t *)now;
     
@@ -335,15 +347,7 @@ static int celp_decode (codec_data_t *ptr,
 #if DUMP_OUTPUT_TO_FILE
   fwrite(buff, celp->m_output_frame_size * 4, 1, celp->m_outfile);
 #endif
-  celp->m_vft->audio_filled_buffer(celp->m_ifptr,
-				   celp->m_current_time, 
-				   celp->m_resync_with_header);
-  if (celp->m_resync_with_header == 1) {
-    celp->m_resync_with_header = 0;
-#ifdef DEBUG_SYNC
-    celp_message(LOG_DEBUG, celplib, "Back to good at "U64, celp->m_current_time);
-#endif
-  }
+  celp->m_vft->audio_filled_buffer(celp->m_ifptr);
       
   return bit2byte(usedNumBit);
 }

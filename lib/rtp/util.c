@@ -3,8 +3,8 @@
  * PROGRAM: RAT
  * AUTHOR: Isidor Kouvelas + Colin Perkins + Mark Handley + Orion Hodson
  * 
- * $Revision: 1.3 $
- * $Date: 2002/01/11 00:55:16 $
+ * $Revision: 1.4 $
+ * $Date: 2004/10/28 22:44:17 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -311,6 +311,7 @@ int strfind(const char *haystack, const char *needle_start, const char *needle_e
 #ifdef DEBUG
 	/* Paranoia check that memory between needle_start and needle_end */
 	/* is a valid string, and doesn't contain a zero byte.            */
+	//assert(needle_start < needle_end);
 	for (n = needle_start; n != needle_end; n++) {
 		ASSERT(*n != '\0');
 	}

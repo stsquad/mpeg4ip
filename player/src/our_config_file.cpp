@@ -61,6 +61,8 @@ static const SConfigVariable MyConfigVariables[] = {
   CONFIG_STRING_HELP(CONFIG_MULTICAST_RX_IF, "MulticastIf", NULL, "Physical interface to receive multicast"),
   CONFIG_INT_HELP(CONFIG_RX_SOCKET_SIZE, "RxSocketSize", 0, "Default receive buffer socket size"),
   CONFIG_STRING(CONFIG_MULTICAST_SRC, "MulticastSrc", NULL),
+  CONFIG_STRING(CONFIG_LOG_FILE, "LogFile", NULL),
+  CONFIG_BOOL_HELP(CONFIG_DISPLAY_DEBUG, "DisplayDebug", false, "In gmp4player, display status information every second"),
 };
 
 CConfigSet config(MyConfigVariables, 

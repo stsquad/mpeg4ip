@@ -36,7 +36,7 @@ static char* PrintAudioInfo(
 		"MPEG-4 AAC LC",
 		"MPEG-4 AAC SSR",
 		"MPEG-4 AAC LTP",
-		NULL,
+		"MPEG-4 AAC HE",
 		"MPEG-4 AAC Scalable",
 		"MPEG-4 TwinVQ",
 		"MPEG-4 CELP",
@@ -122,7 +122,7 @@ static char* PrintAudioInfo(
 	    
 	    if (pAacConfig != NULL && aacConfigLength >= 2) {
 	      type = (pAacConfig[0] >> 3) & 0x1f;
-	      if (type == 0 || type == 5 || type == 10 || type == 11 ||
+	      if (type == 0 || /* type == 5 || */ type == 10 || type == 11 ||
 		  type == 18 || type >= 28) {
 		typeName = "MPEG-4 Unknown Profile";
 	      } else {

@@ -29,7 +29,7 @@
 //#define DEBUG_RTP_PAKS 1
 //#define DEBUG_RTP_FRAMES 1
 //#define DEBUG_RTP_BCAST 1
-//#define DEBUG_RTP_WCLOCK 1
+#define DEBUG_RTP_WCLOCK 1
 //#define DEBUG_RTP_TS 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
@@ -47,100 +47,87 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
 			     const char *name)
 {
   rtp_packet *q;
-  int inserted = TRUE;
-  int16_t diff;
+  bool inserted = true;
+  int16_t head_diff = 0, tail_diff = 0;
 #ifdef DEBUG_RTP_PAKS
   rtp_message(LOG_DEBUG, "%s - m %u pt %u seq %u ts %u len %d", 
 	      name,
 	      pak->rtp_pak_m, pak->rtp_pak_pt, pak->rtp_pak_seq, 
 	      pak->rtp_pak_ts, pak->rtp_data_len);
 #endif
-  
+
   if (*head == NULL) {
+    // no packets on queue
     *head = *tail = pak;
-  } else if (*head == *tail) {
-    if (pak->rtp_pak_seq == (*head)->rtp_pak_seq) {
-      rtp_message(LOG_ERR, "Duplicate RTP sequence number %d received", 
-		  pak->rtp_pak_seq);
-      inserted = FALSE;
-    } else {
-      (*head)->rtp_next = pak;
-      (*head)->rtp_prev = pak;
-      pak->rtp_next = pak->rtp_prev = *head;
-      diff = pak->rtp_pak_seq - (*head)->rtp_pak_seq;
-      if (diff > 0) {
-	*tail = pak;
-      } else {
-	*head = pak;
-      }
-    }
-  } else if ((((*head)->rtp_pak_seq < (*tail)->rtp_pak_seq) &&
-	      ((pak->rtp_pak_seq > (*tail)->rtp_pak_seq) || 
-	       (pak->rtp_pak_seq < (*head)->rtp_pak_seq))) ||
-	     (((*head)->rtp_pak_seq > (*tail)->rtp_pak_seq) &&
-	      ((pak->rtp_pak_seq > (*tail)->rtp_pak_seq && 
-		pak->rtp_pak_seq < (*head)->rtp_pak_seq)))) {
-    // insert between tail and head
-    // Maybe move head - probably move tail.
-    (*tail)->rtp_next = pak;
-    pak->rtp_prev = *tail;
-    (*head)->rtp_prev = pak;
-    pak->rtp_next = *head;
-    diff = (*head)->rtp_pak_seq - pak->rtp_pak_seq;
-    if (diff > 0 && diff < 4) {
-      // between tail and head, and really close to the head - move the
-      // head pointer
-      *head = pak;
-    } else {
-      // otherwise, just insert at end
-      *tail = pak;
-    }
+    pak->rtp_next = pak;
+    pak->rtp_prev = pak;
   } else {
-    // insert in middle
-    // Loop through until we find where it should fit
-    q = *head;
-    do {
-      // check for duplicates
-      if (pak->rtp_pak_seq == q->rtp_pak_seq || pak->rtp_pak_seq == q->rtp_next->rtp_pak_seq) {
-	// dup seq number
-	inserted = FALSE;
-	break;
+    // take the differences between the head and tail sequence numbers
+    tail_diff = pak->rtp_pak_seq - (*tail)->rtp_pak_seq;
+    head_diff = pak->rtp_pak_seq - (*head)->rtp_pak_seq;
+
+    if (head_diff == 0 || tail_diff == 0) {
+      // duplicate of head - ignore it
+      inserted = false;
+      rtp_message(LOG_ERR, "%s - Duplicate of pak sequence #%u", 
+		  name, pak->rtp_pak_seq);
+    } else if (head_diff > 0 && tail_diff < 0) {
+      // insert in middle
+      q = (*head)->rtp_next;
+
+      for (q = (*head)->rtp_next; 
+	   q->rtp_pak_seq - pak->rtp_pak_seq <= 0;
+	   q = q->rtp_next);
+
+      if (q->rtp_pak_seq == pak->rtp_pak_seq) {
+	// duplicate
+	rtp_message(LOG_ERR, "%s - duplicate pak received %u", 
+		    name, pak->rtp_pak_seq);
+	inserted = false;
+      } else {
+	rtp_message(LOG_DEBUG, "%s - insert %u before %u",
+		    name, pak->rtp_pak_seq, q->rtp_pak_seq);
+	// insert in the middle
+	q->rtp_prev->rtp_next = pak;
+	pak->rtp_prev = q->rtp_prev;
+	q->rtp_prev = pak;
+	pak->rtp_next = q;
       }
-      /*
-       * Okay - this is disgusting, but works.  The first part (before the
-       * or) will see if pak->rtp_pak_seq is between q and q->rtp_next, 
-       * assuming that the sequence number for q and q->rtp_next are ascending.
-       *
-       * 2nd part of the if is the converse case (q->rtp_next->rtp_pak_seq 
-       * is smaller than q->rtp_pak_seq).  In that case, we need to make 
-       * sure that pak->rtp_pak_seq is either larger than q->rtp_pak_seq 
-       * or less than q->rtp_next->rtp_pak_seq
-       */
-      if (((q->rtp_next->rtp_pak_seq > q->rtp_pak_seq) &&
-	   (q->rtp_pak_seq < pak->rtp_pak_seq && 
-	    pak->rtp_pak_seq < q->rtp_next->rtp_pak_seq)) ||
-	  ((q->rtp_next->rtp_pak_seq < q->rtp_pak_seq) &&
-	   (pak->rtp_pak_seq < q->rtp_next->rtp_pak_seq || 
-	    pak->rtp_pak_seq > q->rtp_pak_seq))) {
-	q->rtp_next->rtp_prev = pak;
-	pak->rtp_next = q->rtp_next;
-	q->rtp_next = pak;
-	pak->rtp_prev = q;
-	break;
+    } else {
+      // not in the middle.  Insert between the tail and head
+      (*head)->rtp_prev = pak;
+      (*tail)->rtp_next = pak;
+      pak->rtp_next = *head;
+      pak->rtp_prev = *tail;
+      if (abs(head_diff) > abs(tail_diff)) {
+	*tail = pak;
+      } else if (head_diff < 0 && head_diff > -10) {
+	// head is closer, so, insert at begin
+	rtp_message(LOG_DEBUG, "%s inserting %u at head %u tail %u",
+		    name,
+		    pak->rtp_pak_seq,
+		    (*head)->rtp_pak_seq,
+		    (*tail)->rtp_pak_seq);
+	*head = pak;
+      } else {
+	// insert at tail
+#if 0
+	if (head_diff > 1000 || head_diff < -1000 ||
+	    tail_diff > 1000 || tail_diff < -1000) {
+	  rtp_message(LOG_DEBUG, "%s inserting %u at tail - head %u tail %u",
+		      name, 
+		      pak->rtp_pak_seq,
+		      (*head)->rtp_pak_seq,
+		      (*tail)->rtp_pak_seq);
+	}
+#endif
+	*tail = pak;
       }
-      q = q->rtp_next;
-    } while (q != *tail);
-    if (q == *tail) {
-      inserted = FALSE;
-      rtp_message(LOG_ERR, "Couldn't insert %u between %u and %u", 
-		  pak->rtp_pak_seq, 
-		  (*head)->rtp_pak_seq, 
-		  (*tail)->rtp_pak_seq);
     }
   }
 
-  if (inserted == FALSE) {
-    rtp_message(LOG_ERR, "Couldn't insert pak");
+  if (inserted == false) {
+    rtp_message(LOG_ERR, "%s Couldn't insert pak", name);
     rtp_message(LOG_DEBUG, "pak seq %u", pak->rtp_pak_seq);
     if (*head != NULL) {
       rtp_message(LOG_DEBUG, "head seq %u, tail seq %u", 
@@ -149,6 +136,32 @@ int add_rtp_packet_to_queue (rtp_packet *pak,
     }
     xfree(pak);
     return (0);
+  } 
+  
+  q = *head;
+  if (q->rtp_next == *head) return 1;
+  bool dump_list = false;
+  int16_t diff;
+  do {
+    diff = q->rtp_next->rtp_pak_seq - q->rtp_pak_seq;
+    if (diff < 0 || diff > 2) {
+      dump_list = true;
+    }
+    q = q->rtp_next;
+  } while (dump_list == false && q != *tail);
+  if (dump_list) {
+    rtp_message(LOG_DEBUG, "%s possible queue error - inserted %u %d %d", name,
+		pak->rtp_pak_seq, head_diff, tail_diff);
+#if 0
+    q = *head;
+    do {
+      head_diff = q->rtp_next->rtp_pak_seq - q->rtp_pak_seq;
+      rtp_message(LOG_DEBUG, "%u diff next %d", q->rtp_pak_seq, head_diff);
+      q = q->rtp_next;
+    } while (q != *head);
+#endif
+    rtp_message(LOG_DEBUG, "%s - head %u tail %u", 
+		name, (*head)->rtp_pak_seq, (*tail)->rtp_pak_seq);
   }
   return (1);
 }
@@ -202,7 +215,7 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
 
   init();
 
-  m_ts = 0;
+  m_last_rtp_ts = 0;
   m_total =0;
   m_skip_on_advance_bytes = 0;
   m_stream_ondemand = ondemand;
@@ -262,8 +275,10 @@ void CRtpByteStreamBase::set_wallclock_offset (uint64_t wclock,
       // don't change wclock offset if it's > 100 msec - otherwise, 
       // it's annoying noise
       int64_t diff = wclock_calc - wclock;
-      if (abs(diff) < 100) {
+      if (abs(diff) > 2 && abs(diff) < 100) {
 	set = false;
+	// we'll allow a msec drift here or there to allow for rounding - 
+	// we want this to change every so often
       }
     }
     
@@ -355,6 +370,21 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
       xfree(rpak);
     } else {
       // need to add lock/unlock of mutex here
+      if (m_have_recv_last_ts) {
+	int32_t diff = rpak->rtp_pak_ts - m_recv_last_ts;
+	int32_t ts, nts;
+	ts = m_timescale * 2;
+	nts = 0 - ts;
+	if (diff > ts || diff < nts) {
+	  rtp_message(LOG_INFO, "%s - rtp timestamp diff %d last %u now %u", 
+		      m_name, diff, m_recv_last_ts, rpak->rtp_pak_ts);
+	  flush_rtp_packets();
+	  reset();
+	}
+		      
+      }
+      m_have_recv_last_ts = true;
+      m_recv_last_ts = rpak->rtp_pak_ts;
       if (m_buffering == 0) {
 	rpak->pd.rtp_pd_timestamp = get_time_of_day();
 	rpak->pd.rtp_pd_have_timestamp = 1;
@@ -386,7 +416,6 @@ void CRtpByteStreamBase::recv_callback (struct rtp *session, rtp_event *e)
     rtp_message(LOG_DEBUG, "Thread %u - Callback from rtp with %d %p", 
 		SDL_ThreadID(),e->type, e->rtp_data);
 #endif
-    break;
     break;
   }
 }
@@ -539,7 +568,8 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
        */
       if (rtp_ready() == 0) {
 	rtp_message(LOG_DEBUG, 
-		    "Determined payload type, but rtp bytestream is not ready");
+		    "%s Determined payload type, but rtp bytestream is not ready",
+		    m_name);
 	uint64_t calc;
 	do {
 	  head_ts = m_head->rtp_pak_ts;
@@ -571,7 +601,9 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	calc /= m_timescale;
 	if (calc > m_rtp_buffer_time) {
 	  if (m_base_ts_set == false) {
-	    rtp_message(LOG_NOTICE, "Setting rtp seq and time from 1st pak");
+	    rtp_message(LOG_NOTICE, 
+			"%s - Setting rtp seq and time from 1st pak",
+			m_name);
 	    set_rtp_base_ts(m_head->rtp_pak_ts);
 	    m_rtpinfo_set_from_pak = 1;
 	  } else {
@@ -580,9 +612,10 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	  m_buffering = 1;
 #if 1
 	  rtp_message(LOG_INFO, 
-		      "%s buffering complete - seq %d head %u tail %u "D64, 
-		      m_name, m_head->rtp_pak_seq,
-		      head_ts, tail_ts, calc);
+		      "%s buffering complete - head seq %d %u tail seq %d %u "D64, 
+		      m_name, m_head->rtp_pak_seq, head_ts, 
+		      m_tail->rtp_pak_seq,
+		      tail_ts, calc);
 #endif
 	  m_next_seq = m_head->rtp_pak_seq - 1;
 	  rtp_done_buffering();
@@ -647,7 +680,7 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
   return (m_buffering);
 }
 
-int CRtpByteStreamBase::check_rtp_frame_complete_for_payload_type (void)
+bool CRtpByteStreamBase::check_rtp_frame_complete_for_payload_type (void)
 {
   return (m_head && m_tail->rtp_pak_m == 1);
 }
@@ -676,10 +709,12 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
   uint64_t adjusted_wc_rtp_ts;
   bool have_wrap = false;
 
-  if (((m_ts & 0x80000000) == 0x80000000) &&
+  if (((m_last_rtp_ts & 0x80000000) == 0x80000000) &&
       ((rtp_ts & 0x80000000) == 0)) {
     wrap_offset += (TO_U64(1) << 32);
     have_wrap = true;
+    rtp_message(LOG_DEBUG, "%s - have wrap %x new %x", m_name, 
+		m_last_rtp_ts, rtp_ts);
   }
 
   if (m_stream_ondemand) {
@@ -702,9 +737,6 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
       timetick /= m_timescale;
       timetick += m_play_start_time;
     }
-#ifdef DEBUG_RTP_TS
-    rtp_message(LOG_DEBUG,"%s time "U64, m_name, timetick);
-#endif
   } else {
     // We've got a broadcast scenario here...
     if (m_have_first_pak_ts == false) {
@@ -737,7 +769,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
       adder /= m_timescale;
       m_first_pak_ts += adder;
       m_first_pak_rtp_ts = rtp_ts;
-#ifdef DEBUG_RTP_BCAST
+#if 1 //def DEBUG_RTP_BCAST
       rtp_message(LOG_DEBUG, "%s adjust for wrap - first pak ts is now "U64" rtp %u", 
 		  m_name, m_first_pak_ts, m_first_pak_rtp_ts);
 #endif
@@ -757,11 +789,72 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
 		timetick);
 #endif
   }
+#ifdef DEBUG_RTP_TS
+    rtp_message(LOG_DEBUG,"%s time "U64, m_name, timetick);
+#endif
   // record time
+  m_last_rtp_ts = rtp_ts;
   m_last_realtime = timetick;
   return (timetick);
 }
 
+bool CRtpByteStreamBase::find_mbit (void)
+{
+  rtp_packet *temp, *first;
+  if (m_head == NULL) return false;
+  SDL_LockMutex(m_rtp_packet_mutex);
+  first = temp = m_head;
+  do {
+    if (temp->rtp_pak_m == 1) {
+      SDL_UnlockMutex(m_rtp_packet_mutex);
+      return true;
+    }
+    temp = temp->rtp_next;
+  } while (temp != NULL && temp != first);
+  SDL_UnlockMutex(m_rtp_packet_mutex);
+  return false;
+}
+void CRtpByteStreamBase::display_status(void)
+{
+  SDL_LockMutex(m_rtp_packet_mutex);
+  rtp_packet *pak;
+  uint32_t count;
+  int32_t diff;
+  if (m_head == NULL) {
+    rtp_message(LOG_DEBUG, "%s - no packets", m_name);
+    rtp_message(LOG_DEBUG, "%s - last rtp %u last realtime "U64 " wrap "U64,
+		m_name, m_last_rtp_ts, m_last_realtime, m_wrap_offset);
+    SDL_UnlockMutex(m_rtp_packet_mutex);
+    return;
+  }
+  pak = m_head;
+  count = 1;
+  for (pak = m_head; pak->rtp_next != m_head; pak = pak->rtp_next) count++;
+  diff = m_tail->rtp_pak_ts - m_head->rtp_pak_ts;
+  rtp_message(LOG_DEBUG, "%s - %u paks head seq %u ts %u tail seq %u ts %u "D64, 
+	      m_name, count, m_head->rtp_pak_seq, m_head->rtp_pak_ts, 
+	      m_tail->rtp_pak_seq, m_tail->rtp_pak_ts, diff * 1000 / m_timescale);
+  rtp_message(LOG_DEBUG, "%s - last rtp %u last realtime "U64 " wrap "U64,
+	      m_name, m_last_rtp_ts, m_last_realtime, m_wrap_offset);
+  uint32_t last_rtp_ts = m_last_rtp_ts;
+  uint64_t last_realtime = m_last_realtime;
+  uint64_t wrap_offset = m_wrap_offset;
+  uint64_t msec = rtp_ts_to_msec(m_head->rtp_pak_ts, 
+				 m_head->pd.rtp_pd_timestamp,
+				 wrap_offset);
+  m_last_rtp_ts = last_rtp_ts;
+  m_last_realtime = last_realtime;
+  rtp_message(LOG_DEBUG, "head ts "U64, msec);
+  
+#if 0
+  int64_t t1, t2;
+  t1 = (int64_t)m_first_pak_rtp_ts;
+  t2 = (int64_t)m_first_pak_ts;
+  rtp_message(LOG_DEBUG, "%s - first %u "D64" real "U64" "D64, m_name,
+	      m_first_pak_rtp_ts, t1, m_first_pak_ts, t2);
+#endif
+  SDL_UnlockMutex(m_rtp_packet_mutex);
+}
 
 CRtpByteStream::CRtpByteStream(const char *name,
 			       format_list_t *fmt,
@@ -799,9 +892,10 @@ void CRtpByteStream::reset (void)
   CRtpByteStreamBase::reset();
 }
 
-uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer, 
-					   uint32_t *buflen,
-					   void **ud)
+bool CRtpByteStream::start_next_frame (uint8_t **buffer, 
+				       uint32_t *buflen,
+				       frame_timestamp_t *pts,
+				       void **ud)
 {
   uint16_t seq = 0;
   uint32_t rtp_ts = 0;
@@ -822,14 +916,18 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
 #if 0
-  rtp_message(LOG_DEBUG, "%s start %02x %02x %02x %02x %02x", m_name,
-		  	(*buffer)[0],
-		  	(*buffer)[1],
-		  	(*buffer)[2],
-		  	(*buffer)[3],
-		  	(*buffer)[4]);
+    rtp_message(LOG_DEBUG, "%s start %02x %02x %02x %02x %02x", m_name,
+		(*buffer)[0],
+		(*buffer)[1],
+		(*buffer)[2],
+		(*buffer)[3],
+		(*buffer)[4]);
 #endif
-    return (m_last_realtime);
+    pts->msec_timestamp = m_last_realtime;
+    pts->audio_freq_timestamp = m_last_rtp_ts;
+    pts->audio_freq = m_timescale;
+    pts->timestamp_is_pts = true;
+    return true;
   } else {
     check_seq(m_head->rtp_pak_seq);
 
@@ -905,12 +1003,17 @@ uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer,
 #endif
   }
   timetick = rtp_ts_to_msec(rtp_ts, ts, m_wrap_offset);
-  m_ts = rtp_ts;
+  m_last_rtp_ts = rtp_ts;
   
+  pts->msec_timestamp = timetick;
+  pts->audio_freq_timestamp = m_last_rtp_ts;
+  pts->audio_freq = m_timescale;
+  pts->timestamp_is_pts = true;
   return (timetick);
 }
 
-int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
+bool CRtpByteStream::skip_next_frame (frame_timestamp_t *pts, 
+				     int *hasSyncFrame,
 				     uint8_t **buffer, 
 				     uint32_t *buflen,
 				     void **ud)
@@ -918,19 +1021,17 @@ int CRtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
   uint64_t ts;
   *hasSyncFrame = -1;  // we don't know if we have a sync frame
   m_buffer_len = m_bytes_used = 0;
-  if (m_head == NULL) return 0;
+  if (m_head == NULL) return false;
   ts = m_head->rtp_pak_ts;
   do {
     set_last_seq(m_head->rtp_pak_seq);
     remove_packet_rtp_queue(m_head, 1);
   } while (m_head != NULL && m_head->rtp_pak_ts == ts);
 
-  if (m_head == NULL) return 0;
+  if (m_head == NULL) return false;
   init();
   m_buffer_len = m_bytes_used = 0;
-  ts = start_next_frame(buffer, buflen, ud);
-  *pts = ts;
-  return (1);
+  return start_next_frame(buffer, buflen, pts, ud);
 }
 
 void CRtpByteStream::used_bytes_for_frame (uint32_t bytes)
@@ -941,16 +1042,9 @@ void CRtpByteStream::used_bytes_for_frame (uint32_t bytes)
 #endif
 }
 
-int CRtpByteStream::have_no_data (void)
+bool CRtpByteStream::have_frame (void)
 {
-  rtp_packet *temp, *first;
-  first = temp = m_head;
-  if (temp == NULL) return TRUE;
-  do {
-    if (temp->rtp_pak_m == 1) return FALSE;
-    temp = temp->rtp_next;
-  } while (temp != NULL && temp != first);
-  return TRUE;
+  return find_mbit();
 }
 
 void CRtpByteStream::flush_rtp_packets (void)
@@ -960,6 +1054,8 @@ void CRtpByteStream::flush_rtp_packets (void)
   m_bytes_used = m_buffer_len = 0;
 }
 
+
+  
 CAudioRtpByteStream::CAudioRtpByteStream (unsigned int rtp_pt,
 					  format_list_t *fmt,
 					  int ondemand,
@@ -996,13 +1092,18 @@ CAudioRtpByteStream::~CAudioRtpByteStream(void)
 {
 }
 
-int CAudioRtpByteStream::have_no_data (void)
+bool CAudioRtpByteStream::have_frame (void)
 {
-  if (m_head == NULL) return TRUE;
-  return FALSE;
+  if (m_head == NULL) {
+    if (m_working_pak != NULL && m_bytes_used < m_working_pak->rtp_data_len) {
+      return true;
+    }
+    return false;
+  }
+  return true;
 }
 
-int CAudioRtpByteStream::check_rtp_frame_complete_for_payload_type (void)
+bool CAudioRtpByteStream::check_rtp_frame_complete_for_payload_type (void)
 {
   return m_head != NULL;
 }
@@ -1015,9 +1116,10 @@ void CAudioRtpByteStream::reset (void)
   }
   CRtpByteStream::reset();
 }
-uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer, 
-						uint32_t *buflen,
-						void **ud)
+bool CAudioRtpByteStream::start_next_frame (uint8_t **buffer, 
+					    uint32_t *buflen,
+					    frame_timestamp_t *pts,
+					    void **ud)
 {
   uint32_t ts;
   int32_t diff;
@@ -1030,11 +1132,14 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
     // Still bytes in the buffer...
     *buffer = (uint8_t *)m_working_pak->rtp_data + m_bytes_used;
     *buflen = diff;
-    ts = m_ts;
+    pts->msec_timestamp = m_last_realtime;
+    pts->audio_freq_timestamp = m_last_rtp_ts;
+    pts->audio_freq = m_timescale;
+    pts->timestamp_is_pts = false;
 #ifdef DEBUG_RTP_FRAMES
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
-    return (m_last_realtime);
+    return true;
   } else {
     if (m_working_pak) xfree(m_working_pak);
     m_buffer_len = 0;
@@ -1050,7 +1155,7 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
 #ifdef DEBUG_RTP_FRAMES
     rtp_message(LOG_DEBUG, "%s buffer seq %d ts %x len %d", m_name, 
 		m_working_pak->rtp_pak_seq, 
-		m_working_pak->rtp_pak_ts, m_buffer_len);
+		m_working_pak->rtp_pak_ts, *buflen);
 #endif
   }
 
@@ -1058,7 +1163,11 @@ uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer,
   uint64_t retts = rtp_ts_to_msec(ts, 
 				  m_working_pak->pd.rtp_pd_timestamp,
 				  m_wrap_offset);
-  m_ts = ts;
-  return retts;
-
+  
+  m_last_rtp_ts = ts;
+  pts->msec_timestamp = retts;
+  pts->audio_freq_timestamp = m_last_rtp_ts;
+  pts->audio_freq = m_timescale;
+  pts->timestamp_is_pts = false;
+  return true;
 }

@@ -244,6 +244,13 @@ You may also want to build ffmpeg with the --enable-shared options (especially
 on Mac OS X systems).  If you do this, only libavcodec will build, but that 
 is all we require.
 <p>
+To build ffmpeg Mac OS X, configure with --enable-shared.  Edit the 
+config.mak, and change LDFLAGS to a NULL string - i.e.<br>
+<code>LDFLAGS=</code><br>
+You may also have to run <code>ranlib /usr/local/lib/libavcodec.a</code>
+after installing it, if you get an error that it (/usr/local/lib/libavcodec.a)
+is out of date.
+<p>
 We've tested with ffmpeg version 0.4.7, 0.4.8 and 0.4.9-pre1.  See the 
 <a href="http://ffmpeg.sourceforge.net">ffmpeg</a> site for information on
 how to download.  CVS versions are not recommended.  If you would like to do

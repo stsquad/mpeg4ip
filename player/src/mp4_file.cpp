@@ -465,8 +465,8 @@ int CMp4File::create_media (CPlayerSession *psptr,
 	uint8_t *userdata = NULL;
 	u_int32_t userdata_size;
 	aq[audio_offset].type = MP4GetTrackEsdsObjectTypeId(m_mp4file, trackId);
-	aq[audio_offset].profile = MP4GetAudioProfileLevel(m_mp4file);
 	MP4SetVerbosity(m_mp4file, verb & ~(MP4_DETAILS_ERROR));
+	aq[audio_offset].profile = MP4GetAudioProfileLevel(m_mp4file);
 	MP4GetTrackESConfiguration(m_mp4file, 
 				   trackId, 
 				   &userdata, 

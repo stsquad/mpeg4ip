@@ -8,17 +8,9 @@ libmpeg2_transport_la_SOURCES = \
 	mpeg2t_defines.h \
 	mpeg2t_video.c \
 	mpeg2t_util.c 
-if HAVE_A52DEC_LIB
-   A52LIBSADD = -la52
-else
-   A52LIBSADD = 
-endif
-
-libmpeg2_transport_la_LIBADD = \
-	$(A52LIBSADD)
 
 INCLUDES = -I$(top_builddir)/include -I$(top_builddir)/lib -I$(top_builddir)/lib/mp4av -I$(top_builddir)/lib/mp4v2 
-AM_CFLAGS = -DIPTV_COMPATIBLE -D_REENTRANT @BILLS_CWARNINGS@
+AM_CFLAGS = -D_REENTRANT @BILLS_CWARNINGS@
 AM_CXXFLAGS = -D_REENTRANT @BILLS_CPPWARNINGS@
 
 check_PROGRAMS = mpeg2t_test 

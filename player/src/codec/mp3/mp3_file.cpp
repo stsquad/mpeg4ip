@@ -294,7 +294,7 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
 
 int mp3_file_next_frame (codec_data_t *your_data,
 			 uint8_t **buffer,
-			 uint64_t *ts)
+			 frame_timestamp_t *ts)
 {
   mp3_codec_t *mp3;
   int bytes_skipped;
@@ -366,7 +366,10 @@ int mp3_file_next_frame (codec_data_t *your_data,
     uint64_t calc;
     calc = mp3->m_framecount * mp3->m_samplesperframe * TO_U64(1000);
     calc /= mp3->m_freq;
-    *ts = calc;
+    ts->msec_timestamp = calc;
+    ts->audio_freq = mp3->m_freq;
+    ts->audio_freq_timestamp = mp3->m_framecount * mp3->m_samplesperframe;
+    ts->timestamp_is_pts = false;
     mp3->m_framecount++;
 
     return (framesize);

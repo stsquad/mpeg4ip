@@ -71,8 +71,11 @@ class CSDLVideoSync : public CVideoSync {
   ~CSDLVideoSync(void);
   int initialize_video(const char *name, int x, int y);  // from sync task
   int is_video_ready(uint64_t &disptime);  // from sync task
-  int64_t play_video_at(uint64_t current_time, // from sync task
-			 int &have_eof);
+  bool play_video_at(uint64_t current_time, // from sync task
+		     bool have_audio_resync,
+		     uint64_t &next_time,
+		     bool &have_eof);
+  void drop_next_frame(void);
   int get_video_buffer(uint8_t **y,
 		       uint8_t **u,
 		       uint8_t **v);
@@ -119,6 +122,8 @@ class CSDLVideoSync : public CVideoSync {
 #ifdef WRITE_YUV
   FILE *m_outfile;
 #endif
+  void increment_play_index(void);
+  void notify_decode_thread(void);
 };
 
 /* frame doublers */

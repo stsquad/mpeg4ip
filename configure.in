@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.1.7)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.1.8)
 
 dnl Checks for programs. 
 
@@ -72,6 +72,9 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_TIME
 AC_CHECK_SIZEOF(long)
+AC_LANG_PUSH(C++)
+AC_CHECK_SIZEOF(bool)
+AC_LANG_POP(C++)
 
 AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
@@ -131,10 +134,9 @@ AC_SEARCH_LIBS(dlopen, dl libc)
 dnl check for this for mp3lame
 saved_LIBS="$LIBS"
 LIBS="$LIBS -lm"
-have_a52=true
 AC_CHECK_LIB(a52, 
              a52_syncinfo, 
-	     [AC_DEFINE(HAVE_A52DEC, [1], [have a52 decode library])], 
+	     [have_a52=true],
              [have_a52=false])
 AM_CONDITIONAL(HAVE_A52DEC_LIB, $have_a52)
 have_mpeg2=true
@@ -582,6 +584,7 @@ AC_OUTPUT( \
 	lib/mp4v2/test/Makefile \
 	lib/mp4v2/util/Makefile \
 	lib/mp4av/Makefile \
+	lib/mpeg2ps/Makefile \
 	lib/mpeg2t/Makefile \
 	lib/msg_queue/Makefile \
 	lib/sdp/Makefile \
@@ -589,7 +592,6 @@ AC_OUTPUT( \
 	common/Makefile \
 	common/video/Makefile \
 	common/video/libmpeg32/Makefile \
-	common/video/libmpeg32/video/Makefile \
 	server/Makefile \
 	server/video/Makefile \
 	server/mp4live/Makefile \
@@ -633,7 +635,6 @@ AC_OUTPUT( \
 	player/plugin/video/ffmpeg/Makefile \
 	player/plugin/video/h261/Makefile \
 	player/plugin/video/mpeg2dec/Makefile \
-	player/plugin/video/mpeg3/Makefile \
 	player/plugin/video/raw/Makefile \
 	player/plugin/video/xvid/Makefile \
 	player/src/Makefile \

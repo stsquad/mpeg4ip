@@ -25,56 +25,7 @@
 #include <assert.h>
 #include "mp4av.h"
 #include "mpeg2t_private.h"
-#ifdef HAVE_A52DEC
-#include <a52dec/a52.h>
 
-#define AC3_SYNC_WORD 0x0b77
-static int MP4AV_Ac3FindFrameStart (const uint8_t *buf, 
-				    uint32_t buflen,
-				    const uint8_t **ppFrame,
-				    uint32_t *bitrate,
-				    uint32_t *freq,
-				    uint32_t *framesize,
-				    uint32_t *chans)
-{
-  while (buflen >= 6) {
-    if (ntohs(*(const uint16_t *)buf) == 0x0b77) {
-      // we've most likely identified a frame
-      int flags, srate, brate;
-      *ppFrame = buf;
-      *framesize = a52_syncinfo((uint8_t *)buf, &flags, &srate, &brate);
-      if (*framesize != 0) {
-	*bitrate = brate;
-	*freq = srate;
-	if (flags & A52_LFE) {
-	  *chans = 6;
-	} else {
-	  switch (flags & A52_CHANNEL_MASK) {
-	  case A52_MONO:
-	    *chans = 1;
-	    break;
-	  case A52_CHANNEL:
-	  case A52_STEREO:
-	  case A52_DOLBY:
-	    *chans = 2;
-	    break;
-	  case A52_2F2R:
-	    *chans = 4;
-	    break;
-	  default:
-	    *chans = 5;
-	    break;
-	  }
-	}
-
-	return 1;
-      }
-    }
-    buf++;
-    buflen--;
-  }
-  return 0;
-}
     
 /*
  * mpeg2t_find_mp3_frame_start - look through the buffer and find
@@ -102,11 +53,11 @@ static uint32_t mpeg2t_find_ac3_frame_start (mpeg2t_es_t *es_pid,
 	   7 - es_pid->left);
     // look at these 7 bytes
 
-    found = MP4AV_Ac3FindFrameStart(es_pid->left_buff, 7, &fptr, 
-				    &bitrate, &freq,
-				    &framesize,
-				    &chans);
-    if (found) {
+    found = MP4AV_Ac3ParseHeader(es_pid->left_buff, 7, &fptr, 
+				 &bitrate, &freq,
+				 &framesize,
+				 &chans);
+    if (found > 0) {
       dropped = fptr - (const uint8_t *)&es_pid->left_buff[0];
 #if 0
       mpeg2t_message(LOG_ERR, "ac3 - Found in left - %d dropped %d", es_pid->left, dropped);
@@ -116,12 +67,12 @@ static uint32_t mpeg2t_find_ac3_frame_start (mpeg2t_es_t *es_pid,
     }
   }
 
-  if (found == 0) {
+  if (found <= 0) {
     // Not found with leftover bytes - see if it's in the buffer
-    found = MP4AV_Ac3FindFrameStart(esptr, buflen, &fptr, 
-				    &bitrate, &freq,
-				    &framesize, &chans);
-    if (found == 0) {
+    found = MP4AV_Ac3ParseHeader(esptr, buflen, &fptr, 
+				 &bitrate, &freq,
+				 &framesize, &chans);
+    if (found <= 0) {
       memcpy(es_pid->left_buff,
 	     esptr + buflen - 5, 
 	     5);
@@ -235,18 +186,5 @@ int mpeg2t_ac3_audio_info (mpeg2t_es_t *es_pid, char *buffer, size_t len)
 	   es_pid->audio_chans);
   return 0;
 }
-#else
-int process_mpeg2t_ac3_audio (mpeg2t_es_t *es_pid, 
-			      const uint8_t *esptr, 
-			      uint32_t buflen)
-{
-  return -1;
-}
-
-int mpeg2t_ac3_audio_info (mpeg2t_es_t *es_pid, char *buffer, size_t len)
-{
-  return -1;
-}
-#endif
 	   
 /* mpeg2t_ac3.c */

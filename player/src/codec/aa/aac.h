@@ -42,7 +42,7 @@ typedef struct aac_codec_t {
   uint32_t m_current_frame;
   int m_audio_inited;
   int m_faad_inited;
-  int m_freq;  // frequency
+  uint32_t m_freq;  // frequency
   int m_chans; // channels
   int m_output_frame_size;
   uint8_t *m_temp_buff;
@@ -73,7 +73,7 @@ codec_data_t *aac_file_check(lib_message_func_t message,
 
 int aac_file_next_frame(codec_data_t *ifptr,
 			uint8_t **buffer,
-			uint64_t *ts);
+			frame_timestamp_t *ts);
 int aac_file_eof(codec_data_t *ifptr);
 
 void aac_file_used_for_frame(codec_data_t *ifptr,

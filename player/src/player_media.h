@@ -65,6 +65,7 @@ class CPlayerMedia {
   /* API routine - interface for decoding start/continue */
   void start_decoding(void);
   void bytestream_primed(void); 
+  void display_status(void);
   /* API routine - ip port information */
   uint16_t get_our_port (void) { return m_our_port; };
   void set_server_port (uint16_t port) { m_server_port = port; };

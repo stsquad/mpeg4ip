@@ -135,6 +135,10 @@ int gettimeofday(struct timeval *t, void *);
 #define FOPEN_WRITE_BINARY "wb"
 
 #define UINT64_TO_DOUBLE(a) ((double)((int64_t)(a)))
+#include "../lib/gnu/strcasestr.h"
+
+#define SIZEOF_BOOL 1
+
 #else /* UNIX */
 /*****************************************************************************
  *   UNIX LIKE DEFINES BELOW THIS POINT
@@ -194,9 +198,7 @@ int gettimeofday(struct timeval *t, void *);
 #endif
 #include <sys/param.h>
 
-#ifndef HAVE_STRCASESTR
 #include "../lib/gnu/strcasestr.h"
-#endif
 
 #define OPEN_RDWR O_RDWR
 #define OPEN_CREAT O_CREAT 
@@ -211,7 +213,7 @@ int gettimeofday(struct timeval *t, void *);
 #define U64F  "lu"
 #define X64F "lx"
 
-#define TO_D64(a) (a##LD)
+#define TO_D64(a) (a##L)
 #define TO_U64(a) (a##LU)
 #else
 #define MAX_UINT64 -1LLU
@@ -219,7 +221,7 @@ int gettimeofday(struct timeval *t, void *);
 #define U64F  "llu"
 #define X64F "llx"
 
-#define TO_D64(a) (a##LLD)
+#define TO_D64(a) (a##LL)
 #define TO_U64(a) (a##LLU)
 #endif
 
@@ -340,9 +342,23 @@ typedef int8_t gint8;
 #endif
 
 #ifndef __cplusplus
+
 #ifndef bool
-typedef unsigned char bool;
+ #if SIZEOF_BOOL == 8
+  typedef uint64_t bool;
+ #else
+   #if SIZEOF_BOOL == 4
+    typedef uint32_t bool;
+   #else
+     #if SIZEOF_BOOL == 2
+      typedef uint16_t bool;
+     #else
+      typedef unsigned char bool;
+     #endif
+   #endif
+ #endif
 #endif
+
 #endif
 
 #ifndef ROUND

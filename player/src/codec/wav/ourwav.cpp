@@ -70,16 +70,19 @@ static void wav_do_pause (codec_data_t *ifptr)
  * Decode task call for FAAC
  */
 static int wav_decode (codec_data_t *ifptr, 
-		       uint64_t ts, 
+		       frame_timestamp_t *ts, 
 		       int from_rtp,
 		       int *sync_frame,
 		       uint8_t *buffer, 
 		       uint32_t buflen,
 		       void *userdata)
 {
-  uint8_t *buff;
   wav_codec_t *wav = (wav_codec_t *)ifptr;
-	
+  uint32_t freq_timestamp;
+  if ((uint32_t)wav->m_sdl_config->freq != ts->audio_freq) {
+    abort();
+  }
+  freq_timestamp = ts->audio_freq_timestamp;
   if (wav->m_configured == 0) {
     wav->m_configured = 1;
     audio_format_t fmt;
@@ -106,25 +109,14 @@ static int wav_decode (codec_data_t *ifptr,
   /* 
    * Get an audio buffer
    */
-  buff = wav->m_vft->audio_get_buffer(wav->m_ifptr);
-  if (buff == NULL) {
-    return (-1);
-  }
-	
-  uint32_t bytes_to_copy;
-  bytes_to_copy = wav->m_sdl_config->samples * 
-    wav->m_sdl_config->channels * 
-    wav->m_bytes_per_channel;
-  
   uint32_t bytes;
-    
-  bytes = MIN(bytes_to_copy, buflen);
-  memcpy(buff, buffer, bytes);
-  if (bytes < bytes_to_copy) {
-    memset(&buff[bytes], 0, bytes_to_copy - bytes);
-  }
-
-  wav->m_vft->audio_filled_buffer(wav->m_ifptr, ts, 0);
+  bytes = 1024 * wav->m_bytes_per_channel * wav->m_sdl_config->channels;
+  bytes = MIN(bytes, buflen);
+  wav->m_vft->audio_load_buffer(wav->m_ifptr, 
+				buffer,
+				bytes,
+				freq_timestamp,
+				ts->msec_timestamp);
   return (bytes);
 }
 

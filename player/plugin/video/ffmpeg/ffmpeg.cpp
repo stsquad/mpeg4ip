@@ -26,6 +26,8 @@
 #include "mp4av.h"
 #include "mp4av_h264.h"
 #include <mpeg2t/mpeg2t_defines.h>
+#include "mp4util/mpeg4_sdp.h"
+#include "mp4util/h264_sdp.h"
 
 static SConfigVariable MyConfigVariables[] = {
   CONFIG_BOOL(CONFIG_USE_FFMPEG, "UseFFmpeg", false),
@@ -34,6 +36,7 @@ static SConfigVariable MyConfigVariables[] = {
 #define ffmpeg_message (ffmpeg->m_vft->log_msg)
 
 //#define DEBUG_FFMPEG_FRAME 1
+//#define DEBUG_FFMPEG_PTS 1
 static enum CodecID ffmpeg_find_codec (const char *stream_type,
 				       const char *compressor, 
 				       int type, 
@@ -108,6 +111,14 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
 	  strcasecmp(fptr->rtpmap->encode_name, "h263-2000") == 0) {
 	return CODEC_ID_H263;
       }
+      if (strcasecmp(fptr->rtpmap->encode_name, "MP4V-ES") == 0) {
+	// may want to check level and profile
+	return CODEC_ID_MPEG4;
+      }
+      if (strcasecmp(fptr->rtpmap->encode_name, "h264") == 0) {
+	// may want to check for sprop-parameters
+	return CODEC_ID_H264;
+      }
     }
     return CODEC_ID_NONE;
   }
@@ -157,6 +168,7 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
   ffmpeg->m_ifptr = ifptr;
   avcodec_init();
   avcodec_register_all();
+  av_log_set_level(AV_LOG_QUIET);
 
   ffmpeg->m_codecId = ffmpeg_find_codec(stream_type, compressor, type, 
 					profile, media_fmt, userdata, ud_size);
@@ -167,19 +179,39 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
   ffmpeg->m_picture = avcodec_alloc_frame();
   bool open_codec = true;
   bool run_userdata = false;
+  bool free_userdata = false;
 
   switch (ffmpeg->m_codecId) {
   case CODEC_ID_MJPEG:
     break;
   case CODEC_ID_H264:
     // need to find height and width
+    if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
+      userdata = h264_sdp_parse_sprop_param_sets(media_fmt->fmt_param,
+						 &ud_size, 
+						 ffmpeg->m_vft->log_msg);
+      if (userdata != NULL) free_userdata = true;
+      ffmpeg_message(LOG_DEBUG, "ffmpeg", "sprop len %d", ud_size);
+    }
     if (ud_size > 0) {
       open_codec = ffmpeg_find_h264_size(ffmpeg, userdata, ud_size);
       run_userdata = true;
     }
     break;
-  case CODEC_ID_MPEG4:
+  case CODEC_ID_MPEG4: {
+    fmtp_parse_t *fmtp = NULL;
     open_codec = false;
+    if (media_fmt != NULL) {
+      fmtp = parse_fmtp_for_mpeg4(media_fmt->fmt_param, 
+				  ffmpeg->m_vft->log_msg);
+      if (fmtp->config_binary != NULL) {
+	userdata = fmtp->config_binary;
+	ud_size = fmtp->config_binary_len;
+	fmtp->config_binary = NULL;
+	free_userdata = true;
+      }
+    }
+      
     if (ud_size > 0) {
       uint8_t *vol = MP4AV_Mpeg4FindVol((uint8_t *)userdata, ud_size);
       u_int8_t TimeBits;
@@ -208,7 +240,10 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
 	}
       }
     }
-      
+    if (fmtp != NULL) {
+      free_fmtp_parse(fmtp);
+    }
+  }
     break;
   case CODEC_ID_SVQ3:
     ffmpeg->m_c->extradata = (void *)userdata;
@@ -243,6 +278,9 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
 	
   }
 
+    if (free_userdata) {
+      CHECK_AND_FREE(userdata);
+    }
   ffmpeg->m_did_pause = 1;
   return ((codec_data_t *)ffmpeg);
 }
@@ -268,6 +306,7 @@ static void ffmpeg_do_pause (codec_data_t *ifptr)
   //mpeg2_reset(ffmpeg->m_decoder, 0);
   ffmpeg->m_did_pause = 1;
   ffmpeg->m_got_i = 0;
+  MP4AV_clear_dts_from_pts(&ffmpeg->pts_to_dts);
 }
 
 static int ffmpeg_frame_is_sync (codec_data_t *ifptr, 
@@ -296,7 +335,7 @@ static int ffmpeg_frame_is_sync (codec_data_t *ifptr,
 }
 
 static int ffmpeg_decode (codec_data_t *ptr,
-			    uint64_t ts, 
+			  frame_timestamp_t *pts, 
 			    int from_rtp,
 			    int *sync_frame,
 			    uint8_t *buffer, 
@@ -306,6 +345,9 @@ static int ffmpeg_decode (codec_data_t *ptr,
   ffmpeg_codec_t *ffmpeg = (ffmpeg_codec_t *)ptr;
   uint32_t bytes_used = 0;
   int got_picture = 0;
+  uint64_t ts = pts->msec_timestamp;
+
+  //ffmpeg_message(LOG_ERR, "ffmpeg", "%u timestamp "U64, buflen, ts);
   if (ffmpeg->m_codec_opened == false) {
     // look for header, like above, and open it
     bool open_codec = true;
@@ -324,16 +366,73 @@ static int ffmpeg_decode (codec_data_t *ptr,
       ffmpeg->m_codec_opened = true;
     }
   }
+  int ret;
   do {
     int local_got_picture;
-    bytes_used += avcodec_decode_video(ffmpeg->m_c, 
-				      ffmpeg->m_picture,
-				      &local_got_picture,
-				      buffer + bytes_used, 
-				      buflen - bytes_used);
+    ret = avcodec_decode_video(ffmpeg->m_c, 
+			       ffmpeg->m_picture,
+			       &local_got_picture,
+			       buffer + bytes_used, 
+			       buflen - bytes_used);
+    bytes_used += ret;
+    //ffmpeg_message(LOG_CRIT, "ffmpeg", "used %d", ret);
     got_picture |= local_got_picture;
-  } while (bytes_used < buflen);
+  } while (ret != -1 && bytes_used < buflen);
 
+  if (pts->timestamp_is_pts) {
+    //ffmpeg_message(LOG_ERR, "ffmpeg", "pts timestamp "U64, ts);
+    if (ffmpeg->m_codecId == CODEC_ID_MPEG2VIDEO) {
+      if (ffmpeg->pts_convert.frame_rate == 0.0) {
+	int have_mpeg2;
+	uint32_t h, w;
+	double bitrate, aspect_ratio;
+	MP4AV_Mpeg3ParseSeqHdr(buffer, buflen,
+			       &have_mpeg2,
+			       &h, &w, 
+			       &ffmpeg->pts_convert.frame_rate,
+			       &bitrate, &aspect_ratio);
+      }
+			       
+      int ftype;
+      int header = MP4AV_Mpeg3FindPictHdr(buffer, buflen, &ftype);
+      if (header >= 0) {
+	uint16_t temp_ref = MP4AV_Mpeg3PictHdrTempRef(buffer + header);
+	uint64_t ret;
+	if (mpeg3_find_dts_from_pts(&ffmpeg->pts_convert,
+				    ts, 
+				    ftype,
+				    temp_ref, 
+				    &ret) < 0) {
+	  ffmpeg->have_cached_ts = false;
+	  return buflen;
+	} 
+	ts = ret;
+	//	ffmpeg_message(LOG_ERR, "ffmpeg", "type %d ref %u "U64, ftype, temp_ref, ret);
+      }
+    } else if (ffmpeg->m_codecId == CODEC_ID_MPEG4) {
+      uint8_t *vopstart = MP4AV_Mpeg4FindVop(buffer, buflen);
+      if (vopstart) {
+	int ftype = MP4AV_Mpeg4GetVopType(vopstart, buflen);
+	uint64_t dts;
+	if (MP4AV_calculate_dts_from_pts(&ffmpeg->pts_to_dts,
+					 ts,
+					 ftype, 
+					 &dts) < 0) {
+	  ffmpeg->have_cached_ts = false;
+#ifdef DEBUG_FFMPEG_PTS
+	  ffmpeg_message(LOG_DEBUG, "ffmpeg", "type %d %d pts "U64" failed to calc",
+			 ftype, got_picture, ts);
+#endif
+	  return buflen;
+	}
+#ifdef DEBUG_FFMPEG_PTS
+	ffmpeg_message(LOG_DEBUG, "ffmpeg", "type %d %d pts "U64" dts "U64,
+		       ftype, got_picture, ts, dts);
+#endif
+	ts = dts;
+      }
+    }
+  }
   if (got_picture != 0) {
     if (ffmpeg->m_video_initialized == false) {
       double aspect;
@@ -352,6 +451,7 @@ static int ffmpeg_decode (codec_data_t *ptr,
 				     aspect);
       ffmpeg->m_video_initialized = true;
     }
+
     if (ffmpeg->m_c->pix_fmt != PIX_FMT_YUV420P) {
       // convert the image from whatever it is to YUV 4:2:0
       AVPicture from, to;
@@ -414,7 +514,7 @@ static int ffmpeg_codec_check (lib_message_func_t message,
   AVCodec *c;
   avcodec_init();
   avcodec_register_all();
-
+  av_log_set_level(AV_LOG_QUIET);
   fcodec = ffmpeg_find_codec(stream_type, compressor, type, profile, 
 			     fptr, userdata, userdata_size);
 

@@ -308,12 +308,12 @@ static int iso_frame_is_sync (codec_data_t *ptr,
   iso_message(LOG_DEBUG, "iso", "return from get vop is %c %d", vop_type, vop_type);
   }
 #endif
-  if (vop_type == 'I') return 1;
+  if (vop_type == VOP_TYPE_I) return 1;
   return 0;
 }
 
 static int iso_decode (codec_data_t *ptr, 
-		       uint64_t ts, 
+		       frame_timestamp_t *ts, 
 		       int from_rtp, 
 		       int *sync_frame,
 		       uint8_t *buffer,
@@ -425,7 +425,8 @@ static int iso_decode (codec_data_t *ptr,
     } catch (int err) {
       if (err != 1)
 	iso_message(LOG_DEBUG, mp4iso, 
-		    "ts "U64",Caught exception in wait_i %d", ts, err);
+		    "ts "U64",Caught exception in wait_i %d", 
+		    ts->msec_timestamp, err);
       return (iso->m_pvodec->get_used_bytes());
       //return (-1);
     }
@@ -485,21 +486,25 @@ static int iso_decode (codec_data_t *ptr,
       iso->m_bCachedRefFrame = FALSE;
       if (iso->m_bCachedRefFrameCoded) {
 	pvopcQuant = iso->m_pvodec->pvopcRefQLater();
-	displaytime = ts;
+	displaytime = ts->msec_timestamp;
       }
     }
   } else {
+#if 0
+    iso_message(LOG_DEBUG, mp4iso, "frame "U64" type %d", 
+		ts->msec_timestamp, iso->m_pvodec->vopmd().vopPredType);
+#endif
     if (iso->m_pvodec->vopmd().vopPredType == BVOP) {
       if (iEof != FALSE) {
 	pvopcQuant = iso->m_pvodec->pvopcReconCurr();
-	displaytime = ts;
+	displaytime = ts->msec_timestamp;
       } 
     } else {
       if (iso->m_bCachedRefFrame) {
 	iso->m_bCachedRefFrame = FALSE;
 	if (iso->m_bCachedRefFrameCoded) {
 	  pvopcQuant = iso->m_pvodec->pvopcRefQPrev();
-	  if (from_rtp) {
+	  if (ts->timestamp_is_pts) {
 	    int old_was_valid = iso->m_cached_valid;
 	    displaytime = iso->m_cached_time;
 	    cached_ts = 1;
@@ -509,12 +514,12 @@ static int iso_decode (codec_data_t *ptr,
 	      return (iEof == EOF ? -1 : 0);
 	    }
 	  } else {
-	    displaytime = ts;
+	    displaytime = ts->msec_timestamp;
 	  }
 	}
       }
 
-      iso->m_cached_time = ts;
+      iso->m_cached_time = ts->msec_timestamp;
       iso->m_cached_valid = TRUE;
       iso->m_bCachedRefFrame = TRUE;
       iso->m_bCachedRefFrameCoded = (iEof != FALSE);
@@ -524,7 +529,7 @@ static int iso_decode (codec_data_t *ptr,
   if (pvopcQuant != NULL) {
 #if 0
     player_debug_message("frame rtp_ts "U64" disp "U64" cached %d", 
-			 ts, displaytime, cached_ts);
+			 ts->msec_timestamp, displaytime, cached_ts);
 #endif
     /*
      * Get the information to the video sync structure
@@ -551,7 +556,7 @@ static int iso_decode (codec_data_t *ptr,
 				pixelw_uv, 
 				displaytime);
   } else {
-    iso_message(LOG_DEBUG, mp4iso, "decode but no frame "U64, ts);
+    iso_message(LOG_DEBUG, mp4iso, "decode but no frame "U64, ts->msec_timestamp);
   }
   return (iso->m_pvodec->get_used_bytes() + used);
 }

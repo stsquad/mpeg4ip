@@ -50,8 +50,11 @@ class CVideoSync {
   virtual int get_fullscreen (void) { return 0;};
   virtual int initialize_video(const char *name, int x, int y);  // from sync task
   virtual int is_video_ready(uint64_t &disptime);  // from sync task
-  virtual int64_t play_video_at(uint64_t current_time, // from sync task
-			 int &have_eof);
+  virtual bool play_video_at(uint64_t current_time, // from sync task
+			     bool have_audio_resync,
+			     uint64_t &next_time,
+			     bool &have_eof);
+  virtual void drop_next_frame(void) { };
   virtual void do_video_resize(int pixel_width = -1, int pixel_height = -1, int max_width = -1, int max_height = -1);
   virtual void flush_sync_buffers(void);  // from sync task in response to stop
   void *get_video_persistence (void) {
@@ -67,6 +70,7 @@ class CVideoSync {
   int grabbed_video_persistence (void) {
     return m_grabbed_video_persistence;
   }
+  virtual void display_status(void) {};
  protected:
   CPlayerSession *m_psptr;
   SDL_sem *m_decode_sem;

@@ -172,11 +172,11 @@ void CMpeg2tByteStream::play (uint64_t start_time)
   mpeg2t_set_frame_status(m_es_pid, MPEG2T_PID_SAVE_FRAME);
 }
 
-uint64_t CMpeg2tByteStream::start_next_frame (uint8_t **buffer, 
-					      uint32_t *buflen,
-					      void **ud)
+bool CMpeg2tByteStream::start_next_frame (uint8_t **buffer, 
+					  uint32_t *buflen,
+					  frame_timestamp_t *ts,
+					  void **ud)
 {
-  uint64_t ret;
   mpeg2t_free_frame(m_frame);
   
   // dump frames until we have a valid start psts for both
@@ -194,21 +194,22 @@ uint64_t CMpeg2tByteStream::start_next_frame (uint8_t **buffer,
   }
 
   if (m_frame != NULL) {
-    if (get_timestamp_for_frame(m_frame, ret) >= 0) {
+    if (get_timestamp_for_frame(m_frame, ts) >= 0) {
       *buffer = m_frame->frame;
       *buflen = m_frame->frame_len;
       if (m_ondemand) {
-	ret += m_play_start_time;
+	ts->msec_timestamp += m_play_start_time;
+	// do something with audio ?  Probably not needed
       }
 #ifdef DEBUG_MPEG2T_FRAME
       player_debug_message("%s - len %d time "U64" ftype %d %p", 
 			   m_name, *buflen, ret, m_frame->frame_type,
 	*buffer);
 #endif
-      return (ret);
+      return (true);
     }
   }
-  return 0;
+  return false;
 }
 
 void CMpeg2tByteStream::used_bytes_for_frame (uint32_t bytes_used)
@@ -216,21 +217,19 @@ void CMpeg2tByteStream::used_bytes_for_frame (uint32_t bytes_used)
   // nothing here yet...
 }
 
-int CMpeg2tByteStream::skip_next_frame (uint64_t *pts, 
+bool CMpeg2tByteStream::skip_next_frame (frame_timestamp_t *pts, 
 					int *pSync,
 					uint8_t **buffer, 
 					uint32_t *buflen,
 					void **userdata)
 {
-  uint64_t ts;
-  ts = start_next_frame(buffer, buflen, NULL);
-  *pts = ts;
+  bool ret = 
+    start_next_frame(buffer, buflen, pts, NULL);
   *pSync = m_has_video && m_frame && m_frame->frame_type == 1 ? 1 : 0; //m_frame_on_has_sync;
   
   player_debug_message("%s - skip time "U64,
-			   m_name, ts);
-  if (*buffer == NULL) return 0;
-  return (1);
+			   m_name, pts->msec_timestamp);
+  return ret;
 }
 // left off here...
 
@@ -247,8 +246,9 @@ void CMpeg2tVideoByteStream::reset(void)
   m_timestamp_loaded = 0;
   CMpeg2tByteStream::reset();
 }
+
 int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
-						     uint64_t &outts)
+						     frame_timestamp_t *pts)
 
 {
   uint64_t ts;
@@ -262,6 +262,7 @@ int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
 			 fptr->frame_len, fptr->have_ps_ts, fptr->ps_ts);
   }
 #endif
+#if 0
   if (m_es_pid->stream_type == MPEG2T_STREAM_H264) {
     if (fptr->have_dts || fptr->have_ps_ts) {
       if (fptr->have_dts)
@@ -324,6 +325,17 @@ int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
   outts /= TO_U64(90000); // get msec from 90000 timescale
   
   return 0;
+#endif
+  pts->timestamp_is_pts = fptr->have_dts == false;
+  if (fptr->have_dts)
+    ts = fptr->dts;
+  else
+    ts = fptr->ps_ts;
+  ts *= TO_U64(1000);
+  ts /= TO_U64(90000); // get msec from 90000 timescale
+  pts->msec_timestamp = ts;
+  return 0;
+
 }
 
 void CMpeg2tAudioByteStream::reset(void)
@@ -333,7 +345,7 @@ void CMpeg2tAudioByteStream::reset(void)
 }
 
 int CMpeg2tAudioByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
-						     uint64_t &ts)
+						     frame_timestamp_t *ts)
 {
   uint64_t pts_in_msec;
   // all ts for audio are stored in msec, not in timescale
@@ -345,30 +357,25 @@ int CMpeg2tAudioByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
 #endif
   if (fptr->have_ps_ts != 0 || fptr->have_dts != 0) {
     m_timestamp_loaded = 1;
-    // we'll take either
-    pts_in_msec = fptr->have_ps_ts != 0 ? fptr->ps_ts : fptr->dts;
+    pts_in_msec = fptr->have_dts ? fptr->dts : fptr->ps_ts;
+    m_audio_last_freq_timestamp = 
+      ((pts_in_msec * m_es_pid->sample_freq) / TO_U64(90000));
+    ts->audio_freq_timestamp = m_audio_last_freq_timestamp;
+    ts->audio_freq = m_es_pid->sample_freq;
     pts_in_msec *= TO_U64(1000);
     pts_in_msec /= TO_U64(90000);
     m_last_timestamp = pts_in_msec;
+    ts->msec_timestamp = m_last_timestamp;
     m_frames_since_last_timestamp = 0;
-    ts = m_last_timestamp;
     return 0;
+    m_timestamp_loaded = 1;
   }
 
   if (m_timestamp_loaded == 0) return -1;
   if (m_es_pid->info_loaded == 0) return -1;
-#if 0
-  // this is commented out because it's not really needed - it looks like
-  // some psts are not accurate, so we just use the ones that we've got set
-  m_frames_since_last_timestamp++;
-
-  double value = (1000.0 * m_frames_since_last_timestamp * m_es_pid->sample_per_frame) /
-    m_es_pid->sample_freq;
-  uint64_t val = (uint64_t)value;
-  ts = m_last_timestamp + val;
-#else
-  ts = m_last_timestamp;
-#endif
+  ts->msec_timestamp = m_last_timestamp;
+  ts->audio_freq_timestamp = m_audio_last_freq_timestamp;
+  ts->audio_freq = m_es_pid->sample_freq;
   return 0;
 }
   

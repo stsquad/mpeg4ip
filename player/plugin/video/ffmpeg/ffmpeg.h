@@ -19,7 +19,7 @@
  *              Bill May        wmay@cisco.com
  */
 /*
- * rawv.h - interface to rawv library
+ * ffmpeg.h - interface for ffmpeg video codecs
  */
 #ifndef __MPEG4IP_FFMPEG_H__
 #define __MPEG4IP_FFMPEG_H__ 1
@@ -29,6 +29,7 @@
 #else
 #include <avcodec.h>
 #endif
+#include <mp4av.h>
 
 DECLARE_CONFIG(CONFIG_USE_FFMPEG);
 
@@ -47,6 +48,8 @@ typedef struct ffmpeg_codec_t {
   int m_got_i;
   bool have_cached_ts;
   uint64_t cached_ts;
+  mpeg3_pts_to_dts_t pts_convert;
+  mp4av_pts_to_dts_t pts_to_dts;
 } ffmpeg_codec_t;
   
 #endif

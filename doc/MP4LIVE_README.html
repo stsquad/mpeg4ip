@@ -9,6 +9,10 @@
 May, 2004<br>  
 Dave Mackie<br>
 Bill May<br>
+<p>
+User Contributions by:
+<br>
+Dave Baker
 <P>
 <b>
 <a href="#mp4live">MP4LIVE</a><br>
@@ -195,7 +199,48 @@ audio overruns.  That, in combination with the latest version and
 working on a fast machine will give fairly good lip syncronization up to
 about the hour mark running 90% of the CPU with V4L.  With V4L2, we've
 had good audio and video sync out beyond 500 hours in our lab.
+<h3>BTTV Audio</h3>
 <P>
+<i>contributed by Dave Baker.</i>
+<p>
+The bt878 cards (WinTV PCI and family) are not entirely straightforward to 
+capture audio from, and there are a couple of different ways:
+<p>
+<h4>Capturing using the TV card</h4>
+<p>
+The WinTV PCI in particular has an on-board audio device that can be used to 
+capture audio. Simply load the btaudio (or snd-bt87x for ALSA). Beware that 
+if you have a sound card then the WinTV's device will probably have been 
+allocated /dev/dsp1, so you will have to set mp4live to capture from this. 
+It will also have /dev/dsp2, as it registers an analog and digital device - 
+see your /var/log/messages file. Try the digital one first. Not all bt878 
+boards have this audio device and not all of them have them wired the same, 
+so this may or may not work. Note especially that the WinTV PCI (and possibly 
+others) are able to capture from the tuner using this but will not capture 
+audio from the 3.5mm jack input on the card.
+<p>
+<h4>Capturing using a separate sound card</h4>
+<p>
+The WinTV cards have two 3.5mm jacks on the back - one input and one output. 
+As mentioned above, the WinTV PCI cannot use the input to record sound itself 
+(other cards may be able to). The idea is that when the card is capturing 
+video from the tuner, the card feeds the tuner's audio out of the output jack, 
+but when it is capturing from the composite or S-Video connectors, it connects 
+the input and output together. Hence, if you'll only ever be capturing from 
+composite and/or S-Video, you may as well connect your audio source directly 
+into the line-in jack on your sound card. Either way, if you want to capture 
+audio that isn't coming from the tuner, you'll need to use a separate sound 
+card.
+<p>
+It is also worth noting that the quality of the sound card used will have a 
+big effect on the lip sync of your captured video. Cheaper sound chips like 
+the ones commonly found on mainboards as on-board audio can have very poor 
+clocks, which causes the audio and video to drift out of sync, often making a 
+noticable lag over only five or ten minutes. Use a proper sound card!
+<p><i>Editor's note - mp4live should compensate for this correctly, if the V4L2
+video interface is used, and the sound card correctly returns the value from
+the SNDCTL_DSP_GETISPACE.</i>
+<p>
 <a href="#top">Back to top</a>
 <P>
 <div id="build">
@@ -618,7 +663,7 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>rawAudioFile</td><td>String</td><td>capture.pcm</td><td>File to store raw PCM</tr>
 <tr align=center><td>rawAudioUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
 <tr align=center><td>recordRawVideo</td><td>bool</td><td>false</td><td>True to record raw video <br>(YUV at height/width)</tr>
-<tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw PCM</tr>
+<tr align=center><td>rawVideoFile</td><td>String</td><td>capture.yuv</td><td>File to store raw YUV</tr>
 <tr align=center><td>rawVideoUseFifo</td><td>bool</td><td>0</td><td>Output to pipe (see Sharing Capture Cards)</tr>
 <tr align=center><td>recordEncodedAudio</td><td>bool</td><td>true</td><td>True to record encoded audio</tr>
 <tr align=center><td>recordEncodedVideo</td><td>bool</td><td>true</td><td>True to record encoded video</tr>
@@ -638,7 +683,7 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>rtpDisableTimestampOffset</td><td>bool</td><td>false</td><td>If true, start RTP timestamps at 0<br>if false, start at random offset</tr>
 <tr align=center><td>rtpUseSingleSourceMulticast</td><td>bool</td><td>false</td><td>Use SSM multicast</tr>
 <tr align=center><td>sdpFile</td><td>string</td><td>capture.sdp</td><td>Where to store sdp file describing session</tr>
-<tr align=center><td>rtpUseMp4RtpPayload14</td><td>bool</td><td>false</td><td>if true, use RTP payload 14 and 90000 timescale<br>if false, use dynamic payload and frequency timescale</tr>
+<tr align=center><td>rtpUseMp3RtpPayload14</td><td>bool</td><td>false</td><td>if true, use RTP payload 14 and 90000 timescale<br>if false, use dynamic payload and frequency timescale</tr>
 <tr align=center><td>rtpNoBRR0</td><td>bool</td><td>false</td><td>If true, do not include b=RR:0 in SDP</tr>
 </tbody>
 </table>

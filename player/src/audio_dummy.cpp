@@ -42,11 +42,11 @@ void CDummyAudioSync::set_config (int freq, int channels, int format,
   uint32_t max_bytes;
   m_freq = freq;
   m_chans = channels;
-  m_format = format;
+  m_decode_format = format;
   m_max_sample_size = max_buffer_size;
   if (m_max_sample_size != 0) {
     max_bytes = m_chans * m_max_sample_size;
-    if (m_format == AUDIO_U8 || m_format == AUDIO_S8) {
+    if (m_decode_format == AUDIO_U8 || m_decode_format == AUDIO_S8) {
     } else {
       max_bytes *= 2;
     }

@@ -1,7 +1,7 @@
 /*
  * FILE:     net_udp.c
  * AUTHOR:   Colin Perkins 
- * MODIFIED: Orion Hodson & Piers O'Hanlon
+ * MODIFIED: Orion Hodson, Piers O'Hanlon, Kristian Hasler
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -58,7 +58,7 @@
 #define IPv4	4
 #define IPv6	6
 
-#ifdef WIN2K_IPV6
+#if defined(WIN2K_IPV6) || defined(WINXP_IPV6)
 const struct	in6_addr	in6addr_any = {IN6ADDR_ANY_INIT};
 #endif
 
@@ -187,6 +187,7 @@ socket_error(const char *msg, ...)
 
 /* winsock_versions_setsockopt tries 1 winsock version of option 
 * optname and then winsock 2 version if that failed.
+* note: setting the TTL never fails, so we have to try both.
 */
 
 static int
@@ -199,6 +200,7 @@ winsock_versions_setsockopt(SOCKET s, int level, int optname, const char FAR * o
 		break;
 	case IP_MULTICAST_TTL:
 		success = setsockopt(s, level, WS1_IP_MULTICAST_TTL, optval, optlen);
+ 		success = setsockopt(s, level, optname, optval, optlen);
 		break;
 	case IP_MULTICAST_LOOP:
 		success = setsockopt(s, level, WS1_IP_MULTICAST_LOOP, optval, optlen);
@@ -444,7 +446,7 @@ static void udp_exit4(socket_udp *s)
              if (inet_aton(G_Multicast_Src, &imr.imr_sourceaddr) == 0) {
                 rtp_message(LOG_ERR, "inet_aton failed for %s\n",
                         G_Multicast_Src);
-                abort;
+                abort();
               }
              if( setsockopt( s->fd, IPPROTO_IP, IP_DROP_SOURCE_MEMBERSHIP,
                          (char*)&imr,
@@ -609,7 +611,7 @@ static socket_udp *udp_init6(const char *addr, const char *iface, uint16_t rx_po
 		imr.ipv6mr_interface = 0;
 #endif
 		
-		if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &imr, sizeof(struct ipv6_mreq)) != 0) {
+		if (SETSOCKOPT(s->fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &imr, sizeof(imr)) != 0) {
 			socket_error("setsockopt IPV6_ADD_MEMBERSHIP");
 			return NULL;
 		}
@@ -707,14 +709,17 @@ static int udp_send_iov6(socket_udp *s, struct iovec *iov, int count)
 #ifdef HAVE_SIN6_LEN
 	s_in.sin6_len    = sizeof(s_in);
 #endif
-
+	memset(&msg, 0, sizeof(msg));
 	msg.msg_name 		 = &s_in;
 	msg.msg_namelen 	 = sizeof(s_in);
 	msg.msg_iov 		 = iov;
 	msg.msg_iovlen 		 = count;
+	/*
+	  handled in memset, don't need HAVE_MSGHDR_MSGCTRL
 	msg.msg_control 	 = NULL;
 	msg.msg_controllen 	 = 0;
 	msg.msg_flags 		 = 0;
+	*/
 
 	return sendmsg(s->fd, &msg, 0);
 #else

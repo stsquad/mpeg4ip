@@ -53,7 +53,7 @@ class CDummyAudioSync : public CAudioSync {
  protected:
   int m_freq;
   int m_chans;
-  int m_format;
+  int m_decode_format;
   uint32_t m_max_sample_size;
   uint8_t *m_buffer;
   int m_configed;

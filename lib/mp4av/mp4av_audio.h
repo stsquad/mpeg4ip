@@ -38,6 +38,10 @@ u_int32_t MP4AV_AudioGetSamplingRate(
 u_int16_t MP4AV_AudioGetSamplingWindow(
 	MP4FileHandle mp4File, 
 	MP4TrackId audioTrackId);
+
+  uint32_t convert_timescale(uint32_t timestamp,
+			     uint32_t from_timescale,
+			     uint32_t to_timescale);
 #ifdef __cplusplus
 }
 #endif

@@ -48,7 +48,7 @@ codec_data_t *wav_file_check(lib_message_func_t message,
 
 int wav_file_next_frame(codec_data_t *ifptr,
 			uint8_t **buffer,
-			uint64_t *ts);
+			frame_timestamp_t  *ts);
 int wav_file_eof(codec_data_t *ifptr);
 
 void wav_file_used_for_frame(codec_data_t *ifptr,

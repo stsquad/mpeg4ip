@@ -90,10 +90,13 @@ int CVideoSync::is_video_ready (uint64_t &disptime)
  * CVideoSync::play_video_at - called from sync task to show the next
  * video frame (if the timing is right
  */
-int64_t CVideoSync::play_video_at (uint64_t current_time, 
-				   int &have_eof)
+bool CVideoSync::play_video_at (uint64_t current_time, 
+				bool have_audio_resync,
+				uint64_t &next_time,
+				bool &have_eof)
 {
-  return (10);
+  next_time = current_time + 10;
+  return (true);
 }
 
 

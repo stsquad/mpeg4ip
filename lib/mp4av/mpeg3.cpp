@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2002 - 2004.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Bill May (wmay@cisco.com)
@@ -53,7 +53,7 @@ static double mpeg3_frame_rate_table[16] =
 #define MPEG3_SLICE_MAX_START            0x000001af
 
 #define SEQ_ID 1
-extern "C" int MP4AV_Mpeg3ParseSeqHdr (uint8_t *pbuffer,
+extern "C" int MP4AV_Mpeg3ParseSeqHdr (const uint8_t *pbuffer,
 				       uint32_t buflen,
 				       int *have_mpeg2,
 				       uint32_t *height,
@@ -184,19 +184,19 @@ extern "C" int MP4AV_Mpeg3ParseSeqHdr (uint8_t *pbuffer,
 #endif
 }
 
-extern "C" int MP4AV_Mpeg3PictHdrType (uint8_t *pbuffer)
+extern "C" int MP4AV_Mpeg3PictHdrType (const uint8_t *pbuffer)
 {
   pbuffer += sizeof(uint32_t);
   return ((pbuffer[1] >> 3) & 0x7);
 }
 
-extern "C" uint16_t MP4AV_Mpeg3PictHdrTempRef (uint8_t *pbuffer)
+extern "C" uint16_t MP4AV_Mpeg3PictHdrTempRef (const uint8_t *pbuffer)
 {
   pbuffer += sizeof(uint32_t);
   return ((pbuffer[0] << 2) | ((pbuffer[1] >> 6) & 0x3));
 }
 
-extern "C" int MP4AV_Mpeg3FindNextStart (uint8_t *pbuffer, 
+extern "C" int MP4AV_Mpeg3FindNextStart (const uint8_t *pbuffer, 
 					 uint32_t buflen,
 					 uint32_t *optr, 
 					 uint32_t *scode)
@@ -204,8 +204,13 @@ extern "C" int MP4AV_Mpeg3FindNextStart (uint8_t *pbuffer,
   uint32_t value;
   uint32_t offset;
 
-  for (offset = 0; offset < buflen; offset++, pbuffer++) {
+  if (buflen < 4) return -1;
+  for (offset = 0; offset < buflen - 3; offset++, pbuffer++) {
+#ifdef WORDS_BIGENDIAN
+    value = *(uint32_t *)pbuffer >> 8;
+#else
     value = (pbuffer[0] << 16) | (pbuffer[1] << 8) | (pbuffer[2] << 0); 
+#endif
 
     if (value == MPEG3_START_CODE_PREFIX) {
       *optr = offset;
@@ -216,7 +221,7 @@ extern "C" int MP4AV_Mpeg3FindNextStart (uint8_t *pbuffer,
   return -1;
 }
 
-extern "C" int MP4AV_Mpeg3FindNextSliceStart (uint8_t *pbuffer,
+extern "C" int MP4AV_Mpeg3FindNextSliceStart (const uint8_t *pbuffer,
 					      uint32_t startoffset, 
 					      uint32_t buflen,
 					      uint32_t *slice_offset)
@@ -240,7 +245,7 @@ extern "C" int MP4AV_Mpeg3FindNextSliceStart (uint8_t *pbuffer,
   return -1;
 }
 				  
-extern "C" int MP4AV_Mpeg3FindPictHdr (uint8_t *pbuffer,
+extern "C" int MP4AV_Mpeg3FindPictHdr (const uint8_t *pbuffer,
 				       uint32_t buflen,
 				       int *frame_type)
 {
@@ -468,4 +473,73 @@ extern "C" bool Mpeg12Hinter (MP4FileHandle mp4file,
 
   free(buffer);
   return true;
+}
+
+// mpeg3_find_dts_from_pts - given a pts, a frame type, and the
+// temporal reference from the frame type, calculate the dts
+// pts = presentation time stamp 
+// dts = decode time stamp.
+int mpeg3_find_dts_from_pts (mpeg3_pts_to_dts_t *ptr,
+			     uint64_t pts_in_msec,
+			     int frame_type,
+			     uint16_t temp_ref,
+			     uint64_t *return_value)
+{
+  uint64_t calc;
+  double dcalc;
+  double msec_per_frame = 1000.0 / ptr->frame_rate;
+  int64_t diff;
+
+  switch (frame_type) {
+  case 1: // i frame
+    // I frame calculation - take the temporal reference + 1, multiple it
+    // times frame rate, subtract from pts to get dts.
+    dcalc = (temp_ref + 1);
+    dcalc *= msec_per_frame;
+    calc = pts_in_msec - (uint64_t)dcalc;
+    ptr->last_i_temp_ref = temp_ref;
+    ptr->last_i_pts = pts_in_msec;
+    ptr->last_i_dts = calc;
+    *return_value = calc;
+    break;
+  case 2: 
+    // P frames suck.
+    // see if the difference between temporal references in the last
+    // frame is the difference between pts of the last I and this P frame
+    // if they are, we most likely haven't lost a frame
+    dcalc = (temp_ref - ptr->last_i_temp_ref); 
+    dcalc *= msec_per_frame;
+    diff = pts_in_msec - ptr->last_i_pts;
+    calc = (uint64_t)dcalc;
+    diff -= calc;
+    if (diff > TO_D64(10) || diff < TO_D64(-10)) {
+      // out of range - we really can't guess
+      // we could probably do more work here - record the number of 
+      // consectutive b frames, etc, but what it really means is that
+      // we need to wait until the next I frame to display sanely.
+      // We'll still decode, and may even display if B frames are 
+      // present, but we'll jerk a bit on these frames.
+      // It all comes down to me being lazy...
+      printf("pts out of range - diff "D64", temps %u %u\n",
+	     diff, temp_ref, ptr->last_i_temp_ref);
+      printf("our pts "U64" last "U64"\n", pts_in_msec, ptr->last_i_pts);
+      return -1;
+    }
+    if (ptr->last_i_temp_ref != 0) {
+      // straight forward calculation
+      *return_value = ptr->last_i_dts + calc;
+    } else {
+      // if the temp ref of the I frame was 0, there's no good calculation
+      // of how to get to the P frame time.  
+      // a less straight forward calculation - just increment from the
+      // last dts - there's no real way to calculate this accurately
+      *return_value = ptr->last_dts + (uint64_t)msec_per_frame;
+    }
+    break;
+  case 3:
+    *return_value = pts_in_msec;
+    break;
+  }
+  ptr->last_dts = *return_value;
+  return 0;
 }

@@ -13,14 +13,13 @@ typedef struct mp3_codec_t {
   codec_data_t c;
 
   MPEGaudio *m_mp3_info;
-  int m_resync_with_header;
   int m_record_sync_time;
   uint64_t m_first_time_offset;
   uint64_t m_current_time;
   uint64_t m_last_rtp_ts;
   uint32_t m_current_frame;
   int m_audio_inited;
-  int m_freq;  // frequency
+  uint32_t m_freq;  // frequency
   int m_chans, m_samplesperframe;
 #ifdef OUTPUT_TO_FILE
   FILE *m_output_file;
@@ -44,7 +43,7 @@ codec_data_t *mp3_file_check(lib_message_func_t message,
 			     CConfigSet *pConfig);
 int mp3_file_next_frame(codec_data_t *your_data,
 			uint8_t **buffer,
-			uint64_t *ts);
+			frame_timestamp_t *ts);
 
 int mp3_raw_file_seek_to(codec_data_t *ptr, uint64_t ts);
 #endif /* __MP3IF_H__ */

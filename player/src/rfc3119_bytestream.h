@@ -36,6 +36,7 @@ typedef struct adu_data_t {
   uint8_t *frame_ptr;
   int aduDataSize;
   uint64_t timestamp;
+  uint32_t freq_timestamp;
   char first_in_pak;
   char last_in_pak;
   char freeframe;
@@ -70,14 +71,15 @@ class CRfc3119RtpByteStream : public CRtpByteStreamBase
 			uint32_t rtp_ts);
   ~CRfc3119RtpByteStream();
   void reset(void);
-  int have_no_data(void);
-  uint64_t start_next_frame(uint8_t **buffer, 
-			    uint32_t *buflen, 
-			    void **ud);
+  bool have_frame(void);
+  bool start_next_frame(uint8_t **buffer, 
+			uint32_t *buflen, 
+			frame_timestamp_t *ts,
+			void **ud);
   void used_bytes_for_frame(uint32_t byte);
   void flush_rtp_packets(void);
  protected:
-  int check_rtp_frame_complete_for_payload_type(void) {
+  bool check_rtp_frame_complete_for_payload_type(void) {
     return m_head != NULL;
   };
 
@@ -92,6 +94,8 @@ class CRfc3119RtpByteStream : public CRtpByteStreamBase
   adu_data_t *m_pending_adu_list;
 
   uint32_t m_rtp_ts_add;
+  uint32_t m_rtp_freq_ts_add;
+  uint32_t m_freq;
   int m_recvd_first_pak;
   int m_got_next_idx;
   int m_have_interleave;

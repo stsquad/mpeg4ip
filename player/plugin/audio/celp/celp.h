@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2004  All Rights Reserved.
  * 
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
@@ -40,15 +40,16 @@ typedef struct celp_codec_t {
   uint16_t *m_bufs;
   //AudioFileStruct  *audiFile;
   int m_object_type;
-  int m_resync_with_header;
   int m_record_sync_time;
   uint64_t m_current_time;
   uint64_t m_last_rtp_ts;
   uint64_t m_msec_per_frame;
+  uint32_t m_current_freq_time;
+  uint32_t m_samples_per_frame;
   uint32_t m_current_frame;
   int m_audio_inited;
   int m_celp_inited;
-  int m_freq;  // frequency
+  uint32_t m_freq;  // frequency
   int m_chans; // channels
   int m_output_frame_size;
   //unsigned char *m_temp_buff;

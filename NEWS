@@ -13,6 +13,7 @@ xx/xx/04 Version 1.2
     Mac OSX support for player
     player support for 1:1 aspect ratio
     Added AMR and H.263(rfc2429) hinters and RTP plugins
+    Updated some of UCL RTP library 1.2.16 changes
 
 05/17/04 version 1.1
     Added no-overwrite mode in mp4live

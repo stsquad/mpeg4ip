@@ -102,9 +102,10 @@ void CQTVideoByteStream::reset (void)
   video_set_timebase(0);
 }
 
-uint64_t CQTVideoByteStream::start_next_frame (uint8_t **buffer, 
-					       uint32_t *buflen,
-					       void **ud)
+bool CQTVideoByteStream::start_next_frame (uint8_t **buffer, 
+					   uint32_t *buflen,
+					   frame_timestamp_t *ts,
+					   void **ud)
 {
   uint64_t ret;
   long start;
@@ -152,17 +153,19 @@ uint64_t CQTVideoByteStream::start_next_frame (uint8_t **buffer,
   *buflen = m_this_frame_size;
 
   m_frame_on++;
-  return (ret);
+  ts->msec_timestamp = ret;
+  ts->timestamp_is_pts = false;
+  return (true);
 }
 
-int CQTVideoByteStream::skip_next_frame (uint64_t *ptr, int *hasSync,
+bool CQTVideoByteStream::skip_next_frame (frame_timestamp_t *ptr, 
+					 int *hasSync,
 					 uint8_t **buffer, 
 					 uint32_t *buflen,
 					 void **ud)
 {
   *hasSync = 0;
-  *ptr = start_next_frame(buffer, buflen, ud);
-  return 1;
+  return start_next_frame(buffer, buflen, ptr, ud);
 }
 /*
  * read_frame for video - this will try to read the next frame 
@@ -304,9 +307,10 @@ void CQTAudioByteStream::reset (void)
   audio_set_timebase(0);
 }
 
-uint64_t CQTAudioByteStream::start_next_frame (uint8_t **buffer, 
-					       uint32_t *buflen,
-					       void **ud)
+bool CQTAudioByteStream::start_next_frame (uint8_t **buffer, 
+					   uint32_t *buflen,
+					   frame_timestamp_t *pts,
+					   void **ud)
 {
   uint64_t ret;
   if (m_frame_on >= m_frames_max) {
@@ -318,6 +322,8 @@ uint64_t CQTAudioByteStream::start_next_frame (uint8_t **buffer,
   }
   ret = m_frame_on;
   ret *= m_samples_per_frame;
+  pts->audio_freq_timestamp = ret;
+  pts->audio_freq = m_frame_rate;
   ret *= 1000;
   ret /= m_frame_rate;
 #ifdef DEBUG_QTIME_AUDIO_FRAME
@@ -331,7 +337,9 @@ uint64_t CQTAudioByteStream::start_next_frame (uint8_t **buffer,
   *buffer = m_buffer;
   *buflen = m_this_frame_size;
   m_frame_on++;
-  return (ret);
+  pts->msec_timestamp = ret;
+  pts->timestamp_is_pts = false;
+  return (true);
 }
 
 void CQTAudioByteStream::read_frame (uint32_t frame_to_read)

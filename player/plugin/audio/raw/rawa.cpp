@@ -124,8 +124,6 @@ static void rawa_close (codec_data_t *ptr)
  */
 static void rawa_do_pause (codec_data_t *ifptr)
 {
-  rawa_codec_t *rawa = (rawa_codec_t *)ifptr;
-  rawa->m_resync = 1;
   //LOGIT(LOG_DEBUG, "rawa", "do pause");
 }
 
@@ -133,18 +131,19 @@ static void rawa_do_pause (codec_data_t *ifptr)
  * Decode task call for FAAC
  */
 static int rawa_decode (codec_data_t *ptr,
-		       uint64_t ts,
-		       int from_rtp,
-		       int *sync_frame,
-		       uint8_t *buffer,
-		       uint32_t buflen,
+			frame_timestamp_t *pts,
+			int from_rtp,
+			int *sync_frame,
+			uint8_t *buffer,
+			uint32_t buflen,
 			void *ud)
 {
   rawa_codec_t *rawa = (rawa_codec_t *)ptr;
   uint32_t ix;
   unsigned short *b;
   uint32_t orig_buflen = buflen;
-
+  uint64_t ts = pts->msec_timestamp;
+  uint32_t freq_ts = pts->audio_freq_timestamp;
   //  LOGIT(LOG_DEBUG, "rawa", "ts "U64" buffer len %d", ts, buflen);
   if (rawa->m_initialized == 0) {
     if (rawa->m_chans == 0) {
@@ -155,6 +154,7 @@ static int rawa_decode (codec_data_t *ptr,
 	memcpy(rawa->m_temp_buff, buffer, buflen);
 	rawa->m_temp_buffsize = buflen;
 	rawa->m_ts = ts;
+	rawa->m_freq_ts = freq_ts;
 	LOGIT(LOG_DEBUG, "rawaudio", "setting %d bufsize", 
 	      rawa->m_temp_buffsize);
 	return (buflen);
@@ -199,9 +199,8 @@ static int rawa_decode (codec_data_t *ptr,
       rawa->m_vft->audio_load_buffer(rawa->m_ifptr,
 				     rawa->m_temp_buff, 
 				     rawa->m_temp_buffsize,
-				     rawa->m_ts, 
-				     1);
-      rawa->m_resync = 0;
+				     rawa->m_freq_ts,
+				     rawa->m_ts);
       if (ts == 0) rawa->m_bytes = rawa->m_temp_buffsize;
       free(rawa->m_temp_buff);
       rawa->m_temp_buff = NULL;
@@ -211,9 +210,11 @@ static int rawa_decode (codec_data_t *ptr,
 
   if (ts == rawa->m_ts) {
     uint64_t calc;
-    calc = rawa->m_bytes * TO_U64(1000);
+    calc = rawa->m_bytes;
     calc /= rawa->m_chans;
     if (rawa->m_bitsperchan == 16) calc /= 2;
+    freq_ts += calc;
+    calc *= TO_U64(1000);
     calc /= rawa->m_freq;
     ts += calc;
     rawa->m_bytes += buflen;
@@ -248,9 +249,8 @@ static int rawa_decode (codec_data_t *ptr,
   rawa->m_vft->audio_load_buffer(rawa->m_ifptr, 
 				 buffer, 
 				 buflen,
-				 ts, 
-				 rawa->m_resync);
-  rawa->m_resync = 0;
+				 freq_ts,
+				 ts);
 
   return (orig_buflen);
 }

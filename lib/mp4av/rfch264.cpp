@@ -119,6 +119,8 @@ static uint32_t h264_get_nal_size (uint8_t *pData,
     return *pData;
   } else if (sizeLength == 2) {
     return (pData[0] << 8) | pData[1];
+  } else if (sizeLength == 3) {
+    return (pData[0] << 16) |(pData[1] << 8) | pData[2];
   }
   return (pData[0] << 24) |(pData[1] << 16) |(pData[2] << 8) | pData[3];
 }

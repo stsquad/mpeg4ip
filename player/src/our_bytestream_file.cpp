@@ -43,19 +43,16 @@ void COurInByteStreamFile::play (uint64_t start)
   m_plugin->c_raw_file_seek_to(m_plugin_data, start);
 }
 
-uint64_t COurInByteStreamFile::start_next_frame (uint8_t **buffer, 
-						 uint32_t *buflen,
-						 void **userdata) 
+bool COurInByteStreamFile::start_next_frame (uint8_t **buffer, 
+					     uint32_t *buflen,
+					     frame_timestamp_t *ts,
+					     void **userdata) 
 {
-  uint64_t ts;
   *buflen = m_plugin->c_raw_file_next_frame(m_plugin_data,
 					    buffer, 
-					    &ts);
+					    ts);
 
-  if (*buflen == 0) {
-    return 0;
-  }
-  return ts;
+  return *buflen != 0;
 }
 					    
 void COurInByteStreamFile::used_bytes_for_frame (uint32_t bytes)
@@ -68,7 +65,7 @@ void COurInByteStreamFile::used_bytes_for_frame (uint32_t bytes)
 
 int COurInByteStreamFile::eof (void) 
 { 
-  return (have_no_data());
+  return (!have_frame());
 }
 
 void COurInByteStreamFile::reset (void)

@@ -197,6 +197,7 @@ class CPlayerSession {
     return m_video_persistence;
   };
   void *grab_video_persistence (void);
+  void display_status(void);
  private:
   void *m_video_connection;
   int m_started_video_connection;
@@ -207,6 +208,7 @@ class CPlayerSession {
   int sync_thread_wait_audio(void);
   int sync_thread_playing(void);
   int sync_thread_paused(void);
+  int sync_thread_audio_resync(void);
   int sync_thread_done(void);
   const char *m_session_name;
   const char *m_content_base;

@@ -47,12 +47,14 @@ class CMp4ByteStream : public COurInByteStream
   ~CMp4ByteStream();
   int eof(void);
   void reset(void);
-  uint64_t start_next_frame(uint8_t **buffer,
-			    uint32_t *buflen,
-			    void **ud);
+  bool start_next_frame(uint8_t **buffer,
+			uint32_t *buflen,
+			frame_timestamp_t *pts,
+			void **ud);
   void used_bytes_for_frame(uint32_t bytes);
   int can_skip_frame(void) { return 1; };
-  int skip_next_frame(uint64_t *ts, int *hasSyncFrame, uint8_t **buffer,
+  bool skip_next_frame(frame_timestamp_t *ts, int *hasSyncFrame, 
+		      uint8_t **buffer,
 		      uint32_t *buflen, void **ud);
   void check_for_end_of_frame(void);
   double get_max_playtime(void);
@@ -75,14 +77,16 @@ class CMp4ByteStream : public COurInByteStream
 #ifdef OUTPUT_TO_FILE
   FILE *m_output_file;
 #endif
-  void read_frame(uint32_t frame);
+  void read_frame(uint32_t frame, frame_timestamp_t *ts);
   CMp4File *m_parent;
   int m_eof;
   MP4TrackId m_track;
   MP4SampleId m_frames_max;
+  uint32_t m_sample_freq;
 
   MP4SampleId m_frame_on;
   uint64_t m_frame_on_ts;
+  uint32_t m_frame_on_sample_ts;
   int m_frame_on_has_sync;
   
   MP4SampleId m_frame_in_buffer;
@@ -121,17 +125,20 @@ class CMp4H264VideoByteStream : public CMp4VideoByteStream
     m_translate_buffer_size = 0;
     m_buflen_size = 0;
   };
-  uint64_t start_next_frame(uint8_t **buffer,
-			    uint32_t *buflen,
-			    void **ud);
+  bool start_next_frame(uint8_t **buffer,
+			uint32_t *buflen,
+			frame_timestamp_t *pts,
+			void **ud);
  protected:
   uint32_t read_nal_size(uint8_t *buffer) {
     if (m_buflen_size == 1) {
       return *buffer;
     } else if (m_buflen_size == 2) {
-      return buffer[0] << 8 | buffer[1];
-    } 
-    return buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+      return (buffer[0] << 8) | buffer[1];
+    } else if (m_buflen_size == 3) {
+      return (buffer[0] << 16) | (buffer[1] << 8) | buffer[2];
+    }
+    return (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
   };
   uint8_t *m_translate_buffer;
   uint32_t m_translate_buffer_size;
@@ -183,9 +190,10 @@ class CMp4EncVideoByteStream : public CMp4VideoByteStream
           m_ismaCryptSId, rc);
      }
   }
-  uint64_t start_next_frame(uint8_t **buffer,
-			    uint32_t *buflen,
-			    void **ud);
+  bool start_next_frame(uint8_t **buffer,
+			uint32_t *buflen,
+			frame_timestamp_t *ts,
+			void **ud);
   ismacryp_session_id_t m_ismaCryptSId; // eventually make it private
                                         // and add accessor function
 };  
@@ -221,9 +229,10 @@ class CMp4EncAudioByteStream : public CMp4AudioByteStream
           m_ismaCryptSId, rc);
     }
   };
-  uint64_t start_next_frame(uint8_t **buffer,
-			    uint32_t *buflen,
-			    void **ud); 
+  bool start_next_frame(uint8_t **buffer,
+			uint32_t *buflen,
+			frame_timestamp_t *ts,
+			void **ud); 
 
   ismacryp_session_id_t m_ismaCryptSId; // eventually make it private
                                         // and add accessor function

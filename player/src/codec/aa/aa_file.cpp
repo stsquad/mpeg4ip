@@ -72,7 +72,7 @@ codec_data_t *aac_file_check (lib_message_func_t message,
 
 int aac_file_next_frame (codec_data_t *your,
 			 uint8_t **buffer, 
-			 uint64_t *ts)
+			 frame_timestamp_t *ts)
 {
   aac_codec_t *aac = (aac_codec_t *)your;
 
@@ -93,7 +93,10 @@ int aac_file_next_frame (codec_data_t *your,
   uint64_t calc;
   calc = aac->m_framecount * TO_U64(1024 * 1000);
   calc /= aac->m_freq;
-  *ts = calc;
+  ts->msec_timestamp = calc;
+  ts->audio_freq_timestamp = aac->m_framecount * 1024;
+  ts->audio_freq = aac->m_freq;
+  ts->timestamp_is_pts = false;
   *buffer = aac->m_buffer;
   aac->m_framecount++;
   return (aac->m_buffer_size);

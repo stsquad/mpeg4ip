@@ -87,10 +87,11 @@ static void h261_rtp_destroy (rtp_plugin_data_t *pifptr)
   free(iptr);
 }
 
-static uint64_t start_next_frame (rtp_plugin_data_t *pifptr, 
-				  uint8_t **buffer, 
-				  uint32_t *buflen,
-				  void **userdata)
+static bool start_next_frame (rtp_plugin_data_t *pifptr, 
+			      uint8_t **buffer, 
+			      uint32_t *buflen,
+			      frame_timestamp_t *ts,
+			      void **userdata)
 {
   h261_rtp_data_t *iptr = (h261_rtp_data_t *)pifptr;
   uint64_t timetick;
@@ -106,7 +107,7 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
   iptr->m_current_pak = (iptr->m_vft->get_next_pak)(iptr->m_ifptr, 
 						    NULL, 
 						    1);
-  if (iptr->m_current_pak == NULL) return 0;
+  if (iptr->m_current_pak == NULL) return false;
 
   udata->detected_loss = 0;
   if (iptr->m_first_pak != 0) {
@@ -139,6 +140,8 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
   h261_message(LOG_DEBUG, h261rtp, "start next frame %p %d ts %x "U64, 
 	       *buffer, *buflen, iptr->m_current_pak->rtp_pak_ts, timetick);
 #endif
+  ts->msec_timestamp = timetick;
+  ts->timestamp_is_pts = false;
   return (timetick);
 }
 
@@ -157,10 +160,10 @@ static void flush_rtp_packets (rtp_plugin_data_t *pifptr)
 
 }
 
-static int have_no_data (rtp_plugin_data_t *pifptr)
+static bool have_frame (rtp_plugin_data_t *pifptr)
 {
   h261_rtp_data_t *iptr = (h261_rtp_data_t *)pifptr;
-  return (iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 0) == NULL);
+  return (iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 0) != NULL);
 }
 
 RTP_PLUGIN("h261", 
@@ -171,6 +174,6 @@ RTP_PLUGIN("h261",
 	   used_bytes_for_frame,
 	   reset, 
 	   flush_rtp_packets,
-	   have_no_data,
+	   have_frame,
 	   NULL,
 	   0);

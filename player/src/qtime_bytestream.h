@@ -41,9 +41,10 @@ class CQTByteStreamBase : public COurInByteStream
   ~CQTByteStreamBase();
   int eof(void);
   virtual void reset(void) = 0;
-  virtual uint64_t start_next_frame (uint8_t **buffer,
-				     uint32_t *buflen,
-				     void **ud) = 0;
+  virtual bool start_next_frame (uint8_t **buffer,
+				 uint32_t *buflen,
+				 frame_timestamp_t *ts,
+				 void **ud) = 0;
   void used_bytes_for_frame(uint32_t bytes);
   void check_for_end_of_frame(void);
  protected:
@@ -76,10 +77,12 @@ class CQTVideoByteStream : public CQTByteStreamBase
     read_frame(0);
     };
   void reset(void);
-  uint64_t start_next_frame(uint8_t **buffer,
-			    uint32_t *buflen, void **ud);
+  bool start_next_frame(uint8_t **buffer,
+			uint32_t *buflen, 
+			frame_timestamp_t *ts,
+			void **ud);
   int can_skip_frame(void) { return 1; };
-  int skip_next_frame (uint64_t *ts, int *hasSync, uint8_t **buffer,
+  bool skip_next_frame (frame_timestamp_t *ts, int *hasSync, uint8_t **buffer,
 		       uint32_t *buflen, void **ud);
   void play(uint64_t start);
   double get_max_playtime(void);
@@ -106,9 +109,10 @@ class CQTAudioByteStream : public CQTByteStreamBase
       read_frame(0);
     };
   void reset(void);
-  uint64_t start_next_frame(uint8_t **buffer,
-			    uint32_t *buflen,
-			    void **ud);
+  bool start_next_frame(uint8_t **buffer,
+			uint32_t *buflen,
+			frame_timestamp_t *ts,
+			void **ud);
   void play(uint64_t start);
   double get_max_playtime (void) {
     double ret = m_frames_max * m_samples_per_frame;

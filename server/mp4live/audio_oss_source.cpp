@@ -414,10 +414,6 @@ bool CAudioCapabilities::ProbeDevice()
 {
   int rc;
 
-#ifndef SNDCTL_DSP_GETERROR
-  error_message("You do not have a version of OSS that contains overrun/underrun indication");
-  error_message("This may or may not contribute to long term sync issues");
-#endif
   // open the audio device
   int audioDevice = open(m_deviceName, O_RDONLY);
   if (audioDevice < 0) {

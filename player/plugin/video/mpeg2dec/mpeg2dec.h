@@ -27,6 +27,7 @@
 extern "C" {
 #include <mpeg2dec/mpeg2.h>
 }
+#include "mp4av.h"
 
 #define m_vft c.v.video_vft
 #define m_ifptr c.ifptr
@@ -40,6 +41,8 @@ typedef struct mpeg2dec_codec_t {
   int m_did_pause;
   int m_got_i;
   uint64_t cached_ts;
+  bool m_cached_ts_invalid;
+  mpeg3_pts_to_dts_t pts_convert;
 } mpeg2dec_codec_t;
   
 #endif

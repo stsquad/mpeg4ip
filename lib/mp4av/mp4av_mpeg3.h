@@ -32,29 +32,44 @@
 #define MPEG3_SEQUENCE_END_START_CODE    0x000001b7
 #define MPEG3_GOP_START_CODE             0x000001b8
 
+typedef struct mpeg3_pts_to_dts_t {
+  double frame_rate;
+  uint16_t last_i_temp_ref;
+  uint64_t last_i_pts;
+  uint64_t last_i_dts;
+  uint64_t last_dts;
+} mpeg3_pts_to_dts_t;
+  
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  int MP4AV_Mpeg3ParseSeqHdr(uint8_t *pbuffer, uint32_t buflen, 
+  int MP4AV_Mpeg3ParseSeqHdr(const uint8_t *pbuffer, uint32_t buflen, 
 			     int *have_mpeg2,
 			      uint32_t *height, uint32_t *width, 
 			      double *frame_rate, double *bitrate,
 			     double *aspect_ratio);
 
-  int MP4AV_Mpeg3PictHdrType(uint8_t *pbuffer);
+  int MP4AV_Mpeg3PictHdrType(const uint8_t *pbuffer);
 
-  uint16_t MP4AV_Mpeg3PictHdrTempRef(uint8_t *pbuffer);
+  uint16_t MP4AV_Mpeg3PictHdrTempRef(const uint8_t *pbuffer);
 
-  int MP4AV_Mpeg3FindPictHdr(uint8_t *pbuffer, uint32_t buflen, int *ftype);
-  int MP4AV_Mpeg3FindNextStart (uint8_t *pbuffer, 
-				uint32_t buflen,
-				uint32_t *optr, 
-				uint32_t *scode);
-  int MP4AV_Mpeg3FindNextSliceStart (uint8_t *pbuffer,
+  int MP4AV_Mpeg3FindPictHdr(const uint8_t *pbuffer, 
+			     uint32_t buflen, 
+			     int *ftype);
+  int MP4AV_Mpeg3FindNextStart(const uint8_t *pbuffer, 
+			       uint32_t buflen,
+			       uint32_t *optr, 
+			       uint32_t *scode);
+  int MP4AV_Mpeg3FindNextSliceStart(const uint8_t *pbuffer,
 				     uint32_t startoffset, 
 				     uint32_t buflen,
 				     uint32_t *slice_offset);
+  int mpeg3_find_dts_from_pts(mpeg3_pts_to_dts_t *ptr,
+			      uint64_t pts_in_msec,
+			      int frame_type,
+			      uint16_t temp_ref,
+			      uint64_t *return_value);
 #ifdef __cplusplus
 }
 #endif

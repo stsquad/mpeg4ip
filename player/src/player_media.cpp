@@ -864,3 +864,17 @@ int process_rtsp_rtpinfo (char *rtpinfo,
   return (1);
 }
 
+void CPlayerMedia::display_status (void) 
+{
+  if (m_rtp_byte_stream != NULL) {
+    m_rtp_byte_stream->display_status();
+  }
+  if (m_audio_sync != NULL) {
+    m_audio_sync->display_status();
+  }
+  if (m_video_sync != NULL) {
+    m_video_sync->display_status();
+  }
+  media_message(LOG_DEBUG, "%s decode waiting %d", m_is_video ? "video" : "audio", 
+		m_decode_thread_waiting);
+}

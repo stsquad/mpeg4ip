@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.20 $ 
- * $Date: 2003/05/05 21:24:25 $
+ * $Revision: 1.21 $ 
+ * $Date: 2004/10/28 22:44:17 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -60,6 +60,9 @@
 #include "ntp.h"
 
 #include "rtp.h"
+
+//#define REORDER_IOV_PAKS 1
+
 typedef struct {
         uint32_t key;   /* Original allocation number   */
         uint32_t size;  /* Size of allocation requested */
@@ -287,17 +290,22 @@ struct rtp {
   rtcp_send_f rtcp_send;
   rtcp_send_packet_t rtcp_send_packet;
 	uint32_t	 magic;				/* For debugging...  */
+  int reorder_iovs;
+  int reorder_iov_count;
+  int reorder_iov_max;
+  int have_iov;
+  uint8_t *iov_buffer;
+  struct iovec *my_iov;
+  int my_iov_count;
 };
 
-static int filter_event(struct rtp *session, uint32_t ssrc)
+static inline int filter_event(struct rtp *session, uint32_t ssrc)
 {
-	int	filter;
-
-	rtp_get_option(session, RTP_OPT_FILTER_MY_PACKETS, &filter);
-	return filter && (ssrc == rtp_my_ssrc(session));
+	return session->opt->filter_my_packets && (ssrc == rtp_my_ssrc(session));
 }
 
-static double tv_diff(struct timeval curr_time, struct timeval prev_time)
+static inline double 
+tv_diff(struct timeval curr_time, struct timeval prev_time)
 {
     /* Return curr_time - prev_time */
     double	ct, pt;
@@ -517,13 +525,19 @@ static const rtcp_rr* get_rr(struct rtp *session, uint32_t reporter_ssrc, uint32
         return NULL;
 }
 
-static void check_source(source *s)
+static inline void 
+check_source(source *s)
 {
+#ifdef DEBUG
 	ASSERT(s != NULL);
 	ASSERT(s->magic == 0xc001feed);
+#else
+	UNUSED(s);
+#endif
 }
 
-static void check_database(struct rtp *session)
+static inline void 
+check_database(struct rtp *session)
 {
 	/* This routine performs a sanity check on the database. */
 	/* This should not call any of the other routines which  */
@@ -532,10 +546,10 @@ static void check_database(struct rtp *session)
 	source 	 	*s;
 	int	 	 source_count;
 	int		 chain;
-#endif
+
 	ASSERT(session != NULL);
 	ASSERT(session->magic == 0xfeedface);
-#ifdef DEBUG
+
 	/* Check that we have a database entry for our ssrc... */
 	/* We only do this check if ssrc_count > 0 since it is */
 	/* performed during initialisation whilst creating the */
@@ -580,10 +594,13 @@ static void check_database(struct rtp *session)
 	if (source_count != session->ssrc_count) {
 	  rtp_message(LOG_DEBUG, "source count %d does not equal session count %d", source_count, session->ssrc_count);
 	}
+#else
+	UNUSED(session);
 #endif
 }
 
-static source *get_source(struct rtp *session, uint32_t ssrc)
+static inline source *
+get_source(struct rtp *session, uint32_t ssrc)
 {
 	source *s;
 
@@ -597,7 +614,8 @@ static source *get_source(struct rtp *session, uint32_t ssrc)
 	return NULL;
 }
 
-static source *create_source(struct rtp *session, uint32_t ssrc, int probation)
+static source *
+create_source(struct rtp *session, uint32_t ssrc, int probation)
 {
 	/* Create a new source entry, and add it to the database.    */
 	/* The database is a hash table, using the separate chaining */
@@ -739,7 +757,8 @@ static void delete_source(struct rtp *session, uint32_t ssrc)
 	check_database(session);
 }
 
-static void init_seq(source *s, uint16_t seq)
+static 
+void init_seq(source *s, uint16_t seq)
 {
 	/* Taken from draft-ietf-avt-rtp-new-01.txt */
 	check_source(s);
@@ -806,7 +825,8 @@ static int update_seq(source *s, uint16_t seq)
 	return 1;
 }
 
-static double rtcp_interval(struct rtp *session)
+static double 
+rtcp_interval(struct rtp *session)
 {
 	/* Minimum average time between RTCP packets from this site (in   */
 	/* seconds).  This time prevents the reports from `clumping' when */
@@ -951,7 +971,10 @@ static void init_opt(struct rtp *session)
 static void init_rng(const char *s)
 {
         static uint32_t seed;
-	if (s == NULL) s = "ARANDOMSTRINGSOWEDONTCOREDUMP";
+	if (s == NULL) {
+	  /* This should never happen, but just in case */
+	  s = "ARANDOMSTRINGSOWEDONTCOREDUMP";
+	}
         if (seed == 0) {
                 pid_t p = getpid();
 		int32_t i, n;
@@ -1091,6 +1114,7 @@ struct rtp *rtp_init_if(const char *addr, char *iface,
         }
 
 	session 		= (struct rtp *) xmalloc(sizeof(struct rtp));
+	memset(session, 0, sizeof(*session));
 	session->magic		= 0xfeedface;
 	session->opt		= (options *) xmalloc(sizeof(options));
 	session->userdata	= userdata;
@@ -1099,6 +1123,11 @@ struct rtp *rtp_init_if(const char *addr, char *iface,
 	session->tx_port	= tx_port;
 	session->ttl		= min(ttl, 127);
 
+#ifdef REORDER_IOV_PAKS
+	session->reorder_iovs = 1;
+	session->reorder_iov_max = 50;
+	session->have_iov = 0;
+#endif
 	init_opt(session);
 
 	if (dont_init_sockets == 0) {
@@ -1301,51 +1330,6 @@ uint32_t rtp_my_ssrc(struct rtp *session)
 	return session->my_ssrc;
 }
 
-static int validate_rtp(rtp_packet *packet, int len)
-{
-	/* This function checks the header info to make sure that the packet */
-	/* is valid. We return TRUE if the packet is valid, FALSE otherwise. */
-	/* See Appendix A.1 of the RTP specification.                        */
-
-	/* We only accept RTPv2 packets... */
-	if (packet->rtp_pak_v != 2) {
-		rtp_message(LOG_WARNING, "rtp_header_validation: v != 2");
-		return FALSE;
-	}
-	/* Check for valid payload types..... 72-76 are RTCP payload type numbers, with */
-	/* the high bit missing so we report that someone is running on the wrong port. */
-	if (packet->rtp_pak_pt >= 72 && packet->rtp_pak_pt <= 76) {
-		rtp_message(LOG_WARNING, "rtp_header_validation: payload-type invalid %d - seq%d", packet->rtp_pak_pt, packet->rtp_pak_seq);
-		if (packet->rtp_pak_m) {
-			rtp_message(LOG_WARNING, " (RTCP packet on RTP port?)");
-		}
-		return FALSE;
-	}
-	/* Check that the length of the packet is sensible... */
-	if (len < (12 + (4 * packet->rtp_pak_cc))) {
-		rtp_message(LOG_WARNING, "rtp_header_validation: packet length is smaller than the header");
-		return FALSE;
-	}
-	/* Check that the amount of padding specified is sensible. */
-	/* Note: have to include the size of any extension header! */
-	if (packet->rtp_pak_p) {
-		int	payload_len = len - 12 - (packet->rtp_pak_cc * 4);
-                if (packet->rtp_pak_x) {
-                        /* extension header and data */
-                        payload_len -= 4 * (1 + packet->rtp_extn_len);
-                }
-                if (packet->rtp_data[packet->rtp_data_len - 1] > payload_len) {
-                        rtp_message(LOG_WARNING, "rtp_header_validation: padding greater than payload length");
-                        return FALSE;
-                }
-                if (packet->rtp_data[packet->rtp_data_len - 1] < 1) {
-			rtp_message(LOG_WARNING, "rtp_header_validation: padding zero");
-			return FALSE;
-		}
-        }
-	return TRUE;
-}
-
 static void process_rtp(struct rtp *session, uint32_t curr_rtp_ts, rtp_packet *packet, source *s)
 {
 	int		 i, d, transit;
@@ -1380,6 +1364,62 @@ static void process_rtp(struct rtp *session, uint32_t curr_rtp_ts, rtp_packet *p
 		session->callback(session, &event);
 	}
 }
+static int validate_rtp2(rtp_packet *packet, int len)
+{
+	/* Check for valid payload types..... 72-76 are RTCP payload type numbers, with */
+	/* the high bit missing so we report that someone is running on the wrong port. */
+	if (packet->rtp_pak_pt >= 72 && packet->rtp_pak_pt <= 76) {
+		debug_msg("rtp_header_validation: payload-type invalid");
+		if (packet->rtp_pak_m) {
+			debug_msg(" (RTCP packet on RTP port?)");
+		}
+		debug_msg("\n");
+		return FALSE;
+	}
+	/* Check that the length of the packet is sensible... */
+	if (len < (12 + (4 * packet->rtp_pak_cc))) {
+		debug_msg("rtp_header_validation: packet length is smaller than the header\n");
+		return FALSE;
+	}
+	/* Check that the amount of padding specified is sensible. */
+	/* Note: have to include the size of any extension header! */
+	if (packet->rtp_pak_p) {
+		int	payload_len = len - 12 - (packet->rtp_pak_cc * 4);
+                if (packet->rtp_pak_x) {
+                        /* extension header and data */
+                        payload_len -= 4 * (1 + packet->rtp_extn_len);
+                }
+                if (packet->rtp_data[packet->rtp_data_len - 1] > payload_len) {
+                        debug_msg("rtp_header_validation: padding greater than payload length\n");
+                        return FALSE;
+                }
+                if (packet->rtp_data[packet->rtp_data_len - 1] < 1) {
+			debug_msg("rtp_header_validation: padding zero\n");
+			return FALSE;
+		}
+        }
+	return TRUE;
+}
+
+static int validate_rtp(struct rtp *session, rtp_packet *packet, int len)
+{
+	/* This function checks the header info to make sure that the packet */
+	/* is valid. We return TRUE if the packet is valid, FALSE otherwise. */
+	/* See Appendix A.1 of the RTP specification.                        */
+
+	/* We only accept RTPv2 packets... */
+	if (packet->rtp_pak_v != 2) {
+		rtp_message(LOG_WARNING, "rtp_header_validation: v != 2");
+		return FALSE;
+	}
+	
+	if (!session->opt->wait_for_rtcp) {
+	  /* We prefer speed over accuracy... */
+	  return TRUE;
+	}
+	return validate_rtp2(packet, len);
+}
+
 
 int rtp_process_recv_data (struct rtp *session,
 			   uint32_t curr_rtp_ts,
@@ -1430,16 +1470,13 @@ int rtp_process_recv_data (struct rtp *session,
       packet->rtp_data += ((packet->rtp_extn_len + 1) * 4);
       packet->rtp_data_len -= ((packet->rtp_extn_len + 1) * 4);
     }
-    if (validate_rtp(packet, buflen)) {
-      int weak = 0, promisc = 0;
-      rtp_get_option(session, RTP_OPT_WEAK_VALIDATION, &weak);
-      if (weak) {
-	s = get_source(session, packet->rtp_pak_ssrc);
-      } else {
+    if (validate_rtp(session, packet, buflen)) {
+      if (session->opt->wait_for_rtcp) {
 	s = create_source(session, packet->rtp_pak_ssrc, TRUE);
+      } else {
+	s = get_source(session, packet->rtp_pak_ssrc);
       }
-      rtp_get_option(session, RTP_OPT_PROMISC, &promisc);
-      if (promisc) {
+      if (session->opt->promiscuous_mode) {
 	if (s == NULL) {
 	  create_source(session, packet->rtp_pak_ssrc, FALSE);
 	  s = get_source(session, packet->rtp_pak_ssrc);
@@ -1968,9 +2005,11 @@ int rtp_add_csrc(struct rtp *session, uint32_t csrc)
 		rtp_message(LOG_INFO, "Created source 0x%08x as CSRC", csrc);
 	}
 	check_source(s);
-	s->should_advertise_sdes = TRUE;
-	session->csrc_count++;
-	rtp_message(LOG_INFO, "Added CSRC 0x%08x as CSRC %d", csrc, session->csrc_count);
+	if (!s->should_advertise_sdes) {
+	  s->should_advertise_sdes = TRUE;
+	  session->csrc_count++;
+	  rtp_message(LOG_INFO, "Added CSRC 0x%08x as CSRC %d", csrc, session->csrc_count);
+	}
 	return TRUE;
 }
 
@@ -2329,6 +2368,7 @@ int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, in
 	rtp_packet	*packet;
 	int my_iov_count = iov_count + 1;
 	struct iovec *my_iov;
+	uint8_t *tmp;
 
 	/* operation not supported on encrypted sessions */
 	if ((session->encryption_enabled)) {
@@ -2388,11 +2428,44 @@ int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, in
 		buffer_len += my_iov[i].iov_len;
 	}
 
-	/* Send the data */
-	rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
+	if (session->reorder_iovs != 0) {
+	  session->reorder_iov_count++;
+	  if (session->reorder_iov_count < session->reorder_iov_max) {
+	    rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
+	    xfree(buffer);
+	    xfree(my_iov);
+	    if (session->have_iov != 0) {
+	      udp_send_iov(session->rtp_socket, 
+			   session->my_iov,
+			   session->my_iov_count);
+	      for (i = 0; i < session->my_iov_count; i++) {
+		free(session->my_iov[i].iov_base);
+	      }
+	      xfree(session->iov_buffer);
+	      xfree(session->my_iov);
+	      session->have_iov = 0;
+	    }
+	  } else {
+	    session->have_iov = 1;
+	    session->iov_buffer = buffer;
+	    session->my_iov = my_iov;
+	    session->my_iov_count = my_iov_count;
+	    for (i = 0; i < my_iov_count; i++) {
+	      tmp = (uint8_t *)malloc(my_iov[i].iov_len);
+	      memcpy(tmp, my_iov[i].iov_base, my_iov[i].iov_len);
+	      my_iov[i].iov_base = tmp;
+	    }
+	    rc = buffer_len;
+	    session->reorder_iov_count = 0;
+	  }
+	     
+	} else {
+	  /* Send the data */
+	  rc = udp_send_iov(session->rtp_socket, my_iov, my_iov_count);
 
-	xfree(buffer);
-	xfree(my_iov);
+	  xfree(buffer);
+	  xfree(my_iov);
+	}
 
 	/* Update the RTCP statistics... */
 	session->we_sent     = TRUE;
@@ -2645,7 +2718,7 @@ static uint8_t *format_rtcp_app(uint8_t *buffer, int buflen, uint32_t ssrc, rtcp
 	int          data_octets  =  pkt_octets - 12;
 
 	ASSERT(data_octets >= 0);          /* ...else not a legal APP packet.               */
-	ASSERT(buflen      >  pkt_octets); /* ...else there isn't space for the APP packet. */
+	ASSERT(buflen      >= pkt_octets); /* ...else there isn't space for the APP packet. */
 
 	/* Copy one APP packet from "app" to "packet". */
 	packet->version        =   RTP_VERSION;

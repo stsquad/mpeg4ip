@@ -66,23 +66,24 @@ void CAviVideoByteStream::reset (void)
   video_set_timebase(0);
 }
 
-uint64_t CAviVideoByteStream::start_next_frame (uint8_t **buffer, 
-						uint32_t *buflen,
-						void **ud)
+bool CAviVideoByteStream::start_next_frame (uint8_t **buffer, 
+					    uint32_t *buflen,
+					    frame_timestamp_t *ts,
+					    void **ud)
 {
-  uint64_t ret;
   double ftime;
   
   read_frame(m_frame_on);
   ftime = (double)m_frame_on;
   ftime *= 1000.0;
   ftime /= m_frame_rate;
-  ret = (uint64_t)ftime;
+  ts->msec_timestamp = (uint64_t)ftime;
+  ts->timestamp_is_pts = false;
   *buffer = m_buffer;
   *buflen = m_this_frame_size;
   m_frame_on++;
   if (m_frame_on > m_frames_max) m_eof = 1;
-  return (ret);
+  return (true);
 }
 
 void CAviVideoByteStream::used_bytes_for_frame (uint32_t bytes)
@@ -150,9 +151,10 @@ void CAviAudioByteStream::reset (void)
   audio_set_timebase(0);
 }
 
-uint64_t CAviAudioByteStream::start_next_frame (uint8_t **buffer, 
-						uint32_t *buflen,
-						void **ud)
+bool CAviAudioByteStream::start_next_frame (uint8_t **buffer, 
+					    uint32_t *buflen,
+					    frame_timestamp_t *ts,
+					    void **ud)
 {
   int value;
   if (m_buffer_on < m_this_frame_size) {
@@ -194,7 +196,11 @@ uint64_t CAviAudioByteStream::start_next_frame (uint8_t **buffer,
 			 ret, m_byte_on, m_this_frame_size);
   return (ret);
 #endif
-  return 0;
+  ts->msec_timestamp = 0;
+  ts->audio_freq_timestamp = 0;
+  ts->audio_freq = AVI_audio_rate(m_parent->get_file());
+  ts->timestamp_is_pts = false;
+  return true;
 }
 
 

@@ -1,3 +1,4 @@
+
 /*
  * The contents of this file are subject to the Mozilla Public
  * License Version 1.1 (the "License"); you may not use this file
@@ -35,6 +36,12 @@ static SConfigVariable MyConfigVariables[] = {
 
 //#define DEBUG_FFMPEG
 //#define DEBUG_FFMPEG_FRAME 1
+#ifndef HAVE_AVRATIONAL
+// cheap way to tell difference between ffmpeg versions
+#define CODEC_ID_AMR_WB CODEC_ID_NONE
+#define CODEC_ID_AMR_NB CODEC_ID_NONE
+#endif
+
 static enum CodecID ffmpeg_find_codec (const char *stream_type,
 				       const char *compressor, 
 				       int type, 
@@ -44,11 +51,25 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
 				       uint32_t ud_size)
 {
   if (strcasecmp(stream_type, STREAM_TYPE_MP4_FILE) == 0) {
-    if (strcasecmp(compressor, "sawb") == 0) {
+    if (strcmp(compressor, "sawb") == 0) {
       return CODEC_ID_AMR_WB;
     }
-    if (strcasecmp(compressor, "samr") == 0) {
+    if (strcmp(compressor, "samr") == 0) {
       return CODEC_ID_AMR_NB;
+    }
+    if (strcmp(compressor, "ulaw") == 0) {
+      return CODEC_ID_PCM_MULAW;
+    }
+    if (strcmp(compressor, "alaw") == 0) {
+      return CODEC_ID_PCM_ALAW;
+    }
+    if (strcmp(compressor, "mp4a") == 0) {
+      if (type == MP4_ALAW_AUDIO_TYPE) {
+	return CODEC_ID_PCM_ALAW;
+      } 
+      if (type == MP4_ULAW_AUDIO_TYPE) {
+	return CODEC_ID_PCM_MULAW;
+      }
     }
     return CODEC_ID_NONE;
   }
@@ -64,9 +85,21 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
     return CODEC_ID_NONE;
   }
   if (strcasecmp(stream_type, "QT FILE") == 0) {
+    if (strcmp(compressor, "ulaw") == 0) {
+      return CODEC_ID_PCM_MULAW;
+    }
+    if (strcmp(compressor, "alaw") == 0) {
+      return CODEC_ID_PCM_ALAW;
+    }
     return CODEC_ID_NONE;
   }
   if ((strcasecmp(stream_type, STREAM_TYPE_RTP) == 0) && fptr != NULL) {
+    if (strcmp(fptr->fmt, "8") == 0) {
+      return CODEC_ID_PCM_ALAW;
+    }
+    if (strcmp(fptr->fmt, "0") == 0) {
+      return CODEC_ID_PCM_MULAW;
+    }
     if (fptr->rtpmap != NULL) {
       if (strcasecmp(fptr->rtpmap->encode_name, "AMR-WB") == 0)
 	return CODEC_ID_AMR_WB;
@@ -110,11 +143,20 @@ static codec_data_t *ffmpeg_create (const char *stream_type,
     ffmpeg->m_c->channels = ainfo->chans;
     ffmpeg->m_c->sample_rate = ainfo->freq;
   }
-  if (ffmpeg->m_codecId == CODEC_ID_AMR_WB ||
-      ffmpeg->m_codecId == CODEC_ID_AMR_NB) {
+  switch (ffmpeg->m_codecId) {
+  case CODEC_ID_AMR_WB:
+  case CODEC_ID_AMR_NB:
     ffmpeg->m_c->channels = 1;
     ffmpeg->m_c->sample_rate = ffmpeg->m_codecId == CODEC_ID_AMR_WB ? 
       16000 : 8000;
+    break;
+  case CODEC_ID_PCM_ALAW:
+  case CODEC_ID_PCM_MULAW:
+    ffmpeg->m_c->channels = 1;
+    ffmpeg->m_c->sample_rate = 8000;
+    break;
+  default:
+    break;
   }
   if (userdata) {
     ffmpeg->m_c->extradata = (void *)userdata;
@@ -146,13 +188,10 @@ static void ffmpeg_close (codec_data_t *ifptr)
 
 static void ffmpeg_do_pause (codec_data_t *ifptr)
 {
-  ffmpeg_codec_t *ffmpeg = (ffmpeg_codec_t *)ifptr;
-  //mpeg2_reset(ffmpeg->m_decoder, 0);
-  ffmpeg->m_resync =  1;
 }
 
 static int ffmpeg_decode (codec_data_t *ptr,
-			  uint64_t ts, 
+			  frame_timestamp_t *pts, 
 			  int from_rtp,
 			  int *sync_frame,
 			  uint8_t *buffer, 
@@ -164,10 +203,15 @@ static int ffmpeg_decode (codec_data_t *ptr,
   uint32_t used;
   int outsize;
 
+  uint64_t ts = pts->msec_timestamp;
+  uint32_t freq_ts = pts->audio_freq_timestamp;
+
   do {
     used = avcodec_decode_audio(ffmpeg->m_c, (short *)ffmpeg->m_outbuf,
 				&outsize, buffer, left);
     if (used < 0) {
+      ffmpeg_message(LOG_DEBUG, "ffmpeg", "failed to decode at "U64, 
+		     ts);
       return buflen;
     }
     if (outsize > 0) {
@@ -185,8 +229,12 @@ static int ffmpeg_decode (codec_data_t *ptr,
       ffmpeg_message(LOG_DEBUG, "ffmpeg", "decoded %u bytes %llu", outsize, 
 		     ts);
 #endif
-      if (ts == ffmpeg->m_ts) {
+      if (pts->audio_freq != ffmpeg->m_freq) {
+	freq_ts = convert_timescale(freq_ts, pts->audio_freq, ffmpeg->m_freq);
+      }
+      if (freq_ts == ffmpeg->m_freq_ts && ts == ffmpeg->m_ts) {
 	uint64_t calc;
+	freq_ts += ffmpeg->m_samples;
 	calc = ffmpeg->m_samples * TO_U64(1000);
 	calc /= ffmpeg->m_channels;
 	calc /= 2;
@@ -196,14 +244,14 @@ static int ffmpeg_decode (codec_data_t *ptr,
       } else {
 	ffmpeg->m_samples = outsize;
 	ffmpeg->m_ts = ts;
+	ffmpeg->m_freq_ts = freq_ts;
       }
 
       ffmpeg->m_vft->audio_load_buffer(ffmpeg->m_ifptr, 
 				       ffmpeg->m_outbuf, 
 				       outsize,
-				       ts,
-				       ffmpeg->m_resync);
-      ffmpeg->m_resync = 0;
+				       freq_ts,
+				       ts);
     }
     left -= used;
   } while (left > 0 && used != 0);

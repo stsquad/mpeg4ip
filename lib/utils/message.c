@@ -40,6 +40,31 @@ static void unlock_mutex(void)
 }
 #endif
 
+static FILE *outfile = NULL;
+
+void open_log_file (const char *filename)
+{
+  if (outfile != NULL && outfile != stdout) {
+    fclose(outfile);
+  }
+  outfile = fopen(filename, "w");
+}
+
+void flush_log_file (void)
+{
+  fflush(outfile);
+}
+
+void clear_log_file (void)
+{
+  ftruncate(fileno(outfile), 0);
+}
+
+void close_log_file (void)
+{
+  fclose(outfile);
+  outfile = NULL;
+}
 
 void message (int loglevel, const char *lib, const char *fmt, ...)
 {
@@ -47,6 +72,7 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
   struct timeval thistime;
   time_t secs;
   char buffer[80];
+  if (outfile == NULL) outfile = stdout;
 #if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
   if (IsDebuggerPresent()) {
     char msg[512];
@@ -73,12 +99,12 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
 		   "%H:%M:%S",
 #endif
 		   localtime(&secs));
-  printf("%s.%03lu-%s-%d: ",
+  fprintf(outfile, "%s.%03lu-%s-%d: ",
 	 buffer, (unsigned long)thistime.tv_usec / 1000, lib, loglevel);
   va_start(ap, fmt);
-  vprintf(fmt, ap);
+  vfprintf(outfile, fmt, ap);
   va_end(ap);
-  printf("\n");
+  fprintf(outfile, "\n");
 }
 
 void library_message (int loglevel,
@@ -89,6 +115,7 @@ void library_message (int loglevel,
   struct timeval thistime;
   time_t secs;
   char buffer[80];
+  if (outfile == NULL) outfile = stdout;
 #if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
   if (IsDebuggerPresent()) {
     char msg[512];
@@ -116,12 +143,12 @@ void library_message (int loglevel,
 		   "%H:%M:%S",
 #endif
 		   localtime(&secs));
-  printf("%s.%03lu-%s-%d: ",
+  fprintf(outfile, "%s.%03lu-%s-%d: ",
 	 buffer,
 	 (unsigned long)thistime.tv_usec / 1000,
 	 lib,
 	 loglevel);
-  vprintf(fmt, ap);
-  printf("\n");
+  vfprintf(outfile, fmt, ap);
+  fprintf(outfile, "\n");
 }
 

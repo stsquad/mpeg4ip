@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: Our_SDL_audio.h,v 1.3 2004/05/05 23:36:23 wmaycisco Exp $";
+ "@(#) $Id: Our_SDL_audio.h,v 1.4 2004/10/28 22:44:16 wmaycisco Exp $";
 #endif
 
 /* Access to the raw audio mixing buffer for the SDL library */
@@ -167,12 +167,12 @@ extern DECLSPEC void SDLCALL Our_SDL_CloseAudio(void);
 /*
  * Determine if we have the ability to detect the audio buffer delay
  */
-extern DECLSPEC int Our_SDL_HasAudioDelayMsec(void);
+extern DECLSPEC int Our_SDL_HasAudioDelay(void);
 
 /*
- * Determine the audio buffer delay in milliseconds
+ * Determine the audio buffer delay in samples
  */
-extern DECLSPEC int Our_SDL_AudioDelayMsec(void);
+extern DECLSPEC int Our_SDL_AudioDelay(void);
 
 
 /* Ends C function definitions when using C++ */

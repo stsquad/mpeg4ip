@@ -33,6 +33,7 @@
 
 /* MP4AV library API */
 #include "mp4av_aac.h"
+#include "mp4av_ac3.h"
 #include "mp4av_adts.h"
 #include "mp4av_mp3.h"
 #include "mp4av_mpeg4.h"

@@ -47,11 +47,13 @@ class CPluginRtpByteStream : public CRtpByteStreamBase
 		       uint32_t ntp_sec,
 		       uint32_t rtp_ts);
   ~CPluginRtpByteStream();
-  uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
-			    void **userdata);
+  bool start_next_frame(uint8_t **buffer, 
+			uint32_t *buflen,
+			frame_timestamp_t *ts,
+			void **userdata);
   void used_bytes_for_frame(uint32_t bytes);
-  int skip_next_frame (uint64_t *ts, int *hasSyncFrame, uint8_t **buffer, uint32_t *buflen, void **userdata);
-  int have_no_data(void);
+  bool skip_next_frame (frame_timestamp_t *ts, int *hasSyncFrame, uint8_t **buffer, uint32_t *buflen, void **userdata);
+  bool have_frame(void);
   void flush_rtp_packets(void);
   void reset(void);
   
@@ -66,8 +68,10 @@ class CPluginRtpByteStream : public CRtpByteStreamBase
   };
   rtp_packet *get_next_pak(rtp_packet *current, int remove);
   void remove_from_list(rtp_packet *pak);
-  int check_rtp_frame_complete_for_payload_type(void) 
-    { return !have_no_data(); };
+  bool check_rtp_frame_complete_for_payload_type(void) 
+    { return have_frame(); };
+  rtp_packet *get_head_and_check(bool fail_if_not, 
+				 uint32_t rtp_ts);
  protected:
   rtp_plugin_t *m_rtp_plugin;
   rtp_plugin_data_t *m_rtp_plugin_data;

@@ -135,14 +135,6 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\asarray.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\base64.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\btree.c
 # End Source File
 # Begin Source File
@@ -199,31 +191,11 @@ SOURCE=.\gettimeofday.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\hmac.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\inet_ntop.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\inet_pton.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\mbus.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\mbus_addr.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\mbus_config.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\mbus_parser.c
 # End Source File
 # Begin Source File
 

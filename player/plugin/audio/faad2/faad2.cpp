@@ -16,12 +16,13 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad2.cpp,v 1.5 2004/08/19 16:57:47 wmaycisco Exp $
+** $Id: faad2.cpp,v 1.6 2004/10/28 22:44:19 wmaycisco Exp $
 **/
 #include "faad2.h"
 #include <mpeg4_audio_config.h>
 #include <mpeg4_sdp.h>
 #include <mp4.h>
+#include <mp4av.h>
 #include <SDL/SDL.h>
 
 #define DEBUG_SYNC 2
@@ -150,30 +151,40 @@ static void aac_do_pause (codec_data_t *ifptr)
  * Decode task call for FAAC
  */
 static int aac_decode (codec_data_t *ptr,
-               uint64_t ts,
-               int from_rtp,
-               int *sync_frame,
-               uint8_t *buffer,
-               uint32_t buflen,
-               void *userdata)
+		       frame_timestamp_t *ts,
+		       int from_rtp,
+		       int *sync_frame,
+		       uint8_t *buffer,
+		       uint32_t buflen,
+		       void *userdata)
 {
   aac_codec_t *aac = (aac_codec_t *)ptr;
   unsigned long bytes_consummed;
   int bits = -1;
-  //  struct timezone tz;
+  uint32_t freq_timestamp;
+
+  freq_timestamp = ts->audio_freq_timestamp;
+  if (ts->audio_freq != aac->m_freq) {
+    freq_timestamp = convert_timescale(freq_timestamp,
+				       ts->audio_freq,
+				       aac->m_freq);
+  }
 
   if (aac->m_record_sync_time) {
     aac->m_current_frame = 0;
     aac->m_record_sync_time = 0;
-    aac->m_current_time = ts;
-    aac->m_last_rtp_ts = ts;
+    aac->m_current_time = ts->msec_timestamp;
+    aac->m_last_rtp_ts = ts->msec_timestamp;
   } else {
-    if (aac->m_last_rtp_ts == ts) {
-      aac->m_current_time += aac->m_msec_per_frame;
+    if (aac->m_last_rtp_ts == ts->msec_timestamp) {
       aac->m_current_frame++;
+      aac->m_current_time = aac->m_last_rtp_ts;
+      aac->m_current_time += aac->m_output_frame_size * aac->m_current_frame * 
+	1000 / m_freq;
+      freq_timestamp += aac->m_output_frame_size * aac->m_current_frame;
     } else {
-      aac->m_last_rtp_ts = ts;
-      aac->m_current_time = ts;
+      aac->m_last_rtp_ts = ts->msec_timestamp;
+      aac->m_current_time = ts->msec_timestamp;
       aac->m_current_frame = 0;
     }
 
@@ -260,7 +271,8 @@ static int aac_decode (codec_data_t *ptr,
 	aac->m_vft->audio_load_buffer(aac->m_ifptr,
 				      buff,
 				      frame_info.samples * 2,
-				      aac->m_last_ts,
+				      aac->m_cached_freq_ts,
+				      aac->m_cached_ts,
 				      aac->m_resync_with_header);
       } else {
 	int16_t *now = (int16_t *)aac->m_vft->audio_get_buffer(aac->m_ifptr);
@@ -299,7 +311,8 @@ static int aac_decode (codec_data_t *ptr,
 	  now += 6;
 	}
 	aac->m_vft->audio_filled_buffer(aac->m_ifptr,
-					aac->m_last_ts,
+					aac->m_cached_freq_ts,
+					aac->m_cached_ts,
 					aac->m_resync_with_header);
       }
       if (aac->m_resync_with_header == 1) {
@@ -318,7 +331,8 @@ static int aac_decode (codec_data_t *ptr,
            aac->m_current_time);
 #endif
   }
-  aac->m_last_ts = aac->m_current_time;
+  aac->m_cached_freq_ts = freq_timestamp;
+  aac->m_cached_ts = aac->m_current_time;
   return (bytes_consummed);
 }
 
@@ -336,13 +350,7 @@ static int aac_codec_check (lib_message_func_t message,
   if (compressor != NULL && 
       strcasecmp(stream_type, "MP4 FILE") == 0 &&
       type != -1) {
-    switch (type) {
-    case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
-    case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
-    case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
-    case MP4_MPEG4_AUDIO_TYPE:
-      break;
-    default:
+    if (!(MP4_IS_AAC_AUDIO_TYPE(type))) {
       return -1;
     }
   }

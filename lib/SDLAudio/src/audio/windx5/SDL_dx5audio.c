@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5audio.c,v 1.2 2004/03/15 23:56:21 wmaycisco Exp $";
+ "@(#) $Id: SDL_dx5audio.c,v 1.3 2004/10/28 22:44:16 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -50,29 +50,35 @@ static void DX5_PlayAudio(_THIS);
 static Uint8 *DX5_GetAudioBuf(_THIS);
 static void DX5_WaitDone(_THIS);
 static void DX5_CloseAudio(_THIS);
-static int DX5_AudioDelayMsec (_THIS)
+static int DX5_AudioDelay (_THIS)
 {
-  DWORD cursor, write;
+  DWORD cursor, write, calc;
   HRESULT result;
   int odelay;
-  /* char buffer[80]; */
-  result = IDirectSoundBuffer_GetCurrentPosition(mixbuf, &cursor, &write);+
-    write = cursor / mixlen;
-    write = (write+1)%NUM_BUFFERS;
-    write *= mixlen;
-
+  char buffer[512];
+  result = IDirectSoundBuffer_GetCurrentPosition(mixbuf, &cursor, &write);
+#if 0
+    calc = cursor / mixlen;
+    calc = (calc+1)%NUM_BUFFERS;
+    calc *= mixlen;
+	sprintf(buffer, "cursor %ld write %ld calc %ld mixlen %d num %d\n", cursor, write, 
+			calc, mixlen, NUM_BUFFERS);
+	OutputDebugString(buffer);
+#else
+	calc = write;
+#endif
     if (result == DS_OK) {
       /*
        * delay in msec is bytes  * 1000 / (bytes per sample * channels * freq)+
        */
-      odelay = (write - cursor);
-      odelay *= 1000;
+      odelay = (calc - cursor);
+      //      odelay *= 1000;
       odelay /= this->spec.channels;
       if (!(this->spec.format == AUDIO_U8 ||
 	    this->spec.format == AUDIO_S8)) {
 	odelay /= 2; // 2 bytes per sample
       }
-      odelay /= this->spec.freq;
+      //odelay /= this->spec.freq;
       return odelay;
     }
     return -1;
@@ -200,7 +206,7 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
 	this->GetAudioBuf = DX5_GetAudioBuf;
 	this->WaitDone = DX5_WaitDone;
 	this->CloseAudio = DX5_CloseAudio;
-	this->AudioDelayMsec = DX5_AudioDelayMsec;
+	this->AudioDelay = DX5_AudioDelay;
 
 
 	this->free = Audio_DeleteDevice;

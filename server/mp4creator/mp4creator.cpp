@@ -1140,6 +1140,74 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
   }
 }
 
+static void extract_h264_track (MP4FileHandle mp4File, 
+				MP4TrackId trackId,
+				int outFd,
+				const char *outputFileName)
+{
+  uint8_t **seqheader, **pictheader;
+  uint32_t *pictheadersize, *seqheadersize;
+  uint32_t ix;
+  uint8_t header[3] = {0, 0, 1};
+  MP4GetTrackH264SeqPictHeaders(mp4File, trackId, 
+				&seqheader, &seqheadersize,
+				&pictheader, &pictheadersize);
+  for (ix = 0; seqheadersize[ix] != 0; ix++) {
+    write(outFd, header, 3);
+    write(outFd, seqheader[ix], seqheadersize[ix]);
+  }
+  for (ix = 0; pictheadersize[ix] != 0; ix++) {
+    write(outFd, header, 3);
+    write(outFd, pictheader[ix], pictheadersize[ix]);
+  }
+  
+  MP4SampleId numSamples = 
+    MP4GetTrackNumberOfSamples(mp4File, trackId);
+  u_int8_t* pSample;
+  u_int32_t sampleSize;
+  uint32_t buflen_size;
+  MP4GetTrackH264LengthSize(mp4File, trackId, &buflen_size);
+
+  // extraction loop
+  for (MP4SampleId sampleId = 1 ; sampleId <= numSamples; sampleId++) {
+    pSample = NULL;
+    sampleSize = 0;
+    int rc = MP4ReadSample(
+			 mp4File, 
+			 trackId, 
+			 sampleId, 
+			 &pSample, 
+			 &sampleSize);
+    if (rc == 0) {
+      fprintf(stderr, "%s: read sample %u for %s failed\n",
+	      ProgName, sampleId, outputFileName);
+      exit(EXIT_EXTRACT_TRACK);
+    }
+    uint32_t read_offset = 0;
+    uint32_t nal_len;
+
+    do {
+      if (buflen_size == 1) {
+	nal_len = pSample[read_offset];
+      } else {
+	nal_len = (pSample[read_offset] << 8) | pSample[read_offset + 1];
+	if (buflen_size == 4) {
+	  nal_len <<= 16;
+	  nal_len |= (pSample[read_offset + 2] << 8) | pSample[read_offset + 3];
+	}
+      }
+      write(outFd, header, 3);
+      write(outFd, pSample + read_offset + buflen_size,
+	     nal_len);
+      read_offset = nal_len + buflen_size;
+    } while (read_offset < sampleSize);
+    free(pSample);
+  }
+  close(outFd);
+}
+
+
+
 void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId, 
 		   const char* outputFileName)
 {
@@ -1166,6 +1234,10 @@ void ExtractTrack (MP4FileHandle mp4File, MP4TrackId trackId,
     MP4GetTrackMediaDataName(mp4File, trackId);
 
   if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
+    if (strcmp(media_data_name, "avc1") == 0) {
+      extract_h264_track(mp4File, trackId, outFd, outputFileName);
+      return;
+    }
     prependES = true;
   } else if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
 

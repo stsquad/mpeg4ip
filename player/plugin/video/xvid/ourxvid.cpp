@@ -268,7 +268,7 @@ static int xvid_frame_is_sync (codec_data_t *ptr,
 			       uint32_t buflen,
 			       void *userdata)
 {
-  u_char vop_type;
+  int vop_type;
 
   while (buflen > 3 && 
 	 !(buffer[0] == 0 && buffer[1] == 0 && 
@@ -279,12 +279,12 @@ static int xvid_frame_is_sync (codec_data_t *ptr,
 
   vop_type = MP4AV_Mpeg4GetVopType(buffer, buflen);
 
-  if (vop_type == 'I') return 1;
+  if (vop_type == VOP_TYPE_I) return 1;
   return 0;
 }
 
 static int xvid_decode (codec_data_t *ptr,
-			uint64_t ts, 
+			frame_timestamp_t *pts, 
 			int from_rtp,
 			int *sync_frame,
 			uint8_t *buffer, 
@@ -295,6 +295,7 @@ static int xvid_decode (codec_data_t *ptr,
   int do_wait_i = 0;
   xvid_codec_t *xvid = (xvid_codec_t *)ptr;
   XVID_DEC_FRAME frame;
+  uint64_t ts = pts->msec_timestamp;
 
 #if 0
   xvid->m_vft->log_msg(LOG_DEBUG, "xvid", " %d frame "U64" len %u %d", 

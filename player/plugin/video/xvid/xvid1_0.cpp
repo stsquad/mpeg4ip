@@ -274,6 +274,8 @@ static void xvid_close (codec_data_t *ifptr)
 static void xvid_do_pause (codec_data_t *ifptr)
 {
   // nothing here
+  xvid_codec_t *xvid = (xvid_codec_t *)ifptr;
+  MP4AV_clear_dts_from_pts(&xvid->pts_to_dts);
 }
 
 static int xvid_frame_is_sync (codec_data_t *ptr,
@@ -281,7 +283,7 @@ static int xvid_frame_is_sync (codec_data_t *ptr,
 			       uint32_t buflen,
 			       void *userdata)
 {
-  u_char vop_type;
+  int vop_type;
 
   while (buflen > 3 && 
 	 !(buffer[0] == 0 && buffer[1] == 0 && 
@@ -292,12 +294,12 @@ static int xvid_frame_is_sync (codec_data_t *ptr,
 
   vop_type = MP4AV_Mpeg4GetVopType(buffer, buflen);
 
-  if (vop_type == 'I') return 1;
+  if (vop_type == VOP_TYPE_I) return 1;
   return 0;
 }
 
 static int xvid_decode (codec_data_t *ptr,
-			uint64_t ts, 
+			frame_timestamp_t *pts, 
 			int from_rtp,
 			int *sync_frame,
 			uint8_t *buffer, 
@@ -306,16 +308,27 @@ static int xvid_decode (codec_data_t *ptr,
 {
   int ret;
   xvid_codec_t *xvid = (xvid_codec_t *)ptr;
-
+  uint64_t ts = pts->msec_timestamp;
   int buflen = blen, used = 0;
-#if 0
+
   uint8_t *vop = MP4AV_Mpeg4FindVop(buffer, blen);
-  u_char type = '?';
-  if (vop != NULL)
+  int type = 0;
+  if (vop != NULL) {
     type = MP4AV_Mpeg4GetVopType(vop, blen);
-  xvid_message(LOG_DEBUG, "xvidif", "%u at %llu %c", 
+    uint64_t dts;
+    if (MP4AV_calculate_dts_from_pts(&xvid->pts_to_dts,
+				     ts,
+				     type,
+				     &dts) < 0) {
+      return buflen;
+    }
+    ts = dts;
+  }
+#if 0
+  xvid_message(LOG_DEBUG, "xvidif", "%u at %llu %d", 
 	       blen, ts, type);
 #endif
+
   if (xvid->m_decodeState == XVID_STATE_VO_SEARCH) {
     ret = look_for_vol(xvid, buffer, buflen);
     if (ret < 0) {

@@ -29,6 +29,11 @@ extern "C" {
 
   char *convert_url(const char *to_convert);
 
+  void open_log_file(const char *filename);
+  void flush_log_file(void);
+  void clear_log_file(void);
+  void close_log_file(void);
+
   void message(int loglevel, const char *lib, const char *fmt, ...)
 #ifndef _WIN32
        __attribute__((format(__printf__, 3, 4)))

@@ -90,7 +90,7 @@ static int mpeg2dec_frame_is_sync (codec_data_t *ifptr,
 }
 
 static int mpeg2dec_decode (codec_data_t *ptr,
-			    uint64_t ts, 
+			    frame_timestamp_t *pts, 
 			    int from_rtp,
 			    int *sync_frame,
 			    uint8_t *buffer, 
@@ -101,6 +101,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
   mpeg2dec_t *decoder;
   const mpeg2_info_t *info;
   mpeg2_state_t state;
+  uint64_t ts = pts->msec_timestamp;
 
   decoder = mpeg2dec->m_decoder;
   
@@ -119,7 +120,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
     }
   }
 #endif
-	
+
  info = mpeg2_info(decoder);
  bool passed_buffer = false;
  bool finished_buffer = false;
@@ -162,6 +163,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
 	 aspect_ratio *= mpeg2dec->m_w;
 	 aspect_ratio /= (double)(sequence->pixel_height * mpeg2dec->m_h);
        }
+       mpeg2dec->pts_convert.frame_rate = frame_rate;
        mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "%ux%u aspect %g", 
 				mpeg2dec->m_w, mpeg2dec->m_h, 
 				aspect_ratio);
@@ -172,8 +174,6 @@ static int mpeg2dec_decode (codec_data_t *ptr,
 					aspect_ratio);
        mpeg2dec->m_video_initialized = 1;
      }
-      // Gross and disgusting, but it looks like it didn't clean up
-      // properly - so just start from beginning of buffer and decode.
      break;
     }
    case STATE_SLICE:
@@ -184,7 +184,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
      
 #ifdef DEBUG_MPEG2DEC_FRAME
      mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "frame "U64" decoded", 
-			  ts);
+			  mpeg2dec->cached_ts);
 #endif
      if (info->display_fbuf) {
        mpeg2dec->m_vft->video_have_frame(mpeg2dec->m_ifptr,
@@ -193,7 +193,8 @@ static int mpeg2dec_decode (codec_data_t *ptr,
 					 info->display_fbuf->buf[2],
 					 sequence->width, 
 					 sequence->chroma_width,
-					 ts);
+					 mpeg2dec->m_cached_ts_invalid ? ts :
+					 mpeg2dec->cached_ts);
      }
      break;
    case STATE_SEQUENCE_REPEATED: // we don't care here
@@ -207,7 +208,19 @@ static int mpeg2dec_decode (codec_data_t *ptr,
    } 
  } while (finished_buffer == false);
  
- mpeg2dec->cached_ts = ts;
+ mpeg2dec->m_cached_ts_invalid = false;
+ if (pts->timestamp_is_pts) {
+   if (info->current_picture == NULL ||
+       mpeg3_find_dts_from_pts(&mpeg2dec->pts_convert,
+			       ts,
+			       info->current_picture->flags & PIC_MASK_CODING_TYPE, 
+			       info->current_picture->temporal_reference,
+			       &mpeg2dec->cached_ts) < 0) {
+     mpeg2dec->m_cached_ts_invalid = true;
+   }
+ } else {
+   mpeg2dec->cached_ts = ts;
+ }
  return (buflen);
 }
 

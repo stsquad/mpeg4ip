@@ -116,7 +116,8 @@ static void add_nal_to_buffer (h264_rtp_data_t *iptr,
   iptr->m_buffer_size += buflen + headersize;
 }
 
-static bool process_fus (h264_rtp_data_t *iptr, rtp_packet **pRpak)
+static bool process_fus (h264_rtp_data_t *iptr, rtp_packet **pRpak,
+			 uint32_t rtp_ts)
 {
   rtp_packet *rpak = *pRpak;
   uint8_t *dptr;
@@ -133,19 +134,13 @@ static bool process_fus (h264_rtp_data_t *iptr, rtp_packet **pRpak)
 		    rpak->rtp_data_len - 2, 
 		    header);
   do {
-    uint16_t seq;
-    seq = rpak->rtp_pak_seq;
     (iptr->m_vft->free_pak)(rpak);
-    rpak = (iptr->m_vft->get_next_pak)(iptr->m_ifptr, NULL, 1);
+    rpak = (iptr->m_vft->get_head_and_check)(iptr->m_ifptr, true, rtp_ts);
     *pRpak = rpak;
     if (rpak == NULL) {
       return false;
     }
-    if (rpak->rtp_pak_seq != seq + 1) {
-      h264_message(LOG_ERR, h264rtp, "RTP sequence should be %u is %u", 
-		   seq + 1, rpak->rtp_pak_seq);
-      return false;
-    }
+
     add_nal_to_buffer(iptr, 
 		      rpak->rtp_data + 2,
 		      rpak->rtp_data_len - 2,
@@ -156,40 +151,47 @@ static bool process_fus (h264_rtp_data_t *iptr, rtp_packet **pRpak)
 }
   
   
-static uint64_t start_next_frame (rtp_plugin_data_t *pifptr, 
-				  uint8_t **buffer, 
-				  uint32_t *buflen,
-				  void **userdata)
+static bool start_next_frame (rtp_plugin_data_t *pifptr, 
+			      uint8_t **buffer, 
+			      uint32_t *buflen,
+			      frame_timestamp_t *ts,
+			      void **userdata)
 {
   h264_rtp_data_t *iptr = (h264_rtp_data_t *)pifptr;
   uint64_t timetick;
   rtp_packet *rpak;
   bool have_m = false;
-  uint32_t rtp_ts;
-  uint64_t ntp_ts;
-  bool have_first = true;
-  
-#ifdef H264_DEBUG
-  h264_message(LOG_ERR, h264rtp, "start_next_frame");
-#endif
-  iptr->m_buffer_size = 0;
-  rpak = (iptr->m_vft->get_next_pak)(iptr->m_ifptr, NULL, 1);
-  rtp_ts = rpak->rtp_pak_ts;
-  ntp_ts = rpak->pd.rtp_pd_timestamp;
-  while (rpak != NULL && have_m == false) {
-#if 0
-    if (rpak->rtp_pak_ts != rtp_ts) {
-      // start again
-      rtp_pak_ts = rpak->rtp_ts;
-      iptr->m_buffer_size = 0;
+  uint32_t rtp_ts = 0;
+  uint64_t ntp_ts = 0;
+  bool have_first = false;
+
+  while (1) {
+    rpak = (iptr->m_vft->get_head_and_check)(iptr->m_ifptr, 
+					     have_first,
+					     rtp_ts);
+
+    if (rpak == NULL) {
+      if ((iptr->m_vft->find_mbit)(iptr->m_ifptr)) {
+	// we had a problem, and we still have a valid frame
+	have_first = false;
+	continue;
+      } else {
+	// problem with no valid frame in the buffer
+	return false;
+      }
     }
-#endif
+
+    if (have_first == false) {
+      iptr->m_buffer_size = 0;
+      rtp_ts = rpak->rtp_pak_ts;
+      ntp_ts = rpak->pd.rtp_pd_timestamp;
+      have_first = true;
+    } 
     // process the various NAL types.
     uint8_t *dptr;
     dptr = rpak->rtp_data;
     uint8_t nal_type;
     nal_type = *dptr & 0x1f;
-    uint16_t seq = rpak->rtp_pak_seq;
 #ifdef H264_DEBUG
     h264_message(LOG_ERR, h264rtp, "nal %d", nal_type);
 #endif
@@ -221,70 +223,47 @@ static uint64_t start_next_frame (rtp_plugin_data_t *pifptr,
       }
     } else if (nal_type == 28) {
       // FUs
-      if (process_fus(iptr, &rpak) == false) {
+      if (process_fus(iptr, &rpak, rtp_ts) == false) {
 	// had an error
 	if (rpak == NULL) {
-	  return 0;
+	  have_first = false;
+	  continue;
 	}
-	iptr->m_buffer_size = 0;
-	seq = rpak->rtp_pak_seq - 1; // clear through the error
-	have_first = false;
       }
       // don't forget to check for rpak == NULL here
     }
     // save off the last sequence number
     have_m = rpak->rtp_pak_m != 0;
     (iptr->m_vft->free_pak)(rpak);
-    rpak = NULL;
-    if (have_m == false) {
-      rpak = (iptr->m_vft->get_next_pak)(iptr->m_ifptr, NULL, 1);
-      if (rpak == NULL) {
-	// forget about it
-	return 0;
-      }
-      if (((seq + 1) & 0xffff) != rpak->rtp_pak_seq) {
-	h264_message(LOG_ERR, h264rtp, "RTP sequence should be %u is %u", 
-		   seq + 1, rpak->rtp_pak_seq);
-	have_first = false;
-      }
-	
-      if (have_first == false ||
-	  rtp_ts != rpak->rtp_pak_ts) {
-	if (have_first) {
-	  h264_message(LOG_ERR, h264rtp, "RTP timestamp should be %u is %u (seq %u",
-		       rtp_ts, rpak->rtp_pak_ts, rpak->rtp_pak_seq);
-	}
-	iptr->m_buffer_size = 0;
-	rtp_ts = rpak->rtp_pak_ts;
-	ntp_ts = rpak->pd.rtp_pd_timestamp;
-	have_first = true;
-      } 
-    }
-  }
 
-  if (have_m) {
-    *buffer = iptr->m_buffer;
-    *buflen = iptr->m_buffer_size;
+    if (have_m) {
+      *buffer = iptr->m_buffer;
+      *buflen = iptr->m_buffer_size;
 
 #ifdef H264_RTP_DUMP_OUTPUT_TO_FILE
-    if (*buffer != NULL) {
-      fwrite(*buffer, *buflen,  1, iptr->m_outfile);
-    }
+      if (*buffer != NULL) {
+	fwrite(*buffer, *buflen,  1, iptr->m_outfile);
+      }
 #endif
-    timetick = 
-      iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, 
-				  rtp_ts,
-				  ntp_ts,
-				  0);
-  } else {
-    timetick = 0;
-  }
-  // We're going to have to handle wrap better...
+      timetick = 
+	iptr->m_vft->rtp_ts_to_msec(iptr->m_ifptr, 
+				    rtp_ts,
+				    ntp_ts,
+				    0);
+
 #ifdef DEBUG_H264
-  h264_message(LOG_DEBUG, h264rtp, "start next frame %p %d ts %x "U64, 
-	       *buffer, *buflen, rtp_ts, timetick);
+      h264_message(LOG_DEBUG, h264rtp, "start next frame %p %d ts %x "U64, 
+		   *buffer, *buflen, rtp_ts, timetick);
 #endif
-  return (timetick);
+      ts->msec_timestamp = timetick;
+      ts->timestamp_is_pts = true;
+      return true;
+    }
+    rpak = NULL;
+  }
+
+  // We're going to have to handle wrap better...
+  return (false);
 }
 
 static void used_bytes_for_frame (rtp_plugin_data_t *pifptr, uint32_t bytes)
@@ -301,37 +280,10 @@ static void flush_rtp_packets (rtp_plugin_data_t *pifptr)
 
 }
 
-static int have_no_data (rtp_plugin_data_t *pifptr)
+static bool have_frame (rtp_plugin_data_t *pifptr)
 {
   h264_rtp_data_t *iptr = (h264_rtp_data_t *)pifptr;
-  rtp_packet *rpak, *firstpak;
-
-  firstpak = rpak = (iptr->m_vft->get_next_pak)(iptr->m_ifptr, NULL, 0);
-  //h264_message(LOG_DEBUG, h264rtp, "in have no data");
-
-  if (firstpak == NULL) {
-    //h264_message(LOG_DEBUG, h264rtp, "have no data1");
-    return TRUE;
-  }
-
-  if (firstpak->rtp_pak_m != 0) {
-    //h264_message(LOG_DEBUG, h264rtp, "have no data2");
-    return FALSE;
-  }
-
-  do {
-    rpak = (iptr->m_vft->get_next_pak)(iptr->m_ifptr, rpak, 0);
-    if (rpak == NULL) {
-      //h264_message(LOG_DEBUG, h264rtp, "have no data3");
-      return TRUE;
-    }
-
-    if (rpak && rpak->rtp_pak_m != 0) {
-      //h264_message(LOG_DEBUG, h264rtp, "have no data4 %d", FALSE);
-      return FALSE;
-    }
-  } while (rpak != firstpak);
-  return TRUE;
+  return (iptr->m_vft->find_mbit)(iptr->m_ifptr);
 }
 
 RTP_PLUGIN("h264", 
@@ -342,6 +294,6 @@ RTP_PLUGIN("h264",
 	   used_bytes_for_frame,
 	   reset, 
 	   flush_rtp_packets,
-	   have_no_data,
+	   have_frame,
 	   NULL,
 	   0);

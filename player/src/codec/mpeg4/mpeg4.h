@@ -78,7 +78,7 @@ codec_data_t *mpeg4_iso_file_check(lib_message_func_t message,
 
 int divx_file_next_frame(codec_data_t *your_data,
 			 uint8_t **buffer, 
-			 uint64_t *ts);
+			 frame_timestamp_t *ts);
 
 void divx_file_used_for_frame(codec_data_t *your,
 			      uint32_t bytes);

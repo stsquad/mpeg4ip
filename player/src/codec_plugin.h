@@ -30,10 +30,29 @@
  * When you change the plugin version, you should add a "HAVE_PLUGIN_VERSION"
  * for easier makes
  */
-#define PLUGIN_VERSION "0.A"
+#define PLUGIN_VERSION "0.B"
 #define HAVE_PLUGIN_VERSION_0_8 1
 #define HAVE_PLUGIN_VERSION_0_9 1
 #define HAVE_PLUGIN_VERSION_0_A 1
+#define HAVE_PLUGIN_VERSION_0_B 1
+
+/*
+ * frame_timestamp_t structure is the method that the bytestreams will
+ * pass timestamps to the codecs.
+ * msec_timestamp is the timestamp in milliseconds
+ * audio_freq_timestamp is the timestamp in the specified audio_freq
+ * audio_freq is the timescale used for audio_freq_timestamp
+ * timestamp_is_pts is used to indicate if a timestamp is a presentation or
+ *    decode timestamp.  The plugin must translate a presentation timestamp
+ *    (from say a B frame) to the actual timestamp.  Most file bytestreams
+ *    use a decode timestamp.
+ */
+typedef struct frame_timestamp_t {
+  uint64_t msec_timestamp;
+  uint32_t audio_freq_timestamp;
+  uint32_t audio_freq;
+  bool timestamp_is_pts;
+} frame_timestamp_t;
 
 /***************************************************************************
  *  Audio callbacks from plugin to renderer
@@ -75,21 +94,22 @@ typedef void (*audio_configure_f)(void *ifptr,
  * audio_get_buffer_f - get an audio ring buffer to fill
  *  called before decoding a frame
  * Inputs: ifptr - pointer to handle
+ *    freq_ts - timestamp in samples (at the audio frequency) that
+ *         corresponds with ts.  This lets us easily check if the samples
+ *         are consecutive without converting to msec and back again.
+ *    ts - timestamp of audio packet
  * Outputs: unsigned char pointer to buffer to write to.
  */
-typedef uint8_t *(*audio_get_buffer_f)(void *ifptr);
+typedef uint8_t *(*audio_get_buffer_f)(void *ifptr,
+				       uint32_t freq_ts,
+				       uint64_t ts);
 /*
  * audio_filled_buffer_f - routine to call after decoding
  *  audio frame into a buffer gotten above.
  * Inputs:
  *    ifptr - pointer to handle
- *    ts - timestamp of audio packet
- *    resync_required - 1 if the ts given is not the next consecutive
- *          timestamp.  Note - this may not be needed.
  */
-typedef void (*audio_filled_buffer_f)(void *ifptr,
-				      uint64_t ts,
-				      int resync_required);
+typedef void (*audio_filled_buffer_f)(void *ifptr);
 
 /*
  * audio_load_buffer_f - load local audio buffer with a variable number of
@@ -98,14 +118,16 @@ typedef void (*audio_filled_buffer_f)(void *ifptr,
  *    ifptr - pointer to handle
  *    from - pointer to from buffer
  *    bytes - number of bytes (not samples) in buffer
+ *    freq_ts - timestamp in samples (at the audio frequency) that
+ *         corresponds with ts.  This lets us easily check if the samples
+ *         are consecutive without converting to msec and back again.
  *    ts - timestamp of start of buffer
- *    resync - resync required
  */
 typedef void (*audio_load_buffer_f)(void *ifptr,
-				    uint8_t *from,
+				    const uint8_t *from,
 				    uint32_t bytes,
-				    uint64_t ts,
-				    int resync);
+				    uint32_t freq_ts,
+				    uint64_t ts);
 /*
  * audio_vft_t - virtual function table for audio events
  */
@@ -155,7 +177,7 @@ typedef int (*video_get_buffer_f)(void *ifptr,
 /*
  * video_filled_buffer_f - indicates we've filled buffer gotten above
  * Inputs - ifptr - handle
- *          display_time - timestamp to display
+ *          display_time - rendering time in msec.
  */
 typedef void (*video_filled_buffer_f)(void *ifptr,
 				      uint64_t display_time);
@@ -168,7 +190,7 @@ typedef void (*video_filled_buffer_f)(void *ifptr,
  *         v - pointer to v data
  *         m_pixelw_y - width of each row in y above (might not be width)
  *         m_pixelw_uv - width of each row in u and v
- *         time - render time
+ *         display_time - render time in msec
  */
 typedef void (*video_have_frame_f)(void *ifptr,
 				   const uint8_t *y,
@@ -176,7 +198,7 @@ typedef void (*video_have_frame_f)(void *ifptr,
 				   const uint8_t *v,
 				   int m_pixelw_y,
 				   int m_pixelw_uv,
-				   uint64_t time);
+				   uint64_t display_time);
 
 /*
  * video_vft_t - video virtual function table
@@ -215,14 +237,23 @@ typedef struct codec_data_t {
   } v;
 } codec_data_t;
 
+/*
+ * These are the values passed for the stream types
+ */
 #define STREAM_TYPE_RTP "RTP"
 #define STREAM_TYPE_MPEG2_TRANSPORT_STREAM "MPEG2 TRANSPORT"
 #define STREAM_TYPE_AVI_FILE "AVI FILE"
 #define STREAM_TYPE_MPEG_FILE "MPEG FILE"
 #define STREAM_TYPE_MP4_FILE "MP4 FILE"
+#define STREAM_TYPE_QT_FILE "QT FILE"
 /*
  * ac_create_f - audio codec plugin creation routine
- * Inputs: sdp_media - pointer to session description information for stream
+ * Inputs: 
+ *         stream_type - stream type of file
+ *         compressor - pointer to codec.  
+ *         type - video type.  valid for .mp4 files
+ *         profile - video profile level - valid for .mp4 files
+ *         sdp_media - pointer to session description information for stream
  *         audio - pointer to audio information
  *         user_data - pointer to user data
  *         userdata_size - size of user data
@@ -243,7 +274,12 @@ typedef codec_data_t *(*ac_create_f)(const char *stream_type,
 
 /*
  * vc_create_f - video codec plugin creation routine
- * Inputs: sdp_media - pointer to session description information for stream
+ * Inputs: 
+ *         stream_type - stream type of file
+ *         compressor - pointer to codec.  
+ *         type - video type.  valid for .mp4 files
+ *         profile - video profile level - valid for .mp4 files
+ *         sdp_media - pointer to session description information for stream
  *         video - pointer to video information
  *         user_data - pointer to user data
  *         userdata_size - size of user data
@@ -275,7 +311,7 @@ typedef void (*c_do_pause_f)(codec_data_t *ptr);
 /*
  * c_decode_frame_f - ah, the money callback.  decode the frame
  * Inputs: ptr - pointer to codec handle
- *         ts - timestamp as derived by bytestream
+ *         ts - pointer to frame_timestamp_t for this frame
  *         from_rtp - if it's from RTP - may not be needed
  *         buffer - pointer to frame to decode (can be guaranteed that there
  *           is a complete frame - maybe more than 1
@@ -288,7 +324,7 @@ typedef void (*c_do_pause_f)(codec_data_t *ptr);
  *       <1-buflen> - number of bytes decoded
  */
 typedef int (*c_decode_frame_f)(codec_data_t *ptr,
-				uint64_t ts,
+				frame_timestamp_t *ts,
 				int from_rtp,
 				int *sync_frame,
 				uint8_t *buffer,
@@ -307,7 +343,8 @@ typedef int (*c_print_status_f)(codec_data_t *ptr,
  * c_compress_check_f - see if a plugin can decode the bit stream
  *  note - create function from above must be called afterwards
  * Inputs - msg - can use for debug messages
- *   compressor - pointer to codec.  For .mp4 files, this will be "MP4 FILE".
+ *   stream_type - see above.
+ *   compressor - pointer to codec.  
  *   type - video type.  valid for .mp4 files
  *   profile - video profile level - valid for .mp4 files
  *   fptr - pointer to sdp data
@@ -346,12 +383,12 @@ typedef codec_data_t *(*c_raw_file_check_f)(lib_message_func_t msg,
  * c_raw_file_next_frame_f - get a data buffer with a full frame of data
  * Inputs: your_data - handle
  * Outputs: buffer - pointer to buffer
- *          ts - pointer to timestamp
+ *          ts - pointer to frame_timestamp_t structure to fill in.
  * Return value - number of bytes (0 for no frame)
  */
 typedef int (*c_raw_file_next_frame_f)(codec_data_t *your_data,
-				      uint8_t **buffer,
-				      uint64_t *ts);
+				       uint8_t **buffer,
+				       frame_timestamp_t *ts);
 
 /*
  * c_raw_file_used_for_frame_f - indicates number of bytes decoded
@@ -361,7 +398,7 @@ typedef void (*c_raw_file_used_for_frame_f)(codec_data_t *your_data,
 					    uint32_t bytes);
 
 /*
- * c_raw_file_seek_to_f - seek to ts.
+ * c_raw_file_seek_to_f - seek to ts in msec
  */
 typedef int (*c_raw_file_seek_to_f)(codec_data_t *your_data,
 				    uint64_t ts);

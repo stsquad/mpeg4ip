@@ -40,12 +40,14 @@ class CMpeg3VideoByteStream : public COurInByteStream
   ~CMpeg3VideoByteStream();
   int eof(void);
   void reset(void);
-  uint64_t start_next_frame(uint8_t **buffer,
-			    uint32_t *buflen,
-			    void **ud);
+  bool start_next_frame(uint8_t **buffer,
+			uint32_t *buflen,
+			frame_timestamp_t *ts,
+			void **ud);
   void used_bytes_for_frame(uint32_t bytes);
   int can_skip_frame(void) { return 1; };
-  int skip_next_frame(uint64_t *ts, int *hasSyncFrame, uint8_t **buffer,
+  bool skip_next_frame(frame_timestamp_t *ts, int *hasSyncFrame, 
+		      uint8_t **buffer,
 		      uint32_t *buflen, void **ud);
   double get_max_playtime(void);
 
@@ -77,12 +79,14 @@ class CMpeg3AudioByteStream : public COurInByteStream
   ~CMpeg3AudioByteStream();
   int eof(void);
   void reset(void);
-  uint64_t start_next_frame(uint8_t **buffer,
-			    uint32_t *buflen,
-			    void **ud);
+  bool start_next_frame(uint8_t **buffer,
+			uint32_t *buflen,
+			frame_timestamp_t *ts,
+			void **ud);
   void used_bytes_for_frame(uint32_t bytes);
   int can_skip_frame(void) { return 1; };
-  int skip_next_frame(uint64_t *ts, int *hasSyncFrame, uint8_t **buffer,
+  bool skip_next_frame(frame_timestamp_t *ts, int *hasSyncFrame, 
+		      uint8_t **buffer,
 		      uint32_t *buflen, void **ud);
   double get_max_playtime(void);
 

@@ -39,7 +39,6 @@ extern "C" {
 typedef struct a52dec_codec_t {
   codec_data_t c;
   int m_initialized;
-  int m_resync;
   int m_chans;
   int m_freq;
   uint64_t m_last_ts;
@@ -66,7 +65,7 @@ codec_data_t *ac3_file_check(lib_message_func_t message,
 			     CConfigSet *pConfig);
 int ac3_file_next_frame(codec_data_t *your,
 			 uint8_t **buffer, 
-			 uint64_t *ts);
+			 frame_timestamp_t *ts);
 void ac3_file_used_for_frame(codec_data_t *ifptr, 
 			     uint32_t bytes);
 int ac3_file_eof (codec_data_t *ifptr);

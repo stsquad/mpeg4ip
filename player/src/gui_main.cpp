@@ -372,6 +372,9 @@ void delete_event (GtkWidget *widget, gpointer *data)
   if (master_playlist != NULL) {
     delete master_playlist;
   }
+  if (config.get_config_string(CONFIG_LOG_FILE) != NULL) {
+    close_log_file();
+  }
   config.WriteDefaultFile();
   close_plugins();
   gtk_main_quit();
@@ -562,48 +565,80 @@ static void on_drag_data_received (GtkWidget *widget,
     start_session_from_name(string);
 }
 
-static GtkWidget *filesel;
 
 static void on_filename_selected (GtkFileSelection *selector, 
 				  gpointer user_data) 
 {
   const gchar *name;
 
-  name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(filesel));
+  name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(user_data));
   start_session_from_name(name);
 }
 
 /*
  * This is right out of the book...
  */
-static void on_browse_button_clicked (GtkWidget *window, gpointer data)
+static void enable_file_select (GCallback func,
+				const char *header, 
+				const char *file)
 {
-  filesel = gtk_file_selection_new("Open Media file");
-  if (last_file != NULL) {
-    gtk_file_selection_set_filename(GTK_FILE_SELECTION(filesel), last_file);
+  GtkWidget *ret;
+  ret = gtk_file_selection_new(header);
+  if (file != NULL) {
+    gtk_file_selection_set_filename(GTK_FILE_SELECTION(ret), file);
   }
-  gtk_file_selection_hide_fileop_buttons(GTK_FILE_SELECTION(filesel));
-  gtk_signal_connect (GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button),
+  gtk_file_selection_hide_fileop_buttons(GTK_FILE_SELECTION(ret));
+  gtk_signal_connect (GTK_OBJECT(GTK_FILE_SELECTION(ret)->ok_button),
 		      "clicked", 
-		      GTK_SIGNAL_FUNC(on_filename_selected), 
-		      filesel);
+		      GTK_SIGNAL_FUNC(func), 
+		      ret);
                              
   /* Ensure that the dialog box is destroyed when the user clicks a button. */
      
-  gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button),
+  gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(ret)->ok_button),
 			    "clicked", 
 			    GTK_SIGNAL_FUNC(gtk_widget_destroy),
-			    GTK_OBJECT(filesel));
+			    GTK_OBJECT(ret));
 
-  gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(filesel)->cancel_button),
+  gtk_signal_connect_object(GTK_OBJECT(GTK_FILE_SELECTION(ret)->cancel_button),
 			    "clicked", 
 			    GTK_SIGNAL_FUNC(gtk_widget_destroy),
-			    GTK_OBJECT(filesel));
+			    GTK_OBJECT(ret));
   
   /* Display that dialog */
      
-  gtk_widget_show (filesel);
+  gtk_widget_show (ret);
   
+}
+
+static void on_browse_button_clicked (GtkWidget *window, gpointer data)
+{
+  enable_file_select(GTK_SIGNAL_FUNC(on_filename_selected),
+		     "Open Media File", 
+		     last_file);
+}
+
+static void on_logfile_selected (GtkFileSelection *selected,
+				 gpointer user_data)
+{
+  const gchar *name;
+  name = gtk_file_selection_get_filename(GTK_FILE_SELECTION(user_data));
+  config.set_config_string(CONFIG_LOG_FILE, name);
+  open_log_file(name);
+}
+
+static void on_main_menu_set_log_file (GtkWidget *window, gpointer data)
+{
+   enable_file_select(GTK_SIGNAL_FUNC(on_logfile_selected),
+		     "Select Log File", 
+		     config.get_config_string(CONFIG_LOG_FILE));
+}
+
+static void on_main_menu_clear_log_file (GtkWidget *window, gpointer data)
+{
+  if (config.get_config_string(CONFIG_LOG_FILE) != NULL) {
+    clear_log_file();
+  }
 }
 
 static void on_playlist_child_selected (GtkWidget *window, gpointer data)
@@ -753,6 +788,14 @@ static void on_volume_adjusted (GtkWidget *window, gpointer data)
 {
   GtkAdjustment *val = gtk_range_get_adjustment(GTK_RANGE(volume_slider));
   volume_adjusted((int)val->value);
+}
+
+static void on_debug_display_status (GtkWidget *window, gpointer data)
+{
+  GtkCheckMenuItem *checkmenu;
+  checkmenu = GTK_CHECK_MENU_ITEM(window);
+  config.SetBoolValue(CONFIG_DISPLAY_DEBUG,
+		      checkmenu->active == FALSE ? false : true);
 }
 
 static void on_debug_mpeg4isoonly (GtkWidget *window, gpointer data)
@@ -986,12 +1029,22 @@ static void on_loop_enabled_button (GtkWidget *widget, gpointer *data)
  * Main timer routine - runs ~every 500 msec
  * Might be able to adjust this to handle just when playing.
  */
+static bool one_sec = false;
 static gint main_timer (gpointer raw)
 {
   uint64_t play_time;
   char errmsg[512];
   char buffer[1024];
   if (play_state == PLAYING) {
+    flush_log_file();
+
+    if (one_sec == false) {
+      one_sec = true;
+    } else {
+      if (config.GetBoolValue(CONFIG_DISPLAY_DEBUG))
+	psptr->display_status();
+      one_sec = false;
+    }
     double max_time = psptr->get_max_time();
     uint64_t pt = psptr->get_playing_time();
     double playtime = ((double)pt) / 1000.0;
@@ -1330,6 +1383,9 @@ int main (int argc, char **argv)
   command_mutex = SDL_CreateMutex();
   config.ReadDefaultFile();
 
+  if (config.get_config_string(CONFIG_LOG_FILE) != NULL) {
+    open_log_file(config.get_config_string(CONFIG_LOG_FILE));
+  }
   if (have_unknown_opts) {
     /*
      * Create an struct option that allows all the loaded configuration
@@ -1616,6 +1672,12 @@ int main (int argc, char **argv)
   CreateMenuItemSeperator(menu);
   GtkWidget *debugsub;
   debugsub = CreateSubMenu(menu, "Debug");
+  menuitem = CreateMenuCheck(debugsub,
+			     "One Sec Debug Display",
+			     GTK_SIGNAL_FUNC(on_debug_display_status),
+			     NULL,
+			     config.GetBoolValue(CONFIG_DISPLAY_DEBUG));
+
   config_index_t iso_check;
   iso_check = config.FindIndexByName("Mpeg4IsoOnly");
   if (iso_check != UINT32_MAX) {
@@ -1670,6 +1732,23 @@ int main (int argc, char **argv)
 			config.get_config_value(CONFIG_MPEG2T_DEBUG),
 			GTK_SIGNAL_FUNC(on_debug_mpeg2t));
 
+  CreateMenuItemSeperator(menu);
+  menuitem = CreateMenuItem(menu, 
+			    accel_group, 
+			    tooltips, 
+			    "Set Log File", 
+			    NULL, 
+			    NULL, 
+			    GTK_SIGNAL_FUNC(on_main_menu_set_log_file),
+			    NULL);
+  menuitem = CreateMenuItem(menu, 
+			    accel_group, 
+			    tooltips, 
+			    "Clear Log File", 
+			    NULL, 
+			    NULL, 
+			    GTK_SIGNAL_FUNC(on_main_menu_clear_log_file),
+			    NULL);
   CreateMenuItemSeperator(menu);
   menuitem = CreateMenuItem(menu,
 			    accel_group,

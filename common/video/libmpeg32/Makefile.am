@@ -1,5 +1,3 @@
-SUBDIRS = video
-
 noinst_LTLIBRARIES = libmpeg3.la libmpeg3util.la
 
 INCLUDES= -I$(top_srcdir)/include -I$(top_srcdir)/lib/mp4av -I$(top_srcdir)/lib/mp4v2 

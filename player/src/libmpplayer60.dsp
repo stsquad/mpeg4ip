@@ -89,6 +89,10 @@ SOURCE=.\audio.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\audio_buffer.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio_sdl.cpp
 # End Source File
 # Begin Source File
@@ -213,6 +217,10 @@ SOURCE=.\audio.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\audio_buffer.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio_sdl.h
 # End Source File
 # Begin Source File
@@ -326,18 +334,6 @@ SOURCE=.\video.h
 # Begin Source File
 
 SOURCE=.\video_sdl.h
-# End Source File
-# End Group
-# Begin Group "codec/mp3"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3_rtp_bytestream.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\codec\mp3\mp3_rtp_bytestream.h
 # End Source File
 # End Group
 # Begin Source File

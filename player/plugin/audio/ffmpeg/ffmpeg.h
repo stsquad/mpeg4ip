@@ -43,9 +43,9 @@ typedef struct ffmpeg_codec_t {
   bool m_audio_initialized;
   int m_did_pause;
   int m_channels;
-  int m_freq;
-  int m_resync;
+  uint32_t m_freq;
   uint64_t m_ts;
+  uint32_t m_freq_ts;
   uint32_t m_samples;
   uint8_t *m_outbuf;
 } ffmpeg_codec_t;

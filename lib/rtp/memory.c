@@ -2,8 +2,8 @@
  * FILE:    memory.c
  * AUTHORS:  Isidor Kouvelas / Colin Perkins / Mark Handley / Orion Hodson
  *
- * $Revision: 1.4 $
- * $Date: 2002/06/21 23:19:48 $
+ * $Revision: 1.5 $
+ * $Date: 2004/10/28 22:44:17 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -505,6 +505,8 @@ _xrealloc(void *p, unsigned size, const char *filen, int line)
                         debug_msg("realloc failed\n");
                         return NULL;
                 }
+		ch = (chk_header*)m->addr;
+		p = (void *)(ch + 1);
                 /* Update table */
                 free(m->filen);
                 m->filen  = (char *) strdup(filen);

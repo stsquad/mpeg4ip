@@ -67,7 +67,7 @@ static bool LoadNextAmrFrame(FILE* inFile,
                             u_int8_t* outMode, 
                             AMR_TYPE amrType)
 {
-    short blockSize[16]   = { 12, 13, 15, 17, 19, 20, 26, 31,  5, -1, -1, -1, -1, -1, -1, -1};
+    short blockSize[16]   = { 12, 13, 15, 17, 19, 20, 26, 31,  5, -1, -1, -1, -1, -1, -1, 0}; // mode 15 is NODATA
     short blockSizeWB[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60, 5, 5, -1, -1, -1, 0, 0 };
     short* pBlockSize;
     u_int8_t mode;

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.2 2004/05/05 23:36:23 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.3 2004/10/28 22:44:16 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -560,21 +560,21 @@ void Our_SDL_CloseAudio (void)
 {
   Our_SDL_AudioQuit();
 }
-int Our_SDL_HasAudioDelayMsec (void)
+int Our_SDL_HasAudioDelay (void)
 {
   SDL_AudioDevice *audio = current_audio;
 
-  if (audio && audio->AudioDelayMsec != NULL) {
+  if (audio && audio->AudioDelay != NULL) {
     return 1;
   }
   return 0;
 }
 
-int Our_SDL_AudioDelayMsec (void)
+int Our_SDL_AudioDelay (void)
 {
   SDL_AudioDevice *audio = current_audio;
-  if (audio && audio->AudioDelayMsec != NULL) {
-    return (audio->AudioDelayMsec(audio));
+  if (audio && audio->AudioDelay != NULL) {
+    return (audio->AudioDelay(audio));
   } else {
     return (-1);
   }

@@ -3,8 +3,8 @@
  *
  *  Windows specific definitions and includes.
  *  
- *  $Revision: 1.6 $
- *  $Date: 2002/01/11 00:55:16 $
+ *  $Revision: 1.7 $
+ *  $Date: 2004/10/28 22:44:17 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -57,12 +57,16 @@
 #ifdef MUSICA_IPV6
 #include <winsock6.h>
 #else
+#ifdef WINXP_IPV6
+#include <ws2tcpip.h>
+#else
 #ifdef WIN2K_IPV6
 #include <ws2tcpip.h>
 #include <tpipv6.h>
 #else
 #include <ws2ip6.h>
 #include <ws2tcpip.h>
+#endif
 #endif
 #endif
 #endif

@@ -54,85 +54,23 @@ static void unlock_mutex(void)
 }
 #endif
 
+
 void player_error_message (const char *fmt, ...)
 {
   va_list ap;
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG) && !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
-  if (IsDebuggerPresent()) {
-        char msg[512];
 
-		if (initialized == 0) init_local_mutex();
-		lock_mutex();
-        va_start(ap, fmt);
-	_vsnprintf(msg, 512, fmt, ap);
-        va_end(ap);
-        OutputDebugString(msg);
-		OutputDebugString("\n");
-		unlock_mutex();
-		return;
-	}
-#endif
-
-  gettimeofday(&thistime, NULL);
-  // To add date, add %a %b %d to strftime
-  secs = thistime.tv_sec;
-  strftime(buffer, sizeof(buffer), 
-#ifdef _WIN32
-	  "%H:%M:%S",
-#else
-	  "%T",
-#endif
-	  localtime(&secs));
-  printf("%s.%03lu-my_player-%d: ", buffer,
-	 (unsigned long)thistime.tv_usec / 1000, LOG_ERR);
   va_start(ap, fmt);
-  vprintf(fmt, ap);
+  library_message(LOG_ERR, "my_player", fmt, ap);
   va_end(ap);
-  printf("\n");
 }
 
 void player_debug_message (const char *fmt, ...)
 {
   va_list ap;
-  struct timeval thistime;
-  time_t secs;
-  char buffer[80];
-#if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
-  if (IsDebuggerPresent()) {
-       char msg[512];
 
-	   if (initialized== 0) init_local_mutex();
-		lock_mutex();
-        va_start(ap, fmt);
-	_vsnprintf(msg, 512, fmt, ap);
-        va_end(ap);
-        OutputDebugString(msg);
-		OutputDebugString("\n");
-		unlock_mutex();
-		return;
-	}
-#endif
-
-  gettimeofday(&thistime, NULL);
-  secs = thistime.tv_sec;
-  // To add date, add %a %b %d to strftime
-  strftime(buffer, sizeof(buffer), 
-#ifdef _WIN32
-	  "%H:%M:%S",
-#else
-	  "%T",
-#endif
-	  localtime(&secs));
-  printf("%s.%03lu-my_player-%d: ",
-	 buffer, (unsigned long)thistime.tv_usec / 1000, LOG_DEBUG);
   va_start(ap, fmt);
-  vprintf(fmt, ap);
+  library_message(LOG_DEBUG, "my_player", fmt, ap);
   va_end(ap);
-  printf("\n");
-
 }
 
 

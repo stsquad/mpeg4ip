@@ -38,35 +38,57 @@ class CAudioSync {
  public:
   CAudioSync(CPlayerSession *psptr) { 
     m_psptr = psptr;
-    m_eof = 0;
+    m_eof = false;
+    m_convert_buffer = NULL;
+    m_fmt_buffer = NULL;
+    m_audio_initialized = false;
+    m_sample_interpolate_buffer = NULL;
   } ;
-  virtual ~CAudioSync(void) {};
+  virtual ~CAudioSync(void) {
+    CHECK_AND_FREE(m_convert_buffer);
+    CHECK_AND_FREE(m_fmt_buffer);
+    CHECK_AND_FREE(m_sample_interpolate_buffer);
+  };
   // APIs from  codec
   void clear_eof(void);
   void set_eof(void);
-  int get_eof(void) { return m_eof; };
+  bool get_eof(void) { return m_eof; };
   // APIs from sync task
   virtual int initialize_audio(int have_video);
   virtual int is_audio_ready(uint64_t &disptime);
-  virtual uint64_t check_audio_sync(uint64_t current_time, int &have_eof);
+  virtual bool check_audio_sync(uint64_t current_time, 
+				uint64_t &resync_time,
+				int64_t &wait_time,
+				bool &have_eof,
+				bool &restart_sync);
   virtual void play_audio(void);
 
   virtual void flush_sync_buffers(void);
   virtual void flush_decode_buffers(void);
-  virtual uint32_t set_config(int freq, int channels, audio_format_t format, uint32_t max_samples) {return 0;};
+  virtual void set_config(uint32_t freq, uint32_t channels, audio_format_t format, uint32_t max_samples) {return;};
 
   // Initialization, other APIs
-  virtual void set_wait_sem(SDL_sem *p) {m_audio_waiting = p; } ;
-  virtual void set_volume(int volume);
+  virtual void set_volume(int volume) = 0;
+  virtual void display_status(void) {};
  protected:
+  void audio_convert_init(uint32_t size, uint32_t samples) {
+    m_convert_buffer = malloc(size);
+    m_fmt_buffer = (int16_t *)malloc(samples * sizeof(int16_t) * m_channels);
+  };
   void audio_convert_data(void *from, uint32_t len);
+  void *interpolate_3_samples(void *next_sample);
   SDL_sem *m_audio_waiting;
   CPlayerSession *m_psptr;
-  int m_eof;
-  int m_channels, m_got_channels;
-  audio_format_t m_format;
+  bool m_eof;
+  uint32_t m_channels, m_got_channels;
+  audio_format_t m_decode_format;
   void *m_convert_buffer;
   int16_t *m_fmt_buffer;
+  void *m_sample_interpolate_buffer;
+  bool m_audio_initialized;
+  uint32_t m_bytes_per_sample_input;
+  uint32_t m_bytes_per_sample_output;
+
 };
 
 CAudioSync *create_audio_sync(CPlayerSession *, int volume);

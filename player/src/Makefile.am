@@ -48,6 +48,8 @@ else
 endif
 
 libmp4syncsdl_la_SOURCES = \
+	audio_buffer.cpp \
+	audio_buffer.h \
 	$(SDL_AUDIO_SRC) \
 	video_sdl.cpp \
 	video_sdl.h

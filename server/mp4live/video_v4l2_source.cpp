@@ -282,6 +282,7 @@ bool CV4L2VideoSource::InitDevice(void)
       error_message("Failed to select video image format for %s", deviceName);
       goto failure;
     }
+    m_pConfig->m_videoNeedRgbToYuv = true;
   }
   
   // allocate the desired number of buffers

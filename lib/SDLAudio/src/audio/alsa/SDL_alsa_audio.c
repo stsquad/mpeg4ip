@@ -51,17 +51,21 @@ static void ALSA_WaitAudio(_THIS);
 static void ALSA_PlayAudio(_THIS);
 static Uint8 *ALSA_GetAudioBuf(_THIS);
 static void ALSA_CloseAudio(_THIS);
-static int ALSA_AudioDelayMsec(_THIS)
+static int ALSA_AudioDelay(_THIS)
 {
   snd_pcm_sframes_t delayp;
 
   delayp = 0;
   if (snd_pcm_delay(pcm_handle, &delayp) > 0) {
+    delayp /= this->spec.channels; // to get samples.
+#if 0
+    // below turns into msec
     if (delayp > 0) {
       delayp *= 1000;
       delayp /= this->spec.channels;
       delayp /= this->spec.freq;
     }
+#endif
   }
   return delayp;
 }
@@ -125,7 +129,7 @@ static SDL_AudioDevice *Audio_CreateDevice(int devindex)
 	this->PlayAudio = ALSA_PlayAudio;
 	this->GetAudioBuf = ALSA_GetAudioBuf;
 	this->CloseAudio = ALSA_CloseAudio;
-	this->AudioDelayMsec = ALSA_AudioDelayMsec;
+	this->AudioDelay = ALSA_AudioDelay;
 	this->free = Audio_DeleteDevice;
 
 	return this;

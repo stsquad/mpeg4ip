@@ -32,6 +32,7 @@ DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
 #else
 #define rtp_message(loglevel, fmt...) message(loglevel, "rtpbyst", fmt)
 #endif
+#if 0
 static rtp_packet *end_of_pak (rtp_packet *start)
 {
   while (start->rtp_next->rtp_pak_ts == start->rtp_pak_ts) 
@@ -39,6 +40,7 @@ static rtp_packet *end_of_pak (rtp_packet *start)
 
   return start;
 }
+#endif
 
 CMpeg3RtpByteStream::CMpeg3RtpByteStream(unsigned int rtp_pt,
 					 format_list_t *fmt,
@@ -60,12 +62,13 @@ CMpeg3RtpByteStream::CMpeg3RtpByteStream(unsigned int rtp_pt,
 {
 }
 
-uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer, 
-						uint32_t *buflen,
-						void **ud)
+bool CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer, 
+					    uint32_t *buflen,
+					    frame_timestamp_t *pts,
+					    void **ud)
 {
   uint16_t seq = 0;
-  uint32_t ts = 0, outts;
+  uint32_t ts = 0;
   uint64_t timetick;
   uint64_t pak_ts = 0;
   int first = 0;
@@ -77,14 +80,16 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
   uint8_t temp_ref;
   diff = m_buffer_len - m_bytes_used;
 
-  if (diff > 2) {
+  if (diff > 4) {
     // Still bytes in the buffer...
     *buffer = m_buffer + m_bytes_used;
     *buflen = diff;
 #ifdef DEBUG_RTP_PAKS
     rtp_message(LOG_DEBUG, "%s Still left - %d bytes", m_name, *buflen);
 #endif
-    return (m_last_realtime);
+    pts->msec_timestamp = m_last_realtime;
+    pts->timestamp_is_pts = true;
+    return true;
   }
   int frame_type;
   m_buffer_len = 0;
@@ -157,34 +162,26 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
 #ifdef DEBUG_RTP_PAKS
   rtp_message(LOG_DEBUG, "%s buffer len %d", m_name, m_buffer_len);
 #endif
-  if (dropped_seq || m_have_mpeg_ip_ts == 0) {
-    outts = calc_this_ts_from_future(frame_type, ts, temp_ref);
-  } else {
-    if (frame_type == 3) {
-      // B frame
-      outts = ts; // this shouldn't be needed any more + m_rtp_frame_add;
-    } else {
-      outts = m_mpeg_ip_ts; //  + m_rtp_frame_add;
-      m_mpeg_ip_ts = ts;
-    }
-  }
+
 #ifdef DEBUG_MPEG3_RTP_TIME
-  rtp_message(LOG_DEBUG, "frame type %d pak ts %u out ts %u %d", frame_type, 
-	      ts, outts, temp_ref);
+  rtp_message(LOG_DEBUG, "frame type %d pak ts %u %d", frame_type, 
+	      ts, temp_ref);
 #endif
 
   if (m_rtpinfo_set_from_pak != 0) {
-    if (outts < m_base_rtp_ts) {
-      m_base_rtp_ts = outts;
+    if (ts < m_base_rtp_ts) {
+      m_base_rtp_ts = ts;
     }
     m_rtpinfo_set_from_pak = 0;
   }
-  m_ts = outts;
-  timetick = rtp_ts_to_msec(outts, pak_ts, m_wrap_offset);
-  
-  return (timetick);
+  m_last_rtp_ts = ts;
+  timetick = rtp_ts_to_msec(ts, pak_ts, m_wrap_offset);
+  pts->msec_timestamp = timetick;
+  pts->timestamp_is_pts = true;
+  return true;
 }
 
+#if 0
 uint32_t CMpeg3RtpByteStream::calc_this_ts_from_future (int frame_type,
 							uint32_t pak_ts,
 							uint8_t temp_ref)
@@ -230,8 +227,10 @@ uint32_t CMpeg3RtpByteStream::calc_this_ts_from_future (int frame_type,
   SDL_UnlockMutex(m_rtp_packet_mutex);
   return outts;
 }
+#endif
 							
-int CMpeg3RtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
+bool CMpeg3RtpByteStream::skip_next_frame (frame_timestamp_t *pts, 
+					  int *hasSyncFrame,
 					  uint8_t **buffer, 
 					  uint32_t *buflen, 
 					  void **ud)
@@ -247,18 +246,16 @@ int CMpeg3RtpByteStream::skip_next_frame (uint64_t *pts, int *hasSyncFrame,
     remove_packet_rtp_queue(m_head, 1);
   } while (m_head != NULL && m_head->rtp_pak_ts == ts);
 
-  if (m_head == NULL) return 0;
+  if (m_head == NULL) return false;
   init();
   m_buffer_len = m_bytes_used = 0;
-  ts = start_next_frame(buffer, buflen, NULL);
-  *pts = ts;
-  return (1);
+  return start_next_frame(buffer, buflen, pts, NULL);
 }
 
-int CMpeg3RtpByteStream::have_no_data (void)
+bool CMpeg3RtpByteStream::have_frame (void)
 {
   rtp_packet *temp, *first;
-  if (m_head == NULL) return TRUE;
+  if (m_head == NULL) return false;
   first = temp = m_head;
   int count = 0;
   SDL_LockMutex(m_rtp_packet_mutex);
@@ -267,16 +264,16 @@ int CMpeg3RtpByteStream::have_no_data (void)
       count++;
       if (count > 1) {
 	SDL_UnlockMutex(m_rtp_packet_mutex);
-	return FALSE;
+	return true;
       }
     }
     temp = temp->rtp_next;
   } while (temp != NULL && temp != first);
   SDL_UnlockMutex(m_rtp_packet_mutex);
-  return TRUE;
+  return false;
 }
 
-
+#if 0
 void CMpeg3RtpByteStream::rtp_done_buffering (void) 
 {
   rtp_packet *p, *q;
@@ -362,3 +359,4 @@ void CMpeg3RtpByteStream::rtp_done_buffering (void)
   SDL_UnlockMutex(m_rtp_packet_mutex);
   flush_rtp_packets();
 }
+#endif

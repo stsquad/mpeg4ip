@@ -82,7 +82,7 @@ codec_data_t *wav_file_check (lib_message_func_t message,
 
 int wav_file_next_frame (codec_data_t *your,
 			 uint8_t **buffer,
-			 uint64_t *ts)
+			 frame_timestamp_t *ts)
 {
   wav_codec_t *wav = (wav_codec_t *)your;
   uint64_t calc;
@@ -92,7 +92,11 @@ int wav_file_next_frame (codec_data_t *your,
   calc /= wav->m_bytes_per_channel;
   calc /= wav->m_sdl_config->channels;
   calc /= wav->m_sdl_config->freq;
-  *ts = calc;
+  ts->msec_timestamp = calc;
+  ts->audio_freq = wav->m_sdl_config->freq;
+  ts->audio_freq_timestamp = wav->m_wav_buffer_on / 
+    (wav->m_bytes_per_channel * wav->m_sdl_config->channels);
+  ts->timestamp_is_pts = false;
   return (wav->m_wav_len - wav->m_wav_buffer_on);
 }
 

@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad2.h,v 1.2 2004/03/15 23:56:29 wmaycisco Exp $
+** $Id: faad2.h,v 1.3 2004/10/28 22:44:19 wmaycisco Exp $
 **/
 /*
  * aa.h - class definition for AAC codec.
@@ -59,7 +59,8 @@ typedef struct aac_codec_t {
   uint32_t m_buffer_on;
   uint64_t m_framecount;
   int m_ignore_first_sample;
-  uint64_t m_last_ts;
+  uint64_t m_cached_ts;
+  uint32_t m_cached_freq_ts;
 } aac_codec_t;
 
 #define m_vft c.v.audio_vft
@@ -81,7 +82,7 @@ codec_data_t *aac_file_check(lib_message_func_t message,
 
 int aac_file_next_frame(codec_data_t *ifptr,
             uint8_t **buffer,
-            uint64_t *ts);
+            frame_timestamp_t *ts);
 int aac_file_eof(codec_data_t *ifptr);
 
 void aac_file_used_for_frame(codec_data_t *ifptr,

@@ -99,7 +99,7 @@ static int mpeg3_frame_is_sync (codec_data_t *ifptr,
 }
 
 static int mpeg3_decode (codec_data_t *ptr,
-			uint64_t ts, 
+			frame_timestamp_t *ts, 
 			int from_rtp,
 			int *sync_frame,
 			uint8_t *buffer, 
@@ -175,7 +175,7 @@ static int mpeg3_decode (codec_data_t *ptr,
 				     &y,
 				     &u,
 				     &v);    } else {
-      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "didnt find seq header in frame "U64, ts);
+      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "didnt find seq header in frame "U64, ts->msec_timestamp);
       return buflen;
     }
     mpeg3->m_did_pause = 1;
@@ -207,16 +207,18 @@ static int mpeg3_decode (codec_data_t *ptr,
     ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen, &ftype);
     if (ret <= 0) {
       mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame "U64" - type %d", 
-			    ts, ftype);
+			    ts->msec_timestamp, ftype);
     } else {
       mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame "U64" - return %d", 
-			    ts, ret);
+			    ts->msec_timestamp, ret);
     }
       
   }
 #endif
       
-
+  if (ts->timestamp_is_pts) {
+    mpeg3->m_vft->log_msg(LOG_ERR, "mpeg3", "mpeg3 - convert pts to ts");
+  }
     
   y = NULL;
   ret = mpeg3video_read_yuvframe_ptr(video,
@@ -229,7 +231,7 @@ static int mpeg3_decode (codec_data_t *ptr,
   if (ret == 0 && y != NULL && render != 0) {
 #ifdef DEBUG_MPEG3_FRAME
     mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame "U64" decoded", 
-			  ts);
+			  ts->msec_timestamp);
 #endif
     mpeg3->m_vft->video_have_frame(mpeg3->m_ifptr,
 				   (const uint8_t *)y, 
@@ -237,7 +239,7 @@ static int mpeg3_decode (codec_data_t *ptr,
 				   (const uint8_t *)v, 
 				   mpeg3->m_w, mpeg3->m_w / 2, 
 				   mpeg3->cached_ts);
-    mpeg3->cached_ts = ts;
+    mpeg3->cached_ts = ts->msec_timestamp;
   } else {
 #ifdef DEBUG_MPEG3_FRAME
     if (render == 0) {
@@ -246,7 +248,7 @@ static int mpeg3_decode (codec_data_t *ptr,
     mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame "U64" ret %d %p", 
 			  ts, ret, y);
 #endif
-    mpeg3->cached_ts = ts;
+    mpeg3->cached_ts = ts->msec_timestamp;
   }
     
 

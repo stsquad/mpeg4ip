@@ -23,6 +23,11 @@
 #include "rtp/memory.h"
 #include "player_util.h"
 #include "our_config_file.h"
+#ifdef _WIN32
+DEFINE_MESSAGE_MACRO(rtp_message, "rtpbyst")
+#else
+#define rtp_message(loglevel, fmt...) message(loglevel, "rtpbyst", fmt)
+#endif
 
 static uint64_t rtp_ts_to_msec (void *ifp, 
 				uint32_t rtp_ts, 
@@ -52,6 +57,21 @@ static void free_pak (rtp_packet *pak)
   xfree(pak);
 }
 
+static bool find_mbit (void *ifp) 
+{
+  CPluginRtpByteStream *cptr = (CPluginRtpByteStream *)ifp;
+  return cptr->find_mbit();
+}
+
+
+static rtp_packet *get_head_and_check(void *ifp, 
+				      bool fail_if_not, 
+				      uint32_t rtp_ts)
+{
+  CPluginRtpByteStream *cptr = (CPluginRtpByteStream *)ifp;
+  return cptr->get_head_and_check(fail_if_not, rtp_ts);
+}
+
 static rtp_vft_t rtp_vft = {
   message,
   rtp_ts_to_msec,
@@ -59,6 +79,8 @@ static rtp_vft_t rtp_vft = {
   remove_from_list,
   free_pak,
   NULL,
+  find_mbit,
+  get_head_and_check,
 };
 
 CPluginRtpByteStream::CPluginRtpByteStream(rtp_plugin_t *rtp_plugin,
@@ -96,19 +118,21 @@ CPluginRtpByteStream::~CPluginRtpByteStream (void)
 
 }
 
-uint64_t CPluginRtpByteStream::start_next_frame (uint8_t **buffer, 
-						 uint32_t *buflen,
-						 void **userdata)
+bool CPluginRtpByteStream::start_next_frame (uint8_t **buffer, 
+					     uint32_t *buflen,
+					     frame_timestamp_t *ts,
+					     void **userdata)
 {
   if (m_head == NULL) return 0;
-  check_seq(m_head->rtp_pak_seq);
+  ts->audio_freq = m_timescale;
   return (m_rtp_plugin->rtp_plugin_start_next_frame)(m_rtp_plugin_data,
 						     buffer, 
 						     buflen, 
+						     ts, 
 						     userdata);
 }
 
-int CPluginRtpByteStream::skip_next_frame (uint64_t *pts, 
+bool CPluginRtpByteStream::skip_next_frame (frame_timestamp_t *pts, 
 					   int *hasSyncFrame, 
 					   uint8_t **buffer, 
 					   uint32_t *buflen,
@@ -118,7 +142,7 @@ int CPluginRtpByteStream::skip_next_frame (uint64_t *pts,
   *hasSyncFrame = -1;
 
   
-  if (m_head == NULL) return 0;
+  if (m_head == NULL) return false;
 
   ts = m_head->rtp_pak_ts;
   do {
@@ -127,20 +151,19 @@ int CPluginRtpByteStream::skip_next_frame (uint64_t *pts,
     remove_packet_rtp_queue(m_head, 1);
   } while (m_head != NULL && m_head->rtp_pak_ts == ts);
 
-  if (m_head == NULL) return 0;
+  if (m_head == NULL) return false;
   (m_rtp_plugin->rtp_plugin_reset)(m_rtp_plugin_data);
 
-  *pts = start_next_frame(buffer, buflen, ud);
-  return 1;
+  return start_next_frame(buffer, buflen, pts, ud);
 }
 void CPluginRtpByteStream::used_bytes_for_frame (uint32_t bytes)
 {
   (m_rtp_plugin->rtp_plugin_used_bytes_for_frame)(m_rtp_plugin_data, bytes);
 }
 
-int CPluginRtpByteStream::have_no_data (void)
+bool CPluginRtpByteStream::have_frame (void)
 {
-  return (m_rtp_plugin->rtp_plugin_have_no_data)(m_rtp_plugin_data);
+  return (m_rtp_plugin->rtp_plugin_have_frame)(m_rtp_plugin_data);
 }
 
 void CPluginRtpByteStream::flush_rtp_packets (void)
@@ -163,7 +186,6 @@ rtp_packet *CPluginRtpByteStream::get_next_pak (rtp_packet *current,
   else current = current->rtp_next;
 
   if (remove && current) {
-    set_last_seq(current->rtp_pak_seq);
     remove_packet_rtp_queue(current, 0);
   }
   return (current);
@@ -171,7 +193,25 @@ rtp_packet *CPluginRtpByteStream::get_next_pak (rtp_packet *current,
 
 void CPluginRtpByteStream::remove_from_list (rtp_packet *pak)
 {
-  set_last_seq(pak->rtp_pak_seq);
   remove_packet_rtp_queue(pak, 0);
 }
 
+
+rtp_packet *CPluginRtpByteStream::get_head_and_check (bool fail_if_not,
+						      uint32_t ts)
+{
+  rtp_packet *ret;
+  ret = m_head;
+  if (ret == NULL) return NULL;
+  if (check_seq(ret->rtp_pak_seq) == false && fail_if_not == true)
+    return NULL;
+  if (fail_if_not && ts != ret->rtp_pak_ts) {
+    rtp_message(LOG_INFO, "%s - rtp timestamp doesn't match is %u should be %u", 
+		m_name, ret->rtp_pak_ts, ts);
+
+    return NULL;
+  }
+  remove_packet_rtp_queue(ret, 0);
+  set_last_seq(ret->rtp_pak_seq);
+  return ret;
+}

@@ -18,16 +18,12 @@
  * Contributor(s): 
  *              Bill May        wmay@cisco.com
  */
-#define DECLARE_CONFIG_VARIABLES
 #include "a52dec.h"
 #include <mp4v2/mp4.h>
+#include <mp4av/mp4av.h>
 
 #define LOGIT a52dec->m_vft->log_msg
 
-DECLARE_CONFIG(CONFIG_USE_AC3_HW);
-static SConfigVariable MyConfigVariables[] = {
-  CONFIG_BOOL(CONFIG_USE_AC3_HW, "UseAc3HwDecode", false),
-};
 
 // We now support float data passed to the audio driver
 // if there is a problem, define FLOAT_TO_16, and we'll do the
@@ -107,9 +103,6 @@ static void a52dec_close (codec_data_t *ptr)
  */
 static void a52dec_do_pause (codec_data_t *ifptr)
 {
-  a52dec_codec_t *a52dec = (a52dec_codec_t *)ifptr;
-  a52dec->m_resync = 1;
-  //LOGIT(LOG_DEBUG, "a52dec", "do pause");
 }
 
 /*
@@ -225,7 +218,7 @@ static inline FLOAT *a52_3f2r (FLOAT *o, sample_t *sample, bool have_lfe)
  * Decode task call for ac3
  */
 static int a52dec_decode (codec_data_t *ptr,
-			  uint64_t ts,
+			  frame_timestamp_t *pts,
 			  int from_rtp,
 			  int *sync_frame,
 			  uint8_t *buffer,
@@ -238,7 +231,8 @@ static int a52dec_decode (codec_data_t *ptr,
   uint32_t len;
   int sample_rate;
   int bit_rate;
-
+  uint64_t ts;
+  uint32_t freq_ts;
   // we probably don't need this each time; it won't hurt to
   // check everything out
   len = a52_syncinfo(buffer, &flags, &sample_rate, &bit_rate);
@@ -264,6 +258,12 @@ static int a52dec_decode (codec_data_t *ptr,
     return buflen;
   }
 
+  ts = pts->msec_timestamp;
+  freq_ts = pts->audio_freq_timestamp;
+  if (pts->audio_freq != (uint32_t)sample_rate) {
+    freq_ts = convert_timescale(freq_ts, pts->audio_freq, sample_rate);
+  }
+
   if (a52dec->m_initialized == 0) {
     if (flags & A52_LFE) {
       a52dec->m_chans = 6;
@@ -286,20 +286,12 @@ static int a52dec_decode (codec_data_t *ptr,
       }
     }
     a52dec->m_freq = sample_rate;
-    if (a52dec->m_vft->pConfig->GetBoolValue(CONFIG_USE_AC3_HW)) {
-      a52dec->m_vft->audio_configure(a52dec->m_ifptr, 
-				     sample_rate, 
-				     2, // always just say 2 here
-				     AUDIO_FMT_HW_AC3,
-				     256 * 6);
-    } else {
-      // we could probably deal with more channels here
-      a52dec->m_vft->audio_configure(a52dec->m_ifptr,
-				     sample_rate, 
-				     a52dec->m_chans, 
-				     FLOAT_FORMAT,
-				     256 * 6);
-    }
+    // we could probably deal with more channels here
+    a52dec->m_vft->audio_configure(a52dec->m_ifptr,
+				   sample_rate, 
+				   a52dec->m_chans, 
+				   FLOAT_FORMAT,
+				   256 * 6);
     a52dec->m_initialized = 1;
     a52dec->m_last_ts = ts;
   } else {
@@ -308,22 +300,17 @@ static int a52dec_decode (codec_data_t *ptr,
       a52dec->m_frames_at_ts++;
       // there are 256 * 6 samples in each ac3 decode.
       ts += a52dec->m_frames_at_ts * 256 * 6 * 1000 / sample_rate;
+      freq_ts += a52dec->m_frames_at_ts * 256 * 6;
     } else {
       a52dec->m_frames_at_ts = 0;
       a52dec->m_last_ts = ts;
     }
   }
-  if (a52dec->m_vft->pConfig->GetBoolValue(CONFIG_USE_AC3_HW)) {
-    a52dec->m_vft->audio_load_buffer(a52dec->m_ifptr,
-				     buffer, 
-				     buflen,
-				     ts,
-				     0);
-    return buflen;
-  }
   uint8_t *outbuf;
   // get an output buffer
-  outbuf = a52dec->m_vft->audio_get_buffer(a52dec->m_ifptr);
+  outbuf = a52dec->m_vft->audio_get_buffer(a52dec->m_ifptr,
+					   freq_ts,
+					   ts);
   if (outbuf == NULL) {
     return len;
   }
@@ -388,10 +375,7 @@ static int a52dec_decode (codec_data_t *ptr,
   }
   
   //  LOGIT(LOG_DEBUG, "a52dec", "wrote into frame "U64" %x", ts, flags);
-  a52dec->m_vft->audio_filled_buffer(a52dec->m_ifptr,
-				     ts, 
-				     a52dec->m_resync);
-  a52dec->m_resync = 0;
+  a52dec->m_vft->audio_filled_buffer(a52dec->m_ifptr);
 
   return (len);
 }
@@ -436,9 +420,8 @@ AUDIO_CODEC_WITH_RAW_FILE_PLUGIN("a52dec",
 				 ac3_file_used_for_frame,
 				 ac3_raw_file_seek_to,
 				 ac3_file_eof,
-				 MyConfigVariables, 
-				 sizeof(MyConfigVariables) / 
-				 sizeof(*MyConfigVariables));
+				 NULL, 
+				 0);
 /* end file a52dec.cpp */
 
 

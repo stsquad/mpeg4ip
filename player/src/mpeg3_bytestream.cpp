@@ -90,14 +90,14 @@ void CMpeg3VideoByteStream::reset (void)
   m_this_frame_size = 0;
 }
 
-uint64_t CMpeg3VideoByteStream::start_next_frame (uint8_t **buffer, 
-						  uint32_t *buflen,
-						  void **ud)
+bool CMpeg3VideoByteStream::start_next_frame (uint8_t **buffer, 
+					      uint32_t *buflen,
+					      frame_timestamp_t *pts,
+					      void **ud)
 {
   double ts;
-  uint64_t time;
   if (m_eof) {
-    return 0;
+    return false;
   }
   uint8_t *buf;
   long blen;
@@ -109,7 +109,7 @@ uint64_t CMpeg3VideoByteStream::start_next_frame (uint8_t **buffer,
 
   if (ret != 0) {
     m_eof = 1;
-    return 0;
+    return false;
   }
   if (buffer != NULL) {
     *buffer = buf;
@@ -132,10 +132,11 @@ uint64_t CMpeg3VideoByteStream::start_next_frame (uint8_t **buffer,
   ts = m_frame_on;
   ts /= m_frame_rate;
   ts *= 1000.0;
-  time = (uint64_t)ts;
+  pts->msec_timestamp = (uint64_t)ts;
+  pts->timestamp_is_pts = false;
   //mpeg3f_message(LOG_DEBUG, "start next frame %ld "U64, blen, time);
   m_frame_on++;
-  return time;
+  return true;
 }
 
 void CMpeg3VideoByteStream::used_bytes_for_frame (uint32_t bytes_used)
@@ -143,16 +144,15 @@ void CMpeg3VideoByteStream::used_bytes_for_frame (uint32_t bytes_used)
   mpeg3_read_video_chunk_cleanup(m_file, m_stream);
 }
 
-int CMpeg3VideoByteStream::skip_next_frame (uint64_t *pts, 
+bool CMpeg3VideoByteStream::skip_next_frame (frame_timestamp_t *pts, 
 					    int *pSync,
 					    uint8_t **buffer, 
 					    uint32_t *buflen,
 					    void **ud)
 {
-  uint64_t ts;
+  bool ret;
   mpeg3_read_video_chunk_cleanup(m_file, m_stream);
-  ts = start_next_frame(buffer, buflen, NULL);
-  *pts = ts;
+  ret = start_next_frame(buffer, buflen, pts, NULL);
   if (*buffer != NULL) {
     int ret, ftype;
     ret = MP4AV_Mpeg3FindPictHdr(*buffer, *buflen, &ftype);
@@ -160,7 +160,7 @@ int CMpeg3VideoByteStream::skip_next_frame (uint64_t *pts,
   } else 
     *pSync = 0;
   //*pSync = m_frame_on_has_sync;
-  return (1);
+  return ret;
 }
 
 void CMpeg3VideoByteStream::play (uint64_t start)
@@ -245,9 +245,10 @@ void CMpeg3AudioByteStream::reset (void)
   m_this_frame_size = 0;
 }
 
-uint64_t CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer, 
-						  uint32_t *buflen,
-						  void **ud)
+bool CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer, 
+					      uint32_t *buflen,
+					      frame_timestamp_t *pts,
+					      void **ud)
 {
   uint64_t ts;
   if (m_eof) {
@@ -284,11 +285,15 @@ uint64_t CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer,
   }
   ts = m_frame_on;
   ts *= spf;
+  pts->audio_freq_timestamp = ts;
+  pts->audio_freq = m_freq;
   ts *= TO_U64(1000);
   ts /= m_freq;
   m_frame_on++;
+  pts->msec_timestamp = ts;
+  pts->timestamp_is_pts = false;
   //mpeg3f_message(LOG_DEBUG, "audiostart %ld "U64" %d", m_frame_on, ts, m_this_frame_size);
-  return ts;
+  return true;
 }
 
 void CMpeg3AudioByteStream::used_bytes_for_frame (uint32_t bytes_used)
@@ -296,18 +301,17 @@ void CMpeg3AudioByteStream::used_bytes_for_frame (uint32_t bytes_used)
 
 }
 
-int CMpeg3AudioByteStream::skip_next_frame (uint64_t *pts, 
+bool CMpeg3AudioByteStream::skip_next_frame (frame_timestamp_t *pts, 
 					    int *pSync,
 					    uint8_t **buffer, 
 					    uint32_t *buflen,
 					    void **ud)
 {
-  uint64_t ts;
-  ts = start_next_frame(buffer, buflen, NULL);
-  *pts = ts;
-  *pSync = 0;
+  bool ret;
+  ret = start_next_frame(buffer, buflen, pts, NULL);
+  *pSync = 1;
   //*pSync = m_frame_on_has_sync;
-  return (1);
+  return ret;
 }
 
 void CMpeg3AudioByteStream::play (uint64_t start)
