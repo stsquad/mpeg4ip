@@ -1,1 +1,0 @@
-EXTRA_DIST= SDLMain60.dsp
