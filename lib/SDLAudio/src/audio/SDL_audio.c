@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_audio.c,v 1.3 2004/10/28 22:44:16 wmaycisco Exp $";
+ "@(#) $Id: SDL_audio.c,v 1.4 2005/01/17 20:46:08 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -72,6 +72,9 @@ static AudioBootStrap *bootstrap[] = {
 #endif
 #ifdef __BEOS__
 	&BAUDIO_bootstrap_ours,
+#endif
+#ifdef MACOSX
+	&COREAUDIO_bootstrap,
 #endif
 #if defined(macintosh) || TARGET_API_MAC_CARBON
 	&SNDMGR_bootstrap_ours,
@@ -382,13 +385,15 @@ int Our_SDL_OpenAudio(SDL_AudioSpec *desired, SDL_AudioSpec *obtained)
 	switch ( desired->channels ) {
 	    case 1:	/* Mono */
 	    case 2:	/* Stereo */
+	    case 4:     /* surround */
+	    case 6:     /* surround */
 		break;
 	    default:
 		SDL_SetError("1 (mono) and 2 (stereo) channels supported");
 		return(-1);
 	}
 
-#if defined(macintosh) || defined(__riscos__)
+#if defined(macintosh) || (defined(__riscos__) && !defined(DISABLE_THREADS))
 	/* FIXME: Need to implement PPC interrupt asm for SDL_LockAudio() */
 #else
 #if defined(__MINT__) && !defined(ENABLE_THREADS)

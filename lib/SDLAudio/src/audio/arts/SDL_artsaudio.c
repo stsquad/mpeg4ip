@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_artsaudio.c,v 1.3 2004/12/03 23:33:39 wmaycisco Exp $";
+ "@(#) $Id: SDL_artsaudio.c,v 1.4 2005/01/17 20:46:09 wmaycisco Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer */
@@ -49,7 +49,7 @@ static char rcsid =
 #endif
 
 /* The tag name used by artsc audio */
-#define ARTSC_DRIVER_NAME         "artsc"
+#define ARTSC_DRIVER_NAME         "arts"
 
 /* Audio driver functions */
 static int ARTSC_OpenAudio(_THIS, SDL_AudioSpec *spec);
@@ -104,7 +104,7 @@ static int LoadARTSLibrary(void)
 		retval = 0;
 		for ( i=0; i<SDL_TABLESIZE(arts_functions); ++i ) {
 			*arts_functions[i].func = SDL_LoadFunction(arts_handle, arts_functions[i].name);
-			if ( ! arts_functions[i].func ) {
+			if ( !*arts_functions[i].func ) {
 				retval = -1;
 				UnloadARTSLibrary();
 				break;
@@ -138,6 +138,13 @@ static int Audio_Available(void)
 		return available;
 	}
 	if ( SDL_NAME(arts_init)() == 0 ) {
+#define ARTS_CRASH_HACK	/* Play a stream so aRts doesn't crash */
+#ifdef ARTS_CRASH_HACK
+		arts_stream_t stream2;
+		stream2=SDL_NAME(arts_play_stream)(44100, 16, 2, "SDL");
+		SDL_NAME(arts_write)(stream2, "", 0);
+		SDL_NAME(arts_close_stream)(stream2);
+#endif
 		available = 1;
 		SDL_NAME(arts_free)();
 	}

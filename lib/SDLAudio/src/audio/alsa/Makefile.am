@@ -4,6 +4,7 @@
 noinst_LTLIBRARIES = libaudio_alsa.la
 libaudio_alsa_la_SOURCES = $(SRCS)
 
+alsa_lib = \"@alsa_lib@\"
 # The SDL audio driver sources
 SRCS =	SDL_alsa_audio.c	\
 	SDL_alsa_audio.h

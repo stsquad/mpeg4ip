@@ -28,6 +28,7 @@
 
 #include "video_util_resize.h"
 #include "resampl.h"
+#include "media_feeder.h"
 // DEBUG #define DEBUG_VCODEC_SHADOW
 
 // forward declarations
@@ -36,27 +37,12 @@ class CVideoEncoder;
 
 // virtual parent class for audio and/or video sources
 // contains all the common media processing code
-class CMediaSource : public CMediaNode {
+class CMediaSource : public CMediaNode, public CMediaFeeder {
 public:
 	CMediaSource();
 
 	~CMediaSource();
 	
-	bool AddSink(CMediaSink* pSink);
-
-	void RemoveSink(CMediaSink* pSink);
-
-	void RemoveAllSinks(void);
-
-	void StartVideo(void) {
-		m_myMsgQueue.send_message(MSG_SOURCE_START_VIDEO,
-					  m_myMsgQueueSemaphore);
-	}
-
-	void StartAudio(void) {
-		m_myMsgQueue.send_message(MSG_SOURCE_START_AUDIO,
-					  m_myMsgQueueSemaphore);
-	}
 
 	void GenerateKeyFrame(void) {
 		m_myMsgQueue.send_message(MSG_SOURCE_KEY_FRAME,
@@ -81,21 +67,6 @@ public:
 		m_videoSource = source;
 	}
 
-	void AddEncodingDrift(Duration drift) {
-		// currently there is no thread contention
-		// for this function, so we omit a mutex
-		m_otherTotalDrift += drift;
-	}
-	void SubtractEncodingDrift(Duration drift) {
-	  if (m_otherTotalDrift > 0) {
-	    if (m_otherTotalDrift <= drift) {
-	      m_otherTotalDrift = 0;
-	    } else {
-	      m_otherTotalDrift -= drift;
-	    }
-	  }
-	}
-
 	virtual bool SetPictureControls() {
 		// overridden by sources that can manipulate brightness, hue, etc.
 		// i.e. video capture cards
@@ -111,8 +82,6 @@ protected:
 	virtual bool IsEndOfAudio() {
 		return true;
 	}
-
-	void ForwardFrame(CMediaFrame* pFrame);
 
 	void DoStopSource();
 
@@ -217,14 +186,7 @@ protected:
 
 protected:
 	static const uint32_t MSG_SOURCE	= 2048;
-	static const uint32_t MSG_SOURCE_START_VIDEO	= MSG_SOURCE + 1;
-	static const uint32_t MSG_SOURCE_START_AUDIO	= MSG_SOURCE + 2;
 	static const uint32_t MSG_SOURCE_KEY_FRAME	= MSG_SOURCE + 3;
-
-	// sink info
-	static const u_int16_t MAX_SINKS = 8;
-	CMediaSink* m_sinks[MAX_SINKS];
-	SDL_mutex*	m_pSinksMutex;
 
 	// generic media info
 	bool			m_source;
@@ -286,8 +248,6 @@ protected:
 	//Duration		m_videoEncodingMaxDrift;
 	Duration		m_videoSrcElapsedDuration;
 	Duration		m_videoDstElapsedDuration;
-	Duration		m_otherTotalDrift;
-	Duration		m_otherLastTotalDrift;
 
 	// video previous frame info
 	u_int8_t*		m_videoDstPrevImage;

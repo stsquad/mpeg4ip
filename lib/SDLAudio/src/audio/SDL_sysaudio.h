@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_sysaudio.h,v 1.3 2004/10/28 22:44:16 wmaycisco Exp $";
+ "@(#) $Id: SDL_sysaudio.h,v 1.4 2005/01/17 20:46:08 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_sysaudio_h
@@ -143,6 +143,9 @@ extern AudioBootStrap Paud_bootstrap_ours;
 #endif
 #ifdef __BEOS__
 extern AudioBootStrap BAUDIO_bootstrap_ours;
+#endif
+#ifdef MACOSX
+extern AudioBootstrap COREAUDIO_bootstrap;
 #endif
 #if defined(macintosh) || TARGET_API_MAC_CARBON
 extern AudioBootStrap SNDMGR_bootstrap_ours;

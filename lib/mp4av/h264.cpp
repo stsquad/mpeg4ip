@@ -163,7 +163,9 @@ int h264_read_seq_info (const uint8_t *buffer,
   bs.init(buffer + header, (buflen - header) * 8);
   //bs.set_verbose(true);
   try {
-    bs.GetBits(8 + 1 + 1 + 1 + 5 + 8);
+    dec->profile = bs.GetBits(8);
+    bs.GetBits(1 + 1 + 1 + 5);
+    dec->level = bs.GetBits(8);
     h264_ue(&bs); // seq_parameter_set_id
     dec->log2_max_frame_num_minus4 = h264_ue(&bs);
     dec->pic_order_cnt_type = h264_ue(&bs);
@@ -211,6 +213,24 @@ int h264_read_seq_info (const uint8_t *buffer,
   }
   return 0;
 }
+extern "C" int h264_find_slice_type (const uint8_t *buffer, 
+				     uint32_t buflen,
+				     uint8_t *slice_type)
+{
+  uint32_t header;
+  if (buffer[2] == 1) header = 4;
+  else header = 5;
+  CBitstream bs;
+  bs.init(buffer + header, (buflen - header) * 8);
+  try {
+    h264_ue(&bs); // first_mb_in_slice
+    *slice_type = h264_ue(&bs); // slice type
+  } catch (...) {
+    return -1;
+  }
+  return 0;
+}
+
 int h264_read_slice_info (const uint8_t *buffer, 
 			  uint32_t buflen, 
 			  h264_decode_t *dec)

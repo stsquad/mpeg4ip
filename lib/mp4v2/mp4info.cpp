@@ -302,14 +302,46 @@ static char* PrintVideoInfo(
 
 	const char *media_data_name;
 	uint8_t type = 0;
+	
 	media_data_name = MP4GetTrackMediaDataName(mp4File, trackId);
-
+	char  typebuffer[80];
 	if (media_data_name == NULL) {
 	  typeName = "Unknown - no media data name";
 	  foundTypeName = true;
 	} else if (strcasecmp(media_data_name, "avc1") == 0) {
 	  // avc
-	  typeName = "H.264";
+	  uint8_t profile, level;
+	  char profileb[20], levelb[20];
+	  if (MP4GetTrackH264ProfileLevel(mp4File, trackId, &profile, &level)) {
+	    if (profile == 66) {
+	      strcpy(profileb, "Baseline");
+	    } else if (profile == 77) {
+	      strcpy(profileb, "Main");
+	    } else if (profile == 88) {
+	      strcpy(profileb, "Extended");
+	    } else {
+	      sprintf(profileb, "Unknown Profile %x", profile);
+	    } 
+	    switch (level) {
+	    case 10: case 20: case 30: case 40: case 50:
+	      sprintf(levelb, "%u", level / 10);
+	      break;
+	    case 11: case 12: case 13:
+	    case 21: case 22:
+	    case 31: case 32:
+	    case 41: case 42:
+	    case 51:
+	      sprintf(levelb, "%u.%u", level / 10, level % 10);
+	      break;
+	    default:
+	      sprintf(levelb, "unknown level %x", level);
+	      break;
+	    }
+	    sprintf(typebuffer, "H264 %s@%s", profileb, levelb);
+	    typeName = typebuffer;
+	  } else {
+	    typeName = "H.264 - profile/level error";
+	  }
 	  foundTypeName = true;
 	} else if (strcasecmp(media_data_name, "s263") == 0) {
 	  // 3gp h.263

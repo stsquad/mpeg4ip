@@ -826,7 +826,8 @@ CPlayerSession *start_session (CMsgQueue *master_queue,
 			       int audio_volume,
 			       int screen_loc_x,
 			       int screen_loc_y,
-			       int screen_size)
+			       int screen_size,
+			       bool start_thread)
 {
   CPlayerSession *psptr;
 

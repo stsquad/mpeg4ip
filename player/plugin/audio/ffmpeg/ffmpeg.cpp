@@ -74,9 +74,6 @@ static enum CodecID ffmpeg_find_codec (const char *stream_type,
 	return CODEC_ID_PCM_MULAW;
       }
     }
-    if (strcmp(compressor, "alac") == 0) {
-      return CODEC_ID_FLAC;
-    }
     return CODEC_ID_NONE;
   }
   if (strcasecmp(stream_type, STREAM_TYPE_MPEG_FILE) == 0) {
@@ -292,6 +289,8 @@ static int ffmpeg_codec_check (lib_message_func_t message,
 
   c = avcodec_find_decoder(fcodec);
   if (c == NULL) {
+    message(LOG_ERR, "ffmpeg_audio", "codec %d found, not in library", 
+	    fcodec);
     return -1;
   }
   return pConfig->GetBoolValue(CONFIG_USE_FFMPEG_AUDIO) ? 10 : 1;

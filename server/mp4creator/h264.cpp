@@ -171,8 +171,8 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
     uint8_t nal_type;
     nal_reader_t nal;
     h264_decode_t h264_dec;
-    MP4Timestamp lastTime = 0, thisTime;
-    MP4SampleId samplesWritten = 0;
+    MP4Timestamp lastTime = 0, thisTime, refVopTime = 0;
+    MP4SampleId samplesWritten = 0, refId = 1;
 
     memset(&nal, 0, sizeof(nal));
     nal.ifile = inFile;
@@ -297,6 +297,9 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
     nal_buffer_size_max = 0;
     bool first = true;
     bool nal_is_sync = false;
+    bool access_unit_has_b_nal = false;
+    bool handle_pts = AVCProfileIndication != H264_PROFILE_BASELINE;
+
     // now process the rest of the video stream
     memset(&h264_dec, 0, sizeof(h264_dec));
 
@@ -321,6 +324,21 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 			      dur,
 			      0, 
 			      nal_is_sync);
+	  if (handle_pts) {
+	    if (access_unit_has_b_nal == false &&
+		sampleId != 1) {
+	      MP4SetSampleRenderingOffset(mp4File, 
+					  trackId, 
+					  refId,
+					  thisTime - refVopTime);
+#ifdef DEBUG_H264
+	      printf("sid %u render offset %d value "D64"\n", 
+		     sampleId, refId, thisTime - refVopTime);
+#endif
+	      refId = sampleId;
+	      refVopTime = thisTime;
+	    }
+	  }
 	  lastTime = thisTime;
 	  if ( !rc ) {
 	    fprintf(stderr,
@@ -329,7 +347,9 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 	    MP4DeleteTrack(mp4File, trackId);
 	    return MP4_INVALID_TRACK_ID;
 	  }
+	  sampleId++;
 	  nal_is_sync = false;
+	  access_unit_has_b_nal = false;
 #ifdef DEBUG_H264
 	  printf("wrote frame %d "U64"\n", nal_buffer_size, thisTime);
 #endif
@@ -345,6 +365,14 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
       if (h264_nal_unit_type_is_slice(h264_dec.nal_unit_type)) {
 	copy_nal_to_buffer = true;
 	nal_is_sync = h264_slice_is_idr(&h264_dec);
+	if (nal_is_sync == false) {
+	  if (H264_TYPE_IS_B(h264_dec.slice_type)) {
+	    access_unit_has_b_nal = true;
+#ifdef DEBUG_H264
+	    printf("sid %u have b type nal\n", sampleId);
+#endif
+	  }
+	}
       } else {
 	switch (h264_dec.nal_unit_type) {
 	case H264_NAL_TYPE_SEQ_PARAM:
@@ -407,6 +435,10 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 			  dur,
 			  0, 
 			  nal_is_sync);
+      if (handle_pts) {
+	MP4SetSampleRenderingOffset(mp4File, trackId, refId,
+				    thisTime - refVopTime);
+      }
       if ( !rc ) {
 	fprintf(stderr,
 		"%s: can't write video frame %u\n",

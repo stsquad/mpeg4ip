@@ -95,7 +95,7 @@ class CPlayerSession {
 				      uint64_t end_time,
 				      int dont_send_start_play,
 				      int seekable);
-  void start(void);
+  bool start(bool use_thread=true);
   /*
    * API routine - play at time.  If start_from_begin is FALSE, start_time
    * and we're paused, it will continue from where it left off.
@@ -175,7 +175,7 @@ class CPlayerSession {
   /*
    * Non-API routines - used for c interfaces, for sync task APIs.
    */
-  void start_session_work(void);
+  bool start_session_work(void);
   void wake_sync_thread (void) {
     SDL_SemPost(m_sync_sem);
   }

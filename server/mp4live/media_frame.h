@@ -50,6 +50,14 @@ typedef u_int16_t MediaType;
 
 typedef void (*media_free_f)(void *);
 
+typedef struct yuv_media_frame_t {
+  const uint8_t *y, *u, *v;
+  uint16_t y_stride;
+  uint16_t uv_stride;
+  void *hardware;
+  uint8_t  hardware_index;
+} yuv_media_frame_t;
+
 class CMediaFrame {
 public:
 	CMediaFrame(

@@ -64,6 +64,8 @@ libmp4live_la_SOURCES = \
 	loop_source.cpp \
 	loop_source.h \
 	media_codec.h \
+	media_feeder.cpp \
+	media_feeder.h \
 	media_flow.cpp \
 	media_flow.h \
 	media_frame.h \
@@ -76,6 +78,12 @@ libmp4live_la_SOURCES = \
 	mp4live_common.h \
 	mp4live_config.cpp \
 	mp4live_config.h \
+	profile_audio.cpp \
+	profile_audio.h \
+	profile_list.cpp \
+	profile_list.h \
+	profile_video.h \
+	profile_video.cpp \
 	resample.c \
 	resampl.h \
 	rtp_transmitter.cpp \

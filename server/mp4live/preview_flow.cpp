@@ -44,7 +44,7 @@ void CPreviewAVMediaFlow::StartVideoPreview(void)
 	  m_videoSource->AddSink(m_videoPreview);
 	}
 
-	m_videoSource->StartVideo();
+	m_videoSource->Start();
 	m_videoPreview->Start();
 }
 

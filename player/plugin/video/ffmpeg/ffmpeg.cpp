@@ -432,6 +432,38 @@ static int ffmpeg_decode (codec_data_t *ptr,
 #endif
 	ts = dts;
       }
+    } else if (ffmpeg->m_codecId == CODEC_ID_H264) {
+      uint8_t *nal_ptr = buffer;
+      uint32_t len = buflen;
+      bool have_b_nal = false;
+      do {
+	if (h264_nal_unit_type_is_slice(h264_nal_unit_type(nal_ptr))) {
+	  uint8_t slice_type;
+	  if (h264_find_slice_type(nal_ptr, len, &slice_type) >= 0) {
+	    have_b_nal = H264_TYPE_IS_B(slice_type);
+	  }
+	}
+	uint32_t offset = h264_find_next_start_code(nal_ptr, len);
+	if (offset == 0) {
+	  len = 0;
+	} else {
+	  nal_ptr += offset;
+	  len -= offset;
+	}
+      } while (len > 0 && have_b_nal == false);
+      uint64_t dts;
+      if (MP4AV_calculate_dts_from_pts(&ffmpeg->pts_to_dts,
+				       ts, 
+				       have_b_nal ? VOP_TYPE_B : VOP_TYPE_P,
+				       &dts) < 0) {
+	ffmpeg->have_cached_ts = false;
+#ifdef DEBUG_FFMPEG_PTS
+	ffmpeg_message(LOG_DEBUG, "ffmpeg", "pts "U64" failed to calc",
+			 ts);
+#endif
+	  return buflen;
+      }
+      ts = dts;
     }
   }
   if (got_picture != 0) {
@@ -526,7 +558,7 @@ static int ffmpeg_codec_check (lib_message_func_t message,
   if (c == NULL) {
     return -1;
   }
-  return pConfig->GetBoolValue(CONFIG_USE_FFMPEG) ? 10 : 1;
+  return pConfig->GetBoolValue(CONFIG_USE_FFMPEG) ? 10 : 2;
 }
 
 VIDEO_CODEC_PLUGIN("ffmpeg", 

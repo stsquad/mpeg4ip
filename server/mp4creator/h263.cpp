@@ -78,6 +78,10 @@ static MP4Duration CalculateDuration(u_int8_t   trDiff);
 static bool GetWidthAndHeight(  u_int8_t        fmt,
                                 u_int16_t      *width,
                                 u_int16_t      *height);
+#define H263_STATE_INIT 'a'
+#define H263_STATE_1 'b'
+#define H263_STATE_2 'c'
+#define H263_STATE_3 'd'
 
 static char   states[3][256];
 /*
@@ -109,7 +113,7 @@ MP4TrackId H263Creator(MP4FileHandle outputFileHandle,
   memset(&nextInfo, 0, sizeof(nextInfo));
   memset(&currentInfo, 0, sizeof(currentInfo));
   memset(&maxBitrateCtx, 0, sizeof(maxBitrateCtx));
-  memset(states, 0, sizeof(states));
+  memset(states, H263_STATE_INIT, sizeof(states));
   u_int8_t       frameBuffer[H263_BUFFER_SIZE]; // The input buffer
                  // Pointer which tells LoadNextH263Object where to read data to
   u_int8_t*      pFrameBuffer = frameBuffer + H263_REQUIRE_HEADER_SIZE_BYTES;
@@ -266,11 +270,11 @@ static int LoadNextH263Object(  FILE           *inputFileHandle,
   // Initialize the states array, if it hasn't been initialized yet...
   if (!states[0][0]) {
     // One 00 was read
-    states[0][0] = 1;
+    states[0][0] = H263_STATE_1;
     // Two sequential 0x00 ware read
-    states[1][0] = states[2][0] = 2;
+    states[1][0] = states[2][0] = H263_STATE_2;
     // A full start code was read
-    states[2][128] = states[2][129] = states[2][130] = states[2][131] = -1;
+    states[2][128] = states[2][129] = states[2][130] = states[2][131] = H263_STATE_3;
   }
 
   // Read data from file into the output buffer until either a start code
@@ -283,7 +287,7 @@ static int LoadNextH263Object(  FILE           *inputFileHandle,
       return 1;
     }
   } while ((frameBuffer < bufferEnd) &&                    // We have place in the buffer
-           ((row = states[row][*(frameBuffer++)]) != -1)); // Start code was not found
+           ((row = states[row][*(frameBuffer++)]) != H263_STATE_3)); // Start code was not found
   if (row != -1) {
     uint32_t diff = bufferEnd - bufferStart + additionalBytesNeeded;
     fprintf(stderr, "%s: Buffer too small (%u)\n",

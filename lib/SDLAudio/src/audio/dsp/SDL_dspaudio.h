@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dspaudio.h,v 1.1 2004/02/25 01:18:49 wmaycisco Exp $";
+ "@(#) $Id: SDL_dspaudio.h,v 1.2 2005/01/17 20:46:17 wmaycisco Exp $";
 #endif
 
 #ifndef _SDL_dspaudio_h
@@ -43,10 +43,6 @@ struct SDL_PrivateAudioData {
 	/* Raw mixing buffer */
 	Uint8 *mixbuf;
 	int    mixlen;
-
-	/* Support for audio timing using a timer, in addition to select() */
-	float frame_ticks;
-	float next_frame;
 };
 #define FUDGE_TICKS	10	/* The scheduler overhead ticks per frame */
 

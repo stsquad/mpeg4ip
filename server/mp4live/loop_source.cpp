@@ -37,12 +37,8 @@ int CLoopSource::ThreadMain(void)
 					DoStopCapture();	// ensure things get cleaned up
 					delete pMsg;
 					return 0;
-				case MSG_NODE_START:				
-				case MSG_SOURCE_START_VIDEO:
-					DoStartCapture();
-					break;		
-				case MSG_SOURCE_START_AUDIO:
-					DoStartCapture();
+				case MSG_NODE_START:
+				  DoStartCapture();
 					break;		
 				case MSG_NODE_STOP:
 					DoStopCapture();

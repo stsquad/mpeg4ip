@@ -34,13 +34,6 @@
 
 CMediaSource::CMediaSource() 
 {
-  m_pSinksMutex = SDL_CreateMutex();
-  if (m_pSinksMutex == NULL) {
-    debug_message("CreateMutex error");
-  }
-  for (int i = 0; i < MAX_SINKS; i++) {
-    m_sinks[i] = NULL;
-  }
 
   m_source = false;
   m_sourceVideo = false;
@@ -65,9 +58,6 @@ CMediaSource::CMediaSource()
 
 CMediaSource::~CMediaSource() 
 {
-  SDL_DestroyMutex(m_pSinksMutex);
-  m_pSinksMutex = NULL;
-
   if (m_audioResample != NULL) {
     for (int ix = 0; ix < m_audioDstChannels; ix++) {
       free(m_audioResample[ix]);
@@ -78,70 +68,6 @@ CMediaSource::~CMediaSource()
   }
 }
 
-bool CMediaSource::AddSink(CMediaSink* pSink) 
-{
-  bool rc = false;
-  int i;
-  if (SDL_LockMutex(m_pSinksMutex) == -1) {
-    debug_message("AddSink LockMutex error");
-    return rc;
-  }
-  for (i = 0; i < MAX_SINKS; i++) {
-    if (m_sinks[i] == pSink) {
-      SDL_UnlockMutex(m_pSinksMutex);
-      return true;
-    }
-  }
-  for (i = 0; i < MAX_SINKS; i++) {
-    if (m_sinks[i] == NULL) {
-      m_sinks[i] = pSink;
-      rc = true;
-      break;
-    }
-  }
-  if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
-    debug_message("UnlockMutex error");
-  }
-  return rc;
-}
-
-void CMediaSource::RemoveSink(CMediaSink* pSink) 
-{
-  if (SDL_LockMutex(m_pSinksMutex) == -1) {
-    debug_message("RemoveSink LockMutex error");
-    return;
-  }
-  for (int i = 0; i < MAX_SINKS; i++) {
-    if (m_sinks[i] == pSink) {
-      int j;
-      for (j = i; j < MAX_SINKS - 1; j++) {
-	m_sinks[j] = m_sinks[j+1];
-      }
-      m_sinks[j] = NULL;
-      break;
-    }
-  }
-  if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
-    debug_message("UnlockMutex error");
-  }
-}
-
-void CMediaSource::RemoveAllSinks(void) 
-{
-  if (SDL_LockMutex(m_pSinksMutex) == -1) {
-    debug_message("RemoveAllSinks LockMutex error");
-    return;
-  }
-  for (int i = 0; i < MAX_SINKS; i++) {
-    if (m_sinks[i] == NULL) {
-      break;
-    }
-    m_sinks[i] = NULL;
-  }
-  if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
-    debug_message("UnlockMutex error");
-  }
-}
 
 Duration CMediaSource::GetElapsedDuration()
 {
@@ -155,26 +81,6 @@ Duration CMediaSource::GetElapsedDuration()
   return 0;
 }
 
-void CMediaSource::ForwardFrame(CMediaFrame* pFrame)
-{
-  if (SDL_LockMutex(m_pSinksMutex) == -1) {
-    debug_message("ForwardFrame LockMutex error");
-    return;
-  }
-
-  for (int i = 0; i < MAX_SINKS; i++) {
-    if (m_sinks[i] == NULL) {
-      break;
-    }
-    m_sinks[i]->EnqueueFrame(pFrame);
-  }
-
-  if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
-    debug_message("UnlockMutex error");
-  }
-  if (pFrame->RemoveReference()) delete pFrame;
-  return;
-}
 
 void CMediaSource::DoStopSource()
 {
@@ -242,8 +148,6 @@ bool CMediaSource::InitVideo(
   //m_videoEncodingMaxDrift = m_videoDstFrameDuration;
   m_videoSrcElapsedDuration = 0;
   m_videoDstElapsedDuration = 0;
-  m_otherTotalDrift = 0;
-  m_otherLastTotalDrift = 0;
 
   m_videoDstPrevImage = NULL;
   m_videoDstPrevReconstructImage = NULL;

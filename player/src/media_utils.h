@@ -23,6 +23,7 @@
 
 #include "video.h"
 #include "our_bytestream.h"
+#include "mp4.h"
 
 typedef struct video_query_t {
   uint32_t track_id;
@@ -77,7 +78,8 @@ CPlayerSession *start_session(CMsgQueue *master_queue,
 			      int audio_volume,
 			      int screen_loc_x,
 			      int screen_loc_y,
-			      int screen_size);
+			      int screen_size,
+			      bool use_thread = true);
 // internal api only
 int parse_name_for_session(CPlayerSession *psptr,
 			    const char *name,

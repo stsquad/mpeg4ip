@@ -22,6 +22,8 @@
 #include <mp4av_common.h>
 #include <mp4av_h264.h>
 
+//#define DEBUG_H264_HINT 1
+
 extern "C" MP4TrackId MP4AV_H264_HintTrackCreate (MP4FileHandle mp4File,
 						  MP4TrackId mediaTrackId)
 {
@@ -163,7 +165,9 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
   uint32_t nal_size;
   uint32_t offset = 0;
   uint32_t remaining = sampleSize;
+#ifdef DEBUG_H264_HINT
   printf("hint for sample %d\n", sampleId);
+#endif
   MP4AddRtpVideoHint(mp4File, hintTrackId, isBFrame, renderingOffset);
 
   if (sampleSize - sizeLength < maxPayloadSize) {
@@ -186,12 +190,16 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
     nal_size = h264_get_nal_size(pSampleBuffer + offset,
 					  sizeLength);
     // skip the sizeLength
+#ifdef DEBUG_H264_HINT
     printf("offset %u nal size %u remain %u\n", offset, nal_size, remaining);
+#endif
 
     offset += sizeLength;
     remaining -= sizeLength;
     if (nal_size > maxPayloadSize) {
+#ifdef DEBUG_H264_HINT
       printf("fragmentation units\n");
+#endif
       uint8_t head = pSampleBuffer[offset];
       offset++;
       nal_size--;
@@ -209,9 +217,13 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 	} else {
 	  write_size = maxPayloadSize - 2;
 	}
+#ifdef DEBUG_H264_HINT
 	printf("frag off %u write %u left in nal %u remain %u\n",
 	       offset, write_size, nal_size, remaining);
-	MP4AddRtpPacket(mp4File, hintTrackId, remaining <= write_size + 2);
+#endif
+	remaining -= write_size;
+
+	MP4AddRtpPacket(mp4File, hintTrackId, remaining == 0);
 	MP4AddRtpImmediateData(mp4File, hintTrackId, 
 			       fu_header, 2);
 	fu_header[1] = 0;
@@ -219,7 +231,6 @@ extern "C" void MP4AV_H264_HintAddSample (MP4FileHandle mp4File,
 	MP4AddRtpSampleData(mp4File, hintTrackId, sampleId, 
 			    offset, write_size);
 	offset += write_size;
-	remaining -= write_size;
 	nal_size -= write_size;
       }
     } else {

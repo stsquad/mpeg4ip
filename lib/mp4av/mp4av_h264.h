@@ -5,6 +5,10 @@
 #define H264_START_CODE 0x000001
 #define H264_PREVENT_3_BYTE 0x000003
 
+#define H264_PROFILE_BASELINE 66
+#define H264_PROFILE_MAIN 77
+#define H264_PROFILE_EXTENDED 88
+
 #define H264_NAL_TYPE_NON_IDR_SLICE 1
 #define H264_NAL_TYPE_DP_A_SLICE 2
 #define H264_NAL_TYPE_DP_B_SLICE 3
@@ -35,6 +39,8 @@
 #define H264_TYPE_IS_SP(t) ((t) == H264_TYPE_SP || (t) == H264_TYPE2_SP)
 #define H264_TYPE_IS_SI(t) ((t) == H264_TYPE_SI || (t) == H264_TYPE2_SI)
 typedef struct h264_decode_t {
+  uint8_t profile;
+  uint8_t level;
   uint32_t log2_max_frame_num_minus4;
   uint32_t log2_max_pic_order_cnt_lsb_minus4;
   uint32_t pic_order_cnt_type;
@@ -69,6 +75,9 @@ uint32_t h264_find_next_start_code(const uint8_t *pBuf,
   uint8_t h264_nal_unit_type(const uint8_t *buffer);
 
   int h264_nal_unit_type_is_slice(uint8_t nal_type);
+  int h264_find_slice_type(const uint8_t *buffer, 
+			   uint32_t buflen, 
+			   uint8_t *slice_type);
   uint8_t h264_nal_ref_idc(const uint8_t *buffer);
   int h264_detect_boundary(const uint8_t *buffer, 
 			   uint32_t buflen, 

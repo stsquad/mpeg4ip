@@ -313,6 +313,10 @@ static int mp3_codec_check (lib_message_func_t message,
 			    uint32_t userdata_size,
 			    CConfigSet *pConfig)
 {
+#if 0
+  // wmay - 1/17/05 - commented out using mad in pretty much any file
+  // format - mad seems to require 1 extra frame to decode - our system
+  // doesn't work like that.
   if (pConfig->GetBoolValue(CONFIG_USE_MAD) == false) {
     return -1;
   }
@@ -365,6 +369,7 @@ static int mp3_codec_check (lib_message_func_t message,
       lptr++;
     }
   }
+#endif
   return -1;
 }
 

@@ -193,21 +193,26 @@ CPlayerSession::~CPlayerSession ()
 
 // start will basically start the sync thread, which will call
 // start_session_work
-void CPlayerSession::start (void)
+bool CPlayerSession::start (bool use_thread)
 {
   m_sync_sem = SDL_CreateSemaphore(0);
-#ifndef NEED_SDL_VIDEO_IN_MAIN_THREAD
-  m_sync_thread = SDL_CreateThread(c_sync_thread, this);
-#else
-  start_session_work();
+ 
+#ifdef NEED_SDL_VIDEO_IN_MAIN_THREAD
+  use_thread = false;
 #endif
+  if (use_thread) {
+    m_sync_thread = SDL_CreateThread(c_sync_thread, this);
+  } else {
+    return start_session_work();
+  }
+  return true;
 }
 
 // API from the sync task - this will start the session
 // while this is running (except if NEED_SDL_VIDEO_IN_MAIN_THREAD),
 // callees from parse_name_for_session can call ShouldStopProcessing
 // to see if they should stop what they are doing.
-void CPlayerSession::start_session_work (void)
+bool CPlayerSession::start_session_work (void)
 {
   int ret;
   bool err = false;
@@ -231,7 +236,9 @@ void CPlayerSession::start_session_work (void)
   if (err) {
     m_master_msg_queue->send_message(MSG_SESSION_ERROR, 
 				     m_master_msg_queue_sem);
+    return false;
   }
+  return true;
 }
 
 int CPlayerSession::create_streaming_broadcast (session_desc_t *sdp)

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_esdaudio.c,v 1.3 2004/12/03 23:33:39 wmaycisco Exp $";
+ "@(#) $Id: SDL_esdaudio.c,v 1.4 2005/01/17 20:46:17 wmaycisco Exp $";
 #endif
 
 /* Allow access to an ESD network stream mixing buffer */
@@ -99,7 +99,7 @@ static int LoadESDLibrary(void)
 		retval = 0;
 		for ( i=0; i<SDL_TABLESIZE(esd_functions); ++i ) {
 			*esd_functions[i].func = SDL_LoadFunction(esd_handle, esd_functions[i].name);
-			if ( ! esd_functions[i].func ) {
+			if ( !*esd_functions[i].func ) {
 				retval = -1;
 				UnloadESDLibrary();
 				break;

@@ -123,10 +123,10 @@ void CAVMediaFlow::Start(void)
 		m_videoSource->Start();
 	} else {
 		if (m_audioSource) {
-			m_audioSource->StartAudio();
+			m_audioSource->Start();
 		}
 		if (m_videoSource) {
-			m_videoSource->StartVideo();
+			m_videoSource->Start();
 		}
 	}
 

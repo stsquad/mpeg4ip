@@ -10,12 +10,6 @@ else
 ed2=
 endif
 
-if HAVE_LIBMAD
-ed3=mad
-else
-ed3=
-endif
-
 SUBDIRS = raw celp $(ed1) $(ed2) $(ed3)
 
 EXTRA_DIST=faad2/aa_file.cpp faad2/aa_file.h \

@@ -54,7 +54,6 @@ int CV4L2VideoSource::ThreadMain(void)
           delete pMsg;
           return 0;
         case MSG_NODE_START:
-        case MSG_SOURCE_START_VIDEO:
           DoStartCapture();
           break;
         case MSG_NODE_STOP:
