@@ -271,6 +271,7 @@ public:
 
   bool isstereo(void) { return inputstereo == 1; } ;
   int getlayer(void) { return layer; };
+  int getbitrate(void) { return bitrate[version][layer -1][bitrateindex]; };
   int getfrequency(void) {
     int index;
     index = version * 3 + frequency;

@@ -48,7 +48,7 @@ const static char *genre_list[GLL] =
   "Christian Rock", "Merengue", "Salsa", "Trash Metal", "Anime", "JPop", "Synthpop" };
 
 
-static void read_mp3_file_for_tag (mp3_codec_t *mp3,
+static bool read_mp3_file_for_tag (mp3_codec_t *mp3,
 				   char *descptr[3])
 {
   char buffer[128];
@@ -57,11 +57,11 @@ static void read_mp3_file_for_tag (mp3_codec_t *mp3,
   int ix;
 
   if (fseek(mp3->m_ifile, -128, SEEK_END) != 0) {
-    return;
+    return false;
   }
   fread(buffer, 1, 128, mp3->m_ifile);
   if (strncasecmp(buffer, "tag", 3) != 0) {
-    return;
+    return false;
   }
   temp = buffer[33];
   buffer[33] = '\0';
@@ -110,6 +110,7 @@ static void read_mp3_file_for_tag (mp3_codec_t *mp3,
     snprintf(desc, sizeof(desc), "Genre: %s", genre_list[index]);
     descptr[3] = strdup(desc);
   }
+  return true;
 }
 
 codec_data_t *mp3_file_check (lib_message_func_t message,
@@ -240,7 +241,12 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
 
   *max = maxtime;
 
-  read_mp3_file_for_tag(mp3, desc);
+  if (read_mp3_file_for_tag(mp3, desc) == false) {
+    char buffer[40];
+    sprintf(buffer, "%dKbps @ %dHz", mp3->m_mp3_info->getbitrate(),
+	    freq);
+    desc[1] = strdup(buffer);
+  }
 
   rewind(mp3->m_ifile);
 

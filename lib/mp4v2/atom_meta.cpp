@@ -87,19 +87,20 @@ void MP4DataAtom::Read()
 MP4IlstAtom::MP4IlstAtom()
     : MP4Atom("ilst")
 {
-    ExpectChildAtom("©nam", Optional, OnlyOne); /* name */
-    ExpectChildAtom("©ART", Optional, OnlyOne); /* artist */
-    ExpectChildAtom("©wrt", Optional, OnlyOne); /* writer */
-    ExpectChildAtom("©alb", Optional, OnlyOne); /* album */
-    ExpectChildAtom("©day", Optional, OnlyOne); /* date */
-    ExpectChildAtom("©too", Optional, OnlyOne); /* tool */
-    ExpectChildAtom("©cmt", Optional, OnlyOne); /* comment */
-    ExpectChildAtom("©gen", Optional, OnlyOne); /* custom genre */
+    ExpectChildAtom("\251nam", Optional, OnlyOne); /* name */
+    ExpectChildAtom("\251ART", Optional, OnlyOne); /* artist */
+    ExpectChildAtom("\251wrt", Optional, OnlyOne); /* writer */
+    ExpectChildAtom("\251alb", Optional, OnlyOne); /* album */
+    ExpectChildAtom("\251day", Optional, OnlyOne); /* date */
+    ExpectChildAtom("\251too", Optional, OnlyOne); /* tool */
+    ExpectChildAtom("\251cmt", Optional, OnlyOne); /* comment */
+    ExpectChildAtom("\251gen", Optional, OnlyOne); /* custom genre */
     ExpectChildAtom("trkn", Optional, OnlyOne); /* tracknumber */
     ExpectChildAtom("disk", Optional, OnlyOne); /* disknumber */
     ExpectChildAtom("gnre", Optional, OnlyOne); /* genre (ID3v1 index + 1) */
     ExpectChildAtom("cpil", Optional, OnlyOne); /* compilation */
     ExpectChildAtom("tmpo", Optional, OnlyOne); /* BPM */
+    ExpectChildAtom("covr", Optional, OnlyOne); /* cover art */
     ExpectChildAtom("----", Optional, Many); /* ---- free form */
 }
 
@@ -112,31 +113,31 @@ MP4DashAtom::MP4DashAtom()
 }
 
 MP4NamAtom::MP4NamAtom()
-    : MP4Atom("©nam")
+    : MP4Atom("\251nam")
 {
     ExpectChildAtom("data", Required, OnlyOne);
 }
 
 MP4ArtAtom::MP4ArtAtom()
-    : MP4Atom("©ART")
+    : MP4Atom("\251ART")
 {
     ExpectChildAtom("data", Required, OnlyOne);
 }
 
 MP4WrtAtom::MP4WrtAtom()
-    : MP4Atom("©wrt")
+    : MP4Atom("\251wrt")
 {
     ExpectChildAtom("data", Required, OnlyOne);
 }
 
 MP4AlbAtom::MP4AlbAtom()
-    : MP4Atom("©alb")
+    : MP4Atom("\251alb")
 {
     ExpectChildAtom("data", Required, OnlyOne);
 }
 
 MP4CmtAtom::MP4CmtAtom()
-    : MP4Atom("©cmt")
+    : MP4Atom("\251cmt")
 {
     ExpectChildAtom("data", Required, OnlyOne);
 }
@@ -154,19 +155,19 @@ MP4DiskAtom::MP4DiskAtom()
 }
 
 MP4DayAtom::MP4DayAtom()
-    : MP4Atom("©day")
+    : MP4Atom("\251day")
 {
     ExpectChildAtom("data", Required, OnlyOne);
 }
 
 MP4GenAtom::MP4GenAtom()
-    : MP4Atom("©gen")
+    : MP4Atom("\251gen")
 {
     ExpectChildAtom("data", Required, OnlyOne);
 }
 
 MP4TooAtom::MP4TooAtom()
-    : MP4Atom("©too")
+    : MP4Atom("\251too")
 {
     ExpectChildAtom("data", Required, OnlyOne);
 }
@@ -185,6 +186,12 @@ MP4CpilAtom::MP4CpilAtom()
 
 MP4TmpoAtom::MP4TmpoAtom()
     : MP4Atom("tmpo")
+{
+    ExpectChildAtom("data", Required, OnlyOne);
+}
+
+MP4CovrAtom::MP4CovrAtom()
+    : MP4Atom("covr")
 {
     ExpectChildAtom("data", Required, OnlyOne);
 }

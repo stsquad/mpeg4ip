@@ -580,6 +580,11 @@ public:
 	MP4CmtAtom();
 };
 
+class MP4CovrAtom : public MP4Atom {
+ public:
+  MP4CovrAtom();
+};
+
 class MP4DiskAtom : public MP4Atom {
 public:
 	MP4DiskAtom();
