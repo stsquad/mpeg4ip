@@ -26,6 +26,7 @@
 
 #include "video_v4l_source.h"
 #include "video_util_rgb.h"
+#include "video_util_filter.h"
 
 //#define DEBUG_TIMESTAMPS 1
 int CV4LVideoSource::ThreadMain(void) 
@@ -276,13 +277,41 @@ bool CV4LVideoSource::InitDevice(void)
 	 m_videoMbuf.frames = 2;
 	 m_cacheTimestamp = false;
        }
+       uint32_t width, height;
+       width = m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
+       height = m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+       
+       if (strncasecmp(m_pConfig->GetStringValue(CONFIG_VIDEO_FILTER),
+		       VIDEO_FILTER_DECIMATE,
+		       strlen(VIDEO_FILTER_DECIMATE)) == 0) {
+	 uint32_t max_width, max_height;
+	 switch (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL)) {
+	 case VIDEO_SIGNAL_NTSC:
+	   max_width = 720;
+	   max_height = 480;
+	   break;
+	 case VIDEO_SIGNAL_PAL:
+	 case VIDEO_SIGNAL_SECAM:
+	 default:
+	   max_width = 768;
+	   max_height = 576;
+	   break;
+	 }
+	 if (max_width > width * 2 || max_height > height * 2) {
+	   error_message("Decimate filter choosen with too large video size - max %ux%u",
+			 max_width / 2, max_height / 2);
+	 } else {
+	   m_decimate_filter = true;
+	   width *= 2;
+	   height *= 2;
+	 }
+       }
+
 	for (int i = 0; i < m_videoMbuf.frames; i++) {
 		// initialize frame map
 		m_videoFrameMap[i].frame = i;
-		m_videoFrameMap[i].width = 
-			m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
-		m_videoFrameMap[i].height = 
-			m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+		m_videoFrameMap[i].width = width;
+		m_videoFrameMap[i].height = height;
 		m_videoFrameMap[i].format = format;
 
 		// give frame to the video capture device
@@ -489,6 +518,11 @@ void CV4LVideoSource::ProcessVideo(void)
 			pV = pU + m_videoSrcUVSize;
 		}
 
+		if (m_decimate_filter) {
+		  video_filter_decimate(pY,
+					m_videoSrcWidth,
+					m_videoSrcHeight);
+		}
 		ProcessVideoYUVFrame(
 			pY, 
 			pU, 

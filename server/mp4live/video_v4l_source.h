@@ -36,6 +36,7 @@ public:
 		m_videoDevice = -1;
 		m_videoMap = NULL;
 		m_videoFrameMap = NULL;
+		m_decimate_filter = false;
 	}
 
 	static bool InitialVideoProbe(CLiveConfig* pConfig);
@@ -94,6 +95,7 @@ protected:
 	uint64_t m_lastVideoFrameMapFrameLoaded;
 	Timestamp m_lastVideoFrameMapTimestampLoaded;
 	bool            m_cacheTimestamp;
+	bool m_decimate_filter;
 };
 
 class CVideoCapabilities {

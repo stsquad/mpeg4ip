@@ -73,6 +73,8 @@ libmp4live_la_SOURCES = \
 	sdp_file.cpp \
 	util.cpp \
 	util.h \
+	video_util_filter.cpp \
+	video_util_filter.h \
 	video_util_mpeg4.cpp \
 	video_util_resize.h \
 	video_util_resize.cpp \

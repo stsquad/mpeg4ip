@@ -26,7 +26,7 @@
 #include "video_util_rgb.h"
 #include <mp4av.h>
 #include "mpeg4ip_byteswap.h"
-
+#include "video_util_filter.h"
 //#define DEBUG_AUDIO_RESAMPLER 1
 //#define DEBUG_SYNC 1
 //#define DEBUG_AUDIO_SYNC 1
@@ -203,6 +203,10 @@ bool CMediaSource::InitVideo(
   m_videoSrcFrameNumber = 0;
   m_audioSrcFrameNumber = 0;	// ensure audio is also at zero
 
+  const char *videoFilter;
+  videoFilter = m_pConfig->GetStringValue(CONFIG_VIDEO_FILTER);
+  m_videoFilterInterlace = 
+    (strncasecmp(videoFilter, VIDEO_FILTER_DEINTERLACE, strlen(VIDEO_FILTER_DEINTERLACE)) == 0);
   m_videoDstFrameRate =
     m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
   m_videoDstFrameDuration = 
@@ -460,6 +464,9 @@ void CMediaSource::ProcessVideoYUVFrame(
     uvStride = yStride / 2;
   }
 
+  if (m_videoFilterInterlace) {
+    video_filter_interlace(yImage, yImage + m_videoDstYSize, yStride);
+  }
   // if we want encoded video frames
   if (m_pConfig->m_videoEncode) {
     bool rc = m_videoEncoder->EncodeImage(

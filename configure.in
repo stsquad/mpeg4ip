@@ -10,7 +10,7 @@ AM_INIT_AUTOMAKE(mpeg4ip, 1.0.2)
 
 AC_CONFIG_SUBDIRS(lib/rtp)
 
-dnl Checks for programs.
+dnl Checks for programs. 
 AC_CHECK_FILE(lib/SDL/sdl-config,,
 	      AC_MSG_ERROR([Configure for SDL needs to run first - either run bootstrap or run lib/SDL/configure]))
 
@@ -57,9 +57,13 @@ AC_CHECK_HEADERS(fcntl.h unistd.h stdint.h inttypes.h getopt.h byteswap.h)
 AC_CHECK_HEADERS(linux/cdrom.h sys/dvdio.h sys/time.h)
 use_mpeg4ip_xvid=false
 AC_CHECK_HEADER(xvid.h, [AC_DEFINE(HAVE_XVID_H, [1], [have xvid.h])], [use_mpeg4ip_xvid=true])
-
 AM_CONDITIONAL(USE_MPEG4IP_XVID, $use_mpeg4ip_xvid)
-
+have_id3_tag=true
+AC_LANG_PUSH(C++)
+AC_CHECK_HEADER(id3/tag.h, [AC_DEFINE(HAVE_ID3_TAG_H, [1], [have id3/tag.h])],
+                [have_id3_tag=false])
+AM_CONDITIONAL(HAVE_ID3_TAG, $have_id3_tag)
+AC_LANG_POP(C++)
 dnl check for Sun, BSD/OS libraries
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(gnugetopt, getopt_long)
@@ -230,7 +234,7 @@ fi
 if test x$have_ffmpeg = xtrue; then
       AC_MSG_NOTICE([have enable ffmpeg $enable_ffmpeg])
       FFMPEG_INC=-I${enable_ffmpeg}/libavcodec
-      FFMPEG_LIB=${enable_ffmpeg}/libavcodec/libavcodec.a
+      FFMPEG_LIB="${enable_ffmpeg}/libavcodec/libavcodec.a -lz"
    AC_SUBST(FFMPEG_INC)
    AC_SUBST(FFMPEG_LIB)
    AC_DEFINE(HAVE_FFMPEG, 1, [enable ffmpeg for mp4live])

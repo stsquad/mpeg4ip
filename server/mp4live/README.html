@@ -1,16 +1,18 @@
-<html>
-<head><title>MP4LIVE  README</title></head>
-<body bgcolor="#ffffff">
-<a name="top">
-<b><font color="#0000FF">MP4LIVE README</font></b><p>
-October, 2003<br>  
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<HTML lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<title>MP4LIVE  README</title></head>
+<body id="top">
+<h1>MP4LIVE README</h1>
+<p>
+January, 2004<br>  
 Dave Mackie<br>
 Bill May<br>
 <P>
-<font face="Arial" color="#0000FF">
 <b>
 <a href="#mp4live">MP4LIVE</a><br>
-<a href="#1.1">Changes in Version 1.1</a><br>
+<a href="#s1.1">Changes in Version 1.1</a><br>
 <a href="#hw">Hardware Requirements</a><br>
 <a href="#soft">Software Requirements</a><br>
 <a href="#warning">Warnings</a><br>
@@ -27,10 +29,11 @@ Bill May<br>
 <a href="#links">Links</a><br>
 <a href="#config">Configuration Variables</a><br>
 </b>
-</font>
+
 <P>
-<a name="mp4live">
-<b><font color="#0000FF">MP4LIVE</font></b>
+<div id="mp4live">
+<h2>MP4LIVE</h2>
+</div>
 <P>
 MP4LIVE is a Linux audio/video capture utility that can capture and encode 
 audio and video in real-time. The results can be written to either an .mp4
@@ -46,14 +49,19 @@ enhancements, ask questions, etc. The URL is
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="1.1">
-<b><font color="#0000FF">Changes in Version 1.1</font></b>
+<div id="s1.1">
+<h2>Changes in Version 1.1</h2>
+</div>
 <p>
 Add option to create new file name based on existing name when
 recording files
 <P> 
-<a name="hw">
-<b><font color="#0000FF">Hardware Requirements</font></b>
+<p>
+Added decimate and deinterlace filters
+<p>
+<div id="hw">
+<h2>Hardware Requirements</h2>
+</div>
 <P>
 Pentium III class machine of at least 500 MHz 
 (Pentium IV class machine at 2 GHz is very nice.)
@@ -74,13 +82,18 @@ A video device with a video4linux (v4l) compatible driver and memory mapped
 capture ability.  We also support (and recommend) the video4linux2 (v4l2) driver.
 <P>
 Known to work are:
+<ul>
+<li>
 	Video capture cards based on the Brooktree 8x8 chip
 	with an analog A/V source - VCR, DVD, Camcorder, Settop box, Tivo, etc.
 		Typically a video capture card will support composite video inputs.
 		Some will also have S-Video input.
 		Others will also have a TV Tuner input.
-<P>
+</li>
+<li>
 	Logitech Quickcam Express Webcam
+</li>
+</ul>
 <P>
 Note on multi-processor machines (SMP): mp4live is multithreaded at a coarse
 level. Specifically the video encoder, audio encoder, file recorder, network
@@ -92,8 +105,9 @@ threaded video encoder would certainly provide an interesting challenge.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="soft">
-<b><font color="#0000FF">Software Requirements</font></b>
+<div id="soft">
+<h2>Software Requirements</h2>
+</div>
 <P>
 Linux with a 2.4 or later kernel.<br>
 We recommend a kernel with V4L2 built in.  See the instructions on
@@ -109,8 +123,9 @@ Drivers for sound and video devices
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="warning">
-<b><font color="#0000FF">WARNINGS!</font></b>
+<div id="warning">
+<h2>WARNINGS!</h2>
+</div>
 <P>
 
 Please see the MPEG4IP README regarding legal issues, and the list of 
@@ -142,8 +157,9 @@ experiment with other values if you are so inclined.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="tips">
-<b><font color="#0000FF">Tips</font></b>
+<div id="tips">
+<h2>Tips</h2>
+</div>
 <P>
 
 I suggest you disable any fancy, computationally intensive screensavers 
@@ -172,8 +188,9 @@ had good audio and video sync out beyond 500 hours in our lab.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="build">
-<b><font color="#0000FF">Building and Installing</font></b>
+<div id="build">
+<h2>Building and Installing</h2>
+</div>
 <P>
 See the MPEG4IP README for general notes about the build environment. 
 <P>
@@ -185,8 +202,9 @@ will be installed into '/usr/local/bin'. Of course, you can also issue
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="using">
-<b><font color="#0000FF">Using mp4live</font></b>
+<div id="using">
+<h2>Using mp4live</h2>
+</div>
 <P>
 
 Typically, there is no need for command line options to mp4live. You can
@@ -225,12 +243,19 @@ think that this is working quite right, try the "videoTimestampCache=0"
 to the .mp4live_rc before you start.  (This may be the case with usb
 web cams, but most likely not regular capture cards).  Note: this is
 for v4l users only.
-
+<p>
+A user contributed some simple video filters.  We have a decimate
+filter (which captures video at 2 times the resolution, and scales it
+back down), and a deinterlace filter (which will do a linear blend style
+of deinterlace on the Y plane before encoding).
+<p>
+These filters do take up some processing power, so be careful.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="qt">
-<b><font color="#0000FF">Use with QT 6.0 and Real One</font></b>
+<div id="qt">
+<h2>Use with QT 6.0 and Real One</h2>
+</div>
 <P>
 It is possible to create content for QT 6.0 and Real One with the 
 Envivio plug in.  You must create with the audio encoding set to 
@@ -245,8 +270,9 @@ appear to stutter.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="nw">
-<b><font color="#0000FF">Network Transmission</font></b>
+<div id="nw">
+<h2>Network Transmission</h2>
+</div>
 <P>
 
 To use mp4live to transmit live audio/video to the network, follow these
@@ -287,8 +313,9 @@ of the sdp file, e.g.:
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="dss">
-<b><font color="#0000FF">Use with Darwin Streaming Server</font></b>
+<div id="dss">
+<h2>Use with Darwin Streaming Server</h2>
+</div>
 <P>
 
 If you would like to use mp4live in conjunction with the Darwin Streaming
@@ -318,8 +345,9 @@ in the SDP stops gmp4player from sending them.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="capture">
-<b><font color="#0000FF">Sharing Capture Cards</font></b>
+<div id="capture">
+<h2>Sharing Capture Cards</h2>
+</div>
 <P>
 
 If you have another program that wants to simultaneously process the raw
@@ -345,8 +373,9 @@ The audio format is 16 bit PCM, the video format is YUV12 (planar 4:2:0 YUV).
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="cli">
-<b><font color="#0000FF">Command Line Options</font></b>
+<div id="cli">
+<h2>Command Line Options</h2>
+</div>
 <P>
 
 There are currently four command line options to mp4live:<br>
@@ -374,8 +403,9 @@ with the 'cron' utlity to do scheduled recording and/or transmission.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="issues">
-<b><font color="#0000FF">Known Issues</font></b>
+<div id="issues">
+<h2>Known Issues</h2>
+</div>
 <P>
 
 Using a system with a PCI instead of an AGP video display card can cause 
@@ -430,8 +460,9 @@ mp4live.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="unknown">
-<b><font color="#0000FF">Unknowns</font></b>
+<div id="unknown">
+<h2>Unknowns</h2>
+</div>
 <P>
 
 I've only used mp4live with two video capture cards the Viewcast Osprey 100
@@ -450,8 +481,9 @@ have the capability or inclination to debug that for you!
 <p>
 <a href="#top">Back to top</a>
 <P>
-<a name="links">
-<b><font color="#0000FF">Links</font></b>
+<div id="links">
+<h2>Links</h2>
+</div>
 <P>
 <table>
 <tr>
@@ -486,8 +518,9 @@ have the capability or inclination to debug that for you!
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="config">
-<b><font color="#0000FF">Configuration Variables</font></b>
+<div id="config">
+<h2>Configuration Variables</h2>
+</div>
 <P>
 <table border cellpadding=4>
 <tbody>
@@ -500,12 +533,7 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>durationUnits</td><td>int</td><td>60</td><td>Number of seconds per duration unit (1, 60, 3600, 86400)</td></tr>
 <tr align=center><td>debug</td><td>bool</td><td>false</td><td>Enable debug output</td></tr>
 <tr align=center><td>signalHalt</td><td>string</td><td>sighup</td><td>Signal used in no gui mode to stop</td></tr>
-<tr> </tr>
-<tr> </tr>
-
-<th colspan=5 align=center><b>Audio Options</b>
-<tbody>
-
+<tr><th colspan=5 align=center><b>Audio Options</b></tr>
 <tr align=center><td>audioEnable</td><td>bool</td><td>true</td><td>True if audio is enabled</td></tr>
 <tr align=center><td>audioSourceType</td><td>string</td><td>OSS</td><td>Audio Source Type (only OSS for now)</td></tr>
 <tr align=center><td>audioDevice</td><td>string</td><td>/dev/dsp</td><td>Audio Device to use</td></tr>
@@ -521,10 +549,7 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>audioOssUseSmallFrags</td><td>bool</td><td>true</td><td>Enable small fragments size in OSS</tr>
 <tr align=center><td>audioOssFragments</td><td>int</td><td>128</td><td>Number of fragments</tr>
 <tr align=center><td>audioOssFragSize</td><td>int</td><td>8</td><td>Size of fragments</tr>
-<tr> </tr>
-<tr> </tr>
-<th colspan=5 align=center><b>Video Options</b>
-<tbody>
+<tr><th colspan=5 align=center><b>Video Options</b></tr>
 <tr align=center><td>videoEnable</td><td>bool</td><td>true</td><td>Enable Video</tr>
 <tr align=center><td>videoSourceType</td><td>string</td><td>V4L</td><td>Video Source to use <br>(V4L is for both V4L and V4L2)</tr>
 <tr align=center><td>videoDevice</td><td>string</td><td>/dev/video0</td><td>Video Device to use</tr>
@@ -535,8 +560,9 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>videoPreview</td><td>bool</td><td>true</td><td>Show Video Preview in Gui</tr>
 <tr align=center><td>videoRawPreview</td><td>bool</td><td>false</td><td>Show Raw Video Preview in Gui</tr>
 <tr align=center><td>videoEncodedPreview</td><td>bool</td><td>true</td><td>Show Encoded Video Preview in Gui</tr>
+<tr align=center><td>videoEncoder</td><td>string</td><td>xvid</td><td>Video Encoder Type</tr>
 <tr align=center><td>videoEncoding</td><td>string</td><td>MPEG4</td><td>Video Encoding Type</tr>
-<tr align=center><td><a name="vheight">videoRawWidth</td><td>int</td><td>320</td><td>Width of output frame in pixels</tr>
+<tr align=center><td id="vheight">videoRawWidth</td><td>int</td><td>320</td><td>Width of output frame in pixels</tr>
 <tr align=center><td>videoRawHeight</td><td>int</td><td>240</td><td>Height of output frame in pixels</tr>
 <tr align=center><td>videoAspectRatio</td><td>float</td><td>1.33</td><td>Aspect ratio</tr>
 <tr align=center><td>videoFrameRate</td><td>float</td><td>29.97</td><td>Frame Rate</tr>
@@ -552,10 +578,8 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>videoH261Quality</td><td>int</td><td>10</td><td>Starting H.261 Video Quality</tr>
 <tr align=center><td>videoH261QualityAdjFrames</td><td>int</td><td>8</td><td>Number of frames to adjust H.261 Quality over</tr>
 <tr align=center><td>videoCaptureBuffersCount</td><td>int</td><td>16</td><td>Number of capture buffers to request<br>(V4L2 only)</tr>
-<tr> </tr>
-<tr> </tr>
-<th colspan=5 align=center><b>Recording Options</b>
-<tbody>
+<tr align=center><td>videoFilter</td><td>string</td><td>none</td><td>Video filter to use (none, decimate, deinterlace)</td></tr>
+<tr><th colspan=5 align=center><b>Recording Options</b></tr>
 <tr align=center><td>recordEnable</td><td>bool</td><td>true</td><td>True to record</tr>
 <tr align=center><td>recordRawAudio</td><td>bool</td><td>false</td><td>True to record raw audio <br>(PCM at encode frequency)</tr>
 <tr align=center><td>recordRawVideo</td><td>bool</td><td>false</td><td>True to record raw video <br>(YUV at height/width)</tr>
@@ -566,10 +590,7 @@ have the capability or inclination to debug that for you!
 <tr align=center><td>recordMp4Optimize</td><td>bool</td><td>false</td><td>Optimize mp4 file when recording completed</tr>
 <tr align=center><td>recordMp4FileStatus</td><td>integer</td><td>1</td><td>What happens to file when restarted:<br>
 0 - append, 1 - overwrite,<br> 2 - create new file with timestamp</tr>
-<tr> </tr>
-<tr> </tr>
-<th colspan=5 align=center><b>Transmission (RTP) Options</b>
-<tbody>
+<tr><th colspan=5 align=center><b>Transmission (RTP) Options</b></tr>
 <tr align=center><td>rtpEnable</td><td>bool</td><td>false</td><td>True to transmit over the network</tr>
 <tr align=center><td>rtpDestAddress</td><td>string</td><td>224.1.2.3</td><td>Video Stream destination address</tr>
 <tr align=center><td>audioRtpDestAddress</td><td>string</td><td>224.1.2.3</td><td>Audio Stream destination address</tr>
@@ -591,7 +612,10 @@ have the capability or inclination to debug that for you!
 Dave Mackie<br>
 Bill May<br>
 <a href="http://www.cisco.com">Cisco Systems, Inc.</a>
-</b>
-</font>
+<p>
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
 </body>
 </html>

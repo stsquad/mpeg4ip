@@ -1,8 +1,11 @@
-<html>
-<head><title>MP4Player README</title></head>
-<body bgcolor="#ffffff">
-<a name="top">
-<b><font color="#0000FF">MP4Player README</font></b><p>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<HTML lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<title>MP4Player README</title></head>
+<body id="top">
+<h1><b>MP4Player README</b></h1>
+<p>
 Feb, 2003<br>
 Bill May<br>
 <a href="http://www.cisco.com">Cisco Systems</a>
@@ -11,21 +14,16 @@ This is the beginning of a README for mp4player that will answer
 some questions on how to use mp4player. <br>
 There is also a main <a href="../../README.html">README</a> for the mpeg4ip project.
 <P>
-<font face="Arial" color="#0000FF">
-<b>
 <a href="#clarg">Command line arguments</a><br>
 <a href="#configvar">Configuration Variables</a><br>
 <a href="#plugin">Player Plugins</a><br>
 <a href="#url">Player URLS</a><br>
 <a href="#keys">MP4Player key shortcuts</a><br>
 <a href="#wgui">Windows GUI</a><br>
-<a href="#pb">Known Problems</a><br>
-</b>
-</font>
-<font face="Arial">
-<P>
-<a name="clarg">
-<b><font color="#0000FF">Command line arguments</font></b>
+<a href="#pb">Known Problems</a><P>
+<div id="clarg">
+<H2><b>Command line arguments</b></h2> 
+</div>
 <P>
 Since I never really knew how to use getopt very well, there are very
 few command line arguments that are accepted.
@@ -37,8 +35,9 @@ That's it.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="configvar">
-<b><font color="#0000FF">Configuration Variables</font></b>
+<div id="configvar">
+<h2><b>Configuration Variables</b></h2>
+</div>
 <P>
 Configuration variables are stored in the windows registry for Windows
 (see below), and in ~/.gmp4player_rc for every other OS.
@@ -78,21 +77,13 @@ Here is the current list by categories:
 <tr align=center>
 <td>PrevDirectory</td><td>String</td><td>NULL</td><td>yes</td><td>last directory looked at</td>
 </tr>
-</tbody>
-<tr> </tr>
-<tr> </tr>
-<th colspan=5 align=center><b>Playing Status</b>
-<tbody>
+<tr><td colspan=5 align=center><b>Playing Status</b></tr>
 <tr>
   <th>Name</th><th>Type</th><th>Default</th><th>Gui</th><th>Does</th>
 <tr align=center>
 <td>Looped</td><td>Boolean</td><td>0</td><td>yes</td><td>loop session</td>
 </tr>
-</tbody>
-<tr> </tr>
-<tr> </tr>
-<th colspan=5 align=center><b>Audio Knobs</b>
-<tbody>
+<tr><td colspan=5 align=center><b>Audio Knobs</b></tr>
 <tr>
   <th>Name</th><th>Type</th><th>Default</th><th>Gui</th><th>Does</th>
 <tr align=center>
@@ -107,11 +98,7 @@ Here is the current list by categories:
 <tr align=center>
 <td>LimitAudioSdlBuffer</td><td>Boolean</td><td>0</td><td>no</td><td>See below</td>
 </tr>
-</tbody>
-<tr> </tr>
-<tr> </tr>
-<th colspan=5 align=center><b>Video Knobs</b>
-<tbody>
+<tr><td colspan=5 align=center><b>Video Knobs</b></td></tr>
 <tr>
   <th>Name</th><th>Type</th><th>Default</th><th>Gui</th><th>Does</th>
 <tr align=center>
@@ -123,12 +110,7 @@ Here is the current list by categories:
 <tr align=center>
 <td>FullScreen</td><td>Boolean</td><td>0</td><td>yes</td><td>Enable full screen on start.</td>
 </tr>
-</tbody>
-<tr> </tr>
-<tr> </tr>
-
-<th colspan=5 align=center><b>Compatibility Knobs</b>
-<tbody>
+<tr><td colspan=5 align=center><b>Compatibility Knobs</b></td></tr>
 <tr>
   <th>Name</th><th>Type</th><th>Default</th><th>Gui</th><th>Does</th>
 <tr align=center>
@@ -137,10 +119,8 @@ Here is the current list by categories:
 <tr align=center>
 <td>UseOldMp4Lib</td><td>Boolean</td><td>0</td><td>yes</td><td>  Uses Quicktime library for mp4 files</td>
 </tr>
-</tbody>
 <tr>
-<th colspan=5 align=center><b>Streaming Knobs</b>
-<tbody>
+<td colspan=5 align=center><b>Streaming Knobs</b></td></tr>
 <tr>
   <th>Name</th><th>Type</th><th>Default</th><th>Gui</th><th>Does</th>
 <tr align=center>
@@ -164,11 +144,7 @@ Here is the current list by categories:
 <tr align=center>
 <td>Mpeg2tPamWaitSecs</td><td>Integer</td><td>30</td><td>no</td><td>Sets time to wait for PAM in Mpeg2 transport session</td>
 </tr>
-<tr> </tr>
-<tr> </tr>
-
-<th colspan=5 align=center><b>Debugging Knobs</b>
-<tbody>
+<tr><td colspan=5 align=center><b>Debugging Knobs</b></td></tr>
 <tr>
   <th>Name</th><th>Type</th><th>Default</th><th>Gui</th><th>Does</th>
 <tr align=center>
@@ -190,8 +166,9 @@ Here is the current list by categories:
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="plugin">
-<b><font color="#0000FF">Player Plugins</font></b>
+<div id="plugin">
+<h2><b>Player Plugins</b></h2>
+</div>
 <P>
 Starting with version 0.9.3.2, we've gone to a plugin model for audio
 and video codecs for the player.  This is true for both windows and
@@ -215,8 +192,9 @@ Both plugins contain a version number to enable detection of API changes.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="url">
-<b><font color="#0000FF">Player URLS</font></b>
+<div id="url">
+<h2><b>Player URLS</b></h2>
+</div>
 <P>
 
 We have 2 special type URLs for the player to play content.  The first
@@ -237,8 +215,9 @@ running the iptv_prog utility with the content manager as a parameter.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="keys">
-<b><font color="#0000FF">MP4Player key shortcuts</font></b>
+<div id="keys">
+<h2><b>MP4Player key shortcuts</b></h2>
+</div>
 <P>
 If you are using mp4player, the following key short cuts can be used, 
 assuming you've got a video window:
@@ -265,8 +244,9 @@ assuming you've got a video window:
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="wgui">
-<b><font color="#0000FF">Windows GUI</font></b>
+<div id="wgui">
+<h2><b>Windows GUI</b></h2>
+</div>
 <P>
 First - if you're the type of person who wants the player to work
 with a nice interface, this isn't the place for you.  Go see Quicktime
@@ -303,8 +283,9 @@ window (accelerators from the video window still work).
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="pb">
-<b><font color="#0000FF">Known Problems</font></b>
+<div id="pb">
+<h2><b>Known Problems</b></h2>
+</div>
 <p>
 <ul>
   <li> If you're playing through a NAT box, you may have to specify the
@@ -351,6 +332,11 @@ window (accelerators from the video window still work).
 <a href="#top">Back to top</a>
 <P>
 === END OF README ===
-</font>
+<p>
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
+
 </body>
 </html>

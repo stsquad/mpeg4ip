@@ -7,9 +7,13 @@ mp3_plugin_la_SOURCES = \
 	mp3if.h \
 	mp3_file.cpp \
 	mp3_file.h
-
+if HAVE_ID3_TAG
+   ID3_LIBS=-lid3 -lid3tag
+else
+   ID3_LIBS=
+endif
 mp3_plugin_la_LIBADD = \
-	-lm \
+	-lm $(ID3_LIBS) \
 	$(top_builddir)/player/lib/audio/mp3/libourmp3.la \
 	$(top_builddir)/player/lib/audio/mp3util/libmp3utils.la \
 	$(top_builddir)/lib/fposrec/libfposrec.la

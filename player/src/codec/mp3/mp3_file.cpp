@@ -46,16 +46,20 @@ const static char *genre_list[GLL] =
   "Club-House", "Hardcore", "Terror", "Indie", "BritPop", "Negerpunk", "Polsk Punk", "Beat",
   "Christian Gangsta Rap", "Heavy Metal", "Black Metal", "Crossover", "Contemporary Christian",
   "Christian Rock", "Merengue", "Salsa", "Trash Metal", "Anime", "JPop", "Synthpop" };
+#ifdef HAVE_ID3_TAG_H
+#include <id3/tag.h>
+#include <id3/misc_support.h>
+#endif
 
-
-static bool read_mp3_file_for_tag (mp3_codec_t *mp3,
+static bool read_mp3_file_for_tag (const char *name,
+				   mp3_codec_t *mp3,
 				   char *descptr[3])
 {
   char buffer[128];
   char desc[80];
+#ifndef HAVE_ID3_TAG_H
   char temp;
   int ix;
-
   if (fseek(mp3->m_ifile, -128, SEEK_END) != 0) {
     return false;
   }
@@ -110,6 +114,38 @@ static bool read_mp3_file_for_tag (mp3_codec_t *mp3,
     snprintf(desc, sizeof(desc), "Genre: %s", genre_list[index]);
     descptr[3] = strdup(desc);
   }
+#else
+  ID3_Tag myTag(name);
+  const char *ret;
+  ret = ID3_GetTitle(&myTag);
+  if (ret == NULL) return false;
+  descptr[0] = (char *)ret;
+  ret = ID3_GetArtist(&myTag);
+  if (ret) {
+    snprintf(desc, sizeof(desc), "By: %s", ret);
+    descptr[1] = strdup(desc);
+    CHECK_AND_FREE(ret);
+  }
+  ret = ID3_GetAlbum(&myTag);
+  if (ret) {
+    char *year = ID3_GetYear(&myTag);
+    if (year != NULL) {
+      snprintf(buffer, sizeof(buffer), "(%s)", year);
+      CHECK_AND_FREE(year);
+    } else {
+      buffer[0] = ' ';
+      buffer[1] = '\0';
+    }
+
+    snprintf(desc, sizeof(desc), "On: %s %s", ret, buffer);
+    descptr[2] = strdup(desc);
+  }
+  size_t genre = ID3_GetGenreNum(&myTag);
+  if (genre != 255) {
+    snprintf(desc, sizeof(desc), "Genre: %s", genre_list[genre]);
+    descptr[3] = strdup(desc);
+  }
+#endif
   return true;
 }
 
@@ -241,7 +277,7 @@ codec_data_t *mp3_file_check (lib_message_func_t message,
 
   *max = maxtime;
 
-  if (read_mp3_file_for_tag(mp3, desc) == false) {
+  if (read_mp3_file_for_tag(name, mp3, desc) == false) {
     char buffer[40];
     sprintf(buffer, "%dKbps @ %dHz", mp3->m_mp3_info->getbitrate(),
 	    freq);

@@ -25,14 +25,14 @@
 
 #include "video_v4l2_source.h"
 #include "video_util_rgb.h"
-
+#include "video_util_filter.h"
 
 int CV4L2VideoSource::ThreadMain(void) 
 {
   while (true) {
     int rc;
 
-    if (m_source) {
+   if (m_source) {
       rc = SDL_SemTryWait(m_myMsgQueueSemaphore);
     } else {
       rc = SDL_SemWait(m_myMsgQueueSemaphore);
@@ -141,7 +141,7 @@ bool CV4L2VideoSource::InitDevice(void)
     error_message("Failed to query video capabilities for %s", deviceName);
     goto failure;
   }
-
+  error_message("video capabilties is %x", capability.capabilities);
   // make sure device supports video capture
   if (!(capability.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
     error_message("Device %s is not capable of video capture!", deviceName);
@@ -241,8 +241,38 @@ bool CV4L2VideoSource::InitDevice(void)
   }
   
   // select image format
-  format.fmt.pix.width = m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
-  format.fmt.pix.height = m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+  uint32_t width, height;
+  width = m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH);
+  height = m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT);
+
+  if (strncasecmp(m_pConfig->GetStringValue(CONFIG_VIDEO_FILTER),
+		  VIDEO_FILTER_DECIMATE,
+		  strlen(VIDEO_FILTER_DECIMATE)) == 0) {
+    uint32_t max_width, max_height;
+    switch (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL)) {
+    case VIDEO_SIGNAL_NTSC:
+      max_width = 720;
+      max_height = 480;
+      break;
+    case VIDEO_SIGNAL_PAL:
+    case VIDEO_SIGNAL_SECAM:
+    default:
+      max_width = 768;
+      max_height = 576;
+      break;
+    }
+    if (max_width > width * 2 || max_height > height * 2) {
+      error_message("Decimate filter choosen with too large video size - max %ux%u",
+		    max_width / 2, max_height / 2);
+    } else {
+      m_decimate_filter = true;
+      width *= 2;
+      height *= 2;
+    }
+  }
+    
+  format.fmt.pix.width = width;
+  format.fmt.pix.height = height;
   format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
   rc = ioctl(m_videoDevice, VIDIOC_S_FMT, &format);
   if (rc < 0) {
@@ -523,6 +553,12 @@ void CV4L2VideoSource::ProcessVideo(void)
       pY = (u_int8_t*)m_buffers[index].start;
       pV = pY + m_videoSrcYSize;
       pU = pV + m_videoSrcUVSize;
+    }
+
+    if (m_decimate_filter) {
+      video_filter_decimate(pY,
+			    m_videoSrcWidth,
+			    m_videoSrcHeight);
     }
 
     ProcessVideoYUVFrame(

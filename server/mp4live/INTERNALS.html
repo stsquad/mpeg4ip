@@ -1,12 +1,14 @@
-<html>
-<head><title>MP4LIVE INTERNALS</title></head>
-<body bgcolor="#ffffff">
-<a name="top">
-<b><font color="#0000FF">MP4LIVE INTERNALS</font></b><p>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<HTML lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<title>MP4LIVE INTERNALS</title></head>
+<body id="top">
+<h1>MP4LIVE INTERNALS</h1>
+<p>
 October, 2003
 <P>
 <P>
-<font face="Arial" color="#0000FF">
 <b>
 <a href="#mp4live">MP4LIVE INTERNALS</a><br>
 <a href="#prog">Program Control</a><br>
@@ -19,20 +21,20 @@ October, 2003
 <a href="#lcodec">List of Codecs</a><br>
 <a href="#lsink">List of Media Sinks</a><br>
 </b>
-</font>
+
 <P>
-<font face="Arial">
-<P>
-<a name="mp4live">
-<b><font color="#0000FF">MP4LIVE INTERNALS</font></b>
+<div id="mp4live">
+<h2>MP4LIVE INTERNALS</h2>
+</div>
 <P>
 This document provides an overview of the internals of the mp4live 
 application for those who intend to modify mp4live. See the <a href="README.html">README</a> for information on using mp4live. 
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="prog">
-<b><font color="#0000FF">Program Control</font></b>
+<div id="prog">
+<h2>Program Control</h2>
+</div>
 <P>
 The control flow of mp4live is easiest to understand if one first considers
 the no GUI (--headless) mode of operation. In this mode, mp4live reads 
@@ -48,8 +50,9 @@ and the media flow to be started and stopped.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="flow">
-<b><font color="#0000FF">Media Flows and Nodes</font></b>
+<div id="flow">
+<h2>Media Flows and Nodes</h2>
+</div>
 <P>
 The "media flow" (media_flow.h) is the top level concept that organizes 
 the processing activities of mp4live. A media flow is a collection of 
@@ -63,8 +66,9 @@ information data.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="source">
-<b><font color="#0000FF">Media Sources</font></b>
+<div id="source">
+<h2>Media Sources</h2>
+</div>
 <P>
 A "media source" (media_source.h) is a media node that acquires raw media
 frames and processes them according to the target output(s) of the current flow
@@ -104,8 +108,9 @@ The generic process for video includes:
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="codec">
-<b><font color="#0000FF">Media Codecs</font></b>
+<div id="codec">
+<h2>Media Codecs</h2>
+</div>
 <P>
 There are two defined types of media codecs (encoders), audio and video.
 These are defined in audio_encoder.h and video_encoder.h as abstract classes
@@ -128,8 +133,9 @@ the correct hooks to each routine in audio_encoder.cpp and video_encoder.cpp.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="frame">
-<b><font color="#0000FF">Media Frames</font></b>
+<div id="frame">
+<h2>Media Frames</h2>
+</div>
 <P>
 
 The output(s) of a media source is a "media frame" (media_frame.h). This is a
@@ -151,8 +157,9 @@ frame data is free'ed and the media frame is destroyed.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="sink">
-<b><font color="#0000FF">Media Sinks</font></b>
+<div id="sink">
+<h2>Media Sinks</h2>
+</div>
 <P>
 
 A "media sink" (media_sink.h) is a media node that receives media frames
@@ -177,8 +184,9 @@ received media frame, and reject (free) any types that it does not want.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="lsource">
-<b><font color="#0000FF">List of Media Sources</font></b>
+<div id="lsource">
+<h2>List of Media Sources</h2>
+</div>
 <P>
 <table>
 <tr><td valign="top">V4L</td><td>video_v4l_source.cpp<br>
@@ -195,8 +203,9 @@ received media frame, and reject (free) any types that it does not want.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="lcodec">
-<b><font color="#0000FF">List of Codecs</font></b>
+<div id="lcodec">
+<h2>List of Codecs</h2>
+</div>
 <P>
 Lame -&gt; MP3 - audio_lame.cpp, installed from lame version 3.92 or later
 <P>
@@ -208,8 +217,9 @@ ffmpeg-&gt; MPEG4 - video_ffmpeg.cpp, installed from ffmpeg version 0.4.7 or lat
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="lsink">
-<b><font color="#0000FF">List of Media Sinks</font></b>
+<div id="lsink">
+<h2>List of Media Sinks</h2>
+</div>
 <P>
 <table>
 
@@ -237,7 +247,11 @@ ffmpeg-&gt; MPEG4 - video_ffmpeg.cpp, installed from ffmpeg version 0.4.7 or lat
 <P>
 <a href="#top">Back to top</a>
 <P>
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
 
-</font>
+
 </body>
 </html>

@@ -1,3 +1,9 @@
+xx/xx/04 version 1.1
+    Added no-overwrite mode in mp4live
+    if present, use libid3 to read ID tags
+    Fixed problem with player a/v sync when relaying through DSS
+    Added input video filters to mp4live
+
 12/23/03 version 1.0
     Fix incorrect timestamp on mpeg1/2 insert into mp4 file.
     Allow iTunes \0\0\0\0 atom

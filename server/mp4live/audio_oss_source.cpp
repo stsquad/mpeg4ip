@@ -187,6 +187,9 @@ bool COSSAudioSource::Init(void)
   if (m_audioOssMaxBufferSize > 0) {
     size_t array_size;
     m_audioOssMaxBufferFrames = m_audioOssMaxBufferSize / m_pcmFrameSize;
+    if (m_audioOssMaxBufferFrames == 0) {
+      m_audioOssMaxBufferFrames = 1;
+    }
     array_size = m_audioOssMaxBufferFrames * sizeof(*m_timestampOverflowArray);
     m_timestampOverflowArray = (Timestamp *)Malloc(array_size);
     memset(m_timestampOverflowArray, 0, array_size);
@@ -412,8 +415,8 @@ bool CAudioCapabilities::ProbeDevice()
   int rc;
 
 #ifndef SNDCTL_DSP_GETERROR
-  error_message("NOTE: You do not have the latest version of OSS with SNDCTL_DSP_GETERROR");
-  error_message("This could have long term sync issues");
+  error_message("You do not have a version of OSS that contains overrun/underrun indication");
+  error_message("This may or may not contribute to long term sync issues");
 #endif
   // open the audio device
   int audioDevice = open(m_deviceName, O_RDONLY);

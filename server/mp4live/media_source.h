@@ -253,6 +253,7 @@ protected:
 	u_int32_t		m_videoSrcUVCrop;
 
 	// video destination info
+	bool                    m_videoFilterInterlace;
 	MediaType		m_videoDstType;
 	float			m_videoDstFrameRate;
 	Duration		m_videoDstFrameDuration;

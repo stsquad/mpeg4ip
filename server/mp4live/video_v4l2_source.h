@@ -33,6 +33,7 @@ class CV4L2VideoSource : public CMediaSource {
   CV4L2VideoSource() : CMediaSource() {
     m_videoDevice = -1;
     m_buffers = NULL;
+    m_decimate_filter = false;
   }
 
   static bool InitialVideoProbe(CLiveConfig* pConfig);
@@ -72,6 +73,7 @@ class CV4L2VideoSource : public CMediaSource {
   
   Timestamp m_videoCaptureStartTimestamp;
   float m_videoSrcFrameRate;
+  bool m_decimate_filter;
 };
 
 

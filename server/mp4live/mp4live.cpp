@@ -174,6 +174,8 @@ int main(int argc, char** argv)
 	if (ReadConfigFile(configFileName, pConfig) < 0) {
 	}
 
+	pConfig->m_appAutomatic = automatic;
+
 	ProbeVideoAudioCapabilities(pConfig);
 
 	pConfig->Update();

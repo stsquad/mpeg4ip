@@ -56,6 +56,7 @@ static GtkWidget *track_menu;
 static GtkWidget *encoder_menu;
 static GtkWidget *size_menu;
 static GtkWidget *aspect_menu;
+static GtkWidget *filter_menu;
 static GtkObject *frame_rate_ntsc_adjustment;
 static GtkObject *frame_rate_pal_adjustment;
 static GtkWidget *frame_rate_spinner;
@@ -98,6 +99,10 @@ static char* aspectNames[] = {
 };
 static u_int8_t aspectIndex;
 
+static char *filterNames[] = {
+  VIDEO_FILTER_NONE, VIDEO_FILTER_DECIMATE, VIDEO_FILTER_DEINTERLACE,
+};
+static u_int8_t filterIndex;
 // forward declarations
 static void SetAvailableSignals(void);
 
@@ -570,6 +575,11 @@ static void on_aspect_menu_activate(GtkWidget *widget, gpointer data)
 	aspectIndex = ((unsigned int)data) & 0xFF;
 }
 
+static void on_filter_menu_activate(GtkWidget *widget, gpointer data)
+{
+	filterIndex = ((unsigned int)data) & 0xFF;
+}
+
 static bool ValidateAndSave(void)
 {
   bool resizewindow;
@@ -584,9 +594,27 @@ static bool ValidateAndSave(void)
 		}
 	}
 
+	if (strcasecmp(filterNames[filterIndex], VIDEO_FILTER_DECIMATE) == 0) {
+	  uint32_t max_w, max_h;
+	  if (signalIndex == VIDEO_SIGNAL_NTSC) {
+	    max_w = 720 / 2;
+	    max_h = 480 / 2;
+	  } else {
+	    max_w = 768 / 2;
+	    max_h = 576 / 2;
+	  }
+	  if (sizeWidthValues[sizeIndex] > max_w ||
+	      sizeHeightValues[sizeIndex] > max_h) {
+	    ShowMessage("Error", "Cannot use decimate filter - video size too big\nMax size is 360x240 for NTSC\n384x288 for PAL/SECAM", true);
+	    return false;
+	  }
+	}
+
 	// if previewing, stop video source
 	AVFlow->StopVideoPreview();
 
+	MyConfig->SetStringValue(CONFIG_VIDEO_FILTER, 
+				 filterNames[filterIndex]);
 	// copy new values to config
 
 	MyConfig->SetStringValue(CONFIG_VIDEO_SOURCE_TYPE,
@@ -765,6 +793,11 @@ void CreateVideoDialog (void)
 	gtk_misc_set_alignment(GTK_MISC(track_label), 0.0, 0.5);
 	gtk_box_pack_start(GTK_BOX(vbox), track_label, FALSE, FALSE, 0);
 
+	label = gtk_label_new(" Filter:");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+	
 	label = gtk_label_new(" Output:");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_widget_show(label);
@@ -899,6 +932,22 @@ void CreateVideoDialog (void)
 	gtk_box_pack_start(GTK_BOX(vbox), channel_combo, FALSE, FALSE, 0);
 
 	gtk_box_pack_start(GTK_BOX(vbox), track_menu, FALSE, FALSE, 0);
+
+	filterIndex = 0; 
+	for (i = 0; i < sizeof(filterNames) / sizeof(*filterNames); i++) {
+	  if (strcasecmp(MyConfig->GetStringValue(CONFIG_VIDEO_FILTER),
+			 filterNames[i]) == 0) {
+	    filterIndex = i;
+	    break;
+	  }
+	}
+	filter_menu = CreateOptionMenu(NULL,
+				       filterNames, 
+				       sizeof(filterNames) / sizeof(*filterNames),
+				       filterIndex,
+				       GTK_SIGNAL_FUNC(on_filter_menu_activate));
+
+	gtk_box_pack_start(GTK_BOX(vbox), filter_menu, FALSE, FALSE, 0);
 
 	// spacer
 	label = gtk_label_new(" ");

@@ -1,13 +1,15 @@
-<html>
-<head><title>MP4Player README</title></head>
-<body bgcolor="#ffffff">
-<a name="top">
-<b><font color="#0000FF">MP4Player internals</font></b><p>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<HTML lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<title>MP4Player README</title></head>
+<body id="top">
+<h1><b>MP4Player internals</b></h1>
+<p>
 December, 2002<br>
 Bill May<br>
 <a href="http://www.cisco.com">Cisco Systems</a>
 <P>
-<font face="Arial" color="#0000FF">
 <b>
 <a href="#session">Session</a><br>
 <a href="#media">Media</a><br>
@@ -18,10 +20,8 @@ Bill May<br>
 <a href="#render">Rendering and Synchronization</a><br>
 <a href="#finally">Finally</a><br>
 </b>
-</font>
 
 <P>
-<font face="Arial">
 This will attempt to describe the internal workings of mp4player for
 those that are interested. 
 <P>
@@ -39,8 +39,9 @@ There are a few major concepts that need to be understood.  These are
 the concepts of a <a href="#session">session</a>, a <a href="#media">media</a>, a 
 <a href="#bytestream">bytestream</a>, and a <a href="#decode">decode plugin</a>.
 <P>
-<a name="session">
-<b><font color="#0000FF">Session</font></b>
+<div id="session">
+<h2>Session</h2>
+</div>
 <p>
 A session is something that the user wants to play.  This could be
 audio only, video only, both, multiple videos with audio, whatever.
@@ -50,8 +51,9 @@ also responsible for the synchronization of the audio and video classes.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="media">
-<b><font color="#0000FF">Media</font></b>
+<div id="media">
+<h2>Media</h2>
+</div>
 <p>
 Each media stream is represented by a CPlayerMedia class.  This class
 is responsible for decoding data from the bytestream and passing it to
@@ -61,8 +63,9 @@ works for both.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="bytestream">
-<b><font color="#0000FF">Bytestream</font></b>
+<div id="bytestream">
+<h2>Bytestream</h2>
+</div>
 <p>
 A bytestream is the mechanism that gives the Media a frame (or a number
 of bytes) to decode, as well as a timestamp for that frame.  For example, 
@@ -81,8 +84,9 @@ in <a href="our_bytestream.h">our_bytestream.h</a>.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="decode">
-<b><font color="#0000FF">Decode Plugin</font></b>
+<div id="decode">
+<h2>Decode Plugin</h2>
+</div>
 <p>
 Each media must have a way to translate from the encoded data to data
 that can be rendered (in the case of video, it is YUV data - for audio, 
@@ -99,8 +103,9 @@ it and passes the raw data to the rendering buffer.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="flow">
-<b><font color="#0000FF">Media Data Flow</font></b>
+<div id="flow">
+<h2>Media Data Flow</h2>
+</div>
 <p>
 The media data flow is fairly simple:
 <P>
@@ -108,8 +113,9 @@ bytestream -&gt; decoder -&gt;  render buffer -&gt;  rendering
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="thread">
-<b><font color="#0000FF">Threading</font></b>
+<div id="thread">
+<h2>Threading</h2>
+</div>
 <p>
 libmp4player uses multiple threads.  Whatever control is used will have
 its own thread, or multiple threads.
@@ -124,8 +130,9 @@ Finally, there is a thread for synchronization of audio and video.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="render">
-<b><font color="#0000FF">Rendering and Synchronization</font></b>
+<div id="render">
+<h2>Rendering and Synchronization</h2>
+</div>
 <p>
 We use the open source package SDL for rendering - it is a multiple platform
 rendering engine for games.  We have modified it slightly to get the 
@@ -149,8 +156,8 @@ day from the gettimeofday function.
 <P>
 <a href="#top">Back to top</a>
 <P>
-<a name="finally">
-<b><font color="#0000FF">Finally</font></b>
+<div id="finally">
+<h2>Finally</h2></div>
 <p>
 
 To see the call flow to start and stop a session, you should look
@@ -159,7 +166,9 @@ at <a href="main.cpp">main.cpp</a>, function start_session().
 <P>
 <a href="#top">Back to top</a>
 <P>
-
-</font>
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
 </body>
 </html>

@@ -1,414 +1,274 @@
-<html xmlns:o="urn:schemas-microsoft-com:office:office"
-xmlns:w="urn:schemas-microsoft-com:office:word"
-xmlns="http://www.w3.org/TR/REC-html40">
-
+<html>
 <head>
 <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
-<meta name=ProgId content=Word.Document>
-<meta name=Generator content="Microsoft Word 9">
-<meta name=Originator content="Microsoft Word 9">
-<link rel=File-List href="./encoding_files/filelist.xml">
 <title>Use of the MPEG4IP Server Side Tools</title>
-<!--[if gte mso 9]><xml>
- <w:WordDocument>
-  <w:Zoom>120</w:Zoom>
- </w:WordDocument>
-</xml><![endif]-->
-<style>
-<!--
- /* Style Definitions */
-p.MsoNormal, li.MsoNormal, div.MsoNormal
-	{mso-style-parent:"";
-	margin:0in;
-	margin-bottom:.0001pt;
-	mso-pagination:widow-orphan;
-	font-size:12.0pt;
-	font-family:"Times New Roman";
-	mso-fareast-font-family:"Times New Roman";}
-h1
-	{mso-style-next:Normal;
-	margin-top:12.0pt;
-	margin-right:0in;
-	margin-bottom:3.0pt;
-	margin-left:0in;
-	mso-pagination:widow-orphan;
-	page-break-after:avoid;
-	mso-outline-level:1;
-	font-size:16.0pt;
-	font-family:Arial;
-	mso-font-kerning:16.0pt;
-	font-weight:bold;}
-p
-	{margin-right:0in;
-	mso-margin-top-alt:auto;
-	mso-margin-bottom-alt:auto;
-	margin-left:0in;
-	mso-pagination:widow-orphan;
-	font-size:12.0pt;
-	font-family:"Times New Roman";
-	mso-fareast-font-family:"Times New Roman";}
-@page Section1
-	{size:8.5in 11.0in;
-	margin:1.0in 1.25in 1.0in 1.25in;
-	mso-header-margin:.5in;
-	mso-footer-margin:.5in;
-	mso-paper-source:0;}
-div.Section1
-	{page:Section1;}
--->
-</style>
 </head>
 
-<body lang=EN-US style='tab-interval:.5in'>
+<body>
 
-<div class=Section1>
+<h1 align="center">Use of the MPEG4IP Server Side Tools</h1>
 
-<h1 align=center style='text-align:center'>Use of the MPEG4IP Server Side Tools</h1>
+<p>The MPEG4IP Server Side Tools allow for the conversion of raw audio and 
+video into MPEG-4 compressed media stored in an MP4 file which can be streamed
+by the Darwin Streaming Server.
 
-<p><span style='font-family:Arial'>The MPEG4IP Server Side Tools allow for the
-conversion of raw audio and video into MPEG-4 compressed media stored in an MP4
-file which can be streamed by the Darwin Streaming Server.<o:p></o:p></span></p>
+<p>If you are using a Linux system, the easiest method is to use 
+<a href="../../server/mp4live/README.html">mp4live</a>.  Hook
+your inputs to your capture card, set your audio and video settings (remember 
+to use AAC to create ISMA-compatible content), and start.
 
-<p><span style='font-family:Arial'>If you are using a UNIX system, the easiest
-way to proceed is to use the 'mp4encode' script which is installed with
-MPEG4IP. This script makes some simplifying assumptions about the input and the
-desired output. See &quot;The Simple Process&quot; below.<o:p></o:p></span></p>
+<p>If you are using a UNIX system, the next easiest way to proceed is to use the 
+<code>mp4encode</code> script which is installed with MPEG4IP. This script 
+makes some simplifying assumptions about the input and the
+desired output. See <a href="#simple">The Simple Process</a> below.  Note that
+the mp4encode script might be outdated.y
 
-<p><span style='font-family:Arial'>If you are using Windows, or if 'mp4encode'
-doesn't meet your needs, you must use the tools directly. See &quot;The
-Detailed Process&quot; below for the details of the underlying tools.<o:p></o:p></span></p>
+<p>If you are using Windows, or if <code>mp4encode</code> doesn't meet your 
+needs, you must use the tools directly. See <a href="#detailed">The
+Detailed Process</a> below for the details of the underlying tools.
 
-<p><b><span style='font-family:Arial'>The Simple Process<o:p></o:p></span></b></p>
+<p><a id="simple"><b>The Simple Process</b>
 
-<p><b><span style='font-family:Arial'>1) Capture raw audio and/or video into an
-AVI file<o:p></o:p></span></b></p>
+<ol>
+<li><b>Capture raw audio and/or video into an AVI file</b>
 
-<p><span style='font-family:Arial'>The details here are varied. But generally
-speaking, you use a capture program to record audio and video from either a
-camera or a capture board into an AVI file on disk.<o:p></o:p></span></p>
+<p>The details here are varied. But generally speaking, you use a capture 
+program to record audio and video from either a camera or a capture board 
+into an AVI file on disk.
 
-<p><span style='font-family:Arial'>The audio format should be PCM raw audio, 16
-bits/sample, little-endian, 2 channels, 44100 samples/sec.<o:p></o:p></span></p>
+<p>The audio format should be PCM raw audio, 16 bits/sample, little-endian byte order.<p>
+You can choose the number of channels and sampling frequency (<code>mp4encode</code>
+assumes 2 channels, 44100 samples/sec.
 
-<p><span style='font-family:Arial'>The video format should be YUV12, aka YV12.
+<p>The video format should be YUV12, aka YV12.
 (FYI: This is a planar format sampled at 4:2:0). Any frame size and frame rate
 are acceptable. If your capture program doesn't support this format, capture in
 RGB24 (packed format) which every capture program should support; MPEG4IP has a
-utility to convert from RGB24 to YUV12.<o:p></o:p></span></p>
+utility to convert from RGB24 to YUV12.
 
-<p><span style='font-family:Arial'>Personally, I recommend 320x240 @ 24
+<p>Personally, I recommend 320x240 @ 24
 frames/sec as a good compromise between video quality and size. At these
 settings, 5 minutes of raw audio/video will consume approximately 1 GB of disk
-space. (Don't worry things get much better once we encode.)<o:p></o:p></span></p>
+space. (Don't worry things get much better once we encode.)
 
-<p><b><span style='font-family:Arial'>2) Encode content<o:p></o:p></span></b></p>
+<li><b>Encode content</b>
 
-<p><span style='font-family:Arial'>Invoke 'mp4encode' with the name of the raw
-AVI file to produce the encoded MP4 file.<o:p></o:p></span></p>
+<p>Invoke 'mp4encode' with the name of the raw AVI file to produce the encoded MP4 file.
 
-<p><span style='font-family:Arial'>The following parameters can be specified to
-'mp4encode':<o:p></o:p></span></p>
+<p>The following parameters can be specified to <code>mp4encode</code>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-w &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>The input video frame width in pixels,
-default value is 320<o:p></o:p></span></p>
+<table cellpadding='5'>
+<tbody>
+<tr><td><code>-w &lt;uint&gt;</code></td><td>The input video frame width in pixels,
+default value is 320</td></tr>
+<tr><td><code>-h &lt;uint&gt;</code></td><td>The input video frame height in pixels,
+default value is 240</td></tr>
+<tr><td><code>-r &lt;uint&gt;</code></td><td>The video frame rate in frames per second,
+default value is 24</td></tr>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-h &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>The input video frame height in pixels,
-default value is 240<o:p></o:p></span></p>
+<tr><td><code>-V &lt;uint&gt;</code></td><td>The desired video bitrate in Kbps, default
+value is 500</td></tr>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-r &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>The video frame rate in frames per second,
-default value is 24<o:p></o:p></span></p>
+<tr><td><code>-A &lt;uint&gt;</code></td><td>The desired audio bitrate in Kbps, default
+value is 96</td></tr>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-V &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>The desired video bitrate in Kbps, default
-value is 500<o:p></o:p></span></p>
+<tr><td><code>-a &lt;float&gt;</code></td><td>
+The desired aspect ratio, default value is 1.33 (4:3). Typically letterbox is 2.35.</td></tr>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-A &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>The desired audio bitrate in Kbps, default
-value is 96<o:p></o:p></span></p>
+<tr><td><code>-I</code></td><td>
+Use the ISO MPEG-4 video encoder instead of the Xvid encoder
+</td></tr>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-a &lt;float&gt;<span
-style='mso-tab-count:1'>  </span>The desired aspect ratio, default value is
-1.33 (4:3). Typically letterbox is 2.35.<o:p></o:p></span></p>
+<tr><td><code>-M
+</code></td><td>
+Use the MP3 audio encoder instead of the AAC encoder
+</td></tr>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-I<span
-style='mso-tab-count:2'>            </span>Use the ISO MPEG-4 video encoder
-instead of the Xvid encoder<o:p></o:p></span></p>
+<tr><td><code>-R
+</code></td><td>
+The input video is RGB24, convert to YUV12 before encoding.
+</td></tr>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-M<span
-style='mso-tab-count:2'>            </span>Use the MP3 audio encoder instead of
-the AAC encoder<o:p></o:p></span></p>
+<tr><td><code>-d
+</code></td><td>
+Debug mode, leave intermediate
+files.
+</td></tr>
+</tbody>
+</table>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-R<span
-style='mso-tab-count:2'>            </span>The input video is RGB24, convert to
-YUV12 before encoding.<o:p></o:p></span></p>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-d<span
-style='mso-tab-count:2'>            </span>Debug mode, leave intermediate
-files.</span><span style='font-family:Arial'><o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+<p>Examples:
 
-<p><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"'>mp4encode
-mycontent.avi (results are written to mycontent.mp4)<o:p></o:p></span></p>
+<p><code>mp4encode
+mycontent.avi</code> (results are written to mycontent.mp4)<o:p></o:p></span></p>
 
-<p><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"'>mp4encode
--w 640 -h 480 -r 30 -I -R -V 1000 -M -A 128 mycontent.avi mycontent_mpeg4_1000_mp3_128.mp4</span><span
-style='font-family:Arial'><o:p></o:p></span></p>
+<p><code>mp4encode
+-w 640 -h 480 -r 30 -I -R -V 1000 -M -A 128 mycontent.avi mycontent_mpeg4_1000_mp3_128.mp4</code>
 
-<p><b><span style='font-family:Arial'>3) Make content available<o:p></o:p></span></b></p>
+<li><b> Make content available</b>
 
-<p><span style='font-family:Arial'>Copy the MP4 file to a directory under the
+<p>Copy the MP4 file to a directory under the
 configured media root for your streaming server. See the documentation for your
 server as to how to generate a URL for the file, but typically it would look
-like rtsp://myserver/mycontent.mp4<o:p></o:p></span></p>
+like <code>rtsp://myserver/mycontent.mp4</code>
 
-<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+<p>Example:
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>cp mycontent.mp4
-/usr/local/movies</span><span style='font-family:Arial'><o:p></o:p></span></p>
+<p><code>cp mycontent.mp4 /usr/local/movies</code>
 
-<p><span style='font-family:Arial'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
+</ol>
+<p><a id="detailed"> <b>The Detailed Process</b>
 
-<p><b><span style='font-family:Arial'>The Detailed Process<o:p></o:p></span></b></p>
+<ol>
+<li><b>Acquire raw audio and/or video</b>
 
-<p><b><span style='font-family:Arial'>1) Acquire raw audio and/or video<o:p></o:p></span></b></p>
+<p>The details here are varied. But generally speaking, you use a capture 
+program to record audio and video from either a camera or a capture board 
+into an AVI file on disk.
 
-<p><span style='font-family:Arial'>The details here are varied. But generally
-speaking, you use a capture program to record audio and video from either a
-camera or a capture board into one or two files on disk.<o:p></o:p></span></p>
+<p>The audio format should be PCM raw audio, 16 bits/sample, little-endian byte order.<p>
+You can choose the number of channels and sampling frequency (<code>mp4encode</code>
+assumes 2 channels, 44100 samples/sec.
 
-<p><span style='font-family:Arial'>The audio format should be PCM raw audio, 16
-bits/sample, little-endian, 2 channels, 44100 samples/sec.<o:p></o:p></span></p>
-
-<p><span style='font-family:Arial'>The video format should be YUV12, aka YV12.
+<p>The video format should be YUV12, aka YV12.
 (FYI: This is a planar format sampled at 4:2:0). Any frame size and frame rate
 are acceptable. If your capture program doesn't support this format, capture in
-RGB24 (packed format) which every capture program should support. MPEG4IP has a
-utility to convert from RGB24 to YUV12.<o:p></o:p></span></p>
+RGB24 (packed format) which every capture program should support; MPEG4IP has a
+utility to convert from RGB24 to YUV12.
 
-<p><span style='font-family:Arial'>If you use a Windows system for the media
+<p>If you use a Windows system for the media
 acquisition, you frequently will have your data stored in an AVI file. If that
 is the case, the avi2raw utility is provided to extract either the audio or
 video tracks from an AVI file, and write the raw track data to a file of your
-choice.<o:p></o:p></span></p>
+choice.
 
-<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+<p>Examples:
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>avi2raw -a
-mymedia.avi myaudio.pcm<o:p></o:p></span></p>
+<p><code>avi2raw -a mymedia.avi myaudio.pcm</code>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>avi2raw -v
-mymedia.avi myvideo.yuv<o:p></o:p></span></p>
+<p><code>avi2raw -v mymedia.avi myvideo.yuv</code>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>avi2raw -v
-mymedia.avi myvideo.rgb<o:p></o:p></span></p>
+<p><code>avi2raw -v mymedia.avi myvideo.rgb</code>
 
-<p><span style='font-family:Arial'>The avi2raw utility also has very basic
+<p>The avi2raw utility also has very basic
 editing capabilities. You can specify a time to start the extraction in seconds
 from the beginning of the file and a length in seconds. For example, to extract
-10 seconds of video starting at 5 seconds from the beginning of the file:<o:p></o:p></span></p>
+10 seconds of video starting at 5 seconds from the beginning of the file.
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>avi2raw –s 5 –l 10
--v mymedia.avi myvideo.yuv<o:p></o:p></span></p>
+<p><code>avi2raw –s 5 –l 10 -v mymedia.avi myvideo.yuv</code>
 
-<p><span style='font-family:Arial'>If you have captured the video in RGB24
-format, you need to convert that to YUV12 before giving it to the video encoder.
-To do that use the MPEG4IP utility, rgb2yuv. Note that the video image width
-and height must be specified for rgb2yuv. For example:<o:p></o:p></span></p>
+<p>If you have captured the video in RGB24 format, you need to convert that to 
+YUV12 before giving it to the video encoder.  To do that use the MPEG4IP utility, rgb2yuv. Note that the video image width and height must be specified for rgb2yuv. For example:
+<p><code>rgb2yuv -w 320 -h 240 myvideo.rgb myvideo.yuv</code>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>rgb2yuv -w 320 -h
-240 myvideo.rgb myvideo.yuv<o:p></o:p></span></p>
+<p>Note that if the avi file already contains encoded content, you can still
+use avi2raw to extract into elementary streams.  For example:
+<p><code>avi2raw -v mymedia.avi myvideo.xvid</code>
 
-<p><b><span style='font-family:Arial'>2) Encode audio<o:p></o:p></span></b></p>
+<li><b>Encode audio</b>
 
-<p><span style='font-family:Arial'>There are two options for audio encoding:
-MP3 and AAC. <o:p></o:p></span></p>
+<p>For ISMA compliant audio, the popular choice is AAC encoding.  mpeg4ip
+will also support MP3 Content.
 
-<p><b><span style='font-family:Arial'>2a) MP3<o:p></o:p></span></b></p>
+<ol type='A'>
+<li><b>MP3</b>
 
-<p><span style='font-family:Arial'>If you wish to use MP3, the provided lame
-tool will generate the MP3 file. <o:p></o:p></span></p>
+<p>If you wish to use MP3, download a mp3 encoding package such as LAME, and
+follow the directions.
 
-<p><span style='font-family:Arial'>The -b parameters are specifies the desired
-bitrate in kbps, typically between 64 and 128.<o:p></o:p></span></p>
+<p>Examples:
 
-<p><span style='font-family:Arial'>The -h parameter specifies that high quality
-output should be generated at the expense of slower encoding. It is recommended
-since it does not significantly impact the encoding time in our experience.<o:p></o:p></span></p>
+<p><code>lame -h -b 128 myaudio.wav</code>
 
-<p><span style='font-family:Arial'>If a raw PCM file is provided as the input,
-then the -r and -x options must be used.<o:p></o:p></span></p>
+<p><code>lame -h -b 96 -r -x -s 22050 -m m myaudio.pcm</code>
 
-<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+<li><b>AAC</b>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>lame -h -b 128
-myaudio.wav<o:p></o:p></span></p>
+<p>If you wish to use AAC, download an AAC encoding package such as FAAC, 
+and follow the directions.
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>lame -h -b 96 -r -x
-myaudio.pcm<o:p></o:p></span></p>
+<p>You will want to most likely encode as low-complexity.
+<p>Examples (faac version 1.23.1):
 
-<p><b><span style='font-family:Arial'>2b) AAC<o:p></o:p></span></b></p>
+<p><code>faac -o 0 -a128 myaudio.wav myaudio.aac</code>
 
-<p><span style='font-family:Arial'>If you wish to use AAC, the provided faac
-tool will generate the MPEG-4 AAC file.<o:p></o:p></span></p>
+<p><code>faac -o 0 -a96 -P myaudio.pcm myaudio.aac</code>
+</ol>
+<li><b> Encode video</b>
 
-<p><span style='font-family:Arial'>Two parameters are required: the profile to
-be used, typically &quot;LOW&quot; for low-complexity; the desired bitrate in kbps,
-typically between 16 and 128.<o:p></o:p></span></p>
-
-<p><span style='font-family:Arial'>If a raw PCM file is provided as the input,
-then the -r option must be used.<o:p></o:p></span></p>
-
-<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>faac -pLOW -b128
-myaudio.wav<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>faac -pLOW -b96 -r
-myaudio.pcm<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'><span
-style='mso-tab-count:1'>       </span>(output file is myaudio.aac)<o:p></o:p></span></p>
-
-<p><span style='font-family:Arial'>ISSUE: currently the FAAC code is hard-coded
-with respect to the parameters of the raw format, which match those described
-in section 1. If you must use a different format, you should embedded the audio
-input in a WAV file which faac will read to determine the correct configuration
-parameters to use with your audio data.<o:p></o:p></span></p>
-
-<p><b><span style='font-family:Arial'>3) Encode video<o:p></o:p></span></b></p>
-
-<p><span style='font-family:Arial'>There are two options for video encoding:
-ISO reference and Xvid. Both generate MPEG-4 video bitstreams. The Xvid encoder
-produces a Simple Profile stream only. The ISO<span style="mso-spacerun: yes"> 
-</span>encoder contains many of the video tools defined for MPEG-4, and hence
+<p>For mpeg4ip, you will want to encode your video in mpeg4, simple or
+advanced simple profile.  We include an older version of the xvid codec.
+We also recommend the released version of xvid, or ffmpeg.  We also 
+include the ISO encoder, but do not have the encoder linking on Linux.
+The ISO encoder contains many of the video tools defined for MPEG-4, and hence
 can produce many of the defined profiles. In terms of video quality and
-encoding speed we have found the Xvid encoder to be vastly superior.<o:p></o:p></span></p>
+encoding speed we have found the Xvid encoder to be vastly superior.
 
-<p><span style='font-family:Arial'>If you want to use the Xvid encoder, use the
-provided xvidenc tool.<o:p></o:p></span></p>
-
-<p><span style='font-family:Arial'>The following options should be used to
-inform the encoder of the configuration parameters for the compressed video
-bitstream.<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-h &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>--height &lt;uint&gt;<span style='mso-tab-count:
-2'>          </span>Use the given number as the video frame height in pixels,
-default value is 240<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-w &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>--width &lt;uint&gt;<span style='mso-tab-count:
-2'>            </span>Use the given number as the video frame width in pixels,
-default value is 320<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-r &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>--rate &lt;uint&gt;<span style='mso-tab-count:
-2'>             </span>Use the given number as the video frame rate in frames
-per second, default value is 30<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-b &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>--bitrate &lt;uint&gt;<span style='mso-tab-count:
-2'>         </span>Use the given number as desired bitrate in Kbps, default
-value is 500<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-i &lt;uint&gt;<span
-style='mso-tab-count:1'>   </span>--ifrequency &lt;uint&gt;<span
-style='mso-tab-count:1'>     </span>Use the given number as the frequency of I
-frames in frames, default value is 30, i.e. once a second at 30 fps<o:p></o:p></span></p>
-
-<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>xvidenc -w 320 -h
-240 -r 24 -b 500 -i 24 myvideo.yuv myvideo.xvid</span><span style='font-family:
-Arial'><o:p></o:p></span></p>
-
-<p><span style='font-family:Arial'>If you want to use the ISO encoder, use the
-provided mp4venc tool. This tool takes one parameter which is the name of a
-file where the many configuration parameters are given. An template parameter
+<p>If you want to use the ISO encoder, you will need to create an executable
+and use a file where the many configuration parameters are given. An template parameter
 file, 'mp4venc_template.par', is installed into the /usr/local/share directory.
-<o:p></o:p></span></p>
+ 
+<li><b>Adding audio to a MP4 file </b>
 
-<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+<p>Use the provided mp4creator tool to generate an MP4 file from the MP3 or 
+AAC encoded file. There are two required parameters: the first is the input 
+file name, the second is the output file name. The -H option instructs 
+mp4creator to add a hint track needed by the streaming server.
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4venc myvideo.par<o:p></o:p></span></p>
+<p>Examples:
 
-<p><b><span style='font-family:Arial'>4) Create an audio only mp4 file <o:p></o:p></span></b></p>
+<p><code>mp4creator -c myaudio.mp3 -H myaudio.mp4</code>
 
-<p><span style='font-family:Arial'>Use the provided mp4creator tool to generate
-an MP4 file from the MP3 or AAC encoded file. There are two required parameters
-the first is the input file name, the second is the output file name. The -H
-option instructs mp4creator to add a hint track needed by the Darwin Streaming
-Server.<o:p></o:p></span></p>
+<p><code>mp4creator -c myaudio.aac -H myaudio.mp4</code>
 
-<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+<li><b>Adding video to a MP4 file</b>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
-myaudio.mp3 -H myaudio.mp4<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
-myaudio.aac -H myaudio.mp4<o:p></o:p></span></p>
-
-<p><b><span style='font-family:Arial'>5) Create a video only mp4 file<o:p></o:p></span></b></p>
-
-<p><span style='font-family:Arial'>Use the provided mp4creator tool to generate
+<p>Use the provided mp4creator tool to generate
 an MP4 file from the MPEG-4 Video encoded file. There are three required
 parameters the first is the input file name, the second is the video frame
 rate, the third is the output file name. The -H option instructs mp4creator to
-add a hint track needed by the Darwin Streaming Server.<o:p></o:p></span></p>
+add a hint track needed by the Darwin Streaming Server.
 
-<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+<p>Examples:
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
-myvideo.xvid -H -r=29.97 myvideo.mp4</span><span style='font-family:Arial'><o:p></o:p></span></p>
+<p><code>mp4creator -c myvideo.xvid -H -r=29.97 myvideo.mp4</code>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator –c
-myvideo.cmp -H -r=25 myvideo.mp4<o:p></o:p></span></p>
+<p><code>mp4creator –c myvideo.cmp -H -r=25 myvideo.mp4</code>
 
-<p><b><span style='font-family:Arial'>6) Create an audio and video mp4 file <o:p></o:p></span></b></p>
+<li><b>Create an audio and video mp4 file </b>
 
-<p><span style='font-family:Arial'>Use the provided mp4creator tool to first
-generate an MP4 file for one of the media. Then use the mp4creator tool to add
-the second media. The resulting MP4 file will contain both media tracks and any
-associated hint tracks.<o:p></o:p></span></p>
+<p>Use the provided mp4creator tool to first generate an MP4 file for one of 
+the media. Then use the mp4creator tool to add the second media. The resulting 
+MP4 file will contain both media tracks and any associated hint tracks.
 
-<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+<p>Example:
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
-myaudio.aac -H mymedia.mp4<o:p></o:p></span></p>
+<p><code>mp4creator -c myaudio.aac -H mymedia.mp4 </code>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4creator -c
-myvideo.xvid -r=15 -H mymedia.mp4<o:p></o:p></span></p>
+<p><code>mp4creator -c myvideo.xvid -r=15 -H mymedia.mp4</code>
 
-<p><b><span style='font-family:Arial'>7) Useful options <o:p></o:p></span></b></p>
+<li><b>Useful options </b>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-mtu=&lt;uint&gt;<span
-style='mso-tab-count:3'>               </span>Use the given number as the MTU
-size for hinting, the default value is 1500 bytes<o:p></o:p></span></p>
+<p><code>-mtu=&lt;uint&gt;</code> Use the given number as the MTU
+size for hinting, the default value is 1500 bytes
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>-verbosity=&lt;uint&gt;<span
-style='mso-tab-count:2'>        </span>Emits increasing levels about what is
-happening to stdout<o:p></o:p></span></p>
+<p><code>-verbosity=&lt;uint&gt;</code> Emits increasing levels about what is
+happening to stdout
 
-<p><b><span style='font-family:Arial'>8) Make content available<o:p></o:p></span></b></p>
+<li><b>Make content available</b>
 
-<p><span style='font-family:Arial'>Copy the MP4 file to a directory under the
+<p>Copy the MP4 file to a directory under the
 configured media root for your streaming server. See the documentation for your
 server as to how to generate a URL for the file, but typically it would look
-like rtsp://myserver/mymedia.mp4<o:p></o:p></span></p>
+like rtsp://myserver/mymedia.mp4
 
-<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>Example:
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>cp mymedia.mp4
-/usr/local/movies<o:p></o:p></span></p>
+<p><code>cp mymedia.mp4 /usr/local/movies
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>&nbsp;<o:p></o:p></span></p>
-
-</div>
-
+</ol>
 </body>
 
 </html>

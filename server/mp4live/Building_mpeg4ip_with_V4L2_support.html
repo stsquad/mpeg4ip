@@ -1,5 +1,5 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html lang="en">
 <head>
   <meta http-equiv="content-type"
  content="text/html; charset=ISO-8859-1">
@@ -7,16 +7,25 @@
 </head>
 <body>
 <div style="text-align: center;">
-<h1>Building mpeg4ip with V4L2 support<br>
-</h1>
-</div>
+<h1>Building mpeg4ip with V4L2 support</h1></div>
+<p>
+January, 2004<br>
+Bill May<br>
+Original version by Waqar Mohsin<br>
+<p>
+<a href="#rh">Building on Redhat 9</a><br>
+<a href="#suse">Adding 2.6.1 Kernel to SuSE 9.0</a><br>
+
+<div id="rh">
 <h2>A. Redhat Linux 9 Installation</h2>
+</div>
+<p>
 This section only applies if you setting up a machine from scratch.<br>
 If not, go <a href="#build1">here</a>
 <br>
 Pick the <span style="font-style: italic;">custom install</span>
 option.<br>
-<h4>Package Group Selection</h4>
+<h3>1. Package Group Selection</h3>
 <table cellpadding="2" cellspacing="2" border="1"
  style="text-align: left; height: 383px; width: 513px;">
   <tbody>
@@ -115,9 +124,10 @@ Name<br>
     </tr>
   </tbody>
 </table>
-<br>
-<a name="build1">
-<h2>B. Build a Custom Kernel</h2>
+<p>
+<div id="build1">
+<h3>2. Build a Custom Kernel</h3></div>
+<p>
 The instructions are given in <a
  href="http://www.redhat.com/docs/manuals/linux/RHL-9-Manual/custom-guide/ch-custom-kernel.html">Redhat
 Linux 9 Customization Guide</a>. You must have the kernel source installed before continuing<br>
@@ -138,7 +148,9 @@ click <span style="font-style: italic;">Save and Exit</span>.</li>
   <li>Verify that <code>/boot/initrd-2.4.20-8custom.img</code> exists</li>
   <li><code>reboot</code></li>
 </ol>
-<h2>C. Install V4L2</h2>
+<p>
+<h3>3. Install V4L2</h3>
+<p>
 V4L2 is a work in progress. So far, I've only gotten the 20030717 CVS
 snapshot to work.<p>
 You should read the directions from the V4L2 web site - they only apply for the
@@ -157,7 +169,7 @@ to the home directory</li>
   <li><code>make</code></li>
   <li><code>make install</code></li>
 </ol>
-<h2>D. Install New bttv Driver</h2>
+<h3>4. Install New bttv Driver</h3>
 <ol>
   <li>Download <code>bttv9-20030717.tar.gz</code>
 to the home directory</li>
@@ -169,7 +181,8 @@ to the home directory</li>
   <li><code>make</code></li>
   <li><code>make install</code></li>
 </ol>
-<h2>E. Setup modprobe to load bttv from new location</h2>
+<h3>5. Setup modprobe to load bttv from new location</h3>
+<p>
 The V4L2 and bttv drivers are installed in the
 /lib/modules/2.4.20-8custom/v4l2 directory. You should see a listing
 similar to this:<br>
@@ -216,14 +229,16 @@ and its dependencies.</li>
   <li>Reboot and select the custom kernel when the kernel load screen appears.  Alternatively, change /etc/grub.conf to indicate a default of 0 (that will be the custom kernel you created, and will automatically select it when you reboot).<br>
   </li>
 </ol>
+<p>
 Do a find to make sure that you've overwritten all bttv.o files.
-<h2>F. Testing the Installation</h2>
+<h3>6. Testing the Installation</h3>
 <ul>
   <li><code>su -</code></li>
   <li><code>modprobe bttv</code></li>
   <li><code>modinfo bttv</code> should display something like<br>
   </li>
 </ul>
+<p>
 <code>filename:&nbsp;&nbsp;&nbsp;
 /lib/modules/2.4.20-8custom/v4l2/bttv.o<br>
 description: "bttv - v4l/v4l2 driver module for bt848/878 based cards"<br>
@@ -235,6 +250,7 @@ license:&nbsp;&nbsp;&nbsp;&nbsp; "GPL"<br>
 <ul>
   <li><code>modinfo v4l2-common</code> should display something like</li>
 </ul>
+<p>
 <code>filename:&nbsp;&nbsp;&nbsp;
 /lib/modules/2.4.20-8custom/v4l2/v4l2-common.o<br>
 description: "misc helper functions for v4l2 device drivers"<br>
@@ -242,5 +258,59 @@ author:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "Bill Dirks, Justin Schoeman,
 Gerd Knorr"<br>
 license:&nbsp;&nbsp;&nbsp;&nbsp; "GPL"</code><br>
 <big></big>
+<div id="suse">
+<h2>B. SuSE 9.0 Installation of 2.6.1 kernel</h2></div>
+<p>
+This section describes what I did when updating SuSE to a 2.6.1 kernel with
+V4L2 support.  I'm not 100% happy with the results (it seems to return the
+default settings for the audio, which on my machine is muted, and microphone
+off), but it appears to work.
+<p>
+Note: I did not use the 2.6 test kernel sources that come with SuSE 9.0.
+<p>
+First, see the instructions on what RPMs are needed for SuSE 9.0 PRO in 
+the main readme.
+<p>
+<ul>
+<li>First, download the 2.6.1 kernel. Untar it.</li>
+<li>Next, download the v4l2 patches.  I used the 2.6.1rc3 patch. Patch them into the kernel source </li>
+<li>You'll have to make a minor change to kernel/exit.c.  You'll have to add
+<code>EXPORT_SYMBOL(__set_special_pids);</code> and <code>EXPORT_SYMBOL(set_special_pids);</code> before the function calls.</li>
+<li>Configure the kernel.  You can use make oldconfig.  Make sure that you 
+enable OSS (it says deprecated, but I was not able to get the ALSA OSS 
+compatibility layer to work, so I needed it).</li>
+<li>Build the kernel.<code>make;make modules</code></li>
+<li>Download and untar the bttv driver.  I used 0.9.12.</li>
+<li>Make the bttv driver <code>make KDIR=</code><i>kernel source directory</i></li>
+<li>Install the kernel.  <code>make install; make modules_install</code></li>
+<li>Install the bttv driver <code>make install</code></li>
+<li>Add the kernel to lilo or grub</li>
+</ul>
+<p>
+At this point, you may have a bootable kernel.  I, on the other hand, did not.  It appeared not to load any of the modules for the PCI slots.
+<P>
+This was the difficult part.  I went to the /etc directory, and used the <code>generate-modprobe.conf
+</code> command to generate a new modprobe.conf.  Then I had to add command to install eth0, eth1 and 
+the bttv driver.  I also had to remove the snd_ prefixes from the options for snd-emu10k1 and options snd:
+<p>
+Here's the diff that I had to make after the <code>generate-modprobe.conf</code>:<br>
+<code> 
+< options snd-emu10k1 snd_enable=1 snd_index=0 <br>
+< options snd snd_cards_limit=1 snd_major=116 <br>
+---<br>
+> options snd-emu10k1 enable=1 index=0<br>
+> options snd cards_limit=1 major=116<br>
+217a218,221<br>
+> install eth0 /bin/true<br>
+> install eth1 /bin/true<br>
+> install bttv /sbin/modprobe --ignore-install bttv && { /sbin/modprobe -k tuner; /sbin/modprobe -k msp3400; } <br>
+</code>
+<p>
+Good luck.
+<p>
+<a href="http://validator.w3.org/check/referer"><img
+   src="http://www.w3.org/Icons/valid-html401"
+   alt="Valid HTML 4.01!" height="31" width="88"></a>
+ </p>
 </body>
 </html>
