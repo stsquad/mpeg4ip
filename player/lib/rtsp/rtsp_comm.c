@@ -27,6 +27,10 @@
 #include <sys/poll.h>
 #endif
 
+#ifndef HAVE_ST_ADDRINFO
+#include "addrinfo.h"
+#endif
+
 /*
  * rtsp_create_socket()
  * creates and connects socket to server.  Requires rtsp_info_t fields
@@ -35,6 +39,22 @@
  */
 static int rtsp_get_server_address (rtsp_client_t *info)
 {
+#ifdef HAVE_IPv6
+  struct addrinfo hints;
+  char port[32];
+  int error;
+  
+  snprintf(port, sizeof(port), "%d", info->port);
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = PF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  error = getaddrinfo(info->server_name, port, &hints, &info->addr_info);
+  if (error) {
+    rtsp_debug(LOG_CRIT, "Can't get server address info %s - error %d", 
+	       info->server_name, h_errno);
+    return h_errno;
+  }
+#else
   struct hostent *host;
 #if defined(_WIN32) || !defined(HAVE_INET_NTOA)
   info->server_addr.s_addr = inet_addr(info->server_name);
@@ -49,12 +69,15 @@ static int rtsp_get_server_address (rtsp_client_t *info)
     return (h_errno);
   }
   info->server_addr = *(struct in_addr *)host->h_addr;
+#endif
   return 0;
 }
 
 int rtsp_create_socket (rtsp_client_t *info)
 {
+#ifndef HAVE_IPv6
   struct sockaddr_in sockaddr;
+#endif
   int result;
 
   // Do we have a socket already - if so, go ahead
@@ -71,7 +94,13 @@ int rtsp_create_socket (rtsp_client_t *info)
   if (result != 0) return -1;
   
 #ifndef _WIN32
+#ifndef HAVE_IPv6
+  info->server_socket = socket(info->addr_info->ai_family,
+			       info->addr_info->ai_socktype,
+			       info->addr_info->ai_protocol);
+#else
   info->server_socket = socket(AF_INET, SOCK_STREAM, 0);
+#endif
 #else
   info->server_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, 0);
 #endif
@@ -82,14 +111,23 @@ int rtsp_create_socket (rtsp_client_t *info)
   }
 
   
+#ifndef HAVE_IPv6  
   sockaddr.sin_family = AF_INET;
   sockaddr.sin_port = htons(info->port);
   sockaddr.sin_addr = info->server_addr;
+#endif
+
 #ifndef _WIN32
   result = connect(info->server_socket,
+#ifndef HAVE_IPv6
 		   (struct sockaddr *)&sockaddr,
-		   sizeof(sockaddr));
-  if (result == -1)
+		   sizeof(sockaddr)
+#else
+		   info->addr_info->ai_addr,
+		   info->addr_info->ai_addrlen
+#endif
+		   );
+  if (result < 0)
 #else
   result = WSAConnect(info->server_socket, 
 	                  (struct sockaddr *)&sockaddr,
@@ -102,7 +140,9 @@ int rtsp_create_socket (rtsp_client_t *info)
 #endif
 
   {
-    rtsp_debug(LOG_CRIT, "Couldn't connect socket");
+    rtsp_debug(LOG_CRIT, "Couldn't connect socket - error %s",
+	       strerror(errno)
+	       );
     return (-1);
   }
 
@@ -111,7 +151,9 @@ int rtsp_create_socket (rtsp_client_t *info)
     result = fcntl(info->server_socket, F_GETFL);
     result = fcntl(info->server_socket, F_SETFL, result | O_NONBLOCK);
     if (result < 0) {
-      rtsp_debug(LOG_ERR, "Couldn't create nonblocking %d", errno);
+      rtsp_debug(LOG_ERR, "Couldn't create nonblocking %s", 
+		 strerror(errno)
+		 );
     }
 #else
 	rtsp_thread_set_nonblocking(info);
@@ -190,7 +232,8 @@ int rtsp_receive_socket (rtsp_client_t *info, char *buffer, uint32_t len,
     if (ret <= 0) {
       rtsp_debug(LOG_ERR, "Response timed out %d %d", msec_timeout, ret);
       if (ret == -1) {
-	rtsp_debug(LOG_ERR, "Errorno is %d", errno);
+	rtsp_debug(LOG_ERR, "Error is %s", 
+		   strerror(errno));
       }
       return (-1);
     }
@@ -227,4 +270,7 @@ void rtsp_close_socket (rtsp_client_t *info)
   if (info->server_socket != -1)
     closesocket(info->server_socket);
   info->server_socket = -1;
+#ifdef HAVE_ST_ADDRINFO
+  CHECK_AND_FREE(info,addr_info);
+#endif
 }

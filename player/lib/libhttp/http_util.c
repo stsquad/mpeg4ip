@@ -32,55 +32,78 @@
  * We're looking for m_host (destination name), m_port (destination port)
  * and m_resource (location of file on m_host - also called path)
  */
-static int http_disect_url (const char *name,
+static int http_dissect_url (const char *name,
 			    http_client_t *cptr)
 {
   // Assume name points at host name
-  const char *p = name;
+  const char *uptr = name;
+  const char *nextslash, *nextcolon, *rightbracket;
   char *host;
-  size_t len;
-  uint16_t port;
+  size_t hostlen;
 
   // skip ahead after host
-  while (*p != '\0' && *p != ':' && *p != '/') p++;
+  if (*uptr == '[') {
+    rightbracket = strchr(uptr, ']');
+    if (rightbracket != NULL) {
+      // literal IPv6 address
+      if (rightbracket[1] == ':') {
+	nextcolon = rightbracket + 1;
+      } else
+	nextcolon = NULL;
+      nextslash = strchr(rightbracket, '/');
+    } else {
+      return -1;
+    }
+  } else {
+    nextslash = strchr(uptr, '/');
+    nextcolon = strchr(uptr, ':');
+  }
 
-  if (p == name) return (-1);
-  len = p - name;
-  host = (char *) malloc(len + 1);
-  memcpy(host, name, len);
-  host[len] = '\0';
-
-  // read port number, if it exists
   cptr->m_port = 80;
-  if (*p == ':') {
-    // port number
-    p++;
-    port = 0;
-    while (*p != '/' && *p != '\0') {
-      if (!(isdigit(*p))) {
-	free(host);
+  if (nextslash != NULL || nextcolon != NULL) {
+    if (nextcolon != NULL &&
+	(nextcolon < nextslash || nextslash == NULL)) {
+      hostlen = nextcolon - uptr;
+      // have a port number
+      nextcolon++;
+      cptr->m_port = 0;
+      while (isdigit(*nextcolon)) {
+	cptr->m_port *= 10;
+	cptr->m_port += *nextcolon - '0';
+	nextcolon++;
+      }
+      if (cptr->m_port == 0 || (*nextcolon != '/' && *nextcolon != '\0')) {
 	return (-1);
       }
-      port *= 10;
-      port += *p - '0';
-      p++;
-    }
-    if (port == 0) {
-      cptr->m_port = 80;
     } else {
-      cptr->m_port = port;
+      // no port number
+      hostlen = nextslash - uptr;
+	
     }
-  } 
-
-  FREE_CHECK(cptr, m_host);
-  cptr->m_host = host;
-
-  FREE_CHECK(cptr, m_resource);
-  // if we have http://foo - make sure the resource is "/".
-  if (*p == '\0') {
-    cptr->m_resource = strdup("/");
+    if (hostlen == 0) {
+      return (-1);
+    }
+    FREE_CHECK(cptr, m_host);
+    host = malloc(hostlen + 1);
+    if (host == NULL) {
+      return (-1);
+    }
+    memcpy(host, uptr, hostlen);
+    host[hostlen] = '\0';
+    cptr->m_host = host;
   } else {
-    cptr->m_resource = strdup(p);
+    if (*uptr == '\0') {
+      return (EINVAL);
+    }
+    FREE_CHECK(cptr, m_host);
+    cptr->m_host = strdup(uptr);
+  }
+  
+  FREE_CHECK(cptr, m_resource);
+  if (nextslash != NULL) {
+    cptr->m_resource = strdup(nextslash);
+  } else {
+    cptr->m_resource = strdup("/");
   }
   return (0);
 }
@@ -115,7 +138,7 @@ int http_decode_and_connect_url (const char *name,
     cptr->m_host = NULL; // don't inadvertantly free it
   }
 
-  if (http_disect_url(name, cptr) < 0) {
+  if (http_dissect_url(name, cptr) < 0) {
     // If there's an error - nothing's changed
     return (-1);
   }
@@ -133,6 +156,7 @@ int http_decode_and_connect_url (const char *name,
       // Might be same - resolve new address and compare
       host = gethostbyname(cptr->m_host);
       if (host == NULL) {
+	if (h_errno > 0) h_errno = 0 - h_errno;
 	return (h_errno);
       }
       if (memcmp(host->h_addr,
@@ -158,6 +182,7 @@ int http_decode_and_connect_url (const char *name,
     // No existing connection - get the new address.
     host = gethostbyname(cptr->m_host);
     if (host == NULL) {
+      if (h_errno > 0) h_errno = 0 - h_errno;
       return (h_errno);
     }
     cptr->m_server_addr = *(struct in_addr *)host->h_addr;

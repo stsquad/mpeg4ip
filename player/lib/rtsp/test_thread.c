@@ -23,6 +23,7 @@
  */
 #include <SDL.h>
 #include <sdp/sdp.h>
+#include <time.h>
 #include "rtsp_private.h"
 
 #if 0
@@ -167,7 +168,7 @@ int main (int argc, char **argv)
 
   if (dummy != RTSP_RESPONSE_GOOD) {
     rtsp_debug(LOG_DEBUG, "Response to setup is %d\n", dummy);
-    free_session_desc(sdp);
+    sdp_free_session_desc(sdp);
     free_decode_response(decode);
     free_rtsp_client(rtsp_client);
     return (1);
@@ -202,7 +203,7 @@ int main (int argc, char **argv)
   cmd.transport = NULL;
   dummy = rtsp_send_teardown(session, NULL, &decode);
   rtsp_debug(LOG_DEBUG, "Teardown response %d\n", dummy);
-  free_session_desc(sdp);
+  sdp_free_session_desc(sdp);
   free_decode_response(decode);
   sleep(5);
   free_rtsp_client(rtsp_client);

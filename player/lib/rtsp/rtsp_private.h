@@ -51,6 +51,8 @@ struct rtsp_session_ {
 
 typedef struct rtsp_thread_info_ rtsp_thread_info_t;
 
+struct addrinfo;
+
 struct rtsp_client_ {
   /*
    * Information about the server we're talking to.
@@ -61,6 +63,7 @@ struct rtsp_client_ {
   uint16_t redirect_count;
   int useTCP;
   struct in_addr server_addr;
+  struct addrinfo *addr_info;
   uint16_t port;
 
   /*

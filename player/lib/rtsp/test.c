@@ -21,6 +21,8 @@
 /*
  * test.c - test program for rtsp library
  */
+#include "systems.h"
+#include <time.h>
 #include "sdp.h"
 #include "rtsp_private.h"
 
@@ -153,7 +155,7 @@ int main (int argc, char **argv)
 
   if (dummy != RTSP_RESPONSE_GOOD) {
     printf("Response to setup is %d\n", dummy);
-    free_session_desc(sdp);
+    sdp_free_session_desc(sdp);
     free_decode_response(decode);
     free_rtsp_client(rtsp_client);
     return (1);
@@ -171,7 +173,7 @@ int main (int argc, char **argv)
   cmd.transport = NULL;
   dummy = rtsp_send_teardown(session, NULL, &decode);
   printf("Teardown response %d\n", dummy);
-  free_session_desc(sdp);
+  sdp_free_session_desc(sdp);
   free_decode_response(decode);
   free_rtsp_client(rtsp_client);
   return (0);

@@ -8,7 +8,7 @@ AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
 
-AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.14)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.9.3.15)
 
 
 
@@ -72,13 +72,19 @@ AC_DEFUN(MY_CHECK_TYPEDEF_FROM_INCLUDE,
    fi
 ])
 
-MY_CHECK_TYPEDEF_FROM_INCLUDE([in_port_t temp], [#include <netinet/in.h>], [HAVE_IN_PORT_T])
+MY_CHECK_TYPEDEF_FROM_INCLUDE([in_port_t temp], 
+	[#include <sys/types.h>
+	 #include <netinet/in.h>], [HAVE_IN_PORT_T])
 MY_CHECK_TYPEDEF_FROM_INCLUDE([socklen_t temp], 
 	[#include <sys/types.h>
 	 #include <sys/socket.h>], HAVE_SOCKLEN_T)
 MY_CHECK_TYPEDEF_FROM_INCLUDE([fpos_t foo; foo.__pos = 0;],
 	[#include <stdio.h>],
 	[HAVE_FPOS_T_POS])
+
+MY_CHECK_TYPEDEF_FROM_INCLUDE([struct addrinfo foo;],
+	[#include <netdb.h>],
+	[HAVE_ST_ADDRINFO])
 
 dnl Allow server build to be disabled
 AC_ARG_ENABLE(server, 
@@ -116,6 +122,15 @@ AC_ARG_ENABLE(mp4live,
 		esac
 	else
 		AM_CONDITIONAL(MP4LIVE, false)
+    fi
+
+AC_ARG_ENABLE(ipv6
+[   --enable-ipv6       enable IPv6],
+              ,
+              enable_ipv6=yes)
+
+    if test x$enable_ipv6 = xyes; then
+       AC_DEFINE(HAVE_IPv6)
     fi
 
 dnl ### Checking for the existence of files

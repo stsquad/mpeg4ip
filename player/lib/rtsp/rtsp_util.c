@@ -137,7 +137,7 @@ void free_decode_response (rtsp_decode_t *decode)
 int rtsp_dissect_url (rtsp_client_t *rptr, const char *url)
 {
   const char *uptr;
-  const char *nextslash, *nextcolon;
+  const char *nextslash, *nextcolon, *rightbracket;
   int hostlen;
   
   if (rptr->url != NULL || rptr->server_name != NULL) {
@@ -157,9 +157,24 @@ int rtsp_dissect_url (rtsp_client_t *rptr, const char *url)
     return(-1);
   }
 
+  rptr->port = 554;
+  if (*uptr == '[') {
+    rightbracket = strchr(uptr, ']');
+    if (rightbracket != NULL) {
+      // literal IPv6 address
+      if (rightbracket[1] == ':') {
+	nextcolon = rightbracket + 1;
+      } else
+	nextcolon = NULL;
+      nextslash = strchr(rightbracket, '/');
+    } else {
+      return (EINVAL);
+    }
+  } else {
   nextslash = strchr(uptr, '/');
   nextcolon = strchr(uptr, ':');
-  rptr->port = 554;
+  }
+
   if (nextslash != NULL || nextcolon != NULL) {
     if (nextcolon != NULL &&
 	(nextcolon < nextslash || nextslash == NULL)) {

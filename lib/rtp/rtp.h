@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.4 $ 
- * $Date: 2001/11/13 23:58:16 $
+ * $Revision: 1.5 $ 
+ * $Date: 2002/05/08 21:11:41 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -105,7 +105,7 @@ typedef struct rtp_packet_header {
 #define rtp_pak_v    ph.ph_v
 #define rtp_pak_p    ph.ph_p
 #define rtp_pak_x    ph.ph_x
-#define rtp_pak_cc   ph.ph_x
+#define rtp_pak_cc   ph.ph_cc
 #define rtp_pak_m    ph.ph_m
 #define rtp_pak_pt   ph.ph_pt
 #define rtp_pak_seq  ph.ph_seq

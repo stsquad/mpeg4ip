@@ -189,7 +189,7 @@ void MP4BitfieldProperty::Dump(FILE* pFile, u_int8_t indent,
 	}
 	fprintf(pFile, 
 #ifdef WIN32
-		"%s = "LLU" (0x%0*I64) <%u bits>\n", 
+		"%s = "LLU" (0x%0*I64x) <%u bits>\n", 
 #else
 		"%s = "LLU" (0x%0*llx) <%u bits>\n", 
 #endif
@@ -755,7 +755,8 @@ void MP4DescriptorProperty::Read(MP4File* pFile, u_int32_t index)
 	u_int64_t start = pFile->GetPosition();
 
 	while (true) {
-		if (m_sizeLimit && pFile->GetPosition() > start + m_sizeLimit) {
+		// enforce size limitation
+		if (m_sizeLimit && pFile->GetPosition() >= start + m_sizeLimit) {
 			break;
 		}
 

@@ -34,7 +34,7 @@
 #include "codec_plugin_private.h"
 //#define DEBUG_DECODE 1
 //#define DEBUG_DECODE_MSGS 1
-
+//#define TIME_DECODE 1
 /*
  * parse_decode_message - handle messages to the decode task
  */
@@ -199,6 +199,7 @@ int CPlayerMedia::decode_thread (void)
       // the time.
       unsigned char *frame_buffer;
       uint32_t frame_len;
+      frame_buffer = NULL;
       ourtime = m_byte_stream->start_next_frame(&frame_buffer, 
 						&frame_len);
       /*
@@ -299,7 +300,8 @@ int CPlayerMedia::decode_thread (void)
   }
 #ifdef TIME_DECODE
   if (avg_cnt != 0)
-    media_message(LOG_INFO, "Decode avg time is " LLD " max " LLD, 
+    media_message(LOG_INFO, "%s Decode avg time is " LLD " max " LLD, 
+		  m_is_video ? "video" : "audio",
 		  avg / avg_cnt,
 		  max);
 #endif
