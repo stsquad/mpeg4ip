@@ -34,8 +34,10 @@
 #include "profile_text.h"
 #include "mp4live_common.h"
 #include "rtp_transmitter.h"
+#include "text_source.h"
 
 //#define HAVE_TEXT 1
+//#define HAVE_TEXT_ENTRY 1
 CLiveConfig* MyConfig;
 CPreviewAVMediaFlow* AVFlow = NULL;
 
@@ -388,15 +390,6 @@ void DoStop()
 	started = false;
 }
 
-static void on_start_button (GtkWidget *widget, gpointer *data)
-{
-	if (!started) {
-		DoStart();
-	} else {
-		DoStop();
-	}
-}
-
 /*
  * MainWindowDisplaySources - update the sources labels
  */
@@ -407,14 +400,26 @@ void MainWindowDisplaySources (void)
 
   temp = lookup_widget(MainWindow, "VideoSourceLabel");
   
-  MyConfig->m_videoCapabilities->Display(MyConfig, buffer, 128);
+  if (MyConfig->m_videoCapabilities != NULL)
+    MyConfig->m_videoCapabilities->Display(MyConfig, buffer, 128);
+  else 
+    snprintf(buffer, sizeof(buffer), "no video");
 
   gtk_label_set_text(GTK_LABEL(temp), buffer);
 
   temp = lookup_widget(MainWindow, "AudioSourceLabel");
-  MyConfig->m_audioCapabilities->Display(MyConfig, buffer, 128);
+  if (MyConfig->m_audioCapabilities != NULL) {
+    MyConfig->m_audioCapabilities->Display(MyConfig, buffer, 128);
+  } else {
+    snprintf(buffer, sizeof(buffer), "no audio");
+  }
   gtk_label_set_text(GTK_LABEL(temp), buffer);
   // need to do text
+#ifdef HAVE_TEXT
+  temp = lookup_widget(MainWindow, "TextSourceLabel");
+  DisplayTextSource(MyConfig, buffer, sizeof(buffer));
+  gtk_label_set_text(GTK_LABEL(temp), buffer);
+#endif
 }
 static const char *add_profile_string = "Add";
 static const char *customize_profile_string = "Customize";
@@ -1788,12 +1793,14 @@ static GtkWidget *create_MainWindow (void)
   GtkWidget *TextTxAddrLabel;
   GtkWidget *TextTxAddrButton;
   GtkWidget *label16;
+#ifdef HAVE_TEXT_ENTRY
   GtkWidget *TextEntryFrame;
   GtkWidget *TextEntryHbox;
   GtkWidget *label51;
   GtkWidget *TextEntry;
   GtkWidget *TextEntrySend;
   GtkWidget *label52;
+#endif
 #endif
   GtkWidget *label114;
   GtkWidget *StatusFrame;
@@ -2468,7 +2475,7 @@ static GtkWidget *create_MainWindow (void)
   label16 = gtk_label_new(_("Text Stream"));
   gtk_widget_show(label16);
   gtk_frame_set_label_widget(GTK_FRAME(TextFrame), label16);
-
+#ifdef HAVE_TEXT_ENTRY
   TextEntryFrame = gtk_frame_new(NULL);
   gtk_widget_show(TextEntryFrame);
   gtk_box_pack_start(GTK_BOX(InfoVbox), TextEntryFrame, TRUE, TRUE, 0);
@@ -2496,6 +2503,7 @@ static GtkWidget *create_MainWindow (void)
   label52 = gtk_label_new(_("Text Transmission"));
   gtk_widget_show(label52);
   gtk_frame_set_label_widget(GTK_FRAME(TextEntryFrame), label52);
+#endif
 #endif
   label114 = gtk_label_new(_("Outputs"));
   gtk_widget_show(label114);
@@ -2769,9 +2777,11 @@ static GtkWidget *create_MainWindow (void)
   g_signal_connect((gpointer) TextTxAddrButton, "clicked",
                     G_CALLBACK(on_TextTxAddrButton_clicked),
                     NULL);
+#ifdef HAVE_TEXT_ENTRY
   g_signal_connect((gpointer) TextEntrySend, "clicked",
                     G_CALLBACK(on_TextEntrySend_clicked),
                     NULL);
+#endif
 #endif
   g_signal_connect((gpointer)DurationType, "changed", 
 		   G_CALLBACK(on_durationtype_activate), NULL);
@@ -2931,12 +2941,14 @@ static GtkWidget *create_MainWindow (void)
   GLADE_HOOKUP_OBJECT(MainWindow, TextTxAddrLabel, "TextTxAddrLabel");
   GLADE_HOOKUP_OBJECT(MainWindow, TextTxAddrButton, "TextTxAddrButton");
   GLADE_HOOKUP_OBJECT(MainWindow, label16, "label16");
+#ifdef HAVE_TEXT_ENTRY
   GLADE_HOOKUP_OBJECT(MainWindow, TextEntryFrame, "TextEntryFrame");
   GLADE_HOOKUP_OBJECT(MainWindow, TextEntryHbox, "TextEntryHbox");
   GLADE_HOOKUP_OBJECT(MainWindow, label51, "label51");
   GLADE_HOOKUP_OBJECT(MainWindow, TextEntry, "TextEntry");
   GLADE_HOOKUP_OBJECT(MainWindow, TextEntrySend, "TextEntrySend");
   GLADE_HOOKUP_OBJECT(MainWindow, label52, "label52");
+#endif
 #endif
   GLADE_HOOKUP_OBJECT(MainWindow, label114, "label114");
   GLADE_HOOKUP_OBJECT(MainWindow, StatusFrame, "StatusFrame");
