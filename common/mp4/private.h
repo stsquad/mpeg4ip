@@ -654,6 +654,12 @@ typedef struct
 	int do_scaling;
 	int in_x, in_y, in_w, in_h, out_w, out_h;
 	int color_model;
+
+/* Cached value for quicktime_video_frame */
+	long last_frame;
+	long last_start;
+	int last_stts_index;
+
 } quicktime_t;
 
 #endif

@@ -62,7 +62,7 @@ int create_media_for_wav_file (CPlayerSession *psptr,
   player_debug_message("Wav read %d bytes", wav_len);
 
   mbyte = new COurInByteStreamWav(mptr, 
-				  (const char *)wav_buffer, 
+				  wav_buffer, 
 				  wav_len);
   if (mbyte == NULL) {
     *errmsg = "Couldn't create byte stream";

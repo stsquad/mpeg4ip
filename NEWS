@@ -1,3 +1,21 @@
+5/7/01 Version 0.6.2
+	Fixes so that package now builds on RedHat 6.1, 6.2, 7.0, and 7.1
+	LAME MP3 encoder is now included
+	Fixes to play Philips MP4 files correctly
+	Enabled MMX routines for OpenDivX encoder (x86 architectures only)
+	Extended Darwin PlaylistBroadcaster to control multicast IP TTL.
+	Faac now handles UNIX paths correctly
+	Fixed several bugs in mp4encode script
+
+4/23/01 Version 0.6.1
+	Fixed interoperability between OpenDivX and ISO MPEG-4 video codecs
+	Fixed RTSP interoperability problem with Darwin Streaming Server 2.0
+	Updated mp4encode script to simplify the encoding process
+	Player now keeps history list
+	Enabled some post-processing of video in the player
+	Added mp4extract utility
+	Fixed avi2raw to handle zero length video frames in AVI file
+
 3/30/01 Version 0.6
 	Inclusion of the OpenDivx MPEG-4 video encoder/decoder
 	Inclusion of MP3 audio in addition to AAC audio

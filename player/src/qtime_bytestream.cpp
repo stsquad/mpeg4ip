@@ -31,7 +31,8 @@
  **************************************************************************/
 CQTByteStreamBase::CQTByteStreamBase (CQtimeFile *parent,
 				      CPlayerMedia *m,
-				      int track)
+				      int track,
+				      const char *type)
   : COurInByteStream(m)
 {
   m_track = track;
@@ -40,10 +41,11 @@ CQTByteStreamBase::CQTByteStreamBase (CQtimeFile *parent,
   m_parent = parent;
   m_eof = 0;
   m_max_frame_size = 16 * 1024;
-  m_buffer = (char *) malloc(m_max_frame_size * sizeof(char));
-  m_bookmark_buffer = (char *)malloc(m_max_frame_size * sizeof(char));
+  m_buffer = (unsigned char *) malloc(m_max_frame_size * sizeof(char));
+  m_bookmark_buffer = (unsigned char *)malloc(m_max_frame_size * sizeof(char));
   m_buffer_on = m_buffer;
   m_bookmark_read_frame = 0;
+  m_type = type;
 }
 
 CQTByteStreamBase::~CQTByteStreamBase()
@@ -62,6 +64,9 @@ void CQTByteStreamBase::check_for_end_of_frame (void)
 {
   if (m_byte_on >= m_this_frame_size) {
     m_frame_on++;
+#if 0
+    player_debug_message("%s - next frame %d", m_type, m_frame_on);
+#endif
     if (m_frame_on >= m_frames_max) {
       if (m_bookmark == 0)
 	m_eof = 1;
@@ -76,13 +81,16 @@ void CQTByteStreamBase::check_for_end_of_frame (void)
     }
   }
 }
-char CQTByteStreamBase::get (void)
+unsigned char CQTByteStreamBase::get (void)
 {
-  char ret;
+  unsigned char ret;
 #if 0
   player_debug_message("Getting byte %u frame %u %u bookmark %d", 
 		       m_byte_on, m_frame_on, m_this_frame_size, m_bookmark);
 #endif
+  if (m_eof) {
+    throw("END OF DATA");
+  }
   ret = m_buffer_on[m_byte_on];
   m_byte_on++;
   m_total++;
@@ -90,7 +98,7 @@ char CQTByteStreamBase::get (void)
   return (ret);
 }
 
-char CQTByteStreamBase::peek (void) 
+unsigned char CQTByteStreamBase::peek (void) 
 {
   return (m_buffer_on[m_byte_on]);
 }
@@ -113,10 +121,13 @@ void CQTByteStreamBase::bookmark (int bSet)
   }
 }
 
-size_t CQTByteStreamBase::read (char *buffer, size_t bytestoread)
+size_t CQTByteStreamBase::read (unsigned char *buffer, size_t bytestoread)
 {
   size_t inbuffer, readbytes = 0;
   do {
+    if (m_eof) {
+      throw("END OF DATA");
+    }
     inbuffer = m_this_frame_size - m_byte_on;
     if (inbuffer > bytestoread) {
       inbuffer = bytestoread;
@@ -155,16 +166,23 @@ void CQTVideoByteStream::reset (void)
 uint64_t CQTVideoByteStream::start_next_frame (void)
 {
   uint64_t ret;
-#if 0
-  if (m_byte_on != 0) {
-    player_debug_message("Start next frame "LLU " offset %u %u", 
-			 m_total, m_byte_on, m_this_frame_size);
-  }
-#endif
+  long start;
+  int duration;
 
-  ret = m_frame_on;
-  ret *= 1000;
-  ret /= m_frame_rate;
+ if (quicktime_video_frame_time(m_parent->get_file(),
+				m_track,
+				m_frame_on,
+				&start,
+				&duration) != 0) {
+   ret = start;
+   ret *= 1000;
+   ret /= m_time_scale;
+   //player_debug_message("Returning %llu", ret);
+ } else {
+   ret = m_frame_on;
+   ret *= 1000;
+   ret /= m_frame_rate;
+ }
   return (ret);
 }
 
@@ -182,7 +200,7 @@ void CQTVideoByteStream::read_frame (void)
     if (m_bookmark == 0) {
       // Yup - looks like it - just adjust the buffers and return
       m_bookmark_read_frame = 0;
-      char *temp = m_buffer;
+      unsigned char *temp = m_buffer;
       m_buffer = m_bookmark_buffer;
       m_bookmark_buffer = temp;
       m_buffer_on = m_buffer;
@@ -202,9 +220,10 @@ void CQTVideoByteStream::read_frame (void)
 					 m_track);
   if (next_frame_size > m_max_frame_size) {
     m_max_frame_size = next_frame_size;
-    m_buffer = (char *)realloc(m_buffer, next_frame_size * sizeof(char));
-    m_bookmark_buffer = (char *)realloc(m_bookmark_buffer, 
+    m_buffer = (unsigned char *)realloc(m_buffer, 
 					next_frame_size * sizeof(char));
+    m_bookmark_buffer = (unsigned char *)realloc(m_bookmark_buffer, 
+						 next_frame_size * sizeof(char));
   }
   m_this_frame_size = next_frame_size;
   if (m_bookmark == 0) {
@@ -216,7 +235,7 @@ void CQTVideoByteStream::read_frame (void)
     m_bookmark_read_frame_size = next_frame_size;
   }
   quicktime_read_frame(m_parent->get_file(),
-		       (unsigned char *)m_buffer_on,
+		       m_buffer_on,
 		       m_track);
   m_parent->unlock_file_mutex();
   m_byte_on = 0;
@@ -225,15 +244,73 @@ void CQTVideoByteStream::read_frame (void)
 void CQTVideoByteStream::set_start_time (uint64_t start)
 {
   m_play_start_time = start;
+  size_t ix;
+  long frame_start;
+  int duration;
 
-  start *= m_frame_rate;
-  start /= 1000;
+
+  m_parent->lock_file_mutex();
+  for (ix = 0; ix < m_frames_max; ix++) {
+    if (quicktime_video_frame_time(m_parent->get_file(),
+				   m_track, 
+				   ix, 
+				   &frame_start, 
+				   &duration) != 0) {
+      uint64_t cmp;
+      cmp = frame_start + duration;
+      cmp *= 1000;
+      cmp /= m_time_scale;
+      //player_debug_message("frame %d %llu", ix, cmp);
+      if (cmp >= start) {
+	player_debug_message("Searched through - frame %d is %llu", 
+			     ix, start);
+	break;
+      }
+    } else {
+      m_parent->unlock_file_mutex();
+      ix = start * m_frame_rate;
+      ix /= 1000;
+      video_set_timebase(ix);
+      return;
+    }
+  }
 #if 0
   player_debug_message("qtime video frame " LLD , start);
 #endif
   // we've got the position;
-  video_set_timebase((size_t)start);
+  m_parent->unlock_file_mutex();
+  video_set_timebase(ix);
 }
+
+void CQTVideoByteStream::config (long num_frames, float frate, int time_scale)
+{
+  m_frames_max = num_frames;
+  m_frame_rate = (size_t)frate;
+  m_time_scale = time_scale;
+
+  long start;
+  int duration;
+  // Set up max play time, based on the timing of the last frame.
+  if (quicktime_video_frame_time(m_parent->get_file(),
+				 m_track,
+				 m_frames_max - 1,
+				 &start,
+				 &duration) != 0) {
+    player_debug_message("video frame time - %d %ld %d", 
+			 m_frames_max, start, duration);
+    m_max_time = (start + duration);
+    m_max_time /= m_time_scale;
+  } else {
+    m_max_time = m_frames_max;
+    m_max_time /= m_frame_rate;
+  }
+  player_debug_message("Max time is %g", m_max_time);
+}
+
+double CQTVideoByteStream::get_max_playtime (void) 
+{
+  return (m_max_time);
+};
 
 /**************************************************************************
  * Quicktime Audio stream functions
@@ -265,7 +342,7 @@ uint64_t CQTAudioByteStream::start_next_frame (void)
   ret *= 1000;
   ret /= m_frame_rate;
 #if 0
-    player_debug_message("Start next frame "LLU " offset %u %u", 
+    player_debug_message("audio Start next frame "LLU " offset %u %u", 
 			 ret, m_byte_on, m_this_frame_size);
 #endif
   return (ret);
@@ -276,7 +353,7 @@ void CQTAudioByteStream::read_frame (void)
   if (m_bookmark_read_frame != 0) {
     if (m_bookmark == 0) {
       m_bookmark_read_frame = 0;
-      char *temp = m_buffer;
+      unsigned char *temp = m_buffer;
       m_buffer = m_bookmark_buffer;
       m_bookmark_buffer = temp;
       m_buffer_on = m_buffer;
@@ -295,7 +372,7 @@ void CQTAudioByteStream::read_frame (void)
     m_buffer_on = m_bookmark_buffer;
     m_bookmark_read_frame = 1;
   }
-  unsigned char *buff = (unsigned char *)m_buffer_on;
+  unsigned char *buff = m_buffer_on;
   if (m_add_len_to_stream) {
     buff += 2;
   }
@@ -305,9 +382,9 @@ void CQTAudioByteStream::read_frame (void)
 						 m_track);
   if (m_this_frame_size < 0) {
     m_max_frame_size = -m_this_frame_size;
-    m_buffer = (char *)realloc(m_buffer, m_max_frame_size * sizeof(char));
-    m_bookmark_buffer = (char *)realloc(m_bookmark_buffer,
-					m_max_frame_size * sizeof(char));
+    m_buffer = (unsigned char *)realloc(m_buffer, m_max_frame_size * sizeof(char));
+    m_bookmark_buffer = (unsigned char *)realloc(m_bookmark_buffer,
+						 m_max_frame_size * sizeof(char));
     // Okay - I could have used a goto, but it really grates...
     if (m_bookmark == 0) {
       m_buffer_on = m_buffer;
@@ -315,7 +392,7 @@ void CQTAudioByteStream::read_frame (void)
       m_buffer_on = m_bookmark_buffer;
       m_bookmark_read_frame = 1;
     }
-    buff = (unsigned char *)m_buffer_on;
+    buff = m_buffer_on;
     if (m_add_len_to_stream) {
       buff += 2;
     }
@@ -335,7 +412,7 @@ void CQTAudioByteStream::read_frame (void)
   if (m_bookmark == 0) {
     // Why not read 2 frames for the price of 1 ?
     m_bookmark_read_frame = 1;
-    buff = (unsigned char *)m_bookmark_buffer;
+    buff = m_bookmark_buffer;
     if (m_add_len_to_stream) buff += 2;
     m_bookmark_read_frame_size = 
       quicktime_read_audio_frame(m_parent->get_file(),

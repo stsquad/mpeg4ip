@@ -113,7 +113,7 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
 			      int ascii,
 			      size_t len)
 {
-  char buffer[255];
+  unsigned char buffer[255];
   CInByteStreamMem *membytestream = new CInByteStreamMem();
 
   if (ascii == 1) {
@@ -133,20 +133,21 @@ int CMpeg4Codec::parse_vovod (const char *vovod,
     // make sure we have even number of digits to convert to binary
     if ((len % 2) == 1) 
       return 0;
-    end = buffer;
+    unsigned char *write;
+    write = buffer;
     // Convert the config= from ascii to binary
     for (size_t ix = 0; ix < len; ix++) {
-      *end = 0;
-      *end = (tohex(*config)) << 4;
+      *write = 0;
+      *write = (tohex(*config)) << 4;
       config++;
-      *end += tohex(*config);
+      *write += tohex(*config);
       config++;
-      end++;
+      write++;
     }
     len /= 2;
     membytestream->set_memory(buffer, len);
   } else {
-    membytestream->set_memory(vovod, len);
+    membytestream->set_memory((const unsigned char *)vovod, len);
   }
 
 

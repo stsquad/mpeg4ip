@@ -37,16 +37,16 @@ class CInByteStreamRtp : public COurInByteStream
   CInByteStreamRtp(CPlayerMedia *m, int ondemand);
   ~CInByteStreamRtp();
   int eof (void) { return 0; };
-  char get(void);
-  char peek(void);
+  unsigned char get(void);
+  unsigned char peek(void);
   void bookmark(int Bset);
   void reset(void) { init(); };
   int have_no_data(void);
   uint64_t start_next_frame(void);
   double get_max_playtime (void) { return 0.0; };
-  size_t read(char *buffer, size_t bytes);
-  size_t read(unsigned char *buffer, size_t bytes) {
-    return (read((char *)buffer, bytes));
+  size_t read(unsigned char *buffer, size_t bytes);
+  size_t read(char *buffer, size_t bytes) {
+    return (read((unsigned char *)buffer, bytes));
   };
   int still_same_ts(void);
 

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syscdrom.c,v 1.1 2001/04/10 23:32:53 cahighlander Exp $";
+ "@(#) $Id: SDL_syscdrom.c,v 1.2 2001/05/09 21:15:08 cahighlander Exp $";
 #endif
 
 /* Functions for system-level CD-ROM audio control */

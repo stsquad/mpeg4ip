@@ -82,13 +82,25 @@ int quicktime_esds_dump(quicktime_esds_t *esds)
 
 int quicktime_read_esds(quicktime_t *file, quicktime_esds_t *esds)
 {
+	u_int8_t tag;
 	u_int32_t length;
 
 	esds->version = quicktime_read_char(file);
 	esds->flags = quicktime_read_int24(file);
 
-	/* skip 3 bytes */
-	quicktime_set_position(file, quicktime_position(file) + 3);
+	/* get and verify ES_DescrTag */
+	tag = quicktime_read_char(file);
+	if (tag == 0x03) {
+		/* read length */
+		if (quicktime_read_mp4_descr_length(file) < 5 + 15) {
+			return 1;
+		}
+		/* skip 3 bytes */
+		quicktime_set_position(file, quicktime_position(file) + 3);
+	} else {
+		/* skip 2 bytes */
+		quicktime_set_position(file, quicktime_position(file) + 2);
+	}
 
 	/* get and verify DecoderConfigDescrTab */
 	if (quicktime_read_char(file) != 0x04) {
@@ -126,7 +138,6 @@ int quicktime_read_esds(quicktime_t *file, quicktime_esds_t *esds)
 int quicktime_write_esds_common(quicktime_t *file, quicktime_esds_t *esds, int esid, u_int objectType, u_int streamType)
 {
 	quicktime_atom_t atom;
-	u_int32_t length;
 
 	if (!file->use_mp4) {
 		return 0;
@@ -137,22 +148,17 @@ int quicktime_write_esds_common(quicktime_t *file, quicktime_esds_t *esds, int e
 	quicktime_write_char(file, esds->version);
 	quicktime_write_int24(file, esds->flags);
 
+	quicktime_write_char(file, 0x03);	/* ES_DescrTag */
+	quicktime_write_mp4_descr_length(file, 
+		3 + 5 + (13 + 5 + esds->decoderConfigLen) + 3, FALSE);
+
 	quicktime_write_int16(file, esid);
 	quicktime_write_char(file, 0x2F);	/* streamPriorty = 16 (0-31) */
 
 	/* DecoderConfigDescriptor */
 	quicktime_write_char(file, 0x04);	/* DecoderConfigDescrTag */
-	length = 15 + esds->decoderConfigLen;
-	if (esds->decoderConfigLen > 0x7F) {
-		length++;
-	}
-	if (esds->decoderConfigLen > 0x3FFF) {
-		length++;
-	}
-	if (esds->decoderConfigLen > 0x1FFFFF) {
-		length++;
-	}
-	quicktime_write_mp4_descr_length(file, length);
+	quicktime_write_mp4_descr_length(file, 
+		13 + 5 + esds->decoderConfigLen, FALSE);
 
 	quicktime_write_char(file, objectType); /* objectTypeIndication */
 	quicktime_write_char(file, streamType); /* streamType */
@@ -162,7 +168,7 @@ int quicktime_write_esds_common(quicktime_t *file, quicktime_esds_t *esds, int e
 	quicktime_write_int32(file, 0);		/* average bitrate */
 
 	quicktime_write_char(file, 0x05);	/* DecSpecificInfoTag */
-	quicktime_write_mp4_descr_length(file, esds->decoderConfigLen);
+	quicktime_write_mp4_descr_length(file, esds->decoderConfigLen, FALSE);
 	quicktime_write_data(file, esds->decoderConfig, esds->decoderConfigLen);
 
 	/* SLConfigDescriptor */

@@ -38,17 +38,18 @@ class CQTByteStreamBase : public COurInByteStream
  public:
   CQTByteStreamBase(CQtimeFile *parent,
 		    CPlayerMedia *m,
-		    int track);
+		    int track,
+		    const char *type);
   ~CQTByteStreamBase();
   int eof(void);
-  char get(void);
-  char peek(void);
+  unsigned char get(void);
+  unsigned char peek(void);
   void bookmark(int bSet);
   virtual void reset(void) = 0;
   virtual uint64_t start_next_frame (void) = 0;
-  size_t read(char *buffer, size_t bytes);
-  size_t read (unsigned char *buffer, size_t bytes) {
-    return (read((char *)buffer, bytes));
+  size_t read(unsigned char *buffer, size_t bytes);
+  size_t read (char *buffer, size_t bytes) {
+    return (read((unsigned char *)buffer, bytes));
   };
   void check_for_end_of_frame(void);
  protected:
@@ -60,16 +61,17 @@ class CQTByteStreamBase : public COurInByteStream
   size_t m_frames_max;
   size_t m_frame_rate;
   size_t m_max_frame_size;
-  char *m_buffer;
+  unsigned char *m_buffer;
   int m_bookmark;
-  char *m_bookmark_buffer;
-  char *m_buffer_on;
+  unsigned char *m_bookmark_buffer;
+  unsigned char *m_buffer_on;
   size_t m_byte_on, m_bookmark_byte_on;
   size_t m_bookmark_frame_on;
   size_t m_this_frame_size, m_bookmark_this_frame_size;
   uint64_t m_total, m_total_bookmark;
   int m_bookmark_read_frame;
   int m_bookmark_read_frame_size;
+  const char *m_type;
 };
 
 /*
@@ -82,26 +84,21 @@ class CQTVideoByteStream : public CQTByteStreamBase
   CQTVideoByteStream(CQtimeFile *parent,
 		     CPlayerMedia *m,
 		     int track) :
-    CQTByteStreamBase(parent, m, track)
+    CQTByteStreamBase(parent, m, track, "video")
     {
     read_frame();
     };
   void reset(void);
   uint64_t start_next_frame(void);
-  void set_start_time (uint64_t start);
-  double get_max_playtime (void) {
-    double ret = m_frames_max;
-    ret /= m_frame_rate;
-    return (ret);
-  };
-  void config(long num_frames, float frate) {
-    m_frames_max = num_frames;
-    m_frame_rate = (size_t)frate;
-  };
+  void set_start_time(uint64_t start);
+  double get_max_playtime(void);
+  void config(long num_frames, float frate, int time_scale);
  protected:
   void read_frame(void);
  private:
   void video_set_timebase(long frame);
+  int m_time_scale;
+  double m_max_time;
 };
 
 /*
@@ -115,7 +112,7 @@ class CQTAudioByteStream : public CQTByteStreamBase
 		     CPlayerMedia *m,
 		     int track,
 		     int add_len_to_frame) :
-    CQTByteStreamBase(parent, m, track)
+    CQTByteStreamBase(parent, m, track, "audio")
     {
       m_add_len_to_stream = add_len_to_frame;
       read_frame();
@@ -128,9 +125,9 @@ class CQTAudioByteStream : public CQTByteStreamBase
     ret /= m_frame_rate;
     return (ret);
   };
-  void config(long num_frames, float frate, int duration) {
+  void config(long num_frames, size_t frate, int duration) {
     m_frames_max = num_frames;
-    m_frame_rate = (size_t)frate;
+    m_frame_rate = frate;
     m_samples_per_frame = duration;
   };
  protected:

@@ -79,14 +79,20 @@ int getvolhdr()
 		getbits1(); // marker
 		mp4_hdr.fixed_vop_rate = getbits(1);
 		
+		mp4_hdr.time_increment_bits = 0;
+		while (mp4_hdr.time_increment_resolution > 
+		       (1 << mp4_hdr.time_increment_bits)) {
+		  mp4_hdr.time_increment_bits++;
+		}
+		
 		if (mp4_hdr.fixed_vop_rate) 
 		{
-			mp4_hdr.time_increment_bits = 0;
-			while (mp4_hdr.time_increment_resolution > 
-			  (1 << mp4_hdr.time_increment_bits)) {
-				mp4_hdr.time_increment_bits++;
-			}
-			getbits(mp4_hdr.time_increment_bits);
+		  int temp;
+			temp = getbits(mp4_hdr.time_increment_bits);
+			mp4_hdr.fps = 
+			  mp4_hdr.time_increment_resolution / temp;
+		} else {
+		  mp4_hdr.fps = mp4_hdr.time_increment_resolution;
 		}
 
 		if (mp4_hdr.shape != BINARY_SHAPE_ONLY)  
@@ -175,18 +181,17 @@ int getvolhdr()
 
 /***/
 
-int getvophdr(int wait_for_i)
+int getvophdr(void)
 {
 	unsigned int temp;
 	next_start_code();
 
 	temp = showbits(32);
-	if(temp != (int) VOP_START_CODE)
-  {
-    getbits(8);
-    //if (wait_for_i != 0) printf("%x\n", temp);
-		return 0;
-  }
+	while (temp != (int) VOP_START_CODE)
+	  {
+	    getbits(8);
+	    temp = showbits(32);
+	  }
 	flushbits(32);
 	mp4_hdr.prediction_type = getbits(2);
 
@@ -203,8 +208,8 @@ int getvophdr(int wait_for_i)
 	{
 		next_start_code();
 		return 1;
-	}  
-
+	}
+	
 	if ((mp4_hdr.shape != BINARY_SHAPE_ONLY) &&
 		(mp4_hdr.prediction_type == P_VOP)) 
 	{

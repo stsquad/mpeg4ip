@@ -74,6 +74,7 @@ typedef struct _mp4_header {
 	int time_increment_resolution;
 	int fixed_vop_rate;
 	int time_increment_bits;
+  int fps;
 	int width;
 	int height;
 	int interlaced;
@@ -128,8 +129,8 @@ typedef struct _mp4_header {
 
 /*** *** ***/
 
-extern int getvolhdr();
-extern int getvophdr(int wait_for_i);
+extern int getvolhdr(void);
+extern int getvophdr(void);
 
 extern int __inline nextbits(int nbits);
 extern int __inline bytealigned(int nbits);

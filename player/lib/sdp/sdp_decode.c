@@ -1276,7 +1276,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
   }
   memset(new, 0, sizeof(media_desc_t));
   new->media = strdup(mdesc);
-  new->port = (in_port_t)read;
+  new->port = (uint16_t)read;
   new->proto = strdup(proto);
   new->num_ports = (unsigned short)port_no;
 

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_dx5events.c,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
+ "@(#) $Id: SDL_dx5events.c,v 1.3 2001/05/09 21:15:11 cahighlander Exp $";
 #endif
 
 /* CAUTION!!!!  If you modify this file, check ../windib/SDL_sysevents.c */

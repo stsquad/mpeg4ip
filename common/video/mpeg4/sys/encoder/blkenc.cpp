@@ -101,19 +101,20 @@ Int CVideoObjectEncoder::quantizeIntraBlockTexture (PixelC* ppxlcBlkSrc,
 
 	Int iSumErr = 0;
 	m_rgiQPpred [iBlk - 1] = iQP; //default to current in case no predictor
+	// wmay - hope this is right...
 	iSumErr += decideIntraPredDir (	rgiCoefQ,
-									(BlockNum) iBlk,
-									(const int *)(m_rgblkmCurrMB [iBlk - 1]),
-									pmbmLeft, 
-  									pmbmTop, 
-									pmbmLeftTop,									   
-									pmbmCurr,
-									pmbmdLeft,
-									pmbmdTop,
-									pmbmdLeftTop,
-									pmbmdCurr,
-									m_rgiQPpred [iBlk - 1],
-									(int)iQP);
+					(BlockNum) iBlk,
+					(const BlockMemory*)&m_rgblkmCurrMB[iBlk - 1],
+					pmbmLeft, 
+					pmbmTop, 
+					pmbmLeftTop,
+					pmbmCurr,
+					pmbmdLeft,
+					pmbmdTop,
+					pmbmdLeftTop,
+					pmbmdCurr,
+					m_rgiQPpred [iBlk - 1],
+					(int)iQP);
 	if(iBlk < A_BLOCK1 || pmbmdCurr->m_CODAlpha == ALPHA_CODED)
 		m_pidct->apply (m_rgiDCTcoef, BLOCK_SIZE, ppxlcCurrQBlock, iWidthCurrQ);
 	return iSumErr;
@@ -203,7 +204,7 @@ Void CVideoObjectEncoder::quantizeInterDCTcoefMPEG (Int* rgiCoefQ, Int iStart, I
 
 Int CVideoObject::decideIntraPredDir (Int* rgiCoefQ,
 									   BlockNum blkn,
-									   const BlockMemory& blkmRet, 
+									   const BlockMemory* blkmRet, 
 									   const MacroBlockMemory* pmbmLeft, 
   									   const MacroBlockMemory* pmbmTop, 
 									   const MacroBlockMemory* pmbmLeftTop,
@@ -240,13 +241,13 @@ Int CVideoObject::decideIntraPredDir (Int* rgiCoefQ,
 	Int iHorizontalGrad				= ((blkmTop  == NULL) ? iDefVal : blkmTop  [0]) - iPredLeftTop;
 	Int iVerticalGrad				= ((blkmLeft == NULL) ? iDefVal : blkmLeft [0]) - iPredLeftTop;
 
-	blkmRet = NULL;
+	*blkmRet = NULL;
 	UInt i, j;
 	Int iSumErr = 0; //per vm4.0, p53
 	if (abs(iVerticalGrad)  < abs (iHorizontalGrad))	{
 		pmbmdCurr->m_preddir [blkn - 1] = VERTICAL;
 		if (blkmTop != NULL)	{
-			blkmRet = blkmTop;
+			*blkmRet = blkmTop;
 			iQPpred = iQPpredTop;
 			if (bDecideDCOnly != TRUE)	{
 				for (i = 1; i < BLOCK_SIZE; i++)	{
@@ -262,7 +263,7 @@ Int CVideoObject::decideIntraPredDir (Int* rgiCoefQ,
 	else	{
 		pmbmdCurr->m_preddir [blkn - 1] = HORIZONTAL;
 		if (blkmLeft != NULL)	{
-			blkmRet = blkmLeft;
+			*blkmRet = blkmLeft;
 			iQPpred = iQPpredLeft;
 			if (bDecideDCOnly != TRUE)	{
 				for (i = 8, j = 8; i < BLOCK_SQUARE_SIZE; i += 8, j++)	{

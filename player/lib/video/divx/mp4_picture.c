@@ -403,9 +403,22 @@ void make_edge (unsigned char *frame_pic,
 //  displaying or writing to a file
 void PictureDisplay(unsigned char *bmp, int render_flag)
 {
-#define MPEG4IP
 #ifdef MPEG4IP
   int i;
+
+#ifdef POSTPROCESS
+  // In our experience, with intermediate bitrates (~500Kbps CIF)
+  // deblocking of the luminance plane can improve picture quality,
+  // deblocking of the chroma planes tends to smear the colors. 
+  // At higher bitrates, the deblocking is unnecessary
+  // At lower bitrates, the deblocking is insufficient
+  postprocess(NULL, 0,
+	frame_ref, coded_picture_width, 
+	coded_picture_width,  vertical_size, 
+	&quant_store[1][1], (MBC+1), 
+	PP_DONT_COPY | PP_DEBLOCK_Y_H | PP_DEBLOCK_Y_V);
+#endif /* POSTPROCESS */
+	
   for(i=0; i<mp4_hdr.height; i++) {
 
     memcpy(((char **) bmp)[0] + i*mp4_hdr.width,

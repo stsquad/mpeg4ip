@@ -179,156 +179,117 @@ CSessionEncoder::~CSessionEncoder ()
 }
 
 
-CSessionEncoder::CSessionEncoder (
-		// general info
-		UInt uiFrmWidth, // frame width
-		UInt uiFrmHeight, // frame height
-		Int iFirstFrm, // first frame number
-		Int iLastFrm, // last frame number
-		Bool bNot8Bit, // NBIT: not 8-bit flag
-		UInt uiQuantPrecision, // NBIT: quant precision
-		UInt nBits, // NBIT: number of bits per pixel
-		Int iFirstVO, // first VOP index
-		Int iLastVO, // last VOP index
-		const Bool* rgbSpatialScalability, // spatial scalability indicator
-		const Int* rgiTemporalScalabilityType, // temporal scalability formation case // added by Sharp (98/02/09)
-		const Int* rgiEnhancementType,	// enhancement_type for scalability // added by Sharp (98/02/09)
-		UInt* rguiRateControl [], // rate control type
-		UInt* rguiBudget [], // for rate control
-		// for shape coding
-		const AlphaUsage* rgfAlphaUsage, // alpha usage for each VOP.  0: binary, 1: 8-bit
-		const Bool* rgbShapeOnly,		 // disable texture motion coding
-		const Int* rgiBinaryAlphaTH,	 // threhold is shape size conversion
-		const Int* rgiBinaryAlphaRR,	 // refrash rate for binary shape coding:	Added for error resilient mode by Toshiba(1997-11-14)
-		const Bool* rgbNoCrChange,		 // no change of cr from mb to mb
-
-		// motion estimation part for each VOP
-		UInt** rguiSearchRange,  // motion search range
-		Bool** rgbOriginalForME, // flag indicating whether use the original previous VOP for ME
-		Bool** rgbAdvPredDisable,//no advanced MC (currenly = obmc, later = obmc + 8x8)
-		// START: Complexity Estimation syntax support - Marc Mongenet (EPFL) - 17 Jun 1998
-		Bool ** rgbComplexityEstimationDisable,
-		Bool ** rgbOpaque,
-		Bool ** rgbTransparent,
-		Bool ** rgbIntraCAE,
-		Bool ** rgbInterCAE,
-		Bool ** rgbNoUpdate,
-		Bool ** rgbUpsampling,
-		Bool ** rgbIntraBlocks,
-		Bool ** rgbInterBlocks,
-		Bool ** rgbInter4vBlocks,
-		Bool ** rgbNotCodedBlocks,
-		Bool ** rgbDCTCoefs,
-		Bool ** rgbDCTLines,
-		Bool ** rgbVLCSymbols,
-		Bool ** rgbVLCBits,
-		Bool ** rgbAPM,
-		Bool ** rgbNPM,
-		Bool ** rgbInterpolateMCQ,
-		Bool ** rgbForwBackMCQ,
-		Bool ** rgbHalfpel2,
-		Bool ** rgbHalfpel4,
-		// END: Complexity Estimation syntax support
-
-		// START: VOL Control Parameters
-		UInt ** rguiVolControlParameters,
-		UInt ** rguiChromaFormat,
-		UInt ** rguiLowDelay,
-		UInt ** rguiVBVParams,
-		UInt ** rguiBitRate,
-		UInt ** rguiVbvBufferSize,
-		UInt ** rguiVbvBufferOccupany,
-		// END: VOL Control Parameters
-
-		Double** rgdFrameFrequency,
-
-		// interlace coding
-		Bool** rgbInterlacedCoding, // interlace flag
-		Bool** rgbTopFieldFirst,    // top field first flag
-        Bool** rgbAlternateScan,    // alternate scan flag
-
-		Int** rgiDirectModeRadius,	// Direct mode search radius
-
-		// motion vector file I/O
-		Int** rgiMVFileUsage,
-		Char*** pchMVFileName,
-		// major syntax mode
-		Int**	rgbVPBitTh,			// Bit threshold for video packet spacing control
-		Bool** rgbDataPartitioning,  //data partitioning
-		Bool** rgbReversibleVlc, //reversible VLC
-
-		// for texture coding
-		Quantizer** rgfQuant, // quantizer selection, either H.263 or MPEG
-		Bool** rgbLoadIntraMatrix, // load user-defined intra Q-Matrix
-		Int*** rgppiIntraQuantizerMatrix, // Intra Q-Matrix
-		Bool** rgbLoadInterMatrix, // load user-defined inter Q-Matrix
-		Int*** rgppiInterQuantizerMatrix, // Inter Q-Matrix
-		Int** rgiIntraDCSwitchingThr,		//threshold to code dc as ac when pred. is on
-		Int** rgiStepI, // I-VOP quantization stepsize
-		Int** rgiStepP, // P-VOP quantization stepsize
-		Bool**	rgbLoadIntraMatrixAlpha,
-		Int*** rgppiIntraQuantizerMatrixAlpha,
-		Bool**	rgbLoadInterMatrixAlpha,
-		Int*** rgppiInterQuantizerMatrixAlpha,
-		Int** rgiStepIAlpha, // I-VOP quantization stepsize for Alpha
-		Int** rgiStepPAlpha, // P-VOP quantization stepsize for Alpha
-		Int** rgiStepBAlpha, // P-VOP quantization stepsize for Alpha
-		Int** rgbNoAlphaQuantUpdate, // discouple gray quant update with tex. quant
-		Int** rgiStepB, // quantization stepsize for B-VOP
-		const Int* rgiNumOfBbetweenPVOP,		// no of B-VOPs between P-VOPs
-		const Int* rgiNumOfPbetweenIVOP,		// no of P-VOPs between I-VOPs
-//added to encode GOVheader by SONY 980212
-		const Int* rgiGOVperiod,
-//980212
-		const Bool* rgbDeblockFilterDisable, //deblocing filter disable
-		const Bool *rgbAllowSkippedPMBs,
-
-		// file information
-		const Char* pchPrefix, // prefix name of the movie
-		const Char* pchBmpFiles, // bmp file directory location
-		const ChromType* rgfChrType, // input chrominance type. 0 - 4:4:4, 1 - 4:2:2, 0 - 4:2:0
-		const Char* pchOutBmpFiles, // quantized frame file directory
-		const Char* pchOutStrFiles, // output bitstream file
-		const Int* rgiTemporalRate, // temporal subsampling rate
-		const Int* rgiEnhnTemporalRate, // temporal subsampling rate // added by Sharp (98/02/09)
-		
-		// statistics dumping options
-		const Bool* rgbDumpMB,
-		const Bool* rgbTrace,
-
-		// rounding control
-		const Bool* rgbRoundingControlDisable,
-		const Int* rgiInitialRoundingType,
-		// for sprite info
-		const UInt* rguiSpriteUsage, // sprite usage
-		const UInt* rguiWarpingAccuracy, // warping accuracy
-		const Int* rgNumOfPnts, // number of points for sprite, 0 for stationary and -1 for no sprite
-		const Char* pchSptDir, // sprite directory
-		const Char* pchSptPntDir, // sprite point file
-		SptMode *pSpriteMode,		// sprite reconstruction mode, i.e. Low-latency-sprite-enable 
-		Int iSpatialOption,
-		UInt uiFrmWidth_SS,
-		UInt uiFrmHeight_SS,
-		UInt uiHor_sampling_n,
-		UInt uiHor_sampling_m,
-		UInt uiVer_sampling_n,
-		UInt uiVer_sampling_m
-) :
-	m_iFirstFrame (iFirstFrm), m_iLastFrame (iLastFrm),
-	m_iFirstVO (iFirstVO), m_iLastVO (iLastVO),
-	m_rgbSpatialScalability (rgbSpatialScalability),
-	m_rguiRateControl (rguiRateControl), 
-	m_rguiBudget (rguiBudget),
-	m_pchPrefix (pchPrefix), m_pchBmpFiles (pchBmpFiles),
-	m_rgfChrType (rgfChrType), m_pchReconYUVDir (pchOutBmpFiles), 
-	m_pchOutStrFiles (pchOutStrFiles),
-	m_pchSptDir (pchSptDir), 
-	m_pchSptPntDir (pchSptPntDir),
-	m_rguiSpriteUsage (rguiSpriteUsage), 
-	m_rguiWarpingAccuracy (rguiWarpingAccuracy), 
-	m_rgNumOfPnts (rgNumOfPnts), 
-	m_rgiTemporalScalabilityType (rgiTemporalScalabilityType)
+CSessionEncoder::CSessionEncoder (CSessionEncoderParams *param)
 {
+	m_iFirstFrame = param->iFirstFrm;
+	m_iLastFrame = param->iLastFrm;
+	m_iFirstVO = param->uiFirstVO; 
+	m_iLastVO = param->iLastVO;
+	m_rgbSpatialScalability = param->rgbSpatialScalability;
+	m_rguiRateControl = param->rguiRateControl; 
+	m_rguiBudget = param->rguiBudget;
+	m_pchPrefix = param->pchPrefix; 
+	m_pchBmpFiles = param->pchBmpFiles;
+	m_rgfChrType = param->rgfChrType; 
+	m_pchReconYUVDir = param->pchOutBmpFiles; 
+	m_pchOutStrFiles = param->pchOutStrFiles;
+	m_pchSptDir = param->pchSptDir; 
+	m_pchSptPntDir = param->pchSptPntDir;
+	m_rguiSpriteUsage = param->rguiSpriteUsage; 
+	m_rguiWarpingAccuracy = param->rguiWarpingAccuracy; 
+	m_rgNumOfPnts = param->rgNumOfPnts; 
+	m_rgiTemporalScalabilityType = param->rgiTemporalScalabilityType;
+#define PARAM(abc) abc = param->abc
+	  UInt PARAM(uiFrmWidth);
+	UInt PARAM(uiFrmHeight);
+	Bool PARAM(bNot8Bit);
+	UInt PARAM(uiQuantPrecision);
+	UInt PARAM(nBits);
+	const Int* PARAM(rgiEnhancementType);
+
+	const AlphaUsage* PARAM(rgfAlphaUsage);
+	const Bool* PARAM(rgbShapeOnly);
+	const Int* PARAM(rgiBinaryAlphaTH);
+	const Int* PARAM(rgiBinaryAlphaRR);
+	const Bool* PARAM(rgbNoCrChange);
+	UInt** PARAM(rguiSearchRange);
+	Bool** PARAM(rgbOriginalForME);
+	Bool** PARAM(rgbAdvPredDisable);
+	Bool ** PARAM(rgbComplexityEstimationDisable);
+	Bool ** PARAM(rgbOpaque);
+	Bool ** PARAM(rgbTransparent);
+	Bool ** PARAM(rgbIntraCAE);
+	Bool ** PARAM(rgbInterCAE);
+	Bool ** PARAM(rgbNoUpdate);
+	Bool ** PARAM(rgbUpsampling);
+	Bool ** PARAM(rgbIntraBlocks);
+	Bool ** PARAM(rgbInterBlocks);
+	Bool ** PARAM(rgbInter4vBlocks);
+	Bool ** PARAM(rgbNotCodedBlocks);
+	Bool ** PARAM(rgbDCTCoefs);
+	Bool ** PARAM(rgbDCTLines);
+	Bool ** PARAM(rgbVLCSymbols);
+	Bool ** PARAM(rgbVLCBits);
+	Bool ** PARAM(rgbAPM);
+	Bool ** PARAM(rgbNPM);
+	Bool ** PARAM(rgbInterpolateMCQ);
+	Bool ** PARAM(rgbForwBackMCQ);
+	Bool ** PARAM(rgbHalfpel2);
+	Bool ** PARAM(rgbHalfpel4);
+	UInt ** PARAM(rguiVolControlParameters);
+	UInt ** PARAM(rguiChromaFormat);
+	UInt ** PARAM(rguiLowDelay);
+	UInt ** PARAM(rguiVBVParams);
+	UInt ** PARAM(rguiBitRate);
+	UInt ** PARAM(rguiVbvBufferSize);
+	UInt ** PARAM(rguiVbvBufferOccupany);
+	Double** PARAM(rgdFrameFrequency);
+	Bool** PARAM(rgbInterlacedCoding);
+	Bool** PARAM(rgbTopFieldFirst);
+	Bool** PARAM(rgbAlternateScan);
+	Int** PARAM(rgiDirectModeRadius);
+	Int** PARAM(rgiMVFileUsage);
+	Char*** PARAM(pchMVFileName);
+	Int**	PARAM(rgbVPBitTh);
+	Bool**	PARAM(rgbDataPartitioning);
+	Bool**	PARAM(rgbReversibleVlc);
+	Quantizer** PARAM(rgfQuant);
+	Bool** PARAM(rgbLoadIntraMatrix);
+	Int*** PARAM(rgppiIntraQuantizerMatrix);
+	Bool** PARAM(rgbLoadInterMatrix);
+	Int*** PARAM(rgppiInterQuantizerMatrix);
+	Int** PARAM(rgiIntraDCSwitchingThr);
+	Int** PARAM(rgiStepI);
+	Int** PARAM(rgiStepP);
+	Bool**	PARAM(rgbLoadIntraMatrixAlpha);
+	Int*** PARAM(rgppiIntraQuantizerMatrixAlpha);
+	Bool**	PARAM(rgbLoadInterMatrixAlpha);
+	Int*** PARAM(rgppiInterQuantizerMatrixAlpha);
+	Int** PARAM(rgiStepIAlpha);
+	Int** PARAM(rgiStepPAlpha);
+	Int** PARAM(rgiStepBAlpha);
+	Int** PARAM(rgbNoAlphaQuantUpdate);
+	Int** PARAM(rgiStepB);
+	const Int* PARAM(rgiNumOfBbetweenPVOP);
+	const Int* PARAM(rgiNumOfPbetweenIVOP);
+	const Int* PARAM(rgiGOVperiod);
+	const Bool* PARAM(rgbDeblockFilterDisable);
+	const Bool *PARAM(rgbAllowSkippedPMBs);
+	const Int* PARAM(rgiTemporalRate);
+	const Int* PARAM(rgiEnhnTemporalRate);
+	const Bool* PARAM(rgbDumpMB);
+	const Bool* PARAM(rgbTrace);
+	const Bool* PARAM(rgbRoundingControlDisable); 
+	const Int* PARAM(rgiInitialRoundingType); 
+	SptMode *PARAM(pSpriteMode);
+	Int PARAM(iSpatialOption);
+	UInt PARAM(uiFrmWidth_SS);
+	UInt PARAM(uiFrmHeight_SS);
+	UInt PARAM(uiHor_sampling_n);
+	UInt PARAM(uiHor_sampling_m);
+	UInt PARAM(uiVer_sampling_n);
+	UInt PARAM(uiVer_sampling_m);
+#undef PARAM
 	// data preparation
 	m_iNumFrame = m_iLastFrame - m_iFirstFrame + 1;
 	assert (m_iNumFrame > 0);

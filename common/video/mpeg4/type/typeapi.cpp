@@ -75,6 +75,12 @@ U8 checkrangeU8 (U8 x, U8 cMin, U8 cMax)	// returns cMin if x < cMin, cMax if x 
 }
 
 // NBIT: add checkrange for U16
+unsigned char checkrange (unsigned char x, unsigned char cMin, unsigned char cMax)	// returns cMin if x < cMin, cMax if x > cMax, otherwise x
+{
+	if (x < cMin)	return cMin;
+	if (x > cMax)	return cMax;
+	return x;
+}
 U16 checkrange (U16 x, U16 cMin, U16 cMax)	// returns cMin if x < cMin, cMax if x > cMax, otherwise x
 {
 	if (x < cMin)	return cMin;

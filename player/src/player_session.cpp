@@ -50,6 +50,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_sync_thread = NULL;
   m_sync_sem = NULL;
   m_range = NULL;
+  m_content_base = NULL;
   m_master_msg_queue = master_mq;
   m_master_msg_queue_sem = master_sem;
   m_paused = 0;
@@ -65,6 +66,9 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_hardware_error = 0;
   m_fullscreen = 0;
   m_session_control_is_aggregate = 0;
+  for (int ix = 0; ix < SESSION_DESC_COUNT; ix++) {
+    m_session_desc[ix] = NULL;
+  }
 }
 
 CPlayerSession::~CPlayerSession ()
@@ -123,7 +127,15 @@ CPlayerSession::~CPlayerSession ()
     free((void *)m_session_name);
     m_session_name = NULL;
   }
-    
+  if (m_content_base) {
+    free((void *) m_content_base);
+    m_content_base = NULL;
+  }
+  for (int ix = 0; ix < SESSION_DESC_COUNT; ix++) {
+    if (m_session_desc[ix] != NULL) 
+      free((void *)m_session_desc[ix]);
+    m_session_desc[ix] = NULL;
+  }
   SDL_Quit();
 }
 
@@ -220,8 +232,9 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
   /*
    * Make sure we can use the urls in the sdp info
    */
+  m_content_base = strdup(decode->content_base);
   convert_relative_urls_to_absolute(m_sdp_info,
-				    decode->content_base);
+				    m_content_base);
 
   free_decode_response(decode);
   m_streaming = 1;
@@ -441,8 +454,36 @@ CPlayerMedia *CPlayerSession::rtsp_url_to_media (const char *url)
     p = p->get_next();
   }
   free(temp);
+  temp = strdup(url);
+  if (m_content_base) {
+    do_relative_url_to_absolute(&temp, m_content_base, 1);
+    p = m_my_media;
+    while (p != NULL) {
+      if (rtsp_is_url_my_stream(temp, p->get_rtsp_session()) != 0) {
+	free(temp);
+	return p;
+      }
+      p = p->get_next();
+    }
+    free(temp);
+  }
   return (NULL);
 }
        
-  
+int CPlayerSession::set_session_desc (int line, const char *desc)
+{
+  if (line >= SESSION_DESC_COUNT) {
+    return -1;
+  }
+  if (m_session_desc[line] != NULL) free((void *)m_session_desc[line]);
+  m_session_desc[line] = strdup(desc);
+  if (m_session_desc[line] == NULL) 
+    return -1;
+  return (0);
+}
+
+const char *CPlayerSession::get_session_desc (int line)
+{
+  return m_session_desc[line];
+}
 /* end file player_session.cpp */

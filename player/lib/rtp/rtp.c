@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.1 $ 
- * $Date: 2001/02/05 20:26:34 $
+ * $Revision: 1.2 $ 
+ * $Date: 2001/05/09 21:15:12 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_endian.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
+ "@(#) $Id: SDL_endian.c,v 1.3 2001/05/09 21:15:08 cahighlander Exp $";
 #endif
 
 /* Functions for dynamically reading and writing endian-specific values */

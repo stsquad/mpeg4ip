@@ -78,9 +78,9 @@ void CInByteStreamRtp::check_for_end_of_pak (void)
   }
 }
 
-char CInByteStreamRtp::get (void)
+unsigned char CInByteStreamRtp::get (void)
 {
-  char ret;
+  unsigned char ret;
 
   if (m_pak == NULL) {
     if (m_bookmark_set == 1) {
@@ -105,7 +105,7 @@ char CInByteStreamRtp::get (void)
   return (ret);
 }
 
-char CInByteStreamRtp::peek (void) 
+unsigned char CInByteStreamRtp::peek (void) 
 {
   return (m_pak ? m_pak->data[m_offset_in_pak] : 0);
 }
@@ -169,7 +169,7 @@ uint64_t CInByteStreamRtp::start_next_frame (void)
 					   
 }
 
-size_t CInByteStreamRtp::read (char *buffer, size_t bytes_to_read)
+size_t CInByteStreamRtp::read (unsigned char *buffer, size_t bytes_to_read)
 {
   size_t inbuffer, readbytes = 0;
 

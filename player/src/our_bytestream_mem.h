@@ -30,11 +30,11 @@
 class COurInByteStreamMem : public COurInByteStream
 {
  public:
-  COurInByteStreamMem(CPlayerMedia *m, const char *membuf, size_t len);
+  COurInByteStreamMem(CPlayerMedia *m, const unsigned char *membuf, size_t len);
   ~COurInByteStreamMem();
   int eof(void);
-  char get(void);
-  char peek(void);
+  unsigned char get(void);
+  unsigned char peek(void);
   void bookmark(int bSet); 
   void reset(void);
   int have_no_data(void) { return eof(); };
@@ -43,12 +43,12 @@ class COurInByteStreamMem : public COurInByteStream
   };
   uint64_t start_next_frame(void);
   double get_max_playtime (void) { return 0.0; };
-  size_t read(char *buffer, size_t read);
-  size_t read(unsigned char *buffer, size_t readbytes) {
-    return (read((char *)buffer, readbytes));
+  size_t read(unsigned char *buffer, size_t read);
+  size_t read(char *buffer, size_t readbytes) {
+    return (read((unsigned char *)buffer, readbytes));
   }
  protected:
-  const char *m_memptr;
+  const unsigned char *m_memptr;
  private:
   size_t m_offset, m_len, m_total, m_bookmark_total, m_bookmark_offset;
   uint64_t m_frames;
@@ -60,7 +60,7 @@ class COurInByteStreamMem : public COurInByteStream
 class COurInByteStreamWav : public COurInByteStreamMem
 {
 public:
-  COurInByteStreamWav(CPlayerMedia *m, const char *membuf, size_t len);
+  COurInByteStreamWav(CPlayerMedia *m, const unsigned char *membuf, size_t len);
   ~COurInByteStreamWav();
 };
 

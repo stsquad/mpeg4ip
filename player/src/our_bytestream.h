@@ -40,8 +40,8 @@ class COurInByteStream : public CInByteStreamBase
     {m_media = m;};
   virtual ~COurInByteStream() {};
   virtual int eof(void) = 0;
-  virtual char get(void) = 0;
-  virtual char peek(void) = 0;
+  virtual unsigned char get(void) = 0;
+  virtual unsigned char peek(void) = 0;
   virtual void bookmark(int bSet) = 0;
   virtual void reset(void) = 0;
   virtual int have_no_data (void) {return 0; };

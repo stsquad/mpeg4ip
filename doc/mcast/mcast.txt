@@ -23,9 +23,16 @@ play_mode sequential_looped
 sdp_reference_movie mycontent1.mp4
 destination_ip_address 224.10.11.12
 destination_base_port 40000
+ttl 15
 
 See mpeg4ip/server/DSS/Documentation/AboutDarwinStreamingSvr.pdf for a
 more detailed explanation.
+
+Note the 'ttl' parameter is an extension made in the DSS included with 
+MPEG4IP. This parameter specifies the IP time-to-live (TTL) used for the
+multicast packets. It determines how many networks the multicast packets
+can reach before being timed out. The default value is 1, i.e. multicast only
+to the locally attached network.
 
 
 TRANSMITTING

@@ -34,8 +34,8 @@ COurInByteStreamFile::COurInByteStreamFile (CPlayerMedia *m,
   m_bookmark = 0;
   m_buffer_size_max = 4096;
   m_buffer_size = 1;
-  m_orig_buffer = (char *)malloc(m_buffer_size_max);
-  m_bookmark_buffer = (char *)malloc(m_buffer_size_max);
+  m_orig_buffer = (unsigned char *)malloc(m_buffer_size_max);
+  m_bookmark_buffer = (unsigned char *)malloc(m_buffer_size_max);
   read_frame();
 }
 
@@ -49,7 +49,7 @@ COurInByteStreamFile::~COurInByteStreamFile(void)
     free((void *)m_filename);
     m_filename = NULL;
   }
-  player_debug_message("bytes " LLU ", frames "LLU", fps "LLU,
+  player_debug_message("File bytes " LLU ", frames "LLU", fps "LLU,
 		       m_total, m_frames, m_frame_per_sec);
   if (m_frames > 0)
     player_debug_message("bits per sec "LLU, 
@@ -108,9 +108,9 @@ int COurInByteStreamFile::eof (void)
   return (m_buffer_size == 0);
 }
 
-char COurInByteStreamFile::get (void) 
+unsigned char COurInByteStreamFile::get (void) 
 {
-  char ret = m_buffer_on[m_index];
+  unsigned char ret = m_buffer_on[m_index];
   m_index++;
   m_total++;
   if (m_index >= m_buffer_size) {
@@ -119,7 +119,7 @@ char COurInByteStreamFile::get (void)
   return (ret);
 }
 
-char COurInByteStreamFile::peek (void)
+unsigned char COurInByteStreamFile::peek (void)
 {
   return (m_buffer_on[m_index]);
 }
@@ -149,7 +149,7 @@ void COurInByteStreamFile::reset (void)
   read_frame();
 }
 
-size_t COurInByteStreamFile::read (char *buffer, size_t bytestoread) 
+size_t COurInByteStreamFile::read (unsigned char *buffer, size_t bytestoread) 
 {
   if (m_bookmark && bytestoread > m_buffer_size_max) {
     // Can't do this...

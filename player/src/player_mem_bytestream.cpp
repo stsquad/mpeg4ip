@@ -41,9 +41,9 @@ void CInByteStreamMem::init()
   m_bookmark_set = 0;
 }
 
-char CInByteStreamMem::get (void)
+unsigned char CInByteStreamMem::get (void)
 {
-  char ret;
+  unsigned char ret;
 
   ret = *m_memptr++;
   m_offset++;
@@ -55,7 +55,7 @@ char CInByteStreamMem::get (void)
   return (ret);
 }
 
-char CInByteStreamMem::peek (void) 
+unsigned char CInByteStreamMem::peek (void) 
 {
   return (*m_memptr);
 }

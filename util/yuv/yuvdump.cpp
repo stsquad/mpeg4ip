@@ -12,6 +12,28 @@ int main (int argc, char **argv)
   argc--;
   argv++;
 
+  while (argv[0][0] == '-') {
+    switch (argv[0][1]) {
+    case 'h':
+      argv++;
+      argc--;
+      height = atoi(*argv);
+      argv++;
+      argc--;
+      break;
+    case 'w':
+      argv++;
+      argc--;
+      width = atoi(*argv);
+      argv++;
+      argc--;
+      break;
+    default:
+      printf("Unknown option %s", *argv);
+      exit(-1);
+    }
+  }
+
   if (SDL_Init(SDL_INIT_VIDEO) < 0 || !SDL_VideoDriverName(buf, 1)) {
     printf("Could not init SDL video: %s\n", SDL_GetError());
   }

@@ -60,11 +60,13 @@ int newdec_frame (unsigned char *y,
   yuv[0] = y;
   yuv[1] = u;
   yuv[2] = v;
-  if (getvophdr(wait_for_i) == 0)
+  if (getvophdr() == 0)
     return (0);
   #if 0
-  if (wait_for_i && mp4_hdr.prediction_type != I_VOP)
+  if (wait_for_i && mp4_hdr.prediction_type != I_VOP) {
+    printf("wfi !IVOP\n");
     return (0);
+  }
   #endif
   get_mp4picture((unsigned char *)yuv, 1);
   return (1);

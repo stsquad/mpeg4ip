@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.1 $
- *  $Date: 2001/02/05 20:26:33 $
+ *  $Revision: 1.2 $
+ *  $Date: 2001/05/09 21:15:12 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -45,6 +45,7 @@
 
 #include <limits.h>
 #include <sys/types.h>
+#include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 

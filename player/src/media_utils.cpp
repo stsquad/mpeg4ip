@@ -37,8 +37,9 @@
 #endif
 #include "codec/wav/ourwav.h"
 #include "codec/wav/wav_file.h"
+#include "avi_file.h"
 #include "qtime_file.h"
-
+#include "our_config_file.h"
 /*
  * This needs to be global so we can store any ports that we don't
  * care about but need to reserve
@@ -68,6 +69,7 @@ static struct codec_list_t {
   {"MPG4", VIDEO_MPEG4_ISO},
   {"MP4V-ES", VIDEO_MPEG4_ISO_OR_DIVX},
   {"divx", VIDEO_DIVX},
+  {"dvx1", VIDEO_DIVX},
   {NULL, -1},
 },
   audio_codecs[] = {
@@ -159,10 +161,20 @@ static int create_media_for_streaming_broadcast (CPlayerSession *psptr,
   int valid_count = 0;
   int invalid_count = 0;
   int err;
+  char buffer[80];
   // need to set range in player session...
   err = psptr->create_streaming_broadcast(sdp, errmsg);
   if (err != 0) {
     return (-1);
+  }
+
+  if (sdp->session_name != NULL) {
+    snprintf(buffer, sizeof(buffer), "Name: %s", sdp->session_name);
+    psptr->set_session_desc(0, buffer);
+  }
+  if (sdp->session_desc != NULL) {
+    snprintf(buffer, sizeof(buffer), "Description: %s", sdp->session_desc);
+    psptr->set_session_desc(1, buffer);
   }
   media_desc_t *sdp_media;
   for (sdp_media = psptr->get_sdp_info()->media;
@@ -201,15 +213,26 @@ static int create_media_for_streaming_ondemand (CPlayerSession *psptr,
 						const char **errmsg)
 {
   int err;
+  session_desc_t *sdp;
   media_desc_t *sdp_media;
   int media_count = 0;
   int invalid_count = 0;
+  char buffer[80];
   /*
    * This will open the rtsp session
    */
   err = psptr->create_streaming_ondemand(name, errmsg);
   if (err != 0) {
     return (-1);
+  }
+  sdp = psptr->get_sdp_info();
+  if (sdp->session_name != NULL) {
+    snprintf(buffer, sizeof(buffer), "Name: %s", sdp->session_name);
+    psptr->set_session_desc(0, buffer);
+  }
+  if (sdp->session_desc != NULL) {
+    snprintf(buffer, sizeof(buffer), "Description: %s", sdp->session_desc);
+    psptr->set_session_desc(1, buffer);
   }
   for (sdp_media = psptr->get_sdp_info()->media;
        sdp_media != NULL;
@@ -338,10 +361,13 @@ int parse_name_for_session (CPlayerSession *psptr,
 	     (strstr(name, ".WAV") != NULL)) {
     err = create_media_for_wav_file(psptr, name, errmsg);
     return (err);
-#if 1
   } else if (strstr(name, ".mp3") != NULL) {
     player_debug_message("starting %s", name);
     err = create_media_for_mp3_file(psptr, name, errmsg);
+    return (err);
+#if 1
+  } else if (strstr(name, ".avi") != NULL) {
+    err = create_media_for_avi_file(psptr, name, errmsg);
     return (err);
 #endif
   }
@@ -435,7 +461,10 @@ CCodecBase *start_video_codec (const char *codec_name,
 
   if (lookup_codec_by_name(codec_name, video_codecs, &val) == 0) {
     if (val == VIDEO_MPEG4_ISO_OR_DIVX) {
-      val = which_mpeg4_codec(media_fmt, userdata, userdata_size);
+      if (config.get_config_value(CONFIG_USE_MPEG4_ISO_ONLY))
+	val = VIDEO_MPEG4_ISO;
+      else
+	val = which_mpeg4_codec(media_fmt, userdata, userdata_size);
     }
     if (val == VIDEO_MPEG4_ISO) {
       player_debug_message("Starting MPEG4 iso reference codec");

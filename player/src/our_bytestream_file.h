@@ -33,17 +33,17 @@ class COurInByteStreamFile : public COurInByteStream
   COurInByteStreamFile(CPlayerMedia *m, const char *filename);
   ~COurInByteStreamFile();
   int eof(void);
-  char get(void);
-  char peek(void);
+  unsigned char get(void);
+  unsigned char peek(void);
   void bookmark(int bSet); 
   void reset(void);
   int have_no_data(void) { return eof(); };
   uint64_t start_next_frame(void);
   double get_max_playtime (void) { return 0.0; };
   void set_start_time(uint64_t start);
-  size_t read(char *buffer, size_t bytes);
-  size_t read(unsigned char *buffer, size_t bytes) {
-    return (read((char *)buffer, bytes));
+  size_t read(unsigned char *buffer, size_t bytes);
+  size_t read(char *buffer, size_t bytes) {
+    return (read((unsigned char *)buffer, bytes));
   };
 	    
   void config_for_file (uint64_t frame_per_sec) {
@@ -57,7 +57,7 @@ class COurInByteStreamFile : public COurInByteStream
   FILE *m_file;
   int m_bookmark_eofstate;
   uint64_t m_total, m_bookmark_total;
-  char *m_buffer_on, *m_orig_buffer, *m_bookmark_buffer;
+  unsigned char *m_buffer_on, *m_orig_buffer, *m_bookmark_buffer;
   size_t m_buffer_size, m_bookmark_buffer_size;
   size_t m_bookmark_loaded, m_bookmark_loaded_size;
   size_t m_buffer_size_max;

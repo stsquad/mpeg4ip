@@ -40,6 +40,94 @@ static size_t c_read_bytes (unsigned char *b, size_t bytes, void *userdata)
   return (fd->read(b, bytes));
 }
 
+
+// from mplib-0.6
+#define GLL 148
+const static char *genre_list[GLL] = 
+{ "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge", "Hip-Hop", "Jazz",
+  "Metal", "New Age", "Oldies", "Other", "Pop", "R&B", "Rap", "Reggae", "Rock", "Techno",
+  "Industrial", "Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack", "Euro-Techno",
+  "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical", "Instrumental",
+  "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise", "Alternative Rock", "Bass", "Soul", "Punk",
+  "Space", "Meditative", "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic", "Darkwave",
+  "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance", "Dream", "Southern Rock", "Comedy", 
+  "Cult", "Gangsta Rap", "Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native American", "Cabaret",
+  "New Wave", "Psychedelic", "Rave", "Showtunes", "Trailer", "Lo-Fi", "Tribal", "Acid Punk",
+  "Acid Jazz", "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock", "Folk", "Folk/Rock", 
+  "National Folk", "Swing", "Fast-Fusion", "Bebob", "Latin", "Revival", "Celtic", "Bluegrass",
+  "Avantgarde", "Gothic Rock", "Progressive Rock", "Psychedelic Rock", "Symphonic Rock", "Slow Rock",
+  "Big Band", "Chorus", "Easy Listening", "Acoustic", "Humour", "Speech", "Chanson", "Opera",
+  "Chamber Music", "Sonata", "Symphony", "Booty Bass", "Primus", "Porn Groove", "Satire", "Slow Jam",
+  "Club", "Tango", "Samba", "Folklore", "Ballad", "Power Ballad", "Rythmic Soul", "Freestyle",
+  "Duet", "Punk Rock", "Drum Solo", "A Cappella", "Euro-House", "Dance Hall", "Goa", "Drum & Bass",
+  "Club-House", "Hardcore", "Terror", "Indie", "BritPop", "Negerpunk", "Polsk Punk", "Beat",
+  "Christian Gangsta Rap", "Heavy Metal", "Black Metal", "Crossover", "Contemporary Christian",
+  "Christian Rock", "Merengue", "Salsa", "Trash Metal", "Anime", "JPop", "Synthpop" };
+
+
+static void read_mp3_file_for_tag (CPlayerSession *psptr,
+				   const char *name)
+{
+  FILE *ifile;
+  char buffer[128];
+  char desc[80];
+  char temp;
+  int ix;
+
+  ifile = fopen(name, "r");
+  if (ifile == NULL) return;
+  if (fseek(ifile, -128, SEEK_END) != 0) {
+    return;
+  }
+  fread(buffer, 1, 128, ifile);
+  if (strncasecmp(buffer, "tag", 3) != 0) {
+    return;
+  }
+  temp = buffer[33];
+  buffer[33] = '\0';
+  ix = 32;
+  while (isspace(buffer[ix]) && ix > 0) {
+    buffer[ix] = '\0';
+    ix--;
+  }
+  snprintf(desc, sizeof(desc), "%s", &buffer[3]);
+  psptr->set_session_desc(0, desc);
+  buffer[33] = temp;
+
+  temp = buffer[63];
+  buffer[63] = '\0';
+  ix = 62;
+  while (isspace(buffer[ix]) && ix > 33) {
+    buffer[ix] = '\0';
+    ix--;
+  }
+  snprintf(desc, sizeof(desc), "By: %s", &buffer[33]);
+  psptr->set_session_desc(1, desc);
+  buffer[63] = temp;
+
+  temp = buffer[93];
+  buffer[93] = '\0';
+  ix = 92;
+  while (isspace(buffer[ix]) && ix > 63) {
+    buffer[ix] = '\0';
+    ix--;
+  }
+  if (buffer[125] == '\0' && buffer[126] != '\0') {
+    snprintf(desc, sizeof(desc), "On: %s - track %d (%c%c%c%c)",
+	     &buffer[63], buffer[126], temp, buffer[94], buffer[95],
+	     buffer[96]);
+  } else {
+    snprintf(desc, sizeof(desc), "On: %s (%c%c%c%c)",
+	     &buffer[63], temp, buffer[94], buffer[95],
+	     buffer[96]);
+  }
+  psptr->set_session_desc(2, desc);
+  unsigned char index = (unsigned char)buffer[127];
+  if (index <= GLL) {
+    snprintf(desc, sizeof(desc), "Genre: %s", genre_list[index]);
+    psptr->set_session_desc(3, desc);
+  }
+}
 int create_media_for_mp3_file (CPlayerSession *psptr, 
 			       const char *name,
 			       const char **errmsg)
@@ -97,6 +185,7 @@ int create_media_for_mp3_file (CPlayerSession *psptr,
   audio->stream_has_length = 0;
   mptr->set_audio_info(audio);
   mptr->set_codec_type("mp3 ");
+  read_mp3_file_for_tag(psptr, name);
   return (0);
 }
 

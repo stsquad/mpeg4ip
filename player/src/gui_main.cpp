@@ -32,6 +32,7 @@
 #include "gui_xpm.h"
 #include <syslog.h>
 #include <rtsp/rtsp_client.h>
+#include "our_config_file.h"
 
 /* Local variables */
 static GtkWidget *main_window;
@@ -60,6 +61,7 @@ static GtkWidget *speaker_button;
 static GtkWidget *volume_slider;
 static GtkWidget *time_slider;
 static GtkWidget *time_disp;
+static GtkWidget *session_desc[5];
 static SDL_mutex *command_mutex;
 static int master_volume;
 static int master_muted;
@@ -213,6 +215,13 @@ static void start_session_from_name (const char *name)
   // If we're playing, adjust the gui
   if (psptr != NULL) {
     adjust_gui_for_play();
+    if (in_list == 0) {
+      config.move_config_strings(CONFIG_PREV_FILE_3, CONFIG_PREV_FILE_2);
+      config.move_config_strings(CONFIG_PREV_FILE_2, CONFIG_PREV_FILE_1);
+      config.move_config_strings(CONFIG_PREV_FILE_1, CONFIG_PREV_FILE_0);
+      player_debug_message("String is %s", name);
+      config.set_config_string(CONFIG_PREV_FILE_0, strdup(name));
+    }
   }
   SDL_mutexV(command_mutex);
 }
@@ -547,6 +556,15 @@ static gint main_timer (gpointer raw)
     g_snprintf(buffer, 30, "%d:%02d:%04.1f", hr, min, playtime);
     gtk_label_set_text(GTK_LABEL(time_disp), buffer);
     
+    for (int ix = 0; ix < 4; ix++) {
+      const char *text;
+      text = psptr->get_session_desc(ix);
+      if (text != NULL) {
+	gtk_label_set_text(GTK_LABEL(session_desc[ix]), text);
+      } else {
+	gtk_label_set_text(GTK_LABEL(session_desc[ix]), "");
+      }
+    }
   }
   CMsg *newmsg;
   while ((newmsg = master_queue.get_message()) != NULL) {
@@ -569,6 +587,30 @@ int main (int argc, char **argv)
 
   command_mutex = SDL_CreateMutex();
 
+  config.read_config_file();
+  const char *read;
+  playlist = g_list_append(playlist, (void *)"");
+  read = config.get_config_string(CONFIG_PREV_FILE_0);
+  if (read != NULL) {
+    gchar *newone = g_strdup(read);
+    playlist = g_list_append(playlist, newone);
+  }
+  read = config.get_config_string(CONFIG_PREV_FILE_1);
+  if (read != NULL) {
+    gchar *newone = g_strdup(read);
+    playlist = g_list_append(playlist, newone);
+  }
+  read = config.get_config_string(CONFIG_PREV_FILE_2);
+  if (read != NULL) {
+    gchar *newone = g_strdup(read);
+    playlist = g_list_append(playlist, newone);
+  }
+  read = config.get_config_string(CONFIG_PREV_FILE_3);
+  if (read != NULL) {
+    gchar *newone = g_strdup(read);
+    playlist = g_list_append(playlist, newone);
+  }
+
   rtsp_set_loglevel(LOG_DEBUG);
   /*
    * Set up main window
@@ -578,8 +620,8 @@ int main (int argc, char **argv)
   gtk_window_set_title(GTK_WINDOW(main_window), 
 		       "cisco Open Source MPEG4 Player");
   gtk_widget_set_uposition(GTK_WIDGET(main_window), 10, 10);
-  gtk_widget_set_usize(main_window, 450, 122);
-  gtk_window_set_default_size(GTK_WINDOW(main_window), 450, 122);
+  gtk_widget_set_usize(main_window, 450, 185);
+  gtk_window_set_default_size(GTK_WINDOW(main_window), 450, 185);
   gtk_signal_connect(GTK_OBJECT(main_window),
 		     "delete_event",
 		     GTK_SIGNAL_FUNC(delete_event),
@@ -716,7 +758,6 @@ int main (int argc, char **argv)
   gtk_widget_show(label);
 
   // combo box uses list playlist.
-  playlist = g_list_append(playlist, (void *)"");
   combo = gtk_combo_new();
   gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo)->entry),
 		     "activate",
@@ -889,8 +930,21 @@ int main (int argc, char **argv)
   gtk_widget_ref(time_disp);
   gtk_widget_show(time_disp);
   gtk_box_pack_start(GTK_BOX(hbox), time_disp, TRUE, TRUE,0);
-  gtk_timeout_add(500, main_timer, main_window);
 
+  // session information
+  for (int ix = 0; ix < 4; ix++) {
+    hbox = gtk_hbox_new(FALSE, 1);
+    gtk_box_pack_start(GTK_BOX(main_vbox), hbox, FALSE, FALSE, 0);
+    gtk_widget_show(hbox);
+  
+    session_desc[ix] = gtk_label_new("");
+    gtk_widget_ref(session_desc[ix]);
+    gtk_widget_show(session_desc[ix]);
+    gtk_box_pack_start(GTK_BOX(hbox), session_desc[ix], TRUE, TRUE,0);
+  }
+
+
+  gtk_timeout_add(500, main_timer, main_window);
   gtk_container_add(GTK_CONTAINER(main_window), main_vbox);
   gtk_widget_show(main_window);
 

@@ -1,4 +1,5 @@
 lib_LTLIBRARIES = libfaad.la
+libfaad_la_LDFLAGS = -static
 libfaad_la_SOURCES = \
 	wav.c \
 	filestream.c \

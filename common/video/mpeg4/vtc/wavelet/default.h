@@ -1,4 +1,4 @@
-/* $Id: default.h,v 1.1 2001/02/05 20:26:21 cahighlander Exp $ */
+/* $Id: default.h,v 1.2 2001/05/09 21:14:18 cahighlander Exp $ */
 /****************************************************************************/
 /*   MPEG4 Visual Texture Coding (VTC) Mode Software                        */
 /*                                                                          */
@@ -707,5 +707,5 @@ EXTERN FILTER wav97Syn
 ;
 
 
-#endif _DEFAULT_H_
+#endif /* _DEFAULT_H_ */
 

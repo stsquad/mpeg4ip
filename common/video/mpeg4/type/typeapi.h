@@ -59,6 +59,7 @@ NOTE: CALLER OWNS ALL THE RETURNED POINTERS!!
 // handy functions
 API Int nint (Double x); // returns nearest integer to x, analog of FORTRAN NINT
 // NBIT: add checkrange for U16
+API unsigned char checkrange(unsigned char x, unsigned char cMin, unsigned char cMax);
 API U16 checkrange (U16 x, U16 cMin, U16 cMax);	// returns cMin if x < cMin, cMax if x > cMax, otherwise x
 API Int checkrange (Int x, Int cMin, Int cMax);	// returns cMin if x < cMin, cMax if x > cMax, otherwise x
 API Long checkrange (Long x, Long cMin, Long cMax);	// returns cMin if x < cMin, cMax if x > cMax, otherwise x

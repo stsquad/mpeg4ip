@@ -489,7 +489,7 @@ Void CVideoObjectEncoder::encode (
 	
 	    m_pbitstrmOut->reset ();
 	    cout << "\nVOP " << m_uiVOId << "\n";
-	    cout << "\tVOL " << m_volmd.volType << "\n"; // added by Sharp (98/2/10)
+	    cout << "\tVOL " << (int)m_volmd.volType << "\n"; // added by Sharp (98/2/10)
 
 		if(m_vopmd.vopPredType==IVOP || m_vopmd.vopPredType==PVOP)
 			m_bCodedFutureRef = bVOPVisible; // flag used by bvop prediction

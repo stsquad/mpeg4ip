@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_rwops.h,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
+ "@(#) $Id: SDL_rwops.h,v 1.3 2001/05/09 21:15:04 cahighlander Exp $";
 #endif
 
 /* This file provides a general interface for SDL to read and write

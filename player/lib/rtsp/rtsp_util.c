@@ -23,6 +23,7 @@
  */
 
 #ifndef _WINDOWS
+#include <time.h>
 #include <sys/time.h>
 #include <stdarg.h>
 #endif

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_fbevents_c.h,v 1.2 2001/04/10 22:23:49 cahighlander Exp $";
+ "@(#) $Id: SDL_fbevents_c.h,v 1.3 2001/05/09 21:15:10 cahighlander Exp $";
 #endif
 
 #include "SDL_fbvideo.h"

@@ -389,12 +389,13 @@ void TM5rc::tm5rc_update_pict(VOPpredType vopPredType, Int iVOPtotalBits)
   double X;
 
   if (rc_type == RC_TM5+1) {
-      switch (vopPredType) {
-          case IVOP: Ni--; break;
-          case PVOP: Np--; break;
-          case BVOP: Nb--; break;
-      }
-      return;
+    switch (vopPredType) {
+    case IVOP: Ni--; break;
+    case PVOP: Np--; break;
+    case BVOP: Nb--; break;
+    default: break;
+    }
+    return;
   }
                         /* total # of bits in picture */
   R_tm5 -= iVOPtotalBits; /* remaining # of bits in GOV */

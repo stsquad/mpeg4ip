@@ -69,37 +69,117 @@ div.Section1
 conversion of raw audio and video into MPEG-4 compressed media stored in an MP4
 file which can be streamed by the Darwin Streaming Server.<o:p></o:p></span></p>
 
-<p><b><span style='font-family:Arial'>Process Overview<o:p></o:p></span></b></p>
+<p><span style='font-family:Arial'>The easiest way to proceed is to use the
+'mp4encode' script which is installed with MPEG4IP. This script makes some
+simplifying assumptions about the input and the desired output. See &quot;The
+Simple Process&quot; below.<o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>1) Acquire raw audio and/or video<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>If 'mp4encode' doesn't meet your needs, you can
+then either create a modified 'mp4encode' script or use the tools directly. See
+&quot;The Detailed Process&quot; below for the details of the underlying tools.<o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>2) Encode audio<o:p></o:p></span></p>
+<p><b><span style='font-family:Arial'>The Simple Process<o:p></o:p></span></b></p>
 
-<p><span style='font-family:Arial'>3) Encode video<o:p></o:p></span></p>
+<p><b><span style='font-family:Arial'>1) Capture raw audio and/or video into an
+AVI file<o:p></o:p></span></b></p>
 
-<p><span style='font-family:Arial'>4) Packetize audio-only<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>The details here are varied. But generally
+speaking, you use a capture program to record audio and video from either a
+camera or a capture board into an AVI file on disk.<o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>5) Packetize video-only<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>The audio format should be PCM raw audio, 16
+bits/sample, little-endian, 2 channels, 44100 samples/sec.<o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>6) Packetize both audio and video<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>The video format should be YUV12, aka YV12.
+(FYI: This is a planar format sampled at 4:2:0). Any frame size and frame rate
+are acceptable. <o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>7) Useful options to both packetizers <o:p></o:p></span></p>
+<p><span style='font-family:Arial'>Personally, I recommend 320x240 @ 24
+frames/sec as a good compromise between video quality and size. At these
+settings, 5 minutes of raw audio/video will consume approximately 1 GB of disk
+space. (Don't worry things get much better once we encode.)<o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>8) Make content available<o:p></o:p></span></p>
+<p><b><span style='font-family:Arial'>2) Encode content<o:p></o:p></span></b></p>
 
-<p><span style='font-family:Arial'>Note:&nbsp;A shell script 'mp4encode' is
-provided in mpeg4ip/doc/encoding that combines all these steps. It makes some
-assumptions, so you are encouraged to review it to see it if meets your needs
-before using it.<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>Invoke 'mp4encode' with the name of the raw
+AVI file to produce the encoded MP4 file.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>The following parameters can be specified to
+'mp4encode':<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-w &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>The input video frame width in pixels,
+default value is 320<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-h &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>The input video frame height in pixels,
+default value is 240<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-r &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>The video frame rate in frames per second,
+default value is 24<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-V &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>The desired video bitrate in Kbps, default
+value is 500<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-A &lt;uint&gt;<span
+style='mso-tab-count:1'>   </span>The desired audio bitrate in Kbps, default
+value is 96<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-a &lt;float&gt;<span
+style='mso-tab-count:1'>  </span>The desired aspect ratio, default value is
+1.33 (4:3). Typically letterbox is 2.35.<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-I<span
+style='mso-tab-count:2'>            </span>Use the ISO MPEG-4 video encoder
+instead of the OpenDivX encoder<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-M<span
+style='mso-tab-count:2'>            </span>Use the MP3 audio encoder instead of
+the AAC encoder<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>-d<span
+style='mso-tab-count:2'>            </span>Debug mode, leave intermediate
+files.</span><span style='font-family:Arial'><o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"'>mp4encode
+mycontent.avi (results are written to mycontent.mp4)<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"'>mp4encode
+-w 640 -h 480 -r 30 -I -V 1000 -M -A 128 mycontent.avi
+mycontent_divx_1000_mp3_128.mp4</span><span style='font-family:Arial'><o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>3) Make content available<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>Copy the MP4 file to a directory under the
+configured media root for your streaming server. See the documentation for your
+server as to how to generate a URL for the file, but typically it would look
+like rtsp://myserver/mycontent.mp4<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>cp mycontent.mp4
+/usr/local/movies</span><span style='font-family:Arial'><o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></span></p>
 
+<p><b><span style='font-family:Arial'>The Detailed Process<o:p></o:p></span></b></p>
+
 <p><b><span style='font-family:Arial'>1) Acquire raw audio and/or video<o:p></o:p></span></b></p>
 
-<p><span style='font-family:Arial'>The details here are varied. But the result
-should be a file for audio containing PCM raw audio samples, and/or a file
-containing YUV12, aka YV12, raw video samples. (FYI: This is a planar format
-sampled at 4:2:0)<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>The details here are varied. But generally speaking,
+you use a capture program to record audio and video from either a camera or a
+capture board into one or two files on disk.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>The audio format should be PCM raw audio, 16
+bits/sample, little-endian, 2 channels, 44100 samples/sec.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>The video format should be YUV12, aka YV12.
+(FYI: This is a planar format sampled at 4:2:0). Any frame size and frame rate
+are acceptable.<o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>If you use a Windows system for the media
 acquisition, you frequently will have your data stored in an AVI file. If that
@@ -128,37 +208,64 @@ from the beginning of the file and a length in seconds. For example, to extract
 <p><span style='font-family:Arial'>There are two options for audio encoding:
 MP3 and AAC. <o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>If you wish to use MP3, you will need to use
-your own encoder to generate the MP3 file. We have used lame and been pleased
-with the results, but there are plenty of other encoders out there.<o:p></o:p></span></p>
+<p><b><span style='font-family:Arial'>2a) MP3<o:p></o:p></span></b></p>
+
+<p><span style='font-family:Arial'>If you wish to use MP3, the provided lame
+tool will generate the MP3 file. <o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>The -b parameters are specifies the desired
+bitrate in Kbps, typically between 64 and 128.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>The -h parameter specifies that high quality
+output should be generated at the expense of slower encoding. It is recommended
+since it does not significantly impact the encoding time in our experience.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>If a raw PCM file is provided as the input,
+then the -r and -x options must be used.<o:p></o:p></span></p>
+
+<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>lame -h -b 128
+myaudio.wav<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>lame -h -b 96 -r -x
+myaudio.pcm<o:p></o:p></span></p>
+
+<p><b><span style='font-family:Arial'>2b) AAC<o:p></o:p></span></b></p>
 
 <p><span style='font-family:Arial'>If you wish to use AAC, the provided faac
-tool will generate the MPEG-4 AAC bitstream. Two parameters are required: the
-profile to be used, typically &quot;LOW&quot; for low-complexity; the desired
-bitrate in Kbps, typically between 16 and 128.<o:p></o:p></span></p>
+tool will generate the MPEG-4 AAC file.<o:p></o:p></span></p>
 
-<p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>faac -pLOW -b96
-myaudio.wav <o:p></o:p></span></p>
-
-<p><span style='font-size:10.0pt;font-family:"Courier New"'><span
-style='mso-tab-count:1'>      </span>(output file is myaudio.aac)<o:p></o:p></span></p>
+<p><span style='font-family:Arial'>Two parameters are required: the profile to
+be used, typically &quot;LOW&quot; for low-complexity; the desired bitrate in
+Kbps, typically between 16 and 128.<o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>If a raw PCM file is provided as the input,
 then the -r option must be used.<o:p></o:p></span></p>
 
+<p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>faac -pLOW -b128
+myaudio.wav<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>faac -pLOW -b96 -r
+myaudio.pcm<o:p></o:p></span></p>
+
+<p><span style='font-size:10.0pt;font-family:"Courier New"'><span
+style='mso-tab-count:1'>       </span>(output file is myaudio.aac)<o:p></o:p></span></p>
+
 <p><span style='font-family:Arial'>ISSUE: currently the FAAC code is hard-coded
-with respect to the parameters of the raw format. Hence it is currently easier
-to use the WAV format as input, since the configuration parameters are
-extracted from the file header.<o:p></o:p></span></p>
+with respect to the parameters of the raw format, which match those described
+in section 1. If you must use a different format, you should embedded the audio
+input in a WAV file which faac will read to determine the correct configuration
+parameters to use with your audio data.<o:p></o:p></span></p>
 
 <p><b><span style='font-family:Arial'>3) Encode video<o:p></o:p></span></b></p>
 
 <p><span style='font-family:Arial'>There are two options for video encoding:
 ISO reference and OpenDivx. Both generate MPEG-4 video bitstreams. The OpenDivx
-encoder produces a Simple Profile stream only. The ISO <span
-style="mso-spacerun: yes"> </span>encoder use most of the video tools defined
+encoder produces a Simple Profile stream only. The ISO<span
+style="mso-spacerun: yes">  </span>encoder use most of the video tools defined
 for MPEG-4, and hence can produces many of the defined profiles. In terms of
 video quality and encoding speed we have found the OpenDivx encoder to be
 superior.<o:p></o:p></span></p>
@@ -172,23 +279,23 @@ bitstream.<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-h &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--height &lt;uint&gt;<span style='mso-tab-count:
-2'>         </span>Use the given number as the video frame height in pixels,
-default value is 320<o:p></o:p></span></p>
+2'>          </span>Use the given number as the video frame height in pixels,
+default value is 240<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-w &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--width &lt;uint&gt;<span style='mso-tab-count:
-2'>          </span>Use the given number as the video frame width in pixels,
-default value is 240<o:p></o:p></span></p>
+2'>            </span>Use the given number as the video frame width in pixels,
+default value is 320<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-r &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--rate &lt;uint&gt;<span style='mso-tab-count:
-2'>           </span>Use the given number as the video frame rate in frames per
-second, default value is 30<o:p></o:p></span></p>
+2'>             </span>Use the given number as the video frame rate in frames
+per second, default value is 30<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-b &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--bitrate &lt;uint&gt;<span style='mso-tab-count:
-2'>        </span>Use the given number as desired bitrate in Kbps, default
-value is 500<o:p></o:p></span></p>
+2'>         </span>Use the given number as desired bitrate in Kbps, default value
+is 500<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-i &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--ifrequency &lt;uint&gt;<span
@@ -198,13 +305,14 @@ frames in frames, default value is 30, i.e. once a second at 30 fps<o:p></o:p></
 <p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>divxenc -w 320 -h
-240 -r 24 -b 500 -I 24 myvideo.yuv myvideo.divx</span><span style='font-family:
+240 -r 24 -b 500 -i 24 myvideo.yuv myvideo.divx</span><span style='font-family:
 Arial'><o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>If you want to use the ISO encoder, use the
 provided mp4venc tool. This tool takes one parameter which is the name of a
 file where the many configuration parameters are given. An template parameter
-file, 'template.par', is provided in the mpeg4ip/doc/encoding directory. <o:p></o:p></span></p>
+file, 'mp4venc_template.par', is installed into the /usr/local/share directory.
+<o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
 
@@ -236,39 +344,38 @@ bitstream.<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-h &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--height &lt;uint&gt;<span style='mso-tab-count:
-2'>         </span>Use the given number as the video frame height in pixels,
-default value is 320<o:p></o:p></span></p>
+2'>          </span>Use the given number as the video frame height in pixels,
+default value is 240<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-w &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--width &lt;uint&gt;<span style='mso-tab-count:
-2'>          </span>Use the given number as the video frame width in pixels,
-default value is 240<o:p></o:p></span></p>
+2'>            </span>Use the given number as the video frame width in pixels,
+default value is 320<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-r &lt;uint&gt;<span
 style='mso-tab-count:1'>   </span>--rate &lt;uint&gt;<span style='mso-tab-count:
-2'>           </span>Use the given number as the video frame rate in frames per
-second, default value is 30<o:p></o:p></span></p>
+2'>             </span>Use the given number as the video frame rate in frames
+per second, default value is 30<o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>Examples:<o:p></o:p></span></p>
 
-<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt myvideo.cmp
-myvideo.mp4<o:p></o:p></span></p>
+<p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt
+myvideo.divx myvideo.mp4<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>mp4vpkt -h 160 -w
 120 -r 15 myvideo.cmp myvideo.mp4&nbsp;<o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>If you use the ISO encoder, the video frames
 can be encoded to use bi-directional motion vectors, aka B-frames. If this is
-the case, then you will also need to specify how many B-frames occur between
-non-B-frames (I-frames or P-frames). Note: the answer is often 2. This
-parameter can be specified via the ‘bfrequency’ command line argument. It is
-expected that in a future version of the tool, this parameter will be detected
-automatically. <o:p></o:p></span></p>
+the case, then you will also need to specify how many B-frames occur between non-B-frames
+(I-frames or P-frames). Note: the answer is often 2. This parameter can be
+specified via the ‘bfrequency’ command line argument. It is expected that in a
+future version of the tool, this parameter will be detected automatically. <o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>Also if you use B-frames or other advanced
-coding tools of MPEG-4 you should designate which video profile you are complying
-with. By default all streams are marked as &quot;Simple@L3&quot;. If you are
-using advanced tools, &quot;Main@L2&quot; is probably what you want.<o:p></o:p></span></p>
+coding tools of MPEG-4 you should designate which video profile you are
+complying with. By default all streams are marked as &quot;Simple@L3&quot;. If
+you are using advanced tools, &quot;Main@L2&quot; is probably what you want.<o:p></o:p></span></p>
 
 <p><span style='font-family:Arial'>Example:<o:p></o:p></span></p>
 
@@ -298,11 +405,11 @@ style='mso-tab-count:1'>    </span>Use the given number as the RTP payload
 size, the default value is 1460 bytes<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-d<span
-style='mso-tab-count:1'>    </span>--dump<span style='mso-tab-count:1'>      </span>Dumps
+style='mso-tab-count:1'>     </span>--dump<span style='mso-tab-count:1'>       </span>Dumps
 MP4 file structure to stdout<o:p></o:p></span></p>
 
 <p><span style='font-size:10.0pt;font-family:"Courier New"'>-t<span
-style='mso-tab-count:1'>    </span>--trace<span style='mso-tab-count:1'>     </span>Dumps
+style='mso-tab-count:1'>     </span>--trace<span style='mso-tab-count:1'>      </span>Dumps
 RTP packetization information to stdout<o:p></o:p></span></p>
 
 <p><b><span style='font-family:Arial'>8) Make content available<o:p></o:p></span></b></p>

@@ -160,6 +160,9 @@ float quicktime_video_frame_rate(quicktime_t *file, int track);
 char* quicktime_video_compressor(quicktime_t *file, int track);
 int quicktime_video_time_scale(quicktime_t *file, int track);
 
+int quicktime_video_frame_time(quicktime_t *file, int track, long frame,
+	long *start_time, int *duration);
+
 int quicktime_get_iod_audio_profile_level(quicktime_t *file);
 int quicktime_set_iod_audio_profile_level(quicktime_t *file, int id);
 int quicktime_get_iod_video_profile_level(quicktime_t *file);

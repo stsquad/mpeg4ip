@@ -1464,7 +1464,7 @@ Void CFloatImage::txtDump (const Char* fileName) const
 	for (CoordI y = 0; y < where ().height (); y++) {
 		for (CoordI x = 0; x < where ().width; x++) {
 			if (pfTxt != NULL)
-				fprintf (pfTxt, "%6.2lf  ", *ppxlf);
+				fprintf (pfTxt, "%6.2f  ", *ppxlf);
 			else
 				printf ("%d  ", (Int) *ppxlf);
 			ppxlf++;

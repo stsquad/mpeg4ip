@@ -32,8 +32,10 @@
 
 unsigned int c_get (void *ud)
 {
+  unsigned int ret;
   CDivxCodec *d = (CDivxCodec *)ud;
-  return (d->get());
+  ret = d->get();
+  return (ret);
 }
 
 void c_bookmark (void *ud, int val)
@@ -51,7 +53,7 @@ CDivxCodec::CDivxCodec(CVideoSync *v,
   CVideoCodecBase(v, pbytestrm, media_fmt, vinfo, userdata, ud_size)
 {
   m_bytestream = pbytestrm;
-
+  m_last_time = 0;
   newdec_init(c_get, c_bookmark, this);
   m_decodeState = DIVX_STATE_VO_SEARCH;
   if (media_fmt != NULL && media_fmt->fmt_param != NULL) {
@@ -74,6 +76,13 @@ CDivxCodec::CDivxCodec(CVideoSync *v,
     mp4_hdr.quant_type = 0;
 
     mp4_hdr.time_increment_resolution = 15;
+    mp4_hdr.time_increment_bits = 0;
+    while (mp4_hdr.time_increment_resolution > 
+	   (1 << mp4_hdr.time_increment_bits)) {
+      mp4_hdr.time_increment_bits++;
+    }
+    mp4_hdr.fps = 30;
+
     mp4_hdr.complexity_estimation_disable = 1;
 
     m_video_sync->config(vinfo->width,
@@ -114,7 +123,7 @@ int CDivxCodec::parse_vovod (const char *vovod,
 			     int ascii,
 			     size_t len)
 {
-  char buffer[255];
+  unsigned char buffer[255];
   CInByteStreamMem *membytestream = new CInByteStreamMem();
   int ret;
 
@@ -135,20 +144,21 @@ int CDivxCodec::parse_vovod (const char *vovod,
     // make sure we have even number of digits to convert to binary
     if ((len % 2) == 1) 
       return 0;
-    end = buffer;
+    unsigned char *write;
+    write = buffer;
     // Convert the config= from ascii to binary
     for (size_t ix = 0; ix < len; ix++) {
-      *end = 0;
-      *end = (tohex(*config)) << 4;
+      *write = 0;
+      *write = (tohex(*config)) << 4;
       config++;
-      *end += tohex(*config);
+      *write += tohex(*config);
       config++;
-      end++;
+      write++;
     }
     len /= 2;
     membytestream->set_memory(buffer, len);
   } else {
-    membytestream->set_memory(vovod, len);
+    membytestream->set_memory((const unsigned char *)vovod, len);
   }
 
   // Temporary set of our bytestream
@@ -207,9 +217,11 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
       if (ret != 0) {
 	m_video_sync->config(mp4_hdr.width,
 			     mp4_hdr.height,
-			     mp4_hdr.time_increment_resolution);
+			     mp4_hdr.fps);
 	post_volprocessing();
 	m_decodeState = DIVX_STATE_WAIT_I;
+      } else {
+	return (-1);
       }
     } catch (const char *err) {
       player_debug_message("Caught exception in VO search %s", err);
@@ -232,12 +244,14 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
   try {
     ret = newdec_frame(y, v, u, do_wait_i); // will eventually need to pass wait_i, etc
 
-  //  player_debug_message("ret from newdec_frame %d "LLU, ret, ts);
     if (ret == 0) {
-      m_decodeState = DIVX_STATE_WAIT_I;
+      //player_debug_message("ret from newdec_frame %d "LLU, ret, ts);
+      if (m_last_time != ts)
+	m_decodeState = DIVX_STATE_WAIT_I;
       return (-1);
     }
     m_decodeState = DIVX_STATE_NORMAL;
+    m_last_time = ts;
   } catch (const char *err) {
       if (strcmp(err, "DECODE ACROSS TS") == 0) {
 	//player_debug_message("decode across ts");
@@ -259,6 +273,7 @@ int CDivxCodec::decode (uint64_t ts, int from_rtp)
   // worth - drop B's - up to 10 frames worth, or resync to the next I frame
   if (ret != 0) {
     uint64_t msec;
+    //player_debug_message("Processed frame "LLU, ts);
 #if 0
     msec = m_video_sync->get_video_msec_per_frame();
     if (msec > 0 && 

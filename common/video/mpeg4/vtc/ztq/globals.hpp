@@ -1,4 +1,4 @@
-/* $Id: globals.hpp,v 1.1 2001/02/05 20:26:22 cahighlander Exp $ */
+/* $Id: globals.hpp,v 1.2 2001/05/09 21:14:18 cahighlander Exp $ */
 /****************************************************************************/
 /*   MPEG4 Visual Texture Coding (VTC) Mode Software                        */
 /*                                                                          */
@@ -67,11 +67,11 @@
 
 #ifndef DATA_STRUCT_H
 #include "dataStruct.hpp"
-#endif DATA_STRUCT_H
+#endif /* DATA_STRUCT_H */
 
 #ifndef MSG_H
 #include "msg.hpp"
-#endif MSG_H
+#endif /* MSG_H */
 
 /* main data structure */
 EXTERN WVT_CODEC mzte_codec;
@@ -205,4 +205,4 @@ EXTERN Int *scaleLev[3];
      ((mzte_codec.m_lastWvtDecompInSpaLayer[0][col]<0) ? 1 : 0)
 
 
-#endif GLOBALS_H
+#endif /* GLOBALS_H */

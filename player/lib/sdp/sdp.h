@@ -157,7 +157,7 @@ typedef struct media_desc_t {
   format_list_t *fmt;    // All possible formats for this media
   string_list_t *unparsed_a_lines;  // Any unparsed lines
   int recvonly, sendrecv, sendonly;
-  in_port_t port;       // ip port
+  uint16_t port;       // ip port
   uint16_t num_ports;   // number of ports
   uint32_t ptime;       
   int ptime_present;

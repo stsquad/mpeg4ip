@@ -8,7 +8,7 @@
  * Copyright (c) 2000 University College London
  * All rights reserved.
  *
- * $Id: ntp.h,v 1.1 2001/02/05 20:26:34 cahighlander Exp $
+ * $Id: ntp.h,v 1.2 2001/05/09 21:15:12 cahighlander Exp $
  */
 
 #ifndef _NTP_H

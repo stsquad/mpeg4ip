@@ -51,6 +51,7 @@
 /***** H O R I Z O N T A L   D E B L O C K I N G   F I L T E R *****/
 
 
+#ifndef MPEG4IP
 
 /* decide DC mode or default mode for the horizontal filter */
 static int deblock_horiz_useDC(uint8_t *v, int stride) {
@@ -163,7 +164,7 @@ static void deblock_horiz_lpf9(uint8_t *v, int stride, int QP) {
 }
 
 
-
+#endif /* !MPEG4IP */
 
 
 /* horizontal deblocking filter used in default (non-DC) mode */
@@ -214,7 +215,7 @@ static void deblock_horiz_default_filter(uint8_t *v, int stride, int QP) {
 
 		#ifdef PP_SELF_CHECK
 		/* no selfcheck written for this yet */
-		#endif;
+		#endif
 
 		v += stride;
 	}
@@ -230,7 +231,9 @@ void deblock_horiz(uint8_t *image, int width, int height, int stride, QP_STORE_T
 	int x, y;
 	int QP;
 	uint8_t *v;
+#ifndef MPEG4IP
 	int useDC, DC_on;
+#endif
 
 	/* loop over image's pixel rows , four at a time */
 	for (y=0; y<height; y+=4) {	
@@ -245,6 +248,10 @@ void deblock_horiz(uint8_t *image, int width, int height, int stride, QP_STORE_T
 			/* v points to pixel v0, in the left-hand block */
 			v = &(image[y*stride + x]) - 5;
 
+#ifdef MPEG4IP
+			/* just use default mode */
+			deblock_horiz_default_filter(v, stride, QP);
+#else
 			/* first decide whether to use default or DC offet mode */ 
 			useDC = deblock_horiz_useDC(v, stride);
 
@@ -280,6 +287,7 @@ void deblock_horiz(uint8_t *image, int width, int height, int stride, QP_STORE_T
 				#endif
 
 			}
+#endif /* MPEG4IP */
 		}
 	}
 }
@@ -290,6 +298,7 @@ void deblock_horiz(uint8_t *image, int width, int height, int stride, QP_STORE_T
 
 /***** V E R T I C A L   D E B L O C K I N G   F I L T E R *****/
 
+#ifndef MPEG4IP
 
 /* decide DC mode or default mode in assembler */
 static int deblock_vert_useDC(uint8_t *v, int stride) {
@@ -446,7 +455,7 @@ void deblock_vert_lpf9(uint64_t *v_local, uint64_t *p1p2, uint8_t *v, int stride
 
 }
 
-
+#endif /* !MPEG4IP */
 
 
 /* Vertical deblocking filter for use in non-flat picture regions */
@@ -566,12 +575,14 @@ static void deblock_vert_default_filter(uint8_t *v, int stride, int QP) {
 
 /* this is a vertical deblocking filter - i.e. it will smooth _horizontal_ block edges */
 void deblock_vert( uint8_t *image, int width, int height, int stride, QP_STORE_T *QP_store, int QP_stride, int chroma) {
-	uint64_t v_local[20];
-	uint64_t p1p2[4];
 	int Bx, y;
 	int QP, QPx16;
 	uint8_t *v;
+#ifndef MPEG4IP
+	uint64_t v_local[20];
+	uint64_t p1p2[4];
 	int useDC, DC_on;
+#endif
 
 	/* loop over image's block boundary rows */
 	for (y=8; y<height; y+=8) {	
@@ -584,6 +595,10 @@ void deblock_vert( uint8_t *image, int width, int height, int stride, QP_STORE_T
 			QPx16 = 16 * QP;
 			v = &(image[y*stride + Bx]) - 5*stride;
 
+#ifdef MPEG4IP
+			/* just use default mode */
+			deblock_vert_default_filter(v, stride, QP);
+#else
 			/* decide whether to use DC mode on a block-by-block basis */
 			useDC = deblock_vert_useDC(v, stride);
 						
@@ -638,6 +653,7 @@ void deblock_vert( uint8_t *image, int width, int height, int stride, QP_STORE_T
 				}  
 				#endif
 			}
+#endif /* MPEG4IP */
 		} 
 	}
 }

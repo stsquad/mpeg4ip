@@ -405,8 +405,8 @@ public:
 		UInt uiQdcUV,
 		UInt uiSpatialLev ,
 		UInt defaultSpatialScale, // hjlee 0901
-		Int  lastWvtDecompInSpaLayer[MAXDECOMPLEV], // hjlee 0901
-		SNR_PARAM* Qinfo[]);
+		Int  *lastWvtDecompInSpaLayer, // hjlee 0901
+		SNR_PARAM** Qinfo);
 
 
 	// attribute
@@ -655,4 +655,4 @@ public:
     int decoded_bytes_from_bitstream ();
 };
 
-#endif __VTCENC_HPP_
+#endif /* __VTCENC_HPP_ */

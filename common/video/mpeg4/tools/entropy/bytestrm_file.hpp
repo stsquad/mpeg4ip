@@ -14,8 +14,8 @@ class CInByteStreamFile : public CInByteStreamBase
   CInByteStreamFile(istream &inStream) { m_pInStream = &inStream; };
   ~CInByteStreamFile() {};
   int eof(void) { return (m_pInStream->eof()); };
-  char get(void) { return (m_pInStream->get());};
-  char peek(void) { return (m_pInStream->peek()); };
+  unsigned char get(void) { return (m_pInStream->get());};
+  unsigned char peek(void) { return (m_pInStream->peek()); };
   void bookmark (int bSet) {
     if (bSet) {
       m_bookmark_strmpos = m_pInStream->tellg();

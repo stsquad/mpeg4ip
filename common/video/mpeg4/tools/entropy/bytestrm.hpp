@@ -8,8 +8,8 @@ class CInByteStreamBase
   CInByteStreamBase() {};
   virtual ~CInByteStreamBase() {};
   virtual int eof(void) = 0;
-  virtual char get(void) = 0;
-  virtual char peek(void) = 0;
+  virtual unsigned char get(void) = 0;
+  virtual unsigned char peek(void) = 0;
   virtual void bookmark(int bSet) = 0;
   virtual void reset(void) = 0;
   virtual size_t read (char *buffer, size_t bytes) {

@@ -140,6 +140,8 @@ class CPlayerSession {
     m_session_control_is_aggregate = is_aggregate;
   }
   CPlayerMedia *rtsp_url_to_media (const char *url);
+  int set_session_desc (int line, const char *desc);
+  const char *get_session_desc(int line);
  private:
   void process_sdl_events();
   int process_msg_queue(int state);
@@ -150,6 +152,7 @@ class CPlayerSession {
   int sync_thread_paused(void);
   int sync_thread_done(void);
   const char *m_session_name;
+  const char *m_content_base;
   int m_paused;
   int m_streaming;
   uint64_t m_current_time; // current time playing
@@ -178,6 +181,8 @@ class CPlayerSession {
   int m_screen_pos_x;
   int m_screen_pos_y;
   int m_hardware_error;
+  #define SESSION_DESC_COUNT 4
+  const char *m_session_desc[SESSION_DESC_COUNT];
   __inline uint64_t get_time_of_day (void) {
     struct timeval t;
     struct timezone z;

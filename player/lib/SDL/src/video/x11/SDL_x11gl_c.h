@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_x11gl_c.h,v 1.2 2001/04/10 22:23:50 cahighlander Exp $";
+ "@(#) $Id: SDL_x11gl_c.h,v 1.3 2001/05/09 21:15:11 cahighlander Exp $";
 #endif
 
 #ifdef HAVE_OPENGL

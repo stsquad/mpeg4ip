@@ -2291,17 +2291,126 @@ int main (int argc, Char* argv[])
 		fclose(pfPara);	
 	}
 
-	CSessionEncoder* penc = new CSessionEncoder (
+	CSessionEncoderParams param;
+	param.uiFrmWidth = uiFrmWidth;
+	param.uiFrmHeight = uiFrmHeight;
+	param.iFirstFrm = firstFrm;
+	param.iLastFrm = lastFrm;
+	param.bNot8Bit = bNot8Bit;
+	param.uiQuantPrecision = uiQuantPrecision;
+	param.nBits = nBits;
+	param.uiFirstVO = firstVO;
+	param.iLastVO = lastVO;
+	param.rgbSpatialScalability =  rgbSpatialScalability;
+	param.rgiTemporalScalabilityType = rgiTemporalScalabilityType;
+	param.rgiEnhancementType = rgiEnhancementType;
+	param.rguiRateControl = rguiRateControl;
+	param.rguiBudget = rguiBitsBudget;
+	param.rgfAlphaUsage = rgfAlphaUsage;
+	param.rgbShapeOnly = rgbShapeOnly;
+	param.rgiBinaryAlphaTH =  rgiBinaryAlphaTH;
+	param.rgiBinaryAlphaRR = rgiBinaryAlphaRR;
+	param.rgbNoCrChange = rgbNoCrChange;
+	param.rguiSearchRange = rguiSearchRange;
+	param.rgbOriginalForME = rgbOriginalME;
+	param.rgbAdvPredDisable = rgbAdvPredDisable;
+	param.rgbComplexityEstimationDisable = rgbComplexityEstimationDisable;
+	param.rgbOpaque = rgbOpaque;
+	param.rgbTransparent = rgbTransparent;
+	param.rgbIntraCAE = rgbIntraCAE;
+	param.rgbInterCAE = rgbInterCAE;
+	param.rgbNoUpdate = rgbNoUpdate;
+	param.rgbUpsampling = rgbUpsampling;
+	param.rgbIntraBlocks = rgbIntraBlocks;
+	param.rgbInterBlocks = rgbInterBlocks;
+	param.rgbInter4vBlocks = rgbInter4vBlocks;
+	param.rgbNotCodedBlocks = rgbNotCodedBlocks;
+	param.rgbDCTCoefs = rgbDCTCoefs;
+	param.rgbDCTLines = rgbDCTLines;
+	param.rgbVLCSymbols = rgbVLCSymbols;
+	param.rgbVLCBits = rgbVLCBits;
+	param.rgbAPM = rgbAPM;
+	param.rgbNPM = rgbNPM;
+	param.rgbInterpolateMCQ = rgbInterpolateMCQ;
+	param.rgbForwBackMCQ = rgbForwBackMCQ;
+	param.rgbHalfpel2 = rgbHalfpel2;
+	param.rgbHalfpel4 = rgbHalfpel4;
+	param.rguiVolControlParameters = rguiVolControlParameters;
+	param.rguiChromaFormat = rguiChromaFormat;
+	param.rguiLowDelay = rguiLowDelay;
+	param.rguiVBVParams = rguiVBVParams;
+	param.rguiBitRate = rguiBitRate;
+	param.rguiVbvBufferSize = rguiVbvBufferSize;
+	param.rguiVbvBufferOccupany = rguiVbvBufferOccupany;
+	param.rgdFrameFrequency = rgdFrameFrequency;
+	param.rgbInterlacedCoding = rgbInterlacedCoding;
+	param.rgbTopFieldFirst = rgbTopFieldFirst;
+	param.rgbAlternateScan = rgbAlternateScan;
+	param.rgiDirectModeRadius = rgiDirectModeRadius;
+	param.rgiMVFileUsage = rgiMVFileUsage;
+	param.pchMVFileName = &pchMVFileName[0];
+	param.rgbVPBitTh = rgiVPBitTh;
+	param.rgbDataPartitioning = rgbDataPartitioning;
+	param.rgbReversibleVlc = rgbReversibleVlc;
+	param.rgfQuant = rgfQuant;
+	param.rgbLoadIntraMatrix = rgbLoadIntraMatrix;
+	param.rgppiIntraQuantizerMatrix = rgppiIntraQuantizerMatrix;
+	param.rgbLoadInterMatrix = rgbLoadInterMatrix;
+	param.rgppiInterQuantizerMatrix =  rgppiInterQuantizerMatrix;
+	param.rgiIntraDCSwitchingThr = rgiIntraDCSwitchingThr;
+	param.rgiStepI = rgiIStep;
+	param.rgiStepP = rgiPStep;
+	param.rgbLoadIntraMatrixAlpha = rgbLoadIntraMatrixAlpha;
+	param.rgppiIntraQuantizerMatrixAlpha = rgppiIntraQuantizerMatrixAlpha;
+	param.rgbLoadInterMatrixAlpha = rgbLoadIntraMatrixAlpha;
+	param.rgppiInterQuantizerMatrixAlpha = rgppiInterQuantizerMatrixAlpha;
+	param.rgiStepIAlpha = rgiIStepAlpha;
+	param.rgiStepPAlpha = rgiPStepAlpha;
+	param.rgiStepBAlpha = rgiBStepAlpha;
+	param.rgbNoAlphaQuantUpdate = rgbNoGrayQuantUpdate;
+	param.rgiStepB = rgiStepBCode;
+	param.rgiNumOfBbetweenPVOP = rgiNumBbetweenPVOP;
+	param.rgiNumOfPbetweenIVOP = rgiNumPbetweenIVOP;
+	param.rgiGOVperiod = rgiGOVperiod;
+	param.rgbDeblockFilterDisable = rgbDeblockFilterDisable;
+	param.rgbAllowSkippedPMBs = rgbAllowSkippedPMBs;
+	param.pchPrefix = pchPrefix;
+	param.pchBmpFiles = pchBmpDir;
+	param.rgfChrType = rgfChrType;
+	param.pchOutBmpFiles = pchOutBmpDir;
+	param.pchOutStrFiles = pchOutStrFile;
+	param.rgiTemporalRate = rgiTSRate;
+	param.rgiEnhnTemporalRate = rgiEnhcTSRate;
+	param.rgbDumpMB = rgbDumpMB;
+	param.rgbTrace = rgbTrace;
+	param.rgbRoundingControlDisable =  rgbRoundingControlDisable;
+	param.rgiInitialRoundingType =  rgiInitialRoundingType;
+	param.rguiSpriteUsage = rguiSpriteUsage;
+	param.rguiWarpingAccuracy = rguiWarpingAccuracy;
+	param.rgNumOfPnts = rgiNumPnts;
+	param.pchSptDir = pchSptDir;
+	param.pchSptPntDir = pchSptPntDir;
+	param.pSpriteMode = rgSpriteMode;
+	param.iSpatialOption = iSpatialOption;
+	param.uiFrmWidth_SS = uiFrmWidth_SS;
+	param.uiFrmHeight_SS = uiFrmHeight_SS;
+	param.uiHor_sampling_n = uiHor_sampling_n;
+	param.uiHor_sampling_m = uiHor_sampling_m;
+	param.uiVer_sampling_n = uiVer_sampling_n;
+	param.uiVer_sampling_m = uiVer_sampling_m;
+	CSessionEncoder *penc = new CSessionEncoder(&param);
+#if 0
+ 	CSessionEncoder* penc = new CSessionEncoder (
 			// general info
 			uiFrmWidth, // frame width
 			uiFrmHeight, // frame height
-			firstFrm, // first frame number
-			lastFrm, // last frame number
-			bNot8Bit, // NBIT: not 8-bit flag
+			(Int)firstFrm, // first frame number
+			(Int)lastFrm, // last frame number
+			(Bool)bNot8Bit, // NBIT: not 8-bit flag
 			uiQuantPrecision, // NBIT: quant precision
-			nBits, // NBIT: number of bits per pixel
-			firstVO, // first VO index
-			lastVO, // last VO index
+			(UInt)nBits, // NBIT: number of bits per pixel
+			(Int)firstVO, // first VO index
+			(Int)lastVO, // last VO index
 			rgbSpatialScalability, // spatial scalability indicator
 			rgiTemporalScalabilityType, // form of temporal scalability // added by Sharp (98/02/09)
 			rgiEnhancementType,	// enhancement_type for scalability // added by Sharp (98/02/09)
@@ -2423,6 +2532,7 @@ int main (int argc, Char* argv[])
 			uiVer_sampling_n,
 			uiVer_sampling_m
 		);
+#endif
 
 #ifdef __PC_COMPILER_
 	Int tickBegin = ::GetTickCount ();

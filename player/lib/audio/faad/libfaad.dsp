@@ -115,6 +115,15 @@ SOURCE=.\faad_all.h
 # Begin Source File
 
 SOURCE=.\fastfft.c
+
+!IF  "$(CFG)" == "libfaad - Win32 Release"
+
+# SUBTRACT CPP /O<none>
+
+!ELSEIF  "$(CFG)" == "libfaad - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

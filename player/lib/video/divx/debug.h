@@ -58,8 +58,8 @@ extern void _Error(const char * format, ...);
 #define _Print()
 #define _Error()
 #else
-#define _Print(...)  
-#define _Error(...) 
+static inline void _Print(const char *foo, ...) {};
+static inline void _Error(const char *foo, ...) {};
 #endif
 
 #endif // ! _DECORE

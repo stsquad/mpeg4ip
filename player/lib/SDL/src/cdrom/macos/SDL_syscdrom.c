@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_syscdrom.c,v 1.2 2001/04/10 22:23:46 cahighlander Exp $";
+ "@(#) $Id: SDL_syscdrom.c,v 1.3 2001/05/09 21:15:07 cahighlander Exp $";
 #endif
 
 /* MacOS functions for system-level CD-ROM audio control */

@@ -394,20 +394,38 @@ int quicktime_read_mp4_descr_length(quicktime_t *file)
 	return length;
 }
 
-int quicktime_write_mp4_descr_length(quicktime_t *file, int length)
+int quicktime_write_mp4_descr_length(quicktime_t *file, int length, bool compact)
 {
 	u_int8_t b;
-	u_int8_t numBytes = 0;
-	
+	u_int8_t i;
+
 	do {
+		i++;
 		b = length & 0x7F;
 		length >>= 7;
-		if (length) {
+		if (length || (!compact && i < 4)) {
 			b |= 0x80;
 		}
-		numBytes += quicktime_write_char(file, b);
-	} while (length);
+		i += quicktime_write_char(file, b);
+	} while (length || (!compact && i < 4));
 
-	return numBytes; 
+	return i; 
 }
 
+void quicktime_atom_hexdump(quicktime_t* file, quicktime_atom_t* atom)
+{
+	int i;
+	int oldPos;
+
+	oldPos = quicktime_position(file);
+	quicktime_set_position(file, atom->start);
+	printf("atom hex dump:\n");
+	for (i = 0; i < atom->size; i++) {
+		printf("%02x ", (u_int8_t)quicktime_read_char(file));
+		if ((i % 16) == 0 && i > 0) {
+			printf("\n");
+		}
+	}
+	printf("\n");
+	quicktime_set_position(file, oldPos);
+}

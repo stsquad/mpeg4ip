@@ -827,6 +827,53 @@ int quicktime_video_time_scale(quicktime_t *file, int track)
 	return 0;
 }
 
+int quicktime_video_frame_time(quicktime_t *file, int track, long frame,
+	long *start, int *duration)
+{
+	quicktime_stts_t *stts;
+	int i;
+	long f;
+
+	if (file->total_vtracks == 0) {
+		return 0;
+	}
+	stts = &(file->vtracks[track].track->mdia.minf.stbl.stts);
+
+	if (frame < file->last_frame) {
+		/* we need to reset our cached values */
+		file->last_frame = 0;
+		file->last_start = 0;
+		file->last_stts_index = 0;
+	}
+
+	i = file->last_stts_index;
+	f = file->last_frame;
+	*start = file->last_start;
+
+	while (i < stts->total_entries) {
+		if (f + stts->table[i].sample_count <= frame) {
+			*start += stts->table[i].sample_duration 
+				* stts->table[i].sample_count;
+			f += stts->table[i].sample_count;
+			i++;
+
+		} else {
+			/* cache the results for future use */
+			file->last_stts_index = i;
+			file->last_frame = f;
+			file->last_start = *start;
+
+			*start += stts->table[i].sample_duration * (frame - f);
+			*duration = stts->table[i].sample_duration;
+
+			return 1;
+		}
+	}
+
+	/* error */
+	return 0;
+}
+
 int quicktime_get_mp4_video_decoder_config(quicktime_t *file, int track, u_char** ppBuf, int* pBufSize)
 {
 	quicktime_esds_t* esds;

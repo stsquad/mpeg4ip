@@ -1,4 +1,4 @@
-/* $Id: decQM.cpp,v 1.1 2001/02/05 20:26:22 cahighlander Exp $ */
+/* $Id: decQM.cpp,v 1.2 2001/05/09 21:14:18 cahighlander Exp $ */
 /****************************************************************************/
 /*   MPEG4 Visual Texture Coding (VTC) Mode Software                        */
 /*                                                                          */

@@ -198,7 +198,7 @@ int rtsp_send_setup (rtsp_client_t *info,
 		     rtsp_decode_t **decode_result,
 		     int is_aggregate)
 {
-  char buffer[2048];
+  char buffer[2048], *temp;
   size_t maxlen, buflen;
   int ret;
   rtsp_decode_t *decode;
@@ -212,7 +212,17 @@ int rtsp_send_setup (rtsp_client_t *info,
     return (RTSP_RESPONSE_MISSING_OR_BAD_PARAM);
   }
 
-  if (strncmp(url, info->url, strlen(info->url)) != 0) {
+  if (strncmp(url, "rtsp://", strlen("rtsp://")) != 0) {
+    return (RTSP_RESPONSE_BAD_URL);
+  }
+
+  temp = strchr(url + strlen("rtsp://"), '/');
+  if (temp == NULL) {
+    return (RTSP_RESPONSE_BAD_URL);
+  }
+  if (strncmp(url, info->url, temp - url) != 0) {
+    rtsp_debug(LOG_ERR, "Bad url %s", url);
+    rtsp_debug(LOG_ERR, "Should be %s", info->url);
     return (RTSP_RESPONSE_BAD_URL);
   }
 

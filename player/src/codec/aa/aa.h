@@ -61,10 +61,12 @@ class CAACodec : public CAudioCodecBase {
   size_t m_current_frame;
   SDL_AudioSpec m_obtained;
   int m_audio_inited;
+  int m_faad_inited;
   size_t m_local_buffersize;
-  char *m_local_buffer;
+  unsigned char *m_local_buffer;
   int m_freq;  // frequency
-
+  int m_chans; // channels
+  unsigned char *m_temp_buff;
 #if DUMP_OUTPUT_TO_FILE
   FILE *m_outfile;
 #endif

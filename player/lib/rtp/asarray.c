@@ -9,7 +9,7 @@
  
 #ifndef HIDE_SOURCE_STRINGS
 static const char cvsid[] = 
-	"$Id: asarray.c,v 1.1 2001/02/05 20:26:33 cahighlander Exp $";
+	"$Id: asarray.c,v 1.2 2001/05/09 21:15:12 cahighlander Exp $";
 #endif /* HIDE_SOURCE_STRINGS */
 
 #include "config_unix.h"

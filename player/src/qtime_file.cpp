@@ -32,6 +32,9 @@
 #include "qtime_file.h"
 
 CQtimeFile *QTfile1 = NULL;
+static long freq_index_to_freq[] = {
+  96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 
+  12000, 11025, 8000, 7350 };
 /*
  * Create the media for the quicktime file, and set up some session stuff.
  */
@@ -56,12 +59,14 @@ int create_media_for_qtime_file (CPlayerSession *psptr,
     *errmsg = "Internal quicktime error";
     return (-1);
   }
+  player_debug_message("create video returned %d", video);
   int audio;
   audio = QTfile1->create_audio(psptr);
   if (audio < 0) {
     *errmsg = "Internal quicktime error";
     return (-1);
   }
+  player_debug_message("create audio returned %d", audio);
   if (audio == 0 && video == 0) {
     *errmsg = "No valid codecs";
     return (-1);
@@ -100,6 +105,7 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
   CPlayerMedia *mptr;
   int vid_cnt = 0;
   m_video_tracks = quicktime_video_tracks(m_qtfile);
+  player_debug_message("qtime video tracks %d", m_video_tracks);
   for (int ix = 0; ix < m_video_tracks; ix++) {
     video_info_t *vinfo;
     const char *codec_name = quicktime_video_compressor(m_qtfile, ix);
@@ -117,8 +123,10 @@ int CQtimeFile::create_video (CPlayerSession *psptr)
       return (-1);
     }
     player_debug_message("qt file length %ld", quicktime_video_length(m_qtfile, ix));
+    player_debug_message("qt video time scale %d", quicktime_video_time_scale(m_qtfile, ix));
     vbyte->config(quicktime_video_length(m_qtfile, ix),
-		  quicktime_video_frame_rate(m_qtfile, ix));
+		  quicktime_video_frame_rate(m_qtfile, ix),
+		  quicktime_video_time_scale(m_qtfile, ix));
     player_debug_message("Video Max time is %g", vbyte->get_max_playtime());
     int ret = mptr->create_from_file(psptr, vbyte, TRUE);
     if (ret != 0) {
@@ -188,6 +196,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
 
   m_audio_tracks = quicktime_audio_tracks(m_qtfile);
   if (m_audio_tracks > 0) {
+    player_debug_message("qtime audio tracks %d", m_audio_tracks);
     const char *codec = quicktime_audio_compressor(m_qtfile, 0);
     if (lookup_audio_codec_by_name(codec) != 0) {
       player_debug_message("Couldn't find audio codec %s", codec);
@@ -199,24 +208,50 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
       return (-1);
     }
     abyte = new CQTAudioByteStream(this, mptr, 0, 1);
-    long sample_rate = quicktime_audio_sample_rate(m_qtfile, 0);
-    float sr = (float)sample_rate;
+    unsigned char *foo;
+    int bufsize, ret;
     long len = quicktime_audio_length(m_qtfile, 0);
-    int duration = quicktime_audio_sample_duration(m_qtfile, 0);
-    player_debug_message("audio - rate %g len %ld samples %d", sr, len, duration);
+    ret = quicktime_get_mp4_audio_decoder_config(m_qtfile, 0, &foo, &bufsize);
     audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
-    audio->freq = (int)sr;
+    long sample_rate;
+    int samples_per_frame;
+    if (ret >= 0 && foo != NULL) {
+      unsigned char freq_index;
+      freq_index = ((foo[0] & 0x7) << 1) | (foo[1] >> 7);
+      if (freq_index == 0xf) {
+	sample_rate = ((foo[1] & 0x7f) << 17) |
+	  (foo[2] << 9) |
+	  (foo[3] << 1) |
+	  ((foo[4] & 0x80) >> 7);
+	
+      } else {
+	sample_rate = freq_index_to_freq[freq_index];
+      }
+      samples_per_frame = 1024;
+      player_debug_message("From audio rate %ld samples %d", sample_rate, samples_per_frame);
+    } else {
+      sample_rate = quicktime_audio_sample_rate(m_qtfile, 0);
+      samples_per_frame = quicktime_audio_sample_duration(m_qtfile, 0);
+      player_debug_message("audio - rate %ld samples %d", 
+			   sample_rate, samples_per_frame);
+    }
+    audio->freq = sample_rate;
     audio->stream_has_length = 1;
     mptr->set_codec_type(quicktime_audio_compressor(m_qtfile, 0));
     mptr->set_audio_info(audio);
-    abyte->config(len, sr, duration);
-    player_debug_message("audio Max time is %g", abyte->get_max_playtime());
-    int ret = mptr->create_from_file(psptr, abyte, FALSE);
+    abyte->config(len, sample_rate, samples_per_frame);
+    player_debug_message("audio Max time is %g len %ld", 
+			 abyte->get_max_playtime(), len);
+    ret = mptr->create_from_file(psptr, abyte, FALSE);
     if (ret != 0) {
       return (-1);
     }
+    if (foo != NULL) {
+      mptr->set_user_data(foo, bufsize);
+    }
+    return (1);
   }
-  return (1);
+  return (0);
 }
 
 /* end file qtime_file.cpp */

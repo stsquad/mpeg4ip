@@ -458,7 +458,7 @@ protected:
 	Int decideIntraPredDir (
 		Int* rgiCoefQ,
 		BlockNum blkn,
-		const BlockMemory& blkmRet, 
+		const BlockMemory* blkmRet, 
 		const MacroBlockMemory* pmbmLeft, 
 		const MacroBlockMemory* pmbmTop, 
 		const MacroBlockMemory* pmbmLeftTop,

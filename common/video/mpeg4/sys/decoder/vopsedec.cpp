@@ -811,6 +811,8 @@ Void CVideoObjectDecoder::decodeVOHead ()
 
 Void CVideoObjectDecoder::decodeVOLHead ()
 {
+  int ver_id;
+
 	findStartCode();
 	UInt uiVolStartCode = m_pbitstrmIn -> getBits (NUMBITS_VOL_START_CODE);
 	assert(uiVolStartCode == VOL_START_CODE);
@@ -822,9 +824,12 @@ Void CVideoObjectDecoder::decodeVOLHead ()
 	UInt uiOLI = m_pbitstrmIn -> getBits (1); //VOL_Is_Object_Layer_Identifier, useless flag for now
 	if(uiOLI)
 	{
-		m_pbitstrmIn -> getBits (4); // video_oject_layer_verid
+	  ver_id = m_pbitstrmIn -> getBits (4); // video_oject_layer_verid
 		m_pbitstrmIn -> getBits (3); // video_oject_layer_priority
+	} else {
+	  ver_id = 1;
 	}
+
 	//assert(uiOLI == 0);
 	
 	UInt uiAspect = m_pbitstrmIn -> getBits (4);
@@ -886,7 +891,8 @@ Void CVideoObjectDecoder::decodeVOLHead ()
 	//assert (bFixFrameRate == FALSE);
 	if(bFixFrameRate)
 	{
-	  /* UInt uiFixedVOPTimeIncrement = wmay */m_pbitstrmIn -> getBits (m_iNumBitsTimeIncr);
+	  UInt uiFixedVOPTimeIncrement = m_pbitstrmIn -> getBits (m_iNumBitsTimeIncr);
+	  m_volmd.iClockRate = m_volmd.iClockRate / uiFixedVOPTimeIncrement;
 		// not used
 		//
 		//
@@ -918,20 +924,21 @@ Void CVideoObjectDecoder::decodeVOLHead ()
 	m_volmd.fAUsage = (AlphaUsage) uiAUsage;
 	if (m_volmd.fAUsage == RECTANGLE) {
 		UInt uiMarker = m_pbitstrmIn -> getBits (1);
-		assert(uiMarker==1);
+		//wmay for divx assert(uiMarker==1);
 		m_ivolWidth = m_pbitstrmIn -> getBits (NUMBITS_VOP_WIDTH);
 		uiMarker  = m_pbitstrmIn -> getBits (1);
-		assert(uiMarker==1);
+		// wmay for divx assert(uiMarker==1);
 		m_ivolHeight = m_pbitstrmIn -> getBits (NUMBITS_VOP_HEIGHT);
 		uiMarker  = m_pbitstrmIn -> getBits (1);
-		assert(uiMarker==1);
+		// wmay for dixv assert(uiMarker==1);
 	}
 
 	m_vopmd.bInterlace = m_pbitstrmIn -> getBits (1); // interlace (was vop flag)
 	m_volmd.bAdvPredDisable = m_pbitstrmIn -> getBits (1);  //VOL_obmc_Disable
 
 	// decode sprite info
-	m_uiSprite = m_pbitstrmIn -> getBits (NUMBITS_SPRITE_USAGE);
+	// wmay m_uiSprite = m_pbitstrmIn -> getBits (NUMBITS_SPRITE_USAGE);
+	m_uiSprite = m_pbitstrmIn->getBits(ver_id == 1 ? 1 : 2);
 	if (m_uiSprite == 1) { // sprite information
 		Int isprite_hdim = m_pbitstrmIn -> getBits (NUMBITS_SPRITE_HDIM);
 		Int iMarker = m_pbitstrmIn -> getBits (MARKER_BIT);
@@ -1058,6 +1065,8 @@ Void CVideoObjectDecoder::decodeVOLHead ()
 			}
 		}
 	}
+	if (ver_id != 1) // wmay
+	  m_pbitstrmIn->getBits(1); // wmay vol quarter pixel
 	
 	// Bool bComplxityEsti = m_pbitstrmIn->getBits (1); //Complexity estimation; don't know how to use it
 

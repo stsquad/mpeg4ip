@@ -118,6 +118,8 @@ Void CVideoObject::find8x8MVpredAtBoundary (CVector& vecPred, const CMotionVecto
 		vctCandMV1 = (pmv + gIndexOfCandBlk [blknCurr] [1]) -> trueMVHalfPel ();
 		vctCandMV2 = (pmv + gIndexOfCandBlk [blknCurr] [2]) -> trueMVHalfPel ();
 		break;
+	default:
+	  break;
 	}
 	vecPred.x = medianof3 (vctCandMV0.x, vctCandMV1.x, vctCandMV2.x);
 	vecPred.y = medianof3 (vctCandMV0.y, vctCandMV1.y, vctCandMV2.y);
@@ -148,6 +150,8 @@ Void CVideoObject::find8x8MVpredInterior (CVector& vecPred, const CMotionVector*
 		vctCandMV1 = (pmv +  gIndexOfCandBlk [blknCurr] [1]) -> trueMVHalfPel ();
 		vctCandMV2 = (pmv +  gIndexOfCandBlk [blknCurr] [2]) -> trueMVHalfPel ();
 		break;
+	default:
+	  break;
 	}
 	vecPred.x = medianof3 (vctCandMV0.x, vctCandMV1.x, vctCandMV2.x);
 	vecPred.y = medianof3 (vctCandMV0.y, vctCandMV1.y, vctCandMV2.y);

@@ -24,7 +24,7 @@
 #include <SDL.h>
 
 COurInByteStreamMem::COurInByteStreamMem (CPlayerMedia *m, 
-					  const char *membuf, 
+					  const unsigned char *membuf, 
 					  size_t len) :
   COurInByteStream(m)
 {
@@ -60,19 +60,19 @@ uint64_t COurInByteStreamMem::start_next_frame (void)
 }
 
 
-char COurInByteStreamMem::get (void) 
+unsigned char COurInByteStreamMem::get (void) 
 {
   if ((m_offset >= m_len) && m_bookmark_set == 0) {
     throw "PAST END";
   }
     
-  char ret = m_memptr[m_offset];
+  unsigned char ret = m_memptr[m_offset];
   m_offset++;
   m_total++;
   return (ret);
 }
 
-char COurInByteStreamMem::peek (void)
+unsigned char COurInByteStreamMem::peek (void)
 {
   return (m_memptr[m_offset]);
 }
@@ -90,7 +90,7 @@ void COurInByteStreamMem::bookmark (int bSet)
   }
 }
 
-size_t COurInByteStreamMem::read (char *buffer, size_t bytes)
+size_t COurInByteStreamMem::read (unsigned char *buffer, size_t bytes)
 {
   size_t diff = m_len - m_offset;
   if (diff < bytes) {
@@ -111,7 +111,7 @@ void COurInByteStreamMem::reset (void)
 }
 
 COurInByteStreamWav::COurInByteStreamWav (CPlayerMedia *m,
-					  const char *membuf, 
+					  const unsigned char *membuf, 
 					  size_t len) :
   COurInByteStreamMem(m, membuf, len) 
 {

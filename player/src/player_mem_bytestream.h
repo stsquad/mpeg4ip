@@ -37,11 +37,11 @@ class CInByteStreamMem : public CInByteStreamBase
   CInByteStreamMem();
   ~CInByteStreamMem();
   int eof (void) { return m_offset >= m_len; };
-  char get(void);
-  char peek(void);
+  unsigned char get(void);
+  unsigned char peek(void);
   void reset(void) { };
   void bookmark(int Bset);
-  void set_memory (const char *membuf, size_t len) {
+  void set_memory (const unsigned char *membuf, size_t len) {
     m_memptr = membuf;
     m_len = len;
     m_offset = 0;
@@ -49,7 +49,7 @@ class CInByteStreamMem : public CInByteStreamBase
  public:
   void init(void);
   size_t m_offset, m_len;
-  const char *m_memptr, *m_bookmark_memptr;
+  const unsigned char *m_memptr, *m_bookmark_memptr;
   int m_bookmark_offset;
   int m_bookmark_set;
 };

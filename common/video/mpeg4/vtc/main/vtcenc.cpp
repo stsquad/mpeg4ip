@@ -109,8 +109,8 @@ Void CVTCEncoder::init(
 		UInt uiQdcUV,
 		UInt uiSpatialLev ,
 		UInt defaultSpatialScale, // hjlee 0901
-		Int  lastWvtDecompInSpaLayer[MAXDECOMPLEV], // hjlee 0901
-		SNR_PARAM* Qinfo[] 
+		Int  *lastWvtDecompInSpaLayer, // hjlee 0901
+		SNR_PARAM** Qinfo 
 	)
 {
 

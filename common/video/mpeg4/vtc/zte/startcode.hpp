@@ -1,4 +1,4 @@
-/* $Id: startcode.hpp,v 1.1 2001/02/05 20:26:21 cahighlander Exp $ */
+/* $Id: startcode.hpp,v 1.2 2001/05/09 21:14:18 cahighlander Exp $ */
 /****************************************************************************/
 /*   MPEG4 Visual Texture Coding (VTC) Mode Software                        */
 /*                                                                          */
@@ -67,4 +67,4 @@
 #define MARKER_BIT 1
 #define reserved_bits 7
 #define end_dc_marker 128
-#endif _Start_Code_
+#endif /* _Start_Code_ */

@@ -4,11 +4,14 @@ noinst_LTLIBRARIES = libmp4player.la
 libmp4player_la_LDFLAGS = -static
 libmp4player_la_SOURCES = \
 	audio.cpp \
+	avi_bytestream.cpp \
+	avi_file.cpp \
 	ip_port.cpp \
 	media_utils.cpp \
 	msg_queue.cpp \
 	our_bytestream_file.cpp \
 	our_bytestream_mem.cpp \
+	our_config_file.cpp \
 	player_media.cpp \
 	player_media_decode.cpp \
 	player_mem_bytestream.cpp \
@@ -36,9 +39,9 @@ gmp4player_SOURCES = \
 movplayer_SOURCES = player_util.c \
 	movplayer.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I../lib/SDL/include -I$(top_srcdir)/common/mp4 -I$(top_srcdir)/include -I/usr/lib/glib/include -I$(top_srcdir)/include
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I../lib/SDL/include -I$(top_srcdir)/common/mp4 -I$(top_srcdir)/include @GLIB_INCLUDES@ @GTK_INCLUDES@ -I$(top_srcdir)/include -I$(top_srcdir)/server/lib/avi -I$(top_srcdir)/common/lib/config_file
 
-AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes 
+AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wmissing-prototypes 
 
 AM_CXXFLAGS = -D_REENTRANT -DNOCONTROLS -fexceptions -fno-rtti -Wall -Werror
 
@@ -61,10 +64,15 @@ LDADD = \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
 	$(top_builddir)/player/lib/SDL/src/libSDL.la \
 	$(top_builddir)/common/mp4/libmp4.la \
+	$(top_builddir)/server/lib/avi/libavi.la \
 	$(top_builddir)/player/src/libmp4player.la \
+	$(top_builddir)/server/lib/avi/libavi.la \
+	$(top_builddir)/common/lib/config_file/libconfig_file.la \
 	-lpthread \
 	-lm \
+	$(top_builddir)/server/lib/avi/libavi.la \
 	$(top_builddir)/player/src/libmp4player.la \
+	$(top_builddir)/server/lib/avi/libavi.la \
 	$(top_builddir)/player/lib/video/divx/libourdivx.la \
 	$(top_builddir)/player/src/codec/aa/libaa.la \
 	$(top_builddir)/common/video/mpeg4/obj/libobj.a \
@@ -74,3 +82,4 @@ LDADD = \
 	 -lgmodule -lglib -ldl -lXi -lXext -lX11 -lm
 
 LDFLAGS = -rdynamic
+

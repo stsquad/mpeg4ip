@@ -22,6 +22,7 @@ int aac_decode_init(faadAACInfo *fInfo);
 void aac_decode_free(void);
 int  aac_decode_frame(short *sample_buffer);
 int aac_get_sample_rate(void);
+int aac_get_channels(void);
 int aac_decode_seek(int pos_ms);
 
 void CommonExit(int errorcode, char *message);

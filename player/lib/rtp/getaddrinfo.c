@@ -47,7 +47,7 @@
 
 #ifndef lint
 static const char rcsid[] =
-     "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/player/lib/rtp/Attic/getaddrinfo.c,v 1.1 2001/02/05 20:26:33 cahighlander Exp $";
+     "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/player/lib/rtp/Attic/getaddrinfo.c,v 1.2 2001/05/09 21:15:12 cahighlander Exp $";
 #endif
 
 #include "config_unix.h"

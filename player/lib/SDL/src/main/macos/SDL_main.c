@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_main.c,v 1.2 2001/04/10 22:23:47 cahighlander Exp $";
+ "@(#) $Id: SDL_main.c,v 1.3 2001/05/09 21:15:09 cahighlander Exp $";
 #endif
 
 /* This file takes care of command line argument parsing, and stdio redirection

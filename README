@@ -1,12 +1,12 @@
-March 1, 2001
+May 7, 2001
 
 MPEG4IP Project
 ===============
 
 The MPEG4IP project provides a standards-based system for encoding, 
-streaming, and playing MPEG-4 encoded audio and video for an on-demand 
-scenario. To achieve this we've integrated several existing open source 
-packages, and also created some original code to fill in the gaps.
+streaming, and playing MPEG-4 encoded audio and video. To achieve 
+this we've integrated a number of existing open source packages, and 
+also created some original code to fill in the gaps.
 
 Please note this project is intended for developers who are interested
 in MPEG-4 audio and video, and Internet streaming. It is not intended
@@ -20,26 +20,34 @@ Overview
 ========
 
 The starting point for MPEG4IP is some raw audio and/or video in a file.
-This then needs to be encoded using the included tools to create a 
-streamable file, either hinted Quicktime format or MP4. Detailed 
-instructions for how to do this are in doc/encoding.htm  
+This needs to be encoded using the included tools to create a 
+streamable MP4 file. The simple approach is to use the 'mp4encode' script.
+Detailed instructions for this script and the individual tools that it uses
+are in doc/encoding/encoding.htm  
 
-Once the streamable file is prepared, it should be placed in the content 
+Once the MP4 file is prepared, it should be placed in the content 
 directory of the streaming server. We include Apple's Darwin Streaming 
-Server with MPEG4IP, but any server that understands either hinted 
-Quicktime files or MP4 files can be used. 
+Server with MPEG4IP, but any server that understands MP4 files (or
+hinted Quicktime files) can be used. 
 
 When the content is encoded and available on the server, you can run
 the player. Start 'gmp4player' and then enter the RTSP URL to the server 
 and the content, (command line works too). E.g.  
-	$ gmp4player rtsp://myserver.mydomain.com/mycontent.mov
-
-The player has a simple Gtk interface. If you prefer no UI, but just
-the bare bones video, 'mp4player' is available to you.
+    $ gmp4player rtsp://myserver.mydomain.com/mycontent.mp4
 
 Although we're focussed on streaming, the player will also playback from
 a local file. E.g
-	$ gmp4player mycontent.mov
+    $ gmp4player mycontent.mp4
+
+That's not all! The player is not limited to local playback of MP4 files.
+It can also read AVI, CMP, DIVX, AAC, and MP3. This is useful for debugging
+since the encoded data can be check indepedently of the MP4 file container,
+and known good content, such as your favorite MP3, can be used to verify
+that the player is working correctly with your hardware. E.g.
+    $ gmp4player mymusic.mp3
+
+Note: If you prefer a no UI version of the player, just the bare video 
+window, 'mp4player' is available to fit that need.
 
 
 Legal
@@ -71,11 +79,11 @@ FOR YOUR OWN ACTIONS!
 Redistributed Open Source Packages
 ==================================
 
-This is the currently list of redistributed open source packages that are
+This is the list of redistributed open source packages that are included 
 in MPEG4IP:
 
 Name:       Apple Darwin Streaming Server
-Version:	3.0 Public Preview
+Version:    3.0 Public Preview
 Origin:     http://www.apple.com/projects/streaming
 Author:     Apple Computer
 Directory:  mpeg4ip/server/DSS
@@ -100,8 +108,8 @@ Author:     Menno Bakker
 Directory:  mpeg4ip/server/audio/faac
             mpeg4ip/player/lib/audio/faad
 License:    GNU General Public License (GPL), version 2 1991 for modifications 
-            ISO MPEG-4 for original base code
-Notes:      See ISO MPEG-4 reference software license
+            ISO MPEG-4 reference software license for original base code
+Notes:      Use may require payment of patent royalties
 
 Name:       ISO MPEG-4 reference software
 Version:    2000
@@ -110,6 +118,30 @@ Author:     ISO
 Directory:  mpeg4ip/common/video/mpeg4
 License:    Other, see source files
 Notes:      Use may require payment of patent royalties
+            Many contributors are listed in the individual source files.
+
+Name:       LAME
+Version:    3.70
+Origin:     http://www.mp3dev.org/mp3/
+Authors:    Mike Cheng, Mark Taylor     
+Directory:  mpeg4ip/server/audio/lame
+License:    GNU Library General Public License (LGPL), version 2 1991 
+            for modifications
+            ISO MPEG-2 reference software license for orignial base code
+Notes:      Use may require payment of patent royalties
+            Many contributors are listed in the individual source files.
+
+Name:       Open DivX
+Version:    4.0 alpha48
+Origin:     http://www.projectmayo.com/
+Author:     Project Mayo
+Directory:  mpeg4ip/server/video/divx, and mpeg4ip/player/lib/video/divx
+License:    DivX Open license, version 2.1
+Notes:      DivX license can be found in above directories, as
+            divx_open_license.txt
+            Note this license has requirements on content generated
+            by the encoder when the content is used for commerical purposes.
+            Many contributors are listed in the individual source files.
 
 Name:       Quicktime for Linux
 Version:    1.2
@@ -120,7 +152,7 @@ License:    Other, see README_ORIGINAL
 Notes:      This directory also contains original MPEG4IP code.
 
 Name:       Simple DirectMedia Layer
-Version:    1.1
+Version:    1.2
 Origin:     http://www.libsdl.org/
 Author:     Sam Lantinga
 Directory:  mpeg4ip/player/lib/SDL
@@ -133,6 +165,13 @@ Author:     Erik de Castro Lopo
 Directory:  mpeg4ip/server/lib/sndfile
 License:    GNU Lesser General Public License, version 2.1 1999
 Notes:      Used by FAAC
+
+Name:       splay
+Version:    0.9.4
+Origin:     http://splay.sourceforge.net/
+Author:     Woo-jae Jung
+Directory:  mpeg4ip/player/audio/mp3
+License:    GNU Library General Public License (LGPL), version 2 1991
 
 Name:       UCL Common Multimedia Library
 Version:    1.2
@@ -159,27 +198,38 @@ This package uses GNU autoconf, automake, and libtool. It attempts to
 follow the GNU conventions for open source packages. This is complicated
 by the fact that we build on many other packages. Where the package was 
 already using the GNU tools, we left things alone. Where the package was 
-using it's own Makefile, we typically (but not always) replaced that with 
-an equivalent automake file.
+using it's own Makefile, we left things alone if it was a complicated 
+Makefile. If it was straightforward we replaced it with an equivalent 
+automake file.
 
 Note: libtool is frequently not installed on Linux systems (autoconf, 
 and automake generally are). You can download libtool from a GNU mirror
 site, or http://download.sourceforge.net/mpegip/libtool-1.3.5.tar.gz
 
-To date we've only built on Red Hat Linux 7.0, with GCC 2.96. 
-The code should be portable, but as someone once said "There's no such
-thing as portable code, just code that has been ported." When you find
-problems please be sure to use the SourceForge site to tell us what you
-encountered, and hopefully how you fixed it.
+To date we've built on Red Hat Linux 6.1, 6.2, 7.0, and 7.1.
+
+In general, the code should be portable, but as someone once said 
+"There's no such thing as portable code, just code that has been ported." 
+When you find problems please be sure to use the SourceForge site to tell 
+us what you encountered, and hopefully how you fixed it.
 
 To build:
     ./bootstrap
     make
-    make install (optional)
+    make install (optional, typically need root privileges)
 
 The bootstrap script will pass any arguments to the configure scripts.
-Two interesting options are "--disable-server" and "--disable-player"
-which disable the building of the server and player respectively. 
+
+Two options of potential interest are "--disable-server" and "--disable-player"
+which disable the building of the server and player respectively. By
+default both server and player are built.
+
+If you are building on a system with an Intel x86 CPU clone, you may
+need to specify the configuration option "--enable-mmx=no". The
+configuration script automatically detects an x86 target CPU and 
+enables MMX assembly code in the build (if the NASM assembler is available).
+If your CPU doesn't support MMX instructions you will want to disable 
+this feature. 
 
 For the curious, the bootstrap script invokes the configure scripts of 
 the included packages that have them, and then our own top level configure 
@@ -193,20 +243,34 @@ perform that step separately.
 
 To build the Darwin Streaming Server:
 
-	cd server/DSS
-	./Buildit
+    cd server/DSS
+    ./Buildit
 
 To install the Darwin Streaming Server from the build:
-	cd server/DSS
-	mkdir dist
-	./DSS_MakeRoot -f dist
-	cd dist
-	./Install	(need root privileges)
+    cd server/DSS
+    mkdir dist
+    ./DSS_MakeRoot -f dist
+    cd dist
+    ./Install    (need root privileges)
 
 See the documentation that accompanies the server on how to configure it
 for your environment. 
 
 Note the default content directory is /usr/local/movies.
+
+
+There is a short "home video" sample file in mpeg4ip/samples that can 
+be used to check that the build and install have succeeded.  First, 
+try opening the file with gmp4player. If that works, then try copying 
+the file to the streaming server's content directory (e.g. /usr/local/movies),
+and enter the appropriate RTSP URL in gmp4player.
+
+Note that the clip is encoded to minimize the size of the distribution, and
+does not reflect the best quality that can be achieved.
+
+You can find other mp4 clips at the Philips MPEG-4 site,
+http://www.mpeg-4player.com/  Note that these clips are not hinted, so
+they can't be streamed, only local playback is possible.
 
 
 Executables
@@ -217,16 +281,26 @@ will end up in /usr/local/bin.
 
 For encoding tools, you get:
 
-avi2raw     Extracts raw audio/video tracks from an AVI file
-faac        Encodes raw audio into MPEG-4 AAC encoded audio
-mp4venc     Encodes raw video into MPEG-4 encoded video
-mp4apkt     Creates audio streaming hint track in MP4/Quicktime file
-mp4vpkt     Creates video streaming hint track in MP4/Quicktime file
-mp4vhdr	    Creates MPEG-4 video headers
-mp4dump     Dumps MP4/Quicktime file meta-information in text form
-yuvdump     Displays a raw video file on the screen
+mp4encode   Front-end script to the encoding tools
 
-These are desribed in more detail in doc/encoding.htm
+avi2raw     Extracts raw audio/video tracks from an AVI file
+lboxcrop    Vertically crops raw video to a new aspect ratio
+divxenc     Encodes raw video into MPEG-4 encoded video using the Divx code
+faac        Encodes raw audio into MPEG-4 AAC encoded audio
+lame        Encodes raw audio into MP3 encoded audio
+mp4venc     Encodes raw video into MPEG-4 encoded video using ISO codec
+mp4apkt     Adds audio track to an MP4 file
+mp4vpkt     Adds video track to an MP4 file
+
+These are described in more detail in doc/encoding/encoding.htm
+
+
+A few debugging tools are also included:
+
+mp4extract  Utility to extract audio/video tracks from an MP4 file
+mp4vhdr     Utility to create MPEG-4 video headers
+mp4dump     Utility to dump MP4 file meta-information in text form
+yuvdump     Utility to display a raw video file on the screen
 
 
 For playback, you get:
@@ -238,7 +312,8 @@ mp4player   Bare video window with sync'ed audio
 If you installed the Darwin Streaming Server, those executables will end
 up in /usr/local/sbin.
 
-DarwinStreamingServer	Provides streaming service for hinted Quicktime files
+DarwinStreamingServer    Provides streaming service for MP4 files
+PlaylistBroadcaster      Provides multicast playlist service for MP4 files
 
 
 
@@ -251,7 +326,10 @@ mpeg4ip - top level project directory
 
     config - autoconf files
 
-    doc - the minimal doc we've written so far ;-)
+    doc - the minimal doc we've written so far
+        encoding - how to encode contenet
+        ietf - copies of the relevant RFC's
+        mcast - how to multicast 
 
     include - project wide includes 
 
@@ -264,32 +342,43 @@ mpeg4ip - top level project directory
         lib - libraries specifically for the player
             audio
                 faad - FAAD AAC decoder
+                mp3 - MP3 decoder
             rtp - UCL RTP 
             rtsp - Our own RTSP client 
             SDL - Simple DirectMedia Layer
             sdp - Our own SDP
-        src - the player and it's variants
-            codec - wrappers to interface codecs with player
+            video
+                divx - OpenDivx decoder
+        src - the player executable
+            codec - wrappers to interface codecs with the player
                 aa - wrapper around FAAD
+                divx - wrapper around OpenDivx
+                mp3 - wrapper around MP3
                 mpeg4 - wrapper around mpeg4v
 
     server - server specific code
         DSS - Darwin QuickTime Streaming Server
-			patches/rtp_offset - patch to get correct RTP timestamps for B frames
+            <see server/DSS/Documenation/AboutTheSource.html>
         audio
             faac - AAC encoder program
+            lame - MP3 encoder program
         lib - libraries specifically for the server tools
             avi - AVI file format
             sndfile - sound file formats, used by faac
         util
             avi2raw - extract raw A/V data from AVI files
-            mp4apkt - MPEG-4 audio packetizer
-            mp4vpkt - MPEG-4 video packetizer
+            lboxcrop - vertically crop raw video 
+            mp4apkt - MP4 audio packetizer
+            mp4encode - front-end script to simplify encoding process
+            mp4extract - extract A/V data from MP4 files
+            mp4vpkt - MP4 video packetizer
             mp4vhdr - MPEG-4 video header generator
             mp4dump - dump MP4 file meta-info contents
+        video
+            divx - OpenDivx encoder library and program
 
     util - generally useful utilities
-        yuv - simple tools for examining uncompressed video
+        yuv - simple tools for examining raw video
 
 
 Standards Compliance
@@ -314,12 +403,13 @@ body, and provides an online store under www.ansi.org
 IETF RFC 1889 & 1890 RTP
 IETF RFC 2326 RTSP
 IETF RFC 2327 SDP
+IETF RFC 2250 RTP Payload for MPEG-1/2
+	Note: we're just using the audio part for MP3.
 IETF RFC 3016 RTP Payload for MPEG-4 Audio/Visual
     Note: we're implementing the video part,
     the audio part mandates the use of MPEG-4 LATM which is far too
-    complicated for our needs. Instead we're using an RTP payload 
-    format similar to that of RFC 2250 for MPEG 1/2. We're anticipating
-    submitting that to IETF soon. We'll add a pointer to the spec ASAP.
+    complicated for our needs. Instead we're using an AAC RTP payload 
+    format similar to that of RFC 2250.
 
 The IETF RFCs can be found in mpeg4ip/doc/ietf
 
@@ -332,18 +422,22 @@ This document can be found at http://developer.apple.com/quicktime/
 Known Problems
 ==============
 
-* Some redistributable sample content would be nice. We're working on it.
-
 * The version 0.7 FAAC audio encoder creates less than perfect audio.
 The good news is that we've looked at recent snapshots of the upcoming
 version 1.0 and all those problems appear to be fixed. We included the 0.7
 version because that's the project's current stable release. We will  
-sync up with the 1.0 release as soon as the authors deem it stable.
+sync up with the 1.0 release as soon as the authors deem it stable. In
+the interim MP3 audio is available as an alternative.
 
 * The ISO MPEG-4 video codec has a bitrate control feature, but we're
 still mystified as to how the input parameter influences the output.
 The same value of the parameter results in different bitrates by a factor
-of two for different content. See doc/mp4encode and doc/template.par for
-details. If you figure it out, please let us know. (Anyway we're expecting
-to add the OpenDivX codec soon which does this correctly.)
+of two for different content. If you figure it out, please let us know.
+Note the OpenDivx encoder has bitrate control that works.
 
+* On slower machines (~500MHz), doubling the video size via the gmp4player 
+menu consumes enough CPU to adversely effect playback, resulting in audio
+and video falling out of sync. When we get a chance we'll implement an MMX
+version of the smoothing stretcher to fix this (on PC's at least).
+
+=== END OF README ===

@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_artsaudio.h,v 1.1 2001/04/10 23:40:47 cahighlander Exp $";
+ "@(#) $Id: SDL_artsaudio.h,v 1.2 2001/05/09 21:15:05 cahighlander Exp $";
 #endif
 
 #ifndef _SDL_artscaudio_h

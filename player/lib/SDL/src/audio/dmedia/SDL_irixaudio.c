@@ -24,7 +24,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_irixaudio.c,v 1.1 2001/04/10 23:42:45 cahighlander Exp $";
+ "@(#) $Id: SDL_irixaudio.c,v 1.2 2001/05/09 21:15:05 cahighlander Exp $";
 #endif
 
 /* Allow access to a raw mixing buffer (For IRIX 6.5 and higher) */

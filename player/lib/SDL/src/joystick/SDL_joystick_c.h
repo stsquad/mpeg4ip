@@ -22,7 +22,7 @@
 
 #ifdef SAVE_RCSID
 static char rcsid =
- "@(#) $Id: SDL_joystick_c.h,v 1.2 2001/04/10 22:23:47 cahighlander Exp $";
+ "@(#) $Id: SDL_joystick_c.h,v 1.3 2001/05/09 21:15:08 cahighlander Exp $";
 #endif
 
 /* Useful functions and variables from SDL_joystick.c */

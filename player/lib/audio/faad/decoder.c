@@ -480,6 +480,10 @@ int aac_get_sample_rate (void)
   }
   return (0);
 }
+int aac_get_channels (void)
+{
+  return (mip->nch);
+}
 
 #ifndef PLUGIN
 void CommonWarning(char *message)

@@ -9,7 +9,7 @@
 #CCC 		= g++ -D __TRACE_AND_STATS_ -D__DOUBLE_PRECISION_
 CCC 		= g++ -D__TRACE_AND_STATS_ -D__DOUBLE_PRECISION_
 
-CFLAGS		= $(INC) -O3 -Wall -Wpointer-arith -fexceptions -fno-rtti -Wall -Werror
+CFLAGS		= -g $(INC) -O3 -Wall -Wpointer-arith -fexceptions -fno-rtti -Wall -Werror
 
 LN 			= /bin/ln -s
 MV 			= /bin/mv
@@ -24,28 +24,26 @@ TOPDIR		= .
 BINDIR		= ./bin
 INSTALLBINDIR	= /usr/local/bin
 
-GROUP		= .
+SRCDIR		= $(TOPDIR)
+APPDIR		= $(TOPDIR)/app
+APPENCDIR	= $(TOPDIR)/app/encoder
+APPDECDIR	= $(TOPDIR)/app/decoder
+APPCONVDIR	= $(TOPDIR)/app/convertpar
+SYSDIR		= $(TOPDIR)/sys
+SYSENCDIR	= $(TOPDIR)/sys/encoder
+SYSDECDIR	= $(TOPDIR)/sys/decoder
+TOOLSDIR	= $(TOPDIR)/tools
+TOOLSENTDIR	= $(TOPDIR)/tools/entropy
+TYPEDIR		= $(TOPDIR)/type
+VTCDIR		= $(TOPDIR)/vtc
+VTCINCDIR	= $(TOPDIR)/vtc/include
+VTCMAINDIR	= $(TOPDIR)/vtc/main
+VTCPEZWDIR	= $(TOPDIR)/vtc/pezw
+VTCWAVLTDIR	= $(TOPDIR)/vtc/wavelet
+VTCZTEDIR	= $(TOPDIR)/vtc/zte
+VTCZTQDIR	= $(TOPDIR)/vtc/ztq
 
-SRCDIR		= $(TOPDIR)/$(GROUP)
-APPDIR		= $(TOPDIR)/$(GROUP)/app
-APPENCDIR	= $(TOPDIR)/$(GROUP)/app/encoder
-APPDECDIR	= $(TOPDIR)/$(GROUP)/app/decoder
-APPCONVDIR	= $(TOPDIR)/$(GROUP)/app/convertpar
-SYSDIR		= $(TOPDIR)/$(GROUP)/sys
-SYSENCDIR	= $(TOPDIR)/$(GROUP)/sys/encoder
-SYSDECDIR	= $(TOPDIR)/$(GROUP)/sys/decoder
-TOOLSDIR	= $(TOPDIR)/$(GROUP)/tools
-TOOLSENTDIR	= $(TOPDIR)/$(GROUP)/tools/entropy
-TYPEDIR		= $(TOPDIR)/$(GROUP)/type
-VTCDIR		= $(TOPDIR)/$(GROUP)/vtc
-VTCINCDIR	= $(TOPDIR)/$(GROUP)/vtc/include
-VTCMAINDIR	= $(TOPDIR)/$(GROUP)/vtc/main
-VTCPEZWDIR	= $(TOPDIR)/$(GROUP)/vtc/pezw
-VTCWAVLTDIR	= $(TOPDIR)/$(GROUP)/vtc/wavelet
-VTCZTEDIR	= $(TOPDIR)/$(GROUP)/vtc/zte
-VTCZTQDIR	= $(TOPDIR)/$(GROUP)/vtc/ztq
-
-OBJDIR		= $(TOPDIR)/$(GROUP)/obj
+OBJDIR		= $(TOPDIR)/obj
 
 LIBS		= -lm -lobj
 
@@ -148,20 +146,20 @@ OBJECTS	= \
 			#$(OBJDIR)/wvtpezw_spatial_snr.o \
 
 # Include all subdirectories for ease
-INC	= 	-I$(TOPDIR)/$(GROUP)/ \
-		-I$(TOPDIR)/$(GROUP)/sys/ \
-		-I$(TOPDIR)/$(GROUP)/sys/encoder \
-		-I$(TOPDIR)/$(GROUP)/sys/decoder \
-		-I$(TOPDIR)/$(GROUP)/type \
-		-I$(TOPDIR)/$(GROUP)/tools \
-		-I$(TOPDIR)/$(GROUP)/tools/entropy \
-		-I$(TOPDIR)/$(GROUP)/vtc \
-		-I$(TOPDIR)/$(GROUP)/vtc/include \
-		-I$(TOPDIR)/$(GROUP)/vtc/main \
-		-I$(TOPDIR)/$(GROUP)/vtc/pezw \
-		-I$(TOPDIR)/$(GROUP)/vtc/wavelet \
-		-I$(TOPDIR)/$(GROUP)/vtc/zte \
-		-I$(TOPDIR)/$(GROUP)/vtc/ztq \
+INC	= 	-I$(TOPDIR) \
+		-I$(TOPDIR)/sys \
+		-I$(TOPDIR)/sys/encoder \
+		-I$(TOPDIR)/sys/decoder \
+		-I$(TOPDIR)/type \
+		-I$(TOPDIR)/tools \
+		-I$(TOPDIR)/tools/entropy \
+		-I$(TOPDIR)/vtc \
+		-I$(TOPDIR)/vtc/include \
+		-I$(TOPDIR)/vtc/main \
+		-I$(TOPDIR)/vtc/pezw \
+		-I$(TOPDIR)/vtc/wavelet \
+		-I$(TOPDIR)/vtc/zte \
+		-I$(TOPDIR)/vtc/ztq \
 		-L$(OBJDIR)
 
 
@@ -178,7 +176,7 @@ all:	$(OBJECTS) $(PROGRAMS)
 # -------- encoder ---------------------------------------------
 
 bin/mp4venc: $(OBJECTS) 
-	@echo $(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/mp4venc $(APPENCDIR)/encoder.cpp $(LIBS)
+	@echo $(CCC) $(CFLAGS) $(INC) -o $(OBJDIR)/mp4venc $(APPENCDIR)/encoder.cpp $(LIBS)
 	@$(CCC) $(CFLAGS) $(INC) -o $(BINDIR)/mp4venc $(APPENCDIR)/encoder.cpp $(LIBS)
 	@echo Done making mp4venc
 

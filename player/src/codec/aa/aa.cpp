@@ -80,8 +80,10 @@ CAACodec::CAACodec (CAudioSync *a,
 
   m_resync_with_header = 1;
   m_record_sync_time = 1;
-
+  
+  m_faad_inited = 0;
   m_audio_inited = 0;
+  m_temp_buff = (unsigned char *)malloc(4096);
   // Use media_fmt to indicate that we're streaming.
   // create a CInByteStreamMem that will be used to copy from the
   // streaming packet for use locally.  This will allow us, if we need
@@ -91,7 +93,7 @@ CAACodec::CAACodec (CAudioSync *a,
     m_local_bytestream = new CInByteStreamMem;
     m_bytestream = m_local_bytestream;
     m_local_buffersize = 4096;
-    m_local_buffer = (char *)malloc(m_local_buffersize);
+    m_local_buffer = (unsigned char *)malloc(m_local_buffersize);
     // haven't checked for null buffer
     if (media_fmt) 
       m_freq = media_fmt->rtpmap->clock_rate;
@@ -108,6 +110,18 @@ CAACodec::CAACodec (CAudioSync *a,
       m_freq = 44100;
     }
   }
+  m_chans = 2;
+  if (userdata != NULL) {
+    unsigned char freq_index;
+    freq_index = ((userdata[0] & 0x7) << 1) | (userdata[1] >> 7);
+    if (freq_index == 0xf) {
+      m_chans = (userdata[4] >> 3) & 0xf;
+    } else {
+      m_chans = (userdata[1] >> 3) & 0xf;
+    }
+  }
+	
+
   player_debug_message("Setting freq to %d", m_freq);
 #if DUMP_OUTPUT_TO_FILE
   m_outfile = fopen("temp.raw", "w");
@@ -125,6 +139,10 @@ CAACodec::~CAACodec()
     free(m_local_buffer);
     m_local_buffer = NULL;
   }
+  if (m_temp_buff) {
+    free(m_temp_buff);
+    m_temp_buff = NULL;
+  }
 #if DUMP_OUTPUT_TO_FILE
   fclose(m_outfile);
 #endif
@@ -138,6 +156,9 @@ void CAACodec::do_pause (void)
   m_resync_with_header = 1;
   m_record_sync_time = 1;
   m_audio_inited = 0;
+  m_faad_inited = 0;
+  if (m_temp_buff == NULL) 
+    m_temp_buff = (unsigned char *)malloc(4096);
   //    player_debug_message("AA got do pause");
 }
 
@@ -190,7 +211,7 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
       if (length > m_local_buffersize) {
 	free(m_local_buffer);
 	m_local_buffersize = length * 2;
-	m_local_buffer = (char *)malloc(m_local_buffersize);
+	m_local_buffer = (unsigned char *)malloc(m_local_buffersize);
       }
       /*
        * copy from the original bytestream to local memory
@@ -212,14 +233,13 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     return (bits);
   }
 
-  if (m_audio_inited == 0) {
+  if (m_faad_inited == 0) {
     /*
      * If not initialized, do so.  
      */
     aac_decode_init_your_filestream(m_fs);
     aac_decode_init(&m_fInfo);
-    m_audio_sync->set_config(m_freq, 2, AUDIO_S16LSB, 1024);
-    m_audio_inited = 1;
+    m_faad_inited = 1;
   }
 
   try {
@@ -228,7 +248,11 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     /* 
      * Get an audio buffer
      */
-    buff = m_audio_sync->get_audio_buffer();
+    if (m_audio_inited == 0) {
+      buff = m_temp_buff;
+    } else {
+      buff = m_audio_sync->get_audio_buffer();
+    }
     if (buff == NULL) {
       //player_debug_message("Can't get buffer in aa");
       return (-1);
@@ -237,6 +261,22 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     bits = aac_decode_frame((short *)buff);
 
     if (bits > 0) {
+      if (m_audio_inited == 0) {
+	int tempchans = aac_get_channels();
+	if (tempchans != m_chans) {
+	  player_debug_message("AA - chans from data is %d conf %d", 
+			       tempchans, m_chans);
+	  m_chans = tempchans;
+	}
+	m_audio_sync->set_config(m_freq, m_chans, AUDIO_S16LSB, 1024);
+	unsigned char *now = m_audio_sync->get_audio_buffer();
+	if (now != NULL) {
+	  memcpy(now, buff, m_fInfo.channels * 1024 * sizeof(int16_t));
+	}
+	free(m_temp_buff);
+	m_temp_buff = NULL;
+	m_audio_inited = 1;
+      }
       /*
        * good result - give it to audio sync class
        */

@@ -266,14 +266,17 @@ int CPlayerMedia::create_streaming (CPlayerSession *psptr,
 				   sizeof(buffer));
   
     cmd.transport = buffer;
-    if (rtsp_send_setup(m_parent->get_rtsp_client(),
-			m_media_info->control_string,
-			&cmd,
-			&m_rtsp_session,
-			&decode,
-			m_parent->session_control_is_aggregate()) != 0) {
+    int err = 
+      rtsp_send_setup(m_parent->get_rtsp_client(),
+		      m_media_info->control_string,
+		      &cmd,
+		      &m_rtsp_session,
+		      &decode,
+		      m_parent->session_control_is_aggregate());
+    if (err != 0) {
       *errmsg = "Couldn't set up media session";
-      player_error_message("Can't create session %s", m_media_info->media);
+      player_error_message("Can't create session %s - error code %d", 
+			   m_media_info->media, err);
       if (decode != NULL)
 	free_decode_response(decode);
       return (-1);
@@ -820,24 +823,30 @@ int process_rtsp_rtpinfo (char *rtpinfo,
   do {
     if (media == NULL) {
       if (strncasecmp(rtpinfo, "url", strlen("url")) != 0) {
+	player_debug_message("Url not found");
 	return (-1);
       }
       rtpinfo += strlen("url");
       ADV_SPACE(rtpinfo);
-      if (*rtpinfo != '=')
+      if (*rtpinfo != '=') {
+	player_debug_message("Can't find = after url");
 	return (-1);
+      }
       rtpinfo++;
       ADV_SPACE(rtpinfo);
       char *url = rtpinfo;
       while (*rtpinfo != '\0' && *rtpinfo != ';') {
 	rtpinfo++;
       }
-      if (rtpinfo == '\0')
+      if (rtpinfo == '\0') {
+	player_debug_message("early end");
 	return (-1);
+      }
       *rtpinfo++ = '\0';
       char *temp = url;
       media = session->rtsp_url_to_media(url);
       if (media == NULL) {
+	player_debug_message("Can't find media from %s", url);
 	return -1;
       }
       if (temp != url) 

@@ -59,144 +59,145 @@ class CEntropyEncoder;
 class CEntropyEncoderSet;
 class CVideoObjectEncoder;
 
+typedef struct whothehellwriteafunctionwiththismanyparms {
+  UInt uiFrmWidth;			// frame width
+  UInt uiFrmHeight;			// frame height
+  Int iFirstFrm;			// first frame number
+  Int iLastFrm;				// last frame number
+  Bool bNot8Bit;				// NBIT
+  UInt uiQuantPrecision;			// NBIT
+  UInt nBits;				// NBIT
+  Int uiFirstVO;				// first VOP index
+  Int iLastVO;				// last VOP index
+  const Bool* rgbSpatialScalability; // spatial scalability indicator
+
+  const Int* rgiTemporalScalabilityType; // temporal scalability formation case // added by Sharp (98/02/09)
+  const Int* rgiEnhancementType;  // enhancement_type for scalability // added by Sharp (98/02/09)
+
+  UInt** rguiRateControl;	// rate control type
+  UInt** rguiBudget;		// for rate control
+  // for shape coding
+  const AlphaUsage* rgfAlphaUsage;// alpha usage for each VOP.  0: binary; 1: 8-bit
+  const Bool* rgbShapeOnly;		// shape only mode
+  const Int* rgiBinaryAlphaTH;
+  const Int* rgiBinaryAlphaRR;		// refresh rate: Added for error resilient mode by Toshiba(1997-11-14)
+  const Bool* rgbNoCrChange;
+  // motion estimation part for each VOP
+  UInt** rguiSearchRange;			// motion search range
+  Bool** rgbOriginalForME;		// flag indicating whether use the original previous VOP for ME
+  Bool** rgbAdvPredDisable;		// no advanced MC (currenly = obmc; later = obmc + 8x8)
+  // START: Complexity Estimation syntax support - Marc Mongenet (EPFL) - 17 Jun 1998
+  Bool ** rgbComplexityEstimationDisable;
+  Bool ** rgbOpaque;
+  Bool ** rgbTransparent;
+  Bool ** rgbIntraCAE;
+  Bool ** rgbInterCAE;
+  Bool ** rgbNoUpdate;
+  Bool ** rgbUpsampling;
+  Bool ** rgbIntraBlocks;
+  Bool ** rgbInterBlocks;
+  Bool ** rgbInter4vBlocks;
+  Bool ** rgbNotCodedBlocks;
+  Bool ** rgbDCTCoefs;
+  Bool ** rgbDCTLines;
+  Bool ** rgbVLCSymbols;
+  Bool ** rgbVLCBits;
+  Bool ** rgbAPM;
+  Bool ** rgbNPM;
+  Bool ** rgbInterpolateMCQ;
+  Bool ** rgbForwBackMCQ;
+  Bool ** rgbHalfpel2;
+  Bool ** rgbHalfpel4;
+  // END: Complexity Estimation syntax support
+  // START: VOL Control Parameters
+  UInt ** rguiVolControlParameters;
+  UInt ** rguiChromaFormat;
+  UInt ** rguiLowDelay;
+  UInt ** rguiVBVParams;
+  UInt ** rguiBitRate;
+  UInt ** rguiVbvBufferSize;
+  UInt ** rguiVbvBufferOccupany;
+  // END: VOL Control Parameters
+  Double** rgdFrameFrequency;	// Frame Frequency
+
+  Bool** rgbInterlacedCoding;	// interlace coding flag
+  Bool** rgbTopFieldFirst;	// top field first flag
+  Bool** rgbAlternateScan;    // alternate scan flag
+
+  Int** rgiDirectModeRadius;	// direct mode search radius
+
+  Int** rgiMVFileUsage;		// 0- not used; 1: read from motion file; 2- write to motion file
+  Char*** pchMVFileName;		// Motion vector filenames
+  // major syntax mode
+  Int**	rgbVPBitTh;				// Bit threshold for video packet spacing control
+  Bool**	rgbDataPartitioning;		// data partitioning
+  Bool**	rgbReversibleVlc;			// reversible VLC
+
+  // for texture coding
+  Quantizer** rgfQuant; // quantizer selection; either H.263 or MPEG
+  Bool** rgbLoadIntraMatrix; // load user-defined intra Q-Matrix
+  Int*** rgppiIntraQuantizerMatrix; // Intra Q-Matrix
+  Bool** rgbLoadInterMatrix; // load user-defined inter Q-Matrix
+  Int*** rgppiInterQuantizerMatrix; // Inter Q-Matrix
+  Int** rgiIntraDCSwitchingThr;		//threshold to code dc as ac when pred. is on
+  Int** rgiStepI; // I-VOP quantization stepsize
+  Int** rgiStepP; // P-VOP quantization stepsize
+  Bool**	rgbLoadIntraMatrixAlpha;
+  Int*** rgppiIntraQuantizerMatrixAlpha;
+  Bool**	rgbLoadInterMatrixAlpha;
+  Int*** rgppiInterQuantizerMatrixAlpha;
+  Int** rgiStepIAlpha; // I-VOP quantization stepsize for Alpha
+  Int** rgiStepPAlpha; // P-VOP quantization stepsize for Alpha
+  Int** rgiStepBAlpha; // B-VOP quantization stepsize for Alpha
+  Int** rgbNoAlphaQuantUpdate; // discouple gray quant update with tex. quant
+  Int** rgiStepB; // code for quantization stepsize for B-VOP
+  const Int* rgiNumOfBbetweenPVOP;		// no of B-VOPs between P-VOPs
+  const Int* rgiNumOfPbetweenIVOP;		// no of P-VOPs between I-VOPs
+  //added to encode GOV header by SONY 980212
+  const Int* rgiGOVperiod;
+  const Bool* rgbDeblockFilterDisable; //deblocking filter disable
+  const Bool *rgbAllowSkippedPMBs;
+
+  // file information
+  const Char* pchPrefix; // prefix name of the movie
+  const Char* pchBmpFiles; // bmp file directory location
+  const ChromType* rgfChrType; // input chrominance type. 0 - 4:4:4; 1 - 4:2:2; 0 - 4:2:0
+  const Char* pchOutBmpFiles; // quantized frame file directory
+  const Char* pchOutStrFiles; // output bitstream file
+  const Int* rgiTemporalRate; // temporal subsampling rate
+  const Int* rgiEnhnTemporalRate; // temporal subsampling rate for enhancement layer // added by Sharp (98/02/09)
+
+  // statistics dumping options
+  const Bool* rgbDumpMB;
+  const Bool* rgbTrace;
+
+  // rounding control
+  const Bool* rgbRoundingControlDisable; 
+  const Int* rgiInitialRoundingType; 
+
+  // for sprite info
+  const UInt* rguiSpriteUsage; // sprite usage
+  const UInt* rguiWarpingAccuracy; // warping accuracy
+  const Int* rgNumOfPnts; // number of points for sprite; 0 for stationary and -1 for no sprite
+  const Char* pchSptDir; // sprite directory
+  const Char* pchSptPntDir; // sprite point file
+  SptMode *pSpriteMode;	// sprite reconstruction mode
+  Int iSpatialOption;
+  UInt uiFrmWidth_SS;
+  UInt uiFrmHeight_SS;
+  UInt uiHor_sampling_n;
+  UInt uiHor_sampling_m;
+  UInt uiVer_sampling_n;
+  UInt uiVer_sampling_m;
+} CSessionEncoderParams;
+
 Class CSessionEncoder
 {
 	friend class CEnhcBufferEncoder;
 public:
 	// Constructors
 	~CSessionEncoder ();
-	CSessionEncoder (
-		// general info
-		UInt uiFrmWidth,			// frame width
-		UInt uiFrmHeight,			// frame height
-		Int iFirstFrm,			// first frame number
-		Int iLastFrm,				// last frame number
-		Bool bNot8Bit,				// NBIT
-		UInt uiQuantPrecision,			// NBIT
-		UInt nBits,				// NBIT
-		Int uiFirstVO,				// first VOP index
-		Int iLastVO,				// last VOP index
-		const Bool* rgbSpatialScalability, // spatial scalability indicator
-
-		const Int* rgiTemporalScalabilityType, // temporal scalability formation case // added by Sharp (98/02/09)
-		const Int* rgiEnhancementType,  // enhancement_type for scalability // added by Sharp (98/02/09)
-
-		UInt* rguiRateControl [],	// rate control type
-		UInt* rguiBudget [],		// for rate control
-		// for shape coding
-		const AlphaUsage* rgfAlphaUsage,// alpha usage for each VOP.  0: binary, 1: 8-bit
-		const Bool* rgbShapeOnly,		// shape only mode
-		const Int* rgiBinaryAlphaTH,
-		const Int* rgiBinaryAlphaRR,		// refresh rate: Added for error resilient mode by Toshiba(1997-11-14)
-		const Bool* rgbNoCrChange,
-		// motion estimation part for each VOP
-		UInt** rguiSearchRange,			// motion search range
-		Bool** rgbOriginalForME,		// flag indicating whether use the original previous VOP for ME
-		Bool** rgbAdvPredDisable,		// no advanced MC (currenly = obmc, later = obmc + 8x8)
-		// START: Complexity Estimation syntax support - Marc Mongenet (EPFL) - 17 Jun 1998
-		Bool ** rgbComplexityEstimationDisable,
-		Bool ** rgbOpaque,
-		Bool ** rgbTransparent,
-		Bool ** rgbIntraCAE,
-		Bool ** rgbInterCAE,
-		Bool ** rgbNoUpdate,
-		Bool ** rgbUpsampling,
-		Bool ** rgbIntraBlocks,
-		Bool ** rgbInterBlocks,
-		Bool ** rgbInter4vBlocks,
-		Bool ** rgbNotCodedBlocks,
-		Bool ** rgbDCTCoefs,
-		Bool ** rgbDCTLines,
-		Bool ** rgbVLCSymbols,
-		Bool ** rgbVLCBits,
-		Bool ** rgbAPM,
-		Bool ** rgbNPM,
-		Bool ** rgbInterpolateMCQ,
-		Bool ** rgbForwBackMCQ,
-		Bool ** rgbHalfpel2,
-		Bool ** rgbHalfpel4,
-		// END: Complexity Estimation syntax support
-				// START: VOL Control Parameters
-		UInt ** rguiVolControlParameters,
-		UInt ** rguiChromaFormat,
-		UInt ** rguiLowDelay,
-		UInt ** rguiVBVParams,
-		UInt ** rguiBitRate,
-		UInt ** rguiVbvBufferSize,
-		UInt ** rguiVbvBufferOccupany,
-		// END: VOL Control Parameters
-		Double** rgdFrameFrequency,	// Frame Frequency
-
-		Bool** rgbInterlacedCoding,	// interlace coding flag
-		Bool** rgbTopFieldFirst,	// top field first flag
-        Bool** rgbAlternateScan,    // alternate scan flag
-
-		Int** rgiDirectModeRadius,	// direct mode search radius
-
-		Int** rgiMVFileUsage,		// 0- not used, 1: read from motion file, 2- write to motion file
-		Char*** pchMVFileName,		// Motion vector filenames
-		// major syntax mode
-		Int**	rgbVPBitTh,				// Bit threshold for video packet spacing control
-		Bool**	bDataPartitioning,		// data partitioning
-		Bool**	bReversibleVlc,			// reversible VLC
-
-		// for texture coding
-		Quantizer** rgfQuant, // quantizer selection, either H.263 or MPEG
-		Bool** rgbLoadIntraMatrix, // load user-defined intra Q-Matrix
-		Int*** rgppiIntraQuantizerMatrix, // Intra Q-Matrix
-		Bool** rgbLoadInterMatrix, // load user-defined inter Q-Matrix
-		Int*** rgppiInterQuantizerMatrix, // Inter Q-Matrix
-		Int** rgiIntraDCSwitchingThr,		//threshold to code dc as ac when pred. is on
-		Int** rgiStepI, // I-VOP quantization stepsize
-		Int** rgiStep, // P-VOP quantization stepsize
-		Bool**	rgbLoadIntraMatrixAlpha,
-		Int*** rgppiIntraQuantizerMatrixAlpha,
-		Bool**	rgbLoadInterMatrixAlpha,
-		Int*** rgppiInterQuantizerMatrixAlpha,
-		Int** rgiStepIAlpha, // I-VOP quantization stepsize for Alpha
-		Int** rgiStepPAlpha, // P-VOP quantization stepsize for Alpha
-		Int** rgiStepBAlpha, // B-VOP quantization stepsize for Alpha
-		Int** rgbNoAlphaQuantUpdate, // discouple gray quant update with tex. quant
-		Int** rgiStepBCode, // code for quantization stepsize for B-VOP
-		const Int* rgiNumOfBbetweenPVOP,		// no of B-VOPs between P-VOPs
-		const Int* rgiNumOfPbetweenIVOP,		// no of P-VOPs between I-VOPs
-//added to encode GOV header by SONY 980212
-		const Int* rgiGOVperiod,
-		const Bool* rgbDeblockFilterDisable, //deblocking filter disable
-		const Bool *rgbAllowSkippedPMBs,
-
-		// file information
-		const Char* pchPrefix, // prefix name of the movie
-		const Char* pchBmpFiles, // bmp file directory location
-		const ChromType* rgfChrType, // input chrominance type. 0 - 4:4:4, 1 - 4:2:2, 0 - 4:2:0
-		const Char* pchOutBmpFiles, // quantized frame file directory
-		const Char* pchOutStrFiles, // output bitstream file
-		const Int* rguiTemporalRate, // temporal subsampling rate
-		const Int* rguiEnhcTemporalRate, // temporal subsampling rate for enhancement layer // added by Sharp (98/02/09)
-		
-		// statistics dumping options
-		const Bool* rgbDumpMB,
-		const Bool* rgbTrace,
-
-		// rounding control
-		const Bool* rgbRoundingControlDisable, 
-		const Int* rgiInitialRoundingType, 
-
-		// for sprite info
-		const UInt* rguiSpriteUsage, // sprite usage
-		const UInt* rguiWarpingAccuracy, // warping accuracy
-		const Int* rgNumOfPnts, // number of points for sprite, 0 for stationary and -1 for no sprite
-		const Char* pchSptDir, // sprite directory
-		const Char* pchSptPntDir, // sprite point file
-        SptMode *pSpriteMode,	// sprite reconstruction mode
-		Int iSpatialOption,
-		UInt iFrameWidth_SS,
-		UInt iFrameheight_SS,
-		UInt uiHor_sampling_n,
-		UInt uiHor_sampling_m,
-		UInt uiVer_sampling_n,
-		UInt uiVer_sampling_m
-		);
+	CSessionEncoder (CSessionEncoderParams *ptr);
 
 	// Attributes
 	UInt compressedSize () const {return m_uCmpSize;} // in bits

@@ -1,4 +1,4 @@
-/* $Id: quant.hpp,v 1.1 2001/02/05 20:26:22 cahighlander Exp $ */
+/* $Id: quant.hpp,v 1.2 2001/05/09 21:14:19 cahighlander Exp $ */
 /****************************************************************************/
 /*   MPEG4 Visual Texture Coding (VTC) Mode Software                        */
 /*                                                                          */
@@ -86,4 +86,4 @@ typedef struct
 
 
 
-#endif QUANT_H
+#endif /* QUANT_H */

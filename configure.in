@@ -3,7 +3,11 @@ AC_INIT()
 AC_CONFIG_AUX_DIR(config)
 
 AM_PROG_LIBTOOL
-AM_INIT_AUTOMAKE(mpeg4ip, 0.7)
+AM_INIT_AUTOMAKE(mpeg4ip, 0.6.2)
+
+dnl Detect the canonical host and target build environment
+AC_CANONICAL_HOST
+AC_CANONICAL_TARGET
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -38,14 +42,82 @@ AC_ARG_ENABLE(player,
 [ case "${enableval}" in
   yes) player=true ;;
   no)  player=false ;;
-  *)   AC_MSG_ERROR(bad value ${enableval} for --player-server) ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for --enable-player) ;;
 esac],
 [player=true])
 AM_CONDITIONAL(PLAYER, test $player = true)
 
+dnl ### Checking for the existence of files
+dnl MY_CHECK_FILE(FILE, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND]])
+
+AC_DEFUN(MY_CHECK_FILE,
+[
+dnl Do the transliteration at runtime so arg 1 can be a shell variable.
+ac_safe=`echo "$1" | sed 'y%./+-%__p_%'`
+AC_MSG_CHECKING([for $1])
+AC_CACHE_VAL(ac_cv_file_$ac_safe,
+  if test -r $1; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+)dnl
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  AC_MSG_RESULT(yes)
+  ifelse([$2], , :, [$2])
+else
+  AC_MSG_RESULT(no)
+ifelse([$3], , , [$3])
+fi
+])
+
+MY_CHECK_FILE(/usr/include/glib-1.2/glib.h,
+	GLIB_INCLUDES="-I/usr/lib/glib/include -I/usr/include/glib-1.2",
+	GLIB_INCLUDES="-I/usr/lib/glib/include")
+AC_SUBST(GLIB_INCLUDES)
+
+MY_CHECK_FILE(/usr/include/gtk-1.2/gtk/gtk.h,
+	GTK_INCLUDES="-I/usr/include/gtk-1.2",
+	GTK_INCLUDES="-I/usr/include/gtk")
+AC_SUBST(GTK_INCLUDES)
+
+    AC_ARG_ENABLE(mmx,
+[  --enable-mmx           use MMX assembly on x86 [default=yes]],
+                  , enable_mmx=yes)
+
+    if test x$enable_mmx = xyes; then
+        AC_PATH_PROG(NASM, nasm)
+        if test x$NASM = x -o x$NASM = x'"$NASM"'; then
+            : # nasm isn't installed
+			AM_CONDITIONAL(USE_MMX, false)
+        else
+			case $target in
+			  i?86*)
+				CFLAGS="$CFLAGS -DUSE_MMX"
+				case $ARCH in
+				  win32)
+					  NASMFLAGS="-f win32"
+					  ;;
+				  *)
+					  NASMFLAGS="-f elf"
+					  ;;
+				esac
+				AC_SUBST(NASMFLAGS)
+				AM_CONDITIONAL(USE_MMX, true)
+				;;
+			  *)
+				AM_CONDITIONAL(USE_MMX, false)
+				;;
+			esac
+        fi
+    fi
+
+dnl Now output the Makefile's
 AC_OUTPUT( \
 	Makefile \
 	common/Makefile \
+	common/lib/Makefile \
+	common/lib/config_file/Makefile \
 	common/mp4/Makefile \
 	common/video/Makefile \
 	server/Makefile \
@@ -56,6 +128,7 @@ AC_OUTPUT( \
 	server/lib/Makefile \
 	server/lib/avi/Makefile \
 	server/util/Makefile \
+	server/util/mp4encode/Makefile \
 	server/util/avi2raw/Makefile \
 	server/util/lboxcrop/Makefile \
 	server/util/mp4apkt/Makefile \
