@@ -45,6 +45,7 @@ public:
 	int Dump(FILE* pDumpFile = NULL);
 
 	/* library property per file */
+
 	u_int32_t GetVerbosity() {
 		return m_verbosity;
 	}
@@ -67,10 +68,13 @@ public:
 
 	/* track operations */
 
-	void AddTrack(char* type);
+	MP4TrackId AddTrack(char* type);
 	void DeleteTrack(MP4TrackId trackId);
-	MP4TrackId FindTrack(u_int16_t index, char* type = NULL);
+
 	u_int32_t GetNumTracks(char* type = NULL);
+	MP4TrackId FindTrackId(u_int16_t index, char* type = NULL);
+	u_int16_t FindTrackIndex(MP4TrackId trackId);
+
 	void SetTrackPosition(MP4SampleId sampleId);
 	void SetTrackTime(u_int64_t time);
 
@@ -96,6 +100,7 @@ public:
 		MP4TrackId trackId, char* name, u_int8_t* pValue, u_int32_t valueSize);
 
 	/* sample operations */
+
 	MP4SampleId GetSampleIdFromTime(MP4Timestamp when);
 	MP4SampleId GetSyncSampleIdFromTime(MP4Timestamp when);
 
@@ -119,9 +124,18 @@ public:
 		MP4Duration renderingOffset = 0, 
 		bool isSyncSample = true);
 
-	// convenience functions
+	// file level convenience functions
+
 	MP4Duration GetDuration();
+
 	u_int32_t GetTimeScale();
+	void SetTimeScale(u_int32_t value);
+
+	u_int8_t GetODProfileLevel();
+	void SetODProfileLevel(u_int8_t value);
+
+	u_int8_t GetSceneProfileLevel();
+	void SetSceneProfileLevel(u_int8_t value);
 
 	u_int8_t GetVideoProfileLevel();
 	void SetVideoProfileLevel(u_int8_t value);
@@ -129,10 +143,21 @@ public:
 	u_int8_t GetAudioProfileLevel();
 	void SetAudioProfileLevel(u_int8_t value);
 
-	void GetESConfiguration(MP4TrackId trackId, 
+	u_int8_t GetGraphicsProfileLevel();
+	void SetGraphicsProfileLevel(u_int8_t value);
+
+	/* track level convenience functions */
+
+	MP4Duration GetTrackDuration(MP4TrackId trackId);
+
+	u_int32_t GetTrackTimeScale(MP4TrackId trackId);
+	void SetTrackTimeScale(MP4TrackId trackId, u_int32_t value);
+
+	void GetTrackESConfiguration(MP4TrackId trackId, 
 		u_int8_t** ppConfig, u_int32_t* pConfigSize);
-	void SetESConfiguration(MP4TrackId trackId, 
+	void SetTrackESConfiguration(MP4TrackId trackId, 
 		u_int8_t* pConfig, u_int32_t configSize);
+
 
 	/* "protected" interface to be used only by friends in library */
 
@@ -193,9 +218,10 @@ protected:
 	char* MakeTrackName(MP4TrackId trackId, char* name);
 
 protected:
-	FILE*		m_pFile;
-	MP4RootAtom* m_pRootAtom;
-	u_int32_t	m_verbosity;
+	FILE*			m_pFile;
+	MP4RootAtom*	m_pRootAtom;
+	MP4TrackArray	m_pTracks;
+	u_int32_t		m_verbosity;
 
 	u_int8_t	m_numReadBits;
 	u_int8_t	m_bufReadBits;

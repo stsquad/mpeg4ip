@@ -24,7 +24,6 @@
 MP4File::MP4File(char* fileName, char* mode, u_int32_t verbosity)
 {
 	m_pFile = NULL;
-	m_pRootAtom = new MP4RootAtom();
 	m_verbosity = verbosity;
 
 	m_numReadBits = 0;
@@ -33,6 +32,18 @@ MP4File::MP4File(char* fileName, char* mode, u_int32_t verbosity)
 	m_bufWriteBits = 0;
 
 	Open(fileName, mode);
+
+	if (strchr(mode, 'r')) {
+		// for read-only or read-write files,
+		// read the file info into memory
+		Read();
+	} else {
+		// for write-only files, 
+		// generate a skeletal atom tree
+		m_pRootAtom = new MP4RootAtom();
+		m_pRootAtom->SetFile(this);
+		m_pRootAtom->Generate();
+	}
 }
 
 MP4File::~MP4File()
@@ -688,11 +699,115 @@ void MP4File::SetBytesProperty(char* name,
 	((MP4BytesProperty*)pProperty)->SetValue(pValue, valueSize, index);
 }
 
+
+// track functions
+
+MP4TrackId MP4File::AddTrack(char* type)
+{
+	MP4Atom* pTrakAtom = MP4Atom::CreateAtom("trak");
+	MP4Atom* pMoovAtom = m_pRootAtom->FindChildAtom("moov");
+	pTrakAtom->SetFile(this);
+	pTrakAtom->SetParentAtom(pMoovAtom);
+	pTrakAtom->Generate();
+	pMoovAtom->AddChildAtom(pTrakAtom);
+	MP4Track* pTrack = new MP4Track(this, pTrakAtom);
+	m_pTracks.Add(pTrack);
+	// TBD update moov.mvhd.nextTrackId
+}
+
+void MP4File::DeleteTrack(MP4TrackId trackId)
+{
+	u_int16_t trackIndex = FindTrackIndex(trackId);
+	MP4Track* pTrack = m_pTracks[trackIndex];
+
+	// TBD remove moov.track[trackIndex]
+	MP4Atom* pMoovAtom = m_pRootAtom->FindChildAtom("moov");
+
+	m_pTracks.Delete(trackIndex);
+	delete pTrack;
+}
+
+u_int32_t MP4File::GetNumTracks(char* type)
+{
+	if (type == NULL) {
+		return m_pTracks.Size();
+	} else {
+		u_int16_t typeSeen = 0;
+		for (u_int16_t i = 0; i < m_pTracks.Size(); i++) {
+			if (m_pTracks[i]->IsType(type)) {
+				typeSeen++;
+			}
+		}
+		return typeSeen;
+	}
+}
+
+MP4TrackId MP4File::FindTrackId(u_int16_t index, char* type)
+{
+	if (type == NULL) {
+		return m_pTracks[index]->GetId();
+	} else {
+		u_int16_t typeSeen = 0;
+		for (u_int16_t i = 0; i < m_pTracks.Size(); i++) {
+			if (m_pTracks[i]->IsType(type)) {
+				if (index == typeSeen) {
+					return m_pTracks[i]->GetId();
+				}
+				typeSeen++;
+			}
+		}
+		throw MP4Error("FindTrackId", "Track index doesn't exist");
+	}
+}
+
+u_int16_t MP4File::FindTrackIndex(MP4TrackId trackId)
+{
+	for (u_int16_t i = 0; i < m_pTracks.Size(); i++) {
+		if (m_pTracks[i]->GetId() == trackId) {
+			return i;
+		}
+	}
+	
+	throw MP4Error("FindTrackIndex", "Track id doesn't exist");
+}
+
 char* MP4File::MakeTrackName(MP4TrackId trackId, char* name)
 {
+	u_int16_t trackIndex = FindTrackIndex(trackId);
 	static char trackName[1024];
-	snprintf(trackName, sizeof(trackName), "moov.trak[%u].%s", trackId, name);
+	snprintf(trackName, sizeof(trackName), 
+		"moov.trak[%u].%s", trackIndex, name);
 	return trackName;
+}
+
+u_int64_t GetTrackIntegerProperty(MP4TrackId trackId, char* name)
+{
+	return GetIntegerProperty(MakeTrackName(trackId, name));
+}
+
+void SetTrackIntegerProperty(MP4TrackId trackId, char* name, int64_t value)
+{
+	SetIntegerProperty(MakeTrackName(trackId, name), value);
+}
+
+float GetTrackFloatProperty(MP4TrackId trackId, char* name)
+{
+	return GetFloatProperty(MakeTrackName(trackId, name));
+}
+
+void SetTrackFloatProperty(MP4TrackId trackId, char* name, float value)
+{
+	SetFloatProperty(MakeTrackName(trackId, name), value);
+}
+
+char* GetTrackStringProperty(MP4TrackId trackId, char* name)
+{
+	return GetStringProperty(MakeTrackName(trackId, name), value);
+}
+
+void SetTrackStringProperty(MP4TrackId trackId, char* name, char* value)
+{
+	SetStringProperty(MakeTrackName(trackId, name), value);
 }
 
 void MP4File::GetTrackBytesProperty(MP4TrackId trackId, char* name, 
@@ -707,7 +822,8 @@ void MP4File::SetTrackBytesProperty(MP4TrackId trackId, char* name,
 	SetBytesProperty(MakeTrackName(trackId, name), pValue, valueSize);
 }
 
-// convenience functions
+
+// file level convenience functions
 
 MP4Duration MP4File::GetDuration()
 {
@@ -719,14 +835,29 @@ u_int32_t MP4File::GetTimeScale()
 	return GetIntegerProperty("moov.mvhd.timeScale");
 }
 
+u_int8_t MP4File::GetODProfileLevel()
+{
+	return GetIntegerProperty("moov.iods.ODProfileLevelId");
+}
+
+void MP4File::SetODProfileLevel(u_int8_t value)
+{
+	SetIntegerProperty("moov.iods.ODProfileLevelId", value);
+}
+ 
+u_int8_t MP4File::GetSceneProfileLevel()
+{
+	return GetIntegerProperty("moov.iods.sceneProfileLevelId");
+}
+
+void MP4File::SetSceneProfileLevel(u_int8_t value)
+{
+	SetIntegerProperty("moov.iods.sceneProfileLevelId", value);
+}
+ 
 u_int8_t MP4File::GetVideoProfileLevel()
 {
 	return GetIntegerProperty("moov.iods.visualProfileLevelId");
-}
-
-u_int8_t MP4File::GetAudioProfileLevel()
-{
-	return GetIntegerProperty("moov.iods.audioProfileLevelId");
 }
 
 void MP4File::SetVideoProfileLevel(u_int8_t value)
@@ -734,12 +865,40 @@ void MP4File::SetVideoProfileLevel(u_int8_t value)
 	SetIntegerProperty("moov.iods.visualProfileLevelId", value);
 }
  
+u_int8_t MP4File::GetAudioProfileLevel()
+{
+	return GetIntegerProperty("moov.iods.audioProfileLevelId");
+}
+
 void MP4File::SetAudioProfileLevel(u_int8_t value)
 {
 	SetIntegerProperty("moov.iods.audioProfileLevelId", value);
 }
  
-void MP4File::GetESConfiguration(MP4TrackId trackId, 
+u_int8_t MP4File::GetGraphicsProfileLevel()
+{
+	return GetIntegerProperty("moov.iods.graphicsProfileLevelId");
+}
+
+void MP4File::SetGraphicsProfileLevel(u_int8_t value)
+{
+	SetIntegerProperty("moov.iods.graphicsProfileLevelId", value);
+}
+ 
+
+// track level convenience functions
+
+u_int32_t GetTrackTimeScale(MP4TrackId trackId)
+{
+	return GetTrackIntegerProperty(trackId, "mdia.mdhd.timeScale");
+}
+
+void SetTrackTimeScale(MP4TrackId trackId, u_int32_t value)
+{
+	SetTrackIntegerProperty(trackId, "mdia.mdhd.timeScale", value);
+}
+
+void MP4File::GetTrackESConfiguration(MP4TrackId trackId, 
 	u_int8_t** ppConfig, u_int32_t* pConfigSize)
 {
 	GetTrackBytesProperty(trackId, 
@@ -747,7 +906,7 @@ void MP4File::GetESConfiguration(MP4TrackId trackId,
 		ppConfig, pConfigSize);
 }
 
-void MP4File::SetESConfiguration(MP4TrackId trackId, 
+void MP4File::SetTrackESConfiguration(MP4TrackId trackId, 
 	u_int8_t* pConfig, u_int32_t configSize)
 {
 	SetTrackBytesProperty(trackId, 

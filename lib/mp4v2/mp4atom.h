@@ -129,6 +129,8 @@ public:
 	}
 
 	// TBD GetNumberOfChildAtoms(char* type = NULL);
+	// TBD FindChildAtom
+	// TBD DeleteChildAtom
 
 	u_int8_t GetDepth();
 
@@ -137,6 +139,7 @@ public:
 
 	void Skip();
 
+	virtual void Generate();
 	virtual void Read();
 	virtual void Write(bool use64 = false);
 	virtual void Dump(FILE* pFile);

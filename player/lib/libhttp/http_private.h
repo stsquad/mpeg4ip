@@ -1,0 +1,61 @@
+
+#ifndef __MPEG4IP_HTTP_PRIVATE_H__
+#define __MPEG4IP_HTTP_PRIVATE_H__ 1
+#include "http.h"
+
+typedef enum {
+  HTTP_STATE_INIT,
+  HTTP_STATE_CONNECTED,
+  HTTP_STATE_CLOSED
+} http_state_t;
+
+#define RESP_BUF_SIZE 2048
+
+struct http_client_ {
+  const char *m_orig_url;
+  const char *m_current_url;
+  const char *m_host;
+  const char *m_resource;
+  http_state_t m_state;
+  uint16_t m_redirect_count;
+  const char *m_redir_location;
+  uint16_t m_port;
+  struct in_addr m_server_addr;
+  int m_server_socket;
+
+  // headers decoded
+  int m_connection_close;
+  int m_content_len_received;
+  int m_transfer_encoding_chunked;
+  uint32_t m_content_len;
+  http_resp_t *m_resp;
+
+  // http response buffers
+  uint32_t m_buffer_len, m_offset_on;
+  char m_resp_buffer[RESP_BUF_SIZE + 1];
+};
+
+#define ADV_SPACE(a) {while (isspace(*(a)) && (*(a) != '\0'))(a)++;}
+
+#define FREE_CHECK(a,b){ if (a->b != NULL) { free((void *)a->b); a->b = NULL;}}
+
+int http_decode_and_connect_url (const char *name,
+				 http_client_t *ptr);
+  
+int http_build_header(char *buffer, uint32_t maxlen, uint32_t *at,
+		      http_client_t *cptr, const char *method);
+
+int http_get_response(http_client_t *handle, http_resp_t **resp);
+
+void http_resp_clear(http_resp_t *rptr);
+#ifndef MIN
+#define	MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+
+void http_debug(int loglevel, const char *fmt, ...)
+#ifndef _WINDOWS
+     __attribute__((format(__printf__, 2, 3)));
+#endif
+     ;
+
+#endif

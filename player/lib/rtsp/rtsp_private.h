@@ -99,5 +99,10 @@ int rtsp_get_response(rtsp_client_t *info);
 int rtsp_setup_redirect(rtsp_client_t *info);
 
 
-void rtsp_debug(int loglevel, const char *fmt, ...);
+void rtsp_debug(int loglevel, const char *fmt, ...)
+#ifndef _WINDOWS
+     __attribute__((format(__printf__, 2, 3)));
+#else
+     ;
+#endif
 

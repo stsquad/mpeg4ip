@@ -26,7 +26,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#include "/home/wmay/sdp/include/sdp.h"
+#include "sdp.h"
 #include "rtsp_private.h"
 
 #if 0
@@ -115,7 +115,7 @@ int main (int argc, char **argv)
 			  media->control_string,
 			  &cmd,
 			  &session,
-			  &decode);
+			  &decode, 0);
 
   if (dummy != RTSP_RESPONSE_GOOD) {
     printf("Response to setup is %d\n", dummy);

@@ -19,21 +19,25 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __MP4_COMMON_INCLUDED__
-#define __MP4_COMMON_INCLUDED__
+#ifndef __MP4_TRACK_INCLUDED__
+#define __MP4_TRACK_INCLUDED__
 
-#include "mpeg4ip.h"
+// forward declarations
+class MP4File;
+class MP4Atom;
 
-typedef void*		MP4FileHandle;
-typedef u_int16_t	MP4TrackId;
-typedef u_int32_t	MP4SampleId;
+class MP4Track {
+public:
+	MP4Track(MP4File* pFile, MP4Atom* pTrakAtom);
 
-#include "mp4util.h"
-#include "mp4array.h"
-#include "mp4track.h"
-#include "mp4file.h"
-#include "mp4property.h"
-#include "mp4descriptor.h"
-#include "mp4atom.h"
+protected:
+	MP4File*	m_pFile;
+	MP4Atom* 	m_pTrakAtom;		// moov.trak[]
+	MP4TrackId	m_trackId;			// moov.trak[].tkhd.trackId
+	MP4SampleId m_currentSample;
+	u_int32_t 	m_cachedSampleSize;
+};
 
-#endif /* __MP4_COMMON_INCLUDED__ */
+MP4ARRAY_DECL(MP4Track, MP4Track*);
+
+#endif /* __MP4_TRACK_INCLUDED__ */

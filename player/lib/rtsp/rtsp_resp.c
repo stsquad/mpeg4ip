@@ -356,13 +356,9 @@ static void rtsp_decode_header (char *lptr,
 				int *last_number)
 {
   int ix;
-  int errret;
-  bool parsed;
   char *after;
   
   ix = 0;
-  errret = 0;
-  parsed = FALSE;
   /*
    * go through above array, looking for a complete match
    */

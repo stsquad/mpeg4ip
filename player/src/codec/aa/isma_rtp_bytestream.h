@@ -29,6 +29,15 @@
 #include "player_sdp.h"
 #include "bitstream/bitstream.h"
 //#define ISMA_RTP_DUMP_OUTPUT_TO_FILE 1
+//#define DEBUG_ISMA_RTP_FRAGS 1
+
+// fragment information
+typedef struct isma_frag_data_t {
+  struct isma_frag_data_t *frag_data_next;
+  rtp_packet *pak;
+  char *frag_ptr;
+  uint32_t frag_len;
+} isma_frag_data_t;
 
 typedef struct isma_frame_data_t {
   struct isma_frame_data_t *frame_data_next;
@@ -37,24 +46,26 @@ typedef struct isma_frame_data_t {
   uint32_t frame_len;
   int last_in_pak;
   uint32_t rtp_timestamp;
+  int is_fragment;
+  isma_frag_data_t *frag_data;
 } isma_frame_data_t;
 
 class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
 {
  public:
   CIsmaAudioRtpByteStream(format_list_t *media_fmt,
-			  fmtp_parse_t *fmtp,
-			  unsigned int rtp_proto,
-		    int ondemand,
-		    uint64_t tickpersec,
-		    rtp_packet **head, 
-		    rtp_packet **tail,
-		    int rtpinfo_received,
-		    uint32_t rtp_rtptime,
-		    int rtcp_received,
-		    uint32_t ntp_frac,
-		    uint32_t ntp_sec,
-		    uint32_t rtp_ts);
+						  fmtp_parse_t *fmtp,
+						  unsigned int rtp_proto,
+						  int ondemand,
+						  uint64_t tickpersec,
+						  rtp_packet **head, 
+						  rtp_packet **tail,
+						  int rtpinfo_received,
+						  uint32_t rtp_rtptime,
+						  int rtcp_received,
+						  uint32_t ntp_frac,
+						  uint32_t ntp_sec,
+						  uint32_t rtp_ts);
   ~CIsmaAudioRtpByteStream();
   unsigned char get(void);
   unsigned char peek(void);
@@ -69,6 +80,8 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   void flush_rtp_packets(void);
  private:
   char *m_frame_ptr;
+  int m_is_fragment;
+  struct isma_frag_data_t *m_frag_data;
   uint32_t m_offset_in_frame;
   uint32_t m_frame_len;
   uint32_t m_bookmark_offset_in_frame;
@@ -101,6 +114,11 @@ class CIsmaAudioRtpByteStream : public CRtpByteStreamBase
   int m_min_first_header_bits;
   int m_min_header_bits;
   void get_au_header_bits(void);
+  void cleanup_frag(isma_frame_data_t * frame_data);
+  int process_fragment(rtp_packet *pak, isma_frame_data_t *frame_data);
+  char *go_to_offset(void);
+  isma_frag_data_t *go_to_frag(void);
+  void read_frag(unsigned char *buffer, size_t bytes_to_read);
 };
 
 #endif

@@ -15,6 +15,8 @@ libmp4v2_la_SOURCES = \
 	mp4file.cpp \
 	mp4property.h \
 	mp4property.cpp \
+	mp4track.h \
+	mp4track.cpp \
 	mp4util.h \
 	mp4util.cpp \
 	atoms.cpp \

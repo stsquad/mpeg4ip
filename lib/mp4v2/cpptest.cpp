@@ -21,27 +21,35 @@
 
 #include "mp4.h"
 
-void mp4dump(int argc, char** argv)
+void mp4vcreate(int argc, char** argv)
 {
-	MP4File* pFile = new MP4File(argv[1], "r", MP4_DETAILS_ALL);
-	
-	if (pFile->Read() == 0) {
-		pFile->Dump();
-	}
+	MP4File* pFile = new MP4File(argv[1], "w");
+
+	pFile->SetVideoProfileLevel(1);
+
+	// MP4TrackId videoTrackId = pFile->AddVideoTrack();
+	// pFile->WriteSample();
+
+	pFile->Write();
 
 	delete pFile;
 }
 
-void mp4extract(int argc, char** argv)
+void mp4dump(int argc, char** argv)
+{
+	MP4File* pFile = new MP4File(argv[1], "r", MP4_DETAILS_ALL);
+	
+	pFile->Dump();
+
+	delete pFile;
+}
+
+void mp4vextract(int argc, char** argv)
 {
 	MP4File* pFile = new MP4File(argv[1], "r", MP4_DETAILS_FIND);
 
-	if (pFile->Read() != 0) {
-		return;
-	}
-
 	printf("movie duration is %u secs\n", 
-		MP4TOSECS(pFile->GetDuration()));
+		pFile->GetDuration() / pFile->GetTimeScale());
 
 	printf("video profileLevel id is %u\n",
 		pFile->GetVideoProfileLevel());
@@ -76,8 +84,6 @@ void mp4extract(int argc, char** argv)
 			free(pFrame);
 		}
 	}
-
-	// foreach audio track
 #endif
 
 	delete pFile;
@@ -91,9 +97,11 @@ main(int argc, char** argv)
 	}
 
 	try {
+		//mp4vcreate(argc, argv);
+
 		mp4dump(argc, argv);
 
-		mp4extract(argc, argv);
+		mp4vextract(argc, argv);
 	}
 	catch (MP4Error* e) {
 		e->Print();

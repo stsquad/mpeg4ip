@@ -6,11 +6,11 @@ librtsp_la_SOURCES = \
 	rtsp_resp.c \
 	rtsp_util.c 
 
-INCLUDES = -I../sdp -I../../../include
+INCLUDES = -I../../../lib/sdp -I../../../include
 AM_CFLAGS = -DIPTV_COMPATIBLE -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wstrict-prototypes -Wmissing-prototypes
 
 check_PROGRAMS = test
 test_SOURCES = test.c
-test_INCLUDES = -I../sdp
-test_LDADD = librtsp.la ../sdp/libsdp.la
+test_INCLUDES = -I../../../lib/sdp
+test_LDADD = librtsp.la ../../../lib/sdp/libsdp.la
 

@@ -21,6 +21,29 @@
 
 #include "mp4common.h"
 
+// generate a skeletal self
+
+void MP4Atom::Generate()
+{
+	u_int32_t numAtomInfo = m_pChildAtomInfos.Size();
+
+	// for all mandatory child atom types
+	for (u_int32_t i = 0; i < numAtomInfo; i++) {
+		if (m_pChildAtomInfos[i]->m_mandatory) {
+			// create the mandatory child atom
+			MP4Atom* pChildAtom = 
+				CreateAtom(m_pChildAtomInfos[i]->m_name);
+			ASSERT(pChildAtom);
+			pChildAtom->SetFile(m_pFile);
+			pChildAtom->SetParentAtom(this);
+			AddChildAtom(pChildAtom);
+
+			// and ask it to self generate
+			pChildAtom->Generate();
+		}
+	}
+}
+
 MP4Atom* MP4Atom::ReadAtom(MP4File* pFile, MP4Atom* pParentAtom)
 {
 	u_int8_t hdrSize = 8;
