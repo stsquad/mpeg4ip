@@ -118,7 +118,12 @@ CMediaSource *CreateAudioSource (CLiveConfig *pConfig,
 CTextSource *CreateTextSource (CLiveConfig *pConfig) 
 {
   CTextSource *textSource = NULL;
-  textSource = new CFileTextSource(pConfig);
+  if (strcmp(pConfig->GetStringValue(CONFIG_TEXT_SOURCE_TYPE), 
+	     TEXT_SOURCE_TIMED_FILE) == 0)
+    textSource = new CFileTextSource(pConfig);
+  else 
+    textSource = new CDialogTextSource(pConfig);
+
   textSource->StartThread();
   return textSource;
 }

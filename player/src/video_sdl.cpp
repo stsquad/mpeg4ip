@@ -406,6 +406,8 @@ void CSDLVideo::display_image (uint8_t *y, uint8_t *u, uint8_t *v)
       
     }
 
+  // unlock, then display
+  SDL_UnlockYUVOverlay(m_image);
   // Actually display the video
   int rval = SDL_DisplayYUVOverlay(m_image, &m_dstrect);
 #ifndef darwin
@@ -416,8 +418,6 @@ void CSDLVideo::display_image (uint8_t *y, uint8_t *u, uint8_t *v)
   if (rval != CORRECT_RETURN) {
     video_message(LOG_ERR, "Return from display is %d", rval);
   }
-  // and unlock it.
-  SDL_UnlockYUVOverlay(m_image);
 }
 
 #define BLANK_Y (0)
@@ -483,8 +483,8 @@ void CSDLVideo::blank_image (void)
 	   bufsize);
   }
       
-  SDL_DisplayYUVOverlay(m_image, &m_dstrect);
   SDL_UnlockYUVOverlay(m_image);
+  SDL_DisplayYUVOverlay(m_image, &m_dstrect);
 }
 /*
  * CSDLVideoSync - actually a ring buffer for YUV frames - probably

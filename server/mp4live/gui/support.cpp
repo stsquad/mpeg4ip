@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include "mp4live.h"
+#include "util.h"
 
 #include <gtk/gtk.h>
 
@@ -34,7 +36,7 @@ lookup_widget                          (GtkWidget       *widget,
   found_widget = (GtkWidget*) g_object_get_data (G_OBJECT (widget),
                                                  widget_name);
   if (!found_widget)
-    g_warning ("Widget not found: %s", widget_name);
+    debug_message ("Widget not found: %s", widget_name);
   return found_widget;
 }
 

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2005.  All Rights Reserved.
  * 
  * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
  * and was contributed by Ximpo Group Ltd.
@@ -25,6 +25,7 @@
  *		Dave Mackie		  dmackie@cisco.com
  *              Alix Marchandise-Franquet alix@cisco.com
  *              Ximpo Group Ltd.          mp4v2@ximpo.com
+ *              Bill May                  wmay@cisco.com
  */
 
 #include "mp4common.h"
@@ -61,6 +62,11 @@ MP4File::MP4File(u_int32_t verbosity)
 MP4File::~MP4File()
 {
 	MP4Free(m_fileName);
+	if (m_pFile != NULL) {
+	  // not closed ?
+	  fclose(m_pFile);
+	  m_pFile = NULL;
+	}
 	delete m_pRootAtom;
 	for (u_int32_t i = 0; i < m_pTracks.Size(); i++) {
 		delete m_pTracks[i];
@@ -1425,7 +1431,40 @@ MP4TrackId MP4File::AddEncAudioTrack(u_int32_t timeScale,
   return trackId;
 }
 
+MP4TrackId MP4File::AddCntlTrackDefault (uint32_t timeScale,
+					 MP4Duration sampleDuration,
+					 const char *type)
+{
+  MP4TrackId trackId = AddTrack(MP4_CNTL_TRACK_TYPE, timeScale);
 
+  InsertChildAtom(MakeTrackName(trackId, "mdia.minf"), "nmhd", 0);
+  AddChildAtom(MakeTrackName(trackId, "mdia.minf.stbl.stsd"), type);
+
+  // stsd is a unique beast in that it has a count of the number 
+  // of child atoms that needs to be incremented after we add the mp4v atom
+  MP4Integer32Property* pStsdCountProperty;
+  FindIntegerProperty(
+		      MakeTrackName(trackId, "mdia.minf.stbl.stsd.entryCount"),
+		      (MP4Property**)&pStsdCountProperty);
+  pStsdCountProperty->IncrementValue();
+  
+  SetTrackIntegerProperty(trackId, 
+			  "mdia.minf.stbl.stsz.sampleSize", sampleDuration);
+  
+  m_pTracks[FindTrackIndex(trackId)]->
+    SetFixedSampleDuration(sampleDuration);
+  
+  return trackId;
+}
+
+MP4TrackId MP4File::AddHrefTrack (uint32_t timeScale, 
+				  MP4Duration sampleDuration)
+{
+  MP4TrackId trackId = AddCntlTrackDefault(timeScale, sampleDuration, "href");
+
+  return trackId;
+}
+		  
 MP4TrackId MP4File::AddVideoTrackDefault(
 	u_int32_t timeScale, 
 	MP4Duration sampleDuration, 

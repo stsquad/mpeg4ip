@@ -265,11 +265,14 @@ void DisplayTextSource (CLiveConfig *pConfig, char *buffer, uint32_t buflen)
     return;
   }
 
-  if (strcmp(type, TEXT_SOURCE_FILE) == 0) {
-    snprintf(buffer, buflen, "From file %s", 
+  if (strcmp(type, TEXT_SOURCE_TIMED_FILE) == 0) {
+    snprintf(buffer, buflen, "From file with timing info:%s", 
 	     pConfig->GetStringValue(CONFIG_TEXT_SOURCE_FILE_NAME));
   } else if (strcmp(type, TEXT_SOURCE_DIALOG) == 0) {
     snprintf(buffer, buflen, "From GUI dialog");
+  } else if (strcmp(type, TEXT_SOURCE_FILE_WITH_DIALOG) == 0) {
+    snprintf(buffer, buflen, "GUI using file:%s", 
+	     pConfig->GetStringValue(CONFIG_TEXT_SOURCE_FILE_NAME));
   } else {
     snprintf(buffer, buflen, "Unknown type %s", type);
   } 

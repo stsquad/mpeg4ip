@@ -324,7 +324,7 @@ public:
 	inline void CheckIntegerType(config_index_t iName) {
 		if (m_variables[iName].m_type != CONFIG_TYPE_INTEGER) {
 		  fprintf(stderr, 
-			  "config type mismatch on %s - should be integer\n", 
+			  "config type mismatch on %s - shouldn't be integer\n", 
 			  m_variables[iName].m_sName);
 		  fflush(stderr);
 		  throw new CConfigException(CONFIG_ERR_TYPE);
@@ -334,7 +334,7 @@ public:
 	inline void CheckBoolType(config_index_t iName) {
 		if (m_variables[iName].m_type != CONFIG_TYPE_BOOL) {
 		  fprintf(stderr, 
-			  "config type mismatch on %s - should be bool\n", 
+			  "config type mismatch on %s - shouldn't be bool\n", 
 			  m_variables[iName].m_sName);
 		  fflush(stderr);
 		  throw new CConfigException(CONFIG_ERR_TYPE);
@@ -344,7 +344,7 @@ public:
 	inline void CheckStringType(config_index_t iName) {
 		if (m_variables[iName].m_type != CONFIG_TYPE_STRING) {
 		  fprintf(stderr, 
-			  "config type mismatch on %s - should be string\n", 
+			  "config type mismatch on %s - shouldn't be string\n", 
 			  m_variables[iName].m_sName);
 		  fflush(stderr);
 			throw new CConfigException(CONFIG_ERR_TYPE);
@@ -354,7 +354,7 @@ public:
 	inline void CheckFloatType(config_index_t iName) {
 		if (m_variables[iName].m_type != CONFIG_TYPE_FLOAT) {
 		  fprintf(stderr, 
-			  "config type mismatch on %s - should be float\n", 
+			  "config type mismatch on %s - shouldn't be float\n", 
 			  m_variables[iName].m_sName);
 		  fflush(stderr);
 			throw new CConfigException(CONFIG_ERR_TYPE);

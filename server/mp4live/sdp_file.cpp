@@ -29,9 +29,51 @@
 #include "mp4av.h"
 #include "audio_encoder.h"
 #include "video_encoder.h"
+#include "text_encoder.h"
 #include "media_stream.h"
 
 //#define DEBUG_IOD
+static void create_conn_for_media (media_desc_t *sdpMedia,
+				   const char *sDestAddr,
+				   uint32_t ttl,
+				   session_desc_t *sdp)
+{
+  bool destIsMcast  = false;
+  bool destIsSSMcast = false;
+  struct in_addr in;
+  struct in6_addr in6;
+
+  if (inet_aton(sDestAddr, &in)) {
+    sdpMedia->media_connect.conn_type = strdup("IP4");
+    destIsMcast = IN_MULTICAST(ntohl(in.s_addr));
+    if ((ntohl(in.s_addr) >> 24) == 232) {
+      destIsSSMcast = true;
+    }
+  } else if (inet_pton(AF_INET6, sDestAddr, &in6)) {
+    sdpMedia->media_connect.conn_type = strdup("IP6");
+    destIsMcast = IN6_IS_ADDR_MULTICAST(&in6);
+  } else {
+    // this is bad - but will work for now
+    // we have a domain name, or something like it.
+    sdpMedia->media_connect.conn_type = strdup("IP4");
+    destIsMcast = false;
+  }
+  // c=
+  sdpMedia->media_connect.conn_addr = strdup(sDestAddr);
+  if (destIsMcast) {
+    sdpMedia->media_connect.ttl = ttl;
+  }
+  sdpMedia->media_connect.used = 1;
+  if (destIsSSMcast) {
+    char sIncl[64];
+	  
+    sprintf(sIncl, "a=incl:IN IP4 %s %s",
+	    sDestAddr,
+	    sdp->create_addr);
+	  
+    sdp_add_string_to_list(&sdpMedia->unparsed_a_lines, sIncl);
+  }
+}
 
 void createStreamSdp (CLiveConfig *pGlobal,
 		      CMediaStream *pStream)
@@ -59,12 +101,13 @@ void createStreamSdp (CLiveConfig *pGlobal,
   bool do_seperate_conn;
   const char *sAudioDestAddr = pStream->GetStringValue(STREAM_AUDIO_DEST_ADDR);
   const char *sVideoDestAddr = pStream->GetStringValue(STREAM_VIDEO_DEST_ADDR);
+  const char *sTextDestAddr = pStream->GetStringValue(STREAM_TEXT_DEST_ADDR);
   in_port_t audio_port = pStream->GetIntegerValue(STREAM_AUDIO_DEST_PORT);
   in_port_t video_port = pStream->GetIntegerValue(STREAM_VIDEO_DEST_PORT);
+  in_port_t text_port = pStream->GetIntegerValue(STREAM_TEXT_DEST_PORT);
   uint32_t ttl = pGlobal->GetIntegerValue(CONFIG_RTP_MCAST_TTL);
   if (strcmp(sAudioDestAddr, sVideoDestAddr) == 0 &&
-      strcmp(sAudioDestAddr, 
-	     pStream->GetStringValue(STREAM_TEXT_DEST_ADDR)) == 0) {
+      strcmp(sAudioDestAddr, sTextDestAddr) == 0) {
     do_seperate_conn = false;
     if (inet_aton(sAudioDestAddr, &in)) {
       sdp->session_connect.conn_type = strdup("IP4");
@@ -144,36 +187,8 @@ void createStreamSdp (CLiveConfig *pGlobal,
 	sdp->media = sdpMediaAudio;
       }
       if (do_seperate_conn) {
-	if (inet_aton(sAudioDestAddr, &in)) {
-	  sdpMediaAudio->media_connect.conn_type = strdup("IP4");
-	  destIsMcast = IN_MULTICAST(ntohl(in.s_addr));
-	  if ((ntohl(in.s_addr) >> 24) == 232) {
-	    destIsSSMcast = true;
-	  }
-	} else if (inet_pton(AF_INET6, sAudioDestAddr, &in6)) {
-	  sdpMediaAudio->media_connect.conn_type = strdup("IP6");
-	  destIsMcast = IN6_IS_ADDR_MULTICAST(&in6);
-	} else {
-	  // this is bad - but will work for now
-	  // we have a domain name, or something like it.
-	  sdpMediaAudio->media_connect.conn_type = strdup("IP4");
-	  destIsMcast = false;
-	}
-	// c=
-	sdpMediaAudio->media_connect.conn_addr = strdup(sAudioDestAddr);
-	if (destIsMcast) {
-	  sdpMediaAudio->media_connect.ttl = ttl;
-	}
-	sdpMediaAudio->media_connect.used = 1;
-	if (destIsSSMcast) {
-	  char sIncl[64];
-	  
-	  sprintf(sIncl, "a=incl:IN IP4 %s %s",
-		  sAudioDestAddr,
-		  sdp->create_addr);
-	  
-	  sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines, sIncl);
-	}
+	create_conn_for_media(sdpMediaAudio, sAudioDestAddr,
+			      ttl, sdp);
       }
       sdpMediaAudio->parent = sdp;
       
@@ -208,36 +223,8 @@ void createStreamSdp (CLiveConfig *pGlobal,
       if (videoCreateIod == false) createIod = false;
       
       if (do_seperate_conn) {
-	if (inet_aton(sVideoDestAddr, &in)) {
-	  sdpMediaVideo->media_connect.conn_type = strdup("IP4");
-	  destIsMcast = IN_MULTICAST(ntohl(in.s_addr));
-	  if ((ntohl(in.s_addr) >> 24) == 232) {
-	    destIsSSMcast = true;
-	  }
-	} else if (inet_pton(AF_INET6, sVideoDestAddr, &in6)) {
-	  sdpMediaVideo->media_connect.conn_type = strdup("IP6");
-	  destIsMcast = IN6_IS_ADDR_MULTICAST(&in6);
-	} else {
-	  // this is bad - but will work for now
-	  // we have a domain name, or something like it.
-	  sdpMediaVideo->media_connect.conn_type = strdup("IP4");
-	  destIsMcast = false;
-	}
-	// c=
-	sdpMediaVideo->media_connect.conn_addr = strdup(sVideoDestAddr);
-	if (destIsMcast) {
-	  sdpMediaVideo->media_connect.ttl = ttl;
-	}
-	sdpMediaVideo->media_connect.used = 1;
-	if (destIsSSMcast) {
-	  char sIncl[64];
-	  
-	  sprintf(sIncl, "a=incl:IN IP4 %s %s",
-		  sVideoDestAddr,
-		  sdp->create_addr);
-	  
-	  sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, sIncl);
-	}
+	create_conn_for_media(sdpMediaVideo, sVideoDestAddr,
+			      ttl, sdp);
       }
 
       sdpMediaVideo->next = sdp->media;
@@ -259,6 +246,28 @@ void createStreamSdp (CLiveConfig *pGlobal,
     videoIsIsma = true;
   }
   
+  if (pStream->GetBoolValue(STREAM_TEXT_ENABLED)) {
+    media_desc_t *sdpMediaText;
+   
+    sdpMediaText = create_text_sdp(pStream->GetTextProfile());
+    if (sdp->media == NULL) {
+      sdp->media = sdpMediaText;
+    } else {
+      media_desc_t *next = sdp->media;
+      while (next->next != NULL) next = next->next;
+      next->next = sdpMediaText;
+    }
+      
+    if (sdpMediaText != NULL) {
+      if (do_seperate_conn) {
+	create_conn_for_media(sdpMediaText, sTextDestAddr,
+			      ttl, sdp);
+      }
+      sdpMediaText->parent = sdp;
+      sdpMediaText->port = text_port;
+      sdpMediaText->proto = strdup("RTP/AVP");
+    }
+  }
   session_time_desc_t *sdpTime;
   sdpTime = MALLOC_STRUCTURE(session_time_desc_t);
   sdpTime->start_time = 0;

@@ -719,6 +719,9 @@ void CAVMediaFlow::Start(void)
       if (ae_ptr != NULL) {
 	ae_ptr->AddSink(recorder);
       }
+      if (te_ptr != NULL) {
+	te_ptr->AddSink(recorder);
+      }
     }
     s = s->GetNext();
   }

@@ -37,7 +37,11 @@ main(int argc, char** argv)
 	}
 
 	MP4TrackId urlTrackId = 
+#if 0
 		MP4AddTrack(mp4File, "URLF");
+#else
+	MP4AddHrefTrack(mp4File, 90000, MP4_INVALID_DURATION);
+#endif
 	printf("urlTrackId %d\n", urlTrackId);
 
 	u_int8_t i;
@@ -55,7 +59,11 @@ main(int argc, char** argv)
 	mp4File = MP4Read(argv[1], verbosity);
 
 	// check that we can find the track again
+#if 0
 	urlTrackId = MP4FindTrackId(mp4File, 0, "URLF");
+#else
+	urlTrackId = MP4FindTrackId(mp4File, 0, MP4_CNTL_TRACK_TYPE);
+#endif
 	printf("urlTrackId %d\n", urlTrackId);
 	
 	for (i = 1; i <= 5; i++) {

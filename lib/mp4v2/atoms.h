@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2005.  All Rights Reserved.
  *
  * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
  * and was contributed by Ximpo Group Ltd.
@@ -24,6 +24,7 @@
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
  *              Ximpo Group Ltd.                mp4v2@ximpo.com
+ *              Bill May                wmay@cisco.com
  */
 
 #ifndef __MP4_ATOMS_INCLUDED__
@@ -365,6 +366,12 @@ class MP4VmhdAtom : public MP4Atom {
 public:
 	MP4VmhdAtom();
 	void Generate();
+};
+
+class MP4HrefAtom : public MP4Atom {
+ public:
+  MP4HrefAtom();
+  void Generate(void);
 };
 
 #endif /* __MP4_ATOMS_INCLUDED__ */

@@ -240,7 +240,6 @@ bool CFaacAudioEncoder::Init(void)
     debug_message("psymodelidx = %d", m_faacConfig->psymodelidx);
     debug_message("inputFormat = %d", m_faacConfig->inputFormat);
   */
-  debug_message("faac shortctl %d", m_faacConfig->shortctl);
   m_faacConfig->mpegVersion = MPEG4;
   m_faacConfig->aacObjectType = LOW;
   m_faacConfig->allowMidside = false;

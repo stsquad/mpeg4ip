@@ -422,7 +422,38 @@ static char* PrintVideoInfo(
 
 	return sInfo;
 }
+static char* PrintCntlInfo(
+	MP4FileHandle mp4File,
+	MP4TrackId trackId)
+{
+  const char *media_data_name = MP4GetTrackMediaDataName(mp4File, trackId);
+  const char *typeName = "Unknown";
 
+  if (media_data_name == NULL) {
+    typeName = "Unknown - no media data name";
+  } else if (strcasecmp(media_data_name, "href") == 0) {
+    typeName = "ISMA Href";
+  } else {
+    typeName = media_data_name;
+  }
+
+  MP4Duration trackDuration = 
+    MP4GetTrackDuration(mp4File, trackId);
+ 
+  double msDuration = 
+    UINT64_TO_DOUBLE(MP4ConvertFromTrackDuration(mp4File, trackId, 
+						 trackDuration, MP4_MSECS_TIME_SCALE));
+  char *sInfo = (char *)MP4Malloc(256);
+
+  snprintf(sInfo, 256,
+	   "%u\tcontrol\t%s, %.3f secs\n",
+	   trackId, 
+	   typeName,
+	   msDuration / 1000.0);
+  return sInfo;
+}
+
+	  
 static char* PrintHintInfo(
 	MP4FileHandle mp4File,
 	MP4TrackId trackId)
@@ -461,6 +492,8 @@ static char* PrintTrackInfo(
 		trackInfo = PrintVideoInfo(mp4File, trackId);
 	} else if (!strcmp(trackType, MP4_HINT_TRACK_TYPE)) {
 		trackInfo = PrintHintInfo(mp4File, trackId);
+	} else if (strcmp(trackType, MP4_CNTL_TRACK_TYPE) == 0) {
+	  trackInfo = PrintCntlInfo(mp4File, trackId);
 	} else {
 		trackInfo = (char*)MP4Malloc(256);
 		if (!strcmp(trackType, MP4_OD_TRACK_TYPE)) {

@@ -124,6 +124,8 @@ MP4Atom* MP4Atom::CreateAtom(const char* type)
 	pAtom = new MP4HinfAtom();
       } else if (ATOMID(type) == ATOMID("h263")) {
 	pAtom = new MP4VideoAtom("h263");
+      } else if (ATOMID(type) == ATOMID("href")) {
+	pAtom = new MP4HrefAtom();
       }
       break;
     case 'i':

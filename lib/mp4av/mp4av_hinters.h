@@ -154,6 +154,9 @@ bool MP4AV_RfcCryptoVideoHinter(
 			   MP4TrackId mediaTrackId,
 			   uint16_t maxPayloadSize);
 
+  bool HrefHinter(MP4FileHandle mp4file, 
+		  MP4TrackId trackid,
+		  uint16_t maxPayloadSize);
 #ifdef __cplusplus
 }
 #endif

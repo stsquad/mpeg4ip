@@ -24,6 +24,7 @@ libmp4v2_la_SOURCES = \
 	atom_hdlr.cpp \
 	atom_hinf.cpp \
 	atom_hnti.cpp \
+	atom_href.cpp \
 	atom_mdat.cpp \
 	atom_mdhd.cpp \
 	atom_meta.cpp \

@@ -104,8 +104,9 @@
 #define FILE_MP4_APPEND 0
 #define FILE_MP4_CREATE_NEW 2
 
-#define TEXT_SOURCE_FILE "text-file"
+#define TEXT_SOURCE_TIMED_FILE "timed-file"
 #define TEXT_SOURCE_DIALOG "dialog"
+#define TEXT_SOURCE_FILE_WITH_DIALOG "file-dialog"
 
 // forward declarations
 class CCapabilities;

@@ -539,7 +539,9 @@ static void ClearShowMessage (GtkWidget *widget, gpointer data)
  * Show a popup message to the user.
  */
 GtkWidget* ShowMessage (
-	const char *szTitle, const char *szMessage, bool userDismiss)
+	const char *szTitle, const char *szMessage, 
+	GtkWidget *main_window,
+	bool userDismiss)
 {
     GtkWidget *label;
     GtkWidget *button;
@@ -548,6 +550,10 @@ GtkWidget* ShowMessage (
     /* --- Create a dialog window --- */
     dialog_window = gtk_dialog_new ();
 
+    if (main_window != NULL) {
+      gtk_window_set_transient_for(GTK_WINDOW(dialog_window), 
+				   GTK_WINDOW(main_window));
+    }
     gtk_signal_connect (GTK_OBJECT (dialog_window), "destroy",
               GTK_SIGNAL_FUNC (ClearShowMessage),
               NULL);

@@ -91,7 +91,7 @@ static GtkWidget *aspectratio[6];
 
 static GtkTargetEntry drop_types[] = 
 {
-  { "text/plain", 0, 1 }
+  { "text/plain", 0, 1 },
 };
 
 static void media_list_query (CPlayerSession *psptr,

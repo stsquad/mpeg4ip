@@ -31,6 +31,7 @@ libmp4av_la_SOURCES = \
 	audio_hinters.cpp \
 	audio_hinters.h \
 	h264.cpp \
+	href.cpp \
 	l16.cpp \
 	mp3.cpp \
 	mbs.h \

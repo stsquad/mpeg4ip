@@ -278,7 +278,7 @@ bool COSSAudioSource::InitDevice(void)
     // 
     // Reason for this is OSS will block on read until a complete
     // fragment is read - even if correct number of bytes is in buffers
-
+    debug_message("Using small frags");
     int fragSize = m_pConfig->GetIntegerValue(CONFIG_AUDIO_OSS_FRAG_SIZE);
     int bufcfg = m_pConfig->GetIntegerValue(CONFIG_AUDIO_OSS_FRAGMENTS);
 
@@ -407,7 +407,9 @@ void COSSAudioSource::ProcessAudio(void)
       m_timestampOverflowArrayIndex = (m_timestampOverflowArrayIndex + 1) % 
 	m_audioOssMaxBufferFrames;
     }
-    //debug_message("pcm forward %p %d", pcmFrameBuffer, m_pcmFrameSize);
+#ifdef DEBUG_TIMESTAMPS
+    debug_message("pcm forward "U64" %u", timestamp, m_pcmFrameSize);
+#endif
     if (m_audioSrcFrameNumber == 0 && m_videoSource != NULL) {
       m_videoSource->RequestKeyFrame(timestamp);
     }

@@ -450,7 +450,7 @@ bool CFfmpegAudioEncoder::EncodeSamples(
 				 m_FrameBuffer,
 				 m_FrameBufferSize,
 				 pSamples);
-
+	  //	    debug_message("ffmpeg encode %u", DataLength);
 	} else {
 	  return false;
 	}
@@ -468,6 +468,8 @@ bool CFfmpegAudioEncoder::GetEncodedFrame(
 {
 	const u_int8_t* frame;
 	u_int32_t frameLength;
+
+	if (m_FrameBufferLength == 0) return false;
 
 	// I'm not sure we actually need all this code; however, 
 	// it doesn't hurt.  It's copied from the lame interface

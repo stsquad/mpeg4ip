@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2005.  All Rights Reserved.
  * 
  * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
  * and was contributed by Ximpo Group Ltd.
@@ -234,6 +234,9 @@ public: /* equivalent to MP4 library API */
 			u_int8_t framesPerSample,
 			bool isAmrWB);
 
+	MP4TrackId AddHrefTrack(uint32_t timeScale,
+				MP4Duration sampleDuration);
+
 	MP4TrackId AddMP4VideoTrack(
 		u_int32_t timeScale, 
 		MP4Duration sampleDuration,
@@ -253,6 +256,7 @@ public: /* equivalent to MP4 library API */
                 u_int8_t  iv_len,
                 bool      selective_enc,
                 char      *kms_uri);
+
 
 	void SetH263Vendor(
 			MP4TrackId trackId,
@@ -723,6 +727,10 @@ protected:
 		MP4Duration sampleDuration,
 		u_int16_t width, 
 		u_int16_t height, 
+		const char *videoType);
+	MP4TrackId AddCntlTrackDefault(
+		u_int32_t timeScale, 
+		MP4Duration sampleDuration,
 		const char *videoType);
 	void AddTrackToIod(MP4TrackId trackId);
 

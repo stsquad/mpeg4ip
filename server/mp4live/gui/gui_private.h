@@ -42,6 +42,7 @@ void DisplayStatusSettings(void);
 void DisplayAllSettings(void);
 
 void OnAudioProfileFinished(CAudioProfile *p);
+void OnTextProfileFinished(CTextProfile *p);
 void OnVideoProfileFinished(CVideoProfile *p);
 void MainWindowDisplaySources(void);
 void DoStart(void);
@@ -75,4 +76,10 @@ void create_IpAddrDialog(CMediaStream *ms,
 void CreateTranscodingDialog(void);
 
 void create_PreferencesDialog(void);
+
+// from text_dialog.cpp 
+void create_TextSourceDialog(void);
+void create_TextProfileDialog(CTextProfile *tp);
+GtkWidget *create_TextFileDialog(bool do_file);
+
 #endif

@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2001 - 2004.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2001 - 2005.  All Rights Reserved.
  * 
  * 3GPP features implementation is based on 3GPP's TS26.234-v5.60,
  * and was contributed by Ximpo Group Ltd.
@@ -25,6 +25,7 @@
  *		Dave Mackie			dmackie@cisco.com
  *		Alix Marchandise-Franquet	alix@cisco.com
  *              Ximpo Group Ltd.                mp4v2@ximpo.com
+ *              Bill May                        wmay@cisco.com
  */
 
 #ifndef __MP4_INCLUDED__
@@ -98,6 +99,7 @@ typedef u_int32_t	MP4EditId;
 #define MP4_AUDIO_TRACK_TYPE	"soun"
 #define MP4_VIDEO_TRACK_TYPE	"vide"
 #define MP4_HINT_TRACK_TYPE		"hint"
+#define MP4_CNTL_TRACK_TYPE     "cntl"
 /*
  * This second set of track types should be created 
  * via MP4AddSystemsTrack(type)
@@ -113,6 +115,9 @@ typedef u_int32_t	MP4EditId;
 
 #define MP4_IS_AUDIO_TRACK_TYPE(type) \
 	(!strcasecmp(type, MP4_AUDIO_TRACK_TYPE))
+
+#define MP4_IS_CNTL_TRACK_TYPE(type) \
+        (!strcasecmp(type, MP4_CNTL_TRACK_TYPE))
 
 #define MP4_IS_OD_TRACK_TYPE(type) \
 	(!strcasecmp(type, MP4_OD_TRACK_TYPE))
@@ -462,6 +467,10 @@ void MP4SetAmrDecoderVersion(
 
 void MP4SetAmrModeSet(MP4FileHandle hFile, MP4TrackId trakId, uint16_t modeSet);
 uint16_t MP4GetAmrModeSet(MP4FileHandle hFile, MP4TrackId trackId);
+
+MP4TrackId MP4AddHrefTrack(MP4FileHandle hFile, 
+			   uint32_t timeScale, 
+			   MP4Duration sampleDuration);
 
 MP4TrackId MP4AddVideoTrack(
 	MP4FileHandle hFile, 

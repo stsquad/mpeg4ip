@@ -255,7 +255,6 @@ void CTextRtpTransmitter::DoSendFrame (CMediaFrame *pFrame)
       delete pFrame;
     return;
   }
-
   if (pFrame->GetType() == m_frameType) {
 	  // Note - the below changed from the DTS to the PTS - this
 	  // is required for b-frames, or mpeg2

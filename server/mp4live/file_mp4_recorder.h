@@ -50,8 +50,10 @@ protected:
 
     m_audioTrackId = MP4_INVALID_TRACK_ID;
     m_videoTrackId = MP4_INVALID_TRACK_ID;
+    m_textTrackId = MP4_INVALID_TRACK_ID;
 
     m_videoTimeScale = 90000;
+    m_textTimeScale = 90000;
     m_movieTimeScale = m_videoTimeScale;
 
     m_canRecordVideo = false;
@@ -74,6 +76,7 @@ protected:
   CMediaStream *m_stream;
   CVideoProfile *m_video_profile;
   CAudioProfile *m_audio_profile;
+  CTextProfile *m_text_profile;
   bool			m_canRecordVideo;
 
   const char*		m_mp4FileName;
@@ -81,10 +84,12 @@ protected:
 
   CMediaFrame*          m_prevVideoFrame;
   CMediaFrame*          m_prevAudioFrame;
+  CMediaFrame*          m_prevTextFrame;
 
   u_int32_t		m_movieTimeScale;
   u_int32_t		m_videoTimeScale;
   u_int32_t		m_audioTimeScale;
+  u_int32_t             m_textTimeScale;
 
   bool                  m_recordVideo;
   MP4TrackId		m_videoTrackId;
@@ -102,12 +107,20 @@ protected:
   Duration              m_audioDiffTicks;
   Duration              m_audioDiffTicksTotal;
 
+  bool                  m_recordText;
+  MP4TrackId            m_textTrackId;
+  u_int32_t             m_textFrameNumber;
+  Timestamp             m_textStartTimestamp;
+  Duration              m_textDurationTimescale;
+  MediaType             m_textFrameType;
+
   bool                  m_makeIod;
   bool                  m_makeIsmaCompliant;
 
   uint16_t m_amrMode;
   void ProcessEncodedAudioFrame(CMediaFrame *pFrame);
   void ProcessEncodedVideoFrame(CMediaFrame *pFrame);
+  void ProcessEncodedTextFrame(CMediaFrame *pFrame);
 #ifndef WORDS_BIGENDIAN
   uint16_t *m_convert_pcm;
   uint32_t  m_convert_pcm_size;

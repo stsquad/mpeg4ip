@@ -1,20 +1,21 @@
 noinst_LTLIBRARIES = libmp4livegui.la
 
 libmp4livegui_la_SOURCES = \
-	mp4live_gui.h \
-	gui_main.cpp \
-	gui_private.h \
+	audio_dialog.cpp \
 	file_utils.cpp \
 	file_utils.h \
-	audio_dialog.cpp \
-	picture_dialog.cpp \
-	transmit_dialog.cpp \
-	video_dialog.cpp \
-	gui_utils.h \
+	gui_main.cpp \
+	gui_private.h \
 	gui_utils.cpp \
+	gui_utils.h \
+	mp4live_gui.h \
+	picture_dialog.cpp \
 	preferences.cpp \
 	support.cpp \
-	support.h
+	support.h \
+	text_dialog.cpp \
+	transmit_dialog.cpp \
+	video_dialog.cpp 
 #	recording_dialog.cpp 
 
 INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \

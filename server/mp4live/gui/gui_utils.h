@@ -93,6 +93,7 @@ void SetEntryValidator(GtkObject* object,
 GtkWidget* ShowMessage (
 	const char *szTitle, 
 	const char *szMessage,
+	GtkWidget *infront = NULL,
 	bool userDismiss = true);
 
 void CloseShowMessage(

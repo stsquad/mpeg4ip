@@ -24,6 +24,7 @@
 #include "file_mp4_recorder.h"
 #include "video_encoder.h"
 #include "audio_encoder.h"
+#include "text_encoder.h"
 #include "mpeg4ip_byteswap.h"
 
 int CMp4Recorder::ThreadMain(void) 
@@ -81,12 +82,18 @@ void CMp4Recorder::DoStartRecord()
   m_makeIod = true;
   m_makeIsmaCompliant = true;
 
+  m_audioFrameType = UNDEFINEDFRAME;
+  m_videoFrameType = UNDEFINEDFRAME;
+  m_textFrameType = UNDEFINEDFRAME;
+
   if (m_stream != NULL) {
     // recording normal file
     m_video_profile = m_stream->GetVideoProfile();
     m_audio_profile = m_stream->GetAudioProfile();
+    m_text_profile = m_stream->GetTextProfile();
     m_recordVideo = m_stream->GetBoolValue(STREAM_VIDEO_ENABLED);
     m_recordAudio = m_stream->GetBoolValue(STREAM_AUDIO_ENABLED);
+    m_recordText = m_stream->GetBoolValue(STREAM_TEXT_ENABLED);
     if (m_recordAudio) {
       m_audioTimeScale = 
 	m_audio_profile->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE);
@@ -98,6 +105,7 @@ void CMp4Recorder::DoStartRecord()
       m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_VIDEO);
     m_recordAudio = m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) ||
       m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_AUDIO);
+    m_recordText = false;
     m_audioTimeScale = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
     filename = m_pConfig->GetStringValue(CONFIG_RECORD_RAW_MP4_FILE_NAME);
   }
@@ -105,12 +113,14 @@ void CMp4Recorder::DoStartRecord()
 
   m_prevVideoFrame = NULL;
   m_prevAudioFrame = NULL;
+  m_prevTextFrame = NULL;
 
   m_videoTrackId = MP4_INVALID_TRACK_ID;
   m_audioTrackId = MP4_INVALID_TRACK_ID;
+  m_textTrackId = MP4_INVALID_TRACK_ID;
 
   // are we recording any video?
-  if (m_recordVideo) {
+  if (m_recordVideo || m_recordText) {
     m_movieTimeScale = m_videoTimeScale;
   } else { // just audio
     m_movieTimeScale = m_audioTimeScale;
@@ -368,7 +378,24 @@ void CMp4Recorder::DoStartRecord()
       }
     }
   }
-
+  
+  debug_message("recording text %u", m_recordText);
+  if (m_recordText) {
+    m_textFrameNumber = 1;
+  if (m_stream == NULL) {
+      m_recordText = false;
+    } else {
+      m_textFrameType = get_text_mp4_fileinfo(m_text_profile);
+      debug_message("text type %u", m_textFrameType);
+      if (m_textFrameType == HREFTEXTFRAME) {
+	m_textTrackId = MP4AddHrefTrack(m_mp4File, m_textTimeScale, MP4_INVALID_DURATION);
+	debug_message("Added text track %u", m_textTrackId);
+      } else {
+	m_recordText = false;
+      }
+    }
+  }
+      
   m_sink = true;
   return;
 
@@ -629,6 +656,58 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
     m_prevVideoFrame = pFrame;
 }
 
+void CMp4Recorder::ProcessEncodedTextFrame (CMediaFrame *pFrame)
+{
+  if (m_textFrameNumber == 1) {
+    if (m_prevTextFrame != NULL) {
+      if (m_prevTextFrame->RemoveReference()) {
+	delete m_prevTextFrame;
+      }
+    }
+    m_prevTextFrame = pFrame;
+
+    if (m_canRecordVideo == false) return;
+
+    if (m_recordAudio) {
+    // we can record.  Set the timestamp of this frame to the audio start timestamp
+      m_prevTextFrame->SetTimestamp(m_audioStartTimestamp);
+      m_textStartTimestamp = m_audioStartTimestamp;
+    } else {
+      // need to work with video here, as well...
+      m_textStartTimestamp = m_prevTextFrame->GetTimestamp();
+    }
+    m_textFrameNumber++;
+    m_textDurationTimescale = 0;
+    return;
+  }
+
+  Duration textDurationInTicks;
+  textDurationInTicks = pFrame->GetTimestamp() - m_textStartTimestamp;
+  
+  Duration textDurationInTimescaleTotal;
+  textDurationInTimescaleTotal = 
+    GetTimescaleFromTicks(textDurationInTicks, m_textTimeScale);
+
+  Duration textDurationInTimescaleFrame;
+  textDurationInTimescaleFrame = 
+    textDurationInTimescaleTotal - m_textDurationTimescale;
+
+  m_textDurationTimescale += textDurationInTimescaleFrame;
+
+  MP4WriteSample(m_mp4File, m_textTrackId,
+		 (uint8_t *)m_prevTextFrame->GetData(),
+		 m_prevTextFrame->GetDataLength(),
+		 textDurationInTimescaleFrame);
+  debug_message("wrote text frame %u", m_textFrameNumber);
+
+  m_textFrameNumber++;
+  if (m_prevTextFrame->RemoveReference()) {
+    delete m_prevTextFrame;
+  }
+  m_prevTextFrame = pFrame;
+}
+
+
 void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 {
   // dispose of degenerate cases
@@ -782,8 +861,9 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
   } else if (pFrame->GetType() == m_videoFrameType && m_recordVideo) {
 
     ProcessEncodedVideoFrame(pFrame);
-  } else {
-    // degenerate case
+  } else if (pFrame->GetType() == m_textFrameType && m_recordText) {
+    ProcessEncodedTextFrame(pFrame);
+  } else {    // degenerate case
     if (pFrame->RemoveReference()) delete pFrame;
   }
 }
@@ -792,6 +872,7 @@ void CMp4Recorder::DoStopRecord()
 {
   if (!m_sink) return;
 
+  Duration totalAudioDuration = 0;
 
   // write last audio frame
   if (m_prevAudioFrame) {
@@ -801,6 +882,12 @@ void CMp4Recorder::DoStopRecord()
                    (u_int8_t*)m_prevAudioFrame->GetData(), 
                    m_prevAudioFrame->GetDataLength(),
                    m_prevAudioFrame->ConvertDuration(m_audioTimeScale));
+    m_audioSamples += m_prevAudioFrame->GetDuration();
+
+    totalAudioDuration = m_audioSamples;
+    totalAudioDuration *= TimestampTicks;
+    totalAudioDuration /= m_audioTimeScale;
+
     if (m_prevAudioFrame->RemoveReference()) {
       delete m_prevAudioFrame;
     }
@@ -866,6 +953,29 @@ void CMp4Recorder::DoStopRecord()
       }
     }
   }
+
+  if (m_prevTextFrame) {
+    Duration lastDuration = TimestampTicks;
+
+    if (totalAudioDuration != 0) {
+      Duration totalSoFar = m_prevTextFrame->GetTimestamp() - m_textStartTimestamp;
+      if (totalAudioDuration > totalSoFar) {
+	lastDuration = totalAudioDuration - totalSoFar;
+      }
+    }
+    debug_message("last duration "U64" timescale "U64,
+		  lastDuration, GetTimescaleFromTicks(lastDuration, m_textTimeScale));
+    MP4WriteSample(m_mp4File, 
+		   m_textTrackId, 
+		   (uint8_t *)m_prevTextFrame->GetData(),
+		   m_prevTextFrame->GetDataLength(),
+		   GetTimescaleFromTicks(lastDuration, m_textTimeScale));
+    if (m_prevTextFrame->RemoveReference()) {
+      delete m_prevTextFrame;
+    }
+    m_prevTextFrame = NULL;
+  }
+    
     
   bool optimize = false;
 
@@ -889,6 +999,12 @@ void CMp4Recorder::DoStopRecord()
 				    m_mp4File, 
 				    m_audioTrackId,
 				    m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+      }
+      if (MP4_IS_VALID_TRACK_ID(m_textTrackId)) {
+	create_mp4_text_hint_track(m_text_profile, 
+				   m_mp4File, 
+				   m_textTrackId,
+				   m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
       }
     } else {
       if (MP4_IS_VALID_TRACK_ID(m_audioTrackId)) {

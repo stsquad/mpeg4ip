@@ -281,7 +281,7 @@ static gint status_timer (gpointer raw)
 			
 			notice = "Completed";
 
-			ShowMessage("Completed", notice);
+			ShowMessage("Completed", notice, MainWindow);
 		}
 
 		return (FALSE);
@@ -297,97 +297,6 @@ static void ReadConfigFromWindow (void)
 
   MyConfig->SetIntegerValue(CONFIG_APP_DURATION,
 			    gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(temp)));
-}
-
-void DoStart()
-{
-  GtkWidget *temp;
-  ReadConfigFromWindow();
-  temp = lookup_widget(MainWindow, "Duration");
-  
-  if (!MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
-      && !MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) 
-      && !MyConfig->GetBoolValue(CONFIG_TEXT_ENABLE)) {
-    ShowMessage("No Media", "Neither audio nor video are enabled");
-    return;
-  }
-  
-  // lock out change to settings while media is running
-  LockoutChanges(true);
-  GtkWidget *statusbar = lookup_widget(MainWindow, "statusbar1");
-  gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
-  gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
-		     0,
-		     "Starting");
-  
-  AVFlow->Start();
-  gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
-  gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
-		     0,
-		     "Started");
-  
-  StartTime = GetTimestamp(); 
-#if 0
-  if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-    if (MyConfig->IsCaptureVideoSource()) {
-      AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, 
-			&StartEncodedFrameNumber);
-    } else {
-      StartEncodedFrameNumber = 0;
-    }
-  }
-#endif
-
-  FlowDuration =
-    MyConfig->GetIntegerValue(CONFIG_APP_DURATION) *
-    MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS) * 
-    TimestampTicks;
-  debug_message(U64" %u dur %u units",
-		FlowDuration, 
-		MyConfig->GetIntegerValue(CONFIG_APP_DURATION),
-		durationUnitsValues[MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS)]); 
-		
-
-#if 0
-  if (MyConfig->IsFileVideoSource() && MyConfig->IsFileAudioSource()
-      && !MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
-    // no real time constraints
-    StopTime = 0;
-  } else {
-    StopTime = StartTime + FlowDuration;
-  }
-#endif
-  StopTime = StartTime + FlowDuration;
-	status_start();
-
-	temp = lookup_widget(MainWindow, "StartButton");
-	gtk_button_set_label(GTK_BUTTON(temp), "Stop");
-	status_timer_id = gtk_timeout_add(1000, status_timer, MainWindow);
-
-	started = true;
-}
-
-void DoStop()
-{
-	gtk_timeout_remove(status_timer_id);
-	GtkWidget *statusbar = lookup_widget(MainWindow, "statusbar1");
-	gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
-	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
-			   0,
-			   "Stopping - Closing recorded files");
-			  
-	AVFlow->Stop();
-	gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
-	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
-			   0,
-			   "Session Finished");
-
-	// unlock changes to settings
-	LockoutChanges(false);
-	GtkWidget *temp = lookup_widget(MainWindow, "StartButton");
-	gtk_button_set_label(GTK_BUTTON(temp), "Start");
-
-	started = false;
 }
 
 /*
@@ -436,8 +345,9 @@ static void DisplayProfiles (GtkWidget *option_menu,
   uint32_t count = clist->GetCount();
   uint32_t count_on = 0;
   const char **options = (const char **)malloc(sizeof(char *) * (count + 4));
-  *pOptions = options;
   CConfigEntry *ce = clist->GetHead();
+
+  *pOptions = NULL; // so we don't activate when we create the menu
 
   while (ce != NULL) {
     const char *name = ce->GetName();
@@ -458,11 +368,12 @@ static void DisplayProfiles (GtkWidget *option_menu,
   options[count_on++] = strdup(add_profile_string);
   options[count_on++] = NULL;
   options[count_on++] = strdup(customize_profile_string);
-  *pCount = count_on;
   CreateOptionMenu(option_menu,
 		   options, 
 		   count_on,
 		   0);
+  *pOptions = options;
+  *pCount = count_on;
 }
 
 static const char **audio_profile_names = NULL;
@@ -678,19 +589,19 @@ static void DisplayStreamData (const char *stream)
     gtk_tooltips_set_tip(tooltips, temp, buffer, NULL);
 
   }
-  enabled = enabled && !started;
-  gtk_widget_set_sensitive(temp, enabled);
-  temp = lookup_widget(MainWindow, "AudioTxAddrButton");
-  gtk_widget_set_sensitive(temp, enabled);
-  temp = lookup_widget(MainWindow, "AudioTxAddrLabel");
+  temp2 = lookup_widget(MainWindow, "AudioTxAddrLabel");
   if (enabled == false || ms->GetBoolValue(STREAM_TRANSMIT) == false) {
-    gtk_label_set_text(GTK_LABEL(temp), "disabled");
+    gtk_label_set_text(GTK_LABEL(temp2), "disabled");
   } else {
     snprintf(buffer, sizeof(buffer), "%s:%u", 
 	     ms->GetStringValue(STREAM_AUDIO_DEST_ADDR), 
 	     ms->GetIntegerValue(STREAM_AUDIO_DEST_PORT));
-    gtk_label_set_text(GTK_LABEL(temp), buffer);
+    gtk_label_set_text(GTK_LABEL(temp2), buffer);
   }
+  enabled = enabled && !started;
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(MainWindow, "AudioTxAddrButton");
+  gtk_widget_set_sensitive(temp, enabled);
 
   // Video Information
   temp = lookup_widget(MainWindow, "VideoEnabled");
@@ -741,20 +652,20 @@ static void DisplayStreamData (const char *stream)
     }
   }
   gtk_widget_set_sensitive(temp2, enabled);
+  temp2 = lookup_widget(MainWindow, "VideoTxAddrLabel");
+  if (enabled == false || ms->GetBoolValue(STREAM_TRANSMIT) == false) {
+    gtk_label_set_text(GTK_LABEL(temp2), "disabled");
+  } else {
+    snprintf(buffer, sizeof(buffer), "%s:%u", 
+	     ms->GetStringValue(STREAM_VIDEO_DEST_ADDR), 
+	     ms->GetIntegerValue(STREAM_VIDEO_DEST_PORT));
+    gtk_label_set_text(GTK_LABEL(temp2), buffer);
+  }
 
   enabled = enabled && !started;
   gtk_widget_set_sensitive(temp, enabled);
   temp = lookup_widget(MainWindow, "VideoTxAddrButton");
   gtk_widget_set_sensitive(temp, enabled);
-  temp = lookup_widget(MainWindow, "VideoTxAddrLabel");
-  if (enabled == false || ms->GetBoolValue(STREAM_TRANSMIT) == false) {
-    gtk_label_set_text(GTK_LABEL(temp), "disabled");
-  } else {
-    snprintf(buffer, sizeof(buffer), "%s:%u", 
-	     ms->GetStringValue(STREAM_VIDEO_DEST_ADDR), 
-	     ms->GetIntegerValue(STREAM_VIDEO_DEST_PORT));
-    gtk_label_set_text(GTK_LABEL(temp), buffer);
-  }
 
 #ifdef HAVE_TEXT
   // text information
@@ -782,19 +693,19 @@ static void DisplayStreamData (const char *stream)
 	     tp->GetStringValue(CFG_TEXT_ENCODING));
     gtk_tooltips_set_tip(tooltips, temp, buffer, NULL);
   }
-  enabled = enabled && !started;
-    gtk_widget_set_sensitive(temp, enabled);
-  temp = lookup_widget(MainWindow, "TextTxAddrButton");
-  gtk_widget_set_sensitive(temp, enabled);
-  temp = lookup_widget(MainWindow, "TextTxAddrLabel");
+  temp2 = lookup_widget(MainWindow, "TextTxAddrLabel");
   if (enabled == false || ms->GetBoolValue(STREAM_TRANSMIT) == false) {
-    gtk_label_set_text(GTK_LABEL(temp), "disabled");
+    gtk_label_set_text(GTK_LABEL(temp2), "disabled");
   } else {
     snprintf(buffer, sizeof(buffer), "%s:%u", 
 	     ms->GetStringValue(STREAM_TEXT_DEST_ADDR), 
 	     ms->GetIntegerValue(STREAM_TEXT_DEST_PORT));
-    gtk_label_set_text(GTK_LABEL(temp), buffer);
+    gtk_label_set_text(GTK_LABEL(temp2), buffer);
   }
+  enabled = enabled && !started;
+    gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(MainWindow, "TextTxAddrButton");
+  gtk_widget_set_sensitive(temp, enabled);
 #endif
 
 }
@@ -832,6 +743,18 @@ void OnVideoProfileFinished (CVideoProfile *p)
   DisplayStreamData(SelectedStream);
 }
 
+void OnTextProfileFinished (CTextProfile *p)
+{
+  if (p != NULL) {
+    CMediaStream *ms = GetSelectedStream();
+    ms->SetTextProfile(p->GetName());
+    DisplayTextProfiles();
+  }
+  AVFlow->ValidateAndUpdateStreams();
+  MainWindowDisplaySources();
+  DisplayStreamData(SelectedStream);
+}
+
 void RefreshCurrentStream (void)
 {
   DisplayStreamData(SelectedStream);
@@ -851,12 +774,12 @@ static void onConfigFileOpenResponse (GtkDialog *sel,
     if (GPOINTER_TO_INT(user_data) == false) {
       if (stat(name, &statbuf) != 0 ||
 	  !S_ISREG(statbuf.st_mode)) {
-	ShowMessage("Open File Error", "File does not exist");
+	ShowMessage("Open File Error", "File does not exist", MainWindow);
 	return;
       }
     } else {
       if (stat(name, &statbuf) == 0) {
-	ShowMessage("New File Error", "File exists");
+	ShowMessage("New File Error", "File exists", MainWindow);
 	return;
       }
     }
@@ -1058,6 +981,7 @@ on_TextSourceMenu_activate             (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
   RestoreSourceMenu();
+  create_TextSourceDialog();
 }
 #endif
 
@@ -1072,7 +996,7 @@ on_AddStreamDialog_response            (GtkDialog       *dialog,
     
     const char *stream_name = gtk_entry_get_text(GTK_ENTRY(temp));
     if ((stream_name == NULL) || (*stream_name == '\0')) {
-      ShowMessage("Add Stream Error", "Must enter stream name");
+      ShowMessage("Add Stream Error", "Must enter stream name", GTK_WIDGET(dialog));
       return;
     }
 
@@ -1214,7 +1138,7 @@ on_DeleteStreamButton_clicked          (GtkButton       *button,
   if (started) return;
 
   if (AVFlow->m_stream_list->GetCount() == 1) {
-    ShowMessage("Delete Error", "Can not delete last stream");
+    ShowMessage("Delete Error", "Can not delete last stream", MainWindow);
     return;
   }
 
@@ -1389,6 +1313,7 @@ on_VideoEnabled_toggled                (GtkToggleButton *togglebutton,
   ms->SetBoolValue(STREAM_VIDEO_ENABLED, 
 		   gtk_toggle_button_get_active(togglebutton));
   ms->Initialize();
+  AVFlow->ValidateAndUpdateStreams();
   DisplayStreamData(SelectedStream);
 }
 
@@ -1512,6 +1437,7 @@ on_AudioEnabled_toggled                (GtkToggleButton *togglebutton,
   ms->SetBoolValue(STREAM_AUDIO_ENABLED, 
 		   gtk_toggle_button_get_active(togglebutton));
   ms->Initialize();
+  AVFlow->ValidateAndUpdateStreams();
   DisplayStreamData(SelectedStream);
 }
 
@@ -1557,7 +1483,14 @@ static void
 on_TextEnabled_toggled                 (GtkToggleButton *togglebutton,
                                         gpointer         user_data)
 {
-  printf("text enabled\n");
+  CMediaStream *ms = GetSelectedStream();
+  if (ms == NULL) return;
+
+  ms->SetBoolValue(STREAM_TEXT_ENABLED, 
+		   gtk_toggle_button_get_active(togglebutton));
+  ms->Initialize();
+  AVFlow->ValidateAndUpdateStreams();
+  DisplayStreamData(SelectedStream);
 }
 
 
@@ -1576,9 +1509,9 @@ on_TextProfile_changed                 (GtkOptionMenu   *optionmenu,
     const char *new_profile = 
       text_profile_names[gtk_option_menu_get_history(optionmenu)];
     if (strcmp(new_profile, add_profile_string) == 0) {
-      //CreateTextProfileDialog(NULL);
+      create_TextProfileDialog(NULL);
     } else if (strcmp(new_profile, customize_profile_string) == 0) {
-      //CreateTextProfileDialog(ms->GetTextProfile());
+      create_TextProfileDialog(ms->GetTextProfile());
     } else if (strcmp(new_profile, 
 		      ms->GetStringValue(STREAM_TEXT_PROFILE)) != 0) {
       ms->SetTextProfile(new_profile);
@@ -1597,13 +1530,14 @@ on_TextTxAddrButton_clicked            (GtkButton       *button,
   create_IpAddrDialog(GetSelectedStream(), false, false, true);
 }
 
-
+#ifdef HAVE_TEXT_ENTRY
 static void
 on_TextEntrySend_clicked               (GtkButton       *button,
                                         gpointer         user_data)
 {
 
 }
+#endif
 #endif
 
 
@@ -1614,6 +1548,114 @@ on_durationtype_activate               (GtkOptionMenu     *menu,
 {
   MyConfig->SetIntegerValue(CONFIG_APP_DURATION_UNITS, 
 			    durationUnitsValues[gtk_option_menu_get_history(menu)]);
+}
+
+void DoStart()
+{
+  GtkWidget *temp;
+  ReadConfigFromWindow();
+  temp = lookup_widget(MainWindow, "Duration");
+  
+  if (!MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
+      && !MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) 
+      && !MyConfig->GetBoolValue(CONFIG_TEXT_ENABLE)) {
+    ShowMessage("No Media", "Neither audio nor video are enabled", MainWindow);
+    return;
+  }
+  
+  // lock out change to settings while media is running
+  LockoutChanges(true);
+  GtkWidget *statusbar = lookup_widget(MainWindow, "statusbar1");
+  gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+  gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+		     0,
+		     "Starting");
+  
+  AVFlow->Start();
+  gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+  gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+		     0,
+		     "Started");
+  if (MyConfig->GetBoolValue(CONFIG_TEXT_ENABLE)) {
+    const char *type = MyConfig->GetStringValue(CONFIG_TEXT_SOURCE_TYPE);
+    
+    bool have_file;
+    have_file = strcmp(type, TEXT_SOURCE_FILE_WITH_DIALOG) == 0;
+    if (have_file || strcmp(type, TEXT_SOURCE_DIALOG) == 0) {
+      GtkWidget *temp = create_TextFileDialog(have_file);
+      GLADE_HOOKUP_OBJECT(MainWindow, temp, "TextDialog");
+    }
+  }
+
+  
+  StartTime = GetTimestamp(); 
+#if 0
+  if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+    if (MyConfig->IsCaptureVideoSource()) {
+      AVFlow->GetStatus(FLOW_STATUS_VIDEO_ENCODED_FRAMES, 
+			&StartEncodedFrameNumber);
+    } else {
+      StartEncodedFrameNumber = 0;
+    }
+  }
+#endif
+
+  FlowDuration =
+    MyConfig->GetIntegerValue(CONFIG_APP_DURATION) *
+    MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS) * 
+    TimestampTicks;
+  debug_message(U64" %u dur %u units",
+		FlowDuration, 
+		MyConfig->GetIntegerValue(CONFIG_APP_DURATION),
+		durationUnitsValues[MyConfig->GetIntegerValue(CONFIG_APP_DURATION_UNITS)]); 
+		
+
+#if 0
+  if (MyConfig->IsFileVideoSource() && MyConfig->IsFileAudioSource()
+      && !MyConfig->GetBoolValue(CONFIG_RTP_ENABLE)) {
+    // no real time constraints
+    StopTime = 0;
+  } else {
+    StopTime = StartTime + FlowDuration;
+  }
+#endif
+  StopTime = StartTime + FlowDuration;
+	status_start();
+
+	temp = lookup_widget(MainWindow, "StartButton");
+	gtk_button_set_label(GTK_BUTTON(temp), "Stop");
+	status_timer_id = gtk_timeout_add(1000, status_timer, MainWindow);
+
+	started = true;
+}
+
+void DoStop()
+{
+	gtk_timeout_remove(status_timer_id);
+	GtkWidget *statusbar = lookup_widget(MainWindow, "statusbar1");
+	gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+			   0,
+			   "Stopping - Closing recorded files");
+			  
+	GtkWidget *temp = lookup_widget(MainWindow, "TextDialog");
+	if (temp != NULL) {
+	  gtk_widget_destroy(temp);
+	}
+
+	AVFlow->Stop();
+	gtk_statusbar_pop(GTK_STATUSBAR(statusbar), 0);
+	gtk_statusbar_push(GTK_STATUSBAR(statusbar), 
+			   0,
+			   "Session Finished");
+
+	// unlock changes to settings
+	LockoutChanges(false);
+	temp = lookup_widget(MainWindow, "StartButton");
+	gtk_button_set_label(GTK_BUTTON(temp), "Start");
+
+	started = false;
+	DisplayStreamData(SelectedStream);
 }
 
 
