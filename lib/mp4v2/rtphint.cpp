@@ -233,7 +233,7 @@ void MP4RtpHintTrack::AddSampleData(
 
 	MP4RtpSampleData* pData = new MP4RtpSampleData();
 
-	pData->Set(sampleId, dataOffset, dataLength);
+	pData->SetReferenceSample(sampleId, dataOffset, dataLength);
 
 	pPacket->AddData(pData);
 
@@ -246,16 +246,15 @@ void MP4RtpHintTrack::AddSampleData(
 
 void MP4RtpHintTrack::AddESConfigurationPacket()
 {
-#ifdef NOTDEF
 	if (m_pHint == NULL) {
 		throw new MP4Error("no hint pending", 
 			"MP4RtpAddESConfigurationPacket");
 	}
 
-	u_int8_t pConfig = NULL;
+	u_int8_t* pConfig = NULL;
 	u_int32_t configSize = 0;
 
-	m_pFile->GetTrackESConfiguration(m_pRefTrack->GetTrackId(),
+	m_pFile->GetTrackESConfiguration(m_pRefTrack->GetId(),
 		&pConfig, &configSize);
 
 	if (pConfig == NULL) {
@@ -277,11 +276,10 @@ void MP4RtpHintTrack::AddESConfigurationPacket()
 	// we create a sample data reference that points to 
 	// this hint track (not the media track)
 	// and this sample of the hint track 
-	// the offset into this sample needs to be filled in
-	// when WriteHint is called
+	// the offset into this sample is filled in during the write process
 	MP4RtpSampleData* pData = new MP4RtpSampleData();
-	pData->SetTrackReference((u_int8_t)-1);
-	pData->Set(m_writeSampleId, 0, configSize);
+
+	pData->SetEmbeddedImmediate(m_writeSampleId, pConfig, configSize);
 
 	pPacket->AddData(pData);
 
@@ -289,7 +287,6 @@ void MP4RtpHintTrack::AddESConfigurationPacket()
 	m_bytesThisPacket += configSize;
 	m_pTpyl->IncrementValue(configSize);
 	m_pTrpy->IncrementValue(configSize);
-#endif
 }
 
 void MP4RtpHintTrack::WriteHint(MP4Duration duration, bool isSyncSample)
@@ -429,11 +426,33 @@ MP4RtpPacket* MP4RtpHint::AddPacket()
 
 void MP4RtpHint::Write(MP4File* pFile)
 {
+	u_int64_t hintStartPos = pFile->GetPosition();
+
 	MP4Container::Write(pFile);
 
+	u_int64_t packetStartPos = pFile->GetPosition();
+
+	// first write out packet (and data) entries
 	for (u_int32_t i = 0; i < m_rtpPackets.Size(); i++) {
 		m_rtpPackets[i]->Write(pFile);
 	}
+
+	// now let packets write their extra data into the hint sample
+	for (u_int32_t i = 0; i < m_rtpPackets.Size(); i++) {
+		m_rtpPackets[i]->WriteEmbeddedData(pFile, hintStartPos);
+	}
+
+	u_int64_t endPos = pFile->GetPosition();
+
+	pFile->SetPosition(packetStartPos);
+
+	// finally rewrite the packet and data entries
+	// which now contain the correct offsets for the embedded data
+	for (u_int32_t i = 0; i < m_rtpPackets.Size(); i++) {
+		m_rtpPackets[i]->Write(pFile);
+	}
+
+	pFile->SetPosition(endPos);
 
 	VERBOSE_WRITE_HINT(pFile->GetVerbosity(),
 		printf("WriteRtpHint:\n"); Dump(stdout, 14, false));
@@ -548,6 +567,13 @@ void MP4RtpPacket::Write(MP4File* pFile)
 	}
 }
 
+void MP4RtpPacket::WriteEmbeddedData(MP4File* pFile, u_int64_t startPos)
+{
+	for (u_int32_t i = 0; i < m_rtpData.Size(); i++) {
+		m_rtpData[i]->WriteEmbeddedData(pFile, startPos);
+	}
+}
+
 void MP4RtpPacket::Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits)
 {
 	MP4Container::Dump(pFile, indent, dumpImplicits);
@@ -602,19 +628,80 @@ MP4RtpSampleData::MP4RtpSampleData()
 
 	((MP4Integer32Property*)m_pProperties[5])->SetValue(1);
 	((MP4Integer32Property*)m_pProperties[6])->SetValue(1);
+
+	m_pRefData = NULL;
+	m_pRefTrack = NULL;
+	m_refSampleId = MP4_INVALID_SAMPLE_ID;
+	m_refSampleOffset = 0;
 }
 
-void MP4RtpSampleData::Set(MP4SampleId sampleId,
-	u_int32_t sampleOffset, u_int16_t sampleLength)
+void MP4RtpSampleData::SetEmbeddedImmediate(MP4SampleId sampleId, 
+	u_int8_t* pData, u_int16_t dataLength)
 {
+	((MP4Integer8Property*)m_pProperties[1])->SetValue((u_int8_t)-1);
+	((MP4Integer16Property*)m_pProperties[2])->SetValue(dataLength);
+	((MP4Integer32Property*)m_pProperties[3])->SetValue(sampleId);
+	((MP4Integer32Property*)m_pProperties[4])->SetValue(0); 
+	m_pRefData = pData;
+}
+
+void MP4RtpSampleData::SetReferenceSample(
+	MP4SampleId refSampleId, u_int32_t refSampleOffset, 
+	u_int16_t sampleLength)
+{
+	((MP4Integer8Property*)m_pProperties[1])->SetValue(0);
+	((MP4Integer16Property*)m_pProperties[2])->SetValue(sampleLength);
+	((MP4Integer32Property*)m_pProperties[3])->SetValue(refSampleId);
+	((MP4Integer32Property*)m_pProperties[4])->SetValue(refSampleOffset);
+}
+
+void MP4RtpSampleData::SetEmbeddedSample(
+	MP4SampleId sampleId, MP4Track* pRefTrack,
+	MP4SampleId refSampleId, u_int32_t refSampleOffset, 
+	u_int16_t sampleLength)
+{
+	((MP4Integer8Property*)m_pProperties[1])->SetValue((u_int8_t)-1);
 	((MP4Integer16Property*)m_pProperties[2])->SetValue(sampleLength);
 	((MP4Integer32Property*)m_pProperties[3])->SetValue(sampleId);
-	((MP4Integer32Property*)m_pProperties[4])->SetValue(sampleOffset);
+	((MP4Integer32Property*)m_pProperties[4])->SetValue(0);
+	m_pRefTrack = pRefTrack;
+	m_refSampleId = refSampleId;
+	m_refSampleOffset = refSampleOffset;
 }
 
-void MP4RtpSampleData::SetTrackReference(u_int8_t trackRefIndex)
+void MP4RtpSampleData::WriteEmbeddedData(MP4File* pFile, u_int64_t startPos)
 {
-	((MP4Integer8Property*)m_pProperties[1])->SetValue(trackRefIndex);
+	// if not using embedded data, nothing to do
+	if (((MP4Integer8Property*)m_pProperties[1])->GetValue() != (u_int8_t)-1) {
+		return;
+	}
+
+	// figure out the offset within this hint sample for this embedded data
+	u_int64_t offset = pFile->GetPosition() - startPos;
+	ASSERT(offset <= 0xFFFFFFFF);	
+	((MP4Integer32Property*)m_pProperties[4])->SetValue((u_int32_t)offset);
+
+	u_int16_t length = ((MP4Integer16Property*)m_pProperties[2])->GetValue();
+
+	if (m_pRefData) {
+		pFile->WriteBytes(m_pRefData, length);
+		return;
+	} 
+
+	if (m_refSampleId != MP4_INVALID_SAMPLE_ID) {
+		u_int8_t* pSample = NULL;
+		u_int32_t sampleSize = 0;
+
+		ASSERT(m_pRefTrack);
+		m_pRefTrack->ReadSample(m_refSampleId, &pSample, &sampleSize);
+
+		ASSERT(m_refSampleOffset + length <= sampleSize);
+
+		pFile->WriteBytes(&pSample[m_refSampleOffset], length);
+
+		MP4Free(pSample);
+		return;
+	}
 }
 
 MP4RtpSampleDescriptionData::MP4RtpSampleDescriptionData()

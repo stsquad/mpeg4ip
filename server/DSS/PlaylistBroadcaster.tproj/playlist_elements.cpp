@@ -170,7 +170,7 @@ void MediaStream::BuildStaticRTCpReport()
 	*theSRWriter = htonl(0x80c80006);
 	theSRWriter += 7;
 	//SDES length is the length of the CName, plus 2 32bit words, minus 1
-	*theSRWriter = htonl(0x81ca0000 + (cNameLen >> 2) );
+	*theSRWriter = htonl(0x81ca0000 + (cNameLen >> 2) + 1 );
 	::memcpy(&fData.fSenderReportBuffer[kSenderReportSizeInBytes], theTempCName, cNameLen);
 	fData.fSenderReportSize = kSenderReportSizeInBytes + cNameLen;
 }

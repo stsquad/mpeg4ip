@@ -19,6 +19,8 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
+// DEBUG #define MP4V_DEBUG 1
+
 /* 
  * Notes:
  *  - file formatted with tabstops == 4 spaces 
@@ -178,8 +180,6 @@ u_int32_t CBitBuffer::GetBits(u_int8_t numBits)
 		m_bitIndex++;
 	}
 
-	// DEBUG printf("GetBits 0x%08x (%u bits)\n", bits, numBits);
-
 	return bits;
 }
 
@@ -277,6 +277,8 @@ static void ParseVol(u_int8_t* pVolBuf, u_int32_t volSize,
 	return;
 }
 
+#ifdef LATER
+
 static void ParseGov(u_int8_t* pGovBuf, u_int32_t govSize,
 	u_int8_t* pHours, u_int8_t* pMinutes, u_int8_t* pSeconds)
 {
@@ -290,9 +292,11 @@ static void ParseGov(u_int8_t* pGovBuf, u_int32_t govSize,
 		*pSeconds = gov.GetBits(6);
 	}
 	catch (...) {
-		fprintf(stderr, "%s: Warning, couldn't parse VOSH\n", ProgName);
+		fprintf(stderr, "%s: Warning, couldn't parse GOV\n", ProgName);
 	}
 }
+
+#endif
 
 static void ParseVop(u_int8_t* pVopBuf, u_int32_t vopSize,
 	u_char* pVopType, 
@@ -448,30 +452,27 @@ u_int8_t Mp4vVideoToSystemsProfileLevel(u_int8_t videoProfileLevel)
 	}
 }
 
+u_char Mp4vGetVopType(u_int8_t* pVopBuf, u_int32_t vopSize)
+{
+	u_char vopType;
+	ParseVop(pVopBuf, vopSize, &vopType, 0, 0, NULL);
+	return vopType;
+}
+
 MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 {
 	bool rc; 
 
-	// we need a two sample window in memory
-	// so we use two static buffers 
-	// and just keep flipping pointers to avoid memory copies
-	u_int8_t sampleBuffer1[256 * 1024];
-	u_int8_t sampleBuffer2[256 * 1024];
-	u_int8_t* pPreviousSample = sampleBuffer1;
-	u_int8_t* pCurrentSample = sampleBuffer2;
-	u_int32_t maxSampleSize = sizeof(sampleBuffer1);
+	u_int8_t sampleBuffer[256 * 1024];
+	u_int8_t* pCurrentSample = sampleBuffer;
+	u_int32_t maxSampleSize = sizeof(sampleBuffer);
 
 	// the current syntactical object
 	// typically 1:1 with a sample 
 	// but not always, i.e. non-VOP's 
-	u_int8_t* pObj = pPreviousSample;
+	u_int8_t* pObj = pCurrentSample;
 	u_int32_t objSize;
 	u_int8_t objType;
-
-	// the previous sample
-	u_int32_t previousSampleSize = 0;
-	MP4Timestamp previousSampleTime = 0;
-	bool previousIsSyncSample = true;
 
 	// the current sample
 	MP4SampleId sampleId = 1;
@@ -493,7 +494,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	// start reading objects until we get the first VOP
 	while (LoadNextObject(inFile, pObj, &objSize, &objType)) {
 		// guard against buffer overflow
-		if (pObj + objSize >= pPreviousSample + maxSampleSize) {
+		if (pObj + objSize >= pCurrentSample + maxSampleSize) {
 			fprintf(stderr,	
 				"%s: buffer overflow, invalid video stream?\n", ProgName);
 			exit(EXIT_MP4V_CREATOR);
@@ -514,9 +515,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 #endif
 
 		} else if (objType == VOP_START) {
-			esConfigSize = pObj - pPreviousSample;
-			previousSampleSize = esConfigSize + objSize;
-			previousIsSyncSample = true;
+			esConfigSize = pObj - pCurrentSample;
 			// ready to set up mp4 track
 			break;
 		} 
@@ -530,20 +529,18 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 	}
 	u_int32_t mp4TimeScale = 90000;
 	u_int32_t mp4FrameDuration;
-	bool isFixedFrameRate;
 
 	if (VideoFrameRate) {
 		mp4FrameDuration = (u_int32_t)(((float)mp4TimeScale) / VideoFrameRate);
-		isFixedFrameRate = true;
+	} else if (frameDuration) {
+		mp4FrameDuration = (mp4TimeScale * frameDuration) / timeTicks;
 	} else {
-		if (frameDuration) {
-			mp4FrameDuration = 
-				(mp4TimeScale * frameDuration) / timeTicks;
-			isFixedFrameRate = true;
-		} else {
-			mp4FrameDuration = 0;
-			isFixedFrameRate = false;
-		}
+		// the spec for embedded timing and the implementations that I've
+		// seen all vary dramatically, so until things become clearer
+		// we don't support these types of encoders
+		fprintf(stderr,	
+			"%s: unable to parse variable rate video stream\n", ProgName);
+		exit(EXIT_MP4V_CREATOR);
 	}
 
 	// create the new video track
@@ -566,65 +563,26 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 
 	if (esConfigSize) {
 		MP4SetTrackESConfiguration(mp4File, trackId, 
-			pPreviousSample, esConfigSize);
+			pCurrentSample, esConfigSize);
 
 		// move past ES config, so it doesn't go into first sample
-		pPreviousSample += esConfigSize;
-		previousSampleSize -= esConfigSize;
+		pCurrentSample += esConfigSize;
 	}
 
 	// now process the rest of the video stream
-	pObj = pCurrentSample;
-
-	while (LoadNextObject(inFile, pObj, &objSize, &objType)) {
-		// guard against buffer overflow
-		if (pObj + objSize >= pCurrentSample + maxSampleSize) {
-			fprintf(stderr,	
-				"%s: buffer overflow, invalid video stream?\n", ProgName);
-			exit(EXIT_MP4V_CREATOR);
-		}
-
+	while (true) {
 		if (objType != VOP_START) {
-			if (objType == GOV_START) {
-				u_int8_t govHours, govMinutes, govSeconds;
-
-				ParseGov(pObj, objSize, &govHours, &govMinutes, &govSeconds);
-
-#ifdef MP4V_DEBUG
-				printf("GOV %u:%u:%u\n", govHours, govMinutes, govSeconds);
-#endif
-				// refVopTime = gov time?
-			}
-
 			// keep it in the buffer until a VOP comes along
 			pObj += objSize;
 
 		} else { // we have a VOP
 			u_int32_t sampleSize = (pObj + objSize) - pCurrentSample;
 
-			u_char vopType = '\0';
-			u_int32_t vopTimeIncrement = 0;
+			u_char vopType = Mp4vGetVopType(pObj, objSize);
 
-			ParseVop(pObj, objSize, &vopType, 
-				timeBits, timeTicks, &vopTimeIncrement);
-
-			if (!isFixedFrameRate) {
-				currentSampleTime = refVopTime 
-					+ ((mp4TimeScale * vopTimeIncrement) / timeTicks);
-				mp4FrameDuration = currentSampleTime - previousSampleTime;
-
-#ifdef MP4V_DEBUG
-				printf("sample %u %c vopTimeIncrement %u\n"
-					sampleId + 1, vopType, vopTimeIncrement);
-#endif
-			} else {
-				currentSampleTime += mp4FrameDuration;
-			}
-
-			// now we know enough to write the previous sample
 			rc = MP4WriteSample(mp4File, trackId, 
-				pPreviousSample, previousSampleSize,
-				mp4FrameDuration, 0, previousIsSyncSample);
+				pCurrentSample, sampleSize,
+				mp4FrameDuration, 0, vopType == 'I');
 
 			if (!rc) {
 				fprintf(stderr,	
@@ -633,16 +591,14 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 				exit(EXIT_MP4V_CREATOR);
 			}
 
-			sampleId++;
-
 			// deal with rendering time offsets 
 			// that can occur when B frames are being used 
 			// which is the case for all profiles except Simple Profile
 			if (vopType != 'B') {
 				if (videoProfileLevel > 3) {
 #ifdef MP4V_DEBUG
-					printf("sample %u renderingOffset %u\n",
-						refVopId, currentSampleTime - refVopTime);
+					printf("sample %u %c renderingOffset %d\n",
+						refVopId, vopType, currentSampleTime - refVopTime);
 #endif
 
 					MP4SetSampleRenderingOffset(
@@ -654,29 +610,25 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile)
 				refVopTime = currentSampleTime;
 			}
 
-			// move along
-			u_int8_t* temp = pPreviousSample;
-			pPreviousSample = pCurrentSample;
-			previousSampleSize = sampleSize;
-			previousSampleTime = currentSampleTime;
-			previousIsSyncSample = (vopType == 'I');
-			pCurrentSample = temp;
-			pObj = pCurrentSample;
+			sampleId++;
+			currentSampleTime += mp4FrameDuration;
+
+			// reset pointers
+			pObj = pCurrentSample = sampleBuffer;
+		}
+
+		// load next object from bitstream
+		if (!LoadNextObject(inFile, pObj, &objSize, &objType)) {
+			break;
+		}
+		// guard against buffer overflow
+		if (pObj + objSize >= pCurrentSample + maxSampleSize) {
+			fprintf(stderr,	
+				"%s: buffer overflow, invalid video stream?\n", ProgName);
+			exit(EXIT_MP4V_CREATOR);
 		}
 	}
 
-	// write final sample
-	rc = MP4WriteSample(mp4File, trackId, 
-		pPreviousSample, previousSampleSize,
-		0, 0, previousIsSyncSample);
-
 	return trackId;
-}
-
-u_char Mp4vGetVopType(u_int8_t* pVopBuf, u_int32_t vopSize)
-{
-	u_char vopType;
-	ParseVop(pVopBuf, vopSize, &vopType, 0, 0, NULL);
-	return vopType;
 }
 

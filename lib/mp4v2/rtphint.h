@@ -27,6 +27,10 @@
 class MP4RtpData : public MP4Container {
 public:
 	MP4RtpData();
+
+	virtual void WriteEmbeddedData(MP4File* pFile, u_int64_t startPos) {
+		// default is no-op
+	}
 };
 
 MP4ARRAY_DECL(MP4RtpData, MP4RtpData*)
@@ -42,10 +46,27 @@ class MP4RtpSampleData : public MP4RtpData {
 public:
 	MP4RtpSampleData();
 
-	void Set(MP4SampleId sampleId,
-		u_int32_t sampleOffset, u_int16_t sampleLength);
+	void SetEmbeddedImmediate(
+		MP4SampleId sampleId, 
+		u_int8_t* pData, u_int16_t dataLength);
 
-	void SetTrackReference(u_int8_t trackRefIndex);
+	void SetReferenceSample(
+		MP4SampleId refSampleId, u_int32_t refSampleOffset, 
+		u_int16_t sampleLength);
+
+	void SetEmbeddedSample(
+		MP4SampleId sampleId, MP4Track* pRefTrack, 
+		MP4SampleId refSampleId, u_int32_t refSampleOffset, 
+		u_int16_t sampleLength);
+
+	void WriteEmbeddedData(MP4File* pFile, u_int64_t startPos);
+
+protected:
+	u_int8_t*		m_pRefData;
+
+	MP4Track*		m_pRefTrack;
+	MP4SampleId		m_refSampleId;
+	u_int32_t		m_refSampleOffset;
 };
 
 class MP4RtpSampleDescriptionData : public MP4RtpData {
@@ -71,6 +92,8 @@ public:
 	void AddData(MP4RtpData* pData);
 
 	void Write(MP4File* pFile);
+
+	void WriteEmbeddedData(MP4File* pFile, u_int64_t startPos);
 
 	void Dump(FILE* pFile, u_int8_t indent, bool dumpImplicits);
 
