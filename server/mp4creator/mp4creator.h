@@ -48,6 +48,8 @@
 #define EXIT_RFC3016_HINTER	11
 #define EXIT_RFC3119_HINTER	12
 #define EXIT_OPTIMIZE_FILE	13
+#define EXIT_EXTRACT_TRACK	14
+#define EXIT_INFO			15
 
 // global variables
 #ifdef MP4CREATOR_GLOBALS

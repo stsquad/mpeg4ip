@@ -598,7 +598,12 @@ int mpeg3video_get_macroblocks(mpeg3video_t *video, int framenum)
 		slice_buffer->data[slice_buffer->buffer_size++] = 0;
 		slice_buffer->bits_size = 0;
 
-		pthread_mutex_lock(&(slice_buffer->completion_lock)); fflush(stdout);
+#ifndef SDL_THREADS
+		pthread_mutex_lock(&(slice_buffer->completion_lock));
+#else
+		SDL_LockMutex(slice_buffer->completion_lock);
+#endif
+		fflush(stdout);
 		current_buffer++;
 		video->total_slice_buffers++;
 	}
@@ -627,7 +632,11 @@ int mpeg3video_get_macroblocks(mpeg3video_t *video, int framenum)
 				video->slice_decoders[i].buffer_step = 1;
 				video->slice_decoders[i].last_buffer = video->total_slice_buffers - 1;
 			}
+#ifndef SDL_THREADS
 			pthread_mutex_unlock(&(video->slice_decoders[i].input_lock));
+#else
+			SDL_UnlockMutex(video->slice_decoders[i].input_lock);
+#endif
 		}
 	}
 
@@ -636,14 +645,23 @@ int mpeg3video_get_macroblocks(mpeg3video_t *video, int framenum)
 	{
 		for(i = 0; i < video->total_slice_buffers; i++)
 		{
+#ifndef SDL_THREADS
 			pthread_mutex_lock(&(video->slice_buffers[i].completion_lock));
 			pthread_mutex_unlock(&(video->slice_buffers[i].completion_lock));
+#else
+			SDL_LockMutex(video->slice_buffers[i].completion_lock);
+			SDL_UnlockMutex(video->slice_buffers[i].completion_lock);
+#endif
 		}
 
 /* Wait for decoders to finish so packages aren't overwritten */
 		for(i = 0; i < video->total_slice_decoders; i++)
 		{
+#ifndef SDL_THREADS
 			pthread_mutex_lock(&(video->slice_decoders[i].completion_lock));
+#else
+			SDL_LockMutex(video->slice_decoders[i].completion_lock);
+#endif
 		}
 	}
 	return 0;

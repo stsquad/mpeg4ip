@@ -350,6 +350,58 @@ public: /* equivalent to MP4 library API */
 
 	u_int8_t AllocRtpPayloadNumber();
 
+	// edit list related
+
+	char* MakeTrackEditName(
+		MP4TrackId trackId,
+		MP4EditId editId,
+		const char* name);
+
+	MP4EditId AddTrackEdit(
+		MP4TrackId trackId,
+		MP4EditId editId = MP4_INVALID_EDIT_ID);
+
+	void DeleteTrackEdit(
+		MP4TrackId trackId,
+		MP4EditId editId);
+
+	u_int32_t GetTrackNumberOfEdits(
+		MP4TrackId trackId);
+
+	MP4Timestamp GetTrackEditStart(
+		MP4TrackId trackId,
+		MP4EditId editId);
+
+	void SetTrackEditStart(
+		MP4TrackId trackId,
+		MP4EditId editId,
+		MP4Timestamp startTime);
+
+	MP4Duration GetTrackEditDuration(
+		MP4TrackId trackId,
+		MP4EditId editId);
+
+	void SetTrackEditDuration(
+		MP4TrackId trackId,
+		MP4EditId editId,
+		MP4Duration duration);
+
+	bool GetTrackEditDwell(
+		MP4TrackId trackId,
+		MP4EditId editId);
+
+	void SetTrackEditDwell(
+		MP4TrackId trackId,
+		MP4EditId editId,
+		bool dwell);
+
+	MP4SampleId GetSampleIdFromEditTime(
+		MP4TrackId trackId,
+		MP4Timestamp when,
+		bool wantSyncSample = false,
+		MP4Timestamp* pStartTime = NULL, 
+		MP4Duration* pDuration = NULL);
+
 	/* end of MP4 API */
 
 	/* "protected" interface to be used only by friends in library */

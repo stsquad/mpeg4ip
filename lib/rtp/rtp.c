@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.15 $ 
- * $Date: 2002/06/21 23:19:48 $
+ * $Revision: 1.16 $ 
+ * $Date: 2002/07/05 17:34:27 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -1462,7 +1462,7 @@ int rtp_process_recv_data (struct rtp *session,
   return -1; /* We need to free the packet */
 }
 
-static void rtp_recv_data(struct rtp *session, uint32_t curr_rtp_ts)
+void rtp_recv_data(struct rtp *session, uint32_t curr_rtp_ts)
 {
 	/* This routine preprocesses an incoming RTP packet, deciding whether to process it. */
 	rtp_packet	*packet = (rtp_packet *) xmalloc(RTP_MAX_PACKET_LEN + RTP_PACKET_HEADER_SIZE);
@@ -3400,4 +3400,14 @@ int rtp_set_encryption(struct rtp *session, rtp_encrypt_func efunc, rtp_decrypt_
 int rtp_get_encryption_enabled(struct rtp *session)
 {
   return session->encryption_enabled;
+}
+
+socket_udp *get_rtp_data_socket (struct rtp *session)
+{
+  return session->rtp_socket;
+}
+
+socket_udp *get_rtp_rtcp_socket (struct rtp *session)
+{
+  return session->rtcp_socket;
 }

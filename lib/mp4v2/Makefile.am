@@ -85,13 +85,14 @@ libmp4v2_la_SOURCES = \
 	mp4common.h \
 	mp4container.cpp \
 	mp4container.h \
+	mp4.h \
 	mp4.cpp \
 	mp4descriptor.cpp \
 	mp4descriptor.h \
 	mp4file.cpp \
 	mp4file.h \
 	mp4file_io.cpp \
-	mp4.h \
+	mp4info.cpp \
 	mp4property.cpp \
 	mp4property.h \
 	mp4track.cpp \

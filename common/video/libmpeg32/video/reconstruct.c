@@ -508,7 +508,7 @@ static inline void recvc_mmx(unsigned char *s, unsigned char *d, int lx, int lx2
 
 #endif  // HAVE_MMX
 
-static inline void rec(unsigned char *s, unsigned char *d, int lx2, int h)
+static __inline void rec(unsigned char *s, unsigned char *d, int lx2, int h)
 {
 	int j;
 	for(j = 0; j < h; j++, s += lx2, d += lx2)
@@ -522,7 +522,7 @@ static inline void rec(unsigned char *s, unsigned char *d, int lx2, int h)
 
 
 
-static inline void recc(unsigned char *s, unsigned char *d, int lx2, int h)
+static __inline void recc(unsigned char *s, unsigned char *d, int lx2, int h)
 {
 	int j;
 	for(j = 0; j < h; j++, s += lx2, d += lx2)
@@ -532,7 +532,7 @@ static inline void recc(unsigned char *s, unsigned char *d, int lx2, int h)
 	}
 }
 
-static inline void reca(unsigned char *s, unsigned char  *d, int lx2, int h)
+static __inline void reca(unsigned char *s, unsigned char  *d, int lx2, int h)
 {
 	int j;
 	for(j = 0; j < h; j++, s +=lx2, d +=lx2)
@@ -556,7 +556,7 @@ static inline void reca(unsigned char *s, unsigned char  *d, int lx2, int h)
 	}
 }
 
-static inline void recac(unsigned char *s, unsigned char *d, int lx2, int h)
+static __inline void recac(unsigned char *s, unsigned char *d, int lx2, int h)
 {
 	int j;
 	for(j = 0; j < h; j++, s += lx2, d += lx2)
@@ -572,7 +572,7 @@ static inline void recac(unsigned char *s, unsigned char *d, int lx2, int h)
 	}
 }
 
-static inline void reconstruct_recv(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
+static __inline void reconstruct_recv(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
 {
 	unsigned char *dp,*sp,*sp2;
 	int j;
@@ -603,7 +603,7 @@ static inline void reconstruct_recv(unsigned char *s, unsigned char *d, int lx, 
 	}
 }
 
-static inline void recvc(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
+static __inline void recvc(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
 {
 	unsigned char *dp,*sp,*sp2;
 	int j;
@@ -628,7 +628,7 @@ static inline void recvc(unsigned char *s, unsigned char *d, int lx, int lx2, in
 }
 
 
-static inline void recva(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
+static __inline void recva(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
 {
 	unsigned char *dp,*sp,*sp2;
 	int j;
@@ -660,7 +660,7 @@ static inline void recva(unsigned char *s, unsigned char *d, int lx, int lx2, in
 }
 
 
-static inline void recvac(unsigned char *s, unsigned char *d, int lx,int lx2, int h){
+static __inline void recvac(unsigned char *s, unsigned char *d, int lx,int lx2, int h){
   unsigned char *dp,*sp,*sp2;
 	int j;
 
@@ -683,7 +683,7 @@ static inline void recvac(unsigned char *s, unsigned char *d, int lx,int lx2, in
 }
 
 
-static inline void rech(unsigned char *s, unsigned char *d, int lx2, int h){
+static __inline void rech(unsigned char *s, unsigned char *d, int lx2, int h){
   unsigned char *dp,*sp;
   unsigned int s1,s2;
 	int j;
@@ -714,7 +714,7 @@ static inline void rech(unsigned char *s, unsigned char *d, int lx2, int h){
 }
 
 
-static inline void rechc(unsigned char *s,unsigned char *d, int lx2, int h){
+static __inline void rechc(unsigned char *s,unsigned char *d, int lx2, int h){
   unsigned char *dp,*sp;
   unsigned int s1,s2;
 	int j;
@@ -736,7 +736,7 @@ static inline void rechc(unsigned char *s,unsigned char *d, int lx2, int h){
   }
 }
 
-static inline void recha(unsigned char *s, unsigned char *d,int lx2, int h)
+static __inline void recha(unsigned char *s, unsigned char *d,int lx2, int h)
 {
 	unsigned char *dp,*sp;
 	unsigned int s1,s2;
@@ -769,7 +769,7 @@ static inline void recha(unsigned char *s, unsigned char *d,int lx2, int h)
 }
 
 
-static inline void rechac(unsigned char *s,unsigned char  *d, int lx2, int h)
+static __inline void rechac(unsigned char *s,unsigned char  *d, int lx2, int h)
 {
 	unsigned char *dp,*sp;
 	unsigned int s1,s2;
@@ -794,7 +794,7 @@ static inline void rechac(unsigned char *s,unsigned char  *d, int lx2, int h)
 }
 
 
-static inline void rec4(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
+static __inline void rec4(unsigned char *s, unsigned char *d, int lx, int lx2, int h)
 {
   unsigned char *dp,*sp,*sp2;
   unsigned int s1,s2,s3,s4;
@@ -828,7 +828,7 @@ static inline void rec4(unsigned char *s, unsigned char *d, int lx, int lx2, int
 }
 
 
-static inline void rec4c(unsigned char *s,unsigned char *d, int lx, int lx2, int h)
+static __inline void rec4c(unsigned char *s,unsigned char *d, int lx, int lx2, int h)
 {
   unsigned char *dp,*sp,*sp2;
   unsigned int s1,s2,s3,s4;
@@ -854,7 +854,7 @@ static inline void rec4c(unsigned char *s,unsigned char *d, int lx, int lx2, int
 }
 
 
-static inline void rec4a(unsigned char *s,unsigned char *d, int lx, int lx2, int h)
+static __inline void rec4a(unsigned char *s,unsigned char *d, int lx, int lx2, int h)
 {
   unsigned char *dp=d, *sp=s, *sp2=s+lx;
   unsigned int s1, s2, s3, s4;
@@ -890,7 +890,7 @@ static inline void rec4a(unsigned char *s,unsigned char *d, int lx, int lx2, int
 }
 
 
-static inline void rec4ac(unsigned char *s,unsigned char  *d, int lx, int lx2, int h)
+static __inline void rec4ac(unsigned char *s,unsigned char  *d, int lx, int lx2, int h)
 {
   unsigned char *dp=d, *sp=s, *sp2=s+lx;
   unsigned int s1,s2,s3,s4;
@@ -918,7 +918,7 @@ static inline void rec4ac(unsigned char *s,unsigned char  *d, int lx, int lx2, i
 	}
 }
 
-static inline
+static __inline
 void recon_comp(mpeg3video_t *video, 
 		unsigned char *src, 
 		unsigned char *dst, 

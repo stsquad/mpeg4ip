@@ -26,99 +26,6 @@
 
 #include <mp4av_common.h>
 
-#define ADTS_HEADER_MAX_SIZE 10 /* bytes */
-
-#define NUM_AAC_SAMPLING_RATES	16
-
-static u_int32_t AacSamplingRates[NUM_AAC_SAMPLING_RATES] = {
-	96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 
-	16000, 12000, 11025, 8000, 7350, 0, 0, 0
-};
-
-/*
- * compute ADTS frame size
- */
-extern "C" u_int16_t MP4AV_AacAdtsGetFrameSize(u_int8_t* pHdr)
-{
-	/* extract the necessary fields from the header */
-	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
-	u_int16_t frameLength;
-
-	if (isMpeg4) {
-		frameLength = (((u_int16_t)pHdr[4]) << 5) | (pHdr[5] >> 3); 
-	} else { /* MPEG-2 */
-		frameLength = (((u_int16_t)(pHdr[3] & 0x3)) << 11) 
-			| (((u_int16_t)pHdr[4]) << 3) | (pHdr[5] >> 5); 
-	}
-	return frameLength;
-}
-
-/*
- * Compute length of ADTS header in bits
- */
-extern "C" u_int16_t MP4AV_AacAdtsGetHeaderBitSize(u_int8_t* pHdr)
-{
-	u_int8_t isMpeg4 = !(pHdr[1] & 0x08);
-	u_int8_t hasCrc = !(pHdr[1] & 0x01);
-	u_int16_t hdrSize;
-
-	if (isMpeg4) {
-		hdrSize = 58;
-	} else {
-		hdrSize = 56;
-	}
-	if (hasCrc) {
-		hdrSize += 16;
-	}
-	return hdrSize;
-}
-
-extern "C" u_int16_t MP4AV_AacAdtsGetHeaderByteSize(u_int8_t* pHdr)
-{
-	u_int16_t hdrBitSize = MP4AV_AacAdtsGetHeaderBitSize(pHdr);
-	
-	if ((hdrBitSize % 8) == 0) {
-		return (hdrBitSize / 8);
-	} else {
-		return (hdrBitSize / 8) + 1;
-	}
-}
-
-extern "C" u_int8_t MP4AV_AacAdtsGetVersion(u_int8_t* pHdr)
-{
-	return (pHdr[1] & 0x08) >> 3;
-}
-
-extern "C" u_int8_t MP4AV_AacAdtsGetProfile(u_int8_t* pHdr)
-{
-	return (pHdr[2] & 0xc0) >> 6;
-}
-
-extern "C" u_int8_t MP4AV_AacAdtsGetSamplingRateIndex(u_int8_t* pHdr)
-{
-	return (pHdr[2] & 0x3c) >> 2;
-}
-
-extern "C" u_int8_t MP4AV_AacGetSamplingRateIndex(u_int32_t samplingRate)
-{
-	for (u_int8_t i = 0; i < NUM_AAC_SAMPLING_RATES; i++) {
-		if (samplingRate == AacSamplingRates[i]) {
-			return i;
-		}
-	}
-	return NUM_AAC_SAMPLING_RATES - 1;
-}
-
-extern "C" u_int32_t MP4AV_AacAdtsGetSamplingRate(u_int8_t* pHdr)
-{
-	return AacSamplingRates[MP4AV_AacAdtsGetSamplingRateIndex(pHdr)];
-}
-
-extern "C" u_int8_t MP4AV_AacAdtsGetChannels(u_int8_t* pHdr)
-{
-	return ((pHdr[2] & 0x1) << 2) | ((pHdr[3] & 0xc0) >> 6);
-}
-
 /*
  * AAC Config in ES:
  *
@@ -149,7 +56,7 @@ extern "C" u_int32_t MP4AV_AacConfigGetSamplingRate(u_int8_t* pConfig)
 			| pConfig[3] << 1
 			| (pConfig[4] >> 7);
 	}
-	return AacSamplingRates[index];
+	return AdtsSamplingRates[index];
 }
 
 extern "C" u_int16_t MP4AV_AacConfigGetSamplingWindow(u_int8_t* pConfig)
@@ -176,7 +83,7 @@ extern "C" u_int8_t MP4AV_AacConfigGetChannels(u_int8_t* pConfig)
 	return (pConfig[1 + adjust] >> 3) & 0xF;
 }
 
-extern "C" bool MP4AV_AacGetConfigurationHdr(
+extern "C" bool MP4AV_AacGetConfigurationFromAdts(
 	u_int8_t** ppConfig,
 	u_int32_t* pConfigLength,
 	u_int8_t* pHdr)
@@ -184,9 +91,9 @@ extern "C" bool MP4AV_AacGetConfigurationHdr(
 	return MP4AV_AacGetConfiguration(
 		ppConfig,
 		pConfigLength,
-		MP4AV_AacAdtsGetProfile(pHdr),
-		MP4AV_AacAdtsGetSamplingRate(pHdr),
-		MP4AV_AacAdtsGetChannels(pHdr));
+		MP4AV_AdtsGetProfile(pHdr),
+		MP4AV_AdtsGetSamplingRate(pHdr),
+		MP4AV_AdtsGetChannels(pHdr));
 }
 
 extern "C" bool MP4AV_AacGetConfiguration(
@@ -204,9 +111,8 @@ extern "C" bool MP4AV_AacGetConfiguration(
 		return false;
 	}
 
-
 	u_int8_t samplingRateIndex = 
-		MP4AV_AacGetSamplingRateIndex(samplingRate);
+		MP4AV_AdtsFindSamplingRateIndex(samplingRate);
 
 	pConfig[0] =
 		((profile + 1) << 3) | ((samplingRateIndex & 0xe) >> 1);

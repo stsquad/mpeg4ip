@@ -67,6 +67,7 @@ typedef struct mpeg2t_es_t {
   uint32_t header;
   int have_seq_header;
   uint32_t seq_header_offset;
+  uint32_t pict_header_offset;
 } mpeg2t_es_t;
 
 typedef struct mpeg2t_t {
@@ -91,6 +92,10 @@ mpeg2t_es_t *mpeg2t_process_buffer(mpeg2t_t *ptr,
 				   const uint8_t *buffer, 
 				   uint32_t buflen,
 				   uint32_t *buflen_used);
+
+  void mpeg2t_set_loglevel(int loglevel);
+
+  void mpeg2t_set_error_func(error_msg_func_t func);
 #ifdef __cplusplus
 }
 #endif

@@ -23,7 +23,9 @@ static uint32_t mpeg2t_find_mp3_frame_start (mpeg2t_es_t *es_pid,
 				  &framesize, FALSE, TRUE);
     if (found) {
       dropped = fptr - (const uint8_t *)&es_pid->left_buff[0];
-      printf("Found in left - %d dropped %d\n", es_pid->left, dropped);
+#if 0
+      mpeg2t_message("MP3 - Found in left - %d dropped %d", es_pid->left, dropped);
+#endif
     } else {
       es_pid->left = 0;
     }
@@ -75,12 +77,12 @@ int process_mpeg2t_mpeg_audio (mpeg2t_es_t *es_pid,
 {
   uint32_t used;
   int ret;
-  mpeg2t_frame_t *p;
   uint32_t tocopy;
 
   if ((es_pid->stream_id & 0xe0) != 0xc0) {
-    printf("Illegal stream id %x in mpeg audio stream - PID %x\n",
-	   es_pid->stream_id, es_pid->pid.pid);
+    mpeg2t_message(LOG_ERR, 
+		   "Illegal stream id %x in mpeg audio stream - PID %x",
+		   es_pid->stream_id, es_pid->pid.pid);
     return -1;
   }
   ret = 0;
@@ -89,7 +91,6 @@ int process_mpeg2t_mpeg_audio (mpeg2t_es_t *es_pid,
       if (buflen < 4) {
 	memcpy(es_pid->left_buff, esptr, buflen);
 	es_pid->left = buflen;
-	printf("have %d left\n", buflen);
 	return ret;
       }
 
@@ -109,15 +110,8 @@ int process_mpeg2t_mpeg_audio (mpeg2t_es_t *es_pid,
     }
     if (es_pid->work != NULL &&
 	es_pid->work_loaded == es_pid->work->frame_len) {
-      if (es_pid->list == NULL) {
-	es_pid->list = es_pid->work;
-      } else {
-	p = es_pid->list;
-	while (p->next_frame != NULL) p = p->next_frame;
-	p->next_frame = es_pid->work;
-      }
-      es_pid->work = NULL;
-      es_pid->work_loaded = 0;
+
+      mpeg2t_finished_es_work(es_pid, es_pid->work_loaded);
       ret = 1;
     }
   }

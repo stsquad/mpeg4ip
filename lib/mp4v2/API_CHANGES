@@ -3,6 +3,14 @@ Changes from 0.9.4 to 0.9.5
 Added
 	MP4GetTrackAudioMpeg4Type()
 		Returns MPEG-4 Audio type (e.g. AAC, CELP, HXVC, MIDI, etc.)
+	MP4Info()
+		Returns summary info on tracks in file (from util/mp4info.cpp)
+
+Modified
+	MP4GetSampleIdFromTime()
+		Semantic change - now returns sample id corresponding 
+		to specified time, not the sample id with the smallest positive
+		start time difference from the specified time.
 
 Changes from 0.9.3 to 0.9.4
 ---------------------------

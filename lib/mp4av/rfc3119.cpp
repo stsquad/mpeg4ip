@@ -34,7 +34,7 @@ static u_int32_t samplesPerGroup;
 static MP4AV_Mp3Header* pFrameHeaders = NULL;
 static u_int16_t* pAduOffsets = NULL;
 
-static void GetFrameInfo(
+static bool GetFrameInfo(
 	MP4FileHandle mp4File, 
 	MP4TrackId mediaTrackId,
 	MP4AV_Mp3Header** ppFrameHeaders,
@@ -46,11 +46,16 @@ static void GetFrameInfo(
 
 	*ppFrameHeaders = 
 		(MP4AV_Mp3Header*)calloc((numSamples + 2), sizeof(u_int32_t));
-	ASSERT(*ppFrameHeaders);
+	if (*ppFrameHeaders == NULL) {
+		return false;
+	}
 
 	*ppAduOffsets = 
 		(u_int16_t*)calloc((numSamples + 2), sizeof(u_int16_t));
-	ASSERT(*ppAduOffsets);
+	if (*ppAduOffsets == NULL) {
+		free(*ppFrameHeaders);
+		return false;
+	}
 
 	// for each sample
 	for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) { 
@@ -77,6 +82,8 @@ static void GetFrameInfo(
 
 		free(pSample);
 	}
+
+	return true;
 }
 
 static u_int16_t GetFrameHeaderSize(MP4SampleId sampleId)
@@ -148,7 +155,6 @@ static void AddFrameHeader(
 		u_int8_t interleaveCycle =
 			((sampleId - 1) / samplesPerGroup) & 0x7;
 
-		ASSERT(pFrameHeaders);
 		u_int8_t interleaveHeader[4];
 		interleaveHeader[0] = 
 			interleaveIndex;
@@ -401,6 +407,8 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 	bool interleave,
 	u_int16_t maxPayloadSize)
 {
+	int rc;
+
 	MP4TrackId hintTrackId =
 		MP4AddHintTrack(mp4File, mediaTrackId);
 
@@ -432,14 +440,20 @@ extern "C" bool MP4AV_Rfc3119Hinter(
 	// choose 500 ms max latency
 	MP4Duration maxLatency = 
 		MP4GetTrackTimeScale(mp4File, hintTrackId) / 2;
-	ASSERT(maxLatency);
+	if (maxLatency == 0) {
+		return false;
+	}
 
 	// load mp3 frame information into memory
-	GetFrameInfo(
+	rc = GetFrameInfo(
 		mp4File, 
 		mediaTrackId, 
 		&pFrameHeaders, 
 		&pAduOffsets);
+
+	if (!rc) {
+		return false;
+	}
  
 	if (doInterleave) {
 		u_int32_t maxAduSize =

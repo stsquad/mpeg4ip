@@ -27,6 +27,7 @@
 #include "player_session.h"
 #include "audio_sdl.h"
 #include "player_util.h"
+#include <SDL_thread.h>
 //#define DEBUG_SYNC 1
 //#define DEBUG_AUDIO_FILL 1
 //#define DEBUG_DELAY 1
@@ -67,7 +68,7 @@ CSDLAudioSync::CSDLAudioSync (CPlayerSession *psptr, int volume) :
   m_consec_no_buffers = 0;
   //SDL_Init(SDL_INIT_AUDIO);
   m_audio_waiting_buffer = 0;
-  m_audio_waiting = NULL; // will be set by decode thread
+  m_audio_waiting = SDL_CreateSemaphore(0); //NULL; // will be set by decode thread
   m_skipped_buffers = 0;
   m_didnt_fill_buffers = 0;
   m_play_time = 0         ;
@@ -352,7 +353,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
   if (resync) {
     m_resync_required = 1;
     m_resync_buffer = fill_index;
-#ifdef DEBUG_SYNC
+#ifdef DEBUG_AUDIO_FILL
     audio_message(LOG_DEBUG, "Resync from filled_audio_buffer");
 #endif
   }
@@ -478,6 +479,7 @@ uint64_t CSDLAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 	current_time += m_buffer_latency;
       }
       uint64_t cmptime;
+      int freed = 0;
       // Compare with times in buffer - we may need to skip if we fell
       // behind.
       do {
@@ -491,29 +493,30 @@ uint64_t CSDLAudioSync::check_audio_sync (uint64_t current_time, int &have_eof)
 	  m_buffer_filled[m_resync_buffer] = 0;
 	  m_resync_buffer++;
 	  m_resync_buffer %= DECODE_BUFFERS_MAX;
+	  freed = 1;
 	}
       } while (m_buffer_filled[m_resync_buffer] == 1 && 
-	       cmptime < current_time);
+	       cmptime < current_time - 2);
 
-      if (m_audio_waiting_buffer) {
-	m_audio_waiting_buffer = 0;
-	SDL_SemPost(m_audio_waiting);
-      }
       SDL_UnlockAudio();
       if (m_buffer_filled[m_resync_buffer] == 0) {
-	return (0);
-      }
-
-      if (cmptime == current_time) {
-	m_play_index = m_resync_buffer;
-	play_audio();
-#ifdef DEBUG_SYNC
-	audio_message(LOG_INFO, "Resynced audio at " LLU " %u %u", current_time, m_resync_buffer, m_play_index);
-#endif
-	return (0);
+	cmptime = 0;
       } else {
-	return (cmptime);
+	if (cmptime >= current_time) {
+	  m_play_index = m_resync_buffer;
+	  play_audio();
+#if 1
+	  audio_message(LOG_INFO, "Resynced audio at " LLU " %u %u", current_time, m_resync_buffer, m_play_index);
+#endif
+	  cmptime = 0;
+	} 
       }
+      if (freed != 0 && m_audio_waiting_buffer) {
+	m_audio_waiting_buffer = 0;
+	SDL_SemPost(m_audio_waiting);
+	//	audio_message(LOG_DEBUG, "post free passed time");
+      }
+      return cmptime;
     } else {
       return (0);
     }
@@ -639,8 +642,9 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
     if (m_audio_waiting_buffer) {
       m_audio_waiting_buffer = 0;
       SDL_SemPost(m_audio_waiting);
+      //audio_message(LOG_DEBUG, "post no data");
     }
-
+    audio_message(LOG_DEBUG, "return - no samples");
     return;
   }
 
@@ -772,6 +776,7 @@ void CSDLAudioSync::audio_callback (Uint8 *stream, int ilen)
   if (freed_buffer != 0 && m_audio_waiting_buffer) {
     m_audio_waiting_buffer = 0;
     SDL_SemPost(m_audio_waiting);
+    //audio_message(LOG_DEBUG, "post freed");
   }
 }
 
@@ -798,8 +803,10 @@ void CSDLAudioSync::flush_sync_buffers (void)
   if (m_audio_waiting_buffer) {
     m_audio_waiting_buffer = 0;
     SDL_SemPost(m_audio_waiting);
+    //audio_message(LOG_DEBUG, "post flush sync");
+    
   }
-  //player_debug_message("Flushed sync");
+  //  player_debug_message("Flushed sync");
 }
 
 // this is called from the decode thread.  It gets called on entry into pause,

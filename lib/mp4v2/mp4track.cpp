@@ -184,6 +184,21 @@ MP4Track::MP4Track(MP4File* pFile, MP4Atom* pTrakAtom)
 			(MP4Property**)&m_pStssSampleProperty);
 	}
 
+	// edit list
+	m_pElstCountProperty = NULL;
+	m_pElstMediaTimeProperty = NULL;
+	m_pElstDurationProperty = NULL;
+	m_pElstRateProperty = NULL;
+	m_pElstReservedProperty = NULL;
+
+	bool haveElst = m_pTrakAtom->FindProperty(
+		"trak.edts.elst.entryCount",
+		(MP4Property**)&m_pElstCountProperty);
+
+	if (haveElst) {
+		// TBD
+	}
+
 	// was everything found?
 	if (!success) {
 		throw new MP4Error("invalid track", "MP4Track::MP4Track");
@@ -821,7 +836,8 @@ void MP4Track::GetSampleTimes(MP4SampleId sampleId,
 }
 
 MP4SampleId MP4Track::GetSampleIdFromTime(
-	MP4Timestamp when, bool wantSyncSample)
+	MP4Timestamp when, 
+	bool wantSyncSample) 
 {
 	u_int32_t numStts = m_pSttsCountProperty->GetValue();
 	MP4SampleId sid = 1;
@@ -845,9 +861,6 @@ MP4SampleId MP4Track::GetSampleIdFromTime(
 			MP4SampleId sampleId = sid;
 			if (sampleDelta) {
 				sampleId += (d / sampleDelta);
-				if (d % sampleDelta) {
-					sampleId++;
-				}
 			}
 
 			if (wantSyncSample) {
@@ -1357,5 +1370,131 @@ const char* MP4Track::NormalizeTrackType(const char* type)
 	}
 
 	return type;
+}
+
+MP4EditId MP4Track::AddEdit(MP4EditId editId)
+{
+	if (!m_pElstCountProperty) {
+		// TBD create atoms, find properties
+	}
+
+	if (editId == MP4_INVALID_EDIT_ID) {
+		editId = m_pElstCountProperty->GetValue() + 1;
+	}
+
+	m_pElstMediaTimeProperty->InsertValue(0, editId - 1);
+	m_pElstDurationProperty->InsertValue(0, editId - 1);
+	m_pElstRateProperty->InsertValue(1, editId - 1);
+	m_pElstReservedProperty->InsertValue(0, editId - 1);
+
+	m_pElstCountProperty->IncrementValue();
+
+	return editId;
+}
+
+void MP4Track::DeleteEdit(MP4EditId editId)
+{
+	if (editId == MP4_INVALID_EDIT_ID) {
+		throw new MP4Error("edit id can't be zero", 
+			"MP4Track::DeleteEdit");
+	}
+
+	if (!m_pElstCountProperty
+	  || m_pElstCountProperty->GetValue() == 0) {
+		throw new MP4Error("no edits exist", 
+			"MP4Track::DeleteEdit");
+	}
+
+	m_pElstMediaTimeProperty->DeleteValue(editId - 1);
+	m_pElstDurationProperty->DeleteValue(editId - 1);
+	m_pElstRateProperty->DeleteValue(editId - 1);
+	m_pElstReservedProperty->DeleteValue(editId - 1);
+
+	m_pElstCountProperty->IncrementValue(-1);
+
+	// clean up if last edit is deleted
+	if (m_pElstCountProperty->GetValue() == 0) {
+		// TBD delete atoms
+
+		m_pElstCountProperty = NULL;
+		m_pElstMediaTimeProperty = NULL;
+		m_pElstDurationProperty = NULL;
+		m_pElstRateProperty = NULL;
+		m_pElstReservedProperty = NULL;
+	}
+}
+
+MP4SampleId MP4Track::GetSampleIdFromEditTime(
+	MP4Timestamp editWhen, 
+	bool wantSyncSample,
+	MP4Timestamp* pStartTime, 
+	MP4Duration* pDuration)
+{
+	MP4SampleId sampleId = MP4_INVALID_SAMPLE_ID;
+	u_int32_t numEdits = 0;
+
+	if (m_pElstCountProperty) {
+		numEdits = m_pElstCountProperty->GetValue();
+	}
+
+	if (numEdits) {
+		MP4Duration elapsedDuration = 0;
+
+		for (MP4EditId editId = 1; editId <= numEdits; editId++) {
+			elapsedDuration += 
+				m_pElstDurationProperty->GetValue(editId - 1);
+
+			MP4Duration d = elapsedDuration - editWhen;
+
+			if (d > 0) { // editWhen is within this edit
+
+				MP4Timestamp mediaWhen = 
+					m_pElstMediaTimeProperty->GetValue(editId - 1)
+					+ (m_pElstDurationProperty->GetValue(editId - 1) - d);
+
+				sampleId = GetSampleIdFromTime(mediaWhen, false);
+
+				if (wantSyncSample) {
+					// TBD
+				}
+
+				MP4Timestamp sampleStartTime;
+				MP4Duration sampleDuration;
+
+				GetSampleTimes(sampleId, &sampleStartTime, &sampleDuration);
+
+				// note that sample may start earlier than specified time,
+				// typically not a issue for video, but it is for audio 
+				MP4Duration startOffset =
+					mediaWhen - sampleStartTime;
+
+				// return when this sample would start 
+				// in the edit list timeline
+				if (pStartTime) {
+					if (editWhen > startOffset) {
+						*pStartTime = editWhen - startOffset;
+					} else {
+						*pStartTime = 0;
+					}
+				}
+
+				if (pDuration) {
+					// TBD
+				}
+			}
+		}
+
+		throw new MP4Error("time out of range", 
+			"MP4Track::GetSampleIdFromEditTime");
+
+	} else { // no edit list
+		sampleId = GetSampleIdFromTime(editWhen, wantSyncSample);
+
+		if (pStartTime || pDuration) {
+			GetSampleTimes(sampleId, pStartTime, pDuration);
+		}
+	}
+
+	return sampleId;
 }
 

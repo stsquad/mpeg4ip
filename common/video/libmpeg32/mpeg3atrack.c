@@ -49,7 +49,7 @@ static int mpeg3_atrack_get_aac_info (mpeg3_atrack_t *atrack)
 
   if (mpeg3demux_eof(demux)) return -1;
 
-  hdr_size = MP4AV_AacAdtsGetHeaderByteSize(hdr);
+  hdr_size = MP4AV_AdtsGetHeaderByteSize(hdr);
   if (hdr_size > sizeof(hdr)) return -1;
   for (ix = 2; ix < hdr_size; ix++) {
     hdr[ix] = mpeg3demux_read_char(demux);
@@ -57,8 +57,8 @@ static int mpeg3_atrack_get_aac_info (mpeg3_atrack_t *atrack)
 
   if (mpeg3demux_eof(demux)) return -1;
   
-  atrack->sample_rate = MP4AV_AacAdtsGetSamplingRate(hdr);
-  atrack->channels = MP4AV_AacAdtsGetChannels(hdr);
+  atrack->sample_rate = MP4AV_AdtsGetSamplingRate(hdr);
+  atrack->channels = MP4AV_AdtsGetChannels(hdr);
   atrack->samples_per_frame = 1024; // always the same
   
   return 0;
@@ -376,14 +376,14 @@ static int mpeg3_atrack_read_aac_frame (mpeg3_atrack_t *atrack,
 
   if (mpeg3demux_eof(demux)) return -1;
 
-  hdr_size = MP4AV_AacAdtsGetHeaderByteSize(hdr);
+  hdr_size = MP4AV_AdtsGetHeaderByteSize(hdr);
   if (hdr_size > sizeof(hdr)) return -1;
   for (ix = 2; ix < hdr_size; ix++) {
     hdr[ix] = mpeg3demux_read_char(demux);
   }
   if (mpeg3demux_eof(demux)) return -1;
 
-  bytes = MP4AV_AacAdtsGetFrameSize(hdr);
+  bytes = MP4AV_AdtsGetFrameSize(hdr);
   *len = bytes;
   if (mpeg3_atrack_check_length(output, *len, maxlen) < 0) return -1;
 

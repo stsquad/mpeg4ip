@@ -89,7 +89,15 @@ SOURCE=.\aac.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\adts.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio_hinters.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mbs.cpp
 # End Source File
 # Begin Source File
 
@@ -125,11 +133,19 @@ SOURCE=.\audio_hinters.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\mbs.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\mp4av.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\mp4av_aac.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4av_adts.h
 # End Source File
 # Begin Source File
 

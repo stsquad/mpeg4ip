@@ -36,8 +36,10 @@ CMP3RtpByteStream::CMP3RtpByteStream (unsigned int rtp_pt,
 				      uint64_t tps,
 				      rtp_packet **head, 
 				      rtp_packet **tail,
-				      int rtpinfo_received,
-				      uint32_t rtp_rtptime,
+				      int rtp_seq_set, 
+				      uint16_t rtp_seq,
+				      int rtp_ts_set,
+				      uint32_t rtp_base_ts,
 				      int rtcp_received,
 				      uint32_t ntp_frac,
 				      uint32_t ntp_sec,
@@ -49,8 +51,10 @@ CMP3RtpByteStream::CMP3RtpByteStream (unsigned int rtp_pt,
 		 tps,
 		 head, 
 		 tail,
-		 rtpinfo_received,
-		 rtp_rtptime,
+		 rtp_seq_set,
+		 rtp_seq,
+		 rtp_ts_set,
+		 rtp_base_ts,
 		 rtcp_received,
 		 ntp_frac,
 		 ntp_sec,
@@ -74,6 +78,11 @@ int CMP3RtpByteStream::have_no_data (void)
 int CMP3RtpByteStream::check_rtp_frame_complete_for_payload_type (void)
 {
   return m_head != NULL;
+}
+void CMP3RtpByteStream::reset(void)
+{
+  m_buffer_len = m_bytes_used = 0;
+  CRtpByteStream::reset();
 }
 
 uint64_t CMP3RtpByteStream::start_next_frame (uint8_t **buffer, 

@@ -252,6 +252,42 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libmpeg32"=..\..\common\video\libmpeg32\libmpeg32.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libmpeg32util"=..\..\common\video\libmpeg32\libmpeg32util.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libmpeg32video"=..\..\common\video\libmpeg32\video\libmpeg32video.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libmpplayer"=.\libmpplayer60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -295,6 +331,12 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmp3util60
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmpeg32
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmpeg32util
     End Project Dependency
 }}}
 
@@ -417,6 +459,30 @@ Package=<4>
 
 ###############################################################################
 
+Project: "mpeg3_plugin"=..\plugin\video\mpeg3\mpeg3_plugin.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libmpeg32video
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmpeg32util
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name SDL
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "mpeg4_iso_plugin"=.\codec\mpeg4\mpeg4_iso_plugin60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -436,6 +502,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmissing60
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av
     End Project Dependency
 }}}
 
@@ -500,6 +569,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name xvid_plugin
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mpeg3_plugin
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -526,6 +598,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmissing60
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av
     End Project Dependency
 }}}
 

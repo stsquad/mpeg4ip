@@ -46,21 +46,50 @@ static int LoadNextObject(FILE* inFile,
 
 	/* initial state, never read from file before */
 	if (state == 0) {
-		/* read 4 bytes */
-		if (fread(pBuf, 1, 4, inFile) != 4) {
-			/* IO error, or not enough bytes */
-			return 0;
-		}
-		*pBufSize = 4;
+		/*
+		 * go looking for first sync word 
+		 * we discard anything before this
+		 */
+		state = 1;
 
-		/* check for a valid start code */
-		if (pBuf[0] != 0 || pBuf[1] != 0 || pBuf[2] != 1) {
-			return 0;
-		}
-		/* set current object start code */
-		(*pObjCode) = (u_int)(pBuf[3]);
+		while (state < 5) {
+			/* read a byte */
+			u_char b;
 
-		/* move to next state */
+			if (fread(&b, 1, 1, inFile) == 0) {
+				// EOF or IO error
+				return 0;
+			}
+
+			switch (state) {
+			case 1:
+				if (b == 0) {
+					state = 2;
+				}
+				break;
+			case 2:
+				if (b == 0) {
+					state = 3;
+				}
+				break;
+			case 3:
+				if (b == 1) {
+					state = 4;
+				}
+				break;
+			case 4:
+				pBuf[0] = 0;
+				pBuf[1] = 0;
+				pBuf[2] = 1;
+				pBuf[3] = b;
+				(*pObjCode) = (u_int)b;
+				*pBufSize = 4;
+				state = 5;
+				break;
+			}
+		}
+
+		/* we're primed now */
 		state = 1;
 
 	} else if (state == 5) {

@@ -484,5 +484,9 @@ SOURCE=.\qosqualifiers.h
 SOURCE=.\rtphint.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\mp4info.cpp
+# End Source File
 # End Target
 # End Project

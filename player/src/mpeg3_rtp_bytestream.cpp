@@ -45,15 +45,17 @@ CMpeg3RtpByteStream::CMpeg3RtpByteStream(unsigned int rtp_pt,
 					 uint64_t tickpersec,
 					 rtp_packet **head, 
 					 rtp_packet **tail,
-					 int rtpinfo_received,
-					 uint32_t rtp_rtptime,
+					 int rtp_seq_set,
+					 uint16_t rtp_base_seq,
+					 int rtp_ts_set,
+					 uint32_t rtp_base_ts,
 					 int rtcp_received,
 					 uint32_t ntp_frac,
 					 uint32_t ntp_sec,
 					 uint32_t rtp_ts) :
   CRtpByteStream("mpeg3", fmt, rtp_pt, ondemand, tickpersec, head, tail,
-		 rtpinfo_received, rtp_rtptime, rtcp_received,
-		 ntp_frac, ntp_sec, rtp_ts)
+		 rtp_seq_set, rtp_base_seq, rtp_ts_set, rtp_base_ts, 
+		 rtcp_received, ntp_frac, ntp_sec, rtp_ts)
 {
 }
 
@@ -176,8 +178,8 @@ uint64_t CMpeg3RtpByteStream::start_next_frame (uint8_t **buffer,
   m_prev_ts = outts;
 
   if (m_rtpinfo_set_from_pak != 0) {
-    if (outts < m_rtp_rtptime) {
-      m_rtp_rtptime = outts;
+    if (outts < m_rtp_base_ts) {
+      m_rtp_base_ts = outts;
     }
     m_rtpinfo_set_from_pak = 0;
   }

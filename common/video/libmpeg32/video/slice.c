@@ -3,16 +3,27 @@
 #include "mpeg3videoprotos.h"
 #include "slice.h"
 
+#ifndef SDL_THREADS
 #include <pthread.h>
+#else
+#include "SDL.h"
+#include "SDL_thread.h"
+#endif
 #include <stdlib.h>
 
 #define CLIP(x)  ((x) >= 0 ? ((x) < 255 ? (x) : 255) : 0)
 
+#ifndef _MSC_VER
 static unsigned long long MMX_128 = 0x80008000800080LL;
+#else
+static u_int64_t MMX_128 = 0x80008000800080;
+#endif
 
 int mpeg3_new_slice_buffer(mpeg3_slice_buffer_t *slice_buffer)
 {
+#ifndef SDL_THREADS
 	pthread_mutexattr_t mutex_attr;
+#endif
 
 	slice_buffer->data = malloc(1024);
 	slice_buffer->buffer_size = 0;
@@ -21,16 +32,24 @@ int mpeg3_new_slice_buffer(mpeg3_slice_buffer_t *slice_buffer)
 	slice_buffer->bits_size = 0;
 	slice_buffer->bits = 0;
 	slice_buffer->done = 0;
+#ifndef SDL_THREADS
 	pthread_mutexattr_init(&mutex_attr);
 //	pthread_mutexattr_setkind_np(&mutex_attr, PTHREAD_MUTEX_FAST_NP);
 	pthread_mutex_init(&(slice_buffer->completion_lock), &mutex_attr);
+#else
+	slice_buffer->completion_lock = SDL_CreateMutex();
+#endif
 	return 0;
 }
 
 int mpeg3_delete_slice_buffer(mpeg3_slice_buffer_t *slice_buffer)
 {
 	free(slice_buffer->data);
+#ifndef SDL_THREADS
 	pthread_mutex_destroy(&(slice_buffer->completion_lock));
+#else
+	SDL_DestroyMutex(slice_buffer->completion_lock);
+#endif
 	return 0;
 }
 
@@ -50,7 +69,7 @@ int mpeg3_expand_slice_buffer(mpeg3_slice_buffer_t *slice_buffer)
 
 /* move/add 8x8-Block from block[comp] to refframe */
 
-static inline int mpeg3video_addblock(mpeg3_slice_t *slice, 
+static __inline int mpeg3video_addblock(mpeg3_slice_t *slice, 
 		mpeg3video_t *video, 
 		int comp, 
 		int bx, 
@@ -622,13 +641,21 @@ void mpeg3_slice_loop(mpeg3_slice_t *slice)
 
 	while(!slice->done)
 	{
+#ifndef SDL_THREADS
 		pthread_mutex_lock(&(slice->input_lock));
+#else
+		SDL_LockMutex(slice->input_lock);
+#endif
 
 		if(!slice->done)
 		{
 /* Get a buffer to decode */
 			result = 1;
+#ifndef SDL_THREADS
 			pthread_mutex_lock(&(video->slice_lock));
+#else
+			SDL_LockMutex(video->slice_lock);
+#endif
 			if(slice->buffer_step > 0)
 			{
 				while(slice->current_buffer <= slice->last_buffer)
@@ -661,30 +688,51 @@ void mpeg3_slice_loop(mpeg3_slice_t *slice)
 			{
 				slice->slice_buffer = &(video->slice_buffers[slice->current_buffer]);
 				slice->slice_buffer->done = 1;
+#ifndef SDL_THREADS
 				pthread_mutex_unlock(&(video->slice_lock));
 				pthread_mutex_unlock(&(slice->input_lock));
+#else
+				SDL_UnlockMutex(video->slice_lock);
+				SDL_UnlockMutex(slice->input_lock);
+#endif
 				mpeg3_decode_slice(slice);
+#ifndef SDL_THREADS
 				pthread_mutex_unlock(&(slice->slice_buffer->completion_lock));
+#else
+				SDL_UnlockMutex(slice->slice_buffer->completion_lock);
+#endif
 			}
 			else
 /* Finished with all */
 			{
+#ifndef SDL_THREADS
 				pthread_mutex_unlock(&(slice->completion_lock));
 				pthread_mutex_unlock(&(video->slice_lock));
+#else
+				SDL_UnlockMutex(slice->completion_lock);
+				SDL_UnlockMutex(video->slice_lock);
+#endif
 			}
 		}
 
+#ifndef SDL_THREADS
 		pthread_mutex_unlock(&(slice->output_lock));
+#else
+		SDL_UnlockMutex(slice->output_lock);
+#endif
 	}
 }
 
 int mpeg3_new_slice_decoder(void *video, mpeg3_slice_t *slice)
 {
+#ifndef SDL_THREADS
 	pthread_attr_t  attr;
 	pthread_mutexattr_t mutex_attr;
+#endif
 
 	slice->video = video;
 	slice->done = 0;
+#ifndef SDL_THREADS
 	pthread_mutexattr_init(&mutex_attr);
 //	pthread_mutexattr_setkind_np(&mutex_attr, PTHREAD_MUTEX_FAST_NP);
 	pthread_mutex_init(&(slice->input_lock), &mutex_attr);
@@ -693,9 +741,21 @@ int mpeg3_new_slice_decoder(void *video, mpeg3_slice_t *slice)
 	pthread_mutex_lock(&(slice->output_lock));
 	pthread_mutex_init(&(slice->completion_lock), &mutex_attr);
 	pthread_mutex_lock(&(slice->completion_lock));
+#else
+	slice->input_lock = SDL_CreateMutex();
+	SDL_LockMutex(slice->input_lock);
+	slice->output_lock = SDL_CreateMutex();
+	SDL_LockMutex(slice->output_lock);
+	slice->completion_lock = SDL_CreateMutex();
+	SDL_LockMutex(slice->completion_lock);
+#endif
 
+#ifndef SDL_THREADS
 	pthread_attr_init(&attr);
 	pthread_create(&(slice->tid), &attr, (void*)mpeg3_slice_loop, slice);
+#else
+	slice->tid = SDL_CreateThread((void*)mpeg3_slice_loop, slice);
+#endif
 
 	return 0;
 }
@@ -703,9 +763,17 @@ int mpeg3_new_slice_decoder(void *video, mpeg3_slice_t *slice)
 int mpeg3_delete_slice_decoder(mpeg3_slice_t *slice)
 {
 	slice->done = 1;
+#ifndef SDL_THREADS
 	pthread_mutex_unlock(&(slice->input_lock));
 	pthread_join(slice->tid, 0);
 	pthread_mutex_destroy(&(slice->input_lock));
 	pthread_mutex_destroy(&(slice->output_lock));
+#else
+	SDL_UnlockMutex(slice->input_lock);
+	SDL_WaitThread(slice->tid, NULL);
+	SDL_DestroyMutex(slice->input_lock);
+	SDL_DestroyMutex(slice->output_lock);
+#endif
+
 	return 0;
 }

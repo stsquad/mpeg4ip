@@ -63,8 +63,8 @@ LIB32=link.exe -lib
 # PROP Output_Dir "MDebug"
 # PROP Intermediate_Dir "MDebug"
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ  /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\mp4v2" /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "_WIN32" /D "_WINDOWS" /YX /FD /GZ  /c
+# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "." /I "..\mp4v2" /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "_WIN32" /D "_WINDOWS" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -89,11 +89,19 @@ SOURCE=.\aac.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\adts.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\audio_hinters.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\mbs.cpp
 # End Source File
 # Begin Source File
 
@@ -133,11 +141,19 @@ SOURCE=.\audio_hinters.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\mbs.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\mp4av.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\mp4av_aac.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\mp4av_adts.h
 # End Source File
 # Begin Source File
 

@@ -98,8 +98,6 @@ extern "C" bool MP4AV_Rfc2250Hinter(
 			}
 		}
 
-		ASSERT(samplesThisHint == 0);
-		
 		if (sampleSize + 4 <= maxPayloadSize) {
 			// add rfc 2250 payload header
 			static u_int32_t zero32 = 0;

@@ -22,6 +22,8 @@
 #ifndef __MP4AV_INCLUDED__
 #define __MP4AV_INCLUDED__ 
 
+#include <mp4.h>
+
 #ifdef __cplusplus
 /* exploit C++ ability of default values for function parameters */
 #define DEFAULT_PARM(x)	=x
@@ -31,11 +33,13 @@
 
 /* MP4AV library API */
 #include "mp4av_aac.h"
+#include "mp4av_adts.h"
 #include "mp4av_mp3.h"
 #include "mp4av_mpeg4.h"
 #include "mp4av_audio.h"
 #include "mp4av_hinters.h"
 #include "mp4av_mpeg3.h"
+
 #undef DEFAULT_PARM
 
 #endif /* __MP4AV_INCLUDED__ */ 

@@ -102,7 +102,7 @@ uint64_t CMpeg3VideoByteStream::start_next_frame (uint8_t **buffer,
   long blen;
 
   int ret = mpeg3_read_video_chunk_resize(m_file,
-					  &buf,
+					  (unsigned char **)&buf,
 					  &blen,
 					  m_stream);
 
@@ -164,8 +164,11 @@ void CMpeg3VideoByteStream::set_start_time (uint64_t start)
   m_play_start_time = start;
 
   double ts;
-
+#ifdef _WIN32
+  ts = (int64_t)start;
+#else
   ts = start;
+#endif
   ts /= 1000.0;
 
   set_timebase(ts);
@@ -245,7 +248,7 @@ uint64_t CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer,
   }
 
   int ret = mpeg3_read_audio_frame(m_file, 
-				   &m_buffer, 
+				   (unsigned char **)&m_buffer, 
 				   &m_this_frame_size,
 				   &m_buffersize_max,
 				   m_stream);
@@ -300,7 +303,11 @@ void CMpeg3AudioByteStream::set_start_time (uint64_t start)
 
   double ts;
 
+#if _WIN32
+  ts = (int64_t)start;
+#else
   ts = start;
+#endif
   ts /= 1000.0;
 
   set_timebase(ts);

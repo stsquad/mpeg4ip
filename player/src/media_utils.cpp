@@ -37,10 +37,8 @@
 #include "codec_plugin_private.h"
 #include <gnu/strcasestr.h>
 #include "rfc3119_bytestream.h"
-#ifndef _WIN32
 #include "mpeg3_rtp_bytestream.h"
 #include "mpeg3_file.h"
-#endif
 #include "audio.h"
 /*
  * This needs to be global so we can store any ports that we don't
@@ -138,6 +136,13 @@ static int create_media_from_sdp (CPlayerSession *psptr,
   if (sdp->session_desc != NULL) {
     snprintf(buffer, sizeof(buffer), "Description: %s", sdp->session_desc);
     psptr->set_session_desc(1, buffer);
+  }
+  if (sdp->media != NULL &&
+      sdp->media->next == NULL &&
+      strcasecmp(sdp->media->media, "video") == 0 &&
+      sdp->media->fmt != NULL &&
+      strcmp(sdp->media->fmt->fmt, "33") == 0) {
+    // we have a mpeg2 transport stream
   }
   media_desc_t *sdp_media;
   audio_count = video_count = 0;
@@ -559,12 +564,10 @@ int parse_name_for_session (CPlayerSession *psptr,
 				    errlen, 
 				    have_audio_driver,
 				    cc_vft);
-#ifndef _WIN32
   } else if (strcasecmp(suffix, ".mpeg") == 0 ||
 	     strcasecmp(suffix, ".mpg") == 0) {
     err = create_media_for_mpeg_file(psptr, name, errmsg, 
 				     errlen, have_audio_driver);
-#endif
   } else {
     // raw files
     if (have_audio_driver) {
@@ -592,8 +595,10 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 						       uint64_t tps,
 						       rtp_packet **head, 
 						       rtp_packet **tail,
-						       int rtpinfo_received,
-						       uint32_t rtp_rtptime,
+						       int rtp_seq_set, 
+						       uint16_t rtp_seq,
+						       int rtp_ts_set,
+						       uint32_t rtp_base_ts,
 						       int rtcp_received,
 						       uint32_t ntp_frac,
 						       uint32_t ntp_sec,
@@ -604,7 +609,6 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
   int codec;
   if (strcmp("video", fmt->media->media) == 0) {
     if (rtp_pt == 32) {
-#ifndef _WIN32
       codec = VIDEO_MPEG12;
       rtp_byte_stream = new CMpeg3RtpByteStream(rtp_pt,
 						fmt, 
@@ -612,8 +616,10 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 						tps,
 						head,
 						tail,
-						rtpinfo_received,
-						rtp_rtptime,
+						rtp_seq_set,
+						rtp_seq,
+						rtp_ts_set,
+						rtp_base_ts,
 						rtcp_received,
 						ntp_frac,
 						ntp_sec,
@@ -621,7 +627,6 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
       if (rtp_byte_stream != NULL) {
 	return (rtp_byte_stream);
       }
-#endif
     } else {
       codec = lookup_codec_by_name(fmt->rtpmap->encode_name, 
 				   video_codecs);
@@ -657,8 +662,10 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 						    tps,
 						    head,
 						    tail,
-						    rtpinfo_received,
-						    rtp_rtptime,
+						    rtp_seq_set,
+						    rtp_seq,
+						    rtp_ts_set,
+						    rtp_base_ts,
 						    rtcp_received,
 						    ntp_frac,
 						    ntp_sec,
@@ -671,7 +678,8 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
     case MPEG4IP_AUDIO_MP3:
       rtp_byte_stream = 
 	new CMP3RtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
-			      rtpinfo_received, rtp_rtptime, 
+			      rtp_seq_set, rtp_seq,
+			      rtp_ts_set, rtp_base_ts, 
 			      rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
 	player_debug_message("Starting mp3 2250 byte stream");
@@ -681,7 +689,8 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
     case MPEG4IP_AUDIO_MP3_ROBUST:
       rtp_byte_stream = 
 	new CRfc3119RtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
-				  rtpinfo_received, rtp_rtptime, 
+				  rtp_seq_set, rtp_seq,
+				  rtp_ts_set, rtp_base_ts, 
 				  rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
 	player_debug_message("Starting mpa robust byte stream");
@@ -691,7 +700,8 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
     case MPEG4IP_AUDIO_GENERIC:
       rtp_byte_stream = 
 	new CAudioRtpByteStream(rtp_pt, fmt, ondemand, tps, head, tail, 
-				rtpinfo_received, rtp_rtptime, 
+				rtp_seq_set, rtp_seq,
+				rtp_ts_set, rtp_base_ts, 
 				rtcp_received, ntp_frac, ntp_sec, rtp_ts);
       if (rtp_byte_stream != NULL) {
 	player_debug_message("Starting generic audio byte stream");
@@ -708,8 +718,10 @@ CRtpByteStreamBase *create_rtp_byte_stream_for_format (format_list_t *fmt,
 				       tps,
 				       head,
 				       tail,
-				       rtpinfo_received,
-				       rtp_rtptime,
+				       rtp_seq_set, 
+				       rtp_seq,
+				       rtp_ts_set,
+				       rtp_base_ts,
 				       rtcp_received,
 				       ntp_frac,
 				       ntp_sec,

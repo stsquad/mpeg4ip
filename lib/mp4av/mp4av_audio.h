@@ -22,8 +22,6 @@
 #ifndef __MP4AV_AUDIO_INCLUDED__
 #define __MP4AV_AUDIO_INCLUDED__ 
 
-#include <mp4.h>
-
 // Audio Track Utitlites
 #ifdef __cplusplus
 extern "C" {

@@ -42,8 +42,10 @@ class CRtpByteStreamBase : public COurInByteStream
 		     uint64_t tickpersec,
 		     rtp_packet **head, 
 		     rtp_packet **tail,
-		     int rtpinfo_received,
-		     uint32_t rtp_rtptime,
+		     int rtp_seq_set,
+		     uint16_t rtp_base_seq,
+		     int rtp_ts_set,
+		     uint32_t rtp_base_ts,
 		     int rtcp_received,
 		     uint32_t ntp_frac,
 		     uint32_t ntp_sec,
@@ -55,6 +57,8 @@ class CRtpByteStreamBase : public COurInByteStream
     player_debug_message("rtp bytestream reset");
     init();
     m_buffering = 0;
+    m_rtp_base_ts_set = 0;
+    m_rtp_base_seq_set = 0;
 
   };
   void set_skip_on_advance (uint32_t bytes_to_skip) {
@@ -70,7 +74,11 @@ class CRtpByteStreamBase : public COurInByteStream
   };
 
   // various routines for RTP interface.
-  void set_rtp_rtptime(uint32_t t) { m_rtp_rtptime = t;};
+  void set_rtp_base_ts(uint32_t t) { m_rtp_base_ts_set = 1; m_rtp_base_ts = t;};
+  void set_rtp_base_seq(uint16_t s) { 
+    m_rtp_base_seq_set = 1;
+    m_rtp_base_seq = s;
+  };
   void set_wallclock_offset (uint64_t wclock, uint32_t rtp_ts);
   int rtp_ready (void) {
     return (m_stream_ondemand | m_wallclock_offset_set);
@@ -89,7 +97,10 @@ class CRtpByteStreamBase : public COurInByteStream
   uint32_t m_skip_on_advance_bytes;
   uint32_t m_ts;
   uint64_t m_total;
-  uint32_t m_rtp_rtptime;
+  int m_rtp_base_ts_set;
+  uint32_t m_rtp_base_ts;
+  int m_rtp_base_seq_set;
+  uint16_t m_rtp_base_seq;
   uint64_t m_rtptime_tickpersec;
   int m_stream_ondemand;
   uint64_t m_wrap_offset;
@@ -106,7 +117,6 @@ class CRtpByteStreamBase : public COurInByteStream
   unsigned int m_rtp_pt;
   virtual int check_rtp_frame_complete_for_payload_type(void);
   virtual void rtp_done_buffering(void) {};
-  int m_rtp_rtpinfo_received;
   uint32_t m_rtptime_last;
   int m_doing_add;
   uint32_t m_add;
@@ -129,8 +139,10 @@ class CRtpByteStream : public CRtpByteStreamBase
 		 uint64_t tickpersec,
 		 rtp_packet **head, 
 		 rtp_packet **tail,
-		 int rtpinfo_received,
-		 uint32_t rtp_rtptime,
+		 int rtp_seq_set,
+		 uint16_t rtp_base_seq,
+		 int rtp_ts_set,
+		 uint32_t rtp_base_ts,
 		 int rtcp_received,
 		 uint32_t ntp_frac,
 		 uint32_t ntp_sec,
@@ -144,6 +156,7 @@ class CRtpByteStream : public CRtpByteStreamBase
   void used_bytes_for_frame(uint32_t bytes);
   int have_no_data(void);
   void flush_rtp_packets(void);
+  void reset(void);
  protected:
   uint8_t *m_buffer;
   uint32_t m_buffer_len;
@@ -160,8 +173,10 @@ class CAudioRtpByteStream : public CRtpByteStream
 		      uint64_t tickpersec,
 		      rtp_packet **head, 
 		      rtp_packet **tail,
-		      int rtpinfo_received,
-		      uint32_t rtp_rtptime,
+		      int rtp_seq_set,
+		      uint16_t rtp_base_seq,
+		      int rtp_ts_set,
+		      uint32_t rtp_base_ts,
 		      int rtcp_received,
 		      uint32_t ntp_frac,
 		      uint32_t ntp_sec,
@@ -171,6 +186,7 @@ class CAudioRtpByteStream : public CRtpByteStream
   int check_rtp_frame_complete_for_payload_type(void);
   uint64_t start_next_frame(uint8_t **buffer, uint32_t *buflen,
 			    void **userdata);
+  void reset(void);
  private:
   rtp_packet *m_working_pak;
 };

@@ -51,7 +51,7 @@ int mpeg3video_get_macroblock_address(mpeg3_slice_t *slice)
 
 /* macroblock_type for pictures with spatial scalability */
 
-static inline int mpeg3video_getsp_imb_type(mpeg3_slice_t *slice)
+static __inline int mpeg3video_getsp_imb_type(mpeg3_slice_t *slice)
 {
 	mpeg3_slice_buffer_t *slice_buffer = slice->slice_buffer;
   	unsigned int code = mpeg3slice_showbits(slice_buffer, 4);
@@ -66,7 +66,7 @@ static inline int mpeg3video_getsp_imb_type(mpeg3_slice_t *slice)
   	return mpeg3_spIMBtab[code].val;
 }
 
-static inline int mpeg3video_getsp_pmb_type(mpeg3_slice_t *slice)
+static __inline int mpeg3video_getsp_pmb_type(mpeg3_slice_t *slice)
 {
 	mpeg3_slice_buffer_t *slice_buffer = slice->slice_buffer;
   	int code = mpeg3slice_showbits(slice_buffer, 7);
@@ -89,7 +89,7 @@ static inline int mpeg3video_getsp_pmb_type(mpeg3_slice_t *slice)
   	return mpeg3_spPMBtab1[code].val;
 }
 
-static inline int mpeg3video_getsp_bmb_type(mpeg3_slice_t *slice)
+static __inline int mpeg3video_getsp_bmb_type(mpeg3_slice_t *slice)
 {
   	mpeg3_VLCtab_t *p;
 	mpeg3_slice_buffer_t *slice_buffer = slice->slice_buffer;
@@ -114,7 +114,7 @@ static inline int mpeg3video_getsp_bmb_type(mpeg3_slice_t *slice)
   	return p->val;
 }
 
-static inline int mpeg3video_get_imb_type(mpeg3_slice_t *slice)
+static __inline int mpeg3video_get_imb_type(mpeg3_slice_t *slice)
 {
 	mpeg3_slice_buffer_t *slice_buffer = slice->slice_buffer;
 	if(mpeg3slice_getbit(slice_buffer))
@@ -131,7 +131,7 @@ static inline int mpeg3video_get_imb_type(mpeg3_slice_t *slice)
   	return 17;
 }
 
-static inline int mpeg3video_get_pmb_type(mpeg3_slice_t *slice)
+static __inline int mpeg3video_get_pmb_type(mpeg3_slice_t *slice)
 {
   	int code;
 	mpeg3_slice_buffer_t *slice_buffer = slice->slice_buffer;
@@ -154,7 +154,7 @@ static inline int mpeg3video_get_pmb_type(mpeg3_slice_t *slice)
   	return mpeg3_PMBtab1[code].val;
 }
 
-static inline int mpeg3video_get_bmb_type(mpeg3_slice_t *slice)
+static __inline int mpeg3video_get_bmb_type(mpeg3_slice_t *slice)
 {
   	int code;
 	mpeg3_slice_buffer_t *slice_buffer = slice->slice_buffer;
@@ -178,7 +178,7 @@ static inline int mpeg3video_get_bmb_type(mpeg3_slice_t *slice)
 	return mpeg3_BMBtab1[code].val;
 }
 
-static inline int mpeg3video_get_dmb_type(mpeg3_slice_t *slice)
+static __inline int mpeg3video_get_dmb_type(mpeg3_slice_t *slice)
 {
   	if(!mpeg3slice_getbit(slice->slice_buffer))
 	{
@@ -190,7 +190,7 @@ static inline int mpeg3video_get_dmb_type(mpeg3_slice_t *slice)
 }
 
 
-static inline int mpeg3video_get_snrmb_type(mpeg3_slice_t *slice)
+static __inline int mpeg3video_get_snrmb_type(mpeg3_slice_t *slice)
 {
 	mpeg3_slice_buffer_t *slice_buffer = slice->slice_buffer;
     int code = mpeg3slice_showbits(slice_buffer, 3);

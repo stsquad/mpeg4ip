@@ -4,7 +4,11 @@
 
 #define CLIP(x)  ((x) >= 0 ? ((x) < 255 ? (x) : 255) : 0)
 
+#ifndef _MSC_VER
 static long long mpeg3_MMX_0 = 0L;
+#else
+static __int64 mpeg3_MMX_0 = 0L;
+#endif
 static unsigned long  mpeg3_MMX_10w[]         = {0x00100010, 0x00100010};                     /*dd    00010 0010h, 000100010h */
 static unsigned long  mpeg3_MMX_80w[]         = {0x00800080, 0x00800080};                     /*dd    00080 0080h, 000800080h */
 

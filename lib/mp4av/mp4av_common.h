@@ -22,19 +22,11 @@
 #ifndef __MP4AV_COMMON_INCLUDED__
 #define __MP4AV_COMMON_INCLUDED__ 
 
-#ifndef ASSERT
-#ifdef NODEBUG
-#define ASSERT(expr)
-#else
-#include <assert.h>
-#define ASSERT(expr)	assert(expr)
-#endif
-#endif
-
-#include <mp4.h>
-
+// the external interface
 #include "mp4av.h"
 
+// the internal interfaces
+#include "mbs.h"
 #include "audio_hinters.h"
 
 #endif /* __MP4AV_COMMON_INCLUDED__ */ 

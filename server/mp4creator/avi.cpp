@@ -32,6 +32,7 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile)
 	char* videoType = AVI_video_compressor(aviFile);
 
 	if (strcasecmp(videoType, "divx")
+	  && strcasecmp(videoType, "dx50")
 	  && strcasecmp(videoType, "xvid")) {
 		fprintf(stderr,	
 			"%s: video compressor %s not recognized\n",

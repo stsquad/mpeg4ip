@@ -66,7 +66,7 @@ static bool LoadNextAdtsHeader(FILE* inFile, u_int8_t* hdr)
 					hdr[state] = b;
 					state = 2;
 					/* compute desired header size */
-					hdrByteSize = MP4AV_AacAdtsGetHeaderByteSize(hdr);
+					hdrByteSize = MP4AV_AdtsGetHeaderByteSize(hdr);
 				} else {
 					state = 0;
 				}
@@ -103,11 +103,11 @@ static bool LoadNextAacFrame(FILE* inFile, u_int8_t* pBuf, u_int32_t* pBufSize, 
 	}
 	
 	/* get frame size from header */
-	frameSize = MP4AV_AacAdtsGetFrameSize(hdrBuf);
+	frameSize = MP4AV_AdtsGetFrameSize(hdrBuf);
 
 	/* get header size in bits and bytes from header */
-	hdrBitSize = MP4AV_AacAdtsGetHeaderBitSize(hdrBuf);
-	hdrByteSize = MP4AV_AacAdtsGetHeaderByteSize(hdrBuf);
+	hdrBitSize = MP4AV_AdtsGetHeaderBitSize(hdrBuf);
+	hdrByteSize = MP4AV_AdtsGetHeaderByteSize(hdrBuf);
 	
 	/* adjust the frame size to what remains to be read */
 	frameSize -= hdrByteSize;
@@ -189,10 +189,10 @@ MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 		exit(EXIT_AAC_CREATOR);
 	}
 
-	samplesPerSecond = MP4AV_AacAdtsGetSamplingRate(firstHeader);
-	mpegVersion = MP4AV_AacAdtsGetVersion(firstHeader);
-	profile = MP4AV_AacAdtsGetProfile(firstHeader);
-	channelConfig = MP4AV_AacAdtsGetChannels(firstHeader);
+	samplesPerSecond = MP4AV_AdtsGetSamplingRate(firstHeader);
+	mpegVersion = MP4AV_AdtsGetVersion(firstHeader);
+	profile = MP4AV_AdtsGetProfile(firstHeader);
+	channelConfig = MP4AV_AdtsGetChannels(firstHeader);
 
 	u_int8_t audioType = MP4_INVALID_AUDIO_TYPE;
 	switch (mpegVersion) {

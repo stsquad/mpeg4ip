@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.7 $ 
- * $Date: 2002/06/21 23:19:48 $
+ * $Revision: 1.8 $ 
+ * $Date: 2002/07/05 17:34:27 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -40,6 +40,7 @@
 #define __RTP_H__
 #include "config_unix.h"
 #include "config_win32.h"
+#include "net_udp.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -244,6 +245,7 @@ int 		 rtp_get_option(struct rtp *session, rtp_option optname, int *optval);
 
 int 		 rtp_recv(struct rtp *session, 
 			  struct timeval *timeout, uint32_t curr_rtp_ts);
+  void rtp_recv_data(struct rtp *session, uint32_t curr_rtp_ts);
 int 		 rtp_send_data(struct rtp *session, 
 			       uint32_t rtp_ts, char pt, int m, 
 			       int cc, uint32_t csrc[], 
@@ -297,6 +299,9 @@ void rtp_process_ctrl(struct rtp *session, uint8_t *buffer, int buflen);
   // added by nori
 int rtp_set_encryption(struct rtp *session, rtp_encrypt_func efunc, rtp_decrypt_func, void *userdata, unsigned int);
 int rtp_get_encryption_enabled(struct rtp *session);
+
+  socket_udp *get_rtp_data_socket(struct rtp *session);
+  socket_udp *get_rtp_rtcp_socket(struct rtp *session);
   
 #ifdef __cplusplus
 }

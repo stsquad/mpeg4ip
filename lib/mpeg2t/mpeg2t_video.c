@@ -14,10 +14,11 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 			       uint32_t buflen)
 {
   int framesfinished = 0;
-  mpeg2t_frame_t *p;
 
   if ((es_pid->stream_id & 0xf0) != 0xe0) {
-    printf("Video stream with bad stream_id %x\n", es_pid->stream_id);
+    mpeg2t_message(LOG_ERR, "Video stream PID %x with bad stream_id %x", 
+		   es_pid->pid.pid,
+		   es_pid->stream_id);
     return 0;
   }
 
@@ -44,6 +45,7 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	es_pid->work_loaded = 4;
 	if (es_pid->header == MPEG3_PICTURE_START_CODE) {
 	  es_pid->work_state = 2;
+	  es_pid->pict_header_offset = 0;
 	} else 
 	  es_pid->work_state = 1;
 #if 0
@@ -90,6 +92,7 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	 */
 	// Looking for first picture start code
 	if (es_pid->header == MPEG3_PICTURE_START_CODE) {
+	  es_pid->pict_header_offset = es_pid->work_loaded - 4;
 	  es_pid->work_state = 2;
 #if 0
 	  printf("Now at work state 2 - len %d\n", es_pid->work_loaded);
@@ -102,6 +105,8 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	 */
 	// Might want to enhance this to stop at GOP, also
 	if (es_pid->header == MPEG3_PICTURE_START_CODE ||
+	    es_pid->header == MPEG3_SEQUENCE_START_CODE ||
+	    es_pid->header == MPEG3_GOP_START_CODE ||
 	    es_pid->header == MPEG3_SEQUENCE_END_CODE) {
 	  framesfinished = 1;
 	  if (es_pid->have_seq_header) {
@@ -113,22 +118,16 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 				       &h, 
 				       &w, 
 				       &frame_rate) >= 0) {
-	      printf("Found seq header - h %d w %d fr %g\n", 
-		     h, w, frame_rate);
+	      mpeg2t_message(LOG_DEBUG, "Found seq header - h %d w %d fr %g", 
+			     h, w, frame_rate);
 	    }
 	  }
-#if 0
-	  printf("Work finished - len %d\n", es_pid->work_loaded);
-#endif
-	  es_pid->work->frame_len = es_pid->work_loaded;
-	  if (es_pid->list == NULL) {
-	    es_pid->list = es_pid->work;
-	  } else {
-	    p = es_pid->list;
-	    while (p->next_frame != NULL) p = p->next_frame;
-	    p->next_frame = es_pid->work;
-	  }
-	  es_pid->work = NULL;
+
+	  mpeg2t_message(LOG_CRIT, "Video seq type is %d", 
+			 MP4AV_Mpeg3PictHdrType(es_pid->work->frame + es_pid->pict_header_offset));
+
+	  mpeg2t_finished_es_work(es_pid, es_pid->work_loaded);
+
 	  es_pid->have_seq_header = 0;
 	  mpeg2t_malloc_es_work(es_pid, es_pid->work_max_size);
 	  if (es_pid->work != NULL) {
@@ -137,10 +136,12 @@ int process_mpeg2t_mpeg_video (mpeg2t_es_t *es_pid,
 	    es_pid->work->frame[2] = 1;
 	    es_pid->work->frame[3] = *esptr;
 	    es_pid->work_loaded = 4;
-	    if (es_pid->header == MPEG3_PICTURE_START_CODE)
+	    if (es_pid->header == MPEG3_PICTURE_START_CODE) {
 	      es_pid->work_state = 2;
-	    else
+	      es_pid->pict_header_offset = 0;
+	    } else {
 	      es_pid->work_state = 1;
+	    }
 	  } else {
 	    es_pid->work_state = 0;
 	    es_pid->header = 0;

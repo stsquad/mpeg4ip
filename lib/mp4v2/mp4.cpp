@@ -119,7 +119,10 @@ extern "C" bool MP4Close(MP4FileHandle hFile)
 	return false;
 }
 
-extern "C" bool MP4Dump(MP4FileHandle hFile, FILE* pDumpFile, bool dumpImplicits)
+extern "C" bool MP4Dump(
+	MP4FileHandle hFile, 
+	FILE* pDumpFile, 
+	bool dumpImplicits)
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
@@ -1064,8 +1067,55 @@ extern "C" bool MP4ReadSample(
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			((MP4File*)hFile)->ReadSample(trackId, sampleId, ppBytes, pNumBytes, 
-				pStartTime, pDuration, pRenderingOffset, pIsSyncSample);
+			((MP4File*)hFile)->ReadSample(
+				trackId, 
+				sampleId, 
+				ppBytes, 
+				pNumBytes, 
+				pStartTime, 
+				pDuration, 
+				pRenderingOffset, 
+				pIsSyncSample);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	*pNumBytes = 0;
+	return false;
+}
+
+extern "C" bool MP4ReadSampleFromTime(
+	/* input parameters */
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Timestamp when,
+	/* output parameters */
+	u_int8_t** ppBytes, 
+	u_int32_t* pNumBytes, 
+	MP4Timestamp* pStartTime, 
+	MP4Duration* pDuration,
+	MP4Duration* pRenderingOffset, 
+	bool* pIsSyncSample)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			MP4SampleId sampleId = 
+				((MP4File*)hFile)->GetSampleIdFromTime(
+					trackId, when, false);
+
+			((MP4File*)hFile)->ReadSample(
+				trackId, 
+				sampleId, 
+				ppBytes, 
+				pNumBytes, 
+				pStartTime, 
+				pDuration, 
+				pRenderingOffset, 
+				pIsSyncSample);
+
 			return true;
 		}
 		catch (MP4Error* e) {
@@ -1088,8 +1138,13 @@ extern "C" bool MP4WriteSample(
 {
 	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
 		try {
-			((MP4File*)hFile)->WriteSample(trackId, pBytes, numBytes, 
-				duration, renderingOffset, isSyncSample);
+			((MP4File*)hFile)->WriteSample(
+				trackId, 
+				pBytes, 
+				numBytes, 
+				duration, 
+				renderingOffset, 
+				isSyncSample);
 			return true;
 		}
 		catch (MP4Error* e) {
@@ -1882,6 +1937,230 @@ extern "C" char* MP4MakeIsmaSdpIod(
 	}
 	delete pFile;
 	return NULL;
+}
+
+/* Edit list */
+
+extern "C" MP4EditId MP4AddTrackEdit(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->AddTrackEdit(trackId, editId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_EDIT_ID;
+}
+
+extern "C" bool MP4DeleteTrackEdit(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->DeleteTrackEdit(trackId, editId);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return false;
+}
+
+extern "C" u_int32_t MP4GetTrackNumberOfEdits(
+	MP4FileHandle hFile,
+	MP4TrackId trackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackNumberOfEdits(trackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return 0;
+}
+
+extern "C" MP4Timestamp MP4GetTrackEditStart(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackEditStart(trackId, editId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_TIMESTAMP;
+}
+
+extern "C" bool MP4SetTrackEditStart(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId,
+	MP4Timestamp startTime)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->SetTrackEditStart(trackId, editId, startTime);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return false;
+}
+
+extern "C" MP4Duration MP4GetTrackEditDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackEditDuration(trackId, editId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_DURATION;
+}
+
+extern "C" bool MP4SetTrackEditDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId,
+	MP4Duration duration)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->SetTrackEditDuration(trackId, editId, duration);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return false;
+}
+
+extern "C" int8_t MP4GetTrackEditDwell(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackEditDwell(trackId, editId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return -1;
+}
+
+extern "C" bool MP4SetTrackEditDwell(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId,
+	bool dwell)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			((MP4File*)hFile)->SetTrackEditDwell(trackId, editId, dwell);
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return false;
+}
+
+extern "C" bool MP4ReadSampleFromEditTime(
+	/* input parameters */
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Timestamp when,
+	/* output parameters */
+	u_int8_t** ppBytes, 
+	u_int32_t* pNumBytes, 
+	MP4Timestamp* pStartTime, 
+	MP4Duration* pDuration,
+	MP4Duration* pRenderingOffset, 
+	bool* pIsSyncSample)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			MP4SampleId sampleId = 
+				((MP4File*)hFile)->GetSampleIdFromEditTime(
+					trackId, 
+					when, 
+					false,
+					pStartTime,
+					pDuration);
+
+			((MP4File*)hFile)->ReadSample(
+				trackId, 
+				sampleId, 
+				ppBytes, 
+				pNumBytes, 
+				NULL,
+				NULL, 
+				pRenderingOffset, 
+				pIsSyncSample);
+
+			return true;
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	*pNumBytes = 0;
+	return false;
+}
+
+extern "C" MP4SampleId MP4GetSampleIdFromEditTime(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Timestamp when, 
+	bool wantSyncSample)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetSampleIdFromEditTime(
+				trackId, when, wantSyncSample);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return MP4_INVALID_SAMPLE_ID;
 }
 
 /* Utlities */

@@ -155,8 +155,10 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
 				       uint64_t tps,
 				       rtp_packet **head, 
 				       rtp_packet **tail,
-				       int rtpinfo_received,
-				       uint32_t rtp_rtptime,
+				       int rtp_seq_set,
+				       uint16_t rtp_base_seq,
+				       int rtp_ts_set,
+				       uint32_t rtp_base_ts,
 				       int rtcp_received,
 				       uint32_t ntp_frac,
 				       uint32_t ntp_sec,
@@ -168,8 +170,10 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   *head = NULL;
   m_tail = *tail;
   *tail = NULL;
-  m_rtp_rtpinfo_received = rtpinfo_received;
-  m_rtp_rtptime = rtp_rtptime;
+  m_rtp_base_ts_set = rtp_ts_set;
+  m_rtp_base_ts = rtp_base_ts;
+  m_rtp_base_seq_set = rtp_seq_set;
+  m_rtp_base_seq = rtp_base_seq;
   
   m_rtp_pt = rtp_pt;
   uint64_t temp;
@@ -188,7 +192,6 @@ CRtpByteStreamBase::CRtpByteStreamBase(const char *name,
   m_total =0;
   m_skip_on_advance_bytes = 0;
   m_stream_ondemand = ondemand;
-  m_wrap_offset = 0;
   m_wallclock_offset_set = 0;
   m_rtp_packet_mutex = SDL_CreateMutex();
   m_buffering = 0;
@@ -209,6 +212,7 @@ CRtpByteStreamBase::~CRtpByteStreamBase (void)
 
 void CRtpByteStreamBase::init (void)
 {
+  m_wrap_offset = 0;
   m_offset_in_pak = m_skip_on_advance_bytes;
   m_eof = 0;
 }
@@ -328,6 +332,7 @@ void CRtpByteStreamBase::flush_rtp_packets (void)
   while (m_head != NULL) {
     remove_packet_rtp_queue(m_head, 1);
   }
+  m_buffering = 0;
 }
 
 /*
@@ -380,13 +385,21 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	calc *= M_LLU;
 	calc /= m_rtptime_tickpersec;
 	if (calc > m_rtp_buffer_time) {
-	  if (m_rtp_rtpinfo_received == 0) {
+	  if (m_rtp_base_ts_set == 0) {
 	    rtp_message(LOG_NOTICE, "Setting rtp seq and time from 1st pak");
-	    m_rtp_rtptime = m_head->rtp_pak_ts;
-	    m_rtp_rtpinfo_received = 1;
+	    m_rtp_base_ts = m_head->rtp_pak_ts;
+	    m_rtp_base_ts_set = 1;
 	    m_rtpinfo_set_from_pak = 1;
 	  } else {
 	    m_rtpinfo_set_from_pak = 0;
+	    if (m_rtp_base_seq_set != 0 &&
+		m_rtp_base_seq == m_head->rtp_pak_seq &&
+		m_rtp_base_ts != m_head->rtp_pak_ts) {
+	      rtp_message(LOG_NOTICE, "%s - rtp ts doesn't match RTPInfo %d", 
+			  m_name, m_head->rtp_pak_ts);
+	      m_rtp_base_ts = m_head->rtp_pak_ts;
+	    }
+	    //
 	  }
 	  m_buffering = 1;
 #if 1
@@ -460,32 +473,36 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t ts,
 					     uint64_t &wrap_offset)
 {
   uint64_t timetick;
+  uint64_t adjusted_rtp_ts;
+  uint64_t adjusted_wc_rtp_ts;
+
+  if (((m_ts & 0x80000000) == 0x80000000) &&
+      ((ts & 0x80000000) == 0)) {
+    wrap_offset += (I_LLU << 32);
+  }
 
   if (m_stream_ondemand) {
-    int neg = 0;
-    
-    if (ts >= m_rtp_rtptime) {
-      timetick = ts;
-      timetick -= m_rtp_rtptime;
-    } else {
-      timetick = m_rtp_rtptime - ts;
-      neg = 1;
-    }
-    timetick *= 1000;
-    timetick /= m_rtptime_tickpersec;
-    if (neg == 1) {
-      if (timetick > m_play_start_time) return (0);
-      return (m_play_start_time - timetick);
-    }
-    timetick += m_play_start_time;
-  } else {
-    uint64_t adjusted_rtp_ts;
-    uint64_t adjusted_wc_rtp_ts;
+    adjusted_rtp_ts = wrap_offset;
+    adjusted_rtp_ts += ts;
+    adjusted_wc_rtp_ts = m_rtp_base_ts;
 
-    if (((m_ts & 0x80000000) == 0x80000000) &&
-	((ts & 0x80000000) == 0)) {
-      wrap_offset += (I_LLU << 32);
+    if (adjusted_wc_rtp_ts > adjusted_rtp_ts) {
+      timetick = adjusted_wc_rtp_ts - adjusted_rtp_ts;
+      timetick *= M_LLU;
+      timetick /= m_rtptime_tickpersec;
+      if (timetick > m_play_start_time) {
+	timetick = 0;
+      } else {
+	timetick = m_play_start_time - timetick;
+      }
+    } else {
+      timetick = adjusted_rtp_ts - adjusted_wc_rtp_ts;
+      timetick *= M_LLU;
+      timetick /= m_rtptime_tickpersec;
+      timetick += m_play_start_time;
     }
+  } else {
+
     SDL_LockMutex(m_rtp_packet_mutex);
     adjusted_rtp_ts = wrap_offset;
     adjusted_rtp_ts += ts;
@@ -523,15 +540,17 @@ CRtpByteStream::CRtpByteStream(const char *name,
 			       uint64_t tickpersec,
 			       rtp_packet **head, 
 			       rtp_packet **tail,
-			       int rtpinfo_received,
-			       uint32_t rtp_rtptime,
+			       int rtp_seq_set,
+			       uint16_t rtp_base_seq,
+			       int rtp_ts_set,
+			       uint32_t rtp_base_ts,
 			       int rtcp_received,
 			       uint32_t ntp_frac,
 			       uint32_t ntp_sec,
 			       uint32_t rtp_ts) :
   CRtpByteStreamBase(name, fmt, rtp_pt, ondemand, tickpersec, head, tail,
-		     rtpinfo_received, rtp_rtptime, rtcp_received,
-		     ntp_frac, ntp_sec, rtp_ts)
+		     rtp_seq_set, rtp_base_seq, rtp_ts_set, rtp_base_ts, 
+		     rtcp_received, ntp_frac, ntp_sec, rtp_ts)
 {
   m_buffer = (uint8_t *)malloc(4096);
   m_buffer_len_max = 4096;
@@ -542,6 +561,12 @@ CRtpByteStream::~CRtpByteStream (void)
 {
   free(m_buffer);
   m_buffer = NULL;
+}
+
+void CRtpByteStream::reset (void)
+{
+  m_buffer_len = m_bytes_used = 0;
+  CRtpByteStreamBase::reset();
 }
 
 uint64_t CRtpByteStream::start_next_frame (uint8_t **buffer, 
@@ -677,8 +702,10 @@ CAudioRtpByteStream::CAudioRtpByteStream (unsigned int rtp_pt,
 					  uint64_t tps,
 					  rtp_packet **head, 
 					  rtp_packet **tail,
-					  int rtpinfo_received,
-					  uint32_t rtp_rtptime,
+					  int rtp_seq_set,
+					  uint16_t rtp_base_seq,
+					  int rtp_ts_set,
+					  uint32_t rtp_base_ts,
 					  int rtcp_received,
 					  uint32_t ntp_frac,
 					  uint32_t ntp_sec,
@@ -690,8 +717,8 @@ CAudioRtpByteStream::CAudioRtpByteStream (unsigned int rtp_pt,
 		 tps,
 		 head, 
 		 tail,
-		 rtpinfo_received,
-		 rtp_rtptime,
+		 rtp_seq_set, rtp_base_seq, 
+		 rtp_ts_set, rtp_base_ts,
 		 rtcp_received,
 		 ntp_frac,
 		 ntp_sec,
@@ -716,6 +743,14 @@ int CAudioRtpByteStream::check_rtp_frame_complete_for_payload_type (void)
   return m_head != NULL;
 }
 
+void CAudioRtpByteStream::reset (void)
+{
+  if (m_working_pak != NULL) {
+    xfree(m_working_pak);
+    m_working_pak = NULL;
+  }
+  CRtpByteStream::reset();
+}
 uint64_t CAudioRtpByteStream::start_next_frame (uint8_t **buffer, 
 						uint32_t *buflen,
 						void **ud)

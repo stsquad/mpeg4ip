@@ -3,6 +3,7 @@ xx/xx/xx Next Version
     IPv6 integration
     CELP audio plugin for player, including streaming.
     Split out rendering engine from audio sync classes
+	Added media aware track extraction feature to mp4creator
 
 05/08/02 Version 0.9.4
     Plugin concept for player codecs (also adds YUV/PCM output from mp4 file)

@@ -55,7 +55,7 @@ class CSDLAudioSync : public CAudioSync {
   void flush_decode_buffers(void);
 
   // Initialization, other APIs
-  void set_wait_sem(SDL_sem *p) {m_audio_waiting = p; } ;
+  void set_wait_sem(SDL_sem *p) { }; //m_audio_waiting = p; } ;
   void set_volume(int volume);
  private:
   volatile int m_dont_fill;

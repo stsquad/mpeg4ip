@@ -10,11 +10,13 @@ lib_LTLIBRARIES = libmp4av.la
 
 libmp4av_la_SOURCES = \
 	aac.cpp \
+	adts.cpp \
 	audio.cpp \
 	audio_hinters.cpp \
 	audio_hinters.h \
 	mp3.cpp \
 	mp4av_aac.h \
+	mp4av_adts.h \
 	mp4av_audio.h \
 	mp4av_common.h \
 	mp4av.h \
@@ -22,6 +24,8 @@ libmp4av_la_SOURCES = \
 	mp4av_mp3.h \
 	mp4av_mpeg3.h \
 	mp4av_mpeg4.h \
+	mbs.h \
+	mbs.cpp \
 	mpeg3.cpp \
 	mpeg4.cpp \
 	rfc2250.cpp \

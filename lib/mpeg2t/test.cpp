@@ -11,7 +11,8 @@ int main (int argc, char **argv)
   mpeg2t_t *mpeg2t;
   mpeg2t_es_t *es_pid;
   //  int lastcc, ccset;
-  
+
+  mpeg2t_set_loglevel(LOG_DEBUG);
   mpeg2t = create_mpeg2_transport();
   argc--;
   argv++;

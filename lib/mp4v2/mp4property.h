@@ -108,7 +108,11 @@ public:
 
 	void SetValue(u_int64_t value, u_int32_t index = 0);
 
-	void IncrementValue(u_int32_t increment = 1, u_int32_t index = 0);
+	void InsertValue(u_int64_t value, u_int32_t index = 0);
+
+	void DeleteValue(u_int32_t index = 0);
+
+	void IncrementValue(int32_t increment = 1, u_int32_t index = 0);
 };
 
 #define MP4INTEGER_PROPERTY_DECL2(isize, xsize) \

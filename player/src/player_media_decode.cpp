@@ -35,6 +35,36 @@
 //#define DEBUG_DECODE 1
 //#define DEBUG_DECODE_MSGS 1
 /*
+ * start_decoding - API function to call for telling the decoding
+ * task it can start
+ */
+void CPlayerMedia::start_decoding (void)
+{
+  m_decode_msg_queue.send_message(MSG_START_DECODING, 
+				  NULL, 
+				  0, 
+				  m_decode_thread_sem);
+}
+
+void CPlayerMedia::bytestream_primed (void)
+{
+  if (m_decode_thread_waiting != 0) {
+    m_decode_thread_waiting = 0;
+    SDL_SemPost(m_decode_thread_sem);
+  }
+}
+
+void CPlayerMedia::wait_on_bytestream (void)
+{
+  m_decode_thread_waiting = 1;
+#ifdef DEBUG_DECODE
+  media_message(LOG_INFO, "decode thread %s waiting", m_media_info->media);
+#endif
+  SDL_SemWait(m_decode_thread_sem);
+  m_decode_thread_waiting = 0;
+} 
+
+/*
  * parse_decode_message - handle messages to the decode task
  */
 void CPlayerMedia::parse_decode_message (int &thread_stop, int &decoding)
@@ -211,12 +241,7 @@ int CPlayerMedia::decode_thread (void)
       if (m_byte_stream->have_no_data()) {
 	// Indicate that we're waiting, and wait for a message from RTP
 	// task.
-	m_decode_thread_waiting = 1;
-#ifdef DEBUG_DECODE
-	media_message(LOG_INFO, "decode thread %s waiting", m_media_info->media);
-#endif
-	ret = SDL_SemWait(m_decode_thread_sem);
-	m_decode_thread_waiting = 0;
+	wait_on_bytestream();
 	continue;
       }
 

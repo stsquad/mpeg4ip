@@ -19,6 +19,11 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
+// N.B. mp4extract just extracts tracks/samples from an mp4 file
+// For many track types this is insufficient to reconsruct a valid
+// elementary stream (ES). Use "mp4creator -extract=<trackId>" if
+// you need the ES reconstructed. 
+
 #include "mp4.h"
 #include "mpeg4ip_getopt.h"
 
@@ -30,7 +35,6 @@ char* Mp4FileName;
 void PrintTrackList(MP4FileHandle mp4File);
 void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId, 
 	bool sampleMode, MP4SampleId sampleId, char* dstFileName = NULL);
-
 
 int main(int argc, char** argv)
 {
@@ -252,29 +256,6 @@ void ExtractTrack(MP4FileHandle mp4File, MP4TrackId trackId,
 				fprintf(stderr, "%s: can't open %s: %s\n",
 					ProgName, outFileName, strerror(errno));
 				break;
-			}
-		}
-
-		// in order to reconstruct video elementary stream
-		// need to prepend ES configuration info 
-		if (sampleId == 1 && !sampleMode) {
-			const char* trackType =
-				MP4GetTrackType(mp4File, trackId);
-
-			if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
-				u_int8_t videoType =
-					MP4GetTrackVideoType(mp4File, trackId);
-
-				if (videoType != MP4_YUV12_VIDEO_TYPE) {
-					u_int8_t* pConfig = NULL;
-					u_int32_t configSize;
-
-					MP4GetTrackESConfiguration(mp4File, trackId, 
-						&pConfig, &configSize);
-					write(outFd, pConfig, configSize);
-
-					free(pConfig);
-				}
 			}
 		}
 

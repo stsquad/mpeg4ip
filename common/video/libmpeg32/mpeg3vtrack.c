@@ -18,6 +18,13 @@ void mpeg3vtrack_cleanup_frame (mpeg3_vtrack_t *track)
   track->track_frame_buffer[1] = track->track_frame_buffer[size - 3];
   track->track_frame_buffer[2] = track->track_frame_buffer[size - 2];
   track->track_frame_buffer[3] = track->track_frame_buffer[size - 1];
+#if 0
+  printf("Clean up - code is %x %x %x %x\n",
+	 track->track_frame_buffer[0],
+	 track->track_frame_buffer[1],
+	 track->track_frame_buffer[2],
+	 track->track_frame_buffer[3]);
+#endif
   track->track_frame_buffer_size = 4;
 }
 
@@ -72,21 +79,19 @@ int mpeg3vtrack_get_frame (mpeg3_vtrack_t *track)
 
 {
 	u_int32_t code = 0;
-	int count, done;
+	int have_pict_start, done;
 	mpeg3_demuxer_t *demux = track->demuxer;
 	unsigned char *output;
 
+	have_pict_start = 0;
 	track->current_position++;
 	output = track->track_frame_buffer;
-	if (track->track_frame_buffer_size == 0) 
-	  count = 0;
-	else {
-	  if (output[0] == 0 && output[1] == 0 && output[2] == 1) {
+	if ((track->track_frame_buffer_size != 0) &&
+	    output[0] == 0 && output[1] == 0 && output[2] == 1) {
+	  if (output[3] == 0)
+	      have_pict_start = 1;
 	    output += 4;
-	    count = 1;
-	  } else
-	    count = 0;
-	}
+	} 
 
 	done = 0;
 	while(done == 0 && 
@@ -112,8 +117,11 @@ int mpeg3vtrack_get_frame (mpeg3_vtrack_t *track)
 	  //	  printf("%d %08x\n", track->track_frame_buffer_size, code);
 	  track->track_frame_buffer_size++;
 	  if (code == MPEG3_PICTURE_START_CODE) {
-	    count++;
-	    if (count == 2) done = 1;
+	    if (have_pict_start == 1) done = 1;
+	    have_pict_start = 1;
+	  } else if ((code == MPEG3_GOP_START_CODE) ||
+		     (code == MPEG3_SEQUENCE_START_CODE)) {
+	    if (have_pict_start == 1) done = 1;
 	  }
 	}
 	return mpeg3demux_eof(demux);

@@ -97,7 +97,7 @@ int FAADAPI faacDecInit2(faacDecHandle hDecoder,
 
     /* get adif header */
 
-    faad_initbits(&hDecoder->ld, pBuffer);
+    faad_initbits(&hDecoder->ld, pBuffer, 0);
 
     rc = parse_audio_decoder_specific_info(hDecoder,samplerate,channels);
 
@@ -223,7 +223,7 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder,
     int i, bits = 0;
     char chk_header[4];
 
-    faad_initbits(&hDecoder->ld, buffer);
+    faad_initbits(&hDecoder->ld, buffer, 4);
 #if 0
     faad_bookmark(&hDecoder->ld, 1);
 #endif
@@ -256,7 +256,7 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder,
         faad_bookmark(&hDecoder->ld, 0);
         faad_bookmark(&hDecoder->ld, 1);
 #else
-	faad_initbits(&hDecoder->ld, buffer);
+	faad_initbits(&hDecoder->ld, buffer, 4);
 #endif
         get_adif_header(hDecoder);
         /* only MPEG2 ADIF header uses byte_alignment */
@@ -271,7 +271,7 @@ int FAADAPI faacDecInit(faacDecHandle hDecoder,
         faad_bookmark(&hDecoder->ld, 0);
         faad_bookmark(&hDecoder->ld, 1);
 #else
-	faad_initbits(&hDecoder->ld, buffer);
+	faad_initbits(&hDecoder->ld, buffer, 4);
 #endif
         get_adts_header(hDecoder);
         /* only MPEG2 ADTS header uses byte_alignment */
@@ -376,7 +376,7 @@ int FAADAPI faacDecDecode(faacDecHandle hDecoder,
     Ch_Info *cip;
     int retCode = FAAD_OK;
 
-    faad_initbits(&hDecoder->ld, buffer);
+    faad_initbits(&hDecoder->ld, buffer, *bytesconsumed);
 
     if (hDecoder->adts_header_present)
     {

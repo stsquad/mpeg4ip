@@ -596,8 +596,10 @@ void CPlayerSession::adjust_start_time (int64_t time)
 {
   m_start -= time;
   m_clock_wrapped = -1;
+#if 0
   sync_message(LOG_INFO, "Adjusting start time "LLD " to " LLU, time,
 	       get_current_time());
+#endif
   SDL_SemPost(m_sync_sem);
 }
 

@@ -5,9 +5,13 @@ For a good overview of IP based multimedia:
 Jon Crowcroft, Mark Handley, Ian Wakeman
 Morgan Kauffman, 1999
 
-For a practical introduction to video coding:
+For a good introduction to audio and video coding principles:
+"Digital Compression for Multimedia: Principles and Standards"
+Gibson, Berger, Lookabaugh, Lindbergh, and Baker
+Morgan Kauffman, 1998
+
+For a practical discussion of video coding specifically:
 "Video Codec Design: Developing Image and Video Compression Systems"
 Iain Richardson
 John Wiley, 2002
-
 

@@ -3,7 +3,12 @@
 #include "../mpeg3protos.h"
 #include "mpeg3video.h"
 #include "mpeg3videoprotos.h"
+#ifndef SDL_THREADS
 #include <pthread.h>
+#else
+#include "SDL.h"
+#include "SDL_thread.h"
+#endif
 #include <stdlib.h>
 
 // "½Åµ¿ÈÆ" <doogle@shinbiro.com>
@@ -239,7 +244,9 @@ mpeg3video_t *mpeg3video_allocate_struct(void)
 {
 	int i;
 	mpeg3video_t *video = calloc(1, sizeof(mpeg3video_t));
+#ifndef SDL_THREADS
 	pthread_mutexattr_t mutex_attr;
+#endif
 
 	video->vstream = mpeg3bits_new_stream();
 
@@ -256,10 +263,15 @@ mpeg3video_t *mpeg3video_allocate_struct(void)
 	mpeg3video_init_scantables(video);
 	mpeg3video_init_output();
 
+#ifndef SDL_THREADS
 	pthread_mutexattr_init(&mutex_attr);
 //	pthread_mutexattr_setkind_np(&mutex_attr, PTHREAD_MUTEX_FAST_NP);
 	pthread_mutex_init(&(video->test_lock), &mutex_attr);
 	pthread_mutex_init(&(video->slice_lock), &mutex_attr);
+#else
+	video->test_lock = SDL_CreateMutex();
+	video->slice_lock = SDL_CreateMutex();
+#endif
 	return video;
 }
 
@@ -267,8 +279,13 @@ int mpeg3video_delete_struct(mpeg3video_t *video)
 {
 	int i;
 	mpeg3bits_delete_stream(video->vstream);
+#ifndef SDL_THREADS
 	pthread_mutex_destroy(&(video->test_lock));
 	pthread_mutex_destroy(&(video->slice_lock));
+#else
+	SDL_DestroyMutex(video->test_lock);
+	SDL_DestroyMutex(video->slice_lock);
+#endif
 	if(video->x_table)
 	{
 		free(video->x_table);

@@ -16,7 +16,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * $Id: bits.h,v 1.3 2002/03/20 22:45:34 wmaycisco Exp $
+ * $Id: bits.h,v 1.4 2002/07/05 17:34:27 wmaycisco Exp $
  */
 
 #ifndef __BITS_H__
@@ -35,14 +35,16 @@ typedef struct _bitfile2
   int incnt;
   int bitcnt;
   int framebits;
+  int maxbits;
 } bitfile;
 
-void faad_initbits(bitfile *ld, char *buffer);
+void faad_initbits(bitfile *ld, char *buffer, uint32_t buflen);
 uint32_t faad_getbits(bitfile *ld, int n);
 uint32_t faad_getbits_fast(bitfile *ld, int n);
 uint32_t faad_get1bit(bitfile *ld);
 uint32_t faad_byte_align(bitfile *ld);
 int faad_get_processed_bits(bitfile *ld);
+  int faad_bits_done(bitfile *ld);
 
   void faad_bitdump(bitfile *ld);
 

@@ -215,6 +215,7 @@ static int aac_decode (codec_data_t *ptr,
     }
 
     unsigned long samples;
+    bytes_consummed = buflen;
     bits = faacDecDecode(aac->m_info,
 			 (unsigned char *)buffer, 
 			 &bytes_consummed,

@@ -323,8 +323,6 @@ extern "C" u_int8_t MP4AV_Mp3ToMp4AudioType(u_int8_t mpegVersion)
 		break;
 	case 1:
 		break;
-	default:
-		ASSERT(false);
 	}
 	return audioType;
 }

@@ -43,6 +43,7 @@ typedef u_int32_t	MP4TrackId;
 typedef u_int32_t	MP4SampleId;
 typedef u_int64_t	MP4Timestamp;
 typedef u_int64_t	MP4Duration;
+typedef u_int32_t	MP4EditId;
 
 /* Invalid values for API types */
 #define MP4_INVALID_FILE_HANDLE	((MP4FileHandle)NULL)
@@ -50,6 +51,7 @@ typedef u_int64_t	MP4Duration;
 #define MP4_INVALID_SAMPLE_ID	((MP4SampleId)0)
 #define MP4_INVALID_TIMESTAMP	((MP4Timestamp)-1)
 #define MP4_INVALID_DURATION	((MP4Duration)-1)
+#define MP4_INVALID_EDIT_ID		((MP4EditId)0)
 
 /* Macros to test for API type validity */
 #define MP4_IS_VALID_FILE_HANDLE(x)	((x) != MP4_INVALID_FILE_HANDLE) 
@@ -57,6 +59,7 @@ typedef u_int64_t	MP4Duration;
 #define MP4_IS_VALID_SAMPLE_ID(x)	((x) != MP4_INVALID_SAMPLE_ID) 
 #define MP4_IS_VALID_TIMESTAMP(x)	((x) != MP4_INVALID_TIMESTAMP) 
 #define MP4_IS_VALID_DURATION(x)	((x) != MP4_INVALID_DURATION) 
+#define MP4_IS_VALID_EDIT_ID(x)		((x) != MP4_INVALID_EDIT_ID) 
 
 /* MP4 verbosity levels - e.g. MP4SetVerbosity() */
 #define MP4_DETAILS_ALL				0xFFFFFFFF
@@ -69,6 +72,7 @@ typedef u_int64_t	MP4Duration;
 #define MP4_DETAILS_SAMPLE			0x00000040
 #define MP4_DETAILS_HINT			0x00000080
 #define MP4_DETAILS_ISMA			0x00000100
+#define MP4_DETAILS_EDIT			0x00000200
 
 #define MP4_DETAILS_READ_ALL		\
 	(MP4_DETAILS_READ | MP4_DETAILS_TABLE | MP4_DETAILS_SAMPLE)
@@ -208,6 +212,9 @@ bool MP4Dump(
 	MP4FileHandle hFile, 
 	FILE* pDumpFile DEFAULT(NULL), 
 	bool dumpImplicits DEFAULT(0));
+
+char* MP4Info(
+	const char* fileName);
 
 /* file properties */
 
@@ -468,6 +475,21 @@ bool MP4ReadSample(
 	MP4Duration* pRenderingOffset DEFAULT(NULL), 
 	bool* pIsSyncSample DEFAULT(NULL));
 
+/* uses (unedited) time to specify sample instead of sample id */
+bool MP4ReadSampleFromTime(
+	/* input parameters */
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Timestamp when,
+	/* input/output parameters */
+	u_int8_t** ppBytes, 
+	u_int32_t* pNumBytes, 
+	/* output parameters */
+	MP4Timestamp* pStartTime DEFAULT(NULL), 
+	MP4Duration* pDuration DEFAULT(NULL),
+	MP4Duration* pRenderingOffset DEFAULT(NULL), 
+	bool* pIsSyncSample DEFAULT(NULL));
+
 bool MP4WriteSample(
 	MP4FileHandle hFile,
 	MP4TrackId trackId,
@@ -476,6 +498,13 @@ bool MP4WriteSample(
 	MP4Duration duration DEFAULT(MP4_INVALID_DURATION),
 	MP4Duration renderingOffset DEFAULT(0), 
 	bool isSyncSample DEFAULT(true));
+
+bool MP4CopySample(
+	MP4FileHandle srcFile,
+	MP4TrackId srcTrackId, 
+	MP4SampleId srcSampleId,
+	MP4FileHandle dstFile,
+	MP4TrackId dstTrackId);
 
 u_int32_t MP4GetSampleSize(
 	MP4FileHandle hFile,
@@ -657,6 +686,75 @@ char* MP4MakeIsmaSdpIod(
 	u_int8_t* audioConfig,
 	u_int32_t audioConfigLength,
 	u_int32_t verbosity DEFAULT(0));
+
+/* edit list - NOTE this section of functionality is not yet complete */
+
+MP4EditId MP4AddTrackEdit(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId DEFAULT(MP4_INVALID_EDIT_ID));
+
+bool MP4DeleteTrackEdit(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId);
+
+u_int32_t MP4GetTrackNumberOfEdits(
+	MP4FileHandle hFile,
+	MP4TrackId trackId);
+
+MP4Timestamp MP4GetTrackEditStart(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId);
+
+bool MP4SetTrackEditStart(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId,
+	MP4Timestamp startTime);
+
+MP4Duration MP4GetTrackEditDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId);
+
+bool MP4SetTrackEditDuration(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId,
+	MP4Duration duration);
+
+int8_t MP4GetTrackEditDwell(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId);
+
+bool MP4SetTrackEditDwell(
+	MP4FileHandle hFile,
+	MP4TrackId trackId,
+	MP4EditId editId,
+	bool dwell);
+
+bool MP4ReadSampleFromEditTime(
+	/* input parameters */
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Timestamp when, 
+	/* input/output parameters */
+	u_int8_t** ppBytes, 
+	u_int32_t* pNumBytes, 
+	/* output parameters */
+	MP4Timestamp* pStartTime DEFAULT(NULL), 
+	MP4Duration* pDuration DEFAULT(NULL),
+	MP4Duration* pRenderingOffset DEFAULT(NULL), 
+	bool* pIsSyncSample DEFAULT(NULL));
+
+MP4SampleId MP4GetSampleIdFromEditTime(
+	MP4FileHandle hFile,
+	MP4TrackId trackId, 
+	MP4Timestamp when, 
+	bool wantSyncSample DEFAULT(false));
 
 /* time conversion utilties */
 

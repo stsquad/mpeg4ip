@@ -92,7 +92,53 @@ void MP4IntegerProperty::SetValue(u_int64_t value, u_int32_t index)
 	}
 }
 
-void MP4IntegerProperty::IncrementValue(u_int32_t increment, u_int32_t index)
+void MP4IntegerProperty::InsertValue(u_int64_t value, u_int32_t index)
+{
+	switch (this->GetType()) {
+	case Integer8Property:
+		((MP4Integer8Property*)this)->InsertValue(value, index);
+		break;
+	case Integer16Property:
+		((MP4Integer16Property*)this)->InsertValue(value, index);
+		break;
+	case Integer24Property:
+		((MP4Integer24Property*)this)->InsertValue(value, index);
+		break;
+	case Integer32Property:
+		((MP4Integer32Property*)this)->InsertValue(value, index);
+		break;
+	case Integer64Property:
+		((MP4Integer64Property*)this)->InsertValue(value, index);
+		break;
+	default:
+		ASSERT(FALSE);
+	}
+}
+
+void MP4IntegerProperty::DeleteValue(u_int32_t index)
+{
+	switch (this->GetType()) {
+	case Integer8Property:
+		((MP4Integer8Property*)this)->DeleteValue(index);
+		break;
+	case Integer16Property:
+		((MP4Integer16Property*)this)->DeleteValue(index);
+		break;
+	case Integer24Property:
+		((MP4Integer24Property*)this)->DeleteValue(index);
+		break;
+	case Integer32Property:
+		((MP4Integer32Property*)this)->DeleteValue(index);
+		break;
+	case Integer64Property:
+		((MP4Integer64Property*)this)->DeleteValue(index);
+		break;
+	default:
+		ASSERT(FALSE);
+	}
+}
+
+void MP4IntegerProperty::IncrementValue(int32_t increment, u_int32_t index)
 {
 	SetValue(GetValue() + increment);
 }

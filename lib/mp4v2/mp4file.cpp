@@ -2159,3 +2159,104 @@ u_int8_t MP4File::ConvertTrackTypeToStreamType(const char* trackType)
 	return streamType;
 }
 
+// edit list
+
+char* MP4File::MakeTrackEditName(
+	MP4TrackId trackId,
+	MP4EditId editId,
+	const char* name)
+{
+	char* trakName = MakeTrackName(trackId, NULL);
+
+	static char editName[1024];
+	snprintf(editName, sizeof(editName), 
+		"%s.edts.elst.entries[%u].%s", 
+		trakName, editId, name);
+	return editName;
+}
+
+MP4EditId MP4File::AddTrackEdit(
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->AddEdit(editId);
+}
+
+void MP4File::DeleteTrackEdit(
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	m_pTracks[FindTrackIndex(trackId)]->DeleteEdit(editId);
+}
+
+u_int32_t MP4File::GetTrackNumberOfEdits(
+	MP4TrackId trackId)
+{
+	return GetTrackIntegerProperty(trackId, "edts.elst.entryCount");
+}
+
+MP4Timestamp MP4File::GetTrackEditStart(
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	return GetIntegerProperty(
+		MakeTrackEditName(trackId, editId, "mediaTime"));
+}
+
+void MP4File::SetTrackEditStart(
+	MP4TrackId trackId,
+	MP4EditId editId,
+	MP4Timestamp startTime)
+{
+	SetIntegerProperty(
+		MakeTrackEditName(trackId, editId, "mediaTime"),
+		startTime);
+}
+
+MP4Duration MP4File::GetTrackEditDuration(
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	return GetIntegerProperty(
+		MakeTrackEditName(trackId, editId, "segmentDuration"));
+}
+
+void MP4File::SetTrackEditDuration(
+	MP4TrackId trackId,
+	MP4EditId editId,
+	MP4Duration duration)
+{
+	SetIntegerProperty(
+		MakeTrackEditName(trackId, editId, "segmentDuration"),
+		duration);
+}
+
+bool MP4File::GetTrackEditDwell(
+	MP4TrackId trackId,
+	MP4EditId editId)
+{
+	return (GetIntegerProperty(
+		MakeTrackEditName(trackId, editId, "mediaRate")) == 0);
+}
+
+void MP4File::SetTrackEditDwell(
+	MP4TrackId trackId,
+	MP4EditId editId,
+	bool dwell)
+{
+	SetIntegerProperty(
+		MakeTrackEditName(trackId, editId, "mediaRate"),
+		(dwell ? 0 : 1));
+}
+
+MP4SampleId MP4File::GetSampleIdFromEditTime(
+	MP4TrackId trackId,
+	MP4Timestamp when,
+	bool wantSyncSample,
+	MP4Timestamp* pStartTime, 
+	MP4Duration* pDuration)
+{
+	return m_pTracks[FindTrackIndex(trackId)]->GetSampleIdFromEditTime(
+		when, wantSyncSample, pStartTime, pDuration);
+}
+

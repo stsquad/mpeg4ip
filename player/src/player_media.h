@@ -59,6 +59,9 @@ class CPlayerMedia {
   int do_pause(void);
   int is_video(void) { return (m_is_video); };
   double get_max_playtime(void);
+  /* API routine - interface for decoding start/continue */
+  void start_decoding(void);
+  void bytestream_primed(void); 
   /* API routine - ip port information */
   uint16_t get_our_port (void) { return m_our_port; };
   void set_server_port (uint16_t port) { m_server_port = port; };
@@ -82,9 +85,8 @@ class CPlayerMedia {
   void recv_callback(struct rtp *session, rtp_event *e);
   void set_rtp_ssrc (uint32_t ssrc)
     { m_rtp_ssrc = ssrc; m_rtp_ssrc_set = TRUE;};
-  void set_rtp_rtptime(uint32_t time);
-  void set_rtp_rtpinfo(void) { m_rtp_rtpinfo_received = 1; };
-
+  void set_rtp_base_ts(uint32_t time);
+  void set_rtp_base_seq(uint16_t seq);
   
   void set_video_sync(CVideoSync *p) {m_video_sync = p;};
   void set_audio_sync(CAudioSync *p) {m_audio_sync = p;};
@@ -119,6 +121,8 @@ class CPlayerMedia {
   int rtcp_send_packet(char *buffer, int buflen);
   int get_rtp_media_number (void) { return m_rtp_media_number_in_session; };
  private:
+  int create_common(int is_video, char *errmsg, uint32_t errlen);
+  void wait_on_bytestream(void);
   int m_streaming;
   int m_is_video;
   int m_paused;
@@ -158,8 +162,10 @@ class CPlayerMedia {
   // from rtsp...
   int m_rtp_ssrc_set;
   uint32_t m_rtp_ssrc;
-  int m_rtp_rtpinfo_received;
-  uint32_t m_rtp_rtptime;
+  int m_rtsp_base_ts_received;
+  uint32_t m_rtp_base_ts;
+  int m_rtsp_base_seq_received;
+  uint16_t m_rtp_base_seq;
 
   int determine_payload_type_from_rtp(void);
   void clear_rtp_packets(void);

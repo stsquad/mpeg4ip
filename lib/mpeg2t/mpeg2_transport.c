@@ -132,13 +132,15 @@ static int mpeg2t_join_pak (mpeg2t_pid_t *pidptr,
   uint32_t nextcc;
   uint32_t remaining;
   if (pidptr->data_len_loaded == 0) {
-    printf("Trying to add to unstarted packet - PID %x\n", pidptr->pid);
+    mpeg2t_message(LOG_WARNING, 
+		   "Trying to add to unstarted packet - PID %x", 
+		   pidptr->pid);
     return -1;
   }
   nextcc = (pidptr->lastcc + 1) & 0xf;
   if (nextcc != cc) {
-    printf("Illegal cc value %d - should be %d - PID %x\n", 
-	   cc, nextcc, pidptr->pid);
+    mpeg2t_message(LOG_ERR, "Illegal cc value %d - should be %d - PID %x", 
+		   cc, nextcc, pidptr->pid);
     pidptr->data_len_loaded = 0;
     return -1;
   }
@@ -195,7 +197,7 @@ static void create_pmap (mpeg2t_t *ptr, uint16_t prog_num, uint16_t pid)
 {
   mpeg2t_pmap_t *pmap;
 
-  printf("Adding pmap prog_num %x pid %x\n", prog_num, pid);
+  mpeg2t_message(LOG_INFO, "Adding pmap prog_num %x pid %x", prog_num, pid);
   pmap = MALLOC_STRUCTURE(mpeg2t_pmap_t);
   if (pmap == NULL) return;
   memset(pmap, 0, sizeof(*pmap));
@@ -213,7 +215,8 @@ static void create_es (mpeg2t_t *ptr,
 {
   mpeg2t_es_t *es;
 
-  printf("Adding ES PID %x stream type %d\n", pid, stream_type);
+  mpeg2t_message(LOG_INFO, 
+		 "Adding ES PID %x stream type %d", pid, stream_type);
   es = MALLOC_STRUCTURE(mpeg2t_es_t);
   if (es == NULL) return;
   memset(es, 0, sizeof(*es));
@@ -262,7 +265,7 @@ static void mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
     pasptr += *pasptr + 1; // go through the pointer field
     
     if (*pasptr != 0 || (pasptr[1] & 0xc0) != 0x80) {
-      printf("PAS field not 0\n");
+      mpeg2t_message(LOG_ERR, "PAS field not 0");
       return;
     }
     section_len = ((pasptr[1] << 8) | pasptr[2]) & 0x3ff; 
@@ -328,7 +331,7 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
     buflen -= *pmapptr + 1;
     pmapptr += *pmapptr + 1; // go through the pointer field
     if (*pmapptr != 2 || (pmapptr[1] & 0xc0) != 0x80) {
-      printf("PMAP field not 2\n");
+      mpeg2t_message(LOG_ERR, "PMAP start field not 2");
       return;
     }
     section_len = ((pmapptr[1] << 8) | pmapptr[2]) & 0x3ff; 
@@ -349,14 +352,16 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
 			    
   prog_num = ((pmapptr[0] << 8) | pmapptr[1]);
   if (prog_num != pmap_pid->program_number) {
-    printf("Prog Map error - program number doesn't match - pid %x orig %x from pak %x\n", pmap_pid->pid.pid, pmap_pid->program_number, prog_num);
+    mpeg2t_message(LOG_ERR, 
+		   "Prog Map error - program number doesn't match - pid %x orig %x from pak %x", 
+		   pmap_pid->pid.pid, pmap_pid->program_number, prog_num);
     return;
   }
   pmap_pid->version_number = (pmapptr[2] >> 1) & 0x1f;
 
   pcr_pid = ((pmapptr[5] << 8) | pmapptr[6]) & 0x1fff;
   if (pcr_pid != 0x1fff) {
-    printf("Have PCR pid of %x\n", pcr_pid);
+    mpeg2t_message(LOG_DEBUG, "Have PCR pid of %x", pcr_pid);
   }
   pmapptr += 7;
   section_len -= 7; // remove all the fixed fields to get the prog info len
@@ -381,7 +386,7 @@ static void mpeg2t_process_pmap (mpeg2t_t *ptr,
     es_len = ((pmapptr[3] << 8) | pmapptr[4]) & 0xfff;
     if (es_len + len > section_len) return;
     if (mpeg2t_lookup_pid(ptr, e_pid) == NULL) {
-      printf("Creating es pid %x\n", e_pid);
+      mpeg2t_message(LOG_INFO, "Creating es pid %x", e_pid);
       create_es(ptr, e_pid, stream_type, &pmapptr[5], es_len);
     }
     // create_es
@@ -439,6 +444,23 @@ void mpeg2t_malloc_es_work (mpeg2t_es_t *es_pid, uint32_t frame_len)
   es_pid->work_loaded = 0;
 }
 
+void mpeg2t_finished_es_work (mpeg2t_es_t *es_pid,
+			      uint32_t frame_len)
+{
+  mpeg2t_frame_t *p;
+  es_pid->work->frame_len = frame_len;
+  if (es_pid->list == NULL) {
+    es_pid->list = es_pid->work;
+  } else {
+    p = es_pid->list;
+    while (p->next_frame != NULL) p = p->next_frame;
+    p->next_frame = es_pid->work;
+  }
+  es_pid->work = NULL;
+  es_pid->work_loaded = 0;
+}
+
+  
 static int mpeg2t_process_es (mpeg2t_t *ptr, 
 			      mpeg2t_pid_t *ifptr,
 			      const uint8_t *buffer)
@@ -456,7 +478,7 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   nextcc = (nextcc + 1) & 0xf;
   pakcc = mpeg2t_continuity_counter(buffer);
   if (nextcc != pakcc) {
-    printf("cc error in PES %x should be %d is %d\n", 
+    mpeg2t_message(LOG_ERR, "cc error in PES %x should be %d is %d", 
 	   ifptr->pid, nextcc, pakcc);
     clean_es_data(es_pid);
   }
@@ -473,8 +495,9 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
     if ((esptr[0] != 0) ||
 	(esptr[1] != 0) ||
 	(esptr[2] != 1)) {
-      printf("Illegal start to PES packet - pid %x - %02x %02x %02x\n",
-	     ifptr->pid, esptr[0], esptr[1], esptr[2]);
+      mpeg2t_message(LOG_ERR, 
+		     "Illegal start to PES packet - pid %x - %02x %02x %02x",
+		     ifptr->pid, esptr[0], esptr[1], esptr[2]);
       return -1;
     }
     stream_id = es_pid->stream_id = esptr[3];
@@ -514,12 +537,18 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
 	  ((esptr[1] & 0xc0) == 0xc0)) {
 	// read presentation timestamp
 	uint64_t pts;
-#if 0
-	printf("Stream %x %02x %02x %02x\n", 
+#if 1
+	mpeg2t_message(LOG_DEBUG, "Stream %x %02x %02x %02x", 
 	       stream_id, esptr[0], esptr[1], esptr[2]);
-	printf("PTS %02x %02x %02x %02x %02x\n", 
+	mpeg2t_message(LOG_DEBUG, "PTS %02x %02x %02x %02x %02x", 
 	       esptr[3], esptr[4], esptr[5], esptr[6], esptr[7]);
 #endif
+	if (((esptr[1] >> 6) & 0x3) !=
+	    ((esptr[3] >> 4) & 0xf)) {
+	  mpeg2t_message(LOG_ERR, "PID %x Timestamp flag value not same %x %x",
+			 es_pid->pid.pid, esptr[1], esptr[2]);
+	  return -1;
+	}
 	pts = ((esptr[3] >> 1) & 0x7);
 	pts <<= 8;
 	pts |= esptr[4];
@@ -596,10 +625,10 @@ mpeg2t_es_t *mpeg2t_process_buffer (mpeg2t_t *ptr,
 
     // we have a complete buffer
     rpid = mpeg2t_pid(buffer);
-#if 0
-    printf("Buffer- PID %x start %d cc %d\n",
-	   rpid, mpeg2t_payload_unit_start_indicator(buffer),
-	   mpeg2t_continuity_counter(buffer));
+#if 1
+    mpeg2t_message(LOG_DEBUG, "Buffer- PID %x start %d cc %d",
+		   rpid, mpeg2t_payload_unit_start_indicator(buffer),
+		   mpeg2t_continuity_counter(buffer));
 #endif
     if (rpid == 0x1fff) {
       // just skip

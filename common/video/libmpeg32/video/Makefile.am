@@ -14,7 +14,7 @@ SUFFIXES = .asm
 noinst_LTLIBRARIES = libmpeg3video.la
 libmpeg3video_la_LDFLAGS = -static
 
-INCLUDES=-I $(top_srcdir)/include
+INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib/SDL/include
 
 if USE_MMX
 AM_CFLAGS = -DHAVE_MMX -fomit-frame-pointer -malign-loops=2 -malign-jumps=2 -malign-functions=2

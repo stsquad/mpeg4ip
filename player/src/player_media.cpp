@@ -104,13 +104,13 @@ CPlayerMedia::CPlayerMedia (CPlayerSession *p)
   m_source_addr = NULL;
   m_recv_thread = NULL;
   m_rtptime_tickpersec = 0;
-  m_rtp_rtpinfo_received = 0;
+  m_rtsp_base_seq_received = 0;
+  m_rtsp_base_ts_received = 0;
 
   m_head = NULL;
   m_rtp_queue_len = 0;
 
   m_rtp_ssrc_set = FALSE;
-  m_rtp_rtptime = 0xffffffff;
   
   m_rtsp_session = NULL;
   m_decode_thread_waiting = 0;
@@ -134,6 +134,7 @@ CPlayerMedia::~CPlayerMedia()
 {
   rtsp_decode_t *rtsp_decode;
 
+  media_message(LOG_DEBUG, "closing down media %d", m_is_video);
   if (m_rtsp_session) {
     // If control is aggregate, m_rtsp_session will be freed by
     // CPlayerSession
@@ -151,6 +152,7 @@ CPlayerMedia::~CPlayerMedia()
   }
 
   if (m_decode_thread) {
+    media_message(LOG_DEBUG, "decode thread %d", m_is_video);
     m_decode_msg_queue.send_message(MSG_STOP_THREAD, 
 				    NULL, 
 				    0, 
@@ -231,6 +233,28 @@ void CPlayerMedia::clear_rtp_packets (void)
   m_rtp_queue_len = 0;
 }
 
+int CPlayerMedia::create_common (int is_video, char *errmsg, uint32_t errlen)
+{
+  m_parent->add_media(this);
+  m_is_video = is_video;
+
+  m_decode_thread_sem = SDL_CreateSemaphore(0);
+  m_decode_thread = SDL_CreateThread(c_decode_thread, this);
+  if (m_decode_thread_sem == NULL || m_decode_thread == NULL) {
+    const char *outmedia;
+    if (m_media_info == NULL) {
+      outmedia = m_is_video ? "video" : "audio";
+    } else outmedia = m_media_info->media;
+
+    if (errmsg != NULL)
+      snprintf(errmsg, errlen, "Couldn't start media thread for %s", 
+	       outmedia);
+    media_message(LOG_ERR, "Failed to create decode thread for media %s",
+		  outmedia);
+    return (-1);
+  }
+  return 0;
+}
 /*
  * CPlayerMedia::create_from_file - create when we've already got a
  * bytestream
@@ -238,18 +262,8 @@ void CPlayerMedia::clear_rtp_packets (void)
 int CPlayerMedia::create_from_file (COurInByteStream *b, 
 				    int is_video)
 {
-  m_parent->add_media(this);
-  m_is_video = is_video;
   m_byte_stream = b;
-  m_decode_thread_sem = SDL_CreateSemaphore(0);
-  m_decode_thread = SDL_CreateThread(c_decode_thread, this);
-  if (m_decode_thread == NULL) {
-    media_message(LOG_ERR, "Failed to create decode thread for media %s",
-			 m_media_info->media);
-    return (-1);
-  }
-
-  return (0);
+  return create_common(is_video, NULL, 0);
 }
 
 /*
@@ -287,7 +301,6 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
   }
 
   m_media_info = sdp_media;
-  m_is_video = strcmp(sdp_media->media, "video") == 0;
   m_stream_ondemand = ondemand;
   if (ondemand != 0) {
     /*
@@ -363,20 +376,11 @@ int CPlayerMedia::create_streaming (media_desc_t *sdp_media,
   // okay - here we want to check that the server port is set up, and
   // go ahead and init rtp, and the associated task
   //
-  m_parent->add_media(this);
   m_start_time = time(NULL);
 
-  /*
-   * Create the various mutexes, semaphores, threads, etc
-   */
-  m_decode_thread_sem = SDL_CreateSemaphore(0);
-
-  m_decode_thread = SDL_CreateThread(c_decode_thread, this);
-  if (m_decode_thread == NULL) {
-    snprintf(errmsg, errlen, "Couldn't start media thread for %s", 
-	     m_media_info->media);
-    media_message(LOG_ERR, errmsg);
-    return (-1);
+  if (create_common(strcmp(sdp_media->media, "video") == 0, 
+		    errmsg, errlen) < 0) {
+    return -1;
   }
 
   if (ondemand == 0 || use_rtsp == 0) {
@@ -581,10 +585,7 @@ int CPlayerMedia::do_play (double start_time_offset)
     m_byte_stream->set_start_time((uint64_t)(start_time_offset * 1000.0));
     m_play_start_time = start_time_offset;
     m_paused = 0;
-    m_decode_msg_queue.send_message(MSG_START_DECODING, 
-				    NULL, 
-				    0, 
-				    m_decode_thread_sem);
+    start_decoding();
   }
   return (0);
 }
@@ -614,6 +615,7 @@ int CPlayerMedia::do_pause (void)
       }
     }
     m_rtp_msg_queue.send_message(MSG_PAUSE_SESSION);
+    if (m_rtp_byte_stream) m_rtp_byte_stream->reset();
   }
   
   /*
@@ -889,7 +891,7 @@ static char *rtpinfo_parse_seq (char *rtpinfo, CPlayerMedia *m, int &endofurl)
     }
     rtpinfo++;
   }
-  // we don't need this anywhere... m->set_rtp_init_seq(seq);
+  m->set_rtp_base_seq(seq);
   return (rtpinfo);
 }
 
@@ -923,7 +925,7 @@ static char *rtpinfo_parse_rtptime (char *rtpinfo,
     player_error_message("Warning - negative time returned in rtpinfo");
     rtptime = 0 - rtptime;
   }
-  m->set_rtp_rtptime(rtptime);
+  m->set_rtp_base_ts(rtptime);
   return (rtpinfo);
 }
 struct {
@@ -1087,7 +1089,6 @@ int process_rtsp_rtpinfo (char *rtpinfo,
 	if (*rtpinfo != '\0') rtpinfo++;
       }
     } while (endofurl == 0 && rtpinfo != NULL && *rtpinfo != '\0');
-    newmedia->set_rtp_rtpinfo();
     } 
     newmedia = NULL;
   } while (rtpinfo != NULL && *rtpinfo != '\0');
@@ -1132,13 +1133,9 @@ void CPlayerMedia::rtp_periodic (void)
     if (ret > 0) {
       if (m_rtp_buffering == 0) {
 	m_rtp_buffering = 1;
-	m_decode_msg_queue.send_message(MSG_START_DECODING, 
-					NULL, 
-					0, 
-					m_decode_thread_sem);
-      } else if (m_decode_thread_waiting != 0) {
-	m_decode_thread_waiting = 0;
-	SDL_SemPost(m_decode_thread_sem);
+	start_decoding();
+      } else {
+	bytestream_primed();
       }
     }
     return;
@@ -1170,7 +1167,7 @@ void CPlayerMedia::rtp_start (void)
     rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
   }
   if (m_rtp_byte_stream != NULL) {
-    m_rtp_byte_stream->reset();
+    //m_rtp_byte_stream->reset(); - gets called when pausing
     m_rtp_byte_stream->flush_rtp_packets();
   }
   m_rtp_buffering = 0;
@@ -1292,6 +1289,7 @@ int CPlayerMedia::recv_thread (void)
 	case MSG_PAUSE_SESSION:
 	  // Indicate that we need to restart the session.
 	  // But keep going...
+	  media_message(LOG_DEBUG, "calling rtp start from pause");
 	  rtp_start();
 	  break;
 	}
@@ -1415,8 +1413,10 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
 					  tickpersec,
 					  &m_head,
 					  &m_tail,
-					  m_rtp_rtpinfo_received,
-					  m_rtp_rtptime,
+					  m_rtsp_base_seq_received, 
+					  m_rtp_base_seq,
+					  m_rtsp_base_ts_received,
+					  m_rtp_base_ts,
 					  m_rtcp_received,
 					  m_rtcp_ntp_frac,
 					  m_rtcp_ntp_sec,
@@ -1440,13 +1440,23 @@ int CPlayerMedia::determine_payload_type_from_rtp(void)
 /*
  * set up rtptime
  */
-void CPlayerMedia::set_rtp_rtptime (uint32_t time)
+void CPlayerMedia::set_rtp_base_ts (uint32_t time)
 {
-  m_rtp_rtptime = time;
+  m_rtsp_base_ts_received = 1;
+  m_rtp_base_ts = time;
   if (m_rtp_byte_stream != NULL) {
-    m_rtp_byte_stream->set_rtp_rtptime(time);
+    m_rtp_byte_stream->set_rtp_base_ts(time);
   }
-};
+}
+
+void CPlayerMedia::set_rtp_base_seq (uint16_t seq)
+{
+  m_rtsp_base_seq_received = 1; 
+  m_rtp_base_seq = seq;
+  if (m_rtp_byte_stream != NULL) {
+    m_rtp_byte_stream->set_rtp_base_seq(seq);
+  }
+}
 
 void CPlayerMedia::rtp_init_tcp (void) 
 {

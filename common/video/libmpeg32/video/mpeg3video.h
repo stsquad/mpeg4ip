@@ -1,10 +1,23 @@
 #ifndef MPEGVIDEO_H
 #define MPEGVIDEO_H
+
+#ifdef _WIN32
+#define SDL_THREADS
+#endif
+
+#ifdef _WIN32
+#include "systems.h"
+#endif
 #include "../bitstream.h"
 #include "../mpeg3private.inc"
 #include "idct.h"
 #include "slice.h"
 #include "../timecode.h"
+
+/* Added 03/38/96 by Alex de Jong : avoid IRIX GNU warning */
+#ifdef ERROR
+#undef ERROR
+#endif
 
 /* zig-zag scan */
 extern unsigned char mpeg3_zig_zag_scan_nommx[64];
@@ -40,9 +53,7 @@ extern unsigned char mpeg3_non_linear_mquant_table[32];
 #define SPATSCAL_ID   9
 #define TEMPSCAL_ID  10
 
-#ifndef _WIN32
 #define ERROR (-1)
-#endif
 
 #define SC_NONE       0   /* scalable_mode */
 #define SC_DP         1
@@ -91,12 +102,12 @@ typedef struct
 	mpeg3_slice_buffer_t slice_buffers[MPEG3_MAX_CPUS];   /* Buffers for holding the slice data */
 	int total_slice_buffers;         /* Total buffers in the array to be decompressed */
 	int slice_buffers_initialized;     /* Total buffers initialized in the array */
-#ifndef _WIN32
+#ifndef SDL_THREADS
 	pthread_mutex_t slice_lock;      /* Lock slice array while getting the next buffer */
 	pthread_mutex_t test_lock;
 #else
-  HANDLE slice_lock;
-  HANDLE test_lock;
+	SDL_mutex *slice_lock;
+	SDL_mutex *test_lock;
 #endif
 
 	int blockreadsize;

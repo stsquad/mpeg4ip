@@ -8,17 +8,19 @@ mp4creator [\fIoptions\fP] <\fIfilename.mp4\fP>
 
 .SH "DESCRIPTION"
 .LP 
-This program creates or modifies mp4 files. Supported operations are to add media tracks, add hint tracks, delete a track, and optimize the layout of the mp4 file. Currently the program understands MP3, AAC (ADTS), and MPEG\-4 video (Divx) files. These are known as elementary stream (ES) files.
+This program creates or modifies mp4 files. Supported operations are to add media tracks, add hint tracks, extract a track (reconstruct the ES), delete a track, and optimize the layout of the mp4 file. Currently the program understands MP3, AAC (ADTS), and MPEG\-4 video (Divx) files. These are known as elementary stream (ES) files.
 .LP 
-Note MP3 files frequently have embedded tags that list information such as title and artist. These tags are not carried forward into the mp4 file.
+Note MP3 files frequently have embedded tags (ID3) that list information such as title and artist. These tags are not carried forward into the mp4 file.
 .LP 
-To add a media track to an mp4 file, use the "\-create=<file>" option to specify the ES file. Note if two files names are given on the command line
+To add a media track to an mp4 file, use the "\-create=<file>" option to specify the ES file. Note if two files names are given on the command line with no operation specified, the create operation is assumed.
 .LP 
 To add a hint track to an mp4 file you need to know the track id of the media track you want to hint. This can be determined by invoking mp4creator with the "\-list" option to obtain a list of existing tracks and their type. Once you've determined the track id, use the "\-hint=<track\-id>" option to create the hint track. Currently the program understands how to create hint tracks for MPEG audio, and MPEG\-4 video. 
 .LP 
 When adding tracks, mp4creator does not attempt to optimize the file layout for streaming and playback. This can be done once all the desired tracks have been added with the "\-optimize" option.
 .LP 
-To delete an undesired track from an existing mp4 file, use the "\-delete=<track\-id>" option.
+To extract a track from an mp4 file, and reconstruct the elementary stream (ES), use the "\-extract=<track\-id>" option. For this operation the first file name on the command line should be the .mp4 file. If a second file name is given, the track data will be written to that file, otherwise the data will be written a file with the same name as the .mp4 file will the additional suffix ".t<track\-id>"
+.LP 
+To delete an undesired track from an existing mp4 file, use the "\-delete=<track\-id>" option. Note a side effect of deleting a track is that the optimization operation is invoked.
 .LP 
 Detailed diagnostics are available via the "\-verbosity=<level>" option. Levels 1\-5 are available.
 .SH "OPTIONS"
@@ -26,6 +28,9 @@ Detailed diagnostics are available via the "\-verbosity=<level>" option. Levels 
 .TP 
 \fB\-c, \-create\fR=<\fIfile\fP>
 Create a media track using <\fIfile\fP>. File must have either .mp3 .aac .divx or .mp4v extension.
+.TP 
+\fB\-e, \-extract\fR=<\fItrack\-id\fP>
+Extract the specified track.
 .TP 
 \fB\-d, \-delete\fR=<\fItrack\-id\fP>
 Delete the specified track and all it's associated data.
@@ -86,6 +91,10 @@ To create an audio and video file, hinted, and optimized for streaming:
 	mp4creator foo.mp3 \-H foo.mp4
 .br 
 	mp4creator foo.divx \-H \-O foo.mp4
+.LP 
+To extract a video track from an mp4 file:
+.br 
+	mp4creator \-extract=1 foo.mp4 foo.divx
 .SH "AUTHORS"
 .LP 
 David Mackie <dmackie@cisco.com>

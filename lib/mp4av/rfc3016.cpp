@@ -71,7 +71,9 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 
 		/* convert it into ASCII form */
 		char* sConfig = MP4BinaryToBase16(pConfig, configSize);
-		ASSERT(sConfig);
+		if (sConfig == NULL) {
+			return false;
+		}
 
 		/* create the appropriate SDP attribute */
 		char* sdpBuf = (char*)malloc(strlen(sConfig) + 128);
@@ -98,7 +100,9 @@ extern "C" bool MP4AV_Rfc3016Hinter(
 	}
 
 	u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);
-	ASSERT(pSampleBuffer);
+	if (pSampleBuffer == NULL) {
+		return false;
+	}
 
 	for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
 		u_int32_t sampleSize = maxSampleSize;

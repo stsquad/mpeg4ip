@@ -22,7 +22,7 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 /*
- * $Id: config.c,v 1.7 2002/01/11 00:55:17 wmaycisco Exp $
+ * $Id: config.c,v 1.8 2002/07/05 17:34:27 wmaycisco Exp $
  */
 
 #ifdef WIN32
@@ -47,19 +47,12 @@ int get_adts_header(faacDecHandle hDecoder)
     faad_byte_align(&hDecoder->ld);
 
     sync = faad_showbits(&hDecoder->ld, 12);
-    if (sync != 4096 - 1) {
-        faad_flushbits(&hDecoder->ld, 8);
-
-#if 0
-// commented out wmay
-        /* Just for safety, try again */
-        sync = faad_showbits(&hDecoder->ld, 12);
-        if (sync != 4096 - 1) {
-            return -1;
-        }
-#else
+    while (sync != 4096 - 1) {
+      faad_flushbits(&hDecoder->ld, 8);
+      if (faad_bits_done(&hDecoder->ld) != 0) {
 	return -1;
-#endif
+      }
+      sync = faad_showbits(&hDecoder->ld, 12);
     }
     faad_flushbits(&hDecoder->ld, 12);
 

@@ -291,7 +291,7 @@ int CPlayerSession::sync_thread_wait_audio (void)
     } else {
       // make sure we set the current time
       get_current_time();
-      sync_message(LOG_DEBUG, "Current time is %llx", m_current_time);
+      sync_message(LOG_DEBUG, "Current time is %llu", m_current_time);
       return (SYNC_STATE_PLAYING);
     }
   }
@@ -471,6 +471,10 @@ int CPlayerSession::sync_thread (int state)
       m_session_state = SESSION_DONE;
       break;
     case SYNC_STATE_EXIT:
+      if (m_video_sync != NULL) 
+	m_video_sync->flush_sync_buffers();
+      if (m_audio_sync != NULL) 
+	m_audio_sync->flush_sync_buffers();
       break;
     }
   }

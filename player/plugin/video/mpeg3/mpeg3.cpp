@@ -122,7 +122,7 @@ static int mpeg3_decode (codec_data_t *ptr,
   }
 #endif
 	
-  mpeg3bits_use_ptr_len(video->vstream, buffer, buflen + 3);
+  mpeg3bits_use_ptr_len(video->vstream, (unsigned char *)buffer, buflen + 3);
   if (video->decoder_initted == 0) {
     mpeg3video_get_header(video, 1);
     if (video->found_seqhdr != 0) {
@@ -140,8 +140,9 @@ static int mpeg3_decode (codec_data_t *ptr,
       mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "didnt find seq header in frame %llu", ts);
       return buflen;
     }
-    mpeg3->m_did_pause = 0;
-  } else {
+    mpeg3->m_did_pause = 1;
+    mpeg3->m_got_i = 0;
+  } 
     if (mpeg3->m_did_pause) {
       if (mpeg3->m_got_i == 0) {
 	int ret;
@@ -161,7 +162,7 @@ static int mpeg3_decode (codec_data_t *ptr,
 	}
       }
     }
-  }
+
   char *y, *u, *v;
 
 #if 0
@@ -183,7 +184,7 @@ static int mpeg3_decode (codec_data_t *ptr,
     
   y = NULL;
   ret = mpeg3video_read_yuvframe_ptr(video,
-				     buffer,
+				     (unsigned char *)buffer,
 				     buflen + 3,
 				     &y,
 				     &u,

@@ -24,15 +24,22 @@
 #include "mpeg4ip_getopt.h"
 
 // forward declarations
-void PrintTrackList(const char* mp4FileName);
 
 MP4TrackId* CreateMediaTracks(
-	MP4FileHandle mp4File, const char* inputFileName);
+	MP4FileHandle mp4File, 
+	const char* inputFileName);
 
 void CreateHintTrack(
-	MP4FileHandle mp4File, MP4TrackId mediaTrackId,
-	const char* payloadName, bool interleave, u_int16_t maxPayloadSize);
+	MP4FileHandle mp4File, 
+	MP4TrackId mediaTrackId,
+	const char* payloadName, 
+	bool interleave, 
+	u_int16_t maxPayloadSize);
 
+void ExtractTrack(
+	MP4FileHandle mp4File, 
+	MP4TrackId trackId, 
+	const char* outputFileName);
 
 // external declarations
 
@@ -58,6 +65,7 @@ int main(int argc, char** argv)
 		"  Options:\n"
 		"  -create=<input-file>    Create track from <input-file>\n"
 		"    input files can be of type: .aac .mp3 .divx .mp4v .m4v .cmp .xvid\n"
+		"  -extract=<track-id>     Extract a track\n"
 		"  -delete=<track-id>      Delete a track\n"
 		"  -hint[=<track-id>]      Create hint track, also -H\n"
 		"  -interleave             Use interleaved audio payload format, also -I\n"
@@ -73,6 +81,7 @@ int main(int argc, char** argv)
 		;
 
 	bool doCreate = false;
+	bool doExtract = false;
 	bool doDelete = false;
 	bool doHint = false;
 	bool doList = false;
@@ -80,8 +89,10 @@ int main(int argc, char** argv)
 	bool doInterleave = false;
 	char* mp4FileName = NULL;
 	char* inputFileName = NULL;
+	char* outputFileName = NULL;
 	char* payloadName = NULL;
 	MP4TrackId hintTrackId = MP4_INVALID_TRACK_ID;
+	MP4TrackId extractTrackId = MP4_INVALID_TRACK_ID;
 	MP4TrackId deleteTrackId = MP4_INVALID_TRACK_ID;
 	u_int16_t maxPayloadSize = 1460;
 
@@ -98,6 +109,7 @@ int main(int argc, char** argv)
 		static struct option long_options[] = {
 			{ "create", 1, 0, 'c' },
 			{ "delete", 1, 0, 'd' },
+			{ "extract", 1, 0, 'e' },
 			{ "help", 0, 0, '?' },
 			{ "hint", 2, 0, 'H' },
 			{ "interleave", 0, 0, 'I' },
@@ -112,7 +124,7 @@ int main(int argc, char** argv)
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "c:d:H::Ilm:Op:r:t:v::V",
+		c = getopt_long_only(argc, argv, "c:d:e:H::Ilm:Op:r:t:v::V",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -131,6 +143,15 @@ int main(int argc, char** argv)
 				exit(EXIT_COMMAND_LINE);
 			}
 			doDelete = true;
+			break;
+		case 'e':
+			if (sscanf(optarg, "%u", &extractTrackId) != 1) {
+				fprintf(stderr, 
+					"%s: bad track-id specified: %s\n",
+					 ProgName, optarg);
+				exit(EXIT_COMMAND_LINE);
+			}
+			doExtract = true;
 			break;
 		case 'H':
 			doHint = true;
@@ -220,14 +241,22 @@ int main(int argc, char** argv)
 		exit(EXIT_COMMAND_LINE);
 	}
 
-	// if it appears we have two file names, then assume -c for the first
-	if ((argc - optind) == 2 && inputFileName == NULL) {
-		doCreate = true;
-		inputFileName = argv[optind++];
+	if ((argc - optind) == 1) {
+		mp4FileName = argv[optind++];
+	} else {
+		// it appears we have two file names
+		if (doExtract) {
+			mp4FileName = argv[optind++];
+			outputFileName = argv[optind++];
+		} else {
+			if (inputFileName == NULL) {
+				// then assume -c for the first file name
+				doCreate = true;
+				inputFileName = argv[optind++];
+			}
+			mp4FileName = argv[optind++];
+		}
 	}
-
-	// point to the specified mp4 file name
-	mp4FileName = argv[optind++];
 
 	// warn about extraneous non-option arguments
 	if (optind < argc) {
@@ -238,18 +267,30 @@ int main(int argc, char** argv)
 		fprintf(stderr, "\n");
 	}
 
-	// consistency checks
+	// operations consistency checks
 
-	if (!doList && !doCreate && !doHint && !doOptimize && !doDelete) {
+	if (!doList && !doCreate && !doHint 
+	  && !doOptimize && !doExtract && !doDelete) {
 		fprintf(stderr, 
 			"%s: no operation specified\n",
 			 ProgName);
 		exit(EXIT_COMMAND_LINE);
 	}
-
-	if (doDelete && (doCreate || doHint)) {
+	if ((doCreate || doHint) && doExtract) {
+		fprintf(stderr, 
+			"%s: extract operation must be done separately\n",
+			 ProgName);
+		exit(EXIT_COMMAND_LINE);
+	}
+	if ((doCreate || doHint) && doDelete) {
 		fprintf(stderr, 
 			"%s: delete operation must be done separately\n",
+			 ProgName);
+		exit(EXIT_COMMAND_LINE);
+	}
+	if (doExtract && doDelete) {
+		fprintf(stderr, 
+			"%s: extract and delete operations must be done separately\n",
 			 ProgName);
 		exit(EXIT_COMMAND_LINE);
 	}
@@ -258,7 +299,17 @@ int main(int argc, char** argv)
 
 	if (doList) {
 		// just want the track listing
-		PrintTrackList(mp4FileName);
+		char* info = MP4Info(mp4FileName);
+
+		if (!info) {
+			fprintf(stderr, 
+				"%s: can't open %s\n", 
+				ProgName, mp4FileName);
+			exit(EXIT_INFO);
+		}
+
+		fputs(info, stdout);
+		free(info);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -339,6 +390,31 @@ int main(int argc, char** argv)
 			MP4MakeIsmaCompliant(mp4FileName, Verbosity, allMpeg4Streams);
 		}
 
+
+	} else if (doExtract) {
+		if (!mp4FileExists) {
+			fprintf(stderr,
+				"%s: can't extract track in file that doesn't exist\n", 
+				ProgName);
+			exit(EXIT_CREATE_FILE);
+		}
+
+		mp4File = MP4Read(mp4FileName, Verbosity);
+		if (!mp4File) {
+			// mp4 library should have printed a message
+			exit(EXIT_CREATE_FILE);
+		}
+
+		char tempName[PATH_MAX];
+		if (outputFileName == NULL) {
+			snprintf(tempName, sizeof(tempName), 
+				"%s.t%u", mp4FileName, extractTrackId);
+			outputFileName = tempName;
+		}
+
+		ExtractTrack(mp4File, extractTrackId, outputFileName);
+
+		MP4Close(mp4File);
 
 	} else if (doDelete) {
 		if (!mp4FileExists) {
@@ -508,25 +584,101 @@ void CreateHintTrack(MP4FileHandle mp4File, MP4TrackId mediaTrackId,
 	}
 }
 
-void PrintTrackList(const char* mp4FileName)
+void ExtractTrack(
+	MP4FileHandle mp4File, 
+	MP4TrackId trackId, 
+	const char* outputFileName)
 {
-	MP4FileHandle mp4File = MP4Read(mp4FileName, Verbosity);
+	int outFd = open(outputFileName, 
+			O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
-	if (!mp4File) {
-		fprintf(stderr, "%s: couldn't open %s: %s", 
-			ProgName, mp4FileName, strerror(errno));
-		exit(1);
+	if (outFd == -1) {
+		fprintf(stderr, "%s: can't open %s: %s\n",
+			ProgName, outputFileName, strerror(errno));
+		exit(EXIT_EXTRACT_TRACK);
 	}
 
-	u_int32_t numTracks = MP4GetNumberOfTracks(mp4File);
+	// some track types have special needs
+	// to properly recreate their raw ES file
 
-	printf("Id\tType\n");
-	for (u_int32_t i = 0; i < numTracks; i++) {
-		MP4TrackId trackId = MP4FindTrackId(mp4File, i);
-		const char* trackType = MP4GetTrackType(mp4File, trackId);
-		printf("%u\t%s\n", trackId, trackType);
+	bool prependES = false;
+	bool prependADTS = false;
+
+	const char* trackType =
+		MP4GetTrackType(mp4File, trackId);
+
+	if (!strcmp(trackType, MP4_VIDEO_TRACK_TYPE)) {
+		if (MP4_IS_MPEG4_VIDEO_TYPE(MP4GetTrackVideoType(mp4File, trackId))) {
+			prependES = true;
+		}
+	} else if (!strcmp(trackType, MP4_AUDIO_TRACK_TYPE)) {
+		if (MP4_IS_AAC_AUDIO_TYPE(MP4GetTrackAudioType(mp4File, trackId))) {
+			prependADTS = true;
+		}
 	}
 
-	MP4Close(mp4File);
+	MP4SampleId numSamples = 
+		MP4GetTrackNumberOfSamples(mp4File, trackId);
+	u_int8_t* pSample;
+	u_int32_t sampleSize;
+
+	// extraction loop
+	for (MP4SampleId sampleId = 1 ; sampleId <= numSamples; sampleId++) {
+		int rc;
+
+		// signal to ReadSample() 
+		// that it should malloc a buffer for us
+		pSample = NULL;
+		sampleSize = 0;
+
+		if (prependADTS) {
+			// need some very specialized work for these
+			MP4AV_AdtsMakeFrameFromMp4Sample(
+				mp4File,
+				trackId,
+				sampleId,
+				&pSample,
+				&sampleSize);
+		} else {
+			// read the sample
+			rc = MP4ReadSample(
+				mp4File, 
+				trackId, 
+				sampleId, 
+				&pSample, 
+				&sampleSize);
+
+			if (rc == 0) {
+				fprintf(stderr, "%s: read sample %u for %s failed\n",
+					ProgName, sampleId, outputFileName);
+				exit(EXIT_EXTRACT_TRACK);
+			}
+
+			if (prependES && sampleId == 1) {
+				u_int8_t* pConfig = NULL;
+				u_int32_t configSize = 0;
+
+				MP4GetTrackESConfiguration(mp4File, trackId, 
+					&pConfig, &configSize);
+
+				write(outFd, pConfig, configSize);
+
+				free(pConfig);
+			}
+		}
+
+		rc = write(outFd, pSample, sampleSize);
+
+		if (rc == -1 || (u_int32_t)rc != sampleSize) {
+			fprintf(stderr, "%s: write to %s failed: %s\n",
+				ProgName, outputFileName, strerror(errno));
+			exit(EXIT_EXTRACT_TRACK);
+		}
+
+		free(pSample);
+	}
+
+	// close ES file
+	close(outFd);
 }
 
