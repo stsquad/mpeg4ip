@@ -21,7 +21,7 @@
 
 #include "mp4.h"
 
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	char* fileName;
 	u_int32_t verbosity = 0;

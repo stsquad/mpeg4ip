@@ -75,7 +75,12 @@ void MP4Integer64Property::Dump(FILE* pFile, u_int32_t index)
 {
 	ASSERT(m_pParentAtom);
 	Indent(pFile, m_pParentAtom->GetDepth() + 1);
-	fprintf(pFile, "%s = %llu (0x%016x)\n", 
+	fprintf(pFile, 
+#ifdef WIN32
+		"%s = "LLU" (0x%016I64x)\n", 
+#else
+		"%s = "LLU" (0x%016llx)\n", 
+#endif
 		m_name, m_values[index], m_values[index]);
 }
 
@@ -106,7 +111,12 @@ void MP4BitfieldProperty::Dump(FILE* pFile, u_int32_t index)
 	if (hexWidth == 0 || (m_numBits % 4)) {
 		hexWidth++;
 	}
-	fprintf(pFile, "%s = %llu (0x%0*llx) <%u bits>\n", 
+	fprintf(pFile, 
+#ifdef WIN32
+		"%s = "LLU" (0x%0*I64) <%u bits>\n", 
+#else
+		"%s = "LLU" (0x%0*llx) <%u bits>\n", 
+#endif
 		m_name, m_values[index], (int)hexWidth, m_values[index], m_numBits);
 }
 
@@ -116,8 +126,8 @@ void MP4Float32Property::Dump(FILE* pFile, u_int32_t index)
 {
 	ASSERT(m_pParentAtom);
 	Indent(pFile, m_pParentAtom->GetDepth() + 1);
-	fprintf(pFile, "%s = %f (0x%08x)\n", 
-		m_name, m_values[index], m_values[index]);
+	fprintf(pFile, "%s = %f\n", 
+		m_name, m_values[index]);
 }
 
 // MP4StringProperty
@@ -153,7 +163,7 @@ void MP4StringProperty::Dump(FILE* pFile, u_int32_t index)
 	ASSERT(m_pParentAtom);
 	Indent(pFile, m_pParentAtom->GetDepth() + 1);
 	if (m_useUnicode) {
-		fprintf(pFile, "%s = %ls\n", m_name, m_values[index]);
+		fprintf(pFile, "%s = %ls\n", m_name, (wchar_t*)m_values[index]);
 	} else {
 		fprintf(pFile, "%s = %s\n", m_name, m_values[index]);
 	}

@@ -152,7 +152,7 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 	*pNumBytes = GetSampleSize(sampleId);
 
 	VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
-		printf("ReadSample: offset 0x%llx size %u (0x%x)\n",
+		printf("ReadSample: offset 0x"LLX" size %u (0x%x)\n",
 			fileOffset, *pNumBytes, *pNumBytes));
 
 	*ppBytes = (u_int8_t*)MP4Malloc(*pNumBytes);
@@ -165,7 +165,7 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 			GetSampleTimes(sampleId, pStartTime, pDuration);
 
 			VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
-				printf("ReadSample:  start %llu duration %u\n",
+				printf("ReadSample:  start "LLU" duration "LLD"\n",
 					(pStartTime ? *pStartTime : 0), 
 					(pDuration ? *pDuration : 0)));
 		}
@@ -173,7 +173,7 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 			*pRenderingOffset = GetSampleRenderingOffset(sampleId);
 
 			VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
-				printf("ReadSample:  renderingOffset %u\n",
+				printf("ReadSample:  renderingOffset "LLD"\n",
 					*pRenderingOffset));
 		}
 		if (pIsSyncSample) {

@@ -21,9 +21,9 @@
 
 #include "mp4.h"
 
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
-	// TBD option for which track
+	// TBD option for list of tracks and selection of which track
 	char* fileName;
 	u_int32_t verbosity = 0;
 
@@ -64,7 +64,8 @@ main(int argc, char** argv)
 
 		for (MP4SampleId sampleId = 1; sampleId <= numSamples; sampleId++) {
 			MP4ReadSample(mp4File, trackId, sampleId, &pSample, &sampleSize);
-			if (write(trackFd, pSample, sampleSize) != sampleSize) {
+			int rc = write(trackFd, pSample, sampleSize);
+			if (rc == -1 || (u_int32_t)rc != sampleSize) {
 				fprintf(stderr, "%s: write to %s failed: %s\n",
 					argv[0], trackFileName, strerror(errno));
 				break;

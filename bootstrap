@@ -74,6 +74,11 @@ then
 ACLOCAL_FLAGS="-I /usr/local/share/aclocal $ACLOCAL_FLAGS"
 fi
 
+if test -e /usr/contrib/share/aclocal
+then
+ACLOCAL_FLAGS="-I /usr/contrib/share/aclocal $ACLOCAL_FLAGS"
+fi
+
 pwd=`pwd`
 for	dir \
 in	$pwd/server/lib/sndfile $pwd/lib/SDL $pwd/lib/rtp 
@@ -88,7 +93,7 @@ done
 
 cd $pwd 
 # top level - we're using autoheader, which needs to be after aclocal  
-aclocal || aclocal $ACLOCAL_FLAGS || exit 3
+aclocal || aclocal $ACLOCAL_FLAGS || aclocal -I util || aclocal -I util $ACLOCAL_FLAGS || exit 3
 autoheader || exit 1
 automake --add-missing --foreign || exit 1
 autoconf || exit 1

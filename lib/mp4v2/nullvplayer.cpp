@@ -95,6 +95,8 @@ main(int argc, char** argv)
 	// e.g.
 	// MP4SampleId newSampleId = MP4GetSampleIdFromTime(mp4File, when, true); 
 	// MP4ReadSample(mp4File, trackId, newSampleId, ...);
+	// 
+	// Note that start time for sample may be later than 'when'
 
 	exit(0);
 }

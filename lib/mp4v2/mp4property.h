@@ -49,6 +49,7 @@ public:
 		m_readOnly = false;
 		m_implicit = false;
 	}
+	virtual ~MP4Property() { }
 
 	MP4Atom* GetParentAtom() {
 		return m_pParentAtom;

@@ -52,8 +52,8 @@ extern "C" MP4FileHandle MP4Clone(char* existingFileName,
 	char* newFileName, u_int32_t verbosity)
 {
 	try {
-		return (MP4FileHandle)
-			(new MP4File(existingFileName, newFileName, "c", verbosity));
+		return (MP4FileHandle)NULL;
+			// TBD (new MP4File(existingFileName, newFileName, "c", verbosity));
 	}
 	catch (MP4Error* e) {
 		VERBOSE_ERROR(verbosity, e->Print());
@@ -64,7 +64,7 @@ extern "C" MP4FileHandle MP4Clone(char* existingFileName,
 extern "C" int MP4Close(MP4FileHandle hFile)
 {
 	try {
-		((MP4File*)hFile)->Close(hFile);
+		((MP4File*)hFile)->Close();
 		delete (MP4File*)hFile;
 		return 0;
 	}
@@ -726,7 +726,8 @@ extern "C" MP4SampleId MP4GetSampleIdFromTime(
 	bool wantSyncSample)
 {
 	try {
-		((MP4File*)hFile)->GetSampleIdFromTime(trackId, when, wantSyncSample);
+		return ((MP4File*)hFile)->GetSampleIdFromTime(
+			trackId, when, wantSyncSample);
 	}
 	catch (MP4Error* e) {
 		PRINT_ERROR(e);

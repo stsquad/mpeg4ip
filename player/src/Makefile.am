@@ -46,7 +46,13 @@ libmp4player_la_SOURCES = \
 	video.cpp \
 	$(EXTRA_libmp4player_la_SOURCES)
 
-bin_PROGRAMS = mp4player gmp4player
+if NO_GLIB_GTK
+PROG_E1 =
+else
+PROG_E1 = gmp4player
+endif
+
+bin_PROGRAMS = mp4player $(PROG_E1)
 
 check_PROGRAMS = movplayer
 
@@ -61,7 +67,7 @@ gmp4player_SOURCES = \
 movplayer_SOURCES = player_util.c \
 	movplayer.cpp
 
-INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib @GLIB_CFLAGS@ @GTK_CFLAGS@
+INCLUDES = -I. -I$(top_srcdir)/common/video/mpeg4 -I./codec -I./codec/mpeg4 -I../lib -I../lib/audio -I$(top_srcdir)/lib/SDL/include -I$(top_srcdir)/lib/mp4 -I$(top_srcdir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/avi -I$(top_srcdir)/lib @GLIB_CFLAGS@ @GTK_CFLAGS@ @SDL_CFLAGS@ @X_CFLAGS@
 
 AM_CFLAGS= -D_REENTRANT -Werror -Wall -Wpointer-arith -Wcast-align -Wmissing-prototypes 
 

@@ -27,6 +27,7 @@ public:
 	MP4Descriptor(u_int8_t tag = 0) {
 		m_tag = tag;
 	}
+	virtual ~MP4Descriptor() { }
 
 	u_int8_t GetTag() {
 		return m_tag;

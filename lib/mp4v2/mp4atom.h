@@ -25,6 +25,12 @@
 class MP4Atom;
 MP4ARRAY_DECL(MP4Atom, MP4Atom*);
 
+#define Required	true
+#define Optional	false
+#define OnlyOne		true
+#define Many		false
+#define Counted		true
+
 /* helper class */
 class MP4AtomInfo {
 public:
@@ -57,6 +63,7 @@ public:
 		m_size = 0;
 		m_pParentAtom = NULL;
 	}
+	virtual ~MP4Atom() { };
 
 	static MP4Atom* ReadAtom(MP4File* pFile, MP4Atom* pParentAtom);
 	static MP4Atom* CreateAtom(char* type);

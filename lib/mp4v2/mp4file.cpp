@@ -57,7 +57,7 @@ MP4File::MP4File(char* fileName, char* mode, u_int32_t verbosity)
 
 MP4File::~MP4File()
 {
-	MP4Close();
+	Close();
 	MP4Free(m_fileName);
 }
 
@@ -114,7 +114,7 @@ void MP4File::Read()
 
 void MP4File::StartWrite()
 {
-	m_pRootAtom->StartWrite();
+	// TBD ((MP4RootAtom*)m_pRootAtom)->StartWrite();
 }
 
 void MP4File::EndWrite()

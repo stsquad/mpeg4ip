@@ -5,11 +5,11 @@
  *  (c) 1996 Observatoire de Paris - Meudon - France
  *  see LICENSE for terms, conditions and DISCLAIMER OF ALL WARRANTIES
  *
- * $Id: http.c,v 1.6 2001/09/10 22:10:51 wmaycisco Exp $
+ * $Id: http.c,v 1.7 2001/09/10 23:49:13 wmaycisco Exp $
  *
  * $Log: http.c,v $
- * Revision 1.6  2001/09/10 22:10:51  wmaycisco
- * Sync Sep 10, 2001, 3:15PM PDT
+ * Revision 1.7  2001/09/10 23:49:13  wmaycisco
+ * Sync Sept 10, 2001 4:54 PM PDT
  *
  * Revision 1.2  2001/08/03 22:34:57  wmay
  * RH6.1 compile items
