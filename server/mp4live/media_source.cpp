@@ -238,8 +238,8 @@ bool CMediaSource::InitVideo(
 #endif
 
   m_videoWantKeyFrame = true;
-  m_videoEncodingDrift = 0;
-  m_videoEncodingMaxDrift = m_videoDstFrameDuration;
+  //m_videoEncodingDrift = 0;
+  //m_videoEncodingMaxDrift = m_videoDstFrameDuration;
   m_videoSrcElapsedDuration = 0;
   m_videoDstElapsedDuration = 0;
   m_otherTotalDrift = 0;
@@ -353,10 +353,9 @@ void CMediaSource::ProcessVideoYUVFrame(
   m_videoSrcElapsedDuration = srcFrameTimestamp - m_videoStartTimestamp;
 
 #ifdef DEBUG_VIDEO_SYNC
-  debug_message("vsrc# %d srcDuration="U64" dst# %d dstDuration "U64" encDrift "U64,
+  debug_message("vsrc# %d srcDuration="U64" dst# %d dstDuration "U64,
                 m_videoSrcFrameNumber, m_videoSrcElapsedDuration,
-                m_videoDstFrameNumber, m_videoDstElapsedDuration,
-                m_videoEncodingDrift);
+                m_videoDstFrameNumber, m_videoDstElapsedDuration);
 #endif
 
   // destination gets ahead of source

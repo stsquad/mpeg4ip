@@ -33,6 +33,7 @@ static const uint32_t ffmpeg_bit_rates[] = {
   112000, 128000, 160000, 192000, 224000, 256000, 320000
 };
 
+
 static int get_index_for_samplerate (uint32_t sr)
 {
   unsigned int ix;
@@ -74,6 +75,59 @@ audio_encoder_table_t ffmpeg_audio_encoder_table =  {
   ffmpeg_bitrate_for_samplerate,
   2
 };
+
+// these are for AMR
+ 
+static const uint32_t ffmpeg_amr_sample_rates[] = {
+  8000, 16000, 
+};
+ 
+static uint32_t *ffmpeg_amr_bitrate_for_samplerate (uint32_t samplerate, 
+ 						    uint8_t chans,
+ 						    uint32_t *ret_size)
+{
+  uint32_t *ret = (uint32_t *)malloc(16 * sizeof(uint32_t));
+   
+  if (samplerate == 8000) {
+    ret[0] = 4750 * chans;
+    ret[1] = 5150 * chans;
+    ret[2] = 5900 * chans;
+    ret[3] = 6700 * chans;
+    ret[4] = 7400 * chans;
+    ret[5] = 7950 * chans;
+    ret[6] = 10200 * chans;
+    ret[7] = 12200 * chans;
+    *ret_size = 8;
+  }
+  else if (samplerate == 16000) {
+    ret[0] = 6600 * chans;
+    ret[1] = 8850 * chans;
+    ret[2] = 12650 * chans;
+    ret[3] = 14250 * chans;
+    ret[4] = 15850 * chans;
+    ret[5] = 18250 * chans;
+    ret[6] = 19850 * chans;
+    ret[7] = 23050 * chans;
+    ret[8] = 23850 * chans;
+    *ret_size = 9;
+  }
+  else {
+    *ret_size = 0;
+  }
+   
+  return ret;
+}
+ 
+ audio_encoder_table_t ffmpeg_amr_audio_encoder_table =  {
+   "AMR",
+   VIDEO_ENCODER_FFMPEG,
+   AUDIO_ENCODING_AMR,
+   ffmpeg_amr_sample_rates,
+   NUM_ELEMENTS_IN_ARRAY(ffmpeg_amr_sample_rates),
+   ffmpeg_amr_bitrate_for_samplerate,
+   1
+ };
+ 
     
 MediaType ffmpeg_mp4_fileinfo (CLiveConfig *pConfig,
 			     bool *mpeg4,
@@ -83,15 +137,32 @@ MediaType ffmpeg_mp4_fileinfo (CLiveConfig *pConfig,
 			     uint32_t *audioConfigLen,
 			     uint8_t *mp4AudioType)
 {
-  *mpeg4 = true; // legal in an mp4 - create an iod
-  *isma_compliant = false;
-  *audioProfile = 0xfe;
-  *audioConfig = NULL;
-  *audioConfigLen = 0;
-  if (mp4AudioType != NULL) {
-    *mp4AudioType = MP4_MPEG1_AUDIO_TYPE;
+  const char *encodingName = pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+  if (!strcasecmp(encodingName, AUDIO_ENCODING_MP3)) {
+    *mpeg4 = true; // legal in an mp4 - create an iod
+    *isma_compliant = false;
+    *audioProfile = 0xfe;
+    *audioConfig = NULL;
+    *audioConfigLen = 0;
+    if (mp4AudioType != NULL) {
+      *mp4AudioType = MP4_MPEG1_AUDIO_TYPE;
+    } 
+    return MP3AUDIOFRAME;
+  } else if (!strcasecmp(encodingName, AUDIO_ENCODING_AMR)) {
+    *mpeg4 = false;
+    *isma_compliant = false;
+    *audioProfile = 0;
+    *audioConfig = NULL;
+    *audioConfigLen = 0;
+    if (mp4AudioType != NULL) {
+	*mp4AudioType = 0;
+    }
+    if (pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) == 8000) {
+      return AMRNBAUDIOFRAME;
+    } 
+    return AMRWBAUDIOFRAME;
   }
-  return MP3AUDIOFRAME;
+  return UNDEFINEDFRAME;
 }
 
 media_desc_t *ffmpeg_create_audio_sdp (CLiveConfig *pConfig,
@@ -104,9 +175,10 @@ media_desc_t *ffmpeg_create_audio_sdp (CLiveConfig *pConfig,
   media_desc_t *sdpMediaAudio;
   format_list_t *sdpMediaAudioFormat;
   rtpmap_desc_t *sdpAudioRtpMap;
+  MediaType type;
 
-  ffmpeg_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile,
-		    audioConfig, audioConfigLen, NULL);
+  type = ffmpeg_mp4_fileinfo(pConfig, mpeg4, isma_compliant, audioProfile,
+			     audioConfig, audioConfigLen, NULL);
 
   sdpMediaAudio = MALLOC_STRUCTURE(media_desc_t);
   memset(sdpMediaAudio, 0, sizeof(*sdpMediaAudio));
@@ -119,24 +191,36 @@ media_desc_t *ffmpeg_create_audio_sdp (CLiveConfig *pConfig,
   sdpAudioRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
   memset(sdpAudioRtpMap, 0, sizeof(*sdpAudioRtpMap));
 
-		
-  if (pConfig->GetBoolValue(CONFIG_RTP_USE_MP3_PAYLOAD_14)) {
-    sdpMediaAudioFormat->fmt = strdup("14");
-    sdpAudioRtpMap->clock_rate = 90000;
-  } else {
-    sdpAudioRtpMap->clock_rate = 
-      pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+  if (type == MP3AUDIOFRAME) {
+    if (pConfig->GetBoolValue(CONFIG_RTP_USE_MP3_PAYLOAD_14)) {
+      sdpMediaAudioFormat->fmt = strdup("14");
+      sdpAudioRtpMap->clock_rate = 90000;
+    } else {
+      sdpAudioRtpMap->clock_rate = 
+	pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+      sdpMediaAudioFormat->fmt = strdup("97");
+      sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
+			     "a=mpeg4-esid:10");
+    }
+    sdpAudioRtpMap->encode_name = strdup("MPA");
+  } else if (type == AMRNBAUDIOFRAME) {
+    sdpAudioRtpMap->encode_name = strdup("AMR");
+    sdpAudioRtpMap->clock_rate = 8000;
     sdpMediaAudioFormat->fmt = strdup("97");
     sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
-			   "a=mpeg4-esid:10");
+			   strdup("a=fmtp:97 octet-align=1"));
+
+  } else if (type == AMRWBAUDIOFRAME) {
+    sdpAudioRtpMap->encode_name = strdup("AMR-WB");
+    sdpAudioRtpMap->clock_rate = 8000;
+    sdpMediaAudioFormat->fmt = strdup("97");
+    sdp_add_string_to_list(&sdpMediaAudio->unparsed_a_lines,
+			   strdup("a=fmtp:97 octet-align=1"));
   }
-  sdpAudioRtpMap->encode_name = strdup("MPA");
   
   sdpMediaAudioFormat->rtpmap = sdpAudioRtpMap;
 	    
-	
   return sdpMediaAudio;
-
 }
 
 static bool ffmpeg_set_rtp_header (struct iovec *iov,
@@ -174,6 +258,32 @@ static bool ffmpeg_set_rtp_jumbo (struct iovec *iov,
   return true;
 }
 
+ // compile RTP payload from a queue of frames
+static int ffmpeg_amr_set_rtp_payload(CMediaFrame** m_audioQueue,
+ 				      int queue_cnt,
+ 				      struct iovec *iov,
+ 				      void *ud)
+{
+  uint8_t *payloadHeader = (uint8_t *)ud;
+  
+  payloadHeader[0] = 0xf0;
+  
+  for (int i = 0; i < queue_cnt; i++) {
+    // extract mode field + quality bit & set the follow bit
+    payloadHeader[i + 1] = (*(uint8_t*)m_audioQueue[i]->GetData() & 0x7C) | 0x80;
+    // body of the frame
+    iov[i + 1].iov_base = (uint8_t*)m_audioQueue[i]->GetData() + 1;
+    iov[i + 1].iov_len  = m_audioQueue[i]->GetDataLength() - 1;
+    //    printf("data len is %d\n", iov[i + 1].iov_len);
+  }
+  // clear the follow bit in the last TOC entry
+  payloadHeader[queue_cnt] &= 0x7F;
+  iov[0].iov_base = payloadHeader;
+  iov[0].iov_len  = queue_cnt + 1;
+  //  printf("hdr  len is %d\n\n", queue_cnt + 1);
+  return true;
+}
+
 bool ffmpeg_get_audio_rtp_info (CLiveConfig *pConfig,
 			      MediaType *audioFrameType,
 			      uint32_t *audioTimeScale,
@@ -181,52 +291,110 @@ bool ffmpeg_get_audio_rtp_info (CLiveConfig *pConfig,
 			      uint8_t *audioPayloadBytesPerPacket,
 			      uint8_t *audioPayloadBytesPerFrame,
 			      uint8_t *audioQueueMaxCount,
+				audio_set_rtp_payload_f *audio_set_rtp_payload,
 			      audio_set_rtp_header_f *audio_set_header,
 			      audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
 			      void **ud)
 {
-  *audioFrameType = MP3AUDIOFRAME;
-  if (pConfig->GetBoolValue(CONFIG_RTP_USE_MP3_PAYLOAD_14)) {
-    *audioPayloadNumber = 14;
-    *audioTimeScale = 90000;
-  } else {
-    *audioPayloadNumber = 97;
-    *audioTimeScale = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+  const char *encodingName = pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+  if (!strcasecmp(encodingName, AUDIO_ENCODING_MP3)) {
+
+    *audioFrameType = MP3AUDIOFRAME;
+    if (pConfig->GetBoolValue(CONFIG_RTP_USE_MP3_PAYLOAD_14)) {
+      *audioPayloadNumber = 14;
+      *audioTimeScale = 90000;
+    } else {
+      *audioPayloadNumber = 97;
+      *audioTimeScale = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+    }
+    *audioPayloadBytesPerPacket = 4;
+    *audioPayloadBytesPerFrame = 0;
+    *audioQueueMaxCount = 8;
+    *audio_set_header = ffmpeg_set_rtp_header;
+    *audio_set_jumbo = ffmpeg_set_rtp_jumbo;
+    *ud = malloc(4);
+    memset(*ud, 0, 4);
+    return true;
   }
-  *audioPayloadBytesPerPacket = 4;
-  *audioPayloadBytesPerFrame = 0;
-  *audioQueueMaxCount = 8;
-  *audio_set_header = ffmpeg_set_rtp_header;
-  *audio_set_jumbo = ffmpeg_set_rtp_jumbo;
-  *ud = malloc(4);
-  memset(*ud, 0, 4);
-  return true;
+  if (!strcasecmp(encodingName, AUDIO_ENCODING_AMR)) {
+    *audioTimeScale = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+    if (*audioTimeScale == 8000) {
+      *audioFrameType = AMRNBAUDIOFRAME;
+    } else {
+      *audioFrameType = AMRWBAUDIOFRAME;
+    }
+    *audioPayloadNumber = 97;
+    *audioPayloadBytesPerPacket = 4;
+    *audioPayloadBytesPerFrame = 0;
+    *audioQueueMaxCount = 5;
+    *audio_set_rtp_payload = ffmpeg_amr_set_rtp_payload;
+    *ud = malloc(10);
+    memset(*ud, 0, 10);
+    return true;
+  }
+  return false;
+	    
 }
 
 CFfmpegAudioEncoder::CFfmpegAudioEncoder()
 {
-	m_mp3FrameBuffer = NULL;
+	m_FrameBuffer = NULL;
 	m_codec = NULL;
 	m_avctx = NULL;
 }
 
 bool CFfmpegAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 {
+  const char *encoding = pConfig->GetStringValue(CONFIG_AUDIO_ENCODING);
+  uint32_t samplingRate = pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
+
   avcodec_init();
   avcodec_register_all();
 
   m_pConfig = pConfig;
 
-  m_codec = avcodec_find_encoder(CODEC_ID_MP2);
+  if (strcasecmp(encoding,AUDIO_ENCODING_MP3) == 0) {
+    m_codec = avcodec_find_encoder(CODEC_ID_MP2);
+    m_media_frame = MP3AUDIOFRAME;
+  } else if (strcasecmp(encoding, AUDIO_ENCODING_AMR) == 0) {
+    if (samplingRate == 8000) {
+      m_codec = avcodec_find_encoder(CODEC_ID_AMR_NB);
+      m_media_frame= AMRNBAUDIOFRAME;
+    } else {
+      m_codec = avcodec_find_encoder(CODEC_ID_AMR_WB);
+      m_media_frame = AMRWBAUDIOFRAME;
+    }
+  }
+    
+
   if (m_codec == NULL) {
-    error_message("Couldn't find codec");
+    error_message("Couldn't find audio codec");
     return false;
   }
   m_avctx = avcodec_alloc_context();
   m_frame = avcodec_alloc_frame();
 
   m_avctx->codec_type = CODEC_TYPE_AUDIO;
-  m_avctx->codec_id = CODEC_ID_MP2;
+  switch (m_media_frame) {
+  case MP3AUDIOFRAME:
+    m_avctx->codec_id = CODEC_ID_MP2;
+    m_samplesPerFrame = 
+      MP4AV_Mp3GetSamplingWindow(m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
+    m_FrameMaxSize = (u_int)(1.25 * m_samplesPerFrame) + 7200;
+    break;
+  case AMRNBAUDIOFRAME:
+    m_avctx->codec_id = CODEC_ID_AMR_NB;
+    m_samplesPerFrame = 
+      MP4AV_AmrGetSamplingWindow(8000);
+    m_FrameMaxSize = 64;
+    break;
+  case AMRWBAUDIOFRAME:
+    m_avctx->codec_id = CODEC_ID_AMR_WB;
+    m_samplesPerFrame = 
+      MP4AV_AmrGetSamplingWindow(16000);
+    m_FrameMaxSize = 64;
+    break;
+  }
   m_avctx->bit_rate = m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE);
   m_avctx->sample_rate = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
   m_avctx->channels = m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
@@ -235,18 +403,15 @@ bool CFfmpegAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
     error_message("Couldn't open ffmpeg codec");
     return false;
   }
-  m_samplesPerFrame = 
-    MP4AV_Mp3GetSamplingWindow(m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
 
-  m_mp3FrameMaxSize = (u_int)(1.25 * m_samplesPerFrame) + 7200;
 
-  m_mp3FrameBufferSize = 2 * m_mp3FrameMaxSize;
+  m_FrameBufferSize = 2 * m_FrameMaxSize;
 
-  m_mp3FrameBufferLength = 0;
+  m_FrameBufferLength = 0;
 
-  m_mp3FrameBuffer = (u_int8_t*)malloc(m_mp3FrameBufferSize);
+  m_FrameBuffer = (u_int8_t*)malloc(m_FrameBufferSize);
 
-  if (!m_mp3FrameBuffer) {
+  if (!m_FrameBuffer) {
     return false;
   }
   
@@ -267,23 +432,23 @@ bool CFfmpegAudioEncoder::EncodeSamples(
 		return false;	// invalid numChannels
 	}
 
-	u_int32_t mp3DataLength = 0;
+	u_int32_t DataLength = 0;
 
 	if (pSamples != NULL) { 
-	  mp3DataLength = 
+	  DataLength = 
 	    avcodec_encode_audio(m_avctx,
-				 m_mp3FrameBuffer,
-				 m_mp3FrameBufferSize,
+				 m_FrameBuffer,
+				 m_FrameBufferSize,
 				 pSamples);
 
 	} else {
 	  return false;
 	}
 
-	m_mp3FrameBufferLength += mp3DataLength;
+	m_FrameBufferLength += DataLength;
 	//	error_message("audio -return from ffmpeg_encode_buffer is %d %d", mp3DataLength, m_mp3FrameBufferLength);
 
-	return (mp3DataLength >= 0);
+	return (DataLength >= 0);
 }
 
 bool CFfmpegAudioEncoder::GetEncodedFrame(
@@ -291,42 +456,53 @@ bool CFfmpegAudioEncoder::GetEncodedFrame(
 	u_int32_t* pBufferLength,
 	u_int32_t* pNumSamplesPerChannel)
 {
-	const u_int8_t* mp3Frame;
-	u_int32_t mp3FrameLength;
+	const u_int8_t* frame;
+	u_int32_t frameLength;
 
 	// I'm not sure we actually need all this code; however, 
 	// it doesn't hurt.  It's copied from the lame interface
-
-	if (!MP4AV_Mp3GetNextFrame(m_mp3FrameBuffer, m_mp3FrameBufferLength, 
-	  &mp3Frame, &mp3FrameLength)) {
-	  //debug_message("Can't find frame header - len %d", m_mp3FrameBufferLength);
-		return false;
+	if (m_media_frame == MP3AUDIOFRAME) {
+	  if (!MP4AV_Mp3GetNextFrame(m_FrameBuffer, m_FrameBufferLength, 
+				     &frame, &frameLength)) {
+	    //debug_message("Can't find frame header - len %d", m_mp3FrameBufferLength);
+	    return false;
+	  }
+	  
+	  // check if we have all the bytes for the MP3 frame
+	} else if ((m_media_frame == AMRNBAUDIOFRAME) ||
+		   (m_media_frame == AMRWBAUDIOFRAME)) {
+	  
+	  frame = m_FrameBuffer;
+	  if (!MP4AV_AmrGetNextFrame(m_FrameBuffer, m_FrameBufferLength,
+				     &frameLength,
+				     m_media_frame == AMRNBAUDIOFRAME)) {
+	    return false;
+	  }
 	}
 
-	// check if we have all the bytes for the MP3 frame
-	if (mp3FrameLength > m_mp3FrameBufferLength) {
+	
+	if (frameLength > m_FrameBufferLength) {
 	  //debug_message("Not enough in buffer - %d %d", m_mp3FrameBufferLength, mp3FrameLength);
-		return false;
+	  return false;
 	}
-
 	// need a buffer for this MP3 frame
-	*ppBuffer = (u_int8_t*)malloc(mp3FrameLength);
+	*ppBuffer = (u_int8_t*)malloc(frameLength);
 	if (*ppBuffer == NULL) {
 	  error_message("Cannot alloc memory");
 		return false;
 	}
 
 	// copy the MP3 frame
-	memcpy(*ppBuffer, mp3Frame, mp3FrameLength);
-	*pBufferLength = mp3FrameLength;
+	memcpy(*ppBuffer, frame, frameLength);
+	*pBufferLength = frameLength;
 
 	// shift what remains in the buffer down
-	memcpy(m_mp3FrameBuffer, 
-		mp3Frame + mp3FrameLength, 
-		m_mp3FrameBufferLength - mp3FrameLength);
+	memcpy(m_FrameBuffer, 
+		frame + frameLength, 
+		m_FrameBufferLength - frameLength);
 	//	error_message("vers %d layer %d", MP4AV_Mp3GetHdrVersion(MP4AV_Mp3HeaderFromBytes(*ppBuffer)),
 	//      MP4AV_Mp3GetHdrLayer(MP4AV_Mp3HeaderFromBytes(*ppBuffer)));
-	m_mp3FrameBufferLength -= mp3FrameLength;
+	m_FrameBufferLength -= frameLength;
 
 	*pNumSamplesPerChannel = m_samplesPerFrame;
 
@@ -337,8 +513,27 @@ void CFfmpegAudioEncoder::Stop()
 {
   avcodec_close(m_avctx);
   m_avctx = NULL;
-  free(m_mp3FrameBuffer);
-  m_mp3FrameBuffer = NULL;
+  free(m_FrameBuffer);
+  m_FrameBuffer = NULL;
 }
 
+void InitFFmpegAudio (void)
+{
+  avcodec_init();
+  avcodec_register_all();
+  bool have_amr_nb = avcodec_find_encoder(CODEC_ID_AMR_NB) != NULL;
+  bool have_amr_wb = avcodec_find_encoder(CODEC_ID_AMR_WB) != NULL;
+
+  if (have_amr_nb == false && have_amr_wb == false) return;
+
+  if (have_amr_nb && have_amr_wb == false) {
+    ffmpeg_amr_audio_encoder_table.num_sample_rates = 1;
+  } else if (have_amr_nb == false && have_amr_wb) {
+    ffmpeg_amr_audio_encoder_table.num_sample_rates = 1;
+    ffmpeg_amr_audio_encoder_table.sample_rates = 
+      &ffmpeg_amr_sample_rates[1];
+  }
+  AddAudioEncoderTable(&ffmpeg_amr_audio_encoder_table);
+}
+    
 #endif

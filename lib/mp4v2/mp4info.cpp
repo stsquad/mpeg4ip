@@ -103,7 +103,7 @@ static char* PrintAudioInfo(
 	} else if (strcasecmp(media_data_name, "samr") == 0) {
 	    typeName = "AMR";
 	    foundType = true;
-	} else if (strcasecmp(media_data_name, "samr") == 0) {
+	} else if (strcasecmp(media_data_name, "sawb") == 0) {
 	    typeName = "AMR-WB";
 	    foundType = true;
 	} else if (strcasecmp(media_data_name, "mp4a") == 0) {
@@ -364,7 +364,7 @@ static char* PrintVideoInfo(
 	// type duration avgBitrate frameSize frameRate
 	if (foundTypeName) {
 	  sprintf(sInfo,
-		  "%u\tvideo\t%s%s, %.3f secs, %u kbps, %ux%u @ %f fps\n",
+		  "%u\tvideo\t%s%s, %.3f secs, %u kbps, %ux%u @ %.2f fps\n",
 		  trackId,
 		  MP4IsIsmaCrypMediaTrack(mp4File, trackId) ? "encv - " : "",
 		  typeName,
@@ -376,7 +376,7 @@ static char* PrintVideoInfo(
 		  );
 	} else {
 	  sprintf(sInfo,
-		  "%u\tvideo\t%s(%u), %.3f secs, %u kbps, %ux%u @ %f fps\n",
+		  "%u\tvideo\t%s(%u), %.3f secs, %u kbps, %ux%u @ %.2f fps\n",
 		  trackId,
 		  typeName,
 		  type, 

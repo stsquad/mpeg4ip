@@ -53,7 +53,9 @@ codec_data_t *ac3_file_check (lib_message_func_t message,
 			     1, 
 			     ac3->m_buffer_size_max, 
 			     ac3->m_ifile);
-
+  int sample_rate, bit_rate, flags;
+  a52_syncinfo(ac3->m_buffer, &flags, &sample_rate, &bit_rate);
+  ac3->m_freq = sample_rate;
   return ((codec_data_t *)ac3);
 }
 

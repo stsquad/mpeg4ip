@@ -35,6 +35,8 @@ typedef u_int16_t MediaType;
 #define MP3AUDIOFRAME 		2
 #define AACAUDIOFRAME 		3
 #define VORBISAUDIOFRAME	5
+#define AMRNBAUDIOFRAME         6
+#define AMRWBAUDIOFRAME         7
 
 #define YUVVIDEOFRAME		11
 #define RGBVIDEOFRAME		12
@@ -44,6 +46,7 @@ typedef u_int16_t MediaType;
 #define H261VIDEOFRAME          16
 #define MPEG2VIDEOFRAME         17
 #define RAWPCMAUDIOFRAME	18
+#define H263VIDEOFRAME          19
 
 typedef void (*media_free_f)(void *);
 

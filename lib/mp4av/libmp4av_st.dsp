@@ -89,6 +89,10 @@ SOURCE=.\aac.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\ac3.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\adts.cpp
 # End Source File
 # Begin Source File

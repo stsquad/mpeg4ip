@@ -126,6 +126,7 @@ void CMp4Recorder::DoStartRecord()
   u_int32_t verbosity =
     MP4_DETAILS_ERROR /* DEBUG | MP4_DETAILS_WRITE_ALL */;
 
+  bool create = false;
   switch (m_pConfig->GetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS)) {
   case FILE_MP4_APPEND:
     m_mp4File = MP4Modify(
@@ -158,20 +159,40 @@ void CMp4Recorder::DoStartRecord()
 	}
       } while (ret == 0);
       m_mp4FileName = strdup(buffer);
-      m_mp4File = MP4Create(m_mp4FileName,
-			    verbosity, createFlags);
+      create = true;
       break;
     }
   }
     // else fall through
     
   case FILE_MP4_OVERWRITE:
-    m_mp4File = MP4Create(
-                          m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-                          verbosity, createFlags);
+    m_mp4FileName = 
+      strdup(m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME));
+    create = true;
     break;
   }
- 
+  if (create) {
+    if ((strcasecmp(m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODING), 
+		    VIDEO_ENCODING_H263) == 0) &&
+	(strcasecmp(m_pConfig->GetStringValue(CONFIG_AUDIO_ENCODING), 
+		    AUDIO_ENCODING_AMR) == 0)) {
+      static char* p3gppSupportedBrands[2] = {"3gp5", "3gp4"};
+
+      m_mp4File = MP4Create(m_mp4FileName,
+			    verbosity,
+			    createFlags,
+			    1,
+			    0,
+			    p3gppSupportedBrands[0],
+			    0x0001,
+			    p3gppSupportedBrands,
+			    NUM_ELEMENTS_IN_ARRAY(p3gppSupportedBrands));
+    } else {
+      m_mp4File = MP4Create(m_mp4FileName,
+			    verbosity, createFlags);
+    }
+  }
+    
   if (!m_mp4File) {
     return;
   }
@@ -224,26 +245,44 @@ void CMp4Recorder::DoStartRecord()
                                &videoConfig,
                                &videoConfigLen,
                                &videoType);
-						 
-      m_encodedVideoTrackId = MP4AddVideoTrack(
-                                               m_mp4File,
-                                               m_videoTimeScale,
-                                               MP4_INVALID_DURATION,
-                                               m_pConfig->m_videoWidth, 
-                                               m_pConfig->m_videoHeight,
-                                               videoType);
 
-      if (vIod == false) m_makeIod = false;
-      if (vIsma == false) m_makeIsmaCompliant = false;
-
-      if (m_encodedVideoTrackId == MP4_INVALID_TRACK_ID) {
-        error_message("can't create encoded video track");
-        goto start_failure;
+      if (m_encodedVideoFrameType == H263VIDEOFRAME) {
+	m_encodedVideoTrackId = MP4AddH263VideoTrack(m_mp4File,
+						     m_videoTimeScale,
+						     0,
+						     m_pConfig->m_videoWidth,
+						     m_pConfig->m_videoHeight,
+						     10,
+						     0,
+						     0, 
+						     0);
+	uint32_t bitrate = m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
+	// may need to do this at the end
+	MP4SetH263Bitrates(m_mp4File,
+			   m_encodedVideoTrackId,
+			   bitrate,
+			   bitrate);
+      } else {
+	m_encodedVideoTrackId = MP4AddVideoTrack(
+						 m_mp4File,
+						 m_videoTimeScale,
+						 MP4_INVALID_DURATION,
+						 m_pConfig->m_videoWidth, 
+						 m_pConfig->m_videoHeight,
+						 videoType);
+	
+	if (vIod == false) m_makeIod = false;
+	if (vIsma == false) m_makeIsmaCompliant = false;
+	
+	if (m_encodedVideoTrackId == MP4_INVALID_TRACK_ID) {
+	  error_message("can't create encoded video track");
+	  goto start_failure;
+	}
+	
+	MP4SetVideoProfileLevel(
+				m_mp4File, 
+				videoProfile);
       }
-
-      MP4SetVideoProfileLevel(
-                              m_mp4File, 
-                              videoProfile);
 
       if (videoConfigLen > 0) {
 	MP4SetTrackESConfiguration(
@@ -296,15 +335,27 @@ void CMp4Recorder::DoStartRecord()
                                &audioConfigLen,
                                &audioType);
 					       
-      if (createIod == false) m_makeIod = false;
-      if (isma_compliant == false) 
-        m_makeIsmaCompliant = false;
-      MP4SetAudioProfileLevel(m_mp4File, audioProfile);
-      m_encodedAudioTrackId = MP4AddAudioTrack(
-                                               m_mp4File, 
-                                               m_audioTimeScale, 
-                                               MP4_INVALID_DURATION,
-                                               audioType);
+      if (m_encodedAudioFrameType == AMRNBAUDIOFRAME ||
+	  m_encodedAudioFrameType == AMRWBAUDIOFRAME) {
+	m_encodedAudioTrackId = 
+	  MP4AddAmrAudioTrack(m_mp4File,
+			      m_encodedAudioFrameType == AMRNBAUDIOFRAME ? 
+			      8000 : 16000,
+			      0, 
+			      0, 
+			      1, 
+			      m_encodedAudioFrameType == AMRWBAUDIOFRAME);
+      } else {
+	if (createIod == false) m_makeIod = false;
+	if (isma_compliant == false) 
+	  m_makeIsmaCompliant = false;
+	MP4SetAudioProfileLevel(m_mp4File, audioProfile);
+	m_encodedAudioTrackId = MP4AddAudioTrack(
+						 m_mp4File, 
+						 m_audioTimeScale, 
+						 MP4_INVALID_DURATION,
+						 audioType);
+      }
 
       if (m_encodedAudioTrackId == MP4_INVALID_TRACK_ID) {
         error_message("can't create encoded audio track");
@@ -333,6 +384,12 @@ void CMp4Recorder::DoStartRecord()
 
 void CMp4Recorder::ProcessEncodedAudioFrame (CMediaFrame *pFrame)
 {
+  if (m_encodedAudioFrameType == AMRNBAUDIOFRAME ||
+      m_encodedAudioFrameType == AMRWBAUDIOFRAME) {
+    uint8_t decMode = *(uint8_t *)pFrame->GetData();
+    m_amrMode |= 1 << ((decMode >> 3) & 0xf);
+  }
+
     if (m_encodedAudioFrameNumber == 1) {
       m_encodedAudioStartTimestamp = pFrame->GetTimestamp();
       m_canRecordEncodedVideo = true;
@@ -462,6 +519,26 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 	  if (pFrame->RemoveReference()) delete pFrame;
 	  return;
 	}
+      } else if (pFrame->GetType() == H263VIDEOFRAME) {
+	// wait for an i frame
+	if ((pDataStart[4] & 0x02) != 0) {
+#if 0
+	int voptype =
+	    MP4AV_Mpeg4GetVopType(pDataStart,
+				  dataLen);
+	if (voptype != VOP_TYPE_I) {
+	  debug_message(U64" wrong vop type %d %02x %02x %02x %02x %02x", 
+			pFrame->GetTimestamp(),
+			voptype,
+			pDataStart[0],
+			pDataStart[1],
+			pDataStart[2],
+			pDataStart[3],
+			pDataStart[4]);
+#endif
+	  if (pFrame->RemoveReference()) delete pFrame;
+	  return;
+	}
       } else {
 	// MPEG2 video
 	int ret, ftype;
@@ -528,6 +605,15 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
       } else {
 	pData = (uint8_t *)m_prevEncodedVideoFrame->GetData();
       }
+    } else if (pFrame->GetType() == H263VIDEOFRAME) {
+      pData = (uint8_t *)m_prevEncodedVideoFrame->GetData();
+      isIFrame = ((pData[4] & 0x02) == 0);
+#if 0
+      isIFrame =
+	(MP4AV_Mpeg4GetVopType(pData,dataLen) == VOP_TYPE_I);
+      debug_message("frame %02x %02x %02x %d", pData[2], pData[3], pData[4],
+		    isIFrame);
+#endif
     } else {
       // mpeg2
       int ret, ftype;
@@ -724,6 +810,10 @@ void CMp4Recorder::DoStopRecord()
     if (m_prevEncodedAudioFrame->RemoveReference()) {
       delete m_prevEncodedAudioFrame;
     }
+    if (m_encodedAudioFrameType == AMRNBAUDIOFRAME ||
+	m_encodedAudioFrameType == AMRWBAUDIOFRAME) {
+      MP4SetAmrModeSet(m_mp4File, m_encodedAudioTrackId, m_amrMode);
+    }
   }
  
 
@@ -743,7 +833,8 @@ void CMp4Recorder::DoStopRecord()
     bool isIFrame;
     Duration rend_offset = 0;
     
-    if (m_prevEncodedVideoFrame->GetType() == MPEG4VIDEOFRAME) {
+    if (m_prevEncodedVideoFrame->GetType() == MPEG4VIDEOFRAME ||
+	m_prevEncodedVideoFrame->GetType() == H263VIDEOFRAME) {
       isIFrame = 
 	(MP4AV_Mpeg4GetVopType(
 			       (u_int8_t*) m_prevEncodedVideoFrame->GetData(),

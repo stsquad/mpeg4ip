@@ -162,8 +162,12 @@ typedef struct audio_encoder_table_t {
   uint32_t max_channels;
 } audio_encoder_table_t;
 
-extern audio_encoder_table_t *audio_encoder_table[];
-extern const uint32_t audio_encoder_table_size;
+void InitAudioEncoders(void);
+
+void AddAudioEncoderTable(audio_encoder_table_t *new_table);
+
+extern audio_encoder_table_t **audio_encoder_table;
+extern uint32_t audio_encoder_table_size;
 extern const uint32_t allSampleRateTable[];
 extern const uint32_t allSampleRateTableSize;
 

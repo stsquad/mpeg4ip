@@ -23,7 +23,7 @@
 #define __MPEG2PS_PRIVATE_H__ 1
 #include "mpeg4ip.h"
 
-static inline uint16_t convert16 (uint8_t *p)
+static __inline uint16_t convert16 (uint8_t *p)
 {
 #ifdef WORDS_BIGENDIAN
   return *(uint16_t *)p;
@@ -32,7 +32,7 @@ static inline uint16_t convert16 (uint8_t *p)
 #endif
 }
 
-static inline uint32_t convert32 (uint8_t *p)
+static __inline uint32_t convert32 (uint8_t *p)
 {
 #ifdef WORDS_BIGENDIAN
   return *(uint32_t *)p;

@@ -259,6 +259,7 @@ class CPlayerSession {
   void *m_video_persistence;
   int m_max_width;
   int m_max_height;
+  uint m_init_tries_made;
 };
 
 int c_sync_thread(void *data);

@@ -29,6 +29,7 @@ extern "C" {
 
   char *convert_url(const char *to_convert);
 
+  void set_global_loglevel(int loglevel);
   void open_log_file(const char *filename);
   void flush_log_file(void);
   void clear_log_file(void);

@@ -151,7 +151,7 @@ static bool open_library (plugin_list_t *p, const char *fname)
     NSObjectFileImageReturnCode ret;
     ret = NSCreateObjectFileImageFromFile(fname, &p->file_handle);
     if (ret != NSObjectFileImageSuccess) {
-      player_error_message("error on file %s", fname);
+      message(LOG_ERR, "plugin", "error on file %s", fname);
       return false;
     }
     p->dl_handle = NSLinkModule(p->file_handle, fname, 
@@ -164,7 +164,7 @@ static bool open_library (plugin_list_t *p, const char *fname)
       const char *fname, *errt;
       NSLinkEditErrors c;
       NSLinkEditError(&c, &err, &fname, &errt);
-      player_error_message("link error %d %s %s",
+      message(LOG_ERR, "plugin", "link error %d %s %s",
 			   err, fname, errt);
     }
     NSDestroyObjectFileImage(p->file_handle);

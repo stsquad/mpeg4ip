@@ -180,18 +180,36 @@ int CPlayerSession::process_msg_queue (int state)
 int CPlayerSession::sync_thread_init (void)
 {
   int ret = 1;
+
+  uint media_count = 0, media_initialized = 0;
+
   for (CPlayerMedia *mptr = m_my_media;
-       mptr != NULL && ret == 1;
+       mptr != NULL && ret >= 0;
        mptr = mptr->get_next()) {
     if (mptr->is_video()) {
       // initialize the video size from the player session information
+      media_count++;
       m_video_sync->set_screen_size(m_screen_scale);
       m_video_sync->set_fullscreen(m_fullscreen);
       ret = m_video_sync->initialize_video(m_session_name,
 					   m_screen_pos_x,
 					   m_screen_pos_y);
+      if (ret > 0) media_initialized++;
     } else {
+      media_count++;
       ret = m_audio_sync->initialize_audio(m_video_sync != NULL);
+      if (ret > 0) media_initialized++;
+    }
+  }
+  if (media_count > 0 && media_count == media_initialized) {
+    return (SYNC_STATE_WAIT_SYNC); 
+  } 
+
+  if (media_count > 0) {
+    m_init_tries_made++;
+    if (m_init_tries_made > 50) {
+      sync_message(LOG_CRIT, "One media is not initializing; it might not be receiving correctly");
+      ret = -1;
     }
   }
   if (ret == -1) {
@@ -210,9 +228,7 @@ int CPlayerSession::sync_thread_init (void)
     return (SYNC_STATE_DONE);
   }
 	
-  if (ret == 1) {
-    return (SYNC_STATE_WAIT_SYNC); 
-  } 
+
   CMsg *newmsg;
 
   newmsg = m_sync_thread_msg_queue.get_message();

@@ -48,6 +48,7 @@ public:
     m_canRecordRawVideo = false;
     m_canRecordEncodedVideo = false;
     m_mp4FileName = NULL;
+    m_amrMode = 0;
   }
 
   const char *GetRecordFileName(void) {
@@ -105,7 +106,8 @@ protected:
 
   bool                  m_canRecordRawVideo;
   bool                  m_canRecordEncodedVideo;
- 
+
+  uint16_t m_amrMode;
   void ProcessEncodedAudioFrame(CMediaFrame *pFrame);
   void ProcessEncodedVideoFrame(CMediaFrame *pFrame);
 };

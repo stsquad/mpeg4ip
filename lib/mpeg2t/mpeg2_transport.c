@@ -431,6 +431,7 @@ static int mpeg2t_process_pas (mpeg2t_t *ptr, const uint8_t *buffer)
       pid = ((mapptr[2] << 8) | mapptr[3]) & 0x1fff;
       if (mpeg2t_lookup_pid(ptr, pid) == NULL) {
 	create_pmap(ptr, prog_num, pid);
+	ptr->pas.programs++; // add to program count
       }
     } // else network information table
   }
@@ -540,6 +541,11 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
   /*
    * Now, add all elementary streams for this PMAP
    */
+  if (pmap_pid->received == 0) {
+    pmap_pid->received = 1;
+    ptr->program_maps_recvd++;
+    ptr->pas.programs_added++;
+  }
   while (len < section_len) {
     stream_type = pmapptr[0];
     e_pid = ((pmapptr[1] << 8) | pmapptr[2]) & 0x1fff;
@@ -548,7 +554,6 @@ static int mpeg2t_process_pmap (mpeg2t_t *ptr,
     if (mpeg2t_lookup_pid(ptr, e_pid) == NULL) {
       mpeg2t_message(LOG_NOTICE, "Creating es pid %x", e_pid);
       create_es(ptr, e_pid, pmap_pid->program_number, stream_type, &pmapptr[5], es_len);
-      ptr->program_maps_recvd++;
     }
     // create_es
     len += 5 + es_len;
@@ -890,7 +895,26 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
       es_pid->report_psts != 0) ret = 1;
   return ret;
 }
-			    
+
+static void add_unknown_pid (mpeg2t_t *ptr, uint16_t rpid)
+{
+  mpeg2t_unk_pid_t *p = MALLOC_STRUCTURE(mpeg2t_unk_pid_t);
+  p->next_unk = ptr->unk_pids;
+  ptr->unk_pids = p;
+  p->pid = rpid;
+  p->count = 1;
+}
+  
+static mpeg2t_unk_pid_t *look_up_unknown_pid (mpeg2t_t *ptr, uint16_t rpid)
+{
+  mpeg2t_unk_pid_t *p = ptr->unk_pids;
+  while (p != NULL) {
+    if (p->pid == rpid) return p;
+    p = p->next_unk;
+  }
+  return NULL;
+}
+
 /*
  * mpeg2t_process_buffer - API routine that allows us to
  * process a buffer filled with transport streams
@@ -961,7 +985,26 @@ mpeg2t_pid_t *mpeg2t_process_buffer (mpeg2t_t *ptr,
 	  }
 	  break;
 	}
+      } else {
+	if (ptr->pas.programs_added >= ptr->pas.programs) {
+	  mpeg2t_unk_pid_t *unk;
+	  unk = look_up_unknown_pid(ptr, rpid);
+	  if (unk != NULL) {
+	    unk->count++;
+	    if ((unk->count % 1000) == 0) {
+	      mpeg2t_message(LOG_ERR, 
+			     "unknown pid %x received %u packets", 
+			     rpid, unk->count);
+	    }
+	  } else {
+	    add_unknown_pid(ptr, rpid);
+	  
+	    mpeg2t_message(LOG_ALERT, 
+			 "pid %x received - not in pas/program map table", rpid);
+	  }
+	}
       }
+			 
     }
 
     used += 188;
@@ -985,7 +1028,6 @@ mpeg2t_t *create_mpeg2_transport (void)
   ptr->pas.pid.pak_type = MPEG2T_PAS_PAK;
   ptr->pas.pid.next_pid = NULL;
   ptr->pas.pid.pid = 0;
-  ptr->pas.pid.collect_pes = 1;
   ptr->program_count = 0;
   ptr->program_maps_recvd = 0;
   ptr->pid_mutex = SDL_CreateMutex();
@@ -1019,6 +1061,7 @@ void delete_mpeg2t_transport (mpeg2t_t *ptr)
 {
   mpeg2t_pid_t *pidptr, *p;
   mpeg2t_pmap_t *pmap;
+  mpeg2t_unk_pid_t *unk;
 
   pidptr = ptr->pas.pid.next_pid;
 
@@ -1043,6 +1086,11 @@ void delete_mpeg2t_transport (mpeg2t_t *ptr)
     free(p);
   }
   clean_pid(&ptr->pas.pid);
+  while (ptr->unk_pids != NULL) {
+    unk = ptr->unk_pids;
+    ptr->unk_pids = unk->next_unk;
+    free(unk);
+  }
   SDL_DestroyMutex(ptr->pid_mutex);
   free(ptr);
 }

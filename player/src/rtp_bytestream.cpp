@@ -778,7 +778,7 @@ uint64_t CRtpByteStreamBase::rtp_ts_to_msec (uint32_t rtp_ts,
       ts_adder /= (int64_t)m_timescale;
       m_first_pak_ts += ts_adder;
       m_first_pak_rtp_ts = rtp_ts;
-#if 1 //def DEBUG_RTP_BCAST
+#ifdef DEBUG_RTP_BCAST
       rtp_message(LOG_DEBUG, "%s adjust for wrap - first pak ts is now "U64" rtp %u", 
 		  m_name, m_first_pak_ts, m_first_pak_rtp_ts);
 #endif

@@ -218,6 +218,7 @@ int main(int argc, char** argv)
 	  }
 	}
 
+	InitAudioEncoders();
 	/*
 	 * Read the config file so that any command line options can
 	 * overwrite them

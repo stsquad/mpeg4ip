@@ -31,3 +31,5 @@ mpeg2ps_test_LDADD = libmpeg2_program.la \
 	libmpeg2_program.la \
 	@SDL_LIBS@ 
 
+EXTRA_DIST=libmpeg2ps.dsp
+

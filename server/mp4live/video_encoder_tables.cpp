@@ -55,9 +55,24 @@ static  char* mpeg4SizeNames[] = {
 	"720 x 576 PAL CCIR601",
 	"768 x 576 PAL SQ Pixel"
 }; 
+static uint16_t h263SizeWidthValues[] = {
+  128, 176, 352, 704, 1408,
+};
+
+static uint16_t h263SizeHeightValues[] = {
+  96, 144, 288, 576, 1152,
+};
+static char *h263SizeNames[] = {
+  "128 x 93 SQCIF", 
+  "176 x 144 QCIF", 
+  "352 x 288 CIF", 
+  "704 x 576 CIF4", 
+  "1408 x 1152 CIF16",
+};
 #endif
 
 #define MPEG4_SIZES (sizeof(mpeg4SizeWidthValues) / sizeof(*mpeg4SizeWidthValues))
+#define H263_SIZES (NUM_ELEMENTS_IN_ARRAY(h263SizeWidthValues))
 
 const video_encoder_table_t video_encoder_table[] = {
 #if defined(HAVE_XVID_H) || defined(HAVE_XVID10)
@@ -117,6 +132,23 @@ const video_encoder_table_t video_encoder_table[] = {
     mpeg4SizeNames,
     mpeg4SizeNames,
     mpeg4SizeNames
+  },
+  {
+    "H263 - ffmpeg", 
+    VIDEO_ENCODING_H263,
+    VIDEO_ENCODER_FFMPEG,
+    H263_SIZES - 1,
+    H263_SIZES - 1,
+    H263_SIZES - 1,
+    h263SizeWidthValues,
+    h263SizeWidthValues,
+    h263SizeWidthValues,
+    h263SizeHeightValues,
+    h263SizeHeightValues,
+    h263SizeHeightValues,
+    h263SizeNames,
+    h263SizeNames,
+    h263SizeNames
   },
 #endif
   {

@@ -176,6 +176,9 @@ void create_base_mp4_audio_hint_track (CLiveConfig *pConfig,
 			trackId,
 			false, 
 			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+  } else if (!strcasecmp(encodingName, AUDIO_ENCODING_AMR)) {
+    MP4AV_Rfc3267Hinter(mp4file, trackId, 
+			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
   }
 }
 
@@ -234,6 +237,7 @@ bool get_base_audio_rtp_info (CLiveConfig *pConfig,
 				     audioPayloadBytesPerPacket,
 				     audioPayloadBytesPerFrame,
 				     audioQueueMaxCount,
+				     audio_set_rtp_payload,
 				     audio_set_header,
 				     audio_set_jumbo,
 				     ud);

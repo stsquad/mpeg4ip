@@ -83,7 +83,7 @@ int main (int argc, char **argv)
 		close_output();
 		return -1;
 	}
-	initialize_plugins();
+	initialize_plugins(&config);
 	config.InitializeIndexes();
 	config.ReadVariablesFromRegistry("Software\\Mpeg4ip", "Config");
 

@@ -19,7 +19,7 @@
  *           Bill May wmay@cisco.com
  */
 
-//#define MP4V_DEBUG 1
+//#define H264_DEBUG 1
 
 #include <mp4creator.h>
 #include <mp4av_h264.h>
@@ -283,9 +283,8 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 	// write the previous sample
 	if (nal_buffer_size != 0) {
 	  samplesWritten++;
-	  double ttime = samplesWritten * 90000;
-	  ttime /= VideoFrameRate;
-	  thisTime = (MP4Timestamp)ttime;
+ 	  thisTime = samplesWritten;
+	  thisTime *= mp4FrameDuration;
 	  MP4Duration dur;
 	  dur = thisTime - lastTime;
 	  rc = MP4WriteSample(mp4File, 
@@ -304,16 +303,18 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 	    return MP4_INVALID_TRACK_ID;
 	  }
 	  nal_is_sync = false;
-	  printf("wrote frame %d\n", nal_buffer_size);
+#ifdef DEBUG_H264
+	  printf("wrote frame %d "U64"\n", nal_buffer_size, thisTime);
+#endif
 	  nal_buffer_size = 0;
 	} 
       }
       first = false;
       bool copy_nal_to_buffer = false;
-      //      if (Verbosity & MP4_DETAILS_SAMPLE) {
+      if (Verbosity & MP4_DETAILS_SAMPLE) {
 	printf("H264 type %x size %u\n",
                     h264_dec.nal_unit_type, nal.buffer_on);
-	//}
+      }
       if (h264_nal_unit_type_is_slice(h264_dec.nal_unit_type)) {
 	copy_nal_to_buffer = true;
 	nal_is_sync = h264_slice_is_idr(&h264_dec);
@@ -368,9 +369,8 @@ MP4TrackId H264Creator (MP4FileHandle mp4File,
 
     if (nal_buffer_size != 0) {
       samplesWritten++;
-      double ttime = samplesWritten * 90000;
-      ttime /= VideoFrameRate;
-      thisTime = (MP4Timestamp)ttime;
+      thisTime = samplesWritten;
+      thisTime *= mp4FrameDuration;
       MP4Duration dur;
       dur = thisTime - lastTime;
       rc = MP4WriteSample(mp4File, 

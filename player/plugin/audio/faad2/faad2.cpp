@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad2.cpp,v 1.6 2004/10/28 22:44:19 wmaycisco Exp $
+** $Id: faad2.cpp,v 1.7 2004/11/19 23:24:09 wmaycisco Exp $
 **/
 #include "faad2.h"
 #include <mpeg4_audio_config.h>
@@ -58,7 +58,6 @@ static codec_data_t *aac_codec_create (const char *stream_type,
   fmtp_parse_t *fmtp = NULL;
   // Start setting up FAAC stuff...
 
-  aac->m_resync_with_header = 1;
   aac->m_record_sync_time = 1;
 
   aac->m_audio_inited = 0;
@@ -140,7 +139,6 @@ void aac_close (codec_data_t *ptr)
 static void aac_do_pause (codec_data_t *ifptr)
 {
   aac_codec_t *aac = (aac_codec_t *)ifptr;
-  aac->m_resync_with_header = 1;
   aac->m_record_sync_time = 1;
   aac->m_audio_inited = 0;
   aac->m_ignore_first_sample = 0;
@@ -180,7 +178,7 @@ static int aac_decode (codec_data_t *ptr,
       aac->m_current_frame++;
       aac->m_current_time = aac->m_last_rtp_ts;
       aac->m_current_time += aac->m_output_frame_size * aac->m_current_frame * 
-	1000 / m_freq;
+	1000 / aac->m_freq;
       freq_timestamp += aac->m_output_frame_size * aac->m_current_frame;
     } else {
       aac->m_last_rtp_ts = ts->msec_timestamp;
@@ -240,7 +238,6 @@ static int aac_decode (codec_data_t *ptr,
 
       if (tempchans == 0) {
 	aa_message(LOG_ERR, aaclib, "initializing aac, returned channels are 0");
-	aac->m_resync_with_header = 1;
 	aac->m_record_sync_time = 1;
 	return bytes_consummed;
       }
@@ -257,7 +254,9 @@ static int aac_decode (codec_data_t *ptr,
 				  aac->m_chans,
 				  AUDIO_FMT_S16,
 				  aac->m_output_frame_size);
-      uint8_t *now = aac->m_vft->audio_get_buffer(aac->m_ifptr);
+      uint8_t *now = aac->m_vft->audio_get_buffer(aac->m_ifptr,
+						  aac->m_cached_freq_ts,
+						  aac->m_cached_ts);
       aac->m_audio_inited = 1;
     }
     /*
@@ -272,10 +271,12 @@ static int aac_decode (codec_data_t *ptr,
 				      buff,
 				      frame_info.samples * 2,
 				      aac->m_cached_freq_ts,
-				      aac->m_cached_ts,
-				      aac->m_resync_with_header);
+				      aac->m_cached_ts);
       } else {
-	int16_t *now = (int16_t *)aac->m_vft->audio_get_buffer(aac->m_ifptr);
+	int16_t *now = 
+	  (int16_t *)aac->m_vft->audio_get_buffer(aac->m_ifptr,
+						  aac->m_cached_freq_ts,
+						  aac->m_cached_ts);
 	uint32_t samples = frame_info.samples / aac->m_chans;
 	int16_t *inptr = (int16_t *)buff;
 
@@ -310,22 +311,12 @@ static int aac_decode (codec_data_t *ptr,
 	  }
 	  now += 6;
 	}
-	aac->m_vft->audio_filled_buffer(aac->m_ifptr,
-					aac->m_cached_freq_ts,
-					aac->m_cached_ts,
-					aac->m_resync_with_header);
-      }
-      if (aac->m_resync_with_header == 1) {
-    aac->m_resync_with_header = 0;
-#ifdef DEBUG_SYNC
-    aa_message(LOG_DEBUG, aaclib, "Back to good at "LLU, aac->m_current_time);
-#endif
+	aac->m_vft->audio_filled_buffer(aac->m_ifptr);
       }
     }
   } else {
     aa_message(LOG_ERR, aaclib, "error return is %d %s", frame_info.error,
 	       faacDecGetErrorMessage(frame_info.error));
-    aac->m_resync_with_header = 1;
 #ifdef DEBUG_SYNC
     aa_message(LOG_ERR, aaclib, "Audio decode problem - at "LLU,
            aac->m_current_time);

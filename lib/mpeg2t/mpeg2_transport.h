@@ -62,6 +62,12 @@ typedef enum mpeg2t_pak_type {
 
 struct mpeg2t_t;
 
+typedef struct mpeg2t_unk_pid_t {
+  struct mpeg2t_unk_pid_t *next_unk;
+  uint16_t pid;
+  uint32_t count;
+} mpeg2t_unk_pid_t;
+
 typedef struct mpeg2t_pid_t {
   struct mpeg2t_pid_t *next_pid;
   struct mpeg2t_t *main;
@@ -71,7 +77,6 @@ typedef struct mpeg2t_pid_t {
   uint8_t *data;
   uint32_t data_len_loaded;
   uint32_t data_len_max;
-  int collect_pes;
   mpeg2t_pak_type pak_type;
   void *userdata;
 } mpeg2t_pid_t;
@@ -82,12 +87,14 @@ typedef struct mpeg2t_pas_t {
   uint16_t transport_stream_id;
   uint8_t version_number;
   int current_next_indicator;
+  uint programs; // count of programs
+  uint programs_added;
 } mpeg2t_pas_t;
 
 typedef struct mpeg2t_pmap_t {
   mpeg2t_pid_t pid;
   uint16_t program_number;
-  int received;
+  bool received;
   uint8_t version_number;
   uint8_t *prog_info;
   uint32_t prog_info_len;
@@ -150,6 +157,7 @@ typedef struct mpeg2t_t {
   int save_frames_at_start;
   int have_initial_psts;
   uint64_t initial_psts;
+  mpeg2t_unk_pid_t *unk_pids;
 } mpeg2t_t;
 
  #ifdef __cplusplus 

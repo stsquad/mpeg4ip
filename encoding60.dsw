@@ -162,7 +162,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libmpeg32_st"=.\COMMON\VIDEO\LIBMPEG32\libmpeg32_st.dsp - Package Owner=<4>
+Project: "libmpeg2ps"=.\LIB\MPEG2PS\libmpeg2ps.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -205,6 +205,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libismacryp_st
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmpeg2ps
     End Project Dependency
 }}}
 

@@ -62,6 +62,14 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 #ifdef OUTPUT_RAW
     m_outfile = fopen("raw.m4v", FOPEN_WRITE_BINARY);
 #endif
+  } else if (strcasecmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODING),
+			VIDEO_ENCODING_H263) == 0) {
+    m_push = new CTimestampPush(1);
+    m_codec = avcodec_find_encoder(CODEC_ID_H263);
+    m_media_frame = H263VIDEOFRAME;
+#ifdef OUTPUT_RAW
+    m_outfile = fopen("raw.263", FOPEN_WRITE_BINARY);
+#endif
   } else {
     m_push = new CTimestampPush(3);
     m_codec = avcodec_find_encoder(CODEC_ID_MPEG2VIDEO);
@@ -104,11 +112,25 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
     m_avctx->b_frame_strategy = 0;
     m_avctx->max_b_frames = 2;
   } else {
-    m_avctx->gop_size = (int)
+    if (m_media_frame == H263VIDEOFRAME) {
+      m_avctx->bit_rate = 
+	m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 800;
+      m_avctx->bit_rate_tolerance = 
+	m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 200;
+#if 0
+      // this makes file writing difficult
+      m_avctx->rtp_mode = true;
+      m_avctx->rtp_payload_size = 
+	m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
+#endif
+    } 
+    m_key_frame_count = m_avctx->gop_size = (int)
       ((m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE)+0.5)
        * m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
     m_avctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    debug_message("key frame count is %d", m_key_frame_count);
   }
+  m_count = 0;
   if (avcodec_open(m_avctx, m_codec) < 0) {
     error_message("Couldn't open codec");
     return false;
@@ -132,6 +154,13 @@ bool CFfmpegVideoEncoder::EncodeImage(
 		}
 	}
 
+	if (m_media_frame == H263VIDEOFRAME) {
+	  m_count++;
+	  if (m_count >= m_key_frame_count) {
+	    wantKeyFrame = true;
+	    m_count = 0;
+	  }
+	}
 	if (wantKeyFrame) m_picture->key_frame = 1;
 	else m_picture->key_frame = 0;
 

@@ -81,6 +81,7 @@ CPlayerSession::CPlayerSession (CMsgQueue *master_mq,
   m_set_end_time = 0;
   m_dont_send_first_rtsp_play = 0;
   m_video_persistence = video_persistence;
+  m_init_tries_made = 0;
 }
 
 CPlayerSession::~CPlayerSession ()

@@ -160,7 +160,7 @@ MP4TrackId AmrCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
   }
 
   if (MP4GetNumberOfTracks(mp4File, MP4_AUDIO_TRACK_TYPE) == 1) {
-      MP4SetAudioProfileLevel(mp4File, 0x0F);
+      MP4SetAudioProfileLevel(mp4File, 0xFE);
   }
 
   while (LoadNextAmrFrame(inFile, sampleBuffer, &sampleSize, &curMode, amrType)) {

@@ -54,6 +54,18 @@ extern "C" bool MP4AV_Rfc2429Hinter (MP4FileHandle file,
                             true,
                             false);
 
+  // strictly speaking, this is not required for H.263 - it's a quicktime
+  // thing.
+  u_int16_t videoWidth = MP4GetTrackVideoWidth(file, mediaTrackId);
+  u_int16_t videoHeight = MP4GetTrackVideoHeight(file, mediaTrackId);
+  
+  char sdpString[80];
+  sprintf(sdpString, "a=cliprect:0,0,%d,%d\015\012", videoHeight, videoWidth);
+  
+  MP4AppendHintTrackSdp(file, 
+ 			hid,
+ 			sdpString);
+
   for (uint32_t sid = 1; sid <= numSamples; sid++) {
 
     duration = MP4GetSampleDuration(file, mediaTrackId, sid);

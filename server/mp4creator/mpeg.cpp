@@ -157,8 +157,10 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
     } else {
       MP4WriteSample(mp4file, id, buf, blen, mp4FrameDuration, 0, 
 		     frame_type == 1 ? true : false);
+#if 0
       printf("frame %d len %d duration "U64" ftype %d\n",
 	     frames, blen, mp4FrameDuration, frame_type);
+#endif
     }
     if (frame_type != 3) {
       // I or P frame

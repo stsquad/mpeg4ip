@@ -7,6 +7,7 @@ isma_enc_video_rtp_plugin_la_SOURCES = \
 
 isma_enc_video_rtp_plugin_la_LIBADD = \
         @ISMACRYP_LIB@ \
+	$(top_builddir)/player/lib/mp4util/libmp4util.la \
 	-lm 
 
 INCLUDES = -I$(top_srcdir)/player/src \

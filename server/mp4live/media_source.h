@@ -282,8 +282,8 @@ protected:
 
 	// video timing info
 	Timestamp		m_videoStartTimestamp;
-	Duration		m_videoEncodingDrift;
-	Duration		m_videoEncodingMaxDrift;
+	//Duration		m_videoEncodingDrift;
+	//Duration		m_videoEncodingMaxDrift;
 	Duration		m_videoSrcElapsedDuration;
 	Duration		m_videoDstElapsedDuration;
 	Duration		m_otherTotalDrift;

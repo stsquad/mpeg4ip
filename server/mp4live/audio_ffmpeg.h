@@ -44,16 +44,17 @@ MediaType ffmpeg_mp4_fileinfo(CLiveConfig *pConfig,
 			    uint32_t *audioConfigLen,
 			    uint8_t *mp4AudioType);
 
-bool ffmpeg_get_audio_rtp_info (CLiveConfig *pConfig,
-			      MediaType *audioFrameType,
-			      uint32_t *audioTimeScale,
-			      uint8_t *audioPayloadNumber,
-			      uint8_t *audioPayloadBytesPerPacket,
-			      uint8_t *audioPayloadBytesPerFrame,
-			      uint8_t *audioQueueMaxCount,
-			      audio_set_rtp_header_f *audio_set_header,
-			      audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
-			      void **ud);
+bool ffmpeg_get_audio_rtp_info(CLiveConfig *pConfig,
+			       MediaType *audioFrameType,
+			       uint32_t *audioTimeScale,
+			       uint8_t *audioPayloadNumber,
+			       uint8_t *audioPayloadBytesPerPacket,
+			       uint8_t *audioPayloadBytesPerFrame,
+			       uint8_t *audioQueueMaxCount,
+			       audio_set_rtp_payload_f *audio_set_rtp_payload,
+			       audio_set_rtp_header_f *audio_set_header,
+			       audio_set_rtp_jumbo_frame_f *audio_set_jumbo,
+			       void **ud);
 
 class CFfmpegAudioEncoder : public CAudioEncoder {
 public:
@@ -64,7 +65,7 @@ public:
 		bool realTime = true);
 
 	MediaType GetFrameType(void) {
-		return MP3AUDIOFRAME;
+		return m_media_frame;
 	}
 
 	u_int32_t GetSamplesPerFrame();
@@ -84,15 +85,19 @@ public:
 protected:
 	AVCodec *m_codec;
 	AVCodecContext *m_avctx;
+	MediaType m_media_frame;
 	AVFrame *m_frame;
 	u_int32_t			m_samplesPerFrame;
-	u_int8_t*			m_mp3FrameBuffer;
-	u_int32_t			m_mp3FrameBufferLength;
-	u_int32_t			m_mp3FrameBufferSize;
-	u_int32_t			m_mp3FrameMaxSize;
+	u_int8_t*			m_FrameBuffer;
+	u_int32_t			m_FrameBufferLength;
+	u_int32_t			m_FrameBufferSize;
+	u_int32_t			m_FrameMaxSize;
 };
 
-extern audio_encoder_table_t ffmpeg_audio_encoder_table;
+extern audio_encoder_table_t ffmpeg_audio_encoder_table,
+  ffmpeg_amr_audio_encoder_table;
+
+void InitFFmpegAudio(void);
 
 #endif /* __AUDIO_FFMPEG_H__ */
 

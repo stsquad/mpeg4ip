@@ -1612,7 +1612,7 @@ int main (int argc, char **argv)
 				   GTK_SIGNAL_FUNC(on_aspect_ratio),
 				   GINT_TO_POINTER(0));
   aspectratio[1] = CreateMenuRadio(videosub,
-				   "3:4",
+				   "4:3",
 				   &aspectratiolist,
 				   GTK_SIGNAL_FUNC(on_aspect_ratio),
 				   GINT_TO_POINTER(1));

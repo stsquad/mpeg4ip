@@ -95,6 +95,7 @@ protected:
 	u_int8_t*  m_YUV;
 	CTimestampPush *m_push;
 	Duration m_frame_time;
+	int m_count, m_key_frame_count;
 };
 
 #endif /* __VIDEO_FFMPEG_H__ */

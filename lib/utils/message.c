@@ -41,6 +41,12 @@ static void unlock_mutex(void)
 #endif
 
 static FILE *outfile = NULL;
+static int global_loglevel = LOG_DEBUG;
+void set_global_loglevel (int loglevel) 
+{
+  if (loglevel > LOG_DEBUG || loglevel < 0) return;
+  global_loglevel = loglevel;
+}
 
 void open_log_file (const char *filename)
 {
@@ -58,7 +64,9 @@ void flush_log_file (void)
 void clear_log_file (void)
 {
 #ifndef _WIN32
+  rewind(outfile);
   ftruncate(fileno(outfile), 0);
+  rewind(outfile);
 #endif
 }
 
@@ -74,7 +82,6 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-  if (outfile == NULL) outfile = stdout;
 #if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
   if (IsDebuggerPresent()) {
     char msg[512];
@@ -90,7 +97,9 @@ void message (int loglevel, const char *lib, const char *fmt, ...)
     return;
   }
 #endif
+  if (outfile == NULL) outfile = stdout;
 
+  if (loglevel > global_loglevel) return;
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
   // To add date, add %a %b %d to strftime
@@ -117,7 +126,6 @@ void library_message (int loglevel,
   struct timeval thistime;
   time_t secs;
   char buffer[80];
-  if (outfile == NULL) outfile = stdout;
 #if defined(_WIN32) && defined(_DEBUG)&& !defined(WINDOWS_IS_A_PIECE_OF_CRAP)
   if (IsDebuggerPresent()) {
     char msg[512];
@@ -136,6 +144,8 @@ void library_message (int loglevel,
   }
 #endif
 
+  if (outfile == NULL) outfile = stdout;
+  if (loglevel > global_loglevel) return;
   gettimeofday(&thistime, NULL);
   secs = thistime.tv_sec;
   strftime(buffer, sizeof(buffer), 

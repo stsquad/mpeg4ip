@@ -120,6 +120,13 @@ MediaType get_video_mp4_fileinfo_base (CLiveConfig *pConfig,
       *mp4_video_type = MP4_MPEG2_VIDEO_TYPE;
     }
     return MPEG2VIDEOFRAME;
+  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_H263)) {
+    *createIod = false;
+    *isma_compliant = false;
+    *videoProfile = 0xff;
+    *videoConfig = NULL;
+    *videoConfigLen = 0;
+    return H263VIDEOFRAME;
   }
   return UNDEFINEDFRAME;
 }
@@ -189,6 +196,18 @@ media_desc_t *create_video_sdp_base(CLiveConfig *pConfig,
 #endif
   } else if (mtype == MPEG2VIDEOFRAME) {
     sdpMediaVideoFormat->fmt = strdup("32");
+  } else if (mtype == H263VIDEOFRAME) {
+    sdpVideoRtpMap = MALLOC_STRUCTURE(rtpmap_desc_t);
+    memset(sdpVideoRtpMap, 0, sizeof(*sdpVideoRtpMap));
+    sdpMediaVideoFormat->fmt = strdup("96");
+    sdpMediaVideoFormat->media = sdpMediaVideo;
+    sdpMediaVideoFormat->rtpmap = sdpVideoRtpMap;
+    sdpVideoRtpMap->clock_rate = 90000;
+    sdpVideoRtpMap->encode_name = strdup("H263-2000");
+    char cliprect[80];
+    sprintf(cliprect, "a=cliprect:0,0,%d,%d",
+ 	    pConfig->m_videoHeight, pConfig->m_videoWidth);
+    sdp_add_string_to_list(&sdpMediaVideo->unparsed_a_lines, cliprect);
   }
 
   return sdpMediaVideo;
@@ -209,6 +228,10 @@ void create_mp4_video_hint_track_base (CLiveConfig *pConfig,
     Mpeg12Hinter(mp4file, 
 		 trackId,
 		 pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
+  } else if (!strcasecmp(encodingName, VIDEO_ENCODING_H263)) {
+    MP4AV_Rfc2429Hinter(mp4file, 
+			trackId, 
+			pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE));
   }
 
 }
@@ -445,7 +468,60 @@ static void Mpeg2SendVideo (CMediaFrame *pFrame,
     delete pFrame;
 }
 
+// we're going to assume that we get complete frames here...
+static void H263SendVideoRfc2429 (CMediaFrame *pFrame, CRtpDestination *list,
+				  uint32_t rtpTimestamp,
+				  uint16_t mtu)
+{
+  struct iovec iov[2];
+  uint8_t* pBuf = (uint8_t*)pFrame->GetData();
+  uint32_t dataLength = pFrame->GetDataLength();
+  uint8_t mode_header[2];
+  bool first = true;
+  uint32_t tosend;
 
+  if (pBuf[0] == 0 &&
+      pBuf[1] == 0 && 
+      (pBuf[2] & 0xfc) == 0x80) {
+    first = true;
+  } else {
+    first = false;
+  }
+
+  mtu -= 2; // subtract off header.
+
+  while (dataLength > 0) {
+    if (first) {
+      pBuf += 2;
+      dataLength -= 2;
+      mode_header[0] = 0x4;
+      first = false;
+    } else 
+      mode_header[0] = 0;
+
+    mode_header[1] = 0;
+
+    iov[0].iov_base = mode_header;
+    iov[0].iov_len = 2;
+
+    tosend = MIN(mtu, dataLength);
+    iov[1].iov_base = pBuf;
+    iov[1].iov_len = tosend;
+
+    pBuf += tosend;
+    dataLength -= tosend;
+
+    //error_message("sending %d", iov[1].iov_len);
+    CRtpDestination *rdptr = list;
+    while (rdptr != NULL) {
+      rdptr->send_iov(iov, 2, rtpTimestamp, dataLength > 0 ? 0 : 1);
+      rdptr = rdptr->get_next();
+    }
+  }
+  if (pFrame->RemoveReference())
+    delete pFrame;
+}
+ 
 video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CLiveConfig *pConfig,
 						       MediaType *pType,
 						       uint8_t *pPayload)
@@ -463,6 +539,10 @@ video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CLiveConfig *pConfig,
     *pPayload =32;
     *pType = MPEG2VIDEOFRAME;
     return Mpeg2SendVideo;
+  } else if (strcasecmp(encodingName, VIDEO_ENCODING_H263) == 0) {
+    *pPayload = 96;
+    *pType = H263VIDEOFRAME;
+    return H263SendVideoRfc2429;
   }
   return NULL;
 }

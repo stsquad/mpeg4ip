@@ -42,6 +42,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "audio"=..\..\lib\audio\audio.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "bitstream"=..\..\lib\bitstream\bitstream60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -364,6 +376,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libismacryp
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name audio
     End Project Dependency
 }}}
 

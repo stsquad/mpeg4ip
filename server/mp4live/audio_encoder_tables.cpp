@@ -27,13 +27,27 @@
 #include "audio_ffmpeg.h"
 #endif
 
-audio_encoder_table_t *audio_encoder_table[] = 
-  {
-    &lame_audio_encoder_table,
-    &faac_audio_encoder_table,
-#ifdef HAVE_FFMPEG
-    &ffmpeg_audio_encoder_table,
-#endif
-  };    
+audio_encoder_table_t **audio_encoder_table = NULL;
 
-const uint32_t audio_encoder_table_size = NUM_ELEMENTS_IN_ARRAY(audio_encoder_table);
+uint32_t audio_encoder_table_size = 0;
+
+void InitAudioEncoders (void)
+{
+  AddAudioEncoderTable(&lame_audio_encoder_table);
+  AddAudioEncoderTable(&faac_audio_encoder_table);
+#ifdef HAVE_FFMPEG
+  AddAudioEncoderTable(&ffmpeg_audio_encoder_table);
+  InitFFmpegAudio();
+#endif
+}
+
+void AddAudioEncoderTable (audio_encoder_table_t *new_table)
+{
+  audio_encoder_table_size++;
+  audio_encoder_table = 
+    (audio_encoder_table_t **)realloc(audio_encoder_table,
+				     sizeof(audio_encoder_table_t *) *
+				     audio_encoder_table_size);
+  audio_encoder_table[audio_encoder_table_size - 1] = new_table;
+
+}

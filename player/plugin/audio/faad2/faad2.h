@@ -16,7 +16,7 @@
 ** along with this program; if not, write to the Free Software
 ** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 **
-** $Id: faad2.h,v 1.3 2004/10/28 22:44:19 wmaycisco Exp $
+** $Id: faad2.h,v 1.4 2004/11/19 23:24:09 wmaycisco Exp $
 **/
 /*
  * aa.h - class definition for AAC codec.
@@ -38,7 +38,6 @@ typedef struct aac_codec_t {
   void *m_ifptr;
   faacDecHandle m_info;
   int m_object_type;
-  int m_resync_with_header;
   int m_record_sync_time;
   uint64_t m_current_time;
   uint64_t m_last_rtp_ts;

@@ -491,7 +491,7 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
   uint32_t offset, scode;
   bool have_pict;
   bool started_new_pes = false;
-
+  uint32_t start;
   /*
    * First thing - determine if we have enough bytes to read the header.
    * if we do, we have the correct timestamp.  If not, we read the new
@@ -539,7 +539,7 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
     have_pict = true;
   } else have_pict = false;
 
-  uint32_t start = 4 + sptr->pes_buffer_on;
+  start = 4 + sptr->pes_buffer_on;
   while (1) {
     
     if (MP4AV_Mpeg3FindNextStart(sptr->pes_buffer + start, 
@@ -1205,9 +1205,10 @@ static void mpeg2ps_scan_file (mpeg2ps_t *ps)
     if (av_ix == 0) max_cnt = ps->video_cnt;
     else max_cnt = ps->audio_cnt;
     for (stream_ix = 0; stream_ix < max_cnt; stream_ix++) {
-      sptr = av_ix == 0 ? ps->video_streams[stream_ix] :
-	ps->audio_streams[stream_ix];
       uint32_t frame_cnt_since_last;
+	  sptr = av_ix == 0 ? ps->video_streams[stream_ix] :
+	ps->audio_streams[stream_ix];
+      
       // pick up here - find the final time...
       if (sptr->end_dts_loc != 0) {
 	file_seek_to(ps->fd, sptr->end_dts_loc);

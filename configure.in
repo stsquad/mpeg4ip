@@ -8,7 +8,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE(mpeg4ip, 1.1.10)
+AM_INIT_AUTOMAKE(mpeg4ip, 1.1.12)
 
 dnl Checks for programs. 
 
@@ -575,6 +575,7 @@ AC_OUTPUT( \
 	doc/mp4v2/Makefile \
 	include/Makefile \
 	lib/Makefile \
+	lib/audio/Makefile \
 	lib/avi/Makefile \
 	lib/bitstream/Makefile \
 	lib/fposrec/Makefile \
