@@ -48,6 +48,9 @@ typedef u_int16_t MediaType;
 #define RAWPCMAUDIOFRAME	18
 #define H263VIDEOFRAME          19
 
+#define PLAINTEXTFRAME          20
+#define HREFTEXTFRAME           21
+
 typedef void (*media_free_f)(void *);
 
 typedef struct yuv_media_frame_t {
@@ -101,13 +104,16 @@ public:
 	  m_media_free = m;
 	};
 	void AddReference(void) {
+	  uint16_t ref;
 		if (SDL_LockMutex(m_pMutex) == -1) {
 			debug_message("AddReference LockMutex error");
 		}
 		m_refcnt++;
+		ref = m_refcnt;
 		if (SDL_UnlockMutex(m_pMutex) == -1) {
 			debug_message("AddReference UnlockMutex error");
 		}
+		//debug_message("%p add %u", this, ref);
 	}
 
 	bool RemoveReference(void) {
@@ -120,6 +126,7 @@ public:
 		if (SDL_UnlockMutex(m_pMutex) == -1) {
 			debug_message("RemoveReference UnlockMutex error");
 		}
+		//debug_message("%p rm %u", this, ref);
 		return ref == 0;
 	}
 

@@ -430,20 +430,19 @@ int st_resample_drain(eff_t effp, st_sample_t *obuf, st_size_t *osamp)
 	return (ST_SUCCESS);
 }
 
+#endif
 /*
  * Do anything required when you stop reading samples.  
  * Don't close input file! 
  */
-int st_resample_stop(eff_t effp)
+void  st_resample_stop(resample_t r)
 {
-	resample_t r = (resample_t) effp->priv;
-	
 	free(r->Imp - 1);
 	free(r->X);
+	free(r);
 	/* free(r->Y); Y is in same block starting at X */ 
-	return (ST_SUCCESS);
+	//return (ST_SUCCESS);
 }
-#endif
 /* over 90% of CPU time spent in this iprodUD() function */
 /* quadratic interpolation */
 static double qprodUD(const Float Imp[], const Float *Xp, long Inc, double T0, 

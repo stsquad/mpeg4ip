@@ -213,7 +213,7 @@ int CPlayerSession::sync_thread_init (void)
 
   if (media_count > 0 && media_initialized > 0) {
     m_init_tries_made++;
-    if (m_init_tries_made > 50) {
+    if (m_init_tries_made > 250) {
       sync_message(LOG_CRIT, "One media is not initializing; it might not be receiving correctly");
       if (video_failed) {
 	sync_message(LOG_INFO, "video failed");
@@ -255,7 +255,7 @@ int CPlayerSession::sync_thread_init (void)
     }
   }
 
-  SDL_Delay(100);
+  SDL_Delay(20);
 	
   return (SYNC_STATE_INIT);
 }

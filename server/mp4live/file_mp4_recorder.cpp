@@ -94,9 +94,12 @@ void CMp4Recorder::DoStartRecord()
     filename = m_stream->GetStringValue(STREAM_RECORD_MP4_FILE_NAME);
   } else {
     // recording raw file
-    m_recordVideo = m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE);
+    m_recordVideo = m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) ||
+      m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_VIDEO);
+    m_recordAudio = m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE) ||
+      m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_AUDIO);
     m_audioTimeScale = m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
-    filename = m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
+    filename = m_pConfig->GetStringValue(CONFIG_RECORD_RAW_MP4_FILE_NAME);
   }
 
 
@@ -648,8 +651,19 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
       m_canRecordVideo = true;
       m_prevAudioFrame = pFrame;
       m_audioFrameNumber++;
+      m_audioSamples = 0;
       return; // wait until the next audio frame
     }
+
+#if 0
+    Duration audioFrameSamples = 
+      m_prevAudioFrame->GetDatalength() /
+      (m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS) * sizeof(int16_t));
+
+    m_audioSamples += ======
+#endif
+
+
 
     Duration audioDurationInTicks = 
       pFrame->GetTimestamp() - m_prevAudioFrame->GetTimestamp();
@@ -657,7 +671,13 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
     MP4Duration audioDurationInSamples =
       MP4ConvertToTrackDuration(m_mp4File, m_audioTrackId,
                                 audioDurationInTicks, TimestampTicks);
-
+#if 0
+    debug_message("prev "U64" this "U64" diff samples"U64,
+		  m_prevAudioFrame->GetTimestamp(),
+		  pFrame->GetTimestamp(),
+		  audioDurationInSamples);
+#endif
+		  
     m_prevAudioFrame->SetDuration(audioDurationInSamples);
     void *pcm;
 #ifdef WORDS_BIGENDIAN
@@ -670,8 +690,9 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
       m_convert_pcm = (uint16_t *)realloc(m_convert_pcm, convert_size);
       m_convert_pcm_size = convert_size;
     }
-    for (uint32_t ix = 0; ix < convert_size; ix += sizeof(uint16_t), pdata++) {
-      uint16_t swap = *pdata;
+    convert_size /= sizeof(uint16_t);
+    for (uint32_t ix = 0; ix < convert_size; ix++) {
+      uint16_t swap = *pdata++;
       m_convert_pcm[ix] = B2N_16(swap);
     }
     pcm = m_convert_pcm;
@@ -681,7 +702,8 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
                    m_audioTrackId,
                    (u_int8_t*)pcm,
                    m_prevAudioFrame->GetDataLength(),
-                   m_prevAudioFrame->ConvertDuration(m_audioTimeScale));
+		   audioDurationInSamples);
+    //                   m_prevAudioFrame->ConvertDuration(m_audioTimeScale));
 
     m_audioFrameNumber++;
     if (m_prevAudioFrame->RemoveReference()) {

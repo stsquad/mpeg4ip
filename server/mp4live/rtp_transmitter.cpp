@@ -26,6 +26,7 @@
 #include "encoder-h261.h"
 #include "audio_encoder.h"
 #include "video_encoder.h"
+#include "text_encoder.h"
 
 //#define RTP_DEBUG 1
 CRtpTransmitter::CRtpTransmitter (uint16_t mtu, bool disable_ts_offset) : CMediaSink()
@@ -57,8 +58,8 @@ void CRtpTransmitter::AddRtpDestination (const char *destAddress,
 					 uint16_t max_ttl)
 {
   CRtpDestination *dest, *p;
-  debug_message("Creating rtp destination %s %d %d", 
-		destAddress, destPort, srcPort);
+  debug_message("Creating rtp destination %s %u %u: ttl %u", 
+		destAddress, destPort, srcPort, max_ttl);
   if (srcPort == 0) srcPort = destPort;
 
   dest = m_rtpDestination;
@@ -242,6 +243,44 @@ void CVideoRtpTransmitter::DoSendFrame (CMediaFrame *pFrame)
   }
 }
 
+void CTextRtpTransmitter::DoSendFrame (CMediaFrame *pFrame)
+{
+  if (pFrame == NULL) {
+    return;
+  }
+  if (!m_sink || m_rtpDestination == NULL) {
+    debug_message("text frame, sink %d dest %p", m_sink, 
+		  m_rtpDestination);
+    if (pFrame->RemoveReference())
+      delete pFrame;
+    return;
+  }
+
+  if (pFrame->GetType() == m_frameType) {
+	  // Note - the below changed from the DTS to the PTS - this
+	  // is required for b-frames, or mpeg2
+    //debug_message("video rtp has frame");
+    u_int32_t rtpTimestamp =
+      TimestampToRtp(pFrame->GetTimestamp());
+    u_int64_t ntpTimestamp = 
+      TimestampToNtp(pFrame->GetTimestamp());
+	  
+    CRtpDestination *rdptr;
+	  
+    rdptr = m_rtpDestination;
+    while (rdptr != NULL) {
+      rdptr->send_rtcp(rtpTimestamp, ntpTimestamp);
+      rdptr = rdptr->get_next();
+    }
+    (m_textSendFunc)(pFrame, m_rtpDestination, rtpTimestamp, 
+		      m_mtu);
+  } else {
+    // not the fame we want - okay for previews...
+    if (pFrame->RemoveReference())
+      delete pFrame;
+  }
+}
+
 // void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
 void CAudioRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 {
@@ -309,7 +348,6 @@ void CAudioRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 		// add it to the queue
 		m_audioQueue[m_audioQueueCount++] = pFrame;
 		m_audioQueueSize = newAudioQueueSize;
-
 		// if we fill the queue, (latency bound)
 		if (m_audioQueueCount == m_audioQueueMaxCount) {
 			// send the pending data
@@ -331,6 +369,9 @@ void CAudioRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
  */
 void CAudioRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
 {
+#ifdef RTP_DEBUG
+  debug_message("sendaudioframe "U64, pFrame->GetTimestamp());
+#endif
 	if (m_audio_queue_frame != NULL) {
 
 		// Get status for what we should do with the next frame
@@ -401,7 +442,7 @@ void CAudioRtpTransmitter::SendQueuedAudioFrames(void)
 	u_int64_t ntpTimestamp =
 		TimestampToNtp(m_audioQueue[0]->GetTimestamp());
 
-#if RTP_DEBUG
+#ifdef RTP_DEBUG
 	debug_message("A ts "U64" rtp %u ntp %u.%u",
 		m_audioQueue[0]->GetTimestamp(),
 		rtpTimestamp,
@@ -602,6 +643,12 @@ CAudioRtpTransmitter::CAudioRtpTransmitter (CAudioProfile *ap,
 		    ap->GetStringValue(CFG_AUDIO_ENCODING));
     }
 
+  uint8_t max_queue_from_config = 
+    ap->GetIntegerValue(CFG_RTP_MAX_FRAMES_PER_PACKET);
+  if (max_queue_from_config != 0 &&
+      max_queue_from_config < m_audioQueueMaxCount) {
+    m_audioQueueMaxCount = max_queue_from_config;
+  }
     if (m_audioiovMaxCount == 0)			// This is purely for backwards compability
       m_audioiovMaxCount = m_audioQueueMaxCount;	// Can go away when lame and faac plugin sets this
 
@@ -635,6 +682,17 @@ CVideoRtpTransmitter::CVideoRtpTransmitter (CVideoProfile *vp,
 					       &m_payloadNumber);
   m_timeScale = 90000;
 
+}
+
+CTextRtpTransmitter::CTextRtpTransmitter (CTextProfile *tp,
+					    uint16_t mtu,
+					    bool disable_ts_offset) :
+  CRtpTransmitter(mtu, disable_ts_offset)
+{
+  m_textSendFunc = GetTextRtpTransmitRoutine(tp,
+					     &m_frameType, 
+					     &m_payloadNumber);
+  m_timeScale = 90000;
 }
 
 static void RtpCallback (struct rtp *session, rtp_event *e) 
@@ -725,7 +783,7 @@ int CRtpDestination::send_iov (struct iovec *piov,
 			     0, 
 			     0,
 			     0);
-    //debug_message("sending iov %d", ret);
+    debug_message("sending iov %d", ret);
     return ret;
     
   }

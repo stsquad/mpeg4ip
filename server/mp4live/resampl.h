@@ -72,6 +72,7 @@ int st_resample_flow(resample_t r,
 		      uint32_t *isamp, 
 		      uint32_t *osamp,
 		      uint8_t chans);
+  void st_resample_stop(resample_t r);
 #ifdef __cplusplus
 }
 #endif

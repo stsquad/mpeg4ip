@@ -65,6 +65,9 @@ public:
 	  m_videoWantKeyFrame = true;
 	  m_audioStartTimestamp = t;
 	};
+	virtual bool PushTextFrame (const char *frame) {
+	  return false;
+	}
 protected:
 	// Video & Audio support
 	virtual bool IsEndOfVideo() { 

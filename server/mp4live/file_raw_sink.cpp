@@ -25,15 +25,17 @@
 
 int CRawFileSink::ThreadMain(void) 
 {
-	while (SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
-		CMsg* pMsg = m_myMsgQueue.get_message();
+  CMsg *pMsg;
+  bool stop = false;
+	while (stop == false && SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
+		pMsg = m_myMsgQueue.get_message();
 		
 		if (pMsg != NULL) {
 			switch (pMsg->get_value()) {
 			case MSG_NODE_STOP_THREAD:
 				DoStopSink();
-				delete pMsg;
-				return 0;
+				stop = true;
+				break;
 			case MSG_NODE_START:
 				DoStartSink();
 				break;
@@ -49,8 +51,19 @@ int CRawFileSink::ThreadMain(void)
 			delete pMsg;
 		}
 	}
+  while ((pMsg = m_myMsgQueue.get_message()) != NULL) {
+    error_message("recorder - had msg after stop");
+    if (pMsg->get_value() == MSG_SINK_FRAME) {
+      uint32_t dontcare;
+      CMediaFrame *mf = (CMediaFrame*)pMsg->get_message(dontcare);
+      if (mf->RemoveReference()) {
+	delete mf;
+      }
+    }
+    delete pMsg;
+  }
+  return 0;
 
-	return -1;
 }
 
 void CRawFileSink::DoStartSink()
@@ -150,7 +163,31 @@ void CRawFileSink::DoWriteFrame(CMediaFrame* pFrame)
 
 		} else if (pFrame->GetType() == YUVVIDEOFRAME 
 		  && m_yuvFile != -1) {
-			write(m_yuvFile, pFrame->GetData(), pFrame->GetDataLength());
+		  yuv_media_frame_t *pYUV =
+		    (yuv_media_frame_t *)pFrame->GetData();
+		  if (pYUV->y_stride == m_pConfig->m_videoWidth) {
+		    write(m_yuvFile, pYUV->y, m_pConfig->m_yuvSize);
+		  } else {
+		    const uint8_t *p;
+		    uint h, max_h;
+		    p = pYUV->y;
+		    max_h = m_pConfig->m_videoHeight;
+		    for (h = 0; h < max_h; h++) { 
+		      write(m_yuvFile, p, m_pConfig->m_videoWidth);
+		      p += pYUV->y_stride;
+		    }
+		    p = pYUV->u;
+		    max_h /= 2;
+		    for (h = 0; h < max_h; h++) {
+		      write(m_yuvFile, p, m_pConfig->m_videoWidth / 2);
+		      p += pYUV->uv_stride;
+		    }
+		    p = pYUV->v;
+		    for (h = 0; h < max_h; h++) {
+		      write(m_yuvFile, p, m_pConfig->m_videoWidth / 2);
+		      p += pYUV->uv_stride;
+		    }
+		  }
 		}
 	}
 	

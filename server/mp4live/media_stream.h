@@ -93,12 +93,14 @@ class CVideoProfile;
 class CVideoProfileList;
 class CAudioProfile;
 class CAudioProfileList;
+class CTextProfile;
 class CTextProfileList;
 class CMp4Recorder;
 class CLiveConfig;
 class CMediaSink;
 class CVideoEncoder;
 class CAudioEncoder;
+class CTextEncoder;
 
 class CMediaStream : public CConfigEntry
 {
@@ -116,25 +118,29 @@ class CMediaStream : public CConfigEntry
 
   void SetVideoProfile(const char *name); 
   void SetAudioProfile(const char *name);
+  void SetTextProfile(const char *name);
   void LoadConfigVariables(void);
   void Initialize(bool check_config_name = true);
   CAudioProfile *GetAudioProfile(void) { return m_pAudioProfile; };
   CVideoProfile *GetVideoProfile(void) { return m_pVideoProfile; };
+  CTextProfile *GetTextProfile(void) { return m_pTextProfile; };
   CMediaSink *CreateFileRecorder(CLiveConfig *pConfig);
   void Stop(void);
   void SetVideoEncoder(CVideoEncoder *ve) { m_video_encoder = ve; };
   void SetAudioEncoder(CAudioEncoder *ae) { m_audio_encoder = ae; };
+  void SetTextEncoder(CTextEncoder *te) { m_text_encoder = te; };
   bool GetStreamStatus(uint32_t valueName, void *pValue);
  protected:
   CVideoProfile *m_pVideoProfile;
   CAudioProfile *m_pAudioProfile;
-  //CConfigSet *m_pTextProfile;
+  CTextProfile *m_pTextProfile;
   CVideoProfileList *m_video_profile_list;
   CAudioProfileList *m_audio_profile_list;
   CTextProfileList *m_text_profile_list;
   CMp4Recorder *m_mp4_recorder;
   CVideoEncoder *m_video_encoder;
   CAudioEncoder *m_audio_encoder;
+  CTextEncoder *m_text_encoder;
 };
 
 class CMediaStreamList : public CConfigList

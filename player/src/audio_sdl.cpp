@@ -126,18 +126,19 @@ int CSDLAudioSync::InitializeHardware (void)
 #else
   sample_size = 4096;
 #endif
-#if 0
-  if (m_output_buffer_size_bytes < 4096)
-    m_output_buffer_size_bytes = 4096;
-#endif
-  if (config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER) > 0 &&
-      sample_size > 4096) 
-    sample_size = 4096;
-  if (sample_size < m_freq / 10) 
-    sample_size = 4096;
 
-  while (sample_size * m_bytes_per_sample_input > m_sample_buffer_size / 4) {
-    sample_size /= 2;
+  if (config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER) > 1) {
+    sample_size = config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER);
+  } else {
+    if (config.get_config_value(CONFIG_LIMIT_AUDIO_SDL_BUFFER) > 0 &&
+	sample_size > 4096) 
+      sample_size = 4096;
+    if (sample_size < m_freq / 10) 
+      sample_size = 4096;
+    
+    while (sample_size * m_bytes_per_sample_input > m_sample_buffer_size / 4) {
+      sample_size /= 2;
+    }
   }
   wanted.samples = sample_size;
   wanted.callback = c_audio_callback;

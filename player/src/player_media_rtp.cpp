@@ -92,10 +92,16 @@ void CPlayerMedia::rtp_periodic (void)
      * Make sure that the payload type is the same
      */
     if (m_head->rtp_pak_pt == m_tail->rtp_pak_pt) {
-      if (m_rtp_queue_len > 10) { // 10 packets consecutive proto same
+      // we either want only 1 possible protocol, or at least
+      // 10 packets of the same consecutively.  10 is arbitrary.
+      if (m_media_info->fmt->next == NULL || 
+	  m_rtp_queue_len > 10) { 
 	if (determine_payload_type_from_rtp() == FALSE) {
 	  clear_rtp_packets(); 
 	}
+	// call this function again so we begin the buffering check
+	// right away - better than a go-to.
+	rtp_periodic(); 
       }
     } else {
       clear_rtp_packets();

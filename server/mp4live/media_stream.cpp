@@ -21,6 +21,7 @@
 #include "mp4live.h"
 #include "profile_audio.h"
 #include "profile_video.h"
+#include "profile_text.h"
 #define DECLARE_CONFIG_VARIABLES
 #include "media_stream.h"
 #undef DECLARE_CONFIG_VARIABLES
@@ -38,29 +39,36 @@ CMediaStream::CMediaStream (const char *filename,
 {
   m_pVideoProfile = NULL;
   m_pAudioProfile = NULL;
+  m_pTextProfile = NULL;
   m_video_profile_list = vpl;
   m_audio_profile_list = apl;
   m_text_profile_list = tpl;
-  //  m_pTextProfile = NULL;
   m_mp4_recorder = NULL;
   m_video_encoder = NULL;
   m_audio_encoder = NULL;
+  m_text_encoder = NULL;
 }
 
 CMediaStream::~CMediaStream (void)
 {
 }
 
-void CMediaStream::SetVideoProfile(const char *name)
+void CMediaStream::SetVideoProfile (const char *name)
 {
   SetStringValue(STREAM_VIDEO_PROFILE, name);
   m_pVideoProfile = m_video_profile_list->FindProfile(name);
 }
 
-void CMediaStream::SetAudioProfile(const char *name) 
+void CMediaStream::SetAudioProfile (const char *name) 
 {
   SetStringValue(STREAM_AUDIO_PROFILE, name);
   m_pAudioProfile = m_audio_profile_list->FindProfile(name);
+}
+
+void CMediaStream::SetTextProfile (const char *name)
+{
+  SetStringValue(STREAM_TEXT_PROFILE, name);
+  m_pTextProfile = m_text_profile_list->FindProfile(name);
 }
 
 void CMediaStream::Initialize (bool check_config_name)
@@ -106,13 +114,33 @@ void CMediaStream::Initialize (bool check_config_name)
     if (m_pAudioProfile == NULL) {
       SetAudioProfile("default");
       if (m_pAudioProfile == NULL) {
-	error_message("Video profile \"%s\" could not be found in stream %s", 
+	error_message("Audio profile \"%s\" could not be found in stream %s", 
 		      GetStringValue(STREAM_AUDIO_PROFILE),
 		      GetStringValue(STREAM_NAME));
 	m_valid = false;
 	return;
       } 
       SetStringValue(STREAM_AUDIO_PROFILE, "default");
+    }
+  }
+
+  if (GetBoolValue(STREAM_TEXT_ENABLED)) {
+    if (m_text_profile_list == NULL) {
+      error_message("No text profiles to read");
+      m_valid = false;
+      return;
+    }
+    SetTextProfile(GetStringValue(STREAM_TEXT_PROFILE));
+    if (m_pTextProfile == NULL) {
+      SetTextProfile("default");
+      if (m_pTextProfile == NULL) {
+	error_message("Text profile \"%s\" could not be found in stream %s", 
+		      GetStringValue(STREAM_TEXT_PROFILE),
+		      GetStringValue(STREAM_NAME));
+	m_valid = false;
+	return;
+      } 
+      SetStringValue(STREAM_TEXT_PROFILE, "default");
     }
   }
   // same profile for text here...

@@ -53,9 +53,9 @@ void create_mp4_video_hint_track_base(CVideoProfile *pConfig,
 				      uint16_t mtu);
 
 
-video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CVideoProfile *pConfig,
-						       MediaType *pType,
-						       uint8_t *pPayload);
+rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CVideoProfile *pConfig,
+						 MediaType *pType,
+						 uint8_t *pPayload);
 
 #endif /* __VIDEO_ENCODER_BASE_H__ */
 

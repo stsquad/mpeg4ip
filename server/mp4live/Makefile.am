@@ -80,6 +80,8 @@ libmp4live_la_SOURCES = \
 	mp4live_config.h \
 	profile_audio.cpp \
 	profile_audio.h \
+	profile_text.cpp \
+	profile_text.h \
 	profile_video.h \
 	profile_video.cpp \
 	resample.c \
@@ -87,6 +89,10 @@ libmp4live_la_SOURCES = \
 	rtp_transmitter.cpp \
 	rtp_transmitter.h \
 	sdp_file.cpp \
+	text_encoder.cpp \
+	text_encoder.h \
+	text_source.cpp \
+	text_source.h \
 	util.cpp \
 	util.h \
 	video_util_filter.cpp \

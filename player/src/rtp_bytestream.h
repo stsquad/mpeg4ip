@@ -89,9 +89,6 @@ class CRtpByteStreamBase : public COurInByteStream
   };
   int can_skip_frame (void) { return 1; } ;
   void set_wallclock_offset (uint64_t wclock, uint32_t rtp_ts);
-  int rtp_ready (void) {
-    return true;
-  };
   void recv_callback(struct rtp *session, rtp_event *e);
   virtual void flush_rtp_packets(void);
   int recv_task(int waiting);

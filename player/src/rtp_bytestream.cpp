@@ -575,27 +575,6 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
        * Payload type the same.  Make sure we have at least 2 seconds of
        * good data
        */
-      if (rtp_ready() == 0) {
-	rtp_message(LOG_DEBUG, 
-		    "%s Determined payload type, but rtp bytestream is not ready",
-		    m_name);
-	uint64_t calc;
-	do {
-	  head_ts = m_head->rtp_pak_ts;
-	  tail_ts = m_tail->rtp_pak_ts;
-	  calc = (tail_ts - head_ts);
-	  calc *= 1000;
-	  calc /= m_timescale;
-	  if (calc > m_rtp_buffer_time) {
-	    rtp_packet *temp = m_head;
-	    m_head = m_head->rtp_next;
-	    m_tail->rtp_next = m_head;
-	    m_head->rtp_prev = m_tail;
-	    xfree((void *)temp);
-	  }
-	} while (calc > m_rtp_buffer_time);
-	return 0;
-      }
       if (check_rtp_frame_complete_for_payload_type()) {
 	head_ts = m_head->rtp_pak_ts;
 	tail_ts = m_tail->rtp_pak_ts;
@@ -608,7 +587,7 @@ int CRtpByteStreamBase::recv_task (int decode_thread_waiting)
 	calc -= head_ts;
 	calc *= TO_U64(1000);
 	calc /= m_timescale;
-	if (calc > m_rtp_buffer_time) {
+	if (calc >= m_rtp_buffer_time) {
 	  if (m_base_ts_set == false) {
 	    rtp_message(LOG_NOTICE, 
 			"%s - Setting rtp seq and time from 1st pak",

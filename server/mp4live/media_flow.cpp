@@ -36,9 +36,12 @@
 #include "mp4live_common.h"
 #include "video_encoder.h"
 #include "audio_encoder.h"
+#include "text_encoder.h"
+#include "text_encoder.h"
 #include "media_stream.h"
 #include "profile_video.h"
 #include "profile_audio.h"
+#include "profile_text.h"
 // Generic Flow
 
 bool CMediaFlow::GetStatus(u_int32_t valueName, void* pValue) 
@@ -55,13 +58,16 @@ CAVMediaFlow::CAVMediaFlow(CLiveConfig* pConfig)
 {
   m_videoSource = NULL;
   m_audioSource = NULL;
-  m_mp4Recorder = NULL;
+  m_textSource = NULL;
+  m_mp4RawRecorder = NULL;
   m_rawSink = NULL;
   m_video_profile_list = NULL;
   m_audio_profile_list = NULL;
+  m_text_profile_list = NULL;
   m_stream_list = NULL;
   m_video_encoder_list = NULL;
   m_audio_encoder_list = NULL;
+  m_text_encoder_list = NULL;
   ReadStreams();
   ValidateAndUpdateStreams();
 }
@@ -86,7 +92,10 @@ CAVMediaFlow::~CAVMediaFlow()
     delete m_audio_profile_list;
     m_audio_profile_list = NULL;
   }
-  // text
+  if (m_text_profile_list != NULL) {
+    delete m_text_profile_list;
+    m_text_profile_list = NULL;
+  }
 }
 
 
@@ -115,6 +124,13 @@ void CAVMediaFlow::Stop(void)
 		}
 		m_videoSource = NULL;
 
+	}
+	if (m_textSource) {
+	  m_textSource->RemoveAllSinks();
+	  m_textSource->StopThread();
+	  delete m_textSource;
+	  m_textSource = NULL;
+	  debug_message("Text stopped");
 	}
 
 	// stop the encoders - remove the sinks from the source
@@ -148,6 +164,19 @@ void CAVMediaFlow::Stop(void)
 	}
 	m_audio_encoder_list = NULL;
 
+	mc = m_text_encoder_list;
+	while (mc != NULL) {
+	   debug_message("stopping text profile %s", mc->GetProfileName());
+	  mc->StopThread();
+	  debug_message("thread stopped");
+	  mc->StopSinks();
+	  debug_message("stopping sinks");
+	  p = mc;
+	  mc = mc->GetNext();
+	  delete p;
+	}
+	m_text_encoder_list = NULL;
+
 	// Now, stop the streams (stops and deletes file recorders
 	CMediaStream *stream;
 	stream = m_stream_list->GetHead();
@@ -156,25 +185,28 @@ void CAVMediaFlow::Stop(void)
 	  stream = stream->GetNext();
 	}
 
+	// Note - m_videoSource may still be active at this point
+	// be sure to remove any sinks attached to it.
+
 	// any other sinks that were added should be stopped here.
-#if 0
 	if (m_rawSink) {
-		RemoveSink(m_rawSink);
+	  if (m_videoSource != NULL) {
+	    m_videoSource->RemoveSink(m_rawSink);
+	  }
 		m_rawSink->StopThread();
 		delete m_rawSink;
 		m_rawSink = NULL;
 	}
 	
 	
-	
-	
-	if (m_mp4Recorder) {
-		RemoveSink(m_mp4Recorder);
-		m_mp4Recorder->StopThread();
-		delete m_mp4Recorder;
-		m_mp4Recorder = NULL;
+	if (m_mp4RawRecorder != NULL) {
+	  if (m_videoSource != NULL) {
+	    m_videoSource->RemoveSink(m_mp4RawRecorder);
+	  }
+	  m_mp4RawRecorder->StopThread();
+	  delete m_mp4RawRecorder;
+	  m_mp4RawRecorder = NULL;
 	}
-#endif
 	
 	m_started = false;
 	
@@ -449,11 +481,11 @@ bool CAVMediaFlow::ReadStreams (void)
       debug_message("Created default video profile");
     }
   }
+
   snprintf(profile_dir, PATH_MAX, "%s/Audio", base);
   if (CheckandCreateDir(profile_dir) == false) {
     return false;
   }
-
   // load audio profiles - make sure there is a default profile
   m_audio_profile_list = new CAudioProfileList(profile_dir);
   m_audio_profile_list->Load();
@@ -464,6 +496,23 @@ bool CAVMediaFlow::ReadStreams (void)
       return false;
     } else {
       debug_message("Created default audio profile");
+    }
+  }
+
+  snprintf(profile_dir, PATH_MAX, "%s/Text", base);
+  if (CheckandCreateDir(profile_dir) == false) {
+    return false;
+  }
+  // load text profiles - make sure there is a default profile
+  m_text_profile_list = new CTextProfileList(profile_dir);
+  m_text_profile_list->Load();
+  if (m_text_profile_list->GetCount() == 0 ||
+      m_text_profile_list->FindProfile("default") == NULL) {
+    if (m_text_profile_list->CreateConfig("default") == false) {
+      error_message("Can't create text default profile");
+      return false;
+    } else {
+      debug_message("Created default text profile");
     }
   }
 
@@ -480,7 +529,8 @@ bool CAVMediaFlow::ReadStreams (void)
   }
   m_stream_list = new CMediaStreamList(base,
 				       m_video_profile_list,
-				       m_audio_profile_list);
+				       m_audio_profile_list,
+				       m_text_profile_list);
   m_stream_list->Load();
   if (m_stream_list->GetCount() == 0) {
     if (m_stream_list->CreateConfig("default") == false) {
@@ -549,6 +599,8 @@ void CAVMediaFlow::ValidateAndUpdateStreams (void)
     createStreamSdp(m_pConfig, s);
     s = s->GetNext();
   }
+  m_pConfig->SetBoolValue(CONFIG_AUDIO_ENABLE, have_audio);
+  m_pConfig->SetBoolValue(CONFIG_VIDEO_ENABLE, have_audio);
   // streams should all be loaded.
   if (max_chans > 0) {
     m_pConfig->SetIntegerValue(CONFIG_AUDIO_CHANNELS,
@@ -577,6 +629,11 @@ void CAVMediaFlow::Start(void)
   if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
     m_audioSource = CreateAudioSource(m_pConfig, m_videoSource);
   }
+  if (m_pConfig->GetBoolValue(CONFIG_TEXT_ENABLE)) {
+    m_textSource = CreateTextSource(m_pConfig);
+    debug_message("Created text source %p", m_textSource);
+  }
+
   if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) 
       && m_videoSource == NULL) {
     debug_message("start - creating video source");
@@ -585,7 +642,7 @@ void CAVMediaFlow::Start(void)
       m_audioSource->SetVideoSource(m_videoSource);
     }
   }
-  
+
   m_maxAudioSamplesPerFrame = 0;
 
   CMediaStream *s;
@@ -596,6 +653,7 @@ void CAVMediaFlow::Start(void)
   while (s != NULL) {
     CAudioEncoder *ae_ptr = NULL;
     CVideoEncoder *ve_ptr = NULL;
+    CTextEncoder *te_ptr = NULL;
     if (s->GetBoolValue(STREAM_VIDEO_ENABLED)) {
       // see if profile has already been started
       ve_ptr = FindOrCreateVideoEncoder(s->GetVideoProfile());
@@ -606,12 +664,17 @@ void CAVMediaFlow::Start(void)
       // see if profile has already been started
       ae_ptr = FindOrCreateAudioEncoder(s->GetAudioProfile());
       s->SetAudioEncoder(ae_ptr);
-      m_pConfig->SetBoolValue(CONFIG_VIDEO_ENABLE, true);
+      m_pConfig->SetBoolValue(CONFIG_AUDIO_ENABLE, true);
       // when we start the encoder, we will have to pass the channels
       // configured, as well as the initial sample rate (basically, 
       // replicate SetAudioSrc here...
     }
-
+    if (s->GetBoolValue(STREAM_TEXT_ENABLED)) {
+      // see if profile has already been started
+      te_ptr = FindOrCreateTextEncoder(s->GetTextProfile());
+      s->SetTextEncoder(te_ptr);
+      m_pConfig->SetBoolValue(CONFIG_TEXT_ENABLE, true);
+    }
     if (s->GetBoolValue(STREAM_TRANSMIT)) {
       // check if transmitter has been started on encoder
       // create rtp destination, add to transmitter
@@ -623,6 +686,12 @@ void CAVMediaFlow::Start(void)
       }
       if (ae_ptr != NULL) {
 	ae_ptr->AddRtpDestination(s,
+				  m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE),
+				  m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET),
+				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL));
+      }
+      if (te_ptr != NULL) {
+	te_ptr->AddRtpDestination(s,
 				  m_pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE),
 				  m_pConfig->GetBoolValue(CONFIG_RTP_DISABLE_TS_OFFSET),
 				  m_pConfig->GetIntegerValue(CONFIG_RTP_MCAST_TTL));
@@ -643,24 +712,41 @@ void CAVMediaFlow::Start(void)
     s = s->GetNext();
   }
   
-  m_audioSource->SetAudioSrcSamplesPerFrame(m_maxAudioSamplesPerFrame);
-  debug_message("Setting source sample per frame %u", m_maxAudioSamplesPerFrame);
+  if (m_audioSource) {
+    m_audioSource->SetAudioSrcSamplesPerFrame(m_maxAudioSamplesPerFrame);
+    debug_message("Setting source sample per frame %u", m_maxAudioSamplesPerFrame);
+  }
   // If we need raw stuff, we do it here
   if (m_pConfig->GetBoolValue(CONFIG_RAW_ENABLE)) {
-#if 0
     m_rawSink = new CRawFileSink();
-    m_rawSink->SetConfig(m_pConfig);	
-    m_rawSink->StartThread();	
-    AddSink(m_rawSink);
-#endif
-  }
-  
-#if 0	
-  if (m_rawSink) {
+    m_rawSink->SetConfig(m_pConfig);
+    if (m_audioSource != NULL) {
+      m_audioSource->AddSink(m_rawSink);
+    }
+    if (m_videoSource != NULL) {
+      m_videoSource->AddSink(m_rawSink);
+    }
+    m_rawSink->StartThread();
     m_rawSink->Start();
   }
-#endif
 
+  if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4)) {
+    if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_VIDEO) ||
+	m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_AUDIO)) {
+      m_mp4RawRecorder = new CMp4Recorder(NULL);
+      m_mp4RawRecorder->SetConfig(m_pConfig);
+      if (m_audioSource != NULL &&
+	  m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_AUDIO)) {
+	m_audioSource->AddSink(m_mp4RawRecorder);
+      }
+      if (m_videoSource != NULL &&
+	  m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4_VIDEO)) {
+	m_videoSource->AddSink(m_mp4RawRecorder);
+      }
+      m_mp4RawRecorder->StartThread();
+      m_mp4RawRecorder->Start();
+    }
+  }
   // start encoders and any sinks...  This may result in some sinks
   // file, in particular, receiving multiple starts
   CMediaCodec *mc = m_video_encoder_list;
@@ -679,6 +765,12 @@ void CAVMediaFlow::Start(void)
     mc->StartSinks();
     mc = mc->GetNext();
   }
+  mc = m_text_encoder_list;
+  while (mc != NULL) {
+    mc->Start();
+    mc->StartSinks();
+    mc = mc->GetNext();
+  }
   // finally, start sources...
   if (m_videoSource && m_videoSource == m_audioSource) {
     m_videoSource->Start();
@@ -691,6 +783,10 @@ void CAVMediaFlow::Start(void)
     }
   }
   
+  if (m_textSource != NULL) {
+    m_textSource->Start();
+  }
+
   if (m_videoSource) {
     // force video source to generate a key frame
     // so that sinks can quickly sync up
@@ -751,6 +847,27 @@ CAudioEncoder *CAVMediaFlow::FindOrCreateAudioEncoder (CAudioProfile *ap)
   m_audioSource->AddSink(ae_ptr);
   debug_message("Added audio encoder %s", ap_name);
   return ae_ptr;
+}
+CTextEncoder *CAVMediaFlow::FindOrCreateTextEncoder (CTextProfile *tp)
+{
+  const char *tp_name = tp->GetName();
+  CTextEncoder *te_ptr = m_text_encoder_list;
+ 
+  while (te_ptr != NULL) {
+    if (strcmp(tp_name, te_ptr->GetProfileName()) == 0) {
+      return te_ptr;
+    }
+    te_ptr = te_ptr->GetNext();
+  }
+  
+  te_ptr = TextEncoderCreate(tp, m_text_encoder_list);
+
+  m_text_encoder_list = te_ptr;
+  // need to init, find max samples here..
+  te_ptr->StartThread();
+  m_textSource->AddSink(te_ptr);
+  debug_message("Added text encoder %s", tp_name);
+  return te_ptr;
 }
 
 // AddStream - called when we have a new stream from the GUI

@@ -23,7 +23,7 @@
 #include "mp4live.h"
 #include "audio_encoder.h"
 #include "mp4av.h"
-
+//#define DEBUG_SYNC 1
 /*
  * This looks like a fairly bogus set of routines; however, the
  * code makes it really easy to add your own codecs here, include
@@ -146,7 +146,7 @@ void CAudioEncoder::Initialize (void)
     // we will combine the channels before resampling
     m_audioResample = (resample_t *)malloc(sizeof(resample_t) *
 					   m_audioDstChannels);
-    for (int ix = 0; ix <= m_audioDstChannels; ix++) {
+    for (int ix = 0; ix < m_audioDstChannels; ix++) {
       m_audioResample[ix] = st_resample_start(m_audioSrcSampleRate, 
 					      m_audioDstSampleRate);
     }
@@ -171,7 +171,9 @@ int CAudioEncoder::ThreadMain(void)
   CMsg* pMsg;
   bool stop = false;
 
-  //  debug_message("audio encoder thread %s start", Profile()->GetName());
+  debug_message("audio encoder thread %s %s %s start", Profile()->GetName(),
+		Profile()->GetStringValue(CFG_AUDIO_ENCODER), 
+		Profile()->GetStringValue(CFG_AUDIO_ENCODING));
 
   while (stop == false && SDL_SemWait(m_myMsgQueueSemaphore) == 0) {
     pMsg = m_myMsgQueue.get_message();
@@ -212,8 +214,16 @@ int CAudioEncoder::ThreadMain(void)
     }
     delete pMsg;
   }
+
+  if (m_audioResample != NULL) {
+    for (uint ix = 0; ix < m_audioDstChannels; ix++) {
+      st_resample_stop(m_audioResample[ix]);
+      m_audioResample[ix] = NULL;
+    }
+    free(m_audioResample);
+  }
+  CHECK_AND_FREE(m_audioPreEncodingBuffer);
   debug_message("audio encoder thread %s exit", Profile()->GetName());
-  
   return 0;
 }
 
@@ -343,14 +353,14 @@ void CAudioEncoder::ProcessAudioFrame(CMediaFrame *pFrame)
       DstBytesToSamples(m_audioPreEncodingBufferLength);
 
     // not enough samples collected yet to call encode or forward
-    if (samplesAvailable < m_audioDstSamplesPerFrame) {
-      return;
-    }
     if (pcmMalloced) {
       free((void *)pcmData);
       pcmMalloced = false;
     }
 
+    if (samplesAvailable < m_audioDstSamplesPerFrame) {
+      return;
+    }
     // setup for encode/forward
     pcmData = &m_audioPreEncodingBuffer[0];
     pcmDataLength = DstSamplesToBytes(m_audioDstSamplesPerFrame);
@@ -397,6 +407,9 @@ void CAudioEncoder::ProcessAudioFrame(CMediaFrame *pFrame)
   }
   
   //Timestamp encodingStartTimestamp = GetTimestamp();
+#ifdef DEBUG_SYNC
+  debug_message("encoding");
+#endif
   bool rc = EncodeSamples(
 			  (int16_t*)pcmData,
 			  m_audioDstSamplesPerFrame,
@@ -506,6 +519,9 @@ void CAudioEncoder::ForwardEncodedAudioFrames(void)
 
     // sanity check
     if (pFrame == NULL || frameLength == 0) {
+#ifdef DEBUG_SYNC
+      debug_message("No frame");
+#endif
       break;
     }
 

@@ -225,8 +225,9 @@ bool CPlayerSession::start_session_work (void)
     if (play_all_media(TRUE, 0.0) < 0) {
       err = true;
     }
-    if (err == false && ret > 0) {
-      m_master_msg_queue->send_message(MSG_SESSION_WARNING, 
+    if (err == false) {
+      m_master_msg_queue->send_message(ret > 0 ? MSG_SESSION_WARNING 
+				       : MSG_SESSION_STARTED,
 				       m_master_msg_queue_sem);
     }
   } else {

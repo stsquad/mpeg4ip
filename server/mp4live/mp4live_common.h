@@ -16,6 +16,7 @@ class CMediaSource;
 CMediaSource *CreateVideoSource(CLiveConfig *pConfig);
 
 CMediaSource *CreateAudioSource(CLiveConfig *pConfig, CMediaSource *videoSource);
+CMediaSource *CreateTextSource(CLiveConfig *pConfig);
 
 void InitialVideoProbe(CLiveConfig *pConfig);
 

@@ -36,7 +36,8 @@
 #define MSG_SDL_KEY_EVENT 8
 #define MSG_SESSION_ERROR 9
 #define MSG_SESSION_WARNING 10
-#define MSG_OUR_LAST_MESSAGE 11
+#define MSG_SESSION_STARTED 11
+#define MSG_OUR_LAST_MESSAGE 12
 typedef struct sdl_event_msg_t {
   SDLKey sym;
   SDLMod mod;

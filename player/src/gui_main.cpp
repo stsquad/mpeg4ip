@@ -1126,6 +1126,9 @@ static gint main_timer (gpointer raw)
   CMsg *newmsg;
   while ((newmsg = master_queue.get_message()) != NULL) {
     switch (newmsg->get_value()) {
+    case MSG_SESSION_STARTED:
+      adjust_gui_for_play();
+      break;
     case MSG_SESSION_ERROR: 
     case MSG_SESSION_WARNING: 
       //
@@ -1137,6 +1140,7 @@ static gint main_timer (gpointer raw)
 	ShowMessage("Open error", buffer);
       }
       if (newmsg->get_value() == MSG_SESSION_WARNING) {
+	adjust_gui_for_play();
 	break;
       }
       // otherwise fall through into quit

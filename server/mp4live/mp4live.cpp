@@ -32,6 +32,7 @@
 #endif
 
 #include "audio_oss_source.h"
+#include "text_source.h"
 #include "audio_encoder.h"
 #include "mp4live_common.h"
 #include <getopt.h>
@@ -112,6 +113,14 @@ CMediaSource *CreateAudioSource (CLiveConfig *pConfig,
   audioSource->SetVideoSource(videoSource);
 
   return audioSource;
+}
+
+CMediaSource *CreateTextSource (CLiveConfig *pConfig) 
+{
+  CMediaSource *textSource = NULL;
+  textSource = new CFileTextSource(pConfig);
+  textSource->StartThread();
+  return textSource;
 }
 
 // Probe video input devices
@@ -351,7 +360,8 @@ int nogui_main(CLiveConfig* pConfig)
   time_t starttime, nowtime;
 
 	if (!pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
-	  && !pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+	  && !pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) 
+	    && !pConfig->GetBoolValue(CONFIG_TEXT_ENABLE)) {
 		return -1;
 	}
 

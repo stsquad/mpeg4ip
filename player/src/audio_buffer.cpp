@@ -505,7 +505,7 @@ int CBufferAudioSync::is_audio_ready (uint64_t &disptime)
 		m_dont_fill, m_filled_bytes, m_output_buffer_size_bytes,
 		m_sample_buffer_size);
 #endif
-  return m_dont_fill == false && m_filled_bytes > 2 * m_output_buffer_size_bytes;
+  return m_dont_fill == false && m_filled_bytes >= 2 * m_output_buffer_size_bytes;
 }
 
 // This will need to be rewritten.
@@ -553,7 +553,7 @@ bool CBufferAudioSync::check_audio_sync (uint64_t current_time,
     resync_time = m_resync_ts;
     return true;
   } else if (m_audio_paused) {
-    if (m_filled_bytes > 2 * m_output_buffer_size_bytes) {
+    if (m_filled_bytes >= 2 * m_output_buffer_size_bytes) {
       // we have them resync the time here after we've gotten bytes
       resync_time = m_first_ts;
 

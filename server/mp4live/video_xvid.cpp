@@ -49,25 +49,25 @@ bool CXvidVideoEncoder::Init (void)
 
 	xvidEncParams.width = Profile()->m_videoWidth;
 	xvidEncParams.height = Profile()->m_videoHeight;
-	if (Profile()->GetIntegerValue(CONFIG_VIDEO_TIMEBITS) == 0) {
+	if (Profile()->GetIntegerValue(CFG_VIDEO_TIMEBITS) == 0) {
 	  xvidEncParams.fincr = 1;
 	  xvidEncParams.fbase = 
-	    (int)(Profile()->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
+	    (int)(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) + 0.5);
 	} else {
 	  xvidEncParams.fincr = 
-	    (int)(((double)Profile()->GetIntegerValue(CONFIG_VIDEO_TIMEBITS)) /
-		  Profile()->GetFloatValue(CONFIG_VIDEO_FRAME_RATE));
+	    (int)(((double)Profile()->GetIntegerValue(CFG_VIDEO_TIMEBITS)) /
+		  Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE));
 	  xvidEncParams.fbase = 
-	    Profile()->GetIntegerValue(CONFIG_VIDEO_TIMEBITS);
+	    Profile()->GetIntegerValue(CFG_VIDEO_TIMEBITS);
 	}
 
 	xvidEncParams.rc_bitrate = 
-		Profile()->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
+		Profile()->GetIntegerValue(CFG_VIDEO_BIT_RATE) * 1000;
 	xvidEncParams.min_quantizer = 1;
 	xvidEncParams.max_quantizer = 31;
 	xvidEncParams.max_key_interval = (int)
-		(Profile()->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) 
-		 * Profile()->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
+		(Profile()->GetFloatValue(CFG_VIDEO_FRAME_RATE) 
+		 * Profile()->GetFloatValue(CFG_VIDEO_KEY_FRAME_INTERVAL));
 	if (xvidEncParams.max_key_interval == 0) {
 		xvidEncParams.max_key_interval = 1;
 	} 

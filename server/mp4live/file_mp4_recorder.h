@@ -37,7 +37,7 @@ public:
 
   const char *GetRecordFileName(void) {
     if (m_mp4FileName == NULL) {
-      return m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
+      return m_pConfig->GetStringValue(CONFIG_RECORD_RAW_MP4_FILE_NAME);
     }
     return m_mp4FileName;
   };

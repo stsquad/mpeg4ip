@@ -92,6 +92,10 @@ public:
 	{
 		return m_videoSource;
 	}
+	CMediaSource* GetTextSource() {
+	  return m_textSource;
+	}
+	  
 	bool ReadStreams(void);
 	void ValidateAndUpdateStreams(void);
 	bool AddStream(const char *name);
@@ -103,22 +107,23 @@ protected:
 protected:
 	CMediaSource* 	m_videoSource;
 	CMediaSource*	m_audioSource;
+	CMediaSource*   m_textSource;
 	uint32_t m_maxAudioSamplesPerFrame;
  public:
 	CVideoProfileList *m_video_profile_list;
 	CAudioProfileList *m_audio_profile_list;
-	//CTextProfile *m_text_profile_list;
+	CTextProfileList  *m_text_profile_list;
 	CMediaStreamList *m_stream_list;
 
 	CVideoEncoder *m_video_encoder_list;
 	CAudioEncoder *m_audio_encoder_list;
-
+	CTextEncoder *m_text_encoder_list;
  protected:
 	CVideoEncoder *FindOrCreateVideoEncoder(CVideoProfile *vp, 
 						bool create = true);
 	CAudioEncoder *FindOrCreateAudioEncoder(CAudioProfile *ap);
-
-	CMp4Recorder*		m_mp4Recorder;
+	CTextEncoder  *FindOrCreateTextEncoder(CTextProfile *tp);
+	CMp4Recorder*		m_mp4RawRecorder;
 	CMediaSink*		m_rawSink;
 };
 

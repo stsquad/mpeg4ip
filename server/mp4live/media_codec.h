@@ -76,6 +76,7 @@ protected:
 			   const char *dest_addr, 
 			   in_port_t destPort,
 			   in_port_t srcPort) {
+	  debug_message("%u %u", mtu, max_ttl);
 	  if (m_rtp_sink == NULL) {
 	    m_rtp_sink = CreateRtpTransmitter(mtu, disable_ts_offset);
 	    m_rtp_sink->StartThread();

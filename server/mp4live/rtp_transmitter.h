@@ -100,7 +100,7 @@ class CRtpDestination
   uint32_t m_reference;
 };
 
-typedef void (*video_rtp_transmitter_f)(CMediaFrame *pak, CRtpDestination *list,
+typedef void (*rtp_transmitter_f)(CMediaFrame *pak, CRtpDestination *list,
 					uint32_t rtpTimestamp, uint16_t mtu);
 
 typedef int (*audio_queue_frame_f)(u_int32_t **frameno,
@@ -301,8 +301,18 @@ class CVideoRtpTransmitter : public CRtpTransmitter
   void DoSendFrame(CMediaFrame* pFrame);
   //  void DoStopTransmit(void); not needed as of now
   
-  video_rtp_transmitter_f m_videoSendFunc;
+  rtp_transmitter_f m_videoSendFunc;
 };
 
+class CTextProfile;
+class CTextRtpTransmitter : public CRtpTransmitter
+{
+ public:
+  CTextRtpTransmitter(CTextProfile *tp, 
+		      uint16_t mtu, bool disable_ts_offset);
+ protected:
+  void DoSendFrame(CMediaFrame *pFrame);
+  rtp_transmitter_f m_textSendFunc;
+};
   
 #endif /* __RTP_TRANSMITTER_H__ */

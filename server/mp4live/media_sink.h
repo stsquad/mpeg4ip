@@ -51,7 +51,7 @@ public:
 
 		pFrame->AddReference();
 		m_myMsgQueue.send_message(MSG_SINK_FRAME, 
-			(unsigned char*)pFrame, 0,
+			pFrame, 0,
 			m_myMsgQueueSemaphore);
 
 		if (SDL_UnlockMutex(m_pEnqueueMutex) == -1) {

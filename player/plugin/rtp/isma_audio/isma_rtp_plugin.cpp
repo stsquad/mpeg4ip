@@ -610,7 +610,8 @@ static bool start_next_frame (rtp_plugin_data_t *pifptr,
     // of packets if they're not consecutive.
     do {
       process_packet_header(iptr);
-    } while (iptr->m_frame_data_free != NULL);
+    } while ((iptr->m_vft->get_next_pak(iptr->m_ifptr, NULL, 0) != NULL) &&
+	     (iptr->m_frame_data_free != NULL));
   }
   /*
    * Init up the offsets

@@ -44,6 +44,12 @@ static void on_profile_directory_clicked (GtkWidget *widget, gpointer data)
   FileBrowser(entry, wid, NULL);
 }
 
+static void on_raw_file_clicked (GtkWidget *widget, gpointer data)
+{
+  GtkWidget *dialog = GTK_WIDGET(data);
+  GtkWidget *entry = lookup_widget(dialog, "RawFileName");
+  FileBrowser(entry, dialog, NULL);
+}
 static bool check_dir (const char *newdir,
 		       const char *old,
 		       const char *suffix)
@@ -116,6 +122,13 @@ on_PreferencesDialog_response         (GtkWidget       *dialog,
       }
     }
     MyConfig->SetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS, value);
+
+    w = lookup_widget(dialog, "RecordRawDataButton");
+    MyConfig->SetBoolValue(CONFIG_RECORD_RAW_IN_MP4,
+			   gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(w)));
+    w = lookup_widget(dialog, "RawFileName");
+    MyConfig->SetStringValue(CONFIG_RECORD_RAW_MP4_FILE_NAME,
+			     gtk_entry_get_text(GTK_ENTRY(w)));
 
     w = lookup_widget(dialog, "RecordHintTrackButton");
     MyConfig->SetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS,
@@ -556,6 +569,10 @@ void create_PreferencesDialog(void)
 		   G_CALLBACK(on_profile_directory_clicked), 
 		   PreferencesDialog);
 
+  g_signal_connect((gpointer)RawFileNameBrowse, "clicked",
+		   G_CALLBACK(on_raw_file_clicked),
+		   PreferencesDialog);
+
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF(PreferencesDialog, PreferencesDialog, "PreferencesDialog");
   GLADE_HOOKUP_OBJECT_NO_REF(PreferencesDialog, dialog_vbox9, "dialog_vbox9");
@@ -676,6 +693,10 @@ void create_PreferencesDialog(void)
 			       MyConfig->GetBoolValue(CONFIG_RECORD_MP4_HINT_TRACKS));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(OptimizeMP4FileButton),
 			       MyConfig->GetBoolValue(CONFIG_RECORD_MP4_OPTIMIZE));
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(RecordRawDataButton),
+			       MyConfig->GetBoolValue(CONFIG_RECORD_RAW_IN_MP4));
+  gtk_entry_set_text(GTK_ENTRY(RawFileName), 
+		     MyConfig->GetStringValue(CONFIG_RECORD_RAW_MP4_FILE_NAME));
 
   gtk_widget_show(PreferencesDialog);
 }

@@ -123,7 +123,6 @@ bool CPluginRtpByteStream::start_next_frame (uint8_t **buffer,
 					     frame_timestamp_t *ts,
 					     void **userdata)
 {
-  if (m_head == NULL) return 0;
   ts->audio_freq = m_timescale;
   return (m_rtp_plugin->rtp_plugin_start_next_frame)(m_rtp_plugin_data,
 						     buffer, 

@@ -31,6 +31,7 @@
 #include "support.h"
 #include "profile_video.h"
 #include "profile_audio.h"
+#include "profile_text.h"
 #include "mp4live_common.h"
 #include "rtp_transmitter.h"
 
@@ -303,7 +304,8 @@ void DoStart()
   temp = lookup_widget(MainWindow, "Duration");
   
   if (!MyConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)
-      && !MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
+      && !MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE) 
+      && !MyConfig->GetBoolValue(CONFIG_TEXT_ENABLE)) {
     ShowMessage("No Media", "Neither audio nor video are enabled");
     return;
   }
@@ -509,14 +511,10 @@ static void DisplayVideoProfiles (void)
 static void DisplayTextProfiles (void)
 {
   free_profile_names(text_profile_names, text_profile_names_count);
-#if 1
-  error_message("Must set up loadtextprofiles");
-#else
   DisplayProfiles(lookup_widget(MainWindow, "TextProfile"),
 		(CConfigList *)AVFlow->m_text_profile_list,
 		&text_profile_names,
 		&text_profile_names_count);
-#endif
 }
 #endif
 
@@ -650,7 +648,6 @@ static void DisplayStreamData (const char *stream)
 				      audio_profile_names_count,
 				      ms->GetStringValue(STREAM_AUDIO_PROFILE));
   temp = lookup_widget(MainWindow, "AudioProfile");
-  debug_message("audio profile %s index %u", ms->GetStringValue(STREAM_AUDIO_PROFILE), index);
   gtk_option_menu_set_history(GTK_OPTION_MENU(temp), index);
   bool enabled = ms->GetBoolValue(STREAM_AUDIO_ENABLED);
   temp2 = lookup_widget(MainWindow, "StreamAudioInfo");
@@ -659,7 +656,6 @@ static void DisplayStreamData (const char *stream)
     gtk_tooltips_set_tip(tooltips, temp, "Select/Add/Customize Audio Profile", NULL);
   } else {
     CAudioProfile *ap = ms->GetAudioProfile();
-    debug_message("audio profile %s", ap->GetName());
     float srate = ((float)ap->GetIntegerValue(CFG_AUDIO_SAMPLE_RATE)) / 1000.0;
     float sbit = ((float)ap->GetIntegerValue(CFG_AUDIO_BIT_RATE)) / 1000.0;
     snprintf(buffer, sizeof(buffer), "%s %gKbps",
@@ -754,6 +750,47 @@ static void DisplayStreamData (const char *stream)
 	     ms->GetIntegerValue(STREAM_VIDEO_DEST_PORT));
     gtk_label_set_text(GTK_LABEL(temp), buffer);
   }
+
+#ifdef HAVE_TEXT
+  // text information
+  temp = lookup_widget(MainWindow, "TextEnabled");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(temp), 
+			       ms->GetBoolValue(STREAM_TEXT_ENABLED));
+  index = get_index_from_profile_list(text_profile_names, 
+				      text_profile_names_count,
+				      ms->GetStringValue(STREAM_TEXT_PROFILE));
+  temp = lookup_widget(MainWindow, "TextProfile");
+  gtk_option_menu_set_history(GTK_OPTION_MENU(temp), index);
+
+  enabled = ms->GetBoolValue(STREAM_TEXT_ENABLED);
+  temp2 = lookup_widget(MainWindow, "StreamTextInfo");
+  if (enabled == false) {
+    gtk_label_set_text(GTK_LABEL(temp2), "text disabled");
+    gtk_tooltips_set_tip(tooltips, temp, "Select/Add/Customize Audio Profile", NULL);
+  } else {
+    CTextProfile *tp = ms->GetTextProfile();
+    snprintf(buffer, sizeof(buffer), "%s", tp->GetStringValue(CFG_TEXT_ENCODING));
+    gtk_label_set_text(GTK_LABEL(temp2), buffer);
+    snprintf(buffer, sizeof(buffer), 
+	     "Select/Add/Customize Text Profile\n"
+	     "%s", 
+	     tp->GetStringValue(CFG_TEXT_ENCODING));
+    gtk_tooltips_set_tip(tooltips, temp, buffer, NULL);
+  }
+  enabled = enabled && !started;
+    gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(MainWindow, "TextTxAddrButton");
+  gtk_widget_set_sensitive(temp, enabled);
+  temp = lookup_widget(MainWindow, "TextTxAddrLabel");
+  if (enabled == false || ms->GetBoolValue(STREAM_TRANSMIT) == false) {
+    gtk_label_set_text(GTK_LABEL(temp), "disabled");
+  } else {
+    snprintf(buffer, sizeof(buffer), "%s:%u", 
+	     ms->GetStringValue(STREAM_TEXT_DEST_ADDR), 
+	     ms->GetIntegerValue(STREAM_TEXT_DEST_PORT));
+    gtk_label_set_text(GTK_LABEL(temp), buffer);
+  }
+#endif
 
 }
 
@@ -923,6 +960,13 @@ static void on_generate_addresses_yes (void)
 	in.s_addr = CRtpTransmitter::GetRandomMcastAddress();
 	ms->SetStringValue(STREAM_AUDIO_DEST_ADDR, inet_ntoa(in));
 	ms->SetIntegerValue(STREAM_AUDIO_DEST_PORT,
+			    CRtpTransmitter::GetRandomPortBlock());
+      }
+      if (ms->GetBoolValue(STREAM_TEXT_ENABLED) &&
+	  ms->GetBoolValue(STREAM_TEXT_ADDR_FIXED) == false) {
+	in.s_addr = CRtpTransmitter::GetRandomMcastAddress();
+	ms->SetStringValue(STREAM_TEXT_DEST_ADDR, inet_ntoa(in));
+	ms->SetIntegerValue(STREAM_TEXT_DEST_PORT,
 			    CRtpTransmitter::GetRandomPortBlock());
       }
     }
@@ -1339,6 +1383,7 @@ on_VideoEnabled_toggled                (GtkToggleButton *togglebutton,
 
   ms->SetBoolValue(STREAM_VIDEO_ENABLED, 
 		   gtk_toggle_button_get_active(togglebutton));
+  ms->Initialize();
   DisplayStreamData(SelectedStream);
 }
 
@@ -1385,7 +1430,6 @@ on_VideoPreview                        (GtkToggleButton *togglebutton,
   inpreview = true;
 
   bool raw_toggled = (GPOINTER_TO_INT(user_data) == 0);
-  debug_message("onvideopreview %d", GPOINTER_TO_INT(user_data));
   GtkWidget *raw, *stream;
   raw = lookup_widget(MainWindow, "VideoSourcePreview");
   stream = lookup_widget(MainWindow, "StreamVideoPreview");
@@ -1394,9 +1438,6 @@ on_VideoPreview                        (GtkToggleButton *togglebutton,
 
   raw_set = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(raw));
   stream_set = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(stream));
-  debug_message("onvideopreview %d raw %d stream %d", 
-		GPOINTER_TO_INT(user_data),
-		raw_set, stream_set);
 
   if (raw_set == false && stream_set == false) {
     if (MyConfig->GetBoolValue(CONFIG_VIDEO_PREVIEW)) {
@@ -1465,6 +1506,7 @@ on_AudioEnabled_toggled                (GtkToggleButton *togglebutton,
 
   ms->SetBoolValue(STREAM_AUDIO_ENABLED, 
 		   gtk_toggle_button_get_active(togglebutton));
+  ms->Initialize();
   DisplayStreamData(SelectedStream);
 }
 
@@ -1489,7 +1531,6 @@ on_AudioProfile_changed                (GtkOptionMenu   *optionmenu,
       CreateAudioProfileDialog(ms->GetAudioProfile());
     } else if (strcmp(new_profile, 
 		      ms->GetStringValue(STREAM_AUDIO_PROFILE)) != 0) {
-      debug_message("setting new media to %s", new_profile);
       ms->SetAudioProfile(new_profile);
       AVFlow->ValidateAndUpdateStreams();
       MainWindowDisplaySources();
@@ -1519,6 +1560,28 @@ static void
 on_TextProfile_changed                 (GtkOptionMenu   *optionmenu,
                                         gpointer         user_data)
 {
+  if (started) {
+    DisplayStreamData(SelectedStream);
+    return;
+  }
+
+  if (text_profile_names != NULL) {
+    CMediaStream *ms = GetSelectedStream();
+    if (ms == NULL) return;
+    const char *new_profile = 
+      text_profile_names[gtk_option_menu_get_history(optionmenu)];
+    if (strcmp(new_profile, add_profile_string) == 0) {
+      //CreateTextProfileDialog(NULL);
+    } else if (strcmp(new_profile, customize_profile_string) == 0) {
+      //CreateTextProfileDialog(ms->GetTextProfile());
+    } else if (strcmp(new_profile, 
+		      ms->GetStringValue(STREAM_TEXT_PROFILE)) != 0) {
+      ms->SetTextProfile(new_profile);
+      AVFlow->ValidateAndUpdateStreams();
+      MainWindowDisplaySources();
+      DisplayStreamData(SelectedStream);
+    }
+  }
 }
 
 
@@ -2941,6 +3004,9 @@ void StartFlowLoadWindow (void)
   MainWindowDisplaySources();
   DisplayAudioProfiles();
   DisplayVideoProfiles();
+#ifdef HAVE_TEXT
+  DisplayTextProfiles();
+#endif
   DisplayStreamsInView();
   DisplayStreamData(NULL);
   // "press" start button

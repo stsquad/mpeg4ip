@@ -46,7 +46,7 @@ class CAudioEncoder : public CMediaCodec {
 			  bool disable_ts_offset,
 			  uint16_t max_ttl,
 			  in_port_t srcPort = 0) {
-    AddRtpDestInt(mtu, max_ttl, disable_ts_offset,
+    AddRtpDestInt(mtu, disable_ts_offset, max_ttl,
 		  stream->GetStringValue(STREAM_AUDIO_DEST_ADDR),
 		  stream->GetIntegerValue(STREAM_AUDIO_DEST_PORT),
 		  srcPort);

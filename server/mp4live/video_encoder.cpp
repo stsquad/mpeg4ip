@@ -13,10 +13,11 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2005.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
+ *              Bill May  wmay@cisco.com
  */
 
 #include "mp4live.h"
@@ -72,9 +73,9 @@ void create_mp4_video_hint_track (CVideoProfile *pConfig,
   return create_mp4_video_hint_track_base(pConfig, mp4file, trackId, mtu);
 }
 
-video_rtp_transmitter_f GetVideoRtpTransmitRoutine (CVideoProfile *pConfig,
-						    MediaType *pType,
-						    uint8_t *pPayload)
+rtp_transmitter_f GetVideoRtpTransmitRoutine (CVideoProfile *pConfig,
+					      MediaType *pType,
+					      uint8_t *pPayload)
 {
   return GetVideoRtpTransmitRoutineBase(pConfig, pType, pPayload);
 }

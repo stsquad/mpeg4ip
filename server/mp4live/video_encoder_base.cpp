@@ -527,9 +527,9 @@ static void H263SendVideoRfc2429 (CMediaFrame *pFrame, CRtpDestination *list,
     delete pFrame;
 }
  
-video_rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CVideoProfile *pConfig,
-						       MediaType *pType,
-						       uint8_t *pPayload)
+rtp_transmitter_f GetVideoRtpTransmitRoutineBase(CVideoProfile *pConfig,
+						 MediaType *pType,
+						 uint8_t *pPayload)
 {
   const char *encodingName = pConfig->GetStringValue(CFG_VIDEO_ENCODING);
   if (!strcasecmp(encodingName, VIDEO_ENCODING_MPEG4)) {

@@ -341,21 +341,26 @@ static void h264_parse_sei (h264_decode_t *dec, CBitstream *bs)
       bufsize = payload_size + 1;
     }
     uint ix = 0;
+    if (payload_size > 8) {
+      printf("\n   ");
+    }
     is_printable = true;
     while (payload_size > 0) {
       uint8_t bits = bs->GetBits(8);
       if (isprint(bits)) {
 	buffer[ix++] = bits;
       } else {
+	buffer[ix++] = '.';
 	is_printable = false;
       }
       printf(" 0x%x", bits);
+      if ((ix % 8) == 0) printf("\n   ");
       payload_size--;
     }
     printf("\n");
-    if (is_printable) {
+    if (is_printable || payload_type == 4 || payload_type == 5) {
       buffer[ix] = '\0';
-      printf("                 %s", buffer);
+      printf("   %s\n", buffer);
     }
   }
   CHECK_AND_FREE(buffer);

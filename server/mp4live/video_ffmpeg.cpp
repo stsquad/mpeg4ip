@@ -228,8 +228,11 @@ bool CFfmpegVideoEncoder::GetEncodedImage(
       *pts = *dts;
     }
   } else {
+    // return without clearing m_vopBuffer
     *dts = *pts = 0;
-    ret = false;
+    *ppBuffer = NULL;
+    *pBufferLength = 0;
+    return false;
   }
   m_vopBuffer = NULL;
   m_vopBufferLength = 0;
@@ -284,6 +287,7 @@ bool CFfmpegVideoEncoder::GetReconstructedImage(
 void CFfmpegVideoEncoder::StopEncoder (void)
 {
   avcodec_close(m_avctx);
+  CHECK_AND_FREE(m_vopBuffer);
   CHECK_AND_FREE(m_YUV);
   CHECK_AND_FREE(m_picture);
   CHECK_AND_FREE(m_avctx);

@@ -16,27 +16,10 @@ int ReadConfigFile (const char *configFileName,
   try {
     pConfig->ReadFile(configFileName);
 
-    if (!pConfig->IsDefault(CONFIG_RTP_DEST_ADDRESS) &&
-	pConfig->IsDefault(CONFIG_RTP_AUDIO_DEST_ADDRESS)) {
-      pConfig->SetStringValue(CONFIG_RTP_AUDIO_DEST_ADDRESS,
-			      pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS));
-    }
     if (!pConfig->IsDefault(CONFIG_RECORD_MP4_OVERWRITE)) {
       pConfig->SetIntegerValue(CONFIG_RECORD_MP4_FILE_STATUS, FILE_MP4_APPEND);
       pConfig->SetToDefault(CONFIG_RECORD_MP4_OVERWRITE);
     }
-#if !defined(HAVE_XVID10) && !defined(HAVE_XVID_H)
-    if (strcmp(pConfig->GetStringValue(CONFIG_VIDEO_ENCODER), VIDEO_ENCODER_XVID) == 0) {
-#ifdef HAVE_FFMPEG
-      pConfig->SetStringValue(CONFIG_VIDEO_ENCODER, VIDEO_ENCODER_FFMPEG);
-#else
-      pConfig->SetStringValue(CONFIG_VIDEO_ENCODER, VIDEO_ENCODER_H261);
-      pConfig->SetStringValue(CONFIG_VIDEO_ENCODING, VIDEO_ENCODING_H261);
-      pConfig->SetIntegerValue(CONFIG_VIDEO_RAW_WIDTH, 352);
-      pConfig->SetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT, 288);
-#endif
-    }
-#endif /* xvid not defined */
     PrintDebugMessages =
       pConfig->GetBoolValue(CONFIG_APP_DEBUG);
  }

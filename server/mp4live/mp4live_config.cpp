@@ -38,15 +38,13 @@ CLiveConfig::CLiveConfig(
 {
 	m_appAutomatic = false;
 	m_videoCapabilities = NULL;
-	m_videoEncode = true;
 	m_videoPreviewWindowId = 0;
 	m_videoNeedRgbToYuv = false;
 	m_videoMpeg4ConfigLength = 0;
 	m_videoMpeg4Config = NULL;
 	m_videoMaxVopSize = 128 * 1024;
-	m_audioCapabilities = NULL;
-	m_audioEncode = true;
 	m_recordEstFileSize = 0;
+	m_audioCapabilities = NULL;
 	m_parentConfig = NULL;
 }
 
@@ -89,11 +87,6 @@ void CLiveConfig::UpdateFileHistory(const char* fileName)
 
 void CLiveConfig::UpdateVideo() 
 {
-	m_videoEncode =
-		GetBoolValue(CONFIG_VIDEO_ENCODED_PREVIEW)
-		|| GetBoolValue(CONFIG_RTP_ENABLE)
-		|| (GetBoolValue(CONFIG_RECORD_ENABLE)
-			&& GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO));
 
 	CalculateVideoFrameSize();
 
@@ -111,10 +104,6 @@ void CLiveConfig::CalculateVideoFrameSize()
 
 void CLiveConfig::UpdateAudio() 
 {
-	m_audioEncode =
-		GetBoolValue(CONFIG_RTP_ENABLE)
-		|| (GetBoolValue(CONFIG_RECORD_ENABLE)
-			&& GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO));
 }
 
 void CLiveConfig::UpdateRecord() 
