@@ -1,8 +1,8 @@
 Here's a list of things that the authors are working on in the short-term:
 
+* Windows port
 * Add the OpenDivX MPEG-4 video codec as an option
 * Add an MP3 audio codec as an option
-* Support real MP4 file format in addition to the hinted Quicktime file format
 
 Here's a list of things that we would like to do in the future,
 however we're happy to have volunteers do them also ;-)
