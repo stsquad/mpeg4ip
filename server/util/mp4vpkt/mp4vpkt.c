@@ -470,26 +470,27 @@ int main(int argc, char** argv)
 			 * adjust rendering time offsets when B frames are used
 			 */
 			if (bFrameFrequency) {
-				if (vopCodingType == 'I') {
-					/* 
-					 * I frame presentation times are delayed
-					 * by 1 frame duration so that they can fill
-					 * the holes created by the P frames
-					 */
-					frameRenderingOffset = 1 * (timeScale / frameRate);
-
-				} else if (vopCodingType == 'P') {
-					/* 
-					 * P frame presentation times are early 
-					 * by (bFrameFrequency + 1) * frame duration
-					 * due to their being pulled forward in the encoded
-					 * bitstream, so adjust for that here
-					 */
-					frameRenderingOffset = 
-						(bFrameFrequency + 1) * (timeScale / frameRate);
-
-				} else if (vopCodingType == 'B') {
+				if (vopCodingType == 'B') {
 					frameRenderingOffset = 0;
+				} else {
+					if (frameNum == 1 && vopCodingType == 'I') {
+						/* 
+						 * The first I frame presentation time is delayed
+						 * by 1 frame duration so it can fill
+						 * the hole created by the P frames
+						 */
+						frameRenderingOffset = 1 * (timeScale / frameRate);
+					} else {
+
+						/* 
+						 * frame presentation times are early 
+						 * by (bFrameFrequency + 1) * frame duration
+						 * due to their being pulled forward in the encoded
+						 * bitstream, so adjust for that here
+						 */
+						frameRenderingOffset = 
+							(bFrameFrequency + 1) * (timeScale / frameRate);
+					}
 				}
 			} else {
 				frameRenderingOffset = 0;
