@@ -40,11 +40,11 @@ main(int argc, char** argv)
 
 	mp4File = MP4Modify(argv[1], MP4_DETAILS_ERROR, 0);
 	MP4SetVerbosity(mp4File, MP4_DETAILS_ALL);
-#if 0
+#if 1
 	u_int8_t* data=(u_int8_t*)"this is my tag data";
 	u_int32_t len=strlen((char*)data);
-	MP4SetMetadataFreeForm(mp4File, "my_tag1",data,len);
-	//MP4SetMetadataFreeForm(mp4File, "my_tag2",data,len);
+	MP4SetMetadataFreeForm(mp4File, "mytag1",data,len);
+	MP4SetMetadataFreeForm(mp4File, "my_tag2",data,len);
 #endif
 	MP4Close(mp4File);
 	exit(0);
