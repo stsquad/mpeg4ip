@@ -107,7 +107,7 @@ extern "C" void FrameDoublerMmx(u_int8_t* pSrcPlane, u_int8_t* pDstPlane,
 	u_int32_t srcWidth, u_int32_t srcHeight);
 #else
 extern void FrameDoubler(u_int8_t* pSrcPlane, u_int8_t* pDstPlane, 
-	u_int32_t srcWidth, u_int32_t srcHeight);
+	u_int32_t srcWidth, u_int32_t srcHeight, u_int32_t destWidth);
 #endif
 
 #endif

@@ -84,7 +84,7 @@ LINK32=link.exe
 # SUBTRACT LINK32 /nodefaultlib
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
-PostBuild_Cmds=copy ..\..\lib\SDL\VisualC\SDL\Debug\SDL.dll .
+PostBuild_Cmds=copy ..\..\lib\SDL\VisualC\SDL\Debug\SDL.dll
 # End Special Build Tool
 
 !ENDIF 

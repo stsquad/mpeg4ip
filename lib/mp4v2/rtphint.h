@@ -245,6 +245,7 @@ public:
 	void InitStats();
 
 	MP4Track* GetRefTrack() {
+		InitRefTrack();
 		return m_pRefTrack;
 	}
 

@@ -227,7 +227,7 @@ static void start_session_from_name (const char *name)
   }
 
   // Create a new player session
-  if (strstr(name, ".gmp4_playlist") != NULL) {
+  if (strstr(name, ".mp4plist") != NULL) {
     const char *errmsg = NULL;
     master_playlist = new CPlaylist(name, &errmsg);
     if (errmsg != NULL) {

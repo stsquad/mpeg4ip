@@ -263,7 +263,7 @@ int main (int argc, char **argv)
     name = *argv;
   }
 
-  if (strstr(name, ".gmp4_playlist") != NULL) {
+  if (strstr(name, ".mp4plist") != NULL) {
     const char *errmsg = NULL;
     CPlaylist *list = new CPlaylist(name, &errmsg);
     if (errmsg != NULL) {

@@ -34,7 +34,8 @@
 
 #define VIDEO_STD_ASPECT_RATIO 	((float)1.33)	// standard 4:3
 #define VIDEO_LB1_ASPECT_RATIO 	((float)2.35)	// typical "widescreen" format
-#define VIDEO_LB2_ASPECT_RATIO 	((float)1.85)	// approximately 16:9
+#define VIDEO_LB2_ASPECT_RATIO 	((float)1.85)	// alternate widescreen format
+#define VIDEO_LB3_ASPECT_RATIO 	((float)1.78)	// hdtv 16:9
 
 // forward declarations
 class CVideoCapabilities;
@@ -107,7 +108,7 @@ static SConfigVariable MyConfigVariables[] = {
 	// APP
 
 	{ CONFIG_APP_USE_REAL_TIME, "useKernelRealTimeExtensions", 
-		CONFIG_TYPE_BOOL, false, },
+		CONFIG_TYPE_BOOL, true, },
 
 	{ CONFIG_APP_DURATION, "duration", 
 		CONFIG_TYPE_INTEGER, (config_integer_t)1, },

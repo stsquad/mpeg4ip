@@ -108,7 +108,7 @@ used to verify that the player is working correctly with your hardware. E.g.
     $ gmp4player mymusic.mp3
 
 And that's still not all... You can set up your player to run a playlist
-by creating a simple text file with the extension .gmp4_playlist, with
+by creating a simple text file with the extension .mp4plist, with
 each item (file or stream) on it's own line.
 
 Note: If you prefer a no UI version of the player, or your system does not
@@ -399,6 +399,14 @@ For windows, both Visual Studio 5.0 and Visual Studio 6.0 projects
 are included.  6.0 projects are the ones with 60 in the names: ie:
 encoding.dsw is the 5.0 project and encoding60.dsw is the 6.0 project.
 
+We recommend installing DirectX 8.1 or later.  If that is not possible, 
+and you have problems with video, try uncommenting out #define OLD_SURFACE
+in player/src/video.cpp.
+
+To run mp4player other than in Visual Studio, install both mp4player.exe 
+and SDL.DLL into a directory on your Window's path (install them into
+the same directory).
+
 Executables
 ===========
 
@@ -427,6 +435,7 @@ A few debugging tools are also included:
 mp4extract  Utility to extract tracks from an MP4 file
 mp4dump     Utility to dump MP4 file meta-information in text form
 yuvdump     Utility to display a raw video file on the screen
+avidump     Utility to dump AVI file meta-information
 
 
 For playback, you get:
@@ -509,6 +518,7 @@ mpeg4ip - top level project directory
             gui - gtk gui for mp4 live.
         util
             avi2raw - extract raw A/V data from AVI files
+	    avidump - dump AVI meta information.
             lboxcrop - vertically crop raw video 
             mp4apkt - DEPRECATED MP4 audio packetizer
             mp4dump - DEPRECATED dump MP4 file meta-info contents
@@ -613,4 +623,7 @@ Known Problems
   files that should build, for both Dev Studio 5.0 and 6.0.  With 5.0,
   the new version of SDL doesn't seem to want to link.
 
+  We recommend installing DirectX 8.1 or later.  If that is not possible, 
+  and you have problems with video, try uncommenting out #define OLD_SURFACE
+  in player/src/video.cpp.
 === END OF README ===

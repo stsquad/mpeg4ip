@@ -591,6 +591,7 @@ void CVideoSource::ProcessVideo(void)
 
 		if (m_rawFrameNumber == 0) {
 			m_startTimestamp = frameTimestamp;
+			m_elapsedDuration = 0;
 		}
 
 		// check if we want this frame (to match target fps)
@@ -741,13 +742,36 @@ void CVideoSource::ProcessVideo(void)
 
 			// forward previously encoded vop to sinks
 			if (m_prevVopBuf) {
-				CMediaFrame* pFrame =
-					new CMediaFrame(CMediaFrame::Mpeg4VideoFrame, 
-						m_prevVopBuf, m_prevVopBufLength,
-						m_prevVopTimestamp, 
-						(m_skippedFrames + 1) * m_targetFrameDuration);
+				// calculate frame duration
+				// making an adjustment to account 
+				// for any raw frames dropped by the driver
+
+				Duration elapsedTime = 
+					frameTimestamp - m_startTimestamp;
+
+				Duration frameDuration = 
+					(m_skippedFrames + 1) * m_targetFrameDuration;
+
+				Duration elapsedDuration = 
+					m_elapsedDuration + frameDuration;
+
+				Duration skew = elapsedTime - elapsedDuration;
+
+				if (skew > 0) {
+					frameDuration += 
+						(skew / m_targetFrameDuration) * m_targetFrameDuration;
+				}
+
+				CMediaFrame* pFrame = new CMediaFrame(
+					CMediaFrame::Mpeg4VideoFrame, 
+					m_prevVopBuf, 
+					m_prevVopBufLength,
+					m_prevVopTimestamp, 
+					frameDuration);
 				ForwardFrame(pFrame);
 				delete pFrame;
+
+				m_elapsedDuration += frameDuration;
 			}
 
 			// hold onto this encoded vop until next one is ready

@@ -32,7 +32,8 @@
 //#define SHORT_VIDEO 1
 #ifdef _WIN32
 // new hwsurface method doesn't work on windows.
-#define OLD_SURFACE 1
+// If you have pre-directX 8.1 - you'll want to define OLD_SURFACE
+//#define OLD_SURFACE 1
 #endif
 
 #ifdef _WIN32
@@ -165,16 +166,21 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
       ret = SDL_GetWMInfo(&info);
       // Oooh... fun... To scale the video, just pass the width and height
       // to this routine. (ie: m_width *2, m_height * 2).
-      int w = m_width * m_video_scale / 2;
-      int h = m_height * m_video_scale / 2;
 #ifdef OLD_SURFACE
       int mask = SDL_SWSURFACE | SDL_ASYNCBLIT | SDL_RESIZABLE;
 #else
       int mask = SDL_HWSURFACE | SDL_RESIZABLE;
 #endif
+	  int video_scale = m_video_scale;
+
       if (m_fullscreen != 0) {
 	mask |= SDL_FULLSCREEN;
+#ifdef _WIN32
+	video_scale = MIN(video_scale, 2);
+#endif
       }
+      int w = m_width * video_scale / 2;
+      int h = m_height * video_scale / 2;
       m_screen = SDL_SetVideoMode(w,
 				  h,
 				  m_video_bpp,
@@ -199,7 +205,7 @@ int CVideoSync::initialize_video (const char *name, int x, int y)
 			   m_width);
 #endif
 #ifdef OLD_SURFACE
-	if (m_video_scale == 4) {
+	if (video_scale == 4) {
       m_image = SDL_CreateYUVOverlay(m_width << 1, 
 				     m_height << 1,
 				     SDL_YV12_OVERLAY, 
@@ -333,7 +339,7 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
     // data (probably a total of 6 - libsock -> rtp -> decoder -> our ring ->
     // sdl -> hardware)
 #ifdef OLD_SURFACE
-    if (m_video_scale == 4) {
+    if (m_fullscreen == 0 && m_video_scale == 4) {
       // when scaling to 200%, don't use SDL stretch blit
       // use a smoothing (averaging) blit instead
 #ifdef USE_MMX
@@ -345,23 +351,23 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
 		      m_width >> 1, m_height >> 1);
 #else
       FrameDoubler(m_y_buffer[m_play_index], m_image->pixels[0], 
-		   m_width, m_height);
+		   m_width, m_height, m_image->pitches[0]);
       FrameDoubler(m_v_buffer[m_play_index], m_image->pixels[1], 
-		   m_width >> 1, m_height >> 1);
+		   m_width >> 1, m_height >> 1, m_image->pitches[1]);
       FrameDoubler(m_u_buffer[m_play_index], m_image->pixels[2], 
-		   m_width >> 1, m_height >> 1);
+		   m_width >> 1, m_height >> 1, m_image->pitches[2]);
 #endif
     } else 
 #endif
       {
 	// let SDL blit, either 1:1 for 100% or decimating by 2:1 for 50%
 	uint32_t bufsize = m_width * m_height * sizeof(Uint8);
-	unsigned int width = m_width;
+	unsigned int width = m_width, height = m_height;
 
 	if (width != m_image->pitches[0]) {
 	  to = m_image->pixels[0];
 	  from = m_y_buffer[m_play_index];
-	  for (ix = 0; ix < m_height; ix++) {
+	  for (ix = 0; ix < height; ix++) {
 	    memcpy(to, from, width);
 	    to += m_image->pitches[0];
 	    from += width;
@@ -373,10 +379,11 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
 	}
 	bufsize /= 4;
 	width /= 2;
+	height /= 2;
 	if (width != m_image->pitches[1]) {
 	    to = m_image->pixels[1];
 	    from = m_v_buffer[m_play_index];
-	  for (ix = 0; ix < m_height; ix++) {
+	  for (ix = 0; ix < height; ix++) {
 	    memcpy(to, from, width);
 	    to += m_image->pitches[1];
 	    from += width;
@@ -389,7 +396,7 @@ int64_t CVideoSync::play_video_at (uint64_t current_time,
 	if (width != m_image->pitches[2]) {
 	    to = m_image->pixels[2];
 	    from = m_u_buffer[m_play_index];
-	  for (ix = 0; ix < m_height; ix++) {
+	  for (ix = 0; ix < height; ix++) {
 	    memcpy(to, from, width);
 	    to += m_image->pitches[2];
 	    from += width;
@@ -620,17 +627,31 @@ void CVideoSync::set_fullscreen (int fullscreen)
 
 void CVideoSync::do_video_resize (void)
 {
-  int w = m_width * m_video_scale / 2;
-  int h = m_height * m_video_scale / 2;
+  if (m_image) {
+    SDL_FreeYUVOverlay(m_image);
+    m_image = NULL;
+  }
+  if (m_screen) {
+    SDL_FreeSurface(m_screen);
+    m_screen = NULL;
+  }
 #ifdef OLD_SURFACE
   int mask = SDL_SWSURFACE | SDL_ASYNCBLIT | SDL_RESIZABLE;
 #else
   int mask = SDL_HWSURFACE | SDL_RESIZABLE;
 #endif
 
+  int video_scale = m_video_scale;
+
   if (m_fullscreen != 0) {
     mask |= SDL_FULLSCREEN;
+#ifdef _WIN32
+	video_scale = MIN(2, video_scale);
+#endif
   }
+
+  int w = m_width * video_scale / 2;
+  int h = m_height * video_scale / 2;
     
   video_message(LOG_DEBUG, "Setting video mode %d %d %x", 
 		w, h, mask);
@@ -650,7 +671,7 @@ void CVideoSync::do_video_resize (void)
 
   SDL_FreeYUVOverlay(m_image);
 #ifdef OLD_SURFACE
-  if (m_video_scale == 4) {
+  if (video_scale == 4) {
     m_image = SDL_CreateYUVOverlay(m_width << 1, 
 				 m_height << 1,
 				 SDL_YV12_OVERLAY, 

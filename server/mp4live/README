@@ -13,6 +13,7 @@ Please use the MPEG4IP SourceForge site to report problems, suggest
 enhancements, ask questions, etc. The URL is 
 http://www.sourceforge.net/projects/mpeg4ip
 
+
 Hardware Requirements
 =====================
 Pentium III class machine of at least 500 MHz 
@@ -79,8 +80,17 @@ by editting /etc/modules.conf and adding the line
 at the end of the file. The value 32 is my recommendation but you can 
 experiment with other values if you are so inclined.
 
-Note there is currently no support for DV/mini-DV camcorders via FireWire. 
-You can of course still use these via their composite or S-Video outputs.
+
+Tips
+====
+
+I suggest you disable any fancy, computationally intensive screensavers 
+when using mp4live to capture long programs.
+
+Linux supports the POSIX soft real-time extensions and mp4live will attempt
+to use these to give it priority over non-real time processes. Typically
+these calls can only be made by processes with root privileges, so you may
+want to run mp4live as root for this reason.
 
 
 Building and Installing
@@ -124,6 +134,7 @@ If you're capturing video that uses "widescreen" or "letterbox" format,
 it's a big win to change the "Aspect Ratio" in the Video Settings. This 
 will cause the video to be automatically cropped so you don't waste precious 
 CPU time encoding the empty black bars at the top and bottom of the screen. 
+
 
 Network Transmission
 ====================
@@ -170,6 +181,11 @@ that they are written to a directory that is accessible via the Darwin
 Streaming Server. Once the recording is complete, it will be available 
 for on-demand playback.
 
+The Darwin Streaming Server can also be configured to act as a relay agent
+for the mp4live media streams. See the Darwin Streaming Server documentation
+for details, and where it dicusses the Sorenson Broadcaster, just read 
+mp4live instead.
+
 
 Advanced Usage
 ==============
@@ -210,7 +226,18 @@ time. If you use the Hauppage WinTV Go card you need to connect the mini-jack
 on the card to the line-in input on your sound card in order to get the
 audio signal from the TV tuner.
 
-There is no exploitation of the Pentium IV MMX/SSE instructions, yet!
+Reports from those who have tried mp4live on SMP enabled kernels report
+crashes that appear to be related to SDL. Pending a SDL fix to this we don't
+recommend using mp4live with SMP.  However, the code is multi-threaded so
+it should be possible exploit an SMP machine by assigning the video encoding 
+thread to one CPU and let the other threads run on another CPU. If you have 
+lots of low-powered CPUs then one could modify the code to run the video 
+encoder on multiple CPUs and round-robin assign raw frames to be encoded. 
+
+There is no exploitation of the Pentium MMX/SSE instructions, yet!
+
+Note there is currently no support for DV/mini-DV camcorders via FireWire. 
+You can of course still use these via their composite or S-Video outputs.
 
 
 Unknowns
@@ -219,18 +246,16 @@ Unknowns
 I've only used mp4live with two video capture cards the Viewcast Osprey 100
 and the Hauppage WinTV Go. There are many other Bt8x8 based capture cards 
 listed in the bttv driver documentation. Odds are you're using one of these ;-)
-If you have problems with mp4live, my first suggestion is that you download 
+Reports from initial users suggest though that the bttv driver handles the
+wide variety of cards gracefully, and mp4live doesn't have card specific 
+issues.
+
+If you do have problems with mp4live, my first suggestion is that you download 
 the latest version of the xawtv package, and try it with your capture card. 
 If it works and mp4live doesn't then I'd be glad to hear from you. If xawtv 
 doesn't work with your capture card, then I can't help you. Something is 
 wrong with your capture card/system/bttv driver/kernel combination. I don't
 have the capability or inclination to debug that for you! 
-
-We haven't tried this code on an SMP machine. The code is multi-threaded so
-an interesting experiment would be to assign the video encoding thread to 
-one CPU and let the other threads run on another CPU. If you have lots of 
-low-powered CPUs then one could modify the code to run the video encoder 
-on multiple CPUs and round-robin assign raw frames to be encoded. 
 
 
 Links

@@ -108,16 +108,18 @@ int main(int argc, char** argv)
 
 	pConfig->Regenerate();
 
-
-	// EXPERIMENTAL
+	// attempt to exploit any real time features of the OS
+	// will probably only succeed if user has root privileges
 	if (pConfig->GetBoolValue(CONFIG_APP_USE_REAL_TIME)) {
 #ifdef _POSIX_PRIORITY_SCHEDULING
 		// put us into the lowest real-time scheduling queue
 		struct sched_param sp;
 		sp.sched_priority = 1;
 		if (sched_setscheduler(0, SCHED_RR, &sp) < 0) {
+# ifdef DEBUG
 			debug_message("Unable to set scheduling priority: %s",
 				strerror(errno));
+# endif
 		}
 #endif /* _POSIX_PRIORITY_SCHEDULING */
 #ifdef _POSIX_MEMLOCK
@@ -127,8 +129,10 @@ int main(int argc, char** argv)
 
 		// and then lock memory
 		if (mlockall(MCL_CURRENT|MCL_FUTURE) < 0) {
-			debug_message("Unable to lock memory: %s",
+# ifdef DEBUG
+			debug_message("Unable to lock memory: %s", 
 				strerror(errno));
+# endif
 		}
 #endif /* _POSIX_MEMLOCK */
 	}

@@ -1,5 +1,9 @@
 01/xx/02 Version 0.9.3
 	Added RFC 3119, MP3 robust RTP payload, support to mp4creator
+	Improved mp4live's synchronization of audio and video
+    Improved windows video resizing.
+    Changed .gmp4_playlist to .mp4plist
+    Added avidump utility
 
 12/17/01 Version 0.9.2
     Added VC 6.0 projects for windows

@@ -139,6 +139,7 @@ protected:
 	u_int32_t			m_skippedFrames;
 	u_int16_t			m_rawFrameRate;
 	Timestamp			m_startTimestamp;
+	Duration			m_elapsedDuration;
 	Duration			m_rawFrameDuration;
 	Duration			m_targetFrameDuration;
 	u_int16_t			m_frameRateRatio;

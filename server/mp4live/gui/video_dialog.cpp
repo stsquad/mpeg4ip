@@ -79,10 +79,11 @@ static u_int8_t sizeIndex;
 static u_int8_t sizeMaxIndex;
 
 static float aspectValues[] = {
-	VIDEO_STD_ASPECT_RATIO, VIDEO_LB1_ASPECT_RATIO, VIDEO_LB2_ASPECT_RATIO
+	VIDEO_STD_ASPECT_RATIO, VIDEO_LB1_ASPECT_RATIO, 
+	VIDEO_LB2_ASPECT_RATIO, VIDEO_LB3_ASPECT_RATIO
 }; 
 static char* aspectNames[] = {
-	"Standard 4:3", "Letterbox 2.35", "Letterbox 1.85"
+	"Standard 4:3", "Letterbox 2.35", "Letterbox 1.85", "HDTV 16:9"
 };
 static u_int8_t aspectIndex;
 
@@ -650,7 +651,7 @@ void CreateVideoDialog (void)
 
 	adjustment = gtk_adjustment_new(
 		MyConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE),
-		50, 2000, 50, 0, 0);
+		25, 2000, 50, 0, 0);
 	bit_rate_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 50, 0);
 	gtk_widget_show(bit_rate_spinner);
 	gtk_box_pack_start(GTK_BOX(vbox), bit_rate_spinner, TRUE, TRUE, 0);

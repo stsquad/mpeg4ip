@@ -161,9 +161,9 @@ void player_library_message (int loglevel,
   lock_mutex();
   sprintf(msg, "%s:", lib);
   OutputDebugString(msg);
-  va_start(ap, fmt);
+  //va_start(ap, fmt);
   _vsnprintf(msg, 512, fmt, ap);
-  va_end(ap);
+  //va_end(ap);
   OutputDebugString(msg);
   OutputDebugString("\n");
   unlock_mutex();

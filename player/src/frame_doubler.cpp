@@ -22,21 +22,18 @@
 #include <mpeg4ip.h>
 
 void FrameDoubler(u_int8_t* pSrcPlane, u_int8_t* pDstPlane, 
-	u_int32_t srcWidth, u_int32_t srcHeight)
+	u_int32_t srcWidth, u_int32_t srcHeight, u_int32_t destWidth)
 {
 	register u_int8_t p00, p01, p10, p11;
 	register u_int32_t si0, si1, di0, di1;
-
 	/* initialize these to keep compiler happy at -Werror */
 	p00 = p01 = p10 = p11 = 0;
 
-	si0 = 0;
-	si1 = srcWidth;
-	di0 = 0;
-	di1 = srcWidth << 1;
-
 	for (u_int16_t row = 0; row < srcHeight - 1; row++) {
-		/* setup for first column */
+		si0 = 0;
+		si1 = srcWidth;
+		di0 = 0;
+		di1 = destWidth;		/* setup for first column */
 		p01 = pSrcPlane[si0++];
 		p11 = pSrcPlane[si1++];
 
@@ -59,11 +56,13 @@ void FrameDoubler(u_int8_t* pSrcPlane, u_int8_t* pDstPlane,
 		pDstPlane[di1++] = p01;
 		pDstPlane[di1++] = p01;
 
-		di0 = di1;
-		di1 += srcWidth << 1;
+		pSrcPlane += srcWidth;
+		pDstPlane += destWidth * 2;
 	}
 
 	/* last row */
+	di0 = 0;
+	di1 = destWidth;
 	for (u_int16_t col = 0; col < srcWidth-1; col++) {
 		pDstPlane[di0++] = p00;
 		pDstPlane[di1++] = p00;
