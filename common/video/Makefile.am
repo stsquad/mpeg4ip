@@ -1,1 +1,1 @@
-SUBDIRS = mpeg4 libmpeg3 libmpeg32
+SUBDIRS = mpeg4 libmpeg3 
