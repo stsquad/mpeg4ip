@@ -197,6 +197,7 @@ CMpeg3AudioByteStream::CMpeg3AudioByteStream (mpeg3_t *file, int stream)
   m_max_time = mpeg3_audio_get_number_of_frames(m_file, m_stream);
   m_max_time *= mpeg3_audio_samples_per_frame(m_file, m_stream);
   m_max_time /= mpeg3_sample_rate(m_file, m_stream);
+  m_chans = mpeg3_audio_channels(m_file, m_stream);
   mpeg3f_message(LOG_DEBUG, "audio max time is %g", m_max_time);
   m_changed_time = 0;
   m_frame_on = 0;
@@ -226,7 +227,11 @@ void CMpeg3AudioByteStream::set_timebase (double time)
   mpeg3_seek_audio_percentage(m_file, m_stream, time / m_max_time);
   
   calc = (time * m_freq) / m_samples_per_frame;
-  calc = ceil(calc);
+  if (calc > 0) {
+    calc = ceil(calc);
+  } else {
+    calc = 0;
+  }
   m_frame_on = (long)(calc);
   mpeg3f_message(LOG_DEBUG, "audio seek frame is %ld %g %g", m_frame_on,
 		 time, m_max_time);
@@ -265,13 +270,18 @@ uint64_t CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer,
 #endif
   }
 
+  uint32_t spf;
+
   if (m_samples_per_frame == 0) {
+    spf = m_this_frame_size / (m_chans * 2);
+  } else {
+    spf = m_samples_per_frame;
   }
   if (m_freq == 0) {
     return 0;
   }
   ts = m_frame_on;
-  ts *= m_samples_per_frame;
+  ts *= spf;
   ts *= M_LLU;
   ts /= m_freq;
   m_frame_on++;

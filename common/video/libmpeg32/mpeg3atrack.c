@@ -304,8 +304,12 @@ static int mpeg3_atrack_read_pcm_frame (mpeg3_atrack_t *atrack,
 
   if (mpeg3demux_eof(demux)) return -1;
 
-  frame_sample = (atrack->framesize - 3) / atrack->channels / 2;
+#if 0
+  frame_sample = (atrack->framesize - 3) / (atrack->channels * 2);
   *len = frame_sample * atrack->channels * (sizeof(uint16_t));
+#else
+  *len = atrack->framesize - 3;
+#endif
 
   if (mpeg3_atrack_check_length(output, *len, maxlen) < 0) return -1;
  

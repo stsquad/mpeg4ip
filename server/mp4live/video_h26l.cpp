@@ -111,7 +111,8 @@ bool CH26LVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 
 bool CH26LVideoEncoder::EncodeImage(
 	u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-	u_int32_t yStride, u_int32_t uvStride, bool wantKeyFrame)
+	u_int32_t yStride, u_int32_t uvStride, bool wantKeyFrame,
+	Duration elapsed)
 {
 	m_vopBuffer = (u_int8_t*)malloc(m_pConfig->m_videoMaxVopSize);
 	if (m_vopBuffer == NULL) {

@@ -2,8 +2,8 @@
  * FILE:   rtp.h
  * AUTHOR: Colin Perkins <c.perkins@cs.ucl.ac.uk>
  *
- * $Revision: 1.11 $ 
- * $Date: 2003/02/12 17:41:26 $
+ * $Revision: 1.12 $ 
+ * $Date: 2003/05/05 21:24:27 $
  * 
  * Copyright (c) 1998-2000 University College London
  * All rights reserved.
@@ -260,7 +260,7 @@ int 		 rtp_send_data(struct rtp *session,
                                uint8_t *data, int data_len, 
 			       uint8_t *extn, uint16_t extn_len, uint16_t extn_type);
 #ifndef _WIN32
-int            rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, uint8_t *extn, uint16_t extn_len, uint16_t extn_type);
+int            rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, uint8_t *extn, uint16_t extn_len, uint16_t extn_type, uint16_t seq_num_add);
 #endif
 void 		 rtp_send_ctrl(struct rtp *session, uint32_t rtp_ts, 
 			       rtcp_app_callback appcallback);

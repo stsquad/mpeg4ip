@@ -43,6 +43,8 @@
 #include "encoder-h261.h"
 #include "mp4live_config.h"
 
+#define DEBUG_QUALITY_ADJUSTMENT 1
+
 #define HLEN (4)
 #define	CIF_WIDTH	352
 #define	CIF_HEIGHT	288
@@ -107,6 +109,7 @@ CH261Encoder::CH261Encoder() :
 {
   m_head = NULL;
   frame_data_ = NULL;
+  m_framesEncoded = 0;
 	for (int q = 0; q < 32; ++q) {
 		llm_[q] = 0;
 		clm_[q] = 0;
@@ -599,7 +602,8 @@ void CH261Encoder::encode(uint8_t* vf, const u_int8_t *crvec)
 				if (cbits > max_bits_in_buffer) {
 					pktbuf_t* npb;
 					npb = alloc_pktbuf(mtu_);
-					nb_ += flush(pb, last_mb_start_bits, npb);
+					m_encodedBytes += 
+					  flush(pb, last_mb_start_bits, npb);
 					cbits -= last_mb_start_bits;
 					pb = npb;
 					/* RTP/H.261 header */
@@ -632,7 +636,7 @@ void CH261Encoder::encode(uint8_t* vf, const u_int8_t *crvec)
 
 		}
 	}
-	nb_ += flush(pb, ((m_pBufferCurrent - m_encoded_frame_buffer) << 3) + m_bitsInCache, 0);
+	m_encodedBytes += flush(pb, ((m_pBufferCurrent - m_encoded_frame_buffer) << 3) + m_bitsInCache, 0);
 }
 
 
@@ -642,7 +646,8 @@ CH261PixelEncoder::EncodeImage(uint8_t *pY,
 			      uint8_t *pV,
 			      uint32_t yStride,
 			      uint32_t uvStride,
-			      bool wantKeyFrame)
+			      bool wantKeyFrame,
+			       Duration elapsedDuration)
 {
   uint32_t y;
   uint8_t *pFrame;
@@ -656,6 +661,62 @@ CH261PixelEncoder::EncodeImage(uint8_t *pY,
   }
   pFrame = pY;
 
+  // check if we should adjust quality
+  if (m_framesEncoded == 0) {
+    m_firstDuration = elapsedDuration;
+    m_framesEncoded++;
+  } else {
+    if (m_framesEncoded >= m_framesForQualityCheck) {
+      Duration dur8frames = elapsedDuration - m_firstDuration;
+      dur8frames /= 1000;
+
+      Duration realBps = (m_encodedBytes * 8);
+      Duration calcBps;
+      calcBps = m_bitRate;
+
+      realBps *= 1000;
+      realBps /= dur8frames;
+
+      int adj = 0;
+      Duration diff = 0;
+      if (calcBps > realBps) {
+	// we can up the quality a bit
+	diff = (calcBps - realBps) / m_framerate;
+	if (diff > m_bitsPerFrame / 2) {
+	  adj = 2;
+	} else if (diff > m_bitsPerFrame / 4) {
+	  adj = 1;
+	}
+      } else if (calcBps < realBps) {
+	diff = (realBps - calcBps) / m_framerate;
+	if (diff > m_bitsPerFrame / 2) {
+	  adj = -6;
+	} else if (diff > m_bitsPerFrame / 4) {
+	  adj = -4;
+	} else if (diff > m_bitsPerFrame / 5) {
+	  adj = -3;
+	} else if (diff > m_bitsPerFrame / 8) {
+	  adj = -2;
+	} else if (diff > 0) {
+	  adj = -1;
+	}
+	// lower quality - we're sending more
+      }
+#ifdef DEBUG_QUALITY_ADJUSTMENT
+	error_message("dur %lld calc bps %lld should %u %lld diff %lld cmp %lld, adjust %d %d", 
+		      dur8frames, calcBps, m_encodedBytes, realBps, diff,
+		      m_bitsPerFrame,
+		      adj, lq_ - adj);
+#endif
+      if (adj != 0) {
+	setq(lq_ - adj);
+      }
+      m_firstDuration = elapsedDuration;
+      m_encodedBytes = 0;
+      m_framesEncoded = 0;
+    }
+    m_framesEncoded++;
+  }
   //debug_message("encoding h261 image");
   if (m_started == false) {
     /* Frame size changed. Reallocate frame data space and reinit crvec */
@@ -859,6 +920,7 @@ CH261PixelEncoder::EncodeImage(uint8_t *pY,
   }
 
   encode(pFrame, crvec_);
+
   return true;
 }
 
@@ -883,7 +945,15 @@ bool CH261PixelEncoder::GetReconstructedImage(uint8_t *pY,
 
 bool CH261Encoder::Init(CLiveConfig *pConfig, bool realTime)
 {
+  float value;
+  setq(pConfig->GetIntegerValue(CONFIG_VIDEO_H261_QUALITY));
+  m_bitRate = pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
 
+  value = pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
+  value = roundf(value);
+  m_framerate = (uint8_t)value;
+  m_bitsPerFrame = m_bitRate / m_framerate;
+  m_framesForQualityCheck = pConfig->GetIntegerValue(CONFIG_VIDEO_H261_QUALITY_ADJ_FRAMES);
   size(pConfig->m_videoWidth, pConfig->m_videoHeight);
   mtu_ = pConfig->GetIntegerValue(CONFIG_RTP_PAYLOAD_SIZE);
   return true;

@@ -167,7 +167,8 @@ typedef u_int32_t	MP4EditId;
 #define MP4_IS_MPEG4_AAC_AUDIO_TYPE(mpeg4Type) \
 	(((mpeg4Type) >= MP4_MPEG4_AAC_MAIN_AUDIO_TYPE \
 		&& (mpeg4Type) <= MP4_MPEG4_AAC_LTP_AUDIO_TYPE) \
-	  || (mpeg4Type) == MP4_MPEG4_AAC_SCALABLE_AUDIO_TYPE)
+	  || (mpeg4Type) == MP4_MPEG4_AAC_SCALABLE_AUDIO_TYPE \
+          || (mpeg4Type) == 17)
 
 #define MP4_IS_AAC_AUDIO_TYPE(type) \
 	(MP4_IS_MPEG2_AAC_AUDIO_TYPE(type) \

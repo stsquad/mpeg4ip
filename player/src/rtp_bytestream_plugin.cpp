@@ -97,6 +97,7 @@ uint64_t CPluginRtpByteStream::start_next_frame (uint8_t **buffer,
 						 uint32_t *buflen,
 						 void **userdata)
 {
+  if (m_head == NULL) return 0;
   check_seq(m_head->rtp_pak_seq);
   return (m_rtp_plugin->rtp_plugin_start_next_frame)(m_rtp_plugin_data,
 						     buffer, 

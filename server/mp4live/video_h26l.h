@@ -36,8 +36,9 @@ public:
 
 	bool EncodeImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-		u_int32_t yStride = 0, u_int32_t uvStride = 0,
-		bool wantKeyFrame = false);
+		u_int32_t yStride, u_int32_t uvStride,
+		bool wantKeyFrame,
+		Duration elapsed);
 
 	bool GetEncodedImage(
 		u_int8_t** ppBuffer, u_int32_t* pBufferLength);

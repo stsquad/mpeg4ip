@@ -70,6 +70,8 @@ static codec_data_t *rawa_codec_create (const char *compressor,
 #ifndef WORDS_BIGENDIAN
     if (type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE)
       rawa->m_convert_bytes = 1;
+    if (strcasecmp(compressor, "MPEG FILE") == 0)
+      rawa->m_convert_bytes = 1;
 #else
     if (type == MP4_PCM16_LITTLE_ENDIAN_AUDIO_TYPE)
       rawa->m_convert_bytes = 1;
@@ -120,7 +122,7 @@ static int rawa_decode (codec_data_t *ptr,
   uint32_t ix;
   unsigned short *b;
 
-  //LOGIT(LOG_DEBUG, "rawa", "ts %llu buffer len %d", ts, buflen);
+  LOGIT(LOG_DEBUG, "rawa", "ts %llu buffer len %d", ts, buflen);
   if (rawa->m_initialized == 0) {
     if (rawa->m_chans == 0) {
       // Special mp4 case - we don't know how many channels, but we
@@ -233,10 +235,17 @@ static int rawa_codec_check (lib_message_func_t message,
 	(type == MP4_PCM16_BIG_ENDIAN_AUDIO_TYPE))
       return 1;
   }
-  if (compressor != NULL &&
-      strcasecmp(compressor, "AVI FILE") == 0 &&
-      type == 1) {
+  if (compressor != NULL) {
+    if (strcasecmp(compressor, "AVI FILE") == 0 &&
+	type == 1) {
     return 1;
+    }
+
+    if ((strcasecmp(compressor, "MPEG FILE") == 0) &&
+	(type == 3)) { // AUDIO_PCM from mpeg file
+      return 1;
+    }
+						    
   }
   if (fptr != NULL) {
     if (fptr->rtpmap != NULL && fptr->rtpmap->encode_name != NULL) {

@@ -332,8 +332,14 @@ static int aac_codec_check (lib_message_func_t message,
   if (userdata != NULL) {
     mpeg4_audio_config_t audio_config;
     decode_mpeg4_audio_config(userdata, userdata_size, &audio_config);
+    message(LOG_DEBUG, "aac", "audio type is %d", audio_config.audio_object_type);
     if (fmtp != NULL) free_fmtp_parse(fmtp);
+    
     if (audio_object_type_is_aac(&audio_config) == 0) {
+      return -1;
+    }
+    if (audio_config.audio_object_type == 17) {
+      message(LOG_INFO, "aac", "audio type is legal ISMA, but not supported");
       return -1;
     }
     return 1;

@@ -31,10 +31,13 @@ class CVideoEncoder : public CMediaCodec {
 public:
 	CVideoEncoder() { };
 
+	virtual bool Init(CLiveConfig *pConfig, bool realTime = true) = NULL;
+
 	virtual bool EncodeImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
 		u_int32_t yStride, u_int32_t uvStride,
-		bool wantKeyFrame = false) = NULL;
+		bool wantKeyFrame,
+		Duration elapsedDuration) = NULL;
 
 	virtual bool GetEncodedImage(
 		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
@@ -44,7 +47,7 @@ public:
 	virtual media_free_f GetMediaFreeFunction(void) { return NULL; };
 };
 
-CVideoEncoder* VideoEncoderCreate(const char* encoderName, CLiveConfig *pConfig = NULL);
+CVideoEncoder* VideoEncoderCreate(const char* encoderName);
 
 MediaType get_video_mp4_fileinfo(CLiveConfig *pConfig,
 				 bool *createIod,

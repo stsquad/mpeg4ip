@@ -107,7 +107,8 @@ bool CXvidVideoEncoder::EncodeImage(
 	u_int8_t* pV, 
 	u_int32_t yStride,
 	u_int32_t uvStride,
-	bool wantKeyFrame)
+	bool wantKeyFrame,
+	Duration Elapsed)
 {
 	m_vopBuffer = (u_int8_t*)malloc(m_pConfig->m_videoMaxVopSize);
 	if (m_vopBuffer == NULL) {

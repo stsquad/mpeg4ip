@@ -105,7 +105,7 @@ static int parse_vovod (iso_decode_t *iso,
     bufptr = (unsigned char *)vovod;
   }
 
-
+  
   // Create a byte stream to take from our buffer.
   // Temporary set of our bytestream
   // Get the VOL header.  If we fail, set the bytestream back
@@ -118,7 +118,9 @@ static int parse_vovod (iso_decode_t *iso,
 				   iso->m_pvodec->getHeight(),
 				   &iso->m_bSpatialScalability);
       iso_message(LOG_DEBUG, mp4iso, "Found VOL in header");
-	
+      if (iso->m_pvodec->fSptUsage() == 2) {
+	iso_message(LOG_INFO, mp4iso, "Warning: GMC detected - this reference code does not decode GMC properly - artifacts may occur");
+      }
       iso->m_vft->video_configure(iso->m_ifptr, 
 				  iso->m_pvodec->getWidth(),
 				  iso->m_pvodec->getHeight(),
@@ -127,6 +129,10 @@ static int parse_vovod (iso_decode_t *iso,
     } catch (int err) {
       iso_message(LOG_DEBUG, mp4iso, 
 		  "Caught exception in VOL mem header search");
+      if (err == 1519) {
+	iso_message(LOG_DEBUG, mp4iso, 
+		    "Error decoding VOL - video may not play correctly");
+      }
     }
     uint32_t used;
     used = iso->m_pvodec->get_used_bytes();
@@ -155,7 +161,7 @@ static codec_data_t *iso_create (const char *compressor,
 {
   iso_decode_t *iso;
 
-  iso = (iso_decode_t *)malloc(sizeof(iso_decode_t));
+  iso = MALLOC_STRUCTURE(iso_decode_t);
   if (iso == NULL) return NULL;
   memset(iso, 0, sizeof(*iso));
   iso->m_vft = vft;
@@ -265,6 +271,7 @@ static int iso_decode (codec_data_t *ptr,
 
   if (buflen <= 4) return -1;
 
+  //iso_message(LOG_DEBUG, "iso", "frame %d", iso->m_total_frames);
   iso->m_total_frames++;
   buffer[buflen] = 0;
   buffer[buflen + 1] = 0;

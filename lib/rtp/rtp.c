@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.19 $ 
- * $Date: 2003/03/06 21:14:48 $
+ * $Revision: 1.20 $ 
+ * $Date: 2003/05/05 21:24:25 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -2321,7 +2321,8 @@ int rtp_send_data(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m,
 }
 
 #ifndef _WIN32
-int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, uint8_t *extn, uint16_t extn_len, uint16_t extn_type)
+int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, int cc, uint32_t csrc[], struct iovec *iov, int iov_count, uint8_t *extn, uint16_t extn_len, uint16_t extn_type,
+		      uint16_t seq_num_add)
 {
 	int		 buffer_len, i, rc;
 	uint8_t		*buffer;
@@ -2359,7 +2360,7 @@ int rtp_send_data_iov(struct rtp *session, uint32_t rtp_ts, int8_t pt, int m, in
 	packet->rtp_pak_cc   = cc;
 	packet->rtp_pak_m    = m;
 	packet->rtp_pak_pt   = pt;
-	packet->rtp_pak_seq  = htons(session->rtp_seq++);
+	packet->rtp_pak_seq  = htons(seq_num_add + session->rtp_seq++);
 	packet->rtp_pak_ts   = htonl(rtp_ts);
 	packet->rtp_pak_ssrc = htonl(rtp_my_ssrc(session));
 	/* ...now the CSRC list... */

@@ -97,6 +97,7 @@ class CMpeg3AudioByteStream : public COurInByteStream
   int m_eof;
   uint32_t m_samples_per_frame;
   uint32_t m_freq;
+  uint32_t m_chans;
   long m_frames_max;
   long m_frame_on;
   u_int8_t *m_buffer;

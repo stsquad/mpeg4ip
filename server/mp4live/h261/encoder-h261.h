@@ -32,7 +32,7 @@
  */
 
 //static const char rcsid[] =
-//    "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/encoder-h261.h,v 1.1 2003/04/09 00:44:42 wmaycisco Exp $";
+//    "@(#) $Header: /cvsroot/mpeg4ip/mpeg4ip/server/mp4live/h261/encoder-h261.h,v 1.2 2003/05/05 21:24:45 wmaycisco Exp $";
 
 #include "video_encoder.h"
 #include "crdef.h"
@@ -75,7 +75,7 @@ class CH261Encoder : public CVideoEncoder {
 
 		// from EncoderModule
 		int mtu_;
-		uint32_t nb_;
+		uint32_t m_encodedBytes;
 		// from FrameModule
 		uint32_t width_;
 		uint32_t height_;
@@ -119,6 +119,12 @@ class CH261Encoder : public CVideoEncoder {
 
 		pktbuf_t *m_head;
 		uint8_t *frame_data_; // for 
+		Duration m_firstDuration;
+		uint8_t m_framesEncoded;
+		uint8_t m_framesForQualityCheck;
+		uint32_t m_bitRate;
+		uint8_t m_framerate;
+		Duration m_bitsPerFrame;
 };
 
 
@@ -129,7 +135,8 @@ class CH261PixelEncoder : public CH261Encoder, public ConditionalReplenisher {
 	bool EncodeImage(
 		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
 		u_int32_t yStride, u_int32_t uvStride,
-		bool wantKeyFrame = false);
+		bool wantKeyFrame,
+		Duration elapsedDuration);
 
 	bool GetEncodedImage(
 		u_int8_t** ppBuffer, u_int32_t* pBufferLength);

@@ -37,8 +37,7 @@
 
 #include "h261/encoder-h261.h"
 
-CVideoEncoder* VideoEncoderCreate(const char* encoderName,
-				  CLiveConfig *pConfig)
+CVideoEncoder* VideoEncoderCreate(const char* encoderName)
 {
 	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
 #ifdef ADD_FFMPEG_ENCODER
@@ -62,9 +61,6 @@ CVideoEncoder* VideoEncoderCreate(const char* encoderName,
 	  
 	  CH261PixelEncoder *ret;
 	  ret = new CH261PixelEncoder();
-	  if (pConfig != NULL) {
-	    ret->setq(pConfig->GetIntegerValue(CONFIG_VIDEO_H261_QUALITY));
-	  }
 	  return ret;
 
 	} else {

@@ -213,8 +213,7 @@ bool CMediaSource::InitVideo(
 
   // intialize encoder
   m_videoEncoder = 
-    VideoEncoderCreate(m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER),
-		       m_pConfig);
+    VideoEncoderCreate(m_pConfig->GetStringValue(CONFIG_VIDEO_ENCODER));
   m_videoDstType = m_videoEncoder->GetFrameType();
 
   if (!m_videoEncoder) {
@@ -472,6 +471,18 @@ void CMediaSource::ProcessVideoYUVFrame(
     uvStride = yStride / 2;
   }
 
+  // calculate previous frame duration
+  Timestamp dstPrevFrameTimestamp =
+    m_videoStartTimestamp + m_videoDstPrevFrameElapsedDuration;
+  Duration dstPrevFrameDuration = 
+    m_videoDstElapsedDuration - m_videoDstPrevFrameElapsedDuration;
+  m_videoDstPrevFrameElapsedDuration = m_videoDstElapsedDuration;
+
+  // calculate the end of this frame
+  m_videoEncodedFrames++;
+  m_videoDstFrameNumber++;
+  m_videoDstElapsedDuration = VideoDstFramesToDuration();
+
   // if we want encoded video frames
   if (m_pConfig->m_videoEncode) {
 
@@ -479,7 +490,8 @@ void CMediaSource::ProcessVideoYUVFrame(
     bool rc = m_videoEncoder->EncodeImage(
 					  yImage, uImage, vImage, 
 					  yStride, uvStride,
-					  m_videoWantKeyFrame);
+					  m_videoWantKeyFrame,
+					  m_videoDstElapsedDuration);
 
     if (!rc) {
       debug_message("Can't encode image!");
@@ -505,17 +517,6 @@ void CMediaSource::ProcessVideoYUVFrame(
 		m_videoSrcElapsedDuration, m_videoDstElapsedDuration,
 		m_videoDstPrevFrameLength);
 #endif
-  // calculate previous frame duration
-  Timestamp dstPrevFrameTimestamp =
-    m_videoStartTimestamp + m_videoDstPrevFrameElapsedDuration;
-  Duration dstPrevFrameDuration = 
-    m_videoDstElapsedDuration - m_videoDstPrevFrameElapsedDuration;
-  m_videoDstPrevFrameElapsedDuration = m_videoDstElapsedDuration;
-
-  // calculate the end of this frame
-  m_videoEncodedFrames++;
-  m_videoDstFrameNumber++;
-  m_videoDstElapsedDuration = VideoDstFramesToDuration();
 
   if (m_sourceRealTime && m_videoSrcFrameNumber > 0) {
 
