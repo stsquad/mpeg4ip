@@ -277,7 +277,7 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
 	//player_debug_message("decode across ts");
 	return (-1);
       }
-      player_debug_message("Normal caught %s", err);
+      player_debug_message("Mpeg4 ncaught %s -> waiting for I", err);
       m_decodeState = DECODE_STATE_WAIT_I;
       return (-1);
     } catch (...) {
@@ -339,7 +339,7 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
 
   if (pvopcQuant != NULL) {
 #if 0
-    player_debug_message("frame rtp_ts %llu disp %llu cached %d", 
+    player_debug_message("frame rtp_ts "LLU" disp "LLU" cached %d", 
 			 ts, displaytime, cached_ts);
 #endif
     /*
@@ -355,7 +355,7 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
     v = pvopcQuant->getPlane(V_PLANE)->pixels(0,0);
     m_last_time = displaytime;
 #if 0
-    player_debug_message("Adding video at %llu %d", displaytime,
+    player_debug_message("Adding video at "LLU" %d", displaytime,
 			 m_pvodec->vopmd().vopPredType);
 #endif
 
@@ -372,16 +372,14 @@ int CMpeg4Codec::decode (uint64_t ts, int from_rtp)
     // worth - drop B's - up to 10 frames worth, or resync to the next I frame
     if (cmp == 0) {
       if (displaytime < rettime) {
-	if (displaytime + (10 * m_pvodec->getClockRate()) < rettime) {
-	  player_debug_message("Out of sync - waiting for I %llu %llu",
+	if (displaytime + (8 * m_pvodec->getClockRate()) < rettime) {
+	  player_debug_message("Out of sync - waiting for I "LLU" "LLU,
 			       displaytime, rettime);
 	  m_decodeState = DECODE_STATE_WAIT_I;
 	  m_num_wait_i++;
-	} else if (displaytime + (3 * m_pvodec->getClockRate()) < rettime) {
-	  m_dropFrame = TRUE;
 	} else {
-	  m_dropFrame = FALSE;
-	}
+	  m_dropFrame = TRUE;
+	} 
       } else {
 	m_dropFrame = FALSE;
       }

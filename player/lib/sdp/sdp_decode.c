@@ -1074,6 +1074,8 @@ static int sdp_decode_parse_bandwidth (char *lptr,
       free(new);
       return (ENOMEM);
     }
+  } else {
+	new->user_band = NULL;
   }
   new->bandwidth = temp;
   new->next = NULL;
@@ -1276,7 +1278,7 @@ static media_desc_t *sdp_decode_parse_media (char *lptr,
   new->media = strdup(mdesc);
   new->port = (in_port_t)read;
   new->proto = strdup(proto);
-  new->num_ports = port_no;
+  new->num_ports = (unsigned short)port_no;
 
   // parse format list - these are not necessarilly lists of numbers
   // so we store as strings.

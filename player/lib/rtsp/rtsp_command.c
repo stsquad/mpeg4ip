@@ -195,7 +195,8 @@ int rtsp_send_setup (rtsp_client_t *info,
 		     const char *url,
 		     rtsp_command_t *cmd,
 		     rtsp_session_t **session_result,
-		     rtsp_decode_t **decode_result)
+		     rtsp_decode_t **decode_result,
+		     int is_aggregate)
 {
   char buffer[2048];
   size_t maxlen, buflen;
@@ -218,7 +219,12 @@ int rtsp_send_setup (rtsp_client_t *info,
   maxlen = sizeof(buffer);
   buflen = snprintf(buffer, maxlen, "SETUP %s RTSP/1.0\r\n", url);
 
-  if (rtsp_build_common(buffer, maxlen, &buflen, info, cmd, NULL) == -1) {
+  if (rtsp_build_common(buffer,
+			maxlen,
+			&buflen,
+			info,
+			cmd,
+			is_aggregate ? info->session : NULL) == -1) {
     return (RTSP_RESPONSE_RECV_ERROR);
   }
     
@@ -247,6 +253,13 @@ int rtsp_send_setup (rtsp_client_t *info,
       return (RTSP_RESPONSE_BAD);
     }
 #endif
+    if (is_aggregate && info->session != NULL) {
+      if (strcmp(info->session, (*decode_result)->session) != 0) {
+	rtsp_debug(LOG_ERR, "Session for %s returned different %s %s",
+		   url, info->session, (*decode_result)->session);
+	return (RTSP_RESPONSE_BAD);
+      }
+    }
     sptr = info->session_list;
     while (sptr != NULL) {
       if (strcmp(sptr->url, url) == 0)
@@ -266,6 +279,8 @@ int rtsp_send_setup (rtsp_client_t *info,
       sptr->parent = info;
       sptr->next = info->session_list;
       info->session_list = sptr;
+      if (is_aggregate && info->session == NULL)
+	info->session = sptr->session;
     }
     *session_result = sptr;
     return (RTSP_RESPONSE_GOOD);
@@ -316,31 +331,25 @@ static bool check_session (rtsp_session_t *session,
   return (TRUE);
 }
 
-/*
- * rtsp_send_play - send play command.  It helps if Range is set
- */
-int rtsp_send_play (rtsp_session_t *session,
-		    rtsp_command_t *cmd,
-		    rtsp_decode_t **decode_result)
+static int rtsp_send_play_or_pause (const char *command,
+				    const char *url,
+				    const char *session,
+				    rtsp_client_t *info,
+				    rtsp_command_t *cmd,
+				    rtsp_decode_t **decode_result)
 {
   char buffer[2048];
   size_t maxlen, buflen;
   int ret;
   rtsp_decode_t *decode;
-  rtsp_client_t *info;
   
   *decode_result = NULL;
 
-  if (check_session(session, cmd) == FALSE) {
-    return (RTSP_RESPONSE_MISSING_OR_BAD_PARAM);
-  }
-  info = session->parent;
-  
   maxlen = sizeof(buffer);
-  buflen = snprintf(buffer, maxlen, "PLAY %s RTSP/1.0\r\n", session->url);
+  buflen = snprintf(buffer, maxlen, "%s %s RTSP/1.0\r\n", command, url);
 
   if (rtsp_build_common(buffer, maxlen, &buflen,
-			info, cmd, session->session) == -1) {
+			info, cmd, session) == -1) {
     return (RTSP_RESPONSE_RECV_ERROR);
   }
     
@@ -350,7 +359,7 @@ int rtsp_send_play (rtsp_session_t *session,
   }
   buflen += ret;
 
-  rtsp_debug(LOG_INFO, "Sending PLAY %s", session->url);
+  rtsp_debug(LOG_INFO, "Sending %s %s", command, url);
   rtsp_debug(LOG_DEBUG, buffer);
   ret = rtsp_send(info, buffer, buflen);
   if (ret < 0) {
@@ -361,13 +370,13 @@ int rtsp_send_play (rtsp_session_t *session,
   decode = info->decode_response;
     
   if (ret == RTSP_RESPONSE_GOOD) {
-    rtsp_debug(LOG_ERR, "PLAY returned correctly");
+    rtsp_debug(LOG_ERR, "%s returned correctly", command);
     *decode_result = info->decode_response;
     info->decode_response = NULL;
 
     return (RTSP_RESPONSE_GOOD);
   } else {
-    rtsp_debug(LOG_ERR, "PLAY return code %d", ret);
+    rtsp_debug(LOG_ERR, "%s return code %d", command, ret);
     if (ret != RTSP_RESPONSE_RECV_ERROR &&
 	decode != NULL) {
       *decode_result = info->decode_response;
@@ -380,6 +389,25 @@ int rtsp_send_play (rtsp_session_t *session,
   }
   
   return (RTSP_RESPONSE_RECV_ERROR);
+}
+
+/*
+ * rtsp_send_play - send play command.  It helps if Range is set
+ */
+int rtsp_send_play (rtsp_session_t *session,
+		    rtsp_command_t *cmd,
+		    rtsp_decode_t **decode_result)
+{
+  if (check_session(session, cmd) == FALSE) {
+    return (RTSP_RESPONSE_MISSING_OR_BAD_PARAM);
+  }
+
+  return (rtsp_send_play_or_pause("PLAY",
+				  session->url,
+				  session->session,
+				  session->parent,
+				  cmd,
+				  decode_result));
 }
 
 /*
@@ -389,93 +417,62 @@ int rtsp_send_pause (rtsp_session_t *session,
 		     rtsp_command_t *cmd,
 		     rtsp_decode_t **decode_result)
 {
-  char buffer[2048];
-  size_t maxlen, buflen;
-  int ret;
-  rtsp_decode_t *decode;
-  rtsp_client_t *info;
-  
-  *decode_result = NULL;
-
   if (check_session(session, cmd) == FALSE) {
     return (RTSP_RESPONSE_MISSING_OR_BAD_PARAM);
   }
-  info = session->parent;
-  
-  maxlen = sizeof(buffer);
-  buflen = snprintf(buffer, maxlen, "PAUSE %s RTSP/1.0\r\n", session->url);
 
-  if (rtsp_build_common(buffer, maxlen, &buflen,
-			info, cmd, session->session) == -1) {
-    return (RTSP_RESPONSE_RECV_ERROR);
-  }
-    
-  ret = snprintf(buffer + buflen, maxlen - buflen, "\r\n");
-  if (ret == -1) {
-    return (RTSP_RESPONSE_RECV_ERROR);
-  }
-  buflen += ret;
-
-  rtsp_debug(LOG_INFO, "Sending PAUSE %s", session->url);
-  rtsp_debug(LOG_DEBUG, buffer);
-  ret = rtsp_send(info, buffer, buflen);
-  if (ret < 0) {
-    return (RTSP_RESPONSE_RECV_ERROR);
-  }
-
-  ret = rtsp_get_response(info);
-  decode = info->decode_response;
-    
-  if (ret == RTSP_RESPONSE_GOOD) {
-    rtsp_debug(LOG_ERR, "PAUSE returned correctly");
-    *decode_result = info->decode_response;
-    info->decode_response = NULL;
-
-    return (RTSP_RESPONSE_GOOD);
-  } else {
-    rtsp_debug(LOG_ERR, "PAUSE return code %d", ret);
-    if (ret != RTSP_RESPONSE_RECV_ERROR &&
-	decode != NULL) {
-      *decode_result = info->decode_response;
-      info->decode_response = NULL;
-      rtsp_debug(LOG_ERR, "Error code %s %s",
-		 decode->retcode,
-		 decode->retresp);
-    }
-    return (ret);
-  }
-  
-  return (RTSP_RESPONSE_RECV_ERROR);
+  return (rtsp_send_play_or_pause("PAUSE",
+				  session->url,
+				  session->session,
+				  session->parent,
+				  cmd,
+				  decode_result));
 }
 
-/*
- * rtsp_send_teardown.  Sends a teardown for a session.  We might eventually
- * want to provide a teardown for the base url, rather than one for each
- * session
- */
-int rtsp_send_teardown (rtsp_session_t *session,
-			rtsp_command_t *cmd,
-			rtsp_decode_t **decode_result)
+int rtsp_send_aggregate_play (rtsp_client_t *info,
+			      const char *aggregate_url,
+			      rtsp_command_t *cmd,
+			      rtsp_decode_t **decode_result)
+{
+  return (rtsp_send_play_or_pause("PLAY",
+				  aggregate_url,
+				  info->session,
+				  info,
+				  cmd,
+				  decode_result));
+}
+
+int rtsp_send_aggregate_pause (rtsp_client_t *info,
+			       const char *aggregate_url,
+			       rtsp_command_t *cmd,
+			       rtsp_decode_t **decode_result)
+{
+  return (rtsp_send_play_or_pause("PAUSE",
+				  aggregate_url,
+				  info->session,
+				  info,
+				  cmd,
+				  decode_result));
+}
+
+static int rtsp_send_teardown_common (rtsp_client_t *info,
+				      const char *url,
+				      const char *session,
+				      rtsp_command_t *cmd,
+				      rtsp_decode_t **decode_result)
 {
   char buffer[2048];
   size_t maxlen, buflen;
   int ret;
   rtsp_decode_t *decode;
-  rtsp_session_t *sptr;
-  rtsp_client_t *info;
   
   *decode_result = NULL;
 
-  if (check_session(session, cmd) == FALSE) {
-    return (RTSP_RESPONSE_MISSING_OR_BAD_PARAM);
-  }
-  info = session->parent;
-  
   maxlen = sizeof(buffer);
-  buflen = snprintf(buffer, maxlen, "TEARDOWN %s RTSP/1.0\r\n", session->url);
+  buflen = snprintf(buffer, maxlen, "TEARDOWN %s RTSP/1.0\r\n", url);
 
   if (rtsp_build_common(buffer, maxlen, &buflen,
-			info, cmd, session->session) == -1) {
+			info, cmd, session) == -1) {
     return (RTSP_RESPONSE_RECV_ERROR);
   }
     
@@ -485,7 +482,7 @@ int rtsp_send_teardown (rtsp_session_t *session,
   }
   buflen += ret;
 
-  rtsp_debug(LOG_INFO, "Sending TEARDOWN %s", session->url);
+  rtsp_debug(LOG_INFO, "Sending TEARDOWN %s", url);
   rtsp_debug(LOG_DEBUG, buffer);
   ret = rtsp_send(info, buffer, buflen);
   if (ret < 0) {
@@ -500,15 +497,6 @@ int rtsp_send_teardown (rtsp_session_t *session,
     rtsp_debug(LOG_INFO, "TEARDOWN returned correctly");
     *decode_result = info->decode_response;
     info->decode_response = NULL;
-
-    if (info->session_list == session) {
-      info->session_list = session->next;
-    } else {
-      sptr = info->session_list;
-      while (sptr->next != session) sptr = sptr->next;
-      sptr->next = session->next;
-    }
-    free_session_info(session);
     return (RTSP_RESPONSE_GOOD);
   } else {
     rtsp_debug(LOG_ERR, "TEARDOWN return code %d", ret);
@@ -524,6 +512,62 @@ int rtsp_send_teardown (rtsp_session_t *session,
   }
   
   return (RTSP_RESPONSE_RECV_ERROR);
+}
+/*
+ * rtsp_send_teardown.  Sends a teardown for a session.  We might eventually
+ * want to provide a teardown for the base url, rather than one for each
+ * session
+ */
+int rtsp_send_teardown (rtsp_session_t *session,
+			rtsp_command_t *cmd,
+			rtsp_decode_t **decode_result)
+{
+  int ret;
+  rtsp_client_t *info;
+  rtsp_session_t *sptr;
+  if (check_session(session, cmd) == FALSE) {
+    return (RTSP_RESPONSE_MISSING_OR_BAD_PARAM);
+  }
+  info = session->parent;
+
+  ret = rtsp_send_teardown_common(info,
+				  session->url,
+				  session->session,
+				  cmd,
+				  decode_result);
+  if (ret == RTSP_RESPONSE_GOOD) {
+    if (info->session_list == session) {
+      info->session_list = session->next;
+    } else {
+      sptr = info->session_list;
+      while (sptr->next != session) sptr = sptr->next;
+      sptr->next = session->next;
+    }
+    free_session_info(session);
+  }
+  return (ret);
+}
+
+int rtsp_send_aggregate_teardown (rtsp_client_t *info,
+				  const char *url,
+				  rtsp_command_t *cmd,
+				  rtsp_decode_t **decode_result)
+{
+  int ret;
+  rtsp_session_t *p;
+  ret = rtsp_send_teardown_common(info,
+				  url,
+				  info->session,
+				  cmd,
+				  decode_result);
+  if (ret == RTSP_RESPONSE_GOOD) {
+    while (info->session_list != NULL) {
+      p = info->session_list;
+      info->session_list = info->session_list->next;
+      free_session_info(p);
+    }
+  }
+  return (ret);
 }
   
 

@@ -76,7 +76,7 @@ struct rtsp_client_ {
   uint32_t next_cseq;
   char *cookie;
   rtsp_decode_t *decode_response;
-
+  char *session;
   rtsp_session_t *session_list;
 };
 

@@ -172,7 +172,7 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
     // someway to handle reverses - perhaps if we're more than .5 seconds
     // later...
   }
-  // player_debug_message("AA at %lld", m_current_time);
+  // player_debug_message("AA at " LLD, m_current_time);
   try {
     if (m_local_bytestream) {
       // This means that we have a bytestream that's different from
@@ -195,14 +195,13 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
       /*
        * copy from the original bytestream to local memory
        */
-      for (uint16_t ix = 0; ix < length; ix++) {
-	m_local_buffer[ix] = m_orig_bytestream->get();
-      }
+      m_orig_bytestream->read(m_local_buffer, length);
+
       m_local_bytestream->set_memory(m_local_buffer, length);
     }
   } catch (const char *err) {
 #ifdef DEBUG_SYNC
-    player_error_message("AA Got exception %s at %llu", err, m_current_time);
+    player_error_message("AA Got exception %s at "LLU, err, m_current_time);
 #endif
     m_resync_with_header = 1;
     m_record_sync_time = 1;
@@ -215,17 +214,16 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
 
   if (m_audio_inited == 0) {
     /*
-     * If not initialized, do so.  Note - will need to change off 
-     * 44100 to a real value.
+     * If not initialized, do so.  
      */
     aac_decode_init_your_filestream(m_fs);
     aac_decode_init(&m_fInfo);
-    m_audio_sync->set_config(m_freq, 2, AUDIO_S16MSB, 1024);
+    m_audio_sync->set_config(m_freq, 2, AUDIO_S16LSB, 1024);
     m_audio_inited = 1;
   }
 
   try {
-    short *buff;
+    unsigned char *buff;
 
     /* 
      * Get an audio buffer
@@ -236,7 +234,7 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
       return (-1);
     }
 
-    bits = aac_decode_frame(buff);
+    bits = aac_decode_frame((short *)buff);
 
     if (bits > 0) {
       /*
@@ -252,20 +250,20 @@ int CAACodec::decode (uint64_t rtpts, int from_rtp)
       if (m_resync_with_header == 1) {
 	m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
-	player_debug_message("Back to good at %llu", m_current_time);
+	player_debug_message("Back to good at "LLU, m_current_time);
 #endif
       }
     } else {
       player_debug_message("Bits return is %d", bits);
       m_resync_with_header = 1;
 #ifdef DEBUG_SYNC
-      player_debug_message("Audio decode problem - at %llu", 
+      player_debug_message("Audio decode problem - at "LLU, 
 			   m_current_time);
 #endif
     }
   } catch (const char *err) {
 #ifdef DEBUG_SYNC
-    player_error_message("aa Got exception %s at %llu", err, m_current_time);
+    player_error_message("aa Got exception %s at "LLU, err, m_current_time);
 #endif
     m_resync_with_header = 1;
     m_record_sync_time = 1;

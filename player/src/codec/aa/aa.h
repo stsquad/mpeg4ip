@@ -64,7 +64,7 @@ class CAACodec : public CAudioCodecBase {
   size_t m_local_buffersize;
   char *m_local_buffer;
   int m_freq;  // frequency
-#define DUMP_OUTPUT_TO_FILE 1
+
 #if DUMP_OUTPUT_TO_FILE
   FILE *m_outfile;
 #endif

@@ -287,7 +287,8 @@ rtsp_client_t *rtsp_create_client (const char *url, int *err)
   info->recv_buff = malloc(info->recv_buff_len + 1); // always room for \0
   info->server_socket = -1;
   info->next_cseq = 1;
-
+  info->session = NULL;
+  
   if (info->recv_buff == NULL) {
     *err = ENOMEM;
     free_rtsp_client(info);
@@ -334,4 +335,13 @@ int rtsp_setup_redirect (rtsp_client_t *info)
   rtsp_close_socket(info);
 
   return (rtsp_setup_url(info, decode->location));
+}
+
+int rtsp_is_url_my_stream (const char *url,
+			   rtsp_session_t *session)
+{
+  if (strcmp(url, session->url) == 0) {
+    return 1;
+  }
+  return (0);
 }

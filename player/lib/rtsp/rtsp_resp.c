@@ -154,7 +154,20 @@ static void rtsp_header_retry_after (char *lptr,
 static void rtsp_header_rtp (char *lptr,
 			     rtsp_decode_t *dec)
 {
-  DEC_DUP_WARN(rtp_info, "RTP-Info");
+  if (dec->rtp_info != NULL) {
+    char *newrtp;
+    size_t len = strlen(dec->rtp_info);
+    len += strlen(lptr);
+    len++;
+    newrtp = malloc(len);
+    strcpy(newrtp, dec->rtp_info);
+    strcat(newrtp, lptr);
+    free(dec->rtp_info);
+    dec->rtp_info = newrtp;
+    rtsp_debug(LOG_DEBUG, "rtp adding new is %s", dec->rtp_info);
+  } else {
+    dec->rtp_info = strdup(lptr);
+  }
 }
 
 static void rtsp_header_session (char *lptr,
@@ -284,9 +297,10 @@ static struct {
   const char *val;
   size_t val_length;
   void (*parse_routine)(char *lptr, rtsp_decode_t *decode);
+  int allow_crlf_violation;
 } header_types[] =
 {
-#define HEAD_TYPE(a, b) { a, sizeof(a), b }
+#define HEAD_TYPE(a, b) { a, sizeof(a), b, 0 }
   HEAD_TYPE("Allow:", rtsp_header_allow_public),
   HEAD_TYPE("Public:", rtsp_header_allow_public),
   HEAD_TYPE("Connection:", rtsp_header_connection),
@@ -298,7 +312,7 @@ static struct {
   HEAD_TYPE("Location:", rtsp_header_location),
   HEAD_TYPE("Range:", rtsp_header_range),
   HEAD_TYPE("Retry-After:", rtsp_header_retry_after),
-  HEAD_TYPE("RTP-Info:", rtsp_header_rtp),
+  {"RTP-Info:", sizeof("RTP-Info:"), rtsp_header_rtp, 1},
   HEAD_TYPE("Session:", rtsp_header_session),
   HEAD_TYPE("Set-Cookie:", rtsp_header_cookie),
   HEAD_TYPE("Speed:", rtsp_header_speed),
@@ -338,7 +352,8 @@ static struct {
  * Decode using above table
  */
 static void rtsp_decode_header (char *lptr,
-				rtsp_client_t *info)
+				rtsp_client_t *info,
+				int *last_number)
 {
   int ix;
   int errret;
@@ -362,11 +377,24 @@ static void rtsp_decode_header (char *lptr,
        * Call the correct parsing routine
        */
       (header_types[ix].parse_routine)(after, info->decode_response);
+      if (header_types[ix].allow_crlf_violation != 0) {
+	*last_number = ix;
+      } else {
+	*last_number = -1;
+      }
       return;
     }
     ix++;
   }
 
+  if (last_number >= 0) {
+    //asdf
+    ADV_SPACE(lptr);
+    if (*lptr == ',') {
+      (header_types[*last_number].parse_routine)(lptr, info->decode_response);
+      return;
+    }
+  }
   rtsp_debug(LOG_DEBUG, "Not processing response header: %s", lptr);
 }
 
@@ -382,6 +410,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
   bool did_status_line, illegal_response;
   rtsp_decode_t *decode;
   int ret;
+  int last_header = -1;
 
   decode = info->decode_response;
   
@@ -476,7 +505,7 @@ static int rtsp_parse_response (rtsp_client_t *info)
 	rtsp_debug(LOG_DEBUG, "Decoded status - code %s %s",
 		   decode->retcode, decode->retresp);
       } else {
-	rtsp_decode_header(beg_line, info);
+	rtsp_decode_header(beg_line, info, &last_header);
       }
     }
   } while (*next_line != '\0');

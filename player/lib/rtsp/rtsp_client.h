@@ -188,7 +188,8 @@ int rtsp_send_setup(rtsp_client_t *info,
 		    const char *url,
 		    rtsp_command_t *cmd,
 		    rtsp_session_t **session_result,
-		    rtsp_decode_t **decode_result);
+		    rtsp_decode_t **decode_result,
+		    int is_aggregate);
 
 /*
  * rtsp_send_pause - send a pause message for a stream.
@@ -212,6 +213,33 @@ int rtsp_send_pause(rtsp_session_t *session,
 int rtsp_send_play(rtsp_session_t *session,
 		   rtsp_command_t *cmd,
 		   rtsp_decode_t **decode_result);
+/*
+ * rtsp_send_aggregate_play - send play message for an set-up session
+ * You most likely want to set cmd->range.
+ * Inputs - info - client pointer.
+ *          aggregate_url - pointer to aggregate url.
+ *          cmd - pointer to command structure
+ *          decode_result - p to p of decode resp structure - free when done
+ * Outputs - see error result
+ */
+int rtsp_send_aggregate_play(rtsp_client_t *info,
+			     const char *aggregate_url,
+			     rtsp_command_t *cmd,
+			     rtsp_decode_t **decode_result);
+
+/*
+ * rtsp_send_aggregate_pause - send play message for an set-up session
+ * You most likely want to set cmd->range.
+ * Inputs - info - client pointer.
+ *          aggregate_url - pointer to aggregate url.
+ *          cmd - pointer to command structure
+ *          decode_result - p to p of decode resp structure - free when done
+ * Outputs - see error result
+ */
+int rtsp_send_aggregate_pause(rtsp_client_t *info,
+			      const char *aggregate_url,
+			      rtsp_command_t *cmd,
+			      rtsp_decode_t **decode_result);
 
   
 /*
@@ -226,6 +254,13 @@ int rtsp_send_teardown(rtsp_session_t *session,
 		       rtsp_command_t *cmd,
 		       rtsp_decode_t **decode_result);
 
+int rtsp_send_aggregate_teardown (rtsp_client_t *info,
+				  const char *url,
+				  rtsp_command_t *cmd,
+				  rtsp_decode_t **decode_result);
+  
+int rtsp_is_url_my_stream (const char *url,
+			   rtsp_session_t *session);
 /*
  * rtsp_set_loglevel - set debug output level.
  * Input - loglevel - levels from syslog.h
