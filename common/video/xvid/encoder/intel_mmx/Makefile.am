@@ -17,3 +17,7 @@ libxvidencodermmx_la_LDFLAGS = -static
 libxvidencodermmx_la_SOURCES = \
 	cbp_mmx.asm \
 	sad_mmx.asm
+
+am_libxvidencodermmx_la_OBJECTS= \
+        cbp_mmx.lo \
+        sad_mmx.lo 

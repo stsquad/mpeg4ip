@@ -59,9 +59,13 @@ public:
 		return m_transcode;
 	} 
 
-	u_int32_t GetNumEncodedFrames() {
+	u_int32_t GetNumEncodedVideoFrames() {
 		return m_srcVideoSampleId;
 	}
+
+	float GetProgress();
+
+	u_int64_t GetEstSize();
 
 protected:
 	static const int MSG_START_TRANSCODE	= 1;
@@ -78,11 +82,13 @@ protected:
 
 	bool InitVideoEncoder(void);
 
+	bool HintTrack(MP4TrackId trackId);
+
 protected:
 	bool			m_transcode;
 
-	char*			m_srcMp4FileName;
-	char*			m_dstMp4FileName;
+	const char*		m_srcMp4FileName;
+	const char*		m_dstMp4FileName;
 	MP4FileHandle	m_srcMp4File;
 	MP4FileHandle	m_dstMp4File;
 	MP4TrackId		m_srcAudioTrackId;

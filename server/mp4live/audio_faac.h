@@ -19,25 +19,23 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __VIDEO_ENCODER_H__
-#define __VIDEO_ENCODER_H__
+#ifndef __AUDIO_FAAC_H__
+#define __AUDIO_FAAC_H__
 
-#include "media_encoder.h"
+#include "audio_encoder.h"
 
-class CVideoEncoder : public CEncoder {
+class CFaacAudioEncoder : public CAudioEncoder {
 public:
-	CVideoEncoder() { };
+	CFaacAudioEncoder();
 
-	virtual bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-		bool wantKeyFrame = false) = NULL;
+	bool EncodeSamples(
+		u_int8_t* pBuffer, u_int32_t bufferLength);
 
-	virtual bool GetEncodedFrame(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
+	bool GetEncodedFrame(
+		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
 
-	virtual bool GetReconstructedImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
+protected:
 };
 
-#endif /* __VIDEO_ENCODER_H__ */
+#endif /* __AUDIO_FAAC_H__ */
 

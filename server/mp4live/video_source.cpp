@@ -104,6 +104,8 @@ void CVideoSource::DoStopCapture(void)
 	}
 
 	m_encoder->Stop();
+	delete m_encoder;
+	m_encoder = NULL;
 
 	// release device resources
 	munmap(m_videoMap, m_videoMbuf.size);

@@ -107,6 +107,6 @@ void CLiveConfig::UpdateRecord()
 		* GetIntegerValue(CONFIG_APP_DURATION_UNITS);
 
 	m_recordEstFileSize = (u_int64_t)
-		((float)((videoBytesPerSec + audioBytesPerSec) * duration) * 1.05);
+		((double)((videoBytesPerSec + audioBytesPerSec) * duration) * 1.025);
 }
 

@@ -121,18 +121,14 @@ CMp4File::~CMp4File (void)
 int CMp4File::create_video (CPlayerSession *psptr)
 {
   CPlayerMedia *mptr;
-  int trackcnt = 0;
   MP4TrackId trackId;
 
-  do {
-    trackId = MP4FindTrackId(m_mp4file, trackcnt, "video");
-    trackcnt++;
-  } while (!MP4_IS_VALID_TRACK_ID(trackId) && trackcnt < 10);
+  trackId = MP4FindTrackId(m_mp4file, 0, 
+	MP4_VIDEO_TRACK_TYPE, MP4_MPEG4_VIDEO_TYPE);
 
   if (!MP4_IS_VALID_TRACK_ID(trackId)) {
     return 0;
   }
-  trackcnt--;
 
   mptr = new CPlayerMedia;
   if (mptr == NULL) {
@@ -172,51 +168,67 @@ int CMp4File::create_video (CPlayerSession *psptr)
 int CMp4File::create_audio (CPlayerSession *psptr)
 {
   CPlayerMedia *mptr;
+	u_int32_t trackcnt = 0;
   MP4TrackId trackId;
   unsigned char *foo = NULL;
   u_int32_t bufsize;
   uint8_t audio_type;
   int audio_is_mp3 = 0;
 
-  trackId = MP4FindTrackId(m_mp4file, 0, "audio");
+	while (1) {
+		trackId = MP4FindTrackId(m_mp4file, trackcnt, MP4_AUDIO_TRACK_TYPE);
 
+		// no more audio tracks, none are acceptable
+		if (!MP4_IS_VALID_TRACK_ID(trackId)) {
+			mp4f_message(LOG_ERR, "No supported MP4 audio types");
+			return 0;
+		}
+
+		audio_type = MP4GetTrackAudioType(m_mp4file, trackId);
+
+		switch (audio_type) {
+		case MP4_MPEG1_AUDIO_TYPE:
+		case MP4_MPEG2_AUDIO_TYPE:
+			audio_is_mp3 = 1;
+			break;
+		case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
+		case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
+		case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
+		case MP4_MPEG4_AUDIO_TYPE:
+			mpeg4_audio_config_t audio_config;
+			audio_is_mp3 = 0;
+			MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
+			if (foo != NULL) {
+				decode_mpeg4_audio_config(foo, bufsize, &audio_config);
+
+				if (audio_object_type_is_aac(&audio_config) == 0) {
+					trackId = MP4_INVALID_TRACK_ID;
+					mp4f_message(LOG_INFO, "Unsupported MP4 audio type %x", audio_type);
+				}
+			}
+			break;
+		default:
+			// we don't understand this audio track type
+			trackId = MP4_INVALID_TRACK_ID;
+			mp4f_message(LOG_INFO, "Unsupported MP4 audio type %x", audio_type);
+		}
+
+		// track looks good
+		if (MP4_IS_VALID_TRACK_ID(trackId)) {
+			break;
+		}
+
+		// keep looking
+		trackcnt++;
+  }
+
+	// can't find any acceptable audio tracks
   if (!MP4_IS_VALID_TRACK_ID(trackId)) {
     return 0;
   }
 
   // Say we have at least 1 track...
   m_audio_tracks = 1;
-
-  audio_type = MP4GetTrackAudioType(m_mp4file, trackId);
-  switch (audio_type) {
-  case MP4_MPEG1_AUDIO_TYPE:
-  case MP4_MPEG2_AUDIO_TYPE:
-    audio_is_mp3 = 1;
-    break;
-  case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
-  case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
-  case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
-  case MP4_MPEG4_AUDIO_TYPE:
-    mpeg4_audio_config_t audio_config;
-    audio_is_mp3 = 0;
-    MP4GetTrackESConfiguration(m_mp4file, trackId, &foo, &bufsize);
-    if (foo != NULL) {
-      decode_mpeg4_audio_config(foo, bufsize, &audio_config);
-
-      if (audio_object_type_is_aac(&audio_config) == 0) {
-	// should be unsupported
-	mp4f_message(LOG_ERR, "MP4 audio object type %d not supported", 
-		     audio_config.audio_object_type);
-	return (0);
-      }
-    }
-    break;
-  case MP4_PRIVATE_AUDIO_TYPE:
-  case MP4_INVALID_AUDIO_TYPE:
-  default:
-    mp4f_message(LOG_ERR, "Unsupported MP4 audio type %x", audio_type);
-    return (0);
-  }
 
   CMp4AudioByteStream *abyte;
   mptr = new CPlayerMedia;

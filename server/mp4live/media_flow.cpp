@@ -364,9 +364,23 @@ bool CAVTranscodeMediaFlow::GetStatus(u_int32_t valueName, void* pValue)
 		break;
 	case FLOW_STATUS_VIDEO_ENCODED_FRAMES:
 		if (m_transcoder) {
-			*(u_int32_t*)pValue = m_transcoder->GetNumEncodedFrames();
+			*(u_int32_t*)pValue = m_transcoder->GetNumEncodedVideoFrames();
 		} else {
 			*(u_int32_t*)pValue = 0;
+		}
+		break;
+	case FLOW_STATUS_PROGRESS:
+		if (m_transcoder) {
+			*(float*)pValue = m_transcoder->GetProgress();
+		} else {
+			*(float*)pValue = 0;
+		}
+		break;
+	case FLOW_STATUS_EST_SIZE:
+		if (m_transcoder) {
+			*(u_int64_t*)pValue = m_transcoder->GetEstSize();
+		} else {
+			*(u_int64_t*)pValue = 0;
 		}
 		break;
 	default:

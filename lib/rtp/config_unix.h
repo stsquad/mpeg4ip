@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.5 $
- *  $Date: 2002/01/11 00:55:16 $
+ *  $Revision: 1.6 $
+ *  $Date: 2002/02/20 17:32:03 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -40,9 +40,12 @@
 #ifndef WIN32
 #ifndef _CONFIG_UNIX_H
 #define _CONFIG_UNIX_H
-
+#undef VERSION
+#undef PACKAGE
 #include "uclconf.h"
-
+#undef VERSION
+#undef PACKAGE
+#include "../../include/win32_ver.h"
 #include <limits.h>
 #include <sys/types.h>
 #if TIME_WITH_SYS_TIME

@@ -25,7 +25,6 @@
 
 // forward declarations
 void PrintTrackList(const char* mp4FileName, u_int32_t verbosity);
-char* MakeTempMp4FileName();
 
 MP4TrackId* CreateMediaTracks(
 	MP4FileHandle mp4File, const char* inputFileName);
@@ -355,24 +354,9 @@ int main(int argc, char** argv)
 	}
 
 	if (doOptimize) {
-		char* outputFileName = MakeTempMp4FileName();
-		ASSERT(outputFileName);
-
-		MP4Optimize(mp4FileName, outputFileName, verbosity);
-
-		int rc;
-
-#ifdef _WIN32
-		rc = remove(mp4FileName);
-		if (rc == 0) {
-			rc = rename(outputFileName, mp4FileName);
-		}
-#else
-		rc = rename(outputFileName, mp4FileName);
-#endif
-		if (rc != 0) {
-			fprintf(stderr, "%s: can't overwrite %s, output is in %s\n",
-				ProgName, mp4FileName, outputFileName);
+		if (!MP4Optimize(mp4FileName, NULL, verbosity)) {
+			// mp4 library should have printed a message
+			exit(EXIT_OPTIMIZE_FILE);
 		}
 	}
 
@@ -521,29 +505,3 @@ void PrintTrackList(const char* mp4FileName, u_int32_t verbosity)
 	MP4Close(mp4File);
 }
 
-// there are so many attempts in libc to get this right
-// that for portablity reasons, it's best just to roll our own
-char* MakeTempMp4FileName()
-{
-#ifndef _WIN32
-	static char tempFileName[64];
-	u_int32_t i;
-	for (i = getpid(); i < 0xFFFFFFFF; i++) {
-		sprintf(tempFileName, "./tmp%u.mp4", i);
-		if (access(tempFileName, F_OK) != 0) {
-			break;
-		}
-	}
-	if (i == 0xFFFFFFFF) {
-		return NULL;
-	}
-#else
-	static char tempFileName[MAX_PATH + 3];
-	GetTempFileName(".", // dir. for temp. files 
-					"mp4",                // temp. filename prefix 
-					0,                    // create unique name 
-					tempFileName);        // buffer for name 
-#endif
-
-	return tempFileName;
-}

@@ -32,6 +32,9 @@
 #include "timestamp.h"
 #include "tv_frequencies.h"
 
+#define AUDIO_ENCODER_FAAC		"faac"
+#define AUDIO_ENCODER_LAME		"lame"
+
 #define VIDEO_ENCODER_FFMPEG	"ffmpeg"
 #define VIDEO_ENCODER_DIVX		"divx"
 #define VIDEO_ENCODER_XVID		"xvid"
@@ -105,10 +108,8 @@ enum {
 	CONFIG_TRANSCODE_DST_FILE_NAME,
 	CONFIG_TRANSCODE_SRC_AUDIO_ENCODING,
 	CONFIG_TRANSCODE_DST_AUDIO_ENCODING,
-	CONFIG_TRANSCODE_SRC_AUDIO_DELETE,
 	CONFIG_TRANSCODE_SRC_VIDEO_ENCODING,
 	CONFIG_TRANSCODE_DST_VIDEO_ENCODING,
-	CONFIG_TRANSCODE_SRC_VIDEO_DELETE,
 };
 
 // normally this would be in a .cpp file
@@ -273,17 +274,11 @@ static SConfigVariable MyConfigVariables[] = {
 	{ CONFIG_TRANSCODE_DST_AUDIO_ENCODING, "transcodeDstAudioEncoding",
 		CONFIG_TYPE_STRING, "aac", },
 
-	{ CONFIG_TRANSCODE_SRC_AUDIO_DELETE, "transcodeSrcAudioDelete",
-		CONFIG_TYPE_BOOL, false, },
-
 	{ CONFIG_TRANSCODE_SRC_VIDEO_ENCODING, "transcodeSrcVideoEncoding",
 		CONFIG_TYPE_STRING, "raw", },
 
 	{ CONFIG_TRANSCODE_DST_VIDEO_ENCODING, "transcodeDstVideoEncoding",
 		CONFIG_TYPE_STRING, "mpeg4", },
-
-	{ CONFIG_TRANSCODE_SRC_VIDEO_DELETE, "transcodeSrcVideoDelete",
-		CONFIG_TYPE_BOOL, false, },
 
 };
 #endif /* DECLARE_CONFIG_VARIABLES */

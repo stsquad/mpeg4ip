@@ -116,6 +116,8 @@ static GtkWidget *actual_fps_units;
 static Timestamp StartTime;
 static Timestamp StopTime;
 static u_int32_t StartEncodedFrameNumber;
+static u_int64_t StartFileSize;
+static u_int64_t StopFileSize;
 
 /*
  * delete_event - called when window closed
@@ -395,6 +397,9 @@ static void status_start()
 
 	// file size
 	if (AVFlow == AVLive) {
+		StartFileSize = 0;
+		StopFileSize = 0;
+
 		if (MyConfig->GetBoolValue(CONFIG_RECORD_ENABLE)) {
 			gtk_label_set_text(GTK_LABEL(current_size), " 0");
 			gtk_widget_show(current_size);
@@ -402,8 +407,9 @@ static void status_start()
 			gtk_label_set_text(GTK_LABEL(current_size_units), "MB");
 			gtk_widget_show(current_size_units);
 
+			StopFileSize = MyConfig->m_recordEstFileSize;
 			snprintf(buffer, sizeof(buffer), " %llu",
-				MyConfig->m_recordEstFileSize / 1000000);
+				StopFileSize / 1000000);
 			gtk_label_set_text(GTK_LABEL(final_size), buffer);
 			gtk_widget_show(final_size);
 
@@ -413,6 +419,7 @@ static void status_start()
 	} else { // AVFlow == AVTranscode
 		struct stat stats;
 		stat(MyConfig->GetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME), &stats);
+		StartFileSize = stats.st_size;
 		snprintf(buffer, sizeof(buffer), " %lu", 
 			stats.st_size / 1000000);
 		gtk_label_set_text(GTK_LABEL(current_size), buffer);
@@ -421,17 +428,7 @@ static void status_start()
 		gtk_label_set_text(GTK_LABEL(current_size_units), "MB");
 		gtk_widget_show(current_size_units);
 
-		u_int64_t estFileSize = stats.st_size;
-
-		// TBD if video, bitrate * duration, if audio...
-
-		snprintf(buffer, sizeof(buffer), " %llu",
-			estFileSize / 1000000);
-		gtk_label_set_text(GTK_LABEL(final_size), buffer);
-		gtk_widget_show(final_size);
-
-		gtk_label_set_text(GTK_LABEL(final_size_units), "MB");
-		gtk_widget_show(final_size_units);
+		StopFileSize = 0;
 	}
 }
 
@@ -468,6 +465,39 @@ static gint status_timer (gpointer raw)
 		snprintf(buffer, sizeof(buffer), " %lu", stats.st_size / 1000000);
 		gtk_label_set_text(GTK_LABEL(current_size), buffer);
 		gtk_widget_show(current_size);
+	}
+
+	if (AVFlow == AVTranscode) {
+		float progress;
+		AVFlow->GetStatus(FLOW_STATUS_PROGRESS, &progress);
+
+		if (progress > 0.0) {
+			u_int32_t estDuration = (u_int32_t)(duration_secs / progress);
+			secs = (time_t)GetSecsFromTimestamp(StartTime) + estDuration;
+			local = localtime(&secs);
+			strftime(buffer, sizeof(buffer), "%l:%M:%S", local);
+			gtk_label_set_text(GTK_LABEL(finish_time), buffer);
+			gtk_widget_show(finish_time);
+
+			strftime(buffer, sizeof(buffer), "%p", local);
+			gtk_label_set_text(GTK_LABEL(finish_time_units), buffer);
+			gtk_widget_show(finish_time_units);
+		}
+
+		if (StopFileSize == 0) {
+			u_int64_t estSize;
+			AVFlow->GetStatus(FLOW_STATUS_EST_SIZE, &estSize);
+			if (estSize > 0) {
+				StopFileSize = StartFileSize + estSize;
+				snprintf(buffer, sizeof(buffer), " %llu",
+					StopFileSize / 1000000);
+				gtk_label_set_text(GTK_LABEL(final_size), buffer);
+				gtk_widget_show(final_size);
+
+				gtk_label_set_text(GTK_LABEL(final_size_units), "MB");
+				gtk_widget_show(final_size_units);
+			}
+		}
 	}
 
 	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
@@ -1006,9 +1036,9 @@ void LayoutControlFrame(GtkWidget* box)
 	gtk_box_pack_start(GTK_BOX(hbox), duration_units_menu, FALSE, FALSE, 5);
 
 	// vertical separator
-	GtkWidget* sep = gtk_vseparator_new();
-	gtk_widget_show(sep);
-	gtk_box_pack_start(GTK_BOX(hbox), sep, FALSE, FALSE, 0);
+	GtkWidget* separator = gtk_vseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(hbox), separator, FALSE, FALSE, 0);
 
 	start_button = gtk_button_new();
 	start_button_label = gtk_label_new("  Start  ");
@@ -1030,6 +1060,7 @@ void LayoutStatusFrame(GtkWidget* box)
 {
 	GtkWidget *frame;
 	GtkWidget *vbox, *hbox;
+	GtkWidget *separator;
 
 	frame = gtk_frame_new("Status");
 	gtk_frame_set_label_align(GTK_FRAME(frame), frameLabelAlignment, 0);
@@ -1051,6 +1082,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(media_source_label);
 	gtk_box_pack_start(GTK_BOX(vbox), media_source_label, TRUE, TRUE, 0);
 
+	separator = gtk_hseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
+
 	start_time_label = gtk_label_new(" Start Time:");
 	gtk_misc_set_alignment(GTK_MISC(start_time_label), 0.0, 0.5);
 	gtk_widget_show(start_time_label);
@@ -1071,6 +1106,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(finish_time_label);
 	gtk_box_pack_start(GTK_BOX(vbox), finish_time_label, TRUE, TRUE, 0);
 
+	separator = gtk_hseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
+
 	current_size_label = gtk_label_new(" Current Size:");
 	gtk_misc_set_alignment(GTK_MISC(current_size_label), 0.0, 0.5);
 	gtk_widget_show(current_size_label);
@@ -1080,6 +1119,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_misc_set_alignment(GTK_MISC(final_size_label), 0.0, 0.5);
 	gtk_widget_show(final_size_label);
 	gtk_box_pack_start(GTK_BOX(vbox), final_size_label, TRUE, TRUE, 0);
+
+	separator = gtk_hseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
 
 	actual_fps_label = gtk_label_new(" Video Frame Rate:");
 	gtk_misc_set_alignment(GTK_MISC(actual_fps_label), 0.0, 0.5);
@@ -1095,6 +1138,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_misc_set_alignment(GTK_MISC(media_source), 1.0, 0.5);
 	gtk_widget_show(media_source);
 	gtk_box_pack_start(GTK_BOX(vbox), media_source, TRUE, TRUE, 0);
+
+	separator = gtk_hseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
 
 	start_time = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(start_time), 1.0, 0.5);
@@ -1116,6 +1163,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(finish_time);
 	gtk_box_pack_start(GTK_BOX(vbox), finish_time, TRUE, TRUE, 0);
 
+	separator = gtk_hseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
+
 	current_size = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(current_size), 1.0, 0.5);
 	gtk_widget_show(current_size);
@@ -1125,6 +1176,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_misc_set_alignment(GTK_MISC(final_size), 1.0, 0.5);
 	gtk_widget_show(final_size);
 	gtk_box_pack_start(GTK_BOX(vbox), final_size, TRUE, TRUE, 0);
+
+	separator = gtk_hseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
 
 	actual_fps = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(actual_fps), 1.0, 0.5);
@@ -1140,6 +1195,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_misc_set_alignment(GTK_MISC(media_source_units), 1.0, 0.5);
 	gtk_widget_show(media_source_units);
 	gtk_box_pack_start(GTK_BOX(vbox), media_source_units, TRUE, TRUE, 0);
+
+	separator = gtk_hseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
 
 	start_time_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(start_time_units), 1.0, 0.5);
@@ -1161,6 +1220,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_widget_show(finish_time_units);
 	gtk_box_pack_start(GTK_BOX(vbox), finish_time_units, TRUE, TRUE, 0);
 
+	separator = gtk_hseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
+
 	current_size_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(current_size_units), 1.0, 0.5);
 	gtk_widget_show(current_size_units);
@@ -1170,6 +1233,10 @@ void LayoutStatusFrame(GtkWidget* box)
 	gtk_misc_set_alignment(GTK_MISC(final_size_units), 1.0, 0.5);
 	gtk_widget_show(final_size_units);
 	gtk_box_pack_start(GTK_BOX(vbox), final_size_units, TRUE, TRUE, 0);
+
+	separator = gtk_hseparator_new();
+	gtk_widget_show(separator);
+	gtk_box_pack_start(GTK_BOX(vbox), separator, TRUE, TRUE, 0);
 
 	actual_fps_units = gtk_label_new("");
 	gtk_misc_set_alignment(GTK_MISC(actual_fps_units), 1.0, 0.5);

@@ -19,25 +19,25 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __VIDEO_ENCODER_H__
-#define __VIDEO_ENCODER_H__
+#ifndef __ENCODER_H__
+#define __ENCODER_H__
 
-#include "media_encoder.h"
+// forward declarations
+class CLiveConfig;
 
-class CVideoEncoder : public CEncoder {
+class CEncoder {
 public:
-	CVideoEncoder() { };
+	CEncoder() { 
+		m_pConfig = NULL;
+	}
 
-	virtual bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-		bool wantKeyFrame = false) = NULL;
+	virtual bool Init(CLiveConfig* pConfig, bool realTime = true) = NULL;
 
-	virtual bool GetEncodedFrame(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
+	virtual void Stop() = NULL;
 
-	virtual bool GetReconstructedImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
+protected:
+	CLiveConfig*	m_pConfig;
 };
 
-#endif /* __VIDEO_ENCODER_H__ */
+#endif /* __ENCODER_H__ */
 

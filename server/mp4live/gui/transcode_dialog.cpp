@@ -27,32 +27,58 @@ static GtkWidget *dialog;
 static GtkWidget *file_entry;
 static GtkWidget *filesel;
 
+static GtkWidget *video_src_menu;
 static GtkWidget *video_dst_menu;
-static GtkWidget *video_src_delete_button;
 
+static GtkWidget *audio_src_menu;
 static GtkWidget *audio_dst_menu;
-static GtkWidget *audio_src_delete_button;
+
+static int videoSrcValues[] = {
+	0
+}; 
+static char* videoSrcNames[] = {
+	"Raw   "
+};
+static u_int8_t videoSrcIndex;
 
 static int videoDstValues[] = {
-	0, 1, 2
+	0, 1
 }; 
 static char* videoDstNames[] = {
-	"MPEG-4", "H.26L", "VP3.2"
+	"MPEG-4", "H.26L "
 };
 static u_int8_t videoDstIndex;
+
+static int audioSrcValues[] = {
+	0
+}; 
+static char* audioSrcNames[] = {
+	"Raw   "
+};
+static u_int8_t audioSrcIndex;
 
 static int audioDstValues[] = {
 	0, 1
 }; 
 static char* audioDstNames[] = {
-	"AAC", "MP3"
+	"AAC   ", "MP3   "
 };
 static u_int8_t audioDstIndex;
 
 
+static void on_video_src_menu_activate(GtkWidget *widget, gpointer data)
+{
+	videoSrcIndex = ((unsigned int)data) & 0xFF;
+}
+
 static void on_video_dst_menu_activate(GtkWidget *widget, gpointer data)
 {
 	videoDstIndex = ((unsigned int)data) & 0xFF;
+}
+
+static void on_audio_src_menu_activate(GtkWidget *widget, gpointer data)
+{
+	audioSrcIndex = ((unsigned int)data) & 0xFF;
 }
 
 static void on_audio_dst_menu_activate(GtkWidget *widget, gpointer data)
@@ -126,15 +152,7 @@ static void on_browse_button (GtkWidget *widget, gpointer *data)
   gtk_grab_add(filesel);
 }
 
-static void on_video_src_delete_button (GtkWidget *widget, gpointer *data)
-{
-}
-
-static void on_audio_src_delete_button (GtkWidget *widget, gpointer *data)
-{
-}
-
-static void on_start_button (GtkWidget *widget, gpointer *data)
+static void on_encode_button (GtkWidget *widget, gpointer *data)
 {
 	if (!Validate()) {
 		return;
@@ -148,6 +166,66 @@ static void on_start_button (GtkWidget *widget, gpointer *data)
 	DoStart();
 
 	on_destroy_dialog(NULL, NULL);
+}
+
+static void on_optimize_yes_button (GtkWidget *widget, gpointer *data)
+{
+	char* mp4FileName = 
+		gtk_entry_get_text(GTK_ENTRY(file_entry));
+
+	MP4FileHandle mp4File = MP4Modify(mp4FileName);
+
+	if (mp4File == MP4_INVALID_FILE_HANDLE) {
+		ShowMessage("Optimize Error", "Can't open specified file");
+		return;
+	}
+
+	// delete all raw video tracks
+	while (true) {
+		MP4TrackId rawTrackId = MP4FindTrackId(
+			mp4File, 0, MP4_VIDEO_TRACK_TYPE, MP4_YUV12_VIDEO_TYPE);
+
+		if (rawTrackId == MP4_INVALID_TRACK_ID) {
+			break;
+		}
+
+		MP4DeleteTrack(mp4File, rawTrackId);
+	}
+
+	// delete all raw audio tracks
+	while (true) {
+		MP4TrackId rawTrackId = MP4FindTrackId(
+			mp4File, 0, MP4_AUDIO_TRACK_TYPE, MP4_PCM16_AUDIO_TYPE);
+
+		if (rawTrackId == MP4_INVALID_TRACK_ID) {
+			break;
+		}
+
+		MP4DeleteTrack(mp4File, rawTrackId);
+	}
+
+	MP4Close(mp4File);
+
+	// purge delete track data and optimize layout
+	if (MP4Optimize(mp4FileName)) {
+		ShowMessage("Completed", "Optimization completed");
+	} else {
+		ShowMessage("Optimize Error", "Can't optimize specified file");
+	}
+}
+
+static void on_optimize_button (GtkWidget *widget, gpointer *data)
+{
+	if (!Validate()) {
+		return;
+	}
+
+	YesOrNo("Confirm", 
+		"Optimizing will delete any existing raw tracks.\n"
+		"Do you wish to proceed?", 0, 
+		GTK_SIGNAL_FUNC(on_optimize_yes_button), NULL);
+
+	return;
 }
 
 static void on_ok_button (GtkWidget *widget, gpointer *data)
@@ -226,30 +304,34 @@ void CreateTranscodingDialog(void)
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 5);
 
 	// video label
-	label = gtk_label_new(" Convert Raw Video to");
+	label = gtk_label_new(" Encode Video from");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
 	gtk_widget_show(label);
 
-	// video target
+	// video src
+	video_src_menu = CreateOptionMenu(
+		NULL,
+		videoSrcNames, 
+		sizeof(videoSrcNames) / sizeof(char*),
+		videoSrcIndex,
+		GTK_SIGNAL_FUNC(on_video_src_menu_activate));
+	gtk_box_pack_start(GTK_BOX(hbox), video_src_menu, TRUE, TRUE, 5);
+
+	label = gtk_label_new(" to ");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+	gtk_widget_show(label);
+
+	// video dst
 	video_dst_menu = CreateOptionMenu(
 		NULL,
 		videoDstNames, 
 		sizeof(videoDstNames) / sizeof(char*),
 		videoDstIndex,
 		GTK_SIGNAL_FUNC(on_video_dst_menu_activate));
-	gtk_box_pack_start(GTK_BOX(hbox), video_dst_menu, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), video_dst_menu, TRUE, TRUE, 5);
 
-
-	// video src delete button
-	video_src_delete_button = 
-		gtk_check_button_new_with_label("Delete Raw Video");
-	gtk_box_pack_start(GTK_BOX(hbox), video_src_delete_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(video_src_delete_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_video_src_delete_button),
-		NULL);
-	gtk_widget_show(video_src_delete_button);
 
 	// third row
 	hbox = gtk_hbox_new(FALSE, 1);
@@ -257,41 +339,54 @@ void CreateTranscodingDialog(void)
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 5);
 
 	// audio label
-	label = gtk_label_new(" Convert Raw Audio to");
+	label = gtk_label_new(" Encode Audio from");
 	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 5);
 	gtk_widget_show(label);
 
-	// audio target
+	// audio src
+	audio_src_menu = CreateOptionMenu(
+		NULL,
+		audioSrcNames, 
+		sizeof(audioSrcNames) / sizeof(char*),
+		audioSrcIndex,
+		GTK_SIGNAL_FUNC(on_audio_src_menu_activate));
+	gtk_box_pack_start(GTK_BOX(hbox), audio_src_menu, TRUE, TRUE, 5);
+
+	label = gtk_label_new(" to ");
+	gtk_misc_set_alignment(GTK_MISC(label), 0.0, 0.5);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+	gtk_widget_show(label);
+
+	// audio dst
 	audio_dst_menu = CreateOptionMenu(
 		NULL,
 		audioDstNames, 
 		sizeof(audioDstNames) / sizeof(char*),
 		audioDstIndex,
 		GTK_SIGNAL_FUNC(on_audio_dst_menu_activate));
-	gtk_box_pack_start(GTK_BOX(hbox), audio_dst_menu, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), audio_dst_menu, TRUE, TRUE, 5);
 
-	// audio src delete button
-	audio_src_delete_button = 
-		gtk_check_button_new_with_label("Delete Raw Audio");
-	gtk_box_pack_start(GTK_BOX(hbox), audio_src_delete_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(audio_src_delete_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_audio_src_delete_button),
-		NULL);
-	gtk_widget_show(audio_src_delete_button);
 	
 	// fourth row
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 5);
 
-	// start button
-	button = gtk_button_new_with_label(" Start ");
-	gtk_box_pack_start(GTK_BOX(hbox), button, TRUE, TRUE, 20);
+	// encode button
+	button = gtk_button_new_with_label(" Encode ");
+	gtk_box_pack_start(GTK_BOX(hbox), button, TRUE, FALSE, 5);
 	gtk_signal_connect(GTK_OBJECT(button), 
 		     "clicked",
-		     GTK_SIGNAL_FUNC(on_start_button),
+		     GTK_SIGNAL_FUNC(on_encode_button),
+		     NULL);
+	gtk_widget_show(button);
+
+	button = gtk_button_new_with_label(" Optimize ");
+	gtk_box_pack_start(GTK_BOX(hbox), button, TRUE, FALSE, 5);
+	gtk_signal_connect(GTK_OBJECT(button), 
+		     "clicked",
+		     GTK_SIGNAL_FUNC(on_optimize_button),
 		     NULL);
 	gtk_widget_show(button);
 

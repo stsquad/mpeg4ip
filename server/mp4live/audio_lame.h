@@ -19,25 +19,31 @@
  *		Dave Mackie		dmackie@cisco.com
  */
 
-#ifndef __VIDEO_ENCODER_H__
-#define __VIDEO_ENCODER_H__
+#ifndef __AUDIO_LAME_H__
+#define __AUDIO_LAME_H__
 
-#include "media_encoder.h"
+#include "audio_encoder.h"
 
-class CVideoEncoder : public CEncoder {
+#include <lame.h>
+
+class CLameAudioEncoder : public CAudioEncoder {
 public:
-	CVideoEncoder() { };
+	CLameAudioEncoder();
 
-	virtual bool EncodeImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV,
-		bool wantKeyFrame = false) = NULL;
+	bool EncodeSamples(
+		u_int8_t* pBuffer, u_int32_t bufferLength);
 
-	virtual bool GetEncodedFrame(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
+	bool GetEncodedFrame(
+		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
 
-	virtual bool GetReconstructedImage(
-		u_int8_t* pY, u_int8_t* pU, u_int8_t* pV) = NULL;
+protected:
+	lame_global_flags	m_lameParams;
+	u_int16_t*			m_leftBuffer;
+	u_int16_t*			m_rightBuffer;
+	u_int8_t*			m_mp3FrameBuffer;
+	u_int32_t			m_mp3FrameBufferLength;
+	u_int32_t			m_mp3FrameBufferSize;
 };
 
-#endif /* __VIDEO_ENCODER_H__ */
+#endif /* __AUDIO_LAME_H__ */
 

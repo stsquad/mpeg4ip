@@ -23,3 +23,11 @@ libxvidimagemmx_la_SOURCES = \
 	out_rgb32_mmx.asm \
 	out_yuyv_mmx.asm
 
+am_libxvidimagemmx_la_OBJECTS = \
+        halfpel_mmx.lo \
+        in_rgb_mmx.lo \
+        in_yuv_mmx.lo \
+        in_yuyv_mmx.lo \
+        out_rgb24_mmx.lo \
+        out_rgb32_mmx.lo \
+        out_yuyv_mmx.lo

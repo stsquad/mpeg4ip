@@ -10,7 +10,7 @@ bool \fBMP4Optimize\fR(
 .br 
 	const char* \fIexistingfileName\fP, 
 .br 
-	const char* \fInewfileName\fP, 
+	const char* \fInewfileName\fP = NULL, 
 .br 
 	u_int32_t \fIverbosity\fP = 0
 .br 
@@ -23,7 +23,7 @@ bool \fBMP4Optimize\fR(
 Specifies the path name of the existing file to be optimized.
 .TP 
 \fInewFileName\fP
-Specifies the path name of the new, optimized file.
+Specifies the path name of the new, optimized file. If NULL, then a temporary file is used, and the existing file is overwritten upon successful completion.
 .TP 
 \fIverbosity\fP
 Specifies a bitmask of diagnostic details the library should print to stdout during its functioning. See MP4SetVerbosity() for values.

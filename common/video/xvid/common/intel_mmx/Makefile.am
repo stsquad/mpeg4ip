@@ -24,3 +24,12 @@ libxvidcommonmmx_la_SOURCES = \
 	quantize4_mmx.asm \
 	transfer_mmx.asm
 
+am_libxvidcommonmmx_la_OBJECTS = \
+	compensate_mmx.lo \
+	cpuid.lo \
+	fdct_mmx.lo \
+	idct_mmx.lo \
+	interpolate8x8_mmx.lo \
+	quantize_mmx.lo \
+	quantize4_mmx.lo \
+	transfer_mmx.lo

@@ -20,6 +20,9 @@
  *		Bill May		wmay@cisco.com
  */
 
+#ifndef __SYSTEMS_H__
+#define __SYSTEMS_H__
+
 #ifdef WIN32
 #define HAVE_IN_PORT_T
 #define HAVE_SOCKLEN_T
@@ -28,8 +31,6 @@
 #include <config.h>
 #endif
 
-#ifndef __SYSTEMS_H__
-#define __SYSTEMS_H__
 
 
 

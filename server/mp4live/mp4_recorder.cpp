@@ -109,7 +109,7 @@ void CMp4Recorder::DoStartRecord()
 				MP4_INVALID_DURATION,
 				m_pConfig->m_videoWidth, 
 				m_pConfig->m_videoHeight,
-				MP4_PRIVATE_VIDEO_TYPE);
+				MP4_YUV12_VIDEO_TYPE);
 
 			if (m_rawVideoTrackId == MP4_INVALID_TRACK_ID) {
 				error_message("can't create raw video track");
@@ -198,7 +198,7 @@ void CMp4Recorder::DoStartRecord()
 				m_mp4File, 
 				m_rawAudioTimeScale, 
 				0,
-				MP4_PRIVATE_AUDIO_TYPE);
+				MP4_PCM16_AUDIO_TYPE);
 
 			if (m_rawAudioTrackId == MP4_INVALID_TRACK_ID) {
 				error_message("can't create raw audio track");

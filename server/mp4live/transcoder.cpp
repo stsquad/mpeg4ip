@@ -21,7 +21,11 @@
 
 #include "mp4live.h"
 #include "transcoder.h"
+#include <sys/wait.h>
 
+#ifdef ADD_FFMPEG_ENCODER
+#include "video_ffmpeg.h"
+#endif
 #ifdef ADD_XVID_ENCODER
 #include "video_xvid.h"
 #endif
@@ -82,22 +86,29 @@ void CTranscoder::DoStartTranscode()
 		return;
 	}
 
+	m_srcVideoTrackId = MP4_INVALID_TRACK_ID;
 	m_srcVideoSampleId = 1;
+
+	m_srcAudioTrackId = MP4_INVALID_TRACK_ID;
 	m_srcAudioSampleId = 1;
+
 	m_dstMp4File = NULL;
 
-	char* srcMp4FileName =
+	const char* srcMp4FileName =
 		m_pConfig->GetStringValue(CONFIG_TRANSCODE_SRC_FILE_NAME);
 
-	char* dstMp4FileName =
+	const char* dstMp4FileName =
 		m_pConfig->GetStringValue(CONFIG_TRANSCODE_DST_FILE_NAME);
 
 	bool twoFiles = !(dstMp4FileName == NULL || dstMp4FileName[0] == '\0');
 
 	if (twoFiles) {
 		m_srcMp4File = MP4Read(srcMp4FileName);
+		m_srcMp4FileName = srcMp4FileName;
+		m_dstMp4FileName = dstMp4FileName;
 	} else {
 		m_srcMp4File = MP4Modify(srcMp4FileName);
+		m_srcMp4FileName = m_dstMp4FileName = srcMp4FileName;
 	}
 	if (m_srcMp4File == MP4_INVALID_FILE_HANDLE) {
 		error_message("can't open %s", srcMp4FileName);
@@ -115,25 +126,11 @@ void CTranscoder::DoStartTranscode()
 		m_dstMp4File = m_srcMp4File;
 	}
 
+	// TBD if we're transcoding video
+
 	// find raw video track
-	numVideoTracks =
-		MP4GetNumberOfTracks(m_srcMp4File, MP4_VIDEO_TRACK_TYPE);
-
-	m_srcVideoTrackId = MP4_INVALID_TRACK_ID;
-
-	u_int32_t i;
-	for (i = 0; i < numVideoTracks; i++) {
-		MP4TrackId videoTrackId =
-			MP4FindTrackId(m_srcMp4File, i, MP4_VIDEO_TRACK_TYPE);
-
-		u_int8_t videoType =
-			MP4GetTrackVideoType(m_srcMp4File, videoTrackId);
-
-		if (videoType == MP4_PRIVATE_VIDEO_TYPE) {
-			m_srcVideoTrackId = videoTrackId;
-			break;
-		}
-	}
+	m_srcVideoTrackId = MP4FindTrackId(
+		m_srcMp4File, 0, MP4_VIDEO_TRACK_TYPE, MP4_YUV12_VIDEO_TYPE);
 
 	if (m_srcVideoTrackId == MP4_INVALID_TRACK_ID) {
 		error_message("can't find raw video track");
@@ -204,6 +201,8 @@ void CTranscoder::DoTranscode()
 
 	if (m_srcVideoSampleId >= m_srcVideoNumSamples) {
 		DoStopTranscode();
+
+		HintTrack(m_dstVideoTrackId);
 	}
 }
 
@@ -231,9 +230,16 @@ void CTranscoder::DoStopTranscode()
 
 bool CTranscoder::InitVideoEncoder()
 {
-	char* encoderName = "xvid";	// TBD TEMP
+	char* encoderName = "ffmpeg";	// TBD TEMP
 
-	if (!strcasecmp(encoderName, VIDEO_ENCODER_XVID)) {
+	if (!strcasecmp(encoderName, VIDEO_ENCODER_FFMPEG)) {
+#ifdef ADD_FFMPEG_ENCODER
+		m_videoEncoder = new CFfmpegVideoEncoder();
+#else
+		error_message("ffmpeg encoder not available in this build");
+		return false;
+#endif
+	} else if (!strcasecmp(encoderName, VIDEO_ENCODER_XVID)) {
 #ifdef ADD_XVID_ENCODER
 		m_videoEncoder = new CXvidVideoEncoder();
 #else
@@ -356,4 +362,70 @@ bool CTranscoder::DoAudioTrack(
 	u_int32_t numSamples)
 {
 	return true;
+}
+
+float CTranscoder::GetProgress()
+{
+	if (!m_transcode) {
+		return 0.0;
+	}
+
+	if (m_srcVideoTrackId != MP4_INVALID_TRACK_ID) {
+		return (float)(m_srcVideoSampleId - 1) / (float)m_srcVideoNumSamples;
+	} else { // m_srcAudioTrackId != MP4_INVALID_TRACK_ID
+		return (float)(m_srcAudioSampleId - 1) / (float)m_srcAudioNumSamples;
+	}
+}
+
+u_int64_t CTranscoder::GetEstSize()
+{
+	if (!m_transcode) {
+		return 0;
+	}
+
+	MP4Duration duration = MP4GetDuration(m_srcMp4File);
+	u_int64_t seconds = MP4ConvertFromMovieDuration(m_srcMp4File, 
+		duration, MP4_SECONDS_TIME_SCALE);
+
+	u_int32_t videoBytesPerSec = 0;
+	if (m_srcVideoTrackId != MP4_INVALID_TRACK_ID) {
+		videoBytesPerSec +=
+			(m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000) / 8;
+	}
+
+	u_int32_t audioBytesPerSec = 0;
+	if (m_srcAudioTrackId != MP4_INVALID_TRACK_ID) {
+		audioBytesPerSec +=
+			(m_pConfig->GetIntegerValue(CONFIG_AUDIO_BIT_RATE) * 1000) / 8;
+	}
+
+	return (u_int64_t)
+		((double)((videoBytesPerSec + audioBytesPerSec) * seconds) * 1.025);
+}
+
+bool CTranscoder::HintTrack(MP4TrackId trackId)
+{
+	// TEMP use external mp4creator executable
+	// to do the hinting. Longer term solution is
+	// to restructure mp4creator to expose a hinter library
+	// that can be used for both the transcoder and the mp4 recorder
+
+	pid_t pid = fork();
+
+	if (pid == -1) {
+		return false;
+	}
+	if (pid == 0) { // child, exec mp4creator
+		char arg1[16];
+		snprintf(arg1, sizeof(arg1), "-hint=%u", trackId);
+
+		execlp("mp4creator", 
+			"mp4creator", arg1, m_dstMp4FileName, NULL);
+
+	} else { // parent, wait for child
+		int status;
+		waitpid(pid, &status, 0);
+		return (WEXITSTATUS(status) == 0);
+	}
+	return false;
 }

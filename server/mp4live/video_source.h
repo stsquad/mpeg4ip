@@ -42,10 +42,10 @@ public:
 	CVideoSource() : CMediaSource() {
 		m_capture = false;
 		m_videoDevice = -1;
+		m_encoder = NULL;
 		m_videoMap = NULL;
 		m_videoFrameMap = NULL;
 		m_wantKeyFrame = false;
-		m_encoder = 0;
 	}
 
 	void StartCapture(void) {

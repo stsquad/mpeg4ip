@@ -164,6 +164,8 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 	} else {
 		// debug_message("RTP transmitter received unknown frame type %u",
 		// 	pFrame->GetType());
+
+		delete pFrame;
 	}
 }
 
