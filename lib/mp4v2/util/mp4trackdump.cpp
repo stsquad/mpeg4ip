@@ -56,10 +56,11 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid)
     msectime -= sectime;
     char buf[12];
     sprintf(buf, "%0.6f", msectime);
-    printf("sampleId %6d, size %5u duration %8llu time %8llu %02.f:%02.f:%02.f.%s\n",
+    printf("sampleId %6d, size %5u duration %8llu time %8llu %02.f:%02.f:%02.f.%s %c\n",
 	  sid,  MP4GetSampleSize(mp4file, tid, sid), 
 	   MP4GetSampleDuration(mp4file, tid, sid),
-	   time, hrtime, mintime, sectime, buf + 2);
+	   time, hrtime, mintime, sectime, buf + 2,
+	   MP4GetSampleSync(mp4file, tid, sid) == 1 ? 'S' : ' ');
   }
 }
 
@@ -128,7 +129,7 @@ int main(int argc, char** argv)
       exit(0);
     case 'V':
       fprintf(stderr, "%s - %s version %s\n", 
-	      ProgName, PACKAGE, VERSION);
+	      ProgName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
       exit(0);
     default:
       fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
@@ -143,7 +144,7 @@ int main(int argc, char** argv)
   }
 	
   if (verbosity) {
-    fprintf(stderr, "%s version %s\n", ProgName, VERSION);
+    fprintf(stderr, "%s version %s\n", ProgName, MPEG4IP_VERSION);
   }
 
   /* point to the specified file names */

@@ -230,6 +230,8 @@ official, we will try to update mpeg4ip.
 We also will use the following libraries if you have them installed:
 <ul>
 <li>libid3 - id3 tags for mp3 files</li>
+<li>liba52 - AC3 decoding for mpeg files and mpeg2 transport streams</li>
+<li>libmpeg2 - mpeg2 decoding library</li>
 </ul> 
 <p>
 If you don't have root privileges, but still wish to install the 
@@ -273,9 +275,9 @@ site.
 <P>
 In order to compile mpeg4ip from CVS, we require the following tools:<br>
 <a href="http://www.gnu.org/software/gcc/">gcc 3.2 or greater</a><br>
-<a href="http://www.gnu.org/software/libtool/libtool.html">libtool 1.4.3 or 1.5</a><br>
-<a href="http://www.gnu.org/software/autoconf/autoconf.html">autoconf 2.53 or 2.57</a><br>
-<a href="http://www.gnu.org/software/automake/automake.html">automake 1.6.3 or 1.7.6</a><br>
+<a href="http://www.gnu.org/software/libtool/libtool.html">libtool 1.5</a><br>
+<a href="http://www.gnu.org/software/autoconf/autoconf.html">autoconf 2.57</a><br>
+<a href="http://www.gnu.org/software/automake/automake.html">automake 1.7.6</a><br>
 <P>
 If you don't have these tools and are trying to compile from CVS, don't
 complain - update to these tools, then let us know.  There may be problems or
@@ -686,6 +688,8 @@ mpeg4-2000 -  ISO MPEG-4 video encoder/decoder<br>
            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt; 
             audio<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+		a52dec - liba52 decoder plugin<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                 faad - FAAD AAC decoder<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                 mp3 - MP3 decoder<br>
@@ -714,6 +718,8 @@ mpeg4-2000 -  ISO MPEG-4 video encoder/decoder<br>
  	       xvid - xvid video plugin<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
                h261 - h261 decoder<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |---&gt;
+	       mpeg2dec - libmpeg2 plugin<br>
         |-&gt; src - the player executable<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    |--&gt;
             codec  <br>

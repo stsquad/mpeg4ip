@@ -5,9 +5,7 @@
 // Mpegtable.cc
 // It has tables for MPEG layer 1, 2 and a part of layer 3
 
-#ifdef HAVE_CONFIG_H
-#include "mpeg4ip_config.h"
-#endif
+#include "mpeg4ip.h"
 #ifdef _MSC_VER
 #pragma warning(disable:4305) 
 #endif

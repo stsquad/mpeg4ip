@@ -2,9 +2,7 @@
 #define HAVE_IN_PORT_T
 #define HAVE_SOCKLEN_T
 #else
-#undef PACKAGE
-#undef VERSION
-#include "../mpeg4ip_config.h"
+#include "mpeg4ip.h"
 #endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

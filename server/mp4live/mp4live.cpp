@@ -158,7 +158,7 @@ int main(int argc, char** argv)
 			sdpOnly = true;
 			break;
 		case 'v':
-			fprintf(stderr, "%s version %s\n", argv[0], VERSION);
+			fprintf(stderr, "%s version %s\n", argv[0], MPEG4IP_VERSION);
 			exit(0);
 		case '?':
 		default:
@@ -192,7 +192,7 @@ int main(int argc, char** argv)
 	// other cases:
 
 	SetupRealTimeFeatures(pConfig);
-	error_message("%s version %s %s\n", argv[0], VERSION,
+	error_message("%s version %s %s\n", argv[0], MPEG4IP_VERSION,
 #ifdef HAVE_LINUX_VIDEODEV2_H
 		      "V4L2"
 #else

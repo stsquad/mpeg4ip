@@ -418,8 +418,8 @@ static int mpeg3_atrack_read_ac3_frame (mpeg3_atrack_t *atrack,
 
   *len = atrack->framesize;
   if (mpeg3_atrack_check_length(output, *len, maxlen) < 0) return -1;
-  *output[0] = code >> 8;
-  *output[1] = code & 0xff;
+  (*output)[0] = code >> 8;
+  (*output)[1] = code & 0xff;
   ret = mpeg3demux_read_data(demux, *output + 2, *len - 2);
   if (ret != *len - 2) return -1;
 

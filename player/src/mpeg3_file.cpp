@@ -179,7 +179,7 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
   int video_cnt, audio_cnt;
   int ix;
   codec_plugin_t *plugin;
-  int audio_offset;
+  int video_offset, audio_offset;
   int ret;
   int sdesc;
 
@@ -227,20 +227,21 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
   } else {
     aq = NULL;
   }
-    
+  video_offset = 0;
   for (ix = 0; ix < video_cnt; ix++) {
-    vq[ix].track_id = ix;
-    vq[ix].compressor = "MPEG FILE";
-    vq[ix].type = mpeg3_video_layer(file, ix);
-    vq[ix].profile = -1;
-    vq[ix].fptr = NULL;
-    vq[ix].h = mpeg3_video_height(file, ix);
-    vq[ix].w = mpeg3_video_width(file, ix);
-    vq[ix].frame_rate = mpeg3_frame_rate(file, ix);
-    vq[ix].config = NULL;
-    vq[ix].config_len = 0;
-    vq[ix].enabled = 0;
-    vq[ix].reference = NULL;
+    vq[video_offset].track_id = ix;
+    vq[video_offset].compressor = "MPEG FILE";
+    vq[video_offset].type = mpeg3_video_layer(file, ix);
+    vq[video_offset].profile = -1;
+    vq[video_offset].fptr = NULL;
+    vq[video_offset].h = mpeg3_video_height(file, ix);
+    vq[video_offset].w = mpeg3_video_width(file, ix);
+    vq[video_offset].frame_rate = mpeg3_frame_rate(file, ix);
+    vq[video_offset].config = NULL;
+    vq[video_offset].config_len = 0;
+    vq[video_offset].enabled = 0;
+    vq[video_offset].reference = NULL;
+    video_offset++;
   }
   audio_offset = 0;
   if (have_audio_driver) {
@@ -265,16 +266,23 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
 	aq[audio_offset].reference = NULL;
 	audio_offset++;
       } else {
-	mpeg3f_message(LOG_ERR, "Unsupported audio type %s in track %d", 
+	mpeg3f_message(LOG_ERR, "Unsupported audio type %d %s in track %d", 
+		       mpeg3_get_audio_format(file, ix), 
 		       mpeg3_audio_format(file, ix), ix);
       }
     }
   }
 
+  if (audio_offset == 0 && video_offset == 0) {
+    snprintf(errmsg, errlen, "No playable streams in file");
+    CHECK_AND_FREE(aq);
+    CHECK_AND_FREE(vq);
+    return -1;
+  }
   if (cc_vft && cc_vft->media_list_query != NULL) {
-    (cc_vft->media_list_query)(psptr, video_cnt, vq, audio_offset, aq);
+    (cc_vft->media_list_query)(psptr, video_offset, vq, audio_offset, aq);
   } else {
-    if (video_cnt > 0) vq[0].enabled = 1;
+    if (video_offset > 0) vq[0].enabled = 1;
     if (audio_offset > 0) aq[0].enabled = 1;
   }
 
@@ -282,7 +290,7 @@ int create_media_for_mpeg_file (CPlayerSession *psptr,
 
   ret = 0;
   sdesc = 1;
-  for (ix = 0; ret >= 0 && ix < video_cnt; ix++) {
+  for (ix = 0; ret >= 0 && ix < video_offset; ix++) {
     if (vq[ix].enabled) {
       if (newfile == NULL) {
 	newfile = mpeg3_open_copy(name, file);

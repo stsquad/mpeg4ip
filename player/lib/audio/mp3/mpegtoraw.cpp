@@ -5,9 +5,7 @@
 // Mpegtoraw.cc
 // Server which get mpeg format and put raw format.
 
-#ifdef HAVE_CONFIG_H
-#include "mpeg4ip_config.h"
-#endif
+#include "mpeg4ip.h"
 
 #include <math.h>
 #include <stdlib.h>

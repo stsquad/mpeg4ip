@@ -527,7 +527,8 @@ static void clean_es_data (mpeg2t_es_t *es_pid)
     break;
   case 3:
   case 4:
-    // mpeg1/mpeg2 audio (mp3 codec
+  case 129:
+    // mpeg1/mpeg2 audio (mp3 codec)
     if (es_pid->work != NULL ) {
       free(es_pid->work);
       es_pid->work = NULL;
@@ -761,7 +762,10 @@ static int mpeg2t_process_es (mpeg2t_t *ptr,
   case 4:
     // mpeg1/mpeg2 audio (mp3 codec)
     ret = process_mpeg2t_mpeg_audio(es_pid, esptr, buflen);
-  break;
+    break;
+  case 129:
+    ret = process_mpeg2t_ac3_audio(es_pid, esptr, buflen);
+    break;
   case 0xf:
     // aac
     break;
@@ -974,7 +978,10 @@ int mpeg2t_write_stream_info (mpeg2t_es_t *es_pid,
   case 4:
     // mpeg1/mpeg2 audio (mp3 codec)
     ret = mpeg2t_mpeg_audio_info(es_pid, buffer, buflen);
-  break;
+    break;
+  case 129:
+    ret = mpeg2t_ac3_audio_info(es_pid, buffer, buflen);
+    break;
   case 0xf:
     // aac
     break;

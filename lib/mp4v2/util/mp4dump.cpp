@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 			exit(0);
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n", 
-			  progName, PACKAGE, VERSION);
+			  progName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
 		  exit(0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 
 	/* end processing of command line */
 	if (verbosity != 0) {
-	  fprintf(stdout, "%s version %s\n", progName, VERSION);
+	  fprintf(stdout, "%s version %s\n", progName, MPEG4IP_VERSION);
 	}
 
 	MP4FileHandle mp4File = MP4Read(mp4FileName, verbosity);

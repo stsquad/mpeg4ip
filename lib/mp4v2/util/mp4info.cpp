@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 			exit(0);
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n", ProgName, 
-			  PACKAGE, VERSION);
+			  MPEG4IP_PACKAGE, MPEG4IP_VERSION);
 		  exit(0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
 	}
 
 	/* end processing of command line */
-	printf("%s version %s\n", ProgName, VERSION);
+	printf("%s version %s\n", ProgName, MPEG4IP_VERSION);
 
 	while (optind < argc) {
 		char *mp4FileName = argv[optind++];

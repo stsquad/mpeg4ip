@@ -293,7 +293,7 @@ int main(int argc, char** argv)
       exit(EXIT_SUCCESS);
     case 'V':
       fprintf(stderr, "%s - %s version %s\n", 
-	      ProgName, PACKAGE, VERSION);
+	      ProgName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
       exit(EXIT_SUCCESS);
     default:
       fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
@@ -508,13 +508,13 @@ int main(int argc, char** argv)
     if (retval && value != NULL) {
       if (strncasecmp("mp4creator", value, strlen("mp4creator")) != 0) {
 	buffer = (char *)malloc(strlen(value) + 80);
-	sprintf(buffer, "%s mp4creator %s", value, VERSION);
+	sprintf(buffer, "%s mp4creator %s", value, MPEG4IP_VERSION);
 	MP4SetMetadataTool(mp4File, buffer);
 	free(buffer);
       }
     } else {
       buffer = (char *)malloc(80);
-      sprintf(buffer, "mp4creator %s", VERSION);
+      sprintf(buffer, "mp4creator %s", MPEG4IP_VERSION);
       MP4SetMetadataTool(mp4File, buffer);
     }
     

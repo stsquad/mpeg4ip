@@ -5,9 +5,7 @@
 // Huffmantable.cc
 // It contains initialized huffman table for MPEG layer 3
 
-#ifdef HAVE_CONFIG_H
-#include "mpeg4ip_config.h"
-#endif
+#include "mpeg4ip.h"
 
 #include "MPEGaudio.h"
 

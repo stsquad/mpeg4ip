@@ -28,7 +28,7 @@ int main (int argc, char **argv)
   uint32_t height = 240, width = 320, ysize, uvsize, readbytes, rate = 30*100;
   char buf[32];
 
-  printf("%s - %s version %s\n", *argv, PACKAGE, VERSION);
+  printf("%s - %s version %s\n", *argv, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
 
   argc--;
   argv++;

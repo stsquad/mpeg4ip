@@ -27,9 +27,6 @@
 # define _NO_PROTO
 #endif
 
-#ifdef HAVE_CONFIG_H
-# include <mpeg4ip_config.h>
-#endif
 #include <mpeg4ip_getopt.h>
 
 #if !defined(HAVE_GETOPT_LONG) || !defined(HAVE_GETOPT) || !defined(HAVE_GETOPT_LONG_ONLY)

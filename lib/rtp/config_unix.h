@@ -3,8 +3,8 @@
  *
  *  Unix specific definitions and includes
  *  
- *  $Revision: 1.7 $
- *  $Date: 2003/03/06 21:14:47 $
+ *  $Revision: 1.8 $
+ *  $Date: 2004/02/11 00:38:58 $
  *
  * Copyright (c) 1995-2000 University College London
  * All rights reserved.
@@ -45,7 +45,7 @@
 #include "uclconf.h"
 #undef VERSION
 #undef PACKAGE
-#include "../../include/win32_ver.h"
+#include "../../include/mpeg4ip_version.h"
 #include <limits.h>
 #include <sys/types.h>
 #if TIME_WITH_SYS_TIME

@@ -174,7 +174,7 @@ int main(int argc, char** argv)
       break;
     }
     case 'v':
-      fprintf(stdout, "mpeg4ip version %s\n", VERSION);
+      fprintf(stdout, "%s version %s\n", MPEG4IP_PACKAGE, MPEG4IP_VERSION);
       fprintf(stdout, "xvid api version %d\n", xvidInitParams.api_version);
       fprintf(stdout, "xvid core build %d\n", xvidInitParams.core_build);
       exit(0);

@@ -5,10 +5,7 @@
 // Bitwindow.cc
 // It's bit reservior for MPEG layer 3
 
-#ifdef HAVE_CONFIG_H
-#include "mpeg4ip_config.h"
-#endif
-
+#include "mpeg4ip.h"
 #include "MPEGaudio.h"
 
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN

@@ -5,9 +5,7 @@
 // Mpeglayer1.cc
 // It's for MPEG Layer 1
 
-#ifdef HAVE_CONFIG_H
-#include "mpeg4ip_config.h"
-#endif
+#include "mpeg4ip.h"
 
 #include "MPEGaudio.h"
 #if defined(_WIN32) && defined(_MSC_VER)

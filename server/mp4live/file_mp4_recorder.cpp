@@ -181,7 +181,7 @@ void CMp4Recorder::DoStartRecord()
   MP4SetTimeScale(m_mp4File, m_movieTimeScale);
 
   char buffer[80];
-  sprintf(buffer, "mp4live version %s %s", VERSION, 
+  sprintf(buffer, "mp4live version %s %s", MPEG4IP_VERSION, 
 #ifdef HAVE_LINUX_VIDEODEV2_H
 		      "V4L2"
 #else
@@ -421,6 +421,9 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
     // after that we drop encoded video frames until we get the first I frame.
     // we then stretch this I frame to the start of the first encoded audio
     // frame and write it to the encoded video track
+    bool isIFrame = false;
+    uint8_t *pData, *pDataStart;
+    uint32_t dataLen;
 
     if (m_encodedVideoFrameNumber == 1) {
       // wait until first audio frame before looking for the next I frame
@@ -436,8 +439,12 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
         return;
       }
 
-      if (! MP4AV_Mpeg4GetVopType((u_int8_t*)pFrame->GetData(),
-                                  pFrame->GetDataLength()) == 'I') {
+      dataLen = pFrame->GetDataLength();
+      pDataStart = (uint8_t *)pFrame->GetData();
+      pData = MP4AV_Mpeg4FindVop(pDataStart, dataLen);
+      if (pData == NULL ||
+	  MP4AV_Mpeg4GetVopType(pDataStart,
+				dataLen - (pData - pDataStart)) != 'I') {
         if (pFrame->RemoveReference()) delete pFrame;
         return;
       }
@@ -476,9 +483,6 @@ void CMp4Recorder::ProcessEncodedVideoFrame (CMediaFrame *pFrame)
 		  videoDurationInTimescaleFrame, m_encodedVideoDurationTimescale,
 		  GetTicksFromTimescale(m_encodedVideoDurationTimescale, 0, 0, m_videoTimeScale));
 #endif
-    bool isIFrame = false;
-    uint8_t *pData;
-    uint32_t dataLen;
     dataLen = m_prevEncodedVideoFrame->GetDataLength();
 
     pData = MP4AV_Mpeg4FindVop((uint8_t *)m_prevEncodedVideoFrame->GetData(),

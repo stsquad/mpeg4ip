@@ -21,12 +21,17 @@
 /*
  * raw video codec
  */
-
+#define DECLARE_CONFIG_VARIABLES
 #include "mpeg3.h"
 #include <mpeg3videoprotos.h>
 #include <bitstream.h>
 #include "mp4av.h"
 #include <mpeg2t/mpeg2_transport.h>
+
+DECLARE_CONFIG(CONFIG_USE_MPEG3);
+static SConfigVariable MyConfigVariables[] = {
+  CONFIG_BOOL(CONFIG_USE_MPEG3, "UseMpeg3", false),
+};
 
 //#define DEBUG_MPEG3_FRAME 1
 
@@ -255,22 +260,25 @@ static int mpeg3_codec_check (lib_message_func_t message,
 			     uint32_t userdata_size,
 			      CConfigSet *pConfig)
 {
+  int retval = 1;
+  if (pConfig->GetBoolValue(CONFIG_USE_MPEG3)) retval = 255;
+
   if (fptr != NULL) {
     if (strcmp(fptr->fmt, "32") == 0) {
-      return 1;
+      return retval;
     }
   }
   if (compressor != NULL && strcmp(compressor, "MPEG FILE") == 0) {
-    return 1;
+    return retval;
   }
   if (compressor != NULL && strcmp(compressor, "MPEG2 TRANSPORT") == 0) {
     if ((type == MPEG2T_ST_MPEG_VIDEO) ||
 	(type == MPEG2T_ST_11172_VIDEO)) 
-      return 1;
+      return retval;
   }
   if (compressor != NULL && strcmp(compressor, "MP4 FILE") == 0) {
     if (MP4_IS_MPEG1_VIDEO_TYPE(type) ||
-	MP4_IS_MPEG2_VIDEO_TYPE(type)) return 1;
+	MP4_IS_MPEG2_VIDEO_TYPE(type)) return retval;
   }
   return -1;
 }
@@ -283,5 +291,6 @@ VIDEO_CODEC_PLUGIN("mpeg3",
 		   mpeg3_close,
 		   mpeg3_codec_check,
 		   mpeg3_frame_is_sync,
-		   NULL,
-		   0);
+		   MyConfigVariables,
+		   sizeof(MyConfigVariables) / 
+		   sizeof(*MyConfigVariables));

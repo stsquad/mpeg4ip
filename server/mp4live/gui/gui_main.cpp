@@ -1092,10 +1092,12 @@ void LayoutControlFrame(GtkWidget* box)
 		MyConfig->GetIntegerValue(CONFIG_APP_DURATION),
 		1, 24 * 60 * 60, 1, 0, 0);
 	duration_spinner = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 1, 0);
+#ifdef HAVE_GTK_2_0
 	gtk_signal_connect(GTK_OBJECT(duration_spinner),
 		"value-changed",
 		GTK_SIGNAL_FUNC(on_duration_changed),
 		GTK_OBJECT(duration_spinner));
+#endif
 	gtk_widget_show(duration_spinner);
 	gtk_box_pack_start(GTK_BOX(hbox), duration_spinner, FALSE, FALSE, 5);
 
@@ -1394,7 +1396,7 @@ int gui_main(int argc, char **argv, CLiveConfig* pConfig)
 	gtk_window_set_policy(GTK_WINDOW(main_window), FALSE, FALSE, TRUE);
 
 	char buffer[80];
-	snprintf(buffer, sizeof(buffer), "cisco %s %s %s", argv[0], VERSION,
+	snprintf(buffer, sizeof(buffer), "cisco %s %s %s", argv[0], MPEG4IP_VERSION,
 #ifdef HAVE_LINUX_VIDEODEV2_H
 		 "V4L2"
 #else

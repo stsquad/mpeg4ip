@@ -135,15 +135,15 @@ if [ $skipversion = 0 ]; then
    #
    echo New version number is `cat VERSION` >&5
    echo New version number is `cat VERSION` >&6
-   echo \#define PACKAGE \"mpeg4ip\" > include/win32_ver.h
-   echo \#define VERSION \"`cat VERSION`\" >> include/win32_ver.h
+   echo \#define MPEG4IP_PACKAGE \"mpeg4ip\" > include/mpeg4ip_version.h
+   echo \#define MPEG4IP_VERSION \"`cat VERSION`\" >> include/mpeg4ip_version.h
    #
    # Update configure.in version
    #
    awk -v VERSION=`cat VERSION` -f util/replaceversion configure.in > temp
    mv temp configure.in
 
-   cvs $CVS_N commit -m 'Version bump for sync' VERSION RELEASE_VERSION include/win32_ver.h configure.in 1>&5 2>&5
+   cvs $CVS_N commit -m 'Version bump for sync' VERSION RELEASE_VERSION include/mpeg4ip_version.h configure.in 1>&5 2>&5
 fi
 
 #

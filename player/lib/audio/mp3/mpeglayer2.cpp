@@ -5,9 +5,7 @@
 // Mpeglayer2.cc
 // It's for MPEG Layer 2
 
-#ifdef HAVE_CONFIG_H
-#include "mpeg4ip_config.h"
-#endif
+#include "mpeg4ip.h"
 #if defined(_WIN32) && defined(_MSC_VER)
 // disable warnings about double to float conversions
 #pragma warning(disable: 4244 4305)

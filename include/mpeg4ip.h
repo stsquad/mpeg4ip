@@ -28,13 +28,19 @@
 #ifdef WIN32
 #define HAVE_IN_PORT_T
 #define HAVE_SOCKLEN_T
-#include <win32_ver.h>
 #define NEED_SDL_VIDEO_IN_MAIN_THREAD
 #else
 #undef PACKAGE
 #undef VERSION
 #include <mpeg4ip_config.h>
+#undef PACKAGE
+#undef VERSION
+// so these don't propogate
 #endif
+
+// the mpeg4ip_package and mpeg4ip_version are always in this
+// file 
+#include "mpeg4ip_version.h"
 
 
 

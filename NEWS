@@ -3,6 +3,10 @@ xx/xx/04 version 1.1
     if present, use libid3 to read ID tags
     Fixed problem with player a/v sync when relaying through DSS
     Added input video filters to mp4live
+    Added plugins for libac3 and libmpeg2 (must be installed before configuration)
+    Fixed sync flag indication for mp4creator using avi files.
+    Changed PACKAGE and VERSION for mpeg4ip to MPEG4IP_PACKAGE and
+      MPEG4IP_VERSION
 
 12/23/03 version 1.0
     Fix incorrect timestamp on mpeg1/2 insert into mp4 file.

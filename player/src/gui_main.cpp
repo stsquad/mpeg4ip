@@ -523,7 +523,7 @@ static void on_main_menu_about (GtkWidget *window, gpointer data)
 	  "FAAC decoder\n"
 	  "Xvid decoder\n"
 	  "Libmpeg3 file and video decoder\n"
-	  "Developed by Bill May, 10/00 to present", VERSION
+	  "Developed by Bill May, 10/00 to present", MPEG4IP_VERSION
 	  );
 
   ShowMessage("About gmp4player",buffer);
@@ -1299,7 +1299,7 @@ printf("%s\n", *argv);
    */
   main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_policy(GTK_WINDOW(main_window), FALSE, TRUE, FALSE);
-  sprintf(buffer, "Cisco Open Source Streaming Video Player %s", VERSION);
+  sprintf(buffer, "Cisco Open Source Streaming Video Player %s", MPEG4IP_VERSION);
   gtk_window_set_title(GTK_WINDOW(main_window), buffer);
   gtk_widget_set_uposition(GTK_WIDGET(main_window), 10, 10);
   gtk_widget_set_usize(main_window, 450, 185);

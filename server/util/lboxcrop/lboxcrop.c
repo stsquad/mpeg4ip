@@ -131,7 +131,7 @@ int main(int argc, char** argv)
 			break;
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n",
-			  progName, PACKAGE, VERSION);
+			  progName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
 		  return (0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n",

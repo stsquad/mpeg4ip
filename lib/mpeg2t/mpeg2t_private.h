@@ -23,6 +23,9 @@
 
 #include "mpeg2_transport.h"
 
+int process_mpeg2t_ac3_audio(mpeg2t_es_t *es_pid, const uint8_t *esptr,
+			      uint32_t buflen);
+int mpeg2t_ac3_audio_info(mpeg2t_es_t *es_pid, char *buffer, size_t buflen);
 
 // mpeg2t_mp3.c
 int process_mpeg2t_mpeg_audio(mpeg2t_es_t *es_pid, const uint8_t *esptr,

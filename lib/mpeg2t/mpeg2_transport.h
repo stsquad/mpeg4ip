@@ -112,7 +112,7 @@ typedef struct mpeg2t_es_t {
   int work_state;
   uint32_t work_loaded;
   mpeg2t_frame_t *list;
-  char left_buff[6];
+  uint8_t left_buff[12];
   int left;
   int have_ps_ts;
   uint64_t ps_ts;

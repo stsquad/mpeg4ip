@@ -6,9 +6,7 @@
 // Subbandsynthesis routines from maplay 1.2 for Linux
 // I've modified some macros for reducing source code.
 
-#ifdef HAVE_CONFIG_H
-#include "mpeg4ip_config.h"
-#endif
+#include "mpeg4ip.h"
 
 #include "MPEGaudio.h"
 

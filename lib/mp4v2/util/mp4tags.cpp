@@ -102,7 +102,8 @@ main(int argc, char** argv)
       fprintf(stderr, help_text, argv[0]);
       return 0;
     case OPT_VERSION:
-      fprintf(stderr, "%s - %s version %s\n", argv[0], PACKAGE, VERSION);
+      fprintf(stderr, "%s - %s version %s\n", argv[0], MPEG4IP_PACKAGE, 
+	      MPEG4IP_VERSION);
       return 0;
 
       /* Numeric arguments: convert them using sscanf(). */

@@ -202,7 +202,7 @@ static int start_session (const char *name, int max_loop)
   SDL_sem *master_sem;
 
   master_sem = SDL_CreateSemaphore(0);
-  snprintf(buffer, sizeof(buffer), "%s %s - %s", PACKAGE, VERSION, name);
+  snprintf(buffer, sizeof(buffer), "%s %s - %s", MPEG4IP_PACKAGE, MPEG4IP_VERSION, name);
   psptr = new CPlayerSession(&master_queue, master_sem,
 			     // this should probably be name...
 			     buffer);

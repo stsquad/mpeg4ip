@@ -282,8 +282,14 @@ static MP4TrackId VideoCreator(MP4FileHandle mp4File, avi_t* aviFile, bool doEnc
 		}
 
 		// we mark random access points in MP4 files
-		bool isIFrame = 
-			(MP4AV_Mpeg4GetVopType(pFrameBuffer, frameSize) == 'I');
+		uint8_t *vophdr = MP4AV_Mpeg4FindVop(pFrameBuffer, frameSize);
+		
+		bool isIFrame = false;
+		if (vophdr != NULL) {
+		  int32_t diff = vophdr - pFrameBuffer;
+		  isIFrame = 
+		    MP4AV_Mpeg4GetVopType(vophdr, frameSize - diff) == 'I';
+		}
 
 		// write the frame to the MP4 file
 		MP4WriteSample(mp4File, trackId, 

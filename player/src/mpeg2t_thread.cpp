@@ -35,6 +35,8 @@
 #include "player_sdp.h"
 #include "ip_port.h"
 #include "player_rtsp.h"
+#include <gnu/strcasestr.h>
+
 
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(mpeg2t_message, "mpeg2t")
@@ -543,7 +545,8 @@ static int mpeg2t_create_video(mpeg2t_client_t *info,
     mpeg2t_es_t *es_pid;
     pidptr = mpeg2t_lookup_pid(info->decoder,vq[ix].track_id);
     if (pidptr->pak_type != MPEG2T_ES_PAK) {
-      mpeg2t_message(LOG_CRIT, "mpeg2t video type is not es pak");
+      mpeg2t_message(LOG_CRIT, "mpeg2t video type is not es pak - pid %x",
+		     vq[ix].track_id);
       exit(1);
     }
     es_pid = (mpeg2t_es_t *)pidptr;
@@ -640,7 +643,8 @@ static int mpeg2t_create_audio (mpeg2t_client_t *info,
     mpeg2t_es_t *es_pid;
     pidptr = mpeg2t_lookup_pid(info->decoder,aq[ix].track_id);
     if (pidptr->pak_type != MPEG2T_ES_PAK) {
-      mpeg2t_message(LOG_CRIT, "mpeg2t video type is not es pak");
+      mpeg2t_message(LOG_CRIT, "mpeg2t audio type is not es pak -pid %x", 
+		     aq[ix].track_id);
       exit(1);
     }
     es_pid = (mpeg2t_es_t *)pidptr;
@@ -957,6 +961,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
 	break;
       case MPEG2T_ST_11172_AUDIO:
       case MPEG2T_ST_MPEG_AUDIO:
+      case 129:
 	audio_count++;
 	if (es_pid->info_loaded) audio_info_count++;
 	break;
@@ -1021,7 +1026,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
 					 es_pid->es_info_len);
 	  if (plugin == NULL) {
 	    snprintf(errmsg, errlen, 
-		     "Can't find plugin for stream type %d",
+		     "Can't find video plugin for stream type %d",
 		     es_pid->stream_type);
 	    mpeg2t_message(LOG_ERR, errmsg);
 	  } else {
@@ -1052,6 +1057,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
 	break;
       case MPEG2T_ST_MPEG_AUDIO:
       case MPEG2T_ST_11172_AUDIO:
+      case 129:
 	if (aud_cnt < audio_count) {
 	  plugin = check_for_audio_codec("MPEG2 TRANSPORT",
 					 NULL,
@@ -1061,7 +1067,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
 					 es_pid->es_info_len);
 	  if (plugin == NULL) {
 	    snprintf(errmsg, errlen, 
-		     "Can't find plugin for stream type %d",
+		     "Can't find audio plugin for stream type %d",
 		     es_pid->stream_type);
 	    mpeg2t_message(LOG_ERR, errmsg);
 	  } else {
@@ -1103,7 +1109,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
   }
   SDL_UnlockMutex(mp2t->decoder->pid_mutex);
   if (cc_vft && cc_vft->media_list_query != NULL) {
-    (cc_vft->media_list_query)(psptr, video_count, vq, audio_count, aq);
+    (cc_vft->media_list_query)(psptr, vid_cnt, vq, aud_cnt, aq);
   } else {
     if (video_count > 0) {
       vq[0].enabled = 1;
@@ -1118,8 +1124,8 @@ int create_mpeg2t_session (CPlayerSession *psptr,
 
   int sdesc = 1;
   // create video media
-  int ret =  mpeg2t_create_video(mp2t, psptr, vq, video_count, 
-			  errmsg, errlen, sdesc);
+  int ret =  mpeg2t_create_video(mp2t, psptr, vq, vid_cnt, 
+				 errmsg, errlen, sdesc);
   if (ret < 0) {
     free(aq);
     free(vq);
@@ -1128,7 +1134,7 @@ int create_mpeg2t_session (CPlayerSession *psptr,
   total_enabled += ret;
   // create audio media
   ret = mpeg2t_create_audio(mp2t, psptr, aq, 
-			    audio_count, errmsg, errlen, sdesc);
+			    aud_cnt, errmsg, errlen, sdesc);
   if (ret < 0) {
     free(aq);
     free(vq);

@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 		switch (c) {
 		case 'h':
 		  fprintf(stderr, "%s - %s version %s\n", progName,
-			  PACKAGE, VERSION);
+			  MPEG4IP_PACKAGE, MPEG4IP_VERSION);
 		  fprintf(stderr, "options:\n");
 		  fprintf(stderr, " --audio - extract audio track\n");
 		  fprintf(stderr, " --length <length> - extract <length> secs\n");
@@ -121,7 +121,7 @@ int main(int argc, char** argv)
 			break;
 		case 'V':
 		  fprintf(stderr, "%s - %s version %s\n", progName,
-			  PACKAGE, VERSION);
+			  MPEG4IP_PACKAGE, MPEG4IP_VERSION);
 		  return(0);
 		default:
 			fprintf(stderr, "%s: unknown option specified, ignoring: %c\n", 
@@ -163,7 +163,7 @@ int main(int argc, char** argv)
 
 	if (!quiet) {
 	  fprintf(stderr, "%s - %s version %s\n",
-		  progName, PACKAGE, VERSION);
+		  progName, MPEG4IP_PACKAGE, MPEG4IP_VERSION);
 	}
 	/* open the RAW file */
 	rawFile = fopen(rawFileName, "wb");
