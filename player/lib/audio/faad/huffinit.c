@@ -23,7 +23,7 @@ Copyright(c)1996.
  ****************************************************************************/
 
 #include <math.h>
-#include "faad_all.h"
+#include "all.h"
 
 void
 huffbookinit(void)

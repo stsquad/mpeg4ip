@@ -2,7 +2,7 @@
 #include <malloc.h>
 #include <memory.h>
 #include <string.h>
-#include "faad_all.h"
+#include "all.h"
 #include "filestream.h"
 
 #ifdef WIN32 /* Streaming will only work on Win32 platforms */

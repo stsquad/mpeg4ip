@@ -22,7 +22,7 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 
-#include "faad_all.h"
+#include "all.h"
 #include "block.h"
 
 void freq2time_adapt(byte wnd, Wnd_Shape *wnd_shape, Float *coef, Float *state, Float *data);

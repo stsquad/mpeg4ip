@@ -23,7 +23,7 @@ be included in all copies or derivative works."
 Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
-#include "faad_all.h"
+#include "all.h"
 #include "port.h"
 
 /*

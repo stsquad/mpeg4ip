@@ -22,7 +22,7 @@ Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
 
-#include "faad_all.h"
+#include "all.h"
 
 Huffman book1[] = {
 	/*index  length  codeword */

@@ -34,14 +34,14 @@ Copyright (c)1997.
 /**************************************************************************
   Version Control Information			Method: CVS
   Identifiers:
-  $Revision: 1.1 $
-  $Date: 2001/02/05 20:26:33 $ (check in)
+  $Revision: 1.2 $
+  $Date: 2001/03/07 19:57:31 $ (check in)
   $Author: cahighlander $
   *************************************************************************/
 
 #include <stdio.h>
 
-#include "faad_all.h"
+#include "all.h"
 #include "dolby_def.h"
 #include "block.h"
 #include "nok_ltp_common.h"

@@ -21,7 +21,7 @@ be included in all copies or derivative works."
 Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
-#include "faad_all.h"
+#include "all.h"
 
 void
 synt(Info *info, byte *group, byte *mask, Float *right, Float *left)

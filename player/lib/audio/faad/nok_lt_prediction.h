@@ -37,7 +37,7 @@ Copyright (c)1997.
       (sig_in) > 0.0 ? (sig_in)+0.5 : (\
         (sig_in) <= 0.0 ? (sig_in)-0.5 : 0))))
 #else
-static inline short double_to_int (double sig_in)
+static __inline short double_to_int (double sig_in)
 {
   if (sig_in > 32767.0) return 32767;
   if (sig_in < -32768.0) return -32768;

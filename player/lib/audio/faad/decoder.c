@@ -1,5 +1,5 @@
 #include "faad.h"
-#include "faad_all.h"
+#include "all.h"
 #include "block.h"
 #include "dolby_def.h"
 #include "nok_lt_prediction.h"

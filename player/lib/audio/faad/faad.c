@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 #include "faad.h"
-#include "faad_all.h"
+#include "all.h"
 #include "wav.h"
 
 #define MAX_CHANNELS 8

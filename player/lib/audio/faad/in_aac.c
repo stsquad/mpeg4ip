@@ -6,7 +6,7 @@
 
 #include "in2.h"
 #include "faad.h"
-#include "faad_all.h"
+#include "all.h"
 
 // post this to the main window at end of file (after playback as stopped)
 #define WM_WA_AAC_EOF WM_USER+2

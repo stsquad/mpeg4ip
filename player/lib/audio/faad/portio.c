@@ -1,4 +1,4 @@
-#include "faad_all.h"
+#include "all.h"
 #include "filestream.h"
 #include "port.h"
 

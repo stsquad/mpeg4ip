@@ -25,7 +25,7 @@ Copyright(c)1996.
  ****************************************************************************/
 
 #include <math.h>
-#include "faad_all.h"
+#include "all.h"
 #include "port.h"
 
 Info only_long_info;

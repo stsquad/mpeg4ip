@@ -4,7 +4,7 @@
   
 struct FILE_STREAM;
 
-typedef int (*read_byte_t)(struct FILE_STREAM *fs, int *err);
+typedef unsigned char (*read_byte_t)(struct FILE_STREAM *fs, int *err);
 typedef unsigned long (*filelength_t)(struct FILE_STREAM *fs);
 typedef void (*seek_t)(struct FILE_STREAM *fs, unsigned long offset, int mode);
 typedef void (*close_t)(struct FILE_STREAM *fs);
@@ -45,4 +45,3 @@ void seek_filestream(FILE_STREAM *fs, unsigned long offset, int mode);
 unsigned long tell_filestream(FILE_STREAM *fs);
 int peek_buffer_filestream(FILE_STREAM *fs, void *data, int length);
 #endif
-

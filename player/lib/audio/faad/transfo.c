@@ -1,5 +1,5 @@
 #include <math.h>
-#include "faad_all.h"
+#include "all.h"
 #include "transfo.h"
 
 #ifndef M_PI

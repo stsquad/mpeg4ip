@@ -21,7 +21,7 @@ be included in all copies or derivative works."
 Copyright(c)1996.
  *                                                                           *
  ****************************************************************************/
-#include "faad_all.h"
+#include "all.h"
 
 
 #define MEAN_NRG 1.5625e+18      /* Theory: (2^31)^2 / 3 = 1.537228e+18 */

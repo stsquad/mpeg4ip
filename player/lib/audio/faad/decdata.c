@@ -1,5 +1,5 @@
 
-#include "faad_all.h"
+#include "all.h"
 
 int		nbits;
 long		cword;
