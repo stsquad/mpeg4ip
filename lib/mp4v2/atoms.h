@@ -28,6 +28,13 @@ public:
 	void BeginWrite(bool use64 = false);
 	void Write();
 	void FinishWrite(bool use64 = false);
+
+	void BeginOptimalWrite();
+	void FinishOptimalWrite();
+
+protected:
+	u_int32_t GetLastMdatIndex();
+	void WriteAtomType(const char* type, bool onlyOne);
 };
 
 class MP4FtypAtom : public MP4Atom {

@@ -28,10 +28,6 @@
 	
 	Written By: Denis Serenyi
 			
-	$Log: QTSSSocket.h,v $
-	Revision 1.5  2001/10/11 20:39:10  wmaycisco
-	Sync 10/11/2001. 1:40PM
-	
 	Revision 1.4  2001/10/01 22:57:21  dmackie
 	Fix missing end-of-lines in 3.0.1
 	

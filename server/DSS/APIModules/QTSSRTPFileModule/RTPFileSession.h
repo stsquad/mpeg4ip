@@ -26,10 +26,6 @@
 
 	Contains:	
 					
-	$Log: RTPFileSession.h,v $
-	Revision 1.1  2001/10/11 20:39:06  wmaycisco
-	Sync 10/11/2001. 1:40PM
-	
 	Revision 1.2  2001/10/02 18:50:53  dmackie
 	Newlines again
 	Revert to original RTSPSession.cpp

@@ -11,8 +11,8 @@
  * the IETF audio/video transport working group. Portions of the code are
  * derived from the algorithms published in that specification.
  *
- * $Revision: 1.3 $ 
- * $Date: 2001/10/11 20:39:03 $
+ * $Revision: 1.4 $ 
+ * $Date: 2001/10/16 17:21:22 $
  * 
  * Copyright (c) 1998-2001 University College London
  * All rights reserved.
@@ -717,6 +717,8 @@ static void delete_source(struct rtp *session, uint32_t ssrc)
 	check_database(session);
 }
 
+#if 0
+// wmay - removed - let higher level app process sequence numbers
 static void init_seq(source *s, uint16_t seq)
 {
 	/* Taken from draft-ietf-avt-rtp-new-01.txt */
@@ -783,6 +785,7 @@ static int update_seq(source *s, uint16_t seq)
 	s->received++;
 	return 1;
 }
+#endif
 
 static double rtcp_interval(struct rtp *session)
 {
@@ -861,7 +864,7 @@ static double rtcp_interval(struct rtp *session)
 static char *get_cname(socket_udp *s)
 {
         /* Set the CNAME. This is "user@hostname" or just "hostname" if the username cannot be found. */
-        const char              *hname;
+        char              *hname;
         char                    *uname;
         char                    *cname;
 #ifndef WIN32
@@ -908,9 +911,13 @@ static char *get_cname(socket_udp *s)
 	if (hname == NULL) {
 		/* If we can't get our IP address we use the loopback address... */
 		/* This is horrible, but it stops the code from failing.         */
-		hname = "127.0.0.1";
+	  strncpy(cname + strlen(cname),
+		  "127.0.0.1",
+		  MAXCNAMELEN - strlen(cname));
+	} else {
+	  strncpy(cname + strlen(cname), hname, MAXCNAMELEN - strlen(cname));
+	  xfree(hname);
 	}
-        strncpy(cname + strlen(cname), hname, MAXCNAMELEN - strlen(cname));
         return cname;
 }
 
@@ -1036,6 +1043,7 @@ struct rtp *rtp_init_if(const char *addr, char *iface,
 	struct rtp 	*session;
 	int         	 i, j;
 	char		*cname;
+	char *hname;
 
         if (ttl < 0) {
                 debug_msg("ttl must be greater than zero\n");
@@ -1073,7 +1081,11 @@ struct rtp *rtp_init_if(const char *addr, char *iface,
 	  session->rtcp_socket = NULL;
 	}
 
-        init_rng(udp_host_addr(session->rtp_socket));
+	hname = udp_host_addr(session->rtp_socket);
+        init_rng(hname);
+	if (hname != NULL) {
+	  xfree(hname);
+	}
 
 	session->my_ssrc            = (uint32_t) lrand48();
 	session->rtcp_send          = rtcp_udp_send;
@@ -1404,7 +1416,8 @@ int rtp_process_recv_data (struct rtp *session,
 	  s->probation = MIN_SEQUENTIAL;
 	  s->max_seq   = packet->seq - 1;
 	}
-	if (update_seq(s, packet->seq)) {
+	// wmay - if (update_seq(s, packet->seq))
+	if (1) {
 	  process_rtp(session, curr_rtp_ts, packet, s);
 	  return 0;	/* we don't free "packet", that's done by the callback function... */
 	} else {

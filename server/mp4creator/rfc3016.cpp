@@ -37,6 +37,38 @@ void Rfc3016Hinter(
 	MP4SetHintTrackRtpPayload(mp4File, hintTrackId, 
 		"MP4V-ES", &payloadNumber, 0);
 
+	/* get the mpeg4 video configuration */
+	u_int8_t* pConfig;
+	u_int32_t configSize;
+	u_int8_t profileLevel = 1;
+
+	MP4GetTrackESConfiguration(mp4File, mediaTrackId, &pConfig, &configSize);
+
+	if (pConfig) {
+		/* TBD attempt to get profile-level from VOSH in ES Config */
+		/* TBD attempt to get profile from VOL in ES Config */
+		/* TBD attempt to get profile-level from iods */
+
+		/* convert it into ASCII form */
+		char* sConfig = MP4BinaryToBase16(pConfig, configSize);
+		ASSERT(sConfig);
+
+		/* create the appropriate SDP attribute */
+		char* sdpBuf = (char*)malloc(strlen(sConfig) + 128);
+
+		sprintf(sdpBuf,
+			"a=fmtp:%u profile-level-id=%u; config=%s;\n",
+				payloadNumber,
+				profileLevel,
+				sConfig); 
+
+		/* add this to the track's sdp */
+		MP4AppendHintTrackSdp(mp4File, hintTrackId, sdpBuf);
+
+		free(sConfig);
+		free(sdpBuf);
+	}
+
 	u_int32_t numSamples = MP4GetNumberOfTrackSamples(mp4File, mediaTrackId);
 	u_int32_t maxSampleSize = MP4GetMaxSampleSize(mp4File, mediaTrackId);
 	u_int8_t* pSampleBuffer = (u_int8_t*)malloc(maxSampleSize);

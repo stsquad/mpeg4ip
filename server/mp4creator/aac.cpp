@@ -274,35 +274,6 @@ static bool GetAacChannelConfiguration(FILE* inFile, u_int8_t* pChannelConfig)
 	return true;
 }
 
-/* return size of max of first n AAC frames in file */
-static u_int16_t GetMaxAACFrameSize(FILE *inFile, u_int32_t numFrames) {
-	u_int16_t maxFrameSize = 0;
-	u_int16_t frameSize = 0;
-	fpos_t curPos;
-	u_int8_t hdrBuf[ADTS_HEADER_MAX_SIZE];
-	int hdrByteSize;
-	char pBuf[4096];
-
-	fgetpos(inFile, &curPos);
-	rewind(inFile);
-	for (u_int32_t i = 0; i < numFrames; i++) {
-		/* load next AAC frame header*/
-		if (!LoadNextAdtsHeader(inFile, hdrBuf)) {
-			break;
-		}
-		frameSize = GetAdtsFrameSize(hdrBuf);
-		hdrByteSize = GetAdtsHeaderByteSize(hdrBuf);
-		/* adjust the frame size to what remains to be read */
-		frameSize -= hdrByteSize;
-		fread(&pBuf[hdrByteSize], 1, frameSize, inFile);
-		if (frameSize > maxFrameSize) {
-			maxFrameSize = frameSize;
-		}
-	}
-	fsetpos(inFile, &curPos);
-	return maxFrameSize;
-}
-
 MP4TrackId AacCreator(MP4FileHandle mp4File, FILE* inFile)
 {
 	// collect all the necessary meta information

@@ -1,0 +1,2 @@
+Note that this utility is deprecated in favor of a new utility,
+mpeg4ip/server/mp4creator, that uses the new mp4 library.

@@ -1109,6 +1109,7 @@ int CPlayerMedia::recv_thread (void)
 			   c_recv_callback,
 			   (uint8_t *)this);
   rtp_set_option(m_rtp_session, RTP_OPT_WEAK_VALIDATION, FALSE);
+  rtp_set_option(m_rtp_session, RTP_OPT_PROMISC, TRUE);
   m_rtp_inited = 1;
   
   while (recv_thread_stop == 0) {

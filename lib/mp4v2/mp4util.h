@@ -175,6 +175,8 @@ bool MP4NameFirstIndex(const char* s, u_int32_t* pIndex);
 
 const char* MP4NameAfterFirst(const char *s);
 
+char* MP4ToBase16(const u_int8_t* pData, u_int32_t dataSize);
+
 char* MP4ToBase64(const u_int8_t* pData, u_int32_t dataSize);
 
 #endif /* __MP4_UTIL_INCLUDED__ */

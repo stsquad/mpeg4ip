@@ -22,6 +22,8 @@
 #ifndef __MP4_TRACK_INCLUDED__
 #define __MP4_TRACK_INCLUDED__
 
+typedef u_int32_t MP4ChunkId;
+
 // forward declarations
 class MP4File;
 class MP4Atom;
@@ -79,7 +81,7 @@ public:
 	u_int32_t	GetMaxBitrate();	// in bps
 
 	MP4Duration GetFixedSampleDuration();
-	bool SetFixedSampleDuration(MP4Duration duration);
+	bool		SetFixedSampleDuration(MP4Duration duration);
 
 	void		GetSampleTimes(MP4SampleId sampleId,
 					MP4Timestamp* pStartTime, MP4Duration* pDuration);
@@ -89,21 +91,37 @@ public:
 	MP4SampleId GetSampleIdFromTime(MP4Timestamp when, 
 		bool wantSyncSample = false);
 
-	void SetSampleRenderingOffset(MP4SampleId sampleId,
-		 MP4Duration renderingOffset);
+	void		SetSampleRenderingOffset(MP4SampleId sampleId,
+					MP4Duration renderingOffset);
 
 	static const char* NormalizeTrackType(const char* type);
 
+	// special operations for use during optimization
+
+	u_int32_t GetNumberOfChunks();
+
+	MP4Timestamp GetChunkTime(MP4ChunkId chunkId);
+
+	void ReadChunk(MP4ChunkId chunkId, 
+		u_int8_t** ppChunk, u_int32_t* pChunkSize);
+
+	void RewriteChunk(MP4ChunkId chunkId, 
+		u_int8_t* pChunk, u_int32_t chunkSize);
+
 protected:
 	u_int64_t	GetSampleFileOffset(MP4SampleId sampleId);
+	u_int32_t	GetChunkStscIndex(MP4ChunkId chunkId);
+	u_int32_t	GetChunkSize(MP4ChunkId chunkId);
 	u_int32_t	GetSampleRenderingOffset(MP4SampleId sampleId);
+	u_int32_t	GetSampleCttsIndex(MP4SampleId sampleId, 
+					MP4SampleId* pFirstSampleId = NULL);
 	MP4SampleId	GetNextSyncSample(MP4SampleId sampleId);
 
 	void UpdateSampleSizes(MP4SampleId sampleId, 
 		u_int32_t numBytes);
 	bool IsChunkFull(MP4SampleId sampleId);
 	void UpdateSampleToChunk(MP4SampleId sampleId,
-		 u_int32_t chunkId, u_int32_t samplesPerChunk);
+		 MP4ChunkId chunkId, u_int32_t samplesPerChunk);
 	void UpdateChunkOffsets(u_int64_t chunkOffset);
 	void UpdateSampleTimes(MP4Duration duration);
 	void UpdateRenderingOffsets(MP4SampleId sampleId, 
@@ -118,7 +136,7 @@ protected:
 
 	void UpdateModificationTimes();
 
-	void WriteChunk();
+	void WriteChunkBuffer();
 
 protected:
 	MP4File*	m_pFile;

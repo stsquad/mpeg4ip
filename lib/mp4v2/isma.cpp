@@ -120,7 +120,7 @@ void MP4File::MakeIsmaCompliant()
 	char* sdpBuf = (char*)MP4Malloc(numBytes + 256);
 
 	sprintf(sdpBuf, 
-		"a=isma-compliance:1,1,1\015\012"
+		"a=isma-compliance:1,1.0,1\015\012"
 		"a=mpeg4-iod: \042data:application/mpeg4-iod;base64,%s\042\015\012",
 		MP4ToBase64(pBytes, numBytes));
 

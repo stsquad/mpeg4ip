@@ -40,7 +40,7 @@ MP4TrackId CreateHintTrack(
 
 // track creators
 MP4TrackId* AviCreator(
-	MP4FileHandle mp4File, FILE* inFile);
+	MP4FileHandle mp4File, const char* aviFileName);
 MP4TrackId AacCreator(
 	MP4FileHandle mp4File, FILE* inFile);
 MP4TrackId Mp3Creator(
@@ -61,28 +61,35 @@ void Rfc3016Hinter(
 // main routine
 int main(int argc, char** argv)
 {
-	// TBD multiple c's d's' and h's
-	// LATER usage string
 	char* usageString = 
-		"usage: %s <options> <file-name>\n";
+		"usage: %s <options> <mp4-file>\n"
+		"  Options:\n"
+		"  -create <input-file>    Create track from <input-file>\n"
+		"    input files can be of type: .aac .mp3 .divx .mp4v\n"
+		"  -delete=<track-id>      Delete a track\n"
+		"  -hint[=<track-id>]      Create hint track\n"
+		"  -list                   List tracks in mp4 file\n"
+		"  -mtu=<size>             MTU for hint track\n"
+		"  -optimize               Optimize mp4 file layout\n"
+		"  -verbose[=[1-5]]        Enable debug messages\n"
+		;
+
 	bool doCreate = false;
 	bool doDelete = false;
 	bool doHint = false;
 	bool doList = false;
 	bool doOptimize = false;
 	bool doInterleave = false;
-	bool doMoveBack = false;
 	char* mp4FileName = NULL;
 	u_int32_t verbosity = MP4_DETAILS_ERROR;
 	char* inputFileName = NULL;
-	char* outputFileName = NULL;
 	char* payloadName = NULL;
 	MP4TrackId hintTrackId = MP4_INVALID_TRACK_ID;
 	MP4TrackId deleteTrackId = MP4_INVALID_TRACK_ID;
 
 	// begin processing command line
 	ProgName = argv[0];
-	MaxPayloadSize = 1460;	// TBD command line option as before	
+	MaxPayloadSize = 1460;
 
 	while (true) {
 		int c = -1;
@@ -90,17 +97,18 @@ int main(int argc, char** argv)
 		static struct option long_options[] = {
 			{ "create", 1, 0, 'c' },
 			{ "delete", 1, 0, 'd' },
+			{ "help", 0, 0, '?' },
 			{ "hint", 2, 0, 'h' },
 			{ "interleave", 0, 0, 'I' },
 			{ "list", 0, 0, 'l' },
+			{ "mtu", 1, 0, 'm' },
 			{ "optimize", 0, 0, 'O' },
-			{ "output", 1, 0, 'o' },
 			{ "payload", 1, 0, 'p' },
 			{ "verbose", 2, 0, 'v' },
 			{ NULL, 0, 0, 0 }
 		};
 
-		c = getopt_long_only(argc, argv, "c:d:h::Ilo:Op:v::",
+		c = getopt_long_only(argc, argv, "c:d:h::Ilm:o:Op:v::",
 			long_options, &option_index);
 
 		if (c == -1)
@@ -137,8 +145,15 @@ int main(int argc, char** argv)
 		case 'l':
 			doList = true;
 			break;
-		case 'o':
-			outputFileName = optarg;
+		case 'm':
+			u_int32_t mtu;
+			if (sscanf(optarg, "%u", &mtu) != 1 || mtu < 64) {
+				fprintf(stderr, 
+					"%s: bad mtu specified: %s\n",
+					 ProgName, optarg);
+				exit(EXIT_COMMAND_LINE);
+			}
+			MaxPayloadSize = mtu - 40;	// subtract IP, UDP, and RTP hdrs
 			break;
 		case 'O':
 			doOptimize = true;
@@ -181,9 +196,13 @@ int main(int argc, char** argv)
 		exit(EXIT_COMMAND_LINE);
 	}
 
-	// TBD take all but last files as input files
+	// if it appears we have two file names, then assume -c for the first
+	if ((argc - optind) == 2 && inputFileName == NULL) {
+		doCreate = true;
+		inputFileName = argv[optind++];
+	}
 
-	// point to the specified file names
+	// point to the specified mp4 file name
 	mp4FileName = argv[optind++];
 
 	// warn about extraneous non-option arguments
@@ -195,7 +214,13 @@ int main(int argc, char** argv)
 		fprintf(stderr, "\n");
 	}
 
-	// TBD consistency checks
+	// consistency checks
+	if (doDelete && (doCreate || doHint)) {
+		fprintf(stderr, 
+			"%s: delete operation must be done separately\n",
+			 ProgName);
+		exit(EXIT_COMMAND_LINE);
+	}
 
 	// end processing of command line
 
@@ -204,7 +229,7 @@ int main(int argc, char** argv)
 		exit(EXIT_SUCCESS);
 	}
 
-	// test if file exists
+	// test if mp4 file exists
 	bool mp4FileExists = (access(mp4FileName, F_OK) == 0);
 
 	MP4FileHandle mp4File;
@@ -214,12 +239,12 @@ int main(int argc, char** argv)
 			if (doCreate) {
 				mp4File = MP4Create(mp4FileName, verbosity);
 				if (mp4File) {
-					// TBD
 					MP4SetTimeScale(mp4File, 90000);
 				}
 			} else {
 				fprintf(stderr,
-					"%s: can't hint file that doesn't exist\n", ProgName);
+					"%s: can't hint track in file that doesn't exist\n", 
+					ProgName);
 				exit(EXIT_CREATE_FILE);
 			}
 		} else {
@@ -250,23 +275,38 @@ int main(int argc, char** argv)
 		}
 
 		MP4Close(mp4File);
+
+	} else if (doDelete) {
+		if (!mp4FileExists) {
+			fprintf(stderr,
+				"%s: can't delete track in file that doesn't exist\n", 
+				ProgName);
+			exit(EXIT_CREATE_FILE);
+		}
+
+		mp4File = MP4Append(mp4FileName, verbosity);
+		if (!mp4File) {
+			// mp4 library should have printed a message
+			exit(EXIT_CREATE_FILE);
+		}
+
+		MP4DeleteTrack(mp4File, deleteTrackId);
+
+		MP4Close(mp4File);
+
+		doOptimize = true;	// to purge unreferenced track data
 	}
 
 	if (doOptimize) {
-		if (outputFileName == NULL) {
-			outputFileName = MakeTempMp4FileName();
-			ASSERT(outputFileName);
-			doMoveBack = true;
-		}
+		char* outputFileName = MakeTempMp4FileName();
+		ASSERT(outputFileName);
 
 		MP4Optimize(mp4FileName, outputFileName, verbosity);
 
-		if (doMoveBack) {
-			int rc = rename(outputFileName, mp4FileName);
-			if (rc != 0) {
-				fprintf(stderr, "%s: can't overwrite %s, output is in %s\n",
-					ProgName, mp4FileName, outputFileName);
-			}
+		int rc = rename(outputFileName, mp4FileName);
+		if (rc != 0) {
+			fprintf(stderr, "%s: can't overwrite %s, output is in %s\n",
+				ProgName, mp4FileName, outputFileName);
 		}
 	}
 
@@ -297,7 +337,8 @@ MP4TrackId* CreateMediaTracks(MP4FileHandle mp4File, const char* inputFileName)
 	MP4TrackId* pTrackIds = trackIds;
 
 	if (!strcasecmp(extension, ".avi")) {
-		// TBD pTrackIds = AviCreator(mp4File, inFile);
+		fclose(inFile);
+		pTrackIds = AviCreator(mp4File, inputFileName);
 
 	} else if (!strcasecmp(extension, ".aac")) {
 		trackIds[0] = AacCreator(mp4File, inFile);

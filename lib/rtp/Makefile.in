@@ -3,7 +3,7 @@
 # This probably requires GNU make.
 #
 
-DEFS   = @DEFS@
+DEFS   = @DEFS@ -DDEBUG
 CFLAGS = @CFLAGS@ $(DEFS)
 LIBS   = @LIBS@
 CC     = @CC@

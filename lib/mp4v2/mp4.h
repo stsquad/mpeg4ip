@@ -491,6 +491,13 @@ MP4Duration MP4ConvertToTrackDuration(
 	u_int64_t duration,
 	u_int32_t timeScale);
 
+char* MP4BinaryToBase16(
+	const u_int8_t* pData, 
+	u_int32_t dataSize);
+
+char* MP4BinaryToBase64(
+	const u_int8_t* pData, 
+	u_int32_t dataSize);
 
 #ifdef __cplusplus
 }

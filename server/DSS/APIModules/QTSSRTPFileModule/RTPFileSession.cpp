@@ -26,10 +26,6 @@
 
 	Contains:	
 					
-	$Log: RTPFileSession.cpp,v $
-	Revision 1.1  2001/10/11 20:39:06  wmaycisco
-	Sync 10/11/2001. 1:40PM
-	
 	Revision 1.1  2001/10/01 22:08:35  dmackie
 	DSS 3.0.1 import
 	

@@ -142,9 +142,10 @@ public:
 			m_values[index] = value; \
 		} \
 		void AddValue(u_int##isize##_t value) { \
-			u_int32_t count = GetCount(); \
-			SetCount(count + 1); \
-			SetValue(value, count); \
+			m_values.Add(value); \
+		} \
+		void InsertValue(u_int##isize##_t value, u_int32_t index) { \
+			m_values.Insert(value, index); \
 		} \
 		void IncrementValue(u_int32_t increment = 1, u_int32_t index = 0) { \
 			m_values[index] += increment; \
@@ -236,9 +237,11 @@ public:
 	}
 
 	void AddValue(float value) {
-		u_int32_t count = GetCount();
-		SetCount(count + 1); 
-		SetValue(value, count);
+		m_values.Add(value);
+	}
+
+	void InsertValue(float value, u_int32_t index) {
+		m_values.Insert(value, index);
 	}
 
 	bool IsFixed16Format() {

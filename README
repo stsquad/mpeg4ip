@@ -1,4 +1,4 @@
-September 18, 2001
+October 15, 2001
 
 MPEG4IP Project
 ===============
@@ -365,20 +365,18 @@ mp4encode   Front-end script to the following encoding tools:
 
 avi2raw     Extracts raw audio/video tracks from an AVI file
 lboxcrop    Vertically crops raw video to a new aspect ratio
-divxenc     Encodes raw video into MPEG-4 encoded video using the Divx code
+divxenc     Encodes raw video into MPEG-4 encoded video using the Divx codec
 faac        Encodes raw audio into MPEG-4 AAC encoded audio
 lame        Encodes raw audio into MP3 encoded audio
 mp4venc     Encodes raw video into MPEG-4 encoded video using ISO codec
-mp4apkt     Adds audio track to an MP4 file
-mp4vpkt     Adds video track to an MP4 file
+mp4creator    Creates and hints audio/video tracks to an mp4 file
 
 These are described in more detail in doc/encoding/encoding.htm
 
 
 A few debugging tools are also included:
 
-mp4extract  Utility to extract audio/video tracks from an MP4 file
-mp4vhdr     Utility to create MPEG-4 video headers
+mp4extract  Utility to extract tracks from an MP4 file
 mp4dump     Utility to dump MP4 file meta-information in text form
 yuvdump     Utility to display a raw video file on the screen
 
@@ -425,7 +423,8 @@ mpeg4ip - top level project directory
         gnu
             getopt - gnu getopt routines
         mp4 - MP4 (aka MOV/Quicktime) file format library
-        mp4v2 - MP4 library written from scratch, UNDER DEVELOPMENT!
+        mp4v2 - new MP4 library written from scratch
+            util - contains new mp4dump and mp4extract utilities
         msg_queue - SDL based Inter-thread messages utlity
         rtp - UCL RTP 
         sdp - Our own SDP
@@ -457,17 +456,18 @@ mpeg4ip - top level project directory
             lame - MP3 encoder program
         lib - libraries specifically for the server tools
             sndfile - sound file formats, used by faac
+        mp4creator - create and hint A/V tracks to an mp4 file
         mp4live - mp4 live encoding interface
             gui - gtk gui for mp4 live.
         util
             avi2raw - extract raw A/V data from AVI files
             lboxcrop - vertically crop raw video 
-            mp4apkt - MP4 audio packetizer
-            mp4dump - dump MP4 file meta-info contents
+            mp4apkt - DEPRECATED MP4 audio packetizer
+            mp4dump - DEPRECATED dump MP4 file meta-info contents
             mp4encode - front-end script to simplify encoding process
-            mp4extract - extract A/V data from MP4 files
-            mp4vpkt - MP4 video packetizer
-            mp4vhdr - MPEG-4 video header generator
+            mp4extract - DEPRECATED extract A/V data from MP4 files
+            mp4vpkt - DEPRECATED MP4 video packetizer
+            mp4vhdr - DEPRECATED MPEG-4 video header generator
             rgb2yuv - rgb to yuv converter
         video
             divx - OpenDivx encoder library and program
@@ -488,7 +488,8 @@ please let us know. We certainly will want to fix it.
 Here are the citations:
 
 ISO/IEC 14496-2:2000 MPEG-4 Video
-ISO/IEC 14496-3:1999 MPEG-4 Audio (including AAC)
+ISO/IEC 14496-3:1999 MPEG-4 Audio (includes AAC)
+ISO/IEC 13818-3:1998 MPEG-2 Audio (includes MP3)
 ISO/IEC 13818-7:1997 MPEG-2 AAC
 
 The ISO/IEC documents must be purchased from either ISO (www.iso.ch)
@@ -530,11 +531,6 @@ Known Problems
 * The ISO MPEG-4 video codec bitrate control feature is broken. We've
   heard that a fix is available, so we're trying to track that down.
   Note that the OpenDivx encoder has bitrate control that works.
-
-* On slower machines (~500MHz), doubling the video size via the gmp4player 
-  menu consumes enough CPU to adversely effect playback, resulting in audio
-  and video falling out of sync. When we get a chance we'll implement an MMX
-  version of the smoothing stretcher to fix this (on PC's at least).
 
 * The player for windows is sketchy at best.  We have included project
   files that should build.  We have noticed the following problems:

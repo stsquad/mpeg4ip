@@ -104,8 +104,29 @@ const char* MP4NameAfterFirst(const char *s)
 	return NULL;
 }
 
+char* MP4ToBase16(const u_int8_t* pData, u_int32_t dataSize)
+{
+	if (dataSize) {
+		ASSERT(pData);
+	}
+
+	char* s = (char*)MP4Calloc((2 * dataSize) + 1);
+
+	u_int32_t i, j;
+	for (i = 0, j = 0; i < dataSize; i++) {
+		sprintf(&s[j], "%02x", pData[i]);
+		j += 2;
+	}
+
+	return s;	/* N.B. caller is responsible for free'ing s */
+}
+
 char* MP4ToBase64(const u_int8_t* pData, u_int32_t dataSize)
 {
+	if (dataSize) {
+		ASSERT(pData);
+	}
+
 	static char encoding[64] = {
 		'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P',
 		'Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f',
@@ -139,7 +160,7 @@ char* MP4ToBase64(const u_int8_t* pData, u_int32_t dataSize)
 		*dest++ = '=';
 	}
 
-	return s;
+	return s;	/* N.B. caller is responsible for free'ing s */
 }
 
 // log2 of value, rounded up

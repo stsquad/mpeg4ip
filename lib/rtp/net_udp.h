@@ -53,7 +53,7 @@ int udp_send_iov(socket_udp *s, struct iovec *iov, int count);
 #endif
 int         udp_recv(socket_udp *s, char *buffer, int buflen);
 
-const char *udp_host_addr(socket_udp *s);
+char *udp_host_addr(socket_udp *s);
 int         udp_fd(socket_udp *s);
 
 int         udp_select(struct timeval *timeout);

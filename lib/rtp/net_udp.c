@@ -401,11 +401,11 @@ static int udp_send_iov4(socket_udp *s, struct iovec *iov, int count)
 }
 #endif
 
-static const char *udp_host_addr4(void)
+static char *udp_host_addr4(void)
 {
-	static char    		 hname[MAXHOSTNAMELEN];
-	struct hostent 		*hent;
-	struct in_addr  	 iaddr;
+  char    		 hname[MAXHOSTNAMELEN];
+  struct hostent 		*hent;
+  struct in_addr  	 iaddr;
 	
 	if (gethostname(hname, MAXHOSTNAMELEN) != 0) {
 		debug_msg("Cannot get hostname!");
@@ -419,7 +419,7 @@ static const char *udp_host_addr4(void)
 	assert(hent->h_addrtype == AF_INET);
 	memcpy(&iaddr.s_addr, hent->h_addr, sizeof(iaddr.s_addr));
 	strncpy(hname, inet_ntoa(iaddr), MAXHOSTNAMELEN);
-	return (const char*)hname;
+	return xstrdup(hname);
 }
 
 /*****************************************************************************/
@@ -628,10 +628,10 @@ static int udp_send_iov6(socket_udp *s, struct iovec *iov, int count)
 }
 #endif
 
-static const char *udp_host_addr6(socket_udp *s)
+static char *udp_host_addr6(socket_udp *s)
 {
 #ifdef HAVE_IPv6
-	static char		 hname[MAXHOSTNAMELEN];
+	char		 hname[MAXHOSTNAMELEN];
 	int 			 gai_err, newsock;
 	struct addrinfo 	 hints, *ai;
 	struct sockaddr_in6 	 local, addr6;
@@ -688,10 +688,10 @@ static const char *udp_host_addr6(socket_udp *s)
 		debug_msg("inet_ntop: %s: \n", hname);
 		abort();
 	}
-	return (const char*)hname;
+	return xstrdup(hname);
 #else  /* HAVE_IPv6 */
 	UNUSED(s);
-	return "::";	/* The unspecified address... */
+	return xstrdup("::");	/* The unspecified address... */
 #endif /* HAVE_IPv6 */
 }
 	
@@ -896,7 +896,7 @@ int udp_select(struct timeval *timeout)
  * Return value: character string containing network address
  * associated with session @s.
  **/
-const char *udp_host_addr(socket_udp *s)
+char *udp_host_addr(socket_udp *s)
 {
   if (s && s->mode == IPv6) {
     return udp_host_addr6(s);

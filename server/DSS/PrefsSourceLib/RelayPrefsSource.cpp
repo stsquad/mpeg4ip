@@ -32,10 +32,6 @@
 
 	Change History (most recent first):
 
-	$Log: RelayPrefsSource.cpp,v $
-	Revision 1.5  2001/10/11 20:39:08  wmaycisco
-	Sync 10/11/2001. 1:40PM
-	
 	Revision 1.3  2001/10/01 22:08:39  dmackie
 	DSS 3.0.1 import
 	

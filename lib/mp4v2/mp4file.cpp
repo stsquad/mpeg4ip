@@ -185,6 +185,113 @@ void MP4File::Append(const char* fileName)
 	pMdatAtom->BeginWrite();
 }
 
+void MP4File::Optimize(const char* orgFileName, const char* newFileName)
+{
+	m_fileName = MP4Stralloc(orgFileName);
+	m_mode = 'r';
+
+	// first load meta-info into memory
+	Open("rb");
+	ReadFromFile();
+
+	CacheProperties();	// of moov atom
+
+	// now switch over to writing the new file
+	MP4Free(m_fileName);
+	m_fileName = MP4Stralloc(newFileName);
+	FILE* pReadFile = m_pFile;
+	m_pFile = NULL;
+	m_mode = 'w';
+
+	Open("wb");
+
+	SetIntegerProperty("moov.mvhd.modificationTime", 
+		MP4GetAbsTimestamp());
+
+	// writing meta info in the optimal order
+	((MP4RootAtom*)m_pRootAtom)->BeginOptimalWrite();
+
+	// write data in optimal order
+	RewriteMdat(pReadFile, m_pFile);
+
+	// finish writing
+	((MP4RootAtom*)m_pRootAtom)->FinishOptimalWrite();
+
+	// cleanup
+	fclose(m_pFile);
+	m_pFile = NULL;
+	fclose(pReadFile);
+}
+
+void MP4File::RewriteMdat(FILE* pReadFile, FILE* pWriteFile)
+{
+	u_int32_t numTracks = m_pTracks.Size();
+
+	MP4ChunkId* chunkIds = new MP4ChunkId[numTracks];
+	MP4ChunkId* maxChunkIds = new MP4ChunkId[numTracks];
+	MP4Timestamp* nextChunkTimes = new MP4Timestamp[numTracks];
+
+	for (u_int32_t i = 0; i < numTracks; i++) {
+		chunkIds[i] = 1;
+		maxChunkIds[i] = m_pTracks[i]->GetNumberOfChunks();
+		nextChunkTimes[i] = MP4_INVALID_TIMESTAMP;
+	}
+
+	while (true) {
+		u_int32_t nextTrackIndex = (u_int32_t)-1;
+		MP4Timestamp nextTime = MP4_INVALID_TIMESTAMP;
+
+		for (u_int32_t i = 0; i < numTracks; i++) {
+			if (chunkIds[i] > maxChunkIds[i]) {
+				continue;
+			}
+
+			if (nextChunkTimes[i] == MP4_INVALID_TIMESTAMP) {
+				MP4Timestamp chunkTime =
+					m_pTracks[i]->GetChunkTime(chunkIds[i]);
+
+				nextChunkTimes[i] = MP4ConvertTime(chunkTime,
+					m_pTracks[i]->GetTimeScale(), GetTimeScale());
+			}
+
+			if (nextChunkTimes[i] < nextTime) {
+				nextTime = nextChunkTimes[i];
+				nextTrackIndex = i;
+			}
+		}
+
+		if (nextTrackIndex == (u_int32_t)-1) {
+			break;
+		}
+
+		// point into original mp4 file for read chunk call
+		m_pFile = pReadFile;
+		m_mode = 'r';
+
+		u_int8_t* pChunk;
+		u_int32_t chunkSize;
+
+		m_pTracks[nextTrackIndex]->
+			ReadChunk(chunkIds[nextTrackIndex], &pChunk, &chunkSize);
+
+		// point back at the new mp4 file for write chunk
+		m_pFile = pWriteFile;
+		m_mode = 'w';
+
+		m_pTracks[nextTrackIndex]->
+			RewriteChunk(chunkIds[nextTrackIndex], pChunk, chunkSize);
+
+		MP4Free(pChunk);
+
+		chunkIds[nextTrackIndex]++;
+		nextChunkTimes[nextTrackIndex] = MP4_INVALID_TIMESTAMP;
+	}
+
+	delete [] chunkIds;
+	delete [] maxChunkIds;
+	delete [] nextChunkTimes;
+}
+
 void MP4File::Open(const char* fmode)
 {
 	ASSERT(m_pFile == NULL);

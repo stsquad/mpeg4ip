@@ -39,6 +39,7 @@ public: /* equivalent to MP4 library API */
 	void Read(const char* fileName);
 	void Create(const char* fileName, bool use64bits);
 	void Append(const char* fileName);
+	void Optimize(const char* orgFileName, const char* newFileName);
 	void Dump(FILE* pDumpFile = NULL, bool dumpImplicits = false);
 	void Close();
 
@@ -332,6 +333,7 @@ protected:
 	void BeginWrite();
 	void FinishWrite();
 	void CacheProperties();
+	void RewriteMdat(FILE* pReadFile, FILE* pWriteFile);
 
 	void ProtectWriteOperation(char* where);
 
@@ -407,10 +409,6 @@ protected:
 	MP4IntegerProperty*		m_pModificationProperty;
 	MP4Integer32Property*	m_pTimeScaleProperty;
 	MP4IntegerProperty*		m_pDurationProperty;
-
-	// used when cloning
-	char*		m_mdatFileName;
-	FILE*		m_pMdatFile;
 
 	// write buffering
 	u_int8_t*	m_writeBuffer;

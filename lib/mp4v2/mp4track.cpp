@@ -211,7 +211,7 @@ void MP4Track::ReadSample(MP4SampleId sampleId,
 	// handle unusual case of wanting to read a sample
 	// that is still sitting in the write chunk buffer
 	if (m_pChunkBuffer && sampleId >= m_writeSampleId - m_chunkSamples) {
-		WriteChunk();
+		WriteChunkBuffer();
 	}
 
 	u_int64_t fileOffset = GetSampleFileOffset(sampleId);
@@ -321,7 +321,7 @@ void MP4Track::WriteSample(u_int8_t* pBytes, u_int32_t numBytes,
 	UpdateSyncSamples(m_writeSampleId, isSyncSample);
 
 	if (IsChunkFull(m_writeSampleId)) {
-		WriteChunk();
+		WriteChunkBuffer();
 	}
 
 	UpdateDurations(duration);
@@ -331,7 +331,7 @@ void MP4Track::WriteSample(u_int8_t* pBytes, u_int32_t numBytes,
 	m_writeSampleId++;
 }
 
-void MP4Track::WriteChunk()
+void MP4Track::WriteChunkBuffer()
 {
 	if (m_chunkBufferSize == 0) {
 		return;
@@ -364,7 +364,7 @@ void MP4Track::WriteChunk()
 void MP4Track::FinishWrite()
 {
 	// write out any remaining samples in chunk buffer
-	WriteChunk();
+	WriteChunkBuffer();
 
 	// record bitrates
 	MP4Integer32Property* pBitrateProperty;
@@ -574,7 +574,7 @@ u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
 	u_int32_t samplesPerChunk = 
 		m_pStscSamplesPerChunkProperty->GetValue(stscIndex);
 
-	u_int32_t chunkId = firstChunk +
+	MP4ChunkId chunkId = firstChunk +
 		((sampleId - firstSample) / samplesPerChunk);
 
 	u_int64_t chunkOffset = m_pChunkOffsetProperty->GetValue(chunkId - 1);
@@ -592,7 +592,7 @@ u_int64_t MP4Track::GetSampleFileOffset(MP4SampleId sampleId)
 }
 
 void MP4Track::UpdateSampleToChunk(MP4SampleId sampleId,
-	 u_int32_t chunkId, u_int32_t samplesPerChunk)
+	 MP4ChunkId chunkId, u_int32_t samplesPerChunk)
 {
 	u_int32_t numStsc = m_pStscCountProperty->GetValue();
 
@@ -617,7 +617,7 @@ void MP4Track::UpdateChunkOffsets(u_int64_t chunkOffset)
 {
 	if (m_pChunkOffsetProperty->GetType() == Integer32Property) {
 		((MP4Integer32Property*)m_pChunkOffsetProperty)->AddValue(chunkOffset);
-	} else { /* Integer64Property */
+	} else {
 		((MP4Integer64Property*)m_pChunkOffsetProperty)->AddValue(chunkOffset);
 	}
 	m_pChunkCountProperty->IncrementValue();
@@ -742,17 +742,10 @@ void MP4Track::UpdateSampleTimes(MP4Duration duration)
 	}
 }
 
-u_int32_t MP4Track::GetSampleRenderingOffset(MP4SampleId sampleId)
+u_int32_t MP4Track::GetSampleCttsIndex(MP4SampleId sampleId, 
+	MP4SampleId* pFirstSampleId)
 {
-	if (m_pCttsCountProperty == NULL) {
-		return 0;
-	}
-
 	u_int32_t numCtts = m_pCttsCountProperty->GetValue();
-
-	if (numCtts == 0) {
-		return 0;
-	}
 
 	MP4SampleId sid = 1;
 	
@@ -761,14 +754,31 @@ u_int32_t MP4Track::GetSampleRenderingOffset(MP4SampleId sampleId)
 			m_pCttsSampleCountProperty->GetValue(cttsIndex);
 
 		if (sampleId <= sid + sampleCount - 1) {
-			return m_pCttsSampleOffsetProperty->GetValue(cttsIndex);
+			if (pFirstSampleId) {
+				*pFirstSampleId = sid;
+			}
+			return cttsIndex;
 		}
 		sid += sampleCount;
 	}
 
 	throw new MP4Error("sample id out of range", 
-		"MP4Track::GetSampleRenderingOffset");
+		"MP4Track::GetCttsIndex");
 	return 0; // satisfy MS compiler
+}
+
+u_int32_t MP4Track::GetSampleRenderingOffset(MP4SampleId sampleId)
+{
+	if (m_pCttsCountProperty == NULL) {
+		return 0;
+	}
+	if (m_pCttsCountProperty->GetValue() == 0) {
+		return 0;
+	}
+
+	u_int32_t cttsIndex = GetSampleCttsIndex(sampleId);
+
+	return m_pCttsSampleOffsetProperty->GetValue(cttsIndex);
 }
 
 void MP4Track::UpdateRenderingOffsets(MP4SampleId sampleId, 
@@ -823,14 +833,91 @@ void MP4Track::UpdateRenderingOffsets(MP4SampleId sampleId,
 		// add ctts entry, sampleCount = 1, sampleOffset = renderingOffset
 		m_pCttsSampleCountProperty->AddValue(1);
 		m_pCttsSampleOffsetProperty->AddValue(renderingOffset);
-		m_pCttsCountProperty->IncrementValue();;
+		m_pCttsCountProperty->IncrementValue();
 	}
 }
 
 void MP4Track::SetSampleRenderingOffset(MP4SampleId sampleId,
 	 MP4Duration renderingOffset)
 {
-	// TBD
+	// check if any ctts entries exist
+	if (m_pCttsCountProperty == NULL
+	  || m_pCttsCountProperty->GetValue() == 0) {
+		// if not then Update routine can be used 
+		UpdateRenderingOffsets(sampleId, renderingOffset);
+		return;
+	}
+
+	MP4SampleId firstSampleId;
+	u_int32_t cttsIndex = GetSampleCttsIndex(sampleId, &firstSampleId);
+
+	// do nothing in the degenerate case
+	if (renderingOffset == m_pCttsSampleOffsetProperty->GetValue(cttsIndex)) {
+		return;
+	}
+
+	u_int32_t sampleCount =
+		m_pCttsSampleCountProperty->GetValue();
+
+	// if this sample has it's own ctts entry
+	if (sampleCount == 1) {
+		// then just set the value, 
+		// note we don't attempt to collapse entries
+		m_pCttsSampleOffsetProperty->SetValue(renderingOffset, cttsIndex);
+		return;
+	}
+
+	MP4SampleId lastSampleId = firstSampleId + sampleCount - 1;
+
+	// else we share this entry with other samples
+	// we need to insert our own entry
+	if (sampleId == firstSampleId) {
+		// our sample is the first one
+		m_pCttsSampleCountProperty->
+			InsertValue(1, cttsIndex);
+		m_pCttsSampleOffsetProperty->
+			InsertValue(renderingOffset, cttsIndex);
+
+		m_pCttsSampleCountProperty->
+			SetValue(sampleCount - 1, cttsIndex + 1);
+
+		m_pCttsCountProperty->IncrementValue();
+
+	} else if (sampleId == lastSampleId) {
+		// our sample is the last one
+		m_pCttsSampleCountProperty->
+			InsertValue(1, cttsIndex + 1);
+		m_pCttsSampleOffsetProperty->
+			InsertValue(renderingOffset, cttsIndex + 1);
+
+		m_pCttsSampleCountProperty->
+			SetValue(sampleCount - 1, cttsIndex);
+
+		m_pCttsCountProperty->IncrementValue();
+
+	} else {
+		// our sample is in the middle, UGH!
+
+		// insert our new entry
+		m_pCttsSampleCountProperty->
+			InsertValue(1, cttsIndex + 1);
+		m_pCttsSampleOffsetProperty->
+			InsertValue(renderingOffset, cttsIndex + 1);
+
+		// adjust count of previous entry
+		m_pCttsSampleCountProperty->
+			SetValue(sampleId - firstSampleId, cttsIndex);
+
+		// insert new entry for those samples beyond our sample
+		m_pCttsSampleCountProperty->
+			InsertValue(lastSampleId - sampleId, cttsIndex + 2);
+		u_int32_t oldRenderingOffset =
+			m_pCttsSampleOffsetProperty->GetValue(cttsIndex);
+		m_pCttsSampleOffsetProperty->
+			InsertValue(oldRenderingOffset, cttsIndex + 2);
+
+		m_pCttsCountProperty->IncrementValue(2);
+	}
 }
 
 bool MP4Track::IsSyncSample(MP4SampleId sampleId)
@@ -961,6 +1048,128 @@ void MP4Track::UpdateModificationTimes()
 	MP4Timestamp now = MP4GetAbsTimestamp();
 	m_pMediaModificationProperty->SetValue(now);
 	m_pTrackModificationProperty->SetValue(now);
+}
+
+u_int32_t MP4Track::GetNumberOfChunks()
+{
+	return m_pChunkOffsetProperty->GetCount();
+}
+
+u_int32_t MP4Track::GetChunkStscIndex(MP4ChunkId chunkId)
+{
+	u_int32_t stscIndex;
+	u_int32_t numStscs = m_pStscCountProperty->GetValue();
+
+	ASSERT(chunkId);
+	ASSERT(numStscs > 0);
+
+	for (stscIndex = 0; stscIndex < numStscs; stscIndex++) {
+		if (chunkId < m_pStscFirstChunkProperty->GetValue(stscIndex)) {
+			ASSERT(stscIndex != 0);
+			break;
+		}
+	}
+	return stscIndex - 1;
+}
+
+MP4Timestamp MP4Track::GetChunkTime(MP4ChunkId chunkId)
+{
+	u_int32_t stscIndex = GetChunkStscIndex(chunkId);
+
+	MP4ChunkId firstChunkId = 
+		m_pStscFirstChunkProperty->GetValue(stscIndex);
+
+	MP4SampleId firstSample = 
+		m_pStscFirstSampleProperty->GetValue(stscIndex);
+
+	u_int32_t samplesPerChunk = 
+		m_pStscSamplesPerChunkProperty->GetValue(stscIndex);
+
+	MP4SampleId firstSampleInChunk = 
+		firstSample + ((chunkId - firstChunkId) * samplesPerChunk);
+
+	MP4Timestamp chunkTime;
+
+	GetSampleTimes(firstSampleInChunk, &chunkTime, NULL);
+
+	return chunkTime;
+}
+
+u_int32_t MP4Track::GetChunkSize(MP4ChunkId chunkId)
+{
+	u_int32_t stscIndex = GetChunkStscIndex(chunkId);
+
+	MP4ChunkId firstChunkId = 
+		m_pStscFirstChunkProperty->GetValue(stscIndex);
+
+	MP4SampleId firstSample = 
+		m_pStscFirstSampleProperty->GetValue(stscIndex);
+
+	u_int32_t samplesPerChunk = 
+		m_pStscSamplesPerChunkProperty->GetValue(stscIndex);
+
+	MP4SampleId firstSampleInChunk = 
+		firstSample + ((chunkId - firstChunkId) * samplesPerChunk);
+
+	// need cumulative sizes of samples in chunk 
+	u_int32_t chunkSize = 0;
+	for (u_int32_t i = 0; i < samplesPerChunk; i++) {
+		chunkSize += GetSampleSize(firstSampleInChunk + i);
+	}
+
+	return chunkSize;
+}
+
+void MP4Track::ReadChunk(MP4ChunkId chunkId, 
+	u_int8_t** ppChunk, u_int32_t* pChunkSize)
+{
+	ASSERT(chunkId);
+	ASSERT(ppChunk);
+	ASSERT(pChunkSize);
+
+	u_int64_t chunkOffset = 
+		m_pChunkOffsetProperty->GetValue(chunkId - 1);
+
+	*pChunkSize = GetChunkSize(chunkId);
+	*ppChunk = (u_int8_t*)MP4Malloc(*pChunkSize);
+
+	VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
+		printf("ReadChunk: track %u id %u offset 0x"LLX" size %u (0x%x)\n",
+			m_trackId, chunkId, chunkOffset, *pChunkSize, *pChunkSize));
+
+	u_int64_t oldPos = m_pFile->GetPosition(); // only used in mode == 'w'
+	try {
+		m_pFile->SetPosition(chunkOffset);
+		m_pFile->ReadBytes(*ppChunk, *pChunkSize);
+	}
+	catch (MP4Error* e) {
+		// let's not leak memory
+		MP4Free(*ppChunk);
+		*ppChunk = NULL;
+
+		if (m_pFile->GetMode() == 'w') {
+			m_pFile->SetPosition(oldPos);
+		}
+		throw e;
+	}
+
+	if (m_pFile->GetMode() == 'w') {
+		m_pFile->SetPosition(oldPos);
+	}
+}
+
+void MP4Track::RewriteChunk(MP4ChunkId chunkId, 
+	u_int8_t* pChunk, u_int32_t chunkSize)
+{
+	u_int64_t chunkOffset = m_pFile->GetPosition();
+
+	m_pFile->WriteBytes(pChunk, chunkSize);
+
+	m_pChunkOffsetProperty->SetValue(chunkOffset, chunkId - 1);
+
+	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
+		printf("RewriteChunk: track %u id %u offset 0x"LLX" size %u (0x%x)\n",
+			m_trackId, chunkId, chunkOffset, chunkSize, chunkSize)); 
 }
 
 // map track type name aliases to official names

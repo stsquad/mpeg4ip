@@ -8,7 +8,7 @@ librtsp_la_SOURCES = \
 	rtsp_thread.c \
 	rtsp_util.c 
 
-INCLUDES = -I../../../lib/sdp -I../../../include -I../../../lib/SDL/include -I../../../lib
+INCLUDES = -I$(top_builddir)/lib/sdp -I$(top_builddir)/include -I$(top_builddir)/lib/SDL/include -I$(top_builddir)/lib
 AM_CFLAGS = -DIPTV_COMPATIBLE -D_REENTRANT @BILLS_CWARNINGS@ @SDL_CFLAGS@
 
 check_PROGRAMS = test test_thread

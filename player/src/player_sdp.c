@@ -166,6 +166,7 @@ range_desc_t *get_range_from_sdp (session_desc_t *sptr)
 
 #define TTYPE(a,b) {a, sizeof(a), b}
 
+#define FMTP_PARSE_FUNC(a) static char *(a) (char *ptr, fmtp_parse_t *fptr)
 static char *fmtp_advance_to_next (char *ptr)
 {
   while (*ptr != '\0' && *ptr != ';') ptr++;
@@ -189,7 +190,8 @@ static char *fmtp_parse_number (char *ptr, int *ret_value)
   }
   return (NULL);
 }
-static char *fmtp_streamtype (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_streamtype)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->stream_type);
@@ -198,7 +200,8 @@ static char *fmtp_streamtype (char *ptr, fmtp_parse_t *fptr)
   }
   return (ret);
 }
-static char *fmtp_profile_level_id (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_profile_level_id)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->profile_level_id);
@@ -216,7 +219,7 @@ static unsigned char to_hex (char *ptr)
   return (tolower(*ptr) - 'a');
 }
 
-static char *fmtp_config (char *ptr, fmtp_parse_t *fptr)
+FMTP_PARSE_FUNC(fmtp_config)
 {
   char *iptr;
   uint32_t len;
@@ -244,7 +247,8 @@ static char *fmtp_config (char *ptr, fmtp_parse_t *fptr)
   if (*ptr == ';') ptr++;
   return (ptr);
 }
-static char *fmtp_constant_size (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_constant_size)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->constant_size);
@@ -253,7 +257,8 @@ static char *fmtp_constant_size (char *ptr, fmtp_parse_t *fptr)
   }
   return (ret);
 }
-static char *fmtp_size_length (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_size_length)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->size_length);
@@ -262,7 +267,8 @@ static char *fmtp_size_length (char *ptr, fmtp_parse_t *fptr)
   }
   return (ret);
 }
-static char *fmtp_index_length (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_index_length)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->index_length);
@@ -271,7 +277,8 @@ static char *fmtp_index_length (char *ptr, fmtp_parse_t *fptr)
   }
   return (ret);
 }
-static char *fmtp_index_delta_length (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_index_delta_length)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->index_delta_length);
@@ -280,7 +287,8 @@ static char *fmtp_index_delta_length (char *ptr, fmtp_parse_t *fptr)
   }
   return (ret);
 }
-static char *fmtp_CTS_delta_length (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_CTS_delta_length)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->CTS_delta_length);
@@ -289,7 +297,9 @@ static char *fmtp_CTS_delta_length (char *ptr, fmtp_parse_t *fptr)
   }
   return (ret);
 }
-static char *fmtp_DTS_delta_length (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_DTS_delta_length)
+
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->DTS_delta_length);
@@ -298,7 +308,8 @@ static char *fmtp_DTS_delta_length (char *ptr, fmtp_parse_t *fptr)
   }
   return (ret);
 }
-static char *fmtp_auxiliary_data_size_length (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_auxiliary_data_size_length)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->auxiliary_data_size_length);
@@ -307,7 +318,8 @@ static char *fmtp_auxiliary_data_size_length (char *ptr, fmtp_parse_t *fptr)
   }
   return (ret);
 }
-static char *fmtp_bitrate (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_bitrate)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->bitrate);
@@ -316,7 +328,8 @@ static char *fmtp_bitrate (char *ptr, fmtp_parse_t *fptr)
   }
   return (ret);
 }
-static char *fmtp_profile (char *ptr, fmtp_parse_t *fptr)
+
+FMTP_PARSE_FUNC(fmtp_profile)
 {
   char *ret;
   ret = fmtp_parse_number(ptr, &fptr->profile);
@@ -324,6 +337,11 @@ static char *fmtp_profile (char *ptr, fmtp_parse_t *fptr)
     ret = fmtp_advance_to_next(ptr);
   }
   return (ret);
+}
+
+FMTP_PARSE_FUNC(fmtp_mode)
+{
+  return (fmtp_advance_to_next(ptr));
 }
 
 struct {
@@ -344,6 +362,7 @@ struct {
   TTYPE("auxiliarydatasizelength", fmtp_auxiliary_data_size_length),
   TTYPE("bitrate", fmtp_bitrate),
   TTYPE("profile", fmtp_profile),
+  TTYPE("mode", fmtp_mode),
   {NULL, 0, NULL},
 }; 
 

@@ -1,5 +1,8 @@
 
-INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/lib/mp4v2
+INCLUDES = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/lib/mp4v2 \
+	-I$(top_srcdir)/lib/avi
 
 AM_CXXFLAGS = -DMPEG4IP -fexceptions -Wall
 
@@ -17,9 +20,13 @@ mp4creator_SOURCES = \
 	aac.cpp \
 	mp3.cpp \
 	mp4v.cpp \
+	avi.cpp \
 	rfc2250.cpp \
 	rfcisma.cpp \
 	rfc3016.cpp
 
-mp4creator_LDADD = $(top_builddir)/lib/mp4v2/libmp4v2.la $(LDADD_E1)
+mp4creator_LDADD = \
+	$(top_builddir)/lib/mp4v2/libmp4v2.la \
+	$(top_builddir)/lib/avi/libavi.la \
+	$(LDADD_E1)
 

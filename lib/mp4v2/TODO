@@ -1,31 +1,16 @@
 
-ISMA sdp iod at session level
-
-Change ISMA profile levels for od, sd, and graphics
-
-mp4creator
-	Mp4v creator - non fixed durations, and B-frames
-	Hinters
-	AVI creator
-
-MP4Optimize
-	Interleaving of existing and new samples on writing
-	Rewriting of chunk offset atom to reflect moves
-
----
-
 Effects of edit lists on reading samples
 
 Option to use dref to separate meta info file from media data file
 	Modify ReadSample to pay attention to dref's
 
-Extended format support
-
 API and INTERNALS documentation
 
----
+Write mp4broadcaster & RTP packet reader
 
-Write mp4broadcaster
+Extended format support
+
+---
 
 Wrap printf's for verbosity - see example is player/lib/http/http_util.c
 
