@@ -1,8 +1,6 @@
 
 noinst_LTLIBRARIES = libcelp.la
 
-libcelp_la_LDFLAGS = -static
-
 libcelp_la_SOURCES = \
 	att_abs_postp.c \
 	att_bwx.c \

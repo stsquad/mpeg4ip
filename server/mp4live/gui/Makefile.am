@@ -1,5 +1,4 @@
 noinst_LTLIBRARIES = libmp4livegui.la
-libmp4livegui_la_LDFLAGS = -static
 
 libmp4livegui_la_SOURCES = \
 	mp4live_gui.h \

@@ -1,6 +1,5 @@
 noinst_LTLIBRARIES = libmp4live_h261.la
 
-libmp4live_h261_la_LDFLAGS = -static
 libmp4live_h261_la_SOURCES = encoder-h261.cpp \
 	bsd-endian.h \
 	crdef.cpp \

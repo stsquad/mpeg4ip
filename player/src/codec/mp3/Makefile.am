@@ -20,7 +20,6 @@ mp3_plugin_la_LIBADD = \
 
 
 noinst_LTLIBRARIES = libmp3.la
-libmp3_la_LDFLAGS = -static
 libmp3_la_SOURCES = \
 	mp3_rtp_bytestream.cpp \
 	mp3_rtp_bytestream.h

@@ -15,7 +15,6 @@ noinst_LTLIBRARIES = \
 	libmp4live.la \
 	$(GUILIBS)
 
-libmp4livepreview_la_LDFLAGS = -static
 libmp4livepreview_la_SOURCES = \
 	preview_flow.cpp \
 	preview_flow.h \

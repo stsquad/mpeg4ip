@@ -7,7 +7,6 @@ INCLUDES = \
 AM_CXXFLAGS = -DMPEG4IP -fexceptions -Wall
 
 noinst_LTLIBRARIES = libmp4av.la
-libmp4av_la_LDFLAGS = -static
 
 libmp4av_la_SOURCES = \
 	mp4av.h \

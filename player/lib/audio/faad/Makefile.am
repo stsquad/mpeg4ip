@@ -1,5 +1,4 @@
 noinst_LTLIBRARIES = libfaad.la
-libfaad_la_LDFLAGS = -static
 libfaad_la_SOURCES = \
 	bits.c \
 	block.c \

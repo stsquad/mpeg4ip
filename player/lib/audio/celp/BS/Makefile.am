@@ -1,8 +1,6 @@
 
 noinst_LTLIBRARIES = libcelpbs.la
 
-libcelpbs_la_LDFLAGS = -static
-
 libcelpbs_la_SOURCES = \
 	adif.c \
 	adif.h \

@@ -12,7 +12,6 @@ SUFFIXES = .asm
 ###########################################################################
 
 noinst_LTLIBRARIES = libmpeg3video.la
-libmpeg3video_la_LDFLAGS = -static
 
 INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/lib/SDL/include
 if HAVE_ALIGN_LOOPS
