@@ -24,6 +24,13 @@
 
 typedef u_int32_t MP4AV_Mp3Header;
 
+bool MP4AV_Mp3GetNextFrame(
+	u_int8_t* pSrc, 
+	u_int32_t srcLength,
+	u_int8_t** ppFrame, 
+	u_int32_t* pFrameSize, 
+	bool allowLayer4 = false);
+
 u_int8_t MP4AV_Mp3GetHdrVersion(MP4AV_Mp3Header hdr);
 
 u_int8_t MP4AV_Mp3GetHdrLayer(MP4AV_Mp3Header hdr);

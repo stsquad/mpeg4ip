@@ -42,7 +42,7 @@ int main (int argc, char **argv)
 	CClientProcess proc;
 	SDL_sem *master_sem;
 	CMsgQueue master_queue;
-	const char *errmsg;
+	char errmsg[512];
 	config.read_config_file("Software\\Mpeg4ip", "Config");
 
 	open_output("wmp4player.log");
@@ -70,9 +70,9 @@ int main (int argc, char **argv)
 		psptr = new CPlayerSession(&master_queue, master_sem,
 								   *argv);
 		int ret = -1;
+		errmsg[0] = '\0';
 		if (psptr != NULL) {
-			errmsg = NULL;
-			ret = parse_name_for_session(psptr, *argv, &errmsg);
+			ret = parse_name_for_session(psptr, *argv, errmsg, *errmsg);
 			if (ret < 0) {
 				//player_debug_message("%s %s", errmsg, name);
 				delete psptr;
@@ -89,7 +89,7 @@ int main (int argc, char **argv)
 				psptr->set_screen_size(screen_size);
 				psptr->set_audio_volume(config.get_config_value(CONFIG_VOLUME));
 				if (psptr->play_all_media(TRUE) != 0) {
-					errmsg = "Couldn't start playing";
+					snprintf(errmsg, sizeof(*errmsg), "Couldn't start playing");
 					delete psptr;
 					psptr = NULL;
 				}

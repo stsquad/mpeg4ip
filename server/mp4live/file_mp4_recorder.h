@@ -50,13 +50,6 @@ protected:
 	void DoStopRecord(void);
 	void DoWriteFrame(CMediaFrame* pFrame);
 
-	inline u_int32_t ConvertVideoDuration(Duration d) {
-		register u_int32_t temp = (u_int32_t)
-			((d * m_videoTimeScale) / (TimestampTicks / 2));
-		register u_int32_t rounder = ((temp % 10) >= 5) ? 1 : 0;	
-		return (temp / 2 + rounder); 
-	}
-
 protected:
 	bool			m_record;
 	bool			m_canRecordAudio;	// used for sync'ed start of A/V
@@ -78,7 +71,6 @@ protected:
 
 	u_int32_t		m_rawAudioFrameNum;
 	u_int32_t		m_encodedAudioFrameNum;
-	MP4Duration		m_encodedAudioFrameDuration;	// in audioTimeScale ticks
 };
 
 #endif /* __FILE_MP4_RECORDER_H__ */

@@ -54,23 +54,22 @@ protected:
 	bool InitEncoder(void);
 
 	void ProcessAudio(void);
-	u_int16_t ForwardEncodedFrames(void);
 
 protected:
 	bool				m_capture;
 	int					m_audioDevice;
 	CAudioEncoder*		m_encoder;
-	u_int16_t			m_frameType;
 	Timestamp			m_startTimestamp;
-	u_int32_t			m_frameNumber;
 	u_int16_t			m_maxPasses;
 
-	Duration			m_rawFrameDuration;
 	u_int16_t			m_rawSamplesPerFrame;
 	u_int16_t*			m_rawFrameBuffer;
 	u_int32_t			m_rawFrameSize;
+	u_int64_t			m_rawForwardedSamples;
+	u_int32_t			m_rawForwardedFrames;
 
-	Duration			m_encodedFrameDuration;
+	u_int64_t			m_encodedForwardedSamples;
+	u_int32_t			m_encodedForwardedFrames;
 };
 
 class CAudioCapabilities {

@@ -25,6 +25,7 @@
 CFaacAudioEncoder::CFaacAudioEncoder()
 {
 	m_faacHandle = NULL;
+	m_samplesPerFrame = 1024;
 	m_aacFrameBuffer = NULL;
 	m_aacFrameBufferLength = 0;
 	m_aacFrameMaxSize = 0;
@@ -34,23 +35,17 @@ bool CFaacAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 {
 	m_pConfig = pConfig;
 
-	m_pConfig->m_audioEncodedSampleRate =
-		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
-
-	u_int32_t inputSamples;
-
 	m_faacHandle = faacEncOpen(
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE),
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS),
-		(unsigned long*)&inputSamples,
+		(unsigned long*)&m_samplesPerFrame,
 		(unsigned long*)&m_aacFrameMaxSize);
-
-	m_pConfig->m_audioEncodedSamplesPerFrame = 
-		inputSamples / m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
 
 	if (m_faacHandle == NULL) {
 		return false;
 	}
+
+	m_samplesPerFrame /= m_pConfig->GetIntegerValue(CONFIG_AUDIO_CHANNELS);
 
 	m_faacConfig = faacEncGetCurrentConfiguration(m_faacHandle);
 
@@ -67,8 +62,14 @@ bool CFaacAudioEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	return true;
 }
 
+u_int32_t CFaacAudioEncoder::GetSamplesPerFrame()
+{
+	return m_samplesPerFrame;
+}
+
 bool CFaacAudioEncoder::EncodeSamples(
-	u_int16_t* pBuffer, u_int32_t bufferLength)
+	u_int16_t* pBuffer, 
+	u_int32_t bufferLength)
 {
 	int rc = 0;
 
@@ -97,11 +98,38 @@ bool CFaacAudioEncoder::EncodeSamples(
 	return true;
 }
 
+bool CFaacAudioEncoder::EncodeSamples(
+	u_int16_t* pLeftBuffer, 
+	u_int16_t* pRightBuffer, 
+	u_int32_t bufferLength)
+{
+	if (pRightBuffer) {
+		u_int16_t* pPcmBuffer = NULL;
+
+		InterleaveStereoSamples(
+			pLeftBuffer, 
+			pRightBuffer,
+			bufferLength / sizeof(u_int16_t),
+			&pPcmBuffer);
+
+		bool rc = EncodeSamples(pPcmBuffer, bufferLength * 2);
+
+		free(pPcmBuffer);
+
+		return rc;
+	}
+
+	return EncodeSamples(pLeftBuffer, bufferLength);
+}
+
 bool CFaacAudioEncoder::GetEncodedSamples(
-	u_int8_t** ppBuffer, u_int32_t* pBufferLength)
+	u_int8_t** ppBuffer, 
+	u_int32_t* pBufferLength,
+	u_int32_t* pNumSamples)
 {
 	*ppBuffer = m_aacFrameBuffer;
 	*pBufferLength = m_aacFrameBufferLength;
+	*pNumSamples = m_samplesPerFrame;
 
 	m_aacFrameBuffer = NULL;
 	m_aacFrameBufferLength = 0;

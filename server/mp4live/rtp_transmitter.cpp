@@ -63,7 +63,7 @@ void CRtpTransmitter::DoStartTransmit()
 
 	if (m_pConfig->GetBoolValue(CONFIG_AUDIO_ENABLE)) {
 		m_audioTimeScale = 
-			m_pConfig->m_audioEncodedSampleRate;
+			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE); 
 
 		m_audioDestAddress = 
 			m_pConfig->GetStringValue(CONFIG_RTP_DEST_ADDRESS); 

@@ -661,30 +661,30 @@ int CPlayerMedia::do_play (double start_time_offset)
 int CPlayerMedia::do_pause (void)
 {
 
-  if (m_streaming != 0 && m_stream_ondemand != 0) {
-    /*
+  if (m_streaming != 0) {
+    if (m_stream_ondemand != 0) {
+      /*
      * streaming - send RTSP pause
      */
-    if (m_parent->session_control_is_aggregate() == 0) {
-      rtsp_command_t cmd;
-      rtsp_decode_t *decode;
-      memset(&cmd, 0, sizeof(rtsp_command_t));
+      if (m_parent->session_control_is_aggregate() == 0) {
+	rtsp_command_t cmd;
+	rtsp_decode_t *decode;
+	memset(&cmd, 0, sizeof(rtsp_command_t));
 
-      if (rtsp_send_pause(m_rtsp_session, &cmd, &decode) != 0) {
-	media_message(LOG_ERR, "RTSP play command failed");
+	if (rtsp_send_pause(m_rtsp_session, &cmd, &decode) != 0) {
+	  media_message(LOG_ERR, "RTSP play command failed");
+	  free_decode_response(decode);
+	  return (-1);
+	}
 	free_decode_response(decode);
-	return (-1);
       }
-      free_decode_response(decode);
     }
+    m_rtp_msg_queue.send_message(MSG_PAUSE_SESSION);
   }
   
   /*
    * Pause the various threads
    */
-  if (!m_rtp_use_rtsp) {
-    m_rtp_msg_queue.send_message(MSG_PAUSE_SESSION);
-  }
   m_decode_msg_queue.send_message(MSG_PAUSE_SESSION, 
 				  NULL, 
 				  0, 
@@ -1337,10 +1337,10 @@ int CPlayerMedia::recv_thread (void)
       }
       delete newmsg;
     }
-	if (receiving == 0) {
-		SDL_Delay(50);
-		continue;
-	}
+    if (receiving == 0) {
+      SDL_Delay(50);
+      continue;
+    }
     while (receiving == 1 && recv_thread_stop == 0) {
       if ((newmsg = m_rtp_msg_queue.get_message()) != NULL) {
 	//player_debug_message("recv thread message %d", newmsg->get_value());
@@ -1349,16 +1349,18 @@ int CPlayerMedia::recv_thread (void)
 	  recv_thread_stop = 1;
 	  break;
 	case MSG_START_SESSION:
-	  media_message(LOG_ERR, "Got play when playing");
+	  //media_message(LOG_ERR, "Got play when playing");
 	  break;
 	case MSG_PAUSE_SESSION:
-	  receiving = 0;
+	  // Indicate that we need to restart the session.
+	  // But keep going...
+	  rtp_start();
 	  break;
 	}
 	delete newmsg;
 	newmsg = NULL;
       }
-      if (receiving == 0 || recv_thread_stop == 1) {
+      if (recv_thread_stop == 1) {
 	continue;
       }
       timeout.tv_sec = 0;
@@ -1366,7 +1368,8 @@ int CPlayerMedia::recv_thread (void)
       retcode = rtp_recv(m_rtp_session, &timeout, 0);
       //      player_debug_message("rtp_recv return %d", retcode);
       // Run rtp periodic after each packet received or idle time.
-      rtp_periodic();
+      if (m_paused == 0)
+	rtp_periodic();
 
     }
   }
@@ -1383,6 +1386,15 @@ int CPlayerMedia::recv_thread (void)
 void CPlayerMedia::recv_callback (struct rtp *session, rtp_event *e)
 {
   if (e == NULL) return;
+  /*
+   * If we're paused, just dump the packet.  Multicast case
+   */
+  if (m_paused != 0) {
+    if (e->type == RX_RTP) {
+      xfree(e->data);
+      return;
+    }
+  }
   if (m_rtp_byte_stream != NULL) {
     m_rtp_byte_stream->recv_callback(session, e);
     return;

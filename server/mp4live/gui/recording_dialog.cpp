@@ -24,6 +24,7 @@
 #include "mp4live_gui.h"
 
 static GtkWidget *dialog;
+static GtkWidget *file_combo;
 static GtkWidget *file_entry;
 
 static GtkWidget *video_raw_button;
@@ -69,7 +70,7 @@ static void Save()
 	MyConfig->SetStringValue(CONFIG_RECORD_MP4_FILE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(file_entry)));
 
-	MyConfig->SetStringValue(CONFIG_RECORD_MP4_FILE_NAME, 
+	MyConfig->UpdateFileHistory(
 		gtk_entry_get_text(GTK_ENTRY(file_entry)));
 
 	MyConfig->SetBoolValue(CONFIG_RECORD_RAW_VIDEO,
@@ -131,13 +132,13 @@ void CreateRecordingDialog (void)
 	gtk_widget_show(label);
 
 	// file entry
-	const char *file = MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME);
-	file_entry = gtk_entry_new_with_max_length(PATH_MAX);
-	if (file != NULL) {
-		gtk_entry_set_text(GTK_ENTRY(file_entry), file);
-	}
-	gtk_box_pack_start(GTK_BOX(hbox), file_entry, TRUE, TRUE, 5);
-	gtk_widget_show(file_entry);
+	file_combo = CreateFileCombo(
+		MyConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME));
+
+	file_entry = GTK_COMBO(file_combo)->entry;
+
+	gtk_widget_show(file_combo);
+	gtk_box_pack_start(GTK_BOX(hbox), file_combo, TRUE, TRUE, 5);
 	
 	// file browse button
 	GtkWidget *browse_button = gtk_button_new_with_label(" Browse... ");

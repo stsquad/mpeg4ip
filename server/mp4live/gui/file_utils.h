@@ -23,6 +23,8 @@
 #ifndef __FILE_UTILS_INCLUDED__
 #define __FILE_UTILS_INCLUDED__
 
+GtkWidget* CreateFileCombo(char* entryText);
+
 void FileBrowser(
 	GtkWidget* fileEntry, 
 	GtkSignalFunc okFunc = (GtkSignalFunc)NULL);

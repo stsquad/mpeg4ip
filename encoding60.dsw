@@ -195,6 +195,18 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libmp4av_st"=.\lib\mp4av\libmp4av_st.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libmp4v2_st"=.\lib\mp4v2\libmp4v2_st60.dsp - Package Owner=<4>
 
 Package=<5>
@@ -241,6 +253,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name libmissing60
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libmp4av_st
     End Project Dependency
 }}}
 

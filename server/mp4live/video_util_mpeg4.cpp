@@ -111,10 +111,10 @@ void GenerateMpeg4VideoConfig(CLiveConfig* pConfig)
 		/* 1 bit - marker = 1 */
 		putbits(&config, 1, 1);
 
-		u_int16_t frameRate = pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
+		float frameRate = pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
 		u_int16_t ticks;
-		if (want_short_time /*&& frameRate == (float)((int)frameRate)*/) {
-			ticks = (u_int16_t)frameRate;
+		if (want_short_time /* && frameRate == (float)((int)frameRate) */) {
+			ticks = (u_int16_t)(frameRate + 0.5);
 		} else {
 			ticks = 30000;
 		}

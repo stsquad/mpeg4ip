@@ -76,7 +76,7 @@ bool CH26LVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	// approximately relate desired bit rate to QP
 	float ar = (float)(m_pConfig->m_videoWidth * m_pConfig->m_videoHeight) 
 		/ (176.0 * 144.0);
-	float fps = (float)m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
+	float fps = m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE);
 	float br = (float)m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE);
 	float b = 0.666667 * fps * ar;
 	u_int8_t qp;
@@ -89,7 +89,7 @@ bool CH26LVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	debug_message("H.26L QP %u\n", qp);
 
 	u_int32_t keyFrameRate = (u_int32_t)
-		(m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE)
+		(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE)
 			* m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
 	if (keyFrameRate == 0) {
 		keyFrameRate = 1;

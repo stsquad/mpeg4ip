@@ -134,6 +134,8 @@ protected:
 	SDL_mutex*	m_pEnqueueMutex;
 };
 
+class CAudioEncoder;	// forward declaration
+
 class CMediaSource : public CMediaNode {
 public:
 	CMediaSource() : CMediaNode() {
@@ -151,61 +153,11 @@ public:
 		m_pSinksMutex = NULL;
 	}
 	
-	bool AddSink(CMediaSink* pSink) {
-		bool rc = false;
+	bool AddSink(CMediaSink* pSink);
 
-		if (SDL_LockMutex(m_pSinksMutex) == -1) {
-			debug_message("AddSink LockMutex error");
-			return rc;
-		}
-		for (int i = 0; i < MAX_SINKS; i++) {
-			if (m_sinks[i] == NULL) {
-				m_sinks[i] = pSink;
-				rc = true;
-				break;
-			}
-		}
-		if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
-			debug_message("UnlockMutex error");
-		}
-		return rc;
-	}
+	void RemoveSink(CMediaSink* pSink);
 
-	void RemoveSink(CMediaSink* pSink) {
-		if (SDL_LockMutex(m_pSinksMutex) == -1) {
-			debug_message("RemoveSink LockMutex error");
-			return;
-		}
-		for (int i = 0; i < MAX_SINKS; i++) {
-			if (m_sinks[i] == pSink) {
-				int j;
-				for (j = i; j < MAX_SINKS - 1; j++) {
-					m_sinks[j] = m_sinks[j+1];
-				}
-				m_sinks[j] = NULL;
-				break;
-			}
-		}
-		if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
-			debug_message("UnlockMutex error");
-		}
-	}
-
-	void RemoveAllSinks(void) {
-		if (SDL_LockMutex(m_pSinksMutex) == -1) {
-			debug_message("RemoveAllSinks LockMutex error");
-			return;
-		}
-		for (int i = 0; i < MAX_SINKS; i++) {
-			if (m_sinks[i] == NULL) {
-				break;
-			}
-			m_sinks[i] = NULL;
-		}
-		if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
-			debug_message("UnlockMutex error");
-		}
-	}
+	void RemoveAllSinks(void);
 
 	void StartVideo(void) {
 		m_myMsgQueue.send_message(MSG_SOURCE_START_VIDEO,
@@ -220,6 +172,14 @@ public:
 	void GenerateKeyFrame(void) {
 		m_myMsgQueue.send_message(MSG_SOURCE_KEY_FRAME,
 			NULL, 0, m_myMsgQueueSemaphore);
+	}
+
+	virtual u_int32_t GetNumEncodedVideoFrames() {
+		return 0;
+	}
+
+	virtual u_int32_t GetNumEncodedAudioFrames() {
+		return 0;
 	}
 
 protected:
@@ -237,6 +197,17 @@ protected:
 		if (SDL_UnlockMutex(m_pSinksMutex) == -1) {
 			debug_message("UnlockMutex error");
 		}
+	}
+
+	void ForwardEncodedAudioFrames(
+		CAudioEncoder* encoder,
+		Timestamp baseTimestamp,
+		u_int32_t* pNumSamples,
+		u_int32_t* pNumFrames);
+
+	Duration SamplesToTicks(u_int32_t numSamples) {
+		return (numSamples * TimestampTicks)
+			/ m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
 	}
 
 protected:

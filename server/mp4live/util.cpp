@@ -71,7 +71,7 @@ void error_message (const char *fmt, ...)
   gettimeofday(&thistime, NULL);
   // To add date, add %a %b %d to strftime
   strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-live: ", buffer, thistime.tv_usec / 1000);
+  printf("%s.%03ld-mp4live: ", buffer, thistime.tv_usec / 1000);
   va_start(ap, fmt);
   vprintf(fmt, ap);
   va_end(ap);
@@ -100,7 +100,7 @@ void debug_message (const char *fmt, ...)
   gettimeofday(&thistime, NULL);
   // To add date, add %a %b %d to strftime
   strftime(buffer, sizeof(buffer), "%X", localtime(&thistime.tv_sec));
-  printf("%s.%03ld-deb-live: ", buffer, thistime.tv_usec / 1000);
+  printf("%s.%03ld-debug-mp4live: ", buffer, thistime.tv_usec / 1000);
   va_start(ap, fmt);
   vprintf(fmt, ap);
   va_end(ap);

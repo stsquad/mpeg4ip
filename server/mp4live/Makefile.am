@@ -13,6 +13,7 @@ mp4live_SOURCES = \
 	media_flow.cpp \
 	media_frame.h \
 	media_node.h \
+	media_node.cpp \
 	media_time.h \
 	audio_encoder.h \
 	audio_encoder.cpp \
@@ -35,6 +36,8 @@ mp4live_SOURCES = \
 	video_sdl_preview.h \
 	video_sdl_preview.cpp \
 	video_util_mpeg4.cpp \
+	video_util_resize.h \
+	video_util_resize.cpp \
 	video_util_rgb.h \
 	video_util_rgb.cpp \
 	video_util_tv.h \
@@ -47,9 +50,7 @@ mp4live_SOURCES = \
 	rtp_transmitter.h \
 	sdp_file.cpp \
 	util.h \
-	util.cpp \
-	mp3.h \
-	mp3.cpp
+	util.cpp
 
 # LATER
 # file_mp4_source

@@ -38,11 +38,11 @@ bool CFfmpegVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	m_avctx.width = m_pConfig->m_videoWidth;
 	m_avctx.height = m_pConfig->m_videoHeight;
 	m_avctx.rate = 
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
+		(int)(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
 	m_avctx.bit_rate = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
 	m_avctx.gop_size = (int)
-		(m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE)
+		(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE)
 		* m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
 	if (m_avctx.gop_size == 0) {
 		m_avctx.gop_size = 1;

@@ -46,6 +46,81 @@ static u_int16_t Mp3SampleRates[4][3] = {
 	{ 44100, 48000, 32000 }		/* MPEG-1 */
 };
 
+bool MP4AV_Mp3GetNextFrame(
+	u_int8_t* pSrc, 
+	u_int32_t srcLength,
+	u_int8_t** ppFrame, 
+	u_int32_t* pFrameSize, 
+	bool allowLayer4 = false)
+{
+	u_int state = 0;
+	u_int dropped = 0;
+	u_char bytes[4];
+	u_int32_t srcPos = 0;
+
+	while (true) {
+		/* read a byte */
+		if (srcPos >= srcLength) {
+			return false;
+		}
+		u_char b = pSrc[srcPos++];
+
+		if (state == 3) {
+			bytes[state] = b;
+			*ppFrame = pSrc + dropped;
+			u_int32_t header = (bytes[0] << 24) | (bytes[1] << 16) 
+				| (bytes[2] << 8) | bytes[3];
+			*pFrameSize = MP4AV_Mp3GetFrameSize(header);
+			return true;
+		}
+		if (state == 2) {
+			if ((b & 0xF0) == 0 || (b & 0xF0) == 0xF0 || (b & 0x0C) == 0x0C) {
+				if (bytes[1] == 0xFF) {
+					state = 1; 
+				} else {
+					state = 0; 
+				}
+			} else {
+				bytes[state] = b;
+				state = 3;
+			}
+		}
+		if (state == 1) {
+			if ((b & 0xE0) == 0xE0 && (b & 0x18) != 0x08 && 
+			  ((b & 0x06) != 0 || allowLayer4)) {
+				bytes[state] = b;
+				state = 2;
+			} else {
+				state = 0;
+			}
+		}
+		if (state == 0) {
+			if (b == 0xFF) {
+				bytes[state] = b;
+				state = 1;
+			} else {
+				if (dropped == 0 && 
+				  ((b & 0xE0) == 0xE0 && 
+				  (b & 0x18) != 0x08 && 
+			  	  ((b & 0x06) != 0 || allowLayer4))) {
+					/*
+					 * HACK have seen files where previous frame 
+					 * was marked as padded, but the byte was never added
+					 * which results in the next frame's leading 0XFF being
+					 * eaten. We attempt to repair that situation here.
+					 */
+					bytes[0] = 0xFF;
+					bytes[1] = b;
+					state = 2;
+				} else {
+					/* else drop it */ 
+					dropped++;
+				}
+			}
+		}
+	}
+}
+
 u_int8_t MP4AV_Mp3GetHdrVersion(MP4AV_Mp3Header hdr)
 {
 	/* extract the necessary field from the MP3 header */

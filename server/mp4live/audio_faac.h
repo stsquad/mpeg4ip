@@ -32,11 +32,25 @@ public:
 	bool Init(
 		CLiveConfig* pConfig, bool realTime = true);
 
+	u_int16_t GetFrameType() {
+		return CMediaFrame::AacAudioFrame;
+	}
+
+	u_int32_t GetSamplesPerFrame();
+
 	bool EncodeSamples(
-		u_int16_t* pBuffer, u_int32_t bufferLength);
+		u_int16_t* pBuffer, 
+		u_int32_t bufferLength);
+
+	bool EncodeSamples(
+		u_int16_t* pLeftBuffer,
+		u_int16_t* pRightBuffer, 
+		u_int32_t bufferLength);
 
 	bool GetEncodedSamples(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
+		u_int8_t** ppBuffer, 
+		u_int32_t* pBufferLength,
+		u_int32_t* pNumSamples);
 
 	void Stop();
 
@@ -44,6 +58,7 @@ protected:
 	faacEncHandle			m_faacHandle;
 	faacEncConfigurationPtr	m_faacConfig;
 
+	u_int32_t				m_samplesPerFrame;
 	u_int8_t*				m_aacFrameBuffer;
 	u_int32_t				m_aacFrameBufferLength;
 	u_int32_t				m_aacFrameMaxSize;

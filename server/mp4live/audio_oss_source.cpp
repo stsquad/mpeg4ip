@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -64,7 +64,13 @@ int COSSAudioSource::ThreadMain(void)
 		}
 
 		if (m_capture) {
-			ProcessAudio();
+			try {
+				ProcessAudio();
+			}
+			catch (...) {
+				DoStopCapture();	
+				break;
+			}
 		}
 	}
 
@@ -90,21 +96,32 @@ void COSSAudioSource::DoStopCapture()
 		return;
 	}
 
-	if (m_pConfig->m_audioEncode) {
+	if (m_encoder) {
 		// flush remaining output from encoders
 		// and forward it to sinks
 
 		m_encoder->EncodeSamples(NULL, 0);
 
-		ForwardEncodedFrames();
+		u_int32_t forwardedSamples;
+		u_int32_t forwardedFrames;
+
+		ForwardEncodedAudioFrames(
+			m_encoder, 
+			m_startTimestamp 
+				+ SamplesToTicks(m_encodedForwardedSamples),
+			&forwardedSamples,
+			&forwardedFrames);
+
+		m_encodedForwardedSamples += forwardedSamples;
+		m_encodedForwardedFrames += forwardedFrames;
+
+		m_encoder->Stop();
+		delete m_encoder;
+		m_encoder = NULL;
 	}
 
 	close(m_audioDevice);
 	m_audioDevice = -1;
-
-	m_encoder->Stop();
-	delete m_encoder;
-	m_encoder = NULL;
 
 	free(m_rawFrameBuffer);
 	m_rawFrameBuffer = NULL;
@@ -115,28 +132,14 @@ void COSSAudioSource::DoStopCapture()
 bool COSSAudioSource::Init(void)
 {
 	m_startTimestamp = 0;
-	m_frameNumber = 0;
 
 	if (m_pConfig->m_audioEncode) {
 		if (!InitEncoder()) {
 			goto init_failure;
 		}
 
-		if (m_frameType == CMediaFrame::Mp3AudioFrame) {
-			// TBD this may no longer be needed
-			m_rawSamplesPerFrame = (u_int16_t)
-				((((float)m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE) 
-				/ (float)m_pConfig->m_audioEncodedSampleRate)
-				* m_pConfig->m_audioEncodedSamplesPerFrame) 
-				+ 0.5);
-		} else {
-			m_rawSamplesPerFrame = m_pConfig->m_audioEncodedSamplesPerFrame;
-		}
-
-		m_encodedFrameDuration = 
-			(m_pConfig->m_audioEncodedSamplesPerFrame * TimestampTicks) 
-			/ m_pConfig->m_audioEncodedSampleRate;
-
+		m_rawSamplesPerFrame = 
+			m_encoder->GetSamplesPerFrame();
 	} else {
 		m_rawSamplesPerFrame = 
 			m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
@@ -156,9 +159,10 @@ bool COSSAudioSource::Init(void)
 		goto init_failure;
 	}
 
-	m_rawFrameDuration = 
-		(m_rawSamplesPerFrame * TimestampTicks) 
-		/ m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE); 
+	m_rawForwardedSamples = 0;
+	m_rawForwardedFrames = 0;
+	m_encodedForwardedSamples = 0;
+	m_encodedForwardedFrames = 0;
 
 	// maximum number of passes in ProcessAudio, approx 1 sec.
 	m_maxPasses = 
@@ -234,92 +238,80 @@ bool COSSAudioSource::InitEncoder()
 		return false;
 	}
 
-	if (!strcasecmp(encoderName, AUDIO_ENCODER_FAAC)) {
-		m_frameType = CMediaFrame::AacAudioFrame;
-	} else if (!strcasecmp(encoderName, AUDIO_ENCODER_LAME)) {
-		m_frameType = CMediaFrame::Mp3AudioFrame;
-	}
-
 	return m_encoder->Init(m_pConfig);
 }
 
 void COSSAudioSource::ProcessAudio(void)
 {
+	bool rc;
+
 	// for efficiency, process 1 second before returning to check for commands
 	for (int pass = 0; pass < m_maxPasses; pass++) {
 
 		// get a new buffer, if we've handed off the old one
 		// currently only happens when we're doing a raw record
 		if (m_rawFrameBuffer == NULL) {
-			m_rawFrameBuffer = (u_int16_t*)malloc(m_rawFrameSize);
-			if (m_rawFrameBuffer == NULL) {
-				debug_message("malloc error");
-				break;
-			}
+			m_rawFrameBuffer = (u_int16_t*)Malloc(m_rawFrameSize);
 		}
 
 		// read a frame's worth of raw PCM data
 		u_int32_t bytesRead = 
 			read(m_audioDevice, m_rawFrameBuffer, m_rawFrameSize); 
 
-		if (bytesRead <= 0) {
+		if (bytesRead < m_rawFrameSize) {
 			continue;
 		}
 
+		Timestamp now = GetTimestamp();
+
 		if (m_startTimestamp == 0) {
-			m_startTimestamp = GetTimestamp() - m_rawFrameDuration;
+			m_startTimestamp = now - SamplesToTicks(m_rawSamplesPerFrame);
 		}
 
-		// encode audio frame to MP3
+		// encode audio frame
 		if (m_pConfig->m_audioEncode) {
-			m_encoder->EncodeSamples(m_rawFrameBuffer, bytesRead);
 
-			ForwardEncodedFrames();
+			rc = m_encoder->EncodeSamples(m_rawFrameBuffer, bytesRead);
+
+			if (!rc) {
+				debug_message("oss audio failed to encode");
+			}
+
+			u_int32_t forwardedSamples;
+			u_int32_t forwardedFrames;
+
+			ForwardEncodedAudioFrames(
+				m_encoder, 
+				m_startTimestamp 
+					+ SamplesToTicks(m_encodedForwardedSamples),
+				&forwardedSamples,
+				&forwardedFrames);
+
+			m_encodedForwardedSamples += forwardedSamples;
+			m_encodedForwardedFrames += forwardedFrames;
 		}
 
 		// if desired, forward raw audio to sinks
 		if (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_AUDIO)) {
+
 			CMediaFrame* pFrame =
-				new CMediaFrame(CMediaFrame::PcmAudioFrame, 
-					m_rawFrameBuffer, bytesRead,
-					0, m_rawFrameDuration);
+				new CMediaFrame(
+					CMediaFrame::PcmAudioFrame, 
+					m_rawFrameBuffer, 
+					m_rawFrameSize,
+					m_startTimestamp + SamplesToTicks(m_rawForwardedSamples),
+					m_rawSamplesPerFrame,
+					m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE));
 			ForwardFrame(pFrame);
 			delete pFrame;
+
+			m_rawForwardedSamples += m_rawSamplesPerFrame;
+			m_rawForwardedFrames++;
 
 			// we'll get a new buffer on the next pass
 			m_rawFrameBuffer = NULL;
 		}
 	}
-}
-
-u_int16_t COSSAudioSource::ForwardEncodedFrames(void)
-{
-	u_int8_t* pFrame;
-	u_int32_t frameLength;
-	u_int16_t numForwarded = 0;
-
-	while (m_encoder->GetEncodedSamples(&pFrame, &frameLength)) {
-		// sanity check
-		if (pFrame == NULL || frameLength == 0) {
-			break;
-		}
-
-		// forward the encoded frame to sinks
-		Timestamp frameTimestamp = m_startTimestamp 
-			+ (m_frameNumber * m_encodedFrameDuration);
-
-		CMediaFrame* pMediaFrame =
-			new CMediaFrame(m_frameType,
-				pFrame, frameLength,
-				frameTimestamp, m_encodedFrameDuration);
-		ForwardFrame(pMediaFrame);
-		delete pMediaFrame;
-
-		m_frameNumber++;
-		numForwarded++;
-	}
-
-	return numForwarded;
 }
 
 bool CAudioCapabilities::ProbeDevice()
@@ -358,7 +350,7 @@ bool CAudioCapabilities::ProbeDevice()
 		}
 
 		// valid sampling rate
-		m_samplingRates[m_numSamplingRates++] = samplingRate;
+		m_samplingRates[m_numSamplingRates++] = targetRate;
 	}
 
 	// zero out remaining sampling rate entries

@@ -32,6 +32,8 @@
 #include "media_time.h"
 #include "video_util_tv.h"
 
+#define NUM_FILE_HISTORY		8
+
 #define FILE_SOURCE_MP4			"mp4"
 #define FILE_SOURCE_MPEG2		"mpg"
 
@@ -44,6 +46,8 @@
 #define AUDIO_ENCODING_PCM16	"PCM16"
 #define AUDIO_ENCODING_MP3		"MP3"
 #define AUDIO_ENCODING_AAC		"AAC"
+#define AUDIO_ENCODING_AC3		"AC3"
+#define AUDIO_ENCODING_VORBIS	"VORBIS"
 
 #define VIDEO_SOURCE_V4L		"V4L"
 
@@ -58,10 +62,16 @@
 #define VIDEO_ENCODING_MPEG4	"MPEG4"
 #define VIDEO_ENCODING_H26L		"H26L"
 
+#define VIDEO_NTSC_FRAME_RATE	((float)29.97)
+#define VIDEO_PAL_FRAME_RATE	((float)25.00)
+
 #define VIDEO_STD_ASPECT_RATIO 	((float)1.33)	// standard 4:3
 #define VIDEO_LB1_ASPECT_RATIO 	((float)2.35)	// typical "widescreen" format
 #define VIDEO_LB2_ASPECT_RATIO 	((float)1.85)	// alternate widescreen format
 #define VIDEO_LB3_ASPECT_RATIO 	((float)1.78)	// hdtv 16:9
+
+#define MP3_MPEG1_SAMPLES_PER_FRAME	1152	// for MPEG-1 bitrates
+#define MP3_MPEG2_SAMPLES_PER_FRAME	576		// for MPEG-2 bitrates
 
 // forward declarations
 class CVideoCapabilities;
@@ -79,6 +89,14 @@ enum {
 	CONFIG_APP_REAL_TIME_SCHEDULER,
 	CONFIG_APP_DURATION,
 	CONFIG_APP_DURATION_UNITS,
+	CONFIG_APP_FILE_0,
+	CONFIG_APP_FILE_1,
+	CONFIG_APP_FILE_2,
+	CONFIG_APP_FILE_3,
+	CONFIG_APP_FILE_4,
+	CONFIG_APP_FILE_5,
+	CONFIG_APP_FILE_6,
+	CONFIG_APP_FILE_7,
 
 	CONFIG_AUDIO_ENABLE,
 	CONFIG_AUDIO_SOURCE_TYPE,
@@ -155,6 +173,30 @@ static SConfigVariable MyConfigVariables[] = {
 
 	{ CONFIG_APP_DURATION_UNITS, "durationUnits", 
 		CONFIG_TYPE_INTEGER, (config_integer_t)60, },
+
+	{ CONFIG_APP_FILE_0, "file0", 
+		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_APP_FILE_1, "file1", 
+		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_APP_FILE_2, "file2", 
+		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_APP_FILE_3, "file3", 
+		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_APP_FILE_4, "file4", 
+		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_APP_FILE_5, "file5", 
+		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_APP_FILE_6, "file6", 
+		CONFIG_TYPE_STRING, "", },
+
+	{ CONFIG_APP_FILE_7, "file7", 
+		CONFIG_TYPE_STRING, "", },
 
 	// AUDIO
 
@@ -242,7 +284,7 @@ static SConfigVariable MyConfigVariables[] = {
 		CONFIG_TYPE_FLOAT, VIDEO_STD_ASPECT_RATIO },
 
 	{ CONFIG_VIDEO_FRAME_RATE, "videoFrameRate", 
-		CONFIG_TYPE_INTEGER, (config_integer_t)15, },
+		CONFIG_TYPE_FLOAT, VIDEO_NTSC_FRAME_RATE, },
 
 	{ CONFIG_VIDEO_KEY_FRAME_INTERVAL, "videoKeyFrameInterval", 
 		CONFIG_TYPE_FLOAT, (float)2.0, },
@@ -327,6 +369,7 @@ public:
 
 	// recalculate derived values
 	void Update();
+	void UpdateFileHistory(char* fileName);
 	void UpdateVideo();
 	void UpdateAudio();
 	void UpdateRecord();
@@ -359,8 +402,6 @@ public:
 	// derived, shared audio configuration
 	CAudioCapabilities* m_audioCapabilities;
 	bool		m_audioEncode;
-	u_int32_t	m_audioEncodedSampleRate;
-	u_int16_t	m_audioEncodedSamplesPerFrame;
 
 	// derived, shared file configuration
 	u_int64_t	m_recordEstFileSize;

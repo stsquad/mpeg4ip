@@ -30,8 +30,11 @@
 class CMediaFrame {
 public:
 	CMediaFrame(u_int16_t type = 0, 
-		void* pData = NULL, u_int32_t dataLength = 0, 
-		Timestamp timestamp = 0, Duration duration = 0) {
+		void* pData = NULL, 
+		u_int32_t dataLength = 0, 
+		Timestamp timestamp = 0, 
+		Duration duration = 0, 
+		u_int32_t durationScale = TimestampTicks) {
 
 		m_pMutex = SDL_CreateMutex();
 		if (m_pMutex == NULL) {
@@ -43,6 +46,7 @@ public:
 		m_dataLength = dataLength;
 		m_timestamp = timestamp;
 		m_duration = duration;
+		m_durationScale = durationScale;
 	}
 
 	void AddReference(void) {
@@ -86,12 +90,15 @@ public:
 
 	// predefined types of frames
 	static const u_int16_t UndefinedFrame 	=	0;
+
 	static const u_int16_t PcmAudioFrame	=	1;
 	static const u_int16_t Mp3AudioFrame 	=	2;
 	static const u_int16_t AacAudioFrame 	=	3;
-	static const u_int16_t RawYuvVideoFrame	=	4;
-	static const u_int16_t Mpeg4VideoFrame	=	5;
-	static const u_int16_t ReconstructYuvVideoFrame 	=	6;
+	static const u_int16_t VorbisAudioFrame	=	4;
+
+	static const u_int16_t RawYuvVideoFrame	=	11;
+	static const u_int16_t Mpeg4VideoFrame	=	12;
+	static const u_int16_t ReconstructYuvVideoFrame 	=	13;
 
 	// get methods for properties
 
@@ -110,6 +117,17 @@ public:
 	Duration GetDuration(void) {
 		return m_duration;
 	}
+	u_int32_t GetDurationScale(void) {
+		return m_durationScale;
+	}
+
+	u_int32_t ConvertDuration(u_int32_t newScale) {
+		if (m_durationScale == newScale) {
+			return m_duration;	// for newer code
+		}
+		// for older code
+		return (((m_duration * newScale) / (m_durationScale >> 1)) + 1) >> 1; 
+	}
 
 protected:
 	SDL_mutex*	m_pMutex;
@@ -119,6 +137,7 @@ protected:
 	u_int32_t 	m_dataLength;
 	Timestamp	m_timestamp;
 	Duration 	m_duration;
+	u_int32_t	m_durationScale;
 };
 
 #endif /* __MEDIA_FRAME_H__ */

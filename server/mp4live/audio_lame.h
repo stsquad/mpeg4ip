@@ -23,29 +23,41 @@
 #define __AUDIO_LAME_H__
 
 #include "audio_encoder.h"
-
 #include <lame.h>
-#include "mp3.h"
 
 class CLameAudioEncoder : public CAudioEncoder {
 public:
 	CLameAudioEncoder();
 
 	bool Init(
-		CLiveConfig* pConfig, bool realTime = true);
+		CLiveConfig* pConfig, 
+		bool realTime = true);
+
+	u_int16_t GetFrameType() {
+		return CMediaFrame::Mp3AudioFrame;
+	}
+
+	u_int32_t GetSamplesPerFrame();
 
 	bool EncodeSamples(
-		u_int16_t* pBuffer, u_int32_t bufferLength);
+		u_int16_t* pBuffer, 
+		u_int32_t bufferLength);
+
+	bool EncodeSamples(
+		u_int16_t* pLeftBuffer,
+		u_int16_t* pRightBuffer, 
+		u_int32_t bufferLength);
 
 	bool GetEncodedSamples(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength);
+		u_int8_t** ppBuffer, 
+		u_int32_t* pBufferLength,
+		u_int32_t* pNumSamples);
 
 	void Stop();
 
 protected:
 	lame_global_flags	m_lameParams;
-	u_int16_t*			m_leftBuffer;
-	u_int16_t*			m_rightBuffer;
+	u_int32_t			m_samplesPerFrame;
 	u_int8_t*			m_mp3FrameBuffer;
 	u_int32_t			m_mp3FrameBufferLength;
 	u_int32_t			m_mp3FrameBufferSize;

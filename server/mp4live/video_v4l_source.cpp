@@ -71,7 +71,13 @@ int CV4LVideoSource::ThreadMain(void)
 		}
 
 		if (m_capture) {
-			ProcessVideo();
+			try {
+				ProcessVideo();
+			}
+			catch (...) {
+				DoStopCapture();
+				break;
+			}
 		}
 	}
 
@@ -116,15 +122,6 @@ bool CV4LVideoSource::Init(void)
 		return false;
 	}
 
-	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) == VIDEO_MODE_NTSC) {
-		m_rawFrameRate = NTSC_INT_FPS;
-	} else {
-		m_rawFrameRate = PAL_INT_FPS;
-	}
-	InitSampleFrames(
-		m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE), 
-		m_rawFrameRate);
-
 	InitSizes();
 
 	if (!InitEncoder()) {
@@ -133,11 +130,21 @@ bool CV4LVideoSource::Init(void)
 		return false;
 	}
 
-	m_rawFrameNumber = 0xFFFFFFFF;
-	m_rawFrameDuration = TimestampTicks / m_rawFrameRate;
+	if (m_pConfig->GetIntegerValue(CONFIG_VIDEO_SIGNAL) == VIDEO_MODE_NTSC) {
+		m_rawFrameRate = VIDEO_NTSC_FRAME_RATE;
+	} else {
+		m_rawFrameRate = VIDEO_PAL_FRAME_RATE;
+	}
+	m_rawFrameNumber = 0;
+	m_rawFrameDuration = (Duration)
+		((TimestampTicks / m_rawFrameRate) + 0.5);
+
 	m_encodedFrameNumber = 0;
-	m_targetFrameDuration = TimestampTicks 
-		/ m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
+	m_targetFrameDuration = (Duration)
+		((TimestampTicks / m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE)) 
+			+ 0.5);
+
+	m_maxPasses = (u_int8_t)(m_rawFrameRate + 0.5);
 
 	m_prevYuvImage = NULL;
 	m_prevReconstructImage = NULL;
@@ -145,8 +152,8 @@ bool CV4LVideoSource::Init(void)
 	m_prevVopBufLength = 0;
 
 	m_skippedFrames = 0;
-	m_accumDrift = 0;
-	m_maxDrift = m_targetFrameDuration;
+	m_encodingDrift = 0;
+	m_encodingMaxDrift = m_targetFrameDuration;
 
 	return true;
 }
@@ -355,25 +362,6 @@ void CV4LVideoSource::SetVideoAudioMute(bool mute)
 	}
 }
 
-void CV4LVideoSource::InitSampleFrames(u_int16_t targetFps, u_int16_t rawFps)
-{
-	float faccum = 0.0;
-	float fout = 1.0;
-	float epsilon = 0.01;
-	float ratio = (float)targetFps / (float)rawFps;
-	u_int16_t f;
-
-	for (f = 0; f < rawFps; f++) {
-		faccum += ratio;
-		if (faccum + epsilon >= fout && fout <= (float)targetFps) {
-			fout += 1.0;
-			m_sampleFrames[f] = true;
-		} else {
-			m_sampleFrames[f] = false;
-		}
-	}
-}
-
 void CalculateVideoFrameSize(CLiveConfig* pConfig)
 {
 	u_int16_t frameHeight;
@@ -466,33 +454,36 @@ void CV4LVideoSource::ProcessVideo(void)
 	u_int8_t* vImage;
 	Duration prevFrameDuration = 0;
 
-	// for efficiency, process 1 second before returning to check for commands
-	for (int pass = 0; pass < m_rawFrameRate; pass++) {
+	// for efficiency, process ~1 second before returning to check for commands
+	for (int pass = 0; pass < m_maxPasses; pass++) {
 
 		// get next frame from video capture device
 		m_encodeHead = AcquireFrame();
 		if (m_encodeHead == -1) {
 			continue;
 		}
+
 		Timestamp frameTimestamp = GetTimestamp();
-		m_rawFrameNumber++;
 
 		if (m_rawFrameNumber == 0) {
 			m_startTimestamp = frameTimestamp;
-			m_elapsedDuration = 0;
+			m_targetElapsedDuration = 0;
 		}
+		m_rawFrameNumber++;
 
-		// check if we want this frame (to match target fps)
-		if (!m_sampleFrames[m_rawFrameNumber % m_rawFrameRate]) {
+		Duration elapsedTime = frameTimestamp - m_startTimestamp;
+
+		// drop raw frames as needed to match target frame rate
+		if (m_targetElapsedDuration >= elapsedTime + m_rawFrameDuration) {
 			goto release;
 		}
 
-		// check if we are falling behind
-		if (m_accumDrift >= m_maxDrift) {
-			if (m_accumDrift <= m_targetFrameDuration) {
-				m_accumDrift = 0;
+		// check if we are falling behind due to encoding speed
+		if (m_encodingDrift >= m_encodingMaxDrift) {
+			if (m_encodingDrift <= m_targetFrameDuration) {
+				m_encodingDrift = 0;
 			} else {
-				m_accumDrift -= m_targetFrameDuration;
+				m_encodingDrift -= m_targetFrameDuration;
 			}
 
 			// skip this frame			
@@ -502,11 +493,8 @@ void CV4LVideoSource::ProcessVideo(void)
 
 		// perform colorspace conversion if necessary
 		if (m_pConfig->m_videoNeedRgbToYuv) {
-			yuvImage = (u_int8_t*)malloc(m_yuvRawSize);
-			if (yuvImage == NULL) {
-				debug_message("Can't malloc YUV buffer!");
-				goto release;
-			}
+			yuvImage = (u_int8_t*)Malloc(m_yuvRawSize);
+
 			RGB2YUV(
 				m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_WIDTH), 
 				m_pConfig->GetIntegerValue(CONFIG_VIDEO_RAW_HEIGHT), 
@@ -538,27 +526,38 @@ void CV4LVideoSource::ProcessVideo(void)
 			m_wantKeyFrame = false;
 		}
 
-		// calculate frame duration
-		// making an adjustment to account 
-		// for any raw frames dropped by the driver
+		m_targetElapsedDuration += m_targetFrameDuration;
+
+		// calculate previous frame duration
 		if (m_rawFrameNumber > 0) {
-			Duration elapsedTime = 
-				frameTimestamp - m_startTimestamp;
+
+			// first adjust due to skipped frames
+			Duration prevFrameAdjustment = 
+				m_skippedFrames * m_targetFrameDuration;
 
 			prevFrameDuration = 
-				(m_skippedFrames + 1) * m_targetFrameDuration;
+				m_targetFrameDuration + prevFrameAdjustment;
+			m_targetElapsedDuration += prevFrameAdjustment;
 
-			Duration elapsedDuration = 
-				m_elapsedDuration + prevFrameDuration;
+			// check our duration against real elasped time
+			Duration lag = elapsedTime - m_targetElapsedDuration;
 
-			Duration skew = elapsedTime - elapsedDuration;
+			if (lag > 0) {
+				// adjust by integral number of target duration units
+				prevFrameAdjustment = 
+					(lag / m_targetFrameDuration) * m_targetFrameDuration;
 
-			if (skew > 0) {
-				prevFrameDuration += 
-					(skew / m_targetFrameDuration) * m_targetFrameDuration;
+#ifdef NOTDEF
+if (prevFrameAdjustment) {
+	printf("elapsedTime %llu targetElapsedDuration %llu\n",
+		elapsedTime, m_targetElapsedDuration);
+	printf("lag adjustment %llu\n", prevFrameAdjustment);
+}
+#endif
+
+				prevFrameDuration += prevFrameAdjustment;
+				m_targetElapsedDuration += prevFrameAdjustment;
 			}
-
-			m_elapsedDuration += prevFrameDuration;
 		}
 
 		// forward encoded video to sinks
@@ -596,23 +595,19 @@ void CV4LVideoSource::ProcessVideo(void)
 				delete pFrame;
 			}
 
-			m_prevYuvImage = (u_int8_t*)malloc(m_yuvSize);
-			if (m_prevYuvImage == NULL) {
-				debug_message("Can't malloc YUV buffer!");
-			} else {
-				memcpy(m_prevYuvImage, 
-					yImage, 
-					m_pConfig->m_ySize);
-				memcpy(m_prevYuvImage + m_pConfig->m_ySize, 
-					uImage, 
-					m_pConfig->m_uvSize);
-				memcpy(m_prevYuvImage + m_pConfig->m_ySize 
-						+ m_pConfig->m_uvSize, 
-					vImage, 
-					m_pConfig->m_uvSize);
+			m_prevYuvImage = (u_int8_t*)Malloc(m_yuvSize);
 
-				m_prevYuvImageTimestamp = frameTimestamp;
-			}
+			memcpy(m_prevYuvImage, 
+				yImage, 
+				m_pConfig->m_ySize);
+			memcpy(m_prevYuvImage + m_pConfig->m_ySize, 
+				uImage, 
+				m_pConfig->m_uvSize);
+			memcpy(m_prevYuvImage + m_pConfig->m_ySize + m_pConfig->m_uvSize, 
+				vImage, 
+				m_pConfig->m_uvSize);
+
+			m_prevYuvImageTimestamp = frameTimestamp;
 		}
 
 		// forward reconstructed video to sinks
@@ -630,16 +625,13 @@ void CV4LVideoSource::ProcessVideo(void)
 				delete pFrame;
 			}
 
-			m_prevReconstructImage = (u_int8_t*)malloc(m_yuvSize);
-			if (m_prevReconstructImage == NULL) {
-				debug_message("Can't malloc YUV buffer!");
-			} else {
-				m_encoder->GetReconstructedImage(
-					m_prevReconstructImage,
-					m_prevReconstructImage + m_pConfig->m_ySize,
-					m_prevReconstructImage + m_pConfig->m_ySize 
-						+ m_pConfig->m_uvSize);
-			}
+			m_prevReconstructImage = (u_int8_t*)Malloc(m_yuvSize);
+
+			m_encoder->GetReconstructedImage(
+				m_prevReconstructImage,
+				m_prevReconstructImage + m_pConfig->m_ySize,
+				m_prevReconstructImage + m_pConfig->m_ySize 
+					+ m_pConfig->m_uvSize);
 		}
 
 		// reset skipped frames
@@ -647,15 +639,10 @@ void CV4LVideoSource::ProcessVideo(void)
 
 		// calculate how we're doing versus target frame rate
 		// this is used to decide if we need to drop frames
-		Duration encodingTime;
-		encodingTime = GetTimestamp() - frameTimestamp;
-		if (encodingTime >= m_targetFrameDuration) {
-			m_accumDrift += encodingTime - m_targetFrameDuration;
-		} else {
-			m_accumDrift -= m_targetFrameDuration - encodingTime;
-			if (m_accumDrift < 0) {
-				m_accumDrift = 0;
-			}
+		m_encodingDrift += 
+			(GetTimestamp() - frameTimestamp) - m_targetFrameDuration;
+		if (m_encodingDrift < 0) {
+			m_encodingDrift = 0;
 		}
 
 release:

@@ -23,8 +23,6 @@
 #include "mp4live.h"
 #include "file_mp4_recorder.h"
 #include "video_v4l_source.h"
-#include "mp3.h"
-#include "transcoder.h"
 
 
 int CMp4Recorder::ThreadMain(void) 
@@ -85,12 +83,8 @@ void CMp4Recorder::DoStartRecord()
 
 	m_canRecordAudio = true;
 
-	m_rawAudioTimeScale = 
+	m_rawAudioTimeScale = m_encodedAudioTimeScale = 
 		m_pConfig->GetIntegerValue(CONFIG_AUDIO_SAMPLE_RATE);
-
-	m_encodedAudioTimeScale = 
-		m_pConfig->m_audioEncodedSampleRate;
-	m_encodedAudioFrameDuration = MP4_INVALID_DURATION;
 
 	if (m_pConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)
 	  && (m_pConfig->GetBoolValue(CONFIG_RECORD_RAW_VIDEO)
@@ -190,7 +184,7 @@ void CMp4Recorder::DoStartRecord()
 			m_encodedAudioTrackId = MP4AddAudioTrack(
 				m_mp4File, 
 				m_encodedAudioTimeScale, 
-				m_encodedAudioFrameDuration,
+				MP4_INVALID_DURATION,
 				audioType);
 
 			if (m_encodedAudioTrackId == MP4_INVALID_TRACK_ID) {
@@ -257,18 +251,12 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 	  && m_pConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO)) {
 
 		if (m_canRecordAudio) {
-
-			if (m_encodedAudioFrameDuration == MP4_INVALID_DURATION) {
-				m_encodedAudioFrameDuration = 
-					m_pConfig->m_audioEncodedSamplesPerFrame;
-			}
-
 			MP4WriteSample(
 				m_mp4File,
 				m_encodedAudioTrackId,
 				(u_int8_t*)pFrame->GetData(), 
 				pFrame->GetDataLength(),
-				m_encodedAudioFrameDuration);
+				pFrame->ConvertDuration(m_encodedAudioTimeScale));
 
 			m_encodedAudioFrameNum++;
 		}
@@ -286,7 +274,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 			m_rawVideoTrackId,
 			(u_int8_t*)pFrame->GetData(), 
 			pFrame->GetDataLength(),
-			ConvertVideoDuration(pFrame->GetDuration()));
+			pFrame->ConvertDuration(m_videoTimeScale));
 
 		m_rawVideoFrameNum++;
 
@@ -296,7 +284,7 @@ void CMp4Recorder::DoWriteFrame(CMediaFrame* pFrame)
 		u_int8_t* pSample = NULL;
 		u_int32_t sampleLength = 0;
 		Duration sampleDuration = 
-			ConvertVideoDuration(pFrame->GetDuration());
+			pFrame->ConvertDuration(m_videoTimeScale);
 		bool isIFrame = (MP4AV_Mpeg4GetVopType(
 			(u_int8_t*)pFrame->GetData(), pFrame->GetDataLength()) == 'I');
 

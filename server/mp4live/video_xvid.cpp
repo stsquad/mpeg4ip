@@ -53,7 +53,7 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	xvidEncParams.time_incr_bits = m_pConfig->m_videoTimeIncrBits;
 	xvidEncParams.fincr = 1001;
 	xvidEncParams.fbase = 
-		(int)(1001 * m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE));
+		(int)(1001 * m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE));
 	xvidEncParams.bitrate = 
 		m_pConfig->GetIntegerValue(CONFIG_VIDEO_BIT_RATE) * 1000;
 	xvidEncParams.rc_period = 2000;
@@ -62,7 +62,7 @@ bool CXvidVideoEncoder::Init(CLiveConfig* pConfig, bool realTime)
 	xvidEncParams.min_quantizer = 1;
 	xvidEncParams.max_quantizer = 31;
 	xvidEncParams.max_key_interval = (int) 
-		(m_pConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE) 
+		(m_pConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE) 
 		 * m_pConfig->GetFloatValue(CONFIG_VIDEO_KEY_FRAME_INTERVAL));
 	if (xvidEncParams.max_key_interval == 0) {
 		xvidEncParams.max_key_interval = 1;

@@ -30,11 +30,6 @@
 #include "media_node.h"
 #include "video_encoder.h"
 
-#define NTSC_INT_FPS	30
-#define PAL_INT_FPS		25
-#define SECAM_INT_FPS	25
-#define MAX_INT_FPS		NTSC_INT_FPS
-
 void CalculateVideoFrameSize(CLiveConfig* pConfig);
 
 class CV4LVideoSource : public CMediaSource {
@@ -48,7 +43,7 @@ public:
 		m_wantKeyFrame = false;
 	}
 
-	u_int32_t GetNumEncodedFrames() {
+	u_int32_t GetNumEncodedVideoFrames() {
 		return m_encodedFrameNumber;
 	}
 
@@ -67,7 +62,6 @@ protected:
 	bool InitDevice(void);
 	void ReleaseDevice(void);
 
-	void InitSampleFrames(u_int16_t targetFps, u_int16_t rawFps);
 	void InitSizes(void);
 
 	bool InitEncoder(void);
@@ -85,6 +79,7 @@ protected:
 
 protected:
 	bool				m_capture;
+	u_int8_t			m_maxPasses;
 
 	int					m_videoDevice;
 	struct video_mbuf	m_videoMbuf;
@@ -93,17 +88,16 @@ protected:
 	int8_t				m_captureHead;
 	int8_t				m_encodeHead;
 
-	bool				m_sampleFrames[MAX_INT_FPS];
+	float				m_rawFrameRate;
 	u_int32_t			m_rawFrameNumber;
 	u_int32_t			m_encodedFrameNumber;
 	u_int32_t			m_skippedFrames;
-	u_int16_t			m_rawFrameRate;
 	Timestamp			m_startTimestamp;
-	Duration			m_elapsedDuration;
+	Duration			m_targetElapsedDuration;
 	Duration			m_rawFrameDuration;
 	Duration			m_targetFrameDuration;
-	Duration			m_accumDrift;
-	Duration			m_maxDrift;
+	Duration			m_encodingDrift;
+	Duration			m_encodingMaxDrift;
 	bool				m_wantKeyFrame;
 
 	u_int32_t			m_yuvRawSize;

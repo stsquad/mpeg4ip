@@ -21,6 +21,14 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
+inline void* Malloc(size_t size) {
+	void* p = malloc(size);
+	if (p == NULL && size > 0) {
+		throw;
+	}
+	return p;
+} 
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -28,6 +28,7 @@
 static GtkWidget *dialog;
 
 static char* source_type;
+static GtkWidget *source_combo;
 static GtkWidget *source_entry;
 static GtkWidget *browse_button;
 static bool source_modified;
@@ -328,14 +329,6 @@ static void on_source_leave(GtkWidget *widget, gpointer *data)
 	ChangeSource();
 }
 
-static void on_source_key(GtkWidget *widget, gpointer *data)
-{
-	if (widget == source_entry
-	  && (((GdkEventKey*)data)->keyval & 0xFF) == 0x0D) {
-		on_source_leave(widget, NULL);
-	}
-}
-
 char* GetChannelName(size_t index, void* pUserData)
 {
 	return ((struct CHANNEL*)pUserData)[index].name;
@@ -442,11 +435,12 @@ void ChangeSignal(u_int8_t newIndex)
 			GTK_ADJUSTMENT(frame_rate_ntsc_adjustment));
 	} else {
 		// PAL or SECAM
-		int frameRate = gtk_spin_button_get_value_as_int(
+		float frameRate = gtk_spin_button_get_value_as_float(
 			GTK_SPIN_BUTTON(frame_rate_spinner));
-		if (frameRate > PAL_INT_FPS) {
+
+		if (frameRate > VIDEO_PAL_FRAME_RATE) {
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(frame_rate_spinner),
-				(gfloat)PAL_INT_FPS);
+				VIDEO_PAL_FRAME_RATE);
 		}
 		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(frame_rate_spinner),
 			GTK_ADJUSTMENT(frame_rate_pal_adjustment));
@@ -529,7 +523,7 @@ static bool ValidateAndSave(void)
 	}
 
 	// if previewing, stop video source
-	AVLive->StopVideoPreview();
+	AVFlow->StopVideoPreview();
 
 	// copy new values to config
 
@@ -539,13 +533,16 @@ static bool ValidateAndSave(void)
 	MyConfig->SetStringValue(CONFIG_VIDEO_SOURCE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(source_entry)));
 
+	MyConfig->UpdateFileHistory(
+		gtk_entry_get_text(GTK_ENTRY(source_entry)));
+
 	if (MyConfig->m_videoCapabilities != pVideoCaps) {
 		delete MyConfig->m_videoCapabilities;
 		MyConfig->m_videoCapabilities = pVideoCaps;
 		pVideoCaps = NULL;
 	}
 
-	if (!strcasecmp(source_type, VIDEO_SOURCE_V4L) 
+	if (strcasecmp(source_type, VIDEO_SOURCE_V4L) 
 	  && default_file_audio_source >= 0) {
 		MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_TYPE,
 			source_type);
@@ -591,8 +588,9 @@ static bool ValidateAndSave(void)
 	MyConfig->SetFloatValue(CONFIG_VIDEO_ASPECT_RATIO,
 		aspectValues[aspectIndex]);
 
-	MyConfig->SetIntegerValue(CONFIG_VIDEO_FRAME_RATE,
-		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(frame_rate_spinner)));
+	MyConfig->SetFloatValue(CONFIG_VIDEO_FRAME_RATE,
+		gtk_spin_button_get_value_as_float(
+			GTK_SPIN_BUTTON(frame_rate_spinner)));
 
 	MyConfig->SetIntegerValue(CONFIG_VIDEO_BIT_RATE,
 		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(bit_rate_spinner)));
@@ -606,7 +604,7 @@ static bool ValidateAndSave(void)
 
 	// restart video source
 	if (MyConfig->GetBoolValue(CONFIG_VIDEO_ENABLE)) {
-		AVLive->StartVideoPreview();
+		AVFlow->StartVideoPreview();
 	}
 
 	// refresh display of settings in main window
@@ -731,20 +729,23 @@ void CreateVideoDialog (void)
 		source_type = "";
 	}
 
-	source_entry = gtk_entry_new_with_max_length(256);
-	gtk_entry_set_text(GTK_ENTRY(source_entry), 
-		MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
 	source_modified = false;
-	gtk_signal_connect(GTK_OBJECT(source_entry),
-		 "key_press_event",
-		 GTK_SIGNAL_FUNC(on_source_key),
-		 NULL);
+
+	source_combo = CreateFileCombo(
+		MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
+
+	source_entry = GTK_COMBO(source_combo)->entry;
+
+	GtkWidget* source_list = GTK_COMBO(source_combo)->list;
+	gtk_signal_connect(GTK_OBJECT(source_list), "selection_changed",
+		GTK_SIGNAL_FUNC(ChangeSource), NULL);
+
 	SetEntryValidator(GTK_OBJECT(source_entry),
-		GTK_SIGNAL_FUNC(on_source_changed),
+		GTK_SIGNAL_FUNC(on_source_changed), 
 		GTK_SIGNAL_FUNC(on_source_leave));
 
-	gtk_widget_show(source_entry);
-	gtk_box_pack_start(GTK_BOX(hbox2), source_entry, TRUE, TRUE, 0);
+	gtk_widget_show(source_combo);
+	gtk_box_pack_start(GTK_BOX(hbox2), source_combo, TRUE, TRUE, 0);
 
 	// browse button
 	browse_button = gtk_button_new_with_label(" Browse... ");
@@ -851,20 +852,21 @@ void CreateVideoDialog (void)
 	gtk_box_pack_start(GTK_BOX(vbox), aspect_menu, FALSE, FALSE, 0);
 
 	frame_rate_pal_adjustment = gtk_adjustment_new(
-		MyConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE),
-		1, PAL_INT_FPS, 1, 0, 0);
+		MyConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE),
+		1, VIDEO_PAL_FRAME_RATE, 1, 0, 0);
 	gtk_object_ref(frame_rate_pal_adjustment);
+
 	frame_rate_ntsc_adjustment = gtk_adjustment_new(
-		MyConfig->GetIntegerValue(CONFIG_VIDEO_FRAME_RATE),
-		1, NTSC_INT_FPS, 1, 0, 0);
+		MyConfig->GetFloatValue(CONFIG_VIDEO_FRAME_RATE),
+		1, VIDEO_NTSC_FRAME_RATE, 1, 0, 0);
 	gtk_object_ref(frame_rate_ntsc_adjustment);
 
 	if (signalIndex == 1) {
 		frame_rate_spinner = gtk_spin_button_new(
-			GTK_ADJUSTMENT(frame_rate_ntsc_adjustment), 1, 0);
+			GTK_ADJUSTMENT(frame_rate_ntsc_adjustment), 1, 2);
 	} else {
 		frame_rate_spinner = gtk_spin_button_new(
-			GTK_ADJUSTMENT(frame_rate_pal_adjustment), 1, 0);
+			GTK_ADJUSTMENT(frame_rate_pal_adjustment), 1, 2);
 	}
 	gtk_widget_show(frame_rate_spinner);
 	gtk_box_pack_start(GTK_BOX(vbox), frame_rate_spinner, FALSE, FALSE, 0);

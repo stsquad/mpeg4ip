@@ -42,8 +42,6 @@ CLiveConfig::CLiveConfig(
 	m_videoMaxVopSize = 128 * 1024;
 	m_audioCapabilities = NULL;
 	m_audioEncode = true;
-	m_audioEncodedSampleRate = 44100;
-	m_audioEncodedSamplesPerFrame = 1152;
 	m_recordEstFileSize = 0;
 }
 
@@ -59,6 +57,28 @@ void CLiveConfig::Update()
 	UpdateVideo();
 	UpdateAudio();
 	UpdateRecord();
+}
+
+void CLiveConfig::UpdateFileHistory(char* fileName)
+{
+	u_int8_t i;
+	u_int8_t end = NUM_FILE_HISTORY - 1;
+
+	// check if fileName is already in file history list
+	for (i = 0; i < end; i++) {
+		if (!strcmp(fileName, GetStringValue(CONFIG_APP_FILE_0 + i))) {
+			end = i; 
+		}
+	}
+
+	// move all entries down 1 position
+	for (i = end; i > 0; i--) {
+		SetStringValue(CONFIG_APP_FILE_0 + i, 
+			GetStringValue(CONFIG_APP_FILE_0 + i - 1));
+	}
+
+	// put new value in first position
+	SetStringValue(CONFIG_APP_FILE_0, fileName);
 }
 
 void CLiveConfig::UpdateVideo() 
@@ -87,9 +107,9 @@ void CLiveConfig::UpdateRecord()
 
 	if (GetBoolValue(CONFIG_VIDEO_ENABLE)) {
 		if (GetBoolValue(CONFIG_RECORD_RAW_VIDEO)) {
-			videoBytesPerSec +=
-				((m_videoWidth * m_videoHeight * 3) / 2)
-				* GetIntegerValue(CONFIG_VIDEO_FRAME_RATE);
+			videoBytesPerSec += (u_int32_t)
+				(((m_videoWidth * m_videoHeight * 3) / 2)
+				* GetFloatValue(CONFIG_VIDEO_FRAME_RATE) + 0.5);
 		}
 		if (GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO)) {
 			videoBytesPerSec +=

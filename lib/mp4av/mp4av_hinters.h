@@ -22,6 +22,8 @@
 #ifndef __MP4AV_HINTERS_INCLUDED__
 #define __MP4AV_HINTERS_INCLUDED__ 
 
+#include <mp4.h>
+
 #define MP4AV_DFLT_PAYLOAD_SIZE		1460
 
 // Audio Hinters

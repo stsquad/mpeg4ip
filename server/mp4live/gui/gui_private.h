@@ -30,8 +30,6 @@
 // From gui_main.cpp
 extern CLiveConfig* MyConfig;
 extern CAVMediaFlow* AVFlow;
-extern CAVMediaFlow* AVLive;
-extern CAVMediaFlow* AVTranscode;
 
 void NewVideoWindow(void);
 void DisplayVideoSettings(void);

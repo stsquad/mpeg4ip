@@ -33,15 +33,26 @@ public:
 	CMpeg2FileSource() : CMediaSource() {
 		m_source = false;
 		m_mpeg2File = NULL;
+
 		m_sourceVideo = false;
 		m_videoStream = 0;
 		m_videoEncoder = NULL;
 		m_wantKeyFrame = false;
+		m_videoFrameNumber = 0;
+
 		m_sourceAudio = false;
+		m_audioStream = 0;
+		m_audioEncode = false;
+		m_audioEncoder = NULL;
+		m_audioEncodedForwardedFrames = 0;
 	}
 
-	u_int32_t GetNumEncodedFrames() {
+	u_int32_t GetNumEncodedVideoFrames() {
 		return m_videoFrameNumber;
+	}
+
+	u_int32_t GetNumEncodedAudioFrames() {
+		return m_audioEncodedForwardedFrames;
 	}
 
 protected:
@@ -57,6 +68,10 @@ protected:
 	bool InitAudio(void);
 
 	void ProcessMedia(void);
+	void ProcessVideo(void);
+	void ProcessAudio(void);
+
+	Duration GetElapsedDuration(void);
 
 protected:
 	bool				m_source;
@@ -68,12 +83,32 @@ protected:
 	u_int32_t			m_videoFrameNumber;
 	Duration			m_videoFrameDuration;
 	bool				m_wantKeyFrame;
-	u_int8_t			m_maxPasses;
 
-	// LATER audio
+	Timestamp			m_videoStartTimestamp;
+	Duration			m_videoElapsedDuration;
+
 	bool				m_sourceAudio;
 	int					m_audioStream;
+
+	char*				m_audioSrcEncoding;
+	u_int8_t			m_audioSrcChannels;
+	u_int32_t			m_audioSrcSampleRate;
+	u_int16_t			m_audioSrcSamplesPerFrame;
+
+	bool				m_audioEncode;
 	CAudioEncoder*		m_audioEncoder;
+	u_int16_t			m_audioDstFrameType;
+	u_int32_t			m_audioMaxFrameLength;
+
+	u_int64_t			m_audioSrcSamples;
+	u_int32_t			m_audioSrcFrames;
+	u_int64_t			m_audioRawForwardedSamples;
+	u_int32_t			m_audioRawForwardedFrames;
+	u_int64_t			m_audioEncodedForwardedSamples;
+	u_int32_t			m_audioEncodedForwardedFrames;
+
+	Timestamp			m_audioStartTimestamp;
+	Duration			m_audioElapsedDuration;
 };
 
 #endif /* __FILE_MPEG2_SOURCE_H__ */

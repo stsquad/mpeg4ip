@@ -30,6 +30,7 @@ static GtkWidget *dialog;
 
 static char* source_type;
 static GtkWidget *source_entry;
+static GtkWidget *source_combo;
 static bool source_modified;
 static GtkWidget *browse_button;
 static GtkWidget *input_label;
@@ -225,14 +226,6 @@ static void on_source_leave(GtkWidget *widget, gpointer *data)
 	}
 
 	ChangeSource();
-}
-
-static void on_source_key(GtkWidget *widget, gpointer *data)
-{
-	if (widget == source_entry
-	  && (((GdkEventKey*)data)->keyval & 0xFF) == 0x0D) {
-		on_source_leave(widget, NULL);
-	}
 }
 
 static void on_input_menu_activate (GtkWidget *widget, gpointer data)
@@ -458,6 +451,9 @@ static bool ValidateAndSave(void)
 	MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_NAME,
 		gtk_entry_get_text(GTK_ENTRY(source_entry)));
 
+	MyConfig->UpdateFileHistory(
+		gtk_entry_get_text(GTK_ENTRY(source_entry)));
+
 	if (MyConfig->m_audioCapabilities != pAudioCaps) {
 		delete MyConfig->m_audioCapabilities;
 		MyConfig->m_audioCapabilities = pAudioCaps;
@@ -582,22 +578,31 @@ void CreateAudioDialog (void)
 	gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 0);
 
 	// source entry
-	source_type = 
-		MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
-	source_entry = gtk_entry_new_with_max_length(256);
-	gtk_entry_set_text(GTK_ENTRY(source_entry), 
-		MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+	char* type = MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_TYPE);
+	if (!strcasecmp(type, AUDIO_SOURCE_OSS)) {
+		source_type = AUDIO_SOURCE_OSS;
+	} else if (!strcasecmp(type, FILE_SOURCE_MP4)) {
+		source_type = FILE_SOURCE_MP4;
+	} else if (!strcasecmp(type, FILE_SOURCE_MPEG2)) {
+		source_type = FILE_SOURCE_MPEG2;
+	} else {
+		source_type = "";
+	}
+
+	// source entry
 	source_modified = false;
-	gtk_signal_connect(GTK_OBJECT(source_entry),
-		 "key_press_event",
-		 GTK_SIGNAL_FUNC(on_source_key),
-		 NULL);
+
+	source_combo = CreateFileCombo(
+		MyConfig->GetStringValue(CONFIG_AUDIO_SOURCE_NAME));
+
+	source_entry = GTK_COMBO(source_combo)->entry;
+
 	SetEntryValidator(GTK_OBJECT(source_entry),
 		GTK_SIGNAL_FUNC(on_source_changed),
 		GTK_SIGNAL_FUNC(on_source_leave));
 
-	gtk_widget_show(source_entry);
-	gtk_box_pack_start(GTK_BOX(hbox2), source_entry, TRUE, TRUE, 0);
+	gtk_widget_show(source_combo);
+	gtk_box_pack_start(GTK_BOX(hbox2), source_combo, TRUE, TRUE, 0);
 
 	// browse button
 	browse_button = gtk_button_new_with_label(" Browse... ");

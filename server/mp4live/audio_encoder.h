@@ -13,7 +13,7 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
  *		Dave Mackie		dmackie@cisco.com
@@ -23,17 +23,44 @@
 #define __AUDIO_ENCODER_H__
 
 #include "media_codec.h"
+#include "media_frame.h"
 
 class CAudioEncoder : public CMediaCodec {
 public:
 	CAudioEncoder() { };
 
+	virtual u_int16_t GetFrameType() = NULL;
+
+	virtual u_int32_t GetSamplesPerFrame() = NULL;
+
 	virtual bool EncodeSamples(
-		u_int16_t* pBuffer, u_int32_t bufferLength) = NULL;
+		u_int16_t* pBuffer, 
+		u_int32_t bufferLength) = NULL;
+
+	virtual bool EncodeSamples(
+		u_int16_t* pLeftBuffer, 
+		u_int16_t* pRightBuffer, 
+		u_int32_t bufferLength) = NULL;
 
 	virtual bool GetEncodedSamples(
-		u_int8_t** ppBuffer, u_int32_t* pBufferLength) = NULL;
+		u_int8_t** ppBuffer, 
+		u_int32_t* pBufferLength,
+		u_int32_t* pNumSamples) = NULL;
 
+
+	// utility routines
+
+	static bool InterleaveStereoSamples(
+		u_int16_t* pLeftBuffer, 
+		u_int16_t* pRightBuffer, 
+		u_int32_t srcNumSamples,
+		u_int16_t** ppDstBuffer);
+
+	static bool DeinterleaveStereoSamples(
+		u_int16_t* pSrcBuffer, 
+		u_int32_t srcNumSamples,
+		u_int16_t** ppLeftBuffer, 
+		u_int16_t** ppRightBuffer); 
 };
 
 CAudioEncoder* AudioEncoderCreate(const char* encoderName);

@@ -35,6 +35,7 @@ bool CMediaFlow::GetStatus(u_int32_t valueName, void* pValue)
 {
 	switch (valueName) {
 	case FLOW_STATUS_STARTED:
+		// TBD reflect stopped if all sources have stopped
 		*(u_int32_t*)pValue = m_started;
 		break;
 	default:
@@ -157,6 +158,8 @@ void CAVMediaFlow::Stop(void)
 		m_rtpTransmitter = NULL;
 	}
 
+	bool oneSource = (m_audioSource == m_videoSource);
+
 	if (m_audioSource) {
 		m_audioSource->StopThread();
 		delete m_audioSource;
@@ -164,8 +167,10 @@ void CAVMediaFlow::Stop(void)
 	}
 
 	if (m_videoSource && m_pConfig->IsFileVideoSource()) {
-		m_videoSource->StopThread();
-		delete m_videoSource;
+		if (!oneSource) {
+			m_videoSource->StopThread();
+			delete m_videoSource;
+		}
 		m_videoSource = NULL;
 	}
 
@@ -317,8 +322,7 @@ bool CAVMediaFlow::GetStatus(u_int32_t valueName, void* pValue)
 	switch (valueName) {
 	case FLOW_STATUS_VIDEO_ENCODED_FRAMES:
 		if (m_videoSource) {
-			*(u_int32_t*)pValue = 
-				((CV4LVideoSource*)m_videoSource)->GetNumEncodedFrames();
+			*(u_int32_t*)pValue = m_videoSource->GetNumEncodedVideoFrames();
 		} else {
 			*(u_int32_t*)pValue = 0;
 		}

@@ -52,3 +52,63 @@ CAudioEncoder* AudioEncoderCreate(const char* encoderName)
 	return NULL;
 }
 
+bool CAudioEncoder::InterleaveStereoSamples(
+	u_int16_t* pLeftBuffer, 
+	u_int16_t* pRightBuffer, 
+	u_int32_t srcNumSamples,
+	u_int16_t** ppDstBuffer)
+{
+	if (*ppDstBuffer == NULL) {
+		*ppDstBuffer = 
+			(u_int16_t*)malloc(srcNumSamples * 2 * sizeof(u_int16_t));
+
+		if (*ppDstBuffer == NULL) {
+			return false;
+		}
+	}
+
+	for (u_int32_t i = 0; i < srcNumSamples; i++) {
+		(*ppDstBuffer)[(i << 1)] = pLeftBuffer[i]; 
+		(*ppDstBuffer)[(i << 1) + 1] = pRightBuffer[i];
+	}
+
+	return true;
+}
+
+bool CAudioEncoder::DeinterleaveStereoSamples(
+	u_int16_t* pSrcBuffer, 
+	u_int32_t srcNumSamples,
+	u_int16_t** ppLeftBuffer, 
+	u_int16_t** ppRightBuffer)
+{
+	bool mallocedLeft = false;
+
+	if (*ppLeftBuffer == NULL) {
+		*ppLeftBuffer = 
+			(u_int16_t*)malloc((srcNumSamples >> 1) * sizeof(u_int16_t));
+		if (*ppLeftBuffer == NULL) {
+			return false;
+		}
+		mallocedLeft = true;
+	}
+
+	if (*ppRightBuffer == NULL) {
+		*ppRightBuffer = 
+			(u_int16_t*)malloc((srcNumSamples >> 1) * sizeof(u_int16_t));
+		if (*ppRightBuffer == NULL) {
+			if (mallocedLeft) {
+				free(*ppLeftBuffer);
+				*ppLeftBuffer = NULL;
+			}
+			return false;
+		}
+	}
+
+	for (u_int32_t i = 0; i < (srcNumSamples >> 1); i++) {
+		(*ppLeftBuffer)[i] = pSrcBuffer[(i << 1)];
+		(*ppRightBuffer)[i] = pSrcBuffer[(i << 1) + 1];
+	}
+
+	return true;
+}
+

@@ -26,6 +26,31 @@
 #include <mp4.h>
 #include <libmpeg3.h>
 
+GtkWidget* CreateFileCombo(char* entryText)
+{
+	GList* list = NULL;
+
+	list = g_list_append(list, entryText);
+
+	for (int i = 0; i < NUM_FILE_HISTORY; i++) {
+		char* fileName =
+			MyConfig->GetStringValue(CONFIG_APP_FILE_0 + i);
+		if (fileName == NULL || fileName[0] == '\0'
+		  || !strcmp(fileName, entryText)) {
+			continue;
+		}
+		list = g_list_append(list, fileName);
+	}
+
+	GtkWidget* combo = gtk_combo_new();
+	gtk_combo_set_popdown_strings(GTK_COMBO(combo), list);
+	gtk_combo_set_use_arrows_always(GTK_COMBO(combo), 1);
+
+	GtkWidget* entry = GTK_COMBO(combo)->entry;
+	gtk_entry_set_text(GTK_ENTRY(entry), entryText);
+	return combo;
+}
+
 static GtkWidget* FileSelection;
 static GtkWidget* FileEntry;
 static GtkSignalFunc FileOkFunc;
@@ -253,14 +278,13 @@ static GtkWidget* CreateMp4TrackMenu(
 				}
 			
 				snprintf(buf, sizeof(buf), 
-					"%u - %s %ux%u %.2f fps %u kbps", 
+					"%u - %s %u x %u %.2f fps %u kbps", 
 					trackId, 
 					trackName,
 					MP4GetTrackVideoWidth(mp4File, trackId),
 					MP4GetTrackVideoHeight(mp4File, trackId),
-					// TBD MP4GetTrackVideoFrameRate(mp4File, trackId),
-					// TBD MP4GetTrackBitRate(mp4File, trackId));
-					0, 0);
+					MP4GetTrackVideoFrameRate(mp4File, trackId),
+					(MP4GetTrackBitRate(mp4File, trackId) + 500) / 1000);
 
 			} else { // audio
 				u_int8_t audioType =
@@ -268,10 +292,8 @@ static GtkWidget* CreateMp4TrackMenu(
 
 				switch (audioType) {
 				case MP4_MPEG1_AUDIO_TYPE:
-					trackName = "MPEG-1 (MP3)";
-					break;
 				case MP4_MPEG2_AUDIO_TYPE:
-					trackName = "MPEG-2 (MP3)";
+					trackName = "MPEG (MP3)";
 					break;
 				case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
 				case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
@@ -291,9 +313,10 @@ static GtkWidget* CreateMp4TrackMenu(
 				}
 
 				snprintf(buf, sizeof(buf), 
-					"%u - %s", 
+					"%u - %s %u kbps", 
 					trackId, 
-					trackName);
+					trackName,
+					(MP4GetTrackBitRate(mp4File, trackId) + 500) / 1000);
 			}
 
 			newTrackValues[i] = trackId;
@@ -363,16 +386,18 @@ static GtkWidget* CreateMpeg2TrackMenu(
 			char buf[64];
 			if (type == 'V') {
 				snprintf(buf, sizeof(buf), 
-					"%u - %ux%u %.2f fps", 
+					"%u - %u x %u %.2f fps", 
 					i + 1,
 					mpeg3_video_width(mpeg2File, i),
 					mpeg3_video_height(mpeg2File, i),
 					mpeg3_frame_rate(mpeg2File, i));
 			} else {
 				snprintf(buf, sizeof(buf), 
-					"%u - %u Hz", 
+					"%u - %s %u Hz %u channels", 
 					i + 1,
-					mpeg3_sample_rate(mpeg2File, i));
+					mpeg3_audio_format(mpeg2File, i),
+					mpeg3_sample_rate(mpeg2File, i),
+					mpeg3_audio_channels(mpeg2File, i));
 			}
 			newTrackNames[i] = stralloc(buf);
 		}
