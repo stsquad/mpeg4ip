@@ -1074,46 +1074,49 @@ int process_rtsp_rtpinfo (char *rtpinfo,
 			  CPlayerMedia *media)
 {
   int ix;
+  CPlayerMedia *newmedia;
   if (rtpinfo == NULL) 
     return (0);
 
   do {
     int no_mimes = 0;
     ADV_SPACE(rtpinfo);
-    if (media == NULL) {
-      if (strncasecmp(rtpinfo, "url", strlen("url")) != 0) {
-	media_message(LOG_ERR, "Url not found");
-	return (-1);
-      }
-      rtpinfo += strlen("url");
-      ADV_SPACE(rtpinfo);
-      if (*rtpinfo != '=') {
-	media_message(LOG_ERR, "Can't find = after url");
-	return (-1);
-      }
-      rtpinfo++;
-      ADV_SPACE(rtpinfo);
-      char *url = rtpinfo;
-      while (*rtpinfo != '\0' && *rtpinfo != ';' && *rtpinfo != ',') {
-	rtpinfo++;
-      }
-      if (*rtpinfo == '\0') {
-	no_mimes = 1;
-      } else {
-	if (*rtpinfo == ',') {
-	  no_mimes = 1;
-	}
-	*rtpinfo++ = '\0';
-      }
-      char *temp = url;
-      media = session->rtsp_url_to_media(url);
-      if (media == NULL) {
-	media_message(LOG_ERR, "Can't find media from %s", url);
-	return -1;
-      }
-      if (temp != url) 
-	free(url);
+    if (strncasecmp(rtpinfo, "url", strlen("url")) != 0) {
+      media_message(LOG_ERR, "Url not found");
+      return (-1);
     }
+    rtpinfo += strlen("url");
+    ADV_SPACE(rtpinfo);
+    if (*rtpinfo != '=') {
+      media_message(LOG_ERR, "Can't find = after url");
+      return (-1);
+    }
+    rtpinfo++;
+    ADV_SPACE(rtpinfo);
+    char *url = rtpinfo;
+    while (*rtpinfo != '\0' && *rtpinfo != ';' && *rtpinfo != ',') {
+      rtpinfo++;
+    }
+    if (*rtpinfo == '\0') {
+      no_mimes = 1;
+    } else {
+      if (*rtpinfo == ',') {
+	no_mimes = 1;
+      }
+      *rtpinfo++ = '\0';
+    }
+    char *temp = url;
+    newmedia = session->rtsp_url_to_media(url);
+    if (newmedia == NULL) {
+      media_message(LOG_ERR, "Can't find media from %s", url);
+      return -1;
+    } else if (media != NULL && media != newmedia) {
+      media_message(LOG_ERR, "Url in rtpinfo does not match media %s", url);
+      return -1;
+    }
+    if (temp != url) 
+      free(url);
+
     if (no_mimes == 0) {
     int endofurl = 0;
     do {
@@ -1124,7 +1127,7 @@ int process_rtsp_rtpinfo (char *rtpinfo,
 			rtpinfo_types[ix].namelen - 1) == 0) {
 	  rtpinfo += rtpinfo_types[ix].namelen - 1;
 	  ADV_SPACE(rtpinfo);
-	  rtpinfo = (rtpinfo_types[ix].routine)(rtpinfo, media, endofurl);
+	  rtpinfo = (rtpinfo_types[ix].routine)(rtpinfo, newmedia, endofurl);
 	  break;
 	}
       }
@@ -1137,9 +1140,9 @@ int process_rtsp_rtpinfo (char *rtpinfo,
 	if (*rtpinfo != '\0') rtpinfo++;
       }
     } while (endofurl == 0 && rtpinfo != NULL && *rtpinfo != '\0');
-    media->set_rtp_rtpinfo();
-    }
-    media = NULL;
+    newmedia->set_rtp_rtpinfo();
+    } 
+    newmedia = NULL;
   } while (rtpinfo != NULL && *rtpinfo != '\0');
 
   if (rtpinfo == NULL) {

@@ -795,17 +795,27 @@ Void CVideoObjectDecoder::decodeVOHead ()
  	//	End Toshiba(1998-1-16:DP+RVLC)
 	UInt uiVoStartCode = m_pbitstrmIn -> getBits (NUMBITS_VO_START_CODE);
 	assert(uiVoStartCode == VO_START_CODE);
+	decodeVOBody();
+}
+
+Void CVideoObjectDecoder::decodeVOBody ()
+{
 
 	m_uiVOId = m_pbitstrmIn -> getBits (NUMBITS_VO_ID);
 }
 
 Void CVideoObjectDecoder::decodeVOLHead ()
 {
-  int ver_id;
-
 	findStartCode();
 	UInt uiVolStartCode = m_pbitstrmIn -> getBits (NUMBITS_VOL_START_CODE);
 	assert(uiVolStartCode == VOL_START_CODE);
+	decodeVOLBody();
+}
+
+Void CVideoObjectDecoder::decodeVOLBody()
+{
+  int ver_id;
+
 	/* UInt uiVOLId = wmay */m_pbitstrmIn -> getBits (NUMBITS_VOL_ID);
 // Begin: modified by Hughes	  4/9/98	  per clause 2.1.7. in N2171 document
 	/* Bool bRandom = wmay */m_pbitstrmIn->getBits (1); //VOL_Random_Access
@@ -1247,40 +1257,58 @@ Int BGComposition; // added by Sharp (98/3/24)
 Bool CVideoObjectDecoder::decodeVOPHead ()
 {
 	// Start code
-	UInt uiVopStartCode = m_pbitstrmIn -> getBits (NUMBITS_VOP_START_CODE);
-	if (uiVopStartCode == GOV_START_CODE) {
-/*Added by SONY (98/03/30)*/
-		m_bUseGOV = TRUE;
-		m_bLinkisBroken = FALSE;
-/*Added by SONY (98/03/30) End */
-		Int timecode;
-		timecode = m_pbitstrmIn -> getBits (5) * 3600;
-		timecode += m_pbitstrmIn -> getBits (6) * 60;
-		m_pbitstrmIn -> getBits (1);
-		timecode += m_pbitstrmIn -> getBits (6);
-
-		m_tModuloBaseDecd = timecode;
-		m_tModuloBaseDisp = timecode;
+  UInt uiVopStartCode = m_pbitstrmIn -> getBits (NUMBITS_VOP_START_CODE);
+  while (uiVopStartCode == GOV_START_CODE ||
+	 (uiVopStartCode >= 0 && uiVopStartCode <= 0x1f) ||
+	 uiVopStartCode == SESSION_START_CODE ||
+	 uiVopStartCode == VISUAL_OBJ_START_CODE ||
+	 (uiVopStartCode >= 0x20 && uiVopStartCode <= 0x2f)) {
+    if (uiVopStartCode >= 0 && uiVopStartCode <= 0x1f) {
+      decodeVOBody();
+    } else if (uiVopStartCode >= 0x20 && uiVopStartCode <= 0x2f) {
+      decodeVOLBody();
+    } else 
+      switch (uiVopStartCode) {
+      case GOV_START_CODE: {
+	/*Added by SONY (98/03/30)*/
+	m_bUseGOV = TRUE;
+	m_bLinkisBroken = FALSE;
+	/*Added by SONY (98/03/30) End */
+	Int timecode;
+	timecode = m_pbitstrmIn -> getBits (5) * 3600;
+	timecode += m_pbitstrmIn -> getBits (6) * 60;
+	m_pbitstrmIn -> getBits (1);
+	timecode += m_pbitstrmIn -> getBits (6);
+	
+	m_tModuloBaseDecd = timecode;
+	m_tModuloBaseDisp = timecode;
 #ifdef DEBUG_OUTPUT
-		cout << "GOV Header (t=" << timecode << ")\n\n";
+	cout << "GOV Header (t=" << timecode << ")\n\n";
 #endif
-		Int closed_gov = m_pbitstrmIn -> getBits (1);
-		Int broken_link = m_pbitstrmIn -> getBits (1);
-/*modified by SONY (98/03/30)*/
-		if ((closed_gov == 0)&&(broken_link == 1))
-			m_bLinkisBroken = TRUE;
+	Int closed_gov = m_pbitstrmIn -> getBits (1);
+	Int broken_link = m_pbitstrmIn -> getBits (1);
+	/*modified by SONY (98/03/30)*/
+	if ((closed_gov == 0)&&(broken_link == 1))
+	  m_bLinkisBroken = TRUE;
+      }
+        break;
+      default:
+	break;
+      }
 /*modified by SONY (98/03/30) End*/
 		
-		findStartCode(1);
-/*
-		m_pbitstrmIn -> getBits (4);
-		Int uiPrefix = m_pbitstrmIn -> getBits (NUMBITS_START_CODE_PREFIX);
-		assert(uiPrefix == START_CODE_PREFIX);
-*/
-		uiVopStartCode = m_pbitstrmIn -> getBits (NUMBITS_VOP_START_CODE);
-	}
+    Int err = findStartCode();
+    if (err == EOF) return FALSE;
+    uiVopStartCode = m_pbitstrmIn -> getBits (NUMBITS_VOP_START_CODE);
+  }
 //980212
+  if (uiVopStartCode != VOP_START_CODE) {
+    printf("Illegal VOP start code %x found in header", uiVopStartCode);
+  }
 	assert(uiVopStartCode == VOP_START_CODE);
+	if (m_pbitstrmIn->peekBits(NUMBITS_START_CODE_PREFIX) == START_CODE_PREFIX) {
+	  return decodeVOPHead();
+	}
 
 	m_vopmd.vopPredType = (VOPpredType) m_pbitstrmIn -> getBits (NUMBITS_VOP_PRED_TYPE);
 	// Time reference and VOP_pred_type

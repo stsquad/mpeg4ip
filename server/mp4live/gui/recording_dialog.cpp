@@ -30,9 +30,7 @@ static GtkWidget *video_raw_button;
 static GtkWidget *video_encoded_button;
 static GtkWidget *audio_raw_button;
 static GtkWidget *audio_encoded_button;
-
-// forward declaration
-static void Save();
+static GtkWidget *overwrite_button;
 
 static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 {
@@ -41,26 +39,9 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
   dialog = NULL;
 } 
 
-static void on_video_raw_button(GtkWidget *widget, gpointer *data)
+static void on_browse_button (GtkWidget *widget, gpointer *data)
 {
-}
-
-static void on_video_encoded_button(GtkWidget *widget, gpointer *data)
-{
-}
-
-static void on_audio_raw_button(GtkWidget *widget, gpointer *data)
-{
-}
-
-static void on_audio_encoded_button(GtkWidget *widget, gpointer *data)
-{
-}
-
-static void on_overwrite_yes_button (void)
-{
-	Save();
-	on_destroy_dialog(NULL, NULL);
+	FileBrowser(file_entry);
 }
 
 static bool Validate()
@@ -75,19 +56,8 @@ static bool Validate()
   
 	struct stat statbuf;
 
-	if (stat(name, &statbuf) == 0) {
-		if (!S_ISREG(statbuf.st_mode)) {
-			ShowMessage("Error", "Specified name is not a file");
-			return false;
-		}
-
-		// We have a file, check that overwriting is OK 
-		char buffer[1024];
-		snprintf(buffer, sizeof(buffer), 
-			"%s already exists\nDo you want to overwrite it?", 
-			name);
-		YesOrNo("File Exists", buffer, 1, 
-			GTK_SIGNAL_FUNC(on_overwrite_yes_button), NULL);
+	if (stat(name, &statbuf) == 0 && !S_ISREG(statbuf.st_mode)) {
+		ShowMessage("Error", "Specified name is not a file");
 		return false;
 	}
 
@@ -114,14 +84,12 @@ static void Save()
 	MyConfig->SetBoolValue(CONFIG_RECORD_ENCODED_AUDIO,
 		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(audio_encoded_button)));
 
+	MyConfig->SetBoolValue(CONFIG_RECORD_MP4_OVERWRITE,
+		gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(overwrite_button)));
+
 	MyConfig->Update();
 
 	DisplayRecordingSettings();
-}
-
-static void on_browse_button (GtkWidget *widget, gpointer *data)
-{
-	FileBrowser(file_entry);
 }
 
 static void on_ok_button (GtkWidget *widget, gpointer *data)
@@ -137,12 +105,6 @@ static void on_cancel_button (GtkWidget *widget, gpointer *data)
 {
 	on_destroy_dialog(NULL, NULL);
 }
-
-static void on_changed (GtkWidget *widget, gpointer *data)
-{
-}
-
-void AddOkCancel(GtkWidget* dialog);
 
 void CreateRecordingDialog (void) 
 {
@@ -176,10 +138,6 @@ void CreateRecordingDialog (void)
 	}
 	gtk_box_pack_start(GTK_BOX(hbox), file_entry, TRUE, TRUE, 5);
 	gtk_widget_show(file_entry);
-	gtk_signal_connect(GTK_OBJECT(file_entry),
-	     "changed",
-	     GTK_SIGNAL_FUNC(on_changed),
-	     NULL);
 	
 	// file browse button
 	GtkWidget *browse_button = gtk_button_new_with_label(" Browse... ");
@@ -187,10 +145,24 @@ void CreateRecordingDialog (void)
 		 "clicked",
 		 GTK_SIGNAL_FUNC(on_browse_button),
 		 NULL);
-	gtk_box_pack_start(GTK_BOX(hbox), browse_button, FALSE, FALSE, 10);
+	gtk_box_pack_start(GTK_BOX(hbox), browse_button, FALSE, FALSE, 0);
 	gtk_widget_show(browse_button);
 
 	// second row
+	hbox = gtk_hbox_new(FALSE, 1);
+	gtk_widget_show(hbox);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 5);
+
+	// overwrite button
+	overwrite_button = 
+		gtk_check_button_new_with_label("Overwrite existing file");
+	gtk_box_pack_start(GTK_BOX(hbox), overwrite_button, FALSE, FALSE, 5);
+	gtk_widget_show(overwrite_button);
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(overwrite_button),
+		MyConfig->GetBoolValue(CONFIG_RECORD_MP4_OVERWRITE));
+  
+	// third row
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 5);
@@ -204,10 +176,6 @@ void CreateRecordingDialog (void)
 	// video raw button
 	video_raw_button = gtk_check_button_new_with_label("Raw");
 	gtk_box_pack_start(GTK_BOX(hbox), video_raw_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(video_raw_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_video_raw_button),
-		NULL);
 	gtk_widget_show(video_raw_button);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(video_raw_button),
@@ -216,16 +184,12 @@ void CreateRecordingDialog (void)
 	// video encoded button
 	video_encoded_button = gtk_check_button_new_with_label("Encoded");
 	gtk_box_pack_start(GTK_BOX(hbox), video_encoded_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(video_encoded_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_video_encoded_button),
-		NULL);
 	gtk_widget_show(video_encoded_button);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(video_encoded_button),
 		MyConfig->GetBoolValue(CONFIG_RECORD_ENCODED_VIDEO));
   
-	// third row
+	// fourth row
 	hbox = gtk_hbox_new(FALSE, 1);
 	gtk_widget_show(hbox);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), hbox, TRUE, TRUE, 5);
@@ -239,10 +203,6 @@ void CreateRecordingDialog (void)
 	// audio raw button
 	audio_raw_button = gtk_check_button_new_with_label("Raw");
 	gtk_box_pack_start(GTK_BOX(hbox), audio_raw_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(audio_raw_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_audio_raw_button),
-		NULL);
 	gtk_widget_show(audio_raw_button);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(audio_raw_button),
@@ -251,16 +211,13 @@ void CreateRecordingDialog (void)
 	// audio encoded button
 	audio_encoded_button = gtk_check_button_new_with_label("Encoded");
 	gtk_box_pack_start(GTK_BOX(hbox), audio_encoded_button, FALSE, FALSE, 5);
-	gtk_signal_connect(GTK_OBJECT(audio_encoded_button), 
-		"toggled",
-		GTK_SIGNAL_FUNC(on_audio_encoded_button),
-		NULL);
 	gtk_widget_show(audio_encoded_button);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(audio_encoded_button),
 		MyConfig->GetBoolValue(CONFIG_RECORD_ENCODED_AUDIO));
   
-	// Add standard buttons at bottom
+	// fifth row
+	// standard buttons 
 	AddButtonToDialog(dialog,
 		" OK ", 
 		GTK_SIGNAL_FUNC(on_ok_button));

@@ -210,6 +210,8 @@ public: /* equivalent to MP4 library API */
 
 	MP4Duration GetTrackFixedSampleDuration(MP4TrackId trackId);
 
+	float GetTrackVideoFrameRate(MP4TrackId trackId);
+
 	void GetTrackESConfiguration(MP4TrackId trackId, 
 		u_int8_t** ppConfig, u_int32_t* pConfigSize);
 	void SetTrackESConfiguration(MP4TrackId trackId, 

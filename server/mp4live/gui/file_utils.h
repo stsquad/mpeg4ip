@@ -13,34 +13,31 @@
  * 
  * The Initial Developer of the Original Code is Cisco Systems Inc.
  * Portions created by Cisco Systems Inc. are
- * Copyright (C) Cisco Systems Inc. 2000, 2001.  All Rights Reserved.
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
  * 
  * Contributor(s): 
- *              Bill May        wmay@cisco.com
- */
-/*
- * rawa.h - class definition for raw audio codec
+ * 		Bill May        wmay@cisco.com
+ * 		Dave Mackie 	dmackie@cisco.com
  */
 
-#ifndef __RAWA_H__
-#define __RAWA_H__ 1
-#include "codec_plugin.h"
+#ifndef __FILE_UTILS_INCLUDED__
+#define __FILE_UTILS_INCLUDED__
 
-#define m_vft c.v.audio_vft
-#define m_ifptr c.ifptr
+void FileBrowser(
+	GtkWidget* fileEntry, 
+	GtkSignalFunc okFunc = (GtkSignalFunc)NULL);
 
-typedef struct rawa_codec_t {
-  codec_data_t c;
-  int m_freq;  // frequency
-  int m_chans; // channels
-  int m_bitsperchan;
-  int m_output_frame_size;
-  int m_initialized;
-  int m_resync;
-  unsigned char *m_temp_buff;
-  uint32_t m_temp_buffsize;
-  uint64_t m_ts;
-  uint32_t m_frames;
-} rawa_codec_t;
+GtkWidget* CreateTrackMenu(
+	GtkWidget* menu,
+	char type, 
+	char* source,
+	u_int32_t* pMenuIndex,
+	u_int32_t* pMenuNumber,
+	u_int32_t** ppMenuValues);
 
-#endif
+bool IsDevice(const char* name);
+bool IsMp4File(const char* name);
+
+int32_t FileDefaultAudio(char* fileName);
+
+#endif /* __FILE_UTILS_INCLUDED__ */

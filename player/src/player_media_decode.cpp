@@ -275,6 +275,10 @@ int CPlayerMedia::decode_thread (void)
 				       &sync_frame,
 				       frame_buffer, 
 				       frame_len);
+#ifdef DEBUG_DECODE
+	media_message(LOG_DEBUG, "Decoding %c frame return %d", 
+		      m_is_video ? 'v' : 'a', ret);
+#endif
 	if (ret > 0) {
 	  m_byte_stream->used_bytes_for_frame(ret);
 	} else {

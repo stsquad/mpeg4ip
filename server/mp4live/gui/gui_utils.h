@@ -112,7 +112,5 @@ void YesOrNo (const char *szTitle,
 	      GtkSignalFunc yesroutine,
 	      GtkSignalFunc noroutine);
 
-void FileBrowser(GtkWidget* entry);
-
 #endif /* __GUIUTILS_H__ */
 

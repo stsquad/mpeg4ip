@@ -246,7 +246,21 @@ int CPlayerSession::create_streaming_ondemand (const char *url,
   /*
    * Make sure we can use the urls in the sdp info
    */
-  m_content_base = strdup(decode->content_base);
+  if (decode->content_base != NULL) {
+    m_content_base = strdup(decode->content_base);
+  } else {
+    int urllen = strlen(url);
+    if (url[urllen] != '/') {
+      char *temp;
+      temp = (char *)malloc(urllen + 2);
+      strcpy(temp, url);
+      strcat(temp, "/");
+      m_content_base = temp;
+    } else {
+      m_content_base = strdup(url);
+    }
+  }
+
   convert_relative_urls_to_absolute(m_sdp_info,
 				    m_content_base);
 
@@ -301,6 +315,20 @@ int CPlayerSession::play_all_media (int start_from_begin, double start_time)
   int ret;
   CPlayerMedia *p;
 
+  if (m_sdp_info && m_sdp_info->session_range.have_range != FALSE) {
+    m_range = &m_sdp_info->session_range;
+  } else {
+    m_range = NULL;
+    p = m_my_media;
+    while (m_range == NULL && p != NULL) {
+      media_desc_t *media;
+      media = p->get_sdp_media_desc();
+      if (media && media->media_range.have_range) {
+	m_range = &media->media_range;
+      }
+      p = p->get_next();
+    }
+  }
   p = m_my_media;
   m_session_state = SESSION_BUFFERING;
   if (m_paused == 1 && start_time == 0.0 && start_from_begin == FALSE) {

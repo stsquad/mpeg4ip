@@ -37,7 +37,6 @@ CAviByteStreamBase::CAviByteStreamBase (CAviFile *parent, const char *which)
   m_eof = 0;
   m_max_frame_size = 16 * 1024;
   m_buffer = (unsigned char *) malloc(m_max_frame_size * sizeof(char));
-  m_buffer_on = m_buffer;
 }
 
 CAviByteStreamBase::~CAviByteStreamBase()
@@ -71,12 +70,14 @@ uint64_t CAviVideoByteStream::start_next_frame (unsigned char **buffer,
 						uint32_t *buflen)
 {
   uint64_t ret;
+  double ftime;
   
   read_frame(m_frame_on);
-  ret = m_frame_on;
-  ret *= 1000;
-  ret /= m_frame_rate;
-  *buffer = m_buffer_on;
+  ftime = (double)m_frame_on;
+  ftime *= 1000.0;
+  ftime /= m_frame_rate;
+  ret = (uint64_t)ftime;
+  *buffer = m_buffer;
   *buflen = m_this_frame_size;
   m_frame_on++;
   if (m_frame_on > m_frames_max) m_eof = 1;
@@ -115,8 +116,7 @@ void CAviVideoByteStream::read_frame (uint32_t frame_to_read)
     m_buffer = (unsigned char *)realloc(m_buffer, next_frame_size * sizeof(char) + 4);
   }
   m_this_frame_size = next_frame_size;
-  m_buffer_on = m_buffer;
-  AVI_read_frame(m_parent->get_file(), (char *)m_buffer_on);
+  AVI_read_frame(m_parent->get_file(), (char *)m_buffer);
   m_parent->unlock_file_mutex();
   m_byte_on = 0;
 }
@@ -125,13 +125,14 @@ void CAviVideoByteStream::set_start_time (uint64_t start)
 {
   m_play_start_time = start;
 
-  start *= m_frame_rate;
-  start /= 1000;
+  double time = (double)time;
+  time *= m_frame_rate;
+  time /= 1000;
 #if 0
   player_debug_message("avi video frame " LLD , start);
 #endif
   // we've got the position;
-  video_set_timebase((uint32_t)start);
+  video_set_timebase((uint32_t)time);
 }
 
 /**************************************************************************
@@ -139,9 +140,8 @@ void CAviVideoByteStream::set_start_time (uint64_t start)
  **************************************************************************/
 void CAviAudioByteStream::audio_set_timebase (long frame)
 {
-  m_eof = 0;
-  m_frame_on = frame;
-  read_frame(frame);
+  m_file_pos = 0;
+  m_buffer_on = m_this_frame_size = 0;
 }
 
 void CAviAudioByteStream::reset (void) 
@@ -152,72 +152,61 @@ void CAviAudioByteStream::reset (void)
 uint64_t CAviAudioByteStream::start_next_frame (unsigned char **buffer, 
 						uint32_t *buflen)
 {
+  int value;
+  if (m_buffer_on < m_this_frame_size) {
+    value = m_this_frame_size - m_buffer_on;
+    memmove(m_buffer,
+	    m_buffer + m_buffer_on,
+	    m_this_frame_size - m_buffer_on);
+    m_this_frame_size -= m_buffer_on;
+  } else {
+    value = 0;
+    m_this_frame_size = 0;
+  }
+  m_buffer_on = 0;
+  m_parent->lock_file_mutex();
+  AVI_set_audio_position(m_parent->get_file(), m_file_pos);
+
+  int ret;
+  ret = AVI_read_audio(m_parent->get_file(), 
+		       (char *)m_buffer + value, 
+		       m_max_frame_size - m_this_frame_size);
+  m_parent->unlock_file_mutex();
+
+  //player_debug_message("return from avi read %d", ret);
+  m_this_frame_size += ret;
+  m_file_pos += ret;
+
+  *buffer = m_buffer;
+  *buflen = m_this_frame_size;
+#if 0
   uint64_t ret;
   ret = m_frame_on;
   ret *= m_samples_per_frame;
   ret *= 1000;
   ret /= m_frame_rate;
-#if 0
     player_debug_message("Start next frame "LLU " offset %u %u", 
 			 ret, m_byte_on, m_this_frame_size);
-#endif
   return (ret);
+#endif
+  return 0;
 }
 
 
 void CAviAudioByteStream::used_bytes_for_frame (uint32_t bytes)
 {
-  m_total += bytes;
-}
-
-void CAviAudioByteStream::read_frame (uint32_t frame_to_read)
-{
-  m_parent->lock_file_mutex();
-
-  m_buffer_on = m_buffer;
-  unsigned char *buff = (unsigned char *)m_buffer_on;
-  if (m_add_len_to_stream) {
-    buff += 2;
-  }
-  long temp;
-  AVI_set_audio_frame(m_parent->get_file(), 
-		      m_frame_on,
-		      &temp);
-  
-  m_this_frame_size = temp;
-  if (m_this_frame_size > m_max_frame_size) {
-    m_max_frame_size = m_this_frame_size;
-    m_buffer = (unsigned char *)realloc(m_buffer, m_max_frame_size * sizeof(char));
-    // Okay - I could have used a goto, but it really grates...
-    m_buffer_on = m_buffer;
-    buff = (unsigned char *)m_buffer_on;
-    if (m_add_len_to_stream) {
-      buff += 2;
-    }
-  }
-  AVI_read_audio(m_parent->get_file(),
-		 (char *)buff,
-		 m_this_frame_size);
-
-  if (m_add_len_to_stream) {
-    m_buffer_on[0] = (unsigned char)(m_this_frame_size >> 8);
-    m_buffer_on[1] = (unsigned char)(m_this_frame_size & 0xff);
-    m_this_frame_size += 2;
-  }
-#if 0
-  player_debug_message("qta frame size %u", m_this_frame_size);
-#endif
-  m_parent->unlock_file_mutex();
-  m_byte_on = 0;
+  //player_debug_message("Used %d audio bytes", bytes);
+  m_buffer_on += bytes;
+  if (m_buffer_on > m_this_frame_size) m_buffer_on = m_this_frame_size;
 }
 
 void CAviAudioByteStream::set_start_time (uint64_t start)
 {
   m_play_start_time = start;
   
+#if 0  
   start *= m_frame_rate;
   start /= 1000 * m_samples_per_frame;
-#if 0
   player_debug_message("qtime audio frame " LLD, start);
 #endif
   // we've got the position;

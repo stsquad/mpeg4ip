@@ -281,7 +281,8 @@ static int iso_decode (codec_data_t *ptr,
       iso->m_cached_time = 0;
     } catch (int err) {
       if (err != 1)
-	iso_message(LOG_DEBUG, mp4iso, "Caught exception in wait_i %d", err);
+	iso_message(LOG_DEBUG, mp4iso, 
+		    "ts "LLU",Caught exception in wait_i %d", ts, err);
       return (iso->m_pvodec->get_used_bytes());
       //return (-1);
     }

@@ -158,6 +158,8 @@ typedef struct video_info_t {
 
 typedef struct audio_info_t {
   int freq;
+  int chans;
+  int bitspersample;
 } audio_info_t;
 
 /*

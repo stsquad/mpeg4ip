@@ -236,7 +236,6 @@ void CMpeg2FileSource::ProcessMedia(void)
 	for (u_int8_t pass = 0; pass < m_maxPasses; pass++) {
 
 		if (mpeg3_end_of_video(m_mpeg2File, m_videoStream)) {
-			debug_message("end of mpeg2 video");
 			break;
 		}
 

@@ -238,17 +238,17 @@ int rtsp_setup_redirect (rtsp_client_t *info)
   if (ret != 0) return (ret);
   
   return (rtsp_create_socket(info));
-}
 
+}
 
 /* return last occurrence of needle in haystack */
 static const char *my_strrstr (const char *haystack, const char *needle)
 {
-   uint32_t needle_len = strlen(needle);
-   uint32_t haystack_len = strlen(haystack);
+   int needle_len = strlen(needle);
+   int haystack_len = strlen(haystack);
 
    haystack_len -= needle_len;
-   while (haystack_len > 0) {
+   while (haystack_len >= 0) {
      if (strncmp(haystack + haystack_len, needle, needle_len) == 0) {
         return (haystack + haystack_len);
      }
@@ -322,31 +322,34 @@ static char *rm_rtsp_overlap (const char *control_string, const char *base_url)
  * url overlap, remove the overlap and attempt to match again
  * return 1 if matched, 0 otherwise
  */
-int rtsp_is_url_my_stream (rtsp_session_t *session, const char *url,
-						  const char *content_base, const char *session_name)
+int rtsp_is_url_my_stream (rtsp_session_t *session,
+			   const char *url,
+			   const char *content_base,
+			   const char *session_name)
 { 
   char *session_url = session->url;
-  const char *end =  my_strrstr(session_url, url); 
+  const char *end;
   int is_match = 0;
 
+  end = my_strrstr(session_url, url); 
   if (end != NULL  || strcmp(url,"*") == 0) {
-	if (strncmp(session_url, content_base,
-				strlen(session_url) - strlen(end)) == 0
-		|| strncmp(session_url, session_name, 
-				   strlen(session_url) - strlen(end)) == 0) {
-	  is_match = 1;
-	}
-	else {
-	  /* url isn't contained in the session_url */
-	  /* check if there is an overlap */
-	  char *str1 = rm_rtsp_overlap(url, content_base);
-	  char *str2 = rm_rtsp_overlap(url, session_name);
-	  if (strcmp(session_url, str1) == 0 
-		  || strcmp(session_url, str2) == 0)  
-		is_match = 1;
-	  free(str1);
-	  free(str2);
-	}
+    if (strncmp(session_url, content_base,
+		strlen(session_url) - strlen(end)) == 0
+	|| strncmp(session_url, session_name, 
+		   strlen(session_url) - strlen(end)) == 0) {
+      is_match = 1;
+    }
+    else {
+      /* url isn't contained in the session_url */
+      /* check if there is an overlap */
+      char *str1 = rm_rtsp_overlap(url, content_base);
+      char *str2 = rm_rtsp_overlap(url, session_name);
+      if (strcmp(session_url, str1) == 0 
+	  || strcmp(session_url, str2) == 0)  
+	is_match = 1;
+      free(str1);
+      free(str2);
+    }
   }
   return (is_match);
 }

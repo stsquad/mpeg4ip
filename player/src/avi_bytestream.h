@@ -44,16 +44,14 @@ class CAviByteStreamBase : public COurInByteStream
 				     uint32_t *buflen) = 0;
   virtual void used_bytes_for_frame(uint32_t bytes) = 0;
  protected:
-  virtual void read_frame(uint32_t frame_to_read) = 0;
   CAviFile *m_parent;
   int m_eof;
   uint32_t m_frame_on;
   uint32_t m_frame_in_buffer;
   uint32_t m_frames_max;
-  uint32_t m_frame_rate;
   uint32_t m_max_frame_size;
   unsigned char *m_buffer;
-  unsigned char *m_buffer_on;
+  uint32_t m_buffer_on;
   uint32_t m_byte_on;
   uint32_t m_this_frame_size;
   uint64_t m_total;
@@ -83,12 +81,13 @@ class CAviVideoByteStream : public CAviByteStreamBase
   };
   void config(long num_frames, double frate) {
     m_frames_max = num_frames;
-    m_frame_rate = (uint32_t)frate;
+    m_frame_rate = frate;
   };
  protected:
   void read_frame(uint32_t frame_to_read);
  private:
   void video_set_timebase(long frame);
+  double m_frame_rate;
 };
 
 /*
@@ -98,34 +97,20 @@ class CAviVideoByteStream : public CAviByteStreamBase
 class CAviAudioByteStream : public CAviByteStreamBase
 {
  public:
-  CAviAudioByteStream(CAviFile *parent,
-		     int add_len_to_frame = 0) :
+  CAviAudioByteStream(CAviFile *parent) :
     CAviByteStreamBase(parent, "audio")
     {
-      m_add_len_to_stream = add_len_to_frame;
-      read_frame(0);
     };
   void reset(void);
   uint64_t start_next_frame(unsigned char **buffer, uint32_t *buflen);
   void used_bytes_for_frame(uint32_t bytes);
   void set_start_time(uint64_t start);
   double get_max_playtime (void) {
-    double ret = m_frames_max * m_samples_per_frame;
-    ret /= m_frame_rate;
-    return (ret);
-  };
-  void config(long num_frames, float frate, int duration) {
-    m_frames_max = num_frames;
-    m_frame_rate = (uint32_t)frate;
-    m_samples_per_frame = duration;
+    return (0.0);
   };
  protected:
-  void read_frame(uint32_t frame_to_read);
-  uint32_t read_a_frame(unsigned char **ppbuff);
- private:
   void audio_set_timebase(long frame);
-  int m_add_len_to_stream;
-  int m_samples_per_frame;
+  long m_file_pos;
 };
 
 #endif

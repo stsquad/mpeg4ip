@@ -28,9 +28,14 @@
 #define ASSERT(expr)
 #define WARNING(expr)
 #else
-#define ASSERT(expr)	assert(expr)
+#define ASSERT(expr) \
+	if (!expr) { \
+		fflush(stdout); \
+		assert(expr); \
+	}
 #define WARNING(expr) \
 	if (expr) { \
+		fflush(stdout); \
 		fprintf(stderr, "Warning (%s) in %s at line %u\n", \
 			__STRING(expr), __FILE__, __LINE__); \
 	}

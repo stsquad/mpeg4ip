@@ -64,12 +64,20 @@ void CMp4Recorder::DoStartRecord()
 	}
 
 	// enable huge file mode in mp4 if estimated size goes over 1 GB
-	bool hugeFile = m_pConfig->m_recordEstFileSize > 1000000000;
+	bool hugeFile = 
+		m_pConfig->m_recordEstFileSize > 1000000000;
+	u_int32_t verbosity =
+		MP4_DETAILS_ERROR /* | MP4_DETAILS_WRITE_ALL */;
 
-	m_mp4File = MP4Create(
-		m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
-		MP4_DETAILS_ERROR /* DEBUG | MP4_DETAILS_WRITE_ALL */,
-		hugeFile);
+	if (m_pConfig->GetBoolValue(CONFIG_RECORD_MP4_OVERWRITE)) {
+		m_mp4File = MP4Create(
+			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
+			verbosity, hugeFile);
+	} else {
+		m_mp4File = MP4Modify(
+			m_pConfig->GetStringValue(CONFIG_RECORD_MP4_FILE_NAME),
+			verbosity);
+	}
 
 	if (!m_mp4File) {
 		return;

@@ -1660,6 +1660,22 @@ MP4Duration MP4File::GetTrackFixedSampleDuration(MP4TrackId trackId)
 	return m_pTracks[FindTrackIndex(trackId)]->GetFixedSampleDuration();
 }
 
+float MP4File::GetTrackVideoFrameRate(MP4TrackId trackId)
+{
+	MP4SampleId numSamples =
+		GetTrackNumberOfSamples(trackId);
+
+	u_int64_t msDuration =
+		ConvertFromTrackDuration(trackId, 
+			GetTrackDuration(trackId), MP4_MSECS_TIME_SCALE);
+
+	if (msDuration == 0) {
+		return 0.0;
+	}
+
+	return ((double)numSamples / (double)msDuration) * MP4_MSECS_TIME_SCALE;
+}
+
 void MP4File::GetTrackESConfiguration(MP4TrackId trackId, 
 	u_int8_t** ppConfig, u_int32_t* pConfigSize)
 {

@@ -29,6 +29,7 @@
 #include "player_util.h"
 //#define DEBUG_SYNC 1
 //#define DEBUG_AUDIO_FILL 1
+//#define DEBUG_DELAY 1
 #ifdef _WIN32
 DEFINE_MESSAGE_MACRO(audio_message, "audiosync")
 #else
@@ -131,8 +132,12 @@ void CAudioSync::set_config (int freq,
 unsigned char *CAudioSync::get_audio_buffer (void)
 {
   int ret;
-  if (m_dont_fill == 1) 
+  if (m_dont_fill == 1) {
+#ifdef DEBUG_AUDIO_FILL
+    audio_message(LOG_DEBUG, "first dont fill");
+#endif
     return (NULL);
+  }
 
   SDL_LockAudio();
   ret = m_buffer_filled[m_fill_index];
@@ -141,11 +146,19 @@ unsigned char *CAudioSync::get_audio_buffer (void)
     m_audio_waiting_buffer = 1;
     SDL_SemWait(m_audio_waiting);
     m_audio_waiting_buffer = 0;
-    if (m_dont_fill != 0) return (NULL);
+    if (m_dont_fill != 0) {
+#ifdef DEBUG_AUDIO_FILL
+      audio_message(LOG_DEBUG, "2nd don't fill");
+#endif
+      return (NULL);
+    }
     SDL_LockAudio();
     ret = m_buffer_filled[m_fill_index];
     SDL_UnlockAudio();
     if (ret == 1) {
+#ifdef DEBUG_AUDIO_FILL
+      audio_message(LOG_DEBUG, "no buff");
+#endif
       return (NULL);
     }
   }
@@ -409,7 +422,7 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
   if (m_use_SDL_delay != 0) {
     delay = SDL_AudioDelayMsec();
     if (delay < 0) delay = 0;
-#ifdef DEBUG_SYNC
+#ifdef DEBUG_DELAY
     audio_message(LOG_DEBUG, "Audio delay is %d", delay);
 #endif
   }
@@ -526,6 +539,11 @@ void CAudioSync::audio_callback (Uint8 *stream, int ilen)
       m_samples_loaded = 0;
     m_play_sample_index += thislen;
     if (m_play_sample_index >= m_buffer_size) {
+#ifdef DEBUG_SYNC
+      audio_message(LOG_DEBUG, "finished with buffer %d %d", 
+		    m_play_index, m_samples_loaded);
+#endif
+
       m_buffer_filled[m_play_index] = 0;
       m_play_index++;
       m_play_index %= DECODE_BUFFERS_MAX;

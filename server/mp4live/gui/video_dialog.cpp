@@ -24,8 +24,6 @@
 #include "mp4live.h"
 #include "mp4live_gui.h"
 #include "video_v4l_source.h"
-#include <mp4.h>
-#include <libmpeg3.h>
 
 static GtkWidget *dialog;
 
@@ -33,6 +31,7 @@ static char* source_type;
 static GtkWidget *source_entry;
 static GtkWidget *browse_button;
 static bool source_modified;
+static int32_t default_file_audio_source = -1;
 static GtkWidget *input_label;
 static GtkWidget *input_menu;
 static GtkWidget *signal_label;
@@ -66,17 +65,16 @@ static u_int8_t channelListIndex;
 
 static u_int8_t channelIndex;
 
+static u_int32_t trackIndex;
+static u_int32_t trackNumber;	// how many tracks total
 static u_int32_t* trackValues = NULL;
-static char** trackNames = NULL;
-static u_int8_t trackIndex;
-static u_int8_t trackNumber = 0;	// how many tracks total
 
 static u_int16_t sizeWidthValues[] = {
-	128, 176, 320, 352,
+	128, 176, 320, 352, 352,
 	640, 704, 720, 720, 768
 };
 static u_int16_t sizeHeightValues[] = {
-	96, 144, 240, 288,
+	96, 144, 240, 288, 480,
 	480, 576, 480, 576, 576
 };
 static char* sizeNames[] = {
@@ -84,6 +82,7 @@ static char* sizeNames[] = {
 	"176 x 144 QCIF",
 	"320 x 240 SIF",
 	"352 x 288 CIF",
+	"352 x 480 Half D1",
 	"640 x 480 4SIF",
 	"704 x 576 4CIF",
 	"720 x 480 NTSC CCIR601",
@@ -112,31 +111,14 @@ static void on_destroy_dialog (GtkWidget *widget, gpointer *data)
 	dialog = NULL;
 } 
 
-static bool SourceIsV4LDevice()
+static bool SourceIsDevice()
 {
-	const char* source_name =
-		gtk_entry_get_text(GTK_ENTRY(source_entry));
-	return !strncmp(source_name, "/dev/", 5);
-}
-
-static bool SourceIsMp4File()
-{
-	const char* source_name =
-		gtk_entry_get_text(GTK_ENTRY(source_entry));
-	if (strlen(source_name) <= 4) {
-		return false;
-	} 
-	return !strcmp(&source_name[strlen(source_name) - 4], ".mp4");
-}
-
-static bool SourceIsMpeg2File()
-{
-	return (!SourceIsV4LDevice() && !SourceIsMp4File());
+	return IsDevice(gtk_entry_get_text(GTK_ENTRY(source_entry)));
 }
 
 static void ShowSourceSpecificSettings()
 {
-	if (SourceIsV4LDevice()) {
+	if (SourceIsDevice()) {
 		gtk_widget_show(input_label);
 		gtk_widget_show(input_menu);
 		gtk_widget_show(signal_label);
@@ -227,22 +209,8 @@ void CreateInputMenu(CVideoCapabilities* pNewVideoCaps)
 	inputNumber = newInputNumber;
 }
 
-static void on_source_browse_button (GtkWidget *widget, gpointer *data)
-{
-	FileBrowser(source_entry);
-}
-
-static void on_source_changed(GtkWidget *widget, gpointer *data)
-{
-	if (widget == source_entry) {
-		source_modified = true;
-	}
-}
-
 static void SourceV4LDevice()
 {
-	source_type = VIDEO_SOURCE_V4L;
-
 	char *newSourceName =
 		gtk_entry_get_text(GTK_ENTRY(source_entry));
 
@@ -253,8 +221,8 @@ static void SourceV4LDevice()
 	}
 
 	// probe new source device
-	CVideoCapabilities* pNewVideoCaps = new CVideoCapabilities(
-		gtk_entry_get_text(GTK_ENTRY(source_entry)));
+	CVideoCapabilities* pNewVideoCaps = 
+		new CVideoCapabilities(newSourceName);
 	
 	// check for errors
 	if (!pNewVideoCaps->IsValid()) {
@@ -280,194 +248,74 @@ static void SourceV4LDevice()
 	ChangeInput(inputIndex);
 }
 
-static void on_track_menu_activate(GtkWidget *widget, gpointer data)
+static void on_default_file_audio_source (GtkWidget *widget, gpointer *data)
 {
-	trackIndex = ((unsigned int)data) & 0xFF;
+	default_file_audio_source = 
+		FileDefaultAudio(gtk_entry_get_text(GTK_ENTRY(source_entry)));
 }
 
-static void CreateNullTrackMenu()
+static void ChangeSource()
 {
-	u_int32_t* newTrackValues = 
-		(u_int32_t*)malloc(sizeof(u_int32_t));
-	newTrackValues[0] = 0;
+	default_file_audio_source = -1;
 
-	char** newTrackNames = 
-		(char**)malloc(sizeof(char*));
-	newTrackNames[0] = stralloc("");
+	// decide what type of source we have
+	if (SourceIsDevice()) {
+		source_type = VIDEO_SOURCE_V4L;
 
-	trackIndex = 0;
-
-	// (re)create the menu
-	track_menu = CreateOptionMenu(
-		track_menu,
-		newTrackNames, 
-		1,
-		trackIndex,
-		GTK_SIGNAL_FUNC(on_track_menu_activate));
-
-	// free up old names
-	for (u_int8_t i = 0; i < trackNumber; i++) {
-		free(trackNames[i]);
-	}
-	free(trackValues);
-	free(trackNames);
-
-	trackValues = newTrackValues;
-	trackNames = newTrackNames;
-	trackNumber = 1;
-}
-
-static void CreateMp4TrackMenu()
-{
-	source_type = FILE_SOURCE_MP4;
-
-	trackIndex = 0;
-
-	u_int32_t newTrackNumber = 1;
-
-	MP4FileHandle mp4File =
-		MP4Read(gtk_entry_get_text(GTK_ENTRY(source_entry)));
-
-	if (mp4File) {
-		newTrackNumber = 
-			MP4GetNumberOfTracks(mp4File, MP4_VIDEO_TRACK_TYPE);
-	}
-
-	u_int32_t* newTrackValues = 
-		(u_int32_t*)malloc(sizeof(u_int32_t) * newTrackNumber);
-
-	char** newTrackNames = 
-		(char**)malloc(sizeof(char*) * newTrackNumber);
-
-	if (!mp4File) {
-		newTrackValues[0] = 0;
-		newTrackNames[0] = stralloc("");
+		SourceV4LDevice();
 	} else {
-		for (u_int8_t i = 0; i < newTrackNumber; i++) {
-			MP4TrackId trackId =
-				MP4FindTrackId(mp4File, i, MP4_VIDEO_TRACK_TYPE);
+		if (pVideoCaps != MyConfig->m_videoCapabilities) {
+			delete pVideoCaps;
+		}
+		pVideoCaps = NULL;
 
-			u_int8_t videoType =
-				MP4GetTrackVideoType(mp4File, trackId);
+		char* source_name =
+			gtk_entry_get_text(GTK_ENTRY(source_entry));
 
-			char* trackName = "Unknown";
-			switch (videoType) {
-			case MP4_MPEG1_VIDEO_TYPE:
-				trackName = "MPEG1";
-				break;
-			case MP4_MPEG2_SIMPLE_VIDEO_TYPE:
-			case MP4_MPEG2_MAIN_VIDEO_TYPE:
-			case MP4_MPEG2_SNR_VIDEO_TYPE:
-			case MP4_MPEG2_SPATIAL_VIDEO_TYPE:
-			case MP4_MPEG2_HIGH_VIDEO_TYPE:
-			case MP4_MPEG2_442_VIDEO_TYPE:
-				trackName = "MPEG2";
-				break;
-			case MP4_MPEG4_VIDEO_TYPE:
-				trackName = "MPEG4";
-				break;
-			case MP4_YUV12_VIDEO_TYPE:
-				trackName = "YUV12";
-				break;
-			case MP4_H26L_VIDEO_TYPE:
-				trackName = "H26L";
-				break;
-			}
-
-			newTrackValues[i] = trackId;
-
-			char buf[64];
-			snprintf(buf, sizeof(buf), "%u - %s",
-				trackId, trackName);
-			newTrackNames[i] = stralloc(buf);
+		if (access(source_name, R_OK) != 0) {
+			ShowMessage("Change Video Source",
+				"Specified video source can't be opened, check name");
+			return;
 		}
 
-		MP4Close(mp4File);
-	}
-
-	// (re)create the menu
-	track_menu = CreateOptionMenu(
-		track_menu,
-		newTrackNames, 
-		newTrackNumber,
-		trackIndex,
-		GTK_SIGNAL_FUNC(on_track_menu_activate));
-
-	// free up old names
-	for (u_int8_t i = 0; i < trackNumber; i++) {
-		free(trackNames[i]);
-	}
-	free(trackValues);
-	free(trackNames);
-
-	trackValues = newTrackValues;
-	trackNames = newTrackNames;
-	trackNumber = newTrackNumber;
-}
-
-static void CreateMpeg2TrackMenu()
-{
-	source_type = FILE_SOURCE_MPEG2;
-
-	trackIndex = 0;
-
-	u_int32_t newTrackNumber = 1;
-
-	mpeg3_t* mpeg2File =
-		mpeg3_open(gtk_entry_get_text(GTK_ENTRY(source_entry)));
-
-	if (mpeg2File) {
-		newTrackNumber = mpeg3_total_vstreams(mpeg2File);
-	}
-
-	u_int32_t* newTrackValues = 
-		(u_int32_t*)malloc(sizeof(u_int32_t) * newTrackNumber);
-
-	char** newTrackNames = 
-		(char**)malloc(sizeof(char*) * newTrackNumber);
-
-	if (!mpeg2File) {
-		newTrackValues[0] = 0;
-		newTrackNames[0] = stralloc("");
-	} else {
-		for (u_int8_t i = 0; i < newTrackNumber; i++) {
-			newTrackValues[i] = i;
-
-			char buf[16];
-			snprintf(buf, sizeof(buf), "%u", i);
-			newTrackNames[i] = stralloc(buf);
+		if (IsMp4File(source_name)) {
+			source_type = FILE_SOURCE_MP4;
+		} else {
+			source_type = FILE_SOURCE_MPEG2;
 		}
-		mpeg3_close(mpeg2File);
+
+		if (FileDefaultAudio(source_name) >= 0) {
+			YesOrNo(
+				"Change Video Source",
+				"Do you want to use this file for the audio source also?",
+				true,
+				GTK_SIGNAL_FUNC(on_default_file_audio_source),
+				GTK_SIGNAL_FUNC(NULL));
+		}
 	}
 
-	// (re)create the menu
-	track_menu = CreateOptionMenu(
+	track_menu = CreateTrackMenu(
 		track_menu,
-		newTrackNames, 
-		newTrackNumber,
-		trackIndex,
-		GTK_SIGNAL_FUNC(on_track_menu_activate));
+		'V',
+		gtk_entry_get_text(GTK_ENTRY(source_entry)),
+		&trackIndex,
+		&trackNumber,
+		&trackValues);
 
-	// free up old names
-	for (u_int8_t i = 0; i < trackNumber; i++) {
-		free(trackNames[i]);
-	}
-	free(trackValues);
-	free(trackNames);
+	ShowSourceSpecificSettings();
 
-	trackValues = newTrackValues;
-	trackNames = newTrackNames;
-	trackNumber = newTrackNumber;
+	source_modified = false;
 }
 
-static void CreateTrackMenu()
+static void on_source_browse_button (GtkWidget *widget, gpointer *data)
 {
-	if (SourceIsV4LDevice()) {
-		CreateNullTrackMenu();	
-	} else if (SourceIsMp4File()) {
-		CreateMp4TrackMenu();
-	} else {
-		CreateMpeg2TrackMenu();
+	FileBrowser(source_entry, GTK_SIGNAL_FUNC(ChangeSource));
+}
+
+static void on_source_changed(GtkWidget *widget, gpointer *data)
+{
+	if (widget == source_entry) {
+		source_modified = true;
 	}
 }
 
@@ -477,27 +325,7 @@ static void on_source_leave(GtkWidget *widget, gpointer *data)
 		return;
 	}
 
-	// decide what type of source we have
-	if (SourceIsV4LDevice()) {
-		SourceV4LDevice();
-	} else {
-		if (pVideoCaps != MyConfig->m_videoCapabilities) {
-			delete pVideoCaps;
-		}
-		pVideoCaps = NULL;
-
-		if (access(gtk_entry_get_text(GTK_ENTRY(source_entry)),
-		  R_OK) != 0) {
-			ShowMessage("Change Video Source",
-				"Specified video source can't be opened, check name");
-		}
-	}
-
-	CreateTrackMenu();
-
-	ShowSourceSpecificSettings();
-
-	source_modified = false;
+	ChangeSource();
 }
 
 static void on_source_key(GtkWidget *widget, gpointer *data)
@@ -717,6 +545,16 @@ static bool ValidateAndSave(void)
 		pVideoCaps = NULL;
 	}
 
+	if (!strcasecmp(source_type, VIDEO_SOURCE_V4L) 
+	  && default_file_audio_source >= 0) {
+		MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_TYPE,
+			source_type);
+		MyConfig->SetStringValue(CONFIG_AUDIO_SOURCE_NAME,
+			gtk_entry_get_text(GTK_ENTRY(source_entry)));
+		MyConfig->SetIntegerValue(CONFIG_AUDIO_SOURCE_TRACK,
+			default_file_audio_source);
+	}
+
 	MyConfig->SetIntegerValue(CONFIG_VIDEO_INPUT,
 		inputIndex);
 
@@ -801,6 +639,7 @@ void CreateVideoDialog (void)
 	GtkObject* adjustment;
 
 	pVideoCaps = MyConfig->m_videoCapabilities;
+	default_file_audio_source = -1;
 
 	dialog = gtk_dialog_new();
 	gtk_signal_connect(GTK_OBJECT(dialog),
@@ -881,8 +720,17 @@ void CreateVideoDialog (void)
 	gtk_box_pack_start(GTK_BOX(vbox), hbox2, FALSE, FALSE, 0);
 
 	// source entry
-	source_type = 
-		MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
+	char* type = MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_TYPE);
+	if (!strcasecmp(type, VIDEO_SOURCE_V4L)) {
+		source_type = VIDEO_SOURCE_V4L;
+	} else if (!strcasecmp(type, FILE_SOURCE_MP4)) {
+		source_type = FILE_SOURCE_MP4;
+	} else if (!strcasecmp(type, FILE_SOURCE_MPEG2)) {
+		source_type = FILE_SOURCE_MPEG2;
+	} else {
+		source_type = "";
+	}
+
 	source_entry = gtk_entry_new_with_max_length(256);
 	gtk_entry_set_text(GTK_ENTRY(source_entry), 
 		MyConfig->GetStringValue(CONFIG_VIDEO_SOURCE_NAME));
@@ -896,7 +744,7 @@ void CreateVideoDialog (void)
 		GTK_SIGNAL_FUNC(on_source_leave));
 
 	gtk_widget_show(source_entry);
-	gtk_box_pack_start(GTK_BOX(hbox2), source_entry, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox2), source_entry, TRUE, TRUE, 0);
 
 	// browse button
 	browse_button = gtk_button_new_with_label(" Browse... ");
@@ -927,7 +775,13 @@ void CreateVideoDialog (void)
 	CreateChannelListMenu();
 
 	track_menu = NULL;
-	CreateTrackMenu();
+	track_menu = CreateTrackMenu(
+		track_menu,
+		'V',
+		gtk_entry_get_text(GTK_ENTRY(source_entry)),
+		&trackIndex,
+		&trackNumber,
+		&trackValues);
 
 	trackIndex = 0; 
 	for (u_int8_t i = 0; i < trackNumber; i++) {
@@ -940,7 +794,8 @@ void CreateVideoDialog (void)
 
 	sizeIndex = 0; 
 	for (u_int8_t i = 0; i < sizeof(sizeWidthValues) / sizeof(u_int16_t); i++) {
-		if (MyConfig->m_videoWidth == sizeWidthValues[i]) {
+		if (MyConfig->m_videoWidth == sizeWidthValues[i]
+		  && MyConfig->m_videoHeight == sizeHeightValues[i]) {
 			sizeIndex = i;
 			break;
 		}

@@ -767,6 +767,22 @@ extern "C" MP4Duration MP4GetTrackFixedSampleDuration(
 	return MP4_INVALID_DURATION;
 }
 
+extern "C" u_int32_t MP4GetTrackBitRate(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackIntegerProperty(trackId,
+				"mdia.minf.stbl.stsd.*.esds.decConfigDescr.avgBitrate");
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return 0;
+}
+
 extern "C" void MP4GetTrackESConfiguration(
 	MP4FileHandle hFile, MP4TrackId trackId, 
 	u_int8_t** ppConfig, u_int32_t* pConfigSize)
@@ -850,6 +866,21 @@ extern "C" u_int16_t MP4GetTrackVideoHeight(
 		}
 	}
 	return 0;
+}
+
+extern "C" float MP4GetTrackVideoFrameRate(
+	MP4FileHandle hFile, MP4TrackId trackId)
+{
+	if (MP4_IS_VALID_FILE_HANDLE(hFile)) {
+		try {
+			return ((MP4File*)hFile)->GetTrackVideoFrameRate(trackId);
+		}
+		catch (MP4Error* e) {
+			PRINT_ERROR(e);
+			delete e;
+		}
+	}
+	return 0.0;
 }
 
 /* generic track properties */

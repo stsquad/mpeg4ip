@@ -24,9 +24,7 @@
 #include "media_flow.h"
 #include "audio_oss_source.h"
 #include "video_v4l_source.h"
-#ifdef NOTDEF
 #include "file_mpeg2_source.h"
-#endif
 #include "video_sdl_preview.h"
 #include "file_mp4_recorder.h"
 #include "rtp_transmitter.h"
@@ -64,9 +62,7 @@ void CAVMediaFlow::Start(void)
 			// TBD m_videoSource = new CMp4FileSource();
 
 		} else if (!strcasecmp(sourceType, FILE_SOURCE_MPEG2)) {
-#ifdef NOTDEF
 			m_videoSource = new CMpeg2FileSource();
-#endif
 		}
 		m_videoSource->SetConfig(m_pConfig);
 		m_videoSource->StartThread();
@@ -87,9 +83,7 @@ void CAVMediaFlow::Start(void)
 				// TBD m_audioSource = new CMp4FileSource();
 
 			} else if (!strcasecmp(sourceType, FILE_SOURCE_MPEG2)) {
-#ifdef NOTDEF
 				m_audioSource = new CMpeg2FileSource();
-#endif
 			}
 			m_audioSource->SetConfig(m_pConfig);
 			m_audioSource->StartThread();

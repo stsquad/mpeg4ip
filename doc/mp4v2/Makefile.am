@@ -28,11 +28,14 @@ man_MANS = \
 	MP4Dump.3 \
 	MP4FindTrackId.3 \
 	MP4FindTrackIndex.3 \
+	MP4GetAudioProfileLevel.3 \
 	MP4GetDuration.3 \
+	MP4GetGraphicsProfileLevel.3 \
 	MP4GetHintTrackRtpPayload.3 \
 	MP4GetHintTrackReferenceTrackId.3 \
 	MP4GetHintTrackSdp.3 \
 	MP4GetNumberOfTracks.3 \
+	MP4GetODProfileLevel.3 \
 	MP4GetRtpHintNumberOfPackets.3 \
 	MP4GetRtpPacketBFrame.3 \
 	MP4GetRtpPacketTransmitOffset.3 \
@@ -43,9 +46,11 @@ man_MANS = \
 	MP4GetSampleSize.3 \
 	MP4GetSampleSync.3 \
 	MP4GetSampleTime.3 \
+	MP4GetSceneProfileLevel.3 \
 	MP4GetSessionSdp.3 \
 	MP4GetTimeScale.3 \
 	MP4GetTrackAudioType.3 \
+	MP4GetTrackBitRate.3 \
 	MP4GetTrackDuration.3 \
 	MP4GetTrackESConfiguration.3 \
 	MP4GetTrackFixedSampleDuration.3 \
@@ -53,10 +58,12 @@ man_MANS = \
 	MP4GetTrackNumberOfSamples.3 \
 	MP4GetTrackTimeScale.3 \
 	MP4GetTrackType.3 \
+	MP4GetTrackVideoFrameRate.3 \
 	MP4GetTrackVideoHeight.3 \
 	MP4GetTrackVideoType.3 \
 	MP4GetTrackVideoWidth.3 \
 	MP4GetVerbosity.3 \
+	MP4GetVideoProfileLevel.3 \
 	MP4MakeIsmaCompliant.3 \
 	MP4Modify.3 \
 	MP4Optimize.3 \
@@ -64,14 +71,19 @@ man_MANS = \
 	MP4ReadRtpHint.3 \
 	MP4ReadRtpPacket.3 \
 	MP4ReadSample.3 \
+	MP4SetAudioProfileLevel.3 \
+	MP4SetGraphicsProfileLevel.3 \
 	MP4SetHintTrackRtpPayload.3 \
 	MP4SetHintTrackSdp.3 \
+	MP4SetODProfileLevel.3 \
 	MP4SetRtpTimestampStart.3 \
 	MP4SetSampleRenderingOffset.3 \
+	MP4SetSceneProfileLevel.3 \
 	MP4SetSessionSdp.3 \
 	MP4SetTimeScale.3 \
 	MP4SetTrackESConfiguration.3 \
 	MP4SetTrackTimeScale.3 \
 	MP4SetVerbosity.3 \
+	MP4SetVideoProfileLevel.3 \
 	MP4WriteRtpHint.3 \
 	MP4WriteSample.3 

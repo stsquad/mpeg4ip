@@ -84,7 +84,7 @@ AM_CXXFLAGS = -DADD_FFMPEG_ENCODER -DADD_XVID_ENCODER \
 	-D_REENTRANT -DNOCONTROLS -fexceptions -Wall
 
 LDADD = \
-	$(top_builddir)/server/mp4live/gui/liblive_gui.la \
+	$(top_builddir)/server/mp4live/gui/libmp4livegui.la \
 	$(top_builddir)/lib/msg_queue/libmsg_queue.la \
 	$(top_builddir)/lib/mp4v2/libmp4v2.la \
 	$(top_builddir)/lib/mp4av/libmp4av.la \

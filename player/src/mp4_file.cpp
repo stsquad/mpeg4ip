@@ -272,6 +272,7 @@ int CMp4File::create_audio (CPlayerSession *psptr,
 
   audio_info_t *ainfo;
   ainfo = (audio_info_t *)malloc(sizeof(audio_info_t));
+  memset(ainfo, 0, sizeof(*ainfo));
 
   ainfo->freq = MP4GetTrackTimeScale(m_mp4file, trackId);
 

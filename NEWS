@@ -2,6 +2,7 @@ xx/xx/02 Version 0.9.x
     Plugin concept for player codecs (also adds YUV/PCM output from mp4 file)
     Show play time in GUI
     Enhance message box errors when starting player session
+    .avi file audio for PCM and mp3. (no seek).
 
 02/26/02 Version 0.9.3
     Added RFC 3119, MP3 robust RTP payload, support to mp4creator.

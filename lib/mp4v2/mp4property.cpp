@@ -428,7 +428,6 @@ void MP4BytesProperty::Read(MP4File* pFile, u_int32_t index)
 		return;
 	}
 	MP4Free(m_values[index]);
-	WARNING(m_valueSizes[index] == 0);
 	m_values[index] = (u_int8_t*)MP4Malloc(m_valueSizes[index]);
 	pFile->ReadBytes(m_values[index], m_valueSizes[index]);
 }

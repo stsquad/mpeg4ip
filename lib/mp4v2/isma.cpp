@@ -49,6 +49,9 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 		delete e;
 	}
 
+	u_int64_t fileMsDuration =
+		ConvertFromMovieDuration(GetDuration(), MP4_MSECS_TIME_SCALE);
+
 	// delete any existing OD track
 	if (m_odTrackId != MP4_INVALID_TRACK_ID) {
 		DeleteTrack(m_odTrackId);
@@ -98,7 +101,7 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 		m_odTrackId, audioTrackId, videoTrackId, true,
 		&pBytes, &numBytes);
 
-	WriteSample(m_odTrackId, pBytes, numBytes, 1);
+	WriteSample(m_odTrackId, pBytes, numBytes, fileMsDuration);
 
 	MP4Free(pBytes);
 	pBytes = NULL;
@@ -108,7 +111,7 @@ void MP4File::MakeIsmaCompliant(bool addIsmaComplianceSdp)
 		sceneTrackId, audioTrackId, videoTrackId,
 		&pBytes, &numBytes);
 
-	WriteSample(sceneTrackId, pBytes, numBytes, 1);
+	WriteSample(sceneTrackId, pBytes, numBytes, fileMsDuration);
 
 	MP4Free(pBytes);
 	pBytes = NULL;

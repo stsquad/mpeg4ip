@@ -159,7 +159,9 @@ public:
 
 	// VO and VOL routines
 	Void decodeVOHead ();
+	Void decodeVOBody();
 	Void decodeVOLHead ();
+	Void decodeVOLBody();
 
 	// VOP routines
 	Bool decodeVOPHead ();

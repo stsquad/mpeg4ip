@@ -56,7 +56,7 @@ class CAudioSync {
   void set_wait_sem(SDL_sem *p) {m_audio_waiting = p; } ;
   void set_volume(int volume);
  private:
-  int m_dont_fill;
+  volatile int m_dont_fill;
   uint32_t m_buffer_size;
   uint32_t m_fill_index, m_play_index;
   volatile int m_buffer_filled[DECODE_BUFFERS_MAX];
@@ -73,7 +73,7 @@ class CAudioSync {
   int m_resync_required;
   int m_audio_paused;
   int m_consec_no_buffers;
-  int m_audio_waiting_buffer;
+  volatile int m_audio_waiting_buffer;
   int m_eof_found;
   int m_use_SDL_delay;
   uint32_t m_resync_buffer;

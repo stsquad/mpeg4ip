@@ -245,6 +245,12 @@ static int mp3_codec_check (lib_message_func_t message,
       return -1;
     }
   }
+  if (compressor != NULL &&
+      (strcasecmp(compressor, "AVI FILE") == 0) &&
+      (audio_type == 85)) {
+    return 1;
+  }
+
   if (fptr != NULL) {
     if (strcmp(fptr->fmt, "14") == 0) {
       return 1;

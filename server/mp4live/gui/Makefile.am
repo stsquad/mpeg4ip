@@ -1,17 +1,18 @@
-noinst_LTLIBRARIES = liblive_gui.la
-liblive_gui_la_LDFLAGS = -static
+noinst_LTLIBRARIES = libmp4livegui.la
+libmp4livegui_la_LDFLAGS = -static
 
-liblive_gui_la_SOURCES = \
+libmp4livegui_la_SOURCES = \
 	mp4live_gui.h \
 	gui_main.cpp \
 	gui_private.h \
-	gui_showmsg.cpp \
-	gui_utils.cpp \
-	gui_utils.h \
 	audio_dialog.cpp \
 	recording_dialog.cpp \
 	transmit_dialog.cpp \
-	video_dialog.cpp
+	video_dialog.cpp \
+	file_utils.h \
+	file_utils.cpp \
+	gui_utils.h \
+	gui_utils.cpp 
 
 INCLUDES=@GLIB_CFLAGS@ @GTK_CFLAGS@ \
 	-I.. \

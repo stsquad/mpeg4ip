@@ -1,0 +1,426 @@
+/*
+ * The contents of this file are subject to the Mozilla Public
+ * License Version 1.1 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of
+ * the License at http://www.mozilla.org/MPL/
+ * 
+ * Software distributed under the License is distributed on an "AS
+ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+ * implied. See the License for the specific language governing
+ * rights and limitations under the License.
+ * 
+ * The Original Code is MPEG4IP.
+ * 
+ * The Initial Developer of the Original Code is Cisco Systems Inc.
+ * Portions created by Cisco Systems Inc. are
+ * Copyright (C) Cisco Systems Inc. 2000-2002.  All Rights Reserved.
+ * 
+ * Contributor(s): 
+ * 		Bill May        wmay@cisco.com
+ * 		Dave Mackie 	dmackie@cisco.com
+ */
+
+#include "mp4live.h"
+#include "mp4live_gui.h"
+
+#include <mp4.h>
+#include <libmpeg3.h>
+
+static GtkWidget* FileSelection;
+static GtkWidget* FileEntry;
+static GtkSignalFunc FileOkFunc;
+
+static void on_filename_selected(
+	GtkFileSelection *widget, 
+	gpointer data)
+{
+	const gchar *name =
+		gtk_file_selection_get_filename(GTK_FILE_SELECTION(FileSelection));
+
+	gtk_entry_set_text(GTK_ENTRY(FileEntry), name);
+	gtk_widget_show(FileEntry);
+
+	gtk_grab_remove(FileSelection);
+	gtk_widget_destroy(FileSelection);
+
+	if (FileOkFunc) {
+		(*FileOkFunc)();
+	}
+}
+
+void FileBrowser(
+	GtkWidget* fileEntry, 
+	GtkSignalFunc okFunc)
+{
+	FileEntry = fileEntry;
+	FileOkFunc = okFunc;
+
+	FileSelection = gtk_file_selection_new("Select File");
+	gtk_file_selection_hide_fileop_buttons(
+		GTK_FILE_SELECTION(FileSelection));
+
+	gtk_signal_connect(
+		GTK_OBJECT(GTK_FILE_SELECTION(FileSelection)->ok_button),
+		"clicked",
+		GTK_SIGNAL_FUNC(on_filename_selected),
+		FileSelection);
+
+	gtk_signal_connect_object(
+		GTK_OBJECT(GTK_FILE_SELECTION(FileSelection)->cancel_button),
+		"clicked",
+		GTK_SIGNAL_FUNC(gtk_widget_destroy),
+		GTK_OBJECT(FileSelection));
+
+	gtk_widget_show(FileSelection);
+	gtk_grab_add(FileSelection);
+}
+
+bool IsDevice(const char* fileName)
+{
+	// might also want to stat()
+	return !strncmp(fileName, "/dev/", 5);
+}
+
+bool IsMp4File(const char* fileName)
+{
+	if (strlen(fileName) <= 4) {
+		return false;
+	} 
+	return !strcmp(&fileName[strlen(fileName) - 4], ".mp4");
+}
+
+int32_t Mp4FileDefaultAudio(char* fileName)
+{
+	MP4FileHandle mp4File = MP4Read(fileName);
+
+	if (mp4File == MP4_INVALID_FILE_HANDLE) {
+		return -1;
+	}
+
+	MP4TrackId trackId = 
+		MP4FindTrackId(mp4File, 0, MP4_AUDIO_TRACK_TYPE);
+
+	MP4Close(mp4File);
+
+	if (trackId == MP4_INVALID_TRACK_ID) {
+		return -1;
+	}
+	return trackId;
+}
+
+int32_t Mpeg2FileDefaultAudio(char* fileName)
+{
+	mpeg3_t* mpeg2File = mpeg3_open(fileName);
+
+	if (!mpeg2File) {
+		return -1;
+	}
+
+	int32_t audioTracks = mpeg3_total_astreams(mpeg2File);
+
+	mpeg3_close(mpeg2File);
+
+	if (audioTracks <= 0) {
+		return -1;
+	}
+	return 0; 
+}
+
+int32_t FileDefaultAudio(char* fileName)
+{
+	if (IsMp4File(fileName)) {
+		return Mp4FileDefaultAudio(fileName);
+	} else {
+		return Mpeg2FileDefaultAudio(fileName);
+	}
+}
+
+static char** trackNames;
+static u_int32_t* pTrackIndex;
+
+static void on_track_menu_activate(GtkWidget *widget, gpointer data)
+{
+	*pTrackIndex = ((unsigned int)data) & 0xFF;
+}
+
+static GtkWidget* CreateNullTrackMenu(
+	GtkWidget* menu,
+	char type,
+	char* source,
+	u_int32_t* pIndex,
+	u_int32_t* pNumber,
+	u_int32_t** ppValues)
+{
+	u_int32_t* newTrackValues = 
+		(u_int32_t*)malloc(sizeof(u_int32_t));
+	newTrackValues[0] = 0;
+
+	char** newTrackNames = 
+		(char**)malloc(sizeof(char*));
+	newTrackNames[0] = stralloc("");
+
+	// (re)create the menu
+	menu = CreateOptionMenu(
+		menu,
+		newTrackNames, 
+		1,
+		0,
+		GTK_SIGNAL_FUNC(on_track_menu_activate));
+
+	// free up old names
+	for (u_int8_t i = 0; i < *pNumber; i++) {
+		free(trackNames[i]);
+	}
+	free(*ppValues);
+	free(trackNames);
+
+	*pIndex = 0;
+	*pNumber = 1;
+	*ppValues = newTrackValues;
+	trackNames = newTrackNames;
+
+	return menu;
+}
+
+static GtkWidget* CreateMp4TrackMenu(
+	GtkWidget* menu,
+	char type,
+	char* source,
+	u_int32_t* pIndex,
+	u_int32_t* pNumber,
+	u_int32_t** ppValues)
+{
+	*pIndex = 0;
+
+	u_int32_t newTrackNumber = 1;
+
+	MP4FileHandle mp4File = MP4Read(source);
+
+	char* trackType = NULL;
+
+	if (mp4File) {
+		if (type == 'V') {
+			trackType = MP4_VIDEO_TRACK_TYPE;
+		} else {
+			trackType = MP4_AUDIO_TRACK_TYPE;
+		}
+		newTrackNumber = 
+			MP4GetNumberOfTracks(mp4File, trackType);
+	}
+
+	u_int32_t* newTrackValues = 
+		(u_int32_t*)malloc(sizeof(u_int32_t) * newTrackNumber);
+
+	char** newTrackNames = 
+		(char**)malloc(sizeof(char*) * newTrackNumber);
+
+	if (!mp4File) {
+		newTrackValues[0] = 0;
+		newTrackNames[0] = stralloc("");
+	} else {
+		for (u_int8_t i = 0; i < newTrackNumber; i++) {
+			MP4TrackId trackId =
+				MP4FindTrackId(mp4File, i, trackType);
+
+			char* trackName = "Unknown";
+			char buf[64];
+
+			if (trackType == MP4_VIDEO_TRACK_TYPE) {
+				u_int8_t videoType =
+					MP4GetTrackVideoType(mp4File, trackId);
+
+				switch (videoType) {
+				case MP4_MPEG1_VIDEO_TYPE:
+					trackName = "MPEG1";
+					break;
+				case MP4_MPEG2_SIMPLE_VIDEO_TYPE:
+				case MP4_MPEG2_MAIN_VIDEO_TYPE:
+				case MP4_MPEG2_SNR_VIDEO_TYPE:
+				case MP4_MPEG2_SPATIAL_VIDEO_TYPE:
+				case MP4_MPEG2_HIGH_VIDEO_TYPE:
+				case MP4_MPEG2_442_VIDEO_TYPE:
+					trackName = "MPEG2";
+					break;
+				case MP4_MPEG4_VIDEO_TYPE:
+					trackName = "MPEG4";
+					break;
+				case MP4_YUV12_VIDEO_TYPE:
+					trackName = "YUV12";
+					break;
+				case MP4_H26L_VIDEO_TYPE:
+					trackName = "H26L";
+					break;
+				}
+			
+				snprintf(buf, sizeof(buf), 
+					"%u - %s %ux%u %.2f fps %u kbps", 
+					trackId, 
+					trackName,
+					MP4GetTrackVideoWidth(mp4File, trackId),
+					MP4GetTrackVideoHeight(mp4File, trackId),
+					// TBD MP4GetTrackVideoFrameRate(mp4File, trackId),
+					// TBD MP4GetTrackBitRate(mp4File, trackId));
+					0, 0);
+
+			} else { // audio
+				u_int8_t audioType =
+					MP4GetTrackAudioType(mp4File, trackId);
+
+				switch (audioType) {
+				case MP4_MPEG1_AUDIO_TYPE:
+					trackName = "MPEG-1 (MP3)";
+					break;
+				case MP4_MPEG2_AUDIO_TYPE:
+					trackName = "MPEG-2 (MP3)";
+					break;
+				case MP4_MPEG2_AAC_MAIN_AUDIO_TYPE:
+				case MP4_MPEG2_AAC_LC_AUDIO_TYPE:
+				case MP4_MPEG2_AAC_SSR_AUDIO_TYPE:
+				case MP4_MPEG4_AUDIO_TYPE:
+					trackName = "AAC";
+					break;
+				case MP4_PCM16_AUDIO_TYPE:
+					trackName = "PCM16";
+					break;
+				case MP4_AC3_AUDIO_TYPE:
+					trackName = "AC3";
+					break;
+				case MP4_VORBIS_AUDIO_TYPE:
+					trackName = "Ogg Vorbis";
+					break;
+				}
+
+				snprintf(buf, sizeof(buf), 
+					"%u - %s", 
+					trackId, 
+					trackName);
+			}
+
+			newTrackValues[i] = trackId;
+			newTrackNames[i] = stralloc(buf);
+		}
+
+		MP4Close(mp4File);
+	}
+
+	// (re)create the menu
+	menu = CreateOptionMenu(
+		menu,
+		newTrackNames, 
+		newTrackNumber,
+		*pIndex,
+		GTK_SIGNAL_FUNC(on_track_menu_activate));
+
+	// free up old names
+	for (u_int8_t i = 0; i < *pNumber; i++) {
+		free(trackNames[i]);
+	}
+	free(trackNames);
+	free(*ppValues);
+
+	*pNumber = newTrackNumber;
+	trackNames = newTrackNames;
+	*ppValues = newTrackValues;
+
+	return menu;
+}
+
+static GtkWidget* CreateMpeg2TrackMenu(
+	GtkWidget* menu,
+	char type,
+	char* source,
+	u_int32_t* pIndex,
+	u_int32_t* pNumber,
+	u_int32_t** ppValues)
+{
+	*pIndex = 0;
+
+	u_int32_t newTrackNumber = 1;
+
+	mpeg3_t* mpeg2File = mpeg3_open(source);
+
+	if (mpeg2File) {
+		if (type == 'V') {
+			newTrackNumber = mpeg3_total_vstreams(mpeg2File);
+		} else {
+			newTrackNumber = mpeg3_total_astreams(mpeg2File);
+		}
+	}
+
+	u_int32_t* newTrackValues = 
+		(u_int32_t*)malloc(sizeof(u_int32_t) * newTrackNumber);
+
+	char** newTrackNames = 
+		(char**)malloc(sizeof(char*) * newTrackNumber);
+
+	if (!mpeg2File) {
+		newTrackValues[0] = 0;
+		newTrackNames[0] = stralloc("");
+	} else {
+		for (u_int8_t i = 0; i < newTrackNumber; i++) {
+			newTrackValues[i] = i;
+
+			char buf[64];
+			if (type == 'V') {
+				snprintf(buf, sizeof(buf), 
+					"%u - %ux%u %.2f fps", 
+					i + 1,
+					mpeg3_video_width(mpeg2File, i),
+					mpeg3_video_height(mpeg2File, i),
+					mpeg3_frame_rate(mpeg2File, i));
+			} else {
+				snprintf(buf, sizeof(buf), 
+					"%u - %u Hz", 
+					i + 1,
+					mpeg3_sample_rate(mpeg2File, i));
+			}
+			newTrackNames[i] = stralloc(buf);
+		}
+		mpeg3_close(mpeg2File);
+	}
+
+	// (re)create the menu
+	menu = CreateOptionMenu(
+		menu,
+		newTrackNames, 
+		newTrackNumber,
+		*pIndex,
+		GTK_SIGNAL_FUNC(on_track_menu_activate));
+
+	// free up old names
+	for (u_int8_t i = 0; i < *pNumber; i++) {
+		free(trackNames[i]);
+	}
+	free(trackNames);
+	free(*ppValues);
+
+	*pNumber = newTrackNumber;
+	trackNames = newTrackNames;
+	*ppValues = newTrackValues;
+	return menu;
+}
+
+GtkWidget* CreateTrackMenu(
+	GtkWidget* menu,
+	char type, 
+	char* source,
+	u_int32_t* pMenuIndex,
+	u_int32_t* pMenuNumber,
+	u_int32_t** ppMenuValues)
+{
+	pTrackIndex = pMenuIndex;
+
+	if (IsDevice(source)) {
+		return CreateNullTrackMenu(
+			menu, type, source, pMenuIndex, pMenuNumber, ppMenuValues);	
+
+	} else if (IsMp4File(source)) {
+		return CreateMp4TrackMenu(
+			menu, type, source, pMenuIndex, pMenuNumber, ppMenuValues);	
+
+	} else {
+		return CreateMpeg2TrackMenu(
+			menu, type, source, pMenuIndex, pMenuNumber, ppMenuValues);	
+	}
+}
+

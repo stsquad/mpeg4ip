@@ -54,7 +54,6 @@ int create_media_for_avi_file (CPlayerSession *psptr,
     delete Avifile1;
   Avifile1 = new CAviFile(name, avi);
   // quicktime is searchable...
-  psptr->session_set_seekable(1);
 
    int video;
    video = Avifile1->create_video(psptr, errmsg, errlen);
@@ -62,13 +61,17 @@ int create_media_for_avi_file (CPlayerSession *psptr,
      return (-1);
    }
    int audio;
+   int seekable = 1;
    if (have_audio_driver > 0) {
      audio = Avifile1->create_audio(psptr, errmsg, errlen);
      if (audio < 0) {
        return (-1);
      }
+     if (audio != 0) seekable = 0;
    } else
      audio = 0;
+   psptr->session_set_seekable(seekable);
+
    if (audio == 0 && video == 0) {
      snprintf(errmsg, errlen, "No valid audio or video codecs in avi file");
      return (-1);
@@ -167,7 +170,9 @@ int CAviFile::create_video (CPlayerSession *psptr,
   return (1);
 }
 
-int CAviFile::create_audio (CPlayerSession *psptr, char *errmsg, uint32_t errlen)
+int CAviFile::create_audio (CPlayerSession *psptr, 
+			    char *errmsg, 
+			    uint32_t errlen)
 {
   m_audio_tracks = 0;
   //  CPlayerMedia *mptr;
@@ -180,39 +185,65 @@ int CAviFile::create_audio (CPlayerSession *psptr, char *errmsg, uint32_t errlen
 			 AVI_audio_rate(m_file),
 			 AVI_audio_bytes(m_file));
   }
-#if 0
 
-    const char *codec = "mp3 ";
-    if (lookup_audio_codec_by_name(codec) < 0) {
-      player_debug_message("Couldn't find audio codec %s", codec);
-      return (0);
-    }
-    CAviAudioByteStream *abyte;
-    mptr = new CPlayerMedia(psptr);
+  codec_plugin_t *plugin = NULL;
+
+  plugin = check_for_audio_codec("AVI FILE",
+				 NULL,
+				 AVI_audio_format(m_file), 
+				 -1, 
+				 NULL, 
+				 0);
+  if (plugin == NULL) {
+    player_debug_message("No audio plugin found");
+    return 0;
+  }
+  CAviAudioByteStream *abyte;
+  CPlayerMedia *mptr = new CPlayerMedia(psptr);
     if (mptr == NULL) {
       return (-1);
-    }
-    abyte = new CQTAudioByteStream(this, mptr, 0);
-    long sample_rate = AVI_audio_rate(m_file);
-    float sr = (float)sample_rate;
-    long len = AVI_audio_bytes(m_file);
-    int duration = len / 2;
-    player_debug_message("audio - rate %g len %ld samples %d", sr, len, duration);
-    audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
-    audio->freq = (int)sr;
-    mptr->set_codec_type(codec);
-    mptr->set_audio_info(audio);
-    abyte->config(len, sr, duration);
-    player_debug_message("audio Max time is %g", abyte->get_max_playtime());
-    int ret = mptr->create_from_file(abyte, FALSE);
-    if (ret != 0) {
-      return (-1);
-    }
+  }
+  audio_info_t *ainfo;
+  ainfo = MALLOC_STRUCTURE(audio_info_t);
+  ainfo->freq = AVI_audio_rate(m_file);
+  ainfo->chans = AVI_audio_channels(m_file);
+  ainfo->bitspersample = AVI_audio_bits(m_file); 
+
+  
+  int ret;
+  ret = mptr->create_audio_plugin(plugin, 
+				  NULL, 
+				  ainfo,
+				  NULL, 
+				  0);
+  if (ret < 0) {
+    delete mptr;
+    player_error_message("Couldn't create audio from plugin %s", 
+			 plugin->c_name);
+    return -1;
+  }
+  abyte = new CAviAudioByteStream(this);
+
+#if 0
+  long sample_rate = AVI_audio_rate(m_file);
+  
+  
+  float sr = (float)sample_rate;
+  long len = AVI_audio_bytes(m_file);
+  int duration = len / 2;
+  player_debug_message("audio - rate %g len %ld samples %d", sr, len, duration);
+  audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
+  audio->freq = (int)sr;
+  mptr->set_codec_type(codec);
+  mptr->set_audio_info(audio);
+  //abyte->config(len, sr, duration);
+  player_debug_message("audio Max time is %g", abyte->get_max_playtime());
+#endif
+  ret = mptr->create_from_file(abyte, FALSE);
+  if (ret != 0) {
+    return (-1);
   }
   return (1);
-#else
-  return (0);
-#endif
 }
 
-/* end file qtime_file.cpp */
+/* end file avi_file.cpp */

@@ -211,8 +211,7 @@ static void PrintAudioInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 			trackDuration, MP4_MSECS_TIME_SCALE);
 
 	u_int32_t avgBitRate =
-		MP4GetTrackIntegerProperty(mp4File, trackId, 
-			"mdia.minf.stbl.stsd.mp4a.esds.decConfigDescr.avgBitrate");
+		MP4GetTrackBitRate(mp4File, trackId);
 
 	// type duration avgBitrate samplingFrequency
 	printf("%u\taudio\t%s, %.3f secs, %u kbps, %u Hz\n", 
@@ -300,8 +299,7 @@ static void PrintVideoInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 			trackDuration, MP4_MSECS_TIME_SCALE);
 
 	u_int32_t avgBitRate =
-		MP4GetTrackIntegerProperty(mp4File, trackId, 
-			"mdia.minf.stbl.stsd.mp4v.esds.decConfigDescr.avgBitrate");
+		MP4GetTrackBitRate(mp4File, trackId);
 
 	// Note not all mp4 implementations set width and height correctly
 	// The real answer can be buried inside the ES configuration info
@@ -309,12 +307,7 @@ static void PrintVideoInfo(MP4FileHandle mp4File, MP4TrackId trackId)
 
 	u_int16_t height = MP4GetTrackVideoHeight(mp4File, trackId); 
 
-	// Note if variable rate video is being used the fps is an average 
-	u_int32_t numFrames = 
-		MP4GetTrackNumberOfSamples(mp4File, trackId); 
-
-	float fps = 
-		((float)numFrames / (float)msDuration) * 1000;
+	float fps = MP4GetTrackVideoFrameRate(mp4File, trackId);
 
 	// type duration avgBitrate frameSize frameRate
 	printf("%u\tvideo\t%s, %.3f secs, %u kbps, %ux%u @ %.2f fps\n", 

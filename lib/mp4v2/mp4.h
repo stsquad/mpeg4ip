@@ -109,6 +109,7 @@ typedef u_int64_t	MP4Duration;
 #define MP4_PRIVATE_AUDIO_TYPE			0xC0
 #define MP4_PCM16_AUDIO_TYPE			0xE0	/* a private definition */
 #define MP4_VORBIS_AUDIO_TYPE			0xE1	/* a private definition */
+#define MP4_AC3_AUDIO_TYPE				0xE2	/* a private definition */
 
 /* MP4 Video track types - see MP4AddVideoTrack() */
 #define MP4_INVALID_VIDEO_TYPE			0x00
@@ -125,6 +126,7 @@ typedef u_int64_t	MP4Duration;
 #define MP4_PRIVATE_VIDEO_TYPE			0xD0
 #define MP4_YUV12_VIDEO_TYPE			0xF0	/* a private definition */
 #define MP4_H26L_VIDEO_TYPE				0xF1	/* a private definition */
+#define MP4_H263_VIDEO_TYPE				0xF2	/* a private definition */
 
 
 /* MP4 API declarations */
@@ -289,6 +291,9 @@ u_int8_t MP4GetTrackVideoType(
 MP4Duration MP4GetTrackFixedSampleDuration(
 	MP4FileHandle hFile, MP4TrackId trackId);
 
+u_int32_t MP4GetTrackBitRate(
+	MP4FileHandle hFile, MP4TrackId trackId);
+
 void MP4GetTrackESConfiguration(
 	MP4FileHandle hFile, MP4TrackId trackId, 
 	u_int8_t** ppConfig, u_int32_t* pConfigSize);
@@ -304,6 +309,9 @@ u_int16_t MP4GetTrackVideoWidth(
 	MP4FileHandle hFile, MP4TrackId trackId);
 
 u_int16_t MP4GetTrackVideoHeight(
+	MP4FileHandle hFile, MP4TrackId trackId);
+
+float MP4GetTrackVideoFrameRate(
 	MP4FileHandle hFile, MP4TrackId trackId);
 
 /* generic track properties */

@@ -274,6 +274,7 @@ int CQtimeFile::create_audio (CPlayerSession *psptr)
     }
 
     audio_info_t *audio = (audio_info_t *)malloc(sizeof(audio_info_t));
+    memset(audio, 0, sizeof(*audio));
     audio->freq = sample_rate;
 
     int ret = mptr->create_audio_plugin(plugin,

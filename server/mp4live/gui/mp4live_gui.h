@@ -24,7 +24,9 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
+
 #include "gui_utils.h"
 #include "gui_private.h"
+#include "file_utils.h"
 
 #endif /* __MP4LIVE_GUI_H__ */
