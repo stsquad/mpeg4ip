@@ -54,7 +54,7 @@ int quicktime_esds_set_decoder_config(quicktime_esds_t* esds, u_char* pBuf, int 
 	esds->decoderConfig = malloc(bufSize);
 	if (esds->decoderConfig) {
 		memcpy(esds->decoderConfig, pBuf, bufSize);
-		esds->decoderConfig = bufSize;
+		esds->decoderConfigLen = bufSize;
 		return 0;
 	}
 	return 1;
@@ -82,6 +82,10 @@ int quicktime_esds_dump(quicktime_esds_t *esds)
 
 int quicktime_read_esds(quicktime_t *file, quicktime_esds_t *esds)
 {
+	u_int32_t length;
+
+/* DJM DEBUG */
+printf("read esds, entered\n");
 	esds->version = quicktime_read_char(file);
 	esds->flags = quicktime_read_int24(file);
 
@@ -89,36 +93,44 @@ int quicktime_read_esds(quicktime_t *file, quicktime_esds_t *esds)
 	quicktime_set_position(file, quicktime_position(file) + 3);
 
 	/* get and verify DecoderConfigDescrTab */
-	if (quicktime_read_char(file) == 0x04) {
-		/* get length of 1-4 bytes */
-		u_int8_t b, bcount = 0;
-		u_int32_t length = 0;
+	if (quicktime_read_char(file) != 0x04) {
+		return 1;
+	}
 
-		/* TBD create a function to do this */
-		do {
-			b = quicktime_read_char(file);
-			bcount++;
-			length = (length << 7) | (b & 0x7F);
-		} while ((b & 0x80) && bcount <= 4);
+	/* read length */
+	if (quicktime_read_mp4_descr_length(file) < 15) {
+		return 1;
+	}
 
-		/* read it */
-		esds->decoderConfigLen = length; 
-		free(esds->decoderConfig);
-		esds->decoderConfig = malloc(esds->decoderConfigLen);
-		if (esds->decoderConfig) {
-			quicktime_read_data(file, esds->decoderConfig, 
-				esds->decoderConfigLen);
-		} else {
-			esds->decoderConfigLen = 0;
-		}
+	/* skip 13 bytes */
+	quicktime_set_position(file, quicktime_position(file) + 13);
+
+	/* get and verify DecSpecificInfoTag */
+	if (quicktime_read_char(file) != 0x05) {
+		return 1;
+	}
+
+	/* read length */
+	esds->decoderConfigLen = quicktime_read_mp4_descr_length(file); 
+/* DJM DEBUG */
+printf("read esds, length is %u bytes\n", esds->decoderConfigLen);
+
+	free(esds->decoderConfig);
+	esds->decoderConfig = malloc(esds->decoderConfigLen);
+	if (esds->decoderConfig) {
+		quicktime_read_data(file, esds->decoderConfig, esds->decoderConfigLen);
+	} else {
+		esds->decoderConfigLen = 0;
 	}
 
 	/* will skip the remainder of the atom */
+	return 0;
 }
 
-int quicktime_write_esds(quicktime_t *file, quicktime_esds_t *esds, int esid)
+int quicktime_write_esds_common(quicktime_t *file, quicktime_esds_t *esds, int esid, u_int objectType, u_int streamType)
 {
 	quicktime_atom_t atom;
+	u_int32_t length;
 
 	if (!file->use_mp4) {
 		return 0;
@@ -134,20 +146,27 @@ int quicktime_write_esds(quicktime_t *file, quicktime_esds_t *esds, int esid)
 
 	/* DecoderConfigDescriptor */
 	quicktime_write_char(file, 0x04);	/* DecoderConfigDescrTag */
-	/* TBD create a function to do this */
-	{
-	u_int8_t b;
-	u_int32_t length = esds->decoderConfigLen;
-	
-	do {
-		b = length & 0x7F;
-		length >>= 7;
-		if (length) {
-			b |= 0x80;
-		}
-		quicktime_write_char(file, b);
-	} while (length);
+	length = 15 + esds->decoderConfigLen;
+	if (esds->decoderConfigLen > 0x7F) {
+		length++;
 	}
+	if (esds->decoderConfigLen > 0x3FFF) {
+		length++;
+	}
+	if (esds->decoderConfigLen > 0x1FFFFF) {
+		length++;
+	}
+	quicktime_write_mp4_descr_length(file, length);
+
+	quicktime_write_char(file, objectType); /* objectTypeIndication */
+	quicktime_write_char(file, streamType); /* streamType */
+
+	quicktime_write_int24(file, 0);		/* buffer size */
+	quicktime_write_int32(file, 0);		/* max bitrate */
+	quicktime_write_int32(file, 0);		/* average bitrate */
+
+	quicktime_write_char(file, 0x05);	/* DecSpecificInfoTag */
+	quicktime_write_mp4_descr_length(file, esds->decoderConfigLen);
 	quicktime_write_data(file, esds->decoderConfig, esds->decoderConfigLen);
 
 	/* SLConfigDescriptor */
@@ -165,3 +184,14 @@ int quicktime_write_esds(quicktime_t *file, quicktime_esds_t *esds, int esid)
 
 	quicktime_atom_write_footer(file, &atom);
 }
+
+int quicktime_write_esds_audio(quicktime_t *file, quicktime_esds_t *esds, int esid)
+{
+	return quicktime_write_esds_common(file, esds, esid, 0x40, 0x19);
+}
+
+int quicktime_write_esds_video(quicktime_t *file, quicktime_esds_t *esds, int esid)
+{
+	return quicktime_write_esds_common(file, esds, esid, 0x20, 0x11);
+}
+

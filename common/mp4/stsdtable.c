@@ -187,7 +187,7 @@ int quicktime_write_stsd_audio(quicktime_t *file, quicktime_stsd_table_t *table)
 		quicktime_write_int32(file, 0);
 		quicktime_write_int16(file, table->sample_rate);
 		quicktime_write_int16(file, 0);
-		quicktime_write_esds(file, &(table->esds),
+		quicktime_write_esds_audio(file, &(table->esds),
 			file->atracks[0].track->tkhd.track_id);
 	} else {
 		quicktime_write_int16(file, table->version);
@@ -282,7 +282,7 @@ int quicktime_write_stsd_video(quicktime_t *file, quicktime_stsd_table_t *table)
 		}
 		quicktime_write_int16(file, 24);
 		quicktime_write_int16(file, -1);
-		quicktime_write_esds(file, &(table->esds),
+		quicktime_write_esds_video(file, &(table->esds),
 			file->vtracks[0].track->tkhd.track_id);
 	} else {
 		quicktime_write_int16(file, table->version);
