@@ -34,7 +34,7 @@ int quicktime_dmed_delete(quicktime_dmed_t *dmed)
 int quicktime_dmed_dump(quicktime_dmed_t *dmed)
 {
 	printf("    total media bytes\n");
-	printf("     numBytes %llu\n", dmed->numBytes);
+	printf("     numBytes "U64"\n", dmed->numBytes);
 }
 
 int quicktime_read_dmed(quicktime_t *file, quicktime_dmed_t *dmed)

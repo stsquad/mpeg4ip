@@ -313,7 +313,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
       if (diff > ((m_msec_per_frame + 1) * 4)) {
 #ifdef DEBUG_AUDIO_FILL
       audio_message(LOG_DEBUG, 
-		    "resync required %lld", diff);
+		    "resync required "D64, diff);
 #endif
 	resync = 1;
       } else {
@@ -354,7 +354,7 @@ void CSDLAudioSync::filled_audio_buffer (uint64_t ts, int resync)
 			m_last_fill_timestamp);
 	  m_last_fill_timestamp += m_msec_per_frame + 1; // fill plus extra
 	  ts_diff = ts - m_last_fill_timestamp;
-	  audio_message(LOG_DEBUG, "diff is %lld", ts_diff);
+	  audio_message(LOG_DEBUG, "diff is "D64, ts_diff);
 	} while (ts_diff > 0);
 	locked = 0;
 	if (m_audio_initialized != 0) {
@@ -830,7 +830,7 @@ void CSDLAudioSync::audio_callback (Uint8 *outStream, int ilen)
 	  int64_t div;
 	  div = m_wrong_latency_total / (int64_t)(m_consec_wrong_latency - 1);
 #ifdef DEBUG_SYNC_CHANGES
-	  audio_message(LOG_DEBUG, "values are %lld %lld %d", 
+	  audio_message(LOG_DEBUG, "values are "D64" "D64" %d", 
 			test, div, m_consec_wrong_latency);
 #endif
 	  if (test > ALLOWED_LATENCY || test < -ALLOWED_LATENCY) {

@@ -68,7 +68,7 @@ main(int argc, char** argv)
 			&pSample, &sampleSize, NULL, &duration);
 
 		if (rc) {
-			printf("Sample %i duration %lld: %s\n", 
+			printf("Sample %i duration "D64": %s\n", 
 				i, duration, pSample);
 			free(pSample);
 		} else {

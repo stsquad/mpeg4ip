@@ -174,7 +174,7 @@ int CRfc3119RtpByteStream::insert_processed_adu (adu_data_t *adu)
 	return -1;
       } else if (diff < 0) {
 #ifdef DEBUG_3119
-	mpa_message(LOG_DEBUG, "Inserting in front of ts %llu", p->timestamp);
+	mpa_message(LOG_DEBUG, "Inserting in front of ts "U64, p->timestamp);
 #endif
 	if (q == NULL) {
 	  adu->next_adu = m_ordered_adu_list;
@@ -471,7 +471,7 @@ void CRfc3119RtpByteStream::process_packet (void)
 	    ts_index = p->interleave_idx;
 	  }
 #ifdef DEBUG_3119_INTERLEAVE
-	  mpa_message(LOG_DEBUG, "cyc %d index %d fip %d ts %llu %d", 
+	  mpa_message(LOG_DEBUG, "cyc %d index %d fip %d ts "U64" %d", 
 		      p->cyc_ct,
 		      p->interleave_idx,
 		      p->first_in_pak,
@@ -576,7 +576,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
     if (tailADU->backpointer > prevADUend) {
       uint64_t ts;
 #ifdef DEBUG_3119
-      mpa_message(LOG_DEBUG, "Adding tail ts is %lld", tailADU->timestamp);
+      mpa_message(LOG_DEBUG, "Adding tail ts is "D64, tailADU->timestamp);
 #endif
       SDL_LockMutex(m_rtp_packet_mutex);
       if (prevADU == NULL) {
@@ -585,7 +585,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 	prevADU->next_adu = m_pending_adu_list;
 	m_pending_adu_list = prevADU;
 #ifdef DEBUG_3119
-	mpa_message(LOG_DEBUG, "Adding zero frame front, ts %lld", ts);
+	mpa_message(LOG_DEBUG, "Adding zero frame front, ts "D64, ts);
 #endif
       } else {
 
@@ -593,7 +593,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 	     p != tailADU;
 	     p = p->next_adu) {
 #ifdef DEBUG_3119
-	  mpa_message(LOG_DEBUG, "Adjusting %lld to %lld", p->timestamp,
+	  mpa_message(LOG_DEBUG, "Adjusting "D64" to "D64, p->timestamp,
 		      p->timestamp - m_rtp_ts_add);
 #endif
 	  p->timestamp -= m_rtp_ts_add;
@@ -603,7 +603,7 @@ void CRfc3119RtpByteStream::add_and_insertDummyADUsIfNecessary (void)
 	prevADU->next_adu = get_adu_data();
 	prevADU = prevADU->next_adu;
 #ifdef DEBUG_3119
-	mpa_message(LOG_DEBUG, "Adding zero frame middle %lld", ts);
+	mpa_message(LOG_DEBUG, "Adding zero frame middle "D64, ts);
 #endif
       }
 
@@ -764,7 +764,7 @@ uint64_t CRfc3119RtpByteStream::start_next_frame (uint8_t **buffer,
   }
 
 #ifdef DEBUG_3119
-  mpa_message(LOG_DEBUG, "ts %llu, framesize %d", 
+  mpa_message(LOG_DEBUG, "ts "U64", framesize %d", 
 	      m_pending_adu_list->timestamp, m_pending_adu_list->framesize);
 #endif
   *buffer = m_mp3_frame;

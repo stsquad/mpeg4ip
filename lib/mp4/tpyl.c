@@ -34,7 +34,7 @@ int quicktime_tpyl_delete(quicktime_tpyl_t *tpyl)
 int quicktime_tpyl_dump(quicktime_tpyl_t *tpyl)
 {
 	printf("    total RTP payload bytes\n");
-	printf("     numBytes %llu\n", tpyl->numBytes);
+	printf("     numBytes "U64"\n", tpyl->numBytes);
 }
 
 int quicktime_read_tpyl(quicktime_t *file, quicktime_tpyl_t *tpyl)

@@ -90,7 +90,7 @@ static int h261_decode (codec_data_t *ptr,
   h261_rtp_userdata_t *h261_data = (h261_rtp_userdata_t *)ud;
 
 #if 0
-  h261->m_vft->log_msg(LOG_DEBUG, "h261", "ts %llu, m bit %d", 
+  h261->m_vft->log_msg(LOG_DEBUG, "h261", "ts "U64", m bit %d", 
 		       ts, h261_data->m_bit_value);
 #endif
   if (h261->m_decoder == NULL) {
@@ -137,7 +137,7 @@ static int h261_decode (codec_data_t *ptr,
     
 
 #if 0
-    h261->m_vft->log_msg(LOG_DEBUG, "h261", "filling buffer ts %llu", ts);
+    h261->m_vft->log_msg(LOG_DEBUG, "h261", "filling buffer ts "U64, ts);
 #endif
     h261->m_vft->video_have_frame(h261->m_ifptr,
 				  (const uint8_t *)y, 

@@ -68,7 +68,7 @@ static MP4TrackId VideoCreate (MP4FileHandle mp4file,
 			  video_type);
   }
 
-  //printf("duration %llu w %d h %d type %x\n", mp4FrameDuration, w, h, video_type);
+  //printf("duration "U64" w %d h %d type %x\n", mp4FrameDuration, w, h, video_type);
   if (MP4GetNumberOfTracks(mp4file, MP4_VIDEO_TRACK_TYPE) == 1) {
     MP4SetVideoProfileLevel(mp4file, 0xfe); // undefined profile
   }

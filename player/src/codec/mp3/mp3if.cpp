@@ -170,7 +170,7 @@ static int mp3_decode (codec_data_t *ptr,
     if (mp3->m_last_rtp_ts == ts) {
 #if 0
       mp3_message(LOG_DEBUG, "mp3",
-		  "ts %llu current time %llu spf %d freq %d", 
+		  "ts %llu current time "U64" spf %d freq %d", 
 		  ts, mp3->m_current_time, mp3->m_samplesperframe, 
 		  mp3->m_freq);
 #endif
@@ -193,7 +193,7 @@ static int mp3_decode (codec_data_t *ptr,
       mp3->m_resync_with_header = 0;
 #ifdef DEBUG_SYNC
       mp3_message(LOG_DEBUG, "libmp3", 
-		  "Back to good at %llu", mp3->m_current_time);
+		  "Back to good at "U64, mp3->m_current_time);
 #endif
     }
       

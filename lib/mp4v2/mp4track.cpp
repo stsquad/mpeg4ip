@@ -1605,8 +1605,8 @@ MP4SampleId MP4Track::GetSampleIdFromEditTime(
 			}
 
 			VERBOSE_EDIT(m_pFile->GetVerbosity(),
-				printf("GetSampleIdFromEditTime: when %llu "
-					"sampleId %u start %llu duration %lld\n", 
+				printf("GetSampleIdFromEditTime: when "U64" "
+					"sampleId %u start "U64" duration "D64"\n", 
 					editWhen, sampleId, 
 					editSampleStartTime, editSampleDuration));
 

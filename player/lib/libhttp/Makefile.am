@@ -1,5 +1,4 @@
 lib_LTLIBRARIES = libhttp.la
-libhttp_la_LDFLAGS = -static
 libhttp_la_SOURCES = \
 	http.c \
 	http.h \

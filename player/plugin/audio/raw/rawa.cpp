@@ -122,7 +122,7 @@ static int rawa_decode (codec_data_t *ptr,
   uint32_t ix;
   unsigned short *b;
 
-  LOGIT(LOG_DEBUG, "rawa", "ts %llu buffer len %d", ts, buflen);
+  //  LOGIT(LOG_DEBUG, "rawa", "ts "U64" buffer len %d", ts, buflen);
   if (rawa->m_initialized == 0) {
     if (rawa->m_chans == 0) {
       // Special mp4 case - we don't know how many channels, but we

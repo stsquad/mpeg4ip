@@ -34,7 +34,7 @@ int quicktime_drep_delete(quicktime_drep_t *drep)
 int quicktime_drep_dump(quicktime_drep_t *drep)
 {
 	printf("    total repeated bytes\n");
-	printf("     numBytes %llu\n", drep->numBytes);
+	printf("     numBytes "U64"\n", drep->numBytes);
 }
 
 int quicktime_read_drep(quicktime_t *file, quicktime_drep_t *drep)

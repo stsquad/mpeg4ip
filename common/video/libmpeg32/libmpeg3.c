@@ -190,7 +190,7 @@ static int read_toc(mpeg3_t *file)
 	mpeg3io_read_data(buffer, mpeg3io_total_bytes(file->fs), file->fs);
 
 
-//printf("read_toc %lld\n", mpeg3io_total_bytes(file->fs));
+//printf("read_toc "D64"\n", mpeg3io_total_bytes(file->fs));
 
 // File type
 	file_type = buffer[position++];
@@ -292,7 +292,7 @@ static int read_toc(mpeg3_t *file)
 			for(j = 0; j < file->total_sample_offsets[i]; j++)
 			{
 				file->sample_offsets[i][j] = read_int64(buffer, &position);
-//printf("samples %llx\n", file->sample_offsets[i][j]);
+//printf("samples "X64"\n", file->sample_offsets[i][j]);
 			}
 		}
 	}
@@ -311,7 +311,7 @@ static int read_toc(mpeg3_t *file)
 			for(j = 0; j < file->total_frame_offsets[i]; j++)
 			{
 				file->frame_offsets[i][j] = read_int64(buffer, &position);
-//printf("frame %llx\n", file->frame_offsets[i][j]);
+//printf("frame "X64"\n", file->frame_offsets[i][j]);
 			}
 
 
@@ -331,7 +331,7 @@ static int read_toc(mpeg3_t *file)
 //printf("read_toc 1\n");
 	mpeg3demux_open_title(file->demuxer, 0);
 
-//printf("read_toc 2 %llx\n", mpeg3demux_tell(file->demuxer));
+//printf("read_toc 2 "X64"\n", mpeg3demux_tell(file->demuxer));
 	return 0;
 }
 

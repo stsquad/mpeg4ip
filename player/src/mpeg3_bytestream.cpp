@@ -133,7 +133,7 @@ uint64_t CMpeg3VideoByteStream::start_next_frame (uint8_t **buffer,
   ts /= m_frame_rate;
   ts *= 1000.0;
   time = (uint64_t)ts;
-  //mpeg3f_message(LOG_DEBUG, "start next frame %ld %llu", blen, time);
+  //mpeg3f_message(LOG_DEBUG, "start next frame %ld "U64, blen, time);
   m_frame_on++;
   return time;
 }
@@ -285,7 +285,7 @@ uint64_t CMpeg3AudioByteStream::start_next_frame (uint8_t **buffer,
   ts *= M_64;
   ts /= m_freq;
   m_frame_on++;
-  //mpeg3f_message(LOG_DEBUG, "audiostart %ld %llu %d", m_frame_on, ts, m_this_frame_size);
+  //mpeg3f_message(LOG_DEBUG, "audiostart %ld "U64" %d", m_frame_on, ts, m_this_frame_size);
   return ts;
 }
 

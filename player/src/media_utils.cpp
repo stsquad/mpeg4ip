@@ -559,7 +559,7 @@ static int create_media_for_iptv (CPlayerSession *psptr,
   memcpy(cm, name, slash - name);
   cm[slash - name] = '\0';
   slash++;
-  if (sscanf(slash, "%llu", &prog) != 1) {
+  if (sscanf(slash, U64, &prog) != 1) {
     snprintf(errmsg, errlen, "Invalid iptv program");
     return -1;
   }

@@ -514,7 +514,7 @@ void CSDLVideoSync::filled_video_buffers (uint64_t time)
   m_last_filled_time = time;
   m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
-  video_message(LOG_DEBUG, "Filled %llu %d", time, ix);
+  video_message(LOG_DEBUG, "Filled "U64" %d", time, ix);
 #endif
 }
 
@@ -606,7 +606,7 @@ void CSDLVideoSync::set_video_frame(const uint8_t *y,
   m_last_filled_time = time;
   m_psptr->wake_sync_thread();
 #ifdef VIDEO_SYNC_FILL
-  video_message(LOG_DEBUG, "filled %llu %d", time, ix);
+  video_message(LOG_DEBUG, "filled "U64" %d", time, ix);
 #endif
   return;
 }

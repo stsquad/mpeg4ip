@@ -44,7 +44,7 @@ int main (int argc, char **argv)
 	mp3 = es_pid->list;
 	es_pid->list = NULL;
 	while (mp3 != NULL) {
-	  printf("Wrote %d frame psts len %d %d %llu %llx\n", 
+	  printf("Wrote %d frame psts len %d %d "U64" "X64"\n", 
 		 es_pid->stream_type,
 		 mp3->frame_len,
 		 mp3->have_ps_ts, mp3->ps_ts, mp3->ps_ts);

@@ -459,7 +459,7 @@ bool CV4LVideoSource::ReleaseFrame(int8_t frameNumber)
 
   if (calc > m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded) {
 #ifdef DEBUG_TIMESTAMPS
-    debug_message("video frame delay past end of buffer - time is %llu should be %llu",
+    debug_message("video frame delay past end of buffer - time is "U64" should be "U64,
 		  calc,
 		  m_videoSrcFrameDuration + m_lastVideoFrameMapTimestampLoaded);
 #endif

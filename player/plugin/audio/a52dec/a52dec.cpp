@@ -212,7 +212,7 @@ static int a52dec_decode (codec_data_t *ptr,
       outptr += 2 * 256;
     }
   }
-  //  LOGIT(LOG_DEBUG, "a52dec", "wrote into frame %llu %x", ts, flags);
+  //  LOGIT(LOG_DEBUG, "a52dec", "wrote into frame "U64" %x", ts, flags);
   a52dec->m_vft->audio_filled_buffer(a52dec->m_ifptr,
 				     ts, 
 				     a52dec->m_resync);

@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "total_sample_offsets=%d\n", file->atrack[i]->total_sample_offsets);
 				for(j = 0; j < file->atrack[i]->total_sample_offsets; j++)
 				{
-					fprintf(stderr, "%llx ", file->atrack[i]->sample_offsets[j]);
+					fprintf(stderr, X64" ", file->atrack[i]->sample_offsets[j]);
 					if(j > 0 && !(j % 8)) fprintf(stderr, "\n");
 				}
 				fprintf(stderr, "\n");
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "total_frame_offsets=%d\n", file->vtrack[i]->total_frame_offsets);
 				for(j = 0; j < file->vtrack[i]->total_frame_offsets; j++)
 				{
-					fprintf(stderr, "%llx ", file->vtrack[i]->frame_offsets[j]);
+					fprintf(stderr, X64" ", file->vtrack[i]->frame_offsets[j]);
 					if(j > 0 && !(j % 8)) fprintf(stderr, "\n");
 				}
 				fprintf(stderr, "\n");
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "total_keyframe_numbers=%d\n", file->vtrack[i]->total_keyframe_numbers);
 				for(j = 0; j < file->vtrack[i]->total_keyframe_numbers; j++)
 				{
-					fprintf(stderr, "%llx ", file->vtrack[i]->keyframe_numbers[j]);
+					fprintf(stderr, X64" ", file->vtrack[i]->keyframe_numbers[j]);
 					if(j > 0 && !(j % 8)) fprintf(stderr, "\n");
 				}
 				fprintf(stderr, "\n");
@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "total_titles=%d\n", file->demuxer->total_titles);
 		for(i = 0; i < file->demuxer->total_titles; i++)
 		{
-			fprintf(stderr, "  Title path=%s total_bytes=%llx cell_table_size=%d\n", 
+			fprintf(stderr, "  Title path=%s total_bytes="X64" cell_table_size=%d\n", 
 				file->demuxer->titles[i]->fs->path,
 				file->demuxer->titles[i]->total_bytes, 
 				file->demuxer->titles[i]->timecode_table_size);
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 			if(print_offsets)
 			{
 				for(j = 0; j < file->demuxer->titles[i]->timecode_table_size; j++)
-					fprintf(stderr, "    Cell: %llx-%llx program=%d\n", 
+					fprintf(stderr, "    Cell: "X64"-"X64" program=%d\n", 
 						file->demuxer->titles[i]->timecode_table[j].start_byte, 
 						file->demuxer->titles[i]->timecode_table[j].end_byte,
 						file->demuxer->titles[i]->timecode_table[j].program);

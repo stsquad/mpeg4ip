@@ -10,7 +10,7 @@ unsigned int mpeg3bits_next_startcode(mpeg3_bits_t* stream)
   mpeg3bits_byte_align(stream);
 
 
-//printf("mpeg3bits_next_startcode 1 %lld %lld\n", 
+//printf("mpeg3bits_next_startcode 1 "D64" D64"\n", 
 //	stream->demuxer->titles[0]->fs->current_byte, 
 //	stream->demuxer->titles[0]->fs->total_bytes);
 

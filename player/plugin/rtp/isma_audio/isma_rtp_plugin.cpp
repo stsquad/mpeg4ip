@@ -410,7 +410,7 @@ static void process_packet_header (isma_rtp_data_t *iptr)
 					      pak->pd.rtp_pd_timestamp,
 					      1);
   isma_message(LOG_DEBUG, ismartp, 
-	       "1st - header len %u frame len %u ts %x %llu", 
+	       "1st - header len %u frame len %u ts %x "U64, 
 	       header_len, frame_len, pak->rtp_pak_ts, msec);
 #endif
   if (frame_len == 0) {
@@ -466,7 +466,7 @@ static void process_packet_header (isma_rtp_data_t *iptr)
 				       pak->pd.rtp_pd_timestamp,
 				       1);
     isma_message(LOG_DEBUG, ismartp, 
-		 "Stride %d len %d ts %x %llu", 
+		 "Stride %d len %d ts %x "U64,
 		 stride, frame_len, ts, msec);
 #endif
     frame_data = get_frame_data(iptr);

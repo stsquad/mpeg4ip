@@ -288,7 +288,7 @@ static int xvid_decode (codec_data_t *ptr,
   XVID_DEC_FRAME frame;
 
 #if 0
-  xvid->m_vft->log_msg(LOG_DEBUG, "xvid", " %d frame %llu len %u %d", 
+  xvid->m_vft->log_msg(LOG_DEBUG, "xvid", " %d frame "U64" len %u %d", 
 		       xvid->m_total_frames, ts, buflen,
 		       xvid->m_decodeState);
 #endif

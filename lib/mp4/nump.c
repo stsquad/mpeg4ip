@@ -34,7 +34,7 @@ int quicktime_nump_delete(quicktime_nump_t *nump)
 int quicktime_nump_dump(quicktime_nump_t *nump)
 {
 	printf("    total RTP packets\n");
-	printf("     numBytes %llu\n", nump->numPackets);
+	printf("     numBytes "U64"\n", nump->numPackets);
 }
 
 int quicktime_read_nump(quicktime_t *file, quicktime_nump_t *nump)

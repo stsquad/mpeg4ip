@@ -322,7 +322,7 @@ int main(int argc, char *argv[])
 					if(result) fprintf(stderr, "%s\n", strerror(errno));
 				}
 
-//fprintf(stderr, "%llx %llx\n", mpeg3demux_tell(demuxer), mpeg3demux_tell(demuxer) - total_written);
+//fprintf(stderr, X64 " "X64"\n", mpeg3demux_tell(demuxer), mpeg3demux_tell(demuxer) - total_written);
 			}
 		}
 		else

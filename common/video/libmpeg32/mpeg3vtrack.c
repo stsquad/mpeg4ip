@@ -381,7 +381,7 @@ mpeg3_vtrack_t* mpeg3_new_vtrack(mpeg3_t *file,
 	}
 
 //printf("mpeg3_new_vtrack 1\n");
-//printf("mpeg3_new_vtrack %llx\n", mpeg3demux_tell(new_vtrack->demuxer));
+//printf("mpeg3_new_vtrack "X64"\n", mpeg3demux_tell(new_vtrack->demuxer));
 /* Get information about the track here. */
 
 	if (mpeg3vtrack_get_frame(new_vtrack)) {

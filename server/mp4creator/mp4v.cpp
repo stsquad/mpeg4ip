@@ -390,7 +390,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 			    break;
 			  default:
 #ifdef MP4V_DEBUG
-			    printf("sample %u %c renderingOffset %llu\n",
+			    printf("sample %u %c renderingOffset "U64"\n",
 				   refVopId, vopType, currentSampleTime - refVopTime);
 #endif
 
@@ -439,7 +439,7 @@ MP4TrackId Mp4vCreator(MP4FileHandle mp4File, FILE* inFile, bool doEncrypt)
 	  break;
 	default:
 #ifdef MP4V_DEBUG
-	  printf("sample %u %c renderingOffset %llu\n",
+	  printf("sample %u %c renderingOffset "U64"\n",
 		 refVopId, vopType, currentSampleTime - refVopTime);
 #endif
 	  MP4SetSampleRenderingOffset(mp4File, trackId, refVopId,

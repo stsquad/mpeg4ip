@@ -41,7 +41,7 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
 #ifdef DEBUG_L16
   printf("time scale %u\n", MP4GetTrackTimeScale(mp4file, trackid));
 
-  printf("Track fixed sample %llu\n", MP4GetTrackFixedSampleDuration(mp4file, trackid));
+  printf("Track fixed sample "U64"\n", MP4GetTrackFixedSampleDuration(mp4file, trackid));
 #endif
 
   numSamples = MP4GetTrackNumberOfSamples(mp4file, trackid);
@@ -51,7 +51,7 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
 
 #ifdef DEBUG_L16
   for (unsigned int ix = 1; ix < MIN(10, numSamples); ix++) {
-    printf("sampleId %d, size %u duration %llu time %llu\n",
+    printf("sampleId %d, size %u duration "U64" time "U64"\n",
 	   ix, MP4GetSampleSize(mp4file, trackid, ix), 
 	   MP4GetSampleDuration(mp4file, trackid, ix),
 	   MP4GetSampleTime(mp4file, trackid, ix));
@@ -76,7 +76,7 @@ extern "C" bool L16Hinter (MP4FileHandle mp4file,
   
   if ((sampleSize % duration) != 0) {
 #ifdef DEBUG_L16
-    printf("Number of samples not correct - duration %llu sample %d\n", 
+    printf("Number of samples not correct - duration "U64" sample %d\n", 
 	   duration, sampleSize);
 #endif
     return false;

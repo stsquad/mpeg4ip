@@ -39,8 +39,8 @@ static int MP4AV_Ac3FindFrameStart (const uint8_t *buf,
   while (buflen >= 6) {
     if (ntohs(*(const uint16_t *)buf) == 0x0b77) {
       // we've most likely identified a frame
-      *ppFrame = buf;
       int flags, srate, brate;
+      *ppFrame = buf;
       *framesize = a52_syncinfo((uint8_t *)buf, &flags, &srate, &brate);
       if (*framesize != 0) {
 	*bitrate = brate;

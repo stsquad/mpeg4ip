@@ -56,7 +56,7 @@ static void DumpTrack (MP4FileHandle mp4file, MP4TrackId tid)
     msectime -= sectime;
     char buf[12];
     sprintf(buf, "%0.6f", msectime);
-    printf("sampleId %6d, size %5u duration %8llu time %8llu %02.f:%02.f:%02.f.%s %c\n",
+    printf("sampleId %6d, size %5u duration %8"U64F" time %8"U64F" %02.f:%02.f:%02.f.%s %c\n",
 	  sid,  MP4GetSampleSize(mp4file, tid, sid), 
 	   MP4GetSampleDuration(mp4file, tid, sid),
 	   time, hrtime, mintime, sectime, buf + 2,

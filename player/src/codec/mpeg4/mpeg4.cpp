@@ -545,7 +545,7 @@ static int iso_decode (codec_data_t *ptr,
 				pixelw_uv, 
 				displaytime);
   } else {
-    iso_message(LOG_DEBUG, mp4iso, "decode but no frame %llu", ts);
+    iso_message(LOG_DEBUG, mp4iso, "decode but no frame "U64, ts);
   }
   return (iso->m_pvodec->get_used_bytes() + used);
 }

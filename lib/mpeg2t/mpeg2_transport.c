@@ -576,7 +576,7 @@ void mpeg2t_finished_es_work (mpeg2t_es_t *es_pid,
 {
   mpeg2t_frame_t *p;
 #if 0
-  mpeg2t_message(LOG_ERR, "pid %x pts %d %llu listing %d", 
+  mpeg2t_message(LOG_ERR, "pid %x pts %d "U64" listing %d", 
 		 es_pid->pid.pid, es_pid->work->have_ps_ts, 
 		 es_pid->work->ps_ts, es_pid->save_frames);
 #endif

@@ -49,7 +49,7 @@ static inline bool convert_psts (mpeg2t_es_t *es_pid,
     if (sptr->m_is_video != 0) {
       if (fptr->frame_type != 1) {
 #ifdef DEBUG_MPEG2T_PSTS
-	player_debug_message("dropping %llu video ftype %d", 
+	player_debug_message("dropping "U64" video ftype %d", 
 			     fptr->ps_ts, fptr->frame_type);
 #endif
 	return false;
@@ -59,7 +59,7 @@ static inline bool convert_psts (mpeg2t_es_t *es_pid,
       uint16_t temp_ref = MP4AV_Mpeg3PictHdrTempRef(fptr->frame + fptr->pict_header_offset);
       ps_ts -= ((temp_ref + 1) * es_pid->tick_per_frame);
 #ifdef DEBUG_MPEG2T_PSTS
-      player_debug_message("video - convert temp ref %d %llu to %llu", 
+      player_debug_message("video - convert temp ref %d "U64" to "U64, 
 			   temp_ref, fptr->ps_ts, ps_ts);
 #endif
     } else {
@@ -82,7 +82,7 @@ static inline bool convert_psts (mpeg2t_es_t *es_pid,
 #endif
   fptr->ps_ts -= info->m_start_psts;
 #ifdef DEBUG_MPEG2T_PSTS
-  player_debug_message("%s convert psts %llu to %llu %llu", 
+  player_debug_message("%s convert psts "U64" to "U64" "U64,
 		       sptr->m_is_video ? "video" : "audio", 
 		       initial, fptr->ps_ts, info->m_start_psts);
   
@@ -188,7 +188,7 @@ uint64_t CMpeg2tByteStream::start_next_frame (uint8_t **buffer,
 	ret += m_play_start_time;
       }
 #ifdef DEBUG_MPEG2T_FRAME
-      player_debug_message("%s - len %d time %llu ftype %d", 
+      player_debug_message("%s - len %d time "U64" ftype %d", 
 			   m_name, *buflen, ret, m_frame->frame_type);
 #endif
       return (ret);
@@ -239,7 +239,7 @@ int CMpeg2tVideoByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
   double value = 90000.0 / m_es_pid->frame_rate;
   uint64_t frame_time = (uint64_t)value;
 #ifdef DEBUG_MPEG2T_PSTS
-  player_debug_message("video frame len %d have psts %d ts %llu", 
+  player_debug_message("video frame len %d have psts %d ts "U64, 
 		       fptr->frame_len, fptr->have_ps_ts, fptr->ps_ts);
 #endif
   if (fptr->have_ps_ts == 0) {
@@ -303,7 +303,7 @@ int CMpeg2tAudioByteStream::get_timestamp_for_frame (mpeg2t_frame_t *fptr,
   uint64_t pts_in_msec;
   // all ts for audio are stored in msec, not in timescale
 #ifdef DEBUG_MPEG2T_PSTS
-  player_debug_message("audio frame len %d have psts %d ts %llu %d %d", 
+  player_debug_message("audio frame len %d have psts %d ts "U64" %d %d", 
 		       fptr->frame_len, fptr->have_ps_ts, fptr->ps_ts,
 		       m_es_pid->sample_per_frame, 
 		       m_es_pid->sample_freq);

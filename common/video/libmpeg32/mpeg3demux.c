@@ -362,7 +362,7 @@ static int read_transport(mpeg3_demuxer_t *demuxer)
 		bits = mpeg3io_read_char(title->fs);
 	}while(!mpeg3io_eof(title->fs) && !result && bits != MPEG3_SYNC_BYTE);
 
-//printf("read transport 2 bits=%x tell=%llx packet_size=%x\n", bits, mpeg3io_tell(title->fs), file->packet_size);
+//printf("read transport 2 bits=%x tell="X64" packet_size=%x\n", bits, mpeg3io_tell(title->fs), file->packet_size);
 
 	if(bits == MPEG3_SYNC_BYTE && !result)
 	{
@@ -830,11 +830,11 @@ int mpeg3demux_read_program(mpeg3_demuxer_t *demuxer)
 	int pack_count = 0;
 
 	demuxer->data_size = 0;
-//printf("mpeg3demux_read_program 1 %d %x %llx\n", result, title->fs->current_byte, title->fs->total_bytes);
+//printf("mpeg3demux_read_program 1 %d %x "X64"\n", result, title->fs->current_byte, title->fs->total_bytes);
 
 	if(mpeg3io_eof(title->fs)) return 1;
 
-//printf("mpeg3demux_read_program 2 %d %x %llx\n", result, title->fs->current_byte, title->fs->total_bytes);
+//printf("mpeg3demux_read_program 2 %d %x "X64"\n", result, title->fs->current_byte, title->fs->total_bytes);
 
 
 
@@ -898,7 +898,7 @@ int mpeg3demux_read_program(mpeg3_demuxer_t *demuxer)
 			mpeg3io_seek_relative(title->fs, -3);
 		}
 	}
-//printf("mpeg3demux_read_program 3 %d %x %llx\n", result, title->fs->current_byte, title->fs->total_bytes);
+//printf("mpeg3demux_read_program 3 %d %x "X64"\n", result, title->fs->current_byte, title->fs->total_bytes);
 
 
 
@@ -1160,7 +1160,7 @@ int mpeg3_read_next_packet(mpeg3_demuxer_t *demuxer)
 	demuxer->data_size = 0;
 	demuxer->data_position = 0;
 
-//printf("mpeg3_read_next_packet 1 %d %llx\n", demuxer->current_title, mpeg3io_tell(title->fs));
+//printf("mpeg3_read_next_packet 1 %d "X64"\n", demuxer->current_title, mpeg3io_tell(title->fs));
 /* Switch to forward direction. */
 	if(demuxer->reverse)
 	{

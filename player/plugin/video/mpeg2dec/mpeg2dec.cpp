@@ -104,7 +104,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
   decoder = mpeg2dec->m_decoder;
   
 #if 0
-  mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "ts %llu", ts);
+  mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "ts "U64, ts);
   //if (mpeg2dec->m_did_pause != 0) 
  {
     for (uint32_t ix = 0; ix < buflen + 3; ix++) {
@@ -167,7 +167,7 @@ static int mpeg2dec_decode (codec_data_t *ptr,
      // new size
      
 #ifdef DEBUG_MPEG2DEC_FRAME
-     mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "frame %llu decoded", 
+     mpeg2dec->m_vft->log_msg(LOG_DEBUG, "mpeg2dec", "frame "U64" decoded", 
 			  ts);
 #endif
      if (info->display_fbuf) {

@@ -478,7 +478,7 @@ static int sdp_encode (session_desc_t *sptr, sdp_encode_t *se)
   ADD_STR_TO_ENCODE_WITH_RETURN(se,
 				sptr->orig_username == NULL ?
 				"-" : sptr->orig_username);
-  sprintf(buffer, " %lld %lld IN ",
+  sprintf(buffer, " "D64" "D64" IN ",
 	  sptr->session_id,
 	  sptr->session_version);
   ADD_STR_TO_ENCODE_WITH_RETURN(se, buffer);

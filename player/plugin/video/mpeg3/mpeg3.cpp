@@ -118,7 +118,7 @@ static int mpeg3_decode (codec_data_t *ptr,
   buffer[buflen + 3] = 0;
 
 #if 0
-  mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "ts %llu", ts);
+  mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "ts "U64, ts);
   //if (mpeg3->m_did_pause != 0) 
  {
     for (uint32_t ix = 0; ix < buflen + 3; ix++) {
@@ -173,7 +173,7 @@ static int mpeg3_decode (codec_data_t *ptr,
 				     &y,
 				     &u,
 				     &v);    } else {
-      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "didnt find seq header in frame %llu", ts);
+      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "didnt find seq header in frame "U64, ts);
       return buflen;
     }
     mpeg3->m_did_pause = 1;
@@ -204,10 +204,10 @@ static int mpeg3_decode (codec_data_t *ptr,
     int ftype;
     ret = MP4AV_Mpeg3FindGopOrPictHdr(buffer, buflen, &ftype);
     if (ret <= 0) {
-      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu - type %d", 
+      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame "U64" - type %d", 
 			    ts, ftype);
     } else {
-      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu - return %d", 
+      mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame "U64" - return %d", 
 			    ts, ret);
     }
       
@@ -226,7 +226,7 @@ static int mpeg3_decode (codec_data_t *ptr,
 
   if (ret == 0 && y != NULL && render != 0) {
 #ifdef DEBUG_MPEG3_FRAME
-    mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu decoded", 
+    mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame "U64" decoded", 
 			  ts);
 #endif
     mpeg3->m_vft->video_have_frame(mpeg3->m_ifptr,
@@ -241,7 +241,7 @@ static int mpeg3_decode (codec_data_t *ptr,
     if (render == 0) {
       mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "skip render");
     }
-    mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame %llu ret %d %p", 
+    mpeg3->m_vft->log_msg(LOG_DEBUG, "mpeg3", "frame "U64" ret %d %p", 
 			  ts, ret, y);
 #endif
     mpeg3->cached_ts = ts;

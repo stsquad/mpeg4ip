@@ -8,7 +8,7 @@
 static int display_sdp (session_desc_t *sdp)
 {
   size_t len;
-  printf("Sid %llu name %s\n", sdp->session_id, sdp->session_name);
+  printf("Sid "U64" name %s\n", sdp->session_id, sdp->session_name);
   if (sdp->control_string == NULL) {
     // broadcast - try time
     if (sdp->time_desc != NULL) {
@@ -84,7 +84,7 @@ static int get_program_list (const char *content_manager,
 	if (save_sid) {
 	  if (sid == sdp->session_id) {
 	    char buffer[80];
-	    sprintf(buffer, "%llu.sdp", sid);
+	    sprintf(buffer, U64".sdp", sid);
 	    sdp_encode_one_to_file(sdp, buffer, 0);
 	    retvalue = 1;
 	  }
@@ -159,14 +159,14 @@ int main (int argc, char **argv)
     snprintf(buffer, sizeof(buffer), "http://%s/iptvfiles/guide.sdf", 
 	     cm);
     if (get_program_list(buffer, save_sid, sid) > 0) {
-      printf("Program %llu found in Scheduled programs\n", sid);
+      printf("Program "U64" found in Scheduled programs\n", sid);
       return 0;
     }
     if (!save_sid)
       printf("Content manager %s On-Demand Programs\n", cm);
     snprintf(buffer, sizeof(buffer), "http://%s/servlet/OdPublish", cm);
     if (get_program_list(buffer, save_sid, sid) > 0) {
-      printf("Program %llu found in On-demand programs\n", sid);
+      printf("Program "U64" found in On-demand programs\n", sid);
       return 0;
     }
   }

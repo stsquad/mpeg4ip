@@ -677,7 +677,7 @@ uint64_t CPlayerSession::get_current_time (void)
   }
   current_time = get_time_of_day();
 #if 0
-  sync_message(LOG_DEBUG, "current time %llx m_start %llx", 
+  sync_message(LOG_DEBUG, "current time "X64" m_start "X64, 
 	       current_time, m_start);
   if (current_time < m_start) {
     if (m_clock_wrapped == -1) {

@@ -321,7 +321,7 @@ void CRtpTransmitter::DoSendFrame(CMediaFrame* pFrame)
 // void CRtpTransmitter::SendAudioFrame(CMediaFrame* pFrame)
 void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
 {
-  //  debug_message("RTP Timestamp %u\tFrame Duration %llu",
+  //  debug_message("RTP Timestamp %u\tFrame Duration "U64,
   //                AudioTimestampToRtp(pFrame->GetTimestamp())
   //                , pFrame->GetDuration());
 
@@ -338,7 +338,7 @@ void CRtpTransmitter::OldSendAudioFrame(CMediaFrame* pFrame)
   //int32_t diff = ourTs - m_nextAudioRtpTimestamp;
 
   //if (diff > 1) {
-  //  debug_message("Timestamp not consecutive error - timestamp %llu should be %u is %u", 
+  //  debug_message("Timestamp not consecutive error - timestamp "U64" should be %u is %u", 
   //                pFrame->GetTimestamp(),
   //                m_nextAudioRtpTimestamp,
   //                ourTs);
@@ -480,7 +480,7 @@ void CRtpTransmitter::SendQueuedAudioFrames(void)
 		TimestampToNtp(m_audioQueue[0]->GetTimestamp());
 
 #if RTP_DEBUG
-	debug_message("A ts %llu rtp %u ntp %u.%u",
+	debug_message("A ts "U64" rtp %u ntp %u.%u",
 		m_audioQueue[0]->GetTimestamp(),
 		rtpTimestamp,
 		(u_int32_t)(ntpTimestamp >> 32),
@@ -550,7 +550,7 @@ void CRtpTransmitter::SendAudioJumboFrame(CMediaFrame* pFrame)
   CRtpDestination *rdptr;
 
 #if RTP_DEBUG
-  debug_message("A ts %llu rtp %u ntp %u.%u",
+  debug_message("A ts "U64" rtp %u ntp %u.%u",
 		pFrame->GetTimestamp(),
 		rtpTimestamp,
 		(u_int32_t)(ntpTimestamp >> 32),

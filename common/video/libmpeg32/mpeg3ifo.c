@@ -519,7 +519,7 @@ static void cellplayinfo(ifo_t *ifo, mpeg3ifo_celltable_t *cells)
 					cell->start_byte = start_byte;
 					cell->end_byte = end_byte;
 					cell->cell_type = cell_type;
-//printf("cellplayinfo start: %llx end: %llx type: %x\n", 
+//printf("cellplayinfo start: "X64" end: "X64" type: %x\n", 
 //	(int64_t)cell->start_byte * 0x800, (int64_t)cell->end_byte * 0x800, cell->cell_type);
 				}
 				cell_info += PGCI_CELL_ADDR_LEN;
@@ -656,7 +656,7 @@ return;
 	printf("finaltable\n");
 	for(i = 0; i < final_cells->total_cells; i++)
 	{
-		printf(" vob id: %x cell id: %x start: %llx end: %llx program: %x\n", 
+		printf(" vob id: %x cell id: %x start: "X64" end: "X64" program: %x\n", 
 			final_cells->cells[i].vob_id, final_cells->cells[i].cell_id, (int64_t)final_cells->cells[i].start_byte, (int64_t)final_cells->cells[i].end_byte, final_cells->cells[i].program);
 	}
 }
@@ -715,14 +715,14 @@ static int read_ifo(mpeg3_t *file,
 		cell_start = cell->start_byte;
 		cell_end = cell->end_byte;
 
-//printf("read_ifo 1 %d %llx %llx %d\n", current_cell, (int64_t)cell->start_byte, (int64_t)cell->end_byte, cell->program);
+//printf("read_ifo 1 %d "X64" "X64" %d\n", current_cell, (int64_t)cell->start_byte, (int64_t)cell->end_byte, cell->program);
 		while(cell_start < cell_end && length)
 		{
 			length = cell_end - cell_start;
 
 			if(cell_start + length - title_start_byte > title->total_bytes)
 				length = title->total_bytes - cell_start + title_start_byte;
-//printf("read_ifo 3 %llx - %llx + %llx = %llx\n", title->total_bytes, cell_start, title_start_byte, length);
+//printf("read_ifo 3 "X64" - "X64" + "X64" = "X64"\n", title->total_bytes, cell_start, title_start_byte, length);
 
 
 // Should never fail.  If it does it means the length of the cells and the

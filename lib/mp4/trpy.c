@@ -34,7 +34,7 @@ int quicktime_trpy_delete(quicktime_trpy_t *trpy)
 int quicktime_trpy_dump(quicktime_trpy_t *trpy)
 {
 	printf("    total RTP bytes\n");
-	printf("     numBytes %llu\n", trpy->numBytes);
+	printf("     numBytes "U64"\n", trpy->numBytes);
 }
 
 int quicktime_read_trpy(quicktime_t *file, quicktime_trpy_t *trpy)

@@ -324,7 +324,7 @@ void COSSAudioSource::ProcessAudio(void)
   } else {
     ioctl(m_audioDevice, SNDCTL_DSP_GETERROR, &errinfo);
     if (errinfo.rec_overruns > 0) {
-      debug_message("overrun error found in audio - adding %llu samples",
+      debug_message("overrun error found in audio - adding "U64" samples",
 		    SrcBytesToSamples(errinfo.rec_ptradjust));
       close(m_audioDevice);
       InitDevice();
@@ -395,7 +395,7 @@ void COSSAudioSource::ProcessAudio(void)
     }
 
 #ifdef DEBUG_TIMESTAMPS
-    debug_message("info.bytes=%d t=%llu timestamp=%llu delta=%llu",
+    debug_message("info.bytes=%d t="U64" timestamp="U64" delta="U64,
                   info.bytes, currentTime, timestamp, timestamp - m_prevTimestamp);
 #endif
 

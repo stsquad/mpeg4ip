@@ -717,7 +717,7 @@ CH261PixelEncoder::EncodeImage(uint8_t *pY,
 	// lower quality - we're sending more
       }
 #ifdef DEBUG_QUALITY_ADJUSTMENT
-	error_message("dur %lld calc bps %lld should %u %lld diff %lld cmp %lld, adjust %d %d", 
+	error_message("dur "D64" calc bps "D64" should %u "D64" diff "D64" cmp "D64", adjust %d %d", 
 		      dur8frames, calcBps, m_encodedBytes, realBps, diff,
 		      m_bitsPerFrame,
 		      adj, lq_ - adj);

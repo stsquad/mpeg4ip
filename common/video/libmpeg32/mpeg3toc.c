@@ -205,8 +205,8 @@ int main(int argc, char *argv[])
 					if(j == atracks - 1) 
 					{
 						total_samples += sample_count;
-//						printf("Audio: title=%lld offset=%016llx ", title_number, position);
-						printf("Audio: title=%lld total_samples=%d ", title_number, total_samples);
+//						printf("Audio: title="D64" offset=%016"X64F" ", title_number, position);
+						printf("Audio: title="D64" total_samples=%d ", title_number, total_samples);
 					}
 				}
 			}
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
 						if(j == vtracks - 1 && l == frame_count - 1)
 						{
 							total_frames += frame_count;
-							printf("Video: title=%lld total_frames=%d ", title_number, total_frames);
+							printf("Video: title="D64" total_frames=%d ", title_number, total_frames);
 						}
 					}
 				}
@@ -398,7 +398,7 @@ int main(int argc, char *argv[])
 			for(i = 0; i < total_sample_offsets[j]; i++)
 			{
 				PUT_INT64(sample_offsets[j][i]);
-//printf("Audio: offset=%016llx\n", sample_offsets[j][i]);
+//printf("Audio: offset=%016"X64F"\n", sample_offsets[j][i]);
 			}
 		}
 
@@ -409,14 +409,14 @@ int main(int argc, char *argv[])
 			for(i = 0; i < total_frame_offsets[j]; i++)
 			{
 				PUT_INT64(frame_offsets[j][i]);
-//printf("Video: offset=%016llx\n", frame_offsets[j][i]);
+//printf("Video: offset=%016"X64F"\n", frame_offsets[j][i]);
 			}
 
 			PUT_INT32(total_keyframe_numbers[j]);
 			for(i = 0; i < total_keyframe_numbers[j]; i++)
 			{
 				PUT_INT64(keyframe_numbers[j][i]);
-//printf("Video: keyframe=%lld\n", keyframe_numbers[j][i]);
+//printf("Video: keyframe="D64"\n", keyframe_numbers[j][i]);
 			}
 		}
 

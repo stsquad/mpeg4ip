@@ -446,7 +446,7 @@ int mpeg3video_get_header(mpeg3video_t *video, int dont_repeat)
 
 	while(1)
 	{
-//printf("mpeg3video_get_header 1 %llx\n", mpeg3bits_tell(video->vstream));
+//printf("mpeg3video_get_header 1 "X64"\n", mpeg3bits_tell(video->vstream));
 /* look for startcode */
     	code = mpeg3bits_next_startcode(video->vstream);
 
