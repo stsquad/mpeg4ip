@@ -94,8 +94,8 @@ if [ $USERID = 0 ]; then
 		mkdir -p /usr/local/movies
 	fi
 	
-	echo copying "sample.mov" into "/usr/local/movies/sample.mov"
-	cp -f sample.mov /usr/local/movies/
+	#echo copying "sample.mov" into "/usr/local/movies/sample.mov"
+	#cp -f sample.mov /usr/local/movies/
 	
 	echo copying "SpamPro" to "/usr/local/sbin/SpamPro"
 	cp SpamPro /usr/local/sbin/

@@ -70,8 +70,8 @@ if [ $FLATTEN != 1 ]; then
 	echo creating "$INSTALLROOT/usr/local/movies" directory
 	mkdir -p $INSTALLROOT/usr/local/movies
 	
-	echo copying "sample.mov" into "$INSTALLROOT/usr/local/movies"
-	cp sample.mov $INSTALLROOT/usr/local/movies/
+	#echo copying "sample.mov" into "$INSTALLROOT/usr/local/movies"
+	#cp sample.mov $INSTALLROOT/usr/local/movies/
 	
 	echo copying "SpamPro" to "$INSTALLROOT/usr/local/sbin/SpamPro"
 	cp SpamPro.tproj/SpamPro $INSTALLROOT/usr/local/sbin/
@@ -131,8 +131,8 @@ else
 	echo copying "Documentation/DSSReadMe.htm" into "$INSTALLROOT/readme.html"
 	cp Documentation/DSSReadMe.htm $INSTALLROOT/readme.html
 	
-	echo copying "sample.mov" into "$INSTALLROOT/movies"
-	cp sample.mov $INSTALLROOT/
+	#echo copying "sample.mov" into "$INSTALLROOT/movies"
+	#cp sample.mov $INSTALLROOT/
 	
 	echo copying "SpamPro" to "$INSTALLROOT/SpamPro"
 	cp SpamPro.tproj/SpamPro $INSTALLROOT/
